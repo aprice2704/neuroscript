@@ -1,0 +1,38 @@
+DEFINE PROCEDURE InspectAndImproveProcedure(ProcedureName)
+COMMENT:
+    PURPOSE: 
+        Retrieve a NeuroScript procedure by name, analyze its docstring and implementation, 
+        then suggest improvements (e.g., more complete docstring, better structure).
+    INPUTS: 
+        ProcedureName -> name of the procedure to inspect
+    OUTPUT: 
+        UpdatedProcedureCode -> Possibly improved version of the code
+    ALGORITHM:
+        1. Fetch the existing procedure code and docstring from the repository.
+        2. Call the LLM with instructions to identify missing docstring fields or structural issues.
+        3. If changes are suggested, apply or store them as a new version.
+    CAVEATS:
+        - The LLM’s suggestions may need manual review for correctness or style.
+        - Some changes (like major structural refactors) may break references in other code if not carefully versioned.
+END
+
+# Step 1: Retrieve code from the skill repository
+SET originalProcedureCode = CALL Tools.GetProcedureCode(ProcedureName)
+
+# Step 2: Prompt LLM to evaluate the code’s docstring & structure
+SET improvementSuggestions = CALL LLM("
+    Analyze this NeuroScript code and docstring:
+    {{originalProcedureCode}}
+
+    1. Identify missing or incomplete docstring fields (PURPOSE, INPUTS, OUTPUT, etc.).
+    2. Suggest any structural improvements (e.g., reordering steps, adding comments).
+    3. Return a revised version of the code with improvements applied.
+")
+
+# Step 3: Extract or parse out the revised code from the LLM response
+SET revisedProcedureCode = CALL Tools.ParseRevisedCode(improvementSuggestions)
+
+# (Optional) If you want to automatically accept changes, save them back to the repo
+CALL Tools.SaveProcedureCode(ProcedureName, revisedProcedureCode)
+
+RETURN revisedProcedureCode
