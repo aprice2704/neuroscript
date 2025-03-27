@@ -1,0 +1,13 @@
+DEFINE PROCEDURE WriteGreetingFile(filename, greeting)
+COMMENT:
+    PURPOSE: Writes a greeting to a file.
+    INPUTS:
+        - filename: Path to the file.
+        - greeting: The text to write.
+    OUTPUT: None (implicitly via side effect).
+    ALGORITHM: Use WriteFile tool.
+END
+
+CALL TOOL.WriteFile({{filename}}, {{greeting}})
+# No explicit RETURN needed if just performing action
+END

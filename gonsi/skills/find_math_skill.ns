@@ -1,0 +1,14 @@
+DEFINE PROCEDURE FindAdderSkill()
+COMMENT:
+    PURPOSE: Searches for a skill related to addition.
+    INPUTS: None
+    OUTPUT: JSON string of search results.
+    ALGORITHM: Call SearchSkills with relevant query.
+END
+
+SET query = "add two numbers" # Query to find the adder skill
+
+CALL TOOL.SearchSkills({{query}})
+RETURN __last_call_result
+
+END

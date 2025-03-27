@@ -1,0 +1,12 @@
+DEFINE PROCEDURE FindSkills(query)
+COMMENT:
+    PURPOSE: Tests the skill search stub.
+    INPUTS: - query: String to search for.
+    OUTPUT: Result from search tool (stubbed).
+    ALGORITHM: Call TOOL.SearchSkills, return result.
+END
+
+CALL TOOL.SearchSkills({{query}})
+RETURN __last_call_result
+
+END

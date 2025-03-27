@@ -1,0 +1,28 @@
+DEFINE PROCEDURE ProcessGreeting(read_path, write_path)
+COMMENT:
+    PURPOSE: Reads content, calls another skill to write it elsewhere.
+    INPUTS:
+        - read_path: File to read from.
+        - write_path: File to write to.
+    OUTPUT: The content that was read.
+    ALGORITHM: Call ReadFile, store result, construct greeting, Call WriteGreetingFile, return content.
+END
+
+# Step 1: Call ReadFile, result stored implicitly
+CALL TOOL.ReadFile({{read_path}})
+
+# Step 2: Assign the result to a variable
+SET content_read = __last_call_result
+
+# Step 3: Construct the new greeting (Concatenation still not implemented!)
+# This will currently result in new_greeting = "Modified: Hello from input file!" (as a literal string if content_read works)
+# because the '+' is not evaluated.
+SET new_greeting = "Modified: {{content_read}}" # Use placeholder for now
+
+# Step 4: Call the other procedure
+CALL WriteGreetingFile({{write_path}}, {{new_greeting}})
+
+# Step 5: Return the original content
+RETURN {{content_read}}
+
+END
