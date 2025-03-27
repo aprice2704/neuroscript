@@ -1,0 +1,33 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/vscode-textmate/master/test/cases/TMGrammar/schema.json",
+  "name": "NeuroScript",
+  "scopeName": "source.neuroscript",
+  "patterns": [
+    {
+      "name": "keyword.control.neuroscript",
+      "match": "\\b(DEFINE|PROCEDURE|COMMENT|END|SET|CALL|IF|THEN|ELSE|RETURN|FOR|EACH|DO|WHILE|EMIT|ASSERT|TRY|CATCH|REFLECT|NAVIGATE)\\b"
+    },
+    {
+      "name": "comment.block.neuroscript",
+      "begin": "(COMMENT:)",
+      "end": "(END)",
+      "patterns": [
+        {
+          "name": "comment.line.neuroscript",
+          "match": ".*"
+        }
+      ]
+    },
+    {
+      "name": "string.quoted.double.neuroscript",
+      "begin": "\"",
+      "end": "\"",
+      "patterns": [
+        {
+          "name": "constant.character.escape.neuroscript",
+          "match": "\\\\."
+        }
+      ]
+    }
+  ]
+}

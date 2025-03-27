@@ -1,0 +1,35 @@
+{
+  "name": "neuroscript-syntax",
+  "displayName": "NeuroScript Syntax",
+  "description": "Syntax highlighting for NeuroScript pseudocode",
+  "version": "0.0.1",
+  "publisher": "YourName",
+  "engines": {
+    "vscode": "^1.0.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "neuroscript",
+        "aliases": [
+          "NeuroScript",
+          "neuroscript"
+        ],
+        "extensions": [
+          ".ns"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "neuroscript",
+        "scopeName": "source.neuroscript",
+        "path": "./syntaxes/neuroscript.tmLanguage.json"
+      }
+    ]
+  }
+}
