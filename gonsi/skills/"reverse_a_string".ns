@@ -1,0 +1,10 @@
+ReverseString.ns
+DEFINE ReverseStringProc(str)
+COMMENT This procedure reverses a string.
+  len = strlen(str)
+  reversedStr = ""
+  FOR i FROM len-1 TO 0 STEP -1
+    reversedStr = reversedStr + substr(str,i,1)
+  ENDFOR
+  RETURN reversedStr
+END
