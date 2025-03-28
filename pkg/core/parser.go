@@ -1,287 +1,429 @@
+// pkg/core/parser.go
 package core
 
 import (
 	"bufio"
 	"fmt"
 	"io"
-	"regexp"
+	"regexp" // Keep regexp import
 	"strings"
-	"unicode"
 )
-
-// --- AST Definitions ---
-type Docstring struct {
-	Purpose   string
-	Inputs    map[string]string
-	Output    string
-	Algorithm string
-	Caveats   string
-	Examples  string
-}
-type Procedure struct {
-	Name      string
-	Params    []string
-	Docstring Docstring
-	Steps     []Step
-}
-type Step struct {
-	Type   string
-	Target string
-	Value  interface{}
-	Args   []string
-	Cond   string
-}
 
 // --- Parser Implementation ---
 
-// Final ParseFile Refactor
+type parserState int
+
+const (
+	stateTopLevel      parserState = iota // Expecting DEFINE, comment, blank
+	stateInProcedure                      // Expecting COMMENT, step, END procedure
+	stateInDocstring                      // Expecting docstring line or END docstring
+	stateProcedureDone                    // Just finished a procedure, expect DEFINE or EOF
+	stateInBlock                          // Inside an IF/WHILE/FOR block, expecting steps or END block
+	stateInElseBlock                      // Inside an ELSE block, expecting steps or END block
+)
+
+// BlockContext holds information about nested blocks
+type BlockContext struct {
+	BlockStep *Step       // The IF/WHILE/FOR step that started the block
+	Steps     []Step      // Steps collected within this block
+	StateType parserState // The state this block represents (stateInBlock, stateInElseBlock)
+}
+
+// ParseFile uses a state machine approach, handles line continuations (\), and multi-line blocks.
 func ParseFile(r io.Reader) ([]Procedure, error) {
 	scanner := bufio.NewScanner(r)
-	scanner.Split(bufio.ScanLines)
+	const maxCapacity = 1024 * 1024
+	buf := make([]byte, maxCapacity)
+	scanner.Buffer(buf, maxCapacity)
+
 	procedures := []Procedure{}
 	var currentProc *Procedure
 	lineNum := 0
-	var docstringLines []string // Buffer used only when collecting docstring
-	collectingDocstring := false
+	var docstringLines []string
+	state := stateTopLevel
+	lastLineNumProcessed := 0
+
+	var lineBuilder strings.Builder
+	continuationActive := false
+
+	var blockStack []*BlockContext
 
 	for scanner.Scan() {
 		lineNum++
-		line := scanner.Text()
+		rawLine := scanner.Text()
+		trimmedRawLine := strings.TrimSpace(rawLine)
 
-		// Are we collecting lines for a docstring?
-		if collectingDocstring {
-			trimmedLine := strings.TrimSpace(line)
-			if trimmedLine == "END" { // End of docstring block
+		// Handle line continuation
+		if strings.HasSuffix(trimmedRawLine, "\\") {
+			lineToAppend := strings.TrimSpace(strings.TrimSuffix(trimmedRawLine, "\\"))
+			lineBuilder.WriteString(lineToAppend) // Just concat, rely on spaces within lines or + operator
+			continuationActive = true
+			continue
+		}
+
+		var fullLine string
+		if continuationActive {
+			lineBuilder.WriteString(rawLine) // Append final line raw
+			fullLine = lineBuilder.String()
+			lineBuilder.Reset()
+			continuationActive = false
+		} else {
+			fullLine = rawLine
+		}
+
+		currentLineNumForProcessing := lineNum
+		lastLineNumProcessed = currentLineNumForProcessing
+
+		// Trim comments AFTER joining lines
+		trimmedLine := strings.TrimSpace(trimComments(fullLine))
+
+		// Handle Docstring State separately first
+		if state == stateInDocstring {
+			if trimmedLine == "END" || strings.EqualFold(trimmedLine, "END COMMENT") {
 				if currentProc == nil {
-					return nil, fmt.Errorf("L%d: internal error: END docstring but no current proc", lineNum)
+					return nil, fmt.Errorf("L%d: internal error: END docstring but no current proc", currentLineNumForProcessing)
 				}
 				doc, err := parseDocstringBlock(docstringLines)
 				if err != nil {
-					startLine := lineNum - len(docstringLines) - 1
-					if startLine < 1 {
-						startLine = 1
-					}
-					return nil, fmt.Errorf("L%d-%d: docstring block error: %w", startLine, lineNum, err)
+					return nil, fmt.Errorf("L%d (around docstring): docstring block parsing error: %w", currentLineNumForProcessing, err)
 				}
 				currentProc.Docstring = doc
-				collectingDocstring = false // Reset flag
-				docstringLines = nil        // Clear buffer
+				state = stateInProcedure // Transition back
+				docstringLines = nil
 			} else {
-				docstringLines = append(docstringLines, line) // Collect line
+				docstringLines = append(docstringLines, rawLine) // Append raw line
 			}
-			continue // Always continue to next line when collecting/ending docstring
+			continue // Finished processing for docstring state
 		}
 
-		// --- Not collecting docstring ---
-		trimmedLine := strings.TrimSpace(line)
-		if trimmedLine == "" || strings.HasPrefix(trimmedLine, "#") || strings.HasPrefix(trimmedLine, "--") {
+		// Skip blank lines universally (now that docstring is handled)
+		if trimmedLine == "" {
 			continue
-		} // Skip blank/comment
+		}
 
-		// Is it a new procedure definition?
-		if strings.HasPrefix(trimmedLine, "DEFINE PROCEDURE") {
-			if currentProc != nil { // Finalize previous if any
+		// Try parsing the line into a step (unless it's top level or needs special handling)
+		var parsedStep Step
+		var parseErr error
+		needsParsing := true
+
+		// --- Main State Machine ---
+		//	processState: // Label to allow breaking to re-process END in parent block
+
+		// Check for special keywords BEFORE calling ParseStep in relevant states
+		switch state {
+		case stateTopLevel, stateProcedureDone:
+			if strings.HasPrefix(trimmedLine, "DEFINE PROCEDURE") {
+				proc, err := parseProcedureHeader(fullLine)
+				if err != nil {
+					return nil, fmt.Errorf("L%d: header error: %w", currentLineNumForProcessing, err)
+				}
+				currentProc = &proc
+				state = stateInProcedure
+				needsParsing = false // Handled header, don't call ParseStep
+			} else { // Any other non-blank/comment line is an error
+				return nil, fmt.Errorf("L%d: unexpected statement outside procedure definition: %s", currentLineNumForProcessing, trimmedLine)
+			}
+
+		case stateInProcedure:
+			if strings.HasPrefix(trimmedLine, "COMMENT:") {
+				if currentProc == nil {
+					return nil, fmt.Errorf("L%d: internal error: COMMENT: found but no current procedure", currentLineNumForProcessing)
+				}
+				if currentProc.Docstring.Purpose != "" {
+					return nil, fmt.Errorf("L%d: duplicate COMMENT: block found in procedure '%s'", currentLineNumForProcessing, currentProc.Name)
+				}
+				if len(currentProc.Steps) > 0 {
+					return nil, fmt.Errorf("L%d: COMMENT: block must appear before any steps in procedure '%s'", currentLineNumForProcessing, currentProc.Name)
+				}
+				state = stateInDocstring
+				docstringLines = []string{}
+				needsParsing = false // Handled COMMENT:, don't call ParseStep
+			} else if trimmedLine == "END" {
+				// This END terminates the procedure itself
+				if currentProc == nil {
+					return nil, fmt.Errorf("L%d: internal error: END found but no current procedure", currentLineNumForProcessing)
+				}
 				if err := validateDocstring(currentProc.Docstring); err != nil {
-					return nil, fmt.Errorf("~L%d(before %s): doc validation: %w", lineNum, trimmedLine, err)
+					return nil, fmt.Errorf("L%d (proc '%s'): docstring validation failed: %w", currentLineNumForProcessing, currentProc.Name, err)
 				}
 				procedures = append(procedures, *currentProc)
+				currentProc = nil
+				state = stateProcedureDone
+				needsParsing = false // Handled END, don't call ParseStep
 			}
-			proc, err := parseProcedureHeader(trimmedLine)
-			if err != nil {
-				return nil, fmt.Errorf("L%d: header error: %w", lineNum, err)
+			// If not COMMENT: or END, needsParsing remains true
+
+		case stateInBlock: // Also covers stateInElseBlock conceptually now
+			if trimmedLine == "END" {
+				// This END terminates the current block
+				needsParsing = true // Let ParseStep identify END_BLOCK type
 			}
-			currentProc = &proc // Start new proc
+			// Otherwise, needsParsing remains true to parse the step inside the block
+		}
+
+		// Call ParseStep if needed for the current state and line content
+		if needsParsing {
+			parsedStep, parseErr = ParseStep(fullLine)
+			if parseErr != nil {
+				return nil, fmt.Errorf("L%d: step parse error ('%s'): %w", currentLineNumForProcessing, trimmedLine, parseErr)
+			}
+			// Ignore empty steps resulting from comment-only lines passed to ParseStep
+			if parsedStep.Type == "" {
+				continue
+			}
+		} else {
+			// If needsParsing was false, skip the rest of the state processing for this line
 			continue
 		}
 
-		// If not starting a new procedure, we MUST be inside one already
-		if currentProc == nil {
-			if trimmedLine != "END" { // Ignore stray ENDs
-				return nil, fmt.Errorf("L%d: unexpected statement outside procedure: %s", lineNum, trimmedLine)
+		// --- State Transitions based on Parsed Step (if parsing occurred) ---
+		switch state {
+		// stateTopLevel, stateProcedureDone were handled above if needsParsing was false
+		// stateInDocstring was handled separately
+
+		case stateInProcedure:
+			// NeedsParsing was true, ParseStep was called.
+			if parsedStep.Type == "IF" || parsedStep.Type == "WHILE" || parsedStep.Type == "FOR" {
+				newContext := &BlockContext{BlockStep: &parsedStep, Steps: []Step{}, StateType: stateInBlock}
+				blockStack = append(blockStack, newContext)
+				state = stateInBlock
+			} else if parsedStep.Type == "ELSE" {
+				return nil, fmt.Errorf("L%d: unexpected ELSE statement (must follow IF block END)", currentLineNumForProcessing)
+			} else if parsedStep.Type == "END_BLOCK" {
+				// END should have been caught by the specific check for `trimmedLine == "END"` above
+				return nil, fmt.Errorf("L%d: internal error: END_BLOCK received unexpectedly in stateInProcedure", currentLineNumForProcessing)
+			} else { // Regular step
+				if currentProc == nil {
+					return nil, fmt.Errorf("L%d: internal error: trying to add step but no current procedure", currentLineNumForProcessing)
+				}
+				currentProc.Steps = append(currentProc.Steps, parsedStep)
 			}
-			continue // Ignore stray END
-		}
 
-		// Inside a procedure - check for COMMENT start
-		if strings.HasPrefix(trimmedLine, "COMMENT:") && len(currentProc.Steps) == 0 {
-			collectingDocstring = true  // Start collecting mode
-			docstringLines = []string{} // Init buffer
-			// Content on COMMENT: line itself is ignored by spec/parser. Next lines are collected.
-			continue
-		}
+		case stateInBlock: // Covers nested blocks and ELSE blocks
+			if parsedStep.Type == "END_BLOCK" { // Standalone END closes the current block
+				if len(blockStack) == 0 {
+					return nil, fmt.Errorf("L%d: unexpected END statement outside of block", currentLineNumForProcessing)
+				}
 
-		// Check for Procedure END
-		if trimmedLine == "END" {
-			if err := validateDocstring(currentProc.Docstring); err != nil {
-				return nil, fmt.Errorf("~L%d (proc %s) doc validation: %w", lineNum, currentProc.Name, err)
+				currentBlock := blockStack[len(blockStack)-1]
+				blockStack = blockStack[:len(blockStack)-1] // Pop
+
+				currentBlock.BlockStep.Value = currentBlock.Steps // Store []Step
+
+				// Add the completed block step to the parent's context
+				if len(blockStack) > 0 { // Parent is another block
+					parentBlock := blockStack[len(blockStack)-1]
+					parentBlock.Steps = append(parentBlock.Steps, *currentBlock.BlockStep)
+					state = parentBlock.StateType // Use parent's specific state type
+				} else { // Parent is the main procedure body
+					if currentProc == nil {
+						return nil, fmt.Errorf("L%d: internal error: closing block but no current procedure", currentLineNumForProcessing)
+					}
+					currentProc.Steps = append(currentProc.Steps, *currentBlock.BlockStep)
+					state = stateInProcedure
+				}
+				// Future: Add stateMaybeElse logic here if currentBlock.BlockStep.Type == "IF"
+
+			} else if parsedStep.Type == "IF" || parsedStep.Type == "WHILE" || parsedStep.Type == "FOR" {
+				// Start a nested block
+				if len(blockStack) == 0 {
+					return nil, fmt.Errorf("L%d: internal error: block state inconsistency", currentLineNumForProcessing)
+				}
+				// Parent state is stateInBlock (or conceptually stateInElseBlock)
+				//		parentState := blockStack[len(blockStack)-1].StateType
+				newContext := &BlockContext{BlockStep: &parsedStep, Steps: []Step{}, StateType: stateInBlock} // Nested blocks are just stateInBlock
+				blockStack = append(blockStack, newContext)
+				state = stateInBlock // Enter nested block state
+
+			} else if parsedStep.Type == "ELSE" {
+				// Allow ELSE only if we just closed an IF block? No, handle that later.
+				// For now, ELSE cannot be nested directly inside another block's steps.
+				return nil, fmt.Errorf("L%d: unexpected ELSE statement inside block", currentLineNumForProcessing)
+			} else { // Regular step inside a block
+				if len(blockStack) == 0 {
+					return nil, fmt.Errorf("L%d: internal error: block state inconsistency", currentLineNumForProcessing)
+				}
+				currentBlock := blockStack[len(blockStack)-1]
+				currentBlock.Steps = append(currentBlock.Steps, parsedStep)
+				// State remains the current block's state (e.g., stateInBlock)
 			}
-			procedures = append(procedures, *currentProc)
-			currentProc = nil // Reset state
-			continue
-		}
-
-		// Check for ELSE (ignore)
-		if strings.ToUpper(trimmedLine) == "ELSE" {
-			continue
-		}
-
-		// Otherwise, parse as Step
-		step, err := parseStep(trimmedLine)
-		if err != nil {
-			return nil, fmt.Errorf("L%d: step parse error ('%s'): %w", lineNum, trimmedLine, err)
-		}
-		if step.Type != "" {
-			currentProc.Steps = append(currentProc.Steps, step)
-		}
+		} // End switch state for transitions
 
 	} // End scanner loop
 
+	// --- After Loop (EOF) ---
 	if err := scanner.Err(); err != nil {
-		return nil, fmt.Errorf("scanner error: %w", err)
-	}
-	if collectingDocstring {
-		return nil, fmt.Errorf("L%d: EOF missing 'END' for docstring block", lineNum)
-	} // Check state at EOF
-	if currentProc != nil { // Finalize last procedure at EOF
-		if err := validateDocstring(currentProc.Docstring); err != nil {
-			return nil, fmt.Errorf("EOF: proc %s docstring validation: %w", currentProc.Name, err)
+		if err == bufio.ErrTooLong {
+			return nil, fmt.Errorf("scanner error: line exceeded buffer capacity (%d bytes)", maxCapacity)
 		}
-		procedures = append(procedures, *currentProc)
+		return nil, fmt.Errorf("scanner error at end of file: %w", err)
 	}
-	return procedures, nil
+	if continuationActive {
+		return nil, fmt.Errorf("L%d: unexpected EOF after line continuation character '\\'", lineNum)
+	}
+	if len(blockStack) > 0 {
+		return nil, fmt.Errorf("L%d: unexpected EOF: missing 'END' for %s block", lastLineNumProcessed, blockStack[len(blockStack)-1].BlockStep.Type)
+	}
+
+	switch state {
+	case stateInDocstring:
+		return nil, fmt.Errorf("L%d: unexpected EOF: missing 'END' for docstring block", lastLineNumProcessed)
+	case stateInProcedure:
+		if currentProc != nil {
+			return nil, fmt.Errorf("L%d: unexpected EOF: missing 'END' for procedure '%s'", lastLineNumProcessed, currentProc.Name)
+		}
+		return nil, fmt.Errorf("L%d: internal error: EOF in procedure state but no procedure active", lastLineNumProcessed)
+	case stateTopLevel, stateProcedureDone:
+		return procedures, nil
+	default:
+		return nil, fmt.Errorf("L%d: internal error: unknown parser state (%d) at EOF", lastLineNumProcessed, state)
+	}
 }
 
-func parseProcedureHeader(line string) (Procedure, error) { /* ... unchanged ... */
+// --- Header Parsing --- (Unchanged)
+func parseProcedureHeader(line string) (Procedure, error) {
 	definePrefix := "DEFINE PROCEDURE"
-	rest := strings.TrimSpace(line[len(definePrefix):])
+	trimmedLine := trimComments(line)
+	trimmedLine = strings.TrimSpace(trimmedLine)
+	if !strings.HasPrefix(trimmedLine, definePrefix) {
+		return Procedure{}, fmt.Errorf("invalid procedure header: does not start with 'DEFINE PROCEDURE': %q", line)
+	}
+	rest := strings.TrimSpace(trimmedLine[len(definePrefix):])
 	openParen := strings.Index(rest, "(")
 	closeParen := strings.LastIndex(rest, ")")
-	if openParen == -1 && closeParen == -1 {
-		if len(strings.Fields(rest)) == 1 && rest != "" {
-			return Procedure{}, fmt.Errorf("invalid procedure header: missing '()' for parameters (e.g., %s())", rest)
-		}
-		if rest == "" {
-			return Procedure{}, fmt.Errorf("invalid procedure header: missing procedure name and '()'")
-		}
-	}
 	if openParen == -1 {
-		return Procedure{}, fmt.Errorf("invalid procedure header: missing '(' for parameter list")
+		return Procedure{}, fmt.Errorf("invalid procedure header: missing '(' for parameter list in '%s'", rest)
 	}
-	if closeParen == -1 {
-		return Procedure{}, fmt.Errorf("invalid procedure header: missing ')' after parameter list")
+	if !strings.HasSuffix(strings.TrimSpace(rest), ")") {
+		return Procedure{}, fmt.Errorf("invalid procedure header: missing or misplaced ')' after parameter list in '%s'", rest)
 	}
+	tempTrimmed := strings.TrimSpace(rest)
+	if tempTrimmed[len(tempTrimmed)-1] != ')' {
+		return Procedure{}, fmt.Errorf("invalid procedure header: content after closing parenthesis ')' in '%s'", rest)
+	}
+	closeParen = strings.LastIndex(rest, ")")
 	if closeParen < openParen {
-		return Procedure{}, fmt.Errorf("invalid procedure header: ')' appears before '(' or parentheses mismatch")
+		return Procedure{}, fmt.Errorf("internal parser error: ')' appears before '(' despite checks in '%s'", rest)
 	}
 	name := strings.TrimSpace(rest[:openParen])
 	if name == "" {
 		return Procedure{}, fmt.Errorf("invalid procedure header: procedure name cannot be empty")
 	}
+	if !isValidIdentifier(name) {
+		return Procedure{}, fmt.Errorf("invalid procedure header: invalid procedure name '%s'", name)
+	}
 	paramsPart := strings.TrimSpace(rest[openParen+1 : closeParen])
 	var params []string
 	if paramsPart != "" {
 		params = splitParams(paramsPart)
+		for i, p := range params {
+			if !isValidIdentifier(p) {
+				return Procedure{}, fmt.Errorf("invalid procedure header: invalid parameter name '%s' (index %d) in '%s'", p, i, paramsPart)
+			}
+		}
 	} else {
 		params = []string{}
 	}
 	return Procedure{Name: name, Params: params}, nil
 }
-func splitParams(paramStr string) []string { /* ... unchanged ... */
-	if strings.TrimSpace(paramStr) == "" {
-		return []string{}
-	}
-	parts := strings.Split(paramStr, ",")
-	params := make([]string, 0, len(parts))
-	for _, p := range parts {
-		trimmedParam := strings.TrimSpace(p)
-		if trimmedParam != "" {
-			params = append(params, trimmedParam)
-		}
-	}
-	return params
-}
 
-// Updated parseDocstringBlock - Logic moved from old parseDocstring
+// --- Docstring Parsing --- (Unchanged)
 func parseDocstringBlock(lines []string) (Docstring, error) {
 	doc := Docstring{Inputs: make(map[string]string)}
 	currentSection := ""
 	var sectionContent strings.Builder
 	sectionHeaderRegex := regexp.MustCompile(`(?i)^\s*(PURPOSE|INPUTS|OUTPUT|ALGORITHM|CAVEATS|EXAMPLES)\s*:\s*(.*)$`)
-	// baseIndent/getIndent removed - using simple TrimSpace in saveSectionContent
-
-	for i, line := range lines {
-		trimmedLine := strings.TrimSpace(line)
-		// Skip truly empty lines between sections? Or keep for formatting? Keep for now.
-		// if trimmedLine == "" { continue }
-
+	start := 0
+	end := len(lines) - 1
+	for start < len(lines) && strings.TrimSpace(lines[start]) == "" {
+		start++
+	}
+	for end >= start && strings.TrimSpace(lines[end]) == "" {
+		end--
+	}
+	trimmedLines := lines[start : end+1]
+	for i, line := range trimmedLines {
 		match := sectionHeaderRegex.FindStringSubmatch(line)
 		isNewSection := len(match) == 3
-
 		if isNewSection {
 			newSectionKey := strings.ToUpper(strings.TrimSpace(match[1]))
 			restOfLine := match[2]
-			// Save previous section before switching
-			if err := saveSectionContent(currentSection, &sectionContent, &doc); err != nil {
-				return doc, fmt.Errorf("line %d: section '%s': %w", i+1, currentSection, err)
+			if currentSection != "" {
+				if err := saveSectionContent(currentSection, &sectionContent, &doc); err != nil {
+					return doc, fmt.Errorf("saving section '%s' (around line %d): %w", currentSection, i, err)
+				}
 			}
 			currentSection = newSectionKey
 			sectionContent.Reset()
-			sectionContent.WriteString(restOfLine) // Start raw
-		} else { // Continuation line
-			// Error if content appears before the *first* section header is found
-			if currentSection == "" && trimmedLine != "" {
-				return doc, fmt.Errorf("line %d: content before first section header: %q", i+1, line)
-			}
-			// Only append if we are *inside* a section
-			if currentSection != "" {
-				// Add newline only if buffer isn't empty (avoid leading newline)
+			sectionContent.WriteString(restOfLine)
+		} else {
+			if currentSection == "" {
+				if strings.TrimSpace(line) != "" {
+					return doc, fmt.Errorf("line %d: content before first section header: %q", i+1, line)
+				}
+			} else {
 				if sectionContent.Len() > 0 {
 					sectionContent.WriteString("\n")
 				}
-				sectionContent.WriteString(line) // Add raw line content
+				sectionContent.WriteString(line)
 			}
 		}
 	}
-	// Save the very last section after the loop finishes
-	if err := saveSectionContent(currentSection, &sectionContent, &doc); err != nil {
-		return doc, fmt.Errorf("last section '%s': %w", currentSection, err)
+	if currentSection != "" {
+		if err := saveSectionContent(currentSection, &sectionContent, &doc); err != nil {
+			return doc, fmt.Errorf("saving last section '%s': %w", currentSection, err)
+		}
 	}
-
 	return doc, nil
 }
 
-// Updated saveSectionContent - Simplest TrimSpace ONLY
-func saveSectionContent(section string, content *strings.Builder, doc *Docstring, baseIndent ...int) error { // baseIndent ignored
+func saveSectionContent(section string, content *strings.Builder, doc *Docstring) error {
 	if section == "" {
 		return nil
-	} // No section active, nothing to save
+	}
 	rawContent := content.String()
-	finalContent := strings.TrimSpace(rawContent) // Simplest processing: trim all leading/trailing space
-
+	finalContent := strings.TrimSpace(rawContent)
 	switch section {
 	case "PURPOSE":
+		if doc.Purpose != "" {
+			return fmt.Errorf("duplicate PURPOSE section")
+		}
 		doc.Purpose = finalContent
 	case "OUTPUT":
+		if doc.Output != "" {
+			return fmt.Errorf("duplicate OUTPUT section")
+		}
 		doc.Output = finalContent
 	case "ALGORITHM":
+		if doc.Algorithm != "" {
+			return fmt.Errorf("duplicate ALGORITHM section")
+		}
 		doc.Algorithm = finalContent
 	case "CAVEATS":
+		if doc.Caveats != "" {
+			return fmt.Errorf("duplicate CAVEATS section")
+		}
 		doc.Caveats = finalContent
 	case "EXAMPLES":
+		if doc.Examples != "" {
+			return fmt.Errorf("duplicate EXAMPLES section")
+		}
 		doc.Examples = finalContent
 	case "INPUTS":
-		// Input parsing uses raw content for structure
+		if len(doc.Inputs) > 0 {
+			return fmt.Errorf("duplicate INPUTS section or content before parsing")
+		}
 		err := processInputBlock(rawContent, doc.Inputs)
 		if err != nil {
-			return fmt.Errorf("parsing INPUTS: %w", err)
+			return fmt.Errorf("parsing INPUTS section: %w", err)
 		}
 	default:
-		return fmt.Errorf("internal: unknown section '%s'", section)
+		return fmt.Errorf("internal error: unknown section '%s'", section)
 	}
 	return nil
 }
 
-func processInputBlock(content string, inputsMap map[string]string) error { /* ... unchanged ... */
+func processInputBlock(content string, inputsMap map[string]string) error {
 	trimmedContent := strings.TrimSpace(content)
 	if strings.EqualFold(trimmedContent, "none") {
 		return nil
@@ -289,58 +431,67 @@ func processInputBlock(content string, inputsMap map[string]string) error { /* .
 	lines := strings.Split(content, "\n")
 	var currentInputName string
 	var currentInputDesc strings.Builder
-	inputLineRegex := regexp.MustCompile(`^\s*-\s*([^(: M]+?)\s*(?:\(([^)]+)\))?\s*:\s*(.*)$`)
-	foundInputLine := false
-	for _, line := range lines {
-		trimmedLine := strings.TrimSpace(line)
-		if trimmedLine == "" {
-			continue
-		}
-		match := inputLineRegex.FindStringSubmatch(line)
-		if len(match) == 4 {
-			foundInputLine = true
-			if currentInputName != "" {
-				inputsMap[currentInputName] = strings.TrimSpace(currentInputDesc.String())
+	inputLineRegex := regexp.MustCompile(`^\s*-\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*(?:\([^)]+\))?\s*:\s*(.*)$`)
+	foundAnyInput := false
+	saveCurrentInput := func() error {
+		if currentInputName != "" {
+			desc := strings.TrimSpace(currentInputDesc.String())
+			if _, exists := inputsMap[currentInputName]; exists {
+				return fmt.Errorf("duplicate input parameter name '%s'", currentInputName)
 			}
-			currentInputName = strings.TrimSpace(match[1])
-			currentInputDesc.Reset()
-			descPart := strings.TrimSpace(match[3])
-			if descPart != "" {
-				currentInputDesc.WriteString(descPart)
+			if desc == "" {
+				fmt.Printf("[Warning] Input parameter '%s' has no description.\n", currentInputName)
 			}
-		} else if currentInputName != "" && (strings.HasPrefix(line, " ") || strings.HasPrefix(line, "\t")) {
-			if currentInputDesc.Len() > 0 {
-				currentInputDesc.WriteString("\n")
-			}
-			currentInputDesc.WriteString(trimmedLine)
-		} else if currentInputName != "" {
-			inputsMap[currentInputName] = strings.TrimSpace(currentInputDesc.String())
+			inputsMap[currentInputName] = desc
 			currentInputName = ""
 			currentInputDesc.Reset()
-			if !strings.HasPrefix(trimmedLine, "-") {
-				return fmt.Errorf("malformed INPUTS content (expected '- ...' or indent): %q", line)
+		}
+		return nil
+	}
+	for i, line := range lines {
+		match := inputLineRegex.FindStringSubmatch(line)
+		if len(match) == 3 {
+			if err := saveCurrentInput(); err != nil {
+				return fmt.Errorf("line %d: %w", i+1, err)
 			}
-		} else if !strings.HasPrefix(trimmedLine, "-") && !strings.EqualFold(trimmedLine, "none") {
-			return fmt.Errorf("malformed INPUTS content (expected '- ...'): %q", line)
-		} else if strings.HasPrefix(trimmedLine, "-") {
-			return fmt.Errorf("malformed INPUTS definition line (check format): %q", line)
+			foundAnyInput = true
+			currentInputName = strings.TrimSpace(match[1])
+			descPart := match[2]
+			if !isValidIdentifier(currentInputName) {
+				return fmt.Errorf("line %d: invalid input parameter name '%s'", i+1, currentInputName)
+			}
+			currentInputDesc.WriteString(descPart)
+		} else if currentInputName != "" {
+			if strings.TrimSpace(line) != "" && (len(line) > 0 && !strings.HasPrefix(line, " ") && !strings.HasPrefix(line, "\t")) {
+				if err := saveCurrentInput(); err != nil {
+					return fmt.Errorf("line %d: %w", i+1, err)
+				}
+				return fmt.Errorf("line %d: malformed INPUTS content, expected new '- param: desc' or indented continuation, got: %q", i+1, line)
+			} else if strings.TrimSpace(line) != "" {
+				if currentInputDesc.Len() > 0 {
+					currentInputDesc.WriteString("\n")
+				}
+				currentInputDesc.WriteString(line)
+			}
+		} else {
+			if strings.TrimSpace(line) != "" {
+				return fmt.Errorf("line %d: malformed INPUTS content, expected '- param: description', got: %q", i+1, line)
+			}
 		}
 	}
-	if currentInputName != "" {
-		inputsMap[currentInputName] = strings.TrimSpace(currentInputDesc.String())
+	if err := saveCurrentInput(); err != nil {
+		return err
 	}
-	if !foundInputLine && !strings.EqualFold(trimmedContent, "none") && trimmedContent != "" {
-		return fmt.Errorf("malformed INPUTS content: expected '- name: description' format")
+	if !foundAnyInput && trimmedContent != "" {
+		return fmt.Errorf("INPUTS section has content but no valid '- param: description' lines found")
 	}
 	return nil
 }
-func validateDocstring(doc Docstring) error { /* ... unchanged ... */
+
+func validateDocstring(doc Docstring) error {
 	missing := []string{}
 	if doc.Purpose == "" {
 		missing = append(missing, "PURPOSE")
-	}
-	if doc.Inputs == nil {
-		missing = append(missing, "INPUTS (internal map error)")
 	}
 	if doc.Output == "" {
 		missing = append(missing, "OUTPUT")
@@ -349,357 +500,7 @@ func validateDocstring(doc Docstring) error { /* ... unchanged ... */
 		missing = append(missing, "ALGORITHM")
 	}
 	if len(missing) > 0 {
-		return fmt.Errorf("missing required section(s): %s", strings.Join(missing, ", "))
+		return fmt.Errorf("missing required docstring section(s): %s", strings.Join(missing, ", "))
 	}
 	return nil
-}
-func parseStep(line string) (Step, error) { /* ... unchanged ... */
-	tokens := splitTokens(line)
-	if len(tokens) == 0 {
-		return Step{}, nil
-	}
-	keyword := strings.ToUpper(tokens[0])
-	emptyStep := Step{}
-	switch keyword {
-	case "SET":
-		return parseSetStep(tokens)
-	case "CALL":
-		return parseCallStep(tokens)
-	case "RETURN":
-		return parseReturnStep(tokens)
-	case "IF":
-		return parseIfStep(line)
-	case "WHILE":
-		return parseWhileStep(line)
-	case "FOR":
-		return parseForStep(line)
-	case "DEFINE", "COMMENT:", "END", "ELSE":
-		return emptyStep, nil
-	default:
-		return emptyStep, fmt.Errorf("unknown statement keyword: '%s'", tokens[0])
-	}
-}
-
-// Updated parseIfStep - Error Logic Refined
-func parseIfStep(line string) (Step, error) {
-	ifRegex := regexp.MustCompile(`(?i)^\s*IF\s+(.+?)\s+THEN\s+(.*?)(?:\s+END\s*)?$`)
-	match := ifRegex.FindStringSubmatch(line)
-	if len(match) == 3 {
-		cond := strings.TrimSpace(match[1])
-		body := strings.TrimSpace(match[2])
-		body = strings.TrimSuffix(strings.TrimSpace(body), "END")
-		body = strings.TrimSpace(body)
-		return Step{Type: "IF", Cond: cond, Value: body}, nil
-	}
-	// Regex failed diagnose:
-	upperLine := strings.ToUpper(strings.TrimSpace(line))
-	if !strings.HasPrefix(upperLine, "IF ") {
-		return Step{}, fmt.Errorf("malformed IF (no IF)")
-	}
-	thenIndex := strings.Index(upperLine, " THEN ")
-	// **Check 1: Missing THEN?**
-	if thenIndex == -1 {
-		return Step{}, fmt.Errorf("missing THEN keyword in IF statement")
-	}
-	// **Check 2: Missing Condition?** (Condition part is empty between IF and THEN)
-	conditionPart := ""
-	if len("IF ") <= thenIndex {
-		conditionPart = strings.TrimSpace(upperLine[len("IF "):thenIndex])
-	}
-	if conditionPart == "" {
-		return Step{}, fmt.Errorf("missing condition after IF keyword")
-	}
-	// **Check 3: Missing Body?** (Nothing meaningful after THEN)
-	bodyPart := ""
-	if len(upperLine) > thenIndex+len(" THEN ") {
-		bodyPart = strings.TrimSpace(upperLine[thenIndex+len(" THEN "):])
-		bodyPart = strings.TrimSuffix(strings.TrimSpace(bodyPart), " END")
-		bodyPart = strings.TrimSpace(bodyPart)
-	}
-	// ** This is the crucial check **
-	if bodyPart == "" {
-		return Step{}, fmt.Errorf("missing statement/body after THEN in IF statement")
-	}
-	// Fallback if none of the above matched the error condition
-	return Step{}, fmt.Errorf("malformed IF statement structure")
-}
-
-// Updated parseWhileStep - Error Logic Refined
-func parseWhileStep(line string) (Step, error) {
-	whileRegex := regexp.MustCompile(`(?i)^\s*WHILE\s+(.+?)\s+DO\s+(.*?)(?:\s+END\s*)?$`)
-	match := whileRegex.FindStringSubmatch(line)
-	if len(match) == 3 {
-		cond := strings.TrimSpace(match[1])
-		body := strings.TrimSpace(match[2])
-		body = strings.TrimSuffix(strings.TrimSpace(body), "END")
-		body = strings.TrimSpace(body)
-		return Step{Type: "WHILE", Cond: cond, Value: body}, nil
-	}
-	// Regex failed diagnose:
-	upperLine := strings.ToUpper(strings.TrimSpace(line))
-	if !strings.HasPrefix(upperLine, "WHILE ") {
-		return Step{}, fmt.Errorf("malformed WHILE (no WHILE)")
-	}
-	// **Check 1: Missing DO?**
-	doIndex := strings.Index(upperLine, " DO ")
-	if doIndex == -1 {
-		return Step{}, fmt.Errorf("missing DO keyword in WHILE statement")
-	}
-	// **Check 2: Missing Condition?**
-	conditionPart := ""
-	if len("WHILE ") <= doIndex {
-		conditionPart = strings.TrimSpace(upperLine[len("WHILE "):doIndex])
-	}
-	if conditionPart == "" {
-		return Step{}, fmt.Errorf("missing condition after WHILE keyword")
-	}
-	// **Check 3: Missing Body?**
-	bodyPart := ""
-	if len(upperLine) > doIndex+len(" DO ") {
-		bodyPart = strings.TrimSpace(upperLine[doIndex+len(" DO "):])
-		bodyPart = strings.TrimSuffix(strings.TrimSpace(bodyPart), " END")
-		bodyPart = strings.TrimSpace(bodyPart)
-	}
-	if bodyPart == "" {
-		return Step{}, fmt.Errorf("missing statement/body after DO in WHILE statement")
-	}
-	return Step{}, fmt.Errorf("malformed WHILE statement structure") // Fallback
-}
-
-func parseForStep(line string) (Step, error) { /* ... unchanged ... */
-	forRegex := regexp.MustCompile(`(?i)^\s*FOR\s+EACH\s+([a-zA-Z_][a-zA-Z0-9_]*)\s+IN\s+(.+?)\s*(?:DO)?\s*$`)
-	match := forRegex.FindStringSubmatch(line)
-	if len(match) != 3 {
-		upperLine := strings.ToUpper(strings.TrimSpace(line))
-		if !strings.HasPrefix(upperLine, "FOR EACH ") {
-			return Step{}, fmt.Errorf("malformed FOR EACH statement, must start with 'FOR EACH'")
-		}
-		if !strings.Contains(upperLine, " IN ") {
-			return Step{}, fmt.Errorf("invalid FOR EACH syntax, missing 'IN' keyword")
-		}
-		return Step{}, fmt.Errorf("invalid FOR EACH syntax, expected 'FOR EACH variable IN collection [DO]'")
-	}
-	loopVar := strings.TrimSpace(match[1])
-	collectionExpr := strings.TrimSpace(match[2])
-	if loopVar == "" {
-		return Step{}, fmt.Errorf("missing loop variable name")
-	}
-	if collectionExpr == "" {
-		return Step{}, fmt.Errorf("missing collection expression")
-	}
-	return Step{Type: "FOR", Target: loopVar, Value: collectionExpr}, nil
-}
-
-// Updated parseSetStep - Final check on error logic
-func parseSetStep(tokens []string) (Step, error) {
-	if len(tokens) < 2 {
-		return Step{}, fmt.Errorf("invalid SET syntax, expected 'SET variable = value'")
-	}
-	// ** Check for SET = value first **
-	if tokens[1] == "=" {
-		return Step{}, fmt.Errorf("invalid SET syntax: invalid variable name '='")
-	}
-
-	variableName := tokens[1]
-	value := ""
-	assignmentFound := false
-	if len(tokens) >= 3 && tokens[2] == "=" { // Case: SET var = value...
-		assignmentFound = true
-		if len(tokens) > 3 {
-			value = strings.Join(tokens[3:], " ")
-		} else {
-			value = ""
-		}
-	} else if len(tokens) >= 2 { // Case: SET var=value... OR SET var (no equals)
-		// Try splitting token 1 on equals
-		parts := strings.SplitN(tokens[1], "=", 2)
-		if len(parts) == 2 && parts[0] != "" { // Found var=value in first token
-			variableName = parts[0]
-			assignmentFound = true
-			value = parts[1]
-			if len(tokens) > 2 {
-				value = value + " " + strings.Join(tokens[2:], " ")
-			}
-		} else if len(parts) == 1 && len(tokens) >= 3 { // Looks like SET var value... (missing equals)
-			return Step{}, fmt.Errorf("missing '=' after variable '%s'", tokens[1])
-		} else if len(parts) == 1 && len(tokens) == 2 { // Just SET var
-			return Step{}, fmt.Errorf("missing '=' and value after variable '%s'", tokens[1])
-		}
-	}
-
-	if !assignmentFound {
-		return Step{}, fmt.Errorf("invalid SET syntax, expected 'SET variable = value'")
-	} // Fallback
-
-	value = strings.TrimSpace(value)
-	if len(value) >= 2 {
-		if (value[0] == '"' && value[len(value)-1] == '"') || (value[0] == '\'' && value[len(value)-1] == '\'') {
-			value = value[1 : len(value)-1]
-		}
-	}
-	return Step{Type: "SET", Target: variableName, Value: value}, nil
-}
-
-func parseCallStep(tokens []string) (Step, error) { /* ... unchanged ... */
-	if len(tokens) < 2 {
-		return Step{}, fmt.Errorf("invalid CALL statement")
-	}
-	callRest := strings.Join(tokens[1:], " ")
-	openParen := strings.Index(callRest, "(")
-	closeParen := strings.LastIndex(callRest, ")")
-	var target string
-	var args []string
-	if openParen != -1 && closeParen > openParen && strings.HasSuffix(strings.TrimSpace(callRest), ")") {
-		target = strings.TrimSpace(callRest[:openParen])
-		argsStr := callRest[openParen+1 : closeParen]
-		args = parseCallArgs(argsStr)
-	} else {
-		if openParen != -1 && (closeParen <= openParen || !strings.HasSuffix(strings.TrimSpace(callRest), ")")) {
-			return Step{}, fmt.Errorf("mismatched parentheses: '%s'", callRest)
-		}
-		if openParen == -1 && strings.Contains(callRest, ")") {
-			return Step{}, fmt.Errorf("found ')' without '(': '%s'", callRest)
-		}
-		if openParen == -1 {
-			return Step{}, fmt.Errorf("missing '()': '%s()'", callRest)
-		}
-		return Step{}, fmt.Errorf("invalid CALL structure: '%s'", callRest)
-	}
-	if target == "" {
-		return Step{}, fmt.Errorf("missing CALL target")
-	}
-	return Step{Type: "CALL", Target: target, Args: args}, nil
-}
-func parseCallArgs(argsStr string) []string { /* ... unchanged ... */
-	trimmedArgsStr := strings.TrimSpace(argsStr)
-	if trimmedArgsStr == "" {
-		return []string{}
-	}
-	var args []string
-	var current strings.Builder
-	inQuotes := false
-	quoteChar := rune(0)
-	escapeNext := false
-	for _, ch := range trimmedArgsStr {
-		if escapeNext {
-			current.WriteRune(ch)
-			escapeNext = false
-			continue
-		}
-		if ch == '\\' {
-			escapeNext = true
-			continue
-		}
-		switch {
-		case (ch == '"' || ch == '\'') && !inQuotes:
-			inQuotes = true
-			quoteChar = ch
-		case ch == quoteChar && inQuotes:
-			inQuotes = false
-			quoteChar = rune(0)
-		case ch == ',' && !inQuotes:
-			args = append(args, strings.TrimSpace(current.String()))
-			current.Reset()
-		case !inQuotes && (ch == ' ' || ch == '\t'):
-			if current.Len() > 0 {
-				current.WriteRune(ch)
-			}
-		default:
-			current.WriteRune(ch)
-		}
-	}
-	lastArg := strings.TrimSpace(current.String())
-	if lastArg != "" || strings.HasSuffix(argsStr, ",") || (len(args) == 0 && argsStr != "") {
-		args = append(args, lastArg)
-	} else if argsStr != "" && len(args) == 0 && current.Len() == 0 {
-		args = append(args, "")
-	} else if argsStr != "" && len(args) == 0 {
-		args = append(args, strings.TrimSpace(current.String()))
-	}
-	for i := range args {
-		args[i] = strings.TrimSpace(args[i])
-	}
-	return args
-}
-func parseReturnStep(tokens []string) (Step, error) { /* ... unchanged ... */
-	if len(tokens) < 2 {
-		return Step{}, fmt.Errorf("invalid RETURN format")
-	}
-	value := strings.Join(tokens[1:], " ")
-	if len(value) >= 2 {
-		if (value[0] == '"' && value[len(value)-1] == '"') || (value[0] == '\'' && value[len(value)-1] == '\'') {
-			value = value[1 : len(value)-1]
-		}
-	}
-	return Step{Type: "RETURN", Value: value}, nil
-}
-func splitTokens(line string) []string { /* ... unchanged (simple space split) ... */
-	commentIdx := -1
-	inQuotes := false
-	quoteChar := rune(0)
-	escapeNext := false
-	for i, ch := range line {
-		if escapeNext {
-			escapeNext = false
-			continue
-		}
-		if ch == '\\' {
-			escapeNext = true
-			continue
-		}
-		if (ch == '"' || ch == '\'') && !inQuotes {
-			inQuotes = true
-			quoteChar = ch
-		} else if ch == quoteChar && inQuotes {
-			inQuotes = false
-			quoteChar = rune(0)
-		} else if !inQuotes && (ch == '#' || (ch == '-' && i+1 < len(line) && line[i+1] == '-')) {
-			commentIdx = i
-			break
-		}
-	}
-	if commentIdx != -1 {
-		line = line[:commentIdx]
-	}
-	line = strings.TrimSpace(line)
-	if line == "" {
-		return []string{}
-	}
-	var tokens []string
-	var current strings.Builder
-	inQuotes = false
-	quoteChar = rune(0)
-	escapeNext = false
-	for _, ch := range line {
-		if escapeNext {
-			current.WriteRune(ch)
-			escapeNext = false
-			continue
-		}
-		if ch == '\\' {
-			escapeNext = true
-			current.WriteRune(ch)
-			continue
-		}
-		if (ch == '"' || ch == '\'') && !inQuotes {
-			inQuotes = true
-			quoteChar = ch
-			current.WriteRune(ch)
-		} else if ch == quoteChar && inQuotes {
-			inQuotes = false
-			quoteChar = rune(0)
-			current.WriteRune(ch)
-		} else if !inQuotes && unicode.IsSpace(ch) {
-			if current.Len() > 0 {
-				tokens = append(tokens, current.String())
-				current.Reset()
-			}
-		} else {
-			current.WriteRune(ch)
-		}
-	}
-	if current.Len() > 0 {
-		tokens = append(tokens, current.String())
-	}
-	return tokens
 }
