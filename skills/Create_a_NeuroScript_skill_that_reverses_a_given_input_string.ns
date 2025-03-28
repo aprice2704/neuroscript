@@ -1,0 +1,15 @@
+DEFINE PROCEDURE ReverseString(inputString)
+COMMENT This procedure reverses a given input string.
+  reversedString = ""
+  FOR i = length(inputString) TO 1 STEP -1
+    reversedString = reversedString + substring(inputString, i, 1)
+  ENDFOR
+  RETURN reversedString
+END
+
+DEFINE SKILL ReverseStringSkill
+COMMENT This skill uses the ReverseString procedure to reverse user input.
+  userInput = GETINPUT("Enter a string to reverse: ")
+  reversed = ReverseString(userInput)
+  DISPLAY "Reversed string: " + reversed
+END
