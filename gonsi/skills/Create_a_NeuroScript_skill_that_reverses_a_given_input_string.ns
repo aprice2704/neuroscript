@@ -1,0 +1,11 @@
+DEFINE ReverseStringSkill
+COMMENT This NeuroScript skill reverses a given input string.
+INPUT string inputString
+OUTPUT string reversedString
+
+reversedString = ""
+FOR i = LEN(inputString) - 1 TO 0 STEP -1
+  reversedString = reversedString + SUBSTR(inputString, i, 1)
+ENDFOR
+
+END
