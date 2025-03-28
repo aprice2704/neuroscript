@@ -1,11 +1,12 @@
-DEFINE ReverseStringSkill
-COMMENT This NeuroScript skill reverses a given input string.
-INPUT string inputString
-OUTPUT string reversedString
-
-reversedString = ""
-FOR i = LEN(inputString) - 1 TO 0 STEP -1
-  reversedString = reversedString + SUBSTR(inputString, i, 1)
-ENDFOR
-
+DEFINE PROCEDURE ReverseString(inputString)
+COMMENT:
+PURPOSE: Reverses a given input string.
+INPUTS: inputString - The string to be reversed.
+OUTPUT: reversedString - The reversed string.
+ALGORITHM: Iterates through the input string from the end to the beginning and concatenates each character to build the reversed string.
+END COMMENT
+SET reversedString = ""
+FOR EACH char IN inputString DO
+  SET reversedString = char + reversedString
+END
 END
