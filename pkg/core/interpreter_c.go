@@ -5,73 +5,71 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
-	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
+	// NOTE: No reflect needed here
 )
 
 // evaluateExpression - Central Evaluator. Returns final value (interface{}).
-// ** FIX: Ensure placeholders within variable values are resolved **
+// Handles single parts, concatenation. Assumes splitExpression is in interpreter_b.go
 func (i *Interpreter) evaluateExpression(expr string) interface{} {
 	trimmedExpr := strings.TrimSpace(expr)
-	// Handle __last_call_result directly for efficiency
+	// Handle __last_call_result directly for efficiency if used as whole expression
 	if trimmedExpr == "__last_call_result" {
 		if i.lastCallResult != nil {
 			return i.lastCallResult
 		}
 		fmt.Printf("  [Warn] Evaluating __last_call_result before CALL\n")
-		return "" // Return empty string if not set
+		return ""
 	}
 
-	parts := splitExpression(trimmedExpr) // Use trimmed expression for splitting
+	parts := splitExpression(trimmedExpr) // Use splitExpression from interpreter_b.go
 
-	// If only one part after splitting, evaluate that part directly
+	// --- Handle Single Part ---
 	if len(parts) == 1 {
 		singlePart := parts[0]
-		// Resolve var/placeholder/literal using resolveValue
+		// Resolve var/placeholder/literal using resolveValue (from interpreter_b.go)
 		resolvedValue := i.resolveValue(singlePart)
 
-		// ** FIX **: Now, resolve placeholders *within* the resolved value if it's a string
+		// Resolve placeholders *within* the resolved value if it's a string
 		resolvedValueStr, isStr := resolvedValue.(string)
 		if isStr {
-			finalStrValue := i.resolvePlaceholders(resolvedValueStr) // Resolve internal placeholders
+			finalStrValue := i.resolvePlaceholders(resolvedValueStr) // resolvePlaceholders from interpreter_b.go
 
 			// If the original single part was a quoted literal, unquote the final resolved string
-			trimmedOriginalPart := strings.TrimSpace(singlePart) // Use the part *before* resolveValue
+			trimmedOriginalPart := strings.TrimSpace(singlePart)
 			if len(trimmedOriginalPart) >= 2 &&
 				((trimmedOriginalPart[0] == '"' && trimmedOriginalPart[len(trimmedOriginalPart)-1] == '"') ||
 					(trimmedOriginalPart[0] == '\'' && trimmedOriginalPart[len(trimmedOriginalPart)-1] == '\'')) {
 
-				unquoted, err := strconv.Unquote(finalStrValue) // Attempt to unquote the final string
+				unquoted, err := strconv.Unquote(finalStrValue)
 				if err == nil {
 					fmt.Printf("      [Eval] Unquoted single literal %q -> %q\n", singlePart, unquoted)
-					return unquoted // Return unquoted string
-				} else {
-					// Fallback manual strip
+					return unquoted
+				} else { // Fallback manual strip if Unquote fails (e.g., internal invalid escapes)
 					if len(finalStrValue) >= 2 && ((finalStrValue[0] == '"' && finalStrValue[len(finalStrValue)-1] == '"') || (finalStrValue[0] == '\'' && finalStrValue[len(finalStrValue)-1] == '\'')) {
 						manualUnquote := finalStrValue[1 : len(finalStrValue)-1]
 						fmt.Printf("      [Eval] Manually unquoted single literal %q -> %q\n", singlePart, manualUnquote)
 						return manualUnquote
 					}
+					// If it wasn't actually quoted after resolution, return as is
 					fmt.Printf("      [Eval] Failed to unquote single literal %q, using resolved value: %q\n", singlePart, finalStrValue)
-					return finalStrValue // Return final resolved (potentially still quoted) string
+					return finalStrValue
 				}
 			}
 			// If original wasn't quoted literal, return the placeholder-resolved string
 			fmt.Printf("      [Eval] Single part %q (var/placeholder/lit) resolved to: %q\n", singlePart, finalStrValue)
 			return finalStrValue
 		}
-
 		// If not a string after initial resolveValue (e.g., direct __last_call_result was non-string)
 		fmt.Printf("      [Eval] Single part %q resolved to non-string: %v (type %T)\n", singlePart, resolvedValue, resolvedValue)
 		return resolvedValue // Return the non-string value as is
 	}
 
 	// --- Check for valid concatenation pattern (value + value + ...) ---
-	// (Concatenation logic remains the same, relies on resolved values from resolveValue+resolvePlaceholders)
 	isPotentialConcat := false
 	if len(parts) > 1 {
 		isValidConcat := true
@@ -81,18 +79,19 @@ func (i *Interpreter) evaluateExpression(expr string) interface{} {
 			for idx, part := range parts {
 				isOperatorPart := (idx%2 == 1)
 				if isOperatorPart && part != "+" {
-					isValidConcat = false // Operator part must be '+'
+					isValidConcat = false
 					break
 				}
 				if !isOperatorPart && part == "+" {
-					isValidConcat = false // Value part cannot be '+'
+					isValidConcat = false
 					break
-				}
+				} // Value part cannot be '+'
 			}
 		}
 		if isValidConcat {
 			isPotentialConcat = true
 		} else {
+			// Check if '+' exists at all to decide if warning is needed
 			hasPlus := false
 			for _, p := range parts {
 				if p == "+" {
@@ -103,21 +102,24 @@ func (i *Interpreter) evaluateExpression(expr string) interface{} {
 			if hasPlus {
 				fmt.Printf("  [Warn] Expression %q (parts: %v) looks like invalid concatenation pattern.\n", expr, parts)
 			}
-			// Fallback: treat original expr as single value
-			resolvedValue := i.resolveValue(expr) // Get potentially unresolved value
+
+			// --- Fallback for invalid patterns ---
+			// Resolve the original expression as a single literal/variable/placeholder string
+			resolvedValue := i.resolveValue(expr) // Uses resolveValue from _b.go
 			resolvedValueStr, isStr := resolvedValue.(string)
 			finalStr := ""
-			if isStr { // Resolve placeholders if it's a string
+			if isStr {
 				finalStr = i.resolvePlaceholders(resolvedValueStr)
 			} else {
 				finalStr = fmt.Sprintf("%v", resolvedValue)
-			}
-			fmt.Printf("      [Eval] Invalid concat pattern in %q, resolving whole expr -> %v\n", expr, finalStr)
-			return finalStr // Return placeholder-resolved string
+			} // Uses resolvePlaceholders from _b.go
+			fmt.Printf("      [Eval] Invalid concat/pattern in %q, resolving whole expr -> %v\n", expr, finalStr)
+			return finalStr
 		}
 	}
 
-	if isPotentialConcat { // --- Concatenation Logic ---
+	// --- Concatenation Logic ---
+	if isPotentialConcat {
 		var builder strings.Builder
 		fmt.Printf("      [Eval +] Attempting concat: %v\n", parts)
 		for idx, part := range parts {
@@ -125,15 +127,15 @@ func (i *Interpreter) evaluateExpression(expr string) interface{} {
 				continue
 			} // Skip '+' operator
 
-			resolvedValue := i.resolveValue(part) // Resolves var/placeholder/literal
+			resolvedValue := i.resolveValue(part) // Resolve var/placeholder/literal using func from _b.go
 
 			// Resolve placeholders *within* the resolved value if it's a string
 			valueToAppendStr, isStr := resolvedValue.(string)
 			if isStr {
 				valueToAppendStr = i.resolvePlaceholders(valueToAppendStr)
 			} else {
-				valueToAppendStr = fmt.Sprintf("%v", resolvedValue) // Convert non-string to string
-			}
+				valueToAppendStr = fmt.Sprintf("%v", resolvedValue)
+			} // Convert non-string to string
 
 			// Check if the original 'part' was a quoted literal
 			trimmedOriginalPart := strings.TrimSpace(part)
@@ -165,7 +167,7 @@ func (i *Interpreter) evaluateExpression(expr string) interface{} {
 		return finalResult // Return concatenated string
 	}
 
-	// --- Fallback: Should not be reached if logic above is complete ---
+	// --- Fallback: Should not be easily reachable now ---
 	fmt.Printf("      [Eval] Fallback: No valid pattern found for: %q\n", expr)
 	resolvedValue := i.resolveValue(expr)
 	resolvedValueStr, isStr := resolvedValue.(string)
@@ -179,91 +181,86 @@ func (i *Interpreter) evaluateExpression(expr string) interface{} {
 }
 
 // --- Utility Helpers ---
-// (trimCodeFences, sanitizeFilename, runGitCommand, secureFilePath, GenerateEmbedding, cosineSimilarity unchanged)
 
-// trimCodeFences removes leading/trailing code fences (``` or ```neuroscript)
+// trimCodeFences removes leading/trailing code fences (``` or ```lang)
 func trimCodeFences(code string) string {
 	trimmed := strings.TrimSpace(code)
 	lines := strings.Split(trimmed, "\n")
 	if len(lines) < 1 {
-		return code // Should not happen with TrimSpace, but safer
+		return code
 	}
-
-	// Check first line for start fence
 	firstLineTrimmed := strings.TrimSpace(lines[0])
 	startFenceFound := false
-	if firstLineTrimmed == "```neuroscript" || firstLineTrimmed == "```" {
-		startFenceFound = true
-		lines = lines[1:] // Remove first line
+	// More general check for ``` optionally followed by language hint
+	if strings.HasPrefix(firstLineTrimmed, "```") {
+		// Check if it's ONLY ``` or ``` plus non-space chars
+		restOfLine := strings.TrimSpace(firstLineTrimmed[3:])
+		if len(restOfLine) == 0 || !strings.ContainsAny(restOfLine, " \t") { // Allow ``` or ```lang, but not ``` lang with space
+			startFenceFound = true
+			lines = lines[1:]
+		}
 	}
-
-	// Check last line for end fence
+	// if firstLineTrimmed == "```neuroscript" || firstLineTrimmed == "```" { startFenceFound = true; lines = lines[1:] } // Old version
 	endFenceFound := false
 	if len(lines) > 0 {
 		lastLineTrimmed := strings.TrimSpace(lines[len(lines)-1])
 		if lastLineTrimmed == "```" {
 			endFenceFound = true
-			lines = lines[:len(lines)-1] // Remove last line
+			lines = lines[:len(lines)-1]
 		}
 	}
-
-	// Only return modified string if at least one fence was found
 	if startFenceFound || endFenceFound {
-		// Rejoin the remaining lines and trim potential whitespace again
 		return strings.TrimSpace(strings.Join(lines, "\n"))
 	}
-
-	// If no fences seemed present, return original trimmed string
-	return trimmed
+	return trimmed // Return original trimmed if no fences found
 }
 
 // sanitizeFilename creates a safe filename component.
 func sanitizeFilename(name string) string {
-	// 1. Replace common separators with underscore
 	name = strings.ReplaceAll(name, " ", "_")
 	name = strings.ReplaceAll(name, "/", "_")
 	name = strings.ReplaceAll(name, "\\", "_")
-
-	// 2. Remove characters invalid in most filesystems
-	// Keep '.', allow '_' and '-'
-	removeChars := regexp.MustCompile(`[<>:"|?*']`) // Removed / \ space
+	// Allow alphanumeric, underscore, hyphen, dot. Remove others.
+	removeChars := regexp.MustCompile(`[^a-zA-Z0-9._-]`)
 	name = removeChars.ReplaceAllString(name, "")
-
-	// 3. Remove leading/trailing dots or underscores/hyphens
-	name = strings.Trim(name, "._-")
-
-	// 4. Collapse multiple underscores/hyphens
+	// Remove leading/trailing dots, underscores, hyphens more carefully
+	name = strings.TrimLeft(name, "._-")
+	name = strings.TrimRight(name, "._-")
+	// Collapse multiple underscores/hyphens/dots
 	name = regexp.MustCompile(`_{2,}`).ReplaceAllString(name, "_")
 	name = regexp.MustCompile(`-{2,}`).ReplaceAllString(name, "-")
+	name = regexp.MustCompile(`\.{2,}`).ReplaceAllString(name, ".") // Avoid .. in middle
+	name = strings.ReplaceAll(name, "..", "_")                      // Replace remaining ".." just in case
 
-	// 5. Basic check for path traversal attempts - not foolproof
-	name = strings.ReplaceAll(name, "..", "") // Remove ".." sequences
-
-	// 6. Limit length
 	const maxLength = 100
 	if len(name) > maxLength {
-		// Find last valid character boundary if possible (e.g., underscore)
 		lastSep := strings.LastIndexAny(name[:maxLength], "_-.")
-		if lastSep > maxLength/2 { // Only truncate at boundary if reasonable
+		if lastSep > maxLength/2 {
 			name = name[:lastSep]
 		} else {
 			name = name[:maxLength]
 		}
-		name = strings.Trim(name, "._-") // Trim again after potential cut
+		name = strings.TrimRight(name, "._-") // Trim again after potential cut
+	}
+	if name == "" {
+		name = "default_skill_name"
+	} // Ensure non-empty
+	// Avoid OS reserved names (Windows mainly) - simplistic check
+	reserved := []string{"CON", "PRN", "AUX", "NUL", "COM1", "COM2", "LPT1"}
+	upperName := strings.ToUpper(name)
+	for _, r := range reserved {
+		if upperName == r {
+			name = name + "_"
+			break
+		}
 	}
 
-	// 7. Ensure non-empty/dangerous name
-	if name == "" || name == "." || name == ".." {
-		name = "default_skill_name"
-	}
 	return name
 }
 
 // runGitCommand executes a git command.
 func runGitCommand(args ...string) error {
 	cmd := exec.Command("git", args...)
-	// Prevent git commands from running outside CWD for safety?
-	// cmd.Dir = "." // Explicitly run in current dir
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 	err := cmd.Run()
@@ -278,56 +275,63 @@ func secureFilePath(filePath, allowedDir string) (string, error) {
 	if filePath == "" {
 		return "", fmt.Errorf("file path cannot be empty")
 	}
+	// Basic check for null bytes
+	if strings.Contains(filePath, "\x00") {
+		return "", fmt.Errorf("file path contains null byte")
+	}
 
-	// Ensure allowedDir is absolute and clean first
 	absAllowedDir, err := filepath.Abs(allowedDir)
 	if err != nil {
 		return "", fmt.Errorf("could not get absolute path for allowed directory '%s': %w", allowedDir, err)
 	}
 	absAllowedDir = filepath.Clean(absAllowedDir)
 
-	// Join the allowed dir with the potentially relative filePath
-	joinedPath := filepath.Join(absAllowedDir, filePath)
-
-	// Clean the potentially unsafe joined path (resolves "..")
-	cleanedPath := filepath.Clean(joinedPath)
-
-	// Check if the cleaned, absolute path starts with the allowed directory + separator
-	// Or if it *is* the allowed directory itself. This prevents escaping via "..".
-	if !strings.HasPrefix(cleanedPath, absAllowedDir+string(os.PathSeparator)) && cleanedPath != absAllowedDir {
-		return "", fmt.Errorf("path '%s' resolves to '%s' which is outside the allowed directory '%s'", filePath, cleanedPath, absAllowedDir)
+	// Clean the input path itself first to handle relative traversals better
+	cleanedInputPath := filepath.Clean(filePath)
+	// Prevent absolute paths in the input 'filePath' argument if allowedDir is meant as root
+	if filepath.IsAbs(cleanedInputPath) {
+		// Allow if it's within allowedDir? Or disallow always? Let's disallow absolute inputs for now.
+		return "", fmt.Errorf("input file path '%s' must be relative", filePath)
 	}
 
-	return cleanedPath, nil // Return the safe, absolute, cleaned path
+	joinedPath := filepath.Join(absAllowedDir, cleanedInputPath)
+
+	// Final clean on the joined path
+	absCleanedPath := filepath.Clean(joinedPath)
+
+	// Check if the final absolute path is within the allowed directory
+	if !strings.HasPrefix(absCleanedPath, absAllowedDir) {
+		return "", fmt.Errorf("path '%s' resolves to '%s' which is outside the allowed directory '%s'", filePath, absCleanedPath, absAllowedDir)
+	}
+	// Additional check: Ensure it's not EXACTLY the allowed dir if filePath wasn't empty
+	if absCleanedPath == absAllowedDir && filePath != "." && filePath != "" {
+		return "", fmt.Errorf("path '%s' resolves to the allowed directory root '%s'", filePath, absCleanedPath)
+	}
+
+	return absCleanedPath, nil // Return the safe, absolute, cleaned path
 }
 
-// --- Mock Embeddings --- (Keep for testing if needed)
+// --- Mock Embeddings ---
 
 // GenerateEmbedding creates a mock deterministic embedding.
 func (i *Interpreter) GenerateEmbedding(text string) ([]float32, error) {
-	// Simple mock embedding based on text length and random numbers
 	embedding := make([]float32, i.embeddingDim)
-	// Use a fixed seed derived from text for deterministic mock results
 	var seed int64
 	for _, r := range text {
-		seed = (seed*31 + int64(r)) % (1<<31 - 1) // Simple hash for seed
+		seed = (seed*31 + int64(r)) % (1<<31 - 1)
 	}
 	rng := rand.New(rand.NewSource(seed))
-
 	norm := float32(0.0)
 	for d := 0; d < i.embeddingDim; d++ {
-		val := rng.Float32()*2 - 1 // Random value between -1 and 1
+		val := rng.Float32()*2 - 1
 		embedding[d] = val
 		norm += val * val
 	}
 	norm = float32(math.Sqrt(float64(norm)))
-	if norm > 1e-6 { // Normalize vector, avoid division by zero
+	if norm > 1e-6 {
 		for d := range embedding {
 			embedding[d] /= norm
 		}
-	} else {
-		// Handle zero vector case if necessary (e.g., return error or a default vector)
-		// For mock, just leave it as near-zero
 	}
 	return embedding, nil
 }
@@ -348,26 +352,19 @@ func cosineSimilarity(v1, v2 []float32) (float64, error) {
 		norm1 += float64(v1[i] * v1[i])
 		norm2 += float64(v2[i] * v2[i])
 	}
-
 	mag1 := math.Sqrt(norm1)
 	mag2 := math.Sqrt(norm2)
-
 	if mag1 < 1e-9 || mag2 < 1e-9 {
-		// Handle zero vectors - similarity is undefined or 0? Return 0.
 		if mag1 < 1e-9 && mag2 < 1e-9 {
-			return 1.0, nil // Or 0.0? Let's say two zero vectors are perfectly similar.
+			return 1.0, nil
 		}
-		return 0.0, nil // One zero vector, similarity is 0.
+		return 0.0, nil
 	}
-
 	similarity := dotProduct / (mag1 * mag2)
-
-	// Clamp result to [-1, 1] due to potential floating point inaccuracies
 	if similarity > 1.0 {
 		similarity = 1.0
 	} else if similarity < -1.0 {
 		similarity = -1.0
 	}
-
 	return similarity, nil
 }

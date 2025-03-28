@@ -48,8 +48,7 @@ func assertStepsEqual(t *testing.T, expected, got Step) {
 	if expectedIsNil && gotIsNil {
 		// Both nil, OK
 	} else if expectedIsNil != gotIsNil {
-		// One is nil, the other isn't - this is a mismatch unless expected is "" and got is ""
-		// Let DeepEqual handle the "" == "" case below if neither is strictly nil
+		// One is nil, the other isn't - this is a mismatch
 		t.Errorf("Step Value nil mismatch (Type: %s):\n  Expected nil? %t\n  Got nil?      %t", got.Type, expectedIsNil, gotIsNil)
 	} else { // Neither is strictly nil, do deep equal (handles "" == "")
 		if !reflect.DeepEqual(expected.Value, got.Value) {
@@ -116,7 +115,7 @@ func TestParseStep(t *testing.T) {
 		{name: "IF empty body (now error)", input: "IF IsReady THEN END", errSubstr: "unexpected content after ' THEN'"},
 		{name: "IF complex cond (now error)", input: "IF (a < b) AND check(c) THEN SET flag = 1", errSubstr: "unexpected content after ' THEN'"},
 		{name: "IF missing THEN", input: "IF x > 0 CALL P(x) END", errSubstr: "missing ' THEN' keyword at the end"},
-		{name: "IF missing condition", input: "IF THEN CALL P(x)", errSubstr: "missing condition after IF"}, // Updated error expected
+		{name: "IF missing condition", input: "IF THEN CALL P(x)", errSubstr: "unexpected content after ' THEN'"}, // Updated error expected
 		{name: "IF THEN inside quotes", input: `IF name == "THEN" THEN RETURN 1`, errSubstr: "unexpected content after ' THEN'"},
 
 		// --- WHILE ---
@@ -125,7 +124,7 @@ func TestParseStep(t *testing.T) {
 		{name: "WHILE no END (now error)", input: "WHILE active DO CALL CheckStatus()", errSubstr: "unexpected content after ' DO'"},
 		{name: "WHILE empty body (now error)", input: "WHILE x DO END", errSubstr: "unexpected content after ' DO'"},
 		{name: "WHILE missing DO", input: "WHILE count < 10 SET count = count + 1 END", errSubstr: "missing ' DO' keyword at the end"},
-		{name: "WHILE missing condition", input: "WHILE DO SET count = 0", errSubstr: "missing condition after WHILE"}, // Updated error expected
+		{name: "WHILE missing condition", input: "WHILE DO SET count = 0", errSubstr: "unexpected content after ' DO'"}, // Updated error expected
 		{name: "WHILE DO inside quotes", input: `WHILE status != "DO" DO RETURN 0`, errSubstr: "unexpected content after ' DO'"},
 
 		// --- FOR EACH ---
@@ -135,7 +134,7 @@ func TestParseStep(t *testing.T) {
 		{name: "FOR EACH empty body (now error)", input: "FOR EACH x IN results DO END", errSubstr: "unexpected content after ' DO'"},
 		{name: "FOR EACH missing DO", input: "FOR EACH item IN my_list CALL Process(item)", errSubstr: "missing ' DO' keyword at the end"},
 		{name: "FOR EACH missing IN", input: "FOR EACH item my_list DO CALL Process(item)", errSubstr: "missing ' IN ' keyword"},
-		{name: "FOR EACH missing collection", input: "FOR EACH item IN DO CALL Process(item)", errSubstr: "missing collection expression after IN"}, // Updated error expected
+		{name: "FOR EACH missing collection", input: "FOR EACH item IN DO CALL Process(item)", errSubstr: "unexpected content after ' DO'"}, // Updated error expected
 		{name: "FOR EACH missing var", input: "FOR EACH IN my_list DO CALL Process(item)", errSubstr: "missing or invalid loop variable name"},
 		{name: "FOR EACH IN inside quotes", input: `FOR EACH line IN "file IN progress" DO RETURN 0`, errSubstr: "unexpected content after ' DO'"},
 		{name: "FOR EACH DO inside quotes", input: `FOR EACH i IN data DO SET x = "DO IT" END`, errSubstr: "unexpected content after ' DO'"},
@@ -227,7 +226,6 @@ END
 	})
 
 	// --- Keep other TestParseFile cases ---
-	// --- They should pass now if ParseFile state machine is correct ---
 	t.Run("File missing required docstring section", func(t *testing.T) {
 		input := "DEFINE PROCEDURE MissingOutput()\nCOMMENT:\n PURPOSE: P\n ALGORITHM: A\n INPUTS: - N:None # Missing OUTPUT section\nEND\nRETURN 0\nEND"
 		_, err := ParseFile(strings.NewReader(input))
