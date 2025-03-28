@@ -1,10 +1,12 @@
 DEFINE PROCEDURE ReverseString(string inputString)
-COMMENT This procedure reverses a given string.
+; This procedure reverses a given string.
   string reversedString = ""
   integer i = Length(inputString) - 1
+
   WHILE i >= 0 DO
     reversedString = reversedString + Substring(inputString, i, 1)
     i = i - 1
   ENDWHILE
+
   RETURN reversedString
 END
