@@ -39,7 +39,7 @@ func main() {
 				return nil
 			}
 			defer file.Close()
-			procedures, parseErr := core.ParseFile(file)
+			procedures, parseErr := core.ParseNeuroScript(file)
 			if parseErr != nil {
 				fmt.Printf("    Error parsing %s: %v\n", path, parseErr)
 				return nil

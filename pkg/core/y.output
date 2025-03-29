@@ -1,0 +1,1015 @@
+
+state 0
+	$accept: .script_file $end 
+	script_file: .    (1)
+
+	.  reduce 1 (src line 72)
+
+	script_file  goto 1
+
+state 1
+	$accept:  script_file.$end 
+	script_file:  script_file.procedure_definition 
+	script_file:  script_file.NEWLINE 
+
+	$end  accept
+	KW_DEFINE  shift 4
+	NEWLINE  shift 3
+	.  error
+
+	procedure_definition  goto 2
+
+state 2
+	script_file:  script_file procedure_definition.    (2)
+
+	.  reduce 2 (src line 73)
+
+
+state 3
+	script_file:  script_file NEWLINE.    (3)
+
+	.  reduce 3 (src line 74)
+
+
+state 4
+	procedure_definition:  KW_DEFINE.KW_PROCEDURE IDENTIFIER LPAREN param_list_opt RPAREN NEWLINE comment_block statement_list KW_END NEWLINE 
+
+	KW_PROCEDURE  shift 5
+	.  error
+
+
+state 5
+	procedure_definition:  KW_DEFINE KW_PROCEDURE.IDENTIFIER LPAREN param_list_opt RPAREN NEWLINE comment_block statement_list KW_END NEWLINE 
+
+	IDENTIFIER  shift 6
+	.  error
+
+
+state 6
+	procedure_definition:  KW_DEFINE KW_PROCEDURE IDENTIFIER.LPAREN param_list_opt RPAREN NEWLINE comment_block statement_list KW_END NEWLINE 
+
+	LPAREN  shift 7
+	.  error
+
+
+state 7
+	procedure_definition:  KW_DEFINE KW_PROCEDURE IDENTIFIER LPAREN.param_list_opt RPAREN NEWLINE comment_block statement_list KW_END NEWLINE 
+	param_list_opt: .    (5)
+
+	IDENTIFIER  shift 10
+	.  reduce 5 (src line 83)
+
+	param_list_opt  goto 8
+	param_list  goto 9
+
+state 8
+	procedure_definition:  KW_DEFINE KW_PROCEDURE IDENTIFIER LPAREN param_list_opt.RPAREN NEWLINE comment_block statement_list KW_END NEWLINE 
+
+	RPAREN  shift 11
+	.  error
+
+
+state 9
+	param_list_opt:  param_list.    (6)
+	param_list:  param_list.COMMA IDENTIFIER 
+
+	COMMA  shift 12
+	.  reduce 6 (src line 83)
+
+
+state 10
+	param_list:  IDENTIFIER.    (7)
+
+	.  reduce 7 (src line 84)
+
+
+state 11
+	procedure_definition:  KW_DEFINE KW_PROCEDURE IDENTIFIER LPAREN param_list_opt RPAREN.NEWLINE comment_block statement_list KW_END NEWLINE 
+
+	NEWLINE  shift 13
+	.  error
+
+
+state 12
+	param_list:  param_list COMMA.IDENTIFIER 
+
+	IDENTIFIER  shift 14
+	.  error
+
+
+state 13
+	procedure_definition:  KW_DEFINE KW_PROCEDURE IDENTIFIER LPAREN param_list_opt RPAREN NEWLINE.comment_block statement_list KW_END NEWLINE 
+
+	KW_COMMENT  shift 16
+	.  error
+
+	comment_block  goto 15
+
+state 14
+	param_list:  param_list COMMA IDENTIFIER.    (8)
+
+	.  reduce 8 (src line 84)
+
+
+state 15
+	procedure_definition:  KW_DEFINE KW_PROCEDURE IDENTIFIER LPAREN param_list_opt RPAREN NEWLINE comment_block.statement_list KW_END NEWLINE 
+	statement_list: .    (10)
+
+	.  reduce 10 (src line 88)
+
+	statement_list  goto 17
+
+state 16
+	comment_block:  KW_COMMENT.NEWLINE DOC_COMMENT_CONTENT KW_END NEWLINE 
+
+	NEWLINE  shift 18
+	.  error
+
+
+state 17
+	procedure_definition:  KW_DEFINE KW_PROCEDURE IDENTIFIER LPAREN param_list_opt RPAREN NEWLINE comment_block statement_list.KW_END NEWLINE 
+	statement_list:  statement_list.statement 
+	statement_list:  statement_list.NEWLINE 
+
+	KW_END  shift 19
+	KW_SET  shift 30
+	KW_CALL  shift 31
+	KW_RETURN  shift 32
+	KW_IF  shift 33
+	KW_WHILE  shift 34
+	KW_FOR  shift 35
+	NEWLINE  shift 21
+	.  error
+
+	statement  goto 20
+	simple_statement  goto 22
+	block_statement  goto 23
+	if_statement  goto 27
+	while_statement  goto 28
+	for_each_statement  goto 29
+	set_statement  goto 24
+	call_statement  goto 25
+	return_statement  goto 26
+
+state 18
+	comment_block:  KW_COMMENT NEWLINE.DOC_COMMENT_CONTENT KW_END NEWLINE 
+
+	DOC_COMMENT_CONTENT  shift 36
+	.  error
+
+
+state 19
+	procedure_definition:  KW_DEFINE KW_PROCEDURE IDENTIFIER LPAREN param_list_opt RPAREN NEWLINE comment_block statement_list KW_END.NEWLINE 
+
+	NEWLINE  shift 37
+	.  error
+
+
+state 20
+	statement_list:  statement_list statement.    (11)
+
+	.  reduce 11 (src line 89)
+
+
+state 21
+	statement_list:  statement_list NEWLINE.    (12)
+
+	.  reduce 12 (src line 90)
+
+
+state 22
+	statement:  simple_statement.    (13)
+
+	.  reduce 13 (src line 92)
+
+
+state 23
+	statement:  block_statement.    (14)
+
+	.  reduce 14 (src line 94)
+
+
+state 24
+	simple_statement:  set_statement.    (15)
+
+	.  reduce 15 (src line 98)
+
+
+state 25
+	simple_statement:  call_statement.    (16)
+
+	.  reduce 16 (src line 98)
+
+
+state 26
+	simple_statement:  return_statement.    (17)
+
+	.  reduce 17 (src line 98)
+
+
+state 27
+	block_statement:  if_statement.    (18)
+
+	.  reduce 18 (src line 99)
+
+
+state 28
+	block_statement:  while_statement.    (19)
+
+	.  reduce 19 (src line 99)
+
+
+state 29
+	block_statement:  for_each_statement.    (20)
+
+	.  reduce 20 (src line 99)
+
+
+state 30
+	set_statement:  KW_SET.IDENTIFIER ASSIGN expression 
+
+	IDENTIFIER  shift 38
+	.  error
+
+
+state 31
+	call_statement:  KW_CALL.call_target LPAREN expression_list_opt RPAREN 
+
+	IDENTIFIER  shift 40
+	KW_TOOL  shift 41
+	KW_LLM  shift 42
+	.  error
+
+	call_target  goto 39
+
+state 32
+	return_statement:  KW_RETURN.    (23)
+	return_statement:  KW_RETURN.expression 
+
+	IDENTIFIER  shift 47
+	STRING_LIT  shift 50
+	LPAREN  shift 49
+	LBRACK  shift 54
+	LBRACE  shift 55
+	PLACEHOLDER_START  shift 53
+	KW_LAST_CALL_RESULT  shift 48
+	.  reduce 23 (src line 104)
+
+	expression  goto 43
+	term  goto 44
+	literal  goto 45
+	placeholder  goto 46
+	list_literal  goto 51
+	map_literal  goto 52
+
+state 33
+	if_statement:  KW_IF.condition KW_THEN NEWLINE statement_list KW_END 
+
+	IDENTIFIER  shift 47
+	STRING_LIT  shift 50
+	LPAREN  shift 49
+	LBRACK  shift 54
+	LBRACE  shift 55
+	PLACEHOLDER_START  shift 53
+	KW_LAST_CALL_RESULT  shift 48
+	.  error
+
+	expression  goto 57
+	term  goto 44
+	literal  goto 45
+	placeholder  goto 46
+	condition  goto 56
+	list_literal  goto 51
+	map_literal  goto 52
+
+state 34
+	while_statement:  KW_WHILE.condition KW_DO NEWLINE statement_list KW_END 
+
+	IDENTIFIER  shift 47
+	STRING_LIT  shift 50
+	LPAREN  shift 49
+	LBRACK  shift 54
+	LBRACE  shift 55
+	PLACEHOLDER_START  shift 53
+	KW_LAST_CALL_RESULT  shift 48
+	.  error
+
+	expression  goto 57
+	term  goto 44
+	literal  goto 45
+	placeholder  goto 46
+	condition  goto 58
+	list_literal  goto 51
+	map_literal  goto 52
+
+state 35
+	for_each_statement:  KW_FOR.KW_EACH IDENTIFIER KW_IN expression KW_DO NEWLINE statement_list KW_END 
+
+	KW_EACH  shift 59
+	.  error
+
+
+state 36
+	comment_block:  KW_COMMENT NEWLINE DOC_COMMENT_CONTENT.KW_END NEWLINE 
+
+	KW_END  shift 60
+	.  error
+
+
+state 37
+	procedure_definition:  KW_DEFINE KW_PROCEDURE IDENTIFIER LPAREN param_list_opt RPAREN NEWLINE comment_block statement_list KW_END NEWLINE.    (4)
+
+	.  reduce 4 (src line 76)
+
+
+state 38
+	set_statement:  KW_SET IDENTIFIER.ASSIGN expression 
+
+	ASSIGN  shift 61
+	.  error
+
+
+state 39
+	call_statement:  KW_CALL call_target.LPAREN expression_list_opt RPAREN 
+
+	LPAREN  shift 62
+	.  error
+
+
+state 40
+	call_target:  IDENTIFIER.    (28)
+
+	.  reduce 28 (src line 112)
+
+
+state 41
+	call_target:  KW_TOOL.DOT IDENTIFIER 
+
+	DOT  shift 63
+	.  error
+
+
+state 42
+	call_target:  KW_LLM.    (30)
+
+	.  reduce 30 (src line 112)
+
+
+state 43
+	return_statement:  KW_RETURN expression.    (24)
+	expression:  expression.PLUS term 
+
+	PLUS  shift 64
+	.  reduce 24 (src line 104)
+
+
+state 44
+	expression:  term.    (34)
+
+	.  reduce 34 (src line 115)
+
+
+state 45
+	term:  literal.    (36)
+
+	.  reduce 36 (src line 116)
+
+
+state 46
+	term:  placeholder.    (37)
+
+	.  reduce 37 (src line 116)
+
+
+state 47
+	term:  IDENTIFIER.    (38)
+
+	.  reduce 38 (src line 116)
+
+
+state 48
+	term:  KW_LAST_CALL_RESULT.    (39)
+
+	.  reduce 39 (src line 116)
+
+
+state 49
+	term:  LPAREN.expression RPAREN 
+
+	IDENTIFIER  shift 47
+	STRING_LIT  shift 50
+	LPAREN  shift 49
+	LBRACK  shift 54
+	LBRACE  shift 55
+	PLACEHOLDER_START  shift 53
+	KW_LAST_CALL_RESULT  shift 48
+	.  error
+
+	expression  goto 65
+	term  goto 44
+	literal  goto 45
+	placeholder  goto 46
+	list_literal  goto 51
+	map_literal  goto 52
+
+state 50
+	literal:  STRING_LIT.    (42)
+
+	.  reduce 42 (src line 118)
+
+
+state 51
+	literal:  list_literal.    (43)
+
+	.  reduce 43 (src line 118)
+
+
+state 52
+	literal:  map_literal.    (44)
+
+	.  reduce 44 (src line 118)
+
+
+state 53
+	placeholder:  PLACEHOLDER_START.IDENTIFIER PLACEHOLDER_END 
+
+	IDENTIFIER  shift 66
+	.  error
+
+
+state 54
+	list_literal:  LBRACK.expression_list_opt RBRACK 
+	expression_list_opt: .    (47)
+
+	IDENTIFIER  shift 47
+	STRING_LIT  shift 50
+	LPAREN  shift 49
+	LBRACK  shift 54
+	LBRACE  shift 55
+	PLACEHOLDER_START  shift 53
+	KW_LAST_CALL_RESULT  shift 48
+	.  reduce 47 (src line 124)
+
+	expression  goto 69
+	term  goto 44
+	literal  goto 45
+	placeholder  goto 46
+	list_literal  goto 51
+	map_literal  goto 52
+	expression_list_opt  goto 67
+	expression_list_final  goto 68
+
+state 55
+	map_literal:  LBRACE.map_entry_list_opt RBRACE 
+	map_entry_list_opt: .    (51)
+
+	STRING_LIT  shift 73
+	.  reduce 51 (src line 127)
+
+	map_entry  goto 72
+	map_entry_list_opt  goto 70
+	map_entry_list_final  goto 71
+
+state 56
+	if_statement:  KW_IF condition.KW_THEN NEWLINE statement_list KW_END 
+
+	KW_THEN  shift 74
+	.  error
+
+
+state 57
+	condition:  expression.    (31)
+	condition:  expression.EQ expression 
+	condition:  expression.NEQ expression 
+	expression:  expression.PLUS term 
+
+	PLUS  shift 64
+	EQ  shift 75
+	NEQ  shift 76
+	.  reduce 31 (src line 114)
+
+
+state 58
+	while_statement:  KW_WHILE condition.KW_DO NEWLINE statement_list KW_END 
+
+	KW_DO  shift 77
+	.  error
+
+
+state 59
+	for_each_statement:  KW_FOR KW_EACH.IDENTIFIER KW_IN expression KW_DO NEWLINE statement_list KW_END 
+
+	IDENTIFIER  shift 78
+	.  error
+
+
+state 60
+	comment_block:  KW_COMMENT NEWLINE DOC_COMMENT_CONTENT KW_END.NEWLINE 
+
+	NEWLINE  shift 79
+	.  error
+
+
+state 61
+	set_statement:  KW_SET IDENTIFIER ASSIGN.expression 
+
+	IDENTIFIER  shift 47
+	STRING_LIT  shift 50
+	LPAREN  shift 49
+	LBRACK  shift 54
+	LBRACE  shift 55
+	PLACEHOLDER_START  shift 53
+	KW_LAST_CALL_RESULT  shift 48
+	.  error
+
+	expression  goto 80
+	term  goto 44
+	literal  goto 45
+	placeholder  goto 46
+	list_literal  goto 51
+	map_literal  goto 52
+
+state 62
+	call_statement:  KW_CALL call_target LPAREN.expression_list_opt RPAREN 
+	expression_list_opt: .    (47)
+
+	IDENTIFIER  shift 47
+	STRING_LIT  shift 50
+	LPAREN  shift 49
+	LBRACK  shift 54
+	LBRACE  shift 55
+	PLACEHOLDER_START  shift 53
+	KW_LAST_CALL_RESULT  shift 48
+	.  reduce 47 (src line 124)
+
+	expression  goto 69
+	term  goto 44
+	literal  goto 45
+	placeholder  goto 46
+	list_literal  goto 51
+	map_literal  goto 52
+	expression_list_opt  goto 81
+	expression_list_final  goto 68
+
+state 63
+	call_target:  KW_TOOL DOT.IDENTIFIER 
+
+	IDENTIFIER  shift 82
+	.  error
+
+
+state 64
+	expression:  expression PLUS.term 
+
+	IDENTIFIER  shift 47
+	STRING_LIT  shift 50
+	LPAREN  shift 49
+	LBRACK  shift 54
+	LBRACE  shift 55
+	PLACEHOLDER_START  shift 53
+	KW_LAST_CALL_RESULT  shift 48
+	.  error
+
+	term  goto 83
+	literal  goto 45
+	placeholder  goto 46
+	list_literal  goto 51
+	map_literal  goto 52
+
+state 65
+	expression:  expression.PLUS term 
+	term:  LPAREN expression.RPAREN 
+
+	PLUS  shift 64
+	RPAREN  shift 84
+	.  error
+
+
+state 66
+	placeholder:  PLACEHOLDER_START IDENTIFIER.PLACEHOLDER_END 
+
+	PLACEHOLDER_END  shift 85
+	.  error
+
+
+state 67
+	list_literal:  LBRACK expression_list_opt.RBRACK 
+
+	RBRACK  shift 86
+	.  error
+
+
+state 68
+	expression_list_opt:  expression_list_final.    (48)
+	expression_list_final:  expression_list_final.COMMA expression 
+
+	COMMA  shift 87
+	.  reduce 48 (src line 124)
+
+
+state 69
+	expression:  expression.PLUS term 
+	expression_list_final:  expression.    (49)
+
+	PLUS  shift 64
+	.  reduce 49 (src line 125)
+
+
+state 70
+	map_literal:  LBRACE map_entry_list_opt.RBRACE 
+
+	RBRACE  shift 88
+	.  error
+
+
+state 71
+	map_entry_list_opt:  map_entry_list_final.    (52)
+	map_entry_list_final:  map_entry_list_final.COMMA map_entry 
+
+	COMMA  shift 89
+	.  reduce 52 (src line 127)
+
+
+state 72
+	map_entry_list_final:  map_entry.    (53)
+
+	.  reduce 53 (src line 128)
+
+
+state 73
+	map_entry:  STRING_LIT.COLON expression 
+
+	COLON  shift 90
+	.  error
+
+
+state 74
+	if_statement:  KW_IF condition KW_THEN.NEWLINE statement_list KW_END 
+
+	NEWLINE  shift 91
+	.  error
+
+
+state 75
+	condition:  expression EQ.expression 
+
+	IDENTIFIER  shift 47
+	STRING_LIT  shift 50
+	LPAREN  shift 49
+	LBRACK  shift 54
+	LBRACE  shift 55
+	PLACEHOLDER_START  shift 53
+	KW_LAST_CALL_RESULT  shift 48
+	.  error
+
+	expression  goto 92
+	term  goto 44
+	literal  goto 45
+	placeholder  goto 46
+	list_literal  goto 51
+	map_literal  goto 52
+
+state 76
+	condition:  expression NEQ.expression 
+
+	IDENTIFIER  shift 47
+	STRING_LIT  shift 50
+	LPAREN  shift 49
+	LBRACK  shift 54
+	LBRACE  shift 55
+	PLACEHOLDER_START  shift 53
+	KW_LAST_CALL_RESULT  shift 48
+	.  error
+
+	expression  goto 93
+	term  goto 44
+	literal  goto 45
+	placeholder  goto 46
+	list_literal  goto 51
+	map_literal  goto 52
+
+state 77
+	while_statement:  KW_WHILE condition KW_DO.NEWLINE statement_list KW_END 
+
+	NEWLINE  shift 94
+	.  error
+
+
+state 78
+	for_each_statement:  KW_FOR KW_EACH IDENTIFIER.KW_IN expression KW_DO NEWLINE statement_list KW_END 
+
+	KW_IN  shift 95
+	.  error
+
+
+state 79
+	comment_block:  KW_COMMENT NEWLINE DOC_COMMENT_CONTENT KW_END NEWLINE.    (9)
+
+	.  reduce 9 (src line 86)
+
+
+state 80
+	set_statement:  KW_SET IDENTIFIER ASSIGN expression.    (21)
+	expression:  expression.PLUS term 
+
+	PLUS  shift 64
+	.  reduce 21 (src line 102)
+
+
+state 81
+	call_statement:  KW_CALL call_target LPAREN expression_list_opt.RPAREN 
+
+	RPAREN  shift 96
+	.  error
+
+
+state 82
+	call_target:  KW_TOOL DOT IDENTIFIER.    (29)
+
+	.  reduce 29 (src line 112)
+
+
+state 83
+	expression:  expression PLUS term.    (35)
+
+	.  reduce 35 (src line 115)
+
+
+state 84
+	term:  LPAREN expression RPAREN.    (40)
+
+	.  reduce 40 (src line 116)
+
+
+state 85
+	placeholder:  PLACEHOLDER_START IDENTIFIER PLACEHOLDER_END.    (41)
+
+	.  reduce 41 (src line 117)
+
+
+state 86
+	list_literal:  LBRACK expression_list_opt RBRACK.    (45)
+
+	.  reduce 45 (src line 121)
+
+
+state 87
+	expression_list_final:  expression_list_final COMMA.expression 
+
+	IDENTIFIER  shift 47
+	STRING_LIT  shift 50
+	LPAREN  shift 49
+	LBRACK  shift 54
+	LBRACE  shift 55
+	PLACEHOLDER_START  shift 53
+	KW_LAST_CALL_RESULT  shift 48
+	.  error
+
+	expression  goto 97
+	term  goto 44
+	literal  goto 45
+	placeholder  goto 46
+	list_literal  goto 51
+	map_literal  goto 52
+
+state 88
+	map_literal:  LBRACE map_entry_list_opt RBRACE.    (46)
+
+	.  reduce 46 (src line 122)
+
+
+state 89
+	map_entry_list_final:  map_entry_list_final COMMA.map_entry 
+
+	STRING_LIT  shift 73
+	.  error
+
+	map_entry  goto 98
+
+state 90
+	map_entry:  STRING_LIT COLON.expression 
+
+	IDENTIFIER  shift 47
+	STRING_LIT  shift 50
+	LPAREN  shift 49
+	LBRACK  shift 54
+	LBRACE  shift 55
+	PLACEHOLDER_START  shift 53
+	KW_LAST_CALL_RESULT  shift 48
+	.  error
+
+	expression  goto 99
+	term  goto 44
+	literal  goto 45
+	placeholder  goto 46
+	list_literal  goto 51
+	map_literal  goto 52
+
+state 91
+	if_statement:  KW_IF condition KW_THEN NEWLINE.statement_list KW_END 
+	statement_list: .    (10)
+
+	.  reduce 10 (src line 88)
+
+	statement_list  goto 100
+
+state 92
+	condition:  expression EQ expression.    (32)
+	expression:  expression.PLUS term 
+
+	PLUS  shift 64
+	.  reduce 32 (src line 114)
+
+
+state 93
+	condition:  expression NEQ expression.    (33)
+	expression:  expression.PLUS term 
+
+	PLUS  shift 64
+	.  reduce 33 (src line 114)
+
+
+state 94
+	while_statement:  KW_WHILE condition KW_DO NEWLINE.statement_list KW_END 
+	statement_list: .    (10)
+
+	.  reduce 10 (src line 88)
+
+	statement_list  goto 101
+
+state 95
+	for_each_statement:  KW_FOR KW_EACH IDENTIFIER KW_IN.expression KW_DO NEWLINE statement_list KW_END 
+
+	IDENTIFIER  shift 47
+	STRING_LIT  shift 50
+	LPAREN  shift 49
+	LBRACK  shift 54
+	LBRACE  shift 55
+	PLACEHOLDER_START  shift 53
+	KW_LAST_CALL_RESULT  shift 48
+	.  error
+
+	expression  goto 102
+	term  goto 44
+	literal  goto 45
+	placeholder  goto 46
+	list_literal  goto 51
+	map_literal  goto 52
+
+state 96
+	call_statement:  KW_CALL call_target LPAREN expression_list_opt RPAREN.    (22)
+
+	.  reduce 22 (src line 103)
+
+
+state 97
+	expression:  expression.PLUS term 
+	expression_list_final:  expression_list_final COMMA expression.    (50)
+
+	PLUS  shift 64
+	.  reduce 50 (src line 125)
+
+
+state 98
+	map_entry_list_final:  map_entry_list_final COMMA map_entry.    (54)
+
+	.  reduce 54 (src line 128)
+
+
+state 99
+	expression:  expression.PLUS term 
+	map_entry:  STRING_LIT COLON expression.    (55)
+
+	PLUS  shift 64
+	.  reduce 55 (src line 129)
+
+
+state 100
+	statement_list:  statement_list.statement 
+	statement_list:  statement_list.NEWLINE 
+	if_statement:  KW_IF condition KW_THEN NEWLINE statement_list.KW_END 
+
+	KW_END  shift 103
+	KW_SET  shift 30
+	KW_CALL  shift 31
+	KW_RETURN  shift 32
+	KW_IF  shift 33
+	KW_WHILE  shift 34
+	KW_FOR  shift 35
+	NEWLINE  shift 21
+	.  error
+
+	statement  goto 20
+	simple_statement  goto 22
+	block_statement  goto 23
+	if_statement  goto 27
+	while_statement  goto 28
+	for_each_statement  goto 29
+	set_statement  goto 24
+	call_statement  goto 25
+	return_statement  goto 26
+
+state 101
+	statement_list:  statement_list.statement 
+	statement_list:  statement_list.NEWLINE 
+	while_statement:  KW_WHILE condition KW_DO NEWLINE statement_list.KW_END 
+
+	KW_END  shift 104
+	KW_SET  shift 30
+	KW_CALL  shift 31
+	KW_RETURN  shift 32
+	KW_IF  shift 33
+	KW_WHILE  shift 34
+	KW_FOR  shift 35
+	NEWLINE  shift 21
+	.  error
+
+	statement  goto 20
+	simple_statement  goto 22
+	block_statement  goto 23
+	if_statement  goto 27
+	while_statement  goto 28
+	for_each_statement  goto 29
+	set_statement  goto 24
+	call_statement  goto 25
+	return_statement  goto 26
+
+state 102
+	for_each_statement:  KW_FOR KW_EACH IDENTIFIER KW_IN expression.KW_DO NEWLINE statement_list KW_END 
+	expression:  expression.PLUS term 
+
+	KW_DO  shift 105
+	PLUS  shift 64
+	.  error
+
+
+state 103
+	if_statement:  KW_IF condition KW_THEN NEWLINE statement_list KW_END.    (25)
+
+	.  reduce 25 (src line 107)
+
+
+state 104
+	while_statement:  KW_WHILE condition KW_DO NEWLINE statement_list KW_END.    (26)
+
+	.  reduce 26 (src line 108)
+
+
+state 105
+	for_each_statement:  KW_FOR KW_EACH IDENTIFIER KW_IN expression KW_DO.NEWLINE statement_list KW_END 
+
+	NEWLINE  shift 106
+	.  error
+
+
+state 106
+	for_each_statement:  KW_FOR KW_EACH IDENTIFIER KW_IN expression KW_DO NEWLINE.statement_list KW_END 
+	statement_list: .    (10)
+
+	.  reduce 10 (src line 88)
+
+	statement_list  goto 107
+
+state 107
+	statement_list:  statement_list.statement 
+	statement_list:  statement_list.NEWLINE 
+	for_each_statement:  KW_FOR KW_EACH IDENTIFIER KW_IN expression KW_DO NEWLINE statement_list.KW_END 
+
+	KW_END  shift 108
+	KW_SET  shift 30
+	KW_CALL  shift 31
+	KW_RETURN  shift 32
+	KW_IF  shift 33
+	KW_WHILE  shift 34
+	KW_FOR  shift 35
+	NEWLINE  shift 21
+	.  error
+
+	statement  goto 20
+	simple_statement  goto 22
+	block_statement  goto 23
+	if_statement  goto 27
+	while_statement  goto 28
+	for_each_statement  goto 29
+	set_statement  goto 24
+	call_statement  goto 25
+	return_statement  goto 26
+
+state 108
+	for_each_statement:  KW_FOR KW_EACH IDENTIFIER KW_IN expression KW_DO NEWLINE statement_list KW_END.    (27)
+
+	.  reduce 27 (src line 109)
+
+
+41 terminals, 29 nonterminals
+56 grammar rules, 109/16000 states
+0 shift/reduce, 0 reduce/reduce conflicts reported
+78 working sets used
+memory: parser 113/240000
+22 extra closures
+179 shift entries, 1 exceptions
+45 goto entries
+88 entries saved by goto default
+Optimizer space used: output 133/240000
+133 table entries, 0 zero
+maximum spread: 40, maximum offset: 106
