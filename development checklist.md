@@ -21,6 +21,8 @@ A. Capabilities (Existing & Target)
 [ ] LLM and gonsi can both check scripts for syntax errors
 [ ] Both can compile golang and get errors back
 [ ] Both can run go test ./... etc and see errors
+[ ] Both can run gofmt and get correctly formatted file back for line no match
+[ ] LLMs can supply git-style patches and have them applied to files
 
 B. Planned Features (Suggested Order Towards Bootstrapping)
 [ ] Interpreter: Implement Block Execution (Execute []Step in Value for IF/WHILE/FOR EACH)

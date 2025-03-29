@@ -1,14 +1,18 @@
 DEFINE PROCEDURE Add(a, b)
 COMMENT:
- PURPOSE: Adds two numbers.
- INPUTS:
-  - a: number
-  - b: number
- OUTPUT: The sum (a+b).
- ALGORITHM: Simple addition.
+    PURPOSE: Adds two numbers (currently performs string concatenation).
+    INPUTS:
+      - a: First number (passed as string).
+      - b: Second number (passed as string).
+    OUTPUT: The sum (a+b) (currently concatenated string).
+    ALGORITHM: Concatenates input strings using '+'. [TODO: Implement arithmetic evaluation].
+    CAVEATS: This performs string concatenation, NOT arithmetic addition yet.
 END
 
- SET result = {{a}} + {{b}} # Note: Interpreter doesn't evaluate this yet!
- RETURN {{result}}
+  # Note: Interpreter evaluates '+' as string concatenation currently.
+  # Arithmetic evaluation is a TODO feature.
+  SET result = {{a}} + {{b}}
+
+  RETURN {{result}}
 
 END

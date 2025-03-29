@@ -288,6 +288,8 @@ func (l *lexer) lexDefault(lval *yySymType) int {
 }
 
 // lexDocstring handles lexing inside a docstring block
+// lexDocstring handles lexing inside a docstring block
+// ** MODIFIED TO NOT CONSUME END LINE **
 func (l *lexer) lexDocstring(lval *yySymType) int {
 	if l.pos >= len(l.input) {
 		l.Error("EOF reached while parsing docstring (missing END?)")
@@ -296,62 +298,51 @@ func (l *lexer) lexDocstring(lval *yySymType) int {
 	l.startPos = l.pos // Mark start for error context
 	startLine := l.line
 
-	// Read line by line until "END" is found on its own line
+	// Buffer lines until we find a line that IS the END line
+	//	lineStart := l.pos
 	for l.pos < len(l.input) {
-		lineStart := l.pos
-		// Find end of current line
-		for l.pos < len(l.input) && l.input[l.pos] != '\n' {
-			l.pos++
-		}
+		// Find the end of the current logical line (could be EOF)
 		lineEnd := l.pos
-		lineContent := l.input[lineStart:lineEnd]
-
+		for lineEnd < len(l.input) && l.input[lineEnd] != '\n' {
+			lineEnd++
+		}
+		lineContent := l.input[l.pos:lineEnd]
 		trimmedLine := strings.TrimSpace(lineContent)
-		// Check for END or END COMMENT (case-insensitive check might be better)
+
+		// Check if this line is the termination line
 		isEndLine := false
 		if trimmedLine == "END" {
 			isEndLine = true
 		}
-		// Accept "END COMMENT" with a warning but treat as END
 		if !isEndLine && strings.EqualFold(trimmedLine, "END COMMENT") {
 			fmt.Printf("[Warning] Line %d: Found 'END COMMENT', prefer just 'END' to terminate COMMENT block.\n", l.line)
 			isEndLine = true
 		}
 
-		// If END line found
 		if isEndLine {
-			l.state = stDefault             // Return to default state
+			// Found the terminator. Return the content collected *before* this line.
+			l.state = stDefault             // Switch state back
 			lval.str = l.docBuffer.String() // Put collected content into lval
-
-			// Consume the END line's newline if present
+			// DO NOT advance l.pos here. Leave it at the start of the END line.
+			return DOC_COMMENT_CONTENT
+		} else {
+			// Not the end line, add it to the buffer
+			if l.docBuffer.Len() > 0 {
+				l.docBuffer.WriteByte('\n') // Add newline separator
+			}
+			l.docBuffer.WriteString(lineContent) // Add the raw line content
+			l.pos = lineEnd                      // Move past the line content
+			// Consume the newline character to move to the next line
 			if l.pos < len(l.input) && l.input[l.pos] == '\n' {
 				l.pos++
 				l.line++
+				//		lineStart = l.pos // Update start for next potential line
+			} else if l.pos >= len(l.input) { // EOF while collecting
+				l.pos = l.startPos
+				l.line = startLine // Reset for error
+				l.Error("EOF reached while parsing docstring (missing END?)")
+				return 0 // EOF
 			}
-			// Return the DOC_COMMENT_CONTENT token *first*. The parser rule expects
-			// DOC_COMMENT_CONTENT then KW_END then NEWLINE. The lexer will be called again
-			// after returning this content, and should then return KW_END.
-			// Need to store state that END was seen? Or make parser rule simpler?
-			// Let's try simpler parser rule: KW_COMMENT NEWLINE DOC_COMMENT_CONTENT END NEWLINE
-			// Then lexDocstring just returns DOC_COMMENT_CONTENT and lexDefault handles END.
-			return DOC_COMMENT_CONTENT
-
-		} else { // Not the end line, add it to the buffer
-			if l.docBuffer.Len() > 0 {
-				l.docBuffer.WriteByte('\n')
-			} // Add newline separator
-			l.docBuffer.WriteString(lineContent) // Add the raw line content
-		}
-
-		// Consume the newline character to move to the next line
-		if l.pos < len(l.input) && l.input[l.pos] == '\n' {
-			l.pos++
-			l.line++
-		} else if l.pos >= len(l.input) { // EOF while collecting docstring
-			l.pos = l.startPos
-			l.line = startLine // Reset for error
-			l.Error("EOF reached while parsing docstring (missing END?)")
-			return 0 // EOF
 		}
 	}
 	// Should be unreachable if EOF check inside loop works
