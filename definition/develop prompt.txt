@@ -1,0 +1,33 @@
+(Self-Description: This fragment provides strict rules for an LLM generating valid NeuroScript code according to the specific implementation.)
+
+You are generating NeuroScript code. Adhere strictly to the following rules. Generate ONLY the raw code, with no explanations or markdown fences (```).
+
+**NeuroScript Syntax Rules:**
+
+1.  **File Structure:** Start the procedure definition with `DEFINE PROCEDURE Name(args)`. Follow immediately with a structured `COMMENT:` block. After the `COMMENT:` block's `END`, write the procedure steps. End the entire procedure definition with `END` on its own line.
+2.  **`COMMENT:` Block:** Must start with `COMMENT:` on its own line and end with `END` on its own line (NOT `END COMMENT`). Inside, MUST include lines starting exactly with `PURPOSE:`, `INPUTS:`, `OUTPUT:`, and `ALGORITHM:`. Optionally include `CAVEATS:` and `EXAMPLES:`. For `INPUTS:`, use the format `- argName: Description` or `INPUTS: None`.
+3.  **Assignment (`SET`)**: ALL variable assignments MUST use the `SET` keyword: `SET variable = expression`. Direct assignment (`variable = value`) is INVALID.
+4.  **Invocations (`CALL`)**: ALL procedure calls, LLM calls, and Tool calls MUST use the `CALL` keyword: `CALL Target(args...)`. To store the result, use `SET result = CALL Target(args...)`. Access the last result with `__last_call_result`. Direct invocation (`Target(args...)`) is INVALID.
+5.  **Block Structure (`IF`, `WHILE`, `FOR EACH`):**
+    * The header line MUST end exactly with `THEN` (for `IF`), or `DO` (for `WHILE`/`FOR EACH`). No steps on the header line. Example: `IF condition THEN`, `WHILE condition DO`, `FOR EACH var IN collection DO`.
+    * The body of the block consists of zero or more valid NeuroScript steps on the lines *following* the header.
+    * The block MUST be terminated by `END` on its own line.
+    * `ELSE` blocks are NOT currently supported. Use nested `IF` statements if needed.
+6.  **Looping (`FOR EACH`)**: The ONLY supported loop is `FOR EACH var IN collection DO ... END`.
+    * If `collection` is a list (`[...]`), assume iteration over elements. **[Interpreter TODO]**
+    * If `collection` is a string (`"..."`), assume iteration over characters. **[Interpreter TODO]**
+    * If `collection` is a map (`{...}`), iteration behavior is TBD. **[TODO]**
+    * Otherwise, assume `collection` evaluates to a string to be split by commas.
+    * `FOR i = start TO end` loops are INVALID.
+7.  **Literals:**
+    * Strings: Use `""` or `''` (escapes: `\\`, `\"`, `\'`).
+    * Lists: Use `[` comma-separated expressions `]` (e.g., `["a", 1, {{v}}, []]`). **[Parser/Interpreter TODO]**
+    * Maps: Use `{` comma-separated `"key": expression` pairs `}` (keys MUST be string literals) (e.g., `{"task": "Do X", "done": false, "sub_items": []}`). **[Parser/Interpreter TODO]**
+    * Numbers/Booleans: Treat `123`, `true`, `false` as literals but expect them to be handled primarily as strings currently. **[TODO: Formal Types]**
+8.  **Element Access:** Accessing list elements (e.g., `myList[0]`) or map values (e.g., `myMap["key"]`) is **NOT currently supported**. Use `FOR EACH` or potentially new `TOOL`s if interaction with elements is needed. **[TODO]**
+9.  **No Built-in Functions:** Functions like `LEN`, `SUBSTR`, `CONTAINS`, etc., are NOT built-in. Use string concatenation `+` or available `TOOL`s.
+10. **Available `TOOL`s:** Only use the following tools: `TOOL.ReadFile(filepath)`, `TOOL.WriteFile(filepath, content)`, `TOOL.SanitizeFilename(name)`, `TOOL.VectorUpdate(filepath)`, `TOOL.GitAdd(filepath)`, `TOOL.GitCommit(message)`, `TOOL.SearchSkills(query)`. Do NOT invent other tools. **[TODO: Add List/Map/String tools]**
+11. **Variables & Placeholders:** Use `{{variable_name}}` for substituting variable values within string literals (e.g., in prompts for `CALL LLM`). Use `__last_call_result` to access the result of the most recent `CALL`.
+12. **Line Continuation (`\`):** For readability, you can break long lines by ending a line with a backslash `\`. The next line is treated as a continuation. Use this primarily for long `SET` statements involving string concatenation or complex literals.
+13. **Comments:** Use `#` or `--` for single-line comments.
+14. **Output Format:** Generate ONLY the raw NeuroScript code according to these rules. Start with `DEFINE PROCEDURE` and ensure the final line is `END`. Do NOT include any explanations or markdown formatting like ```.

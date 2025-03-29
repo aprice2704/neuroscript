@@ -1,20 +1,17 @@
 # NeuroScript: A Pseudocode Framework for AI Reasoning
 
-by ChatGPT-o1 and Andrew Price
+Version: 2025-03-28
 
 NeuroScript is a structured, human-readable language that provides a *procedural scaffolding* for large language models (LLMs). It is designed to store, discover, and reuse **"skills"** (procedures) with clear docstrings and robust metadata, enabling AI systems to build up a library of **reusable, well-documented knowledge**.
 
 ## 1. Goals and Principles
 
 1. **Explicit Reasoning**: Rather than relying on hidden chain-of-thought, NeuroScript encourages step-by-step logic in a code-like format that is both *executable* and *self-documenting*.
-
 2. **Reusable Skills**: Each procedure is stored and can be retrieved via a standard interface. LLMs or humans can then call, refine, or extend these procedures without re-implementing from scratch.
-
 3. **Self-Documenting**: NeuroScript procedures must include docstrings that clarify *purpose*, *inputs*, *outputs*, *algorithmic rationale*, and *edge cases*—mirroring how humans comment code.
-
-4. **LLM Integration**: NeuroScript natively supports calling LLMs for tasks that benefit from free-form generation, pattern matching, or advanced “human-like” reasoning. 
-
-5. **Multi-Modal Reasoning**: The language can incorporate constructs for deductive logic (assertions), inductive inference (via LLM calls), reflection, and more.
+4. **LLM Integration**: NeuroScript natively supports calling LLMs for tasks that benefit from free-form generation, pattern matching, or advanced “human-like” reasoning.
+5. **Structured Data**: Supports basic list (`[]`) and map (`{}`) literals inspired by JSON/Python for handling structured data.
+6. **Multi-Modal Reasoning [TODO]**: The language aims to incorporate constructs for deductive logic (assertions), inductive inference (via LLM calls), reflection, and more.
 
 ---
 
@@ -23,87 +20,140 @@ NeuroScript is a structured, human-readable language that provides a *procedural
 ### 2.1 High-Level Structure
 
 A NeuroScript file (or “skill” definition) typically contains:
+
 1. **DEFINE PROCEDURE** *Name*( *Arguments* )
-2. **COMMENT** block (Docstring)
-3. **Statements** (the pseudocode body)
-4. **END** to close out definitions or blocks
+2. **COMMENT:** block (Docstring) ending with **END**
+3. **Statements** (the pseudocode body, potentially including nested blocks)
+4. **END** to close the procedure definition
 
-**Example**:
-```
-DEFINE PROCEDURE WeightedAverage(ListOfNumbers)
+**Example (Illustrating Lists/Maps and Blocks):**
+
+```neuroscript
+DEFINE PROCEDURE ProcessChecklist(checklist_items)
 COMMENT:
-    PURPOSE: Compute weighted average of list items {value, weight}.
-    INPUTS: ListOfNumbers -> Each item has .value and .weight
-    OUTPUT: A single numeric average
+    PURPOSE: Processes a checklist, potentially logging items.
+    INPUTS: - checklist_items: A list of map objects, where each map has "task" (string) and "status" (string). Example: `[{"task":"Review", "status":"done"}, {"task":"Implement", "status":"pending"}]`
+    OUTPUT: A summary message (string).
     ALGORITHM:
-        1. Sum up (value * weight) for each item.
-        2. Divide total by sum of weights.
-    CAVEATS: Returns 0 if weight sum is zero.
-    EXAMPLES:
-        WeightedAverage([{value:3, weight:2}, {value:5, weight:6}]) => 4.5
+        1. Initialize counters.
+        2. Iterate through the checklist items using FOR EACH.
+        3. Access task and status from each item map. [TODO: Implement map access]
+        4. Log or process based on status.
+        5. Return summary.
+    CAVEATS: Assumes input is a valid list of maps. Map access syntax/tools TBD.
+    EXAMPLES: ProcessChecklist('[{"task":"A", "status":"done"}]') => "Processed 1 items."
 END
 
-SET total = 0
-SET weightSum = 0
+SET done_count = 0
+SET pending_count = 0
+SET item_summary = "" # Placeholder for accessed item info
 
-FOR EACH item IN ListOfNumbers DO
-    SET total = total + item.value * item.weight  # Accumulate weighted sum
-    SET weightSum = weightSum + item.weight       # Accumulate total weight
-END
+FOR EACH item IN checklist_items DO # [Interpreter TODO: Iterate native list]
+    # TODO: Access map elements, e.g.:
+    # SET current_task = item["task"]
+    # SET current_status = item["status"]
+    SET item_summary = "Processing item..." # Placeholder
 
-IF weightSum = 0 THEN
-    RETURN 0
-ELSE
-    RETURN total / weightSum
-END
+    CALL Log({{item_summary}}) # Assuming CALL Log exists or is added
+
+    # TODO: Implement IF current_status == "done" THEN ... logic
+    SET done_count = done_count + 1 # [TODO: Requires arithmetic]
+
+END # End FOR EACH block
+
+SET summary = "Processed items. Done: " + done_count + ", Pending: " + pending_count # [TODO: Requires arithmetic/string conversion]
+RETURN {{summary}}
+
+END # End DEFINE PROCEDURE
 ```
 
-### 2.2 Built-In Statements
+### 2.2 Statements & Syntax
 
-- **SET var = expr**  
-  Assigns the result of an expression to a variable.
+Statements are processed line by line. A line ending with `\` continues onto the next line. Comments (`#` or `--`) are ignored.
 
-- **IF condition THEN ... END**  
-  Basic conditional control flow.
+* **`DEFINE PROCEDURE Name(arg1, arg2, ...)`**
+  * Starts a procedure definition.
 
-- **WHILE condition DO ... END** / **FOR EACH x IN collection DO ... END**  
-  Iteration constructs.
+* **`COMMENT:`**
+  * Starts a multi-line docstring block, terminated by `END`. (See Section 2.3).
 
-- **CALL**  
-  - `CALL AnotherProcedure(args...)` – calls another NeuroScript procedure.
-  - `CALL LLM("prompt")` – delegates a subtask or prompt to the LLM and captures its response.
-  - `CALL TOOL.SomeExternalFunction(...)` – calls an external tool/function if integrated.
+* **`SET variable = expression`**
+  * Assigns the result of an `expression` to a `variable`.
+  * `expression` can be:
+    * A literal (string `""`/`''`, list `[]`, map `{}`).
+    * A number **[TODO: Implement numeric types/evaluation]**.
+    * A variable name (e.g., `my_var`).
+    * A placeholder (e.g., `{{my_placeholder}}`).
+    * A concatenation of terms using `+` (primarily for strings). **[TODO: Define semantics for list/map concatenation?]**
+    * The special variable `__last_call_result`.
 
-- **RETURN value**  
-  Returns a value from the current procedure.
+* **`CALL target(arg1, arg2, ...)`**
+  * Invokes another procedure, an LLM, or an external tool.
+  * `CALL ProcedureName(...)`
+  * `CALL LLM("prompt expression")`
+  * `CALL TOOL.FunctionName(...)`
+    * **Implemented Tools:** `TOOL.ReadFile`, `TOOL.WriteFile`, `TOOL.SanitizeFilename`, `TOOL.VectorUpdate` (mock), `TOOL.GitAdd`, `TOOL.GitCommit`, `TOOL.SearchSkills` (mock).
+    * **[TODO: Implement real Vector DB tools]**
+    * **[TODO: Add more tools, e.g., List/Map tools, String tools, HTTP tools?]**
 
-- **COMMENT**  
-  A block or inline annotation to clarify “why” behind each step.
+* **`RETURN expression`**
+  * Returns the evaluated `expression`.
 
-### 2.3 Docstrings (Structured Comments)
+* **`IF condition THEN`**
+  * Starts a conditional block, terminated by `END`.
+  * `condition`: `expr1 == expr1`, `expr1 != expr1`, `true`, `false`, variable resolving to "true"/"false". **[TODO: Numeric comparisons]**.
+  * Body follows on subsequent lines.
 
-NeuroScript **requires** a docstring block at the top of each procedure. It can be free-form, but strongly recommended to include:
+* **`ELSE` [TODO: Block support pending]**
+  * Not currently supported for execution.
 
-- `PURPOSE:` Short statement of what this procedure does.  
-- `INPUTS:` Parameter list with explanations.  
-- `OUTPUT:` Return value or result.  
-- `ALGORITHM:` High-level summary of the logic or approach.  
-- `CAVEATS:` Edge cases, performance notes, limitations.  
-- `EXAMPLES:` At least one example input and output.
+* **`WHILE condition DO`**
+  * Starts a loop block, terminated by `END`.
+  * `condition` syntax same as `IF`.
+  * Body follows on subsequent lines.
 
-Example:
-```
-COMMENT:
-    PURPOSE: ...
-    INPUTS: ...
-    OUTPUT: ...
-    ALGORITHM: ...
-    CAVEATS: ...
-    EXAMPLES: ...
-END
-```
+* **`FOR EACH variable IN collection DO`**
+  * Starts a loop block, terminated by `END`.
+  * `collection` is an expression evaluating to a list, map, string, or comma-separated string.
+  * **Iteration Behavior:**
+    * If `collection` is a **list**: Iterates over elements. `variable` gets each element. **[Interpreter TODO]**
+    * If `collection` is a **map**: Iterates over keys? key-value pairs? **[TODO: Define map iteration]**
+    * If `collection` is a **string**: Iterates over characters (runes). `variable` gets each character. **[Interpreter TODO]**
+    * Otherwise: Collection is converted to string, split by commas. `variable` gets each part.
+  * Body follows on subsequent lines.
 
-**In-line Comments** are also encouraged to explain the rationale behind specific code blocks.
+* **`END`**
+  * Terminates `COMMENT:`, `IF`, `WHILE`, `FOR EACH`, or `DEFINE PROCEDURE` blocks. Must be on its own line.
+
+* **Line Continuation `\`**
+  * Joins line with the next.
+
+* **Comments (`#`, `--`)**
+  * Ignored to end of line.
+
+### 2.3 Literals
+
+* **String:** `"..."` or `'...'` (standard escapes `\"`, `\'`, `\\`).
+* **List:** `[` `]` containing comma-separated expressions. Example: `["a", 1, {{var}}, ["nested"]]`. **[Parser/Interpreter TODO]**
+* **Map:** `{` `}` containing comma-separated `string_key : expression` pairs. Example: `{"name": "Thing", "value": 10, "tags": ["A", "B"]}`. **[Parser/Interpreter TODO]**
+* **Number:** **[TODO: Define syntax and type]**
+* **Boolean:** `true`, `false` **[TODO: Define as distinct type?]**
+
+### 2.4 Docstrings (Structured Comments)
+
+*(No change from previous version - structure remains the same)*
+Requires `COMMENT:` block immediately following `DEFINE PROCEDURE`, terminated by `END`. Recommended sections:
+
+* **`PURPOSE:`** (Required)
+* **`INPUTS:`** (Required) Use `- name: description` format or `INPUTS: None`.
+* **`OUTPUT:`** (Required) Use `OUTPUT: None` if applicable.
+* **`ALGORITHM:`** (Required)
+* **`CAVEATS:`** (Optional)
+* **`EXAMPLES:`** (Optional)
+
+---
+
+Markdown
 
 ---
 
@@ -113,27 +163,24 @@ END
 
 You need a repository or database where each NeuroScript procedure (“skill”) is stored, typically with:
 
-- **name** (unique identifier)  
-- **docstring** (text metadata)  
-- **neuroscript_code** (the body of the pseudocode)  
-- **version** or **timestamp**  
-- Possibly **embeddings** (for semantic search)
+* **name** (unique identifier)
+* **docstring** (text metadata)
+* **neuroscript_code** (the body of the pseudocode)
+* **version** or **timestamp**
+* Possibly **embeddings** (for semantic search) **[TODO: Implement real indexing]**
 
 ### 3.2 Retrieval & Discovery
 
-- **Vector Search**: The docstring (and possibly the code) is embedded and stored in a vector DB or in a Postgres extension (e.g., pgvector).  
-- **Keyword/Full-Text Search**: You might also use standard text search for simpler queries.  
-
-A query like “Need a function for advanced sentiment analysis” can match docstrings that mention “sentiment analysis.”
+* **Vector Search [TODO: Implement real search]**: The docstring (and possibly the code) can be embedded and stored. `TOOL.SearchSkills` provides a mock interface.
+* **Keyword/Full-Text Search**: Standard text search on name/docstring/code.
 
 ### 3.3 API or Functions
 
-If you have a service-based approach:
-- `search_procedures(query) -> list of matches`
-- `get_procedure(name) -> returns docstring + code`
-- `save_procedure(name, docstring, code) -> updates or creates skill`
+*(Conceptual, depends on system architecture)*
 
-If you use a local approach, these can be simple library calls or direct SQL statements.
+* `search_procedures(query) -> list of matches`
+* `get_procedure(name) -> returns docstring + code`
+* `save_procedure(name, docstring, code) -> updates or creates skill`
 
 ---
 
@@ -143,110 +190,109 @@ If you use a local approach, these can be simple library calls or direct SQL sta
 
 A built-in statement that:
 
-1. Takes a string prompt.  
-2. Sends it to an LLM gateway or API endpoint.  
-3. Returns the raw text response, which can then be parsed or stored by NeuroScript.
+1. Takes a string prompt expression.
+2. Sends the evaluated prompt to an LLM gateway or API endpoint (currently hardcoded for Gemini).
+3. Returns the raw text response, storing it in `__last_call_result`.
 
-**Example**:
-```
-SET analysis = CALL LLM("Analyze the following text for sentiment: {{text}}")
-IF analysis CONTAINS "negative" THEN
-    EMIT "The text is negative in tone."
+**Example 1: Simple Text Analysis**
+
+```neuroscript
+SET text_to_analyze = "NeuroScript seems promising."
+SET analysis_prompt = "Analyze the following text for sentiment (positive/negative/neutral): {{text_to_analyze}}"
+CALL LLM({{analysis_prompt}})
+SET analysis_result = __last_call_result
+
+# Condition checking might need refinement based on LLM output format
+IF analysis_result == "positive" THEN # [TODO: Requires string comparison refinement/tools?]
+    RETURN "Positive Sentiment Detected"
 END
-```
+RETURN "Sentiment: " + analysis_result
+Example 2: Using Structured Data (Conceptual)
 
-### 4.2 Variation: Provide Context or Additional Instructions
+Code snippet
 
-NeuroScript might support `CALL LLM_WITH_CONTEXT(contextData, "prompt")`. The interpreter can embed `contextData` into the LLM prompt (for more advanced usage).
+# Assume checklist_item is a map: {"task": "Write tests", "status": "pending", "assignee": null}
+# TODO: Need a way to represent/pass structured data to LLM (e.g., JSON stringify tool)
+# SET item_json = CALL TOOL.ToJSON({{checklist_item}}) # TOOL.ToJSON is hypothetical
+SET item_json = '{"task": "Write tests", "status": "pending", "assignee": null}' # Placeholder string
 
----
+SET review_prompt = "Review this checklist item JSON and suggest an assignee based on task type: " + {{item_json}}
+CALL LLM({{review_prompt}})
+SET suggested_assignee = __last_call_result
 
-## 5. Built-In Reasoning Constructs
+# TODO: Add logic to update the original checklist_item map with the suggestion
+# e.g., CALL TOOL.MapSet({{checklist_item}}, "assignee", {{suggested_assignee}})
 
+RETURN "Suggested assignee: " + suggested_assignee
+4.2 Variation: Provide Context or Additional Instructions [TODO]
+NeuroScript might support CALL LLM_WITH_CONTEXT(contextData, "prompt"). The interpreter could embed contextData into the LLM prompt. Requires defining contextData structure and interpreter support.
+
+5. Built-In Reasoning Constructs [TODO]
 NeuroScript aims to support multiple forms of reasoning, akin to human cognition:
 
-1. **Deductive** – Use `ASSERT`, `VERIFY`, or explicit logic checks:
-   ```
-   ASSERT user_age > 0 => OnFailure: EMIT "Invalid age!"
-   ```
+Deductive – ASSERT, VERIFY, or explicit logic checks. [TODO]
+Inductive/Abductive – Typically requires free-form pattern recognition via CALL LLM(...).
+Heuristic – Fallback solutions or simple procedures.
+Reflection – Meta-analysis via REFLECT block or specific CALL LLM. [TODO]
+6. Example Workflow
+(Conceptual flow)
 
-2. **Inductive/Abductive** – Typically requires free-form pattern recognition:
-   - `CALL LLM(...)` to interpret data, propose hypotheses, or generalize.
+User / System: Needs a skill to “Classify text by emotion.”
 
-3. **Heuristic** – For quick guesses or fallback solutions. Possibly stored as:
-   ```
-   DEFINE PROCEDURE HeuristicGuess( situation )
-       # Some simpler approach, or calls to LLM with "Provide your best guess"
-   END
-   ```
+LLM (Orchestrator Script):
 
-4. **REFLECT** – A special block that can re-check or refine the code’s logic, possibly re-calling the LLM for a meta-analysis. (Optional advanced feature.)
+Search the registry (e.g., CALL TOOL.SearchSkills("emotion classification")). [TODO: Requires real search]
+If found, CALL the existing procedure.
+If not found, generate a new one using CALL LLM with specific instructions based on this spec. Example (Conceptual):
+Code snippet
 
----
+# --- Inside an orchestrator skill ---
+SET request = "Create skill for emotion classification"
+SET prompt = "Generate NeuroScript procedure for task: {{request}}. Follow spec rules..." # Use detailed prompt
+CALL LLM({{prompt}})
+SET generated_code = __last_call_result
+# ... Sanitize filename, WriteFile, GitAdd, GitCommit, VectorUpdate ...
+Store the new procedure using tools (TOOL.WriteFile, TOOL.GitAdd, etc.).
+Runtime executes the procedure (either found or newly generated).
 
-## 6. Example Workflow
+Feedback / Revision: If inaccurate, an LLM or user could update the procedure (requires TOOL.ReadFile, generation, TOOL.WriteFile, etc.).
 
-1. **User / System**: Needs a skill to “Classify text by emotion.”  
-2. **LLM**:
-   - **Search** the registry for anything referencing “emotion classification.”  
-   - If found, calls the existing procedure. If not, defines a new one, e.g.:
-     ```
-     DEFINE PROCEDURE ClassifyEmotion(TextInput)
-     COMMENT:
-         PURPOSE: ...
-         INPUTS: TextInput -> the text to be classified
-         OUTPUT: label (string) among [happy, sad, fear, etc.]
-         ALGORITHM:
-             1. Use LLM to parse the emotion in text.
-             2. Return the best match.
-         EXAMPLES: ...
-     END
-
-     SET rawResponse = CALL LLM("Given this text, what emotion is it primarily expressing: {{TextInput}}")
-     # parse rawResponse for best label
-     RETURN label
-     ```
-   - **Store** the new procedure (docstring + code) in the registry for future use.
-
-3. **Runtime** executes the procedure: It calls the LLM, obtains a label, and returns it.
-
-4. **Feedback / Revision**: If it’s inaccurate, the LLM or user updates the procedure docstring or logic. Over time, the library evolves.
 
 ---
 
 ## 7. Implementation and Architecture
 
-### 7.1 NeuroScript Interpreter
+### 7.1 NeuroScript Interpreter (Go Implementation)
 
-- **Parsing**: A minimal grammar to convert NeuroScript text into an internal AST or direct evaluation.  
-- **Execution**: Step-by-step runs statements (SET, IF, CALL, etc.).  
-- **Error Handling**: Logs or throws errors if a procedure references undefined variables or tools.
+* **Parsing**: Handles core syntax, line continuation, block headers (`IF`/`WHILE`/`FOR EACH`). **[Parser TODO: Implement list `[]` and map `{}` literal parsing]**.
+* **Execution**: Handles `SET`, `CALL`, `RETURN`, basic conditions (`==`, `!=`), string concatenation (`+`). Executes block bodies recursively. **[Interpreter TODO: Implement `FOR EACH` iteration for lists, maps, strings]**. **[TODO: Implement list/map element access]**. **[TODO: Implement arithmetic, more conditions, error handling (TRY/ASSERT)]**.
+* **Error Handling**: Propagates Go errors.
 
 ### 7.2 Database / Store
 
-- **Relational** (e.g., PostgreSQL + pgvector) or
-- **Dedicated Vector DB** (like Pinecone, Qdrant, Weaviate)  
-- **Version Control** (optional): Keep each procedure in Git if you want code-like merges and diffs.
+* **[TODO: Implement]** Mocked currently.
 
 ### 7.3 LLM Gateway
 
-- A simple API or library call that NeuroScript uses to send prompts and receive responses.  
-- Could incorporate specialized prompts or instruction presets for different tasks.
+* **[TODO: Make configurable]**.
+
+### 7.4 Version Control
+
+* **[TODO: More robust Git management needed]**.
 
 ---
 
 ## 8. Summary and Future Directions
 
-- **NeuroScript** is a **structured pseudocode** layer that fosters explicit, procedural reasoning and skill accumulation.  
-- **Docstrings** are central—procedures are self-documenting, enabling better discoverability and maintenance.  
-- **Store/Discover/Retrieve** is crucial: we keep all procedures in a robust repository and let LLMs “look them up” via semantic or keyword queries.  
-- **LLM Integration** is first-class: NeuroScript seamlessly delegates “complex text reasoning” tasks back to the LLM.  
-- **Reasoning Modes** can be expanded as needed, from deduce-and-verify to reflection-based self-checking.  
+*(Updated summary)*
 
-Future expansions might include concurrency models, advanced error handling (TRY/CATCH), refined reflection blocks, and specialized data structures for domain-specific tasks. But the **core** is consistent: encourage **structured, documented, reusable** AI reasoning code.
+* **NeuroScript** provides **structured pseudocode** for explicit AI reasoning and skill accumulation.
+* **Docstrings** are crucial.
+* **Store/Discover/Retrieve** via external tools connected to Git/Vector DB is key. **[TODO: Implement fully]**
+* **LLM Integration** via `CALL LLM` is central.
+* **Current Implementation:** Basic parsing (including blocks, line continuation), basic execution (SET, CALL, RETURN, simple IF/WHILE, FOR EACH header), mock/basic tools.
+* **Next Steps:** Implement list/map literal parsing; Implement interpreter block execution, list/map/string iteration, and element access; Implement real DB/Git integration; Add arithmetic/complex conditions, error handling, concurrency.
 
 ---
 
-### That’s the NeuroScript Spec v0.1!
-
-Use it as a foundation to build prototypes—test out storing procedures, calling an LLM in pseudocode, and refining those skills over time. Then iterate on the design as you gather real-world feedback.
+```
