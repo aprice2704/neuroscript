@@ -1,20 +1,21 @@
 (Self-Description: This fragment provides guidance for an LLM executing a given NeuroScript procedure step-by-step.)
 
-You are executing the provided NeuroScript procedure. Most syntax is self-evident. Track variable state locally. Key execution points:
+You are executing the provided NeuroScript procedure.
+Most syntax is self-evident. Track variable state locally. Key execution points:
 
-* **`SET var = expr`**: Evaluate `expr` (resolving `{{placeholders}}`, concatenating with `+`, using literals like `""`, `[]`, `{}`) and store result in `var`.
-* **`CALL Target(...)`**: Execute `ProcedureName`, external `LLM`, or `TOOL.FunctionName`. Store single return value in `__last_call_result`. Assume correct tool function (e.g., `TOOL.WriteFile` saves).
-* **`__last_call_result`**: Holds the return value of the most recent `CALL`.
-* **`IF cond THEN ... END`**: Execute block steps if `cond` (`==`, `!=`, `true`/`false`) is true. Skip otherwise. (`ELSE` not supported).
-* **`WHILE cond DO ... END`**: Execute block steps repeatedly while `cond` is true.
-* **`FOR EACH var IN coll DO ... END`**: Evaluate `coll`.
-    * If `coll` is a list `[...]`: `var` gets each element. **[Interpreter TODO]**
-    * If `coll` is a map `{...}`: Iteration TBD. **[Interpreter TODO]**
-    * If `coll` is a string: `var` gets each character. **[Interpreter TODO]**
-    * Otherwise: Split `coll` string by comma, `var` gets each part.
-* **List/Map Elements**: Accessing elements (e.g., `myList[0]`, `myMap["key"]`) is **not currently supported**. Treat lists/maps as opaque values unless iterated in `FOR EACH`.
-* **`RETURN expr`**: Evaluate `expr` and immediately return the value, ending procedure execution.
-* **`END`**: Terminates blocks (`COMMENT:`, `IF`, `WHILE`, `FOR EACH`) or the procedure.
-* **Line Continuation `\`**: Join line with next before interpreting.
+* **`SET var = expr`**: Evaluate `expr` (resolving `{{placeholders}}`, concatenating with `+`, using literals like `""`). Store result in `var`. Note: While List (`[]`) and Map (`{}`) literals are *parsed*, their direct manipulation or evaluation within the interpreter is currently limited; they might be passed as string representations or handled by specific `TOOL`s. [cite: neuroscript/pkg/core/interpreter_c.go, neuroscript/development checklist.md]
+* **`CALL Target(...)`**: Execute `ProcedureName`, external `LLM`, or `TOOL.FunctionName`. Store single return value in `__last_call_result`. [cite: neuroscript/pkg/core/interpreter.go] Assume correct tool function (e.g., `TOOL.WriteFile` saves).
+* **`__last_call_result`**: Holds the return value (as an `interface{}`) of the most recent `CALL`. [cite: neuroscript/pkg/core/interpreter.go] Use `{{__last_call_result}}` or direct reference in expressions as needed.
+* **`IF cond THEN ... END`**: Execute block steps if `cond` (`==`, `!=`, `>`, `<`, `>=`, `<=`, or expression resolving to string "true"/"false") is true. Skip otherwise. [cite: neuroscript/pkg/core/interpreter_b.go] (`ELSE` not supported). [cite: neuroscript/development checklist.md]
+* **`WHILE cond DO ... END`**: Execute block steps repeatedly while `cond` (same rules as IF) is true. [cite: neuroscript/pkg/core/interpreter.go]
+* **`FOR EACH var IN coll DO ... END`**: Evaluate `coll`. [cite: neuroscript/pkg/core/interpreter.go]
+    * If `coll` is a list `[...]`: Iteration is a **[TODO]**. [cite: neuroscript/definition/execute prompt.txt]
+    * If `coll` is a map `{...}`: Iteration is a **[TODO]**. [cite: neuroscript/definition/execute prompt.txt]
+    * If `coll` is a string: `var` gets each character. **[Implemented]** [cite: neuroscript/pkg/core/interpreter.go]
+    * Otherwise: Split `coll` string by comma, `var` gets each part. **[Implemented]** [cite: neuroscript/pkg/core/interpreter.go]
+* **List/Map Elements**: Accessing elements (e.g., `myList[0]`, `myMap["key"]`) is **not currently supported**. [cite: neuroscript/definition/execute prompt.txt] Treat lists/maps as opaque values unless iterated in `FOR EACH` (when implemented) or handled by specific `TOOL`s.
+* **`RETURN expr`**: Evaluate `expr` and immediately return the value, ending procedure execution. [cite: neuroscript/pkg/core/interpreter.go]
+* **`END`**: Terminates blocks (`COMMENT:`, `IF`, `WHILE`, `FOR EACH`) or the procedure. [cite: neuroscript/pkg/core/neuroscript.y.go]
+* **Line Continuation `\`**: Join line with next before interpreting. [cite: neuroscript/pkg/core/lexer.go]
 
-Execute step-by-step, maintain variable state, determine final outcome or `RETURN` value.
+Execute step-by-step, maintain variable state, determine final outcome or `RETURN` value. [cite: neuroscript/definition/execute prompt.txt]

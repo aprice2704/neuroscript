@@ -7,19 +7,20 @@ import (
 	"unicode"
 )
 
-// Assume yySymType and token constants are defined in neuroscript.y.go
+// Assume yySymType and token constants (like IDENTIFIER, STRING_LIT, KW_DEFINE, etc.)
+// are defined in neuroscript.y.go, generated from the parser definition.
 
 // Lexer state struct
 type lexer struct {
 	input       string
 	pos         int
 	line        int
-	startPos    int
-	lastVal     yySymType
-	result      []Procedure
-	state       int
+	startPos    int         // Start position of the current token being scanned
+	lastVal     yySymType   // Used internally by parser? Keep for now.
+	result      []Procedure // Holds the final parsed procedures
+	state       int         // Current lexing state (stDefault or stDocstring)
 	docBuffer   bytes.Buffer
-	returnedEOF bool // Flag to ensure NEWLINE before final EOF
+	returnedEOF bool // Flag to ensure NEWLINE before final EOF if needed
 }
 
 // State constants
@@ -28,33 +29,30 @@ const (
 	stDocstring = 1
 )
 
-// NewLexer
+// NewLexer creates a new lexer instance.
 func NewLexer(input string) *lexer {
 	return &lexer{input: input, line: 1, state: stDefault}
 }
 
-// Error
+// Error handles syntax errors reported by the parser.
 func (l *lexer) Error(s string) {
 	context := l.currentTokenText()
 	if context == "" && l.pos < len(l.input) {
 		context = string(l.input[l.pos])
 	}
-	// Keep this error reporting active
 	fmt.Printf("Syntax error on line %d near '%s': %s\n", l.line, context, s)
 }
 
-// currentTokenText
+// currentTokenText returns the text of the token currently being processed, truncated for logging.
 func (l *lexer) currentTokenText() string {
 	start := l.startPos
 	end := l.pos
-	if start >= end && start < len(l.input) {
-		end = start + 1
+	// Adjust bounds safely
+	if start >= len(l.input) {
+		start = len(l.input)
 	}
 	if end > len(l.input) {
 		end = len(l.input)
-	}
-	if start >= len(l.input) {
-		start = len(l.input) - 1
 	}
 	if start < 0 {
 		start = 0
@@ -62,6 +60,7 @@ func (l *lexer) currentTokenText() string {
 	if start >= end {
 		return ""
 	}
+
 	text := l.input[start:end]
 	if len(text) > 30 {
 		text = text[:27] + "..."
@@ -69,25 +68,21 @@ func (l *lexer) currentTokenText() string {
 	return text
 }
 
-// Lex
+// Lex is the main entry point called by the parser to get the next token.
 func (l *lexer) Lex(lval *yySymType) int {
 	if l.state == stDocstring {
-		// fmt.Printf("Lexer: Calling lexDocstring (pos %d)\n", l.pos) // DEBUG commented out
 		return l.lexDocstring(lval)
 	}
-	// fmt.Printf("Lexer: Calling lexDefault (pos %d)\n", l.pos) // DEBUG commented out
 	return l.lexDefault(lval)
 }
 
-// lexDocstring
+// lexDocstring handles lexing within a COMMENT: block.
 func (l *lexer) lexDocstring(lval *yySymType) int {
-	// fmt.Printf("  lexDocstring: Entered (pos %d, line %d)\n", l.pos, l.line) // DEBUG commented out
 	if l.pos >= len(l.input) {
 		l.Error("EOF reached while parsing docstring (missing END?)")
-		// fmt.Printf("  lexDocstring: Returning 0 (EOF)\n") // DEBUG commented out
 		return 0 // EOF
 	}
-	l.startPos = l.pos
+	l.startPos = l.pos // Track start for error context
 	startLine := l.line
 	l.docBuffer.Reset()
 
@@ -98,392 +93,402 @@ func (l *lexer) lexDocstring(lval *yySymType) int {
 		}
 		lineContent := l.input[l.pos:lineEnd]
 		trimmedLine := strings.TrimSpace(lineContent)
-		// fmt.Printf("  lexDocstring: Read line %d: %q (trimmed: %q)\n", l.line, lineContent, trimmedLine) // DEBUG commented out
 
-		isEndLine := (trimmedLine == "END")
-
-		if isEndLine {
-			// fmt.Printf("  lexDocstring: Found END line.\n") // DEBUG commented out
-			l.state = stDefault
+		// Check for the END keyword specifically
+		if trimmedLine == "END" {
+			// Found the end of the docstring
+			l.state = stDefault // Switch back to default state
 			lval.str = l.docBuffer.String()
-			// fmt.Printf("  lexDocstring: Returning DOC_COMMENT_CONTENT (length %d), content: %q\n", len(l.docBuffer.String()), l.docBuffer.String()) // DEBUG commented out
-			// fmt.Printf("  lexDocstring: Switching state to stDefault, pos left at %d\n", l.pos) // DEBUG commented out
-			return DOC_COMMENT_CONTENT
-		} else {
-			if l.docBuffer.Len() > 0 {
-				l.docBuffer.WriteByte('\n')
-			}
-			l.docBuffer.WriteString(lineContent)
+
+			// Consume the 'END' line itself, including the potential newline after it
 			l.pos = lineEnd
 			if l.pos < len(l.input) && l.input[l.pos] == '\n' {
 				l.pos++
 				l.line++
-				// fmt.Printf("  lexDocstring: Consumed newline, moving to line %d, pos %d\n", l.line, l.pos) // DEBUG commented out
-			} else if l.pos >= len(l.input) {
-				l.pos = l.startPos // Use startPos for error context
-				l.line = startLine
-				l.Error("EOF reached while parsing docstring (missing END?)")
-				// fmt.Printf("  lexDocstring: Returning 0 (EOF in loop)\n") // DEBUG commented out
-				return 0
 			}
+			// Don't consume the newline *before* returning DOC_COMMENT_CONTENT,
+			// let the main loop handle newlines after this token.
+			return DOC_COMMENT_CONTENT
+		}
+
+		// Not the end line, append to buffer
+		if l.docBuffer.Len() > 0 {
+			l.docBuffer.WriteByte('\n')
+		}
+		l.docBuffer.WriteString(lineContent)
+
+		// Move past the current line
+		l.pos = lineEnd
+		if l.pos < len(l.input) && l.input[l.pos] == '\n' {
+			l.pos++
+			l.line++
+		} else if l.pos >= len(l.input) {
+			// Reached EOF without finding END
+			l.pos = l.startPos // Reset for error context
+			l.line = startLine
+			l.Error("EOF reached while parsing docstring (missing END?)")
+			return 0 // EOF
 		}
 	}
-	// fmt.Printf("  lexDocstring: Returning 0 (Fell out of loop?)\n") // DEBUG commented out
+	// Should not be reached if EOF handling is correct
+	l.Error("Unexpected exit from docstring lexing loop")
 	return 0
 }
 
-// isalnum_ (Unchanged)
+// lexDefault handles lexing in the default state (outside docstrings).
+func (l *lexer) lexDefault(lval *yySymType) int {
+	// 1. Skip insignificant characters (whitespace, comments, line continuations)
+	if l.lexSkipInsignificant() {
+		// If skipping encountered EOF, handle final NEWLINE injection if needed
+		return l.handleEOF()
+	}
+
+	// 2. Check for EOF *after* skipping
+	if l.pos >= len(l.input) {
+		return l.handleEOF()
+	}
+
+	// 3. Set start position for the significant token
+	l.startPos = l.pos
+	char := rune(l.input[l.pos])
+
+	// 4. Handle specific single characters or keywords first
+	if char == '\n' {
+		return l.lexNewline()
+	}
+	if strings.HasPrefix(l.input[l.pos:], "COMMENT:") {
+		return l.lexCommentKeyword(lval)
+	}
+
+	// 5. Try matching different token types
+	// Order can matter here (e.g., check operators before identifiers if symbols overlap)
+	if token := l.lexOperator(lval); token > 0 {
+		return token
+	}
+	if unicode.IsLetter(char) || char == '_' {
+		return l.lexIdentifierOrKeyword(lval)
+	}
+	if char == '"' || char == '\'' {
+		return l.lexStringLiteral(lval)
+	}
+	if unicode.IsDigit(char) {
+		return l.lexNumericLiteral(lval)
+	}
+
+	// 6. If none matched, it's an unexpected character
+	l.Error(fmt.Sprintf("unexpected character: %q", char))
+	l.pos++ // Consume the invalid character to prevent infinite loops
+	return INVALID
+}
+
+// lexSkipInsignificant consumes whitespace, comments, and line continuations.
+// Returns true if EOF was reached during skipping, false otherwise.
+func (l *lexer) lexSkipInsignificant() bool {
+	for l.pos < len(l.input) {
+		startPosBeforeSkip := l.pos
+		skippedSomethingThisPass := false
+
+		// Skip horizontal whitespace (' ' and '\t')
+		for l.pos < len(l.input) {
+			char := rune(l.input[l.pos])
+			if char == ' ' || char == '\t' {
+				l.pos++
+				skippedSomethingThisPass = true
+			} else {
+				break
+			}
+		}
+
+		// Skip Comments ( '#' or '--' to end of line, including newline)
+		if l.pos < len(l.input) {
+			char := rune(l.input[l.pos])
+			isComment := false
+			if char == '#' {
+				isComment = true
+			}
+			if char == '-' && l.pos+1 < len(l.input) && l.input[l.pos+1] == '-' {
+				isComment = true
+			}
+			if isComment {
+				for l.pos < len(l.input) && l.input[l.pos] != '\n' {
+					l.pos++
+				}
+				if l.pos < len(l.input) { // Found newline
+					l.pos++ // Consume newline
+					l.line++
+				}
+				skippedSomethingThisPass = true
+				continue // Restart skipping immediately after a comment line
+			}
+		}
+
+		// Skip Line Continuations ('\' followed by optional space/tab then '\n')
+		if l.pos < len(l.input) {
+			if rune(l.input[l.pos]) == '\\' {
+				peekPos := l.pos + 1
+				for peekPos < len(l.input) {
+					peekChar := rune(l.input[peekPos])
+					if peekChar == ' ' || peekChar == '\t' {
+						peekPos++
+					} else {
+						break
+					}
+				}
+				if peekPos < len(l.input) && l.input[peekPos] == '\n' {
+					l.pos = peekPos + 1 // Consume '\', whitespace, and '\n'
+					l.line++
+					skippedSomethingThisPass = true
+					continue // Restart skipping immediately after a line continuation
+				}
+			}
+		}
+
+		// If we didn't skip anything significant in this pass, break the loop
+		if !skippedSomethingThisPass && l.pos == startPosBeforeSkip {
+			break
+		}
+	}
+	// Return true if EOF was reached
+	return l.pos >= len(l.input)
+}
+
+// handleEOF manages the end-of-file condition, injecting a final NEWLINE if necessary.
+func (l *lexer) handleEOF() int {
+	if !l.returnedEOF {
+		l.returnedEOF = true
+		// Inject NEWLINE if the last non-EOF character wasn't one
+		needsNewlineInjection := (l.pos > 0 && l.input[l.pos-1] != '\n')
+		if needsNewlineInjection {
+			return NEWLINE
+		}
+	}
+	// If EOF already handled or no NEWLINE needed, return 0 (EOF code for parser)
+	return 0
+}
+
+// lexNewline handles the NEWLINE token.
+func (l *lexer) lexNewline() int {
+	l.pos++
+	l.line++
+	return NEWLINE
+}
+
+// lexCommentKeyword handles the COMMENT: keyword and transitions state.
+func (l *lexer) lexCommentKeyword(lval *yySymType) int {
+	const commentKeyword = "COMMENT:"
+	l.pos += len(commentKeyword)
+	// Consume the immediately following NEWLINE if present
+	if l.pos < len(l.input) && l.input[l.pos] == '\n' {
+		l.pos++
+		l.line++
+	}
+	l.state = stDocstring
+	l.docBuffer.Reset()
+	return KW_COMMENT
+}
+
+// lexOperator tries to match and return 1 or 2 character operators.
+// Returns the token type (e.g., EQ, PLUS) or 0 if no operator found.
+func (l *lexer) lexOperator(lval *yySymType) int {
+	// Check 2-character operators first
+	if l.pos+1 < len(l.input) {
+		twoChars := l.input[l.pos : l.pos+2]
+		switch twoChars {
+		case "==":
+			l.pos += 2
+			return EQ
+		case "!=":
+			l.pos += 2
+			return NEQ
+		case ">=":
+			l.pos += 2
+			return GTE
+		case "<=":
+			l.pos += 2
+			return LTE
+		case "{{":
+			l.pos += 2
+			return PLACEHOLDER_START
+		case "}}":
+			l.pos += 2
+			return PLACEHOLDER_END
+			// '--' comment handled in lexSkipInsignificant
+		}
+	}
+	// Check 1-character operators
+	char := rune(l.input[l.pos])
+	switch char {
+	case '=':
+		l.pos++
+		return ASSIGN
+	case '+':
+		l.pos++
+		return PLUS
+	case '(':
+		l.pos++
+		return LPAREN
+	case ')':
+		l.pos++
+		return RPAREN
+	case ',':
+		l.pos++
+		return COMMA
+	case '[':
+		l.pos++
+		return LBRACK
+	case ']':
+		l.pos++
+		return RBRACK
+	case '{':
+		l.pos++
+		return LBRACE
+	case '}':
+		l.pos++
+		return RBRACE
+	case ':':
+		l.pos++
+		return COLON
+	case '.':
+		l.pos++
+		return DOT
+	case '>':
+		l.pos++
+		return GT
+	case '<':
+		l.pos++
+		return LT
+		// '#' comment handled in lexSkipInsignificant
+		// '\n' handled separately
+		// '\' line continuation handled in lexSkipInsignificant
+	}
+	// No operator matched at this position
+	return 0
+}
+
+// lexIdentifierOrKeyword handles identifiers and keywords.
+func (l *lexer) lexIdentifierOrKeyword(lval *yySymType) int {
+	start := l.pos
+	l.pos++ // Consume the first letter or underscore
+
+	// Check for the specific __last_call_result identifier early
+	const lastCall = "__last_call_result"
+	if strings.HasPrefix(l.input[start:], lastCall) {
+		boundary := start + len(lastCall)
+		// Check if it's correctly bounded (EOF or non-identifier char)
+		if boundary == len(l.input) || !isalnum_(rune(l.input[boundary])) {
+			l.pos = boundary // Consume the whole identifier
+			return KW_LAST_CALL_RESULT
+		}
+		// If not bounded correctly, reset pos and let general logic handle it
+		// (though this specific case is unlikely to be part of a larger identifier)
+		l.pos = start + 1
+	}
+
+	// Consume remaining identifier characters
+	for l.pos < len(l.input) && isalnum_(rune(l.input[l.pos])) {
+		l.pos++
+	}
+	segment := l.input[start:l.pos]
+
+	// Check if it's a keyword (case-insensitive)
+	upperSegment := strings.ToUpper(segment)
+	switch upperSegment {
+	case "DEFINE":
+		return KW_DEFINE
+	case "PROCEDURE":
+		return KW_PROCEDURE
+	case "END":
+		return KW_END // Note: END also terminates COMMENT:, handled there too.
+	case "SET":
+		return KW_SET
+	case "CALL":
+		return KW_CALL
+	case "RETURN":
+		return KW_RETURN
+	case "IF":
+		return KW_IF
+	case "THEN":
+		return KW_THEN
+	case "ELSE":
+		return KW_ELSE
+	case "WHILE":
+		return KW_WHILE
+	case "DO":
+		return KW_DO
+	case "FOR":
+		return KW_FOR
+	case "EACH":
+		return KW_EACH
+	case "IN":
+		return KW_IN
+	case "TOOL":
+		return KW_TOOL
+	case "LLM":
+		return KW_LLM
+	// Note: COMMENT handled via COMMENT: prefix
+	// Note: TRUE/FALSE not keywords yet
+	default:
+		// Not a keyword, it's an identifier
+		lval.str = segment // Store original case
+		return IDENTIFIER
+	}
+}
+
+// lexStringLiteral handles single or double quoted string literals.
+func (l *lexer) lexStringLiteral(lval *yySymType) int {
+	start := l.pos
+	quote := rune(l.input[l.pos])
+	l.pos++ // Consume opening quote
+
+	escaped := false
+	foundEndQuote := false
+	for l.pos < len(l.input) {
+		curr := rune(l.input[l.pos])
+		if escaped {
+			escaped = false // Consume character after escape
+		} else if curr == '\\' {
+			escaped = true // Mark next character as potentially escaped
+		} else if curr == quote {
+			l.pos++ // Consume closing quote
+			// Store the literal *including* the quotes for now, parser/interpreter can unquote.
+			lval.str = l.input[start:l.pos]
+			foundEndQuote = true
+			break
+		} else if curr == '\n' {
+			l.line++ // Allow multi-line strings
+		}
+		l.pos++
+	}
+
+	if foundEndQuote {
+		return STRING_LIT
+	}
+
+	// If loop finished without finding end quote
+	l.pos = start // Reset position for better error context
+	l.Error(fmt.Sprintf("unclosed string literal starting with %c", quote))
+	return INVALID
+}
+
+// lexNumericLiteral handles simple integer literals.
+// TODO: Expand for floats, different bases?
+func (l *lexer) lexNumericLiteral(lval *yySymType) int {
+	start := l.pos
+	l.pos++ // Consume first digit
+	for l.pos < len(l.input) && unicode.IsDigit(rune(l.input[l.pos])) {
+		l.pos++
+	}
+	// TODO: Add float support (check for '.', then more digits)
+	lval.str = l.input[start:l.pos]
+	return NUMBER_LIT
+}
+
+// isalnum_ checks if a rune is a letter, digit, or underscore. (Helper)
 func isalnum_(r rune) bool {
 	return unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_'
 }
 
-// SetResult (Unchanged)
+// SetResult allows the parser to store the final result back into the lexer.
 func (l *lexer) SetResult(res []Procedure) {
 	l.result = res
 }
-
-// lexDefault Function
-func (l *lexer) lexDefault(lval *yySymType) int {
-	for { // Outer loop restarts only after *returning* a token or hitting error
-
-		// *** Phase 1: Skip all insignificant stuff ***
-		skippedSomething := true // Assume we might skip something
-		for skippedSomething {
-			skippedSomething = false // Reset flag for this pass
-
-			// Check EOF within skipper
-			if l.pos >= len(l.input) {
-				if !l.returnedEOF {
-					needsNewlineInjection := (l.pos > 0 && l.input[l.pos-1] != '\n')
-					l.returnedEOF = true // Set flag immediately
-					if needsNewlineInjection {
-						// fmt.Printf("  lexDefault-Skip: Injecting final NEWLINE before EOF\n") // DEBUG commented out
-						return NEWLINE
-					} else {
-						// fmt.Printf("  lexDefault-Skip: Returning 0 (EOF - no injection needed)\n") // DEBUG commented out
-						return 0
-					}
-				} else {
-					// fmt.Printf("  lexDefault-Skip: Returning 0 (EOF - already handled)\n") // DEBUG commented out
-					return 0
-				}
-			}
-
-			startPosBeforeSkip := l.pos
-
-			// Skip horizontal whitespace
-			posBeforeSpace := l.pos
-			for l.pos < len(l.input) {
-				char := rune(l.input[l.pos])
-				if char == ' ' || char == '\t' {
-					l.pos++
-				} else {
-					break
-				}
-			}
-			if l.pos > posBeforeSpace {
-				skippedSomething = true
-			}
-
-			// Skip Comments (whole line including newline)
-			if l.pos < len(l.input) {
-				char := rune(l.input[l.pos])
-				isComment := false
-				if char == '#' {
-					isComment = true
-				}
-				if char == '-' && l.pos+1 < len(l.input) && l.input[l.pos+1] == '-' {
-					isComment = true
-				}
-				if isComment {
-					// commentStartPos := l.pos // Keep track if needed for multi-line comments later
-					for l.pos < len(l.input) && l.input[l.pos] != '\n' {
-						l.pos++
-					}
-					if l.pos < len(l.input) {
-						l.pos++ // Consume newline
-						l.line++
-					}
-					// fmt.Printf("  lexDefault-Skip: Skipped comment line (%q)\n", l.input[commentStartPos:l.pos]) // DEBUG commented out
-					skippedSomething = true
-					continue // Restart skipping loop *immediately* after skipping comment line
-				}
-			}
-
-			// Skip Line Continuations (\ + optional space/tab + \n)
-			if l.pos < len(l.input) {
-				char := rune(l.input[l.pos])
-				if char == '\\' {
-					peekPos := l.pos + 1
-					for peekPos < len(l.input) {
-						peekChar := rune(l.input[peekPos])
-						if peekChar == ' ' || peekChar == '\t' {
-							peekPos++
-						} else {
-							break
-						}
-					}
-					if peekPos < len(l.input) && l.input[peekPos] == '\n' {
-						l.pos = peekPos + 1
-						l.line++
-						// fmt.Printf("  lexDefault-Skip: Handled line continuation, now at line %d, pos %d\n", l.line, l.pos) // DEBUG commented out
-						skippedSomething = true
-						continue // Restart skipping loop *immediately* after skipping continuation
-					}
-				}
-			}
-			// If we skipped only whitespace, loop again
-			if l.pos > startPosBeforeSkip && skippedSomething {
-				continue
-			}
-
-		} // End of skipping loop
-
-		// *** Phase 2: Identify and return the next significant token ***
-
-		// Re-check EOF after skipping everything
-		if l.pos >= len(l.input) {
-			if !l.returnedEOF {
-				needsNewlineInjection := (l.pos > 0 && l.input[l.pos-1] != '\n')
-				l.returnedEOF = true // Set flag immediately
-				if needsNewlineInjection {
-					// fmt.Printf("  lexDefault-Token: Injecting final NEWLINE before EOF\n") // DEBUG commented out
-					return NEWLINE
-				} else {
-					// fmt.Printf("  lexDefault-Token: Returning 0 (EOF - no injection needed)\n") // DEBUG commented out
-					return 0
-				}
-			} else {
-				// fmt.Printf("  lexDefault-Token: Returning 0 (EOF - already handled)\n") // DEBUG commented out
-				return 0
-			}
-		}
-
-		l.startPos = l.pos // Set definitive token start position
-		char := rune(l.input[l.pos])
-
-		// Handle NEWLINE itself as a token
-		if char == '\n' {
-			l.pos++
-			l.line++
-			// fmt.Printf("  lexDefault-Token: Returning NEWLINE (line %d)\n", l.line) // DEBUG commented out
-			return NEWLINE
-		}
-
-		// Handle COMMENT: keyword
-		const commentKeyword = "COMMENT:"
-		if strings.HasPrefix(l.input[l.pos:], commentKeyword) {
-			l.pos += len(commentKeyword)
-			// Consume the immediately following NEWLINE if present
-			if l.pos < len(l.input) && l.input[l.pos] == '\n' {
-				l.pos++
-				l.line++
-				// fmt.Printf("  lexDefault-Token: Consumed newline after COMMENT:\n") // DEBUG commented out
-			} else {
-				// This might indicate a syntax error according to spec (COMMENT: must be on its own line)
-				// Or maybe allow COMMENT: inline text? For now, just note it.
-				// fmt.Printf("  lexDefault-Token: WARNING - No newline found immediately after COMMENT:\n") // DEBUG commented out
-			}
-			l.state = stDocstring
-			l.docBuffer.Reset()
-			// fmt.Printf("  lexDefault-Token: Returning KW_COMMENT, switching state to stDocstring\n") // DEBUG commented out
-			return KW_COMMENT
-		}
-
-		// Handle other tokens (Operators, Literals, Identifiers/Keywords)
-		// Operators / Delimiters
-		if l.pos+1 < len(l.input) { // 2-char
-			twoChars := l.input[l.pos : l.pos+2]
-			switch twoChars {
-			case "==":
-				l.pos += 2 /* fmt.Printf("  lexDefault-Token: Returning EQ\n"); */
-				return EQ
-			case "!=":
-				l.pos += 2 /* fmt.Printf("  lexDefault-Token: Returning NEQ\n"); */
-				return NEQ
-			case "{{":
-				l.pos += 2 /* fmt.Printf("  lexDefault-Token: Returning PLACEHOLDER_START\n"); */
-				return PLACEHOLDER_START
-			case "}}":
-				l.pos += 2 /* fmt.Printf("  lexDefault-Token: Returning PLACEHOLDER_END\n"); */
-				return PLACEHOLDER_END
-			}
-		}
-		switch char { // 1-char
-		case '=':
-			l.pos++ /* fmt.Printf("  lexDefault-Token: Returning ASSIGN\n"); */
-			return ASSIGN
-		case '+':
-			l.pos++ /* fmt.Printf("  lexDefault-Token: Returning PLUS\n"); */
-			return PLUS
-		case '(':
-			l.pos++ /* fmt.Printf("  lexDefault-Token: Returning LPAREN\n"); */
-			return LPAREN
-		case ')':
-			l.pos++ /* fmt.Printf("  lexDefault-Token: Returning RPAREN\n"); */
-			return RPAREN
-		case ',':
-			l.pos++ /* fmt.Printf("  lexDefault-Token: Returning COMMA\n"); */
-			return COMMA
-		case '[':
-			l.pos++ /* fmt.Printf("  lexDefault-Token: Returning LBRACK\n"); */
-			return LBRACK
-		case ']':
-			l.pos++ /* fmt.Printf("  lexDefault-Token: Returning RBRACK\n"); */
-			return RBRACK
-		case '{':
-			l.pos++ /* fmt.Printf("  lexDefault-Token: Returning LBRACE\n"); */
-			return LBRACE
-		case '}':
-			l.pos++ /* fmt.Printf("  lexDefault-Token: Returning RBRACE\n"); */
-			return RBRACE
-		case ':':
-			l.pos++ /* fmt.Printf("  lexDefault-Token: Returning COLON\n"); */
-			return COLON
-		case '.':
-			l.pos++ /* fmt.Printf("  lexDefault-Token: Returning DOT\n"); */
-			return DOT
-		case '>':
-			if l.pos+1 < len(l.input) && l.input[l.pos+1] == '=' {
-				l.pos += 2 /* fmt.Printf("  lexDefault-Token: Returning GTE\n"); */
-				return GTE // Assuming GTE defined in .y
-			}
-			l.pos++   /* fmt.Printf("  lexDefault-Token: Returning GT\n"); */
-			return GT // Assuming GT defined in .y
-		case '<':
-			if l.pos+1 < len(l.input) && l.input[l.pos+1] == '=' {
-				l.pos += 2 /* fmt.Printf("  lexDefault-Token: Returning LTE\n"); */
-				return LTE // Assuming LTE defined in .y
-			}
-			l.pos++   /* fmt.Printf("  lexDefault-Token: Returning LT\n"); */
-			return LT // Assuming LT defined in .y
-		}
-
-		// Identifiers / Keywords
-		if unicode.IsLetter(char) || char == '_' {
-			start := l.pos
-			l.pos++
-			// Check for __last_call_result first as it contains underscores
-			const lastCall = "__last_call_result"
-			if strings.HasPrefix(l.input[start:], lastCall) {
-				boundary := start + len(lastCall)
-				if boundary == len(l.input) || !isalnum_(rune(l.input[boundary])) {
-					l.pos = boundary
-					// fmt.Printf("  lexDefault-Token: Returning KW_LAST_CALL_RESULT\n") // DEBUG commented out
-					return KW_LAST_CALL_RESULT
-				}
-				// If not bounded correctly, reset pos and let general identifier logic handle it
-				l.pos = start + 1
-			}
-
-			// General identifier/keyword logic
-			for l.pos < len(l.input) && isalnum_(rune(l.input[l.pos])) {
-				l.pos++
-			}
-			segment := l.input[start:l.pos]
-			// Using ToUpper for case-insensitive keyword matching
-			upperSegment := strings.ToUpper(segment)
-			switch upperSegment {
-			case "DEFINE": /* fmt.Printf("  lexDefault-Token: Returning KW_DEFINE\n"); */
-				return KW_DEFINE
-			case "PROCEDURE": /* fmt.Printf("  lexDefault-Token: Returning KW_PROCEDURE\n"); */
-				return KW_PROCEDURE
-			case "END": /* fmt.Printf("  lexDefault-Token: Returning KW_END\n"); */
-				return KW_END
-			case "SET": /* fmt.Printf("  lexDefault-Token: Returning KW_SET\n"); */
-				return KW_SET
-			case "CALL": /* fmt.Printf("  lexDefault-Token: Returning KW_CALL\n"); */
-				return KW_CALL
-			case "RETURN": /* fmt.Printf("  lexDefault-Token: Returning KW_RETURN\n"); */
-				return KW_RETURN
-			case "IF": /* fmt.Printf("  lexDefault-Token: Returning KW_IF\n"); */
-				return KW_IF
-			case "THEN": /* fmt.Printf("  lexDefault-Token: Returning KW_THEN\n"); */
-				return KW_THEN
-			case "WHILE": /* fmt.Printf("  lexDefault-Token: Returning KW_WHILE\n"); */
-				return KW_WHILE
-			case "DO": /* fmt.Printf("  lexDefault-Token: Returning KW_DO\n"); */
-				return KW_DO
-			case "FOR": /* fmt.Printf("  lexDefault-Token: Returning KW_FOR\n"); */
-				return KW_FOR
-			case "EACH": /* fmt.Printf("  lexDefault-Token: Returning KW_EACH\n"); */
-				return KW_EACH
-			case "IN": /* fmt.Printf("  lexDefault-Token: Returning KW_IN\n"); */
-				return KW_IN
-			case "TOOL": /* fmt.Printf("  lexDefault-Token: Returning KW_TOOL\n"); */
-				return KW_TOOL
-			case "LLM": /* fmt.Printf("  lexDefault-Token: Returning KW_LLM\n"); */
-				return KW_LLM
-			case "ELSE": /* fmt.Printf("  lexDefault-Token: Returning KW_ELSE\n"); */
-				return KW_ELSE
-			// Note: COMMENT is handled via COMMENT: prefix
-			// Handle TRUE/FALSE literals? For now, handled in expression evaluation.
-			// case "TRUE": return KW_TRUE?
-			// case "FALSE": return KW_FALSE?
-			default:
-				// Check if it's the specific internal variable __last_call_result (case sensitive)
-				if segment == "__last_call_result" {
-					// fmt.Printf("  lexDefault-Token: Returning KW_LAST_CALL_RESULT\n") // DEBUG commented out
-					return KW_LAST_CALL_RESULT
-				}
-				lval.str = segment // Store original case for identifiers
-				// fmt.Printf("  lexDefault-Token: Returning IDENTIFIER (%s)\n", segment) // DEBUG commented out
-				return IDENTIFIER
-			}
-		}
-
-		// String Literals
-		if char == '"' || char == '\'' {
-			start := l.pos
-			quote := char
-			l.pos++
-			escaped := false
-			foundEndQuote := false
-			for l.pos < len(l.input) {
-				curr := rune(l.input[l.pos])
-				if escaped {
-					escaped = false
-				} else if curr == '\\' {
-					escaped = true
-				} else if curr == quote {
-					l.pos++                         // Include closing quote in value for now? Or exclude? parser expects raw value.
-					lval.str = l.input[start:l.pos] // Includes quotes - maybe unquote here? strconv.Unquote?
-					foundEndQuote = true
-					break
-				} else if curr == '\n' {
-					l.line++ // Allow multiline strings
-				}
-				l.pos++
-			}
-			if foundEndQuote {
-				// fmt.Printf("  lexDefault-Token: Returning STRING_LIT (%s)\n", lval.str) // DEBUG commented out
-				return STRING_LIT
-			}
-			// If loop finished without finding end quote
-			l.pos = start // Reset position to start of literal for error context
-			l.Error(fmt.Sprintf("unclosed string literal starting with %c", quote))
-			// fmt.Printf("  lexDefault-Token: Returning INVALID (unclosed string)\n") // DEBUG commented out
-			return INVALID
-		}
-
-		// Numeric Literals (Basic integer example - needs expansion for float, etc.)
-		if unicode.IsDigit(char) {
-			start := l.pos
-			l.pos++
-			for l.pos < len(l.input) && unicode.IsDigit(rune(l.input[l.pos])) {
-				l.pos++
-			}
-			// TODO: Add float support ('.')
-			lval.str = l.input[start:l.pos]
-			// fmt.Printf("  lexDefault-Token: Returning NUMBER_LIT (%s)\n", lval.str) // Assuming NUMBER_LIT defined in .y
-			return NUMBER_LIT // Assuming NUMBER_LIT defined
-		}
-
-		// Unexpected Character
-		l.Error(fmt.Sprintf("unexpected character: %q", char))
-		l.pos++ // Consume to avoid infinite loop
-		// fmt.Printf("  lexDefault-Token: Returning INVALID (unexpected char)\n") // DEBUG commented out
-		return INVALID
-
-	} // End outer loop
-} // End lexDefault

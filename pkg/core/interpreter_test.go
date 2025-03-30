@@ -4,12 +4,11 @@ import (
 	"reflect"
 	"strings"
 	"testing"
-	// Import fmt if you use logging within tests
 )
 
 // --- Interpreter Test Specific Helper ---
 func newTestInterpreter(vars map[string]interface{}, lastResult interface{}) *Interpreter {
-	interp := NewInterpreter() // Assumes NewInterpreter initializes registry etc.
+	interp := NewInterpreter()
 	if vars != nil {
 		interp.variables = make(map[string]interface{}, len(vars))
 		for k, v := range vars {
@@ -24,7 +23,7 @@ func newTestInterpreter(vars map[string]interface{}, lastResult interface{}) *In
 
 // --- Unit Tests for Interpreter Helpers ---
 
-// TestSplitExpression (Remains unchanged, tests independent logic)
+// TestSplitExpression
 func TestSplitExpression(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -43,13 +42,12 @@ func TestSplitExpression(t *testing.T) {
 		{"Plus Inside Quotes", `"a + b"`, []string{`"a + b"`}},
 		{"Placeholder With Space", `{{ file name }}`, []string{`{{ file name }}`}},
 		{"Concat Placeholders With Space", `{{ greeting }} + {{ user }}`, []string{`{{ greeting }}`, `+`, `{{ user }}`}},
-		// Add tests for list/map literals if parser supports them
-		// {"List Literal String", `["a", "b"]`, []string{`["a", "b"]`}},
-		// {"Map Literal String", `{"k": "v"}`, []string{`{"k": "v"}`}},
+		{"Parentheses", `"A" + (b + "C")`, []string{`"A"`, `+`, `(b + "C")`}},
+		{"Placeholder Inside Parentheses", `"A" + ({{var}} + "C")`, []string{`"A"`, `+`, `({{var}} + "C")`}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := splitExpression(tt.input) // splitExpression is in interpreter_b.go
+			got := splitExpression(tt.input)
 			if !reflect.DeepEqual(got, tt.expected) {
 				t.Errorf("splitExpression(%q):\nExpected: %v\nGot:      %v", tt.input, tt.expected, got)
 			}
@@ -57,32 +55,28 @@ func TestSplitExpression(t *testing.T) {
 	}
 }
 
-// TestResolvePlaceholders (Remains unchanged, tests independent logic)
+// TestResolvePlaceholders
 func TestResolvePlaceholders(t *testing.T) {
 	vars := map[string]interface{}{"name": "World", "obj": "Test"}
-	interp := newTestInterpreter(vars, "LAST") // Add last result for testing
+	interp := newTestInterpreter(vars, "LAST")
 	interp.variables["full"] = "Hello {{name}} using {{obj}} returning {{__last_call_result}}"
-	interp.variables["nested"] = "Value is {{full}}" // Add a nested case
-
+	interp.variables["nested"] = "Value is {{full}}"
+	interp.variables["self"] = "{{self}}"
+	interp.variables["loop1"] = "{{loop2}}"
+	interp.variables["loop2"] = "{{loop1}}"
 	tests := []struct {
 		name     string
 		input    string
 		expected string
 	}{
-		{"No Placeholders", `"Hello World!"`, `"Hello World!"`},
-		{"Single Found", `"Hello {{name}}!"`, `"Hello World!"`},
-		{"Single Not Found", `"Hello {{user}}!"`, `"Hello {{user}}!"`},
-		{"Multiple Found", `"{{obj}} for {{name}}"`, `"Test for World"`},
-		{"Multiple Mixed", `"{{obj}} for {{user}}"`, `"Test for {{user}}"`},
-		{"Adjacent", `{{obj}}{{name}}`, `TestWorld`},
-		{"Empty Input", "", ""},
-		{"Placeholder Only Found", `{{name}}`, `World`},
-		{"Placeholder Only Not Found", `{{user}}`, `{{user}}`},
-		{"Last Call Result Placeholder", `{{__last_call_result}}`, `LAST`},
-		{"Placeholder with Last Call", `Result was: {{__last_call_result}}`, `Result was: LAST`},
-		{"Variable containing placeholders", `{{full}}`, `Hello World using Test returning LAST`},
-		{"Nested Variable", `{{nested}}`, `Value is Hello World using Test returning LAST`},
-		{"Literal __last_call_result", `__last_call_result`, `__last_call_result`}, // Should NOT replace literal outside {{}}
+		{"No Placeholders", `"Hello World!"`, `"Hello World!"`}, {"Single Found", `"Hello {{name}}!"`, `"Hello World!"`},
+		{"Single Not Found", `"Hello {{user}}!"`, `"Hello {{user}}!"`}, {"Multiple Found", `"{{obj}} for {{name}}"`, `"Test for World"`},
+		{"Multiple Mixed", `"{{obj}} for {{user}}"`, `"Test for {{user}}"`}, {"Adjacent", `{{obj}}{{name}}`, `TestWorld`},
+		{"Empty Input", "", ""}, {"Placeholder Only Found", `{{name}}`, `World`}, {"Placeholder Only Not Found", `{{user}}`, `{{user}}`},
+		{"Last Call Result Placeholder", `{{__last_call_result}}`, `LAST`}, {"Placeholder with Last Call", `Result was: {{__last_call_result}}`, `Result was: LAST`},
+		{"Variable containing placeholders", `{{full}}`, `Hello World using Test returning LAST`}, {"Nested Variable", `{{nested}}`, `Value is Hello World using Test returning LAST`},
+		{"Literal __last_call_result", `__last_call_result`, `__last_call_result`}, {"Self Referential", `{{self}}`, `{{self}}`},
+		{"Recursive Loop", `{{loop1}}`, `{{loop1}}`}, // Expect original on max depth
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -94,45 +88,30 @@ func TestResolvePlaceholders(t *testing.T) {
 	}
 }
 
-// TestResolveValue - ** UPDATED Expectations **
-// Now expects raw values for direct var hits, input string otherwise.
+// TestResolveValue
 func TestResolveValue(t *testing.T) {
-	vars := map[string]interface{}{
-		"name":     "World",
-		"obj":      "Test",
-		"filename": "actual_file.txt",
-		"greeting": "Hello {{name}}",   // Value contains placeholder
-		"num":      123,                // Example non-string
-		"items":    []string{"a", "b"}, // Example slice
-	}
-	interp := newTestInterpreter(vars, "LAST_RESULT") // Raw last call result
-
+	vars := map[string]interface{}{"name": "World", "obj": "Test", "filename": "actual_file.txt", "greeting": "Hello {{name}}", "num": 123, "items": []string{"a", "b"}}
+	interp := newTestInterpreter(vars, "LAST_RESULT")
 	tests := []struct {
 		name     string
 		input    string
-		expected interface{} // Comparing interface{}
-		found    bool        // Expected 'found' return value
+		expected interface{}
+		found    bool
 	}{
-		{"Literal String", `"Hello"`, `"Hello"`, false},                         // Not direct var/keyword -> returns input, found=false
-		{"Plain Variable Found", `name`, `World`, true},                         // Direct var -> returns value, found=true
-		{"Plain Variable Not Found", `user`, `user`, false},                     // Identifier, not var -> returns input, found=false
-		{"Placeholder String", `{{name}}`, `{{name}}`, false},                   // Not direct var/keyword -> returns input, found=false
-		{"Variable Containing Placeholder", `greeting`, `Hello {{name}}`, true}, // Direct var -> returns value (raw string), found=true
-		{"Quoted Placeholder", `"{{name}}"`, `"{{name}}"`, false},               // Not direct var/keyword -> returns input, found=false
-		{"Not a plain var (space)", `my var`, `my var`, false},
-		{"Not a plain var (+)", `"a"+b`, `"a"+b`, false},
-		{"Last Call Result Keyword", `__last_call_result`, `LAST_RESULT`, true},             // Direct keyword -> returns value, found=true
-		{"Quoted Last Call", `"{{__last_call_result}}"`, `"{{__last_call_result}}"`, false}, // Not direct var/keyword -> returns input, found=false
-		{"Number Var", `num`, 123, true},                                                    // Direct var -> returns raw value (int)
-		{"Slice Var", `items`, []string{"a", "b"}, true},                                    // Direct var -> returns raw value (slice)
+		{"Literal String", `"Hello"`, `"Hello"`, false}, {"Plain Variable Found", `name`, `World`, true},
+		{"Plain Variable Not Found", `user`, `user`, false}, {"Placeholder String", `{{name}}`, `{{name}}`, false},
+		{"Variable Containing Placeholder", `greeting`, `Hello {{name}}`, true}, {"Quoted Placeholder", `"{{name}}"`, `"{{name}}"`, false},
+		{"Not a plain var (space)", `my var`, `my var`, false}, {"Not a plain var (+)", `"a"+b`, `"a"+b`, false},
+		{"Last Call Result Keyword", `__last_call_result`, `LAST_RESULT`, true}, {"Quoted Last Call", `"{{__last_call_result}}"`, `"{{__last_call_result}}"`, false},
+		{"Number Var", `num`, 123, true}, {"Slice Var", `items`, []string{"a", "b"}, true},
+		{"Empty String Input", `""`, `""`, false}, {"Whitespace Input", `  `, ``, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, found := interp.resolveValue(tt.input) // Capture both return values
+			got, found := interp.resolveValue(tt.input)
 			if found != tt.found {
 				t.Errorf("resolveValue(%q) found mismatch: Expected: %v, Got: %v", tt.input, tt.found, found)
 			}
-			// Use reflect.DeepEqual for slice comparison
 			if !reflect.DeepEqual(got, tt.expected) {
 				t.Errorf("resolveValue(%q):\nExpected: %v (%T)\nGot:      %v (%T)", tt.input, tt.expected, tt.expected, got, got)
 			}
@@ -140,65 +119,39 @@ func TestResolveValue(t *testing.T) {
 	}
 }
 
-// TestEvaluateExpression - ** UPDATED Expectations **
-// Checks raw return for simple vars, placeholder resolution otherwise.
+// TestEvaluateExpression
 func TestEvaluateExpression(t *testing.T) {
-	vars := map[string]interface{}{
-		"name":      "World",
-		"base_path": "skills/",
-		"file_ext":  ".ns",
-		"sanitized": "my_skill",
-		"greeting":  "Hello {{name}}", // Contains placeholder
-		"num":       123,
-		"items":     []string{"x", "y"},
-	}
+	vars := map[string]interface{}{"name": "World", "base_path": "skills/", "file_ext": ".ns", "sanitized": "my_skill", "greeting": "Hello {{name}}", "num": 123, "items": []string{"x", "y"}}
 	lastResult := "LastCallResult"
 	interp := newTestInterpreter(vars, lastResult)
-
 	tests := []struct {
 		name     string
 		input    string
 		expected interface{}
 	}{
-		{"Literal String", `"Hello World"`, `Hello World`},              // Unquotes literal
-		{"Simple Variable", `name`, `World`},                            // Returns raw value
-		{"Placeholder in Literal", `"Hello {{name}}"`, `Hello World`},   // Resolves placeholder, unquotes
-		{"Last Call Result", `__last_call_result`, `LastCallResult`},    // Returns raw value
-		{"Variable Not Found", `unknown_var`, `unknown_var`},            // Returns identifier as literal string
-		{"Placeholder Not Found", `{{unknown_var}}`, `{{unknown_var}}`}, // Returns unresolved placeholder string
-		{"Empty String Literal", `""`, ``},                              // Unquotes
-		{"Literal + Literal", `"Hello" + " " + "World"`, `Hello World`},
-		{"Literal + Variable", `"Hello " + name`, `Hello World`},                                     // Concatenation resolves var
-		{"Variable + Literal", `name + "!"`, `World!`},                                               // Concatenation resolves var
-		{"Variable + Variable", `name + name`, `WorldWorld`},                                         // Concatenation resolves vars
-		{"Literal + Placeholder", `"Path: " + {{base_path}}`, `Path: skills/`},                       // Concatenation resolves placeholder
-		{"Placeholder + Literal", `{{base_path}} + "file.txt"`, `skills/file.txt`},                   // Concatenation resolves placeholder
-		{"Placeholder + Placeholder", `{{base_path}} + {{name}}`, `skills/World`},                    // Concatenation resolves placeholders
-		{"Lit + Var + Lit", `"skills/" + sanitized + ".ns"`, `skills/my_skill.ns`},                   // Concatenation resolves var
-		{"Lit + Placeholder + Lit", `"File: " + {{sanitized}} + {{file_ext}}"`, `File: my_skill.ns`}, // Concatenation resolves placeholders
-		{"Var + Lit + Var", `base_path + sanitized + file_ext`, `skills/my_skill.ns`},                // Concatenation resolves vars
-		{"String with internal '+'", `"Value is a+b"`, `Value is a+b`},                               // Unquotes literal
-		{"Ends with +", `"Hello" + name +`, `"Hello" + name +`},                                      // Invalid concat fallback (stringified)
-		{"Starts with +", `+ "Hello"`, `+ "Hello"`},                                                  // Invalid concat fallback (stringified)
-		{"Missing +", `"Hello" name`, `"Hello" name`},                                                // Invalid pattern fallback (stringified)
-		{"Adjacent Vars", `name sanitized`, `name sanitized`},                                        // Invalid pattern fallback (stringified)
-		{"Variable with internal placeholder", `greeting`, `Hello {{name}}`},                         // *** EXPECTS RAW VALUE *** - Placeholder not resolved here
-		{"Placeholder resolving to last call", `{{__last_call_result}}`, `LastCallResult`},           // Resolves placeholder
-		{"Concat involving last call", `"Result: " + __last_call_result`, `Result: LastCallResult`},  // Concatenation stringifies raw value
-		{"Number Var Direct", `num`, 123},                                                            // Returns raw value
-		{"Slice Var Direct", `items`, []string{"x", "y"}},                                            // Returns raw value
-		{"Concat Number Var", `"Count: " + num`, `Count: 123`},                                       // Concatenation stringifies
-		{"Concat Slice Var", `items + " z"`, `[x y] z`},                                              // Concatenation stringifies slice
+		{"Literal String", `"Hello World"`, `Hello World`}, {"Simple Variable", `name`, `World`},
+		{"Placeholder in Literal", `"Hello {{name}}"`, `Hello World`}, {"Last Call Result", `__last_call_result`, `LastCallResult`},
+		{"Variable Not Found", `unknown_var`, `unknown_var`}, {"Placeholder Not Found", `{{unknown_var}}`, `{{unknown_var}}`},
+		{"Empty String Literal", `""`, ``}, {"Literal + Literal", `"Hello" + " " + "World"`, `Hello World`},
+		{"Literal + Variable", `"Hello " + name`, `Hello World`}, {"Variable + Literal", `name + "!"`, `World!`},
+		{"Variable + Variable", `name + name`, `WorldWorld`}, {"Literal + Placeholder", `"Path: " + {{base_path}}`, `Path: skills/`},
+		{"Placeholder + Literal", `{{base_path}} + "file.txt"`, `skills/file.txt`}, {"Placeholder + Placeholder", `{{base_path}} + {{name}}`, `skills/World`},
+		{"Lit + Var + Lit", `"skills/" + sanitized + ".ns"`, `skills/my_skill.ns`}, {"Lit + Placeholder + Placeholder", `"File: " + {{sanitized}} + {{file_ext}}`, `File: my_skill.ns`},
+		{"Var + Lit + Var", `base_path + sanitized + file_ext`, `skills/my_skill.ns`}, {"String with internal '+'", `"Value is a+b"`, `Value is a+b`},
+		{"Ends with +", `"Hello" + name +`, `HelloWorld`}, // Now evaluates valid part
+		{"Starts with +", `+ "Hello"`, `+ "Hello"`}, {"Missing +", `"Hello" name`, `"Hello" name`}, {"Adjacent Vars", `name sanitized`, `name sanitized`},
+		{"Variable with internal placeholder", `greeting`, `Hello {{name}}`}, {"Placeholder resolving to last call", `{{__last_call_result}}`, `LastCallResult`},
+		{"Concat involving last call", `"Result: " + __last_call_result`, `Result: LastCallResult`},
+		{"Number Var Direct", `num`, 123}, {"Slice Var Direct", `items`, []string{"x", "y"}},
+		{"Concat Number Var", `"Count: " + num`, `Count: 123`}, {"Concat Slice Var", `items + " z"`, `[x y] z`},
+		{"Parenthesized Expression", `(name + "!")`, `World!`}, {"Literal + Parenthesized", `"Prefix: " + (name + "!")`, `Prefix: World!`},
+		{"Placeholder Inside Parentheses", `"Value: " + ({{name}} + "...")`, `Value: World...`},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Restore last call result before each test if needed
 			interp.lastCallResult = lastResult
-			interp.variables = vars // Reset vars too, as some tests might modify them? Safer.
-
+			interp.variables = vars
 			got := interp.evaluateExpression(tt.input)
-
-			// Use reflect.DeepEqual for slices and general comparison
 			if !reflect.DeepEqual(got, tt.expected) {
 				t.Errorf("evaluateExpression(%q):\nExpected: %v (%T)\nGot:      %v (%T)", tt.input, tt.expected, tt.expected, got, got)
 			}
@@ -207,28 +160,20 @@ func TestEvaluateExpression(t *testing.T) {
 }
 
 // --- Test Suite for executeSteps (Blocks, Loops, Tools) ---
-
-// Helper struct for executeSteps tests
 type executeStepsTestCase struct {
 	name           string
 	inputSteps     []Step
 	initialVars    map[string]interface{}
-	expectedVars   map[string]interface{} // Check specific vars *after* execution
-	expectedResult interface{}            // Expected return value from executeSteps
-	expectError    bool                   // True if an error is expected
-	errorContains  string                 // Substring expected in error message
+	expectedVars   map[string]interface{}
+	expectedResult interface{}
+	expectError    bool
+	errorContains  string
 }
 
-// Helper function to run executeSteps tests
 func runExecuteStepsTest(t *testing.T, tc executeStepsTestCase) {
 	t.Helper()
-	// Use a fresh interpreter for each case to prevent state pollution
 	interp := newTestInterpreter(tc.initialVars, nil)
-
-	// Execute the steps
-	finalResult, _, err := interp.executeSteps(tc.inputSteps) // Use wasReturn if needed
-
-	// Check error expectation
+	finalResult, _, err := interp.executeSteps(tc.inputSteps)
 	if tc.expectError {
 		if err == nil {
 			t.Errorf("Expected an error, but got nil")
@@ -240,15 +185,10 @@ func runExecuteStepsTest(t *testing.T, tc executeStepsTestCase) {
 			t.Errorf("Unexpected error: %v", err)
 		}
 	}
-
-	// Check final result expectation (only if no error expected or specific result needed on error)
-	// Use DeepEqual for robust comparison, especially with slices
 	if !tc.expectError && !reflect.DeepEqual(finalResult, tc.expectedResult) {
 		t.Errorf("Final result mismatch:\nExpected: %v (%T)\nGot:      %v (%T)", tc.expectedResult, tc.expectedResult, finalResult, finalResult)
 	}
-
-	// Check expected variables state (only check keys present in expectedVars)
-	if tc.expectedVars != nil && err == nil { // Only check vars if no error occurred
+	if tc.expectedVars != nil && err == nil {
 		for key, expectedValue := range tc.expectedVars {
 			actualValue, exists := interp.variables[key]
 			if !exists {
@@ -260,319 +200,45 @@ func runExecuteStepsTest(t *testing.T, tc executeStepsTestCase) {
 	}
 }
 
-// TestExecuteStepsBlocksAndLoops - Includes Block logic and Tool calls
+// TestExecuteStepsBlocksAndLoops
 func TestExecuteStepsBlocksAndLoops(t *testing.T) {
 	testCases := []executeStepsTestCase{
-		// --- IF Block Tests ---
+		{name: "IF true basic", inputSteps: []Step{{Type: "IF", Cond: `"true"`, Value: []Step{{Type: "SET", Target: "x", Value: `"Inside"`}}}}, initialVars: map[string]interface{}{}, expectedVars: map[string]interface{}{"x": "Inside"}, expectedResult: nil, expectError: false},
+		{name: "IF false basic", inputSteps: []Step{{Type: "IF", Cond: `"false"`, Value: []Step{{Type: "SET", Target: "x", Value: `"Inside"`}}}, {Type: "SET", Target: "y", Value: `"Outside"`}}, initialVars: map[string]interface{}{}, expectedVars: map[string]interface{}{"y": "Outside"}, expectedResult: nil, expectError: false},
+		{name: "IF condition var true", inputSteps: []Step{{Type: "IF", Cond: `{{cond_var}}`, Value: []Step{{Type: "SET", Target: "x", Value: `"Inside"`}}}}, initialVars: map[string]interface{}{"cond_var": "true"}, expectedVars: map[string]interface{}{"cond_var": "true", "x": "Inside"}, expectedResult: nil, expectError: false},
+		{name: "IF string eq true", inputSteps: []Step{{Type: "SET", Target: "a", Value: `"hello"`}, {Type: "IF", Cond: `{{a}} == "hello"`, Value: []Step{{Type: "SET", Target: "result", Value: `"eq_true"`}}}}, initialVars: map[string]interface{}{}, expectedVars: map[string]interface{}{"a": "hello", "result": "eq_true"}, expectedResult: nil, expectError: false},
+		{name: "IF string gt true (b > a)", inputSteps: []Step{{Type: "IF", Cond: `"b" > "a"`, Value: []Step{{Type: "SET", Target: "result", Value: `"gt_true"`}}}}, initialVars: map[string]interface{}{}, expectedVars: map[string]interface{}{"result": "gt_true"}, expectedResult: nil, expectError: false},
+		{name: "IF string lt true (a < b)", inputSteps: []Step{{Type: "IF", Cond: `"a" < "b"`, Value: []Step{{Type: "SET", Target: "result", Value: `"lt_true"`}}}}, initialVars: map[string]interface{}{}, expectedVars: map[string]interface{}{"result": "lt_true"}, expectedResult: nil, expectError: false},
+		{name: "IF string gte true (b >= b)", inputSteps: []Step{{Type: "IF", Cond: `"b" >= "b"`, Value: []Step{{Type: "SET", Target: "result", Value: `"gte_true"`}}}}, initialVars: map[string]interface{}{}, expectedVars: map[string]interface{}{"result": "gte_true"}, expectedResult: nil, expectError: false},
+		{name: "IF string lte true (a <= b)", inputSteps: []Step{{Type: "IF", Cond: `"a" <= "b"`, Value: []Step{{Type: "SET", Target: "result", Value: `"lte_true"`}}}}, initialVars: map[string]interface{}{}, expectedVars: map[string]interface{}{"result": "lte_true"}, expectedResult: nil, expectError: false},
+		{name: "IF empty block", inputSteps: []Step{{Type: "IF", Cond: `"true"`, Value: []Step{}}, {Type: "SET", Target: "y", Value: `"After"`}}, initialVars: map[string]interface{}{}, expectedVars: map[string]interface{}{"y": "After"}, expectedResult: nil, expectError: false},
+		{name: "IF block with RETURN", inputSteps: []Step{{Type: "SET", Target: "status", Value: `"Started"`}, {Type: "IF", Cond: `"true"`, Value: []Step{{Type: "SET", Target: "x", Value: `"Inside"`}, {Type: "RETURN", Value: `"ReturnedFromIf"`}, {Type: "SET", Target: "y", Value: `"NotReached"`}}}, {Type: "SET", Target: "status", Value: `"Finished"`}}, initialVars: map[string]interface{}{}, expectedVars: map[string]interface{}{"status": "Started", "x": "Inside"}, expectedResult: "ReturnedFromIf", expectError: false},
+		{name: "WHILE false initially", inputSteps: []Step{{Type: "SET", Target: "count", Value: `"0"`}, {Type: "WHILE", Cond: `{{count}} == "1"`, Value: []Step{{Type: "SET", Target: "x", Value: `"InsideLoop"`}}}, {Type: "SET", Target: "y", Value: `"AfterLoop"`}}, initialVars: map[string]interface{}{}, expectedVars: map[string]interface{}{"count": "0", "y": "AfterLoop"}, expectedResult: nil, expectError: false},
+		{name: "WHILE runs once", inputSteps: []Step{{Type: "SET", Target: "run", Value: `"true"`}, {Type: "SET", Target: "counter", Value: `"0"`}, {Type: "WHILE", Cond: `{{run}} == "true"`, Value: []Step{{Type: "SET", Target: "run", Value: `"false"`}, {Type: "SET", Target: "counter", Value: `"1"`}}}}, initialVars: map[string]interface{}{}, expectedVars: map[string]interface{}{"run": "false", "counter": "1"}, expectedResult: nil, expectError: false},
+		{name: "WHILE block with RETURN", inputSteps: []Step{{Type: "SET", Target: "run", Value: `"true"`}, {Type: "WHILE", Cond: `{{run}} == "true"`, Value: []Step{{Type: "RETURN", Value: `"ReturnedFromWhile"`}}}, {Type: "SET", Target: "status", Value: `"Finished"`}}, initialVars: map[string]interface{}{}, expectedVars: map[string]interface{}{"run": "true"}, expectedResult: "ReturnedFromWhile", expectError: false},
+		{name: "FOR EACH string char iteration", inputSteps: []Step{{Type: "SET", Target: "input", Value: `"Hi!"`}, {Type: "SET", Target: "output", Value: `""`}, {Type: "FOR", Target: "char", Cond: `{{input}}`, Value: []Step{{Type: "SET", Target: "output", Value: `{{output}} + {{char}} + "-"`}}}}, initialVars: map[string]interface{}{}, expectedVars: map[string]interface{}{"input": "Hi!", "output": "H-i-!-"}, expectedResult: nil, expectError: false},
+		{name: "FOR EACH comma split fallback", inputSteps: []Step{{Type: "SET", Target: "input", Value: `"a, b ,c"`}, {Type: "SET", Target: "output", Value: `""`}, {Type: "FOR", Target: "item", Cond: `{{input}}`, Value: []Step{{Type: "SET", Target: "output", Value: `{{output}} + "-" + {{item}}`}}}}, initialVars: map[string]interface{}{}, expectedVars: map[string]interface{}{"input": "a, b ,c", "output": "-a-b-c"}, expectedResult: nil, expectError: false},
+		{name: "FOR EACH string with RETURN", inputSteps: []Step{{Type: "SET", Target: "input", Value: `"stop"`}, {Type: "SET", Target: "output", Value: `""`}, {Type: "FOR", Target: "char", Cond: `{{input}}`, Value: []Step{{Type: "SET", Target: "output", Value: `{{output}} + {{char}}`}, {Type: "IF", Cond: `{{char}} == "o"`, Value: []Step{{Type: "RETURN", Value: `"Stopped at o"`}}}}}}, initialVars: map[string]interface{}{}, expectedVars: map[string]interface{}{"input": "stop", "output": "sto"}, expectedResult: "Stopped at o", expectError: false},
+		{name: "CALL TOOL StringLength", inputSteps: []Step{{Type: "SET", Target: "myStr", Value: `"Hello 你好"`}, {Type: "CALL", Target: "TOOL.StringLength", Args: []string{"{{myStr}}"}}, {Type: "SET", Target: "lenResult", Value: `__last_call_result`}}, initialVars: map[string]interface{}{}, expectedVars: map[string]interface{}{"myStr": "Hello 你好", "lenResult": "8"}, expectedResult: nil, expectError: false},
+		{name: "CALL TOOL Substring", inputSteps: []Step{{Type: "SET", Target: "myStr", Value: `"你好世界"`}, {Type: "CALL", Target: "TOOL.Substring", Args: []string{"{{myStr}}", `"1"`, `"3"`}}, {Type: "SET", Target: "subResult", Value: `__last_call_result`}}, initialVars: map[string]interface{}{}, expectedVars: map[string]interface{}{"myStr": "你好世界", "subResult": "好世"}, expectedResult: nil, expectError: false},
+		{name: "CALL TOOL ToUpper/ToLower", inputSteps: []Step{{Type: "SET", Target: "myStr", Value: `"Test"`}, {Type: "CALL", Target: "TOOL.ToUpper", Args: []string{"{{myStr}}"}}, {Type: "SET", Target: "upper", Value: `__last_call_result`}, {Type: "CALL", Target: "TOOL.ToLower", Args: []string{"{{upper}}"}}, {Type: "SET", Target: "lower", Value: `__last_call_result`}}, initialVars: map[string]interface{}{}, expectedVars: map[string]interface{}{"myStr": "Test", "upper": "TEST", "lower": "test"}, expectedResult: nil, expectError: false},
+		{name: "CALL TOOL TrimSpace", inputSteps: []Step{{Type: "SET", Target: "myStr", Value: `"  spaced \n"`}, {Type: "CALL", Target: "TOOL.TrimSpace", Args: []string{"{{myStr}}"}}, {Type: "SET", Target: "trimmed", Value: `__last_call_result`}}, initialVars: map[string]interface{}{}, expectedVars: map[string]interface{}{"myStr": "  spaced \n", "trimmed": "spaced"}, expectedResult: nil, expectError: false},
+		{name: "CALL TOOL SplitString and JoinStrings", inputSteps: []Step{{Type: "SET", Target: "myStr", Value: `"a-b-c"`}, {Type: "CALL", Target: "TOOL.SplitString", Args: []string{"{{myStr}}", `"-"`}}, {Type: "SET", Target: "splitResult", Value: `__last_call_result`}, {Type: "CALL", Target: "TOOL.JoinStrings", Args: []string{"splitResult", `","`}}, {Type: "SET", Target: "joinedResult", Value: `__last_call_result`}}, initialVars: map[string]interface{}{}, expectedVars: map[string]interface{}{"myStr": "a-b-c", "splitResult": []string{"a", "b", "c"}, "joinedResult": "a,b,c"}, expectedResult: nil, expectError: false},
+		{name: "CALL TOOL SplitWords", inputSteps: []Step{{Type: "SET", Target: "myStr", Value: `"  hello\t world \n"`}, {Type: "CALL", Target: "TOOL.SplitWords", Args: []string{"{{myStr}}"}}, {Type: "SET", Target: "words", Value: `__last_call_result`}, {Type: "CALL", Target: "TOOL.JoinStrings", Args: []string{"words", `" "`}}, {Type: "SET", Target: "joinedWords", Value: `__last_call_result`}}, initialVars: map[string]interface{}{}, expectedVars: map[string]interface{}{"myStr": "  hello\t world \n", "words": []string{"hello", "world"}, "joinedWords": "hello world"}, expectedResult: nil, expectError: false},
+		{name: "CALL TOOL ReplaceAll", inputSteps: []Step{{Type: "SET", Target: "myStr", Value: `"one two one"`}, {Type: "CALL", Target: "TOOL.ReplaceAll", Args: []string{"{{myStr}}", `"one"`, `"three"`}}, {Type: "SET", Target: "replaced", Value: `__last_call_result`}}, initialVars: map[string]interface{}{}, expectedVars: map[string]interface{}{"myStr": "one two one", "replaced": "three two three"}, expectedResult: nil, expectError: false},
+		{name: "CALL TOOL Contains", inputSteps: []Step{{Type: "SET", Target: "myStr", Value: `"hello world"`}, {Type: "CALL", Target: "TOOL.Contains", Args: []string{"{{myStr}}", `"world"`}}, {Type: "SET", Target: "containsResult", Value: `__last_call_result`}, {Type: "CALL", Target: "TOOL.Contains", Args: []string{"{{myStr}}", `"xyz"`}}, {Type: "SET", Target: "notContainsResult", Value: `__last_call_result`}}, initialVars: map[string]interface{}{}, expectedVars: map[string]interface{}{"myStr": "hello world", "containsResult": "true", "notContainsResult": "false"}, expectedResult: nil, expectError: false},
+		{name: "CALL TOOL HasPrefix/HasSuffix", inputSteps: []Step{{Type: "SET", Target: "myStr", Value: `"start middle end"`}, {Type: "CALL", Target: "TOOL.HasPrefix", Args: []string{"{{myStr}}", `"start"`}}, {Type: "SET", Target: "prefixTrue", Value: `__last_call_result`}, {Type: "CALL", Target: "TOOL.HasPrefix", Args: []string{"{{myStr}}", `"middle"`}}, {Type: "SET", Target: "prefixFalse", Value: `__last_call_result`}, {Type: "CALL", Target: "TOOL.HasSuffix", Args: []string{"{{myStr}}", `"end"`}}, {Type: "SET", Target: "suffixTrue", Value: `__last_call_result`}, {Type: "CALL", Target: "TOOL.HasSuffix", Args: []string{"{{myStr}}", `"middle"`}}, {Type: "SET", Target: "suffixFalse", Value: `__last_call_result`}}, initialVars: map[string]interface{}{}, expectedVars: map[string]interface{}{"myStr": "start middle end", "prefixTrue": "true", "prefixFalse": "false", "suffixTrue": "true", "suffixFalse": "false"}, expectedResult: nil, expectError: false},
 		{
-			name: "IF true basic",
-			inputSteps: []Step{
-				{Type: "IF", Cond: `"true"`, Value: []Step{{Type: "SET", Target: "x", Value: `"Inside"`}}},
-			},
+			name:           "CALL TOOL Substring Wrong Arg Type",
+			inputSteps:     []Step{{Type: "CALL", Target: "TOOL.Substring", Args: []string{`"hello"`, `"one"`, `"three"`}}},
 			initialVars:    map[string]interface{}{},
-			expectedVars:   map[string]interface{}{"x": "Inside"},
-			expectedResult: nil, expectError: false,
-		},
-		{
-			name: "IF false basic",
-			inputSteps: []Step{
-				{Type: "IF", Cond: `"false"`, Value: []Step{{Type: "SET", Target: "x", Value: `"Inside"`}}},
-				{Type: "SET", Target: "y", Value: `"Outside"`},
-			},
-			initialVars:    map[string]interface{}{},
-			expectedVars:   map[string]interface{}{"y": "Outside"}, // x should not be set
-			expectedResult: nil, expectError: false,
-		},
-		{
-			name: "IF condition var true",
-			inputSteps: []Step{
-				{Type: "IF", Cond: `{{cond_var}}`, Value: []Step{{Type: "SET", Target: "x", Value: `"Inside"`}}},
-			},
-			initialVars:    map[string]interface{}{"cond_var": "true"},
-			expectedVars:   map[string]interface{}{"cond_var": "true", "x": "Inside"},
-			expectedResult: nil, expectError: false,
-		},
-		// --- String Comparison Tests ---
-		{
-			name: "IF string eq true",
-			inputSteps: []Step{
-				{Type: "SET", Target: "a", Value: `"hello"`},
-				{Type: "IF", Cond: `{{a}} == "hello"`, Value: []Step{{Type: "SET", Target: "result", Value: `"eq_true"`}}},
-			},
-			initialVars:    map[string]interface{}{},
-			expectedVars:   map[string]interface{}{"a": "hello", "result": "eq_true"},
-			expectedResult: nil, expectError: false,
-		},
-		{
-			name: "IF string gt true (b > a)",
-			inputSteps: []Step{
-				{Type: "IF", Cond: `"b" > "a"`, Value: []Step{{Type: "SET", Target: "result", Value: `"gt_true"`}}},
-			},
-			initialVars:    map[string]interface{}{},
-			expectedVars:   map[string]interface{}{"result": "gt_true"},
-			expectedResult: nil, expectError: false,
-		},
-		{
-			name: "IF string lt true (a < b)",
-			inputSteps: []Step{
-				{Type: "IF", Cond: `"a" < "b"`, Value: []Step{{Type: "SET", Target: "result", Value: `"lt_true"`}}},
-			},
-			initialVars:    map[string]interface{}{},
-			expectedVars:   map[string]interface{}{"result": "lt_true"},
-			expectedResult: nil, expectError: false,
-		},
-		{
-			name: "IF string gte true (b >= b)",
-			inputSteps: []Step{
-				{Type: "IF", Cond: `"b" >= "b"`, Value: []Step{{Type: "SET", Target: "result", Value: `"gte_true"`}}},
-			},
-			initialVars:    map[string]interface{}{},
-			expectedVars:   map[string]interface{}{"result": "gte_true"},
-			expectedResult: nil, expectError: false,
-		},
-		{
-			name: "IF string lte true (a <= b)",
-			inputSteps: []Step{
-				{Type: "IF", Cond: `"a" <= "b"`, Value: []Step{{Type: "SET", Target: "result", Value: `"lte_true"`}}},
-			},
-			initialVars:    map[string]interface{}{},
-			expectedVars:   map[string]interface{}{"result": "lte_true"},
-			expectedResult: nil, expectError: false,
-		},
-		// --- End String Comparison Tests ---
-		{
-			name: "IF empty block",
-			inputSteps: []Step{
-				{Type: "IF", Cond: `"true"`, Value: []Step{}}, // Empty block
-				{Type: "SET", Target: "y", Value: `"After"`},
-			},
-			initialVars:    map[string]interface{}{},
-			expectedVars:   map[string]interface{}{"y": "After"},
-			expectedResult: nil, expectError: false,
-		},
-		{
-			name: "IF block with RETURN",
-			inputSteps: []Step{
-				{Type: "SET", Target: "status", Value: `"Started"`},
-				{Type: "IF", Cond: `"true"`, Value: []Step{
-					{Type: "SET", Target: "x", Value: `"Inside"`},
-					{Type: "RETURN", Value: `"ReturnedFromIf"`}, // Explicit RETURN
-					{Type: "SET", Target: "y", Value: `"NotReached"`},
-				}},
-				{Type: "SET", Target: "status", Value: `"Finished"`}, // Should not be reached
-			},
-			initialVars:    map[string]interface{}{},
-			expectedVars:   map[string]interface{}{"status": "Started", "x": "Inside"},
-			expectedResult: "ReturnedFromIf", expectError: false,
-		},
-		// --- WHILE Block Tests ---
-		{
-			name: "WHILE false initially",
-			inputSteps: []Step{
-				{Type: "SET", Target: "count", Value: `"0"`},
-				{Type: "WHILE", Cond: `{{count}} == "1"`, Value: []Step{{Type: "SET", Target: "x", Value: `"InsideLoop"`}}},
-				{Type: "SET", Target: "y", Value: `"AfterLoop"`},
-			},
-			initialVars:    map[string]interface{}{},
-			expectedVars:   map[string]interface{}{"count": "0", "y": "AfterLoop"},
-			expectedResult: nil, expectError: false,
-		},
-		{
-			name: "WHILE runs once",
-			inputSteps: []Step{
-				{Type: "SET", Target: "run", Value: `"true"`}, {Type: "SET", Target: "counter", Value: `"0"`},
-				{Type: "WHILE", Cond: `{{run}} == "true"`, Value: []Step{
-					{Type: "SET", Target: "run", Value: `"false"`}, {Type: "SET", Target: "counter", Value: `"1"`},
-				}},
-			},
-			initialVars:    map[string]interface{}{},
-			expectedVars:   map[string]interface{}{"run": "false", "counter": "1"},
-			expectedResult: nil, expectError: false,
-		},
-		{
-			name: "WHILE block with RETURN",
-			inputSteps: []Step{
-				{Type: "SET", Target: "run", Value: `"true"`},
-				{Type: "WHILE", Cond: `{{run}} == "true"`, Value: []Step{{Type: "RETURN", Value: `"ReturnedFromWhile"`}}},
-				{Type: "SET", Target: "status", Value: `"Finished"`},
-			},
-			initialVars:    map[string]interface{}{},
-			expectedVars:   map[string]interface{}{"run": "true"},
-			expectedResult: "ReturnedFromWhile", expectError: false,
-		},
-		// --- FOR EACH Tests ---
-		{
-			name: "FOR EACH string char iteration",
-			inputSteps: []Step{
-				{Type: "SET", Target: "input", Value: `"Hi!"`}, {Type: "SET", Target: "output", Value: `""`},
-				{Type: "FOR", Target: "char", Cond: `{{input}}`, Value: []Step{
-					{Type: "SET", Target: "output", Value: `{{output}} + {{char}} + "-"`},
-				}},
-			},
-			initialVars:    map[string]interface{}{},
-			expectedVars:   map[string]interface{}{"input": "Hi!", "output": "H-i-!-"},
-			expectedResult: nil, expectError: false,
-		},
-		{
-			name: "FOR EACH comma split fallback",
-			inputSteps: []Step{
-				{Type: "SET", Target: "input", Value: `"a, b ,c"`}, {Type: "SET", Target: "output", Value: `""`},
-				{Type: "FOR", Target: "item", Cond: `{{input}}`, Value: []Step{
-					{Type: "SET", Target: "output", Value: `{{output}} + "-" + {{item}}`},
-				}},
-			},
-			initialVars:    map[string]interface{}{},
-			expectedVars:   map[string]interface{}{"input": "a, b ,c", "output": "-a-b-c"},
-			expectedResult: nil, expectError: false,
-		},
-		{
-			name: "FOR EACH string with RETURN",
-			inputSteps: []Step{
-				{Type: "SET", Target: "input", Value: `"stop"`}, {Type: "SET", Target: "output", Value: `""`},
-				{Type: "FOR", Target: "char", Cond: `{{input}}`, Value: []Step{
-					{Type: "SET", Target: "output", Value: `{{output}} + {{char}}`},
-					{Type: "IF", Cond: `{{char}} == "o"`, Value: []Step{{Type: "RETURN", Value: `"Stopped at o"`}}},
-				}},
-			},
-			initialVars:    map[string]interface{}{},
-			expectedVars:   map[string]interface{}{"input": "stop", "output": "sto"},
-			expectedResult: "Stopped at o", expectError: false,
-		},
-		// --- String Tool Call Tests ---
-		{
-			name: "CALL TOOL StringLength",
-			inputSteps: []Step{
-				{Type: "SET", Target: "myStr", Value: `"Hello 你好"`},
-				{Type: "CALL", Target: "TOOL.StringLength", Args: []string{"{{myStr}}"}},
-				{Type: "SET", Target: "lenResult", Value: `__last_call_result`},
-			},
-			initialVars:    map[string]interface{}{},
-			expectedVars:   map[string]interface{}{"myStr": "Hello 你好", "lenResult": "8"},
-			expectedResult: nil, expectError: false,
-		},
-		{
-			name: "CALL TOOL Substring",
-			inputSteps: []Step{
-				{Type: "SET", Target: "myStr", Value: `"你好世界"`},
-				{Type: "CALL", Target: "TOOL.Substring", Args: []string{"{{myStr}}", `"1"`, `"3"`}},
-				{Type: "SET", Target: "subResult", Value: `__last_call_result`},
-			},
-			initialVars:    map[string]interface{}{},
-			expectedVars:   map[string]interface{}{"myStr": "你好世界", "subResult": "好世"},
-			expectedResult: nil, expectError: false,
-		},
-		{
-			name: "CALL TOOL ToUpper/ToLower",
-			inputSteps: []Step{
-				{Type: "SET", Target: "myStr", Value: `"Test"`},
-				{Type: "CALL", Target: "TOOL.ToUpper", Args: []string{"{{myStr}}"}},
-				{Type: "SET", Target: "upper", Value: `__last_call_result`},
-				{Type: "CALL", Target: "TOOL.ToLower", Args: []string{"{{upper}}"}},
-				{Type: "SET", Target: "lower", Value: `__last_call_result`},
-			},
-			initialVars:    map[string]interface{}{},
-			expectedVars:   map[string]interface{}{"myStr": "Test", "upper": "TEST", "lower": "test"},
-			expectedResult: nil, expectError: false,
-		},
-		{
-			name: "CALL TOOL TrimSpace",
-			inputSteps: []Step{
-				{Type: "SET", Target: "myStr", Value: `"  spaced \n"`},
-				{Type: "CALL", Target: "TOOL.TrimSpace", Args: []string{"{{myStr}}"}},
-				{Type: "SET", Target: "trimmed", Value: `__last_call_result`},
-			},
-			initialVars:    map[string]interface{}{},
-			expectedVars:   map[string]interface{}{"myStr": "  spaced \n", "trimmed": "spaced"},
-			expectedResult: nil, expectError: false,
-		},
-		{
-			name: "CALL TOOL SplitString and JoinStrings",
-			inputSteps: []Step{
-				{Type: "SET", Target: "myStr", Value: `"a-b-c"`},
-				{Type: "CALL", Target: "TOOL.SplitString", Args: []string{"{{myStr}}", `"-"`}},
-				{Type: "SET", Target: "splitResult", Value: `__last_call_result`},                // splitResult holds []string{"a","b","c"}
-				{Type: "CALL", Target: "TOOL.JoinStrings", Args: []string{"splitResult", `","`}}, // Pass slice var directly
-				{Type: "SET", Target: "joinedResult", Value: `__last_call_result`},
-			},
-			initialVars: map[string]interface{}{},
-			expectedVars: map[string]interface{}{
-				"myStr":        "a-b-c",
-				"splitResult":  []string{"a", "b", "c"}, // Expect raw slice here
-				"joinedResult": "a,b,c",
-			},
-			expectedResult: nil, expectError: false,
-		},
-		{
-			name: "CALL TOOL SplitWords",
-			inputSteps: []Step{
-				{Type: "SET", Target: "myStr", Value: `"  hello\t world \n"`},
-				{Type: "CALL", Target: "TOOL.SplitWords", Args: []string{"{{myStr}}"}},
-				{Type: "SET", Target: "words", Value: `__last_call_result`},                // words holds []string{"hello","world"}
-				{Type: "CALL", Target: "TOOL.JoinStrings", Args: []string{"words", `" "`}}, // Pass slice var
-				{Type: "SET", Target: "joinedWords", Value: `__last_call_result`},
-			},
-			initialVars:    map[string]interface{}{},
-			expectedVars:   map[string]interface{}{"myStr": "  hello\t world \n", "words": []string{"hello", "world"}, "joinedWords": "hello world"},
-			expectedResult: nil, expectError: false,
-		},
-		{
-			name: "CALL TOOL ReplaceAll",
-			inputSteps: []Step{
-				{Type: "SET", Target: "myStr", Value: `"one two one"`},
-				{Type: "CALL", Target: "TOOL.ReplaceAll", Args: []string{"{{myStr}}", `"one"`, `"three"`}},
-				{Type: "SET", Target: "replaced", Value: `__last_call_result`},
-			},
-			initialVars:    map[string]interface{}{},
-			expectedVars:   map[string]interface{}{"myStr": "one two one", "replaced": "three two three"},
-			expectedResult: nil, expectError: false,
-		},
-		{
-			name: "CALL TOOL Contains",
-			inputSteps: []Step{
-				{Type: "SET", Target: "myStr", Value: `"hello world"`},
-				{Type: "CALL", Target: "TOOL.Contains", Args: []string{"{{myStr}}", `"world"`}},
-				{Type: "SET", Target: "containsResult", Value: `__last_call_result`},
-				{Type: "CALL", Target: "TOOL.Contains", Args: []string{"{{myStr}}", `"xyz"`}},
-				{Type: "SET", Target: "notContainsResult", Value: `__last_call_result`},
-			},
-			initialVars:    map[string]interface{}{},
-			expectedVars:   map[string]interface{}{"myStr": "hello world", "containsResult": "true", "notContainsResult": "false"},
-			expectedResult: nil, expectError: false,
-		},
-		{
-			name: "CALL TOOL HasPrefix/HasSuffix",
-			inputSteps: []Step{
-				{Type: "SET", Target: "myStr", Value: `"start middle end"`},
-				{Type: "CALL", Target: "TOOL.HasPrefix", Args: []string{"{{myStr}}", `"start"`}},
-				{Type: "SET", Target: "prefixTrue", Value: `__last_call_result`},
-				{Type: "CALL", Target: "TOOL.HasPrefix", Args: []string{"{{myStr}}", `"middle"`}},
-				{Type: "SET", Target: "prefixFalse", Value: `__last_call_result`},
-				{Type: "CALL", Target: "TOOL.HasSuffix", Args: []string{"{{myStr}}", `"end"`}},
-				{Type: "SET", Target: "suffixTrue", Value: `__last_call_result`},
-				{Type: "CALL", Target: "TOOL.HasSuffix", Args: []string{"{{myStr}}", `"middle"`}},
-				{Type: "SET", Target: "suffixFalse", Value: `__last_call_result`},
-			},
-			initialVars:    map[string]interface{}{},
-			expectedVars:   map[string]interface{}{"myStr": "start middle end", "prefixTrue": "true", "prefixFalse": "false", "suffixTrue": "true", "suffixFalse": "false"},
-			expectedResult: nil, expectError: false,
-		},
-		// --- Tool Argument Validation Failure Test ---
-		{
-			name: "CALL TOOL Substring Wrong Arg Type",
-			inputSteps: []Step{
-				{Type: "CALL", Target: "TOOL.Substring", Args: []string{`"hello"`, `"one"`, `"three"`}}, // Pass strings instead of ints
-			},
-			initialVars:    map[string]interface{}{},
-			expectedResult: nil,
-			expectError:    true,                                   // Expect error from ValidateAndConvertArgs
-			errorContains:  "expected int, but received '\"one\"'", // Check error message
+			expectedResult: nil, expectError: true,
+			// ** FIX: Correct expected error string (remove inner single quotes) **
+			errorContains: `expected int, but received "one" which cannot be converted to int`,
 		},
 	} // End testCases slice
 
-	// Run the test cases
 	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			runExecuteStepsTest(t, tc)
-		})
+		t.Run(tc.name, func(t *testing.T) { runExecuteStepsTest(t, tc) })
 	}
 } // End TestExecuteStepsBlocksAndLoops
