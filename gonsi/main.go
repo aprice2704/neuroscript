@@ -28,7 +28,7 @@ func main() {
 	interpreter := core.NewInterpreter()
 	fmt.Printf("Loading procedures from directory: %s\n", skillsDir)
 
-	// Walk the directory to find .ns files
+	// Walk the directory to find .ns.txt files // <-- Updated comment
 	walkErr := filepath.Walk(skillsDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			// Error accessing path, report and potentially stop walking?
@@ -36,7 +36,8 @@ func main() {
 			fmt.Printf("    Warning: Error accessing path %q: %v\n", path, err)
 			return nil // Continue walking if possible
 		}
-		if !info.IsDir() && strings.HasSuffix(info.Name(), ".ns") {
+		// *** FIX: Check for .ns.txt suffix ***
+		if !info.IsDir() && strings.HasSuffix(info.Name(), ".ns.txt") {
 			// Attempt to open the file
 			file, openErr := os.Open(path)
 			if openErr != nil {

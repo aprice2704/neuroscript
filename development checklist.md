@@ -41,7 +41,7 @@ Goal: Reach the "bootstrapping" point where NeuroScript, executed by an LLM or g
 [ ] Syntax & Interpreter: Define and Implement Native List/Map Element Access (e.g., list[index], map["key"])
 [ ] Tools: Implement Real In-Memory Vector DB (VectorUpdate, SearchSkills) (Currently mocked)
 [ ] Tools: Enhance Git Workflow (Add Branch support, GitPull?, Auto-index after commit)
-[x] Bootstrap Skills: Create initial .ns skills (SearchSkills, GetSkillCode, WriteNewSkill, ImproveSkill?, UpdateProjectDocs, CommitChanges) using implemented features. (HandleSkillRequest likely part of this)
+[x] Bootstrap Skills: Create initial .ns.txtskills (SearchSkills, GetSkillCode, WriteNewSkill, ImproveSkill?, UpdateProjectDocs, CommitChanges) using implemented features. (HandleSkillRequest likely part of this)
 [ ] Interpreter: Implement Basic Arithmetic Evaluation
 [ ] Interpreter: Implement More Conditions (>, <, >=, <=)
 [ ] Interpreter: Implement ELSE Block Execution

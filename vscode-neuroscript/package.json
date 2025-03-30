@@ -19,7 +19,7 @@
           "neuroscript"
         ],
         "extensions": [
-          ".ns"
+          ".ns.txt"
         ],
         "configuration": "./language-configuration.json"
       }

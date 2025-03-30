@@ -2,7 +2,7 @@
 
 DEFINE PROCEDURE CreateAdderSkill()
 COMMENT:
-    PURPOSE: Creates skills/adder.ns, indexes, and commits it.
+    PURPOSE: Creates skills/adder.ns.txt indexes, and commits it.
     INPUTS: None
     OUTPUT: Status message.
     ALGORITHM: Define script content, WriteFile, VectorUpdate, GitAdd, GitCommit.
@@ -23,7 +23,7 @@ SET index_result = __last_call_result # Should be "OK"
 CALL TOOL.GitAdd({{filepath}})
 SET add_result = __last_call_result # Should be "OK"
 
-SET commit_message = "Add adder.ns skill"
+SET commit_message = "Add adder.ns.txtskill"
 CALL TOOL.GitCommit({{commit_message}})
 SET commit_result = __last_call_result # Should be "OK"
 

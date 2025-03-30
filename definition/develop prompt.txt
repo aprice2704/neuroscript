@@ -1,36 +1,58 @@
-(Self-Description: This fragment provides strict rules for an LLM generating valid NeuroScript code according to the specific implementation.)
+(Self-Description: This fragment provides strict rules for an LLM generating valid NeuroScript code according to the ANTLR-based parser and current interpreter implementation.)
 
-You are generating NeuroScript code.
-Adhere strictly to the following rules. Generate ONLY the raw code, with no explanations or markdown fences (```).
-**NeuroScript Syntax Rules:**
+You are generating NeuroScript code. Adhere strictly to the following rules. Generate ONLY the raw code, with no explanations or markdown fences (```).
 
-1.  **File Structure:** Start the procedure definition with `DEFINE PROCEDURE Name(args)`. [cite: neuroscript/pkg/core/neuroscript.y.go]
-2.  Follow immediately with a structured `COMMENT:` block. After the `COMMENT:` block's `END`, write the procedure steps. [cite: neuroscript/pkg/core/neuroscript.y.go]
-3.  End the entire procedure definition with `END` on its own line. [cite: neuroscript/pkg/core/neuroscript.y.go]
-4.  **`COMMENT:` Block:** Must start with `COMMENT:` on its own line and end with `END` on its own line (NOT `END COMMENT`). [cite: neuroscript/pkg/core/neuroscript.y.go] Inside, MUST include lines starting exactly with `PURPOSE:`, `INPUTS:`, `OUTPUT:`, and `ALGORITHM:`. Optionally include `CAVEATS:` and `EXAMPLES:`. [cite: neuroscript/definition/neuroscript spec.md] For `INPUTS:`, use the format `- argName: Description` or `INPUTS: None`. [cite: neuroscript/definition/neuroscript spec.md]
-5.  **Assignment (`SET`)**: ALL variable assignments MUST use the `SET` keyword: `SET variable = expression`. [cite: neuroscript/pkg/core/neuroscript.y.go] Direct assignment (`variable = value`) is INVALID.
-6.  **Invocations (`CALL`)**: ALL procedure calls, LLM calls, and Tool calls MUST use the `CALL` keyword: `CALL Target(args...)`. [cite: neuroscript/pkg/core/neuroscript.y.go] To store the result, you can use `__last_call_result` directly in subsequent expressions, or assign it using `SET result = __last_call_result`. [cite: neuroscript/pkg/core/neuroscript.y.go, neuroscript/definition/develop prompt.txt] Direct invocation (`Target(args...)`) is INVALID.
-7.  **Block Structure (`IF`, `WHILE`, `FOR EACH`):**
-    * The header line MUST end exactly with `THEN` (for `IF`), or `DO` (for `WHILE`/`FOR EACH`). [cite: neuroscript/pkg/core/neuroscript.y.go] No steps on the header line. Example: `IF condition THEN`, `WHILE condition DO`, `FOR EACH var IN collection DO`.
-    * The body of the block consists of zero or more valid NeuroScript steps on the lines *following* the header. [cite: neuroscript/pkg/core/neuroscript.y.go]
-    * The block MUST be terminated by `END` on its own line. [cite: neuroscript/pkg/core/neuroscript.y.go]
-    * `ELSE` blocks are NOT currently supported. [cite: neuroscript/development checklist.md] Use nested `IF` statements if needed.
-8.  **Looping (`FOR EACH`)**: The ONLY supported loop is `FOR EACH var IN collection DO ... END`. [cite: neuroscript/pkg/core/neuroscript.y.go]
-    * If `collection` is a list (`[...]`), assume iteration over elements. **[Interpreter TODO]** [cite: neuroscript/definition/neuroscript spec.md]
-    * If `collection` is a string (`"..."`), assume iteration over characters. **[Interpreter Implemented]** [cite: neuroscript/pkg/core/interpreter.go]
-    * If `collection` is a map (`{...}`), iteration behavior is TBD. **[TODO]** [cite: neuroscript/definition/neuroscript spec.md]
-    * Otherwise, assume `collection` evaluates to a string to be split by commas. **[Interpreter Implemented]** [cite: neuroscript/pkg/core/interpreter.go]
+**NeuroScript Syntax Rules (ANTLR v4 based):**
+
+1.  **File Naming:** Generated files MUST use the `.ns.txt` extension.
+2.  **Identifier Line:** The first line of the file SHOULD be a comment identifying the content, e.g., `# NeuroScript v1.0`.
+3.  **File Structure:** After the optional identifier comment line(s), start the procedure definition with `DEFINE PROCEDURE Name(args)`. [cite: uploaded:neuroscript/pkg/core/generated/neuroscript_parser.go]
+4.  Follow immediately with a structured `COMMENT:` block. After the `COMMENT:` block (defined by the `COMMENT_BLOCK` token [cite: uploaded:neuroscript/pkg/core/generated/neuroscript_lexer.go], parsed as a single unit [cite: uploaded:neuroscript/pkg/core/generated/neuroscript_parser.go]), write the procedure steps.
+5.  End the entire procedure definition with `END` followed by a `NEWLINE`. [cite: uploaded:neuroscript/pkg/core/generated/neuroscript_parser.go]
+6.  **`COMMENT:` Block:** Handled by the `COMMENT_BLOCK` token. Semantically, MUST include lines starting exactly with `PURPOSE:`, `INPUTS:`, `OUTPUT:`, and `ALGORITHM:`. Optionally include `CAVEATS:` and `EXAMPLES:`. [cite: uploaded:neuroscript/definition/neuroscript spec.md] For `INPUTS:`, use the format `- argName: Description` or `INPUTS: None`. [cite: uploaded:neuroscript/definition/neuroscript spec.md, uploaded:neuroscript/pkg/core/utils.go]
+7.  **Assignment (`SET`)**: ALL variable assignments MUST use the `SET` keyword: `SET variable = expression`. [cite: uploaded:neuroscript/pkg/core/generated/neuroscript_parser.go] Direct assignment (`variable = value`) is INVALID.
+8.  **Invocations (`CALL`)**: ALL procedure calls, LLM calls, and Tool calls MUST use the `CALL` keyword: `CALL Target(args...)`. [cite: uploaded:neuroscript/pkg/core/generated/neuroscript_parser.go] `Target` can be an `IDENTIFIER`, `TOOL.IDENTIFIER`, or `LLM`. [cite: uploaded:neuroscript/pkg/core/generated/neuroscript_parser.go] To store the result, use `__last_call_result` directly in subsequent expressions, or assign it using `SET result = __last_call_result`. [cite: uploaded:neuroscript/pkg/core/evaluation.go] Direct invocation (`Target(args...)`) is INVALID.
+9.  **Block Structure (`IF`, `WHILE`, `FOR EACH`):**
+    * The header line MUST end exactly with `THEN` (for `IF`), or `DO` (for `WHILE`/`FOR EACH`), followed by a `NEWLINE`. [cite: uploaded:neuroscript/pkg/core/generated/neuroscript_parser.go] No steps on the header line. Example: `IF condition THEN\n`, `WHILE condition DO\n`, `FOR EACH var IN collection DO\n`.
+    * The body of the block consists of zero or more valid NeuroScript `statement`s on the lines *following* the header. [cite: uploaded:neuroscript/pkg/core/generated/neuroscript_parser.go] Each statement must end with a `NEWLINE`. [cite: uploaded:neuroscript/pkg/core/generated/neuroscript_parser.go]
+    * The block MUST be terminated by `END` followed by a `NEWLINE`. [cite: uploaded:neuroscript/pkg/core/generated/neuroscript_parser.go]
+    * `ELSE` blocks are NOT currently supported. [cite: uploaded:neuroscript/development checklist.md] Use nested `IF` statements if needed.
+10. **Looping (`FOR EACH`)**: The ONLY supported loop is `FOR EACH var IN collection DO ... END`. [cite: uploaded:neuroscript/pkg/core/generated/neuroscript_parser.go]
+    * If `collection` evaluates to a list (`[...]`), assume iteration over elements. **[Interpreter TODO]** [cite: uploaded:neuroscript/development checklist.md]
+    * If `collection` evaluates to a string (`"..."`), assume iteration over characters. **[Interpreter Implemented]** [cite: uploaded:neuroscript/pkg/core/interpreter_steps.go]
+    * If `collection` evaluates to a map (`{...}`), iteration behavior is TBD. **[TODO]** [cite: uploaded:neuroscript/development checklist.md]
+    * Otherwise, assume `collection` evaluates to a string to be split by commas. **[Interpreter Implemented]** [cite: uploaded:neuroscript/pkg/core/interpreter_steps.go]
     * `FOR i = start TO end` loops are INVALID.
-9.  **Literals:**
-    * Strings: Use `""` or `''` (escapes: `\\`, `\"`, `\'`). [cite: neuroscript/pkg/core/neuroscript.y.go]
-    * Lists: Use `[` comma-separated expressions `]` (e.g., `["a", 1, {{v}}, []]`). **[Parsing Implemented, Interpreter Support TODO]** [cite: neuroscript/pkg/core/neuroscript.y.go, neuroscript/development checklist.md]
-    * Maps: Use `{` comma-separated `"key": expression` pairs `}` (keys MUST be string literals) (e.g., `{"task": "Do X", "done": false, "sub_items": []}`). **[Parsing Implemented, Interpreter Support TODO]** [cite: neuroscript/pkg/core/neuroscript.y.go, neuroscript/development checklist.md]
-    * Numbers: Use digits (e.g., `123`). Arithmetic evaluation is a **[TODO]**. [cite: neuroscript/pkg/core/neuroscript.y.go, neuroscript/development checklist.md]
-    * Booleans: Use `true`, `false`. Specific boolean type handling is a **[TODO]**. Treated as strings "true"/"false" currently. [cite: neuroscript/development checklist.md, neuroscript/pkg/core/interpreter_b.go]
-10. **Element Access:** Accessing list elements (e.g., `myList[0]`) or map values (e.g., `myMap["key"]`) is **NOT currently supported**. [cite: neuroscript/definition/neuroscript spec.md] Use `FOR EACH` or potentially new `TOOL`s if interaction with elements is needed. **[TODO]**
-11. **No Built-in Functions:** Functions like `LEN`, `SUBSTR`, `CONTAINS`, etc., are NOT built-in. Use string concatenation `+` or available `TOOL`s. [cite: neuroscript/definition/develop prompt.txt]
-12. **Available `TOOL`s:** Only use the following tools (check argument types via `tools.go`/`tools_register.go`): `TOOL.ReadFile(filepath)`, `TOOL.WriteFile(filepath, content)`, `TOOL.SanitizeFilename(name)`, `TOOL.VectorUpdate(filepath)` (mock), `TOOL.GitAdd(filepath)`, `TOOL.GitCommit(message)`, `TOOL.SearchSkills(query)` (mock), `TOOL.StringLength(input)`, `TOOL.Substring(input, start_int, end_int)`, `TOOL.ToUpper(input)`, `TOOL.ToLower(input)`, `TOOL.TrimSpace(input)`, `TOOL.SplitString(input, delimiter)`, `TOOL.SplitWords(input)`, `TOOL.JoinStrings(string_slice, separator)`, `TOOL.ReplaceAll(input, old, new)`, `TOOL.Contains(input, substring)`, `TOOL.HasPrefix(input, prefix)`, `TOOL.HasSuffix(input, suffix)`. [cite: neuroscript/pkg/core/tools_register.go] Do NOT invent other tools.
-13. **Variables & Placeholders:** Use `{{variable_name}}` for substituting variable values within string literals (e.g., in prompts for `CALL LLM`). [cite: neuroscript/pkg/core/interpreter_b.go] Use `__last_call_result` to access the result of the most recent `CALL`. [cite: neuroscript/pkg/core/neuroscript.y.go]
-14. **Line Continuation (`\`):** For readability, you can break long lines by ending a line with a backslash `\`. [cite: neuroscript/pkg/core/lexer.go] The next line is treated as a continuation. Use this primarily for long `SET` statements involving string concatenation or complex literals.
-15. **Comments:** Use `#` or `--` for single-line comments. [cite: neuroscript/pkg/core/lexer.go]
-16. **Output Format:** Generate ONLY the raw NeuroScript code according to these rules. Start with `DEFINE PROCEDURE` and ensure the final line is `END`. Do NOT include any explanations or markdown formatting like ```. [cite: neuroscript/definition/develop prompt.txt]
+11. **Literals:**
+    * Strings: Use `""` or `''` (escapes: `\\`, `\"`, `\'`). [cite: uploaded:neuroscript/pkg/core/generated/neuroscript_lexer.go]
+    * Lists: Use `[` comma-separated expressions `]` (e.g., `["a", 1, {{v}}, []]`). **[Parsing Implemented]** [cite: uploaded:neuroscript/pkg/core/generated/neuroscript_parser.go] **[Interpreter Support TODO]** [cite: uploaded:neuroscript/development checklist.md]
+    * Maps: Use `{` comma-separated `"key": expression` pairs `}` (keys MUST be string literals) (e.g., `{"task": "Do X", "done": false, "sub_items": []}`). **[Parsing Implemented]** [cite: uploaded:neuroscript/pkg/core/generated/neuroscript_parser.go] **[Interpreter Support TODO]** [cite: uploaded:neuroscript/development checklist.md]
+    * Numbers: Use digits (e.g., `123`). **[Parsing Implemented]** [cite: uploaded:neuroscript/pkg/core/generated/neuroscript_parser.go] Arithmetic evaluation is a **[TODO]**. [cite: uploaded:neuroscript/development checklist.md]
+    * Booleans: Use `true`, `false`. Specific boolean type handling is a **[TODO]**. Treated as strings "true"/"false" currently in conditions. [cite: uploaded:neuroscript/pkg/core/evaluation.go, uploaded:neuroscript/development checklist.md]
+12. **Element Access:** Accessing list elements (e.g., `myList[0]`) or map values (e.g., `myMap["key"]`) is **NOT currently supported** by the grammar or interpreter. [cite: uploaded:neuroscript/definition/neuroscript spec.md, uploaded:neuroscript/development checklist.md] Use `FOR EACH` or specific `TOOL`s if interaction with elements is needed. **[TODO]** [cite: uploaded:neuroscript/development checklist.md]
+13. **No Built-in Functions:** Functions like `LEN`, `SUBSTR`, `CONTAINS`, etc., are NOT built-in. Use string concatenation `+` or available `TOOL`s. [cite: uploaded:neuroscript/definition/develop prompt.txt]
+14. **Available `TOOL`s:** Only use the following tools (check argument types via `tools_register.go` [cite: uploaded:neuroscript/pkg/core/tools_register.go]):
+    * `TOOL.ReadFile(filepath)` (Expects `.ns.txt` extension now)
+    * `TOOL.WriteFile(filepath, content)` (Use `.ns.txt` extension for filepath)
+    * `TOOL.SanitizeFilename(name)` (Ensure resulting filename is used with `.ns.txt`)
+    * `TOOL.VectorUpdate(filepath)` (Expects `.ns.txt` extension now)
+    * `TOOL.GitAdd(filepath)` (Use `.ns.txt` extension)
+    * `TOOL.GitCommit(message)`
+    * `TOOL.SearchSkills(query)` (mock)
+    * `TOOL.StringLength(input)`
+    * `TOOL.Substring(input, start_int, end_int)`
+    * `TOOL.ToUpper(input)`
+    * `TOOL.ToLower(input)`
+    * `TOOL.TrimSpace(input)`
+    * `TOOL.SplitString(input, delimiter)`
+    * `TOOL.SplitWords(input)`
+    * `TOOL.JoinStrings(string_slice, separator)`
+    * `TOOL.ReplaceAll(input, old, new)`
+    * `TOOL.Contains(input, substring)`
+    * `TOOL.HasPrefix(input, prefix)`
+    * `TOOL.HasSuffix(input, suffix)`
+    Do NOT invent other tools.
+15. **Variables & Placeholders:** Use `{{variable_name}}` for substituting variable values within string literals (e.g., in prompts for `CALL LLM`). [cite: uploaded:neuroscript/pkg/core/evaluation.go] Use `__last_call_result` (as a keyword or variable name) to access the result of the most recent `CALL`. [cite: uploaded:neuroscript/pkg/core/generated/neuroscript_parser.go, uploaded:neuroscript/pkg/core/evaluation.go]
+16. **Line Continuation (`\`):** The lexer handles line continuation implicitly (no explicit `\` needed or parsed). Simply break long lines; statements are terminated by `NEWLINE`. [cite: uploaded:neuroscript/pkg/core/generated/neuroscript_parser.go]
+17. **Comments:** Use `#` or `--` for single-line comments. [cite: uploaded:neuroscript/pkg/core/generated/neuroscript_lexer.go]
+18. **Output Format:** Generate ONLY the raw NeuroScript code according to these rules. Start with the identifier comment (Rule #2), then `DEFINE PROCEDURE`. Ensure the final line is `END` followed by a newline. [cite: uploaded:neuroscript/pkg/core/generated/neuroscript_parser.go] Do NOT include any explanations or markdown formatting like ```. [cite: uploaded:neuroscript/definition/develop prompt.txt]

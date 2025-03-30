@@ -129,7 +129,7 @@ RETURN resultSummary
    ```
 
 2. **Interpreter / Runtime** (Prototype)  
-   - (Optional) We provide a minimal interpreter in Go/Python that can parse and run .ns files.  
+   - (Optional) We provide a minimal interpreter in Go/Python that can parse and run .ns.txtfiles.  
    - Or integrate NeuroScript statements as a layer on top of your existing AI agent framework.
 
 3. **LLM Connection**  
