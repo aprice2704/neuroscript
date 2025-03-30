@@ -23,6 +23,7 @@ A. Capabilities (Existing & Target)
 [ ] Both can run go test ./... etc and see errors
 [ ] Both can run gofmt and get correctly formatted file back for line no match
 [ ] LLMs can supply git-style patches and have them applied to files
+[ ] MCP support
 
 B. Planned Features (Suggested Order Towards Bootstrapping)
 [ ] Interpreter: Implement Block Execution (Execute []Step in Value for IF/WHILE/FOR EACH)
