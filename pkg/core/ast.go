@@ -28,3 +28,8 @@ type Step struct {
 	Args   []string    // Arguments (CALL) - Potentially redundant if moved to Value? Keep for now.
 	Cond   string      // Condition (IF, WHILE), Collection (FOR)
 }
+
+// newStep creates a new Step instance. Moved from neuroscript.y.go.
+func newStep(typ string, target string, cond string, value interface{}, args []string) Step {
+	return Step{Type: typ, Target: target, Cond: cond, Value: value, Args: args}
+}
