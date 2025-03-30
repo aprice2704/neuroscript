@@ -1,4 +1,4 @@
-/* neuroscript.y - Parser definition for NeuroScript (v24 - Add comparison ops, number literal) */
+/* neuroscript.y - Parser definition for NeuroScript (v33 - Remove trailing optional_newlines from program) */
 
 %{
 package core // Must match package in lexer and ast
@@ -13,7 +13,16 @@ func newStep(typ string, target string, cond string, value interface{}, args []s
 	return Step{Type: typ, Target: target, Cond: cond, Value: value, Args: args}
 }
 
-// No globals needed here, result managed via lexer state
+// Helper function to parse docstring content (Placeholder)
+// TODO: Implement robust parsing of PURPOSE, INPUTS, etc.
+func parseDocstring(content string) Docstring {
+	// Simple placeholder implementation
+	return Docstring{
+		Purpose: "Parsed: " + content, // Indicate it was processed
+		Inputs:  make(map[string]string),
+	}
+}
+
 %}
 
 // Union definition for semantic values
@@ -47,10 +56,10 @@ func newStep(typ string, target string, cond string, value interface{}, args []s
 %token NEWLINE INVALID
 
 /* Type declarations for non-terminals */
-%type <procs> program procedure_list
+%type <procs> program non_empty_procedure_list
 %type <proc> procedure_definition
 %type <params> param_list_opt param_list
-%type <steps> statement_list
+%type <steps> statement_list non_empty_statement_list
 %type <step> statement simple_statement block_statement if_statement while_statement for_each_statement set_statement call_statement return_statement
 %type <str> call_target
 %type <str> expression
@@ -69,7 +78,7 @@ func newStep(typ string, target string, cond string, value interface{}, args []s
 /* Operator precedence (Define if complex expressions arise, simple for now) */
 // %left PLUS
 // %left GT LT GTE LTE // Comparison ops usually lower than arithmetic
-// %left EQ NEQ        // Equality usually lower than comparison
+// %left EQ NEQ      // Equality usually lower than comparison
 
 /* Start symbol */
 %start program
@@ -77,42 +86,69 @@ func newStep(typ string, target string, cond string, value interface{}, args []s
 %% /* Grammar rules start */
 
 // Top level rule - Use lexer object for result
-program: procedure_list {
+// Simplified program rule: Optional leading newlines, then procedures (or empty)
+program: optional_newlines { // Case 1: File is empty or only newlines
 			if l, ok := yylex.(*lexer); ok {
-				l.SetResult($1)
+				l.SetResult([]Procedure{}) // Set empty result
+			} else {
+				fmt.Println("Error: Could not access lexer object to set result.")
+			}
+		}
+	| optional_newlines non_empty_procedure_list { // Case 2: File has procedures. Trailing newlines handled implicitly by EOF/lexer.
+			if l, ok := yylex.(*lexer); ok {
+				l.SetResult($2) // $2 is non_empty_procedure_list
 			} else {
 				fmt.Println("Error: Could not access lexer object to set result.")
 			}
 		}
        ;
 
-procedure_list: /* empty */ { $$ = []Procedure{} }
-	| procedure_list procedure_definition { $$ = append($1, $2) }
-	| procedure_list NEWLINE { $$ = $1 } // Allow blank lines between procedures
+
+// *** non_empty_procedure_list rules ***
+// This list MUST contain at least one procedure.
+// It explicitly consumes required separators BETWEEN procedures.
+non_empty_procedure_list: procedure_definition { $$ = []Procedure{$1} } // Base case: first procedure
+	| non_empty_procedure_list required_newlines procedure_definition { $$ = append($1, $3) } // Subsequent procedures separated by required newlines
 	;
 
-procedure_definition:
-	KW_DEFINE KW_PROCEDURE IDENTIFIER LPAREN param_list_opt RPAREN NEWLINE comment_block statement_list KW_END NEWLINE {
-		var proc Procedure; proc.Name = $3; proc.Params = $5
-		// TODO: Parse comment_block ($8) into proc.Docstring struct
-		proc.Steps = $9; $$ = proc
-	} ;
+// Helper rule for optional newlines (zero or more) - No action needed, just consumes
+optional_newlines: /* empty */ | optional_newlines NEWLINE ;
 
+// Helper rule for required newlines (one or more) - No action needed, just consumes
+required_newlines: NEWLINE | required_newlines NEWLINE ;
+
+
+// procedure_definition consumes its required trailing NEWLINE
+procedure_definition:
+    KW_DEFINE KW_PROCEDURE IDENTIFIER LPAREN param_list_opt RPAREN NEWLINE comment_block statement_list KW_END NEWLINE {
+        var proc Procedure
+        proc.Name = $3
+        proc.Params = $5
+        proc.Docstring = parseDocstring($8) // Using placeholder helper
+        proc.Steps = $9
+        $$ = proc
+    } ;
 
 param_list_opt: /* empty */ { $$ = []string{} } | param_list { $$ = $1 } ;
 param_list: IDENTIFIER { $$ = []string{$1} } | param_list COMMA IDENTIFIER { $$ = append($1, $3) } ;
 
 comment_block: KW_COMMENT DOC_COMMENT_CONTENT KW_END NEWLINE { $$ = $2 } ; // Returns content as single string
 
+// *** Using non-empty list structure for statements ***
 statement_list: /* empty */ { $$ = []Step{} }
-	| statement_list statement { if $2.Type != "" { $$ = append($1, $2) } else { $$ = $1 } }
-	| statement_list NEWLINE { $$ = $1 } // Handles blank lines between statements
+	| non_empty_statement_list { $$ = $1 }
 	;
 
-// Statement requires NEWLINE terminator (back to v20 style, seems more robust)
+non_empty_statement_list: statement { if $1.Type != "" { $$ = []Step{$1} } else { $$ = []Step{} } } // First statement
+	| non_empty_statement_list statement { if $2.Type != "" { $$ = append($1, $2) } else { $$ = $1 } } // Subsequent statements
+	;
+
+
+// Statement requires NEWLINE terminator
 statement:
       simple_statement NEWLINE { $$ = $1 }
-    | block_statement NEWLINE { $$ = $1 } // Block statements also end before final NEWLINE in definition
+    | block_statement NEWLINE { $$ = $1 } // Block statements also need the final NEWLINE
+    // | NEWLINE { $$ = Step{} } // Allow empty lines to parse as empty steps? Filtered in list actions.
     ;
 
 // Simple statements are just the base rule
@@ -121,13 +157,13 @@ simple_statement: set_statement | call_statement | return_statement ;
 // Block statements define structure up to their END keyword
 block_statement: if_statement | while_statement | for_each_statement ;
 
-// Definitions DO NOT consume terminating NEWLINEs
+// Definitions DO NOT consume terminating NEWLINEs themselves
 set_statement: KW_SET IDENTIFIER ASSIGN expression { $$ = newStep("SET", $2, "", $4, nil) } ;
 call_statement: KW_CALL call_target LPAREN expression_list_opt RPAREN { $$ = newStep("CALL", $2, "", nil, $4) } ;
 return_statement: KW_RETURN { $$ = newStep("RETURN", "", "", "", nil) } | KW_RETURN expression { $$ = newStep("RETURN", "", "", $2, nil) } ;
 
 // Block statement rules include NEWLINE after THEN/DO and end simply with KW_END.
-// The statement rule adds the final NEWLINE for the block.
+// The statement rule adds the final NEWLINE required after the block END.
 if_statement: KW_IF condition KW_THEN NEWLINE statement_list KW_END { $$ = newStep("IF", "", $2, $5, nil) } ;
 // TODO: Add IF/ELSE rule later
 while_statement: KW_WHILE condition KW_DO NEWLINE statement_list KW_END { $$ = newStep("WHILE", "", $2, $5, nil) } ;
@@ -152,7 +188,7 @@ expression: term { $$ = $1 } | expression PLUS term { $$ = $1 + " + " + $3 } ; /
 term:
       literal
     | placeholder
-    | IDENTIFIER         // Variable access
+    | IDENTIFIER        // Variable access
     | KW_LAST_CALL_RESULT { $$ = "__last_call_result" }
     | LPAREN expression RPAREN { $$ = "(" + $2 + ")" }
     ;
@@ -160,8 +196,8 @@ term:
 placeholder: PLACEHOLDER_START IDENTIFIER PLACEHOLDER_END { $$ = "{{" + $2 + "}}" } ; // Simple placeholder for now
 
 literal:
-      STRING_LIT   // Includes quotes
-    | NUMBER_LIT   // Added
+      STRING_LIT    // Includes quotes
+    | NUMBER_LIT    // Added
     | list_literal
     | map_literal
     ;
