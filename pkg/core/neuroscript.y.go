@@ -11,15 +11,14 @@ import (
 	"strings"
 )
 
-// var parsedResult []Procedure // Removed global
-
+// Helper function used in grammar actions
 func newStep(typ string, target string, cond string, value interface{}, args []string) Step {
 	return Step{Type: typ, Target: target, Cond: cond, Value: value, Args: args}
 }
 
-var currentParsedDocstring string
+// No globals needed here, result managed via lexer state
 
-//line neuroscript.y:21
+//line neuroscript.y:20
 type yySymType struct {
 	yys        int
 	str        string
@@ -28,7 +27,7 @@ type yySymType struct {
 	proc       Procedure
 	procs      []Procedure // Type for lists of procedures
 	params     []string
-	args       []string // For CALL arguments
+	args       []string // For CALL arguments (Consider using exprs instead?)
 	expr       string
 	exprs      []string // For expression lists (arguments, list literals)
 	mapEntries []string // For map entries string representations
@@ -37,41 +36,46 @@ type yySymType struct {
 const IDENTIFIER = 57346
 const STRING_LIT = 57347
 const DOC_COMMENT_CONTENT = 57348
-const KW_DEFINE = 57349
-const KW_PROCEDURE = 57350
-const KW_COMMENT = 57351
-const KW_END = 57352
-const KW_SET = 57353
-const KW_CALL = 57354
-const KW_RETURN = 57355
-const KW_IF = 57356
-const KW_THEN = 57357
-const KW_WHILE = 57358
-const KW_DO = 57359
-const KW_FOR = 57360
-const KW_EACH = 57361
-const KW_IN = 57362
-const KW_TOOL = 57363
-const KW_LLM = 57364
-const KW_ELSE = 57365
-const ASSIGN = 57366
-const PLUS = 57367
-const LPAREN = 57368
-const RPAREN = 57369
-const COMMA = 57370
-const LBRACK = 57371
-const RBRACK = 57372
-const LBRACE = 57373
-const RBRACE = 57374
-const COLON = 57375
-const DOT = 57376
-const PLACEHOLDER_START = 57377
-const PLACEHOLDER_END = 57378
-const KW_LAST_CALL_RESULT = 57379
-const EQ = 57380
-const NEQ = 57381
-const NEWLINE = 57382
-const INVALID = 57383
+const NUMBER_LIT = 57349
+const KW_LAST_CALL_RESULT = 57350
+const KW_DEFINE = 57351
+const KW_PROCEDURE = 57352
+const KW_COMMENT = 57353
+const KW_END = 57354
+const KW_SET = 57355
+const KW_CALL = 57356
+const KW_RETURN = 57357
+const KW_IF = 57358
+const KW_THEN = 57359
+const KW_ELSE = 57360
+const KW_WHILE = 57361
+const KW_DO = 57362
+const KW_FOR = 57363
+const KW_EACH = 57364
+const KW_IN = 57365
+const KW_TOOL = 57366
+const KW_LLM = 57367
+const ASSIGN = 57368
+const PLUS = 57369
+const LPAREN = 57370
+const RPAREN = 57371
+const COMMA = 57372
+const LBRACK = 57373
+const RBRACK = 57374
+const LBRACE = 57375
+const RBRACE = 57376
+const COLON = 57377
+const DOT = 57378
+const PLACEHOLDER_START = 57379
+const PLACEHOLDER_END = 57380
+const EQ = 57381
+const NEQ = 57382
+const GT = 57383
+const LT = 57384
+const GTE = 57385
+const LTE = 57386
+const NEWLINE = 57387
+const INVALID = 57388
 
 var yyToknames = [...]string{
 	"$end",
@@ -80,6 +84,8 @@ var yyToknames = [...]string{
 	"IDENTIFIER",
 	"STRING_LIT",
 	"DOC_COMMENT_CONTENT",
+	"NUMBER_LIT",
+	"KW_LAST_CALL_RESULT",
 	"KW_DEFINE",
 	"KW_PROCEDURE",
 	"KW_COMMENT",
@@ -89,6 +95,7 @@ var yyToknames = [...]string{
 	"KW_RETURN",
 	"KW_IF",
 	"KW_THEN",
+	"KW_ELSE",
 	"KW_WHILE",
 	"KW_DO",
 	"KW_FOR",
@@ -96,7 +103,6 @@ var yyToknames = [...]string{
 	"KW_IN",
 	"KW_TOOL",
 	"KW_LLM",
-	"KW_ELSE",
 	"ASSIGN",
 	"PLUS",
 	"LPAREN",
@@ -110,9 +116,12 @@ var yyToknames = [...]string{
 	"DOT",
 	"PLACEHOLDER_START",
 	"PLACEHOLDER_END",
-	"KW_LAST_CALL_RESULT",
 	"EQ",
 	"NEQ",
+	"GT",
+	"LT",
+	"GTE",
+	"LTE",
 	"NEWLINE",
 	"INVALID",
 }
@@ -123,11 +132,12 @@ const yyEofCode = 1
 const yyErrCode = 2
 const yyInitialStackSize = 16
 
-//line neuroscript.y:143
+//line neuroscript.y:182
 /* Go code section */
 
 // yyError function remains the same
 func yyError(s string) {
+	// Maybe enhance this later (e.g., integrate with lexer line/pos)
 	fmt.Printf("Syntax Error: %s\n", s)
 }
 
@@ -140,88 +150,95 @@ var yyExca = [...]int8{
 
 const yyPrivate = 57344
 
-const yyLast = 130
+const yyLast = 144
 
 var yyAct = [...]int8{
-	18, 68, 73, 58, 45, 105, 31, 32, 33, 34,
-	61, 35, 38, 36, 101, 31, 32, 33, 34, 65,
-	35, 14, 36, 100, 31, 32, 33, 34, 5, 35,
-	64, 36, 76, 77, 85, 22, 57, 44, 90, 20,
-	31, 32, 33, 34, 22, 35, 88, 36, 86, 62,
-	89, 87, 13, 22, 66, 65, 103, 84, 96, 70,
-	12, 4, 48, 51, 65, 81, 80, 70, 63, 22,
-	83, 8, 59, 65, 95, 60, 91, 78, 75, 94,
-	92, 93, 37, 41, 50, 17, 6, 55, 19, 56,
-	74, 97, 98, 54, 99, 49, 82, 79, 67, 102,
-	42, 43, 39, 15, 104, 11, 7, 16, 72, 71,
-	69, 53, 52, 47, 46, 40, 27, 26, 25, 30,
-	29, 28, 24, 23, 21, 10, 9, 3, 2, 1,
+	61, 47, 18, 76, 71, 119, 31, 32, 33, 34,
+	5, 117, 35, 105, 36, 115, 31, 32, 33, 34,
+	98, 64, 35, 40, 36, 39, 38, 14, 114, 31,
+	32, 33, 34, 92, 46, 35, 67, 36, 22, 97,
+	20, 31, 32, 33, 34, 95, 4, 35, 22, 36,
+	93, 96, 60, 69, 94, 13, 68, 116, 91, 73,
+	107, 22, 68, 12, 68, 68, 87, 73, 66, 8,
+	90, 88, 43, 22, 79, 80, 81, 82, 83, 84,
+	99, 100, 101, 102, 103, 104, 50, 53, 62, 54,
+	51, 65, 44, 45, 106, 108, 63, 85, 110, 37,
+	109, 111, 78, 17, 6, 19, 77, 113, 112, 89,
+	52, 86, 70, 58, 41, 59, 15, 11, 7, 57,
+	118, 16, 75, 74, 72, 56, 55, 49, 48, 42,
+	27, 26, 25, 30, 29, 28, 24, 23, 21, 10,
+	9, 3, 2, 1,
 }
 
 var yyPact = [...]int16{
-	-1000, -1000, 21, -1000, -1000, 78, 102, 45, 101, 33,
-	24, -1000, -19, 99, 76, -1000, -1000, 82, 29, 72,
-	-28, -1000, -1000, -1000, -1000, -1000, -1000, -1000, -1000, -1000,
-	-1000, 98, 79, 58, 58, 58, 56, -30, -1000, 25,
-	42, -1000, -4, -1000, 48, -1000, -1000, -1000, -1000, -1000,
-	58, -1000, -1000, -1000, 94, 58, 85, 63, -6, 60,
-	93, -1000, 58, 58, 92, 58, 30, -2, 18, 23,
-	48, 14, 22, -1000, 5, -1000, 58, 58, -1000, 54,
-	48, 31, -1000, -1000, -1000, -1000, -1000, 58, -1000, 85,
-	58, 13, 48, 48, 4, 58, -1000, 48, -1000, 48,
-	-1000, -1000, 39, -1000, -5, -1000,
+	-1000, -1000, 1, -1000, -1000, 94, 114, 41, 113, 34,
+	25, -1000, -18, 112, 92, -1000, -1000, 99, 28, 87,
+	-19, -1000, -1000, -20, -22, -1000, -1000, -1000, -1000, -1000,
+	-1000, 110, 68, 82, 82, 82, 74, -24, -1000, -1000,
+	-1000, 65, 40, -1000, 0, -1000, 38, -1000, -1000, -1000,
+	-1000, -1000, 82, -1000, -1000, -1000, -1000, 108, 82, 101,
+	85, 35, 77, 107, -1000, 82, 82, 105, 82, 29,
+	-5, 18, 24, 38, 11, 21, -1000, 4, -25, 82,
+	82, 82, 82, 82, 82, -32, 71, 38, 31, -1000,
+	-1000, -1000, -1000, -1000, 82, -1000, 101, 82, -1000, 38,
+	38, 38, 38, 38, 38, -1000, 82, -1000, 38, -1000,
+	38, 16, 3, 37, -1000, -1000, -34, -1000, -7, -1000,
 }
 
 var yyPgo = [...]uint8{
-	0, 129, 128, 127, 126, 125, 0, 124, 123, 122,
-	121, 120, 119, 118, 117, 116, 115, 3, 4, 114,
-	113, 36, 112, 111, 2, 1, 110, 109, 108, 107,
+	0, 143, 142, 141, 140, 139, 2, 138, 137, 136,
+	135, 134, 133, 132, 131, 130, 129, 0, 1, 128,
+	127, 52, 126, 125, 3, 4, 124, 123, 122, 121,
 }
 
 var yyR1 = [...]int8{
 	0, 1, 2, 2, 2, 3, 4, 4, 5, 5,
 	29, 6, 6, 6, 7, 7, 8, 8, 8, 9,
 	9, 9, 13, 14, 15, 15, 10, 11, 12, 16,
-	16, 16, 21, 21, 21, 17, 17, 18, 18, 18,
-	18, 18, 20, 19, 19, 19, 22, 23, 25, 25,
-	26, 26, 27, 27, 28, 28, 24,
+	16, 16, 21, 21, 21, 21, 21, 21, 21, 17,
+	17, 18, 18, 18, 18, 18, 20, 19, 19, 19,
+	19, 22, 23, 25, 25, 26, 26, 27, 27, 28,
+	28, 24,
 }
 
 var yyR2 = [...]int8{
 	0, 1, 0, 2, 2, 11, 0, 1, 1, 3,
-	4, 0, 2, 2, 1, 1, 1, 1, 1, 1,
-	1, 1, 4, 5, 1, 2, 5, 5, 8, 1,
-	3, 1, 1, 3, 3, 1, 3, 1, 1, 1,
-	1, 3, 3, 1, 1, 1, 3, 3, 0, 1,
-	1, 3, 0, 1, 1, 3, 3,
+	4, 0, 2, 2, 2, 2, 1, 1, 1, 1,
+	1, 1, 4, 5, 1, 2, 6, 6, 9, 1,
+	3, 1, 3, 3, 3, 3, 3, 3, 1, 1,
+	3, 1, 1, 1, 1, 3, 3, 1, 1, 1,
+	1, 3, 3, 0, 1, 1, 3, 0, 1, 1,
+	3, 3,
 }
 
 var yyChk = [...]int16{
-	-1000, -1, -2, -3, 40, 7, 8, 4, 26, -4,
-	-5, 4, 27, 28, 40, 4, -29, 9, -6, 6,
-	10, -7, 40, -8, -9, -13, -14, -15, -10, -11,
-	-12, 11, 12, 13, 14, 16, 18, 10, 40, 4,
-	-16, 4, 21, 22, -17, -18, -19, -20, 4, 37,
-	26, 5, -22, -23, 35, 29, 31, -21, -17, -21,
-	19, 40, 24, 26, 34, 25, -17, 4, -25, -26,
-	-17, -27, -28, -24, 5, 15, 38, 39, 17, 4,
-	-17, -25, 4, -18, 27, 36, 30, 28, 32, 28,
-	33, -6, -17, -17, -6, 20, 27, -17, -24, -17,
-	10, 10, -17, 17, -6, 10,
+	-1000, -1, -2, -3, 45, 9, 10, 4, 28, -4,
+	-5, 4, 29, 30, 45, 4, -29, 11, -6, 6,
+	12, -7, 45, -8, -9, -13, -14, -15, -10, -11,
+	-12, 13, 14, 15, 16, 19, 21, 12, 45, 45,
+	45, 4, -16, 4, 24, 25, -17, -18, -19, -20,
+	4, 8, 28, 5, 7, -22, -23, 37, 31, 33,
+	-21, -17, -21, 22, 45, 26, 28, 36, 27, -17,
+	4, -25, -26, -17, -27, -28, -24, 5, 17, 39,
+	40, 41, 42, 43, 44, 20, 4, -17, -25, 4,
+	-18, 29, 38, 32, 30, 34, 30, 35, 45, -17,
+	-17, -17, -17, -17, -17, 45, 23, 29, -17, -24,
+	-17, -6, -6, -17, 12, 12, 20, 45, -6, 12,
 }
 
 var yyDef = [...]int8{
 	2, -2, 1, 3, 4, 0, 0, 0, 6, 0,
 	7, 8, 0, 0, 0, 9, 11, 0, 0, 0,
-	0, 12, 13, 14, 15, 16, 17, 18, 19, 20,
-	21, 0, 0, 24, 0, 0, 0, 0, 5, 0,
-	0, 29, 0, 31, 25, 35, 37, 38, 39, 40,
-	0, 43, 44, 45, 0, 48, 52, 0, 32, 0,
-	0, 10, 0, 48, 0, 0, 0, 0, 0, 49,
-	50, 0, 53, 54, 0, 11, 0, 0, 11, 0,
-	22, 0, 30, 36, 41, 42, 46, 0, 47, 0,
-	0, 0, 33, 34, 0, 0, 23, 51, 55, 56,
-	26, 27, 0, 11, 0, 28,
+	0, 12, 13, 0, 0, 16, 17, 18, 19, 20,
+	21, 0, 0, 24, 0, 0, 0, 0, 5, 14,
+	15, 0, 0, 29, 0, 31, 25, 39, 41, 42,
+	43, 44, 0, 47, 48, 49, 50, 0, 53, 57,
+	0, 38, 0, 0, 10, 0, 53, 0, 0, 0,
+	0, 0, 54, 55, 0, 58, 59, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 22, 0, 30,
+	40, 45, 46, 51, 0, 52, 0, 0, 11, 32,
+	33, 34, 35, 36, 37, 11, 0, 23, 56, 60,
+	61, 0, 0, 0, 26, 27, 0, 11, 0, 28,
 }
 
 var yyTok1 = [...]int8{
@@ -233,6 +250,7 @@ var yyTok2 = [...]int8{
 	12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
 	22, 23, 24, 25, 26, 27, 28, 29, 30, 31,
 	32, 33, 34, 35, 36, 37, 38, 39, 40, 41,
+	42, 43, 44, 45, 46,
 }
 
 var yyTok3 = [...]int8{
@@ -578,7 +596,7 @@ yydefault:
 
 	case 1:
 		yyDollar = yyS[yypt-1 : yypt+1]
-//line neuroscript.y:74
+//line neuroscript.y:80
 		{
 			if l, ok := yylex.(*lexer); ok {
 				l.SetResult(yyDollar[1].procs)
@@ -588,71 +606,72 @@ yydefault:
 		}
 	case 2:
 		yyDollar = yyS[yypt-0 : yypt+1]
-//line neuroscript.y:83
+//line neuroscript.y:89
 		{
 			yyVAL.procs = []Procedure{}
 		}
 	case 3:
 		yyDollar = yyS[yypt-2 : yypt+1]
-//line neuroscript.y:84
+//line neuroscript.y:90
 		{
 			yyVAL.procs = append(yyDollar[1].procs, yyDollar[2].proc)
 		}
 	case 4:
 		yyDollar = yyS[yypt-2 : yypt+1]
-//line neuroscript.y:85
+//line neuroscript.y:91
 		{
 			yyVAL.procs = yyDollar[1].procs
 		}
 	case 5:
 		yyDollar = yyS[yypt-11 : yypt+1]
-//line neuroscript.y:90
+//line neuroscript.y:95
 		{
 			var proc Procedure
 			proc.Name = yyDollar[3].str
 			proc.Params = yyDollar[5].params
+			// TODO: Parse comment_block ($8) into proc.Docstring struct
 			proc.Steps = yyDollar[9].steps
 			yyVAL.proc = proc
 		}
 	case 6:
 		yyDollar = yyS[yypt-0 : yypt+1]
-//line neuroscript.y:97
+//line neuroscript.y:102
 		{
 			yyVAL.params = []string{}
 		}
 	case 7:
 		yyDollar = yyS[yypt-1 : yypt+1]
-//line neuroscript.y:97
+//line neuroscript.y:102
 		{
 			yyVAL.params = yyDollar[1].params
 		}
 	case 8:
 		yyDollar = yyS[yypt-1 : yypt+1]
-//line neuroscript.y:98
+//line neuroscript.y:103
 		{
 			yyVAL.params = []string{yyDollar[1].str}
 		}
 	case 9:
 		yyDollar = yyS[yypt-3 : yypt+1]
-//line neuroscript.y:98
+//line neuroscript.y:103
 		{
 			yyVAL.params = append(yyDollar[1].params, yyDollar[3].str)
 		}
 	case 10:
 		yyDollar = yyS[yypt-4 : yypt+1]
-//line neuroscript.y:100
+//line neuroscript.y:105
 		{
 			yyVAL.str = yyDollar[2].str
 		}
 	case 11:
 		yyDollar = yyS[yypt-0 : yypt+1]
-//line neuroscript.y:102
+//line neuroscript.y:107
 		{
 			yyVAL.steps = []Step{}
 		}
 	case 12:
 		yyDollar = yyS[yypt-2 : yypt+1]
-//line neuroscript.y:103
+//line neuroscript.y:108
 		{
 			if yyDollar[2].step.Type != "" {
 				yyVAL.steps = append(yyDollar[1].steps, yyDollar[2].step)
@@ -662,229 +681,217 @@ yydefault:
 		}
 	case 13:
 		yyDollar = yyS[yypt-2 : yypt+1]
-//line neuroscript.y:104
+//line neuroscript.y:109
 		{
 			yyVAL.steps = yyDollar[1].steps
 		}
 	case 14:
-		yyDollar = yyS[yypt-1 : yypt+1]
-//line neuroscript.y:108
+		yyDollar = yyS[yypt-2 : yypt+1]
+//line neuroscript.y:114
 		{
 			yyVAL.step = yyDollar[1].step
 		}
 	case 15:
-		yyDollar = yyS[yypt-1 : yypt+1]
-//line neuroscript.y:109
+		yyDollar = yyS[yypt-2 : yypt+1]
+//line neuroscript.y:115
 		{
 			yyVAL.step = yyDollar[1].step
 		}
 	case 22:
 		yyDollar = yyS[yypt-4 : yypt+1]
-//line neuroscript.y:119
+//line neuroscript.y:125
 		{
 			yyVAL.step = newStep("SET", yyDollar[2].str, "", yyDollar[4].str, nil)
 		}
 	case 23:
 		yyDollar = yyS[yypt-5 : yypt+1]
-//line neuroscript.y:120
+//line neuroscript.y:126
 		{
 			yyVAL.step = newStep("CALL", yyDollar[2].str, "", nil, yyDollar[4].exprs)
 		}
 	case 24:
 		yyDollar = yyS[yypt-1 : yypt+1]
-//line neuroscript.y:121
+//line neuroscript.y:127
 		{
 			yyVAL.step = newStep("RETURN", "", "", "", nil)
 		}
 	case 25:
 		yyDollar = yyS[yypt-2 : yypt+1]
-//line neuroscript.y:121
+//line neuroscript.y:127
 		{
 			yyVAL.step = newStep("RETURN", "", "", yyDollar[2].str, nil)
 		}
 	case 26:
-		yyDollar = yyS[yypt-5 : yypt+1]
-//line neuroscript.y:124
+		yyDollar = yyS[yypt-6 : yypt+1]
+//line neuroscript.y:131
 		{
-			yyVAL.step = newStep("IF", "", yyDollar[2].str, yyDollar[4].steps, nil)
+			yyVAL.step = newStep("IF", "", yyDollar[2].str, yyDollar[5].steps, nil)
 		}
 	case 27:
-		yyDollar = yyS[yypt-5 : yypt+1]
-//line neuroscript.y:125
+		yyDollar = yyS[yypt-6 : yypt+1]
+//line neuroscript.y:133
 		{
-			yyVAL.step = newStep("WHILE", "", yyDollar[2].str, yyDollar[4].steps, nil)
+			yyVAL.step = newStep("WHILE", "", yyDollar[2].str, yyDollar[5].steps, nil)
 		}
 	case 28:
-		yyDollar = yyS[yypt-8 : yypt+1]
-//line neuroscript.y:126
+		yyDollar = yyS[yypt-9 : yypt+1]
+//line neuroscript.y:134
 		{
-			yyVAL.step = newStep("FOR", yyDollar[3].str, yyDollar[5].str, yyDollar[7].steps, nil)
+			yyVAL.step = newStep("FOR", yyDollar[3].str, yyDollar[5].str, yyDollar[8].steps, nil)
 		}
 	case 29:
 		yyDollar = yyS[yypt-1 : yypt+1]
-//line neuroscript.y:129
+//line neuroscript.y:137
 		{
 			yyVAL.str = yyDollar[1].str
 		}
 	case 30:
 		yyDollar = yyS[yypt-3 : yypt+1]
-//line neuroscript.y:129
+//line neuroscript.y:137
 		{
 			yyVAL.str = "TOOL." + yyDollar[3].str
 		}
 	case 31:
 		yyDollar = yyS[yypt-1 : yypt+1]
-//line neuroscript.y:129
+//line neuroscript.y:137
 		{
 			yyVAL.str = "LLM"
 		}
 	case 32:
-		yyDollar = yyS[yypt-1 : yypt+1]
-//line neuroscript.y:130
-		{
-			yyVAL.str = yyDollar[1].str
-		}
-	case 33:
 		yyDollar = yyS[yypt-3 : yypt+1]
-//line neuroscript.y:130
+//line neuroscript.y:141
 		{
 			yyVAL.str = yyDollar[1].str + "==" + yyDollar[3].str
 		}
-	case 34:
+	case 33:
 		yyDollar = yyS[yypt-3 : yypt+1]
-//line neuroscript.y:130
+//line neuroscript.y:142
 		{
 			yyVAL.str = yyDollar[1].str + "!=" + yyDollar[3].str
 		}
-	case 35:
-		yyDollar = yyS[yypt-1 : yypt+1]
-//line neuroscript.y:131
+	case 34:
+		yyDollar = yyS[yypt-3 : yypt+1]
+//line neuroscript.y:143
 		{
-			yyVAL.str = yyDollar[1].str
+			yyVAL.str = yyDollar[1].str + ">" + yyDollar[3].str
+		}
+	case 35:
+		yyDollar = yyS[yypt-3 : yypt+1]
+//line neuroscript.y:144
+		{
+			yyVAL.str = yyDollar[1].str + "<" + yyDollar[3].str
 		}
 	case 36:
 		yyDollar = yyS[yypt-3 : yypt+1]
-//line neuroscript.y:131
+//line neuroscript.y:145
 		{
-			yyVAL.str = yyDollar[1].str + " + " + yyDollar[3].str
+			yyVAL.str = yyDollar[1].str + ">=" + yyDollar[3].str
 		}
 	case 37:
-		yyDollar = yyS[yypt-1 : yypt+1]
-//line neuroscript.y:132
+		yyDollar = yyS[yypt-3 : yypt+1]
+//line neuroscript.y:146
 		{
-			yyVAL.str = yyDollar[1].str
+			yyVAL.str = yyDollar[1].str + "<=" + yyDollar[3].str
 		}
 	case 38:
 		yyDollar = yyS[yypt-1 : yypt+1]
-//line neuroscript.y:132
+//line neuroscript.y:147
 		{
 			yyVAL.str = yyDollar[1].str
 		}
 	case 39:
 		yyDollar = yyS[yypt-1 : yypt+1]
-//line neuroscript.y:132
+//line neuroscript.y:150
 		{
 			yyVAL.str = yyDollar[1].str
 		}
 	case 40:
-		yyDollar = yyS[yypt-1 : yypt+1]
-//line neuroscript.y:132
-		{
-			yyVAL.str = "__last_call_result"
-		}
-	case 41:
 		yyDollar = yyS[yypt-3 : yypt+1]
-//line neuroscript.y:132
+//line neuroscript.y:150
 		{
-			yyVAL.str = "(" + yyDollar[2].str + ")"
-		}
-	case 42:
-		yyDollar = yyS[yypt-3 : yypt+1]
-//line neuroscript.y:133
-		{
-			yyVAL.str = "{{" + yyDollar[2].str + "}}"
-		}
-	case 43:
-		yyDollar = yyS[yypt-1 : yypt+1]
-//line neuroscript.y:134
-		{
-			yyVAL.str = yyDollar[1].str
+			yyVAL.str = yyDollar[1].str + " + " + yyDollar[3].str
 		}
 	case 44:
 		yyDollar = yyS[yypt-1 : yypt+1]
-//line neuroscript.y:134
+//line neuroscript.y:156
 		{
-			yyVAL.str = yyDollar[1].str
+			yyVAL.str = "__last_call_result"
 		}
 	case 45:
-		yyDollar = yyS[yypt-1 : yypt+1]
-//line neuroscript.y:134
+		yyDollar = yyS[yypt-3 : yypt+1]
+//line neuroscript.y:157
 		{
-			yyVAL.str = yyDollar[1].str
+			yyVAL.str = "(" + yyDollar[2].str + ")"
 		}
 	case 46:
 		yyDollar = yyS[yypt-3 : yypt+1]
-//line neuroscript.y:135
+//line neuroscript.y:160
 		{
-			yyVAL.str = "[" + strings.Join(yyDollar[2].exprs, ", ") + "]"
-		}
-	case 47:
-		yyDollar = yyS[yypt-3 : yypt+1]
-//line neuroscript.y:136
-		{
-			yyVAL.str = "{" + strings.Join(yyDollar[2].mapEntries, ", ") + "}"
-		}
-	case 48:
-		yyDollar = yyS[yypt-0 : yypt+1]
-//line neuroscript.y:137
-		{
-			yyVAL.exprs = []string{}
-		}
-	case 49:
-		yyDollar = yyS[yypt-1 : yypt+1]
-//line neuroscript.y:137
-		{
-			yyVAL.exprs = yyDollar[1].exprs
-		}
-	case 50:
-		yyDollar = yyS[yypt-1 : yypt+1]
-//line neuroscript.y:138
-		{
-			yyVAL.exprs = []string{yyDollar[1].str}
+			yyVAL.str = "{{" + yyDollar[2].str + "}}"
 		}
 	case 51:
 		yyDollar = yyS[yypt-3 : yypt+1]
-//line neuroscript.y:138
+//line neuroscript.y:169
 		{
-			yyVAL.exprs = append(yyDollar[1].exprs, yyDollar[3].str)
+			yyVAL.str = "[" + strings.Join(yyDollar[2].exprs, ", ") + "]"
 		}
 	case 52:
-		yyDollar = yyS[yypt-0 : yypt+1]
-//line neuroscript.y:139
+		yyDollar = yyS[yypt-3 : yypt+1]
+//line neuroscript.y:170
 		{
-			yyVAL.mapEntries = []string{}
+			yyVAL.str = "{" + strings.Join(yyDollar[2].mapEntries, ", ") + "}"
 		}
 	case 53:
-		yyDollar = yyS[yypt-1 : yypt+1]
-//line neuroscript.y:139
+		yyDollar = yyS[yypt-0 : yypt+1]
+//line neuroscript.y:172
 		{
-			yyVAL.mapEntries = yyDollar[1].mapEntries
+			yyVAL.exprs = []string{}
 		}
 	case 54:
 		yyDollar = yyS[yypt-1 : yypt+1]
-//line neuroscript.y:140
+//line neuroscript.y:172
 		{
-			yyVAL.mapEntries = []string{yyDollar[1].str}
+			yyVAL.exprs = yyDollar[1].exprs
 		}
 	case 55:
-		yyDollar = yyS[yypt-3 : yypt+1]
-//line neuroscript.y:140
+		yyDollar = yyS[yypt-1 : yypt+1]
+//line neuroscript.y:174
 		{
-			yyVAL.mapEntries = append(yyDollar[1].mapEntries, yyDollar[3].str)
+			yyVAL.exprs = []string{yyDollar[1].str}
 		}
 	case 56:
 		yyDollar = yyS[yypt-3 : yypt+1]
-//line neuroscript.y:141
+//line neuroscript.y:174
+		{
+			yyVAL.exprs = append(yyDollar[1].exprs, yyDollar[3].str)
+		}
+	case 57:
+		yyDollar = yyS[yypt-0 : yypt+1]
+//line neuroscript.y:176
+		{
+			yyVAL.mapEntries = []string{}
+		}
+	case 58:
+		yyDollar = yyS[yypt-1 : yypt+1]
+//line neuroscript.y:176
+		{
+			yyVAL.mapEntries = yyDollar[1].mapEntries
+		}
+	case 59:
+		yyDollar = yyS[yypt-1 : yypt+1]
+//line neuroscript.y:178
+		{
+			yyVAL.mapEntries = []string{yyDollar[1].str}
+		}
+	case 60:
+		yyDollar = yyS[yypt-3 : yypt+1]
+//line neuroscript.y:178
+		{
+			yyVAL.mapEntries = append(yyDollar[1].mapEntries, yyDollar[3].str)
+		}
+	case 61:
+		yyDollar = yyS[yypt-3 : yypt+1]
+//line neuroscript.y:180
 		{
 			yyVAL.str = yyDollar[1].str + ":" + yyDollar[3].str
 		}

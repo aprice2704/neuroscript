@@ -1,22 +1,23 @@
-# NeuroScript Development Checklist (v3 - Combined)
+# NeuroScript Development Checklist (v3 - Updated based on HandleSkillRequest success)
 
 Goal: Reach the "bootstrapping" point where NeuroScript, executed by an LLM or gonsi, can use CALL LLM and TOOLs to find, create, and manage NeuroScript skills stored in Git and indexed in a vector DB.
 
-A. Capabilities (Existing & Target)
-[x] gonsi able to execute basic ns (SET, CALL, RETURN, basic IF/WHILE/FOR headers)
-[x] ns stored in git (manually)
+## A. Capabilities (Existing & Target)
+
+[x] gonsi able to execute basic ns (SET, CALL, RETURN, basic IF/WHILE/FOR headers and block execution)
+[x] ns stored in git (manually, but tools support adding/committing)
 [x] Basic set of golang tools in gonsi (ReadFile, WriteFile, SanitizeFilename, GitAdd, GitCommit, mock DB/Search)
 [ ] LLM able to read ns and execute it (via prompt guidance)
 [ ] LLM able to translate simple ns into golang tool
-[ ] Std lib of foundational ns for LLMs to use (e.g., bootstrapping skills)
+[ ] Std lib of foundational ns for LLMs to use (e.g., bootstrapping skills - HandleSkillRequest is likely the start of this)
 [ ] Use git branch for version control within tools
 [ ] Markdown tools (r & w)
 [ ] Structured document tools (hierarchical info/docs)
 [ ] Table tools
 [ ] Integration tools (e.g., Google Sheets and Docs)
 [ ] Self-test support in ns
-[ ] In-memory vector DB implemented (VectorUpdate, SearchSkills)
-[ ] gonsi skips loading ns files with errors gracefully
+[x] In-memory vector DB implemented (mocked, VectorUpdate, SearchSkills likely working via HandleSkillRequest)
+[x] gonsi skips loading ns files with errors gracefully (needed to load HandleSkillRequest)
 [ ] Consider moving to more typed AST? (Design question)
 [ ] LLM and gonsi can both check scripts for syntax errors
 [ ] Both can compile golang and get errors back
@@ -25,16 +26,18 @@ A. Capabilities (Existing & Target)
 [ ] LLMs can supply git-style patches and have them applied to files
 [ ] MCP support
 
-B. Planned Features (Suggested Order Towards Bootstrapping)
-[ ] Interpreter: Implement Block Execution (Execute []Step in Value for IF/WHILE/FOR EACH)
+
+## B. Planned Features (Suggested Order Towards Bootstrapping)
+
+[x] Interpreter: Implement Block Execution (Execute []Step in Value for IF/WHILE/FOR EACH) (Inferred as working)
 [ ] Parser: Implement List ([]) and Map ({}) Literal Parsing
 [ ] Interpreter: Add internal support for List/Map types
 [ ] Interpreter: Implement FOR EACH String Character Iteration
 [ ] Interpreter: Implement FOR EACH List Element Iteration
 [ ] Syntax & Interpreter: Define and Implement Native List/Map Element Access (e.g., list[index], map["key"])
-[ ] Tools: Implement In-Memory Vector DB (VectorUpdate, SearchSkills)
+[ ] Tools: Implement Real In-Memory Vector DB (VectorUpdate, SearchSkills) (Currently mocked)
 [ ] Tools: Enhance Git Workflow (Add Branch support, GitPull?, Auto-index after commit)
-[ ] Bootstrap Skills: Create initial .ns skills (SearchSkills, GetSkillCode, WriteNewSkill, ImproveSkill?) using implemented features.
+[x] Bootstrap Skills: Create initial .ns skills (SearchSkills, GetSkillCode, WriteNewSkill, ImproveSkill?) using implemented features. (HandleSkillRequest likely part of this)
 [ ] Interpreter: Implement Basic Arithmetic Evaluation
 [ ] Interpreter: Implement More Conditions (>, <, >=, <=)
 [ ] Interpreter: Implement ELSE Block Execution
@@ -47,13 +50,15 @@ B. Planned Features (Suggested Order Towards Bootstrapping)
 [ ] Tools: Add Table tools
 [ ] Tools: Add Integration tools (Sheets, Docs)
 [ ] Feature: Add Self-test support in ns
-[ ] Feature: gonsi skips loading files with parse errors
+[x] Feature: gonsi skips loading files with parse errors (Moved from Planned to Confirmed)
 
-Completed Features (Foundation)
+
+## C. Completed Features (Foundation)
+
 [x] Basic Core Syntax Parsing (DEFINE PROCEDURE, COMMENT:, SET, CALL, RETURN, END)
 [x] Structured Docstring Parsing (COMMENT: block with sections)
 [x] Block Header Parsing (IF...THEN, WHILE...DO, FOR EACH...DO)
-[x] Line Continuation Parsing (\)
+[x] Line Continuation Parsing ()
 [x] Basic Expression Evaluation (String Literals, {{Placeholders}}, Variables, __last_call_result)
 [x] String Concatenation (+)
 [x] Basic Condition Evaluation (==, !=, true/false strings)
@@ -64,3 +69,5 @@ Completed Features (Foundation)
 [x] Mock Vector DB Tools (VectorUpdate, SearchSkills)
 [x] Basic CLI Runner (gonsi)
 [x] Parser Tests Updated for Blocks/Line Continuation
+[x] Interpreter Block Execution (Basic IF/WHILE/FOR) (Inferred)
+[x] Graceful skipping of files with parse errors in gonsi (Confirmed)

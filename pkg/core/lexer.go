@@ -39,6 +39,7 @@ func (l *lexer) Error(s string) {
 	if context == "" && l.pos < len(l.input) {
 		context = string(l.input[l.pos])
 	}
+	// Keep this error reporting active
 	fmt.Printf("Syntax error on line %d near '%s': %s\n", l.line, context, s)
 }
 
@@ -71,20 +72,20 @@ func (l *lexer) currentTokenText() string {
 // Lex
 func (l *lexer) Lex(lval *yySymType) int {
 	if l.state == stDocstring {
-		fmt.Printf("Lexer: Calling lexDocstring (pos %d)\n", l.pos) // DEBUG
+		// fmt.Printf("Lexer: Calling lexDocstring (pos %d)\n", l.pos) // DEBUG commented out
 		return l.lexDocstring(lval)
 	}
-	fmt.Printf("Lexer: Calling lexDefault (pos %d)\n", l.pos) // DEBUG
-	return l.lexDefault(lval)                                 // Ensure this calls the v20 version below
+	// fmt.Printf("Lexer: Calling lexDefault (pos %d)\n", l.pos) // DEBUG commented out
+	return l.lexDefault(lval)
 }
 
-// lexDocstring (Unchanged from v18 debug version)
+// lexDocstring
 func (l *lexer) lexDocstring(lval *yySymType) int {
-	fmt.Printf("  lexDocstring: Entered (pos %d, line %d)\n", l.pos, l.line) // DEBUG
+	// fmt.Printf("  lexDocstring: Entered (pos %d, line %d)\n", l.pos, l.line) // DEBUG commented out
 	if l.pos >= len(l.input) {
 		l.Error("EOF reached while parsing docstring (missing END?)")
-		fmt.Printf("  lexDocstring: Returning 0 (EOF)\n") // DEBUG
-		return 0                                          // EOF
+		// fmt.Printf("  lexDocstring: Returning 0 (EOF)\n") // DEBUG commented out
+		return 0 // EOF
 	}
 	l.startPos = l.pos
 	startLine := l.line
@@ -97,16 +98,16 @@ func (l *lexer) lexDocstring(lval *yySymType) int {
 		}
 		lineContent := l.input[l.pos:lineEnd]
 		trimmedLine := strings.TrimSpace(lineContent)
-		fmt.Printf("  lexDocstring: Read line %d: %q (trimmed: %q)\n", l.line, lineContent, trimmedLine) // DEBUG
+		// fmt.Printf("  lexDocstring: Read line %d: %q (trimmed: %q)\n", l.line, lineContent, trimmedLine) // DEBUG commented out
 
 		isEndLine := (trimmedLine == "END")
 
 		if isEndLine {
-			fmt.Printf("  lexDocstring: Found END line.\n") // DEBUG
+			// fmt.Printf("  lexDocstring: Found END line.\n") // DEBUG commented out
 			l.state = stDefault
 			lval.str = l.docBuffer.String()
-			fmt.Printf("  lexDocstring: Returning DOC_COMMENT_CONTENT (length %d), content: %q\n", len(l.docBuffer.String()), l.docBuffer.String()) // DEBUG
-			fmt.Printf("  lexDocstring: Switching state to stDefault, pos left at %d\n", l.pos)                                                     // DEBUG
+			// fmt.Printf("  lexDocstring: Returning DOC_COMMENT_CONTENT (length %d), content: %q\n", len(l.docBuffer.String()), l.docBuffer.String()) // DEBUG commented out
+			// fmt.Printf("  lexDocstring: Switching state to stDefault, pos left at %d\n", l.pos) // DEBUG commented out
 			return DOC_COMMENT_CONTENT
 		} else {
 			if l.docBuffer.Len() > 0 {
@@ -117,17 +118,17 @@ func (l *lexer) lexDocstring(lval *yySymType) int {
 			if l.pos < len(l.input) && l.input[l.pos] == '\n' {
 				l.pos++
 				l.line++
-				fmt.Printf("  lexDocstring: Consumed newline, moving to line %d, pos %d\n", l.line, l.pos) // DEBUG
+				// fmt.Printf("  lexDocstring: Consumed newline, moving to line %d, pos %d\n", l.line, l.pos) // DEBUG commented out
 			} else if l.pos >= len(l.input) {
 				l.pos = l.startPos // Use startPos for error context
 				l.line = startLine
 				l.Error("EOF reached while parsing docstring (missing END?)")
-				fmt.Printf("  lexDocstring: Returning 0 (EOF in loop)\n") // DEBUG
+				// fmt.Printf("  lexDocstring: Returning 0 (EOF in loop)\n") // DEBUG commented out
 				return 0
 			}
 		}
 	}
-	fmt.Printf("  lexDocstring: Returning 0 (Fell out of loop?)\n") // DEBUG
+	// fmt.Printf("  lexDocstring: Returning 0 (Fell out of loop?)\n") // DEBUG commented out
 	return 0
 }
 
@@ -141,10 +142,7 @@ func (l *lexer) SetResult(res []Procedure) {
 	l.result = res
 }
 
-// =======================================================================
-// --- lexDefault Function (v21 - Restructured Loop for Skipping) ---
-// =======================================================================
-
+// lexDefault Function
 func (l *lexer) lexDefault(lval *yySymType) int {
 	for { // Outer loop restarts only after *returning* a token or hitting error
 
@@ -155,19 +153,18 @@ func (l *lexer) lexDefault(lval *yySymType) int {
 
 			// Check EOF within skipper
 			if l.pos >= len(l.input) {
-				// Handle EOF logic (same as v18)
 				if !l.returnedEOF {
 					needsNewlineInjection := (l.pos > 0 && l.input[l.pos-1] != '\n')
 					l.returnedEOF = true // Set flag immediately
 					if needsNewlineInjection {
-						fmt.Printf("  lexDefault-Skip: Injecting final NEWLINE before EOF\n") // DEBUG
+						// fmt.Printf("  lexDefault-Skip: Injecting final NEWLINE before EOF\n") // DEBUG commented out
 						return NEWLINE
 					} else {
-						fmt.Printf("  lexDefault-Skip: Returning 0 (EOF - no injection needed)\n") // DEBUG
+						// fmt.Printf("  lexDefault-Skip: Returning 0 (EOF - no injection needed)\n") // DEBUG commented out
 						return 0
 					}
 				} else {
-					fmt.Printf("  lexDefault-Skip: Returning 0 (EOF - already handled)\n") // DEBUG
+					// fmt.Printf("  lexDefault-Skip: Returning 0 (EOF - already handled)\n") // DEBUG commented out
 					return 0
 				}
 			}
@@ -199,15 +196,15 @@ func (l *lexer) lexDefault(lval *yySymType) int {
 					isComment = true
 				}
 				if isComment {
-					commentStartPos := l.pos
+					// commentStartPos := l.pos // Keep track if needed for multi-line comments later
 					for l.pos < len(l.input) && l.input[l.pos] != '\n' {
 						l.pos++
 					}
 					if l.pos < len(l.input) {
-						l.pos++
+						l.pos++ // Consume newline
 						l.line++
-					} // Consume newline
-					fmt.Printf("  lexDefault-Skip: Skipped comment line (%q)\n", l.input[commentStartPos:l.pos]) // DEBUG
+					}
+					// fmt.Printf("  lexDefault-Skip: Skipped comment line (%q)\n", l.input[commentStartPos:l.pos]) // DEBUG commented out
 					skippedSomething = true
 					continue // Restart skipping loop *immediately* after skipping comment line
 				}
@@ -218,7 +215,6 @@ func (l *lexer) lexDefault(lval *yySymType) int {
 				char := rune(l.input[l.pos])
 				if char == '\\' {
 					peekPos := l.pos + 1
-					// Skip optional spaces/tabs AFTER the backslash
 					for peekPos < len(l.input) {
 						peekChar := rune(l.input[peekPos])
 						if peekChar == ' ' || peekChar == '\t' {
@@ -227,21 +223,16 @@ func (l *lexer) lexDefault(lval *yySymType) int {
 							break
 						}
 					}
-					// Check if the character AFTER the backslash (and any spaces) is a newline
 					if peekPos < len(l.input) && l.input[peekPos] == '\n' {
-						// Success: Consume everything from the backslash up to and including the newline
 						l.pos = peekPos + 1
 						l.line++
-						fmt.Printf("  lexDefault-Skip: Handled line continuation, now at line %d, pos %d\n", l.line, l.pos) // DEBUG
+						// fmt.Printf("  lexDefault-Skip: Handled line continuation, now at line %d, pos %d\n", l.line, l.pos) // DEBUG commented out
 						skippedSomething = true
 						continue // Restart skipping loop *immediately* after skipping continuation
-					} else {
-						// Invalid continuation - treat backslash as unexpected char later
-						// Don't set skippedSomething = true here, let it fall through
 					}
 				}
 			}
-			// If we skipped only whitespace, loop again to check for comments/continuations
+			// If we skipped only whitespace, loop again
 			if l.pos > startPosBeforeSkip && skippedSomething {
 				continue
 			}
@@ -256,14 +247,14 @@ func (l *lexer) lexDefault(lval *yySymType) int {
 				needsNewlineInjection := (l.pos > 0 && l.input[l.pos-1] != '\n')
 				l.returnedEOF = true // Set flag immediately
 				if needsNewlineInjection {
-					fmt.Printf("  lexDefault-Token: Injecting final NEWLINE before EOF\n") // DEBUG
+					// fmt.Printf("  lexDefault-Token: Injecting final NEWLINE before EOF\n") // DEBUG commented out
 					return NEWLINE
 				} else {
-					fmt.Printf("  lexDefault-Token: Returning 0 (EOF - no injection needed)\n") // DEBUG
+					// fmt.Printf("  lexDefault-Token: Returning 0 (EOF - no injection needed)\n") // DEBUG commented out
 					return 0
 				}
 			} else {
-				fmt.Printf("  lexDefault-Token: Returning 0 (EOF - already handled)\n") // DEBUG
+				// fmt.Printf("  lexDefault-Token: Returning 0 (EOF - already handled)\n") // DEBUG commented out
 				return 0
 			}
 		}
@@ -271,11 +262,11 @@ func (l *lexer) lexDefault(lval *yySymType) int {
 		l.startPos = l.pos // Set definitive token start position
 		char := rune(l.input[l.pos])
 
-		// Handle NEWLINE itself as a token (if not skipped above)
+		// Handle NEWLINE itself as a token
 		if char == '\n' {
 			l.pos++
 			l.line++
-			fmt.Printf("  lexDefault-Token: Returning NEWLINE (line %d)\n", l.line) // DEBUG
+			// fmt.Printf("  lexDefault-Token: Returning NEWLINE (line %d)\n", l.line) // DEBUG commented out
 			return NEWLINE
 		}
 
@@ -283,161 +274,160 @@ func (l *lexer) lexDefault(lval *yySymType) int {
 		const commentKeyword = "COMMENT:"
 		if strings.HasPrefix(l.input[l.pos:], commentKeyword) {
 			l.pos += len(commentKeyword)
-			// Consume the immediately following NEWLINE
+			// Consume the immediately following NEWLINE if present
 			if l.pos < len(l.input) && l.input[l.pos] == '\n' {
 				l.pos++
 				l.line++
-				fmt.Printf("  lexDefault-Token: Consumed newline after COMMENT:\n") // DEBUG
+				// fmt.Printf("  lexDefault-Token: Consumed newline after COMMENT:\n") // DEBUG commented out
 			} else {
-				fmt.Printf("  lexDefault-Token: WARNING - No newline found immediately after COMMENT:\n") // DEBUG
+				// This might indicate a syntax error according to spec (COMMENT: must be on its own line)
+				// Or maybe allow COMMENT: inline text? For now, just note it.
+				// fmt.Printf("  lexDefault-Token: WARNING - No newline found immediately after COMMENT:\n") // DEBUG commented out
 			}
 			l.state = stDocstring
 			l.docBuffer.Reset()
-			fmt.Printf("  lexDefault-Token: Returning KW_COMMENT, switching state to stDocstring\n") // DEBUG
+			// fmt.Printf("  lexDefault-Token: Returning KW_COMMENT, switching state to stDocstring\n") // DEBUG commented out
 			return KW_COMMENT
 		}
 
 		// Handle other tokens (Operators, Literals, Identifiers/Keywords)
-		// [ Omitted identical code from v18/v19 for brevity - MAKE SURE IT IS PRESENT IN YOUR FILE ]
 		// Operators / Delimiters
 		if l.pos+1 < len(l.input) { // 2-char
 			twoChars := l.input[l.pos : l.pos+2]
 			switch twoChars {
 			case "==":
-				l.pos += 2
-				fmt.Printf("  lexDefault-Token: Returning EQ\n")
+				l.pos += 2 /* fmt.Printf("  lexDefault-Token: Returning EQ\n"); */
 				return EQ
 			case "!=":
-				l.pos += 2
-				fmt.Printf("  lexDefault-Token: Returning NEQ\n")
+				l.pos += 2 /* fmt.Printf("  lexDefault-Token: Returning NEQ\n"); */
 				return NEQ
 			case "{{":
-				l.pos += 2
-				fmt.Printf("  lexDefault-Token: Returning PLACEHOLDER_START\n")
+				l.pos += 2 /* fmt.Printf("  lexDefault-Token: Returning PLACEHOLDER_START\n"); */
 				return PLACEHOLDER_START
 			case "}}":
-				l.pos += 2
-				fmt.Printf("  lexDefault-Token: Returning PLACEHOLDER_END\n")
+				l.pos += 2 /* fmt.Printf("  lexDefault-Token: Returning PLACEHOLDER_END\n"); */
 				return PLACEHOLDER_END
 			}
 		}
 		switch char { // 1-char
 		case '=':
-			l.pos++
-			fmt.Printf("  lexDefault-Token: Returning ASSIGN\n")
+			l.pos++ /* fmt.Printf("  lexDefault-Token: Returning ASSIGN\n"); */
 			return ASSIGN
 		case '+':
-			l.pos++
-			fmt.Printf("  lexDefault-Token: Returning PLUS\n")
+			l.pos++ /* fmt.Printf("  lexDefault-Token: Returning PLUS\n"); */
 			return PLUS
 		case '(':
-			l.pos++
-			fmt.Printf("  lexDefault-Token: Returning LPAREN\n")
+			l.pos++ /* fmt.Printf("  lexDefault-Token: Returning LPAREN\n"); */
 			return LPAREN
 		case ')':
-			l.pos++
-			fmt.Printf("  lexDefault-Token: Returning RPAREN\n")
+			l.pos++ /* fmt.Printf("  lexDefault-Token: Returning RPAREN\n"); */
 			return RPAREN
 		case ',':
-			l.pos++
-			fmt.Printf("  lexDefault-Token: Returning COMMA\n")
+			l.pos++ /* fmt.Printf("  lexDefault-Token: Returning COMMA\n"); */
 			return COMMA
 		case '[':
-			l.pos++
-			fmt.Printf("  lexDefault-Token: Returning LBRACK\n")
+			l.pos++ /* fmt.Printf("  lexDefault-Token: Returning LBRACK\n"); */
 			return LBRACK
 		case ']':
-			l.pos++
-			fmt.Printf("  lexDefault-Token: Returning RBRACK\n")
+			l.pos++ /* fmt.Printf("  lexDefault-Token: Returning RBRACK\n"); */
 			return RBRACK
 		case '{':
-			l.pos++
-			fmt.Printf("  lexDefault-Token: Returning LBRACE\n")
+			l.pos++ /* fmt.Printf("  lexDefault-Token: Returning LBRACE\n"); */
 			return LBRACE
 		case '}':
-			l.pos++
-			fmt.Printf("  lexDefault-Token: Returning RBRACE\n")
+			l.pos++ /* fmt.Printf("  lexDefault-Token: Returning RBRACE\n"); */
 			return RBRACE
 		case ':':
-			l.pos++
-			fmt.Printf("  lexDefault-Token: Returning COLON\n")
-			return COLON // General colon
+			l.pos++ /* fmt.Printf("  lexDefault-Token: Returning COLON\n"); */
+			return COLON
 		case '.':
-			l.pos++
-			fmt.Printf("  lexDefault-Token: Returning DOT\n")
+			l.pos++ /* fmt.Printf("  lexDefault-Token: Returning DOT\n"); */
 			return DOT
+		case '>':
+			if l.pos+1 < len(l.input) && l.input[l.pos+1] == '=' {
+				l.pos += 2 /* fmt.Printf("  lexDefault-Token: Returning GTE\n"); */
+				return GTE // Assuming GTE defined in .y
+			}
+			l.pos++   /* fmt.Printf("  lexDefault-Token: Returning GT\n"); */
+			return GT // Assuming GT defined in .y
+		case '<':
+			if l.pos+1 < len(l.input) && l.input[l.pos+1] == '=' {
+				l.pos += 2 /* fmt.Printf("  lexDefault-Token: Returning LTE\n"); */
+				return LTE // Assuming LTE defined in .y
+			}
+			l.pos++   /* fmt.Printf("  lexDefault-Token: Returning LT\n"); */
+			return LT // Assuming LT defined in .y
 		}
 
 		// Identifiers / Keywords
 		if unicode.IsLetter(char) || char == '_' {
 			start := l.pos
 			l.pos++
+			// Check for __last_call_result first as it contains underscores
 			const lastCall = "__last_call_result"
 			if strings.HasPrefix(l.input[start:], lastCall) {
 				boundary := start + len(lastCall)
 				if boundary == len(l.input) || !isalnum_(rune(l.input[boundary])) {
 					l.pos = boundary
-					fmt.Printf("  lexDefault-Token: Returning KW_LAST_CALL_RESULT\n")
+					// fmt.Printf("  lexDefault-Token: Returning KW_LAST_CALL_RESULT\n") // DEBUG commented out
 					return KW_LAST_CALL_RESULT
 				}
+				// If not bounded correctly, reset pos and let general identifier logic handle it
+				l.pos = start + 1
 			}
-			l.pos = start + 1
+
+			// General identifier/keyword logic
 			for l.pos < len(l.input) && isalnum_(rune(l.input[l.pos])) {
 				l.pos++
 			}
 			segment := l.input[start:l.pos]
-			switch segment {
-			case "DEFINE":
-				fmt.Printf("  lexDefault-Token: Returning KW_DEFINE\n")
+			// Using ToUpper for case-insensitive keyword matching
+			upperSegment := strings.ToUpper(segment)
+			switch upperSegment {
+			case "DEFINE": /* fmt.Printf("  lexDefault-Token: Returning KW_DEFINE\n"); */
 				return KW_DEFINE
-			case "PROCEDURE":
-				fmt.Printf("  lexDefault-Token: Returning KW_PROCEDURE\n")
+			case "PROCEDURE": /* fmt.Printf("  lexDefault-Token: Returning KW_PROCEDURE\n"); */
 				return KW_PROCEDURE
-			case "END":
-				fmt.Printf("  lexDefault-Token: Returning KW_END\n")
+			case "END": /* fmt.Printf("  lexDefault-Token: Returning KW_END\n"); */
 				return KW_END
-			case "SET":
-				fmt.Printf("  lexDefault-Token: Returning KW_SET\n")
+			case "SET": /* fmt.Printf("  lexDefault-Token: Returning KW_SET\n"); */
 				return KW_SET
-			case "CALL":
-				fmt.Printf("  lexDefault-Token: Returning KW_CALL\n")
+			case "CALL": /* fmt.Printf("  lexDefault-Token: Returning KW_CALL\n"); */
 				return KW_CALL
-			case "RETURN":
-				fmt.Printf("  lexDefault-Token: Returning KW_RETURN\n")
+			case "RETURN": /* fmt.Printf("  lexDefault-Token: Returning KW_RETURN\n"); */
 				return KW_RETURN
-			case "IF":
-				fmt.Printf("  lexDefault-Token: Returning KW_IF\n")
+			case "IF": /* fmt.Printf("  lexDefault-Token: Returning KW_IF\n"); */
 				return KW_IF
-			case "THEN":
-				fmt.Printf("  lexDefault-Token: Returning KW_THEN\n")
+			case "THEN": /* fmt.Printf("  lexDefault-Token: Returning KW_THEN\n"); */
 				return KW_THEN
-			case "WHILE":
-				fmt.Printf("  lexDefault-Token: Returning KW_WHILE\n")
+			case "WHILE": /* fmt.Printf("  lexDefault-Token: Returning KW_WHILE\n"); */
 				return KW_WHILE
-			case "DO":
-				fmt.Printf("  lexDefault-Token: Returning KW_DO\n")
+			case "DO": /* fmt.Printf("  lexDefault-Token: Returning KW_DO\n"); */
 				return KW_DO
-			case "FOR":
-				fmt.Printf("  lexDefault-Token: Returning KW_FOR\n")
+			case "FOR": /* fmt.Printf("  lexDefault-Token: Returning KW_FOR\n"); */
 				return KW_FOR
-			case "EACH":
-				fmt.Printf("  lexDefault-Token: Returning KW_EACH\n")
+			case "EACH": /* fmt.Printf("  lexDefault-Token: Returning KW_EACH\n"); */
 				return KW_EACH
-			case "IN":
-				fmt.Printf("  lexDefault-Token: Returning KW_IN\n")
+			case "IN": /* fmt.Printf("  lexDefault-Token: Returning KW_IN\n"); */
 				return KW_IN
-			case "TOOL":
-				fmt.Printf("  lexDefault-Token: Returning KW_TOOL\n")
+			case "TOOL": /* fmt.Printf("  lexDefault-Token: Returning KW_TOOL\n"); */
 				return KW_TOOL
-			case "LLM":
-				fmt.Printf("  lexDefault-Token: Returning KW_LLM\n")
+			case "LLM": /* fmt.Printf("  lexDefault-Token: Returning KW_LLM\n"); */
 				return KW_LLM
-			case "ELSE":
-				fmt.Printf("  lexDefault-Token: Returning KW_ELSE\n")
+			case "ELSE": /* fmt.Printf("  lexDefault-Token: Returning KW_ELSE\n"); */
 				return KW_ELSE
+			// Note: COMMENT is handled via COMMENT: prefix
+			// Handle TRUE/FALSE literals? For now, handled in expression evaluation.
+			// case "TRUE": return KW_TRUE?
+			// case "FALSE": return KW_FALSE?
 			default:
-				lval.str = segment
-				fmt.Printf("  lexDefault-Token: Returning IDENTIFIER (%s)\n", segment)
+				// Check if it's the specific internal variable __last_call_result (case sensitive)
+				if segment == "__last_call_result" {
+					// fmt.Printf("  lexDefault-Token: Returning KW_LAST_CALL_RESULT\n") // DEBUG commented out
+					return KW_LAST_CALL_RESULT
+				}
+				lval.str = segment // Store original case for identifiers
+				// fmt.Printf("  lexDefault-Token: Returning IDENTIFIER (%s)\n", segment) // DEBUG commented out
 				return IDENTIFIER
 			}
 		}
@@ -456,28 +446,43 @@ func (l *lexer) lexDefault(lval *yySymType) int {
 				} else if curr == '\\' {
 					escaped = true
 				} else if curr == quote {
-					l.pos++
-					lval.str = l.input[start:l.pos]
+					l.pos++                         // Include closing quote in value for now? Or exclude? parser expects raw value.
+					lval.str = l.input[start:l.pos] // Includes quotes - maybe unquote here? strconv.Unquote?
 					foundEndQuote = true
 					break
 				} else if curr == '\n' {
-					l.line++
-				} // Allow multiline strings
+					l.line++ // Allow multiline strings
+				}
 				l.pos++
 			}
 			if foundEndQuote {
-				fmt.Printf("  lexDefault-Token: Returning STRING_LIT (%s)\n", lval.str)
+				// fmt.Printf("  lexDefault-Token: Returning STRING_LIT (%s)\n", lval.str) // DEBUG commented out
 				return STRING_LIT
 			}
-			l.pos = start
+			// If loop finished without finding end quote
+			l.pos = start // Reset position to start of literal for error context
 			l.Error(fmt.Sprintf("unclosed string literal starting with %c", quote))
+			// fmt.Printf("  lexDefault-Token: Returning INVALID (unclosed string)\n") // DEBUG commented out
 			return INVALID
+		}
+
+		// Numeric Literals (Basic integer example - needs expansion for float, etc.)
+		if unicode.IsDigit(char) {
+			start := l.pos
+			l.pos++
+			for l.pos < len(l.input) && unicode.IsDigit(rune(l.input[l.pos])) {
+				l.pos++
+			}
+			// TODO: Add float support ('.')
+			lval.str = l.input[start:l.pos]
+			// fmt.Printf("  lexDefault-Token: Returning NUMBER_LIT (%s)\n", lval.str) // Assuming NUMBER_LIT defined in .y
+			return NUMBER_LIT // Assuming NUMBER_LIT defined
 		}
 
 		// Unexpected Character
 		l.Error(fmt.Sprintf("unexpected character: %q", char))
-		l.pos++                                               // Consume to avoid infinite loop
-		fmt.Printf("  lexDefault-Token: Returning INVALID\n") // DEBUG
+		l.pos++ // Consume to avoid infinite loop
+		// fmt.Printf("  lexDefault-Token: Returning INVALID (unexpected char)\n") // DEBUG commented out
 		return INVALID
 
 	} // End outer loop

@@ -52,6 +52,12 @@ Not really, but I haven't seen this formulated in this way yet.
   - executes ns than it can do by itself
 
 
-In the future, please give the full file if there is more than one copy/paste to do to vscode for it, otherwise (only one), give just the changed lines ta.
+When providing modified code: if the changes within a single file are not contiguous (i.e., they would require multiple separate copy-paste actions to apply), please provide the entire modified file. If all changes within a file are contiguous (can be applied with one copy-paste), please provide only the modified block."
 
-./gonsi/gonsi gonsi/skills HandleSkillRequest "Create a NeuroScript skill that reverses a given input string"
+Here's the rule to follow:
+
+Multiple, Non-Contiguous Changes in a File: I will provide the full content of the modified file.
+Single, Contiguous Change Block in a File: I will provide only the changed block (e.g., the function definition, the specific lines added/removed/modified).
+Multiple Files Changed: I will provide the full content of each changed file, applying rule #1 or #2 individually to determine the format for each file's content.
+
+Please review the enclosed codebase, pay special attention to the .md documentation files to understand the intent.

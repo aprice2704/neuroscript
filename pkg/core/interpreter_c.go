@@ -14,66 +14,36 @@ import (
 )
 
 // evaluateExpression - Central Evaluator. Returns final value (interface{}).
-// Handles single parts, concatenation. Assumes splitExpression is in interpreter_b.go
+// Handles simple variables (raw), literals/placeholders (string+resolved), and concatenation.
 func (i *Interpreter) evaluateExpression(expr string) interface{} {
 	trimmedExpr := strings.TrimSpace(expr)
-	// Handle __last_call_result directly for efficiency if used as whole expression
-	if trimmedExpr == "__last_call_result" {
-		if i.lastCallResult != nil {
-			return i.lastCallResult
-		}
-		fmt.Printf("  [Warn] Evaluating __last_call_result before CALL\n")
-		return ""
+
+	// --- Check 1: Direct variable/keyword lookup ---
+	// Use resolveValue to get raw value ONLY if expr is JUST that var/keyword
+	rawValue, found := i.resolveValue(trimmedExpr)
+	if found {
+		// If it was found directly by resolveValue (simple var or __last_call_result)
+		// return the raw value. Placeholders within strings are NOT resolved here.
+		fmt.Printf("      [EvalExpr] Simple var/keyword '%s' found, returning raw value (type %T).\n", trimmedExpr, rawValue)
+		return rawValue
 	}
+	// --- END Check 1 ---
 
-	parts := splitExpression(trimmedExpr) // Use splitExpression from interpreter_b.go
+	// --- Expression needs string processing ---
+	// It's a literal ("abc"), uses placeholders ("{{v}}"), concatenation ("a"+"b"),
+	// or an unknown identifier ("xyz").
+	// Resolve placeholders throughout the *entire original expression string*.
+	resolvedExprStr := i.resolvePlaceholders(trimmedExpr)
+	fmt.Printf("      [EvalExpr] Expression '%s' resolved via resolvePlaceholders to: %q\n", trimmedExpr, resolvedExprStr)
 
-	// --- Handle Single Part ---
-	if len(parts) == 1 {
-		singlePart := parts[0]
-		// Resolve var/placeholder/literal using resolveValue (from interpreter_b.go)
-		resolvedValue := i.resolveValue(singlePart)
+	// --- Check for Concatenation on the *placeholder-resolved* string ---
+	parts := splitExpression(resolvedExprStr) // Split the potentially modified string
 
-		// Resolve placeholders *within* the resolved value if it's a string
-		resolvedValueStr, isStr := resolvedValue.(string)
-		if isStr {
-			finalStrValue := i.resolvePlaceholders(resolvedValueStr) // resolvePlaceholders from interpreter_b.go
-
-			// If the original single part was a quoted literal, unquote the final resolved string
-			trimmedOriginalPart := strings.TrimSpace(singlePart)
-			if len(trimmedOriginalPart) >= 2 &&
-				((trimmedOriginalPart[0] == '"' && trimmedOriginalPart[len(trimmedOriginalPart)-1] == '"') ||
-					(trimmedOriginalPart[0] == '\'' && trimmedOriginalPart[len(trimmedOriginalPart)-1] == '\'')) {
-
-				unquoted, err := strconv.Unquote(finalStrValue)
-				if err == nil {
-					fmt.Printf("      [Eval] Unquoted single literal %q -> %q\n", singlePart, unquoted)
-					return unquoted
-				} else { // Fallback manual strip if Unquote fails (e.g., internal invalid escapes)
-					if len(finalStrValue) >= 2 && ((finalStrValue[0] == '"' && finalStrValue[len(finalStrValue)-1] == '"') || (finalStrValue[0] == '\'' && finalStrValue[len(finalStrValue)-1] == '\'')) {
-						manualUnquote := finalStrValue[1 : len(finalStrValue)-1]
-						fmt.Printf("      [Eval] Manually unquoted single literal %q -> %q\n", singlePart, manualUnquote)
-						return manualUnquote
-					}
-					// If it wasn't actually quoted after resolution, return as is
-					fmt.Printf("      [Eval] Failed to unquote single literal %q, using resolved value: %q\n", singlePart, finalStrValue)
-					return finalStrValue
-				}
-			}
-			// If original wasn't quoted literal, return the placeholder-resolved string
-			fmt.Printf("      [Eval] Single part %q (var/placeholder/lit) resolved to: %q\n", singlePart, finalStrValue)
-			return finalStrValue
-		}
-		// If not a string after initial resolveValue (e.g., direct __last_call_result was non-string)
-		fmt.Printf("      [Eval] Single part %q resolved to non-string: %v (type %T)\n", singlePart, resolvedValue, resolvedValue)
-		return resolvedValue // Return the non-string value as is
-	}
-
-	// --- Check for valid concatenation pattern (value + value + ...) ---
-	isPotentialConcat := false
-	if len(parts) > 1 {
+	if len(parts) > 1 { // Potential concatenation
+		isPotentialConcat := false
+		/* ... existing concatenation pattern check logic on 'parts' ... */
 		isValidConcat := true
-		if len(parts)%2 == 0 { // Must be odd number of parts (value, +, value, ...)
+		if len(parts)%2 == 0 {
 			isValidConcat = false
 		} else {
 			for idx, part := range parts {
@@ -85,13 +55,12 @@ func (i *Interpreter) evaluateExpression(expr string) interface{} {
 				if !isOperatorPart && part == "+" {
 					isValidConcat = false
 					break
-				} // Value part cannot be '+'
+				}
 			}
 		}
 		if isValidConcat {
 			isPotentialConcat = true
 		} else {
-			// Check if '+' exists at all to decide if warning is needed
 			hasPlus := false
 			for _, p := range parts {
 				if p == "+" {
@@ -100,84 +69,71 @@ func (i *Interpreter) evaluateExpression(expr string) interface{} {
 				}
 			}
 			if hasPlus {
-				fmt.Printf("  [Warn] Expression %q (parts: %v) looks like invalid concatenation pattern.\n", expr, parts)
+				fmt.Printf("  [Warn] Expression %q after resolve (parts: %v) looks like invalid concat.\n", resolvedExprStr, parts)
 			}
-
-			// --- Fallback for invalid patterns ---
-			// Resolve the original expression as a single literal/variable/placeholder string
-			resolvedValue := i.resolveValue(expr) // Uses resolveValue from _b.go
-			resolvedValueStr, isStr := resolvedValue.(string)
-			finalStr := ""
-			if isStr {
-				finalStr = i.resolvePlaceholders(resolvedValueStr)
-			} else {
-				finalStr = fmt.Sprintf("%v", resolvedValue)
-			} // Uses resolvePlaceholders from _b.go
-			fmt.Printf("      [Eval] Invalid concat/pattern in %q, resolving whole expr -> %v\n", expr, finalStr)
-			return finalStr
 		}
-	}
 
-	// --- Concatenation Logic ---
-	if isPotentialConcat {
-		var builder strings.Builder
-		fmt.Printf("      [Eval +] Attempting concat: %v\n", parts)
-		for idx, part := range parts {
-			if idx%2 == 1 {
-				continue
-			} // Skip '+' operator
+		if isPotentialConcat {
+			// Perform concatenation: Evaluate each *part* (which should now be literals or resolved values after the initial resolvePlaceholders)
+			// and stringify results for joining.
+			var builder strings.Builder
+			for idx, part := range parts {
+				if idx%2 == 1 {
+					continue
+				} // Skip '+'
 
-			resolvedValue := i.resolveValue(part) // Resolve var/placeholder/literal using func from _b.go
+				// Evaluate the *part* recursively. Since resolvePlaceholders ran initially,
+				// parts should mostly be literals or already resolved simple values.
+				// This handles cases like "a" + ("b" + "c")
+				resolvedValue := i.evaluateExpression(part)
+				valueToAppendStr := fmt.Sprintf("%v", resolvedValue) // Stringify result for concat
 
-			// Resolve placeholders *within* the resolved value if it's a string
-			valueToAppendStr, isStr := resolvedValue.(string)
-			if isStr {
-				valueToAppendStr = i.resolvePlaceholders(valueToAppendStr)
-			} else {
-				valueToAppendStr = fmt.Sprintf("%v", resolvedValue)
-			} // Convert non-string to string
-
-			// Check if the original 'part' was a quoted literal
-			trimmedOriginalPart := strings.TrimSpace(part)
-			isOriginalLiteral := false
-			if len(trimmedOriginalPart) >= 2 &&
-				((trimmedOriginalPart[0] == '"' && trimmedOriginalPart[len(trimmedOriginalPart)-1] == '"') ||
-					(trimmedOriginalPart[0] == '\'' && trimmedOriginalPart[len(trimmedOriginalPart)-1] == '\'')) {
-				isOriginalLiteral = true
-			}
-
-			if isOriginalLiteral {
-				// If original was literal, unquote the final resolved value string before appending
-				unquoted, err := strconv.Unquote(valueToAppendStr)
-				if err == nil {
-					valueToAppendStr = unquoted
-				} else { // Fallback manual strip
-					if len(valueToAppendStr) >= 2 && ((valueToAppendStr[0] == '"' && valueToAppendStr[len(valueToAppendStr)-1] == '"') || (valueToAppendStr[0] == '\'' && valueToAppendStr[len(valueToAppendStr)-1] == '\'')) {
-						valueToAppendStr = valueToAppendStr[1 : len(valueToAppendStr)-1]
+				// Unquote if the *part* was a literal string
+				trimmedOriginalPart := strings.TrimSpace(part) // Check the part itself
+				isOriginalLiteral := len(trimmedOriginalPart) >= 2 && ((trimmedOriginalPart[0] == '"' && trimmedOriginalPart[len(trimmedOriginalPart)-1] == '"') || (trimmedOriginalPart[0] == '\'' && trimmedOriginalPart[len(trimmedOriginalPart)-1] == '\''))
+				if isOriginalLiteral {
+					unquoted, err := strconv.Unquote(valueToAppendStr) // Unquote the *stringified* value
+					if err == nil {
+						valueToAppendStr = unquoted
+					} else { /* ... fallback manual strip ... */
+						if len(valueToAppendStr) >= 2 && ((valueToAppendStr[0] == '"' && valueToAppendStr[len(valueToAppendStr)-1] == '"') || (valueToAppendStr[0] == '\'' && valueToAppendStr[len(valueToAppendStr)-1] == '\'')) {
+							valueToAppendStr = valueToAppendStr[1 : len(valueToAppendStr)-1]
+						}
 					}
 				}
-				fmt.Printf("        > Appending literal part %q -> %q\n", part, valueToAppendStr)
-			} else {
-				fmt.Printf("        > Appending var/placeholder part %q -> %q\n", part, valueToAppendStr)
+				builder.WriteString(valueToAppendStr)
 			}
-			builder.WriteString(valueToAppendStr)
+			finalResult := builder.String()
+			fmt.Printf("      [EvalExpr +] Concatenated Result: %q\n", finalResult)
+			return finalResult
 		}
-		finalResult := builder.String()
-		fmt.Printf("      [Eval +] Concatenated Result: %q\n", finalResult)
-		return finalResult // Return concatenated string
+		// If not valid concatenation, fall through to treat resolvedExprStr as a single unit.
 	}
 
-	// --- Fallback: Should not be easily reachable now ---
-	fmt.Printf("      [Eval] Fallback: No valid pattern found for: %q\n", expr)
-	resolvedValue := i.resolveValue(expr)
-	resolvedValueStr, isStr := resolvedValue.(string)
-	finalStr := ""
-	if isStr {
-		finalStr = i.resolvePlaceholders(resolvedValueStr)
-	} else {
-		finalStr = fmt.Sprintf("%v", resolvedValue)
+	// --- Treat as Single Unit (Literal or Resolved Placeholder String) ---
+	// If it wasn't a simple variable, and wasn't valid concatenation,
+	// the result is the placeholder-resolved string `resolvedExprStr`.
+	// Perform final unquoting if the *original* expression looked like a quoted literal.
+	trimmedOriginalExpr := strings.TrimSpace(expr) // Check original expression
+	if len(trimmedOriginalExpr) >= 2 &&
+		((trimmedOriginalExpr[0] == '"' && trimmedOriginalExpr[len(trimmedOriginalExpr)-1] == '"') ||
+			(trimmedOriginalExpr[0] == '\'' && trimmedOriginalExpr[len(trimmedOriginalExpr)-1] == '\'')) {
+		unquoted, err := strconv.Unquote(resolvedExprStr)
+		if err == nil {
+			fmt.Printf("      [EvalExpr] Unquoted single literal/resolved %q -> %q\n", expr, unquoted)
+			return unquoted
+		} else { /* ... fallback manual strip ... */
+			if len(resolvedExprStr) >= 2 && ((resolvedExprStr[0] == '"' && resolvedExprStr[len(resolvedExprStr)-1] == '"') || (resolvedExprStr[0] == '\'' && resolvedExprStr[len(resolvedExprStr)-1] == '\'')) {
+				resolvedExprStr = resolvedExprStr[1 : len(resolvedExprStr)-1]
+				fmt.Printf("      [EvalExpr] Manual unquote single literal/resolved %q -> %q\n", expr, resolvedExprStr)
+			} else {
+				fmt.Printf("      [EvalExpr] Failed unquote single literal/resolved %q -> %q\n", expr, resolvedExprStr)
+			}
+		}
 	}
-	return finalStr
+
+	fmt.Printf("      [EvalExpr] Final result for single part '%s': %q\n", expr, resolvedExprStr)
+	return resolvedExprStr // Return the (potentially unquoted) resolved string
 }
 
 // --- Utility Helpers ---

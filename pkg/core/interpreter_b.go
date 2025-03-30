@@ -9,164 +9,155 @@ import (
 
 // --- Evaluation Logic Helpers ---
 
-// evaluateCondition (Unchanged)
+// evaluateCondition - Handles ==, !=, >, <, >=, <= for strings, plus true/false checks
 func (i *Interpreter) evaluateCondition(conditionStr string) (bool, error) {
 	trimmedCond := strings.TrimSpace(conditionStr)
-	partsEq := strings.SplitN(trimmedCond, "==", 2)
-	if len(partsEq) == 2 {
-		lhs := strings.TrimSpace(partsEq[0])
-		rhs := strings.TrimSpace(partsEq[1])
-		resolvedLhsVal := i.evaluateExpression(lhs)
-		resolvedRhsVal := i.evaluateExpression(rhs)
-		resolvedLhsStr := fmt.Sprintf("%v", resolvedLhsVal)
-		resolvedRhsStr := fmt.Sprintf("%v", resolvedRhsVal)
-		return resolvedLhsStr == resolvedRhsStr, nil
+
+	// Define operators and corresponding comparison functions
+	operators := []string{">=", "<=", "==", "!=", ">", "<"} // Order matters: check >= before >
+	comparisonFuncs := map[string]func(string, string) bool{
+		"==": func(a, b string) bool { return a == b },
+		"!=": func(a, b string) bool { return a != b },
+		">":  func(a, b string) bool { return a > b },
+		"<":  func(a, b string) bool { return a < b },
+		">=": func(a, b string) bool { return a >= b },
+		"<=": func(a, b string) bool { return a <= b },
 	}
-	partsNeq := strings.SplitN(trimmedCond, "!=", 2)
-	if len(partsNeq) == 2 {
-		lhs := strings.TrimSpace(partsNeq[0])
-		rhs := strings.TrimSpace(partsNeq[1])
-		resolvedLhsVal := i.evaluateExpression(lhs)
-		resolvedRhsVal := i.evaluateExpression(rhs)
-		resolvedLhsStr := fmt.Sprintf("%v", resolvedLhsVal)
-		resolvedRhsStr := fmt.Sprintf("%v", resolvedRhsVal)
-		return resolvedLhsStr != resolvedRhsStr, nil
+
+	// Iterate through operators to find the first match
+	for _, op := range operators {
+		parts := strings.SplitN(trimmedCond, op, 2)
+		if len(parts) == 2 {
+			lhs := strings.TrimSpace(parts[0])
+			rhs := strings.TrimSpace(parts[1])
+
+			// Evaluate LHS and RHS expressions
+			resolvedLhsVal := i.evaluateExpression(lhs) // evaluateExpression from interpreter_c.go
+			resolvedRhsVal := i.evaluateExpression(rhs) // evaluateExpression from interpreter_c.go
+
+			// Convert evaluated results to strings for comparison
+			resolvedLhsStr := fmt.Sprintf("%v", resolvedLhsVal)
+			resolvedRhsStr := fmt.Sprintf("%v", resolvedRhsVal)
+
+			// Perform the comparison using the corresponding function
+			fmt.Printf("      [Eval Cond %s] LHS: %q (%v), RHS: %q (%v)\n", op, resolvedLhsStr, resolvedLhsVal, resolvedRhsStr, resolvedRhsVal)
+			result := comparisonFuncs[op](resolvedLhsStr, resolvedRhsStr)
+			return result, nil
+		}
 	}
-	resolvedValue := i.evaluateExpression(trimmedCond)
+
+	// If no binary operator was found, evaluate the condition as a single expression
+	// Expected to resolve to "true" or "false" (case-insensitive)
+	resolvedValue := i.evaluateExpression(trimmedCond) // evaluateExpression from interpreter_c.go
 	resolvedValueStr := fmt.Sprintf("%v", resolvedValue)
 	lowerResolved := strings.ToLower(resolvedValueStr)
+
+	fmt.Printf("      [Eval Cond Bool] Expr: %q -> %q\n", trimmedCond, resolvedValueStr)
+
 	if lowerResolved == "true" {
 		return true, nil
 	}
 	if lowerResolved == "false" {
 		return false, nil
 	}
+
+	// If it's not a recognized operator expression and doesn't resolve to true/false
 	return false, fmt.Errorf("unsupported condition format or non-boolean result: %s -> %q", conditionStr, resolvedValueStr)
 }
 
-// resolvePlaceholders - ** CORRECTED literal __last_call_result handling **
+// resolvePlaceholders - ** CORRECTED to perform recursive lookup and replacement **
 func (i *Interpreter) resolvePlaceholders(input string) string {
-	// Optimization: if no placeholders likely, return early
-	if !strings.Contains(input, "{{") && !strings.Contains(input, "__last_call_result") {
-		return input
-	}
-
 	reVar := regexp.MustCompile(`\{\{(.*?)\}\}`) // Regex for {{...}}
-	literalLastCall := "__last_call_result"      // Literal string to replace
+	const maxDepth = 10                          // Prevent infinite recursion
 
-	const maxDepth = 10
-	var resolveRecursive func(s string, depth int) string
-
-	resolveRecursive = func(s string, depth int) string {
+	var resolve func(s string, depth int) string
+	resolve = func(s string, depth int) string {
 		if depth > maxDepth {
 			fmt.Printf("  [Warn] Max placeholder recursion depth (%d) exceeded for: %q\n", maxDepth, input)
-			return s
+			return s // Return original string if depth exceeded
 		}
 
-		madeChangeThisPass := false
-		current := s
-
-		// --- Stage 1: Replace {{...}} placeholders ---
-		next := reVar.ReplaceAllStringFunc(current, func(match string) string {
-			// ... (Inner logic for {{...}} replacement remains the same as previous correct version) ...
+		changed := false
+		result := reVar.ReplaceAllStringFunc(s, func(match string) string {
 			varNameSubmatch := reVar.FindStringSubmatch(match)
 			if len(varNameSubmatch) < 2 {
-				return match
+				return match // Should not happen with valid regex match
 			}
 			varName := strings.TrimSpace(varNameSubmatch[1])
 
 			var replacement string
-			found := false
+			var lookupVal interface{}
+			var found bool
 
 			if varName == "__last_call_result" {
-				if i.lastCallResult != nil {
-					replacement = fmt.Sprintf("%v", i.lastCallResult)
-					found = true
-				} else {
-					fmt.Printf("  [Warn] Evaluating {{__last_call_result}} before CALL\n")
-					replacement = ""
-					found = true
-				}
+				lookupVal = i.lastCallResult
+				found = true // Consider it found even if nil
 			} else if isValidIdentifier(varName) {
-				if value, exists := i.variables[varName]; exists {
-					replacement = fmt.Sprintf("%v", value)
-					found = true
-				} else {
-					fmt.Printf("  [Warn] Variable '%s' not found for %q\n", varName, match)
-					replacement = match
-					found = false
-				}
+				lookupVal, found = i.variables[varName]
 			} else {
-				fmt.Printf("  [Warn] Invalid content '%s' in %q\n", varName, match)
-				replacement = match
-				found = false
+				fmt.Printf("  [Warn] Invalid identifier '%s' inside placeholder: %q\n", varName, match)
+				return match // Return original match if identifier invalid
 			}
 
 			if found {
-				madeChangeThisPass = true
-				return resolveRecursive(replacement, depth+1) // Recurse on replacement
+				// Convert the found value (could be string, slice, etc.) to its string representation
+				replacement = fmt.Sprintf("%v", lookupVal)
+				// Mark that a change occurred in this pass
+				changed = true
+				// Recursively resolve placeholders *within* the replacement itself
+				return resolve(replacement, depth+1)
 			} else {
-				return replacement
-			} // Return original match
+				fmt.Printf("  [Warn] Variable '%s' not found for placeholder: %q\n", varName, match)
+				return match // Return original placeholder if variable not found
+			}
 		})
 
-		// Update current string after {{...}} replacements
-		current = next
-
-		// --- Stage 2: Replace literal __last_call_result ---
-		// This needs to handle cases where the literal appears *after* {{...}} subs
-		if strings.Contains(current, literalLastCall) {
-			var replacementValue string
-			if i.lastCallResult != nil {
-				// Recursively resolve placeholders within the replacement value *once*
-				replacementValue = resolveRecursive(fmt.Sprintf("%v", i.lastCallResult), depth+1)
-			} else {
-				fmt.Printf("  [Warn] Evaluating literal __last_call_result before CALL\n")
-				replacementValue = ""
-			}
-			// Use simple ReplaceAll for the literal string
-			next = strings.ReplaceAll(current, literalLastCall, replacementValue)
-			if next != current { // Check if ReplaceAll actually changed something
-				madeChangeThisPass = true
-				current = next
+		// If any replacement happened in this pass, we might need another pass
+		// if the replacement itself contained more placeholders.
+		if changed {
+			// Recurse on the entire result string *if* it still contains placeholders
+			// This check prevents infinite loops if a var resolves to itself like {{var}}
+			if strings.Contains(result, "{{") && strings.Contains(result, "}}") {
+				return resolve(result, depth+1)
 			}
 		}
 
-		// If any changes were made in *either stage*, recurse on the final result of this pass
-		if madeChangeThisPass && current != s {
-			return resolveRecursive(current, depth+1)
-		}
-
-		return current // No changes in this full pass, return final result
+		return result // Return the final string after this pass
 	}
 
-	return resolveRecursive(input, 0)
+	finalResult := resolve(input, 0)
+	// Special handling for literal __last_call_result outside of {{}} - should be minimal now
+	// This was causing issues before, let's rely on {{__last_call_result}} primarily
+	// finalResult = strings.ReplaceAll(finalResult, "__last_call_result", fmt.Sprintf("%v", i.lastCallResult))
+
+	return finalResult
 }
 
-// resolveValue (Unchanged)
-func (i *Interpreter) resolveValue(input string) interface{} {
+// resolveValue - Resolves ONLY direct variable names & __last_call_result. Returns raw value.
+// Does NOT handle literals or placeholders directly.
+func (i *Interpreter) resolveValue(input string) (value interface{}, found bool) {
 	trimmedInput := strings.TrimSpace(input)
+
 	if trimmedInput == "__last_call_result" {
+		// Return last result (or "" if nil), indicate found=true
 		if i.lastCallResult != nil {
-			return i.lastCallResult
+			return i.lastCallResult, true
 		}
-		fmt.Printf("  [Warn] Evaluating __last_call_result before CALL\n")
-		return ""
+		return "", true // Treat as found, value is ""
 	}
-	isPlainVarName := false
+
 	if isValidIdentifier(trimmedInput) {
-		if !strings.Contains(trimmedInput, "{{") {
-			isPlainVarName = true
+		val, exists := i.variables[trimmedInput]
+		if exists {
+			// fmt.Printf("      [ResolveValue] Direct lookup var '%s' returning raw type %T\n", trimmedInput, val)
+			return val, true // Return raw value and found=true
 		}
 	}
-	if isPlainVarName {
-		if val, exists := i.variables[trimmedInput]; exists {
-			return val
-		}
-		fmt.Printf("  [Warn] Variable '%s' not found, treating as literal.\n", trimmedInput)
-		return trimmedInput
-	}
-	return i.resolvePlaceholders(trimmedInput)
+
+	// If not a keyword or known variable, indicate not found
+	// The input itself might be returned by the caller if needed
+	// fmt.Printf("      [ResolveValue] '%s' not keyword or known var.\n", trimmedInput)
+	return nil, false
 }
 
 // splitExpression (Unchanged)

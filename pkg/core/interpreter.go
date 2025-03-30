@@ -1,11 +1,8 @@
 package core
 
 import (
-	"encoding/json"
 	"fmt"
-	"os"
-	"path/filepath"
-	"reflect"
+	"os" // Keep for potential future use
 	"strings"
 )
 
@@ -14,19 +11,23 @@ type Interpreter struct {
 	variables       map[string]interface{}
 	knownProcedures map[string]Procedure
 	lastCallResult  interface{}
-	vectorIndex     map[string][]float32 // Simple in-memory vector store
-	embeddingDim    int                  // Dimension for mock embeddings
+	vectorIndex     map[string][]float32 // Simple in-memory vector store - TODO: Move out?
+	embeddingDim    int                  // TODO: Move out?
 	currentProcName string               // Added to track current procedure for errors
+	toolRegistry    *ToolRegistry        // +++ ADDED +++ Tool registry
 }
 
 // NewInterpreter creates a new interpreter instance
 func NewInterpreter() *Interpreter {
-	return &Interpreter{
+	interp := &Interpreter{ // Create instance first
 		variables:       make(map[string]interface{}),
 		knownProcedures: make(map[string]Procedure),
-		vectorIndex:     make(map[string][]float32),
-		embeddingDim:    16, // Example dimension
+		vectorIndex:     make(map[string][]float32), // Keep mock DB for now
+		embeddingDim:    16,                         // Keep mock DB for now
+		toolRegistry:    NewToolRegistry(),          // +++ ADDED +++ Initialize registry
 	}
+	registerCoreTools(interp.toolRegistry) // +++ ADDED +++ Register tools (expects function in tools_register.go)
+	return interp
 }
 
 // LoadProcedures loads procedures into the interpreter's known map
@@ -52,7 +53,7 @@ func (i *Interpreter) RunProcedure(procName string, args ...string) (result inte
 		return nil, fmt.Errorf("procedure '%s' expects %d argument(s) (%v), but received %d", procName, len(proc.Params), proc.Params, len(args))
 	}
 	for idx, paramName := range proc.Params {
-		localVars[paramName] = args[idx]
+		localVars[paramName] = args[idx] // Store initial args as strings
 		fmt.Printf("  [Arg Init] SET %s = %q\n", paramName, args[idx])
 	}
 
@@ -79,6 +80,9 @@ func (i *Interpreter) RunProcedure(procName string, args ...string) (result inte
 	} else if wasReturn {
 		fmt.Printf("[Exec] Procedure '%s' returned explicitly: %q\n", procName, logResult)
 	} else {
+		// If a procedure doesn't explicitly RETURN, its result is implicitly the lastCallResult (if any)
+		// This might need refinement based on desired semantics. For now, let's return nil if no explicit RETURN.
+		// result = i.lastCallResult // Alternative: return lastCallResult implicitly
 		fmt.Printf("[Exec] Procedure '%s' finished normally. Final Result (Implicit nil): %v\n", procName, result)
 	}
 
@@ -89,12 +93,33 @@ func (i *Interpreter) RunProcedure(procName string, args ...string) (result inte
 // Propagates return value and signal correctly
 func (i *Interpreter) executeSteps(steps []Step) (result interface{}, wasReturn bool, err error) { // Named returns
 	skipElse := false
-	cwd, cwdErr := os.Getwd()
+	_, cwdErr := os.Getwd()
 	if cwdErr != nil {
 		return nil, false, fmt.Errorf("cwd error: %w", cwdErr)
 	}
 
+	// Outer loop iterates through the defined steps
 	for stepNum, step := range steps {
+
+		// +++ DEBUG LOGGING START +++
+		fmt.Printf("\n[DEBUG] === Executing Step %d ===\n", stepNum+1)
+		fmt.Printf("[DEBUG] Type:   %s\n", step.Type)
+		fmt.Printf("[DEBUG] Target: %s\n", step.Target)
+		fmt.Printf("[DEBUG] Cond:   %s\n", step.Cond)
+		// Be careful logging Value, could be large ([]Step)
+		if body, ok := step.Value.([]Step); ok {
+			fmt.Printf("[DEBUG] Value:  (Block with %d steps)\n", len(body))
+		} else {
+			logValueStr := fmt.Sprintf("%v", step.Value)
+			if len(logValueStr) > 100 {
+				logValueStr = logValueStr[:97] + "..."
+			}
+			fmt.Printf("[DEBUG] Value:  %s\n", logValueStr)
+		}
+		fmt.Printf("[DEBUG] Args:   %v\n", step.Args)
+		// +++ DEBUG LOGGING END +++
+
+		// --- Existing logging ---
 		logTarget := step.Target
 		if step.Type == "IF" || step.Type == "WHILE" || step.Type == "FOR" {
 			logTarget = step.Cond
@@ -106,6 +131,7 @@ func (i *Interpreter) executeSteps(steps []Step) (result interface{}, wasReturn 
 			logTarget = logTarget[:37] + "..."
 		}
 		fmt.Printf("  [Step %d] %s %s ...\n", stepNum+1, step.Type, logTarget)
+		// --- End Existing logging ---
 
 		if skipElse {
 			if step.Type == "ELSE" {
@@ -113,7 +139,7 @@ func (i *Interpreter) executeSteps(steps []Step) (result interface{}, wasReturn 
 				skipElse = false
 				continue
 			}
-			skipElse = false
+			skipElse = false // Reset skipElse if the current step wasn't ELSE
 		}
 
 		switch step.Type {
@@ -123,17 +149,25 @@ func (i *Interpreter) executeSteps(steps []Step) (result interface{}, wasReturn 
 			if !ok {
 				return nil, false, fmt.Errorf("step %d: SET value is not string (type %T)", stepNum+1, step.Value)
 			}
-			finalValue := i.evaluateExpression(valueExpr) // Assumes evaluateExpression in interpreter_c.go
+			// Check if target is a valid identifier before assignment
+			if !isValidIdentifier(targetVar) {
+				// Allow internal vars like __last_call_result? No, SET should only be for user vars.
+				return nil, false, fmt.Errorf("step %d: SET target '%s' is not a valid variable name", stepNum+1, targetVar)
+			}
+
+			finalValue := i.evaluateExpression(valueExpr) // Evaluate the RHS expression
+
+			// Handle special case for generated code fence stripping
 			if targetVar == "generated_code" {
 				if finalStr, isStr := finalValue.(string); isStr {
-					trimmedVal := trimCodeFences(finalStr) // Assumes trimCodeFences in interpreter_c.go
+					trimmedVal := trimCodeFences(finalStr) // trimCodeFences from interpreter_c.go
 					if trimmedVal != finalStr {
 						fmt.Printf("      [Fence Strip] Trimmed fences\n")
 						finalValue = trimmedVal
 					}
 				}
 			}
-			i.variables[targetVar] = finalValue
+			i.variables[targetVar] = finalValue // Assign evaluated value to variable
 			logValueStr := fmt.Sprintf("%v", finalValue)
 			if len(logValueStr) > 70 {
 				logValueStr = logValueStr[:67] + "..."
@@ -141,430 +175,350 @@ func (i *Interpreter) executeSteps(steps []Step) (result interface{}, wasReturn 
 			fmt.Printf("    [Exec] SET %s = %q\n", targetVar, logValueStr)
 
 		case "CALL":
-			i.lastCallResult = nil
-			resolvedArgs := make([]string, len(step.Args))
-			for idx, argExpr := range step.Args {
-				evaluatedArg := i.evaluateExpression(argExpr) // Assumes evaluateExpression in interpreter_c.go
-				resolvedArgs[idx] = fmt.Sprintf("%v", evaluatedArg)
-			}
-			target := step.Target
+			i.lastCallResult = nil          // Clear previous result
+			target := step.Target           // Target procedure/tool/LLM
+			callErr := error(nil)           // Error specifically for this CALL step
+			var callResultValue interface{} // Result specifically from this CALL step
 
+			// --- Argument Evaluation ---
+			// Evaluate all arguments first, preserving their types in evaluatedArgs
+			evaluatedArgs := make([]interface{}, len(step.Args))
+			for idx, argExpr := range step.Args {
+				evaluatedArgs[idx] = i.evaluateExpression(argExpr) // Evaluate each arg expression
+				// fmt.Printf("      [Arg Eval] Arg %d ('%s') evaluated to: %v (Type: %T)\n", idx, argExpr, evaluatedArgs[idx], evaluatedArgs[idx]) // Detailed log if needed
+			}
+			// --- End Argument Evaluation ---
+
+			// --- Dispatch CALL ---
 			if strings.HasPrefix(target, "TOOL.") { // --- TOOL Call ---
 				toolName := strings.TrimPrefix(target, "TOOL.")
-				var toolErr error
-				var toolResult interface{} = "OK" // Default result
-				fmt.Printf("    [Exec] CALL TOOL: %s(%v)\n", toolName, resolvedArgs)
-				// Assumes helper functions defined elsewhere (e.g., interpreter_c.go)
-				switch toolName {
-				case "ReadFile":
-					if len(resolvedArgs) != 1 {
-						toolErr = fmt.Errorf("ReadFile expects 1 arg (filepath)")
-						break
-					}
-					filePathArg := resolvedArgs[0]
-					absPath, secErr := secureFilePath(filePathArg, cwd)
-					if secErr != nil {
-						toolErr = fmt.Errorf("ReadFile path error: %w", secErr)
-						break
-					}
-					contentBytes, readErr := os.ReadFile(absPath)
-					if readErr != nil {
-						toolErr = fmt.Errorf("ReadFile failed for '%s': %w", absPath, readErr)
+				fmt.Printf("    [Exec] Attempting CALL TOOL: %s\n", toolName)
+
+				// 1. Lookup tool in registry
+				toolImpl, found := i.toolRegistry.GetTool(toolName)
+				if !found {
+					callErr = fmt.Errorf("unknown TOOL '%s'", toolName)
+				} else {
+					// 2. Validate and Convert Args using Spec
+					// This step modifies evaluatedArgs based on spec.Type!
+					preparedArgs, validationErr := ValidateAndConvertArgs(toolImpl.Spec, evaluatedArgs)
+					if validationErr != nil {
+						callErr = fmt.Errorf("step %d: TOOL %s argument error: %w", stepNum+1, toolName, validationErr)
 					} else {
-						toolResult = string(contentBytes)
-						fmt.Printf("      [Tool OK] Read %d bytes from %s\n", len(contentBytes), filepath.Base(absPath))
-					}
-				case "WriteFile":
-					if len(resolvedArgs) != 2 {
-						toolErr = fmt.Errorf("WriteFile expects 2 args (filepath, content)")
-						break
-					}
-					filePathArg, contentToWrite := resolvedArgs[0], resolvedArgs[1]
-					absPath, secErr := secureFilePath(filePathArg, cwd)
-					if secErr != nil {
-						toolErr = fmt.Errorf("WriteFile path error: %w", secErr)
-						break
-					}
-					dirPath := filepath.Dir(absPath)
-					if dirErr := os.MkdirAll(dirPath, 0755); dirErr != nil {
-						toolErr = fmt.Errorf("WriteFile mkdir fail: %w", dirErr)
-						break
-					}
-					contentBytes := []byte(fmt.Sprintf("%v", contentToWrite))
-					writeErr := os.WriteFile(absPath, contentBytes, 0644)
-					if writeErr != nil {
-						toolErr = fmt.Errorf("WriteFile failed for '%s': %w", absPath, writeErr)
-					} else {
-						fmt.Printf("      [Tool OK] Wrote %d bytes to %s\n", len(contentBytes), filepath.Base(absPath))
-					}
-				case "SearchSkills": // Mock Search
-					if len(resolvedArgs) != 1 {
-						toolErr = fmt.Errorf("SearchSkills expects 1 arg (query)")
-						break
-					}
-					query := resolvedArgs[0]
-					fmt.Printf("      [Tool] Searching skills for: %q\n", query)
-					queryEmb, embErr := i.GenerateEmbedding(query)
-					if embErr != nil {
-						toolErr = fmt.Errorf("embed fail: %w", embErr)
-						break
-					}
-					type Result struct {
-						Path  string
-						Score float64
-					}
-					results := []Result{}
-					threshold := 0.5
-					for path, storedEmb := range i.vectorIndex {
-						score, simErr := cosineSimilarity(queryEmb, storedEmb)
-						if simErr == nil && score >= threshold {
-							results = append(results, Result{Path: path, Score: score})
+						// 3. Call the registered ToolFunc
+						fmt.Printf("      [Tool Dispatch] Calling func for %s with prepared args\n", toolName)
+						callResultValue, callErr = toolImpl.Func(i, preparedArgs) // Pass interpreter and prepared args
+						if callErr == nil {
+							logStr := fmt.Sprintf("%v", callResultValue)
+							if len(logStr) > 70 {
+								logStr = logStr[:67] + "..."
+							}
+							fmt.Printf("      [Tool OK] %s result: %s\n", toolName, logStr)
 						}
 					}
-					resultBytes, jsonErr := json.Marshal(results)
-					if jsonErr != nil {
-						toolErr = fmt.Errorf("marshal results fail: %w", jsonErr)
-					} else {
-						toolResult = string(resultBytes)
-					}
-					fmt.Printf("      [Tool OK] SearchSkills found %d potential matches\n", len(results))
-				case "GitAdd":
-					if len(resolvedArgs) != 1 {
-						toolErr = fmt.Errorf("GitAdd expects 1 arg (filepath)")
-						break
-					}
-					filePathArg := resolvedArgs[0]
-					absPath, secErr := secureFilePath(filePathArg, cwd)
-					if secErr != nil {
-						toolErr = fmt.Errorf("GitAdd path error: %w", secErr)
-						break
-					}
-					fmt.Printf("      [Tool] Running: git add %s\n", absPath)
-					toolErr = runGitCommand("add", absPath)
-					if toolErr == nil {
-						fmt.Printf("      [Tool OK] GitAdd\n")
-					}
-				case "GitCommit":
-					if len(resolvedArgs) != 1 {
-						toolErr = fmt.Errorf("GitCommit expects 1 arg (message)")
-						break
-					}
-					message := resolvedArgs[0]
-					fmt.Printf("      [Tool] Running: git commit -m %q\n", message)
-					toolErr = runGitCommand("commit", "-m", message)
-					if toolErr == nil {
-						fmt.Printf("      [Tool OK] GitCommit\n")
-					}
-				case "VectorUpdate": // Mock Update
-					if len(resolvedArgs) != 1 {
-						toolErr = fmt.Errorf("VectorUpdate expects 1 arg (filepath)")
-						break
-					}
-					filePathArg := resolvedArgs[0]
-					absPath, secErr := secureFilePath(filePathArg, cwd)
-					if secErr != nil {
-						toolErr = fmt.Errorf("VectorUpdate path error: %w", secErr)
-						break
-					}
-					fmt.Printf("      [Tool] Updating vector index for: %s\n", filepath.Base(absPath))
-					contentBytes, readErr := os.ReadFile(absPath)
-					if readErr != nil {
-						toolErr = fmt.Errorf("read fail: %w", readErr)
-						break
-					}
-					textToEmbed := string(contentBytes)
-					embedding, embErr := i.GenerateEmbedding(textToEmbed)
-					if embErr != nil {
-						toolErr = fmt.Errorf("embed fail: %w", embErr)
-						break
-					}
-					i.vectorIndex[absPath] = embedding
-					fmt.Printf("      [Tool OK] VectorUpdate - Index size: %d\n", len(i.vectorIndex))
-				case "SanitizeFilename":
-					if len(resolvedArgs) != 1 {
-						toolErr = fmt.Errorf("SanitizeFilename expects 1 arg (string)")
-						break
-					}
-					toolResult = sanitizeFilename(resolvedArgs[0])
-					fmt.Printf("      [Tool OK] SanitizeFilename result: %q\n", toolResult)
-				default:
-					toolErr = fmt.Errorf("unknown TOOL '%s'", toolName)
-				} // End tool switch
-				if toolErr != nil {
-					return nil, false, fmt.Errorf("step %d: TOOL %s failed: %w", stepNum+1, toolName, toolErr)
-				} // Return error
-				i.lastCallResult = toolResult // Store result
+				}
+				// Error handling happens after the switch
 
 			} else if target == "LLM" { // --- LLM Call ---
-				if len(resolvedArgs) != 1 {
-					return nil, false, fmt.Errorf("step %d: CALL LLM expects 1 prompt arg", stepNum+1)
+				// LLM expects exactly one string argument
+				if len(evaluatedArgs) != 1 {
+					callErr = fmt.Errorf("step %d: CALL LLM expects 1 prompt arg, got %d", stepNum+1, len(evaluatedArgs))
+				} else {
+					// Ensure the argument is a string
+					prompt := fmt.Sprintf("%v", evaluatedArgs[0]) // Convert arg to string
+
+					fmt.Printf("    [Exec] CALL LLM prompt (first 80 chars): %q\n", truncateString(prompt, 80))
+					response, llmErr := CallLLMAPI(prompt) // CallLLMAPI from llm.go
+					if llmErr != nil {
+						callErr = fmt.Errorf("step %d: CALL LLM failed: %w", stepNum+1, llmErr)
+					} else {
+						callResultValue = response // Assign LLM result
+						logResp := response
+						if len(logResp) > 70 {
+							logResp = logResp[:67] + "..."
+						}
+						fmt.Printf("      [LLM OK] Response: %q stored\n", logResp)
+					}
 				}
-				prompt := resolvedArgs[0]
-				fmt.Printf("    [Exec] CALL LLM prompt (first 80 chars): %q\n", truncateString(prompt, 80))
-				response, llmErr := CallLLMAPI(prompt) // Assumes CallLLMAPI in llm.go
-				if llmErr != nil {
-					return nil, false, fmt.Errorf("step %d: CALL LLM failed: %w", stepNum+1, llmErr)
-				}
-				i.lastCallResult = response
-				logResp := response
-				if len(logResp) > 70 {
-					logResp = logResp[:67] + "..."
-				}
-				fmt.Printf("      [LLM OK] Response: %q stored\n", logResp)
 
 			} else { // --- Procedure Call ---
+				// Procedures currently expect string args passed via RunProcedure
+				stringArgs := make([]string, len(evaluatedArgs))
+				for idx, val := range evaluatedArgs {
+					stringArgs[idx] = fmt.Sprintf("%v", val) // Convert evaluated args to strings for proc call
+				}
+
 				procToCall := target
-				fmt.Printf("    [Exec] CALL Procedure: %s(%v)\n", procToCall, resolvedArgs)
-				// RunProcedure returns (val, err). Assume RETURN inside it exits immediately.
-				callResultValue, callErr := i.RunProcedure(procToCall, resolvedArgs...)
-				if callErr != nil {
-					return nil, false, fmt.Errorf("step %d: CALL to proc '%s' failed: %w", stepNum+1, procToCall, callErr)
-				} // Return error
-				i.lastCallResult = callResultValue // Store procedure's return value
+				fmt.Printf("    [Exec] CALL Procedure: %s(%v)\n", procToCall, stringArgs)
+				// Note: RunProcedure recursively calls executeSteps, creating a new scope
+				procResultValue, procCallErr := i.RunProcedure(procToCall, stringArgs...) // Use distinct vars
+				if procCallErr != nil {
+					callErr = fmt.Errorf("step %d: CALL to proc '%s' failed: %w", stepNum+1, procToCall, procCallErr)
+				} else {
+					callResultValue = procResultValue // Assign procedure result
+				}
 			}
 
-		case "IF": // --- IF ---
+			// --- Post CALL Processing ---
+			if callErr != nil {
+				fmt.Printf("[DEBUG] --- CALL step %d FAILED (Error: %v) ---\n", stepNum+1, callErr)
+				return nil, false, callErr // Return error immediately if any call type failed
+			}
+
+			// Set lastCallResult *ONCE* after successful call
+			i.lastCallResult = callResultValue
+			fmt.Printf("[DEBUG] --- Finished CALL step %d successfully (lastCallResult type: %T) ---\n", stepNum+1, i.lastCallResult)
+			// --- End Post CALL ---
+
+		case "IF":
 			conditionStr := step.Cond
 			fmt.Printf("    [Eval] IF Condition: %s\n", conditionStr)
-			conditionResult, evalErr := i.evaluateCondition(conditionStr) // Assumes in interpreter_b.go
+			conditionResult, evalErr := i.evaluateCondition(conditionStr) // evaluateCondition from interpreter_b.go
 			if evalErr != nil {
 				fmt.Printf("      [Warn] IF condition error: %v\n", evalErr)
-				conditionResult = false
+				conditionResult = false // Treat error as false condition
 			}
 			fmt.Printf("      [Eval] Condition Result: %t\n", conditionResult)
 			if conditionResult {
 				if blockBody, ok := step.Value.([]Step); ok {
 					fmt.Printf("      [Exec IF Block] %d steps\n", len(blockBody))
-					blockResult, blockReturned, blockErr := i.executeSteps(blockBody) // Recursive call
-					// IMMEDIATELY RETURN if inner block returned/errored
+					// --- Recursive Call ---
+					blockResult, blockReturned, blockErr := i.executeSteps(blockBody)
+					// Propagate results immediately if block returned or errored
 					if blockErr != nil {
 						return nil, false, blockErr
 					}
 					if blockReturned {
 						return blockResult, true, nil
-					} // Return VALUE + signal
-				} else if step.Value != nil { // Error if Value is not nil and not []Step
+					}
+					// --- End Recursive Call ---
+				} else if step.Value != nil { // Should be nil or []Step
 					return nil, false, fmt.Errorf("step %d: IF body unexpected type %T", stepNum+1, step.Value)
 				}
-				// If blockBody is nil or empty, execution just falls through here
+				// If condition was true, skip any potential ELSE part of this IF
 				skipElse = true
 			}
 
-		case "ELSE": // --- ELSE ---
+		case "ELSE": // Currently requires parser support for associating ELSE with IF
+			// This logic assumes ELSE can only follow an IF that evaluated to false (skipElse is false)
 			if blockBody, ok := step.Value.([]Step); ok {
 				fmt.Printf("    [Exec ELSE Block] %d steps\n", len(blockBody))
-				blockResult, blockReturned, blockErr := i.executeSteps(blockBody) // Recursive call
-				// IMMEDIATELY RETURN if inner block returned/errored
+				// --- Recursive Call ---
+				blockResult, blockReturned, blockErr := i.executeSteps(blockBody)
+				// Propagate results immediately
 				if blockErr != nil {
 					return nil, false, blockErr
-				} // Return error
+				}
 				if blockReturned {
 					return blockResult, true, nil
-				} // Return VALUE + signal
-			} else if step.Value != nil { // Error if Value is not nil and not []Step
+				}
+				// --- End Recursive Call ---
+			} else if step.Value != nil { // Should be nil or []Step
 				return nil, false, fmt.Errorf("step %d: ELSE body unexpected type %T", stepNum+1, step.Value)
 			}
-			// If blockBody is nil or empty, execution just falls through here
 
-		case "RETURN": // --- RETURN ---
+		case "RETURN":
 			valueExpr, ok := step.Value.(string)
 			if !ok {
-				return nil, false, fmt.Errorf("step %d: RETURN value not string", stepNum+1)
+				// Allow RETURN without value? Assign nil? For now, require expression string.
+				return nil, false, fmt.Errorf("step %d: RETURN value must be an expression string (type %T)", stepNum+1, step.Value)
 			}
-			returnValue := i.evaluateExpression(valueExpr) // Assumes in interpreter_c.go
+			returnValue := i.evaluateExpression(valueExpr) // Evaluate the return expression
 			return returnValue, true, nil                  // Signal return occurred + VALUE
 
-		case "WHILE": // --- WHILE ---
+		case "WHILE":
 			conditionStr := step.Cond
 			fmt.Printf("    [Exec] WHILE %s ...\n", conditionStr)
 			loopCounter := 0
-			maxLoops := 1000
+			maxLoops := 1000 // Prevent infinite loops
 			loopExecuted := false
-			var bodyErr error
-			var returnedFromBody bool
-			var resultFromLoop interface{} // Capture result if body returns
+			var bodyErr error              // Error from loop body execution
+			var returnedFromBody bool      // Did the body execute RETURN?
+			var resultFromLoop interface{} // Value returned from body
 
 			for loopCounter < maxLoops {
-				conditionResult, evalErr := i.evaluateCondition(conditionStr) // Assumes in interpreter_b.go
+				conditionResult, evalErr := i.evaluateCondition(conditionStr) // Check condition before each iteration
 				if evalErr != nil {
-					fmt.Printf("      [Warn] WHILE condition error: %v (exiting)\n", evalErr)
-					bodyErr = evalErr
+					fmt.Printf("      [Warn] WHILE condition error: %v (exiting loop)\n", evalErr)
+					bodyErr = evalErr // Store error and break
 					break
-				} // Store error, break loop
+				}
 				if !conditionResult {
 					fmt.Printf("      [Loop Check %d] Cond %q -> false. Exiting.\n", loopCounter, conditionStr)
-					break
-				} // Condition false, exit loop
-				fmt.Printf("      [Loop Check %d] Cond %q -> true. Continuing.\n", loopCounter, conditionStr)
+					break // Exit loop if condition is false
+				}
+
+				fmt.Printf("      [Loop Check %d] Cond %q -> true. Entering body.\n", loopCounter, conditionStr)
 				loopExecuted = true
 
-				resultFromLoop, returnedFromBody, bodyErr = i.executeLoopBody(step.Value, stepNum, loopCounter) // Call helper
+				// Execute loop body using helper
+				resultFromLoop, returnedFromBody, bodyErr = i.executeLoopBody(step.Value, stepNum, loopCounter)
+
+				// Check results from body execution
 				if bodyErr != nil {
 					break
-				} // Error in body, break loop
+				} // Exit loop on error
 				if returnedFromBody {
 					break
-				} // RETURN in body, break loop
+				} // Exit loop on RETURN
 
 				loopCounter++
 			} // End while loop
 
-			// Handle loop exit reason and RETURN VALUE
+			// Handle loop exit reason and potential RETURN value propagation
 			if bodyErr != nil {
 				return nil, false, fmt.Errorf("error in WHILE loop (iter %d): %w", loopCounter, bodyErr)
-			} // Propagate error
+			}
 			if loopCounter >= maxLoops {
-				return nil, false, fmt.Errorf("step %d: WHILE loop max iterations (%d)", stepNum+1, maxLoops)
-			} // Propagate error
+				return nil, false, fmt.Errorf("step %d: WHILE loop exceeded max iterations (%d)", stepNum+1, maxLoops)
+			}
 			if returnedFromBody {
 				return resultFromLoop, true, nil
-			} // Return exit: return the captured value + signal
+			} // Propagate RETURN from body
 			if loopExecuted {
 				fmt.Printf("      [Loop Finished Normally]\n")
-			} // Normal exit
+			} // Normal exit after condition became false
 
-		case "FOR": // --- FOR EACH ---
+		case "FOR": // FOR EACH variable IN collection DO ... END
 			loopVar := step.Target
 			collectionExpr := step.Cond
-			evaluatedCollection := i.evaluateExpression(collectionExpr) // Assumes in interpreter_c.go
-			fmt.Printf("    [Exec] FOR EACH %s IN %s (type: %T)\n", loopVar, collectionExpr, reflect.TypeOf(evaluatedCollection))
+			evaluatedCollection := i.evaluateExpression(collectionExpr) // Evaluate the collection expression
+			fmt.Printf("    [Exec] FOR EACH %s IN %s (evaluated type: %T)\n", loopVar, collectionExpr, evaluatedCollection)
+
+			// Save original value of loop variable (if exists) to restore later
 			originalLoopVarValue, loopVarExists := i.variables[loopVar]
 			loopExecuted := false
-			var bodyErr error
-			var returnedFromBody bool
-			var resultFromLoop interface{} // Capture result if body returns
+			var bodyErr error              // Error from loop body
+			var returnedFromBody bool      // RETURN from loop body?
+			var resultFromLoop interface{} // Value returned from body
 
+			// --- Iteration Logic ---
 			switch collection := evaluatedCollection.(type) {
-			case string:
-				// Prioritize Comma Split If Commas Exist
-				if strings.Contains(collection, ",") {
-					items := strings.Split(collection, ",")
-					useSplit := len(items) > 1
-					if !useSplit && len(items) == 1 {
-						if strings.TrimSpace(items[0]) != collection {
-							useSplit = true
-						}
-					}
-					if useSplit {
-						fmt.Printf("      [Looping Comma-Split Items from string: %d]\n", len(items))
-						if len(items) > 0 {
-							loopExecuted = true
-						}
-						for itemNum, item := range items {
-							trimmedItem := strings.TrimSpace(item)
-							i.variables[loopVar] = trimmedItem
-							fmt.Printf("      [Iter %d Item] SET %s = %q\n", itemNum, loopVar, trimmedItem)
-							resultFromLoop, returnedFromBody, bodyErr = i.executeLoopBody(step.Value, stepNum, itemNum)
-							if bodyErr != nil || returnedFromBody {
-								break
-							} // Exit inner loop
-						}
-						goto PostForLoop // Jump past character iteration
-					}
-				}
-				// Fallback to Character Iteration
-				fmt.Printf("      [Looping String Chars: %q]\n", collection)
+			case []string: // Iterate over native string slice first
+				fmt.Printf("      [Looping Native String Slice: %d items]\n", len(collection))
 				if len(collection) > 0 {
 					loopExecuted = true
 				}
-				for itemNum, charRune := range collection {
-					charStr := string(charRune)
-					i.variables[loopVar] = charStr
-					fmt.Printf("      [Iter %d Char] SET %s = %q\n", itemNum, loopVar, charStr)
+				for itemNum, item := range collection {
+					i.variables[loopVar] = item // Assign element to loop var
+					fmt.Printf("      [Iter %d String Slice Item] SET %s = %q\n", itemNum, loopVar, item)
 					resultFromLoop, returnedFromBody, bodyErr = i.executeLoopBody(step.Value, stepNum, itemNum)
 					if bodyErr != nil || returnedFromBody {
 						break
 					} // Exit inner loop
 				}
-			// --- Native List/Slice handling ---
-			case []interface{}:
-				fmt.Printf("      [Looping Native Slice: %d items]\n", len(collection))
+			case []interface{}: // Iterate over native interface slice
+				fmt.Printf("      [Looping Native Interface Slice: %d items]\n", len(collection))
 				if len(collection) > 0 {
 					loopExecuted = true
 				}
 				for itemNum, item := range collection {
-					i.variables[loopVar] = item
-					fmt.Printf("      [Iter %d Slice Item] SET %s = %v (%T)\n", itemNum, loopVar, item, item)
+					i.variables[loopVar] = item // Assign element
+					fmt.Printf("      [Iter %d Interface Slice Item] SET %s = %v (%T)\n", itemNum, loopVar, item, item)
 					resultFromLoop, returnedFromBody, bodyErr = i.executeLoopBody(step.Value, stepNum, itemNum)
 					if bodyErr != nil || returnedFromBody {
 						break
+					} // Exit inner loop
+				}
+			case string: // Iterate over string (potentially comma-split or characters)
+				shouldCommaSplit := false // Heuristic check for comma splitting
+				if strings.Contains(collection, ",") {
+					parts := strings.Split(collection, ",")
+					if len(parts) > 1 {
+						shouldCommaSplit = true
+					}
+					if len(parts) == 1 && strings.TrimSpace(parts[0]) != collection {
+						shouldCommaSplit = true
 					}
 				}
-			case []string:
-				fmt.Printf("      [Looping String Slice: %d items]\n", len(collection))
-				if len(collection) > 0 {
-					loopExecuted = true
-				}
-				for itemNum, item := range collection {
-					i.variables[loopVar] = item
-					fmt.Printf("      [Iter %d String Slice Item] SET %s = %q\n", itemNum, loopVar, item)
-					resultFromLoop, returnedFromBody, bodyErr = i.executeLoopBody(step.Value, stepNum, itemNum)
-					if bodyErr != nil || returnedFromBody {
-						break
-					}
-				}
-				// TODO: Add map iteration case here
-			default: // Fallback comma split for other types
-				collectionValStr := fmt.Sprintf("%v", evaluatedCollection)
-				items := []string{}
-				if collectionValStr != "" {
-					items = strings.Split(collectionValStr, ",")
-				}
-				fmt.Printf("      [Looping Comma-Split Fallback from %T: %d]\n", evaluatedCollection, len(items))
-				if len(items) > 0 {
-					loopExecuted = true
-				}
-				for itemNum, item := range items {
-					trimmedItem := strings.TrimSpace(item)
-					i.variables[loopVar] = trimmedItem
-					fmt.Printf("      [Iter %d Item] SET %s = %q\n", itemNum, loopVar, trimmedItem)
-					resultFromLoop, returnedFromBody, bodyErr = i.executeLoopBody(step.Value, stepNum, itemNum)
-					if bodyErr != nil || returnedFromBody {
-						break
-					}
-				}
-			} // End switch collection type
 
-		PostForLoop: // Label for shared post-loop logic
+				if shouldCommaSplit { // Comma Split Path
+					items := strings.Split(collection, ",")
+					fmt.Printf("      [Looping Comma-Split String: %d items]\n", len(items))
+					if len(items) > 0 {
+						loopExecuted = true
+					}
+					for itemNum, item := range items {
+						trimmedItem := strings.TrimSpace(item)
+						i.variables[loopVar] = trimmedItem
+						fmt.Printf("      [Iter %d Comma Item] SET %s = %q\n", itemNum, loopVar, trimmedItem)
+						resultFromLoop, returnedFromBody, bodyErr = i.executeLoopBody(step.Value, stepNum, itemNum)
+						if bodyErr != nil || returnedFromBody {
+							break
+						}
+					}
+				} else { // Character Iteration Path
+					fmt.Printf("      [Looping String Chars: %q]\n", collection)
+					if len(collection) > 0 {
+						loopExecuted = true
+					}
+					for itemNum, charRune := range collection {
+						charStr := string(charRune)
+						i.variables[loopVar] = charStr
+						fmt.Printf("      [Iter %d Char] SET %s = %q\n", itemNum, loopVar, charStr)
+						resultFromLoop, returnedFromBody, bodyErr = i.executeLoopBody(step.Value, stepNum, itemNum)
+						if bodyErr != nil || returnedFromBody {
+							break
+						}
+					}
+				}
+			// TODO: Add map iteration case here
+			default: // Fallback for unhandled types
+				fmt.Printf("      [Looping Fallback - Unhandled Type: %T]\n", evaluatedCollection)
+				bodyErr = fmt.Errorf("cannot iterate over type %T in FOR EACH", evaluatedCollection)
+			} // End switch collection type
+			// --- End Iteration Logic ---
+
+			// Restore loop variable state after loop finishes or breaks
 			if loopVarExists {
 				i.variables[loopVar] = originalLoopVarValue
 			} else {
 				delete(i.variables, loopVar)
-			} // Restore loop var
+			}
 
-			// Handle loop exit reason and RETURN VALUE
+			// Handle loop exit reason and potential RETURN value propagation
 			if bodyErr != nil {
 				return nil, false, fmt.Errorf("error in FOR EACH loop body: %w", bodyErr)
-			} // Error exit
+			}
 			if returnedFromBody {
 				return resultFromLoop, true, nil
-			} // Return exit: return value + signal
+			} // Propagate RETURN from body
 			if loopExecuted {
 				fmt.Printf("      [Loop Finished Normally]\n")
-			} // Normal exit
+			}
 
 		default: // Unknown step type
-			return nil, false, fmt.Errorf("unknown step type encountered: %s", step.Type)
-		}
+			return nil, false, fmt.Errorf("unknown step type encountered in step %d: %s", stepNum+1, step.Type)
+		} // End switch step.Type
+
 	} // End for loop over steps
 
 	// Finished all steps without hitting RETURN or error
 	return nil, false, nil
-}
+} // End executeSteps
 
-// executeLoopBody helper - Returns return value, signal, and error
+// executeLoopBody helper - Executes steps within a loop iteration (WHILE/FOR)
+// Returns: result (if body returned), wasReturn signal, error
 func (i *Interpreter) executeLoopBody(bodyValue interface{}, stepNum int, iterNum int) (result interface{}, wasReturn bool, err error) { // Named returns
-	if blockBody, ok := bodyValue.([]Step); ok {
-		// Execute block recursively. Capture all return values.
-		result, wasReturn, err = i.executeSteps(blockBody) // Capture all 3
-		// Return results directly upwards
-		return result, wasReturn, err
-
-	} else if bodyValue == nil {
-		return nil, false, nil // Empty body is valid, finished normally
-	} else { // Invalid body type
+	blockBody, ok := bodyValue.([]Step)
+	if !ok {
+		// Allow nil body (empty loop body)
+		if bodyValue == nil {
+			return nil, false, nil
+		}
 		return nil, false, fmt.Errorf("step %d: Loop body unexpected type %T (iter %d)", stepNum+1, bodyValue, iterNum)
 	}
+
+	if len(blockBody) == 0 {
+		return nil, false, nil // Empty block is valid
+	}
+
+	// --- Recursive Call to execute steps for the block ---
+	// This inherits the current scope (including the loop variable)
+	result, wasReturn, err = i.executeSteps(blockBody) // Capture all 3 return values
+	// Return results directly upwards - the caller (WHILE/FOR) handles propagation
+	return result, wasReturn, err
+	// --- End Recursive Call ---
 }
 
 // --- Helper Functions ---
@@ -576,6 +530,5 @@ func truncateString(s string, maxLen int) string {
 	return s
 }
 
-// Assume helpers from interpreter_b/c (evaluateCondition, evaluateExpression, tools etc.) are accessible in this package.
-// Make sure necessary utility functions like trimCodeFences, sanitizeFilename, secureFilePath, runGitCommand, GenerateEmbedding, cosineSimilarity are defined (likely in interpreter_c.go)
-// Make sure isValidIdentifier is defined (likely in parser_c.go or interpreter_b.go)
+// Assume other helpers (evaluateCondition, evaluateExpression, tools, trimCodeFences, etc.)
+// are defined in interpreter_b.go, interpreter_c.go, tools_*.go
