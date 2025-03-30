@@ -1,13 +1,13 @@
 DEFINE PROCEDURE ReverseString(inputString)
 COMMENT:
 PURPOSE: Reverse a given input string.
-INPUTS: inputString (string) - The string to be reversed.
-OUTPUT: reversedString (string) - The reversed string.
-ALGORITHM: Iterates through the input string from the last character to the first, appending each character to a new string.
+INPUTS: inputString (string)
+OUTPUT: reversedString (string)
+ALGORITHM: Iterate through the input string from the end to the beginning and concatenate each character to build the reversed string.
 END COMMENT
 SET reversedString = ""
 FOR EACH char IN inputString DO
   SET reversedString = char + reversedString
 END
-RETURN reversedString
+SET result = reversedString
 END
