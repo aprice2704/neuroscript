@@ -3,12 +3,13 @@ package core
 
 // Docstring sections (PURPOSE, INPUTS, etc.)
 type Docstring struct {
-	Purpose   string
-	Inputs    map[string]string // "argName": "description"
-	Output    string
-	Algorithm string
-	Caveats   string
-	Examples  string
+	Purpose    string
+	InputLines []string          // NEW: Store raw input lines to preserve order
+	Inputs     map[string]string // Keep map for potential future parsing (currently unused by listener)
+	Output     string
+	Algorithm  string
+	Caveats    string
+	Examples   string
 }
 
 // Procedure definition

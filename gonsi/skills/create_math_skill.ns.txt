@@ -1,16 +1,16 @@
 # Creates a simple addition skill, saves it, indexes it, and commits it.
 
-DEFINE PROCEDURE CreateAdderSkill()
+SPLAT PROCEDURE CreateAdderSkill()
 COMMENT:
     PURPOSE: Creates skills/adder.ns.txt indexes, and commits it.
     INPUTS: None
     OUTPUT: Status message.
     ALGORITHM: Define script content, WriteFile, VectorUpdate, GitAdd, GitCommit.
-END
+ENDCOMMENT
 
 # Note: Using backticks ` within NeuroScript might require parser changes.
 # Using simple strings with escaped newlines for now.
-SET adder_code = "DEFINE PROCEDURE Add(a, b)\nCOMMENT:\n PURPOSE: Adds two numbers.\n INPUTS:\n  - a: number\n  - b: number\n OUTPUT: The sum (a+b).\n ALGORITHM: Simple addition.\nEND\n\n SET result = {{a}} + {{b}} # Note: Interpreter doesn't evaluate this yet!\n RETURN {{result}}\n\nEND\n"
+SET adder_code = "DEFINE PROCEDURE Add(a, b)\\nCOMMENT:\\n PURPOSE: Adds two numbers.\\n INPUTS:\\n  - a: number\\n  - b: number\\n OUTPUT: The sum (a+b).\\n ALGORITHM: Simple addition.\\nEND\\n\\n SET result = {{a}} + {{b}} # Note: Interpreter doesn't evaluate this yet!\\n RETURN {{result}}\\n\\nEND\\n"
 
 SET filepath = "skills/adder.ns" # Relative path from where gonsi runs
 

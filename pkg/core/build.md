@@ -14,3 +14,4 @@ In pkg/core do:
 
 java -jar /home/aprice/.m2/repository/org/antlr/antlr4/4.13.2/antlr4-4.13.2-complete.jar  -Dlanguage=Go -o generated -visitor -listener -package core NeuroScript.g4
 
+./gonsi skills HandleSkillRequest "Create a NeuroScript skill that reverses a given input string"

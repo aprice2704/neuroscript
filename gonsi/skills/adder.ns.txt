@@ -1,15 +1,8 @@
-DEFINE PROCEDURE Add(a, b)
+SPLAT PROCEDURE Add(a, b)
 COMMENT:
-PURPOSE: Adds two numbers (currently performs string concatenation).
-INPUTS:
- - a: First number (passed as string).
- - b: Second number (passed as string).
-OUTPUT: The sum (a+b) (currently concatenated string).
-ALGORITHM: Concatenates input strings using '+'. [TODO: Implement arithmetic evaluation].
-CAVEATS: This performs string concatenation, NOT arithmetic addition yet.
+ Minimal comment block.
+ENDCOMMENT
 
-# Note: Interpreter evaluates '+' as string concatenation currently.
-# Arithmetic evaluation is a TODO feature.
-SET result = a + b
+RETURN "OK"
 
 END

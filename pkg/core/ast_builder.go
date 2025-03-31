@@ -3,246 +3,245 @@ package core
 
 import (
 	"fmt"
-	"strings" // For processing comment block text
 
-	// Use alias 'gen' for the generated package
+	"github.com/antlr4-go/antlr/v4"
 	gen "github.com/aprice2704/neuroscript/pkg/core/generated"
 )
 
-// neuroScriptListenerImpl implements the ANTLR listener interface
-// to build our core.Procedure AST.
+// neuroScriptListenerImpl ... (struct definition remains the same) ...
 type neuroScriptListenerImpl struct {
-	*gen.BaseNeuroScriptListener // Embed the base listener using alias
-
-	procedures     []Procedure // Stores the final list of procedures
-	currentProc    *Procedure  // Pointer to the procedure currently being built
-	currentSteps   *[]Step     // Pointer to the slice where new steps should be added
-	blockStepStack []*[]Step   // Stack to manage nested block step targets (*[]Step)
+	*gen.BaseNeuroScriptListener
+	procedures     []Procedure
+	currentProc    *Procedure
+	currentSteps   *[]Step
+	blockStepStack []*[]Step
 }
 
-// newNeuroScriptListener creates a new listener instance.
+// newNeuroScriptListener ... (remains the same) ...
 func newNeuroScriptListener() *neuroScriptListenerImpl {
 	return &neuroScriptListenerImpl{
 		procedures:     make([]Procedure, 0),
-		blockStepStack: make([]*[]Step, 0), // Initialize the stack
+		blockStepStack: make([]*[]Step, 0),
 	}
 }
 
-// GetResult returns the built AST.
+// GetResult ... (remains the same) ...
 func (l *neuroScriptListenerImpl) GetResult() []Procedure {
 	return l.procedures
 }
 
-// --- Listener Method Implementations ---
+// --- Listener Method Implementations with Logging ---
 
-// EnterProgram is called when parsing starts.
-func (l *neuroScriptListenerImpl) EnterProgram(ctx *gen.ProgramContext) { // Use alias
-	l.procedures = make([]Procedure, 0) // Initialize
+// EnterEveryRule / ExitEveryRule ... (logging code remains the same) ...
+func (l *neuroScriptListenerImpl) EnterEveryRule(ctx antlr.ParserRuleContext) {}
+func (l *neuroScriptListenerImpl) ExitEveryRule(ctx antlr.ParserRuleContext)  {}
+
+func (l *neuroScriptListenerImpl) EnterProgram(ctx *gen.ProgramContext) {
+	fmt.Println(">>> Enter Program")
+	l.procedures = make([]Procedure, 0)
 }
 
-// EnterProcedure_definition is called when entering a procedure definition.
-func (l *neuroScriptListenerImpl) EnterProcedure_definition(ctx *gen.Procedure_definitionContext) { // Use alias
+func (l *neuroScriptListenerImpl) ExitProgram(ctx *gen.ProgramContext) {
+	fmt.Println("<<< Exit Program")
+}
+
+func (l *neuroScriptListenerImpl) EnterProcedure_definition(ctx *gen.Procedure_definitionContext) {
+	// ... (logging and setup code remains the same) ...
 	procName := ""
 	if ctx.IDENTIFIER() != nil {
 		procName = ctx.IDENTIFIER().GetText()
 	}
-
+	fmt.Printf(">>> Enter Procedure_definition: %s\n", procName)
 	params := []string{}
-	// Use alias for sub-context types as well
 	if ctx.Param_list_opt() != nil && ctx.Param_list_opt().Param_list() != nil {
 		for _, id := range ctx.Param_list_opt().Param_list().AllIDENTIFIER() {
 			params = append(params, id.GetText())
 		}
 	}
-
-	l.currentProc = &Procedure{
-		Name:   procName,
-		Params: params,
-		Steps:  make([]Step, 0), // Initialize steps slice
-		// Docstring will be filled by EnterComment_block
-	}
-	// Set the current steps target to the top-level steps of this procedure
+	l.currentProc = &Procedure{Name: procName, Params: params, Steps: make([]Step, 0), Docstring: Docstring{InputLines: make([]string, 0), Inputs: make(map[string]string)}}
 	l.currentSteps = &l.currentProc.Steps
 }
 
-// ExitProcedure_definition is called when exiting a procedure definition.
-func (l *neuroScriptListenerImpl) ExitProcedure_definition(ctx *gen.Procedure_definitionContext) { // Use alias
+func (l *neuroScriptListenerImpl) ExitProcedure_definition(ctx *gen.Procedure_definitionContext) {
+	procName := ""
 	if l.currentProc != nil {
-		l.procedures = append(l.procedures, *l.currentProc)
+		procName = l.currentProc.Name
 	}
-	l.currentProc = nil  // Reset for the next procedure
-	l.currentSteps = nil // Reset step target outside any procedure
+	fmt.Printf("<<< Exit Procedure_definition: %s\n", procName)
+
+	// --- TEMPORARY DEBUGGING CODE ---
+	// Force adding a dummy procedure to see if the slice is returned correctly
+	dummyProc := Procedure{Name: fmt.Sprintf("DUMMY_FROM_%s", procName)} // Give it a unique name
+	l.procedures = append(l.procedures, dummyProc)
+	fmt.Printf("    DEBUG: Added dummy procedure %s. Procedures count: %d\n", dummyProc.Name, len(l.procedures))
+	// --- END TEMPORARY DEBUGGING CODE ---
+
+	if l.currentProc != nil {
+		fmt.Printf("    DEBUG: Appending actual procedure: %s (Steps: %d)\n", l.currentProc.Name, len(l.currentProc.Steps))
+		l.procedures = append(l.procedures, *l.currentProc) // Appends the actual built procedure
+		fmt.Printf("    DEBUG: Procedures count after append: %d\n", len(l.procedures))
+	} else {
+		fmt.Printf("    DEBUG: l.currentProc was nil, cannot append actual procedure.\n")
+	}
+	l.currentProc = nil
+	l.currentSteps = nil
 }
 
-// EnterComment_block is called when entering a comment block.
-func (l *neuroScriptListenerImpl) EnterComment_block(ctx *gen.Comment_blockContext) { // Use alias
-	if l.currentProc == nil || ctx.COMMENT_BLOCK() == nil {
-		return // Should not happen if grammar is correct
-	}
-	// Get the full text of the COMMENT_BLOCK token
-	fullCommentText := ctx.COMMENT_BLOCK().GetText()
+// --- Docstring Line Handlers REMOVED ---
 
-	// Basic content extraction (Remove delimiters)
-	// TODO: Implement more robust parsing via parseDocstring helper
-	content := strings.TrimPrefix(fullCommentText, "COMMENT:")
-	content = strings.TrimSuffix(content, "END")
-	content = strings.TrimSpace(content) // Trim surrounding whitespace/newlines
-
-	// Use your existing parseDocstring or implement it here
-	l.currentProc.Docstring = parseDocstring(content) // Assuming parseDocstring is defined elsewhere
+// --- Statement Handlers (logging included) ---
+// ... (Keep Enter/ExitStatement, Enter/ExitSet_statement, etc. with logging from V16) ...
+func (l *neuroScriptListenerImpl) EnterStatement(ctx *gen.StatementContext) {
+	fmt.Printf(">>> Enter Statement: Text: %q\n", ctx.GetText())
 }
-
-// EnterSet_statement is called for SET statements.
-func (l *neuroScriptListenerImpl) EnterSet_statement(ctx *gen.Set_statementContext) { // Use alias
+func (l *neuroScriptListenerImpl) ExitStatement(ctx *gen.StatementContext) {
+	fmt.Printf("<<< Exit Statement\n")
+}
+func (l *neuroScriptListenerImpl) EnterSet_statement(ctx *gen.Set_statementContext) {
+	fmt.Printf(">>> Enter Set_statement: %q\n", ctx.GetText())
 	if l.currentSteps == nil {
-		fmt.Println("[WARN] EnterSet_statement called outside a valid step context")
 		return
 	}
 	varName := ""
 	if ctx.IDENTIFIER() != nil {
 		varName = ctx.IDENTIFIER().GetText()
 	}
-	// Expression is captured as raw text for now, interpreter handles evaluation
 	exprText := ""
 	if ctx.Expression() != nil {
 		exprText = ctx.Expression().GetText()
 	}
-
 	step := newStep("SET", varName, "", exprText, nil)
 	*l.currentSteps = append(*l.currentSteps, step)
 }
-
-// EnterCall_statement is called for CALL statements.
-func (l *neuroScriptListenerImpl) EnterCall_statement(ctx *gen.Call_statementContext) { // Use alias
+func (l *neuroScriptListenerImpl) ExitSet_statement(ctx *gen.Set_statementContext) {
+	fmt.Printf("<<< Exit Set_statement\n")
+}
+func (l *neuroScriptListenerImpl) EnterCall_statement(ctx *gen.Call_statementContext) {
+	fmt.Printf(">>> Enter Call_statement: %q\n", ctx.GetText())
 	if l.currentSteps == nil {
-		fmt.Println("[WARN] EnterCall_statement called outside a valid step context")
 		return
 	}
 	target := ""
 	if ctx.Call_target() != nil {
-		target = ctx.Call_target().GetText() // Includes TOOL./LLM if present
+		target = ctx.Call_target().GetText()
 	}
-
 	args := []string{}
 	if ctx.Expression_list_opt() != nil && ctx.Expression_list_opt().Expression_list() != nil {
 		for _, expr := range ctx.Expression_list_opt().Expression_list().AllExpression() {
-			// Store arguments as raw text for now
 			args = append(args, expr.GetText())
 		}
 	}
-
 	step := newStep("CALL", target, "", nil, args)
 	*l.currentSteps = append(*l.currentSteps, step)
 }
-
-// EnterReturn_statement is called for RETURN statements
-func (l *neuroScriptListenerImpl) EnterReturn_statement(ctx *gen.Return_statementContext) { // Use alias
+func (l *neuroScriptListenerImpl) ExitCall_statement(ctx *gen.Call_statementContext) {
+	fmt.Printf("<<< Exit Call_statement\n")
+}
+func (l *neuroScriptListenerImpl) EnterReturn_statement(ctx *gen.Return_statementContext) {
+	fmt.Printf(">>> Enter Return_statement: %q\n", ctx.GetText())
 	if l.currentSteps == nil {
-		fmt.Println("[WARN] EnterReturn_statement called outside a valid step context")
 		return
 	}
-	exprText := "" // Default for RETURN without value
+	exprText := ""
 	if ctx.Expression() != nil {
 		exprText = ctx.Expression().GetText()
 	}
 	step := newStep("RETURN", "", "", exprText, nil)
 	*l.currentSteps = append(*l.currentSteps, step)
 }
+func (l *neuroScriptListenerImpl) ExitReturn_statement(ctx *gen.Return_statementContext) {
+	fmt.Printf("<<< Exit Return_statement\n")
+}
+func (l *neuroScriptListenerImpl) EnterEmit_statement(ctx antlr.ParserRuleContext) {
+	fmt.Printf(">>> Enter Emit_statement: %q\n", ctx.GetText())
+	if l.currentSteps == nil {
+		return
+	}
+	exprText := ""
+	if ctx.GetChildCount() > 1 {
+		exprCtx := ctx.GetChild(1)
+		if exprCtx != nil {
+			exprText = exprCtx.(antlr.ParseTree).GetText()
+		}
+	}
+	step := newStep("EMIT", "", "", exprText, nil)
+	*l.currentSteps = append(*l.currentSteps, step)
+}
+func (l *neuroScriptListenerImpl) ExitEmit_statement(ctx antlr.ParserRuleContext) {
+	fmt.Printf("<<< Exit Emit_statement\n")
+}
 
-// --- Block Handling ---
-
-// Helper to manage entering a block statement (IF, WHILE, FOR)
-func (l *neuroScriptListenerImpl) enterBlock(blockType string, condOrLoopVar string, collectionExpr string) {
+// --- Block Handling Helpers with Logging (Keep from V16) ---
+// ... (Keep enterBlock and exitBlock with logging from V16) ...
+func (l *neuroScriptListenerImpl) enterBlock(blockType string, targetVarOrCond string, collectionExpr string) {
+	fmt.Printf(">>> enterBlock: %s (Target/Cond: %q, Collection: %q)\n", blockType, targetVarOrCond, collectionExpr)
 	if l.currentSteps == nil {
 		fmt.Printf("[WARN] Enter%s called outside a valid step context\n", blockType)
 		return
 	}
 	blockBody := make([]Step, 0)
-	step := newStep(blockType, condOrLoopVar, collectionExpr, blockBody, nil)
+	step := newStep(blockType, targetVarOrCond, collectionExpr, blockBody, nil)
 	*l.currentSteps = append(*l.currentSteps, step)
 	l.blockStepStack = append(l.blockStepStack, l.currentSteps)
-
-	// WORKAROUND APPROACH (See previous explanation - requires care):
-	// Get pointer to the slice *within* the step we just added.
-	lastStepIndex := len(*l.currentSteps) - 1
-	if lastStepIndex < 0 {
-		fmt.Printf("[ERROR] Could not find the %s step just added\n", blockType)
-		l.currentSteps = nil // Indicate error state
-		return
-	}
-	// We need to modify the []Step stored in the interface{} Value field
-	// A safer way is needed, but this attempts to set currentSteps to point to that slice's location.
-	// This is conceptually what we want, but Go makes modifying slices within interface{} tricky.
-	// Re-assigning Value on exit is likely necessary.
-	(*l.currentSteps)[lastStepIndex].Value = blockBody // Ensure the empty slice is in the step
-	l.currentSteps = &blockBody                        // Point to local slice; will need update on exitBlock
-
-	fmt.Printf("[DEBUG] Enter %s: Stack depth %d, currentSteps target potentially set (needs exit update)\n", blockType, len(l.blockStepStack))
-
+	tempBlockBody := make([]Step, 0)
+	l.currentSteps = &tempBlockBody
 }
-
-// Helper to manage exiting a block statement
 func (l *neuroScriptListenerImpl) exitBlock(blockType string) {
-	if len(l.blockStepStack) == 0 {
+	stackSize := len(l.blockStepStack)
+	fmt.Printf("<<< exitBlock: %s (Stack size before pop: %d)\n", blockType, stackSize)
+	if stackSize == 0 {
 		fmt.Printf("[ERROR] Exit%s called with empty stack!\n", blockType)
 		l.currentSteps = nil
 		return
 	}
-
-	// The steps for the block we just finished are in the slice currently pointed to by l.currentSteps
 	finishedBlockSteps := *l.currentSteps
-
-	// Pop the stack to get the parent step list target
-	lastIndex := len(l.blockStepStack) - 1
-	parentSteps := l.blockStepStack[lastIndex]
+	lastIndex := stackSize - 1
+	parentStepsPtr := l.blockStepStack[lastIndex]
 	l.blockStepStack = l.blockStepStack[:lastIndex]
-
-	// Find the block step in the parent list (it's the last one added before we entered the block)
-	// and update its Value field with the steps we collected.
-	if parentSteps != nil {
-		parentStepIndex := len(*parentSteps) - 1
+	if parentStepsPtr != nil {
+		parentStepIndex := len(*parentStepsPtr) - 1
 		if parentStepIndex >= 0 {
-			// Replace the initial empty slice with the populated one
-			(*parentSteps)[parentStepIndex].Value = finishedBlockSteps
-			fmt.Printf("[DEBUG] Exit %s: Updated parent step %d's Value. Stack depth %d\n", blockType, parentStepIndex, len(l.blockStepStack))
+			blockStepToUpdate := &(*parentStepsPtr)[parentStepIndex]
+			blockStepToUpdate.Value = finishedBlockSteps
+			fmt.Printf("    Assigned %d steps to %s block step at parent index %d\n", len(finishedBlockSteps), blockType, parentStepIndex)
 		} else {
-			fmt.Printf("[ERROR] Exit%s: Parent step list was empty?\n", blockType)
+			fmt.Printf("[ERROR] Exit%s: Parent step list pointer was valid but list was empty?\n", blockType)
 		}
+		l.currentSteps = parentStepsPtr
 	} else {
-		fmt.Printf("[ERROR] Exit%s: Parent step list pointer was nil\n", blockType)
+		fmt.Printf("[ERROR] Exit%s: Parent step list pointer from stack was nil\n", blockType)
+		l.currentSteps = nil
 	}
-
-	// Restore the currentSteps target to the parent list
-	l.currentSteps = parentSteps
 }
 
-// --- Implementing Block Listeners ---
-
-func (l *neuroScriptListenerImpl) EnterIf_statement(ctx *gen.If_statementContext) { // Use alias
+// --- Block Statement Enter/Exit using Helpers (Keep from V16) ---
+// ... (Keep Enter/ExitIf_statement, Enter/ExitWhile_statement, Enter/ExitFor_each_statement with logging from V16) ...
+func (l *neuroScriptListenerImpl) EnterIf_statement(ctx *gen.If_statementContext) {
+	fmt.Printf(">>> Enter If_statement\n")
 	condText := ""
 	if ctx.Condition() != nil {
 		condText = ctx.Condition().GetText()
 	}
 	l.enterBlock("IF", "", condText)
 }
-
-func (l *neuroScriptListenerImpl) ExitIf_statement(ctx *gen.If_statementContext) { // Use alias
+func (l *neuroScriptListenerImpl) ExitIf_statement(ctx *gen.If_statementContext) {
 	l.exitBlock("IF")
+	fmt.Printf("<<< Exit If_statement\n")
 }
-
-func (l *neuroScriptListenerImpl) EnterWhile_statement(ctx *gen.While_statementContext) { // Use alias
+func (l *neuroScriptListenerImpl) EnterWhile_statement(ctx *gen.While_statementContext) {
+	fmt.Printf(">>> Enter While_statement\n")
 	condText := ""
 	if ctx.Condition() != nil {
 		condText = ctx.Condition().GetText()
 	}
 	l.enterBlock("WHILE", "", condText)
 }
-
-func (l *neuroScriptListenerImpl) ExitWhile_statement(ctx *gen.While_statementContext) { // Use alias
+func (l *neuroScriptListenerImpl) ExitWhile_statement(ctx *gen.While_statementContext) {
 	l.exitBlock("WHILE")
+	fmt.Printf("<<< Exit While_statement\n")
 }
-
-func (l *neuroScriptListenerImpl) EnterFor_each_statement(ctx *gen.For_each_statementContext) { // Use alias
+func (l *neuroScriptListenerImpl) EnterFor_each_statement(ctx *gen.For_each_statementContext) {
+	fmt.Printf(">>> Enter For_each_statement\n")
 	loopVar := ""
 	if ctx.IDENTIFIER() != nil {
 		loopVar = ctx.IDENTIFIER().GetText()
@@ -251,13 +250,9 @@ func (l *neuroScriptListenerImpl) EnterFor_each_statement(ctx *gen.For_each_stat
 	if ctx.Expression() != nil {
 		collectionExpr = ctx.Expression().GetText()
 	}
-	// Use Target field for loop variable, Cond field for collection expression
 	l.enterBlock("FOR", loopVar, collectionExpr)
 }
-
-func (l *neuroScriptListenerImpl) ExitFor_each_statement(ctx *gen.For_each_statementContext) { // Use alias
+func (l *neuroScriptListenerImpl) ExitFor_each_statement(ctx *gen.For_each_statementContext) {
 	l.exitBlock("FOR")
+	fmt.Printf("<<< Exit For_each_statement\n")
 }
-
-// TODO: Implement methods for other statement types (ASSERT, TRY etc. if added)
-// TODO: Implement methods for specific expression/term types if needed for AST later

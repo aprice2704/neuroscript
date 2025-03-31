@@ -28,9 +28,10 @@ func ParseNeuroScript(r io.Reader) ([]Procedure, error) {
 	// Create the lexer
 	lexer := gen.NewNeuroScriptLexer(inputStream) // Use alias
 
-	// Create and add custom error listener for lexer
-	lexerErrorListener := newNeuroScriptErrorListener()
-	lexer.RemoveErrorListeners()
+	// --- Error Handling Setup ---
+	// ** V14: Use exported names **
+	lexerErrorListener := NewDiagnosticErrorListener()
+	lexer.RemoveErrorListeners() // Remove default console listener
 	lexer.AddErrorListener(lexerErrorListener)
 
 	// Create token stream
@@ -39,25 +40,31 @@ func ParseNeuroScript(r io.Reader) ([]Procedure, error) {
 	// Create the parser
 	parser := gen.NewNeuroScriptParser(tokenStream) // Use alias
 
-	// Create and add custom error listener for parser
-	parserErrorListener := newNeuroScriptErrorListener()
-	parser.RemoveErrorListeners() // Remove default console listener
-	parser.AddErrorListener(parserErrorListener)
+	// --- Add Diagnostic Error Listener to Parser ---
+	// ** V14: Use exported names **
+	parserErrorListener := NewDiagnosticErrorListener()
+	parser.RemoveErrorListeners()                // Remove default console listener
+	parser.AddErrorListener(parserErrorListener) // Add our custom one
+
+	// Optional: Enable ANTLR Trace Listener for extreme detail (prints every step)
+	// parser.SetTrace(true) // Uncomment for trace output
 
 	// Start parsing at the 'program' rule
 	tree := parser.Program() // This returns the ParseTree
 
 	// Check for parse errors collected by the listeners
-	combinedErrors := append(lexerErrorListener.errors, parserErrorListener.errors...)
+	// Combine lexer and parser errors
+	combinedErrors := append(lexerErrorListener.Errors, parserErrorListener.Errors...) // Use exported Errors field
 	if len(combinedErrors) > 0 {
+		// Provide combined error message
 		return nil, fmt.Errorf("parsing failed with errors:\n%s", strings.Join(combinedErrors, "\n"))
 	}
 
-	// Create our custom listener to build the AST
+	// --- AST Building ---
+	// Create our custom listener AFTER checking for fundamental parse errors
 	listener := newNeuroScriptListener() // Assumes func is defined in ast_builder.go
 
-	// *** This is the Walk call you mentioned ***
-	// It walks the 'tree' using your 'listener' implementation
+	// Walk the tree using our listener only if no syntax errors occurred
 	// *** FIX: Use antlr.ParseTreeWalkerDefault instead of antlr.ParseTreeWalker.Default ***
 	antlr.ParseTreeWalkerDefault.Walk(listener, tree)
 
@@ -65,28 +72,82 @@ func ParseNeuroScript(r io.Reader) ([]Procedure, error) {
 	return listener.GetResult(), nil // Assumes GetResult func exists on listener
 }
 
-// --- Custom Error Listener --- (Keep this part as well)
+// --- Custom Diagnostic Error Listener ---
 
-type neuroScriptErrorListener struct {
-	*antlr.DefaultErrorListener // Embed default listener
-	errors                      []string
+// ** V14: Renamed struct to be exported **
+type DiagnosticErrorListener struct {
+	*antlr.DefaultErrorListener          // Embed default listener
+	Errors                      []string // ** V14: Renamed field to be exported **
 }
 
-func newNeuroScriptErrorListener() *neuroScriptErrorListener {
-	return &neuroScriptErrorListener{
-		errors: make([]string, 0),
+// ** V14: Renamed constructor to be exported **
+func NewDiagnosticErrorListener() *DiagnosticErrorListener {
+	return &DiagnosticErrorListener{
+		Errors: make([]string, 0), // Use exported Errors field
 	}
 }
 
-func (l *neuroScriptErrorListener) SyntaxError(recognizer antlr.Recognizer, offendingSymbol interface{}, line, column int, msg string, e antlr.RecognitionException) {
-	errMsg := fmt.Sprintf("line %d:%d %s", line, column, msg)
-	l.errors = append(l.errors, errMsg)
+// Override SyntaxError for more detailed reporting
+// ** V14: Renamed receiver variable 'l' to receiver type 'd' for convention **
+func (d *DiagnosticErrorListener) SyntaxError(recognizer antlr.Recognizer, offendingSymbol interface{}, line, column int, msg string, e antlr.RecognitionException) {
+	// Basic error message
+	basicErrMsg := fmt.Sprintf("line %d:%d %s", line, column, msg)
+
+	// Add more details if possible
+	var extraInfo []string
+	if p, ok := recognizer.(antlr.Parser); ok {
+		// --- Cannot reliably get Expected Tokens due to unexported methods ---
+		extraInfo = append(extraInfo, "Expected: (Unavailable)")
+
+		// Get parser rule stack (Optional, can be very verbose)
+		// extraInfo = append(extraInfo, fmt.Sprintf("RuleStack: %v", p.GetRuleInvocationStack()))
+
+		// Get offending token details
+		if offendingToken, ok := offendingSymbol.(antlr.Token); ok {
+			tokenName := "Unknown"
+			// Ensure token type index is valid before accessing slice
+			symbolicNames := p.GetSymbolicNames()
+			tokenType := offendingToken.GetTokenType()
+
+			if tokenType >= 0 && tokenType < len(symbolicNames) {
+				tokenName = symbolicNames[tokenType]
+			} else if tokenType == antlr.TokenEOF {
+				tokenName = "EOF"
+			}
+			extraInfo = append(extraInfo, fmt.Sprintf("OffendingToken: %s (%q)", tokenName, offendingToken.GetText()))
+		} else {
+			extraInfo = append(extraInfo, fmt.Sprintf("OffendingSymbol: %v (Not an antlr.Token)", offendingSymbol))
+		}
+
+	} else if _, ok := recognizer.(antlr.Lexer); ok {
+		// Handle Lexer errors
+		extraInfo = append(extraInfo, "(Lexer Error)")
+		if offendingSymbol != nil {
+			extraInfo = append(extraInfo, fmt.Sprintf("OffendingSymbol: %v", offendingSymbol))
+		}
+		// Exception 'e' for lexer errors might be nil or less informative
+		if e != nil {
+			extraInfo = append(extraInfo, fmt.Sprintf("Lexer Exception: %T", e))
+		}
+	}
+
+	detailedErrMsg := basicErrMsg
+	if len(extraInfo) > 0 {
+		detailedErrMsg += " [" + strings.Join(extraInfo, ", ") + "]"
+	}
+
+	// ** V14: Use exported Errors field **
+	d.Errors = append(d.Errors, detailedErrMsg)
 }
 
-func (l *neuroScriptErrorListener) HasErrors() bool {
-	return len(l.errors) > 0
+// ** V14: Renamed receiver variable 'l' to receiver type 'd' for convention **
+func (d *DiagnosticErrorListener) HasErrors() bool {
+	// ** V14: Use exported Errors field **
+	return len(d.Errors) > 0
 }
 
-func (l *neuroScriptErrorListener) GetErrors() string {
-	return strings.Join(l.errors, "\n")
+// ** V14: Renamed receiver variable 'l' to receiver type 'd' for convention **
+func (d *DiagnosticErrorListener) GetErrors() string {
+	// ** V14: Use exported Errors field **
+	return strings.Join(d.Errors, "\n")
 }

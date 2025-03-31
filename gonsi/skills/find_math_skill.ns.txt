@@ -1,10 +1,10 @@
-DEFINE PROCEDURE FindAdderSkill()
+SPLAT PROCEDURE FindAdderSkill()
 COMMENT:
     PURPOSE: Searches for a skill related to addition.
     INPUTS: None
     OUTPUT: JSON string of search results.
     ALGORITHM: Call SearchSkills with relevant query.
-END
+ENDCOMMENT
 
 SET query = "add two numbers" # Query to find the adder skill
 

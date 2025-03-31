@@ -1,169 +1,126 @@
-// pkg/core/NeuroScript.g4
+// NeuroScript.g4 - Added SLASH rule
+
 grammar NeuroScript;
 
-// --- Parser Rules (Adapted from .y file) --- version 2 
+options {
+    language = Go;
+}
 
-// Start rule: program consists of optional newlines, procedures, optional newlines
-program: optional_newlines non_empty_procedure_list? optional_newlines EOF; // Use optional '?' for list, require EOF
+// --- Parser Rules ---
+// ... (Parser rules remain unchanged from V18 - COMMENT_BLOCK on default channel) ...
 
-// Procedure list structure
-non_empty_procedure_list: procedure_definition (required_newlines procedure_definition)* ; // Use repetition '*'
+program             : optional_newlines procedure_definition* optional_newlines EOF;
 
-// Helper for optional/required newlines
-optional_newlines: NEWLINE* ; // Zero or more
-required_newlines: NEWLINE+ ; // One or more
+optional_newlines   : NEWLINE*;
 
-// Procedure definition - Note: Actions ({...}) are removed, handled later by Listener/Visitor
-procedure_definition:
-    KW_DEFINE KW_PROCEDURE IDENTIFIER LPAREN param_list_opt RPAREN NEWLINE comment_block statement_list KW_END NEWLINE;
+procedure_definition: KW_STARTPROC KW_PROCEDURE IDENTIFIER LPAREN param_list_opt RPAREN NEWLINE
+                      COMMENT_BLOCK? // Optional COMMENT block (token matched by lexer)
+                      statement_list
+                      KW_END NEWLINE?;
 
-param_list_opt: param_list? ; // Optional parameter list using '?'
-param_list: IDENTIFIER (COMMA IDENTIFIER)* ; // List structure
+param_list_opt      : param_list?;
+param_list          : IDENTIFIER (COMMA IDENTIFIER)*;
 
-// Comment block treated as a single token for now by the lexer rule
-// *** NOTE: This now expects a COMMENT_BLOCK token from the lexer ***
-comment_block: COMMENT_BLOCK;
+statement_list      : body_line* ; // Uses body_line structure
 
-// Statement list structure
-statement_list: (statement)* ; // Zero or more statements
+body_line           : statement NEWLINE // A line with a statement
+                    | NEWLINE         // An empty line
+                    ;
 
-// Statement requires NEWLINE termination
-statement: (simple_statement | block_statement) NEWLINE ; // Grouped alternatives
+statement           : simple_statement | block_statement ; // Statement no longer consumes NEWLINE
 
-// Simple statements
-simple_statement: set_statement | call_statement | return_statement ;
+simple_statement    : set_statement | call_statement | return_statement | emit_statement;
 
-// Block statements
-block_statement: if_statement | while_statement | for_each_statement ;
+block_statement     : if_statement | while_statement | for_each_statement;
 
-// Statement definitions
-set_statement: KW_SET IDENTIFIER ASSIGN expression ;
-call_statement: KW_CALL call_target LPAREN expression_list_opt RPAREN ;
-return_statement: KW_RETURN expression? ; // Optional expression
+set_statement       : KW_SET IDENTIFIER ASSIGN expression;
+call_statement      : KW_CALL call_target LPAREN expression_list_opt RPAREN;
+return_statement    : KW_RETURN expression?;
+emit_statement      : KW_EMIT expression;
 
-// Block statement definitions
-if_statement: KW_IF condition KW_THEN NEWLINE statement_list KW_END ;
-// TODO: Add IF/ELSE rule later
-while_statement: KW_WHILE condition KW_DO NEWLINE statement_list KW_END ;
-for_each_statement: KW_FOR KW_EACH IDENTIFIER KW_IN expression KW_DO NEWLINE statement_list KW_END ;
+if_statement        : KW_IF condition KW_THEN NEWLINE statement_list KW_ENDBLOCK;
+while_statement     : KW_WHILE condition KW_DO NEWLINE statement_list KW_ENDBLOCK;
+for_each_statement  : KW_FOR KW_EACH IDENTIFIER KW_IN expression KW_DO NEWLINE statement_list KW_ENDBLOCK;
 
-// Call target variations
-call_target: IDENTIFIER | KW_TOOL DOT IDENTIFIER | KW_LLM ;
-
-// Condition structure
-condition: expression ((EQ | NEQ | GT | LT | GTE | LTE) expression)? ; // Optional comparison
-
-// Expression structure (Simplified - ANTLR handles precedence better if defined)
-expression: term (PLUS term)* ; // Only string concat for now
-
-term: literal
-    | placeholder
-    | IDENTIFIER          // Variable access
-    | KW_LAST_CALL_RESULT
-    | LPAREN expression RPAREN
-    ;
-
-placeholder: PLACEHOLDER_START IDENTIFIER PLACEHOLDER_END ;
-
-literal: STRING_LIT
-       | NUMBER_LIT
-       | list_literal
-       | map_literal
-       ;
-
-list_literal: LBRACK expression_list_opt RBRACK ;
-map_literal: LBRACE map_entry_list_opt RBRACE ;
-
-expression_list_opt: expression_list? ;
-expression_list: expression (COMMA expression)* ;
-
-map_entry_list_opt: map_entry_list? ;
-map_entry_list: map_entry (COMMA map_entry)* ;
-
-map_entry: STRING_LIT COLON expression ; // Key must be string literal
+call_target         : IDENTIFIER | KW_TOOL DOT IDENTIFIER | KW_LLM;
+condition           : expression ( (EQ | NEQ | GT | LT | GTE | LTE) expression )? ;
+expression          : term (PLUS term)*;
+term                : literal | placeholder | IDENTIFIER | KW_LAST_CALL_RESULT | LPAREN expression RPAREN;
+placeholder         : PLACEHOLDER_START IDENTIFIER PLACEHOLDER_END;
+literal             : STRING_LIT | NUMBER_LIT | list_literal | map_literal;
+list_literal        : LBRACK expression_list_opt RBRACK;
+map_literal         : LBRACE map_entry_list_opt RBRACE;
+expression_list_opt : expression_list?;
+expression_list     : expression (COMMA expression)*;
+map_entry_list_opt  : map_entry_list?;
+map_entry_list      : map_entry (COMMA map_entry)*;
+map_entry           : STRING_LIT COLON expression;
 
 
-// --- Lexer Rules (Adapted from lexer.go and .y tokens) ---
+// --- Lexer Rules ---
 
-// Keywords (Order matters - place before IDENTIFIER)
-KW_DEFINE: 'DEFINE';
-KW_PROCEDURE: 'PROCEDURE';
-// *** Changed KW_COMMENT_START to KW_COMMENT ***
-KW_COMMENT: 'COMMENT:';
-KW_END: 'END';
-KW_SET: 'SET';
-KW_CALL: 'CALL';
-KW_RETURN: 'RETURN';
-KW_IF: 'IF';
-KW_THEN: 'THEN';
-KW_ELSE: 'ELSE';
-KW_WHILE: 'WHILE';
-KW_DO: 'DO';
-KW_FOR: 'FOR';
-KW_EACH: 'EACH';
-KW_IN: 'IN';
-KW_TOOL: 'TOOL';
-KW_LLM: 'LLM';
-KW_LAST_CALL_RESULT: '__last_call_result'; // Treat as keyword/reserved
-
-// Literals
-NUMBER_LIT : [0-9]+ ; // Simple integer for now
-STRING_LIT : '"' (~["\\\r\n] | EscapeSequence)* '"'
-           | '\'' (~['\\\r\n] | EscapeSequence)* '\''
-           ;
-
-// Operators and Delimiters
-ASSIGN : '=';
-PLUS   : '+';
-LPAREN : '(';
-RPAREN : ')';
-COMMA  : ',';
-LBRACK : '[';
-RBRACK : ']';
-LBRACE : '{';
-RBRACE : '}';
-COLON  : ':';
-DOT    : '.';
-PLACEHOLDER_START : '{{';
-PLACEHOLDER_END   : '}}';
-EQ     : '==';
-NEQ    : '!=';
-GT     : '>';
-LT     : '<';
-GTE    : '>=';
-LTE    : '<=';
-
-// Identifiers
-IDENTIFIER : [a-zA-Z_] [a-zA-Z0-9_]* ; // Standard identifier pattern
-
-// *** MODIFIED Comment Block Handling (No Modes) ***
-// This matches the whole structure KW_COMMENT ... KW_END as one token.
-// Content extraction needs to happen later. Non-greedy .*? is important.
-COMMENT_BLOCK : KW_COMMENT .*? KW_END ; // Capture the whole block as one token
-// Alternatively, capture it:
-// COMMENT_BLOCK : KW_COMMENT .*? KW_END;
-// Or more precisely (handling nested comments is hard without modes):
-// COMMENT_BLOCK : KW_COMMENT (~[E] | 'E' ~[N] | 'EN' ~[D] )*? KW_END; // Tries to avoid matching inner END
-
-// Single-line comments (Skipped)
-LINE_COMMENT : ('#' | '--') ~[\r\n]* -> skip ;
-
-// Newlines (Significant for parser)
-NEWLINE : ( '\r'? '\n' | '\r' ) ; // Handle different line endings
-
-// Whitespace (Skipped)
-WS : [ \t]+ -> skip ;
-
-// Line Continuation (Handled via lexer mode or pre-processing - simpler to skip for now)
-// LINE_CONTINUATION: '\\' [\t ]* ('\r'? '\n' | '\r') -> skip; // Or potentially handle differently
-
-// Error character
-// INVALID : . ; // Catch any other character - ANTLR handles this implicitly
+// Keywords
+KW_STARTPROC        : 'SPLAT';
+KW_PROCEDURE        : 'PROCEDURE';
+KW_END              : 'END';
+KW_ENDBLOCK         : 'ENDBLOCK';
+KW_COMMENT_START    : 'COMMENT:';
+KW_ENDCOMMENT       : 'ENDCOMMENT';
+KW_SET              : 'SET';
+KW_CALL             : 'CALL';
+// ... (all other keywords remain the same) ...
+KW_RETURN           : 'RETURN';
+KW_IF               : 'IF';
+KW_THEN             : 'THEN';
+KW_ELSE             : 'ELSE';
+KW_WHILE            : 'WHILE';
+KW_DO               : 'DO';
+KW_FOR              : 'FOR';
+KW_EACH             : 'EACH';
+KW_IN               : 'IN';
+KW_TOOL             : 'TOOL';
+KW_LLM              : 'LLM';
+KW_LAST_CALL_RESULT : '__last_call_result';
+KW_EMIT             : 'EMIT';
 
 
-// Fragment for escape sequences used in STRING_LIT
-fragment EscapeSequence : '\\' (["'\\trn] | UNICODE_ESC) ; // Basic escapes
-fragment UNICODE_ESC : 'u' HEX_DIGIT HEX_DIGIT HEX_DIGIT HEX_DIGIT ; // Example
-fragment HEX_DIGIT : [0-9a-fA-F] ;
+// COMMENT_BLOCK on default channel
+COMMENT_BLOCK       : KW_COMMENT_START .*? KW_ENDCOMMENT;
 
-// *** REMOVED Lexer Modes Section ***
+// Literals, Operators, etc.
+NUMBER_LIT          : [0-9]+ ;
+STRING_LIT          : '"' ( ~["\\\r\n] | EscapeSequence )* '"' | '\'' ( ~['\\\r\n] | EscapeSequence )* '\'';
+ASSIGN              : '=';
+PLUS                : '+';
+LPAREN              : '(';
+RPAREN              : ')';
+COMMA               : ',';
+LBRACK              : '[';
+RBRACK              : ']';
+LBRACE              : '{';
+RBRACE              : '}';
+COLON               : ':';
+DOT                 : '.';
+SLASH               : '/' -> channel(HIDDEN); // ** V19: Added rule for SLASH, send to hidden **
+PLACEHOLDER_START   : '{{';
+PLACEHOLDER_END     : '}}';
+EQ                  : '==';
+NEQ                 : '!=';
+GT                  : '>';
+LT                  : '<';
+GTE                 : '>=';
+LTE                 : '<=';
+
+// Identifier rule MUST come AFTER all keywords
+IDENTIFIER          : [a-zA-Z_] [a-zA-Z0-9_]* ;
+
+// Comments, Whitespace, Newlines
+LINE_COMMENT        : ('#' | '--') ~[\r\n]* -> channel(HIDDEN) ;
+NEWLINE             : '\r'? '\n' | '\r';
+WS                  : [ \t]+ -> channel(HIDDEN) ;
+LINE_CONTINUATION   : '\\' '\r'? '\n' -> skip;
+
+// Fragments
+fragment EscapeSequence : '\\' (["'\\nrt] | UNICODE_ESC) ;
+fragment UNICODE_ESC : 'u' HEX_DIGIT HEX_DIGIT HEX_DIGIT HEX_DIGIT ;
+fragment HEX_DIGIT   : [0-9a-fA-F] ;

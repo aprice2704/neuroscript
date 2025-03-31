@@ -5,18 +5,27 @@
   "patterns": [
     {
       "name": "keyword.control.neuroscript",
-      "match": "\\b(DEFINE|PROCEDURE|COMMENT|END|SET|CALL|IF|THEN|ELSE|RETURN|FOR|EACH|DO|WHILE|EMIT|ASSERT|TRY|CATCH|REFLECT|NAVIGATE)\\b"
+      "match": "\\b(DEFINE|PROCEDURE|COMMENT|END|SET|CALL|IF|THEN|ELSE|RETURN|FOR|EACH|DO|WHILE|EMIT|ASSERT|TRY|CATCH|REFLECT|NAVIGATE|SPLAT)\\b"
     },
     {
-      "name": "comment.block.neuroscript",
-      "begin": "(COMMENT:)",
-      "end": "(END)",
-      "patterns": [
-        {
-          "name": "comment.line.neuroscript",
-          "match": ".*"
-        }
-      ]
+      "name": "comment.line.documentation.neuroscript",
+      "match": "^(DOC_PURPOSE:|DOC_INPUTS:|DOC_OUTPUT:|DOC_ALGORITHM:|DOC_CAVEATS:|DOC_EXAMPLES:).*"
+    },
+    {
+      "name": "comment.line.hash.neuroscript",
+      "match": "#.*"
+    },
+    {
+      "name": "comment.line.double-dash.neuroscript",
+      "match": "--.*"
+    },
+    {
+      "name": "variable.language.neuroscript",
+      "match": "\\b(__last_call_result)\\b"
+    },
+    {
+      "name": "keyword.other.neuroscript",
+      "match": "\\b(TOOL|LLM)\\b"
     },
     {
       "name": "string.quoted.double.neuroscript",
@@ -26,8 +35,56 @@
         {
           "name": "constant.character.escape.neuroscript",
           "match": "\\\\."
+        },
+        {
+          "name": "variable.parameter.placeholder.neuroscript",
+          "begin": "\\{\\{",
+          "end": "\\}\\}",
+          "patterns": [
+            {
+              "name": "entity.name.variable.neuroscript",
+              "match": "[a-zA-Z_][a-zA-Z0-9_]*"
+            }
+          ]
         }
       ]
+    },
+    {
+      "name": "string.quoted.single.neuroscript",
+      "begin": "'",
+      "end": "'",
+      "patterns": [
+        {
+          "name": "constant.character.escape.neuroscript",
+          "match": "\\\\."
+        },
+        {
+          "name": "variable.parameter.placeholder.neuroscript",
+          "begin": "\\{\\{",
+          "end": "\\}\\}",
+          "patterns": [
+            {
+              "name": "entity.name.variable.neuroscript",
+              "match": "[a-zA-Z_][a-zA-Z0-9_]*"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "variable.parameter.placeholder.neuroscript",
+      "begin": "\\{\\{",
+      "end": "\\}\\}",
+      "patterns": [
+        {
+          "name": "entity.name.variable.neuroscript",
+          "match": "[a-zA-Z_][a-zA-Z0-9_]*"
+        }
+      ]
+    },
+    {
+      "name": "constant.numeric.neuroscript",
+      "match": "\\b[0-9]+\\b"
     }
   ]
 }
