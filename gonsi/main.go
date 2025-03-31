@@ -2,188 +2,269 @@
 package main
 
 import (
+	"bytes"
+	"flag"
 	"fmt"
+	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
-	"time" // Added for token timing if needed, optional
+	"time"
 
 	"github.com/antlr4-go/antlr/v4"
-	// Use your actual module path here if different
 	"github.com/aprice2704/neuroscript/pkg/core"
-	gen "github.com/aprice2704/neuroscript/pkg/core/generated" // Import generated package for token names
+	gen "github.com/aprice2704/neuroscript/pkg/core/generated"
 )
 
+// --- Logger Setup ---
+var (
+	infoLog  *log.Logger
+	debugLog *log.Logger
+	errorLog *log.Logger
+)
+
+// Define command-line flags
+var (
+	debugTokens  = flag.Bool("debug-tokens", false, "Enable verbose token logging during lexing (ignored if -debug-on-error is set)")
+	debugAST     = flag.Bool("debug-ast", false, "Enable verbose AST node logging during parsing (ignored if -debug-on-error is set)")
+	debugOnError = flag.Bool("debug-on-error", false, "Only show token/AST debug output for files with parse errors (overrides other debug flags)") // Priority flag
+)
+
+func initLoggers(enableDebug bool) {
+	infoLog = log.New(os.Stdout, "INFO: ", log.Ldate|log.Ltime)
+	errorLog = log.New(os.Stderr, "ERROR: ", log.Ldate|log.Ltime|log.Lshortfile)
+
+	debugOutput := io.Discard
+	if enableDebug {
+		debugOutput = os.Stderr
+	}
+	debugLog = log.New(debugOutput, "DEBUG: ", log.Ldate|log.Ltime|log.Lshortfile)
+
+	log.SetOutput(os.Stderr)
+	log.SetPrefix("FATAL: ")
+	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
+}
+
 func main() {
-	// Updated arguments: main.go <skills_directory> <ProcedureToRun> [args...]
-	if len(os.Args) < 3 {
-		fmt.Println("Usage: gonsi <skills_directory> <ProcedureToRun> [args...]")
+	flag.Parse()
+
+	// Determine if the main debug channel should be enabled
+	// Enable if any debug flag is set, as we buffer and decide later
+	enableMainDebug := *debugTokens || *debugAST || *debugOnError
+	initLoggers(enableMainDebug)
+
+	args := flag.Args()
+	if len(args) < 2 {
+		fmt.Println("Usage: gonsi [flags] <skills_directory> <ProcedureToRun> [args...]")
+		flag.PrintDefaults()
 		os.Exit(1)
 	}
-	skillsDir := os.Args[1]
-	procToRun := os.Args[2]
-	procArgs := []string{} // Initialize as empty string slice
-	if len(os.Args) > 3 {
-		procArgs = os.Args[3:]
+	skillsDir := args[0]
+	procToRun := args[1]
+	procArgs := []string{}
+	if len(args) > 2 {
+		procArgs = args[2:]
 	}
 
-	// --- Load Procedures ---
 	interpreter := core.NewInterpreter()
-	fmt.Printf("Loading procedures from directory: %s\n", skillsDir)
-	var firstParseError error // Variable to store the first error encountered
+	infoLog.Printf("Loading procedures from directory: %s", skillsDir)
+	var firstParseError error
 
-	// Walk the directory to find .ns.txt files
 	walkErr := filepath.Walk(skillsDir, func(path string, info os.FileInfo, err error) error {
-		// Stop immediately if a parse error has already occurred in a previous file
 		if firstParseError != nil {
-			return firstParseError // Propagate the error to stop the walk
+			return firstParseError
 		}
-
 		if err != nil {
-			fmt.Printf("    Warning: Error accessing path %q: %v\n", path, err)
-			return nil // Continue walking if possible on access error
+			errorLog.Printf("Error accessing path %q: %v", path, err)
+			return nil
 		}
 
 		if !info.IsDir() && strings.HasSuffix(info.Name(), ".ns.txt") {
-			fmt.Printf("\n--- Processing File: %s ---\n", filepath.Base(path)) // Identify file being processed
+			fileName := filepath.Base(path)
+			debugLog.Printf("--- Processing File: %s ---", fileName)
 
-			// Read file content first
+			var fileDebugBuffer bytes.Buffer
+			fileDebugLogger := log.New(&fileDebugBuffer, "", 0)
+
+			// Determine if debug info *needs* to be generated/captured, even if not immediately flushed.
+			// We capture if any debug flag is on, because -debug-on-error might need it later.
+			captureTokens := *debugTokens || *debugOnError
+			captureAST := *debugAST || *debugOnError
+
+			// Read file content
 			contentBytes, readErr := os.ReadFile(path)
 			if readErr != nil {
-				fmt.Printf("    [Error] Could not read file %s: %v\n", filepath.Base(path), readErr)
-				return nil // Continue walking
+				errorLog.Printf("Could not read file %s: %v", fileName, readErr)
+				return nil // Continue walk
 			}
 			inputString := string(contentBytes)
 			inputStream := antlr.NewInputStream(inputString)
 
-			// Create Lexer
+			// --- Lexing ---
 			lexer := gen.NewNeuroScriptLexer(inputStream)
-			lexerErrorListener := core.NewDiagnosticErrorListener() // Use custom listener if available, otherwise basic
+			basicLexerErrorListener := &errorListener{sourceName: fileName}
 			lexer.RemoveErrorListeners()
-			lexer.AddErrorListener(lexerErrorListener)
-
-			// Create Token Stream
+			lexer.AddErrorListener(basicLexerErrorListener)
 			tokenStream := antlr.NewCommonTokenStream(lexer, antlr.TokenDefaultChannel)
-			tokenReadStart := time.Now() // Optional timing
-			tokenStream.Fill()           // Fill the stream to get all tokens
+			tokenReadStart := time.Now()
+			tokenStream.Fill()
 			tokenReadDuration := time.Since(tokenReadStart)
 
-			// --- Print Token Stream ---
-			fmt.Printf("    Tokens (Read in %v):\n", tokenReadDuration)
-			tokens := tokenStream.GetAllTokens()
-			tokenNames := lexer.GetSymbolicNames() // Use lexer for names
-			for _, token := range tokens {
-				tokenName := ""
-				tokenType := token.GetTokenType()
-				if tokenType >= 0 && tokenType < len(tokenNames) {
-					tokenName = tokenNames[tokenType]
-				} else if tokenType == antlr.TokenEOF {
-					tokenName = "EOF"
-				} else {
-					tokenName = fmt.Sprintf("Type(%d)", tokenType)
+			// --- Conditional Token Logging (to buffer) ---
+			if captureTokens { // Capture token info if potentially needed
+				fileDebugLogger.Printf("    Tokens for %s (Read in %v):", fileName, tokenReadDuration)
+				tokens := tokenStream.GetAllTokens()
+				tokenNames := lexer.GetSymbolicNames()
+				for _, token := range tokens {
+					tokenName := ""
+					tokenType := token.GetTokenType()
+					if tokenType >= 0 && tokenType < len(tokenNames) {
+						tokenName = tokenNames[tokenType]
+					} else if tokenType == antlr.TokenEOF {
+						tokenName = "EOF"
+					} else {
+						tokenName = fmt.Sprintf("Type(%d)", tokenType)
+					}
+					fileDebugLogger.Printf("      %s (%q) L%d:%d Ch:%d",
+						tokenName, token.GetText(), token.GetLine(), token.GetColumn(), token.GetChannel())
 				}
-				// Print details: Type Name (Text) Line:Col Channel
-				fmt.Printf("      %s (%q) L%d:%d Ch:%d\n",
-					tokenName,
-					token.GetText(),
-					token.GetLine(),
-					token.GetColumn(),
-					token.GetChannel(),
-				)
+				fileDebugLogger.Println("    --- End Tokens ---")
 			}
-			fmt.Println("    --- End Tokens ---")
-			// --- End Print Token Stream ---
 
 			// Check for lexer errors before parsing
-			if lexerErrorListener.HasErrors() {
-				errStr := lexerErrorListener.GetErrors()
-				fmt.Printf("    [Warning] Skipping file due to lexer errors:\n%s\n", errStr)
-				firstParseError = fmt.Errorf("lexer error in '%s'", filepath.Base(path)) // Set flag to stop
-				return firstParseError                                                   // Stop walk
+			hasLexerError := len(basicLexerErrorListener.errors) > 0
+			if hasLexerError {
+				errStr := strings.Join(basicLexerErrorListener.errors, "\n")
+				errorLog.Printf("Skipping file '%s' due to lexer errors:\n%s", fileName, errStr)
+				// --- Flush Debug Buffer on Lexer Error ONLY if -debug-on-error is set ---
+				if *debugOnError { // Check the priority flag
+					debugLog.Printf("--- Buffered Debug Output for %s (Lexer Error with -debug-on-error) ---", fileName)
+					bufferContent := fileDebugBuffer.Bytes()
+					if len(bufferContent) > 0 && len(strings.TrimSpace(string(bufferContent))) > 0 {
+						debugLog.Writer().Write(bufferContent)
+					} else {
+						debugLog.Printf("(No non-whitespace buffered debug output to show)")
+					}
+					debugLog.Printf("--- End Buffered Debug Output ---")
+				}
+				// --- End Flush ---
+				firstParseError = fmt.Errorf("lexer error in '%s'", fileName)
+				return firstParseError // Stop walk
 			}
 
-			// IMPORTANT: Reset the token stream to the beginning for the parser
+			// --- Parsing ---
 			tokenStream.Seek(0)
-
-			// Parse the file using the API (which creates its own parser+listener)
-			// We pass the already-read content via a strings.Reader
 			stringReader := strings.NewReader(inputString)
-			procedures, parseErr := core.ParseNeuroScript(stringReader) // Pass reader to parser API
+			parseOptions := core.ParseOptions{
+				DebugAST: captureAST,      // Tell listener to capture if potentially needed
+				Logger:   fileDebugLogger, // Always log to buffer if captureAST is true
+			}
+			procedures, parseErr := core.ParseNeuroScript(stringReader, fileName, parseOptions)
+			hasParseError := parseErr != nil
 
-			if parseErr != nil {
-				// ** Stop walk on first parse error **
-				wrappedErr := fmt.Errorf("parsing '%s': %w", filepath.Base(path), parseErr)
-				fmt.Printf("    [Error] %v\n", wrappedErr) // Print the detailed error
-				firstParseError = wrappedErr               // Store the error
-				return firstParseError                     // <<< Return error here to STOP walking
+			// --- Conditional Flushing of Buffered Debug Logs (Revised Priority Logic) ---
+			shouldFlushBuffer := false
+			flushReason := ""
+
+			if *debugOnError {
+				// If -debug-on-error is set, ONLY flush if there was an error
+				if hasParseError {
+					shouldFlushBuffer = true
+					flushReason = "(Parse Error with -debug-on-error)"
+				}
+			} else {
+				// If -debug-on-error is NOT set, flush if explicit flags were set
+				if *debugTokens || *debugAST {
+					shouldFlushBuffer = true
+					reasons := []string{}
+					if *debugTokens {
+						reasons = append(reasons, "-debug-tokens")
+					}
+					if *debugAST {
+						reasons = append(reasons, "-debug-ast")
+					}
+					flushReason = "(" + strings.Join(reasons, ", ") + ")"
+				}
+			}
+
+			if shouldFlushBuffer {
+				debugLog.Printf("--- Buffered Debug Output for %s %s ---", fileName, flushReason)
+				bufferContent := fileDebugBuffer.Bytes()
+				if len(bufferContent) > 0 {
+					trimmedContent := strings.TrimSpace(string(bufferContent))
+					if len(trimmedContent) > 0 {
+						debugLog.Writer().Write(bufferContent)
+					} else {
+						debugLog.Printf("(No non-whitespace buffered debug output to show)")
+					}
+				} else {
+					debugLog.Printf("(No buffered debug output to show)")
+				}
+				debugLog.Printf("--- End Buffered Debug Output ---")
+			}
+			// --- End Conditional Flushing ---
+
+			if hasParseError {
+				errorLog.Printf("Parse error processing %s.", fileName)
+				firstParseError = parseErr
+				return firstParseError // Stop walk
 			}
 
 			// Load successfully parsed procedures
 			if loadErr := interpreter.LoadProcedures(procedures); loadErr != nil {
-				// This error shouldn't happen if parsing succeeded, but handle anyway
-				wrappedErr := fmt.Errorf("loading from '%s': %w", filepath.Base(path), loadErr)
-				fmt.Printf("    [Error] %v\n", wrappedErr)
-				firstParseError = wrappedErr // Store the error
-				return firstParseError       // Stop walk
+				wrappedErr := fmt.Errorf("loading from '%s': %w", fileName, loadErr)
+				errorLog.Printf("Load error: %v", wrappedErr)
+				firstParseError = wrappedErr
+				return firstParseError // Stop walk
 			}
-			fmt.Printf("    Successfully parsed and loaded %d procedures from %s\n", len(procedures), filepath.Base(path))
+			// Log successful load only if needed (main debug enabled)
+			debugLog.Printf("Successfully parsed and loaded %d procedures from %s", len(procedures), fileName)
 		}
-		return nil // Continue walking normally if no error occurred in this step
+		return nil
 	})
 
-	// Check if the walk was stopped by an error (either access or parse error)
+	// --- Post-Walk Handling ---
 	if walkErr != nil && firstParseError != nil {
-		fmt.Printf("\nDirectory walk stopped due to first error encountered: %v\n", firstParseError)
-		os.Exit(1) // Exit with error status
+		infoLog.Printf("Directory walk stopped due to first error encountered.")
+		os.Exit(1)
 	} else if walkErr != nil {
-		// Handle other potential walk errors (e.g., permissions)
-		fmt.Printf("\nError walking skills directory '%s': %v\n", skillsDir, walkErr)
+		errorLog.Printf("Error walking skills directory '%s': %v", skillsDir, walkErr)
 		os.Exit(1)
 	}
 
-	// If walk completed without parse errors stopping it:
 	if firstParseError == nil {
-		fmt.Println("Finished loading procedures successfully.")
+		infoLog.Println("Finished loading procedures successfully.")
 	} else {
-		// This case shouldn't be reached if stopping logic works, but included for safety
-		fmt.Println("Finished loading procedures (some files skipped due to errors).")
+		infoLog.Println("Directory walk stopped due to errors.")
 		os.Exit(1)
 	}
 
 	// --- Execute Requested Procedure ---
-	// This part will only be reached if all files parsed correctly OR
-	// if the walk completed before finding the target file (which is unlikely if stopping on error)
-	fmt.Printf("\nExecuting procedure: %s with args: %v\n", procToRun, procArgs)
+	infoLog.Printf("Executing procedure: %s with args: %v", procToRun, procArgs)
 	fmt.Println("--------------------")
 
-	result, runErr := interpreter.RunProcedure(procToRun, procArgs...) // Use variadic slice expansion
+	result, runErr := interpreter.RunProcedure(procToRun, procArgs...)
 
 	fmt.Println("--------------------")
-	fmt.Println("Execution finished.")
+	infoLog.Println("Execution finished.")
 
 	if runErr != nil {
-		fmt.Printf("Execution Error: %v\n", runErr)
-		os.Exit(1) // Exit with error code if execution failed
+		errorLog.Printf("Execution Error: %v", runErr)
+		os.Exit(1)
 	}
 
-	// Only print result if execution was successful
-	fmt.Printf("Final Result: %v\n", result)
-	// Exit normally
+	infoLog.Printf("Final Result: %v", result)
 }
 
-// Helper type for diagnostic listener (copy from parser_api.go if needed)
-// Ensure this matches the definition used in parser_api.go
-type diagnosticErrorListener struct {
+// --- Minimal Error Listener for Lexer ---
+type errorListener struct {
 	*antlr.DefaultErrorListener
-	errors []string
+	errors     []string
+	sourceName string
 }
 
-func newDiagnosticErrorListener() *diagnosticErrorListener {
-	return &diagnosticErrorListener{errors: make([]string, 0)}
+func (l *errorListener) SyntaxError(recognizer antlr.Recognizer, offendingSymbol interface{}, line, column int, msg string, e antlr.RecognitionException) {
+	errMsg := fmt.Sprintf("%s:%d:%d %s", l.sourceName, line, column, msg)
+	l.errors = append(l.errors, errMsg)
 }
-func (l *diagnosticErrorListener) SyntaxError(recognizer antlr.Recognizer, offendingSymbol interface{}, line, column int, msg string, e antlr.RecognitionException) {
-	detailedMsg := fmt.Sprintf("line %d:%d %s", line, column, msg) // Basic message
-	l.errors = append(l.errors, detailedMsg)
-}
-func (l *diagnosticErrorListener) HasErrors() bool   { return len(l.errors) > 0 }
-func (l *diagnosticErrorListener) GetErrors() string { return strings.Join(l.errors, "\n") }

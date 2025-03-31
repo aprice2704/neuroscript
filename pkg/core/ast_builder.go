@@ -2,63 +2,96 @@
 package core
 
 import (
-	"fmt"
+	// "fmt" // No longer needed for direct printing
+	"io"  // Needed for io.Discard
+	"log" // Import log package
+	"strings"
 
 	"github.com/antlr4-go/antlr/v4"
 	gen "github.com/aprice2704/neuroscript/pkg/core/generated"
 )
 
-// neuroScriptListenerImpl ... (struct definition remains the same) ...
 type neuroScriptListenerImpl struct {
 	*gen.BaseNeuroScriptListener
 	procedures     []Procedure
 	currentProc    *Procedure
 	currentSteps   *[]Step
 	blockStepStack []*[]Step
+	logger         *log.Logger // Add logger
+	debugAST       bool        // Add debug flag
 }
 
-// newNeuroScriptListener ... (remains the same) ...
-func newNeuroScriptListener() *neuroScriptListenerImpl {
+// Updated constructor to accept logger and flag
+func newNeuroScriptListener(logger *log.Logger, debugAST bool) *neuroScriptListenerImpl {
+	// Ensure logger is non-nil
+	if logger == nil {
+		logger = log.New(io.Discard, "", 0) // Default to discard if nil
+	}
 	return &neuroScriptListenerImpl{
 		procedures:     make([]Procedure, 0),
 		blockStepStack: make([]*[]Step, 0),
+		logger:         logger,   // Store logger
+		debugAST:       debugAST, // Store flag
 	}
 }
 
-// GetResult ... (remains the same) ...
 func (l *neuroScriptListenerImpl) GetResult() []Procedure {
 	return l.procedures
 }
 
-// --- Listener Method Implementations with Logging ---
+// Helper for conditional logging
+func (l *neuroScriptListenerImpl) logDebugAST(format string, v ...interface{}) {
+	if l.debugAST {
+		l.logger.Printf(format, v...)
+	}
+}
 
-// EnterEveryRule / ExitEveryRule ... (logging code remains the same) ...
-func (l *neuroScriptListenerImpl) EnterEveryRule(ctx antlr.ParserRuleContext) {}
-func (l *neuroScriptListenerImpl) ExitEveryRule(ctx antlr.ParserRuleContext)  {}
+// --- Listener Method Implementations with Conditional Logging ---
+
+func (l *neuroScriptListenerImpl) EnterEveryRule(ctx antlr.ParserRuleContext) {
+	// l.logDebugAST(" -> Enter %s", parser.RuleNames[ctx.GetRuleIndex()]) // Requires parser instance
+}
+func (l *neuroScriptListenerImpl) ExitEveryRule(ctx antlr.ParserRuleContext) {
+	// l.logDebugAST(" <- Exit %s", parser.RuleNames[ctx.GetRuleIndex()]) // Requires parser instance
+}
 
 func (l *neuroScriptListenerImpl) EnterProgram(ctx *gen.ProgramContext) {
-	fmt.Println(">>> Enter Program")
+	l.logDebugAST(">>> Enter Program")
 	l.procedures = make([]Procedure, 0)
 }
 
 func (l *neuroScriptListenerImpl) ExitProgram(ctx *gen.ProgramContext) {
-	fmt.Println("<<< Exit Program")
+	l.logDebugAST("<<< Exit Program")
 }
 
 func (l *neuroScriptListenerImpl) EnterProcedure_definition(ctx *gen.Procedure_definitionContext) {
-	// ... (logging and setup code remains the same) ...
 	procName := ""
 	if ctx.IDENTIFIER() != nil {
 		procName = ctx.IDENTIFIER().GetText()
 	}
-	fmt.Printf(">>> Enter Procedure_definition: %s\n", procName)
+	l.logDebugAST(">>> Enter Procedure_definition: %s", procName) // Use helper
 	params := []string{}
 	if ctx.Param_list_opt() != nil && ctx.Param_list_opt().Param_list() != nil {
 		for _, id := range ctx.Param_list_opt().Param_list().AllIDENTIFIER() {
 			params = append(params, id.GetText())
 		}
 	}
-	l.currentProc = &Procedure{Name: procName, Params: params, Steps: make([]Step, 0), Docstring: Docstring{InputLines: make([]string, 0), Inputs: make(map[string]string)}}
+	// Parse COMMENT_BLOCK content into Docstring struct
+	docstring := Docstring{} // Default empty
+	if ctx.COMMENT_BLOCK() != nil {
+		commentContent := ctx.COMMENT_BLOCK().GetText()
+		// Trim COMMENT: and END markers (this might need refinement based on lexer token content)
+		content := strings.TrimPrefix(commentContent, "COMMENT:")
+		content = strings.TrimSuffix(content, "END") // Assuming END is part of the token? If not, adjust.
+		docstring = parseDocstring(strings.TrimSpace(content))
+	}
+
+	l.currentProc = &Procedure{
+		Name:      procName,
+		Params:    params,
+		Steps:     make([]Step, 0),
+		Docstring: docstring, // Store parsed docstring
+	}
 	l.currentSteps = &l.currentProc.Steps
 }
 
@@ -67,39 +100,30 @@ func (l *neuroScriptListenerImpl) ExitProcedure_definition(ctx *gen.Procedure_de
 	if l.currentProc != nil {
 		procName = l.currentProc.Name
 	}
-	fmt.Printf("<<< Exit Procedure_definition: %s\n", procName)
-
-	// --- TEMPORARY DEBUGGING CODE ---
-	// Force adding a dummy procedure to see if the slice is returned correctly
-	dummyProc := Procedure{Name: fmt.Sprintf("DUMMY_FROM_%s", procName)} // Give it a unique name
-	l.procedures = append(l.procedures, dummyProc)
-	fmt.Printf("    DEBUG: Added dummy procedure %s. Procedures count: %d\n", dummyProc.Name, len(l.procedures))
-	// --- END TEMPORARY DEBUGGING CODE ---
+	l.logDebugAST("<<< Exit Procedure_definition: %s", procName) // Use helper
 
 	if l.currentProc != nil {
-		fmt.Printf("    DEBUG: Appending actual procedure: %s (Steps: %d)\n", l.currentProc.Name, len(l.currentProc.Steps))
-		l.procedures = append(l.procedures, *l.currentProc) // Appends the actual built procedure
-		fmt.Printf("    DEBUG: Procedures count after append: %d\n", len(l.procedures))
+		l.logDebugAST("    Appending actual procedure: %s (Steps: %d)", l.currentProc.Name, len(l.currentProc.Steps))
+		l.procedures = append(l.procedures, *l.currentProc)
+		l.logDebugAST("    Procedures count after append: %d", len(l.procedures))
 	} else {
-		fmt.Printf("    DEBUG: l.currentProc was nil, cannot append actual procedure.\n")
+		l.logDebugAST("    l.currentProc was nil, cannot append actual procedure.")
 	}
 	l.currentProc = nil
 	l.currentSteps = nil
 }
 
-// --- Docstring Line Handlers REMOVED ---
-
-// --- Statement Handlers (logging included) ---
-// ... (Keep Enter/ExitStatement, Enter/ExitSet_statement, etc. with logging from V16) ...
+// --- Statement Handlers (using conditional logging) ---
 func (l *neuroScriptListenerImpl) EnterStatement(ctx *gen.StatementContext) {
-	fmt.Printf(">>> Enter Statement: Text: %q\n", ctx.GetText())
+	l.logDebugAST(">>> Enter Statement: Text: %q", ctx.GetText())
 }
 func (l *neuroScriptListenerImpl) ExitStatement(ctx *gen.StatementContext) {
-	fmt.Printf("<<< Exit Statement\n")
+	l.logDebugAST("<<< Exit Statement")
 }
 func (l *neuroScriptListenerImpl) EnterSet_statement(ctx *gen.Set_statementContext) {
-	fmt.Printf(">>> Enter Set_statement: %q\n", ctx.GetText())
+	l.logDebugAST(">>> Enter Set_statement: %q", ctx.GetText())
 	if l.currentSteps == nil {
+		l.logger.Println("[WARN] Set_statement entered with nil currentSteps")
 		return
 	}
 	varName := ""
@@ -108,17 +132,18 @@ func (l *neuroScriptListenerImpl) EnterSet_statement(ctx *gen.Set_statementConte
 	}
 	exprText := ""
 	if ctx.Expression() != nil {
-		exprText = ctx.Expression().GetText()
+		exprText = ctx.Expression().GetText() // Get raw text for AST
 	}
 	step := newStep("SET", varName, "", exprText, nil)
 	*l.currentSteps = append(*l.currentSteps, step)
 }
 func (l *neuroScriptListenerImpl) ExitSet_statement(ctx *gen.Set_statementContext) {
-	fmt.Printf("<<< Exit Set_statement\n")
+	l.logDebugAST("<<< Exit Set_statement")
 }
 func (l *neuroScriptListenerImpl) EnterCall_statement(ctx *gen.Call_statementContext) {
-	fmt.Printf(">>> Enter Call_statement: %q\n", ctx.GetText())
+	l.logDebugAST(">>> Enter Call_statement: %q", ctx.GetText())
 	if l.currentSteps == nil {
+		l.logger.Println("[WARN] Call_statement entered with nil currentSteps")
 		return
 	}
 	target := ""
@@ -128,131 +153,149 @@ func (l *neuroScriptListenerImpl) EnterCall_statement(ctx *gen.Call_statementCon
 	args := []string{}
 	if ctx.Expression_list_opt() != nil && ctx.Expression_list_opt().Expression_list() != nil {
 		for _, expr := range ctx.Expression_list_opt().Expression_list().AllExpression() {
-			args = append(args, expr.GetText())
+			args = append(args, expr.GetText()) // Store raw expression text
 		}
 	}
 	step := newStep("CALL", target, "", nil, args)
 	*l.currentSteps = append(*l.currentSteps, step)
 }
 func (l *neuroScriptListenerImpl) ExitCall_statement(ctx *gen.Call_statementContext) {
-	fmt.Printf("<<< Exit Call_statement\n")
+	l.logDebugAST("<<< Exit Call_statement")
 }
 func (l *neuroScriptListenerImpl) EnterReturn_statement(ctx *gen.Return_statementContext) {
-	fmt.Printf(">>> Enter Return_statement: %q\n", ctx.GetText())
+	l.logDebugAST(">>> Enter Return_statement: %q", ctx.GetText())
 	if l.currentSteps == nil {
+		l.logger.Println("[WARN] Return_statement entered with nil currentSteps")
 		return
 	}
 	exprText := ""
 	if ctx.Expression() != nil {
-		exprText = ctx.Expression().GetText()
+		exprText = ctx.Expression().GetText() // Store raw expression text
 	}
 	step := newStep("RETURN", "", "", exprText, nil)
 	*l.currentSteps = append(*l.currentSteps, step)
 }
 func (l *neuroScriptListenerImpl) ExitReturn_statement(ctx *gen.Return_statementContext) {
-	fmt.Printf("<<< Exit Return_statement\n")
-}
-func (l *neuroScriptListenerImpl) EnterEmit_statement(ctx antlr.ParserRuleContext) {
-	fmt.Printf(">>> Enter Emit_statement: %q\n", ctx.GetText())
-	if l.currentSteps == nil {
-		return
-	}
-	exprText := ""
-	if ctx.GetChildCount() > 1 {
-		exprCtx := ctx.GetChild(1)
-		if exprCtx != nil {
-			exprText = exprCtx.(antlr.ParseTree).GetText()
-		}
-	}
-	step := newStep("EMIT", "", "", exprText, nil)
-	*l.currentSteps = append(*l.currentSteps, step)
-}
-func (l *neuroScriptListenerImpl) ExitEmit_statement(ctx antlr.ParserRuleContext) {
-	fmt.Printf("<<< Exit Emit_statement\n")
+	l.logDebugAST("<<< Exit Return_statement")
 }
 
-// --- Block Handling Helpers with Logging (Keep from V16) ---
-// ... (Keep enterBlock and exitBlock with logging from V16) ...
+// --- Block Handling Helpers with Logging ---
 func (l *neuroScriptListenerImpl) enterBlock(blockType string, targetVarOrCond string, collectionExpr string) {
-	fmt.Printf(">>> enterBlock: %s (Target/Cond: %q, Collection: %q)\n", blockType, targetVarOrCond, collectionExpr)
+	l.logDebugAST(">>> enterBlock: %s (Target/Cond: %q, Collection: %q)", blockType, targetVarOrCond, collectionExpr)
 	if l.currentSteps == nil {
-		fmt.Printf("[WARN] Enter%s called outside a valid step context\n", blockType)
+		l.logger.Printf("[WARN] Enter%s called outside a valid step context", blockType)
 		return
 	}
-	blockBody := make([]Step, 0)
+	blockBody := make([]Step, 0) // Initialize empty block body
+	// For block steps, Value will hold the []Step body eventually. Store condition/collection in Cond field.
 	step := newStep(blockType, targetVarOrCond, collectionExpr, blockBody, nil)
 	*l.currentSteps = append(*l.currentSteps, step)
+
+	// Push the parent step list pointer and make the new block body the current target
 	l.blockStepStack = append(l.blockStepStack, l.currentSteps)
-	tempBlockBody := make([]Step, 0)
-	l.currentSteps = &tempBlockBody
+	newBlockSteps := make([]Step, 0) // Create a new slice for the block's steps
+	l.currentSteps = &newBlockSteps  // Point currentSteps to the new slice
 }
+
 func (l *neuroScriptListenerImpl) exitBlock(blockType string) {
 	stackSize := len(l.blockStepStack)
-	fmt.Printf("<<< exitBlock: %s (Stack size before pop: %d)\n", blockType, stackSize)
+	l.logDebugAST("<<< exitBlock: %s (Stack size before pop: %d)", blockType, stackSize)
 	if stackSize == 0 {
-		fmt.Printf("[ERROR] Exit%s called with empty stack!\n", blockType)
+		l.logger.Printf("[ERROR] Exit%s called with empty stack!", blockType)
+		l.currentSteps = nil // Avoid nil pointer dereference later
+		return
+	}
+
+	finishedBlockSteps := *l.currentSteps // Get the steps added to the block body
+
+	// Pop the stack to get the pointer to the parent's step list
+	lastIndex := stackSize - 1
+	parentStepsPtr := l.blockStepStack[lastIndex]
+	l.blockStepStack = l.blockStepStack[:lastIndex] // Perform pop
+
+	if parentStepsPtr == nil {
+		l.logger.Printf("[ERROR] Exit%s: Parent step list pointer from stack was nil", blockType)
 		l.currentSteps = nil
 		return
 	}
-	finishedBlockSteps := *l.currentSteps
-	lastIndex := stackSize - 1
-	parentStepsPtr := l.blockStepStack[lastIndex]
-	l.blockStepStack = l.blockStepStack[:lastIndex]
-	if parentStepsPtr != nil {
-		parentStepIndex := len(*parentStepsPtr) - 1
-		if parentStepIndex >= 0 {
-			blockStepToUpdate := &(*parentStepsPtr)[parentStepIndex]
-			blockStepToUpdate.Value = finishedBlockSteps
-			fmt.Printf("    Assigned %d steps to %s block step at parent index %d\n", len(finishedBlockSteps), blockType, parentStepIndex)
-		} else {
-			fmt.Printf("[ERROR] Exit%s: Parent step list pointer was valid but list was empty?\n", blockType)
-		}
-		l.currentSteps = parentStepsPtr
-	} else {
-		fmt.Printf("[ERROR] Exit%s: Parent step list pointer from stack was nil\n", blockType)
-		l.currentSteps = nil
+
+	// Find the block step added in enterBlock (should be the last one in parent)
+	parentStepIndex := len(*parentStepsPtr) - 1
+	if parentStepIndex < 0 {
+		l.logger.Printf("[ERROR] Exit%s: Parent step list pointer was valid but list was empty?", blockType)
+		l.currentSteps = parentStepsPtr // Restore parent, but something's wrong
+		return
 	}
+
+	// Update the Value field of the parent's block step with the finished body
+	blockStepToUpdate := &(*parentStepsPtr)[parentStepIndex]
+	blockStepToUpdate.Value = finishedBlockSteps
+	l.logDebugAST("    Assigned %d steps to %s block step at parent index %d", len(finishedBlockSteps), blockType, parentStepIndex)
+
+	// Restore currentSteps to point back to the parent's list
+	l.currentSteps = parentStepsPtr
 }
 
-// --- Block Statement Enter/Exit using Helpers (Keep from V16) ---
-// ... (Keep Enter/ExitIf_statement, Enter/ExitWhile_statement, Enter/ExitFor_each_statement with logging from V16) ...
+// --- Block Statement Enter/Exit using Helpers ---
 func (l *neuroScriptListenerImpl) EnterIf_statement(ctx *gen.If_statementContext) {
-	fmt.Printf(">>> Enter If_statement\n")
+	l.logDebugAST(">>> Enter If_statement")
 	condText := ""
 	if ctx.Condition() != nil {
-		condText = ctx.Condition().GetText()
+		condText = ctx.Condition().GetText() // Get raw condition text
 	}
-	l.enterBlock("IF", "", condText)
+	l.enterBlock("IF", "", condText) // Pass condition text
 }
 func (l *neuroScriptListenerImpl) ExitIf_statement(ctx *gen.If_statementContext) {
 	l.exitBlock("IF")
-	fmt.Printf("<<< Exit If_statement\n")
+	l.logDebugAST("<<< Exit If_statement")
 }
+
 func (l *neuroScriptListenerImpl) EnterWhile_statement(ctx *gen.While_statementContext) {
-	fmt.Printf(">>> Enter While_statement\n")
+	l.logDebugAST(">>> Enter While_statement")
 	condText := ""
 	if ctx.Condition() != nil {
-		condText = ctx.Condition().GetText()
+		condText = ctx.Condition().GetText() // Get raw condition text
 	}
-	l.enterBlock("WHILE", "", condText)
+	l.enterBlock("WHILE", "", condText) // Pass condition text
 }
 func (l *neuroScriptListenerImpl) ExitWhile_statement(ctx *gen.While_statementContext) {
 	l.exitBlock("WHILE")
-	fmt.Printf("<<< Exit While_statement\n")
+	l.logDebugAST("<<< Exit While_statement")
 }
+
 func (l *neuroScriptListenerImpl) EnterFor_each_statement(ctx *gen.For_each_statementContext) {
-	fmt.Printf(">>> Enter For_each_statement\n")
+	l.logDebugAST(">>> Enter For_each_statement")
 	loopVar := ""
 	if ctx.IDENTIFIER() != nil {
 		loopVar = ctx.IDENTIFIER().GetText()
 	}
 	collectionExpr := ""
 	if ctx.Expression() != nil {
-		collectionExpr = ctx.Expression().GetText()
+		collectionExpr = ctx.Expression().GetText() // Get raw expression text
 	}
+	// Store loop var in Target, collection expr in Cond for FOR steps
 	l.enterBlock("FOR", loopVar, collectionExpr)
 }
 func (l *neuroScriptListenerImpl) ExitFor_each_statement(ctx *gen.For_each_statementContext) {
 	l.exitBlock("FOR")
-	fmt.Printf("<<< Exit For_each_statement\n")
+	l.logDebugAST("<<< Exit For_each_statement")
+}
+
+// --- Enter/Exit Emit Statement (Example, if needed) ---
+func (l *neuroScriptListenerImpl) EnterEmit_statement(ctx *gen.Emit_statementContext) {
+	l.logDebugAST(">>> Enter Emit_statement: %q", ctx.GetText())
+	if l.currentSteps == nil {
+		l.logger.Println("[WARN] Emit_statement entered with nil currentSteps")
+		return
+	}
+	exprText := ""
+	if ctx.Expression() != nil {
+		exprText = ctx.Expression().GetText() // Store raw expression text
+	}
+	step := newStep("EMIT", "", "", exprText, nil)
+	*l.currentSteps = append(*l.currentSteps, step)
+}
+
+func (l *neuroScriptListenerImpl) ExitEmit_statement(ctx *gen.Emit_statementContext) {
+	l.logDebugAST("<<< Exit Emit_statement")
 }
