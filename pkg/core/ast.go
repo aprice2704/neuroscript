@@ -3,12 +3,13 @@ package core
 
 // Docstring sections (PURPOSE, INPUTS, etc.)
 type Docstring struct {
-	Purpose   string
-	Inputs    map[string]string // "argName": "description"
-	Output    string
-	Algorithm string
-	Caveats   string
-	Examples  string
+	Purpose    string
+	InputLines []string          // NEW: Store raw input lines to preserve order
+	Inputs     map[string]string // Keep map for potential future parsing (currently unused by listener)
+	Output     string
+	Algorithm  string
+	Caveats    string
+	Examples   string
 }
 
 // Procedure definition
@@ -27,4 +28,9 @@ type Step struct {
 	Value  interface{} // Value (SET, RETURN), Arguments (CALL), Block Body ([]Step for IF/WHILE/FOR)
 	Args   []string    // Arguments (CALL) - Potentially redundant if moved to Value? Keep for now.
 	Cond   string      // Condition (IF, WHILE), Collection (FOR)
+}
+
+// newStep creates a new Step instance. Moved from neuroscript.y.go.
+func newStep(typ string, target string, cond string, value interface{}, args []string) Step {
+	return Step{Type: typ, Target: target, Cond: cond, Value: value, Args: args}
 }

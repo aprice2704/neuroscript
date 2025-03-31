@@ -84,59 +84,71 @@ func (i *Interpreter) executeSteps(steps []Step) (result interface{}, wasReturn 
 		case "SET":
 			stepErr = i.executeSet(step, stepNum)
 		case "CALL":
-			i.lastCallResult = nil
+			i.lastCallResult = nil // Reset before CALL
 			stepResult, stepErr = i.executeCall(step, stepNum)
 			if stepErr == nil {
 				i.lastCallResult = stepResult
 			}
 		case "IF":
 			stepResult, stepReturned, stepErr = i.executeIf(step, stepNum)
-			if stepErr == nil && stepReturned {
+			if stepErr == nil && stepReturned { // Check if IF block returned
 				return stepResult, true, nil
 			}
 		case "RETURN":
 			stepResult, stepReturned, stepErr = i.executeReturn(step, stepNum)
-			if stepErr == nil && stepReturned {
+			if stepErr == nil && stepReturned { // Check if RETURN was successful
 				return stepResult, true, nil
 			}
+		// --- NEW: Added EMIT case ---
+		case "EMIT":
+			stepErr = i.executeEmit(step, stepNum) // Call the new execution function
 		case "WHILE":
 			stepResult, stepReturned, stepErr = i.executeWhile(step, stepNum)
-			if stepErr == nil && stepReturned {
+			if stepErr == nil && stepReturned { // Check if WHILE block returned
 				return stepResult, true, nil
 			}
 		case "FOR":
 			stepResult, stepReturned, stepErr = i.executeFor(step, stepNum)
-			if stepErr == nil && stepReturned {
+			if stepErr == nil && stepReturned { // Check if FOR block returned
 				return stepResult, true, nil
 			}
 		default:
 			stepErr = fmt.Errorf("unknown step type encountered in step %d: %s", stepNum+1, step.Type)
 		}
 
+		// Centralized error handling after each step
 		if stepErr != nil {
 			return nil, false, fmt.Errorf("error in procedure '%s', step %d (%s): %w", i.currentProcName, stepNum+1, step.Type, stepErr)
 		}
 	}
+	// fmt.Printf("    Procedure '%s' finished normally.\n", i.currentProcName) // DEBUG
 	return nil, false, nil // Finished all steps without RETURN or error
 }
 
 // executeBlock helper - Executes a slice of steps (used by IF, ELSE, WHILE, FOR)
+// Returns: final result (if RETURNed), bool if RETURN occurred, error
 func (i *Interpreter) executeBlock(blockValue interface{}, parentStepNum int, blockType string) (result interface{}, wasReturn bool, err error) {
 	blockBody, ok := blockValue.([]Step)
 	if !ok {
+		// Handle cases where blockValue might be nil or incorrect type gracefully
 		if blockValue == nil {
+			// Treat nil as an empty block, no error
 			return nil, false, nil
 		}
 		return nil, false, fmt.Errorf("step %d: %s block body unexpected type %T", parentStepNum+1, blockType, blockValue)
 	}
+
+	// Handle empty block body
 	if len(blockBody) == 0 {
 		return nil, false, nil
 	}
+
+	// Execute the steps within the block recursively
 	result, wasReturn, err = i.executeSteps(blockBody) // Recursive call
+
+	// Errors from executeSteps are already formatted with context, just return them
 	return result, wasReturn, err
 }
-
-// --- REMOVED executeLoopBody ---
 
 // Helper to truncate strings for logging
 func truncateString(s string, maxLen int) string {

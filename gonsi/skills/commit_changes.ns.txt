@@ -1,24 +1,24 @@
-DEFINE PROCEDURE CommitChanges(commit_message, staged_files_csv)
+SPLAT PROCEDURE CommitChanges(commit_message, staged_files_csv)
 COMMENT:
     PURPOSE: Performs a Git commit with the provided message. Assumes relevant files have already been staged via TOOL.GitAdd.
     INPUTS:
-      - commit_message: The commit message string.
-      - staged_files_csv: A comma-separated string listing files expected to be staged (for optional future verification).
+       commit_message: The commit message string.
+       staged_files_csv: A comma-separated string listing files expected to be staged (for optional future verification).
     OUTPUT:
-      - status: "Success" or "Failure: <error message>".
+       status: "Success" or "Failure: <error message>".
     ALGORITHM:
         1. (Optional Future Step): Use TOOL.GitStatus to verify staged files match input list.
         2. Call TOOL.GitCommit with the provided message.
         3. Check __last_call_result for errors (basic check - assumes "OK" on success).
         4. Return appropriate status message.
     CAVEATS:
-        - Assumes Git environment is configured correctly.
-        - Assumes caller has already used TOOL.GitAdd.
-        - Basic error checking based on tool output convention ("OK"). Robust error handling needed.
-        - staged_files_csv input is currently unused but included for future potential validation.
+        Assumes Git environment is configured correctly.
+        Assumes caller has already used TOOL.GitAdd.
+        Basic error checking based on tool output convention ("OK"). Robust error handling needed.
+        staged_files_csv input is currently unused but included for future potential validation.
     EXAMPLES:
         CALL CommitChanges("Feat: Add new tool", "pkg/core/tools_new.go,pkg/core/tools_register.go,") => "Success"
-END
+ENDCOMMENT
 
 # Step 2: Call Git Commit Tool
 CALL TOOL.GitCommit({{commit_message}})
@@ -27,7 +27,7 @@ SET commit_result = __last_call_result
 # Step 3 & 4: Check result and Return status (Simple check)
 IF {{commit_result}} == "OK" THEN
     RETURN "Success"
-END
+ENDBLOCK
 
 # If not "OK", assume failure
 SET error_message = "Failure: Commit tool returned: " + {{commit_result}}

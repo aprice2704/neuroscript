@@ -1,6 +1,7 @@
 package core
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"os/exec"
@@ -162,4 +163,112 @@ func secureFilePath(filePath, allowedDir string) (string, error) {
 	}
 
 	return absCleanedPath, nil // Return the safe, absolute, cleaned path
+}
+
+// parseDocstring parses the raw content of a comment block into a Docstring struct.
+func parseDocstring(content string) Docstring {
+	doc := Docstring{
+		Inputs: make(map[string]string), // Initialize map
+	}
+	var currentSection *string // Pointer to the string field currently being appended to
+	inInputSection := false    // Flag to track if we are parsing INPUTS lines
+
+	// Map keywords (uppercase) to pointers to the struct fields
+	// *** FIX: Change value type from **string to *string ***
+	sectionMap := map[string]*string{
+		"PURPOSE:":   &doc.Purpose,
+		"OUTPUT:":    &doc.Output,
+		"ALGORITHM:": &doc.Algorithm,
+		"CAVEATS:":   &doc.Caveats,
+		"EXAMPLES:":  &doc.Examples,
+		// INPUTS: is handled separately below
+	}
+
+	scanner := bufio.NewScanner(strings.NewReader(content))
+	var currentLines []string
+
+	for scanner.Scan() {
+		line := scanner.Text()
+		trimmedLine := strings.TrimSpace(line)
+		foundSectionHeader := false
+
+		// Check for standard section headers (uppercase)
+		upperTrimmedLine := strings.ToUpper(trimmedLine)
+		for prefix, targetPtr := range sectionMap {
+			if strings.HasPrefix(upperTrimmedLine, prefix) {
+				// Finalize previous section (if any)
+				if currentSection != nil {
+					*currentSection = strings.TrimSpace(strings.Join(currentLines, "\n"))
+				}
+				// Start new section
+				currentSection = targetPtr                                                          // *** FIX: Assign the pointer directly ***
+				currentLines = []string{strings.TrimSpace(strings.TrimPrefix(trimmedLine, prefix))} // Add first line content (case-preserved)
+				inInputSection = false                                                              // No longer in inputs section
+				foundSectionHeader = true
+				break
+			}
+		}
+		if foundSectionHeader {
+			continue
+		}
+
+		// Check specifically for INPUTS: header
+		if strings.HasPrefix(upperTrimmedLine, "INPUTS:") {
+			// Finalize previous section
+			if currentSection != nil {
+				*currentSection = strings.TrimSpace(strings.Join(currentLines, "\n"))
+			}
+			currentSection = nil      // Clear current section pointer
+			inInputSection = true     // Set input section flag
+			currentLines = []string{} // Reset lines buffer
+
+			inputContent := strings.TrimSpace(strings.TrimPrefix(trimmedLine, "INPUTS:"))
+			if strings.ToLower(inputContent) != "none" && inputContent != "" {
+				parseInputLine(inputContent, &doc) // Parse the first line if not "None"
+			}
+			continue // Move to next line
+		}
+
+		// If it's not a section header, append to the current section or parse as input line
+		if inInputSection {
+			parseInputLine(trimmedLine, &doc)
+		} else if currentSection != nil {
+			// Append line with its original leading whitespace relative to the section
+			// if len(currentLines) > 0 || trimmedLine != "" { // Avoid adding initial empty lines directly under header
+			currentLines = append(currentLines, line) // Append raw line to preserve indentation within section
+			// }
+		}
+		// Ignore lines before the first section header if not in inputs
+	}
+
+	// Finalize the very last section being processed
+	if currentSection != nil {
+		*currentSection = strings.TrimSpace(strings.Join(currentLines, "\n"))
+	}
+
+	if err := scanner.Err(); err != nil {
+		fmt.Printf("[Error] Scanner error in parseDocstring: %v\n", err)
+		// Optionally return partial doc or an error indicator
+	}
+
+	return doc
+}
+
+// Helper for parsing INPUTS lines
+func parseInputLine(line string, doc *Docstring) {
+	trimmedLine := strings.TrimSpace(line)
+	// Expecting "- name: description"
+	if strings.HasPrefix(trimmedLine, "-") {
+		parts := strings.SplitN(strings.TrimSpace(trimmedLine[1:]), ":", 2)
+		if len(parts) == 2 {
+			inputName := strings.TrimSpace(parts[0])
+			inputDesc := strings.TrimSpace(parts[1])
+			if inputName != "" {
+				if doc.Inputs == nil { // Ensure map is initialized
+					doc.Inputs = make(map[string]string)
+				}
+				doc.Inputs[inputName] = inputDesc
+			}
+		}
+	}
 }

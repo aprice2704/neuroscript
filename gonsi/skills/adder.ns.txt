@@ -1,0 +1,8 @@
+SPLAT PROCEDURE Add(a, b)
+COMMENT:
+ Minimal comment block.
+ENDCOMMENT
+
+RETURN "OK"
+
+END
