@@ -1,0 +1,85 @@
+# NeuroScript Example: List and Map Iteration
+
+SPLAT PROCEDURE TestListAndMapIteration(prefix)
+COMMENT:
+    PURPOSE: Demonstrates creating and iterating over list and map literals,
+             and using some tools with evaluated list elements.
+    INPUTS:
+        prefix: A string to prepend to outputs.
+    OUTPUT: A summary string of processed items.
+    ALGORITHM:
+        1. Define a list literal with mixed types.
+        2. Emit the list.
+        3. Iterate over the list using FOR EACH, emitting each item.
+        4. Define a map literal with mixed value types.
+        5. Emit the map.
+        6. Iterate over the map keys using FOR EACH, emitting each key.
+        7. Use TOOL.JoinStrings with a list literal (tests validation conversion).
+        8. Use TOOL.StringLength on an element retrieved from the list (indirectly via loop var).
+        9. Return a summary.
+    CAVEATS: Map iteration currently only provides keys. Accessing map values by key is not yet implemented.
+    EXAMPLES: CALL TestListAndMapIteration("Test:") => "Summary: Processed list items: Item1 | 2 | true | InnerList! - Processed map keys: key_a,key_b,key_list, - Joined: A-B-3 - Length of Item1: 5"
+ENDCOMMENT
+
+EMIT "--- Testing Lists ---"
+
+# 1. Define and Emit a List
+SET my_list = [ "{{prefix}}Item1", 2, true, ["InnerList", "!"] ]
+EMIT "List Value:"
+EMIT my_list # Note: Output format depends on Go's fmt %v for []interface{}
+
+# 2. Iterate List
+SET list_summary = ""
+SET item_len = 0 # Initialize item_len
+FOR EACH item IN my_list DO
+    EMIT "List Item:"
+    EMIT item
+    # Build summary string (requires arithmetic/conversion later)
+
+    # For now, just concatenate string representations
+    SET list_summary = list_summary + item + " | "
+
+
+    # Test tool on an item (conditionally, if it's the string)
+    # NOTE: Direct string comparison with evaluated variable works
+    IF item == "{{prefix}}Item1" THEN
+         CALL TOOL.StringLength({{item}})
+         SET item_len = __last_call_result
+         EMIT "Length of '{{item}}':"
+         EMIT item_len
+
+    ENDBLOCK
+ENDBLOCK
+
+EMIT "--- Testing Maps ---"
+
+# 3. Define and Emit a Map
+SET my_map = {"key_a": "Value A", "key_b": 123, "key_list": ["x", "y"]}
+EMIT "Map Value:"
+EMIT my_map # Note: Output format depends on Go's fmt %v for map[string]interface{}
+
+# 4. Iterate Map Keys
+SET map_keys_summary = ""
+FOR EACH map_key IN my_map DO
+    EMIT "Map Key:"
+    EMIT map_key
+    SET map_keys_summary = map_keys_summary + map_key + ", "
+    # Accessing value like my_map[map_key] is NOT YET SUPPORTED
+ENDBLOCK
+
+EMIT "--- Testing Tools ---"
+
+# 5. Test JoinStrings with evaluated list literal elements
+# Note: Passing numbers/bools requires validation to convert them for JoinStrings
+CALL TOOL.JoinStrings([ "A", "B", 3, true ], "-")
+SET joined_list = __last_call_result
+EMIT "Joined List Literal:"
+EMIT joined_list
+
+# 6. Combine summaries and return
+# Ensure item_len is included, even if initialized to 0
+SET final_summary = "Summary: Processed list items: " + list_summary + "- Processed map keys: " + map_keys_summary + "- Joined: " + joined_list + " - Length of Item1: " + item_len
+
+RETURN final_summary
+
+END

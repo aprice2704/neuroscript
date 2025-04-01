@@ -1,11 +1,10 @@
 {
-  "name": "neuroscript-syntax",
-  "displayName": "NeuroScript Syntax",
-  "description": "Syntax highlighting for NeuroScript pseudocode",
-  "version": "0.0.1",
-  "publisher": "YourName",
+  "name": "vscode-neuroscript",
+  "displayName": "NeuroScript Language Support",
+  "description": "Syntax highlighting and basic language features for NeuroScript",
+  "version": "0.0.2",
   "engines": {
-    "vscode": "^1.0.0"
+    "vscode": "^1.80.0"
   },
   "categories": [
     "Programming Languages"
@@ -19,8 +18,9 @@
           "neuroscript"
         ],
         "extensions": [
+          ".ns.txt",
           ".ns",
-          ".ns.txt"
+          ".neuro"
         ],
         "configuration": "./language-configuration.json"
       }
@@ -29,7 +29,7 @@
       {
         "language": "neuroscript",
         "scopeName": "source.neuroscript",
-        "path": "./syntaxes/neuroscript.tmLanguage.json"
+        "path": "./neuroscript.tmLanguage.json"
       }
     ]
   }

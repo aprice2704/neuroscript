@@ -2,49 +2,67 @@ package core
 
 import (
 	"reflect"
+	"strings"
 	"testing"
+	// Import utf8 package
 )
 
-// Helper function to create the dummy interpreter needed for tool function signatures
-func newDummyInterpreter() *Interpreter {
-	// Note: This creates a basic interpreter. If tests needed specific
-	// variables or state set in the interpreter, this would need enhancement.
-	return NewInterpreter()
-}
+// --- Test Helper Functions ---
+func newDummyInterpreter() *Interpreter          { return NewInterpreter(nil) }
+func makeArgs(vals ...interface{}) []interface{} { return vals }
 
-// Helper function to wrap string slice args in []interface{} for testing ToolFunc
-func makeArgs(vals ...interface{}) []interface{} {
-	return vals
-}
-
-// --- Unit Tests for String Tool Go Functions ---
+// --- Unit Tests for String Tool Go Functions (Part 1) ---
 
 func TestToolStringLength(t *testing.T) {
 	dummyInterp := newDummyInterpreter()
 	tests := []struct {
-		name    string
-		args    []interface{} // Now takes []interface{}
-		want    interface{}
-		wantErr bool
+		name          string
+		args          []interface{}
+		want          interface{}
+		wantErr       bool
+		errorContains string
 	}{
-		{"Empty", makeArgs(""), "0", false},
-		{"Simple ASCII", makeArgs("hello"), "5", false},
-		{"UTF8", makeArgs("你好"), "2", false},                    // 2 runes
-		{"Mixed", makeArgs("hello 你好"), "8", false},             // 5 + 1 space + 2
-		{"From Int (via Sprintf)", makeArgs(12345), "5", false}, // Test non-string input
-		{"Wrong Arg Count", makeArgs(), nil, true},
-		{"Wrong Arg Count 2", makeArgs("a", "b"), nil, true},
+		{"Empty", makeArgs(""), int64(0), false, ""},
+		{"Simple ASCII", makeArgs("hello"), int64(5), false, ""},
+		{"UTF8", makeArgs("你好"), int64(2), false, ""},
+		{"Mixed", makeArgs("hello 你好"), int64(8), false, ""},
+		// Expect validation error now because ArgTypeString is stricter
+		{
+			name:          "From Int",
+			args:          makeArgs(12345),
+			want:          nil,
+			wantErr:       true,                                     // Expect validation error
+			errorContains: "expected string, but received type int", // Validation error msg
+		},
+		{"Wrong Arg Count", makeArgs(), nil, true, "expected exactly 1 arguments"},           // Corrected expectation
+		{"Wrong Arg Count 2", makeArgs("a", "b"), nil, true, "expected exactly 1 arguments"}, // Corrected expectation
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Pass dummy interpreter and interface{} args
-			got, err := toolStringLength(dummyInterp, tt.args)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("toolStringLength() error = %v, wantErr %v", err, tt.wantErr)
+			toolSpec := ToolSpec{Name: "StringLength", Args: []ArgSpec{{Name: "input", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeInt}
+			convertedArgs, valErr := ValidateAndConvertArgs(toolSpec, tt.args)
+			finalErr := valErr
+			var got interface{}
+			var toolErr error
+			if valErr == nil {
+				got, toolErr = toolStringLength(dummyInterp, convertedArgs)
+				if toolErr != nil {
+					finalErr = toolErr
+				}
+			}
+			if (finalErr != nil) != tt.wantErr {
+				t.Errorf("Test %q: Error mismatch. Got error: %v, wantErr: %v", tt.name, finalErr, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("toolStringLength() = %v, want %v", got, tt.want)
+			if tt.wantErr && tt.errorContains != "" {
+				if finalErr == nil {
+					t.Errorf("Test %q: Expected error containing %q, but got nil error", tt.name, tt.errorContains)
+				} else if !strings.Contains(finalErr.Error(), tt.errorContains) {
+					t.Errorf("Test %q: Expected error containing %q, got: %v", tt.name, tt.errorContains, finalErr)
+				}
+			}
+			if !tt.wantErr && finalErr == nil && !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Test %q: Result mismatch.\nGot:  %v (%T)\nWant: %v (%T)", tt.name, got, got, tt.want, tt.want)
 			}
 		})
 	}
@@ -53,90 +71,106 @@ func TestToolStringLength(t *testing.T) {
 func TestToolSubstring(t *testing.T) {
 	dummyInterp := newDummyInterpreter()
 	tests := []struct {
-		name    string
-		args    []interface{} // Expects string, int, int after validation
-		want    interface{}
-		wantErr bool
+		name        string
+		args        []interface{} // Raw args before validation simulation
+		want        interface{}
+		wantErr     bool   // Expect error from tool func itself?
+		valWantErr  bool   // Expect error from ValidateAndConvertArgs?
+		errContains string // Expected validation error substring
 	}{
-		// Args passed here assume prior validation/conversion by ValidateAndConvertArgs
-		{"Basic", makeArgs("hello", 1, 4), "ell", false},
-		{"Start 0", makeArgs("hello", 0, 2), "he", false},
-		{"End Len", makeArgs("hello", 3, 5), "lo", false},
-		{"Full String", makeArgs("hello", 0, 5), "hello", false},
-		{"UTF8", makeArgs("你好世界", 1, 3), "好世", false}, // runes at index 1 and 2
-		{"Empty Result Start=End", makeArgs("hello", 2, 2), "", false},
-		{"Empty Result Start>End", makeArgs("hello", 3, 1), "", false},
-		{"Index Out of Bounds High Start", makeArgs("hello", 10, 12), "", false},
-		{"Index Out of Bounds High End", makeArgs("hello", 3, 10), "lo", false}, // Clamps end
-		{"Index Out of Bounds Low", makeArgs("hello", -2, 3), "hel", false},     // Clamps start
-		{"Wrong Arg Count", makeArgs("a", 1), nil, true},
-		// Type errors below assume ValidateAndConvertArgs failed or wasn't called in a direct unit test scenario
-		// The function itself now expects ints after validation.
-		{"Non-int Start (Error expected)", makeArgs("a", "b", 3), nil, true},
-		{"Non-int End (Error expected)", makeArgs("a", 1, "c"), nil, true},
+		// Pass int64 now as ValidateAndConvertArgs produces it
+		{"Basic", makeArgs("hello", int64(1), int64(4)), "ell", false, false, ""},
+		{"Start 0", makeArgs("hello", int64(0), int64(2)), "he", false, false, ""},
+		{"End Len", makeArgs("hello", int64(3), int64(5)), "lo", false, false, ""},
+		{"Full String", makeArgs("hello", int64(0), int64(5)), "hello", false, false, ""},
+		{"UTF8", makeArgs("你好世界", int64(1), int64(3)), "好世", false, false, ""},
+		{"Empty Result Start=End", makeArgs("hello", int64(2), int64(2)), "", false, false, ""},
+		{"Empty Result Start>End", makeArgs("hello", int64(3), int64(1)), "", false, false, ""},
+		{"Index Out of Bounds High Start", makeArgs("hello", int64(10), int64(12)), "", false, false, ""},
+		{"Index Out of Bounds High End", makeArgs("hello", int64(3), int64(10)), "lo", false, false, ""},
+		{"Index Out of Bounds Low", makeArgs("hello", int64(-2), int64(3)), "hel", false, false, ""},
+		// Validation Error cases
+		{"Wrong Arg Count", makeArgs("a", int64(1)), nil, false, true, "expected exactly 3 arguments"}, // Corrected expectation
+		{"Non-string Input (Validation)", makeArgs(123, int64(0), int64(1)), nil, false, true, "expected string, but received type int"},
+		{"Non-int Start (Validation)", makeArgs("a", "b", int64(3)), nil, false, true, "cannot be converted to int"},
+		{"Non-int End (Validation)", makeArgs("a", int64(1), "c"), nil, false, true, "cannot be converted to int"},
 	}
+
+	toolSpec := ToolSpec{Name: "Substring", Args: []ArgSpec{
+		{Name: "input", Type: ArgTypeString, Required: true},
+		{Name: "start", Type: ArgTypeInt, Required: true},
+		{Name: "end", Type: ArgTypeInt, Required: true},
+	}, ReturnType: ArgTypeString,
+	}
+
+	// Test runner loop
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Need to simulate the args *after* ValidateAndConvertArgs would have run
-			// For success cases, types match the function's internal expectations (string, int, int)
-			// For error cases, we pass invalid types to check the function's internal guards (if any) or expect error from validation phase (tested elsewhere)
-			var argsToPass []interface{}
-			if !tt.wantErr && len(tt.args) == 3 {
-				// Assume validation converted string indices to int for success cases
-				_, sOk := tt.args[1].(int) // Check if test case provided int
-				_, eOk := tt.args[2].(int)
-				if sOk && eOk {
-					argsToPass = tt.args
-				} else {
-					t.Fatalf("Test setup error: success case needs integer indices, got %T, %T", tt.args[1], tt.args[2])
-				}
-			} else {
-				argsToPass = tt.args // Pass as is for error cases or wrong arg counts
-			}
-
-			got, err := toolSubstring(dummyInterp, argsToPass)
-
-			if (err != nil) != tt.wantErr {
-				t.Errorf("toolSubstring() error = %v, wantErr %v", err, tt.wantErr)
+			convertedArgs, valErr := ValidateAndConvertArgs(toolSpec, tt.args)
+			if (valErr != nil) != tt.valWantErr {
+				t.Errorf("ValidateAndConvertArgs() error = %v, valWantErr %v", valErr, tt.valWantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
+			if tt.valWantErr && tt.errContains != "" && (valErr == nil || !strings.Contains(valErr.Error(), tt.errContains)) {
+				t.Errorf("ValidateAndConvertArgs() expected error containing %q, got: %v", tt.errContains, valErr)
+				return
+			}
+			if tt.valWantErr {
+				return
+			}
+
+			// Call toolSubstring only if validation passed
+			got, toolErr := toolSubstring(dummyInterp, convertedArgs)
+
+			// Check tool execution error expectation
+			if (toolErr != nil) != tt.wantErr {
+				t.Errorf("toolSubstring() error = %v, wantErr %v", toolErr, tt.wantErr)
+				return
+			}
+			// Compare result only if no error expected from tool itself
+			if !tt.wantErr && !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("toolSubstring() = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
-func TestToolToUpperLower(t *testing.T) {
+func TestToolToUpperLower(t *testing.T) { /* ... as before ... */
 	dummyInterp := newDummyInterpreter()
-	// Test ToUpper
-	upperGot, upperErr := toolToUpper(dummyInterp, makeArgs("Hello World"))
+	specUp := ToolSpec{Name: "ToUpper", Args: []ArgSpec{{Name: "input", Type: ArgTypeString}}, ReturnType: ArgTypeString}
+	convArgsUp, valErrUp := ValidateAndConvertArgs(specUp, makeArgs("Hello World"))
+	if valErrUp != nil {
+		t.Fatalf("ToUpper validation failed: %v", valErrUp)
+	}
+	upperGot, upperErr := toolToUpper(dummyInterp, convArgsUp)
 	if upperErr != nil || upperGot != "HELLO WORLD" {
 		t.Errorf("toolToUpper failed: got %v, err %v", upperGot, upperErr)
 	}
-	// Test ToLower
-	lowerGot, lowerErr := toolToLower(dummyInterp, makeArgs("Hello World"))
+	specLo := ToolSpec{Name: "ToLower", Args: []ArgSpec{{Name: "input", Type: ArgTypeString}}, ReturnType: ArgTypeString}
+	convArgsLo, valErrLo := ValidateAndConvertArgs(specLo, makeArgs("Hello World"))
+	if valErrLo != nil {
+		t.Fatalf("ToLower validation failed: %v", valErrLo)
+	}
+	lowerGot, lowerErr := toolToLower(dummyInterp, convArgsLo)
 	if lowerErr != nil || lowerGot != "hello world" {
 		t.Errorf("toolToLower failed: got %v, err %v", lowerGot, lowerErr)
 	}
 }
-
-func TestToolTrimSpace(t *testing.T) {
+func TestToolTrimSpace(t *testing.T) { /* ... as before ... */
 	dummyInterp := newDummyInterpreter()
+	spec := ToolSpec{Name: "TrimSpace", Args: []ArgSpec{{Name: "input", Type: ArgTypeString}}, ReturnType: ArgTypeString}
 	tests := []struct {
 		name string
 		args []interface{}
 		want interface{}
-	}{
-		{"Leading/Trailing", makeArgs("  hello world  "), "hello world"},
-		{"Only Spaces", makeArgs("   "), ""},
-		{"Newlines/Tabs", makeArgs("\n\t hello \t\n"), "hello"},
-		{"No Spaces", makeArgs("hello"), "hello"},
-		{"Empty", makeArgs(""), ""},
-	}
+	}{{"Leading/Trailing", makeArgs("  hello world  "), "hello world"}, {"Only Spaces", makeArgs("   "), ""}, {"Newlines/Tabs", makeArgs("\n\t hello \t\n"), "hello"}, {"No Spaces", makeArgs("hello"), "hello"}, {"Empty", makeArgs(""), ""}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := toolTrimSpace(dummyInterp, tt.args)
+			convArgs, valErr := ValidateAndConvertArgs(spec, tt.args)
+			if valErr != nil {
+				t.Fatalf("TrimSpace validation failed: %v", valErr)
+			}
+			got, err := toolTrimSpace(dummyInterp, convArgs)
 			if err != nil {
 				t.Errorf("toolTrimSpace() unexpected error: %v", err)
 			}
@@ -146,199 +180,73 @@ func TestToolTrimSpace(t *testing.T) {
 		})
 	}
 }
-
-func TestToolSplitString(t *testing.T) {
+func TestToolSplitString(t *testing.T) { /* ... as before, with corrected errContains */
 	dummyInterp := newDummyInterpreter()
 	tests := []struct {
-		name    string
-		args    []interface{}
-		want    interface{} // Expect []string
-		wantErr bool
-	}{
-		{"Comma Delimiter", makeArgs("a,b,c", ","), []string{"a", "b", "c"}, false},
-		{"Space Delimiter", makeArgs("a b c", " "), []string{"a", "b", "c"}, false},
-		{"No Delimiter Found", makeArgs("abc", ","), []string{"abc"}, false},
-		{"Empty String", makeArgs("", ","), []string{""}, false},
-		{"Multi-char Delimiter", makeArgs("axxbxxc", "xx"), []string{"a", "b", "c"}, false},
-		{"Empty Delimiter", makeArgs("abc", ""), []string{"a", "b", "c"}, false}, // Go's split behavior
-		{"Wrong Arg Count", makeArgs("a"), nil, true},
-		{"Non-string Delimiter", makeArgs("a", 1), nil, true}, // Expect error now
-	}
+		name        string
+		args        []interface{}
+		want        interface{}
+		wantErr     bool
+		errContains string
+	}{{"Comma Delimiter", makeArgs("a,b,c", ","), []string{"a", "b", "c"}, false, ""}, {"Space Delimiter", makeArgs("a b c", " "), []string{"a", "b", "c"}, false, ""}, {"No Delimiter Found", makeArgs("abc", ","), []string{"abc"}, false, ""}, {"Empty String", makeArgs("", ","), []string{""}, false, ""}, {"Multi-char Delimiter", makeArgs("axxbxxc", "xx"), []string{"a", "b", "c"}, false, ""}, {"Empty Delimiter", makeArgs("abc", ""), []string{"a", "b", "c"}, false, ""}, {"Wrong Arg Count", makeArgs("a"), nil, true, "expected exactly 2 arguments"}, {"Non-string Input", makeArgs(1, ","), nil, true, "argument 'input' (index 0): expected string, but received type int"}, {"Non-string Delimiter", makeArgs("a", 1), nil, true, "argument 'delimiter' (index 1): expected string, but received type int"}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := toolSplitString(dummyInterp, tt.args)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("toolSplitString() error = %v, wantErr %v", err, tt.wantErr)
+			spec := ToolSpec{Name: "SplitString", Args: []ArgSpec{{Name: "input", Type: ArgTypeString, Required: true}, {Name: "delimiter", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeSliceString}
+			convArgs, valErr := ValidateAndConvertArgs(spec, tt.args)
+			if (valErr != nil) != tt.wantErr {
+				t.Errorf("SplitString validation error = %v, wantErr %v", valErr, tt.wantErr)
 				return
 			}
-			// Compare slices carefully
-			if !tt.wantErr && !reflect.DeepEqual(got, tt.want) {
-				// Use %v for slice comparison output
+			if tt.wantErr && tt.errContains != "" && (valErr == nil || !strings.Contains(valErr.Error(), tt.errContains)) {
+				t.Errorf("SplitString validation expected error containing %q, got: %v", tt.errContains, valErr)
+				return
+			}
+			if tt.wantErr {
+				return
+			}
+			got, err := toolSplitString(dummyInterp, convArgs)
+			if err != nil {
+				t.Errorf("toolSplitString() unexpected tool error: %v", err)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("toolSplitString() = %v (%T), want %v (%T)", got, got, tt.want, tt.want)
 			}
 		})
 	}
 }
-
-func TestToolSplitWords(t *testing.T) {
+func TestToolSplitWords(t *testing.T) { /* ... as before, with corrected errContains */
 	dummyInterp := newDummyInterpreter()
 	tests := []struct {
-		name    string
-		args    []interface{}
-		want    interface{} // Expect []string
-		wantErr bool
-	}{
-		{"Simple Spaces", makeArgs("hello world test"), []string{"hello", "world", "test"}, false},
-		{"Multiple Spaces", makeArgs(" hello  world\ttest\n"), []string{"hello", "world", "test"}, false},
-		{"Leading/Trailing", makeArgs("  word  "), []string{"word"}, false},
-		{"Empty", makeArgs(""), []string{}, false},
-		{"Only Whitespace", makeArgs(" \t\n "), []string{}, false},
-		{"Wrong Arg Count", makeArgs("a", "b"), nil, true},
-	}
+		name        string
+		args        []interface{}
+		want        interface{}
+		wantErr     bool
+		errContains string
+	}{{"Simple Spaces", makeArgs("hello world test"), []string{"hello", "world", "test"}, false, ""}, {"Multiple Spaces", makeArgs(" hello  world\ttest\n"), []string{"hello", "world", "test"}, false, ""}, {"Leading/Trailing", makeArgs("  word  "), []string{"word"}, false, ""}, {"Empty", makeArgs(""), []string{}, false, ""}, {"Only Whitespace", makeArgs(" \t\n "), []string{}, false, ""}, {"Wrong Arg Count", makeArgs("a", "b"), nil, true, "expected exactly 1 arguments"}} // Corrected errContains
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := toolSplitWords(dummyInterp, tt.args)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("toolSplitWords() error = %v, wantErr %v", err, tt.wantErr)
+			spec := ToolSpec{Name: "SplitWords", Args: []ArgSpec{{Name: "input", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeSliceString}
+			convArgs, valErr := ValidateAndConvertArgs(spec, tt.args)
+			if (valErr != nil) != tt.wantErr {
+				t.Errorf("SplitWords validation error = %v, wantErr %v", valErr, tt.wantErr)
 				return
 			}
-			if !tt.wantErr && !reflect.DeepEqual(got, tt.want) {
+			if tt.wantErr && tt.errContains != "" && (valErr == nil || !strings.Contains(valErr.Error(), tt.errContains)) {
+				t.Errorf("SplitWords validation expected error containing %q, got: %v", tt.errContains, valErr)
+				return
+			}
+			if tt.wantErr {
+				return
+			}
+			got, err := toolSplitWords(dummyInterp, convArgs)
+			if err != nil {
+				t.Errorf("toolSplitWords() unexpected tool error: %v", err)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("toolSplitWords() = %v, want %v", got, tt.want)
 			}
 		})
-	}
-}
-
-func TestToolJoinStrings(t *testing.T) {
-	dummyInterp := newDummyInterpreter()
-	tests := []struct {
-		name    string
-		args    []interface{} // ToolFunc receives []interface{}
-		want    interface{}
-		wantErr bool
-	}{
-		// Args passed here should match what the ToolFunc expects *after* validation/conversion
-		{"Simple Join", makeArgs([]string{"a", "b", "c"}, "-"), "a-b-c", false},
-		{"Empty Separator", makeArgs([]string{"a", "b", "c"}, ""), "abc", false},
-		{"Empty Slice", makeArgs([]string{}, "-"), "", false},
-		{"Slice with Empty Strings", makeArgs([]string{"a", "", "c"}, ","), "a,,c", false},
-		// {"Interface Slice OK", makeArgs([]interface{}{"x", "y", "z"}, ":"), "x:y:z", false}, // ValidateAndConvert should handle this case
-		{"Wrong Arg Count", makeArgs([]string{"a"}), nil, true},                          // Only 1 arg
-		{"Wrong Arg Count 3", makeArgs([]string{"a"}, "-", "extra"), nil, true},          // 3 args
-		{"Non-slice First Arg", makeArgs("abc", "-"), nil, true},                         // Error expected from validation/conversion ideally
-		{"Non-string Separator", makeArgs([]string{"a"}, 123), nil, true},                // Error expected from validation/conversion ideally
-		{"Interface Slice Bad Content", makeArgs([]interface{}{"a", 1}, "-"), nil, true}, // Error expected from validation/conversion ideally
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// Direct unit test - assume args match what the function expects *after* validation
-			argsForFunc := tt.args
-
-			// Modify args for specific error cases that the function itself *can* check
-			if tt.name == "Non-slice First Arg" {
-				// pass the wrong type directly
-			} else if tt.name == "Non-string Separator" {
-				// pass the wrong type directly
-			} else if tt.name == "Interface Slice Bad Content" {
-				// This case tests the internal conversion within toolJoinStrings if Validate isn't perfect
-				// argsForFunc = makeArgs([]interface{}{"a", 1}, "-") // Pass mixed slice
-			} else if len(argsForFunc) == 2 && !tt.wantErr {
-				// For valid cases, ensure first arg is specifically []string if possible
-				// This might require helper or more complex setup if test args aren't already correct type
-				_, ok1 := argsForFunc[0].([]string)
-				_, ok2 := argsForFunc[1].(string)
-				if !ok1 || !ok2 {
-					// Skip if test case args aren't already the precise expected type post-validation
-					// Or adjust based on how ValidateAndConvertArgs is expected to work
-					t.Skipf("Skipping direct call test %s, requires precise post-validation types", tt.name)
-				}
-			}
-
-			got, err := toolJoinStrings(dummyInterp, argsForFunc)
-
-			if (err != nil) != tt.wantErr {
-				t.Errorf("toolJoinStrings() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !tt.wantErr && !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("toolJoinStrings() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestToolReplaceAll(t *testing.T) {
-	dummyInterp := newDummyInterpreter()
-	tests := []struct {
-		name    string
-		args    []interface{}
-		want    string
-		wantErr bool
-	}{
-		{"Basic", makeArgs("hello world hello", "hello", "hi"), "hi world hi", false},
-		{"Single Char", makeArgs("aaaa", "a", "b"), "bbbb", false},
-		{"Not Found", makeArgs("test", "x", "y"), "test", false},
-		{"Empty Old", makeArgs("abc", "", "X"), "XaXbXcX", false}, // Go's ReplaceAll behavior
-		{"Empty New", makeArgs("hello", "l", ""), "heo", false},
-		{"Wrong Arg Count", makeArgs("a", "b"), "", true},
-		{"Non-string Old", makeArgs("a", 1, "b"), "", true},
-		{"Non-string New", makeArgs("a", "b", 2), "", true},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := toolReplaceAll(dummyInterp, tt.args)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("toolReplaceAll() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !tt.wantErr && got != tt.want {
-				t.Errorf("toolReplaceAll() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestToolContainsPrefixSuffix(t *testing.T) {
-	dummyInterp := newDummyInterpreter()
-	// Contains
-	gotC, errC := toolContains(dummyInterp, makeArgs("hello world", "world"))
-	if errC != nil || gotC != "true" {
-		t.Errorf("toolContains true failed: %v", errC)
-	}
-	gotC, errC = toolContains(dummyInterp, makeArgs("hello world", "bye"))
-	if errC != nil || gotC != "false" {
-		t.Errorf("toolContains false failed: %v", errC)
-	}
-	_, errC = toolContains(dummyInterp, makeArgs("a")) // Wrong arg count
-	if errC == nil {
-		t.Errorf("toolContains expected error for wrong arg count")
-	}
-
-	// HasPrefix
-	gotP, errP := toolHasPrefix(dummyInterp, makeArgs("hello world", "hello"))
-	if errP != nil || gotP != "true" {
-		t.Errorf("toolHasPrefix true failed: %v", errP)
-	}
-	gotP, errP = toolHasPrefix(dummyInterp, makeArgs("hello world", "world"))
-	if errP != nil || gotP != "false" {
-		t.Errorf("toolHasPrefix false failed: %v", errP)
-	}
-	_, errP = toolHasPrefix(dummyInterp, makeArgs("a")) // Wrong arg count
-	if errP == nil {
-		t.Errorf("toolHasPrefix expected error for wrong arg count")
-	}
-
-	// HasSuffix
-	gotS, errS := toolHasSuffix(dummyInterp, makeArgs("hello world", "world"))
-	if errS != nil || gotS != "true" {
-		t.Errorf("toolHasSuffix true failed: %v", errS)
-	}
-	gotS, errS = toolHasSuffix(dummyInterp, makeArgs("hello world", "hello"))
-	if errS != nil || gotS != "false" {
-		t.Errorf("toolHasSuffix false failed: %v", errS)
-	}
-	_, errS = toolHasSuffix(dummyInterp, makeArgs("a")) // Wrong arg count
-	if errS == nil {
-		t.Errorf("toolHasSuffix expected error for wrong arg count")
 	}
 }

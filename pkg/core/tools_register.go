@@ -53,7 +53,12 @@ func registerCoreTools(registry *ToolRegistry) {
 	// --- String Manipulation Tools ---
 	// References the rewritten functions from tools_string.go directly
 	registry.RegisterTool(ToolImplementation{
-		Spec: ToolSpec{Name: "StringLength", Description: "Returns the number of runes (characters) in a string.", Args: []ArgSpec{{Name: "input", Type: ArgTypeString}}, ReturnType: ArgTypeInt},
+		Spec: ToolSpec{ // <-- START of StringLength registration
+			Name:        "StringLength",
+			Description: "Returns the number of runes (characters) in a string.",
+			Args:        []ArgSpec{{Name: "input", Type: ArgTypeString}},
+			ReturnType:  ArgTypeInt, // <-- CORRECTED ReturnType
+		}, // <-- END of StringLength registration
 		Func: toolStringLength,
 	})
 	registry.RegisterTool(ToolImplementation{

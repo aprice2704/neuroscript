@@ -10,45 +10,50 @@ import (
 
 // --- Evaluation Logic Helpers ---
 
-// evaluateCondition - Handles ==, !=, >, <, >=, <= for strings, plus true/false checks
-func (i *Interpreter) evaluateCondition(conditionStr string) (bool, error) {
-	trimmedCond := strings.TrimSpace(conditionStr)
-
-	operators := []string{">=", "<=", "==", "!=", ">", "<"}
-	comparisonFuncs := map[string]func(string, string) bool{
-		"==": func(a, b string) bool { return a == b }, "!=": func(a, b string) bool { return a != b },
-		">": func(a, b string) bool { return a > b }, "<": func(a, b string) bool { return a < b },
-		">=": func(a, b string) bool { return a >= b }, "<=": func(a, b string) bool { return a <= b },
-	}
-
-	for _, op := range operators {
-		parts := strings.SplitN(trimmedCond, op, 2)
-		if len(parts) == 2 {
-			lhs := strings.TrimSpace(parts[0])
-			rhs := strings.TrimSpace(parts[1])
-			resolvedLhsVal := i.evaluateExpression(lhs)
-			resolvedRhsVal := i.evaluateExpression(rhs)
-			resolvedLhsStr := fmt.Sprintf("%v", resolvedLhsVal)
-			resolvedRhsStr := fmt.Sprintf("%v", resolvedRhsVal)
-			return comparisonFuncs[op](resolvedLhsStr, resolvedRhsStr), nil
-		}
-	}
-
-	resolvedValue := i.evaluateExpression(trimmedCond)
-	resolvedValueStr := fmt.Sprintf("%v", resolvedValue)
-	lowerResolved := strings.ToLower(resolvedValueStr)
-
-	if lowerResolved == "true" {
-		return true, nil
-	}
-	if lowerResolved == "false" {
-		return false, nil
-	}
-
-	return false, fmt.Errorf("unsupported condition format or non-boolean result: %s -> %q", conditionStr, resolvedValueStr)
+// tryParseFloat attempts to parse a string as float64.
+func tryParseFloat(s string) (float64, bool) {
+	val, err := strconv.ParseFloat(s, 64)
+	return val, err == nil
 }
 
-// resolvePlaceholders - Performs recursive placeholder lookup and replacement.
+// evaluateCondition evaluates an AST node intended to be a condition.
+// Returns true if the node evaluates to true (bool), non-zero (numeric), or "true" (string).
+// Returns false otherwise. Logs warnings for non-boolean/numeric types.
+func (i *Interpreter) evaluateCondition(condNode interface{}) (bool, error) {
+	// First, evaluate the expression represented by the node
+	// Note: This doesn't handle comparison operators yet (e.g., x == y).
+	// It evaluates the primary expression (like 'x' in 'x == y')
+	evaluatedValue := i.evaluateExpression(condNode)
+
+	switch v := evaluatedValue.(type) {
+	case bool:
+		return v, nil
+	case int64:
+		return v != 0, nil
+	case float64:
+		return v != 0.0, nil // Explicitly compare float to 0.0
+	case string:
+		lowerV := strings.ToLower(v)
+		if lowerV == "true" {
+			return true, nil
+		}
+		if lowerV == "false" {
+			return false, nil
+		}
+		// Fallthrough: Non-boolean string is treated as false, but log warning
+	}
+
+	// Log warning for types that aren't directly true/false/zero/non-zero
+	// This includes non-"true"/"false" strings, slices, maps, nil etc.
+	logMsg := fmt.Sprintf("condition evaluated to non-boolean/numeric value: %T (%v)", evaluatedValue, evaluatedValue)
+	if i.logger != nil {
+		i.logger.Printf("[WARN] %s", logMsg)
+	}
+	// Treat non-interpretable conditions as false for control flow purposes
+	return false, nil // Return false, but no error that stops execution
+}
+
+// resolvePlaceholders - REFINED to handle nested resolution more explicitly.
 func (i *Interpreter) resolvePlaceholders(input string) string {
 	reVar := regexp.MustCompile(`\{\{(.*?)\}\}`)
 	const maxDepth = 10
@@ -57,158 +62,76 @@ func (i *Interpreter) resolvePlaceholders(input string) string {
 	var resolve func(s string, depth int) string
 	resolve = func(s string, depth int) string {
 		if depth > maxDepth {
-			return originalInput
-		} // Return original on depth limit
+			if i.logger != nil {
+				i.logger.Printf("[WARN] Placeholder resolution exceeded max depth (%d) for: %q", maxDepth, originalInput)
+			}
+			return s // Return current string at max depth
+		}
 
-		changedInPass := false
-		result := reVar.ReplaceAllStringFunc(s, func(match string) string {
+		madeChangeInPass := false
+		resolvedString := reVar.ReplaceAllStringFunc(s, func(match string) string {
 			varNameSubmatch := reVar.FindStringSubmatch(match)
 			if len(varNameSubmatch) < 2 {
 				return match
-			}
+			} // Invalid format
+
 			varName := strings.TrimSpace(varNameSubmatch[1])
-			var lookupVal interface{}
+			var nodeToEval interface{}
 			var found bool
 
 			if varName == "__last_call_result" {
-				lookupVal = i.lastCallResult
-				found = true
+				nodeToEval = LastCallResultNode{}
+				found = true // Assume conceptually found
 			} else if isValidIdentifier(varName) {
-				lookupVal, found = i.variables[varName]
+				nodeToEval = VariableNode{Name: varName}
+				_, found = i.variables[varName]
 			} else {
-				return match
+				if i.logger != nil {
+					i.logger.Printf("[WARN] Invalid identifier '%s' inside placeholder: %s", varName, match)
+				}
+				return match // Return literal match
 			}
 
 			if found {
-				replacement := fmt.Sprintf("%v", lookupVal)
-				if replacement != match {
-					changedInPass = true
-					if strings.Contains(replacement, "{{") {
-						return resolve(replacement, depth+1)
+				evaluatedValue := i.evaluateExpression(nodeToEval)
+				replacement := fmt.Sprintf("%v", evaluatedValue) // Convert evaluated value to string
+
+				// --- Check if the replacement itself needs further resolution ---
+				if replacement != match && strings.Contains(replacement, "{{") {
+					recursiveReplacement := resolve(replacement, depth+1) // Recurse NOW
+					if recursiveReplacement != replacement {
+						madeChangeInPass = true
 					}
+					return recursiveReplacement
+				} else if replacement != match {
+					madeChangeInPass = true
+					return replacement
+				} else {
+					// No change or value stringifies to the match itself
+					return match
 				}
-				return replacement
 			} else {
-				return match
+				// Variable not found for placeholder
+				if i.logger != nil {
+					i.logger.Printf("[INFO] Placeholder variable '{{%s}}' not found.", varName)
+				}
+				return match // Leave placeholder as is
 			}
 		})
 
-		if !changedInPass {
-			return result
+		// Re-run resolve on the *entire* string *if* changes were made in the pass,
+		// but limit recursion.
+		if madeChangeInPass && strings.Contains(resolvedString, "{{") && resolvedString != s {
+			return resolve(resolvedString, depth+1) // Only recurse if string actually changed
 		}
-		if strings.Contains(result, "{{") && strings.Contains(result, "}}") {
-			if result != s {
-				return resolve(result, depth+1)
-			} // Recurse only if changed and possible loop
-		}
-		return result
+
+		return resolvedString
 	}
+
 	return resolve(input, 0)
 }
 
-// resolveValue - Resolves ONLY direct variable names & __last_call_result. Returns raw value.
-func (i *Interpreter) resolveValue(input string) (value interface{}, found bool) {
-	trimmedInput := strings.TrimSpace(input)
-	if trimmedInput == "__last_call_result" {
-		if i.lastCallResult != nil {
-			return i.lastCallResult, true
-		}
-		return "", true
-	}
-	if isValidIdentifier(trimmedInput) {
-		val, exists := i.variables[trimmedInput]
-		if exists {
-			return val, true
-		}
-	}
-	return trimmedInput, false
-}
-
-// splitExpression splits an expression string by the top-level '+' operator.
-func splitExpression(expr string) []string {
-	var parts []string
-	var current strings.Builder
-	inQuotes := false
-	var quoteChar rune
-	escapeNext := false
-	placeholderLevel := 0
-	parenLevel := 0
-	flushCurrentPart := func() {
-		trimmedPart := strings.TrimSpace(current.String())
-		if trimmedPart != "" {
-			parts = append(parts, trimmedPart)
-		}
-		current.Reset()
-	}
-	for i := 0; i < len(expr); i++ {
-		ch := rune(expr[i])
-		if escapeNext {
-			current.WriteRune(ch)
-			escapeNext = false
-			continue
-		}
-		if ch == '\\' {
-			current.WriteRune(ch)
-			if i+1 < len(expr) && (expr[i+1] == '"' || expr[i+1] == '\'' || expr[i+1] == '\\') {
-				escapeNext = true
-			}
-			continue
-		}
-		if ch == '{' && i+1 < len(expr) && expr[i+1] == '{' {
-			current.WriteString("{{")
-			if !inQuotes && parenLevel == 0 {
-				placeholderLevel++
-			}
-			i++
-			continue
-		}
-		if ch == '}' && i > 0 && expr[i-1] == '}' {
-			current.WriteRune('}')
-			if !inQuotes && parenLevel == 0 && placeholderLevel > 0 {
-				placeholderLevel--
-			}
-			continue
-		}
-		if (ch == '"' || ch == '\'') && placeholderLevel == 0 && parenLevel == 0 {
-			current.WriteRune(ch)
-			if !inQuotes {
-				inQuotes = true
-				quoteChar = ch
-			} else if ch == quoteChar {
-				inQuotes = false
-			}
-			continue
-		}
-		if ch == '(' && !inQuotes && placeholderLevel == 0 {
-			parenLevel++
-			current.WriteRune(ch)
-			continue
-		}
-		if ch == ')' && !inQuotes && placeholderLevel == 0 {
-			if parenLevel > 0 {
-				parenLevel--
-			}
-			current.WriteRune(ch)
-			continue
-		}
-		if ch == '+' && !inQuotes && placeholderLevel == 0 && parenLevel == 0 {
-			flushCurrentPart()
-			parts = append(parts, "+")
-		} else {
-			current.WriteRune(ch)
-		}
-	}
-	flushCurrentPart()
-	finalParts := make([]string, 0, len(parts))
-	for _, p := range parts {
-		if p != "" {
-			finalParts = append(finalParts, p)
-		}
-	}
-	return finalParts
-}
-
-// isValidIdentifier checks if a string is a valid NeuroScript identifier.
+// isValidIdentifier checks if a string is a valid NeuroScript identifier (and not a keyword).
 func isValidIdentifier(name string) bool {
 	if name == "" {
 		return false
@@ -224,105 +147,128 @@ func isValidIdentifier(name string) bool {
 			}
 		}
 	}
+	// Check against keywords (case-insensitive)
 	upperName := strings.ToUpper(name)
-	keywords := map[string]bool{"DEFINE": true, "PROCEDURE": true, "COMMENT": true, "END": true, "SET": true, "CALL": true, "RETURN": true, "IF": true, "THEN": true, "ELSE": true, "WHILE": true, "DO": true, "FOR": true, "EACH": true, "IN": true, "TOOL": true, "LLM": true}
-	if keywords[upperName] {
-		return false
+	// Define keywords explicitly or read from lexer symbols if possible
+	// Note: Adding all keywords from the grammar here
+	keywords := map[string]bool{
+		"DEFINE": true, "SPLAT": true, "PROCEDURE": true, "COMMENT": true, "END": true, "ENDCOMMENT": true, "ENDBLOCK": true,
+		"SET": true, "CALL": true, "RETURN": true, "EMIT": true,
+		"IF": true, "THEN": true, "ELSE": true,
+		"WHILE": true, "DO": true,
+		"FOR": true, "EACH": true, "IN": true,
+		"TOOL": true, "LLM": true,
+		"__LAST_CALL_RESULT": true, // Treat as keyword for identifier checks
 	}
+	if keywords[upperName] {
+		return false // It's a keyword, not a valid *variable* identifier
+	}
+	// Allow __last_call_result specifically as it's handled like a variable lookup
+	// This logic might seem contradictory, but it prevents users defining a variable named 'IF',
+	// while still allowing lookup of the special result variable.
 	if name == "__last_call_result" {
 		return true
 	}
 	return true
 }
 
-// evaluateExpression - Central Evaluator. Returns final value (interface{}).
-// ** FIX: Reworked Concat logic for better recursion/evaluation **
-func (i *Interpreter) evaluateExpression(expr string) interface{} {
-	trimmedExpr := strings.TrimSpace(expr)
+// evaluateExpression evaluates an AST node representing an expression.
+// It handles literals, variables, placeholders, concatenations, lists, maps.
+func (i *Interpreter) evaluateExpression(node interface{}) interface{} {
 
-	// --- Check 0: Parenthesized Expression ---
-	if len(trimmedExpr) >= 2 && trimmedExpr[0] == '(' && trimmedExpr[len(trimmedExpr)-1] == ')' {
-		innerExpr := trimmedExpr[1 : len(trimmedExpr)-1]
-		return i.evaluateExpression(innerExpr) // Recursively evaluate inner content
-	}
+	switch n := node.(type) {
+	// --- Handle AST Node Types ---
+	case StringLiteralNode:
+		return i.resolvePlaceholders(n.Value)
+	case NumberLiteralNode:
+		return n.Value // Return the stored int64 or float64
+	case BooleanLiteralNode:
+		return n.Value
+	case VariableNode:
+		val, exists := i.variables[n.Name]
+		if exists {
+			// If the retrieved value is a string, resolve placeholders within it *now*.
+			if strVal, ok := val.(string); ok {
+				return i.resolvePlaceholders(strVal)
+			}
+			return val // Return raw value (could be slice, map, number, bool etc.)
+		}
+		if i.logger != nil {
+			i.logger.Printf("[WARN] Variable '%s' not found during evaluation.", n.Name)
+		}
+		return nil
+	case PlaceholderNode: // Placeholders are primarily resolved within strings, but handle direct eval too
+		var refValue interface{}
+		if n.Name == "__last_call_result" {
+			refValue = i.lastCallResult
+		} else {
+			val, exists := i.variables[n.Name]
+			if !exists {
+				if i.logger != nil {
+					i.logger.Printf("[WARN] Variable '{{%s}}' referenced in placeholder not found.", n.Name)
+				}
+				return nil // Return nil if underlying variable not found
+			}
+			refValue = val
+		}
+		// If the referenced value IS a string, resolve placeholders inside it as well
+		if strVal, ok := refValue.(string); ok {
+			return i.resolvePlaceholders(strVal)
+		}
+		// If not a string, return the raw value (number, bool, slice, map...)
+		return refValue
+	case LastCallResultNode: // Similar to PlaceholderNode for __last_call_result
+		if strVal, ok := i.lastCallResult.(string); ok {
+			return i.resolvePlaceholders(strVal)
+		}
+		return i.lastCallResult
 
-	// --- Check 1: Direct variable/keyword lookup ---
-	rawValue, found := i.resolveValue(trimmedExpr)
-	if found {
-		return rawValue // Return raw value (could be string, int, slice, etc.)
-	}
-	// If not found, 'rawValue' holds the trimmed input string.
-
-	// --- Check 2: Concatenation ---
-	// Split the original expression *before* placeholder resolution for accurate structure
-	parts := splitExpression(trimmedExpr)
-
-	if len(parts) > 1 { // Contains '+' operator at top level
+	case ConcatenationNode:
 		var builder strings.Builder
-		isValidConcat := true
-		if len(parts) == 0 {
-			isValidConcat = false
+		for _, operandNode := range n.Operands {
+			evaluatedOperand := i.evaluateExpression(operandNode)
+			// --- FIX: Convert operand to string before appending ---
+			builder.WriteString(fmt.Sprintf("%v", evaluatedOperand))
+			// --- END FIX ---
 		}
+		return builder.String()
 
-		for idx, part := range parts {
-			isOperatorPart := (idx%2 == 1) // Expects operand, +, operand...
-			if isOperatorPart {
-				if part != "+" {
-					isValidConcat = false
-					break
-				}
-				continue // Skip '+'
-			}
-
-			// *** Evaluate the operand part recursively ***
-			// This is the crucial change: evaluate each operand *within* the loop.
-			// This handles loop variables correctly.
-			evaluatedPart := i.evaluateExpression(part) // Evaluate the part (e.g., `{{output}}` or `{{char}}` or `"-"`)
-
-			// Stringify the result of the evaluation for concatenation
-			partStr := fmt.Sprintf("%v", evaluatedPart)
-
-			// Unquote ONLY if the *original part string* looked like a literal string
-			trimmedOriginalPart := strings.TrimSpace(part)
-			isOriginalLiteral := len(trimmedOriginalPart) >= 2 && ((trimmedOriginalPart[0] == '"' && trimmedOriginalPart[len(trimmedOriginalPart)-1] == '"') || (trimmedOriginalPart[0] == '\'' && trimmedOriginalPart[len(trimmedOriginalPart)-1] == '\''))
-
-			if isOriginalLiteral {
-				// Unquote the stringified result if it still looks quoted
-				if len(partStr) >= 2 && ((partStr[0] == '"' && partStr[len(partStr)-1] == '"') || (partStr[0] == '\'' && partStr[len(partStr)-1] == '\'')) {
-					unquoted, err := strconv.Unquote(partStr)
-					if err == nil {
-						partStr = unquoted
-					}
-				}
-			}
-			builder.WriteString(partStr)
+	case ListLiteralNode:
+		evaluatedElements := make([]interface{}, len(n.Elements))
+		for idx, elemNode := range n.Elements {
+			evaluatedElements[idx] = i.evaluateExpression(elemNode)
 		}
+		// Return the evaluated slice
+		return evaluatedElements
 
-		if isValidConcat {
-			return builder.String() // Return concatenated result
+	case MapLiteralNode:
+		evaluatedMap := make(map[string]interface{})
+		for _, entry := range n.Entries {
+			// Key is already a string literal node, use its value
+			mapKey := entry.Key.Value                     // Already unquoted during AST build
+			mapValue := i.evaluateExpression(entry.Value) // Evaluate the value node
+			evaluatedMap[mapKey] = mapValue
 		}
-		// If not valid concat (e.g., "a" + + "b"), fall through to treat original expression as single unit
+		// Return the evaluated map
+		return evaluatedMap
+
+	// --- Handle Raw Go Types (if passed directly, e.g., from tool result) ---
+	case string:
+		// If a raw string is passed, assume it might need placeholder resolution too
+		return i.resolvePlaceholders(n)
+	case int64, float64, bool, nil:
+		// Pass through basic types without modification
+		return n
+	case []interface{}: // Pass through slices
+		return n
+	case map[string]interface{}: // Pass through maps
+		return n
+
+	default:
+		// Log an error for unexpected types
+		if i.logger != nil {
+			i.logger.Printf("[ERROR] evaluateExpression encountered unexpected type: %T (%+v)", node, node)
+		}
+		return nil // Return nil for unhandled types
 	}
-
-	// --- Treat as Single Unit (Literal or Identifier/Placeholder String) ---
-	// If not direct var, not parenthesized, and not valid concatenation.
-	// Resolve placeholders *now* on the original expression.
-	resolvedExprStr := i.resolvePlaceholders(trimmedExpr)
-
-	// Unquote if the *original* expression looked like a quoted literal.
-	if len(trimmedExpr) >= 2 &&
-		((trimmedExpr[0] == '"' && trimmedExpr[len(trimmedExpr)-1] == '"') ||
-			(trimmedExpr[0] == '\'' && trimmedExpr[len(trimmedExpr)-1] == '\'')) {
-		// Use the placeholder-resolved string for unquoting
-		unquoted, err := strconv.Unquote(resolvedExprStr)
-		if err == nil {
-			return unquoted
-		}
-		// If unquote fails, return the placeholder-resolved string as is.
-		return resolvedExprStr
-	}
-
-	// If not originally quoted, return the placeholder-resolved string
-	// (could be an unresolved placeholder, an unknown identifier, etc.)
-	return resolvedExprStr
 }
