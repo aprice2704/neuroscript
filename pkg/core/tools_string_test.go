@@ -7,10 +7,6 @@ import (
 	// Import utf8 package
 )
 
-// --- Test Helper Functions ---
-func newDummyInterpreter() *Interpreter          { return NewInterpreter(nil) }
-func makeArgs(vals ...interface{}) []interface{} { return vals }
-
 // --- Unit Tests for String Tool Go Functions (Part 1) ---
 
 func TestToolStringLength(t *testing.T) {
@@ -250,3 +246,7 @@ func TestToolSplitWords(t *testing.T) { /* ... as before, with corrected errCont
 		})
 	}
 }
+
+// --- Helper Functions ---
+func newDummyInterpreter() *Interpreter          { return NewInterpreter(nil) }
+func makeArgs(vals ...interface{}) []interface{} { return vals }

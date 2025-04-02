@@ -57,10 +57,6 @@ Please review the enclosed codebase, pay special attention to the .md documentat
 
 Here I what I would like to do next:
 
-Implementing the remaining comparison operators (!=, >, <, >=, <=) in evaluation.go.
-
-Addressing other TODOs noted in the test_listmap.ns.txt comments (like map value access).
-
 Tackling features from the development checklist.md [cite: uploaded:neuroscript/development checklist.md] that move us towards:
 
 Our short-term goal should be to reach the point where I can 
@@ -71,4 +67,10 @@ Our short-term goal should be to reach the point where I can
    - add and run unit tests to check for fails, and fix those if required, then
    - run (after perhaps composing) an example ns to test the new feature, and fix if required
 
-For today, please always provide full files, not fragments; and I the files are much bigger than 200 lines volunteer that we should split or refactor them, thx :)
+For today, please always provide full files, not fragments
+If any code file is bigger than 300 please split it logically, you don't need to ask, just do it
+Please gather helper functions in a shared file appropriately namespaced, e.g. tools_helpers.go 
+
+Beware of trying to fix problems with mutiple factors by "try it and see"; when there are several factors this can result in churn without progress; instead reduce the unknowns.
+
+It is perfectly fine to ask to create small test programs to clear up uncertainties, especially to reduce multi-factor problems to single ones.
