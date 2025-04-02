@@ -1,0 +1,103 @@
+# NeuroScript Skill: Modify and Build Go Code
+
+SPLAT PROCEDURE ModifyAndBuildGoFile(relative_filepath, task_description)
+COMMENT:
+    PURPOSE: Reads a Go file, asks an LLM to modify it based on a task,
+             writes the changes, formats the file, and attempts to build
+             the project, reporting the build status.
+    INPUTS:
+      - relative_filepath (string): The relative path (from project root) to the Go file to modify.
+      - task_description (string): Natural language description of the modification needed.
+    OUTPUT:
+      - status_message (string): A message indicating success or failure of the build attempt.
+    ALGORITHM:
+        1. Read the original content of the target Go file. Handle 'not found' error if necessary.
+        2. Create a prompt for the LLM, including the task and original code.
+        3. Call LLM to get the modified Go code. Assume LLM returns only raw code.
+        4. Write the generated code back to the target file.
+        5. Call GoFmt tool to format the written file. Check for formatting errors.
+        6. Call GoBuild tool to compile the project.
+        7. Check the 'success' status from the GoBuild result.
+        8. Return a status message including build success/failure and stderr if failed.
+    CAVEATS:
+        - Assumes LLM provides complete, valid Go code for the specified file.
+        - Does not yet handle build/format errors by asking LLM to fix them (no loop).
+        - Overwrites the target file completely.
+        - Assumes Go commands run correctly in the project's root directory.
+        - Error handling is basic (returns messages).
+    EXAMPLES:
+        CALL ModifyAndBuildGoFile("pkg/core/utils.go", "Add an explanatory comment to the trimCodeFences function") => "Build successful." or "Build failed: ..."
+ENDCOMMENT
+
+# 1. Read original file (or handle non-existence)
+# Placeholder for robust error handling needed here
+CALL TOOL.ReadFile({{relative_filepath}})
+SET original_code = __last_call_result
+# Example check (improve later):
+IF __last_call_result == "" THEN # Basic check if file might be empty or read failed
+    EMIT "[WARN] ReadFile returned empty or failed for " + {{relative_filepath}} + ". Proceeding with empty original code."
+    SET original_code = "" # Ensure it's an empty string
+ENDBLOCK # Fixed END -> ENDBLOCK
+
+# 2. Create LLM Prompt
+SET prompt = "Task: " + {{task_description}} + "\n\n" +
+             "Modify the following Go code file ('" + {{relative_filepath}} + "') to fulfill the task.\n" +
+             "Respond ONLY with the complete, modified Go code for the file.\n" +
+             "Do NOT include explanations or markdown fences (```).\n\n" +
+             "Original Code:\n" +
+             "```go\n" +
+             "{{original_code}}\n" +
+             "```\n"
+EMIT "--- Sending Prompt to LLM ---"
+
+# 3. Call LLM
+CALL LLM({{prompt}})
+SET generated_code = __last_call_result
+EMIT "--- Received Code from LLM (first 100 chars) ---"
+CALL TOOL.Substring({{generated_code}}, 0, 100)
+EMIT __last_call_result
+EMIT "..."
+
+# 4. Write the generated code
+EMIT "--- Writing Generated Code ---"
+CALL TOOL.WriteFile({{relative_filepath}}, {{generated_code}})
+SET write_status = __last_call_result
+IF {{write_status}} != "OK" THEN
+    RETURN "Error: Failed to write generated code to " + {{relative_filepath}} + ": " + {{write_status}}
+ENDBLOCK # Fixed END -> ENDBLOCK
+
+# 5. Format the file using GoFmt
+EMIT "--- Formatting Code ---"
+CALL TOOL.GoFmt({{relative_filepath}})
+SET fmt_result = __last_call_result # This is a map
+SET fmt_success = fmt_result["success"]
+SET fmt_error = fmt_result["error"]
+IF {{fmt_success}} == false THEN
+    EMIT "[WARN] GoFmt failed:"
+    EMIT fmt_error
+    # Continue to build attempt even if formatting failed
+ENDBLOCK # Fixed END -> ENDBLOCK
+
+# 6. Build the project
+EMIT "--- Building Project ---"
+CALL TOOL.GoBuild() # Build runs in CWD
+SET build_result = __last_call_result # This is a map
+
+# 7. Check build status
+SET build_success = build_result["success"]
+SET build_stderr = build_result["stderr"]
+
+# 8. Return status
+# Separate IF blocks instead of IF/ELSE
+IF {{build_success}} == true THEN
+    RETURN "Build successful after applying modification."
+ENDBLOCK # Fixed END -> ENDBLOCK
+
+IF {{build_success}} == false THEN
+    RETURN "Build FAILED after applying modification. Stderr:\n" + {{build_stderr}}
+ENDBLOCK # Fixed END -> ENDBLOCK
+
+# Default return if somehow neither condition matched (shouldn't happen)
+RETURN "Build status uncertain."
+
+END # Final END for SPLAT PROCEDURE

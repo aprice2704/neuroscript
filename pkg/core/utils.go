@@ -13,7 +13,14 @@ import (
 
 // --- Utility Helpers ---
 
-func trimCodeFences(code string) string { /* ... */
+// trimCodeFences removes code fences (```) from the beginning and end of a code string.
+// It handles cases with and without content between the fences and also accounts for
+// additional whitespace or content on the fence lines.  The function first trims
+// leading/trailing whitespace.  Then it checks if the first and last lines are code fences
+// (```), accounting for potential extra whitespace or text on those lines. If fences are
+// found, they are removed, and the resulting string is returned. Otherwise, the original
+// (trimmed) string is returned.
+func trimCodeFences(code string) string {
 	trimmed := strings.TrimSpace(code)
 	lines := strings.Split(trimmed, "\n")
 	if len(lines) < 1 {
@@ -41,7 +48,7 @@ func trimCodeFences(code string) string { /* ... */
 	}
 	return trimmed
 }
-func sanitizeFilename(name string) string { /* ... */
+func sanitizeFilename(name string) string {
 	name = strings.ReplaceAll(name, " ", "_")
 	name = strings.ReplaceAll(name, "/", "_")
 	name = strings.ReplaceAll(name, "\\", "_")
@@ -76,7 +83,7 @@ func sanitizeFilename(name string) string { /* ... */
 	}
 	return name
 }
-func runGitCommand(args ...string) error { /* ... */
+func runGitCommand(args ...string) error {
 	cmd := exec.Command("git", args...)
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
@@ -132,7 +139,7 @@ func secureFilePath(filePath, allowedDir string) (string, error) {
 	return absCleanedPath, nil // Return the safe, absolute, cleaned path
 }
 
-func parseDocstring(content string) Docstring { /* ... */
+func parseDocstring(content string) Docstring {
 	doc := Docstring{Inputs: make(map[string]string)}
 	var currentSection *string
 	inInputSection := false
@@ -186,7 +193,7 @@ func parseDocstring(content string) Docstring { /* ... */
 	}
 	return doc
 }
-func parseInputLine(line string, doc *Docstring) { /* ... */
+func parseInputLine(line string, doc *Docstring) {
 	trimmedLine := strings.TrimSpace(line)
 	if strings.HasPrefix(trimmedLine, "-") {
 		parts := strings.SplitN(strings.TrimSpace(trimmedLine[1:]), ":", 2)

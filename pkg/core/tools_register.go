@@ -12,14 +12,34 @@ import (
 // registerCoreTools defines the specs for built-in tools and registers them.
 func registerCoreTools(registry *ToolRegistry) {
 
-	// --- File I/O, Vector, Git, Filename, Strings ---
-	registry.RegisterTool(ToolImplementation{Spec: ToolSpec{Name: "ReadFile" /*...*/}, Func: toolReadFile})
-	registry.RegisterTool(ToolImplementation{Spec: ToolSpec{Name: "WriteFile" /*...*/}, Func: toolWriteFile})
-	registry.RegisterTool(ToolImplementation{Spec: ToolSpec{Name: "SearchSkills" /*...*/}, Func: toolSearchSkills})
-	registry.RegisterTool(ToolImplementation{Spec: ToolSpec{Name: "VectorUpdate" /*...*/}, Func: toolVectorUpdate})
-	registry.RegisterTool(ToolImplementation{Spec: ToolSpec{Name: "GitAdd" /*...*/}, Func: toolGitAdd})
-	registry.RegisterTool(ToolImplementation{Spec: ToolSpec{Name: "GitCommit" /*...*/}, Func: toolGitCommit})
-	registry.RegisterTool(ToolImplementation{Spec: ToolSpec{Name: "SanitizeFilename" /*...*/}, Func: toolSanitizeFilename})
+	// --- File I/O Tools ---
+	// *** CORRECTED ReadFile Spec ***
+	registry.RegisterTool(ToolImplementation{
+		Spec: ToolSpec{
+			Name:        "ReadFile",
+			Description: "Reads the content of a file.",
+			Args: []ArgSpec{ // Ensure this Args slice is correct
+				{Name: "filepath", Type: ArgTypeString, Required: true, Description: "Relative path to the file."},
+			},
+			ReturnType: ArgTypeString,
+		},
+		Func: toolReadFile,
+	})
+	registry.RegisterTool(ToolImplementation{Spec: ToolSpec{Name: "WriteFile", Description: "Writes content to a file.", Args: []ArgSpec{{Name: "filepath", Type: ArgTypeString, Required: true}, {Name: "content", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeString}, Func: toolWriteFile})
+	registry.RegisterTool(ToolImplementation{Spec: ToolSpec{Name: "ListDirectory", Description: "Lists the files and subdirectories within a given directory path.", Args: []ArgSpec{{Name: "path", Type: ArgTypeString, Required: true, Description: "Relative path to the directory."}}, ReturnType: ArgTypeSliceString}, Func: toolListDirectory})
+
+	// --- Vector DB / Search Tools ---
+	registry.RegisterTool(ToolImplementation{Spec: ToolSpec{Name: "SearchSkills" /*...*/, Args: []ArgSpec{{Name: "query", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeString}, Func: toolSearchSkills})
+	registry.RegisterTool(ToolImplementation{Spec: ToolSpec{Name: "VectorUpdate" /*...*/, Args: []ArgSpec{{Name: "filepath", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeString}, Func: toolVectorUpdate})
+
+	// --- Git Tools ---
+	registry.RegisterTool(ToolImplementation{Spec: ToolSpec{Name: "GitAdd" /*...*/, Args: []ArgSpec{{Name: "filepath", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeString}, Func: toolGitAdd})
+	registry.RegisterTool(ToolImplementation{Spec: ToolSpec{Name: "GitCommit" /*...*/, Args: []ArgSpec{{Name: "message", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeString}, Func: toolGitCommit})
+
+	// --- Filename Utility ---
+	registry.RegisterTool(ToolImplementation{Spec: ToolSpec{Name: "SanitizeFilename" /*...*/, Args: []ArgSpec{{Name: "name", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeString}, Func: toolSanitizeFilename})
+
+	// --- String Manipulation Tools ---
 	registry.RegisterTool(ToolImplementation{Spec: ToolSpec{Name: "StringLength" /*...*/, Args: []ArgSpec{{Name: "input", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeInt}, Func: toolStringLength})
 	registry.RegisterTool(ToolImplementation{Spec: ToolSpec{Name: "Substring" /*...*/, Args: []ArgSpec{{Name: "input", Type: ArgTypeString, Required: true}, {Name: "start", Type: ArgTypeInt, Required: true}, {Name: "end", Type: ArgTypeInt, Required: true}}, ReturnType: ArgTypeString}, Func: toolSubstring})
 	registry.RegisterTool(ToolImplementation{Spec: ToolSpec{Name: "ToUpper" /*...*/, Args: []ArgSpec{{Name: "input", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeString}, Func: toolToUpper})
@@ -49,14 +69,14 @@ func toolReadFile(interpreter *Interpreter, args []interface{}) (interface{}, er
 	cwd, _ := os.Getwd()
 	absPath, secErr := secureFilePath(filePath, cwd)
 	if secErr != nil {
-		return nil, fmt.Errorf("ReadFile path error: %w", secErr)
+		return nil, fmt.Errorf("ReadFile failed for '%s': %w", filePath, secErr)
 	}
 	contentBytes, readErr := os.ReadFile(absPath)
 	if readErr != nil {
 		return nil, fmt.Errorf("ReadFile failed for '%s': %w", absPath, readErr)
 	}
 	return string(contentBytes), nil
-}
+} // Adjusted error msg slightly
 func toolWriteFile(interpreter *Interpreter, args []interface{}) (interface{}, error) {
 	filePath := args[0].(string)
 	content := args[1].(string)
@@ -75,6 +95,7 @@ func toolWriteFile(interpreter *Interpreter, args []interface{}) (interface{}, e
 	}
 	return "OK", nil
 }
+
 func toolSearchSkills(interpreter *Interpreter, args []interface{}) (interface{}, error) {
 	query := args[0].(string)
 	if interpreter.logger != nil {
