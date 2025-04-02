@@ -1,43 +1,52 @@
 # NeuroScript Skill: Modify and Build Go Code
+# Version 5: Uses content-based GoFmt tool, calls GoBuild with specific target
 
 SPLAT PROCEDURE ModifyAndBuildGoFile(relative_filepath, task_description)
 COMMENT:
     PURPOSE: Reads a Go file, asks an LLM to modify it based on a task,
-             writes the changes, formats the file, and attempts to build
-             the project, reporting the build status.
+             formats the generated code, writes the formatted changes back,
+             and attempts to build the specific target file/package, reporting the build status.
     INPUTS:
-      - relative_filepath (string): The relative path (from project root) to the Go file to modify.
+      - relative_filepath (string): The relative path (from project root) to the Go file to modify/build.
       - task_description (string): Natural language description of the modification needed.
     OUTPUT:
       - status_message (string): A message indicating success or failure of the build attempt.
     ALGORITHM:
-        1. Read the original content of the target Go file. Handle 'not found' error if necessary.
+        1. Read the original content of the target Go file using TOOL.ReadFile. Handle potential read errors.
         2. Create a prompt for the LLM, including the task and original code.
         3. Call LLM to get the modified Go code. Assume LLM returns only raw code.
-        4. Write the generated code back to the target file.
-        5. Call GoFmt tool to format the written file. Check for formatting errors.
-        6. Call GoBuild tool to compile the project.
-        7. Check the 'success' status from the GoBuild result.
-        8. Return a status message including build success/failure and stderr if failed.
+        4. Call TOOL.GoFmt with the generated code string.
+        5. Check the 'success' status from the GoFmt result map.
+        6. Decide which code to write (formatted or original generated) based on format success using separate IF blocks.
+        7. Call TOOL.WriteFile to write the chosen code back to the original filepath. Handle potential write errors.
+        8. Call TOOL.GoBuild with the relative_filepath as the target.
+        9. Check the 'success' status from the GoBuild result map.
+       10. Return a status message including build success/failure and stderr if failed, using separate IF blocks.
     CAVEATS:
-        - Assumes LLM provides complete, valid Go code for the specified file.
+        - Assumes LLM provides complete, potentially valid Go code for the specified file.
         - Does not yet handle build/format errors by asking LLM to fix them (no loop).
         - Overwrites the target file completely.
         - Assumes Go commands run correctly in the project's root directory.
         - Error handling is basic (returns messages).
     EXAMPLES:
-        CALL ModifyAndBuildGoFile("pkg/core/utils.go", "Add an explanatory comment to the trimCodeFences function") => "Build successful." or "Build failed: ..."
+        CALL ModifyAndBuildGoFile("test_files/simple_test.go", "Change message to Hello") => "Formatting and Build successful after applying modification."
+        or "Build FAILED after applying modification. Stderr:\n..."
 ENDCOMMENT
 
-# 1. Read original file (or handle non-existence)
-# Placeholder for robust error handling needed here
+# 1. Read original file
+EMIT "--- Reading Original File ---"
 CALL TOOL.ReadFile({{relative_filepath}})
-SET original_code = __last_call_result
-# Example check (improve later):
-IF __last_call_result == "" THEN # Basic check if file might be empty or read failed
-    EMIT "[WARN] ReadFile returned empty or failed for " + {{relative_filepath}} + ". Proceeding with empty original code."
-    SET original_code = "" # Ensure it's an empty string
-ENDBLOCK # Fixed END -> ENDBLOCK
+SET read_result = __last_call_result
+CALL TOOL.Contains({{read_result}}, "ReadFile failed") # Check if the known error prefix is present
+IF __last_call_result == true THEN
+    RETURN "Error reading file: " + {{read_result}}
+ENDBLOCK
+SET original_code = {{read_result}}
+EMIT "Read original code (first 100 chars):"
+CALL TOOL.Substring({{original_code}}, 0, 100)
+EMIT __last_call_result
+EMIT "..."
+
 
 # 2. Create LLM Prompt
 SET prompt = "Task: " + {{task_description}} + "\n\n" +
@@ -53,51 +62,75 @@ EMIT "--- Sending Prompt to LLM ---"
 # 3. Call LLM
 CALL LLM({{prompt}})
 SET generated_code = __last_call_result
+
 EMIT "--- Received Code from LLM (first 100 chars) ---"
 CALL TOOL.Substring({{generated_code}}, 0, 100)
 EMIT __last_call_result
 EMIT "..."
 
-# 4. Write the generated code
-EMIT "--- Writing Generated Code ---"
-CALL TOOL.WriteFile({{relative_filepath}}, {{generated_code}})
-SET write_status = __last_call_result
-IF {{write_status}} != "OK" THEN
-    RETURN "Error: Failed to write generated code to " + {{relative_filepath}} + ": " + {{write_status}}
-ENDBLOCK # Fixed END -> ENDBLOCK
 
-# 5. Format the file using GoFmt
+# 4. Format the generated code using GoFmt (operates on string content)
 EMIT "--- Formatting Code ---"
-CALL TOOL.GoFmt({{relative_filepath}})
-SET fmt_result = __last_call_result # This is a map
+CALL TOOL.GoFmt({{generated_code}})
+SET fmt_result = __last_call_result
+
+
+# 5. Check formatting result and decide which code to write
 SET fmt_success = fmt_result["success"]
 SET fmt_error = fmt_result["error"]
+SET code_to_write = "" # Initialize variable
+
+IF {{fmt_success}} == true THEN
+    EMIT "Formatting successful."
+    SET code_to_write = fmt_result["formatted_content"]
+ENDBLOCK
+
 IF {{fmt_success}} == false THEN
     EMIT "[WARN] GoFmt failed:"
     EMIT fmt_error
-    # Continue to build attempt even if formatting failed
-ENDBLOCK # Fixed END -> ENDBLOCK
+    EMIT "[WARN] Using UNFORMATTED generated code for writing."
+    SET code_to_write = {{generated_code}}
+ENDBLOCK
 
-# 6. Build the project
-EMIT "--- Building Project ---"
-CALL TOOL.GoBuild() # Build runs in CWD
-SET build_result = __last_call_result # This is a map
 
-# 7. Check build status
+# 6. Perform the WriteFile call
+EMIT "--- Writing Code to File ---"
+CALL TOOL.WriteFile({{relative_filepath}}, {{code_to_write}})
+SET write_status = __last_call_result
+IF {{write_status}} != "OK" THEN
+    SET write_error_prefix = "Error: Failed to write UNFORMATTED code"
+    IF {{fmt_success}} == true THEN
+         SET write_error_prefix = "Error: Failed to write FORMATTED code"
+    ENDBLOCK
+    RETURN {{write_error_prefix}} + " to " + {{relative_filepath}} + ": " + {{write_status}}
+ENDBLOCK
+
+
+# 7. Build the project (using the specific relative path as target)
+EMIT "--- Building Project Target ---"
+# *** MODIFIED GoBuild Call ***
+CALL TOOL.GoBuild({{relative_filepath}})
+SET build_result = __last_call_result
+
+
+# 8. Check build status
 SET build_success = build_result["success"]
 SET build_stderr = build_result["stderr"]
 
-# 8. Return status
-# Separate IF blocks instead of IF/ELSE
+
+# 9. Return status
 IF {{build_success}} == true THEN
-    RETURN "Build successful after applying modification."
-ENDBLOCK # Fixed END -> ENDBLOCK
+    SET success_msg = "Build successful (but formatting failed) after applying modification."
+    IF {{fmt_success}} == true THEN
+        SET success_msg = "Formatting and Build successful after applying modification."
+    ENDBLOCK
+    RETURN {{success_msg}}
+ENDBLOCK
 
 IF {{build_success}} == false THEN
     RETURN "Build FAILED after applying modification. Stderr:\n" + {{build_stderr}}
-ENDBLOCK # Fixed END -> ENDBLOCK
+ENDBLOCK
 
-# Default return if somehow neither condition matched (shouldn't happen)
-RETURN "Build status uncertain."
+RETURN "Build status uncertain after modification."
 
-END # Final END for SPLAT PROCEDURE
+END

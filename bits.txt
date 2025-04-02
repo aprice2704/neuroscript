@@ -74,3 +74,5 @@ Please gather helper functions in a shared file appropriately namespaced, e.g. t
 Beware of trying to fix problems with mutiple factors by "try it and see"; when there are several factors this can result in churn without progress; instead reduce the unknowns.
 
 It is perfectly fine to ask to create small test programs to clear up uncertainties, especially to reduce multi-factor problems to single ones.
+
+Immediate goals: have gonsi update ns to latest syntax, ELSE, SPLAT, NeuroData

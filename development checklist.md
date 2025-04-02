@@ -53,9 +53,14 @@ Goal: Reach the "bootstrapping" point where NeuroScript, executed by an LLM or g
 [ ] Tools: Add Integration tools (Sheets, Docs)
 [ ] Feature: Add Self-test support in ns
 [ ] Feature: Embed standard utility NeuroScripts (e.g., CommitChanges) into gonsi binary (using Go embed) **(NEW)**
+[ ] NeuroData files
 
 
-## C. Completed Features (Foundation)
+## C. Found work and things to go back to
+
+[ ] Tools/Known Issue: `TOOL.GoBuild` (using `go build <target>`) does not reliably return non-zero exit code or capture stderr for syntax/compile errors in some files (e.g., single `package main` files like `test_files/simple_test.go`) when run via `exec.Command`. Need a more robust error detection mechanism (e.g., parsing `go list -e -json` output, static analysis tool, dedicated linting tool) for reliable error feedback in scripts like `ModifyAndBuildGoFile`.
+
+## D. Completed Features (Foundation)
 
 [x] Basic Core Syntax Parsing (DEFINE PROCEDURE, COMMENT:, SET, CALL, RETURN, END) [cite: uploaded:neuroscript/pkg/core/generated/neuroscript_parser.go]
 [x] Structured Docstring Parsing (COMMENT: block content parsed into struct) [cite: uploaded:neuroscript/pkg/core/ast_builder.go, uploaded:neuroscript/pkg/core/utils.go]

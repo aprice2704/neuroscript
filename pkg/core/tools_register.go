@@ -1,172 +1,68 @@
 // pkg/core/tools_register.go
 package core
 
+// Import necessary packages if helper functions are defined here (currently none)
+// import (
+// 	"fmt"
+// 	"os"
+// 	"path/filepath"
+// 	"sort"
+//  "encoding/json" // Only needed if SearchSkills remains here
+// )
+
+// registerCoreTools defines the specs for built-in tools and registers them
+// by calling registration functions from specific tool files.
+func registerCoreTools(registry *ToolRegistry) {
+	// Register tool groups
+	registerFsTools(registry)     // From tools_fs.go
+	registerVectorTools(registry) // From tools_vector.go
+	registerGitTools(registry)    // From tools_git.go
+	registerStringTools(registry) // From tools_string.go (assuming it has a registerStringTools func)
+	registerShellTools(registry)  // From tools_shell.go
+
+	// Example: If a tool doesn't fit a group, register it directly
+	// registry.RegisterTool(ToolImplementation{
+	// 	Spec: ToolSpec{ Name: "MyStandaloneTool", ... },
+	// 	Func: toolMyStandaloneTool,
+	// })
+}
+
+// --- Tool Implementations have been moved ---
+// toolReadFile, toolWriteFile, toolListDirectory, toolLineCount, toolSanitizeFilename -> tools_fs.go
+// toolSearchSkills, toolVectorUpdate -> tools_vector.go
+// toolGitAdd, toolGitCommit -> tools_git.go
+// toolStringLength, toolSubstring, etc. -> tools_string.go
+// toolExecuteCommand, toolGoBuild, toolGoTest, toolGoFmt, toolGoModTidy -> tools_shell.go
+
+// --- Assume registerStringTools exists in tools_string.go ---
+// If not, it needs to be created similar to the others.
+/*
+// Example structure for tools_string.go:
+package core
+
 import (
-	"encoding/json"
 	"fmt"
-	"os"
-	"path/filepath"
-	"sort"
+	"strings"
+	"unicode/utf8"
 )
 
-// registerCoreTools defines the specs for built-in tools and registers them.
-func registerCoreTools(registry *ToolRegistry) {
-
-	// --- File I/O Tools ---
-	// *** CORRECTED ReadFile Spec ***
+// registerStringTools adds string manipulation tools to the registry.
+func registerStringTools(registry *ToolRegistry) {
 	registry.RegisterTool(ToolImplementation{
-		Spec: ToolSpec{
-			Name:        "ReadFile",
-			Description: "Reads the content of a file.",
-			Args: []ArgSpec{ // Ensure this Args slice is correct
-				{Name: "filepath", Type: ArgTypeString, Required: true, Description: "Relative path to the file."},
-			},
-			ReturnType: ArgTypeString,
-		},
-		Func: toolReadFile,
+		Spec: ToolSpec{Name: "StringLength", Args: []ArgSpec{{Name: "input", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeInt},
+		Func: toolStringLength,
 	})
-	registry.RegisterTool(ToolImplementation{Spec: ToolSpec{Name: "WriteFile", Description: "Writes content to a file.", Args: []ArgSpec{{Name: "filepath", Type: ArgTypeString, Required: true}, {Name: "content", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeString}, Func: toolWriteFile})
-	registry.RegisterTool(ToolImplementation{Spec: ToolSpec{Name: "ListDirectory", Description: "Lists the files and subdirectories within a given directory path.", Args: []ArgSpec{{Name: "path", Type: ArgTypeString, Required: true, Description: "Relative path to the directory."}}, ReturnType: ArgTypeSliceString}, Func: toolListDirectory})
-
-	// --- Vector DB / Search Tools ---
-	registry.RegisterTool(ToolImplementation{Spec: ToolSpec{Name: "SearchSkills" /*...*/, Args: []ArgSpec{{Name: "query", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeString}, Func: toolSearchSkills})
-	registry.RegisterTool(ToolImplementation{Spec: ToolSpec{Name: "VectorUpdate" /*...*/, Args: []ArgSpec{{Name: "filepath", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeString}, Func: toolVectorUpdate})
-
-	// --- Git Tools ---
-	registry.RegisterTool(ToolImplementation{Spec: ToolSpec{Name: "GitAdd" /*...*/, Args: []ArgSpec{{Name: "filepath", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeString}, Func: toolGitAdd})
-	registry.RegisterTool(ToolImplementation{Spec: ToolSpec{Name: "GitCommit" /*...*/, Args: []ArgSpec{{Name: "message", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeString}, Func: toolGitCommit})
-
-	// --- Filename Utility ---
-	registry.RegisterTool(ToolImplementation{Spec: ToolSpec{Name: "SanitizeFilename" /*...*/, Args: []ArgSpec{{Name: "name", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeString}, Func: toolSanitizeFilename})
-
-	// --- String Manipulation Tools ---
-	registry.RegisterTool(ToolImplementation{Spec: ToolSpec{Name: "StringLength" /*...*/, Args: []ArgSpec{{Name: "input", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeInt}, Func: toolStringLength})
-	registry.RegisterTool(ToolImplementation{Spec: ToolSpec{Name: "Substring" /*...*/, Args: []ArgSpec{{Name: "input", Type: ArgTypeString, Required: true}, {Name: "start", Type: ArgTypeInt, Required: true}, {Name: "end", Type: ArgTypeInt, Required: true}}, ReturnType: ArgTypeString}, Func: toolSubstring})
-	registry.RegisterTool(ToolImplementation{Spec: ToolSpec{Name: "ToUpper" /*...*/, Args: []ArgSpec{{Name: "input", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeString}, Func: toolToUpper})
-	registry.RegisterTool(ToolImplementation{Spec: ToolSpec{Name: "ToLower" /*...*/, Args: []ArgSpec{{Name: "input", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeString}, Func: toolToLower})
-	registry.RegisterTool(ToolImplementation{Spec: ToolSpec{Name: "TrimSpace" /*...*/, Args: []ArgSpec{{Name: "input", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeString}, Func: toolTrimSpace})
-	registry.RegisterTool(ToolImplementation{Spec: ToolSpec{Name: "SplitString" /*...*/, Args: []ArgSpec{{Name: "input", Type: ArgTypeString, Required: true}, {Name: "delimiter", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeSliceString}, Func: toolSplitString})
-	registry.RegisterTool(ToolImplementation{Spec: ToolSpec{Name: "SplitWords" /*...*/, Args: []ArgSpec{{Name: "input", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeSliceString}, Func: toolSplitWords})
-	registry.RegisterTool(ToolImplementation{Spec: ToolSpec{Name: "JoinStrings" /*...*/, Args: []ArgSpec{{Name: "input_slice", Type: ArgTypeSliceString, Required: true}, {Name: "separator", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeString}, Func: toolJoinStrings})
-	registry.RegisterTool(ToolImplementation{Spec: ToolSpec{Name: "ReplaceAll" /*...*/, Args: []ArgSpec{{Name: "input", Type: ArgTypeString, Required: true}, {Name: "old", Type: ArgTypeString, Required: true}, {Name: "new", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeString}, Func: toolReplaceAll})
-	registry.RegisterTool(ToolImplementation{Spec: ToolSpec{Name: "Contains" /*...*/, Args: []ArgSpec{{Name: "input", Type: ArgTypeString, Required: true}, {Name: "substring", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeBool}, Func: toolContains})
-	registry.RegisterTool(ToolImplementation{Spec: ToolSpec{Name: "HasPrefix" /*...*/, Args: []ArgSpec{{Name: "input", Type: ArgTypeString, Required: true}, {Name: "prefix", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeBool}, Func: toolHasPrefix})
-	registry.RegisterTool(ToolImplementation{Spec: ToolSpec{Name: "HasSuffix" /*...*/, Args: []ArgSpec{{Name: "input", Type: ArgTypeString, Required: true}, {Name: "suffix", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeBool}, Func: toolHasSuffix})
-
-	// --- Shell Execution & Go Tools ---
-	registry.RegisterTool(ToolImplementation{Spec: ToolSpec{Name: "ExecuteCommand" /*...*/}, Func: toolExecuteCommand})
-	registry.RegisterTool(ToolImplementation{Spec: ToolSpec{Name: "GoBuild" /*...*/}, Func: toolGoBuild})
-	registry.RegisterTool(ToolImplementation{Spec: ToolSpec{Name: "GoTest" /*...*/}, Func: toolGoTest})
-	// registry.RegisterTool(ToolImplementation{ Spec: ToolSpec{ Name: "ApplyPatch", /*...*/ }, Func: toolApplyPatch }) // REMOVED
-	registry.RegisterTool(ToolImplementation{Spec: ToolSpec{Name: "GoFmt" /*...*/}, Func: toolGoFmt})
-	registry.RegisterTool(ToolImplementation{Spec: ToolSpec{Name: "GoModTidy" /*...*/}, Func: toolGoModTidy})
-
+	registry.RegisterTool(ToolImplementation{
+		Spec: ToolSpec{Name: "Substring", Args: []ArgSpec{{Name: "input", Type: ArgTypeString, Required: true}, {Name: "start", Type: ArgTypeInt, Required: true}, {Name: "end", Type: ArgTypeInt, Required: true}}, ReturnType: ArgTypeString},
+		Func: toolSubstring,
+	})
+    // ... register other string tools ...
+	registry.RegisterTool(ToolImplementation{
+		Spec: ToolSpec{ Name: "HasSuffix", Args: []ArgSpec{{Name: "input", Type: ArgTypeString, Required: true}, {Name: "suffix", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeBool},
+		Func: toolHasSuffix,
+	})
 }
 
-// --- Existing Tool Implementations ---
-func toolReadFile(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	filePath := args[0].(string)
-	cwd, _ := os.Getwd()
-	absPath, secErr := secureFilePath(filePath, cwd)
-	if secErr != nil {
-		return nil, fmt.Errorf("ReadFile failed for '%s': %w", filePath, secErr)
-	}
-	contentBytes, readErr := os.ReadFile(absPath)
-	if readErr != nil {
-		return nil, fmt.Errorf("ReadFile failed for '%s': %w", absPath, readErr)
-	}
-	return string(contentBytes), nil
-} // Adjusted error msg slightly
-func toolWriteFile(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	filePath := args[0].(string)
-	content := args[1].(string)
-	cwd, _ := os.Getwd()
-	absPath, secErr := secureFilePath(filePath, cwd)
-	if secErr != nil {
-		return nil, fmt.Errorf("WriteFile path error: %w", secErr)
-	}
-	dirPath := filepath.Dir(absPath)
-	if dirErr := os.MkdirAll(dirPath, 0755); dirErr != nil {
-		return nil, fmt.Errorf("WriteFile mkdir fail: %w", dirErr)
-	}
-	writeErr := os.WriteFile(absPath, []byte(content), 0644)
-	if writeErr != nil {
-		return nil, fmt.Errorf("WriteFile failed for '%s': %w", absPath, writeErr)
-	}
-	return "OK", nil
-}
+// ... implementations for toolStringLength, toolSubstring, etc. ...
 
-func toolSearchSkills(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	query := args[0].(string)
-	if interpreter.logger != nil {
-		interpreter.logger.Printf("      [Tool] Mock Searching skills for: %q\n", query)
-	}
-	queryEmb, embErr := interpreter.GenerateEmbedding(query)
-	if embErr != nil {
-		return nil, fmt.Errorf("embed fail: %w", embErr)
-	}
-	type SearchResult struct {
-		Path  string
-		Score float64
-	}
-	results := []SearchResult{}
-	threshold := 0.5
-	for path, storedEmb := range interpreter.vectorIndex {
-		score, simErr := cosineSimilarity(queryEmb, storedEmb)
-		if simErr == nil && score >= threshold {
-			results = append(results, SearchResult{Path: path, Score: score})
-		}
-	}
-	sort.Slice(results, func(i, j int) bool { return results[i].Score > results[j].Score })
-	resultBytes, jsonErr := json.Marshal(results)
-	if jsonErr != nil {
-		return nil, fmt.Errorf("marshal results fail: %w", jsonErr)
-	}
-	return string(resultBytes), nil
-}
-func toolVectorUpdate(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	filePath := args[0].(string)
-	cwd, _ := os.Getwd()
-	absPath, secErr := secureFilePath(filePath, cwd)
-	if secErr != nil {
-		return nil, fmt.Errorf("VectorUpdate path error: %w", secErr)
-	}
-	if interpreter.logger != nil {
-		interpreter.logger.Printf("      [Tool] Mock Updating vector index for: %s\n", filepath.Base(absPath))
-	}
-	contentBytes, readErr := os.ReadFile(absPath)
-	if readErr != nil {
-		return nil, fmt.Errorf("read fail for VectorUpdate: %w", readErr)
-	}
-	embedding, embErr := interpreter.GenerateEmbedding(string(contentBytes))
-	if embErr != nil {
-		return nil, fmt.Errorf("embed fail for VectorUpdate: %w", embErr)
-	}
-	interpreter.vectorIndex[absPath] = embedding
-	return "OK", nil
-}
-func toolGitAdd(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	filePath := args[0].(string)
-	cwd, _ := os.Getwd()
-	absPath, secErr := secureFilePath(filePath, cwd)
-	if secErr != nil {
-		return nil, fmt.Errorf("GitAdd path error: %w", secErr)
-	}
-	err := runGitCommand("add", absPath)
-	if err != nil {
-		return nil, err
-	}
-	return "OK", nil
-}
-func toolGitCommit(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	message := args[0].(string)
-	err := runGitCommand("commit", "-m", message)
-	if err != nil {
-		return nil, err
-	}
-	return "OK", nil
-}
-func toolSanitizeFilename(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	name := args[0].(string)
-	return sanitizeFilename(name), nil
-}
+*/
