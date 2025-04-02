@@ -91,6 +91,10 @@ func (v *BaseNeuroScriptVisitor) VisitTerm(ctx *TermContext) interface{} {
 	return v.VisitChildren(ctx)
 }
 
+func (v *BaseNeuroScriptVisitor) VisitPrimary(ctx *PrimaryContext) interface{} {
+	return v.VisitChildren(ctx)
+}
+
 func (v *BaseNeuroScriptVisitor) VisitPlaceholder(ctx *PlaceholderContext) interface{} {
 	return v.VisitChildren(ctx)
 }

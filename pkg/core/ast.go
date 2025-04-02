@@ -2,8 +2,6 @@
 package core
 
 // --- Expression Node Types ---
-// We use interface{} for now to hold various node types.
-// A more rigorous approach might use a dedicated ExpressionNode interface.
 
 // Represents a variable reference (e.g., my_var)
 type VariableNode struct {
@@ -35,16 +33,13 @@ type BooleanLiteralNode struct {
 
 // Represents a list literal (e.g., [1, "a", {{v}}])
 type ListLiteralNode struct {
-	// Elements will hold the evaluated AST nodes for each element expression
-	Elements []interface{} // Slice of expression nodes (VariableNode, LiteralNode, etc.)
+	Elements []interface{} // Slice of expression nodes
 }
 
 // Represents a single key-value pair within a map literal
 type MapEntryNode struct {
-	// Key is always a string literal node after parsing
-	Key StringLiteralNode
-	// Value holds the evaluated AST node for the value expression
-	Value interface{} // An expression node
+	Key   StringLiteralNode // Key is always a string literal node
+	Value interface{}       // An expression node for the value
 }
 
 // Represents a map literal (e.g., {"key": val, "lit": "abc"})
@@ -54,11 +49,24 @@ type MapLiteralNode struct {
 
 // Represents a string concatenation using '+'
 type ConcatenationNode struct {
-	// Operands holds the evaluated AST nodes for the parts being concatenated
 	Operands []interface{} // Slice of expression nodes
 }
 
-// --- Existing Structures (Modified) ---
+// Represents a comparison operation
+type ComparisonNode struct {
+	Left     interface{} // Left-hand side expression node
+	Operator string      // Operator symbol (e.g., "==", "!=", ">")
+	Right    interface{} // Right-hand side expression node
+}
+
+// --- NEW: Represents Element Access ---
+// e.g., my_list[index_expr] or my_map[key_expr]
+type ElementAccessNode struct {
+	Collection interface{} // Expression node evaluating to the list/map (e.g., VariableNode, ListLiteralNode)
+	Accessor   interface{} // Expression node evaluating to the index/key
+}
+
+// --- Existing Structures ---
 
 // Docstring sections remain the same
 type Docstring struct {
@@ -85,11 +93,10 @@ type Step struct {
 	Target string        // Variable name (SET, FOR loop var), Procedure/LLM/Tool name (CALL)
 	Value  interface{}   // Body []Step (IF/WHILE/FOR), Expression Node (SET, RETURN, EMIT)
 	Args   []interface{} // Slice of Expression Nodes (CALL arguments)
-	Cond   interface{}   // Expression Node (IF, WHILE condition), Expression Node (FOR collection)
+	Cond   interface{}   // Expression Node OR ComparisonNode (IF, WHILE), Expression Node (FOR collection)
 }
 
-// newStep creates a new Step instance - signature updated slightly for clarity/consistency
-// Note: We might adjust how steps are created in the listener based on node types
+// newStep creates a new Step instance
 func newStep(typ string, target string, condNode interface{}, valueNode interface{}, argNodes []interface{}) Step {
 	return Step{Type: typ, Target: target, Cond: condNode, Value: valueNode, Args: argNodes}
 }

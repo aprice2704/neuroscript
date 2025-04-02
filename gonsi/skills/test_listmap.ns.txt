@@ -1,85 +1,116 @@
-# NeuroScript Example: List and Map Iteration
+# NeuroScript Example: List and Map Iteration and Access
 
-SPLAT PROCEDURE TestListAndMapIteration(prefix)
+SPLAT PROCEDURE TestListAndMapAccess(prefix)
 COMMENT:
-    PURPOSE: Demonstrates creating and iterating over list and map literals,
-             and using some tools with evaluated list elements.
+    PURPOSE: Demonstrates creating, iterating, and ACCESSING elements
+             from list and map literals using the implemented syntax.
     INPUTS:
         prefix: A string to prepend to outputs.
     OUTPUT: A summary string of processed items.
     ALGORITHM:
-        1. Define a list literal with mixed types.
+        1. Define a list literal with mixed types, including a nested list.
         2. Emit the list.
-        3. Iterate over the list using FOR EACH, emitting each item.
-        4. Define a map literal with mixed value types.
-        5. Emit the map.
-        6. Iterate over the map keys using FOR EACH, emitting each key.
-        7. Use TOOL.JoinStrings with a list literal (tests validation conversion).
-        8. Use TOOL.StringLength on an element retrieved from the list (indirectly via loop var).
-        9. Return a summary.
-    CAVEATS: Map iteration currently only provides keys. Accessing map values by key is not yet implemented.
-    EXAMPLES: CALL TestListAndMapIteration("Test:") => "Summary: Processed list items: Item1 | 2 | true | InnerList! - Processed map keys: key_a,key_b,key_list, - Joined: A-B-3 - Length of Item1: 5"
+        3. Access and emit specific list elements using `list[index]` syntax.
+        4. Iterate over the list using FOR EACH, emitting each item.
+        5. Define a map literal with mixed value types.
+        6. Emit the map.
+        7. Access and emit specific map values using `map["key"]` syntax.
+        8. Iterate over the map keys using FOR EACH, accessing and emitting the corresponding value using the implemented syntax.
+        9. Use TOOL.JoinStrings with a list literal.
+       10. Return a combined summary.
+    CAVEATS: Indexing starts at 0. Map keys must be strings.
+    EXAMPLES: CALL TestListAndMapAccess("Test:") => (Emits list/map details and returns summary)
 ENDCOMMENT
 
 EMIT "--- Testing Lists ---"
 
-# 1. Define and Emit a List
-SET my_list = [ "{{prefix}}Item1", 2, true, ["InnerList", "!"] ]
+# 1. Define List
+SET my_list = [ "{{prefix}}Item1", 2, true, ["Inner", "List!"] ]
 EMIT "List Value:"
-EMIT my_list # Note: Output format depends on Go's fmt %v for []interface{}
+EMIT my_list
 
-# 2. Iterate List
+# 2. Access List Elements Directly
+SET idx_0 = 0
+SET idx_3 = 3
+SET idx = 1
+EMIT "Access List[0]:"
+EMIT my_list[0] # Accessing string
+EMIT "Access List[1]:"
+EMIT my_list[1] # Accessing number
+EMIT "Access List[using variable idx=1]:"
+EMIT my_list[idx] # Accessing using variable index
+EMIT "Access List[3]:"
+EMIT my_list[3] # Accessing nested list
+EMIT "Access Nested List[3][0]:"
+EMIT my_list[3][0] # Accessing element within nested list
+# EMIT "Access List[99] (Out of bounds):" # This will cause an error now
+# EMIT my_list[99]
+
+
+# 3. Iterate List
 SET list_summary = ""
-SET item_len = 0 # Initialize item_len
+EMIT "Iterating List:"
 FOR EACH item IN my_list DO
-    EMIT "List Item:"
+    EMIT "  List Item (from loop):"
     EMIT item
-    # Build summary string (requires arithmetic/conversion later)
-
-    # For now, just concatenate string representations
+    # Concatenate requires string conversion - handled by %v in Go's fmt
     SET list_summary = list_summary + item + " | "
-
-
-    # Test tool on an item (conditionally, if it's the string)
-    # NOTE: Direct string comparison with evaluated variable works
-    IF item == "{{prefix}}Item1" THEN
-         CALL TOOL.StringLength({{item}})
-         SET item_len = __last_call_result
-         EMIT "Length of '{{item}}':"
-         EMIT item_len
-
-    ENDBLOCK
 ENDBLOCK
+EMIT "List Loop Summary:"
+EMIT list_summary
+
 
 EMIT "--- Testing Maps ---"
 
-# 3. Define and Emit a Map
+# 4. Define Map
 SET my_map = {"key_a": "Value A", "key_b": 123, "key_list": ["x", "y"]}
 EMIT "Map Value:"
-EMIT my_map # Note: Output format depends on Go's fmt %v for map[string]interface{}
+EMIT my_map
 
-# 4. Iterate Map Keys
-SET map_keys_summary = ""
+# 5. Access Map Elements Directly
+SET map_key_var = "key_a"
+EMIT "Access Map[\"key_a\"]:"
+EMIT my_map["key_a"] # Accessing string value
+EMIT "Access Map[\"key_b\"]:"
+EMIT my_map["key_b"] # Accessing number value
+EMIT "Access Map[using variable key='key_a']:"
+EMIT my_map[map_key_var] # Accessing using variable key
+EMIT "Access Map[\"key_list\"]:"
+EMIT my_map["key_list"] # Accessing list value
+EMIT "Access Nested Map[\"key_list\"][0]:"
+EMIT my_map["key_list"][0] # Accessing element within nested list from map
+# EMIT "Access Map[\"not_found\"]:" # This will cause an error now
+# EMIT my_map["not_found"]
+
+
+# 6. Iterate Map Keys and Access Values
+SET map_summary = ""
+EMIT "Iterating Map (Keys assigned to map_key):"
 FOR EACH map_key IN my_map DO
-    EMIT "Map Key:"
+    EMIT "  Map Key (from loop):"
     EMIT map_key
-    SET map_keys_summary = map_keys_summary + map_key + ", "
-    # Accessing value like my_map[map_key] is NOT YET SUPPORTED
+    # --- Access value using the key from the loop ---
+    SET current_value = my_map[map_key] # Access value using loop variable as key
+    EMIT "    Value:"
+    EMIT current_value
+    SET map_summary = map_summary + map_key + "=" + current_value + ", "
 ENDBLOCK
+EMIT "Map Loop Summary:"
+EMIT map_summary
 
 EMIT "--- Testing Tools ---"
 
-# 5. Test JoinStrings with evaluated list literal elements
-# Note: Passing numbers/bools requires validation to convert them for JoinStrings
+# 7. Test JoinStrings with evaluated list literal elements
+# Note: JoinStrings expects a slice of strings, but validation handles conversion
 CALL TOOL.JoinStrings([ "A", "B", 3, true ], "-")
 SET joined_list = __last_call_result
 EMIT "Joined List Literal:"
 EMIT joined_list
 
-# 6. Combine summaries and return
-# Ensure item_len is included, even if initialized to 0
-SET final_summary = "Summary: Processed list items: " + list_summary + "- Processed map keys: " + map_keys_summary + "- Joined: " + joined_list + " - Length of Item1: " + item_len
-
+# 8. Combine summaries and return (using accessed values)
+SET first_list_item = my_list[0]
+SET map_val_a = my_map["key_a"]
+SET final_summary = "Summary: ListFirst=" + first_list_item + " MapValA=" + map_val_a + " Joined=" + joined_list
 RETURN final_summary
 
 END

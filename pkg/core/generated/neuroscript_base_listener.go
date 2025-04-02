@@ -146,6 +146,12 @@ func (s *BaseNeuroScriptListener) EnterTerm(ctx *TermContext) {}
 // ExitTerm is called when production term is exited.
 func (s *BaseNeuroScriptListener) ExitTerm(ctx *TermContext) {}
 
+// EnterPrimary is called when production primary is entered.
+func (s *BaseNeuroScriptListener) EnterPrimary(ctx *PrimaryContext) {}
+
+// ExitPrimary is called when production primary is exited.
+func (s *BaseNeuroScriptListener) ExitPrimary(ctx *PrimaryContext) {}
+
 // EnterPlaceholder is called when production placeholder is entered.
 func (s *BaseNeuroScriptListener) EnterPlaceholder(ctx *PlaceholderContext) {}
 

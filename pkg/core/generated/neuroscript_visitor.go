@@ -70,6 +70,9 @@ type NeuroScriptVisitor interface {
 	// Visit a parse tree produced by NeuroScriptParser#term.
 	VisitTerm(ctx *TermContext) interface{}
 
+	// Visit a parse tree produced by NeuroScriptParser#primary.
+	VisitPrimary(ctx *PrimaryContext) interface{}
+
 	// Visit a parse tree produced by NeuroScriptParser#placeholder.
 	VisitPlaceholder(ctx *PlaceholderContext) interface{}
 

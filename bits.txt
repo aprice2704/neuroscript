@@ -52,14 +52,23 @@ Not really, but I haven't seen this formulated in this way yet.
   - executes ns than it can do by itself
 
 
-When providing modified code: if the changes within a single file are not contiguous (i.e., they would require multiple separate copy-paste actions to apply), please provide the entire modified file. If all changes within a file are contiguous (can be applied with one copy-paste), please provide only the modified block."
-
-Here's the rule to follow:
-
-Multiple, Non-Contiguous Changes in a File: I will provide the full content of the modified file.
-Single, Contiguous Change Block in a File: I will provide only the changed block (e.g., the function definition, the specific lines added/removed/modified).
-Multiple Files Changed: I will provide the full content of each changed file, applying rule #1 or #2 individually to determine the format for each file's content.
 
 Please review the enclosed codebase, pay special attention to the .md documentation files to understand the intent. We have been working together on this project over many sessions.
 
+Here I what I would like to do next:
 
+Implementing the remaining comparison operators (!=, >, <, >=, <=) in evaluation.go.
+
+Addressing other TODOs noted in the test_listmap.ns.txt comments (like map value access).
+
+Tackling features from the development checklist.md [cite: uploaded:neuroscript/development checklist.md] that move us towards:
+
+Our short-term goal should be to reach the point where I can 
+   - ask (via gonsi) for a code update,
+   - gonsi will ask an LLM (you hopefully) for the appropriate changes, then 
+   - apply the updates to its actual source code or ns,
+   - run the compiler to check for errors and fix them if required, 
+   - add and run unit tests to check for fails, and fix those if required, then
+   - run (after perhaps composing) an example ns to test the new feature, and fix if required
+
+For today, please always provide full files, not fragments; and I the files are much bigger than 200 lines volunteer that we should split or refactor them, thx :)

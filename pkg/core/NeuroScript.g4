@@ -1,36 +1,25 @@
-// NeuroScript.g4 - Added SLASH rule
+// pkg/core/NeuroScript.g4
+// Corrected grammar to allow optional newlines around PLUS in expressions
 
 grammar NeuroScript;
 
-options {
-    language = Go;
-}
-
 // --- Parser Rules ---
-// ... (Parser rules remain unchanged from V18 - COMMENT_BLOCK on default channel) ...
+program             : optional_newlines (procedure_definition)* optional_newlines EOF;
 
-program             : optional_newlines procedure_definition* optional_newlines EOF;
-
-optional_newlines   : NEWLINE*;
+optional_newlines   : NEWLINE*; // Matches zero or more newlines
 
 procedure_definition: KW_STARTPROC KW_PROCEDURE IDENTIFIER LPAREN param_list_opt RPAREN NEWLINE
-                      COMMENT_BLOCK? // Optional COMMENT block (token matched by lexer)
-                      statement_list
-                      KW_END NEWLINE?;
+                      COMMENT_BLOCK? statement_list KW_END NEWLINE?;
 
 param_list_opt      : param_list?;
 param_list          : IDENTIFIER (COMMA IDENTIFIER)*;
 
-statement_list      : body_line* ; // Uses body_line structure
+statement_list      : (body_line)*;
+body_line           : statement NEWLINE | NEWLINE; // Statement must end with NEWLINE
 
-body_line           : statement NEWLINE // A line with a statement
-                    | NEWLINE         // An empty line
-                    ;
-
-statement           : simple_statement | block_statement ; // Statement no longer consumes NEWLINE
+statement           : simple_statement | block_statement;
 
 simple_statement    : set_statement | call_statement | return_statement | emit_statement;
-
 block_statement     : if_statement | while_statement | for_each_statement;
 
 set_statement       : KW_SET IDENTIFIER ASSIGN expression;
@@ -42,33 +31,61 @@ if_statement        : KW_IF condition KW_THEN NEWLINE statement_list KW_ENDBLOCK
 while_statement     : KW_WHILE condition KW_DO NEWLINE statement_list KW_ENDBLOCK;
 for_each_statement  : KW_FOR KW_EACH IDENTIFIER KW_IN expression KW_DO NEWLINE statement_list KW_ENDBLOCK;
 
-call_target         : IDENTIFIER | KW_TOOL DOT IDENTIFIER | KW_LLM;
-condition           : expression ( (EQ | NEQ | GT | LT | GTE | LTE) expression )? ;
-expression          : term (PLUS term)*;
-term                : literal | placeholder | IDENTIFIER | KW_LAST_CALL_RESULT | LPAREN expression RPAREN;
+call_target         : IDENTIFIER
+                    | KW_TOOL DOT IDENTIFIER
+                    | KW_LLM;
+
+condition           : expression ( ( EQ | NEQ | GT | LT | GTE | LTE ) expression )?;
+
+// --- Expression Hierarchy (Revised for Newlines) ---
+// Allow optional newlines around the PLUS operator for multi-line concatenation
+expression          : term ( optional_newlines PLUS optional_newlines term )*; // <<< MODIFIED
+
+// Term is a primary followed by zero or more element accesses
+term                : primary ( LBRACK expression RBRACK )*;
+
+// Primary represents the base, non-recursive parts of an expression
+primary             : literal
+                    | placeholder
+                    | IDENTIFIER             // Includes variables and true/false
+                    | KW_LAST_CALL_RESULT
+                    | LPAREN expression RPAREN;
+
+// Placeholder for {{var}} syntax
 placeholder         : PLACEHOLDER_START IDENTIFIER PLACEHOLDER_END;
-literal             : STRING_LIT | NUMBER_LIT | list_literal | map_literal;
+
+// Literal types
+literal             : STRING_LIT
+                    | NUMBER_LIT
+                    | list_literal
+                    | map_literal;
+
+// List Literal (e.g., [1, "a", {{v}}])
 list_literal        : LBRACK expression_list_opt RBRACK;
+
+// Map Literal (e.g., {"key": "value", "num": 10})
 map_literal         : LBRACE map_entry_list_opt RBRACE;
+
+// Optional list of expressions (for calls and list literals)
 expression_list_opt : expression_list?;
 expression_list     : expression (COMMA expression)*;
+
+// Optional list of map entries
 map_entry_list_opt  : map_entry_list?;
 map_entry_list      : map_entry (COMMA map_entry)*;
-map_entry           : STRING_LIT COLON expression;
+map_entry           : STRING_LIT COLON expression; // Map keys must be string literals
 
 
 // --- Lexer Rules ---
-
-// Keywords
 KW_STARTPROC        : 'SPLAT';
 KW_PROCEDURE        : 'PROCEDURE';
 KW_END              : 'END';
 KW_ENDBLOCK         : 'ENDBLOCK';
 KW_COMMENT_START    : 'COMMENT:';
 KW_ENDCOMMENT       : 'ENDCOMMENT';
+
 KW_SET              : 'SET';
 KW_CALL             : 'CALL';
-// ... (all other keywords remain the same) ...
 KW_RETURN           : 'RETURN';
 KW_IF               : 'IF';
 KW_THEN             : 'THEN';
@@ -83,13 +100,13 @@ KW_LLM              : 'LLM';
 KW_LAST_CALL_RESULT : '__last_call_result';
 KW_EMIT             : 'EMIT';
 
+COMMENT_BLOCK       : KW_COMMENT_START .*? KW_ENDCOMMENT -> skip;
 
-// COMMENT_BLOCK on default channel
-COMMENT_BLOCK       : KW_COMMENT_START .*? KW_ENDCOMMENT;
+NUMBER_LIT          : [0-9]+ ('.' [0-9]+)?;
+STRING_LIT          : '"' ( EscapeSequence | ~('\\'|'"') )* '"'
+                    | '\'' ( EscapeSequence | ~('\\'|'\'') )* '\''
+                    ;
 
-// Literals, Operators, etc.
-NUMBER_LIT          : [0-9]+ ;
-STRING_LIT          : '"' ( ~["\\\r\n] | EscapeSequence )* '"' | '\'' ( ~['\\\r\n] | EscapeSequence )* '\'';
 ASSIGN              : '=';
 PLUS                : '+';
 LPAREN              : '(';
@@ -101,7 +118,7 @@ LBRACE              : '{';
 RBRACE              : '}';
 COLON               : ':';
 DOT                 : '.';
-SLASH               : '/' -> channel(HIDDEN); // ** V19: Added rule for SLASH, send to hidden **
+SLASH               : '/';
 PLACEHOLDER_START   : '{{';
 PLACEHOLDER_END     : '}}';
 EQ                  : '==';
@@ -111,16 +128,13 @@ LT                  : '<';
 GTE                 : '>=';
 LTE                 : '<=';
 
-// Identifier rule MUST come AFTER all keywords
-IDENTIFIER          : [a-zA-Z_] [a-zA-Z0-9_]* ;
+IDENTIFIER          : [a-zA-Z_] [a-zA-Z0-9_]*;
 
-// Comments, Whitespace, Newlines
-LINE_COMMENT        : ('#' | '--') ~[\r\n]* -> channel(HIDDEN) ;
-NEWLINE             : '\r'? '\n' | '\r';
-WS                  : [ \t]+ -> channel(HIDDEN) ;
-LINE_CONTINUATION   : '\\' '\r'? '\n' -> skip;
+LINE_COMMENT        : ('#'|'--') ~[\r\n]* -> skip;
+// NEWLINE stays on default channel - parser rules now handle where it's allowed/required
+NEWLINE             : '\r'? '\n';
+WS                  : [ \t]+ -> skip;
 
-// Fragments
-fragment EscapeSequence : '\\' (["'\\nrt] | UNICODE_ESC) ;
-fragment UNICODE_ESC : 'u' HEX_DIGIT HEX_DIGIT HEX_DIGIT HEX_DIGIT ;
-fragment HEX_DIGIT   : [0-9a-fA-F] ;
+fragment EscapeSequence: '\\' (['"\\nrt] | UNICODE_ESC );
+fragment UNICODE_ESC : 'u' HEX_DIGIT HEX_DIGIT HEX_DIGIT HEX_DIGIT;
+fragment HEX_DIGIT   : [0-9a-fA-F];

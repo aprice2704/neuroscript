@@ -70,6 +70,9 @@ type NeuroScriptListener interface {
 	// EnterTerm is called when entering the term production.
 	EnterTerm(c *TermContext)
 
+	// EnterPrimary is called when entering the primary production.
+	EnterPrimary(c *PrimaryContext)
+
 	// EnterPlaceholder is called when entering the placeholder production.
 	EnterPlaceholder(c *PlaceholderContext)
 
@@ -159,6 +162,9 @@ type NeuroScriptListener interface {
 
 	// ExitTerm is called when exiting the term production.
 	ExitTerm(c *TermContext)
+
+	// ExitPrimary is called when exiting the primary production.
+	ExitPrimary(c *PrimaryContext)
 
 	// ExitPlaceholder is called when exiting the placeholder production.
 	ExitPlaceholder(c *PlaceholderContext)
