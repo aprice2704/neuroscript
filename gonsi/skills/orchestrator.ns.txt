@@ -1,6 +1,6 @@
 # Filename: skills/orchestrator.ns
 
-SPLAT PROCEDURE HandleSkillRequest(task_description)
+DEFINE PROCEDURE HandleSkillRequest(task_description)
 COMMENT:
     PURPOSE: Attempts to fulfill a task by finding or creating a NeuroScript skill.
     ** MVP Version: Assumes skill is NOT found and proceeds to creation.
@@ -24,7 +24,7 @@ ENDCOMMENT
 # Define constraints clearly for the prompt
 # Removed trailing '\' characters from these lines
 SET ns_syntax_rules = "NeuroScript Syntax Rules: " +
-    "1. Start with 'SPLAT PROCEDURE Name(args)'. " +
+    "1. Start with 'DEFINE PROCEDURE Name(args)'. " +
     "2. Include a structured 'COMMENT:' block with PURPOSE:, INPUTS:, OUTPUT:, ALGORITHM: ended by 'ENDCOMMENT'. " +
     "3. Use 'SET var = expression' for ALL assignments. " +
     "4. Use 'CALL ProcName(args...)' for ALL procedure/tool calls. Capture results with 'SET result = CALL ...'. " +

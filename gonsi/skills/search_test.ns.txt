@@ -1,4 +1,4 @@
-SPLAT PROCEDURE FindSkills(query)
+DEFINE PROCEDURE FindSkills(query)
 COMMENT:
     PURPOSE: Tests the skill search stub.
     INPUTS: query: String to search for.

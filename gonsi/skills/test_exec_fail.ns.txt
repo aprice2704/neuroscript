@@ -1,6 +1,6 @@
 # Diagnostic Script: Test toolExecuteCommand Failure Capture
 
-SPLAT PROCEDURE TestExecFail()
+DEFINE PROCEDURE TestExecFail()
 COMMENT:
     PURPOSE: Tests if TOOL.ExecuteCommand correctly captures exit code and stderr for a known failing command.
     INPUTS: None

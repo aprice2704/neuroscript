@@ -1,0 +1,18 @@
+# Test IF/ELSE Execution
+
+DEFINE PROCEDURE TestElseBranch(condition_flag)
+COMMENT:
+    PURPOSE: Tests if the ELSE block executes when the IF condition is false.
+    INPUTS: - condition_flag: A string, expected "true" or "false".
+    OUTPUT: An emitted message indicating which branch ran.
+ENDCOMMENT
+
+IF {{condition_flag}} == "true" THEN
+    EMIT "IF (THEN) Branch Executed."
+ELSE
+    EMIT "ELSE Branch Executed."
+ENDBLOCK
+
+RETURN "Test Complete."
+
+END

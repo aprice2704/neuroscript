@@ -1,6 +1,6 @@
 # NeuroScript Example: List and Map Iteration and Access
 
-SPLAT PROCEDURE TestListAndMapAccess(prefix)
+DEFINE PROCEDURE TestListAndMapAccess(prefix)
 COMMENT:
     PURPOSE: Demonstrates creating, iterating, and ACCESSING elements
              from list and map literals using the implemented syntax.

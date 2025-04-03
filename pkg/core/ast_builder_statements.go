@@ -20,29 +20,37 @@ func (l *neuroScriptListenerImpl) ExitSet_statement(ctx *gen.Set_statementContex
 	}
 
 	varName := ctx.IDENTIFIER().GetText()
-	step := newStep("SET", varName, nil, valueNode, nil) // Store node in Value
+	// *** UPDATED newStep call: added nil for elseValue ***
+	step := newStep("SET", varName, nil, valueNode, nil, nil)
 	*l.currentSteps = append(*l.currentSteps, step)
 }
 
 func (l *neuroScriptListenerImpl) ExitCall_statement(ctx *gen.Call_statementContext) {
 	l.logDebugAST("<<< Exit Call_statement: %q", ctx.GetText())
 	numArgs := 0
-	if ctx.Expression_list_opt() != nil && ctx.Expression_list_opt().Expression_list() != nil {
-		numArgs = len(ctx.Expression_list_opt().Expression_list().AllExpression())
+	// Check if expression_list exists before accessing it
+	if exprListOpt := ctx.Expression_list_opt(); exprListOpt != nil {
+		if exprList := exprListOpt.Expression_list(); exprList != nil {
+			numArgs = len(exprList.AllExpression())
+		}
 	}
 
 	argNodes, ok := l.popNValues(numArgs) // Pop arg nodes from stack
 	if !ok {
-		l.logger.Printf("[ERROR] AST Builder: Failed to pop %d args for CALL", numArgs)
-		return
-	} // Error handling
+		// Don't log error if numArgs was 0, as popNValues(0) is okay.
+		if numArgs > 0 {
+			l.logger.Printf("[ERROR] AST Builder: Failed to pop %d args for CALL", numArgs)
+		}
+		// Proceed even if args failed to pop, maybe it's a no-arg call. Check target.
+	} // Error handling improved
 
 	if l.currentSteps == nil {
 		l.logger.Println("[WARN] Call_statement exited with nil currentSteps")
 		return
 	}
 	target := ctx.Call_target().GetText()
-	step := newStep("CALL", target, nil, nil, argNodes) // Store nodes in Args
+	// *** UPDATED newStep call: added nil for elseValue ***
+	step := newStep("CALL", target, nil, nil, nil, argNodes) // Store nodes in Args
 	*l.currentSteps = append(*l.currentSteps, step)
 }
 
@@ -61,7 +69,8 @@ func (l *neuroScriptListenerImpl) ExitReturn_statement(ctx *gen.Return_statement
 		l.logger.Println("[WARN] Return_statement exited with nil currentSteps")
 		return
 	}
-	step := newStep("RETURN", "", nil, valueNode, nil) // Store node (or nil) in Value
+	// *** UPDATED newStep call: added nil for elseValue ***
+	step := newStep("RETURN", "", nil, valueNode, nil, nil)
 	*l.currentSteps = append(*l.currentSteps, step)
 }
 
@@ -80,6 +89,7 @@ func (l *neuroScriptListenerImpl) ExitEmit_statement(ctx *gen.Emit_statementCont
 		l.logger.Println("[WARN] Emit_statement exited with nil currentSteps")
 		return
 	}
-	step := newStep("EMIT", "", nil, valueNode, nil) // Store node (or nil) in Value
+	// *** UPDATED newStep call: added nil for elseValue ***
+	step := newStep("EMIT", "", nil, valueNode, nil, nil)
 	*l.currentSteps = append(*l.currentSteps, step)
 }

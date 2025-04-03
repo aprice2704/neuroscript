@@ -1,4 +1,4 @@
-SPLAT PROCEDURE ProcessGreeting(read_path, write_path)
+DEFINE PROCEDURE ProcessGreeting(read_path, write_path)
 COMMENT:
     PURPOSE: Reads content, calls another skill to write it elsewhere.
     INPUTS:

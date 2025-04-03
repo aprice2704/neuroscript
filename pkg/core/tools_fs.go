@@ -6,226 +6,196 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
-	"strings" // Needed for LineCount placeholder
+	"strings"
 )
 
-// registerFsTools adds File System related tools to the registry.
+// registerFsTools registration (remains the same)
 func registerFsTools(registry *ToolRegistry) {
-	registry.RegisterTool(ToolImplementation{
-		Spec: ToolSpec{
-			Name:        "ReadFile",
-			Description: "Reads the content of a file.",
-			Args: []ArgSpec{
-				{Name: "filepath", Type: ArgTypeString, Required: true, Description: "Relative path to the file."},
-			},
-			ReturnType: ArgTypeString,
-		},
-		Func: toolReadFile,
-	})
-
-	registry.RegisterTool(ToolImplementation{
-		Spec: ToolSpec{
-			Name:        "WriteFile",
-			Description: "Writes content to a file, creating directories if needed.",
-			Args: []ArgSpec{
-				{Name: "filepath", Type: ArgTypeString, Required: true, Description: "Relative path to the file."},
-				{Name: "content", Type: ArgTypeString, Required: true, Description: "The content to write."},
-			},
-			ReturnType: ArgTypeString, // Returns "OK" or error message
-		},
-		Func: toolWriteFile,
-	})
-
-	registry.RegisterTool(ToolImplementation{
-		Spec: ToolSpec{
-			Name:        "ListDirectory",
-			Description: "Lists the files and subdirectories within a given directory path, adding '/' suffix to directories.",
-			Args: []ArgSpec{
-				{Name: "path", Type: ArgTypeString, Required: true, Description: "Relative path to the directory."},
-			},
-			ReturnType: ArgTypeSliceString, // Returns []string of names or error message string
-		},
-		Func: toolListDirectory,
-	})
-
-	// Placeholder - Keep registration but function is not implemented
-	registry.RegisterTool(ToolImplementation{
-		Spec: ToolSpec{
-			Name:        "LineCount",
-			Description: "Counts the lines in a file or string. [NOT IMPLEMENTED]",
-			Args: []ArgSpec{
-				{Name: "input", Type: ArgTypeString, Required: true, Description: "File path or string content."},
-			},
-			ReturnType: ArgTypeInt,
-		},
-		Func: toolLineCount,
-	})
-
-	// Keep SanitizeFilename here as it's FS path related
-	registry.RegisterTool(ToolImplementation{
-		Spec: ToolSpec{
-			Name:        "SanitizeFilename",
-			Description: "Cleans a string to make it suitable for use as a filename.",
-			Args: []ArgSpec{
-				{Name: "name", Type: ArgTypeString, Required: true, Description: "The input name string."},
-			},
-			ReturnType: ArgTypeString,
-		},
-		Func: toolSanitizeFilename,
-	})
+	registry.RegisterTool(ToolImplementation{Spec: ToolSpec{Name: "ReadFile", Description: "Reads file content.", Args: []ArgSpec{{Name: "filepath", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeString}, Func: toolReadFile})
+	registry.RegisterTool(ToolImplementation{Spec: ToolSpec{Name: "WriteFile", Description: "Writes content to file.", Args: []ArgSpec{{Name: "filepath", Type: ArgTypeString, Required: true}, {Name: "content", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeString}, Func: toolWriteFile})
+	registry.RegisterTool(ToolImplementation{Spec: ToolSpec{Name: "ListDirectory", Description: "Lists directory content.", Args: []ArgSpec{{Name: "path", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeSliceString}, Func: toolListDirectory})
+	registry.RegisterTool(ToolImplementation{Spec: ToolSpec{Name: "LineCount", Description: "Counts lines in file or string. Returns -1 on file error.", Args: []ArgSpec{{Name: "input", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeInt}, Func: toolLineCount}) // ReturnType is Int
+	registry.RegisterTool(ToolImplementation{Spec: ToolSpec{Name: "SanitizeFilename", Description: "Cleans string for filename.", Args: []ArgSpec{{Name: "name", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeString}, Func: toolSanitizeFilename})
 }
 
-// toolReadFile reads content from a secured file path.
+// toolReadFile, toolWriteFile, toolListDirectory, toolSanitizeFilename (remain the same)
 func toolReadFile(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	// Validation handled by ValidateAndConvertArgs
 	filePath := args[0].(string)
-
 	cwd, errWd := os.Getwd()
 	if errWd != nil {
-		return nil, fmt.Errorf("ReadFile failed to get working directory: %w", errWd)
+		return nil, fmt.Errorf("ReadFile failed get CWD: %w", errWd)
 	}
-	absPath, secErr := secureFilePath(filePath, cwd) // Use helper
+	absPath, secErr := secureFilePath(filePath, cwd)
 	if secErr != nil {
-		// Return error message as string result for NeuroScript
 		return fmt.Sprintf("ReadFile failed for '%s': %s", filePath, secErr.Error()), nil
 	}
-
 	if interpreter.logger != nil {
 		interpreter.logger.Printf("[DEBUG-INTERP]      Calling TOOL.ReadFile for %s (Resolved: %s)", filePath, absPath)
 	}
-
 	contentBytes, readErr := os.ReadFile(absPath)
 	if readErr != nil {
-		// Return read error message as string result
 		return fmt.Sprintf("ReadFile failed for '%s': %s", filePath, readErr.Error()), nil
 	}
-
 	if interpreter.logger != nil {
 		interpreter.logger.Printf("[DEBUG-INTERP]      ReadFile successful for %s", filePath)
 	}
 	return string(contentBytes), nil
 }
-
-// toolWriteFile writes content to a secured file path, creating directories.
 func toolWriteFile(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	// Validation handled by ValidateAndConvertArgs
 	filePath := args[0].(string)
 	content := args[1].(string)
-
 	cwd, errWd := os.Getwd()
 	if errWd != nil {
-		return nil, fmt.Errorf("WriteFile failed to get working directory: %w", errWd)
+		return nil, fmt.Errorf("WriteFile failed get CWD: %w", errWd)
 	}
-	absPath, secErr := secureFilePath(filePath, cwd) // Use helper
+	absPath, secErr := secureFilePath(filePath, cwd)
 	if secErr != nil {
 		return fmt.Sprintf("WriteFile path error: %s", secErr.Error()), nil
 	}
-
 	if interpreter.logger != nil {
 		interpreter.logger.Printf("[DEBUG-INTERP]      Calling TOOL.WriteFile for %s (Resolved: %s)", filePath, absPath)
 	}
-
-	// Ensure the directory exists
 	dirPath := filepath.Dir(absPath)
 	if dirErr := os.MkdirAll(dirPath, 0755); dirErr != nil {
 		return fmt.Sprintf("WriteFile mkdir failed for dir '%s': %s", dirPath, dirErr.Error()), nil
 	}
-
-	// Write the file
 	writeErr := os.WriteFile(absPath, []byte(content), 0644)
 	if writeErr != nil {
 		return fmt.Sprintf("WriteFile failed for '%s': %s", filePath, writeErr.Error()), nil
 	}
-
 	if interpreter.logger != nil {
 		interpreter.logger.Printf("[DEBUG-INTERP]      WriteFile successful for %s", filePath)
 	}
 	return "OK", nil
 }
-
-// toolListDirectory lists the contents of a secured directory path.
 func toolListDirectory(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	// Validation handled by ValidateAndConvertArgs
 	dirPath := args[0].(string)
-
 	cwd, errWd := os.Getwd()
 	if errWd != nil {
-		return fmt.Sprintf("ListDirectory failed to get working directory: %s", errWd.Error()), nil
+		return fmt.Sprintf("ListDirectory failed get CWD: %s", errWd.Error()), nil
 	}
-
-	// Secure the path - allow listing the CWD itself if path is "."
 	var absPath string
 	var secErr error
 	if filepath.Clean(dirPath) == "." {
-		absPath = cwd // Use cwd directly if input is "."
+		absPath = cwd
 	} else {
-		absPath, secErr = secureFilePath(dirPath, cwd) // Use helper
+		absPath, secErr = secureFilePath(dirPath, cwd)
 		if secErr != nil {
 			return fmt.Sprintf("ListDirectory path error: %s", secErr.Error()), nil
 		}
 	}
-
 	if interpreter.logger != nil {
 		interpreter.logger.Printf("[DEBUG-INTERP]      Calling TOOL.ListDirectory for %s (Resolved: %s)", dirPath, absPath)
 	}
-
-	// Read directory entries
 	entries, err := os.ReadDir(absPath)
 	if err != nil {
 		return fmt.Sprintf("ListDirectory read error for '%s': %s", dirPath, err.Error()), nil
 	}
-
-	// Extract names, add '/' to dirs, and sort
 	names := make([]string, 0, len(entries))
 	for _, entry := range entries {
 		name := entry.Name()
 		if entry.IsDir() {
-			name += "/" // Add trailing slash to indicate directory
+			name += "/"
 		}
 		names = append(names, name)
 	}
-	sort.Strings(names) // Ensure deterministic order
-
+	sort.Strings(names)
 	if interpreter.logger != nil {
 		interpreter.logger.Printf("[DEBUG-INTERP]      ListDirectory successful for %s. Found %d entries.", dirPath, len(names))
 	}
-
-	// Return the list of names (which is []string, compatible with ArgTypeSliceString)
 	return names, nil
 }
-
-// toolLineCount counts lines in a file or string content. [Placeholder]
-func toolLineCount(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	// Validation handled by ValidateAndConvertArgs
-	input := args[0].(string)
-
-	if interpreter.logger != nil {
-		interpreter.logger.Printf("[DEBUG-INTERP]      Calling TOOL.LineCount for input (first 50 chars): %q...", input[:min(len(input), 50)])
-	}
-
-	// TODO: Implement LineCount logic.
-	// - Check if input is a likely file path (needs robust check) or string content.
-	// - If path, use secureFilePath and read the file.
-	// - Count newlines ('\n') in the content.
-	// - Return int64 count or error string.
-
-	// Placeholder implementation
-	lineCount := int64(strings.Count(input, "\n") + 1) // Basic count for now
-	if len(input) == 0 {
-		lineCount = 0
-	}
-	interpreter.logger.Printf("[WARN] TOOL.LineCount is not fully implemented. Using basic newline count.")
-
-	return lineCount, nil // Placeholder return
-}
-
-// toolSanitizeFilename cleans a string for use as a filename.
 func toolSanitizeFilename(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	// Validation handled by ValidateAndConvertArgs
 	name := args[0].(string)
-	sanitized := sanitizeFilename(name) // Use helper from utils.go (or move here/tools_helpers.go later)
+	sanitized := sanitizeFilename(name)
 	if interpreter.logger != nil {
 		interpreter.logger.Printf("[DEBUG-INTERP]      SanitizeFilename: %q -> %q", name, sanitized)
 	}
 	return sanitized, nil
 }
+
+// *** UPDATED toolLineCount IMPLEMENTATION ***
+func toolLineCount(interpreter *Interpreter, args []interface{}) (interface{}, error) {
+	input := args[0].(string)
+	content := ""
+	isPath := false
+	foundContent := false
+
+	// Check if input might be a path
+	if strings.ContainsAny(input, "/\\") || strings.HasSuffix(input, ".go") || strings.HasSuffix(input, ".txt") || strings.HasSuffix(input, ".md") {
+		cwd, errWd := os.Getwd()
+		if errWd != nil {
+			if interpreter.logger != nil {
+				interpreter.logger.Printf("[ERROR] LineCount failed get CWD: %v", errWd)
+			}
+			return int64(-1), nil // Return -1 on internal error
+		}
+		absPath, secErr := secureFilePath(input, cwd)
+		if secErr == nil { // Path is secure, try reading
+			isPath = true
+			if interpreter.logger != nil {
+				interpreter.logger.Printf("[DEBUG-INTERP]      LineCount treating input as path: %s (Resolved: %s)", input, absPath)
+			}
+			contentBytes, readErr := os.ReadFile(absPath)
+			if readErr == nil {
+				content = string(contentBytes)
+				foundContent = true
+			} else {
+				// Secure path, but read failed (e.g., not found) -> Return error
+				if interpreter.logger != nil {
+					interpreter.logger.Printf("[WARN] LineCount failed to read secure path '%s': %v.", input, readErr)
+				}
+				return int64(-1), nil // Return -1 on read error
+			}
+		} else {
+			// Path was insecure -> Return error
+			if interpreter.logger != nil {
+				interpreter.logger.Printf("[WARN] LineCount input '%s' failed security check: %v.", input, secErr)
+			}
+			return int64(-1), nil // Return -1 on security error
+		}
+	}
+
+	// If not treated as a path or reading failed unexpectedly (shouldn't happen after checks), treat as raw string
+	if !isPath && !foundContent {
+		content = input
+		if interpreter.logger != nil {
+			interpreter.logger.Printf("[DEBUG-INTERP]      LineCount treating input as raw string.")
+		}
+		foundContent = true // Mark that we have content to count
+	}
+
+	// Count lines if content was found
+	if foundContent {
+		if len(content) == 0 {
+			if interpreter.logger != nil {
+				interpreter.logger.Printf("[DEBUG-INTERP]      LineCount result: 0 (empty content)")
+			}
+			return int64(0), nil
+		}
+		// Use scanner for potentially more robust line counting? Or stick with strings.Count
+		// strings.Count is simpler. Add 1 unless the only content is ""
+		lineCount := int64(strings.Count(content, "\n"))
+		// If content doesn't end with newline, the last line still counts
+		if !strings.HasSuffix(content, "\n") {
+			lineCount++
+		}
+		// Handle case where content is just "\n" -> should be 1 line
+		if content == "\n" {
+			lineCount = 1
+		}
+
+		if interpreter.logger != nil {
+			interpreter.logger.Printf("[DEBUG-INTERP]      LineCount result: %d", lineCount)
+		}
+		return lineCount, nil
+	}
+
+	// Should not be reached, but return error code just in case
+	if interpreter.logger != nil {
+		interpreter.logger.Printf("[ERROR] LineCount reached unexpected state.")
+	}
+	return int64(-1), nil
+}
+
+// *** END UPDATED IMPLEMENTATION ***

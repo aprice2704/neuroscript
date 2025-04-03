@@ -59,8 +59,7 @@ type ComparisonNode struct {
 	Right    interface{} // Right-hand side expression node
 }
 
-// --- NEW: Represents Element Access ---
-// e.g., my_list[index_expr] or my_map[key_expr]
+// Represents Element Access e.g., my_list[index_expr] or my_map[key_expr]
 type ElementAccessNode struct {
 	Collection interface{} // Expression node evaluating to the list/map (e.g., VariableNode, ListLiteralNode)
 	Accessor   interface{} // Expression node evaluating to the index/key
@@ -87,16 +86,17 @@ type Procedure struct {
 	Steps     []Step
 }
 
-// Step struct updated to hold specific node types for expressions/args/conditions
+// Step struct updated for ELSE block
 type Step struct {
-	Type   string        // "SET", "CALL", "IF", "WHILE", "FOR", "RETURN", "EMIT" etc.
-	Target string        // Variable name (SET, FOR loop var), Procedure/LLM/Tool name (CALL)
-	Value  interface{}   // Body []Step (IF/WHILE/FOR), Expression Node (SET, RETURN, EMIT)
-	Args   []interface{} // Slice of Expression Nodes (CALL arguments)
-	Cond   interface{}   // Expression Node OR ComparisonNode (IF, WHILE), Expression Node (FOR collection)
+	Type      string        // "SET", "CALL", "IF", "WHILE", "FOR", "RETURN", "EMIT" etc.
+	Target    string        // Variable name (SET, FOR loop var), Procedure/LLM/Tool name (CALL)
+	Value     interface{}   // Body []Step (IF/WHILE/FOR THEN-block), Expression Node (SET, RETURN, EMIT)
+	ElseValue interface{}   // *** ADDED: Body []Step for ELSE block ***
+	Args      []interface{} // Slice of Expression Nodes (CALL arguments)
+	Cond      interface{}   // Expression Node OR ComparisonNode (IF, WHILE), Expression Node (FOR collection)
 }
 
-// newStep creates a new Step instance
-func newStep(typ string, target string, condNode interface{}, valueNode interface{}, argNodes []interface{}) Step {
-	return Step{Type: typ, Target: target, Cond: condNode, Value: valueNode, Args: argNodes}
+// newStep creates a new Step instance (updated for ElseValue)
+func newStep(typ string, target string, condNode interface{}, valueNode interface{}, elseValueNode interface{}, argNodes []interface{}) Step {
+	return Step{Type: typ, Target: target, Cond: condNode, Value: valueNode, ElseValue: elseValueNode, Args: argNodes}
 }

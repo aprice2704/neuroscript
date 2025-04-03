@@ -3,6 +3,6 @@ package main
 import "fmt"
 
 func main() {
-	message := "Hello, Modified!"
+	message := "Hello, NeuroScript!"
 	fmt.Println(message)
 }

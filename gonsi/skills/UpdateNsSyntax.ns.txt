@@ -1,0 +1,108 @@
+# NeuroScript Skill: Update Syntax in NS Files
+# Version 8: Use __last_call_result directly after ReadFile to avoid nested placeholder resolution error.
+DEFINE PROCEDURE UpdateNsSyntax(directory_path)
+COMMENT:
+    PURPOSE: Automatically updates NeuroScript files in a given directory to use the latest syntax (e.g., DEFINE instead of SPLAT) using an LLM. Stages and commits changes.
+    INPUTS:
+        - directory_path (string): The relative path to the directory containing .ns.txt files (e.g., "gonsi/skills").
+    OUTPUT:
+        - status_message (string): Indicates completion or errors encountered.
+    ALGORITHM:
+        1. List all entries in the target directory using TOOL.ListDirectory.
+        2. Initialize an empty string to track staged files for commit.
+        3. Loop through each entry using FOR EACH (requires fixed interpreter).
+        4. Check if the entry filename ends with ".ns.txt" using TOOL.HasSuffix.
+        5. If it's a .ns.txt file:
+           a. Construct the full relative path.
+           b. Read the file content using TOOL.ReadFile. Store result implicitly in __last_call_result.
+           c. Check if __last_call_result indicates a read error using TOOL.Contains.
+           d. If no read error, check if __last_call_result (file content) contains "SPLAT PROCEDURE".
+           e. If it contains "SPLAT":
+              i. Create LLM prompt using __last_call_result directly.
+              ii. Call LLM.
+              iii. Write LLM result back using TOOL.WriteFile. Handle errors.
+              iv. Stage file using TOOL.GitAdd. Handle errors.
+              v. Track staged file.
+           f. If it does *not* contain "SPLAT", emit message.
+        6. After loop, call CommitChanges procedure.
+        7. Return status.
+    CAVEATS: Relies on interpreter fixes for list iteration. Assumes LLM correctness. Basic error handling.
+    EXAMPLES: CALL UpdateNsSyntax("gonsi/skills") => "Syntax update attempt complete..."
+ENDCOMMENT
+
+EMIT "Starting syntax update for directory: " + {{directory_path}}
+SET staged_files_csv = ""
+
+# 1. List files
+CALL TOOL.ListDirectory({{directory_path}})
+SET file_list = __last_call_result # Assumes success / list iteration works
+
+# 2. Loop through files
+FOR EACH filename IN file_list DO
+    EMIT "Checking file: " + {{filename}}
+    CALL TOOL.HasSuffix({{filename}}, ".ns.txt")
+    SET is_ns_file = __last_call_result
+
+    IF {{is_ns_file}} == true THEN
+        SET full_path = {{directory_path}} + "/" + {{filename}}
+        EMIT "Processing .ns.txt file: " + {{full_path}}
+
+        # Read content - result is in __last_call_result
+        CALL TOOL.ReadFile({{full_path}})
+        SET file_content_or_error = __last_call_result # Store immediately
+
+        # Check if ReadFile returned an error string
+        CALL TOOL.Contains({{file_content_or_error}}, "ReadFile failed")
+        IF __last_call_result == true THEN
+             EMIT "[WARN] Failed to read file: " + {{full_path}} + " - Error: " + {{file_content_or_error}} + " - Skipping."
+        ELSE
+            # Content read successfully, it's in file_content_or_error.
+            # Check if update is needed using the actual content string
+            CALL TOOL.Contains({{file_content_or_error}}, "SPLAT PROCEDURE")
+            SET needs_update = __last_call_result
+
+            IF {{needs_update}} == true THEN
+                EMIT "  Update needed (contains SPLAT). Asking LLM..."
+                # Use file_content_or_error directly in the prompt construction
+                SET update_prompt = "Please update the following NeuroScript code to use 'DEFINE PROCEDURE' instead of 'SPLAT PROCEDURE'. Ensure the rest of the code remains the same and ends correctly with 'END'. Respond ONLY with the complete, updated, raw NeuroScript code, without any explanations or markdown fences.\n\n```neuroscript\n" + {{file_content_or_error}} + "\n```"
+                CALL LLM({{update_prompt}})
+                SET updated_content = __last_call_result
+
+                EMIT "  Writing updated content..."
+                CALL TOOL.WriteFile({{full_path}}, {{updated_content}})
+                SET write_status = __last_call_result
+
+                IF {{write_status}} == "OK" THEN
+                    EMIT "  Staging file..."
+                    CALL TOOL.GitAdd({{full_path}})
+                    SET add_status = __last_call_result
+
+                    IF {{add_status}} == "OK" THEN
+                       SET staged_files_csv = {{staged_files_csv}} + {{full_path}} + ","
+                    ELSE
+                         EMIT "[WARN] Failed to stage file: " + {{full_path}} + " - Error: " + {{add_status}}
+                    ENDBLOCK # End IF add_status == "OK"
+                ELSE
+                    EMIT "[WARN] Failed to write updated file: " + {{full_path}} + " - Error: " + {{write_status}}
+                ENDBLOCK # End IF write_status == "OK"
+            ELSE
+                EMIT "  File already uses DEFINE or doesn't contain SPLAT PROCEDURE. Skipping update."
+            ENDBLOCK # End IF needs_update
+        ENDBLOCK # End IF ReadFile success check
+    ENDBLOCK # End IF is_ns_file
+ENDBLOCK # End FOR EACH loop
+
+# 6. Commit changes if any files were staged
+EMIT "Finished checking files."
+IF {{staged_files_csv}} != "" THEN
+    EMIT "Committing updated files..."
+    SET commit_message = "AUTO: Update NS syntax (DEFINE)"
+    CALL CommitChanges({{commit_message}}, {{staged_files_csv}})
+    EMIT "Commit Result: " + __last_call_result
+ELSE
+    EMIT "No files needed updating or staging."
+ENDBLOCK
+
+RETURN "Syntax update attempt complete for directory: " + {{directory_path}} + ". Check log and git status."
+
+END

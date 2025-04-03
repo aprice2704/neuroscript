@@ -2,82 +2,53 @@
 package core
 
 import (
-	"bytes"
+	"bytes" // Import encoding/json
 	"fmt"
-	"go/format" // Use go/format for GoFmt
+	"go/format"
 	"os"
 	"os/exec"
-	"path/filepath" // Needed for secureFilePath
+	"path/filepath"
 	"strings"
 	"syscall"
 )
 
 // registerShellTools adds shell execution and Go-related tools to the registry.
 func registerShellTools(registry *ToolRegistry) {
-	// Execute arbitrary commands (Use with caution!)
+	registry.RegisterTool(ToolImplementation{
+		Spec: ToolSpec{Name: "ExecuteCommand", Description: "Executes an arbitrary shell command...", Args: []ArgSpec{{Name: "command", Type: ArgTypeString, Required: true}, {Name: "args_list", Type: ArgTypeSliceAny, Required: true}}, ReturnType: ArgTypeAny}, Func: toolExecuteCommand,
+	})
+
+	// Keep GoBuild as is for now, but maybe make target required or default to '.'?
+	registry.RegisterTool(ToolImplementation{
+		Spec: ToolSpec{Name: "GoBuild", Description: "Runs 'go build [target]'...", Args: []ArgSpec{{Name: "target", Type: ArgTypeString, Required: false, Description: "Optional build target. Defaults to './...'"}}, ReturnType: ArgTypeAny}, Func: toolGoBuild,
+	})
+
+	// *** ADDING GoCheck TOOL ***
 	registry.RegisterTool(ToolImplementation{
 		Spec: ToolSpec{
-			Name:        "ExecuteCommand",
-			Description: "Executes an arbitrary shell command with arguments. Returns map {stdout, stderr, exit_code, success}.",
+			Name:        "GoCheck",
+			Description: "Checks Go code validity using 'go list -e -json <target>'. Returns map {check_success: bool, error_details: string}.",
 			Args: []ArgSpec{
-				{Name: "command", Type: ArgTypeString, Required: true, Description: "The command or path to execute."},
-				{Name: "args_list", Type: ArgTypeSliceAny, Required: true, Description: "A list of arguments (converted to strings)."},
+				{Name: "target", Type: ArgTypeString, Required: true, Description: "Target Go package path or file path (e.g., './pkg/core', 'test_files/simple_test.go')."},
 			},
 			ReturnType: ArgTypeAny, // Returns a map
 		},
-		Func: toolExecuteCommand,
+		Func: toolGoCheck, // Use new function
 	})
-
-	// *** MODIFIED GoBuild SPECIFICATION ***
-	registry.RegisterTool(ToolImplementation{
-		Spec: ToolSpec{
-			Name:        "GoBuild",
-			Description: "Runs 'go build [target]' in the current directory. Defaults to './...' if no target provided. Returns map {stdout, stderr, exit_code, success}.",
-			Args: []ArgSpec{
-				// Added optional target argument
-				{Name: "target", Type: ArgTypeString, Required: false, Description: "Optional build target (e.g., relative path like './pkg/core' or a file like 'test_files/simple_test.go'). Defaults to './...'"},
-			},
-			ReturnType: ArgTypeAny, // Returns a map
-		},
-		Func: toolGoBuild, // Use updated function
-	})
-	// *** END MODIFICATION ***
+	// *** END ADDITION ***
 
 	registry.RegisterTool(ToolImplementation{
-		Spec: ToolSpec{
-			Name:        "GoTest",
-			Description: "Runs 'go test ./...' in the current directory. Returns map {stdout, stderr, exit_code, success}.",
-			Args:        []ArgSpec{}, // No arguments
-			ReturnType:  ArgTypeAny,  // Returns a map
-		},
-		Func: toolGoTest,
+		Spec: ToolSpec{Name: "GoTest", Description: "Runs 'go test ./...'...", Args: []ArgSpec{}, ReturnType: ArgTypeAny}, Func: toolGoTest,
 	})
-
 	registry.RegisterTool(ToolImplementation{
-		Spec: ToolSpec{
-			Name:        "GoFmt",
-			Description: "Formats Go source code provided as a string using go/format. Returns map {formatted_content, error, success}.",
-			Args: []ArgSpec{
-				{Name: "content", Type: ArgTypeString, Required: true, Description: "The Go source code content as a string."},
-			},
-			ReturnType: ArgTypeAny, // Returns a map
-		},
-		Func: toolGoFmt,
+		Spec: ToolSpec{Name: "GoFmt", Description: "Formats Go source code provided as a string...", Args: []ArgSpec{{Name: "content", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeAny}, Func: toolGoFmt,
 	})
-
 	registry.RegisterTool(ToolImplementation{
-		Spec: ToolSpec{
-			Name:        "GoModTidy",
-			Description: "Runs 'go mod tidy' in the current directory. Returns map {stdout, stderr, exit_code, success}.",
-			Args:        []ArgSpec{}, // No arguments
-			ReturnType:  ArgTypeAny,  // Returns a map
-		},
-		Func: toolGoModTidy,
+		Spec: ToolSpec{Name: "GoModTidy", Description: "Runs 'go mod tidy'...", Args: []ArgSpec{}, ReturnType: ArgTypeAny}, Func: toolGoModTidy,
 	})
-
 }
 
-// toolExecuteCommand implementation (no changes needed here)
+// toolExecuteCommand implementation (remains the same)
 func toolExecuteCommand(interpreter *Interpreter, args []interface{}) (interface{}, error) {
 	commandPath := args[0].(string)
 	rawCmdArgs := args[1].([]interface{})
@@ -91,9 +62,7 @@ func toolExecuteCommand(interpreter *Interpreter, args []interface{}) (interface
 		if interpreter.logger != nil {
 			interpreter.logger.Printf("[ERROR] %s", errMsg)
 		}
-		return map[string]interface{}{
-			"stdout": "", "stderr": errMsg, "exit_code": int64(-1), "success": false,
-		}, nil
+		return map[string]interface{}{"stdout": "", "stderr": errMsg, "exit_code": int64(-1), "success": false}, nil
 	}
 
 	if interpreter.logger != nil {
@@ -117,7 +86,6 @@ func toolExecuteCommand(interpreter *Interpreter, args []interface{}) (interface
 	stderrStr := stderr.String()
 	exitCode := 0
 	success := true
-
 	if execErr != nil {
 		success = false
 		if exitError, ok := execErr.(*exec.ExitError); ok {
@@ -141,65 +109,147 @@ func toolExecuteCommand(interpreter *Interpreter, args []interface{}) (interface
 			interpreter.logger.Printf("[DEBUG-INTERP]        Command finished successfully. Exit Code: 0, Stdout: %q", stdoutStr)
 		}
 	}
-
-	resultMap := map[string]interface{}{
-		"stdout": stdoutStr, "stderr": stderrStr, "exit_code": int64(exitCode), "success": success,
-	}
+	resultMap := map[string]interface{}{"stdout": stdoutStr, "stderr": stderrStr, "exit_code": int64(exitCode), "success": success}
 	return resultMap, nil
 }
 
-// *** MODIFIED toolGoBuild IMPLEMENTATION ***
-// toolGoBuild runs 'go build [target]' where target is an optional argument.
-func toolGoBuild(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	buildTarget := "./..." // Default target
+// *** NEW toolGoCheck IMPLEMENTATION ***
+func toolGoCheck(interpreter *Interpreter, args []interface{}) (interface{}, error) {
+	// Validation ensures 1 string argument
+	targetPath := args[0].(string)
 
-	// Check if the optional argument was provided
+	// Validate the path (ensure it's relative and within bounds)
+	cwd, errWd := os.Getwd()
+	if errWd != nil {
+		return nil, fmt.Errorf("GoCheck failed to get working directory: %w", errWd)
+	}
+	// Use secureFilePath - allow '.' as target
+	cleanTargetPath := "."
+	if targetPath != "." {
+		_, secErr := secureFilePath(targetPath, cwd)
+		if secErr != nil {
+			errMsg := fmt.Sprintf("GoCheck path error for target '%s': %s", targetPath, secErr.Error())
+			return map[string]interface{}{"check_success": false, "error_details": errMsg}, nil
+		}
+		cleanTargetPath = filepath.Clean(targetPath) // Use validated relative path
+	}
+
+	// Prepare arguments for toolExecuteCommand
+	cmd := "go"
+	// Use -e to report errors but continue, -json for structured output
+	cmdArgs := []interface{}{"list", "-e", "-json", cleanTargetPath}
+	executeArgs := []interface{}{cmd, cmdArgs}
+
+	if interpreter.logger != nil {
+		interpreter.logger.Printf("[DEBUG-INTERP]      Calling TOOL.GoCheck (executing: go list -e -json %s)", cleanTargetPath)
+	}
+
+	// Execute the command
+	execResultIntf, execCmdErr := toolExecuteCommand(interpreter, executeArgs)
+	if execCmdErr != nil {
+		// Should not happen if toolExecuteCommand handles errors properly
+		return nil, fmt.Errorf("GoCheck internal error calling ExecuteCommand: %w", execCmdErr)
+	}
+	execResultMap, ok := execResultIntf.(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("GoCheck internal error: ExecuteCommand returned unexpected type %T", execResultIntf)
+	}
+
+	// --- Analyze the result ---
+	checkSuccess := true // Assume success unless error found
+	errorDetails := ""
+	execSuccess := execResultMap["success"].(bool)
+	execStderr := execResultMap["stderr"].(string)
+	execStdout := execResultMap["stdout"].(string)
+
+	// 1. Check if the 'go list' command itself failed unexpectedly
+	if !execSuccess {
+		checkSuccess = false
+		errorDetails = fmt.Sprintf("go list command failed (exit code %v). Stderr: %s", execResultMap["exit_code"], execStderr)
+		if interpreter.logger != nil {
+			interpreter.logger.Printf("[DEBUG-INTERP]        GoCheck failed: %s", errorDetails)
+		}
+	} else {
+		// 2. If command ran, check stdout for JSON error fields
+		// The output might be multiple JSON objects concatenated.
+		// Simple check: look for `"Error":` indicating *any* package load error.
+		// More robust: Properly decode the JSON stream.
+		// Let's start simple.
+		if strings.Contains(execStdout, `"Error":`) {
+			checkSuccess = false
+			// Try to extract a snippet around the error for better detail
+			errIdx := strings.Index(execStdout, `"Error":`)
+			snippetStart := errIdx - 30
+			if snippetStart < 0 {
+				snippetStart = 0
+			}
+			snippetEnd := errIdx + 100
+			if snippetEnd > len(execStdout) {
+				snippetEnd = len(execStdout)
+			}
+			errorDetails = fmt.Sprintf("Found errors in 'go list -e -json' output. Snippet near first error: ...%s...", execStdout[snippetStart:snippetEnd])
+
+			// Also include stderr, just in case go list prints warnings there
+			if execStderr != "" {
+				errorDetails += "\nStderr from go list: " + execStderr
+			}
+
+			if interpreter.logger != nil {
+				interpreter.logger.Printf("[DEBUG-INTERP]        GoCheck found errors in JSON output.")
+			}
+		} else {
+			// Command succeeded and no "Error": field found in stdout
+			checkSuccess = true
+			errorDetails = "" // Explicitly empty
+			if interpreter.logger != nil {
+				interpreter.logger.Printf("[DEBUG-INTERP]        GoCheck successful (no errors found in 'go list' output).")
+			}
+		}
+	}
+
+	// Return the check result map
+	checkResultMap := map[string]interface{}{
+		"check_success": checkSuccess,
+		"error_details": errorDetails,
+	}
+	return checkResultMap, nil
+}
+
+// *** END NEW IMPLEMENTATION ***
+
+// toolGoBuild implementation (remains the same for now)
+func toolGoBuild(interpreter *Interpreter, args []interface{}) (interface{}, error) {
+	buildTarget := "./..."
 	if len(args) > 0 {
 		targetArg, ok := args[0].(string)
 		if !ok {
-			// This should ideally be caught by validation, but double-check
 			return nil, fmt.Errorf("TOOL.GoBuild internal error: optional target argument was not a string, got %T", args[0])
 		}
-
-		// Validate the provided path using secureFilePath relative to CWD
 		cwd, errWd := os.Getwd()
 		if errWd != nil {
 			return nil, fmt.Errorf("GoBuild failed to get working directory: %w", errWd)
 		}
-		// Allow '.' as a valid target (meaning current directory)
 		if targetArg != "." {
-			// We just need to check it's *within* the CWD, secureFilePath gives absolute
-			// But 'go build' often works best with relative paths. Let's secure it first
-			// then try to make it relative again for the command.
 			_, secErr := secureFilePath(targetArg, cwd)
 			if secErr != nil {
-				// Return path error in the result map
 				errMsg := fmt.Sprintf("GoBuild path error for target '%s': %s", targetArg, secErr.Error())
-				return map[string]interface{}{
-					"stdout": "", "stderr": errMsg, "exit_code": int64(-1), "success": false,
-				}, nil
+				return map[string]interface{}{"stdout": "", "stderr": errMsg, "exit_code": int64(-1), "success": false}, nil
 			}
-			// If secure, use the validated relative path provided by the user
 			buildTarget = filepath.Clean(targetArg)
 		} else {
-			buildTarget = "." // Explicitly use "." if provided
+			buildTarget = "."
 		}
 	}
-
 	cmd := "go"
-	cmdArgs := []interface{}{"build", buildTarget} // Args for ExecuteCommand must be []interface{}
+	cmdArgs := []interface{}{"build", buildTarget}
 	executeArgs := []interface{}{cmd, cmdArgs}
-
 	if interpreter.logger != nil {
 		interpreter.logger.Printf("[DEBUG-INTERP]      Calling TOOL.GoBuild (executing: go build %s)", buildTarget)
 	}
-	// Execute the command via the ExecuteCommand tool implementation
 	return toolExecuteCommand(interpreter, executeArgs)
 }
 
-// *** END MODIFICATION ***
-
-// toolGoTest implementation (no changes)
+// toolGoTest implementation (remains the same)
 func toolGoTest(interpreter *Interpreter, args []interface{}) (interface{}, error) {
 	cmd := "go"
 	cmdArgs := []interface{}{"test", "./..."}
@@ -210,7 +260,7 @@ func toolGoTest(interpreter *Interpreter, args []interface{}) (interface{}, erro
 	return toolExecuteCommand(interpreter, executeArgs)
 }
 
-// toolGoFmt implementation (no changes)
+// toolGoFmt implementation (remains the same)
 func toolGoFmt(interpreter *Interpreter, args []interface{}) (interface{}, error) {
 	content := args[0].(string)
 	srcBytes := []byte(content)
@@ -245,7 +295,7 @@ func toolGoFmt(interpreter *Interpreter, args []interface{}) (interface{}, error
 	return resultMap, nil
 }
 
-// toolGoModTidy implementation (no changes)
+// toolGoModTidy implementation (remains the same)
 func toolGoModTidy(interpreter *Interpreter, args []interface{}) (interface{}, error) {
 	cmd := "go"
 	cmdArgs := []interface{}{"mod", "tidy"}

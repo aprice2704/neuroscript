@@ -1,4 +1,4 @@
-SPLAT PROCEDURE WriteGreetingFile(filename, greeting)
+DEFINE PROCEDURE WriteGreetingFile(filename, greeting)
 COMMENT:
     PURPOSE: Writes a greeting to a file.
     INPUTS:

@@ -55,10 +55,9 @@ Goal: Reach the "bootstrapping" point where NeuroScript, executed by an LLM or g
 [ ] Feature: Embed standard utility NeuroScripts (e.g., CommitChanges) into gonsi binary (using Go embed) **(NEW)**
 [ ] NeuroData files
 
-
 ## C. Found work and things to go back to
 
-[ ] Tools/Known Issue: `TOOL.GoBuild` (using `go build <target>`) does not reliably return non-zero exit code or capture stderr for syntax/compile errors in some files (e.g., single `package main` files like `test_files/simple_test.go`) when run via `exec.Command`. Need a more robust error detection mechanism (e.g., parsing `go list -e -json` output, static analysis tool, dedicated linting tool) for reliable error feedback in scripts like `ModifyAndBuildGoFile`.
+[ ] Tools/Known Issue: `TOOL.GoBuild` (using `go build <target>`) and `TOOL.GoCheck` (using `go list -e -json <target>`) do not reliably return non-zero exit codes or easily parsable errors for syntax/compile errors in some files (e.g., single `package main` files like `test_files/simple_test.go`) when run via `exec.Command`. Need a more robust error detection mechanism (e.g., deeper JSON parsing, static analysis/linting tool integration) for reliable error feedback in scripts like `ModifyAndBuildGoFile`.
 
 ## D. Completed Features (Foundation)
 
