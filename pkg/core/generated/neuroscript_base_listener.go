@@ -164,6 +164,12 @@ func (s *BaseNeuroScriptListener) EnterLiteral(ctx *LiteralContext) {}
 // ExitLiteral is called when production literal is exited.
 func (s *BaseNeuroScriptListener) ExitLiteral(ctx *LiteralContext) {}
 
+// EnterBoolean_literal is called when production boolean_literal is entered.
+func (s *BaseNeuroScriptListener) EnterBoolean_literal(ctx *Boolean_literalContext) {}
+
+// ExitBoolean_literal is called when production boolean_literal is exited.
+func (s *BaseNeuroScriptListener) ExitBoolean_literal(ctx *Boolean_literalContext) {}
+
 // EnterList_literal is called when production list_literal is entered.
 func (s *BaseNeuroScriptListener) EnterList_literal(ctx *List_literalContext) {}
 

@@ -75,7 +75,10 @@ Beware of trying to fix problems with mutiple factors by "try it and see"; when 
 
 It is perfectly fine to ask to create small test programs to clear up uncertainties, especially to reduce multi-factor problems to single ones.
 
-Immediate goals: have gonsi update ns to latest syntax, NeuroData
+You will need the neuroscript folder. Tell me if not yet provided.
 
-We are currently trying to fix UpdateNsSyntax.ns.txt
-Last file name, and raw and replaced variants
+If you don't have the NeuroScript.g4 file, please ask me to provide the text right away.
+
+Immediate goals: have gonsi able to update ns files to latest syntax, NeuroData
+
+We are currently trying to fix TestLastKeyword.ns.txt then UpdateNsSyntax.ns.txt

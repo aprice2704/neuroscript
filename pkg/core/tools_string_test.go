@@ -246,7 +246,3 @@ func TestToolSplitWords(t *testing.T) { /* ... as before, with corrected errCont
 		})
 	}
 }
-
-// --- Helper Functions ---
-func newDummyInterpreter() *Interpreter          { return NewInterpreter(nil) }
-func makeArgs(vals ...interface{}) []interface{} { return vals }

@@ -1,3 +1,4 @@
+// pkg/core/interpreter.go
 package core
 
 import (
@@ -11,10 +12,10 @@ import (
 type Interpreter struct {
 	variables       map[string]interface{}
 	knownProcedures map[string]Procedure
-	lastCallResult  interface{}
-	vectorIndex     map[string][]float32 // Mock vector index
-	embeddingDim    int                  // Mock embedding dimension
-	currentProcName string               // For error context
+	lastCallResult  interface{} // Renamed internal field, accessed by LAST node
+	vectorIndex     map[string][]float32
+	embeddingDim    int
+	currentProcName string
 	toolRegistry    *ToolRegistry
 	logger          *log.Logger
 }
@@ -22,10 +23,10 @@ type Interpreter struct {
 // NewInterpreter creates a new interpreter instance.
 func NewInterpreter(logger *log.Logger) *Interpreter {
 	if logger == nil {
-		logger = log.New(io.Discard, "", 0) // Default to discard
+		logger = log.New(io.Discard, "", 0)
 	}
 	interp := &Interpreter{
-		variables:       make(map[string]interface{}),
+		variables:       make(map[string]interface{}), // Initialize empty
 		knownProcedures: make(map[string]Procedure),
 		vectorIndex:     make(map[string][]float32),
 		embeddingDim:    16, // Default mock dim
@@ -33,6 +34,11 @@ func NewInterpreter(logger *log.Logger) *Interpreter {
 		logger:          logger,
 	}
 	registerCoreTools(interp.toolRegistry) // Register built-in tools
+
+	// Pre-load standard prompts into variables
+	interp.variables["NEUROSCRIPT_DEVELOP_PROMPT"] = PromptDevelop
+	interp.variables["NEUROSCRIPT_EXECUTE_PROMPT"] = PromptExecute
+
 	return interp
 }
 
@@ -40,7 +46,7 @@ func NewInterpreter(logger *log.Logger) *Interpreter {
 func (i *Interpreter) LoadProcedures(procs []Procedure) error {
 	for _, p := range procs {
 		if _, exists := i.knownProcedures[p.Name]; exists {
-			i.logger.Printf("[INFO] Reloading procedure: %s", p.Name) // Use logger consistently
+			i.logger.Printf("[INFO] Reloading procedure: %s", p.Name)
 		}
 		i.knownProcedures[p.Name] = p
 	}
@@ -54,53 +60,55 @@ func (i *Interpreter) RunProcedure(procName string, args ...string) (result inte
 		return nil, fmt.Errorf("procedure '%s' not defined", procName)
 	}
 
-	// Create local scope for arguments
+	// Create local scope for arguments, copying initial global/built-in vars first.
 	localVars := make(map[string]interface{})
+	for k, v := range i.variables { // Copy initial global vars (like prompts)
+		localVars[k] = v
+	}
+
+	// Add arguments, potentially overwriting globals if names clash
 	if len(args) != len(proc.Params) {
-		return nil, fmt.Errorf("procedure '%s' expects %d argument(s) (%v), but received %d (%v)", procName, len(proc.Params), proc.Params, len(args), args)
+		return nil, fmt.Errorf("procedure '%s' expects %d argument(s) (%v), received %d (%v)", procName, len(proc.Params), proc.Params, len(args), args)
 	}
 	for idx, paramName := range proc.Params {
-		localVars[paramName] = args[idx]
+		// Warn if overwriting a built-in?
+		if _, isBuiltIn := i.variables[paramName]; isBuiltIn && i.logger != nil {
+			// Check against initial variables map, not localVars
+			i.logger.Printf("[WARN] Procedure '%s' parameter '%s' shadows built-in variable.", procName, paramName)
+		}
+		localVars[paramName] = args[idx] // Args are passed as strings
 	}
 
-	// Save outer scope and set up local scope for execution
-	originalVars := i.variables
+	originalVars := i.variables // Save global scope reference
 	originalProcName := i.currentProcName
-	i.variables = localVars
+	i.variables = localVars // Execute with the local scope
 	i.currentProcName = procName
 
-	// Use consistent logging prefix for interpreter actions
 	if i.logger != nil {
 		i.logger.Printf("[DEBUG-INTERP] >> Starting Procedure: %s with args: %v", procName, args)
-		i.logger.Printf("[DEBUG-INTERP]    Initial local scope: %+v", i.variables)
+		i.logger.Printf("[DEBUG-INTERP]    Initial local scope size: %d", len(i.variables))
 	}
 
-	// Defer restoring the scope and logging completion
 	defer func() {
+		// Restore only the global scope reference, localVars are discarded
+		i.currentProcName = originalProcName
+		i.variables = originalVars // Restore reference to original map
 		if i.logger != nil {
 			i.logger.Printf("[DEBUG-INTERP] << Finished Procedure: %s (Result: %v (%T), Error: %v)", procName, result, result, err)
-			i.logger.Printf("[DEBUG-INTERP]    Restoring scope. Previous proc: %q", originalProcName)
+			i.logger.Printf("[DEBUG-INTERP]    Restored global scope reference. Proc: %q", originalProcName)
 		}
-		i.currentProcName = originalProcName
-		i.variables = originalVars // Restore outer scope
 	}()
 
 	// Execute the steps
 	var wasReturn bool
 	result, wasReturn, err = i.executeSteps(proc.Steps)
-
-	// If execution finished without an explicit RETURN, result is implicitly nil
 	if err == nil && !wasReturn {
-		if i.logger != nil {
-			i.logger.Printf("[DEBUG-INTERP]    Procedure %s finished without explicit RETURN.", procName)
-		}
 		result = nil
-	}
+	} // Implicit nil return
 
-	return result, err // Return final result and error
+	return result, err
 }
 
-// --- Step Execution (Main Loop) ---
 // executeSteps iterates through procedure steps and executes them.
 func (i *Interpreter) executeSteps(steps []Step) (result interface{}, wasReturn bool, err error) {
 	if i.logger != nil {
@@ -109,7 +117,7 @@ func (i *Interpreter) executeSteps(steps []Step) (result interface{}, wasReturn 
 
 	for stepNum, step := range steps {
 		var stepResult interface{}
-		var stepReturned bool // Did this specific step cause a RETURN?
+		var stepReturned bool
 		var stepErr error
 
 		// Log the Step struct details BEFORE execution
@@ -121,38 +129,39 @@ func (i *Interpreter) executeSteps(steps []Step) (result interface{}, wasReturn 
 				if _, ok := step.Value.([]Step); ok {
 					valueStr = fmt.Sprintf("[]Step (len %d)", len(step.Value.([]Step)))
 				} else {
-					valueStr = fmt.Sprintf("%+v", step.Value) // Log details for non-slice values
+					valueStr = fmt.Sprintf("%+v", step.Value)
 				}
 			}
-
 			condStr := "<nil>"
 			condType := "<nil>"
 			if step.Cond != nil {
 				condType = fmt.Sprintf("%T", step.Cond)
-				condStr = fmt.Sprintf("%+v", step.Cond) // Log details
+				condStr = fmt.Sprintf("%+v", step.Cond)
 			}
-
 			argsStr := "<nil>"
 			if len(step.Args) > 0 {
-				argsStr = fmt.Sprintf("%+v", step.Args) // Log details
+				argsStr = fmt.Sprintf("%+v", step.Args)
+			}
+			elseValueStr := "<nil>"
+			elseValueType := "<nil>"
+			if step.ElseValue != nil {
+				elseValueType = fmt.Sprintf("%T", step.ElseValue)
+				if _, ok := step.ElseValue.([]Step); ok {
+					elseValueStr = fmt.Sprintf("[]Step (len %d)", len(step.ElseValue.([]Step)))
+				} else {
+					elseValueStr = fmt.Sprintf("%+v", step.ElseValue)
+				}
 			}
 
-			i.logger.Printf("[DEBUG-INTERP]    Executing Step %d: Type=%s, Target=%q, Cond=(%s %s), Value=(%s %s), Args=%s",
-				stepNum+1, step.Type, step.Target, condType, condStr, valueType, valueStr, argsStr)
+			i.logger.Printf("[DEBUG-INTERP]    Executing Step %d: Type=%s, Target=%q, Cond=(%s %s), Value=(%s %s), Else=(%s %s), Args=%s",
+				stepNum+1, step.Type, step.Target, condType, condStr, valueType, valueStr, elseValueType, elseValueStr, argsStr)
 		}
 
 		switch step.Type {
 		case "SET":
 			stepErr = i.executeSet(step, stepNum)
 		case "CALL":
-			i.lastCallResult = nil // Reset before CALL
-			stepResult, stepErr = i.executeCall(step, stepNum)
-			if stepErr == nil {
-				i.lastCallResult = stepResult // Store successful result
-				if i.logger != nil {
-					i.logger.Printf("[DEBUG-INTERP]      CALL %q successful. __last_call_result set to: %v (%T)", step.Target, i.lastCallResult, i.lastCallResult)
-				}
-			}
+			stepResult, stepErr = i.executeCall(step, stepNum) // Sets i.lastCallResult on success
 		case "IF":
 			stepResult, stepReturned, stepErr = i.executeIf(step, stepNum)
 		case "RETURN":
@@ -167,27 +176,21 @@ func (i *Interpreter) executeSteps(steps []Step) (result interface{}, wasReturn 
 			stepErr = fmt.Errorf("unknown step type encountered: %s", step.Type)
 		}
 
-		// Centralized error handling after each step
 		if stepErr != nil {
-			// Add context (procedure name, step number/type) to the error
 			return nil, false, fmt.Errorf("error in procedure '%s', step %d (%s): %w", i.currentProcName, stepNum+1, step.Type, stepErr)
 		}
-
-		// Check if the step caused a RETURN
 		if stepReturned {
 			if i.logger != nil {
 				i.logger.Printf("[DEBUG-INTERP]    RETURN encountered in step %d. Returning value: %v (%T)", stepNum+1, stepResult, stepResult)
 			}
-			// Propagate the return value and signal that a return occurred
 			return stepResult, true, nil
-		}
+		} // Propagate return
 	}
 
 	if i.logger != nil {
 		i.logger.Printf("[DEBUG-INTERP] <<< executeSteps finished normally for proc '%s'", i.currentProcName)
 	}
-	// Finished all steps normally without RETURN or error
-	return nil, false, nil
+	return nil, false, nil // Finished all steps normally without RETURN or error
 }
 
 // executeBlock helper - Executes a slice of steps (used by IF, ELSE, WHILE, FOR)
@@ -207,23 +210,18 @@ func (i *Interpreter) executeBlock(blockValue interface{}, parentStepNum int, bl
 			if i.logger != nil {
 				i.logger.Printf("[DEBUG-INTERP]       Block body is nil, executing 0 steps.")
 			}
-			return nil, false, nil // Empty block is valid
+			return nil, false, nil
 		}
-		// Should not happen if listener works correctly, but check anyway
 		return nil, false, fmt.Errorf("step %d: internal error - %s block body has unexpected type %T", parentStepNum+1, blockType, blockValue)
 	}
-
 	if len(blockBody) == 0 {
 		if i.logger != nil {
 			i.logger.Printf("[DEBUG-INTERP]       Block body is empty, executing 0 steps.")
 		}
-		return nil, false, nil // Empty block executes successfully with no result/return
+		return nil, false, nil
 	}
 
-	// Execute the steps within the block recursively
-	// The recursive call will handle context wrapping for errors within the block
+	// Execute steps recursively
 	result, wasReturn, err = i.executeSteps(blockBody)
-
-	// Return results directly; error context is added by the recursive call
 	return result, wasReturn, err
 }

@@ -7,133 +7,96 @@ import (
 	"strings"
 )
 
-// resolvePlaceholdersWithError recursively substitutes {{variable}} placeholders within a string.
-// This version returns an error if a referenced variable is not found or max depth is exceeded.
+// resolvePlaceholdersWithError iteratively substitutes {{variable}} placeholders within a string.
+// Returns an error if a referenced variable is not found, max iterations exceeded, or a cycle is detected.
 func (i *Interpreter) resolvePlaceholdersWithError(input string) (string, error) {
-	var firstError error
+	const maxIterations = 10 // Limit iterations
+	currentString := input
+	originalInput := input
+
 	reVar := regexp.MustCompile(`\{\{(.*?)\}\}`)
-	const maxDepth = 10
-	originalInput := input // Keep original for logging/errors
 
-	var resolve func(s string, depth int) string
-	resolve = func(s string, depth int) string {
-		// --- Priority 1: Check depth BEFORE any processing ---
-		if depth > maxDepth {
-			if firstError == nil {
-				firstError = fmt.Errorf("placeholder resolution exceeded max depth (%d)", maxDepth)
-				if i.logger != nil {
-					i.logger.Printf("[WARN] %v for input starting with: %q", firstError, originalInput[:min(len(originalInput), 50)])
-				}
-			}
-			return s // Return original string immediately
-		}
-		// --- Priority 2: Check if error already set ---
-		if firstError != nil {
-			return s
-		}
-
+	for iteration := 0; iteration < maxIterations; iteration++ {
+		var firstErrorThisPass error = nil
 		madeChangeThisPass := false
+		visitedInThisPass := make(map[string]bool) // Cycle detection for this pass
 
-		resolvedString := reVar.ReplaceAllStringFunc(s, func(match string) string {
-			// --- Check error inside closure ---
-			if firstError != nil {
+		nextString := reVar.ReplaceAllStringFunc(currentString, func(match string) string {
+			if firstErrorThisPass != nil {
 				return match
-			}
+			} // Stop if error occurred in this pass
 
-			// Extract variable name
 			varNameSubmatch := reVar.FindStringSubmatch(match)
 			if len(varNameSubmatch) < 2 {
 				return match
 			}
 			varName := strings.TrimSpace(varNameSubmatch[1])
 
+			if visitedInThisPass[varName] { // Cycle detected this pass
+				firstErrorThisPass = fmt.Errorf("detected cycle during placeholder resolution pass involving '{{%s}}' in string starting with %q", varName, originalInput[:min(len(originalInput), 50)])
+				return match
+			}
+			visitedInThisPass[varName] = true
+
 			var nodeToEval interface{}
 			var found bool
-
-			if varName == "__last_call_result" {
-				nodeToEval = LastCallResultNode{}
+			isLast := false
+			if varName == "LAST" {
+				nodeToEval = LastNode{}
 				found = true
+				isLast = true
 			} else if isValidIdentifier(varName) {
-				if _, exists := i.variables[varName]; exists {
+				_, exists := i.variables[varName]
+				if exists {
 					nodeToEval = VariableNode{Name: varName}
 					found = true
 				}
-			} else { // Invalid identifier
-				if firstError == nil {
-					firstError = fmt.Errorf("invalid identifier '%s' inside placeholder '%s'", varName, match)
-					if i.logger != nil {
-						i.logger.Printf("[WARN] %v", firstError)
-					}
-				}
+			} else {
+				firstErrorThisPass = fmt.Errorf("invalid identifier '%s' inside placeholder '%s'", varName, match)
 				return match
 			}
 
 			if found {
-				evaluatedValue, evalErr := i.evaluateExpression(nodeToEval)
+				evaluatedValue, evalErr := i.evaluateExpression(nodeToEval) // Gets RAW value
 				if evalErr != nil {
-					if firstError == nil {
-						firstError = fmt.Errorf("evaluating placeholder '{{%s}}': %w", varName, evalErr)
+					placeholderContext := varName
+					if isLast {
+						placeholderContext = "LAST"
 					}
+					firstErrorThisPass = fmt.Errorf("evaluating placeholder '{{%s}}': %w", placeholderContext, evalErr)
 					return match
 				}
-
-				var replacement string
-				if evaluatedValue == nil {
-					replacement = ""
-				} else {
+				replacement := ""
+				if evaluatedValue != nil {
 					replacement = fmt.Sprintf("%v", evaluatedValue)
 				}
-
 				if replacement != match {
-					madeChangeThisPass = true // Mark change happened
-					if strings.Contains(replacement, "{{") {
-						// No predictive check here, rely on start-of-call check
-						recursiveReplacement := resolve(replacement, depth+1)
-						if firstError != nil { // Check if recursion itself failed
-							return match
-						}
-						return recursiveReplacement
-					}
-					return replacement // No nested placeholders
+					madeChangeThisPass = true
 				}
-				return match // No change
-
-			} else { // Variable valid but not found
-				if firstError == nil {
-					firstError = fmt.Errorf("placeholder variable '{{%s}}' not found", varName)
-					if i.logger != nil {
-						i.logger.Printf("[INFO] %v during resolution.", firstError)
-					}
-				}
+				return replacement // Return value from this level, iteration handles recursion
+			} else { // Variable not found
+				firstErrorThisPass = fmt.Errorf("placeholder variable '{{%s}}' not found", varName)
 				return match
 			}
 		}) // End ReplaceAllStringFunc
 
-		// --- Priority 4: Check error status AFTER ReplaceAllStringFunc ---
-		if firstError != nil {
-			return s // Return original string if any error occurred
-		}
+		if firstErrorThisPass != nil {
+			return originalInput, firstErrorThisPass
+		} // Return original on error
+		if !madeChangeThisPass {
+			return nextString, nil
+		} // Success: Done if no changes this pass
 
-		// --- Simplified Re-run Logic ---
-		// If a change was made AND placeholders remain, recurse one more level.
-		if madeChangeThisPass && strings.Contains(resolvedString, "{{") {
-			// The depth check at the START of the next resolve call handles termination
-			return resolve(resolvedString, depth+1)
-		}
-		// --- End Simplified Re-run Logic ---
+		currentString = nextString
+		if !strings.Contains(currentString, "{{") {
+			return currentString, nil
+		} // Success: Done if no placeholders left
+	} // End for loop
 
-		return resolvedString // Return fully resolved string for this level
-	}
-
-	finalResult := resolve(input, 0)
-	// If an error occurred, return the original input string.
-	if firstError != nil {
-		return originalInput, firstError
-	}
-	return finalResult, nil // Return final result and nil error
+	// If loop finishes, max iterations were exceeded
+	return originalInput, fmt.Errorf("placeholder resolution exceeded max iterations (%d) for input starting with: %q", maxIterations, originalInput[:min(len(originalInput), 50)])
 }
 
-// Helper for logging
 func min(a, b int) int {
 	if a < b {
 		return a

@@ -1,0 +1,50 @@
+# NeuroScript Syntax: v1.1.0 (Explicit EVAL)
+# Test script to specifically debug the LAST keyword after a CALL
+
+DEFINE PROCEDURE TestLastKeyword()
+COMMENT:
+    PURPOSE: Tests if the LAST keyword correctly captures and allows retrieval
+             of the result from a preceding successful TOOL call.
+    INPUTS: None
+    OUTPUT: Emits the value assigned from LAST.
+    ALGORITHM:
+        1. Define a simple string variable.
+        2. Call TOOL.StringLength on the variable (should succeed and return a number).
+        3. Immediately assign LAST to a new variable.
+        4. Emit the new variable to see if it captured the length correctly.
+        5. Call another tool (e.g., TOOL.ToUpper).
+        6. Assign LAST to another variable.
+        7. Emit the second variable.
+ENDCOMMENT
+
+EMIT "--- Starting LAST Keyword Test ---"
+
+SET my_string = "Test"
+EMIT "Set my_string = " + my_string
+
+EMIT "Calling TOOL.StringLength(my_string)..."
+CALL TOOL.StringLength(my_string)
+# If successful, internal lastCallResult should be int64(4)
+
+EMIT "Attempting: SET length_from_last = LAST"
+SET length_from_last = LAST
+
+EMIT "Value of length_from_last:"
+EMIT length_from_last # <<< Check if this emits 4 or nil/something else
+
+EMIT "--- Calling second tool ---"
+SET upper_string_raw = "make upper"
+EMIT "Calling TOOL.ToUpper(upper_string_raw)..."
+CALL TOOL.ToUpper(upper_string_raw)
+# If successful, internal lastCallResult should be "MAKE UPPER"
+
+EMIT "Attempting: SET upper_from_last = LAST"
+SET upper_from_last = LAST
+
+EMIT "Value of upper_from_last:"
+EMIT upper_from_last # <<< Check if this emits "MAKE UPPER"
+
+EMIT "--- Test Complete ---"
+RETURN "Finished"
+
+END

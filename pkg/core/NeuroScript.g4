@@ -7,9 +7,8 @@ program: optional_newlines procedure_definition* optional_newlines EOF;
 
 optional_newlines: NEWLINE*;
 
-// MODIFIED: Use KW_DEFINE instead of KW_STARTPROC
 procedure_definition:
-    KW_DEFINE KW_PROCEDURE IDENTIFIER // Changed from SPLAT
+    KW_DEFINE KW_PROCEDURE IDENTIFIER
     LPAREN param_list_opt RPAREN NEWLINE
     COMMENT_BLOCK?
     statement_list
@@ -40,11 +39,10 @@ call_statement: KW_CALL call_target LPAREN expression_list_opt RPAREN;
 return_statement: KW_RETURN expression?;
 emit_statement: KW_EMIT expression;
 
-// MODIFIED: Add optional ELSE clause
 if_statement:
     KW_IF condition KW_THEN NEWLINE
     if_body=statement_list
-    (KW_ELSE NEWLINE else_body=statement_list)? // Optional ELSE part
+    (KW_ELSE NEWLINE else_body=statement_list)?
     KW_ENDBLOCK;
 
 while_statement:
@@ -66,20 +64,25 @@ expression: term ( optional_newlines PLUS optional_newlines term )*;
 
 term: primary ( LBRACK expression RBRACK )*;
 
+// MODIFIED: primary rule to include LAST and EVAL()
 primary:
     literal
-    | placeholder
+    | placeholder              // Placeholders {{...}} remain, but only resolved via EVAL
     | IDENTIFIER
-    | KW_LAST_CALL_RESULT
+    | KW_LAST
+    | KW_EVAL LPAREN expression RPAREN // ADDED EVAL function call syntax
     | LPAREN expression RPAREN;
 
-placeholder: PLACEHOLDER_START IDENTIFIER PLACEHOLDER_END;
+placeholder: PLACEHOLDER_START (IDENTIFIER | KW_LAST) PLACEHOLDER_END;
 
 literal:
-    STRING_LIT
+    STRING_LIT             // Now represents RAW string content
     | NUMBER_LIT
     | list_literal
-    | map_literal;
+    | map_literal
+    | boolean_literal;
+
+boolean_literal: KW_TRUE | KW_FALSE;
 
 list_literal: LBRACK expression_list_opt RBRACK;
 map_literal: LBRACE map_entry_list_opt RBRACE;
@@ -94,7 +97,7 @@ map_entry: STRING_LIT COLON expression;
 
 // --- LEXER RULES ---
 
-KW_DEFINE: 'DEFINE'; // Changed from SPLAT
+KW_DEFINE: 'DEFINE';
 KW_PROCEDURE: 'PROCEDURE';
 KW_END: 'END';
 KW_ENDBLOCK: 'ENDBLOCK';
@@ -105,7 +108,7 @@ KW_CALL: 'CALL';
 KW_RETURN: 'RETURN';
 KW_IF: 'IF';
 KW_THEN: 'THEN';
-KW_ELSE: 'ELSE'; // ADDED ELSE Keyword
+KW_ELSE: 'ELSE';
 KW_WHILE: 'WHILE';
 KW_DO: 'DO';
 KW_FOR: 'FOR';
@@ -113,13 +116,17 @@ KW_EACH: 'EACH';
 KW_IN: 'IN';
 KW_TOOL: 'TOOL';
 KW_LLM: 'LLM';
-KW_LAST_CALL_RESULT: '__last_call_result';
+KW_LAST: 'LAST';
+KW_EVAL: 'EVAL';                 // ADDED EVAL Keyword
+// REMOVED KW_RAWTEXT
 KW_EMIT: 'EMIT';
+KW_TRUE: 'true';
+KW_FALSE: 'false';
 
 COMMENT_BLOCK: KW_COMMENT_START .*? KW_ENDCOMMENT -> skip;
 
 NUMBER_LIT: [0-9]+ ('.' [0-9]+)?;
-STRING_LIT:
+STRING_LIT: // Represents RAW string content now
     '"' (EscapeSequence | ~["\\\r\n])* '"'
     | '\'' (EscapeSequence | ~['\\\r\n])* '\'';
 
@@ -147,9 +154,7 @@ LTE: '<=';
 IDENTIFIER: [a-zA-Z_] [a-zA-Z0-9_]*;
 
 // --- Comments and Whitespace ---
-// MODIFIED: Added quotes around '#'
 LINE_COMMENT: ('#'|'--') ~[\r\n]* -> skip;
-
 NEWLINE: '\r'? '\n' | '\r';
 WS: [ \t]+ -> skip;
 
