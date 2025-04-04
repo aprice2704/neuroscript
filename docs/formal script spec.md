@@ -1,6 +1,11 @@
-# Formal specification
+# NeuroScript: Formal specification
 
-Here's an EBNF-like representation based on the specification, including notations for features still under development:
+Version: 0.1.0
+DependsOn: pkg/core/NeuroScript.g4
+HowToUpdate: Read the file pkg/core/NeuroScript.g4 and deduce the correct EBNF from it.
+
+The language is currently defined by pkg/core/NeuroScript.g4. At some point, this file will come to be the offical definition, but not yet.
+
 
 ```ebnf
 (* NeuroScript Grammar (EBNF-like) *)

@@ -8,6 +8,5 @@ COMMENT:
     ALGORITHM: Use WriteFile tool.
 ENDCOMMENT
 
-CALL TOOL.WriteFile({{filename}}, {{greeting}})
-# No explicit RETURN needed if just performing action
+CALL TOOL.WriteFile(filename, greeting)
 END

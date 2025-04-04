@@ -13,6 +13,9 @@ type NeuroScriptVisitor interface {
 	// Visit a parse tree produced by NeuroScriptParser#optional_newlines.
 	VisitOptional_newlines(ctx *Optional_newlinesContext) interface{}
 
+	// Visit a parse tree produced by NeuroScriptParser#file_version_decl.
+	VisitFile_version_decl(ctx *File_version_declContext) interface{}
+
 	// Visit a parse tree produced by NeuroScriptParser#procedure_definition.
 	VisitProcedure_definition(ctx *Procedure_definitionContext) interface{}
 
@@ -61,17 +64,50 @@ type NeuroScriptVisitor interface {
 	// Visit a parse tree produced by NeuroScriptParser#call_target.
 	VisitCall_target(ctx *Call_targetContext) interface{}
 
-	// Visit a parse tree produced by NeuroScriptParser#condition.
-	VisitCondition(ctx *ConditionContext) interface{}
-
 	// Visit a parse tree produced by NeuroScriptParser#expression.
 	VisitExpression(ctx *ExpressionContext) interface{}
 
-	// Visit a parse tree produced by NeuroScriptParser#term.
-	VisitTerm(ctx *TermContext) interface{}
+	// Visit a parse tree produced by NeuroScriptParser#logical_or_expr.
+	VisitLogical_or_expr(ctx *Logical_or_exprContext) interface{}
+
+	// Visit a parse tree produced by NeuroScriptParser#logical_and_expr.
+	VisitLogical_and_expr(ctx *Logical_and_exprContext) interface{}
+
+	// Visit a parse tree produced by NeuroScriptParser#bitwise_or_expr.
+	VisitBitwise_or_expr(ctx *Bitwise_or_exprContext) interface{}
+
+	// Visit a parse tree produced by NeuroScriptParser#bitwise_xor_expr.
+	VisitBitwise_xor_expr(ctx *Bitwise_xor_exprContext) interface{}
+
+	// Visit a parse tree produced by NeuroScriptParser#bitwise_and_expr.
+	VisitBitwise_and_expr(ctx *Bitwise_and_exprContext) interface{}
+
+	// Visit a parse tree produced by NeuroScriptParser#equality_expr.
+	VisitEquality_expr(ctx *Equality_exprContext) interface{}
+
+	// Visit a parse tree produced by NeuroScriptParser#relational_expr.
+	VisitRelational_expr(ctx *Relational_exprContext) interface{}
+
+	// Visit a parse tree produced by NeuroScriptParser#additive_expr.
+	VisitAdditive_expr(ctx *Additive_exprContext) interface{}
+
+	// Visit a parse tree produced by NeuroScriptParser#multiplicative_expr.
+	VisitMultiplicative_expr(ctx *Multiplicative_exprContext) interface{}
+
+	// Visit a parse tree produced by NeuroScriptParser#unary_expr.
+	VisitUnary_expr(ctx *Unary_exprContext) interface{}
+
+	// Visit a parse tree produced by NeuroScriptParser#power_expr.
+	VisitPower_expr(ctx *Power_exprContext) interface{}
+
+	// Visit a parse tree produced by NeuroScriptParser#accessor_expr.
+	VisitAccessor_expr(ctx *Accessor_exprContext) interface{}
 
 	// Visit a parse tree produced by NeuroScriptParser#primary.
 	VisitPrimary(ctx *PrimaryContext) interface{}
+
+	// Visit a parse tree produced by NeuroScriptParser#function_call.
+	VisitFunction_call(ctx *Function_callContext) interface{}
 
 	// Visit a parse tree produced by NeuroScriptParser#placeholder.
 	VisitPlaceholder(ctx *PlaceholderContext) interface{}

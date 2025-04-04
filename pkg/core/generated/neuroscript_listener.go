@@ -13,6 +13,9 @@ type NeuroScriptListener interface {
 	// EnterOptional_newlines is called when entering the optional_newlines production.
 	EnterOptional_newlines(c *Optional_newlinesContext)
 
+	// EnterFile_version_decl is called when entering the file_version_decl production.
+	EnterFile_version_decl(c *File_version_declContext)
+
 	// EnterProcedure_definition is called when entering the procedure_definition production.
 	EnterProcedure_definition(c *Procedure_definitionContext)
 
@@ -61,17 +64,50 @@ type NeuroScriptListener interface {
 	// EnterCall_target is called when entering the call_target production.
 	EnterCall_target(c *Call_targetContext)
 
-	// EnterCondition is called when entering the condition production.
-	EnterCondition(c *ConditionContext)
-
 	// EnterExpression is called when entering the expression production.
 	EnterExpression(c *ExpressionContext)
 
-	// EnterTerm is called when entering the term production.
-	EnterTerm(c *TermContext)
+	// EnterLogical_or_expr is called when entering the logical_or_expr production.
+	EnterLogical_or_expr(c *Logical_or_exprContext)
+
+	// EnterLogical_and_expr is called when entering the logical_and_expr production.
+	EnterLogical_and_expr(c *Logical_and_exprContext)
+
+	// EnterBitwise_or_expr is called when entering the bitwise_or_expr production.
+	EnterBitwise_or_expr(c *Bitwise_or_exprContext)
+
+	// EnterBitwise_xor_expr is called when entering the bitwise_xor_expr production.
+	EnterBitwise_xor_expr(c *Bitwise_xor_exprContext)
+
+	// EnterBitwise_and_expr is called when entering the bitwise_and_expr production.
+	EnterBitwise_and_expr(c *Bitwise_and_exprContext)
+
+	// EnterEquality_expr is called when entering the equality_expr production.
+	EnterEquality_expr(c *Equality_exprContext)
+
+	// EnterRelational_expr is called when entering the relational_expr production.
+	EnterRelational_expr(c *Relational_exprContext)
+
+	// EnterAdditive_expr is called when entering the additive_expr production.
+	EnterAdditive_expr(c *Additive_exprContext)
+
+	// EnterMultiplicative_expr is called when entering the multiplicative_expr production.
+	EnterMultiplicative_expr(c *Multiplicative_exprContext)
+
+	// EnterUnary_expr is called when entering the unary_expr production.
+	EnterUnary_expr(c *Unary_exprContext)
+
+	// EnterPower_expr is called when entering the power_expr production.
+	EnterPower_expr(c *Power_exprContext)
+
+	// EnterAccessor_expr is called when entering the accessor_expr production.
+	EnterAccessor_expr(c *Accessor_exprContext)
 
 	// EnterPrimary is called when entering the primary production.
 	EnterPrimary(c *PrimaryContext)
+
+	// EnterFunction_call is called when entering the function_call production.
+	EnterFunction_call(c *Function_callContext)
 
 	// EnterPlaceholder is called when entering the placeholder production.
 	EnterPlaceholder(c *PlaceholderContext)
@@ -108,6 +144,9 @@ type NeuroScriptListener interface {
 
 	// ExitOptional_newlines is called when exiting the optional_newlines production.
 	ExitOptional_newlines(c *Optional_newlinesContext)
+
+	// ExitFile_version_decl is called when exiting the file_version_decl production.
+	ExitFile_version_decl(c *File_version_declContext)
 
 	// ExitProcedure_definition is called when exiting the procedure_definition production.
 	ExitProcedure_definition(c *Procedure_definitionContext)
@@ -157,17 +196,50 @@ type NeuroScriptListener interface {
 	// ExitCall_target is called when exiting the call_target production.
 	ExitCall_target(c *Call_targetContext)
 
-	// ExitCondition is called when exiting the condition production.
-	ExitCondition(c *ConditionContext)
-
 	// ExitExpression is called when exiting the expression production.
 	ExitExpression(c *ExpressionContext)
 
-	// ExitTerm is called when exiting the term production.
-	ExitTerm(c *TermContext)
+	// ExitLogical_or_expr is called when exiting the logical_or_expr production.
+	ExitLogical_or_expr(c *Logical_or_exprContext)
+
+	// ExitLogical_and_expr is called when exiting the logical_and_expr production.
+	ExitLogical_and_expr(c *Logical_and_exprContext)
+
+	// ExitBitwise_or_expr is called when exiting the bitwise_or_expr production.
+	ExitBitwise_or_expr(c *Bitwise_or_exprContext)
+
+	// ExitBitwise_xor_expr is called when exiting the bitwise_xor_expr production.
+	ExitBitwise_xor_expr(c *Bitwise_xor_exprContext)
+
+	// ExitBitwise_and_expr is called when exiting the bitwise_and_expr production.
+	ExitBitwise_and_expr(c *Bitwise_and_exprContext)
+
+	// ExitEquality_expr is called when exiting the equality_expr production.
+	ExitEquality_expr(c *Equality_exprContext)
+
+	// ExitRelational_expr is called when exiting the relational_expr production.
+	ExitRelational_expr(c *Relational_exprContext)
+
+	// ExitAdditive_expr is called when exiting the additive_expr production.
+	ExitAdditive_expr(c *Additive_exprContext)
+
+	// ExitMultiplicative_expr is called when exiting the multiplicative_expr production.
+	ExitMultiplicative_expr(c *Multiplicative_exprContext)
+
+	// ExitUnary_expr is called when exiting the unary_expr production.
+	ExitUnary_expr(c *Unary_exprContext)
+
+	// ExitPower_expr is called when exiting the power_expr production.
+	ExitPower_expr(c *Power_exprContext)
+
+	// ExitAccessor_expr is called when exiting the accessor_expr production.
+	ExitAccessor_expr(c *Accessor_exprContext)
 
 	// ExitPrimary is called when exiting the primary production.
 	ExitPrimary(c *PrimaryContext)
+
+	// ExitFunction_call is called when exiting the function_call production.
+	ExitFunction_call(c *Function_callContext)
 
 	// ExitPlaceholder is called when exiting the placeholder production.
 	ExitPlaceholder(c *PlaceholderContext)

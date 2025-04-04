@@ -10,7 +10,7 @@ import (
 // --- Unit Tests for String Tool Go Functions (Part 1) ---
 
 func TestToolStringLength(t *testing.T) {
-	dummyInterp := newDummyInterpreter()
+	dummyInterp := newDefaultTestInterpreter()
 	tests := []struct {
 		name          string
 		args          []interface{}
@@ -65,7 +65,7 @@ func TestToolStringLength(t *testing.T) {
 }
 
 func TestToolSubstring(t *testing.T) {
-	dummyInterp := newDummyInterpreter()
+	dummyInterp := newDefaultTestInterpreter()
 	tests := []struct {
 		name        string
 		args        []interface{} // Raw args before validation simulation
@@ -132,7 +132,7 @@ func TestToolSubstring(t *testing.T) {
 }
 
 func TestToolToUpperLower(t *testing.T) { /* ... as before ... */
-	dummyInterp := newDummyInterpreter()
+	dummyInterp := newDefaultTestInterpreter()
 	specUp := ToolSpec{Name: "ToUpper", Args: []ArgSpec{{Name: "input", Type: ArgTypeString}}, ReturnType: ArgTypeString}
 	convArgsUp, valErrUp := ValidateAndConvertArgs(specUp, makeArgs("Hello World"))
 	if valErrUp != nil {
@@ -153,7 +153,7 @@ func TestToolToUpperLower(t *testing.T) { /* ... as before ... */
 	}
 }
 func TestToolTrimSpace(t *testing.T) { /* ... as before ... */
-	dummyInterp := newDummyInterpreter()
+	dummyInterp := newDefaultTestInterpreter()
 	spec := ToolSpec{Name: "TrimSpace", Args: []ArgSpec{{Name: "input", Type: ArgTypeString}}, ReturnType: ArgTypeString}
 	tests := []struct {
 		name string
@@ -177,7 +177,7 @@ func TestToolTrimSpace(t *testing.T) { /* ... as before ... */
 	}
 }
 func TestToolSplitString(t *testing.T) { /* ... as before, with corrected errContains */
-	dummyInterp := newDummyInterpreter()
+	dummyInterp := newDefaultTestInterpreter()
 	tests := []struct {
 		name        string
 		args        []interface{}
@@ -212,7 +212,7 @@ func TestToolSplitString(t *testing.T) { /* ... as before, with corrected errCon
 	}
 }
 func TestToolSplitWords(t *testing.T) { /* ... as before, with corrected errContains */
-	dummyInterp := newDummyInterpreter()
+	dummyInterp := newDefaultTestInterpreter()
 	tests := []struct {
 		name        string
 		args        []interface{}

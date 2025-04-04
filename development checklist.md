@@ -53,7 +53,15 @@ Goal: Reach the "bootstrapping" point where NeuroScript, executed by an LLM or g
 [ ] Tools: Add Integration tools (Sheets, Docs)
 [ ] Feature: Add Self-test support in ns
 [ ] Feature: Embed standard utility NeuroScripts (e.g., CommitChanges) into gonsi binary (using Go embed) **(NEW)**
-[ ] NeuroData files
+[ ] NeuroData files, template and instance
+[ ] NeuroData - checklist
+[ ] NeuroData - graph
+[ ] NeuroData - table
+[ ] NeuroData - form
+[ ] Move version into docstring block in fn fixed format -- lang version
+[ ] Also add FILE_VERSION
+[ ] TOOL.NeuroScriptCheckSyntax(content)
+[ ] nsfmt
 
 ## C. Found work and things to go back to
 

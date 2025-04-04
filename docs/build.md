@@ -12,7 +12,7 @@ Install ANTLR and java
 
 In pkg/core do:
 
-java -jar /home/aprice/.m2/repository/org/antlr/antlr4/4.13.2/antlr4-4.13.2-complete.jar  -Dlanguage=Go -o generated -visitor -listener -package core NeuroScript.g4
+java -jar antlr4-4.13.2-complete.jar  -Dlanguage=Go -o generated -visitor -listener -package core NeuroScript.g4
 
 ./gonsi -debug-ast -debug-tokens skills Add 1 2
 

@@ -1,8 +1,20 @@
-SPLAT PROCEDURE Add(a, b)
+#!./gonsi skills RunProcedure # Example Hash-bang
+FILE_VERSION "0.1.0"
+
+DEFINE PROCEDURE Add(a, b)
 COMMENT:
- Minimal comment block.
+    PURPOSE: Adds two numbers (conceptually).
+    INPUTS:
+      - a: number
+      - b: number
+    OUTPUT: The sum string (placeholder logic).
+    LANG_VERSION: 1.1.0
+    ALGORITHM: Simple addition (not yet implemented in interpreter). Return OK string.
 ENDCOMMENT
 
-RETURN "OK"
+# Basic arithmetic not yet supported by interpreter
+# SET result = a + b
+# RETURN result
+RETURN "OK: Add procedure called (no actual math)"
 
 END

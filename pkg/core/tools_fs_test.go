@@ -13,7 +13,7 @@ import (
 
 // --- Tests for toolListDirectory --- (Existing tests remain the same)
 func TestToolListDirectory(t *testing.T) {
-	dummyInterp := newDummyInterpreter()
+	dummyInterp := newDefaultTestInterpreter()
 	testBaseDir := "list_dir_test_files_temp"
 	err := os.MkdirAll(testBaseDir, 0755)
 	if err != nil {
@@ -122,7 +122,7 @@ func TestToolListDirectory(t *testing.T) {
 
 // --- Tests for toolLineCount ---
 func TestToolLineCount(t *testing.T) {
-	dummyInterp := newDummyInterpreter()
+	dummyInterp := newDefaultTestInterpreter()
 	// Setup test files
 	testDir := "linecount_test_files_temp"
 	err := os.MkdirAll(testDir, 0755)

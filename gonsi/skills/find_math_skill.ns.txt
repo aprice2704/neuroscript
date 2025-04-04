@@ -1,4 +1,4 @@
-SPLAT PROCEDURE FindAdderSkill()
+DEFINE PROCEDURE FindAdderSkill()
 COMMENT:
     PURPOSE: Searches for a skill related to addition.
     INPUTS: None
@@ -8,7 +8,7 @@ ENDCOMMENT
 
 SET query = "add two numbers" # Query to find the adder skill
 
-CALL TOOL.SearchSkills({{query}})
+CALL TOOL.SearchSkills(query)
 RETURN __last_call_result
 
 END

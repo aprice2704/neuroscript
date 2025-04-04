@@ -25,7 +25,7 @@ func TestEvaluateElementAccess(t *testing.T) {
 		"name":    "World",
 		"numVar":  int64(123),
 	}
-	interp := newTestInterpreterEval(vars, nil) // Assumes helper exists
+	interp := newTestInterpreter(vars, nil) // Assumes helper exists
 
 	tests := []struct {
 		name        string

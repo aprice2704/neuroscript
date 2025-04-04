@@ -41,13 +41,15 @@ func secureFilePath(filePath, allowedDir string) (string, error) {
 		prefixToCheck += string(filepath.Separator)
 	}
 	pathToCheck := absCleanedPath
-	if !strings.HasPrefix(pathToCheck, prefixToCheck) && pathToCheck != absAllowedDir {
+	// Allow matching the directory itself if the input was exactly "."
+	if pathToCheck != absAllowedDir && !strings.HasPrefix(pathToCheck, prefixToCheck) {
 		return "", fmt.Errorf("relative path '%s' resolves to '%s' which is outside the allowed directory '%s'", filePath, absCleanedPath, absAllowedDir)
 	}
 
 	// Check if it resolves *exactly* to the allowed directory root, unless the input was explicitly "."
+	// This prevents operations directly on the root unless intended via "."
 	if absCleanedPath == absAllowedDir && filepath.Clean(filePath) != "." {
-		return "", fmt.Errorf("path '%s' resolves to the allowed directory root '%s', which is not permitted for this operation", filePath, absCleanedPath)
+		return "", fmt.Errorf("path '%s' resolves to the allowed directory root '%s', which is not permitted for this operation unless '.' was specified", filePath, absCleanedPath)
 	}
 
 	return absCleanedPath, nil // Return the safe, absolute, cleaned path

@@ -2,7 +2,6 @@
 package core
 
 import (
-	"github.com/antlr4-go/antlr/v4" // Import antlr
 	gen "github.com/aprice2704/neuroscript/pkg/core/generated"
 )
 
@@ -57,42 +56,10 @@ func (l *neuroScriptListenerImpl) restoreParentContext(blockType string) {
 	l.logDebugAST("    Restored currentSteps to parent context: %p (Stack size: %d)", l.currentSteps, len(l.blockStepStack))
 }
 
-// processCondition extracts the condition node
-func (l *neuroScriptListenerImpl) processCondition(ctx gen.IConditionContext) (interface{}, bool) {
-	numConditionChildren := ctx.GetChildCount()
-	opText := ""
-	if numConditionChildren == 1 {
-		condNode, ok := l.popValue()
-		if !ok {
-			return nil, false
-		}
-		l.logDebugAST("    Popped 1 node for simple condition")
-		return condNode, true
-	} else if numConditionChildren == 3 {
-		nodeRHS, okRHS := l.popValue()
-		if !okRHS {
-			return nil, false
-		}
-		nodeLHS, okLHS := l.popValue()
-		if !okLHS {
-			return nil, false
-		}
-		opNode := ctx.GetChild(1)
-		if opTerminal, ok := opNode.(antlr.TerminalNode); ok {
-			opText = opTerminal.GetText()
-		} else {
-			l.logger.Printf("[ERROR] AST Builder: Could not get operator token text")
-			return nil, false
-		}
-		l.logDebugAST("    Popped 2 nodes for comparison condition (LHS=%T, RHS=%T, Op=%q)", nodeLHS, nodeRHS, opText)
-		return ComparisonNode{Left: nodeLHS, Operator: opText, Right: nodeRHS}, true
-	} else {
-		l.logger.Printf("[ERROR] AST Builder: Unexpected children (%d) in ConditionContext", numConditionChildren)
-		return nil, false
-	}
-}
+// --- REMOVED processCondition helper function ---
+// func (l *neuroScriptListenerImpl) processCondition(...) { ... }
 
-// --- IF Statement Handling (Revised using blockSteps map and indexed access) ---
+// --- IF Statement Handling ---
 
 // EnterIf_statement: Pushes parent context.
 func (l *neuroScriptListenerImpl) EnterIf_statement(ctx *gen.If_statementContext) {
@@ -110,12 +77,18 @@ func (l *neuroScriptListenerImpl) EnterIf_statement(ctx *gen.If_statementContext
 // EnterStatement_list: If parent is IF, create new step list.
 func (l *neuroScriptListenerImpl) EnterStatement_list(ctx *gen.Statement_listContext) {
 	parentCtx := ctx.GetParent()
-	if _, ok := parentCtx.(*gen.If_statementContext); ok {
-		l.logDebugAST(">>> Enter Statement_list within IF context")
-		newBlockSteps := make([]Step, 0)
-		l.currentSteps = &newBlockSteps
-	} else {
-		l.logDebugAST(">>> Enter Statement_list (Non-IF context)")
+	// Check if parent is If_statementContext OR While_statementContext OR For_each_statementContext
+	switch parentCtx.(type) {
+	case *gen.If_statementContext, *gen.While_statementContext, *gen.For_each_statementContext:
+		l.logDebugAST(">>> Enter Statement_list within structured block context")
+		// Only create new step list if currentSteps is nil (set by EnterIf_statement)
+		// For WHILE/FOR, currentSteps is set by EnterBlock
+		if l.currentSteps == nil {
+			newBlockSteps := make([]Step, 0)
+			l.currentSteps = &newBlockSteps
+		}
+	default:
+		l.logDebugAST(">>> Enter Statement_list (Non-block context or already handled)")
 	}
 }
 
@@ -126,24 +99,36 @@ func (l *neuroScriptListenerImpl) ExitStatement_list(ctx *gen.Statement_listCont
 		if l.currentSteps != nil {
 			l.blockSteps[ctx] = *l.currentSteps
 			l.logDebugAST("<<< Exit Statement_list (IF context). Stored %d steps for context %p", len(*l.currentSteps), ctx)
-			l.currentSteps = nil
+			l.currentSteps = nil // Clear current steps after storing for IF body/else body
 		} else {
 			l.logger.Println("[WARN] ExitStatement_list (IF context): currentSteps was nil")
-			l.blockSteps[ctx] = []Step{}
+			l.blockSteps[ctx] = []Step{} // Store empty slice if nil
 		}
+	} else if _, ok := parentCtx.(*gen.While_statementContext); ok {
+		l.logDebugAST("<<< Exit Statement_list (WHILE context). Current steps count: %d", len(*l.currentSteps))
+		// No special handling needed for WHILE/FOR here, steps collected directly by Enter/ExitBlock
+	} else if _, ok := parentCtx.(*gen.For_each_statementContext); ok {
+		l.logDebugAST("<<< Exit Statement_list (FOR context). Current steps count: %d", len(*l.currentSteps))
+		// No special handling needed for WHILE/FOR here, steps collected directly by Enter/ExitBlock
 	} else {
-		l.logDebugAST("<<< Exit Statement_list (Non-IF context)")
+		l.logDebugAST("<<< Exit Statement_list (Non-IF/WHILE/FOR context)")
 	}
 }
 
-// ExitIf_statement: Retrieves steps from map using indexed access, creates Step, restores context.
+// ExitIf_statement: Pops condition node, retrieves steps from map, creates Step, restores context.
 func (l *neuroScriptListenerImpl) ExitIf_statement(ctx *gen.If_statementContext) {
 	l.logDebugAST("<<< Exit If_statement finalization")
 
-	conditionNode, ok := l.processCondition(ctx.Condition())
+	// Pop the condition expression node from the stack.
+	// It was pushed by the relevant Exit*expr method (e.g., ExitLogical_or_expr).
+	conditionNode, ok := l.popValue()
 	if !ok {
-		l.logger.Println("[ERROR] AST Builder: Failed condition for IF")
+		l.logger.Println("[ERROR] AST Builder: Failed to pop condition expression for IF")
+		// Attempt to restore context anyway
+		l.restoreParentContext("IF")
+		return
 	}
+	l.logDebugAST("    Popped IF condition node: %T", conditionNode)
 
 	// Retrieve THEN steps using ctx.Statement_list(0)
 	var thenSteps []Step
@@ -165,7 +150,7 @@ func (l *neuroScriptListenerImpl) ExitIf_statement(ctx *gen.If_statementContext)
 
 	// Retrieve ELSE steps using ctx.Statement_list(1) if ELSE exists
 	var elseSteps []Step = nil // Default to nil
-	if ctx.KW_ELSE() != nil {
+	if ctx.KW_ELSE() != nil {  // Use generated method to check if ELSE keyword exists
 		elseCtx := ctx.Statement_list(1) // Use standard ANTLR accessor
 		if elseCtx != nil {
 			steps, found := l.blockSteps[elseCtx]
@@ -175,24 +160,24 @@ func (l *neuroScriptListenerImpl) ExitIf_statement(ctx *gen.If_statementContext)
 				delete(l.blockSteps, elseCtx)
 			} else {
 				l.logger.Println("[WARN] ExitIf_statement: Did not find stored steps for ELSE block context")
-				elseSteps = nil
-			} // Keep nil if map lookup fails
+				// Keep nil if map lookup fails (might happen if ELSE block is empty and steps weren't stored)
+			}
 		} else {
 			l.logger.Println("[WARN] ExitIf_statement: ELSE Statement_list(1) context was nil")
-			elseSteps = nil
+			// Keep nil if context doesn't exist
 		}
 	} else {
 		l.logDebugAST("    No ELSE clause detected.")
 	}
 
-	// Restore parent context
+	// Restore parent context BEFORE appending the IF step
 	l.restoreParentContext("IF")
 	if l.currentSteps == nil {
 		l.logger.Println("[ERROR] ExitIf_statement: Parent step list nil after restore")
-		return
+		return // Cannot append step if parent list is gone
 	}
 
-	// Create the IF step and append
+	// Create the IF step and append to the PARENT step list
 	ifStep := newStep("IF", "", conditionNode, thenSteps, elseSteps, nil)
 	*l.currentSteps = append(*l.currentSteps, ifStep)
 
@@ -204,61 +189,78 @@ func (l *neuroScriptListenerImpl) ExitIf_statement(ctx *gen.If_statementContext)
 	if elseSteps != nil {
 		elseLen = len(elseSteps)
 	}
-	l.logDebugAST("    Appended complete IF Step: Cond=%T, THEN Steps=%d, ELSE Steps=%d", ifStep.Cond, thenLen, elseLen)
+	l.logDebugAST("    Appended complete IF Step to parent: Cond=%T, THEN Steps=%d, ELSE Steps=%d", ifStep.Cond, thenLen, elseLen)
 }
 
-// --- WHILE and FOR EACH (No changes from previous correct version) ---
+// --- WHILE and FOR EACH ---
 func (l *neuroScriptListenerImpl) EnterWhile_statement(ctx *gen.While_statementContext) {
-	l.EnterBlock("WHILE", "")
+	l.EnterBlock("WHILE", "") // EnterBlock sets l.currentSteps for the block body
 }
 func (l *neuroScriptListenerImpl) ExitWhile_statement(ctx *gen.While_statementContext) {
 	l.logDebugAST("<<< Exit While_statement")
-	conditionNode, ok := l.processCondition(ctx.Condition())
-	if !ok {
-		l.logger.Println("[ERROR] AST Builder: Failed condition for WHILE")
-		l.ExitBlock("WHILE")
+
+	// Pop the condition expression node first
+	conditionNode, okCond := l.popValue()
+	if !okCond {
+		l.logger.Println("[ERROR] AST Builder: Failed to pop condition expression for WHILE")
+		l.ExitBlock("WHILE") // Still attempt cleanup
 		return
 	}
-	steps, ok := l.ExitBlock("WHILE")
-	if !ok {
-		return
+	l.logDebugAST("    Popped WHILE condition node: %T", conditionNode)
+
+	// Exit the block context (captures steps collected in l.currentSteps)
+	steps, okSteps := l.ExitBlock("WHILE")
+	if !okSteps {
+		return // Error during block exit
 	}
+
+	// Append the WHILE step to the parent context
 	if l.currentSteps != nil {
 		whileStep := newStep("WHILE", "", conditionNode, steps, nil, nil)
 		*l.currentSteps = append(*l.currentSteps, whileStep)
-		l.logDebugAST("    Appended WHILE Step: Cond=%T, Steps=%d", conditionNode, len(steps))
+		l.logDebugAST("    Appended WHILE Step to parent: Cond=%T, Steps=%d", conditionNode, len(steps))
 	} else {
-		l.logger.Println("[ERROR] Current step list nil after exit WHILE")
+		l.logger.Println("[ERROR] AST Builder: Current step list nil after exiting WHILE block")
 	}
 }
 func (l *neuroScriptListenerImpl) EnterFor_each_statement(ctx *gen.For_each_statementContext) {
 	loopVar := ""
-	if ctx.IDENTIFIER() != nil {
+	if ctx.IDENTIFIER() != nil { // Use generated method
 		loopVar = ctx.IDENTIFIER().GetText()
 	}
-	l.EnterBlock("FOR", loopVar)
+	l.EnterBlock("FOR", loopVar) // EnterBlock sets l.currentSteps for the block body
 }
 func (l *neuroScriptListenerImpl) ExitFor_each_statement(ctx *gen.For_each_statementContext) {
 	l.logDebugAST("<<< Exit For_each_statement")
-	collectionNode, ok := l.popValue()
-	if !ok {
-		l.logger.Println("[ERROR] AST Builder: Failed pop collection FOR")
-		l.ExitBlock("FOR")
+
+	// Pop the collection expression node first
+	collectionNode, okColl := l.popValue()
+	if !okColl {
+		l.logger.Println("[ERROR] AST Builder: Failed pop collection expression FOR")
+		l.ExitBlock("FOR") // Attempt cleanup
 		return
 	}
+	l.logDebugAST("    Popped FOR collection node: %T", collectionNode)
+
+	// Determine loop variable name
 	loopVar := ""
-	if ctx.IDENTIFIER() != nil {
+	if ctx.IDENTIFIER() != nil { // Use generated method
 		loopVar = ctx.IDENTIFIER().GetText()
 	}
-	steps, ok := l.ExitBlock("FOR")
-	if !ok {
+
+	// Exit block context (captures steps)
+	steps, okSteps := l.ExitBlock("FOR")
+	if !okSteps {
 		return
 	}
+
+	// Append FOR step to parent context
 	if l.currentSteps != nil {
+		// Note: collectionNode is passed as the 'Cond' field for FOR steps
 		forStep := newStep("FOR", loopVar, collectionNode, steps, nil, nil)
 		*l.currentSteps = append(*l.currentSteps, forStep)
-		l.logDebugAST("[DEBUG-AST] Builder: Appended FOR Step - Cond:%T Target:%q Steps:%d", collectionNode, loopVar, len(steps))
+		l.logDebugAST("    Appended FOR Step to parent: Collection:%T Target:%q Steps:%d", collectionNode, loopVar, len(steps))
 	} else {
-		l.logger.Println("[ERROR] Current step list nil after exit FOR")
+		l.logger.Println("[ERROR] AST Builder: Current step list nil after exiting FOR block")
 	}
 }
