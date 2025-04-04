@@ -1,45 +1,48 @@
-# NeuroScript Skill: Refactor Placeholder Usage
-# Version 12: Removes redundant {{var}} based on explicit EVAL rules using LLM.
+# NeuroScript Skill: Comprehensive Syntax Update
+# Version 17: Attempts to fix multiple syntax issues (SPLAT, THEN, ENDBLOCK, placeholders) based on G4 spec.
 DEFINE PROCEDURE UpdateNsSyntax(directory_path)
 COMMENT:
     PURPOSE: Automatically refactors NeuroScript files (.ns.txt) in a directory
-             to remove redundant placeholder syntax {{varname}} where direct
-             variable name `varname` should be used (e.g., in CALL arguments
-             or simple concatenation), according to the explicit EVAL model.
-             Uses an LLM for the refactoring task. Stages and commits changes.
+             to conform to the current grammar (provided by user), fixing common
+             legacy syntax issues like SPLAT, missing THEN, incorrect ENDBLOCK,
+             and improper placeholder usage. Uses an LLM for refactoring.
+             Stages and commits changes.
     INPUTS:
         - directory_path (string): The relative path to the directory containing .ns.txt files.
     OUTPUT:
         - status_message (string): Indicates completion or errors encountered.
     ALGORITHM:
-        1. List files using TOOL.ListDirectory -> LAST.
+        1. List files -> LAST. Assign to file_list.
         2. Initialize staged files tracker.
-        3. Loop through files using FOR EACH filename IN file_list.
-        4. Skip self (UpdateNsSyntax.ns.txt).
-        5. If file is .ns.txt:
+        3. FOR EACH filename IN file_list DO:
+        4. Skip self.
+        5. IF file is .ns.txt THEN:
            a. Construct full_path.
-           b. Read file content using TOOL.ReadFile -> LAST. Get raw content via RAWTEXT(LAST).
-           c. Check for read errors.
-           d. If read OK, construct LLM prompt asking to refactor based on explicit EVAL rules.
-           e. Call LLM -> LAST.
-           f. Write potentially updated content back using TOOL.WriteFile. Check status.
-           g. If write OK, stage file using TOOL.GitAdd. Check status.
-           h. If stage OK, track staged file.
-        6. After loop, if files were staged, call CommitChanges procedure -> LAST.
-        7. Return status.
-    CAVEATS: Relies heavily on LLM understanding and correctly applying the refactoring rule.
-             Does not currently compare if content actually changed before writing/staging.
-             Assumes interpreter supports LAST, RAWTEXT, FOR EACH list, IF/ELSE, !=, ==.
-    EXAMPLES: CALL UpdateNsSyntax("gonsi/skills") => "Placeholder refactoring attempt complete..."
+           b. Read file -> LAST. Assign content.
+           c. Check read error -> LAST.
+           d. IF read OK THEN:
+              i. Construct LLM prompt listing specific syntax rules to enforce (DEFINE, THEN, ENDBLOCK, EVAL/LAST).
+              ii. Call LLM -> LAST. Assign to updated_content.
+              iii. IF content changed THEN: Write file -> LAST. Assign status. ENDBLOCK.
+              iv. IF write OK THEN: Stage file -> LAST. Assign status. ENDBLOCK.
+              v. IF stage OK THEN: Track staged file. ENDBLOCK.
+           ENDBLOCK (read ok)
+        ENDBLOCK (is ns file)
+    ENDBLOCK (skip self)
+    ENDBLOCK (for loop)
+    6. IF files staged THEN: Call CommitChanges -> LAST. ENDBLOCK.
+    7. Return status.
+    CAVEATS: High reliance on LLM accuracy for complex, multi-rule refactoring. May require multiple passes or manual checks.
+    EXAMPLES: CALL UpdateNsSyntax("gonsi/skills") => "Syntax update attempt complete..."
 ENDCOMMENT
 
-EMIT "Starting placeholder refactor for directory: " + directory_path
+EMIT "Starting comprehensive syntax update for directory: " + directory_path
 SET staged_files_csv = ""
 SET self_filename = "UpdateNsSyntax.ns.txt" // To avoid self-modification
 
 # 1. List files
 CALL TOOL.ListDirectory(directory_path)
-SET file_list = LAST // Assign list result from LAST
+SET file_list = LAST
 
 # 2. Loop through files
 FOR EACH filename IN file_list DO
@@ -56,68 +59,85 @@ FOR EACH filename IN file_list DO
             SET full_path = directory_path + "/" + filename
             EMIT "Processing file: " + full_path
 
-            # 5b. Read content - result is in LAST
+            # 5b. Read content
             CALL TOOL.ReadFile(full_path)
-            # Explicitly get the raw content without placeholder resolution
-            SET __RawContent__ = RAWTEXT(LAST)
+            SET RawContent = LAST
 
-            # 5c. Check if the content *is* an error message from ReadFile
-            CALL TOOL.Contains(__RawContent__, "ReadFile failed")
-            IF LAST == true THEN
-                 EMIT "[WARN] Failed to read file: " + full_path + " - Error: " + __RawContent__
+            # 5c. Check read result
+            CALL TOOL.Contains(RawContent, "ReadFile failed")
+            SET read_failed = LAST
+
+            IF read_failed == true THEN
+                 EMIT "[WARN] Failed to read file: " + full_path + " - Error: " + RawContent
             ELSE
-                # Content read successfully, it's in __RawContent__.
-                EMIT "  Read successful. Requesting refactor from LLM..."
+                # Content read successfully
+                EMIT "  Read successful. Requesting comprehensive refactor from LLM..."
 
-                # 5d. Construct LLM prompt
-                SET refactor_rule = "Apply the following rule: In NeuroScript code, placeholder syntax `{{varname}}` should ONLY be used within strings that are explicitly passed to an `EVAL()` function for template evaluation. In all other cases where the raw value of a variable is needed (e.g., as direct arguments to `CALL`, `TOOL.*`, or in simple `+` concatenation), use the variable name `varname` directly without curly braces. Refactor the provided code accordingly."
+                # 5d. Construct COMPREHENSIVE LLM prompt
+                SET rule_splat = "1. Replace any line starting with 'SPLAT PROCEDURE' with 'DEFINE PROCEDURE'."
+                SET rule_then = "2. Ensure every 'IF condition' line is immediately followed by 'THEN' on the same line, before the required newline."
+                SET rule_endblock = "3. Ensure blocks started by 'IF', 'WHILE', or 'FOR EACH' are terminated by 'ENDBLOCK' followed by a newline. The final end of the procedure definition uses 'END'."
+                SET rule_eval = "4. Placeholder syntax `{{varname}}` should ONLY be used within strings explicitly passed to `EVAL()`. In all other cases (direct arguments to `CALL`/`TOOL.*`, simple `+` concatenation), use the variable name `varname` directly or the `LAST` keyword (if appropriate after a CALL). Do NOT use EVAL() unless resolving placeholders in a string template."
 
-                SET refactor_prompt = refactor_rule + "\n\nRefactor this NeuroScript code:\n```neuroscript\n" + __RawContent__ + "\n```\n\nRespond ONLY with the complete, refactored, raw NeuroScript code, without any explanations or markdown fences."
+                # Combine rules into the prompt
+                SET refactor_prompt = "You are a NeuroScript syntax refactoring assistant. Strictly apply ONLY the following rules to the provided NeuroScript code to make it conform to the current grammar. Respond ONLY with the complete, refactored, raw NeuroScript code, without explanations or markdown fences.\n\nRULES:\n" + rule_splat + "\n" + rule_then + "\n" + rule_endblock + "\n" + rule_eval + "\n\nRefactor this NeuroScript code:\n```neuroscript\n" + RawContent + "\n```"
 
                 # 5e. Call LLM
                 CALL LLM(refactor_prompt)
-                SET updated_content = LAST // Result of LLM call
+                SET updated_content = LAST
 
-                # 5f. Write potentially updated content back
-                EMIT "  Writing potential updates to file..."
-                CALL TOOL.WriteFile(full_path, updated_content)
-                SET write_status = LAST // Result of WriteFile ("OK" or error)
-
-                IF write_status == "OK" THEN
-                    # 5g. Stage file
-                    EMIT "  Staging file..."
-                    CALL TOOL.GitAdd(full_path)
-                    SET add_status = LAST // Result of GitAdd ("OK" or error)
-
-                    IF add_status == "OK" THEN
-                       # 5h. Track staged file
-                       SET staged_files_csv = staged_files_csv + full_path + ","
-                    ELSE
-                         EMIT "[WARN] Failed to stage file: " + full_path + " - Error: " + add_status
-                    ENDBLOCK // End IF add_status == "OK"
+                # 5f. Write back only if changed
+                EMIT "  Checking for changes..."
+                IF RawContent != updated_content THEN
+                     EMIT "    Content changed, writing file..."
+                     CALL TOOL.WriteFile(full_path, updated_content)
+                     SET write_status = LAST
                 ELSE
+                     EMIT "    No changes detected by LLM, skipping write."
+                     SET write_status = "SKIPPED" # Use a distinct status
+                ENDBLOCK
+
+                # Proceed only if written or skipped (not if write failed)
+                IF write_status == "OK" OR write_status == "SKIPPED" THEN
+                    # Stage file only if it was actually written
+                    IF write_status == "OK" THEN
+                        # 5g. Stage file
+                        EMIT "  Staging file..."
+                        CALL TOOL.GitAdd(full_path)
+                        SET add_status = LAST
+
+                        IF add_status == "OK" THEN
+                           # 5h. Track staged file
+                           SET staged_files_csv = staged_files_csv + full_path + ","
+                        ELSE
+                             EMIT "[WARN] Failed to stage file: " + full_path + " - Error: " + add_status
+                        ENDBLOCK # End IF add_status == "OK"
+                    ENDIF # End IF write_status == "OK" (for staging)
+                ELSE # write_status indicates a failure from WriteFile
                     EMIT "[WARN] Failed to write updated file: " + full_path + " - Error: " + write_status
-                ENDBLOCK // End IF write_status == "OK"
+                ENDBLOCK # End IF write_status == "OK" OR "SKIPPED"
 
-            ENDBLOCK // End IF ReadFile success check
-        ELSE
+            ENDBLOCK # End IF read_failed == true / ELSE
+
+        ELSE # is_ns_file == false
              EMIT "Skipping non-.ns.txt file: " + filename
-        ENDBLOCK // End IF is_ns_file
-    ENDBLOCK // End IF skip self
+        ENDBLOCK # End IF is_ns_file == true
 
-ENDBLOCK // End FOR EACH loop
+    ENDBLOCK # End IF skip self / ELSE
+
+ENDBLOCK # End FOR EACH loop
 
 # 6. Commit changes if any files were staged
 EMIT "Finished processing directory."
 IF staged_files_csv != "" THEN
     EMIT "Committing refactored files..."
-    SET commit_message = "AUTO: Refactor redundant {{placeholders}} based on explicit EVAL rules"
+    SET commit_message = "AUTO: Attempt comprehensive syntax update based on G4 spec" # Updated commit message
     CALL CommitChanges(commit_message, staged_files_csv)
-    EMIT "Commit Result: " + LAST // Display result of CommitChanges
+    EMIT "Commit Result: " + LAST
 ELSE
      EMIT "No files required changes or staging."
-ENDBLOCK
+ENDBLOCK # End IF staged_files_csv != ""
 
-RETURN "Placeholder refactoring attempt complete for directory: " + directory_path + ". Check log and git status."
+RETURN "Comprehensive syntax update attempt complete for directory: " + directory_path + ". Check log and git status."
 
 END

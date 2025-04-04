@@ -34,6 +34,8 @@ Permits sharing skills among LLMs easily
 Probably allows lesser LLMs to perform at the level of more capable LLMs. I think that most modern models are vastly more capable than they really need to be. We already see many vendors using a mixture of models for tasks to save resources. I think NeuroScript simply makes it easier to share this process.
 Allows any LLM use to add ability to their LLM continuously in (near) real time
 
+New aspect: we should focus on clarity and simplicity of executing ns for the using LLM, the writing LLM can be expected to work harder to compose ns.
+
 # Is it new?
 
 Not really, but I haven't seen this formulated in this way yet.

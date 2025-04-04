@@ -4,6 +4,8 @@ Version: 2025-03-28
 
 NeuroScript is a structured, human-readable language that provides a *procedural scaffolding* for large language models (LLMs). It is designed to store, discover, and reuse **"skills"** (procedures) with clear docstrings and robust metadata, enabling AI systems to build up a library of **reusable, well-documented knowledge**.
 
+New aspect: we should focus on clarity and simplicity of executing ns for the using LLM, the writing LLM can be expected to work harder to compose ns.
+
 ## 1. Goals and Principles
 
 1. **Explicit Reasoning**: Rather than relying on hidden chain-of-thought, NeuroScript encourages step-by-step logic in a code-like format that is both *executable* and *self-documenting*.

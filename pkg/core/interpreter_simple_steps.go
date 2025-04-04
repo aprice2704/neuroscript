@@ -81,25 +81,28 @@ func (i *Interpreter) executeCall(step Step, stepNum int) (interface{}, error) {
 		}
 		toolImpl, found := i.toolRegistry.GetTool(toolName)
 		if !found {
-			return nil, fmt.Errorf("unknown TOOL '%s'", toolName)
-		}
-
-		preparedArgs, validationErr := ValidateAndConvertArgs(toolImpl.Spec, evaluatedArgs)
-		if validationErr != nil {
-			return nil, fmt.Errorf("TOOL %s argument error: %w", toolName, validationErr)
-		}
-		if i.logger != nil {
-			i.logger.Printf("[DEBUG-INTERP]          Prepared TOOL args: %+v", preparedArgs)
-		}
-
-		// Execute the tool function
-		callResultValue, callErr = toolImpl.Func(i, preparedArgs)
-		if callErr != nil {
-			// Propagate error from tool execution
-			return nil, fmt.Errorf("TOOL %s execution failed: %w", toolName, callErr)
-		}
-		if i.logger != nil {
-			i.logger.Printf("[DEBUG-INTERP]          TOOL.%s Result: %v (%T)", toolName, callResultValue, callResultValue)
+			callErr = fmt.Errorf("unknown TOOL '%s'", toolName) // Set error
+		} else {
+			preparedArgs, validationErr := ValidateAndConvertArgs(toolImpl.Spec, evaluatedArgs)
+			if validationErr != nil {
+				callErr = fmt.Errorf("TOOL %s argument error: %w", toolName, validationErr) // Set error
+			} else {
+				if i.logger != nil {
+					i.logger.Printf("[DEBUG-INTERP]          Prepared TOOL args: %+v", preparedArgs)
+				}
+				// Execute the tool function
+				callResultValue, callErr = toolImpl.Func(i, preparedArgs) // Captures potential tool execution error
+				if callErr == nil {                                       // Only log/set last result on SUCCESS
+					if i.logger != nil {
+						i.logger.Printf("[DEBUG-INTERP]          TOOL.%s Result: %v (%T)", toolName, callResultValue, callResultValue)
+					}
+					// *** ADDED THIS LINE ***
+					i.lastCallResult = callResultValue // Store successful result
+				} else {
+					// Propagate error from tool execution
+					callErr = fmt.Errorf("TOOL %s execution failed: %w", toolName, callErr)
+				}
+			}
 		}
 
 	} else if target == "LLM" {
@@ -107,21 +110,24 @@ func (i *Interpreter) executeCall(step Step, stepNum int) (interface{}, error) {
 			i.logger.Printf("[DEBUG-INTERP]        Calling LLM")
 		}
 		if len(evaluatedArgs) != 1 {
-			return nil, fmt.Errorf("CALL LLM expects 1 prompt arg, got %d", len(evaluatedArgs))
-		}
-		prompt := fmt.Sprintf("%v", evaluatedArgs[0]) // Convert evaluated arg to string
-		if i.logger != nil {
-			i.logger.Printf("[DEBUG-INTERP]          LLM Prompt: %q", prompt)
-		}
+			callErr = fmt.Errorf("CALL LLM expects 1 prompt arg, got %d", len(evaluatedArgs)) // Set error
+		} else {
+			prompt := fmt.Sprintf("%v", evaluatedArgs[0]) // Convert evaluated arg to string
+			if i.logger != nil {
+				i.logger.Printf("[DEBUG-INTERP]          LLM Prompt: %q", prompt)
+			}
 
-		response, llmErr := CallLLMAPI(prompt) // Assumes CallLLMAPI handles its errors
-		if llmErr != nil {
-			return nil, fmt.Errorf("CALL LLM failed: %w", llmErr) // Propagate LLM error
-		}
-		callResultValue = response
-		callErr = nil // Explicitly nil on success
-		if i.logger != nil {
-			i.logger.Printf("[DEBUG-INTERP]          LLM Result: %q", response)
+			response, llmErr := CallLLMAPI(prompt) // Assumes CallLLMAPI handles its errors
+			if llmErr != nil {
+				callErr = fmt.Errorf("CALL LLM failed: %w", llmErr) // Propagate LLM error
+			} else {
+				callResultValue = response
+				callErr = nil // Explicitly nil on success
+				if i.logger != nil {
+					i.logger.Printf("[DEBUG-INTERP]          LLM Result: %q", response)
+				}
+				i.lastCallResult = callResultValue // Store successful result
+			}
 		}
 
 	} else { // Procedure Call
@@ -144,17 +150,19 @@ func (i *Interpreter) executeCall(step Step, stepNum int) (interface{}, error) {
 		if procCallErr != nil {
 			// Propagate error from nested procedure call
 			// Error context is already added within RunProcedure/executeSteps
-			return nil, procCallErr
-		}
-		callResultValue = procResultValue
-		callErr = nil // Explicitly nil on success
-		if i.logger != nil {
-			i.logger.Printf("[DEBUG-INTERP]          Procedure %q Result: %v (%T)", procToCall, callResultValue, callResultValue)
+			callErr = procCallErr
+		} else {
+			callResultValue = procResultValue
+			callErr = nil // Explicitly nil on success
+			if i.logger != nil {
+				i.logger.Printf("[DEBUG-INTERP]          Procedure %q Result: %v (%T)", procToCall, callResultValue, callResultValue)
+			}
+			i.lastCallResult = callResultValue // Store successful result
 		}
 	}
 
-	// Return result and error status from the call
-	return callResultValue, callErr // callErr will be nil on success
+	// Return the captured result (if any) and the error status from the call
+	return callResultValue, callErr
 }
 
 // executeReturn handles the RETURN statement, now checking expression evaluation error
