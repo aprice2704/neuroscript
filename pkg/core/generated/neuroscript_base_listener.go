@@ -134,29 +134,95 @@ func (s *BaseNeuroScriptListener) EnterCall_target(ctx *Call_targetContext) {}
 // ExitCall_target is called when production call_target is exited.
 func (s *BaseNeuroScriptListener) ExitCall_target(ctx *Call_targetContext) {}
 
-// EnterCondition is called when production condition is entered.
-func (s *BaseNeuroScriptListener) EnterCondition(ctx *ConditionContext) {}
-
-// ExitCondition is called when production condition is exited.
-func (s *BaseNeuroScriptListener) ExitCondition(ctx *ConditionContext) {}
-
 // EnterExpression is called when production expression is entered.
 func (s *BaseNeuroScriptListener) EnterExpression(ctx *ExpressionContext) {}
 
 // ExitExpression is called when production expression is exited.
 func (s *BaseNeuroScriptListener) ExitExpression(ctx *ExpressionContext) {}
 
-// EnterTerm is called when production term is entered.
-func (s *BaseNeuroScriptListener) EnterTerm(ctx *TermContext) {}
+// EnterLogical_or_expr is called when production logical_or_expr is entered.
+func (s *BaseNeuroScriptListener) EnterLogical_or_expr(ctx *Logical_or_exprContext) {}
 
-// ExitTerm is called when production term is exited.
-func (s *BaseNeuroScriptListener) ExitTerm(ctx *TermContext) {}
+// ExitLogical_or_expr is called when production logical_or_expr is exited.
+func (s *BaseNeuroScriptListener) ExitLogical_or_expr(ctx *Logical_or_exprContext) {}
+
+// EnterLogical_and_expr is called when production logical_and_expr is entered.
+func (s *BaseNeuroScriptListener) EnterLogical_and_expr(ctx *Logical_and_exprContext) {}
+
+// ExitLogical_and_expr is called when production logical_and_expr is exited.
+func (s *BaseNeuroScriptListener) ExitLogical_and_expr(ctx *Logical_and_exprContext) {}
+
+// EnterBitwise_or_expr is called when production bitwise_or_expr is entered.
+func (s *BaseNeuroScriptListener) EnterBitwise_or_expr(ctx *Bitwise_or_exprContext) {}
+
+// ExitBitwise_or_expr is called when production bitwise_or_expr is exited.
+func (s *BaseNeuroScriptListener) ExitBitwise_or_expr(ctx *Bitwise_or_exprContext) {}
+
+// EnterBitwise_xor_expr is called when production bitwise_xor_expr is entered.
+func (s *BaseNeuroScriptListener) EnterBitwise_xor_expr(ctx *Bitwise_xor_exprContext) {}
+
+// ExitBitwise_xor_expr is called when production bitwise_xor_expr is exited.
+func (s *BaseNeuroScriptListener) ExitBitwise_xor_expr(ctx *Bitwise_xor_exprContext) {}
+
+// EnterBitwise_and_expr is called when production bitwise_and_expr is entered.
+func (s *BaseNeuroScriptListener) EnterBitwise_and_expr(ctx *Bitwise_and_exprContext) {}
+
+// ExitBitwise_and_expr is called when production bitwise_and_expr is exited.
+func (s *BaseNeuroScriptListener) ExitBitwise_and_expr(ctx *Bitwise_and_exprContext) {}
+
+// EnterEquality_expr is called when production equality_expr is entered.
+func (s *BaseNeuroScriptListener) EnterEquality_expr(ctx *Equality_exprContext) {}
+
+// ExitEquality_expr is called when production equality_expr is exited.
+func (s *BaseNeuroScriptListener) ExitEquality_expr(ctx *Equality_exprContext) {}
+
+// EnterRelational_expr is called when production relational_expr is entered.
+func (s *BaseNeuroScriptListener) EnterRelational_expr(ctx *Relational_exprContext) {}
+
+// ExitRelational_expr is called when production relational_expr is exited.
+func (s *BaseNeuroScriptListener) ExitRelational_expr(ctx *Relational_exprContext) {}
+
+// EnterAdditive_expr is called when production additive_expr is entered.
+func (s *BaseNeuroScriptListener) EnterAdditive_expr(ctx *Additive_exprContext) {}
+
+// ExitAdditive_expr is called when production additive_expr is exited.
+func (s *BaseNeuroScriptListener) ExitAdditive_expr(ctx *Additive_exprContext) {}
+
+// EnterMultiplicative_expr is called when production multiplicative_expr is entered.
+func (s *BaseNeuroScriptListener) EnterMultiplicative_expr(ctx *Multiplicative_exprContext) {}
+
+// ExitMultiplicative_expr is called when production multiplicative_expr is exited.
+func (s *BaseNeuroScriptListener) ExitMultiplicative_expr(ctx *Multiplicative_exprContext) {}
+
+// EnterUnary_expr is called when production unary_expr is entered.
+func (s *BaseNeuroScriptListener) EnterUnary_expr(ctx *Unary_exprContext) {}
+
+// ExitUnary_expr is called when production unary_expr is exited.
+func (s *BaseNeuroScriptListener) ExitUnary_expr(ctx *Unary_exprContext) {}
+
+// EnterPower_expr is called when production power_expr is entered.
+func (s *BaseNeuroScriptListener) EnterPower_expr(ctx *Power_exprContext) {}
+
+// ExitPower_expr is called when production power_expr is exited.
+func (s *BaseNeuroScriptListener) ExitPower_expr(ctx *Power_exprContext) {}
+
+// EnterAccessor_expr is called when production accessor_expr is entered.
+func (s *BaseNeuroScriptListener) EnterAccessor_expr(ctx *Accessor_exprContext) {}
+
+// ExitAccessor_expr is called when production accessor_expr is exited.
+func (s *BaseNeuroScriptListener) ExitAccessor_expr(ctx *Accessor_exprContext) {}
 
 // EnterPrimary is called when production primary is entered.
 func (s *BaseNeuroScriptListener) EnterPrimary(ctx *PrimaryContext) {}
 
 // ExitPrimary is called when production primary is exited.
 func (s *BaseNeuroScriptListener) ExitPrimary(ctx *PrimaryContext) {}
+
+// EnterFunction_call is called when production function_call is entered.
+func (s *BaseNeuroScriptListener) EnterFunction_call(ctx *Function_callContext) {}
+
+// ExitFunction_call is called when production function_call is exited.
+func (s *BaseNeuroScriptListener) ExitFunction_call(ctx *Function_callContext) {}
 
 // EnterPlaceholder is called when production placeholder is entered.
 func (s *BaseNeuroScriptListener) EnterPlaceholder(ctx *PlaceholderContext) {}

@@ -3,118 +3,41 @@ package core
 
 import (
 	"fmt"
-	"strings"
+	"strings" // Keep this import
 )
 
-// performComparison performs comparisons (==, !=, >, <, >=, <=) between evaluated values.
-func performComparison(leftVal, rightVal interface{}, operator string) (bool, error) {
-	leftIsNil := leftVal == nil
-	rightIsNil := rightVal == nil
+// performComparison is NO LONGER USED directly by evaluateCondition.
+// Its logic is integrated into evaluateBinaryOp in evaluation_logic.go.
+// func performComparison(leftVal, rightVal interface{}, operator string) (bool, error) { ... }
 
-	if leftIsNil || rightIsNil { /* ... nil handling as before ... */
-		switch operator {
-		case "==":
-			return leftIsNil && rightIsNil, nil
-		case "!=":
-			return !(leftIsNil && rightIsNil), nil
-		case ">", "<", ">=", "<=":
-			return false, fmt.Errorf("operator '%s' requires non-nil operands", operator)
-		default:
-			return false, fmt.Errorf("unsupported comparison operator '%s' with nil", operator)
-		}
-	}
-
-	// *** ADDED: Explicit string conversion before fmt.Sprintf for safety ***
-	var leftStr, rightStr string
-	if s, ok := leftVal.(string); ok {
-		leftStr = s
-	} else {
-		leftStr = fmt.Sprintf("%v", leftVal)
-	}
-	if s, ok := rightVal.(string); ok {
-		rightStr = s
-	} else {
-		rightStr = fmt.Sprintf("%v", rightVal)
-	}
-
-	switch operator {
-	case "==":
-		// Compare string representations
-		return leftStr == rightStr, nil
-	case "!=":
-		return leftStr != rightStr, nil
-	case ">", "<", ">=", "<=":
-		// Attempt numeric comparison using the string representations
-		leftFloat, leftOk := tryParseFloat(leftStr)
-		rightFloat, rightOk := tryParseFloat(rightStr)
-		if leftOk && rightOk {
-			switch operator {
-			case ">":
-				return leftFloat > rightFloat, nil
-			case "<":
-				return leftFloat < rightFloat, nil
-			case ">=":
-				return leftFloat >= rightFloat, nil
-			case "<=":
-				return leftFloat <= rightFloat, nil
-			}
-		}
-		return false, fmt.Errorf("operator '%s' requires numeric operands, got %T(%v) and %T(%v)", operator, leftVal, leftVal, rightVal, rightVal)
-	default:
-		return false, fmt.Errorf("unsupported comparison operator '%s'", operator)
-	}
-}
-
-// evaluateCondition: Uses performComparison. String truthiness check remains strict ("true" or "1").
+// evaluateCondition evaluates an expression node used in IF/WHILE contexts.
+// It now relies on evaluateExpression and the isTruthy helper.
 func (i *Interpreter) evaluateCondition(condNode interface{}) (bool, error) {
-	if compNode, ok := condNode.(ComparisonNode); ok {
-		leftValue, errLeft := i.evaluateExpression(compNode.Left)
-		if errLeft != nil {
-			if strings.Contains(errLeft.Error(), "not found") {
-				leftValue = nil
-			} else {
-				return false, fmt.Errorf("evaluating left side: %w", errLeft)
-			}
-		}
-		rightValue, errRight := i.evaluateExpression(compNode.Right)
-		if errRight != nil {
-			if strings.Contains(errRight.Error(), "not found") {
-				rightValue = nil
-			} else {
-				return false, fmt.Errorf("evaluating right side: %w", errRight)
-			}
-		}
+	// The condition node is now just a standard expression node (e.g., BinaryOpNode, VariableNode, LiteralNode).
+	// We evaluate it directly. The result of comparisons, AND, OR etc. will be a boolean.
+	// For other expression types, we check their truthiness.
 
-		result, compErr := performComparison(leftValue, rightValue, compNode.Operator)
-		if compErr != nil {
-			return false, fmt.Errorf("condition comparison: %w", compErr)
-		}
-		return result, nil
-	}
-
-	evaluatedValue, errEval := i.evaluateExpression(condNode)
+	evaluatedValue, errEval := i.evaluateExpression(condNode) // Evaluate the whole condition expression
 	if errEval != nil {
+		// Allow "variable not found" to evaluate to false in conditions
 		if strings.Contains(errEval.Error(), "not found") {
+			if i.logger != nil {
+				i.logger.Printf("[DEBUG-INTERP]        Condition variable not found, evaluating as false: %v", errEval)
+			}
 			return false, nil
 		} else {
+			// Propagate other evaluation errors
 			return false, fmt.Errorf("evaluating condition expression: %w", errEval)
 		}
 	}
 
-	switch v := evaluatedValue.(type) {
-	case bool:
-		return v, nil
-	case int64:
-		return v != 0, nil
-	case float64:
-		return v != 0.0, nil
-	case string:
-		lowerV := strings.ToLower(v)
-		if lowerV == "true" || v == "1" {
-			return true, nil
-		} // Strict check
-		return false, nil
-	default:
-		return false, nil
+	// Determine truthiness of the final evaluated value
+	result := isTruthy(evaluatedValue)
+	if i.logger != nil {
+		i.logger.Printf("[DEBUG-INTERP]        Condition node %T evaluated to %v (%T), truthiness: %t", condNode, evaluatedValue, evaluatedValue, result)
 	}
+	return result, nil
 }
+
+// tryParseFloat moved to evaluation_helpers.go or evaluation_logic.go (if still needed there)
+// func tryParseFloat(s string) (float64, bool) { ... }

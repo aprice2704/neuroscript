@@ -83,19 +83,63 @@ func (v *BaseNeuroScriptVisitor) VisitCall_target(ctx *Call_targetContext) inter
 	return v.VisitChildren(ctx)
 }
 
-func (v *BaseNeuroScriptVisitor) VisitCondition(ctx *ConditionContext) interface{} {
-	return v.VisitChildren(ctx)
-}
-
 func (v *BaseNeuroScriptVisitor) VisitExpression(ctx *ExpressionContext) interface{} {
 	return v.VisitChildren(ctx)
 }
 
-func (v *BaseNeuroScriptVisitor) VisitTerm(ctx *TermContext) interface{} {
+func (v *BaseNeuroScriptVisitor) VisitLogical_or_expr(ctx *Logical_or_exprContext) interface{} {
+	return v.VisitChildren(ctx)
+}
+
+func (v *BaseNeuroScriptVisitor) VisitLogical_and_expr(ctx *Logical_and_exprContext) interface{} {
+	return v.VisitChildren(ctx)
+}
+
+func (v *BaseNeuroScriptVisitor) VisitBitwise_or_expr(ctx *Bitwise_or_exprContext) interface{} {
+	return v.VisitChildren(ctx)
+}
+
+func (v *BaseNeuroScriptVisitor) VisitBitwise_xor_expr(ctx *Bitwise_xor_exprContext) interface{} {
+	return v.VisitChildren(ctx)
+}
+
+func (v *BaseNeuroScriptVisitor) VisitBitwise_and_expr(ctx *Bitwise_and_exprContext) interface{} {
+	return v.VisitChildren(ctx)
+}
+
+func (v *BaseNeuroScriptVisitor) VisitEquality_expr(ctx *Equality_exprContext) interface{} {
+	return v.VisitChildren(ctx)
+}
+
+func (v *BaseNeuroScriptVisitor) VisitRelational_expr(ctx *Relational_exprContext) interface{} {
+	return v.VisitChildren(ctx)
+}
+
+func (v *BaseNeuroScriptVisitor) VisitAdditive_expr(ctx *Additive_exprContext) interface{} {
+	return v.VisitChildren(ctx)
+}
+
+func (v *BaseNeuroScriptVisitor) VisitMultiplicative_expr(ctx *Multiplicative_exprContext) interface{} {
+	return v.VisitChildren(ctx)
+}
+
+func (v *BaseNeuroScriptVisitor) VisitUnary_expr(ctx *Unary_exprContext) interface{} {
+	return v.VisitChildren(ctx)
+}
+
+func (v *BaseNeuroScriptVisitor) VisitPower_expr(ctx *Power_exprContext) interface{} {
+	return v.VisitChildren(ctx)
+}
+
+func (v *BaseNeuroScriptVisitor) VisitAccessor_expr(ctx *Accessor_exprContext) interface{} {
 	return v.VisitChildren(ctx)
 }
 
 func (v *BaseNeuroScriptVisitor) VisitPrimary(ctx *PrimaryContext) interface{} {
+	return v.VisitChildren(ctx)
+}
+
+func (v *BaseNeuroScriptVisitor) VisitFunction_call(ctx *Function_callContext) interface{} {
 	return v.VisitChildren(ctx)
 }
 
