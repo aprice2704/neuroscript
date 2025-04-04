@@ -4,7 +4,6 @@ package core
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log" // Import log package
 	"strings"
 
@@ -19,18 +18,19 @@ type ParseOptions struct {
 }
 
 // ParseNeuroScript reads NeuroScript code, parses it using ANTLR,
-// builds the AST using a listener, and returns the Procedures.
-// Updated signature to accept filename and options.
-func ParseNeuroScript(r io.Reader, sourceName string, options ParseOptions) ([]Procedure, error) {
+// builds the AST using a listener, and returns the Procedures and file version.
+// Updated signature to return fileVersion string.
+func ParseNeuroScript(r io.Reader, sourceName string, options ParseOptions) ([]Procedure, string, error) {
 	// Use logger from options, default to discard if nil
 	logger := options.Logger
 	if logger == nil {
 		logger = log.New(io.Discard, "", 0)
 	}
 
-	inputBytes, err := ioutil.ReadAll(r)
+	inputBytes, err := io.ReadAll(r) // Use io.ReadAll for consistency
 	if err != nil {
-		return nil, fmt.Errorf("error reading input '%s': %w", sourceName, err)
+		// Return empty values and the error
+		return nil, "", fmt.Errorf("error reading input '%s': %w", sourceName, err)
 	}
 	inputString := string(inputBytes)
 
@@ -55,15 +55,17 @@ func ParseNeuroScript(r io.Reader, sourceName string, options ParseOptions) ([]P
 	// Combine lexer and parser errors
 	combinedErrors := append(lexerErrorListener.Errors, parserErrorListener.Errors...)
 	if len(combinedErrors) > 0 {
-		return nil, fmt.Errorf("parsing '%s' failed:\n%s", sourceName, strings.Join(combinedErrors, "\n"))
+		// Return empty values and the combined error
+		return nil, "", fmt.Errorf("parsing '%s' failed:\n%s", sourceName, strings.Join(combinedErrors, "\n"))
 	}
 
 	// AST Building - Pass logger and debug flag to the listener
 	listener := newNeuroScriptListener(logger, options.DebugAST) // Pass logger/flag
 	antlr.ParseTreeWalkerDefault.Walk(listener, tree)
 
-	// Return the result built by the listener
-	return listener.GetResult(), nil
+	// Return the result built by the listener (procedures and file version)
+	// Return nil error on success
+	return listener.GetResult(), listener.GetFileVersion(), nil
 }
 
 // --- Custom Diagnostic Error Listener ---
@@ -86,18 +88,6 @@ func NewDiagnosticErrorListener(sourceName string) *DiagnosticErrorListener {
 func (d *DiagnosticErrorListener) SyntaxError(recognizer antlr.Recognizer, offendingSymbol interface{}, line, column int, msg string, e antlr.RecognitionException) {
 	// Include filename in the error message
 	detailedErrMsg := fmt.Sprintf("%s:%d:%d %s", d.SourceName, line, column, msg)
-
-	// Add ANTLR specific details (optional, can be verbose)
-	/*
-		var extraInfo []string
-		if p, ok := recognizer.(antlr.Parser); ok {
-			// ... (existing code to get expected tokens, rule stack, etc.) ...
-		}
-		if len(extraInfo) > 0 {
-			detailedErrMsg += " [" + strings.Join(extraInfo, ", ") + "]"
-		}
-	*/
-
 	d.Errors = append(d.Errors, detailedErrMsg)
 }
 

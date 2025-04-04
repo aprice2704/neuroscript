@@ -32,6 +32,12 @@ func (s *BaseNeuroScriptListener) EnterOptional_newlines(ctx *Optional_newlinesC
 // ExitOptional_newlines is called when production optional_newlines is exited.
 func (s *BaseNeuroScriptListener) ExitOptional_newlines(ctx *Optional_newlinesContext) {}
 
+// EnterFile_version_decl is called when production file_version_decl is entered.
+func (s *BaseNeuroScriptListener) EnterFile_version_decl(ctx *File_version_declContext) {}
+
+// ExitFile_version_decl is called when production file_version_decl is exited.
+func (s *BaseNeuroScriptListener) ExitFile_version_decl(ctx *File_version_declContext) {}
+
 // EnterProcedure_definition is called when production procedure_definition is entered.
 func (s *BaseNeuroScriptListener) EnterProcedure_definition(ctx *Procedure_definitionContext) {}
 

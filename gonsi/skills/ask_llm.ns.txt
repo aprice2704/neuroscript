@@ -1,6 +1,4 @@
-# Simple NeuroScript to test CALL LLM
-
-SPLAT PROCEDURE AskCapitalCity()
+DEFINE PROCEDURE AskCapitalCity()
 COMMENT:
     PURPOSE: Asks the LLM for the capital of Canada.
     INPUTS: None
@@ -9,9 +7,7 @@ COMMENT:
 ENDCOMMENT
 
 SET question = "What is the capital of Canada?"
-# The interpreter currently stores result in __llm_last_response
-CALL LLM({{question}})
-# Retrieve the result from the special variable
+CALL LLM(question)
 RETURN __last_call_result
 
 END

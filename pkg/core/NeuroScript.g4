@@ -3,9 +3,14 @@ grammar NeuroScript;
 
 // --- PARSER RULES ---
 
-program: optional_newlines procedure_definition* optional_newlines EOF;
+// Program can start with optional newlines, then an optional version declaration,
+// then more optional newlines, then procedure definitions, then optional newlines, then EOF.
+program: optional_newlines file_version_decl? optional_newlines procedure_definition* optional_newlines EOF;
 
 optional_newlines: NEWLINE*;
+
+// Rule for the version declaration
+file_version_decl: KW_FILE_VERSION STRING_LIT NEWLINE;
 
 procedure_definition:
     KW_DEFINE KW_PROCEDURE IDENTIFIER
@@ -64,19 +69,18 @@ expression: term ( optional_newlines PLUS optional_newlines term )*;
 
 term: primary ( LBRACK expression RBRACK )*;
 
-// MODIFIED: primary rule to include LAST and EVAL()
 primary:
     literal
-    | placeholder              // Placeholders {{...}} remain, but only resolved via EVAL
+    | placeholder
     | IDENTIFIER
     | KW_LAST
-    | KW_EVAL LPAREN expression RPAREN // ADDED EVAL function call syntax
+    | KW_EVAL LPAREN expression RPAREN
     | LPAREN expression RPAREN;
 
 placeholder: PLACEHOLDER_START (IDENTIFIER | KW_LAST) PLACEHOLDER_END;
 
 literal:
-    STRING_LIT             // Now represents RAW string content
+    STRING_LIT
     | NUMBER_LIT
     | list_literal
     | map_literal
@@ -97,6 +101,7 @@ map_entry: STRING_LIT COLON expression;
 
 // --- LEXER RULES ---
 
+KW_FILE_VERSION: 'FILE_VERSION'; // Added
 KW_DEFINE: 'DEFINE';
 KW_PROCEDURE: 'PROCEDURE';
 KW_END: 'END';
@@ -117,8 +122,7 @@ KW_IN: 'IN';
 KW_TOOL: 'TOOL';
 KW_LLM: 'LLM';
 KW_LAST: 'LAST';
-KW_EVAL: 'EVAL';                 // ADDED EVAL Keyword
-// REMOVED KW_RAWTEXT
+KW_EVAL: 'EVAL';
 KW_EMIT: 'EMIT';
 KW_TRUE: 'true';
 KW_FALSE: 'false';
@@ -126,7 +130,7 @@ KW_FALSE: 'false';
 COMMENT_BLOCK: KW_COMMENT_START .*? KW_ENDCOMMENT -> skip;
 
 NUMBER_LIT: [0-9]+ ('.' [0-9]+)?;
-STRING_LIT: // Represents RAW string content now
+STRING_LIT:
     '"' (EscapeSequence | ~["\\\r\n])* '"'
     | '\'' (EscapeSequence | ~['\\\r\n])* '\'';
 
@@ -154,7 +158,10 @@ LTE: '<=';
 IDENTIFIER: [a-zA-Z_] [a-zA-Z0-9_]*;
 
 // --- Comments and Whitespace ---
-LINE_COMMENT: ('#'|'--') ~[\r\n]* -> skip;
+// Updated LINE_COMMENT to include hash-bang #!
+LINE_COMMENT: ('#' ~[!]? | '--') ~[\r\n]* -> skip; // Skips #comment, --comment BUT NOT #!
+HASH_BANG: '#!' ~[\r\n]* -> skip; // Explicitly skip hash-bang lines
+
 NEWLINE: '\r'? '\n' | '\r';
 WS: [ \t]+ -> skip;
 

@@ -1,5 +1,5 @@
 # NeuroScript Skill: Comprehensive Syntax Update
-# Version 17: Attempts to fix multiple syntax issues (SPLAT, THEN, ENDBLOCK, placeholders) based on G4 spec.
+# Version 19: Corrects ENDIF to ENDBLOCK.
 DEFINE PROCEDURE UpdateNsSyntax(directory_path)
 COMMENT:
     PURPOSE: Automatically refactors NeuroScript files (.ns.txt) in a directory
@@ -11,34 +11,14 @@ COMMENT:
         - directory_path (string): The relative path to the directory containing .ns.txt files.
     OUTPUT:
         - status_message (string): Indicates completion or errors encountered.
-    ALGORITHM:
-        1. List files -> LAST. Assign to file_list.
-        2. Initialize staged files tracker.
-        3. FOR EACH filename IN file_list DO:
-        4. Skip self.
-        5. IF file is .ns.txt THEN:
-           a. Construct full_path.
-           b. Read file -> LAST. Assign content.
-           c. Check read error -> LAST.
-           d. IF read OK THEN:
-              i. Construct LLM prompt listing specific syntax rules to enforce (DEFINE, THEN, ENDBLOCK, EVAL/LAST).
-              ii. Call LLM -> LAST. Assign to updated_content.
-              iii. IF content changed THEN: Write file -> LAST. Assign status. ENDBLOCK.
-              iv. IF write OK THEN: Stage file -> LAST. Assign status. ENDBLOCK.
-              v. IF stage OK THEN: Track staged file. ENDBLOCK.
-           ENDBLOCK (read ok)
-        ENDBLOCK (is ns file)
-    ENDBLOCK (skip self)
-    ENDBLOCK (for loop)
-    6. IF files staged THEN: Call CommitChanges -> LAST. ENDBLOCK.
-    7. Return status.
-    CAVEATS: High reliance on LLM accuracy for complex, multi-rule refactoring. May require multiple passes or manual checks.
+    ALGORITHM: (See previous versions, logic refined for error handling)
+    CAVEATS: High reliance on LLM accuracy. Manual checks recommended after run.
     EXAMPLES: CALL UpdateNsSyntax("gonsi/skills") => "Syntax update attempt complete..."
 ENDCOMMENT
 
 EMIT "Starting comprehensive syntax update for directory: " + directory_path
 SET staged_files_csv = ""
-SET self_filename = "UpdateNsSyntax.ns.txt" // To avoid self-modification
+SET self_filename = "UpdateNsSyntax.ns.txt"
 
 # 1. List files
 CALL TOOL.ListDirectory(directory_path)
@@ -78,8 +58,6 @@ FOR EACH filename IN file_list DO
                 SET rule_then = "2. Ensure every 'IF condition' line is immediately followed by 'THEN' on the same line, before the required newline."
                 SET rule_endblock = "3. Ensure blocks started by 'IF', 'WHILE', or 'FOR EACH' are terminated by 'ENDBLOCK' followed by a newline. The final end of the procedure definition uses 'END'."
                 SET rule_eval = "4. Placeholder syntax `{{varname}}` should ONLY be used within strings explicitly passed to `EVAL()`. In all other cases (direct arguments to `CALL`/`TOOL.*`, simple `+` concatenation), use the variable name `varname` directly or the `LAST` keyword (if appropriate after a CALL). Do NOT use EVAL() unless resolving placeholders in a string template."
-
-                # Combine rules into the prompt
                 SET refactor_prompt = "You are a NeuroScript syntax refactoring assistant. Strictly apply ONLY the following rules to the provided NeuroScript code to make it conform to the current grammar. Respond ONLY with the complete, refactored, raw NeuroScript code, without explanations or markdown fences.\n\nRULES:\n" + rule_splat + "\n" + rule_then + "\n" + rule_endblock + "\n" + rule_eval + "\n\nRefactor this NeuroScript code:\n```neuroscript\n" + RawContent + "\n```"
 
                 # 5e. Call LLM
@@ -91,36 +69,36 @@ FOR EACH filename IN file_list DO
                 IF RawContent != updated_content THEN
                      EMIT "    Content changed, writing file..."
                      CALL TOOL.WriteFile(full_path, updated_content)
-                     SET write_status = LAST
+                     SET write_status = LAST # Captures "OK" or error message from WriteFile
                 ELSE
                      EMIT "    No changes detected by LLM, skipping write."
                      SET write_status = "SKIPPED" # Use a distinct status
-                ENDBLOCK
+                ENDBLOCK # End IF RawContent != updated_content
 
-                # Proceed only if written or skipped (not if write failed)
-                IF write_status == "OK" OR write_status == "SKIPPED" THEN
-                    # Stage file only if it was actually written
-                    IF write_status == "OK" THEN
-                        # 5g. Stage file
-                        EMIT "  Staging file..."
-                        CALL TOOL.GitAdd(full_path)
-                        SET add_status = LAST
+                # Check write_status before attempting Git operations
+                IF write_status == "OK" THEN
+                    # File was written successfully, proceed to Git Add
+                    EMIT "  Staging file..."
+                    CALL TOOL.GitAdd(full_path)
+                    SET add_status = LAST # Captures "OK" or error message from GitAdd
 
-                        IF add_status == "OK" THEN
-                           # 5h. Track staged file
-                           SET staged_files_csv = staged_files_csv + full_path + ","
-                        ELSE
-                             EMIT "[WARN] Failed to stage file: " + full_path + " - Error: " + add_status
-                        ENDBLOCK # End IF add_status == "OK"
-                    ENDIF # End IF write_status == "OK" (for staging)
-                ELSE # write_status indicates a failure from WriteFile
-                    EMIT "[WARN] Failed to write updated file: " + full_path + " - Error: " + write_status
-                ENDBLOCK # End IF write_status == "OK" OR "SKIPPED"
+                    IF add_status == "OK" THEN
+                       SET staged_files_csv = staged_files_csv + full_path + ","
+                    ELSE
+                         EMIT "[WARN] Failed to stage file: " + full_path + " - Error: " + add_status
+                    ENDBLOCK # End IF add_status == "OK"
 
-            ENDBLOCK # End IF read_failed == true / ELSE
+                ELSE
+                    # Handle cases where write was skipped OR failed
+                    IF write_status != "SKIPPED" THEN
+                        # Write actually failed, report error
+                        EMIT "[WARN] Failed to write updated file: " + full_path + " - Error: " + write_status
+                    # ELSE: Write was skipped, do nothing further for this file
+                    ENDBLOCK # *** CORRECTED THIS LINE from ENDIF to ENDBLOCK ***
+                ENDBLOCK # End IF write_status == "OK" / ELSE
 
-        ELSE # is_ns_file == false
-             EMIT "Skipping non-.ns.txt file: " + filename
+            ENDBLOCK # End IF read_failed == true / ELSE block
+
         ENDBLOCK # End IF is_ns_file == true
 
     ENDBLOCK # End IF skip self / ELSE
@@ -131,7 +109,7 @@ ENDBLOCK # End FOR EACH loop
 EMIT "Finished processing directory."
 IF staged_files_csv != "" THEN
     EMIT "Committing refactored files..."
-    SET commit_message = "AUTO: Attempt comprehensive syntax update based on G4 spec" # Updated commit message
+    SET commit_message = "AUTO: Attempt comprehensive syntax update based on G4 spec"
     CALL CommitChanges(commit_message, staged_files_csv)
     EMIT "Commit Result: " + LAST
 ELSE
@@ -140,4 +118,4 @@ ENDBLOCK # End IF staged_files_csv != ""
 
 RETURN "Comprehensive syntax update attempt complete for directory: " + directory_path + ". Check log and git status."
 
-END
+END # End of DEFINE PROCEDURE

@@ -1,5 +1,3 @@
-# NeuroScript Example: List and Map Iteration and Access
-
 DEFINE PROCEDURE TestListAndMapAccess(prefix)
 COMMENT:
     PURPOSE: Demonstrates creating, iterating, and ACCESSING elements
@@ -25,7 +23,7 @@ ENDCOMMENT
 EMIT "--- Testing Lists ---"
 
 # 1. Define List
-SET my_list = [ "{{prefix}}Item1", 2, true, ["Inner", "List!"] ]
+SET my_list = [ prefix + "Item1", 2, true, ["Inner", "List!"] ]
 EMIT "List Value:"
 EMIT my_list
 
@@ -103,7 +101,7 @@ EMIT "--- Testing Tools ---"
 # 7. Test JoinStrings with evaluated list literal elements
 # Note: JoinStrings expects a slice of strings, but validation handles conversion
 CALL TOOL.JoinStrings([ "A", "B", 3, true ], "-")
-SET joined_list = __last_call_result
+SET joined_list = LAST
 EMIT "Joined List Literal:"
 EMIT joined_list
 

@@ -8,19 +8,9 @@ COMMENT:
     ALGORITHM: Call ReadFile, store result, construct greeting, Call WriteGreetingFile, return content.
 ENDCOMMENT
 
-# Step 1: Call ReadFile, result stored implicitly
-CALL TOOL.ReadFile({{read_path}})
-
-# Step 2: Assign the result to a variable
-SET content_read = __last_call_result
-
-# Step 3: Construct the new greeting
-SET new_greeting = "Modified: {{content_read}}" # Use placeholder
-
-# Step 4: Call the other procedure
-CALL WriteGreetingFile({{write_path}}, {{new_greeting}})
-
-# Step 5: Return the original content
-RETURN {{content_read}}
-
+CALL TOOL.ReadFile(read_path)
+SET content_read = LAST
+SET new_greeting = EVAL("Modified: " + content_read)
+CALL WriteGreetingFile(write_path, new_greeting)
+RETURN content_read
 END

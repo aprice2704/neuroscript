@@ -13,6 +13,9 @@ type NeuroScriptListener interface {
 	// EnterOptional_newlines is called when entering the optional_newlines production.
 	EnterOptional_newlines(c *Optional_newlinesContext)
 
+	// EnterFile_version_decl is called when entering the file_version_decl production.
+	EnterFile_version_decl(c *File_version_declContext)
+
 	// EnterProcedure_definition is called when entering the procedure_definition production.
 	EnterProcedure_definition(c *Procedure_definitionContext)
 
@@ -108,6 +111,9 @@ type NeuroScriptListener interface {
 
 	// ExitOptional_newlines is called when exiting the optional_newlines production.
 	ExitOptional_newlines(c *Optional_newlinesContext)
+
+	// ExitFile_version_decl is called when exiting the file_version_decl production.
+	ExitFile_version_decl(c *File_version_declContext)
 
 	// ExitProcedure_definition is called when exiting the procedure_definition production.
 	ExitProcedure_definition(c *Procedure_definitionContext)

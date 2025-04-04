@@ -6,7 +6,7 @@ COMMENT:
     ALGORITHM: Call TOOL.SearchSkills, return result.
 ENDCOMMENT
 
-CALL TOOL.SearchSkills({{query}})
+CALL TOOL.SearchSkills(query)
 RETURN __last_call_result
 
 END

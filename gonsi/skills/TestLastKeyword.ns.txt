@@ -1,6 +1,3 @@
-# NeuroScript Syntax: v1.1.0 (Explicit EVAL)
-# Test script to specifically debug the LAST keyword after a CALL
-
 DEFINE PROCEDURE TestLastKeyword()
 COMMENT:
     PURPOSE: Tests if the LAST keyword correctly captures and allows retrieval

@@ -1,4 +1,4 @@
-SPLAT PROCEDURE CommitChanges(commit_message, staged_files_csv)
+DEFINE PROCEDURE CommitChanges(commit_message, staged_files_csv)
 COMMENT:
     PURPOSE: Performs a Git commit with the provided message. Assumes relevant files have already been staged via TOOL.GitAdd.
     INPUTS:
@@ -20,17 +20,14 @@ COMMENT:
         CALL CommitChanges("Feat: Add new tool", "pkg/core/tools_new.go,pkg/core/tools_register.go,") => "Success"
 ENDCOMMENT
 
-# Step 2: Call Git Commit Tool
-CALL TOOL.GitCommit({{commit_message}})
+CALL TOOL.GitCommit(commit_message)
 SET commit_result = __last_call_result
 
-# Step 3 & 4: Check result and Return status (Simple check)
-IF {{commit_result}} == "OK" THEN
+IF commit_result == "OK" THEN
     RETURN "Success"
 ENDBLOCK
 
-# If not "OK", assume failure
-SET error_message = "Failure: Commit tool returned: " + {{commit_result}}
-RETURN {{error_message}}
+SET error_message = "Failure: Commit tool returned: " + commit_result
+RETURN error_message
 
 END

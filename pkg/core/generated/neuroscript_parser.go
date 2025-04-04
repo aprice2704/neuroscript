@@ -32,151 +32,158 @@ var NeuroScriptParserStaticData struct {
 func neuroscriptParserInit() {
 	staticData := &NeuroScriptParserStaticData
 	staticData.LiteralNames = []string{
-		"", "'DEFINE'", "'PROCEDURE'", "'END'", "'ENDBLOCK'", "'COMMENT:'",
-		"'ENDCOMMENT'", "'SET'", "'CALL'", "'RETURN'", "'IF'", "'THEN'", "'ELSE'",
-		"'WHILE'", "'DO'", "'FOR'", "'EACH'", "'IN'", "'TOOL'", "'LLM'", "'LAST'",
-		"'EVAL'", "'EMIT'", "'true'", "'false'", "", "", "", "'='", "'+'", "'('",
-		"')'", "','", "'['", "']'", "'{'", "'}'", "':'", "'.'", "'/'", "'{{'",
-		"'}}'", "'=='", "'!='", "'>'", "'<'", "'>='", "'<='",
+		"", "'FILE_VERSION'", "'DEFINE'", "'PROCEDURE'", "'END'", "'ENDBLOCK'",
+		"'COMMENT:'", "'ENDCOMMENT'", "'SET'", "'CALL'", "'RETURN'", "'IF'",
+		"'THEN'", "'ELSE'", "'WHILE'", "'DO'", "'FOR'", "'EACH'", "'IN'", "'TOOL'",
+		"'LLM'", "'LAST'", "'EVAL'", "'EMIT'", "'true'", "'false'", "", "",
+		"", "'='", "'+'", "'('", "')'", "','", "'['", "']'", "'{'", "'}'", "':'",
+		"'.'", "'/'", "'{{'", "'}}'", "'=='", "'!='", "'>'", "'<'", "'>='",
+		"'<='",
 	}
 	staticData.SymbolicNames = []string{
-		"", "KW_DEFINE", "KW_PROCEDURE", "KW_END", "KW_ENDBLOCK", "KW_COMMENT_START",
-		"KW_ENDCOMMENT", "KW_SET", "KW_CALL", "KW_RETURN", "KW_IF", "KW_THEN",
-		"KW_ELSE", "KW_WHILE", "KW_DO", "KW_FOR", "KW_EACH", "KW_IN", "KW_TOOL",
-		"KW_LLM", "KW_LAST", "KW_EVAL", "KW_EMIT", "KW_TRUE", "KW_FALSE", "COMMENT_BLOCK",
-		"NUMBER_LIT", "STRING_LIT", "ASSIGN", "PLUS", "LPAREN", "RPAREN", "COMMA",
-		"LBRACK", "RBRACK", "LBRACE", "RBRACE", "COLON", "DOT", "SLASH", "PLACEHOLDER_START",
-		"PLACEHOLDER_END", "EQ", "NEQ", "GT", "LT", "GTE", "LTE", "IDENTIFIER",
-		"LINE_COMMENT", "NEWLINE", "WS",
+		"", "KW_FILE_VERSION", "KW_DEFINE", "KW_PROCEDURE", "KW_END", "KW_ENDBLOCK",
+		"KW_COMMENT_START", "KW_ENDCOMMENT", "KW_SET", "KW_CALL", "KW_RETURN",
+		"KW_IF", "KW_THEN", "KW_ELSE", "KW_WHILE", "KW_DO", "KW_FOR", "KW_EACH",
+		"KW_IN", "KW_TOOL", "KW_LLM", "KW_LAST", "KW_EVAL", "KW_EMIT", "KW_TRUE",
+		"KW_FALSE", "COMMENT_BLOCK", "NUMBER_LIT", "STRING_LIT", "ASSIGN", "PLUS",
+		"LPAREN", "RPAREN", "COMMA", "LBRACK", "RBRACK", "LBRACE", "RBRACE",
+		"COLON", "DOT", "SLASH", "PLACEHOLDER_START", "PLACEHOLDER_END", "EQ",
+		"NEQ", "GT", "LT", "GTE", "LTE", "IDENTIFIER", "LINE_COMMENT", "HASH_BANG",
+		"NEWLINE", "WS",
 	}
 	staticData.RuleNames = []string{
-		"program", "optional_newlines", "procedure_definition", "param_list_opt",
-		"param_list", "statement_list", "body_line", "statement", "simple_statement",
-		"block_statement", "set_statement", "call_statement", "return_statement",
-		"emit_statement", "if_statement", "while_statement", "for_each_statement",
-		"call_target", "condition", "expression", "term", "primary", "placeholder",
-		"literal", "boolean_literal", "list_literal", "map_literal", "expression_list_opt",
-		"expression_list", "map_entry_list_opt", "map_entry_list", "map_entry",
+		"program", "optional_newlines", "file_version_decl", "procedure_definition",
+		"param_list_opt", "param_list", "statement_list", "body_line", "statement",
+		"simple_statement", "block_statement", "set_statement", "call_statement",
+		"return_statement", "emit_statement", "if_statement", "while_statement",
+		"for_each_statement", "call_target", "condition", "expression", "term",
+		"primary", "placeholder", "literal", "boolean_literal", "list_literal",
+		"map_literal", "expression_list_opt", "expression_list", "map_entry_list_opt",
+		"map_entry_list", "map_entry",
 	}
 	staticData.PredictionContextCache = antlr.NewPredictionContextCache()
 	staticData.serializedATN = []int32{
-		4, 1, 51, 276, 2, 0, 7, 0, 2, 1, 7, 1, 2, 2, 7, 2, 2, 3, 7, 3, 2, 4, 7,
+		4, 1, 53, 286, 2, 0, 7, 0, 2, 1, 7, 1, 2, 2, 7, 2, 2, 3, 7, 3, 2, 4, 7,
 		4, 2, 5, 7, 5, 2, 6, 7, 6, 2, 7, 7, 7, 2, 8, 7, 8, 2, 9, 7, 9, 2, 10, 7,
 		10, 2, 11, 7, 11, 2, 12, 7, 12, 2, 13, 7, 13, 2, 14, 7, 14, 2, 15, 7, 15,
 		2, 16, 7, 16, 2, 17, 7, 17, 2, 18, 7, 18, 2, 19, 7, 19, 2, 20, 7, 20, 2,
 		21, 7, 21, 2, 22, 7, 22, 2, 23, 7, 23, 2, 24, 7, 24, 2, 25, 7, 25, 2, 26,
 		7, 26, 2, 27, 7, 27, 2, 28, 7, 28, 2, 29, 7, 29, 2, 30, 7, 30, 2, 31, 7,
-		31, 1, 0, 1, 0, 5, 0, 67, 8, 0, 10, 0, 12, 0, 70, 9, 0, 1, 0, 1, 0, 1,
-		0, 1, 1, 5, 1, 76, 8, 1, 10, 1, 12, 1, 79, 9, 1, 1, 2, 1, 2, 1, 2, 1, 2,
-		1, 2, 1, 2, 1, 2, 1, 2, 3, 2, 89, 8, 2, 1, 2, 1, 2, 1, 2, 3, 2, 94, 8,
-		2, 1, 3, 3, 3, 97, 8, 3, 1, 4, 1, 4, 1, 4, 5, 4, 102, 8, 4, 10, 4, 12,
-		4, 105, 9, 4, 1, 5, 5, 5, 108, 8, 5, 10, 5, 12, 5, 111, 9, 5, 1, 6, 1,
-		6, 1, 6, 1, 6, 3, 6, 117, 8, 6, 1, 7, 1, 7, 3, 7, 121, 8, 7, 1, 8, 1, 8,
-		1, 8, 1, 8, 3, 8, 127, 8, 8, 1, 9, 1, 9, 1, 9, 3, 9, 132, 8, 9, 1, 10,
-		1, 10, 1, 10, 1, 10, 1, 10, 1, 11, 1, 11, 1, 11, 1, 11, 1, 11, 1, 11, 1,
-		12, 1, 12, 3, 12, 147, 8, 12, 1, 13, 1, 13, 1, 13, 1, 14, 1, 14, 1, 14,
-		1, 14, 1, 14, 1, 14, 1, 14, 1, 14, 3, 14, 160, 8, 14, 1, 14, 1, 14, 1,
-		15, 1, 15, 1, 15, 1, 15, 1, 15, 1, 15, 1, 15, 1, 16, 1, 16, 1, 16, 1, 16,
-		1, 16, 1, 16, 1, 16, 1, 16, 1, 16, 1, 16, 1, 17, 1, 17, 1, 17, 1, 17, 1,
-		17, 3, 17, 186, 8, 17, 1, 18, 1, 18, 1, 18, 3, 18, 191, 8, 18, 1, 19, 1,
-		19, 1, 19, 1, 19, 1, 19, 1, 19, 5, 19, 199, 8, 19, 10, 19, 12, 19, 202,
-		9, 19, 1, 20, 1, 20, 1, 20, 1, 20, 1, 20, 5, 20, 209, 8, 20, 10, 20, 12,
-		20, 212, 9, 20, 1, 21, 1, 21, 1, 21, 1, 21, 1, 21, 1, 21, 1, 21, 1, 21,
-		1, 21, 1, 21, 1, 21, 1, 21, 1, 21, 3, 21, 227, 8, 21, 1, 22, 1, 22, 1,
-		22, 1, 22, 1, 23, 1, 23, 1, 23, 1, 23, 1, 23, 3, 23, 238, 8, 23, 1, 24,
-		1, 24, 1, 25, 1, 25, 1, 25, 1, 25, 1, 26, 1, 26, 1, 26, 1, 26, 1, 27, 3,
-		27, 251, 8, 27, 1, 28, 1, 28, 1, 28, 5, 28, 256, 8, 28, 10, 28, 12, 28,
-		259, 9, 28, 1, 29, 3, 29, 262, 8, 29, 1, 30, 1, 30, 1, 30, 5, 30, 267,
-		8, 30, 10, 30, 12, 30, 270, 9, 30, 1, 31, 1, 31, 1, 31, 1, 31, 1, 31, 0,
-		0, 32, 0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34,
-		36, 38, 40, 42, 44, 46, 48, 50, 52, 54, 56, 58, 60, 62, 0, 3, 1, 0, 42,
-		47, 2, 0, 20, 20, 48, 48, 1, 0, 23, 24, 277, 0, 64, 1, 0, 0, 0, 2, 77,
-		1, 0, 0, 0, 4, 80, 1, 0, 0, 0, 6, 96, 1, 0, 0, 0, 8, 98, 1, 0, 0, 0, 10,
-		109, 1, 0, 0, 0, 12, 116, 1, 0, 0, 0, 14, 120, 1, 0, 0, 0, 16, 126, 1,
-		0, 0, 0, 18, 131, 1, 0, 0, 0, 20, 133, 1, 0, 0, 0, 22, 138, 1, 0, 0, 0,
-		24, 144, 1, 0, 0, 0, 26, 148, 1, 0, 0, 0, 28, 151, 1, 0, 0, 0, 30, 163,
-		1, 0, 0, 0, 32, 170, 1, 0, 0, 0, 34, 185, 1, 0, 0, 0, 36, 187, 1, 0, 0,
-		0, 38, 192, 1, 0, 0, 0, 40, 203, 1, 0, 0, 0, 42, 226, 1, 0, 0, 0, 44, 228,
-		1, 0, 0, 0, 46, 237, 1, 0, 0, 0, 48, 239, 1, 0, 0, 0, 50, 241, 1, 0, 0,
-		0, 52, 245, 1, 0, 0, 0, 54, 250, 1, 0, 0, 0, 56, 252, 1, 0, 0, 0, 58, 261,
-		1, 0, 0, 0, 60, 263, 1, 0, 0, 0, 62, 271, 1, 0, 0, 0, 64, 68, 3, 2, 1,
-		0, 65, 67, 3, 4, 2, 0, 66, 65, 1, 0, 0, 0, 67, 70, 1, 0, 0, 0, 68, 66,
-		1, 0, 0, 0, 68, 69, 1, 0, 0, 0, 69, 71, 1, 0, 0, 0, 70, 68, 1, 0, 0, 0,
-		71, 72, 3, 2, 1, 0, 72, 73, 5, 0, 0, 1, 73, 1, 1, 0, 0, 0, 74, 76, 5, 50,
-		0, 0, 75, 74, 1, 0, 0, 0, 76, 79, 1, 0, 0, 0, 77, 75, 1, 0, 0, 0, 77, 78,
-		1, 0, 0, 0, 78, 3, 1, 0, 0, 0, 79, 77, 1, 0, 0, 0, 80, 81, 5, 1, 0, 0,
-		81, 82, 5, 2, 0, 0, 82, 83, 5, 48, 0, 0, 83, 84, 5, 30, 0, 0, 84, 85, 3,
-		6, 3, 0, 85, 86, 5, 31, 0, 0, 86, 88, 5, 50, 0, 0, 87, 89, 5, 25, 0, 0,
-		88, 87, 1, 0, 0, 0, 88, 89, 1, 0, 0, 0, 89, 90, 1, 0, 0, 0, 90, 91, 3,
-		10, 5, 0, 91, 93, 5, 3, 0, 0, 92, 94, 5, 50, 0, 0, 93, 92, 1, 0, 0, 0,
-		93, 94, 1, 0, 0, 0, 94, 5, 1, 0, 0, 0, 95, 97, 3, 8, 4, 0, 96, 95, 1, 0,
-		0, 0, 96, 97, 1, 0, 0, 0, 97, 7, 1, 0, 0, 0, 98, 103, 5, 48, 0, 0, 99,
-		100, 5, 32, 0, 0, 100, 102, 5, 48, 0, 0, 101, 99, 1, 0, 0, 0, 102, 105,
-		1, 0, 0, 0, 103, 101, 1, 0, 0, 0, 103, 104, 1, 0, 0, 0, 104, 9, 1, 0, 0,
-		0, 105, 103, 1, 0, 0, 0, 106, 108, 3, 12, 6, 0, 107, 106, 1, 0, 0, 0, 108,
-		111, 1, 0, 0, 0, 109, 107, 1, 0, 0, 0, 109, 110, 1, 0, 0, 0, 110, 11, 1,
-		0, 0, 0, 111, 109, 1, 0, 0, 0, 112, 113, 3, 14, 7, 0, 113, 114, 5, 50,
-		0, 0, 114, 117, 1, 0, 0, 0, 115, 117, 5, 50, 0, 0, 116, 112, 1, 0, 0, 0,
-		116, 115, 1, 0, 0, 0, 117, 13, 1, 0, 0, 0, 118, 121, 3, 16, 8, 0, 119,
-		121, 3, 18, 9, 0, 120, 118, 1, 0, 0, 0, 120, 119, 1, 0, 0, 0, 121, 15,
-		1, 0, 0, 0, 122, 127, 3, 20, 10, 0, 123, 127, 3, 22, 11, 0, 124, 127, 3,
-		24, 12, 0, 125, 127, 3, 26, 13, 0, 126, 122, 1, 0, 0, 0, 126, 123, 1, 0,
-		0, 0, 126, 124, 1, 0, 0, 0, 126, 125, 1, 0, 0, 0, 127, 17, 1, 0, 0, 0,
-		128, 132, 3, 28, 14, 0, 129, 132, 3, 30, 15, 0, 130, 132, 3, 32, 16, 0,
-		131, 128, 1, 0, 0, 0, 131, 129, 1, 0, 0, 0, 131, 130, 1, 0, 0, 0, 132,
-		19, 1, 0, 0, 0, 133, 134, 5, 7, 0, 0, 134, 135, 5, 48, 0, 0, 135, 136,
-		5, 28, 0, 0, 136, 137, 3, 38, 19, 0, 137, 21, 1, 0, 0, 0, 138, 139, 5,
-		8, 0, 0, 139, 140, 3, 34, 17, 0, 140, 141, 5, 30, 0, 0, 141, 142, 3, 54,
-		27, 0, 142, 143, 5, 31, 0, 0, 143, 23, 1, 0, 0, 0, 144, 146, 5, 9, 0, 0,
-		145, 147, 3, 38, 19, 0, 146, 145, 1, 0, 0, 0, 146, 147, 1, 0, 0, 0, 147,
-		25, 1, 0, 0, 0, 148, 149, 5, 22, 0, 0, 149, 150, 3, 38, 19, 0, 150, 27,
-		1, 0, 0, 0, 151, 152, 5, 10, 0, 0, 152, 153, 3, 36, 18, 0, 153, 154, 5,
-		11, 0, 0, 154, 155, 5, 50, 0, 0, 155, 159, 3, 10, 5, 0, 156, 157, 5, 12,
-		0, 0, 157, 158, 5, 50, 0, 0, 158, 160, 3, 10, 5, 0, 159, 156, 1, 0, 0,
-		0, 159, 160, 1, 0, 0, 0, 160, 161, 1, 0, 0, 0, 161, 162, 5, 4, 0, 0, 162,
-		29, 1, 0, 0, 0, 163, 164, 5, 13, 0, 0, 164, 165, 3, 36, 18, 0, 165, 166,
-		5, 14, 0, 0, 166, 167, 5, 50, 0, 0, 167, 168, 3, 10, 5, 0, 168, 169, 5,
-		4, 0, 0, 169, 31, 1, 0, 0, 0, 170, 171, 5, 15, 0, 0, 171, 172, 5, 16, 0,
-		0, 172, 173, 5, 48, 0, 0, 173, 174, 5, 17, 0, 0, 174, 175, 3, 38, 19, 0,
-		175, 176, 5, 14, 0, 0, 176, 177, 5, 50, 0, 0, 177, 178, 3, 10, 5, 0, 178,
-		179, 5, 4, 0, 0, 179, 33, 1, 0, 0, 0, 180, 186, 5, 48, 0, 0, 181, 182,
-		5, 18, 0, 0, 182, 183, 5, 38, 0, 0, 183, 186, 5, 48, 0, 0, 184, 186, 5,
-		19, 0, 0, 185, 180, 1, 0, 0, 0, 185, 181, 1, 0, 0, 0, 185, 184, 1, 0, 0,
-		0, 186, 35, 1, 0, 0, 0, 187, 190, 3, 38, 19, 0, 188, 189, 7, 0, 0, 0, 189,
-		191, 3, 38, 19, 0, 190, 188, 1, 0, 0, 0, 190, 191, 1, 0, 0, 0, 191, 37,
-		1, 0, 0, 0, 192, 200, 3, 40, 20, 0, 193, 194, 3, 2, 1, 0, 194, 195, 5,
-		29, 0, 0, 195, 196, 3, 2, 1, 0, 196, 197, 3, 40, 20, 0, 197, 199, 1, 0,
-		0, 0, 198, 193, 1, 0, 0, 0, 199, 202, 1, 0, 0, 0, 200, 198, 1, 0, 0, 0,
-		200, 201, 1, 0, 0, 0, 201, 39, 1, 0, 0, 0, 202, 200, 1, 0, 0, 0, 203, 210,
-		3, 42, 21, 0, 204, 205, 5, 33, 0, 0, 205, 206, 3, 38, 19, 0, 206, 207,
-		5, 34, 0, 0, 207, 209, 1, 0, 0, 0, 208, 204, 1, 0, 0, 0, 209, 212, 1, 0,
-		0, 0, 210, 208, 1, 0, 0, 0, 210, 211, 1, 0, 0, 0, 211, 41, 1, 0, 0, 0,
-		212, 210, 1, 0, 0, 0, 213, 227, 3, 46, 23, 0, 214, 227, 3, 44, 22, 0, 215,
-		227, 5, 48, 0, 0, 216, 227, 5, 20, 0, 0, 217, 218, 5, 21, 0, 0, 218, 219,
-		5, 30, 0, 0, 219, 220, 3, 38, 19, 0, 220, 221, 5, 31, 0, 0, 221, 227, 1,
-		0, 0, 0, 222, 223, 5, 30, 0, 0, 223, 224, 3, 38, 19, 0, 224, 225, 5, 31,
-		0, 0, 225, 227, 1, 0, 0, 0, 226, 213, 1, 0, 0, 0, 226, 214, 1, 0, 0, 0,
-		226, 215, 1, 0, 0, 0, 226, 216, 1, 0, 0, 0, 226, 217, 1, 0, 0, 0, 226,
-		222, 1, 0, 0, 0, 227, 43, 1, 0, 0, 0, 228, 229, 5, 40, 0, 0, 229, 230,
-		7, 1, 0, 0, 230, 231, 5, 41, 0, 0, 231, 45, 1, 0, 0, 0, 232, 238, 5, 27,
-		0, 0, 233, 238, 5, 26, 0, 0, 234, 238, 3, 50, 25, 0, 235, 238, 3, 52, 26,
-		0, 236, 238, 3, 48, 24, 0, 237, 232, 1, 0, 0, 0, 237, 233, 1, 0, 0, 0,
-		237, 234, 1, 0, 0, 0, 237, 235, 1, 0, 0, 0, 237, 236, 1, 0, 0, 0, 238,
-		47, 1, 0, 0, 0, 239, 240, 7, 2, 0, 0, 240, 49, 1, 0, 0, 0, 241, 242, 5,
-		33, 0, 0, 242, 243, 3, 54, 27, 0, 243, 244, 5, 34, 0, 0, 244, 51, 1, 0,
-		0, 0, 245, 246, 5, 35, 0, 0, 246, 247, 3, 58, 29, 0, 247, 248, 5, 36, 0,
-		0, 248, 53, 1, 0, 0, 0, 249, 251, 3, 56, 28, 0, 250, 249, 1, 0, 0, 0, 250,
-		251, 1, 0, 0, 0, 251, 55, 1, 0, 0, 0, 252, 257, 3, 38, 19, 0, 253, 254,
-		5, 32, 0, 0, 254, 256, 3, 38, 19, 0, 255, 253, 1, 0, 0, 0, 256, 259, 1,
-		0, 0, 0, 257, 255, 1, 0, 0, 0, 257, 258, 1, 0, 0, 0, 258, 57, 1, 0, 0,
-		0, 259, 257, 1, 0, 0, 0, 260, 262, 3, 60, 30, 0, 261, 260, 1, 0, 0, 0,
-		261, 262, 1, 0, 0, 0, 262, 59, 1, 0, 0, 0, 263, 268, 3, 62, 31, 0, 264,
-		265, 5, 32, 0, 0, 265, 267, 3, 62, 31, 0, 266, 264, 1, 0, 0, 0, 267, 270,
-		1, 0, 0, 0, 268, 266, 1, 0, 0, 0, 268, 269, 1, 0, 0, 0, 269, 61, 1, 0,
-		0, 0, 270, 268, 1, 0, 0, 0, 271, 272, 5, 27, 0, 0, 272, 273, 5, 37, 0,
-		0, 273, 274, 3, 38, 19, 0, 274, 63, 1, 0, 0, 0, 23, 68, 77, 88, 93, 96,
-		103, 109, 116, 120, 126, 131, 146, 159, 185, 190, 200, 210, 226, 237, 250,
-		257, 261, 268,
+		31, 2, 32, 7, 32, 1, 0, 1, 0, 3, 0, 69, 8, 0, 1, 0, 1, 0, 5, 0, 73, 8,
+		0, 10, 0, 12, 0, 76, 9, 0, 1, 0, 1, 0, 1, 0, 1, 1, 5, 1, 82, 8, 1, 10,
+		1, 12, 1, 85, 9, 1, 1, 2, 1, 2, 1, 2, 1, 2, 1, 3, 1, 3, 1, 3, 1, 3, 1,
+		3, 1, 3, 1, 3, 1, 3, 3, 3, 99, 8, 3, 1, 3, 1, 3, 1, 3, 3, 3, 104, 8, 3,
+		1, 4, 3, 4, 107, 8, 4, 1, 5, 1, 5, 1, 5, 5, 5, 112, 8, 5, 10, 5, 12, 5,
+		115, 9, 5, 1, 6, 5, 6, 118, 8, 6, 10, 6, 12, 6, 121, 9, 6, 1, 7, 1, 7,
+		1, 7, 1, 7, 3, 7, 127, 8, 7, 1, 8, 1, 8, 3, 8, 131, 8, 8, 1, 9, 1, 9, 1,
+		9, 1, 9, 3, 9, 137, 8, 9, 1, 10, 1, 10, 1, 10, 3, 10, 142, 8, 10, 1, 11,
+		1, 11, 1, 11, 1, 11, 1, 11, 1, 12, 1, 12, 1, 12, 1, 12, 1, 12, 1, 12, 1,
+		13, 1, 13, 3, 13, 157, 8, 13, 1, 14, 1, 14, 1, 14, 1, 15, 1, 15, 1, 15,
+		1, 15, 1, 15, 1, 15, 1, 15, 1, 15, 3, 15, 170, 8, 15, 1, 15, 1, 15, 1,
+		16, 1, 16, 1, 16, 1, 16, 1, 16, 1, 16, 1, 16, 1, 17, 1, 17, 1, 17, 1, 17,
+		1, 17, 1, 17, 1, 17, 1, 17, 1, 17, 1, 17, 1, 18, 1, 18, 1, 18, 1, 18, 1,
+		18, 3, 18, 196, 8, 18, 1, 19, 1, 19, 1, 19, 3, 19, 201, 8, 19, 1, 20, 1,
+		20, 1, 20, 1, 20, 1, 20, 1, 20, 5, 20, 209, 8, 20, 10, 20, 12, 20, 212,
+		9, 20, 1, 21, 1, 21, 1, 21, 1, 21, 1, 21, 5, 21, 219, 8, 21, 10, 21, 12,
+		21, 222, 9, 21, 1, 22, 1, 22, 1, 22, 1, 22, 1, 22, 1, 22, 1, 22, 1, 22,
+		1, 22, 1, 22, 1, 22, 1, 22, 1, 22, 3, 22, 237, 8, 22, 1, 23, 1, 23, 1,
+		23, 1, 23, 1, 24, 1, 24, 1, 24, 1, 24, 1, 24, 3, 24, 248, 8, 24, 1, 25,
+		1, 25, 1, 26, 1, 26, 1, 26, 1, 26, 1, 27, 1, 27, 1, 27, 1, 27, 1, 28, 3,
+		28, 261, 8, 28, 1, 29, 1, 29, 1, 29, 5, 29, 266, 8, 29, 10, 29, 12, 29,
+		269, 9, 29, 1, 30, 3, 30, 272, 8, 30, 1, 31, 1, 31, 1, 31, 5, 31, 277,
+		8, 31, 10, 31, 12, 31, 280, 9, 31, 1, 32, 1, 32, 1, 32, 1, 32, 1, 32, 0,
+		0, 33, 0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34,
+		36, 38, 40, 42, 44, 46, 48, 50, 52, 54, 56, 58, 60, 62, 64, 0, 3, 1, 0,
+		43, 48, 2, 0, 21, 21, 49, 49, 1, 0, 24, 25, 287, 0, 66, 1, 0, 0, 0, 2,
+		83, 1, 0, 0, 0, 4, 86, 1, 0, 0, 0, 6, 90, 1, 0, 0, 0, 8, 106, 1, 0, 0,
+		0, 10, 108, 1, 0, 0, 0, 12, 119, 1, 0, 0, 0, 14, 126, 1, 0, 0, 0, 16, 130,
+		1, 0, 0, 0, 18, 136, 1, 0, 0, 0, 20, 141, 1, 0, 0, 0, 22, 143, 1, 0, 0,
+		0, 24, 148, 1, 0, 0, 0, 26, 154, 1, 0, 0, 0, 28, 158, 1, 0, 0, 0, 30, 161,
+		1, 0, 0, 0, 32, 173, 1, 0, 0, 0, 34, 180, 1, 0, 0, 0, 36, 195, 1, 0, 0,
+		0, 38, 197, 1, 0, 0, 0, 40, 202, 1, 0, 0, 0, 42, 213, 1, 0, 0, 0, 44, 236,
+		1, 0, 0, 0, 46, 238, 1, 0, 0, 0, 48, 247, 1, 0, 0, 0, 50, 249, 1, 0, 0,
+		0, 52, 251, 1, 0, 0, 0, 54, 255, 1, 0, 0, 0, 56, 260, 1, 0, 0, 0, 58, 262,
+		1, 0, 0, 0, 60, 271, 1, 0, 0, 0, 62, 273, 1, 0, 0, 0, 64, 281, 1, 0, 0,
+		0, 66, 68, 3, 2, 1, 0, 67, 69, 3, 4, 2, 0, 68, 67, 1, 0, 0, 0, 68, 69,
+		1, 0, 0, 0, 69, 70, 1, 0, 0, 0, 70, 74, 3, 2, 1, 0, 71, 73, 3, 6, 3, 0,
+		72, 71, 1, 0, 0, 0, 73, 76, 1, 0, 0, 0, 74, 72, 1, 0, 0, 0, 74, 75, 1,
+		0, 0, 0, 75, 77, 1, 0, 0, 0, 76, 74, 1, 0, 0, 0, 77, 78, 3, 2, 1, 0, 78,
+		79, 5, 0, 0, 1, 79, 1, 1, 0, 0, 0, 80, 82, 5, 52, 0, 0, 81, 80, 1, 0, 0,
+		0, 82, 85, 1, 0, 0, 0, 83, 81, 1, 0, 0, 0, 83, 84, 1, 0, 0, 0, 84, 3, 1,
+		0, 0, 0, 85, 83, 1, 0, 0, 0, 86, 87, 5, 1, 0, 0, 87, 88, 5, 28, 0, 0, 88,
+		89, 5, 52, 0, 0, 89, 5, 1, 0, 0, 0, 90, 91, 5, 2, 0, 0, 91, 92, 5, 3, 0,
+		0, 92, 93, 5, 49, 0, 0, 93, 94, 5, 31, 0, 0, 94, 95, 3, 8, 4, 0, 95, 96,
+		5, 32, 0, 0, 96, 98, 5, 52, 0, 0, 97, 99, 5, 26, 0, 0, 98, 97, 1, 0, 0,
+		0, 98, 99, 1, 0, 0, 0, 99, 100, 1, 0, 0, 0, 100, 101, 3, 12, 6, 0, 101,
+		103, 5, 4, 0, 0, 102, 104, 5, 52, 0, 0, 103, 102, 1, 0, 0, 0, 103, 104,
+		1, 0, 0, 0, 104, 7, 1, 0, 0, 0, 105, 107, 3, 10, 5, 0, 106, 105, 1, 0,
+		0, 0, 106, 107, 1, 0, 0, 0, 107, 9, 1, 0, 0, 0, 108, 113, 5, 49, 0, 0,
+		109, 110, 5, 33, 0, 0, 110, 112, 5, 49, 0, 0, 111, 109, 1, 0, 0, 0, 112,
+		115, 1, 0, 0, 0, 113, 111, 1, 0, 0, 0, 113, 114, 1, 0, 0, 0, 114, 11, 1,
+		0, 0, 0, 115, 113, 1, 0, 0, 0, 116, 118, 3, 14, 7, 0, 117, 116, 1, 0, 0,
+		0, 118, 121, 1, 0, 0, 0, 119, 117, 1, 0, 0, 0, 119, 120, 1, 0, 0, 0, 120,
+		13, 1, 0, 0, 0, 121, 119, 1, 0, 0, 0, 122, 123, 3, 16, 8, 0, 123, 124,
+		5, 52, 0, 0, 124, 127, 1, 0, 0, 0, 125, 127, 5, 52, 0, 0, 126, 122, 1,
+		0, 0, 0, 126, 125, 1, 0, 0, 0, 127, 15, 1, 0, 0, 0, 128, 131, 3, 18, 9,
+		0, 129, 131, 3, 20, 10, 0, 130, 128, 1, 0, 0, 0, 130, 129, 1, 0, 0, 0,
+		131, 17, 1, 0, 0, 0, 132, 137, 3, 22, 11, 0, 133, 137, 3, 24, 12, 0, 134,
+		137, 3, 26, 13, 0, 135, 137, 3, 28, 14, 0, 136, 132, 1, 0, 0, 0, 136, 133,
+		1, 0, 0, 0, 136, 134, 1, 0, 0, 0, 136, 135, 1, 0, 0, 0, 137, 19, 1, 0,
+		0, 0, 138, 142, 3, 30, 15, 0, 139, 142, 3, 32, 16, 0, 140, 142, 3, 34,
+		17, 0, 141, 138, 1, 0, 0, 0, 141, 139, 1, 0, 0, 0, 141, 140, 1, 0, 0, 0,
+		142, 21, 1, 0, 0, 0, 143, 144, 5, 8, 0, 0, 144, 145, 5, 49, 0, 0, 145,
+		146, 5, 29, 0, 0, 146, 147, 3, 40, 20, 0, 147, 23, 1, 0, 0, 0, 148, 149,
+		5, 9, 0, 0, 149, 150, 3, 36, 18, 0, 150, 151, 5, 31, 0, 0, 151, 152, 3,
+		56, 28, 0, 152, 153, 5, 32, 0, 0, 153, 25, 1, 0, 0, 0, 154, 156, 5, 10,
+		0, 0, 155, 157, 3, 40, 20, 0, 156, 155, 1, 0, 0, 0, 156, 157, 1, 0, 0,
+		0, 157, 27, 1, 0, 0, 0, 158, 159, 5, 23, 0, 0, 159, 160, 3, 40, 20, 0,
+		160, 29, 1, 0, 0, 0, 161, 162, 5, 11, 0, 0, 162, 163, 3, 38, 19, 0, 163,
+		164, 5, 12, 0, 0, 164, 165, 5, 52, 0, 0, 165, 169, 3, 12, 6, 0, 166, 167,
+		5, 13, 0, 0, 167, 168, 5, 52, 0, 0, 168, 170, 3, 12, 6, 0, 169, 166, 1,
+		0, 0, 0, 169, 170, 1, 0, 0, 0, 170, 171, 1, 0, 0, 0, 171, 172, 5, 5, 0,
+		0, 172, 31, 1, 0, 0, 0, 173, 174, 5, 14, 0, 0, 174, 175, 3, 38, 19, 0,
+		175, 176, 5, 15, 0, 0, 176, 177, 5, 52, 0, 0, 177, 178, 3, 12, 6, 0, 178,
+		179, 5, 5, 0, 0, 179, 33, 1, 0, 0, 0, 180, 181, 5, 16, 0, 0, 181, 182,
+		5, 17, 0, 0, 182, 183, 5, 49, 0, 0, 183, 184, 5, 18, 0, 0, 184, 185, 3,
+		40, 20, 0, 185, 186, 5, 15, 0, 0, 186, 187, 5, 52, 0, 0, 187, 188, 3, 12,
+		6, 0, 188, 189, 5, 5, 0, 0, 189, 35, 1, 0, 0, 0, 190, 196, 5, 49, 0, 0,
+		191, 192, 5, 19, 0, 0, 192, 193, 5, 39, 0, 0, 193, 196, 5, 49, 0, 0, 194,
+		196, 5, 20, 0, 0, 195, 190, 1, 0, 0, 0, 195, 191, 1, 0, 0, 0, 195, 194,
+		1, 0, 0, 0, 196, 37, 1, 0, 0, 0, 197, 200, 3, 40, 20, 0, 198, 199, 7, 0,
+		0, 0, 199, 201, 3, 40, 20, 0, 200, 198, 1, 0, 0, 0, 200, 201, 1, 0, 0,
+		0, 201, 39, 1, 0, 0, 0, 202, 210, 3, 42, 21, 0, 203, 204, 3, 2, 1, 0, 204,
+		205, 5, 30, 0, 0, 205, 206, 3, 2, 1, 0, 206, 207, 3, 42, 21, 0, 207, 209,
+		1, 0, 0, 0, 208, 203, 1, 0, 0, 0, 209, 212, 1, 0, 0, 0, 210, 208, 1, 0,
+		0, 0, 210, 211, 1, 0, 0, 0, 211, 41, 1, 0, 0, 0, 212, 210, 1, 0, 0, 0,
+		213, 220, 3, 44, 22, 0, 214, 215, 5, 34, 0, 0, 215, 216, 3, 40, 20, 0,
+		216, 217, 5, 35, 0, 0, 217, 219, 1, 0, 0, 0, 218, 214, 1, 0, 0, 0, 219,
+		222, 1, 0, 0, 0, 220, 218, 1, 0, 0, 0, 220, 221, 1, 0, 0, 0, 221, 43, 1,
+		0, 0, 0, 222, 220, 1, 0, 0, 0, 223, 237, 3, 48, 24, 0, 224, 237, 3, 46,
+		23, 0, 225, 237, 5, 49, 0, 0, 226, 237, 5, 21, 0, 0, 227, 228, 5, 22, 0,
+		0, 228, 229, 5, 31, 0, 0, 229, 230, 3, 40, 20, 0, 230, 231, 5, 32, 0, 0,
+		231, 237, 1, 0, 0, 0, 232, 233, 5, 31, 0, 0, 233, 234, 3, 40, 20, 0, 234,
+		235, 5, 32, 0, 0, 235, 237, 1, 0, 0, 0, 236, 223, 1, 0, 0, 0, 236, 224,
+		1, 0, 0, 0, 236, 225, 1, 0, 0, 0, 236, 226, 1, 0, 0, 0, 236, 227, 1, 0,
+		0, 0, 236, 232, 1, 0, 0, 0, 237, 45, 1, 0, 0, 0, 238, 239, 5, 41, 0, 0,
+		239, 240, 7, 1, 0, 0, 240, 241, 5, 42, 0, 0, 241, 47, 1, 0, 0, 0, 242,
+		248, 5, 28, 0, 0, 243, 248, 5, 27, 0, 0, 244, 248, 3, 52, 26, 0, 245, 248,
+		3, 54, 27, 0, 246, 248, 3, 50, 25, 0, 247, 242, 1, 0, 0, 0, 247, 243, 1,
+		0, 0, 0, 247, 244, 1, 0, 0, 0, 247, 245, 1, 0, 0, 0, 247, 246, 1, 0, 0,
+		0, 248, 49, 1, 0, 0, 0, 249, 250, 7, 2, 0, 0, 250, 51, 1, 0, 0, 0, 251,
+		252, 5, 34, 0, 0, 252, 253, 3, 56, 28, 0, 253, 254, 5, 35, 0, 0, 254, 53,
+		1, 0, 0, 0, 255, 256, 5, 36, 0, 0, 256, 257, 3, 60, 30, 0, 257, 258, 5,
+		37, 0, 0, 258, 55, 1, 0, 0, 0, 259, 261, 3, 58, 29, 0, 260, 259, 1, 0,
+		0, 0, 260, 261, 1, 0, 0, 0, 261, 57, 1, 0, 0, 0, 262, 267, 3, 40, 20, 0,
+		263, 264, 5, 33, 0, 0, 264, 266, 3, 40, 20, 0, 265, 263, 1, 0, 0, 0, 266,
+		269, 1, 0, 0, 0, 267, 265, 1, 0, 0, 0, 267, 268, 1, 0, 0, 0, 268, 59, 1,
+		0, 0, 0, 269, 267, 1, 0, 0, 0, 270, 272, 3, 62, 31, 0, 271, 270, 1, 0,
+		0, 0, 271, 272, 1, 0, 0, 0, 272, 61, 1, 0, 0, 0, 273, 278, 3, 64, 32, 0,
+		274, 275, 5, 33, 0, 0, 275, 277, 3, 64, 32, 0, 276, 274, 1, 0, 0, 0, 277,
+		280, 1, 0, 0, 0, 278, 276, 1, 0, 0, 0, 278, 279, 1, 0, 0, 0, 279, 63, 1,
+		0, 0, 0, 280, 278, 1, 0, 0, 0, 281, 282, 5, 28, 0, 0, 282, 283, 5, 38,
+		0, 0, 283, 284, 3, 40, 20, 0, 284, 65, 1, 0, 0, 0, 24, 68, 74, 83, 98,
+		103, 106, 113, 119, 126, 130, 136, 141, 156, 169, 195, 200, 210, 220, 236,
+		247, 260, 267, 271, 278,
 	}
 	deserializer := antlr.NewATNDeserializer(nil)
 	staticData.atn = deserializer.Deserialize(staticData.serializedATN)
@@ -215,93 +222,96 @@ func NewNeuroScriptParser(input antlr.TokenStream) *NeuroScriptParser {
 // NeuroScriptParser tokens.
 const (
 	NeuroScriptParserEOF               = antlr.TokenEOF
-	NeuroScriptParserKW_DEFINE         = 1
-	NeuroScriptParserKW_PROCEDURE      = 2
-	NeuroScriptParserKW_END            = 3
-	NeuroScriptParserKW_ENDBLOCK       = 4
-	NeuroScriptParserKW_COMMENT_START  = 5
-	NeuroScriptParserKW_ENDCOMMENT     = 6
-	NeuroScriptParserKW_SET            = 7
-	NeuroScriptParserKW_CALL           = 8
-	NeuroScriptParserKW_RETURN         = 9
-	NeuroScriptParserKW_IF             = 10
-	NeuroScriptParserKW_THEN           = 11
-	NeuroScriptParserKW_ELSE           = 12
-	NeuroScriptParserKW_WHILE          = 13
-	NeuroScriptParserKW_DO             = 14
-	NeuroScriptParserKW_FOR            = 15
-	NeuroScriptParserKW_EACH           = 16
-	NeuroScriptParserKW_IN             = 17
-	NeuroScriptParserKW_TOOL           = 18
-	NeuroScriptParserKW_LLM            = 19
-	NeuroScriptParserKW_LAST           = 20
-	NeuroScriptParserKW_EVAL           = 21
-	NeuroScriptParserKW_EMIT           = 22
-	NeuroScriptParserKW_TRUE           = 23
-	NeuroScriptParserKW_FALSE          = 24
-	NeuroScriptParserCOMMENT_BLOCK     = 25
-	NeuroScriptParserNUMBER_LIT        = 26
-	NeuroScriptParserSTRING_LIT        = 27
-	NeuroScriptParserASSIGN            = 28
-	NeuroScriptParserPLUS              = 29
-	NeuroScriptParserLPAREN            = 30
-	NeuroScriptParserRPAREN            = 31
-	NeuroScriptParserCOMMA             = 32
-	NeuroScriptParserLBRACK            = 33
-	NeuroScriptParserRBRACK            = 34
-	NeuroScriptParserLBRACE            = 35
-	NeuroScriptParserRBRACE            = 36
-	NeuroScriptParserCOLON             = 37
-	NeuroScriptParserDOT               = 38
-	NeuroScriptParserSLASH             = 39
-	NeuroScriptParserPLACEHOLDER_START = 40
-	NeuroScriptParserPLACEHOLDER_END   = 41
-	NeuroScriptParserEQ                = 42
-	NeuroScriptParserNEQ               = 43
-	NeuroScriptParserGT                = 44
-	NeuroScriptParserLT                = 45
-	NeuroScriptParserGTE               = 46
-	NeuroScriptParserLTE               = 47
-	NeuroScriptParserIDENTIFIER        = 48
-	NeuroScriptParserLINE_COMMENT      = 49
-	NeuroScriptParserNEWLINE           = 50
-	NeuroScriptParserWS                = 51
+	NeuroScriptParserKW_FILE_VERSION   = 1
+	NeuroScriptParserKW_DEFINE         = 2
+	NeuroScriptParserKW_PROCEDURE      = 3
+	NeuroScriptParserKW_END            = 4
+	NeuroScriptParserKW_ENDBLOCK       = 5
+	NeuroScriptParserKW_COMMENT_START  = 6
+	NeuroScriptParserKW_ENDCOMMENT     = 7
+	NeuroScriptParserKW_SET            = 8
+	NeuroScriptParserKW_CALL           = 9
+	NeuroScriptParserKW_RETURN         = 10
+	NeuroScriptParserKW_IF             = 11
+	NeuroScriptParserKW_THEN           = 12
+	NeuroScriptParserKW_ELSE           = 13
+	NeuroScriptParserKW_WHILE          = 14
+	NeuroScriptParserKW_DO             = 15
+	NeuroScriptParserKW_FOR            = 16
+	NeuroScriptParserKW_EACH           = 17
+	NeuroScriptParserKW_IN             = 18
+	NeuroScriptParserKW_TOOL           = 19
+	NeuroScriptParserKW_LLM            = 20
+	NeuroScriptParserKW_LAST           = 21
+	NeuroScriptParserKW_EVAL           = 22
+	NeuroScriptParserKW_EMIT           = 23
+	NeuroScriptParserKW_TRUE           = 24
+	NeuroScriptParserKW_FALSE          = 25
+	NeuroScriptParserCOMMENT_BLOCK     = 26
+	NeuroScriptParserNUMBER_LIT        = 27
+	NeuroScriptParserSTRING_LIT        = 28
+	NeuroScriptParserASSIGN            = 29
+	NeuroScriptParserPLUS              = 30
+	NeuroScriptParserLPAREN            = 31
+	NeuroScriptParserRPAREN            = 32
+	NeuroScriptParserCOMMA             = 33
+	NeuroScriptParserLBRACK            = 34
+	NeuroScriptParserRBRACK            = 35
+	NeuroScriptParserLBRACE            = 36
+	NeuroScriptParserRBRACE            = 37
+	NeuroScriptParserCOLON             = 38
+	NeuroScriptParserDOT               = 39
+	NeuroScriptParserSLASH             = 40
+	NeuroScriptParserPLACEHOLDER_START = 41
+	NeuroScriptParserPLACEHOLDER_END   = 42
+	NeuroScriptParserEQ                = 43
+	NeuroScriptParserNEQ               = 44
+	NeuroScriptParserGT                = 45
+	NeuroScriptParserLT                = 46
+	NeuroScriptParserGTE               = 47
+	NeuroScriptParserLTE               = 48
+	NeuroScriptParserIDENTIFIER        = 49
+	NeuroScriptParserLINE_COMMENT      = 50
+	NeuroScriptParserHASH_BANG         = 51
+	NeuroScriptParserNEWLINE           = 52
+	NeuroScriptParserWS                = 53
 )
 
 // NeuroScriptParser rules.
 const (
 	NeuroScriptParserRULE_program              = 0
 	NeuroScriptParserRULE_optional_newlines    = 1
-	NeuroScriptParserRULE_procedure_definition = 2
-	NeuroScriptParserRULE_param_list_opt       = 3
-	NeuroScriptParserRULE_param_list           = 4
-	NeuroScriptParserRULE_statement_list       = 5
-	NeuroScriptParserRULE_body_line            = 6
-	NeuroScriptParserRULE_statement            = 7
-	NeuroScriptParserRULE_simple_statement     = 8
-	NeuroScriptParserRULE_block_statement      = 9
-	NeuroScriptParserRULE_set_statement        = 10
-	NeuroScriptParserRULE_call_statement       = 11
-	NeuroScriptParserRULE_return_statement     = 12
-	NeuroScriptParserRULE_emit_statement       = 13
-	NeuroScriptParserRULE_if_statement         = 14
-	NeuroScriptParserRULE_while_statement      = 15
-	NeuroScriptParserRULE_for_each_statement   = 16
-	NeuroScriptParserRULE_call_target          = 17
-	NeuroScriptParserRULE_condition            = 18
-	NeuroScriptParserRULE_expression           = 19
-	NeuroScriptParserRULE_term                 = 20
-	NeuroScriptParserRULE_primary              = 21
-	NeuroScriptParserRULE_placeholder          = 22
-	NeuroScriptParserRULE_literal              = 23
-	NeuroScriptParserRULE_boolean_literal      = 24
-	NeuroScriptParserRULE_list_literal         = 25
-	NeuroScriptParserRULE_map_literal          = 26
-	NeuroScriptParserRULE_expression_list_opt  = 27
-	NeuroScriptParserRULE_expression_list      = 28
-	NeuroScriptParserRULE_map_entry_list_opt   = 29
-	NeuroScriptParserRULE_map_entry_list       = 30
-	NeuroScriptParserRULE_map_entry            = 31
+	NeuroScriptParserRULE_file_version_decl    = 2
+	NeuroScriptParserRULE_procedure_definition = 3
+	NeuroScriptParserRULE_param_list_opt       = 4
+	NeuroScriptParserRULE_param_list           = 5
+	NeuroScriptParserRULE_statement_list       = 6
+	NeuroScriptParserRULE_body_line            = 7
+	NeuroScriptParserRULE_statement            = 8
+	NeuroScriptParserRULE_simple_statement     = 9
+	NeuroScriptParserRULE_block_statement      = 10
+	NeuroScriptParserRULE_set_statement        = 11
+	NeuroScriptParserRULE_call_statement       = 12
+	NeuroScriptParserRULE_return_statement     = 13
+	NeuroScriptParserRULE_emit_statement       = 14
+	NeuroScriptParserRULE_if_statement         = 15
+	NeuroScriptParserRULE_while_statement      = 16
+	NeuroScriptParserRULE_for_each_statement   = 17
+	NeuroScriptParserRULE_call_target          = 18
+	NeuroScriptParserRULE_condition            = 19
+	NeuroScriptParserRULE_expression           = 20
+	NeuroScriptParserRULE_term                 = 21
+	NeuroScriptParserRULE_primary              = 22
+	NeuroScriptParserRULE_placeholder          = 23
+	NeuroScriptParserRULE_literal              = 24
+	NeuroScriptParserRULE_boolean_literal      = 25
+	NeuroScriptParserRULE_list_literal         = 26
+	NeuroScriptParserRULE_map_literal          = 27
+	NeuroScriptParserRULE_expression_list_opt  = 28
+	NeuroScriptParserRULE_expression_list      = 29
+	NeuroScriptParserRULE_map_entry_list_opt   = 30
+	NeuroScriptParserRULE_map_entry_list       = 31
+	NeuroScriptParserRULE_map_entry            = 32
 )
 
 // IProgramContext is an interface to support dynamic dispatch.
@@ -315,6 +325,7 @@ type IProgramContext interface {
 	AllOptional_newlines() []IOptional_newlinesContext
 	Optional_newlines(i int) IOptional_newlinesContext
 	EOF() antlr.TerminalNode
+	File_version_decl() IFile_version_declContext
 	AllProcedure_definition() []IProcedure_definitionContext
 	Procedure_definition(i int) IProcedure_definitionContext
 
@@ -399,6 +410,22 @@ func (s *ProgramContext) EOF() antlr.TerminalNode {
 	return s.GetToken(NeuroScriptParserEOF, 0)
 }
 
+func (s *ProgramContext) File_version_decl() IFile_version_declContext {
+	var t antlr.RuleContext
+	for _, ctx := range s.GetChildren() {
+		if _, ok := ctx.(IFile_version_declContext); ok {
+			t = ctx.(antlr.RuleContext)
+			break
+		}
+	}
+
+	if t == nil {
+		return nil
+	}
+
+	return t.(IFile_version_declContext)
+}
+
 func (s *ProgramContext) AllProcedure_definition() []IProcedure_definitionContext {
 	children := s.GetChildren()
 	len := 0
@@ -477,7 +504,7 @@ func (p *NeuroScriptParser) Program() (localctx IProgramContext) {
 
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(64)
+		p.SetState(66)
 		p.Optional_newlines()
 	}
 	p.SetState(68)
@@ -487,13 +514,31 @@ func (p *NeuroScriptParser) Program() (localctx IProgramContext) {
 	}
 	_la = p.GetTokenStream().LA(1)
 
+	if _la == NeuroScriptParserKW_FILE_VERSION {
+		{
+			p.SetState(67)
+			p.File_version_decl()
+		}
+
+	}
+	{
+		p.SetState(70)
+		p.Optional_newlines()
+	}
+	p.SetState(74)
+	p.GetErrorHandler().Sync(p)
+	if p.HasError() {
+		goto errorExit
+	}
+	_la = p.GetTokenStream().LA(1)
+
 	for _la == NeuroScriptParserKW_DEFINE {
 		{
-			p.SetState(65)
+			p.SetState(71)
 			p.Procedure_definition()
 		}
 
-		p.SetState(70)
+		p.SetState(76)
 		p.GetErrorHandler().Sync(p)
 		if p.HasError() {
 			goto errorExit
@@ -501,11 +546,11 @@ func (p *NeuroScriptParser) Program() (localctx IProgramContext) {
 		_la = p.GetTokenStream().LA(1)
 	}
 	{
-		p.SetState(71)
+		p.SetState(77)
 		p.Optional_newlines()
 	}
 	{
-		p.SetState(72)
+		p.SetState(78)
 		p.Match(NeuroScriptParserEOF)
 		if p.HasError() {
 			// Recognition error - abort rule
@@ -617,19 +662,19 @@ func (p *NeuroScriptParser) Optional_newlines() (localctx IOptional_newlinesCont
 	var _alt int
 
 	p.EnterOuterAlt(localctx, 1)
-	p.SetState(77)
+	p.SetState(83)
 	p.GetErrorHandler().Sync(p)
 	if p.HasError() {
 		goto errorExit
 	}
-	_alt = p.GetInterpreter().AdaptivePredict(p.BaseParser, p.GetTokenStream(), 1, p.GetParserRuleContext())
+	_alt = p.GetInterpreter().AdaptivePredict(p.BaseParser, p.GetTokenStream(), 2, p.GetParserRuleContext())
 	if p.HasError() {
 		goto errorExit
 	}
 	for _alt != 2 && _alt != antlr.ATNInvalidAltNumber {
 		if _alt == 1 {
 			{
-				p.SetState(74)
+				p.SetState(80)
 				p.Match(NeuroScriptParserNEWLINE)
 				if p.HasError() {
 					// Recognition error - abort rule
@@ -638,13 +683,145 @@ func (p *NeuroScriptParser) Optional_newlines() (localctx IOptional_newlinesCont
 			}
 
 		}
-		p.SetState(79)
+		p.SetState(85)
 		p.GetErrorHandler().Sync(p)
 		if p.HasError() {
 			goto errorExit
 		}
-		_alt = p.GetInterpreter().AdaptivePredict(p.BaseParser, p.GetTokenStream(), 1, p.GetParserRuleContext())
+		_alt = p.GetInterpreter().AdaptivePredict(p.BaseParser, p.GetTokenStream(), 2, p.GetParserRuleContext())
 		if p.HasError() {
+			goto errorExit
+		}
+	}
+
+errorExit:
+	if p.HasError() {
+		v := p.GetError()
+		localctx.SetException(v)
+		p.GetErrorHandler().ReportError(p, v)
+		p.GetErrorHandler().Recover(p, v)
+		p.SetError(nil)
+	}
+	p.ExitRule()
+	return localctx
+	goto errorExit // Trick to prevent compiler error if the label is not used
+}
+
+// IFile_version_declContext is an interface to support dynamic dispatch.
+type IFile_version_declContext interface {
+	antlr.ParserRuleContext
+
+	// GetParser returns the parser.
+	GetParser() antlr.Parser
+
+	// Getter signatures
+	KW_FILE_VERSION() antlr.TerminalNode
+	STRING_LIT() antlr.TerminalNode
+	NEWLINE() antlr.TerminalNode
+
+	// IsFile_version_declContext differentiates from other interfaces.
+	IsFile_version_declContext()
+}
+
+type File_version_declContext struct {
+	antlr.BaseParserRuleContext
+	parser antlr.Parser
+}
+
+func NewEmptyFile_version_declContext() *File_version_declContext {
+	var p = new(File_version_declContext)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
+	p.RuleIndex = NeuroScriptParserRULE_file_version_decl
+	return p
+}
+
+func InitEmptyFile_version_declContext(p *File_version_declContext) {
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
+	p.RuleIndex = NeuroScriptParserRULE_file_version_decl
+}
+
+func (*File_version_declContext) IsFile_version_declContext() {}
+
+func NewFile_version_declContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *File_version_declContext {
+	var p = new(File_version_declContext)
+
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, parent, invokingState)
+
+	p.parser = parser
+	p.RuleIndex = NeuroScriptParserRULE_file_version_decl
+
+	return p
+}
+
+func (s *File_version_declContext) GetParser() antlr.Parser { return s.parser }
+
+func (s *File_version_declContext) KW_FILE_VERSION() antlr.TerminalNode {
+	return s.GetToken(NeuroScriptParserKW_FILE_VERSION, 0)
+}
+
+func (s *File_version_declContext) STRING_LIT() antlr.TerminalNode {
+	return s.GetToken(NeuroScriptParserSTRING_LIT, 0)
+}
+
+func (s *File_version_declContext) NEWLINE() antlr.TerminalNode {
+	return s.GetToken(NeuroScriptParserNEWLINE, 0)
+}
+
+func (s *File_version_declContext) GetRuleContext() antlr.RuleContext {
+	return s
+}
+
+func (s *File_version_declContext) ToStringTree(ruleNames []string, recog antlr.Recognizer) string {
+	return antlr.TreesStringTree(s, ruleNames, recog)
+}
+
+func (s *File_version_declContext) EnterRule(listener antlr.ParseTreeListener) {
+	if listenerT, ok := listener.(NeuroScriptListener); ok {
+		listenerT.EnterFile_version_decl(s)
+	}
+}
+
+func (s *File_version_declContext) ExitRule(listener antlr.ParseTreeListener) {
+	if listenerT, ok := listener.(NeuroScriptListener); ok {
+		listenerT.ExitFile_version_decl(s)
+	}
+}
+
+func (s *File_version_declContext) Accept(visitor antlr.ParseTreeVisitor) interface{} {
+	switch t := visitor.(type) {
+	case NeuroScriptVisitor:
+		return t.VisitFile_version_decl(s)
+
+	default:
+		return t.VisitChildren(s)
+	}
+}
+
+func (p *NeuroScriptParser) File_version_decl() (localctx IFile_version_declContext) {
+	localctx = NewFile_version_declContext(p, p.GetParserRuleContext(), p.GetState())
+	p.EnterRule(localctx, 4, NeuroScriptParserRULE_file_version_decl)
+	p.EnterOuterAlt(localctx, 1)
+	{
+		p.SetState(86)
+		p.Match(NeuroScriptParserKW_FILE_VERSION)
+		if p.HasError() {
+			// Recognition error - abort rule
+			goto errorExit
+		}
+	}
+	{
+		p.SetState(87)
+		p.Match(NeuroScriptParserSTRING_LIT)
+		if p.HasError() {
+			// Recognition error - abort rule
+			goto errorExit
+		}
+	}
+	{
+		p.SetState(88)
+		p.Match(NeuroScriptParserNEWLINE)
+		if p.HasError() {
+			// Recognition error - abort rule
 			goto errorExit
 		}
 	}
@@ -818,12 +995,12 @@ func (s *Procedure_definitionContext) Accept(visitor antlr.ParseTreeVisitor) int
 
 func (p *NeuroScriptParser) Procedure_definition() (localctx IProcedure_definitionContext) {
 	localctx = NewProcedure_definitionContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 4, NeuroScriptParserRULE_procedure_definition)
+	p.EnterRule(localctx, 6, NeuroScriptParserRULE_procedure_definition)
 	var _la int
 
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(80)
+		p.SetState(90)
 		p.Match(NeuroScriptParserKW_DEFINE)
 		if p.HasError() {
 			// Recognition error - abort rule
@@ -831,7 +1008,7 @@ func (p *NeuroScriptParser) Procedure_definition() (localctx IProcedure_definiti
 		}
 	}
 	{
-		p.SetState(81)
+		p.SetState(91)
 		p.Match(NeuroScriptParserKW_PROCEDURE)
 		if p.HasError() {
 			// Recognition error - abort rule
@@ -839,7 +1016,7 @@ func (p *NeuroScriptParser) Procedure_definition() (localctx IProcedure_definiti
 		}
 	}
 	{
-		p.SetState(82)
+		p.SetState(92)
 		p.Match(NeuroScriptParserIDENTIFIER)
 		if p.HasError() {
 			// Recognition error - abort rule
@@ -847,7 +1024,7 @@ func (p *NeuroScriptParser) Procedure_definition() (localctx IProcedure_definiti
 		}
 	}
 	{
-		p.SetState(83)
+		p.SetState(93)
 		p.Match(NeuroScriptParserLPAREN)
 		if p.HasError() {
 			// Recognition error - abort rule
@@ -855,11 +1032,11 @@ func (p *NeuroScriptParser) Procedure_definition() (localctx IProcedure_definiti
 		}
 	}
 	{
-		p.SetState(84)
+		p.SetState(94)
 		p.Param_list_opt()
 	}
 	{
-		p.SetState(85)
+		p.SetState(95)
 		p.Match(NeuroScriptParserRPAREN)
 		if p.HasError() {
 			// Recognition error - abort rule
@@ -867,14 +1044,14 @@ func (p *NeuroScriptParser) Procedure_definition() (localctx IProcedure_definiti
 		}
 	}
 	{
-		p.SetState(86)
+		p.SetState(96)
 		p.Match(NeuroScriptParserNEWLINE)
 		if p.HasError() {
 			// Recognition error - abort rule
 			goto errorExit
 		}
 	}
-	p.SetState(88)
+	p.SetState(98)
 	p.GetErrorHandler().Sync(p)
 	if p.HasError() {
 		goto errorExit
@@ -883,7 +1060,7 @@ func (p *NeuroScriptParser) Procedure_definition() (localctx IProcedure_definiti
 
 	if _la == NeuroScriptParserCOMMENT_BLOCK {
 		{
-			p.SetState(87)
+			p.SetState(97)
 			p.Match(NeuroScriptParserCOMMENT_BLOCK)
 			if p.HasError() {
 				// Recognition error - abort rule
@@ -893,23 +1070,23 @@ func (p *NeuroScriptParser) Procedure_definition() (localctx IProcedure_definiti
 
 	}
 	{
-		p.SetState(90)
+		p.SetState(100)
 		p.Statement_list()
 	}
 	{
-		p.SetState(91)
+		p.SetState(101)
 		p.Match(NeuroScriptParserKW_END)
 		if p.HasError() {
 			// Recognition error - abort rule
 			goto errorExit
 		}
 	}
-	p.SetState(93)
+	p.SetState(103)
 	p.GetErrorHandler().Sync(p)
 
-	if p.GetInterpreter().AdaptivePredict(p.BaseParser, p.GetTokenStream(), 3, p.GetParserRuleContext()) == 1 {
+	if p.GetInterpreter().AdaptivePredict(p.BaseParser, p.GetTokenStream(), 4, p.GetParserRuleContext()) == 1 {
 		{
-			p.SetState(92)
+			p.SetState(102)
 			p.Match(NeuroScriptParserNEWLINE)
 			if p.HasError() {
 				// Recognition error - abort rule
@@ -1028,11 +1205,11 @@ func (s *Param_list_optContext) Accept(visitor antlr.ParseTreeVisitor) interface
 
 func (p *NeuroScriptParser) Param_list_opt() (localctx IParam_list_optContext) {
 	localctx = NewParam_list_optContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 6, NeuroScriptParserRULE_param_list_opt)
+	p.EnterRule(localctx, 8, NeuroScriptParserRULE_param_list_opt)
 	var _la int
 
 	p.EnterOuterAlt(localctx, 1)
-	p.SetState(96)
+	p.SetState(106)
 	p.GetErrorHandler().Sync(p)
 	if p.HasError() {
 		goto errorExit
@@ -1041,7 +1218,7 @@ func (p *NeuroScriptParser) Param_list_opt() (localctx IParam_list_optContext) {
 
 	if _la == NeuroScriptParserIDENTIFIER {
 		{
-			p.SetState(95)
+			p.SetState(105)
 			p.Param_list()
 		}
 
@@ -1157,19 +1334,19 @@ func (s *Param_listContext) Accept(visitor antlr.ParseTreeVisitor) interface{} {
 
 func (p *NeuroScriptParser) Param_list() (localctx IParam_listContext) {
 	localctx = NewParam_listContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 8, NeuroScriptParserRULE_param_list)
+	p.EnterRule(localctx, 10, NeuroScriptParserRULE_param_list)
 	var _la int
 
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(98)
+		p.SetState(108)
 		p.Match(NeuroScriptParserIDENTIFIER)
 		if p.HasError() {
 			// Recognition error - abort rule
 			goto errorExit
 		}
 	}
-	p.SetState(103)
+	p.SetState(113)
 	p.GetErrorHandler().Sync(p)
 	if p.HasError() {
 		goto errorExit
@@ -1178,7 +1355,7 @@ func (p *NeuroScriptParser) Param_list() (localctx IParam_listContext) {
 
 	for _la == NeuroScriptParserCOMMA {
 		{
-			p.SetState(99)
+			p.SetState(109)
 			p.Match(NeuroScriptParserCOMMA)
 			if p.HasError() {
 				// Recognition error - abort rule
@@ -1186,7 +1363,7 @@ func (p *NeuroScriptParser) Param_list() (localctx IParam_listContext) {
 			}
 		}
 		{
-			p.SetState(100)
+			p.SetState(110)
 			p.Match(NeuroScriptParserIDENTIFIER)
 			if p.HasError() {
 				// Recognition error - abort rule
@@ -1194,7 +1371,7 @@ func (p *NeuroScriptParser) Param_list() (localctx IParam_listContext) {
 			}
 		}
 
-		p.SetState(105)
+		p.SetState(115)
 		p.GetErrorHandler().Sync(p)
 		if p.HasError() {
 			goto errorExit
@@ -1335,24 +1512,24 @@ func (s *Statement_listContext) Accept(visitor antlr.ParseTreeVisitor) interface
 
 func (p *NeuroScriptParser) Statement_list() (localctx IStatement_listContext) {
 	localctx = NewStatement_listContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 10, NeuroScriptParserRULE_statement_list)
+	p.EnterRule(localctx, 12, NeuroScriptParserRULE_statement_list)
 	var _la int
 
 	p.EnterOuterAlt(localctx, 1)
-	p.SetState(109)
+	p.SetState(119)
 	p.GetErrorHandler().Sync(p)
 	if p.HasError() {
 		goto errorExit
 	}
 	_la = p.GetTokenStream().LA(1)
 
-	for (int64(_la) & ^0x3f) == 0 && ((int64(1)<<_la)&1125899911079808) != 0 {
+	for (int64(_la) & ^0x3f) == 0 && ((int64(1)<<_la)&4503599635844864) != 0 {
 		{
-			p.SetState(106)
+			p.SetState(116)
 			p.Body_line()
 		}
 
-		p.SetState(111)
+		p.SetState(121)
 		p.GetErrorHandler().Sync(p)
 		if p.HasError() {
 			goto errorExit
@@ -1472,8 +1649,8 @@ func (s *Body_lineContext) Accept(visitor antlr.ParseTreeVisitor) interface{} {
 
 func (p *NeuroScriptParser) Body_line() (localctx IBody_lineContext) {
 	localctx = NewBody_lineContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 12, NeuroScriptParserRULE_body_line)
-	p.SetState(116)
+	p.EnterRule(localctx, 14, NeuroScriptParserRULE_body_line)
+	p.SetState(126)
 	p.GetErrorHandler().Sync(p)
 	if p.HasError() {
 		goto errorExit
@@ -1483,11 +1660,11 @@ func (p *NeuroScriptParser) Body_line() (localctx IBody_lineContext) {
 	case NeuroScriptParserKW_SET, NeuroScriptParserKW_CALL, NeuroScriptParserKW_RETURN, NeuroScriptParserKW_IF, NeuroScriptParserKW_WHILE, NeuroScriptParserKW_FOR, NeuroScriptParserKW_EMIT:
 		p.EnterOuterAlt(localctx, 1)
 		{
-			p.SetState(112)
+			p.SetState(122)
 			p.Statement()
 		}
 		{
-			p.SetState(113)
+			p.SetState(123)
 			p.Match(NeuroScriptParserNEWLINE)
 			if p.HasError() {
 				// Recognition error - abort rule
@@ -1498,7 +1675,7 @@ func (p *NeuroScriptParser) Body_line() (localctx IBody_lineContext) {
 	case NeuroScriptParserNEWLINE:
 		p.EnterOuterAlt(localctx, 2)
 		{
-			p.SetState(115)
+			p.SetState(125)
 			p.Match(NeuroScriptParserNEWLINE)
 			if p.HasError() {
 				// Recognition error - abort rule
@@ -1635,8 +1812,8 @@ func (s *StatementContext) Accept(visitor antlr.ParseTreeVisitor) interface{} {
 
 func (p *NeuroScriptParser) Statement() (localctx IStatementContext) {
 	localctx = NewStatementContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 14, NeuroScriptParserRULE_statement)
-	p.SetState(120)
+	p.EnterRule(localctx, 16, NeuroScriptParserRULE_statement)
+	p.SetState(130)
 	p.GetErrorHandler().Sync(p)
 	if p.HasError() {
 		goto errorExit
@@ -1646,14 +1823,14 @@ func (p *NeuroScriptParser) Statement() (localctx IStatementContext) {
 	case NeuroScriptParserKW_SET, NeuroScriptParserKW_CALL, NeuroScriptParserKW_RETURN, NeuroScriptParserKW_EMIT:
 		p.EnterOuterAlt(localctx, 1)
 		{
-			p.SetState(118)
+			p.SetState(128)
 			p.Simple_statement()
 		}
 
 	case NeuroScriptParserKW_IF, NeuroScriptParserKW_WHILE, NeuroScriptParserKW_FOR:
 		p.EnterOuterAlt(localctx, 2)
 		{
-			p.SetState(119)
+			p.SetState(129)
 			p.Block_statement()
 		}
 
@@ -1820,8 +1997,8 @@ func (s *Simple_statementContext) Accept(visitor antlr.ParseTreeVisitor) interfa
 
 func (p *NeuroScriptParser) Simple_statement() (localctx ISimple_statementContext) {
 	localctx = NewSimple_statementContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 16, NeuroScriptParserRULE_simple_statement)
-	p.SetState(126)
+	p.EnterRule(localctx, 18, NeuroScriptParserRULE_simple_statement)
+	p.SetState(136)
 	p.GetErrorHandler().Sync(p)
 	if p.HasError() {
 		goto errorExit
@@ -1831,28 +2008,28 @@ func (p *NeuroScriptParser) Simple_statement() (localctx ISimple_statementContex
 	case NeuroScriptParserKW_SET:
 		p.EnterOuterAlt(localctx, 1)
 		{
-			p.SetState(122)
+			p.SetState(132)
 			p.Set_statement()
 		}
 
 	case NeuroScriptParserKW_CALL:
 		p.EnterOuterAlt(localctx, 2)
 		{
-			p.SetState(123)
+			p.SetState(133)
 			p.Call_statement()
 		}
 
 	case NeuroScriptParserKW_RETURN:
 		p.EnterOuterAlt(localctx, 3)
 		{
-			p.SetState(124)
+			p.SetState(134)
 			p.Return_statement()
 		}
 
 	case NeuroScriptParserKW_EMIT:
 		p.EnterOuterAlt(localctx, 4)
 		{
-			p.SetState(125)
+			p.SetState(135)
 			p.Emit_statement()
 		}
 
@@ -2002,8 +2179,8 @@ func (s *Block_statementContext) Accept(visitor antlr.ParseTreeVisitor) interfac
 
 func (p *NeuroScriptParser) Block_statement() (localctx IBlock_statementContext) {
 	localctx = NewBlock_statementContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 18, NeuroScriptParserRULE_block_statement)
-	p.SetState(131)
+	p.EnterRule(localctx, 20, NeuroScriptParserRULE_block_statement)
+	p.SetState(141)
 	p.GetErrorHandler().Sync(p)
 	if p.HasError() {
 		goto errorExit
@@ -2013,21 +2190,21 @@ func (p *NeuroScriptParser) Block_statement() (localctx IBlock_statementContext)
 	case NeuroScriptParserKW_IF:
 		p.EnterOuterAlt(localctx, 1)
 		{
-			p.SetState(128)
+			p.SetState(138)
 			p.If_statement()
 		}
 
 	case NeuroScriptParserKW_WHILE:
 		p.EnterOuterAlt(localctx, 2)
 		{
-			p.SetState(129)
+			p.SetState(139)
 			p.While_statement()
 		}
 
 	case NeuroScriptParserKW_FOR:
 		p.EnterOuterAlt(localctx, 3)
 		{
-			p.SetState(130)
+			p.SetState(140)
 			p.For_each_statement()
 		}
 
@@ -2158,10 +2335,10 @@ func (s *Set_statementContext) Accept(visitor antlr.ParseTreeVisitor) interface{
 
 func (p *NeuroScriptParser) Set_statement() (localctx ISet_statementContext) {
 	localctx = NewSet_statementContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 20, NeuroScriptParserRULE_set_statement)
+	p.EnterRule(localctx, 22, NeuroScriptParserRULE_set_statement)
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(133)
+		p.SetState(143)
 		p.Match(NeuroScriptParserKW_SET)
 		if p.HasError() {
 			// Recognition error - abort rule
@@ -2169,7 +2346,7 @@ func (p *NeuroScriptParser) Set_statement() (localctx ISet_statementContext) {
 		}
 	}
 	{
-		p.SetState(134)
+		p.SetState(144)
 		p.Match(NeuroScriptParserIDENTIFIER)
 		if p.HasError() {
 			// Recognition error - abort rule
@@ -2177,7 +2354,7 @@ func (p *NeuroScriptParser) Set_statement() (localctx ISet_statementContext) {
 		}
 	}
 	{
-		p.SetState(135)
+		p.SetState(145)
 		p.Match(NeuroScriptParserASSIGN)
 		if p.HasError() {
 			// Recognition error - abort rule
@@ -2185,7 +2362,7 @@ func (p *NeuroScriptParser) Set_statement() (localctx ISet_statementContext) {
 		}
 	}
 	{
-		p.SetState(136)
+		p.SetState(146)
 		p.Expression()
 	}
 
@@ -2328,10 +2505,10 @@ func (s *Call_statementContext) Accept(visitor antlr.ParseTreeVisitor) interface
 
 func (p *NeuroScriptParser) Call_statement() (localctx ICall_statementContext) {
 	localctx = NewCall_statementContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 22, NeuroScriptParserRULE_call_statement)
+	p.EnterRule(localctx, 24, NeuroScriptParserRULE_call_statement)
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(138)
+		p.SetState(148)
 		p.Match(NeuroScriptParserKW_CALL)
 		if p.HasError() {
 			// Recognition error - abort rule
@@ -2339,11 +2516,11 @@ func (p *NeuroScriptParser) Call_statement() (localctx ICall_statementContext) {
 		}
 	}
 	{
-		p.SetState(139)
+		p.SetState(149)
 		p.Call_target()
 	}
 	{
-		p.SetState(140)
+		p.SetState(150)
 		p.Match(NeuroScriptParserLPAREN)
 		if p.HasError() {
 			// Recognition error - abort rule
@@ -2351,11 +2528,11 @@ func (p *NeuroScriptParser) Call_statement() (localctx ICall_statementContext) {
 		}
 	}
 	{
-		p.SetState(141)
+		p.SetState(151)
 		p.Expression_list_opt()
 	}
 	{
-		p.SetState(142)
+		p.SetState(152)
 		p.Match(NeuroScriptParserRPAREN)
 		if p.HasError() {
 			// Recognition error - abort rule
@@ -2475,28 +2652,28 @@ func (s *Return_statementContext) Accept(visitor antlr.ParseTreeVisitor) interfa
 
 func (p *NeuroScriptParser) Return_statement() (localctx IReturn_statementContext) {
 	localctx = NewReturn_statementContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 24, NeuroScriptParserRULE_return_statement)
+	p.EnterRule(localctx, 26, NeuroScriptParserRULE_return_statement)
 	var _la int
 
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(144)
+		p.SetState(154)
 		p.Match(NeuroScriptParserKW_RETURN)
 		if p.HasError() {
 			// Recognition error - abort rule
 			goto errorExit
 		}
 	}
-	p.SetState(146)
+	p.SetState(156)
 	p.GetErrorHandler().Sync(p)
 	if p.HasError() {
 		goto errorExit
 	}
 	_la = p.GetTokenStream().LA(1)
 
-	if (int64(_la) & ^0x3f) == 0 && ((int64(1)<<_la)&282618741391360) != 0 {
+	if (int64(_la) & ^0x3f) == 0 && ((int64(1)<<_la)&565237482782720) != 0 {
 		{
-			p.SetState(145)
+			p.SetState(155)
 			p.Expression()
 		}
 
@@ -2614,10 +2791,10 @@ func (s *Emit_statementContext) Accept(visitor antlr.ParseTreeVisitor) interface
 
 func (p *NeuroScriptParser) Emit_statement() (localctx IEmit_statementContext) {
 	localctx = NewEmit_statementContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 26, NeuroScriptParserRULE_emit_statement)
+	p.EnterRule(localctx, 28, NeuroScriptParserRULE_emit_statement)
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(148)
+		p.SetState(158)
 		p.Match(NeuroScriptParserKW_EMIT)
 		if p.HasError() {
 			// Recognition error - abort rule
@@ -2625,7 +2802,7 @@ func (p *NeuroScriptParser) Emit_statement() (localctx IEmit_statementContext) {
 		}
 	}
 	{
-		p.SetState(149)
+		p.SetState(159)
 		p.Expression()
 	}
 
@@ -2831,12 +3008,12 @@ func (s *If_statementContext) Accept(visitor antlr.ParseTreeVisitor) interface{}
 
 func (p *NeuroScriptParser) If_statement() (localctx IIf_statementContext) {
 	localctx = NewIf_statementContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 28, NeuroScriptParserRULE_if_statement)
+	p.EnterRule(localctx, 30, NeuroScriptParserRULE_if_statement)
 	var _la int
 
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(151)
+		p.SetState(161)
 		p.Match(NeuroScriptParserKW_IF)
 		if p.HasError() {
 			// Recognition error - abort rule
@@ -2844,11 +3021,11 @@ func (p *NeuroScriptParser) If_statement() (localctx IIf_statementContext) {
 		}
 	}
 	{
-		p.SetState(152)
+		p.SetState(162)
 		p.Condition()
 	}
 	{
-		p.SetState(153)
+		p.SetState(163)
 		p.Match(NeuroScriptParserKW_THEN)
 		if p.HasError() {
 			// Recognition error - abort rule
@@ -2856,7 +3033,7 @@ func (p *NeuroScriptParser) If_statement() (localctx IIf_statementContext) {
 		}
 	}
 	{
-		p.SetState(154)
+		p.SetState(164)
 		p.Match(NeuroScriptParserNEWLINE)
 		if p.HasError() {
 			// Recognition error - abort rule
@@ -2864,13 +3041,13 @@ func (p *NeuroScriptParser) If_statement() (localctx IIf_statementContext) {
 		}
 	}
 	{
-		p.SetState(155)
+		p.SetState(165)
 
 		var _x = p.Statement_list()
 
 		localctx.(*If_statementContext).if_body = _x
 	}
-	p.SetState(159)
+	p.SetState(169)
 	p.GetErrorHandler().Sync(p)
 	if p.HasError() {
 		goto errorExit
@@ -2879,7 +3056,7 @@ func (p *NeuroScriptParser) If_statement() (localctx IIf_statementContext) {
 
 	if _la == NeuroScriptParserKW_ELSE {
 		{
-			p.SetState(156)
+			p.SetState(166)
 			p.Match(NeuroScriptParserKW_ELSE)
 			if p.HasError() {
 				// Recognition error - abort rule
@@ -2887,7 +3064,7 @@ func (p *NeuroScriptParser) If_statement() (localctx IIf_statementContext) {
 			}
 		}
 		{
-			p.SetState(157)
+			p.SetState(167)
 			p.Match(NeuroScriptParserNEWLINE)
 			if p.HasError() {
 				// Recognition error - abort rule
@@ -2895,7 +3072,7 @@ func (p *NeuroScriptParser) If_statement() (localctx IIf_statementContext) {
 			}
 		}
 		{
-			p.SetState(158)
+			p.SetState(168)
 
 			var _x = p.Statement_list()
 
@@ -2904,7 +3081,7 @@ func (p *NeuroScriptParser) If_statement() (localctx IIf_statementContext) {
 
 	}
 	{
-		p.SetState(161)
+		p.SetState(171)
 		p.Match(NeuroScriptParserKW_ENDBLOCK)
 		if p.HasError() {
 			// Recognition error - abort rule
@@ -3056,10 +3233,10 @@ func (s *While_statementContext) Accept(visitor antlr.ParseTreeVisitor) interfac
 
 func (p *NeuroScriptParser) While_statement() (localctx IWhile_statementContext) {
 	localctx = NewWhile_statementContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 30, NeuroScriptParserRULE_while_statement)
+	p.EnterRule(localctx, 32, NeuroScriptParserRULE_while_statement)
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(163)
+		p.SetState(173)
 		p.Match(NeuroScriptParserKW_WHILE)
 		if p.HasError() {
 			// Recognition error - abort rule
@@ -3067,11 +3244,11 @@ func (p *NeuroScriptParser) While_statement() (localctx IWhile_statementContext)
 		}
 	}
 	{
-		p.SetState(164)
+		p.SetState(174)
 		p.Condition()
 	}
 	{
-		p.SetState(165)
+		p.SetState(175)
 		p.Match(NeuroScriptParserKW_DO)
 		if p.HasError() {
 			// Recognition error - abort rule
@@ -3079,7 +3256,7 @@ func (p *NeuroScriptParser) While_statement() (localctx IWhile_statementContext)
 		}
 	}
 	{
-		p.SetState(166)
+		p.SetState(176)
 		p.Match(NeuroScriptParserNEWLINE)
 		if p.HasError() {
 			// Recognition error - abort rule
@@ -3087,11 +3264,11 @@ func (p *NeuroScriptParser) While_statement() (localctx IWhile_statementContext)
 		}
 	}
 	{
-		p.SetState(167)
+		p.SetState(177)
 		p.Statement_list()
 	}
 	{
-		p.SetState(168)
+		p.SetState(178)
 		p.Match(NeuroScriptParserKW_ENDBLOCK)
 		if p.HasError() {
 			// Recognition error - abort rule
@@ -3258,10 +3435,10 @@ func (s *For_each_statementContext) Accept(visitor antlr.ParseTreeVisitor) inter
 
 func (p *NeuroScriptParser) For_each_statement() (localctx IFor_each_statementContext) {
 	localctx = NewFor_each_statementContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 32, NeuroScriptParserRULE_for_each_statement)
+	p.EnterRule(localctx, 34, NeuroScriptParserRULE_for_each_statement)
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(170)
+		p.SetState(180)
 		p.Match(NeuroScriptParserKW_FOR)
 		if p.HasError() {
 			// Recognition error - abort rule
@@ -3269,7 +3446,7 @@ func (p *NeuroScriptParser) For_each_statement() (localctx IFor_each_statementCo
 		}
 	}
 	{
-		p.SetState(171)
+		p.SetState(181)
 		p.Match(NeuroScriptParserKW_EACH)
 		if p.HasError() {
 			// Recognition error - abort rule
@@ -3277,7 +3454,7 @@ func (p *NeuroScriptParser) For_each_statement() (localctx IFor_each_statementCo
 		}
 	}
 	{
-		p.SetState(172)
+		p.SetState(182)
 		p.Match(NeuroScriptParserIDENTIFIER)
 		if p.HasError() {
 			// Recognition error - abort rule
@@ -3285,7 +3462,7 @@ func (p *NeuroScriptParser) For_each_statement() (localctx IFor_each_statementCo
 		}
 	}
 	{
-		p.SetState(173)
+		p.SetState(183)
 		p.Match(NeuroScriptParserKW_IN)
 		if p.HasError() {
 			// Recognition error - abort rule
@@ -3293,11 +3470,11 @@ func (p *NeuroScriptParser) For_each_statement() (localctx IFor_each_statementCo
 		}
 	}
 	{
-		p.SetState(174)
+		p.SetState(184)
 		p.Expression()
 	}
 	{
-		p.SetState(175)
+		p.SetState(185)
 		p.Match(NeuroScriptParserKW_DO)
 		if p.HasError() {
 			// Recognition error - abort rule
@@ -3305,7 +3482,7 @@ func (p *NeuroScriptParser) For_each_statement() (localctx IFor_each_statementCo
 		}
 	}
 	{
-		p.SetState(176)
+		p.SetState(186)
 		p.Match(NeuroScriptParserNEWLINE)
 		if p.HasError() {
 			// Recognition error - abort rule
@@ -3313,11 +3490,11 @@ func (p *NeuroScriptParser) For_each_statement() (localctx IFor_each_statementCo
 		}
 	}
 	{
-		p.SetState(177)
+		p.SetState(187)
 		p.Statement_list()
 	}
 	{
-		p.SetState(178)
+		p.SetState(188)
 		p.Match(NeuroScriptParserKW_ENDBLOCK)
 		if p.HasError() {
 			// Recognition error - abort rule
@@ -3435,8 +3612,8 @@ func (s *Call_targetContext) Accept(visitor antlr.ParseTreeVisitor) interface{} 
 
 func (p *NeuroScriptParser) Call_target() (localctx ICall_targetContext) {
 	localctx = NewCall_targetContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 34, NeuroScriptParserRULE_call_target)
-	p.SetState(185)
+	p.EnterRule(localctx, 36, NeuroScriptParserRULE_call_target)
+	p.SetState(195)
 	p.GetErrorHandler().Sync(p)
 	if p.HasError() {
 		goto errorExit
@@ -3446,7 +3623,7 @@ func (p *NeuroScriptParser) Call_target() (localctx ICall_targetContext) {
 	case NeuroScriptParserIDENTIFIER:
 		p.EnterOuterAlt(localctx, 1)
 		{
-			p.SetState(180)
+			p.SetState(190)
 			p.Match(NeuroScriptParserIDENTIFIER)
 			if p.HasError() {
 				// Recognition error - abort rule
@@ -3457,7 +3634,7 @@ func (p *NeuroScriptParser) Call_target() (localctx ICall_targetContext) {
 	case NeuroScriptParserKW_TOOL:
 		p.EnterOuterAlt(localctx, 2)
 		{
-			p.SetState(181)
+			p.SetState(191)
 			p.Match(NeuroScriptParserKW_TOOL)
 			if p.HasError() {
 				// Recognition error - abort rule
@@ -3465,7 +3642,7 @@ func (p *NeuroScriptParser) Call_target() (localctx ICall_targetContext) {
 			}
 		}
 		{
-			p.SetState(182)
+			p.SetState(192)
 			p.Match(NeuroScriptParserDOT)
 			if p.HasError() {
 				// Recognition error - abort rule
@@ -3473,7 +3650,7 @@ func (p *NeuroScriptParser) Call_target() (localctx ICall_targetContext) {
 			}
 		}
 		{
-			p.SetState(183)
+			p.SetState(193)
 			p.Match(NeuroScriptParserIDENTIFIER)
 			if p.HasError() {
 				// Recognition error - abort rule
@@ -3484,7 +3661,7 @@ func (p *NeuroScriptParser) Call_target() (localctx ICall_targetContext) {
 	case NeuroScriptParserKW_LLM:
 		p.EnterOuterAlt(localctx, 3)
 		{
-			p.SetState(184)
+			p.SetState(194)
 			p.Match(NeuroScriptParserKW_LLM)
 			if p.HasError() {
 				// Recognition error - abort rule
@@ -3660,27 +3837,27 @@ func (s *ConditionContext) Accept(visitor antlr.ParseTreeVisitor) interface{} {
 
 func (p *NeuroScriptParser) Condition() (localctx IConditionContext) {
 	localctx = NewConditionContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 36, NeuroScriptParserRULE_condition)
+	p.EnterRule(localctx, 38, NeuroScriptParserRULE_condition)
 	var _la int
 
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(187)
+		p.SetState(197)
 		p.Expression()
 	}
-	p.SetState(190)
+	p.SetState(200)
 	p.GetErrorHandler().Sync(p)
 	if p.HasError() {
 		goto errorExit
 	}
 	_la = p.GetTokenStream().LA(1)
 
-	if (int64(_la) & ^0x3f) == 0 && ((int64(1)<<_la)&277076930199552) != 0 {
+	if (int64(_la) & ^0x3f) == 0 && ((int64(1)<<_la)&554153860399104) != 0 {
 		{
-			p.SetState(188)
+			p.SetState(198)
 			_la = p.GetTokenStream().LA(1)
 
-			if !((int64(_la) & ^0x3f) == 0 && ((int64(1)<<_la)&277076930199552) != 0) {
+			if !((int64(_la) & ^0x3f) == 0 && ((int64(1)<<_la)&554153860399104) != 0) {
 				p.GetErrorHandler().RecoverInline(p)
 			} else {
 				p.GetErrorHandler().ReportMatch(p)
@@ -3688,7 +3865,7 @@ func (p *NeuroScriptParser) Condition() (localctx IConditionContext) {
 			}
 		}
 		{
-			p.SetState(189)
+			p.SetState(199)
 			p.Expression()
 		}
 
@@ -3880,31 +4057,31 @@ func (s *ExpressionContext) Accept(visitor antlr.ParseTreeVisitor) interface{} {
 
 func (p *NeuroScriptParser) Expression() (localctx IExpressionContext) {
 	localctx = NewExpressionContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 38, NeuroScriptParserRULE_expression)
+	p.EnterRule(localctx, 40, NeuroScriptParserRULE_expression)
 	var _alt int
 
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(192)
+		p.SetState(202)
 		p.Term()
 	}
-	p.SetState(200)
+	p.SetState(210)
 	p.GetErrorHandler().Sync(p)
 	if p.HasError() {
 		goto errorExit
 	}
-	_alt = p.GetInterpreter().AdaptivePredict(p.BaseParser, p.GetTokenStream(), 15, p.GetParserRuleContext())
+	_alt = p.GetInterpreter().AdaptivePredict(p.BaseParser, p.GetTokenStream(), 16, p.GetParserRuleContext())
 	if p.HasError() {
 		goto errorExit
 	}
 	for _alt != 2 && _alt != antlr.ATNInvalidAltNumber {
 		if _alt == 1 {
 			{
-				p.SetState(193)
+				p.SetState(203)
 				p.Optional_newlines()
 			}
 			{
-				p.SetState(194)
+				p.SetState(204)
 				p.Match(NeuroScriptParserPLUS)
 				if p.HasError() {
 					// Recognition error - abort rule
@@ -3912,21 +4089,21 @@ func (p *NeuroScriptParser) Expression() (localctx IExpressionContext) {
 				}
 			}
 			{
-				p.SetState(195)
+				p.SetState(205)
 				p.Optional_newlines()
 			}
 			{
-				p.SetState(196)
+				p.SetState(206)
 				p.Term()
 			}
 
 		}
-		p.SetState(202)
+		p.SetState(212)
 		p.GetErrorHandler().Sync(p)
 		if p.HasError() {
 			goto errorExit
 		}
-		_alt = p.GetInterpreter().AdaptivePredict(p.BaseParser, p.GetTokenStream(), 15, p.GetParserRuleContext())
+		_alt = p.GetInterpreter().AdaptivePredict(p.BaseParser, p.GetTokenStream(), 16, p.GetParserRuleContext())
 		if p.HasError() {
 			goto errorExit
 		}
@@ -4102,15 +4279,15 @@ func (s *TermContext) Accept(visitor antlr.ParseTreeVisitor) interface{} {
 
 func (p *NeuroScriptParser) Term() (localctx ITermContext) {
 	localctx = NewTermContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 40, NeuroScriptParserRULE_term)
+	p.EnterRule(localctx, 42, NeuroScriptParserRULE_term)
 	var _la int
 
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(203)
+		p.SetState(213)
 		p.Primary()
 	}
-	p.SetState(210)
+	p.SetState(220)
 	p.GetErrorHandler().Sync(p)
 	if p.HasError() {
 		goto errorExit
@@ -4119,7 +4296,7 @@ func (p *NeuroScriptParser) Term() (localctx ITermContext) {
 
 	for _la == NeuroScriptParserLBRACK {
 		{
-			p.SetState(204)
+			p.SetState(214)
 			p.Match(NeuroScriptParserLBRACK)
 			if p.HasError() {
 				// Recognition error - abort rule
@@ -4127,11 +4304,11 @@ func (p *NeuroScriptParser) Term() (localctx ITermContext) {
 			}
 		}
 		{
-			p.SetState(205)
+			p.SetState(215)
 			p.Expression()
 		}
 		{
-			p.SetState(206)
+			p.SetState(216)
 			p.Match(NeuroScriptParserRBRACK)
 			if p.HasError() {
 				// Recognition error - abort rule
@@ -4139,7 +4316,7 @@ func (p *NeuroScriptParser) Term() (localctx ITermContext) {
 			}
 		}
 
-		p.SetState(212)
+		p.SetState(222)
 		p.GetErrorHandler().Sync(p)
 		if p.HasError() {
 			goto errorExit
@@ -4313,8 +4490,8 @@ func (s *PrimaryContext) Accept(visitor antlr.ParseTreeVisitor) interface{} {
 
 func (p *NeuroScriptParser) Primary() (localctx IPrimaryContext) {
 	localctx = NewPrimaryContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 42, NeuroScriptParserRULE_primary)
-	p.SetState(226)
+	p.EnterRule(localctx, 44, NeuroScriptParserRULE_primary)
+	p.SetState(236)
 	p.GetErrorHandler().Sync(p)
 	if p.HasError() {
 		goto errorExit
@@ -4324,21 +4501,21 @@ func (p *NeuroScriptParser) Primary() (localctx IPrimaryContext) {
 	case NeuroScriptParserKW_TRUE, NeuroScriptParserKW_FALSE, NeuroScriptParserNUMBER_LIT, NeuroScriptParserSTRING_LIT, NeuroScriptParserLBRACK, NeuroScriptParserLBRACE:
 		p.EnterOuterAlt(localctx, 1)
 		{
-			p.SetState(213)
+			p.SetState(223)
 			p.Literal()
 		}
 
 	case NeuroScriptParserPLACEHOLDER_START:
 		p.EnterOuterAlt(localctx, 2)
 		{
-			p.SetState(214)
+			p.SetState(224)
 			p.Placeholder()
 		}
 
 	case NeuroScriptParserIDENTIFIER:
 		p.EnterOuterAlt(localctx, 3)
 		{
-			p.SetState(215)
+			p.SetState(225)
 			p.Match(NeuroScriptParserIDENTIFIER)
 			if p.HasError() {
 				// Recognition error - abort rule
@@ -4349,7 +4526,7 @@ func (p *NeuroScriptParser) Primary() (localctx IPrimaryContext) {
 	case NeuroScriptParserKW_LAST:
 		p.EnterOuterAlt(localctx, 4)
 		{
-			p.SetState(216)
+			p.SetState(226)
 			p.Match(NeuroScriptParserKW_LAST)
 			if p.HasError() {
 				// Recognition error - abort rule
@@ -4360,7 +4537,7 @@ func (p *NeuroScriptParser) Primary() (localctx IPrimaryContext) {
 	case NeuroScriptParserKW_EVAL:
 		p.EnterOuterAlt(localctx, 5)
 		{
-			p.SetState(217)
+			p.SetState(227)
 			p.Match(NeuroScriptParserKW_EVAL)
 			if p.HasError() {
 				// Recognition error - abort rule
@@ -4368,7 +4545,7 @@ func (p *NeuroScriptParser) Primary() (localctx IPrimaryContext) {
 			}
 		}
 		{
-			p.SetState(218)
+			p.SetState(228)
 			p.Match(NeuroScriptParserLPAREN)
 			if p.HasError() {
 				// Recognition error - abort rule
@@ -4376,11 +4553,11 @@ func (p *NeuroScriptParser) Primary() (localctx IPrimaryContext) {
 			}
 		}
 		{
-			p.SetState(219)
+			p.SetState(229)
 			p.Expression()
 		}
 		{
-			p.SetState(220)
+			p.SetState(230)
 			p.Match(NeuroScriptParserRPAREN)
 			if p.HasError() {
 				// Recognition error - abort rule
@@ -4391,7 +4568,7 @@ func (p *NeuroScriptParser) Primary() (localctx IPrimaryContext) {
 	case NeuroScriptParserLPAREN:
 		p.EnterOuterAlt(localctx, 6)
 		{
-			p.SetState(222)
+			p.SetState(232)
 			p.Match(NeuroScriptParserLPAREN)
 			if p.HasError() {
 				// Recognition error - abort rule
@@ -4399,11 +4576,11 @@ func (p *NeuroScriptParser) Primary() (localctx IPrimaryContext) {
 			}
 		}
 		{
-			p.SetState(223)
+			p.SetState(233)
 			p.Expression()
 		}
 		{
-			p.SetState(224)
+			p.SetState(234)
 			p.Match(NeuroScriptParserRPAREN)
 			if p.HasError() {
 				// Recognition error - abort rule
@@ -4526,12 +4703,12 @@ func (s *PlaceholderContext) Accept(visitor antlr.ParseTreeVisitor) interface{} 
 
 func (p *NeuroScriptParser) Placeholder() (localctx IPlaceholderContext) {
 	localctx = NewPlaceholderContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 44, NeuroScriptParserRULE_placeholder)
+	p.EnterRule(localctx, 46, NeuroScriptParserRULE_placeholder)
 	var _la int
 
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(228)
+		p.SetState(238)
 		p.Match(NeuroScriptParserPLACEHOLDER_START)
 		if p.HasError() {
 			// Recognition error - abort rule
@@ -4539,7 +4716,7 @@ func (p *NeuroScriptParser) Placeholder() (localctx IPlaceholderContext) {
 		}
 	}
 	{
-		p.SetState(229)
+		p.SetState(239)
 		_la = p.GetTokenStream().LA(1)
 
 		if !(_la == NeuroScriptParserKW_LAST || _la == NeuroScriptParserIDENTIFIER) {
@@ -4550,7 +4727,7 @@ func (p *NeuroScriptParser) Placeholder() (localctx IPlaceholderContext) {
 		}
 	}
 	{
-		p.SetState(230)
+		p.SetState(240)
 		p.Match(NeuroScriptParserPLACEHOLDER_END)
 		if p.HasError() {
 			// Recognition error - abort rule
@@ -4709,8 +4886,8 @@ func (s *LiteralContext) Accept(visitor antlr.ParseTreeVisitor) interface{} {
 
 func (p *NeuroScriptParser) Literal() (localctx ILiteralContext) {
 	localctx = NewLiteralContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 46, NeuroScriptParserRULE_literal)
-	p.SetState(237)
+	p.EnterRule(localctx, 48, NeuroScriptParserRULE_literal)
+	p.SetState(247)
 	p.GetErrorHandler().Sync(p)
 	if p.HasError() {
 		goto errorExit
@@ -4720,7 +4897,7 @@ func (p *NeuroScriptParser) Literal() (localctx ILiteralContext) {
 	case NeuroScriptParserSTRING_LIT:
 		p.EnterOuterAlt(localctx, 1)
 		{
-			p.SetState(232)
+			p.SetState(242)
 			p.Match(NeuroScriptParserSTRING_LIT)
 			if p.HasError() {
 				// Recognition error - abort rule
@@ -4731,7 +4908,7 @@ func (p *NeuroScriptParser) Literal() (localctx ILiteralContext) {
 	case NeuroScriptParserNUMBER_LIT:
 		p.EnterOuterAlt(localctx, 2)
 		{
-			p.SetState(233)
+			p.SetState(243)
 			p.Match(NeuroScriptParserNUMBER_LIT)
 			if p.HasError() {
 				// Recognition error - abort rule
@@ -4742,21 +4919,21 @@ func (p *NeuroScriptParser) Literal() (localctx ILiteralContext) {
 	case NeuroScriptParserLBRACK:
 		p.EnterOuterAlt(localctx, 3)
 		{
-			p.SetState(234)
+			p.SetState(244)
 			p.List_literal()
 		}
 
 	case NeuroScriptParserLBRACE:
 		p.EnterOuterAlt(localctx, 4)
 		{
-			p.SetState(235)
+			p.SetState(245)
 			p.Map_literal()
 		}
 
 	case NeuroScriptParserKW_TRUE, NeuroScriptParserKW_FALSE:
 		p.EnterOuterAlt(localctx, 5)
 		{
-			p.SetState(236)
+			p.SetState(246)
 			p.Boolean_literal()
 		}
 
@@ -4865,12 +5042,12 @@ func (s *Boolean_literalContext) Accept(visitor antlr.ParseTreeVisitor) interfac
 
 func (p *NeuroScriptParser) Boolean_literal() (localctx IBoolean_literalContext) {
 	localctx = NewBoolean_literalContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 48, NeuroScriptParserRULE_boolean_literal)
+	p.EnterRule(localctx, 50, NeuroScriptParserRULE_boolean_literal)
 	var _la int
 
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(239)
+		p.SetState(249)
 		_la = p.GetTokenStream().LA(1)
 
 		if !(_la == NeuroScriptParserKW_TRUE || _la == NeuroScriptParserKW_FALSE) {
@@ -4998,10 +5175,10 @@ func (s *List_literalContext) Accept(visitor antlr.ParseTreeVisitor) interface{}
 
 func (p *NeuroScriptParser) List_literal() (localctx IList_literalContext) {
 	localctx = NewList_literalContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 50, NeuroScriptParserRULE_list_literal)
+	p.EnterRule(localctx, 52, NeuroScriptParserRULE_list_literal)
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(241)
+		p.SetState(251)
 		p.Match(NeuroScriptParserLBRACK)
 		if p.HasError() {
 			// Recognition error - abort rule
@@ -5009,11 +5186,11 @@ func (p *NeuroScriptParser) List_literal() (localctx IList_literalContext) {
 		}
 	}
 	{
-		p.SetState(242)
+		p.SetState(252)
 		p.Expression_list_opt()
 	}
 	{
-		p.SetState(243)
+		p.SetState(253)
 		p.Match(NeuroScriptParserRBRACK)
 		if p.HasError() {
 			// Recognition error - abort rule
@@ -5138,10 +5315,10 @@ func (s *Map_literalContext) Accept(visitor antlr.ParseTreeVisitor) interface{} 
 
 func (p *NeuroScriptParser) Map_literal() (localctx IMap_literalContext) {
 	localctx = NewMap_literalContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 52, NeuroScriptParserRULE_map_literal)
+	p.EnterRule(localctx, 54, NeuroScriptParserRULE_map_literal)
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(245)
+		p.SetState(255)
 		p.Match(NeuroScriptParserLBRACE)
 		if p.HasError() {
 			// Recognition error - abort rule
@@ -5149,11 +5326,11 @@ func (p *NeuroScriptParser) Map_literal() (localctx IMap_literalContext) {
 		}
 	}
 	{
-		p.SetState(246)
+		p.SetState(256)
 		p.Map_entry_list_opt()
 	}
 	{
-		p.SetState(247)
+		p.SetState(257)
 		p.Match(NeuroScriptParserRBRACE)
 		if p.HasError() {
 			// Recognition error - abort rule
@@ -5268,20 +5445,20 @@ func (s *Expression_list_optContext) Accept(visitor antlr.ParseTreeVisitor) inte
 
 func (p *NeuroScriptParser) Expression_list_opt() (localctx IExpression_list_optContext) {
 	localctx = NewExpression_list_optContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 54, NeuroScriptParserRULE_expression_list_opt)
+	p.EnterRule(localctx, 56, NeuroScriptParserRULE_expression_list_opt)
 	var _la int
 
 	p.EnterOuterAlt(localctx, 1)
-	p.SetState(250)
+	p.SetState(260)
 	p.GetErrorHandler().Sync(p)
 	if p.HasError() {
 		goto errorExit
 	}
 	_la = p.GetTokenStream().LA(1)
 
-	if (int64(_la) & ^0x3f) == 0 && ((int64(1)<<_la)&282618741391360) != 0 {
+	if (int64(_la) & ^0x3f) == 0 && ((int64(1)<<_la)&565237482782720) != 0 {
 		{
-			p.SetState(249)
+			p.SetState(259)
 			p.Expression_list()
 		}
 
@@ -5430,15 +5607,15 @@ func (s *Expression_listContext) Accept(visitor antlr.ParseTreeVisitor) interfac
 
 func (p *NeuroScriptParser) Expression_list() (localctx IExpression_listContext) {
 	localctx = NewExpression_listContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 56, NeuroScriptParserRULE_expression_list)
+	p.EnterRule(localctx, 58, NeuroScriptParserRULE_expression_list)
 	var _la int
 
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(252)
+		p.SetState(262)
 		p.Expression()
 	}
-	p.SetState(257)
+	p.SetState(267)
 	p.GetErrorHandler().Sync(p)
 	if p.HasError() {
 		goto errorExit
@@ -5447,7 +5624,7 @@ func (p *NeuroScriptParser) Expression_list() (localctx IExpression_listContext)
 
 	for _la == NeuroScriptParserCOMMA {
 		{
-			p.SetState(253)
+			p.SetState(263)
 			p.Match(NeuroScriptParserCOMMA)
 			if p.HasError() {
 				// Recognition error - abort rule
@@ -5455,11 +5632,11 @@ func (p *NeuroScriptParser) Expression_list() (localctx IExpression_listContext)
 			}
 		}
 		{
-			p.SetState(254)
+			p.SetState(264)
 			p.Expression()
 		}
 
-		p.SetState(259)
+		p.SetState(269)
 		p.GetErrorHandler().Sync(p)
 		if p.HasError() {
 			goto errorExit
@@ -5574,11 +5751,11 @@ func (s *Map_entry_list_optContext) Accept(visitor antlr.ParseTreeVisitor) inter
 
 func (p *NeuroScriptParser) Map_entry_list_opt() (localctx IMap_entry_list_optContext) {
 	localctx = NewMap_entry_list_optContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 58, NeuroScriptParserRULE_map_entry_list_opt)
+	p.EnterRule(localctx, 60, NeuroScriptParserRULE_map_entry_list_opt)
 	var _la int
 
 	p.EnterOuterAlt(localctx, 1)
-	p.SetState(261)
+	p.SetState(271)
 	p.GetErrorHandler().Sync(p)
 	if p.HasError() {
 		goto errorExit
@@ -5587,7 +5764,7 @@ func (p *NeuroScriptParser) Map_entry_list_opt() (localctx IMap_entry_list_optCo
 
 	if _la == NeuroScriptParserSTRING_LIT {
 		{
-			p.SetState(260)
+			p.SetState(270)
 			p.Map_entry_list()
 		}
 
@@ -5736,15 +5913,15 @@ func (s *Map_entry_listContext) Accept(visitor antlr.ParseTreeVisitor) interface
 
 func (p *NeuroScriptParser) Map_entry_list() (localctx IMap_entry_listContext) {
 	localctx = NewMap_entry_listContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 60, NeuroScriptParserRULE_map_entry_list)
+	p.EnterRule(localctx, 62, NeuroScriptParserRULE_map_entry_list)
 	var _la int
 
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(263)
+		p.SetState(273)
 		p.Map_entry()
 	}
-	p.SetState(268)
+	p.SetState(278)
 	p.GetErrorHandler().Sync(p)
 	if p.HasError() {
 		goto errorExit
@@ -5753,7 +5930,7 @@ func (p *NeuroScriptParser) Map_entry_list() (localctx IMap_entry_listContext) {
 
 	for _la == NeuroScriptParserCOMMA {
 		{
-			p.SetState(264)
+			p.SetState(274)
 			p.Match(NeuroScriptParserCOMMA)
 			if p.HasError() {
 				// Recognition error - abort rule
@@ -5761,11 +5938,11 @@ func (p *NeuroScriptParser) Map_entry_list() (localctx IMap_entry_listContext) {
 			}
 		}
 		{
-			p.SetState(265)
+			p.SetState(275)
 			p.Map_entry()
 		}
 
-		p.SetState(270)
+		p.SetState(280)
 		p.GetErrorHandler().Sync(p)
 		if p.HasError() {
 			goto errorExit
@@ -5890,10 +6067,10 @@ func (s *Map_entryContext) Accept(visitor antlr.ParseTreeVisitor) interface{} {
 
 func (p *NeuroScriptParser) Map_entry() (localctx IMap_entryContext) {
 	localctx = NewMap_entryContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 62, NeuroScriptParserRULE_map_entry)
+	p.EnterRule(localctx, 64, NeuroScriptParserRULE_map_entry)
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(271)
+		p.SetState(281)
 		p.Match(NeuroScriptParserSTRING_LIT)
 		if p.HasError() {
 			// Recognition error - abort rule
@@ -5901,7 +6078,7 @@ func (p *NeuroScriptParser) Map_entry() (localctx IMap_entryContext) {
 		}
 	}
 	{
-		p.SetState(272)
+		p.SetState(282)
 		p.Match(NeuroScriptParserCOLON)
 		if p.HasError() {
 			// Recognition error - abort rule
@@ -5909,7 +6086,7 @@ func (p *NeuroScriptParser) Map_entry() (localctx IMap_entryContext) {
 		}
 	}
 	{
-		p.SetState(273)
+		p.SetState(283)
 		p.Expression()
 	}
 

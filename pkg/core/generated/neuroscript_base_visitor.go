@@ -15,6 +15,10 @@ func (v *BaseNeuroScriptVisitor) VisitOptional_newlines(ctx *Optional_newlinesCo
 	return v.VisitChildren(ctx)
 }
 
+func (v *BaseNeuroScriptVisitor) VisitFile_version_decl(ctx *File_version_declContext) interface{} {
+	return v.VisitChildren(ctx)
+}
+
 func (v *BaseNeuroScriptVisitor) VisitProcedure_definition(ctx *Procedure_definitionContext) interface{} {
 	return v.VisitChildren(ctx)
 }

@@ -58,7 +58,10 @@ Goal: Reach the "bootstrapping" point where NeuroScript, executed by an LLM or g
 [ ] NeuroData - graph
 [ ] NeuroData - table
 [ ] NeuroData - form
-[ ] Move version into docstring block in fn fixed format
+[ ] Move version into docstring block in fn fixed format -- lang version
+[ ] Also add FILE_VERSION
+[ ] TOOL.NeuroScriptCheckSyntax(content)
+[ ] nsfmt
 
 ## C. Found work and things to go back to
 

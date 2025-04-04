@@ -1,5 +1,3 @@
-# Diagnostic Script: Test toolExecuteCommand Failure Capture
-
 DEFINE PROCEDURE TestExecFail()
 COMMENT:
     PURPOSE: Tests if TOOL.ExecuteCommand correctly captures exit code and stderr for a known failing command.
@@ -10,16 +8,15 @@ ENDCOMMENT
 
 EMIT "--- Testing ExecuteCommand with guaranteed failure ---"
 
-# Use a command that should fail and print to stderr
 SET command = "ls"
-SET args = ["non_existent_file_asdfjkl"] # List containing one argument
+SET args = ["non_existent_file_asdfjkl"]
 
-CALL TOOL.ExecuteCommand({{command}}, {{args}})
-SET exec_result = __last_call_result
+CALL TOOL.ExecuteCommand(command, args)
+SET exec_result = LAST
 
 EMIT "--- ExecuteCommand Result Map ---"
-EMIT {{exec_result}}
+EMIT exec_result
 
-RETURN {{exec_result}}
+RETURN exec_result
 
 END
