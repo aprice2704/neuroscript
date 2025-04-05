@@ -53,34 +53,25 @@ Not really, but I haven't seen this formulated in this way yet.
   - manages interaction with the git repo and keeps the vector index up to date
   - executes ns than it can do by itself
 
+---------------
 
-
-Please review the enclosed codebase, pay special attention to the .md documentation files to understand the intent. We have been working together on this project over many sessions.
-
-Here I what I would like to do next:
-
-Tackling features from the development checklist.md [cite: uploaded:neuroscript/development checklist.md] that move us towards:
-
-Our short-term goal should be to reach the point where I can 
-   - ask (via gonsi) for a code update,
-   - gonsi will ask an LLM (you hopefully) for the appropriate changes, then 
-   - apply the updates to its actual source code or ns,
-   - run the compiler to check for errors and fix them if required, 
-   - add and run unit tests to check for fails, and fix those if required, then
-   - run (after perhaps composing) an example ns to test the new feature, and fix if required
+Please review the enclosed codebase, pay special attention to the .md documentation files in docs to understand the intent. We have been working together on this project over many sessions.
 
 For today, please always provide full files, not fragments
+
 If any code file is bigger than 300 please split it logically, you don't need to ask, just do it
-Please gather helper functions in a shared file appropriately namespaced, e.g. tools_helpers.go 
+
+When providing markdown, please provide as raw Markdown in a code block to avoid problems with multiple contained code blocks in the web ui.
+
+Please gather helper functions in a shared file appropriately namespaced, e.g. tools_helpers.go 
 
 Beware of trying to fix problems with mutiple factors by "try it and see"; when there are several factors this can result in churn without progress; instead reduce the unknowns.
 
 It is perfectly fine to ask to create small test programs to clear up uncertainties, especially to reduce multi-factor problems to single ones.
 
-You will need the neuroscript folder. Tell me if not yet provided.
+You will need the neuroscript folder. Tell me if not yet provided.If you don't have the NeuroScript.g4 file, please ask me to provide the text right away.
 
-If you don't have the NeuroScript.g4 file, please ask me to provide the text right away.
+Here I what I would like to do next:
 
-Immediate goals: have gonsi able to update ns files to latest syntax, NeuroData
+Tackling features from the development checklist.md [cite: uploaded:neuroscript/development checklist.md] that move us towards using a ns to maintain the NS project (rebuilding docs, updating ns syntax etc.)
 
-We are currently trying to fix TestLastKeyword.ns.txt then UpdateNsSyntax.ns.txt

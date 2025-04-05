@@ -1,6 +1,6 @@
-# NeuroScript: A Pseudocode Framework for AI Reasoning
+# NeuroScript: A script for humans, AIs and computers
 
-Version: 2025-04-03 (Reflects G4, EVAL/LAST, Versioning)
+Version: 0.1.0
 
 NeuroScript is a structured, human-readable language that provides a *procedural scaffolding* for large language models (LLMs). It is designed to store, discover, and reuse **"skills"** (procedures) with clear docstrings and robust metadata, enabling AI systems to build up a library of **reusable, well-documented knowledge**.
 
