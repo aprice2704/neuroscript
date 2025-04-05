@@ -2,12 +2,14 @@
 package core
 
 import (
+	"fmt" // <<< Added fmt import
 	"strings"
 	"unicode/utf8"
 )
 
 // registerStringTools adds string manipulation tools to the registry.
 func registerStringTools(registry *ToolRegistry) {
+	// ... (other tool registrations remain the same) ...
 	registry.RegisterTool(ToolImplementation{
 		Spec: ToolSpec{Name: "StringLength", Description: "Returns the number of UTF-8 characters (runes) in a string.", Args: []ArgSpec{{Name: "input", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeInt},
 		Func: toolStringLength,
@@ -36,10 +38,23 @@ func registerStringTools(registry *ToolRegistry) {
 		Spec: ToolSpec{Name: "SplitWords", Description: "Splits a string into words based on whitespace.", Args: []ArgSpec{{Name: "input", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeSliceString},
 		Func: toolSplitWords,
 	})
+
+	// *** MODIFIED JoinStrings Spec ***
 	registry.RegisterTool(ToolImplementation{
-		Spec: ToolSpec{Name: "JoinStrings", Description: "Joins a slice of strings with a separator.", Args: []ArgSpec{{Name: "input_slice", Type: ArgTypeSliceString, Required: true}, {Name: "separator", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeString},
-		Func: toolJoinStrings,
+		Spec: ToolSpec{
+			Name:        "JoinStrings",
+			Description: "Joins elements of a list (converting each to string) with a separator.",
+			Args: []ArgSpec{
+				// Changed expected type to SliceAny
+				{Name: "input_slice", Type: ArgTypeSliceAny, Required: true, Description: "List of items to join."},
+				{Name: "separator", Type: ArgTypeString, Required: true, Description: "String to place between elements."},
+			},
+			ReturnType: ArgTypeString,
+		},
+		Func: toolJoinStrings, // Use the updated function below
 	})
+	// *** END MODIFICATION ***
+
 	registry.RegisterTool(ToolImplementation{
 		Spec: ToolSpec{Name: "ReplaceAll", Description: "Replaces all occurrences of a substring with another.", Args: []ArgSpec{{Name: "input", Type: ArgTypeString, Required: true}, {Name: "old", Type: ArgTypeString, Required: true}, {Name: "new", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeString},
 		Func: toolReplaceAll,
@@ -60,36 +75,30 @@ func registerStringTools(registry *ToolRegistry) {
 
 // --- String Manipulation Tools (Matching ToolFunc Signature) ---
 
+// ... (toolStringLength, toolSubstring, etc. remain the same) ...
 func toolStringLength(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	// Validation handled by ValidateAndConvertArgs
 	inputStr := args[0].(string)
 	length := utf8.RuneCountInString(inputStr)
 	return int64(length), nil
 }
 
 func toolSubstring(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	// Validation handled by ValidateAndConvertArgs
 	inputStr := args[0].(string)
-	startIndex := args[1].(int64) // Expect int64 after validation
-	endIndex := args[2].(int64)   // Expect int64 after validation
-
+	startIndex := args[1].(int64)
+	endIndex := args[2].(int64)
 	runes := []rune(inputStr)
 	strLen := len(runes)
 	start := int(startIndex)
 	end := int(endIndex)
-
-	// Basic bounds clamping for robustness
 	if start < 0 {
 		start = 0
 	}
 	if end > strLen {
 		end = strLen
 	}
-	// If start is out of bounds or start >= end, return empty string
 	if start >= strLen || start >= end {
 		return "", nil
 	}
-
 	return string(runes[start:end]), nil
 }
 
@@ -111,7 +120,6 @@ func toolTrimSpace(interpreter *Interpreter, args []interface{}) (interface{}, e
 func toolSplitString(interpreter *Interpreter, args []interface{}) (interface{}, error) {
 	inputStr := args[0].(string)
 	delimiter := args[1].(string)
-	// Return as []string which is handled by ArgTypeSliceString validation/conversion
 	return strings.Split(inputStr, delimiter), nil
 }
 
@@ -120,13 +128,38 @@ func toolSplitWords(interpreter *Interpreter, args []interface{}) (interface{}, 
 	return strings.Fields(inputStr), nil
 }
 
+// *** MODIFIED toolJoinStrings Implementation ***
 func toolJoinStrings(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	// Validation ensures args[0] is []string
-	stringSlice := args[0].([]string)
-	separator := args[1].(string)
+	// Validation ensures args[0] is ArgTypeSliceAny (can be []interface{} or []string)
+	inputSliceRaw := args[0]
+	separator := args[1].(string) // Arg 1 is guaranteed string by validation
+
+	var stringSlice []string
+
+	// Handle both possible slice types from validation
+	switch v := inputSliceRaw.(type) {
+	case []string:
+		stringSlice = v // Use directly if it's already []string
+	case []interface{}:
+		stringSlice = make([]string, len(v))
+		for i, item := range v {
+			if item != nil {
+				stringSlice[i] = fmt.Sprintf("%v", item) // Convert each element
+			} else {
+				stringSlice[i] = "" // Convert nil to empty string
+			}
+		}
+	default:
+		// Should not happen if validation is correct, but handle defensively
+		return nil, fmt.Errorf("internal error: JoinStrings received unexpected slice type %T after validation", inputSliceRaw)
+	}
+
 	return strings.Join(stringSlice, separator), nil
 }
 
+// *** END MODIFICATION ***
+
+// ... (toolReplaceAll, toolContains, toolHasPrefix, toolHasSuffix remain the same) ...
 func toolReplaceAll(interpreter *Interpreter, args []interface{}) (interface{}, error) {
 	inputStr := args[0].(string)
 	oldSub := args[1].(string)

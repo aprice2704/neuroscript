@@ -23,17 +23,29 @@ func TestToolJoinStrings(t *testing.T) {
 		{"Empty Separator", makeArgs([]string{"a", "b", "c"}, ""), "abc", false, false, ""},
 		{"Empty Slice", makeArgs([]string{}, "-"), "", false, false, ""},
 		{"Slice with Empty Strings", makeArgs([]string{"a", "", "c"}, ","), "a,,c", false, false, ""},
+		// Now expects successful conversion because ArgType is SliceAny
 		{"Interface Slice OK (Validation Conv.)", makeArgs([]interface{}{"x", "y", "z"}, ":"), "x:y:z", false, false, ""},
-		{"Interface Slice Mixed Types (Validation Conv.)", makeArgs([]interface{}{"a", 1, true}, "-"), "a-1-true", false, false, ""},
-		{"Wrong Arg Count", makeArgs([]string{"a"}), nil, false, true, "expected exactly 2 arguments"},                 // Corrected expectation
-		{"Wrong Arg Count 3", makeArgs([]string{"a"}, "-", "extra"), nil, false, true, "expected exactly 2 arguments"}, // Corrected expectation
-		{"Non-slice First Arg (Validation Err)", makeArgs("abc", "-"), nil, false, true, "expected slice_string, but received incompatible type string"},
+		{"Interface Slice Mixed Types (Validation Conv.)", makeArgs([]interface{}{"a", 1, true}, "-"), "a-1-true", false, false, ""}, // <<< Expect successful conversion
+		{"Wrong Arg Count", makeArgs([]string{"a"}), nil, false, true, "expected exactly 2 arguments"},
+		{"Wrong Arg Count 3", makeArgs([]string{"a"}, "-", "extra"), nil, false, true, "expected exactly 2 arguments"},
+		// *** UPDATED Expected validation error message for non-slice ***
+		{"Non-slice First Arg (Validation Err)", makeArgs("abc", "-"), nil, false, true, "expected slice_any"}, // Now expects slice_any
 		{"Non-string Separator (Validation Err)", makeArgs([]string{"a"}, 123), nil, false, true, "argument 'separator' (index 1): expected string, but received type int"},
 	}
-	// ... Test runner loop as previously corrected ...
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			toolSpec := ToolSpec{Name: "JoinStrings", Args: []ArgSpec{{Name: "input_slice", Type: ArgTypeSliceString, Required: true}, {Name: "separator", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeString}
+			// *** UPDATED ToolSpec to match change ***
+			toolSpec := ToolSpec{
+				Name: "JoinStrings",
+				Args: []ArgSpec{
+					{Name: "input_slice", Type: ArgTypeSliceAny, Required: true}, // <<< CHANGED Type
+					{Name: "separator", Type: ArgTypeString, Required: true},
+				},
+				ReturnType: ArgTypeString,
+			}
+			// *** END UPDATE ***
+
 			convertedArgs, valErr := ValidateAndConvertArgs(toolSpec, tt.args)
 			if (valErr != nil) != tt.valWantErr {
 				t.Errorf("ValidateAndConvertArgs() error = %v, valWantErr %v", valErr, tt.valWantErr)
@@ -46,11 +58,13 @@ func TestToolJoinStrings(t *testing.T) {
 			if tt.valWantErr {
 				return
 			}
+			// Validation passed or wasn't expected to fail, proceed with tool call
 			got, toolErr := toolJoinStrings(dummyInterp, convertedArgs)
 			if (toolErr != nil) != tt.wantErr {
 				t.Errorf("toolJoinStrings() error = %v, wantErr %v", toolErr, tt.wantErr)
 				return
 			}
+			// Only check result if no tool error was expected
 			if !tt.wantErr && !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("toolJoinStrings() = %v (%T), want %v (%T)", got, got, tt.want, tt.want)
 			}
@@ -58,6 +72,7 @@ func TestToolJoinStrings(t *testing.T) {
 	}
 }
 
+// ... rest of the file (TestToolReplaceAll, TestToolContainsPrefixSuffix) remains the same ...
 func TestToolReplaceAll(t *testing.T) {
 	dummyInterp := newDefaultTestInterpreter()
 	tests := []struct {
@@ -72,11 +87,12 @@ func TestToolReplaceAll(t *testing.T) {
 		{"Not Found", makeArgs("test", "x", "y"), "test", false, ""},
 		{"Empty Old", makeArgs("abc", "", "X"), "XaXbXcX", false, ""},
 		{"Empty New", makeArgs("hello", "l", ""), "heo", false, ""},
-		{"Wrong Arg Count", makeArgs("a", "b"), "", true, "expected exactly 3 arguments"}, // Corrected expectation
-		{"Non-string Old", makeArgs("a", 1, "b"), "", true, "argument 'old' (index 1): expected string, but received type int"},
-		{"Non-string New", makeArgs("a", "b", 2), "", true, "argument 'new' (index 2): expected string, but received type int"},
+		{"Wrong Arg Count", makeArgs("a", "b"), "", true, "expected exactly 3 arguments"},
+		{"Non-string Input", makeArgs(1, "b", "c"), "", true, "argument 'input' (index 0): expected string"},
+		{"Non-string Old", makeArgs("a", 1, "b"), "", true, "argument 'old' (index 1): expected string"},
+		{"Non-string New", makeArgs("a", "b", 2), "", true, "argument 'new' (index 2): expected string"},
 	}
-	// ... Test runner loop as previously corrected ...
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			spec := ToolSpec{Name: "ReplaceAll", Args: []ArgSpec{{Name: "input", Type: ArgTypeString, Required: true}, {Name: "old", Type: ArgTypeString, Required: true}, {Name: "new", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeString}
@@ -97,8 +113,13 @@ func TestToolReplaceAll(t *testing.T) {
 				t.Errorf("toolReplaceAll() unexpected tool error: %v", err)
 				return
 			}
-			if got != tt.want {
-				t.Errorf("toolReplaceAll() = %v, want %v", got, tt.want)
+			gotStr, ok := got.(string)
+			if !ok {
+				t.Errorf("toolReplaceAll() did not return string, got %T", got)
+				return
+			}
+			if gotStr != tt.want {
+				t.Errorf("toolReplaceAll() = %q, want %q", gotStr, tt.want)
 			}
 		})
 	}
@@ -133,7 +154,7 @@ func TestToolContainsPrefixSuffix(t *testing.T) {
 	_, errC = ValidateAndConvertArgs(specC, argsC3)
 	if errC == nil || !strings.Contains(errC.Error(), "expected exactly 2 arguments") {
 		t.Errorf("toolContains expected validation error for wrong arg count, got %v", errC)
-	} // Corrected expectation
+	}
 
 	// HasPrefix
 	specP := ToolSpec{Name: "HasPrefix", Args: []ArgSpec{{Name: "input", Type: ArgTypeString, Required: true}, {Name: "prefix", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeBool}
@@ -161,7 +182,7 @@ func TestToolContainsPrefixSuffix(t *testing.T) {
 	_, errP = ValidateAndConvertArgs(specP, argsP3)
 	if errP == nil || !strings.Contains(errP.Error(), "expected exactly 2 arguments") {
 		t.Errorf("toolHasPrefix expected validation error for wrong arg count, got %v", errP)
-	} // Corrected expectation
+	}
 
 	// HasSuffix
 	specS := ToolSpec{Name: "HasSuffix", Args: []ArgSpec{{Name: "input", Type: ArgTypeString, Required: true}, {Name: "suffix", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeBool}
@@ -189,5 +210,5 @@ func TestToolContainsPrefixSuffix(t *testing.T) {
 	_, errS = ValidateAndConvertArgs(specS, argsS3)
 	if errS == nil || !strings.Contains(errS.Error(), "expected exactly 2 arguments") {
 		t.Errorf("toolHasSuffix expected validation error for wrong arg count, got %v", errS)
-	} // Corrected expectation
+	}
 }
