@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	// "strings" // Not needed directly here
 )
 
 // --- Interpreter ---
@@ -16,41 +15,60 @@ type Interpreter struct {
 	vectorIndex     map[string][]float32
 	embeddingDim    int
 	currentProcName string
-	toolRegistry    *ToolRegistry
+	toolRegistry    *ToolRegistry // Use tools.ToolRegistry type
 	logger          *log.Logger
 }
 
+// --- ADDED: Methods to satisfy tools.InterpreterContext ---
+
+func (i *Interpreter) Logger() *log.Logger {
+	// Return a discard logger if the interpreter's logger is nil
+	if i.logger == nil {
+		return log.New(io.Discard, "", 0)
+	}
+	return i.logger
+}
+
+func (i *Interpreter) GetVectorIndex() map[string][]float32 {
+	// Ensure the map is initialized before returning
+	if i.vectorIndex == nil {
+		i.vectorIndex = make(map[string][]float32)
+	}
+	return i.vectorIndex
+}
+
+func (i *Interpreter) SetVectorIndex(vi map[string][]float32) {
+	i.vectorIndex = vi
+}
+
+// GenerateEmbedding method is already defined in pkg/core/embeddings.go
+// and attached to the Interpreter struct, so it satisfies the interface.
+
+// --- END ADDED Methods ---
+
 // NewInterpreter creates a new interpreter instance.
 func NewInterpreter(logger *log.Logger) *Interpreter {
-	if logger == nil {
-		logger = log.New(io.Discard, "", 0)
+	// Default to discarding logs if none provided
+	effectiveLogger := logger
+	if effectiveLogger == nil {
+		effectiveLogger = log.New(io.Discard, "", 0)
 	}
+
 	interp := &Interpreter{
 		variables:       make(map[string]interface{}), // Initialize empty
 		knownProcedures: make(map[string]Procedure),
-		vectorIndex:     make(map[string][]float32),
-		embeddingDim:    16, // Default mock dim
-		toolRegistry:    NewToolRegistry(),
-		logger:          logger,
+		vectorIndex:     make(map[string][]float32), // Initialize map
+		embeddingDim:    16,                         // Default mock dim
+		toolRegistry:    NewToolRegistry(),          // Use tools registry
+		logger:          effectiveLogger,            // Use the potentially defaulted logger
 	}
-	registerCoreTools(interp.toolRegistry) // Register built-in tools
+	registerCoreTools(interp.toolRegistry) // Register built-in tools - THIS IS OKAY
 
 	// Pre-load standard prompts into variables
 	interp.variables["NEUROSCRIPT_DEVELOP_PROMPT"] = PromptDevelop
 	interp.variables["NEUROSCRIPT_EXECUTE_PROMPT"] = PromptExecute
 
 	return interp
-}
-
-// LoadProcedures adds parsed procedures to the interpreter's known set.
-func (i *Interpreter) LoadProcedures(procs []Procedure) error {
-	for _, p := range procs {
-		if _, exists := i.knownProcedures[p.Name]; exists {
-			i.logger.Printf("[INFO] Reloading procedure: %s", p.Name)
-		}
-		i.knownProcedures[p.Name] = p
-	}
-	return nil
 }
 
 // RunProcedure executes a named procedure with given arguments.

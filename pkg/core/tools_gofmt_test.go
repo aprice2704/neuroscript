@@ -9,12 +9,12 @@ import (
 	// "os/exec" // No longer needed
 )
 
-// Assume newDummyInterpreter and makeArgs helpers are defined or copied here
-// func newDummyInterpreter() *Interpreter { return NewInterpreter(nil) }
+// Assume newTestInterpreter and makeArgs helpers are defined or copied here
+// func newDefaultTestInterpreter() *Interpreter { return NewInterpreter(nil) }
 // func makeArgs(vals ...interface{}) []interface{} { return vals }
 
 func TestToolGoFmt(t *testing.T) {
-	dummyInterp := newDummyInterpreter()
+	dummyInterp := newDefaultTestInterpreter()
 
 	// Define content directly
 	needsFormattingContent := "package main\nfunc main () {println(\"hello\")}"

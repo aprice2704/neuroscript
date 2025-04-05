@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-// func newTestInterpreterEval defined in test_helpers_test.go
+// func newTestInterpreter( defined in test_helpers_test.go
 
 func TestEvaluateCondition(t *testing.T) {
 	vars := map[string]interface{}{
@@ -101,7 +101,7 @@ func TestEvaluateCondition(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			interp := newTestInterpreterEval(vars, lastValue) // Use shared helper
+			interp := newTestInterpreter(vars, lastValue) // Use shared helper
 			got, err := interp.evaluateCondition(tt.node)
 
 			if (err != nil) != tt.wantErr {

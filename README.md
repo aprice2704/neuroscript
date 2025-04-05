@@ -4,6 +4,13 @@ Version: 0.2.0
 DependsOn: docs/neuroscript overview.md
 HowToUpdate: Manually review overview and update README summary/goals.
 
+Authors:  Andrew Price (www.eggstremestructures.com),
+          Gemini 2.5 Pro (Experimental) (gemini.google.com)
+
+**STATUS: EARLY DEVELOPMENT**
+
+Under massive and constant updates, do not use yet.
+
 **NeuroScript Overview:**
 
 The NeuroScript project (NS) aims to allow Humans, AIs, and computers to communicate in clear, reliable, repeatable ways by providing more structured means than just natural language [cite: uploaded:neuroscript/docs/neuroscript overview.md].
@@ -155,7 +162,9 @@ A: Store `.ns.txt` files in a Git repository. Use `TOOL.GitAdd` and `TOOL.GitCom
 
 ## Contributing
 
-We welcome contributions! See the roadmap [cite: uploaded:neuroscript/docs/Roadmap.md] and development checklist [cite: uploaded:neuroscript/docs/development checklist.md] for ideas. Key areas include:
+We will welcome contributions! But **NOT YET** :P
+
+See the roadmap [cite: uploaded:neuroscript/docs/Roadmap.md] and development checklist [cite: uploaded:neuroscript/docs/development checklist.md] for ideas. Key areas include:
 
 * **Interpreter Enhancements**: LLM Context Management, Error Handling (TRY/CATCH?), NeuroData support.
 * **Tooling**: Real Vector DB integration, enhanced Git workflow, Syntax Checking (`TOOL.NeuroScriptCheckSyntax`), Formatter (`nsfmt`), JSON/HTTP tools.

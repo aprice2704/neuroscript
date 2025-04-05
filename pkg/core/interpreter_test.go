@@ -8,21 +8,6 @@ import (
 	// Import sort
 )
 
-// --- Interpreter Test Specific Helper ---
-// ... (helpers remain the same) ...
-func newTestInterpreter(vars map[string]interface{}, lastResult interface{}) *Interpreter {
-	interp := NewInterpreter(nil) // Assumes nil logger for tests
-	if vars != nil {
-		interp.variables = make(map[string]interface{}, len(vars))
-		for k, v := range vars {
-			interp.variables[k] = v
-		}
-	} else {
-		interp.variables = make(map[string]interface{})
-	}
-	interp.lastCallResult = lastResult // Use the specific field name
-	return interp
-}
 func createTestStep(typ string, target string, valueNode interface{}, argNodes []interface{}) Step {
 	return newStep(typ, target, nil, valueNode, nil, argNodes)
 }

@@ -10,7 +10,7 @@ import (
 // --- Unit Tests for String Tool Go Functions (Part 2) ---
 
 func TestToolJoinStrings(t *testing.T) {
-	dummyInterp := newDummyInterpreter()
+	dummyInterp := newDefaultTestInterpreter()
 	tests := []struct {
 		name        string
 		args        []interface{} // Raw args before validation simulation
@@ -59,7 +59,7 @@ func TestToolJoinStrings(t *testing.T) {
 }
 
 func TestToolReplaceAll(t *testing.T) {
-	dummyInterp := newDummyInterpreter()
+	dummyInterp := newDefaultTestInterpreter()
 	tests := []struct {
 		name        string
 		args        []interface{}
@@ -105,7 +105,7 @@ func TestToolReplaceAll(t *testing.T) {
 }
 
 func TestToolContainsPrefixSuffix(t *testing.T) {
-	dummyInterp := newDummyInterpreter()
+	dummyInterp := newDefaultTestInterpreter()
 
 	// Contains
 	specC := ToolSpec{Name: "Contains", Args: []ArgSpec{{Name: "input", Type: ArgTypeString, Required: true}, {Name: "substring", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeBool}

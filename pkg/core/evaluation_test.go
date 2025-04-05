@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-// func newTestInterpreterEval defined in test_helpers_test.go
+// func newTestInterpreter( defined in test_helpers_test.go
 
 // --- Tests for EVAL Node Resolution (Iterative) ---
 func TestEvalNodeResolution(t *testing.T) {
@@ -69,7 +69,7 @@ func TestEvaluateExpressionASTGeneral(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			interpTest := newTestInterpreterEval(vars, lastResult) // Use shared helper
+			interpTest := newTestInterpreter(vars, lastResult) // Use shared helper
 			got, err := interpTest.evaluateExpression(tt.inputNode)
 			// Assertions
 			if (err != nil) != tt.wantErr {
