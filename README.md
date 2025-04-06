@@ -4,20 +4,20 @@ Version: 0.2.0
 DependsOn: docs/neuroscript overview.md
 HowToUpdate: Review dependancies, update appropriately for README sections, preserve current content
 
-Authors:  Andrew Price ([www.eggstremestructures.com](https://www.eggstremestructures.com)),  
+Authors:  Andrew Price (www.eggstremestructures.com),  
           Gemini 2.5 Pro (Experimental) (gemini.google.com)
 
-## STATUS: EARLY DEVELOPMENT
+## **STATUS: EARLY DEVELOPMENT**
 
 Under massive and constant updates, do not use yet.
 
-**NeuroScript Overview:**
+## NeuroScript Overview:**
 
-The NeuroScript project (NS) aims to allow Humans, AIs, and computers to communicate in clear, reliable, repeatable ways by providing more structured means than just natural language [neuroscript overview.md](neuroscript/docs/neuroscript overview.md).
+The NeuroScript project (NS) aims to allow Humans, AIs, and computers to communicate in clear, reliable, repeatable ways by providing more structured means than just natural language ["neuroscript overview.md"](neuroscript/docs/neuroscript%20overview.md).
 
-The **neuroscript script language (`ns`)** is a structured, human-readable language providing *procedural scaffolding* for execution. It's designed for storing, discovering, and reusing **"skills"** (procedures) with clear docstrings and metadata, enabling a shared library of **reusable, documented knowledge**. It's intended to be primarily READ by humans, WRITTEN/EXECUTED by AIs, and EXECUTED by computers (like the `gonsi` interpreter) which leverage AI APIs [neuroscript overview.md](neuroscript/docs/neuroscript overview.md).
+The **neuroscript script language (`ns`)** is a structured, human-readable language providing *procedural scaffolding* for execution. It's designed for storing, discovering, and reusing **"skills"** (procedures) with clear docstrings and metadata, enabling a shared library of **reusable, documented knowledge**. It's intended to be primarily READ by humans, WRITTEN/EXECUTED by AIs, and EXECUTED by computers (like the `gonsi` interpreter) which leverage AI APIs ["neuroscript overview.md"](neuroscript/docs/neuroscript%20overview.md).
 
-Complementary **`neurodata`** formats provide easy ways to store, share, edit, and template data for everyday issues [neuroscript overview.md](neuroscript/docs/neuroscript overview.md).
+Complementary **`neurodata`** formats provide easy ways to store, share, edit, and template data for everyday issues ["neuroscript overview.md"](neuroscript/docs/neuroscript%20overview.md).
 
 ---
 
@@ -63,7 +63,7 @@ Most AI models rely on hidden chain-of-thought or ad hoc patterns. **NeuroScript
 
 ## Core Concepts
 
-1. **Procedures**: Defined with `DEFINE PROCEDURE Name(Arguments)`, includes a required `COMMENT:` block with metadata like `PURPOSE`, `INPUTS`, `OUTPUT`, `ALGORITHM`, `LANG_VERSION` [script spec.md](neuroscript/docs/script spec.md). Ends with `END`.
+1. **Procedures**: Defined with `DEFINE PROCEDURE Name(Arguments)`, includes a required `COMMENT:` block with metadata like `PURPOSE`, `INPUTS`, `OUTPUT`, `ALGORITHM`, `LANG_VERSION` ["script spec.md"](neuroscript/docs/script%20spec.md). Ends with `END`.
 2. **Statements**:
     - `SET variable = expression`: Assigns the *raw* result of an expression.
     - `CALL target(args...)`: Invokes Procedures, `LLM`, or `TOOL.Function`. Result accessible via `LAST`.
@@ -74,7 +74,7 @@ Most AI models rely on hidden chain-of-thought or ad hoc patterns. **NeuroScript
     - Control Flow: `IF/THEN/ELSE/ENDBLOCK`, `WHILE/DO/ENDBLOCK`, `FOR EACH/IN/DO/ENDBLOCK`. Blocks require `ENDBLOCK`.
 3. **Expressions**: Combine literals, variables, `LAST`, `EVAL()`, arithmetic (`+`, `-`, `*`, `/`, `%`, `**`), comparisons (`==`, `!=`, `>`, `<`, `>=`, `<=`), logical (`AND`, `OR`, `NOT`), bitwise (`&`, `|`, `^`), function calls (`LN`, `LOG`, `SIN`, etc.), and element access (`[]`).
 4. **Literals**: Strings (`"..."`, `'...'`), numbers (`123`, `4.5`), booleans (`true`, `false`), lists (`[expr1, expr2]`), maps (`{"key": expr1, "val": expr2}`).
-5. **Docstrings**: Ensure procedures are self-documenting via the `COMMENT:` block [script spec.md](neuroscript/docs/script spec.md).
+5. **Docstrings**: Ensure procedures are self-documenting via the `COMMENT:` block ["script spec.md"](neuroscript/docs/script%20spec.md).
 6. **Skill Library**: Procedures (`.ns.txt` files) are intended to be stored (e.g., in Git) and discoverable (e.g., via vector search on docstrings - mock implemented) [tools_vector.go](neuroscript/pkg/core/tools_vector.go).
 7. **Versioning**: Files should include `Version:` metadata comment. Procedures can include `LANG_VERSION:` in docstrings. `FILE_VERSION "..."` declaration is also supported but may be deprecated [conventions.md](neuroscript/docs/conventions.md).
 
@@ -118,3 +118,66 @@ ENDBLOCK # End FOR EACH
 RETURN report_string
 
 END
+```
+
+## Installation & Setup (gonsi CLI)
+
+1.  **Prerequisites**: Go programming language environment (e.g., Go 1.20+). Git command line tool.
+2.  **Build `gonsi`**: Navigate to the `neuroscript` directory in your terminal and run:
+    ```bash
+    go build -o gonsi ./gonsi
+    ```
+    This creates the `gonsi` executable in the `neuroscript` directory.
+3.  **LLM Connection (Optional)**:
+    * Set the `GEMINI_API_KEY` environment variable with your API key if you intend to use `CALL LLM`.
+    * The default model is `gemini-1.5-flash-latest` [llm.go](neuroscript/pkg/core/llm.go). (Future: Make configurable).
+4.  **Run `gonsi`**:
+    ```bash
+    # Example: Run the TestListAndMapAccess procedure in the skills dir
+    ./gonsi gonsi/skills TestListAndMapAccess "MyPrefix"
+
+    # Example: Run with debug logging for the interpreter
+    ./gonsi -debug-interpreter gonsi/skills AskCapitalCity
+    ```
+    * Usage: `./gonsi [flags] <skills_directory> <ProcedureToRun> [args...]`
+    * Flags: `-debug-ast`, `-debug-interpreter`, `-no-preload-skills` [main.go](neuroscript/gonsi/main.go).
+
+5.  **(Optional) Database / Skill Registry**:
+    * Vector search/update tools (`TOOL.SearchSkills`, `TOOL.VectorUpdate`) are currently mocked in-memory [tools_vector.go](neuroscript/pkg/core/tools_vector.go). No external DB setup required for the mock.
+
+---
+
+## FAQ
+
+**Q1: Is NeuroScript a full programming language?**
+A: It’s more of a *structured pseudocode* or *orchestration language*—focused on providing procedural scaffolding, managing state (`SET`), and coordinating calls to external logic (LLMs, TOOLs, other Procedures). Complex computation is typically delegated.
+
+**Q2: Can I integrate external tools besides LLMs?**
+A: Yes—define Go functions and register them using the `ToolRegistry` [tools.go](neuroscript/pkg/core/tools.go). They become available via `CALL TOOL.YourFunctionName(...)`. Numerous filesystem, string, Git, and Go tools are already included [tools_register.go](neuroscript/pkg/core/tools_register.go).
+
+**Q3: How do I version-control procedures?**
+A: Store `.ns.txt` files in a Git repository. Use `TOOL.GitAdd` and `TOOL.GitCommit` (or external Git commands) to manage changes. Add `Version:` metadata comments to files and `LANG_VERSION:` in procedure docstrings [conventions.md](neuroscript/docs/conventions.md).
+
+---
+
+## Contributing
+
+We will welcome contributions! But **NOT YET** :P
+
+See the roadmap [RoadMap.md](neuroscript/docs/RoadMap.md) and development checklist ["development checklist.md"](neuroscript/docs/development%20checklist.md) for ideas. Key areas include:
+
+* **Interpreter Enhancements**: LLM Context Management, Error Handling (TRY/CATCH?), NeuroData support.
+* **Tooling**: Real Vector DB integration, enhanced Git workflow, Syntax Checking (`TOOL.NeuroScriptCheckSyntax`), Formatter (`nsfmt`), JSON/HTTP tools.
+* **Language Features**: Self-testing support, advanced list/map manipulation.
+* **Documentation**: More examples, tutorials, refining specifications.
+* **VS Code Extension**: Adding features beyond syntax highlighting (e.g., linting, diagnostics).
+
+Please open an issue or submit a pull request.
+
+---
+
+## License
+
+This project is licensed under the **MIT License** – see the `LICENSE` file (assuming one exists or will be added).
+
+---
