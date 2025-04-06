@@ -2,11 +2,11 @@
 
 Version: 0.2.2
 DependsOn: docs/neuroscript overview.md
-HowToUpdate: Manually review overview and update README summary/goals.
+HowToUpdate:  
 
 ## File-Level Metadata
 
-All project files (NeuroScript `.ns.txt`, NeuroData `.nd<type>`, Go `.go`, Markdown `.md`, etc.) should ideally contain the following metadata near the beginning of the file, formatted appropriately as comments if necessary for the file type (e.g., `// key: value` for Go, `# key: value` for scripts/data/markdown).
+All project files (NeuroScript `.ns.txt`, NeuroData `.nd<type>`, Go `.go`, Markdown `.md`, etc.) should ideally contain the following metadata near the beginning of the file, formatted appropriately as comments if necessary for the file type (e.g., `// key: value` for Go, `# key: value` for scripts/data/markdown). Metadata lines should end in 2 spaces so they render on separate lines in md.
 
 1.  **`Version:`** (Required)
     * Format: `Version: <semver_string>` (e.g., `Version: 0.1.0`)

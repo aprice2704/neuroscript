@@ -59,9 +59,9 @@ Please review the enclosed codebase, pay special attention to the .md documentat
 
 For today, please always provide full files, not fragments
 
-If any code file is bigger than 300 please split it logically, you don't need to ask, just do it
+If any code file is bigger than 300 lines please split it logically, you don't need to ask, **just do it** 
 
-When providing markdown (and only markdown, all other filetypes seem ok), please prepend each line of it with "@@@" so the web ui does not attempt to render it.
+When providing markdown (and only markdown, all other filetypes seem ok), please prepend each line of it with "@@@" so the web ui does not attempt to render it, I will use find/replace to remove.
 
 Please gather helper functions in a shared file appropriately namespaced, e.g. tools_helpers.go 
 

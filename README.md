@@ -2,9 +2,9 @@
 
 Version: 0.2.0
 DependsOn: docs/neuroscript overview.md
-HowToUpdate: Manually review overview and update README summary/goals.
+HowToUpdate: Review dependancies, update appropriately for README sections, preserve current content
 
-Authors:  Andrew Price (www.eggstremestructures.com),
+Authors:  Andrew Price (www.eggstremestructures.com),  
           Gemini 2.5 Pro (Experimental) (gemini.google.com)
 
 **STATUS: EARLY DEVELOPMENT**

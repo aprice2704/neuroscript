@@ -1,54 +1,31 @@
 # NeuroScript Development Checklist (v5 - Updated & Reordered)
 
-Version: 0.1.1
-DependsOn: docs/conventions.md
+Version: 0.1.2  
+DependsOn: neuroscript overview.md, script spec.md  
 
-Goal: Reach the "bootstrapping" point where NeuroScript, executed by an LLM or gonsi, can use CALL LLM and TOOLs to find, create, and manage NeuroScript skills stored in Git and indexed in a vector DB.
+## Goal: Reach "bootstrapping" point
 
-## A. Capabilities (Existing & Target)
+--  NeuroScript project can maintain itself:
+    1.  update docs based on progress
+    2.  update scripts based on changes in syntax
+    3.  run tests and recompile on change
+    4.  update source code based on prompt
+    5.  fix source code based on tests
 
-[x] gonsi able to execute basic ns (SET, CALL, RETURN, basic IF/WHILE/FOR headers and block execution) [cite: uploaded:neuroscript/pkg/core/interpreter_control_flow.go, uploaded:neuroscript/pkg/core/interpreter_simple_steps.go]
-[x] Basic Arithmetic Evaluation (+, -, *, /, %, **, unary -) [cite: uploaded:neuroscript/pkg/core/evaluation_logic.go, uploaded:neuroscript/pkg/core/evaluation_operators.go]
-[x] Basic Condition Evaluation (==, !=, >, <, >=, <=, NOT, AND, OR, truthiness) [cite: uploaded:neuroscript/pkg/core/evaluation_comparison.go, uploaded:neuroscript/pkg/core/evaluation_logic.go]
-[x] List ([]) and Map ({}) Literal Parsing & Evaluation [cite: uploaded:neuroscript/pkg/core/ast_builder_collections.go, uploaded:neuroscript/pkg/core/evaluation_main.go]
-[x] List/Map Element Access (e.g., list[index], map["key"]) [cite: uploaded:neuroscript/pkg/core/ast_builder_terminators.go, uploaded:neuroscript/pkg/core/evaluation_access.go]
-[x] FOR EACH List Element Iteration [cite: uploaded:neuroscript/pkg/core/interpreter_control_flow.go]
-[x] FOR EACH Map Key Iteration [cite: uploaded:neuroscript/pkg/core/interpreter_control_flow.go]
-[x] FOR EACH String Character/Comma Iteration [cite: uploaded:neuroscript/pkg/core/interpreter_control_flow.go]
-[x] ELSE Block Execution [cite: uploaded:neuroscript/pkg/core/ast_builder_blocks.go, uploaded:neuroscript/pkg/core/interpreter_control_flow.go]
-[x] Basic set of golang tools in gonsi (FS, Git, Mock Vector, Strings, Shell, Go fmt/build/test/check/mod) [cite: uploaded:neuroscript/pkg/core/tools_register.go, uploaded:neuroscript/pkg/core/tools_string.go, uploaded:neuroscript/pkg/core/tools_fs.go, uploaded:neuroscript/pkg/core/tools_git.go, uploaded:neuroscript/pkg/core/tools_shell.go]
-[x] In-memory vector DB implemented (mocked, VectorUpdate, SearchSkills) [cite: uploaded:neuroscript/pkg/core/tools_vector.go, uploaded:neuroscript/pkg/core/embeddings.go]
-[x] LLM Integration via CALL LLM (Gemini) [cite: uploaded:neuroscript/pkg/core/llm.go, uploaded:neuroscript/pkg/core/interpreter_simple_steps.go]
-[x] Basic CLI Runner (gonsi) with debug flags [cite: uploaded:neuroscript/gonsi/main.go]
-[x] gonsi skips loading ns files with errors gracefully [cite: uploaded:neuroscript/gonsi/main.go, uploaded:neuroscript/pkg/core/parser_api.go]
-[x] ns stored in git (manually, but tools support adding/committing) [cite: uploaded:neuroscript/pkg/core/tools_git.go, uploaded:neuroscript/gonsi/skills/commit_changes.ns.txt]
-[x] Bootstrap Skills: Create initial .ns.txt skills (HandleSkillRequest, CommitChanges, UpdateNsSyntax, etc.) [cite: uploaded:neuroscript/gonsi/skills/orchestrator.ns.txt, uploaded:neuroscript/gonsi/skills/commit_changes.ns.txt, uploaded:neuroscript/gonsi/skills/UpdateNsSyntax.ns.txt]
+-- Gonsi provides full ns capabilities
+    1. vector db of scripts with retrieval
+    2. full gonsi/LLM comms
 
-[ ] LLM able to read ns and execute it (via prompt guidance)
-[ ] LLM able to translate simple ns into golang tool
-[ ] Use git branch for version control within tools
-[ ] Markdown tools (r & w)
-[ ] Structured document tools (hierarchical info/docs)
-[ ] Table tools
-[ ] Integration tools (e.g., Google Sheets and Docs)
-[ ] Self-test support in ns
-[ ] LLMs can supply git-style patches and have them applied to files
-[ ] MCP support
-[ ] Ability to pass text from LLM to tool in (BASE64) or some other armored format
-[ ] Strong list manipulation (cf lisp)
-[ ] Prolog style features
-[ ] SVG generation and manipulation
-
-## B. Planned Features (Reordered for Bootstrapping/Dependencies)
+## A. Planned Features (Reordered for Bootstrapping/Dependencies)
 
 **Core Language / Interpreter Refinements:**
-[ ] Interpreter: Implement Context Management Strategy for CALL LLM
 [ ] Interpreter: Add NeuroScript-specific Error Handling (e.g., TRY/CATCH or specific error types?)
 [ ] Consider moving to more typed AST? (Design question)
 [ ] NeuroData files, template and instance (Design & Implement)
     [ ] NeuroData - checklist
     [ ] NeuroData - graph
     [ ] NeuroData - table
+    [ ] NeuroData - decisiontable
     [ ] NeuroData - form
 
 **Tooling & Integration (Supporting Self-Management):**
@@ -69,6 +46,36 @@ Goal: Reach the "bootstrapping" point where NeuroScript, executed by an LLM or g
 
 **Longer Term / Advanced:**
 [ ] Feature: Add Self-test support in ns
+[ ] Interpreter: Implement Context Management Strategy for CALL LLM -- defer
+[ ] Block and file level prior version preservation
+
+## B. Various "do soon" things
+
+[ ] LLM able to read ns and execute it (via prompt guidance)
+[ ] LLM able to translate simple ns into golang tool
+[ ] Use git branch for version control within tools
+[ ] Markdown tools (r & w)
+[ ] Structured document tools (hierarchical info/docs)
+[ ] Table tools
+[ ] Integration tools (e.g., Google Sheets and Docs)
+[ ] Self-test support in ns
+[ ] LLMs can supply git-style patches and have them applied to files
+[ ] MCP support
+[ ] Ability to pass text from LLM to tool in (BASE64) or some other armored format
+[ ] Strong list manipulation (cf lisp)
+[ ] Prolog style features
+[ ] SVG generation and manipulation
+[ ] Only load skills when requested
+[ ] More tests for securefile root
+[ ] Allow LLM to use local tools back
+[ ] Nice example on website/readme
+[ ] Logo
+[ ] Eval tool for arith etc
+[ ] Files LLM allowed to see
+[ ] LLM selection
+[ ] More self building and maint
+[ ] keep prior versions meta tag
+[ ] gonsi as local agent for LLM
 
 ## C. Found work and things to go back to
 
@@ -78,6 +85,22 @@ Goal: Reach the "bootstrapping" point where NeuroScript, executed by an LLM or g
 
 ## D. Completed Features (Foundation)
 
+[x] gonsi able to execute basic ns (SET, CALL, RETURN, basic IF/WHILE/FOR headers and block execution) [cite: uploaded:neuroscript/pkg/core/interpreter_control_flow.go, uploaded:neuroscript/pkg/core/interpreter_simple_steps.go]
+[x] Basic Arithmetic Evaluation (+, -, *, /, %, **, unary -) [cite: uploaded:neuroscript/pkg/core/evaluation_logic.go, uploaded:neuroscript/pkg/core/evaluation_operators.go]
+[x] Basic Condition Evaluation (==, !=, >, <, >=, <=, NOT, AND, OR, truthiness) [cite: uploaded:neuroscript/pkg/core/evaluation_comparison.go, uploaded:neuroscript/pkg/core/evaluation_logic.go]
+[x] List ([]) and Map ({}) Literal Parsing & Evaluation [cite: uploaded:neuroscript/pkg/core/ast_builder_collections.go, uploaded:neuroscript/pkg/core/evaluation_main.go]
+[x] List/Map Element Access (e.g., list[index], map["key"]) [cite: uploaded:neuroscript/pkg/core/ast_builder_terminators.go, uploaded:neuroscript/pkg/core/evaluation_access.go]
+[x] FOR EACH List Element Iteration [cite: uploaded:neuroscript/pkg/core/interpreter_control_flow.go]
+[x] FOR EACH Map Key Iteration [cite: uploaded:neuroscript/pkg/core/interpreter_control_flow.go]
+[x] FOR EACH String Character/Comma Iteration [cite: uploaded:neuroscript/pkg/core/interpreter_control_flow.go]
+[x] ELSE Block Execution [cite: uploaded:neuroscript/pkg/core/ast_builder_blocks.go, uploaded:neuroscript/pkg/core/interpreter_control_flow.go]
+[x] Basic set of golang tools in gonsi (FS, Git, Mock Vector, Strings, Shell, Go fmt/build/test/check/mod) [cite: uploaded:neuroscript/pkg/core/tools_register.go, uploaded:neuroscript/pkg/core/tools_string.go, uploaded:neuroscript/pkg/core/tools_fs.go, uploaded:neuroscript/pkg/core/tools_git.go, uploaded:neuroscript/pkg/core/tools_shell.go]
+[x] In-memory vector DB implemented (mocked, VectorUpdate, SearchSkills) [cite: uploaded:neuroscript/pkg/core/tools_vector.go, uploaded:neuroscript/pkg/core/embeddings.go]
+[x] LLM Integration via CALL LLM (Gemini) [cite: uploaded:neuroscript/pkg/core/llm.go, uploaded:neuroscript/pkg/core/interpreter_simple_steps.go]
+[x] Basic CLI Runner (gonsi) with debug flags [cite: uploaded:neuroscript/gonsi/main.go]
+[x] gonsi skips loading ns files with errors gracefully [cite: uploaded:neuroscript/gonsi/main.go, uploaded:neuroscript/pkg/core/parser_api.go]
+[x] ns stored in git (manually, but tools support adding/committing) [cite: uploaded:neuroscript/pkg/core/tools_git.go, uploaded:neuroscript/gonsi/skills/commit_changes.ns.txt]
+[x] Bootstrap Skills: Create initial .ns.txt skills (HandleSkillRequest, CommitChanges, UpdateNsSyntax, etc.) [cite: uploaded:neuroscript/gonsi/skills/orchestrator.ns.txt, uploaded:neuroscript/gonsi/skills/commit_changes.ns.txt, uploaded:neuroscript/gonsi/skills/UpdateNsSyntax.ns.txt]
 [x] Basic Core Syntax Parsing (DEFINE PROCEDURE, COMMENT:, SET, CALL, RETURN, END) [cite: uploaded:neuroscript/pkg/core/generated/neuroscript_parser.go]
 [x] Structured Docstring Parsing (COMMENT: block content parsed into struct, includes LANG_VERSION) [cite: uploaded:neuroscript/pkg/core/ast_builder_procedures.go, uploaded:neuroscript/pkg/core/utils.go]
 [x] Block Header Parsing (IF...THEN, WHILE...DO, FOR EACH...DO) [cite: uploaded:neuroscript/pkg/core/generated/neuroscript_parser.go]
