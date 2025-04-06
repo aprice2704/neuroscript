@@ -61,7 +61,7 @@ For today, please always provide full files, not fragments
 
 If any code file is bigger than 300 please split it logically, you don't need to ask, just do it
 
-When providing markdown, please prepend each line of it with "@@@" so the web ui does not attempt to render it.
+When providing markdown (and only markdown, all other filetypes seem ok), please prepend each line of it with "@@@" so the web ui does not attempt to render it.
 
 Please gather helper functions in a shared file appropriately namespaced, e.g. tools_helpers.go 
 
@@ -71,11 +71,18 @@ It is perfectly fine to ask to create small test programs to clear up uncertaint
 
 Do NOT RESIST adding debug output if you can't fix a problem in two or three goes, in our past efforts you have been far, far too reluctant to do so.
 
-NEVER, EVER, **EVER** remove debug lines **unti I ask for a file without them**
+Avoid fiddling with code in several places at once, long established functions in other packages should not be lightly altered! Proceed from simple cases and build up if attempting complex things.
+
+NEVER, EVER, **EVER** remove debug lines **until I ask for a file without them**
 
 You will need the neuroscript folder. Tell me if not yet provided.If you don't have the NeuroScript.g4 file, please ask me to provide the text right away.
 
+For some reason the core import line keeps appearing like this:
+
+"[github.com/aprice2704/neuroscript/pkg/core](https://www.google.com/search?q=https://github.com/aprice2704/neuroscript/pkg/core)"
+
+please stop doing that, ta :)
+
+
+
 Here is what I would like to do next:
-
-Tackling features from the development checklist.md [cite: uploaded:neuroscript/development checklist.md] that move us towards using a ns to maintain the NS project (rebuilding docs, updating ns syntax etc.)
-
