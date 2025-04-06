@@ -1,5 +1,5 @@
 // pkg/core/extract_blocks.go
-package core
+package blocks
 
 import (
 	"bufio"

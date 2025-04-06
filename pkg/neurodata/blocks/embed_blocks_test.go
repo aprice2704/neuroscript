@@ -1,5 +1,5 @@
 // pkg/core/extract_blocks_test.go
-package core
+package blocks
 
 import (
 	"os"
