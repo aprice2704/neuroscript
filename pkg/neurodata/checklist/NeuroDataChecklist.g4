@@ -1,32 +1,33 @@
-// Revised: pkg/neurodata/checklist/NeuroDataChecklist.g4
+// Corrected v4: pkg/neurodata/checklist/NeuroDataChecklist.g4
 grammar NeuroDataChecklist;
 
 // --- PARSER RULES ---
 
-// A checklist file consists of zero or more item lines followed by EOF.
-// Metadata/comments/blank lines are skipped by the lexer.
-checklistFile: itemLine* EOF;
+// Allows optional newlines before the first item, and between items.
+// Consumes itemLines and the NEWLINEs that might follow them.
+// Skipped comments/metadata are handled implicitly by the lexer.
+checklistFile : NEWLINE* (itemLine NEWLINE*)* EOF;
 
-// An item line specifically matches the checklist item structure.
-itemLine: HYPHEN WS LBRACK MARK RBRACK WS TEXT NEWLINE?;
+// Define itemLine with explicit, flexible whitespace handling.
+// Allows optional leading whitespace (WS*), requires space after HYPHEN (WS+)
+// and RBRACK (WS+), allows optional space around MARK (WS*).
+itemLine
+    : WS* HYPHEN WS+ LBRACK WS* MARK WS* RBRACK WS+ TEXT
+    ;
+    // Optional NEWLINE removed here, handled by checklistFile rule
 
-// --- LEXER RULES ---
 
-// Item Markers (Parser uses these)
+// --- LEXER RULES (Order Matters!) ---
+
+// Skipped constructs first (comments, metadata)
+METADATA_LINE : '#' ~[\r\n]* -> skip ;
+COMMENT_LINE  : '--' ~[\r\n]* -> skip ;
+
+// Tokens needed by parser ON DEFAULT CHANNEL
+HYPHEN : '-';
 LBRACK : '[';
 RBRACK : ']';
-MARK   : [xX ] ; // Matches 'x', 'X', or space
-HYPHEN : '-';
-
-// TEXT: Capture the content after the checkbox marker until the newline
-// Make it non-greedy to stop before the NEWLINE if present
-TEXT   : ~[\r\n]+? ;
-
-// Skipped Tokens (Send to hidden channel or skip entirely)
-METADATA_LINE : ('#'|'--') WS? ('i' 'd' | 'v' 'e' 'r' 's' 'i' 'o' 'n' | 'r' 'e' 'n' 'd' 'e' 'r' 'i' 'n' 'g' '_' 'h' 'i' 'n' 't') ':' ~[\r\n]* -> skip ;
-COMMENT_LINE  : ('#'|'--') ~[\r\n]* -> skip ; // Catch-all for other comment lines
-NEWLINE       : ('\r'? '\n' | '\r');         // Don't skip newlines by default, parser needs them sometimes
-WS            : [ \t]+ -> skip;              // Skip whitespace
-
-// Fragment for keywords (optional, can simplify METADATA_LINE if preferred)
-// fragment META_KEY: 'id' | 'version' | 'rendering_hint';
+MARK   : [xX ] ;         // Matches 'x', 'X', or space
+TEXT   : ~[\r\n]+ ;      // Greedy match for rest of line content
+NEWLINE: ( '\r'? '\n' | '\r' )+ ; // Group consecutive newlines
+WS     : [ \t]+ ;         // CORRECTED: Capture whitespace, DO NOT SKIP

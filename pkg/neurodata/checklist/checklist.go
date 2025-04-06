@@ -13,7 +13,7 @@ import (
 	generated "github.com/aprice2704/neuroscript/pkg/neurodata/checklist/generated"
 )
 
-// === PARSER LOGIC (from previous parser.go) ===
+// === PARSER LOGIC ===
 
 // ChecklistItem represents a single parsed item.
 type ChecklistItem struct {
@@ -40,14 +40,14 @@ func (l *checklistListener) EnterItemLine(ctx *generated.ItemLineContext) {
 	if l.err != nil {
 		return // Don't process if an error already occurred
 	}
-	fmt.Println("[DEBUG CL Parser] EnterItemLine:", ctx.GetText()) // Debug output
+	// fmt.Println("[DEBUG CL Parser] EnterItemLine:", ctx.GetText()) // Debug output
 
 	markToken := ctx.MARK()
 	textToken := ctx.TEXT()
 
 	if markToken == nil || textToken == nil {
 		l.err = fmt.Errorf("internal parser error: missing MARK or TEXT in itemLine context: %q", ctx.GetText())
-		fmt.Println("[ERROR CL Parser] Listener:", l.err) // Debug output
+		// fmt.Println("[ERROR CL Parser] Listener:", l.err) // Debug output
 		return
 	}
 
@@ -64,20 +64,20 @@ func (l *checklistListener) EnterItemLine(ctx *generated.ItemLineContext) {
 		Status: status,
 	}
 	l.Items = append(l.Items, newItem)
-	fmt.Printf("[DEBUG CL Parser] Parsed Item: %+v\n", newItem) // Debug output
+	// fmt.Printf("[DEBUG CL Parser] Parsed Item: %+v\n", newItem) // Debug output
 }
 
-// parseChecklistANTLR uses the generated ANTLR parser to parse checklist content.
-// It's kept unexported as it's only called by the tool function within this package.
+// ParseChecklistContent uses the generated ANTLR parser to parse checklist content.
+// It is EXPORTED for use by other packages (like the blocks parser tool).
 // Returns a slice of maps matching the old tool's output format, or an error.
-func parseChecklistANTLR(content string) ([]map[string]interface{}, error) {
-	fmt.Println("[DEBUG CL Parser] Starting parseChecklistANTLR") // Debug output
+func ParseChecklistContent(content string) ([]map[string]interface{}, error) {
+	// fmt.Println("[DEBUG CL Parser] Starting ParseChecklistContent") // Debug output
 	// Setup ANTLR input stream and lexer
 	inputStream := antlr.NewInputStream(content)
 	lexer := generated.NewNeuroDataChecklistLexer(inputStream)
 
 	// TODO: Replace with a custom error listener that collects errors.
-	errorListener := antlr.NewDiagnosticErrorListener(true)
+	errorListener := antlr.NewDiagnosticErrorListener(true) // Keep using diagnostic for now
 	lexer.RemoveErrorListeners()
 	lexer.AddErrorListener(errorListener)
 
@@ -90,7 +90,8 @@ func parseChecklistANTLR(content string) ([]map[string]interface{}, error) {
 	// Parse the input content starting from the checklistFile rule
 	tree := parser.ChecklistFile()
 
-	// TODO: Check errors collected by a custom error listener here.
+	// TODO: Check errors collected by a custom error listener here after parsing.
+	// For now, relying on DiagnosticErrorListener printing to stderr.
 
 	// Create our custom listener and walk the parse tree
 	listener := newChecklistListener()
@@ -110,18 +111,18 @@ func parseChecklistANTLR(content string) ([]map[string]interface{}, error) {
 		}
 	}
 
-	fmt.Printf("[DEBUG CL Parser] parseChecklistANTLR finished. Found %d items.\n", len(resultMaps)) // Debug output
+	// fmt.Printf("[DEBUG CL Parser] ParseChecklistContent finished. Found %d items.\n", len(resultMaps)) // Debug output
 	return resultMaps, nil
 }
 
-// === TOOL LOGIC (from previous tool.go) ===
+// === TOOL LOGIC ===
 
 // RegisterChecklistTools adds checklist-specific tools to the core registry.
 // This function is called from gonsi/main.go
 func RegisterChecklistTools(registry *core.ToolRegistry) {
 	registry.RegisterTool(core.ToolImplementation{
 		Spec: core.ToolSpec{
-			Name:        "ChecklistParse", // New tool name
+			Name:        "ChecklistParse", // Tool name remains the same
 			Description: "Parses a string formatted as a NeuroData checklist (lines starting with '- [ ]' or '- [x]') into a list of maps using ANTLR. Each map contains 'text' and 'status' ('pending' or 'done'). Ignores non-item lines.",
 			Args: []core.ArgSpec{
 				{Name: "content", Type: core.ArgTypeString, Required: true, Description: "The string containing the checklist items."},
@@ -147,8 +148,8 @@ func toolChecklistParse(interpreter *core.Interpreter, args []interface{}) (inte
 		logger.Printf("[DEBUG TOOL] Calling TOOL.ChecklistParse on content (snippet): %q", logSnippet)
 	}
 
-	// Call the ANTLR parsing function (now in the same file)
-	parsedItems, err := parseChecklistANTLR(content)
+	// Call the EXPORTED ANTLR parsing function
+	parsedItems, err := ParseChecklistContent(content) // Use exported function
 
 	if err != nil {
 		errMsg := fmt.Sprintf("ChecklistParse failed: %s", err.Error())

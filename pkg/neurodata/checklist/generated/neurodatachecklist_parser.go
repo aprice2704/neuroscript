@@ -32,26 +32,42 @@ var NeuroDataChecklistParserStaticData struct {
 func neurodatachecklistParserInit() {
 	staticData := &NeuroDataChecklistParserStaticData
 	staticData.LiteralNames = []string{
-		"", "'['", "']'", "", "'-'",
+		"", "", "", "'-'", "'['", "']'",
 	}
 	staticData.SymbolicNames = []string{
-		"", "LBRACK", "RBRACK", "MARK", "HYPHEN", "TEXT", "METADATA_LINE", "COMMENT_LINE",
-		"NEWLINE", "WS",
+		"", "METADATA_LINE", "COMMENT_LINE", "HYPHEN", "LBRACK", "RBRACK", "MARK",
+		"TEXT", "NEWLINE", "WS",
 	}
 	staticData.RuleNames = []string{
 		"checklistFile", "itemLine",
 	}
 	staticData.PredictionContextCache = antlr.NewPredictionContextCache()
 	staticData.serializedATN = []int32{
-		4, 1, 9, 23, 2, 0, 7, 0, 2, 1, 7, 1, 1, 0, 5, 0, 6, 8, 0, 10, 0, 12, 0,
-		9, 9, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3,
-		1, 21, 8, 1, 1, 1, 0, 0, 2, 0, 2, 0, 0, 22, 0, 7, 1, 0, 0, 0, 2, 12, 1,
-		0, 0, 0, 4, 6, 3, 2, 1, 0, 5, 4, 1, 0, 0, 0, 6, 9, 1, 0, 0, 0, 7, 5, 1,
-		0, 0, 0, 7, 8, 1, 0, 0, 0, 8, 10, 1, 0, 0, 0, 9, 7, 1, 0, 0, 0, 10, 11,
-		5, 0, 0, 1, 11, 1, 1, 0, 0, 0, 12, 13, 5, 4, 0, 0, 13, 14, 5, 9, 0, 0,
-		14, 15, 5, 1, 0, 0, 15, 16, 5, 3, 0, 0, 16, 17, 5, 2, 0, 0, 17, 18, 5,
-		9, 0, 0, 18, 20, 5, 5, 0, 0, 19, 21, 5, 8, 0, 0, 20, 19, 1, 0, 0, 0, 20,
-		21, 1, 0, 0, 0, 21, 3, 1, 0, 0, 0, 2, 7, 20,
+		4, 1, 9, 59, 2, 0, 7, 0, 2, 1, 7, 1, 1, 0, 5, 0, 6, 8, 0, 10, 0, 12, 0,
+		9, 9, 0, 1, 0, 1, 0, 5, 0, 13, 8, 0, 10, 0, 12, 0, 16, 9, 0, 5, 0, 18,
+		8, 0, 10, 0, 12, 0, 21, 9, 0, 1, 0, 1, 0, 1, 1, 5, 1, 26, 8, 1, 10, 1,
+		12, 1, 29, 9, 1, 1, 1, 1, 1, 4, 1, 33, 8, 1, 11, 1, 12, 1, 34, 1, 1, 1,
+		1, 5, 1, 39, 8, 1, 10, 1, 12, 1, 42, 9, 1, 1, 1, 1, 1, 5, 1, 46, 8, 1,
+		10, 1, 12, 1, 49, 9, 1, 1, 1, 1, 1, 4, 1, 53, 8, 1, 11, 1, 12, 1, 54, 1,
+		1, 1, 1, 1, 1, 0, 0, 2, 0, 2, 0, 0, 64, 0, 7, 1, 0, 0, 0, 2, 27, 1, 0,
+		0, 0, 4, 6, 5, 8, 0, 0, 5, 4, 1, 0, 0, 0, 6, 9, 1, 0, 0, 0, 7, 5, 1, 0,
+		0, 0, 7, 8, 1, 0, 0, 0, 8, 19, 1, 0, 0, 0, 9, 7, 1, 0, 0, 0, 10, 14, 3,
+		2, 1, 0, 11, 13, 5, 8, 0, 0, 12, 11, 1, 0, 0, 0, 13, 16, 1, 0, 0, 0, 14,
+		12, 1, 0, 0, 0, 14, 15, 1, 0, 0, 0, 15, 18, 1, 0, 0, 0, 16, 14, 1, 0, 0,
+		0, 17, 10, 1, 0, 0, 0, 18, 21, 1, 0, 0, 0, 19, 17, 1, 0, 0, 0, 19, 20,
+		1, 0, 0, 0, 20, 22, 1, 0, 0, 0, 21, 19, 1, 0, 0, 0, 22, 23, 5, 0, 0, 1,
+		23, 1, 1, 0, 0, 0, 24, 26, 5, 9, 0, 0, 25, 24, 1, 0, 0, 0, 26, 29, 1, 0,
+		0, 0, 27, 25, 1, 0, 0, 0, 27, 28, 1, 0, 0, 0, 28, 30, 1, 0, 0, 0, 29, 27,
+		1, 0, 0, 0, 30, 32, 5, 3, 0, 0, 31, 33, 5, 9, 0, 0, 32, 31, 1, 0, 0, 0,
+		33, 34, 1, 0, 0, 0, 34, 32, 1, 0, 0, 0, 34, 35, 1, 0, 0, 0, 35, 36, 1,
+		0, 0, 0, 36, 40, 5, 4, 0, 0, 37, 39, 5, 9, 0, 0, 38, 37, 1, 0, 0, 0, 39,
+		42, 1, 0, 0, 0, 40, 38, 1, 0, 0, 0, 40, 41, 1, 0, 0, 0, 41, 43, 1, 0, 0,
+		0, 42, 40, 1, 0, 0, 0, 43, 47, 5, 6, 0, 0, 44, 46, 5, 9, 0, 0, 45, 44,
+		1, 0, 0, 0, 46, 49, 1, 0, 0, 0, 47, 45, 1, 0, 0, 0, 47, 48, 1, 0, 0, 0,
+		48, 50, 1, 0, 0, 0, 49, 47, 1, 0, 0, 0, 50, 52, 5, 5, 0, 0, 51, 53, 5,
+		9, 0, 0, 52, 51, 1, 0, 0, 0, 53, 54, 1, 0, 0, 0, 54, 52, 1, 0, 0, 0, 54,
+		55, 1, 0, 0, 0, 55, 56, 1, 0, 0, 0, 56, 57, 5, 7, 0, 0, 57, 3, 1, 0, 0,
+		0, 8, 7, 14, 19, 27, 34, 40, 47, 54,
 	}
 	deserializer := antlr.NewATNDeserializer(nil)
 	staticData.atn = deserializer.Deserialize(staticData.serializedATN)
@@ -90,13 +106,13 @@ func NewNeuroDataChecklistParser(input antlr.TokenStream) *NeuroDataChecklistPar
 // NeuroDataChecklistParser tokens.
 const (
 	NeuroDataChecklistParserEOF           = antlr.TokenEOF
-	NeuroDataChecklistParserLBRACK        = 1
-	NeuroDataChecklistParserRBRACK        = 2
-	NeuroDataChecklistParserMARK          = 3
-	NeuroDataChecklistParserHYPHEN        = 4
-	NeuroDataChecklistParserTEXT          = 5
-	NeuroDataChecklistParserMETADATA_LINE = 6
-	NeuroDataChecklistParserCOMMENT_LINE  = 7
+	NeuroDataChecklistParserMETADATA_LINE = 1
+	NeuroDataChecklistParserCOMMENT_LINE  = 2
+	NeuroDataChecklistParserHYPHEN        = 3
+	NeuroDataChecklistParserLBRACK        = 4
+	NeuroDataChecklistParserRBRACK        = 5
+	NeuroDataChecklistParserMARK          = 6
+	NeuroDataChecklistParserTEXT          = 7
 	NeuroDataChecklistParserNEWLINE       = 8
 	NeuroDataChecklistParserWS            = 9
 )
@@ -116,6 +132,8 @@ type IChecklistFileContext interface {
 
 	// Getter signatures
 	EOF() antlr.TerminalNode
+	AllNEWLINE() []antlr.TerminalNode
+	NEWLINE(i int) antlr.TerminalNode
 	AllItemLine() []IItemLineContext
 	ItemLine(i int) IItemLineContext
 
@@ -157,6 +175,14 @@ func (s *ChecklistFileContext) GetParser() antlr.Parser { return s.parser }
 
 func (s *ChecklistFileContext) EOF() antlr.TerminalNode {
 	return s.GetToken(NeuroDataChecklistParserEOF, 0)
+}
+
+func (s *ChecklistFileContext) AllNEWLINE() []antlr.TerminalNode {
+	return s.GetTokens(NeuroDataChecklistParserNEWLINE)
+}
+
+func (s *ChecklistFileContext) NEWLINE(i int) antlr.TerminalNode {
+	return s.GetToken(NeuroDataChecklistParserNEWLINE, i)
 }
 
 func (s *ChecklistFileContext) AllItemLine() []IItemLineContext {
@@ -243,10 +269,14 @@ func (p *NeuroDataChecklistParser) ChecklistFile() (localctx IChecklistFileConte
 	}
 	_la = p.GetTokenStream().LA(1)
 
-	for _la == NeuroDataChecklistParserHYPHEN {
+	for _la == NeuroDataChecklistParserNEWLINE {
 		{
 			p.SetState(4)
-			p.ItemLine()
+			p.Match(NeuroDataChecklistParserNEWLINE)
+			if p.HasError() {
+				// Recognition error - abort rule
+				goto errorExit
+			}
 		}
 
 		p.SetState(9)
@@ -256,8 +286,52 @@ func (p *NeuroDataChecklistParser) ChecklistFile() (localctx IChecklistFileConte
 		}
 		_la = p.GetTokenStream().LA(1)
 	}
+	p.SetState(19)
+	p.GetErrorHandler().Sync(p)
+	if p.HasError() {
+		goto errorExit
+	}
+	_la = p.GetTokenStream().LA(1)
+
+	for _la == NeuroDataChecklistParserHYPHEN || _la == NeuroDataChecklistParserWS {
+		{
+			p.SetState(10)
+			p.ItemLine()
+		}
+		p.SetState(14)
+		p.GetErrorHandler().Sync(p)
+		if p.HasError() {
+			goto errorExit
+		}
+		_la = p.GetTokenStream().LA(1)
+
+		for _la == NeuroDataChecklistParserNEWLINE {
+			{
+				p.SetState(11)
+				p.Match(NeuroDataChecklistParserNEWLINE)
+				if p.HasError() {
+					// Recognition error - abort rule
+					goto errorExit
+				}
+			}
+
+			p.SetState(16)
+			p.GetErrorHandler().Sync(p)
+			if p.HasError() {
+				goto errorExit
+			}
+			_la = p.GetTokenStream().LA(1)
+		}
+
+		p.SetState(21)
+		p.GetErrorHandler().Sync(p)
+		if p.HasError() {
+			goto errorExit
+		}
+		_la = p.GetTokenStream().LA(1)
+	}
 	{
-		p.SetState(10)
+		p.SetState(22)
 		p.Match(NeuroDataChecklistParserEOF)
 		if p.HasError() {
 			// Recognition error - abort rule
@@ -287,13 +361,12 @@ type IItemLineContext interface {
 
 	// Getter signatures
 	HYPHEN() antlr.TerminalNode
-	AllWS() []antlr.TerminalNode
-	WS(i int) antlr.TerminalNode
 	LBRACK() antlr.TerminalNode
 	MARK() antlr.TerminalNode
 	RBRACK() antlr.TerminalNode
 	TEXT() antlr.TerminalNode
-	NEWLINE() antlr.TerminalNode
+	AllWS() []antlr.TerminalNode
+	WS(i int) antlr.TerminalNode
 
 	// IsItemLineContext differentiates from other interfaces.
 	IsItemLineContext()
@@ -335,14 +408,6 @@ func (s *ItemLineContext) HYPHEN() antlr.TerminalNode {
 	return s.GetToken(NeuroDataChecklistParserHYPHEN, 0)
 }
 
-func (s *ItemLineContext) AllWS() []antlr.TerminalNode {
-	return s.GetTokens(NeuroDataChecklistParserWS)
-}
-
-func (s *ItemLineContext) WS(i int) antlr.TerminalNode {
-	return s.GetToken(NeuroDataChecklistParserWS, i)
-}
-
 func (s *ItemLineContext) LBRACK() antlr.TerminalNode {
 	return s.GetToken(NeuroDataChecklistParserLBRACK, 0)
 }
@@ -359,8 +424,12 @@ func (s *ItemLineContext) TEXT() antlr.TerminalNode {
 	return s.GetToken(NeuroDataChecklistParserTEXT, 0)
 }
 
-func (s *ItemLineContext) NEWLINE() antlr.TerminalNode {
-	return s.GetToken(NeuroDataChecklistParserNEWLINE, 0)
+func (s *ItemLineContext) AllWS() []antlr.TerminalNode {
+	return s.GetTokens(NeuroDataChecklistParserWS)
+}
+
+func (s *ItemLineContext) WS(i int) antlr.TerminalNode {
+	return s.GetToken(NeuroDataChecklistParserWS, i)
 }
 
 func (s *ItemLineContext) GetRuleContext() antlr.RuleContext {
@@ -399,79 +468,165 @@ func (p *NeuroDataChecklistParser) ItemLine() (localctx IItemLineContext) {
 	var _la int
 
 	p.EnterOuterAlt(localctx, 1)
-	{
-		p.SetState(12)
-		p.Match(NeuroDataChecklistParserHYPHEN)
-		if p.HasError() {
-			// Recognition error - abort rule
-			goto errorExit
-		}
-	}
-	{
-		p.SetState(13)
-		p.Match(NeuroDataChecklistParserWS)
-		if p.HasError() {
-			// Recognition error - abort rule
-			goto errorExit
-		}
-	}
-	{
-		p.SetState(14)
-		p.Match(NeuroDataChecklistParserLBRACK)
-		if p.HasError() {
-			// Recognition error - abort rule
-			goto errorExit
-		}
-	}
-	{
-		p.SetState(15)
-		p.Match(NeuroDataChecklistParserMARK)
-		if p.HasError() {
-			// Recognition error - abort rule
-			goto errorExit
-		}
-	}
-	{
-		p.SetState(16)
-		p.Match(NeuroDataChecklistParserRBRACK)
-		if p.HasError() {
-			// Recognition error - abort rule
-			goto errorExit
-		}
-	}
-	{
-		p.SetState(17)
-		p.Match(NeuroDataChecklistParserWS)
-		if p.HasError() {
-			// Recognition error - abort rule
-			goto errorExit
-		}
-	}
-	{
-		p.SetState(18)
-		p.Match(NeuroDataChecklistParserTEXT)
-		if p.HasError() {
-			// Recognition error - abort rule
-			goto errorExit
-		}
-	}
-	p.SetState(20)
+	p.SetState(27)
 	p.GetErrorHandler().Sync(p)
 	if p.HasError() {
 		goto errorExit
 	}
 	_la = p.GetTokenStream().LA(1)
 
-	if _la == NeuroDataChecklistParserNEWLINE {
+	for _la == NeuroDataChecklistParserWS {
 		{
-			p.SetState(19)
-			p.Match(NeuroDataChecklistParserNEWLINE)
+			p.SetState(24)
+			p.Match(NeuroDataChecklistParserWS)
 			if p.HasError() {
 				// Recognition error - abort rule
 				goto errorExit
 			}
 		}
 
+		p.SetState(29)
+		p.GetErrorHandler().Sync(p)
+		if p.HasError() {
+			goto errorExit
+		}
+		_la = p.GetTokenStream().LA(1)
+	}
+	{
+		p.SetState(30)
+		p.Match(NeuroDataChecklistParserHYPHEN)
+		if p.HasError() {
+			// Recognition error - abort rule
+			goto errorExit
+		}
+	}
+	p.SetState(32)
+	p.GetErrorHandler().Sync(p)
+	if p.HasError() {
+		goto errorExit
+	}
+	_la = p.GetTokenStream().LA(1)
+
+	for ok := true; ok; ok = _la == NeuroDataChecklistParserWS {
+		{
+			p.SetState(31)
+			p.Match(NeuroDataChecklistParserWS)
+			if p.HasError() {
+				// Recognition error - abort rule
+				goto errorExit
+			}
+		}
+
+		p.SetState(34)
+		p.GetErrorHandler().Sync(p)
+		if p.HasError() {
+			goto errorExit
+		}
+		_la = p.GetTokenStream().LA(1)
+	}
+	{
+		p.SetState(36)
+		p.Match(NeuroDataChecklistParserLBRACK)
+		if p.HasError() {
+			// Recognition error - abort rule
+			goto errorExit
+		}
+	}
+	p.SetState(40)
+	p.GetErrorHandler().Sync(p)
+	if p.HasError() {
+		goto errorExit
+	}
+	_la = p.GetTokenStream().LA(1)
+
+	for _la == NeuroDataChecklistParserWS {
+		{
+			p.SetState(37)
+			p.Match(NeuroDataChecklistParserWS)
+			if p.HasError() {
+				// Recognition error - abort rule
+				goto errorExit
+			}
+		}
+
+		p.SetState(42)
+		p.GetErrorHandler().Sync(p)
+		if p.HasError() {
+			goto errorExit
+		}
+		_la = p.GetTokenStream().LA(1)
+	}
+	{
+		p.SetState(43)
+		p.Match(NeuroDataChecklistParserMARK)
+		if p.HasError() {
+			// Recognition error - abort rule
+			goto errorExit
+		}
+	}
+	p.SetState(47)
+	p.GetErrorHandler().Sync(p)
+	if p.HasError() {
+		goto errorExit
+	}
+	_la = p.GetTokenStream().LA(1)
+
+	for _la == NeuroDataChecklistParserWS {
+		{
+			p.SetState(44)
+			p.Match(NeuroDataChecklistParserWS)
+			if p.HasError() {
+				// Recognition error - abort rule
+				goto errorExit
+			}
+		}
+
+		p.SetState(49)
+		p.GetErrorHandler().Sync(p)
+		if p.HasError() {
+			goto errorExit
+		}
+		_la = p.GetTokenStream().LA(1)
+	}
+	{
+		p.SetState(50)
+		p.Match(NeuroDataChecklistParserRBRACK)
+		if p.HasError() {
+			// Recognition error - abort rule
+			goto errorExit
+		}
+	}
+	p.SetState(52)
+	p.GetErrorHandler().Sync(p)
+	if p.HasError() {
+		goto errorExit
+	}
+	_la = p.GetTokenStream().LA(1)
+
+	for ok := true; ok; ok = _la == NeuroDataChecklistParserWS {
+		{
+			p.SetState(51)
+			p.Match(NeuroDataChecklistParserWS)
+			if p.HasError() {
+				// Recognition error - abort rule
+				goto errorExit
+			}
+		}
+
+		p.SetState(54)
+		p.GetErrorHandler().Sync(p)
+		if p.HasError() {
+			goto errorExit
+		}
+		_la = p.GetTokenStream().LA(1)
+	}
+	{
+		p.SetState(56)
+		p.Match(NeuroDataChecklistParserTEXT)
+		if p.HasError() {
+			// Recognition error - abort rule
+			goto errorExit
+		}
 	}
 
 errorExit:
