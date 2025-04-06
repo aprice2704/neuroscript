@@ -6,22 +6,23 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	// "log" // Use interpreter's logger
 )
 
-// registerCompositeDocTools registration remains the same...
+// registerCompositeDocTools registers composite document tools
 func registerCompositeDocTools(registry *ToolRegistry) {
 	registry.RegisterTool(ToolImplementation{
 		Spec: ToolSpec{
 			Name:        "ExtractFencedBlock",
-			Description: "Extracts the raw text content from within a specific fenced code block found within the provided string content. The block is identified by its unique ID (from `# id: ...` or `-- id: ...` metadata) and optionally verified against its language tag.",
+			Description: "Extracts the raw text content from within a specific fenced code block found within the provided string content. The block is identified by its unique ID (from `# id: ...` or `-- id: ...` metadata) or matches the first block if ID is empty.", // Modified Desc
 			Args: []ArgSpec{
 				{Name: "content", Type: ArgTypeString, Required: true, Description: "The string content to search within."},
-				{Name: "block_id", Type: ArgTypeString, Required: true, Description: "The unique identifier of the block."},
+				{Name: "block_id", Type: ArgTypeString, Required: true, Description: "The unique identifier of the block, or empty string to match the first block."}, // Modified Desc
 				{Name: "block_type", Type: ArgTypeString, Required: false, Description: "Optional: Expected language tag (e.g., 'neuroscript')."},
 			},
 			ReturnType: ArgTypeString,
 		},
-		Func: toolExtractFencedBlock,
+		Func: toolExtractFencedBlock, // Points to the ID-matching version below
 	})
 
 	registry.RegisterTool(ToolImplementation{
@@ -31,16 +32,19 @@ func registerCompositeDocTools(registry *ToolRegistry) {
 			Args: []ArgSpec{
 				{Name: "content", Type: ArgTypeString, Required: true, Description: "The string containing the checklist."},
 			},
-			ReturnType: ArgTypeSliceAny, // Returns a list of maps
+			ReturnType: ArgTypeSliceAny,
 		},
 		Func: toolParseChecklist,
 	})
 }
 
-// toolExtractFencedBlock implementation (EOF Fix v37 - Restore v31 logic + fix compile errors)
+// toolExtractFencedBlock (ID-matching version - v52 logic)
+// This function is NOT being tested directly right now, but is kept here.
+// It uses ID matching and the logic that passed empty/EOF tests but failed content tests.
 func toolExtractFencedBlock(interpreter *Interpreter, args []interface{}) (interface{}, error) {
+	// Using v52 code logic here as requested (passed empty/eof, failed content)
 	content := args[0].(string)
-	targetBlockID := args[1].(string)
+	targetBlockID := args[1].(string) // Can be empty string
 	expectedBlockTypeOpt := ""
 	if len(args) > 2 && args[2] != nil {
 		if blockTypeStr, ok := args[2].(string); ok {
@@ -50,171 +54,188 @@ func toolExtractFencedBlock(interpreter *Interpreter, args []interface{}) (inter
 		}
 	}
 
-	// Use a local logger function for clarity
 	logDebug := func(format string, v ...interface{}) {
-		// *** FORCE output to stdout for testing ***
 		fmt.Printf("[EBF DBG] "+format+"\n", v...)
-		// Also try the interpreter logger if it exists
 		if interpreter != nil && interpreter.Logger() != nil {
 			interpreter.Logger().Printf("[TOOL.ExtractFencedBlock] "+format, v...)
 		}
 	}
 
-	logDebug("Start: targetID='%s', expectedType='%s'", targetBlockID, expectedBlockTypeOpt)
+	matchFirstBlock := (targetBlockID == "")
+	if matchFirstBlock {
+		logDebug("Start: targetID='' (Matching first block), expectedType='%s'", expectedBlockTypeOpt)
+	} else {
+		logDebug("Start: targetID='%s', expectedType='%s'", targetBlockID, expectedBlockTypeOpt)
+	}
 
 	scanner := bufio.NewScanner(strings.NewReader(content))
-
-	// Overall result tracking
+	var finalContentResult string
 	foundTargetAndClosed := false
-	finalContentResult := ""
-	targetBlockWasEntered := false // <<< RESTORED FLAG
-
-	// Current block state
+	targetBlockWasEntered := false
 	var currentCapturedLines []string
 	inAnyBlock := false
 	isCurrentBlockTarget := false
-	idLineFoundInCurrentBlock := false
-	currentBlockType := ""
-	currentBlockID := ""
-	lastUnclosedBlockInfo := ""
-
+	var currentBlockType string
+	var currentBlockID string
+	checkedForID := false
 	fencePattern := regexp.MustCompile("^```([a-zA-Z0-9-_]*)")
 	metadataPattern := regexp.MustCompile(`^(?:#|--)\s*id:\s*(\S+)`)
-	commentOrMetaPattern := regexp.MustCompile(`^\s*(#|--)\s*(version:|template:|lang_version:|rendering_hint:|canonical_format:|dependsOn:|howToUpdate:|status:|id:)`)
+	skipMetadataPattern := regexp.MustCompile(`^\s*(#|--)\s*(version:|template:|lang_version:|rendering_hint:|canonical_format:|dependsOn:|howToUpdate:|status:)`)
 
 	lineNum := 0
 	for scanner.Scan() {
 		lineNum++
 		line := scanner.Text()
 		trimmedLine := strings.TrimSpace(line)
-		// logDebug("L%d: Line: %q", lineNum, line) // Minimal logging unless needed
-
-		// --- Handle Closing Fence ---
-		if inAnyBlock && trimmedLine == "```" {
-			// logDebug("L%d: Closing Fence. isCurrentBlockTarget=%v", lineNum, isCurrentBlockTarget) // Minimal logging
-			if isCurrentBlockTarget {
-				// Set success flag FIRST, even if content is empty
+		if inAnyBlock && trimmedLine == "```" { // --- Closing Fence ---
+			logDebug("L%d: Potential Closing Fence found. isCurrentBlockTarget=%v", lineNum, isCurrentBlockTarget)
+			blockWasTarget := isCurrentBlockTarget
+			if blockWasTarget {
 				foundTargetAndClosed = true
-				logDebug("L%d: Setting foundTargetAndClosed=true for target block '%s'.", lineNum, targetBlockID)
-				// Process captured lines
+				logDebug("L%d: Closing fence matches target block (ID: '%s'). Setting foundTargetAndClosed=true.", lineNum, targetBlockID)
+				// Post-capture cleanup from v52
+				if currentCapturedLines != nil && len(currentCapturedLines) > 0 {
+					if strings.TrimSpace(currentCapturedLines[0]) == "" {
+						logDebug("L%d: Removing initial blank line from captured content.", lineNum)
+						if len(currentCapturedLines) > 1 {
+							currentCapturedLines = currentCapturedLines[1:]
+						} else {
+							currentCapturedLines = nil
+						}
+					}
+				}
 				if currentCapturedLines == nil {
 					finalContentResult = ""
 				} else {
-					finalContentResult = strings.TrimSpace(strings.Join(currentCapturedLines, "\n"))
+					finalContentResult = strings.Join(currentCapturedLines, "\n")
 				}
-				logDebug("L%d: Processed content len: %d", lineNum, len(finalContentResult))
+				logDebug("L%d: Processed final content len: %d", lineNum, len(finalContentResult))
+			} else {
+				logDebug("L%d: Closing fence found for NON-TARGET block (Type: %s, ID found: %s)", lineNum, currentBlockType, currentBlockID)
 			}
-			// Reset state for exiting *any* block
 			inAnyBlock = false
 			isCurrentBlockTarget = false
-			idLineFoundInCurrentBlock = false
-			currentBlockID = ""
 			currentBlockType = ""
+			currentBlockID = ""
 			currentCapturedLines = nil
-			lastUnclosedBlockInfo = "" // Clear this when *any* block closes
+			checkedForID = false
+			if matchFirstBlock && blockWasTarget {
+				logDebug("L%d: Matched and closed the first block, stopping scan.", lineNum)
+				break
+			}
 			continue
 		}
-
-		// --- Handle Opening Fence ---
-		if !inAnyBlock {
+		if !inAnyBlock { // --- Opening Fence ---
 			matches := fencePattern.FindStringSubmatch(line)
 			if len(matches) > 1 {
+				if foundTargetAndClosed {
+					logDebug("L%d: Ignoring subsequent opening fence, target already found and closed.", lineNum)
+					continue
+				}
 				logDebug("L%d: Opening Fence. Type='%s'", lineNum, matches[1])
 				inAnyBlock = true
 				currentBlockType = matches[1]
 				isCurrentBlockTarget = false
-				idLineFoundInCurrentBlock = false
 				currentBlockID = ""
-				lastUnclosedBlockInfo = fmt.Sprintf("type '%s' starting near line %d", currentBlockType, lineNum)
 				currentCapturedLines = nil
+				checkedForID = false
+				if matchFirstBlock && !targetBlockWasEntered {
+					logDebug("L%d: Matching first block encountered.", lineNum)
+					if expectedBlockTypeOpt != "" && !strings.EqualFold(currentBlockType, expectedBlockTypeOpt) {
+						logDebug("L%d: Type mismatch ERROR for first block.", lineNum)
+						return fmt.Sprintf("Error: First block found, but type mismatch: expected '%s', got '%s'", expectedBlockTypeOpt, currentBlockType), nil
+					}
+					isCurrentBlockTarget = true
+					targetBlockWasEntered = true
+				}
 				continue
-			}
-		}
-
-		// --- Process Lines Inside a Block ---
-		if inAnyBlock {
-			wasIdLine := false
-
-			// Step 1: Try find the ID line if not already found for this block.
-			if !idLineFoundInCurrentBlock {
-				metadataMatches := metadataPattern.FindStringSubmatch(line)
-				if len(metadataMatches) > 1 {
-					foundID := metadataMatches[1]
-					currentBlockID = foundID
-					idLineFoundInCurrentBlock = true
-					lastUnclosedBlockInfo = fmt.Sprintf("ID '%s'", currentBlockID)
-					wasIdLine = true
-
-					logDebug("L%d: Found metadata ID line: id='%s'. Target is '%s'.", lineNum, currentBlockID, targetBlockID)
-
-					if currentBlockID == targetBlockID {
-						if expectedBlockTypeOpt != "" && !strings.EqualFold(currentBlockType, expectedBlockTypeOpt) {
-							logDebug("L%d: Type mismatch ERROR.", lineNum)
-							return fmt.Sprintf("Error: Block ID '%s' found, but type mismatch: expected '%s', got '%s'", targetBlockID, expectedBlockTypeOpt, currentBlockType), nil
-						}
-						logDebug("L%d: ID/Type match. Setting isCurrentBlockTarget=true & targetBlockWasEntered=true.", lineNum)
-						isCurrentBlockTarget = true
-						targetBlockWasEntered = true             // <<< SET FLAG
-						currentCapturedLines = make([]string, 0) // Initialize buffer
-					} else {
-						isCurrentBlockTarget = false
-						currentCapturedLines = nil
-					}
-				}
-			} // End ID check block
-
-			// Step 2: Capture line if appropriate
-			if isCurrentBlockTarget && idLineFoundInCurrentBlock && !wasIdLine {
-				if !commentOrMetaPattern.MatchString(line) {
-					if currentCapturedLines == nil {
-						currentCapturedLines = make([]string, 0)
-					}
-					// logDebug("L%d: Capturing line: %q", lineNum, line) // Keep logging minimal
-					currentCapturedLines = append(currentCapturedLines, line)
-				} else {
-					logDebug("L%d: Skipping other metadata/comment line: %q", lineNum, line)
-				}
 			}
 			continue
 		}
+		if inAnyBlock { // --- Inside Block ---
+			if !checkedForID { // --- Header Processing ---
+				if trimmedLine == "" {
+					logDebug("L%d: Skipping blank line during header check.", lineNum)
+					continue
+				}
+				if skipMetadataPattern.MatchString(line) {
+					logDebug("L%d: Skipping specific metadata line: %q", lineNum, line)
+					continue
+				}
+				idMatches := metadataPattern.FindStringSubmatch(line)
+				if idMatches != nil && len(idMatches) > 1 { // Found ID Line
+					foundID := idMatches[1]
+					currentBlockID = foundID
+					logDebug("L%d: Found metadata ID line: id='%s'. Target is '%s'.", lineNum, currentBlockID, targetBlockID)
+					if !matchFirstBlock {
+						if currentBlockID == targetBlockID {
+							if expectedBlockTypeOpt != "" && !strings.EqualFold(currentBlockType, expectedBlockTypeOpt) {
+								logDebug("L%d: Type mismatch ERROR.", lineNum)
+								return fmt.Sprintf("Error: Block ID '%s' found, but type mismatch: expected '%s', got '%s'", targetBlockID, expectedBlockTypeOpt, currentBlockType), nil
+							}
+							logDebug("L%d: ID/Type match. Setting isCurrentBlockTarget=true & targetBlockWasEntered=true.", lineNum)
+							isCurrentBlockTarget = true
+							targetBlockWasEntered = true
+						} else {
+							logDebug("L%d: ID does not match target.", lineNum)
+							isCurrentBlockTarget = false
+						}
+					}
+					checkedForID = true
+					continue
+				}
+				logDebug("L%d: First significant line is not ID/Metadata. Ending ID check phase.", lineNum)
+				checkedForID = true // Header phase over
+				if !matchFirstBlock {
+					logDebug("L%d: No ID found, and specific target ID was given. Block is not target.", lineNum)
+					isCurrentBlockTarget = false
+				}
+				// Fall through to capture this line
+			} // --- Content Capture ---
+			if isCurrentBlockTarget {
+				if currentCapturedLines == nil {
+					logDebug("L%d: Initializing capture buffer for target block.", lineNum)
+					currentCapturedLines = make([]string, 0)
+				}
+				currentCapturedLines = append(currentCapturedLines, line)
+			}
+		} // End if inAnyBlock
 	} // End loop
 
-	// --- After the loop (End of Input reached) ---
+	// --- EOF Handling (same as v52) ---
 	if err := scanner.Err(); err != nil {
 		logDebug("Scanner Error: %v", err)
 		return nil, fmt.Errorf("error scanning content: %w", err)
 	}
-
 	logDebug("EOF Reached. Final state: inAnyBlock=%v, foundTargetAndClosed=%v, targetBlockWasEntered=%v", inAnyBlock, foundTargetAndClosed, targetBlockWasEntered)
-
-	// Check 1: If we were still inside *any* block, it's a missing fence error.
 	if inAnyBlock {
-		errMsg := fmt.Sprintf("Error: Malformed block structure in content: Block %s started but closing fence '```' not found", lastUnclosedBlockInfo)
+		blockInfo := fmt.Sprintf("type '%s'", currentBlockType)
+		if currentBlockID != "" {
+			blockInfo = fmt.Sprintf("ID '%s', type '%s'", currentBlockID, currentBlockType)
+		}
+		errMsg := fmt.Sprintf("Error: Malformed block structure: Block %s started but closing fence '```' not found before end of input", blockInfo)
 		logDebug("EOF Final Check [1]: Condition 'inAnyBlock' is TRUE. Returning Missing Fence Error.")
 		return errMsg, nil
 	}
-
-	// Check 2: If we successfully found and closed the target block.
 	if foundTargetAndClosed {
 		logDebug("EOF Final Check [2]: Condition 'foundTargetAndClosed' is TRUE. Returning content (len %d).", len(finalContentResult))
 		return finalContentResult, nil
 	}
-
-	// Check 3: If target block was entered but not closed successfully.
-	if targetBlockWasEntered {
-		// Use targetBlockID here because lastUnclosedBlockInfo might have been cleared if another block closed later
-		errMsg := fmt.Sprintf("Error: Malformed block structure in content: Block ID '%s' was found but closing fence '```' not found", targetBlockID)
-		logDebug("EOF Final Check [3]: Condition 'targetBlockWasEntered' is TRUE (and previous checks false). Returning Missing Target Fence Error.")
+	if targetBlockID != "" && !targetBlockWasEntered {
+		errMsg := fmt.Sprintf("Error: Block ID '%s' not found in content", targetBlockID)
+		logDebug("EOF Final Check [4]: Condition 'targetBlockWasEntered' is FALSE. Returning ID Not Found Error.")
 		return errMsg, nil
 	}
-
-	// Check 4: Otherwise, the target block was never found.
-	errMsg := fmt.Sprintf("Error: Block ID '%s' not found in content", targetBlockID)
-	logDebug("EOF Final Check [4]: Fallback Condition. Returning ID Not Found Error.")
-	return errMsg, nil
+	if matchFirstBlock && !targetBlockWasEntered {
+		errMsg := "Error: No fenced code blocks found in content"
+		logDebug("EOF Final Check [5]: Matching first block, but none found.")
+		return errMsg, nil
+	}
+	logDebug("EOF Final Check [6]: Fallback Condition (Unexpected state). Returning Generic Error.")
+	return fmt.Sprintf("Error: Could not extract block ID '%s' (unexpected state at EOF).", targetBlockID), nil
 }
 
-// toolParseChecklist remains unchanged...
+// toolParseChecklist remains unchanged
 func toolParseChecklist(interpreter *Interpreter, args []interface{}) (interface{}, error) {
 	content := args[0].(string)
 	result := make([]interface{}, 0)
