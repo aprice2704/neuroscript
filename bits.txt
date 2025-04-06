@@ -65,7 +65,7 @@ When providing markdown (and only markdown, all other filetypes seem ok), please
 
 Please gather helper functions in a shared file appropriately namespaced, e.g. tools_helpers.go 
 
-Beware of trying to fix problems with mutiple factors by "try it and see"; when there are several factors this can result in churn without progress; instead reduce the unknowns.
+Beware of trying to fix problems with multiple factors by "try it and see"; when there are several factors this can result in churn without progress; instead reduce the unknowns.
 
 It is perfectly fine to ask to create small test programs to clear up uncertainties, especially to reduce multi-factor problems to single ones.
 
@@ -75,7 +75,7 @@ Avoid fiddling with code in several places at once, long established functions i
 
 NEVER, EVER, **EVER** remove debug lines **until I ask for a file without them**
 
-You will need the neuroscript folder. Tell me if not yet provided.If you don't have the NeuroScript.g4 file, please ask me to provide the text right away.
+You will need the neuroscript folder. Tell me if not yet provided. If you don't have the NeuroScript.g4 file, please ask me to provide the text right away.
 
 For some reason the core import line keeps appearing like this:
 
