@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/ns-logo.webp" alt="NeuroScript Logo"></p>
+
 # NeuroScript: A Pseudocode Framework for AI Reasoning
 
 Version: 0.1.0  

@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/ns-logo.webp" alt="NeuroScript Logo"></p>
+
 # NeuroScript Project README
 
 Version: 0.2.0
@@ -7,11 +9,11 @@ HowToUpdate: Review dependancies, update appropriately for README sections, pres
 Authors:  Andrew Price (www.eggstremestructures.com),  
           Gemini 2.5 Pro (Experimental) (gemini.google.com)
 
-## **STATUS: EARLY DEVELOPMENT**
+**STATUS: EARLY DEVELOPMENT**
 
 Under massive and constant updates, do not use yet.
 
-## NeuroScript Overview:**
+**NeuroScript Overview:**
 
 The NeuroScript project (NS) aims to allow Humans, AIs, and computers to communicate in clear, reliable, repeatable ways by providing more structured means than just natural language ["neuroscript overview.md"](neuroscript/docs/neuroscript%20overview.md).
 
@@ -24,15 +26,15 @@ Complementary **`neurodata`** formats provide easy ways to store, share, edit, a
 ## Table of Contents
 
 - [NeuroScript Project README](#neuroscript-project-readme)
-  - [Table of Contents](#table-of-contents)
-  - [Features](#features)
-  - [Why NeuroScript?](#why-neuroscript)
-  - [Core Concepts](#core-concepts)
-  - [Example Usage](#example-usage)
-  - [Installation \& Setup (gonsi CLI)](#installation--setup-gonsi-cli)
-  - [FAQ](#faq)
-  - [Contributing](#contributing)
-  - [License](#license)
+  - [Table of Contents](#table-of-contents)
+  - [Features](#features)
+  - [Why NeuroScript?](#why-neuroscript)
+  - [Core Concepts](#core-concepts)
+  - [Example Usage](#example-usage)
+  - [Installation \& Setup (gonsi CLI)](#installation--setup-gonsi-cli)
+  - [FAQ](#faq)
+  - [Contributing](#contributing)
+  - [License](#license)
 
 ---
 
@@ -54,29 +56,29 @@ Complementary **`neurodata`** formats provide easy ways to store, share, edit, a
 
 Most AI models rely on hidden chain-of-thought or ad hoc patterns. **NeuroScript** aims to make reasoning **explicit**, **reusable**, and **collaborative**:
 
-1. **Modular**: Define small, focused procedures (`SummarizeText`, `CommitChanges`), then orchestrate them for complex tasks (`UpdateProjectDocs`).
-2. **Documented**: Standardized docstrings make skills discoverable, reviewable, and maintainable by humans and AIs.
-3. **Hybrid Execution**: Combine precise procedural logic (executable by `gonsi`) with flexible LLM reasoning (`CALL LLM`) and powerful external tools (`CALL TOOL.*`).
-4. **Scaffold for Complex Workflows**: Provides a clear structure for large or critical AI workflows, guiding execution and facilitating debugging.
+1.  **Modular**: Define small, focused procedures (`SummarizeText`, `CommitChanges`), then orchestrate them for complex tasks (`UpdateProjectDocs`).
+2.  **Documented**: Standardized docstrings make skills discoverable, reviewable, and maintainable by humans and AIs.
+3.  **Hybrid Execution**: Combine precise procedural logic (executable by `gonsi`) with flexible LLM reasoning (`CALL LLM`) and powerful external tools (`CALL TOOL.*`).
+4.  **Scaffold for Complex Workflows**: Provides a clear structure for large or critical AI workflows, guiding execution and facilitating debugging.
 
 ---
 
 ## Core Concepts
 
-1. **Procedures**: Defined with `DEFINE PROCEDURE Name(Arguments)`, includes a required `COMMENT:` block with metadata like `PURPOSE`, `INPUTS`, `OUTPUT`, `ALGORITHM`, `LANG_VERSION` ["script spec.md"](neuroscript/docs/script%20spec.md). Ends with `END`.
-2. **Statements**:
-    - `SET variable = expression`: Assigns the *raw* result of an expression.
-    - `CALL target(args...)`: Invokes Procedures, `LLM`, or `TOOL.Function`. Result accessible via `LAST`.
-    - `LAST`: Keyword evaluating to the raw result of the most recent `CALL`.
-    - `EVAL(string_expression)`: *Explicitly* resolves `{{placeholders}}` within the string result of `string_expression`. Placeholders are *not* resolved automatically elsewhere.
-    - `RETURN expression`: Exits procedure, returning the raw evaluated expression value (or nil).
-    - `EMIT expression`: Prints the string representation of the raw evaluated expression value.
-    - Control Flow: `IF/THEN/ELSE/ENDBLOCK`, `WHILE/DO/ENDBLOCK`, `FOR EACH/IN/DO/ENDBLOCK`. Blocks require `ENDBLOCK`.
-3. **Expressions**: Combine literals, variables, `LAST`, `EVAL()`, arithmetic (`+`, `-`, `*`, `/`, `%`, `**`), comparisons (`==`, `!=`, `>`, `<`, `>=`, `<=`), logical (`AND`, `OR`, `NOT`), bitwise (`&`, `|`, `^`), function calls (`LN`, `LOG`, `SIN`, etc.), and element access (`[]`).
-4. **Literals**: Strings (`"..."`, `'...'`), numbers (`123`, `4.5`), booleans (`true`, `false`), lists (`[expr1, expr2]`), maps (`{"key": expr1, "val": expr2}`).
-5. **Docstrings**: Ensure procedures are self-documenting via the `COMMENT:` block ["script spec.md"](neuroscript/docs/script%20spec.md).
-6. **Skill Library**: Procedures (`.ns.txt` files) are intended to be stored (e.g., in Git) and discoverable (e.g., via vector search on docstrings - mock implemented) [tools_vector.go](neuroscript/pkg/core/tools_vector.go).
-7. **Versioning**: Files should include `Version:` metadata comment. Procedures can include `LANG_VERSION:` in docstrings. `FILE_VERSION "..."` declaration is also supported but may be deprecated [conventions.md](neuroscript/docs/conventions.md).
+1.  **Procedures**: Defined with `DEFINE PROCEDURE Name(Arguments)`, includes a required `COMMENT:` block with metadata like `PURPOSE`, `INPUTS`, `OUTPUT`, `ALGORITHM`, `LANG_VERSION` ["script spec.md"](neuroscript/docs/script%20spec.md). Ends with `END`.
+2.  **Statements**:
+    - `SET variable = expression`: Assigns the *raw* result of an expression.
+    - `CALL target(args...)`: Invokes Procedures, `LLM`, or `TOOL.Function`. Result accessible via `LAST`.
+    - `LAST`: Keyword evaluating to the raw result of the most recent `CALL`.
+    - `EVAL(string_expression)`: *Explicitly* resolves `{{placeholders}}` within the string result of `string_expression`. Placeholders are *not* resolved automatically elsewhere.
+    - `RETURN expression`: Exits procedure, returning the raw evaluated expression value (or nil).
+    - `EMIT expression`: Prints the string representation of the raw evaluated expression value.
+    - Control Flow: `IF/THEN/ELSE/ENDBLOCK`, `WHILE/DO/ENDBLOCK`, `FOR EACH/IN/DO/ENDBLOCK`. Blocks require `ENDBLOCK`.
+3.  **Expressions**: Combine literals, variables, `LAST`, `EVAL()`, arithmetic (`+`, `-`, `*`, `/`, `%`, `**`), comparisons (`==`, `!=`, `>`, `<`, `>=`, `<=`), logical (`AND`, `OR`, `NOT`), bitwise (`&`, `|`, `^`), function calls (`LN`, `LOG`, `SIN`, etc.), and element access (`[]`).
+4.  **Literals**: Strings (`"..."`, `'...'`), numbers (`123`, `4.5`), booleans (`true`, `false`), lists (`[expr1, expr2]`), maps (`{"key": expr1, "val": expr2}`).
+5.  **Docstrings**: Ensure procedures are self-documenting via the `COMMENT:` block ["script spec.md"](neuroscript/docs/script%20spec.md).
+6.  **Skill Library**: Procedures (`.ns.txt` files) are intended to be stored (e.g., in Git) and discoverable (e.g., via vector search on docstrings - mock implemented) [tools_vector.go](neuroscript/pkg/core/tools_vector.go).
+7.  **Versioning**: Files should include `Version:` metadata comment. Procedures can include `LANG_VERSION:` in docstrings. `FILE_VERSION "..."` declaration is also supported but may be deprecated [conventions.md](neuroscript/docs/conventions.md).
 
 ---
 
@@ -122,28 +124,28 @@ END
 
 ## Installation & Setup (gonsi CLI)
 
-1.  **Prerequisites**: Go programming language environment (e.g., Go 1.20+). Git command line tool.
-2.  **Build `gonsi`**: Navigate to the `neuroscript` directory in your terminal and run:
-    ```bash
-    go build -o gonsi ./gonsi
-    ```
-    This creates the `gonsi` executable in the `neuroscript` directory.
-3.  **LLM Connection (Optional)**:
-    * Set the `GEMINI_API_KEY` environment variable with your API key if you intend to use `CALL LLM`.
-    * The default model is `gemini-1.5-flash-latest` [llm.go](neuroscript/pkg/core/llm.go). (Future: Make configurable).
-4.  **Run `gonsi`**:
-    ```bash
-    # Example: Run the TestListAndMapAccess procedure in the skills dir
-    ./gonsi gonsi/skills TestListAndMapAccess "MyPrefix"
+1.  **Prerequisites**: Go programming language environment (e.g., Go 1.20+). Git command line tool.
+2.  **Build `gonsi`**: Navigate to the `neuroscript` directory in your terminal and run:
+    ```bash
+    go build -o gonsi ./gonsi
+    ```
+    This creates the `gonsi` executable in the `neuroscript` directory.
+3.  **LLM Connection (Optional)**:
+    * Set the `GEMINI_API_KEY` environment variable with your API key if you intend to use `CALL LLM`.
+    * The default model is `gemini-1.5-flash-latest` [llm.go](neuroscript/pkg/core/llm.go). (Future: Make configurable).
+4.  **Run `gonsi`**:
+    ```bash
+    # Example: Run the TestListAndMapAccess procedure in the skills dir
+    ./gonsi gonsi/skills TestListAndMapAccess "MyPrefix"
 
-    # Example: Run with debug logging for the interpreter
-    ./gonsi -debug-interpreter gonsi/skills AskCapitalCity
-    ```
-    * Usage: `./gonsi [flags] <skills_directory> <ProcedureToRun> [args...]`
-    * Flags: `-debug-ast`, `-debug-interpreter`, `-no-preload-skills` [main.go](neuroscript/gonsi/main.go).
+    # Example: Run with debug logging for the interpreter
+    ./gonsi -debug-interpreter gonsi/skills AskCapitalCity
+    ```
+    * Usage: `./gonsi [flags] <skills_directory> <ProcedureToRun> [args...]`
+    * Flags: `-debug-ast`, `-debug-interpreter`, `-no-preload-skills` [main.go](neuroscript/gonsi/main.go).
 
-5.  **(Optional) Database / Skill Registry**:
-    * Vector search/update tools (`TOOL.SearchSkills`, `TOOL.VectorUpdate`) are currently mocked in-memory [tools_vector.go](neuroscript/pkg/core/tools_vector.go). No external DB setup required for the mock.
+5.  **(Optional) Database / Skill Registry**:
+    * Vector search/update tools (`TOOL.SearchSkills`, `TOOL.VectorUpdate`) are currently mocked in-memory [tools_vector.go](neuroscript/pkg/core/tools_vector.go). No external DB setup required for the mock.
 
 ---
 
