@@ -1,4 +1,4 @@
-<p align="center"><img src="docs/ns-logo.webp" alt="NeuroScript Logo"></p>
+<p align="center"><img src="ns-logo.webp" alt="NeuroScript Logo"></p>
 
 # NeuroScript: A Pseudocode Framework for AI Reasoning
 
