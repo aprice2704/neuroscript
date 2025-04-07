@@ -1,6 +1,6 @@
 <p align="center"><img src="ns-logo.webp" alt="NeuroScript Logo" width="200" height="200"></p>
 
-# NeuroScript: A Pseudocode Framework for AI Reasoning
+# NeuroScript: A Toolkit for AI Communication
 
 Version: 0.1.0  
 

@@ -1,7 +1,7 @@
 # NeuroScript Development Checklist (v5 - Updated & Reordered)
 
-Version: 0.1.2  
-DependsOn: neuroscript overview.md, script spec.md  
+Version: 0.1.3  
+DependsOn: neuroscript overview.md  
 
 ## Goal: Reach "bootstrapping" point
 
@@ -13,20 +13,30 @@ DependsOn: neuroscript overview.md, script spec.md
     5.  fix source code based on tests
 
 -- Gonsi provides full ns capabilities
-    1. vector db of scripts with retrieval
-    2. full gonsi/LLM comms
+    1. vector db of scripts & formats with retrieval
+    2. full gonsi/LLM comms with basic security
 
 ## A. Planned Features (Reordered for Bootstrapping/Dependencies)
 
 **Core Language / Interpreter Refinements:**
 [ ] Interpreter: Add NeuroScript-specific Error Handling (e.g., TRY/CATCH or specific error types?)
-[ ] Consider moving to more typed AST? (Design question)
 [ ] NeuroData files, template and instance (Design & Implement)
-    [ ] NeuroData - checklist
-    [ ] NeuroData - graph
-    [ ] NeuroData - table
-    [ ] NeuroData - decisiontable
-    [ ] NeuroData - form
+    [ ] checklist
+    [ ] graph
+    [ ] table
+    [ ] decision_table
+    [ ] form
+    [ ] invoice
+    [ ] statement_of_account
+    [ ] receipt
+    [ ] payment
+    [ ] packing_list
+    [ ] request_for_quote or estimate
+    [ ] quote or estimate
+    [ ] purchase_order
+    [ ] work_order
+    [ ] markdown_doc
+    [ ] composite_doc
 
 **Tooling & Integration (Supporting Self-Management):**
 [ ] Tools: Implement Real In-Memory Vector DB (VectorUpdate, SearchSkills) (Currently mocked)
@@ -83,7 +93,7 @@ DependsOn: neuroscript overview.md, script spec.md
 [ ] Add ns file icon [cite: uploaded:neuroscript/docs/development checklist.md]
 [ ] Review versioning: Move language version into docstring block (`LANG_VERSION:`) and clarify `FILE_VERSION` usage/automation. [cite: uploaded:neuroscript/docs/script spec.md, uploaded:neuroscript/docs/development checklist.md]
 
-## D. Completed Features (Foundation)
+## D. Completed Features
 
 [x] gonsi able to execute basic ns (SET, CALL, RETURN, basic IF/WHILE/FOR headers and block execution) [cite: uploaded:neuroscript/pkg/core/interpreter_control_flow.go, uploaded:neuroscript/pkg/core/interpreter_simple_steps.go]
 [x] Basic Arithmetic Evaluation (+, -, *, /, %, **, unary -) [cite: uploaded:neuroscript/pkg/core/evaluation_logic.go, uploaded:neuroscript/pkg/core/evaluation_operators.go]
