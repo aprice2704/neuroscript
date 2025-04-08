@@ -54,6 +54,7 @@ Not really, but I haven't seen this formulated in this way yet.
   - executes ns than it can do by itself
 
 ---------------
+new chat please
 
 Please review the enclosed codebase, pay special attention to the .md documentation files in docs to understand the intent. We have been working together on this project over many sessions.
 

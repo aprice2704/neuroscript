@@ -2,20 +2,19 @@
 package blocks
 
 import (
-	"fmt"
+	"errors" // Keep for error check
 	"io"
 	"log"
 	"os"
 	"path/filepath"
-	"reflect"
-	"strings"
+	"strings" // Keep for error check
 	"testing"
 )
 
-// Removed fixtureDir definition
+// Assume fixtureDir is defined in blocks_helpers.go
+// Assume helper functions minInt, compareBlockSlices are defined in blocks_helpers.go
 
 func TestExtractAllAndMetadataComplex(t *testing.T) {
-	// Assume fixtureDir is defined in simple_test.go
 	complexFixturePath := filepath.Join(fixtureDir, "complex_blocks.md")
 	complexContentBytes, errComplex := os.ReadFile(complexFixturePath)
 	if errComplex != nil {
@@ -24,89 +23,93 @@ func TestExtractAllAndMetadataComplex(t *testing.T) {
 	}
 	complexContent := string(complexContentBytes)
 
-	// --- Expected Results (Only block before ambiguity on line 8, RawContent fixed) ---
-	wantBlocksBeforeError := []FencedBlock{
-		{
+	// --- UPDATED Expected Results based on user request ---
+	wantBlocks := []FencedBlock{
+		{ // Block 1 (User Index)
 			LanguageID: "neuroscript",
-			RawContent: ":: id: complex-ns-1\nCALL TOOL.DoSomething()",
-			StartLine:  4, EndLine: 7,
+			RawContent: "CALL TOOL.DoSomething()", // Content as extracted between fences
+			StartLine:  5,                         // Line of opening ```neuroscript
+			EndLine:    7,                         // Line of closing ```
+			Metadata:   map[string]string{"id": "complex-ns-1"},
 		},
+		{ // Block 2 (User Index)
+			LanguageID: "python",
+			RawContent: "import os",
+			StartLine:  9,  // Line of opening ```python
+			EndLine:    11, // Line of closing ```
+			Metadata:   map[string]string{"id": "complex-py-adjacent"},
+		},
+		{ // Block 3 (User Index)
+			LanguageID: "text",
+			RawContent: "", // Empty content
+			StartLine:  16, // Line of opening ```text
+			EndLine:    17, // Line of closing ```
+			Metadata:   map[string]string{"id": "metadata-only-block", "version": "1.1"},
+		},
+		{ // Block 4 (User Index)
+			LanguageID: "javascript",
+			RawContent: "console.log(\"No ID here\");",
+			StartLine:  20,                  // Line of opening ```javascript
+			EndLine:    22,                  // Line of closing ```
+			Metadata:   map[string]string{}, // Expecting empty map for "None"
+		},
+		{ // Block 5 (User Index)
+			LanguageID: "go",
+			RawContent: "package main\nimport \"fmt\"\nfunc main(){ fmt.Println(\"Go!\") }", // Joined lines
+			StartLine:  28,                                                                  // Line of opening ```go
+			EndLine:    32,                                                                  // Line of closing ```
+			Metadata:   map[string]string{"version": "0.2", "id": "go-block-late-id"},
+		},
+		{ // Block 6 (User Index)
+			LanguageID: "neurodata-checklist",
+			RawContent: "- [x] Item A\n- [ ] Item B", // Joined lines, no trailing newline from joiner
+			StartLine:  37,                           // Line of opening ```neurodata-checklist
+			EndLine:    40,                           // Line of closing ```
+			Metadata:   map[string]string{},          // Expecting empty map for "None"
+		},
+		// Unclosed block is omitted
 	}
+	// --- END UPDATED Expected Results ---
 
-	// --- Expected Metadata (Only Block 0) ---
-	wantMetadata := []map[string]string{
-		{"id": "complex-ns-1"},
-	}
+	expectError := false // No error expected for extraction itself
+	errorContains := ""
 
-	t.Logf("Running ExtractAll on %s (expecting ambiguous fence error)...", complexFixturePath)
-	testLogger := log.New(io.Discard, "[TEST-COMPLEX] ", 0)
-	gotBlocks, err := ExtractAll(complexContent, testLogger)
+	t.Run("Complex Fixture Extraction (Ignore Unclosed)", func(t *testing.T) {
+		t.Logf("Running ExtractAll on %s (expecting NO error, ignore unclosed block)...", complexFixturePath)
+		testLogger := log.New(io.Discard, "[TEST-COMPLEX] ", 0) // Use discard logger for less noise
+		gotBlocks, err := ExtractAll(complexContent, testLogger)
 
-	// 1. Check for the EXPECTED error (Ambiguous Fence on line 8)
-	wantErrContains := "ambiguous fence detected on line 8"
-	if err == nil {
-		t.Errorf("ExtractAll succeeded unexpectedly. Expected error containing %q.", wantErrContains)
-		t.Logf("Got blocks on unexpected success:\n%#v", gotBlocks)
-	} else if !strings.Contains(err.Error(), wantErrContains) {
-		t.Errorf("ExtractAll returned error, but expected message containing %q, got: %v", wantErrContains, err)
-		t.Logf("Got blocks on error:\n%#v", gotBlocks)
-	} else {
-		t.Logf("ExtractAll correctly returned expected error: %v", err)
-	}
-
-	// 2. Compare blocks extracted BEFORE the error
-	if !reflect.DeepEqual(gotBlocks, wantBlocksBeforeError) {
-		t.Errorf("Mismatch in blocks extracted before the expected error from %s", complexFixturePath)
-		// (Detailed print logic omitted for brevity)
-		maxLen := len(gotBlocks)
-		if len(wantBlocksBeforeError) > maxLen {
-			maxLen = len(wantBlocksBeforeError)
+		// Check for Unexpected Error
+		if expectError {
+			// This branch is unlikely to be hit now
+			if err == nil {
+				t.Fatalf("ExtractAll succeeded unexpectedly. Expected error containing %q.", errorContains)
+			}
+			if errorContains != "" && !strings.Contains(err.Error(), errorContains) {
+				t.Fatalf("ExtractAll returned error, but expected message containing %q, got: %v", errorContains, err)
+			}
+		} else {
+			// Expect NO error from ExtractAll itself (warning for unclosed is logged, not returned)
+			if err != nil {
+				// Allow specific non-fatal errors if necessary, otherwise fail
+				if !errors.Is(err, io.EOF) { // Example: Allow io.EOF if scanner has issues at end
+					t.Fatalf("ExtractAll failed unexpectedly: %v\nGot blocks: %#v", err, gotBlocks)
+				} else {
+					t.Logf("ExtractAll returned non-fatal error: %v", err) // Log allowed errors
+				}
+			} else {
+				t.Logf("ExtractAll successful (returned nil error). Found %d blocks.", len(gotBlocks))
+			}
 		}
-		for i := 0; i < maxLen; i++ {
-			var gotBlock FencedBlock
-			if i < len(gotBlocks) {
-				gotBlock = gotBlocks[i]
-			}
-			var wantBlock FencedBlock
-			if i < len(wantBlocksBeforeError) {
-				wantBlock = wantBlocksBeforeError[i]
-			}
-			if !reflect.DeepEqual(gotBlock, wantBlock) {
-				t.Errorf("--- ExtractAll Block %d Mismatch ---", i)
-				t.Errorf("  Got : LangID=%q, Start=%d, End=%d, Content=\n---\n%s\n---", gotBlock.LanguageID, gotBlock.StartLine, gotBlock.EndLine, gotBlock.RawContent)
-				t.Errorf("  Want: LangID=%q, Start=%d, End=%d, Content=\n---\n%s\n---", wantBlock.LanguageID, wantBlock.StartLine, wantBlock.EndLine, wantBlock.RawContent)
-			}
-		}
-		t.Logf("\nFull Got Blocks Before Error:\n%#v\n", gotBlocks)
-		t.Logf("\nFull Want Blocks Before Error:\n%#v\n", wantBlocksBeforeError)
-	} else {
-		t.Logf("Blocks extracted before error match expected blocks.")
-	}
 
-	// --- Run LookForMetadata ---
-	t.Logf("Running LookForMetadata on the %d extracted blocks...", len(gotBlocks))
-	if len(gotBlocks) != len(wantMetadata) {
-		t.Errorf("Test setup error: Number of extracted blocks (%d) does not match number of expected metadata maps (%d)", len(gotBlocks), len(wantMetadata))
-	}
-	checkLen := len(gotBlocks)
-	if len(wantMetadata) < checkLen {
-		checkLen = len(wantMetadata)
-	}
-	for i := 0; i < checkLen; i++ {
-		block := gotBlocks[i]
-		t.Run(fmt.Sprintf("Metadata_Block_%d", i), func(t *testing.T) {
-			expectedMeta := wantMetadata[i]
-			gotMeta, metaErr := LookForMetadata(block.RawContent)
-			if metaErr != nil {
-				t.Errorf("LookForMetadata returned unexpected error for block %d: %v", i, metaErr)
-				return
-			}
-			if !reflect.DeepEqual(gotMeta, expectedMeta) {
-				t.Errorf("Metadata mismatch for block %d (LangID: %q, StartLine: %d)", i, block.LanguageID, block.StartLine)
-				t.Errorf("  Got : %#v", gotMeta)
-				t.Errorf("  Want: %#v", expectedMeta)
-				t.Errorf("  Raw Content Searched:\n---\n%s\n---", block.RawContent)
-			}
-		})
-	}
+		// Compare Blocks using the helper
+		compareBlockSlices(t, gotBlocks, wantBlocks, complexFixturePath)
+
+		if t.Failed() {
+			t.Logf("Test failed during block comparison.")
+		} else {
+			t.Logf("Block comparison successful.")
+		}
+
+	}) // End t.Run
 }

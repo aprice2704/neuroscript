@@ -1,223 +1,254 @@
 // pkg/neurodata/blocks/blocks_extractor.go
-
-// Package blocks extracts fenced code blocks (```lang ... ```) from text content,
-// identifying the language identifier and the raw content within the fences.
-// It uses an ANTLR lexer for tokenization and Go code to process the token stream.
-// Metadata extraction within the block content is handled separately.
 package blocks
 
 import (
+	"bufio" // Keep errors import
 	"fmt"
 	"io"
 	"log"
+	"regexp"
+	"sort" // Import sort for stable metadata output
 	"strings"
-
-	// *** Ensure this path includes /v4 ***
-	"github.com/antlr4-go/antlr/v4"
-	// Import generated code (should also use /v4 internally if generated correctly)
-	"github.com/aprice2704/neuroscript/pkg/neurodata/blocks/generated"
+	// No need for core package import here unless tools need more than logger
 )
 
-// FencedBlock holds information about an extracted fenced code block.
+// FencedBlock structure - Matches the structure expected by existing tests.
 type FencedBlock struct {
-	LanguageID string
-	RawContent string
-	StartLine  int
-	EndLine    int
+	LanguageID string            // Language identifier from the opening fence (e.g., "go", "python")
+	RawContent string            // The raw content within the fences
+	StartLine  int               // Line number of the opening ```
+	EndLine    int               // Line number of the closing ```
+	Metadata   map[string]string // Metadata accumulated before the block (:: key: value)
 }
 
-// ExtractAll extracts all fenced blocks using the ANTLR lexer and Go logic.
+var (
+	// --- UPDATED Regex ---
+	// Regex to capture the language ID (any non-whitespace characters) from an opening fence.
+	// Allows empty language ID (just ```).
+	openingFenceRegex = regexp.MustCompile("^```(\\S*)$")
+	// --- END UPDATED Regex ---
+
+	// Regex for metadata lines (local copy for simplicity, or import your metadata package)
+	metadataRegex = regexp.MustCompile(`^\s*::\s+([a-zA-Z0-9_.-]+)\s*:\s*(.*)`)
+)
+
+// ExtractAll scans through the input string (file content) line by line
+// and extracts blocks based on the specified fence and metadata logic.
 func ExtractAll(content string, logger *log.Logger) ([]FencedBlock, error) {
 	if logger == nil {
-		logger = log.New(io.Discard, "", 0)
+		logger = log.New(io.Discard, "", 0) // Ensure logger is never nil
 	}
-	logger.Printf("[DEBUG BLOCKS Extractor] Starting ExtractAll")
-
-	// Use antlr/v4 types
-	inputStream := antlr.NewInputStream(content)
-	lexer := generated.NewFencedBlockExtractorLexer(inputStream)
-	lexerErrorListener := &BlockErrorListener{SourceName: "lexer"}
-	lexer.RemoveErrorListeners()
-	lexer.AddErrorListener(lexerErrorListener) // This uses the v4 interface
-
-	tokenStream := antlr.NewCommonTokenStream(lexer, antlr.TokenDefaultChannel)
-	tokenStream.Fill()
-
-	if lexerErrorListener.HasErrors() {
-		return nil, fmt.Errorf("lexer errors found:\n%s", lexerErrorListener.GetErrors())
-	}
-
-	tokens := tokenStream.GetAllTokens()
-	logger.Printf("[DEBUG BLOCKS Extractor] Lexer produced %d tokens", len(tokens))
+	logger.Printf("[DEBUG BLOCKS Extractor - Line Scanner v4] Starting ExtractAll") // Version bump for clarity
 
 	var blocks []FencedBlock
-	var currentContent strings.Builder
-	inBlock := false
-	nestingLevel := 0
-	currentLangID := ""
-	currentStartLine := -1
-	lastClosedFenceLine := -1
+	var metadataAccumulator = make(map[string]string)
+	var blockAccumulator []string
+	fenceLevel := 0
+	currentLangID := ""   // Store language ID when fence level becomes 1
+	currentStartLine := 0 // Store line number of opening fence
 
-	for i := 0; i < len(tokens); i++ {
-		token := tokens[i]
-		// Ensure token conforms to v4 interface if needed (usually okay)
-		_ = token.(antlr.Token)
+	scanner := bufio.NewScanner(strings.NewReader(content))
+	lineNumber := 0
 
-		// Skip hidden channel tokens (WS might be hidden depending on final grammar used)
-		// Check channel ID using GetChannel() which is part of v4 Token interface
-		// CommonTokenStream typically places hidden tokens off the default channel (0)
-		if token.GetChannel() != antlr.TokenDefaultChannel {
-			// If WS was put back on default channel, handle it here instead
-			if token.GetTokenType() == generated.FencedBlockExtractorLexerWS && inBlock {
-				currentContent.WriteString(token.GetText())
-			}
-			continue // Skip other hidden tokens
-		}
+	for scanner.Scan() {
+		lineNumber++
+		line := scanner.Text()
+		trimmedLine := strings.TrimSpace(line) // Trim whitespace for fence checks
 
-		tokenType := token.GetTokenType()
-		tokenText := token.GetText()
-		tokenLine := token.GetLine()
+		// logger.Printf("[LINE SCAN DEBUG] L%d | Level: %d | Line: %q", lineNumber, fenceLevel, line)
 
-		// (Rest of the loop logic remains the same as the previous version...)
-		if tokenType == generated.FencedBlockExtractorLexerFENCE_MARKER {
-			// --- Ambiguity Check ---
-			if !inBlock && lastClosedFenceLine != -1 && tokenLine == lastClosedFenceLine+1 {
-				prevTokenIndex := i - 1
-				for prevTokenIndex >= 0 && tokens[prevTokenIndex].GetChannel() != antlr.TokenDefaultChannel {
-					prevTokenIndex--
-				} // Find prev non-hidden
-				if prevTokenIndex >= 0 && tokens[prevTokenIndex].GetTokenType() == generated.FencedBlockExtractorLexerNEWLINE && tokens[prevTokenIndex].GetLine() == lastClosedFenceLine {
-					errMsg := fmt.Sprintf("ambiguous fence detected on line %d, immediately following block closed on line %d", tokenLine, lastClosedFenceLine)
-					logger.Printf("[ERROR BLOCKS Extractor] %s", errMsg)
-					return blocks, fmt.Errorf(errMsg)
+		if fenceLevel == 0 {
+			// --- Handling Outside Fences (Level 0) ---
+
+			// Check for Metadata (:: key: value)
+			if metadataMatch := metadataRegex.FindStringSubmatch(line); len(metadataMatch) == 3 {
+				key := strings.TrimSpace(metadataMatch[1])
+				value := strings.TrimSpace(metadataMatch[2])
+				// logger.Printf("[LINE SCAN DEBUG] L%d | Level: %d | Action: Found Metadata '%s' = '%s'", lineNumber, fenceLevel, key, value)
+				if _, exists := metadataAccumulator[key]; !exists {
+					metadataAccumulator[key] = value
 				}
-			}
-			// --- Lookahead (simplified logic, ensure indices skip hidden) ---
-			isPotentialCloseFence := false
-			isPotentialOpenFence := false
-			langID := ""
-			skipTokens := 0
-			nextTokenIndex := i + 1
-			for nextTokenIndex < len(tokens) && tokens[nextTokenIndex].GetChannel() != antlr.TokenDefaultChannel {
-				nextTokenIndex++
+				continue // Metadata line processed
 			}
 
-			if nextTokenIndex < len(tokens) {
-				nextToken := tokens[nextTokenIndex]
-				nextTokenType := nextToken.GetTokenType()
-				nextTokenLine := nextToken.GetLine()
-				if nextTokenType == generated.FencedBlockExtractorLexerNEWLINE || nextTokenType == antlr.TokenEOF {
-					isPotentialCloseFence = true
-					skipTokens = nextTokenIndex - i
-				} else if nextTokenType == generated.FencedBlockExtractorLexerLANG_ID && nextTokenLine == tokenLine {
-					langID = nextToken.GetText()
-					thirdTokenIndex := nextTokenIndex + 1
-					for thirdTokenIndex < len(tokens) && tokens[thirdTokenIndex].GetChannel() != antlr.TokenDefaultChannel {
-						thirdTokenIndex++
-					}
-					if thirdTokenIndex < len(tokens) {
-						thirdToken := tokens[thirdTokenIndex]
-						if thirdToken.GetTokenType() == generated.FencedBlockExtractorLexerNEWLINE || thirdToken.GetTokenType() == antlr.TokenEOF {
-							isPotentialOpenFence = true
-							skipTokens = thirdTokenIndex - i
-						}
-					} else {
-						isPotentialOpenFence = true
-						skipTokens = nextTokenIndex - i
-					} // ```lang at EOF
-				} else if nextTokenType == generated.FencedBlockExtractorLexerNEWLINE { // Check for ``` NEWLINE (no lang)
-					isPotentialOpenFence = true
-					langID = ""
-					skipTokens = nextTokenIndex - i
+			// Check for Opening Fence (```<token> or ```) - Use trimmed line and NEW REGEX
+			if openingMatch := openingFenceRegex.FindStringSubmatch(trimmedLine); openingMatch != nil && strings.HasPrefix(trimmedLine, "```") {
+				langID := ""
+				if len(openingMatch) > 1 {
+					langID = openingMatch[1] // Group 1 contains the language ID (or is empty)
 				}
-			} else {
-				isPotentialCloseFence = true
-			} // ``` at EOF
-
-			// --- Process Fence ---
-			if inBlock && isPotentialCloseFence { // Closing
-				nestingLevel--
-				logger.Printf("[DEBUG BLOCKS Extractor L%d] Potential closing fence. Nesting: %d", tokenLine, nestingLevel)
-				if nestingLevel == 0 {
-					endLine := tokenLine
-					logger.Printf("[DEBUG BLOCKS Extractor L%d] Closing block. Start: %d, LangID: %q", endLine, currentStartLine, currentLangID)
-					block := FencedBlock{LanguageID: currentLangID, RawContent: currentContent.String(), StartLine: currentStartLine, EndLine: endLine}
-					blocks = append(blocks, block)
-					inBlock = false
-					lastClosedFenceLine = tokenLine
-					i += skipTokens
-					continue
-				} else { // Nested close
-					logger.Printf("[DEBUG BLOCKS Extractor L%d] Nested closing fence -> Content", tokenLine)
-					currentContent.WriteString(tokenText)
-					// Add newline if needed
-					nlIdx := i + 1
-					for nlIdx < len(tokens) && tokens[nlIdx].GetChannel() != antlr.TokenDefaultChannel {
-						nlIdx++
-					}
-					if nlIdx < len(tokens) && tokens[nlIdx].GetTokenType() == generated.FencedBlockExtractorLexerNEWLINE {
-						currentContent.WriteString(tokens[nlIdx].GetText())
-					}
-				}
-			} else if !inBlock && isPotentialOpenFence { // Opening
-				logger.Printf("[DEBUG BLOCKS Extractor L%d] Opening fence. LangID: %q", tokenLine, langID)
-				inBlock = true
-				nestingLevel = 1
-				currentLangID = langID
-				currentStartLine = tokenLine
-				currentContent.Reset()
-				lastClosedFenceLine = -1
-				i += skipTokens
-				continue
-			} else { // Malformed or ``` as content
-				if inBlock {
-					logger.Printf("[DEBUG BLOCKS Extractor L%d] Non-fence '```' -> Content", tokenLine)
-					currentContent.WriteString(tokenText)
+				// logger.Printf("[LINE SCAN DEBUG] L%d | Level: %d | Action: Found Opening Fence (Lang: %q)", lineNumber, fenceLevel, langID)
+				fenceLevel++
+				if fenceLevel == 1 {
+					currentLangID = langID
+					currentStartLine = lineNumber
+					blockAccumulator = []string{}
+					// logger.Printf("[LINE SCAN DEBUG] L%d | Level: %d | Action: ---> Entering Level 1 Block (Lang: %q)", lineNumber, fenceLevel, langID)
 				} else {
-					logger.Printf("[DEBUG BLOCKS Extractor L%d] Ignoring non-opening '```'", tokenLine)
+					// Nested opening fence
+					// logger.Printf("[LINE SCAN DEBUG] L%d | Level: %d | Action: ---> Entering Nested Level %d", lineNumber, fenceLevel, fenceLevel)
+					if blockAccumulator != nil {
+						blockAccumulator = append(blockAccumulator, line)
+					}
 				}
+				continue // Opening fence processed
 			}
-		} else if tokenType == antlr.TokenEOF {
-			break
-		} else { // --- Other Tokens ---
-			if inBlock {
-				currentContent.WriteString(tokenText)
-			} // Append *all* non-hidden tokens
-			if lastClosedFenceLine != -1 && tokenLine > lastClosedFenceLine {
-				lastClosedFenceLine = -1
+
+			// Check for *exact* Closing Fence (```) - Error if encountered at level 0
+			if trimmedLine == "```" {
+				err := fmt.Errorf("line %d: closing fence '```' encountered while not inside a block (level 0)", lineNumber)
+				logger.Printf("[ERROR BLOCKS Extractor] %v", err)
+				return blocks, err
+			}
+
+			// Ignore other lines & clear metadata if needed
+			if len(metadataAccumulator) > 0 && trimmedLine != "" {
+				// logger.Printf("[LINE SCAN DEBUG] L%d | Level: %d | Action: Clearing metadata due to non-meta/fence line", lineNumber, fenceLevel)
+				metadataAccumulator = make(map[string]string)
+			}
+
+		} else {
+			// --- Handling Inside Fences (Level > 0) ---
+
+			// Check for *exact* Closing Fence (```) - Use trimmed line
+			if trimmedLine == "```" {
+				// logger.Printf("[LINE SCAN DEBUG] L%d | Level: %d | Action: Found Closing Fence", lineNumber, fenceLevel)
+				currentEndLine := lineNumber
+				fenceLevel--
+
+				if fenceLevel < 0 {
+					err := fmt.Errorf("line %d: fence level decreased below zero, potential mismatch", lineNumber)
+					logger.Printf("[ERROR BLOCKS Extractor] %v", err)
+					return blocks, err
+				}
+
+				if fenceLevel == 0 {
+					// Emit the completed block
+					finalMetadata := make(map[string]string)
+					for k, v := range metadataAccumulator {
+						finalMetadata[k] = v
+					}
+					newBlock := FencedBlock{
+						LanguageID: currentLangID,
+						Metadata:   finalMetadata,
+						RawContent: strings.Join(blockAccumulator, "\n"),
+						StartLine:  currentStartLine,
+						EndLine:    currentEndLine,
+					}
+					blocks = append(blocks, newBlock)
+					// logger.Printf("[LINE SCAN DEBUG] L%d | Level: %d | Action: <--- Exiting Level 1 Block (Emit)", lineNumber, fenceLevel)
+
+					// Clear accumulators
+					metadataAccumulator = make(map[string]string)
+					blockAccumulator = nil
+					currentLangID = ""
+					currentStartLine = 0
+				} else {
+					// Closing a nested fence
+					// logger.Printf("[LINE SCAN DEBUG] L%d | Level: %d | Action: <--- Exiting Nested Level %d", lineNumber, fenceLevel, fenceLevel+1)
+					if blockAccumulator != nil {
+						blockAccumulator = append(blockAccumulator, line)
+					}
+				}
+				continue // Closing fence processed
+			}
+
+			// Check for Opening Fence (```<token> or ```) - handles nested fences (using NEW REGEX)
+			if openingMatch := openingFenceRegex.FindStringSubmatch(trimmedLine); openingMatch != nil && strings.HasPrefix(trimmedLine, "```") {
+				// logger.Printf("[LINE SCAN DEBUG] L%d | Level: %d | Action: Found Nested Opening Fence", lineNumber, fenceLevel)
+				fenceLevel++
+				// logger.Printf("[LINE SCAN DEBUG] L%d | Level: %d | Action: ---> Entering Nested Level %d", lineNumber, fenceLevel, fenceLevel)
+				if blockAccumulator != nil {
+					blockAccumulator = append(blockAccumulator, line)
+				}
+				continue // Nested opening fence processed
+			}
+
+			// If still inside a fence (level > 0), add the line to the current block accumulator.
+			if blockAccumulator != nil {
+				// logger.Printf("[LINE SCAN DEBUG] L%d | Level: %d | Action: Accumulating line content", lineNumber, fenceLevel)
+				blockAccumulator = append(blockAccumulator, line)
+			} else {
+				err := fmt.Errorf("line %d: internal error: blockAccumulator is nil while fenceLevel > 0", lineNumber)
+				logger.Printf("[ERROR BLOCKS Extractor] %v", err)
+				return blocks, err
 			}
 		}
-	} // End loop
+	} // End scanner loop
 
-	if inBlock {
-		errMsg := fmt.Sprintf("malformed content: unclosed fenced block starting on line %d", currentStartLine)
-		logger.Printf("[ERROR BLOCKS Extractor] %s", errMsg)
-		return blocks, fmt.Errorf(errMsg)
+	// Check for scanner errors
+	if err := scanner.Err(); err != nil {
+		logger.Printf("[ERROR BLOCKS Extractor] Scanner error: %v", err)
+		return blocks, fmt.Errorf("error scanning input: %w", err)
 	}
 
-	logger.Printf("[DEBUG BLOCKS Extractor] Finished ExtractAll. Found %d blocks.", len(blocks))
-	for i := range blocks {
-		blocks[i].RawContent = strings.TrimSpace(blocks[i].RawContent)
-	} // Final trim
-	return blocks, nil
+	// Check for unclosed fences at EOF
+	if fenceLevel != 0 {
+		logger.Printf("[WARN BLOCKS Extractor] Reached end of input with unclosed fences (final level: %d). Returning completed blocks.", fenceLevel)
+	} else {
+		logger.Printf("[DEBUG BLOCKS Extractor] Finished ExtractAll successfully. Found %d blocks.", len(blocks))
+	}
+
+	return blocks, nil // Success or partial success with warning logged
 }
 
-// --- Custom Error Listener (using antlr/v4) ---
-type BlockErrorListener struct {
-	*antlr.DefaultErrorListener // Embed v4 default listener
-	Errors                      []string
-	SourceName                  string
+// --- Formatting Function (As provided by user) ---
+
+// FormatBlocks takes a slice of FencedBlock structs and returns a
+// human-readable string representation.
+func FormatBlocks(blocks []FencedBlock) string {
+	var builder strings.Builder
+	separator := "\n" // strings.Repeat("-", 30) + "\n" // Consistent separator
+
+	if len(blocks) == 0 {
+		builder.WriteString("No blocks found.\n")
+		return builder.String()
+	}
+
+	for i, block := range blocks {
+		builder.WriteString(fmt.Sprintf("# %d is %q\n", i+1, block.LanguageID))
+
+		// Format Metadata
+		if len(block.Metadata) > 0 {
+			builder.WriteString("Metadata: ")
+			// Sort keys for consistent output order
+			keys := make([]string, 0, len(block.Metadata))
+			for k := range block.Metadata {
+				keys = append(keys, k)
+			}
+			sort.Strings(keys)
+			for _, k := range keys {
+				builder.WriteString(fmt.Sprintf("  %s: %s  ", k, block.Metadata[k]))
+			}
+			builder.WriteString("\n")
+		} else {
+			builder.WriteString("Metadata: None\n")
+		}
+
+		// Format Line Numbers (Commented out as per user's version)
+		// builder.WriteString(fmt.Sprintf("Lines: %d-%d\n", block.StartLine, block.EndLine))
+
+		// Format Content
+		// builder.WriteString("Content:\n") // Commented out as per user's version
+		builder.WriteString(">" + block.RawContent + "<")
+		// Add newline before closing fence if content doesn't end with one
+		if !strings.HasSuffix(block.RawContent, "\n") {
+			builder.WriteString("\n")
+		}
+		// builder.WriteString("\n") // Remove extra newline after content marker
+
+		// Add separator between blocks
+		if i < len(blocks)-1 {
+			builder.WriteString(separator)
+		}
+	}
+
+	// Ensure final output ends with a newline if there were blocks
+	if len(blocks) > 0 && !strings.HasSuffix(builder.String(), "\n") {
+		builder.WriteString("\n")
+	}
+
+	return builder.String()
 }
 
-// Override v4 SyntaxError
-func (l *BlockErrorListener) SyntaxError(recognizer antlr.Recognizer, offendingSymbol interface{}, line, column int, msg string, e antlr.RecognitionException) {
-	errMsg := fmt.Sprintf("%s:%d:%d: %s", l.SourceName, line, column, msg)
-	l.Errors = append(l.Errors, errMsg)
-}
-func (l *BlockErrorListener) HasErrors() bool   { return len(l.Errors) > 0 }
-func (l *BlockErrorListener) GetErrors() string { return strings.Join(l.Errors, "\n") }
-
-// Implement other methods required by antlr.ErrorListener if DefaultErrorListener doesn't cover them fully (ReportAmbiguity etc. usually are covered)
-// func (l *BlockErrorListener) ReportAmbiguity(...) {} // Implement if needed
-// func (l *BlockErrorListener) ReportAttemptingFullContext(...) {} // Implement if needed
-// func (l *BlockErrorListener) ReportContextSensitivity(...) {} // Implement if needed
+// --- End Formatting Function ---

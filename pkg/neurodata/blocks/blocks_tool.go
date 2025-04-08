@@ -1,90 +1,75 @@
-// Package blocks extracts fenced code blocks (```lang ... ```) from text content.
-// This file defines the NeuroScript TOOL functions that wrap the block
-// extraction and metadata parsing logic for use within NeuroScript procedures.
+// pkg/neurodata/blocks/blocks_tool.go
 package blocks
 
 import (
 	"fmt"
 
-	"github.com/aprice2704/neuroscript/pkg/core"
+	"github.com/aprice2704/neuroscript/pkg/core" // Import core
 )
 
-// RegisterBlockTools adds the block extraction/metadata tools to the registry.
+// RegisterBlockTools adds the updated block extraction tool.
 func RegisterBlockTools(registry *core.ToolRegistry) {
-	// --- TOOL.BlocksExtractAll registration ---
+	// --- TOOL.BlocksExtractAll registration (Updated) ---
 	registry.RegisterTool(core.ToolImplementation{
 		Spec: core.ToolSpec{
 			Name: "BlocksExtractAll",
-			Description: "Extracts all fenced code blocks (handling nesting and errors) from input content using ANTLR. " +
+			Description: "Extracts all fenced code blocks (handling nesting) from input content using ANTLR Listener. " +
+				"Recognizes ':: key: value' metadata lines immediately preceding the opening fence. " +
 				"Returns a list of maps, where each map represents a block and contains keys: " +
-				"'language_id' (string), 'raw_content' (string), 'start_line' (int), 'end_line' (int), 'metadata' (map[string]string). Returns error string on failure.",
+				"'language_id' (string), 'raw_content' (string), 'start_line' (int), 'end_line' (int), 'metadata' (map[string]string). Silently ignores unclosed blocks.",
 			Args: []core.ArgSpec{
 				{Name: "content", Type: core.ArgTypeString, Required: true, Description: "The string content to search within."},
 			},
-			ReturnType: core.ArgTypeSliceAny,
+			ReturnType: core.ArgTypeSliceAny, // Returns slice of maps
 		},
 		Func: toolBlocksExtractAll,
 	})
 
-	// --- TOOL.BlockGetMetadata registration ---
-	registry.RegisterTool(core.ToolImplementation{
-		Spec: core.ToolSpec{
-			Name:        "BlockGetMetadata",
-			Description: "Parses the raw content string of a single code block to find metadata lines (':: key: value'). Returns a map[string]string of found key-value pairs or error string on failure.",
-			Args: []core.ArgSpec{
-				{Name: "raw_content", Type: core.ArgTypeString, Required: true, Description: "The raw content string of the block."},
-			},
-			ReturnType: core.ArgTypeAny,
-		},
-		Func: toolBlockGetMetadata,
-	})
+	// --- TOOL.BlockGetMetadata removed ---
 }
 
-// (toolBlocksExtractAll and toolBlockGetMetadata functions remain unchanged from previous version)
-// --- toolBlocksExtractAll implementation ---
+// --- toolBlocksExtractAll implementation (Updated) ---
 func toolBlocksExtractAll(interpreter *core.Interpreter, args []interface{}) (interface{}, error) {
-	content := args[0].(string)
+	content := args[0].(string) // Assumes validation already done
 	logger := interpreter.Logger()
 
 	if logger != nil {
 		logSnippet := content
-		if len(logSnippet) > 50 {
-			logSnippet = logSnippet[:50] + "..."
+		if len(logSnippet) > 100 {
+			logSnippet = logSnippet[:100] + "..."
 		}
-		logger.Printf("[DEBUG TOOL] Calling TOOL.BlocksExtractAll on content (snippet): %q", logSnippet)
+		logger.Printf("[DEBUG TOOL] Calling TOOL.BlocksExtractAll (Listener Based) on content (snippet): %q", logSnippet)
 	}
 
+	// Call the new listener-based extractor
 	extractedBlocks, extractErr := ExtractAll(content, logger)
 
+	// ExtractAll now handles ignoring unclosed blocks and returns nil error for that case.
+	// It only returns errors for lexer/parser issues.
 	if extractErr != nil {
 		errMsg := fmt.Sprintf("Error during block extraction: %s", extractErr.Error())
 		if logger != nil {
 			logger.Printf("[ERROR TOOL] TOOL.BlocksExtractAll failed: %s", extractErr.Error())
 		}
+		// Return the error message as a string, consistent with other tools
 		return errMsg, nil
 	}
 
+	// Convert FencedBlock structs (which now include metadata) to []interface{} of maps
 	resultsList := make([]interface{}, 0, len(extractedBlocks))
 	for _, block := range extractedBlocks {
-		metadataMap, metaErr := LookForMetadata(block.RawContent)
-		if metaErr != nil {
-			if logger != nil {
-				logger.Printf("[WARN TOOL] TOOL.BlocksExtractAll: Failed to get metadata for block at line %d: %v", block.StartLine, metaErr)
-			}
-			metadataMap = make(map[string]string)
-		}
-
-		metadataInterfaceMap := make(map[string]interface{}, len(metadataMap))
-		for k, v := range metadataMap {
+		// Convert metadata map[string]string to map[string]interface{} for NeuroScript compatibility
+		metadataInterfaceMap := make(map[string]interface{}, len(block.Metadata))
+		for k, v := range block.Metadata {
 			metadataInterfaceMap[k] = v
 		}
 
 		blockMap := map[string]interface{}{
 			"language_id": block.LanguageID,
-			"raw_content": block.RawContent,
-			"start_line":  int64(block.StartLine),
-			"end_line":    int64(block.EndLine),
-			"metadata":    metadataInterfaceMap,
+			"raw_content": block.RawContent,       // Content no longer includes metadata lines
+			"start_line":  int64(block.StartLine), // Line of opening fence ```
+			"end_line":    int64(block.EndLine),   // Line of closing fence ```
+			"metadata":    metadataInterfaceMap,   // Include parsed metadata directly
 		}
 		resultsList = append(resultsList, blockMap)
 	}
@@ -92,39 +77,7 @@ func toolBlocksExtractAll(interpreter *core.Interpreter, args []interface{}) (in
 	if logger != nil {
 		logger.Printf("[DEBUG TOOL] TOOL.BlocksExtractAll successful. Found %d blocks.", len(resultsList))
 	}
-	return resultsList, nil
+	return resultsList, nil // Return the list of maps
 }
 
-// --- toolBlockGetMetadata implementation ---
-func toolBlockGetMetadata(interpreter *core.Interpreter, args []interface{}) (interface{}, error) {
-	rawContent := args[0].(string)
-	logger := interpreter.Logger()
-
-	if logger != nil {
-		logSnippet := rawContent
-		if len(logSnippet) > 50 {
-			logSnippet = logSnippet[:50] + "..."
-		}
-		logger.Printf("[DEBUG TOOL] Calling TOOL.BlockGetMetadata on content (snippet): %q", logSnippet)
-	}
-
-	metadataMap, metaErr := LookForMetadata(rawContent)
-
-	if metaErr != nil {
-		errMsg := fmt.Sprintf("Error getting block metadata: %s", metaErr.Error())
-		if logger != nil {
-			logger.Printf("[ERROR TOOL] TOOL.BlockGetMetadata failed: %s", metaErr.Error())
-		}
-		return errMsg, nil
-	}
-
-	metadataInterfaceMap := make(map[string]interface{}, len(metadataMap))
-	for k, v := range metadataMap {
-		metadataInterfaceMap[k] = v
-	}
-
-	if logger != nil {
-		logger.Printf("[DEBUG TOOL] TOOL.BlockGetMetadata successful. Found metadata: %v", metadataInterfaceMap)
-	}
-	return metadataInterfaceMap, nil
-}
+// --- toolBlockGetMetadata function removed ---

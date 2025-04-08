@@ -2,16 +2,14 @@
 package blocks
 
 import (
-	"fmt"
-	"io"
 	"log"
 	"os"
-	"path/filepath"
-	"reflect"
+	"path/filepath" // Keep reflect for the remaining test
 	"testing"
 )
 
-const fixtureDir = "test_fixtures"
+// Assume fixtureDir is defined in blocks_helpers.go
+// Assume helper functions minInt, compareBlockSlices are defined in blocks_helpers.go
 
 func TestExtractAllAndMetadataSimple(t *testing.T) {
 	simpleFixturePath := filepath.Join(fixtureDir, "simple_blocks.md")
@@ -22,93 +20,57 @@ func TestExtractAllAndMetadataSimple(t *testing.T) {
 	}
 	simpleContent := string(simpleContentBytes)
 
-	// --- Expected Results (RawContent includes :: and comment lines, trimmed) ---
+	// --- Expected Results based on simple_blocks.md structure ---
 	wantBlocks := []FencedBlock{
-		{
+		{ // Block 0: neuroscript
 			LanguageID: "neuroscript",
-			RawContent: ":: id: simple-ns-block\n:: version: 1.0\nDEFINE PROCEDURE Simple()\n  EMIT \"Hello from simple NS\"\nEND",
-			StartLine:  5, EndLine: 11,
+			RawContent: "DEFINE PROCEDURE Simple()\n  EMIT \"Hello from simple NS\"\nEND",
+			StartLine:  7, EndLine: 11, // Lines based on fixture
+			Metadata: map[string]string{"id": "simple-ns-block", "version": "1.0"},
 		},
-		{
+		{ // Block 1: python
 			LanguageID: "python",
-			RawContent: ":: id: simple-py-block\n:: version: 0.1\nprint(\"Hello from simple Python\")",
-			StartLine:  15, EndLine: 19,
+			RawContent: "print(\"Hello from simple Python\")",
+			StartLine:  17, EndLine: 19, // Lines based on fixture
+			Metadata: map[string]string{"id": "simple-py-block", "version": "0.1"},
 		},
-		{
+		{ // Block 2: empty text
 			LanguageID: "text",
-			RawContent: ":: id: simple-empty-block",
-			StartLine:  21, EndLine: 23,
+			RawContent: "",
+			StartLine:  22, EndLine: 23, // Lines based on fixture
+			Metadata: map[string]string{"id": "simple-empty-block"},
 		},
-		{
+		{ // Block 3: text with comments
 			LanguageID: "text",
-			RawContent: ":: id: simple-comment-block\n# This is a comment inside.\n-- So is this.\n\n# Even with a blank line.",
-			StartLine:  25, EndLine: 31,
+			RawContent: "# This is a comment inside.\n-- So is this.\n\n# Even with a blank line.",
+			StartLine:  26, EndLine: 31, // Lines based on fixture
+			Metadata: map[string]string{"id": "simple-comment-block"},
 		},
 	}
+	// --- END Expected Results ---
 
-	// --- Expected Metadata (Unchanged) ---
-	wantMetadata := []map[string]string{
-		{"id": "simple-ns-block", "version": "1.0"},
-		{"id": "simple-py-block", "version": "0.1"},
-		{"id": "simple-empty-block"},
-		{"id": "simple-comment-block"},
-	}
-
-	t.Logf("Running ExtractAll on %s...", simpleFixturePath)
-	testLogger := log.New(io.Discard, "[TEST-SIMPLE] ", 0)
-	gotBlocks, err := ExtractAll(simpleContent, testLogger)
-
-	if err != nil {
-		t.Fatalf("ExtractAll failed unexpectedly for simple fixture: %v", err)
-	}
-
-	// Compare Blocks
-	if !reflect.DeepEqual(gotBlocks, wantBlocks) {
-		t.Errorf("Mismatch in extracted blocks from %s", simpleFixturePath)
-		// (Detailed print logic omitted for brevity, but remains the same)
-		maxLen := len(gotBlocks)
-		if len(wantBlocks) > maxLen {
-			maxLen = len(wantBlocks)
+	t.Run("Simple Fixture Extraction", func(t *testing.T) {
+		t.Logf("Running ExtractAll on %s...", simpleFixturePath)
+		// --- USE os.Stderr for logger to see debug output ---
+		// To disable debug logging for this test, comment out the next line
+		// and uncomment the line after it.
+		testLogger := log.New(os.Stderr, "[TEST-SIMPLE] ", log.Ltime|log.Lmicroseconds)
+		// testLogger := log.New(io.Discard, "[TEST-SIMPLE] ", 0)
+		// --- END Logger Change ---
+		gotBlocks, err := ExtractAll(simpleContent, testLogger)
+		if err != nil {
+			// Only fail if there's an unexpected error (e.g., scanner error)
+			t.Fatalf("ExtractAll failed unexpectedly for simple fixture: %v\nGot Blocks: %#v", err, gotBlocks)
 		}
-		for i := 0; i < maxLen; i++ {
-			var gotBlock FencedBlock
-			if i < len(gotBlocks) {
-				gotBlock = gotBlocks[i]
-			}
-			var wantBlock FencedBlock
-			if i < len(wantBlocks) {
-				wantBlock = wantBlocks[i]
-			}
-			if !reflect.DeepEqual(gotBlock, wantBlock) {
-				t.Errorf("--- ExtractAll Block %d Mismatch ---", i)
-				t.Errorf("  Got : LangID=%q, Start=%d, End=%d, Content=\n---\n%s\n---", gotBlock.LanguageID, gotBlock.StartLine, gotBlock.EndLine, gotBlock.RawContent)
-				t.Errorf("  Want: LangID=%q, Start=%d, End=%d, Content=\n---\n%s\n---", wantBlock.LanguageID, wantBlock.StartLine, wantBlock.EndLine, wantBlock.RawContent)
-			}
+		// Use helper to compare blocks
+		compareBlockSlices(t, gotBlocks, wantBlocks, simpleFixturePath)
+		if t.Failed() {
+			t.Logf("Block extraction/comparison failed (see details above).")
+		} else {
+			t.Logf("ExtractAll successful and block comparison passed for simple fixture.")
 		}
-		t.Fatalf("Block extraction failed, cannot proceed to metadata tests.")
-	} else {
-		t.Logf("ExtractAll successful for simple fixture.")
-	}
+	}) // End t.Run Simple Fixture
 
-	// Compare Metadata
-	t.Logf("Running LookForMetadata on extracted blocks...")
-	if len(gotBlocks) != len(wantMetadata) {
-		t.Fatalf("Test setup error: Number of extracted blocks (%d) does not match number of expected metadata maps (%d)", len(gotBlocks), len(wantMetadata))
-	}
-	for i, block := range gotBlocks {
-		t.Run(fmt.Sprintf("Metadata_Block_%d", i), func(t *testing.T) {
-			expectedMeta := wantMetadata[i]
-			gotMeta, metaErr := LookForMetadata(block.RawContent)
-			if metaErr != nil {
-				t.Errorf("LookForMetadata returned unexpected error for block %d: %v", i, metaErr)
-				return
-			}
-			if !reflect.DeepEqual(gotMeta, expectedMeta) {
-				t.Errorf("Metadata mismatch for block %d (LangID: %q, StartLine: %d)", i, block.LanguageID, block.StartLine)
-				t.Errorf("  Got : %#v", gotMeta)
-				t.Errorf("  Want: %#v", expectedMeta)
-				t.Errorf("  Raw Content Searched:\n---\n%s\n---", block.RawContent)
-			}
-		})
-	}
-}
+	// --- REMOVED t.Run("MetadataSyntaxInsideBlock", ...) ---
+
+} // End TestExtractAllAndMetadataSimple
