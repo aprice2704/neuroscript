@@ -1,0 +1,73 @@
+
+state 0
+	$accept: .checklistFile $end 
+	metadataBlock: .    (2)
+
+	.  reduce 2 (src line 58)
+
+	metadataBlock  goto 2
+	checklistFile  goto 1
+
+state 1
+	$accept:  checklistFile.$end 
+
+	$end  accept
+	.  error
+
+
+state 2
+	checklistFile:  metadataBlock.itemList 
+	metadataBlock:  metadataBlock.METADATA_STRING 
+	itemList: .    (4)
+
+	METADATA_STRING  shift 4
+	.  reduce 4 (src line 64)
+
+	itemList  goto 3
+
+state 3
+	checklistFile:  metadataBlock itemList.    (1)
+	itemList:  itemList.itemLine 
+
+	ITEM  shift 6
+	.  reduce 1 (src line 41)
+
+	itemLine  goto 5
+
+state 4
+	metadataBlock:  metadataBlock METADATA_STRING.    (3)
+
+	.  reduce 3 (src line 60)
+
+
+state 5
+	itemList:  itemList itemLine.    (5)
+
+	.  reduce 5 (src line 66)
+
+
+state 6
+	itemLine:  ITEM.NEWLINE_TOK 
+
+	NEWLINE_TOK  shift 7
+	.  error
+
+
+state 7
+	itemLine:  ITEM NEWLINE_TOK.    (6)
+
+	.  reduce 6 (src line 70)
+
+
+6 terminals, 5 nonterminals
+7 grammar rules, 8/16000 states
+0 shift/reduce, 0 reduce/reduce conflicts reported
+54 working sets used
+memory: parser 3/240000
+0 extra closures
+3 shift entries, 1 exceptions
+4 goto entries
+0 entries saved by goto default
+Optimizer space used: output 7/240000
+7 table entries, 0 zero
+maximum spread: 6, maximum offset: 6

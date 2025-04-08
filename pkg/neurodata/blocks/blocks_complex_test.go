@@ -1,71 +1,63 @@
-// pkg/neurodata/blocks2/blocks_complex_test.go
+// pkg/neurodata/blocks/blocks_complex_test.go
 package blocks
 
 import (
 	"fmt"
+	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"reflect"
-	"strings" // Import strings package
+	"strings"
 	"testing"
 )
 
-// TestExtractAllAndMetadataComplex tests ExtractAll and LookForMetadata using complex_blocks.md.
-// It specifically expects ExtractAll to return an AMBIGUITY error after the first block.
-func TestExtractAllAndMetadataComplex(t *testing.T) {
-	// Construct the path to the fixture file
-	// Assumes fixtureDir constant is available (or redefine it)
-	// const fixtureDir = "test_fixtures" // Uncomment if running this test in isolation
-	complexFixturePath := filepath.Join(fixtureDir, "complex_blocks.md")
+// Removed fixtureDir definition
 
-	// Read the content of the fixture file
+func TestExtractAllAndMetadataComplex(t *testing.T) {
+	// Assume fixtureDir is defined in simple_test.go
+	complexFixturePath := filepath.Join(fixtureDir, "complex_blocks.md")
 	complexContentBytes, errComplex := os.ReadFile(complexFixturePath)
 	if errComplex != nil {
-		// Get current working directory for context in error message
 		cwd, _ := os.Getwd()
 		t.Fatalf("Failed to read complex fixture file %s (CWD: %s): %v", complexFixturePath, cwd, errComplex)
 	}
 	complexContent := string(complexContentBytes)
 
-	// --- Expected Results for ExtractAll (ONLY the block BEFORE the ambiguity error) ---
+	// --- Expected Results (Only block before ambiguity on line 8, RawContent fixed) ---
 	wantBlocksBeforeError := []FencedBlock{
 		{
 			LanguageID: "neuroscript",
-			RawContent: "# id: complex-ns-1\nCALL TOOL.DoSomething()",
-			StartLine:  4, // Line numbers based on complex_blocks.md content
-			EndLine:    7,
+			RawContent: ":: id: complex-ns-1\nCALL TOOL.DoSomething()",
+			StartLine:  4, EndLine: 7,
 		},
-		// The ambiguity error occurs on line 8, so only the first block is expected.
 	}
 
-	// --- Expected Metadata for the successfully extracted block(s) ---
+	// --- Expected Metadata (Only Block 0) ---
 	wantMetadata := []map[string]string{
-		{"id": "complex-ns-1"}, // Block 0
+		{"id": "complex-ns-1"},
 	}
 
-	// --- Run ExtractAll ---
-	t.Logf("Running ExtractAll on %s (expecting ambiguity error)...", complexFixturePath)
-	gotBlocks, err := ExtractAll(complexContent)
+	t.Logf("Running ExtractAll on %s (expecting ambiguous fence error)...", complexFixturePath)
+	testLogger := log.New(io.Discard, "[TEST-COMPLEX] ", 0)
+	gotBlocks, err := ExtractAll(complexContent, testLogger)
 
-	// 1. Check for the EXPECTED error
-	//wantErr := true
-	// Match the error message precisely from the previous run's output
-	wantErrContains := "ambiguous fence detected on line 8, immediately following block closed on line 7"
+	// 1. Check for the EXPECTED error (Ambiguous Fence on line 8)
+	wantErrContains := "ambiguous fence detected on line 8"
 	if err == nil {
-		t.Fatalf("ExtractAll succeeded unexpectedly. Expected error containing %q because of ambiguous fence.", wantErrContains)
-	}
-	if !strings.Contains(err.Error(), wantErrContains) {
-		t.Fatalf("ExtractAll returned error, but expected message containing %q, got: %v", wantErrContains, err)
+		t.Errorf("ExtractAll succeeded unexpectedly. Expected error containing %q.", wantErrContains)
+		t.Logf("Got blocks on unexpected success:\n%#v", gotBlocks)
+	} else if !strings.Contains(err.Error(), wantErrContains) {
+		t.Errorf("ExtractAll returned error, but expected message containing %q, got: %v", wantErrContains, err)
+		t.Logf("Got blocks on error:\n%#v", gotBlocks)
 	} else {
 		t.Logf("ExtractAll correctly returned expected error: %v", err)
 	}
 
-	// 2. Compare the blocks extracted BEFORE the error occurred
+	// 2. Compare blocks extracted BEFORE the error
 	if !reflect.DeepEqual(gotBlocks, wantBlocksBeforeError) {
 		t.Errorf("Mismatch in blocks extracted before the expected error from %s", complexFixturePath)
-		t.Logf("Got %d blocks, Want %d blocks", len(gotBlocks), len(wantBlocksBeforeError))
-
-		// Print detailed comparison
+		// (Detailed print logic omitted for brevity)
 		maxLen := len(gotBlocks)
 		if len(wantBlocksBeforeError) > maxLen {
 			maxLen = len(wantBlocksBeforeError)
@@ -79,45 +71,36 @@ func TestExtractAllAndMetadataComplex(t *testing.T) {
 			if i < len(wantBlocksBeforeError) {
 				wantBlock = wantBlocksBeforeError[i]
 			}
-
 			if !reflect.DeepEqual(gotBlock, wantBlock) {
 				t.Errorf("--- ExtractAll Block %d Mismatch ---", i)
-				t.Errorf("  Got : LangID=%q, Start=%d, End=%d, Content=\n---\n%q\n---", gotBlock.LanguageID, gotBlock.StartLine, gotBlock.EndLine, gotBlock.RawContent)
-				t.Errorf("  Want: LangID=%q, Start=%d, End=%d, Content=\n---\n%q\n---", wantBlock.LanguageID, wantBlock.StartLine, wantBlock.EndLine, wantBlock.RawContent)
+				t.Errorf("  Got : LangID=%q, Start=%d, End=%d, Content=\n---\n%s\n---", gotBlock.LanguageID, gotBlock.StartLine, gotBlock.EndLine, gotBlock.RawContent)
+				t.Errorf("  Want: LangID=%q, Start=%d, End=%d, Content=\n---\n%s\n---", wantBlock.LanguageID, wantBlock.StartLine, wantBlock.EndLine, wantBlock.RawContent)
 			}
 		}
 		t.Logf("\nFull Got Blocks Before Error:\n%#v\n", gotBlocks)
 		t.Logf("\nFull Want Blocks Before Error:\n%#v\n", wantBlocksBeforeError)
-		// Fail if blocks before error don't match
-		t.FailNow()
 	} else {
 		t.Logf("Blocks extracted before error match expected blocks.")
 	}
 
-	// --- Run LookForMetadata on the successfully extracted blocks ---
-	// This should only run if the error was correct AND the blocks extracted before it were correct.
-	t.Logf("Running LookForMetadata on the %d successfully extracted blocks...", len(gotBlocks))
+	// --- Run LookForMetadata ---
+	t.Logf("Running LookForMetadata on the %d extracted blocks...", len(gotBlocks))
 	if len(gotBlocks) != len(wantMetadata) {
-		// This check might be redundant given the DeepEqual above, but good for clarity
-		t.Fatalf("Test setup error: Number of successfully extracted blocks (%d) does not match number of expected metadata maps (%d)", len(gotBlocks), len(wantMetadata))
+		t.Errorf("Test setup error: Number of extracted blocks (%d) does not match number of expected metadata maps (%d)", len(gotBlocks), len(wantMetadata))
 	}
-
-	for i, block := range gotBlocks {
-		// Since wantBlocksBeforeError only has one entry, i will only be 0 here if the test passed the previous check.
+	checkLen := len(gotBlocks)
+	if len(wantMetadata) < checkLen {
+		checkLen = len(wantMetadata)
+	}
+	for i := 0; i < checkLen; i++ {
+		block := gotBlocks[i]
 		t.Run(fmt.Sprintf("Metadata_Block_%d", i), func(t *testing.T) {
-			if i >= len(wantMetadata) {
-				t.Fatalf("Internal test error: trying to access wantMetadata index %d which is out of bounds (len %d)", i, len(wantMetadata))
-			}
 			expectedMeta := wantMetadata[i]
 			gotMeta, metaErr := LookForMetadata(block.RawContent)
-
-			// Check for unexpected errors from LookForMetadata
 			if metaErr != nil {
 				t.Errorf("LookForMetadata returned unexpected error for block %d: %v", i, metaErr)
-				return // Skip comparison if error occurred
+				return
 			}
-
-			// Compare the metadata map
 			if !reflect.DeepEqual(gotMeta, expectedMeta) {
 				t.Errorf("Metadata mismatch for block %d (LangID: %q, StartLine: %d)", i, block.LanguageID, block.StartLine)
 				t.Errorf("  Got : %#v", gotMeta)

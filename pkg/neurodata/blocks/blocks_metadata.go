@@ -1,66 +1,24 @@
-// pkg/neurodata/blocks2/blocks_metadata.go
+// Package blocks extracts fenced code blocks (```lang ... ```) from text content.
+// This file specifically handles extracting metadata comments from the *start*
+// of the extracted block's raw content using the shared metadata package.
 package blocks
 
 import (
-	"bufio"
 	"fmt"
-	"regexp"
-	"strings"
+
+	"github.com/aprice2704/neuroscript/pkg/neurodata/metadata"
 )
 
-// LookForMetadata searches the raw content of a fenced block for common metadata patterns
-// like '# key: value' or '-- key: value'.
-// It returns a map of found metadata key-value pairs.
+// LookForMetadata uses the shared metadata extractor to find metadata
+// at the beginning of a block's raw content.
 func LookForMetadata(rawContent string) (map[string]string, error) {
-	fmt.Printf("[DEBUG BLOCKS2 Metadata] Starting LookForMetadata\n") // Debug
-	metadata := make(map[string]string)
-	// Regex for lines like: # id: value  OR -- id: value
-	// Allows various keys (id, version, etc.) and captures the value.
-	// Keys are restricted to common metadata words for safety/simplicity.
-	// Value capture `(.*)` captures the rest of the line after the colon, needs trimming.
-	metadataPattern := regexp.MustCompile(`^(?:#|--)\s*(id|version|lang_version|template|template_version|rendering_hint|canonical_format|status|dependsOn|howToUpdate)\s*:\s*(.*)`)
-
-	scanner := bufio.NewScanner(strings.NewReader(rawContent))
-	linesChecked := 0
-	maxLinesToCheck := 10 // Limit how many lines we check for metadata at the start of the block content
-
-	for scanner.Scan() && linesChecked < maxLinesToCheck {
-		line := scanner.Text()
-		trimmedLine := strings.TrimSpace(line)
-
-		// Stop checking if we hit a line that doesn't look like a comment/metadata
-		// unless it's an empty line (allow blank lines between metadata)
-		if trimmedLine != "" && !strings.HasPrefix(trimmedLine, "#") && !strings.HasPrefix(trimmedLine, "--") {
-			fmt.Printf("[DEBUG BLOCKS2 Metadata] Non-metadata line encountered: %q. Stopping metadata scan.\n", trimmedLine) // Debug
-			break
-		}
-		// If it's just an empty line, continue scanning
-		if trimmedLine == "" {
-			linesChecked++
-			continue
-		}
-
-		matches := metadataPattern.FindStringSubmatch(line)
-		// matches[0] is the full line match
-		// matches[1] is the metadata key (e.g., "id", "version")
-		// matches[2] is the metadata value (needs trimming)
-		if len(matches) == 3 {
-			key := strings.TrimSpace(matches[1])
-			value := strings.TrimSpace(matches[2]) // Trim captured value
-			// Only add if key not already found (first occurrence wins)
-			if _, exists := metadata[key]; !exists {
-				metadata[key] = value
-				fmt.Printf("[DEBUG BLOCKS2 Metadata] Found metadata: %s = %q\n", key, value) // Debug
-			}
-		}
-		linesChecked++
+	// (Rest of function is unchanged from previous correct version)
+	fmt.Printf("[DEBUG BLOCKS Metadata] Calling shared metadata.Extract\n")
+	metaMap, err := metadata.Extract(rawContent)
+	if err != nil {
+		fmt.Printf("[ERROR BLOCKS Metadata] Error calling metadata.Extract: %v\n", err)
+		return make(map[string]string), fmt.Errorf("failed to extract metadata from block content: %w", err)
 	}
-
-	if err := scanner.Err(); err != nil {
-		fmt.Printf("[ERROR BLOCKS2 Metadata] Scanner error: %v\n", err) // Debug
-		return metadata, fmt.Errorf("error scanning block content for metadata: %w", err)
-	}
-
-	fmt.Printf("[DEBUG BLOCKS2 Metadata] Finished LookForMetadata. Found: %v\n", metadata) // Debug
-	return metadata, nil
+	fmt.Printf("[DEBUG BLOCKS Metadata] Finished metadata.Extract. Found: %v\n", metaMap)
+	return metaMap, nil
 }

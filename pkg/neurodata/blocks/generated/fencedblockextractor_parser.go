@@ -35,15 +35,16 @@ func fencedblockextractorParserInit() {
 		"", "'```'",
 	}
 	staticData.SymbolicNames = []string{
-		"", "FENCE_MARKER", "LANG_ID", "LINE_COMMENT", "NEWLINE", "WS", "OTHER_TEXT",
+		"", "FENCE_MARKER", "LANG_ID", "METADATA_LINE", "LINE_COMMENT", "WS",
+		"NEWLINE", "OTHER_TEXT",
 	}
 	staticData.RuleNames = []string{
 		"document", "token",
 	}
 	staticData.PredictionContextCache = antlr.NewPredictionContextCache()
 	staticData.serializedATN = []int32{
-		4, 1, 6, 15, 2, 0, 7, 0, 2, 1, 7, 1, 1, 0, 5, 0, 6, 8, 0, 10, 0, 12, 0,
-		9, 9, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 0, 0, 2, 0, 2, 0, 1, 1, 0, 1, 6,
+		4, 1, 7, 15, 2, 0, 7, 0, 2, 1, 7, 1, 1, 0, 5, 0, 6, 8, 0, 10, 0, 12, 0,
+		9, 9, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 0, 0, 2, 0, 2, 0, 1, 1, 0, 1, 7,
 		13, 0, 7, 1, 0, 0, 0, 2, 12, 1, 0, 0, 0, 4, 6, 3, 2, 1, 0, 5, 4, 1, 0,
 		0, 0, 6, 9, 1, 0, 0, 0, 7, 5, 1, 0, 0, 0, 7, 8, 1, 0, 0, 0, 8, 10, 1, 0,
 		0, 0, 9, 7, 1, 0, 0, 0, 10, 11, 5, 0, 0, 1, 11, 1, 1, 0, 0, 0, 12, 13,
@@ -85,13 +86,14 @@ func NewFencedBlockExtractorParser(input antlr.TokenStream) *FencedBlockExtracto
 
 // FencedBlockExtractorParser tokens.
 const (
-	FencedBlockExtractorParserEOF          = antlr.TokenEOF
-	FencedBlockExtractorParserFENCE_MARKER = 1
-	FencedBlockExtractorParserLANG_ID      = 2
-	FencedBlockExtractorParserLINE_COMMENT = 3
-	FencedBlockExtractorParserNEWLINE      = 4
-	FencedBlockExtractorParserWS           = 5
-	FencedBlockExtractorParserOTHER_TEXT   = 6
+	FencedBlockExtractorParserEOF           = antlr.TokenEOF
+	FencedBlockExtractorParserFENCE_MARKER  = 1
+	FencedBlockExtractorParserLANG_ID       = 2
+	FencedBlockExtractorParserMETADATA_LINE = 3
+	FencedBlockExtractorParserLINE_COMMENT  = 4
+	FencedBlockExtractorParserWS            = 5
+	FencedBlockExtractorParserNEWLINE       = 6
+	FencedBlockExtractorParserOTHER_TEXT    = 7
 )
 
 // FencedBlockExtractorParser rules.
@@ -236,7 +238,7 @@ func (p *FencedBlockExtractorParser) Document() (localctx IDocumentContext) {
 	}
 	_la = p.GetTokenStream().LA(1)
 
-	for (int64(_la) & ^0x3f) == 0 && ((int64(1)<<_la)&126) != 0 {
+	for (int64(_la) & ^0x3f) == 0 && ((int64(1)<<_la)&254) != 0 {
 		{
 			p.SetState(4)
 			p.Token()
@@ -283,6 +285,7 @@ type ITokenContext interface {
 	LANG_ID() antlr.TerminalNode
 	NEWLINE() antlr.TerminalNode
 	OTHER_TEXT() antlr.TerminalNode
+	METADATA_LINE() antlr.TerminalNode
 	LINE_COMMENT() antlr.TerminalNode
 	WS() antlr.TerminalNode
 
@@ -338,6 +341,10 @@ func (s *TokenContext) OTHER_TEXT() antlr.TerminalNode {
 	return s.GetToken(FencedBlockExtractorParserOTHER_TEXT, 0)
 }
 
+func (s *TokenContext) METADATA_LINE() antlr.TerminalNode {
+	return s.GetToken(FencedBlockExtractorParserMETADATA_LINE, 0)
+}
+
 func (s *TokenContext) LINE_COMMENT() antlr.TerminalNode {
 	return s.GetToken(FencedBlockExtractorParserLINE_COMMENT, 0)
 }
@@ -386,7 +393,7 @@ func (p *FencedBlockExtractorParser) Token() (localctx ITokenContext) {
 		p.SetState(12)
 		_la = p.GetTokenStream().LA(1)
 
-		if !((int64(_la) & ^0x3f) == 0 && ((int64(1)<<_la)&126) != 0) {
+		if !((int64(_la) & ^0x3f) == 0 && ((int64(1)<<_la)&254) != 0) {
 			p.GetErrorHandler().RecoverInline(p)
 		} else {
 			p.GetErrorHandler().ReportMatch(p)

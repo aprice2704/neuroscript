@@ -75,14 +75,18 @@ Avoid fiddling with code in several places at once, long established functions i
 
 NEVER, EVER, **EVER** remove debug lines **until I ask for a file without them**
 
-You will need the neuroscript folder. Tell me if not yet provided. If you don't have the NeuroScript.g4 file, please ask me to provide the text right away.
+Please remember to keep package comments up to date; if the intent of the package seems to be changing significantly, double check with me about it.
 
-For some reason the core import line keeps appearing like this:
+You will need the neuroscript folder. Tell me if not yet provided.
 
-"[github.com/aprice2704/neuroscript/pkg/core](https://www.google.com/search?q=https://github.com/aprice2704/neuroscript/pkg/core)"
+If you don't have the a .g4 or .y file you don't have, please ask me to provide the text right away.
+
+For some reason the core package import line keeps appearing like this:
+
+"[github.com/aprice2704/neuroscript/pkg/core](https://www.google.com/search?q=https://github.com/aprice2704/neuroscript/pkg/core)" 
 
 please stop doing that, ta :)
 
-
+We have previously had issues with hand rolled parsing -- it has always failed in the end leading to horrible debug sessions. Antlr has been better for script and blocks but failed horribly on checklists -- a bug that took days even to realize was one. Goyacc failed for script. So I am inclined to use antlr for extracting and parsing the metadata. 
 
 Here is what I would like to do next:

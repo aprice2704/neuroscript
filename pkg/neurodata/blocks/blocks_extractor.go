@@ -1,251 +1,223 @@
-// pkg/neurodata/blocks2/blocks_extractor.go
+// pkg/neurodata/blocks/blocks_extractor.go
+
+// Package blocks extracts fenced code blocks (```lang ... ```) from text content,
+// identifying the language identifier and the raw content within the fences.
+// It uses an ANTLR lexer for tokenization and Go code to process the token stream.
+// Metadata extraction within the block content is handled separately.
 package blocks
 
 import (
 	"fmt"
+	"io"
+	"log"
 	"strings"
 
+	// *** Ensure this path includes /v4 ***
 	"github.com/antlr4-go/antlr/v4"
-	// Assuming generated code is in a 'generated' sub-package
+	// Import generated code (should also use /v4 internally if generated correctly)
 	"github.com/aprice2704/neuroscript/pkg/neurodata/blocks/generated"
 )
 
 // FencedBlock holds information about an extracted fenced code block.
 type FencedBlock struct {
-	LanguageID string // Language identifier from the opening fence (e.g., "go", "python")
-	RawContent string // The raw string content between the fences (excluding fence lines)
-	StartLine  int    // Line number where the block started (opening ``` line)
-	EndLine    int    // Line number where the block ended (closing ``` line)
+	LanguageID string
+	RawContent string
+	StartLine  int
+	EndLine    int
 }
 
-// ExtractAll extracts all fenced blocks from the input content using the ANTLR tokenizer.
-// It handles nested fences and returns an error for ambiguous or unclosed fences.
-func ExtractAll(content string) ([]FencedBlock, error) {
-	fmt.Println("[DEBUG BLOCKS2 Extractor] Starting ExtractAll") // Debug
+// ExtractAll extracts all fenced blocks using the ANTLR lexer and Go logic.
+func ExtractAll(content string, logger *log.Logger) ([]FencedBlock, error) {
+	if logger == nil {
+		logger = log.New(io.Discard, "", 0)
+	}
+	logger.Printf("[DEBUG BLOCKS Extractor] Starting ExtractAll")
 
-	// 1. Setup ANTLR Lexer
+	// Use antlr/v4 types
 	inputStream := antlr.NewInputStream(content)
 	lexer := generated.NewFencedBlockExtractorLexer(inputStream)
-
-	// Optional: Add error listener for lexer errors if needed
-	// lexerErrorListener := NewYourErrorListener() // Implement if necessary
-	// lexer.RemoveErrorListeners()
-	// lexer.AddErrorListener(lexerErrorListener)
+	lexerErrorListener := &BlockErrorListener{SourceName: "lexer"}
+	lexer.RemoveErrorListeners()
+	lexer.AddErrorListener(lexerErrorListener) // This uses the v4 interface
 
 	tokenStream := antlr.NewCommonTokenStream(lexer, antlr.TokenDefaultChannel)
-	tokenStream.Fill() // Load all tokens
+	tokenStream.Fill()
+
+	if lexerErrorListener.HasErrors() {
+		return nil, fmt.Errorf("lexer errors found:\n%s", lexerErrorListener.GetErrors())
+	}
+
 	tokens := tokenStream.GetAllTokens()
+	logger.Printf("[DEBUG BLOCKS Extractor] Lexer produced %d tokens", len(tokens))
 
-	fmt.Printf("[DEBUG BLOCKS2 Extractor] Lexer produced %d tokens\n", len(tokens)) // Debug
-
-	// 2. Process Tokens
 	var blocks []FencedBlock
 	var currentContent strings.Builder
 	inBlock := false
 	nestingLevel := 0
 	currentLangID := ""
 	currentStartLine := -1
-	var lastClosedFenceLine int = -1 // Track the line number of the last closing fence
+	lastClosedFenceLine := -1
 
 	for i := 0; i < len(tokens); i++ {
 		token := tokens[i]
+		// Ensure token conforms to v4 interface if needed (usually okay)
+		_ = token.(antlr.Token)
+
+		// Skip hidden channel tokens (WS might be hidden depending on final grammar used)
+		// Check channel ID using GetChannel() which is part of v4 Token interface
+		// CommonTokenStream typically places hidden tokens off the default channel (0)
+		if token.GetChannel() != antlr.TokenDefaultChannel {
+			// If WS was put back on default channel, handle it here instead
+			if token.GetTokenType() == generated.FencedBlockExtractorLexerWS && inBlock {
+				currentContent.WriteString(token.GetText())
+			}
+			continue // Skip other hidden tokens
+		}
+
 		tokenType := token.GetTokenType()
 		tokenText := token.GetText()
 		tokenLine := token.GetLine()
 
-		// fmt.Printf("[DEBUG BLOCKS2 Token %d] Type: %s, Text: %q, Line: %d, State: InBlock=%t, Nest=%d\n",
-		// 	i, generated.FencedBlockExtractorLexerSymbolicNames[tokenType], tokenText, tokenLine, inBlock, nestingLevel) // Detailed Debug
-
-		// --- Check for Closing Fence ---
-		// A closing fence is FENCE_MARKER followed by NEWLINE or EOF
-		isPotentialCloseFence := false
-		isEOF := false
+		// (Rest of the loop logic remains the same as the previous version...)
 		if tokenType == generated.FencedBlockExtractorLexerFENCE_MARKER {
-			// Check next token (if exists)
-			if i+1 < len(tokens) {
-				nextToken := tokens[i+1]
-				// Closing fence requires a NEWLINE immediately after
-				// Allow EOF token type as well
-				if nextToken.GetTokenType() == generated.FencedBlockExtractorLexerNEWLINE || nextToken.GetTokenType() == antlr.TokenEOF {
-					isPotentialCloseFence = true
-					if nextToken.GetTokenType() == antlr.TokenEOF {
-						isEOF = true
-					}
-				}
-			} else {
-				// FENCE_MARKER at the very end of the token stream implies EOF follows
-				isPotentialCloseFence = true
-				isEOF = true
-			}
-		}
-
-		if inBlock && isPotentialCloseFence {
-			nestingLevel--
-			fmt.Printf("[DEBUG BLOCKS2 Extractor L%d] Potential closing fence. New Nesting Level: %d\n", tokenLine, nestingLevel)
-
-			if nestingLevel == 0 { // --- End of the current block ---
-				endLine := tokenLine
-				fmt.Printf("[DEBUG BLOCKS2 Extractor L%d] Closing block. StartLine: %d, LangID: %q\n", endLine, currentStartLine, currentLangID)
-
-				// Post-process content: remove leading/trailing blank lines
-				rawContent := currentContent.String()
-				// Split into lines, remove empty prefix/suffix lines, rejoin
-				contentLines := strings.Split(rawContent, "\n")
-				startIdx := 0
-				endIdx := len(contentLines)
-				for startIdx < endIdx && strings.TrimSpace(contentLines[startIdx]) == "" {
-					startIdx++
-				}
-				for endIdx > startIdx && strings.TrimSpace(contentLines[endIdx-1]) == "" {
-					endIdx--
-				}
-				// Handle case where block was only whitespace/newlines
-				if startIdx >= endIdx {
-					rawContent = ""
-				} else {
-					rawContent = strings.Join(contentLines[startIdx:endIdx], "\n")
-				}
-
-				block := FencedBlock{
-					LanguageID: currentLangID,
-					RawContent: rawContent,
-					StartLine:  currentStartLine,
-					EndLine:    endLine,
-				}
-				blocks = append(blocks, block)
-
-				// Reset state
-				inBlock = false
-				currentLangID = ""
-				currentStartLine = -1
-				currentContent.Reset()
-				lastClosedFenceLine = tokenLine // Record line of closing fence
-
-				// Consume the NEWLINE/EOF after the FENCE_MARKER
-				// Only consume if it wasn't the EOF marker itself
-				if !isEOF && i+1 < len(tokens) && tokens[i+1].GetTokenType() == generated.FencedBlockExtractorLexerNEWLINE {
-					i++ // Skip the newline token
-				}
-				continue // Move to the token after the fence sequence
-			} else {
-				// Nested closing fence, treat ``` as content
-				fmt.Printf("[DEBUG BLOCKS2 Extractor L%d] Nested closing fence marker encountered. Treating as content.\n", tokenLine)
-				currentContent.WriteString(tokenText) // Add the ```
-				// Also add the following newline if it exists and was part of the check
-				if !isEOF && i+1 < len(tokens) && tokens[i+1].GetTokenType() == generated.FencedBlockExtractorLexerNEWLINE {
-					currentContent.WriteString(tokens[i+1].GetText())
-					i++ // Consume newline
-				}
-				continue // Continue loop after processing nested close
-			}
-		} else if tokenType == generated.FencedBlockExtractorLexerFENCE_MARKER { // --- Check for Opening Fence ---
-			// Potential opening fence marker
-
-			// Ambiguity Check: Fence marker found immediately after a block closed on the previous line.
-			// We need to check the *next* non-skippable token's line if the fence marker itself is on the same line as the close.
-			// A simpler check: if lastClosedFenceLine != -1 AND the current FENCE_MARKER's line is <= lastClosedFenceLine + 1 (allowing same line or next)
-			// This might be too strict, let's stick to the "next line" rule.
-			if lastClosedFenceLine != -1 && tokenLine == lastClosedFenceLine+1 {
-				// More specific check: was the *previous* token the NEWLINE after the close?
-				if i > 0 && tokens[i-1].GetTokenType() == generated.FencedBlockExtractorLexerNEWLINE && tokens[i-1].GetLine() == lastClosedFenceLine {
-					fmt.Printf("[DEBUG BLOCKS2 Extractor L%d] Ambiguity detected! Fence follows immediately after closed block on line %d.\n", tokenLine, lastClosedFenceLine)
-					return blocks, fmt.Errorf("ambiguous fence detected on line %d, immediately following block closed on line %d", tokenLine, lastClosedFenceLine)
+			// --- Ambiguity Check ---
+			if !inBlock && lastClosedFenceLine != -1 && tokenLine == lastClosedFenceLine+1 {
+				prevTokenIndex := i - 1
+				for prevTokenIndex >= 0 && tokens[prevTokenIndex].GetChannel() != antlr.TokenDefaultChannel {
+					prevTokenIndex--
+				} // Find prev non-hidden
+				if prevTokenIndex >= 0 && tokens[prevTokenIndex].GetTokenType() == generated.FencedBlockExtractorLexerNEWLINE && tokens[prevTokenIndex].GetLine() == lastClosedFenceLine {
+					errMsg := fmt.Sprintf("ambiguous fence detected on line %d, immediately following block closed on line %d", tokenLine, lastClosedFenceLine)
+					logger.Printf("[ERROR BLOCKS Extractor] %s", errMsg)
+					return blocks, fmt.Errorf(errMsg)
 				}
 			}
-
+			// --- Lookahead (simplified logic, ensure indices skip hidden) ---
+			isPotentialCloseFence := false
+			isPotentialOpenFence := false
 			langID := ""
-			hasNextToken := i+1 < len(tokens)
-			hasLangID := false
-			hasSecondToken := hasNextToken // Alias for readability
-			hasThirdToken := i+2 < len(tokens)
-			isStartOfBlock := false
-
-			// Look ahead for LANG_ID and NEWLINE pattern or just NEWLINE
-			if hasSecondToken && tokens[i+1].GetTokenType() == generated.FencedBlockExtractorLexerLANG_ID && tokens[i+1].GetLine() == tokenLine {
-				// Potential ``` LANG_ID ...
-				hasLangID = true
-				if hasThirdToken && tokens[i+2].GetTokenType() == generated.FencedBlockExtractorLexerNEWLINE {
-					// Pattern: ``` LANG_ID NEWLINE
-					isStartOfBlock = true
-					langID = tokens[i+1].GetText()
-				}
-			} else if hasSecondToken && tokens[i+1].GetTokenType() == generated.FencedBlockExtractorLexerNEWLINE {
-				// Pattern: ``` NEWLINE
-				isStartOfBlock = true
+			skipTokens := 0
+			nextTokenIndex := i + 1
+			for nextTokenIndex < len(tokens) && tokens[nextTokenIndex].GetChannel() != antlr.TokenDefaultChannel {
+				nextTokenIndex++
 			}
 
-			if isStartOfBlock {
-				if !inBlock { // Starting a new top-level block
-					fmt.Printf("[DEBUG BLOCKS2 Extractor L%d] Opening fence detected. LangID: %q\n", tokenLine, langID)
-					inBlock = true
-					nestingLevel = 1
-					currentLangID = langID
-					currentStartLine = tokenLine
-					currentContent.Reset()
-					lastClosedFenceLine = -1 // Reset ambiguity check flag
-
-					// Consume LANG_ID (if present) and NEWLINE tokens
-					if hasLangID {
-						i += 2 // Skip FENCE_MARKER, LANG_ID, NEWLINE
-					} else {
-						i += 1 // Skip FENCE_MARKER, NEWLINE
+			if nextTokenIndex < len(tokens) {
+				nextToken := tokens[nextTokenIndex]
+				nextTokenType := nextToken.GetTokenType()
+				nextTokenLine := nextToken.GetLine()
+				if nextTokenType == generated.FencedBlockExtractorLexerNEWLINE || nextTokenType == antlr.TokenEOF {
+					isPotentialCloseFence = true
+					skipTokens = nextTokenIndex - i
+				} else if nextTokenType == generated.FencedBlockExtractorLexerLANG_ID && nextTokenLine == tokenLine {
+					langID = nextToken.GetText()
+					thirdTokenIndex := nextTokenIndex + 1
+					for thirdTokenIndex < len(tokens) && tokens[thirdTokenIndex].GetChannel() != antlr.TokenDefaultChannel {
+						thirdTokenIndex++
 					}
-					continue // Move to next token after the opening sequence
-				} else { // Nested opening fence
-					fmt.Printf("[DEBUG BLOCKS2 Extractor L%d] Nested opening fence detected. Increasing nesting level.\n", tokenLine)
-					nestingLevel++
-					// Treat the opening fence sequence as content
-					currentContent.WriteString(tokenText) // Add ```
-					if hasLangID {
-						currentContent.WriteString(tokens[i+1].GetText()) // Add LangID
-						if hasThirdToken {
-							currentContent.WriteString(tokens[i+2].GetText()) // Add Newline
+					if thirdTokenIndex < len(tokens) {
+						thirdToken := tokens[thirdTokenIndex]
+						if thirdToken.GetTokenType() == generated.FencedBlockExtractorLexerNEWLINE || thirdToken.GetTokenType() == antlr.TokenEOF {
+							isPotentialOpenFence = true
+							skipTokens = thirdTokenIndex - i
 						}
-						i += 2 // Consume all 3
 					} else {
-						if hasSecondToken {
-							currentContent.WriteString(tokens[i+1].GetText()) // Add Newline
-						}
-						i += 1 // Consume 2
-					}
-					continue
+						isPotentialOpenFence = true
+						skipTokens = nextTokenIndex - i
+					} // ```lang at EOF
+				} else if nextTokenType == generated.FencedBlockExtractorLexerNEWLINE { // Check for ``` NEWLINE (no lang)
+					isPotentialOpenFence = true
+					langID = ""
+					skipTokens = nextTokenIndex - i
 				}
 			} else {
-				// FENCE_MARKER not followed by LANG_ID?/NEWLINE - treat as regular text
+				isPotentialCloseFence = true
+			} // ``` at EOF
+
+			// --- Process Fence ---
+			if inBlock && isPotentialCloseFence { // Closing
+				nestingLevel--
+				logger.Printf("[DEBUG BLOCKS Extractor L%d] Potential closing fence. Nesting: %d", tokenLine, nestingLevel)
+				if nestingLevel == 0 {
+					endLine := tokenLine
+					logger.Printf("[DEBUG BLOCKS Extractor L%d] Closing block. Start: %d, LangID: %q", endLine, currentStartLine, currentLangID)
+					block := FencedBlock{LanguageID: currentLangID, RawContent: currentContent.String(), StartLine: currentStartLine, EndLine: endLine}
+					blocks = append(blocks, block)
+					inBlock = false
+					lastClosedFenceLine = tokenLine
+					i += skipTokens
+					continue
+				} else { // Nested close
+					logger.Printf("[DEBUG BLOCKS Extractor L%d] Nested closing fence -> Content", tokenLine)
+					currentContent.WriteString(tokenText)
+					// Add newline if needed
+					nlIdx := i + 1
+					for nlIdx < len(tokens) && tokens[nlIdx].GetChannel() != antlr.TokenDefaultChannel {
+						nlIdx++
+					}
+					if nlIdx < len(tokens) && tokens[nlIdx].GetTokenType() == generated.FencedBlockExtractorLexerNEWLINE {
+						currentContent.WriteString(tokens[nlIdx].GetText())
+					}
+				}
+			} else if !inBlock && isPotentialOpenFence { // Opening
+				logger.Printf("[DEBUG BLOCKS Extractor L%d] Opening fence. LangID: %q", tokenLine, langID)
+				inBlock = true
+				nestingLevel = 1
+				currentLangID = langID
+				currentStartLine = tokenLine
+				currentContent.Reset()
+				lastClosedFenceLine = -1
+				i += skipTokens
+				continue
+			} else { // Malformed or ``` as content
 				if inBlock {
-					fmt.Printf("[DEBUG BLOCKS2 Extractor L%d] Non-fence '```' sequence found inside block. Treating as content.\n", tokenLine)
+					logger.Printf("[DEBUG BLOCKS Extractor L%d] Non-fence '```' -> Content", tokenLine)
 					currentContent.WriteString(tokenText)
 				} else {
-					// If outside a block, it might be an unterminated fence attempt or just text. Ignore for block extraction.
-					fmt.Printf("[DEBUG BLOCKS2 Extractor L%d] Non-fence '```' sequence found outside block. Ignoring.\n", tokenLine)
+					logger.Printf("[DEBUG BLOCKS Extractor L%d] Ignoring non-opening '```'", tokenLine)
 				}
 			}
 		} else if tokenType == antlr.TokenEOF {
-			// End of File token reached
-			break // Exit loop cleanly
-		} else { // --- Regular Content Token ---
+			break
+		} else { // --- Other Tokens ---
 			if inBlock {
-				// Append text of any other token type to the content builder
 				currentContent.WriteString(tokenText)
+			} // Append *all* non-hidden tokens
+			if lastClosedFenceLine != -1 && tokenLine > lastClosedFenceLine {
+				lastClosedFenceLine = -1
 			}
-			// Ignore tokens outside blocks that aren't fences
 		}
+	} // End loop
 
-		// Reset ambiguity flag if the current token means we are no longer immediately after a closed block
-		if lastClosedFenceLine != -1 && tokenLine > lastClosedFenceLine {
-			// Or if it's a different token type on the same line? Check if needed.
-			// For now, simply moving to the next line resets it.
-			lastClosedFenceLine = -1
-		}
-
-	} // End token loop
-
-	// Check for unclosed block at EOF
 	if inBlock {
-		fmt.Printf("[DEBUG BLOCKS2 Extractor] EOF reached while still inside a block (started line %d).\n", currentStartLine)
-		return blocks, fmt.Errorf("malformed content: unclosed fenced block starting on line %d", currentStartLine)
+		errMsg := fmt.Sprintf("malformed content: unclosed fenced block starting on line %d", currentStartLine)
+		logger.Printf("[ERROR BLOCKS Extractor] %s", errMsg)
+		return blocks, fmt.Errorf(errMsg)
 	}
 
-	fmt.Printf("[DEBUG BLOCKS2 Extractor] Finished ExtractAll. Found %d blocks.\n", len(blocks))
+	logger.Printf("[DEBUG BLOCKS Extractor] Finished ExtractAll. Found %d blocks.", len(blocks))
+	for i := range blocks {
+		blocks[i].RawContent = strings.TrimSpace(blocks[i].RawContent)
+	} // Final trim
 	return blocks, nil
 }
+
+// --- Custom Error Listener (using antlr/v4) ---
+type BlockErrorListener struct {
+	*antlr.DefaultErrorListener // Embed v4 default listener
+	Errors                      []string
+	SourceName                  string
+}
+
+// Override v4 SyntaxError
+func (l *BlockErrorListener) SyntaxError(recognizer antlr.Recognizer, offendingSymbol interface{}, line, column int, msg string, e antlr.RecognitionException) {
+	errMsg := fmt.Sprintf("%s:%d:%d: %s", l.SourceName, line, column, msg)
+	l.Errors = append(l.Errors, errMsg)
+}
+func (l *BlockErrorListener) HasErrors() bool   { return len(l.Errors) > 0 }
+func (l *BlockErrorListener) GetErrors() string { return strings.Join(l.Errors, "\n") }
+
+// Implement other methods required by antlr.ErrorListener if DefaultErrorListener doesn't cover them fully (ReportAmbiguity etc. usually are covered)
+// func (l *BlockErrorListener) ReportAmbiguity(...) {} // Implement if needed
+// func (l *BlockErrorListener) ReportAttemptingFullContext(...) {} // Implement if needed
+// func (l *BlockErrorListener) ReportContextSensitivity(...) {} // Implement if needed
