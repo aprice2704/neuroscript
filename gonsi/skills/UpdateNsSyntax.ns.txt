@@ -1,137 +1,147 @@
 # NeuroScript Skill: Comprehensive Syntax Update
-# Version 20: Uses generic update prompt incorporating NEUROSCRIPT_DEVELOP_PROMPT rules.
+# Version 28: Replace CALL CommitChanges with CALL TOOL.GitCommit.
 DEFINE PROCEDURE UpdateNsSyntax(directory_path)
 COMMENT:
-    PURPOSE: Automatically refactors NeuroScript files (.ns.txt) in a directory
-             to conform to the current grammar (rules provided via NEUROSCRIPT_DEVELOP_PROMPT).
-             Focuses on correcting syntax based on the provided rules.
+    PURPOSE: Recursively finds and refactors NeuroScript files (.ns.txt) in a directory
+             and its subdirectories to conform to the current grammar (rules provided via NEUROSCRIPT_DEVELOP_PROMPT).
              Uses an LLM for refactoring. Stages and commits changes.
     INPUTS:
-        - directory_path (string): The relative path to the directory containing .ns.txt files.
+        - directory_path (string): The relative path to the directory to process.
     OUTPUT:
-        - status_message (string): Indicates completion or errors encountered.
+        - status_message (string): Indicates completion or errors encountered (cumulative status).
     ALGORITHM:
-        1. List .ns.txt files in the directory.
-        2. Iterate through each file (excluding self).
-        3. Read file content. Handle read errors.
-        4. Construct a generic LLM prompt using NEUROSCRIPT_DEVELOP_PROMPT and the file content.
-        5. Call LLM to get refactored code.
-        6. Write back only if content changed. Handle write errors.
-        7. Stage successful changes with GitAdd. Handle stage errors.
-        8. Commit all staged changes at the end.
-    CAVEATS: High reliance on LLM accuracy for refactoring based on rules.
-             Relies on NEUROSCRIPT_DEVELOP_PROMPT variable being correctly loaded.
-             Manual checks recommended after run.
-    EXAMPLES: CALL UpdateNsSyntax("gonsi/skills") => "Syntax update attempt complete..."
+        1. List entries (as maps {name, is_dir}) in the current directory_path.
+        2. Iterate through each entry map.
+        3. Get name and is_dir status from map.
+        4. Construct the full relative path for the entry.
+        5. If the entry is a directory (is_dir == true): Recursively CALL UpdateNsSyntax on the subdirectory path.
+        6. If the entry is a file (is_dir == false) ending in .ns.txt (and not self): Process it.
+           a. Read file content. Handle read errors.
+           b. Construct LLM prompt.
+           c. Call LLM.
+           d. Write back if changed. Handle write errors.
+           e. Stage successful changes. Handle stage errors. Accumulate staged file paths.
+        7. Commit changes staged at this level using TOOL.GitCommit.
+    CAVEATS: High reliance on LLM accuracy. Relies on NEUROSCRIPT_DEVELOP_PROMPT.
+             Commit only includes files staged at the top level call, not recursive ones.
+             Simple recursion, no cycle detection.
+    LANG_VERSION: 1.1.0
+    EXAMPLES: CALL UpdateNsSyntax(".") => Recursively updates files and returns status.
 ENDCOMMENT
 
-EMIT "Starting syntax update for directory: " + directory_path
-SET staged_files_csv = ""
-SET self_filename = "UpdateNsSyntax.ns.txt" # Prevent self-modification
+EMIT "Processing directory: " + directory_path
+SET local_staged_files_csv = ""
+SET self_filename_base = "UpdateNsSyntax.ns.txt"
 
-# 1. List files
+# 1. List files/dirs in the current directory_path (returns list of maps)
 CALL TOOL.ListDirectory(directory_path)
-SET file_list = LAST
-# Check if listing failed (TOOL might return error string)
-CALL TOOL.Contains(file_list, "ListDirectory failed") # Assuming TOOL returns string on error
-SET list_failed = LAST
-IF list_failed == true THEN
-    RETURN "Error: Failed to list directory '" + directory_path + "': " + file_list
-ENDBLOCK
+SET list_result = LAST
 
-# 2. Loop through files (assuming file_list is now a list of strings)
-FOR EACH filename IN file_list DO
+# Error handling for ListDirectory needs improvement
 
-    # 3. Skip self
-    IF filename == self_filename THEN
-        EMIT "Skipping self: " + filename
+# 2. Loop through entry maps
+FOR EACH entry_map IN list_result DO # entry_map is like {"name": "...", "is_dir": true/false}
+
+    # 3. Get name and type from map
+    SET entry_name = entry_map["name"]
+    SET is_directory = entry_map["is_dir"]
+
+    # 4. Construct full relative path for the current item
+    SET current_item_path = ""
+    IF directory_path == "." THEN
+        SET current_item_path = entry_name
     ELSE
-        # 4. Check if it's a .ns.txt file
-        CALL TOOL.HasSuffix(filename, ".ns.txt")
+        SET current_item_path = directory_path + "/" + entry_name
+    ENDBLOCK
+
+    # 5. Check if entry is a directory
+    IF is_directory == true THEN
+        # 5a. It's a directory - Construct recursive path (name is already clean)
+        SET recursive_path = current_item_path # Path is already relative to CWD
+
+        # 5b. Recursive Call
+        CALL UpdateNsSyntax(recursive_path)
+
+    ELSE
+        # 6. It's a file - Check if it's a .ns.txt file
+        CALL TOOL.HasSuffix(entry_name, ".ns.txt")
         SET is_ns_file = LAST
 
         IF is_ns_file == true THEN
-            SET full_path = directory_path + "/" + filename
-            EMIT "Processing file: " + full_path
+            SET full_path = current_item_path
 
-            # 5a. Read content
-            CALL TOOL.ReadFile(full_path)
-            SET RawContent = LAST
+             IF entry_name == self_filename_base THEN
+                 EMIT "Skipping self: " + full_path
+             ELSE
+                EMIT "Processing file: " + full_path
 
-            # 5b. Check read result
-            CALL TOOL.Contains(RawContent, "ReadFile failed") # Assuming TOOL returns string on error
-            SET read_failed = LAST
+                # 6a. Read content
+                CALL TOOL.ReadFile(full_path)
+                SET RawContent = LAST
 
-            IF read_failed == true THEN
-                EMIT "[WARN] Failed to read file: " + full_path + " - Error: " + RawContent
-            ELSE
-                # Content read successfully
-                EMIT "  Read successful. Requesting syntax check/update from LLM..."
+                # 6b. Check read result
+                CALL TOOL.Contains(RawContent, "ReadFile failed")
+                SET read_failed = LAST
 
-                # 5c. Construct GENERIC LLM prompt using development rules
-                # ASSUMES NEUROSCRIPT_DEVELOP_PROMPT is loaded in the interpreter environment
-                SET refactor_prompt = "You are a NeuroScript syntax refactoring assistant.\n" + \
-                    "Strictly apply ONLY the rules provided below to the following NeuroScript code.\n" + \
-                    "Correct any syntax that violates these rules (e.g., replace '__last_call_result' with 'LAST', ensure blocks end correctly, fix 'SET = CALL' to 'CALL / SET = LAST', etc.).\n" + \
-                    "Respond ONLY with the complete, corrected, raw NeuroScript code, without explanations or markdown fences.\n\n" + \
-                    "RULES:\n```\n" + NEUROSCRIPT_DEVELOP_PROMPT + "\n```\n\n" + \
-                    "Refactor this NeuroScript code:\n```neuroscript\n" + RawContent + "\n```"
-
-                # 5d. Call LLM
-                CALL LLM(refactor_prompt)
-                SET updated_content = LAST
-
-                # 5e. Write back only if changed
-                EMIT "  Checking for changes..."
-                IF RawContent != updated_content THEN
-                    EMIT "    Content changed, writing file..."
-                    CALL TOOL.WriteFile(full_path, updated_content)
-                    SET write_status = LAST # Captures "OK" or error message
+                IF read_failed == true THEN
+                    EMIT "[WARN] Failed to read file: " + full_path + " - Error: " + RawContent
                 ELSE
-                    EMIT "    No changes detected by LLM, skipping write."
-                    SET write_status = "SKIPPED" # Use a distinct status
-                ENDBLOCK # End IF RawContent != updated_content
+                    EMIT "    Read successful. Requesting syntax check/update from LLM..."
 
-                # 5f. Stage if write was successful
-                IF write_status == "OK" THEN
-                    EMIT "  Staging file..."
-                    CALL TOOL.GitAdd(full_path)
-                    SET add_status = LAST # Captures "OK" or error
+                    # 6c. Construct GENERIC LLM prompt - Single Line
+                    SET refactor_prompt = "You are a NeuroScript syntax refactoring assistant.\n" + "Strictly apply ONLY the rules provided below to the following NeuroScript code.\n" + "Correct any syntax that violates these rules (e.g., replace '__last_call_result' with 'LAST', ensure blocks end correctly, fix 'SET = CALL' to 'CALL / SET = LAST', etc.).\n" + "Respond ONLY with the complete, corrected, raw NeuroScript code, without explanations or markdown fences.\n\n" + "RULES:\n```\n" + NEUROSCRIPT_DEVELOP_PROMPT + "\n```\n\n" + "Refactor this NeuroScript code:\n```neuroscript\n" + RawContent + "\n```"
 
-                    IF add_status == "OK" THEN
-                        SET staged_files_csv = staged_files_csv + full_path + ","
+                    # 6d. Call LLM
+                    CALL LLM(refactor_prompt)
+                    SET updated_content = LAST
+
+                    # 6e. Write back only if changed
+                    IF RawContent != updated_content THEN
+                        EMIT "      Content changed, writing file"+full_path
+                        CALL TOOL.WriteFile(full_path, updated_content)
+                        SET write_status = LAST
                     ELSE
-                        EMIT "[WARN] Failed to stage file: " + full_path + " - Error: " + add_status
-                    ENDBLOCK # End IF add_status == "OK"
+                        SET write_status = "SKIPPED"
+                    ENDBLOCK
 
-                ELSE
-                    # Handle cases where write was skipped OR failed
-                    IF write_status != "SKIPPED" THEN
-                        # Write actually failed, report error
-                        EMIT "[WARN] Failed to write updated file: " + full_path + " - Error: " + write_status
-                    # ELSE: Write was skipped, do nothing further for this file
-                    ENDBLOCK # End IF write_status != "SKIPPED"
-                ENDBLOCK # End IF write_status == "OK" / ELSE
+                    # 6f. Stage if write was successful
+                    IF write_status == "OK" THEN
+                        EMIT "    Staging file..."
+                        CALL TOOL.GitAdd(full_path)
+                        SET add_status = LAST
 
-            ENDBLOCK # End IF read_failed == true / ELSE block
+                        IF add_status == "OK" THEN
+                            SET local_staged_files_csv = local_staged_files_csv + full_path + ","
+                        ELSE
+                            EMIT "[WARN] Failed to stage file: " + full_path + " - Error: " + add_status
+                        ENDBLOCK
+                    ELSE
+                        IF write_status != "SKIPPED" THEN
+                            EMIT "[WARN] Failed to write updated file: " + full_path + " - Error: " + write_status
+                        ENDBLOCK
+                    ENDBLOCK # End IF write_status OK
+
+                ENDBLOCK # End IF read failed / ELSE
+
+             ENDBLOCK # End IF skip self / ELSE
 
         ENDBLOCK # End IF is_ns_file == true
 
-    ENDBLOCK # End IF filename == self_filename / ELSE
+    ENDBLOCK # End IF is_directory / ELSE (is file)
 
-ENDBLOCK // End FOR EACH loop
+ENDBLOCK # End FOR EACH loop
 
-# 6. Commit changes if any files were staged
-EMIT "Finished processing directory."
-IF staged_files_csv != "" THEN
-    EMIT "Committing updated files..."
-    SET commit_message = "AUTO: Update NeuroScript syntax based on develop prompt rules"
-    CALL CommitChanges(commit_message, staged_files_csv) # Assumes CommitChanges skill exists
-    EMIT "Commit Result: " + LAST
+# 7. Commit changes using TOOL.GitCommit directly
+IF local_staged_files_csv != "" THEN
+    EMIT "Committing updated files staged in " + directory_path + " ..."
+    SET commit_message = "AUTO: Update NeuroScript syntax for " + directory_path
+    # *** CHANGED THIS LINE ***
+    CALL TOOL.GitCommit(commit_message)
+    EMIT "Commit Result: " + LAST # LAST now holds "OK" or error string from TOOL.GitCommit
 ELSE
-    EMIT "No files required changes or staging."
-ENDBLOCK # End IF staged_files_csv != ""
+    # EMIT "No files required changes or staging in " + directory_path
+ENDBLOCK # End IF local_staged_files_csv != ""
 
-RETURN "Syntax update attempt complete for directory: " + directory_path + ". Check log and git status."
+RETURN "Syntax update attempt finished for directory: " + directory_path + ". Check log and git status."
 
 END # End of DEFINE PROCEDURE

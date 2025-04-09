@@ -1,7 +1,8 @@
-# NeuroScript Development Checklist (v5 - Updated & Reordered)
+:: version: 0.1.5
+:: dependsOn: docs/neuroscript overview.md, pkg/core/*, pkg/neurodata/*
+:: howToUpdate: Review checklist against current codebase state (core interpreter features, tools, neurodata parsers) and project goals. Mark completed items, add new tasks, adjust priorities. Increment patch version.
 
-Version: 0.1.3  
-DependsOn: neuroscript overview.md  
+# NeuroScript Development Checklist (v6 - Added Built-in Review Item)
 
 ## Goal: Reach "bootstrapping" point
 
@@ -22,7 +23,7 @@ DependsOn: neuroscript overview.md
 **Core Language / Interpreter Refinements:**
 [ ] Interpreter: Add NeuroScript-specific Error Handling (e.g., TRY/CATCH or specific error types?)
 [ ] NeuroData files, template and instance (Design & Implement)
-    [ ] checklist
+    [x] checklist (Parser exists, Tooling/Integration TBD) [cite: uploaded:neuroscript/pkg/neurodata/checklist/checklist_parser.go]
     [ ] graph
     [ ] table
     [ ] decision_table
@@ -89,6 +90,8 @@ DependsOn: neuroscript overview.md
 [ ] keep prior versions meta tag
 [ ] gonsi as local agent for LLM
 [ ] gonsi plugin for vscode allows direct file edits
+[ ] **Review existing .ns skills (e.g., CommitChanges) for suitability/ease of conversion to built-in Go TOOLs.** **(NEW)**
+[ ] allow line continuation in ns
 
 ## C. Found work and things to go back to
 
@@ -146,3 +149,5 @@ DependsOn: neuroscript overview.md
 [x] Debug Flags and Conditional Logging in gonsi [cite: uploaded:neuroscript/gonsi/main.go]
 [x] Graceful skipping of files with parse errors in gonsi [cite: uploaded:neuroscript/gonsi/main.go, uploaded:neuroscript/pkg/core/parser_api.go]
 [x] Bootstrap Skills: Create initial .ns.txt skills (HandleSkillRequest, CommitChanges, UpdateNsSyntax, etc.) [cite: uploaded:neuroscript/gonsi/skills/orchestrator.ns.txt, uploaded:neuroscript/gonsi/skills/commit_changes.ns.txt, uploaded:neuroscript/gonsi/skills/UpdateNsSyntax.ns.txt]
+[x] Fenced Code Block Extraction (including metadata) [cite: uploaded:neuroscript/pkg/neurodata/blocks/blocks_extractor.go, uploaded:neuroscript/pkg/neurodata/blocks/blocks_tool.go, uploaded:neuroscript/pkg/neurodata/blocks/blocks_complex_test.go]
+[x] Updated gonsi CLI args (-lib flag, proc/file target) [cite: uploaded:neuroscript/gonsi/main.go]

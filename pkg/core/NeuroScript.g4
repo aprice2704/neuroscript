@@ -1,4 +1,8 @@
-// pkg/core/NeuroScript.g4
+// File:    pkg/core/NeuroScript.g4
+// Grammar: NeuroScript
+// Version: 0.2.0
+// Date:    2025-04-08
+
 grammar NeuroScript;
 
 // --- PARSER RULES ---
