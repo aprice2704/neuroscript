@@ -25,7 +25,7 @@ func toolReadFile(interpreter *Interpreter, args []interface{}) (interface{}, er
 	if errWd != nil {
 		return nil, fmt.Errorf("ReadFile failed get CWD: %w", errWd)
 	}
-	absPath, secErr := secureFilePath(filePath, cwd)
+	absPath, secErr := SecureFilePath(filePath, cwd)
 	if secErr != nil {
 		return fmt.Sprintf("ReadFile failed for '%s': %s", filePath, secErr.Error()), nil
 	}
@@ -48,7 +48,7 @@ func toolWriteFile(interpreter *Interpreter, args []interface{}) (interface{}, e
 	if errWd != nil {
 		return nil, fmt.Errorf("WriteFile failed get CWD: %w", errWd)
 	}
-	absPath, secErr := secureFilePath(filePath, cwd)
+	absPath, secErr := SecureFilePath(filePath, cwd)
 	if secErr != nil {
 		return fmt.Sprintf("WriteFile path error: %s", secErr.Error()), nil
 	}
@@ -79,7 +79,7 @@ func toolListDirectory(interpreter *Interpreter, args []interface{}) (interface{
 	if filepath.Clean(dirPath) == "." {
 		absPath = cwd
 	} else {
-		absPath, secErr = secureFilePath(dirPath, cwd)
+		absPath, secErr = SecureFilePath(dirPath, cwd)
 		if secErr != nil {
 			return fmt.Sprintf("ListDirectory path error: %s", secErr.Error()), nil
 		}
@@ -130,7 +130,7 @@ func toolLineCount(interpreter *Interpreter, args []interface{}) (interface{}, e
 			}
 			return int64(-1), nil // Return -1 on internal error
 		}
-		absPath, secErr := secureFilePath(input, cwd)
+		absPath, secErr := SecureFilePath(input, cwd)
 		if secErr == nil { // Path is secure, try reading
 			isPath = true
 			if interpreter.logger != nil {

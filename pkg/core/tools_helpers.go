@@ -9,9 +9,10 @@ import (
 	"strings"
 )
 
-// secureFilePath cleans and ensures the **relative** path is within the allowed directory (cwd).
+// SecureFilePath cleans and ensures the **relative** path is within the allowed directory (cwd).
 // Rejects absolute paths.
-func secureFilePath(filePath, allowedDir string) (string, error) {
+// Renamed to SecureFilePath (capitalized) to export it.
+func SecureFilePath(filePath, allowedDir string) (string, error) {
 	if filePath == "" {
 		return "", fmt.Errorf("file path cannot be empty")
 	}

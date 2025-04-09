@@ -4,7 +4,7 @@ package core
 import (
 	"fmt"
 	"os"
-	// "path/filepath" // Not directly needed here, but secureFilePath uses it
+	// "path/filepath" // Not directly needed here, but SecureFilePath uses it
 )
 
 // registerGitTools adds Git-related tools to the registry.
@@ -36,18 +36,18 @@ func registerGitTools(registry *ToolRegistry) {
 
 // toolGitAdd stages a file using the git command.
 // Assumes git executable is in PATH and operates in the current working directory.
-// Uses secureFilePath for safety.
+// Uses SecureFilePath for safety.
 func toolGitAdd(interpreter *Interpreter, args []interface{}) (interface{}, error) {
 	// Validation should be handled by ValidateAndConvertArgs before calling this.
 	filePath := args[0].(string)
 
-	// Use secureFilePath to ensure path is safe relative to CWD
+	// Use SecureFilePath to ensure path is safe relative to CWD
 	cwd, errWd := os.Getwd()
 	if errWd != nil {
 		// This is an internal error, not a user path error
 		return nil, fmt.Errorf("GitAdd failed to get working directory: %w", errWd)
 	}
-	absPath, secErr := secureFilePath(filePath, cwd)
+	absPath, secErr := SecureFilePath(filePath, cwd)
 	if secErr != nil {
 		// Return the security error message as the result string for NeuroScript
 		return fmt.Sprintf("GitAdd path error: %s", secErr.Error()), nil

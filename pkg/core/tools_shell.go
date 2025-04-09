@@ -123,10 +123,10 @@ func toolGoCheck(interpreter *Interpreter, args []interface{}) (interface{}, err
 	if errWd != nil {
 		return nil, fmt.Errorf("GoCheck failed to get working directory: %w", errWd)
 	}
-	// Use secureFilePath - allow '.' as target
+	// Use SecureFilePath - allow '.' as target
 	cleanTargetPath := "."
 	if targetPath != "." {
-		_, secErr := secureFilePath(targetPath, cwd)
+		_, secErr := SecureFilePath(targetPath, cwd)
 		if secErr != nil {
 			errMsg := fmt.Sprintf("GoCheck path error for target '%s': %s", targetPath, secErr.Error())
 			return map[string]interface{}{"check_success": false, "error_details": errMsg}, nil
@@ -230,7 +230,7 @@ func toolGoBuild(interpreter *Interpreter, args []interface{}) (interface{}, err
 			return nil, fmt.Errorf("GoBuild failed to get working directory: %w", errWd)
 		}
 		if targetArg != "." {
-			_, secErr := secureFilePath(targetArg, cwd)
+			_, secErr := SecureFilePath(targetArg, cwd)
 			if secErr != nil {
 				errMsg := fmt.Sprintf("GoBuild path error for target '%s': %s", targetArg, secErr.Error())
 				return map[string]interface{}{"stdout": "", "stderr": errMsg, "exit_code": int64(-1), "success": false}, nil

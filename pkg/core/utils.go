@@ -122,7 +122,7 @@ func sanitizeFilename(name string) string {
 }
 
 // runGitCommand moved to tools_helpers.go
-// secureFilePath moved to tools_helpers.go
+// SecureFilePath moved to tools_helpers.go
 
 // parseDocstring extracts structured information from a COMMENT: block.
 func parseDocstring(content string) Docstring {

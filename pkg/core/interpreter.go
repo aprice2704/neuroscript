@@ -11,7 +11,7 @@ import (
 // --- Interpreter ---
 type Interpreter struct {
 	variables       map[string]interface{}
-	knownProcedures map[string]Procedure
+	knownProcedures map[string]Procedure // Keep unexported
 	lastCallResult  interface{}
 	vectorIndex     map[string][]float32
 	embeddingDim    int
@@ -20,7 +20,7 @@ type Interpreter struct {
 	logger          *log.Logger
 }
 
-// --- ADDED: Getter for ToolRegistry ---
+// --- Getter for ToolRegistry ---
 func (i *Interpreter) ToolRegistry() *ToolRegistry {
 	if i.toolRegistry == nil {
 		if i.logger != nil { // Check logger before using
@@ -32,19 +32,12 @@ func (i *Interpreter) ToolRegistry() *ToolRegistry {
 	return i.toolRegistry
 }
 
-// --- END ADDED Getter ---
-
-// --- ADDED: Exported method to add procedures ---
-// This method allows main.go (or other packages) to load parsed procedures
-// into the interpreter's internal map, handling potential duplicates.
+// --- Exported method to add procedures ---
 func (i *Interpreter) AddProcedure(proc Procedure) error {
-	// Ensure the map is initialized
 	if i.knownProcedures == nil {
 		i.knownProcedures = make(map[string]Procedure)
 	}
 	if _, exists := i.knownProcedures[proc.Name]; exists {
-		// Provide more context in the error if possible (e.g., which file defined it)
-		// For now, just the name.
 		return fmt.Errorf("procedure '%s' already defined", proc.Name)
 	}
 	i.knownProcedures[proc.Name] = proc
@@ -54,19 +47,30 @@ func (i *Interpreter) AddProcedure(proc Procedure) error {
 	return nil
 }
 
-// --- END ADDED AddProcedure ---
+// --- ADDED: Exported method to get known procedures map ---
+// This allows main.go to check if a procedure exists after loading.
+func (i *Interpreter) KnownProcedures() map[string]Procedure {
+	// Return a copy to prevent external modification?
+	// For now, return the internal map directly for simplicity.
+	// Consider implications if external code modifies this map.
+	if i.knownProcedures == nil {
+		return make(map[string]Procedure) // Return empty map if not initialized
+	}
+	return i.knownProcedures
+}
 
-// --- Methods to satisfy tools.InterpreterContext (or similar interface if defined) ---
+// --- END ADDED KnownProcedures ---
+
+// --- Methods to satisfy tools.InterpreterContext ---
 func (i *Interpreter) Logger() *log.Logger {
 	if i.logger == nil {
-		// Return a logger that discards output if none is configured
 		return log.New(io.Discard, "", 0)
 	}
 	return i.logger
 }
 func (i *Interpreter) GetVectorIndex() map[string][]float32 {
 	if i.vectorIndex == nil {
-		i.vectorIndex = make(map[string][]float32) // Initialize if nil
+		i.vectorIndex = make(map[string][]float32)
 	}
 	return i.vectorIndex
 }
@@ -92,9 +96,6 @@ func NewInterpreter(logger *log.Logger) *Interpreter {
 		logger:          effectiveLogger,
 	}
 
-	// Tool registration is now handled externally (e.g., in main.go)
-
-	// Pre-load standard prompts
 	interp.variables["NEUROSCRIPT_DEVELOP_PROMPT"] = PromptDevelop
 	interp.variables["NEUROSCRIPT_EXECUTE_PROMPT"] = PromptExecute
 
@@ -103,30 +104,29 @@ func NewInterpreter(logger *log.Logger) *Interpreter {
 
 // RunProcedure executes a named procedure with given arguments.
 func (i *Interpreter) RunProcedure(procName string, args ...string) (result interface{}, err error) {
-	proc, exists := i.knownProcedures[procName]
+	// Use the exported KnownProcedures() method here
+	proc, exists := i.KnownProcedures()[procName]
 	if !exists {
 		return nil, fmt.Errorf("procedure '%s' not defined or not loaded", procName)
 	}
 
-	// --- Scope handling ---
 	localVars := make(map[string]interface{})
-	for k, v := range i.variables { // Copy initial global/built-in vars
+	for k, v := range i.variables {
 		localVars[k] = v
 	}
 	if len(args) != len(proc.Params) {
 		return nil, fmt.Errorf("procedure '%s' expects %d argument(s) (%v), received %d (%v)", procName, len(proc.Params), proc.Params, len(args), args)
 	}
 	for idx, paramName := range proc.Params {
-		// Check against initial variables map, not localVars, for shadowing built-ins
 		if _, isBuiltIn := i.variables[paramName]; isBuiltIn && i.logger != nil {
 			i.logger.Printf("[WARN] Procedure '%s' parameter '%s' shadows built-in variable.", procName, paramName)
 		}
-		localVars[paramName] = args[idx] // Args are passed as strings
+		localVars[paramName] = args[idx]
 	}
 
 	originalVars := i.variables
 	originalProcName := i.currentProcName
-	i.variables = localVars // Switch to local scope for execution
+	i.variables = localVars
 	i.currentProcName = procName
 
 	if i.logger != nil {
@@ -134,28 +134,26 @@ func (i *Interpreter) RunProcedure(procName string, args ...string) (result inte
 		i.logger.Printf("[DEBUG-INTERP]    Initial local scope size: %d", len(i.variables))
 	}
 
-	// Defer scope restoration
 	defer func() {
 		i.currentProcName = originalProcName
-		i.variables = originalVars // Restore reference to original map
+		i.variables = originalVars
 		if i.logger != nil {
 			i.logger.Printf("[DEBUG-INTERP] << Finished Procedure: %s (Result: %v (%T), Error: %v)", procName, result, result, err)
 			i.logger.Printf("[DEBUG-INTERP]    Restored original scope reference. Current Proc: %q", i.currentProcName)
 		}
 	}()
 
-	// Execute the steps
 	var wasReturn bool
-	result, wasReturn, err = i.executeSteps(proc.Steps) // Call the main step executor
+	result, wasReturn, err = i.executeSteps(proc.Steps)
 	if err == nil && !wasReturn {
-		result = nil // Implicit nil return if no RETURN statement was hit
+		result = nil
 	}
 
 	return result, err
 }
 
 // executeSteps iterates through procedure steps and executes them.
-// This is the central dispatcher for step types.
+// (Rest of the function remains the same)
 func (i *Interpreter) executeSteps(steps []Step) (result interface{}, wasReturn bool, err error) {
 	if i.logger != nil {
 		i.logger.Printf("[DEBUG-INTERP] >>> executeSteps called with %d steps for proc '%s'", len(steps), i.currentProcName)
@@ -166,9 +164,7 @@ func (i *Interpreter) executeSteps(steps []Step) (result interface{}, wasReturn 
 		var stepReturned bool
 		var stepErr error
 
-		// Log step details BEFORE execution (as before)
 		if i.logger != nil {
-			// ... (logging code as before) ...
 			valueStr := "<nil>"
 			valueType := "<nil>"
 			if step.Value != nil {
@@ -204,7 +200,6 @@ func (i *Interpreter) executeSteps(steps []Step) (result interface{}, wasReturn 
 				stepNum+1, step.Type, step.Target, condType, condStr, valueType, valueStr, elseValueType, elseValueStr, argsStr)
 		}
 
-		// Dispatch to specific execution functions (which live in other files)
 		switch step.Type {
 		case "SET":
 			stepErr = i.executeSet(step, stepNum)
@@ -224,7 +219,6 @@ func (i *Interpreter) executeSteps(steps []Step) (result interface{}, wasReturn 
 			stepErr = fmt.Errorf("unknown step type encountered: %s", step.Type)
 		}
 
-		// Handle errors and returns
 		if stepErr != nil {
 			return nil, false, fmt.Errorf("error in procedure '%s', step %d (%s): %w", i.currentProcName, stepNum+1, step.Type, stepErr)
 		}
@@ -232,18 +226,18 @@ func (i *Interpreter) executeSteps(steps []Step) (result interface{}, wasReturn 
 			if i.logger != nil {
 				i.logger.Printf("[DEBUG-INTERP]    RETURN encountered in step %d. Returning value: %v (%T)", stepNum+1, stepResult, stepResult)
 			}
-			return stepResult, true, nil // Propagate return immediately
+			return stepResult, true, nil
 		}
 	}
 
 	if i.logger != nil {
 		i.logger.Printf("[DEBUG-INTERP] <<< executeSteps finished normally for proc '%s'", i.currentProcName)
 	}
-	return nil, false, nil // Finished all steps normally
+	return nil, false, nil
 }
 
-// executeBlock helper - Executes a slice of steps (used by IF, ELSE, WHILE, FOR)
-// This remains here as it's a general helper for executing nested steps.
+// executeBlock helper
+// (Function remains the same)
 func (i *Interpreter) executeBlock(blockValue interface{}, parentStepNum int, blockType string) (result interface{}, wasReturn bool, err error) {
 	if i.logger != nil {
 		i.logger.Printf("[DEBUG-INTERP]     >>> Entering executeBlock for %s (from parent step %d)", blockType, parentStepNum+1)
@@ -256,14 +250,12 @@ func (i *Interpreter) executeBlock(blockValue interface{}, parentStepNum int, bl
 
 	blockBody, ok := blockValue.([]Step)
 	if !ok {
-		// Handle nil block (e.g., empty ELSE) gracefully
 		if blockValue == nil {
 			if i.logger != nil {
 				i.logger.Printf("[DEBUG-INTERP]       Block body is nil for %s, executing 0 steps.", blockType)
 			}
-			return nil, false, nil // Not an error, just no steps
+			return nil, false, nil
 		}
-		// If it's not nil and not []Step, it's an internal error
 		return nil, false, fmt.Errorf("step %d: internal error - %s block body has unexpected type %T", parentStepNum+1, blockType, blockValue)
 	}
 	if len(blockBody) == 0 {
@@ -273,18 +265,6 @@ func (i *Interpreter) executeBlock(blockValue interface{}, parentStepNum int, bl
 		return nil, false, nil
 	}
 
-	// Execute steps recursively using the main dispatcher
 	result, wasReturn, err = i.executeSteps(blockBody)
 	return result, wasReturn, err
 }
-
-// --- REMOVED Redundant Placeholder/Stub Methods ---
-// func (i *Interpreter) evaluateExpression(node interface{}) (interface{}, error) { ... }
-// func (i *Interpreter) evaluateCondition(condNode interface{}) (bool, error) { ... }
-// func (i *Interpreter) executeSet(step Step, stepNum int) error { ... }
-// func (i *Interpreter) executeCall(step Step, stepNum int) (interface{}, error) { ... }
-// func (i *Interpreter) executeReturn(step Step, stepNum int) (interface{}, bool, error) { ... }
-// func (i *Interpreter) executeEmit(step Step, stepNum int) error { ... }
-// func (i *Interpreter) executeIf(step Step, stepNum int) (interface{}, bool, error) { ... }
-// func (i *Interpreter) executeWhile(step Step, stepNum int) (interface{}, bool, error) { ... }
-// func (i *Interpreter) executeFor(step Step, stepNum int) (interface{}, bool, error) { ... }

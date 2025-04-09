@@ -101,12 +101,12 @@ func toolVectorUpdate(interpreter *Interpreter, args []interface{}) (interface{}
 	// Validation handled by ValidateAndConvertArgs
 	filePath := args[0].(string)
 
-	// Use secureFilePath to ensure path is safe relative to CWD
+	// Use SecureFilePath to ensure path is safe relative to CWD
 	cwd, errWd := os.Getwd()
 	if errWd != nil {
 		return nil, fmt.Errorf("VectorUpdate failed to get working directory: %w", errWd)
 	}
-	absPath, secErr := secureFilePath(filePath, cwd)
+	absPath, secErr := SecureFilePath(filePath, cwd)
 	if secErr != nil {
 		return fmt.Sprintf("VectorUpdate path error: %s", secErr.Error()), nil
 	}
