@@ -1,17 +1,12 @@
-Below is an illustrative **high-level** NeuroScript snippet showing how you might structure a top-level “murder investigation” procedure. It doesn’t dive into the granular steps of evidence analysis or forensic details—rather, it provides a **scaffold** for how an LLM (or human investigator) could break down the problem into **sub-procedures**, each of which can be further refined or implemented later.
-
----
-
-```
 DEFINE PROCEDURE InvestigateMurderScene(CrimeSceneData)
 COMMENT:
     PURPOSE: Orchestrate a murder investigation at a crime scene by coordinating sub-tasks 
              like securing the scene, gathering evidence, interviewing witnesses, 
              and generating a preliminary case report.
     INPUTS: 
-        CrimeSceneData -> structured info about the scene (location, time, any known facts).
+        - CrimeSceneData: structured info about the scene (location, time, any known facts).
     OUTPUT: 
-        CaseReport -> a structured record of evidence, witness statements, possible motives, 
+        CaseReport: a structured record of evidence, witness statements, possible motives, 
                       and recommended next steps.
     ALGORITHM:
         1. Secure the crime scene to preserve evidence.
@@ -25,37 +20,17 @@ COMMENT:
     EXAMPLES:
         InvestigateMurderScene(LocationID=457) => returns a structured CaseReport summarizing 
         evidence, suspect list, and recommended follow-up actions.
-END
-
-# 1. Secure the scene using a specialized sub-procedure
+ENDCOMMENT
 CALL SecureCrimeScene(CrimeSceneData)
-
-# 2. Gather & document physical evidence
-CALL GatherPhysicalEvidence(CrimeSceneData)  # Photos, footprints, weapon, etc.
-
-# 3. Identify and interview witnesses
+CALL GatherPhysicalEvidence(CrimeSceneData)
 CALL IdentifyWitnesses(CrimeSceneData)
 CALL InterviewWitnesses(CrimeSceneData)
-
-# 4. Analyze combined evidence & statements
-SET analysisSummary = CALL AnalyzeEvidenceAndStatements(CrimeSceneData)
-
-# (Optional) Leverage LLM for deeper insights if needed:
-# e.g., extracting detailed timeline from witness transcripts
-SET timelineInsights = CALL LLM("Based on these statements: {{analysisSummary}}, 
-    construct a possible timeline of events and highlight contradictions.")
-
-# 5. Compile final preliminary report
+CALL AnalyzeEvidenceAndStatements(CrimeSceneData)
+SET analysisSummary = LAST
+SET timelineInsights = CALL LLM("Based on these statements: {{analysisSummary}}, construct a possible timeline of events and highlight contradictions.")
 SET CaseReport = CALL CompileCaseReport(CrimeSceneData, analysisSummary, timelineInsights)
-
 RETURN CaseReport
-```
 
-### Sub-Procedures (Sketches)
-
-Below are **placeholder** definitions for some referenced procedures, each of which can be expanded in detail. This highlights how you might **modularize** each major step:
-
-```
 DEFINE PROCEDURE SecureCrimeScene(CrimeSceneData)
 COMMENT:
     PURPOSE: Ensure no further contamination or tampering occurs.
@@ -65,70 +40,55 @@ COMMENT:
         1. Establish perimeter.
         2. Restrict access only to authorized personnel.
         3. Document initial scene conditions.
-END
+ENDCOMMENT
 
-# NeuroScript body of securing the scene...
-```
-
-```
 DEFINE PROCEDURE GatherPhysicalEvidence(CrimeSceneData)
 COMMENT:
     PURPOSE: Collect and document tangible evidence (photos, footprints, potential weapon, etc.).
     INPUTS: CrimeSceneData
-    OUTPUT: EvidencePackage (list of items, their locations, and relevant notes)
+    OUTPUT: EvidencePackage: list of items, their locations, and relevant notes
     ALGORITHM:
         1. Photograph the entire scene thoroughly.
         2. Mark and collect all visible evidence, label them with IDs.
         3. Record location/time of collection in a log.
     CAVEATS:
         - Must be consistent with chain-of-custody procedures.
-END
+ENDCOMMENT
 
-# NeuroScript body for evidence gathering...
-```
-
-```
 DEFINE PROCEDURE InterviewWitnesses(CrimeSceneData)
 COMMENT:
     PURPOSE: Capture witness statements and initial impressions.
-    INPUTS: CrimeSceneData -> which includes a list of identified witnesses
-    OUTPUT: WitnessStatements -> collection of statements
+    INPUTS: CrimeSceneData: which includes a list of identified witnesses
+    OUTPUT: WitnessStatements: collection of statements
     ALGORITHM:
         1. For each witness in CrimeSceneData.witnesses:
             - Conduct a structured interview.
             - Record essential answers in text form.
         2. Store or append each statement to a master record.
-END
+ENDCOMMENT
 
-# Possibly some calls to LLM for summarizing or analyzing statements...
-```
-
-```
 DEFINE PROCEDURE AnalyzeEvidenceAndStatements(CrimeSceneData)
 COMMENT:
     PURPOSE: Combine all gathered evidence, witness statements, and generate a summarized analysis.
-    INPUTS: CrimeSceneData (with appended witness statements + physical evidence data)
-    OUTPUT: analysisSummary (structured data capturing key findings, timeline, leads)
+    INPUTS: CrimeSceneData: with appended witness statements + physical evidence data
+    OUTPUT: analysisSummary: structured data capturing key findings, timeline, leads
     ALGORITHM:
         - Cross-reference times, discovered objects, footprints, etc. 
         - Flag contradictory or suspicious points.
-END
+ENDCOMMENT
 
-# Some logic or possible LLM calls for pattern-finding...
-```
-
-```
 DEFINE PROCEDURE CompileCaseReport(CrimeSceneData, analysisSummary, timelineInsights)
 COMMENT:
     PURPOSE: Produce a preliminary "CaseReport" that investigators can use to guide next steps.
     INPUTS:
-        CrimeSceneData
-        analysisSummary -> findings from AnalyzeEvidenceAndStatements
-        timelineInsights -> optional deeper details from LLM calls
-    OUTPUT: CaseReport -> structured summary (suspects, timeline, recommended next steps)
+        - CrimeSceneData: 
+        - analysisSummary: findings from AnalyzeEvidenceAndStatements
+        - timelineInsights: optional deeper details from LLM calls
+    OUTPUT: CaseReport: structured summary (suspects, timeline, recommended next steps)
     ALGORITHM:
         1. Synthesize a timeline from timelineInsights if present.
         2. List suspects, relevant evidence, open questions.
         3. Provide recommended next steps (further interviews, lab tests, etc.).
+ENDCOMMENT
+
 END
-```
