@@ -4,13 +4,13 @@ COMMENT:
     INPUTS: - condition_flag: A string, expected "true" or "false".
     OUTPUT: An emitted message indicating which branch ran.
 ENDCOMMENT
-
 IF condition_flag == "true" THEN
-    EMIT "IF (THEN) Branch Executed."
-ELSE
-    EMIT "ELSE Branch Executed."
-ENDBLOCK
+    CALL EMIT("IF (THEN) Branch Executed.")
 
+ELSE
+    CALL EMIT("ELSE Branch Executed.")
+
+ENDBLOCK
 RETURN "Test Complete."
 
 END

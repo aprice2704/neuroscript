@@ -31,81 +31,69 @@ COMMENT:
         - Needs new TOOLs (ListDirectory, LineCount) for full gonsi execution.
     EXAMPLES:
         CALL UpdateProjectDocs("Refactored interpreter.go into smaller files.") => "Documentation updated, refactoring checked, changes committed."
-END
+ENDCOMMENT
 
 # --- Step 1: Define Files ---
 SET doc_files_str = "README.md,development checklist.md,definition/develop prompt.txt,definition/execute prompt.txt"
-SET doc_file_list = CALL TOOL.SplitString({{doc_files_str}}, ",")
+SET doc_file_list = CALL TOOL.SplitString(doc_files_str, ",")
 SET context_files_str = "pkg/core/interpreter.go,pkg/core/tools_register.go,definition/neuroscript spec.md,definition/formal spec.md"
-SET context_file_list = CALL TOOL.SplitString({{context_files_str}}, ",") # Requires TOOL.SplitString
-SET staged_files_csv = "" # Track files added
+SET context_file_list = CALL TOOL.SplitString(context_files_str, ",")
+SET staged_files_csv = ""
 
 # --- Step 2: Update Documentation (Conceptual Loop) ---
-# Using placeholder logic for one file until FOR EACH list is implemented
-SET current_doc_file = "README.md" # Placeholder for loop variable
-SET current_doc_content = CALL TOOL.ReadFile({{current_doc_file}})
-SET context_file_path = "pkg/core/interpreter.go" # Example context file
-SET context_file_content = CALL TOOL.ReadFile({{context_file_path}})
+SET current_doc_file = "README.md"
+SET current_doc_content = CALL TOOL.ReadFile(current_doc_file)
+SET context_file_path = "pkg/core/interpreter.go"
+SET context_file_content = CALL TOOL.ReadFile(context_file_path)
 
-SET llm_prompt_docs = "Given the following changes: '{{change_summary}}'\n\n" + \
-                 "And relevant context from '{{context_file_path}}':\n```go\n{{context_file_content}}\n```\n\n" + \
-                 "Update the following documentation content from '{{current_doc_file}}'. " + \
+SET llm_prompt_docs = EVAL("Given the following changes: '" + change_summary + "'\n\n" + \
+                 "And relevant context from '" + context_file_path + "':\n```go\n" + context_file_content + "\n```\n\n" + \
+                 "Update the following documentation content from '" + current_doc_file + "'. " + \
                  "Maintain original format/style. Output ONLY the complete, updated file content.\n\n" + \
-                 "Current content of '{{current_doc_file}}':\n```markdown\n{{current_doc_content}}\n```"
-CALL LLM({{llm_prompt_docs}})
-SET final_updated_content = __last_call_result
-# TODO: Add cleaning for final_updated_content if LLM adds fences etc.
-CALL TOOL.WriteFile({{current_doc_file}}, {{final_updated_content}})
-CALL TOOL.GitAdd({{current_doc_file}})
-SET staged_files_csv = {{staged_files_csv}} + {{current_doc_file}} + ","
-# --- End Conceptual Loop Block (Repeat manually for other doc files for now) ---
+                 "Current content of '" + current_doc_file + "':\n```markdown\n" + current_doc_content + "\n```")
+CALL LLM(llm_prompt_docs)
+SET final_updated_content = LAST
+CALL TOOL.WriteFile(current_doc_file, final_updated_content)
+CALL TOOL.GitAdd(current_doc_file)
+SET staged_files_csv = staged_files_csv + current_doc_file + ","
 
 
 # --- Step 3-5: Check Go Files for Refactoring ---
 SET go_src_dir = "pkg/core"
-SET line_threshold_str = "200" # Threshold as string
+SET line_threshold_str = "200"
 
-# Step 4: Get Go file list (Conceptual LLM call - replace with TOOL when available)
-SET llm_prompt_list_files = "List all files ending in .go within the directory '{{go_src_dir}}'. Output ONLY a comma-separated list of relative file paths (e.g., pkg/core/interpreter.go,pkg/core/lexer.go)."
-CALL LLM({{llm_prompt_list_files}})
-SET go_file_list_str = __last_call_result
-SET go_file_list = CALL TOOL.SplitString({{go_file_list_str}}, ",")
+# Step 4: Get Go file list
+SET llm_prompt_list_files = EVAL("List all files ending in .go within the directory '" + go_src_dir + "'. Output ONLY a comma-separated list of relative file paths (e.g., pkg/core/interpreter.go,pkg/core/lexer.go).")
+CALL LLM(llm_prompt_list_files)
+SET go_file_list_str = LAST
+SET go_file_list = CALL TOOL.SplitString(go_file_list_str, ",")
 
-# Step 5: Check each Go file (Conceptual Loop)
-# Using placeholder logic for one file until FOR EACH list is implemented
-SET current_go_file = "pkg/core/evaluation.go" # Placeholder for loop variable
-SET go_file_content = CALL TOOL.ReadFile({{current_go_file}})
+# Step 5: Check each Go file
+SET current_go_file = "pkg/core/evaluation.go"
+SET go_file_content = CALL TOOL.ReadFile(current_go_file)
 
-# Step 5b: Get line count (Conceptual LLM call - replace with TOOL when available)
-SET llm_prompt_line_count = "Count the number of lines in the following Go code from file '{{current_go_file}}'. Output ONLY the integer number.\n\n```go\n{{go_file_content}}\n```"
-CALL LLM({{llm_prompt_line_count}})
-SET line_count_str = __last_call_result # Assume LLM returns just the number as string
+# Step 5b: Get line count
+SET llm_prompt_line_count = EVAL("Count the number of lines in the following Go code from file '" + current_go_file + "'. Output ONLY the integer number.\n\n```go\n" + go_file_content + "\n```")
+CALL LLM(llm_prompt_line_count)
+SET line_count_str = LAST
 
-# Step 5c: Check threshold (Requires arithmetic/comparison TODO)
-# Conceptual IF: line_count > line_threshold
-SET check_cond_str = {{line_count_str}} + " > " + {{line_threshold_str}} # Build comparison string
-# We need a TOOL or built-in for numeric comparison. Simulating true for example.
-SET should_analyze = "true" # Placeholder
+# Step 5c: Check threshold
+SET check_cond_str = line_count_str + " > " + line_threshold_str
+SET should_analyze = "true"
 
-IF {{should_analyze}} == "true" THEN
-    # Step 5c.i: Ask LLM for refactoring suggestions
-    SET llm_prompt_refactor = "The Go file '{{current_go_file}}' has " + {{line_count_str}} + " lines, exceeding the threshold of " + {{line_threshold_str}} + ". Analyze the following code and suggest how it could be split into smaller, more focused files or functions. Provide specific suggestions.\n\n```go\n{{go_file_content}}\n```"
-    CALL LLM({{llm_prompt_refactor}})
-    SET refactor_suggestion = __last_call_result
-    # Step 5c.ii: Log/Store suggestion (just printing conceptually for now)
-    # TODO: Need an EMIT or proper logging mechanism. Using SET for placeholder.
-    SET logged_suggestion = "Refactoring suggestion for " + {{current_go_file}} + ":\n" + {{refactor_suggestion}}
-    # Ideally: CALL Log({{logged_suggestion}}) or EMIT RefactorSuggestion({{current_go_file}}, {{refactor_suggestion}})
-END
-# --- End Conceptual Loop Block (Repeat manually for other go files for now) ---
-
+IF should_analyze == "true" THEN
+    SET llm_prompt_refactor = EVAL("The Go file '" + current_go_file + "' has " + line_count_str + " lines, exceeding the threshold of " + line_threshold_str + ". Analyze the following code and suggest how it could be split into smaller, more focused files or functions. Provide specific suggestions.\n\n```go\n" + go_file_content + "\n```")
+    CALL LLM(llm_prompt_refactor)
+    SET refactor_suggestion = LAST
+    SET logged_suggestion = "Refactoring suggestion for " + current_go_file + ":\n" + refactor_suggestion
+ENDBLOCK
 
 # --- Step 6 & 7: Commit Changes ---
-SET final_commit_message = "Docs: Update based on '{{change_summary}}'. Code: Refactoring check complete."
-CALL CommitChanges({{final_commit_message}}, {{staged_files_csv}}) # Call sub-procedure
+SET final_commit_message = EVAL("Docs: Update based on '" + change_summary + "'. Code: Refactoring check complete.")
+CALL CommitChanges(final_commit_message, staged_files_csv)
 
 # --- Step 8: Return Status ---
 SET status_message = "Documentation updated, refactoring checked, changes committed."
-RETURN {{status_message}}
+RETURN status_message
 
 END

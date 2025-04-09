@@ -6,14 +6,10 @@ COMMENT:
     ALGORITHM: Call TOOL.ExecuteCommand with 'ls' on a non-existent file. Return the result map.
 ENDCOMMENT
 
-EMIT "--- Testing ExecuteCommand with guaranteed failure ---"
-
-SET command = "ls"
-SET args = ["non_existent_file_asdfjkl"]
-
-CALL TOOL.ExecuteCommand(command, args)
+CALL TOOL.ExecuteCommand("ls", ["non_existent_file_asdfjkl"])
 SET exec_result = LAST
 
+EMIT "--- Testing ExecuteCommand with guaranteed failure ---"
 EMIT "--- ExecuteCommand Result Map ---"
 EMIT exec_result
 

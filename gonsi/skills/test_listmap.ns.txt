@@ -3,7 +3,7 @@ COMMENT:
     PURPOSE: Demonstrates creating, iterating, and ACCESSING elements
              from list and map literals using the implemented syntax.
     INPUTS:
-        prefix: A string to prepend to outputs.
+        - prefix: A string to prepend to outputs.
     OUTPUT: A summary string of processed items.
     ALGORITHM:
         1. Define a list literal with mixed types, including a nested list.
@@ -41,9 +41,6 @@ EMIT "Access List[3]:"
 EMIT my_list[3] # Accessing nested list
 EMIT "Access Nested List[3][0]:"
 EMIT my_list[3][0] # Accessing element within nested list
-# EMIT "Access List[99] (Out of bounds):" # This will cause an error now
-# EMIT my_list[99]
-
 
 # 3. Iterate List
 SET list_summary = ""
@@ -51,7 +48,6 @@ EMIT "Iterating List:"
 FOR EACH item IN my_list DO
     EMIT "  List Item (from loop):"
     EMIT item
-    # Concatenate requires string conversion - handled by %v in Go's fmt
     SET list_summary = list_summary + item + " | "
 ENDBLOCK
 EMIT "List Loop Summary:"
@@ -77,8 +73,6 @@ EMIT "Access Map[\"key_list\"]:"
 EMIT my_map["key_list"] # Accessing list value
 EMIT "Access Nested Map[\"key_list\"][0]:"
 EMIT my_map["key_list"][0] # Accessing element within nested list from map
-# EMIT "Access Map[\"not_found\"]:" # This will cause an error now
-# EMIT my_map["not_found"]
 
 
 # 6. Iterate Map Keys and Access Values
@@ -87,8 +81,7 @@ EMIT "Iterating Map (Keys assigned to map_key):"
 FOR EACH map_key IN my_map DO
     EMIT "  Map Key (from loop):"
     EMIT map_key
-    # --- Access value using the key from the loop ---
-    SET current_value = my_map[map_key] # Access value using loop variable as key
+    SET current_value = my_map[map_key]
     EMIT "    Value:"
     EMIT current_value
     SET map_summary = map_summary + map_key + "=" + current_value + ", "
@@ -99,7 +92,6 @@ EMIT map_summary
 EMIT "--- Testing Tools ---"
 
 # 7. Test JoinStrings with evaluated list literal elements
-# Note: JoinStrings expects a slice of strings, but validation handles conversion
 CALL TOOL.JoinStrings([ "A", "B", 3, true ], "-")
 SET joined_list = LAST
 EMIT "Joined List Literal:"

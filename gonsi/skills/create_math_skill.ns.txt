@@ -1,7 +1,7 @@
 DEFINE PROCEDURE CreateAdderSkill()
 COMMENT:
     PURPOSE: Creates skills/adder.ns.txt indexes, and commits it.
-    INPUTS: None
+    INPUTS: 
     OUTPUT: Status message.
     ALGORITHM: SPLAT script content, WriteFile, VectorUpdate, GitAdd, GitCommit.
 ENDCOMMENT

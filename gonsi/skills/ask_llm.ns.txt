@@ -1,13 +1,14 @@
 DEFINE PROCEDURE AskCapitalCity()
 COMMENT:
     PURPOSE: Asks the LLM for the capital of Canada.
-    INPUTS: None
+    INPUTS: 
     OUTPUT: String containing the answer from the LLM.
     ALGORITHM: Set question, call LLM, return response var.
 ENDCOMMENT
 
 SET question = "What is the capital of Canada?"
 CALL LLM(question)
-RETURN __last_call_result
+SET result = LAST
+RETURN result
 
 END
