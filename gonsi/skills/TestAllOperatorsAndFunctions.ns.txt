@@ -40,8 +40,8 @@ SET strNumB = "2.5"
 SET strNonNum = "abc"
 SET boolTrue = true
 SET boolFalse = false
-SET bit5 = 5 # 0101
-SET bit6 = 6 # 0110
+SET bit5 = 5 
+SET bit6 = 6 
 # Variables for math functions
 SET mathE = 2.71828
 SET mathPiHalf = 1.570796
@@ -53,67 +53,67 @@ CALL EMIT("Initial Vars: intA=10, intB=3, floatA=10.0, floatB=3.0, floatC=0.5, s
 
 # --- 2. Arithmetic Tests ---
 CALL EMIT("\n--- Arithmetic Tests ---")
-SET res_add_ii = intA + intB             # 10 + 3 = 13 (int)
+SET res_add_ii = intA + intB             
 CALL EMIT("intA + intB (10+3) = " + res_add_ii + " (Expected: 13)")
-SET res_add_if = intA + floatB           # 10 + 3.0 = 13.0 (float)
+SET res_add_if = intA + floatB           
 CALL EMIT("intA + floatB (10+3.0) = " + res_add_if + " (Expected: 13.0)")
-SET res_add_fi = floatA + intB           # 10.0 + 3 = 13.0 (float)
+SET res_add_fi = floatA + intB           
 CALL EMIT("floatA + intB (10.0+3) = " + res_add_fi + " (Expected: 13.0)")
-SET res_add_ff = floatA + floatB         # 10.0 + 3.0 = 13.0 (float)
+SET res_add_ff = floatA + floatB         
 CALL EMIT("floatA + floatB (10.0+3.0) = " + res_add_ff + " (Expected: 13.0)")
-SET res_add_is = intA + EVAL(strNumA)          # 10 + "100" = 110 (int)
+SET res_add_is = intA + EVAL(strNumA)          
 CALL EMIT("intA + strNumA (10+'100') = " + res_add_is + " (Expected: 110)")
 
-SET res_sub_ii = intA - intB             # 10 - 3 = 7 (int)
+SET res_sub_ii = intA - intB             
 CALL EMIT("intA - intB (10-3) = " + res_sub_ii + " (Expected: 7)")
-SET res_sub_if = intA - floatC           # 10 - 0.5 = 9.5 (float)
+SET res_sub_if = intA - floatC           
 CALL EMIT("intA - floatC (10-0.5) = " + res_sub_if + " (Expected: 9.5)")
 
-SET res_mul_ii = intA * intB             # 10 * 3 = 30 (int)
+SET res_mul_ii = intA * intB             
 CALL EMIT("intA * intB (10*3) = " + res_mul_ii + " (Expected: 30)")
-SET res_mul_if = intB * floatC           # 3 * 0.5 = 1.5 (float)
+SET res_mul_if = intB * floatC           
 CALL EMIT("intB * floatC (3*0.5) = " + res_mul_if + " (Expected: 1.5)")
 
-SET res_div_ii_e = intA / intB           # 10 / 3 = 3.33... (float)
+SET res_div_ii_e = intA / intB           
 CALL EMIT("intA / intB (10/3) = " + res_div_ii_e + " (Expected: 3.33...)")
-SET res_div_ii_i = 9 / intB              # 9 / 3 = 3 (int)
+SET res_div_ii_i = 9 / intB              
 CALL EMIT("9 / intB (9/3) = " + res_div_ii_i + " (Expected: 3)")
-SET res_div_ff = floatA / floatB         # 10.0 / 3.0 = 3.33... (float)
+SET res_div_ff = floatA / floatB         
 CALL EMIT("floatA / floatB (10.0/3.0) = " + res_div_ff + " (Expected: 3.33...)")
 
-SET res_mod_ii = intA % intB             # 10 % 3 = 1 (int)
+SET res_mod_ii = intA % intB             
 CALL EMIT("intA % intB (10%3) = " + res_mod_ii + " (Expected: 1)")
 
-SET res_pow_ii = intB ** intB            # 3 ** 3 = 27.0 (float)
+SET res_pow_ii = intB ** intB            
 CALL EMIT("intB ** intB (3**3) = " + res_pow_ii + " (Expected: 27.0)")
-SET res_pow_if = intA ** floatC          # 10 ** 0.5 = 3.16... (float)
+SET res_pow_if = intA ** floatC          
 CALL EMIT("intA ** floatC (10**0.5) = " + res_pow_if + " (Expected: ~3.162)")
 
 # --- 3. Unary Minus ---
 CALL EMIT("\n--- Unary Minus ---")
-SET res_uneg_i = -intA                   # -10
+SET res_uneg_i = -intA                   
 CALL EMIT("-intA (-10) = " + res_uneg_i + " (Expected: -10)")
-SET res_uneg_f = -floatA                 # -10.0
+SET res_uneg_f = -floatA                 
 CALL EMIT("-floatA (-10.0) = " + res_uneg_f + " (Expected: -10.0)")
-SET res_uneg_c = -intC                   # -(-5) = 5
+SET res_uneg_c = -intC                   
 CALL EMIT("-intC (-(-5)) = " + res_uneg_c + " (Expected: 5)")
 
 # --- 4. String Concatenation ---
 CALL EMIT("\n--- String Concatenation ---")
-SET res_cat_ss = strA + " " + strB       # "Hello World"
+SET res_cat_ss = strA + " " + strB       
 CALL EMIT("strA + ' ' + strB = '" + res_cat_ss + "' (Expected: 'Hello World')")
-SET res_cat_si = strA + intA             # "Hello10"
+SET res_cat_si = strA + intA             
 CALL EMIT("strA + intA ('Hello'+10) = '" + res_cat_si + "' (Expected: 'Hello10')")
-SET res_cat_sf = strA + floatA           # "Hello10.0" (or "Hello10")
+SET res_cat_sf = strA + floatA           
 CALL EMIT("strA + floatA ('Hello'+10.0) = '" + res_cat_sf + "' (Expected: 'Hello10' or 'Hello10.0')")
-SET res_cat_sbool = strA + boolTrue      # "Hellotrue"
+SET res_cat_sbool = strA + boolTrue      
 CALL EMIT("strA + boolTrue ('Hello'+true) = '" + res_cat_sbool + "' (Expected: 'Hellotrue')")
 
 # --- 5. Comparisons ---
 CALL EMIT("\n--- Comparisons ---")
 CALL EMIT("intA == 10 : " + (intA == 10) + " (Expected: true)")
-CALL EMIT("intA == floatA : " + (intA == floatA) + " (Expected: true)") # Numeric comparison
-CALL EMIT("intA == strNumA : " + (intA == EVAL(strNumA)) + " (Expected: false)") # String vs Number comparison
+CALL EMIT("intA == floatA : " + (intA == floatA) + " (Expected: true)") 
+CALL EMIT("intA == strNumA : " + (intA == EVAL(strNumA)) + " (Expected: false)") 
 CALL EMIT("10 == '10' : " + (10 == '10') + " (Expected: false)")
 CALL EMIT("strA == 'Hello' : " + (strA == 'Hello') + " (Expected: true)")
 CALL EMIT("intA != 3 : " + (intA != 3) + " (Expected: true)")
@@ -134,9 +134,9 @@ CALL EMIT("NOT falsey0 : " + (NOT falsey0) + " (Expected: true)")
 CALL EMIT("NOT falseyOther : " + (NOT falseyOther) + " (Expected: true)")
 CALL EMIT("boolTrue AND truthy1 : " + (boolTrue AND truthy1) + " (Expected: true)")
 CALL EMIT("boolTrue AND falsey0 : " + (boolTrue AND falsey0) + " (Expected: false)")
-CALL EMIT("falsey0 AND boolTrue : " + (falsey0 AND boolTrue) + " (Expected: false)") # Short-circuits
+CALL EMIT("falsey0 AND boolTrue : " + (falsey0 AND boolTrue) + " (Expected: false)") 
 CALL EMIT("boolFalse OR boolTrue : " + (boolFalse OR boolTrue) + " (Expected: true)")
-CALL EMIT("boolTrue OR falsey0 : " + (boolTrue OR falsey0) + " (Expected: true)") # Short-circuits
+CALL EMIT("boolTrue OR falsey0 : " + (boolTrue OR falsey0) + " (Expected: true)") 
 CALL EMIT("falsey0 OR falseyOther : " + (falsey0 OR falseyOther) + " (Expected: false)")
 
 # --- 7. Bitwise Operators ---
@@ -158,17 +158,17 @@ CALL EMIT("ATAN(mathOne) (ATAN(1)) = " + ATAN(mathOne) + " (Expected: ~0.785)")
 
 # --- 9. Operator Precedence ---
 CALL EMIT("\n--- Precedence ---")
-SET prec1 = 2 + 3 * 4           # 2 + 12 = 14
+SET prec1 = 2 + 3 * 4           
 CALL EMIT("2 + 3 * 4 = " + prec1 + " (Expected: 14)")
-SET prec2 = (2 + 3) * 4         # 5 * 4 = 20
+SET prec2 = (2 + 3) * 4         
 CALL EMIT("(2 + 3) * 4 = " + prec2 + " (Expected: 20)")
-SET prec3 = 10 / 2 * 5          # 5 * 5 = 25
+SET prec3 = 10 / 2 * 5          
 CALL EMIT("10 / 2 * 5 = " + prec3 + " (Expected: 25)")
-SET prec4 = 2 ** 3 ** 2         # 2 ** 9 = 512
+SET prec4 = 2 ** 3 ** 2         
 CALL EMIT("2 ** 3 ** 2 = " + prec4 + " (Expected: 512.0)")
-SET prec5 = -5 + 2              # -3
+SET prec5 = -5 + 2              
 CALL EMIT("-5 + 2 = " + prec5 + " (Expected: -3)")
-SET prec6 = (10 > 5) AND (3 < 4)    # true AND true = true
+SET prec6 = (10 > 5) AND (3 < 4)    
 CALL EMIT("10 > 5 AND 3 < 4 = " + prec6 + " (Expected: true)")
 
 # --- 10. Error Conditions (Use EMIT to show expected failure type) ---
@@ -176,17 +176,11 @@ CALL EMIT("10 > 5 AND 3 < 4 = " + prec6 + " (Expected: true)")
 # These are illustrative; proper TRY/CATCH needed for full testing in one run.
 CALL EMIT("\n--- Error Conditions (Expect failure on first) ---")
 CALL EMIT("Testing Division by Zero: 10 / 0")
-# SET err_div0 = 10 / 0 # Uncomment to test
 CALL EMIT("Testing Modulo by Zero: 10 % 0")
-# SET err_mod0 = 10 % 0 # Uncomment to test
 CALL EMIT("Testing Modulo Float: 5.5 % 2")
-# SET err_modf = 5.5 % 2 # Uncomment to test
 CALL EMIT("Testing Bitwise Float: 5 & 6.0")
-# SET err_bitf = bit5 & 6.0 # Uncomment to test
 CALL EMIT("Testing LN(0): LN(0)")
-# SET err_ln0 = LN(0) # Uncomment to test
 CALL EMIT("Testing ASIN(2): ASIN(2)")
-# SET err_asin2 = ASIN(2) # Uncomment to test
 
 
 CALL EMIT("\n--- Tests Complete ---")

@@ -7,7 +7,6 @@ COMMENT:
 ENDCOMMENT
 
 SET adder_code = "DEFINE PROCEDURE Add(a, b)\nCOMMENT:\n PURPOSE: Adds two numbers.\n INPUTS:\n  - a: number\n  - b: number\n OUTPUT: The sum (a+b).\n ALGORITHM: Simple addition.\nEND\n\n SET result = a + b\n RETURN result\n\nEND\n"
-
 SET filepath = "skills/adder.ns"
 
 CALL TOOL.WriteFile(filepath, adder_code)

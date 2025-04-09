@@ -23,7 +23,7 @@ ENDCOMMENT
 EMIT "--- Testing Lists ---"
 
 # 1. Define List
-SET my_list = [ prefix + "Item1", 2, true, ["Inner", "List!"] ]
+SET my_list = [prefix + "Item1", 2, true, ["Inner", "List!"]]
 EMIT "List Value:"
 EMIT my_list
 
@@ -32,15 +32,15 @@ SET idx_0 = 0
 SET idx_3 = 3
 SET idx = 1
 EMIT "Access List[0]:"
-EMIT my_list[0] # Accessing string
+EMIT my_list[0]
 EMIT "Access List[1]:"
-EMIT my_list[1] # Accessing number
+EMIT my_list[1]
 EMIT "Access List[using variable idx=1]:"
-EMIT my_list[idx] # Accessing using variable index
+EMIT my_list[idx]
 EMIT "Access List[3]:"
-EMIT my_list[3] # Accessing nested list
+EMIT my_list[3]
 EMIT "Access Nested List[3][0]:"
-EMIT my_list[3][0] # Accessing element within nested list
+EMIT my_list[3][0]
 
 # 3. Iterate List
 SET list_summary = ""
@@ -64,15 +64,15 @@ EMIT my_map
 # 5. Access Map Elements Directly
 SET map_key_var = "key_a"
 EMIT "Access Map[\"key_a\"]:"
-EMIT my_map["key_a"] # Accessing string value
+EMIT my_map["key_a"]
 EMIT "Access Map[\"key_b\"]:"
-EMIT my_map["key_b"] # Accessing number value
+EMIT my_map["key_b"]
 EMIT "Access Map[using variable key='key_a']:"
-EMIT my_map[map_key_var] # Accessing using variable key
+EMIT my_map[map_key_var]
 EMIT "Access Map[\"key_list\"]:"
-EMIT my_map["key_list"] # Accessing list value
+EMIT my_map["key_list"]
 EMIT "Access Nested Map[\"key_list\"][0]:"
-EMIT my_map["key_list"][0] # Accessing element within nested list from map
+EMIT my_map["key_list"][0]
 
 
 # 6. Iterate Map Keys and Access Values
@@ -92,7 +92,7 @@ EMIT map_summary
 EMIT "--- Testing Tools ---"
 
 # 7. Test JoinStrings with evaluated list literal elements
-CALL TOOL.JoinStrings([ "A", "B", 3, true ], "-")
+CALL TOOL.JoinStrings(["A", "B", 3, true], "-")
 SET joined_list = LAST
 EMIT "Joined List Literal:"
 EMIT joined_list
