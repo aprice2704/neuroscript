@@ -96,10 +96,3 @@ func (i *Interpreter) resolvePlaceholdersWithError(input string) (string, error)
 	// If loop finishes, max iterations were exceeded
 	return originalInput, fmt.Errorf("placeholder resolution exceeded max iterations (%d) for input starting with: %q", maxIterations, originalInput[:min(len(originalInput), 50)])
 }
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}

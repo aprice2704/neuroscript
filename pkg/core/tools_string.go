@@ -1,15 +1,14 @@
-// pkg/core/tools_string.go
+// filename: pkg/core/tools_string.go
 package core
 
 import (
-	"fmt" // <<< Added fmt import
+	"fmt"
 	"strings"
 	"unicode/utf8"
 )
 
 // registerStringTools adds string manipulation tools to the registry.
 func registerStringTools(registry *ToolRegistry) {
-	// ... (other tool registrations remain the same) ...
 	registry.RegisterTool(ToolImplementation{
 		Spec: ToolSpec{Name: "StringLength", Description: "Returns the number of UTF-8 characters (runes) in a string.", Args: []ArgSpec{{Name: "input", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeInt},
 		Func: toolStringLength,
@@ -38,23 +37,15 @@ func registerStringTools(registry *ToolRegistry) {
 		Spec: ToolSpec{Name: "SplitWords", Description: "Splits a string into words based on whitespace.", Args: []ArgSpec{{Name: "input", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeSliceString},
 		Func: toolSplitWords,
 	})
-
-	// *** MODIFIED JoinStrings Spec ***
 	registry.RegisterTool(ToolImplementation{
 		Spec: ToolSpec{
 			Name:        "JoinStrings",
 			Description: "Joins elements of a list (converting each to string) with a separator.",
-			Args: []ArgSpec{
-				// Changed expected type to SliceAny
-				{Name: "input_slice", Type: ArgTypeSliceAny, Required: true, Description: "List of items to join."},
-				{Name: "separator", Type: ArgTypeString, Required: true, Description: "String to place between elements."},
-			},
-			ReturnType: ArgTypeString,
+			Args:        []ArgSpec{{Name: "input_slice", Type: ArgTypeSliceAny, Required: true, Description: "List of items to join."}, {Name: "separator", Type: ArgTypeString, Required: true, Description: "String to place between elements."}},
+			ReturnType:  ArgTypeString,
 		},
-		Func: toolJoinStrings, // Use the updated function below
+		Func: toolJoinStrings,
 	})
-	// *** END MODIFICATION ***
-
 	registry.RegisterTool(ToolImplementation{
 		Spec: ToolSpec{Name: "ReplaceAll", Description: "Replaces all occurrences of a substring with another.", Args: []ArgSpec{{Name: "input", Type: ArgTypeString, Required: true}, {Name: "old", Type: ArgTypeString, Required: true}, {Name: "new", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeString},
 		Func: toolReplaceAll,
@@ -71,11 +62,24 @@ func registerStringTools(registry *ToolRegistry) {
 		Spec: ToolSpec{Name: "HasSuffix", Description: "Checks if a string ends with a suffix.", Args: []ArgSpec{{Name: "input", Type: ArgTypeString, Required: true}, {Name: "suffix", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeBool},
 		Func: toolHasSuffix,
 	})
+
+	// *** ADDED LineCountString registration ***
+	registry.RegisterTool(ToolImplementation{
+		Spec: ToolSpec{
+			Name:        "LineCountString", // New tool name
+			Description: "Counts the number of lines in the given string content.",
+			Args: []ArgSpec{
+				{Name: "content", Type: ArgTypeString, Required: true, Description: "The string content in which to count lines."},
+			},
+			ReturnType: ArgTypeInt,
+		},
+		Func: toolLineCountString, // New implementation function
+	})
+	// *** END ADDITION ***
 }
 
-// --- String Manipulation Tools (Matching ToolFunc Signature) ---
+// --- Implementations ---
 
-// ... (toolStringLength, toolSubstring, etc. remain the same) ...
 func toolStringLength(interpreter *Interpreter, args []interface{}) (interface{}, error) {
 	inputStr := args[0].(string)
 	length := utf8.RuneCountInString(inputStr)
@@ -89,10 +93,10 @@ func toolSubstring(interpreter *Interpreter, args []interface{}) (interface{}, e
 	runes := []rune(inputStr)
 	strLen := len(runes)
 	start := int(startIndex)
-	end := int(endIndex)
 	if start < 0 {
 		start = 0
 	}
+	end := int(endIndex)
 	if end > strLen {
 		end = strLen
 	}
@@ -103,84 +107,80 @@ func toolSubstring(interpreter *Interpreter, args []interface{}) (interface{}, e
 }
 
 func toolToUpper(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	inputStr := args[0].(string)
-	return strings.ToUpper(inputStr), nil
+	return strings.ToUpper(args[0].(string)), nil
 }
-
 func toolToLower(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	inputStr := args[0].(string)
-	return strings.ToLower(inputStr), nil
+	return strings.ToLower(args[0].(string)), nil
 }
-
 func toolTrimSpace(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	inputStr := args[0].(string)
-	return strings.TrimSpace(inputStr), nil
+	return strings.TrimSpace(args[0].(string)), nil
 }
-
 func toolSplitString(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	inputStr := args[0].(string)
-	delimiter := args[1].(string)
-	return strings.Split(inputStr, delimiter), nil
+	return strings.Split(args[0].(string), args[1].(string)), nil
 }
-
 func toolSplitWords(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	inputStr := args[0].(string)
-	return strings.Fields(inputStr), nil
+	return strings.Fields(args[0].(string)), nil
 }
 
-// *** MODIFIED toolJoinStrings Implementation ***
 func toolJoinStrings(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	// Validation ensures args[0] is ArgTypeSliceAny (can be []interface{} or []string)
 	inputSliceRaw := args[0]
-	separator := args[1].(string) // Arg 1 is guaranteed string by validation
-
+	separator := args[1].(string)
 	var stringSlice []string
-
-	// Handle both possible slice types from validation
 	switch v := inputSliceRaw.(type) {
 	case []string:
-		stringSlice = v // Use directly if it's already []string
+		stringSlice = v
 	case []interface{}:
 		stringSlice = make([]string, len(v))
 		for i, item := range v {
-			if item != nil {
-				stringSlice[i] = fmt.Sprintf("%v", item) // Convert each element
-			} else {
-				stringSlice[i] = "" // Convert nil to empty string
-			}
-		}
+			stringSlice[i] = fmt.Sprintf("%v", item)
+		} // Convert each element
 	default:
-		// Should not happen if validation is correct, but handle defensively
 		return nil, fmt.Errorf("internal error: JoinStrings received unexpected slice type %T after validation", inputSliceRaw)
 	}
-
 	return strings.Join(stringSlice, separator), nil
 }
 
-// *** END MODIFICATION ***
-
-// ... (toolReplaceAll, toolContains, toolHasPrefix, toolHasSuffix remain the same) ...
 func toolReplaceAll(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	inputStr := args[0].(string)
-	oldSub := args[1].(string)
-	newSub := args[2].(string)
-	return strings.ReplaceAll(inputStr, oldSub, newSub), nil
+	return strings.ReplaceAll(args[0].(string), args[1].(string), args[2].(string)), nil
 }
-
 func toolContains(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	inputStr := args[0].(string)
-	subStr := args[1].(string)
-	return strings.Contains(inputStr, subStr), nil
+	return strings.Contains(args[0].(string), args[1].(string)), nil
 }
-
 func toolHasPrefix(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	inputStr := args[0].(string)
-	prefix := args[1].(string)
-	return strings.HasPrefix(inputStr, prefix), nil
+	return strings.HasPrefix(args[0].(string), args[1].(string)), nil
+}
+func toolHasSuffix(interpreter *Interpreter, args []interface{}) (interface{}, error) {
+	return strings.HasSuffix(args[0].(string), args[1].(string)), nil
 }
 
-func toolHasSuffix(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	inputStr := args[0].(string)
-	suffix := args[1].(string)
-	return strings.HasSuffix(inputStr, suffix), nil
+// *** ADDED toolLineCountString IMPLEMENTATION ***
+func toolLineCountString(interpreter *Interpreter, args []interface{}) (interface{}, error) {
+	// Validation ensures args[0] is a string
+	content := args[0].(string)
+
+	if interpreter.logger != nil {
+		logSnippet := content
+		if len(logSnippet) > 80 {
+			logSnippet = logSnippet[:80] + "..."
+		}
+		interpreter.logger.Printf("[TOOL LineCountString] Counting lines in string (snippet): %q", logSnippet)
+	}
+
+	if len(content) == 0 {
+		return int64(0), nil
+	}
+	lineCount := int64(strings.Count(content, "\n"))
+	if len(content) > 0 && !strings.HasSuffix(content, "\n") {
+		lineCount++
+	}
+	if content == "\n" {
+		lineCount = 1
+	} // Handle single newline case
+
+	if interpreter.logger != nil {
+		interpreter.logger.Printf("[TOOL LineCountString] Counted %d lines.", lineCount)
+	}
+	return lineCount, nil
 }
+
+// *** END ADDITION ***

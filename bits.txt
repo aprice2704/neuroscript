@@ -66,6 +66,17 @@ When providing markdown (and only markdown, all other filetypes seem ok), please
 
 Please gather helper functions in a shared file appropriately namespaced, e.g. tools_helpers.go 
 
+Principle: Favor Simple, Explicit Tools over "Smart" Ambiguous Ones.
+Problem: Creating a single tool (LineCount) that tried to intelligently guess whether its input was a file path or raw string content led to complex, buggy, and hard-to-test logic. Its behavior became unpredictable depending on whether the input string happened to look like a path, even if it wasn't intended as one.
+Solution: Split the ambiguous tool into two simpler, explicit tools: LineCountFile (which only accepts and processes file paths) and LineCountString (which only accepts and processes raw strings).
+Benefits:
+Clearer Intent: The tool name itself defines the expected input and behavior.
+Simpler Logic: Each tool has a single responsibility, making the implementation straightforward.
+Easier Testing: Tests can be written specifically for file path handling or raw string handling without worrying about complex fallback conditions.
+Reduced Bugs: Eliminates errors caused by incorrect guessing or edge cases in the combined logic.
+Guideline: When designing tools (or functions/methods in general), if a tool needs significantly different logic based on interpreting the type or nature of an input (beyond simple type coercion), consider splitting it into separate tools with more specific contracts.
+This principle helps maintain clarity, reduces bugs, and makes the system easier to understand and test – both for humans and potentially for AIs interacting with the tools.
+
 Beware of trying to fix problems with multiple factors by "try it and see"; when there are several factors this can result in churn without progress; instead reduce the unknowns.
 
 It is perfectly fine to ask to create small test programs to clear up uncertainties, especially to reduce multi-factor problems to single ones.

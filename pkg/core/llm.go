@@ -1,97 +1,185 @@
+// filename: pkg/core/llm.go
 package core
 
 import (
 	"bytes"
+	"context" // Import context
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
-	"time" // Keep for potential future use (e.g., timeouts)
+	"time"
 )
 
+// Configuration constants
 const (
-	geminiAPIEndpointBase = "https://generativelanguage.googleapis.com/v1beta/models/"
-	geminiModel           = "gemini-1.5-flash-latest" // As requested
+	defaultGeminiAPIEndpointBase = "https://generativelanguage.googleapis.com/v1beta/models/"
+	defaultGeminiModel           = "gemini-1.5-flash-latest" // Default model
 )
 
-// --- Request Structures --- based on documentation
+// --- LLM Client ---
 
-type GeminiRequest struct {
-	Contents         []GeminiContent         `json:"contents"`
-	GenerationConfig *GeminiGenerationConfig `json:"generationConfig,omitempty"`
-	SafetySettings   []GeminiSafetySetting   `json:"safetySettings,omitempty"`
+// LLMClient holds configuration and state for interacting with the LLM API.
+type LLMClient struct {
+	apiKey     string
+	modelName  string
+	endpoint   string
+	httpClient *http.Client
+	logger     *log.Logger
 }
 
-type GeminiContent struct {
-	Parts []GeminiPart `json:"parts"`
-	Role  string       `json:"role,omitempty"` // Typically "user" for single turn
+// NewLLMClient creates a new client.
+// Uses environment variable GEMINI_API_KEY if apiKey is empty.
+func NewLLMClient(apiKey string, logger *log.Logger) *LLMClient {
+	effectiveAPIKey := apiKey
+	if effectiveAPIKey == "" {
+		effectiveAPIKey = os.Getenv("GEMINI_API_KEY")
+		if effectiveAPIKey == "" {
+			logger.Printf("[WARN LLM] API Key not provided and GEMINI_API_KEY environment variable not set. LLM calls will fail.")
+		} else {
+			logger.Printf("[INFO LLM] Using API Key from GEMINI_API_KEY environment variable.")
+		}
+	} else {
+		logger.Printf("[INFO LLM] Using provided API Key.")
+	}
+
+	return &LLMClient{
+		apiKey:     effectiveAPIKey,
+		modelName:  defaultGeminiModel,
+		endpoint:   defaultGeminiAPIEndpointBase,
+		httpClient: &http.Client{Timeout: 180 * time.Second}, // Increased timeout further
+		logger:     logger,
+	}
 }
 
-type GeminiPart struct {
-	Text string `json:"text"`
-	// Add other part types like inlineData if needed later
+// SetModel allows changing the model used by the client.
+func (c *LLMClient) SetModel(modelName string) {
+	if modelName != "" {
+		c.modelName = modelName
+		c.logger.Printf("[INFO LLM] Set model to: %s", modelName)
+	}
 }
 
-// Optional: Add GenerationConfig and SafetySettings if needed
-type GeminiGenerationConfig struct {
-	Temperature     float32  `json:"temperature,omitempty"`
-	TopP            float32  `json:"topP,omitempty"`
-	TopK            int      `json:"topK,omitempty"`
-	MaxOutputTokens int      `json:"maxOutputTokens,omitempty"`
-	StopSequences   []string `json:"stopSequences,omitempty"`
-}
-type GeminiSafetySetting struct {
-	Category  string `json:"category"`
-	Threshold string `json:"threshold"` // e.g., "BLOCK_MEDIUM_AND_ABOVE"
+// --- API Interaction Methods ---
+
+// CallLLMAgent performs a single turn of interaction with the LLM, potentially involving function calls.
+// Takes conversation history and tool declarations. Returns the full API response.
+func (c *LLMClient) CallLLMAgent(ctx context.Context, conversationHistory []GeminiContent, availableTools []GeminiTool) (*GeminiResponse, error) {
+	if c.apiKey == "" {
+		return nil, fmt.Errorf("LLM API key is not set")
+	}
+
+	// Construct the full API URL
+	url := fmt.Sprintf("%s%s:generateContent?key=%s", c.endpoint, c.modelName, c.apiKey)
+
+	// Prepare the request body
+	requestBody := GeminiRequest{
+		Contents: conversationHistory,
+		Tools:    availableTools, // Include tool declarations
+		// TODO: Add configurable GenerationConfig or SafetySettings here if needed
+	}
+
+	requestBodyBytes, err := json.Marshal(requestBody)
+	if err != nil {
+		return nil, fmt.Errorf("LLM client: failed to marshal request body: %w", err)
+	}
+
+	c.logger.Printf("[DEBUG LLM] Sending agent request to %s (model: %s)", url, c.modelName)
+	// Avoid logging full body by default due to size/sensitivity
+	// c.logger.Printf("[DEBUG LLM] Request Body: %s", string(requestBodyBytes))
+
+	// Make the HTTP POST request with context
+	httpReq, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(requestBodyBytes))
+	if err != nil {
+		return nil, fmt.Errorf("LLM client: failed to create http request: %w", err)
+	}
+	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("Accept", "application/json") // Explicitly accept JSON
+
+	resp, err := c.httpClient.Do(httpReq)
+	if err != nil {
+		// Handle context cancellation or timeout
+		if ctx.Err() == context.Canceled {
+			return nil, fmt.Errorf("LLM client: request canceled: %w", ctx.Err())
+		} else if ctx.Err() == context.DeadlineExceeded {
+			return nil, fmt.Errorf("LLM client: request deadline exceeded: %w", ctx.Err())
+		}
+		return nil, fmt.Errorf("LLM client: failed to send request to Gemini API: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Read the response body
+	responseBodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("LLM client: failed to read response body: %w", err)
+	}
+
+	c.logger.Printf("[DEBUG LLM] Received response status: %d", resp.StatusCode)
+	// Avoid logging full body by default
+	// c.logger.Printf("[DEBUG LLM] Response Body: %s", string(responseBodyBytes))
+
+	// Check for non-200 status codes
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("LLM client: API request failed with status %d: %s", resp.StatusCode, string(responseBodyBytes))
+	}
+
+	// Parse the response JSON
+	var responseBody GeminiResponse
+	err = json.Unmarshal(responseBodyBytes, &responseBody)
+	if err != nil {
+		return nil, fmt.Errorf("LLM client: failed to unmarshal response body: %w\nRaw Body: %s", err, string(responseBodyBytes))
+	}
+
+	// --- Basic Validation/Logging of Response ---
+	// (Moved logging logic inside, similar to previous version)
+	if len(responseBody.Candidates) == 0 {
+		if responseBody.PromptFeedback != nil && responseBody.PromptFeedback.BlockReason != "" {
+			c.logger.Printf("[WARN LLM] Request blocked by safety settings: %s (Message: %s)",
+				responseBody.PromptFeedback.BlockReason, responseBody.PromptFeedback.BlockReasonMessage)
+		} else {
+			c.logger.Printf("[WARN LLM] No candidates received in LLM response.")
+		}
+	} else {
+		firstCandidate := responseBody.Candidates[0]
+		c.logger.Printf("[DEBUG LLM] Candidate Finish Reason: %s", firstCandidate.FinishReason)
+		if len(firstCandidate.Content.Parts) > 0 {
+			firstPart := firstCandidate.Content.Parts[0]
+			if firstPart.FunctionCall != nil {
+				c.logger.Printf("[DEBUG LLM] Received FunctionCall request: %s", firstPart.FunctionCall.Name)
+			} else if firstPart.Text != "" {
+				snippet := firstPart.Text[:min(len(firstPart.Text), 80)]
+				if len(firstPart.Text) > 80 {
+					snippet += "..."
+				}
+				c.logger.Printf("[DEBUG LLM] Received Text response (snippet): %s", snippet)
+			}
+		} else {
+			c.logger.Printf("[WARN LLM] First candidate has no parts.")
+		}
+	}
+
+	return &responseBody, nil
 }
 
-// --- Response Structures --- based on documentation
-
-type GeminiResponse struct {
-	Candidates     []GeminiCandidate     `json:"candidates"`
-	PromptFeedback *GeminiPromptFeedback `json:"promptFeedback,omitempty"`
-}
-
-type GeminiCandidate struct {
-	Content       GeminiContent        `json:"content"` // Model's response content
-	FinishReason  string               `json:"finishReason,omitempty"`
-	Index         int                  `json:"index"`
-	SafetyRatings []GeminiSafetyRating `json:"safetyRatings,omitempty"`
-}
-
-type GeminiSafetyRating struct {
-	Category    string `json:"category"`
-	Probability string `json:"probability"` // e.g., "NEGLIGIBLE"
-}
-
-type GeminiPromptFeedback struct {
-	BlockReason   string               `json:"blockReason,omitempty"`
-	SafetyRatings []GeminiSafetyRating `json:"safetyRatings,omitempty"`
-}
-
-// CallLLMAPI makes a REST call to the specified Gemini model.
+// CallLLMAPI is the legacy function used by CALL LLM in standard NeuroScript.
+// It performs a simple single-turn text generation.
 func CallLLMAPI(prompt string) (string, error) {
-	apiKey := os.Getenv("GEMINI_API_KEY")
+	// This function can likely remain as is, using default model/endpoint.
+	// Alternatively, it could be refactored to use an LLMClient instance
+	// configured globally or passed via Interpreter, but let's keep it simple for now.
+
+	apiKey := os.Getenv("GEMINI_API_KEY") // Keep using env var directly here
 	if apiKey == "" {
 		return "", fmt.Errorf("GEMINI_API_KEY environment variable not set")
 	}
 
-	// Construct the URL
-	url := fmt.Sprintf("%s%s:generateContent?key=%s", geminiAPIEndpointBase, geminiModel, apiKey)
+	url := fmt.Sprintf("%s%s:generateContent?key=%s", defaultGeminiAPIEndpointBase, defaultGeminiModel, apiKey)
 
-	// Prepare the request body
 	requestBody := GeminiRequest{
-		Contents: []GeminiContent{
-			{
-				Parts: []GeminiPart{
-					{Text: prompt},
-				},
-				// Role: "user", // Optional, defaults might be okay
-			},
-		},
-		// Add GenerationConfig or SafetySettings here if needed
-		// GenerationConfig: &GeminiGenerationConfig{ Temperature: 0.7 },
+		Contents: []GeminiContent{{Parts: []GeminiPart{{Text: prompt}}, Role: "user"}},
+		// No tools for simple call
 	}
 
 	requestBodyBytes, err := json.Marshal(requestBody)
@@ -99,13 +187,14 @@ func CallLLMAPI(prompt string) (string, error) {
 		return "", fmt.Errorf("failed to marshal request body: %w", err)
 	}
 
-	// Make the HTTP POST request
-	httpClient := &http.Client{Timeout: 60 * time.Second} // Add a timeout
+	// Use a default client/timeout for this legacy function
+	httpClient := &http.Client{Timeout: 120 * time.Second}
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(requestBodyBytes))
 	if err != nil {
 		return "", fmt.Errorf("failed to create http request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
@@ -113,40 +202,37 @@ func CallLLMAPI(prompt string) (string, error) {
 	}
 	defer resp.Body.Close()
 
-	// Read the response body
 	responseBodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	// Check for non-200 status codes
 	if resp.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("gemini API request failed with status %d: %s", resp.StatusCode, string(responseBodyBytes))
 	}
 
-	// Parse the response JSON
 	var responseBody GeminiResponse
 	err = json.Unmarshal(responseBodyBytes, &responseBody)
 	if err != nil {
-		// Include raw body for debugging if unmarshal fails
 		return "", fmt.Errorf("failed to unmarshal response body: %w\nRaw Body: %s", err, string(responseBodyBytes))
 	}
 
-	// Check for safety blocks or empty candidates
+	// --- Extract Text (legacy logic) ---
 	if len(responseBody.Candidates) == 0 {
 		if responseBody.PromptFeedback != nil && responseBody.PromptFeedback.BlockReason != "" {
 			return "", fmt.Errorf("request blocked by safety settings: %s", responseBody.PromptFeedback.BlockReason)
 		}
 		return "", fmt.Errorf("no candidates received from Gemini API")
 	}
-
-	// Extract the text from the first candidate
-	// Assume the response structure has content.parts as an array and we want the first part's text.
 	if len(responseBody.Candidates[0].Content.Parts) > 0 {
-		generatedText := responseBody.Candidates[0].Content.Parts[0].Text
-		return generatedText, nil
+		if responseBody.Candidates[0].Content.Parts[0].Text != "" {
+			return responseBody.Candidates[0].Content.Parts[0].Text, nil
+		}
+		// Add specific check for unexpected function call in simple API
+		if responseBody.Candidates[0].Content.Parts[0].FunctionCall != nil {
+			return "", fmt.Errorf("simple CallLLMAPI received unexpected FunctionCall response")
+		}
 	}
 
-	// Handle cases where no text part is returned
 	return "", fmt.Errorf("no text content found in the first candidate")
 }

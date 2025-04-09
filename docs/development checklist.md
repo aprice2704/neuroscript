@@ -26,6 +26,7 @@
     [x] checklist (Parser exists, Tooling/Integration TBD) [cite: uploaded:neuroscript/pkg/neurodata/checklist/checklist_parser.go]
     [ ] graph
     [ ] table
+    [ ] tree
     [ ] decision_table
     [ ] form
     [ ] invoice
@@ -40,6 +41,7 @@
     [ ] markdown_doc
     [ ] composite_doc
     [ ] bug_report
+    [ ] ns_tool_list
 
 **Tooling & Integration (Supporting Self-Management):**
 [ ] Tools: Implement Real In-Memory Vector DB (VectorUpdate, SearchSkills) (Currently mocked)
@@ -56,6 +58,7 @@
 [ ] Tools: Add Table tools
 [ ] Tools: Add Integration tools (Sheets, Docs)
 [ ] Tools: Add data encoding/hardening tools (e.g., Base32, Base64, potentially zip/unzip) for reliable data transfer. **(NEW)**
+[ ] Tools: grep/egrep/agrep
 
 **Longer Term / Advanced:**
 [ ] Feature: Add Self-test support in ns
