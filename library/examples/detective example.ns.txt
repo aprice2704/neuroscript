@@ -27,8 +27,10 @@ CALL IdentifyWitnesses(CrimeSceneData)
 CALL InterviewWitnesses(CrimeSceneData)
 CALL AnalyzeEvidenceAndStatements(CrimeSceneData)
 SET analysisSummary = LAST
-SET timelineInsights = CALL LLM("Based on these statements: {{analysisSummary}}, construct a possible timeline of events and highlight contradictions.")
-SET CaseReport = CALL CompileCaseReport(CrimeSceneData, analysisSummary, timelineInsights)
+CALL LLM("Based on these statements: {{analysisSummary}}, construct a possible timeline of events and highlight contradictions.")
+SET timelineInsights = LAST
+CALL CompileCaseReport(CrimeSceneData, analysisSummary, timelineInsights)
+SET CaseReport = LAST
 RETURN CaseReport
 
 DEFINE PROCEDURE SecureCrimeScene(CrimeSceneData)
