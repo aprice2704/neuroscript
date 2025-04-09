@@ -21,27 +21,19 @@ EMIT "Set my_string = " + my_string
 
 EMIT "Calling TOOL.StringLength(my_string)..."
 CALL TOOL.StringLength(my_string)
-# If successful, internal lastCallResult should be int64(4)
-
-EMIT "Attempting: SET length_from_last = LAST"
 SET length_from_last = LAST
 
 EMIT "Value of length_from_last:"
-EMIT length_from_last 
-# <<< Check if this emits 4 or nil/something else
+EMIT length_from_last
 
 EMIT "--- Calling second tool ---"
 SET upper_string_raw = "make upper"
 EMIT "Calling TOOL.ToUpper(upper_string_raw)..."
 CALL TOOL.ToUpper(upper_string_raw)
-# If successful, internal lastCallResult should be "MAKE UPPER"
-
-EMIT "Attempting: SET upper_from_last = LAST"
 SET upper_from_last = LAST
 
 EMIT "Value of upper_from_last:"
-EMIT upper_from_last 
-# <<< Check if this emits "MAKE UPPER"
+EMIT upper_from_last
 
 EMIT "--- Test Complete ---"
 RETURN "Finished"
