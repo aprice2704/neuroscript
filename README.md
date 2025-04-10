@@ -1,4 +1,4 @@
-<p align="center"><img src="docs/ns-logo.webp" alt="NeuroScript Logo" width="200" height="200"></p>
+<p align="center"><img src="docs/ns-logo-white.jpg" alt="NeuroScript Logo" width="200" height="200"></p>
 
 # NeuroScript Project README
 
