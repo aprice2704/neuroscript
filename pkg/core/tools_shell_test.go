@@ -21,7 +21,7 @@ func TestToolExecuteCommand(t *testing.T) {
 	tests := []struct {
 		name         string
 		command      string
-		cmdArgs      []interface{} // Raw args before validation
+		cmdArgs      []interface{} // Args for the *command* itself
 		wantStdout   string
 		wantStderr   string
 		wantExitCode int64
@@ -29,7 +29,7 @@ func TestToolExecuteCommand(t *testing.T) {
 		valWantErr   bool   // Expect validation error?
 		errContains  string // Validation error substring
 	}{
-		// Success cases (remain the same)
+		// Success cases
 		{name: "Simple Echo Success", command: "echo", cmdArgs: []interface{}{"hello", "world"}, wantStdout: "hello world\n", wantStderr: "", wantExitCode: 0, wantSuccess: true, valWantErr: false, errContains: ""},
 		{name: "Command True Success", command: "true", cmdArgs: []interface{}{}, wantStdout: "", wantStderr: "", wantExitCode: 0, wantSuccess: true, valWantErr: false, errContains: ""},
 		{name: "Command False Failure", command: "false", cmdArgs: []interface{}{}, wantStdout: "", wantStderr: "", wantExitCode: 1, wantSuccess: false, valWantErr: false, errContains: ""},
@@ -37,36 +37,32 @@ func TestToolExecuteCommand(t *testing.T) {
 		{name: "Command Not Found", command: "nonexistent_command_ajsdflk", cmdArgs: []interface{}{}, wantStdout: "", wantStderr: "executable file not found", wantExitCode: -1, wantSuccess: false, valWantErr: false, errContains: ""},
 
 		// Validation Error Tests
-		{name: "Validation Wrong Arg Count (1)", command: "echo", cmdArgs: nil, // Test setup passes only 1 arg
-			valWantErr: true, errContains: "tool 'ExecuteCommand' expected exactly 2 arguments, but received 1"},
-		{name: "Validation Wrong Arg Type (Command not string)", command: "", cmdArgs: makeArgs(123, []interface{}{}), // Test setup passes wrong type
-			valWantErr: true, errContains: "tool 'ExecuteCommand' argument 'command' (index 0): expected string, but received type int"},
-
-		// *** CORRECTED errContains for this test case ***
-		{name: "Validation Wrong Arg Type (Args not slice)", command: "echo", cmdArgs: makeArgs("echo", "not_a_slice"), // Test setup passes wrong type
-			valWantErr: true, errContains: "tool 'ExecuteCommand' argument 'args_list' (index 1): expected slice_any (e.g., list literal or []string), but received incompatible type string"},
-		// *** END CORRECTION ***
+		{name: "Validation Wrong Arg Count (1)", command: "echo", cmdArgs: nil, valWantErr: true, errContains: "expected exactly 2 arguments"},                                                                                                            // cmdArgs is nil, but makeArgs below passes only command
+		{name: "Validation Wrong Arg Type (Command not string)", command: "", cmdArgs: makeArgs(123, []interface{}{}), valWantErr: true, errContains: "type validation failed for argument 'command' of tool 'ExecuteCommand': expected string, got int"}, // Setup provides wrong type
+		// *** UPDATED Expected Error String ***
+		{name: "Validation Wrong Arg Type (Args not slice)", command: "echo", cmdArgs: makeArgs("echo", "not_a_slice"), valWantErr: true, errContains: "type validation failed for argument 'args_list' of tool 'ExecuteCommand': expected a slice (list), got string"}, // Setup provides wrong type
 	}
 	spec := ToolSpec{Name: "ExecuteCommand", Args: []ArgSpec{{Name: "command", Type: ArgTypeString, Required: true}, {Name: "args_list", Type: ArgTypeSliceAny, Required: true}}, ReturnType: ArgTypeAny}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var rawArgs []interface{}
-			// Special handling for validation tests needing specific wrong structures
+			// *** CORRECTED Test Setup for makeArgs ***
 			if tt.name == "Validation Wrong Arg Count (1)" {
-				rawArgs = makeArgs(tt.command) // Only pass command for arg count test
+				rawArgs = makeArgs(tt.command) // Only pass command
 			} else if tt.name == "Validation Wrong Arg Type (Command not string)" {
-				rawArgs = tt.cmdArgs // Use the predefined args with wrong type
+				rawArgs = tt.cmdArgs // Use predefined setup with wrong type
 			} else if tt.name == "Validation Wrong Arg Type (Args not slice)" {
-				rawArgs = tt.cmdArgs // Use the predefined args with wrong type
+				rawArgs = tt.cmdArgs // Use predefined setup with wrong type
 			} else {
-				// Correct structure for execution tests
-				rawArgs = makeArgs(tt.command, tt.cmdArgs) // Wrap tt.cmdArgs as the second element
+				// Correct structure for execution tests: command string, then slice of command args
+				rawArgs = makeArgs(tt.command, tt.cmdArgs) // Pass the command args as the second element
 			}
+			// *** END CORRECTION ***
 
 			convertedArgs, valErr := ValidateAndConvertArgs(spec, rawArgs)
 			if (valErr != nil) != tt.valWantErr {
-				t.Errorf("ValidateAndConvertArgs() error = %v, wantErr %v", valErr, tt.valWantErr)
+				t.Errorf("ValidateAndConvertArgs() error = %v, wantErr %v (Raw Args: %#v)", valErr, tt.valWantErr, rawArgs)
 				return
 			}
 			if tt.valWantErr {
@@ -114,10 +110,10 @@ func TestToolExecuteCommand(t *testing.T) {
 					t.Errorf("stderr field:\ngot:  %q\nwant contains: %q", gotStderr, tt.wantStderr)
 				}
 			} else if tt.wantStderr == "" && gotStderr != "" {
-				if !gotSuccess {
+				if !tt.wantSuccess && tt.wantExitCode != -1 {
 					t.Errorf("stderr field: got %q, want empty on failure (unless specific msg expected)", gotStderr)
 				} else {
-					t.Logf("stderr field: got %q, want empty (allowing warnings on success)", gotStderr)
+					t.Logf("stderr field (on success or expected stderr): got %q", gotStderr)
 				}
 			}
 		})
@@ -125,14 +121,13 @@ func TestToolExecuteCommand(t *testing.T) {
 }
 
 // --- Test Go Mod Tidy ---
-// (This test remains the same)
 func TestToolGoModTidy(t *testing.T) {
 	if _, err := exec.LookPath("go"); err != nil {
 		t.Skip("Skipping GoModTidy test: 'go' command not found")
 	}
 
 	dummyInterp := newDefaultTestInterpreter()
-	testDir := "gomodtidy_test_run_cwd_dir_2" // Use different dir name
+	testDir := "gomodtidy_test_run_cwd_dir_4" // Use different dir name
 	err := os.MkdirAll(testDir, 0755)
 	if err != nil {
 		t.Fatalf("MkdirAll failed: %v", err)
@@ -140,7 +135,7 @@ func TestToolGoModTidy(t *testing.T) {
 	t.Cleanup(func() { os.RemoveAll(testDir) })
 
 	goModPath := filepath.Join(testDir, "go.mod")
-	goModContent := []byte("module neuroscript_test_gomod_2\n\ngo 1.20\nrequire rsc.io/quote v1.5.2\n") // Intentionally use a slightly different module path
+	goModContent := []byte("module neuroscript_test_gomod_4\n\ngo 1.20\nrequire rsc.io/quote v1.5.2\n")
 	err = os.WriteFile(goModPath, goModContent, 0644)
 	if err != nil {
 		t.Fatalf("Write go.mod failed: %v", err)

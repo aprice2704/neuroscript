@@ -87,6 +87,8 @@ Avoid fiddling with code in several places at once, long established functions i
 
 NEVER, EVER, **EVER** remove debug lines **until I ask for a file without them**
 
+On the whole, I have found **in go**, with strong types and good namespacing, that it is fine to export all functions that are not so obtuse as to be unusable outside their home package.
+
 Please remember to keep package comments up to date; if the intent of the package seems to be changing significantly, double check with me about it.
 
 You will need the neuroscript folder. Tell me if not yet provided.

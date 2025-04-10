@@ -43,7 +43,6 @@ func TestToolListDirectory(t *testing.T) {
 	wantSubdirResultMaps := []interface{}{
 		map[string]interface{}{"name": "file2.txt", "is_dir": false},
 	}
-	// Note: wantDotResultNames removed as testing "." is less reliable than specific relative paths
 
 	tests := []struct {
 		name           string
@@ -61,7 +60,8 @@ func TestToolListDirectory(t *testing.T) {
 		{name: "Path Outside Sandbox Relative", pathArg: "../outside_dir", wantErrorMsg: true, errorContains: "outside the allowed directory", valWantErr: false},
 		{name: "Path Is Parent Relative", pathArg: "..", wantErrorMsg: true, errorContains: "outside the allowed directory", valWantErr: false},
 		{name: "Validation Wrong Arg Count", pathArg: "", wantErrorMsg: false, valWantErr: true, valErrContains: "expected exactly 1 arguments"},
-		{name: "Validation Wrong Arg Type", pathArg: "", wantErrorMsg: false, valWantErr: true, valErrContains: "expected string, but received type int"},
+		// *** UPDATED Expected Error String ***
+		{name: "Validation Wrong Arg Type", pathArg: "", wantErrorMsg: false, valWantErr: true, valErrContains: "type validation failed for argument 'path' of tool 'ListDirectory': expected string, got int"},
 	}
 
 	spec := ToolSpec{Name: "ListDirectory", Args: []ArgSpec{{Name: "path", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeSliceAny}
@@ -78,13 +78,12 @@ func TestToolListDirectory(t *testing.T) {
 			if tt.name == "Validation Wrong Arg Count" {
 				rawArgs = makeArgs()
 			} else if tt.name == "Validation Wrong Arg Type" {
-				rawArgs = makeArgs(123)
+				rawArgs = makeArgs(123) // Pass int instead of string
 			} else {
 				rawArgs = makeArgs(tt.pathArg)
 			}
 
 			// --- Change CWD to temp dir for execution ---
-			// Run this *inside* t.Run for isolation if tests run in parallel
 			err := os.Chdir(testBaseDirAbs)
 			if err != nil {
 				t.Fatalf("Failed to Chdir to temp dir %s: %v", testBaseDirAbs, err)

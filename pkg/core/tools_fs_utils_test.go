@@ -36,7 +36,6 @@ func TestToolLineCountFile(t *testing.T) {
 		t.Fatalf("Setup failed: %v", err)
 	}
 
-	// *** Corrected struct literals to use field names consistently ***
 	tests := []struct {
 		name           string
 		inputArg       string
@@ -52,10 +51,10 @@ func TestToolLineCountFile(t *testing.T) {
 		{name: "File Path Invalid (Outside CWD)", inputArg: outsideRel, wantResult: -1, valWantErr: false, valErrContains: ""},
 		{name: "Raw String One Line (Rejected as Path)", inputArg: "Hello", wantResult: -1, valWantErr: false, valErrContains: ""}, // toolLineCountFile expects path
 		{name: "Raw String Empty (Rejected as Path)", inputArg: "", wantResult: -1, valWantErr: false, valErrContains: ""},         // Empty string fails SecureFilePath
-		{name: "Validation Wrong Arg Type", inputArg: "", valWantErr: true, valErrContains: "expected string, but received type int"},
+		// *** UPDATED Expected Error String ***
+		{name: "Validation Wrong Arg Type", inputArg: "", valWantErr: true, valErrContains: "type validation failed for argument 'filepath' of tool 'LineCountFile': expected string, got int"},
 		{name: "Validation Wrong Arg Count", inputArg: "", valWantErr: true, valErrContains: "expected exactly 1 arguments"},
 	}
-	// *** End struct literal correction ***
 
 	spec := ToolSpec{Name: "LineCountFile", Args: []ArgSpec{{Name: "filepath", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeInt}
 
@@ -71,7 +70,7 @@ func TestToolLineCountFile(t *testing.T) {
 			if tt.name == "Validation Wrong Arg Count" {
 				rawArgs = makeArgs()
 			} else if tt.name == "Validation Wrong Arg Type" {
-				rawArgs = makeArgs(123)
+				rawArgs = makeArgs(123) // Pass int instead of string
 			} else {
 				rawArgs = makeArgs(tt.inputArg)
 			}
@@ -115,7 +114,6 @@ func TestToolLineCountFile(t *testing.T) {
 // --- Tests for toolSanitizeFilename ---
 func TestToolSanitizeFilename(t *testing.T) {
 	dummyInterp := newDefaultTestInterpreter()
-	// *** Corrected struct literals to use field names consistently ***
 	tests := []struct {
 		name           string
 		inputArg       string
@@ -140,10 +138,10 @@ func TestToolSanitizeFilename(t *testing.T) {
 		{name: "Starts with Number", inputArg: "123File", wantResult: "123File", valWantErr: false, valErrContains: ""},
 		{name: "With Extension", inputArg: "report.final.docx", wantResult: "report.final.docx", valWantErr: false, valErrContains: ""},
 		{name: "Ends with Dot", inputArg: "filename.", wantResult: "filename", valWantErr: false, valErrContains: ""},
-		{name: "Validation Wrong Arg Type", inputArg: "", valWantErr: true, valErrContains: "expected string, but received type int"},
+		// *** UPDATED Expected Error String ***
+		{name: "Validation Wrong Arg Type", inputArg: "", valWantErr: true, valErrContains: "type validation failed for argument 'name' of tool 'SanitizeFilename': expected string, got int"},
 		{name: "Validation Wrong Arg Count", inputArg: "", valWantErr: true, valErrContains: "expected exactly 1 arguments"},
 	}
-	// *** End struct literal correction ***
 
 	spec := ToolSpec{Name: "SanitizeFilename", Args: []ArgSpec{{Name: "name", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeString}
 
@@ -153,7 +151,7 @@ func TestToolSanitizeFilename(t *testing.T) {
 			if tt.name == "Validation Wrong Arg Count" {
 				rawArgs = makeArgs()
 			} else if tt.name == "Validation Wrong Arg Type" {
-				rawArgs = makeArgs(123)
+				rawArgs = makeArgs(123) // Pass int instead of string
 			} else {
 				rawArgs = makeArgs(tt.inputArg)
 			}

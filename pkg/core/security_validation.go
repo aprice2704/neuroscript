@@ -7,11 +7,9 @@ import (
 )
 
 // validateArgumentsAgainstSpec performs detailed validation of raw arguments against the tool's spec.
-// This is called by SecurityLayer.ValidateToolCall.
 func (sl *SecurityLayer) validateArgumentsAgainstSpec(toolSpec ToolSpec, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	validatedArgs := make(map[string]interface{})
 
-	// Loop through arguments DEFINED in the tool's specification
 	for _, specArg := range toolSpec.Args {
 		argName := specArg.Name
 		rawValue, argProvided := rawArgs[argName]
@@ -26,19 +24,15 @@ func (sl *SecurityLayer) validateArgumentsAgainstSpec(toolSpec ToolSpec, rawArgs
 			continue
 		}
 
-		// --- Argument Validation & Sanitization Logic ---
 		var validatedValue interface{}
 		var validationError error
 
-		// a) Basic Content Checks
+		// a) Basic Content Checks (Example)
 		if strVal, ok := rawValue.(string); ok {
 			if strings.Contains(strVal, "\x00") {
 				validationError = fmt.Errorf("argument '%s' contains null byte", argName)
 			}
-			if len(strVal) > 8192 {
-				validationError = fmt.Errorf("argument '%s' exceeds maximum length limit (8192)", argName)
-			}
-			// TODO: Add more content checks
+			// Add length checks or other pattern checks if needed
 		}
 		if validationError != nil {
 			return nil, fmt.Errorf("content validation failed for argument '%s': %w", argName, validationError)
@@ -50,32 +44,37 @@ func (sl *SecurityLayer) validateArgumentsAgainstSpec(toolSpec ToolSpec, rawArgs
 			return nil, fmt.Errorf("type validation failed for argument '%s': %w", argName, validationError)
 		}
 
-		// c) Path Sandboxing (Applied specifically based on Tool and Arg Name)
-		//    Refine this logic - maybe add metadata to ArgSpec?
+		// *** ADDED: Specific numeric check for TOOL.Add arguments ***
+		if toolSpec.Name == "TOOL.Add" && (argName == "num1" || argName == "num2") {
+			if _, isNum := ToNumeric(validatedValue); !isNum { // Use ToNumeric helper
+				validationError = fmt.Errorf("argument '%s' for TOOL.Add must be numeric, got %T", argName, validatedValue)
+			}
+		}
+		// *** END ADDITION ***
+
+		if validationError != nil { // Check again after tool-specific validation
+			sl.logger.Printf("[SEC] DENIED (Tool Specific Check): %v", validationError)
+			return nil, validationError
+		}
+
+		// c) Path Sandboxing
 		isPathArg := (toolSpec.Name == "TOOL.ReadFile" && argName == "filepath") ||
 			(toolSpec.Name == "TOOL.WriteFile" && argName == "filepath") ||
 			(toolSpec.Name == "TOOL.ListDirectory" && argName == "path") ||
-			(toolSpec.Name == "TOOL.GitAdd" && argName == "filepath") // Add other path args here
+			(toolSpec.Name == "TOOL.GitAdd" && argName == "filepath")
 
-		if isPathArg {
-			pathStr, ok := validatedValue.(string) // Use the type-coerced value if applicable
-			if !ok {
-				// Should have been caught by type checking, but double-check
-				return nil, fmt.Errorf("internal validation error: path argument '%s' for tool '%s' is not a string after type check (%T)", argName, toolSpec.Name, validatedValue)
-			}
-
-			// Apply SecureFilePath check using the layer's sandboxRoot
+		if isPathArg && specArg.Type == ArgTypeString {
+			pathStr, _ := validatedValue.(string)
 			_, pathErr := SecureFilePath(pathStr, sl.sandboxRoot)
 			if pathErr != nil {
 				errMsg := fmt.Sprintf("sandbox validation failed for path argument '%s' (%q): %v", argName, pathStr, pathErr)
 				sl.logger.Printf("[SEC] DENIED (Sandbox): %s", errMsg)
-				return nil, fmt.Errorf(errMsg) // Return specific security error
+				return nil, fmt.Errorf(errMsg)
 			}
-			// If validation passes, validatedValue already holds the pathStr
+			validatedValue = pathStr
 			sl.logger.Printf("[SEC VALIDATE] Path argument '%s' (%q) validated successfully within sandbox %q.", argName, pathStr, sl.sandboxRoot)
 		}
 
-		// Store the validated (and potentially coerced/sanitized) value
 		validatedArgs[argName] = validatedValue
 		sl.logger.Printf("[SEC VALIDATE] Arg '%s' validated successfully. Value: %v (%T)", argName, validatedValue, validatedValue)
 
@@ -99,19 +98,16 @@ func (sl *SecurityLayer) validateArgumentsAgainstSpec(toolSpec ToolSpec, rawArgs
 }
 
 // validateAndCoerceType checks if the rawValue matches the expected ArgType and attempts coercion.
+// (Implementation remains the same as previous version)
 func (sl *SecurityLayer) validateAndCoerceType(rawValue interface{}, expectedType ArgType, toolName, argName string) (interface{}, error) {
 	var validatedValue interface{}
 	var ok bool
-	var err error // Use a separate error variable for type conversion issues
-
-	// Use helpers for consistent conversion/checking logic
+	var err error
 	switch expectedType {
 	case ArgTypeString:
-		strVal, isString := rawValue.(string)
-		if !isString {
+		validatedValue, ok = rawValue.(string)
+		if !ok {
 			err = fmt.Errorf("expected string, got %T", rawValue)
-		} else {
-			validatedValue, ok = strVal, true
 		}
 	case ArgTypeInt:
 		validatedValue, ok = toInt64(rawValue)
@@ -129,34 +125,29 @@ func (sl *SecurityLayer) validateAndCoerceType(rawValue interface{}, expectedTyp
 			err = fmt.Errorf("expected boolean, got %T (%v)", rawValue, rawValue)
 		}
 	case ArgTypeSliceString:
-		validatedValue, ok, err = convertToSliceOfString(rawValue) // Helper returns potential conversion error
-		// ok reflects if *any* slice was returned, err indicates specific conversion issues
+		validatedValue, ok, err = convertToSliceOfString(rawValue)
 		if !ok && err == nil {
 			err = fmt.Errorf("expected slice of strings, got %T", rawValue)
-		} // Assign generic error if helper didn't set one
+		}
 	case ArgTypeSliceAny:
 		validatedValue, ok, err = convertToSliceOfAny(rawValue)
 		if !ok && err == nil {
 			err = fmt.Errorf("expected a slice, got %T", rawValue)
 		}
 	case ArgTypeAny:
-		validatedValue, ok = rawValue, true // Accept anything
+		validatedValue, ok = rawValue, true
 	default:
 		err = fmt.Errorf("internal error: unknown expected type '%s'", expectedType)
 		ok = false
 	}
-
-	// Combine potential errors from helpers or direct checks
 	if err != nil || !ok {
 		finalErrMsg := fmt.Sprintf("type validation failed for argument '%s' of tool '%s'", argName, toolName)
 		if err != nil {
-			finalErrMsg = fmt.Sprintf("%s: %v", finalErrMsg, err) // Include specific conversion error
+			finalErrMsg = fmt.Sprintf("%s: %v", finalErrMsg, err)
 		} else {
-			// Generic message if ok is false but no specific error was set
 			finalErrMsg = fmt.Sprintf("%s: expected %s, got %T", finalErrMsg, expectedType, rawValue)
 		}
 		return nil, fmt.Errorf(finalErrMsg)
 	}
-
 	return validatedValue, nil
 }

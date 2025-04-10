@@ -44,10 +44,10 @@ func TestToolReadFile(t *testing.T) {
 		{name: "Read OK Simple", inputArg: file1Rel, wantResult: content1, wantResultFail: false, valWantErr: false},
 		{name: "Read OK Subdir", inputArg: file2Rel, wantResult: content2, wantResultFail: false, valWantErr: false},
 		{name: "Read File Not Found", inputArg: notFoundRel, wantResult: "File not found", wantResultFail: true, valWantErr: false},
-		// SecureFilePath check happens within the tool function for direct calls
 		{name: "Read Path Outside", inputArg: outsideRel, wantResult: "path error", wantResultFail: true, valWantErr: false}, // Expect error string from SecureFilePath
 		// Validation Errors
-		{name: "Validation Wrong Arg Type", inputArg: "", valWantErr: true, valErrContains: "expected string, but received type int"},
+		// *** UPDATED Expected Error String ***
+		{name: "Validation Wrong Arg Type", inputArg: "", valWantErr: true, valErrContains: "type validation failed for argument 'filepath' of tool 'ReadFile': expected string, got int"},
 		{name: "Validation Wrong Arg Count", inputArg: "", valWantErr: true, valErrContains: "expected exactly 1 arguments"},
 	}
 
@@ -65,7 +65,7 @@ func TestToolReadFile(t *testing.T) {
 			if tt.name == "Validation Wrong Arg Count" {
 				rawArgs = makeArgs()
 			} else if tt.name == "Validation Wrong Arg Type" {
-				rawArgs = makeArgs(123)
+				rawArgs = makeArgs(123) // Pass int instead of string
 			} else {
 				rawArgs = makeArgs(tt.inputArg)
 			} // Pass relative path

@@ -36,7 +36,8 @@ func TestToolGoFmt(t *testing.T) {
 		{name: "Parse Error", inputContent: parseErrorContent, wantFormattedContent: parseErrorContent, wantErrorSubstring: "string literal not terminated", wantSuccess: false, valWantErr: false}, // Expect original content on error
 		// Validation tests
 		{name: "Validation Wrong Arg Count", inputContent: "", valWantErr: true, valErrContains: "tool 'GoFmt' expected exactly 1 arguments, but received 0"},
-		{name: "Validation Wrong Arg Type", inputContent: "", valWantErr: true, valErrContains: "tool 'GoFmt' argument 'content' (index 0): expected string, but received type int"},
+		// *** UPDATED Expected Error String ***
+		{name: "Validation Wrong Arg Type", inputContent: "", valWantErr: true, valErrContains: "type validation failed for argument 'content' of tool 'GoFmt': expected string, got int"},
 		// Removed Path Error test as tool no longer takes path
 	}
 
@@ -49,7 +50,7 @@ func TestToolGoFmt(t *testing.T) {
 			if tt.name == "Validation Wrong Arg Count" {
 				rawArgs = makeArgs()
 			} else if tt.name == "Validation Wrong Arg Type" {
-				rawArgs = makeArgs(123) // Pass wrong type
+				rawArgs = makeArgs(123) // Pass wrong type (int)
 			} else {
 				rawArgs = makeArgs(tt.inputContent) // Pass content string
 			}

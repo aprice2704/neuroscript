@@ -1,9 +1,12 @@
-// pkg/core/evaluation_helpers.go
+// filename: pkg/core/evaluation_helpers.go
 package core
 
 import (
-	"math"
-	"strconv"
+	// Import io for discard logger
+	// Import log
+	"math" // Required for toInt64/toFloat64 placeholders
+	// Required for helper ConvertToBool, convertToSliceOfAny
+	"strconv" // Required for toInt64/toFloat64 placeholders
 	"strings"
 	"unicode" // Keep for isValidIdentifier
 )
@@ -12,6 +15,9 @@ import (
 
 // toFloat64 attempts conversion to float64.
 func toFloat64(val interface{}) (float64, bool) {
+	if val == nil {
+		return 0, false
+	}
 	switch v := val.(type) {
 	case float64:
 		return v, true
@@ -34,9 +40,16 @@ func toFloat64(val interface{}) (float64, bool) {
 
 // toInt64 attempts conversion to int64 (only if lossless).
 func toInt64(val interface{}) (int64, bool) {
+	if val == nil {
+		return 0, false
+	}
 	switch v := val.(type) {
 	case int64:
 		return v, true
+	case int: // Handle plain int
+		return int64(v), true
+	case int32: // Handle int32
+		return int64(v), true
 	case float64:
 		// Allow conversion only if there's no fractional part
 		if v == math.Trunc(v) {
@@ -45,6 +58,12 @@ func toInt64(val interface{}) (int64, bool) {
 			return int64(v), true
 		}
 		return 0, false // Don't convert float with fraction
+	case float32: // Allow lossless conversion from float32
+		fv64 := float64(v)
+		if fv64 == math.Trunc(fv64) {
+			return int64(fv64), true
+		}
+		return 0, false
 	case string:
 		// Try parsing as int first
 		i, err := strconv.ParseInt(v, 10, 64)
@@ -57,19 +76,29 @@ func toInt64(val interface{}) (int64, bool) {
 			return int64(f), true
 		}
 		return 0, false
-	// Add other base Go numeric types
-	case int:
-		return int64(v), true
-	case int32:
-		return int64(v), true
-	case float32: // Allow lossless conversion from float32
-		if v == float32(int64(v)) {
-			return int64(v), true
-		}
-		return 0, false
+	// case bool, []interface{}, map[string]interface{}, []string, nil:
+	// Cannot convert these types directly to int64
 	default:
 		return 0, false
 	}
+}
+
+// ToNumeric attempts conversion to int64 or float64.
+func ToNumeric(val interface{}) (interface{}, bool) {
+	if val == nil { // Explicitly handle nil
+		return nil, false
+	}
+	// Prioritize float64 if it converts losslessly to int64? No, stick to original type if possible.
+	// Try int64 first
+	if i, ok := toInt64(val); ok {
+		return i, true
+	}
+	// Then try float64
+	if f, ok := toFloat64(val); ok {
+		return f, true
+	}
+	// Cannot convert to either numeric type
+	return nil, false
 }
 
 // isTruthy evaluates if a value is considered true in NeuroScript boolean contexts.
@@ -106,13 +135,6 @@ func isTruthy(val interface{}) bool {
 
 // --- Other Helpers ---
 
-// tryParseFloat attempts to parse a string as float64. (Can likely be deprecated if toFloat64 handles strings)
-// Keeping for now if used elsewhere, but review its usage.
-func tryParseFloat(s string) (float64, bool) {
-	val, err := strconv.ParseFloat(s, 64)
-	return val, err == nil
-}
-
 // isValidIdentifier checks if a string is a valid NeuroScript identifier (and not a keyword).
 func isValidIdentifier(name string) bool {
 	if name == "" {
@@ -146,13 +168,8 @@ func isValidIdentifier(name string) bool {
 		"LN": true, "LOG": true, "SIN": true, "COS": true, "TAN": true,
 		"ASIN": true, "ACOS": true, "ATAN": true,
 		"FILE_VERSION": true,
-		// Special variable __last_call_result treated like a keyword here
-		"__LAST_CALL_RESULT": true,
 	}
-	// Allow __last_call_result specifically
-	if name == "__last_call_result" {
-		return true
-	}
+
 	// If it's in the keyword map (case-insensitive), it's not a valid identifier
 	if keywords[upperName] {
 		return false

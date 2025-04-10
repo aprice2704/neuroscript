@@ -17,38 +17,42 @@ func TestToolStringLength(t *testing.T) {
 		args          []interface{}
 		want          interface{}
 		wantErr       bool
-		errorContains string
+		errorContains string // Unified error string check
 	}{
 		{name: "Empty", args: makeArgs(""), want: int64(0), wantErr: false, errorContains: ""},
 		{name: "Simple ASCII", args: makeArgs("hello"), want: int64(5), wantErr: false, errorContains: ""},
 		{name: "UTF8", args: makeArgs("你好"), want: int64(2), wantErr: false, errorContains: ""},
 		{name: "Mixed", args: makeArgs("hello 你好"), want: int64(8), wantErr: false, errorContains: ""},
 		{name: "Wrong Arg Count", args: makeArgs(), want: nil, wantErr: true, errorContains: "expected exactly 1 arguments"},
-		{name: "Validation Wrong Type", args: makeArgs(123), want: nil, wantErr: true, errorContains: "expected string, but received type int"},
+		// *** UPDATED Expected Error String ***
+		{name: "Validation Wrong Type", args: makeArgs(123), want: nil, wantErr: true, errorContains: "type validation failed for argument 'input' of tool 'StringLength': expected string, got int"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			toolSpec := ToolSpec{Name: "StringLength", Args: []ArgSpec{{Name: "input", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeInt}
-			convertedArgs, valErr := ValidateAndConvertArgs(toolSpec, tt.args)
-			finalErr := valErr
+			convertedArgs, finalErr := ValidateAndConvertArgs(toolSpec, tt.args)
 			var got interface{}
 			var toolErr error
-			if valErr == nil {
+			if finalErr == nil { // Only execute if validation passed
 				got, toolErr = toolStringLength(dummyInterp, convertedArgs)
 				if toolErr != nil {
-					finalErr = toolErr
+					finalErr = toolErr // Assign tool execution error if it occurred
 				}
 			}
+
+			// Check error expectation
 			if (finalErr != nil) != tt.wantErr {
 				t.Errorf("Test %q: Error mismatch. Got error: %v, wantErr: %v", tt.name, finalErr, tt.wantErr)
 				return
 			}
+			// Check error content if error was expected
 			if tt.wantErr && tt.errorContains != "" {
 				if finalErr == nil || !strings.Contains(finalErr.Error(), tt.errorContains) {
 					t.Errorf("Test %q: Expected error containing %q, got: %v", tt.name, tt.errorContains, finalErr)
 				}
 			}
-			if !tt.wantErr && finalErr == nil && !reflect.DeepEqual(got, tt.want) {
+			// Check result if no error was expected
+			if !tt.wantErr && !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("Test %q: Result mismatch.\nGot:  %v (%T)\nWant: %v (%T)", tt.name, got, got, tt.want, tt.want)
 			}
 		})
@@ -62,60 +66,60 @@ func TestToolSubstring(t *testing.T) {
 		name        string
 		args        []interface{}
 		want        interface{}
-		wantErr     bool
-		valWantErr  bool
+		wantErr     bool // Now checks final error (validation or execution)
 		errContains string
 	}{
-		{name: "Basic", args: makeArgs("hello", int64(1), int64(4)), want: "ell", wantErr: false, valWantErr: false, errContains: ""},
-		{name: "Start 0", args: makeArgs("hello", int64(0), int64(2)), want: "he", wantErr: false, valWantErr: false, errContains: ""},
-		{name: "End Len", args: makeArgs("hello", int64(3), int64(5)), want: "lo", wantErr: false, valWantErr: false, errContains: ""},
-		{name: "Full String", args: makeArgs("hello", int64(0), int64(5)), want: "hello", wantErr: false, valWantErr: false, errContains: ""},
-		{name: "UTF8", args: makeArgs("你好世界", int64(1), int64(3)), want: "好世", wantErr: false, valWantErr: false, errContains: ""},
-		{name: "Empty Result Start=End", args: makeArgs("hello", int64(2), int64(2)), want: "", wantErr: false, valWantErr: false, errContains: ""},
-		{name: "Empty Result Start>End", args: makeArgs("hello", int64(3), int64(1)), want: "", wantErr: false, valWantErr: false, errContains: ""},
-		{name: "Index Out of Bounds High Start", args: makeArgs("hello", int64(10), int64(12)), want: "", wantErr: false, valWantErr: false, errContains: ""},
-		{name: "Index Out of Bounds High End", args: makeArgs("hello", int64(3), int64(10)), want: "lo", wantErr: false, valWantErr: false, errContains: ""},
-		{name: "Index Out of Bounds Low", args: makeArgs("hello", int64(-2), int64(3)), want: "hel", wantErr: false, valWantErr: false, errContains: ""},
-		{name: "Wrong Arg Count", args: makeArgs("a", int64(1)), want: nil, wantErr: false, valWantErr: true, errContains: "expected exactly 3 arguments"},
-		{name: "Non-string Input (Validation)", args: makeArgs(123, int64(0), int64(1)), want: nil, wantErr: false, valWantErr: true, errContains: "expected string, but received type int"},
-		// *** UPDATED errContains to match EXACT reported error ***
-		{name: "Non-int Start (Validation)", args: makeArgs("a", "b", int64(3)), want: nil, wantErr: false, valWantErr: true, errContains: "value b (string) cannot be converted to int (int64)"},
-		{name: "Non-int End (Validation)", args: makeArgs("a", int64(1), "c"), want: nil, wantErr: false, valWantErr: true, errContains: "value c (string) cannot be converted to int (int64)"},
-		// *** END UPDATE ***
+		{name: "Basic", args: makeArgs("hello", int64(1), int64(4)), want: "ell", wantErr: false, errContains: ""},
+		{name: "Start 0", args: makeArgs("hello", int64(0), int64(2)), want: "he", wantErr: false, errContains: ""},
+		{name: "End Len", args: makeArgs("hello", int64(3), int64(5)), want: "lo", wantErr: false, errContains: ""},
+		{name: "Full String", args: makeArgs("hello", int64(0), int64(5)), want: "hello", wantErr: false, errContains: ""},
+		{name: "UTF8", args: makeArgs("你好世界", int64(1), int64(3)), want: "好世", wantErr: false, errContains: ""},
+		{name: "Empty Result Start=End", args: makeArgs("hello", int64(2), int64(2)), want: "", wantErr: false, errContains: ""},
+		{name: "Empty Result Start>End", args: makeArgs("hello", int64(3), int64(1)), want: "", wantErr: false, errContains: ""},
+		{name: "Index Out of Bounds High Start", args: makeArgs("hello", int64(10), int64(12)), want: "", wantErr: false, errContains: ""},
+		{name: "Index Out of Bounds High End", args: makeArgs("hello", int64(3), int64(10)), want: "lo", wantErr: false, errContains: ""},
+		{name: "Index Out of Bounds Low", args: makeArgs("hello", int64(-2), int64(3)), want: "hel", wantErr: false, errContains: ""},
+		{name: "Wrong Arg Count", args: makeArgs("a", int64(1)), want: nil, wantErr: true, errContains: "expected exactly 3 arguments"},
+		// *** UPDATED Expected Error Strings ***
+		{name: "Non-string Input (Validation)", args: makeArgs(123, int64(0), int64(1)), want: nil, wantErr: true, errContains: "type validation failed for argument 'input' of tool 'Substring': expected string, got int"},
+		{name: "Non-int Start (Validation)", args: makeArgs("a", "b", int64(3)), want: nil, wantErr: true, errContains: "type validation failed for argument 'start' of tool 'Substring': value b (string) cannot be converted to int (int64)"},
+		{name: "Non-int End (Validation)", args: makeArgs("a", int64(1), "c"), want: nil, wantErr: true, errContains: "type validation failed for argument 'end' of tool 'Substring': value c (string) cannot be converted to int (int64)"},
 	}
 	toolSpec := ToolSpec{Name: "Substring", Args: []ArgSpec{
 		{Name: "input", Type: ArgTypeString, Required: true}, {Name: "start", Type: ArgTypeInt, Required: true}, {Name: "end", Type: ArgTypeInt, Required: true},
 	}, ReturnType: ArgTypeString}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			convertedArgs, valErr := ValidateAndConvertArgs(toolSpec, tt.args)
-			if (valErr != nil) != tt.valWantErr {
-				t.Errorf("ValidateAndConvertArgs() error = %v, valWantErr %v", valErr, tt.valWantErr)
-				return
-			}
-			if tt.valWantErr {
-				if tt.errContains != "" && (valErr == nil || !strings.Contains(valErr.Error(), tt.errContains)) {
-					t.Errorf("ValidateAndConvertArgs() expected error containing %q, got: %v", tt.errContains, valErr)
-					return
+			convertedArgs, finalErr := ValidateAndConvertArgs(toolSpec, tt.args)
+			var got interface{}
+			var toolErr error
+			if finalErr == nil {
+				got, toolErr = toolSubstring(dummyInterp, convertedArgs)
+				if toolErr != nil {
+					finalErr = toolErr
 				}
+			}
+
+			// Check error expectation
+			if (finalErr != nil) != tt.wantErr {
+				t.Errorf("Test %q: Error mismatch. Got error: %v, wantErr: %v", tt.name, finalErr, tt.wantErr)
 				return
 			}
-			if valErr != nil {
-				t.Fatalf("ValidateAndConvertArgs() unexpected validation error: %v", valErr)
+			// Check error content if error was expected
+			if tt.wantErr && tt.errContains != "" {
+				if finalErr == nil || !strings.Contains(finalErr.Error(), tt.errContains) {
+					t.Errorf("Test %q: Expected error containing %q, got: %v", tt.name, tt.errContains, finalErr)
+				}
 			}
-			got, toolErr := toolSubstring(dummyInterp, convertedArgs)
-			if (toolErr != nil) != tt.wantErr {
-				t.Errorf("toolSubstring() execution error = %v, wantErr %v", toolErr, tt.wantErr)
-				return
-			}
+			// Check result if no error was expected
 			if !tt.wantErr && !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("toolSubstring() result = %v, want %v", got, tt.want)
+				t.Errorf("Test %q: Result mismatch.\nGot:  %v (%T)\nWant: %v (%T)", tt.name, got, got, tt.want, tt.want)
 			}
 		})
 	}
 }
 
-// TestToolToUpperLower
+// TestToolToUpperLower (No changes needed, validation already correct)
 func TestToolToUpperLower(t *testing.T) {
 	dummyInterp := newDefaultTestInterpreter()
 	specUp := ToolSpec{Name: "ToUpper", Args: []ArgSpec{{Name: "input", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeString}
@@ -138,7 +142,7 @@ func TestToolToUpperLower(t *testing.T) {
 	}
 }
 
-// TestToolTrimSpace
+// TestToolTrimSpace (No changes needed, validation already correct)
 func TestToolTrimSpace(t *testing.T) {
 	dummyInterp := newDefaultTestInterpreter()
 	spec := ToolSpec{Name: "TrimSpace", Args: []ArgSpec{{Name: "input", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeString}
@@ -167,7 +171,7 @@ func TestToolTrimSpace(t *testing.T) {
 	}
 }
 
-// TestToolReplaceAll
+// TestToolReplaceAll (Updated error strings)
 func TestToolReplaceAll(t *testing.T) {
 	dummyInterp := newDefaultTestInterpreter()
 	tests := []struct {
@@ -183,37 +187,43 @@ func TestToolReplaceAll(t *testing.T) {
 		{name: "Empty Old", args: makeArgs("abc", "", "X"), want: "XaXbXcX", wantErr: false, errContains: ""},
 		{name: "Empty New", args: makeArgs("hello", "l", ""), want: "heo", wantErr: false, errContains: ""},
 		{name: "Wrong Arg Count", args: makeArgs("a", "b"), want: "", wantErr: true, errContains: "expected exactly 3 arguments"},
-		{name: "Non-string Input", args: makeArgs(1, "b", "c"), want: "", wantErr: true, errContains: "argument 'input' (index 0): expected string"},
-		{name: "Non-string Old", args: makeArgs("a", 1, "b"), want: "", wantErr: true, errContains: "argument 'old' (index 1): expected string"},
-		{name: "Non-string New", args: makeArgs("a", "b", 2), want: "", wantErr: true, errContains: "argument 'new' (index 2): expected string"},
+		// *** UPDATED Expected Error Strings ***
+		{name: "Non-string Input", args: makeArgs(1, "b", "c"), want: "", wantErr: true, errContains: "type validation failed for argument 'input' of tool 'ReplaceAll': expected string, got int"},
+		{name: "Non-string Old", args: makeArgs("a", 1, "b"), want: "", wantErr: true, errContains: "type validation failed for argument 'old' of tool 'ReplaceAll': expected string, got int"},
+		{name: "Non-string New", args: makeArgs("a", "b", 2), want: "", wantErr: true, errContains: "type validation failed for argument 'new' of tool 'ReplaceAll': expected string, got int"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			spec := ToolSpec{Name: "ReplaceAll", Args: []ArgSpec{{Name: "input", Type: ArgTypeString, Required: true}, {Name: "old", Type: ArgTypeString, Required: true}, {Name: "new", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeString}
-			convArgs, valErr := ValidateAndConvertArgs(spec, tt.args)
-			if (valErr != nil) != tt.wantErr {
-				t.Errorf("ReplaceAll validation error = %v, wantErr %v", valErr, tt.wantErr)
+			convArgs, finalErr := ValidateAndConvertArgs(spec, tt.args)
+			var got interface{}
+			var toolErr error
+			if finalErr == nil {
+				got, toolErr = toolReplaceAll(dummyInterp, convArgs)
+				if toolErr != nil {
+					finalErr = toolErr
+				}
+			}
+
+			// Check error expectation
+			if (finalErr != nil) != tt.wantErr {
+				t.Errorf("Test %q: Error mismatch. Got error: %v, wantErr: %v", tt.name, finalErr, tt.wantErr)
 				return
 			}
-			if tt.wantErr && tt.errContains != "" && (valErr == nil || !strings.Contains(valErr.Error(), tt.errContains)) {
-				t.Errorf("ReplaceAll validation expected error containing %q, got: %v", tt.errContains, valErr)
-				return
+			// Check error content if error was expected
+			if tt.wantErr && tt.errContains != "" {
+				if finalErr == nil || !strings.Contains(finalErr.Error(), tt.errContains) {
+					t.Errorf("Test %q: Expected error containing %q, got: %v", tt.name, tt.errContains, finalErr)
+				}
 			}
-			if tt.wantErr {
-				return
-			}
-			got, err := toolReplaceAll(dummyInterp, convArgs)
-			if err != nil {
-				t.Errorf("toolReplaceAll() unexpected tool error: %v", err)
-				return
-			}
-			gotStr, ok := got.(string)
-			if !ok {
-				t.Errorf("toolReplaceAll() did not return string, got %T", got)
-				return
-			}
-			if gotStr != tt.want {
-				t.Errorf("toolReplaceAll() = %q, want %q", gotStr, tt.want)
+			// Check result if no error was expected
+			if !tt.wantErr {
+				gotStr, ok := got.(string)
+				if !ok {
+					t.Errorf("Test %q: toolReplaceAll() did not return string, got %T", tt.name, got)
+				} else if gotStr != tt.want {
+					t.Errorf("Test %q: toolReplaceAll() = %q, want %q", tt.name, gotStr, tt.want)
+				}
 			}
 		})
 	}

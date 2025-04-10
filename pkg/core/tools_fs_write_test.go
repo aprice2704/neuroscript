@@ -34,8 +34,9 @@ func TestToolWriteFile(t *testing.T) {
 		{name: "Write OK Overwrite", pathArg: overwriteRel, contentArg: "New Content", wantResult: "OK", wantResultFail: false, wantFileContent: "New Content", valWantErr: false},
 		{name: "Write Path Outside Sandbox", pathArg: outsideRel, contentArg: "data", wantResult: "path error", wantResultFail: true, valWantErr: false}, // SecureFilePath check within tool
 		{name: "Validation Missing Content", pathArg: newFileRel, contentArg: "", valWantErr: true, valErrContains: "expected exactly 2 arguments", wantResultFail: true},
-		{name: "Validation Wrong Path Type", pathArg: "", contentArg: "data", valWantErr: true, valErrContains: "expected string, but received type int", wantResultFail: true},
-		{name: "Validation Wrong Content Type", pathArg: newFileRel, contentArg: "", valWantErr: true, valErrContains: "expected string, but received type bool", wantResultFail: true},
+		// *** UPDATED Expected Error Strings ***
+		{name: "Validation Wrong Path Type", pathArg: "", contentArg: "data", valWantErr: true, valErrContains: "type validation failed for argument 'filepath' of tool 'WriteFile': expected string, got int", wantResultFail: true},
+		{name: "Validation Wrong Content Type", pathArg: newFileRel, contentArg: "", valWantErr: true, valErrContains: "type validation failed for argument 'content' of tool 'WriteFile': expected string, got bool", wantResultFail: true},
 	}
 
 	// Setup for overwrite test
@@ -61,9 +62,9 @@ func TestToolWriteFile(t *testing.T) {
 			if tt.name == "Validation Missing Content" {
 				rawArgs = makeArgs(tt.pathArg)
 			} else if tt.name == "Validation Wrong Path Type" {
-				rawArgs = makeArgs(123, tt.contentArg)
+				rawArgs = makeArgs(123, tt.contentArg) // Pass int for path
 			} else if tt.name == "Validation Wrong Content Type" {
-				rawArgs = makeArgs(tt.pathArg, true)
+				rawArgs = makeArgs(tt.pathArg, true) // Pass bool for content
 			} else {
 				rawArgs = makeArgs(tt.pathArg, tt.contentArg)
 			} // Pass relative path
