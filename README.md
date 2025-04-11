@@ -4,7 +4,7 @@
 
 The NeuroScript project (NS) aims to allow Humans, AIs and computers to communicate in clear, reliable, repeatable ways by providing more structured means than natural language alone.
 
-<p align="center"><img src="sparking_AI.png" alt="NeuroScript Logo" width="320" height="200"></p>
+<p align="center"><img src="docs/sparking_AI_med.jpg" alt="humans uplift machines" width="320" height="200"></p>
 
 NeuroScript includes:
 
