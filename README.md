@@ -2,69 +2,47 @@
 
 ## Foundation
 
+**STATUS: EARLY DEVELOPMENT**
+
+Under massive and constant updates, do not use yet.
+
+
 The NeuroScript project (NS) aims to allow Humans, AIs and computers to communicate in clear, reliable, repeatable ways by providing more structured means than natural language alone.
 
 <p align="center"><img src="docs/sparking_AI_med.jpg" alt="humans uplift machines" width="320" height="200"></p>
 
 NeuroScript includes:
 
-1. A script language (neuroscript) designed for humans, AI and computers to pass each other procedural knowledge that they may execute together
+1. A script language (neuroscript) using which humans, AIs and computers may pass each other procedural knowledge and the means to build cooperative systems
 
 2. A set of data formats (NeuroData) for communicating passive data in a clear way with agreed rules for manipulation
 
-3. A client program (neurogo) that can take execute neuroscript, communicate with humans, AIs and computers, and run tools for itself, or its correspondents
+3. A client program (neurogo) that can take execute neuroscript, communicate with humans, AIs and computers, and run tools for itself, or its co-workers
 
 ## Principles
 
-1. Readability: all users must be able to read, and in principle change, NS formats of all kinds without having to resort to documentation for simple changes.
-2. Executability: similarly, eveyone should be able to follow the intent of all scripts so that anyone could, in principle, audit and execute NS files.
-3. Clarity: The preeminent focus of all NS files should be clarity.
+1. Readability: all users must be able to read, and in principle edit, NS formats of all kinds without having to resort to documentation for simple changes; thus NS formats should be as self-describing as practical  
 
-**Embedded Metadata**: Whereever practical, ns files should include within them their version, what files they depend on, and how to update them when those dependencies change.
+2. Executability: similarly, eveyone should be able to follow the intent of all scripts so that anyone could, in principle, audit and execute NS formats
 
-## neuroscript
+3. Clarity: The preeminent focus of all NS files should be clarity over concision or features
+
+4. Embedded Metadata: Whereever practical, ns files should include within them their version, what files they depend on, and how to update them when those dependencies change.
+
+## Overview of the parts of NS
+
+### neuroscript
 
 The neuroscript script language (ns) is a structured, human-readable language that provides a *procedural scaffolding* for execution. It is designed to store, discover, and reuse **"skills"** (procedures) with clear docstrings and robust metadata, enabling everyone to build up a library of **reusable, well-documented knowledge**. It is intended to be primarily READ by humans, WRITTEN and EXECUTED by AIs and EXECUTED by computers.
 
 NeuroScript interpreters, such as neurogo, are intended to execute NeuroScript scripts on conventional (von Neumann) computers, but are expected to make heavy use of AI abilities via API.
 
-neurodata formats are intended as easy ways for humans, AIs and computers to store, share and edit smallish amounts of data to deal with everyday issues. neurodata provides ways to **template** data items as well as specifying how should be rendered and manipulated.
+### nearodata (nd)
 
 
-## (remainder of read, needs fixing)
+## neuroscript in more detail
 
-Version: 0.2.0  
-DependsOn: docs/neuroscript overview.md  
-HowToUpdate: Review dependancies, update appropriately for README sections, preserve current content  
-
-Authors:  Andrew Price (www.eggstremestructures.com),  
-          Gemini 2.5 Pro (Experimental) (gemini.google.com)
-
-**STATUS: EARLY DEVELOPMENT**
-
-Under massive and constant updates, do not use yet.
-
-
-## Table of Contents
-
-- [NeuroScript: A Toolkit for AI Communication](#neuroscript-a-toolkit-for-ai-communication)
-  - [Foundation](#foundation)
-  - [Principles](#principles)
-  - [neuroscript](#neuroscript)
-  - [(remainder of read, needs fixing)](#remainder-of-read-needs-fixing)
-  - [Table of Contents](#table-of-contents)
-  - [Features](#features)
-  - [Why NeuroScript?](#why-neuroscript)
-  - [Core Concepts](#core-concepts)
-  - [Example Usage](#example-usage)
-  - [Installation \& Setup (neurogo CLI)](#installation--setup-neurogo-cli)
-  - [FAQ](#faq)
-  - [Contributing](#contributing)
-  - [License](#license)
-
----
-
-## Features
+### Features
 
 - **Structured Pseudocode for AI/Human/Computer**: Write procedures combining mechanical steps (assignments, loops, conditions) and external calls.
 - **Explicit Reasoning Flow**: Makes AI or complex logic explicit, reviewable, and repeatable.
@@ -76,9 +54,7 @@ Under massive and constant updates, do not use yet.
 - **CLI Interpreter (`neurogo`)**: A Go-based interpreter parses and executes `.ns.txt` files [main.go](neurogo/main.go).
 - **VS Code Extension**: Provides syntax highlighting for `.ns.txt` files [package.json](vscode-neuroscript/package.json).
 
----
-
-## Why NeuroScript?
+### Why NeuroScript?
 
 Most AI models rely on hidden chain-of-thought or ad hoc patterns. **NeuroScript** aims to make reasoning **explicit**, **reusable**, and **collaborative**:
 
@@ -89,7 +65,7 @@ Most AI models rely on hidden chain-of-thought or ad hoc patterns. **NeuroScript
 
 ---
 
-## Core Concepts
+### Core Concepts
 
 1.  **Procedures**: Defined with `DEFINE PROCEDURE Name(Arguments)`, includes a required `COMMENT:` block with metadata like `PURPOSE`, `INPUTS`, `OUTPUT`, `ALGORITHM`, `LANG_VERSION` ["script spec.md"](docs/script%20spec.md). Ends with `END`.
 2.  **Statements**:
@@ -108,7 +84,7 @@ Most AI models rely on hidden chain-of-thought or ad hoc patterns. **NeuroScript
 
 ---
 
-## Example Usage
+### Example Usage
 
 Here’s an example demonstrating current syntax features:
 
@@ -148,7 +124,7 @@ RETURN report_string
 END
 ```
 
-## Installation & Setup (neurogo CLI)
+## (NOT YET) Installation & Setup (neurogo CLI)
 
 1.  **Prerequisites**: Go programming language environment (e.g., Go 1.20+). Git command line tool.
 2.  **Build `neurogo`**: Navigate to the `neuroscript` directory in your terminal and run:
@@ -188,7 +164,7 @@ A: Store `.ns.txt` files in a Git repository. Use `TOOL.GitAdd` and `TOOL.GitCom
 
 ---
 
-## Contributing
+## (NOT YET) Contributing
 
 We will welcome contributions! But **NOT YET** :P
 
@@ -209,3 +185,12 @@ Please open an issue or submit a pull request.
 This project is licensed under the **MIT License**
 
 ---
+
+## Authors
+
+Authors:  Andrew Price (www.eggstremestructures.com),  
+          Gemini 2.5 Pro (Experimental) (gemini.google.com)
+
+:: Version: 0.1.0
+:: DependsOn: formal_script_spec.md
+:: Authors: Andrew Price, Gemini 2.5
