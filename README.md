@@ -1,6 +1,37 @@
-# NeuroScript Project README
+# NeuroScript: A Toolkit for AI Communication
 
-<p align="center"><img src="docs/NeuroScript_logo_transparent.png" alt="NeuroScript Logo" width="200" height="200"></p>
+## Foundation
+
+The NeuroScript project (NS) aims to allow Humans, AIs and computers to communicate in clear, reliable, repeatable ways by providing more structured means than natural language alone.
+
+<p align="center"><img src="sparking_AI.png" alt="NeuroScript Logo" width="320" height="200"></p>
+
+NeuroScript includes:
+
+1. A script language (neuroscript) designed for humans, AI and computers to pass each other procedural knowledge that they may execute together
+
+2. A set of data formats (NeuroData) for communicating passive data in a clear way with agreed rules for manipulation
+
+3. A client program (neurogo) that can take execute neuroscript, communicate with humans, AIs and computers, and run tools for itself, or its correspondents
+
+## Principles
+
+1. Readability: all users must be able to read, and in principle change, NS formats of all kinds without having to resort to documentation for simple changes.
+2. Executability: similarly, eveyone should be able to follow the intent of all scripts so that anyone could, in principle, audit and execute NS files.
+3. Clarity: The preeminent focus of all NS files should be clarity.
+
+**Embedded Metadata**: Whereever practical, ns files should include within them their version, what files they depend on, and how to update them when those dependencies change.
+
+## neuroscript
+
+The neuroscript script language (ns) is a structured, human-readable language that provides a *procedural scaffolding* for execution. It is designed to store, discover, and reuse **"skills"** (procedures) with clear docstrings and robust metadata, enabling everyone to build up a library of **reusable, well-documented knowledge**. It is intended to be primarily READ by humans, WRITTEN and EXECUTED by AIs and EXECUTED by computers.
+
+NeuroScript interpreters, such as neurogo, are intended to execute NeuroScript scripts on conventional (von Neumann) computers, but are expected to make heavy use of AI abilities via API.
+
+neurodata formats are intended as easy ways for humans, AIs and computers to store, share and edit smallish amounts of data to deal with everyday issues. neurodata provides ways to **template** data items as well as specifying how should be rendered and manipulated.
+
+
+## (remainder of read, needs fixing)
 
 Version: 0.2.0  
 DependsOn: docs/neuroscript overview.md  
@@ -13,19 +44,14 @@ Authors:  Andrew Price (www.eggstremestructures.com),
 
 Under massive and constant updates, do not use yet.
 
-**NeuroScript: A Toolkit for AI Communication**
-
-The NeuroScript project (NS) aims to allow Humans, AIs, and computers to communicate in clear, reliable, repeatable ways by providing more structured means than just natural language ["neuroscript overview.md"](docs/neuroscript%20overview.md).
-
-The **neuroscript script language (`ns`)** is a structured, human-readable language providing *procedural scaffolding* for execution. It's designed for storing, discovering, and reusing **"skills"** (procedures) with clear docstrings and metadata, enabling a shared library of **reusable, documented knowledge**. It's intended to be primarily READ by humans, WRITTEN/EXECUTED by AIs, and EXECUTED by computers (like the `neurogo` interpreter) which leverage AI APIs ["neuroscript overview.md"](docs/neuroscript%20overview.md).
-
-Complementary **`neurodata`** formats provide easy ways to store, share, edit, and template data for everyday issues ["neuroscript overview.md"](docs/neuroscript%20overview.md).
-
----
 
 ## Table of Contents
 
-- [NeuroScript Project README](#neuroscript-project-readme)
+- [NeuroScript: A Toolkit for AI Communication](#neuroscript-a-toolkit-for-ai-communication)
+  - [Foundation](#foundation)
+  - [Principles](#principles)
+  - [neuroscript](#neuroscript)
+  - [(remainder of read, needs fixing)](#remainder-of-read-needs-fixing)
   - [Table of Contents](#table-of-contents)
   - [Features](#features)
   - [Why NeuroScript?](#why-neuroscript)
