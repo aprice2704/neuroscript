@@ -8,12 +8,12 @@ This roadmap outlines the high-level goals for NeuroScript development, driving 
 
 ## Overall Goal
 
-Achieve **Bootstrapping**: Enable NeuroScript, executed by either the `gonsi` interpreter or an LLM, to manage its own development lifecycle. This includes using NeuroScript procedures (`.ns.txt` files) combined with `CALL LLM` and `CALL TOOL.*` to:
+Achieve **Bootstrapping**: Enable NeuroScript, executed by either the `neurogo` interpreter or an LLM, to manage its own development lifecycle. This includes using NeuroScript procedures (`.ns.txt` files) combined with `CALL LLM` and `CALL TOOL.*` to:
 * Find relevant skills (via Vector DB search).
 * Generate new NeuroScript code for skills or refactoring.
 * Check syntax and format NeuroScript code.
 * Manage skills within a Git repository (add, commit, branch).
-* Potentially build and test associated Go code (`gonsi` itself or tools).
+* Potentially build and test associated Go code (`neurogo` itself or tools).
 
 ## Development Phases
 
@@ -35,7 +35,7 @@ Achieve **Bootstrapping**: Enable NeuroScript, executed by either the `gonsi` in
     * Create `TOOL.NeuroScriptCheckSyntax` for validating script content programmatically.
     * Develop `nsfmt` (either as a tool or a standard NeuroScript procedure) for code formatting.
     * Finalize versioning conventions (`FILE_VERSION`, `LANG_VERSION`) and potentially automate updates via tooling.
-    * Embed core utility NeuroScripts (like `CommitChanges`) into the `gonsi` binary.
+    * Embed core utility NeuroScripts (like `CommitChanges`) into the `neurogo` binary.
 
 ### Phase 3: Ecosystem Expansion & General Tooling
 

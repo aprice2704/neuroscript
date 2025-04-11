@@ -28,7 +28,7 @@ COMMENT:
         - Assumes LLM output can be reliably parsed/used.
         - Error handling is minimal.
         - List iteration is conceptual for the interpreter.
-        - Needs new TOOLs (ListDirectory, LineCount) for full gonsi execution.
+        - Needs new TOOLs (ListDirectory, LineCount) for full neurogo execution.
     EXAMPLES:
         CALL UpdateProjectDocs("Refactored interpreter.go into smaller files.") => "Documentation updated, refactoring checked, changes committed."
 ENDCOMMENT

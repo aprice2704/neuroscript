@@ -11,7 +11,7 @@ import (
 	// Assuming core imports remain the same relative path for now
 	"github.com/aprice2704/neuroscript/pkg/core"
 	"github.com/aprice2704/neuroscript/pkg/neurodata/blocks"
-	// checklist "github.com/aprice2704/neuroscript/pkg/neurodata/checklist"
+	checklist "github.com/aprice2704/neuroscript/pkg/neurodata/checklist" // Correct import
 )
 
 // runScriptMode handles the execution of NeuroScript procedures.
@@ -23,14 +23,28 @@ func (a *App) runScriptMode(ctx context.Context) error {
 
 	interpreter := core.NewInterpreter(a.DebugLog)
 
-	// Register tools
+	// --- Tool Registration ---
 	coreRegistry := interpreter.ToolRegistry()
 	if coreRegistry == nil {
 		return fmt.Errorf("internal error: Interpreter's ToolRegistry is nil after creation")
 	}
+	// 1. Register Core Tools
 	core.RegisterCoreTools(coreRegistry)
-	blocks.RegisterBlockTools(coreRegistry)
-	// checklist.RegisterChecklistTools(coreRegistry) // Keep commented
+	// 2. Register Tools from other packages HERE
+	if err := blocks.RegisterBlockTools(coreRegistry); err != nil {
+		// Log or return error if registration itself fails critically
+		a.ErrorLog.Printf("CRITICAL: Failed to register blocks tools: %v", err)
+		// return fmt.Errorf("failed to initialize block tools: %w", err) // Decide if fatal
+	} else {
+		a.DebugLog.Println("Registered blocks tools.")
+	}
+	if err := checklist.RegisterChecklistTools(coreRegistry); err != nil {
+		a.ErrorLog.Printf("CRITICAL: Failed to register checklist tools: %v", err)
+		// return fmt.Errorf("failed to initialize checklist tools: %w", err) // Decide if fatal
+	} else {
+		a.DebugLog.Println("Registered checklist tools.")
+	}
+	// --- End Tool Registration ---
 
 	// Load Libraries
 	if err := a.loadLibraries(interpreter); err != nil {

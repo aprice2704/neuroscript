@@ -16,9 +16,9 @@ DependsOn: neuroscript overview.md
     4.  update source code based on prompt
     5.  fix source code based on tests
 
--- Gonsi provides full ns capabilities:
+-- neurogo provides full ns capabilities:
     1. vector db of scripts & formats with retrieval
-    2. full gonsi/LLM comms with basic security
+    2. full neurogo/LLM comms with basic security
     3. conversational mode (with human)
 
 ## A. Planned Features (Reordered for Bootstrapping/Dependencies)
@@ -49,7 +49,7 @@ DependsOn: neuroscript overview.md
 [ ] Tools: Enhance Git Workflow (Add Branch support, GitPull?, Auto-index after commit)
 [ ] Tools: TOOL.NeuroScriptCheckSyntax(content) - Formal syntax check tool using the parser.
 [ ] Feature: nsfmt - A dedicated formatting tool/procedure.
-[ ] Feature: Embed standard utility NeuroScripts (e.g., CommitChanges) into gonsi binary (using Go embed)
+[ ] Feature: Embed standard utility NeuroScripts (e.g., CommitChanges) into neurogo binary (using Go embed)
 [ ] LLM Gateway: Make LLM endpoint/model configurable [cite: uploaded:neuroscript/pkg/core/llm.go]
 
 **Tooling (General Purpose):**
@@ -91,8 +91,8 @@ DependsOn: neuroscript overview.md
 [ ] LLM selection
 [ ] More self building and maint
 [ ] keep prior versions meta tag
-[ ] gonsi as local agent for LLM
-[ ] gonsi plugin for vscode allows direct file edits
+[ ] neurogo as local agent for LLM
+[ ] neurogo plugin for vscode allows direct file edits
 
 ## C. Found work and things to go back to
 
@@ -102,7 +102,7 @@ DependsOn: neuroscript overview.md
 
 ## D. Completed Features
 
-[x] gonsi able to execute basic ns (SET, CALL, RETURN, basic IF/WHILE/FOR headers and block execution) [cite: uploaded:neuroscript/pkg/core/interpreter_control_flow.go, uploaded:neuroscript/pkg/core/interpreter_simple_steps.go]
+[x] neurogo able to execute basic ns (SET, CALL, RETURN, basic IF/WHILE/FOR headers and block execution) [cite: uploaded:neuroscript/pkg/core/interpreter_control_flow.go, uploaded:neuroscript/pkg/core/interpreter_simple_steps.go]
 [x] Basic Arithmetic Evaluation (+, -, *, /, %, **, unary -) [cite: uploaded:neuroscript/pkg/core/evaluation_logic.go, uploaded:neuroscript/pkg/core/evaluation_operators.go]
 [x] Basic Condition Evaluation (==, !=, >, <, >=, <=, NOT, AND, OR, truthiness) [cite: uploaded:neuroscript/pkg/core/evaluation_comparison.go, uploaded:neuroscript/pkg/core/evaluation_logic.go]
 [x] List ([]) and Map ({}) Literal Parsing & Evaluation [cite: uploaded:neuroscript/pkg/core/ast_builder_collections.go, uploaded:neuroscript/pkg/core/evaluation_main.go]
@@ -111,13 +111,13 @@ DependsOn: neuroscript overview.md
 [x] FOR EACH Map Key Iteration [cite: uploaded:neuroscript/pkg/core/interpreter_control_flow.go]
 [x] FOR EACH String Character/Comma Iteration [cite: uploaded:neuroscript/pkg/core/interpreter_control_flow.go]
 [x] ELSE Block Execution [cite: uploaded:neuroscript/pkg/core/ast_builder_blocks.go, uploaded:neuroscript/pkg/core/interpreter_control_flow.go]
-[x] Basic set of golang tools in gonsi (FS, Git, Mock Vector, Strings, Shell, Go fmt/build/test/check/mod) [cite: uploaded:neuroscript/pkg/core/tools_register.go, uploaded:neuroscript/pkg/core/tools_string.go, uploaded:neuroscript/pkg/core/tools_fs.go, uploaded:neuroscript/pkg/core/tools_git.go, uploaded:neuroscript/pkg/core/tools_shell.go]
+[x] Basic set of golang tools in neurogo (FS, Git, Mock Vector, Strings, Shell, Go fmt/build/test/check/mod) [cite: uploaded:neuroscript/pkg/core/tools_register.go, uploaded:neuroscript/pkg/core/tools_string.go, uploaded:neuroscript/pkg/core/tools_fs.go, uploaded:neuroscript/pkg/core/tools_git.go, uploaded:neuroscript/pkg/core/tools_shell.go]
 [x] In-memory vector DB implemented (mocked, VectorUpdate, SearchSkills) [cite: uploaded:neuroscript/pkg/core/tools_vector.go, uploaded:neuroscript/pkg/core/embeddings.go]
 [x] LLM Integration via CALL LLM (Gemini) [cite: uploaded:neuroscript/pkg/core/llm.go, uploaded:neuroscript/pkg/core/interpreter_simple_steps.go]
-[x] Basic CLI Runner (gonsi) with debug flags [cite: uploaded:neuroscript/gonsi/main.go]
-[x] gonsi skips loading ns files with errors gracefully [cite: uploaded:neuroscript/gonsi/main.go, uploaded:neuroscript/pkg/core/parser_api.go]
-[x] ns stored in git (manually, but tools support adding/committing) [cite: uploaded:neuroscript/pkg/core/tools_git.go, uploaded:neuroscript/gonsi/skills/commit_changes.ns.txt]
-[x] Bootstrap Skills: Create initial .ns.txt skills (HandleSkillRequest, CommitChanges, UpdateNsSyntax, etc.) [cite: uploaded:neuroscript/gonsi/skills/orchestrator.ns.txt, uploaded:neuroscript/gonsi/skills/commit_changes.ns.txt, uploaded:neuroscript/gonsi/skills/UpdateNsSyntax.ns.txt]
+[x] Basic CLI Runner (neurogo) with debug flags [cite: uploaded:neuroscript/neurogo/main.go]
+[x] neurogo skips loading ns files with errors gracefully [cite: uploaded:neuroscript/neurogo/main.go, uploaded:neuroscript/pkg/core/parser_api.go]
+[x] ns stored in git (manually, but tools support adding/committing) [cite: uploaded:neuroscript/pkg/core/tools_git.go, uploaded:neuroscript/neurogo/skills/commit_changes.ns.txt]
+[x] Bootstrap Skills: Create initial .ns.txt skills (HandleSkillRequest, CommitChanges, UpdateNsSyntax, etc.) [cite: uploaded:neuroscript/neurogo/skills/orchestrator.ns.txt, uploaded:neuroscript/neurogo/skills/commit_changes.ns.txt, uploaded:neuroscript/neurogo/skills/UpdateNsSyntax.ns.txt]
 [x] Basic Core Syntax Parsing (DEFINE PROCEDURE, COMMENT:, SET, CALL, RETURN, END) [cite: uploaded:neuroscript/pkg/core/generated/neuroscript_parser.go]
 [x] Structured Docstring Parsing (COMMENT: block content parsed into struct, includes LANG_VERSION) [cite: uploaded:neuroscript/pkg/core/ast_builder_procedures.go, uploaded:neuroscript/pkg/core/utils.go]
 [x] Block Header Parsing (IF...THEN, WHILE...DO, FOR EACH...DO) [cite: uploaded:neuroscript/pkg/core/generated/neuroscript_parser.go]
@@ -146,8 +146,8 @@ DependsOn: neuroscript overview.md
 [x] String Tools Implemented (StringLength, Substring, ToUpper, ToLower, TrimSpace, SplitString, SplitWords, JoinStrings, ReplaceAll, Contains, HasPrefix, HasSuffix) [cite: uploaded:neuroscript/pkg/core/tools_string.go]
 [x] Shell/Go Tools Implemented (ExecuteCommand, GoBuild, GoCheck, GoTest, GoFmt, GoModTidy) [cite: uploaded:neuroscript/pkg/core/tools_shell.go]
 [x] Mock Vector DB Tools (VectorUpdate, SearchSkills) [cite: uploaded:neuroscript/pkg/core/tools_vector.go, uploaded:neuroscript/pkg/core/embeddings.go]
-[x] Basic CLI Runner (gonsi) [cite: uploaded:neuroscript/gonsi/main.go]
-[x] Debug Flags and Conditional Logging in gonsi [cite: uploaded:neuroscript/gonsi/main.go]
-[x] Graceful skipping of files with parse errors in gonsi [cite: uploaded:neuroscript/gonsi/main.go, uploaded:neuroscript/pkg/core/parser_api.go]
-[x] Bootstrap Skills: Create initial .ns.txt skills (HandleSkillRequest, CommitChanges, UpdateNsSyntax, etc.) [cite: uploaded:neuroscript/gonsi/skills/orchestrator.ns.txt, uploaded:neuroscript/gonsi/skills/commit_changes.ns.txt, uploaded:neuroscript/gonsi/skills/UpdateNsSyntax.ns.txt]
+[x] Basic CLI Runner (neurogo) [cite: uploaded:neuroscript/neurogo/main.go]
+[x] Debug Flags and Conditional Logging in neurogo [cite: uploaded:neuroscript/neurogo/main.go]
+[x] Graceful skipping of files with parse errors in neurogo [cite: uploaded:neuroscript/neurogo/main.go, uploaded:neuroscript/pkg/core/parser_api.go]
+[x] Bootstrap Skills: Create initial .ns.txt skills (HandleSkillRequest, CommitChanges, UpdateNsSyntax, etc.) [cite: uploaded:neuroscript/neurogo/skills/orchestrator.ns.txt, uploaded:neuroscript/neurogo/skills/commit_changes.ns.txt, uploaded:neuroscript/neurogo/skills/UpdateNsSyntax.ns.txt]
 [x] Fenced Code Block Extraction (including metadata) [cite: uploaded:neuroscript/pkg/neurodata/blocks/blocks_extractor.go, uploaded:neuroscript/pkg/neurodata/blocks/blocks_tool.go, uploaded:neuroscript/pkg/neurodata/blocks/blocks_complex_test.go]

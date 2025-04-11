@@ -11,6 +11,7 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/core"
 	"github.com/aprice2704/neuroscript/pkg/neurodata/blocks"
+	checklist "github.com/aprice2704/neuroscript/pkg/neurodata/checklist" // Correct import
 )
 
 // runAgentMode handles the agent initialization and interaction loop.
@@ -69,12 +70,32 @@ func (a *App) runAgentMode(ctx context.Context) error {
 
 	llmClient := core.NewLLMClient(a.Config.APIKey, a.InfoLog)
 	convoManager := core.NewConversationManager(a.InfoLog)
-	agentInterpreter := core.NewInterpreter(a.DebugLog)
-	core.RegisterCoreTools(agentInterpreter.ToolRegistry())
-	blocks.RegisterBlockTools(agentInterpreter.ToolRegistry())
+	agentInterpreter := core.NewInterpreter(a.DebugLog) // Use DebugLog for interpreter in agent mode? Or InfoLog?
 
-	// Pass allowlist AND denylist to SecurityLayer
-	securityLayer := core.NewSecurityLayer(allowlist, denylistSet, cleanSandboxDir, agentInterpreter.ToolRegistry(), a.InfoLog)
+	// --- Tool Registration ---
+	coreRegistry := agentInterpreter.ToolRegistry()
+	if coreRegistry == nil {
+		return fmt.Errorf("internal error: Interpreter's ToolRegistry is nil after creation")
+	}
+	// 1. Register Core Tools
+	core.RegisterCoreTools(coreRegistry)
+	// 2. Register Tools from other packages HERE
+	if err := blocks.RegisterBlockTools(coreRegistry); err != nil {
+		a.ErrorLog.Printf("CRITICAL: Failed to register blocks tools: %v", err)
+		// return fmt.Errorf("failed to initialize block tools: %w", err)
+	} else {
+		a.DebugLog.Println("Registered blocks tools.")
+	}
+	if err := checklist.RegisterChecklistTools(coreRegistry); err != nil {
+		a.ErrorLog.Printf("CRITICAL: Failed to register checklist tools: %v", err)
+		// return fmt.Errorf("failed to initialize checklist tools: %w", err)
+	} else {
+		a.DebugLog.Println("Registered checklist tools.")
+	}
+	// --- End Tool Registration ---
+
+	// Initialize Security Layer (needs the registry *after* all tools are added)
+	securityLayer := core.NewSecurityLayer(allowlist, denylistSet, cleanSandboxDir, coreRegistry, a.InfoLog) // Pass the populated registry
 
 	// --- Agent Interaction Loop ---
 	a.InfoLog.Println("Enter your prompt for the agent (or type 'quit'):")
@@ -91,7 +112,7 @@ func (a *App) runAgentMode(ctx context.Context) error {
 		convoManager.AddUserMessage(userInput)
 
 		// Loop for potential function call cycles
-		for i := 0; i < 5; i++ {
+		for i := 0; i < 5; i++ { // Limit function call cycles
 			a.InfoLog.Printf("--- Agent Turn %d ---", i+1)
 
 			// Generate tool declarations (passing the original allowlist, not the denied set)
@@ -217,27 +238,34 @@ func loadToolListFromFile(filePath string) ([]string, error) {
 	return tools, nil
 }
 
-// executeAgentTool (unchanged)
+// executeAgentTool executes a validated tool call from the agent.
+// Takes validated arguments (map) and converts them to ordered slice for ToolFunc.
 func executeAgentTool(toolName string, args map[string]interface{}, interp *core.Interpreter) (interface{}, error) {
 	interp.Logger().Printf("[AGENT TOOL] Attempting execution for tool '%s'", toolName)
 	toolImpl, found := interp.ToolRegistry().GetTool(toolName)
 	if !found {
 		return nil, fmt.Errorf("internal error: agent tool '%s' not found in registry", toolName)
 	}
+
+	// Convert validated map back to ordered slice based on ToolSpec
 	orderedArgs := make([]interface{}, len(toolImpl.Spec.Args))
-	argIndexMap := make(map[string]int)
+	argIndexMap := make(map[string]int) // Helper to find index for logging potentially missing args
 	for i, argSpec := range toolImpl.Spec.Args {
 		argIndexMap[argSpec.Name] = i
 		val, exists := args[argSpec.Name]
 		if !exists {
+			// Should only happen for non-required args if validation passed
 			if argSpec.Required {
+				// This indicates an internal inconsistency
 				return nil, fmt.Errorf("internal error: required argument '%s' missing for tool '%s' after validation", argSpec.Name, toolName)
 			}
-			orderedArgs[i] = nil
+			orderedArgs[i] = nil // Explicitly nil for optional missing arg
 		} else {
 			orderedArgs[i] = val
 		}
 	}
+
+	// Log if extra args were present in the map (though they weren't used)
 	if len(args) > len(toolImpl.Spec.Args) {
 		extraArgs := []string{}
 		for name := range args {
@@ -246,32 +274,42 @@ func executeAgentTool(toolName string, args map[string]interface{}, interp *core
 			}
 		}
 		if len(extraArgs) > 0 {
-			interp.Logger().Printf("[WARN AGENT TOOL] Tool '%s' called with extra arguments not in spec: %v", toolName, extraArgs)
+			interp.Logger().Printf("[WARN AGENT TOOL] Tool '%s' called with extra arguments not in spec (ignored): %v", toolName, extraArgs)
 		}
 	}
+
 	interp.Logger().Printf("[AGENT TOOL] Calling %s with ordered args: %v", toolName, orderedArgs)
+	// Call the actual tool implementation function
 	toolOutput, execErr := toolImpl.Func(interp, orderedArgs)
+	// Return the direct output and error from the tool function
 	return toolOutput, execErr
 }
 
-// formatToolResult (unchanged)
+// formatToolResult formats the tool output/error into the map expected by Gemini.
 func formatToolResult(toolOutput interface{}, execErr error) map[string]interface{} {
 	resultMap := make(map[string]interface{})
 	if execErr != nil {
-		resultMap["success"] = false
+		resultMap["success"] = false // Indicate failure
 		resultMap["error"] = execErr.Error()
+		// Include partial output if the tool returned something despite erroring
 		if toolOutput != nil {
+			// Convert toolOutput to string safely
 			outputStr := fmt.Sprintf("%v", toolOutput)
 			resultMap["partial_output"] = outputStr
 		}
 	} else {
-		resultMap["success"] = true
-		resultMap["result"] = toolOutput
+		resultMap["success"] = true // Indicate success
+		// Embed the actual tool output under a 'result' key, or handle specific types
+		// Gemini expects a JSON object for the response part.
+		resultMap["result"] = toolOutput // Simple embedding for now
 	}
 	return resultMap
 }
 
-// formatErrorResponse (unchanged)
+// formatErrorResponse creates the error map structure for Gemini FunctionResponse.
 func formatErrorResponse(err error) map[string]interface{} {
-	return map[string]interface{}{"success": false, "error": err.Error()}
+	return map[string]interface{}{
+		"success": false, // Indicate failure due to validation/execution error
+		"error":   err.Error(),
+	}
 }

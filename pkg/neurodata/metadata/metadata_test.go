@@ -16,8 +16,8 @@ func TestExtractMetadata(t *testing.T) {
 			name: "Basic Metadata",
 			content: `:: version: 1.0
 :: id: test-123
-:: author:  Gemini  
-- [ ] First real item`,
+:: author:  Gemini
+- [ ] First real item`, // Content stops metadata scan
 			expected: map[string]string{
 				"version": "1.0",
 				"id":      "test-123",
@@ -45,12 +45,39 @@ Actual content starts here.
 			wantErr: false,
 		},
 		{
-			name: "Metadata Stops at First Content",
+			name: "Metadata Stops at First Content (DEFINE PROCEDURE)",
 			content: `:: key1: value1
-This is content, not metadata.
-:: key2: value2`,
+DEFINE PROCEDURE Test()
+:: key2: value2`, // This won't be extracted
 			expected: map[string]string{
 				"key1": "value1",
+			},
+			wantErr: false,
+		},
+		{
+			name: "Metadata Stops at First Content (FILE_VERSION)",
+			content: `:: key1: value1
+FILE_VERSION "1.0"
+:: key2: value2`, // This won't be extracted
+			expected: map[string]string{
+				"key1": "value1",
+			},
+			wantErr: false,
+		},
+		{
+			name: "Metadata Before FILE_VERSION and DEFINE PROCEDURE",
+			content: `:: meta1: valueA
+:: meta2: valueB
+
+FILE_VERSION "1.1.0"
+
+DEFINE PROCEDURE ActualCode()
+COMMENT: ... ENDCOMMENT
+END
+`,
+			expected: map[string]string{
+				"meta1": "valueA",
+				"meta2": "valueB",
 			},
 			wantErr: false,
 		},
@@ -94,7 +121,7 @@ END`,
 		},
 		{
 			name: "Invalid Metadata Format (No Space after ::)",
-			content: `::version: 1.0 
+			content: `::version: 1.0
 :: id: test
 - Content`,
 			expected: map[string]string{
@@ -138,14 +165,15 @@ END`,
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			got, err := Extract(tc.content)
+			got, err := Extract(tc.content) // Use the Extract function directly
 
 			if (err != nil) != tc.wantErr {
 				t.Errorf("Extract() error = %v, wantErr %v", err, tc.wantErr)
 				return
 			}
+			// Use DeepEqual for map comparison
 			if !reflect.DeepEqual(got, tc.expected) {
-				t.Errorf("Extract() got = %v, want %v", got, tc.expected)
+				t.Errorf("Extract() got = %#v, want %#v", got, tc.expected)
 			}
 		})
 	}

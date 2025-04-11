@@ -3,14 +3,16 @@ package blocks
 
 import (
 	"fmt"
+	"log" // Import log
 
 	"github.com/aprice2704/neuroscript/pkg/core" // Import core
 )
 
 // RegisterBlockTools adds the updated block extraction tool.
-func RegisterBlockTools(registry *core.ToolRegistry) {
+// --- UPDATED: Now returns an error ---
+func RegisterBlockTools(registry *core.ToolRegistry) error {
 	// --- TOOL.BlocksExtractAll registration (Updated) ---
-	registry.RegisterTool(core.ToolImplementation{
+	err := registry.RegisterTool(core.ToolImplementation{ // Capture potential error
 		Spec: core.ToolSpec{
 			Name: "BlocksExtractAll",
 			Description: "Extracts all fenced code blocks (handling nesting) from input content using ANTLR Listener. " +
@@ -24,6 +26,17 @@ func RegisterBlockTools(registry *core.ToolRegistry) {
 		},
 		Func: toolBlocksExtractAll,
 	})
+
+	// --- Handle and return error if registration failed ---
+	if err != nil {
+		log.Printf("[ERROR] Failed to register tool 'BlocksExtractAll': %v", err) // Log the error
+		return fmt.Errorf("failed to register blocks tool 'BlocksExtractAll': %w", err)
+	}
+
+	// Add registration for other block-related tools here if needed
+
+	return nil // Return nil on successful registration
+	// --- END ERROR HANDLING ---
 
 	// --- TOOL.BlockGetMetadata removed ---
 }
