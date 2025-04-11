@@ -1,6 +1,6 @@
-<p align="center"><img src="docs/NeuroScript_logo_transparent.png" alt="NeuroScript Logo" width="200" height="200"></p>
-
 # NeuroScript Project README
+
+<p align="center"><img src="docs/NeuroScript_logo_transparent.png" alt="NeuroScript Logo" width="200" height="200"></p>
 
 Version: 0.2.0  
 DependsOn: docs/neuroscript overview.md  
