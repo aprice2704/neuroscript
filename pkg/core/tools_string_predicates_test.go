@@ -11,7 +11,7 @@ import (
 
 // TestToolContainsPrefixSuffix
 func TestToolContainsPrefixSuffix(t *testing.T) {
-	dummyInterp := newDefaultTestInterpreter()
+	dummyInterp, _ := newDefaultTestInterpreter(t)
 	// Contains
 	specC := ToolSpec{Name: "Contains", Args: []ArgSpec{{Name: "input", Type: ArgTypeString, Required: true}, {Name: "substring", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeBool}
 	argsC1 := makeArgs("hello world", "world")

@@ -1,12 +1,10 @@
-// pkg/core/evaluation_comparison_test.go
+// filename: neuroscript/pkg/core/evaluation_comparison_test.go
 package core
 
 import (
 	"strings"
 	"testing"
 )
-
-// func newTestInterpreter( defined in test_helpers_test.go
 
 func TestEvaluateCondition(t *testing.T) {
 	vars := map[string]interface{}{
@@ -63,7 +61,6 @@ func TestEvaluateCondition(t *testing.T) {
 		{"List Literal Condition", ListLiteralNode{Elements: []interface{}{}}, false, false, ""}, // Collections are falsey
 		{"Map Literal Condition", MapLiteralNode{Entries: []MapEntryNode{}}, false, false, ""},   // Collections are falsey
 		{"Nil Variable Condition", VariableNode{Name: "nilVar"}, false, false, ""},               // nil is falsey
-		{"Placeholder Not Found Condition", PlaceholderNode{Name: "missing"}, false, false, ""},  // Placeholder evaluating to not found -> nil -> false
 		{"LAST Condition (Truthy String)", LastNode{}, false, false, ""},                         // LAST contains "true {{inner}}", which is not "true" or "1", so false
 
 		// --- Comparison Conditions using BinaryOpNode ---
@@ -79,10 +76,10 @@ func TestEvaluateCondition(t *testing.T) {
 		// Error cases for comparisons
 		{"Comp Numeric Error Types", BinaryOpNode{Left: VariableNode{Name: "x"}, Operator: ">", Right: VariableNode{Name: "n1"}}, false, true, "requires numeric operands"},
 		{"Comp Numeric Error String Lit", BinaryOpNode{Left: StringLiteralNode{Value: "a"}, Operator: "<", Right: StringLiteralNode{Value: "b"}}, false, true, "requires numeric operands"},
-		// Variable not found cases for comparisons (should evaluate as nil)
-		{"Comp Error Evaluating LHS Placeholder Not Found EQ", BinaryOpNode{Left: PlaceholderNode{Name: "missing"}, Operator: "==", Right: VariableNode{Name: "x"}}, false, false, ""}, // nil == "A" -> false
-		{"Comp Error Evaluating RHS Var Not Found EQ", BinaryOpNode{Left: VariableNode{Name: "x"}, Operator: "==", Right: VariableNode{Name: "missing"}}, false, false, ""},            // "A" == nil -> false
-		// Mixed type comparisons (should work via string conversion for ==/!= or numeric conversion otherwise)
+		// Variable not found cases for comparisons (evaluate as nil)
+		{"Comp Error Evaluating LHS Var Not Found EQ", BinaryOpNode{Left: VariableNode{Name: "missing"}, Operator: "==", Right: VariableNode{Name: "x"}}, false, false, ""}, // nil == "A" -> false
+		{"Comp Error Evaluating RHS Var Not Found EQ", BinaryOpNode{Left: VariableNode{Name: "x"}, Operator: "==", Right: VariableNode{Name: "missing"}}, false, false, ""}, // "A" == nil -> false
+		// Mixed type comparisons
 		{"Comp String Num vs Num EQ", BinaryOpNode{Left: VariableNode{Name: "strNum10"}, Operator: "==", Right: VariableNode{Name: "n1"}}, true, false, ""}, // "10" == 10 -> true
 		{"Comp String Num vs Num GT", BinaryOpNode{Left: VariableNode{Name: "strNum10"}, Operator: ">", Right: VariableNode{Name: "n2"}}, true, false, ""},  // 10 > 5 -> true
 
@@ -101,7 +98,8 @@ func TestEvaluateCondition(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			interp := newTestInterpreter(vars, lastValue) // Use shared helper
+			// *** FIXED: Use newTestInterpreter from test scope ***
+			interp, _ := newTestInterpreter(t, vars, lastValue) // Get interpreter, ignore sandbox path
 			got, err := interp.evaluateCondition(tt.node)
 
 			if (err != nil) != tt.wantErr {

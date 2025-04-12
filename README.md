@@ -13,9 +13,9 @@ The NeuroScript project (NS) aims to allow Humans, AIs and computers to communic
 
 NeuroScript includes:
 
-1. A script language (neuroscript) using which humans, AIs and computers may pass each other procedural knowledge and the means to build cooperative systems
+1. A script language (neuroscript) using which humans, AIs and computers may pass each other procedural knowledge, and the means to build cooperative systems
 
-2. A set of data formats (NeuroData) for communicating passive data in a clear way with agreed rules for manipulation
+2. A set of data formats (neurodata) for communicating passive data in a clear way with agreed rules for manipulation
 
 3. A client program (neurogo) that can take execute neuroscript, communicate with humans, AIs and computers, and run tools for itself, or its co-workers
 
@@ -27,7 +27,7 @@ NeuroScript includes:
 
 3. Clarity: The preeminent focus of all NS files should be clarity over concision or features
 
-4. Embedded Metadata: Whereever practical, ns files should include within them their version, what files they depend on, and how to update them when those dependencies change.
+4. Embedded Metadata: Wherever practical, ns files should include within them at least their version, what files they depend on, and how to update them when those dependencies change.
 
 ## Overview of the parts of NS
 
@@ -35,13 +35,15 @@ NeuroScript includes:
 
 The neuroscript script language (ns) is a structured, human-readable language that provides a *procedural scaffolding* for execution. It is designed to store, discover, and reuse **"skills"** (procedures) with clear docstrings and robust metadata, enabling everyone to build up a library of **reusable, well-documented knowledge**. It is intended to be primarily READ by humans, WRITTEN and EXECUTED by AIs and EXECUTED by computers.
 
-NeuroScript interpreters, such as neurogo, are intended to execute NeuroScript scripts on conventional (von Neumann) computers, but are expected to make heavy use of AI abilities via API.
+NeuroScript interpreters, such as neurogo, are intended to execute NeuroScript scripts on conventional (von Neumann) computers, but are expected to make heavy use of AI abilities via API. They allow non-AI computers to participate in a network of NS workers.
 
 ### neurodata (nd)
 
-NeuroData provides simple, human-readable formats for tracking tasks, requirements, or states (e.g., checklists `.ndcl`) and extracting structured data blocks from documents. They are designed to be easily parsed and manipulated by tools while remaining clear in plain text. [cite: uploaded:neuroscript/docs/NeuroData/checklist.md, uploaded:neuroscript/pkg/neurodata/blocks/blocks_extractor.go]
+NeuroData provides simple, human-readable formats for tracking tasks, requirements, or states (e.g., checklists `.ndcl`) and extracting structured data blocks from documents. They are designed to be easily parsed and manipulated by tools while remaining in plain text.  
 
 ## neuroscript in more detail
+
+- #TODO
 
 ### Features
 

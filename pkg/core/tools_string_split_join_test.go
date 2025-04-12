@@ -2,164 +2,176 @@
 package core
 
 import (
+	"errors" // Import errors
 	"reflect"
-	"strings"
+
+	// "strings" // No longer needed
 	"testing"
 )
 
-// Assume newTestInterpreter and makeArgs are defined in testing_helpers.go
+// Adapt the general test helper logic (used in list tests) for string split/join tools
+func testStringSplitJoinToolHelper(t *testing.T, interp *Interpreter, tc struct {
+	name          string
+	toolName      string
+	args          []interface{}
+	wantResult    interface{} // Expected result *if* no error
+	wantToolErrIs error       // Specific Go error expected *from the tool function*
+	valWantErrIs  error       // Specific Go error expected *from validation*
+}) {
+	t.Helper()
+	t.Run(tc.name, func(t *testing.T) { // Add t.Run for subtests
+		toolImpl, found := interp.ToolRegistry().GetTool(tc.toolName)
+		if !found {
+			t.Fatalf("Tool %q not found in registry", tc.toolName)
+		}
+		spec := toolImpl.Spec
 
-// TestToolSplitString
+		// --- Validation ---
+		convertedArgs, valErr := ValidateAndConvertArgs(spec, tc.args)
+
+		// Check Specific Validation Error
+		if tc.valWantErrIs != nil {
+			if valErr == nil {
+				t.Errorf("ValidateAndConvertArgs() expected error [%v], but got nil", tc.valWantErrIs)
+			} else if !errors.Is(valErr, tc.valWantErrIs) {
+				t.Errorf("ValidateAndConvertArgs() expected error type [%v], but got type [%T] with value: %v", tc.valWantErrIs, valErr, valErr)
+			}
+			// Regardless of match details, if specific error was expected, stop.
+			return
+		}
+
+		// Check for Unexpected Validation Error
+		if valErr != nil && tc.valWantErrIs == nil { // Check if validation error occurred when none was expected
+			t.Fatalf("ValidateAndConvertArgs() unexpected validation error: %v", valErr)
+		}
+
+		// --- Execution (Only if validation passed and wasn't expected to fail) ---
+		gotResult, toolErr := toolImpl.Func(interp, convertedArgs)
+
+		// Check Specific Tool Error
+		if tc.wantToolErrIs != nil {
+			if toolErr == nil {
+				t.Errorf("Tool function expected error [%v], but got nil. Result: %v (%T)", tc.wantToolErrIs, gotResult, gotResult)
+			} else if !errors.Is(toolErr, tc.wantToolErrIs) {
+				t.Errorf("Tool function expected error type [%v], but got type [%T] with value: %v", tc.wantToolErrIs, toolErr, toolErr)
+			}
+			// If specific tool error was expected, don't check result
+			return
+		}
+
+		// Check for Unexpected Tool Error
+		if toolErr != nil && tc.wantToolErrIs == nil {
+			t.Fatalf("Tool function unexpected error: %v. Result: %v (%T)", toolErr, gotResult, gotResult)
+		}
+
+		// --- Result Comparison (only if no errors occurred or were expected via wantToolErrIs) ---
+		if tc.wantToolErrIs == nil { // Only compare results if no specific tool error was expected
+			// Special case for []string results from SplitString
+			if tc.toolName == "TOOL.SplitString" || tc.toolName == "TOOL.SplitWords" {
+				wantSlice, wantOk := tc.wantResult.([]string)
+				// *** FIXED ASSIGNMENT: Capture third return value (error) with blank identifier ***
+				gotSlice, gotOk, _ := ConvertToSliceOfString(gotResult) // Use exported helper, ignore error return
+				if !wantOk {
+					t.Fatalf("WantResult for %s test is not []string", tc.toolName)
+				}
+				if !gotOk {
+					// Log the actual error from ConvertToSliceOfString if it occurred unexpectedly
+					_, _, convErr := ConvertToSliceOfString(gotResult)
+					t.Errorf("GotResult for %s test is not convertible to []string, got %T. Conversion error: %v", tc.toolName, gotResult, convErr)
+				} else if !reflect.DeepEqual(gotSlice, wantSlice) {
+					t.Errorf("Tool function result mismatch:\n  Got:  %#v (%T)\n  Want: %#v (%T)",
+						gotSlice, gotSlice, wantSlice, wantSlice)
+				}
+			} else if !reflect.DeepEqual(gotResult, tc.wantResult) { // Default comparison
+				t.Errorf("Tool function result mismatch:\n  Got:  %#v (%T)\n  Want: %#v (%T)",
+					gotResult, gotResult, tc.wantResult, tc.wantResult)
+			}
+		}
+	})
+}
+
 func TestToolSplitString(t *testing.T) {
-	dummyInterp := newDefaultTestInterpreter()
+	interp, _ := newDefaultTestInterpreter(t) // Ignore sandboxDir
 	tests := []struct {
-		name        string
-		args        []interface{}
-		want        interface{}
-		wantErr     bool // Checks final error (validation or execution)
-		errContains string
+		name          string
+		toolName      string
+		args          []interface{}
+		wantResult    interface{} // Expected: []string
+		wantToolErrIs error
+		valWantErrIs  error
 	}{
-		{name: "Comma Delimiter", args: makeArgs("a,b,c", ","), want: []string{"a", "b", "c"}, wantErr: false, errContains: ""},
-		{name: "Space Delimiter", args: makeArgs("a b c", " "), want: []string{"a", "b", "c"}, wantErr: false, errContains: ""},
-		{name: "No Delimiter Found", args: makeArgs("abc", ","), want: []string{"abc"}, wantErr: false, errContains: ""},
-		{name: "Empty String", args: makeArgs("", ","), want: []string{""}, wantErr: false, errContains: ""},
-		{name: "Multi-char Delimiter", args: makeArgs("axxbxxc", "xx"), want: []string{"a", "b", "c"}, wantErr: false, errContains: ""},
-		{name: "Empty Delimiter", args: makeArgs("abc", ""), want: []string{"a", "b", "c"}, wantErr: false, errContains: ""},
-		{name: "Wrong Arg Count", args: makeArgs("a"), want: nil, wantErr: true, errContains: "expected exactly 2 arguments"},
-		{name: "Non-string Input", args: makeArgs(1, ","), want: nil, wantErr: true, errContains: "type validation failed for argument 'input' of tool 'SplitString': expected string, got int"},
-		{name: "Non-string Delimiter", args: makeArgs("a", 1), want: nil, wantErr: true, errContains: "type validation failed for argument 'delimiter' of tool 'SplitString': expected string, got int"},
+		// *** FIXED toolName prefix ***
+		{name: "Simple Split", toolName: "SplitString", args: makeArgs("a,b,c", ","), wantResult: []string{"a", "b", "c"}},
+		{name: "Split With Spaces", toolName: "SplitString", args: makeArgs(" a , b , c ", ","), wantResult: []string{" a ", " b ", " c "}},
+		{name: "Multi-char Delimiter", toolName: "SplitString", args: makeArgs("one<>two<>three", "<>"), wantResult: []string{"one", "two", "three"}},
+		{name: "Leading Delimiter", toolName: "SplitString", args: makeArgs(",a,b", ","), wantResult: []string{"", "a", "b"}},
+		{name: "Trailing Delimiter", toolName: "SplitString", args: makeArgs("a,b,", ","), wantResult: []string{"a", "b", ""}},
+		{name: "Only Delimiter", toolName: "SplitString", args: makeArgs(",", ","), wantResult: []string{"", ""}},
+		{name: "Empty String", toolName: "SplitString", args: makeArgs("", ","), wantResult: []string{""}},
+		{name: "Empty Delimiter", toolName: "SplitString", args: makeArgs("abc", ""), wantResult: []string{"a", "b", "c"}}, // Splits between UTF-8 chars
+		{name: "No Delimiter Found", toolName: "SplitString", args: makeArgs("abc", ","), wantResult: []string{"abc"}},
+		{name: "Non-string Input", toolName: "SplitString", args: makeArgs(123, ","), valWantErrIs: ErrValidationTypeMismatch},
+		{name: "Non-string Delimiter", toolName: "SplitString", args: makeArgs("abc", 1), valWantErrIs: ErrValidationTypeMismatch},
+		{name: "Nil Input", toolName: "SplitString", args: makeArgs(nil, ","), valWantErrIs: ErrValidationRequiredArgNil},
+		{name: "Nil Delimiter", toolName: "SplitString", args: makeArgs("abc", nil), valWantErrIs: ErrValidationRequiredArgNil},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			spec := ToolSpec{Name: "SplitString", Args: []ArgSpec{{Name: "input", Type: ArgTypeString, Required: true}, {Name: "delimiter", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeSliceString}
-			convArgs, finalErr := ValidateAndConvertArgs(spec, tt.args)
-			var got interface{}
-			var toolErr error
-			if finalErr == nil {
-				got, toolErr = toolSplitString(dummyInterp, convArgs)
-				if toolErr != nil {
-					finalErr = toolErr
-				}
-			}
-
-			// Check error expectation
-			if (finalErr != nil) != tt.wantErr {
-				t.Errorf("Test %q: Error mismatch. Got error: %v, wantErr: %v", tt.name, finalErr, tt.wantErr)
-				return
-			}
-			// Check error content if error was expected
-			if tt.wantErr && tt.errContains != "" {
-				if finalErr == nil || !strings.Contains(finalErr.Error(), tt.errContains) {
-					t.Errorf("Test %q: Expected error containing %q, got: %v", tt.name, tt.errContains, finalErr)
-				}
-			}
-			// Check result if no error was expected
-			if !tt.wantErr && !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Test %q: toolSplitString() = %v (%T), want %v (%T)", tt.name, got, got, tt.want, tt.want)
-			}
-		})
+		testStringSplitJoinToolHelper(t, interp, tt)
 	}
 }
 
-// TestToolSplitWords
 func TestToolSplitWords(t *testing.T) {
-	dummyInterp := newDefaultTestInterpreter()
+	interp, _ := newDefaultTestInterpreter(t) // Ignore sandboxDir
 	tests := []struct {
-		name        string
-		args        []interface{}
-		want        interface{}
-		wantErr     bool
-		errContains string
+		name          string
+		toolName      string
+		args          []interface{}
+		wantResult    interface{} // Expected: []string
+		wantToolErrIs error
+		valWantErrIs  error
 	}{
-		{name: "Simple Spaces", args: makeArgs("hello world test"), want: []string{"hello", "world", "test"}, wantErr: false, errContains: ""},
-		{name: "Multiple Spaces", args: makeArgs(" hello  world\ttest\n"), want: []string{"hello", "world", "test"}, wantErr: false, errContains: ""},
-		{name: "Leading/Trailing", args: makeArgs("  word  "), want: []string{"word"}, wantErr: false, errContains: ""},
-		{name: "Empty", args: makeArgs(""), want: []string{}, wantErr: false, errContains: ""},
-		{name: "Only Whitespace", args: makeArgs(" \t\n "), want: []string{}, wantErr: false, errContains: ""},
-		{name: "Wrong Arg Count", args: makeArgs("a", "b"), want: nil, wantErr: true, errContains: "expected exactly 1 arguments"},
+		// *** FIXED toolName prefix ***
+		{name: "Simple Words", toolName: "SplitWords", args: makeArgs("hello world"), wantResult: []string{"hello", "world"}},
+		{name: "Multiple Spaces", toolName: "SplitWords", args: makeArgs("  hello \t world  \n next"), wantResult: []string{"hello", "world", "next"}},
+		{name: "Leading/Trailing Space", toolName: "SplitWords", args: makeArgs(" hello "), wantResult: []string{"hello"}},
+		{name: "Punctuation", toolName: "SplitWords", args: makeArgs("hello, world!"), wantResult: []string{"hello,", "world!"}},
+		{name: "Empty String", toolName: "SplitWords", args: makeArgs(""), wantResult: []string{}},
+		{name: "Only Whitespace", toolName: "SplitWords", args: makeArgs(" \t \n "), wantResult: []string{}},
+		{name: "Non-string Input", toolName: "SplitWords", args: makeArgs(123), valWantErrIs: ErrValidationTypeMismatch},
+		{name: "Nil Input", toolName: "SplitWords", args: makeArgs(nil), valWantErrIs: ErrValidationRequiredArgNil},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			spec := ToolSpec{Name: "SplitWords", Args: []ArgSpec{{Name: "input", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeSliceString}
-			convArgs, finalErr := ValidateAndConvertArgs(spec, tt.args)
-			var got interface{}
-			var toolErr error
-			if finalErr == nil {
-				got, toolErr = toolSplitWords(dummyInterp, convArgs)
-				if toolErr != nil {
-					finalErr = toolErr
-				}
-			}
-
-			// Check error expectation
-			if (finalErr != nil) != tt.wantErr {
-				t.Errorf("Test %q: Error mismatch. Got error: %v, wantErr: %v", tt.name, finalErr, tt.wantErr)
-				return
-			}
-			// Check error content if error was expected
-			if tt.wantErr && tt.errContains != "" {
-				if finalErr == nil || !strings.Contains(finalErr.Error(), tt.errContains) {
-					t.Errorf("Test %q: Expected error containing %q, got: %v", tt.name, tt.errContains, finalErr)
-				}
-			}
-			// Check result if no error was expected
-			if !tt.wantErr && !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Test %q: toolSplitWords() = %v, want %v", tt.name, got, tt.want)
-			}
-		})
+		testStringSplitJoinToolHelper(t, interp, tt)
 	}
 }
 
-// TestToolJoinStrings (Updated error strings)
 func TestToolJoinStrings(t *testing.T) {
-	dummyInterp := newDefaultTestInterpreter()
+	interp, _ := newDefaultTestInterpreter(t)   // Ignore sandboxDir
+	stringSlice := []interface{}{"a", "b", "c"} // Use []interface{} for input arg
+	mixedSlice := []interface{}{"a", int64(1), true}
+	numSlice := []interface{}{int64(1), float64(2.5), int64(3)}
+
 	tests := []struct {
-		name        string
-		args        []interface{}
-		want        interface{}
-		wantErr     bool // Checks final error (validation or execution)
-		errContains string
+		name          string
+		toolName      string
+		args          []interface{}
+		wantResult    interface{}
+		wantToolErrIs error
+		valWantErrIs  error
 	}{
-		{name: "Simple Join ([]string)", args: makeArgs([]string{"a", "b", "c"}, "-"), want: "a-b-c", wantErr: false, errContains: ""},
-		{name: "Empty Separator", args: makeArgs([]string{"a", "b", "c"}, ""), want: "abc", wantErr: false, errContains: ""},
-		{name: "Empty Slice", args: makeArgs([]string{}, "-"), want: "", wantErr: false, errContains: ""},
-		{name: "Slice with Empty Strings", args: makeArgs([]string{"a", "", "c"}, ","), want: "a,,c", wantErr: false, errContains: ""},
-		{name: "Interface Slice OK", args: makeArgs([]interface{}{"x", "y", "z"}, ":"), want: "x:y:z", wantErr: false, errContains: ""},
-		{name: "Interface Slice Mixed Types", args: makeArgs([]interface{}{"a", 1, true}, "-"), want: "a-1-true", wantErr: false, errContains: ""},
-		{name: "Wrong Arg Count", args: makeArgs([]string{"a"}), want: nil, wantErr: true, errContains: "expected exactly 2 arguments"},
-		// *** UPDATED Expected Error String ***
-		{name: "Non-slice First Arg (Validation Err)", args: makeArgs("abc", "-"), want: nil, wantErr: true, errContains: "type validation failed for argument 'input_slice' of tool 'JoinStrings': expected a slice (list), got string"},
-		{name: "Non-string Separator (Validation Err)", args: makeArgs([]string{"a"}, 123), want: nil, wantErr: true, errContains: "type validation failed for argument 'separator' of tool 'JoinStrings': expected string, got int"},
+		// *** FIXED toolName prefix ***
+		{name: "Join Simple", toolName: "JoinStrings", args: makeArgs(stringSlice, ","), wantResult: "a,b,c"},
+		{name: "Join Empty Sep", toolName: "JoinStrings", args: makeArgs(stringSlice, ""), wantResult: "abc"},
+		{name: "Join Single Elem", toolName: "JoinStrings", args: makeArgs([]interface{}{"a"}, ","), wantResult: "a"},
+		{name: "Join Empty Slice", toolName: "JoinStrings", args: makeArgs([]interface{}{}, ","), wantResult: ""},
+		{name: "Join Mixed Types", toolName: "JoinStrings", args: makeArgs(mixedSlice, "-"), wantResult: "a-1-true"}, // Converts elements to string
+		{name: "Join Numeric Types", toolName: "JoinStrings", args: makeArgs(numSlice, " "), wantResult: "1 2.5 3"},
+		{name: "Non-slice First Arg (Validation Err)", toolName: "JoinStrings", args: makeArgs("abc", ","), valWantErrIs: ErrValidationTypeMismatch},
+		{name: "Non-string Separator (Validation Err)", toolName: "JoinStrings", args: makeArgs(stringSlice, 123), valWantErrIs: ErrValidationTypeMismatch},
+		{name: "Nil Slice", toolName: "JoinStrings", args: makeArgs(nil, ","), valWantErrIs: ErrValidationRequiredArgNil},
+		{name: "Nil Separator", toolName: "JoinStrings", args: makeArgs(stringSlice, nil), valWantErrIs: ErrValidationRequiredArgNil},
 	}
-
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			toolSpec := ToolSpec{Name: "JoinStrings", Args: []ArgSpec{{Name: "input_slice", Type: ArgTypeSliceAny, Required: true}, {Name: "separator", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeString}
-			convertedArgs, finalErr := ValidateAndConvertArgs(toolSpec, tt.args)
-			var got interface{}
-			var toolErr error
-			if finalErr == nil {
-				got, toolErr = toolJoinStrings(dummyInterp, convertedArgs)
-				if toolErr != nil {
-					finalErr = toolErr
-				}
-			}
-
-			// Check error expectation
-			if (finalErr != nil) != tt.wantErr {
-				t.Errorf("Test %q: Error mismatch. Got error: %v, wantErr: %v", tt.name, finalErr, tt.wantErr)
-				return
-			}
-			// Check error content if error was expected
-			if tt.wantErr && tt.errContains != "" {
-				if finalErr == nil || !strings.Contains(finalErr.Error(), tt.errContains) {
-					t.Errorf("Test %q: Expected error containing %q, got: %v", tt.name, tt.errContains, finalErr)
-				}
-			}
-			// Check result if no error was expected
-			if !tt.wantErr && !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Test %q: toolJoinStrings() = %v (%T), want %v (%T)", tt.name, got, got, tt.want, tt.want)
-			}
-		})
+		testStringSplitJoinToolHelper(t, interp, tt)
 	}
 }

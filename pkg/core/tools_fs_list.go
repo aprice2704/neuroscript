@@ -3,84 +3,88 @@ package core
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
+	"os" // Keep filepath
 	"sort"
-	"strings"
+	// "time" // Keep if adding modified time later
 )
 
-// toolListDirectory lists the contents of a specified directory.
-// Assumes path validation/sandboxing is handled by the SecurityLayer.
+// toolListDirectory lists files and directories at a given path within the sandbox.
+// *** MODIFIED: Return error from SecureFilePath directly ***
 func toolListDirectory(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	// Validation guarantees args[0] is a string
-	dirPath := args[0].(string)
+	// Validation ensures args[0] is string
+	pathRel := args[0].(string)
 
+	// Ensure path is safe and within the sandbox
 	cwd, errWd := os.Getwd()
 	if errWd != nil {
-		errMsg := fmt.Sprintf("ListDirectory failed get CWD: %s", errWd.Error())
-		return errMsg, fmt.Errorf(errMsg) // Return error string for script, Go error internally
+		// Internal error, return actual error
+		return nil, fmt.Errorf("ListDirectory failed to get working directory: %w", errWd)
 	}
-
-	var absPath string
-	var secErr error
-	// Resolve path using SecureFilePath, security checks happened earlier
-	if filepath.Clean(dirPath) == "." {
-		absPath = cwd // Special case for current directory needs careful sandbox handling
-		// Check if CWD itself is within sandbox if '.' is used? SecurityLayer should handle this.
-		// For now, assume if validation passed, '.' means the sandbox root.
-		// Re-validate '.' against sandbox root?
-		_, secErr = SecureFilePath(".", cwd) // Validate '.' against CWD itself
-		if secErr != nil {
-			errMsg := fmt.Sprintf("ListDirectory path error for '.': %s", secErr.Error())
-			return errMsg, fmt.Errorf(errMsg)
+	absPath, secErr := SecureFilePath(pathRel, cwd)
+	if secErr != nil {
+		// *** Return the security error directly ***
+		// secErr should be or wrap ErrPathViolation
+		errMsg := fmt.Sprintf("ListDirectory path error: %s", secErr.Error()) // Log the unwrapped error
+		if interpreter.logger != nil {
+			interpreter.logger.Printf("[TOOL ListDirectory] %s", errMsg)
 		}
-
-	} else {
-		absPath, secErr = SecureFilePath(dirPath, cwd)
-		if secErr != nil {
-			errMsg := fmt.Sprintf("ListDirectory path error for '%s': %s", dirPath, secErr.Error())
-			return errMsg, fmt.Errorf(errMsg)
-		}
+		return nil, secErr // Return the original error (which should wrap ErrPathViolation)
 	}
 
 	if interpreter.logger != nil {
-		interpreter.logger.Printf("[TOOL ListDirectory] Listing validated path: %s (Original Relative: %s)", absPath, dirPath)
+		interpreter.logger.Printf("[TOOL ListDirectory] Listing directory: %s (resolved: %s)", pathRel, absPath)
 	}
 
-	entries, err := os.ReadDir(absPath)
-	if err != nil {
-		errMsg := fmt.Sprintf("ListDirectory read error for '%s': %s", dirPath, err.Error())
-		// Check if it's a "not a directory" error specifically?
-		if os.IsNotExist(err) {
-			errMsg = fmt.Sprintf("ListDirectory failed: Directory not found at path '%s'", dirPath)
-		} else if strings.Contains(err.Error(), "not a directory") {
-			errMsg = fmt.Sprintf("ListDirectory failed: Path '%s' is not a directory", dirPath)
+	// Read directory contents
+	entries, readErr := os.ReadDir(absPath)
+	if readErr != nil {
+		// *** Return wrapped internal tool error ***
+		errMsg := fmt.Sprintf("ListDirectory failed: %s", readErr.Error()) // Log the unwrapped error
+		if interpreter.logger != nil {
+			interpreter.logger.Printf("[TOOL ListDirectory] ReadDir error: %s", errMsg)
 		}
-		return errMsg, fmt.Errorf(errMsg) // Return error string and Go error
+		return nil, fmt.Errorf("%w: reading directory '%s': %w", ErrInternalTool, pathRel, readErr) // Wrap underlying OS error
 	}
 
-	// Prepare results as []interface{} containing map[string]interface{}
-	resultsList := make([]interface{}, 0, len(entries))
-	entryInfos := make([]map[string]interface{}, 0, len(entries))
-
+	// Prepare result slice
+	result := make([]interface{}, 0, len(entries))
 	for _, entry := range entries {
-		entryInfos = append(entryInfos, map[string]interface{}{
+		info, infoErr := entry.Info()
+		if infoErr != nil {
+			if interpreter.logger != nil {
+				interpreter.logger.Printf("[WARN TOOL ListDirectory] Could not get info for entry '%s': %v", entry.Name(), infoErr)
+			}
+			continue // Skip entries we can't get info for
+		}
+		// Construct map for each entry
+		entryMap := map[string]interface{}{
 			"name":   entry.Name(),
 			"is_dir": entry.IsDir(),
-		})
+			"size":   info.Size(), // Include size
+			// Add modified time? Requires formatting.
+			// "modified": info.ModTime().Format(time.RFC3339),
+		}
+		result = append(result, entryMap)
 	}
 
-	// Sort for deterministic output
-	sort.Slice(entryInfos, func(i, j int) bool { return entryInfos[i]["name"].(string) < entryInfos[j]["name"].(string) })
-
-	// Convert sorted temp slice to final result type
-	for _, info := range entryInfos {
-		resultsList = append(resultsList, info)
-	}
+	// Sort results by name for predictable order
+	sort.SliceStable(result, func(i, j int) bool {
+		iMap, iOk := result[i].(map[string]interface{})
+		jMap, jOk := result[j].(map[string]interface{})
+		if !iOk || !jOk {
+			return false
+		}
+		iName, iNameOk := iMap["name"].(string)
+		jName, jNameOk := jMap["name"].(string)
+		if !iNameOk || !jNameOk {
+			return false
+		}
+		return iName < jName
+	})
 
 	if interpreter.logger != nil {
-		interpreter.logger.Printf("[TOOL ListDirectory] Found %d entries in %s.", len(resultsList), dirPath)
+		interpreter.logger.Printf("[TOOL ListDirectory] Successfully listed %d entries for %s", len(result), pathRel)
 	}
-	// Return the list of maps
-	return resultsList, nil
+
+	return result, nil // Return the slice of maps
 }

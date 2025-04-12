@@ -8,30 +8,39 @@ import (
 )
 
 // registerGitTools adds Git-related tools to the registry.
-func registerGitTools(registry *ToolRegistry) {
-	registry.RegisterTool(ToolImplementation{
-		Spec: ToolSpec{
-			Name:        "GitAdd",
-			Description: "Stages a file for the next Git commit.",
-			Args: []ArgSpec{
-				{Name: "filepath", Type: ArgTypeString, Required: true, Description: "Relative path to the file to stage."},
+// *** MODIFIED: Returns error ***
+func registerGitTools(registry *ToolRegistry) error {
+	tools := []ToolImplementation{
+		{
+			Spec: ToolSpec{
+				Name:        "GitAdd",
+				Description: "Stages a file for the next Git commit.",
+				Args: []ArgSpec{
+					{Name: "filepath", Type: ArgTypeString, Required: true, Description: "Relative path to the file to stage."},
+				},
+				ReturnType: ArgTypeString, // Returns "OK" or error message
 			},
-			ReturnType: ArgTypeString, // Returns "OK" or error message
+			Func: toolGitAdd,
 		},
-		Func: toolGitAdd,
-	})
-
-	registry.RegisterTool(ToolImplementation{
-		Spec: ToolSpec{
-			Name:        "GitCommit",
-			Description: "Commits currently staged changes.",
-			Args: []ArgSpec{
-				{Name: "message", Type: ArgTypeString, Required: true, Description: "The commit message."},
+		{
+			Spec: ToolSpec{
+				Name:        "GitCommit",
+				Description: "Commits currently staged changes.",
+				Args: []ArgSpec{
+					{Name: "message", Type: ArgTypeString, Required: true, Description: "The commit message."},
+				},
+				ReturnType: ArgTypeString, // Returns "OK" or error message
 			},
-			ReturnType: ArgTypeString, // Returns "OK" or error message
+			Func: toolGitCommit,
 		},
-		Func: toolGitCommit,
-	})
+	}
+	for _, tool := range tools {
+		// *** Check error from RegisterTool ***
+		if err := registry.RegisterTool(tool); err != nil {
+			return fmt.Errorf("failed to register Git tool %s: %w", tool.Spec.Name, err)
+		}
+	}
+	return nil // Success
 }
 
 // toolGitAdd stages a file using the git command.

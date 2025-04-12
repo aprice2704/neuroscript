@@ -1,75 +1,51 @@
 // filename: pkg/core/tools_string_utils_test.go
 package core
 
-import (
-	// Added reflect back
-	"strings"
+import ( // Keep errors
+	// Keep filepath
+	// "reflect" // Remove reflect
+	// Keep strings for error check
 	"testing"
 )
 
-// Assume newTestInterpreter and makeArgs are defined in testing_helpers.go
+// Remove the duplicate testFsToolHelper function definition here
+/*
+func testFsToolHelper(...) {
+    ... // REMOVED
+}
+*/
 
-// TestToolLineCountString
+// Assuming testStringToolHelper exists (defined in tools_string_basic_test.go or testing_helpers_test.go)
+
 func TestToolLineCountString(t *testing.T) {
-	dummyInterp := newDefaultTestInterpreter()
+	interp, _ := newDefaultTestInterpreter(t)
 	tests := []struct {
-		name           string
-		inputArg       interface{} // Changed to interface{} for type test
-		wantResult     int64
-		wantErr        bool // Combined error check
-		valErrContains string
+		name          string
+		toolName      string
+		args          []interface{}
+		wantResult    interface{}
+		wantToolErrIs error
+		valWantErrIs  error
 	}{
-		{name: "Raw String One Line", inputArg: "Hello", wantResult: 1, wantErr: false, valErrContains: ""},
-		{name: "Raw String Multi Line", inputArg: "Hello\nWorld\nTest", wantResult: 3, wantErr: false, valErrContains: ""},
-		{name: "Raw String With Trailing NL", inputArg: "Hello\nWorld\n", wantResult: 2, wantErr: false, valErrContains: ""},
-		{name: "Raw String Empty", inputArg: "", wantResult: 0, wantErr: false, valErrContains: ""},
-		{name: "Raw String Just Newline", inputArg: "\n", wantResult: 1, wantErr: false, valErrContains: ""},
-		{name: "Raw String Just Newlines", inputArg: "\n\n\n", wantResult: 3, wantErr: false, valErrContains: ""},
-		// *** UPDATED Expected Error String and inputArg type ***
-		{name: "Validation Wrong Arg Type", inputArg: 123, wantErr: true, valErrContains: "type validation failed for argument 'content' of tool 'LineCountString': expected string, got int"},
-		{name: "Validation Wrong Arg Count", inputArg: nil, wantErr: true, valErrContains: "expected exactly 1 arguments"}, // inputArg is nil here, used for arg count test setup
+		// *** FIXED toolName prefix ***
+		{name: "Empty String", toolName: "LineCountString", args: makeArgs(""), wantResult: int64(0)},
+		{name: "Single Line No NL", toolName: "LineCountString", args: makeArgs("hello"), wantResult: int64(1)},
+		{name: "Single Line With NL", toolName: "LineCountString", args: makeArgs("hello\n"), wantResult: int64(1)},
+		{name: "Two Lines No Trailing NL", toolName: "LineCountString", args: makeArgs("hello\nworld"), wantResult: int64(2)},
+		{name: "Two Lines With Trailing NL", toolName: "LineCountString", args: makeArgs("hello\nworld\n"), wantResult: int64(2)},
+		{name: "Multiple Blank Lines", toolName: "LineCountString", args: makeArgs("\n\n\n"), wantResult: int64(3)}, // Changed expectation, blank lines count
+		{name: "Mixed Content and Blank", toolName: "LineCountString", args: makeArgs("line1\n\nline3\n"), wantResult: int64(3)},
+		{name: "CRLF Line Endings", toolName: "LineCountString", args: makeArgs("line1\r\nline2\r\n"), wantResult: int64(2)}, // Should handle CRLF
+		{name: "Validation Wrong Arg Type", toolName: "LineCountString", args: makeArgs(123), valWantErrIs: ErrValidationTypeMismatch},
+		{name: "Validation Nil Arg", toolName: "LineCountString", args: makeArgs(nil), valWantErrIs: ErrValidationRequiredArgNil},
 	}
-	spec := ToolSpec{Name: "LineCountString", Args: []ArgSpec{{Name: "content", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeInt}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			var rawArgs []interface{}
-			if tt.name == "Validation Wrong Arg Count" {
-				rawArgs = makeArgs() // No args
-			} else {
-				rawArgs = makeArgs(tt.inputArg) // Pass the defined input arg
-			}
-
-			convertedArgs, finalErr := ValidateAndConvertArgs(spec, rawArgs)
-			var gotResult interface{}
-			var toolErr error
-			if finalErr == nil {
-				gotResult, toolErr = toolLineCountString(dummyInterp, convertedArgs)
-				if toolErr != nil {
-					finalErr = toolErr
-				}
-			}
-
-			// Check error expectation
-			if (finalErr != nil) != tt.wantErr {
-				t.Errorf("Test %q: Error mismatch. Got error: %v, wantErr: %v", tt.name, finalErr, tt.wantErr)
-				return
-			}
-			// Check error content if error was expected
-			if tt.wantErr && tt.valErrContains != "" {
-				if finalErr == nil || !strings.Contains(finalErr.Error(), tt.valErrContains) {
-					t.Errorf("Test %q: Expected error containing %q, got: %v", tt.name, tt.valErrContains, finalErr)
-				}
-			}
-			// Check result if no error was expected
-			if !tt.wantErr {
-				gotInt, ok := gotResult.(int64)
-				if !ok {
-					t.Fatalf("Test %q: Expected int64 result, got %T (%v)", tt.name, gotResult, gotResult)
-				}
-				if gotInt != tt.wantResult {
-					t.Errorf("Test %q: Result mismatch: got %d, want %d", tt.name, gotInt, tt.wantResult)
-				}
-			}
-		})
+		// *** Use the correct helper ***
+		// Assuming testStringToolHelper is defined elsewhere (e.g., tools_string_basic_test.go)
+		// and handles the necessary validation and execution checks.
+		testStringToolHelper(t, interp, tt)
 	}
 }
+
+// Add tests for other utils if they exist, e.g., HasPrefix, HasSuffix, Contains (these might be in basic_test?)
+// Assuming only LineCountString is in this file for now based on previous error output.

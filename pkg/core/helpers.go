@@ -1,3 +1,4 @@
+// filename: neuroscript/pkg/core/helpers.go
 package core
 
 import (
@@ -50,10 +51,11 @@ func ConvertToBool(val interface{}) (bool, bool) {
 	}
 }
 
-// convertToSliceOfString handles conversion for ArgTypeSliceString validation.
+// ConvertToSliceOfString handles conversion for ArgTypeSliceString validation.
+// Renamed from convertToSliceOfString to be exported.
 // Returns the []string, true + nil error on success.
 // Returns nil, false + specific error on failure.
-func convertToSliceOfString(rawValue interface{}) ([]string, bool, error) {
+func ConvertToSliceOfString(rawValue interface{}) ([]string, bool, error) {
 	switch rv := rawValue.(type) {
 	case []string:
 		return rv, true, nil // Already correct type

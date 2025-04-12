@@ -9,6 +9,7 @@ import (
 
 // toolReadFile reads the content of a specified file.
 // Assumes path validation/sandboxing is handled by the SecurityLayer before this is called.
+// *** MODIFIED: Propagate error from SecureFilePath ***
 func toolReadFile(interpreter *Interpreter, args []interface{}) (interface{}, error) {
 	// Validation guarantees args[0] is a string
 	filePath := args[0].(string)
@@ -24,8 +25,13 @@ func toolReadFile(interpreter *Interpreter, args []interface{}) (interface{}, er
 	// The security check against sandbox root happened *before* this tool was called.
 	absPath, secErr := SecureFilePath(filePath, cwd)
 	if secErr != nil {
-		// Should ideally not happen if security layer worked, but good failsafe.
-		return fmt.Sprintf("ReadFile path error for '%s': %s", filePath, secErr.Error()), nil
+		// *** Propagate the path violation error ***
+		errMsg := fmt.Sprintf("ReadFile path error for '%s': %s", filePath, secErr.Error()) // Log unwrapped
+		if interpreter.logger != nil {
+			interpreter.logger.Printf("[TOOL ReadFile] %s", errMsg)
+		}
+		// Return error message string for script, but the error itself for Go context
+		return errMsg, secErr
 	}
 
 	if interpreter.logger != nil {
@@ -34,11 +40,17 @@ func toolReadFile(interpreter *Interpreter, args []interface{}) (interface{}, er
 
 	contentBytes, readErr := os.ReadFile(absPath)
 	if readErr != nil {
+		errMsg := ""
 		if os.IsNotExist(readErr) {
-			return fmt.Sprintf("ReadFile failed: File not found at path '%s'", filePath), nil
+			errMsg = fmt.Sprintf("ReadFile failed: File not found at path '%s'", filePath)
+		} else {
+			errMsg = fmt.Sprintf("ReadFile failed for '%s': %s", filePath, readErr.Error())
 		}
-		// Return error message string for other read errors
-		return fmt.Sprintf("ReadFile failed for '%s': %s", filePath, readErr.Error()), nil
+		if interpreter.logger != nil {
+			interpreter.logger.Printf("[TOOL ReadFile] %s", errMsg)
+		}
+		// Return error message string for script, and wrapped internal error for Go
+		return errMsg, fmt.Errorf("%w: reading file '%s': %w", ErrInternalTool, filePath, readErr)
 	}
 
 	if interpreter.logger != nil {

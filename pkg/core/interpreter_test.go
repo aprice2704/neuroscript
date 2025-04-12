@@ -1,25 +1,21 @@
+// filename: neuroscript/pkg/core/interpreter_test.go
 package core
 
 import (
 	"reflect" // Import reflect package
-	// Import sort package for stable map key iteration
+	"sort"    // Import sort package for stable map key iteration
 	"strings"
 	"testing"
 	// Import sort
 )
 
-func createTestStep(typ string, target string, valueNode interface{}, argNodes []interface{}) Step {
-	return newStep(typ, target, nil, valueNode, nil, argNodes)
-}
-func createIfStep(condNode interface{}, thenSteps []Step, elseSteps []Step) Step {
-	return Step{Type: "IF", Cond: condNode, Value: thenSteps, ElseValue: elseSteps}
-}
-func createWhileStep(condNode interface{}, bodySteps []Step) Step {
-	return Step{Type: "WHILE", Cond: condNode, Value: bodySteps}
-}
-func createForStep(loopVar string, collectionNode interface{}, bodySteps []Step) Step {
-	return Step{Type: "FOR", Target: loopVar, Cond: collectionNode, Value: bodySteps}
-}
+// Remove helper functions - MOVED to testing_helpers_test.go
+/*
+func createTestStep(...) Step { ... }
+func createIfStep(...) Step { ... }
+func createWhileStep(...) Step { ... }
+func createForStep(...) Step { ... }
+*/
 
 // --- Test Suite for executeSteps (Blocks, Loops, Tools) ---
 type executeStepsTestCase struct {
@@ -34,9 +30,9 @@ type executeStepsTestCase struct {
 }
 
 func runExecuteStepsTest(t *testing.T, tc executeStepsTestCase) {
-	// ... (run test helper remains the same as previous version) ...
 	t.Helper()
-	interp := newTestInterpreter(tc.initialVars, nil) // Use initialVars directly
+	// Use newTestInterpreter from test scope, passing t and handling 2 return values
+	interp, _ := newTestInterpreter(t, tc.initialVars, nil) // Use initialVars, ignore sandbox path
 
 	finalResult, wasReturn, err := interp.executeSteps(tc.inputSteps)
 
@@ -66,7 +62,10 @@ func runExecuteStepsTest(t *testing.T, tc executeStepsTestCase) {
 
 	// Check final variable state (only if no error expected)
 	if !tc.expectError && tc.expectedVars != nil {
-		baseVars := NewInterpreter(nil).variables // Get base built-ins
+		// Get built-ins from a clean interpreter
+		cleanInterp, _ := newDefaultTestInterpreter(t) // Pass t
+		baseVars := cleanInterp.variables              // Get base built-ins
+
 		// Check expected variables exist and match
 		for key, expectedValue := range tc.expectedVars {
 			actualValue, exists := interp.variables[key]
@@ -91,6 +90,7 @@ func runExecuteStepsTest(t *testing.T, tc executeStepsTestCase) {
 			}
 		}
 		if len(extraVars) > 0 {
+			sort.Strings(extraVars) // Sort for deterministic output
 			t.Errorf("Test %q: Unexpected non-builtin variables found in final state: %v", tc.name, extraVars)
 		}
 	}
@@ -99,7 +99,7 @@ func runExecuteStepsTest(t *testing.T, tc executeStepsTestCase) {
 // TestExecuteStepsBlocksAndLoops - Includes List/Map iteration
 func TestExecuteStepsBlocksAndLoops(t *testing.T) {
 	testCases := []executeStepsTestCase{
-		// ... (IF/WHILE tests remain the same) ...
+		// IF/WHILE tests
 		{name: "IF true literal", inputSteps: []Step{createIfStep(BooleanLiteralNode{Value: true}, []Step{createTestStep("SET", "x", StringLiteralNode{Value: "Inside"}, nil)}, nil)}, initialVars: map[string]interface{}{}, expectedVars: map[string]interface{}{"x": "Inside"}, expectedResult: nil, expectError: false},
 		{name: "IF false literal", inputSteps: []Step{createIfStep(BooleanLiteralNode{Value: false}, []Step{createTestStep("SET", "x", StringLiteralNode{Value: "Inside"}, nil)}, nil), createTestStep("SET", "y", StringLiteralNode{Value: "Outside"}, nil)}, initialVars: map[string]interface{}{}, expectedVars: map[string]interface{}{"y": "Outside"}, expectedResult: nil, expectError: false},
 		{name: "IF condition var true", inputSteps: []Step{createIfStep(VariableNode{Name: "cond_var"}, []Step{createTestStep("SET", "x", StringLiteralNode{Value: "Inside"}, nil)}, nil)}, initialVars: map[string]interface{}{"cond_var": true}, expectedVars: map[string]interface{}{"cond_var": true, "x": "Inside"}, expectedResult: nil, expectError: false},
@@ -107,7 +107,7 @@ func TestExecuteStepsBlocksAndLoops(t *testing.T) {
 		{name: "WHILE runs once", inputSteps: []Step{createTestStep("SET", "run", BooleanLiteralNode{Value: true}, nil), createTestStep("SET", "counter", NumberLiteralNode{Value: int64(0)}, nil), createWhileStep(VariableNode{Name: "run"}, []Step{createTestStep("SET", "run", BooleanLiteralNode{Value: false}, nil), createTestStep("SET", "counter", NumberLiteralNode{Value: int64(1)}, nil)})}, initialVars: map[string]interface{}{}, expectedVars: map[string]interface{}{"run": false, "counter": int64(1)}, expectedResult: nil, expectError: false},
 		{name: "WHILE false initially", inputSteps: []Step{createWhileStep(BooleanLiteralNode{Value: false}, []Step{createTestStep("SET", "x", StringLiteralNode{Value: "Never"}, nil)}), createTestStep("SET", "y", StringLiteralNode{Value: "After"}, nil)}, initialVars: map[string]interface{}{}, expectedVars: map[string]interface{}{"y": "After"}, expectedResult: nil, expectError: false},
 
-		// --- FOR EACH String Iteration ---
+		// FOR EACH String Iteration
 		{
 			name: "FOR EACH string char iteration",
 			inputSteps: []Step{
@@ -125,28 +125,27 @@ func TestExecuteStepsBlocksAndLoops(t *testing.T) {
 			expectedVars:   map[string]interface{}{"input": "Hi!", "output": "H-i-!-"},
 			expectedResult: nil, expectError: false,
 		},
-		// --- CORRECTED EXPECTATION based on comma split + trim + loop logic ---
 		{
-			name: "FOR EACH comma split", // Actually tests comma split + trim logic
+			name: "FOR EACH comma split",
 			inputSteps: []Step{
 				createTestStep("SET", "input", StringLiteralNode{Value: "a, b ,c"}, nil),
 				createTestStep("SET", "output", StringLiteralNode{Value: ""}, nil),
 				createForStep("item", VariableNode{Name: "input"}, []Step{
 					createTestStep("SET", "output",
 						BinaryOpNode{
-							Left:     BinaryOpNode{Left: VariableNode{Name: "output"}, Operator: "+", Right: StringLiteralNode{Value: "-"}}, // output + "-"
-							Operator: "+", Right: VariableNode{Name: "item"},                                                                // + item
+							Left:     BinaryOpNode{Left: VariableNode{Name: "output"}, Operator: "+", Right: StringLiteralNode{Value: "-"}},
+							Operator: "+", Right: VariableNode{Name: "item"},
 						}, nil),
 				}),
 			},
 			initialVars:    map[string]interface{}{},
-			expectedVars:   map[string]interface{}{"input": "a, b ,c", "output": "-a-b-c"}, // Corrected expected output
+			expectedVars:   map[string]interface{}{"input": "a, b ,c", "output": "-a-b-c"},
 			expectedResult: nil, expectError: false,
 		},
 
-		// --- FOR EACH List Iteration ---
+		// FOR EACH List Iteration
 		{
-			name: "FOR EACH list literal", // Should now pass with fixed concat
+			name: "FOR EACH list literal",
 			inputSteps: []Step{
 				createTestStep("SET", "output", StringLiteralNode{Value: ""}, nil),
 				createForStep("item", ListLiteralNode{Elements: []interface{}{NumberLiteralNode{Value: int64(1)}, StringLiteralNode{Value: "X"}, BooleanLiteralNode{Value: true}, ListLiteralNode{Elements: []interface{}{StringLiteralNode{Value: "nest"}}}}}, []Step{
@@ -162,7 +161,7 @@ func TestExecuteStepsBlocksAndLoops(t *testing.T) {
 			expectedResult: nil, expectError: false,
 		},
 		{
-			name: "FOR EACH list variable", // Should now pass with fixed concat
+			name: "FOR EACH list variable",
 			inputSteps: []Step{
 				createTestStep("SET", "output", StringLiteralNode{Value: ""}, nil),
 				createForStep("val", VariableNode{Name: "myListVar"}, []Step{
@@ -174,9 +173,9 @@ func TestExecuteStepsBlocksAndLoops(t *testing.T) {
 			expectedResult: nil, expectError: false,
 		},
 
-		// --- FOR EACH Map Iteration (Keys) ---
+		// FOR EACH Map Iteration (Keys)
 		{
-			name: "FOR EACH map literal keys", // Corrected expectation based on loop logic
+			name: "FOR EACH map literal keys",
 			inputSteps: []Step{
 				createTestStep("SET", "output", StringLiteralNode{Value: ""}, nil),
 				createForStep("key", MapLiteralNode{Entries: []MapEntryNode{{Key: StringLiteralNode{Value: "b"}, Value: NumberLiteralNode{Value: int64(2)}}, {Key: StringLiteralNode{Value: "a"}, Value: NumberLiteralNode{Value: int64(1)}}}}, []Step{
@@ -188,11 +187,11 @@ func TestExecuteStepsBlocksAndLoops(t *testing.T) {
 				}),
 			},
 			initialVars:    map[string]interface{}{},
-			expectedVars:   map[string]interface{}{"output": "a,b,"}, // Expect sorted keys with comma
+			expectedVars:   map[string]interface{}{"output": "a,b,"},
 			expectedResult: nil, expectError: false,
 		},
 		{
-			name: "FOR EACH map variable keys", // Corrected expectation based on loop logic
+			name: "FOR EACH map variable keys",
 			inputSteps: []Step{
 				createTestStep("SET", "output", StringLiteralNode{Value: ""}, nil),
 				createForStep("k", VariableNode{Name: "myMap"}, []Step{
@@ -200,11 +199,11 @@ func TestExecuteStepsBlocksAndLoops(t *testing.T) {
 				}),
 			},
 			initialVars:    map[string]interface{}{"myMap": map[string]interface{}{"z": true, "x": "hello", "a": 1}},
-			expectedVars:   map[string]interface{}{"myMap": map[string]interface{}{"z": true, "x": "hello", "a": 1}, "output": "axz"}, // Expect sorted key concat
+			expectedVars:   map[string]interface{}{"myMap": map[string]interface{}{"z": true, "x": "hello", "a": 1}, "output": "axz"},
 			expectedResult: nil, expectError: false,
 		},
 
-		// --- Tool Call Tests ---
+		// Tool Call Tests
 		{name: "CALL TOOL StringLength AST", inputSteps: []Step{createTestStep("SET", "myStr", StringLiteralNode{Value: "Test"}, nil), createTestStep("CALL", "TOOL.StringLength", nil, []interface{}{VariableNode{Name: "myStr"}}), createTestStep("SET", "lenResult", LastNode{}, nil)}, initialVars: map[string]interface{}{}, expectedVars: map[string]interface{}{"myStr": "Test", "lenResult": int64(4)}, expectedResult: nil, expectError: false},
 		{name: "CALL TOOL Substring AST", inputSteps: []Step{createTestStep("CALL", "TOOL.Substring", nil, []interface{}{StringLiteralNode{Value: "ABCDE"}, NumberLiteralNode{Value: int64(1)}, NumberLiteralNode{Value: int64(4)}}), createTestStep("SET", "sub", LastNode{}, nil)}, initialVars: map[string]interface{}{}, expectedVars: map[string]interface{}{"sub": "BCD"}, expectedResult: nil, expectError: false},
 		{name: "CALL TOOL Substring Wrong Arg Type AST", inputSteps: []Step{createTestStep("CALL", "TOOL.Substring", nil, []interface{}{StringLiteralNode{Value: "hello"}, StringLiteralNode{Value: "one"}, NumberLiteralNode{Value: int64(3)}})}, initialVars: map[string]interface{}{}, expectedResult: nil, expectError: true, errorContains: "cannot be converted to int"},

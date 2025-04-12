@@ -2,16 +2,16 @@ package core
 
 import (
 	"fmt"
-
+	// Keep log
 	"github.com/aprice2704/neuroscript/pkg/neurodata/metadata" // Import the actual metadata package
 )
 
 // registerMetadataTools adds metadata extraction tool.
-func registerMetadataTools(registry *ToolRegistry) {
-	registry.RegisterTool(ToolImplementation{
+// *** MODIFIED: Returns error ***
+func registerMetadataTools(registry *ToolRegistry) error {
+	err := registry.RegisterTool(ToolImplementation{ // Capture potential error
 		Spec: ToolSpec{
-			Name: "ExtractMetadata", // Renamed from TOOL.ExtractMetadata for consistency? Stick with TOOL.* for now.
-			// Name:        "TOOL.ExtractMetadata", // Keep prefix? Let's stick with it.
+			Name:        "ExtractMetadata", // Use base name for registry key
 			Description: "Extracts ':: key: value' metadata from the beginning of the provided string content. Skips comments/blank lines before the first non-metadata line.",
 			Args: []ArgSpec{
 				{Name: "content", Type: ArgTypeString, Required: true, Description: "The string content from which to extract metadata."},
@@ -20,6 +20,11 @@ func registerMetadataTools(registry *ToolRegistry) {
 		},
 		Func: toolExtractMetadataFromString,
 	})
+	// *** Check error from RegisterTool ***
+	if err != nil {
+		return fmt.Errorf("failed to register Metadata tool ExtractMetadata: %w", err)
+	}
+	return nil // Success
 }
 
 // toolExtractMetadataFromString extracts metadata from a string.

@@ -9,30 +9,39 @@ import (
 )
 
 // registerVectorTools adds Vector DB related tools to the registry.
-func registerVectorTools(registry *ToolRegistry) {
-	registry.RegisterTool(ToolImplementation{
-		Spec: ToolSpec{
-			Name:        "SearchSkills",
-			Description: "Searches the (mock) vector index for skills matching a query.",
-			Args: []ArgSpec{
-				{Name: "query", Type: ArgTypeString, Required: true, Description: "Natural language query."},
+// *** MODIFIED: Returns error ***
+func registerVectorTools(registry *ToolRegistry) error {
+	tools := []ToolImplementation{
+		{
+			Spec: ToolSpec{
+				Name:        "SearchSkills",
+				Description: "Searches the (mock) vector index for skills matching a query.",
+				Args: []ArgSpec{
+					{Name: "query", Type: ArgTypeString, Required: true, Description: "Natural language query."},
+				},
+				ReturnType: ArgTypeString, // Returns JSON string of results
 			},
-			ReturnType: ArgTypeString, // Returns JSON string of results
+			Func: toolSearchSkills,
 		},
-		Func: toolSearchSkills,
-	})
-
-	registry.RegisterTool(ToolImplementation{
-		Spec: ToolSpec{
-			Name:        "VectorUpdate",
-			Description: "Updates the (mock) vector index for a given file.",
-			Args: []ArgSpec{
-				{Name: "filepath", Type: ArgTypeString, Required: true, Description: "Relative path to the skill file to index."},
+		{
+			Spec: ToolSpec{
+				Name:        "VectorUpdate",
+				Description: "Updates the (mock) vector index for a given file.",
+				Args: []ArgSpec{
+					{Name: "filepath", Type: ArgTypeString, Required: true, Description: "Relative path to the skill file to index."},
+				},
+				ReturnType: ArgTypeString, // Returns "OK" or error message
 			},
-			ReturnType: ArgTypeString, // Returns "OK" or error message
+			Func: toolVectorUpdate,
 		},
-		Func: toolVectorUpdate,
-	})
+	}
+	for _, tool := range tools {
+		// *** Check error from RegisterTool ***
+		if err := registry.RegisterTool(tool); err != nil {
+			return fmt.Errorf("failed to register Vector tool %s: %w", tool.Spec.Name, err)
+		}
+	}
+	return nil // Success
 }
 
 // toolSearchSkills performs a mock similarity search.

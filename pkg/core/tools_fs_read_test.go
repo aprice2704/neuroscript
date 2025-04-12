@@ -2,118 +2,98 @@
 package core
 
 import (
+	// Keep errors
+	"fmt" // Keep fmt
 	"os"
-	"path/filepath"
-	"strings"
+	"path/filepath" // Keep filepath
+
+	// Keep strings for error message check
 	"testing"
 )
 
-// Assume newTestInterpreter and makeArgs are defined in testing_helpers.go
+// Remove the duplicate testFsToolHelper function definition here
+/*
+func testFsToolHelper(...) {
+    ... // REMOVED
+}
+*/
 
 func TestToolReadFile(t *testing.T) {
-	dummyInterp := newDefaultTestInterpreter()
-	testDirAbs := t.TempDir()
+	interp, sandboxDir := newDefaultTestInterpreter(t) // Get interpreter and sandbox
 
-	content1 := "Hello Reader!"
-	content2 := "Line1\nLine2"
-	file1Rel := "read_test1.txt"
-	file2Rel := filepath.Join("subdir", "read_test2.txt")
-	notFoundRel := "not_exists.txt"
-	outsideRel := "../secrets.txt"
-
-	subDirAbs := filepath.Join(testDirAbs, "subdir")
-	if err := os.MkdirAll(subDirAbs, 0755); err != nil {
-		t.Fatalf("Mkdir failed: %v", err)
-	}
-	if err := os.WriteFile(filepath.Join(testDirAbs, file1Rel), []byte(content1), 0644); err != nil {
-		t.Fatalf("Write failed: %v", err)
-	}
-	if err := os.WriteFile(filepath.Join(subDirAbs, "read_test2.txt"), []byte(content2), 0644); err != nil {
-		t.Fatalf("Write failed: %v", err)
-	}
-
-	tests := []struct {
-		name           string
-		inputArg       string // Path *relative* to testDirAbs
-		wantResult     string
-		wantToolError  bool
-		wantResultFail bool
-		valWantErr     bool
-		valErrContains string
-	}{
-		{name: "Read OK Simple", inputArg: file1Rel, wantResult: content1, wantResultFail: false, valWantErr: false},
-		{name: "Read OK Subdir", inputArg: file2Rel, wantResult: content2, wantResultFail: false, valWantErr: false},
-		{name: "Read File Not Found", inputArg: notFoundRel, wantResult: "File not found", wantResultFail: true, valWantErr: false},
-		{name: "Read Path Outside", inputArg: outsideRel, wantResult: "path error", wantResultFail: true, valWantErr: false}, // Expect error string from SecureFilePath
-		// Validation Errors
-		// *** UPDATED Expected Error String ***
-		{name: "Validation Wrong Arg Type", inputArg: "", valWantErr: true, valErrContains: "type validation failed for argument 'filepath' of tool 'ReadFile': expected string, got int"},
-		{name: "Validation Wrong Arg Count", inputArg: "", valWantErr: true, valErrContains: "expected exactly 1 arguments"},
-	}
-
-	spec := ToolSpec{Name: "ReadFile", Args: []ArgSpec{{Name: "filepath", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeString}
-
-	originalWD, err := os.Getwd()
+	// Setup test file
+	testFilePathRel := "readTest.txt"
+	// testFilePathAbs := filepath.Join(sandboxDir, testFilePathRel) // Not needed directly
+	testContent := "Hello\nWorld!"
+	err := os.WriteFile(testFilePathRel, []byte(testContent), 0644) // Write relative to sandbox (CWD)
 	if err != nil {
-		t.Fatalf("Failed to get original CWD: %v", err)
+		t.Fatalf("Failed to write test file: %v", err)
 	}
-	t.Cleanup(func() { os.Chdir(originalWD) })
+	// Cleanup handled by t.TempDir()
+
+	// Create a directory to test reading a directory
+	testDirPathRel := "readTestDir"
+	// testDirPathAbs := filepath.Join(sandboxDir, testDirPathRel) // Not needed directly
+	os.Mkdir(testDirPathRel, 0755) // Create relative to sandbox (CWD)
+	// Cleanup handled by t.TempDir()
+
+	// Use the unified fsTestCase struct
+	tests := []fsTestCase{
+		{
+			name:       "Read Existing File",
+			toolName:   "ReadFile",
+			args:       makeArgs(testFilePathRel), // Use relative path for arg
+			wantResult: testContent,
+		},
+		{
+			name:       "Read Non-Existent File",
+			toolName:   "ReadFile",
+			args:       makeArgs("nonexistent.txt"),
+			wantResult: "ReadFile failed: File not found at path 'nonexistent.txt'", // Expect error message string
+			// Expect the tool to return ErrInternalTool wrapping the os error
+			wantToolErrIs: ErrInternalTool,
+		},
+		{
+			name:     "Read Directory",
+			toolName: "ReadFile",
+			args:     makeArgs(testDirPathRel), // Use relative path
+			// Expect specific error message string
+			wantResult:    fmt.Sprintf("ReadFile failed for '%s': read %s: is a directory", testDirPathRel, filepath.Join(sandboxDir, testDirPathRel)),
+			wantToolErrIs: ErrInternalTool, // Expect the tool to return ErrInternalTool wrapping the os error
+		},
+		{
+			name:         "Validation_Wrong_Arg_Type",
+			toolName:     "ReadFile",
+			args:         makeArgs(123),             // Invalid type
+			valWantErrIs: ErrValidationTypeMismatch, // Expect validation type error
+		},
+		{
+			name:         "Validation_Missing_Arg",
+			toolName:     "ReadFile",
+			args:         makeArgs(),            // Missing arg
+			valWantErrIs: ErrValidationArgCount, // Expect validation count error
+		},
+		{
+			name:       "Path_Outside_Sandbox",
+			toolName:   "ReadFile",
+			args:       makeArgs("../outside.txt"),
+			wantResult: fmt.Sprintf("ReadFile path error for '../outside.txt': %s: relative path '../outside.txt' resolves to '%s' which is outside the allowed directory '%s'", ErrPathViolation.Error(), filepath.Clean(filepath.Join(sandboxDir, "../outside.txt")), sandboxDir), // Construct expected error message
+			// *** MODIFIED: Expect ErrPathViolation from tool ***
+			wantToolErrIs: ErrPathViolation,
+		},
+		{
+			name:         "Validation_Nil_Arg",
+			toolName:     "ReadFile",
+			args:         makeArgs(nil),               // Pass nil for path
+			valWantErrIs: ErrValidationRequiredArgNil, // Expect validation error
+		},
+	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			var rawArgs []interface{}
-			if tt.name == "Validation Wrong Arg Count" {
-				rawArgs = makeArgs()
-			} else if tt.name == "Validation Wrong Arg Type" {
-				rawArgs = makeArgs(123) // Pass int instead of string
-			} else {
-				rawArgs = makeArgs(tt.inputArg)
-			} // Pass relative path
-
-			// --- Change CWD for execution context ---
-			err := os.Chdir(testDirAbs)
-			if err != nil {
-				t.Fatalf("Failed to Chdir to temp dir %s: %v", testDirAbs, err)
-			}
-			defer os.Chdir(originalWD)
-			// --- End CWD Change ---
-
-			// Validation
-			convertedArgs, valErr := ValidateAndConvertArgs(spec, rawArgs)
-			if (valErr != nil) != tt.valWantErr {
-				t.Errorf("Validate err=%v, wantErr %v", valErr, tt.valWantErr)
-				return
-			}
-			if tt.valWantErr {
-				if tt.valErrContains != "" && (valErr == nil || !strings.Contains(valErr.Error(), tt.valErrContains)) {
-					t.Errorf("Validate expected err %q, got: %v", tt.valErrContains, valErr)
-				}
-				return
-			}
-			if valErr != nil && !tt.valWantErr {
-				t.Fatalf("Validate unexpected err: %v", valErr)
-			}
-
-			// Execution
-			gotResult, toolErr := toolReadFile(dummyInterp, convertedArgs)
-			if (toolErr != nil) != tt.wantToolError {
-				t.Fatalf("toolReadFile Go error = %v, wantToolError %v", toolErr, tt.wantToolError)
-			}
-			gotStr, ok := gotResult.(string)
-			if !ok {
-				t.Fatalf("Expected string result, got %T (%v)", gotResult, gotResult)
-			}
-
-			// Check result content
-			if tt.wantResultFail {
-				if !strings.Contains(gotStr, tt.wantResult) {
-					t.Errorf("Expected result error string containing %q, got %q", tt.wantResult, gotStr)
-				}
-			} else {
-				if gotStr != tt.wantResult {
-					t.Errorf("Result mismatch:\ngot:  %q\nwant: %q", gotStr, tt.wantResult)
-				}
-			}
-		})
+		// Pass interp and tt to the helper in testing_helpers_test.go
+		// Need to adjust the helper slightly if we want to check *both*
+		// the specific error type (wantToolErrIs) AND the string result (wantResult)
+		// when an error occurs. Let's assume helper checks error first, then result if no error or if wantResult is set.
+		testFsToolHelper(t, interp, tt)
 	}
 }

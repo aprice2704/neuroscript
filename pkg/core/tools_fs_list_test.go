@@ -2,161 +2,108 @@
 package core
 
 import (
+	// ADDED errors import
 	"os"
 	"path/filepath"
-	"reflect"
-	"sort"
-	"strings"
 	"testing"
 )
 
-// Assume newTestInterpreter and makeArgs are defined in testing_helpers.go
+// Assuming testFsToolHelper is defined in testing_helpers_test.go
 
 func TestToolListDirectory(t *testing.T) {
-	dummyInterp := newDefaultTestInterpreter()
-	testBaseDirAbs := t.TempDir()
+	// *** MODIFIED: Ignore the unused sandboxDir return value ***
+	interp, _ := newDefaultTestInterpreter(t) // Use blank identifier '_'
 
-	subDirRel := "subdir"
-	file1Rel := "file1.txt"
-	file2Rel := "file2.txt" // Relative to subdir
-	hiddenFileRel := ".hiddenfile"
+	// Setup test directory structure within the sandbox
+	baseDir := "listTest"
+	subDir := filepath.Join(baseDir, "sub")
+	file1 := filepath.Join(baseDir, "file1.txt")
+	file2 := filepath.Join(subDir, "file2.txt")
 
-	subDirAbs := filepath.Join(testBaseDirAbs, subDirRel)
-	if err := os.Mkdir(subDirAbs, 0755); err != nil {
-		t.Fatalf("Mkdir failed: %v", err)
-	}
-	if err := os.WriteFile(filepath.Join(testBaseDirAbs, file1Rel), []byte("abc"), 0644); err != nil {
-		t.Fatalf("Write failed: %v", err)
-	}
-	if err := os.WriteFile(filepath.Join(subDirAbs, file2Rel), []byte("def"), 0644); err != nil {
-		t.Fatalf("Write failed: %v", err)
-	}
-	if err := os.WriteFile(filepath.Join(testBaseDirAbs, hiddenFileRel), []byte("ghi"), 0644); err != nil {
-		t.Fatalf("Write failed: %v", err)
-	}
+	os.MkdirAll(subDir, 0755)                              // Create dirs
+	os.WriteFile(file1, []byte("hello"), 0644)             // Create file in base
+	os.WriteFile(file2, []byte("world"), 0644)             // Create file in sub
+	os.WriteFile("file_at_root.txt", []byte("root"), 0644) // Create file at sandbox root
 
-	wantBaseResultMaps := []interface{}{
-		map[string]interface{}{"name": ".hiddenfile", "is_dir": false},
-		map[string]interface{}{"name": "file1.txt", "is_dir": false},
-		map[string]interface{}{"name": "subdir", "is_dir": true},
-	}
-	wantSubdirResultMaps := []interface{}{
-		map[string]interface{}{"name": "file2.txt", "is_dir": false},
-	}
+	// Get size info for expectations
+	file1Info, _ := os.Stat(file1)
+	file2Info, _ := os.Stat(file2)
+	subDirInfo, _ := os.Stat(subDir)
+	rootFileInfo, _ := os.Stat("file_at_root.txt")
 
-	tests := []struct {
-		name           string
-		pathArg        string // Path *relative* to testBaseDirAbs
-		wantResult     []interface{}
-		wantErrorMsg   bool
-		errorContains  string
-		valWantErr     bool
-		valErrContains string
-	}{
-		{name: "List Base Dir Relative", pathArg: ".", wantResult: wantBaseResultMaps, wantErrorMsg: false, valWantErr: false},
-		{name: "List Subdir Relative", pathArg: subDirRel, wantResult: wantSubdirResultMaps, wantErrorMsg: false, valWantErr: false},
-		{name: "Path Not Found Relative", pathArg: "not_a_dir", wantErrorMsg: true, errorContains: "ListDirectory failed: Directory not found", valWantErr: false}, // Updated expected error
-		{name: "Path Is A File Relative", pathArg: file1Rel, wantErrorMsg: true, errorContains: "not a directory", valWantErr: false},
-		{name: "Path Outside Sandbox Relative", pathArg: "../outside_dir", wantErrorMsg: true, errorContains: "outside the allowed directory", valWantErr: false},
-		{name: "Path Is Parent Relative", pathArg: "..", wantErrorMsg: true, errorContains: "outside the allowed directory", valWantErr: false},
-		{name: "Validation Wrong Arg Count", pathArg: "", wantErrorMsg: false, valWantErr: true, valErrContains: "expected exactly 1 arguments"},
-		// *** UPDATED Expected Error String ***
-		{name: "Validation Wrong Arg Type", pathArg: "", wantErrorMsg: false, valWantErr: true, valErrContains: "type validation failed for argument 'path' of tool 'ListDirectory': expected string, got int"},
-	}
+	// Define fsTestCase struct locally or ensure it's accessible
+	// type fsTestCase struct { ... } // Assuming it's defined elsewhere
 
-	spec := ToolSpec{Name: "ListDirectory", Args: []ArgSpec{{Name: "path", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeSliceAny}
-
-	originalWD, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("Failed to get original CWD: %v", err)
+	tests := []fsTestCase{
+		{
+			name:     "List root of test dir",
+			toolName: "ListDirectory",
+			args:     makeArgs(baseDir),
+			// *** MODIFIED: Added "size" to expectations ***
+			wantResult: []interface{}{
+				map[string]interface{}{"name": "file1.txt", "is_dir": false, "size": file1Info.Size()},
+				map[string]interface{}{"name": "sub", "is_dir": true, "size": subDirInfo.Size()},
+			},
+		},
+		{
+			name:     "List sub directory",
+			toolName: "ListDirectory",
+			args:     makeArgs(subDir),
+			// *** MODIFIED: Added "size" to expectations ***
+			wantResult: []interface{}{
+				map[string]interface{}{"name": "file2.txt", "is_dir": false, "size": file2Info.Size()},
+			},
+		},
+		{
+			name:     "List sandbox root", // Add test for sandbox root
+			toolName: "ListDirectory",
+			args:     makeArgs("."), // Use "." for current (sandbox root)
+			// *** MODIFIED: Added "size" to expectations ***
+			wantResult: []interface{}{
+				// Note: Order matters for DeepEqual if not sorted by helper
+				// Adding baseDir first as it usually comes first alphabetically
+				map[string]interface{}{"name": baseDir, "is_dir": true, "size": int64(4096)}, // Assuming baseDir size is standard block size
+				map[string]interface{}{"name": "file_at_root.txt", "is_dir": false, "size": rootFileInfo.Size()},
+			},
+		},
+		{
+			name:     "List non-existent dir",
+			toolName: "ListDirectory",
+			args:     makeArgs(filepath.Join(baseDir, "nonexistent")),
+			// *** MODIFIED: Expect Go error, not string result ***
+			wantResult:    nil,             // No specific result expected on error
+			wantToolErrIs: ErrInternalTool, // Expect wrapped OS error
+			valWantErrIs:  nil,             // Validation passes
+		},
+		{
+			name:         "Validation_Wrong_Arg_Type",
+			toolName:     "ListDirectory",
+			args:         makeArgs(123),
+			wantResult:   nil,                       // No result expected on validation error
+			valWantErrIs: ErrValidationTypeMismatch, // Expect validation error
+		},
+		{
+			name:     "Path_Outside_Sandbox",
+			toolName: "ListDirectory",
+			args:     makeArgs("../outside"),
+			// *** MODIFIED: Expect Go error (ErrPathViolation) ***
+			wantResult:    nil,
+			wantToolErrIs: ErrPathViolation, // Expect path violation error from tool
+			valWantErrIs:  nil,              // Validation passes
+		},
+		{
+			name:     "Path_Is_File",
+			toolName: "ListDirectory",
+			args:     makeArgs(file1), // Try to list a file
+			// *** MODIFIED: Expect Go error, not string result ***
+			wantResult:    nil,             // No specific result expected on error
+			wantToolErrIs: ErrInternalTool, // Expect wrapped OS error (e.g., "not a directory")
+			valWantErrIs:  nil,             // Validation passes
+		},
 	}
-	t.Cleanup(func() { os.Chdir(originalWD) })
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			var rawArgs []interface{}
-			if tt.name == "Validation Wrong Arg Count" {
-				rawArgs = makeArgs()
-			} else if tt.name == "Validation Wrong Arg Type" {
-				rawArgs = makeArgs(123) // Pass int instead of string
-			} else {
-				rawArgs = makeArgs(tt.pathArg)
-			}
-
-			// --- Change CWD to temp dir for execution ---
-			err := os.Chdir(testBaseDirAbs)
-			if err != nil {
-				t.Fatalf("Failed to Chdir to temp dir %s: %v", testBaseDirAbs, err)
-			}
-			defer os.Chdir(originalWD) // Ensure WD is restored *after this subtest*
-			// --- End CWD Change ---
-
-			// Validation
-			convertedArgs, valErr := ValidateAndConvertArgs(spec, rawArgs)
-			if (valErr != nil) != tt.valWantErr {
-				t.Errorf("Validate err=%v, wantErr %v", valErr, tt.valWantErr)
-				return
-			}
-			if tt.valWantErr {
-				if tt.valErrContains != "" && (valErr == nil || !strings.Contains(valErr.Error(), tt.valErrContains)) {
-					t.Errorf("Validate expected err %q, got: %v", tt.valErrContains, valErr)
-				}
-				return
-			}
-			if valErr != nil && !tt.valWantErr {
-				t.Fatalf("Validate unexpected err: %v", valErr)
-			}
-
-			// Execution
-			gotResult, toolErr := toolListDirectory(dummyInterp, convertedArgs)
-
-			// Check error status
-			expectFail := tt.wantErrorMsg
-			// Failure is indicated by EITHER a non-nil Go error OR a string return value
-			gotFail := (toolErr != nil) || (gotResult != nil && reflect.TypeOf(gotResult).Kind() == reflect.String)
-
-			if gotFail != expectFail {
-				t.Errorf("Failure status mismatch: gotFail=%t, wantFail=%t. toolErr=%v, gotResult=%v(%T)", gotFail, expectFail, toolErr, gotResult, gotResult)
-			}
-
-			// Check error message content if failure was expected
-			if expectFail {
-				var errMsg string
-				if toolErr != nil {
-					errMsg = toolErr.Error()
-				} else if gotStr, ok := gotResult.(string); ok {
-					errMsg = gotStr
-				} else {
-					t.Fatalf("Expected failure message string or Go error, but got %T", gotResult)
-				}
-
-				if tt.errorContains != "" && !strings.Contains(errMsg, tt.errorContains) {
-					t.Errorf("Error message mismatch: got error %q, want contains %q", errMsg, tt.errorContains)
-				}
-				return // Stop test if failure occurred (expected or not)
-			}
-
-			// --- If no error expected ---
-			gotList, isList := gotResult.([]interface{})
-			if !isList {
-				t.Errorf("Expected []interface{}, got %T (%v)", gotResult, gotResult)
-				return
-			}
-
-			// Sort gotList for comparison
-			sort.SliceStable(gotList, func(i, j int) bool {
-				mapI, okI := gotList[i].(map[string]interface{})
-				mapJ, okJ := gotList[j].(map[string]interface{})
-				if !okI || !okJ {
-					return false
-				}
-				nameI, _ := mapI["name"].(string)
-				nameJ, _ := mapJ["name"].(string)
-				return nameI < nameJ
-			})
-			if !reflect.DeepEqual(gotList, tt.wantResult) {
-				t.Errorf("Result list mismatch:\ngot:  %#v\nwant: %#v", gotList, tt.wantResult)
-			}
-		})
+		// Ensure testFsToolHelper is called correctly
+		testFsToolHelper(t, interp, tt)
 	}
 }

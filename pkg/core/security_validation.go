@@ -1,4 +1,4 @@
-// filename: pkg/core/security_validation.go
+// filename: neuroscript/pkg/core/security_validation.go
 package core
 
 import (
@@ -44,33 +44,39 @@ func (sl *SecurityLayer) validateArgumentsAgainstSpec(toolSpec ToolSpec, rawArgs
 			return nil, fmt.Errorf("type validation failed for argument '%s': %w", argName, validationError)
 		}
 
-		// *** ADDED: Specific numeric check for TOOL.Add arguments ***
+		// c) Tool-specific checks (e.g., numeric check for TOOL.Add)
 		if toolSpec.Name == "TOOL.Add" && (argName == "num1" || argName == "num2") {
-			if _, isNum := ToNumeric(validatedValue); !isNum { // Use ToNumeric helper
+			if _, isNum := ToNumeric(validatedValue); !isNum {
 				validationError = fmt.Errorf("argument '%s' for TOOL.Add must be numeric, got %T", argName, validatedValue)
 			}
 		}
-		// *** END ADDITION ***
+		// Add other tool-specific checks here if needed
 
 		if validationError != nil { // Check again after tool-specific validation
 			sl.logger.Printf("[SEC] DENIED (Tool Specific Check): %v", validationError)
 			return nil, validationError
 		}
 
-		// c) Path Sandboxing
+		// d) Path Sandboxing
 		isPathArg := (toolSpec.Name == "TOOL.ReadFile" && argName == "filepath") ||
 			(toolSpec.Name == "TOOL.WriteFile" && argName == "filepath") ||
 			(toolSpec.Name == "TOOL.ListDirectory" && argName == "path") ||
-			(toolSpec.Name == "TOOL.GitAdd" && argName == "filepath")
+			(toolSpec.Name == "TOOL.GitAdd" && argName == "filepath") ||
+			(toolSpec.Name == "TOOL.GoCheck" && argName == "target") || // Added GoCheck
+			(toolSpec.Name == "TOOL.GoBuild" && argName == "target") || // Added GoBuild
+			(toolSpec.Name == "TOOL.LineCountFile" && argName == "filepath") // Added LineCountFile
 
 		if isPathArg && specArg.Type == ArgTypeString {
 			pathStr, _ := validatedValue.(string)
+			// Use the sandboxRoot configured in the SecurityLayer
 			_, pathErr := SecureFilePath(pathStr, sl.sandboxRoot)
 			if pathErr != nil {
-				errMsg := fmt.Sprintf("sandbox validation failed for path argument '%s' (%q): %v", argName, pathStr, pathErr)
+				errMsg := fmt.Sprintf("sandbox validation failed for path argument '%s' (%q) relative to root %q: %v", argName, pathStr, sl.sandboxRoot, pathErr)
 				sl.logger.Printf("[SEC] DENIED (Sandbox): %s", errMsg)
-				return nil, fmt.Errorf(errMsg)
+				return nil, fmt.Errorf(errMsg) // Return the detailed error
 			}
+			// Store the validated *relative* path string back.
+			// The actual tool function will resolve it again against CWD (which should be sandbox root in agent mode).
 			validatedValue = pathStr
 			sl.logger.Printf("[SEC VALIDATE] Path argument '%s' (%q) validated successfully within sandbox %q.", argName, pathStr, sl.sandboxRoot)
 		}
@@ -98,7 +104,6 @@ func (sl *SecurityLayer) validateArgumentsAgainstSpec(toolSpec ToolSpec, rawArgs
 }
 
 // validateAndCoerceType checks if the rawValue matches the expected ArgType and attempts coercion.
-// (Implementation remains the same as previous version)
 func (sl *SecurityLayer) validateAndCoerceType(rawValue interface{}, expectedType ArgType, toolName, argName string) (interface{}, error) {
 	var validatedValue interface{}
 	var ok bool
@@ -125,12 +130,13 @@ func (sl *SecurityLayer) validateAndCoerceType(rawValue interface{}, expectedTyp
 			err = fmt.Errorf("expected boolean, got %T (%v)", rawValue, rawValue)
 		}
 	case ArgTypeSliceString:
-		validatedValue, ok, err = convertToSliceOfString(rawValue)
+		// *** FIXED: Use exported function ***
+		validatedValue, ok, err = ConvertToSliceOfString(rawValue) // Use exported helper
 		if !ok && err == nil {
 			err = fmt.Errorf("expected slice of strings, got %T", rawValue)
 		}
 	case ArgTypeSliceAny:
-		validatedValue, ok, err = convertToSliceOfAny(rawValue)
+		validatedValue, ok, err = convertToSliceOfAny(rawValue) // Can remain unexported if only used here
 		if !ok && err == nil {
 			err = fmt.Errorf("expected a slice, got %T", rawValue)
 		}

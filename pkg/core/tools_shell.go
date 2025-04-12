@@ -13,39 +13,22 @@ import (
 )
 
 // registerShellTools adds shell execution and Go-related tools to the registry.
-func registerShellTools(registry *ToolRegistry) {
-	registry.RegisterTool(ToolImplementation{
-		Spec: ToolSpec{Name: "ExecuteCommand", Description: "Executes an arbitrary shell command...", Args: []ArgSpec{{Name: "command", Type: ArgTypeString, Required: true}, {Name: "args_list", Type: ArgTypeSliceAny, Required: true}}, ReturnType: ArgTypeAny}, Func: toolExecuteCommand,
-	})
-
-	// Keep GoBuild as is for now, but maybe make target required or default to '.'?
-	registry.RegisterTool(ToolImplementation{
-		Spec: ToolSpec{Name: "GoBuild", Description: "Runs 'go build [target]'...", Args: []ArgSpec{{Name: "target", Type: ArgTypeString, Required: false, Description: "Optional build target. Defaults to './...'"}}, ReturnType: ArgTypeAny}, Func: toolGoBuild,
-	})
-
-	// *** ADDING GoCheck TOOL ***
-	registry.RegisterTool(ToolImplementation{
-		Spec: ToolSpec{
-			Name:        "GoCheck",
-			Description: "Checks Go code validity using 'go list -e -json <target>'. Returns map {check_success: bool, error_details: string}.",
-			Args: []ArgSpec{
-				{Name: "target", Type: ArgTypeString, Required: true, Description: "Target Go package path or file path (e.g., './pkg/core', 'test_files/simple_test.go')."},
-			},
-			ReturnType: ArgTypeAny, // Returns a map
-		},
-		Func: toolGoCheck, // Use new function
-	})
-	// *** END ADDITION ***
-
-	registry.RegisterTool(ToolImplementation{
-		Spec: ToolSpec{Name: "GoTest", Description: "Runs 'go test ./...'...", Args: []ArgSpec{}, ReturnType: ArgTypeAny}, Func: toolGoTest,
-	})
-	registry.RegisterTool(ToolImplementation{
-		Spec: ToolSpec{Name: "GoFmt", Description: "Formats Go source code provided as a string...", Args: []ArgSpec{{Name: "content", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeAny}, Func: toolGoFmt,
-	})
-	registry.RegisterTool(ToolImplementation{
-		Spec: ToolSpec{Name: "GoModTidy", Description: "Runs 'go mod tidy'...", Args: []ArgSpec{}, ReturnType: ArgTypeAny}, Func: toolGoModTidy,
-	})
+func registerShellTools(registry *ToolRegistry) error {
+	tools := []ToolImplementation{
+		{Spec: ToolSpec{Name: "ExecuteCommand", Description: "Executes an arbitrary shell command...", Args: []ArgSpec{{Name: "command", Type: ArgTypeString, Required: true}, {Name: "args_list", Type: ArgTypeSliceAny, Required: true}}, ReturnType: ArgTypeAny}, Func: toolExecuteCommand},
+		{Spec: ToolSpec{Name: "GoBuild", Description: "Runs 'go build [target]'...", Args: []ArgSpec{{Name: "target", Type: ArgTypeString, Required: false, Description: "Optional build target. Defaults to './...'"}}, ReturnType: ArgTypeAny}, Func: toolGoBuild},
+		{Spec: ToolSpec{Name: "GoCheck", Description: "Checks Go code validity using 'go list -e -json <target>'...", Args: []ArgSpec{{Name: "target", Type: ArgTypeString, Required: true, Description: "Target Go package path or file path (e.g., './pkg/core', 'test_files/simple_test.go')."}}, ReturnType: ArgTypeAny}, Func: toolGoCheck},
+		{Spec: ToolSpec{Name: "GoTest", Description: "Runs 'go test ./...'...", Args: []ArgSpec{}, ReturnType: ArgTypeAny}, Func: toolGoTest},
+		// *** UPDATED ReturnType for GoFmt to ArgTypeString (on success) ***
+		{Spec: ToolSpec{Name: "GoFmt", Description: "Formats Go source code provided as a string. Returns formatted string on success, map with error details on failure.", Args: []ArgSpec{{Name: "content", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeAny}, Func: toolGoFmt},
+		{Spec: ToolSpec{Name: "GoModTidy", Description: "Runs 'go mod tidy'...", Args: []ArgSpec{}, ReturnType: ArgTypeAny}, Func: toolGoModTidy},
+	}
+	for _, tool := range tools {
+		if err := registry.RegisterTool(tool); err != nil {
+			return fmt.Errorf("failed to register Shell/Go tool %s: %w", tool.Spec.Name, err)
+		}
+	}
+	return nil // Success
 }
 
 // toolExecuteCommand implementation (remains the same)
@@ -113,7 +96,7 @@ func toolExecuteCommand(interpreter *Interpreter, args []interface{}) (interface
 	return resultMap, nil
 }
 
-// *** NEW toolGoCheck IMPLEMENTATION ***
+// toolGoCheck implementation (remains the same)
 func toolGoCheck(interpreter *Interpreter, args []interface{}) (interface{}, error) {
 	// Validation ensures 1 string argument
 	targetPath := args[0].(string)
@@ -215,9 +198,7 @@ func toolGoCheck(interpreter *Interpreter, args []interface{}) (interface{}, err
 	return checkResultMap, nil
 }
 
-// *** END NEW IMPLEMENTATION ***
-
-// toolGoBuild implementation (remains the same for now)
+// toolGoBuild implementation (remains the same)
 func toolGoBuild(interpreter *Interpreter, args []interface{}) (interface{}, error) {
 	buildTarget := "./..."
 	if len(args) > 0 {
@@ -260,7 +241,7 @@ func toolGoTest(interpreter *Interpreter, args []interface{}) (interface{}, erro
 	return toolExecuteCommand(interpreter, executeArgs)
 }
 
-// toolGoFmt implementation (remains the same)
+// --- UPDATED toolGoFmt ---
 func toolGoFmt(interpreter *Interpreter, args []interface{}) (interface{}, error) {
 	content := args[0].(string)
 	srcBytes := []byte(content)
@@ -271,12 +252,11 @@ func toolGoFmt(interpreter *Interpreter, args []interface{}) (interface{}, error
 		}
 		interpreter.logger.Printf("[DEBUG-INTERP]      Calling TOOL.GoFmt on input content (snippet): %q", logSnippet)
 	}
+
 	formattedBytes, fmtErr := format.Source(srcBytes)
-	success := fmtErr == nil
-	errorString := ""
-	formattedContent := ""
-	if success {
-		formattedContent = string(formattedBytes)
+
+	if fmtErr == nil {
+		formattedContent := string(formattedBytes)
 		if interpreter.logger != nil {
 			if !bytes.Equal(srcBytes, formattedBytes) {
 				interpreter.logger.Printf("[DEBUG-INTERP]        GoFmt successful (content changed).")
@@ -284,16 +264,26 @@ func toolGoFmt(interpreter *Interpreter, args []interface{}) (interface{}, error
 				interpreter.logger.Printf("[DEBUG-INTERP]        GoFmt successful (no changes needed).")
 			}
 		}
+		// On success, return the formatted string directly and nil error
+		return formattedContent, nil
 	} else {
-		errorString = fmtErr.Error()
-		formattedContent = content
+		// On failure, return the original content and error details in a map,
+		// *and* return a wrapped ErrInternalTool.
+		errorString := fmtErr.Error()
 		if interpreter.logger != nil {
 			interpreter.logger.Printf("[DEBUG-INTERP]        GoFmt failed. Error: %q", errorString)
 		}
+		resultMap := map[string]interface{}{
+			"formatted_content": content, // Return original content on error
+			"error":             errorString,
+			"success":           false,
+		}
+		// Wrap the formatting error in ErrInternalTool
+		return resultMap, fmt.Errorf("%w: formatting failed: %w", ErrInternalTool, fmtErr)
 	}
-	resultMap := map[string]interface{}{"formatted_content": formattedContent, "error": errorString, "success": success}
-	return resultMap, nil
 }
+
+// --- END UPDATED toolGoFmt ---
 
 // toolGoModTidy implementation (remains the same)
 func toolGoModTidy(interpreter *Interpreter, args []interface{}) (interface{}, error) {
