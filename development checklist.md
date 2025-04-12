@@ -43,6 +43,11 @@
     [ ] ns_tool_list
     [ ] enum
     [ ] roles_list
+    [ ] object
+    [ ] ishikawa
+    [ ] kanban
+    [ ] memo
+    [ ] list
 
 **Tooling & Integration (Supporting Self-Management):**
 [ ] Tools: Enhance Git Workflow (Add Branch support, GitPull?, Auto-index after commit)
