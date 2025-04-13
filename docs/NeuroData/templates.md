@@ -10,12 +10,17 @@
 
 NeuroScript Templating provides a mechanism for generating text-based output (e.g., configuration files, code, reports, messages) by combining a template with structured data. It aims for a balance between simplicity, readability, necessary logic (conditionals, loops), and safety.
 
+## Metadata
+
+1. **Type** should be template (`:: type: template`)
+2. **Grammar should be hbars (`:: grammar: hbars`)
+3. **Target Grammar Metadata (`:: templateFor:`):** Included to provide explicit context about the template's intended output format. This enables tools to perform format-specific validation or apply context-aware escaping (e.g., HTML escaping).
+
 ## 2. Design Choices & Rationale
 
 The chosen approach is based on Handlebars syntax, incorporating specific NeuroScript integrations:
 * **Handlebars-like Syntax:** Selected over Go's `text/template` for better readability and language neutrality, aligning with NeuroScript's goals. Preferred over strict Mustache to allow essential control flow (`if`, `each`) directly within templates.
 * **Restricted `eval`:** Acknowledges the need for simple dynamic computations within templates (beyond basic variable substitution) but prioritizes safety. Direct NeuroScript execution within templates is disallowed; instead, an `{{eval "..."}}` helper provides access to a sandboxed NeuroScript expression evaluator with a *very* limited function/tool allowlist and access only to template data.
-* **Target Grammar Metadata (`:: templateFor:`):** Included to provide explicit context about the template's intended output format. This enables tools to perform format-specific validation or apply context-aware escaping (e.g., HTML escaping).
 * **Tool-Based Implementation:** Templating is exposed via a NeuroScript tool (`TOOL.RenderTemplate`) rather than adding new syntax to the core NeuroScript language, keeping the language itself simpler.
 
 ## 3. Template Syntax (Handlebars-based)
