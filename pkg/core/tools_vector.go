@@ -5,11 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath" // *** ADDED filepath import ***
 	"sort"
 )
 
 // registerVectorTools adds Vector DB related tools to the registry.
-// *** MODIFIED: Returns error ***
 func registerVectorTools(registry *ToolRegistry) error {
 	tools := []ToolImplementation{
 		{
@@ -28,7 +28,7 @@ func registerVectorTools(registry *ToolRegistry) error {
 				Name:        "VectorUpdate",
 				Description: "Updates the (mock) vector index for a given file.",
 				Args: []ArgSpec{
-					{Name: "filepath", Type: ArgTypeString, Required: true, Description: "Relative path to the skill file to index."},
+					{Name: "filepath", Type: ArgTypeString, Required: true, Description: "Relative path to the skill file to index (within the sandbox)."},
 				},
 				ReturnType: ArgTypeString, // Returns "OK" or error message
 			},
@@ -36,15 +36,15 @@ func registerVectorTools(registry *ToolRegistry) error {
 		},
 	}
 	for _, tool := range tools {
-		// *** Check error from RegisterTool ***
 		if err := registry.RegisterTool(tool); err != nil {
 			return fmt.Errorf("failed to register Vector tool %s: %w", tool.Spec.Name, err)
 		}
 	}
-	return nil // Success
+	return nil
 }
 
 // toolSearchSkills performs a mock similarity search.
+// (Implementation remains the same)
 func toolSearchSkills(interpreter *Interpreter, args []interface{}) (interface{}, error) {
 	// Validation handled by ValidateAndConvertArgs
 	query := args[0].(string)
@@ -74,15 +74,22 @@ func toolSearchSkills(interpreter *Interpreter, args []interface{}) (interface{}
 
 	for path, storedEmb := range interpreter.vectorIndex {
 		score, simErr := cosineSimilarity(queryEmb, storedEmb)
-		// Handle potential similarity calculation errors gracefully
 		if simErr != nil {
 			interpreter.logger.Printf("[WARN] Could not calculate similarity for '%s': %v", path, simErr)
 			continue // Skip this entry if similarity fails
 		}
 		if score >= threshold {
-			// Store the relative path if possible, or the key as stored
-			// For simplicity, using the map key directly for now.
-			results = append(results, SearchResult{Path: path, Score: score})
+			// Convert absolute path from index back to relative path for result consistency
+			relativePath := path // Default if conversion fails
+			if interpreter.sandboxDir != "" && filepath.IsAbs(path) {
+				rel, err := filepath.Rel(interpreter.sandboxDir, path)
+				if err == nil {
+					relativePath = rel
+				} else {
+					interpreter.logger.Printf("[WARN SearchSkills] Could not make path relative to sandbox '%s': %s (%v)", interpreter.sandboxDir, path, err)
+				}
+			}
+			results = append(results, SearchResult{Path: relativePath, Score: score})
 		}
 	}
 
@@ -106,44 +113,64 @@ func toolSearchSkills(interpreter *Interpreter, args []interface{}) (interface{}
 }
 
 // toolVectorUpdate adds or updates a file's mock embedding in the index.
+// *** MODIFIED: Use interpreter.sandboxDir instead of os.Getwd() ***
 func toolVectorUpdate(interpreter *Interpreter, args []interface{}) (interface{}, error) {
 	// Validation handled by ValidateAndConvertArgs
-	filePath := args[0].(string)
+	filePathRel := args[0].(string)
 
-	// Use SecureFilePath to ensure path is safe relative to CWD
-	cwd, errWd := os.Getwd()
-	if errWd != nil {
-		return nil, fmt.Errorf("VectorUpdate failed to get working directory: %w", errWd)
+	// *** Get sandbox root directly from the interpreter ***
+	sandboxRoot := interpreter.sandboxDir // Use the field name you added
+	if sandboxRoot == "" {
+		if interpreter.logger != nil {
+			interpreter.logger.Printf("[WARN TOOL VectorUpdate] Interpreter sandboxDir is empty, using default relative path validation.")
+		}
+		sandboxRoot = "." // Ensure it's at least relative to CWD if empty
 	}
-	absPath, secErr := SecureFilePath(filePath, cwd)
+
+	// Use SecureFilePath to ensure path is safe relative to sandboxDir
+	absPath, secErr := SecureFilePath(filePathRel, sandboxRoot) // *** Use sandboxRoot ***
 	if secErr != nil {
-		return fmt.Sprintf("VectorUpdate path error: %s", secErr.Error()), nil
+		// Path validation failed
+		errMsg := fmt.Sprintf("VectorUpdate path error: %s", secErr.Error())
+		if interpreter.logger != nil {
+			interpreter.logger.Printf("[TOOL VectorUpdate] %s (Sandbox Root: %s)", errMsg, sandboxRoot)
+		}
+		return errMsg, secErr // Return error message and actual error
 	}
 
 	if interpreter.logger != nil {
-		interpreter.logger.Printf("[DEBUG-INTERP]      Calling TOOL.VectorUpdate (Mock) for %s (Resolved: %s)", filePath, absPath)
+		interpreter.logger.Printf("[DEBUG-INTERP]      Calling TOOL.VectorUpdate (Mock) for %s (Resolved: %s, Sandbox: %s)", filePathRel, absPath, sandboxRoot)
 	}
 
-	// 1. Read file content
+	// 1. Read file content using the absolute path
 	contentBytes, readErr := os.ReadFile(absPath)
 	if readErr != nil {
-		return fmt.Sprintf("VectorUpdate read error for '%s': %s", filePath, readErr.Error()), nil
+		errMsg := fmt.Sprintf("VectorUpdate read error for '%s': %s", filePathRel, readErr.Error())
+		if interpreter.logger != nil {
+			interpreter.logger.Printf("[TOOL VectorUpdate] %s", errMsg)
+		}
+		return errMsg, fmt.Errorf("%w: reading file '%s': %w", ErrInternalTool, filePathRel, readErr) // Return error message and wrapped Go error
 	}
 
 	// 2. Generate embedding
 	embedding, embErr := interpreter.GenerateEmbedding(string(contentBytes))
 	if embErr != nil {
-		return fmt.Sprintf("VectorUpdate embedding generation failed: %s", embErr.Error()), nil
+		errMsg := fmt.Sprintf("VectorUpdate embedding generation failed: %s", embErr.Error())
+		if interpreter.logger != nil {
+			interpreter.logger.Printf("[TOOL VectorUpdate] %s", errMsg)
+		}
+		// Decide if embedding error is internal or should be reported as string
+		return errMsg, fmt.Errorf("%w: generating embedding for '%s': %w", ErrInternalTool, filePathRel, embErr) // Return error message and wrapped Go error
 	}
 
-	// 3. Update index (using absolute path as key for consistency)
+	// 3. Update index (using absolute path as key for consistency internally)
 	if interpreter.vectorIndex == nil {
 		interpreter.vectorIndex = make(map[string][]float32) // Initialize if nil
 	}
 	interpreter.vectorIndex[absPath] = embedding // Store with absolute path key
 
 	if interpreter.logger != nil {
-		interpreter.logger.Printf("[DEBUG-INTERP]      VectorUpdate successful for %s", filePath)
+		interpreter.logger.Printf("[DEBUG-INTERP]      VectorUpdate successful for %s", filePathRel)
 	}
 	return "OK", nil
 }

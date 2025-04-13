@@ -38,21 +38,6 @@ func registerFsFileTools(registry *ToolRegistry) error {
 	return nil
 }
 
-// registerFsUtilTools registers LineCountFile, SanitizeFilename
-func registerFsUtilTools(registry *ToolRegistry) error {
-	tools := []ToolImplementation{
-		{Spec: ToolSpec{Name: "LineCountFile", Description: "Counts lines in a specified file...", Args: []ArgSpec{{Name: "filepath", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeInt}, Func: toolLineCountFile},
-		{Spec: ToolSpec{Name: "SanitizeFilename", Description: "Cleans a string to make it suitable for use as part of a filename.", Args: []ArgSpec{{Name: "name", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeString}, Func: toolSanitizeFilename},
-		{Spec: ToolSpec{Name: "ListDirectory", Description: "Lists directory content within the sandbox...", Args: []ArgSpec{{Name: "path", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeSliceAny}, Func: toolListDirectory}, // Moved ListDirectory here conceptually
-	}
-	for _, tool := range tools {
-		if err := registry.RegisterTool(tool); err != nil {
-			return fmt.Errorf("failed to register FS util tool %s: %w", tool.Spec.Name, err)
-		}
-	}
-	return nil
-}
-
 // Note: Implementations like toolReadFile, toolWriteFile, toolListDirectory,
 // toolLineCountFile, toolSanitizeFilename would remain in their respective
 // implementation files (e.g., tools_fs_read.go, tools_fs_write.go, etc.)

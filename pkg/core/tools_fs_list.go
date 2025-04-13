@@ -3,42 +3,46 @@ package core
 
 import (
 	"fmt"
-	"os" // Keep filepath
+	"os" // Keep os for ReadDir and Stat
+	// Keep filepath for Clean
 	"sort"
 	// "time" // Keep if adding modified time later
 )
 
 // toolListDirectory lists files and directories at a given path within the sandbox.
-// *** MODIFIED: Return error from SecureFilePath directly ***
+// *** MODIFIED: Use interpreter.sandboxDir instead of os.Getwd() ***
 func toolListDirectory(interpreter *Interpreter, args []interface{}) (interface{}, error) {
 	// Validation ensures args[0] is string
 	pathRel := args[0].(string)
 
-	// Ensure path is safe and within the sandbox
-	cwd, errWd := os.Getwd()
-	if errWd != nil {
-		// Internal error, return actual error
-		return nil, fmt.Errorf("ListDirectory failed to get working directory: %w", errWd)
-	}
-	absPath, secErr := SecureFilePath(pathRel, cwd)
-	if secErr != nil {
-		// *** Return the security error directly ***
-		// secErr should be or wrap ErrPathViolation
-		errMsg := fmt.Sprintf("ListDirectory path error: %s", secErr.Error()) // Log the unwrapped error
+	// *** Get sandbox root directly from the interpreter ***
+	sandboxRoot := interpreter.sandboxDir // Use the field name you added
+	if sandboxRoot == "" {
 		if interpreter.logger != nil {
-			interpreter.logger.Printf("[TOOL ListDirectory] %s", errMsg)
+			interpreter.logger.Printf("[WARN TOOL ListDirectory] Interpreter sandboxDir is empty, using default relative path validation.")
 		}
-		return nil, secErr // Return the original error (which should wrap ErrPathViolation)
+		sandboxRoot = "." // Ensure it's at least relative to CWD if empty
+	}
+
+	// Ensure path is safe and within the sandbox
+	absPath, secErr := SecureFilePath(pathRel, sandboxRoot) // *** Use sandboxRoot ***
+	if secErr != nil {
+		// Path validation failed
+		errMsg := fmt.Sprintf("ListDirectory path error for '%s': %s", pathRel, secErr.Error()) // Log unwrapped
+		if interpreter.logger != nil {
+			interpreter.logger.Printf("[TOOL ListDirectory] %s (Sandbox Root: %s)", errMsg, sandboxRoot)
+		}
+		return nil, secErr // Return the original error
 	}
 
 	if interpreter.logger != nil {
-		interpreter.logger.Printf("[TOOL ListDirectory] Listing directory: %s (resolved: %s)", pathRel, absPath)
+		interpreter.logger.Printf("[TOOL ListDirectory] Listing directory: %s (resolved: %s, Sandbox: %s)", pathRel, absPath, sandboxRoot)
 	}
 
-	// Read directory contents
+	// Read directory contents using the validated absolute path
 	entries, readErr := os.ReadDir(absPath)
 	if readErr != nil {
-		// *** Return wrapped internal tool error ***
+		// Error reading directory (e.g., doesn't exist, not a directory, permissions)
 		errMsg := fmt.Sprintf("ListDirectory failed: %s", readErr.Error()) // Log the unwrapped error
 		if interpreter.logger != nil {
 			interpreter.logger.Printf("[TOOL ListDirectory] ReadDir error: %s", errMsg)
@@ -61,8 +65,7 @@ func toolListDirectory(interpreter *Interpreter, args []interface{}) (interface{
 			"name":   entry.Name(),
 			"is_dir": entry.IsDir(),
 			"size":   info.Size(), // Include size
-			// Add modified time? Requires formatting.
-			// "modified": info.ModTime().Format(time.RFC3339),
+			// "modified": info.ModTime().Format(time.RFC3339), // Optional
 		}
 		result = append(result, entryMap)
 	}

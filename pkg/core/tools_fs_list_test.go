@@ -3,107 +3,128 @@ package core
 
 import (
 	// ADDED errors import
+	"fmt" // ADDED fmt import
 	"os"
 	"path/filepath"
 	"testing"
 )
 
-// Assuming testFsToolHelper is defined in testing_helpers_test.go
+// Assume testFsToolHelper is defined in testing_helpers_test.go
 
 func TestToolListDirectory(t *testing.T) {
-	// *** MODIFIED: Ignore the unused sandboxDir return value ***
-	interp, _ := newDefaultTestInterpreter(t) // Use blank identifier '_'
+	interp, _ := newDefaultTestInterpreter(t) // Get interpreter for sandbox path
 
-	// Setup test directory structure within the sandbox
-	baseDir := "listTest"
-	subDir := filepath.Join(baseDir, "sub")
-	file1 := filepath.Join(baseDir, "file1.txt")
-	file2 := filepath.Join(subDir, "file2.txt")
+	// --- Test Setup Data ---
+	baseDirRel := "listTest"
+	subDirRel := filepath.Join(baseDirRel, "sub")
+	file1Rel := filepath.Join(baseDirRel, "file1.txt")
+	file2Rel := filepath.Join(subDirRel, "file2.txt")
+	rootFileRel := "file_at_root.txt"
+	file1Content := "hello"
+	file2Content := "world"
+	rootFileContent := "root"
 
-	os.MkdirAll(subDir, 0755)                              // Create dirs
-	os.WriteFile(file1, []byte("hello"), 0644)             // Create file in base
-	os.WriteFile(file2, []byte("world"), 0644)             // Create file in sub
-	os.WriteFile("file_at_root.txt", []byte("root"), 0644) // Create file at sandbox root
+	// --- Setup Function ---
+	// *** MODIFIED: Takes sandboxRoot string argument and uses it ***
+	setupListDirTest := func(sandboxRoot string) error {
+		// Construct absolute paths *within* the sandbox for setup
+		subDirAbs := filepath.Join(sandboxRoot, subDirRel)
+		file1Abs := filepath.Join(sandboxRoot, file1Rel)
+		file2Abs := filepath.Join(sandboxRoot, file2Rel)
+		rootFileAbs := filepath.Join(sandboxRoot, rootFileRel)
 
-	// Get size info for expectations
-	file1Info, _ := os.Stat(file1)
-	file2Info, _ := os.Stat(file2)
-	subDirInfo, _ := os.Stat(subDir)
-	rootFileInfo, _ := os.Stat("file_at_root.txt")
+		// Create directories using absolute paths
+		if err := os.MkdirAll(subDirAbs, 0755); err != nil {
+			return fmt.Errorf("setup MkdirAll failed for %s: %w", subDirAbs, err)
+		}
+		// Create files using absolute paths
+		if err := os.WriteFile(file1Abs, []byte(file1Content), 0644); err != nil {
+			return fmt.Errorf("setup WriteFile failed for %s: %w", file1Abs, err)
+		}
+		if err := os.WriteFile(file2Abs, []byte(file2Content), 0644); err != nil {
+			return fmt.Errorf("setup WriteFile failed for %s: %w", file2Abs, err)
+		}
+		if err := os.WriteFile(rootFileAbs, []byte(rootFileContent), 0644); err != nil {
+			return fmt.Errorf("setup WriteFile failed for %s: %w", rootFileAbs, err)
+		}
+		return nil
+	}
 
-	// Define fsTestCase struct locally or ensure it's accessible
-	// type fsTestCase struct { ... } // Assuming it's defined elsewhere
+	// --- Expected Size Info ---
+	// Use actual content length for size verification
+	file1Size := int64(len(file1Content))
+	file2Size := int64(len(file2Content))
+	rootFileSize := int64(len(rootFileContent))
+	var dummyDirSize int64 = 4096 // Placeholder for directory size
 
 	tests := []fsTestCase{
 		{
-			name:     "List root of test dir",
-			toolName: "ListDirectory",
-			args:     makeArgs(baseDir),
-			// *** MODIFIED: Added "size" to expectations ***
-			wantResult: []interface{}{
-				map[string]interface{}{"name": "file1.txt", "is_dir": false, "size": file1Info.Size()},
-				map[string]interface{}{"name": "sub", "is_dir": true, "size": subDirInfo.Size()},
+			name:      "List root of test dir",
+			toolName:  "ListDirectory",
+			args:      makeArgs(baseDirRel), // Use relative path for tool argument
+			setupFunc: setupListDirTest,     // Pass the setup function
+			wantResult: []interface{}{ // Use relative names in expected results, actual sizes
+				map[string]interface{}{"name": "file1.txt", "is_dir": false, "size": file1Size},
+				map[string]interface{}{"name": "sub", "is_dir": true, "size": dummyDirSize},
 			},
 		},
 		{
-			name:     "List sub directory",
-			toolName: "ListDirectory",
-			args:     makeArgs(subDir),
-			// *** MODIFIED: Added "size" to expectations ***
+			name:      "List sub directory",
+			toolName:  "ListDirectory",
+			args:      makeArgs(subDirRel), // Use relative path for tool argument
+			setupFunc: setupListDirTest,
 			wantResult: []interface{}{
-				map[string]interface{}{"name": "file2.txt", "is_dir": false, "size": file2Info.Size()},
+				map[string]interface{}{"name": "file2.txt", "is_dir": false, "size": file2Size},
 			},
 		},
 		{
-			name:     "List sandbox root", // Add test for sandbox root
-			toolName: "ListDirectory",
-			args:     makeArgs("."), // Use "." for current (sandbox root)
-			// *** MODIFIED: Added "size" to expectations ***
-			wantResult: []interface{}{
-				// Note: Order matters for DeepEqual if not sorted by helper
-				// Adding baseDir first as it usually comes first alphabetically
-				map[string]interface{}{"name": baseDir, "is_dir": true, "size": int64(4096)}, // Assuming baseDir size is standard block size
-				map[string]interface{}{"name": "file_at_root.txt", "is_dir": false, "size": rootFileInfo.Size()},
+			name:      "List sandbox root",
+			toolName:  "ListDirectory",
+			args:      makeArgs("."), // Use "." for current (sandbox root)
+			setupFunc: setupListDirTest,
+			wantResult: []interface{}{ // Order will be sorted by helper verification
+				map[string]interface{}{"name": baseDirRel, "is_dir": true, "size": dummyDirSize},
+				map[string]interface{}{"name": rootFileRel, "is_dir": false, "size": rootFileSize},
 			},
 		},
 		{
-			name:     "List non-existent dir",
-			toolName: "ListDirectory",
-			args:     makeArgs(filepath.Join(baseDir, "nonexistent")),
-			// *** MODIFIED: Expect Go error, not string result ***
+			name:          "List non-existent dir",
+			toolName:      "ListDirectory",
+			args:          makeArgs(filepath.Join(baseDirRel, "nonexistent")),
+			setupFunc:     setupListDirTest,
 			wantResult:    nil,             // No specific result expected on error
 			wantToolErrIs: ErrInternalTool, // Expect wrapped OS error
-			valWantErrIs:  nil,             // Validation passes
+			valWantErrIs:  nil,
 		},
 		{
 			name:         "Validation_Wrong_Arg_Type",
 			toolName:     "ListDirectory",
 			args:         makeArgs(123),
-			wantResult:   nil,                       // No result expected on validation error
-			valWantErrIs: ErrValidationTypeMismatch, // Expect validation error
+			wantResult:   nil,
+			valWantErrIs: ErrValidationTypeMismatch,
 		},
 		{
-			name:     "Path_Outside_Sandbox",
-			toolName: "ListDirectory",
-			args:     makeArgs("../outside"),
-			// *** MODIFIED: Expect Go error (ErrPathViolation) ***
+			name:          "Path_Outside_Sandbox",
+			toolName:      "ListDirectory",
+			args:          makeArgs("../outside"),
+			setupFunc:     setupListDirTest,
 			wantResult:    nil,
 			wantToolErrIs: ErrPathViolation, // Expect path violation error from tool
-			valWantErrIs:  nil,              // Validation passes
+			valWantErrIs:  nil,
 		},
 		{
-			name:     "Path_Is_File",
-			toolName: "ListDirectory",
-			args:     makeArgs(file1), // Try to list a file
-			// *** MODIFIED: Expect Go error, not string result ***
-			wantResult:    nil,             // No specific result expected on error
+			name:          "Path_Is_File",
+			toolName:      "ListDirectory",
+			args:          makeArgs(file1Rel), // Try to list a file
+			setupFunc:     setupListDirTest,
+			wantResult:    nil,
 			wantToolErrIs: ErrInternalTool, // Expect wrapped OS error (e.g., "not a directory")
-			valWantErrIs:  nil,             // Validation passes
+			valWantErrIs:  nil,
 		},
 	}
 
 	for _, tt := range tests {
-		// Ensure testFsToolHelper is called correctly
-		testFsToolHelper(t, interp, "../temp", tt)
+		// Pass interp and tt to the helper
+		testFsToolHelper(t, interp, tt)
 	}
 }

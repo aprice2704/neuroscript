@@ -23,7 +23,7 @@ Output Format & Structure:
 
 5.  Provide Full Files: Always output complete Go files. Do not provide code fragments or diffs unless specifically asked. 
 6.  Split Large Files: If any single Go code file exceeds roughly 300 lines, split it logically into smaller files. You do not need to ask for permission; just do it. Ensure the split maintains coherence (e.g., related functions stay together or are moved to appropriate helper files). 
-10. Helper Functions: Consolidate reusable helper functions into appropriately named shared files (e.g., `utils.go`, `helpers.go`, or more specific like `parsing_helpers.go`). Ensure they are properly namespaced within the package. 
+10. Helper Functions: place reusable helper functions into appropriately named shared files (e.g., `utils.go`, `helpers.go`, or more specific like `parsing_helpers.go`). Ensure they are properly namespaced within the package. Existing helpers should be changed with **extreme caution**. Prefer adding new ones until proven.  
 11. Package Comments: Keep package-level comments (`// Package mypackage description...`) accurate and up-to-date. If your changes significantly alter a package's purpose, check with me before proceeding with drastic modifications. 
 12. Go Import Path Formatting: Within Go code blocks, especially import (...) blocks, ensure package import paths are plain string literals only (e.g., "github.com/org/repo/pkg"). Do not automatically convert them into Markdown links like path. 
 

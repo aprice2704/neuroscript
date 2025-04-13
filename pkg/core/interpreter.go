@@ -18,6 +18,7 @@ type Interpreter struct {
 	vectorIndex     map[string][]float32
 	embeddingDim    int
 	currentProcName string
+	sandboxDir      string
 	toolRegistry    *ToolRegistry // Use concrete type internally
 	logger          *log.Logger
 }

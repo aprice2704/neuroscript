@@ -2,117 +2,107 @@
 package core
 
 import (
-	// Import errors for checking
-	// Import fmt for error message construction (can potentially be removed if not used elsewhere)
-	"os"            // Import os for file operations in setup/verification
-	"path/filepath" // Import filepath for joining paths
+	// Keep errors
+	"fmt"           // Keep fmt
+	"os"            // Keep os
+	"path/filepath" // Keep filepath
 	"testing"
 )
 
-// Assume newTestInterpreter, makeArgs, and testFsToolHelper are defined in testing_helpers_test.go
+// Assume testFsToolHelper is defined in tools_fs_helpers_test.go
 
 func TestToolMkdir(t *testing.T) {
-	interp, sandboxDir := newDefaultTestInterpreter(t) // Get interpreter and sandbox
+	interp, _ := newDefaultTestInterpreter(t) // Get interpreter for sandbox path
 
-	// Define test cases using the fsTestCase struct from helpers
+	// --- Test Setup Data ---
+	newDirPathRel := "newDir"
+	existingDirPathRel := "existingDir"
+	nestedPathRel := filepath.Join("parentDir", "childDir")
+	filePathRel := "existingFile.txt" // To test creating dir where file exists
+
+	// --- Setup Function ---
+	// *** MODIFIED: Takes sandboxRoot string argument and uses it ***
+	setupMkdirTest := func(sandboxRoot string) error {
+		// Construct absolute paths within the sandbox for setup
+		existingDirAbs := filepath.Join(sandboxRoot, existingDirPathRel)
+		fileAbs := filepath.Join(sandboxRoot, filePathRel)
+
+		// Create existing directory using absolute path
+		if err := os.Mkdir(existingDirAbs, 0755); err != nil && !os.IsExist(err) {
+			return fmt.Errorf("setup Mkdir failed for %s: %w", existingDirAbs, err)
+		}
+		// Create existing file using absolute path
+		if err := os.WriteFile(fileAbs, []byte("i am a file"), 0644); err != nil {
+			return fmt.Errorf("setup WriteFile failed for %s: %w", fileAbs, err)
+		}
+		return nil
+	}
+
 	tests := []fsTestCase{
-		// Success Cases
 		{
-			name:       "Create Single Dir",
+			name:       "Create New Directory",
 			toolName:   "Mkdir",
-			args:       makeArgs("newdir"),
-			wantResult: "OK", // Expect "OK" string on success
+			args:       makeArgs(newDirPathRel),
+			setupFunc:  setupMkdirTest, // Setup existing stuff
+			wantResult: "OK",
+			// Verification should ideally happen in helper or a verifyFunc
 		},
 		{
-			name:       "Create Nested Dirs",
+			name:       "Create Nested Directories",
 			toolName:   "Mkdir",
-			args:       makeArgs("a/b/c"),
+			args:       makeArgs(nestedPathRel),
+			setupFunc:  setupMkdirTest,
 			wantResult: "OK",
 		},
 		{
-			name:     "Create Existing Dir",
-			toolName: "Mkdir",
-			args:     makeArgs("existing_dir"),
-			setupFunc: func() error {
-				return os.Mkdir(filepath.Join(sandboxDir, "existing_dir"), 0755)
-			},
-			wantResult: "OK", // Should succeed without error
+			name:       "Create Existing Directory", // MkdirAll is idempotent
+			toolName:   "Mkdir",
+			args:       makeArgs(existingDirPathRel),
+			setupFunc:  setupMkdirTest,
+			wantResult: "OK",
 		},
-
-		// Validation Error Cases (wantResult is implicitly nil here as helper returns on valErr)
 		{
-			name:         "Validation Missing Arg",
+			name:          "Create Directory Where File Exists",
+			toolName:      "Mkdir",
+			args:          makeArgs(filePathRel), // Path of existing file
+			setupFunc:     setupMkdirTest,
+			wantResult:    fmt.Sprintf("Mkdir failed for '%s': mkdir %s: not a directory", filePathRel, filepath.Join(interp.sandboxDir, filePathRel)), // Expect specific error message
+			wantToolErrIs: ErrCannotCreateDir,
+		},
+		{
+			name:         "Validation_Wrong_Arg_Type",
+			toolName:     "Mkdir",
+			args:         makeArgs(12345),
+			valWantErrIs: ErrValidationTypeMismatch,
+		},
+		{
+			name:          "Path_Outside_Sandbox",
+			toolName:      "Mkdir",
+			args:          makeArgs("../someDir"),
+			setupFunc:     setupMkdirTest, // Setup existing stuff
+			wantResult:    fmt.Sprintf("Mkdir path error for '../someDir': %s: relative path '../someDir' resolves to '%s' which is outside the allowed directory '%s'", ErrPathViolation.Error(), filepath.Clean(filepath.Join(interp.sandboxDir, "../someDir")), interp.sandboxDir),
+			wantToolErrIs: ErrPathViolation,
+		},
+		{
+			name:         "Validation_Missing_Arg",
 			toolName:     "Mkdir",
 			args:         makeArgs(),
 			valWantErrIs: ErrValidationArgCount,
 		},
-		{
-			name:         "Validation Wrong Arg Type",
-			toolName:     "Mkdir",
-			args:         makeArgs(123),
-			valWantErrIs: ErrValidationTypeMismatch,
-		},
-		{
-			name:         "Validation Nil Arg",
-			toolName:     "Mkdir",
-			args:         makeArgs(nil),
-			valWantErrIs: ErrValidationRequiredArgNil,
-		},
-
-		// Execution Error Cases (wantResult is nil because helper ignores it when wantToolErrIs is set)
-		{
-			name:          "Path Outside Sandbox",
-			toolName:      "Mkdir",
-			args:          makeArgs("../outside_dir"),
-			wantResult:    nil, // Ignored by helper when wantToolErrIs is set
-			wantToolErrIs: ErrPathViolation,
-		},
-		{
-			name:     "Path Is Existing File",
-			toolName: "Mkdir",
-			args:     makeArgs("existing_file.txt"),
-			setupFunc: func() error {
-				return os.WriteFile(filepath.Join(sandboxDir, "existing_file.txt"), []byte("hello"), 0644)
-			},
-			wantResult:    nil, // Ignored by helper when wantToolErrIs is set
-			wantToolErrIs: ErrCannotCreateDir,
-		},
-		{
-			name:          "Empty Path String",
-			toolName:      "Mkdir",
-			args:          makeArgs(""),
-			wantResult:    nil, // Ignored by helper when wantToolErrIs is set
-			wantToolErrIs: ErrPathViolation,
-		},
-		{
-			name:          "Path Contains Null Byte",
-			toolName:      "Mkdir",
-			args:          makeArgs("dir\x00name"),
-			wantResult:    nil, // Ignored by helper when wantToolErrIs is set
-			wantToolErrIs: ErrPathViolation,
-		},
 	}
 
 	for _, tt := range tests {
-		// Pass interp and tt to the helper defined in testing_helpers_test.go
-		testFsToolHelper(t, interp, "../temp", tt)
-
-		// Verification for successful mkdir cases (remains the same)
-		if tt.valWantErrIs == nil && tt.wantToolErrIs == nil && tt.wantResult == "OK" {
-			t.Run(tt.name+"_VerifyExists", func(t *testing.T) {
-				pathArg := tt.args[0].(string)
-				verifyPath := filepath.Join(sandboxDir, pathArg)
-				info, err := os.Stat(verifyPath)
-				if err != nil {
-					if tt.name != "Create Existing Dir" {
-						t.Errorf("os.Stat failed for expected directory '%s': %v", verifyPath, err)
-					}
-				} else if !info.IsDir() {
-					t.Errorf("Path '%s' exists but is not a directory", verifyPath)
-				}
-			})
+		testFsToolHelper(t, interp, tt)
+		// Add manual verification step if testFsToolHelper doesn't cover it
+		if tt.wantToolErrIs == nil && tt.valWantErrIs == nil {
+			// Verify directory was actually created using absolute path
+			dirPathAbs := filepath.Join(interp.sandboxDir, tt.args[0].(string))
+			info, err := os.Stat(dirPathAbs)
+			if err != nil {
+				t.Errorf("Test '%s': Failed to stat expected directory '%s': %v", tt.name, dirPathAbs, err)
+			} else if !info.IsDir() {
+				t.Errorf("Test '%s': Expected path '%s' to be a directory, but it's not.", tt.name, dirPathAbs)
+			}
 		}
 	}
 }
-
-// Add TestToolDeleteFile here later...

@@ -2,14 +2,13 @@
 package core
 
 import (
-	// Keep fmt
+	// *** ADDED for errors.Is ***
 	"fmt"
 	"io"
-	"log"
-	"os"
+	"log" // *** ADDED for float comparison ***
 	"path/filepath"
-	"reflect"
-	"strings" // Keep strings for error message check
+	"reflect" // *** ADDED for map iteration in tests ***
+	"strings"
 	"testing"
 )
 
@@ -17,7 +16,8 @@ import (
 
 // newTestInterpreter creates an interpreter instance for testing,
 // initializing variables, last result, registering core tools, and setting up sandbox.
-// It now expects a *testing.T argument.
+// It now expects a *testing.T argument and sets the interpreter's sandboxDir.
+// *** MODIFIED: Sets interpreter.sandboxDir, removes os.Chdir ***
 func newTestInterpreter(t *testing.T, vars map[string]interface{}, lastResult interface{}) (*Interpreter, string) {
 	t.Helper()
 	// Use a discarding logger for tests unless explicitly needed otherwise
@@ -39,7 +39,17 @@ func newTestInterpreter(t *testing.T, vars map[string]interface{}, lastResult in
 	testLogger.Println("Successfully registered core tools.")
 
 	// Create a temporary directory for sandboxing
-	sandboxDir := t.TempDir() // This automatically handles cleanup via t.Cleanup()
+	sandboxDirRel := t.TempDir() // This automatically handles cleanup via t.Cleanup()
+	absSandboxDir, err := filepath.Abs(sandboxDirRel)
+	if err != nil {
+		t.Fatalf("Failed to get absolute path for sandbox %s: %v", sandboxDirRel, err)
+	}
+
+	// *** Store the absolute sandbox path in the interpreter using the field name you added ***
+	interp.sandboxDir = absSandboxDir // Use the field name 'sandboxDir'
+	testLogger.Printf("Sandbox root set in interpreter: %s", absSandboxDir)
+
+	// *** REMOVED os.Chdir() ***
 
 	// Initialize variables if provided
 	if vars != nil {
@@ -53,15 +63,7 @@ func newTestInterpreter(t *testing.T, vars map[string]interface{}, lastResult in
 	// Set last result if provided
 	interp.lastCallResult = lastResult
 
-	// Change working directory to the sandbox for the test's duration
-	err := os.Chdir(sandboxDir) // Keep Chdir to sandbox
-	if err != nil {
-		t.Fatalf("Failed to change working directory to sandbox %s: %v", sandboxDir, err)
-	}
-
-	// Get absolute path for consistency if needed
-	absSandboxDir, _ := filepath.Abs(".")
-	return interp, absSandboxDir
+	return interp, absSandboxDir // Return interpreter and the sandbox path (path useful for setup funcs)
 }
 
 // newDefaultTestInterpreter creates a new interpreter with default settings
@@ -74,13 +76,13 @@ func newDefaultTestInterpreter(t *testing.T) (*Interpreter, string) {
 }
 
 // --- Step Creation Helpers (Moved from interpreter_test.go) ---
-
-// Helper functions to create Step structs for tests
+// (These helpers remain unchanged)
 func createTestStep(typ string, target string, valueNode interface{}, argNodes []interface{}) Step {
-	return newStep(typ, target, nil, valueNode, nil, argNodes)
+	// Ensure Value and Args are distinct concepts in Step struct if needed
+	// Assuming Step struct has fields like Type, Target, Value, Args
+	return newStep(typ, target, nil, valueNode, nil, argNodes) // Pass nil for Cond, ElseValue if not applicable
 }
 func createIfStep(condNode interface{}, thenSteps []Step, elseSteps []Step) Step {
-	// Ensure Value and ElseValue are correctly typed ([]Step or nil)
 	var thenVal, elseVal interface{}
 	if thenSteps != nil {
 		thenVal = thenSteps
@@ -88,6 +90,7 @@ func createIfStep(condNode interface{}, thenSteps []Step, elseSteps []Step) Step
 	if elseSteps != nil {
 		elseVal = elseSteps
 	}
+	// Assuming Step struct has fields Cond, Value (for then), ElseValue
 	return Step{Type: "IF", Cond: condNode, Value: thenVal, ElseValue: elseVal}
 }
 func createWhileStep(condNode interface{}, bodySteps []Step) Step {
@@ -95,6 +98,7 @@ func createWhileStep(condNode interface{}, bodySteps []Step) Step {
 	if bodySteps != nil {
 		bodyVal = bodySteps
 	}
+	// Assuming Step struct has fields Cond, Value (for body)
 	return Step{Type: "WHILE", Cond: condNode, Value: bodyVal}
 }
 func createForStep(loopVar string, collectionNode interface{}, bodySteps []Step) Step {
@@ -102,10 +106,12 @@ func createForStep(loopVar string, collectionNode interface{}, bodySteps []Step)
 	if bodySteps != nil {
 		bodyVal = bodySteps
 	}
+	// Assuming Step struct has fields Target (loopVar), Cond (collection), Value (body)
 	return Step{Type: "FOR", Target: loopVar, Cond: collectionNode, Value: bodyVal}
 }
 
 // runEvalExpressionTest executes a single expression evaluation test case.
+// *** MODIFIED: Uses newDefaultTestInterpreter ***
 func runEvalExpressionTest(t *testing.T, tc EvalTestCase) {
 	t.Helper()
 	// Use newDefaultTestInterpreter which now returns sandboxDir (ignored here)
@@ -142,16 +148,13 @@ func runEvalExpressionTest(t *testing.T, tc EvalTestCase) {
 }
 
 // --- General Test Helpers ---
-
-// makeArgs simplifies creating []interface{} slices for tool arguments.
+// (makeArgs, AssertNoError remain unchanged)
 func makeArgs(vals ...interface{}) []interface{} {
 	if vals == nil {
 		return []interface{}{}
 	}
 	return vals
 }
-
-// AssertNoError fails the test if err is not nil.
 func AssertNoError(t *testing.T, err error, msgAndArgs ...interface{}) {
 	t.Helper()
 	if err != nil {
@@ -159,13 +162,11 @@ func AssertNoError(t *testing.T, err error, msgAndArgs ...interface{}) {
 	}
 }
 
-// --- Interpreter Test Specific Helper ---
-// *** REMOVED newTestInterpreter and newDefaultTestInterpreter - MOVED TO _test.go FILE ***
-
 // --- Filesystem Test Helper (Consolidated) ---
-// *** REMOVED testFsToolHelper - MOVED TO _test.go FILE ***
+// (testFsToolHelper needs updating in tools_fs_helpers_test.go - see next step)
 
 // EvalTestCase defines the structure for testing expression evaluation.
+// (Struct definition remains unchanged)
 type EvalTestCase struct {
 	Name        string
 	InputNode   interface{}

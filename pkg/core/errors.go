@@ -21,7 +21,9 @@ var (
 	ErrCollectionIsNil          = errors.New("collection evaluated to nil")           // Used in element access node eval
 	ErrAccessorIsNil            = errors.New("accessor evaluated to nil")             // Used in element access node eval
 	// File System Tool Errors
-	ErrPathViolation = errors.New("path resolves outside allowed directory") // ADDED
+	ErrPathViolation   = errors.New("path resolves outside allowed directory")
+	ErrCannotCreateDir = errors.New("cannot create directory")         // From Mkdir
+	ErrCannotDelete    = errors.New("cannot delete file or directory") // *** ADDED ***
 	// Add other general tool errors as needed
 	ErrInternalTool = errors.New("internal tool error")
 )

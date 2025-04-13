@@ -4,58 +4,64 @@ package core
 import (
 	"fmt"
 	"os"
-	// path/filepath needed only by SecureFilePath, which is in helpers
+	// No longer need path/filepath directly
 )
 
 // toolReadFile reads the content of a specified file.
-// Assumes path validation/sandboxing is handled by the SecurityLayer before this is called.
-// *** MODIFIED: Propagate error from SecureFilePath ***
+// *** MODIFIED: Uses interpreter.sandboxDir instead of os.Getwd() ***
 func toolReadFile(interpreter *Interpreter, args []interface{}) (interface{}, error) {
 	// Validation guarantees args[0] is a string
-	filePath := args[0].(string)
-
-	// Although security layer validates against sandbox, we resolve here vs CWD
-	// for the os.ReadFile call. The security layer prevents reading outside sandbox.
-	cwd, errWd := os.Getwd()
-	if errWd != nil {
-		return nil, fmt.Errorf("TOOL ReadFile failed get CWD: %w", errWd) // Internal error
+	filePathRel := args[0].(string)
+	// *** Get sandbox root directly from the interpreter ***
+	sandboxRoot := interpreter.sandboxDir
+	if sandboxRoot == "" {
+		// Fallback or error if sandboxRoot is somehow empty
+		// This shouldn't happen if NewInterpreter sets a default (".")
+		// Let SecureFilePath handle "." as CWD if it happens.
+		// Or return an internal error? Let's rely on SecureFilePath handling "."
+		if interpreter.logger != nil {
+			interpreter.logger.Printf("[WARN TOOL ReadFile] Interpreter sandboxDir is empty, using default relative path validation.")
+		}
+		sandboxRoot = "." // Ensure it's at least relative to CWD if empty
 	}
 
-	// Use SecureFilePath to get the absolute path, primarily for OS compatibility.
-	// The security check against sandbox root happened *before* this tool was called.
-	absPath, secErr := SecureFilePath(filePath, cwd)
+	// Use SecureFilePath to validate the relative path is within the interpreter's sandboxDir
+	// and get the secure absolute path.
+	absPath, secErr := SecureFilePath(filePathRel, sandboxRoot) // *** Use sandboxRoot ***
 	if secErr != nil {
-		// *** Propagate the path violation error ***
-		errMsg := fmt.Sprintf("ReadFile path error for '%s': %s", filePath, secErr.Error()) // Log unwrapped
+		// Path validation failed (absolute, outside sandboxDir, etc.)
+		errMsg := fmt.Sprintf("ReadFile path error for '%s': %s", filePathRel, secErr.Error())
 		if interpreter.logger != nil {
-			interpreter.logger.Printf("[TOOL ReadFile] %s", errMsg)
+			interpreter.logger.Printf("[TOOL ReadFile] %s (Sandbox Root: %s)", errMsg, sandboxRoot)
 		}
-		// Return error message string for script, but the error itself for Go context
+		// Return the error message string for NeuroScript, but the actual Go error for context.
 		return errMsg, secErr
 	}
 
+	// Path is validated and within the sandbox, attempt to read the file using the absolute path
 	if interpreter.logger != nil {
-		interpreter.logger.Printf("[TOOL ReadFile] Reading validated path: %s (Original Relative: %s)", absPath, filePath)
+		interpreter.logger.Printf("[TOOL ReadFile] Attempting to read validated path: %s (Original Relative: %s, Sandbox: %s)", absPath, filePathRel, sandboxRoot)
 	}
-
 	contentBytes, readErr := os.ReadFile(absPath)
 	if readErr != nil {
 		errMsg := ""
 		if os.IsNotExist(readErr) {
-			errMsg = fmt.Sprintf("ReadFile failed: File not found at path '%s'", filePath)
+			errMsg = fmt.Sprintf("ReadFile failed: File not found at path '%s'", filePathRel)
 		} else {
-			errMsg = fmt.Sprintf("ReadFile failed for '%s': %s", filePath, readErr.Error())
+			// Consider making this more specific for directories if needed
+			errMsg = fmt.Sprintf("ReadFile failed for '%s': %s", filePathRel, readErr.Error())
 		}
 		if interpreter.logger != nil {
 			interpreter.logger.Printf("[TOOL ReadFile] %s", errMsg)
 		}
-		// Return error message string for script, and wrapped internal error for Go
-		return errMsg, fmt.Errorf("%w: reading file '%s': %w", ErrInternalTool, filePath, readErr)
+		// Return error message string for script, but wrap the actual os error for Go context.
+		return errMsg, fmt.Errorf("%w: reading file '%s': %w", ErrInternalTool, filePathRel, readErr)
 	}
 
 	if interpreter.logger != nil {
-		interpreter.logger.Printf("[TOOL ReadFile] Read %d bytes successfully from %s", len(contentBytes), filePath)
+		interpreter.logger.Printf("[TOOL ReadFile] Read %d bytes successfully from %s", len(contentBytes), filePathRel)
 	}
+
 	// Return file content as string
 	return string(contentBytes), nil
 }
