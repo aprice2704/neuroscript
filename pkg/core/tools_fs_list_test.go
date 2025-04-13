@@ -104,6 +104,6 @@ func TestToolListDirectory(t *testing.T) {
 
 	for _, tt := range tests {
 		// Ensure testFsToolHelper is called correctly
-		testFsToolHelper(t, interp, tt)
+		testFsToolHelper(t, interp, "../temp", tt)
 	}
 }

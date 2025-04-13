@@ -1,16 +1,19 @@
 package metadata
 
 import (
+	"errors" // Import errors for error checking
 	"reflect"
 	"testing"
+	// REMOVED: "github.com/aprice2704/neuroscript/pkg/core"
 )
 
 func TestExtractMetadata(t *testing.T) {
 	testCases := []struct {
-		name     string
-		content  string
-		expected map[string]string
-		wantErr  bool
+		name        string
+		content     string
+		expected    map[string]string // Expected map only if no error expected
+		wantErr     bool
+		wantErrType error // Specific error type to check using errors.Is
 	}{
 		{
 			name: "Basic Metadata",
@@ -120,26 +123,22 @@ END`,
 			wantErr: false,
 		},
 		{
-			name: "Invalid Metadata Format (No Space after ::)",
-			content: `::version: 1.0
-:: id: test
-- Content`,
-			expected: map[string]string{
-				// "version" is missed due to format requirement
-				"id": "test",
-			},
-			wantErr: false,
+			// --- UPDATED Test Case: Expect Local Error ---
+			name:    "Invalid_Metadata_Format_(No_Space_after_::)",
+			content: `::version: 1.0\n:: id: test\n- Content`, // Malformed line first
+			// Function should error on line 1, return whatever metadata was collected *before* it (none).
+			expected:    map[string]string{},
+			wantErr:     true,
+			wantErrType: ErrMalformedMetadata, // Expect specific local error
 		},
 		{
-			name: "Invalid Metadata Format (No Colon)",
-			content: `:: version 1.0
-:: id: test
-- Content`,
-			expected: map[string]string{
-				// "version" is missed
-				"id": "test",
-			},
-			wantErr: false,
+			// --- UPDATED Test Case: Expect Local Error ---
+			name:    "Invalid_Metadata_Format_(No_Colon)",
+			content: `:: version 1.0\n:: id: test\n- Content`, // Malformed line first
+			// Function should error on line 1, return whatever metadata was collected *before* it (none).
+			expected:    map[string]string{},
+			wantErr:     true,
+			wantErrType: ErrMalformedMetadata, // Expect specific local error
 		},
 		{
 			name: "Value with Colons",
@@ -167,13 +166,29 @@ END`,
 		t.Run(tc.name, func(t *testing.T) {
 			got, err := Extract(tc.content) // Use the Extract function directly
 
-			if (err != nil) != tc.wantErr {
-				t.Errorf("Extract() error = %v, wantErr %v", err, tc.wantErr)
-				return
-			}
-			// Use DeepEqual for map comparison
-			if !reflect.DeepEqual(got, tc.expected) {
-				t.Errorf("Extract() got = %#v, want %#v", got, tc.expected)
+			// Check error expectation
+			if tc.wantErr {
+				if err == nil {
+					t.Errorf("Extract() expected an error but got nil")
+				} else if tc.wantErrType != nil {
+					// Check if the error IS or WRAPS the expected type
+					if !errors.Is(err, tc.wantErrType) {
+						t.Errorf("Extract() error type mismatch:\n Got error: %v (%T)\nWant error type: %v", err, err, tc.wantErrType)
+					}
+				}
+				// Check the returned map on expected error
+				if !reflect.DeepEqual(got, tc.expected) {
+					t.Errorf("Extract() map result on expected error mismatch:\ngot = %#v\nwant %#v", got, tc.expected)
+				}
+
+			} else { // No error expected
+				if err != nil {
+					t.Errorf("Extract() unexpected error: %v", err)
+				}
+				// Compare map results only if no error was expected
+				if !reflect.DeepEqual(got, tc.expected) {
+					t.Errorf("Extract() map result mismatch:\ngot = %#v\nwant %#v", got, tc.expected)
+				}
 			}
 		})
 	}

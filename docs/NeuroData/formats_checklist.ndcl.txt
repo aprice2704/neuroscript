@@ -1,0 +1,254 @@
+:: type: Checklist
+:: version: 0.1.0
+:: description: Tracks the completion status of NeuroData format specifications and implementation.
+
+# NeuroData Format Completion Checklist
+
+- | | NeuroData Formats [ Overall Status ]
+  - | | Core Structure & Concepts
+    - | | Metadata Definition (`docs/metadata.md`)
+      - [x] design
+      - [x] v1 syntax
+      - [x] parsing
+      - [-] tools (TOOL.ExtractMetadata)
+        - [ ] TOOL.fmt
+    - | | Composite File Spec (`docs/neurodata_and_composite_file_spec.md`)
+      - [-] design
+      - [x] v1 syntax
+      - [-] parsing
+      - [-] tools
+        - [ ] TOOL.fmt
+    - | | References Spec (`docs/NeuroData/references.md`)
+      - [x] design
+      - [x] v1 syntax
+      - [ ] parsing
+      - [ ] tools (Resolution needed)
+        - [ ] TOOL.fmt
+  - | | Basic Data Formats
+    - | | Checklist (`.ndcl`)
+      - [x] design
+      - [x] v1 syntax
+      - [x] parsing (pkg/neurodata/checklist)
+      - [-] tools (TOOL.ParseChecklistFromString) more needed
+        - [ ] TOOL.fmt
+    - | | Simple List (`.ndlist`)
+      - [x] design
+      - [x] v1 syntax
+      - [ ] parsing
+      - [ ] tools (Hypothetical TOOL.ParseList)
+        - [ ] TOOL.fmt
+    - | | Map Literal (`ns-map-literal`)
+      - [x] design
+      - [x] v1 syntax
+      - [x] parsing (Core NeuroScript Parser)
+      - [ ] tools
+        - [ ] TOOL.fmt
+    - | | Map Schema (`.ndmap_schema`)
+      - [x] design
+      - [x] v1 syntax
+      - [ ] parsing
+      - [ ] tools (Validation)
+        - [ ] TOOL.fmt
+    - | | Table (`.ndtable`)
+      - [x] design
+      - [x] v1 syntax
+      - [ ] parsing
+      - [ ] tools (CRUD - Read, Insert, Update, Delete)
+        - [ ] TOOL.fmt
+    - | | Graph (`.ndgraph`)
+      - [x] design
+      - [x] v1 syntax
+      - [ ] parsing
+      - [ ] tools (Rendering, Formatting)
+        - [ ] TOOL.fmt
+    - | | Tree (`.ndtree`)
+      - [x] design
+      - [x] v1 syntax
+      - [ ] parsing
+      - [ ] tools (Rendering, Validation)
+        - [ ] TOOL.fmt
+  - | | Form & Object Data
+    - | | Form (`.ndform`)
+      - [x] design
+      - [x] v1 syntax
+      - [ ] parsing
+      - [ ] tools (Render, Validate, Extract)
+        - [ ] TOOL.fmt
+    - | | Object (`.ndobj`)
+      - [ ] design
+      - [x] v1 syntax (Use ns-map-literal grammar)
+      - [x] parsing (Core NeuroScript Parser)
+      - [ ] tools (Future: Methods?)
+        - [ ] TOOL.fmt
+  - | | Decision Logic
+    - | | Decision Table (`.nddt`)
+      - [x] design
+      - [x] v1 syntax
+      - [ ] parsing
+      - [ ] tools (TOOL.EvaluateDecisionTable)
+        - [ ] TOOL.fmt
+  - | | Domain Specific
+    - | | Symbolic Math (`.ndmath`)
+      - [x] design
+      - [x] v1 syntax
+      - [ ] parsing
+      - [ ] tools (TOOL.Math*)
+        - [ ] TOOL.fmt
+    - | | Cryptographic (`.ndid`, `.ndcert`, `.ndsig`, `.ndhash`)
+      - [x] design
+      - [x] v1 syntax
+      - [ ] parsing
+      - [ ] tools (TOOL.VerifySignature, TOOL.ValidateCertificate etc.)
+        - [ ] TOOL.fmt
+    - | | Geometry & Scene
+      - | | Polygon Mesh (`.ndmesh`)
+        - [x] design
+        - [x] v1 syntax
+        - [ ] parsing
+        - [ ] tools
+          - [ ] TOOL.fmt
+      - | | Constructive Solid Geometry (`.ndcsg`)
+        - [x] design
+        - [x] v1 syntax
+        - [ ] parsing
+        - [ ] tools
+          - [ ] TOOL.fmt
+      - | | Signed Distance Field (`.ndsdf`)
+        - [x] design
+        - [x] v1 syntax
+        - [ ] parsing
+        - [ ] tools
+          - [ ] TOOL.fmt
+      - | | Scene Graph (`.ndscenegraph`)
+        - [x] design
+        - [x] v1 syntax
+        - [ ] parsing
+        - [ ] tools
+          - [ ] TOOL.fmt
+  - | | Templating (`docs/NeuroData/templates.md`)
+      - [x] design
+      - [x] v1 syntax
+      - [ ] parsing (Handlebars + NS Eval)
+      - [ ] tools (TOOL.RenderTemplate)
+        - [ ] TOOL.fmt
+  - | | Planned/Business Formats (from dev checklist)
+    - | | Invoice
+      - [ ] design
+      - [ ] v1 syntax
+      - [ ] parsing
+      - [ ] tools
+        - [ ] TOOL.fmt
+    - | | Statement of Account
+      - [ ] design
+      - [ ] v1 syntax
+      - [ ] parsing
+      - [ ] tools
+        - [ ] TOOL.fmt
+    - | | Receipt
+      - [ ] design
+      - [ ] v1 syntax
+      - [ ] parsing
+      - [ ] tools
+        - [ ] TOOL.fmt
+    - | | Payment
+      - [ ] design
+      - [ ] v1 syntax
+      - [ ] parsing
+      - [ ] tools
+        - [ ] TOOL.fmt
+    - | | Packing List
+      - [ ] design
+      - [ ] v1 syntax
+      - [ ] parsing
+      - [ ] tools
+        - [ ] TOOL.fmt
+    - | | Request for Quote/Estimate
+      - [ ] design
+      - [ ] v1 syntax
+      - [ ] parsing
+      - [ ] tools
+        - [ ] TOOL.fmt
+    - | | Quote/Estimate
+      - [ ] design
+      - [ ] v1 syntax
+      - [ ] parsing
+      - [ ] tools
+        - [ ] TOOL.fmt
+    - | | Purchase Order
+      - [ ] design
+      - [ ] v1 syntax
+      - [ ] parsing
+      - [ ] tools
+        - [ ] TOOL.fmt
+    - | | Work Order
+      - [ ] design
+      - [ ] v1 syntax
+      - [ ] parsing
+      - [ ] tools
+        - [ ] TOOL.fmt
+    - | | Markdown Doc (`.ndmd`?)
+      - [ ] design
+      - [ ] v1 syntax
+      - [ ] parsing
+      - [ ] tools
+        - [ ] TOOL.fmt
+    - | | Composite Doc (`.ndcomp`?)
+      - [ ] design
+      - [ ] v1 syntax
+      - [ ] parsing
+      - [ ] tools
+        - [ ] TOOL.fmt
+    - | | Bug Report (`.ndbug`?)
+      - [ ] design
+      - [ ] v1 syntax
+      - [ ] parsing
+      - [ ] tools
+        - [ ] TOOL.fmt
+    - | | NS Tool List (`.ndtools`?)
+      - [ ] design
+      - [ ] v1 syntax
+      - [ ] parsing
+      - [ ] tools
+        - [ ] TOOL.fmt
+    - | | Enum (`.ndenum`?)
+      - [ ] design
+      - [ ] v1 syntax
+      - [ ] parsing
+      - [ ] tools
+        - [ ] TOOL.fmt
+    - | | Roles List (`.ndroles`?)
+      - [ ] design
+      - [ ] v1 syntax
+      - [ ] parsing
+      - [ ] tools
+        - [ ] TOOL.fmt
+    - | | Ishikawa (`.ndishikawa`?)
+      - [ ] design
+      - [ ] v1 syntax
+      - [ ] parsing
+      - [ ] tools
+        - [ ] TOOL.fmt
+    - | | Kanban (`.ndkanban`?)
+      - [ ] design
+      - [ ] v1 syntax
+      - [ ] parsing
+      - [ ] tools
+        - [ ] TOOL.fmt
+    - | | Memo (`.ndmemo`?)
+      - [ ] design
+      - [ ] v1 syntax
+      - [ ] parsing
+      - [ ] tools
+        - [ ] TOOL.fmt
+    - | | Workflow (`.ndworkflow`?) - *New Suggestion*
+      - [ ] design
+      - [ ] v1 syntax
+      - [ ] parsing
+      - [ ] tools
+        - [ ] TOOL.fmt
+    - | | Log (`.ndlog`?) - *New Suggestion*
+      - [ ] design
+      - [ ] v1 syntax
+      - [ ] parsing
+      - [ ] tools
+        - [ ] TOOL.fmt

@@ -94,6 +94,6 @@ func TestToolReadFile(t *testing.T) {
 		// Need to adjust the helper slightly if we want to check *both*
 		// the specific error type (wantToolErrIs) AND the string result (wantResult)
 		// when an error occurs. Let's assume helper checks error first, then result if no error or if wantResult is set.
-		testFsToolHelper(t, interp, tt)
+		testFsToolHelper(t, interp, "../temp", tt)
 	}
 }

@@ -110,6 +110,6 @@ func TestToolWriteFile(t *testing.T) {
 
 	for _, tt := range tests {
 		// Pass interp and tt to the helper in testing_helpers_test.go
-		testFsToolHelper(t, interp, tt)
+		testFsToolHelper(t, interp, "../temp", tt)
 	}
 }

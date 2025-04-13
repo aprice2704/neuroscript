@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"io"
 	"log"
-	// No changes needed to imports
+
+	// Import core
+	"github.com/aprice2704/neuroscript/pkg/core/prompts" // Import core
 )
 
 // --- Interpreter ---
@@ -96,8 +98,8 @@ func NewInterpreter(logger *log.Logger) *Interpreter {
 		logger:          effectiveLogger,
 	}
 
-	interp.variables["NEUROSCRIPT_DEVELOP_PROMPT"] = PromptDevelop
-	interp.variables["NEUROSCRIPT_EXECUTE_PROMPT"] = PromptExecute
+	interp.variables["NEUROSCRIPT_DEVELOP_PROMPT"] = prompts.PromptDevelop
+	interp.variables["NEUROSCRIPT_EXECUTE_PROMPT"] = prompts.PromptExecute
 
 	return interp
 }

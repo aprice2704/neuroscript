@@ -1,5 +1,5 @@
-// pkg/core/prompts.go
-package core
+// pkg/core/prompts/prompts.go
+package prompts
 
 const (
 	// PromptDevelop provides strict rules for an LLM generating NeuroScript code, reflecting NeuroScript.g4

@@ -3,21 +3,57 @@ package core
 
 import "fmt" // Keep fmt
 
-// registerFsTools registers all filesystem-related tools.
-// *** MODIFIED: Returns error ***
+// registerFsTools registers all filesystem-related tools by calling specific registration functions.
 func registerFsTools(registry *ToolRegistry) error {
-	tools := []ToolImplementation{
-		{Spec: ToolSpec{Name: "ReadFile", Description: "Reads the entire content of a specific file within the designated sandbox directory. Use this tool when asked to get the contents of, read, or show a local file specified by name.", Args: []ArgSpec{{Name: "filepath", Type: ArgTypeString, Required: true, Description: "The relative path (within the sandbox) of the file to read."}}, ReturnType: ArgTypeString}, Func: toolReadFile},
-		{Spec: ToolSpec{Name: "WriteFile", Description: "Writes content to a specific file within the designated sandbox directory, creating directories if needed. Overwrites existing files.", Args: []ArgSpec{{Name: "filepath", Type: ArgTypeString, Required: true, Description: "The relative path (within the sandbox) of the file to write."}, {Name: "content", Type: ArgTypeString, Required: true, Description: "The content to write."}}, ReturnType: ArgTypeString}, Func: toolWriteFile},
-		{Spec: ToolSpec{Name: "ListDirectory", Description: "Lists directory content within the sandbox. Returns a list of maps, each map containing {'name': string, 'is_dir': bool}.", Args: []ArgSpec{{Name: "path", Type: ArgTypeString, Required: true, Description: "The relative path (within the sandbox) of the directory to list."}}, ReturnType: ArgTypeSliceAny}, Func: toolListDirectory},
-		{Spec: ToolSpec{Name: "LineCountFile", Description: "Counts lines in a specified file within the sandbox. Returns -1 on file path or read error.", Args: []ArgSpec{{Name: "filepath", Type: ArgTypeString, Required: true, Description: "Relative file path (within the sandbox) to count lines in."}}, ReturnType: ArgTypeInt}, Func: toolLineCountFile},
-		{Spec: ToolSpec{Name: "SanitizeFilename", Description: "Cleans a string to make it suitable for use as part of a filename.", Args: []ArgSpec{{Name: "name", Type: ArgTypeString, Required: true, Description: "The string to sanitize."}}, ReturnType: ArgTypeString}, Func: toolSanitizeFilename},
+	// Register file-specific tools (Read, Write, Utils)
+	if err := registerFsFileTools(registry); err != nil {
+		return fmt.Errorf("failed registering file tools: %w", err)
 	}
-	for _, tool := range tools {
-		// *** Check error from RegisterTool ***
-		if err := registry.RegisterTool(tool); err != nil {
-			return fmt.Errorf("failed to register FS tool %s: %w", tool.Spec.Name, err)
-		}
+	// Register directory-specific tools (List, Mkdir, Delete later)
+	if err := registerFsDirTools(registry); err != nil {
+		return fmt.Errorf("failed registering directory tools: %w", err)
 	}
+	// Register utility tools (LineCountFile, SanitizeFilename)
+	if err := registerFsUtilTools(registry); err != nil {
+		return fmt.Errorf("failed registering FS utility tools: %w", err)
+	}
+
 	return nil // Success
 }
+
+// --- Registration helpers for specific categories ---
+// (These would contain the actual ToolImplementation structs and RegisterTool calls)
+
+// registerFsFileTools registers ReadFile, WriteFile
+func registerFsFileTools(registry *ToolRegistry) error {
+	tools := []ToolImplementation{
+		{Spec: ToolSpec{Name: "ReadFile", Description: "Reads the entire content of a specific file...", Args: []ArgSpec{{Name: "filepath", Type: ArgTypeString, Required: true, Description: "The relative path..."}}, ReturnType: ArgTypeString}, Func: toolReadFile},
+		{Spec: ToolSpec{Name: "WriteFile", Description: "Writes content to a specific file...", Args: []ArgSpec{{Name: "filepath", Type: ArgTypeString, Required: true}, {Name: "content", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeString}, Func: toolWriteFile},
+	}
+	for _, tool := range tools {
+		if err := registry.RegisterTool(tool); err != nil {
+			return fmt.Errorf("failed to register file tool %s: %w", tool.Spec.Name, err)
+		}
+	}
+	return nil
+}
+
+// registerFsUtilTools registers LineCountFile, SanitizeFilename
+func registerFsUtilTools(registry *ToolRegistry) error {
+	tools := []ToolImplementation{
+		{Spec: ToolSpec{Name: "LineCountFile", Description: "Counts lines in a specified file...", Args: []ArgSpec{{Name: "filepath", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeInt}, Func: toolLineCountFile},
+		{Spec: ToolSpec{Name: "SanitizeFilename", Description: "Cleans a string to make it suitable for use as part of a filename.", Args: []ArgSpec{{Name: "name", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeString}, Func: toolSanitizeFilename},
+		{Spec: ToolSpec{Name: "ListDirectory", Description: "Lists directory content within the sandbox...", Args: []ArgSpec{{Name: "path", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeSliceAny}, Func: toolListDirectory}, // Moved ListDirectory here conceptually
+	}
+	for _, tool := range tools {
+		if err := registry.RegisterTool(tool); err != nil {
+			return fmt.Errorf("failed to register FS util tool %s: %w", tool.Spec.Name, err)
+		}
+	}
+	return nil
+}
+
+// Note: Implementations like toolReadFile, toolWriteFile, toolListDirectory,
+// toolLineCountFile, toolSanitizeFilename would remain in their respective
+// implementation files (e.g., tools_fs_read.go, tools_fs_write.go, etc.)
+// The registerFsDirTools function is defined in the new tools_fs_dirs.go file.

@@ -5,40 +5,46 @@ package metadata
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"regexp"
 	"strings"
 )
 
+// Define Error within this package
+var (
+	// ErrMalformedMetadata indicates a line started like metadata (::) but was malformed.
+	ErrMalformedMetadata = errors.New("malformed metadata line")
+)
+
 // Unexported regex patterns
 var (
-	metadataPattern          = regexp.MustCompile(`^\s*::\s+([a-zA-Z0-9_.-]+)\s*:\s*(.*)`)
-	commentOrBlankPattern    = regexp.MustCompile(`^\s*($|#|--)`)
-	startsWithMetadataPrefix = regexp.MustCompile(`^\s*::`) // Checks for potential start
+	// Stricter pattern for extracting key/value, requiring space after ::
+	metadataPattern       = regexp.MustCompile(`^\s*::\s+([a-zA-Z0-9_.-]+)\s*:\s*(.*)`)
+	commentOrBlankPattern = regexp.MustCompile(`^\s*($|#|--)`)
+	// More lenient pattern just to check if a line *might* be metadata
+	startsWithMetadataPrefix = regexp.MustCompile(`^\s*::`)
 )
 
 // --- Exported Helper Functions ---
 
-// IsMetadataLine checks if a line *could* be a metadata line (starts with `:: `).
-// Note: It doesn't validate the full key:value format. Use ExtractKeyValue for that.
+// IsMetadataLine checks if a line *could* be a metadata line (starts with `::`).
+// Allows leading whitespace, does NOT require whitespace after :: for this initial check.
 func IsMetadataLine(line string) bool {
-	// We check for '::' followed by at least one space, allowing leading whitespace.
-	// metadataPattern requires the full structure, StartsWithMetadataPrefix is too loose.
-	// Let's refine this check slightly.
 	trimmed := strings.TrimSpace(line)
-	return strings.HasPrefix(trimmed, ":: ")
+	// CHANGE: Only check for the "::" prefix now
+	return strings.HasPrefix(trimmed, "::")
 }
 
 // IsCommentOrBlank checks if a line is a comment (#, --) or blank.
 func IsCommentOrBlank(line string) bool {
-	// Uses the unexported pattern
 	return commentOrBlankPattern.MatchString(line)
 }
 
-// ExtractKeyValue attempts to parse a line as a ':: key: value' entry.
+// ExtractKeyValue attempts to parse a line as a ':: key: value' entry using the strict pattern.
 // Returns the key, value, and true if successful, otherwise empty strings and false.
 func ExtractKeyValue(line string) (key, value string, ok bool) {
-	matches := metadataPattern.FindStringSubmatch(line)
+	matches := metadataPattern.FindStringSubmatch(line) // Uses the strict regex
 	if len(matches) == 3 {
 		key = strings.TrimSpace(matches[1])
 		value = strings.TrimSpace(matches[2])
@@ -51,7 +57,8 @@ func ExtractKeyValue(line string) (key, value string, ok bool) {
 // --- Main Extraction Function ---
 
 // Extract scans the beginning of content for metadata lines using the helper functions.
-// It stops at the first line that is not valid metadata, a comment, or blank.
+// It stops and returns an error if a line starts with '::' but is malformed according to ExtractKeyValue.
+// It stops normally at the first line that is not potentially metadata, a comment, or blank.
 func Extract(content string) (map[string]string, error) {
 	metadata := make(map[string]string)
 	scanner := bufio.NewScanner(strings.NewReader(content))
@@ -61,20 +68,20 @@ func Extract(content string) (map[string]string, error) {
 		lineNumber++
 		line := scanner.Text()
 
-		// Use the exported helper to check if it *might* be metadata
-		if IsMetadataLine(line) {
-			// Try to extract the key/value pair using the stricter pattern
+		// Use the updated, less strict IsMetadataLine to identify potential metadata lines
+		if IsMetadataLine(line) { // Check for "::" prefix only
+			// Now try to extract key/value using the strict pattern
 			key, value, ok := ExtractKeyValue(line)
 			if ok {
 				// Only add if key doesn't exist yet (first wins)
 				if _, exists := metadata[key]; !exists {
 					metadata[key] = value
 				}
-				continue // Successfully processed metadata line
+				continue // Successfully processed valid metadata line
 			} else {
-				// Line started like metadata (`:: `) but was malformed (e.g., no colon)
-				// Stop processing metadata here.
-				break
+				// Line started "::" but did not match ":: key: value". Return ERROR.
+				err := fmt.Errorf("%w: detected on line %d: %s", ErrMalformedMetadata, lineNumber, line)
+				return metadata, err // Return partially collected metadata AND the error
 			}
 		}
 
@@ -83,29 +90,26 @@ func Extract(content string) (map[string]string, error) {
 			continue // Skip comments and blank lines within the metadata section
 		}
 
-		// If it's not metadata, not a comment, and not blank, then metadata section ends.
+		// If it's not potentially metadata, not comment, not blank, then metadata section ends normally.
 		break
 	}
 
 	if err := scanner.Err(); err != nil {
+		// Return any previously collected metadata along with the scanner error
 		return metadata, fmt.Errorf("error scanning content for metadata: %w", err)
 	}
 
+	// Return successfully collected metadata and nil error if loop finished normally
 	return metadata, nil
 }
 
-// --- Unexported helpers used by the exported Extract function ---
-// These are kept unexported as they are implementation details of Extract.
+// --- Unexported helpers ---
+// (Keep these unexported as they are implementation details)
 
-// StartsWithMetadataPrefix (unexported now) checks if a line starts with the potential metadata pattern `::`.
-// Note: This is less strict than IsMetadataLine, used internally by Extract if needed,
-// but external callers should use IsMetadataLine or ExtractKeyValue.
 func startsWithMetadataPrefixFunc(line string) bool {
 	return startsWithMetadataPrefix.MatchString(line)
 }
 
-// CommentOrBlankPattern (unexported now) checks if a line matches a comment or is blank.
-// External callers should use IsCommentOrBlank.
 func commentOrBlankPatternFunc(line string) bool {
 	return commentOrBlankPattern.MatchString(line)
 }
