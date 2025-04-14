@@ -1,67 +1,58 @@
 // filename: pkg/core/tools_go_ast.go
+// UPDATED: Register new tool GoFindIdentifiers
 package core
 
 import (
 	"bytes"
+	"errors" // Added for Join
 	"fmt"
 	"go/ast"
 	"go/parser"
 	"go/printer"
 	"go/token"
 	"os"
+	// "golang.org/x/tools/go/ast/astutil" // Not needed here
 )
 
 // --- Helper Struct ---
-
-// CachedAst holds the parsed AST and its associated FileSet, needed for accurate printing/reparsing.
 type CachedAst struct {
 	File *ast.File
 	Fset *token.FileSet
 }
 
-const golangASTTypeTag = "GolangAST" // Define constant for type tag
+const golangASTTypeTag = "GolangAST"
 
-// --- GoParseFile Tool (MODIFIED Validation Logic) ---
+// --- GoParseFile Tool ---
+// (implementation unchanged)
 func toolGoParseFile(interpreter *Interpreter, args []interface{}) (interface{}, error) {
 	var content string
 	var filePath string
-	var pathArgProvided, contentArgProvided bool // Track if args were provided *at all*
-	var pathHasValue, contentHasValue bool       // Track if args had non-empty string values
-
+	var pathArgProvided, contentArgProvided bool
+	var pathHasValue, contentHasValue bool
 	pathArg := args[0]
 	contentArg := args[1]
-
-	// Check path argument
 	if pathArg != nil {
-		pathArgProvided = true // Mark arg as provided
+		pathArgProvided = true
 		pathStr, ok := pathArg.(string)
 		if ok && pathStr != "" {
 			filePath = pathStr
-			pathHasValue = true // Mark path as having a non-empty value
+			pathHasValue = true
 		}
 	}
-
-	// Check content argument
 	if contentArg != nil {
-		contentArgProvided = true // Mark arg as provided
+		contentArgProvided = true
 		contentStr, ok := contentArg.(string)
 		if ok && contentStr != "" {
-			// Only assign content if path didn't have a value,
-			// but mark that content *had* a value regardless.
 			if !pathHasValue {
 				content = contentStr
 			}
-			contentHasValue = true // Mark content as having a non-empty value
+			contentHasValue = true
 		}
 	}
-
-	// --- Validation Logic ---
 	if pathHasValue && contentHasValue {
-		// FAIL Case: Both path and content had non-empty string values.
-		return "GoParseFile requires exactly one of 'path' or 'content' argument, both provided.", nil // Added return
-	}
+		return "GoParseFile requires exactly one of 'path' or 'content' argument, both provided.", nil
+	} // Return error msg string
 	if !pathHasValue && !contentHasValue {
-		// FAIL Case: Neither path nor content had a non-empty string value.
 		if pathArgProvided && !pathHasValue && !contentArgProvided {
 			return fmt.Sprintf("GoParseFile: 'path' argument was provided but empty, and 'content' was not provided."), nil
 		}
@@ -71,15 +62,10 @@ func toolGoParseFile(interpreter *Interpreter, args []interface{}) (interface{},
 		if pathArgProvided && contentArgProvided && !pathHasValue && !contentHasValue {
 			return fmt.Sprintf("GoParseFile: Both 'path' and 'content' arguments were provided but empty."), nil
 		}
-		// Fallback if args were nil or wrong type initially (should be caught by validation layer ideally)
-		// Return the message observed in test logs
 		return "GoParseFile requires 'path' (string) or 'content' (string) argument.", nil
-	}
-	// --- Proceed if exactly one has a value ---
-
+	} // Return error msg string
 	var sourceName string
-	// Get Source Content (Only if path provided and content not already set)
-	if pathHasValue { // Read file only if path was the sole input with value
+	if pathHasValue {
 		sourceName = filePath
 		sandboxRoot := interpreter.sandboxDir
 		if sandboxRoot == "" {
@@ -94,169 +80,125 @@ func toolGoParseFile(interpreter *Interpreter, args []interface{}) (interface{},
 			return fmt.Sprintf("GoParseFile failed to read file '%s': %s", filePath, readErr.Error()), fmt.Errorf("%w: reading file '%s': %w", ErrInternalTool, filePath, readErr)
 		}
 		content = string(contentBytes)
-	} else if contentHasValue { // Use content only if it was the sole input with value
+	} else if contentHasValue {
 		sourceName = "<content string>"
-		// Content was already assigned earlier if pathHadValue was false
 	} else {
-		// Should be unreachable due to validation above
-		return "GoParseFile: Internal logic error determining input source.", fmt.Errorf("%w: internal logic error", ErrInternalTool)
-	}
-
-	// --- Parse Go Code ---
+		return nil, fmt.Errorf("GoParseFile: Internal logic error determining input source: %w", ErrInternalTool)
+	} // Return Go error for internal issues
 	fset := token.NewFileSet()
 	astFile, err := parser.ParseFile(fset, sourceName, content, parser.ParseComments)
 	if err != nil {
 		return fmt.Sprintf("GoParseFile failed: %s", err.Error()), fmt.Errorf("%w: %w", ErrGoParseFailed, err)
-	}
-
-	// --- Success: Store AST + FileSet ---
+	} // Return wrapped Go error
 	cachedData := CachedAst{File: astFile, Fset: fset}
 	handleID := interpreter.storeObjectInCache(cachedData, golangASTTypeTag)
 	interpreter.logger.Printf("[TOOL GoParseFile] Successfully parsed '%s'. Stored AST+FileSet with handle ID: %s", sourceName, handleID)
 	return handleID, nil
 }
 
-// --- GoModifyAST Tool ---
-func toolGoModifyAST(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	interpreter.logger.Printf("[TOOL GoModifyAST ENTRY] Received raw args (len %d): %v", len(args), args)
-	// Argument Validation (Revised)
-	if len(args) != 2 {
-		return "GoModifyAST: Requires exactly 2 arguments: handleID (string), modifications (map).", nil
+// --- GoFormatAST Tool ---
+// (implementation unchanged except for logging fix)
+func toolGoFormatAST(interpreter *Interpreter, args []interface{}) (interface{}, error) {
+	// *** FIXED: Added missing 'args' argument to Printf call ***
+	interpreter.logger.Printf("[TOOL GoFormatAST ENTRY] Received args: %v", args)
+	// Use defined errors for validation failures
+	if len(args) != 1 {
+		return nil, fmt.Errorf("GoFormatAST: Requires exactly 1 argument: handleID (string): %w", ErrValidationArgCount)
 	}
 	handleID, ok := args[0].(string)
 	if !ok {
-		return fmt.Sprintf("GoModifyAST: Expected string handle ID as first argument, got %T.", args[0]), nil
+		return nil, fmt.Errorf("GoFormatAST: Expected string handle ID, got %T: %w", args[0], ErrValidationTypeMismatch)
 	}
 	if handleID == "" {
-		return "GoModifyAST: Handle ID cannot be empty.", nil
+		return nil, fmt.Errorf("GoFormatAST: Handle ID cannot be empty: %w", ErrValidationRequiredArgNil)
 	}
-	modifications, ok := args[1].(map[string]interface{})
-	if !ok {
-		return fmt.Sprintf("GoModifyAST: Expected map modifications as second argument, got %T.", args[1]), nil
-	}
-	interpreter.logger.Printf("[TOOL GoModifyAST] Validated initial arg types. Handle '%s', %d directives.", handleID, len(modifications))
+	interpreter.logger.Printf("[TOOL GoFormatAST] Validated handle ID: %s", handleID)
 
-	// Modifications Validation
-	if len(modifications) == 0 {
-		return "GoModifyAST: Modifications map cannot be empty.", nil
-	}
-	changePackageName := ""
-	knownDirectiveFound := false
-	if cpVal, ok := modifications["change_package"]; ok {
-		knownDirectiveFound = true
-		cpName, isString := cpVal.(string)
-		if !isString || cpName == "" {
-			return fmt.Sprintf("GoModifyAST: Invalid value for 'change_package': expected non-empty string, got %T.", cpVal), nil
-		}
-		changePackageName = cpName
-	}
-	if !knownDirectiveFound {
-		return "GoModifyAST: Modifications map does not contain any known directives (e.g., 'change_package').", nil
-	} // Match exact error message
-	interpreter.logger.Printf("[TOOL GoModifyAST] Validated modifications request (change_package: %q). Proceeding.", changePackageName)
-
-	// Retrieve Original AST
 	obj, err := interpreter.retrieveObjectFromCache(handleID, golangASTTypeTag)
 	if err != nil {
-		return fmt.Sprintf("GoModifyAST: Failed to retrieve AST for handle '%s': %s", handleID, err.Error()), fmt.Errorf("%w: %w", ErrGoModifyFailed, err)
+		// Wrap error correctly
+		return nil, fmt.Errorf("GoFormatAST: %w", errors.Join(ErrGoFormatFailed, err)) // Use Join if Go 1.20+
 	}
-	originalCachedAst, ok := obj.(CachedAst)
-	if !ok {
-		return fmt.Sprintf("GoModifyAST: Internal error - retrieved object for handle '%s' is not CachedAst (%T)", handleID, obj), fmt.Errorf("%w: unexpected object type retrieved from cache", ErrInternalTool)
+	cachedAst, ok := obj.(CachedAst)
+	if !ok || cachedAst.File == nil || cachedAst.Fset == nil {
+		errInternal := fmt.Errorf("internal error - retrieved object for handle '%s' is invalid (%T)", handleID, obj)
+		// Wrap internal error with a relevant execution error
+		return nil, fmt.Errorf("%w: %w", ErrGoFormatFailed, errInternal) // Or ErrInternalTool? ErrGoFormatFailed seems more relevant.
 	}
-	interpreter.logger.Printf("[TOOL GoModifyAST] Successfully retrieved original CachedAst for handle '%s'. Package: %s", handleID, originalCachedAst.File.Name.Name)
+	interpreter.logger.Printf("[TOOL GoFormatAST] Successfully retrieved CachedAst for handle '%s'.", handleID)
 
-	// Deep Copy via Print/Reparse
-	interpreter.logger.Printf("[TOOL GoModifyAST] Performing deep copy via print/reparse for handle '%s'.", handleID)
 	var buf bytes.Buffer
-	err = printer.Fprint(&buf, originalCachedAst.Fset, originalCachedAst.File)
+	cfg := printer.Config{Mode: printer.UseSpaces | printer.TabIndent, Tabwidth: 8}
+	err = cfg.Fprint(&buf, cachedAst.Fset, cachedAst.File)
 	if err != nil {
-		return fmt.Sprintf("GoModifyAST: Failed during AST print for deep copy (handle '%s'): %s", handleID, err.Error()), fmt.Errorf("%w: printing AST for copy: %w", ErrInternalTool, err)
+		// Wrap error correctly
+		errInternal := fmt.Errorf("failed to format AST for handle '%s': %w", handleID, err)
+		return nil, fmt.Errorf("%w: %w", ErrGoFormatFailed, errInternal)
 	}
-	originalSource := buf.String()
-	newFset := token.NewFileSet()
-	newAstFile, err := parser.ParseFile(newFset, "reparsed_copy.go", originalSource, parser.ParseComments)
-	if err != nil {
-		return fmt.Sprintf("GoModifyAST: Failed during AST re-parse for deep copy (handle '%s'): %s", handleID, err.Error()), fmt.Errorf("%w: re-parsing printed AST: %w", ErrInternalTool, err)
-	}
-	interpreter.logger.Printf("[TOOL GoModifyAST] Deep copy successful for handle '%s'. New AST created.", handleID)
-
-	// Apply Modification(s) to the NEW AST
-	modificationApplied := false
-	if changePackageName != "" {
-		if newAstFile.Name == nil {
-			return fmt.Sprintf("GoModifyAST: Cannot change package name, AST has no package declaration (handle '%s').", handleID), fmt.Errorf("%w: AST missing package declaration", ErrGoModifyFailed)
-		}
-		originalName := newAstFile.Name.Name
-		newAstFile.Name.Name = changePackageName
-		modificationApplied = true
-		interpreter.logger.Printf("[TOOL GoModifyAST] Applied modification: Changed package name from '%s' to '%s'.", originalName, changePackageName)
-	}
-	if !modificationApplied {
-		return "GoModifyAST: No applicable modification was performed.", fmt.Errorf("%w: no modification applied despite validation", ErrInternalTool)
-	}
-
-	// Store New AST & Invalidate Old Handle
-	interpreter.logger.Printf("[TOOL GoModifyAST] Modification successful. Storing new AST and invalidating old handle '%s'.", handleID)
-	newCachedAst := CachedAst{File: newAstFile, Fset: newFset}
-	newHandleID := interpreter.storeObjectInCache(newCachedAst, golangASTTypeTag)
-
-	// Keep deletes commented out for now
-	/*
-		delete(interpreter.objectCache, handleID)
-		delete(interpreter.handleTypes, handleID)
-	*/
-	interpreter.logger.Printf("[TOOL GoModifyAST] SKIPPED invalidation of old handle '%s' for diagnostics. New handle is '%s'.", handleID, newHandleID)
-
-	interpreter.logger.Printf("[TOOL GoModifyAST] Returning new handle '%s' successfully.", newHandleID)
-	return newHandleID, nil
+	formattedCode := buf.String()
+	interpreter.logger.Printf("[TOOL GoFormatAST] Successfully formatted AST. Returning code string (len: %d).", len(formattedCode))
+	return formattedCode, nil
 }
 
 // --- Registration ---
+// Registers ALL Go AST tools (Parse, Modify, Format, Find)
 func registerGoAstTools(registry *ToolRegistry) error {
 	// GoParseFile registration
 	err := registry.RegisterTool(ToolImplementation{
 		Spec: ToolSpec{
-			Name: "GoParseFile",
-			Description: "Parses Go source code from a file path or direct content string. " +
-				"Stores the AST internally and returns an opaque string handle on success.",
-			Args: []ArgSpec{
-				{Name: "path", Type: ArgTypeString, Required: false, Description: "Relative path to the Go source file (within sandbox)."},
-				{Name: "content", Type: ArgTypeString, Required: false, Description: "Direct Go source code as a string."},
-			},
-			ReturnType: ArgTypeString,
-		},
-		Func: toolGoParseFile,
+			Name: "GoParseFile", Description: "Parses Go source code from path or content string. Returns AST handle.",
+			Args: []ArgSpec{{Name: "path", Type: ArgTypeString, Required: false}, {Name: "content", Type: ArgTypeString, Required: false}}, ReturnType: ArgTypeString,
+		}, Func: toolGoParseFile,
 	})
 	if err != nil {
 		fmt.Printf("!!! CRITICAL: Failed to register Go AST tool GoParseFile: %v\n", err)
-		return fmt.Errorf("failed to register Go AST tool GoParseFile: %w", err)
-	} else {
-		fmt.Println("--- Successfully registered GoParseFile ---")
+		return fmt.Errorf("failed to register GoParseFile: %w", err)
 	}
 
-	// GoModifyAST registration
+	// GoModifyAST registration (Func defined in tools_go_ast_modify.go)
 	err = registry.RegisterTool(ToolImplementation{
 		Spec: ToolSpec{
-			Name: "GoModifyAST",
-			Description: "Modifies a Go AST represented by an input handle according to the 'modifications' map. " +
-				"On success, stores the modified AST under a NEW handle, invalidates the OLD handle, and returns the NEW handle string. " +
-				"Input handle is invalidated only on success.",
-			Args: []ArgSpec{
-				{Name: "handle", Type: ArgTypeString, Required: true, Description: "The opaque string handle for the AST to modify (obtained from GoParseFile)."},
-				{Name: "modifications", Type: ArgTypeAny, Required: true, Description: "A map describing the modifications (e.g., {'change_package': 'new_name'}). Tool expects map[string]interface{}."},
-			},
-			ReturnType: ArgTypeString,
-		},
-		Func: toolGoModifyAST,
+			Name: "GoModifyAST", Description: "Modifies Go AST (handle) using directives (change_package, add/remove/replace_import, replace_id). Returns NEW handle on success.",
+			Args: []ArgSpec{{Name: "handle", Type: ArgTypeString, Required: true}, {Name: "modifications", Type: ArgTypeAny, Required: true}}, ReturnType: ArgTypeString,
+		}, Func: toolGoModifyAST, // Assumes toolGoModifyAST is accessible (defined in another file in the same package)
 	})
 	if err != nil {
 		fmt.Printf("!!! CRITICAL: Failed to register Go AST tool GoModifyAST: %v\n", err)
-		return fmt.Errorf("failed to register Go AST tool GoModifyAST: %w", err)
-	} else {
-		fmt.Println("--- Successfully registered GoModifyAST ---")
+		return fmt.Errorf("failed to register GoModifyAST: %w", err)
 	}
 
-	// Register GoFormatAST here later
+	// GoFormatAST registration
+	err = registry.RegisterTool(ToolImplementation{
+		Spec: ToolSpec{
+			Name: "GoFormatAST", Description: "Formats Go AST (handle). Returns formatted code string.",
+			Args: []ArgSpec{{Name: "handle", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeString,
+		}, Func: toolGoFormatAST,
+	})
+	if err != nil {
+		fmt.Printf("!!! CRITICAL: Failed to register Go AST tool GoFormatAST: %v\n", err)
+		return fmt.Errorf("failed to register GoFormatAST: %w", err)
+	}
+
+	// --- GoFindIdentifiers registration ---
+	err = registry.RegisterTool(ToolImplementation{
+		Spec: ToolSpec{
+			Name:        "GoFindIdentifiers",
+			Description: "Finds occurrences of qualified identifiers (pkg.Symbol) in a Go AST (handle). Returns list of positions.",
+			Args: []ArgSpec{
+				{Name: "handle", Type: ArgTypeString, Required: true, Description: "Handle for the AST."},
+				{Name: "pkg_name", Type: ArgTypeString, Required: true, Description: "Package name part (e.g., 'fmt')."},
+				{Name: "identifier", Type: ArgTypeString, Required: true, Description: "Identifier name part (e.g., 'Println')."},
+			},
+			// *** FIXED: Replaced ArgTypeList with ArgTypeSliceAny ***
+			ReturnType: ArgTypeSliceAny, // Returns a list of maps [{filename, line, column}, ...]
+		},
+		Func: toolGoFindIdentifiers, // Assumes toolGoFindIdentifiers is accessible (defined in another file in the same package)
+	})
+	if err != nil {
+		fmt.Printf("!!! CRITICAL: Failed to register Go AST tool GoFindIdentifiers: %v\n", err)
+		return fmt.Errorf("failed to register GoFindIdentifiers: %w", err)
+	}
+	// --- END NEW ---
+
 	return nil
 }

@@ -3,7 +3,7 @@ package core
 
 import "errors"
 
-// --- Core Validation Errors ---
+// --- Core Validation Errors (for ValidateAndConvertArgs) ---
 var (
 	ErrValidationRequiredArgNil = errors.New("required argument is nil")
 	ErrValidationTypeMismatch   = errors.New("argument type mismatch")
@@ -24,10 +24,25 @@ var (
 	ErrPathViolation   = errors.New("path resolves outside allowed directory")
 	ErrCannotCreateDir = errors.New("cannot create directory")
 	ErrCannotDelete    = errors.New("cannot delete file or directory")
-	// Go Tooling Errors
+
+	// --- Go Tooling Errors ---
 	ErrGoParseFailed  = errors.New("failed to parse Go source")
 	ErrGoModifyFailed = errors.New("failed to modify Go AST")
-	ErrGoFormatFailed = errors.New("failed to format Go AST") // *** ADDED ***
+	ErrGoFormatFailed = errors.New("failed to format Go AST")
+	// GoModifyAST Specific Validation Errors
+	ErrGoModifyInvalidDirectiveValue = errors.New("invalid value for GoModifyAST directive")
+	ErrGoModifyMissingMapKey         = errors.New("missing required key in GoModifyAST directive map")
+	ErrGoModifyEmptyMap              = errors.New("GoModifyAST modifications map cannot be empty")
+	ErrGoModifyUnknownDirective      = errors.New("GoModifyAST modifications map contains no known directives")
+	// --- NEW: GoFind/Replace Identifier Errors ---
+	ErrGoInvalidIdentifierFormat = errors.New("invalid identifier format (e.g., empty string)")
+	// --- ADDED Cache Errors ---
+	ErrCacheObjectNotFound  = errors.New("object not found in cache")
+	ErrCacheObjectWrongType = errors.New("object found in cache has wrong type")
+	// --- End Added Cache Errors ---
+	// ErrIdentifierNotFound is not needed; return empty list instead.
+	// --- End New Errors ---
+
 	// Add other general tool errors as needed
 	ErrInternalTool = errors.New("internal tool error")
 )

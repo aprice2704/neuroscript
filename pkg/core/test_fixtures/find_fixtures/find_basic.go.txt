@@ -1,0 +1,13 @@
+package main
+
+import "fmt"
+
+// Basic test case
+func main() {
+	fmt.Println("basic fixture") // Target 1: Line 6, Col 6
+	fmt.Println("another line")  // Target 2: Line 7, Col 6
+}
+
+func anotherFunc() {
+	fmt.Println("in another func") // Target 3: Line 11, Col 6
+}

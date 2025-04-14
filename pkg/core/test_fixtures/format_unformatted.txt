@@ -1,0 +1,2 @@
+// fixture file for tools_go_ast
+package main; import "fmt"; func main(){fmt.Println("hello")}

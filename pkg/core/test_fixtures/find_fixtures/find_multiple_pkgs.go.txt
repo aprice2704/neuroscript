@@ -1,0 +1,16 @@
+package main
+
+import (
+	"fmt"
+	"os"
+	"strings"
+)
+
+func main() {
+	fmt.Println("multiple") // Target fmt.Println 1: Line 8, Col 6
+	s := "hello world"
+	if strings.HasPrefix(s, "hello") { // Target strings.HasPrefix 1: Line 10, Col 13
+		fmt.Println("Starts with hello") // Target fmt.Println 2: Line 11, Col 7
+	}
+	os.Getenv("USER") // Target os.Getenv 1: Line 13, Col 5
+}

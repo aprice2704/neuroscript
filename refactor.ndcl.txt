@@ -11,16 +11,16 @@
     - [x] TOOL.ReadFile(path)  # Existing
     - [x] TOOL.WriteFile(path, content) # Existing
   - | | Go Code AST Manipulation Tools
-    - [ ] TOOL.GoParseFile(path or content) -> ast_representation
+    - [x] TOOL.GoParseFile(path or content) -> ast_representation
     - | | TOOL.GoModifyAST(ast_representation, modifications) -> modified_ast
-      - [ ] - Change Package Declaration
-      - [ ] - Find Import Paths
-      - [ ] - Replace Import Paths
-      - [ ] - Remove Import Paths
-      - [ ] - Add Import Paths
+      - [x] - Change Package Declaration
+      - [ ] - Find Import Paths # Not implemented as separate directive
+      - [x] - Replace Import Paths
+      - [x] - Remove Import Paths
+      - [x] - Add Import Paths
       - [ ] - Find Qualified Identifiers (e.g., pkg.Symbol)
       - [ ] - Replace Qualified Identifiers
-    - [ ] TOOL.GoFormatAST(ast_representation) -> formatted_go_code_string
+    - [x] TOOL.GoFormatAST(ast_representation) -> formatted_go_code_string
   - | | Verification Tools
     - [x] TOOL.GoModTidy() # Existing
     - [x] TOOL.GoBuild(target?) # Existing

@@ -1,0 +1,10 @@
+package main
+
+import f "fmt"   // Alias fmt as f
+import "strings" // Regular import
+
+func main() {
+	f.Println("aliased call")     // Target f.Println 1: Line 7, Col 3
+	fmt.Println("direct fmt call") // Target fmt.Println 1: Line 8, Col 6
+	_ = strings.ToUpper("abc")     // Target strings.ToUpper 1: Line 9, Col 9
+}

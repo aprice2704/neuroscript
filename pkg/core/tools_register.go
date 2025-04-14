@@ -31,7 +31,7 @@ func registerCoreTools(registry *ToolRegistry) error {
 	if err := registerListTools(registry); err != nil {
 		return fmt.Errorf("failed registering List tools: %w", err)
 	}
-	// *** ADDED: Register Go AST tools ***
+	// *** UPDATED: Call registerGoAstTools ***
 	if err := registerGoAstTools(registry); err != nil {
 		return fmt.Errorf("failed registering Go AST tools: %w", err)
 	}
