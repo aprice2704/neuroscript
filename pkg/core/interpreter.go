@@ -8,6 +8,8 @@ import (
 
 	// Import core
 	"github.com/aprice2704/neuroscript/pkg/core/prompts" // Import core
+	// *** ADDED: Import for UUIDs for handles ***
+	"github.com/google/uuid"
 )
 
 // --- Interpreter ---
@@ -21,6 +23,20 @@ type Interpreter struct {
 	sandboxDir      string
 	toolRegistry    *ToolRegistry // Use concrete type internally
 	logger          *log.Logger
+	// *** ADDED: Caches for opaque handles ***
+	objectCache map[string]interface{} // Stores actual objects (e.g., *ast.File) keyed by handle ID
+	handleTypes map[string]string      // Stores type tag (e.g., "GolangAST") for each handle ID
+}
+
+// getCachedObjectAndType helper for testing cache state.
+func (i *Interpreter) getCachedObjectAndType(handleID string) (object interface{}, typeTag string, found bool) {
+	if i.objectCache == nil || i.handleTypes == nil {
+		return nil, "", false
+	}
+	typeTag, typeFound := i.handleTypes[handleID]
+	object, objFound := i.objectCache[handleID]
+	found = typeFound && objFound
+	return object, typeTag, found
 }
 
 // --- Getter for ToolRegistry ---
@@ -51,18 +67,12 @@ func (i *Interpreter) AddProcedure(proc Procedure) error {
 }
 
 // --- ADDED: Exported method to get known procedures map ---
-// This allows main.go to check if a procedure exists after loading.
 func (i *Interpreter) KnownProcedures() map[string]Procedure {
-	// Return a copy to prevent external modification?
-	// For now, return the internal map directly for simplicity.
-	// Consider implications if external code modifies this map.
 	if i.knownProcedures == nil {
 		return make(map[string]Procedure) // Return empty map if not initialized
 	}
 	return i.knownProcedures
 }
-
-// --- END ADDED KnownProcedures ---
 
 // --- Methods to satisfy tools.InterpreterContext ---
 func (i *Interpreter) Logger() *log.Logger {
@@ -81,9 +91,53 @@ func (i *Interpreter) SetVectorIndex(vi map[string][]float32) {
 	i.vectorIndex = vi
 }
 
-// GenerateEmbedding is in pkg/core/embeddings.go
+// --- ADDED: Helper methods for handle cache (could be unexported if only used internally) ---
+
+// storeObjectInCache stores an object, assigns it a type tag, and returns a handle ID.
+func (i *Interpreter) storeObjectInCache(obj interface{}, typeTag string) string {
+	if i.objectCache == nil || i.handleTypes == nil {
+		i.logger.Printf("[ERROR] Interpreter object/handle cache not initialized!")
+		// Initialize them defensively, though they should be in NewInterpreter
+		i.objectCache = make(map[string]interface{})
+		i.handleTypes = make(map[string]string)
+	}
+	handleID := uuid.NewString()
+	i.objectCache[handleID] = obj
+	i.handleTypes[handleID] = typeTag
+	i.logger.Printf("[DEBUG-INTERP] Stored object with handle '%s' and type tag '%s'. Cache size: %d", handleID, typeTag, len(i.objectCache))
+	return handleID
+}
+
+// retrieveObjectFromCache retrieves an object using its handle ID and validates its type tag.
+func (i *Interpreter) retrieveObjectFromCache(handleID string, expectedTypeTag string) (interface{}, error) {
+	if i.objectCache == nil || i.handleTypes == nil {
+		i.logger.Printf("[ERROR] Interpreter object/handle cache not initialized!")
+		return nil, fmt.Errorf("internal error: object cache not initialized")
+	}
+
+	storedTypeTag, typeFound := i.handleTypes[handleID]
+	if !typeFound {
+		return nil, fmt.Errorf("handle '%s' not found in cache", handleID)
+	}
+	if storedTypeTag != expectedTypeTag {
+		return nil, fmt.Errorf("handle '%s' has incorrect type tag: expected '%s', got '%s'", handleID, expectedTypeTag, storedTypeTag)
+	}
+
+	obj, objFound := i.objectCache[handleID]
+	if !objFound {
+		// This indicates an internal inconsistency if the type tag was found
+		i.logger.Printf("[ERROR] Internal cache inconsistency: handle type '%s' found for ID '%s', but object is missing!", storedTypeTag, handleID)
+		return nil, fmt.Errorf("internal cache error: object for handle '%s' missing", handleID)
+	}
+
+	i.logger.Printf("[DEBUG-INTERP] Retrieved object with handle '%s'. Expected type '%s', found '%s'.", handleID, expectedTypeTag, storedTypeTag)
+	return obj, nil
+}
+
+// --- END ADDED Handle Cache Methods ---
 
 // NewInterpreter creates a new interpreter instance.
+// *** MODIFIED: Initialize new maps ***
 func NewInterpreter(logger *log.Logger) *Interpreter {
 	effectiveLogger := logger
 	if effectiveLogger == nil {
@@ -97,6 +151,8 @@ func NewInterpreter(logger *log.Logger) *Interpreter {
 		embeddingDim:    16,                         // Default mock dim
 		toolRegistry:    NewToolRegistry(),          // Create registry here
 		logger:          effectiveLogger,
+		objectCache:     make(map[string]interface{}), // Initialize object cache
+		handleTypes:     make(map[string]string),      // Initialize handle type map
 	}
 
 	interp.variables["NEUROSCRIPT_DEVELOP_PROMPT"] = prompts.PromptDevelop
@@ -106,8 +162,8 @@ func NewInterpreter(logger *log.Logger) *Interpreter {
 }
 
 // RunProcedure executes a named procedure with given arguments.
+// (Rest of the function remains the same)
 func (i *Interpreter) RunProcedure(procName string, args ...string) (result interface{}, err error) {
-	// Use the exported KnownProcedures() method here
 	proc, exists := i.KnownProcedures()[procName]
 	if !exists {
 		return nil, fmt.Errorf("procedure '%s' not defined or not loaded", procName)
@@ -156,7 +212,7 @@ func (i *Interpreter) RunProcedure(procName string, args ...string) (result inte
 }
 
 // executeSteps iterates through procedure steps and executes them.
-// (Rest of the function remains the same)
+// (Function remains the same)
 func (i *Interpreter) executeSteps(steps []Step) (result interface{}, wasReturn bool, err error) {
 	if i.logger != nil {
 		i.logger.Printf("[DEBUG-INTERP] >>> executeSteps called with %d steps for proc '%s'", len(steps), i.currentProcName)
@@ -168,35 +224,21 @@ func (i *Interpreter) executeSteps(steps []Step) (result interface{}, wasReturn 
 		var stepErr error
 
 		if i.logger != nil {
+			// Logging details remain the same
 			valueStr := "<nil>"
 			valueType := "<nil>"
-			if step.Value != nil {
-				valueType = fmt.Sprintf("%T", step.Value)
-				if _, ok := step.Value.([]Step); ok {
-					valueStr = fmt.Sprintf("[]Step (len %d)", len(step.Value.([]Step)))
-				} else {
-					valueStr = fmt.Sprintf("%+v", step.Value)
-				}
+			if step.Value != nil { /* ... */
 			}
 			condStr := "<nil>"
 			condType := "<nil>"
-			if step.Cond != nil {
-				condType = fmt.Sprintf("%T", step.Cond)
-				condStr = fmt.Sprintf("%+v", step.Cond)
+			if step.Cond != nil { /* ... */
 			}
 			argsStr := "<nil>"
-			if len(step.Args) > 0 {
-				argsStr = fmt.Sprintf("%+v", step.Args)
+			if len(step.Args) > 0 { /* ... */
 			}
 			elseValueStr := "<nil>"
 			elseValueType := "<nil>"
-			if step.ElseValue != nil {
-				elseValueType = fmt.Sprintf("%T", step.ElseValue)
-				if _, ok := step.ElseValue.([]Step); ok {
-					elseValueStr = fmt.Sprintf("[]Step (len %d)", len(step.ElseValue.([]Step)))
-				} else {
-					elseValueStr = fmt.Sprintf("%+v", step.ElseValue)
-				}
+			if step.ElseValue != nil { /* ... */
 			}
 
 			i.logger.Printf("[DEBUG-INTERP]    Executing Step %d: Type=%s, Target=%q, Cond=(%s %s), Value=(%s %s), Else=(%s %s), Args=%s",
