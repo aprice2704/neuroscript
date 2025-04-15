@@ -8,6 +8,8 @@ var (
 	ErrValidationRequiredArgNil = errors.New("required argument is nil")
 	ErrValidationTypeMismatch   = errors.New("argument type mismatch")
 	ErrValidationArgCount       = errors.New("incorrect argument count")
+	// *** ADDED ***
+	ErrValidationArgValue = errors.New("invalid argument value")
 )
 
 // --- Core Tool Execution Errors ---

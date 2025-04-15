@@ -149,12 +149,13 @@ func runEvalExpressionTest(t *testing.T, tc EvalTestCase) {
 
 // --- General Test Helpers ---
 // (makeArgs, AssertNoError remain unchanged)
-func makeArgs(vals ...interface{}) []interface{} {
-	if vals == nil {
-		return []interface{}{}
-	}
-	return vals
-}
+//
+//	func makeArgs(vals ...interface{}) []interface{} {
+//		if vals == nil {
+//			return []interface{}{}
+//		}
+//		return vals
+//	}
 func AssertNoError(t *testing.T, err error, msgAndArgs ...interface{}) {
 	t.Helper()
 	if err != nil {
@@ -175,4 +176,15 @@ type EvalTestCase struct {
 	Expected    interface{}
 	WantErr     bool
 	ErrContains string
+}
+
+// ValidationTestCase defines a test case for ValidateAndConvertArgs.
+type ValidationTestCase struct {
+	Name          string        // Name of the test case
+	ToolName      string        // Tool name for error messages
+	InputArgs     []interface{} // Arguments provided to the tool function
+	ArgSpecs      []ArgSpec     // Tool's argument specification
+	ExpectedArgs  []interface{} // Expected arguments after successful validation/conversion
+	ExpectedError error         // Expected error (nil for success)
+	CheckErrorIs  bool          // Use errors.Is for error checking if true
 }
