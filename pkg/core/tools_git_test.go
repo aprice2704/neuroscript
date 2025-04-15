@@ -1,5 +1,6 @@
 // filename: pkg/core/tools_git_test.go
 // NEW: Basic validation tests for new Git tools
+// FIXED: Corrected ValidationTestCase field names (Name, InputArgs, ExpectedError)
 package core
 
 import (
@@ -18,13 +19,18 @@ func runValidationTestCases(t *testing.T, toolName string, testCases []Validatio
 	spec := toolImpl.Spec
 
 	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			_, err := ValidateAndConvertArgs(spec, tc.args)
-			if tc.wantErrIs != nil {
+		// Use tc.Name from the struct field for the subtest name
+		t.Run(tc.Name, func(t *testing.T) {
+			// Use tc.InputArgs from the struct field
+			_, err := ValidateAndConvertArgs(spec, tc.InputArgs)
+			// Use tc.ExpectedError from the struct field
+			if tc.ExpectedError != nil {
 				if err == nil {
-					t.Errorf("Expected error [%v], got nil", tc.wantErrIs)
-				} else if !errors.Is(err, tc.wantErrIs) {
-					t.Errorf("Expected error type [%T], got [%T]: %v", tc.wantErrIs, err, err)
+					// Use tc.ExpectedError in the error message
+					t.Errorf("Expected error [%v], got nil", tc.ExpectedError)
+				} else if !errors.Is(err, tc.ExpectedError) {
+					// Use tc.ExpectedError in the error message
+					t.Errorf("Expected error type [%T], got [%T]: %v", tc.ExpectedError, err, err)
 				}
 			} else if err != nil {
 				t.Errorf("Unexpected validation error: %v", err)
@@ -36,12 +42,13 @@ func runValidationTestCases(t *testing.T, toolName string, testCases []Validatio
 
 // --- GitNewBranch Validation Tests ---
 func TestToolGitNewBranchValidation(t *testing.T) {
+	// Use capitalized field names in struct literals
 	testCases := []ValidationTestCase{
-		{name: "Wrong Arg Count (None)", args: makeArgs(), wantErrIs: ErrValidationArgCount},
-		{name: "Wrong Arg Count (Too Many)", args: makeArgs("branch1", "branch2"), wantErrIs: ErrValidationArgCount},
-		{name: "Nil Arg", args: makeArgs(nil), wantErrIs: ErrValidationRequiredArgNil},
-		{name: "Wrong Arg Type", args: makeArgs(123), wantErrIs: ErrValidationTypeMismatch},
-		{name: "Correct Args", args: makeArgs("new-feature"), wantErrIs: nil}, // Validation should pass
+		{Name: "Wrong Arg Count (None)", InputArgs: makeArgs(), ExpectedError: ErrValidationArgCount},
+		{Name: "Wrong Arg Count (Too Many)", InputArgs: makeArgs("branch1", "branch2"), ExpectedError: ErrValidationArgCount},
+		{Name: "Nil Arg", InputArgs: makeArgs(nil), ExpectedError: ErrValidationRequiredArgNil},
+		{Name: "Wrong Arg Type", InputArgs: makeArgs(123), ExpectedError: ErrValidationTypeMismatch},
+		{Name: "Correct Args", InputArgs: makeArgs("new-feature"), ExpectedError: nil}, // Validation should pass
 	}
 	runValidationTestCases(t, "GitNewBranch", testCases)
 	// Note: Actual branch name validation happens inside the tool function currently
@@ -49,24 +56,26 @@ func TestToolGitNewBranchValidation(t *testing.T) {
 
 // --- GitCheckout Validation Tests ---
 func TestToolGitCheckoutValidation(t *testing.T) {
+	// Use capitalized field names in struct literals
 	testCases := []ValidationTestCase{
-		{name: "Wrong Arg Count (None)", args: makeArgs(), wantErrIs: ErrValidationArgCount},
-		{name: "Wrong Arg Count (Too Many)", args: makeArgs("branch1", "branch2"), wantErrIs: ErrValidationArgCount},
-		{name: "Nil Arg", args: makeArgs(nil), wantErrIs: ErrValidationRequiredArgNil},
-		{name: "Wrong Arg Type", args: makeArgs(123), wantErrIs: ErrValidationTypeMismatch},
-		{name: "Correct Args", args: makeArgs("main"), wantErrIs: nil}, // Validation should pass
+		{Name: "Wrong Arg Count (None)", InputArgs: makeArgs(), ExpectedError: ErrValidationArgCount},
+		{Name: "Wrong Arg Count (Too Many)", InputArgs: makeArgs("branch1", "branch2"), ExpectedError: ErrValidationArgCount},
+		{Name: "Nil Arg", InputArgs: makeArgs(nil), ExpectedError: ErrValidationRequiredArgNil},
+		{Name: "Wrong Arg Type", InputArgs: makeArgs(123), ExpectedError: ErrValidationTypeMismatch},
+		{Name: "Correct Args", InputArgs: makeArgs("main"), ExpectedError: nil}, // Validation should pass
 	}
 	runValidationTestCases(t, "GitCheckout", testCases)
 }
 
 // --- GitRm Validation Tests ---
 func TestToolGitRmValidation(t *testing.T) {
+	// Use capitalized field names in struct literals
 	testCases := []ValidationTestCase{
-		{name: "Wrong Arg Count (None)", args: makeArgs(), wantErrIs: ErrValidationArgCount},
-		{name: "Wrong Arg Count (Too Many)", args: makeArgs("file1", "file2"), wantErrIs: ErrValidationArgCount},
-		{name: "Nil Arg", args: makeArgs(nil), wantErrIs: ErrValidationRequiredArgNil},
-		{name: "Wrong Arg Type", args: makeArgs(123), wantErrIs: ErrValidationTypeMismatch},
-		{name: "Correct Args", args: makeArgs("path/to/file.txt"), wantErrIs: nil}, // Validation should pass
+		{Name: "Wrong Arg Count (None)", InputArgs: makeArgs(), ExpectedError: ErrValidationArgCount},
+		{Name: "Wrong Arg Count (Too Many)", InputArgs: makeArgs("file1", "file2"), ExpectedError: ErrValidationArgCount},
+		{Name: "Nil Arg", InputArgs: makeArgs(nil), ExpectedError: ErrValidationRequiredArgNil},
+		{Name: "Wrong Arg Type", InputArgs: makeArgs(123), ExpectedError: ErrValidationTypeMismatch},
+		{Name: "Correct Args", InputArgs: makeArgs("path/to/file.txt"), ExpectedError: nil}, // Validation should pass
 		// Note: SecureFilePath validation happens inside the tool function
 	}
 	runValidationTestCases(t, "GitRm", testCases)
@@ -74,12 +83,13 @@ func TestToolGitRmValidation(t *testing.T) {
 
 // --- GitMerge Validation Tests ---
 func TestToolGitMergeValidation(t *testing.T) {
+	// Use capitalized field names in struct literals
 	testCases := []ValidationTestCase{
-		{name: "Wrong Arg Count (None)", args: makeArgs(), wantErrIs: ErrValidationArgCount},
-		{name: "Wrong Arg Count (Too Many)", args: makeArgs("branch1", "branch2"), wantErrIs: ErrValidationArgCount},
-		{name: "Nil Arg", args: makeArgs(nil), wantErrIs: ErrValidationRequiredArgNil},
-		{name: "Wrong Arg Type", args: makeArgs(123), wantErrIs: ErrValidationTypeMismatch},
-		{name: "Correct Args", args: makeArgs("develop"), wantErrIs: nil}, // Validation should pass
+		{Name: "Wrong Arg Count (None)", InputArgs: makeArgs(), ExpectedError: ErrValidationArgCount},
+		{Name: "Wrong Arg Count (Too Many)", InputArgs: makeArgs("branch1", "branch2"), ExpectedError: ErrValidationArgCount},
+		{Name: "Nil Arg", InputArgs: makeArgs(nil), ExpectedError: ErrValidationRequiredArgNil},
+		{Name: "Wrong Arg Type", InputArgs: makeArgs(123), ExpectedError: ErrValidationTypeMismatch},
+		{Name: "Correct Args", InputArgs: makeArgs("develop"), ExpectedError: nil}, // Validation should pass
 	}
 	runValidationTestCases(t, "GitMerge", testCases)
 }
