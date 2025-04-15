@@ -91,7 +91,9 @@ The following sections should be used, in this order:
 3.  **Design Choices / Rationale:** (Optional but Recommended) Explain the reasoning behind key design decisions. This helps others understand the context and potential trade-offs.
 4.  **Syntax / Format Definition:** (Required) This is the core section detailing the rules, structure, components, and semantics of the item being specified. Use subsections for clarity.
 5.  **EBNF Grammar:** (Optional) Include if a formal grammar aids in defining the syntax precisely.
-6.  **Tooling Requirements / Interaction:** (Optional but Recommended for data formats) Describe how tools should parse, validate, or otherwise interact with the format.
+6.  **AI Reading** This section should give clear, concise instructions for how AIs (such as LLMs) should understand the contents of the file. This may be included in prompts to the AI.
+6.  **AI Writing** This section should give clear, concise additional instructions for how AIs (such as LLMs) should write contents of the file, such as cross checks to perform. This may be included in prompts to the AI.
+7.  **Tooling Requirements / Interaction:** (Optional but Recommended for data formats) Describe how tools should parse, validate, or otherwise interact with the format. This section will be used primarily when building computer tools to manipulate the format.
 
 ## 4. Metadata Requirements
 

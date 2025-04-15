@@ -22,11 +22,11 @@ var (
 
 // --- Structs (PatchChange, VerificationResult remain the same) ---
 type PatchChange struct {
-	File                     string  `json:"file"`
-	LineNumber               int     `json:"line_number"`
-	Operation                string  `json:"operation"`
-	OriginalLineForReference *string `json:"original_line_for_reference"`
-	NewLineContent           *string `json:"new_line_content"`
+	File      string  `json:"file"`
+	Line      int     `json:"line"`
+	Operation string  `json:"op"`
+	OldLine   *string `json:"old"`
+	NewLine   *string `json:"new"`
 }
 
 type VerificationResult struct {
@@ -49,7 +49,7 @@ func VerifyChanges(originalLines []string, changes []PatchChange) ([]Verificatio
 	verificationOffset := 0
 
 	for i, change := range changes {
-		targetIndex := change.LineNumber - 1 + verificationOffset
+		targetIndex := change.Line - 1 + verificationOffset
 		status := "Not Checked"
 		isOutOfBounds := false
 		isError := false
@@ -57,7 +57,7 @@ func VerifyChanges(originalLines []string, changes []PatchChange) ([]Verificatio
 
 		res := VerificationResult{
 			ChangeIndex: i,
-			LineNumber:  change.LineNumber,
+			LineNumber:  change.Line,
 			TargetIndex: targetIndex,
 			Operation:   change.Operation,
 		}
@@ -66,9 +66,9 @@ func VerifyChanges(originalLines []string, changes []PatchChange) ([]Verificatio
 		if targetIndex < 0 {
 			isOutOfBounds = true
 			isError = true
-			currentError = fmt.Errorf("%w: invalid target index %d (from line %d, offset %d)", ErrOutOfBounds, targetIndex, change.LineNumber, verificationOffset)
+			currentError = fmt.Errorf("%w: invalid target index %d (from line %d, offset %d)", ErrOutOfBounds, targetIndex, change.Line, verificationOffset)
 			status = fmt.Sprintf("Error: %v", currentError)
-		} else if (change.Operation == "replace" || change.Operation == "delete" || change.OriginalLineForReference != nil) && targetIndex >= currentContentLen { // Check against conceptual length
+		} else if (change.Operation == "replace" || change.Operation == "delete" || change.OldLine != nil) && targetIndex >= currentContentLen { // Check against conceptual length
 			isOutOfBounds = true
 			if change.Operation == "replace" || change.Operation == "delete" {
 				isError = true
@@ -85,18 +85,18 @@ func VerifyChanges(originalLines []string, changes []PatchChange) ([]Verificatio
 		}
 
 		// Verification check - Use originalLines with calculated targetIndex
-		if !isError && !isOutOfBounds && change.OriginalLineForReference != nil {
+		if !isError && !isOutOfBounds && change.OldLine != nil {
 			originalFromFile := strings.TrimSuffix(originalLines[targetIndex], "\n")
-			if originalFromFile == *change.OriginalLineForReference {
+			if originalFromFile == *change.OldLine {
 				status = "Matched"
 			} else {
-				status = fmt.Sprintf("MISMATCHED (Expected: %q, Found: %q)", *change.OriginalLineForReference, originalFromFile)
+				status = fmt.Sprintf("MISMATCHED (Expected: %q, Found: %q)", *change.OldLine, originalFromFile)
 				isError = true
-				currentError = fmt.Errorf("%w: expected %q, found %q", ErrVerificationFailed, *change.OriginalLineForReference, originalFromFile)
+				currentError = fmt.Errorf("%w: expected %q, found %q", ErrVerificationFailed, *change.OldLine, originalFromFile)
 			}
-		} else if change.OriginalLineForReference != nil && isOutOfBounds && status == "Out Of Bounds" {
+		} else if change.OldLine != nil && isOutOfBounds && status == "Out Of Bounds" {
 			// Status already set
-		} else if !isError && !isOutOfBounds && change.OriginalLineForReference == nil && (change.Operation == "replace" || change.Operation == "delete") {
+		} else if !isError && !isOutOfBounds && change.OldLine == nil && (change.Operation == "replace" || change.Operation == "delete") {
 			status = "Not Verified (No Ref)"
 		}
 
@@ -106,7 +106,7 @@ func VerifyChanges(originalLines []string, changes []PatchChange) ([]Verificatio
 		results = append(results, res)
 
 		if isError && firstError == nil {
-			firstError = fmt.Errorf("change #%d (%s line %d): %w", i+1, change.Operation, change.LineNumber, currentError)
+			firstError = fmt.Errorf("change #%d (%s line %d): %w", i+1, change.Operation, change.Line, currentError)
 		}
 
 		// Update conceptual offset AND length for the next check
@@ -140,21 +140,21 @@ func ApplyPatch(originalLines []string, changes []PatchChange) ([]string, error)
 	applyOffset := 0
 
 	for i, change := range changes {
-		targetIndex := change.LineNumber - 1 + applyOffset
+		targetIndex := change.Line - 1 + applyOffset
 
 		switch change.Operation {
 		case "replace":
 			if targetIndex < 0 || targetIndex >= len(modifiedLines) {
-				return nil, fmt.Errorf("%w: change #%d (%s line %d): index %d became invalid during apply (lines: %d)", ErrInternal, i+1, change.Operation, change.LineNumber, targetIndex, len(modifiedLines))
+				return nil, fmt.Errorf("%w: change #%d (%s line %d): index %d became invalid during apply (lines: %d)", ErrInternal, i+1, change.Operation, change.Line, targetIndex, len(modifiedLines))
 			}
-			modifiedLines[targetIndex] = *change.NewLineContent
+			modifiedLines[targetIndex] = *change.NewLine
 		case "insert":
 			if targetIndex < 0 || targetIndex > len(modifiedLines) {
-				return nil, fmt.Errorf("%w: change #%d (%s line %d): index %d became invalid during apply (lines: %d)", ErrInternal, i+1, change.Operation, change.LineNumber, targetIndex, len(modifiedLines))
+				return nil, fmt.Errorf("%w: change #%d (%s line %d): index %d became invalid during apply (lines: %d)", ErrInternal, i+1, change.Operation, change.Line, targetIndex, len(modifiedLines))
 			}
 			// Correct insertion: Insert element *before* targetIndex
 			// Need temporary slice to hold the new element
-			newLine := *change.NewLineContent
+			newLine := *change.NewLine
 			// Append the part after targetIndex first (if any)
 			tail := []string{}
 			if targetIndex < len(modifiedLines) {
@@ -168,7 +168,7 @@ func ApplyPatch(originalLines []string, changes []PatchChange) ([]string, error)
 			applyOffset++
 		case "delete":
 			if targetIndex < 0 || targetIndex >= len(modifiedLines) {
-				return nil, fmt.Errorf("%w: change #%d (%s line %d): index %d became invalid during apply (lines: %d)", ErrInternal, i+1, change.Operation, change.LineNumber, targetIndex, len(modifiedLines))
+				return nil, fmt.Errorf("%w: change #%d (%s line %d): index %d became invalid during apply (lines: %d)", ErrInternal, i+1, change.Operation, change.Line, targetIndex, len(modifiedLines))
 			}
 			modifiedLines = append(modifiedLines[:targetIndex], modifiedLines[targetIndex+1:]...)
 			applyOffset--
@@ -208,13 +208,13 @@ func LoadPatchFile(filePath string) ([]PatchChange, error) {
 	for i, change := range changes {
 		if change.File == "" { /* Allow empty file field */
 		}
-		if change.LineNumber <= 0 {
-			return nil, fmt.Errorf("%w: change #%d in file %q has invalid 'line_number': %d", ErrOutOfBounds, i+1, change.File, change.LineNumber)
+		if change.Line <= 0 {
+			return nil, fmt.Errorf("%w: change #%d in file %q has invalid 'line_number': %d", ErrOutOfBounds, i+1, change.File, change.Line)
 		}
 		switch change.Operation {
 		case "replace", "insert":
-			if change.NewLineContent == nil {
-				return nil, fmt.Errorf("%w: change #%d (%s line %d) in file %q missing 'new_line_content'", ErrMissingField, i+1, change.Operation, change.LineNumber, change.File)
+			if change.NewLine == nil {
+				return nil, fmt.Errorf("%w: change #%d (%s line %d) in file %q missing 'new_line_content'", ErrMissingField, i+1, change.Operation, change.Line, change.File)
 			}
 		case "delete": /* Ok */
 		default:
