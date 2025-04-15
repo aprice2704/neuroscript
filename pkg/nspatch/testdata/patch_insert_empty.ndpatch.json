@@ -1,0 +1,14 @@
+[
+  {
+    "file": "initial_empty.txt",
+    "line_number": 1,
+    "operation": "insert",
+    "new_line_content": "First line inserted."
+  },
+  {
+    "file": "initial_empty.txt",
+    "line_number": 2,
+    "operation": "insert",
+    "new_line_content": "Second line inserted."
+  }
+]

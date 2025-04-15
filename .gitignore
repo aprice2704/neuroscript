@@ -24,3 +24,5 @@ go.work.sum
 # env file
 .env
 cmd/neurogo/neurogo
+cmd/nspatch/nspatch
+cmd/block_printer/block_printer

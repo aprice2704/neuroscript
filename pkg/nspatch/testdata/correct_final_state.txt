@@ -1,0 +1,7 @@
+Line 1: Initial content.
+Line 2: Successfully REPLACED.
+Line 3: Some context here.
+Line 3.5: Inserted NEW line.
+Line 4: Insertion point comes before this line.
+Line 5:   Indented context line.
+Line 7: Final context line.

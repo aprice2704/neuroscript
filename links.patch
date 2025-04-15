@@ -1,5 +1,5 @@
---- a/neuroscript_small/completed.md
-+++ b/neuroscript_small/completed.md
+--- a/completed.md
++++ b/completed.md
 @@ -2,7 +2,7 @@
  * Implemented Core Interpreter Control Flow [interpreter_control_flow.go](../pkg/core/interpreter_control_flow.go) and Simple Steps [interpreter_simple_steps.go](../pkg/core/interpreter_simple_steps.go)
  * Implemented Core Evaluation Logic [evaluation_logic.go](../pkg/core/evaluation_logic.go) and Operators [evaluation_operators.go](../pkg/core/evaluation_operators.go)
@@ -135,8 +135,8 @@
 +* Refined Neurodata Checklist parser error messages [scanner_parser.go](../pkg/neurodata/checklist/scanner_parser.go).
 +* Standardized error types for checklist parsing [defined_errors.go](../pkg/neurodata/checklist/defined_errors.go).
 +* Added more tests for the checklist tool usage [checklist_tool.go](../pkg/neurodata/checklist/checklist_tool.go).
---- a/neuroscript_small/development checklist.md
-+++ b/neuroscript_small/development checklist.md
+--- a/development checklist.md
++++ b/development checklist.md
 @@ -1,6 +1,6 @@
  # Neuroscript Development Checklist
 -* Read the project overview ([cite: uploaded:neuroscript/docs/neuroscript overview.md]), core library ([cite: uploaded:neuroscript/pkg/core/]), neurodata formats ([cite: uploaded:neuroscript/pkg/neurodata/]), application logic ([cite: uploaded:neuroscript/pkg/neurogo/app_script.go]), and agent logic ([cite: uploaded:neuroscript/pkg/neurogo/app_agent.go]).
@@ -153,8 +153,8 @@
 -* [ ] Ensure sensitive information (API keys, etc.) is handled securely (e.g., via config, environment variables) and not hardcoded.
 \ No newline at end of file
 +* [ ] Ensure sensitive information (API keys, etc.) is handled securely (e.g., via config, environment variables) and not hardcoded.
---- a/neuroscript_small/docs/llm_agent_facilities.md
-+++ b/neuroscript_small/docs/llm_agent_facilities.md
+--- a/docs/llm_agent_facilities.md
++++ b/docs/llm_agent_facilities.md
 @@ -203,28 +203,28 @@
 
  ### Core LLM Interaction
@@ -211,13 +211,13 @@
  * **Better State Management**: Persist relevant state across agent invocations more effectively.
 -* **Refined Error Handling**: Improve error messages returned from tool failures (see [cite: uploaded:neuroscript/docs/RoadMap.md]).
 +* **Refined Error Handling**: Improve error messages returned from tool failures (see [RoadMap.md](RoadMap.md)).
---- a/neuroscript_small/docs/metadata.md
-+++ b/neuroscript_small/docs/metadata.md
+--- a/docs/metadata.md
++++ b/docs/metadata.md
 @@ -1,7 +1,7 @@
  # Neuroscript Metadata Specification (`vdlt.metadata.v1`)
 
  ## Overview
--This document describes the metadata format used within the Neuroscript project, particularly for Neurodata files and composite files. It complements the general Neuroscript overview ([cite: uploaded:neuroscript_small/docs/neuroscript overview.md]), the Neurodata specification ([cite: uploaded:neuroscript_small/docs/neurodata_and_composite_file_spec.md]), the Go implementation ([cite: uploaded:neuroscript_small/pkg/neurodata/metadata/metadata.go]), and the ANTLR grammar ([cite: uploaded:neuroscript_small/pkg/core/NeuroScript.g4]).
+-This document describes the metadata format used within the Neuroscript project, particularly for Neurodata files and composite files. It complements the general Neuroscript overview ([cite: uploaded:docs/neuroscript overview.md]), the Neurodata specification ([cite: uploaded:docs/neurodata_and_composite_file_spec.md]), the Go implementation ([cite: uploaded:pkg/neurodata/metadata/metadata.go]), and the ANTLR grammar ([cite: uploaded:pkg/core/NeuroScript.g4]).
 +This document describes the metadata format used within the Neuroscript project, particularly for Neurodata files and composite files. It complements the general Neuroscript overview ([neuroscript overview.md](neuroscript overview.md)), the Neurodata specification ([neurodata_and_composite_file_spec.md](neurodata_and_composite_file_spec.md)), the Go implementation ([metadata.go](../pkg/neurodata/metadata/metadata.go)), and the ANTLR grammar ([NeuroScript.g4](../pkg/core/NeuroScript.g4)).
 
  The metadata block serves several purposes:
@@ -243,8 +243,8 @@
 +* See the [Neurodata Specification](neurodata_and_composite_file_spec.md) for details on how this block integrates with specific Neurodata formats.
 
  ### Implementation
--* **ANTLR Lexer**: The lexer ([cite: uploaded:neuroscript_small/pkg/core/generated/neuroscript_lexer.go]) tokenizes the input based on the grammar.
--* **Go Implementation**: The Go code ([cite: uploaded:neuroscript_small/pkg/neurodata/metadata/metadata.go]) parses the metadata block. A dedicated Neuroscript tool ([cite: uploaded:neuroscript_small/pkg/core/tools_metadata.go]) exposes this functionality.
+-* **ANTLR Lexer**: The lexer ([cite: uploaded:pkg/core/generated/neuroscript_lexer.go]) tokenizes the input based on the grammar.
+-* **Go Implementation**: The Go code ([cite: uploaded:pkg/neurodata/metadata/metadata.go]) parses the metadata block. A dedicated Neuroscript tool ([cite: uploaded:pkg/core/tools_metadata.go]) exposes this functionality.
 +* **ANTLR Lexer**: The lexer ([neuroscript_lexer.go](../pkg/core/generated/neuroscript_lexer.go)) tokenizes the input based on the grammar.
 +* **Go Implementation**: The Go code ([metadata.go](../pkg/neurodata/metadata/metadata.go)) parses the metadata block. A dedicated Neuroscript tool ([tools_metadata.go](../pkg/core/tools_metadata.go)) exposes this functionality.
 
@@ -254,8 +254,8 @@
  * `description`: A brief, human-readable description of the block's purpose or content.
  * `version`: A version string (often semantic versioning) for the *content* itself, distinct from the `vdlt` format version.
  * `ref`: (Specific to `vdlt.references.v1` blocks) Specifies the reference string.
--  * **Content**: The content of the reference item itself (e.g., another [cite: uploaded:neuroscript_small/docs/metadata.md] block).
--  * **Content**: The content of the reference item itself (e.g., another [cite: uploaded:neuroscript_small/docs/metadata.md] block).
+-  * **Content**: The content of the reference item itself (e.g., another [cite: uploaded:docs/metadata.md] block).
+-  * **Content**: The content of the reference item itself (e.g., another [cite: uploaded:docs/metadata.md] block).
 +  * **Content**: The content of the reference item itself (e.g., another [metadata.md](metadata.md) block).
 +  * **Content**: The content of the reference item itself (e.g., another [metadata.md](metadata.md) block).
  * `schema`: (Used by various formats) Links to a schema definition (e.g., a `vdlt.map_schema.v1` block).
@@ -269,7 +269,7 @@
      * Purpose: Defines a schema for map-like data structures.
  * `vdlt.references.v1`:
      * Purpose: Defines references to other resources or data blocks.
--  * **Templates**: See [cite: uploaded:neuroscript_small/docs/NeuroData/templates.md].
+-  * **Templates**: See [cite: uploaded:docs/NeuroData/templates.md].
 +  * **Templates**: See [NeuroData Templates](NeuroData/templates.md).
  * `vdlt.symbolic_math.v1`:
      * Purpose: Represents mathematical expressions symbolically.
@@ -278,13 +278,13 @@
      * Purpose: Represents hierarchical tree structures.
  * `vdlt.script.v1`:
      * Purpose: Contains executable Neuroscript code.
--The `script` metadata type indicates that the block contains Neuroscript code, as defined in the [cite: uploaded:neuroscript_small/docs/script spec.md].
+-The `script` metadata type indicates that the block contains Neuroscript code, as defined in the [cite: uploaded:docs/script spec.md].
 +The `script` metadata type indicates that the block contains Neuroscript code, as defined in the [script spec.md](script spec.md).
 
  ## Composite Files
 
---- a/neuroscript_small/docs/neurodata_and_composite_file_spec.md
-+++ b/neuroscript_small/docs/neurodata_and_composite_file_spec.md
+--- a/docs/neurodata_and_composite_file_spec.md
++++ b/docs/neurodata_and_composite_file_spec.md
 @@ -3,14 +3,14 @@
  ## Overview
 
@@ -320,8 +320,8 @@
 +* All sections start with a `%%%` metadata block ([metadata.md](../metadata.md)).
  * The format identifier in the metadata block determines how the subsequent content (up to the next `%%%` or EOF) should be interpreted.
  * Standard text formats like Markdown (`text.markdown.v1`) or code (`text.code.<lang>.v1`, e.g., `text.code.go.v1`) can also be included using appropriate format identifiers in their metadata blocks.
---- a/neuroscript_small/docs/NeuroData/checklist.md
-+++ b/neuroscript_small/docs/NeuroData/checklist.md
+--- a/docs/NeuroData/checklist.md
++++ b/docs/NeuroData/checklist.md
 @@ -1,5 +1,5 @@
  # Neurodata Checklist Specification (`vdlt.checklist.v1`)
 -This document specifies the `vdlt.checklist.v1` Neurodata format. See the implementation in [cite: uploaded:neuroscript/pkg/neurodata/checklist/scanner_parser.go], error definitions in [cite: uploaded:neuroscript/pkg/neurodata/checklist/defined_errors.go], and general coding conventions in [cite: uploaded:neuroscript/docs/conventions.md].
@@ -329,8 +329,8 @@
 
  ## Overview
  A simple format for tracking task completion or item status. It supports nesting and optional descriptions.
---- a/neuroscript_small/docs/NeuroData/cryptographic.md
-+++ b/neuroscript_small/docs/NeuroData/cryptographic.md
+--- a/docs/NeuroData/cryptographic.md
++++ b/docs/NeuroData/cryptographic.md
 @@ -1,7 +1,7 @@
  # Neurodata Cryptographic Material Specification (`vdlt.cryptographic.v1`)
 
@@ -367,8 +367,8 @@
  * Parsing logic needs to handle the different sub-blocks (`@key`, `@signature`, `@references`).
 -* Integration with Neuroscript tools ([cite: uploaded:neuroscript/pkg/core/tools_register.go]).
 +* Integration with Neuroscript tools ([tools_register.go](../../pkg/core/tools_register.go)).
---- a/neuroscript_small/docs/NeuroData/decision_table.md
-+++ b/neuroscript_small/docs/NeuroData/decision_table.md
+--- a/docs/NeuroData/decision_table.md
++++ b/docs/NeuroData/decision_table.md
 @@ -1,7 +1,7 @@
  # Neurodata Decision Table Specification (`vdlt.decision_table.v1`)
 
@@ -387,8 +387,8 @@
  * Optional References Block (`@references`): To link conditions/actions to external definitions if needed.
  * A Table Block (`@table`): Contains the core decision logic.
 
---- a/neuroscript_small/docs/NeuroData/enum.md
-+++ b/neuroscript_small/docs/NeuroData/enum.md
+--- a/docs/NeuroData/enum.md
++++ b/docs/NeuroData/enum.md
 @@ -1,7 +1,7 @@
  # Neurodata Enum Specification (`vdlt.enum.v1`)
 
@@ -398,8 +398,8 @@
 
  Enums define a set of named constants. This format allows simple string enums or enums where each value has associated data defined by a schema.
 
---- a/neuroscript_small/docs/NeuroData/form.md
-+++ b/neuroscript_small/docs/NeuroData/form.md
+--- a/docs/NeuroData/form.md
++++ b/docs/NeuroData/form.md
 @@ -1,7 +1,7 @@
  # Neurodata Form Specification (`vdlt.form.v1`)
 
@@ -424,8 +424,8 @@
 
 -The Go block extractor ([cite: uploaded:neuroscript/pkg/neurodata/blocks/blocks_extractor.go]) can parse this format.
 +The Go block extractor ([blocks_extractor.go](../../pkg/neurodata/blocks/blocks_extractor.go)) can parse this format.
---- a/neuroscript_small/docs/NeuroData/geometry.md
-+++ b/neuroscript_small/docs/NeuroData/geometry.md
+--- a/docs/NeuroData/geometry.md
++++ b/docs/NeuroData/geometry.md
 @@ -1,7 +1,7 @@
  # Neurodata Geometry Specification (`vdlt.geometry.v1`)
 
@@ -447,8 +447,8 @@
  * Definition Blocks: Specific blocks define geometric entities (e.g., `@point`, `@polygon`, `@transform`, `@scene_node`).
 
  ## Representation (Conceptual)
---- a/neuroscript_small/docs/NeuroData/graph.md
-+++ b/neuroscript_small/docs/NeuroData/graph.md
+--- a/docs/NeuroData/graph.md
++++ b/docs/NeuroData/graph.md
 @@ -1,7 +1,7 @@
  # Neurodata Graph Specification (`vdlt.graph.v1`)
 
@@ -473,8 +473,8 @@
 
 -* Parsed by the Go block extractor ([cite: uploaded:neuroscript/pkg/neurodata/blocks/blocks_extractor.go]).
 +* Parsed by the Go block extractor ([blocks_extractor.go](../../pkg/neurodata/blocks/blocks_extractor.go)).
---- a/neuroscript_small/docs/NeuroData/list.md
-+++ b/neuroscript_small/docs/NeuroData/list.md
+--- a/docs/NeuroData/list.md
++++ b/docs/NeuroData/list.md
 @@ -1,16 +1,16 @@
  # Neurodata List Specification (`vdlt.list.v1`)
 
@@ -537,8 +537,8 @@
 -* Can be parsed simply line by line, tracking indentation levels.
 \ No newline at end of file
 +* Can be parsed simply line by line, tracking indentation levels.
---- a/neuroscript_small/docs/NeuroData/map_literal.md
-+++ b/neuroscript_small/docs/NeuroData/map_literal.md
+--- a/docs/NeuroData/map_literal.md
++++ b/docs/NeuroData/map_literal.md
 @@ -1,19 +1,19 @@
  # Neurodata Map Literal Specification (`vdlt.map_literal.v1`)
 
@@ -572,8 +572,8 @@
 \ No newline at end of file
 +* Parsing requires handling Neuroscript literal value syntax.
 +* The formal definition aligns with the map literal syntax in the [formal script spec.md](../../docs/formal script spec.md).
---- a/neuroscript_small/docs/NeuroData/map_schema.md
-+++ b/neuroscript_small/docs/NeuroData/map_schema.md
+--- a/docs/NeuroData/map_schema.md
++++ b/docs/NeuroData/map_schema.md
 @@ -1,12 +1,12 @@
  # Neurodata Map Schema Specification (`vdlt.map_schema.v1`)
 
@@ -604,8 +604,8 @@
 -* Validation tools can use this schema to check if a `vdlt.map_literal.v1` instance conforms to the defined structure and constraints.
 \ No newline at end of file
 +* Validation tools can use this schema to check if a `vdlt.map_literal.v1` instance conforms to the defined structure and constraints.
---- a/neuroscript_small/docs/NeuroData/references.md
-+++ b/neuroscript_small/docs/NeuroData/references.md
+--- a/docs/NeuroData/references.md
++++ b/docs/NeuroData/references.md
 @@ -1,7 +1,7 @@
  # Neurodata References Specification (`vdlt.references.v1`)
 
@@ -645,8 +645,8 @@
  Reference resolution (fetching and interpreting the referenced content) is the responsibility of the tool processing the Neurodata file.
 -Reference resolution MUST adhere to the project's security policy ([cite: uploaded:neuroscript/pkg/core/security.go]), especially for `local`, `http`, `git`, and potentially `block` types.
 +Reference resolution MUST adhere to the project's security policy ([security.go](../../pkg/core/security.go)), especially for `local`, `http`, `git`, and potentially `block` types.
---- a/neuroscript_small/docs/NeuroData/symbolic_math.md
-+++ b/neuroscript_small/docs/NeuroData/symbolic_math.md
+--- a/docs/NeuroData/symbolic_math.md
++++ b/docs/NeuroData/symbolic_math.md
 @@ -1,7 +1,7 @@
  # Neurodata Symbolic Math Specification (`vdlt.symbolic_math.v1`)
 
@@ -701,8 +701,8 @@
 +* Constraint satisfaction.
 +* The expression syntax should align closely with Neuroscript expression rules ([script spec.md](../../docs/script spec.md)), supporting standard arithmetic and logical operators, function calls (potentially defined within the symbolic context or via references), and variable usage.
 +* Variables used in expressions should be defined in the `@variables` block ([map_literal.md](map_literal.md)).
---- a/neuroscript_small/docs/NeuroData/table.md
-+++ b/neuroscript_small/docs/NeuroData/table.md
+--- a/docs/NeuroData/table.md
++++ b/docs/NeuroData/table.md
 @@ -1,7 +1,7 @@
  # Neurodata Table Specification (`vdlt.table.v1`)
 
@@ -746,8 +746,8 @@
  description: Data with varied types
  %%%
  | ID | Value | List      | Active | Notes                       |
---- a/neuroscript_small/docs/NeuroData/templates.md
-+++ b/neuroscript_small/docs/NeuroData/templates.md
+--- a/docs/NeuroData/templates.md
++++ b/docs/NeuroData/templates.md
 @@ -1,7 +1,7 @@
  # Neurodata Template Specification (`vdlt.template.v1`)
 
@@ -768,8 +768,8 @@
 
  ## Semantics
 
---- a/neuroscript_small/docs/NeuroData/tree.md
-+++ b/neuroscript_small/docs/NeuroData/tree.md
+--- a/docs/NeuroData/tree.md
++++ b/docs/NeuroData/tree.md
 @@ -1,7 +1,7 @@
  # Neurodata Tree Specification (`vdlt.tree.v1`)
 
@@ -806,8 +806,8 @@
  description: Scene graph with node attributes
  %%%
  Scene { name: "Main Scene", background_color: "#FAFAFA" }
---- a/neuroscript_small/docs/script spec.md
-+++ b/neuroscript_small/docs/script spec.md
+--- a/docs/script spec.md
++++ b/docs/script spec.md
 @@ -210,7 +210,7 @@
      * Strings: `==`, `!=`, `<`, `<=`, `>`, `>=` (lexicographical)
      * Booleans: `==`, `!=`
@@ -843,8 +843,8 @@
 +* Tool documentation strings are parsed using Go's docstring conventions ([parseDocstring.go](../pkg/core/parseDocstring.go)).
 +* Neuroscript procedures also support docstrings, following the same convention ([script spec.md](script spec.md)).
  ## Error Handling
---- a/neuroscript_small/docs/specification_structure.md
-+++ b/neuroscript_small/docs/specification_structure.md
+--- a/docs/specification_structure.md
++++ b/docs/specification_structure.md
 @@ -1,7 +1,7 @@
  # Standard Structure for Neurodata Format Specifications
 

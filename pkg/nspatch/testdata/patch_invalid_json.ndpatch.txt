@@ -1,0 +1,14 @@
+[
+    {
+      "file": "somefile.txt",
+      "line_number": 1,
+      "operation": "insert",
+      "new_line_content": "Valid line"
+    } 
+    {
+      "file": "somefile.txt",
+      "line_number": 2,
+      "operation": "insert",
+      "new_line_content": "Another line"
+    }
+  ]

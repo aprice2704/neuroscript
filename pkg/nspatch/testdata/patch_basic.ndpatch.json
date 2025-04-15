@@ -1,0 +1,21 @@
+[
+  {
+    "file": "initial_basic.txt",
+    "line_number": 2,
+    "operation": "replace",
+    "original_line_for_reference": "Line 2: This line will be replaced.",
+    "new_line_content": "Line 2: Successfully REPLACED."
+  },
+  {
+    "file": "initial_basic.txt",
+    "line_number": 4,
+    "operation": "insert",
+    "new_line_content": "Line 3.5: Inserted NEW line."
+  },
+  {
+    "file": "initial_basic.txt",
+    "line_number": 6,
+    "operation": "delete",
+    "original_line_for_reference": "Line 6: This line will be deleted."
+  }
+]

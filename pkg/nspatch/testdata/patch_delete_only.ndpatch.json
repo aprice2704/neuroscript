@@ -1,0 +1,14 @@
+[
+  {
+    "file": "initial_basic.txt",
+    "line_number": 1,
+    "operation": "delete",
+    "original_line_for_reference": "Line 1: Initial content."
+  },
+  {
+    "file": "initial_basic.txt",
+    "line_number": 6,
+    "operation": "delete",
+    "original_line_for_reference": "Line 6: This line will be deleted."
+  }
+]

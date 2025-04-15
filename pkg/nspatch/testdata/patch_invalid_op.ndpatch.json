@@ -1,0 +1,8 @@
+[
+  {
+    "file": "initial_basic.txt",
+    "line_number": 1,
+    "operation": "modify",
+    "new_line_content": "This won't work"
+  }
+]

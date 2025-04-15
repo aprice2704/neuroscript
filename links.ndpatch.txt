@@ -1,0 +1,1094 @@
+[
+  {
+    "file": "neuroscript_small/completed.md",
+    "line_number": 2,
+    "operation": "replace",
+    "original_line_for_reference": "* Implemented Core Interpreter Control Flow [cite: uploaded:neuroscript/pkg/core/interpreter_control_flow.go] and Simple Steps [cite: uploaded:neuroscript/pkg/core/interpreter_simple_steps.go]",
+    "new_line_content": "* Implemented Core Interpreter Control Flow [interpreter_control_flow.go](../pkg/core/interpreter_control_flow.go) and Simple Steps [interpreter_simple_steps.go](../pkg/core/interpreter_simple_steps.go)"
+  },
+  {
+    "file": "neuroscript_small/completed.md",
+    "line_number": 3,
+    "operation": "replace",
+    "original_line_for_reference": "* Implemented Core Evaluation Logic [cite: uploaded:neuroscript/pkg/core/evaluation_logic.go] and Operators [cite: uploaded:neuroscript/pkg/core/evaluation_operators.go]",
+    "new_line_content": "* Implemented Core Evaluation Logic [evaluation_logic.go](../pkg/core/evaluation_logic.go) and Operators [evaluation_operators.go](../pkg/core/evaluation_operators.go)"
+  },
+  {
+    "file": "neuroscript_small/completed.md",
+    "line_number": 4,
+    "operation": "replace",
+    "original_line_for_reference": "* Implemented Core Evaluation Comparison [cite: uploaded:neuroscript/pkg/core/evaluation_comparison.go] and Boolean Logic [cite: uploaded:neuroscript/pkg/core/evaluation_logic.go]",
+    "new_line_content": "* Implemented Core Evaluation Comparison [evaluation_comparison.go](../pkg/core/evaluation_comparison.go) and Boolean Logic [evaluation_logic.go](../pkg/core/evaluation_logic.go)"
+  },
+  {
+    "file": "neuroscript_small/completed.md",
+    "line_number": 5,
+    "operation": "replace",
+    "original_line_for_reference": "* Implemented Core AST Builder Collections [cite: uploaded:neuroscript/pkg/core/ast_builder_collections.go] and Main Evaluation [cite: uploaded:neuroscript/pkg/core/evaluation_main.go]",
+    "new_line_content": "* Implemented Core AST Builder Collections [ast_builder_collections.go](../pkg/core/ast_builder_collections.go) and Main Evaluation [evaluation_main.go](../pkg/core/evaluation_main.go)"
+  },
+  {
+    "file": "neuroscript_small/completed.md",
+    "line_number": 6,
+    "operation": "replace",
+    "original_line_for_reference": "* Implemented Core AST Builder Terminators [cite: uploaded:neuroscript/pkg/core/ast_builder_terminators.go] and Evaluation Access [cite: uploaded:neuroscript/pkg/core/evaluation_access.go]",
+    "new_line_content": "* Implemented Core AST Builder Terminators [ast_builder_terminators.go](../pkg/core/ast_builder_terminators.go) and Evaluation Access [evaluation_access.go](../pkg/core/evaluation_access.go)"
+  },
+  {
+    "file": "neuroscript_small/completed.md",
+    "line_number": 7,
+    "operation": "replace",
+    "original_line_for_reference": "* Implemented `break` statement logic in interpreter [cite: uploaded:neuroscript/pkg/core/interpreter_control_flow.go]",
+    "new_line_content": "* Implemented `break` statement logic in interpreter [interpreter_control_flow.go](../pkg/core/interpreter_control_flow.go)"
+  },
+  {
+    "file": "neuroscript_small/completed.md",
+    "line_number": 8,
+    "operation": "replace",
+    "original_line_for_reference": "* Implemented `continue` statement logic in interpreter [cite: uploaded:neuroscript/pkg/core/interpreter_control_flow.go]",
+    "new_line_content": "* Implemented `continue` statement logic in interpreter [interpreter_control_flow.go](../pkg/core/interpreter_control_flow.go)"
+  },
+  {
+    "file": "neuroscript_small/completed.md",
+    "line_number": 9,
+    "operation": "replace",
+    "original_line_for_reference": "* Implemented `return` statement logic in interpreter [cite: uploaded:neuroscript/pkg/core/interpreter_control_flow.go]",
+    "new_line_content": "* Implemented `return` statement logic in interpreter [interpreter_control_flow.go](../pkg/core/interpreter_control_flow.go)"
+  },
+  {
+    "file": "neuroscript_small/completed.md",
+    "line_number": 10,
+    "operation": "replace",
+    "original_line_for_reference": "* Implemented `for` loop (range over collections) in AST builder [cite: uploaded:neuroscript/pkg/core/ast_builder_blocks.go] and interpreter [cite: uploaded:neuroscript/pkg/core/interpreter_control_flow.go]",
+    "new_line_content": "* Implemented `for` loop (range over collections) in AST builder [ast_builder_blocks.go](../pkg/core/ast_builder_blocks.go) and interpreter [interpreter_control_flow.go](../pkg/core/interpreter_control_flow.go)"
+  },
+  {
+    "file": "neuroscript_small/completed.md",
+    "line_number": 11,
+    "operation": "replace",
+    "original_line_for_reference": "* Implemented Core Tools: Registry [cite: uploaded:neuroscript/pkg/core/tools_register.go], String [cite: uploaded:neuroscript/pkg/core/tools_string.go], FS [cite: uploaded:neuroscript/pkg/core/tools_fs.go], Git [cite: uploaded:neuroscript/pkg/core/tools_git.go], Shell [cite: uploaded:neuroscript/pkg/core/tools_shell.go], Math [cite: uploaded:neuroscript/pkg/core/tools_math.go], Metadata [cite: uploaded:neuroscript/pkg/core/tools_metadata.go], Checklist [cite: uploaded:neuroscript/pkg/neurodata/checklist/checklist_tool.go], Blocks [cite: uploaded:neuroscript/pkg/neurodata/blocks/blocks_tool.go], List registration [cite: uploaded:neuroscript/pkg/core/tools_list_register.go]",
+    "new_line_content": "* Implemented Core Tools: Registry [tools_register.go](../pkg/core/tools_register.go), String [tools_string.go](../pkg/core/tools_string.go), FS [tools_fs.go](../pkg/core/tools_fs.go), Git [tools_git.go](../pkg/core/tools_git.go), Shell [tools_shell.go](../pkg/core/tools_shell.go), Math [tools_math.go](../pkg/core/tools_math.go), Metadata [tools_metadata.go](../pkg/core/tools_metadata.go), Checklist [checklist_tool.go](../pkg/neurodata/checklist/checklist_tool.go), Blocks [blocks_tool.go](../pkg/neurodata/blocks/blocks_tool.go), List registration [tools_list_register.go](../pkg/core/tools_list_register.go)"
+  },
+  {
+    "file": "neuroscript_small/completed.md",
+    "line_number": 12,
+    "operation": "replace",
+    "original_line_for_reference": "* Implemented Vector/Embedding Tools [cite: uploaded:neuroscript/pkg/core/tools_vector.go] and Core Embedding Logic [cite: uploaded:neuroscript/pkg/core/embeddings.go]",
+    "new_line_content": "* Implemented Vector/Embedding Tools [tools_vector.go](../pkg/core/tools_vector.go) and Core Embedding Logic [embeddings.go](../pkg/core/embeddings.go)"
+  },
+  {
+    "file": "neuroscript_small/completed.md",
+    "line_number": 13,
+    "operation": "replace",
+    "original_line_for_reference": "* Implemented LLM Integration [cite: uploaded:neuroscript/pkg/core/llm.go] and LLM step in interpreter [cite: uploaded:neuroscript/pkg/core/interpreter_simple_steps.go]",
+    "new_line_content": "* Implemented LLM Integration [llm.go](../pkg/core/llm.go) and LLM step in interpreter [interpreter_simple_steps.go](../pkg/core/interpreter_simple_steps.go)"
+  },
+  {
+    "file": "neuroscript_small/completed.md",
+    "line_number": 14,
+    "operation": "replace",
+    "original_line_for_reference": "* Implemented `neurogones` Command Entrypoint [cite: uploaded:neuroscript/cmd/neurogo/main.go], Application Structure [cite: uploaded:neuroscript/pkg/neurogo/app.go], and Configuration [cite: uploaded:neuroscript/pkg/neurogo/config.go]",
+    "new_line_content": "* Implemented `neurogones` Command Entrypoint [main.go](../cmd/neurogo/main.go), Application Structure [app.go](../pkg/neurogo/app.go), and Configuration [config.go](../pkg/neurogo/config.go)"
+  },
+  {
+    "file": "neuroscript_small/completed.md",
+    "line_number": 15,
+    "operation": "replace",
+    "original_line_for_reference": "* Implemented Script Execution App Logic [cite: uploaded:neuroscript/pkg/neurogo/app_script.go] and Parser API [cite: uploaded:neuroscript/pkg/core/parser_api.go]",
+    "new_line_content": "* Implemented Script Execution App Logic [app_script.go](../pkg/neurogo/app_script.go) and Parser API [parser_api.go](../pkg/core/parser_api.go)"
+  },
+  {
+    "file": "neuroscript_small/completed.md",
+    "line_number": 16,
+    "operation": "replace",
+    "original_line_for_reference": "* Created Orchestration Script Example [cite: uploaded:neuroscript/library/orchestrator.ns.txt] using Git tools [cite: uploaded:neuroscript/pkg/core/tools_git.go]",
+    "new_line_content": "* Created Orchestration Script Example [orchestrator.ns.txt](../library/orchestrator.ns.txt) using Git tools [tools_git.go](../pkg/core/tools_git.go)"
+  },
+  {
+    "file": "neuroscript_small/completed.md",
+    "line_number": 17,
+    "operation": "replace",
+    "original_line_for_reference": "* Created Syntax Update Script [cite: uploaded:neuroscript/library/UpdateNsSyntax.ns.txt] for migrating from old syntax based on [cite: uploaded:neuroscript/library/orchestrator.ns.txt]",
+    "new_line_content": "* Created Syntax Update Script [UpdateNsSyntax.ns.txt](../library/UpdateNsSyntax.ns.txt) for migrating from old syntax based on [orchestrator.ns.txt](../library/orchestrator.ns.txt)"
+  },
+  {
+    "file": "neuroscript_small/completed.md",
+    "line_number": 18,
+    "operation": "replace",
+    "original_line_for_reference": "* Implemented handling of `const` and `var` block declarations in parser [cite: uploaded:neuroscript/pkg/core/generated/neuroscript_parser.go]",
+    "new_line_content": "* Implemented handling of `const` and `var` block declarations in parser [neuroscript_parser.go](../pkg/core/generated/neuroscript_parser.go)"
+  },
+  {
+    "file": "neuroscript_small/completed.md",
+    "line_number": 19,
+    "operation": "replace",
+    "original_line_for_reference": "* Implemented procedure definitions (`proc`) and calls in AST builder [cite: uploaded:neuroscript/pkg/core/ast_builder_procedures.go] and utility functions [cite: uploaded:neuroscript/pkg/core/utils.go]",
+    "new_line_content": "* Implemented procedure definitions (`proc`) and calls in AST builder [ast_builder_procedures.go](../pkg/core/ast_builder_procedures.go) and utility functions [utils.go](../pkg/core/utils.go)"
+  },
+  {
+    "file": "neuroscript_small/completed.md",
+    "line_number": 20,
+    "operation": "replace",
+    "original_line_for_reference": "* Updated grammar and parser [cite: uploaded:neuroscript/pkg/core/generated/neuroscript_parser.go] for enhanced error recovery and clarity.",
+    "new_line_content": "* Updated grammar and parser [neuroscript_parser.go](../pkg/core/generated/neuroscript_parser.go) for enhanced error recovery and clarity."
+  },
+  {
+    "file": "neuroscript_small/completed.md",
+    "line_number": 21,
+    "operation": "replace",
+    "original_line_for_reference": "* Refined error handling in the parser [cite: uploaded:neuroscript/pkg/core/generated/neuroscript_parser.go] to provide more context.",
+    "new_line_content": "* Refined error handling in the parser [neuroscript_parser.go](../pkg/core/generated/neuroscript_parser.go) to provide more context."
+  },
+  {
+    "file": "neuroscript_small/completed.md",
+    "line_number": 22,
+    "operation": "replace",
+    "original_line_for_reference": "* Created `modify_and_build.ns.txt` script [cite: uploaded:neuroscript/library/modify_and_build.ns.txt] for automated code modification and building.",
+    "new_line_content": "* Created `modify_and_build.ns.txt` script [modify_and_build.ns.txt](../library/modify_and_build.ns.txt) for automated code modification and building."
+  },
+  {
+    "file": "neuroscript_small/completed.md",
+    "line_number": 23,
+    "operation": "replace",
+    "original_line_for_reference": "* Added comprehensive tests for evaluation logic [cite: uploaded:neuroscript/pkg/core/evaluation_test.go], covering various expression types and operators [cite: uploaded:neuroscript/pkg/core/evaluation_main.go].",
+    "new_line_content": "* Added comprehensive tests for evaluation logic [evaluation_test.go](../pkg/core/evaluation_test.go), covering various expression types and operators [evaluation_main.go](../pkg/core/evaluation_main.go)."
+  },
+  {
+    "file": "neuroscript_small/completed.md",
+    "line_number": 24,
+    "operation": "replace",
+    "original_line_for_reference": "* Implemented identifier resolution logic during evaluation [cite: uploaded:neuroscript/pkg/core/evaluation_resolve.go] to handle variable scopes correctly [cite: uploaded:neuroscript/pkg/core/evaluation_main.go].",
+    "new_line_content": "* Implemented identifier resolution logic during evaluation [evaluation_resolve.go](../pkg/core/evaluation_resolve.go) to handle variable scopes correctly [evaluation_main.go](../pkg/core/evaluation_main.go)."
+  },
+  {
+    "file": "neuroscript_small/completed.md",
+    "line_number": 25,
+    "operation": "replace",
+    "original_line_for_reference": "* Enhanced list and map literal handling in AST builder [cite: uploaded:neuroscript/pkg/core/ast_builder_collections.go] and evaluation [cite: uploaded:neuroscript/pkg/core/evaluation_main.go].",
+    "new_line_content": "* Enhanced list and map literal handling in AST builder [ast_builder_collections.go](../pkg/core/ast_builder_collections.go) and evaluation [evaluation_main.go](../pkg/core/evaluation_main.go)."
+  },
+  {
+    "file": "neuroscript_small/completed.md",
+    "line_number": 26,
+    "operation": "replace",
+    "original_line_for_reference": "* Improved handling of member access (`.`) and index access (`[]`) in AST builder [cite: uploaded:neuroscript/pkg/core/ast_builder_terminators.go] and evaluation [cite: uploaded:neuroscript/pkg/core/evaluation_access.go].",
+    "new_line_content": "* Improved handling of member access (`.`) and index access (`[]`) in AST builder [ast_builder_terminators.go](../pkg/core/ast_builder_terminators.go) and evaluation [evaluation_access.go](../pkg/core/evaluation_access.go)."
+  },
+  {
+    "file": "neuroscript_small/completed.md",
+    "line_number": 27,
+    "operation": "replace",
+    "original_line_for_reference": "* Added support for logical operators (`&&`, `||`, `!`) in evaluation logic [cite: uploaded:neuroscript/pkg/core/evaluation_logic.go] and operator evaluation [cite: uploaded:neuroscript/pkg/core/evaluation_operators.go].",
+    "new_line_content": "* Added support for logical operators (`&&`, `||`, `!`) in evaluation logic [evaluation_logic.go](../pkg/core/evaluation_logic.go) and operator evaluation [evaluation_operators.go](../pkg/core/evaluation_operators.go)."
+  },
+  {
+    "file": "neuroscript_small/completed.md",
+    "line_number": 28,
+    "operation": "replace",
+    "original_line_for_reference": "* Implemented bitwise operators (`&`, `|`, `^`, `~`, `<<`, `>>`) in evaluation [cite: uploaded:neuroscript/pkg/core/evaluation_operators.go].",
+    "new_line_content": "* Implemented bitwise operators (`&`, `|`, `^`, `~`, `<<`, `>>`) in evaluation [evaluation_operators.go](../pkg/core/evaluation_operators.go)."
+  },
+  {
+    "file": "neuroscript_small/completed.md",
+    "line_number": 29,
+    "operation": "replace",
+    "original_line_for_reference": "* Added comparison operators (`==`, `!=`, `<`, `<=`, `>`, `>=`) in evaluation [cite: uploaded:neuroscript/pkg/core/evaluation_comparison.go] and boolean logic [cite: uploaded:neuroscript/pkg/core/evaluation_logic.go].",
+    "new_line_content": "* Added comparison operators (`==`, `!=`, `<`, `<=`, `>`, `>=`) in evaluation [evaluation_comparison.go](../pkg/core/evaluation_comparison.go) and boolean logic [evaluation_logic.go](../pkg/core/evaluation_logic.go)."
+  },
+  {
+    "file": "neuroscript_small/completed.md",
+    "line_number": 30,
+    "operation": "replace",
+    "original_line_for_reference": "* Wrote tests for logical and bitwise operators [cite: uploaded:neuroscript/pkg/core/evaluation_logical_bitwise_test.go] verifying correctness [cite: uploaded:neuroscript/pkg/core/evaluation_logic.go].",
+    "new_line_content": "* Wrote tests for logical and bitwise operators [evaluation_logical_bitwise_test.go](../pkg/core/evaluation_logical_bitwise_test.go) verifying correctness [evaluation_logic.go](../pkg/core/evaluation_logic.go)."
+  },
+  {
+    "file": "neuroscript_small/completed.md",
+    "line_number": 31,
+    "operation": "replace",
+    "original_line_for_reference": "* Implemented arithmetic operators (`+`, `-`, `*`, `/`, `%`) in evaluation [cite: uploaded:neuroscript/pkg/core/evaluation_operators.go] including type checking [cite: uploaded:neuroscript/pkg/core/evaluation_logic.go].",
+    "new_line_content": "* Implemented arithmetic operators (`+`, `-`, `*`, `/`, `%`) in evaluation [evaluation_operators.go](../pkg/core/evaluation_operators.go) including type checking [evaluation_logic.go](../pkg/core/evaluation_logic.go)."
+  },
+  {
+    "file": "neuroscript_small/completed.md",
+    "line_number": 32,
+    "operation": "replace",
+    "original_line_for_reference": "* Added tests for function calls within expressions [cite: uploaded:neuroscript/pkg/core/evaluations_functions_test.go] ensuring proper argument evaluation and return values [cite: uploaded:neuroscript/pkg/core/evaluation_logic.go].",
+    "new_line_content": "* Added tests for function calls within expressions [evaluations_functions_test.go](../pkg/core/evaluations_functions_test.go) ensuring proper argument evaluation and return values [evaluation_logic.go](../pkg/core/evaluation_logic.go)."
+  },
+  {
+    "file": "neuroscript_small/completed.md",
+    "line_number": 33,
+    "operation": "replace",
+    "original_line_for_reference": "* Refined operator precedence and associativity rules in the parser grammar [cite: uploaded:neuroscript/pkg/core/generated/neuroscript_parser.go] and AST builder [cite: uploaded:neuroscript/pkg/core/ast_builder_operators.go].",
+    "new_line_content": "* Refined operator precedence and associativity rules in the parser grammar [neuroscript_parser.go](../pkg/core/generated/neuroscript_parser.go) and AST builder [ast_builder_operators.go](../pkg/core/ast_builder_operators.go)."
+  },
+  {
+    "file": "neuroscript_small/completed.md",
+    "line_number": 34,
+    "operation": "replace",
+    "original_line_for_reference": "* Restructured the main interpreter loop [cite: uploaded:neuroscript/pkg/core/interpreter.go] for better state management.",
+    "new_line_content": "* Restructured the main interpreter loop [interpreter.go](../pkg/core/interpreter.go) for better state management."
+  },
+  {
+    "file": "neuroscript_small/completed.md",
+    "line_number": 35,
+    "operation": "replace",
+    "original_line_for_reference": "* Implemented `if`/`else if`/`else` conditional statement logic in interpreter [cite: uploaded:neuroscript/pkg/core/interpreter_control_flow.go].",
+    "new_line_content": "* Implemented `if`/`else if`/`else` conditional statement logic in interpreter [interpreter_control_flow.go](../pkg/core/interpreter_control_flow.go)."
+  },
+  {
+    "file": "neuroscript_small/completed.md",
+    "line_number": 36,
+    "operation": "replace",
+    "original_line_for_reference": "* Implemented `while` loop logic in interpreter [cite: uploaded:neuroscript/pkg/core/interpreter_control_flow.go].",
+    "new_line_content": "* Implemented `while` loop logic in interpreter [interpreter_control_flow.go](../pkg/core/interpreter_control_flow.go)."
+  },
+  {
+    "file": "neuroscript_small/completed.md",
+    "line_number": 37,
+    "operation": "replace",
+    "original_line_for_reference": "* Implemented procedure call handling within the interpreter [cite: uploaded:neuroscript/pkg/core/interpreter_control_flow.go].",
+    "new_line_content": "* Implemented procedure call handling within the interpreter [interpreter_control_flow.go](../pkg/core/interpreter_control_flow.go)."
+  },
+  {
+    "file": "neuroscript_small/completed.md",
+    "line_number": 38,
+    "operation": "replace",
+    "original_line_for_reference": "* Integrated LLM response parsing and handling into the interpreter simple steps [cite: uploaded:neuroscript/pkg/core/interpreter_simple_steps.go] based on core LLM logic [cite: uploaded:neuroscript/pkg/core/llm.go].",
+    "new_line_content": "* Integrated LLM response parsing and handling into the interpreter simple steps [interpreter_simple_steps.go](../pkg/core/interpreter_simple_steps.go) based on core LLM logic [llm.go](../pkg/core/llm.go)."
+  },
+  {
+    "file": "neuroscript_small/completed.md",
+    "line_number": 39,
+    "operation": "replace",
+    "original_line_for_reference": "* Added input validation for tool calls within the interpreter [cite: uploaded:neuroscript/pkg/core/interpreter_simple_steps.go] using validation helpers [cite: uploaded:neuroscript/pkg/core/tools_validation.go].",
+    "new_line_content": "* Added input validation for tool calls within the interpreter [interpreter_simple_steps.go](../pkg/core/interpreter_simple_steps.go) using validation helpers [tools_validation.go](../pkg/core/tools_validation.go)."
+  },
+  {
+    "file": "neuroscript_small/completed.md",
+    "line_number": 40,
+    "operation": "replace",
+    "original_line_for_reference": "* Completed the main AST builder logic [cite: uploaded:neuroscript/pkg/core/ast_builder_main.go] covering all grammar rules from the parser [cite: uploaded:neuroscript/pkg/core/generated/neuroscript_parser.go].",
+    "new_line_content": "* Completed the main AST builder logic [ast_builder_main.go](../pkg/core/ast_builder_main.go) covering all grammar rules from the parser [neuroscript_parser.go](../pkg/core/generated/neuroscript_parser.go)."
+  },
+  {
+    "file": "neuroscript_small/completed.md",
+    "line_number": 41,
+    "operation": "replace",
+    "original_line_for_reference": "* Implemented file system tools (read, write, list, etc.) [cite: uploaded:neuroscript/pkg/core/tools_fs.go].",
+    "new_line_content": "* Implemented file system tools (read, write, list, etc.) [tools_fs.go](../pkg/core/tools_fs.go)."
+  },
+  {
+    "file": "neuroscript_small/completed.md",
+    "line_number": 42,
+    "operation": "replace",
+    "original_line_for_reference": "* Implemented Git tools (clone, pull, diff, etc.) [cite: uploaded:neuroscript/pkg/core/tools_git.go].",
+    "new_line_content": "* Implemented Git tools (clone, pull, diff, etc.) [tools_git.go](../pkg/core/tools_git.go)."
+  },
+  {
+    "file": "neuroscript_small/completed.md",
+    "line_number": 43,
+    "operation": "replace",
+    "original_line_for_reference": "* Implemented comprehensive string manipulation tools [cite: uploaded:neuroscript/pkg/core/tools_string.go].",
+    "new_line_content": "* Implemented comprehensive string manipulation tools [tools_string.go](../pkg/core/tools_string.go)."
+  },
+  {
+    "file": "neuroscript_small/completed.md",
+    "line_number": 44,
+    "operation": "replace",
+    "original_line_for_reference": "* Implemented shell command execution tools [cite: uploaded:neuroscript/pkg/core/tools_shell.go].",
+    "new_line_content": "* Implemented shell command execution tools [tools_shell.go](../pkg/core/tools_shell.go)."
+  },
+  {
+    "file": "neuroscript_small/completed.md",
+    "line_number": 45,
+    "operation": "replace",
+    "original_line_for_reference": "* Finalized core embedding calculation logic [cite: uploaded:neuroscript/pkg/core/embeddings.go] and associated vector tools [cite: uploaded:neuroscript/pkg/core/tools_vector.go].",
+    "new_line_content": "* Finalized core embedding calculation logic [embeddings.go](../pkg/core/embeddings.go) and associated vector tools [tools_vector.go](../pkg/core/tools_vector.go)."
+  },
+  {
+    "file": "neuroscript_small/completed.md",
+    "line_number": 46,
+    "operation": "replace",
+    "original_line_for_reference": "* Set up main application entry point (`neurogones`) [cite: uploaded:neuroscript/cmd/neurogo/main.go] and basic app structure [cite: uploaded:neuroscript/pkg/neurogo/app.go].",
+    "new_line_content": "* Set up main application entry point (`neurogones`) [main.go](../cmd/neurogo/main.go) and basic app structure [app.go](../pkg/neurogo/app.go)."
+  },
+  {
+    "file": "neuroscript_small/completed.md",
+    "line_number": 47,
+    "operation": "replace",
+    "original_line_for_reference": "* Developed configuration loading and management for the application [cite: uploaded:neuroscript/pkg/neurogo/config.go] using [cite: uploaded:neuroscript/pkg/neurogo/app.go].",
+    "new_line_content": "* Developed configuration loading and management for the application [config.go](../pkg/neurogo/config.go) using [app.go](../pkg/neurogo/app.go)."
+  },
+  {
+    "file": "neuroscript_small/completed.md",
+    "line_number": 48,
+    "operation": "replace",
+    "original_line_for_reference": "* Built the script execution pathway within the `neurogones` app [cite: uploaded:neuroscript/pkg/neurogo/app_script.go] utilizing the parser API [cite: uploaded:neuroscript/pkg/core/parser_api.go].",
+    "new_line_content": "* Built the script execution pathway within the `neurogones` app [app_script.go](../pkg/neurogo/app_script.go) utilizing the parser API [parser_api.go](../pkg/core/parser_api.go)."
+  },
+  {
+    "file": "neuroscript_small/completed.md",
+    "line_number": 49,
+    "operation": "replace",
+    "original_line_for_reference": "* Implemented Neurodata Block Extraction logic [cite: uploaded:neuroscript/pkg/neurodata/blocks/blocks_extractor.go] and associated tool [cite: uploaded:neuroscript/pkg/neurodata/blocks/blocks_tool.go].",
+    "new_line_content": "* Implemented Neurodata Block Extraction logic [blocks_extractor.go](../pkg/neurodata/blocks/blocks_extractor.go) and associated tool [blocks_tool.go](../pkg/neurodata/blocks/blocks_tool.go)."
+  },
+  {
+    "file": "neuroscript_small/completed.md",
+    "line_number": 50,
+    "operation": "replace",
+    "original_line_for_reference": "* Added configuration options for API keys and other sensitive settings [cite: uploaded:neuroscript/pkg/neurogo/config.go].",
+    "new_line_content": "* Added configuration options for API keys and other sensitive settings [config.go](../pkg/neurogo/config.go)."
+  },
+  {
+    "file": "neuroscript_small/completed.md",
+    "line_number": 51,
+    "operation": "replace",
+    "original_line_for_reference": "* Implemented metadata extraction tools for Neurodata formats [cite: uploaded:neuroscript/pkg/core/tools_metadata.go].",
+    "new_line_content": "* Implemented metadata extraction tools for Neurodata formats [tools_metadata.go](../pkg/core/tools_metadata.go)."
+  },
+  {
+    "file": "neuroscript_small/completed.md",
+    "line_number": 52,
+    "operation": "replace",
+    "original_line_for_reference": "* Implemented Neurodata Checklist Scanner and Parser [cite: uploaded:neuroscript/pkg/neurodata/checklist/scanner_parser.go].",
+    "new_line_content": "* Implemented Neurodata Checklist Scanner and Parser [scanner_parser.go](../pkg/neurodata/checklist/scanner_parser.go)."
+  },
+  {
+    "file": "neuroscript_small/completed.md",
+    "line_number": 53,
+    "operation": "replace",
+    "original_line_for_reference": "* Implemented Neurodata Checklist Tool for script integration [cite: uploaded:neuroscript/pkg/neurodata/checklist/checklist_tool.go].",
+    "new_line_content": "* Implemented Neurodata Checklist Tool for script integration [checklist_tool.go](../pkg/neurodata/checklist/checklist_tool.go)."
+  },
+  {
+    "file": "neuroscript_small/completed.md",
+    "line_number": 54,
+    "operation": "replace",
+    "original_line_for_reference": "* Added tests for the Neurodata Blocks tool [cite: uploaded:neuroscript/pkg/neurodata/blocks/blocks_tool.go].",
+    "new_line_content": "* Added tests for the Neurodata Blocks tool [blocks_tool.go](../pkg/neurodata/blocks/blocks_tool.go)."
+  },
+  {
+    "file": "neuroscript_small/completed.md",
+    "line_number": 55,
+    "operation": "replace",
+    "original_line_for_reference": "* Implemented the Agent execution pathway (`neurogones agent`) [cite: uploaded:neuroscript/pkg/neurogo/app_agent.go] including conversation management [cite: uploaded:neuroscript/pkg/core/conversation.go], security checks [cite: uploaded:neuroscript/pkg/core/security.go], LLM interaction [cite: uploaded:neuroscript/pkg/core/llm.go], and tool execution [cite: uploaded:neuroscript/pkg/core/llm_tools.go].",
+    "new_line_content": "* Implemented the Agent execution pathway (`neurogones agent`) [app_agent.go](../pkg/neurogo/app_agent.go) including conversation management [conversation.go](../pkg/core/conversation.go), security checks [security.go](../pkg/core/security.go), LLM interaction [llm.go](../pkg/core/llm.go), and tool execution [llm_tools.go](../pkg/core/llm_tools.go)."
+  },
+  {
+    "file": "neuroscript_small/completed.md",
+    "line_number": 56,
+    "operation": "replace",
+    "original_line_for_reference": "* Integrated security allowlist checks into the agent application [cite: uploaded:neuroscript/pkg/neurogo/app_agent.go] using security helpers [cite: uploaded:neuroscript/pkg/core/security.go].",
+    "new_line_content": "* Integrated security allowlist checks into the agent application [app_agent.go](../pkg/neurogo/app_agent.go) using security helpers [security.go](../pkg/core/security.go)."
+  },
+  {
+    "file": "neuroscript_small/completed.md",
+    "line_number": 57,
+    "operation": "replace",
+    "original_line_for_reference": "* Developed helper functions for tool execution [cite: uploaded:neuroscript/pkg/core/tools_helpers.go] including security context propagation [cite: uploaded:neuroscript/pkg/core/security.go].",
+    "new_line_content": "* Developed helper functions for tool execution [tools_helpers.go](../pkg/core/tools_helpers.go) including security context propagation [security.go](../pkg/core/security.go)."
+  },
+  {
+    "file": "neuroscript_small/completed.md",
+    "line_number": 58,
+    "operation": "replace",
+    "original_line_for_reference": "* Implemented core list manipulation tool logic [cite: uploaded:neuroscript/pkg/core/tools_list_impl.go].",
+    "new_line_content": "* Implemented core list manipulation tool logic [tools_list_impl.go](../pkg/core/tools_list_impl.go)."
+  },
+  {
+    "file": "neuroscript_small/completed.md",
+    "line_number": 59,
+    "operation": "replace",
+    "original_line_for_reference": "* Documented the Neuroscript language specification [cite: uploaded:neuroscript/docs/script spec.md] and Metadata standards [cite: uploaded:neuroscript/docs/metadata.md].",
+    "new_line_content": "* Documented the Neuroscript language specification [script spec.md](../docs/script spec.md) and Metadata standards [metadata.md](../docs/metadata.md)."
+  },
+  {
+    "file": "neuroscript_small/completed.md",
+    "line_number": 61,
+    "operation": "replace",
+    "original_line_for_reference": "* Added comprehensive tests for FS tools: Read [cite: uploaded:neuroscript/pkg/core/tools_fs_read_test.go], Write [cite: uploaded:neuroscript/pkg/core/tools_fs_write_test.go], List [cite: uploaded:neuroscript/pkg/core/tools_fs_list_test.go].",
+    "new_line_content": "* Added comprehensive tests for FS tools: Read [tools_fs_read_test.go](../pkg/core/tools_fs_read_test.go), Write [tools_fs_write_test.go](../pkg/core/tools_fs_write_test.go), List [tools_fs_list_test.go](../pkg/core/tools_fs_list_test.go)."
+  },
+  {
+    "file": "neuroscript_small/completed.md",
+    "line_number": 62,
+    "operation": "replace",
+    "original_line_for_reference": "* Implemented Restricted Mode security checks in the agent [cite: uploaded:neuroscript/pkg/neurogo/app_agent.go] based on [cite: uploaded:neuroscript/pkg/core/security.go].",
+    "new_line_content": "* Implemented Restricted Mode security checks in the agent [app_agent.go](../pkg/neurogo/app_agent.go) based on [security.go](../pkg/core/security.go)."
+  },
+  {
+    "file": "neuroscript_small/completed.md",
+    "line_number": 64,
+    "operation": "replace",
+    "original_line_for_reference": "* Refined LLM prompting strategies for better tool usage and response generation [cite: uploaded:neuroscript/pkg/core/llm.go].",
+    "new_line_content": "* Refined LLM prompting strategies for better tool usage and response generation [llm.go](../pkg/core/llm.go)."
+  },
+  {
+    "file": "neuroscript_small/completed.md",
+    "line_number": 65,
+    "operation": "replace",
+    "original_line_for_reference": "* Enhanced error reporting and handling in the agent application [cite: uploaded:neuroscript/pkg/neurogo/app_agent.go] including security violations [cite: uploaded:neuroscript/pkg/core/security.go].",
+    "new_line_content": "* Enhanced error reporting and handling in the agent application [app_agent.go](../pkg/neurogo/app_agent.go) including security violations [security.go](../pkg/core/security.go)."
+  },
+  {
+    "file": "neuroscript_small/completed.md",
+    "line_number": 66,
+    "operation": "replace",
+    "original_line_for_reference": "* Documented the Restricted Mode feature and its implications [cite: uploaded:neuroscript/docs/restricted_mode.md].",
+    "new_line_content": "* Documented the Restricted Mode feature and its implications [restricted_mode.md](../docs/restricted_mode.md)."
+  },
+  {
+    "file": "neuroscript_small/completed.md",
+    "line_number": 67,
+    "operation": "replace",
+    "original_line_for_reference": "* Optimized vector similarity search logic [cite: uploaded:neuroscript/pkg/core/tools_vector.go] using updated embedding models [cite: uploaded:neuroscript/pkg/core/embeddings.go].",
+    "new_line_content": "* Optimized vector similarity search logic [tools_vector.go](../pkg/core/tools_vector.go) using updated embedding models [embeddings.go](../pkg/core/embeddings.go)."
+  },
+  {
+    "file": "neuroscript_small/completed.md",
+    "line_number": 68,
+    "operation": "replace",
+    "original_line_for_reference": "* Improved LLM response parsing robustness [cite: uploaded:neuroscript/pkg/core/llm.go].",
+    "new_line_content": "* Improved LLM response parsing robustness [llm.go](../pkg/core/llm.go)."
+  },
+  {
+    "file": "neuroscript_small/completed.md",
+    "line_number": 69,
+    "operation": "replace",
+    "original_line_for_reference": "* Added advanced mathematical functions to math tools [cite: uploaded:neuroscript/pkg/core/tools_math.go].",
+    "new_line_content": "* Added advanced mathematical functions to math tools [tools_math.go](../pkg/core/tools_math.go)."
+  },
+  {
+    "file": "neuroscript_small/completed.md",
+    "line_number": 70,
+    "operation": "replace",
+    "original_line_for_reference": "* Refined Neurodata Checklist parser error messages [cite: uploaded:neuroscript/pkg/neurodata/checklist/scanner_parser.go].",
+    "new_line_content": "* Refined Neurodata Checklist parser error messages [scanner_parser.go](../pkg/neurodata/checklist/scanner_parser.go)."
+  },
+  {
+    "file": "neuroscript_small/completed.md",
+    "line_number": 71,
+    "operation": "replace",
+    "original_line_for_reference": "* Standardized error types for checklist parsing [cite: uploaded:neuroscript/pkg/neurodata/checklist/defined_errors.go].",
+    "new_line_content": "* Standardized error types for checklist parsing [defined_errors.go](../pkg/neurodata/checklist/defined_errors.go)."
+  },
+  {
+    "file": "neuroscript_small/completed.md",
+    "line_number": 72,
+    "operation": "replace",
+    "original_line_for_reference": "* Added more tests for the checklist tool usage [cite: uploaded:neuroscript/pkg/neurodata/checklist/checklist_tool.go].",
+    "new_line_content": "* Added more tests for the checklist tool usage [checklist_tool.go](../pkg/neurodata/checklist/checklist_tool.go)."
+  },
+  {
+    "file": "neuroscript_small/development checklist.md",
+    "line_number": 2,
+    "operation": "replace",
+    "original_line_for_reference": "* Read the project overview ([cite: uploaded:neuroscript/docs/neuroscript overview.md]), core library ([cite: uploaded:neuroscript/pkg/core/]), neurodata formats ([cite: uploaded:neuroscript/pkg/neurodata/]), application logic ([cite: uploaded:neuroscript/pkg/neurogo/app_script.go]), and agent logic ([cite: uploaded:neuroscript/pkg/neurogo/app_agent.go]).",
+    "new_line_content": "* Read the project overview ([neuroscript overview.md](docs/neuroscript overview.md)), core library ([pkg/core/](../pkg/core/)), neurodata formats ([pkg/neurodata/](../pkg/neurodata/)), application logic ([app_script.go](../pkg/neurogo/app_script.go)), and agent logic ([app_agent.go](../pkg/neurogo/app_agent.go))."
+  },
+  {
+    "file": "neuroscript_small/development checklist.md",
+    "line_number": 3,
+    "operation": "replace",
+    "original_line_for_reference": "* Familiarize yourself with this development checklist ([cite: uploaded:neuroscript/docs/development checklist.md]).",
+    "new_line_content": "* Familiarize yourself with this development checklist ([development checklist.md](docs/development checklist.md))."
+  },
+  {
+    "file": "neuroscript_small/development checklist.md",
+    "line_number": 87,
+    "operation": "replace",
+    "original_line_for_reference": "* [ ] Agent execution respects the allowlist and restricted mode ([cite: uploaded:neuroscript/docs/restricted_mode.md]).",
+    "new_line_content": "* [ ] Agent execution respects the allowlist and restricted mode ([restricted_mode.md](docs/restricted_mode.md))."
+  },
+  {
+    "file": "neuroscript_small/docs/llm_agent_facilities.md",
+    "line_number": 206,
+    "operation": "replace",
+    "original_line_for_reference": "The core LLM interaction logic resides in [cite: uploaded:neuroscript/pkg/core/llm.go]. It handles:",
+    "new_line_content": "The core LLM interaction logic resides in [llm.go](../pkg/core/llm.go). It handles:"
+  },
+  {
+    "file": "neuroscript_small/docs/llm_agent_facilities.md",
+    "line_number": 207,
+    "operation": "replace",
+    "original_line_for_reference": "Tool definitions and argument validation schemas are defined in [cite: uploaded:neuroscript/pkg/core/tools_types.go].",
+    "new_line_content": "Tool definitions and argument validation schemas are defined in [tools_types.go](../pkg/core/tools_types.go)."
+  },
+  {
+    "file": "neuroscript_small/docs/llm_agent_facilities.md",
+    "line_number": 213,
+    "operation": "replace",
+    "original_line_for_reference": "The tool registry ([cite: uploaded:neuroscript/pkg/core/tools_registry.go]) holds all available tools.",
+    "new_line_content": "The tool registry ([tools_registry.go](../pkg/core/tools_registry.go)) holds all available tools."
+  },
+  {
+    "file": "neuroscript_small/docs/llm_agent_facilities.md",
+    "line_number": 223,
+    "operation": "replace",
+    "original_line_for_reference": "* Validating arguments against the tool's schema ([cite: uploaded:neuroscript/pkg/core/tools_validation.go]).",
+    "new_line_content": "* Validating arguments against the tool's schema ([tools_validation.go](../pkg/core/tools_validation.go))."
+  },
+  {
+    "file": "neuroscript_small/docs/llm_agent_facilities.md",
+    "line_number": 227,
+    "operation": "replace",
+    "original_line_for_reference": "Helper functions ([cite: uploaded:neuroscript/pkg/core/tools_helpers.go]) simplify tool implementation, especially for common patterns like FS access ([cite: uploaded:neuroscript/pkg/core/tools_fs.go]) or Git operations ([cite: uploaded:neuroscript/pkg/core/tools_git.go]).",
+    "new_line_content": "Helper functions ([tools_helpers.go](../pkg/core/tools_helpers.go)) simplify tool implementation, especially for common patterns like FS access ([tools_fs.go](../pkg/core/tools_fs.go)) or Git operations ([tools_git.go](../pkg/core/tools_git.go))."
+  },
+  {
+    "file": "neuroscript_small/docs/llm_agent_facilities.md",
+    "line_number": 230,
+    "operation": "replace",
+    "original_line_for_reference": "* **Shell Execution (`shell`)**: Runs shell commands ([cite: uploaded:neuroscript/pkg/core/tools_shell.go]). Subject to allowlisting.",
+    "new_line_content": "* **Shell Execution (`shell`)**: Runs shell commands ([tools_shell.go](../pkg/core/tools_shell.go)). Subject to allowlisting."
+  },
+  {
+    "file": "neuroscript_small/docs/llm_agent_facilities.md",
+    "line_number": 231,
+    "operation": "replace",
+    "original_line_for_reference": "Security is paramount ([cite: uploaded:neuroscript/pkg/core/security.go]). The agent operates under:",
+    "new_line_content": "Security is paramount ([security.go](../pkg/core/security.go)). The agent operates under:"
+  },
+  {
+    "file": "neuroscript_small/docs/llm_agent_facilities.md",
+    "line_number": 259,
+    "operation": "replace",
+    "original_line_for_reference": "* **Refined Error Handling**: Improve error messages returned from tool failures (see [cite: uploaded:neuroscript/docs/RoadMap.md]).",
+    "new_line_content": "* **Refined Error Handling**: Improve error messages returned from tool failures (see [RoadMap.md](RoadMap.md))."
+  },
+  {
+    "file": "neuroscript_small/docs/metadata.md",
+    "line_number": 4,
+    "operation": "replace",
+    "original_line_for_reference": "This document describes the metadata format used within the Neuroscript project, particularly for Neurodata files and composite files. It complements the general Neuroscript overview ([cite: uploaded:neuroscript_small/docs/neuroscript overview.md]), the Neurodata specification ([cite: uploaded:neuroscript_small/docs/neurodata_and_composite_file_spec.md]), the Go implementation ([cite: uploaded:neuroscript_small/pkg/neurodata/metadata/metadata.go]), and the ANTLR grammar ([cite: uploaded:neuroscript_small/pkg/core/NeuroScript.g4]).",
+    "new_line_content": "This document describes the metadata format used within the Neuroscript project, particularly for Neurodata files and composite files. It complements the general Neuroscript overview ([neuroscript overview.md](neuroscript overview.md)), the Neurodata specification ([neurodata_and_composite_file_spec.md](neurodata_and_composite_file_spec.md)), the Go implementation ([metadata.go](../pkg/neurodata/metadata/metadata.go)), and the ANTLR grammar ([NeuroScript.g4](../pkg/core/NeuroScript.g4))."
+  },
+  {
+    "file": "neuroscript_small/docs/metadata.md",
+    "line_number": 11,
+    "operation": "replace",
+    "original_line_for_reference": "See the [Neurodata Specification](neurodata_and_composite_file_spec.md) for details on how this block integrates with specific Neurodata formats.",
+    "new_line_content": "See the [Neurodata Specification](neurodata_and_composite_file_spec.md) for details on how this block integrates with specific Neurodata formats."
+  },
+  {
+    "file": "neuroscript_small/docs/metadata.md",
+    "line_number": 12,
+    "operation": "replace",
+    "original_line_for_reference": "See the [Neurodata Specification](neurodata_and_composite_file_spec.md) for details on how this block integrates with specific Neurodata formats.",
+    "new_line_content": "See the [Neurodata Specification](neurodata_and_composite_file_spec.md) for details on how this block integrates with specific Neurodata formats."
+  },
+  {
+    "file": "neuroscript_small/docs/metadata.md",
+    "line_number": 16,
+    "operation": "replace",
+    "original_line_for_reference": "* See the [Neurodata Specification](neurodata_and_composite_file_spec.md) for details on how this block integrates with specific Neurodata formats.",
+    "new_line_content": "* See the [Neurodata Specification](neurodata_and_composite_file_spec.md) for details on how this block integrates with specific Neurodata formats."
+  },
+  {
+    "file": "neuroscript_small/docs/metadata.md",
+    "line_number": 17,
+    "operation": "replace",
+    "original_line_for_reference": "* See the [Neurodata Specification](neurodata_and_composite_file_spec.md) for details on how this block integrates with specific Neurodata formats.",
+    "new_line_content": "* See the [Neurodata Specification](neurodata_and_composite_file_spec.md) for details on how this block integrates with specific Neurodata formats."
+  },
+  {
+    "file": "neuroscript_small/docs/metadata.md",
+    "line_number": 19,
+    "operation": "replace",
+    "original_line_for_reference": "* See the [Neurodata Specification](neurodata_and_composite_file_spec.md) for details on how this block integrates with specific Neurodata formats.",
+    "new_line_content": "* See the [Neurodata Specification](neurodata_and_composite_file_spec.md) for details on how this block integrates with specific Neurodata formats."
+  },
+  {
+    "file": "neuroscript_small/docs/metadata.md",
+    "line_number": 20,
+    "operation": "replace",
+    "original_line_for_reference": "* **ANTLR Lexer**: The lexer ([cite: uploaded:neuroscript_small/pkg/core/generated/neuroscript_lexer.go]) tokenizes the input based on the grammar.",
+    "new_line_content": "* **ANTLR Lexer**: The lexer ([neuroscript_lexer.go](../pkg/core/generated/neuroscript_lexer.go)) tokenizes the input based on the grammar."
+  },
+  {
+    "file": "neuroscript_small/docs/metadata.md",
+    "line_number": 21,
+    "operation": "replace",
+    "original_line_for_reference": "* **Go Implementation**: The Go code ([cite: uploaded:neuroscript_small/pkg/neurodata/metadata/metadata.go]) parses the metadata block. A dedicated Neuroscript tool ([cite: uploaded:neuroscript_small/pkg/core/tools_metadata.go]) exposes this functionality.",
+    "new_line_content": "* **Go Implementation**: The Go code ([metadata.go](../pkg/neurodata/metadata/metadata.go)) parses the metadata block. A dedicated Neuroscript tool ([tools_metadata.go](../pkg/core/tools_metadata.go)) exposes this functionality."
+  },
+  {
+    "file": "neuroscript_small/docs/metadata.md",
+    "line_number": 40,
+    "operation": "replace",
+    "original_line_for_reference": "  * **Content**: The content of the reference item itself (e.g., another [cite: uploaded:neuroscript_small/docs/metadata.md] block).",
+    "new_line_content": "  * **Content**: The content of the reference item itself (e.g., another [metadata.md](metadata.md) block)."
+  },
+  {
+    "file": "neuroscript_small/docs/metadata.md",
+    "line_number": 41,
+    "operation": "replace",
+    "original_line_for_reference": "  * **Content**: The content of the reference item itself (e.g., another [cite: uploaded:neuroscript_small/docs/metadata.md] block).",
+    "new_line_content": "  * **Content**: The content of the reference item itself (e.g., another [metadata.md](metadata.md) block)."
+  },
+  {
+    "file": "neuroscript_small/docs/metadata.md",
+    "line_number": 43,
+    "operation": "replace",
+    "original_line_for_reference": "    See [NeuroData References](NeuroData/references.md) for a detailed specification.",
+    "new_line_content": "    See [NeuroData References](NeuroData/references.md) for a detailed specification."
+  },
+  {
+    "file": "neuroscript_small/docs/metadata.md",
+    "line_number": 63,
+    "operation": "replace",
+    "original_line_for_reference": "  * **Templates**: See [cite: uploaded:neuroscript_small/docs/NeuroData/templates.md].",
+    "new_line_content": "  * **Templates**: See [NeuroData Templates](NeuroData/templates.md)."
+  },
+  {
+    "file": "neuroscript_small/docs/metadata.md",
+    "line_number": 72,
+    "operation": "replace",
+    "original_line_for_reference": "The `script` metadata type indicates that the block contains Neuroscript code, as defined in the [cite: uploaded:neuroscript_small/docs/script spec.md].",
+    "new_line_content": "The `script` metadata type indicates that the block contains Neuroscript code, as defined in the [script spec.md](script spec.md)."
+  },
+  {
+    "file": "neuroscript_small/docs/neurodata_and_composite_file_spec.md",
+    "line_number": 6,
+    "operation": "replace",
+    "original_line_for_reference": "Every Neurodata file *must* begin with a metadata block (`%%% vdlt.metadata`), as specified in [cite: uploaded:neuroscript/docs/metadata.md]. This block declares the format type (e.g., `vdlt.checklist.v1`, `vdlt.form.v1`) and other essential information.",
+    "new_line_content": "Every Neurodata file *must* begin with a metadata block (`%%% vdlt.metadata`), as specified in [metadata.md](../metadata.md). This block declares the format type (e.g., `vdlt.checklist.v1`, `vdlt.form.v1`) and other essential information."
+  },
+  {
+    "file": "neuroscript_small/docs/neurodata_and_composite_file_spec.md",
+    "line_number": 10,
+    "operation": "replace",
+    "original_line_for_reference": "Composite files allow combining multiple Neurodata blocks (and potentially other text formats like Markdown or code) into a single file. Each distinct section *must* be introduced by a metadata block ([cite: uploaded:neuroscript/docs/metadata.md]) indicating its format.",
+    "new_line_content": "Composite files allow combining multiple Neurodata blocks (and potentially other text formats like Markdown or code) into a single file. Each distinct section *must* be introduced by a metadata block ([metadata.md](../metadata.md)) indicating its format."
+  },
+  {
+    "file": "neuroscript_small/docs/neurodata_and_composite_file_spec.md",
+    "line_number": 14,
+    "operation": "replace",
+    "original_line_for_reference": "* **Clarity**: Each section's type is explicitly declared via its metadata block ([cite: uploaded:neuroscript/docs/metadata.md]).",
+    "new_line_content": "* **Clarity**: Each section's type is explicitly declared via its metadata block ([metadata.md](../metadata.md))."
+  },
+  {
+    "file": "neuroscript_small/docs/neurodata_and_composite_file_spec.md",
+    "line_number": 17,
+    "operation": "replace",
+    "original_line_for_reference": "* All sections start with a `%%%` metadata block ([cite: uploaded:neuroscript/docs/metadata.md]).",
+    "new_line_content": "* All sections start with a `%%%` metadata block ([metadata.md](../metadata.md))."
+  },
+  {
+    "file": "neuroscript_small/docs/NeuroData/checklist.md",
+    "line_number": 2,
+    "operation": "replace",
+    "original_line_for_reference": "This document specifies the `vdlt.checklist.v1` Neurodata format. See the implementation in [cite: uploaded:neuroscript/pkg/neurodata/checklist/scanner_parser.go], error definitions in [cite: uploaded:neuroscript/pkg/neurodata/checklist/defined_errors.go], and general coding conventions in [cite: uploaded:neuroscript/docs/conventions.md].",
+    "new_line_content": "This document specifies the `vdlt.checklist.v1` Neurodata format. See the implementation in [scanner_parser.go](../../pkg/neurodata/checklist/scanner_parser.go), error definitions in [defined_errors.go](../../pkg/neurodata/checklist/defined_errors.go), and general coding conventions in [conventions.md](../../docs/conventions.md)."
+  },
+  {
+    "file": "neuroscript_small/docs/NeuroData/cryptographic.md",
+    "line_number": 4,
+    "operation": "replace",
+    "original_line_for_reference": "This document specifies the `vdlt.cryptographic.v1` Neurodata format, used for defining cryptographic material like keys and signatures. It relies on the core metadata specification ([cite: uploaded:neuroscript/docs/metadata.md]), references ([cite: uploaded:neuroscript/docs/references.md]), and the composite file structure ([cite: uploaded:neuroscript/docs/neurodata_and_composite_file_spec.md]).",
+    "new_line_content": "This document specifies the `vdlt.cryptographic.v1` Neurodata format, used for defining cryptographic material like keys and signatures. It relies on the core metadata specification ([metadata.md](../../docs/metadata.md)), references ([references.md](references.md)), and the composite file structure ([neurodata_and_composite_file_spec.md](../../docs/neurodata_and_composite_file_spec.md))."
+  },
+  {
+    "file": "neuroscript_small/docs/NeuroData/cryptographic.md",
+    "line_number": 23,
+    "operation": "replace",
+    "original_line_for_reference": "* Metadata Block: As defined in [cite: uploaded:neuroscript/docs/metadata.md], specifying `vdlt.cryptographic.v1`.",
+    "new_line_content": "* Metadata Block: As defined in [metadata.md](../../docs/metadata.md), specifying `vdlt.cryptographic.v1`."
+  },
+  {
+    "file": "neuroscript_small/docs/NeuroData/cryptographic.md",
+    "line_number": 25,
+    "operation": "replace",
+    "original_line_for_reference": "* References Block (`@references`): Optional. Uses the format defined in [cite: uploaded:neuroscript/docs/references.md] to link to external definitions or keys.",
+    "new_line_content": "* References Block (`@references`): Optional. Uses the format defined in [references.md](references.md) to link to external definitions or keys."
+  },
+  {
+    "file": "neuroscript_small/docs/NeuroData/cryptographic.md",
+    "line_number": 89,
+    "operation": "replace",
+    "original_line_for_reference": "  * `ref`: A reference string following the format in [cite: generated previously in `docs/references.md`], pointing to the key definition (e.g., `key:my_signing_key`). REQUIRED.",
+    "new_line_content": "  * `ref`: A reference string following the format in [references.md](../../docs/references.md), pointing to the key definition (e.g., `key:my_signing_key`). REQUIRED."
+  },
+  {
+    "file": "neuroscript_small/docs/NeuroData/cryptographic.md",
+    "line_number": 92,
+    "operation": "replace",
+    "original_line_for_reference": "* Integration with Neuroscript tools ([cite: uploaded:neuroscript/pkg/core/tools_register.go]).",
+    "new_line_content": "* Integration with Neuroscript tools ([tools_register.go](../../pkg/core/tools_register.go))."
+  },
+  {
+    "file": "neuroscript_small/docs/NeuroData/decision_table.md",
+    "line_number": 4,
+    "operation": "replace",
+    "original_line_for_reference": "This document specifies the `vdlt.decision_table.v1` Neurodata format. It builds upon the core metadata specification ([cite: uploaded:neuroscript/docs/metadata.md]), references ([cite: uploaded:neuroscript/docs/references.md]), the table format ([cite: uploaded:neuroscript/docs/neurodata/table.md]), and the composite file structure ([cite: uploaded:neuroscript/docs/neurodata_and_composite_file_spec.md]).",
+    "new_line_content": "This document specifies the `vdlt.decision_table.v1` Neurodata format. It builds upon the core metadata specification ([metadata.md](../../docs/metadata.md)), references ([references.md](references.md)), the table format ([table.md](table.md)), and the composite file structure ([neurodata_and_composite_file_spec.md](../../docs/neurodata_and_composite_file_spec.md))."
+  },
+  {
+    "file": "neuroscript_small/docs/NeuroData/decision_table.md",
+    "line_number": 18,
+    "operation": "replace",
+    "original_line_for_reference": "* Metadata Block: As defined in [cite: uploaded:neuroscript/docs/metadata.md], specifying `vdlt.decision_table.v1`.",
+    "new_line_content": "* Metadata Block: As defined in [metadata.md](../../docs/metadata.md), specifying `vdlt.decision_table.v1`."
+  },
+  {
+    "file": "neuroscript_small/docs/NeuroData/enum.md",
+    "line_number": 4,
+    "operation": "replace",
+    "original_line_for_reference": "This document specifies the `vdlt.enum.v1` Neurodata format for defining enumerated types. It relies on the core metadata specification ([cite: uploaded:neuroscript/docs/metadata.md]), the composite file structure ([cite: uploaded:neuroscript/docs/neurodata_and_composite_file_spec.md]), and potentially map schemas ([cite: uploaded:neuroscript/docs/NeuroData/map_schema.md]) for associated values.",
+    "new_line_content": "This document specifies the `vdlt.enum.v1` Neurodata format for defining enumerated types. It relies on the core metadata specification ([metadata.md](../../docs/metadata.md)), the composite file structure ([neurodata_and_composite_file_spec.md](../../docs/neurodata_and_composite_file_spec.md)), and potentially map schemas ([map_schema.md](map_schema.md)) for associated values."
+  },
+  {
+    "file": "neuroscript_small/docs/NeuroData/form.md",
+    "line_number": 4,
+    "operation": "replace",
+    "original_line_for_reference": "This document specifies the `vdlt.form.v1` Neurodata format, designed for representing data entry forms or structured data records. It uses the core metadata specification ([cite: uploaded:neuroscript/docs/metadata.md]), references ([cite: uploaded:neuroscript/docs/references.md]), potentially the table format ([cite: uploaded:neuroscript/docs/neurodata/table.md]) for tabular sub-sections, the composite file structure ([cite: uploaded:neuroscript/docs/neurodata_and_composite_file_spec.md]), and is processed by the blocks extractor ([cite: uploaded:neuroscript/pkg/neurodata/blocks/blocks_extractor.go]).",
+    "new_line_content": "This document specifies the `vdlt.form.v1` Neurodata format, designed for representing data entry forms or structured data records. It uses the core metadata specification ([metadata.md](../../docs/metadata.md)), references ([references.md](references.md)), potentially the table format ([table.md](table.md)) for tabular sub-sections, the composite file structure ([neurodata_and_composite_file_spec.md](../../docs/neurodata_and_composite_file_spec.md)), and is processed by the blocks extractor ([blocks_extractor.go](../../pkg/neurodata/blocks/blocks_extractor.go))."
+  },
+  {
+    "file": "neuroscript_small/docs/NeuroData/form.md",
+    "line_number": 19,
+    "operation": "replace",
+    "original_line_for_reference": "* Metadata Block: As defined in [cite: uploaded:neuroscript/docs/metadata.md], specifying `vdlt.form.v1`. It might include a `schema` key referencing a `vdlt.map_schema.v1` definition.",
+    "new_line_content": "* Metadata Block: As defined in [metadata.md](../../docs/metadata.md), specifying `vdlt.form.v1`. It might include a `schema` key referencing a `vdlt.map_schema.v1` definition."
+  },
+  {
+    "file": "neuroscript_small/docs/NeuroData/form.md",
+    "line_number": 25,
+    "operation": "replace",
+    "original_line_for_reference": "The Go block extractor ([cite: uploaded:neuroscript/pkg/neurodata/blocks/blocks_extractor.go]) can parse this format.",
+    "new_line_content": "The Go block extractor ([blocks_extractor.go](../../pkg/neurodata/blocks/blocks_extractor.go)) can parse this format."
+  },
+  {
+    "file": "neuroscript_small/docs/NeuroData/geometry.md",
+    "line_number": 4,
+    "operation": "replace",
+    "original_line_for_reference": "This document specifies the `vdlt.geometry.v1` Neurodata format for representing geometric shapes and relationships. It builds upon the core metadata specification ([cite: uploaded:neuroscript/docs/metadata.md]), references ([cite: uploaded:neuroscript/docs/references.md]), potentially symbolic math ([cite: uploaded:neuroscript/docs/neurodata/symbolic_math.md]) for coordinate expressions, tree structures ([cite: uploaded:neuroscript/docs/neurodata/tree.md]) for scene graphs, and the composite file structure ([cite: uploaded:neuroscript/docs/neurodata_and_composite_file_spec.md]).",
+    "new_line_content": "This document specifies the `vdlt.geometry.v1` Neurodata format for representing geometric shapes and relationships. It builds upon the core metadata specification ([metadata.md](../../docs/metadata.md)), references ([references.md](references.md)), potentially symbolic math ([symbolic_math.md](symbolic_math.md)) for coordinate expressions, tree structures ([tree.md](tree.md)) for scene graphs, and the composite file structure ([neurodata_and_composite_file_spec.md](../../docs/neurodata_and_composite_file_spec.md))."
+  },
+  {
+    "file": "neuroscript_small/docs/NeuroData/geometry.md",
+    "line_number": 16,
+    "operation": "replace",
+    "original_line_for_reference": "* Metadata Block: As defined in [cite: uploaded:neuroscript/docs/metadata.md], specifying `vdlt.geometry.v1`. Can include coordinate system info (`crs`) or units (`units`).",
+    "new_line_content": "* Metadata Block: As defined in [metadata.md](../../docs/metadata.md), specifying `vdlt.geometry.v1`. Can include coordinate system info (`crs`) or units (`units`)."
+  },
+  {
+    "file": "neuroscript_small/docs/NeuroData/geometry.md",
+    "line_number": 18,
+    "operation": "replace",
+    "original_line_for_reference": "* References Block (`@references`): Optional. Uses the format defined in [cite: generated previously in `docs/references.md`] to link to external definitions or coordinate systems.",
+    "new_line_content": "* References Block (`@references`): Optional. Uses the format defined in [references.md](references.md) to link to external definitions or coordinate systems."
+  },
+  {
+    "file": "neuroscript_small/docs/NeuroData/graph.md",
+    "line_number": 4,
+    "operation": "replace",
+    "original_line_for_reference": "This document specifies the `vdlt.graph.v1` Neurodata format for representing graph structures (nodes and edges). It relies on the core metadata specification ([cite: uploaded:neuroscript/docs/metadata.md]) and the composite file structure ([cite: uploaded:neuroscript/docs/neurodata_and_composite_file_spec.md]).",
+    "new_line_content": "This document specifies the `vdlt.graph.v1` Neurodata format for representing graph structures (nodes and edges). It relies on the core metadata specification ([metadata.md](../../docs/metadata.md)) and the composite file structure ([neurodata_and_composite_file_spec.md](../../docs/neurodata_and_composite_file_spec.md))."
+  },
+  {
+    "file": "neuroscript_small/docs/NeuroData/graph.md",
+    "line_number": 18,
+    "operation": "replace",
+    "original_line_for_reference": "* Metadata Block: As defined in [cite: uploaded:neuroscript/docs/metadata.md], specifying `vdlt.graph.v1`. May indicate if the graph is directed (`directed: true/false`).",
+    "new_line_content": "* Metadata Block: As defined in [metadata.md](../../docs/metadata.md), specifying `vdlt.graph.v1`. May indicate if the graph is directed (`directed: true/false`)."
+  },
+  {
+    "file": "neuroscript_small/docs/NeuroData/graph.md",
+    "line_number": 68,
+    "operation": "replace",
+    "original_line_for_reference": "* Parsed by the Go block extractor ([cite: uploaded:neuroscript/pkg/neurodata/blocks/blocks_extractor.go]).",
+    "new_line_content": "* Parsed by the Go block extractor ([blocks_extractor.go](../../pkg/neurodata/blocks/blocks_extractor.go))."
+  },
+  {
+    "file": "neuroscript_small/docs/NeuroData/list.md",
+    "line_number": 4,
+    "operation": "replace",
+    "original_line_for_reference": "This document specifies the `vdlt.list.v1` Neurodata format, a simple ordered list format. It uses the core metadata specification ([cite: uploaded:neuroscript/docs/metadata.md]), potentially references ([cite: uploaded:neuroscript/docs/references.md]), can incorporate checklist items ([cite: uploaded:neuroscript/docs/NeuroData/checklist.md]), and adheres to the composite file structure ([cite: uploaded:neuroscript/docs/neurodata_and_composite_file_spec.md]).",
+    "new_line_content": "This document specifies the `vdlt.list.v1` Neurodata format, a simple ordered list format. It uses the core metadata specification ([metadata.md](../../docs/metadata.md)), potentially references ([references.md](references.md)), can incorporate checklist items ([checklist.md](checklist.md)), and adheres to the composite file structure ([neurodata_and_composite_file_spec.md](../../docs/neurodata_and_composite_file_spec.md))."
+  },
+  {
+    "file": "neuroscript_small/docs/NeuroData/list.md",
+    "line_number": 10,
+    "operation": "replace",
+    "original_line_for_reference": "A list item can optionally be a checklist item, following the syntax defined in [cite: uploaded:neuroscript/docs/NeuroData/checklist.md].",
+    "new_line_content": "A list item can optionally be a checklist item, following the syntax defined in [checklist.md](checklist.md)."
+  },
+  {
+    "file": "neuroscript_small/docs/NeuroData/list.md",
+    "line_number": 15,
+    "operation": "replace",
+    "original_line_for_reference": "* Metadata Block: As defined in [cite: uploaded:neuroscript/docs/metadata.md], specifying `vdlt.list.v1`.",
+    "new_line_content": "* Metadata Block: As defined in [metadata.md](../../docs/metadata.md), specifying `vdlt.list.v1`."
+  },
+  {
+    "file": "neuroscript_small/docs/NeuroData/list.md",
+    "line_number": 23,
+    "operation": "replace",
+    "original_line_for_reference": "* References Block (`@references`): Optional. Defined in [cite: generated previously in `docs/references.md`]. Allows referencing external items within list entries.",
+    "new_line_content": "* References Block (`@references`): Optional. Defined in [references.md](references.md). Allows referencing external items within list entries."
+  },
+  {
+    "file": "neuroscript_small/docs/NeuroData/list.md",
+    "line_number": 30,
+    "operation": "replace",
+    "original_line_for_reference": "### Example with Metadata and Basic Items",
+    "new_line_content": "### Example with Metadata and Basic Items"
+  },
+  {
+    "file": "neuroscript_small/docs/NeuroData/list.md",
+    "line_number": 36,
+    "operation": "replace",
+    "original_line_for_reference": "### Example with References",
+    "new_line_content": "### Example with References"
+  },
+  {
+    "file": "neuroscript_small/docs/NeuroData/map_literal.md",
+    "line_number": 4,
+    "operation": "replace",
+    "original_line_for_reference": "This document specifies the `vdlt.map_literal.v1` Neurodata format, representing a simple key-value map, similar to JSON or YAML objects but with Neuroscript syntax for values. It relies on the core metadata specification ([cite: uploaded:neuroscript/docs/metadata.md]), the Neuroscript language specification ([cite: uploaded:neuroscript/docs/script spec.md]), and the composite file structure ([cite: uploaded:neuroscript/docs/neurodata_and_composite_file_spec.md]).",
+    "new_line_content": "This document specifies the `vdlt.map_literal.v1` Neurodata format, representing a simple key-value map, similar to JSON or YAML objects but with Neuroscript syntax for values. It relies on the core metadata specification ([metadata.md](../../docs/metadata.md)), the Neuroscript language specification ([script spec.md](../../docs/script spec.md)), and the composite file structure ([neurodata_and_composite_file_spec.md](../../docs/neurodata_and_composite_file_spec.md))."
+  },
+  {
+    "file": "neuroscript_small/docs/NeuroData/map_literal.md",
+    "line_number": 10,
+    "operation": "replace",
+    "original_line_for_reference": "* Values: Can be any valid Neuroscript literal expression as defined in the [cite: uploaded:neuroscript/docs/script spec.md] (strings, numbers, booleans, lists, nested maps).",
+    "new_line_content": "* Values: Can be any valid Neuroscript literal expression as defined in the [script spec.md](../../docs/script spec.md) (strings, numbers, booleans, lists, nested maps)."
+  },
+  {
+    "file": "neuroscript_small/docs/NeuroData/map_literal.md",
+    "line_number": 16,
+    "operation": "replace",
+    "original_line_for_reference": "* Metadata Block: As defined in [cite: uploaded:neuroscript/docs/metadata.md], specifying `vdlt.map_literal.v1`.",
+    "new_line_content": "* Metadata Block: As defined in [metadata.md](../../docs/metadata.md), specifying `vdlt.map_literal.v1`."
+  },
+  {
+    "file": "neuroscript_small/docs/NeuroData/map_literal.md",
+    "line_number": 24,
+    "operation": "replace",
+    "original_line_for_reference": "The formal definition aligns with the map literal syntax in the [formal script spec.md](../../docs/formal script spec.md).",
+    "new_line_content": "The formal definition aligns with the map literal syntax in the [formal script spec.md](../../docs/formal script spec.md)."
+  },
+  {
+    "file": "neuroscript_small/docs/NeuroData/map_schema.md",
+    "line_number": 4,
+    "operation": "replace",
+    "original_line_for_reference": "This document specifies the `vdlt.map_schema.v1` Neurodata format for defining the schema (expected keys, types, and constraints) of a map or object. It relies on the core metadata specification ([cite: uploaded:neuroscript/docs/metadata.md]), the Neuroscript language specification ([cite: uploaded:neuroscript/docs/script spec.md]), the map literal format ([cite: uploaded:neuroscript/docs/NeuroData/map_literal.md]) for default values, and references ([cite: uploaded:neuroscript/docs/NeuroData/references.md]) for type definitions.",
+    "new_line_content": "This document specifies the `vdlt.map_schema.v1` Neurodata format for defining the schema (expected keys, types, and constraints) of a map or object. It relies on the core metadata specification ([metadata.md](../../docs/metadata.md)), the Neuroscript language specification ([script spec.md](../../docs/script spec.md)), the map literal format ([map_literal.md](map_literal.md)) for default values, and references ([references.md](references.md)) for type definitions."
+  },
+  {
+    "file": "neuroscript_small/docs/NeuroData/map_schema.md",
+    "line_number": 12,
+    "operation": "replace",
+    "original_line_for_reference": "    * `default`: (Optional) A default value for the field, expressed as a Neuroscript literal (see [cite: uploaded:neuroscript/docs/NeuroData/map_literal.md]).",
+    "new_line_content": "    * `default`: (Optional) A default value for the field, expressed as a Neuroscript literal (see [map_literal.md](map_literal.md))."
+  },
+  {
+    "file": "neuroscript_small/docs/NeuroData/map_schema.md",
+    "line_number": 24,
+    "operation": "replace",
+    "original_line_for_reference": "* Metadata Block: As defined in [cite: uploaded:neuroscript/docs/metadata.md], specifying `vdlt.map_schema.v1`.",
+    "new_line_content": "* Metadata Block: As defined in [metadata.md](../../docs/metadata.md), specifying `vdlt.map_schema.v1`."
+  },
+  {
+    "file": "neuroscript_small/docs/NeuroData/references.md",
+    "line_number": 4,
+    "operation": "replace",
+    "original_line_for_reference": "This document specifies the `vdlt.references.v1` Neurodata format, used for declaring references to other data entities, code artifacts, or external resources within Neurodata files. It uses the core metadata specification ([cite: uploaded:neuroscript/docs/metadata.md]), the composite file structure ([cite: uploaded:neuroscript/docs/neurodata_and_composite_file_spec.md]), security considerations ([cite: uploaded:neuroscript/pkg/core/security.go]), and is processed by the block extractor ([cite: uploaded:neuroscript/pkg/neurodata/blocks/blocks_extractor.go]).",
+    "new_line_content": "This document specifies the `vdlt.references.v1` Neurodata format, used for declaring references to other data entities, code artifacts, or external resources within Neurodata files. It uses the core metadata specification ([metadata.md](../../docs/metadata.md)), the composite file structure ([neurodata_and_composite_file_spec.md](../../docs/neurodata_and_composite_file_spec.md)), security considerations ([security.go](../../pkg/core/security.go)), and is processed by the block extractor ([blocks_extractor.go](../../pkg/neurodata/blocks/blocks_extractor.go))."
+  },
+  {
+    "file": "neuroscript_small/docs/NeuroData/references.md",
+    "line_number": 19,
+    "operation": "replace",
+    "original_line_for_reference": "* `local` or `embed`: Fetched/validated using local file system access, subject to security policy ([cite: uploaded:neuroscript/pkg/core/security.go]). `embed` suggests the content should ideally be pulled into the referencing document during processing. Path is relative to the current file or project root based on context.",
+    "new_line_content": "* `local` or `embed`: Fetched/validated using local file system access, subject to security policy ([security.go](../../pkg/core/security.go)). `embed` suggests the content should ideally be pulled into the referencing document during processing. Path is relative to the current file or project root based on context."
+  },
+  {
+    "file": "neuroscript_small/docs/NeuroData/references.md",
+    "line_number": 20,
+    "operation": "replace",
+    "original_line_for_reference": "* `metadata`: References another metadata block ([cite: uploaded:neuroscript/docs/metadata.md]) within the same or another composite file. Path is typically the `id` of the target metadata block.",
+    "new_line_content": "* `metadata`: References another metadata block ([metadata.md](../../docs/metadata.md)) within the same or another composite file. Path is typically the `id` of the target metadata block."
+  },
+  {
+    "file": "neuroscript_small/docs/NeuroData/references.md",
+    "line_number": 21,
+    "operation": "replace",
+    "original_line_for_reference": "* `block`: References a specific named block within the same or another composite file (requires block parsing, see [cite: uploaded:neuroscript/pkg/neurodata/blocks/blocks_extractor.go)). Path uses the `id` from the target block's metadata.",
+    "new_line_content": "* `block`: References a specific named block within the same or another composite file (requires block parsing, see [blocks_extractor.go](../../pkg/neurodata/blocks/blocks_extractor.go)). Path uses the `id` from the target block's metadata."
+  },
+  {
+    "file": "neuroscript_small/docs/NeuroData/references.md",
+    "line_number": 27,
+    "operation": "replace",
+    "original_line_for_reference": "* Integration with Neuroscript tools ([cite: uploaded:neuroscript/pkg/core/tools_metadata.go], [cite: uploaded:neuroscript/pkg/neurodata/blocks/blocks_tool.go]).",
+    "new_line_content": "* Integration with Neuroscript tools ([tools_metadata.go](../../pkg/core/tools_metadata.go), [blocks_tool.go](../../pkg/neurodata/blocks/blocks_tool.go))."
+  },
+  {
+    "file": "neuroscript_small/docs/NeuroData/references.md",
+    "line_number": 29,
+    "operation": "replace",
+    "original_line_for_reference": "Reference resolution MUST adhere to the project's security policy ([cite: uploaded:neuroscript/pkg/core/security.go]), especially for `local`, `http`, `git`, and potentially `block` types.",
+    "new_line_content": "Reference resolution MUST adhere to the project's security policy ([security.go](../../pkg/core/security.go)), especially for `local`, `http`, `git`, and potentially `block` types."
+  },
+  {
+    "file": "neuroscript_small/docs/NeuroData/symbolic_math.md",
+    "line_number": 4,
+    "operation": "replace",
+    "original_line_for_reference": "This document specifies the `vdlt.symbolic_math.v1` Neurodata format for representing mathematical expressions symbolically. It relies on the core metadata specification ([cite: uploaded:neuroscript/docs/metadata.md]), references ([cite: uploaded:neuroscript/docs/references.md]), the composite file structure ([cite: uploaded:neuroscript/docs/neurodata_and_composite_file_spec.md]), and potentially map literals ([cite: uploaded:neuroscript/docs/NeuroData/map_literal.md]) or schemas ([cite: uploaded:neuroscript/docs/NeuroData/map_schema.md]) for variable definitions.",
+    "new_line_content": "This document specifies the `vdlt.symbolic_math.v1` Neurodata format for representing mathematical expressions symbolically. It relies on the core metadata specification ([metadata.md](../../docs/metadata.md)), references ([references.md](references.md)), the composite file structure ([neurodata_and_composite_file_spec.md](../../docs/neurodata_and_composite_file_spec.md)), and potentially map literals ([map_literal.md](map_literal.md)) or schemas ([map_schema.md](map_schema.md)) for variable definitions."
+  },
+  {
+    "file": "neuroscript_small/docs/NeuroData/symbolic_math.md",
+    "line_number": 41,
+    "operation": "replace",
+    "original_line_for_reference": "  * Variables: Defined using standard Neuroscript map syntax (see [cite: uploaded:neuroscript/docs/NeuroData/map_literal.md]).",
+    "new_line_content": "  * Variables: Defined using standard Neuroscript map syntax (see [map_literal.md](map_literal.md))."
+  },
+  {
+    "file": "neuroscript_small/docs/NeuroData/symbolic_math.md",
+    "line_number": 44,
+    "operation": "replace",
+    "original_line_for_reference": "* Metadata Block: As defined in [cite: uploaded:neuroscript/docs/metadata.md], specifying `vdlt.symbolic_math.v1`.",
+    "new_line_content": "* Metadata Block: As defined in [metadata.md](../../docs/metadata.md), specifying `vdlt.symbolic_math.v1`."
+  },
+  {
+    "file": "neuroscript_small/docs/NeuroData/symbolic_math.md",
+    "line_number": 56,
+    "operation": "replace",
+    "original_line_for_reference": "* Variable Schema (`@schema`): Optional. Defines expected variables and their types using `vdlt.map_schema.v1` format ([cite: uploaded:neuroscript/docs/NeuroData/map_schema.md]).",
+    "new_line_content": "* Variable Schema (`@schema`): Optional. Defines expected variables and their types using `vdlt.map_schema.v1` format ([map_schema.md](map_schema.md))."
+  },
+  {
+    "file": "neuroscript_small/docs/NeuroData/symbolic_math.md",
+    "line_number": 80,
+    "operation": "replace",
+    "original_line_for_reference": "The expression syntax should align closely with Neuroscript expression rules ([script spec.md](../../docs/script spec.md)), supporting standard arithmetic and logical operators, function calls (potentially defined within the symbolic context or via references), and variable usage.",
+    "new_line_content": "The expression syntax should align closely with Neuroscript expression rules ([script spec.md](../../docs/script spec.md)), supporting standard arithmetic and logical operators, function calls (potentially defined within the symbolic context or via references), and variable usage."
+  },
+  {
+    "file": "neuroscript_small/docs/NeuroData/symbolic_math.md",
+    "line_number": 81,
+    "operation": "replace",
+    "original_line_for_reference": "* Variables used in expressions should be defined in the `@variables` block ([cite: uploaded:neuroscript/docs/NeuroData/map_literal.md]).",
+    "new_line_content": "* Variables used in expressions should be defined in the `@variables` block ([map_literal.md](map_literal.md))."
+  },
+  {
+    "file": "neuroscript_small/docs/NeuroData/table.md",
+    "line_number": 4,
+    "operation": "replace",
+    "original_line_for_reference": "This document specifies the `vdlt.table.v1` Neurodata format for representing tabular data. It relies on the core metadata specification ([cite: uploaded:neuroscript/docs/metadata.md]), the composite file structure ([cite: uploaded:neuroscript/docs/neurodata_and_composite_file_spec.md]), and uses Neuroscript syntax for cell values ([cite: uploaded:neuroscript/docs/script spec.md]).",
+    "new_line_content": "This document specifies the `vdlt.table.v1` Neurodata format for representing tabular data. It relies on the core metadata specification ([metadata.md](../../docs/metadata.md)), the composite file structure ([neurodata_and_composite_file_spec.md](../../docs/neurodata_and_composite_file_spec.md)), and uses Neuroscript syntax for cell values ([script spec.md](../../docs/script spec.md))."
+  },
+  {
+    "file": "neuroscript_small/docs/NeuroData/table.md",
+    "line_number": 18,
+    "operation": "replace",
+    "original_line_for_reference": "* Metadata Block: As defined in [cite: uploaded:neuroscript/docs/metadata.md], specifying `vdlt.table.v1`.",
+    "new_line_content": "* Metadata Block: As defined in [metadata.md](../../docs/metadata.md), specifying `vdlt.table.v1`."
+  },
+  {
+    "file": "neuroscript_small/docs/NeuroData/table.md",
+    "line_number": 25,
+    "operation": "replace",
+    "original_line_for_reference": "* Metadata Block: As defined in [cite: uploaded:neuroscript/docs/metadata.md], specifying `vdlt.table.v1`.",
+    "new_line_content": "* Metadata Block: As defined in [metadata.md](../../docs/metadata.md), specifying `vdlt.table.v1`."
+  },
+  {
+    "file": "neuroscript_small/docs/NeuroData/templates.md",
+    "line_number": 4,
+    "operation": "replace",
+    "original_line_for_reference": "This document specifies the `vdlt.template.v1` Neurodata format, used for text templating with embedded Neuroscript expressions. It relies on the Neuroscript language specification ([cite: uploaded:neuroscript/docs/script spec.md]), the core metadata specification ([cite: uploaded:neuroscript/docs/metadata.md]), and potentially references ([cite: uploaded:neuroscript/docs/references.md]) for including sub-templates or data.",
+    "new_line_content": "This document specifies the `vdlt.template.v1` Neurodata format, used for text templating with embedded Neuroscript expressions. It relies on the Neuroscript language specification ([script spec.md](../../docs/script spec.md)), the core metadata specification ([metadata.md](../../docs/metadata.md)), and potentially references ([references.md](references.md)) for including sub-templates or data."
+  },
+  {
+    "file": "neuroscript_small/docs/NeuroData/templates.md",
+    "line_number": 43,
+    "operation": "replace",
+    "original_line_for_reference": "The evaluation logic ([cite: uploaded:neuroscript/pkg/core/evaluation_main.go]) handles the execution of these expressions.",
+    "new_line_content": "The evaluation logic ([evaluation_main.go](../../pkg/core/evaluation_main.go)) handles the execution of these expressions."
+  },
+  {
+    "file": "neuroscript_small/docs/NeuroData/templates.md",
+    "line_number": 44,
+    "operation": "replace",
+    "original_line_for_reference": "Standard Neuroscript string functions ([cite: uploaded:neuroscript/pkg/core/tools_string.go]) are available within expressions.",
+    "new_line_content": "Standard Neuroscript string functions ([tools_string.go](../../pkg/core/tools_string.go)) are available within expressions."
+  },
+  {
+    "file": "neuroscript_small/docs/NeuroData/tree.md",
+    "line_number": 4,
+    "operation": "replace",
+    "original_line_for_reference": "This document specifies the `vdlt.tree.v1` Neurodata format for representing hierarchical tree structures, extending the concept of graphs ([cite: uploaded:neuroscript/docs/neurodata/graph.md]). It relies on the core metadata specification ([cite: uploaded:neuroscript/docs/metadata.md]) and the composite file structure ([cite: uploaded:neuroscript/docs/neurodata_and_composite_file_spec.md]).",
+    "new_line_content": "This document specifies the `vdlt.tree.v1` Neurodata format for representing hierarchical tree structures, extending the concept of graphs ([graph.md](graph.md)). It relies on the core metadata specification ([metadata.md](../../docs/metadata.md)) and the composite file structure ([neurodata_and_composite_file_spec.md](../../docs/neurodata_and_composite_file_spec.md))."
+  },
+  {
+    "file": "neuroscript_small/docs/NeuroData/tree.md",
+    "line_number": 18,
+    "operation": "replace",
+    "original_line_for_reference": "* Metadata Block: As defined in [cite: uploaded:neuroscript/docs/metadata.md], specifying `vdlt.tree.v1`.",
+    "new_line_content": "* Metadata Block: As defined in [metadata.md](../../docs/metadata.md), specifying `vdlt.tree.v1`."
+  },
+  {
+    "file": "neuroscript_small/docs/NeuroData/tree.md",
+    "line_number": 26,
+    "operation": "replace",
+    "original_line_for_reference": "* Metadata Block: As defined in [cite: uploaded:neuroscript/docs/metadata.md], specifying `vdlt.tree.v1`.",
+    "new_line_content": "* Metadata Block: As defined in [metadata.md](../../docs/metadata.md), specifying `vdlt.tree.v1`."
+  },
+  {
+    "file": "neuroscript_small/docs/script spec.md",
+    "line_number": 213,
+    "operation": "replace",
+    "original_line_for_reference": "    * See [cite: uploaded:neuroscript/pkg/core/evaluation_comparison.go]",
+    "new_line_content": "    * See [evaluation_comparison.go](../pkg/core/evaluation_comparison.go)"
+  },
+  {
+    "file": "neuroscript_small/docs/script spec.md",
+    "line_number": 236,
+    "operation": "replace",
+    "original_line_for_reference": "* Docstrings: Standard Go `/**/` or `//` comments immediately preceding the declaration are parsed ([cite: uploaded:neuroscript/pkg/core/parseDocstring.go]).",
+    "new_line_content": "* Docstrings: Standard Go `/**/` or `//` comments immediately preceding the declaration are parsed ([parseDocstring.go](../pkg/core/parseDocstring.go))."
+  },
+  {
+    "file": "neuroscript_small/docs/script spec.md",
+    "line_number": 303,
+    "operation": "replace",
+    "original_line_for_reference": "    * `vector_search`: Performs similarity search (see [cite: uploaded:neuroscript/pkg/core/tools_vector.go] and [cite: uploaded:neuroscript/pkg/core/tools_search.go]).",
+    "new_line_content": "    * `vector_search`: Performs similarity search (see [tools_vector.go](../pkg/core/tools_vector.go) and [tools_search.go](../pkg/core/tools_search.go))."
+  },
+  {
+    "file": "neuroscript_small/docs/script spec.md",
+    "line_number": 338,
+    "operation": "replace",
+    "original_line_for_reference": "* Tool documentation strings are parsed using Go's docstring conventions ([cite: uploaded:neuroscript/pkg/core/parseDocstring.go]).",
+    "new_line_content": "* Tool documentation strings are parsed using Go's docstring conventions ([parseDocstring.go](../pkg/core/parseDocstring.go))."
+  },
+  {
+    "file": "neuroscript_small/docs/script spec.md",
+    "line_number": 339,
+    "operation": "replace",
+    "original_line_for_reference": "* Neuroscript procedures also support docstrings, following the same convention ([cite: uploaded:neuroscript/docs/script spec.md]).",
+    "new_line_content": "* Neuroscript procedures also support docstrings, following the same convention ([script spec.md](script spec.md))."
+  },
+  {
+    "file": "neuroscript_small/docs/specification_structure.md",
+    "line_number": 4,
+    "operation": "replace",
+    "original_line_for_reference": "This document outlines the standard structure for Neurodata format specification documents. It relies on the core metadata format ([cite: uploaded:neuroscript/docs/metadata.md]). Consistency across specification documents aids readability and tool development.",
+    "new_line_content": "This document outlines the standard structure for Neurodata format specifications. It relies on the core metadata format ([metadata.md](metadata.md)). Consistency across specification documents aids readability and tool development."
+  },
+  {
+    "file": "neuroscript_small/docs/specification_structure.md",
+    "line_number": 62,
+    "operation": "replace",
+    "original_line_for_reference": "* Links to the core metadata specification ([cite: uploaded:neuroscript/docs/metadata.md]) and other relevant base specifications (e.g., composite files, references).",
+    "new_line_content": "* Links to the core metadata specification ([metadata.md](metadata.md)) and other relevant base specifications (e.g., composite files, references)."
+  }
+]

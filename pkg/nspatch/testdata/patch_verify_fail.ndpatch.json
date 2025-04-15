@@ -1,0 +1,9 @@
+[
+  {
+    "file": "initial_basic.txt",
+    "line_number": 2,
+    "operation": "replace",
+    "original_line_for_reference": "Line 2: THIS IS WRONG!",
+    "new_line_content": "Line 2: Should not be applied."
+  }
+]

@@ -1,0 +1,5 @@
+Line 2: This line will be replaced.
+Line 3: Some context here.
+Line 4: Insertion point comes before this line.
+Line 5:   Indented context line.
+Line 7: Final context line.
