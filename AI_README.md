@@ -7,7 +7,7 @@ If you have not already done so, read all the files in doc/... before starting a
 
 7.  Markdown Formatting: When providing only Markdown files (e.g., README.md), prepend each non-blank line with `@@@`. This prevents the UI from rendering it. I will remove the prefix later. (This is not needed for Go files or other code formats). 
 8.  * Example Markdown Line: @@@# Project Title
-9.  Please convert any [cite: uploaded:...] references you see in markdown files into relative Markdown links
+9.  Please convert any [cite: uploaded:...] references you see in markdown files into relative Markdown links -- if multiple files are cited, please take care to convert them into multiple links
 10. When working on specifications, please be sure to use the structure given in docs/specification_structure.md. If a spec does not adhere to this structure, ask about updating it.
 
 ## Go Development Instructions

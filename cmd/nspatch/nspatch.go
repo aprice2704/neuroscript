@@ -8,23 +8,59 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings" // Needed for path splitting
 
 	nspatch "github.com/aprice2704/neuroscript/pkg/nspatch"
 )
 
 var (
 	dryRun = flag.Bool("dry", false, "Perform a dry run verification without modifying files")
+	// Define the -p flag as an integer
+	pLevel = flag.Int("p", 0, "Strip <p> leading path components (e.g., -p1)")
 )
+
+// stripPrefixComponents removes the first 'level' path components from a path string.
+// It handles both '/' and '\' separators.
+func stripPrefixComponents(path string, level int) string {
+	if level <= 0 {
+		return path
+	}
+	// Normalize separators to '/' for consistent splitting
+	normalizedPath := filepath.ToSlash(path)
+	components := strings.Split(normalizedPath, "/")
+
+	// If the path starts with '/', the first component might be empty
+	if len(components) > 0 && components[0] == "" {
+		// Keep the leading '/' if present, adjust level and components
+		if len(components) > level+1 {
+			return "/" + strings.Join(components[level+1:], "/")
+		}
+		// Not enough components to strip after removing the empty first one
+		return "/"
+	}
+
+	if len(components) > level {
+		// Join the remaining components
+		return strings.Join(components[level:], "/")
+	}
+
+	// If level is too high, return the last component (filename) or "." if empty
+	if len(components) > 0 {
+		return components[len(components)-1]
+	}
+	return "." // Or consider returning empty string "" depending on desired behavior
+}
 
 func main() {
 	log.SetFlags(0)
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage: %s [-dry] <patchfile.ndpatch.json>\n", os.Args[0])
+		// Update Usage message
+		fmt.Fprintf(os.Stderr, "Usage: %s [-dry] [-p <level>] <patchfile.ndpatch.json>\n", os.Args[0])
 		fmt.Fprintf(os.Stderr, "Applies patches defined in a JSON file.\n\n")
 		fmt.Fprintf(os.Stderr, "Flags:\n")
-		flag.PrintDefaults()
+		flag.PrintDefaults() // This will now include the -p flag
 	}
-	flag.Parse()
+	flag.Parse() // Parse flags after defining them
 
 	if flag.NArg() != 1 {
 		flag.Usage()
@@ -44,6 +80,7 @@ func main() {
 		if change.File == "" {
 			log.Printf("Warning: Change object %+v has empty 'file' field, grouping under empty key", change)
 		}
+		// Use the original file path from the patch as the key for grouping
 		changesByFile[change.File] = append(changesByFile[change.File], change)
 	}
 
@@ -55,56 +92,79 @@ func main() {
 	}
 	log.Printf("--- Starting Patch (%s Mode) ---", runMode)
 
-	for targetFilePath, fileChanges := range changesByFile {
-		if targetFilePath == "" {
+	// Iterate through the groups using the original path from the patch file
+	for targetFilePathFromPatch, fileChanges := range changesByFile {
+		if targetFilePathFromPatch == "" {
 			log.Printf("Skipping changes grouped under empty file path")
 			continue
 		}
-		log.Printf("Processing target: %s", targetFilePath)
 
-		// --- File I/O is now handled here in main ---
-		originalLines, err := readFileLines(targetFilePath) // Use local helper
+		// Determine the effective file path to use for file system operations
+		effectiveTargetFilePath := targetFilePathFromPatch
+		if *pLevel > 0 {
+			effectiveTargetFilePath = stripPrefixComponents(targetFilePathFromPatch, *pLevel)
+			// Log the original and effective paths if stripping occurred
+			if effectiveTargetFilePath != targetFilePathFromPatch {
+				log.Printf("Info: Applying -p%d for target %q, using effective path: %q", *pLevel, targetFilePathFromPatch, effectiveTargetFilePath)
+			} else {
+				log.Printf("Info: Applying -p%d for target %q, path unchanged: %q", *pLevel, targetFilePathFromPatch, effectiveTargetFilePath)
+			}
+		}
+
+		// Use targetFilePathFromPatch for logging related to the patch instruction itself
+		log.Printf("Processing target instruction for: %s", targetFilePathFromPatch)
+
+		// --- File I/O is now handled here in main, using effectiveTargetFilePath ---
+		originalLines, err := readFileLines(effectiveTargetFilePath) // Use potentially stripped path
 		originalExists := !errors.Is(err, os.ErrNotExist)
 		if err != nil && originalExists {
-			log.Printf("ERROR reading target file %q: %v", targetFilePath, err)
+			// Log error with the path we attempted to read
+			log.Printf("ERROR reading target file %q: %v", effectiveTargetFilePath, err)
 			encounteredError = true
 			continue // Skip to next file
 		}
 		if !originalExists {
 			originalLines = []string{} // Treat non-existent file as empty
-			log.Printf("  Info: Target file %q does not exist, starting with empty content.", targetFilePath)
+			// Log info with the path we checked
+			log.Printf("  Info: Target file %q does not exist, starting with empty content.", effectiveTargetFilePath)
 		}
-		// --------------------------------------------
+		// -----------------------------------------------------------------------------
 
 		if *dryRun {
+			// Verification uses originalLines read from effectiveTargetFilePath
 			results, firstErr := nspatch.VerifyChanges(originalLines, fileChanges)
 			for _, res := range results {
 				log.Printf("  - Dry Run: Line %d (Index %d): Op: %s, Result: %s",
 					res.LineNumber, res.TargetIndex, res.Operation, res.Status)
 			}
 			if firstErr != nil {
-				log.Printf("ERROR during dry run verification for %q: %v", targetFilePath, firstErr)
+				// Log error referring to the original patch target path for clarity
+				log.Printf("ERROR during dry run verification for %q: %v", targetFilePathFromPatch, firstErr)
 				// We don't set encounteredError for dry-run failures, just log them
 			} else {
-				log.Printf("Dry run verification finished successfully for %s", targetFilePath)
+				log.Printf("Dry run verification finished successfully for %s", targetFilePathFromPatch)
 			}
 
 		} else {
 			// Apply patch for real using the library function
+			// Application uses originalLines read from effectiveTargetFilePath
 			modifiedLines, applyErr := nspatch.ApplyPatch(originalLines, fileChanges)
 			if applyErr != nil {
-				log.Printf("ERROR applying patch to %q: %v", targetFilePath, applyErr)
+				// Log error referring to the original patch target path
+				log.Printf("ERROR applying patch for %q: %v", targetFilePathFromPatch, applyErr)
 				encounteredError = true // Mark failure for real runs
 			} else {
-				// --- File I/O handled here ---
-				writeErr := writeFileLines(targetFilePath, modifiedLines) // Use local helper
+				// --- File I/O handled here, using effectiveTargetFilePath ---
+				writeErr := writeFileLines(effectiveTargetFilePath, modifiedLines) // Use potentially stripped path
 				if writeErr != nil {
-					log.Printf("ERROR writing modified file %q: %v", targetFilePath, writeErr)
+					// Log error with the path we attempted to write
+					log.Printf("ERROR writing modified file %q: %v", effectiveTargetFilePath, writeErr)
 					encounteredError = true
 				} else {
-					log.Printf("Successfully applied %d changes and wrote %s", len(fileChanges), targetFilePath)
+					// Log success mentioning the path that was written
+					log.Printf("Successfully applied %d changes and wrote %s", len(fileChanges), effectiveTargetFilePath)
 				}
-				// --------------------------
+				// ----------------------------------------------------------
 			}
 		}
 	} // End loop through files
@@ -141,7 +201,7 @@ func readFileLines(filePath string) ([]string, error) {
 }
 
 func writeFileLines(filePath string, lines []string) error {
-	// Ensure directory exists (optional, but good practice)
+	// Ensure directory exists based on the filePath we intend to write
 	dir := filepath.Dir(filePath)
 	if dir != "." && dir != "" {
 		if err := os.MkdirAll(dir, 0755); err != nil {
@@ -149,7 +209,7 @@ func writeFileLines(filePath string, lines []string) error {
 		}
 	}
 
-	file, err := os.Create(filePath) // Overwrites existing file
+	file, err := os.Create(filePath) // Overwrites existing file at the target path
 	if err != nil {
 		return fmt.Errorf("creating file %q: %w", filePath, err)
 	}
@@ -161,8 +221,7 @@ func writeFileLines(filePath string, lines []string) error {
 		if err != nil {
 			return fmt.Errorf("writing line %d to %q: %w", i+1, filePath, err)
 		}
-		// Only add newline if it's not the very last line potentially
-		// Or always add newline - standard text files usually end with one. Let's always add.
+		// Always add newline
 		_, err = writer.WriteString("\n")
 		if err != nil {
 			return fmt.Errorf("writing newline after line %d to %q: %w", i+1, filePath, err)
