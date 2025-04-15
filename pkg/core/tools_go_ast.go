@@ -170,13 +170,16 @@ func registerGoAstTools(registry *ToolRegistry) error {
 	// GoFormatAST registration
 	err = registry.RegisterTool(ToolImplementation{
 		Spec: ToolSpec{
-			Name: "GoFormatAST", Description: "Formats Go AST (handle). Returns formatted code string.",
-			Args: []ArgSpec{{Name: "handle", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeString,
-		}, Func: toolGoFormatAST,
+			// VVV CHANGE THIS LINE VVV
+			Name: "GoFormatASTNode", // Changed from "GoFormatAST"
+			// ^^^ CHANGE THIS LINE ^^^
+			Description: "Formats Go AST (handle). Returns formatted code string.",
+			Args:        []ArgSpec{{Name: "handle", Type: ArgTypeString, Required: true}}, ReturnType: ArgTypeString,
+		}, Func: toolGoFormatAST, // Keep the function name toolGoFormatAST
 	})
 	if err != nil {
-		fmt.Printf("!!! CRITICAL: Failed to register Go AST tool GoFormatAST: %v\n", err)
-		return fmt.Errorf("failed to register GoFormatAST: %w", err)
+		fmt.Printf("!!! CRITICAL: Failed to register Go AST tool GoFormatASTNode: %v\n", err) // Updated log message
+		return fmt.Errorf("failed to register GoFormatASTNode: %w", err)                      // Updated error message
 	}
 
 	// --- GoFindIdentifiers registration ---
