@@ -1,16 +1,16 @@
 // filename: pkg/core/tools_go_ast_modify.go
-// UPDATED: Return defined errors instead of strings for validation failures
+// UPDATED: Add replace_identifier directive handling
 package core
 
 import (
 	"bytes"
 	"errors"
 	"fmt"
+	"go/ast" // Keep ast import
 	"go/parser"
 	"go/printer"
 	"go/token"
-
-	// "strconv" // Not needed here anymore
+	"strings" // Keep strings import
 
 	"golang.org/x/tools/go/ast/astutil" // Import astutil
 )
@@ -43,6 +43,12 @@ func toolGoModifyAST(interpreter *Interpreter, args []interface{}) (interface{},
 	var removeImportPath string
 	var replaceImportOldPath string
 	var replaceImportNewPath string
+	// --- NEW: Variables for replace_identifier ---
+	var replaceIdentOldPkg string
+	var replaceIdentOldID string
+	var replaceIdentNewPkg string
+	var replaceIdentNewID string
+	// --- END NEW ---
 	knownDirectiveFound := false
 
 	// Parse change_package
@@ -50,7 +56,6 @@ func toolGoModifyAST(interpreter *Interpreter, args []interface{}) (interface{},
 		knownDirectiveFound = true
 		cpName, isString := cpVal.(string)
 		if !isString || cpName == "" {
-			// Return defined error with context
 			return nil, fmt.Errorf("invalid value for 'change_package': expected non-empty string, got %T: %w", cpVal, ErrGoModifyInvalidDirectiveValue)
 		}
 		changePackageName = cpName
@@ -60,7 +65,6 @@ func toolGoModifyAST(interpreter *Interpreter, args []interface{}) (interface{},
 		knownDirectiveFound = true
 		aiPath, isString := aiVal.(string)
 		if !isString || aiPath == "" {
-			// Return defined error with context
 			return nil, fmt.Errorf("invalid value for 'add_import': expected non-empty string import path, got %T: %w", aiVal, ErrGoModifyInvalidDirectiveValue)
 		}
 		addImportPath = aiPath
@@ -70,7 +74,6 @@ func toolGoModifyAST(interpreter *Interpreter, args []interface{}) (interface{},
 		knownDirectiveFound = true
 		riPath, isString := riVal.(string)
 		if !isString || riPath == "" {
-			// Return defined error with context
 			return nil, fmt.Errorf("invalid value for 'remove_import': expected non-empty string import path, got %T: %w", riVal, ErrGoModifyInvalidDirectiveValue)
 		}
 		removeImportPath = riPath
@@ -80,44 +83,70 @@ func toolGoModifyAST(interpreter *Interpreter, args []interface{}) (interface{},
 		knownDirectiveFound = true
 		repiMap, isMap := repiVal.(map[string]interface{})
 		if !isMap {
-			// Return defined error with context
 			return nil, fmt.Errorf("invalid value for 'replace_import': expected map, got %T: %w", repiVal, ErrGoModifyInvalidDirectiveValue)
 		}
 		oldPathVal, okOld := repiMap["old_path"]
 		newPathVal, okNew := repiMap["new_path"]
 		if !okOld || !okNew {
-			// Return defined error
 			return nil, fmt.Errorf("'replace_import' map requires 'old_path' and 'new_path' keys: %w", ErrGoModifyMissingMapKey)
 		}
 		oldPath, isStringOld := oldPathVal.(string)
 		newPath, isStringNew := newPathVal.(string)
 		if !isStringOld || oldPath == "" || !isStringNew || newPath == "" {
-			// Return defined error with context
 			return nil, fmt.Errorf("invalid values in 'replace_import' map: both 'old_path' (%T) and 'new_path' (%T) must be non-empty strings: %w", oldPathVal, newPathVal, ErrGoModifyInvalidDirectiveValue)
 		}
 		replaceImportOldPath = oldPath
 		replaceImportNewPath = newPath
 	}
+	// --- NEW: Parse replace_identifier ---
+	if repidVal, ok := modifications["replace_identifier"]; ok {
+		knownDirectiveFound = true
+		repidMap, isMap := repidVal.(map[string]interface{})
+		if !isMap {
+			return nil, fmt.Errorf("invalid value for 'replace_identifier': expected map, got %T: %w", repidVal, ErrGoModifyInvalidDirectiveValue)
+		}
+		oldFullIDVal, okOld := repidMap["old"]
+		newFullIDVal, okNew := repidMap["new"]
+		if !okOld || !okNew {
+			return nil, fmt.Errorf("'replace_identifier' map requires 'old' ('pkg.Symbol') and 'new' ('pkg.Symbol') keys: %w", ErrGoModifyMissingMapKey)
+		}
+		oldFullID, isStringOld := oldFullIDVal.(string)
+		newFullID, isStringNew := newFullIDVal.(string)
+		if !isStringOld || !isStringNew {
+			return nil, fmt.Errorf("invalid values in 'replace_identifier' map: 'old' (%T) and 'new' (%T) must be strings: %w", oldFullIDVal, newFullIDVal, ErrGoModifyInvalidDirectiveValue)
+		}
+
+		// Parse old and new identifiers
+		oldParts := strings.SplitN(oldFullID, ".", 2)
+		newParts := strings.SplitN(newFullID, ".", 2)
+		if len(oldParts) != 2 || oldParts[0] == "" || oldParts[1] == "" || len(newParts) != 2 || newParts[0] == "" || newParts[1] == "" {
+			return nil, fmt.Errorf("invalid format in 'replace_identifier' map: 'old' (%q) and 'new' (%q) must be in 'package.Symbol' format with non-empty parts: %w", oldFullID, newFullID, ErrGoInvalidIdentifierFormat)
+		}
+		replaceIdentOldPkg = oldParts[0]
+		replaceIdentOldID = oldParts[1]
+		replaceIdentNewPkg = newParts[0]
+		replaceIdentNewID = newParts[1]
+	}
+	// --- END NEW PARSE ---
+
 	// Add validation for other directives here
 
 	if !knownDirectiveFound {
-		// Return defined error
 		return nil, ErrGoModifyUnknownDirective
 	}
-	interpreter.logger.Printf("[TOOL GoModifyAST] Parsed directives: changePkg=%q, add=%q, remove=%q, replaceOld=%q, replaceNew=%q", changePackageName, addImportPath, removeImportPath, replaceImportOldPath, replaceImportNewPath)
+	interpreter.logger.Printf("[TOOL GoModifyAST] Parsed directives: changePkg=%q, add=%q, remove=%q, replaceOldImp=%q, replaceNewImp=%q, replaceIdentOld=%s.%s, replaceIdentNew=%s.%s",
+		changePackageName, addImportPath, removeImportPath, replaceImportOldPath, replaceImportNewPath, replaceIdentOldPkg, replaceIdentOldID, replaceIdentNewPkg, replaceIdentNewID) // Updated log
 	// --- END UPDATED Validation ---
 
 	// Retrieve Original AST
 	obj, err := interpreter.retrieveObjectFromCache(handleID, golangASTTypeTag)
 	if err != nil {
-		// Wrap the underlying error for context, keep ErrGoModifyFailed primary
-		return nil, fmt.Errorf("failed to retrieve AST for handle '%s': %w", handleID, errors.Join(ErrGoModifyFailed, err)) // Use Join if Go 1.20+
+		return nil, fmt.Errorf("failed to retrieve AST for handle '%s': %w", handleID, errors.Join(ErrGoModifyFailed, err))
 	}
 	originalCachedAst, ok := obj.(CachedAst)
 	if !ok {
-		// This indicates an internal problem, maybe wrap ErrInternalTool?
 		errInternal := fmt.Errorf("internal error - retrieved object for handle '%s' is not CachedAst (%T)", handleID, obj)
-		return nil, fmt.Errorf("%w: %w", ErrGoModifyFailed, errInternal) // Still primarily a modification failure
+		return nil, fmt.Errorf("%w: %w", ErrGoModifyFailed, errInternal)
 	}
 	interpreter.logger.Printf("[TOOL GoModifyAST] Successfully retrieved original CachedAst for handle '%s'. Package: %s", handleID, originalCachedAst.File.Name.Name)
 
@@ -127,7 +156,6 @@ func toolGoModifyAST(interpreter *Interpreter, args []interface{}) (interface{},
 	printCfg := printer.Config{Mode: printer.UseSpaces | printer.TabIndent, Tabwidth: 8}
 	err = printCfg.Fprint(&buf, originalCachedAst.Fset, originalCachedAst.File)
 	if err != nil {
-		// Wrap internal error
 		errInternal := fmt.Errorf("printing AST for copy: %w", err)
 		return nil, fmt.Errorf("failed during AST print for deep copy (handle '%s'): %w", handleID, errors.Join(ErrGoModifyFailed, errInternal))
 	}
@@ -135,7 +163,6 @@ func toolGoModifyAST(interpreter *Interpreter, args []interface{}) (interface{},
 	newFset := token.NewFileSet()
 	newAstFile, err := parser.ParseFile(newFset, "reparsed_copy.go", originalSource, parser.ParseComments)
 	if err != nil {
-		// Wrap internal error
 		errInternal := fmt.Errorf("re-parsing printed AST: %w", err)
 		return nil, fmt.Errorf("failed during AST re-parse for deep copy (handle '%s'): %w", handleID, errors.Join(ErrGoModifyFailed, errInternal))
 	}
@@ -149,7 +176,6 @@ func toolGoModifyAST(interpreter *Interpreter, args []interface{}) (interface{},
 	if changePackageName != "" {
 		modificationApplied = true
 		if newAstFile.Name == nil {
-			// Return defined error? Or a specific ErrGoModifyFailed sub-type?
 			return nil, fmt.Errorf("cannot change package name, AST has no package declaration (handle '%s'): %w", handleID, ErrGoModifyFailed)
 		}
 		originalName := newAstFile.Name.Name
@@ -191,15 +217,54 @@ func toolGoModifyAST(interpreter *Interpreter, args []interface{}) (interface{},
 			interpreter.logger.Printf("[TOOL GoModifyAST] Info: Import '%s' not found or already matches '%s', no action taken for 'replace_import'.", replaceImportOldPath, replaceImportNewPath)
 		}
 	}
+	// --- NEW: 5. Replace Identifier ---
+	if replaceIdentOldPkg != "" && replaceIdentOldID != "" && replaceIdentNewPkg != "" && replaceIdentNewID != "" {
+		modificationApplied = true
+		interpreter.logger.Printf("[TOOL GoModifyAST] Applying 'replace_identifier': %s.%s -> %s.%s", replaceIdentOldPkg, replaceIdentOldID, replaceIdentNewPkg, replaceIdentNewID)
+
+		// Define the post-visitor function for astutil.Apply
+		postVisit := func(cursor *astutil.Cursor) bool {
+			node := cursor.Node()
+			selExpr, ok := node.(*ast.SelectorExpr)
+			if !ok {
+				return true // Continue traversal if not a selector expression
+			}
+
+			// Check if X is an identifier (package name or alias)
+			xIdent, okX := selExpr.X.(*ast.Ident)
+			if !okX {
+				return true // Continue if X is not a simple identifier
+			}
+
+			// Check if the selector matches the old pkg.ID
+			if xIdent.Name == replaceIdentOldPkg && selExpr.Sel.Name == replaceIdentOldID {
+				interpreter.logger.Printf("[TOOL GoModifyAST ReplaceIdent] Found match at line %d: Replacing %s.%s", newFset.Position(selExpr.Pos()).Line, xIdent.Name, selExpr.Sel.Name)
+				// Create new identifiers for replacement
+				newX := ast.NewIdent(replaceIdentNewPkg)
+				newSel := ast.NewIdent(replaceIdentNewID)
+				// Replace nodes in the cursor (this modifies the AST)
+				cursor.Replace(&ast.SelectorExpr{X: newX, Sel: newSel})
+				actionTaken = true // Record that a change was made
+				interpreter.logger.Printf("[TOOL GoModifyAST ReplaceIdent] Replaced with %s.%s", newX.Name, newSel.Name)
+			}
+			return true // Continue traversal
+		}
+
+		// Apply the visitor
+		astutil.Apply(newAstFile, nil, postVisit)
+		if !actionTaken {
+			interpreter.logger.Printf("[TOOL GoModifyAST] Info: No occurrences of %s.%s found, no action taken for 'replace_identifier'.", replaceIdentOldPkg, replaceIdentOldID)
+		}
+	}
+	// --- END NEW REPLACE IDENTIFIER ---
 	// Add logic for other modifications here
 
 	if !modificationApplied {
-		// Should be unreachable due to earlier check, return internal error
 		return nil, fmt.Errorf("%w: no known directive provided despite passing initial check", ErrInternalTool)
 	}
 	if !actionTaken {
-		interpreter.logger.Printf("[TOOL GoModifyAST] Warning: Modification(s) requested, but no action taken. Returning original handle.")
-		return handleID, nil // Return original handle if no effective change occurred
+		interpreter.logger.Printf("[TOOL GoModifyAST] Warning: Modification(s) requested, but no action taken (e.g., target not found, or already correct). Returning original handle.")
+		return handleID, nil
 	}
 
 	// Store New AST & Invalidate Old Handle

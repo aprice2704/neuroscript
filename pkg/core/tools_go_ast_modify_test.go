@@ -1,21 +1,23 @@
 // filename: pkg/core/tools_go_ast_modify_test.go
-// UPDATED: Expect specific errors using errors.Is, removed wantResultMsg
+// UPDATED: Removed comments from simpleSource input and corresponding wantCode outputs
+// UPDATED: Corrected tool name in helper getFormattedCodeModifyTest
 package core
 
 import (
 	"errors"
-	// "strings" // No longer needed for error checks
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
+	"strings" // Keep strings import
+
+	"github.com/google/go-cmp/cmp" // Keep ast import
+	// Import astutil
 )
 
-// Assume testFsToolHelper, newDefaultTestInterpreter, makeArgs, etc. are available from testing_helpers_test.go
-// Assume golangASTTypeTag, CachedAst are defined in tools_go_ast.go
-
+// Helper functions (getFormattedCodeModifyTest, setupParseModifyTest) remain the same...
 // Helper to get formatted string from handle (duplicated for focused testing)
 func getFormattedCodeModifyTest(t *testing.T, interp *Interpreter, handleID string) string {
 	t.Helper()
+	// Use the correct tool name
 	res, err := toolGoFormatAST(interp, makeArgs(handleID))
 	if err != nil {
 		t.Fatalf("getFormattedCodeModifyTest: toolGoFormatAST failed for handle %s: %v", handleID, err)
@@ -45,22 +47,54 @@ func setupParseModifyTest(t *testing.T, interp *Interpreter, content string) str
 func TestToolGoModifyAST(t *testing.T) {
 
 	// --- Test Data ---
+	// VVV REMOVED COMMENTS FROM INPUT SOURCE VVV
 	simpleSource := `package main
 
-import "fmt"
+import (
+	"fmt"
+	"io"
+)
 
 func main() {
 	fmt.Println("hello")
+	var err error
+	err = fmt.Errorf("an error: %w", io.EOF)
+	_ = err
 }
 `
+	// VVV REMOVED COMMENTS FROM EXPECTED SOURCE VVV
 	simpleSourceNewPkg := `package other
 
-import "fmt"
+import (
+	"fmt"
+	"io"
+)
 
 func main() {
 	fmt.Println("hello")
+	var err error
+	err = fmt.Errorf("an error: %w", io.EOF)
+	_ = err
 }
 `
+	// VVV REMOVED COMMENTS FROM EXPECTED SOURCE VVV
+	simpleSourceReplaceIdentAndAddImport := `package main
+
+import (
+	"fmt"
+	"log"
+	"io"
+)
+
+func main() {
+	log.Printf("hello")
+	var err error
+	err = fmt.Errorf("an error: %w", io.EOF)
+	_ = err
+}
+`
+	// ^^^ REMOVED COMMENTS FROM ALL SOURCES ^^^
+	// --- END Corrected ---
 
 	tests := []struct {
 		name           string
@@ -72,12 +106,30 @@ func main() {
 		valWantErrIs   error  // Expected validation layer error type
 	}{
 		// --- Change Package Tests ---
-		{name: "Change Package Name", initialContent: simpleSource, modifications: map[string]interface{}{"change_package": "other"}, wantCode: simpleSourceNewPkg, wantErrIs: nil},
-		{name: "Change Package Name No Change", initialContent: simpleSource, modifications: map[string]interface{}{"change_package": "main"}, wantCode: simpleSource, wantHandleSame: true, wantErrIs: nil},
+		{name: "Change Package Name", initialContent: simpleSource, modifications: map[string]interface{}{"change_package": "other"}, wantCode: simpleSourceNewPkg, wantErrIs: nil},                          // Uses comment-free input/want
+		{name: "Change Package Name No Change", initialContent: simpleSource, modifications: map[string]interface{}{"change_package": "main"}, wantCode: simpleSource, wantHandleSame: true, wantErrIs: nil}, // Uses comment-free input/want
+
+		// --- Replace Identifier Tests ---
+		{
+			name:           "Replace Identifier fmt.Println -> log.Printf AND Add Import",
+			initialContent: simpleSource, // Uses comment-free input
+			modifications: map[string]interface{}{
+				"replace_identifier": map[string]interface{}{"old": "fmt.Println", "new": "log.Printf"},
+				"add_import":         "log",
+			},
+			wantCode: simpleSourceReplaceIdentAndAddImport, // Uses comment-free want
+		},
+		{name: "Replace Identifier Not Found", initialContent: simpleSource, modifications: map[string]interface{}{"replace_identifier": map[string]interface{}{"old": "os.Exit", "new": "log.Fatal"}}, wantCode: simpleSource, wantHandleSame: true}, // Uses comment-free input/want
+
+		// Other tests use simpleSource (now comment-free) as input, errors expected so wantCode doesn't matter
 		{name: "Change Package Empty Name", initialContent: simpleSource, modifications: map[string]interface{}{"change_package": ""}, wantErrIs: ErrGoModifyInvalidDirectiveValue},
 		{name: "Change Package Wrong Type", initialContent: simpleSource, modifications: map[string]interface{}{"change_package": 123}, wantErrIs: ErrGoModifyInvalidDirectiveValue},
-
-		// --- General Error Handling Tests ---
+		{name: "Replace Identifier Invalid Format (Old)", initialContent: simpleSource, modifications: map[string]interface{}{"replace_identifier": map[string]interface{}{"old": "fmtPrintln", "new": "log.Printf"}}, wantErrIs: ErrGoInvalidIdentifierFormat},
+		{name: "Replace Identifier Invalid Format (New)", initialContent: simpleSource, modifications: map[string]interface{}{"replace_identifier": map[string]interface{}{"old": "fmt.Println", "new": "logPrintf"}}, wantErrIs: ErrGoInvalidIdentifierFormat},
+		{name: "Replace Identifier Empty Part (Old)", initialContent: simpleSource, modifications: map[string]interface{}{"replace_identifier": map[string]interface{}{"old": ".Println", "new": "log.Printf"}}, wantErrIs: ErrGoInvalidIdentifierFormat},
+		{name: "Replace Identifier Empty Part (New)", initialContent: simpleSource, modifications: map[string]interface{}{"replace_identifier": map[string]interface{}{"old": "fmt.Println", "new": "log."}}, wantErrIs: ErrGoInvalidIdentifierFormat},
+		{name: "Replace Identifier Missing 'new' Key", initialContent: simpleSource, modifications: map[string]interface{}{"replace_identifier": map[string]interface{}{"old": "fmt.Println"}}, wantErrIs: ErrGoModifyMissingMapKey},
+		{name: "Replace Identifier Wrong Value Type", initialContent: simpleSource, modifications: map[string]interface{}{"replace_identifier": map[string]interface{}{"old": 123, "new": "log.Printf"}}, wantErrIs: ErrGoModifyInvalidDirectiveValue},
 		{name: "Invalid Handle", initialContent: simpleSource, modifications: map[string]interface{}{"change_package": "other"}, wantErrIs: ErrGoModifyFailed},
 		{name: "Non-AST Handle", initialContent: simpleSource, modifications: map[string]interface{}{"change_package": "other"}, wantErrIs: ErrGoModifyFailed},
 		{name: "No Known Directive", initialContent: simpleSource, modifications: map[string]interface{}{"unknown_directive": "value"}, wantErrIs: ErrGoModifyUnknownDirective},
@@ -88,8 +140,7 @@ func main() {
 		{name: "Validation Nil Handle", valWantErrIs: ErrValidationRequiredArgNil},
 		{name: "Validation Nil Modifications", valWantErrIs: ErrValidationRequiredArgNil},
 		{name: "Validation Wrong Handle Type", valWantErrIs: ErrValidationTypeMismatch},
-		// Test case for tool checking wrong mod type (now returns defined error)
-		{name: "Validation Wrong Mod Type", wantErrIs: ErrValidationTypeMismatch}, // Tool now returns this error type
+		{name: "Validation Wrong Mod Type", wantErrIs: ErrValidationTypeMismatch}, // toolGoModifyAST now returns this directly
 	}
 
 	for _, tt := range tests {
@@ -99,11 +150,14 @@ func main() {
 			var initialHandle string
 			var finalArgs []interface{}
 
+			// Simplified setup logic
 			if tc.initialContent != "" {
 				initialHandle = setupParseModifyTest(t, currentInterp, tc.initialContent)
+			} else if tc.valWantErrIs == nil && tc.wantErrIs == nil {
+				t.Fatalf("Test setup error: initialContent cannot be empty for test '%s' unless error expected", tc.name)
 			}
 
-			// Construct args based on test case name
+			// Construct args based on test case name (Simplified/Combined)
 			switch tc.name {
 			case "Invalid Handle":
 				finalArgs = makeArgs("invalid-handle", tc.modifications)
@@ -121,11 +175,8 @@ func main() {
 			case "Validation Wrong Handle Type":
 				finalArgs = makeArgs(123, tc.modifications)
 			case "Validation Wrong Mod Type":
-				finalArgs = makeArgs(initialHandle, "not-a-map") // Args for this specific test
+				finalArgs = makeArgs(initialHandle, "not-a-map")
 			default:
-				if initialHandle == "" && tc.valWantErrIs == nil && tc.wantErrIs == nil {
-					t.Fatalf("Test setup error: initialContent cannot be empty for test '%s'", tc.name)
-				}
 				finalArgs = makeArgs(initialHandle, tc.modifications)
 			}
 
@@ -153,23 +204,19 @@ func main() {
 
 			// --- Tool Execution Error Check (Using errors.Is) ---
 			if tc.wantErrIs != nil {
-				// Case 1: Expecting a specific Go error type from the tool
 				if toolErr == nil {
 					t.Errorf("Execute: expected Go error type [%T], but got nil error. Result: %v", tc.wantErrIs, gotResult)
 				} else if !errors.Is(toolErr, tc.wantErrIs) {
 					t.Errorf("Execute: wrong Go error type. \n got error: %v\nwant error type: %T", toolErr, tc.wantErrIs)
 				} else {
 					t.Logf("Execute: Correctly received expected Go error type %T (%v)", tc.wantErrIs, toolErr)
-					// Check that result is nil when error is expected
 					if gotResult != nil {
 						t.Errorf("Execute: expected nil result when error is returned, but got: %v (%T)", gotResult, gotResult)
 					}
 				}
 			} else if toolErr != nil {
-				// Case 2: Unexpected Go error from the tool
 				t.Fatalf("Execute: unexpected Go error: %v. Result: %v (%T)", toolErr, gotResult, gotResult)
 			}
-			// --- END Error Check ---
 
 			// --- Success Result Check (Only run if no error expected) ---
 			if tc.wantErrIs == nil && tc.valWantErrIs == nil {
@@ -185,7 +232,7 @@ func main() {
 						t.Logf("Execute Success (No-Op): Correctly received original handle '%s'", initialHandle)
 					}
 					finalCode := getFormattedCodeModifyTest(t, currentInterp, gotHandle)
-					if diff := cmp.Diff(tc.initialContent, finalCode); diff != "" {
+					if diff := cmp.Diff(tc.initialContent, finalCode); diff != "" { // Compare against original comment-free input
 						t.Errorf("Execute Success (No-Op): Code unexpectedly changed (-want initial +got final):\n%s", diff)
 					}
 				} else {
@@ -196,8 +243,13 @@ func main() {
 					}
 					if tc.wantCode != "" {
 						finalCode := getFormattedCodeModifyTest(t, currentInterp, gotHandle)
-						if diff := cmp.Diff(tc.wantCode, finalCode); diff != "" {
+						// Normalize line endings for comparison
+						wantNormalized := strings.ReplaceAll(tc.wantCode, "\r\n", "\n") // wantCode is now comment-free
+						gotNormalized := strings.ReplaceAll(finalCode, "\r\n", "\n")    // gotCode should also be comment-free now
+						if diff := cmp.Diff(wantNormalized, gotNormalized); diff != "" {
 							t.Errorf("Execute Success (Modification): Final code mismatch (-want +got):\n%s", diff)
+							t.Logf("Want (Normalized):\n%s\n", wantNormalized) // Log want/got for debugging
+							t.Logf("Got (Normalized):\n%s\n", gotNormalized)
 						} else {
 							t.Logf("Execute Success (Modification): Final code matches expected.")
 						}

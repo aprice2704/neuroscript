@@ -1,34 +1,34 @@
 :: type: Checklist
-:: version: 0.1.0
+:: version: 0.1.3 # Incremented version
 :: description: Tools needed to automate Go package refactoring using NeuroScript and AST manipulation.
-
 # Checklist for Go Package Refactoring Tools
 
-- | | Go Package Refactoring Tools [ Overall ]
-  - | | Filesystem Tools
-    - [ ] TOOL.Mkdir(path)
-    - [ ] TOOL.DeleteFile(path)
-    - [x] TOOL.ReadFile(path)  # Existing
-    - [x] TOOL.WriteFile(path, content) # Existing
-  - | | Go Code AST Manipulation Tools
-    - [x] TOOL.GoParseFile(path or content) -> ast_representation
-    - | | TOOL.GoModifyAST(ast_representation, modifications) -> modified_ast
+- |-| Go Package Refactoring Tools [ Overall ]
+  - |-| Filesystem Tools
+    - [x] TOOL.Mkdir(path)
+    - [x] TOOL.DeleteFile(path)
+    - [x] TOOL.ReadFile(path)
+    - [x] TOOL.WriteFile(path, content)
+    - [x] TOOL.ListDirectory(path)
+  - |x| Go Code AST Manipulation Tools # Status changed to [x] as all intended sub-items are now done
+    - [x] TOOL.GoParseFile(path or content) -> ast_handle
+    - |x| TOOL.GoModifyAST(ast_handle, modifications) -> modified_ast_handle # Status changed to [x]
       - [x] - Change Package Declaration
-      - [ ] - Find Import Paths # Not implemented as separate directive
       - [x] - Replace Import Paths
       - [x] - Remove Import Paths
       - [x] - Add Import Paths
-      - [ ] - Find Qualified Identifiers (e.g., pkg.Symbol)
-      - [ ] - Replace Qualified Identifiers
-    - [x] TOOL.GoFormatAST(ast_representation) -> formatted_go_code_string
-  - | | Verification Tools
-    - [x] TOOL.GoModTidy() # Existing
-    - [x] TOOL.GoBuild(target?) # Existing
-    - [x] TOOL.GoTest() # Existing
-  - | | Version Control Tools
+      - [x] - Replace Qualified Identifiers # Marked as done
+    - [x] TOOL.GoFindIdentifiers(ast_handle, pkg_name, identifier) -> list_of_positions
+    - [x] TOOL.GoFormatASTNode(ast_handle) -> formatted_go_code_string
+  - |-| Verification Tools
+    - [x] TOOL.GoModTidy()
+    - [x] TOOL.GoBuild(target?)
+    - [x] TOOL.GoTest()
+    - [x] TOOL.GoCheck(target)
+  - |-| Version Control Tools
     - [ ] TOOL.GitNewBranch(branch_name)
     - [ ] TOOL.GitCheckout(branch_name)
-    - [ ] TOOL.GitRm(path)  # Potentially needed for deleted files
-    - [ ] TOOL.GitMerge(branch_name) # Optional for full workflow
-    - [x] TOOL.GitAdd(path) # Existing
-    - [x] TOOL.GitCommit(message) # Existing
+    - [ ] TOOL.GitRm(path)
+    - [ ] TOOL.GitMerge(branch_name)
+    - [x] TOOL.GitAdd(path)
+    - [x] TOOL.GitCommit(message)
