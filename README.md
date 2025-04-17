@@ -12,7 +12,7 @@ The NeuroScript project (NS) aims to allow Humans, AIs and computers to communic
 
 <p align="center"><img src="docs/sparking_AI_med.jpg" alt="humans uplift machines" width="320" height="200"></p>
 
-NeuroScript includes:
+*NeuroScript includes:*
 
 1. A script language (neuroscript) using which humans, AIs and computers may pass each other procedural knowledge, and the means to build cooperative systems
 
@@ -24,13 +24,13 @@ NeuroScript includes:
 
 1. **Allows you to build** sophisticated systems that include AIs and computers by providing clarity and simplicity of communication  
 
-2. **Allows specialization** by making it easy for computers to do mechanical repetitive tasks at high speed, while AIs do the inferential work and human provide the direction  
+2. **Allows specialization** by making it easy for computers to do mechanical repetitive tasks at high speed, while AIs do the inferential work and humans provide the direction  
 
-3. **Allows oversight and auditing** because everything is in plain text and should be readable by all parties  
+3. **Allows oversight and auditing** because everything is in plain text, and should be readable by all parties  
 
-4. **Reduces energy consumption** as a nice effect of allowing specialization lower IQ AIs can upgrade their ability using procedural knowledge  
+4. **Reduces energy consumption** as a nice effect of allowing specialization lower IQ AIs can upgrade their abilities using procedural knowledge ad tools  
 
-5. **Increased repeatability**: procedural knowledge is inherent and clearly communicated  
+5. **Increased repeatability**: procedural knowledge is inherent and clearly communicated in neuroscript, NeuroData formats encode data consistently and are ready for use by all 
 
 ## Principles
 
@@ -209,6 +209,6 @@ This project is licensed under the **MIT License**
 Authors:  Andrew Price (www.eggstremestructures.com),
           Gemini 1.5 Pro (gemini.google.com)
 
-:: version: 0.1.6
-:: dependsOn: docs/script spec.md, docs/development checklist.md
-:: Authors: Andrew Price, Gemini 1.5
+:: version: 0.1.6  
+:: dependsOn: docs/script spec.md, docs/development checklist.md  
+:: Authors: Andrew Price, Gemini 1.5  
