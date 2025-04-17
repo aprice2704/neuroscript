@@ -35,6 +35,10 @@ func registerCoreTools(registry *ToolRegistry) error {
 	if err := registerGoAstTools(registry); err != nil {
 		return fmt.Errorf("failed registering Go AST tools: %w", err)
 	}
+	// +++ ADDED: Call registerIOTools +++
+	if err := registerIOTools(registry); err != nil {
+		return fmt.Errorf("failed registering IO tools: %w", err)
+	}
 	return nil // Success
 }
 
@@ -49,3 +53,15 @@ func RegisterCoreTools(registry *ToolRegistry) error {
 	// in the main application setup (e.g., pkg/neurogo/app_script.go).
 	return nil // Success
 }
+
+// +++ Placeholder for the new registration function +++
+// This function should be added to pkg/core/tools_io.go
+/*
+func registerIOTools(registry *ToolRegistry) error {
+	if err := registry.RegisterTool("IO.Input", toolIOInput); err != nil {
+		return err
+	}
+	// Register other IO tools here if needed
+	return nil
+}
+*/

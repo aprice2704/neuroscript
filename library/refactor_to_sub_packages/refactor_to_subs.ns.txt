@@ -1,0 +1,252 @@
+:: neuroscript
+:: version: 0.1.0
+:: description: Interactively refactors pkg/core into sub-packages on a new branch.
+:: requires: IO.Input, TOOL.MoveFile, TOOL.GoUpdateImportsForMovedPackage (or equivalent AI capability)
+
+# === Configuration ===
+VAR source_dir = "pkg/core"
+VAR target_base = "pkg/core/tools" # Base for tool packages
+VAR internal_pkg_dir = "pkg/core/internal" # Dir for non-tool core logic
+VAR module_path = "neuroscript" # Assumed Go module path
+
+# === Setup: Create Git Branch ===
+VAR timestamp = CALL TOOL.ExecuteCommand("date +%Y%m%d%H%M%S") # Simple way to get a timestamp string
+IF timestamp.error != null THEN
+    CALL IO.Print("Error getting timestamp: ", timestamp.error)
+    STOP 1
+END
+VAR branch_name = CALL TOOL.StringJoin(["refactor/core-split-", timestamp.stdout], "")
+CALL IO.Print("Creating new branch: ", branch_name)
+VAR git_branch_result = CALL TOOL.GitNewBranch(branch_name)
+IF git_branch_result.error != null THEN
+    CALL IO.Print("Error creating branch: ", git_branch_result.error)
+    STOP 1
+END
+VAR git_checkout_result = CALL TOOL.GitCheckout(branch_name)
+IF git_checkout_result.error != null THEN
+    CALL IO.Print("Error checking out branch: ", git_checkout_result.error)
+    STOP 1
+END
+
+# === Analyze Files and Propose Mapping ===
+CALL IO.Print("Analyzing files in ", source_dir, "...")
+VAR core_files_list = CALL TOOL.ListDirectory(source_dir)
+IF core_files_list.error != null THEN
+    CALL IO.Print("Error listing directory ", source_dir, ": ", core_files_list.error)
+    STOP 1
+END
+
+VAR proposed_moves = MAP{} # Map[old_path] -> new_path
+VAR subpackage_map = MAP{} # Map[new_path] -> package_name (e.g., "pkg/core/tools/fs/file.go" -> "fs")
+
+FOREACH file_info IN core_files_list.files
+    # Only process Go files directly in pkg/core (ignore subdirs for now)
+    IF !CALL TOOL.StringSuffix(file_info.name, ".go") OR CALL TOOL.StringContains(file_info.path, "/") THEN
+        CONTINUE
+    END
+
+    VAR old_path = CALL TOOL.StringJoin([source_dir, "/", file_info.name], "")
+    VAR new_path = null
+    VAR pkg_name = null
+
+    # Determine target sub-package based on filename
+    IF CALL TOOL.StringPrefix(file_info.name, "tools_fs") THEN
+        pkg_name = "fs"
+        new_path = CALL TOOL.StringJoin([target_base, "/fs/", file_info.name], "")
+    ELSE IF CALL TOOL.StringPrefix(file_info.name, "tools_go_ast") THEN
+        pkg_name = "ast"
+        new_path = CALL TOOL.StringJoin([target_base, "/go/ast/", file_info.name], "") # Nested example
+    ELSE IF CALL TOOL.StringPrefix(file_info.name, "tools_git") THEN
+        pkg_name = "git"
+        new_path = CALL TOOL.StringJoin([target_base, "/git/", file_info.name], "")
+    ELSE IF CALL TOOL.StringPrefix(file_info.name, "tools_string") THEN
+        pkg_name = "strutil" # Example renaming 'string'
+        new_path = CALL TOOL.StringJoin([target_base, "/strutil/", file_info.name], "")
+    ELSE IF CALL TOOL.StringPrefix(file_info.name, "tools_shell") THEN
+        pkg_name = "shell"
+        new_path = CALL TOOL.StringJoin([target_base, "/shell/", file_info.name], "")
+    ELSE IF CALL TOOL.StringPrefix(file_info.name, "tools_math") THEN
+        pkg_name = "mathutil"
+        new_path = CALL TOOL.StringJoin([target_base, "/mathutil/", file_info.name], "")
+    ELSE IF CALL TOOL.StringPrefix(file_info.name, "tools_vector") THEN
+        pkg_name = "vector"
+        new_path = CALL TOOL.StringJoin([target_base, "/vector/", file_info.name], "")
+    ELSE IF CALL TOOL.StringPrefix(file_info.name, "tools_metadata") THEN
+        pkg_name = "metadata"
+        new_path = CALL TOOL.StringJoin([target_base, "/metadata/", file_info.name], "")
+    ELSE IF CALL TOOL.StringPrefix(file_info.name, "tools_list") THEN
+        pkg_name = "listutil"
+        new_path = CALL TOOL.StringJoin([target_base, "/listutil/", file_info.name], "")
+    ELSE IF CALL TOOL.StringPrefix(file_info.name, "tools_") THEN # Other tools helpers/validation/etc
+         pkg_name = "coretools" # A general tools package? Or move to internal? Decide.
+         new_path = CALL TOOL.StringJoin([target_base, "/coretools/", file_info.name], "")
+    ELSE # Default: move to internal package
+        pkg_name = "internal"
+        new_path = CALL TOOL.StringJoin([internal_pkg_dir, "/", file_info.name], "")
+    END
+
+    # Store proposal
+    IF new_path != null THEN
+        proposed_moves[old_path] = new_path
+        subpackage_map[new_path] = pkg_name
+    ELSE
+         CALL IO.Print("Warning: Could not determine target for file: ", old_path)
+    END
+END
+
+# === User Confirmation ===
+CALL IO.Print("\nProposed File Moves:")
+VAR proposal_text = ""
+FOREACH old, new IN proposed_moves
+    proposal_text = CALL TOOL.StringJoin([proposal_text, old, " -> ", new, "\n"], "")
+END
+CALL IO.Print(proposal_text)
+
+# --- Requires IO.Input ---
+# VAR confirm = CALL IO.Input("Confirm these moves? (y/N): ")
+VAR confirm = "y" # Placeholder: Assume confirmation for now
+CALL IO.Print("User confirmation assumed: ", confirm) # Log placeholder action
+# --- End IO.Input Requirement ---
+
+IF confirm != "y" THEN
+    CALL IO.Print("Aborting refactor.")
+    # Consider Git checkout master / delete branch? For now, just stop.
+    STOP 0
+END
+
+# === Execute File Moves ===
+CALL IO.Print("\nExecuting file moves...")
+VAR created_dirs = MAP{} # Track created dirs to avoid redundant calls
+
+FOREACH old_path, new_path IN proposed_moves
+    # Create directory if needed
+    VAR new_dir = CALL TOOL.StringReplace(new_path, CALL TOOL.ExecuteCommand("basename " + new_path).stdout, "") # Basic dir extraction
+    IF created_dirs[new_dir] == null THEN
+        CALL IO.Print("Creating directory: ", new_dir)
+        VAR mkdir_result = CALL TOOL.Mkdir(new_dir)
+        IF mkdir_result.error != null THEN
+            CALL IO.Print("ERROR: Failed to create directory ", new_dir, ": ", mkdir_result.error)
+            CALL IO.Print("Aborting.")
+            STOP 1
+        END
+        created_dirs[new_dir] = true
+    END
+
+    # --- Requires TOOL.MoveFile ---
+    CALL IO.Print("Moving: ", old_path, " -> ", new_path)
+    # VAR move_result = CALL TOOL.MoveFile(old_path, new_path)
+    # Placeholder: Simulate with Read/Write/Delete
+    VAR read_result = CALL TOOL.ReadFile(old_path)
+    IF read_result.error != null THEN CALL IO.Print("ERROR reading ", old_path); STOP 1 END
+    VAR write_result = CALL TOOL.WriteFile(new_path, read_result.content)
+    IF write_result.error != null THEN CALL IO.Print("ERROR writing ", new_path); STOP 1 END
+    VAR delete_result = CALL TOOL.DeleteFile(old_path)
+    IF delete_result.error != null THEN CALL IO.Print("ERROR deleting ", old_path); STOP 1 END
+    CALL IO.Print("Placeholder Move Complete for: ", old_path) # Log placeholder action
+    # --- End TOOL.MoveFile Requirement ---
+END
+
+# === Update Package Declarations ===
+CALL IO.Print("\nUpdating package declarations...")
+FOREACH new_path, pkg_name IN subpackage_map
+    CALL IO.Print("Updating package in: ", new_path, " to ", pkg_name)
+    VAR parse_result = CALL TOOL.GoParseFile(new_path)
+    IF parse_result.error != null THEN
+        CALL IO.Print("ERROR: Failed to parse ", new_path, ": ", parse_result.error)
+        CONTINUE # Skip this file, but continue others
+    END
+
+    VAR modify_directives = LIST[
+        MAP{"directive": "Change Package Declaration", "value": pkg_name}
+    ]
+    VAR modify_result = CALL TOOL.GoModifyAST(parse_result.handle, modify_directives)
+    IF modify_result.error != null THEN
+        CALL IO.Print("ERROR: Failed to modify AST for ", new_path, ": ", modify_result.error)
+        # Clean up handle? Assume garbage collected for now.
+        CONTINUE
+    END
+
+    VAR format_result = CALL TOOL.GoFormatASTNode(modify_result.handle)
+    IF format_result.error != null THEN
+        CALL IO.Print("ERROR: Failed to format AST for ", new_path, ": ", format_result.error)
+        # Clean up handles? Assume garbage collected for now.
+        CONTINUE
+    END
+
+    VAR write_pkg_result = CALL TOOL.WriteFile(new_path, format_result.content)
+    IF write_pkg_result.error != null THEN
+        CALL IO.Print("ERROR: Failed to write updated file ", new_path, ": ", write_pkg_result.error)
+    END
+    # TODO: Handle cleanup of AST handles if necessary in future tool versions
+END
+
+# === Update Import Paths ===
+CALL IO.Print("\nUpdating import paths across project...")
+# --- Requires TOOL.GoUpdateImportsForMovedPackage or AI Reasoning ---
+# This is the complex step. A dedicated tool is preferred.
+# The tool needs to understand the mapping from the old 'core' package
+# to the new sub-packages based on the symbols used.
+# VAR update_imports_result = CALL TOOL.GoUpdateImportsForMovedPackage(
+#    oldImportPath = module_path + "/pkg/core",
+#    newImportPathPrefix = module_path + "/pkg/core", # Tool figures out subpath (e.g. /tools/fs)
+#    scope = "." # Apply project-wide
+# )
+# IF update_imports_result.error != null THEN
+#    CALL IO.Print("ERROR: Failed to update import paths: ", update_imports_result.error)
+#    # This might leave the codebase broken, notify user clearly.
+# ELSE
+#    CALL IO.Print("Import path update attempted. Files modified: ", update_imports_result.modified_files)
+# END
+CALL IO.Print("Placeholder: Skipping complex import path update. Requires TOOL.GoUpdateImportsForMovedPackage or equivalent AI capability.")
+# --- End Requirement ---
+
+
+# === Verification ===
+CALL IO.Print("\nRunning verification steps...")
+VAR mod_tidy_result = CALL TOOL.GoModTidy()
+IF mod_tidy_result.error != null THEN
+    CALL IO.Print("Warning: go mod tidy failed: ", mod_tidy_result.stderr)
+    # Continue anyway, build might still work
+ELSE
+    CALL IO.Print("go mod tidy successful.")
+END
+
+VAR build_result = CALL TOOL.GoBuild("./...")
+IF build_result.error != null THEN
+    CALL IO.Print("ERROR: Go build failed after refactoring:")
+    CALL IO.Print(build_result.stderr)
+    CALL IO.Print("Changes remain on branch '", branch_name, "' for inspection. Aborting commit.")
+    STOP 1
+ELSE
+    CALL IO.Print("Go build successful.")
+END
+
+VAR test_result = CALL TOOL.GoTest("./...")
+IF test_result.error != null THEN
+    CALL IO.Print("ERROR: Go tests failed after refactoring:")
+    CALL IO.Print(test_result.stderr) # Or .stdout depending on how test failures are reported
+    CALL IO.Print("Changes remain on branch '", branch_name, "' for inspection. Aborting commit.")
+    STOP 1
+ELSE
+    CALL IO.Print("Go tests successful.")
+END
+
+# === Commit ===
+CALL IO.Print("\nCommitting changes...")
+VAR add_result = CALL TOOL.GitAdd(".")
+IF add_result.error != null THEN
+    CALL IO.Print("ERROR: Git add failed: ", add_result.stderr)
+    CALL IO.Print("Commit aborted.")
+    STOP 1
+END
+
+VAR commit_msg = "Refactor: Split pkg/core into sub-packages via NeuroScript"
+VAR commit_result = CALL TOOL.GitCommit(commit_msg)
+IF commit_result.error != null THEN
+    CALL IO.Print("ERROR: Git commit failed: ", commit_result.stderr)
+    CALL IO.Print("Commit aborted.")
+    STOP 1
+END
+
+CALL IO.Print("\nSuccessfully refactored pkg/core into sub-packages!")
+CALL IO.Print("Changes committed to branch: ", branch_name)

@@ -113,4 +113,5 @@
 [ ] Add ns file icon [cite: uploaded:neuroscript/docs/development checklist.md]
 [ ] make update project turn things into proper links
 [ ] better words than CALL LLM (consult? more general)
+[ ] Create documentation for all NeuroScript built-in tools in `docs/ns/tools/` following `tool_spec_structure.md`.
 

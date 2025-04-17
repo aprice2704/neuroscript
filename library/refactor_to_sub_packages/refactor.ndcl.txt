@@ -1,0 +1,46 @@
+:: type: Checklist
+:: version: 0.1.5
+:: description: Tools needed to automate Go package refactoring using NeuroScript and AST manipulation.
+# Checklist for Go Package Refactoring Tools
+
+- |-| Go Package Refactoring Tools [ Overall ]
+  - |x| Filesystem Tools
+    - [x] TOOL.Mkdir(path)
+    - [x] TOOL.DeleteFile(path)
+    - [x] TOOL.ReadFile(path)
+    - [x] TOOL.WriteFile(path, content)
+    - [x] TOOL.ListDirectory(path)
+  - |x| Go Code AST Manipulation Tools
+    - [x] TOOL.GoParseFile(path or content) -> ast_handle
+    - |x| TOOL.GoModifyAST(ast_handle, modifications) -> modified_ast_handle
+      - [x] - Change Package Declaration
+      - [x] - Replace Import Paths
+      - [x] - Remove Import Paths
+      - [x] - Add Import Paths
+      - [x] - Replace Qualified Identifiers
+    - [x] TOOL.GoFindIdentifiers(ast_handle, pkg_name, identifier) -> list_of_positions
+    - [x] TOOL.GoFormatASTNode(ast_handle) -> formatted_go_code_string
+  - |x| Verification Tools
+    - [x] TOOL.GoModTidy()
+    - [x] TOOL.GoBuild(target?)
+    - [x] TOOL.GoTest()
+    - [x] TOOL.GoCheck(target)
+  - |x| Version Control Tools
+    - [x] TOOL.GitNewBranch(branch_name)
+    - [x] TOOL.GitCheckout(branch_name)
+    - [x] TOOL.GitRm(path)
+    - [x] TOOL.GitMerge(branch_name)
+    - [x] TOOL.GitAdd(path)
+    - [x] TOOL.GitCommit(message)
+  - |-| Codebase Refactoring Support # New section for required tools
+    - [ ] IO.Input(prompt string) -> string # For user interaction/confirmation
+    - [ ] TOOL.MoveFile(source string, destination string) # Atomic file moving
+    - [ ] TOOL.GoUpdateImportsForMovedPackage(oldImportPath, newImportPathPrefix, fileOrDir) # Intelligent import path fixing after moves
+  - |-| General Refinement
+    - [ ] Standardize tool error reporting (e.g., use maps or consistent Go errors)
+    - [ ] Review tool function complexity (e.g., GoModifyAST, ListSort) for internal helper extraction
+    - [ ] Harden security validation for TOOL.ExecuteCommand if used outside agent context
+    - [ ] Replace mock TOOL.VectorUpdate/SearchSkills with real implementation
+    - [ ] Investigate need for explicit handle management/cleanup tool
+    - [ ] Review test coverage for tool edge cases and validation paths
+    
