@@ -20,6 +20,18 @@ NeuroScript includes:
 
 3. A client program (neurogo) that can execute neuroscript, communicate with humans, AIs and other computers. It use tools for itself, or its co-workers.
 
+## Why Bother?
+
+1. **Allows you to build** sophisticated systems that include AIs and computers by providing clarity and simplicity of communication  
+
+2. **Allows specialization** by making it easy for computers to do mechanical repetitive tasks at high speed, while AIs do the inferential work and human provide the direction  
+
+3. **Allows oversight and auditing** because everything is in plain text and should be readable by all parties  
+
+4. **Reduces energy consumption** as a nice effect of allowing specialization lower IQ AIs can upgrade their ability using procedural knowledge  
+
+5. **Increased repeatability**: procedural knowledge is inherent and clearly communicated  
+
 ## Principles
 
 1. Readability: all users must be able to read, and in principle edit, NS formats of all kinds without having to resort to documentation for simple changes; thus NS formats should be as self-describing as practical  
