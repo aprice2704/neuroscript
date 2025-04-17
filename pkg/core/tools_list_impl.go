@@ -5,35 +5,21 @@ import (
 	"fmt"
 	"reflect"
 	"sort"
-	// Added for ListSort error message check potentially
 )
 
 // --- List Tool Implementations ---
 
 func toolListLength(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	list, ok := args[0].([]interface{})
-	if !ok {
-		// Handle the case where input might be nil directly without being []interface{}
-		if args[0] == nil {
-			return int64(0), nil // nil list has length 0
-		}
-		// Should be caught by validation, but handle defensively
-		return nil, fmt.Errorf("TOOL.ListLength internal error: input was not []interface{} or nil, got %T", args[0])
-	}
-	// If it *is* []interface{}, check length (also covers nil slice case correctly)
+	// Validation ensures args[0] is []interface{}
+	list := args[0].([]interface{})
 	return int64(len(list)), nil
 }
 
 func toolListAppend(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	list, ok := args[0].([]interface{})
+	// Validation ensures args[0] is []interface{} and args[1] is any
+	list := args[0].([]interface{})
 	element := args[1]
-	if !ok {
-		if args[0] == nil { // Handle nil input list gracefully
-			list = []interface{}{} // Treat nil as empty list
-		} else {
-			return nil, fmt.Errorf("TOOL.ListAppend internal error: input list was not []interface{} or nil, got %T", args[0])
-		}
-	}
+
 	// Create a new slice with capacity for one more element
 	newList := make([]interface{}, 0, len(list)+1)
 	newList = append(newList, list...) // Append original elements
@@ -42,15 +28,10 @@ func toolListAppend(interpreter *Interpreter, args []interface{}) (interface{}, 
 }
 
 func toolListPrepend(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	list, ok := args[0].([]interface{})
+	// Validation ensures args[0] is []interface{} and args[1] is any
+	list := args[0].([]interface{})
 	element := args[1]
-	if !ok {
-		if args[0] == nil { // Handle nil input list gracefully
-			list = []interface{}{} // Treat nil as empty list
-		} else {
-			return nil, fmt.Errorf("TOOL.ListPrepend internal error: input list was not []interface{} or nil, got %T", args[0])
-		}
-	}
+
 	// Create a new slice with capacity for one more element
 	newList := make([]interface{}, 0, len(list)+1)
 	newList = append(newList, element) // Prepend the new element
@@ -59,57 +40,33 @@ func toolListPrepend(interpreter *Interpreter, args []interface{}) (interface{},
 }
 
 func toolListGet(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	list, okList := args[0].([]interface{})
-	indexVal, okIdx := args[1].(int64)
+	// Validation ensures args[0] is []interface{}, args[1] is int64, args[2] is optional any
+	list := args[0].([]interface{})
+	indexVal := args[1].(int64)
 	defaultValue := interface{}(nil) // Default to nil
 	hasDefault := false
-	if len(args) > 2 {
+	if len(args) > 2 && args[2] != nil { // Check if default was provided and is not explicitly nil
 		defaultValue = args[2]
 		hasDefault = true
 	}
 
-	if !okList {
-		if args[0] == nil { // Handle nil input list gracefully
-			list = []interface{}{} // Treat nil as empty list
-		} else {
-			return nil, fmt.Errorf("TOOL.ListGet internal error: input list was not []interface{} or nil, got %T", args[0])
-		}
-	}
-	if !okIdx {
-		// Should be caught by validation
-		return nil, fmt.Errorf("TOOL.ListGet internal error: index was not int64, got %T", args[1])
-	}
-
 	index := int(indexVal)
-	if list == nil || index < 0 || index >= len(list) {
+	if index < 0 || index >= len(list) {
 		if hasDefault {
 			return defaultValue, nil
 		}
-		return nil, nil // Return nil if index out of bounds and no default
+		// Return nil if index out of bounds and no default OR default was explicitly nil
+		return nil, nil
 	}
 	return list[index], nil
 }
 
 func toolListSlice(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	list, okList := args[0].([]interface{})
-	startVal, okStart := args[1].(int64)
-	endVal, okEnd := args[2].(int64)
+	// Validation ensures args[0] is []interface{}, args[1] and args[2] are int64
+	list := args[0].([]interface{})
+	startVal := args[1].(int64)
+	endVal := args[2].(int64)
 
-	if !okList {
-		if args[0] == nil { // Handle nil input list gracefully
-			return []interface{}{}, nil // Return empty slice for nil input
-		} else {
-			return nil, fmt.Errorf("TOOL.ListSlice internal error: input list was not []interface{} or nil, got %T", args[0])
-		}
-	}
-	if !okStart {
-		return nil, fmt.Errorf("TOOL.ListSlice internal error: start index was not int64, got %T", args[1])
-	}
-	if !okEnd {
-		return nil, fmt.Errorf("TOOL.ListSlice internal error: end index was not int64, got %T", args[2])
-	}
-
-	// Now we know list is non-nil []interface{}
 	listLen := len(list)
 	start := int(startVal)
 	end := int(endVal)
@@ -121,6 +78,7 @@ func toolListSlice(interpreter *Interpreter, args []interface{}) (interface{}, e
 	if end > listLen {
 		end = listLen
 	}
+	// Handle invalid ranges resulting from clamping or initial values
 	if start > end || start >= listLen {
 		return []interface{}{}, nil // Return empty slice if range is invalid
 	}
@@ -132,19 +90,16 @@ func toolListSlice(interpreter *Interpreter, args []interface{}) (interface{}, e
 }
 
 func toolListContains(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	list, okList := args[0].([]interface{})
+	// Validation ensures args[0] is []interface{} and args[1] is any (and not nil)
+	list := args[0].([]interface{})
 	element := args[1]
-	if !okList {
-		if args[0] == nil { // Handle nil input list gracefully
-			return false, nil // Nil list cannot contain element
-		} else {
-			return nil, fmt.Errorf("TOOL.ListContains internal error: input list was not []interface{} or nil, got %T", args[0])
-		}
-	}
 
-	// Now we know list is non-nil []interface{}
 	for _, item := range list {
-		if reflect.DeepEqual(item, element) {
+		// Handle nil in list explicitly during comparison
+		if item == nil && element == nil {
+			return true, nil
+		}
+		if item != nil && element != nil && reflect.DeepEqual(item, element) {
 			return true, nil
 		}
 	}
@@ -152,16 +107,9 @@ func toolListContains(interpreter *Interpreter, args []interface{}) (interface{}
 }
 
 func toolListReverse(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	list, okList := args[0].([]interface{})
-	if !okList {
-		if args[0] == nil { // Handle nil input list gracefully
-			return []interface{}{}, nil // Return empty slice for nil input
-		} else {
-			return nil, fmt.Errorf("TOOL.ListReverse internal error: input list was not []interface{} or nil, got %T", args[0])
-		}
-	}
+	// Validation ensures args[0] is []interface{}
+	list := args[0].([]interface{})
 
-	// Now we know list is non-nil []interface{}
 	listLen := len(list)
 	newList := make([]interface{}, listLen)
 	for i := 0; i < listLen; i++ {
@@ -171,17 +119,10 @@ func toolListReverse(interpreter *Interpreter, args []interface{}) (interface{},
 }
 
 func toolListSort(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	list, okList := args[0].([]interface{})
-	if !okList {
-		// Handle nil list case explicitly based on validation outcome
-		if args[0] == nil {
-			// If validation allowed optional nil, return empty list
-			return []interface{}{}, nil
-		}
-		return nil, fmt.Errorf("%w: TOOL.ListSort internal error: input list was not []interface{}, got %T", ErrInternalTool, args[0])
-	}
+	// Validation ensures args[0] is []interface{}
+	list := args[0].([]interface{})
 
-	if list == nil || len(list) == 0 {
+	if len(list) == 0 {
 		return []interface{}{}, nil // Return empty slice for empty input
 	}
 
@@ -191,27 +132,46 @@ func toolListSort(interpreter *Interpreter, args []interface{}) (interface{}, er
 	firstElemTypeKnown := false
 	var firstKind reflect.Kind
 
-	for _, elem := range list {
+	for i, elem := range list {
 		var currentKind reflect.Kind
 		isNumeric := false
 		isString := false
 
 		// Determine type/kind of current element
 		if elem == nil { // Cannot sort lists with nil elements easily
-			canSortNumerically = false
-			canSortLexicographically = false
-			break
-		}
-		currentKind = reflect.TypeOf(elem).Kind()
-		if _, numOK := ToNumeric(elem); numOK { // Check numeric convertibility
-			isNumeric = true
-			if currentKind != reflect.String { // Treat actual numbers as numeric kind
-				currentKind = reflect.Float64 // Use Float64 as the canonical numeric kind for comparison
+			errMsg := fmt.Sprintf("list contains nil element at index %d", i)
+			if interpreter.logger != nil {
+				interpreter.logger.Printf("[TOOL ListSort] Error: %s", errMsg)
 			}
+			return nil, fmt.Errorf("%w: %s", ErrListCannotSortMixedTypes, errMsg)
 		}
-		if _, strOK := elem.(string); strOK {
+
+		currentKind = reflect.TypeOf(elem).Kind()
+		// Check numeric convertibility *specifically*
+		if _, numOK := ToNumeric(elem); numOK {
+			// Further check if it's *actually* a number type or a string that looks like one
+			switch currentKind {
+			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+				reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
+				reflect.Float32, reflect.Float64:
+				isNumeric = true
+				currentKind = reflect.Float64 // Use Float64 as the canonical numeric kind for comparison
+			case reflect.String:
+				// It's a string that might parse as a number, but treat as string for sort unless *all* are numeric
+				isString = true
+				currentKind = reflect.String
+			default:
+				// Neither a standard number nor string
+				isNumeric = false
+				isString = false
+			}
+		} else if currentKind == reflect.String {
 			isString = true
-			currentKind = reflect.String // Use String kind
+			currentKind = reflect.String
+		} else {
+			// Not convertible to number and not a string
+			isNumeric = false
+			isString = false
 		}
 
 		// Initialize first kind on first element
@@ -220,32 +180,36 @@ func toolListSort(interpreter *Interpreter, args []interface{}) (interface{}, er
 			firstElemTypeKnown = true
 			// Set initial sortability based on the first element
 			canSortNumerically = isNumeric
-			canSortLexicographically = isString
+			canSortLexicographically = isString // Can only sort strings if first element IS a string
 		} else {
-			// Check consistency with the first element's sortable type
+			// Check consistency with the first element's determined sortable type
+			// If we started numeric, this one must also be numeric
 			if canSortNumerically && (!isNumeric || currentKind != reflect.Float64) {
-				// If we thought it was numeric, but this isn't, invalidate numeric sort
 				canSortNumerically = false
 			}
+			// If we started string, this one must also be string
 			if canSortLexicographically && (!isString || currentKind != reflect.String) {
-				// If we thought it was string, but this isn't, invalidate string sort
 				canSortLexicographically = false
 			}
 		}
 
 		// Early exit if neither type is possible anymore
 		if !canSortNumerically && !canSortLexicographically {
-			break
+			errMsg := fmt.Sprintf("list contains mixed or non-sortable types (e.g., element %d [%v] type %T is incompatible with first element type kind %v)", i, elem, elem, firstKind)
+			if interpreter.logger != nil {
+				interpreter.logger.Printf("[TOOL ListSort] Error: %s", errMsg)
+			}
+			return nil, fmt.Errorf("%w: %s", ErrListCannotSortMixedTypes, errMsg)
+
 		}
 	}
 
-	// If neither type is uniformly possible, return defined error
+	// If neither type is uniformly possible after checking all elements (should have exited above, but double-check)
 	if !canSortNumerically && !canSortLexicographically {
-		errMsg := fmt.Sprintf("list contains mixed or non-sortable types (e.g., first element type kind: %v)", firstKind)
+		errMsg := fmt.Sprintf("list contains mixed or non-sortable types (final check, first kind: %v)", firstKind)
 		if interpreter.logger != nil {
 			interpreter.logger.Printf("[TOOL ListSort] Error: %s", errMsg)
 		}
-		// *** Return defined error ***
 		return nil, fmt.Errorf("%w: %s", ErrListCannotSortMixedTypes, errMsg)
 	}
 
@@ -259,7 +223,8 @@ func toolListSort(interpreter *Interpreter, args []interface{}) (interface{}, er
 			interpreter.logger.Printf("[TOOL ListSort] Sorting numerically.")
 		}
 		sort.SliceStable(newList, func(i, j int) bool {
-			fI, _ := toFloat64(newList[i]) // Safe conversion due to checks above
+			// Safe conversion due to checks above (all elements were verified convertible to numeric)
+			fI, _ := toFloat64(newList[i])
 			fJ, _ := toFloat64(newList[j])
 			return fI < fJ
 		})
@@ -269,8 +234,8 @@ func toolListSort(interpreter *Interpreter, args []interface{}) (interface{}, er
 		}
 		sort.SliceStable(newList, func(i, j int) bool {
 			// Safe to assume string type here due to checks above
-			sI := fmt.Sprintf("%v", newList[i])
-			sJ := fmt.Sprintf("%v", newList[j])
+			sI := newList[i].(string) // Direct assertion is safe now
+			sJ := newList[j].(string)
 			return sI < sJ
 		})
 	}
@@ -278,65 +243,46 @@ func toolListSort(interpreter *Interpreter, args []interface{}) (interface{}, er
 	return newList, nil // Return sorted list and nil error
 }
 
+// --- NEW ListHead ---
 func toolListHead(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	list, okList := args[0].([]interface{})
-	if !okList {
-		if args[0] == nil { // Handle nil input list gracefully
-			return nil, nil // Return nil for nil input
-		} else {
-			return nil, fmt.Errorf("TOOL.ListHead internal error: input list was not []interface{} or nil, got %T", args[0])
-		}
-	}
+	// Validation ensures args[0] is []interface{}
+	list := args[0].([]interface{})
 
-	if list == nil || len(list) == 0 {
+	if len(list) == 0 {
 		return nil, nil // Return nil for empty list
 	}
 	return list[0], nil
 }
 
+// --- NEW ListRest ---
 func toolListRest(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	list, okList := args[0].([]interface{})
-	if !okList {
-		if args[0] == nil { // Handle nil input list gracefully
-			return []interface{}{}, nil // Return empty for nil input
-		} else {
-			return nil, fmt.Errorf("TOOL.ListRest internal error: input list was not []interface{} or nil, got %T", args[0])
-		}
-	}
+	// Validation ensures args[0] is []interface{}
+	list := args[0].([]interface{})
 
-	if list == nil || len(list) <= 1 {
-		return []interface{}{}, nil // Return empty slice
+	if len(list) <= 1 {
+		return []interface{}{}, nil // Return empty slice if 0 or 1 element
 	}
-	// Create and return a new slice
+	// Create and return a new slice containing elements from index 1 onwards
 	newList := make([]interface{}, len(list)-1)
 	copy(newList, list[1:])
 	return newList, nil
 }
 
+// --- NEW ListTail ---
 func toolListTail(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	list, okList := args[0].([]interface{})
-	countVal, okCount := args[1].(int64)
+	// Validation ensures args[0] is []interface{}, args[1] is int64
+	list := args[0].([]interface{})
+	countVal := args[1].(int64)
 
-	if !okList {
-		if args[0] == nil { // Handle nil input list gracefully
-			return []interface{}{}, nil // Return empty for nil input
-		} else {
-			return nil, fmt.Errorf("TOOL.ListTail internal error: input list was not []interface{} or nil, got %T", args[0])
-		}
-	}
-	if !okCount {
-		return nil, fmt.Errorf("TOOL.ListTail internal error: count was not int64, got %T", args[1])
-	}
-
-	// Now we know list is non-nil []interface{}
 	listLen := len(list)
 	count := int(countVal)
 
+	// Handle count logic
 	if count <= 0 {
 		return []interface{}{}, nil // Return empty if count is non-positive
 	}
 	if count >= listLen {
-		// Return a copy of the original list
+		// Return a copy of the original list if count is >= length
 		newList := make([]interface{}, listLen)
 		copy(newList, list)
 		return newList, nil
@@ -344,22 +290,15 @@ func toolListTail(interpreter *Interpreter, args []interface{}) (interface{}, er
 
 	// Calculate start index for the tail
 	startIndex := listLen - count
-	// Create and return a new slice
+	// Create and return a new slice containing the last 'count' elements
 	newList := make([]interface{}, count)
 	copy(newList, list[startIndex:])
 	return newList, nil
 }
 
+// --- Existing ListIsEmpty ---
 func toolListIsEmpty(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	list, okList := args[0].([]interface{})
-	if !okList {
-		if args[0] == nil {
-			return true, nil // nil list is empty
-		}
-		// If it's not []interface{} and not nil, validation should have caught it.
-		// Return an internal error.
-		return nil, fmt.Errorf("TOOL.ListIsEmpty internal error: input was not []interface{} or nil, got %T", args[0])
-	}
-	// If it *is* []interface{}, check length (also covers nil slice case correctly)
+	// Validation ensures args[0] is []interface{}
+	list := args[0].([]interface{})
 	return len(list) == 0, nil
 }

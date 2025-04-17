@@ -18,7 +18,7 @@ NeuroScript includes:
 
 2. A set of data formats (neurodata) for communicating passive data in a clear way with agreed rules for manipulation
 
-3. A client program (neurogo) that can take execute neuroscript, communicate with humans, AIs and computers, and run tools for itself, or its co-workers
+3. A client program (neurogo) that can execute neuroscript, communicate with humans, AIs and other computers. It use tools for itself, or its co-workers.
 
 ## Principles
 

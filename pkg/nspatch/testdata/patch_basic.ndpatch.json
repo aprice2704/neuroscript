@@ -1,21 +1,21 @@
 [
   {
     "file": "initial_basic.txt",
-    "line_number": 2,
-    "operation": "replace",
-    "original_line_for_reference": "Line 2: This line will be replaced.",
-    "new_line_content": "Line 2: Successfully REPLACED."
+    "line": 2,
+    "op": "replace",
+    "old": "Line 2: This line will be replaced.",
+    "new": "Line 2: Successfully REPLACED."
   },
   {
     "file": "initial_basic.txt",
-    "line_number": 4,
-    "operation": "insert",
-    "new_line_content": "Line 3.5: Inserted NEW line."
+    "line": 4,
+    "op": "insert",
+    "new": "Line 3.5: Inserted NEW line."
   },
   {
     "file": "initial_basic.txt",
-    "line_number": 6,
-    "operation": "delete",
-    "original_line_for_reference": "Line 6: This line will be deleted."
+    "line": 6,
+    "op": "delete",
+    "old": "Line 6: This line is very naughty, no biscuit"
   }
 ]

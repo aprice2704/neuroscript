@@ -1,0 +1,16 @@
+[
+  {
+    "file": "initial_basic.txt",
+    "line": 2,
+    "op": "replace",
+    "old": "Line 2: This line will be replaced.",
+    "new": "Line 2: REPLACE SUCCESS"
+  },
+  {
+    "file": "initial_basic.txt",
+    "line": 5,
+    "op": "replace",
+    "old": "Line 5:   Indented context line.",
+    "new": "Line 5:   REPLACED INDENT"
+  }
+]

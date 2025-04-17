@@ -1,0 +1,7 @@
+Line 1: Initial content.
+Line 2: REPLACE SUCCESS
+Line 3: Some context here.
+Line 4: Insertion point comes before this line.
+Line 5:   REPLACED INDENT
+Line 6: This line will be deleted.
+Line 7: Final context line.

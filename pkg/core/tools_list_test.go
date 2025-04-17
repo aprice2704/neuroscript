@@ -49,6 +49,12 @@ func testListToolHelper(t *testing.T, interp *Interpreter, tc struct {
 		}
 
 		// --- Execution (Only if validation passed and wasn't expected to fail) ---
+		// Guard against convertedArgs being nil if validation somehow passed unexpectedly after expecting error
+		if convertedArgs == nil && tc.valWantErrIs == nil {
+			t.Fatalf("Validation passed but convertedArgs is nil (unexpected state)")
+			return // Should not happen, but good practice
+		}
+
 		gotResult, toolErr := toolImpl.Func(interp, convertedArgs)
 
 		// Check Specific Tool Error
@@ -91,9 +97,7 @@ func TestToolListLength(t *testing.T) {
 	}{
 		{name: "Empty", toolName: "ListLength", args: makeArgs([]interface{}{}), wantResult: int64(0)},
 		{name: "Simple", toolName: "ListLength", args: makeArgs([]interface{}{1, "a", true}), wantResult: int64(3)},
-		// *** FIXED: Use interface{}(nil) for nil list arg ***
-		{name: "Nil List", toolName: "ListLength", args: makeArgs(interface{}(nil)), valWantErrIs: ErrValidationRequiredArgNil},
-		// *** End Fix ***
+		{name: "Nil List Arg", toolName: "ListLength", args: makeArgs(interface{}(nil)), valWantErrIs: ErrValidationRequiredArgNil},
 		{name: "Wrong Type", toolName: "ListLength", args: makeArgs("not a list"), valWantErrIs: ErrValidationTypeMismatch},
 		{name: "Wrong Count", toolName: "ListLength", args: makeArgs(), valWantErrIs: ErrValidationArgCount},
 	}
@@ -115,16 +119,15 @@ func TestToolListAppendPrepend(t *testing.T) {
 	}{
 		{name: "Append Simple", toolName: "ListAppend", args: makeArgs(baseList, true), wantResult: []interface{}{"a", int64(1), true}},
 		{name: "Append To Empty", toolName: "ListAppend", args: makeArgs([]interface{}{}, "new"), wantResult: []interface{}{"new"}},
-		// *** FIXED: Use interface{}(nil) for nil list arg ***
-		{name: "Append To Nil", toolName: "ListAppend", args: makeArgs(interface{}(nil), "new"), valWantErrIs: ErrValidationRequiredArgNil},
-		// *** End Fix ***
+		{name: "Append To Nil List Arg", toolName: "ListAppend", args: makeArgs(interface{}(nil), "new"), valWantErrIs: ErrValidationRequiredArgNil},
+		{name: "Append Nil Element", toolName: "ListAppend", args: makeArgs(baseList, nil), wantResult: []interface{}{"a", int64(1), nil}},
 		{name: "Append Wrong Type", toolName: "ListAppend", args: makeArgs("not list", "el"), valWantErrIs: ErrValidationTypeMismatch},
 		{name: "Prepend Simple", toolName: "ListPrepend", args: makeArgs(baseList, true), wantResult: []interface{}{true, "a", int64(1)}},
 		{name: "Prepend To Empty", toolName: "ListPrepend", args: makeArgs([]interface{}{}, "new"), wantResult: []interface{}{"new"}},
-		// *** FIXED: Use interface{}(nil) for nil list arg ***
-		{name: "Prepend To Nil", toolName: "ListPrepend", args: makeArgs(interface{}(nil), "new"), valWantErrIs: ErrValidationRequiredArgNil},
-		// *** End Fix ***
-		{name: "Prepend Wrong Count", toolName: "ListPrepend", args: makeArgs(baseList), valWantErrIs: ErrValidationArgCount},
+		{name: "Prepend To Nil List Arg", toolName: "ListPrepend", args: makeArgs(interface{}(nil), "new"), valWantErrIs: ErrValidationRequiredArgNil},
+		{name: "Prepend Nil Element", toolName: "ListPrepend", args: makeArgs(baseList, nil), wantResult: []interface{}{nil, "a", int64(1)}},
+		// *** MODIFIED: Expect error for 0 args, not 1, since element is not Required ***
+		{name: "Prepend Wrong Count", toolName: "ListPrepend", args: makeArgs(), valWantErrIs: ErrValidationArgCount},
 	}
 	for _, tt := range tests {
 		testListToolHelper(t, interp, tt)
@@ -133,7 +136,7 @@ func TestToolListAppendPrepend(t *testing.T) {
 
 func TestToolListGet(t *testing.T) {
 	interp, _ := newDefaultTestInterpreter(t)
-	list := []interface{}{"a", int64(1), true}
+	list := []interface{}{"a", int64(1), true, nil} // Added nil to test getting it
 	tests := []struct {
 		name          string
 		toolName      string
@@ -145,17 +148,19 @@ func TestToolListGet(t *testing.T) {
 		{name: "Get First", toolName: "ListGet", args: makeArgs(list, int64(0)), wantResult: "a"},
 		{name: "Get Middle", toolName: "ListGet", args: makeArgs(list, int64(1)), wantResult: int64(1)},
 		{name: "Get Last", toolName: "ListGet", args: makeArgs(list, int64(2)), wantResult: true},
-		{name: "OOB High No Default", toolName: "ListGet", args: makeArgs(list, int64(3)), wantResult: nil},
+		{name: "Get Nil Element", toolName: "ListGet", args: makeArgs(list, int64(3)), wantResult: nil}, // Get the actual nil
+		{name: "OOB High No Default", toolName: "ListGet", args: makeArgs(list, int64(4)), wantResult: nil},
 		{name: "OOB Low No Default", toolName: "ListGet", args: makeArgs(list, int64(-1)), wantResult: nil},
 		{name: "Empty No Default", toolName: "ListGet", args: makeArgs([]interface{}{}, int64(0)), wantResult: nil},
 		{name: "OOB High With Default", toolName: "ListGet", args: makeArgs(list, int64(5), "default"), wantResult: "default"},
 		{name: "OOB Low With Default", toolName: "ListGet", args: makeArgs(list, int64(-2), false), wantResult: false},
 		{name: "Empty With Default", toolName: "ListGet", args: makeArgs([]interface{}{}, int64(0), "def"), wantResult: "def"},
-		// *** FIXED: Use interface{}(nil) for nil list arg ***
+		{name: "OOB With Explicit Nil Default", toolName: "ListGet", args: makeArgs(list, int64(5), nil), wantResult: nil}, // Explicit nil default
 		{name: "Nil List No Default", toolName: "ListGet", args: makeArgs(interface{}(nil), int64(0)), valWantErrIs: ErrValidationRequiredArgNil},
 		{name: "Nil List With Default", toolName: "ListGet", args: makeArgs(interface{}(nil), int64(0), "def"), valWantErrIs: ErrValidationRequiredArgNil},
-		// *** End Fix ***
-		{name: "Wrong Index Type Coerced", toolName: "ListGet", args: makeArgs(list, "1"), wantResult: int64(1)},
+		{name: "Wrong Index Type Coerced", toolName: "ListGet", args: makeArgs(list, "1"), wantResult: int64(1)},                      // Assuming coercion happens
+		{name: "Wrong Index Type Invalid", toolName: "ListGet", args: makeArgs(list, "abc"), valWantErrIs: ErrValidationTypeMismatch}, // Assuming coercion fails
+		{name: "Wrong List Type", toolName: "ListGet", args: makeArgs("not list", int64(0)), valWantErrIs: ErrValidationTypeMismatch},
 	}
 	for _, tt := range tests {
 		testListToolHelper(t, interp, tt)
@@ -183,10 +188,10 @@ func TestToolListSlice(t *testing.T) {
 		{name: "Slice Clamp Low Start", toolName: "ListSlice", args: makeArgs(list, int64(-2), int64(2)), wantResult: []interface{}{"a", "b"}},
 		{name: "Slice Clamp Both", toolName: "ListSlice", args: makeArgs(list, int64(-1), int64(10)), wantResult: []interface{}{"a", "b", "c", "d", "e"}},
 		{name: "Slice Empty List", toolName: "ListSlice", args: makeArgs([]interface{}{}, int64(0), int64(1)), wantResult: []interface{}{}},
-		// *** FIXED: Use interface{}(nil) for nil list arg ***
-		{name: "Slice Nil List", toolName: "ListSlice", args: makeArgs(interface{}(nil), int64(0), int64(1)), valWantErrIs: ErrValidationRequiredArgNil},
-		// *** End Fix ***
-		{name: "Wrong End Type Coerced", toolName: "ListSlice", args: makeArgs(list, int64(0), "2"), wantResult: []interface{}{"a", "b"}},
+		{name: "Slice Nil List Arg", toolName: "ListSlice", args: makeArgs(interface{}(nil), int64(0), int64(1)), valWantErrIs: ErrValidationRequiredArgNil},
+		{name: "Wrong End Type Coerced", toolName: "ListSlice", args: makeArgs(list, int64(0), "2"), wantResult: []interface{}{"a", "b"}}, // Assuming coercion
+		{name: "Wrong Start Type Invalid", toolName: "ListSlice", args: makeArgs(list, "abc", int64(2)), valWantErrIs: ErrValidationTypeMismatch},
+		{name: "Wrong List Type", toolName: "ListSlice", args: makeArgs("no", int64(0), int64(1)), valWantErrIs: ErrValidationTypeMismatch},
 	}
 	for _, tt := range tests {
 		testListToolHelper(t, interp, tt)
@@ -195,7 +200,7 @@ func TestToolListSlice(t *testing.T) {
 
 func TestToolListContains(t *testing.T) {
 	interp, _ := newDefaultTestInterpreter(t)
-	list := []interface{}{"a", int64(1), true, nil, float64(1.0)}
+	list := []interface{}{"a", int64(1), true, nil, float64(1.0), []interface{}{"sub"}}
 	tests := []struct {
 		name          string
 		toolName      string
@@ -207,16 +212,16 @@ func TestToolListContains(t *testing.T) {
 		{name: "Contains String", toolName: "ListContains", args: makeArgs(list, "a"), wantResult: true},
 		{name: "Contains Int", toolName: "ListContains", args: makeArgs(list, int64(1)), wantResult: true},
 		{name: "Contains Bool", toolName: "ListContains", args: makeArgs(list, true), wantResult: true},
-		// *** Note: Element arg validation error expected for nil ***
-		{name: "Contains Nil Element Arg", toolName: "ListContains", args: makeArgs(list, nil), valWantErrIs: ErrValidationRequiredArgNil},
+		{name: "Contains Actual Nil", toolName: "ListContains", args: makeArgs(list, nil), wantResult: true}, // Check for actual nil in list; element arg Required=false now allows this
 		{name: "Contains Float", toolName: "ListContains", args: makeArgs(list, float64(1.0)), wantResult: true},
+		{name: "Contains Sub-List", toolName: "ListContains", args: makeArgs(list, []interface{}{"sub"}), wantResult: true},
 		{name: "Not Contains String", toolName: "ListContains", args: makeArgs(list, "b"), wantResult: false},
 		{name: "Not Contains Int", toolName: "ListContains", args: makeArgs(list, int64(2)), wantResult: false},
 		{name: "Not Contains Float", toolName: "ListContains", args: makeArgs(list, float64(1.1)), wantResult: false},
+		{name: "Not Contains Sub-List (Different)", toolName: "ListContains", args: makeArgs(list, []interface{}{"diff"}), wantResult: false},
 		{name: "Empty List", toolName: "ListContains", args: makeArgs([]interface{}{}, "a"), wantResult: false},
-		// *** FIXED: Use interface{}(nil) for nil list arg ***
-		{name: "Nil List", toolName: "ListContains", args: makeArgs(interface{}(nil), "a"), valWantErrIs: ErrValidationRequiredArgNil},
-		// *** End Fix ***
+		{name: "Nil List Arg", toolName: "ListContains", args: makeArgs(interface{}(nil), "a"), valWantErrIs: ErrValidationRequiredArgNil},
+		{name: "Wrong List Type", toolName: "ListContains", args: makeArgs("no", "a"), valWantErrIs: ErrValidationTypeMismatch},
 	}
 	for _, tt := range tests {
 		testListToolHelper(t, interp, tt)
@@ -236,9 +241,8 @@ func TestToolListReverse(t *testing.T) {
 		{name: "Reverse Simple", toolName: "ListReverse", args: makeArgs([]interface{}{"a", int64(1), true}), wantResult: []interface{}{true, int64(1), "a"}},
 		{name: "Reverse Single", toolName: "ListReverse", args: makeArgs([]interface{}{"a"}), wantResult: []interface{}{"a"}},
 		{name: "Reverse Empty", toolName: "ListReverse", args: makeArgs([]interface{}{}), wantResult: []interface{}{}},
-		// *** FIXED: Use interface{}(nil) for nil list arg ***
-		{name: "Reverse Nil", toolName: "ListReverse", args: makeArgs(interface{}(nil)), valWantErrIs: ErrValidationRequiredArgNil},
-		// *** End Fix ***
+		{name: "Reverse Nil List Arg", toolName: "ListReverse", args: makeArgs(interface{}(nil)), valWantErrIs: ErrValidationRequiredArgNil},
+		{name: "Wrong Type", toolName: "ListReverse", args: makeArgs(123), valWantErrIs: ErrValidationTypeMismatch},
 	}
 	for _, tt := range tests {
 		testListToolHelper(t, interp, tt)
@@ -260,55 +264,100 @@ func TestToolListSort(t *testing.T) {
 		{name: "Sort Floats", toolName: "ListSort", args: makeArgs([]interface{}{float64(3.3), float64(1.1), float64(2.2)}), wantResult: []interface{}{float64(1.1), float64(2.2), float64(3.3)}},
 		{name: "Sort Mixed Numbers", toolName: "ListSort", args: makeArgs([]interface{}{int64(3), float64(1.1), int64(2)}), wantResult: []interface{}{float64(1.1), int64(2), int64(3)}},
 		{name: "Sort Empty", toolName: "ListSort", args: makeArgs([]interface{}{}), wantResult: []interface{}{}},
-		// *** FIXED: Use interface{}(nil) for nil list arg ***
-		{name: "Sort Nil", toolName: "ListSort", args: makeArgs(interface{}(nil)), valWantErrIs: ErrValidationRequiredArgNil},
-		// *** End Fix ***
-		{name: "Sort Single", toolName: "ListSort", args: makeArgs([]interface{}{"a"}), wantResult: []interface{}{"a"}},
+		{name: "Sort Nil List Arg", toolName: "ListSort", args: makeArgs(interface{}(nil)), valWantErrIs: ErrValidationRequiredArgNil},
+		{name: "Sort Single String", toolName: "ListSort", args: makeArgs([]interface{}{"a"}), wantResult: []interface{}{"a"}},
+		{name: "Sort Single Int", toolName: "ListSort", args: makeArgs([]interface{}{int64(5)}), wantResult: []interface{}{int64(5)}},
 		{name: "Sort Mixed String/Num", toolName: "ListSort", args: makeArgs([]interface{}{"a", int64(1)}), wantToolErrIs: ErrListCannotSortMixedTypes},
+		{name: "Sort Mixed Num/String", toolName: "ListSort", args: makeArgs([]interface{}{int64(1), "a"}), wantToolErrIs: ErrListCannotSortMixedTypes},
 		{name: "Sort Mixed Num/Bool", toolName: "ListSort", args: makeArgs([]interface{}{int64(1), true}), wantToolErrIs: ErrListCannotSortMixedTypes},
+		{name: "Sort Mixed String/Bool", toolName: "ListSort", args: makeArgs([]interface{}{"a", false}), wantToolErrIs: ErrListCannotSortMixedTypes},
 		{name: "Sort List of Lists", toolName: "ListSort", args: makeArgs([]interface{}{[]interface{}{1}, []interface{}{0}}), wantToolErrIs: ErrListCannotSortMixedTypes},
 		{name: "Sort List With Nil Element", toolName: "ListSort", args: makeArgs([]interface{}{"a", nil, "c"}), wantToolErrIs: ErrListCannotSortMixedTypes},
+		{name: "Sort Strings Looking Like Numbers", toolName: "ListSort", args: makeArgs([]interface{}{"10", "2", "1"}), wantResult: []interface{}{"1", "10", "2"}}, // Lexicographical
+		{name: "Wrong Type", toolName: "ListSort", args: makeArgs(123), valWantErrIs: ErrValidationTypeMismatch},
 	}
 	for _, tt := range tests {
 		testListToolHelper(t, interp, tt)
 	}
 }
 
-func TestToolListHeadRest(t *testing.T) {
+func TestToolListIsEmpty(t *testing.T) {
 	interp, _ := newDefaultTestInterpreter(t)
-	list := []interface{}{"a", "b", int64(1)}
-	singleList := []interface{}{"only"}
-	emptyList := []interface{}{}
-	// var nilList []interface{} = nil // No longer needed
-
 	tests := []struct {
 		name          string
-		toolName      string // Head or Rest
+		toolName      string
 		args          []interface{}
 		wantResult    interface{}
 		wantToolErrIs error
 		valWantErrIs  error
 	}{
-		// Head
-		{name: "Head Simple", toolName: "ListHead", args: makeArgs(list), wantResult: "a"},
-		{name: "Head Single", toolName: "ListHead", args: makeArgs(singleList), wantResult: "only"},
-		{name: "Head Empty", toolName: "ListHead", args: makeArgs(emptyList), wantResult: nil}, // Returns nil
-		// *** FIXED: Use interface{}(nil) for nil list arg ***
-		{name: "Head Nil", toolName: "ListHead", args: makeArgs(interface{}(nil)), valWantErrIs: ErrValidationRequiredArgNil},
-		// *** End Fix ***
-		// Rest
-		{name: "Rest Simple", toolName: "ListRest", args: makeArgs(list), wantResult: []interface{}{"b", int64(1)}},
-		{name: "Rest Single", toolName: "ListRest", args: makeArgs(singleList), wantResult: []interface{}{}},
-		{name: "Rest Empty", toolName: "ListRest", args: makeArgs(emptyList), wantResult: []interface{}{}},
-		// *** FIXED: Use interface{}(nil) for nil list arg ***
-		{name: "Rest Nil", toolName: "ListRest", args: makeArgs(interface{}(nil)), valWantErrIs: ErrValidationRequiredArgNil},
-		// *** End Fix ***
+		{name: "Is Empty True", toolName: "ListIsEmpty", args: makeArgs([]interface{}{}), wantResult: true},
+		{name: "Is Empty True (Nil Arg)", toolName: "ListIsEmpty", args: makeArgs(interface{}(nil)), valWantErrIs: ErrValidationRequiredArgNil},
+		{name: "Is Empty False", toolName: "ListIsEmpty", args: makeArgs([]interface{}{"a"}), wantResult: false},
+		{name: "Is Empty False Long", toolName: "ListIsEmpty", args: makeArgs([]interface{}{1, 2, 3}), wantResult: false},
+		{name: "Wrong Type", toolName: "ListIsEmpty", args: makeArgs("not a list"), valWantErrIs: ErrValidationTypeMismatch},
 	}
 	for _, tt := range tests {
 		testListToolHelper(t, interp, tt)
 	}
 }
 
+// --- Test for ListHead ---
+func TestToolListHead(t *testing.T) {
+	interp, _ := newDefaultTestInterpreter(t)
+	list := []interface{}{"a", "b", int64(1), nil}
+	singleList := []interface{}{"only"}
+	emptyList := []interface{}{}
+
+	tests := []struct {
+		name          string
+		toolName      string
+		args          []interface{}
+		wantResult    interface{}
+		wantToolErrIs error
+		valWantErrIs  error
+	}{
+		{name: "Head Simple", toolName: "ListHead", args: makeArgs(list), wantResult: "a"},
+		{name: "Head Single", toolName: "ListHead", args: makeArgs(singleList), wantResult: "only"},
+		{name: "Head First is Nil", toolName: "ListHead", args: makeArgs([]interface{}{nil, "b"}), wantResult: nil},
+		{name: "Head Empty", toolName: "ListHead", args: makeArgs(emptyList), wantResult: nil}, // Returns nil for empty
+		{name: "Head Nil Arg", toolName: "ListHead", args: makeArgs(interface{}(nil)), valWantErrIs: ErrValidationRequiredArgNil},
+		{name: "Wrong Type", toolName: "ListHead", args: makeArgs(123), valWantErrIs: ErrValidationTypeMismatch},
+		{name: "Wrong Arg Count", toolName: "ListHead", args: makeArgs(list, "extra"), valWantErrIs: ErrValidationArgCount},
+	}
+	for _, tt := range tests {
+		testListToolHelper(t, interp, tt)
+	}
+}
+
+// --- Test for ListRest ---
+func TestToolListRest(t *testing.T) {
+	interp, _ := newDefaultTestInterpreter(t)
+	list := []interface{}{"a", "b", int64(1)}
+	singleList := []interface{}{"only"}
+	emptyList := []interface{}{}
+
+	tests := []struct {
+		name          string
+		toolName      string
+		args          []interface{}
+		wantResult    interface{}
+		wantToolErrIs error
+		valWantErrIs  error
+	}{
+		{name: "Rest Simple", toolName: "ListRest", args: makeArgs(list), wantResult: []interface{}{"b", int64(1)}},
+		{name: "Rest Single", toolName: "ListRest", args: makeArgs(singleList), wantResult: []interface{}{}}, // Returns empty
+		{name: "Rest Empty", toolName: "ListRest", args: makeArgs(emptyList), wantResult: []interface{}{}},   // Returns empty
+		{name: "Rest Nil Arg", toolName: "ListRest", args: makeArgs(interface{}(nil)), valWantErrIs: ErrValidationRequiredArgNil},
+		{name: "Wrong Type", toolName: "ListRest", args: makeArgs(123), valWantErrIs: ErrValidationTypeMismatch},
+		{name: "Wrong Arg Count", toolName: "ListRest", args: makeArgs(list, "extra"), valWantErrIs: ErrValidationArgCount},
+	}
+	for _, tt := range tests {
+		testListToolHelper(t, interp, tt)
+	}
+}
+
+// --- Test for ListTail ---
 func TestToolListTail(t *testing.T) {
 	interp, _ := newDefaultTestInterpreter(t)
 	list := []interface{}{"a", "b", "c", "d", "e"}
@@ -327,33 +376,10 @@ func TestToolListTail(t *testing.T) {
 		{name: "Tail Count 0", toolName: "ListTail", args: makeArgs(list, int64(0)), wantResult: []interface{}{}},
 		{name: "Tail Count Negative", toolName: "ListTail", args: makeArgs(list, int64(-1)), wantResult: []interface{}{}},
 		{name: "Tail Empty List", toolName: "ListTail", args: makeArgs([]interface{}{}, int64(2)), wantResult: []interface{}{}},
-		// *** FIXED: Use interface{}(nil) for nil list arg ***
-		{name: "Tail Nil List", toolName: "ListTail", args: makeArgs(interface{}(nil), int64(2)), valWantErrIs: ErrValidationRequiredArgNil},
-		// *** End Fix ***
-		{name: "Wrong Count Type Coerced", toolName: "ListTail", args: makeArgs(list, "2"), wantResult: []interface{}{"d", "e"}},
-	}
-	for _, tt := range tests {
-		testListToolHelper(t, interp, tt)
-	}
-}
-
-func TestToolListIsEmpty(t *testing.T) {
-	interp, _ := newDefaultTestInterpreter(t)
-	tests := []struct {
-		name          string
-		toolName      string
-		args          []interface{}
-		wantResult    interface{}
-		wantToolErrIs error
-		valWantErrIs  error
-	}{
-		{name: "Is Empty True", toolName: "ListIsEmpty", args: makeArgs([]interface{}{}), wantResult: true},
-		// *** FIXED: Use interface{}(nil) for nil list arg ***
-		{name: "Is Empty True (Nil)", toolName: "ListIsEmpty", args: makeArgs(interface{}(nil)), valWantErrIs: ErrValidationRequiredArgNil},
-		// *** End Fix ***
-		{name: "Is Empty False", toolName: "ListIsEmpty", args: makeArgs([]interface{}{"a"}), wantResult: false},
-		{name: "Is Empty False Long", toolName: "ListIsEmpty", args: makeArgs([]interface{}{1, 2, 3}), wantResult: false},
-		{name: "Wrong Type", toolName: "ListIsEmpty", args: makeArgs("not a list"), valWantErrIs: ErrValidationTypeMismatch},
+		{name: "Tail Nil List Arg", toolName: "ListTail", args: makeArgs(interface{}(nil), int64(2)), valWantErrIs: ErrValidationRequiredArgNil},
+		{name: "Wrong Count Type Coerced", toolName: "ListTail", args: makeArgs(list, "2"), wantResult: []interface{}{"d", "e"}}, // Assuming coercion
+		{name: "Wrong Count Type Invalid", toolName: "ListTail", args: makeArgs(list, "abc"), valWantErrIs: ErrValidationTypeMismatch},
+		{name: "Wrong List Type", toolName: "ListTail", args: makeArgs("no", int64(1)), valWantErrIs: ErrValidationTypeMismatch},
 	}
 	for _, tt := range tests {
 		testListToolHelper(t, interp, tt)
