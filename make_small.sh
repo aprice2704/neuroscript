@@ -29,6 +29,9 @@ else
   echo "Sync may have encountered errors (exit code $rsync_exit_code)."
 fi
 
+chown -R aprice:aprice "$dest_dir/"
+chmod -R 755 "$dest_dir/"
+
 # rm commands should be unnecessary now
 # rm -r "$dest_dir/.git/"
 # rm -r "$dest_dir/.vscode/"

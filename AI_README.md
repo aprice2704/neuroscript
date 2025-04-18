@@ -7,7 +7,7 @@ If you have not already done so, read all the files in doc/... before starting a
 
 7.  Markdown Formatting: When providing only Markdown files (e.g., README.md), prepend each non-blank line with `@@@`. This prevents the UI from rendering it. I will remove the prefix later. (This is not needed for Go files or other code formats). 
 8.  * Example Markdown Line: @@@# Project Title
-9.  Please convert any [cite: uploaded:...] references you see in markdown files into relative Markdown links -- if multiple files are cited, please take care to convert them into multiple links
+9.  Please convert any references you see in markdown files into relative Markdown links -- if multiple files are cited, please take care to convert them into multiple links
 10. When working on specifications, please be sure to use the structure given in docs/specification_structure.md. If a spec does not adhere to this structure, ask about updating it.
 
 ## Go Development Instructions
@@ -50,6 +50,7 @@ Testing Strategy:
 4.  Use Fixtures: Strongly prefer using external fixture files (e.g., `.json`, `.txt`, `.xml` files loaded during tests) for test inputs, especially for parsing or processing structured data. Avoid large, embedded multi-line strings in test code, as fixtures are easier to read, manage, and avoid escaping issues. 
 5.  **Testing Philosophy: Keep Tests Simple, Clear, and Fast to Fail**
 When writing tests, prioritize clarity and simplicity above complex conditional logic within a single test case. Each test should ideally verify one specific aspect or outcome of the code under test. Use clear, descriptive names for test cases. Assertions should be direct and check only what is necessary; for instance, when checking errors, verify the error type using errors.Is rather than matching exact error message strings, which are prone to change. Similarly, only validate successful results when no error is expected. Avoid complex boolean expressions or deeply nested logic within test assertions; if different conditions need testing, prefer separate, focused test cases. This approach makes tests easier to read, understand, and maintain for both human developers and AI agents, ensuring failures point quickly and accurately to the specific condition that broke.
+6.  **Use Standard Testing Package:** Do NOT use external assertion libraries like `github.com/stretchr/testify/assert` or `github.com/stretchr/testify/require`. Use the functions provided by the standard Go `testing` package (e.g., `t.Errorf`, `t.Fatalf`, `t.Helper()`) and standard Go comparison operators (`==`, `!=`) along with `errors.Is` for error checking.
 
 Debugging & Problem Solving:
 

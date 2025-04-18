@@ -16,6 +16,12 @@ func NewToolRegistry() *ToolRegistry {
 	return &ToolRegistry{tools: make(map[string]ToolImplementation)}
 }
 
+var (
+	// GlobalToolRegistry is a default registry instance.
+	// Consider initializing it more robustly if concurrent access during init is possible.
+	GlobalToolRegistry = NewToolRegistry()
+)
+
 // RegisterTool adds a tool implementation to the registry using its base name from the Spec as the key.
 // Returns an error if a tool with the same name already exists or if the implementation is nil.
 func (tr *ToolRegistry) RegisterTool(impl ToolImplementation) error {

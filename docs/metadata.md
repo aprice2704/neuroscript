@@ -6,7 +6,7 @@
 
 # MetaData in NeuroScript Objects
 
-## Metadata Standard (`:: key: value`)
+## Metadata Standard (`:: key: value  `)
 
 All project files (NeuroScript `.ns.txt`, NeuroData `.nd*`, Go `.go`, Markdown `.md`, etc.) and embedded code/data blocks should use the following metadata format where applicable for file-level or block-level information.
 
@@ -20,6 +20,7 @@ All project files (NeuroScript `.ns.txt`, NeuroData `.nd*`, Go `.go`, Markdown `
 * **Comments/Blank Lines:** Standard comment lines (`#` or `--`) and blank lines *are* permitted between metadata lines (both file-level and block-level), but they must still appear *before* the main content begins [cite: uploaded:neuroscript_small/docs/neurodata_and_composite_file_spec.md].
 * **Parser Skipping (`.ns.txt`):** The NeuroScript ANTLR grammar's lexer is configured to *skip* file-level `::` metadata lines (treating them like comments) [cite: uploaded:neuroscript_small/pkg/core/generated/neuroscript_lexer.go]. This prevents them from interfering with script parsing and execution by `neurogo`.
 * **Metadata Extraction:** Tools like `TOOL.ExtractMetadata` operate on string content and are designed to parse these `:: key: value` lines from the beginning of the provided text [cite: uploaded:neuroscript_small/pkg/neurodata/metadata/metadata.go, uploaded:neuroscript_small/pkg/core/tools_metadata.go].
+* **Markdown Line Endings:** metadata lines should end in two space characters before the newline so they render as separate lines in markdown. 
 
 ## Standard Metadata Tags
 

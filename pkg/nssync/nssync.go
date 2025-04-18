@@ -1,92 +1,95 @@
+// filename: pkg/nssync/nssync.go
 package nssync
 
 import (
 	"context"
-	"crypto/sha256"
+	"errors"
 	"fmt"
 	"io"
-	"io/fs" // Use io/fs for WalkDir
 	"log"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
-	"time" // Used by genai.File
+	"time"
 
 	"github.com/bmatcuk/doublestar/v4"
-	gitignore "github.com/sabhiram/go-gitignore" // Alias for clarity
+	gitignore "github.com/sabhiram/go-gitignore"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 
-	// Use the correct package import path based on your successful 'go get'
-	genai "google.golang.org/genai"
+	// *** Use the correct genai import path based on your go.mod ***
+	genai "google.golang.org/genai" // Corrected import path
+
+	"github.com/aprice2704/neuroscript/pkg/core" // Adjust import path as needed
 )
 
-// RemoteFile represents a file in the Gemini Files API storage.
-// We extract relevant fields from the genai.File struct.
+// RemoteFile struct remains the same
 type RemoteFile struct {
-	Name        string    // API's unique identifier (e.g., "files/abc123def")
-	DisplayName string    // User-provided name (should match relative local path)
-	SizeBytes   int64     // Size in bytes
-	SHA256Hash  string    // SHA256 hash provided by the API (as hex string)
-	State       string    // Processing state (e.g., "ACTIVE", "PROCESSING")
-	UpdateTime  time.Time // Last update time from API
-	URI         string    // URI for use in prompts
+	Name        string
+	DisplayName string
+	SizeBytes   int64
+	SHA256Hash  string
+	State       string
+	UpdateTime  time.Time
+	URI         string
 }
 
-// SyncerConfig holds the configuration for the synchronization process.
+// SyncerConfig struct remains the same
 type SyncerConfig struct {
-	LocalDir        string
 	APIKey          string
 	DryRun          bool
 	IgnoreGitignore bool
+	IncludePatterns []string
+	ExcludePatterns []string
 }
 
-// Syncer handles the synchronization logic.
+// Syncer struct updated to include FileService client
 type Syncer struct {
-	config     SyncerConfig
-	client     *genai.Client // Use the genai client
-	gitIgnore  *gitignore.GitIgnore
-	baseAbsDir string // Absolute path to the local directory base
-	logger     *log.Logger
+	config    SyncerConfig
+	client    *genai.Client      // Main genai client
+	fs        *genai.FileService // Specific client for File API operations
+	interp    *core.Interpreter  // Interpreter for core facility access
+	gitIgnore *gitignore.GitIgnore
+	logger    *log.Logger
 }
 
 // NewSyncer creates a new Syncer instance.
-func NewSyncer(config SyncerConfig, logger *log.Logger) (*Syncer, error) {
+func NewSyncer(config SyncerConfig, interp *core.Interpreter, logger *log.Logger) (*Syncer, error) {
 	if logger == nil {
-		logger = log.New(io.Discard, "", 0) // Default to discard if nil
+		logger = log.New(io.Discard, "", 0)
+	}
+	if interp == nil {
+		return nil, fmt.Errorf("interpreter cannot be nil")
+	}
+	// Use the exported getter method
+	sandboxDir := interp.SandboxDir() // Use Exported Method
+	if sandboxDir == "" {
+		return nil, fmt.Errorf("interpreter provided to Syncer must have a non-empty sandbox directory configured")
 	}
 
-	// 1. Validate LocalDir is below CWD
-	if err := checkPathSafety(config.LocalDir); err != nil {
-		return nil, fmt.Errorf("path safety check failed: %w", err)
-	}
-
-	absDir, err := filepath.Abs(config.LocalDir)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get absolute path for %s: %w", config.LocalDir, err)
-	}
-
-	// 2. Initialize Gemini Client using google.golang.org/genai
-	ctx := context.Background() // Or use context from caller
-
-	// Correct way to initialize the client with just an API key
+	// Initialize Gemini Client
+	ctx := context.Background()
+	// Use option.WithAPIKey directly
 	client, err := genai.NewClient(ctx, option.WithAPIKey(config.APIKey))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create genai client: %w", err)
 	}
-	// Consider adding client.Close() in a cleanup phase if the Syncer lifecycle allows
+
+	// Get the FileService client from the main client
+	fsClient := client.FileService() // Get the service client
 
 	s := &Syncer{
-		config:     config,
-		client:     client, // Store the genai.Client
-		baseAbsDir: absDir,
-		logger:     logger,
+		config: config,
+		client: client,
+		fs:     fsClient, // Store the FileService client
+		interp: interp,
+		logger: logger,
 	}
 
-	// 3. Load .gitignore if needed
+	// Load .gitignore (using sandboxDir)
 	if !config.IgnoreGitignore {
-		gitignorePath := filepath.Join(absDir, ".gitignore")
+		gitignorePath := filepath.Join(sandboxDir, ".gitignore")
 		if _, err := os.Stat(gitignorePath); err == nil {
 			s.logger.Printf("Info: Loading .gitignore from %s", gitignorePath)
 			gi, err := gitignore.CompileIgnoreFile(gitignorePath)
@@ -105,8 +108,6 @@ func NewSyncer(config SyncerConfig, logger *log.Logger) (*Syncer, error) {
 	return s, nil
 }
 
-// --- Core Sync Logic ---
-
 // Sync synchronizes the provided list of relative local file paths with the remote API.
 func (s *Syncer) Sync(ctx context.Context, relativeFiles []string) error {
 	s.logger.Printf("Starting sync for %d potential local files...", len(relativeFiles))
@@ -114,15 +115,14 @@ func (s *Syncer) Sync(ctx context.Context, relativeFiles []string) error {
 		s.logger.Println("--- DRY RUN MODE ---")
 	}
 
-	// 1. Get Remote Files and build a map keyed by DisplayName
-	remoteFiles, err := s.listRemoteFiles(ctx)
+	// 1. Get Remote Files
+	remoteFiles, err := s.listRemoteFiles(ctx) // Uses s.fs internally now
 	if err != nil {
 		return fmt.Errorf("failed to list remote files: %w", err)
 	}
-	remoteFileMap := make(map[string]RemoteFile) // Map DisplayName -> RemoteFile
+	// Build remoteFileMap (logic remains the same)
+	remoteFileMap := make(map[string]RemoteFile)
 	for _, rf := range remoteFiles {
-		// Only consider files that are processed and ready ("ACTIVE")
-		// and have a DisplayName for mapping.
 		if rf.State == "ACTIVE" && rf.DisplayName != "" {
 			if existing, exists := remoteFileMap[rf.DisplayName]; exists {
 				s.logger.Printf("Warning: Duplicate remote DisplayName '%s' found (Names: %s, %s). Using the one updated later.", rf.DisplayName, existing.Name, rf.Name)
@@ -138,106 +138,123 @@ func (s *Syncer) Sync(ctx context.Context, relativeFiles []string) error {
 	}
 	s.logger.Printf("Found %d ACTIVE remote files with DisplayNames mapped.", len(remoteFileMap))
 
-	// 2. Prepare tracking maps/slices
-	localFileSet := make(map[string]bool)    // Tracks files passed in relativeFiles arg
-	filesToUpload := make(map[string]string) // Map relative path -> local SHA256 hash
-	filesToDelete := []RemoteFile{}          // List of RemoteFile structs to delete
+	// 2. Prepare tracking maps/slices (remains the same)
+	localFileSet := make(map[string]bool)
+	filesToUpload := make(map[string]string)
+	filesToDelete := []RemoteFile{}
+	var errorsEncountered []string
 
-	// 3. Determine Uploads: Iterate through provided local files
+	// 3. Determine Uploads
 	s.logger.Println("Analyzing local files for upload actions...")
 	for _, relPath := range relativeFiles {
 		cleanRelPath := filepath.ToSlash(filepath.Clean(relPath))
 		if cleanRelPath == "." || cleanRelPath == "" {
 			continue
 		}
-		localFileSet[cleanRelPath] = true // Mark this path as managed locally
+		localFileSet[cleanRelPath] = true
 
-		absPath := filepath.Join(s.baseAbsDir, cleanRelPath)
-
-		// Apply gitignore if loaded
+		// Apply gitignore (remains the same)
 		if s.gitIgnore != nil && s.gitIgnore.MatchesPath(cleanRelPath) {
 			s.logger.Printf("Info: Skipping '%s' due to .gitignore", cleanRelPath)
 			continue
 		}
 
-		// Check local file existence and type
-		stat, err := os.Stat(absPath)
+		// Calculate local file hash using the INTERPRETER'S tool execution method
+		// Use ExecuteToolCall
+		hashResult, err := s.interp.ExecuteToolCall("FileHash", cleanRelPath) // Default SHA256
 		if err != nil {
-			if os.IsNotExist(err) {
-				s.logger.Printf("Warning: Local file '%s' targeted for sync not found, skipping.", cleanRelPath)
+			// Use errors.Is and the CORRECTED core.ErrFileNotFound
+			if errors.Is(err, core.ErrPathViolation) || errors.Is(err, core.ErrFileNotFound) {
+				s.logger.Printf("Warning: Cannot get hash for local file '%s' (likely missing or path issue): %v. Skipping.", cleanRelPath, err)
+				// Don't add error here, just skip the file
 			} else {
-				s.logger.Printf("Warning: Cannot stat local file '%s': %v", cleanRelPath, err)
+				s.logger.Printf("Warning: Failed to hash local file '%s': %v. Skipping upload.", cleanRelPath, err)
+				errorsEncountered = append(errorsEncountered, fmt.Sprintf("hash failed for %s: %v", cleanRelPath, err))
 			}
-			continue
+			continue // Skip this file if hashing failed
 		}
-		if stat.IsDir() {
-			s.logger.Printf("Debug: Skipping directory '%s'", cleanRelPath)
+
+		localHash, ok := hashResult.(string)
+		if !ok || localHash == "" {
+			s.logger.Printf("Warning: Tool FileHash returned unexpected type (%T) or empty hash for '%s'. Skipping.", hashResult, cleanRelPath)
+			errorsEncountered = append(errorsEncountered, fmt.Sprintf("invalid hash result for %s", cleanRelPath))
 			continue
 		}
 
-		// Calculate local file hash
-		localHash, err := getFileHash(absPath)
-		if err != nil {
-			s.logger.Printf("Warning: Failed to hash local file '%s': %v. Skipping upload.", cleanRelPath, err)
-			continue
-		}
-
-		// Compare with remote file (if exists and active)
+		// Compare with remote file (remains the same)
 		remoteFile, existsRemotely := remoteFileMap[cleanRelPath]
 		if existsRemotely {
-			// Remote file with the same DisplayName exists and is ACTIVE
 			if remoteFile.SHA256Hash != localHash {
 				s.logger.Printf("Action: Plan upload for '%s' (local hash %s... != remote hash %s...)", cleanRelPath, localHash[:8], remoteFile.SHA256Hash[:8])
-				filesToUpload[cleanRelPath] = localHash // Mark for upload
+				filesToUpload[cleanRelPath] = localHash
 			} else {
 				s.logger.Printf("Info: Skipping upload for '%s' (hashes match)", cleanRelPath)
 			}
 		} else {
-			// Remote file doesn't exist (or isn't ACTIVE)
 			s.logger.Printf("Action: Plan upload for new file '%s' (local hash %s...)", cleanRelPath, localHash[:8])
-			filesToUpload[cleanRelPath] = localHash // Mark for upload
+			filesToUpload[cleanRelPath] = localHash
 		}
 	}
 
-	// 4. Determine Deletions: Iterate through active remote files
+	// 4. Determine Deletions (remains the same logic)
 	s.logger.Println("Analyzing remote files for delete actions...")
 	for displayName, remoteFile := range remoteFileMap {
 		isPotentiallyManaged := false
 		for _, relPath := range relativeFiles {
 			cleanRelPath := filepath.ToSlash(filepath.Clean(relPath))
 			if cleanRelPath == displayName {
-				isPotentiallyManaged = true
+				if s.gitIgnore == nil || !s.gitIgnore.MatchesPath(cleanRelPath) {
+					isPotentiallyManaged = true
+				}
 				break
 			}
 		}
-
 		if !isPotentiallyManaged {
-			s.logger.Printf("Info: Skipping deletion check for remote file '%s' (Name: %s) as its display name doesn't correspond to any file passed to this sync operation.", displayName, remoteFile.Name)
+			s.logger.Printf("Info: Skipping deletion check for remote file '%s' (Name: %s) as its display name wasn't passed or was gitignored.", displayName, remoteFile.Name)
 			continue
 		}
-
 		if _, existsLocally := localFileSet[displayName]; !existsLocally {
-			// It exists remotely (and is ACTIVE), but not in the final local set. Delete it.
-			s.logger.Printf("Action: Plan delete for remote file '%s' (Name: %s) as it's not present or ignored locally.", displayName, remoteFile.Name)
+			s.logger.Printf("Action: Plan delete for remote file '%s' (Name: %s) as it's not present or valid locally.", displayName, remoteFile.Name)
 			filesToDelete = append(filesToDelete, remoteFile)
 		}
 	}
 
-	// 5. Execute Actions (if not DryRun)
+	// Report analysis errors (remains the same)
+	if len(errorsEncountered) > 0 {
+		return fmt.Errorf("analysis phase encountered %d error(s): %s", len(errorsEncountered), strings.Join(errorsEncountered, "; "))
+	}
+
+	// 5. Execute Actions
 	var wg sync.WaitGroup
-	errChan := make(chan error, len(filesToUpload)+len(filesToDelete))
+	errChan := make(chan error, len(filesToUpload)+len(filesToDelete)+1)
 
 	if !s.config.DryRun {
 		s.logger.Println("--- EXECUTING ACTIONS ---")
-		// Perform Uploads (concurrently)
+		// Perform Uploads
 		for relPath := range filesToUpload {
 			wg.Add(1)
 			go func(p string) {
 				defer wg.Done()
 				s.logger.Printf("Executing: Uploading %s", p)
-				absPath := filepath.Join(s.baseAbsDir, p)
+				// Read file content using ExecuteToolCall
+				fileContentResult, err := s.interp.ExecuteToolCall("ReadFile", p)
+				if err != nil {
+					errChan <- fmt.Errorf("failed to read local file %s for upload: %w", p, err)
+					return
+				}
+				// Check type assertion
+				fileContentBytes, ok := fileContentResult.([]byte)
+				if !ok {
+					contentStr, okStr := fileContentResult.(string)
+					if !okStr {
+						errChan <- fmt.Errorf("tool ReadFile returned unexpected type (%T) for %s", fileContentResult, p)
+						return
+					}
+					fileContentBytes = []byte(contentStr)
+				}
+
 				// Upload using the relative path as the DisplayName
-				if _, err := s.uploadFile(ctx, absPath, p); err != nil {
+				if _, err := s.uploadFile(ctx, p, fileContentBytes); err != nil { // Uses corrected uploadFile
 					errChan <- fmt.Errorf("failed to upload %s: %w", p, err)
 				} else {
 					s.logger.Printf("Success: Uploaded %s", p)
@@ -245,13 +262,13 @@ func (s *Syncer) Sync(ctx context.Context, relativeFiles []string) error {
 			}(relPath)
 		}
 
-		// Perform Deletions (concurrently)
+		// Perform Deletions (logic remains the same, uses corrected deleteFile)
 		for _, rf := range filesToDelete {
 			wg.Add(1)
 			go func(f RemoteFile) {
 				defer wg.Done()
 				s.logger.Printf("Executing: Deleting remote %s (Name: %s)", f.DisplayName, f.Name)
-				if err := s.deleteFile(ctx, f.Name); err != nil {
+				if err := s.deleteFile(ctx, f.Name); err != nil { // Uses corrected deleteFile
 					errChan <- fmt.Errorf("failed to delete %s (Name: %s): %w", f.DisplayName, f.Name, err)
 				} else {
 					s.logger.Printf("Success: Deleted remote %s (Name: %s)", f.DisplayName, f.Name)
@@ -259,17 +276,17 @@ func (s *Syncer) Sync(ctx context.Context, relativeFiles []string) error {
 			}(rf)
 		}
 
-		wg.Wait() // Wait for all uploads and deletes to finish
+		wg.Wait()
 		close(errChan)
 
-		// Collect and report errors
+		// Collect and report execution errors (remains the same)
 		var syncErrors []string
 		for err := range errChan {
 			s.logger.Printf("Error during sync execution: %v", err)
 			syncErrors = append(syncErrors, err.Error())
 		}
 		if len(syncErrors) > 0 {
-			return fmt.Errorf("sync encountered %d error(s): %s", len(syncErrors), strings.Join(syncErrors, "; "))
+			return fmt.Errorf("sync execution encountered %d error(s): %s", len(syncErrors), strings.Join(syncErrors, "; "))
 		}
 		s.logger.Println("--- EXECUTION COMPLETE ---")
 	} else {
@@ -282,26 +299,24 @@ func (s *Syncer) Sync(ctx context.Context, relativeFiles []string) error {
 
 // ClearRemote deletes all files managed by the API key.
 func (s *Syncer) ClearRemote(ctx context.Context) error {
+	// Logic remains the same, relies on corrected listRemoteFiles and deleteFile
 	s.logger.Println("Starting remote file clearing process...")
 	if s.config.DryRun {
 		s.logger.Println("--- DRY RUN MODE ---")
 	}
 
-	// List *all* files, regardless of state.
 	remoteFiles, err := s.listRemoteFiles(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to list remote files for clearing: %w", err)
 	}
-
 	if len(remoteFiles) == 0 {
 		s.logger.Println("No remote files found to clear.")
 		return nil
 	}
-
 	s.logger.Printf("Found %d remote files to potentially delete.", len(remoteFiles))
 
 	var wg sync.WaitGroup
-	errChan := make(chan error, len(remoteFiles))
+	errChan := make(chan error, len(remoteFiles)+1)
 
 	for _, rf := range remoteFiles {
 		if s.config.DryRun {
@@ -311,8 +326,7 @@ func (s *Syncer) ClearRemote(ctx context.Context) error {
 			go func(f RemoteFile) {
 				defer wg.Done()
 				s.logger.Printf("Executing: Deleting remote %s (Name: %s)", f.DisplayName, f.Name)
-				// Delete using the unique Name identifier
-				if err := s.deleteFile(ctx, f.Name); err != nil {
+				if err := s.deleteFile(ctx, f.Name); err != nil { // Uses corrected deleteFile
 					errChan <- fmt.Errorf("failed to delete %s (Name: %s): %w", f.DisplayName, f.Name, err)
 				} else {
 					s.logger.Printf("Success: Deleted remote %s (Name: %s)", f.DisplayName, f.Name)
@@ -322,9 +336,8 @@ func (s *Syncer) ClearRemote(ctx context.Context) error {
 	}
 
 	if !s.config.DryRun {
-		wg.Wait() // Wait for all deletions
+		wg.Wait()
 		close(errChan)
-
 		var clearErrors []string
 		for err := range errChan {
 			s.logger.Printf("Error during clear remote execution: %v", err)
@@ -341,72 +354,50 @@ func (s *Syncer) ClearRemote(ctx context.Context) error {
 	return nil
 }
 
-// --- API Interaction Helpers ---
+// --- API Interaction Helpers (Using FileService) ---
 
-// listRemoteFiles fetches the list of files from the Gemini API using the genai.Client.
-// According to documentation, ListFiles is a method directly on the client.
+// listRemoteFiles uses the FileService client.
 func (s *Syncer) listRemoteFiles(ctx context.Context) ([]RemoteFile, error) {
 	s.logger.Println("Listing remote files via API...")
 	var remoteFiles []RemoteFile
-
-	// Use the ListFiles method directly from the genai client
-	iter := s.client.ListFiles(ctx) // This returns *FileIterator
-
+	// Use FileService client
+	iter := s.fs.ListFiles(ctx) // Use FileService
 	for {
 		file, err := iter.Next()
 		if err == iterator.Done {
-			break // Finished iterating
+			break
 		}
 		if err != nil {
 			return nil, fmt.Errorf("failed during remote file iteration: %w", err)
 		}
-		if file == nil { // Defensive check
+		if file == nil {
 			s.logger.Printf("Warning: Iterator returned nil file, skipping")
 			continue
 		}
-
-		// Convert the genai.File struct to our internal RemoteFile struct
+		// Conversion logic remains the same
 		remoteFiles = append(remoteFiles, RemoteFile{
 			Name:        file.Name,
 			DisplayName: file.DisplayName,
 			SizeBytes:   file.SizeBytes,
-			SHA256Hash:  fmt.Sprintf("%x", file.SHA256Hash), // Convert []byte hash to hex string
-			State:       file.State.String(),                // Convert enum state to string
+			SHA256Hash:  fmt.Sprintf("%x", file.SHA256Hash), // Ensure hex format
+			State:       file.State.String(),
 			UpdateTime:  file.UpdateTime,
 			URI:         file.URI,
 		})
 		s.logger.Printf("Debug: Found remote file Name: %s, DisplayName: '%s', State: %s, Size: %d, Hash: %s...",
 			file.Name, file.DisplayName, file.State.String(), file.SizeBytes, fmt.Sprintf("%x", file.SHA256Hash)[:8])
 	}
-
 	s.logger.Printf("Finished listing remote files. Total found: %d", len(remoteFiles))
 	return remoteFiles, nil
 }
 
-// uploadFile uploads a single local file to the Gemini API using genai.Client.
-// According to documentation, UploadFile is a method directly on the client,
-// and UploadFileOptions is a type defined in the package.
-func (s *Syncer) uploadFile(ctx context.Context, absPath string, displayName string) (*genai.File, error) {
-	fileReader, err := os.Open(absPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open local file %s: %w", absPath, err)
-	}
-	defer fileReader.Close() // Ensure file is closed
+// uploadFile uses the FileService client.
+func (s *Syncer) uploadFile(ctx context.Context, displayName string, content []byte) (*genai.File, error) {
+	s.logger.Printf("API: Uploading content for DisplayName '%s' (%d bytes)", displayName, len(content))
 
-	s.logger.Printf("API: Uploading '%s' with DisplayName '%s'", absPath, displayName)
-
-	// Prepare options for the upload using the genai.UploadFileOptions type.
-	// This struct allows specifying DisplayName and MimeType.
-	opts := &genai.UploadFileOptions{
-		DisplayName: displayName,
-		// Optionally set MimeType:
-		// MimeType: mime.TypeByExtension(filepath.Ext(absPath)),
-	}
-
-	// Call UploadFile directly on the client.
-	// Pass "" for the optional 'name' argument to let the API generate a unique resource name.
-	// Pass the file reader and the options struct.
-	uploadedFile, err := s.client.UploadFile(ctx, "", fileReader, opts)
+	// Pass DisplayName directly as the third argument to fs.UploadFile
+	// Correct usage: Use strings.NewReader for the content (io.Reader).
+	uploadedFile, err := s.fs.UploadFile(ctx, "", displayName, strings.NewReader(string(content))) // Pass displayName & reader
 	if err != nil {
 		return nil, fmt.Errorf("api upload call failed for %s: %w", displayName, err)
 	}
@@ -415,101 +406,103 @@ func (s *Syncer) uploadFile(ctx context.Context, absPath string, displayName str
 	}
 
 	s.logger.Printf("API: Upload successful for '%s'. Remote Name: %s, State: %s", displayName, uploadedFile.Name, uploadedFile.State.String())
-
 	return uploadedFile, nil
 }
 
-// deleteFile deletes a file from the Gemini API using its unique name via genai.Client.
-// According to documentation, DeleteFile is a method directly on the client.
+// deleteFile uses the FileService client.
 func (s *Syncer) deleteFile(ctx context.Context, remoteFileName string) error {
 	s.logger.Printf("API: Requesting deletion of remote file: %s", remoteFileName)
-
-	// Call DeleteFile directly on the client using the unique file Name.
-	err := s.client.DeleteFile(ctx, remoteFileName)
+	// Use FileService client
+	err := s.fs.DeleteFile(ctx, remoteFileName) // Use FileService
 	if err != nil {
-		// Consider checking for specific errors like "not found" if needed.
 		return fmt.Errorf("api delete call failed for %s: %w", remoteFileName, err)
 	}
-
 	s.logger.Printf("API: Deletion request successful for %s", remoteFileName)
 	return nil
 }
 
 // --- Utility Functions ---
 
-// checkPathSafety ensures the target directory is within the current working directory.
-func checkPathSafety(targetDir string) error {
-	cwd, err := os.Getwd()
-	if err != nil {
-		return fmt.Errorf("failed to get current working directory: %w", err)
-	}
-	absTarget, err := filepath.Abs(targetDir)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get absolute path for target %s: %w", targetDir, err)
-	}
-	absCwd, err := filepath.Abs(cwd)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get absolute path for cwd %s: %w", cwd, err)
-	}
-
-	if !strings.HasPrefix(absTarget+string(filepath.Separator), absCwd+string(filepath.Separator)) {
-		return nil, fmt.Errorf("target directory '%s' is not inside the current working directory '%s'", absTarget, absCwd)
-	}
-	if absTarget == absCwd {
-		return nil, fmt.Errorf("syncing the current working directory itself ('%s') is not allowed by default", absCwd)
-	}
-	return nil
-}
-
-// getFileHash calculates the SHA256 hash of a file and returns it as a hex string.
-func getFileHash(filePath string) (string, error) {
-	file, err := os.Open(filePath)
-	if err != nil {
-		return "", fmt.Errorf("failed to open file %s for hashing: %w", filePath, err)
-	}
-	defer file.Close()
-
-	hash := sha256.New()
-	if _, err := io.Copy(hash, file); err != nil {
-		return "", fmt.Errorf("failed to read file %s for hashing: %w", filePath, err)
-	}
-	return fmt.Sprintf("%x", hash.Sum(nil)), nil
-}
-
-// FindFiles walks the directory relative to baseDir and applies glob filters.
-func FindFiles(baseDir string, includes, excludes []string, logger *log.Logger) ([]string, error) {
+// FindFiles uses TOOL.WalkDir and applies filters.
+func FindFiles(interp *core.Interpreter, baseDirRel string, includes, excludes []string, gitIgnore *gitignore.GitIgnore, logger *log.Logger) ([]string, error) {
 	if logger == nil {
 		logger = log.New(io.Discard, "", 0)
 	}
-
-	absBaseDir, err := filepath.Abs(baseDir)
-	if err != nil {
-		return nil, fmt.Errorf("cannot get absolute path for %s: %w", baseDir, err)
+	if interp == nil {
+		return nil, fmt.Errorf("FindFiles requires a valid interpreter")
 	}
-	var files []string
 
+	logger.Printf("FindFiles: Walking directory '%s' using TOOL.WalkDir", baseDirRel)
+
+	// Call the WalkDir tool using ExecuteToolCall
+	walkResultIntf, err := interp.ExecuteToolCall("WalkDir", baseDirRel) // Use ExecuteToolCall
+	if err != nil {
+		logger.Printf("Error: TOOL.WalkDir failed for '%s': %v", baseDirRel, err)
+		if errors.Is(err, core.ErrPathViolation) {
+			return nil, fmt.Errorf("walking directory failed: %w", core.ErrPathViolation)
+		}
+		// Check if the error indicates the start path didn't exist
+		// Note: This depends on how WalkDir wraps os.ErrNotExist. Checking substring might be needed.
+		if errors.Is(err, os.ErrNotExist) || errors.Is(err, core.ErrFileNotFound) || strings.Contains(err.Error(), "Start path not found") {
+			logger.Printf("FindFiles: TOOL.WalkDir reported start path '%s' not found.", baseDirRel)
+			return []string{}, nil // Not an error for FindFiles, just no files found
+		}
+		return nil, fmt.Errorf("failed to walk directory '%s': %w", baseDirRel, err)
+	}
+
+	// Process result (Type assertion)
+	if walkResultIntf == nil {
+		logger.Printf("FindFiles: TOOL.WalkDir returned nil for '%s' (directory likely doesn't exist or is empty).", baseDirRel)
+		return []string{}, nil
+	}
+
+	// Type assertion logic remains the same
+	var walkResultList []map[string]interface{}
+	switch v := walkResultIntf.(type) {
+	case []map[string]interface{}:
+		walkResultList = v
+	case []interface{}:
+		for _, item := range v {
+			if itemMap, ok := item.(map[string]interface{}); ok {
+				walkResultList = append(walkResultList, itemMap)
+			} else {
+				logger.Printf("Error: TOOL.WalkDir result list contained unexpected item type: %T", item)
+				return nil, fmt.Errorf("unexpected item type in WalkDir result: %w", core.ErrInternalTool)
+			}
+		}
+	default:
+		logger.Printf("Error: TOOL.WalkDir returned unexpected type: %T", walkResultIntf)
+		return nil, fmt.Errorf("unexpected result type from WalkDir: %w", core.ErrInternalTool)
+	}
+
+	logger.Printf("FindFiles: TOOL.WalkDir returned %d entries for '%s'. Filtering...", len(walkResultList), baseDirRel)
+
+	// Filtering logic (remains the same)
+	var files []string
 	effectiveIncludes := includes
 	if len(effectiveIncludes) == 0 {
 		effectiveIncludes = []string{"**/*"}
-		logger.Printf("Debug: No include patterns provided, defaulting to: %v", effectiveIncludes)
-	} else {
-		logger.Printf("Debug: Using include patterns: %v", effectiveIncludes)
 	}
-	logger.Printf("Debug: Using exclude patterns: %v", excludes)
 
-	walkRoot := os.DirFS(absBaseDir)
-
-	err = fs.WalkDir(walkRoot, ".", func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			logger.Printf("Warning: Error accessing path %s: %v", path, err)
-			return nil
+	for _, entryMap := range walkResultList {
+		relPathIntf, okPath := entryMap["path"]
+		isDirIntf, okIsDir := entryMap["isDir"]
+		if !okPath || !okIsDir {
+			logger.Printf("Warning: Skipping entry due to missing 'path' or 'isDir' key: %+v", entryMap)
+			continue
+		}
+		relPath, okPathStr := relPathIntf.(string)
+		isDir, okIsDirBool := isDirIntf.(bool)
+		if !okPathStr || !okIsDirBool {
+			logger.Printf("Warning: Skipping entry due to unexpected type for 'path' (%T) or 'isDir' (%T): %+v", relPathIntf, isDirIntf, entryMap)
+			continue
+		}
+		relPathSlash := filepath.ToSlash(relPath)
+		if isDir {
+			continue // Skip directories
 		}
 
-		relPathSlash := filepath.ToSlash(path)
-		if relPathSlash == "." || relPathSlash == "" {
-			return nil
-		}
-
+		// Exclude patterns
 		excluded := false
 		for _, pattern := range excludes {
 			match, _ := doublestar.Match(pattern, relPathSlash)
@@ -519,20 +512,17 @@ func FindFiles(baseDir string, includes, excludes []string, logger *log.Logger) 
 				break
 			}
 		}
-
 		if excluded {
-			if d.IsDir() {
-				logger.Printf("Debug: Skipping excluded directory: %s", relPathSlash)
-				return fs.SkipDir
-			}
-			logger.Printf("Debug: Skipping excluded file: %s", relPathSlash)
-			return nil
+			continue
 		}
 
-		if d.IsDir() {
-			return nil
+		// Gitignore
+		if gitIgnore != nil && gitIgnore.MatchesPath(relPathSlash) {
+			logger.Printf("Debug: Skipping gitignored file: %s", relPathSlash)
+			continue
 		}
 
+		// Include patterns
 		included := false
 		for _, pattern := range effectiveIncludes {
 			match, _ := doublestar.Match(pattern, relPathSlash)
@@ -542,21 +532,14 @@ func FindFiles(baseDir string, includes, excludes []string, logger *log.Logger) 
 				break
 			}
 		}
-
 		if included {
 			logger.Printf("Debug: Adding included file: %s", relPathSlash)
 			files = append(files, relPathSlash)
 		} else {
 			logger.Printf("Debug: Skipping file '%s' (did not match include patterns)", relPathSlash)
 		}
-
-		return nil
-	})
-
-	if err != nil {
-		return nil, fmt.Errorf("error walking directory %s: %w", baseDir, err)
 	}
 
-	logger.Printf("FindFiles finished. Found %d matching files.", len(files))
+	logger.Printf("FindFiles finished. Found %d matching files after filtering.", len(files))
 	return files, nil
 }

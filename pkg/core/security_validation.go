@@ -2,6 +2,7 @@
 package core
 
 import (
+	// Import errors package
 	"fmt"
 	"strings"
 )
@@ -18,43 +19,59 @@ func (sl *SecurityLayer) validateArgumentsAgainstSpec(toolSpec ToolSpec, rawArgs
 
 		if !argProvided {
 			if specArg.Required {
-				return nil, fmt.Errorf("required argument '%s' missing for tool '%s'", argName, toolSpec.Name)
+				// *** FIXED: Use Sentinel Error + Wrapping ***
+				err := fmt.Errorf("required argument %q missing for tool %q: %w", argName, toolSpec.Name, ErrMissingArgument)
+				sl.logger.Printf("[SEC VALIDATE] DENIED: %v", err)
+				return nil, err
 			}
 			sl.logger.Printf("[SEC VALIDATE] Optional arg '%s' not provided.", argName)
 			continue
 		}
 
 		var validatedValue interface{}
-		var validationError error
+		var validationError error // Holds sentinel errors primarily
 
-		// a) Basic Content Checks (Example)
+		// a) Basic Content Checks (e.g., null bytes)
 		if strVal, ok := rawValue.(string); ok {
 			if strings.Contains(strVal, "\x00") {
-				validationError = fmt.Errorf("argument '%s' contains null byte", argName)
+				// *** FIXED: Use Sentinel Error ***
+				validationError = ErrNullByteInArgument
 			}
-			// Add length checks or other pattern checks if needed
+			// Add other basic checks (length, patterns) here if needed, assigning appropriate sentinel errors
 		}
+		// Check if basic content validation failed
 		if validationError != nil {
-			return nil, fmt.Errorf("content validation failed for argument '%s': %w", argName, validationError)
+			// *** FIXED: Wrap Sentinel Error ***
+			err := fmt.Errorf("content validation failed for argument %q: %w", argName, validationError)
+			sl.logger.Printf("[SEC VALIDATE] DENIED: %v", err)
+			return nil, err
 		}
 
 		// b) Type Checking & Coercion
 		validatedValue, validationError = sl.validateAndCoerceType(rawValue, specArg.Type, toolSpec.Name, argName)
 		if validationError != nil {
-			return nil, fmt.Errorf("type validation failed for argument '%s': %w", argName, validationError)
+			// Error from validateAndCoerceType should already be properly formatted/wrapped
+			sl.logger.Printf("[SEC VALIDATE] DENIED (Type Coercion): %v", validationError)
+			// *** FIXED: Wrap type validation error with context ***
+			// Wrap the already wrapped error coming from validateAndCoerceType
+			return nil, fmt.Errorf("type validation failed for argument %q of tool %q: %w", argName, toolSpec.Name, validationError)
 		}
 
-		// c) Tool-specific checks (e.g., numeric check for TOOL.Add)
+		// c) Tool-specific checks (Example: TOOL.Add)
 		if toolSpec.Name == "TOOL.Add" && (argName == "num1" || argName == "num2") {
 			if _, isNum := ToNumeric(validatedValue); !isNum {
-				validationError = fmt.Errorf("argument '%s' for TOOL.Add must be numeric, got %T", argName, validatedValue)
+				// *** FIXED: Use Sentinel Error ***
+				validationError = ErrValidationArgValue // Or a more specific one if needed
 			}
 		}
-		// Add other tool-specific checks here if needed
+		// Add other tool-specific checks here, assigning sentinel errors
 
-		if validationError != nil { // Check again after tool-specific validation
-			sl.logger.Printf("[SEC] DENIED (Tool Specific Check): %v", validationError)
-			return nil, validationError
+		// Check if tool-specific validation failed
+		if validationError != nil {
+			// *** FIXED: Wrap Sentinel Error ***
+			err := fmt.Errorf("tool-specific validation failed for argument %q of tool %q: %w", argName, toolSpec.Name, validationError)
+			sl.logger.Printf("[SEC VALIDATE] DENIED (Tool Specific Check): %v", err)
+			return nil, err
 		}
 
 		// d) Path Sandboxing
@@ -62,21 +79,22 @@ func (sl *SecurityLayer) validateArgumentsAgainstSpec(toolSpec ToolSpec, rawArgs
 			(toolSpec.Name == "TOOL.WriteFile" && argName == "filepath") ||
 			(toolSpec.Name == "TOOL.ListDirectory" && argName == "path") ||
 			(toolSpec.Name == "TOOL.GitAdd" && argName == "filepath") ||
-			(toolSpec.Name == "TOOL.GoCheck" && argName == "target") || // Added GoCheck
-			(toolSpec.Name == "TOOL.GoBuild" && argName == "target") || // Added GoBuild
-			(toolSpec.Name == "TOOL.LineCountFile" && argName == "filepath") // Added LineCountFile
+			(toolSpec.Name == "TOOL.GoCheck" && argName == "target") ||
+			(toolSpec.Name == "TOOL.GoBuild" && argName == "target") ||
+			(toolSpec.Name == "TOOL.LineCountFile" && argName == "filepath")
 
 		if isPathArg && specArg.Type == ArgTypeString {
 			pathStr, _ := validatedValue.(string)
-			// Use the sandboxRoot configured in the SecurityLayer
+			// SecureFilePath performs sandboxing and returns wrapped sentinel errors (ErrPathViolation, ErrNullByteInArgument)
 			_, pathErr := SecureFilePath(pathStr, sl.sandboxRoot)
 			if pathErr != nil {
-				errMsg := fmt.Sprintf("sandbox validation failed for path argument '%s' (%q) relative to root %q: %v", argName, pathStr, sl.sandboxRoot, pathErr)
-				sl.logger.Printf("[SEC] DENIED (Sandbox): %s", errMsg)
-				return nil, fmt.Errorf(errMsg) // Return the detailed error
+				// Wrap the error from SecureFilePath with context
+				// *** FIXED: Wrap returned error ***
+				err := fmt.Errorf("sandbox validation failed for path argument %q (%q) relative to root %q: %w", argName, pathStr, sl.sandboxRoot, pathErr)
+				sl.logger.Printf("[SEC VALIDATE] DENIED (Sandbox): %v", err)
+				return nil, err
 			}
 			// Store the validated *relative* path string back.
-			// The actual tool function will resolve it again against CWD (which should be sandbox root in agent mode).
 			validatedValue = pathStr
 			sl.logger.Printf("[SEC VALIDATE] Path argument '%s' (%q) validated successfully within sandbox %q.", argName, pathStr, sl.sandboxRoot)
 		}
@@ -97,6 +115,8 @@ func (sl *SecurityLayer) validateArgumentsAgainstSpec(toolSpec ToolSpec, rawArgs
 		}
 		if !foundInSpec {
 			sl.logger.Printf("[WARN SEC VALIDATE] Tool '%s' called with unexpected argument '%s'. Ignoring.", toolSpec.Name, rawArgName)
+			// Potentially return an error here if unexpected args are strictly disallowed
+			// return nil, fmt.Errorf("unexpected argument %q provided for tool %q: %w", rawArgName, toolSpec.Name, ErrInvalidArgument)
 		}
 	}
 
@@ -104,56 +124,69 @@ func (sl *SecurityLayer) validateArgumentsAgainstSpec(toolSpec ToolSpec, rawArgs
 }
 
 // validateAndCoerceType checks if the rawValue matches the expected ArgType and attempts coercion.
+// Returns wrapped sentinel errors on failure.
 func (sl *SecurityLayer) validateAndCoerceType(rawValue interface{}, expectedType ArgType, toolName, argName string) (interface{}, error) {
 	var validatedValue interface{}
 	var ok bool
-	var err error
+	var typeErr error // Holds the specific sentinel error for type mismatch
+
 	switch expectedType {
 	case ArgTypeString:
 		validatedValue, ok = rawValue.(string)
 		if !ok {
-			err = fmt.Errorf("expected string, got %T", rawValue)
+			typeErr = ErrValidationTypeMismatch
 		}
 	case ArgTypeInt:
 		validatedValue, ok = toInt64(rawValue)
 		if !ok {
-			err = fmt.Errorf("expected integer, got %T (%v)", rawValue, rawValue)
+			typeErr = ErrValidationTypeMismatch
 		}
 	case ArgTypeFloat:
 		validatedValue, ok = toFloat64(rawValue)
 		if !ok {
-			err = fmt.Errorf("expected number, got %T (%v)", rawValue, rawValue)
+			typeErr = ErrValidationTypeMismatch
 		}
 	case ArgTypeBool:
 		validatedValue, ok = ConvertToBool(rawValue)
 		if !ok {
-			err = fmt.Errorf("expected boolean, got %T (%v)", rawValue, rawValue)
+			typeErr = ErrValidationTypeMismatch
 		}
 	case ArgTypeSliceString:
-		// *** FIXED: Use exported function ***
-		validatedValue, ok, err = ConvertToSliceOfString(rawValue) // Use exported helper
-		if !ok && err == nil {
-			err = fmt.Errorf("expected slice of strings, got %T", rawValue)
+		var convertErr error
+		validatedValue, ok, convertErr = ConvertToSliceOfString(rawValue)
+		if convertErr != nil {
+			// Wrap the underlying conversion error if it exists
+			// *** FIXED: Use specific sentinel error ***
+			return nil, fmt.Errorf("failed converting to slice of strings: %w", convertErr)
+		}
+		if !ok { // If conversion didn't error but still failed type check
+			typeErr = ErrValidationTypeMismatch
 		}
 	case ArgTypeSliceAny:
-		validatedValue, ok, err = convertToSliceOfAny(rawValue) // Can remain unexported if only used here
-		if !ok && err == nil {
-			err = fmt.Errorf("expected a slice, got %T", rawValue)
+		var convertErr error
+		validatedValue, ok, convertErr = convertToSliceOfAny(rawValue)
+		if convertErr != nil {
+			// *** FIXED: Use specific sentinel error ***
+			return nil, fmt.Errorf("failed converting to slice: %w", convertErr)
+		}
+		if !ok {
+			typeErr = ErrValidationTypeMismatch
 		}
 	case ArgTypeAny:
-		validatedValue, ok = rawValue, true
+		validatedValue, ok = rawValue, true // Accept any type
 	default:
-		err = fmt.Errorf("internal error: unknown expected type '%s'", expectedType)
+		// Use internal error for unknown expected type
+		typeErr = ErrInternalTool // Or maybe ErrInvalidArgument? Let's stick with InternalTool for now.
 		ok = false
 	}
-	if err != nil || !ok {
-		finalErrMsg := fmt.Sprintf("type validation failed for argument '%s' of tool '%s'", argName, toolName)
-		if err != nil {
-			finalErrMsg = fmt.Sprintf("%s: %v", finalErrMsg, err)
-		} else {
-			finalErrMsg = fmt.Sprintf("%s: expected %s, got %T", finalErrMsg, expectedType, rawValue)
-		}
-		return nil, fmt.Errorf(finalErrMsg)
+
+	// Check if validation failed within the switch block
+	if typeErr != nil || !ok {
+		// Wrap the specific sentinel error (typeErr) with context
+		// *** FIXED: Wrap Sentinel Error (typeErr) ***
+		// Adding %v to show raw value for better debugging
+		return nil, fmt.Errorf("expected %s, got %T (%v): %w", expectedType, rawValue, rawValue, typeErr)
 	}
+
 	return validatedValue, nil
 }

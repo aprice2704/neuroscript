@@ -3,13 +3,25 @@ package core
 
 import "errors"
 
-// --- Core Validation Errors (for ValidateAndConvertArgs) ---
+// --- Core Validation Errors (for ValidateAndConvertArgs & Security) ---
 var (
 	ErrValidationRequiredArgNil = errors.New("required argument is nil")
 	ErrValidationTypeMismatch   = errors.New("argument type mismatch")
 	ErrValidationArgCount       = errors.New("incorrect argument count")
-	// *** ADDED ***
-	ErrValidationArgValue = errors.New("invalid argument value")
+	ErrValidationArgValue       = errors.New("invalid argument value")
+	ErrMissingArgument          = errors.New("required argument missing")
+	ErrInvalidArgument          = errors.New("invalid argument")
+	ErrNullByteInArgument       = errors.New("argument contains null byte")
+)
+
+// --- Core Security Errors ---
+var (
+	ErrToolDenied        = errors.New("tool explicitly denied")
+	ErrToolNotAllowed    = errors.New("tool not in allowlist")
+	ErrToolBlocked       = errors.New("tool blocked by security policy")
+	ErrSecurityViolation = errors.New("security violation")
+	ErrPathViolation     = errors.New("path resolves outside allowed directory")
+	ErrInternalSecurity  = errors.New("internal security error")
 )
 
 // --- Core Tool Execution Errors ---
@@ -23,31 +35,31 @@ var (
 	ErrCollectionIsNil          = errors.New("collection evaluated to nil")
 	ErrAccessorIsNil            = errors.New("accessor evaluated to nil")
 	// File System Tool Errors
-	ErrPathViolation   = errors.New("path resolves outside allowed directory")
-	ErrCannotCreateDir = errors.New("cannot create directory")
-	ErrCannotDelete    = errors.New("cannot delete file or directory")
-
-	// --- Go Tooling Errors ---
-	ErrGoParseFailed  = errors.New("failed to parse Go source")
-	ErrGoModifyFailed = errors.New("failed to modify Go AST")
-	ErrGoFormatFailed = errors.New("failed to format Go AST")
-	// GoModifyAST Specific Validation Errors
+	ErrCannotCreateDir      = errors.New("cannot create directory")
+	ErrCannotDelete         = errors.New("cannot delete file or directory")
+	ErrInvalidHashAlgorithm = errors.New("invalid or unsupported hash algorithm")
+	ErrFileNotFound         = errors.New("file not found") // <<< ADDED HERE <<<
+	// Go Tooling Errors
+	ErrGoParseFailed                 = errors.New("failed to parse Go source")
+	ErrGoModifyFailed                = errors.New("failed to modify Go AST")
+	ErrGoFormatFailed                = errors.New("failed to format Go AST")
 	ErrGoModifyInvalidDirectiveValue = errors.New("invalid value for GoModifyAST directive")
 	ErrGoModifyMissingMapKey         = errors.New("missing required key in GoModifyAST directive map")
 	ErrGoModifyEmptyMap              = errors.New("GoModifyAST modifications map cannot be empty")
 	ErrGoModifyUnknownDirective      = errors.New("GoModifyAST modifications map contains no known directives")
-	// --- NEW: GoFind/Replace Identifier Errors ---
-	ErrGoInvalidIdentifierFormat = errors.New("invalid identifier format (e.g., empty string)")
-	// --- ADDED Cache Errors ---
+	ErrGoInvalidIdentifierFormat     = errors.New("invalid identifier format (e.g., empty string)")
+	// Cache Errors
 	ErrCacheObjectNotFound  = errors.New("object not found in cache")
 	ErrCacheObjectWrongType = errors.New("object found in cache has wrong type")
-	// --- End Added Cache Errors ---
-	// ErrIdentifierNotFound is not needed; return empty list instead.
-	// --- End New Errors ---
-
-	// Add other general tool errors as needed
+	// General Tool Error
 	ErrInternalTool = errors.New("internal tool error")
 )
 
 // --- Core Interpreter Errors ---
-// (Potentially add interpreter-specific errors here later if needed)
+var (
+	ErrProcedureNotFound    = errors.New("procedure not found")         // Moved here from general
+	ErrArgumentMismatch     = errors.New("argument mismatch")           // Moved here
+	ErrMaxCallDepthExceeded = errors.New("maximum call depth exceeded") // Moved here
+	ErrUnknownKeyword       = errors.New("unknown keyword")             // Moved here
+	// Add others like ErrVariableNotFound if needed
+)
