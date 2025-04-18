@@ -28,7 +28,7 @@ The NeuroScript project (NS) aims to allow Humans, AIs and computers to communic
 
 3. **Allows oversight and auditing** because everything is in plain text, and should be readable by all parties  
 
-4. **Reduces energy consumption** as a nice effect of allowing specialization lower IQ AIs can upgrade their abilities using procedural knowledge ad tools  
+4. **Reduces energy consumption** as a nice effect of allowing specialization lower IQ AIs can upgrade their abilities using procedural knowledge and tools  
 
 5. **Increased repeatability**: procedural knowledge is inherent and clearly communicated in neuroscript, NeuroData formats encode data consistently and are ready for use by all 
 
@@ -207,8 +207,8 @@ This project is licensed under the **MIT License**
 ## Authors
 
 Authors:  Andrew Price (www.eggstremestructures.com),
-          Gemini 1.5 Pro (gemini.google.com)
+          Gemini 2.5 Pro (gemini.google.com)
 
 :: version: 0.1.6  
 :: dependsOn: docs/script spec.md, docs/development checklist.md  
-:: Authors: Andrew Price, Gemini 1.5  
+:: Authors: Andrew Price, Gemini 2.5  
