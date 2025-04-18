@@ -36,7 +36,7 @@ The NeuroScript project (NS) aims to allow Humans, AIs and computers to communic
 
 1. Readability: all users must be able to read, and in principle edit, NS formats of all kinds without having to resort to documentation for simple changes; thus NS formats should be as self-describing as practical  
 
-2. Executability: similarly, eveyone should be able to follow the intent of all scripts so that anyone could, in principle, audit and execute NS formats
+2. Executability: similarly, everyone should be able to follow the intent of all scripts so that anyone could, in principle, audit and execute NS formats
 
 3. Clarity: The preeminent focus of all NS files should be clarity over concision or features
 
