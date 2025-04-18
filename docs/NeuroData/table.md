@@ -3,8 +3,8 @@
 :: type: TableFormatSpec
 :: version: 0.1.0
 :: status: draft
-:: dependsOn: docs/metadata.md, docs/neurodata_and_composite_file_spec.md, docs/script spec.md
-:: howToUpdate: Review schema definitions, validation rules, data format, EBNF, and examples. Update planned features (NS fragments).
+:: dependsOn: docs/metadata.md, docs/neurodata_and_composite_file_spec.md, docs/script spec.md, docs/ns/tools/query_table
+:: howToUpdate: Review schema definitions, validation rules, data format, EBNF, and examples. Update planned features (NS fragments). See also query spec (docs/ns/tools/query_table)
 
 ## 1. Purpose
 
@@ -134,5 +134,3 @@ COLUMN created  timestamp DEFAULT(NOW)
 4 | David | david@domain.org | pending | 2024-03-10T15:45:10Z
 5 | Eve   | eve@domain.org    | inactive| 2024-03-11T16:00:00Z
 ```
-
-You can copy this into `docs/neurodata/table.md`. Let me know your thoughts!
