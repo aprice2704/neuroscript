@@ -2,14 +2,20 @@
 package core
 
 import (
+	"context" // Added for GenAI client init
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
+	"os" // Added for Getenv
 
 	// Import core
 	"github.com/aprice2704/neuroscript/pkg/core/prompts" // Import core
 	// *** ADDED: Import for UUIDs for handles ***
 	"github.com/google/uuid"
+	// *** ADDED: Imports for GenAI Client ***
+	"github.com/google/generative-ai-go/genai"
+	"google.golang.org/api/option"
 )
 
 // --- Interpreter ---
@@ -26,6 +32,8 @@ type Interpreter struct {
 	// *** ADDED: Caches for opaque handles ***
 	objectCache map[string]interface{} // Stores actual objects (e.g., *ast.File) keyed by handle ID
 	handleTypes map[string]string      // Stores type tag (e.g., "GolangAST") for each handle ID
+	// *** ADDED: GenAI Client ***
+	genaiClient *genai.Client
 }
 
 // getCachedObjectAndType helper for testing cache state.
@@ -49,6 +57,13 @@ func (i *Interpreter) ToolRegistry() *ToolRegistry {
 		// Core tools are registered by main now, so no need to register here.
 	}
 	return i.toolRegistry
+}
+
+// --- ADDED: Getter for GenAI Client ---
+func (i *Interpreter) GenAIClient() *genai.Client {
+	// Note: We rely on NewInterpreter having initialized it.
+	// If it could be nil, add a check here.
+	return i.genaiClient
 }
 
 // --- Exported method to add procedures ---
@@ -137,12 +152,33 @@ func (i *Interpreter) retrieveObjectFromCache(handleID string, expectedTypeTag s
 // --- END ADDED Handle Cache Methods ---
 
 // NewInterpreter creates a new interpreter instance.
-// *** MODIFIED: Initialize new maps ***
+// *** MODIFIED: Initialize new maps and GenAI Client ***
 func NewInterpreter(logger *log.Logger) *Interpreter {
 	effectiveLogger := logger
 	if effectiveLogger == nil {
 		effectiveLogger = log.New(io.Discard, "", 0)
 	}
+
+	// --- Initialize GenAI Client ---
+	// Using GEMINI_API_KEY based on llm.go pattern
+	apiKey := os.Getenv("GEMINI_API_KEY")
+	var genaiClient *genai.Client
+	var clientErr error
+	if apiKey == "" {
+		effectiveLogger.Println("[WARN] GEMINI_API_KEY environment variable not set. File API tools will likely fail.")
+		// Allow creation but client will be nil
+	} else {
+		ctx := context.Background() // Use background context for initialization
+		genaiClient, clientErr = genai.NewClient(ctx, option.WithAPIKey(apiKey))
+		if clientErr != nil {
+			effectiveLogger.Printf("[ERROR] Failed to create GenAI client: %v. File API tools will likely fail.", clientErr)
+			// Continue with nil client
+			genaiClient = nil
+		} else {
+			effectiveLogger.Println("[INFO] GenAI client created successfully.")
+		}
+	}
+	// --- End GenAI Client Init ---
 
 	interp := &Interpreter{
 		variables:       make(map[string]interface{}),
@@ -153,10 +189,14 @@ func NewInterpreter(logger *log.Logger) *Interpreter {
 		logger:          effectiveLogger,
 		objectCache:     make(map[string]interface{}), // Initialize object cache
 		handleTypes:     make(map[string]string),      // Initialize handle type map
+		genaiClient:     genaiClient,                  // Store initialized client (or nil)
 	}
 
 	interp.variables["NEUROSCRIPT_DEVELOP_PROMPT"] = prompts.PromptDevelop
 	interp.variables["NEUROSCRIPT_EXECUTE_PROMPT"] = prompts.PromptExecute
+
+	// TODO(?): Add a Close() method to Interpreter to close the genaiClient?
+	// For now, assume the application manages the client lifetime.
 
 	return interp
 }
@@ -227,18 +267,29 @@ func (i *Interpreter) executeSteps(steps []Step) (result interface{}, wasReturn 
 			// Logging details remain the same
 			valueStr := "<nil>"
 			valueType := "<nil>"
-			if step.Value != nil { /* ... */
+			if step.Value != nil {
+				valueBytes, _ := json.Marshal(step.Value)
+				valueStr = string(valueBytes)
+				valueType = fmt.Sprintf("%T", step.Value)
 			}
 			condStr := "<nil>"
 			condType := "<nil>"
-			if step.Cond != nil { /* ... */
+			if step.Cond != nil {
+				condBytes, _ := json.Marshal(step.Cond)
+				condStr = string(condBytes)
+				condType = fmt.Sprintf("%T", step.Cond)
 			}
 			argsStr := "<nil>"
-			if len(step.Args) > 0 { /* ... */
+			if len(step.Args) > 0 {
+				argsBytes, _ := json.Marshal(step.Args)
+				argsStr = string(argsBytes)
 			}
 			elseValueStr := "<nil>"
 			elseValueType := "<nil>"
-			if step.ElseValue != nil { /* ... */
+			if step.ElseValue != nil {
+				elseValueBytes, _ := json.Marshal(step.ElseValue)
+				elseValueStr = string(elseValueBytes)
+				elseValueType = fmt.Sprintf("%T", step.ElseValue)
 			}
 
 			i.logger.Printf("[DEBUG-INTERP]    Executing Step %d: Type=%s, Target=%q, Cond=(%s %s), Value=(%s %s), Else=(%s %s), Args=%s",

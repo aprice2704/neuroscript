@@ -1,6 +1,6 @@
  :: type: Checklist
- :: version: 0.1.3  // Updated version
- :: id: autonomous-refactor-tools-todo-v0.1.3 // Updated version
+ :: version: 0.1.5  // Updated version
+ :: id: autonomous-refactor-tools-todo-v0.1.5 // Updated version
  :: status: draft
  :: dependsOn: [docs/ns/tools/index.md](../docs/ns/tools/index.md), [pkg/core/tools_register.go](../../pkg/core/tools_register.go)
  :: howToUpdate: Update status ([ ], [-], [x]) as tools are specified and implemented. Add new tools if requirements change.
@@ -35,20 +35,20 @@
      - [x] TOOL.GoTest()
      - [x] TOOL.GoCheck([target])
      - [x] TOOL.GoModTidy()
-   - |x| Version Control Tools (Git) // Updated based on user feedback & implementations
+   - |x| Version Control Tools (Git)
      - [x] TOOL.GitAdd(path)
      - [x] TOOL.GitCommit(message)
      - [x] TOOL.GitNewBranch(branch_name)
      - [x] TOOL.GitCheckout(branch_name)
-     - [x] TOOL.GitStatus() // Marked complete per user
-     - [x] TOOL.GitPull() // Implemented
-     - [x] TOOL.GitPush() // Implemented
-     - [x] TOOL.GitDiff() // Implemented (basic)
+     - [x] TOOL.GitStatus()
+     - [x] TOOL.GitPull()
+     - [x] TOOL.GitPush()
+     - [x] TOOL.GitDiff()
      - [x] TOOL.GitRm(path)
-   - |-| File Synchronization Tools (Gemini File API)
-     - [ ] TOOL.SyncFiles(direction, localDir, [filterPattern])
-     - [ ] TOOL.UploadFile(localPath, [displayName])
-     - [ ] TOOL.ListAPIFiles()
-     - [ ] TOOL.DeleteAPIFile(apiFileName)
+   - |x| File Synchronization Tools (Gemini File API) // Implemented SyncFiles ("up" only)
+     - [x] TOOL.SyncFiles(direction, localDir, [filterPattern]) // Implemented ("up" direction only)
+     - [x] TOOL.UploadFile(localPath, [displayName])
+     - [x] TOOL.ListAPIFiles()
+     - [x] TOOL.DeleteAPIFile(apiFileName)
    - |x| User Interaction / Control
      - [x] IO.Input(prompt)

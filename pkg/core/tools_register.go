@@ -39,6 +39,10 @@ func registerCoreTools(registry *ToolRegistry) error {
 	if err := registerIOTools(registry); err != nil {
 		return fmt.Errorf("failed registering IO tools: %w", err)
 	}
+	// +++ ADDED: Call registerFileAPITools +++
+	if err := registerFileAPITools(registry); err != nil {
+		return fmt.Errorf("failed registering File API tools: %w", err)
+	}
 	return nil // Success
 }
 
