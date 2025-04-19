@@ -1,6 +1,7 @@
 // filename: pkg/core/tools_git_test.go
 // NEW: Basic validation tests for new Git tools
 // FIXED: Corrected ValidationTestCase field names (Name, InputArgs, ExpectedError)
+// ADDED: Validation test for GitPull, GitPush, GitDiff
 package core
 
 import (
@@ -92,6 +93,33 @@ func TestToolGitMergeValidation(t *testing.T) {
 		{Name: "Correct Args", InputArgs: makeArgs("develop"), ExpectedError: nil}, // Validation should pass
 	}
 	runValidationTestCases(t, "GitMerge", testCases)
+}
+
+// --- GitPull Validation Tests ---
+func TestToolGitPullValidation(t *testing.T) {
+	testCases := []ValidationTestCase{
+		{Name: "Correct Arg Count (None)", InputArgs: makeArgs(), ExpectedError: nil}, // Expects zero args
+		{Name: "Wrong Arg Count (One)", InputArgs: makeArgs("arg1"), ExpectedError: ErrValidationArgCount},
+	}
+	runValidationTestCases(t, "GitPull", testCases)
+}
+
+// --- GitPush Validation Tests (NEW) ---
+func TestToolGitPushValidation(t *testing.T) {
+	testCases := []ValidationTestCase{
+		{Name: "Correct Arg Count (None)", InputArgs: makeArgs(), ExpectedError: nil}, // Expects zero args
+		{Name: "Wrong Arg Count (One)", InputArgs: makeArgs("arg1"), ExpectedError: ErrValidationArgCount},
+	}
+	runValidationTestCases(t, "GitPush", testCases)
+}
+
+// --- GitDiff Validation Tests (NEW) ---
+func TestToolGitDiffValidation(t *testing.T) {
+	testCases := []ValidationTestCase{
+		{Name: "Correct Arg Count (None)", InputArgs: makeArgs(), ExpectedError: nil}, // Expects zero args
+		{Name: "Wrong Arg Count (One)", InputArgs: makeArgs("arg1"), ExpectedError: ErrValidationArgCount},
+	}
+	runValidationTestCases(t, "GitDiff", testCases)
 }
 
 // TODO: Add functional tests for Git tools, likely requiring mocking of toolExec or a test repo setup.

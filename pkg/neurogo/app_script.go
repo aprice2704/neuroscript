@@ -206,7 +206,9 @@ func (a *App) processNeuroScriptFile(path string, interp *core.Interpreter) ([]c
 	if parseErr != nil {
 		errorMsg := fmt.Sprintf("Parse error processing %s: %s", path, parseErr.Error())
 		a.ErrorLog.Print(errorMsg) // Log parse error
-		return nil, fileVersion, fmt.Errorf(errorMsg)
+		// --- FIX: Use constant format string ---
+		return nil, fileVersion, fmt.Errorf("%s", errorMsg) // Was: return nil, fileVersion, fmt.Errorf(errorMsg)
+		// --- END FIX ---
 	}
 
 	if fileVersion != "" {

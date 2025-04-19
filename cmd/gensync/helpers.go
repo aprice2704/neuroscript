@@ -91,7 +91,7 @@ func SaveIndex(rootDir string, indexMap map[string]IndexEntry) error {
 
 	err = os.Rename(tempFile, indexPath)
 	if err != nil {
-		return fmt.Errorf("renaming temp index file to %s: %w", indexPath, err)
+		return fmt.Errorf("renaming temp index file to %s: %w", tempFile, err)
 	}
 	return nil
 }
@@ -205,7 +205,9 @@ func UploadFile(ctx context.Context, client *genai.Client, localPath, relativePa
 		errMsg := fmt.Sprintf("file %s finished processing but is not ACTIVE (State: %s)", relativePath, apiFile.State)
 		log.Printf("  ERROR: %s (API: %s)", errMsg, apiFile.Name)
 		_ = client.DeleteFile(context.Background(), apiFile.Name)
-		return nil, fmt.Errorf(errMsg)
+		// --- FIX: Use constant format string ---
+		return nil, fmt.Errorf("%s", errMsg) // Was: return nil, fmt.Errorf(errMsg)
+		// --- END FIX ---
 	}
 
 	return apiFile, nil

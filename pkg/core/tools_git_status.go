@@ -2,8 +2,8 @@
 package core
 
 import (
-	"fmt" // Keep for toolGitStatus
-	"regexp"
+	"fmt"
+	"regexp" // Keep for file status regex if needed later, but branch parsing changed
 	"strconv"
 	"strings"
 )
@@ -57,18 +57,32 @@ func toolGitStatus(interpreter *Interpreter, args []interface{}) (interface{}, e
 	if parseErr != nil {
 		// Log parsing error and also include it in the returned map's error field
 		interpreter.logger.Printf("[TOOL GitStatus] Error parsing git status output: %v", parseErr)
+		// Use existing map if partial parsing happened, otherwise create a default one
+		if resultMap == nil {
+			resultMap = map[string]interface{}{
+				"branch":                  interface{}(nil),
+				"remote_branch":           interface{}(nil),
+				"ahead":                   int64(0),
+				"behind":                  int64(0),
+				"files":                   []map[string]interface{}{},
+				"untracked_files_present": false,
+				"is_clean":                false, // Cannot reliably determine cleanliness if parsing fails
+				"error":                   interface{}(nil),
+			}
+		}
 		resultMap["error"] = fmt.Sprintf("Error parsing git status output: %v", parseErr)
-		resultMap["is_clean"] = false // Cannot reliably determine cleanliness if parsing fails
+		resultMap["is_clean"] = false
 	}
 
 	interpreter.logger.Printf("[TOOL GitStatus] Result: %+v", resultMap)
 	return resultMap, nil // Return the result map, no Go error if command itself succeeded
 }
 
-// --- Git Status Parsing Logic ---
+// --- Git Status Parsing Logic (REVISED) ---
 
-// branchInfoRegex parses the branch status line from `git status -b --porcelain`
-var branchInfoRegex = regexp.MustCompile(`^## ([\w\-/.\(\)]+)(?:\.\.\.([\w\-/.]+))?(?: \[(?:ahead (\d+))?(?:, )?(?:behind (\d+))?\])?`)
+// Regular expressions for extracting ahead/behind counts
+var aheadRegex = regexp.MustCompile(`ahead (\d+)`)
+var behindRegex = regexp.MustCompile(`behind (\d+)`)
 
 // parseGitStatusOutput takes the raw string output from git status and parses it.
 // It returns the structured map or a Go error if parsing fails fundamentally.
@@ -80,79 +94,72 @@ func parseGitStatusOutput(output string) (map[string]interface{}, error) {
 		"behind":                  int64(0),
 		"files":                   []map[string]interface{}{},
 		"untracked_files_present": false,
-		"is_clean":                true,             // Assume clean initially
-		"error":                   interface{}(nil), // For soft errors detected during parsing
+		"is_clean":                true, // Assume clean initially
+		"error":                   interface{}(nil),
 	}
 	filesList := []map[string]interface{}{}
 
-	// Trim leading/trailing whitespace and split into lines
 	trimmedOutput := strings.TrimSpace(output)
 	if trimmedOutput == "" {
-		// Empty output implies clean (and likely not unborn, as that has a header)
-		return resultMap, nil
+		return resultMap, nil // Empty output means clean
 	}
 	lines := strings.Split(trimmedOutput, "\n")
 
-	branchLine := ""
-	if len(lines) > 0 {
-		branchLine = lines[0]
-	} else {
-		// Should not happen if trimmedOutput was not empty, but handle defensively
-		resultMap["is_clean"] = true
-		return resultMap, nil
+	if len(lines) == 0 {
+		return resultMap, nil // Should not happen, but be safe
 	}
+	branchLine := lines[0]
+	branchInfo := "" // Part of the line containing branch/remote/ahead/behind info
 
-	// Handle unborn branch specifically first
-	if strings.HasPrefix(branchLine, "## No commits yet on ") {
-		parts := strings.Fields(branchLine)
-		if len(parts) >= 4 {
-			resultMap["branch"] = parts[3] // Extract branch name
-		} else {
-			resultMap["branch"] = "(unknown unborn)" // Fallback
-		}
-		resultMap["is_clean"] = true // Unborn is considered "clean" for status purposes
-		// No files to process
-		return resultMap, nil
-	}
+	// --- Parse Branch Line ---
+	if strings.HasPrefix(branchLine, "## ") {
+		branchInfo = strings.TrimPrefix(branchLine, "## ")
 
-	// --- Parse Branch Line (for normal repos) ---
-	matches := branchInfoRegex.FindStringSubmatch(branchLine)
-	if len(matches) > 1 {
-		branchName := matches[1]
-		if strings.Contains(branchName, "HEAD (no branch)") {
+		// Check for specific states first
+		if strings.HasPrefix(branchInfo, "No commits yet on ") {
+			resultMap["branch"] = strings.TrimPrefix(branchInfo, "No commits yet on ")
+			// is_clean remains true, ahead/behind 0, remote nil
+		} else if strings.Contains(branchInfo, "HEAD (no branch)") {
 			resultMap["branch"] = "(detached HEAD)"
+			// is_clean depends on files, ahead/behind 0, remote nil
 		} else {
-			resultMap["branch"] = branchName
-		}
-		if len(matches) > 2 && matches[2] != "" {
-			resultMap["remote_branch"] = matches[2]
-		}
-		if len(matches) > 3 && matches[3] != "" {
-			aheadCount, _ := strconv.ParseInt(matches[3], 10, 64) // Ignore error, defaults to 0
-			resultMap["ahead"] = aheadCount
-		}
-		if len(matches) > 4 && matches[4] != "" {
-			behindCount, _ := strconv.ParseInt(matches[4], 10, 64) // Ignore error, defaults to 0
-			resultMap["behind"] = behindCount
-		}
-	} else {
-		// Fallback if branch line format is unexpected but starts with ##
-		if strings.HasPrefix(branchLine, "## ") {
-			if strings.Contains(branchLine, "HEAD (no branch)") {
-				resultMap["branch"] = "(detached HEAD)"
-			} else {
-				parts := strings.Fields(branchLine)
-				if len(parts) > 1 {
-					resultMap["branch"] = parts[1]
-				} else {
-					resultMap["branch"] = strings.TrimPrefix(branchLine, "## ")
+			// Normal branch parsing
+			aheadBehindPart := ""
+			remotePart := ""
+			localBranchPart := ""
+
+			// Extract ahead/behind info first
+			if strings.Contains(branchInfo, " [") && strings.HasSuffix(branchInfo, "]") {
+				bracketStart := strings.LastIndex(branchInfo, " [")
+				aheadBehindPart = branchInfo[bracketStart+2 : len(branchInfo)-1] // Content inside brackets
+				branchInfo = branchInfo[:bracketStart]                           // Remaining part before brackets
+
+				aheadMatches := aheadRegex.FindStringSubmatch(aheadBehindPart)
+				if len(aheadMatches) > 1 {
+					aheadCount, _ := strconv.ParseInt(aheadMatches[1], 10, 64)
+					resultMap["ahead"] = aheadCount
+				}
+				behindMatches := behindRegex.FindStringSubmatch(aheadBehindPart)
+				if len(behindMatches) > 1 {
+					behindCount, _ := strconv.ParseInt(behindMatches[1], 10, 64)
+					resultMap["behind"] = behindCount
 				}
 			}
-		} else {
-			// This indicates a potential parsing issue or unexpected format
-			resultMap["error"] = fmt.Sprintf("Failed to parse branch information from line: %s", branchLine)
-			// Don't return error here, just set it in the map
+
+			// Extract remote tracking info
+			if strings.Contains(branchInfo, "...") {
+				parts := strings.SplitN(branchInfo, "...", 2)
+				localBranchPart = parts[0]
+				remotePart = parts[1]
+				resultMap["remote_branch"] = remotePart
+			} else {
+				localBranchPart = branchInfo // No remote tracking info
+			}
+			resultMap["branch"] = localBranchPart
 		}
+	} else {
+		// Unexpected branch line format
+		resultMap["error"] = fmt.Sprintf("Failed to parse branch information from line: %s", branchLine)
 	}
 
 	// --- Parse File Status Lines ---
@@ -171,23 +178,23 @@ func parseGitStatusOutput(output string) (map[string]interface{}, error) {
 			path := ""
 			originalPath := interface{}(nil)
 
-			if indexStatus == "R" || indexStatus == "C" {
+			// Handle Renamed/Copied paths which have " -> " separator
+			if (indexStatus == "R" || indexStatus == "C") && strings.Contains(pathPart, " -> ") {
 				parts := strings.SplitN(pathPart, " -> ", 2)
-				if len(parts) == 2 {
-					path = parts[0]
-					originalPath = parts[1]
-				} else {
-					path = pathPart // Fallback
-				}
+				path = parts[0]
+				originalPath = parts[1]
 			} else {
 				path = pathPart
 			}
 
-			// Unquote path if necessary
+			// Unquote path if necessary (Git uses C-style quoting for unusual chars)
 			if strings.HasPrefix(path, "\"") && strings.HasSuffix(path, "\"") {
 				unquotedPath, err := strconv.Unquote(path)
 				if err == nil {
 					path = unquotedPath
+				} else {
+					// Log warning if unquoting fails? Or just proceed with quoted path?
+					// fmt.Printf("Warning: failed to unquote path: %s\n", path)
 				}
 			}
 			// Unquote originalPath if necessary
@@ -203,6 +210,7 @@ func parseGitStatusOutput(output string) (map[string]interface{}, error) {
 			}
 
 			// Check for any staged or unstaged changes to tracked files
+			// ' ' means unmodified. '?' means untracked. Anything else is a change.
 			if indexStatus != " " || (worktreeStatus != " " && worktreeStatus != "?") {
 				changesFound = true
 			}
@@ -219,7 +227,10 @@ func parseGitStatusOutput(output string) (map[string]interface{}, error) {
 
 	resultMap["files"] = filesList
 	resultMap["untracked_files_present"] = untrackedFound
-	resultMap["is_clean"] = !changesFound // Clean if no tracked file changes
+	// --- FIX: Update is_clean logic ---
+	resultMap["is_clean"] = !changesFound && !untrackedFound // Clean if no tracked changes AND no untracked files
+	// --- END FIX ---
 
-	return resultMap, nil // Return the map, nil Go error (parsing errors are in map["error"])
+	// Return the map, nil Go error (parsing errors are in map["error"])
+	return resultMap, nil
 }

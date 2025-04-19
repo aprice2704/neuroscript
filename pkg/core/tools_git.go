@@ -1,5 +1,3 @@
-// filename: pkg/core/tools_git.go
-// UPDATED: Use internal toolExec helper instead of toolExecuteCommand
 package core
 
 import (
@@ -153,4 +151,63 @@ func toolGitMerge(interpreter *Interpreter, args []interface{}) (interface{}, er
 
 	interpreter.logger.Printf("[TOOL GitMerge] Success. Output:\n%s", output)
 	return fmt.Sprintf("Successfully merged branch '%s'.\nOutput:\n%s", branchName, output), nil
+}
+
+// --- GitPull Tool Implementation ---
+func toolGitPull(interpreter *Interpreter, args []interface{}) (interface{}, error) {
+	// GitPull takes no arguments, validation ensures len(args) == 0
+
+	interpreter.logger.Printf("[TOOL GitPull] Executing: git pull")
+	output, err := toolExec(interpreter, "git", "pull")
+
+	if err != nil {
+		// toolExec includes stderr in the error message
+		return nil, fmt.Errorf("GitPull failed: %w", err)
+	}
+
+	interpreter.logger.Printf("[TOOL GitPull] Success. Output:\n%s", output)
+	return fmt.Sprintf("GitPull successful.\nOutput:\n%s", output), nil
+}
+
+// --- GitPush Tool Implementation (NEW) ---
+func toolGitPush(interpreter *Interpreter, args []interface{}) (interface{}, error) {
+	// GitPush takes no arguments currently (pushes the current branch to its upstream)
+	// Validation ensures len(args) == 0
+
+	interpreter.logger.Printf("[TOOL GitPush] Executing: git push")
+	output, err := toolExec(interpreter, "git", "push")
+
+	if err != nil {
+		// toolExec includes stderr in the error message
+		// Common errors include: rejected push (needs pull), no upstream configured, authentication failure
+		return nil, fmt.Errorf("GitPush failed: %w", err)
+	}
+
+	interpreter.logger.Printf("[TOOL GitPush] Success. Output:\n%s", output)
+	return fmt.Sprintf("GitPush successful.\nOutput:\n%s", output), nil
+}
+
+// --- GitDiff Tool Implementation (NEW - Basic) ---
+func toolGitDiff(interpreter *Interpreter, args []interface{}) (interface{}, error) {
+	// GitDiff takes no arguments currently (shows working tree changes vs index)
+	// Validation ensures len(args) == 0
+
+	interpreter.logger.Printf("[TOOL GitDiff] Executing: git diff")
+	// Note: `git diff` returns a non-zero exit code (which toolExec treats as error)
+	// only for fatal errors, not when there are differences found.
+	// Differences are simply printed to stdout.
+	output, err := toolExec(interpreter, "git", "diff")
+
+	if err != nil {
+		// This would likely be an error like 'not a git repository'
+		return nil, fmt.Errorf("GitDiff command failed: %w", err)
+	}
+
+	interpreter.logger.Printf("[TOOL GitDiff] Success. Output:\n%s", output)
+	// If there are no differences, output will be empty.
+	if output == "" {
+		return "GitDiff: No changes detected in the working tree.", nil
+	}
+	// Return the diff output directly
+	return output, nil
 }

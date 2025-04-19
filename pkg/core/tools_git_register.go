@@ -12,11 +12,9 @@ func registerGitTools(registry *ToolRegistry) error {
 		Spec: ToolSpec{
 			Name:        "GitAdd",
 			Description: "Stages changes for commit using 'git add'. Accepts one or more file paths relative to the sandbox root.",
-			// *** FIX: Use ArgTypeSliceString based on provided tools_types.go ***
-			Args:       []ArgSpec{{Name: "paths", Type: ArgTypeSliceString, Required: true, Description: "A list of relative file paths to stage."}},
-			ReturnType: ArgTypeString, // Returns success message or error output
+			Args:        []ArgSpec{{Name: "paths", Type: ArgTypeSliceString, Required: true, Description: "A list of relative file paths to stage."}},
+			ReturnType:  ArgTypeString, // Returns success message or error output
 		},
-		// *** Note: toolGitAdd needs adjustment if validation is stricter now ***
 		Func: toolGitAdd,
 	})
 	if err != nil {
@@ -110,6 +108,51 @@ func registerGitTools(registry *ToolRegistry) error {
 		return fmt.Errorf("failed to register tool GitStatus: %w", err)
 	}
 	// --- END Register GitStatus ---
+
+	// --- Register GitPull (NEW) ---
+	err = registry.RegisterTool(ToolImplementation{
+		Spec: ToolSpec{
+			Name:        "GitPull",
+			Description: "Fetches from and integrates with another repository or a local branch using 'git pull'. Takes no arguments.",
+			Args:        []ArgSpec{},   // No arguments
+			ReturnType:  ArgTypeString, // Returns success message or error/conflict output
+		},
+		Func: toolGitPull,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to register tool GitPull: %w", err)
+	}
+	// --- END Register GitPull ---
+
+	// --- Register GitPush (NEW) ---
+	err = registry.RegisterTool(ToolImplementation{
+		Spec: ToolSpec{
+			Name:        "GitPush",
+			Description: "Updates remote refs using local refs, sending objects necessary to complete the given refs. Uses 'git push'. Takes no arguments (pushes current branch to default remote/upstream).",
+			Args:        []ArgSpec{},   // No arguments
+			ReturnType:  ArgTypeString, // Returns success message or error/rejection output
+		},
+		Func: toolGitPush,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to register tool GitPush: %w", err)
+	}
+	// --- END Register GitPush ---
+
+	// --- Register GitDiff (NEW - Basic) ---
+	err = registry.RegisterTool(ToolImplementation{
+		Spec: ToolSpec{
+			Name:        "GitDiff",
+			Description: "Shows changes between the working tree and the index or a tree, changes between the index and a tree, changes between two trees, or changes resulting from a merge. Uses 'git diff'. Takes no arguments (shows working tree changes not staged for commit).",
+			Args:        []ArgSpec{},   // No arguments
+			ReturnType:  ArgTypeString, // Returns the diff output, or a message indicating no changes.
+		},
+		Func: toolGitDiff,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to register tool GitDiff: %w", err)
+	}
+	// --- END Register GitDiff ---
 
 	// Register other Git tools here...
 
