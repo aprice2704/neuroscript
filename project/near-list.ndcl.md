@@ -1,6 +1,6 @@
  :: type: Checklist
- :: version: 0.1.6  // Updated version
- :: id: autonomous-refactor-tools-todo-v0.1.6 // Updated version
+ :: version: 0.1.7  // Updated version
+ :: id: autonomous-refactor-tools-todo-v0.1.7 // Updated version
  :: status: draft
  :: dependsOn: [docs/ns/tools/index.md](../docs/ns/tools/index.md), [pkg/core/tools_register.go](../../pkg/core/tools_register.go)
  :: howToUpdate: Update status ([ ], [-], [x]) as tools are specified and implemented. Add new tools if requirements change.
@@ -8,21 +8,21 @@
  # Checklist: Tools Needed for Autonomous Refactoring
 
  - | | Autonomous Refactoring Tools [ Overall Status ]
-   - |x| Filesystem Operations // Updated MoveFile status
+   - |x| Filesystem Operations // Updated ListDirectory status
      - [x] TOOL.ReadFile(path)
      - [x] TOOL.WriteFile(path, content)
-     - [-] TOOL.ListDirectory(path, [recursive], [pattern]) // Base implemented
-       - [ ] Add recursive option implementation
+     - [x] TOOL.ListDirectory(path, [recursive], [pattern]) // Recursive implemented
+       - [x] Add recursive option implementation // Now done
        - [ ] Add pattern filtering implementation
      - [x] TOOL.Mkdir(path)
      - [x] TOOL.DeleteFile(path)
-     - [x] TOOL.MoveFile(source, destination) // Implemented
+     - [x] TOOL.MoveFile(source, destination)
        - [x] Specification Exists ([docs/ns/tools/move_file.md](../docs/ns/tools/move_file.md))
-       - [x] Go Implementation // Now done
+       - [x] Go Implementation
    - |x| Go Code Analysis & Manipulation (AST Tools)
      - [x] TOOL.GoParseFile(path or content)
      - [x] TOOL.GoFindIdentifiers(ast_handle, pkg_name, identifier)
-     - [x] TOOL.GoModifyAST(ast_handle, modifications) // Core and listed sub-ops implemented
+     - [x] TOOL.GoModifyAST(ast_handle, modifications)
        - [x] - Change Package Declaration
        - [x] - Add/Remove/Replace Import Paths
        - [x] - Replace Qualified Identifiers

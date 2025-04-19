@@ -25,6 +25,10 @@ func registerFsTools(registry *ToolRegistry) error {
 	if err := registerFsMoveTools(registry); err != nil {
 		return fmt.Errorf("failed registering FS move tools: %w", err)
 	}
+	// +++ ADDED: Register delete tool +++
+	if err := registerFsDeleteTools(registry); err != nil { // Call added
+		return fmt.Errorf("failed registering FS delete tools: %w", err)
+	}
 
 	return nil // Success
 }
@@ -58,3 +62,4 @@ func registerFsFileTools(registry *ToolRegistry) error {
 // The registerFsUtilTools function is defined in tools_fs_utils.go.
 // The registerFsHashTools function is defined in tools_fs_hash.go.
 // The registerFsMoveTools function is defined in tools_fs_move.go.
+// The registerFsDeleteTools function is defined in tools_fs_delete.go. // Added note
