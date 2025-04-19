@@ -1,3 +1,11 @@
+:: type: NSproject  
+:: subtype: spec_template  
+:: version: 0.1.0  
+:: id: tool-spec-structure-template-v0.1  
+:: status: approved  
+:: dependsOn: docs/metadata.md  
+:: howToUpdate: Review when creating/updating tool specs to ensure this template remains accurate.  
+
 # Tool Specification Structure Template
 
 This document outlines the standard structure for documenting NeuroScript built-in tools within the `docs/ns/tools/` directory. Each tool should have its own markdown file (e.g., `io_input.md`, `tool_fs_movefile.md`).
