@@ -21,6 +21,10 @@ func registerFsTools(registry *ToolRegistry) error {
 	if err := registerFsHashTools(registry); err != nil {
 		return fmt.Errorf("failed registering FS hash tools: %w", err)
 	}
+	// +++ ADDED: Register move tool +++
+	if err := registerFsMoveTools(registry); err != nil {
+		return fmt.Errorf("failed registering FS move tools: %w", err)
+	}
 
 	return nil // Success
 }
@@ -53,3 +57,4 @@ func registerFsFileTools(registry *ToolRegistry) error {
 // The registerFsDirTools function is defined in the new tools_fs_dirs.go file.
 // The registerFsUtilTools function is defined in tools_fs_utils.go.
 // The registerFsHashTools function is defined in tools_fs_hash.go.
+// The registerFsMoveTools function is defined in tools_fs_move.go.

@@ -1,6 +1,6 @@
  :: type: Checklist
- :: version: 0.1.5  // Updated version
- :: id: autonomous-refactor-tools-todo-v0.1.5 // Updated version
+ :: version: 0.1.6  // Updated version
+ :: id: autonomous-refactor-tools-todo-v0.1.6 // Updated version
  :: status: draft
  :: dependsOn: [docs/ns/tools/index.md](../docs/ns/tools/index.md), [pkg/core/tools_register.go](../../pkg/core/tools_register.go)
  :: howToUpdate: Update status ([ ], [-], [x]) as tools are specified and implemented. Add new tools if requirements change.
@@ -8,7 +8,7 @@
  # Checklist: Tools Needed for Autonomous Refactoring
 
  - | | Autonomous Refactoring Tools [ Overall Status ]
-   - |-| Filesystem Operations
+   - |x| Filesystem Operations // Updated MoveFile status
      - [x] TOOL.ReadFile(path)
      - [x] TOOL.WriteFile(path, content)
      - [-] TOOL.ListDirectory(path, [recursive], [pattern]) // Base implemented
@@ -16,9 +16,9 @@
        - [ ] Add pattern filtering implementation
      - [x] TOOL.Mkdir(path)
      - [x] TOOL.DeleteFile(path)
-     - [ ] TOOL.MoveFile(source, destination)
+     - [x] TOOL.MoveFile(source, destination) // Implemented
        - [x] Specification Exists ([docs/ns/tools/move_file.md](../docs/ns/tools/move_file.md))
-       - [ ] Go Implementation
+       - [x] Go Implementation // Now done
    - |x| Go Code Analysis & Manipulation (AST Tools)
      - [x] TOOL.GoParseFile(path or content)
      - [x] TOOL.GoFindIdentifiers(ast_handle, pkg_name, identifier)
@@ -45,8 +45,8 @@
      - [x] TOOL.GitPush()
      - [x] TOOL.GitDiff()
      - [x] TOOL.GitRm(path)
-   - |x| File Synchronization Tools (Gemini File API) // Implemented SyncFiles ("up" only)
-     - [x] TOOL.SyncFiles(direction, localDir, [filterPattern]) // Implemented ("up" direction only)
+   - |x| File Synchronization Tools (Gemini File API)
+     - [x] TOOL.SyncFiles(direction, localDir, [filterPattern])
      - [x] TOOL.UploadFile(localPath, [displayName])
      - [x] TOOL.ListAPIFiles()
      - [x] TOOL.DeleteAPIFile(apiFileName)
