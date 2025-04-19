@@ -50,6 +50,27 @@ Testing Strategy:
 4.  Use Fixtures: Strongly prefer using external fixture files (e.g., `.json`, `.txt`, `.xml` files loaded during tests) for test inputs, especially for parsing or processing structured data. Avoid large, embedded multi-line strings in test code, as fixtures are easier to read, manage, and avoid escaping issues. 
 5.  **Testing Philosophy: Keep Tests Simple, Clear, and Fast to Fail**
 When writing tests, prioritize clarity and simplicity above complex conditional logic within a single test case. Each test should ideally verify one specific aspect or outcome of the code under test. Use clear, descriptive names for test cases. Assertions should be direct and check only what is necessary; for instance, when checking errors, verify the error type using errors.Is rather than matching exact error message strings, which are prone to change. Similarly, only validate successful results when no error is expected. Avoid complex boolean expressions or deeply nested logic within test assertions; if different conditions need testing, prefer separate, focused test cases. This approach makes tests easier to read, understand, and maintain for both human developers and AI agents, ensuring failures point quickly and accurately to the specific condition that broke.
+
+More rules to remember when writing tests in this project:
+
+Standard Library: Use the built-in Go testing package exclusively (e.g., *testing.T, t.Run, t.Errorf, t.Fatalf). Avoid external assertion libraries like testify.  
+
+Table-Driven Tests: Structure tests using tables (testCases := []struct{...}) for clarity and easy addition of new scenarios.  
+
+Direct Function Calls: Test unexported functions (like tool implementations, e.g., toolStat) directly within the core package (not core_test).  
+
+Helper Functions: Utilize helper functions for common setup (e.g., creating temporary directories/files, setting up minimal interpreter instances ) and teardown (e.g., using t.TempDir()  or returned cleanup functions).
+
+Standard Assertions: Perform assertions using standard Go comparisons (==, !=, nil checks) combined with t.Errorf or t.Fatalf. Use errors.Is for checking specific error types.
+
+Deep Comparison: Use reflect.DeepEqual for comparing complex types like maps and slices. If comparison fails, provide more detailed output by iterating through expected vs. actual elements/keys.
+
+Error Handling: Check returned Go errors directly. For tools returning errors within their result structure (like a map), test that specific field.
+
+Clarity: Prioritize clear test case names and assertion messages. Use t.Fatalf when a failure prevents meaningful continuation of a test case.
+
+
+
 6.  **Use Standard Testing Package:** Do NOT use external assertion libraries like `github.com/stretchr/testify/assert` or `github.com/stretchr/testify/require`. Use the functions provided by the standard Go `testing` package (e.g., `t.Errorf`, `t.Fatalf`, `t.Helper()`) and standard Go comparison operators (`==`, `!=`) along with `errors.Is` for error checking.
 
 Debugging & Problem Solving:
