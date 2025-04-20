@@ -8,22 +8,20 @@ import (
 	"log"
 	"os"
 
-	"github.com/aprice2704/neuroscript/pkg/core" // Import core
+	"github.com/aprice2704/neuroscript/pkg/core"
 )
 
-// App encapsulates the NeuroScript application logic (interpreter runner or agent).
+// App encapsulates the NeuroScript application logic.
 type App struct {
-	Config   Config // Configuration loaded from flags
-	InfoLog  *log.Logger
-	DebugLog *log.Logger
-	ErrorLog *log.Logger
-	LLMLog   *log.Logger
-	// +++ ADDED: Field for shared LLM client +++
+	Config    Config // Configuration loaded from flags
+	InfoLog   *log.Logger
+	DebugLog  *log.Logger
+	ErrorLog  *log.Logger
+	LLMLog    *log.Logger
 	llmClient *core.LLMClient
 }
 
-// NewApp creates a new application instance with default logging to discard.
-// Loggers are properly initialized after flags are parsed via initLoggers.
+// NewApp creates a new application instance.
 func NewApp() *App {
 	return &App{
 		InfoLog:  log.New(io.Discard, "", 0),
@@ -33,58 +31,60 @@ func NewApp() *App {
 	}
 }
 
-// initLoggers sets up the App's loggers based on config.
-// Should be called after ParseFlags.
+// initLoggers sets up loggers based on config.
 func (a *App) initLoggers() {
-	// Standard loggers
 	a.InfoLog = log.New(os.Stdout, "INFO: ", log.Ldate|log.Ltime)
 	a.ErrorLog = log.New(os.Stderr, "ERROR: ", log.Ldate|log.Ltime|log.Lshortfile)
-
-	// DebugLog enabled by -debug-ast OR -debug-interpreter
 	debugOutput := io.Discard
-	enableDebug := a.Config.DebugAST || a.Config.DebugInterpreter
-	if enableDebug {
+	if a.Config.DebugAST || a.Config.DebugInterpreter {
 		debugOutput = os.Stderr
 		fmt.Fprintf(os.Stderr, "--- Interpreter/AST Debug Logging Enabled ---\n")
 	}
 	a.DebugLog = log.New(debugOutput, "DEBUG: ", log.Ldate|log.Ltime|log.Lshortfile)
-
-	// Initialize LLMLog based on -debug-llm flag
 	llmDebugOutput := io.Discard
 	if a.Config.DebugLLM {
 		llmDebugOutput = os.Stderr
 		fmt.Fprintf(os.Stderr, "--- LLM Debug Logging Enabled ---\n")
 	}
 	a.LLMLog = log.New(llmDebugOutput, "DEBUG-LLM: ", log.Ldate|log.Ltime|log.Lshortfile)
-
 	a.DebugLog.Println("DebugLog initialized.")
-	a.LLMLog.Println("LLMLog initialized.") // This only prints if -debug-llm is set
+	a.LLMLog.Println("LLMLog initialized.")
 }
 
-// Run determines the mode based on parsed flags and executes the appropriate logic.
+// Run determines the mode based on parsed flags and executes.
 func (a *App) Run(ctx context.Context) error {
-	// Initialize loggers *after* flags are parsed but *before* running modes
-	a.initLoggers()
+	a.initLoggers() // Initialize loggers first
 
-	// Log configuration details (optional, consider privacy of API key)
-	a.InfoLog.Printf("Mode: %s", map[bool]string{true: "Agent", false: "Script"}[a.Config.AgentMode])
-	a.InfoLog.Printf("Model: %s", a.Config.ModelName)
-
-	// +++ ADDED: Initialize the shared LLMClient +++
-	// Do this after loggers are set up, as NewLLMClient uses a.LLMLog
-	a.llmClient = core.NewLLMClient(
-		a.Config.APIKey,    // Pass API key from config (or it checks env var)
-		a.Config.ModelName, // Pass model name from config
-		a.LLMLog,           // Pass the dedicated LLM logger
-		a.Config.DebugLLM,  // Pass the debug flag from config
-	)
-	// Check if client initialization failed critically (e.g., invalid API key structure, though NewLLMClient handles empty key)
-	// Note: NewLLMClient logs errors internally but returns a (potentially non-functional) client.
-	// A check like if a.llmClient.Client() == nil might be useful if needed later.
-	// --- END ADDED ---
-
-	if a.Config.AgentMode {
-		return a.runAgentMode(ctx)
+	// Initialize LLM Client if needed (Agent or Sync mode)
+	if a.Config.AgentMode || a.Config.SyncMode {
+		a.InfoLog.Println("Initializing LLM Client for Agent/Sync mode...")
+		a.llmClient = core.NewLLMClient(
+			a.Config.APIKey,
+			a.Config.ModelName,
+			a.LLMLog,
+			a.Config.DebugLLM,
+		)
+		// Check if client initialization failed (NewLLMClient handles empty key logging)
+		if a.llmClient == nil || a.llmClient.Client() == nil {
+			// NewLLMClient logs the error, just return a generic failure here
+			return fmt.Errorf("failed to initialize LLM Client, check API key and logs")
+		}
+	} else {
+		a.InfoLog.Println("LLM Client not needed for Script mode.")
+		// Even if not needed, pass a minimal client to NewInterpreter
+		// Or NewInterpreter could handle a nil client? Let's pass minimal.
+		a.llmClient = core.NewLLMClient("", "", a.LLMLog, false) // Minimal client for script mode interpreter
 	}
-	return a.runScriptMode(ctx)
+
+	// --- Select Mode ---
+	if a.Config.SyncMode {
+		a.InfoLog.Printf("--- Running in Sync Mode ---")
+		return a.runSyncMode(ctx) // Call new sync mode function
+	} else if a.Config.AgentMode {
+		a.InfoLog.Printf("--- Running in Agent Mode ---")
+		return a.runAgentMode(ctx)
+	} else {
+		a.InfoLog.Printf("--- Running in Script Mode ---")
+		return a.runScriptMode(ctx)
+	}
 }
