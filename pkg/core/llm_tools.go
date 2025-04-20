@@ -1,111 +1,139 @@
 // filename: pkg/core/llm_tools.go
 package core
 
-// Keep fmt
-// Does not need other llm specific imports, only core types
+import (
+	"context"
+	"errors"
+	"fmt"
 
-// --- Function Declaration Generation ---
+	"github.com/google/generative-ai-go/genai"
+)
 
-// GenerateToolDeclarations creates the GeminiTool list (containing FunctionDeclarations)
-// for tools that are present in the allowlist.
-// RENAMED: Exported by capitalizing the first letter.
-func GenerateToolDeclarations(registry *ToolRegistry, allowlist []string) []GeminiTool {
-	if registry == nil || len(allowlist) == 0 {
-		return nil
+// --- Existing toolAskLLM ---
+func toolAskLLM(interpreter *Interpreter, args []interface{}) (interface{}, error) {
+	if len(args) != 1 {
+		return nil, fmt.Errorf("TOOL.AskLLM requires exactly one argument (prompt string), got %d", len(args))
+	}
+	prompt, ok := args[0].(string)
+	if !ok {
+		return nil, fmt.Errorf("TOOL.AskLLM argument must be a string, got %T", args[0])
+	}
+	if prompt == "" {
+		return nil, errors.New("TOOL.AskLLM prompt cannot be empty")
 	}
 
-	allowlistMap := make(map[string]bool)
-	for _, toolName := range allowlist {
-		allowlistMap[toolName] = true
+	// *** MODIFIED: Use interpreter's logger ***
+	llmClient := NewLLMClient("", interpreter.modelName, interpreter.Logger())
+	if llmClient.client == nil {
+		return nil, errors.New("TOOL.AskLLM: LLM client not initialized")
 	}
 
-	declarations := make([]GeminiFunctionDeclaration, 0)
+	ctx := context.Background()
+	response, err := llmClient.CallLLM(ctx, prompt)
+	if err != nil {
+		return nil, fmt.Errorf("TOOL.AskLLM failed: %w", err)
+	}
+	return response, nil
+}
 
-	registeredTools := registry.tools
-	if registeredTools == nil {
-		// This path might need logging if the registry can realistically be nil here
-		// logger.Printf("[WARN LLM Tools] Tool registry map is nil during declaration generation.")
-		return nil
+// --- NEW Tool: AskLLMWithFiles ---
+func toolAskLLMWithFiles(interpreter *Interpreter, args []interface{}) (interface{}, error) {
+	if len(args) != 2 {
+		return nil, fmt.Errorf("TOOL.AskLLMWithFiles requires exactly two arguments (prompt_text string, file_uris list), got %d", len(args))
 	}
 
-	for toolName, impl := range registeredTools {
-		if !allowlistMap[toolName] {
+	promptText, ok := args[0].(string)
+	if !ok {
+		return nil, fmt.Errorf("TOOL.AskLLMWithFiles: first argument (prompt_text) must be a string, got %T", args[0])
+	}
+
+	fileURIsArg, ok := args[1].([]interface{})
+	if !ok {
+		return nil, fmt.Errorf("TOOL.AskLLMWithFiles: second argument (file_uris) must be a list, got %T", args[1])
+	}
+
+	fileURIs := []string{}
+	for i, item := range fileURIsArg {
+		uri, ok := item.(string)
+		if !ok || uri == "" {
+			interpreter.logger.Printf("[WARN TOOL.AskLLMWithFiles] Skipping invalid/empty URI at index %d in file_uris list.", i)
 			continue
 		}
-
-		properties := make(map[string]GeminiParameterDetails)
-		required := make([]string, 0)
-		for _, argSpec := range impl.Spec.Args {
-			paramType := "string"
-			paramFormat := ""
-			var itemsSchema *GeminiParameterDetails // For arrays
-
-			switch argSpec.Type {
-			case ArgTypeInt:
-				paramType = "integer"
-				paramFormat = "int64"
-			case ArgTypeFloat:
-				paramType = "number"
-				paramFormat = "double"
-			case ArgTypeBool:
-				paramType = "boolean"
-			case ArgTypeSliceString:
-				paramType = "array"
-				itemsSchema = &GeminiParameterDetails{Type: "string"}
-			case ArgTypeSliceAny:
-				paramType = "array"
-				// Default items to string, but ideally, this could be more specific
-				// if the 'any' slice typically holds a known type.
-				itemsSchema = &GeminiParameterDetails{Type: "string"}
-			case ArgTypeString:
-				paramType = "string"
-			case ArgTypeAny:
-				// Represent 'any' as string for simplicity. Could also omit type or use a generic object type.
-				paramType = "string"
-			default:
-				// Log unknown types? For now, default to string.
-				paramType = "string"
-			}
-
-			propDetail := GeminiParameterDetails{
-				Type:        paramType,
-				Description: argSpec.Description,
-			}
-			if paramFormat != "" {
-				propDetail.Format = paramFormat
-			}
-			if itemsSchema != nil {
-				propDetail.Items = itemsSchema // Set Items for array type
-			}
-			properties[argSpec.Name] = propDetail // Add detail to properties map
-
-			if argSpec.Required {
-				required = append(required, argSpec.Name)
-			}
-		}
-
-		var schema *GeminiParameterSchema
-		if len(properties) > 0 {
-			schema = &GeminiParameterSchema{
-				Type:       "object",
-				Properties: properties,
-			}
-			if len(required) > 0 {
-				schema.Required = required
-			}
-		}
-
-		declaration := GeminiFunctionDeclaration{
-			Name:        impl.Spec.Name,
-			Description: impl.Spec.Description,
-			Parameters:  schema,
-		}
-		declarations = append(declarations, declaration)
+		fileURIs = append(fileURIs, uri)
 	}
 
-	if len(declarations) == 0 {
-		return nil
+	if len(fileURIs) == 0 {
+		return nil, errors.New("TOOL.AskLLMWithFiles: requires at least one valid file URI in the list")
 	}
 
-	return []GeminiTool{{FunctionDeclarations: declarations}}
+	parts := []genai.Part{}
+	interpreter.logger.Printf("[TOOL.AskLLMWithFiles] Preparing parts. Files: %d, Prompt: %q", len(fileURIs), promptText)
+	for _, uri := range fileURIs {
+		parts = append(parts, genai.FileData{URI: uri})
+		interpreter.logger.Printf("[TOOL.AskLLMWithFiles] Added FileData: %s", uri)
+	}
+	parts = append(parts, genai.Text(promptText))
+	interpreter.logger.Printf("[TOOL.AskLLMWithFiles] Added Text part.")
+
+	// *** MODIFIED: Use interpreter's logger ***
+	llmClient := NewLLMClient("", interpreter.modelName, interpreter.Logger())
+	if llmClient.client == nil {
+		return nil, errors.New("TOOL.AskLLMWithFiles: LLM client not initialized")
+	}
+
+	ctx := context.Background()
+	// Use = not := because err is declared below (implicitly via return)
+	resp, err := llmClient.CallLLMWithParts(ctx, parts, nil)
+
+	if err != nil {
+		return nil, fmt.Errorf("TOOL.AskLLMWithFiles LLM call failed: %w", err)
+	}
+
+	if len(resp.Candidates) > 0 && len(resp.Candidates[0].Content.Parts) > 0 {
+		part := resp.Candidates[0].Content.Parts[0]
+		if text, ok := part.(genai.Text); ok {
+			interpreter.logger.Printf("[TOOL.AskLLMWithFiles] Received text response.")
+			return string(text), nil
+		}
+	}
+	interpreter.logger.Printf("[WARN TOOL.AskLLMWithFiles] Received non-text or empty response.")
+	return "", errors.New("TOOL.AskLLMWithFiles received non-text or empty response")
+}
+
+// --- Registration Function ---
+// Removed logger parameter to match usage in tools_register.go
+func registerLLMTools(registry *ToolRegistry) error {
+	var err error
+	err = registry.RegisterTool(ToolImplementation{
+		Spec: ToolSpec{
+			Name:        "AskLLM",
+			Description: "Sends a single text prompt to the LLM and returns the text response. This call is stateless.",
+			Args: []ArgSpec{
+				{Name: "prompt", Type: ArgTypeString, Required: true, Description: "The text prompt to send to the LLM."},
+			},
+			ReturnType: ArgTypeString,
+		},
+		Func: toolAskLLM,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to register tool AskLLM: %w", err)
+	}
+
+	err = registry.RegisterTool(ToolImplementation{
+		Spec: ToolSpec{
+			Name:        "AskLLMWithFiles",
+			Description: "Sends a request to the LLM including both text prompt and references to uploaded files (via their API URIs). Returns the text response.",
+			Args: []ArgSpec{
+				{Name: "prompt_text", Type: ArgTypeString, Required: true, Description: "The text prompt to accompany the files."},
+				{Name: "file_uris", Type: ArgTypeList, Required: true, Description: "A list of strings, where each string is a File API URI (e.g., 'files/...') for an uploaded file."},
+			},
+			ReturnType: ArgTypeString,
+		},
+		Func: toolAskLLMWithFiles,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to register tool AskLLMWithFiles: %w", err)
+	}
+
+	return nil
 }

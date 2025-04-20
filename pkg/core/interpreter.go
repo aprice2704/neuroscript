@@ -1,42 +1,54 @@
-// pkg/core/interpreter.go
+// filename: pkg/core/interpreter.go
 package core
 
 import (
-	"context" // Added for GenAI client init
+	"context"
 	"encoding/json"
+	"errors" // Added for new SetModelName error
 	"fmt"
 	"io"
 	"log"
-	"os" // Added for Getenv
+	"os"
 
-	// Import core
-	"github.com/aprice2704/neuroscript/pkg/core/prompts" // Import core
-	// *** ADDED: Import for UUIDs for handles ***
-	"github.com/google/uuid"
-	// *** ADDED: Imports for GenAI Client ***
+	"github.com/aprice2704/neuroscript/pkg/core/prompts"
 	"github.com/google/generative-ai-go/genai"
+	"github.com/google/uuid"
 	"google.golang.org/api/option"
 )
 
 // --- Interpreter ---
 type Interpreter struct {
 	variables       map[string]interface{}
-	knownProcedures map[string]Procedure // Keep unexported
+	knownProcedures map[string]Procedure
 	lastCallResult  interface{}
 	vectorIndex     map[string][]float32
 	embeddingDim    int
 	currentProcName string
 	sandboxDir      string
-	toolRegistry    *ToolRegistry // Use concrete type internally
+	toolRegistry    *ToolRegistry
 	logger          *log.Logger
-	// *** ADDED: Caches for opaque handles ***
-	objectCache map[string]interface{} // Stores actual objects (e.g., *ast.File) keyed by handle ID
-	handleTypes map[string]string      // Stores type tag (e.g., "GolangAST") for each handle ID
-	// *** ADDED: GenAI Client ***
-	genaiClient *genai.Client
+	objectCache     map[string]interface{}
+	handleTypes     map[string]string
+	genaiClient     *genai.Client
+	// +++ ADDED: Field to store configured model name +++
+	modelName string
 }
 
+// --- ADDED: Setter for Model Name ---
+func (i *Interpreter) SetModelName(name string) error {
+	if name == "" {
+		// Maybe default here? Or return error? Let's return error.
+		return errors.New("model name cannot be empty")
+	}
+	i.modelName = name
+	i.logger.Printf("[INFO INTERP] Interpreter model name set to: %s", name)
+	return nil
+}
+
+// --- END ADDED Setter ---
+
 // getCachedObjectAndType helper for testing cache state.
+// ... (rest of function unchanged)
 func (i *Interpreter) getCachedObjectAndType(handleID string) (object interface{}, typeTag string, found bool) {
 	if i.objectCache == nil || i.handleTypes == nil {
 		return nil, "", false
@@ -47,26 +59,26 @@ func (i *Interpreter) getCachedObjectAndType(handleID string) (object interface{
 	return object, typeTag, found
 }
 
-// --- Getter for ToolRegistry ---
+// ToolRegistry getter (unchanged)
+// ...
 func (i *Interpreter) ToolRegistry() *ToolRegistry {
 	if i.toolRegistry == nil {
 		if i.logger != nil { // Check logger before using
 			i.logger.Println("[WARN] ToolRegistry accessed before initialization, creating new one.")
 		}
 		i.toolRegistry = NewToolRegistry()
-		// Core tools are registered by main now, so no need to register here.
 	}
 	return i.toolRegistry
 }
 
-// --- ADDED: Getter for GenAI Client ---
+// GenAIClient getter (unchanged)
+// ...
 func (i *Interpreter) GenAIClient() *genai.Client {
-	// Note: We rely on NewInterpreter having initialized it.
-	// If it could be nil, add a check here.
 	return i.genaiClient
 }
 
-// --- Exported method to add procedures ---
+// AddProcedure (unchanged)
+// ...
 func (i *Interpreter) AddProcedure(proc Procedure) error {
 	if i.knownProcedures == nil {
 		i.knownProcedures = make(map[string]Procedure)
@@ -81,7 +93,8 @@ func (i *Interpreter) AddProcedure(proc Procedure) error {
 	return nil
 }
 
-// --- ADDED: Exported method to get known procedures map ---
+// KnownProcedures getter (unchanged)
+// ...
 func (i *Interpreter) KnownProcedures() map[string]Procedure {
 	if i.knownProcedures == nil {
 		return make(map[string]Procedure) // Return empty map if not initialized
@@ -89,13 +102,17 @@ func (i *Interpreter) KnownProcedures() map[string]Procedure {
 	return i.knownProcedures
 }
 
-// --- Methods to satisfy tools.InterpreterContext ---
+// Logger getter (unchanged)
+// ...
 func (i *Interpreter) Logger() *log.Logger {
 	if i.logger == nil {
 		return log.New(io.Discard, "", 0)
 	}
 	return i.logger
 }
+
+// Vector Index methods (unchanged)
+// ...
 func (i *Interpreter) GetVectorIndex() map[string][]float32 {
 	if i.vectorIndex == nil {
 		i.vectorIndex = make(map[string][]float32)
@@ -106,13 +123,11 @@ func (i *Interpreter) SetVectorIndex(vi map[string][]float32) {
 	i.vectorIndex = vi
 }
 
-// --- ADDED: Helper methods for handle cache (could be unexported if only used internally) ---
-
-// storeObjectInCache stores an object, assigns it a type tag, and returns a handle ID.
+// Handle Cache methods (unchanged)
+// ...
 func (i *Interpreter) storeObjectInCache(obj interface{}, typeTag string) string {
 	if i.objectCache == nil || i.handleTypes == nil {
 		i.logger.Printf("[ERROR] Interpreter object/handle cache not initialized!")
-		// Initialize them defensively, though they should be in NewInterpreter
 		i.objectCache = make(map[string]interface{})
 		i.handleTypes = make(map[string]string)
 	}
@@ -122,8 +137,6 @@ func (i *Interpreter) storeObjectInCache(obj interface{}, typeTag string) string
 	i.logger.Printf("[DEBUG-INTERP] Stored object with handle '%s' and type tag '%s'. Cache size: %d", handleID, typeTag, len(i.objectCache))
 	return handleID
 }
-
-// retrieveObjectFromCache retrieves an object using its handle ID and validates its type tag.
 func (i *Interpreter) retrieveObjectFromCache(handleID string, expectedTypeTag string) (interface{}, error) {
 	if i.objectCache == nil || i.handleTypes == nil {
 		i.logger.Printf("[ERROR] Interpreter object/handle cache not initialized!")
@@ -140,7 +153,6 @@ func (i *Interpreter) retrieveObjectFromCache(handleID string, expectedTypeTag s
 
 	obj, objFound := i.objectCache[handleID]
 	if !objFound {
-		// This indicates an internal inconsistency if the type tag was found
 		i.logger.Printf("[ERROR] Internal cache inconsistency: handle type '%s' found for ID '%s', but object is missing!", storedTypeTag, handleID)
 		return nil, fmt.Errorf("internal cache error: object for handle '%s' missing", handleID)
 	}
@@ -149,60 +161,54 @@ func (i *Interpreter) retrieveObjectFromCache(handleID string, expectedTypeTag s
 	return obj, nil
 }
 
-// --- END ADDED Handle Cache Methods ---
-
 // NewInterpreter creates a new interpreter instance.
-// *** MODIFIED: Initialize new maps and GenAI Client ***
+// *** MODIFIED: Set default model name ***
 func NewInterpreter(logger *log.Logger) *Interpreter {
 	effectiveLogger := logger
 	if effectiveLogger == nil {
 		effectiveLogger = log.New(io.Discard, "", 0)
 	}
 
-	// --- Initialize GenAI Client ---
-	// Using GEMINI_API_KEY based on llm.go pattern
+	// --- GenAI Client Init --- (unchanged)
 	apiKey := os.Getenv("GEMINI_API_KEY")
 	var genaiClient *genai.Client
 	var clientErr error
 	if apiKey == "" {
-		effectiveLogger.Println("[WARN] GEMINI_API_KEY environment variable not set. File API tools will likely fail.")
-		// Allow creation but client will be nil
+		effectiveLogger.Println("[WARN INTERP] GEMINI_API_KEY environment variable not set. LLM/File API tools may fail.")
 	} else {
-		ctx := context.Background() // Use background context for initialization
+		ctx := context.Background()
 		genaiClient, clientErr = genai.NewClient(ctx, option.WithAPIKey(apiKey))
 		if clientErr != nil {
-			effectiveLogger.Printf("[ERROR] Failed to create GenAI client: %v. File API tools will likely fail.", clientErr)
-			// Continue with nil client
+			effectiveLogger.Printf("[ERROR INTERP] Failed to create GenAI client: %v. LLM/File API tools may fail.", clientErr)
 			genaiClient = nil
 		} else {
-			effectiveLogger.Println("[INFO] GenAI client created successfully.")
+			effectiveLogger.Println("[INFO INTERP] GenAI client created successfully.")
 		}
 	}
 	// --- End GenAI Client Init ---
 
 	interp := &Interpreter{
 		variables:       make(map[string]interface{}),
-		knownProcedures: make(map[string]Procedure), // Initialize map
-		vectorIndex:     make(map[string][]float32), // Initialize map
-		embeddingDim:    16,                         // Default mock dim
-		toolRegistry:    NewToolRegistry(),          // Create registry here
+		knownProcedures: make(map[string]Procedure),
+		vectorIndex:     make(map[string][]float32),
+		embeddingDim:    16,
+		toolRegistry:    NewToolRegistry(),
 		logger:          effectiveLogger,
-		objectCache:     make(map[string]interface{}), // Initialize object cache
-		handleTypes:     make(map[string]string),      // Initialize handle type map
-		genaiClient:     genaiClient,                  // Store initialized client (or nil)
+		objectCache:     make(map[string]interface{}),
+		handleTypes:     make(map[string]string),
+		genaiClient:     genaiClient,
+		// +++ ADDED: Initialize model name with a default +++
+		modelName: "gemini-1.5-pro-latest", // Default, can be overridden by agent using SetModelName
 	}
 
 	interp.variables["NEUROSCRIPT_DEVELOP_PROMPT"] = prompts.PromptDevelop
 	interp.variables["NEUROSCRIPT_EXECUTE_PROMPT"] = prompts.PromptExecute
 
-	// TODO(?): Add a Close() method to Interpreter to close the genaiClient?
-	// For now, assume the application manages the client lifetime.
-
 	return interp
 }
 
-// RunProcedure executes a named procedure with given arguments.
-// (Rest of the function remains the same)
+// RunProcedure (unchanged)
+// ...
 func (i *Interpreter) RunProcedure(procName string, args ...string) (result interface{}, err error) {
 	proc, exists := i.KnownProcedures()[procName]
 	if !exists {
@@ -251,8 +257,8 @@ func (i *Interpreter) RunProcedure(procName string, args ...string) (result inte
 	return result, err
 }
 
-// executeSteps iterates through procedure steps and executes them.
-// (Function remains the same)
+// executeSteps (unchanged)
+// ...
 func (i *Interpreter) executeSteps(steps []Step) (result interface{}, wasReturn bool, err error) {
 	if i.logger != nil {
 		i.logger.Printf("[DEBUG-INTERP] >>> executeSteps called with %d steps for proc '%s'", len(steps), i.currentProcName)
@@ -332,8 +338,8 @@ func (i *Interpreter) executeSteps(steps []Step) (result interface{}, wasReturn 
 	return nil, false, nil
 }
 
-// executeBlock helper
-// (Function remains the same)
+// executeBlock (unchanged)
+// ...
 func (i *Interpreter) executeBlock(blockValue interface{}, parentStepNum int, blockType string) (result interface{}, wasReturn bool, err error) {
 	if i.logger != nil {
 		i.logger.Printf("[DEBUG-INTERP]     >>> Entering executeBlock for %s (from parent step %d)", blockType, parentStepNum+1)

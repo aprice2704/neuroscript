@@ -11,7 +11,9 @@ const (
 	ArgTypeBool        ArgType = "bool"
 	ArgTypeSliceString ArgType = "slice_string" // Specifically []string
 	ArgTypeSliceAny    ArgType = "slice_any"    // Represents []interface{} or []string
-	ArgTypeAny         ArgType = "any"          // Any type is allowed
+	// *** ADDED: Definition for list type ***
+	ArgTypeList ArgType = "list" // Represents a generic list/slice ([]interface{})
+	ArgTypeAny  ArgType = "any"  // Any type is allowed
 )
 
 // ArgSpec defines the specification for a single argument to a tool.

@@ -1,9 +1,12 @@
-// pkg/core/interpreter_simple_steps.go
+// filename: pkg/core/interpreter_simple_steps.go
 package core
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"strings"
+	// Added for logging if needed, ensure it's present
 )
 
 // --- Simple Statement Execution Helpers ---
@@ -16,7 +19,7 @@ func (i *Interpreter) executeSet(step Step, stepNum int) error {
 	targetVar := step.Target
 	valueNode := step.Value
 
-	if !isValidIdentifier(targetVar) { // Use helper
+	if !isValidIdentifier(targetVar) {
 		return fmt.Errorf("SET target '%s' is not a valid variable name", targetVar)
 	}
 
@@ -59,7 +62,7 @@ func (i *Interpreter) executeCall(step Step, stepNum int) (interface{}, error) {
 	argNodes := step.Args
 
 	evaluatedArgs := make([]interface{}, len(argNodes))
-	var err error
+	var err error // Declare err here for use in the loop
 	for idx, argNode := range argNodes {
 		// Evaluate each argument and check for errors
 		evaluatedArgs[idx], err = i.evaluateExpression(argNode) // Use depth 0 for top-level call
@@ -96,7 +99,6 @@ func (i *Interpreter) executeCall(step Step, stepNum int) (interface{}, error) {
 					if i.logger != nil {
 						i.logger.Printf("[DEBUG-INTERP]          TOOL.%s Result: %v (%T)", toolName, callResultValue, callResultValue)
 					}
-					// *** ADDED THIS LINE ***
 					i.lastCallResult = callResultValue // Store successful result
 				} else {
 					// Propagate error from tool execution
@@ -107,27 +109,43 @@ func (i *Interpreter) executeCall(step Step, stepNum int) (interface{}, error) {
 
 	} else if target == "LLM" {
 		if i.logger != nil {
-			i.logger.Printf("[DEBUG-INTERP]        Calling LLM")
+			i.logger.Printf("[DEBUG-INTERP]        Calling LLM (stateless)")
 		}
 		if len(evaluatedArgs) != 1 {
-			callErr = fmt.Errorf("CALL LLM expects 1 prompt arg, got %d", len(evaluatedArgs)) // Set error
+			callErr = errors.New("CALL LLM expects 1 prompt arg") // Set error
 		} else {
 			prompt := fmt.Sprintf("%v", evaluatedArgs[0]) // Convert evaluated arg to string
 			if i.logger != nil {
 				i.logger.Printf("[DEBUG-INTERP]          LLM Prompt: %q", prompt)
 			}
 
-			response, llmErr := CallLLMAPI(prompt) // Assumes CallLLMAPI handles its errors
-			if llmErr != nil {
-				callErr = fmt.Errorf("CALL LLM failed: %w", llmErr) // Propagate LLM error
-			} else {
-				callResultValue = response
-				callErr = nil // Explicitly nil on success
+			// *** CORRECTED: Provide model name (using interpreter's or default) and use i.Logger() ***
+			modelToUse := i.modelName // Use interpreter's configured model if set
+			if modelToUse == "" {
+				modelToUse = "gemini-1.5-pro-latest" // Fallback if not set on interpreter
 				if i.logger != nil {
-					i.logger.Printf("[DEBUG-INTERP]          LLM Result: %q", response)
+					i.logger.Printf("[WARN INTERP] Interpreter modelName not set for LLM call, using default: %s", modelToUse)
 				}
-				i.lastCallResult = callResultValue // Store successful result
 			}
+			// Create a temporary client using interpreter's logger
+			llmClient := NewLLMClient("", modelToUse, i.Logger())
+			if llmClient.client == nil { // Check if client init failed
+				callErr = errors.New("failed to initialize LLM client for CALL LLM")
+			} else {
+				ctx := context.Background()
+				response, llmErr := llmClient.CallLLM(ctx, prompt) // Use stateless call
+				if llmErr != nil {
+					callErr = fmt.Errorf("CALL LLM failed: %w", llmErr) // Propagate LLM error
+				} else {
+					callResultValue = response
+					callErr = nil // Explicitly nil on success
+					if i.logger != nil {
+						i.logger.Printf("[DEBUG-INTERP]          LLM Result: %q", response)
+					}
+					i.lastCallResult = callResultValue // Store successful result
+				}
+			}
+			// *** End Correction ***
 		}
 
 	} else { // Procedure Call

@@ -3,7 +3,7 @@ package neurogo
 
 import (
 	"bufio"
-	"context"
+	"context" // Added for json check within handleAgentTurn workaround
 	"fmt"
 	"os"
 	"path/filepath"
@@ -11,33 +11,32 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/core"
 	"github.com/aprice2704/neuroscript/pkg/neurodata/blocks"
-	checklist "github.com/aprice2704/neuroscript/pkg/neurodata/checklist" // Correct import
+	checklist "github.com/aprice2704/neuroscript/pkg/neurodata/checklist"
 )
 
-// runAgentMode handles the agent initialization and interaction loop.
+const (
+	applyPatchFunctionName = "_ApplyNeuroScriptPatch"
+	maxFunctionCallCycles  = 5
+)
+
+// runAgentMode handles the agent setup and the main user input loop.
 func (a *App) runAgentMode(ctx context.Context) error {
 	a.InfoLog.Println("--- Starting NeuroGo in Agent Mode ---")
 
-	// 1. Load Config / Initialize Components
-
-	// --- Load Allowlist ---
+	// --- Load Config / Initialize Components ---
 	allowlist, errAllow := loadToolListFromFile(a.Config.AllowlistFile)
 	if errAllow != nil {
-		// Treat allowlist error as potentially serious - maybe default to empty?
 		a.ErrorLog.Printf("Failed to load agent allowlist from %s: %v", a.Config.AllowlistFile, errAllow)
 		a.ErrorLog.Println("CRITICAL: Proceeding with EMPTY allowlist. Agent will likely have no tools.")
-		allowlist = []string{} // Default to empty allowlist on error
+		allowlist = []string{}
 	} else {
 		a.InfoLog.Printf("Loaded %d tools from allowlist: %s", len(allowlist), a.Config.AllowlistFile)
 	}
-
-	// --- Load Denylists ---
-	denylistSet := make(map[string]bool) // Use a map for efficient denial checks
-	// Mandatory denylist (ignore if not found)
-	mandatoryDenyFile := "agent_denylist.ndtl.txt" // Or configure this name?
+	denylistSet := make(map[string]bool)
+	mandatoryDenyFile := "agent_denylist.ndtl.txt"
 	mandatoryDenied, errMandatoryDeny := loadToolListFromFile(mandatoryDenyFile)
 	if errMandatoryDeny != nil {
-		if !os.IsNotExist(errMandatoryDeny) { // Log error only if it's not 'file not found'
+		if !os.IsNotExist(errMandatoryDeny) {
 			a.ErrorLog.Printf("Warning: Could not read mandatory denylist file %s: %v", mandatoryDenyFile, errMandatoryDeny)
 		} else {
 			a.InfoLog.Printf("Mandatory denylist file %s not found, none loaded.", mandatoryDenyFile)
@@ -48,12 +47,10 @@ func (a *App) runAgentMode(ctx context.Context) error {
 			denylistSet[tool] = true
 		}
 	}
-	// Optional denylists from flags
 	for _, denyFile := range a.Config.DenylistFiles {
 		optionalDenied, errOptionalDeny := loadToolListFromFile(denyFile)
 		if errOptionalDeny != nil {
 			a.ErrorLog.Printf("Warning: Could not read optional denylist file %s: %v", denyFile, errOptionalDeny)
-			// Continue processing other denylists if one fails
 		} else {
 			a.InfoLog.Printf("Loaded %d tools from optional denylist: %s", len(optionalDenied), denyFile)
 			for _, tool := range optionalDenied {
@@ -62,44 +59,35 @@ func (a *App) runAgentMode(ctx context.Context) error {
 		}
 	}
 	a.InfoLog.Printf("Total unique denied tools: %d", len(denylistSet))
-
-	// --- Initialize Other Components ---
 	cleanSandboxDir := filepath.Clean(a.Config.SandboxDir)
 	a.InfoLog.Printf("Agent sandbox directory set to: %s", cleanSandboxDir)
-	// TODO: Consider creating the sandbox dir or checking access/permissions
-
-	llmClient := core.NewLLMClient(a.Config.APIKey, a.InfoLog)
+	llmClient := core.NewLLMClient(a.Config.APIKey, a.Config.ModelName, a.LLMLog)
 	convoManager := core.NewConversationManager(a.InfoLog)
-	agentInterpreter := core.NewInterpreter(a.DebugLog) // Use DebugLog for interpreter in agent mode? Or InfoLog?
-
-	// --- Tool Registration ---
+	agentInterpreter := core.NewInterpreter(a.DebugLog)
+	if err := agentInterpreter.SetModelName(a.Config.ModelName); err != nil {
+		a.ErrorLog.Printf("Warning: Failed to set interpreter model name from config ('%s'): %v. Interpreter/Tools may use default model.", a.Config.ModelName, err)
+	}
 	coreRegistry := agentInterpreter.ToolRegistry()
 	if coreRegistry == nil {
 		return fmt.Errorf("internal error: Interpreter's ToolRegistry is nil after creation")
 	}
-	// 1. Register Core Tools
 	core.RegisterCoreTools(coreRegistry)
-	// 2. Register Tools from other packages HERE
 	if err := blocks.RegisterBlockTools(coreRegistry); err != nil {
 		a.ErrorLog.Printf("CRITICAL: Failed to register blocks tools: %v", err)
-		// return fmt.Errorf("failed to initialize block tools: %w", err)
 	} else {
 		a.DebugLog.Println("Registered blocks tools.")
 	}
 	if err := checklist.RegisterChecklistTools(coreRegistry); err != nil {
 		a.ErrorLog.Printf("CRITICAL: Failed to register checklist tools: %v", err)
-		// return fmt.Errorf("failed to initialize checklist tools: %w", err)
 	} else {
 		a.DebugLog.Println("Registered checklist tools.")
 	}
-	// --- End Tool Registration ---
-
-	// Initialize Security Layer (needs the registry *after* all tools are added)
-	securityLayer := core.NewSecurityLayer(allowlist, denylistSet, cleanSandboxDir, coreRegistry, a.InfoLog) // Pass the populated registry
+	securityLayer := core.NewSecurityLayer(allowlist, denylistSet, cleanSandboxDir, coreRegistry, a.InfoLog)
+	// --- End Initialization ---
 
 	// --- Agent Interaction Loop ---
-	a.InfoLog.Println("Enter your prompt for the agent (or type 'quit'):")
-	stdinScanner := bufio.NewScanner(os.Stdin) // Renamed variable
+	a.InfoLog.Println("\nEnter your prompt for the agent (or type 'quit'):")
+	stdinScanner := bufio.NewScanner(os.Stdin)
 	for stdinScanner.Scan() {
 		userInput := stdinScanner.Text()
 		if strings.ToLower(userInput) == "quit" {
@@ -111,87 +99,31 @@ func (a *App) runAgentMode(ctx context.Context) error {
 
 		convoManager.AddUserMessage(userInput)
 
-		// Loop for potential function call cycles
-		for i := 0; i < 5; i++ { // Limit function call cycles
+		// Call the turn handler function within a loop for function calls
+		turnCompleted := false // Flag to see if the turn finished naturally (text response or handled action)
+		for i := 0; i < maxFunctionCallCycles; i++ {
 			a.InfoLog.Printf("--- Agent Turn %d ---", i+1)
-
-			// Generate tool declarations (passing the original allowlist, not the denied set)
-			toolDeclarations := core.GenerateToolDeclarations(agentInterpreter.ToolRegistry(), allowlist)
-
-			// Call LLM
-			response, llmErr := llmClient.CallLLMAgent(ctx, convoManager.GetHistory(), toolDeclarations)
-			if llmErr != nil {
-				a.ErrorLog.Printf("LLM API call failed: %v", llmErr)
-				fmt.Printf("\n[AGENT] Error communicating with LLM: %v\n", llmErr)
-				break // Break inner loop
-			}
-
-			if len(response.Candidates) == 0 {
-				// Handle no candidates / safety blocks
-				a.InfoLog.Println("LLM returned no candidates.")
-				blockMsg := "[AGENT] LLM returned no response."
-				if response.PromptFeedback != nil && response.PromptFeedback.BlockReason != "" {
-					errMsg := fmt.Sprintf("Request blocked by safety filter: %s (%s)", response.PromptFeedback.BlockReason, response.PromptFeedback.BlockReasonMessage)
-					a.ErrorLog.Printf("LLM Request Blocked: %s", errMsg)
-					blockMsg = fmt.Sprintf("[AGENT] %s", errMsg)
-				}
-				fmt.Println("\n" + blockMsg)
-				break // Break inner loop
-			}
-
-			candidate := response.Candidates[0]
-			convoManager.AddModelResponse(candidate) // Add model response first
-
-			if len(candidate.Content.Parts) == 0 {
-				a.InfoLog.Println("LLM candidate had no parts.")
-				fmt.Println("\n[AGENT] LLM returned an empty response part.")
+			llmResponse, err := llmClient.CallLLMAgent(ctx, core.LLMRequestContext{History: convoManager.GetHistory(), FileURIs: nil}, nil) // Pass nil tools for now
+			if err != nil {
+				a.ErrorLog.Printf("LLM API call failed: %v", err)
+				fmt.Printf("\n[AGENT] Error communicating with LLM: %v\n", err)
+				turnCompleted = true // End this turn due to error
 				break
 			}
 
-			part := candidate.Content.Parts[0]
-
-			if part.FunctionCall != nil {
-				// Handle Function Call
-				fc := part.FunctionCall
-				a.InfoLog.Printf("Agent received FunctionCall request: %s", fc.Name)
-				fmt.Printf("[AGENT] Requesting tool: %s\n", fc.Name)
-
-				validatedArgs, validationErr := securityLayer.ValidateToolCall(fc.Name, fc.Args) // Validate first
-				var toolResult map[string]interface{}
-
-				if validationErr != nil {
-					a.ErrorLog.Printf("Tool call validation failed for %s: %v", fc.Name, validationErr)
-					fmt.Printf("[AGENT] Tool validation failed: %v\n", validationErr)
-					toolResult = formatErrorResponse(validationErr)
-				} else {
-					// Execute only if validation passed
-					a.InfoLog.Printf("Executing tool %s with validated args...", fc.Name)
-					toolOutput, execErr := executeAgentTool(fc.Name, validatedArgs, agentInterpreter)
-					toolResult = formatToolResult(toolOutput, execErr)
-					if execErr != nil {
-						a.ErrorLog.Printf("Tool execution failed for %s: %v", fc.Name, execErr)
-						fmt.Printf("[AGENT] Tool execution failed: %v\n", execErr)
-					} else {
-						a.InfoLog.Printf("Tool %s executed successfully. Result map: %v", fc.Name, toolResult)
-						// Optionally provide more user feedback about tool success/output?
-						// fmt.Printf("[AGENT] Tool %s executed.\n", fc.Name)
-					}
-				}
-
-				convoManager.AddFunctionResponse(fc.Name, toolResult)
-				continue // Continue inner loop to send result back to LLM
-
-			} else if part.Text != "" {
-				// Handle Text Response
-				a.InfoLog.Println("Agent received final Text response.")
-				fmt.Printf("\n[AGENT] %s\n", part.Text)
-				break // Final response for this user input, break inner loop
-			} else {
-				a.InfoLog.Println("Agent received response part with no text or function call.")
-				fmt.Println("\n[AGENT] Received an empty response part from LLM.")
-				break
+			// Delegate processing the response to the helper function
+			// handleAgentTurn returns true if the turn should end (final text, handled patch, error), false if loop should continue (tool call)
+			shouldEndTurn := a.handleAgentTurn(llmResponse, convoManager, agentInterpreter, securityLayer, cleanSandboxDir)
+			if shouldEndTurn {
+				turnCompleted = true
+				break // Exit the function call cycle
 			}
-		} // End inner loop
+		} // End inner loop (function call cycle)
+
+		if !turnCompleted {
+			a.ErrorLog.Printf("Agent turn exceeded maximum function call cycles (%d).", maxFunctionCallCycles)
+			fmt.Println("[AGENT] Error: Too many function call cycles.")
+		}
 
 		a.InfoLog.Println("\nEnter your prompt for the agent (or type 'quit'):")
 
@@ -201,115 +133,6 @@ func (a *App) runAgentMode(ctx context.Context) error {
 		a.ErrorLog.Printf("Input scanner error: %v", err)
 		return fmt.Errorf("error reading user input: %w", err)
 	}
-
 	a.InfoLog.Println("--- Exiting Agent Mode ---")
 	return nil
-}
-
-// loadToolListFromFile reads tool names (one per line) from a file.
-// Renamed from loadAllowlist for generic use.
-func loadToolListFromFile(filePath string) ([]string, error) {
-	file, err := os.Open(filePath)
-	if err != nil {
-		// Let caller handle os.IsNotExist specifically if needed
-		return nil, fmt.Errorf("error opening tool list file '%s': %w", filePath, err)
-	}
-	defer file.Close()
-
-	var tools []string
-	scanner := bufio.NewScanner(file)
-	lineNumber := 0
-	for scanner.Scan() {
-		lineNumber++
-		line := strings.TrimSpace(scanner.Text())
-		if line == "" || strings.HasPrefix(line, "#") || strings.HasPrefix(line, "--") {
-			continue
-		}
-		// Basic validation - could check TOOL. prefix etc. here
-		if line == "" {
-			// This check is redundant due to TrimSpace above, but harmless
-			continue
-		}
-		tools = append(tools, line)
-	}
-	if err := scanner.Err(); err != nil {
-		return nil, fmt.Errorf("error reading tool list file '%s': %w", filePath, err)
-	}
-	return tools, nil
-}
-
-// executeAgentTool executes a validated tool call from the agent.
-// Takes validated arguments (map) and converts them to ordered slice for ToolFunc.
-func executeAgentTool(toolName string, args map[string]interface{}, interp *core.Interpreter) (interface{}, error) {
-	interp.Logger().Printf("[AGENT TOOL] Attempting execution for tool '%s'", toolName)
-	toolImpl, found := interp.ToolRegistry().GetTool(toolName)
-	if !found {
-		return nil, fmt.Errorf("internal error: agent tool '%s' not found in registry", toolName)
-	}
-
-	// Convert validated map back to ordered slice based on ToolSpec
-	orderedArgs := make([]interface{}, len(toolImpl.Spec.Args))
-	argIndexMap := make(map[string]int) // Helper to find index for logging potentially missing args
-	for i, argSpec := range toolImpl.Spec.Args {
-		argIndexMap[argSpec.Name] = i
-		val, exists := args[argSpec.Name]
-		if !exists {
-			// Should only happen for non-required args if validation passed
-			if argSpec.Required {
-				// This indicates an internal inconsistency
-				return nil, fmt.Errorf("internal error: required argument '%s' missing for tool '%s' after validation", argSpec.Name, toolName)
-			}
-			orderedArgs[i] = nil // Explicitly nil for optional missing arg
-		} else {
-			orderedArgs[i] = val
-		}
-	}
-
-	// Log if extra args were present in the map (though they weren't used)
-	if len(args) > len(toolImpl.Spec.Args) {
-		extraArgs := []string{}
-		for name := range args {
-			if _, specExists := argIndexMap[name]; !specExists {
-				extraArgs = append(extraArgs, name)
-			}
-		}
-		if len(extraArgs) > 0 {
-			interp.Logger().Printf("[WARN AGENT TOOL] Tool '%s' called with extra arguments not in spec (ignored): %v", toolName, extraArgs)
-		}
-	}
-
-	interp.Logger().Printf("[AGENT TOOL] Calling %s with ordered args: %v", toolName, orderedArgs)
-	// Call the actual tool implementation function
-	toolOutput, execErr := toolImpl.Func(interp, orderedArgs)
-	// Return the direct output and error from the tool function
-	return toolOutput, execErr
-}
-
-// formatToolResult formats the tool output/error into the map expected by Gemini.
-func formatToolResult(toolOutput interface{}, execErr error) map[string]interface{} {
-	resultMap := make(map[string]interface{})
-	if execErr != nil {
-		resultMap["success"] = false // Indicate failure
-		resultMap["error"] = execErr.Error()
-		// Include partial output if the tool returned something despite erroring
-		if toolOutput != nil {
-			// Convert toolOutput to string safely
-			outputStr := fmt.Sprintf("%v", toolOutput)
-			resultMap["partial_output"] = outputStr
-		}
-	} else {
-		resultMap["success"] = true // Indicate success
-		// Embed the actual tool output under a 'result' key, or handle specific types
-		// Gemini expects a JSON object for the response part.
-		resultMap["result"] = toolOutput // Simple embedding for now
-	}
-	return resultMap
-}
-
-// formatErrorResponse creates the error map structure for Gemini FunctionResponse.
-func formatErrorResponse(err error) map[string]interface{} {
-	return map[string]interface{}{
-		"success": false, // Indicate failure due to validation/execution error
-		"error":   err.Error(),
-	}
 }
