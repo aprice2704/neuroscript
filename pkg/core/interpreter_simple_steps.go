@@ -128,7 +128,7 @@ func (i *Interpreter) executeCall(step Step, stepNum int) (interface{}, error) {
 				}
 			}
 			// Create a temporary client using interpreter's logger
-			llmClient := NewLLMClient("", modelToUse, i.Logger())
+			llmClient := NewLLMClient("", modelToUse, i.Logger(), false)
 			if llmClient.client == nil { // Check if client init failed
 				callErr = errors.New("failed to initialize LLM client for CALL LLM")
 			} else {

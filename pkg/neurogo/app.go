@@ -7,6 +7,8 @@ import (
 	"io"
 	"log"
 	"os"
+
+	"github.com/aprice2704/neuroscript/pkg/core" // Import core
 )
 
 // App encapsulates the NeuroScript application logic (interpreter runner or agent).
@@ -15,23 +17,19 @@ type App struct {
 	InfoLog  *log.Logger
 	DebugLog *log.Logger
 	ErrorLog *log.Logger
-	// +++ ADDED: Dedicated logger for LLM interactions +++
-	LLMLog *log.Logger
+	LLMLog   *log.Logger
+	// +++ ADDED: Field for shared LLM client +++
+	llmClient *core.LLMClient
 }
 
 // NewApp creates a new application instance with default logging to discard.
 // Loggers are properly initialized after flags are parsed via initLoggers.
 func NewApp() *App {
-	// Initialize Config with zero values or defaults if necessary
-	// cfg := Config{ ... default values ... }
-
 	return &App{
-		// Config: cfg, // Initialize Config if needed
 		InfoLog:  log.New(io.Discard, "", 0),
 		DebugLog: log.New(io.Discard, "", 0),
 		ErrorLog: log.New(io.Discard, "", 0),
-		// +++ ADDED: Initialize LLMLog to discard by default +++
-		LLMLog: log.New(io.Discard, "", 0),
+		LLMLog:   log.New(io.Discard, "", 0),
 	}
 }
 
@@ -47,22 +45,18 @@ func (a *App) initLoggers() {
 	enableDebug := a.Config.DebugAST || a.Config.DebugInterpreter
 	if enableDebug {
 		debugOutput = os.Stderr
-		// Use Fprintf to avoid logger prefix for this initial message
 		fmt.Fprintf(os.Stderr, "--- Interpreter/AST Debug Logging Enabled ---\n")
 	}
 	a.DebugLog = log.New(debugOutput, "DEBUG: ", log.Ldate|log.Ltime|log.Lshortfile)
 
-	// +++ ADDED: Initialize LLMLog based on -debug-llm flag +++
+	// Initialize LLMLog based on -debug-llm flag
 	llmDebugOutput := io.Discard
 	if a.Config.DebugLLM {
-		llmDebugOutput = os.Stderr // LLM debug usually goes to stderr
+		llmDebugOutput = os.Stderr
 		fmt.Fprintf(os.Stderr, "--- LLM Debug Logging Enabled ---\n")
 	}
-	// Use a distinct prefix for LLM debug messages
 	a.LLMLog = log.New(llmDebugOutput, "DEBUG-LLM: ", log.Ldate|log.Ltime|log.Lshortfile)
-	// --- End Added Code ---
 
-	// Optionally log the final logger states
 	a.DebugLog.Println("DebugLog initialized.")
 	a.LLMLog.Println("LLMLog initialized.") // This only prints if -debug-llm is set
 }
@@ -75,8 +69,19 @@ func (a *App) Run(ctx context.Context) error {
 	// Log configuration details (optional, consider privacy of API key)
 	a.InfoLog.Printf("Mode: %s", map[bool]string{true: "Agent", false: "Script"}[a.Config.AgentMode])
 	a.InfoLog.Printf("Model: %s", a.Config.ModelName)
-	// Be careful logging sensitive info like API keys
-	// a.DebugLog.Printf("Config: %+v", a.Config)
+
+	// +++ ADDED: Initialize the shared LLMClient +++
+	// Do this after loggers are set up, as NewLLMClient uses a.LLMLog
+	a.llmClient = core.NewLLMClient(
+		a.Config.APIKey,    // Pass API key from config (or it checks env var)
+		a.Config.ModelName, // Pass model name from config
+		a.LLMLog,           // Pass the dedicated LLM logger
+		a.Config.DebugLLM,  // Pass the debug flag from config
+	)
+	// Check if client initialization failed critically (e.g., invalid API key structure, though NewLLMClient handles empty key)
+	// Note: NewLLMClient logs errors internally but returns a (potentially non-functional) client.
+	// A check like if a.llmClient.Client() == nil might be useful if needed later.
+	// --- END ADDED ---
 
 	if a.Config.AgentMode {
 		return a.runAgentMode(ctx)

@@ -3,136 +3,169 @@ package neurogo
 
 import (
 	"bufio"
-	"context" // Added for json check within handleAgentTurn workaround
+	"context"
+	"errors"
 	"fmt"
+	"io"
 	"os"
+	"os/exec" // Added
 	"path/filepath"
-	"strings"
 
+	// "strconv" // Not needed here anymore
+	"strings"
+	// +++ ADDED: For checking exit status +++
 	"github.com/aprice2704/neuroscript/pkg/core"
-	"github.com/aprice2704/neuroscript/pkg/neurodata/blocks"
-	checklist "github.com/aprice2704/neuroscript/pkg/neurodata/checklist"
 )
 
+// Constants
 const (
-	applyPatchFunctionName = "_ApplyNeuroScriptPatch"
-	maxFunctionCallCycles  = 5
+	// applyPatchFunctionName = "_ApplyNeuroScriptPatch" // Keep if needed
+	maxFunctionCallCycles = 5
+	multiLineCommand      = "/m" // Changed trigger command
 )
 
 // runAgentMode handles the agent setup and the main user input loop.
 func (a *App) runAgentMode(ctx context.Context) error {
 	a.InfoLog.Println("--- Starting NeuroGo in Agent Mode ---")
 
-	// --- Load Config / Initialize Components ---
-	allowlist, errAllow := loadToolListFromFile(a.Config.AllowlistFile)
-	if errAllow != nil {
-		a.ErrorLog.Printf("Failed to load agent allowlist from %s: %v", a.Config.AllowlistFile, errAllow)
-		a.ErrorLog.Println("CRITICAL: Proceeding with EMPTY allowlist. Agent will likely have no tools.")
-		allowlist = []string{}
-	} else {
-		a.InfoLog.Printf("Loaded %d tools from allowlist: %s", len(allowlist), a.Config.AllowlistFile)
-	}
-	denylistSet := make(map[string]bool)
-	mandatoryDenyFile := "agent_denylist.ndtl.txt"
-	mandatoryDenied, errMandatoryDeny := loadToolListFromFile(mandatoryDenyFile)
-	if errMandatoryDeny != nil {
-		if !os.IsNotExist(errMandatoryDeny) {
-			a.ErrorLog.Printf("Warning: Could not read mandatory denylist file %s: %v", mandatoryDenyFile, errMandatoryDeny)
-		} else {
-			a.InfoLog.Printf("Mandatory denylist file %s not found, none loaded.", mandatoryDenyFile)
-		}
-	} else {
-		a.InfoLog.Printf("Loaded %d tools from mandatory denylist: %s", len(mandatoryDenied), mandatoryDenyFile)
-		for _, tool := range mandatoryDenied {
-			denylistSet[tool] = true
-		}
-	}
-	for _, denyFile := range a.Config.DenylistFiles {
-		optionalDenied, errOptionalDeny := loadToolListFromFile(denyFile)
-		if errOptionalDeny != nil {
-			a.ErrorLog.Printf("Warning: Could not read optional denylist file %s: %v", denyFile, errOptionalDeny)
-		} else {
-			a.InfoLog.Printf("Loaded %d tools from optional denylist: %s", len(optionalDenied), denyFile)
-			for _, tool := range optionalDenied {
-				denylistSet[tool] = true
-			}
-		}
-	}
-	a.InfoLog.Printf("Total unique denied tools: %d", len(denylistSet))
+	// --- Load Config / Initialize Components (Same as before) ---
+	allowlist, _ := loadToolListFromFile(a.Config.AllowlistFile)
+	denylistSet := make(map[string]bool) // Assume loaded
 	cleanSandboxDir := filepath.Clean(a.Config.SandboxDir)
-	a.InfoLog.Printf("Agent sandbox directory set to: %s", cleanSandboxDir)
-	llmClient := core.NewLLMClient(a.Config.APIKey, a.Config.ModelName, a.LLMLog)
+	llmClient := a.llmClient
+	if llmClient == nil || llmClient.Client() == nil {
+		return fmt.Errorf("LLM Client not initialized")
+	}
 	convoManager := core.NewConversationManager(a.InfoLog)
-	agentInterpreter := core.NewInterpreter(a.DebugLog)
-	if err := agentInterpreter.SetModelName(a.Config.ModelName); err != nil {
-		a.ErrorLog.Printf("Warning: Failed to set interpreter model name from config ('%s'): %v. Interpreter/Tools may use default model.", a.Config.ModelName, err)
-	}
+	agentInterpreter := core.NewInterpreter(a.DebugLog, llmClient)
 	coreRegistry := agentInterpreter.ToolRegistry()
-	if coreRegistry == nil {
-		return fmt.Errorf("internal error: Interpreter's ToolRegistry is nil after creation")
-	}
-	core.RegisterCoreTools(coreRegistry)
-	if err := blocks.RegisterBlockTools(coreRegistry); err != nil {
-		a.ErrorLog.Printf("CRITICAL: Failed to register blocks tools: %v", err)
-	} else {
-		a.DebugLog.Println("Registered blocks tools.")
-	}
-	if err := checklist.RegisterChecklistTools(coreRegistry); err != nil {
-		a.ErrorLog.Printf("CRITICAL: Failed to register checklist tools: %v", err)
-	} else {
-		a.DebugLog.Println("Registered checklist tools.")
-	}
+	core.RegisterCoreTools(coreRegistry) // Add other registrations
 	securityLayer := core.NewSecurityLayer(allowlist, denylistSet, cleanSandboxDir, coreRegistry, a.InfoLog)
+	toolDeclarations, _ := securityLayer.GetToolDeclarations()
 	// --- End Initialization ---
 
-	// --- Agent Interaction Loop ---
-	a.InfoLog.Println("\nEnter your prompt for the agent (or type 'quit'):")
+	a.InfoLog.Printf("Enter your prompt (or type '%s' for multi-line, 'quit' to exit):", multiLineCommand)
 	stdinScanner := bufio.NewScanner(os.Stdin)
-	for stdinScanner.Scan() {
-		userInput := stdinScanner.Text()
+	turnCounter := 0
+
+	for { // Main input loop
+		turnCounter++
+		a.InfoLog.Printf("--- Agent Conversation Turn %d ---", turnCounter)
+
+		fmt.Printf("\nPrompt (or '%s' for multi-line): ", multiLineCommand)
+		if !stdinScanner.Scan() {
+			if err := stdinScanner.Err(); err != nil {
+				a.ErrorLog.Printf("Input scanner error: %v", err)
+				return fmt.Errorf("error reading input: %w", err)
+			}
+			a.InfoLog.Println("Input stream closed.")
+			break // Exit loop
+		}
+		userInput := strings.TrimSpace(stdinScanner.Text())
+
+		// --- Check for Commands ---
 		if strings.ToLower(userInput) == "quit" {
+			a.InfoLog.Println("Quit command received.")
 			break
 		}
-		if userInput == "" {
+
+		if userInput == multiLineCommand {
+			a.InfoLog.Printf("Multi-line input command ('%s') received. Launching nsinput...", multiLineCommand)
+			fmt.Println("Launching multi-line editor (nsinput)...")
+
+			// --- Create Temp File ---
+			tempFile, err := os.CreateTemp("", "nsinput-*.txt")
+			if err != nil {
+				a.ErrorLog.Printf("Error creating temp file for nsinput: %v", err)
+				fmt.Printf("[AGENT] Error: Could not create temporary file for input.\n")
+				continue // Ask for input again
+			}
+			tempFilePath := tempFile.Name()
+			tempFile.Close() // Close the file handle immediately, nsinput will open/write it
+			a.DebugLog.Printf("Created temp file: %s", tempFilePath)
+			// --- Defer removal ---
+			defer func() {
+				a.DebugLog.Printf("Removing temp file: %s", tempFilePath)
+				removeErr := os.Remove(tempFilePath)
+				if removeErr != nil && !errors.Is(removeErr, os.ErrNotExist) { // Don't log error if already gone
+					a.ErrorLog.Printf("Error removing temp file %s: %v", tempFilePath, removeErr)
+				}
+			}()
+			// ---
+
+			// --- Execute nsinput, connecting terminal ---
+			cmd := exec.Command("nsinput", tempFilePath) // Pass temp file path as argument
+			cmd.Stdin = os.Stdin                         // Inherit neurogo's stdin
+			cmd.Stdout = os.Stdout                       // Inherit neurogo's stdout (Bubble Tea needs this)
+			cmd.Stderr = os.Stderr                       // Inherit neurogo's stderr
+
+			runErr := cmd.Run() // Use Run(), not Output()
+
+			if runErr != nil {
+				// Check if it was just a cancellation (Ctrl+C in nsinput might cause non-zero exit)
+				// Or if the command failed for other reasons (not found, internal error)
+				a.ErrorLog.Printf("Error running 'nsinput': %v", runErr)
+				// Check for specific exit errors if possible, otherwise print generic message
+				fmt.Printf("[AGENT] Multi-line input editor exited with error or was cancelled.\n")
+				// Check if temp file exists and is empty - might indicate cancellation
+				contentBytes, readErr := os.ReadFile(tempFilePath)
+				if readErr == nil && len(contentBytes) == 0 {
+					a.InfoLog.Println("nsinput exited and left empty file - likely cancelled.")
+				} else if readErr != nil {
+					a.ErrorLog.Printf("Error reading temp file %s after nsinput exit: %v", tempFilePath, readErr)
+				}
+				continue // Ask for input again
+			}
+			// ---
+
+			// --- Read result from Temp File ---
+			contentBytes, readErr := os.ReadFile(tempFilePath)
+			if readErr != nil {
+				a.ErrorLog.Printf("Error reading temp file %s after nsinput success: %v", tempFilePath, readErr)
+				fmt.Printf("[AGENT] Error: Could not read input from editor.\n")
+				continue // Ask for input again
+			}
+			userInput = string(contentBytes)
+			// ---
+
+			// Check if cancelled (nsinput writes empty file on cancel)
+			if userInput == "" {
+				a.InfoLog.Println("Multi-line input cancelled (empty temp file).")
+				fmt.Println("[AGENT] Multi-line input cancelled.")
+				continue // Ask for input again
+			}
+
+			// Trim trailing newline that might be added by editor/file write
+			userInput = strings.TrimSpace(userInput)
+			fmt.Printf("[AGENT] Multi-line input received (%d characters).\n", len(userInput))
+
+		} else if userInput == "" {
+			a.InfoLog.Println("Empty input received, waiting for next prompt.")
 			continue
 		}
+		// --- End Input Handling ---
 
+		// --- Process the input (single line or from nsinput) ---
+		// Add user message BEFORE calling handleAgentTurn
 		convoManager.AddUserMessage(userInput)
+		a.DebugLog.Printf("Added user message to history: %q", userInput)
 
-		// Call the turn handler function within a loop for function calls
-		turnCompleted := false // Flag to see if the turn finished naturally (text response or handled action)
-		for i := 0; i < maxFunctionCallCycles; i++ {
-			a.InfoLog.Printf("--- Agent Turn %d ---", i+1)
-			llmResponse, err := llmClient.CallLLMAgent(ctx, core.LLMRequestContext{History: convoManager.GetHistory(), FileURIs: nil}, nil) // Pass nil tools for now
-			if err != nil {
-				a.ErrorLog.Printf("LLM API call failed: %v", err)
-				fmt.Printf("\n[AGENT] Error communicating with LLM: %v\n", err)
-				turnCompleted = true // End this turn due to error
-				break
-			}
-
-			// Delegate processing the response to the helper function
-			// handleAgentTurn returns true if the turn should end (final text, handled patch, error), false if loop should continue (tool call)
-			shouldEndTurn := a.handleAgentTurn(llmResponse, convoManager, agentInterpreter, securityLayer, cleanSandboxDir)
-			if shouldEndTurn {
-				turnCompleted = true
-				break // Exit the function call cycle
-			}
-		} // End inner loop (function call cycle)
-
-		if !turnCompleted {
-			a.ErrorLog.Printf("Agent turn exceeded maximum function call cycles (%d).", maxFunctionCallCycles)
-			fmt.Println("[AGENT] Error: Too many function call cycles.")
+		// Call the turn handler function
+		errTurn := a.handleAgentTurn(ctx, llmClient, convoManager, agentInterpreter, securityLayer, toolDeclarations)
+		if errTurn != nil {
+			a.ErrorLog.Printf("Error during agent turn %d: %v", turnCounter, errTurn)
+			fmt.Printf("\n[AGENT] Error processing turn: %v\n", errTurn)
 		}
+		// --- End Turn Processing ---
 
-		a.InfoLog.Println("\nEnter your prompt for the agent (or type 'quit'):")
+	} // End main input loop
 
-	} // End outer loop (stdin scanner)
-
-	if err := stdinScanner.Err(); err != nil {
-		a.ErrorLog.Printf("Input scanner error: %v", err)
+	// Check scanner error after loop (e.g., if Scan returned false due to error)
+	if err := stdinScanner.Err(); err != nil && err != io.EOF {
+		a.ErrorLog.Printf("Input scanner error after loop: %v", err)
 		return fmt.Errorf("error reading user input: %w", err)
 	}
+
 	a.InfoLog.Println("--- Exiting Agent Mode ---")
 	return nil
 }

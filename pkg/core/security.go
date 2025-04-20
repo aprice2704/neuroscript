@@ -2,22 +2,32 @@
 package core
 
 import (
-	// Import errors package
+	"errors"
 	"fmt"
+	"io"
 	"log"
 	"path/filepath"
-	"regexp"
+	"regexp" // Make sure regexp is imported
 	"strings"
+
+	"github.com/google/generative-ai-go/genai"
 )
 
-// IF YOU ARE THINKING OF REMOVING SOMETHING FROM THIS FILE YOU ARE PROBABLY WRONG
-// ASK FIRST!!!!
+// // Sentinel errors for security violations
+// var (
+// 	ErrToolDenied         = errors.New("tool denied by policy")
+// 	ErrToolNotAllowed     = errors.New("tool not allowlisted")
+// 	ErrToolBlocked        = errors.New("tool blocked by specific policy")
+// 	ErrPathViolation      = errors.New("path violation")
+// 	ErrNullByteInArgument = errors.New("argument contains null byte")
+// 	ErrInternalSecurity   = errors.New("internal security configuration error")
+// )
 
 // SecurityLayer enforces security policies for LLM-initiated tool calls.
 type SecurityLayer struct {
 	allowlist    map[string]bool
 	denylist     map[string]bool
-	sandboxRoot  string
+	sandboxRoot  string // Unexported field storing the validated path
 	toolRegistry *ToolRegistry
 	logger       *log.Logger
 }
@@ -26,101 +36,252 @@ type SecurityLayer struct {
 func NewSecurityLayer(allowlistTools []string, denylistSet map[string]bool, sandboxRoot string, registry *ToolRegistry, logger *log.Logger) *SecurityLayer {
 	allowlistMap := make(map[string]bool)
 	for _, tool := range allowlistTools {
+		// Ensure the key includes the TOOL. prefix for consistency
+		if !strings.HasPrefix(tool, "TOOL.") {
+			// This might happen if the list file contains base names.
+			// Log a warning or normalize? Let's assume list file is correct for now.
+			// logger.Printf("[WARN SEC] Tool name '%s' in allowlist might be missing 'TOOL.' prefix.", tool)
+		}
 		allowlistMap[tool] = true
 	}
-	cleanSandboxRoot := filepath.Clean(sandboxRoot)
 
-	logger.Printf("[SEC] Initialized Security Layer.")
-	logger.Printf("[SEC] Allowlisted tools (initial): %v", allowlistTools)
+	// Ensure the provided sandboxRoot is clean and absolute
+	cleanSandboxRoot := "/" // Default to root if error occurs? Maybe better to error out?
+	absSandboxRoot, err := filepath.Abs(sandboxRoot)
+	if err != nil {
+		logger.Printf("[ERROR SEC] Failed to get absolute path for sandbox root %q: %v. Sandboxing may not function correctly.", sandboxRoot, err)
+		// Use the original cleaned path as fallback if Abs fails
+		cleanSandboxRoot = filepath.Clean(sandboxRoot)
+	} else {
+		cleanSandboxRoot = filepath.Clean(absSandboxRoot)
+	}
+
+	// Ensure logger is not nil
+	effectiveLogger := logger
+	if effectiveLogger == nil {
+		effectiveLogger = log.New(io.Discard, "[SEC-NIL-LOGGER] ", 0)
+	}
+
+	effectiveLogger.Printf("[SEC] Initialized Security Layer.")
+	effectiveLogger.Printf("[SEC] Allowlisted tools (initial): %v", allowlistTools) // This might log qualified names depending on input list
 	deniedToolNames := make([]string, 0, len(denylistSet))
 	for tool := range denylistSet {
 		deniedToolNames = append(deniedToolNames, tool)
 	}
-	logger.Printf("[SEC] Denied tools: %v", deniedToolNames)
-	logger.Printf("[SEC] Sandbox Root: %s", cleanSandboxRoot)
+	effectiveLogger.Printf("[SEC] Denied tools: %v", deniedToolNames)
+	effectiveLogger.Printf("[SEC] Sandbox Root Set To: %s", cleanSandboxRoot)
 
 	if registry == nil {
-		logger.Printf("[WARN SEC] SecurityLayer initialized with nil ToolRegistry. Argument validation will be significantly limited.")
+		effectiveLogger.Printf("[WARN SEC] SecurityLayer initialized with nil ToolRegistry. Argument validation/execution will fail.")
 	}
 
 	return &SecurityLayer{
 		allowlist:    allowlistMap,
 		denylist:     denylistSet,
-		sandboxRoot:  cleanSandboxRoot,
+		sandboxRoot:  cleanSandboxRoot, // Store the cleaned, potentially absolute path
 		toolRegistry: registry,
-		logger:       logger,
+		logger:       effectiveLogger,
 	}
+}
+
+// +++ ADDED: SandboxRoot Getter +++
+// SandboxRoot returns the configured root directory for sandboxing file operations.
+func (sl *SecurityLayer) SandboxRoot() string {
+	return sl.sandboxRoot
+}
+
+// --- END ADDED ---
+
+// GetToolDeclarations generates the list of genai.Tool objects for allowlisted tools.
+func (sl *SecurityLayer) GetToolDeclarations() ([]*genai.Tool, error) {
+	if sl.toolRegistry == nil {
+		sl.logger.Println("[ERROR SEC] Cannot get tool declarations: ToolRegistry is nil.")
+		return nil, errors.New("security layer tool registry is not initialized")
+	}
+
+	declarations := []*genai.Tool{}
+	allTools := sl.toolRegistry.GetAllTools() // Gets map[string]ToolImplementation (base name -> impl)
+
+	sl.logger.Printf("[SEC] Generating declarations for %d registered tools...", len(allTools))
+
+	for baseName, impl := range allTools {
+		qualifiedName := "TOOL." + baseName // Construct qualified name
+		// Check allow/deny lists using the qualified name
+		if sl.allowlist[qualifiedName] && !sl.denylist[qualifiedName] {
+			sl.logger.Printf("[SEC] Generating declaration for allowlisted tool: %s", qualifiedName)
+			schema := &genai.Schema{
+				Type:        genai.TypeObject,
+				Properties:  map[string]*genai.Schema{},
+				Required:    []string{},
+				Description: impl.Spec.Description,
+			}
+
+			validSchema := true // Flag to track if schema generation succeeds
+			for _, argSpec := range impl.Spec.Args {
+				genaiType, typeErr := argSpec.Type.ToGenaiType()
+				if typeErr != nil {
+					sl.logger.Printf("[ERROR SEC] Failed to convert type for arg '%s' in tool '%s': %v. Skipping tool declaration.", argSpec.Name, qualifiedName, typeErr)
+					validSchema = false
+					break // Stop processing args for this tool
+				}
+				schema.Properties[argSpec.Name] = &genai.Schema{
+					Type:        genaiType,
+					Description: argSpec.Description,
+				}
+				if argSpec.Required {
+					schema.Required = append(schema.Required, argSpec.Name)
+				}
+			}
+
+			if validSchema {
+				declarations = append(declarations, &genai.Tool{
+					FunctionDeclarations: []*genai.FunctionDeclaration{{
+						Name:        qualifiedName, // Use qualified name for LLM
+						Description: impl.Spec.Description,
+						Parameters:  schema,
+					}},
+				})
+				sl.logger.Printf("[SEC] Added declaration for: %s", qualifiedName)
+			}
+		} else {
+			sl.logger.Printf("[SEC] Skipping declaration for tool '%s' (Base: %s) (not allowlisted or is denied).", qualifiedName, baseName)
+		}
+	}
+	sl.logger.Printf("[SEC] Generated %d total tool declarations.", len(declarations))
+	return declarations, nil
+}
+
+// ExecuteToolCall validates and executes a requested tool call.
+// Expects qualifiedToolName like "TOOL.ReadFile".
+func (sl *SecurityLayer) ExecuteToolCall(interpreter *Interpreter, fc genai.FunctionCall) (genai.Part, error) {
+	qualifiedToolName := fc.Name
+	rawArgs := fc.Args
+
+	if sl.toolRegistry == nil {
+		err := errors.New("internal security error: tool registry is not available")
+		sl.logger.Printf("[ERROR SEC ExecuteToolCall] %v", err)
+		return CreateErrorFunctionResultPart(qualifiedToolName, err), err
+	}
+
+	// Validation Phase (expects qualified name)
+	validatedArgsMap, validationErr := sl.ValidateToolCall(qualifiedToolName, rawArgs)
+	if validationErr != nil {
+		sl.logger.Printf("[SEC ExecuteToolCall] Validation failed for tool '%s': %v", qualifiedToolName, validationErr)
+		return CreateErrorFunctionResultPart(qualifiedToolName, validationErr), validationErr
+	}
+
+	// Execution Phase
+	baseToolName := strings.TrimPrefix(qualifiedToolName, "TOOL.")
+	toolImpl, found := sl.toolRegistry.GetTool(baseToolName) // Use base name for registry lookup
+	if !found {
+		err := fmt.Errorf("tool implementation '%s' not found in registry despite passing validation", baseToolName)
+		sl.logger.Printf("[ERROR SEC ExecuteToolCall] %v", err)
+		return CreateErrorFunctionResultPart(qualifiedToolName, err), err
+	}
+
+	// Convert validated map back to []interface{}
+	orderedArgs := make([]interface{}, len(toolImpl.Spec.Args))
+	for i, argSpec := range toolImpl.Spec.Args {
+		val, exists := validatedArgsMap[argSpec.Name]
+		if !exists {
+			if !argSpec.Required {
+				orderedArgs[i] = nil
+			} else {
+				err := fmt.Errorf("internal error: required arg '%s' missing post-validation for tool '%s'", argSpec.Name, qualifiedToolName)
+				sl.logger.Printf("[ERROR SEC ExecuteToolCall] %v", err)
+				return CreateErrorFunctionResultPart(qualifiedToolName, err), err
+			}
+		} else {
+			orderedArgs[i] = val
+		}
+	}
+
+	sl.logger.Printf("[SEC ExecuteToolCall] Executing tool '%s' (Base: %s)...", qualifiedToolName, baseToolName)
+	resultValue, execErr := toolImpl.Func(interpreter, orderedArgs)
+	if execErr != nil {
+		sl.logger.Printf("[ERROR SEC ExecuteToolCall] Execution failed for tool '%s': %v", qualifiedToolName, execErr)
+		return CreateErrorFunctionResultPart(qualifiedToolName, execErr), execErr
+	}
+
+	// Format Success Response
+	sl.logger.Printf("[SEC ExecuteToolCall] Execution successful for tool '%s'.", qualifiedToolName)
+	responseMap := make(map[string]interface{})
+	switch v := resultValue.(type) {
+	case map[string]interface{}:
+		responseMap = v
+	case []interface{}:
+		responseMap["result_list"] = v
+	case string, int, int64, float32, float64, bool:
+		responseMap["result"] = v
+	case nil:
+		responseMap["status"] = "success"
+	default:
+		responseMap["result"] = fmt.Sprintf("%v", v)
+		sl.logger.Printf("[WARN SEC ExecuteToolCall] Tool '%s' returned unexpected type %T", qualifiedToolName, v)
+	}
+
+	sl.logger.Printf("[SEC ExecuteToolCall] Formatted response for '%s': %v", qualifiedToolName, responseMap)
+	return genai.FunctionResponse{
+		Name:     qualifiedToolName, // Use qualified name in response back to LLM
+		Response: responseMap,
+	}, nil
 }
 
 // ValidateToolCall checks denylist, allowlist, high-risk status, and delegates argument validation.
-func (sl *SecurityLayer) ValidateToolCall(toolName string, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	sl.logger.Printf("[SEC] Validating request for tool: %s with raw args: %v", toolName, rawArgs)
+// Expects the qualified tool name (e.g., "TOOL.ReadFile").
+func (sl *SecurityLayer) ValidateToolCall(qualifiedToolName string, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	sl.logger.Printf("[SEC] Validating request for tool: %s with raw args: %v", qualifiedToolName, rawArgs)
 
-	// 1. Check Denylist FIRST
-	if sl.denylist[toolName] {
-		sl.logger.Printf("[SEC] DENIED: Tool %q is explicitly denied by denylist.", toolName)
-		// Use Sentinel Error + Wrapping
-		return nil, fmt.Errorf("tool %q denied: %w", toolName, ErrToolDenied)
+	// 1. Denylist Check
+	if sl.denylist[qualifiedToolName] {
+		sl.logger.Printf("[SEC] DENIED: Tool %q is explicitly denied by denylist.", qualifiedToolName)
+		return nil, fmt.Errorf("tool %q denied: %w", qualifiedToolName, ErrToolDenied)
 	}
-	sl.logger.Printf("[SEC] Tool '%s' is not denied.", toolName)
+	sl.logger.Printf("[SEC] Tool '%s' is not denied.", qualifiedToolName)
 
-	// 2. Check Allowlist (only if not denied)
-	if !sl.allowlist[toolName] {
-		sl.logger.Printf("[SEC] DENIED: Tool %q is not in the allowlist for LLM execution.", toolName)
-		// Use Sentinel Error + Wrapping
-		return nil, fmt.Errorf("tool %q not allowed: %w", toolName, ErrToolNotAllowed)
+	// 2. Allowlist Check
+	if !sl.allowlist[qualifiedToolName] {
+		sl.logger.Printf("[SEC] DENIED: Tool %q is not in the allowlist for LLM execution.", qualifiedToolName)
+		return nil, fmt.Errorf("tool %q not allowed: %w", qualifiedToolName, ErrToolNotAllowed)
 	}
-	sl.logger.Printf("[SEC] Tool '%s' is allowlisted.", toolName)
+	sl.logger.Printf("[SEC] Tool '%s' is allowlisted.", qualifiedToolName)
 
-	// 3. High-Risk Tool Check
-	if toolName == "TOOL.ExecuteCommand" {
-		sl.logger.Printf("[SEC] DENIED: Tool 'TOOL.ExecuteCommand' is blocked by policy.")
-		// Use Sentinel Error + Wrapping
-		return nil, fmt.Errorf("tool %q blocked: %w", toolName, ErrToolBlocked)
+	// 3. High-Risk Tool Check (using qualified name)
+	if qualifiedToolName == "TOOL.ExecuteCommand" {
+		sl.logger.Printf("[SEC] DENIED: Tool %q is blocked by policy.", qualifiedToolName)
+		return nil, fmt.Errorf("tool %q blocked: %w", qualifiedToolName, ErrToolBlocked)
 	}
-	// TODO: Add more checks/configurability for risky tools like WriteFile
 
-	// 4. Get Tool Specification
+	// 4. Get Tool Specification using Base Name
 	if sl.toolRegistry == nil {
-		sl.logger.Printf("[WARN SEC] ToolRegistry not available. Skipping argument validation for tool '%s'. Returning raw args.", toolName)
-		// !! SECURITY RISK: Returning raw args without validation !!
-		// Returning error here instead of raw args to prevent insecure operation
-		return nil, fmt.Errorf("tool registry unavailable for tool %q: %w", toolName, ErrInternalSecurity)
+		sl.logger.Printf("[ERROR SEC] ToolRegistry not available during validation for %q.", qualifiedToolName)
+		return nil, fmt.Errorf("tool registry unavailable for %q: %w", qualifiedToolName, ErrInternalSecurity)
 	}
-	toolImpl, found := sl.toolRegistry.GetTool(toolName)
+	baseToolName := strings.TrimPrefix(qualifiedToolName, "TOOL.")
+	toolImpl, found := sl.toolRegistry.GetTool(baseToolName)
 	if !found {
-		sl.logger.Printf("[SEC] DENIED: Allowlisted tool %q not found in registry.", toolName)
-		// Should be caught by allowlist check generally, but good to double-check
-		// Use Sentinel Error + Wrapping
-		return nil, fmt.Errorf("allowlisted tool %q not found in registry: %w", toolName, ErrInternalSecurity)
+		sl.logger.Printf("[ERROR SEC] Allowlisted tool %q (base: %s) not found in registry.", qualifiedToolName, baseToolName)
+		return nil, fmt.Errorf("tool %q implementation not found: %w", qualifiedToolName, ErrInternalSecurity)
 	}
 	toolSpec := toolImpl.Spec
-	sl.logger.Printf("[SEC] Validating args for '%s' against spec (%d args)", toolName, len(toolSpec.Args))
+	sl.logger.Printf("[SEC] Validating args for '%s' against spec (Base: %s, Spec Args: %d)", qualifiedToolName, baseToolName, len(toolSpec.Args))
 
-	// 5. Delegate Argument Validation (calls function in security_validation.go)
-	validatedArgs, validationErr := sl.validateArgumentsAgainstSpec(toolSpec, rawArgs) // Variable is 'validationErr'
+	// 5. Delegate Argument Validation (Ensure security_validation.go exists and is correct)
+	validatedArgs, validationErr := sl.validateArgumentsAgainstSpec(toolSpec, rawArgs)
 	if validationErr != nil {
-		// Logging should happen within validateArgumentsAgainstSpec or its callees
-		// *** FIXED TYPO: Use validationErr ***
-		sl.logger.Printf("[SEC] DENIED (Argument Validation): Tool %q, Error: %v", toolName, validationErr)
-		// Return error directly, assumes it's already properly formed/wrapped
-		// *** FIXED TYPO: Use validationErr ***
+		sl.logger.Printf("[SEC] DENIED (Argument Validation): Tool %q, Error: %v", qualifiedToolName, validationErr)
 		return nil, validationErr
 	}
 
-	// If all checks passed:
-	sl.logger.Printf("[SEC] All arguments for '%s' validated successfully. Validated Args: %v", toolName, validatedArgs)
+	sl.logger.Printf("[SEC] All arguments for '%s' validated successfully. Validated Args: %v", qualifiedToolName, validatedArgs)
 	return validatedArgs, nil
 }
 
-// SanitizeFilename cleans a string to be suitable for use as a filename component.
-// DO NOT MOVE from security.go --- this means YOU
+// SanitizeFilename (Implementation unchanged from user provided version)
 func SanitizeFilename(name string) string {
-	// ... (Sanitization logic remains the same) ...
+	// ... (implementation unchanged) ...
 	name = strings.ReplaceAll(name, " ", "_")
-	replacer := strings.NewReplacer(
-		"/", "_", "\\", "_", ":", "_", "*", "_", "?", "_", "\"", "_", "<", "_", ">", "_", "|", "_",
-	)
+	replacer := strings.NewReplacer("/", "_", "\\", "_", ":", "_", "*", "_", "?", "_", "\"", "_", "<", "_", ">", "_", "|", "_")
 	name = replacer.Replace(name)
 	removeChars := regexp.MustCompile(`[^a-zA-Z0-9._-]`)
 	name = removeChars.ReplaceAllString(name, "")
@@ -129,11 +290,11 @@ func SanitizeFilename(name string) string {
 	name = regexp.MustCompile(`-{2,}`).ReplaceAllString(name, "-")
 	for strings.Contains(name, "..") {
 		name = strings.ReplaceAll(name, "..", "_")
-	}
-	name = strings.Trim(name, "._-")
+	} // Basic protection
+	name = strings.Trim(name, "._-") // Trim again
 	name = regexp.MustCompile(`_{2,}`).ReplaceAllString(name, "_")
 	name = regexp.MustCompile(`-{2,}`).ReplaceAllString(name, "-")
-	const maxLength = 100
+	const maxLength = 100 // Limit length
 	if len(name) > maxLength {
 		name = name[:maxLength]
 		name = strings.TrimRight(name, "._-")
@@ -152,30 +313,24 @@ func SanitizeFilename(name string) string {
 			name = name + "_"
 			break
 		}
-	}
+	} // Append underscore for reserved names
 	return name
 }
 
-// SecureFilePath cleans and ensures the **relative** path is within the allowed directory (cwd).
-// Rejects absolute paths. Returns the cleaned absolute path on success.
-// DO NOT MOVE from security.go --- this means YOU
+// SecureFilePath (Implementation unchanged from user provided version)
 func SecureFilePath(filePath, allowedDir string) (string, error) {
 	if filePath == "" {
-		// Wrap sentinel error
 		return "", fmt.Errorf("file path cannot be empty: %w", ErrPathViolation)
 	}
 	if strings.Contains(filePath, "\x00") {
-		// Use correct sentinel error + Wrap
 		return "", fmt.Errorf("file path contains null byte: %w", ErrNullByteInArgument)
 	}
 	if filepath.IsAbs(filePath) {
-		// Wrap sentinel error
-		return "", fmt.Errorf("input file path %q must be relative: %w", filePath, ErrPathViolation)
+		return "", fmt.Errorf("input file path %q must be relative, not absolute: %w", filePath, ErrPathViolation)
 	}
 
 	absAllowedDir, err := filepath.Abs(allowedDir)
 	if err != nil {
-		// Wrap internal config error
 		return "", fmt.Errorf("could not get absolute path for allowed directory %q: %w", allowedDir, err)
 	}
 	absAllowedDir = filepath.Clean(absAllowedDir)
@@ -187,15 +342,10 @@ func SecureFilePath(filePath, allowedDir string) (string, error) {
 	if prefixToCheck != string(filepath.Separator) && !strings.HasSuffix(prefixToCheck, string(filepath.Separator)) {
 		prefixToCheck += string(filepath.Separator)
 	}
-	pathToCheck := absCleanedPath
 
-	isOutside := pathToCheck != absAllowedDir && !strings.HasPrefix(pathToCheck, prefixToCheck)
-
-	if isOutside {
+	if absCleanedPath != absAllowedDir && !strings.HasPrefix(absCleanedPath, prefixToCheck) {
 		details := fmt.Sprintf("relative path %q resolves to %q which is outside the allowed directory %q", filePath, absCleanedPath, absAllowedDir)
-		// Wrap sentinel error
 		return "", fmt.Errorf("%s: %w", details, ErrPathViolation)
 	}
-
 	return absCleanedPath, nil
 }

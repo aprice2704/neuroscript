@@ -2,9 +2,8 @@
 package core // Changed from core_test to access unexported toolStat
 
 import (
-	"errors"
-	"io"  // For io.Discard
-	"log" // For log.New
+	"errors" // For io.Discard
+	// For log.New
 	"os"
 	"path/filepath"
 	"reflect"
@@ -17,10 +16,9 @@ import (
 // Uses standard logger and correct NewInterpreter signature.
 func createTestInterpreterWithSandbox(t *testing.T, sandboxDir string) *Interpreter {
 	t.Helper()
-	// Use standard logger discarding output
-	testLogger := log.New(io.Discard, "[TEST-STAT] ", 0)
+
 	// Use correct NewInterpreter signature
-	interpreter := NewInterpreter(testLogger)
+	interpreter, _ := newDefaultTestInterpreter(t)
 	// Set sandbox directory manually
 	interpreter.sandboxDir = sandboxDir
 	// Register tools (assuming this is needed - adapt if registration happens elsewhere)

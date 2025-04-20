@@ -1,6 +1,9 @@
+// filename: pkg/neurogo/handle_turn.go
 package neurogo
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -9,163 +12,178 @@ import (
 	"github.com/google/generative-ai-go/genai"
 )
 
+// Constants for patch detection and loop control
+const (
+	applyPatchFunctionName = "_ApplyNeuroScriptPatch"
+)
+
 // handleAgentTurn processes a single response from the LLM.
-// Returns true if the turn is complete (final text, patch handled, error), false if a tool call requires continuation.
 func (a *App) handleAgentTurn(
-	response *genai.GenerateContentResponse,
+	ctx context.Context,
+	llmClient *core.LLMClient,
 	convoManager *core.ConversationManager,
 	agentInterpreter *core.Interpreter,
 	securityLayer *core.SecurityLayer,
-	cleanSandboxDir string,
-) (turnComplete bool) {
+	toolDeclarations []*genai.Tool,
+) error {
 
-	if response == nil {
-		a.ErrorLog.Println("LLM API returned a nil response")
-		fmt.Println("\n[AGENT] Received nil response from LLM.")
-		return true
-	} // End turn on nil response
-	if len(response.Candidates) == 0 { /* ... safety block handling ... */
-		a.InfoLog.Println("LLM returned no candidates.")
-		blockMsg := "[AGENT] LLM returned no response."
-		if response.PromptFeedback != nil {
-			if response.PromptFeedback.BlockReason != genai.BlockReasonUnspecified {
-				errMsg := fmt.Sprintf("Request blocked by safety filter: %s", response.PromptFeedback.BlockReason)
+	for cycle := 0; cycle < maxFunctionCallCycles; cycle++ {
+		a.InfoLog.Printf("--- Agent Inner Loop Cycle %d ---", cycle+1)
+
+		requestContext := core.LLMRequestContext{History: convoManager.GetHistory()}
+		if len(requestContext.History) == 0 {
+			return errors.New("internal error: conversation history is empty before LLM call")
+		}
+
+		llmResponse, err := llmClient.CallLLMAgent(ctx, requestContext, toolDeclarations)
+		// --- Handle LLM call errors / safety blocks (Same as before) ---
+		if err != nil {
+			return fmt.Errorf("LLM API call failed: %w", err)
+		}
+		if llmResponse == nil || len(llmResponse.Candidates) == 0 {
+			blockReason := genai.BlockReasonUnspecified
+			if llmResponse != nil && llmResponse.PromptFeedback != nil {
+				blockReason = llmResponse.PromptFeedback.BlockReason
+			}
+			if blockReason != genai.BlockReasonUnspecified {
+				errMsg := fmt.Sprintf("request blocked by safety filter: %s", blockReason)
 				a.ErrorLog.Printf("LLM Request Blocked: %s", errMsg)
-				blockMsg = fmt.Sprintf("[AGENT] %s", errMsg)
+				fmt.Printf("\n[AGENT] %s\n", errMsg)
+				return fmt.Errorf(errMsg)
 			}
+			a.ErrorLog.Println("LLM response was nil or had no valid candidates.")
+			fmt.Println("\n[AGENT] Received empty or invalid response from LLM.")
+			return errors.New("received empty or invalid LLM response")
 		}
-		fmt.Println("\n" + blockMsg)
-		return true
-	} // End turn on no candidates
+		// ---
 
-	candidate := response.Candidates[0]
-	if err := convoManager.AddModelResponse(candidate); err != nil {
-		a.ErrorLog.Printf("Failed to add model response to history: %v", err)
-	} // Log error but continue processing
-	if candidate.Content == nil || len(candidate.Content.Parts) == 0 {
-		a.InfoLog.Println("LLM candidate had nil content or no parts.")
-		fmt.Println("\n[AGENT] LLM returned an empty response part.")
-		return true
-	} // End turn on empty content
+		candidate := llmResponse.Candidates[0]
+		if err := convoManager.AddModelResponse(candidate); err != nil {
+			a.ErrorLog.Printf("Failed to add model response to history: %v", err)
+		}
 
-	part := candidate.Content.Parts[0]
+		if candidate.Content == nil || len(candidate.Content.Parts) == 0 {
+			a.InfoLog.Println("LLM candidate had nil content or no parts. Turn ends.")
+			fmt.Println("\n[AGENT] LLM returned an empty response part.")
+			return nil // End turn normally
+		}
 
-	// --- Text Part Handling (including Patch Workaround) ---
-	if txt, ok := part.(genai.Text); ok {
-		textResponse := string(txt)
-		trimmedResponse := strings.TrimSpace(textResponse)
-		// Trim potential markdown fences robustly
-		trimmedResponse = strings.TrimPrefix(trimmedResponse, "```json") // Handle json fence specifically
-		trimmedResponse = strings.TrimPrefix(trimmedResponse, "```")
-		trimmedResponse = strings.TrimSuffix(trimmedResponse, "```")
-		trimmedResponse = strings.TrimSpace(trimmedResponse)
+		// --- Process Response Parts ---
+		foundFunctionCall := false
+		var firstFunctionCall *genai.FunctionCall
+		var accumulatedText strings.Builder
 
-		// Check for Patch Pattern
-		if strings.HasPrefix(trimmedResponse, applyPatchFunctionName+"(") && strings.HasSuffix(trimmedResponse, ")") {
-			a.InfoLog.Printf("Agent detected Patch request via text pattern.")
-			fmt.Printf("[AGENT] Received patch request (via text pattern).\n")
-			startIndex := strings.Index(trimmedResponse, "(")
-			endIndex := strings.LastIndex(trimmedResponse, ")")
-
-			if startIndex != -1 && endIndex != -1 && endIndex > startIndex {
-				extractedArg := strings.TrimSpace(trimmedResponse[startIndex+1 : endIndex])
-
-				// --- MODIFIED: Simplified Unquoting Attempt ---
-				// Try direct Unmarshal first, then try Unquote if that fails
-				// This handles cases where LLM sends raw JSON vs escaped JSON within quotes
-				var patchJSON string = extractedArg // Assume raw JSON initially
-
-				// Check if it might be quoted+escaped (needs Unquote)
-				// A simple check is if it starts/ends with quotes AND contains escapes
-				if strings.HasPrefix(extractedArg, `"`) && strings.HasSuffix(extractedArg, `"`) && (strings.Contains(extractedArg, `\"`) || strings.Contains(extractedArg, `\\`)) {
-					unquoted, errUnquote := strconv.Unquote(extractedArg)
-					if errUnquote == nil {
-						a.DebugLog.Printf("[DEBUG PATCH] Successfully unquoted extracted argument.")
-						patchJSON = unquoted // Use unquoted version
-					} else {
-						// Log unquote error but proceed trying to unmarshal the original extractedArg
-						a.ErrorLog.Printf("[WARN PATCH] Failed to unquote extracted patch argument, will try direct unmarshal. Error: %v. Extracted: %q", errUnquote, extractedArg)
-						// patchJSON remains extractedArg
-					}
-				}
-				// --- End Unquote Attempt ---
-
-				// Call the patch handler
-				patchErr := handleReceivedPatch(patchJSON, agentInterpreter, securityLayer, cleanSandboxDir, a.InfoLog, a.ErrorLog)
-
-				// --- MODIFIED: Add Model Text Response & BREAK loop ---
-				var resultMessage string
-				if patchErr != nil {
-					a.ErrorLog.Printf("Patch application failed: %v", patchErr)
-					fmt.Printf("[AGENT] Patch application failed: %v\n", patchErr)
-					resultMessage = fmt.Sprintf("Patch application failed: %v", patchErr)
+		for _, part := range candidate.Content.Parts { // Process parts (same as before)
+			switch v := part.(type) {
+			case genai.Text:
+				accumulatedText.WriteString(string(v))
+			case genai.FunctionCall:
+				if !foundFunctionCall {
+					foundFunctionCall = true
+					fcCopy := v
+					firstFunctionCall = &fcCopy
+					a.InfoLog.Printf("LLM requested Function Call: %s", fcCopy.Name)
+					a.DebugLog.Printf("Function Call Args: %v", fcCopy.Args)
 				} else {
-					a.InfoLog.Printf("Patch applied successfully.")
-					fmt.Printf("[AGENT] Patch applied successfully.\n")
-					resultMessage = "Patch applied successfully."
+					a.InfoLog.Printf("Ignoring subsequent function call in same response: %s", v.Name)
 				}
-				patchOutcomeContent := &genai.Content{Role: "model", Parts: []genai.Part{genai.Text(resultMessage)}}
-				convoManager.History = append(convoManager.History, patchOutcomeContent)
-				a.InfoLog.Printf("[CONVO] Added Patch Outcome Text: %q", resultMessage)
-				return true // Patch handled, end the turn.
-
-			} else { // Malformed parentheses
-				a.InfoLog.Println("Agent treating text starting with pattern prefix but missing/malformed parens as regular text.")
-				fmt.Printf("\n[AGENT] %s\n", textResponse)
-				return true // Treat as final text response
+			default:
+				a.DebugLog.Printf("LLM response part: Unexpected type %T", v)
 			}
+		} // End part processing loop
 
-			// --- Handle Regular Text Response ---
-		} else if textResponse != "" {
-			a.InfoLog.Println("Agent received final Text response.")
-			fmt.Printf("\n[AGENT] %s\n", textResponse)
-			return true // Final response, end the turn.
-		} else { // Empty text part
-			a.InfoLog.Printf("Agent received empty text part.")
-			fmt.Println("\n[AGENT] Received an unexpected or empty response part from LLM.")
-			return true // End the turn.
-		}
-	} // --- End Text Part Handling ---
-
-	// --- Handle Regular Function Calls ---
-	if fc, ok := part.(genai.FunctionCall); ok {
-		// IMPORTANT: Ensure applyPatchFunctionName is NOT handled here if using text workaround
-		if fc.Name == applyPatchFunctionName {
-			a.ErrorLog.Printf("ERROR: Received %s as FunctionCall but expected it via text pattern workaround!", applyPatchFunctionName)
-			fmt.Printf("\n[AGENT] Internal Error: Unexpected FunctionCall format for patch.\n")
-			return true // End turn due to unexpected state
-		}
-
-		// Handle regular TOOL.xxx calls
-		a.InfoLog.Printf("Agent received FunctionCall request: %s", fc.Name)
-		fmt.Printf("[AGENT] Requesting tool: %s\n", fc.Name)
-		validatedArgs, validationErr := securityLayer.ValidateToolCall(fc.Name, fc.Args)
-		var toolResult map[string]interface{}
-		if validationErr != nil {
-			a.ErrorLog.Printf("Tool call validation failed for %s: %v", fc.Name, validationErr)
-			fmt.Printf("[AGENT] Tool validation failed: %v\n", validationErr)
-			toolResult = formatErrorResponse(validationErr)
-		} else {
-			a.InfoLog.Printf("Executing tool %s with validated args...", fc.Name)
-			toolOutput, execErr := executeAgentTool(fc.Name, validatedArgs, agentInterpreter)
-			toolResult = formatToolResult(toolOutput, execErr)
+		// --- Decide Next Action ---
+		if foundFunctionCall && firstFunctionCall != nil {
+			// Execute the function call (same as before)
+			fc := *firstFunctionCall
+			funcResultPart, execErr := securityLayer.ExecuteToolCall(agentInterpreter, fc)
 			if execErr != nil {
-				a.ErrorLog.Printf("Tool execution failed for %s: %v", fc.Name, execErr)
-				fmt.Printf("[AGENT] Tool execution failed: %v\n", execErr)
+				a.ErrorLog.Printf("Tool execution error for '%s': %v", fc.Name, execErr)
 			} else {
-				a.InfoLog.Printf("Tool %s executed successfully. Result map: %v", fc.Name, toolResult)
+				a.InfoLog.Printf("Successfully executed tool: %s", fc.Name)
 			}
-		}
-		if err := convoManager.AddFunctionResponse(fc.Name, toolResult); err != nil {
-			a.ErrorLog.Printf("Failed to add tool result response to history: %v", err)
-			// If adding response fails, should probably end turn?
-			return true
-		}
-		return false // Indicate loop should continue for LLM response to tool result
-	} // --- End Function Call Handling ---
+			if err := convoManager.AddFunctionResultMessage(funcResultPart); err != nil {
+				a.ErrorLog.Printf("Error adding func result message: %v", err)
+				return fmt.Errorf("failed to record func result: %w", err)
+			}
+			a.DebugLog.Printf("Added function result to history for %s.", fc.Name)
+			a.DebugLog.Println("Function call processed, continuing inner loop cycle.")
+			continue // Go to next iteration
 
-	// --- Handle Unexpected Part Types ---
-	a.InfoLog.Printf("Agent received response part of unexpected type (%T).", part)
-	fmt.Println("\n[AGENT] Received an unexpected response part from LLM.")
-	return true // End turn, cannot process.
+		} else {
+			// No function call. Process text / patch.
+			finalText := accumulatedText.String()
+			trimmedResponse := strings.TrimSpace(finalText)
+
+			// --- MODIFIED: Trim BOTH triple and single backticks ---
+			trimmedResponse = strings.TrimPrefix(trimmedResponse, "```json")
+			trimmedResponse = strings.TrimPrefix(trimmedResponse, "```")
+			trimmedResponse = strings.TrimSuffix(trimmedResponse, "```")
+			trimmedResponse = strings.TrimPrefix(trimmedResponse, "`") // Trim leading single backtick
+			trimmedResponse = strings.TrimSuffix(trimmedResponse, "`") // Trim trailing single backtick
+			trimmedResponse = strings.TrimSpace(trimmedResponse)       // Trim again just in case
+			// --- END MODIFIED ---
+
+			// Check for Patch Pattern
+			if strings.HasPrefix(trimmedResponse, applyPatchFunctionName+"(") && strings.HasSuffix(trimmedResponse, ")") {
+				a.InfoLog.Printf("Agent detected Patch request via text pattern.")
+				fmt.Printf("[AGENT] Received patch request (via text pattern).\n")
+				startIndex := strings.Index(trimmedResponse, "(")
+				endIndex := strings.LastIndex(trimmedResponse, ")")
+
+				if startIndex != -1 && endIndex > startIndex {
+					extractedArg := strings.TrimSpace(trimmedResponse[startIndex+1 : endIndex])
+					patchJSON := extractedArg
+
+					// Unquoting Logic (unchanged)
+					if strings.HasPrefix(extractedArg, `"`) && strings.HasSuffix(extractedArg, `"`) && (strings.Contains(extractedArg, `\"`) || strings.Contains(extractedArg, `\\`)) {
+						unquoted, errUnquote := strconv.Unquote(extractedArg)
+						if errUnquote == nil {
+							a.DebugLog.Printf("[DEBUG PATCH] Successfully unquoted extracted argument.")
+							patchJSON = unquoted
+						} else {
+							a.ErrorLog.Printf("[WARN PATCH] Failed to unquote, trying direct unmarshal. Err: %v. Arg: %q", errUnquote, extractedArg)
+						}
+					}
+
+					// Call patch handler
+					sandboxDir := securityLayer.SandboxRoot()
+					patchErr := handleReceivedPatch(patchJSON, agentInterpreter, securityLayer, sandboxDir, a.InfoLog, a.ErrorLog)
+
+					if patchErr != nil {
+						a.ErrorLog.Printf("Patch application failed: %v", patchErr)
+						fmt.Printf("[AGENT] Patch application failed: %v\n", patchErr)
+						return fmt.Errorf("patch application failed: %w", patchErr)
+					} else {
+						a.InfoLog.Printf("Patch applied successfully.")
+						fmt.Printf("[AGENT] Patch applied successfully.\n")
+						return nil // Patch handled, end the turn successfully.
+					}
+				} else { // Malformed parentheses
+					a.InfoLog.Println("Agent treating text matching pattern prefix but malformed parens as regular text.")
+					fmt.Printf("\n[AGENT RESPONSE]\n%s\n\n", finalText) // Print original accumulated text
+					return nil                                          // End the turn normally
+				}
+			} else if finalText != "" {
+				// Regular text response
+				a.InfoLog.Println("Agent received final Text response.")
+				fmt.Printf("\n[AGENT RESPONSE]\n%s\n\n", finalText)
+				return nil // End the turn successfully
+			} else {
+				// Empty text part and no function call
+				a.InfoLog.Printf("Agent received empty text part and no function call.")
+				fmt.Println("\n[AGENT RESPONSE]\n(Agent provided no text response for this turn.)\n")
+				return nil // End turn normally
+			}
+		} // End handling text/patch
+	} // End inner loop
+
+	// If loop finishes, we exceeded max cycles
+	errLoop := fmt.Errorf("exceeded maximum function call cycles (%d)", maxFunctionCallCycles)
+	a.ErrorLog.Printf("Agent turn failed: %v", errLoop)
+	fmt.Printf("\n[AGENT] Error: %v. The agent may be stuck in a loop.\n", errLoop)
+	return errLoop
 }
+
+// --- Helpers (executeAgentTool, formatToolResult, formatErrorResponse, loadToolListFromFile) ---
+// Assume these exist correctly in helpers.go or elsewhere in pkg/neurogo

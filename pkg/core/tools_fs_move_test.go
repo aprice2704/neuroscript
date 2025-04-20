@@ -222,7 +222,7 @@ func TestToolMoveFileFunctional(t *testing.T) {
 func newTestInterpreterWithSandbox(t *testing.T, sandboxDir string) *Interpreter {
 	t.Helper()
 	// Create a minimal interpreter for testing
-	interp := NewInterpreter(nil) // Use nil logger or a test logger
+	interp, _ := newDefaultTestInterpreter(t) // Use nil logger or a test logger
 	interp.sandboxDir = sandboxDir
 	// Register necessary tools if validation relies on them (unlikely for MoveFile validation itself)
 	// RegisterCoreTools(interp.toolRegistry) // Maybe not needed for just validation tests

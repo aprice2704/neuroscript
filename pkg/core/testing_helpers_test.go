@@ -24,7 +24,16 @@ func newTestInterpreter(t *testing.T, vars map[string]interface{}, lastResult in
 	testLogger := log.New(io.Discard, "[TEST-INTERP] ", log.Lshortfile)
 	// uncomment below to enable test logging
 	// testLogger = log.New(os.Stderr, "[TEST-INTERP] ", log.Ltime|log.Lmicroseconds|log.Lshortfile)
-	interp := NewInterpreter(testLogger) // Pass the logger
+
+	// Create a minimal LLMClient - it won't be able to make real calls
+	// Pass empty API key, empty model, discard logger, and debug=false
+	minimalLLMClient := NewLLMClient("", "", testLogger, false)
+	if minimalLLMClient == nil {
+		// This shouldn't happen based on NewLLMClient logic, but check defensively
+		t.Fatal("Failed to create even a minimal LLMClient for testing")
+	}
+
+	interp := NewInterpreter(testLogger, minimalLLMClient) // Pass the logger
 
 	// *** ADDED: Log before registration attempt ***
 	testLogger.Println("Attempting to register core tools...")

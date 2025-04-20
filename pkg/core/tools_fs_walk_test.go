@@ -3,8 +3,6 @@ package core // Use package core to access unexported toolWalkDir
 
 import (
 	"errors"
-	"io"
-	"log"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -17,9 +15,8 @@ import (
 // createWalkTestInterpreter creates a minimal interpreter setup for walk tests.
 func createWalkTestInterpreter(t *testing.T, sandboxDir string) *Interpreter {
 	t.Helper()
-	testLogger := log.New(io.Discard, "[TEST-WALK] ", 0) // Discard logs by default
 	// Use correct NewInterpreter signature found in interpreter.go
-	interpreter := NewInterpreter(testLogger)
+	interpreter, _ := newDefaultTestInterpreter(t)
 	// Set sandbox directory directly
 	interpreter.sandboxDir = sandboxDir
 	// No need to register all tools if calling toolWalkDir directly
