@@ -144,7 +144,7 @@ func (sl *SecurityLayer) GetToolDeclarations() ([]*genai.Tool, error) {
 				sl.logger.Printf("[SEC] Added declaration for: %s", qualifiedName)
 			}
 		} else {
-			sl.logger.Printf("[SEC] Skipping declaration for tool '%s' (Base: %s) (not allowlisted or is denied).", qualifiedName, baseName)
+			// sl.logger.Printf("[SEC] Skipping declaration for tool '%s' (Base: %s) (not allowlisted or is denied).", qualifiedName, baseName)
 		}
 	}
 	sl.logger.Printf("[SEC] Generated %d total tool declarations.", len(declarations))
