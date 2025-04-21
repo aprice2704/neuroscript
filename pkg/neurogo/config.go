@@ -24,6 +24,7 @@ type Config struct {
 	ModelName           string   // -model: Name of the GenAI model to use
 	RunAgentMode        bool     // -agent: Explicitly run in agent mode
 	RunSyncMode         bool     // -sync: Explicitly run sync using config dir
+	Insecure            bool
 
 	// Renamed from Nuke
 	CleanAPI bool // -clean-api: Delete all files from the File API

@@ -19,13 +19,16 @@ import (
 
 // App encapsulates the application's state and configuration.
 type App struct {
-	Config   *Config
+	Config   *Config // Holds configuration like Insecure, APIKey, ModelName etc.
 	InfoLog  *log.Logger
+	WarnLog  *log.Logger // Keep this field
 	ErrorLog *log.Logger
 	DebugLog *log.Logger
 	LLMLog   *log.Logger
+	Insecure *bool
 
-	llmClient *core.LLMClient
+	// Runtime state / clients
+	llmClient *core.LLMClient // Unexported, managed internally
 }
 
 // NewApp creates a new App instance with default loggers.
@@ -298,3 +301,20 @@ func (a *App) runCleanAPIMode(ctx context.Context) error {
 
 // Add min if needed
 // func min(a, b int) int { if a < b { return a }; return b }
+// Add the InitLoggingAndLLMClient method to the App struct in app.go if it doesn't exist
+// Example (needs to be added in pkg/neurogo/app.go):
+
+func (a *App) InitLoggingAndLLMClient(ctx context.Context) error {
+	if err := a.initLogging(); err != nil {
+		// Use standard log here as app loggers might not be fully set
+		log.Printf("ERROR: Logging init failed: %v\\n", err)
+		return err
+	}
+	// Always attempt LLM init here, let initLLMClient decide if key exists
+	if err := a.initLLMClient(ctx); err != nil {
+		// Log but don't necessarily return error unless LLM is mandatory for TUI
+		a.ErrorLog.Printf("LLM Client init failed: %v", err)
+		// return err // Uncomment if LLM must succeed for TUI mode
+	}
+	return nil
+}
