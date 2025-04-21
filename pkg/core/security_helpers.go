@@ -47,3 +47,48 @@ func IsPathInSandbox(sandboxRoot, filePath string) (bool, error) {
 
 	return isInSandbox, nil
 }
+
+// +++ NEW FUNCTION +++
+// ResolveAndSecurePath resolves an input path (potentially relative to CWD)
+// to an absolute path and validates it against an allowed directory root.
+// Returns the validated absolute path or an error wrapping ErrPathViolation.
+func ResolveAndSecurePath(inputPath, allowedRoot string) (string, error) {
+	if inputPath == "" {
+		return "", fmt.Errorf("input path cannot be empty: %w", ErrPathViolation)
+	}
+	if strings.Contains(inputPath, "\x00") {
+		return "", fmt.Errorf("input path contains null byte: %w", ErrNullByteInArgument)
+	}
+
+	// 1. Resolve the allowed directory root to an absolute, clean path.
+	absAllowedRoot, err := filepath.Abs(allowedRoot)
+	if err != nil {
+		// This is likely an internal config error
+		return "", fmt.Errorf("could not get absolute path for allowed root %q: %w", allowedRoot, ErrInternalSecurity)
+	}
+	absAllowedRoot = filepath.Clean(absAllowedRoot)
+
+	// 2. Resolve the inputPath to an absolute, clean path (relative to CWD).
+	absInputPath, err := filepath.Abs(inputPath)
+	if err != nil {
+		// Error resolving the user-provided path itself
+		return "", fmt.Errorf("could not resolve absolute path for %q: %w", inputPath, err)
+	}
+	absInputPath = filepath.Clean(absInputPath)
+
+	// 3. Check for containment: absInputPath must be exactly absAllowedRoot or a descendant.
+	prefixToCheck := absAllowedRoot
+	// Add trailing separator if missing AND if it's not the root directory itself "/"
+	if prefixToCheck != string(filepath.Separator) && !strings.HasSuffix(prefixToCheck, string(filepath.Separator)) {
+		prefixToCheck += string(filepath.Separator)
+	}
+
+	// Check if the cleaned input path is exactly the allowed root OR starts with the prefix
+	if absInputPath != absAllowedRoot && !strings.HasPrefix(absInputPath, prefixToCheck) {
+		details := fmt.Sprintf("path %q (resolves to %q) is outside the allowed root %q", inputPath, absInputPath, absAllowedRoot)
+		return "", fmt.Errorf("%s: %w", details, ErrPathViolation)
+	}
+
+	// 4. Return the validated *absolute* input path.
+	return absInputPath, nil
+}
