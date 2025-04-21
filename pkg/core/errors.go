@@ -52,7 +52,8 @@ var (
 	ErrCacheObjectNotFound  = errors.New("object not found in cache")
 	ErrCacheObjectWrongType = errors.New("object found in cache has wrong type")
 	// General Tool Error
-	ErrInternalTool = errors.New("internal tool error")
+	ErrInternalTool      = errors.New("internal tool error")
+	ErrSkippedBinaryFile = errors.New("skipped potentially binary file")
 )
 
 // --- Core Interpreter Errors ---

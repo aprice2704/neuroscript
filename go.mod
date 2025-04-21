@@ -61,6 +61,7 @@ require (
 	github.com/charmbracelet/bubbles v0.21.0
 	github.com/charmbracelet/bubbletea v1.3.4
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/gabriel-vasile/mimetype v1.4.9
 	github.com/google/generative-ai-go v0.19.0
 	github.com/google/go-cmp v0.7.0
 	github.com/google/uuid v1.6.0

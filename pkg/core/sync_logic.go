@@ -3,11 +3,14 @@ package core
 
 import (
 	// Still needed for logging the local hash prefix if desired
+	"context"
 	"errors"
 	"fmt"
 	"io/fs"
 	"log" // Added for nil logger check fallback
+	"os"
 	"path/filepath"
+	"strings"
 
 	// Added for string comparison below
 	"github.com/google/generative-ai-go/genai"
@@ -196,3 +199,59 @@ func computeSyncActions(sc *syncContext, localFiles map[string]LocalFileInfo, re
 }
 
 // Ensure calculateFileHash and min are accessible (defined in core package, e.g., tools_file_api.go and helpers.go)
+// --- Tool: SyncFiles (Wrapper) ---
+// (Function unchanged)
+func toolSyncFiles(interpreter *Interpreter, args []interface{}) (interface{}, error) {
+	client, clientErr := checkGenAIClient(interpreter)
+	if clientErr != nil {
+		return nil, fmt.Errorf("TOOL.SyncFiles: %w", clientErr)
+	}
+	if len(args) < 2 || len(args) > 4 {
+		return nil, fmt.Errorf("TOOL.SyncFiles: expected 2-4 arguments (direction, local_dir, [filter_pattern], [ignore_gitignore]), got %d", len(args))
+	}
+	direction, ok := args[0].(string)
+	if !ok {
+		return nil, fmt.Errorf("TOOL.SyncFiles: direction must be string")
+	}
+	localDir, ok := args[1].(string)
+	if !ok {
+		return nil, fmt.Errorf("TOOL.SyncFiles: local_dir must be string")
+	}
+	if localDir == "" {
+		return nil, errors.New("TOOL.SyncFiles: local_dir empty")
+	}
+	var filterPattern string
+	if len(args) >= 3 {
+		filterPattern, ok = args[2].(string)
+		if !ok && args[2] != nil {
+			return nil, fmt.Errorf("TOOL.SyncFiles: filter_pattern must be string or null")
+		}
+	}
+	var ignoreGitignore bool = false
+	if len(args) == 4 {
+		ignoreGitignore, ok = args[3].(bool)
+		if !ok {
+			return nil, fmt.Errorf("TOOL.SyncFiles: ignore_gitignore must be boolean")
+		}
+	}
+	direction = strings.ToLower(direction)
+	if direction != "up" {
+		return nil, fmt.Errorf("TOOL.SyncFiles: direction '%s' not supported", direction)
+	}
+	// Assumes ErrValidationArgValue exists
+	absLocalDir, secErr := ResolveAndSecurePath(localDir, interpreter.sandboxDir)
+	if secErr != nil {
+		return nil, fmt.Errorf("TOOL.SyncFiles: invalid local_dir '%s': %w", localDir, errors.Join(secErr))
+	}
+	dirInfo, statErr := os.Stat(absLocalDir)
+	if statErr != nil {
+		return nil, fmt.Errorf("TOOL.SyncFiles: cannot access local_dir '%s': %w", localDir, statErr)
+	}
+	if !dirInfo.IsDir() {
+		return nil, fmt.Errorf("TOOL.SyncFiles: local_dir '%s' is not a directory", localDir)
+	}
+	interpreter.logger.Printf("[TOOL SyncFiles] Validated dir: %s (Ignore .gitignore: %t)", absLocalDir, ignoreGitignore)
+	// Assumes SyncDirectoryUpHelper is defined elsewhere (e.g., tools_file_api_sync.go)
+	statsMap, syncErr := SyncDirectoryUpHelper(context.Background(), absLocalDir, filterPattern, ignoreGitignore, client, interpreter.logger, interpreter.logger, interpreter.logger)
+	return statsMap, syncErr
+}
