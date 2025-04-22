@@ -24,7 +24,9 @@ type Config struct {
 	ModelName           string   // -model: Name of the GenAI model to use
 	RunAgentMode        bool     // -agent: Explicitly run in agent mode
 	RunSyncMode         bool     // -sync: Explicitly run sync using config dir
-	Insecure            bool
+	RunTuiMode          bool     // -tui: Explicitly run in TUI mode
+	EnableLLM           bool     // -enable-llm: Enable LLM client (default true, mainly affects script mode)
+	Insecure            bool     // TODO: What does this do? Is it still needed?
 
 	// Renamed from Nuke
 	CleanAPI bool // -clean-api: Delete all files from the File API
@@ -42,6 +44,7 @@ func NewConfig() *Config {
 	return &Config{
 		SyncDir:    ".",
 		SandboxDir: ".",
+		EnableLLM:  true, // Default LLM client to enabled
 	}
 }
 
@@ -60,6 +63,7 @@ func (c *Config) ParseFlags(args []string) error {
 	fs.StringVar(&c.ScriptFile, "script", "", "Path to the .ns script file to execute.")
 	fs.BoolVar(&c.RunSyncMode, "sync", false, "Run in sync mode using -sync-dir (or default './').")
 	fs.BoolVar(&c.RunAgentMode, "agent", false, "Run in interactive agent mode.")
+	fs.BoolVar(&c.RunTuiMode, "tui", false, "Run in interactive TUI mode.") // Added -tui flag
 	// Renamed from -nuke
 	fs.BoolVar(&c.CleanAPI, "clean-api", false, "Delete ALL files from the File API (use with caution!). Must be used alone.")
 
@@ -72,6 +76,7 @@ func (c *Config) ParseFlags(args []string) error {
 	fs.StringVar(&c.DebugLogFile, "debug-log", "", "Path to write detailed debug logs.")
 	fs.StringVar(&c.LLMDebugLogFile, "llm-debug-log", "", "Path to write raw LLM request/response logs.")
 	fs.StringVar(&c.ModelName, "model", "", "Optional: GenAI model name (e.g., gemini-1.5-flash-latest).")
+	fs.BoolVar(&c.EnableLLM, "enable-llm", c.EnableLLM, "Enable LLM client (default true, use -enable-llm=false to disable).") // Added -enable-llm flag
 
 	// --- Flags for Agent/Script Context ---
 	var attachments stringSliceFlag
@@ -87,16 +92,18 @@ func (c *Config) ParseFlags(args []string) error {
 		fmt.Fprintf(fs.Output(), "Usage of neurogo:\n")
 		fmt.Fprintf(fs.Output(), "  neurogo [flags]\n\n")
 		// Updated precedence and flag name
-		fmt.Fprintf(fs.Output(), "Modes (mutually exclusive, precedence: -clean-api > -sync > -script > -agent (default)):\n")
-		fmt.Fprintf(fs.Output(), "  -clean-api           : Delete all files from API (requires confirmation).\n") // Updated
+		fmt.Fprintf(fs.Output(), "Modes (mutually exclusive, precedence: -clean-api > -sync > -script > -tui > -agent (default)):\n")
+		fmt.Fprintf(fs.Output(), "  -clean-api           : Delete all files from API (requires confirmation).\n")
 		fmt.Fprintf(fs.Output(), "  -sync                : Run file synchronization and exit.\n")
 		fmt.Fprintf(fs.Output(), "  -script <file.ns>    : Execute the specified NeuroScript file.\n")
-		fmt.Fprintf(fs.Output(), "  -agent               : Run in interactive agent mode (default).\n")
+		fmt.Fprintf(fs.Output(), "  -tui                 : Run in interactive Text User Interface (TUI) mode.\n") // Added TUI
+		fmt.Fprintf(fs.Output(), "  -agent               : Run in interactive command-line agent mode (default).\n")
 		fmt.Fprintf(fs.Output(), "\nCommon Flags:\n")
 		fmt.Fprintf(fs.Output(), "  -sandbox <dir>       : Root directory for agent file operations (default: %q)\n", c.SandboxDir)
 		fmt.Fprintf(fs.Output(), "  -allowlist <file>    : Path to the tool allowlist file.\n")
 		fmt.Fprintf(fs.Output(), "  -attach <file>       : File to attach initially (repeatable).\n")
 		fmt.Fprintf(fs.Output(), "  -model <name>        : GenAI model name (optional).\n")
+		fmt.Fprintf(fs.Output(), "  -enable-llm=<bool>   : Enable LLM client (default: %t).\n", c.EnableLLM) // Added EnableLLM
 		fmt.Fprintf(fs.Output(), "\nSync Flags (used with -sync or /sync command):\n")
 		fmt.Fprintf(fs.Output(), "  -sync-dir <dir>      : Directory to sync (default: %q)\n", c.SyncDir)
 		fmt.Fprintf(fs.Output(), "  -sync-filter <pat>   : Glob pattern for filenames.\n")
@@ -124,7 +131,6 @@ func (c *Config) ParseFlags(args []string) error {
 	c.flagSet = fs
 
 	// --- Validate Flag Combinations ---
-	// Updated -clean-api exclusivity check
 	if c.CleanAPI {
 		cleanApiOnly := true
 		for _, arg := range args {
@@ -144,7 +150,6 @@ func (c *Config) ParseFlags(args []string) error {
 		}
 		if !cleanApiOnly {
 			fs.Usage()
-			// Updated error message
 			return errors.New("the -clean-api flag must be used alone (potentially with logging or model flags)")
 		}
 	}
@@ -160,14 +165,17 @@ func (c *Config) ParseFlags(args []string) error {
 	if c.RunAgentMode {
 		otherModeCount++
 	}
+	if c.RunTuiMode { // Added TUI check
+		otherModeCount++
+	}
 
 	if otherModeCount > 1 {
 		fs.Usage()
-		return errors.New("flags -sync, -script, and -agent are mutually exclusive")
+		return errors.New("flags -sync, -script, -tui, and -agent are mutually exclusive")
 	}
 
 	// Default to agent mode if no other primary mode flag is set (check CleanAPI)
-	if !c.CleanAPI && !c.RunSyncMode && c.ScriptFile == "" && !c.RunAgentMode {
+	if !c.CleanAPI && !c.RunSyncMode && c.ScriptFile == "" && !c.RunTuiMode && !c.RunAgentMode {
 		c.RunAgentMode = true
 		fmt.Fprintln(os.Stderr, "Defaulting to interactive agent mode.")
 	}
@@ -182,8 +190,11 @@ func (c *Config) ParseFlags(args []string) error {
 				break
 			}
 		}
-		// Updated check to include CleanAPI needing the key
-		if !helpRequested && (c.RunAgentMode || c.ScriptFile != "" || c.RunSyncMode || c.CleanAPI) {
+		// Modes that *might* need an API key (LLM can be disabled for script)
+		// TUI and Agent modes inherently need the LLM.
+		// Sync and CleanAPI need it for file API access.
+		needsKey := c.RunAgentMode || c.RunTuiMode || c.RunSyncMode || c.CleanAPI || (c.ScriptFile != "" && c.EnableLLM)
+		if !helpRequested && needsKey {
 			return errors.New("required environment variable for API Key (e.g., GEMINI_API_KEY) is not set")
 		}
 	}

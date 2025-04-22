@@ -68,6 +68,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/stretchr/testify v1.10.0 // indirect
+	golang.org/x/mod v0.24.0
 	golang.org/x/tools v0.32.0
 	google.golang.org/api v0.229.0
 	google.golang.org/genai v1.1.0

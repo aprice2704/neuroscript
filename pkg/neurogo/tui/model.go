@@ -2,13 +2,14 @@
 package tui
 
 import (
-	"github.com/aprice2704/neuroscript/pkg/neurogo"
+	// Keep existing bubbletea imports
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/charmbracelet/bubbles/viewport"
 	"github.com/charmbracelet/lipgloss"
+	// DO NOT import "github.com/aprice2704/neuroscript/pkg/neurogo"
 )
 
 // --- Styles ---
@@ -23,8 +24,12 @@ var (
 	patchStatusStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
 	systemStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
 	statusBarSyle    = lipgloss.NewStyle().Background(lipgloss.Color("236")).Foreground(lipgloss.Color("250")).Padding(0, 1)
-	// viewportStyle    = lipgloss.NewStyle().Border(lipgloss.RoundedBorder(), false, false, false, false) // Keep styles simple initially
-	// inputAreaStyle   = lipgloss.NewStyle()
+
+	// --- Debug Styles (Re-added borders) ---
+	focusedCommandStyle = lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("205")) // Focused cmd (Pink border)
+	blurredCommandStyle = lipgloss.NewStyle().Border(lipgloss.NormalBorder()).BorderForeground(lipgloss.Color("240"))  // Blurred cmd (Gray border)
+	focusedPromptStyle  = lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("205")) // Focused prompt (Pink border)
+	blurredPromptStyle  = lipgloss.NewStyle().Border(lipgloss.NormalBorder()).BorderForeground(lipgloss.Color("240"))  // Blurred prompt (Gray border)
 )
 
 // --- message struct ---
@@ -34,26 +39,23 @@ type message struct {
 }
 
 // --- keyMap struct and implementation for help.KeyMap ---
-// keyMap defines additional keybindings.
-// CORRECTED: Implements help.KeyMap interface
 type keyMap struct {
 	Quit key.Binding
 	Help key.Binding
-	// Add more bindings later (Submit, Sync, ToggleSys, etc.)
+	Tab  key.Binding // Added Tab
+	// Enter key handled directly in Update based on focus
 }
 
 // ShortHelp returns keybindings to be shown in the mini help view.
 func (k keyMap) ShortHelp() []key.Binding {
-	// Return only the bindings you want shown in the condensed help view
-	return []key.Binding{k.Help, k.Quit}
+	return []key.Binding{k.Tab, k.Help, k.Quit}
 }
 
 // FullHelp returns keybindings for the expanded help view.
 func (k keyMap) FullHelp() [][]key.Binding {
-	// Return bindings grouped by line for the full help view
 	return [][]key.Binding{
-		{k.Help, k.Quit}, // First row
-		// Add more rows as needed: {k.Submit, k.Sync},
+		{k.Tab, k.Help, k.Quit},
+		// Add more rows as needed
 	}
 }
 
@@ -67,76 +69,121 @@ var defaultKeyMap = keyMap{
 		key.WithKeys("?"),
 		key.WithHelp("?", "toggle help"),
 	),
+	Tab: key.NewBinding(
+		key.WithKeys("tab"),
+		key.WithHelp("tab", "switch input"),
+	),
 }
+
+// Constants for focused input
+const (
+	focusCommand = 0
+	focusPrompt  = 1
+)
 
 // --- model struct ---
 type model struct {
-	app               *neurogo.App
-	viewport          viewport.Model
-	textarea          textarea.Model
-	spinner           spinner.Model
-	help              help.Model
-	keyMap            keyMap // Now implements help.KeyMap
-	messages          []message
-	sender            string
-	lastError         error
-	isWaitingForAI    bool
-	activeToolMessage string
-	patchStatus       string
-	quitting          bool
-	ready             bool
-	helpVisible       bool
-	aiModelName       string
-	localFileCount    int
-	apiFileCount      int
-	syncUploads       int
-	syncDeletes       int
-	width             int
-	height            int
+	// Use the interface type, not the concrete struct pointer
+	app AppAccess
+
+	// UI Components
+	viewport     viewport.Model
+	commandInput textarea.Model // Input for commands like /sync, quit, ?
+	promptInput  textarea.Model // Input for AI prompts
+	spinner      spinner.Model
+	help         help.Model
+	keyMap       keyMap
+
+	// State
+	messages        []message
+	sender          string // Should always be "You" when sending prompt
+	lastError       error
+	isWaitingForAI  bool
+	currentActivity string // Renamed from activeToolMessage for broader use (e.g., "Syncing...")
+	isSyncing       bool   // Added state for sync operation
+	patchStatus     string
+	quitting        bool
+	ready           bool
+	helpVisible     bool
+	focusedInput    int // 0 for command, 1 for prompt
+
+	// Status Bar Info (initialized via interface)
+	aiModelName    string
+	localFileCount int
+	apiFileCount   int
+	syncUploads    int // These will be updated by syncCompleteMsg
+	syncDeletes    int // These will be updated by syncCompleteMsg
+
+	// Terminal Size
+	width  int
+	height int
 }
 
 // --- newModel constructor ---
-func newModel(app *neurogo.App) model {
-	ta := textarea.New()
-	ta.Placeholder = "Enter prompt, /sync, /m, or /quit..."
-	ta.Focus()
-	ta.Prompt = "> "
-	ta.CharLimit = 0
-	ta.SetHeight(3)
-	// Enter should not submit by default; handled in Update
-	ta.KeyMap.InsertNewline.SetEnabled(false)
+// Change signature to accept the interface
+func newModel(app AppAccess) model {
+	// Command Input (smaller, focused first)
+	cmdInput := textarea.New()
+	cmdInput.Placeholder = "/cmd"
+	cmdInput.Focus()
+	cmdInput.Prompt = "$ "
+	cmdInput.CharLimit = 200
+	cmdInput.SetHeight(1)
+	cmdInput.SetWidth(20)
+	cmdInput.FocusedStyle.Base = focusedCommandStyle // Apply debug border style
+	cmdInput.BlurredStyle.Base = blurredCommandStyle // Apply debug border style
+	cmdInput.KeyMap.InsertNewline.SetEnabled(false)
 
-	vp := viewport.New(10, 5) // Placeholder size
-	// vp.UseHighPerformanceRenderer = true // Consider later
+	// Prompt Input (larger)
+	promptInput := textarea.New()
+	promptInput.Placeholder = "Enter prompt for AI..."
+	promptInput.Prompt = "> "
+	promptInput.CharLimit = 0
+	promptInput.SetHeight(3)
+	promptInput.SetWidth(50)
+	promptInput.FocusedStyle.Base = focusedPromptStyle // Apply debug border style
+	promptInput.BlurredStyle.Base = blurredPromptStyle // Apply debug border style
+	promptInput.KeyMap.InsertNewline.SetEnabled(true)
+
+	vp := viewport.New(10, 5)
 
 	sp := spinner.New()
 	sp.Spinner = spinner.Dot
 	sp.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
 
 	h := help.New()
-	h.ShowAll = true // Start with full help shown during dev
+	h.ShowAll = false
 
+	// Get model name via the interface method
 	modelName := "unknown"
-	if app != nil && app.Config != nil {
-		modelName = app.Config.ModelName
+	if app != nil {
+		modelName = app.GetModelName()
 	}
 
 	initialMessages := []message{
-		{sender: "System", text: "Welcome to neurogo TUI mode. Type '?' for help, Ctrl+C to quit."},
+		{sender: "System", text: "Welcome! Focus is on Command input. Type commands like 'quit', '?', or Tab to switch."},
+	}
+
+	// Any logging here should use app.GetDebugLogger()
+	if app != nil && app.GetDebugLogger() != nil {
+		app.GetDebugLogger().Println("TUI model initialized.")
 	}
 
 	return model{
-		app:            app,
-		textarea:       ta,
-		viewport:       vp,
-		spinner:        sp,
-		help:           h,
-		keyMap:         defaultKeyMap, // Use our keyMap instance
-		messages:       initialMessages,
-		sender:         "You",
-		aiModelName:    modelName,
-		isWaitingForAI: false,
-		helpVisible:    true, // Start with help visible
-		ready:          false,
+		app:             app, // Store the interface
+		commandInput:    cmdInput,
+		promptInput:     promptInput,
+		viewport:        vp,
+		spinner:         sp,
+		help:            h,
+		keyMap:          defaultKeyMap,
+		messages:        initialMessages,
+		sender:          "You",
+		aiModelName:     modelName, // Store the retrieved name
+		focusedInput:    focusCommand,
+		helpVisible:     false,
+		ready:           false,
+		isSyncing:       false,
+		currentActivity: "",
 	}
 }

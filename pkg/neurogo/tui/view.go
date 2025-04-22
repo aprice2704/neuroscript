@@ -1,7 +1,9 @@
 // filename: pkg/neurogo/tui/view.go
 package tui
 
-import "github.com/charmbracelet/lipgloss"
+import (
+	"github.com/charmbracelet/lipgloss"
+)
 
 // View renders the TUI based on the current model state.
 func (m model) View() string {
@@ -13,23 +15,35 @@ func (m model) View() string {
 	}
 
 	// --- Render Components ---
+	// Render viewport (style set in model constructor should apply)
 	viewportView := m.viewport.View()
-	textareaView := m.textarea.View()
-	// CORRECTED: Call with width, matches updated definition in update.go
-	statusBarView := m.renderStatusBar(m.width)
+
+	statusBarView := m.renderStatusBar(m.width) // Status bar content
+
+	// Render command and prompt inputs (styles applied internally now)
+	commandView := m.commandInput.View()
+	promptView := m.promptInput.View()
+
+	// --- Reverted to Horizontal Join ---
+	inputsView := lipgloss.JoinHorizontal(lipgloss.Top,
+		commandView,
+		promptView,
+	)
+	// ---
 
 	helpView := ""
 	if m.helpVisible {
-		// CORRECTED: Pass m.keyMap (which now implements help.KeyMap)
 		helpView = m.help.View(m.keyMap)
 	}
 
 	// --- Assemble Layout ---
+	// Main content view (viewport above inputs)
 	mainContentView := lipgloss.JoinVertical(lipgloss.Left,
 		viewportView,
-		textareaView,
+		inputsView,
 	)
 
+	// Combine everything
 	finalView := lipgloss.JoinVertical(lipgloss.Bottom,
 		mainContentView,
 		statusBarView,

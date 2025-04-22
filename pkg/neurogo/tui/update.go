@@ -5,15 +5,20 @@ import (
 	"fmt"
 	"strings"
 
+	// Import core for SecureFilePath and SyncDirectoryUpHelper
+
+	// DO NOT import "github.com/aprice2704/neuroscript/pkg/neurogo"
+
 	"github.com/charmbracelet/bubbles/key"
-	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textarea"
+
+	// Keep lipgloss for styles potentially used here
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 )
 
+// --- TUI Update Function ---
+
 // Init runs initialization commands for the TUI model.
-// CORRECTED: This is the single definition of Init.
 func (m model) Init() tea.Cmd {
 	return textarea.Blink
 }
@@ -21,213 +26,231 @@ func (m model) Init() tea.Cmd {
 // Update handles messages received by the TUI model.
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var (
-		cmd  tea.Cmd
-		cmds []tea.Cmd
+		cmds           []tea.Cmd
+		cmdInputCmd    tea.Cmd
+		promptInputCmd tea.Cmd
+		viewportCmd    tea.Cmd
+		spinnerCmd     tea.Cmd
+		keyHandled     bool
 	)
 
-	// Process updates for components first
-	m.textarea, cmd = m.textarea.Update(msg)
-	cmds = append(cmds, cmd)
+	// Handle component updates first
+	m.viewport, viewportCmd = m.viewport.Update(msg)
+	cmds = append(cmds, viewportCmd)
 
-	m.viewport, cmd = m.viewport.Update(msg)
-	cmds = append(cmds, cmd)
+	// Update spinner only if needed
+	if m.isWaitingForAI || m.isSyncing || m.currentActivity != "" {
+		m.spinner, spinnerCmd = m.spinner.Update(msg)
+		cmds = append(cmds, spinnerCmd)
+	}
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
+		// Handle global keys first
 		switch {
 		case key.Matches(msg, m.keyMap.Quit):
 			m.quitting = true
-			m.messages = append(m.messages, message{sender: "System", text: "Quitting..."})
-			if m.ready { // Update viewport only if ready
-				m.viewport.SetContent(m.renderMessages())
-			}
+			m.addMessage("System", "Quitting...")
 			return m, tea.Quit
 
 		case key.Matches(msg, m.keyMap.Help):
-			// Use the help component's toggle method
 			m.help.ShowAll = !m.help.ShowAll
-			m.helpVisible = m.help.ShowAll // Keep state consistent
-			// Recalculate sizes because help height changes
+			m.helpVisible = m.help.ShowAll
 			if m.ready {
-				m.setSizes(m.width, m.height)
-				m.viewport.GotoBottom()
+				m.setSizes(m.width, m.height) // Recalculate layout
 			}
-			return m, nil
+			m.viewport.GotoBottom()
+			keyHandled = true
 
-			// TODO: Handle Enter/Submit Key
-			// ...
+		case key.Matches(msg, m.keyMap.Tab):
+			if m.isSyncing { // Ignore tab during sync
+				return m, nil
+			}
+			// m.addMessage("Debug", fmt.Sprintf("Tab pressed. Old focus: %d", m.focusedInput)) // Optional debug
+			m.focusedInput = (m.focusedInput + 1) % 2
+			if m.focusedInput == focusCommand {
+				m.promptInput.Blur()
+				m.commandInput.Focus()
+				m.addMessage("System", "Focus: Command Input ($)")
+			} else {
+				m.commandInput.Blur()
+				m.promptInput.Focus()
+				m.addMessage("System", "Focus: Prompt Input (>)")
+			}
+			keyHandled = true
 
-		default:
-			if m.ready && m.textarea.Focused() {
-				m.viewport.GotoBottom()
+		// Handle Enter specifically for the focused input
+		case msg.Type == tea.KeyEnter:
+			if m.isSyncing { // Ignore Enter during sync
+				return m, nil
+			}
+
+			if m.focusedInput == focusCommand {
+				cmdValue := strings.TrimSpace(m.commandInput.Value())
+				m.addMessage("Command", cmdValue) // Echo command
+				m.commandInput.Reset()
+				m.lastError = nil
+
+				switch cmdValue {
+				case "quit", "/quit", "exit":
+					m.quitting = true
+					m.addMessage("System", "Quitting...")
+					return m, tea.Quit // Return immediately on quit
+				case "?", "/help":
+					m.help.ShowAll = !m.help.ShowAll
+					m.helpVisible = m.help.ShowAll
+					if m.ready {
+						m.setSizes(m.width, m.height) // Recalculate layout
+					}
+					m.addMessage("System", fmt.Sprintf("Help toggled %v", m.helpVisible))
+				case "/sync":
+					if m.isSyncing {
+						m.addMessage("System", "Sync already in progress.")
+					} else {
+						m.isSyncing = true
+						m.currentActivity = "Syncing files..."
+						m.lastError = nil // Clear previous errors
+						m.addMessage("System", m.currentActivity)
+						// Call the method on the model, not the standalone function
+						cmds = append(cmds, m.spinner.Tick, m.runSyncCmd())
+					}
+				default:
+					m.addMessage("System", fmt.Sprintf("Unknown command: '%s'", cmdValue))
+					m.lastError = fmt.Errorf("unknown command: %s", cmdValue)
+				}
+				keyHandled = true // Enter in command input is handled
+
+			} else if m.focusedInput == focusPrompt {
+				// Assuming Enter submits the prompt
+				promptValue := strings.TrimSpace(m.promptInput.Value())
+				if promptValue != "" {
+					m.addMessage("You", promptValue)
+					m.promptInput.Reset()
+					m.viewport.GotoBottom()
+					m.isWaitingForAI = true
+					m.currentActivity = "Waiting for AI..."
+					m.lastError = nil
+					cmds = append(cmds, m.spinner.Tick)
+					m.addMessage("System", "Sending prompt to AI...")
+					// TODO: Implement command to send prompt via interface
+					// Example: cmds = append(cmds, m.sendPromptCmd(promptValue))
+				}
+				keyHandled = true // Enter in prompt input is handled
+			}
+		} // End inner switch for specific keys
+
+		// If the key wasn't handled globally or by Enter, pass it to the focused input
+		if !keyHandled && !m.isSyncing { // Don't process other keys during sync
+			if m.focusedInput == focusCommand {
+				m.commandInput, cmdInputCmd = m.commandInput.Update(msg)
+				cmds = append(cmds, cmdInputCmd)
+			} else {
+				m.promptInput, promptInputCmd = m.promptInput.Update(msg)
+				cmds = append(cmds, promptInputCmd)
 			}
 		}
 
+	// --- Other Message Types ---
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
+		// setSizes needs to be called whether ready or not to handle resize
+		m.setSizes(msg.Width, msg.Height)
 		if !m.ready {
-			// Calculate initial sizes *before* setting content
-			m.setSizes(msg.Width, m.height)
-			m.viewport.SetContent(m.renderMessages()) // Render initial messages
 			m.ready = true
-		} else {
-			m.setSizes(msg.Width, m.height) // Recalculate sizes
+			// No need to SetContent here, setSizes should handle it
 		}
 		m.viewport.GotoBottom()
 
-	case spinner.TickMsg:
-		var spinCmd tea.Cmd
-		if m.isWaitingForAI || m.activeToolMessage != "" || m.patchStatus != "" {
-			m.spinner, spinCmd = m.spinner.Update(msg)
-			cmds = append(cmds, spinCmd)
+	case syncCompleteMsg:
+		m.isSyncing = false
+		m.currentActivity = ""
+		m.lastError = msg.err // Store potential sync error
+
+		summary := "Sync complete."
+		if msg.stats != nil {
+			// Safely extract stats using type assertion with checking
+			var uploads, deletes, uploadErrors, deleteErrors, listErrors, hashErrors, walkErrors, ignored, scanned, upToDate, updatedAPI int64
+
+			if val, ok := msg.stats["files_uploaded"].(int64); ok {
+				uploads = val
+			}
+			if val, ok := msg.stats["files_deleted_api"].(int64); ok {
+				deletes = val
+			}
+			if val, ok := msg.stats["upload_errors"].(int64); ok {
+				uploadErrors = val
+			}
+			if val, ok := msg.stats["delete_errors"].(int64); ok {
+				deleteErrors = val
+			}
+			if val, ok := msg.stats["list_api_errors"].(int64); ok {
+				listErrors = val
+			}
+			if val, ok := msg.stats["hash_errors"].(int64); ok {
+				hashErrors = val
+			}
+			if val, ok := msg.stats["walk_errors"].(int64); ok {
+				walkErrors = val
+			}
+			if val, ok := msg.stats["files_ignored"].(int64); ok {
+				ignored = val
+			}
+			if val, ok := msg.stats["files_scanned"].(int64); ok {
+				scanned = val
+			}
+			if val, ok := msg.stats["files_up_to_date"].(int64); ok {
+				upToDate = val
+			}
+			if val, ok := msg.stats["files_updated_api"].(int64); ok {
+				updatedAPI = val
+			}
+
+			totalErrors := uploadErrors + deleteErrors + listErrors + hashErrors + walkErrors
+
+			// Update status bar info (convert int64 to int)
+			m.syncUploads = int(uploads + updatedAPI)
+			m.syncDeletes = int(deletes)
+			// TODO: Update local/api file counts? Requires another command/interface method
+
+			summary = fmt.Sprintf("Sync done. Scanned:%d Ignored:%d UpToDate:%d Uploaded:%d Updated:%d Deleted:%d Errors:%d",
+				scanned, ignored, upToDate, uploads, updatedAPI, deletes, totalErrors)
 		}
+		if msg.err != nil {
+			summary = fmt.Sprintf("%s Error: %v", summary, msg.err)
+			m.addMessage("System", errorStyle.Render(summary))
+		} else {
+			m.addMessage("System", summary)
+		}
+		m.viewport.GotoBottom()
 
-	case errMsg: // Handles errors wrapped in our custom message
+	case errMsg:
 		m.lastError = msg.err
-		m.isWaitingForAI = false
-		m.activeToolMessage = ""
-		m.patchStatus = ""
+		m.isWaitingForAI = false // Stop spinner if error occurred
+		m.isSyncing = false      // Stop sync state if error occurred
+		m.currentActivity = ""
 		m.addMessage("System", errorStyle.Render(fmt.Sprintf("Error: %v", msg.err)))
-		m.viewport.GotoBottom() // Ensure error is visible
+		m.viewport.GotoBottom()
 
-		// --- Placeholder Handlers ---
-		// case llmResponseMsg: ...
-		// case toolResultMsg: ...
-		// case syncCompleteMsg: ...
-		// case statusUpdateMsg: ...
+	} // End main switch msg.(type)
 
-	} // End main switch
+	// --- Final Focus Update ---
+	// Ensure visual focus matches state after processing message
+	if m.focusedInput == focusCommand {
+		if !m.commandInput.Focused() {
+			m.commandInput.Focus() // Re-focus if necessary
+		}
+		m.promptInput.Blur()
+	} else {
+		if !m.promptInput.Focused() {
+			m.promptInput.Focus() // Re-focus if necessary
+		}
+		m.commandInput.Blur()
+	}
+
+	// Update viewport content if messages changed
+	m.viewport.SetContent(m.renderMessages()) // Assumes renderMessages exists
+	m.viewport.GotoBottom()                   // Keep viewport at bottom
 
 	return m, tea.Batch(cmds...)
-}
-
-// setSizes helper - recalculates component sizes.
-func (m *model) setSizes(width, height int) {
-	m.help.Width = width // Help uses full width
-
-	textAreaHeight := m.textarea.Height()
-	// CORRECTED: Pass width to renderStatusBar for accurate height calculation
-	statusBarHeight := lipgloss.Height(m.renderStatusBar(width))
-	helpHeight := 0
-	// Use the component's state directly
-	if m.help.ShowAll {
-		helpHeight = lipgloss.Height(m.help.View(m.keyMap))
-	}
-
-	const verticalMargin = 1 // Optional gap
-	viewportHeight := height - textAreaHeight - statusBarHeight - helpHeight - verticalMargin
-	if viewportHeight < 1 {
-		viewportHeight = 1
-	}
-
-	// Apply sizes
-	m.textarea.SetWidth(width)
-	m.viewport.Width = width
-	m.viewport.Height = viewportHeight
-
-	// Content might need re-rendering if width changed, affecting wrapping
-	if m.ready {
-		m.viewport.SetContent(m.renderMessages())
-	}
-}
-
-// addMessage helper - appends message and updates viewport.
-func (m *model) addMessage(sender, text string) {
-	m.messages = append(m.messages, message{sender: sender, text: text})
-	if m.ready {
-		m.viewport.SetContent(m.renderMessages())
-		m.viewport.GotoBottom()
-	}
-}
-
-// renderMessages helper - formats history for viewport.
-func (m *model) renderMessages() string {
-	var sb strings.Builder
-	for i, msg := range m.messages {
-		var style lipgloss.Style
-		prefix := ""
-		switch msg.sender {
-		case "You":
-			style, prefix = userStyle, "You: "
-		case "AI":
-			style, prefix = aiStyle, "AI: "
-		case "AIToolCall":
-			style, prefix = aiToolCallStyle, "[AI Tool Call]: "
-		case "SysToolCall":
-			style, prefix = sysToolCallStyle, "[Tool Call]: "
-		case "ToolResult":
-			style, prefix = toolResultStyle, "[Tool Result]: "
-		case "Patch":
-			style, prefix = patchStatusStyle, "[Patch]: "
-		case "System":
-			style, prefix = systemStyle, "[System]: "
-		default:
-			style, prefix = inactiveStyle, "["+msg.sender+"]: "
-		}
-		renderedMsg := style.Render(prefix + msg.text)
-		sb.WriteString(renderedMsg)
-		if i < len(m.messages)-1 {
-			sb.WriteString("\n")
-		}
-	}
-	return sb.String()
-}
-
-// renderStatusBar helper - creates status bar string.
-// CORRECTED: Added width parameter to definition
-func (m *model) renderStatusBar(width int) string {
-	if !m.ready {
-		return ""
-	} // Don't render if not ready
-
-	modelInfo := fmt.Sprintf("Model: %s", m.aiModelName)
-	fileInfo := fmt.Sprintf("Files(L:%d/R:%d)", m.localFileCount, m.apiFileCount)
-	syncInfo := ""
-	if m.syncUploads > 0 || m.syncDeletes > 0 {
-		syncInfo = fmt.Sprintf("Sync(↑%d/↓%d)", m.syncUploads, m.syncDeletes)
-	}
-	leftParts := []string{modelInfo, fileInfo}
-	if syncInfo != "" {
-		leftParts = append(leftParts, syncInfo)
-	}
-	left := strings.Join(leftParts, " | ")
-
-	activity := ""
-	if m.isWaitingForAI {
-		activity = m.spinner.View() + " Waiting for AI..."
-	} else if m.activeToolMessage != "" {
-		activity = m.spinner.View() + " " + m.activeToolMessage
-	} else if m.patchStatus != "" {
-		activity = m.spinner.View() + " " + m.patchStatus
-	}
-
-	errorInfo := ""
-	if m.lastError != nil {
-		errStr := "ERR: " + m.lastError.Error()
-		maxErrWidth := width / 3
-		if len(errStr) > maxErrWidth {
-			errStr = errStr[:maxErrWidth-3] + "..."
-		}
-		errorInfo = errorStyle.Render(errStr)
-	}
-
-	right := activity
-	if activity != "" && errorInfo != "" {
-		right += " | " + errorInfo
-	} else {
-		right += errorInfo
-	}
-
-	// Calculate gap width *after* potentially combining activity and error
-	padding := statusBarSyle.GetHorizontalPadding()
-	gapWidth := width - lipgloss.Width(left) - lipgloss.Width(right) - padding
-	if gapWidth < 0 {
-		gapWidth = 0
-	}
-	gap := strings.Repeat(" ", gapWidth)
-
-	finalStatus := lipgloss.JoinHorizontal(lipgloss.Top, left, gap, right)
-	// Apply style *after* joining
-	return statusBarSyle.Width(width).Render(finalStatus)
 }

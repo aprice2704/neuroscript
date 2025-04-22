@@ -89,7 +89,7 @@ func (a *App) runSyncMode(ctx context.Context) error {
 		// Log the primary error returned by the sync helper
 		a.ErrorLog.Printf("Sync operation failed: %v", syncErr)
 		// Check stats map for specific error counts if available
-		if stats != nil && (stats["upload_errors"].(int) > 0 || stats["delete_errors"].(int) > 0 || stats["list_api_errors"].(int) > 0) {
+		if stats != nil && (stats["upload_errors"].(int64) > 0 || stats["delete_errors"].(int64) > 0 || stats["list_api_errors"].(int64) > 0) {
 			a.ErrorLog.Println("Sync completed with errors.")
 		}
 		return fmt.Errorf("sync operation failed: %w", syncErr) // Return the error

@@ -1,0 +1,2995 @@
+{
+  "schemaVersion": "1.7",
+  "repoRoot": "github.com/aprice2704/neuroscript",
+  "packages": {
+    "cmd/block_printer": {
+      "files": {
+        "cmd/block_printer/main.go": {
+          "functions": [
+            "main"
+          ],
+          "methods": []
+        }
+      }
+    },
+    "cmd/cfiles": {
+      "files": {
+        "cmd/cfiles/main.go": {
+          "functions": [
+            "main",
+            "min",
+            "max"
+          ],
+          "methods": []
+        }
+      }
+    },
+    "cmd/gensync": {
+      "files": {
+        "cmd/gensync/helpers.go": {
+          "functions": [
+            "init",
+            "LoadIndex",
+            "SaveIndex",
+            "CalculateFileHash",
+            "UploadFile"
+          ],
+          "methods": []
+        },
+        "cmd/gensync/main.go": {
+          "functions": [
+            "main",
+            "worker",
+            "nukeAllFiles"
+          ],
+          "methods": []
+        }
+      }
+    },
+    "cmd/goindexer": {
+      "files": {
+        "cmd/goindexer/finder.go": {
+          "functions": [
+            "findRepoPaths",
+            "parseModulePath"
+          ],
+          "methods": []
+        },
+        "cmd/goindexer/formatters.go": {
+          "functions": [
+            "formatNode",
+            "formatFieldList",
+            "formatSignature",
+            "formatReceiver",
+            "determineKind"
+          ],
+          "methods": []
+        },
+        "cmd/goindexer/main.go": {
+          "functions": [
+            "main"
+          ],
+          "methods": [
+            {
+              "Receiver": "*CommaSeparatedFlag",
+              "Name": "String"
+            },
+            {
+              "Receiver": "*CommaSeparatedFlag",
+              "Name": "Set"
+            }
+          ]
+        },
+        "cmd/goindexer/parser.go": {
+          "functions": [
+            "processFile"
+          ],
+          "methods": []
+        },
+        "cmd/goindexer/resolvers.go": {
+          "functions": [
+            "getRelativePackagePath",
+            "getRelativeFilePath",
+            "constructShortName",
+            "resolveCallTarget",
+            "isBuiltin"
+          ],
+          "methods": []
+        }
+      }
+    },
+    "cmd/neurogo": {
+      "files": {
+        "cmd/neurogo/main.go": {
+          "functions": [
+            "main"
+          ],
+          "methods": []
+        }
+      }
+    },
+    "cmd/nsinput": {
+      "files": {
+        "cmd/nsinput/main.go": {
+          "functions": [
+            "initialModel",
+            "main"
+          ],
+          "methods": [
+            {
+              "Receiver": "model",
+              "Name": "Init"
+            },
+            {
+              "Receiver": "model",
+              "Name": "Update",
+              "calls": [
+                "m.textarea.Update(?)",
+                "m.textarea.SetWidth(?)",
+                "github.com/charmbracelet/bubbletea.Batch"
+              ]
+            },
+            {
+              "Receiver": "model",
+              "Name": "View",
+              "calls": [
+                "m.textarea.View(?)"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "cmd/nspatch": {
+      "files": {
+        "cmd/nspatch/nspatch.go": {
+          "functions": [
+            "stripPrefixComponents",
+            "main",
+            "readFileLines",
+            "writeFileLines"
+          ],
+          "methods": []
+        }
+      }
+    },
+    "pkg/core": {
+      "files": {
+        "pkg/core/ast.go": {
+          "functions": [
+            "newStep"
+          ],
+          "methods": []
+        },
+        "pkg/core/ast_builder_blocks.go": {
+          "methods": [
+            {
+              "Receiver": "*neuroScriptListenerImpl",
+              "Name": "EnterBlock",
+              "calls": [
+                "l.logDebugAST(?)",
+                "l.logger.Printf(?)",
+                "l.logDebugAST(?)"
+              ]
+            },
+            {
+              "Receiver": "*neuroScriptListenerImpl",
+              "Name": "ExitBlock",
+              "calls": [
+                "l.logDebugAST(?)",
+                "l.logger.Printf(?)",
+                "l.restoreParentContext(?)",
+                "l.restoreParentContext(?)",
+                "l.logDebugAST(?)"
+              ]
+            },
+            {
+              "Receiver": "*neuroScriptListenerImpl",
+              "Name": "restoreParentContext",
+              "calls": [
+                "l.logger.Printf(?)",
+                "l.logger.Printf(?)",
+                "l.logDebugAST(?)"
+              ]
+            },
+            {
+              "Receiver": "*neuroScriptListenerImpl",
+              "Name": "EnterIf_statement",
+              "calls": [
+                "l.logDebugAST(?)",
+                "l.logDebugAST(?)",
+                "l.logger.Println(?)"
+              ]
+            },
+            {
+              "Receiver": "*neuroScriptListenerImpl",
+              "Name": "EnterStatement_list",
+              "calls": [
+                "ctx.GetParent(?)",
+                "l.logDebugAST(?)",
+                "l.logDebugAST(?)"
+              ]
+            },
+            {
+              "Receiver": "*neuroScriptListenerImpl",
+              "Name": "ExitStatement_list",
+              "calls": [
+                "ctx.GetParent(?)",
+                "l.logDebugAST(?)",
+                "l.logger.Println(?)",
+                "l.logDebugAST(?)",
+                "l.logDebugAST(?)",
+                "l.logDebugAST(?)"
+              ]
+            },
+            {
+              "Receiver": "*neuroScriptListenerImpl",
+              "Name": "ExitIf_statement",
+              "calls": [
+                "l.logDebugAST(?)",
+                "l.popValue(?)",
+                "l.logger.Println(?)",
+                "l.restoreParentContext(?)",
+                "l.logDebugAST(?)",
+                "ctx.Statement_list(?)",
+                "l.logDebugAST(?)",
+                "l.logger.Println(?)",
+                "l.logger.Println(?)",
+                "ctx.KW_ELSE(?)",
+                "ctx.Statement_list(?)",
+                "l.logDebugAST(?)",
+                "l.logger.Println(?)",
+                "l.logger.Println(?)",
+                "l.logDebugAST(?)",
+                "l.restoreParentContext(?)",
+                "l.logger.Println(?)",
+                "newStep",
+                "l.logDebugAST(?)"
+              ]
+            },
+            {
+              "Receiver": "*neuroScriptListenerImpl",
+              "Name": "EnterWhile_statement",
+              "calls": [
+                "l.EnterBlock(?)"
+              ]
+            },
+            {
+              "Receiver": "*neuroScriptListenerImpl",
+              "Name": "ExitWhile_statement",
+              "calls": [
+                "l.logDebugAST(?)",
+                "l.popValue(?)",
+                "l.logger.Println(?)",
+                "l.ExitBlock(?)",
+                "l.logDebugAST(?)",
+                "l.ExitBlock(?)",
+                "newStep",
+                "l.logDebugAST(?)",
+                "l.logger.Println(?)"
+              ]
+            },
+            {
+              "Receiver": "*neuroScriptListenerImpl",
+              "Name": "EnterFor_each_statement",
+              "calls": [
+                "ctx.IDENTIFIER(?)",
+                "ctx.IDENTIFIER().GetText(?)",
+                "ctx.IDENTIFIER(?)",
+                "l.EnterBlock(?)"
+              ]
+            },
+            {
+              "Receiver": "*neuroScriptListenerImpl",
+              "Name": "ExitFor_each_statement",
+              "calls": [
+                "l.logDebugAST(?)",
+                "l.popValue(?)",
+                "l.logger.Println(?)",
+                "l.ExitBlock(?)",
+                "l.logDebugAST(?)",
+                "ctx.IDENTIFIER(?)",
+                "ctx.IDENTIFIER().GetText(?)",
+                "ctx.IDENTIFIER(?)",
+                "l.ExitBlock(?)",
+                "newStep",
+                "l.logDebugAST(?)",
+                "l.logger.Println(?)"
+              ]
+            }
+          ]
+        },
+        "pkg/core/ast_builder_collections.go": {
+          "methods": [
+            {
+              "Receiver": "*neuroScriptListenerImpl",
+              "Name": "ExitList_literal",
+              "calls": [
+                "l.logDebugAST(?)",
+                "ctx.GetText(?)",
+                "ctx.Expression_list_opt(?)",
+                "ctx.Expression_list_opt().Expression_list(?)",
+                "ctx.Expression_list_opt(?)",
+                "ctx.Expression_list_opt().Expression_list().AllExpression(?)",
+                "ctx.Expression_list_opt().Expression_list(?)",
+                "ctx.Expression_list_opt(?)",
+                "l.popNValues(?)",
+                "l.pushValue(?)",
+                "l.pushValue(?)",
+                "l.logDebugAST(?)"
+              ]
+            },
+            {
+              "Receiver": "*neuroScriptListenerImpl",
+              "Name": "EnterMap_entry",
+              "calls": [
+                "l.logDebugAST(?)",
+                "ctx.GetText(?)",
+                "ctx.STRING_LIT().GetText(?)",
+                "ctx.STRING_LIT(?)",
+                "l.logger.Printf(?)"
+              ]
+            },
+            {
+              "Receiver": "*neuroScriptListenerImpl",
+              "Name": "ExitMap_entry",
+              "calls": [
+                "l.logDebugAST(?)",
+                "ctx.GetText(?)",
+                "l.popValue(?)",
+                "l.logger.Printf(?)",
+                "ctx.GetText(?)",
+                "l.pushValue(?)",
+                "l.pushValue(?)",
+                "l.logDebugAST(?)"
+              ]
+            },
+            {
+              "Receiver": "*neuroScriptListenerImpl",
+              "Name": "ExitMap_literal",
+              "calls": [
+                "l.logDebugAST(?)",
+                "ctx.GetText(?)",
+                "ctx.Map_entry_list_opt(?)",
+                "ctx.Map_entry_list_opt().Map_entry_list(?)",
+                "ctx.Map_entry_list_opt(?)",
+                "ctx.Map_entry_list_opt().Map_entry_list().AllMap_entry(?)",
+                "ctx.Map_entry_list_opt().Map_entry_list(?)",
+                "ctx.Map_entry_list_opt(?)",
+                "l.popNValues(?)",
+                "l.pushValue(?)",
+                "l.logger.Printf(?)",
+                "ctx.GetText(?)",
+                "l.pushValue(?)",
+                "l.pushValue(?)",
+                "l.logDebugAST(?)"
+              ]
+            }
+          ]
+        },
+        "pkg/core/ast_builder_main.go": {
+          "functions": [
+            "newNeuroScriptListener"
+          ],
+          "methods": [
+            {
+              "Receiver": "*neuroScriptListenerImpl",
+              "Name": "GetFileVersion"
+            },
+            {
+              "Receiver": "*neuroScriptListenerImpl",
+              "Name": "pushValue",
+              "calls": [
+                "l.logDebugAST(?)"
+              ]
+            },
+            {
+              "Receiver": "*neuroScriptListenerImpl",
+              "Name": "popValue",
+              "calls": [
+                "l.logger.Println(?)",
+                "l.logDebugAST(?)"
+              ]
+            },
+            {
+              "Receiver": "*neuroScriptListenerImpl",
+              "Name": "popNValues",
+              "calls": [
+                "l.logger.Printf(?)",
+                "l.logDebugAST(?)"
+              ]
+            },
+            {
+              "Receiver": "*neuroScriptListenerImpl",
+              "Name": "GetResult"
+            },
+            {
+              "Receiver": "*neuroScriptListenerImpl",
+              "Name": "logDebugAST",
+              "calls": [
+                "l.logger.Printf(?)"
+              ]
+            },
+            {
+              "Receiver": "*neuroScriptListenerImpl",
+              "Name": "EnterProgram",
+              "calls": [
+                "l.logDebugAST(?)"
+              ]
+            },
+            {
+              "Receiver": "*neuroScriptListenerImpl",
+              "Name": "ExitProgram",
+              "calls": [
+                "l.logDebugAST(?)"
+              ]
+            },
+            {
+              "Receiver": "*neuroScriptListenerImpl",
+              "Name": "ExitFile_version_decl",
+              "calls": [
+                "ctx.STRING_LIT(?)",
+                "ctx.STRING_LIT().GetText(?)",
+                "ctx.STRING_LIT(?)",
+                "l.logger.Printf(?)",
+                "l.logDebugAST(?)",
+                "l.logger.Printf(?)"
+              ]
+            }
+          ]
+        },
+        "pkg/core/ast_builder_operators.go": {
+          "methods": [
+            {
+              "Receiver": "*neuroScriptListenerImpl",
+              "Name": "buildBinaryOpNode",
+              "calls": [
+                "l.popValue(?)",
+                "l.logger.Printf(?)",
+                "opToken.GetText(?)",
+                "l.pushValue(?)",
+                "l.popValue(?)",
+                "l.logger.Printf(?)",
+                "opToken.GetText(?)",
+                "l.pushValue(?)",
+                "opToken.GetText(?)",
+                "l.pushValue(?)",
+                "l.logDebugAST(?)"
+              ]
+            },
+            {
+              "Receiver": "*neuroScriptListenerImpl",
+              "Name": "ExitLogical_or_expr",
+              "calls": [
+                "l.logDebugAST(?)",
+                "ctx.GetText(?)",
+                "ctx.AllKW_OR(?)",
+                "ctx.GetChildren(?)",
+                "ctx.GetChild(?)",
+                "opNode.GetSymbol().GetTokenType(?)",
+                "opNode.GetSymbol(?)",
+                "l.buildBinaryOpNode(?)",
+                "l.logger.Printf(?)",
+                "ctx.GetChild(?)"
+              ]
+            },
+            {
+              "Receiver": "*neuroScriptListenerImpl",
+              "Name": "ExitLogical_and_expr",
+              "calls": [
+                "l.logDebugAST(?)",
+                "ctx.GetText(?)",
+                "ctx.AllKW_AND(?)",
+                "ctx.GetChildren(?)",
+                "ctx.GetChild(?)",
+                "opNode.GetSymbol().GetTokenType(?)",
+                "opNode.GetSymbol(?)",
+                "l.buildBinaryOpNode(?)",
+                "l.logger.Printf(?)",
+                "ctx.GetChild(?)"
+              ]
+            },
+            {
+              "Receiver": "*neuroScriptListenerImpl",
+              "Name": "ExitBitwise_or_expr",
+              "calls": [
+                "l.logDebugAST(?)",
+                "ctx.GetText(?)",
+                "ctx.AllPIPE(?)",
+                "ctx.GetChildren(?)",
+                "ctx.GetChild(?)",
+                "opNode.GetSymbol().GetTokenType(?)",
+                "opNode.GetSymbol(?)",
+                "l.buildBinaryOpNode(?)",
+                "l.logger.Printf(?)",
+                "ctx.GetChild(?)"
+              ]
+            },
+            {
+              "Receiver": "*neuroScriptListenerImpl",
+              "Name": "ExitBitwise_xor_expr",
+              "calls": [
+                "l.logDebugAST(?)",
+                "ctx.GetText(?)",
+                "ctx.AllCARET(?)",
+                "ctx.GetChildren(?)",
+                "ctx.GetChild(?)",
+                "opNode.GetSymbol().GetTokenType(?)",
+                "opNode.GetSymbol(?)",
+                "l.buildBinaryOpNode(?)",
+                "l.logger.Printf(?)",
+                "ctx.GetChild(?)"
+              ]
+            },
+            {
+              "Receiver": "*neuroScriptListenerImpl",
+              "Name": "ExitBitwise_and_expr",
+              "calls": [
+                "l.logDebugAST(?)",
+                "ctx.GetText(?)",
+                "ctx.AllAMPERSAND(?)",
+                "ctx.GetChildren(?)",
+                "ctx.GetChild(?)",
+                "opNode.GetSymbol().GetTokenType(?)",
+                "opNode.GetSymbol(?)",
+                "l.buildBinaryOpNode(?)",
+                "l.logger.Printf(?)",
+                "ctx.GetChild(?)"
+              ]
+            },
+            {
+              "Receiver": "*neuroScriptListenerImpl",
+              "Name": "ExitEquality_expr",
+              "calls": [
+                "l.logDebugAST(?)",
+                "ctx.GetText(?)",
+                "ctx.AllEQ(?)",
+                "ctx.AllNEQ(?)",
+                "ctx.GetChildren(?)",
+                "ctx.GetChild(?)",
+                "opNode.GetSymbol().GetTokenType(?)",
+                "opNode.GetSymbol(?)",
+                "opNode.GetSymbol().GetTokenType(?)",
+                "opNode.GetSymbol(?)",
+                "l.buildBinaryOpNode(?)",
+                "l.logger.Printf(?)",
+                "ctx.GetChild(?)"
+              ]
+            },
+            {
+              "Receiver": "*neuroScriptListenerImpl",
+              "Name": "ExitRelational_expr",
+              "calls": [
+                "l.logDebugAST(?)",
+                "ctx.GetText(?)",
+                "ctx.AllLT(?)",
+                "ctx.AllGT(?)",
+                "ctx.AllLTE(?)",
+                "ctx.AllGTE(?)",
+                "ctx.GetChildren(?)",
+                "ctx.GetChild(?)",
+                "opNode.GetSymbol().GetTokenType(?)",
+                "opNode.GetSymbol(?)",
+                "l.buildBinaryOpNode(?)",
+                "l.logger.Printf(?)",
+                "l.logger.Printf(?)",
+                "ctx.GetChild(?)"
+              ]
+            },
+            {
+              "Receiver": "*neuroScriptListenerImpl",
+              "Name": "ExitAdditive_expr",
+              "calls": [
+                "l.logDebugAST(?)",
+                "ctx.GetText(?)",
+                "ctx.AllPLUS(?)",
+                "ctx.AllMINUS(?)",
+                "ctx.GetChildren(?)",
+                "ctx.GetChild(?)",
+                "opNode.GetSymbol().GetTokenType(?)",
+                "opNode.GetSymbol(?)",
+                "opNode.GetSymbol().GetTokenType(?)",
+                "opNode.GetSymbol(?)",
+                "l.buildBinaryOpNode(?)",
+                "l.logger.Printf(?)",
+                "ctx.GetChild(?)"
+              ]
+            },
+            {
+              "Receiver": "*neuroScriptListenerImpl",
+              "Name": "ExitMultiplicative_expr",
+              "calls": [
+                "l.logDebugAST(?)",
+                "ctx.GetText(?)",
+                "ctx.AllSTAR(?)",
+                "ctx.AllSLASH(?)",
+                "ctx.AllPERCENT(?)",
+                "ctx.GetChildren(?)",
+                "ctx.GetChild(?)",
+                "opNode.GetSymbol().GetTokenType(?)",
+                "opNode.GetSymbol(?)",
+                "opNode.GetSymbol().GetTokenType(?)",
+                "opNode.GetSymbol(?)",
+                "opNode.GetSymbol().GetTokenType(?)",
+                "opNode.GetSymbol(?)",
+                "l.buildBinaryOpNode(?)",
+                "l.logger.Printf(?)",
+                "ctx.GetChild(?)"
+              ]
+            },
+            {
+              "Receiver": "*neuroScriptListenerImpl",
+              "Name": "ExitUnary_expr",
+              "calls": [
+                "l.logDebugAST(?)",
+                "ctx.GetText(?)",
+                "ctx.MINUS(?)",
+                "ctx.MINUS(?)",
+                "ctx.KW_NOT(?)",
+                "ctx.KW_NOT(?)",
+                "l.popValue(?)",
+                "l.logger.Printf(?)",
+                "opToken.GetText(?)",
+                "l.pushValue(?)",
+                "opToken.GetText(?)",
+                "l.pushValue(?)",
+                "l.logDebugAST(?)"
+              ]
+            },
+            {
+              "Receiver": "*neuroScriptListenerImpl",
+              "Name": "ExitPower_expr",
+              "calls": [
+                "l.logDebugAST(?)",
+                "ctx.GetText(?)",
+                "ctx.STAR_STAR(?)",
+                "l.popValue(?)",
+                "l.logger.Println(?)",
+                "l.pushValue(?)",
+                "l.popValue(?)",
+                "l.logger.Println(?)",
+                "l.pushValue(?)",
+                "l.pushValue(?)",
+                "l.logDebugAST(?)"
+              ]
+            }
+          ]
+        },
+        "pkg/core/ast_builder_procedures.go": {
+          "methods": [
+            {
+              "Receiver": "*neuroScriptListenerImpl",
+              "Name": "EnterProcedure_definition",
+              "calls": [
+                "ctx.IDENTIFIER(?)",
+                "ctx.IDENTIFIER().GetText(?)",
+                "ctx.IDENTIFIER(?)",
+                "l.logDebugAST(?)",
+                "ctx.Param_list_opt(?)",
+                "ctx.Param_list_opt().Param_list(?)",
+                "ctx.Param_list_opt(?)",
+                "ctx.Param_list_opt().Param_list().AllIDENTIFIER(?)",
+                "ctx.Param_list_opt().Param_list(?)",
+                "ctx.Param_list_opt(?)",
+                "id.GetText(?)",
+                "ctx.COMMENT_BLOCK(?)",
+                "ctx.COMMENT_BLOCK().GetText(?)",
+                "ctx.COMMENT_BLOCK(?)",
+                "parseDocstring",
+                "l.logger.Printf(?)"
+              ]
+            },
+            {
+              "Receiver": "*neuroScriptListenerImpl",
+              "Name": "ExitProcedure_definition",
+              "calls": [
+                "l.logDebugAST(?)",
+                "l.logDebugAST(?)",
+                "l.logDebugAST(?)",
+                "l.logDebugAST(?)",
+                "l.logger.Printf(?)"
+              ]
+            }
+          ]
+        },
+        "pkg/core/ast_builder_statements.go": {
+          "methods": [
+            {
+              "Receiver": "*neuroScriptListenerImpl",
+              "Name": "ExitSet_statement",
+              "calls": [
+                "l.logDebugAST(?)",
+                "ctx.GetText(?)",
+                "l.popValue(?)",
+                "l.logger.Println(?)",
+                "l.logger.Println(?)",
+                "ctx.IDENTIFIER().GetText(?)",
+                "ctx.IDENTIFIER(?)",
+                "newStep"
+              ]
+            },
+            {
+              "Receiver": "*neuroScriptListenerImpl",
+              "Name": "ExitCall_statement",
+              "calls": [
+                "l.logDebugAST(?)",
+                "ctx.GetText(?)",
+                "ctx.Expression_list_opt(?)",
+                "exprListOpt.Expression_list(?)",
+                "exprList.AllExpression(?)",
+                "l.popNValues(?)",
+                "l.logger.Printf(?)",
+                "l.logger.Println(?)",
+                "ctx.Call_target().GetText(?)",
+                "ctx.Call_target(?)",
+                "newStep"
+              ]
+            },
+            {
+              "Receiver": "*neuroScriptListenerImpl",
+              "Name": "ExitReturn_statement",
+              "calls": [
+                "l.logDebugAST(?)",
+                "ctx.GetText(?)",
+                "ctx.Expression(?)",
+                "l.popValue(?)",
+                "l.logger.Println(?)",
+                "l.logger.Println(?)",
+                "newStep"
+              ]
+            },
+            {
+              "Receiver": "*neuroScriptListenerImpl",
+              "Name": "ExitEmit_statement",
+              "calls": [
+                "l.logDebugAST(?)",
+                "ctx.GetText(?)",
+                "ctx.Expression(?)",
+                "l.popValue(?)",
+                "l.logger.Println(?)",
+                "l.logger.Println(?)",
+                "newStep"
+              ]
+            }
+          ]
+        },
+        "pkg/core/ast_builder_terminators.go": {
+          "methods": [
+            {
+              "Receiver": "*neuroScriptListenerImpl",
+              "Name": "ExitExpression",
+              "calls": [
+                "l.logDebugAST(?)",
+                "ctx.GetText(?)"
+              ]
+            },
+            {
+              "Receiver": "*neuroScriptListenerImpl",
+              "Name": "ExitAccessor_expr",
+              "calls": [
+                "l.logDebugAST(?)",
+                "ctx.GetText(?)",
+                "ctx.AllLBRACK(?)",
+                "l.popValue(?)",
+                "l.logger.Printf(?)",
+                "ctx.GetText(?)",
+                "l.pushValue(?)",
+                "l.popValue(?)",
+                "l.logger.Printf(?)",
+                "ctx.GetText(?)",
+                "l.pushValue(?)",
+                "l.logDebugAST(?)",
+                "l.pushValue(?)",
+                "l.logDebugAST(?)",
+                "l.logDebugAST(?)"
+              ]
+            },
+            {
+              "Receiver": "*neuroScriptListenerImpl",
+              "Name": "ExitPrimary",
+              "calls": [
+                "l.logDebugAST(?)",
+                "ctx.GetText(?)",
+                "ctx.Literal(?)",
+                "l.logDebugAST(?)",
+                "ctx.Placeholder(?)",
+                "l.logDebugAST(?)",
+                "ctx.Function_call(?)",
+                "l.logDebugAST(?)",
+                "ctx.IDENTIFIER(?)",
+                "l.pushValue(?)",
+                "ctx.IDENTIFIER().GetText(?)",
+                "ctx.IDENTIFIER(?)",
+                "l.logDebugAST(?)",
+                "ctx.IDENTIFIER().GetText(?)",
+                "ctx.IDENTIFIER(?)",
+                "ctx.KW_LAST(?)",
+                "l.pushValue(?)",
+                "l.logDebugAST(?)",
+                "ctx.KW_EVAL(?)",
+                "l.popValue(?)",
+                "l.logger.Println(?)",
+                "l.pushValue(?)",
+                "l.pushValue(?)",
+                "l.logDebugAST(?)",
+                "ctx.LPAREN(?)",
+                "l.logDebugAST(?)",
+                "l.logger.Printf(?)",
+                "ctx.GetText(?)"
+              ]
+            },
+            {
+              "Receiver": "*neuroScriptListenerImpl",
+              "Name": "ExitFunction_call",
+              "calls": [
+                "l.logDebugAST(?)",
+                "ctx.GetText(?)",
+                "ctx.GetChild(?)",
+                "funcNameToken.GetText(?)",
+                "ctx.Expression_list_opt(?)",
+                "ctx.Expression_list_opt().Expression_list(?)",
+                "ctx.Expression_list_opt(?)",
+                "ctx.Expression_list_opt().Expression_list().AllExpression(?)",
+                "ctx.Expression_list_opt().Expression_list(?)",
+                "ctx.Expression_list_opt(?)",
+                "l.popNValues(?)",
+                "l.logger.Printf(?)",
+                "l.pushValue(?)",
+                "l.pushValue(?)",
+                "l.logDebugAST(?)"
+              ]
+            },
+            {
+              "Receiver": "*neuroScriptListenerImpl",
+              "Name": "ExitPlaceholder",
+              "calls": [
+                "l.logDebugAST(?)",
+                "ctx.GetText(?)",
+                "ctx.IDENTIFIER(?)",
+                "ctx.IDENTIFIER().GetText(?)",
+                "ctx.IDENTIFIER(?)",
+                "ctx.KW_LAST(?)",
+                "l.logger.Printf(?)",
+                "ctx.GetText(?)",
+                "l.pushValue(?)",
+                "l.logDebugAST(?)"
+              ]
+            },
+            {
+              "Receiver": "*neuroScriptListenerImpl",
+              "Name": "ExitLiteral",
+              "calls": [
+                "l.logDebugAST(?)",
+                "ctx.GetText(?)",
+                "ctx.STRING_LIT(?)",
+                "ctx.STRING_LIT().GetText(?)",
+                "ctx.STRING_LIT(?)",
+                "l.logger.Printf(?)",
+                "l.pushValue(?)",
+                "l.pushValue(?)",
+                "l.logDebugAST(?)",
+                "ctx.NUMBER_LIT(?)",
+                "ctx.NUMBER_LIT().GetText(?)",
+                "ctx.NUMBER_LIT(?)",
+                "l.logger.Printf(?)",
+                "l.pushValue(?)",
+                "l.pushValue(?)",
+                "l.logDebugAST(?)",
+                "ctx.Boolean_literal(?)",
+                "l.logDebugAST(?)",
+                "ctx.List_literal(?)",
+                "l.logDebugAST(?)",
+                "ctx.Map_literal(?)",
+                "l.logDebugAST(?)"
+              ]
+            },
+            {
+              "Receiver": "*neuroScriptListenerImpl",
+              "Name": "ExitBoolean_literal",
+              "calls": [
+                "l.logDebugAST(?)",
+                "ctx.GetText(?)",
+                "ctx.KW_TRUE(?)",
+                "l.pushValue(?)",
+                "l.logDebugAST(?)"
+              ]
+            }
+          ]
+        },
+        "pkg/core/conversation.go": {
+          "functions": [
+            "NewConversationManager",
+            "CreateErrorFunctionResultPart",
+            "parseSafetySettings"
+          ],
+          "methods": [
+            {
+              "Receiver": "*ConversationManager",
+              "Name": "AddUserMessage",
+              "calls": [
+                "github.com/google/generative-ai-go/genai.Text",
+                "cm.logger.Printf(?)"
+              ]
+            },
+            {
+              "Receiver": "*ConversationManager",
+              "Name": "AddModelMessage",
+              "calls": [
+                "github.com/google/generative-ai-go/genai.Text",
+                "cm.logger.Printf(?)"
+              ]
+            },
+            {
+              "Receiver": "*ConversationManager",
+              "Name": "AddModelResponse",
+              "calls": [
+                "cm.logger.Printf(?)",
+                "cm.logger.Printf(?)",
+                "cm.logger.Printf(?)",
+                "string",
+                "cm.logger.Printf(?)"
+              ]
+            },
+            {
+              "Receiver": "*ConversationManager",
+              "Name": "AddFunctionCallMessage",
+              "calls": [
+                "cm.logger.Printf(?)"
+              ]
+            },
+            {
+              "Receiver": "*ConversationManager",
+              "Name": "AddFunctionResponse",
+              "calls": [
+                "cm.logger.Printf(?)",
+                "cm.AddFunctionResultMessage(?)"
+              ]
+            },
+            {
+              "Receiver": "*ConversationManager",
+              "Name": "AddFunctionResultMessage",
+              "calls": [
+                "cm.logger.Printf(?)",
+                "cm.logger.Printf(?)"
+              ]
+            },
+            {
+              "Receiver": "*ConversationManager",
+              "Name": "GetHistory"
+            },
+            {
+              "Receiver": "*ConversationManager",
+              "Name": "ClearHistory",
+              "calls": [
+                "cm.logger.Printf(?)"
+              ]
+            }
+          ]
+        },
+        "pkg/core/embeddings.go": {
+          "functions": [
+            "cosineSimilarity"
+          ],
+          "methods": [
+            {
+              "Receiver": "*Interpreter",
+              "Name": "GenerateEmbedding",
+              "calls": [
+                "int64",
+                "math/rand.New",
+                "math/rand.NewSource",
+                "float32",
+                "rng.Float32(?)",
+                "float32",
+                "math.Sqrt",
+                "float64"
+              ]
+            }
+          ]
+        },
+        "pkg/core/errors.go": {
+          "methods": []
+        },
+        "pkg/core/evaluation_access.go": {
+          "methods": [
+            {
+              "Receiver": "*Interpreter",
+              "Name": "evaluateElementAccess",
+              "calls": [
+                "i.evaluateExpression(?)",
+                "i.evaluateExpression(?)",
+                "i.logger.Printf(?)",
+                "i.evaluateListElementAccess(?)",
+                "i.evaluateMapElementAccess(?)"
+              ]
+            },
+            {
+              "Receiver": "*Interpreter",
+              "Name": "evaluateListElementAccess",
+              "calls": [
+                "int64",
+                "float64",
+                "int64",
+                "int64",
+                "int",
+                "int",
+                "i.logger.Printf(?)"
+              ]
+            },
+            {
+              "Receiver": "*Interpreter",
+              "Name": "evaluateMapElementAccess",
+              "calls": [
+                "i.logger.Printf(?)",
+                "i.logger.Printf(?)"
+              ]
+            }
+          ]
+        },
+        "pkg/core/evaluation_access_test.go": {
+          "functions": [
+            "TestEvaluateElementAccess"
+          ],
+          "methods": []
+        },
+        "pkg/core/evaluation_arithmetic_test.go": {
+          "functions": [
+            "TestArithmeticOps"
+          ],
+          "methods": []
+        },
+        "pkg/core/evaluation_comparison.go": {
+          "methods": [
+            {
+              "Receiver": "*Interpreter",
+              "Name": "evaluateCondition",
+              "calls": [
+                "i.evaluateExpression(?)",
+                "errEval.Error(?)",
+                "i.logger.Printf(?)",
+                "isTruthy",
+                "i.logger.Printf(?)"
+              ]
+            }
+          ]
+        },
+        "pkg/core/evaluation_comparison_test.go": {
+          "functions": [
+            "TestEvaluateCondition"
+          ],
+          "methods": []
+        },
+        "pkg/core/evaluation_helpers.go": {
+          "functions": [
+            "toFloat64",
+            "toInt64",
+            "ToNumeric",
+            "isTruthy",
+            "isValidIdentifier"
+          ],
+          "methods": []
+        },
+        "pkg/core/evaluation_logic.go": {
+          "functions": [
+            "evaluateUnaryOp",
+            "evaluateBinaryOp",
+            "evaluateFunctionCall"
+          ],
+          "methods": []
+        },
+        "pkg/core/evaluation_logical_bitwise_test.go": {
+          "functions": [
+            "TestLogicalBitwiseOps"
+          ],
+          "methods": []
+        },
+        "pkg/core/evaluation_main.go": {
+          "methods": [
+            {
+              "Receiver": "*Interpreter",
+              "Name": "evaluateExpression",
+              "calls": [
+                "i.evaluateExpression(?)",
+                "i.evaluateExpression(?)",
+                "i.evaluateExpression(?)",
+                "i.resolvePlaceholdersWithError(?)",
+                "i.evaluateExpression(?)",
+                "evaluateUnaryOp",
+                "i.evaluateExpression(?)",
+                "errL.Error(?)",
+                "isTruthy",
+                "isTruthy",
+                "i.evaluateExpression(?)",
+                "errR.Error(?)",
+                "evaluateBinaryOp",
+                "i.evaluateExpression(?)",
+                "evaluateFunctionCall",
+                "i.evaluateElementAccess(?)"
+              ]
+            }
+          ]
+        },
+        "pkg/core/evaluation_operators.go": {
+          "functions": [
+            "performArithmetic",
+            "performStringConcatOrNumericAdd",
+            "performComparison",
+            "performLogical",
+            "performBitwise"
+          ],
+          "methods": []
+        },
+        "pkg/core/evaluation_resolve.go": {
+          "methods": [
+            {
+              "Receiver": "*Interpreter",
+              "Name": "resolvePlaceholdersWithError",
+              "calls": [
+                "reVar.ReplaceAllStringFunc(?)",
+                "reVar.FindStringSubmatch(?)",
+                "isValidIdentifier",
+                "i.evaluateExpression(?)"
+              ]
+            }
+          ]
+        },
+        "pkg/core/evaluation_test.go": {
+          "functions": [
+            "TestEvaluateExpressionASTGeneral"
+          ],
+          "methods": []
+        },
+        "pkg/core/evaluations_functions_test.go": {
+          "functions": [
+            "TestMathFunctions"
+          ],
+          "methods": []
+        },
+        "pkg/core/helpers.go": {
+          "functions": [
+            "min",
+            "ConvertToBool",
+            "ConvertToSliceOfString",
+            "convertToSliceOfAny"
+          ],
+          "methods": []
+        },
+        "pkg/core/interpreter.go": {
+          "functions": [
+            "NewInterpreter"
+          ],
+          "methods": [
+            {
+              "Receiver": "*Interpreter",
+              "Name": "SetModelName",
+              "calls": [
+                "i.logger.Printf(?)"
+              ]
+            },
+            {
+              "Receiver": "*Interpreter",
+              "Name": "ToolRegistry",
+              "calls": [
+                "i.logger.Println(?)",
+                "NewToolRegistry"
+              ]
+            },
+            {
+              "Receiver": "*Interpreter",
+              "Name": "GenAIClient",
+              "calls": [
+                "i.logger.Println(?)",
+                "i.llmClient.Client(?)"
+              ]
+            },
+            {
+              "Receiver": "*Interpreter",
+              "Name": "AddProcedure",
+              "calls": [
+                "i.logger.Printf(?)"
+              ]
+            },
+            {
+              "Receiver": "*Interpreter",
+              "Name": "KnownProcedures"
+            },
+            {
+              "Receiver": "*Interpreter",
+              "Name": "Logger",
+              "calls": [
+                "log.New"
+              ]
+            },
+            {
+              "Receiver": "*Interpreter",
+              "Name": "GetVectorIndex"
+            },
+            {
+              "Receiver": "*Interpreter",
+              "Name": "SetVectorIndex"
+            },
+            {
+              "Receiver": "*Interpreter",
+              "Name": "storeObjectInCache"
+            },
+            {
+              "Receiver": "*Interpreter",
+              "Name": "retrieveObjectFromCache"
+            },
+            {
+              "Receiver": "*Interpreter",
+              "Name": "getCachedObjectAndType"
+            },
+            {
+              "Receiver": "*Interpreter",
+              "Name": "RunProcedure"
+            },
+            {
+              "Receiver": "*Interpreter",
+              "Name": "executeSteps"
+            },
+            {
+              "Receiver": "*Interpreter",
+              "Name": "executeBlock"
+            }
+          ]
+        },
+        "pkg/core/interpreter_control_flow.go": {
+          "methods": [
+            {
+              "Receiver": "*Interpreter",
+              "Name": "executeIf",
+              "calls": [
+                "i.logger.Printf(?)",
+                "i.evaluateCondition(?)",
+                "i.logger.Printf(?)",
+                "i.logger.Printf(?)",
+                "i.executeBlock(?)",
+                "i.logger.Printf(?)",
+                "i.executeBlock(?)",
+                "i.logger.Printf(?)"
+              ]
+            },
+            {
+              "Receiver": "*Interpreter",
+              "Name": "executeWhile",
+              "calls": [
+                "i.logger.Printf(?)",
+                "i.evaluateCondition(?)",
+                "i.logger.Printf(?)",
+                "i.logger.Printf(?)",
+                "i.executeBlock(?)",
+                "i.logger.Printf(?)",
+                "i.logger.Printf(?)"
+              ]
+            },
+            {
+              "Receiver": "*Interpreter",
+              "Name": "executeFor",
+              "calls": [
+                "i.logger.Printf(?)",
+                "isValidIdentifier",
+                "i.logger.Printf(?)",
+                "i.evaluateExpression(?)",
+                "i.logger.Printf(?)",
+                "func() {\n\tif loopVarExists {\n\t\ti.variables[loopVar] = originalLoopVarValue\n\t} else {\n\t\tdelete(i.variables, loopVar)\n\t}\n\tif i.logger != nil {\n\t\ti.logger.Printf(\"[DEBUG-INTERP]        Restored loop variable '%s' state after FOR.\", loopVar)\n\t}\n}(?)",
+                "i.logger.Printf(?)",
+                "i.logger.Printf(?)",
+                "i.logger.Printf(?)",
+                "i.executeBlock(?)",
+                "i.logger.Printf(?)",
+                "i.logger.Printf(?)",
+                "i.executeBlock(?)",
+                "i.logger.Printf(?)",
+                "i.logger.Printf(?)",
+                "i.executeBlock(?)",
+                "i.logger.Printf(?)",
+                "i.logger.Printf(?)",
+                "i.executeBlock(?)",
+                "i.logger.Printf(?)",
+                "string",
+                "i.logger.Printf(?)",
+                "i.executeBlock(?)",
+                "i.logger.Printf(?)",
+                "i.logger.Printf(?)",
+                "i.logger.Printf(?)"
+              ]
+            }
+          ]
+        },
+        "pkg/core/interpreter_simple_steps.go": {
+          "methods": [
+            {
+              "Receiver": "*Interpreter",
+              "Name": "executeSet",
+              "calls": [
+                "i.logger.Printf(?)",
+                "isValidIdentifier",
+                "i.evaluateExpression(?)",
+                "i.logger.Printf(?)",
+                "trimCodeFences",
+                "i.logger.Printf(?)",
+                "i.logger.Printf(?)"
+              ]
+            },
+            {
+              "Receiver": "*Interpreter",
+              "Name": "executeCall",
+              "calls": [
+                "i.logger.Printf(?)",
+                "i.evaluateExpression(?)",
+                "i.logger.Printf(?)",
+                "i.logger.Printf(?)",
+                "i.toolRegistry.GetTool(?)",
+                "ValidateAndConvertArgs",
+                "i.logger.Printf(?)",
+                "toolImpl.Func(?)",
+                "i.logger.Printf(?)",
+                "i.logger.Printf(?)",
+                "i.logger.Printf(?)",
+                "i.logger.Printf(?)",
+                "NewLLMClient",
+                "i.Logger(?)",
+                "llmClient.CallLLM(?)",
+                "i.logger.Printf(?)",
+                "i.logger.Printf(?)",
+                "i.logger.Printf(?)",
+                "i.RunProcedure(?)",
+                "i.logger.Printf(?)"
+              ]
+            },
+            {
+              "Receiver": "*Interpreter",
+              "Name": "executeReturn",
+              "calls": [
+                "i.logger.Printf(?)",
+                "i.evaluateExpression(?)",
+                "i.logger.Printf(?)",
+                "i.logger.Printf(?)"
+              ]
+            },
+            {
+              "Receiver": "*Interpreter",
+              "Name": "executeEmit",
+              "calls": [
+                "i.logger.Printf(?)",
+                "i.evaluateExpression(?)",
+                "i.logger.Printf(?)",
+                "i.logger.Printf(?)"
+              ]
+            }
+          ]
+        },
+        "pkg/core/interpreter_steps.go": {
+          "methods": []
+        },
+        "pkg/core/interpreter_test.go": {
+          "functions": [
+            "runExecuteStepsTest",
+            "TestExecuteStepsBlocksAndLoops"
+          ],
+          "methods": []
+        },
+        "pkg/core/llm.go": {
+          "functions": [
+            "NewLLMClient"
+          ],
+          "methods": [
+            {
+              "Receiver": "*LLMClient",
+              "Name": "Client"
+            },
+            {
+              "Receiver": "*LLMClient",
+              "Name": "CallLLMAgent",
+              "calls": [
+                "c.logger.Printf(?)",
+                "c.client.GenerativeModel(?)",
+                "model.StartChat(?)",
+                "string",
+                "c.logger.Printf(?)",
+                "c.logger.Println(?)",
+                "c.logger.Printf(?)",
+                "c.logger.Printf(?)",
+                "github.com/google/generative-ai-go/genai.Text",
+                "c.logger.Println(?)",
+                "c.logger.Printf(?)",
+                "cs.SendMessage(?)",
+                "c.logger.Printf(?)",
+                "c.logger.Printf(?)",
+                "string",
+                "c.logger.Printf(?)",
+                "c.logger.Printf(?)"
+              ]
+            },
+            {
+              "Receiver": "*LLMClient",
+              "Name": "CallLLM",
+              "calls": [
+                "c.logger.Printf(?)",
+                "c.client.GenerativeModel(?)",
+                "c.logger.Printf(?)",
+                "model.GenerateContent(?)",
+                "github.com/google/generative-ai-go/genai.Text",
+                "c.logger.Printf(?)",
+                "c.logger.Printf(?)",
+                "string",
+                "c.logger.Printf(?)",
+                "c.logger.Printf(?)",
+                "string",
+                "c.logger.Printf(?)"
+              ]
+            },
+            {
+              "Receiver": "*LLMClient",
+              "Name": "CallLLMWithParts",
+              "calls": [
+                "c.logger.Printf(?)",
+                "c.client.GenerativeModel(?)",
+                "c.logger.Printf(?)",
+                "model.GenerateContent(?)",
+                "c.logger.Printf(?)",
+                "c.logger.Printf(?)",
+                "string",
+                "c.logger.Printf(?)",
+                "c.logger.Printf(?)"
+              ]
+            }
+          ]
+        },
+        "pkg/core/llm_tools.go": {
+          "functions": [
+            "toolAskLLM",
+            "toolAskLLMWithFiles",
+            "registerLLMTools"
+          ],
+          "methods": []
+        },
+        "pkg/core/llm_types.go": {
+          "methods": []
+        },
+        "pkg/core/parser_api.go": {
+          "functions": [
+            "ParseNeuroScript",
+            "NewDiagnosticErrorListener"
+          ],
+          "methods": [
+            {
+              "Receiver": "*DiagnosticErrorListener",
+              "Name": "SyntaxError"
+            },
+            {
+              "Receiver": "*DiagnosticErrorListener",
+              "Name": "HasErrors"
+            },
+            {
+              "Receiver": "*DiagnosticErrorListener",
+              "Name": "GetErrors"
+            }
+          ]
+        },
+        "pkg/core/security.go": {
+          "functions": [
+            "NewSecurityLayer",
+            "SanitizeFilename",
+            "SecureFilePath"
+          ],
+          "methods": [
+            {
+              "Receiver": "*SecurityLayer",
+              "Name": "SandboxRoot"
+            },
+            {
+              "Receiver": "*SecurityLayer",
+              "Name": "GetToolDeclarations",
+              "calls": [
+                "sl.logger.Println(?)",
+                "sl.toolRegistry.GetAllTools(?)",
+                "sl.logger.Printf(?)",
+                "sl.logger.Printf(?)",
+                "argSpec.Type.ToGenaiType(?)",
+                "sl.logger.Printf(?)",
+                "sl.logger.Printf(?)",
+                "sl.logger.Printf(?)"
+              ]
+            },
+            {
+              "Receiver": "*SecurityLayer",
+              "Name": "ExecuteToolCall",
+              "calls": [
+                "sl.logger.Printf(?)",
+                "CreateErrorFunctionResultPart",
+                "sl.ValidateToolCall(?)",
+                "sl.logger.Printf(?)",
+                "CreateErrorFunctionResultPart",
+                "sl.toolRegistry.GetTool(?)",
+                "sl.logger.Printf(?)",
+                "CreateErrorFunctionResultPart",
+                "sl.logger.Printf(?)",
+                "CreateErrorFunctionResultPart",
+                "sl.logger.Printf(?)",
+                "toolImpl.Func(?)",
+                "sl.logger.Printf(?)",
+                "CreateErrorFunctionResultPart",
+                "sl.logger.Printf(?)",
+                "sl.logger.Printf(?)",
+                "sl.logger.Printf(?)"
+              ]
+            },
+            {
+              "Receiver": "*SecurityLayer",
+              "Name": "ValidateToolCall",
+              "calls": [
+                "sl.logger.Printf(?)",
+                "sl.logger.Printf(?)",
+                "sl.logger.Printf(?)",
+                "sl.logger.Printf(?)",
+                "sl.logger.Printf(?)",
+                "sl.logger.Printf(?)",
+                "sl.logger.Printf(?)",
+                "sl.toolRegistry.GetTool(?)",
+                "sl.logger.Printf(?)",
+                "sl.logger.Printf(?)",
+                "sl.validateArgumentsAgainstSpec(?)",
+                "sl.logger.Printf(?)",
+                "sl.logger.Printf(?)"
+              ]
+            }
+          ]
+        },
+        "pkg/core/security_helpers.go": {
+          "functions": [
+            "GetSandboxPath",
+            "IsPathInSandbox",
+            "ResolveAndSecurePath"
+          ],
+          "methods": []
+        },
+        "pkg/core/security_validation.go": {
+          "methods": [
+            {
+              "Receiver": "*SecurityLayer",
+              "Name": "validateArgumentsAgainstSpec",
+              "calls": [
+                "sl.logger.Printf(?)",
+                "sl.logger.Printf(?)",
+                "sl.logger.Printf(?)",
+                "sl.logger.Printf(?)",
+                "sl.validateAndCoerceType(?)",
+                "sl.logger.Printf(?)",
+                "ToNumeric",
+                "sl.logger.Printf(?)",
+                "SecureFilePath",
+                "sl.logger.Printf(?)",
+                "sl.logger.Printf(?)",
+                "sl.logger.Printf(?)",
+                "sl.logger.Printf(?)"
+              ]
+            },
+            {
+              "Receiver": "*SecurityLayer",
+              "Name": "validateAndCoerceType",
+              "calls": [
+                "toInt64",
+                "toFloat64",
+                "ConvertToBool",
+                "ConvertToSliceOfString",
+                "convertToSliceOfAny"
+              ]
+            }
+          ]
+        },
+        "pkg/core/sync_helpers.go": {
+          "functions": [
+            "listExistingAPIFiles_v2"
+          ],
+          "methods": []
+        },
+        "pkg/core/sync_logic.go": {
+          "functions": [
+            "gatherLocalFiles",
+            "computeSyncActions",
+            "toolSyncFiles"
+          ],
+          "methods": []
+        },
+        "pkg/core/sync_morehelpers.go": {
+          "functions": [
+            "initializeSyncState",
+            "listExistingAPIFiles",
+            "initializeGitignore"
+          ],
+          "methods": []
+        },
+        "pkg/core/sync_types.go": {
+          "methods": []
+        },
+        "pkg/core/sync_workers.go": {
+          "functions": [
+            "startUploadWorkers",
+            "processUploadJob",
+            "startDeleteWorkers"
+          ],
+          "methods": []
+        },
+        "pkg/core/testing_helpers_test.go": {
+          "functions": [
+            "newTestInterpreter",
+            "newDefaultTestInterpreter",
+            "createTestStep",
+            "createIfStep",
+            "createWhileStep",
+            "createForStep",
+            "runEvalExpressionTest",
+            "AssertNoError"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_file_api.go": {
+          "functions": [
+            "init",
+            "HelperUploadAndPollFile",
+            "toolListAPIFiles",
+            "toolUploadFile",
+            "registerFileAPITools"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_file_api_sync.go": {
+          "functions": [
+            "SyncDirectoryUpHelper",
+            "waitForUploadResultsAndPrintProgress"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_file_api_test.go": {
+          "functions": [
+            "TestToolListAPIFilesValidation",
+            "TestToolDeleteAPIFileValidation",
+            "TestToolUploadFileValidation",
+            "TestToolSyncFilesValidation"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_file_helpers.go": {
+          "functions": [
+            "toolDeleteAPIFile",
+            "HelperListApiFiles",
+            "checkGenAIClient",
+            "calculateFileHash"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_fs.go": {
+          "functions": [
+            "registerFsTools",
+            "registerFsFileTools"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_fs_delete.go": {
+          "functions": [
+            "toolDeleteFile",
+            "registerFsDeleteTools"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_fs_delete_test.go": {
+          "functions": [
+            "TestToolDeleteFile"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_fs_dirs.go": {
+          "functions": [
+            "registerFsDirTools",
+            "toolListDirectory",
+            "toolMkdir"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_fs_dirs_test.go": {
+          "functions": [
+            "TestToolListDirectoryValidation",
+            "TestToolListDirectoryFunctional",
+            "TestToolMkdirValidation",
+            "TestToolMkdirFunctional"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_fs_hash.go": {
+          "functions": [
+            "toolFileHash",
+            "registerFsHashTools"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_fs_helpers_test.go": {
+          "functions": [
+            "testFsToolHelper"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_fs_move.go": {
+          "functions": [
+            "toolMoveFile",
+            "registerFsMoveTools"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_fs_move_test.go": {
+          "functions": [
+            "TestToolMoveFileValidation",
+            "TestToolMoveFileFunctional",
+            "newTestInterpreterWithSandbox"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_fs_read.go": {
+          "functions": [
+            "toolReadFile"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_fs_read_test.go": {
+          "functions": [
+            "TestToolReadFile"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_fs_stat.go": {
+          "functions": [
+            "toolStat"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_fs_stat_test.go": {
+          "functions": [
+            "createTestInterpreterWithSandbox",
+            "createTempFile",
+            "createTempDir",
+            "TestToolStat"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_fs_utils.go": {
+          "functions": [
+            "toolLineCountFile",
+            "toolSanitizeFilename",
+            "registerFsUtilTools"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_fs_walk.go": {
+          "functions": [
+            "toolWalkDir"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_fs_walk_test.go": {
+          "functions": [
+            "createWalkTestInterpreter",
+            "createWalkTempFile",
+            "createWalkTempDir",
+            "assertWalkResultsEqual",
+            "TestToolWalkDir"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_fs_write.go": {
+          "functions": [
+            "toolWriteFile"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_fs_write_test.go": {
+          "functions": [
+            "TestToolWriteFile"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_git.go": {
+          "functions": [
+            "toolGitAdd",
+            "toolGitCommit",
+            "toolGitNewBranch",
+            "toolGitCheckout",
+            "toolGitRm",
+            "toolGitMerge",
+            "toolGitPull",
+            "toolGitPush",
+            "toolGitDiff"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_git_register.go": {
+          "functions": [
+            "registerGitTools"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_git_status.go": {
+          "functions": [
+            "toolGitStatus",
+            "parseGitStatusOutput"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_git_status_test.go": {
+          "functions": [
+            "TestParseGitStatusOutput",
+            "compareFileMaps"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_git_test.go": {
+          "functions": [
+            "runValidationTestCases",
+            "TestToolGitNewBranchValidation",
+            "TestToolGitCheckoutValidation",
+            "TestToolGitRmValidation",
+            "TestToolGitMergeValidation",
+            "TestToolGitPullValidation",
+            "TestToolGitPushValidation",
+            "TestToolGitDiffValidation"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_go_ast.go": {
+          "functions": [
+            "toolGoParseFile",
+            "toolGoFormatAST",
+            "registerGoAstTools"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_go_ast_find.go": {
+          "functions": [
+            "toolGoFindIdentifiers"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_go_ast_find_test.go": {
+          "functions": [
+            "setupParseForFindTest",
+            "comparePositionLists",
+            "loadFindFixture",
+            "TestToolGoFindIdentifiers"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_go_ast_format_test.go": {
+          "functions": [
+            "NewMockToolRegistry",
+            "RegisterGoFormatTool",
+            "RegisterGoParseTool",
+            "loadGoFixture",
+            "setupParseGoTest",
+            "countComments",
+            "checkGoSyntax",
+            "TestToolGoFormatASTNode"
+          ],
+          "methods": [
+            {
+              "Receiver": "*mockToolRegistry",
+              "Name": "GetTool"
+            },
+            {
+              "Receiver": "*mockToolRegistry",
+              "Name": "RegisterTool"
+            }
+          ]
+        },
+        "pkg/core/tools_go_ast_modify.go": {
+          "functions": [
+            "toolGoModifyAST"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_go_ast_modify_imports_test.go": {
+          "functions": [
+            "getFormattedCodeModifyImportsTest",
+            "setupParseModifyImportsTest",
+            "TestToolGoModifyASTImports"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_go_ast_modify_test.go": {
+          "functions": [
+            "getFormattedCodeModifyTest",
+            "setupParseModifyTest",
+            "TestToolGoModifyAST"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_gofmt_test.go": {
+          "functions": [
+            "testGoFmtToolHelper",
+            "TestToolGoFmt"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_helpers.go": {
+          "functions": [
+            "makeArgs",
+            "runGitCommand",
+            "toolExec"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_io.go": {
+          "functions": [
+            "toolIOInput",
+            "registerIOTools"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_io_test.go": {
+          "functions": [
+            "TestToolIOInputValidation"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_list_impl.go": {
+          "functions": [
+            "toolListLength",
+            "toolListAppend",
+            "toolListPrepend",
+            "toolListGet",
+            "toolListSlice",
+            "toolListContains",
+            "toolListReverse",
+            "toolListSort",
+            "toolListHead",
+            "toolListRest",
+            "toolListTail",
+            "toolListIsEmpty"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_list_register.go": {
+          "functions": [
+            "registerListTools"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_list_test.go": {
+          "functions": [
+            "testListToolHelper",
+            "TestToolListLength",
+            "TestToolListAppendPrepend",
+            "TestToolListGet",
+            "TestToolListSlice",
+            "TestToolListContains",
+            "TestToolListReverse",
+            "TestToolListSort",
+            "TestToolListIsEmpty",
+            "TestToolListHead",
+            "TestToolListRest",
+            "TestToolListTail"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_math.go": {
+          "functions": [
+            "registerMathTools",
+            "toolAdd",
+            "toolSubtract",
+            "toolMultiply",
+            "toolDivide",
+            "toolModulo"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_math_test.go": {
+          "functions": [
+            "testMathToolHelper",
+            "TestToolAdd",
+            "TestToolSubtract",
+            "TestToolDivide"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_metadata.go": {
+          "functions": [
+            "registerMetadataTools",
+            "toolExtractMetadataFromString"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_register.go": {
+          "functions": [
+            "registerCoreTools",
+            "RegisterCoreTools"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_registry.go": {
+          "functions": [
+            "NewToolRegistry"
+          ],
+          "methods": [
+            {
+              "Receiver": "*ToolRegistry",
+              "Name": "RegisterTool"
+            },
+            {
+              "Receiver": "*ToolRegistry",
+              "Name": "GetTool"
+            },
+            {
+              "Receiver": "*ToolRegistry",
+              "Name": "GetAllTools"
+            }
+          ]
+        },
+        "pkg/core/tools_shell.go": {
+          "functions": [
+            "registerShellTools",
+            "toolExecuteCommand",
+            "toolGoCheck",
+            "toolGoBuild",
+            "toolGoTest",
+            "toolGoFmt",
+            "toolGoModTidy"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_shell_test.go": {
+          "functions": [
+            "TestToolExecuteCommand",
+            "TestToolGoModTidy"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_string.go": {
+          "functions": [
+            "registerStringTools",
+            "toolStringLength",
+            "toolSubstring",
+            "toolToUpper",
+            "toolToLower",
+            "toolTrimSpace",
+            "toolSplitString",
+            "toolSplitWords",
+            "toolJoinStrings",
+            "toolReplaceAll",
+            "toolContains",
+            "toolHasPrefix",
+            "toolHasSuffix",
+            "toolLineCountString"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_string_basic_test.go": {
+          "functions": [
+            "testStringToolHelper",
+            "TestToolStringLength",
+            "TestToolSubstring",
+            "TestToolToUpperLower",
+            "TestToolTrimSpace",
+            "TestToolReplaceAll"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_string_predicates_test.go": {
+          "functions": [
+            "TestToolContainsPrefixSuffix"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_string_split_join_test.go": {
+          "functions": [
+            "testStringSplitJoinToolHelper",
+            "TestToolSplitString",
+            "TestToolSplitWords",
+            "TestToolJoinStrings"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_string_utils_test.go": {
+          "functions": [
+            "TestToolLineCountString"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_types.go": {
+          "methods": [
+            {
+              "Receiver": "ArgType",
+              "Name": "ToGenaiType"
+            }
+          ]
+        },
+        "pkg/core/tools_validation.go": {
+          "functions": [
+            "ValidateAndConvertArgs",
+            "validateAndCoerceType"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_vector.go": {
+          "functions": [
+            "registerVectorTools",
+            "toolSearchSkills",
+            "toolVectorUpdate"
+          ],
+          "methods": []
+        },
+        "pkg/core/utils.go": {
+          "functions": [
+            "trimCodeFences",
+            "parseDocstring",
+            "parseInputLine"
+          ],
+          "methods": []
+        }
+      }
+    },
+    "pkg/core/prompts": {
+      "files": {
+        "pkg/core/prompts/prompts.go": {
+          "methods": []
+        }
+      }
+    },
+    "pkg/neurodata/blocks": {
+      "files": {
+        "pkg/neurodata/blocks/blocks_complex_test.go": {
+          "functions": [
+            "TestExtractAllAndMetadataComplex"
+          ],
+          "methods": []
+        },
+        "pkg/neurodata/blocks/blocks_extractor.go": {
+          "functions": [
+            "ExtractAll",
+            "FormatBlocks"
+          ],
+          "methods": []
+        },
+        "pkg/neurodata/blocks/blocks_helpers.go": {
+          "functions": [
+            "minInt",
+            "compareBlockSlices"
+          ],
+          "methods": []
+        },
+        "pkg/neurodata/blocks/blocks_simple_test.go": {
+          "functions": [
+            "TestExtractAllAndMetadataSimple"
+          ],
+          "methods": []
+        },
+        "pkg/neurodata/blocks/blocks_tool.go": {
+          "functions": [
+            "RegisterBlockTools",
+            "toolBlocksExtractAll"
+          ],
+          "methods": []
+        }
+      }
+    },
+    "pkg/neurodata/checklist": {
+      "files": {
+        "pkg/neurodata/checklist/checklist_tool.go": {
+          "functions": [
+            "RegisterChecklistTools",
+            "toolParseChecklistFromString"
+          ],
+          "methods": []
+        },
+        "pkg/neurodata/checklist/defined_errors.go": {
+          "methods": []
+        },
+        "pkg/neurodata/checklist/scanner_parser.go": {
+          "functions": [
+            "ParseChecklist"
+          ],
+          "methods": []
+        },
+        "pkg/neurodata/checklist/scanner_parser_test.go": {
+          "functions": [
+            "checklistsEqual",
+            "TestParseChecklistScannerFixtures"
+          ],
+          "methods": []
+        }
+      }
+    },
+    "pkg/neurodata/metadata": {
+      "files": {
+        "pkg/neurodata/metadata/metadata.go": {
+          "functions": [
+            "IsMetadataLine",
+            "IsCommentOrBlank",
+            "ExtractKeyValue",
+            "Extract",
+            "startsWithMetadataPrefixFunc",
+            "commentOrBlankPatternFunc"
+          ],
+          "methods": []
+        },
+        "pkg/neurodata/metadata/metadata_test.go": {
+          "functions": [
+            "TestExtractMetadata"
+          ],
+          "methods": []
+        }
+      }
+    },
+    "pkg/neurogo": {
+      "files": {
+        "pkg/neurogo/app.go": {
+          "functions": [
+            "NewApp"
+          ],
+          "methods": [
+            {
+              "Receiver": "*App",
+              "Name": "Run",
+              "calls": [
+                "a.initLogging(?)",
+                "a.GetInfoLogger(?)",
+                "a.GetErrorLogger(?)",
+                "a.GetDebugLogger(?)",
+                "debugLog.Println(?)",
+                "a.initLLMClient(?)",
+                "a.GetLLMClient(?)",
+                "a.GetLLMClient().Client(?)",
+                "a.GetLLMClient(?)",
+                "debugLog.Printf(?)",
+                "errLog.Printf(?)",
+                "warnLog.Printf(?)",
+                "infoLog.Println(?)",
+                "errLog.Println(?)",
+                "infoLog.Println(?)",
+                "errLog.Println(?)",
+                "err.Error(?)",
+                "a.runCleanAPIMode(?)",
+                "infoLog.Println(?)",
+                "errLog.Println(?)",
+                "err.Error(?)",
+                "a.runSyncMode(?)",
+                "infoLog.Println(?)",
+                "a.runScriptMode(?)",
+                "infoLog.Println(?)",
+                "a.runTuiMode(?)",
+                "infoLog.Println(?)",
+                "errLog.Println(?)",
+                "err.Error(?)",
+                "errLog.Println(?)",
+                "err.Error(?)",
+                "a.runAgentMode(?)",
+                "errLog.Println(?)"
+              ]
+            }
+          ]
+        },
+        "pkg/neurogo/app_acc_uris.go": {
+          "functions": [
+            "updateAccumulatedURIs"
+          ],
+          "methods": []
+        },
+        "pkg/neurogo/app_agent.go": {
+          "functions": [
+            "handleMultilineInput"
+          ],
+          "methods": [
+            {
+              "Receiver": "*App",
+              "Name": "runAgentMode",
+              "calls": [
+                "a.InfoLog.Println(?)",
+                "loadToolListFromFile",
+                "a.DebugLog.Printf(?)",
+                "llmClient.Client(?)",
+                "pkg/core.NewConversationManager",
+                "pkg/core.NewInterpreter",
+                "agentInterpreter.ToolRegistry(?)",
+                "pkg/core.RegisterCoreTools",
+                "pkg/core.NewSecurityLayer",
+                "securityLayer.GetToolDeclarations(?)",
+                "a.ErrorLog.Printf(?)",
+                "a.InfoLog.Printf(?)",
+                "a.InfoLog.Printf(?)",
+                "llmClient.Client(?)",
+                "pkg/core.ResolveAndSecurePath",
+                "a.ErrorLog.Printf(?)",
+                "a.InfoLog.Printf(?)",
+                "pkg/core.HelperUploadAndPollFile",
+                "llmClient.Client(?)",
+                "a.ErrorLog.Printf(?)",
+                "a.InfoLog.Printf(?)",
+                "a.ErrorLog.Printf(?)",
+                "a.InfoLog.Printf(?)",
+                "a.ErrorLog.Println(?)",
+                "a.InfoLog.Printf(?)",
+                "a.InfoLog.Printf(?)",
+                "a.DebugLog.Printf(?)",
+                "stdinScanner.Scan(?)",
+                "stdinScanner.Text(?)",
+                "a.InfoLog.Println(?)",
+                "handleMultilineInput",
+                "a.InfoLog.Printf(?)",
+                "a.InfoLog.Printf(?)",
+                "pkg/core.ResolveAndSecurePath",
+                "a.ErrorLog.Printf(?)",
+                "dirInfo.IsDir(?)",
+                "a.ErrorLog.Printf(?)",
+                "pkg/core.SyncDirectoryUpHelper",
+                "llmClient.Client(?)",
+                "a.ErrorLog.Printf(?)",
+                "a.InfoLog.Printf(?)",
+                "updateAccumulatedURIs",
+                "a.InfoLog.Printf(?)",
+                "pkg/core.ResolveAndSecurePath",
+                "a.ErrorLog.Printf(?)",
+                "dirInfo.IsDir(?)",
+                "a.ErrorLog.Printf(?)",
+                "pkg/core.SyncDirectoryUpHelper",
+                "llmClient.Client(?)",
+                "a.ErrorLog.Printf(?)",
+                "a.InfoLog.Printf(?)",
+                "updateAccumulatedURIs",
+                "convoManager.AddUserMessage(?)",
+                "a.DebugLog.Printf(?)",
+                "a.handleAgentTurn(?)",
+                "a.ErrorLog.Printf(?)",
+                "a.InfoLog.Println(?)"
+              ]
+            }
+          ]
+        },
+        "pkg/neurogo/app_helpers.go": {
+          "functions": [
+            "min"
+          ],
+          "methods": [
+            {
+              "Receiver": "*App",
+              "Name": "runCleanAPIMode",
+              "calls": [
+                "a.InfoLog.Println(?)",
+                "a.GetLLMClient(?)",
+                "llmClient.Client(?)",
+                "llmClient.Client(?)",
+                "a.InfoLog.Println(?)",
+                "pkg/core.HelperListApiFiles",
+                "a.GetDebugLogger(?)",
+                "a.ErrorLog.Printf(?)",
+                "a.InfoLog.Println(?)",
+                "a.InfoLog.Printf(?)",
+                "reader.ReadString(?)",
+                "a.ErrorLog.Printf(?)",
+                "a.InfoLog.Println(?)",
+                "a.InfoLog.Println(?)",
+                "a.GetDebugLogger(?)",
+                "a.GetErrorLogger(?)",
+                "dbgLog.Printf(?)",
+                "deleteWg.Add(?)",
+                "func(workerID int) {\n\tdefer deleteWg.Done()\n\tdbgLog.Printf(\"API Delete Worker %d: Started.\", workerID)\n\tfor fileToDelete := range deleteJobsChan {\n\t\tif fileToDelete == nil || fileToDelete.Name == \"\" {\n\t\t\tdbgLog.Printf(\"API Delete Worker %d: Received nil/empty file, skipping.\", workerID)\n\t\t\tcontinue\n\t\t}\n\t\tdbgLog.Printf(\"API Delete Worker %d: Deleting %s (%s)...\", workerID, fileToDelete.Name, fileToDelete.DisplayName)\n\t\tdelCtx, cancelDel := context.WithTimeout(context.Background(), 30*time.Second)\n\t\tdeleteErr := client.DeleteFile(delCtx, fileToDelete.Name)\n\t\tcancelDel()\n\t\tif deleteErr != nil {\n\t\t\tdetailedErr := fmt.Errorf(\"worker %d failed delete %s (%s): %w\", workerID, fileToDelete.Name, fileToDelete.DisplayName, deleteErr)\n\t\t\terrLog.Println(detailedErr.Error())\n\t\t\terrorChan \u003c- detailedErr\n\t\t} else {\n\t\t\tdbgLog.Printf(\"API Delete Worker %d: Deleted %s (%s)\", workerID, fileToDelete.Name, fileToDelete.DisplayName)\n\t\t}\n\t}\n\tdbgLog.Printf(\"API Delete Worker %d: Exiting.\", workerID)\n}(?)",
+                "deleteWg.Done(?)",
+                "dbgLog.Printf(?)",
+                "dbgLog.Printf(?)",
+                "dbgLog.Printf(?)",
+                "client.DeleteFile(?)",
+                "cancelDel",
+                "errLog.Println(?)",
+                "detailedErr.Error(?)",
+                "dbgLog.Printf(?)",
+                "dbgLog.Printf(?)",
+                "dbgLog.Println(?)",
+                "dbgLog.Println(?)",
+                "dbgLog.Println(?)",
+                "deleteWg.Wait(?)",
+                "dbgLog.Println(?)",
+                "err.Error(?)",
+                "int64",
+                "int64",
+                "a.InfoLog.Println(?)",
+                "a.InfoLog.Println(?)",
+                "a.InfoLog.Printf(?)",
+                "a.InfoLog.Printf(?)",
+                "a.InfoLog.Printf(?)",
+                "a.InfoLog.Println(?)",
+                "a.ErrorLog.Printf(?)",
+                "a.ErrorLog.Printf(?)",
+                "a.ErrorLog.Printf(?)",
+                "a.InfoLog.Println(?)"
+              ]
+            },
+            {
+              "Receiver": "*App",
+              "Name": "InitLoggingAndLLMClient",
+              "calls": [
+                "a.initLogging(?)",
+                "a.initLLMClient(?)",
+                "a.GetErrorLogger(?)",
+                "errLog.Printf(?)"
+              ]
+            },
+            {
+              "Receiver": "*App",
+              "Name": "initLogging",
+              "calls": [
+                "a.GetInfoLogger(?)",
+                "a.GetDebugLogger(?)",
+                "debugLog.SetOutput(?)",
+                "debugLog.Printf(?)",
+                "infoLog.Println(?)",
+                "debugLog.SetOutput(?)",
+                "log.New",
+                "llmLog.SetOutput(?)",
+                "llmLog.Printf(?)",
+                "infoLog.Println(?)",
+                "log.New",
+                "llmLog.SetOutput(?)"
+              ]
+            },
+            {
+              "Receiver": "*App",
+              "Name": "initLLMClient",
+              "calls": [
+                "a.GetDebugLogger(?)",
+                "a.GetInfoLogger(?)",
+                "debugLogger.Printf(?)",
+                "debugLogger.Println(?)",
+                "warnLogger.Println(?)",
+                "a.llmClient.Client(?)",
+                "debugLogger.Println(?)",
+                "a.GetErrorLogger(?)",
+                "errLog.Println(?)",
+                "debugLogger.Printf(?)",
+                "warnLogger.Printf(?)",
+                "debugLogger.Printf(?)",
+                "infoLogger.Println(?)",
+                "log.New",
+                "a.GetErrorLogger(?)",
+                "errLog.Println(?)",
+                "debugLogger.Println(?)",
+                "pkg/core.NewLLMClient",
+                "client.Client(?)",
+                "a.GetErrorLogger(?)",
+                "errLog.Println(?)",
+                "debugLogger.Printf(?)",
+                "infoLogger.Printf(?)",
+                "a.GetModelName(?)",
+                "debugLogger.Printf(?)"
+              ]
+            }
+          ]
+        },
+        "pkg/neurogo/app_interface.go": {
+          "methods": [
+            {
+              "Receiver": "*App",
+              "Name": "GetModelName"
+            },
+            {
+              "Receiver": "*App",
+              "Name": "GetSyncDir"
+            },
+            {
+              "Receiver": "*App",
+              "Name": "GetSandboxDir"
+            },
+            {
+              "Receiver": "*App",
+              "Name": "GetSyncFilter"
+            },
+            {
+              "Receiver": "*App",
+              "Name": "GetSyncIgnoreGitignore"
+            },
+            {
+              "Receiver": "*App",
+              "Name": "GetDebugLogger",
+              "calls": [
+                "log.New"
+              ]
+            },
+            {
+              "Receiver": "*App",
+              "Name": "GetInfoLogger",
+              "calls": [
+                "log.New"
+              ]
+            },
+            {
+              "Receiver": "*App",
+              "Name": "GetErrorLogger",
+              "calls": [
+                "log.New"
+              ]
+            },
+            {
+              "Receiver": "*App",
+              "Name": "GetLLMClient"
+            }
+          ]
+        },
+        "pkg/neurogo/app_script.go": {
+          "methods": [
+            {
+              "Receiver": "*App",
+              "Name": "runScriptMode",
+              "calls": [
+                "a.InfoLog.Printf(?)",
+                "a.InfoLog.Printf(?)",
+                "a.InfoLog.Printf(?)",
+                "a.InfoLog.Printf(?)",
+                "pkg/core.NewInterpreter",
+                "interpreter.ToolRegistry(?)",
+                "pkg/core.RegisterCoreTools",
+                "pkg/neurodata/blocks.RegisterBlockTools",
+                "a.ErrorLog.Printf(?)",
+                "a.DebugLog.Println(?)",
+                "pkg/neurodata/checklist.RegisterChecklistTools",
+                "a.ErrorLog.Printf(?)",
+                "a.DebugLog.Println(?)",
+                "a.loadLibraries(?)",
+                "a.ErrorLog.Printf(?)",
+                "a.determineProcedureToRun(?)",
+                "interpreter.KnownProcedures(?)",
+                "a.InfoLog.Printf(?)",
+                "interpreter.RunProcedure(?)",
+                "a.InfoLog.Println(?)",
+                "a.ErrorLog.Printf(?)",
+                "runErr.Error(?)",
+                "a.ErrorLog.Printf(?)",
+                "a.InfoLog.Printf(?)"
+              ]
+            },
+            {
+              "Receiver": "*App",
+              "Name": "loadLibraries"
+            },
+            {
+              "Receiver": "*App",
+              "Name": "determineProcedureToRun"
+            },
+            {
+              "Receiver": "*App",
+              "Name": "processNeuroScriptFile"
+            }
+          ]
+        },
+        "pkg/neurogo/app_sync.go": {
+          "methods": [
+            {
+              "Receiver": "*App",
+              "Name": "runSyncMode",
+              "calls": [
+                "a.InfoLog.Printf(?)",
+                "a.InfoLog.Printf(?)",
+                "a.InfoLog.Printf(?)",
+                "pkg/core.SecureFilePath",
+                "dirInfo.IsDir(?)",
+                "a.InfoLog.Printf(?)",
+                "a.llmClient.Client(?)",
+                "pkg/core.SyncDirectoryUpHelper",
+                "a.llmClient.Client(?)",
+                "a.InfoLog.Println(?)",
+                "a.InfoLog.Println(?)",
+                "a.InfoLog.Printf(?)",
+                "logStat",
+                "logStat",
+                "logStat",
+                "logStat",
+                "logStat",
+                "logStat",
+                "logStat",
+                "logStat",
+                "logStat",
+                "logStat",
+                "logStat",
+                "logStat",
+                "a.InfoLog.Println(?)",
+                "a.InfoLog.Println(?)",
+                "a.ErrorLog.Printf(?)",
+                "a.ErrorLog.Println(?)",
+                "a.InfoLog.Println(?)"
+              ]
+            }
+          ]
+        },
+        "pkg/neurogo/app_tui.go": {
+          "methods": [
+            {
+              "Receiver": "*App",
+              "Name": "runTuiMode",
+              "calls": [
+                "a.InfoLog.Println(?)",
+                "log.New",
+                "log.New",
+                "a.GetLLMClient(?)",
+                "warnLog.Println(?)",
+                "llmClient.Client(?)",
+                "warnLog.Println(?)",
+                "pkg/neurogo/tui.Start",
+                "errorLog.Printf(?)",
+                "a.InfoLog.Println(?)"
+              ]
+            }
+          ]
+        },
+        "pkg/neurogo/config.go": {
+          "functions": [
+            "NewConfig"
+          ],
+          "methods": [
+            {
+              "Receiver": "*stringSliceFlag",
+              "Name": "String"
+            },
+            {
+              "Receiver": "*stringSliceFlag",
+              "Name": "Set"
+            },
+            {
+              "Receiver": "*Config",
+              "Name": "ParseFlags",
+              "calls": [
+                "flag.NewFlagSet",
+                "fs.SetOutput(?)",
+                "fs.StringVar(?)",
+                "fs.BoolVar(?)",
+                "fs.BoolVar(?)",
+                "fs.BoolVar(?)",
+                "fs.BoolVar(?)",
+                "fs.StringVar(?)",
+                "fs.StringVar(?)",
+                "fs.BoolVar(?)",
+                "fs.StringVar(?)",
+                "fs.StringVar(?)",
+                "fs.StringVar(?)",
+                "fs.StringVar(?)",
+                "fs.StringVar(?)",
+                "fs.BoolVar(?)",
+                "fs.Var(?)",
+                "fs.Var(?)",
+                "fs.StringVar(?)",
+                "fs.Var(?)",
+                "fs.Output(?)",
+                "fs.Output(?)",
+                "fs.Output(?)",
+                "fs.Output(?)",
+                "fs.Output(?)",
+                "fs.Output(?)",
+                "fs.Output(?)",
+                "fs.Output(?)",
+                "fs.Output(?)",
+                "fs.Output(?)",
+                "fs.Output(?)",
+                "fs.Output(?)",
+                "fs.Output(?)",
+                "fs.Output(?)",
+                "fs.Output(?)",
+                "fs.Output(?)",
+                "fs.Output(?)",
+                "fs.Output(?)",
+                "fs.Output(?)",
+                "fs.Output(?)",
+                "fs.Output(?)",
+                "fs.Output(?)",
+                "fs.Output(?)",
+                "fs.Output(?)",
+                "fs.Output(?)",
+                "fs.Output(?)",
+                "fs.Output(?)",
+                "fs.Parse(?)",
+                "fs.Usage(?)",
+                "fs.Usage(?)"
+              ]
+            }
+          ]
+        },
+        "pkg/neurogo/handle_turn.go": {
+          "methods": [
+            {
+              "Receiver": "*App",
+              "Name": "handleAgentTurn",
+              "calls": [
+                "a.InfoLog.Printf(?)",
+                "convoManager.GetHistory(?)",
+                "llmClient.CallLLMAgent(?)",
+                "convoManager.AddModelResponse(?)",
+                "a.ErrorLog.Printf(?)",
+                "a.InfoLog.Println(?)",
+                "accumulatedText.WriteString(?)",
+                "string",
+                "securityLayer.ExecuteToolCall(?)",
+                "a.ErrorLog.Printf(?)",
+                "a.InfoLog.Printf(?)",
+                "convoManager.AddFunctionResultMessage(?)",
+                "a.DebugLog.Println(?)",
+                "accumulatedText.String(?)",
+                "securityLayer.SandboxRoot(?)",
+                "handleReceivedPatch",
+                "a.ErrorLog.Printf(?)"
+              ]
+            }
+          ]
+        },
+        "pkg/neurogo/helpers.go": {
+          "functions": [
+            "loadToolListFromFile",
+            "executeAgentTool",
+            "formatToolResult",
+            "formatErrorResponse"
+          ],
+          "methods": []
+        },
+        "pkg/neurogo/patch_handler.go": {
+          "functions": [
+            "readLines",
+            "writeLines",
+            "handleReceivedPatch"
+          ],
+          "methods": []
+        }
+      }
+    },
+    "pkg/neurogo/tui": {
+      "files": {
+        "pkg/neurogo/tui/interfaces.go": {
+          "methods": []
+        },
+        "pkg/neurogo/tui/model.go": {
+          "functions": [
+            "newModel"
+          ],
+          "methods": [
+            {
+              "Receiver": "keyMap",
+              "Name": "ShortHelp"
+            },
+            {
+              "Receiver": "keyMap",
+              "Name": "FullHelp"
+            }
+          ]
+        },
+        "pkg/neurogo/tui/msgs.go": {
+          "methods": [
+            {
+              "Receiver": "errMsg",
+              "Name": "Error",
+              "calls": [
+                "e.err.Error(?)"
+              ]
+            }
+          ]
+        },
+        "pkg/neurogo/tui/tui.go": {
+          "functions": [
+            "Start"
+          ],
+          "methods": []
+        },
+        "pkg/neurogo/tui/update.go": {
+          "methods": [
+            {
+              "Receiver": "model",
+              "Name": "Init"
+            },
+            {
+              "Receiver": "model",
+              "Name": "Update",
+              "calls": [
+                "m.viewport.Update(?)",
+                "m.spinner.Update(?)",
+                "github.com/charmbracelet/bubbles/key.Matches",
+                "m.addMessage(?)",
+                "github.com/charmbracelet/bubbles/key.Matches",
+                "m.setSizes(?)",
+                "m.viewport.GotoBottom(?)",
+                "github.com/charmbracelet/bubbles/key.Matches",
+                "m.promptInput.Blur(?)",
+                "m.commandInput.Focus(?)",
+                "m.addMessage(?)",
+                "m.commandInput.Blur(?)",
+                "m.promptInput.Focus(?)",
+                "m.addMessage(?)",
+                "m.commandInput.Value(?)",
+                "m.addMessage(?)",
+                "m.commandInput.Reset(?)",
+                "m.addMessage(?)",
+                "m.setSizes(?)",
+                "m.addMessage(?)",
+                "m.addMessage(?)",
+                "m.addMessage(?)",
+                "m.runSyncCmd(?)",
+                "m.addMessage(?)",
+                "m.promptInput.Value(?)",
+                "m.addMessage(?)",
+                "m.promptInput.Reset(?)",
+                "m.viewport.GotoBottom(?)",
+                "m.addMessage(?)",
+                "m.commandInput.Update(?)",
+                "m.promptInput.Update(?)",
+                "m.setSizes(?)",
+                "m.viewport.GotoBottom(?)",
+                "int",
+                "int",
+                "m.addMessage(?)",
+                "errorStyle.Render(?)",
+                "m.addMessage(?)",
+                "m.viewport.GotoBottom(?)",
+                "m.addMessage(?)",
+                "errorStyle.Render(?)",
+                "m.viewport.GotoBottom(?)",
+                "m.commandInput.Focused(?)",
+                "m.commandInput.Focus(?)",
+                "m.promptInput.Blur(?)",
+                "m.promptInput.Focused(?)",
+                "m.promptInput.Focus(?)",
+                "m.commandInput.Blur(?)",
+                "m.viewport.SetContent(?)",
+                "m.renderMessages(?)",
+                "m.viewport.GotoBottom(?)",
+                "github.com/charmbracelet/bubbletea.Batch"
+              ]
+            }
+          ]
+        },
+        "pkg/neurogo/tui/update_helpers.go": {
+          "functions": [
+            "max"
+          ],
+          "methods": [
+            {
+              "Receiver": "*model",
+              "Name": "addMessage",
+              "calls": [
+                "m.viewport.SetContent(?)",
+                "m.renderMessages(?)",
+                "m.viewport.GotoBottom(?)"
+              ]
+            },
+            {
+              "Receiver": "*model",
+              "Name": "renderMessages",
+              "calls": [
+                "systemStyle.Copy().Italic(true).Foreground(?)",
+                "systemStyle.Copy().Italic(?)",
+                "systemStyle.Copy(?)",
+                "github.com/charmbracelet/lipgloss.Color",
+                "systemStyle.Copy().Foreground(?)",
+                "systemStyle.Copy(?)",
+                "github.com/charmbracelet/lipgloss.Color",
+                "content.WriteString(?)",
+                "style.Render(?)",
+                "content.String(?)"
+              ]
+            },
+            {
+              "Receiver": "*model",
+              "Name": "renderStatusBar",
+              "calls": [
+                "m.spinner.View(?)",
+                "m.spinner.View(?)",
+                "m.spinner.View(?)",
+                "m.spinner.View(?)",
+                "errorStyle.Render(?)",
+                "github.com/charmbracelet/lipgloss.Width",
+                "github.com/charmbracelet/lipgloss.Width",
+                "statusBarSyle.GetHorizontalPadding(?)",
+                "github.com/charmbracelet/lipgloss.JoinHorizontal",
+                "statusBarSyle.Render(?)",
+                "github.com/charmbracelet/lipgloss.PlaceHorizontal",
+                "github.com/charmbracelet/lipgloss.WithWhitespaceChars",
+                "github.com/charmbracelet/lipgloss.WithWhitespaceForeground",
+                "statusBarSyle.GetBackground(?)"
+              ]
+            },
+            {
+              "Receiver": "*model",
+              "Name": "runSyncCmd",
+              "calls": [
+                "m.app.GetSyncDir(?)",
+                "m.app.GetErrorLogger(?)",
+                "errLog.Println(?)",
+                "m.app.GetLLMClient(?)",
+                "llmClient.Client(?)",
+                "m.app.GetErrorLogger(?)",
+                "errLog.Println(?)",
+                "m.app.GetSandboxDir(?)",
+                "pkg/core.SecureFilePath",
+                "m.app.GetErrorLogger(?)",
+                "errLog.Printf(?)",
+                "m.app.GetErrorLogger(?)",
+                "errLog.Printf(?)",
+                "dirInfo.IsDir(?)",
+                "m.app.GetErrorLogger(?)",
+                "errLog.Printf(?)",
+                "m.app.GetInfoLogger(?)",
+                "m.app.GetErrorLogger(?)",
+                "m.app.GetDebugLogger(?)",
+                "m.app.GetSyncFilter(?)",
+                "m.app.GetSyncIgnoreGitignore(?)",
+                "pkg/core.SyncDirectoryUpHelper",
+                "llmClient.Client(?)"
+              ]
+            },
+            {
+              "Receiver": "*model",
+              "Name": "setSizes",
+              "calls": [
+                "m.commandInput.Height(?)",
+                "m.promptInput.Height(?)",
+                "github.com/charmbracelet/lipgloss.Height",
+                "m.renderStatusBar(?)",
+                "github.com/charmbracelet/lipgloss.Height",
+                "m.help.View(?)",
+                "m.commandInput.SetWidth(?)",
+                "m.promptInput.SetWidth(?)",
+                "m.viewport.SetContent(?)",
+                "m.renderMessages(?)"
+              ]
+            }
+          ]
+        },
+        "pkg/neurogo/tui/view.go": {
+          "methods": [
+            {
+              "Receiver": "model",
+              "Name": "View",
+              "calls": [
+                "m.viewport.View(?)",
+                "m.renderStatusBar(?)",
+                "m.commandInput.View(?)",
+                "m.promptInput.View(?)",
+                "github.com/charmbracelet/lipgloss.JoinHorizontal",
+                "m.help.View(?)",
+                "github.com/charmbracelet/lipgloss.JoinVertical",
+                "github.com/charmbracelet/lipgloss.JoinVertical"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "pkg/nspatch": {
+      "files": {
+        "pkg/nspatch/nspatch.go": {
+          "functions": [
+            "VerifyChanges",
+            "ApplyPatch",
+            "LoadPatchFile",
+            "calculateErrorPosition"
+          ],
+          "methods": []
+        },
+        "pkg/nspatch/nspatch_end_test.go": {
+          "functions": [
+            "TestVerifyChanges"
+          ],
+          "methods": []
+        },
+        "pkg/nspatch/nspatch_test.go": {
+          "functions": [
+            "readFileLinesForTest",
+            "compareStringSlices",
+            "checkFixtures",
+            "TestLoadPatchFile",
+            "TestApplyPatch"
+          ],
+          "methods": []
+        }
+      }
+    },
+    "test_files": {
+      "files": {
+        "test_files/simple_test.go": {
+          "functions": [
+            "main"
+          ],
+          "methods": []
+        }
+      }
+    }
+  }
+}

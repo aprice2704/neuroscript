@@ -8,14 +8,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
-	"mime" // Keep standard mime for extension fallback if needed
+	"log" // Keep standard mime for extension fallback if needed
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
-
-	// Removed unicode imports as binary check is replaced
 
 	"github.com/gabriel-vasile/mimetype" // Added import for the library
 	"github.com/google/generative-ai-go/genai"
@@ -24,7 +21,6 @@ import (
 // --- Constants, init, and Hash Helper ---
 const (
 	emptyFileContentForHash = " "
-	// binaryCheckBufferSize removed, library handles reading internally
 )
 
 var (
@@ -41,11 +37,11 @@ func init() {
 	// mimetype.SetLimit(0) // Example: remove read limit
 }
 
-// isPotentiallyBinary function removed, replaced by mimetype library logic
-
 // --- Helper: Upload File and Poll ---
 // HelperUploadAndPollFile handles the core logic of uploading a single file and waiting for it to be ACTIVE.
-// *** MODIFIED: Use mimetype library, force text/plain for non-Go text files, skip binary ***
+// MODIFIED: Use mimetype library, force text/plain for non-Go text files, skip binary
+// MODIFIED: Use strings.NewReader("") for zero-byte files
+// MODIFIED: Upload .go files as text/plain
 func HelperUploadAndPollFile(ctx context.Context, absLocalPath string, displayName string, client *genai.Client, logger *log.Logger) (*genai.File, error) {
 	if client == nil {
 		return nil, errors.New("genai client is nil")
@@ -73,20 +69,18 @@ func HelperUploadAndPollFile(ctx context.Context, absLocalPath string, displayNa
 	if isZeroByte {
 		uploadMimeType = "text/plain"
 		debugLog.Printf("[API HELPER Upload] Handling zero-byte file: %s as text/plain", absLocalPath)
+		// *** CHANGE GO FILE HANDLING: Upload as text/plain ***
 	} else if fileExt == ".go" {
-		// Prioritize specific type for Go files
-		uploadMimeType = mime.TypeByExtension(fileExt)
-		if uploadMimeType == "" {
-			uploadMimeType = "text/x-go" // Fallback
-		}
-		debugLog.Printf("[API HELPER Upload] Detected Go file, using specific MIME type: %s", uploadMimeType)
+		// Treat Go files as plain text for GenerateContent compatibility
+		uploadMimeType = "text/plain"
+		debugLog.Printf("[API HELPER Upload] Detected Go file, using MIME type: text/plain for upload compatibility for: %s", absLocalPath)
+		// *** END CHANGE ***
 	} else {
 		// Use mimetype library for non-Go, non-empty files
 		debugLog.Printf("[API HELPER Upload] Detecting MIME type for non-Go file: %s", absLocalPath)
 		detectedMime, detectErr := mimetype.DetectFile(absLocalPath)
 		if detectErr != nil {
 			errorLog.Printf("[ERROR API HELPER Upload] MIME detection failed for %s: %v", absLocalPath, detectErr)
-			// Fail upload if detection fails? Or default to octet-stream/skip? Let's fail.
 			return nil, fmt.Errorf("mime detection failed for %s: %w", absLocalPath, detectErr)
 		}
 
@@ -96,7 +90,6 @@ func HelperUploadAndPollFile(ctx context.Context, absLocalPath string, displayNa
 		// Check if the detected type is text-based by checking parent hierarchy
 		isText := false
 		for m := detectedMime; m != nil; m = m.Parent() {
-			// Use Is("text/plain") as the indicator for text-based as per library examples
 			if m.Is("text/plain") {
 				isText = true
 				break
@@ -104,12 +97,11 @@ func HelperUploadAndPollFile(ctx context.Context, absLocalPath string, displayNa
 		}
 
 		if !isText {
-			// Skip potentially binary files (those not having text/plain in hierarchy)
+			// Skip potentially binary files
 			warnMsg := fmt.Sprintf("Skipping potentially binary file (detected: %s): %s", detectedMimeStr, absLocalPath)
 			infoLog.Printf("[WARN API HELPER Upload] %s", warnMsg)
-			// NOTE: Ensure ErrSkippedBinaryFile is defined in pkg/core/errors.go and imported or defined locally
-			// return nil, ErrSkippedBinaryFile // Use this once defined and imported
-			return nil, fmt.Errorf("skipped potentially binary file (detected: %s): %s", detectedMimeStr, absLocalPath) // Temporary fallback
+			// NOTE: Using temporary error string until ErrSkippedBinaryFile is properly defined/used
+			return nil, fmt.Errorf("skipped potentially binary file (detected: %s): %s", detectedMimeStr, absLocalPath)
 		} else {
 			// Force text/plain for all other non-Go, text-based files
 			uploadMimeType = "text/plain"
@@ -128,19 +120,27 @@ func HelperUploadAndPollFile(ctx context.Context, absLocalPath string, displayNa
 
 	options := &genai.UploadFileOptions{MIMEType: uploadMimeType, DisplayName: displayName}
 
-	// Use actual file content for upload.
-	fileHandle, err := os.Open(absLocalPath)
-	if err != nil {
-		return nil, fmt.Errorf("open file %s for upload: %w", absLocalPath, err)
+	// Handle reader for zero-byte files explicitly
+	var reader io.Reader
+	if isZeroByte {
+		reader = strings.NewReader("") // Use an empty string reader for zero-byte files
+		debugLog.Printf("[API HELPER Upload] Using empty string reader for zero-byte file: %s", absLocalPath)
+	} else {
+		// Use actual file content for non-zero-byte files.
+		fileHandle, err := os.Open(absLocalPath)
+		if err != nil {
+			return nil, fmt.Errorf("open file %s for upload: %w", absLocalPath, err)
+		}
+		defer fileHandle.Close() // Close only if opened
+		reader = fileHandle      // Use the file handle as the reader
 	}
-	defer fileHandle.Close()
-	reader := fileHandle
 
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
 	infoLog.Printf("[API HELPER Upload] Starting upload for %s (Display: %s, MIME: %s)...", absLocalPath, displayName, uploadMimeType)
+	// The 'reader' variable now correctly holds either the fileHandle or the empty string reader
 	apiFile, err := client.UploadFile(ctx, "", reader, options)
 	if err != nil {
 		if strings.Contains(err.Error(), "Unsupported MIME type") {
@@ -171,7 +171,8 @@ func HelperUploadAndPollFile(ctx context.Context, absLocalPath string, displayNa
 		cancelGet()
 		if getErr != nil {
 			errorLog.Printf("[WARN API HELPER Upload] Error getting status for %s (will retry): %v", apiFile.Name, getErr)
-			time.Sleep(pollInterval)
+			// Consider adding backoff or error threshold here
+			time.Sleep(pollInterval) // Basic retry delay
 			continue
 		}
 		apiFile = updatedFile
@@ -194,26 +195,30 @@ func HelperUploadAndPollFile(ctx context.Context, absLocalPath string, displayNa
 }
 
 // --- Tool: ListAPIFiles (Wrapper) ---
-// (Function largely unchanged, fixed potential nil pointer dereference for time fields)
 func toolListAPIFiles(interpreter *Interpreter, args []interface{}) (interface{}, error) {
 	client, clientErr := checkGenAIClient(interpreter)
 	if clientErr != nil {
 		return nil, fmt.Errorf("TOOL.ListAPIFiles: %w", clientErr)
 	}
-	apiFiles, err := HelperListApiFiles(context.Background(), client, interpreter.logger) // Assumes HelperListApiFiles is defined elsewhere now
+	// Assumes HelperListApiFiles exists (potentially in sync_helpers.go or sync_morehelpers.go)
+	apiFiles, err := HelperListApiFiles(context.Background(), client, interpreter.logger)
 	if err != nil {
 		interpreter.logger.Printf("[TOOL ListAPIFiles] Warning: Error from helper (returning partial list if any): %v", err)
+		// Continue processing any files that were returned before the error
 	}
+
 	results := []map[string]interface{}{}
 	for _, file := range apiFiles {
+		// Check for nil file pointer, although ListFiles usually doesn't return nils
+		if file == nil {
+			continue
+		}
 		createTimeStr := ""
-		// *** CORRECTED CHECK: Use IsZero() only ***
-		if !file.CreateTime.IsZero() { // Check if time is not the zero value
+		if !file.CreateTime.IsZero() {
 			createTimeStr = file.CreateTime.Format(time.RFC3339)
 		}
 		updateTimeStr := ""
-		// *** CORRECTED CHECK: Use IsZero() only ***
-		if !file.UpdateTime.IsZero() { // Check if time is not the zero value
+		if !file.UpdateTime.IsZero() {
 			updateTimeStr = file.UpdateTime.Format(time.RFC3339)
 		}
 		fileInfo := map[string]interface{}{
@@ -232,11 +237,11 @@ func toolListAPIFiles(interpreter *Interpreter, args []interface{}) (interface{}
 		}
 		results = append(results, fileInfo)
 	}
+	// Return the original listing error if one occurred
 	return map[string]interface{}{"files": results}, err
 }
 
 // --- Tool: UploadFile (Wrapper) ---
-// *** MODIFIED: Check for specific binary skip error from helper ***
 func toolUploadFile(interpreter *Interpreter, args []interface{}) (interface{}, error) {
 	client, clientErr := checkGenAIClient(interpreter)
 	if clientErr != nil {
@@ -255,18 +260,19 @@ func toolUploadFile(interpreter *Interpreter, args []interface{}) (interface{}, 
 	var displayName string
 	if len(args) == 2 {
 		displayName, ok = args[1].(string)
-		if !ok && args[1] != nil {
+		if !ok && args[1] != nil { // Allow nil for display name
 			return nil, fmt.Errorf("TOOL.UploadFile: display_name must be string or null, got %T", args[1])
 		}
 	}
-	// Assumes ErrValidationArgValue exists in scope or is defined elsewhere
-	// Assumes ResolveAndSecurePath is defined elsewhere
+
+	// Assumes ResolveAndSecurePath is defined elsewhere (likely security_helpers.go or tools_helpers.go)
 	securePath, secErr := ResolveAndSecurePath(localPath, interpreter.sandboxDir)
 	if secErr != nil {
-		// Ensure errors.Join is appropriate here, might need specific error handling
-		return nil, fmt.Errorf("TOOL.UploadFile: invalid path %q: %w", localPath, errors.Join(secErr))
+		// Use errors.Is for specific checks if ResolveAndSecurePath returns wrapped errors
+		return nil, fmt.Errorf("TOOL.UploadFile: invalid path %q: %w", localPath, secErr)
 	}
 	interpreter.logger.Printf("[TOOL UploadFile] Validated path: %s -> %s", localPath, securePath)
+
 	if displayName == "" {
 		relPath, err := filepath.Rel(interpreter.sandboxDir, securePath)
 		if err == nil {
@@ -277,33 +283,43 @@ func toolUploadFile(interpreter *Interpreter, args []interface{}) (interface{}, 
 		}
 		interpreter.logger.Printf("[TOOL UploadFile] Using default display name: %s", displayName)
 	}
+
 	apiFile, uploadErr := HelperUploadAndPollFile(context.Background(), securePath, displayName, client, interpreter.logger)
 	if uploadErr != nil {
-		// *** Check for the specific binary skip error string (temporary) ***
+		// Check for the specific binary skip error string (temporary)
 		// Replace with errors.Is(uploadErr, ErrSkippedBinaryFile) once defined and used in helper
 		if strings.HasPrefix(uploadErr.Error(), "skipped potentially binary file") {
-			// Return a map indicating skip, and nil Go error (tool didn't fail, it skipped as designed)
-			reason := uploadErr.Error() // Use the full error message as reason
+			reason := uploadErr.Error()
 			return map[string]interface{}{"status": "skipped", "reason": reason, "path": localPath}, nil
 		}
 		// Wrap other errors
 		return nil, fmt.Errorf("TOOL.UploadFile: %w", uploadErr)
 	}
-	// Return file info map on success (fixed nil time checks)
+
+	// Check for nil API file just in case helper returns nil without error
+	if apiFile == nil {
+		return nil, errors.New("TOOL.UploadFile: helper returned nil file without error")
+	}
+
+	// Return file info map on success
 	createTimeStr := ""
-	// *** CORRECTED CHECK: Use IsZero() only ***
-	if !apiFile.CreateTime.IsZero() { // Check if time is not the zero value
+	if !apiFile.CreateTime.IsZero() {
 		createTimeStr = apiFile.CreateTime.Format(time.RFC3339)
 	}
 	updateTimeStr := ""
-	// *** CORRECTED CHECK: Use IsZero() only ***
-	if !apiFile.UpdateTime.IsZero() { // Check if time is not the zero value
+	if !apiFile.UpdateTime.IsZero() {
 		updateTimeStr = apiFile.UpdateTime.Format(time.RFC3339)
 	}
 	resultMap := map[string]interface{}{
-		"name": apiFile.Name, "displayName": apiFile.DisplayName, "mimeType": apiFile.MIMEType,
-		"sizeBytes": apiFile.SizeBytes, "createTime": createTimeStr, "updateTime": updateTimeStr,
-		"state": string(apiFile.State), "uri": apiFile.URI, "sha256Hash": "",
+		"name":        apiFile.Name,
+		"displayName": apiFile.DisplayName,
+		"mimeType":    apiFile.MIMEType,
+		"sizeBytes":   apiFile.SizeBytes,
+		"createTime":  createTimeStr,
+		"updateTime":  updateTimeStr,
+		"state":       string(apiFile.State),
+		"uri":         apiFile.URI,
+		"sha256Hash":  "",
 	}
 	if len(apiFile.Sha256Hash) > 0 {
 		resultMap["sha256Hash"] = hex.EncodeToString(apiFile.Sha256Hash)
@@ -313,7 +329,7 @@ func toolUploadFile(interpreter *Interpreter, args []interface{}) (interface{}, 
 
 // --- Registration ---
 // Assumes ToolRegistry, ToolImplementation, ArgSpec, ArgTypeAny etc. are defined elsewhere
-// Assumes toolDeleteAPIFile, toolSyncFiles are defined elsewhere
+// Assumes toolDeleteAPIFile, toolSyncFiles, checkGenAIClient, HelperListApiFiles are defined elsewhere
 func registerFileAPITools(registry *ToolRegistry) error {
 	var err error
 	tools := []ToolImplementation{
@@ -325,8 +341,23 @@ func registerFileAPITools(registry *ToolRegistry) error {
 	for _, tool := range tools {
 		if err = registry.RegisterTool(tool); err != nil {
 			log.Printf("Error registering tool %s: %v", tool.Spec.Name, err)
+			// Consider returning the error immediately or collecting all errors
 			return fmt.Errorf("failed register tool %s: %w", tool.Spec.Name, err)
 		}
 	}
 	return nil
 }
+
+// Helper function (ensure defined elsewhere, e.g., tools_helpers.go or security_helpers.go)
+// func checkGenAIClient(interpreter *Interpreter) (*genai.Client, error) {
+// 	if interpreter == nil || interpreter.llmClient == nil || interpreter.llmClient.Client() == nil {
+// 		return nil, errors.New("GenAI client not initialized")
+// 	}
+// 	return interpreter.llmClient.Client(), nil
+// }
+
+// Assumed functions (ensure defined elsewhere):
+// - func HelperListApiFiles(ctx context.Context, client *genai.Client, logger *log.Logger) ([]*genai.File, error) // Likely in sync_helpers.go or sync_morehelpers.go
+// - func toolDeleteAPIFile(interpreter *Interpreter, args []interface{}) (interface{}, error) // Likely in this file or another tools_file_api_*.go
+// - func toolSyncFiles(interpreter *Interpreter, args []interface{}) (interface{}, error) // Likely in this file or another tools_file_api_*.go
+// - func ResolveAndSecurePath(localPath string, sandboxDir string) (string, error) // Likely in security_helpers.go or tools_helpers.go

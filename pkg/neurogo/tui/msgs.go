@@ -29,8 +29,9 @@ type toolResultMsg struct {
 }
 
 // syncCompleteMsg carries the results of a file sync operation.
+// Updated: Stats map uses interface{} to match SyncDirectoryUpHelper return type.
 type syncCompleteMsg struct {
-	stats map[string]int // Use the stats map defined in core.SyncDirectoryUpHelper
+	stats map[string]interface{} // Use interface{} and perform type assertions later
 	err   error
 }
 
