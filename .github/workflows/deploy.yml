@@ -2,16 +2,28 @@ name: Deploy MkDocs to GitHub Pages
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    permissions:          # ① give the job write access
+      contents: write
+      pages: write
+
     steps:
       - uses: actions/checkout@v3
+
       - uses: actions/setup-python@v4
         with:
           python-version: '3.x'
-      - run: pip install mkdocs mkdocs-material
-      - run: mkdocs gh-deploy --force
+
+      - name: Install MkDocs
+        run: pip install mkdocs mkdocs-material
+
+      - name: Build & deploy
+        env:               # ② expose the token to mkdocs
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdocs gh-deploy --force --clean \
+                           --cname neuroscript.ca   # ③ writes site/CNAME for you
