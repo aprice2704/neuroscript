@@ -23,7 +23,7 @@
     <section class="flex flex-col items-center justify-center min-h-screen text-center px-6">
         <h1 class="text-5xl font-extrabold mb-4">Build AI workflows <span class="text-blue-600">without prompt
                 spaghetti</span></h1>
-        <p class="text-xl mb-8 max-w-2xl">NeuroScript turns messy prompt chains into clean, scripts your
+        <p class="text-xl mb-8 max-w-2xl">NeuroScript turns messy prompt chains into clean scripts your
             whole team can read and version-control.</p>
         <div class="space-x-4">
             <a href="/docs/quickstart/" class="px-6 py-3 rounded-xl bg-blue-600 text-white font-semibold shadow">Get
@@ -61,13 +61,13 @@
                       SET topic_length = LAST
                     
                       # LLM Call Example (using EVAL for interpolation)
-                      SET prompt = EVAL("Generate a one-sentence description for: {{topic}} ({{topic_length}} chars)")
+                      SET prompt = EVAL("Generate a one-sentence description for: 
+                         {{topic}} ({{topic_length}} chars)")
                       CALL LLM(prompt)
                       SET llm_description = LAST
                     
                       # Conditional Logic & Procedure Call Example
                       IF llm_description != "" THEN
-                        # Assuming 'LogResult' is another defined procedure
                         CALL LogResult(topic, llm_description)
                         RETURN llm_description
                       ELSE
@@ -93,40 +93,39 @@
         <div class="max-w-6xl mx-auto px-6 grid md:grid-cols-3 gap-12">
             <div>
                 <h3 class="text-2xl font-semibold mb-2">Readable scripts</h3>
-                <p>Declarative YAML-like syntax that even product managers grok.</p>
+                <p>Designed for humans, AIs and computers to read or run easily</p>
             </div>
             <div>
-                <h3 class="text-2xl font-semibold mb-2">Go-friendly runtime</h3>
-                <p>Embed the engine or call it via gRPC for zero-latency inference.</p>
+                <h3 class="text-2xl font-semibold mb-2">Easy Install Interpreter</h3>
+                <p>Single executable ns interpreter can do it all</p>
             </div>
             <div>
-                <h3 class="text-2xl font-semibold mb-2">Pluggable calls</h3>
-                <p>Drop in REST, function-calling, or native code for heavy logic.</p>
+                <h3 class="text-2xl font-semibold mb-2">Local agent, tools, sync, code</h3>
+                <p>Designed for efficient work with AIs on golang projects</p>
             </div>
         </div>
     </section>
 
     <!-- Contact -->
-    <section class="py-16" id="contact">
+    <!-- <section class="py-16" id="contact">
         <div class="max-w-md mx-auto text-center">
             <h2 class="text-3xl font-bold mb-4">Questions? Talk to us</h2>
             <form action="https://formspree.io/f/XXXXXXXX" method="POST" class="space-y-4">
-                <!-- Replace with your Formspree ID -->
                 <input type="email" name="_replyto" required placeholder="Email" class="w-full p-3 rounded border">
                 <textarea name="message" required placeholder="Message" rows="4"
                     class="w-full p-3 rounded border"></textarea>
                 <button class="w-full py-3 bg-blue-600 text-white rounded font-semibold">Send</button>
             </form>
         </div>
-    </section>
+    </section> -->
 
     <!-- Google Analytics gtag -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXX"></script>
+    <!-- <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXX"></script>
     <script>
         window.dataLayer = window.dataLayer || [];
         function gtag() { dataLayer.push(arguments); }
         gtag('js', new Date()); gtag('config', 'G-XXXXXXX');
-    </script>
+    </script> -->
 </body>
 
 </html>
