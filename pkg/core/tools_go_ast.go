@@ -1,5 +1,6 @@
 // filename: pkg/core/tools_go_ast.go
 // UPDATED: Register new tool GoFindIdentifiers
+// UPDATED: Use RegisterHandle and GetHandleValue
 package core
 
 import (
@@ -20,10 +21,9 @@ type CachedAst struct {
 	Fset *token.FileSet
 }
 
-const golangASTTypeTag = "GolangAST"
+const golangASTTypeTag = "GolangAST" // Use this as the type prefix for handles
 
 // --- GoParseFile Tool ---
-// (implementation unchanged)
 func toolGoParseFile(interpreter *Interpreter, args []interface{}) (interface{}, error) {
 	var content string
 	var filePath string
@@ -67,7 +67,7 @@ func toolGoParseFile(interpreter *Interpreter, args []interface{}) (interface{},
 	var sourceName string
 	if pathHasValue {
 		sourceName = filePath
-		sandboxRoot := interpreter.sandboxDir
+		sandboxRoot := interpreter.sandboxDir // TODO: Get sandbox from AgentContext if applicable?
 		if sandboxRoot == "" {
 			sandboxRoot = "."
 		}
@@ -91,16 +91,21 @@ func toolGoParseFile(interpreter *Interpreter, args []interface{}) (interface{},
 		return fmt.Sprintf("GoParseFile failed: %s", err.Error()), fmt.Errorf("%w: %w", ErrGoParseFailed, err)
 	} // Return wrapped Go error
 	cachedData := CachedAst{File: astFile, Fset: fset}
-	handleID := interpreter.storeObjectInCache(cachedData, golangASTTypeTag)
+	// *** UPDATED CALL ***
+	handleID, err := interpreter.RegisterHandle(cachedData, golangASTTypeTag)
+	if err != nil {
+		// Log error if registration fails
+		interpreter.logger.Printf("[ERROR] Failed to register AST handle for '%s': %v", sourceName, err)
+		return nil, fmt.Errorf("failed to register AST handle: %w", err) // Return internal error
+	}
+	// *** END UPDATE ***
 	interpreter.logger.Printf("[TOOL GoParseFile] Successfully parsed '%s'. Stored AST+FileSet with handle ID: %s", sourceName, handleID)
 	return handleID, nil
 }
 
 // --- GoFormatAST Tool ---
-// (implementation unchanged except for logging fix)
 func toolGoFormatAST(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	// *** FIXED: Added missing 'args' argument to Printf call ***
-	interpreter.logger.Printf("[TOOL GoFormatAST ENTRY] Received args: %v", args)
+	interpreter.logger.Printf("[TOOL GoFormatAST ENTRY] Received args: %v", args) // No change needed here
 	// Use defined errors for validation failures
 	if len(args) != 1 {
 		return nil, fmt.Errorf("GoFormatAST: Requires exactly 1 argument: handleID (string): %w", ErrValidationArgCount)
@@ -114,11 +119,13 @@ func toolGoFormatAST(interpreter *Interpreter, args []interface{}) (interface{},
 	}
 	interpreter.logger.Printf("[TOOL GoFormatAST] Validated handle ID: %s", handleID)
 
-	obj, err := interpreter.retrieveObjectFromCache(handleID, golangASTTypeTag)
+	// *** UPDATED CALL ***
+	obj, err := interpreter.GetHandleValue(handleID, golangASTTypeTag)
 	if err != nil {
 		// Wrap error correctly
 		return nil, fmt.Errorf("GoFormatAST: %w", errors.Join(ErrGoFormatFailed, err)) // Use Join if Go 1.20+
 	}
+	// *** END UPDATE ***
 	cachedAst, ok := obj.(CachedAst)
 	if !ok || cachedAst.File == nil || cachedAst.Fset == nil {
 		errInternal := fmt.Errorf("internal error - retrieved object for handle '%s' is invalid (%T)", handleID, obj)
@@ -170,7 +177,7 @@ func registerGoAstTools(registry *ToolRegistry) error {
 	// GoFormatAST registration
 	err = registry.RegisterTool(ToolImplementation{
 		Spec: ToolSpec{
-			// VVV CHANGE THIS LINE VVV
+			// VVV CHANGE THIS LINE VVV (Assuming this name change was intended)
 			Name: "GoFormatASTNode", // Changed from "GoFormatAST"
 			// ^^^ CHANGE THIS LINE ^^^
 			Description: "Formats Go AST (handle). Returns formatted code string.",

@@ -1,5 +1,6 @@
 // filename: pkg/core/tools_go_ast_modify.go
 // UPDATED: Add replace_identifier directive handling
+// UPDATED: Use RegisterHandle and GetHandleValue
 package core
 
 import (
@@ -139,10 +140,12 @@ func toolGoModifyAST(interpreter *Interpreter, args []interface{}) (interface{},
 	// --- END UPDATED Validation ---
 
 	// Retrieve Original AST
-	obj, err := interpreter.retrieveObjectFromCache(handleID, golangASTTypeTag)
+	// *** UPDATED CALL ***
+	obj, err := interpreter.GetHandleValue(handleID, golangASTTypeTag)
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve AST for handle '%s': %w", handleID, errors.Join(ErrGoModifyFailed, err))
 	}
+	// *** END UPDATE ***
 	originalCachedAst, ok := obj.(CachedAst)
 	if !ok {
 		errInternal := fmt.Errorf("internal error - retrieved object for handle '%s' is not CachedAst (%T)", handleID, obj)
@@ -252,7 +255,8 @@ func toolGoModifyAST(interpreter *Interpreter, args []interface{}) (interface{},
 
 		// Apply the visitor
 		astutil.Apply(newAstFile, nil, postVisit)
-		if !actionTaken {
+		// Check actionTaken *after* applying the visitor
+		if !actionTaken && modificationApplied { // Ensure we only log 'not found' if this was the only mod requested or others failed
 			interpreter.logger.Printf("[TOOL GoModifyAST] Info: No occurrences of %s.%s found, no action taken for 'replace_identifier'.", replaceIdentOldPkg, replaceIdentOldID)
 		}
 	}
@@ -260,18 +264,26 @@ func toolGoModifyAST(interpreter *Interpreter, args []interface{}) (interface{},
 	// Add logic for other modifications here
 
 	if !modificationApplied {
+		// This should theoretically not be reached if initial validation passed
 		return nil, fmt.Errorf("%w: no known directive provided despite passing initial check", ErrInternalTool)
 	}
 	if !actionTaken {
 		interpreter.logger.Printf("[TOOL GoModifyAST] Warning: Modification(s) requested, but no action taken (e.g., target not found, or already correct). Returning original handle.")
-		return handleID, nil
+		return handleID, nil // Return original handle if no changes made
 	}
 
-	// Store New AST & Invalidate Old Handle
+	// Store New AST & Return New Handle
 	interpreter.logger.Printf("[TOOL GoModifyAST] Modification successful. Storing new AST.")
 	newCachedAst := CachedAst{File: newAstFile, Fset: newFset}
-	newHandleID := interpreter.storeObjectInCache(newCachedAst, golangASTTypeTag)
-	// Invalidation skipped for diagnostics
+	// *** UPDATED CALL ***
+	newHandleID, err := interpreter.RegisterHandle(newCachedAst, golangASTTypeTag)
+	if err != nil {
+		interpreter.logger.Printf("[ERROR] Failed to register modified AST handle for original handle '%s': %v", handleID, err)
+		return nil, fmt.Errorf("failed to register modified AST handle: %w", err) // Return internal error
+	}
+	// *** END UPDATE ***
+
+	// Invalidation skipped for diagnostics - Consider adding RemoveHandle(handleID) here in production
 	interpreter.logger.Printf("[TOOL GoModifyAST] SKIPPED invalidation of old handle '%s'. New handle is '%s'.", handleID, newHandleID)
 	interpreter.logger.Printf("[TOOL GoModifyAST] Returning new handle '%s' successfully.", newHandleID)
 	return newHandleID, nil

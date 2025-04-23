@@ -1,0 +1,42 @@
+DEFINE PROCEDURE main()
+
+    SET ai = AGENT_CONTEXT_HANDLE
+    SET model = "gemini-2.0-flash"
+    EMIT "Model set to: " + model +"\n"
+
+    # Read, Upload, and Pin a file
+    SET file_path = "./user_guide.md"
+    SET file_content = CALL TOOL.ReadFile(file_path)
+    IF file_content["error"] != nil THEN
+        CALL TOOL.Log("Error", "Failed to read file for pinning: " + file_path + " Error: " + file_content["error"])
+        RETURN // Or handle error differently
+    END
+
+    # Use the filename as the display name for simplicity here
+    SET display_name = "user_guide.md"
+    SET file_info = CALL TOOL.UpsertAs(file_content["content"], display_name)
+    IF file_info["uri"] == nil THEN # Check if URI is missing (indicates upload error)
+         CALL TOOL.Log("Error", "Failed to upload file content for pinning: " + display_name)
+         RETURN
+    END
+
+    CALL TOOL.AgentPin(ai, file_info)
+
+    CALL TOOL.Log("Info", "Agent startup script finished.")
+    RETURN
+END
+
+
+
+
+    CALL TOOL.AgentSetSandbox(ai, "./sandbox")
+
+    CALL TOOL.AgentSetModel(ai, model)
+
+    CALL TOOL.AgentSetAllowlist(ai, "./agent_allowlist.txt")
+
+    CALL TOOL.Log("Info", "Agent startup script finished.")
+
+    RETURN
+END
+

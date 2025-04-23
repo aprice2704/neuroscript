@@ -3,50 +3,67 @@ package neurogo
 
 import (
 	"errors"
-	"flag"
 	"fmt"
 	"os"
 	"strings"
 )
 
-// Config holds the application configuration defined by command-line flags.
+// Config holds the application configuration.
+// Flag parsing is primarily handled in main.go, but this struct holds the values.
 type Config struct {
-	ScriptFile          string   // -script: Path to the .ns script file to execute
-	SyncDir             string   // -sync-dir: Directory to sync with File API
-	SyncFilter          string   // -sync-filter: Glob pattern to filter files during sync
-	SyncIgnoreGitignore bool     // -sync-ignore-gitignore: Ignore .gitignore during sync
-	SandboxDir          string   // -sandbox: Root directory for agent file operations
-	AllowlistFile       string   // -allowlist: Path to the tool allowlist file
-	DebugLogFile        string   // -debug-log: Path to the debug log file
-	LLMDebugLogFile     string   // -llm-debug-log: Path to the LLM raw communication log file
-	InitialAttachments  []string // -attach: List of files to attach initially
-	APIKey              string   // API Key (usually from env)
-	ModelName           string   // -model: Name of the GenAI model to use
-	RunAgentMode        bool     // -agent: Explicitly run in agent mode
-	RunSyncMode         bool     // -sync: Explicitly run sync using config dir
-	RunTuiMode          bool     // -tui: Explicitly run in TUI mode
-	EnableLLM           bool     // -enable-llm: Enable LLM client (default true, mainly affects script mode)
-	Insecure            bool     // TODO: What does this do? Is it still needed?
+	// --- Execution Mode Flags ---
+	// These are set by main.go based on which flag was provided or default logic.
+	RunAgentMode    bool // -agent
+	RunScriptMode   bool // -script (Implied by ScriptFile != "")
+	RunSyncMode     bool // -sync
+	RunTuiMode      bool // -tui
+	RunCleanAPIMode bool // -clean-api
 
-	// Renamed from Nuke
-	CleanAPI bool // -clean-api: Delete all files from the File API
+	// --- Script/Agent Execution ---
+	ScriptFile    string   // -script: Path to the .ns script file to execute
+	StartupScript string   // -startup-script: Path to agent initialization script (NEW)
+	LibPaths      []string // -L: Library paths for script execution
+	TargetArg     string   // -target: Target argument for the script
+	ProcArgs      []string // -arg: Arguments for the script process/procedure
 
-	LibPaths  []string // -L: Library paths for script execution
-	TargetArg string   // -target: Target argument for the script
-	ProcArgs  []string // -arg: Arguments for the script process/procedure
+	// --- Sync Operation ---
+	SyncDir             string // -sync-dir: Directory to sync with File API
+	SyncFilter          string // -sync-filter: Glob pattern to filter files during sync
+	SyncIgnoreGitignore bool   // -sync-ignore-gitignore: Ignore .gitignore during sync
 
-	// Internal fields
-	flagSet *flag.FlagSet
+	// --- Agent/General Configuration (May be overridden by startup script) ---
+	SandboxDir         string   // -sandbox: Root directory for agent file operations (set by main, used by app?)
+	AllowlistFile      string   // -allowlist: Path to the tool allowlist file (set by main, used by app?)
+	InitialAttachments []string // -attach: List of files to attach initially (DEPRECATED? Handle via startup?)
+	APIKey             string   // API Key (usually from env)
+	ModelName          string   // -model: Name of the GenAI model to use (set by main, potentially overridden by startup)
+	EnableLLM          bool     // -enable-llm: Enable LLM client (default true, mainly affects script mode) (set by main)
+	Insecure           bool     // -insecure: Disable security checks (Use with extreme caution!) (set by main)
+	CleanAPI           bool     // -clean-api: Delete all files from the File API (set by main)
+
+	// --- Logging ---
+	DebugLogFile    string // -debug-log: Path to the debug log file
+	LLMDebugLogFile string // -llm-debug-log: Path to the LLM raw communication log file
+
+	// Internal fields (Consider removing flagSet if parsing is fully in main.go)
+	// flagSet *flag.FlagSet
 }
 
 // NewConfig creates a new Config struct with default values.
+// Defaults for flags removed from here are handled in main.go's flag definitions.
 func NewConfig() *Config {
 	return &Config{
-		SyncDir:    ".",
-		SandboxDir: ".",
-		EnableLLM:  true, // Default LLM client to enabled
+		// Defaults for SyncDir/SandboxDir now set in main.go's flag definitions
+		EnableLLM: true, // Default LLM client to enabled
 	}
 }
+
+// --- NOTE: The ParseFlags method below is likely now obsolete ---
+// Flag parsing logic has been moved to main.go.
+// Keeping the method signature here might be useful if some validation logic
+// specific to Config fields needs to live here, but the flag definitions and parsing
+// should primarily occur in main.go.
+// Consider removing or refactoring this method based on final design.
 
 // StringSliceFlag is a custom flag type for handling multiple occurrences of a flag.
 type stringSliceFlag []string
@@ -55,149 +72,61 @@ func (i *stringSliceFlag) String() string         { return strings.Join(*i, ", "
 func (i *stringSliceFlag) Set(value string) error { *i = append(*i, value); return nil }
 
 // ParseFlags parses command-line arguments into the Config struct.
+// OBSOLETE? Flag parsing is now primarily in main.go.
+// This method might need removal or significant refactoring.
 func (c *Config) ParseFlags(args []string) error {
-	fs := flag.NewFlagSet("neurogo", flag.ContinueOnError)
-	fs.SetOutput(os.Stderr)
+	// If this method is kept, it should likely only perform validation
+	// on the fields already populated by main.go, rather than defining/parsing flags itself.
+	fmt.Fprintln(os.Stderr, "Warning: Config.ParseFlags called, but flag parsing should occur in main.go.")
 
-	// --- Define Execution Mode Flags ---
-	fs.StringVar(&c.ScriptFile, "script", "", "Path to the .ns script file to execute.")
-	fs.BoolVar(&c.RunSyncMode, "sync", false, "Run in sync mode using -sync-dir (or default './').")
-	fs.BoolVar(&c.RunAgentMode, "agent", false, "Run in interactive agent mode.")
-	fs.BoolVar(&c.RunTuiMode, "tui", false, "Run in interactive TUI mode.") // Added -tui flag
-	// Renamed from -nuke
-	fs.BoolVar(&c.CleanAPI, "clean-api", false, "Delete ALL files from the File API (use with caution!). Must be used alone.")
-
-	// --- Define Configuration Flags ---
-	fs.StringVar(&c.SyncDir, "sync-dir", c.SyncDir, "Directory to sync with File API (used by /sync cmd, ignored if -sync flag is set).")
-	fs.StringVar(&c.SyncFilter, "sync-filter", "", "Glob pattern (filename only) to filter files during sync.")
-	fs.BoolVar(&c.SyncIgnoreGitignore, "sync-ignore-gitignore", false, "Ignore .gitignore file during sync.")
-	fs.StringVar(&c.SandboxDir, "sandbox", c.SandboxDir, "Root directory for safe agent file operations.")
-	fs.StringVar(&c.AllowlistFile, "allowlist", "", "Path to the tool allowlist file.")
-	fs.StringVar(&c.DebugLogFile, "debug-log", "", "Path to write detailed debug logs.")
-	fs.StringVar(&c.LLMDebugLogFile, "llm-debug-log", "", "Path to write raw LLM request/response logs.")
-	fs.StringVar(&c.ModelName, "model", "", "Optional: GenAI model name (e.g., gemini-1.5-flash-latest).")
-	fs.BoolVar(&c.EnableLLM, "enable-llm", c.EnableLLM, "Enable LLM client (default true, use -enable-llm=false to disable).") // Added -enable-llm flag
-
-	// --- Flags for Agent/Script Context ---
-	var attachments stringSliceFlag
-	fs.Var(&attachments, "attach", "File path to attach to the agent session initially (can be used multiple times).")
-	var libPaths stringSliceFlag
-	fs.Var(&libPaths, "L", "Library path for NeuroScript execution (can be used multiple times).")
-	fs.StringVar(&c.TargetArg, "target", "", "Target argument passed to the main script procedure.")
-	var procArgs stringSliceFlag
-	fs.Var(&procArgs, "arg", "Argument passed to the main script procedure (can be used multiple times).")
-
-	// Configure Usage message
-	fs.Usage = func() {
-		fmt.Fprintf(fs.Output(), "Usage of neurogo:\n")
-		fmt.Fprintf(fs.Output(), "  neurogo [flags]\n\n")
-		// Updated precedence and flag name
-		fmt.Fprintf(fs.Output(), "Modes (mutually exclusive, precedence: -clean-api > -sync > -script > -tui > -agent (default)):\n")
-		fmt.Fprintf(fs.Output(), "  -clean-api           : Delete all files from API (requires confirmation).\n")
-		fmt.Fprintf(fs.Output(), "  -sync                : Run file synchronization and exit.\n")
-		fmt.Fprintf(fs.Output(), "  -script <file.ns>    : Execute the specified NeuroScript file.\n")
-		fmt.Fprintf(fs.Output(), "  -tui                 : Run in interactive Text User Interface (TUI) mode.\n") // Added TUI
-		fmt.Fprintf(fs.Output(), "  -agent               : Run in interactive command-line agent mode (default).\n")
-		fmt.Fprintf(fs.Output(), "\nCommon Flags:\n")
-		fmt.Fprintf(fs.Output(), "  -sandbox <dir>       : Root directory for agent file operations (default: %q)\n", c.SandboxDir)
-		fmt.Fprintf(fs.Output(), "  -allowlist <file>    : Path to the tool allowlist file.\n")
-		fmt.Fprintf(fs.Output(), "  -attach <file>       : File to attach initially (repeatable).\n")
-		fmt.Fprintf(fs.Output(), "  -model <name>        : GenAI model name (optional).\n")
-		fmt.Fprintf(fs.Output(), "  -enable-llm=<bool>   : Enable LLM client (default: %t).\n", c.EnableLLM) // Added EnableLLM
-		fmt.Fprintf(fs.Output(), "\nSync Flags (used with -sync or /sync command):\n")
-		fmt.Fprintf(fs.Output(), "  -sync-dir <dir>      : Directory to sync (default: %q)\n", c.SyncDir)
-		fmt.Fprintf(fs.Output(), "  -sync-filter <pat>   : Glob pattern for filenames.\n")
-		fmt.Fprintf(fs.Output(), "  -sync-ignore-gitignore: Ignore .gitignore file.\n")
-		fmt.Fprintf(fs.Output(), "\nScript Flags (used with -script):\n")
-		fmt.Fprintf(fs.Output(), "  -L <path>            : Library path for NeuroScript (repeatable).\n")
-		fmt.Fprintf(fs.Output(), "  -target <arg>        : Target argument for the script.\n")
-		fmt.Fprintf(fs.Output(), "  -arg <arg>           : Argument for the script (repeatable).\n")
-		fmt.Fprintf(fs.Output(), "\nLogging Flags:\n")
-		fmt.Fprintf(fs.Output(), "  -debug-log <file>    : Path for detailed debug logs.\n")
-		fmt.Fprintf(fs.Output(), "  -llm-debug-log <file>: Path for raw LLM request/response logs.\n")
-		fmt.Fprintf(fs.Output(), "\nOther:\n")
-		fmt.Fprintf(fs.Output(), "  -h, -help            : Show this help message.\n")
-	}
-
-	// Parse the flags
-	err := fs.Parse(args)
-	if err != nil {
-		return err
-	}
-
-	c.InitialAttachments = attachments
-	c.LibPaths = libPaths
-	c.ProcArgs = procArgs
-	c.flagSet = fs
-
-	// --- Validate Flag Combinations ---
-	if c.CleanAPI {
-		cleanApiOnly := true
-		for _, arg := range args {
-			isCleanApiFlag := arg == "-clean-api"
-			isLogFlag := arg == "-debug-log" || arg == "-llm-debug-log" || strings.HasPrefix(arg, "-debug-log=") || strings.HasPrefix(arg, "-llm-debug-log=")
-			isModelFlag := arg == "-model" || strings.HasPrefix(arg, "-model=")
-			// Allow other global flags here?
-
-			if !isCleanApiFlag && !isLogFlag && !isModelFlag && strings.HasPrefix(arg, "-") {
-				cleanApiOnly = false
-				break
-			}
-			if !strings.HasPrefix(arg, "-") {
-				cleanApiOnly = false
-				break
-			}
+	// Example validation (can be expanded):
+	if c.RunCleanAPIMode {
+		modeCount := 0
+		if c.RunAgentMode {
+			modeCount++
 		}
-		if !cleanApiOnly {
-			fs.Usage()
-			return errors.New("the -clean-api flag must be used alone (potentially with logging or model flags)")
+		if c.RunScriptMode {
+			modeCount++
 		}
+		if c.RunSyncMode {
+			modeCount++
+		}
+		if c.RunTuiMode {
+			modeCount++
+		}
+		if modeCount > 0 {
+			return errors.New("the -clean-api mode cannot be combined with -agent, -script, -sync, or -tui")
+		}
+	} else {
+		modeCount := 0
+		if c.RunAgentMode {
+			modeCount++
+		}
+		if c.RunScriptMode {
+			modeCount++
+		}
+		if c.RunSyncMode {
+			modeCount++
+		}
+		if c.RunTuiMode {
+			modeCount++
+		}
+		if modeCount > 1 {
+			return errors.New("modes -agent, -script, -sync, and -tui are mutually exclusive")
+		}
+		// Defaulting logic now happens in main.go
 	}
 
-	// Check other mode combinations
-	otherModeCount := 0
-	if c.RunSyncMode {
-		otherModeCount++
-	}
-	if c.ScriptFile != "" {
-		otherModeCount++
-	}
-	if c.RunAgentMode {
-		otherModeCount++
-	}
-	if c.RunTuiMode { // Added TUI check
-		otherModeCount++
-	}
-
-	if otherModeCount > 1 {
-		fs.Usage()
-		return errors.New("flags -sync, -script, -tui, and -agent are mutually exclusive")
-	}
-
-	// Default to agent mode if no other primary mode flag is set (check CleanAPI)
-	if !c.CleanAPI && !c.RunSyncMode && c.ScriptFile == "" && !c.RunTuiMode && !c.RunAgentMode {
-		c.RunAgentMode = true
-		fmt.Fprintln(os.Stderr, "Defaulting to interactive agent mode.")
-	}
-
-	// API Key Check
-	c.APIKey = os.Getenv("GEMINI_API_KEY")
+	// API Key Check (still relevant if done here)
+	// This check might be better placed in App.Run or where the client is initialized.
 	if c.APIKey == "" {
-		helpRequested := false
-		for _, arg := range args {
-			if arg == "-h" || arg == "-help" {
-				helpRequested = true
-				break
-			}
-		}
-		// Modes that *might* need an API key (LLM can be disabled for script)
-		// TUI and Agent modes inherently need the LLM.
-		// Sync and CleanAPI need it for file API access.
-		needsKey := c.RunAgentMode || c.RunTuiMode || c.RunSyncMode || c.CleanAPI || (c.ScriptFile != "" && c.EnableLLM)
-		if !helpRequested && needsKey {
+		needsKey := c.RunAgentMode || c.RunTuiMode || c.RunSyncMode || c.RunCleanAPIMode || (c.RunScriptMode && c.EnableLLM)
+		if needsKey {
+			// Check if help was requested? This info isn't easily available here anymore.
+			// Assume key is needed if mode requires it.
 			return errors.New("required environment variable for API Key (e.g., GEMINI_API_KEY) is not set")
 		}
 	}
 
-	return nil // Success
+	return nil // Success (or return validation errors)
 }

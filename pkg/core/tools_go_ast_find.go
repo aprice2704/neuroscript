@@ -1,5 +1,6 @@
 // filename: pkg/core/tools_go_ast_find.go
 // NEW FILE
+// UPDATED: Use GetHandleValue
 package core
 
 import (
@@ -36,11 +37,13 @@ func toolGoFindIdentifiers(interpreter *Interpreter, args []interface{}) (interf
 	interpreter.logger.Printf("[TOOL GoFindIdentifiers] Args validated: handle=%s, pkg=%s, id=%s", handleID, pkgName, identifier)
 
 	// 2. Retrieve AST from Cache
-	obj, err := interpreter.retrieveObjectFromCache(handleID, golangASTTypeTag)
+	// *** UPDATED CALL ***
+	obj, err := interpreter.GetHandleValue(handleID, golangASTTypeTag)
 	if err != nil {
 		// Wrap error for context
 		return nil, fmt.Errorf("failed to retrieve AST for handle '%s': %w", handleID, errors.Join(ErrGoModifyFailed, err)) // Reuse ErrGoModifyFailed? Or new Find error? Let's reuse for now.
 	}
+	// *** END UPDATE ***
 	cachedAst, ok := obj.(CachedAst)
 	if !ok || cachedAst.File == nil || cachedAst.Fset == nil {
 		errInternal := fmt.Errorf("internal error - retrieved object for handle '%s' is invalid (%T)", handleID, obj)

@@ -1,4 +1,5 @@
 // filename: pkg/core/tools_go_ast_find_test.go
+// UPDATED: Use GetHandleValue, RegisterHandle
 package core
 
 import (
@@ -18,23 +19,23 @@ import (
 func setupParseForFindTest(t *testing.T, interp *Interpreter, content string) string {
 	t.Helper()
 	// IMPORTANT: toolGoParseFile likely uses "<content string>" as filename when parsing from string
-	handleID, err := toolGoParseFile(interp, makeArgs(nil, content)) // Parse from content
+	handleIDIntf, err := toolGoParseFile(interp, makeArgs(nil, content)) // Parse from content
 	if err != nil {
 		t.Fatalf("setupParseForFindTest: toolGoParseFile failed: %v", err)
 	}
-	handleStr, ok := handleID.(string)
+	handleStr, ok := handleIDIntf.(string)
 	if !ok || handleStr == "" {
-		t.Fatalf("setupParseForFindTest: toolGoParseFile did not return a valid handle string, got %T: %v", handleID, handleID)
+		t.Fatalf("setupParseForFindTest: toolGoParseFile did not return a valid handle string, got %T: %v", handleIDIntf, handleIDIntf)
 	}
-	// Verify handle exists in cache
-	_, _, found := interp.getCachedObjectAndType(handleStr)
-	if !found {
-		t.Fatalf("setupParseForFindTest: Handle '%s' not found in cache immediately after creation!", handleStr)
+	// Verify handle exists in cache using GetHandleValue
+	_, err = interp.GetHandleValue(handleStr, golangASTTypeTag) // Use the correct type tag
+	if err != nil {
+		t.Fatalf("setupParseForFindTest: Handle '%s' not found in cache or wrong type immediately after creation: %v", handleStr, err)
 	}
 	return handleStr
 }
 
-// comparePositionLists: Compares slices of position maps, ignoring order.
+// comparePositionLists: Compares slices of position maps, ignoring order. (Unchanged)
 func comparePositionLists(t *testing.T, got, want []map[string]interface{}) bool {
 	t.Helper()
 	if len(got) != len(want) {
@@ -82,7 +83,7 @@ func comparePositionLists(t *testing.T, got, want []map[string]interface{}) bool
 	return true
 }
 
-// --- Test Fixture Loading ---
+// --- Test Fixture Loading --- (Unchanged)
 var findFixtureDir = filepath.Join("test_fixtures", "find_fixtures") // Subdirectory for find tests
 
 // loadFindFixture loads content from .go.txt files as specified by user.
@@ -211,7 +212,7 @@ func TestToolGoFindIdentifiers(t *testing.T) {
 			findPkg:       "fmt",
 			findID:        "Println",
 			wantResult:    nil,
-			wantErrIs:     ErrGoModifyFailed, // Assuming AST retrieval issues still use this error
+			wantErrIs:     ErrGoModifyFailed, // Assuming AST retrieval issues still use this error, maybe define ErrGoFindFailed?
 		},
 		{
 			name:          "Error: Handle Wrong Type",
@@ -219,7 +220,7 @@ func TestToolGoFindIdentifiers(t *testing.T) {
 			findPkg:       "fmt",
 			findID:        "Println",
 			wantResult:    nil,
-			wantErrIs:     ErrGoModifyFailed, // Assuming AST retrieval issues still use this error
+			wantErrIs:     ErrGoModifyFailed, // Assuming AST retrieval issues still use this error, maybe define ErrGoFindFailed?
 		},
 		{
 			name:          "Error: Empty Package Name Arg",
@@ -283,7 +284,12 @@ func TestToolGoFindIdentifiers(t *testing.T) {
 				rawArgs = makeArgs("non-existent-handle", tc.findPkg, tc.findID)
 			} else if tc.name == "Error: Handle Wrong Type" {
 				// Create a dummy object in cache with wrong type tag
-				wrongTypeHandle := interp.storeObjectInCache("just a string", "WrongType")
+				// *** UPDATED CALL ***
+				wrongTypeHandle, regErr := interp.RegisterHandle("just a string", "WrongType")
+				if regErr != nil {
+					t.Fatalf("Failed to register handle for wrong type test: %v", regErr)
+				}
+				// *** END UPDATE ***
 				rawArgs = makeArgs(wrongTypeHandle, tc.findPkg, tc.findID)
 			} else if tc.name == "Validation: Wrong Arg Count (Missing ID)" {
 				rawArgs = makeArgs(handleID, tc.findPkg) // Missing identifier arg
@@ -404,4 +410,23 @@ func TestToolGoFindIdentifiers(t *testing.T) {
 			}
 		})
 	}
+}
+
+// getCachedObjectAndType is used by setupParseForFindTest, needs to be defined or removed
+// For testing purposes, a simple placeholder accessing the interpreter's cache might suffice
+// or setupParseForFindTest should just use GetHandleValue
+func (i *Interpreter) getCachedObjectAndType(handleID string) (object interface{}, typeTag string, found bool) {
+	// Determine typeTag from handle prefix (basic implementation)
+	parts := strings.SplitN(handleID, handleSeparator, 2)
+	if len(parts) == 2 {
+		typeTag = parts[0]
+	}
+
+	if i.objectCache != nil {
+		object, found = i.objectCache[handleID]
+	}
+	// If using GetHandleValue, you don't need this method, just call:
+	// object, err := i.GetHandleValue(handleID, golangASTTypeTag)
+	// found = (err == nil)
+	return object, typeTag, found
 }

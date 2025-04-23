@@ -1,6 +1,5 @@
 // filename: pkg/core/tools_go_ast_modify_test.go
-// UPDATED: Removed comments from simpleSource input and corresponding wantCode outputs
-// UPDATED: Corrected tool name in helper getFormattedCodeModifyTest
+// UPDATED: Use RegisterHandle and GetHandleValue
 package core
 
 import (
@@ -9,22 +8,22 @@ import (
 
 	"strings" // Keep strings import
 
-	"github.com/google/go-cmp/cmp" // Keep ast import
-	// Import astutil
+	"github.com/google/go-cmp/cmp"
+	// Import astutil not needed here directly
 )
 
-// Helper functions (getFormattedCodeModifyTest, setupParseModifyTest) remain the same...
 // Helper to get formatted string from handle (duplicated for focused testing)
 func getFormattedCodeModifyTest(t *testing.T, interp *Interpreter, handleID string) string {
 	t.Helper()
 	// Use the correct tool name
+	// Assume "GoFormatASTNode" is the registered name
 	res, err := toolGoFormatAST(interp, makeArgs(handleID))
 	if err != nil {
-		t.Fatalf("getFormattedCodeModifyTest: toolGoFormatAST failed for handle %s: %v", handleID, err)
+		t.Fatalf("getFormattedCodeModifyTest: toolGoFormatASTNode failed for handle %s: %v", handleID, err)
 	}
 	code, ok := res.(string)
 	if !ok {
-		t.Fatalf("getFormattedCodeModifyTest: toolGoFormatAST did not return a string, got %T", res)
+		t.Fatalf("getFormattedCodeModifyTest: toolGoFormatASTNode did not return a string, got %T", res)
 	}
 	return code
 }
@@ -32,13 +31,18 @@ func getFormattedCodeModifyTest(t *testing.T, interp *Interpreter, handleID stri
 // Helper to parse code and return a handle (duplicated for focused testing)
 func setupParseModifyTest(t *testing.T, interp *Interpreter, content string) string {
 	t.Helper()
-	handleID, err := toolGoParseFile(interp, makeArgs(nil, content))
+	handleIDIntf, err := toolGoParseFile(interp, makeArgs(nil, content))
 	if err != nil {
 		t.Fatalf("setupParseModifyTest: toolGoParseFile failed: %v", err)
 	}
-	handleStr, ok := handleID.(string)
+	handleStr, ok := handleIDIntf.(string)
 	if !ok || handleStr == "" {
-		t.Fatalf("setupParseModifyTest: toolGoParseFile did not return a valid handle string, got %T: %v", handleID, handleID)
+		t.Fatalf("setupParseModifyTest: toolGoParseFile did not return a valid handle string, got %T: %v", handleIDIntf, handleIDIntf)
+	}
+	// Verify handle exists
+	_, err = interp.GetHandleValue(handleStr, golangASTTypeTag)
+	if err != nil {
+		t.Fatalf("setupParseModifyTest: Handle '%s' not found or wrong type after parse: %v", handleStr, err)
 	}
 	return handleStr
 }
@@ -47,7 +51,7 @@ func setupParseModifyTest(t *testing.T, interp *Interpreter, content string) str
 func TestToolGoModifyAST(t *testing.T) {
 
 	// --- Test Data ---
-	// VVV REMOVED COMMENTS FROM INPUT SOURCE VVV
+	// (Data remains the same as provided in the fetched file)
 	simpleSource := `package main
 
 import (
@@ -62,7 +66,6 @@ func main() {
 	_ = err
 }
 `
-	// VVV REMOVED COMMENTS FROM EXPECTED SOURCE VVV
 	simpleSourceNewPkg := `package other
 
 import (
@@ -77,7 +80,6 @@ func main() {
 	_ = err
 }
 `
-	// VVV REMOVED COMMENTS FROM EXPECTED SOURCE VVV
 	simpleSourceReplaceIdentAndAddImport := `package main
 
 import (
@@ -93,8 +95,6 @@ func main() {
 	_ = err
 }
 `
-	// ^^^ REMOVED COMMENTS FROM ALL SOURCES ^^^
-	// --- END Corrected ---
 
 	tests := []struct {
 		name           string
@@ -130,8 +130,8 @@ func main() {
 		{name: "Replace Identifier Empty Part (New)", initialContent: simpleSource, modifications: map[string]interface{}{"replace_identifier": map[string]interface{}{"old": "fmt.Println", "new": "log."}}, wantErrIs: ErrGoInvalidIdentifierFormat},
 		{name: "Replace Identifier Missing 'new' Key", initialContent: simpleSource, modifications: map[string]interface{}{"replace_identifier": map[string]interface{}{"old": "fmt.Println"}}, wantErrIs: ErrGoModifyMissingMapKey},
 		{name: "Replace Identifier Wrong Value Type", initialContent: simpleSource, modifications: map[string]interface{}{"replace_identifier": map[string]interface{}{"old": 123, "new": "log.Printf"}}, wantErrIs: ErrGoModifyInvalidDirectiveValue},
-		{name: "Invalid Handle", initialContent: simpleSource, modifications: map[string]interface{}{"change_package": "other"}, wantErrIs: ErrGoModifyFailed},
-		{name: "Non-AST Handle", initialContent: simpleSource, modifications: map[string]interface{}{"change_package": "other"}, wantErrIs: ErrGoModifyFailed},
+		{name: "Invalid Handle", initialContent: simpleSource, modifications: map[string]interface{}{"change_package": "other"}, wantErrIs: ErrGoModifyFailed}, // Error originates from GetHandleValue
+		{name: "Non-AST Handle", initialContent: simpleSource, modifications: map[string]interface{}{"change_package": "other"}, wantErrIs: ErrGoModifyFailed}, // Error originates from type assertion after GetHandleValue
 		{name: "No Known Directive", initialContent: simpleSource, modifications: map[string]interface{}{"unknown_directive": "value"}, wantErrIs: ErrGoModifyUnknownDirective},
 		{name: "Empty Modifications Map", initialContent: simpleSource, modifications: map[string]interface{}{}, wantErrIs: ErrGoModifyEmptyMap},
 
@@ -154,6 +154,7 @@ func main() {
 			if tc.initialContent != "" {
 				initialHandle = setupParseModifyTest(t, currentInterp, tc.initialContent)
 			} else if tc.valWantErrIs == nil && tc.wantErrIs == nil {
+				// Only fail setup if content is needed for a success test
 				t.Fatalf("Test setup error: initialContent cannot be empty for test '%s' unless error expected", tc.name)
 			}
 
@@ -162,9 +163,12 @@ func main() {
 			case "Invalid Handle":
 				finalArgs = makeArgs("invalid-handle", tc.modifications)
 			case "Non-AST Handle":
-				handleToUse := "placeholder_handle"
-				currentInterp.objectCache[handleToUse] = "not an ast"
-				currentInterp.handleTypes[handleToUse] = "OtherType"
+				// *** UPDATED CALL ***
+				handleToUse, regErr := currentInterp.RegisterHandle("not an ast", "OtherType") // Use RegisterHandle
+				if regErr != nil {
+					t.Fatalf("Failed to register handle for Non-AST test: %v", regErr)
+				}
+				// *** END UPDATE ***
 				finalArgs = makeArgs(handleToUse, tc.modifications)
 			case "Validation Wrong Arg Count":
 				finalArgs = makeArgs(initialHandle)
@@ -231,6 +235,7 @@ func main() {
 					} else {
 						t.Logf("Execute Success (No-Op): Correctly received original handle '%s'", initialHandle)
 					}
+					// Retrieve code using the returned handle (which should be the original)
 					finalCode := getFormattedCodeModifyTest(t, currentInterp, gotHandle)
 					if diff := cmp.Diff(tc.initialContent, finalCode); diff != "" { // Compare against original comment-free input
 						t.Errorf("Execute Success (No-Op): Code unexpectedly changed (-want initial +got final):\n%s", diff)
@@ -242,9 +247,10 @@ func main() {
 						t.Logf("Execute Success (Modification): Received new handle '%s' (original '%s')", gotHandle, initialHandle)
 					}
 					if tc.wantCode != "" {
+						// Retrieve code using the NEW handle
 						finalCode := getFormattedCodeModifyTest(t, currentInterp, gotHandle)
 						// Normalize line endings for comparison
-						wantNormalized := strings.ReplaceAll(tc.wantCode, "\r\n", "\n") // wantCode is now comment-free
+						wantNormalized := strings.ReplaceAll(tc.wantCode, "\r\n", "\n") // wantCode is already comment-free
 						gotNormalized := strings.ReplaceAll(finalCode, "\r\n", "\n")    // gotCode should also be comment-free now
 						if diff := cmp.Diff(wantNormalized, gotNormalized); diff != "" {
 							t.Errorf("Execute Success (Modification): Final code mismatch (-want +got):\n%s", diff)

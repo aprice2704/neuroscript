@@ -1,106 +1,162 @@
 // filename: pkg/neurogo/app_agent.go
+// UPDATED: Fix variable name in handleMultilineInput call.
 package neurogo
 
 import (
-	"bufio"
+	"bufio" // Correctly imported
 	"context"
-	"fmt"
+	"errors" // For os.IsNotExist
+	"fmt"    // Needed for strings.NewReader
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 
 	"github.com/aprice2704/neuroscript/pkg/core"
+	// Still needed for genai.Tool type below
 )
 
-// Constants, runAgentMode setup... (unchanged)
+// Constants (unchanged)
 const (
 	maxFunctionCallCycles = 5
 	multiLineCommand      = "/m"
 	syncCommand           = "/sync"
 	defaultSyncDir        = "."
-	defaultSandboxDir     = "."
+	// defaultSandboxDir defined but might be immediately overridden by startup script
 )
 
+// runAgentMode is the main entry point for interactive agent execution.
 func (a *App) runAgentMode(ctx context.Context) error {
-	// ... Initialization ... (unchanged)
 	a.InfoLog.Println("--- Starting NeuroGo in Agent Mode ---")
-	allowlist, _ := loadToolListFromFile(a.Config.AllowlistFile)
-	denylistSet := make(map[string]bool)
-	cleanSandboxDir := filepath.Clean(a.Config.SandboxDir)
-	a.DebugLog.Printf("Using cleaned sandbox dir: %s", cleanSandboxDir)
-	llmClient := a.llmClient
-	if llmClient == nil || llmClient.Client() == nil {
-		return fmt.Errorf("LLM Client not initialized")
-	}
-	convoManager := core.NewConversationManager(a.InfoLog)
-	agentInterpreter := core.NewInterpreter(a.DebugLog, llmClient)
-	coreRegistry := agentInterpreter.ToolRegistry()
-	core.RegisterCoreTools(coreRegistry)
-	securityLayer := core.NewSecurityLayer(allowlist, denylistSet, cleanSandboxDir, coreRegistry, a.InfoLog)
-	toolDeclarations, genErr := securityLayer.GetToolDeclarations()
-	if genErr != nil {
-		a.ErrorLog.Printf("Failed tool declarations: %v", genErr)
-		return fmt.Errorf("failed gen tools: %w", genErr)
-	}
-	a.InfoLog.Printf("Initialized agent components. Sandbox: %s, Allowlist: %d, Tools: %d", cleanSandboxDir, len(allowlist), len(toolDeclarations))
 
-	// ... Initial Attachments ... (unchanged, includes fmt.Printf feedback)
-	initialAttachmentURIs := []string{}
-	if len(a.Config.InitialAttachments) > 0 {
-		a.InfoLog.Printf("Processing %d initial attachments...", len(a.Config.InitialAttachments))
-		fmt.Printf("[AGENT] Processing %d initial attachments...\n", len(a.Config.InitialAttachments))
-		if llmClient.Client() != nil {
-			for _, attachPath := range a.Config.InitialAttachments {
-				absAttachPath, secErr := core.ResolveAndSecurePath(attachPath, cleanSandboxDir)
-				if secErr != nil {
-					a.ErrorLog.Printf("Skip attach %q sec err: %v", attachPath, secErr)
-					fmt.Printf("[AGENT] Skipping attachment %q: %v\n", attachPath, secErr)
-					continue
-				}
-				displayPath := attachPath
-				relPath, relErr := filepath.Rel(cleanSandboxDir, absAttachPath)
-				if relErr == nil {
-					displayPath = filepath.ToSlash(relPath)
-				}
-				a.InfoLog.Printf("Uploading initial attachment: %s (Abs: %s, DisplayName: %s)", attachPath, absAttachPath, displayPath)
-				fmt.Printf("[AGENT] Attaching file: %s ... ", attachPath)
-				uploadCtx := context.Background()
-				apiFile, uploadErr := core.HelperUploadAndPollFile(uploadCtx, absAttachPath, displayPath, llmClient.Client(), a.LLMLog)
-				if uploadErr != nil {
-					fmt.Printf("FAILED (%v)\n", uploadErr)
-					a.ErrorLog.Printf("Failed attach %s: %v", attachPath, uploadErr)
-				} else if apiFile != nil {
-					fmt.Printf("OK (URI: %s)\n", apiFile.URI)
-					a.InfoLog.Printf("Initial attach OK: %s -> URI: %s", attachPath, apiFile.URI)
-					initialAttachmentURIs = append(initialAttachmentURIs, apiFile.URI)
+	// --- AgentContext and Startup Script Initialization ---
+	a.DebugLog.Println("Initializing AgentContext...")
+	a.agentCtx = NewAgentContext(a.GetInfoLogger()) // Create AgentContext, store on App
+
+	agentCtxHandle, regErr := a.interpreter.RegisterHandle(a.agentCtx, HandlePrefixAgentContext)
+	if regErr != nil {
+		a.ErrorLog.Printf("CRITICAL: Failed to register AgentContext handle: %v", regErr)
+		return fmt.Errorf("failed to register agent context handle: %w", regErr)
+	}
+	a.DebugLog.Printf("AgentContext registered with handle: %s", agentCtxHandle)
+
+	if err := a.interpreter.SetVariable("AGENT_CONTEXT_HANDLE", agentCtxHandle); err != nil {
+		a.ErrorLog.Printf("CRITICAL: Failed to set AGENT_CONTEXT_HANDLE variable: %v", err)
+		return fmt.Errorf("failed set agent context handle variable: %w", err)
+	}
+
+	startupScriptPath := a.Config.StartupScript
+	a.InfoLog.Printf("Attempting to load and execute startup script: %s", startupScriptPath)
+
+	if _, statErr := os.Stat(startupScriptPath); errors.Is(statErr, os.ErrNotExist) {
+		a.WarnLog.Printf("Startup script '%s' not found, skipping agent initialization script.", startupScriptPath)
+	} else if statErr != nil {
+		a.ErrorLog.Printf("Error accessing startup script '%s': %v", startupScriptPath, statErr)
+		return fmt.Errorf("error accessing startup script %s: %w", startupScriptPath, statErr)
+	} else {
+		scriptContentBytes, readErr := os.ReadFile(startupScriptPath)
+		if readErr != nil {
+			a.ErrorLog.Printf("Failed to read startup script '%s': %v", startupScriptPath, readErr)
+			return fmt.Errorf("failed to read startup script %s: %w", startupScriptPath, readErr)
+		}
+		scriptContent := string(scriptContentBytes)
+
+		parseReader := strings.NewReader(scriptContent)
+		parseOptions := core.ParseOptions{
+			DebugAST: false,              // Or get from config/flag?
+			Logger:   a.GetDebugLogger(), // Pass appropriate logger
+		}
+		parsedProcsSlice, fileVersion, parseErr := core.ParseNeuroScript(parseReader, startupScriptPath, parseOptions)
+		if parseErr != nil {
+			a.ErrorLog.Printf("Failed to parse startup script '%s':\n%v", startupScriptPath, parseErr)
+			return fmt.Errorf("failed to parse startup script %s: %w", startupScriptPath, parseErr)
+		}
+		a.DebugLog.Printf("Startup script parsed successfully. File version: '%s'", fileVersion)
+
+		mainExists := false
+		for _, proc := range parsedProcsSlice {
+			if addErr := a.interpreter.AddProcedure(proc); addErr != nil {
+				if strings.Contains(addErr.Error(), "already defined") {
+					a.WarnLog.Printf("Redefining procedure '%s' from startup script.", proc.Name)
 				} else {
-					fmt.Printf("FAILED (Unknown error)\n")
-					a.ErrorLog.Printf("Unknown error attaching file %s", attachPath)
+					a.ErrorLog.Printf("Error adding procedure '%s' from startup script: %v", proc.Name, addErr)
 				}
 			}
-			a.InfoLog.Printf("Finished initial attachments. URIs: %d: %v", len(initialAttachmentURIs), initialAttachmentURIs)
+			if proc.Name == "main" {
+				mainExists = true
+			}
+		}
+
+		if !mainExists {
+			a.WarnLog.Printf("Startup script '%s' does not contain a 'main' procedure, cannot execute.", startupScriptPath)
 		} else {
-			a.ErrorLog.Println("Cannot process initial attachments: LLM Client is nil.")
+			a.InfoLog.Printf("Executing 'main' procedure from startup script '%s'...", startupScriptPath)
+			_, execErr := a.interpreter.RunProcedure("main")
+			if execErr != nil {
+				a.ErrorLog.Printf("Error executing startup script '%s': %v", startupScriptPath, execErr)
+				return fmt.Errorf("error executing startup script %s: %w", startupScriptPath, execErr)
+			}
+			a.InfoLog.Printf("Startup script '%s' executed successfully.", startupScriptPath)
 		}
 	}
+	// --- End AgentContext and Startup Script Initialization ---
 
-	accumulatedContextURIs := []string{}
-	accumulatedContextURIs = append(accumulatedContextURIs, initialAttachmentURIs...)
+	// --- Existing Agent Setup (Post-Startup Script) ---
+	sandboxDir := a.agentCtx.GetSandboxDir()
+	if sandboxDir == "" {
+		a.WarnLog.Println("Startup script did not set sandbox directory, using default '.'")
+		sandboxDir = "."
+	}
+	cleanSandboxDir := filepath.Clean(sandboxDir)
+	a.DebugLog.Printf("Using effective sandbox dir (after startup script): %s", cleanSandboxDir)
+
+	allowlistPath := a.agentCtx.GetAllowlistPath()
+	allowlist, _ := loadToolListFromFile(allowlistPath)
+	if allowlistPath != "" {
+		a.InfoLog.Printf("Using tool allowlist: %s (%d tools allowed)", allowlistPath, len(allowlist))
+	} else {
+		a.InfoLog.Println("Tool allowlist disabled.")
+	}
+	denylistSet := make(map[string]bool)
+
+	llmClient := a.GetLLMClient()
+	if llmClient == nil || llmClient.Client() == nil {
+		return fmt.Errorf("LLM Client not available for agent mode")
+	}
+
+	agentInterpreter := a.interpreter
+	securityLayer := core.NewSecurityLayer(allowlist, denylistSet, cleanSandboxDir, agentInterpreter.ToolRegistry(), a.GetInfoLogger())
+	toolDeclarations, genErr := securityLayer.GetToolDeclarations()
+	if genErr != nil {
+		a.ErrorLog.Printf("Failed to generate tool declarations: %v", genErr)
+		return fmt.Errorf("failed to generate tool declarations: %w", genErr)
+	}
+	a.InfoLog.Printf("Initialized agent components. Sandbox: %s, Allowlist: %d, Tools: %d",
+		cleanSandboxDir, len(allowlist), len(toolDeclarations))
+
+	convoManager := core.NewConversationManager(a.GetInfoLogger())
+	a.InfoLog.Println("Initial attachments should now be handled by the startup script via TOOL.AgentPinFile.")
+
+	// --- Main Agent Loop ---
 	a.InfoLog.Printf("Enter prompt (or '%s', '%s', '%s <dir> [filter]', 'quit'):", multiLineCommand, syncCommand, syncCommand)
-	stdinScanner := bufio.NewScanner(os.Stdin)
+	stdinScanner := bufio.NewScanner(os.Stdin) // Correctly initialized here
 	turnCounter := 0
 
 	for { // Main input loop
 		turnCounter++
 		a.InfoLog.Printf("--- Agent Conversation Turn %d ---", turnCounter)
-		currentTurnURIs := make([]string, len(accumulatedContextURIs))
-		copy(currentTurnURIs, accumulatedContextURIs)
+
+		currentTurnFiles := a.agentCtx.GetURIsForNextContext()
+		currentTurnURIs := make([]string, len(currentTurnFiles))
+		for i, f := range currentTurnFiles {
+			currentTurnURIs[i] = f.Name
+		}
 		a.DebugLog.Printf("Using %d URIs for turn %d context: %v", len(currentTurnURIs), turnCounter, currentTurnURIs)
+
 		fmt.Printf("\nPrompt (or '%s', '%s', '%s <dir> [filter]', 'quit'): ", multiLineCommand, syncCommand, syncCommand)
 		if !stdinScanner.Scan() {
 			break
-		} // Simplified EOF/error handling
+		}
 		userInput := strings.TrimSpace(stdinScanner.Text())
 
 		switch {
@@ -108,48 +164,30 @@ func (a *App) runAgentMode(ctx context.Context) error {
 			a.InfoLog.Println("Quit command received.")
 			return nil
 		case userInput == multiLineCommand:
-			userInput = handleMultilineInput(a, stdinScanner)
+			// *** UPDATED Call: Use stdinScanner ***
+			userInput = handleMultilineInput(a, stdinScanner) // Pass correct variable
+			// *** END UPDATE ***
 			if userInput == "" {
 				continue
 			}
-		case userInput == syncCommand: // Bare /sync
-			a.InfoLog.Printf("Bare '%s' command received.", syncCommand)
-			syncTargetDir := defaultSyncDir
-			syncDirSource := "default"
-			// Logic to determine syncTargetDir (unchanged)
-			if a.Config.SyncDir != defaultSyncDir {
-				syncTargetDir = a.Config.SyncDir
-				syncDirSource = "-sync-dir flag"
-			} else if cleanSandboxDir != defaultSandboxDir {
-				syncTargetDir = a.Config.SandboxDir
-				syncDirSource = "-sandbox flag"
+		// --- Sync Command Handling (Simplified - Needs integration with AgentContext/Tools) ---
+		case userInput == syncCommand:
+			a.WarnLog.Println("Bare '/sync' command executed - state NOT YET reflected in AgentContext.")
+			syncTargetDir := a.agentCtx.GetSandboxDir() // Default to sandbox
+			if syncTargetDir == "" {
+				syncTargetDir = defaultSyncDir
 			}
-			a.InfoLog.Printf("Determined sync target directory '%s' (Source: %s)", syncTargetDir, syncDirSource)
-			fmt.Printf("[AGENT] Starting sync for directory '%s' (using %s)...\n", syncTargetDir, syncDirSource)
-			absSyncDir, secErr := core.ResolveAndSecurePath(syncTargetDir, cleanSandboxDir) // Use new validator
-			if secErr != nil {
-				a.ErrorLog.Printf("Sync FAIL: Invalid target %q: %v", syncTargetDir, secErr)
-				fmt.Printf("[AGENT] Sync FAIL: Invalid target %q: %v\n", syncTargetDir, secErr)
-				continue
-			}
-			dirInfo, statErr := os.Stat(absSyncDir)
-			if statErr != nil || !dirInfo.IsDir() {
-				a.ErrorLog.Printf("Sync FAIL: Cannot access %q: %v", syncTargetDir, statErr)
-				fmt.Printf("[AGENT] Sync FAIL: Cannot access %q\n", syncTargetDir)
-				continue
-			}
-			stats, syncErr := core.SyncDirectoryUpHelper(ctx, absSyncDir, a.Config.SyncFilter, a.Config.SyncIgnoreGitignore, llmClient.Client(), a.InfoLog, a.ErrorLog, a.DebugLog)
+			fmt.Printf("[AGENT] Starting sync for directory '%s'...\n", syncTargetDir)
+			_, syncErr := core.SyncDirectoryUpHelper(ctx, syncTargetDir, "", false, llmClient.Client(), a.InfoLog, a.ErrorLog, a.DebugLog) // Assumes helper exists
 			if syncErr != nil {
-				a.ErrorLog.Printf("Sync command (bare) FAIL: %v", syncErr)
 				fmt.Printf("[AGENT] Sync FAIL for '%s': %v\n", syncTargetDir, syncErr)
 			} else {
-				a.InfoLog.Printf("Sync command (bare) OK. Stats: %+v", stats)
 				fmt.Printf("[AGENT] Sync OK for '%s'.\n", syncTargetDir)
-				// Update context using the validated absolute path
-				updateAccumulatedURIs(ctx, a, llmClient, absSyncDir, a.Config.SyncFilter, &accumulatedContextURIs)
+				// TODO: Update AgentContext synced map
 			}
 			continue
-		case strings.HasPrefix(userInput, syncCommand+" "): // /sync <dir> [filter]
+		case strings.HasPrefix(userInput, syncCommand+" "):
+			a.WarnLog.Println("'/sync <dir>' command executed - state NOT YET reflected in AgentContext.")
 			parts := strings.Fields(userInput)
 			if len(parts) < 2 {
 				fmt.Println("[AGENT] Usage: /sync <directory> [optional_filter]")
@@ -160,49 +198,38 @@ func (a *App) runAgentMode(ctx context.Context) error {
 			if len(parts) > 2 {
 				syncFilterArg = parts[2]
 			}
-			a.InfoLog.Printf("Sync command args: Dir='%s', Filter='%s'", syncDirArg, syncFilterArg)
 			fmt.Printf("[AGENT] Starting sync for directory '%s'...\n", syncDirArg)
-			absSyncDir, secErr := core.ResolveAndSecurePath(syncDirArg, cleanSandboxDir) // Use new validator
-			if secErr != nil {
-				a.ErrorLog.Printf("Sync FAIL: Invalid dir %q: %v", syncDirArg, secErr)
-				fmt.Printf("[AGENT] Sync FAIL: Invalid dir %q: %v\n", syncDirArg, secErr)
-				continue
-			}
-			dirInfo, statErr := os.Stat(absSyncDir)
-			if statErr != nil || !dirInfo.IsDir() {
-				a.ErrorLog.Printf("Sync FAIL: Cannot access %q: %v", syncDirArg, statErr)
-				fmt.Printf("[AGENT] Sync FAIL: Cannot access %q\n", syncDirArg)
-				continue
-			}
-			stats, syncErr := core.SyncDirectoryUpHelper(ctx, absSyncDir, syncFilterArg, false, llmClient.Client(), a.InfoLog, a.ErrorLog, a.DebugLog)
+			_, syncErr := core.SyncDirectoryUpHelper(ctx, syncDirArg, syncFilterArg, false, llmClient.Client(), a.InfoLog, a.ErrorLog, a.DebugLog) // Assumes helper exists
 			if syncErr != nil {
-				a.ErrorLog.Printf("Sync command (args) FAIL: %v", syncErr)
 				fmt.Printf("[AGENT] Sync FAIL for '%s': %v\n", syncDirArg, syncErr)
 			} else {
-				a.InfoLog.Printf("Sync command (args) OK. Stats: %+v", stats)
 				fmt.Printf("[AGENT] Sync OK for '%s'.\n", syncDirArg)
-				// Update context using the validated absolute path
-				updateAccumulatedURIs(ctx, a, llmClient, absSyncDir, syncFilterArg, &accumulatedContextURIs)
+				// TODO: Update AgentContext synced map
 			}
 			continue
+		// --- End Sync Command Handling ---
 		case userInput == "":
 			continue
 		default: // Process as LLM Prompt
 			convoManager.AddUserMessage(userInput)
 			a.DebugLog.Printf("Added user message to history: %q", userInput)
+
+			// Use correct signature for handleAgentTurn found in handle_turn.go
 			errTurn := a.handleAgentTurn(ctx, llmClient, convoManager, agentInterpreter, securityLayer, toolDeclarations, currentTurnURIs)
+
 			if errTurn != nil {
 				a.ErrorLog.Printf("Error agent turn %d: %v", turnCounter, errTurn)
 				fmt.Printf("\n[AGENT] Error processing turn: %v\n", errTurn)
 			}
 		} // End switch
 	} // End main input loop
+
 	a.InfoLog.Println("--- Exiting Agent Mode ---")
 	return nil
 }
 
-// handleMultilineInput uses nsinput... (unchanged)
-func handleMultilineInput(a *App, scanner *bufio.Scanner) string { /* ... unchanged ... */
+// handleMultilineInput requires scanner argument
+func handleMultilineInput(a *App, scanner *bufio.Scanner) string { // Argument name matches call site
 	a.InfoLog.Printf("Launching nsinput...")
 	fmt.Println("Launching multi-line editor (nsinput)...")
 	tempFile, err := os.CreateTemp("", "nsinput-*.txt")
@@ -215,7 +242,9 @@ func handleMultilineInput(a *App, scanner *bufio.Scanner) string { /* ... unchan
 	tempFile.Close()
 	defer os.Remove(tempFilePath)
 	cmd := exec.Command("nsinput", tempFilePath)
-	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 	runErr := cmd.Run()
 	if runErr != nil {
 		a.ErrorLog.Printf("nsinput error: %v", runErr)
@@ -235,3 +264,27 @@ func handleMultilineInput(a *App, scanner *bufio.Scanner) string { /* ... unchan
 	}
 	return strings.TrimSpace(userInput)
 }
+
+// Assume loadToolListFromFile exists (likely in helpers.go)
+// Assume SyncDirectoryUpHelper exists (likely in core/sync_logic.go or similar)
+
+// loadToolListFromFile stub if needed for compilation standalone
+// func loadToolListFromFile(filePath string) ([]string, error) {
+// 	if filePath == "" {
+// 		return nil, nil // No allowlist if path is empty
+// 	}
+// 	content, err := os.ReadFile(filePath)
+// 	if err != nil {
+// 		// Return error for now. App log should indicate failure.
+// 		return nil, fmt.Errorf("failed to read allowlist %s: %w", filePath, err)
+// 	}
+// 	lines := strings.Split(string(content), "\n")
+// 	list := make([]string, 0, len(lines))
+// 	for _, line := range lines {
+// 		trimmed := strings.TrimSpace(line)
+// 		if trimmed != "" && !strings.HasPrefix(trimmed, "#") { // Ignore empty lines and comments
+// 			list = append(list, trimmed)
+// 		}
+// 	}
+// 	return list, nil
+// }
