@@ -21,10 +21,11 @@ jobs:
       - name: Install MkDocs
         run: pip install mkdocs mkdocs-material
 
+      - name: Create CNAME file
+        run: echo "neuroscript.ca" > site/CNAME # Manually create the CNAME file
+
       - name: Build & deploy
         env:               # ② expose the token to mkdocs
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: mkdocs gh-deploy --force --clean
 
-      - name: Create CNAME file
-        run: echo "neuroscript.ca" > site/CNAME # Manually create the CNAME file
