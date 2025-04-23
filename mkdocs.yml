@@ -1,59 +1,61 @@
 site_name: NeuroScript
 site_url: https://aprice2704.github.io/neuroscript/
 repo_url: https://github.com/aprice2704/neuroscript
+
 theme:
-  name: material          # nice defaults & search
+  name: material
   palette:
     primary: indigo
     accent: indigo
-markdown_extensions:
-  - admonition
-  - tables
-  - toc:
-      permalink: true
-  - pymdownx.superfences
-  - pymdownx.details
-  - pymdownx.tabbed
-  - pymdownx.inlinehilite
+
 nav:
-  - Home: index.md                 # copy README.md here or symlink it
+  - Home: index.md
   - Road Map: RoadMap.md
   - Overview:
       - Why NeuroScript: front/why-ns.md
       - Architecture: front/architecture.md
-      - Key Concepts: front/concepts.md
+      - Core Concepts: front/concepts.md
       - Installation: front/installation.md
       - FAQ: front/faq.md
       - Contributing: front/contributing.md
   - Specifications:
-      - Script Spec (quick): script_spec.md
-      - Script Spec (formal): "formal script spec.md"
-      - NeuroData & Composite: neurodata_and_composite_file_spec.md
-      - Metadata Format: metadata.md
+      - Quick Spec: script_spec.md
+      - Formal Spec: "formal script spec.md"
+      - Metadata: metadata.md
+      - NeuroData & Composite Spec: neurodata_and_composite_file_spec.md
       - LLM Agent Facilities: llm_agent_facilities.md
       - Restricted Mode: restricted_mode.md
       - Spec Structure Guide: specification_structure.md
-  - NeuroData Formats:
-      - checklist.md
-      - cryptographic.md
-      - decision_table.md
-      - enum.md
-      - form.md
-      - geometry.md
-      - graph.md
-      - list.md
-      - map_literal.md
-      - map_schema.md
-      - patch.md
-      - references.md
-      - symbolic_math.md
-      - table.md
-      - templates.md
-      - tree.md
+  - NeuroData Types:
+{% for page in ['checklist','cryptographic','decision_table','enum','form','geometry',
+                'graph','list','map_literal','map_schema','patch','references',
+                'symbolic_math','table','templates','tree'] %}
+      - {{ page|replace("_"," ").title() }}: NeuroData/{{ page }}.md
+{% endfor %}
   - Tools:
-      - Index: ns/tools/index.md        # links out to every tool spec
-  - Guides & Status:
+      - Index: ns/tools/index.md
+{% for tool in [
+'delete_api_file','fs_deletefile','fs_filehash','fs_linecountfile','fs_mkdir','fs_movefile',
+'fs_readfile','fs_sanitizefilename','fs_walkdir','fs_writefile','git_add','git_checkout',
+'git_commit','git_diff','git_gitstatus','git_merge','git_newbranch','git_pull','git_push',
+'git_rm','git_status','go_build','go_update_imports_for_moved_package','list_api_files',
+'maths','move_file','query_table','strings','sync_files','tool_spec_structure',
+'upload_file','vector_searchskills','vector_update'] %}
+      - {{ tool }}: ns/tools/{{ tool }}.md
+{% endfor %}
+  - Status & Build:
       - Build Guide: build.md
       - Completed Checklist: completed.md
+      - Release Checklist: release_checklist.ndcl.md
+
+markdown_extensions:
+  - toc:
+      permalink: true
+  - admonition
+  - pymdownx.superfences
+  - pymdownx.details
+  - pymdownx.tabbed
+  - pymdownx.inlinehilite
 plugins:
   - search
+  #  - awesome-pages   # <-- optional plugin, see “Auto-nav” below
