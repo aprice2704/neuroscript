@@ -1,5 +1,6 @@
 // filename: pkg/core/tools_file_api.go
 // UPDATED: Add HelperUploadStringAndPollFile, toolUpsertAs, and register UpsertAs
+// FIXED: Non-constant format string errors
 package core
 
 import (
@@ -37,7 +38,7 @@ func init() {
 	emptyFileHash = hex.EncodeToString(hasher.Sum(nil))
 }
 
-// --- Helper: Upload File and Poll --- (Unchanged from fetch)
+// --- Helper: Upload File and Poll --- (Unchanged logic, corrected errors)
 func HelperUploadAndPollFile(ctx context.Context, absLocalPath string, displayName string, client *genai.Client, logger *log.Logger) (*genai.File, error) {
 	if client == nil {
 		return nil, errors.New("genai client is nil")
@@ -119,7 +120,9 @@ func HelperUploadAndPollFile(ctx context.Context, absLocalPath string, displayNa
 			errMsg := fmt.Sprintf("polling timeout for file %s (API Name: %s, Display: %s)", absLocalPath, apiFile.Name, displayName)
 			errorLog.Printf("[ERROR API HELPER Upload] %s. Attempting to delete orphaned API file.", errMsg)
 			_ = client.DeleteFile(context.Background(), apiFile.Name) // Best effort delete
-			return nil, fmt.Errorf(errMsg)
+			// --- FIX Line 122 ---
+			return nil, errors.New(errMsg) // Use errors.New instead of fmt.Errorf
+			// --- END FIX ---
 		}
 		time.Sleep(pollInterval)
 		debugLog.Printf("[DEBUG API HELPER Upload] Polling status for API file %s...", apiFile.Name)
@@ -141,14 +144,16 @@ func HelperUploadAndPollFile(ctx context.Context, absLocalPath string, displayNa
 		errMsg := fmt.Sprintf("file processing failed for %s (API Name: %s, Display: %s). Final State: %s", absLocalPath, apiFile.Name, displayName, apiFile.State)
 		errorLog.Printf("[ERROR API HELPER Upload] %s. Attempting to delete failed API file.", errMsg)
 		_ = client.DeleteFile(context.Background(), apiFile.Name) // Best effort delete
-		return nil, fmt.Errorf(errMsg)
+		// --- FIX Line 144 ---
+		return nil, errors.New(errMsg) // Use errors.New instead of fmt.Errorf
+		// --- END FIX ---
 	}
 	infoLog.Printf("[API HELPER Upload] Upload successful and ACTIVE: %s -> %s", displayName, apiFile.Name)
 	return apiFile, nil
 }
 
-// +++ NEW HELPER: Upload String Content and Poll +++
 // HelperUploadStringAndPollFile handles uploading string content and waiting for it to be ACTIVE.
+// (Unchanged logic, corrected errors)
 func HelperUploadStringAndPollFile(ctx context.Context, content string, displayName string, client *genai.Client, logger *log.Logger) (*genai.File, error) {
 	if client == nil {
 		return nil, errors.New("genai client is nil")
@@ -160,12 +165,11 @@ func HelperUploadStringAndPollFile(ctx context.Context, content string, displayN
 	infoLog := logger
 	errorLog := logger
 
-	// Assume string content should always be uploaded as text/plain
 	uploadMimeType := "text/plain"
 	debugLog.Printf("[API HELPER UploadString] Processing content (Display: %s, Length: %d) as %s", displayName, len(content), uploadMimeType)
 
 	options := &genai.UploadFileOptions{MIMEType: uploadMimeType, DisplayName: displayName}
-	reader := strings.NewReader(content) // Use strings.NewReader for the content
+	reader := strings.NewReader(content)
 
 	if ctx == nil {
 		ctx = context.Background()
@@ -188,7 +192,9 @@ func HelperUploadStringAndPollFile(ctx context.Context, content string, displayN
 			errMsg := fmt.Sprintf("polling timeout for content (API Name: %s, Display: %s)", apiFile.Name, displayName)
 			errorLog.Printf("[ERROR API HELPER UploadString] %s. Attempting to delete orphaned API file.", errMsg)
 			_ = client.DeleteFile(context.Background(), apiFile.Name) // Best effort delete
-			return nil, fmt.Errorf(errMsg)
+			// --- FIX Line 191 ---
+			return nil, errors.New(errMsg) // Use errors.New instead of fmt.Errorf
+			// --- END FIX ---
 		}
 		time.Sleep(pollInterval)
 		debugLog.Printf("[DEBUG API HELPER UploadString] Polling status for API file %s...", apiFile.Name)
@@ -210,13 +216,15 @@ func HelperUploadStringAndPollFile(ctx context.Context, content string, displayN
 		errMsg := fmt.Sprintf("file processing failed for content (API Name: %s, Display: %s). Final State: %s", apiFile.Name, displayName, apiFile.State)
 		errorLog.Printf("[ERROR API HELPER UploadString] %s. Attempting to delete failed API file.", errMsg)
 		_ = client.DeleteFile(context.Background(), apiFile.Name) // Best effort delete
-		return nil, fmt.Errorf(errMsg)
+		// --- FIX Line 213 ---
+		return nil, errors.New(errMsg) // Use errors.New instead of fmt.Errorf
+		// --- END FIX ---
 	}
 	infoLog.Printf("[API HELPER UploadString] Upload successful and ACTIVE: %s -> %s", displayName, apiFile.Name)
 	return apiFile, nil
 }
 
-// --- Tool: ListAPIFiles --- (Unchanged from fetch)
+// --- Tool: ListAPIFiles --- (Unchanged)
 func toolListAPIFiles(interpreter *Interpreter, args []interface{}) (interface{}, error) {
 	client, clientErr := checkGenAIClient(interpreter)
 	if clientErr != nil {
@@ -248,7 +256,7 @@ func toolListAPIFiles(interpreter *Interpreter, args []interface{}) (interface{}
 	return map[string]interface{}{"files": results}, err
 }
 
-// --- Tool: UploadFile --- (Unchanged from fetch)
+// --- Tool: UploadFile --- (Unchanged)
 func toolUploadFile(interpreter *Interpreter, args []interface{}) (interface{}, error) {
 	client, clientErr := checkGenAIClient(interpreter)
 	if clientErr != nil {
@@ -312,10 +320,9 @@ func toolUploadFile(interpreter *Interpreter, args []interface{}) (interface{}, 
 	return resultMap, nil
 }
 
-// +++ NEW TOOL: UpsertAs +++
-// toolUpsertAs takes content string and display name, uploads it, returns map.
+// Tool: UpsertAs (Unchanged)
 func toolUpsertAs(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	client, clientErr := checkGenAIClient(interpreter) // Check client first
+	client, clientErr := checkGenAIClient(interpreter)
 	if clientErr != nil {
 		return nil, fmt.Errorf("TOOL.UpsertAs: %w", clientErr)
 	}
@@ -333,32 +340,19 @@ func toolUpsertAs(interpreter *Interpreter, args []interface{}) (interface{}, er
 	if displayName == "" {
 		return nil, errors.New("TOOL.UpsertAs: display_name cannot be empty")
 	}
-	// Content can be empty
-
-	// Use the new helper function for uploading string content
 	apiFile, uploadErr := HelperUploadStringAndPollFile(context.Background(), contents, displayName, client, interpreter.logger)
 	if uploadErr != nil {
-		// Don't need to check for binary skip here as we force text/plain
 		return nil, fmt.Errorf("TOOL.UpsertAs: failed to upload content for display name '%s': %w", displayName, uploadErr)
 	}
-
-	// Check for nil API file just in case helper returns nil without error
-	if apiFile == nil || apiFile.Name == "" { // apiFile.Name contains the URI like "files/..."
+	if apiFile == nil || apiFile.Name == "" {
 		return nil, fmt.Errorf("TOOL.UpsertAs: upload helper returned nil or empty File/URI for display name '%s'", displayName)
 	}
-
-	// Return map required by AgentPin: {"displayName": string, "uri": string}
-	// Using displayName passed in, as relative path isn't applicable here.
-	resultMap := map[string]interface{}{
-		"displayName": displayName,
-		"uri":         apiFile.Name, // Use Name which contains the URI
-	}
+	resultMap := map[string]interface{}{"displayName": displayName, "uri": apiFile.Name}
 	interpreter.logger.Printf("[TOOL UpsertAs] Successfully uploaded content '%s' -> URI: %s", displayName, apiFile.Name)
 	return resultMap, nil
 }
 
-// --- Registration ---
-// UPDATED: Add UpsertAs registration
+// --- Registration --- (Unchanged)
 func registerFileAPITools(registry *ToolRegistry) error {
 	var err error
 	tools := []ToolImplementation{
@@ -366,41 +360,20 @@ func registerFileAPITools(registry *ToolRegistry) error {
 		{Spec: ToolSpec{Name: "DeleteAPIFile", Description: "Deletes a file from the API by its name (e.g., 'files/abc123xyz').", Args: []ArgSpec{{Name: "api_file_name", Type: ArgTypeString, Required: true, Description: "The full API name of the file (e.g., files/xyz)."}}, ReturnType: ArgTypeAny}, Func: toolDeleteAPIFile},
 		{Spec: ToolSpec{Name: "UploadFile", Description: "Uploads a local file (relative to sandbox) to the API.", Args: []ArgSpec{{Name: "local_path", Type: ArgTypeString, Required: true, Description: "Relative path to the local file."}, {Name: "display_name", Type: ArgTypeString, Required: false, Description: "Optional display name (defaults to relative path)."}}, ReturnType: ArgTypeAny}, Func: toolUploadFile},
 		{Spec: ToolSpec{Name: "SyncFiles", Description: "Syncs local directory (relative to sandbox) to API ('up' only).", Args: []ArgSpec{{Name: "direction", Type: ArgTypeString, Required: true, Description: "Sync direction ('up')."}, {Name: "local_dir", Type: ArgTypeString, Required: true, Description: "Relative path to local directory."}, {Name: "filter_pattern", Type: ArgTypeString, Required: false, Description: "Optional filename glob pattern."}, {Name: "ignore_gitignore", Type: ArgTypeBool, Required: false, Description: "Ignore .gitignore files if true (default: false)."}}, ReturnType: ArgTypeAny}, Func: toolSyncFiles},
-		// +++ NEW: UpsertAs Registration +++
-		{
-			Spec: ToolSpec{
-				Name:        "UpsertAs",
-				Description: "Uploads string content to the File API with a specified display name.",
-				Args: []ArgSpec{
-					{Name: "contents", Type: ArgTypeString, Required: true, Description: "The string content to upload."},
-					{Name: "display_name", Type: ArgTypeString, Required: true, Description: "The desired display name for the file in the API."},
-				},
-				// Returns map: {"displayName": string, "uri": string}
-				ReturnType: ArgTypeMap, // Return type is Map
-			},
-			Func: toolUpsertAs,
-		},
-		// +++ END NEW +++
+		{Spec: ToolSpec{Name: "UpsertAs", Description: "Uploads string content to the File API with a specified display name.", Args: []ArgSpec{{Name: "contents", Type: ArgTypeString, Required: true, Description: "The string content to upload."}, {Name: "display_name", Type: ArgTypeString, Required: true, Description: "The desired display name for the file in the API."}}, ReturnType: ArgTypeMap}, Func: toolUpsertAs},
 	}
 	for _, tool := range tools {
 		if err = registry.RegisterTool(tool); err != nil {
 			log.Printf("Error registering tool %s: %v", tool.Spec.Name, err)
-			return fmt.Errorf("failed register tool %s: %w", tool.Spec.Name, err) // Return on first error
+			return fmt.Errorf("failed register tool %s: %w", tool.Spec.Name, err)
 		}
 	}
 	return nil
 }
 
-// Helper function checkGenAIClient (Assume defined elsewhere or add stub)
-// func checkGenAIClient(interpreter *Interpreter) (*genai.Client, error) {
-// 	if interpreter == nil || interpreter.llmClient == nil || interpreter.llmClient.Client() == nil {
-// 		return nil, errors.New("GenAI client not initialized")
-// 	}
-// 	return interpreter.llmClient.Client(), nil
-// }
-
-// Assumed functions (ensure defined elsewhere):
-// - func HelperListApiFiles(ctx context.Context, client *genai.Client, logger *log.Logger) ([]*genai.File, error) // Likely in sync_helpers.go or sync_morehelpers.go
-// - func toolDeleteAPIFile(interpreter *Interpreter, args []interface{}) (interface{}, error) // Likely here or another tools_file_api_*.go
-// - func toolSyncFiles(interpreter *Interpreter, args []interface{}) (interface{}, error) // Likely here or another tools_file_api_*.go
-// - func ResolveAndSecurePath(localPath string, sandboxDir string) (string, error) // Likely in security_helpers.go or tools_helpers.go
+// Assumed functions/helpers (ensure defined elsewhere)
+// - func checkGenAIClient(interpreter *Interpreter) (*genai.Client, error)
+// - func HelperListApiFiles(ctx context.Context, client *genai.Client, logger *log.Logger) ([]*genai.File, error)
+// - func toolDeleteAPIFile(interpreter *Interpreter, args []interface{}) (interface{}, error)
+// - func toolSyncFiles(interpreter *Interpreter, args []interface{}) (interface{}, error)
+// - func ResolveAndSecurePath(localPath string, sandboxDir string) (string, error)
