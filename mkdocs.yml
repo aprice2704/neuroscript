@@ -1,0 +1,59 @@
+site_name: NeuroScript
+site_url: https://aprice2704.github.io/neuroscript/
+repo_url: https://github.com/aprice2704/neuroscript
+theme:
+  name: material          # nice defaults & search
+  palette:
+    primary: indigo
+    accent: indigo
+markdown_extensions:
+  - admonition
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.superfences
+  - pymdownx.details
+  - pymdownx.tabbed
+  - pymdownx.inlinehilite
+nav:
+  - Home: index.md                 # copy README.md here or symlink it
+  - Road Map: RoadMap.md
+  - Overview:
+      - Why NeuroScript: front/why-ns.md
+      - Architecture: front/architecture.md
+      - Key Concepts: front/concepts.md
+      - Installation: front/installation.md
+      - FAQ: front/faq.md
+      - Contributing: front/contributing.md
+  - Specifications:
+      - Script Spec (quick): script_spec.md
+      - Script Spec (formal): "formal script spec.md"
+      - NeuroData & Composite: neurodata_and_composite_file_spec.md
+      - Metadata Format: metadata.md
+      - LLM Agent Facilities: llm_agent_facilities.md
+      - Restricted Mode: restricted_mode.md
+      - Spec Structure Guide: specification_structure.md
+  - NeuroData Formats:
+      - checklist.md
+      - cryptographic.md
+      - decision_table.md
+      - enum.md
+      - form.md
+      - geometry.md
+      - graph.md
+      - list.md
+      - map_literal.md
+      - map_schema.md
+      - patch.md
+      - references.md
+      - symbolic_math.md
+      - table.md
+      - templates.md
+      - tree.md
+  - Tools:
+      - Index: ns/tools/index.md        # links out to every tool spec
+  - Guides & Status:
+      - Build Guide: build.md
+      - Completed Checklist: completed.md
+plugins:
+  - search
