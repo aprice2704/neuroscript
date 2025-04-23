@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>NeuroScript – Structured scaffolding for AI reasoning</title>
+  <meta name="description" content="Author, test, and run high-level AI pipelines with readable scripts.">
+  <!-- Open Graph -->
+  <meta property="og:title" content="NeuroScript">
+  <meta property="og:description" content="Structured scaffolding for AI reasoning">
+  <meta property="og:image" content="https://neuroscript.ca/assets/og-cover.png">
+  <meta property="og:url" content="https://neuroscript.ca/">
+  <meta property="og:type" content="website">
+  <!-- Tailwind in one line -->
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-white text-gray-800">
+  <!-- Hero -->
+  <section class="flex flex-col items-center justify-center min-h-screen text-center px-6">
+    <h1 class="text-5xl font-extrabold mb-4">Build AI workflows <span class="text-blue-600">without prompt spaghetti</span></h1>
+    <p class="text-xl mb-8 max-w-2xl">NeuroScript turns messy prompt chains into clean, declarative scripts your whole team can read and version-control.</p>
+    <div class="space-x-4">
+      <a href="/docs/quickstart/" class="px-6 py-3 rounded-xl bg-blue-600 text-white font-semibold shadow">Get Started — Free</a>
+      <a href="/pricing/" class="px-6 py-3 rounded-xl border border-blue-600 text-blue-600 font-semibold">See Pricing</a>
+    </div>
+  </section>
+
+  <!-- Feature grid -->
+  <section class="py-20 bg-gray-50" id="features">
+    <div class="max-w-6xl mx-auto px-6 grid md:grid-cols-3 gap-12">
+      <div><h3 class="text-2xl font-semibold mb-2">Readable scripts</h3><p>Declarative YAML-like syntax that even product managers grok.</p></div>
+      <div><h3 class="text-2xl font-semibold mb-2">Go-friendly runtime</h3><p>Embed the engine or call it via gRPC for zero-latency inference.</p></div>
+      <div><h3 class="text-2xl font-semibold mb-2">Pluggable calls</h3><p>Drop in REST, function-calling, or native code for heavy logic.</p></div>
+    </div>
+  </section>
+
+  <!-- Contact -->
+  <section class="py-16" id="contact">
+    <div class="max-w-md mx-auto text-center">
+      <h2 class="text-3xl font-bold mb-4">Questions? Talk to us</h2>
+      <form action="https://formspree.io/f/XXXXXXXX" method="POST" class="space-y-4"><!-- Replace with your Formspree ID -->
+        <input type="email" name="_replyto" required placeholder="Email" class="w-full p-3 rounded border">
+        <textarea name="message" required placeholder="Message" rows="4" class="w-full p-3 rounded border"></textarea>
+        <button class="w-full py-3 bg-blue-600 text-white rounded font-semibold">Send</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- Google Analytics gtag -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXX"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date()); gtag('config', 'G-XXXXXXX');
+  </script>
+</body>
+</html>
