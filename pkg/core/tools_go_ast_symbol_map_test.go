@@ -41,8 +41,6 @@ func setupAmbiguousFixture(t *testing.T, rootDir string)     { /* ... implementa
 func setupNoExportedFixture(t *testing.T, rootDir string)    { /* ... implementation ... */ }
 func setupNoSubPackagesFixture(t *testing.T, rootDir string) { /* ... implementation ... */ }
 
-kjsadafjdsa  dsakjhsad;hfasdf need fix here with proper helpers
-
 // --- Test-only Manual Symbol Map Builder ---
 
 type fileInfo struct {
