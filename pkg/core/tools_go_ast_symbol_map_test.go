@@ -1,225 +1,152 @@
-// filename: pkg/core/tools_go_ast_symbol_map_test.go
+// filename: core/tools_go_ast_symbol_map_test.go
 package core
 
 import (
 	"errors"
-	"fmt"
-	"go/ast"
-	"go/parser"
-	"go/token"
+	"log" // Needed for mock interpreter logger
 	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
+	// NOTE: No longer need go/ast, go/parser, go/token for manual parsing
 )
 
 // --- Test Setup Helpers ---
 
-// Ensure writeFileHelper is defined (e.g., in tools_go_ast_package_test.go or a shared _test.go file)
+// writeFileHelper writes content to a file, failing the test on error.
 func writeFileHelper(t *testing.T, path string, content string) {
 	t.Helper()
+	// Use MkdirAll to ensure parent directories exist
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		t.Fatalf("Failed to create directory %s: %v", dir, err)
+	}
+
 	t.Logf("Writing %d bytes to: %s", len(content), path)
 	err := os.WriteFile(path, []byte(content), 0644)
 	if err != nil {
 		t.Fatalf("Failed to write file %s: %v", path, err)
 	}
-	readBytes, readErr := os.ReadFile(path)
-	if readErr != nil {
-		t.Logf("WARN: Failed to read back file %s for verification: %v", path, readErr)
-	} else {
-		snippetLen := 50
-		if len(readBytes) < snippetLen {
-			snippetLen = len(readBytes)
-		}
-		t.Logf("  -> Verified write: Read back %d bytes, start: %q", len(readBytes), string(readBytes[:snippetLen]))
-	}
+	// Optional: Read back check can be added here if needed for debugging
 }
 
-func setupBasicFixture(t *testing.T, rootDir string)         { /* ... implementation ... */ }
-func setupAmbiguousFixture(t *testing.T, rootDir string)     { /* ... implementation ... */ }
-func setupNoExportedFixture(t *testing.T, rootDir string)    { /* ... implementation ... */ }
-func setupNoSubPackagesFixture(t *testing.T, rootDir string) { /* ... implementation ... */ }
-
-// --- Test-only Manual Symbol Map Builder ---
-
-type fileInfo struct {
-	absPath   string
-	subPkgRel string
-}
-
-// buildSymbolMapManual_test mimics the symbol extraction logic of buildSymbolMap
-// but uses manual file walking and parsing instead of packages.Load.
-func buildSymbolMapManual_test(t *testing.T, refactoredPkgPath string, rootDir string) (map[string]string, error) {
+// setupBasicFixture creates a simple package structure with unique exported symbols.
+func setupBasicFixture(t *testing.T, rootDir string) {
 	t.Helper()
-	symbolMap := make(map[string]string)
-	ambiguousSymbols := make(map[string]string)
-	foundSymbols := false
-	fset := token.NewFileSet()
+	// Note: refactoredPkgPath is like "testbuildmap/original"
+	// We need to create files within rootDir/<refactoredPkgPath>/sub1 etc.
+	// buildSymbolMap expects the structure inside rootDir to match the refactoredPkgPath
+	baseDir := filepath.Join(rootDir, "testbuildmap", "original") // Directory structure inside rootDir
+	sub1Dir := filepath.Join(baseDir, "sub1")
+	sub2Dir := filepath.Join(baseDir, "sub2")
 
-	modulePrefix := ""
-	parts := strings.SplitN(refactoredPkgPath, "/", 2)
-	if len(parts) == 2 {
-		modulePrefix = parts[0] + "/"
-	}
-	relativePkgDir := strings.TrimPrefix(refactoredPkgPath, modulePrefix)
-	baseScanDir := filepath.Join(rootDir, filepath.FromSlash(relativePkgDir))
-	t.Logf("[ManualBuild] Base scan dir: %s", baseScanDir)
+	// Content for sub1
+	sub1Content := `package sub1
 
-	if _, err := os.Stat(baseScanDir); os.IsNotExist(err) {
-		return nil, fmt.Errorf("%w: base directory '%s' not found", ErrRefactoredPathNotFound, baseScanDir)
-	} else if err != nil {
-		return nil, fmt.Errorf("%w: error stating base directory '%s': %v", ErrSymbolMappingFailed, baseScanDir, err)
-	}
+import "fmt"
 
-	subDirs, err := os.ReadDir(baseScanDir)
+var ExportedVarOne = "hello"
+
+func ExportedFuncOne() {
+	fmt.Println(ExportedVarOne)
+}
+
+type internalType struct{} // Unexported
+
+func internalFunc() {} // Unexported
+`
+	writeFileHelper(t, filepath.Join(sub1Dir, "file1.go"), sub1Content)
+
+	// Content for sub2
+	sub2Content := `package sub2
+
+const ExportedConstTwo = 123
+
+type ExportedTypeTwo struct {
+	Field int
+}
+
+// Method, should be ignored by symbol map
+func (e ExportedTypeTwo) Method() {}
+
+var internalVar = 456 // Unexported
+`
+	writeFileHelper(t, filepath.Join(sub2Dir, "file2.go"), sub2Content)
+	// Add an empty file to ensure it's handled correctly
+	writeFileHelper(t, filepath.Join(sub2Dir, "empty.go"), "package sub2")
+	// Add a _test.go file to ensure it's ignored
+	writeFileHelper(t, filepath.Join(sub2Dir, "file2_test.go"), "package sub2\n\nimport \"testing\"\n\nfunc TestDummy(t *testing.T) {}")
+}
+
+// setupAmbiguousFixture creates a package structure where the same symbol is exported from multiple subpackages.
+func setupAmbiguousFixture(t *testing.T, rootDir string) {
+	t.Helper()
+	baseDir := filepath.Join(rootDir, "testbuildmap", "original")
+	sub1Dir := filepath.Join(baseDir, "sub1")
+	sub2Dir := filepath.Join(baseDir, "sub2")
+
+	// Content for sub1
+	sub1Content := `package sub1
+
+var AmbiguousVar = "from sub1"
+
+func AmbiguousFunc() {}
+`
+	writeFileHelper(t, filepath.Join(sub1Dir, "ambig1.go"), sub1Content)
+
+	// Content for sub2
+	sub2Content := `package sub2
+
+type AmbiguousVar struct{} // Same name as var in sub1, different type
+
+const AmbiguousFunc = 1 // Same name as func in sub1, different type
+`
+	writeFileHelper(t, filepath.Join(sub2Dir, "ambig2.go"), sub2Content)
+}
+
+// setupNoExportedFixture creates a package structure with only unexported symbols.
+func setupNoExportedFixture(t *testing.T, rootDir string) {
+	t.Helper()
+	baseDir := filepath.Join(rootDir, "testbuildmap", "original")
+	sub1Dir := filepath.Join(baseDir, "sub1")
+	sub2Dir := filepath.Join(baseDir, "sub2")
+
+	// Content for sub1
+	sub1Content := `package sub1
+
+var localVarOne = "hello"
+
+func localFuncOne() {}
+`
+	writeFileHelper(t, filepath.Join(sub1Dir, "local1.go"), sub1Content)
+
+	// Content for sub2
+	sub2Content := `package sub2
+
+const localConstTwo = 123
+
+type localTypeTwo struct{}
+`
+	writeFileHelper(t, filepath.Join(sub2Dir, "local2.go"), sub2Content)
+}
+
+// setupNoSubPackagesFixture creates a package directory but no subdirectories containing Go code.
+func setupNoSubPackagesFixture(t *testing.T, rootDir string) {
+	t.Helper()
+	baseDir := filepath.Join(rootDir, "testbuildmap", "original")
+	// Create the base directory, but no subdirectories with Go files
+	err := os.MkdirAll(baseDir, 0755)
 	if err != nil {
-		return nil, fmt.Errorf("%w: failed to read base directory '%s': %v", ErrSymbolMappingFailed, baseScanDir, err)
+		t.Fatalf("Failed to create dir %s: %v", baseDir, err)
 	}
-
-	// --- FIX: Replace WalkDir with nested loops ---
-	goFilesProcessedCount := 0 // Track files processed
-
-	for _, entry := range subDirs {
-		if !entry.IsDir() {
-			continue
-		}
-		subPkgName := entry.Name()
-		subDirPath := filepath.Join(baseScanDir, subPkgName)
-		canonicalPkgPath := refactoredPkgPath + "/" + subPkgName
-		t.Logf("[ManualBuild] Scanning subdir: %s for package %s", subDirPath, canonicalPkgPath)
-
-		// Read files within this specific subdirectory
-		filesInSubDir, readSubErr := os.ReadDir(subDirPath)
-		if readSubErr != nil {
-			t.Logf("[ManualBuild][WARN] Error reading subdir %s: %v", subDirPath, readSubErr)
-			continue // Skip this subdir if unreadable
-		}
-
-		for _, fileEntry := range filesInSubDir {
-			if fileEntry.IsDir() || !strings.HasSuffix(fileEntry.Name(), ".go") || strings.HasSuffix(fileEntry.Name(), "_test.go") {
-				continue
-			}
-
-			path := filepath.Join(subDirPath, fileEntry.Name())
-			t.Logf("[ManualBuild] Processing file: %s", path)
-			goFilesProcessedCount++ // Increment files processed
-
-			contentBytes, readErr := os.ReadFile(path)
-			if readErr != nil {
-				t.Logf("[ManualBuild][ERROR] Failed read %s: %v", path, readErr)
-				continue // Skip file on read error
-			}
-
-			astFile, parseErr := parser.ParseFile(fset, path, contentBytes, parser.ParseComments|parser.SkipObjectResolution)
-			if parseErr != nil {
-				t.Logf("[ManualBuild][ERROR] Failed parse %s: %v", path, parseErr)
-				continue // Skip file on parse error
-			}
-
-			t.Logf("[ManualBuild]   Inspecting AST for: %s (%d Decls)", path, len(astFile.Decls))
-			if len(astFile.Decls) == 0 {
-				t.Logf("[ManualBuild]     WARNING: No declarations found in AST for %s", path)
-			}
-
-			for i, decl := range astFile.Decls {
-				t.Logf("[ManualBuild]     Processing Decl %d: Type=%T", i, decl)
-				switch node := decl.(type) {
-				case *ast.FuncDecl:
-					if node.Recv != nil { // Skip methods
-						t.Logf("[ManualBuild]       Skipping Method: Name=%s", node.Name.Name)
-						continue
-					}
-					funcName := node.Name.Name
-					isExported := node.Name.IsExported()
-					t.Logf("[ManualBuild]       FuncDecl: Name=%s, IsExported=%v", funcName, isExported)
-					if isExported {
-						t.Logf("[ManualBuild]         -> Adding FuncDecl to map: %s -> %s", funcName, canonicalPkgPath)
-						foundSymbols = true
-						if existingPath, exists := symbolMap[funcName]; exists && existingPath != canonicalPkgPath {
-							t.Logf("[ManualBuild]           AMBIGUITY DETECTED for %s", funcName)
-							ambiguousSymbols[funcName] = fmt.Sprintf("found in %s and %s", existingPath, canonicalPkgPath)
-						} else if !exists {
-							symbolMap[funcName] = canonicalPkgPath
-							if _, actuallyAdded := symbolMap[funcName]; actuallyAdded {
-								t.Logf("[ManualBuild]           VERIFIED map contains %s", funcName)
-							} else {
-								t.Logf("[ManualBuild]           ERROR: map assignment FAILED for FuncDecl %s", funcName)
-							}
-						}
-					}
-				case *ast.GenDecl:
-					t.Logf("[ManualBuild]       GenDecl: Tok=%s, Specs=%d", node.Tok, len(node.Specs))
-					for j, spec := range node.Specs {
-						t.Logf("[ManualBuild]         Processing Spec %d: Type=%T", j, spec)
-						switch s := spec.(type) {
-						case *ast.TypeSpec:
-							typeName := s.Name.Name
-							isExported := s.Name.IsExported()
-							t.Logf("[ManualBuild]           TypeSpec: Name=%s, IsExported=%v", typeName, isExported)
-							if isExported {
-								t.Logf("[ManualBuild]             -> Adding TypeSpec to map: %s -> %s", typeName, canonicalPkgPath)
-								foundSymbols = true
-								if existingPath, exists := symbolMap[typeName]; exists && existingPath != canonicalPkgPath {
-									t.Logf("[ManualBuild]           AMBIGUITY DETECTED for %s", typeName)
-									ambiguousSymbols[typeName] = fmt.Sprintf("found in %s and %s", existingPath, canonicalPkgPath)
-								} else if !exists {
-									symbolMap[typeName] = canonicalPkgPath
-									if _, actuallyAdded := symbolMap[typeName]; actuallyAdded {
-										t.Logf("[ManualBuild]             VERIFIED map contains %s", typeName)
-									} else {
-										t.Logf("[ManualBuild]             ERROR: map assignment FAILED for TypeSpec %s", typeName)
-									}
-								}
-							}
-						case *ast.ValueSpec:
-							t.Logf("[ManualBuild]           ValueSpec: Names=%d", len(s.Names))
-							for k, name := range s.Names {
-								valueName := name.Name
-								isExported := name.IsExported()
-								t.Logf("[ManualBuild]             ValueSpec Name %d: Name=%s, IsExported=%v (Parent Tok: %s)", k, valueName, isExported, node.Tok)
-								if isExported {
-									t.Logf("[ManualBuild]               -> Adding ValueSpec Name to map: %s -> %s", valueName, canonicalPkgPath)
-									foundSymbols = true
-									if existingPath, exists := symbolMap[valueName]; exists && existingPath != canonicalPkgPath {
-										t.Logf("[ManualBuild]           AMBIGUITY DETECTED for %s", valueName)
-										ambiguousSymbols[valueName] = fmt.Sprintf("found in %s and %s", existingPath, canonicalPkgPath)
-									} else if !exists {
-										symbolMap[valueName] = canonicalPkgPath
-										if _, actuallyAdded := symbolMap[valueName]; actuallyAdded {
-											t.Logf("[ManualBuild]               VERIFIED map contains %s", valueName)
-										} else {
-											t.Logf("[ManualBuild]               ERROR: map assignment FAILED for ValueSpec %s", valueName)
-										}
-									}
-								}
-							}
-						default:
-							t.Logf("[ManualBuild]         Found other Spec type: %T", s)
-						}
-					}
-				default:
-					t.Logf("[ManualBuild]     Found other Decl type: %T", node)
-				}
-			} // end loop decls
-		} // end loop filesInSubDir
-	} // end loop subDirs
-	// --- END FIX ---
-
-	if len(ambiguousSymbols) > 0 {
-		errorList := []string{}
-		for symbol, locations := range ambiguousSymbols {
-			errorList = append(errorList, fmt.Sprintf("symbol '%s' (%s)", symbol, locations))
-		}
-		errMsg := fmt.Sprintf("ambiguous exported symbols found: %s", strings.Join(errorList, "; "))
-		t.Logf("[ManualBuild][ERROR] %s", errMsg)
-		return nil, fmt.Errorf("%w: %s", ErrSymbolMappingFailed, errMsg)
+	// Optionally add an empty directory or a directory with non-Go files
+	emptySubDir := filepath.Join(baseDir, "empty")
+	err = os.Mkdir(emptySubDir, 0755)
+	if err != nil {
+		t.Fatalf("Failed to create dir %s: %v", emptySubDir, err)
 	}
-	if !foundSymbols && goFilesProcessedCount > 0 { // Check processed count instead of goFilesToLoad slice
-		t.Logf("[ManualBuild] No exported symbols found during inspection.")
-	}
-	t.Logf("[ManualBuild] Finished building map. Symbols found: %d", len(symbolMap))
-	return symbolMap, nil
+	writeFileHelper(t, filepath.Join(emptySubDir, "readme.txt"), "This is not a go file")
 }
 
 // --- Test Function ---
@@ -228,9 +155,9 @@ func TestBuildSymbolMapLogic(t *testing.T) {
 	testCases := []struct {
 		name              string
 		fixtureSetupFunc  func(t *testing.T, rootDir string)
-		refactoredPkgPath string
+		refactoredPkgPath string // The simulated original package path
 		expectedMap       map[string]string
-		expectedErrorIs   error
+		expectedErrorIs   error // Use errors.Is for comparison
 	}{
 		{
 			name:              "Basic case with multiple types",
@@ -249,28 +176,28 @@ func TestBuildSymbolMapLogic(t *testing.T) {
 			fixtureSetupFunc:  setupAmbiguousFixture,
 			refactoredPkgPath: "testbuildmap/original",
 			expectedMap:       nil,
-			expectedErrorIs:   ErrSymbolMappingFailed,
+			expectedErrorIs:   ErrSymbolMappingFailed, // Expecting the wrapped error
 		},
 		{
 			name:              "No exported symbols in subpackages",
 			fixtureSetupFunc:  setupNoExportedFixture,
 			refactoredPkgPath: "testbuildmap/original",
-			expectedMap:       map[string]string{},
+			expectedMap:       map[string]string{}, // Expect an empty map
 			expectedErrorIs:   nil,
 		},
 		{
 			name:              "No subpackages with go code",
 			fixtureSetupFunc:  setupNoSubPackagesFixture,
 			refactoredPkgPath: "testbuildmap/original",
-			expectedMap:       map[string]string{},
+			expectedMap:       map[string]string{}, // Expect an empty map
 			expectedErrorIs:   nil,
 		},
 		{
 			name:              "Original package path does not exist",
-			fixtureSetupFunc:  setupBasicFixture,
+			fixtureSetupFunc:  setupBasicFixture, // Fixture doesn't matter, path check is first
 			refactoredPkgPath: "testbuildmap/nonexistent",
 			expectedMap:       nil,
-			expectedErrorIs:   ErrRefactoredPathNotFound,
+			expectedErrorIs:   ErrRefactoredPathNotFound, // Expecting the specific error
 		},
 	}
 
@@ -278,24 +205,47 @@ func TestBuildSymbolMapLogic(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			rootDir := t.TempDir()
 			t.Logf("Test rootDir: %s", rootDir)
-			tc.fixtureSetupFunc(t, rootDir)
-			actualMap, err := buildSymbolMapManual_test(t, tc.refactoredPkgPath, rootDir)
 
-			// Assertions remain the same
+			// Create the necessary file structure within the temp dir
+			tc.fixtureSetupFunc(t, rootDir)
+
+			// Create a minimal interpreter for the test
+			// Use t.Logf for logging within the function being tested
+			mockLogger := log.New(testWriter{t}, "", log.LstdFlags)
+			interp := &Interpreter{
+				logger:     mockLogger,
+				sandboxDir: rootDir, // buildSymbolMap expects files relative to sandboxDir
+				// Other fields can be zero/nil for this test
+			}
+
+			// Call the ACTUAL function being tested
+			actualMap, err := buildSymbolMap(tc.refactoredPkgPath, interp)
+
+			// --- Assertions ---
 			if tc.expectedErrorIs != nil {
 				if err == nil {
-					t.Errorf("Expected error matching '%v', but got nil error", tc.expectedErrorIs)
+					t.Errorf("Expected error wrapping '%v', but got nil error", tc.expectedErrorIs)
 				} else if !errors.Is(err, tc.expectedErrorIs) {
-					if !strings.Contains(err.Error(), tc.expectedErrorIs.Error()) {
-						t.Errorf("Expected error matching '%v' or containing its text, but got error: %v (type %T)", tc.expectedErrorIs, err, err)
+					// Check if the error message contains the expected error string for more flexibility
+					// This helps if the error is wrapped multiple times or formatted differently.
+					expectedErrStr := tc.expectedErrorIs.Error()
+					if !strings.Contains(err.Error(), expectedErrStr) {
+						t.Errorf("Expected error wrapping '%v' or containing its text, but got error: %v (type %T)", tc.expectedErrorIs, err, err)
+					} else {
+						t.Logf("Got expected error type/text: %v", err) // Log success for clarity
 					}
+				} else {
+					t.Logf("Got expected error type via errors.Is: %v", err) // Log success for clarity
 				}
-			} else {
+				// If error was expected, map content doesn't matter as much, but check it's nil/empty
+				if actualMap != nil && len(actualMap) > 0 {
+					t.Errorf("Expected nil or empty map when error occurred, but got: %v", actualMap)
+				}
+			} else { // No error expected
 				if err != nil {
 					t.Errorf("Did not expect error, but got: %v", err)
 				}
-			}
-			if tc.expectedErrorIs == nil && err == nil {
+				// Check map equality only if no error was expected and none occurred
 				if !reflect.DeepEqual(actualMap, tc.expectedMap) {
 					t.Errorf("Returned map does not match expected.\nExpected: %v\nGot:      %v", tc.expectedMap, actualMap)
 				}
@@ -303,3 +253,20 @@ func TestBuildSymbolMapLogic(t *testing.T) {
 		})
 	}
 }
+
+// testWriter is a helper to redirect log output to t.Logf
+type testWriter struct {
+	t *testing.T
+}
+
+// func (tw testWriter) Write(p []byte) (n int, err error) {
+// 	tw.t.Logf("%s", p)
+// 	return len(p), nil
+// }
+
+// Ensure buildSymbolMap and required error variables are defined in core package
+var (
+	_ = buildSymbolMap // Reference to ensure it exists
+	_ = ErrSymbolMappingFailed
+	_ = ErrRefactoredPathNotFound
+)

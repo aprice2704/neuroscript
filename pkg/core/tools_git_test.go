@@ -1,15 +1,14 @@
-// filename: pkg/core/tools_git_test.go
-// NEW: Basic validation tests for new Git tools
-// FIXED: Corrected ValidationTestCase field names (Name, InputArgs, ExpectedError)
-// ADDED: Validation test for GitPull, GitPush, GitDiff
+// filename: core/tools_git_test.go
 package core
 
 import (
 	"errors"
+	// NOTE: strings package no longer needed here
 	"testing"
 )
 
 // Helper to run validation checks (similar to other test files)
+// Uses only errors.Is for checking expected errors.
 func runValidationTestCases(t *testing.T, toolName string, testCases []ValidationTestCase) {
 	t.Helper()
 	interp, _ := newDefaultTestInterpreter(t) // Basic interpreter for validation context
@@ -24,6 +23,7 @@ func runValidationTestCases(t *testing.T, toolName string, testCases []Validatio
 		t.Run(tc.Name, func(t *testing.T) {
 			// Use tc.InputArgs from the struct field
 			_, err := ValidateAndConvertArgs(spec, tc.InputArgs)
+
 			// Use tc.ExpectedError from the struct field
 			if tc.ExpectedError != nil {
 				if err == nil {
@@ -31,7 +31,10 @@ func runValidationTestCases(t *testing.T, toolName string, testCases []Validatio
 					t.Errorf("Expected error [%v], got nil", tc.ExpectedError)
 				} else if !errors.Is(err, tc.ExpectedError) {
 					// Use tc.ExpectedError in the error message
-					t.Errorf("Expected error type [%T], got [%T]: %v", tc.ExpectedError, err, err)
+					// Check only errors.Is - if this fails, the wrapping or expected error is wrong.
+					t.Errorf("Expected error wrapping [%v], but errors.Is is false. Got error: [%T] %v", tc.ExpectedError, err, err)
+				} else {
+					t.Logf("Got expected error type via errors.Is: %v", err) // Log success for clarity
 				}
 			} else if err != nil {
 				t.Errorf("Unexpected validation error: %v", err)
@@ -123,3 +126,13 @@ func TestToolGitDiffValidation(t *testing.T) {
 }
 
 // TODO: Add functional tests for Git tools, likely requiring mocking of toolExec or a test repo setup.
+
+// Ensure required error variables are defined
+var (
+	_ = ErrValidationArgCount
+	_ = ErrValidationRequiredArgNil
+	_ = ErrValidationTypeMismatch
+)
+
+// Ensure makeArgs is available (implicitly via testing_helpers_test.go)
+var _ = makeArgs

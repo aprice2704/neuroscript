@@ -2,290 +2,387 @@
 package core
 
 import (
+	"errors"
 	"fmt"
 	"go/ast"
 	"go/format"
-	"go/token" // Need types
+	"go/parser"
+	"go/token"
+	"io/fs"
 	"os"
-	"path/filepath"
-	"strings"
 
-	"golang.org/x/tools/go/ast/astutil"
-	"golang.org/x/tools/go/packages"
+	// "os/exec" // Keep commented unless needed
+	"path/filepath" // Still needed by other parts of the file
+	"strings"
+	// Removed astutil import if only used by the moved function
+	// "golang.org/x/tools/go/ast/astutil"
 )
 
-// toolGoUpdateImportsForMovedPackage Tool - Uses type checking via go/packages.
+const packageToolDebugVersion = "v6d_AST_IMPORTS_HELPER_MOVED" // Incremented version
+
+// analyzeImportsAndSymbols identifies if the old import exists and which new imports are needed
+// based on symbol usage.
+func analyzeImportsAndSymbols(astFile *ast.File, fset *token.FileSet, oldPath string, symbolMap map[string]string) (bool, map[string]string, error) {
+	// (Content of function remains the same)
+	needsMod := false
+	oldImportAliasOrName := "" // Store the alias or package name used for the old import
+	oldImportFound := false
+	requiredNewImports := make(map[string]string) // New path -> ""
+
+	// First pass: Check if the old import exists and find its alias/name
+	for _, impSpec := range astFile.Imports {
+		if impSpec.Path != nil && strings.Trim(impSpec.Path.Value, `"`) == oldPath {
+			oldImportFound = true
+			if impSpec.Name != nil {
+				oldImportAliasOrName = impSpec.Name.Name
+			} else {
+				// If no alias, infer package name from path (simplified)
+				parts := strings.Split(oldPath, "/")
+				if len(parts) > 0 {
+					oldImportAliasOrName = parts[len(parts)-1]
+				} else {
+					oldImportAliasOrName = oldPath // Fallback
+				}
+
+			}
+			break // Found the import
+		}
+	}
+
+	if !oldImportFound {
+		return false, nil, nil // No modification needed if old import isn't present
+	}
+
+	// Second pass: Find usages of symbols potentially from the old package
+	ast.Inspect(astFile, func(node ast.Node) bool {
+		selExpr, ok := node.(*ast.SelectorExpr)
+		if !ok {
+			return true // Continue inspecting other nodes
+		}
+
+		// Check if the expression uses the alias/name of the old package
+		ident, ok := selExpr.X.(*ast.Ident)
+		if !ok || ident.Name != oldImportAliasOrName {
+			return true // Not accessing via the old package import, continue
+		}
+
+		// Check if the selected symbol is one that was moved
+		symbolName := selExpr.Sel.Name
+		if newPath, exists := symbolMap[symbolName]; exists {
+			// Found a symbol from the old package that has moved!
+			needsMod = true                  // Mark file for modification
+			requiredNewImports[newPath] = "" // Add the new path requirement
+		}
+		// Don't traverse deeper into SelectorExpr
+		return false // Stop descent here
+	})
+
+	if !needsMod {
+		// Old import exists, but no relevant symbols found/used
+		return false, nil, nil
+	}
+
+	return needsMod, requiredNewImports, nil
+}
+
+// --- applyAstImportChanges REMOVED from this file ---
+
+// toolGoUpdateImportsForMovedPackage Tool - Uses AST analysis only.
 func toolGoUpdateImportsForMovedPackage(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	interpreter.logger.Printf("[TOOL GoUpdateImportsForMovedPackage ENTRY] Received args: %v", args)
+	// (Function body remains the same as previous version, but ensure the call
+	// to applyAstImportChanges is correct - it should not have changed)
+	logPrefix := fmt.Sprintf("[TOOL GoUpdateImports %s]", packageToolDebugVersion)
+	interpreter.logger.Printf("%s ENTRY] Received args: %v", logPrefix, args)
 
 	// --- Argument Validation ---
 	if len(args) != 2 {
-		return nil, fmt.Errorf("GoUpdateImportsForMovedPackage: %w", ErrValidationArgCount)
+		return nil, fmt.Errorf("%w: GoUpdateImportsForMovedPackage requires exactly 2 arguments (refactored_package_path, scan_scope)", ErrValidationArgCount)
 	}
 	refactoredPkgPath, ok := args[0].(string)
-	if !ok {
-		return nil, fmt.Errorf("GoUpdateImportsForMovedPackage: refactored_package_path %w", ErrValidationTypeMismatch)
-	}
-	if refactoredPkgPath == "" {
-		return nil, fmt.Errorf("GoUpdateImportsForMovedPackage: refactored_package_path %w", ErrValidationRequiredArgNil)
+	if !ok || refactoredPkgPath == "" {
+		return nil, fmt.Errorf("%w: GoUpdateImportsForMovedPackage: refactored_package_path must be a non-empty string", ErrValidationArgValue)
 	}
 	scanScope, ok := args[1].(string)
-	if !ok {
-		return nil, fmt.Errorf("GoUpdateImportsForMovedPackage: scan_scope %w", ErrValidationTypeMismatch)
+	if !ok || scanScope == "" {
+		return nil, fmt.Errorf("%w: GoUpdateImportsForMovedPackage: scan_scope must be a non-empty string", ErrValidationArgValue)
 	}
-	if scanScope == "" {
-		return nil, fmt.Errorf("GoUpdateImportsForMovedPackage: scan_scope %w", ErrValidationRequiredArgNil)
-	}
-	interpreter.logger.Printf("[TOOL GoUpdateImportsForMovedPackage] Validated args: refactored_package_path='%s', scan_scope='%s'", refactoredPkgPath, scanScope)
+	interpreter.logger.Printf("%s Validated args: refactored_package_path='%s', scan_scope='%s'", logPrefix, refactoredPkgPath, scanScope)
 
 	// --- Security Validation ---
 	sandboxRoot := interpreter.sandboxDir
 	if sandboxRoot == "" {
-		sandboxRoot = "."
+		return map[string]interface{}{"error": "Interpreter sandbox directory is not set"}, nil
 	}
 	validatedScanScope, scopeErr := SecureFilePath(scanScope, sandboxRoot)
 	if scopeErr != nil {
 		errMsg := fmt.Sprintf("scan_scope validation failed: %s", scopeErr.Error())
-		interpreter.logger.Printf("[ERROR GoUpdateImportsForMovedPackage] %s", errMsg)
+		interpreter.logger.Printf("%s [ERROR] %s", logPrefix, errMsg)
 		return map[string]interface{}{"error": errMsg}, nil
 	}
-	interpreter.logger.Printf("[TOOL GoUpdateImportsForMovedPackage] Validated scan scope: '%s'", validatedScanScope)
+	interpreter.logger.Printf("%s Validated scan scope (absolute): '%s'", logPrefix, validatedScanScope)
 
 	// --- Initialize Results & Shared State ---
-	modifiedFiles := []string{}
-	skippedFiles := make(map[string]string)
-	failedFiles := make(map[string]string)
-	var topLevelError string
+	modifiedFilesList := []string{}
+	skippedFilesMap := make(map[string]string)
+	failedFilesMap := make(map[string]string)
+	var topLevelError error
 	fset := token.NewFileSet()
 
 	// --- Build Symbol Map ---
-	// Pass interpreter which now contains sandboxDir needed by buildSymbolMap
+	interpreter.logger.Printf("%s === Calling buildSymbolMap (Manual) ===", logPrefix)
 	symbolMap, err := buildSymbolMap(refactoredPkgPath, interpreter)
+	interpreter.logger.Printf("%s === buildSymbolMap returned ===", logPrefix)
 	if err != nil {
-		topLevelError = fmt.Sprintf("Failed to build symbol map: %v", err)
-		interpreter.logger.Printf("[ERROR GoUpdateImportsForMovedPackage] %s", topLevelError)
-		return map[string]interface{}{"error": topLevelError}, nil
+		errMsg := ""
+		if errors.Is(err, ErrRefactoredPathNotFound) {
+			errMsg = fmt.Sprintf("cannot update imports: the refactored package path '%s' does not exist or is not accessible within the sandbox", refactoredPkgPath)
+		} else {
+			errMsg = fmt.Sprintf("failed to build symbol map for '%s': %v", refactoredPkgPath, err)
+		}
+		topLevelError = errors.New(errMsg)
+		interpreter.logger.Printf("%s [ERROR] %s", logPrefix, topLevelError.Error())
+		return map[string]interface{}{
+			"modified_files": []interface{}{},
+			"skipped_files":  map[string]interface{}{},
+			"failed_files":   map[string]interface{}{},
+			"error":          topLevelError.Error(),
+		}, nil
 	}
-	interpreter.logger.Printf("[TOOL GoUpdateImportsForMovedPackage] Symbol map built. Size: %d", len(symbolMap))
+	interpreter.logger.Printf("%s Symbol map built successfully. Size: %d", logPrefix, len(symbolMap))
 	if len(symbolMap) == 0 {
-		interpreter.logger.Printf("[WARN GoUpdateImportsForMovedPackage] Symbol map is empty. No symbols found in refactored sub-packages.")
+		interpreter.logger.Printf("%s [INFO] Symbol map is empty for '%s'. No files needed modification.", logPrefix, refactoredPkgPath)
+		return map[string]interface{}{
+			"modified_files": []interface{}{},
+			"skipped_files":  map[string]interface{}{},
+			"failed_files":   map[string]interface{}{},
+			"error":          nil,
+			"message":        fmt.Sprintf("No exported symbols found in sub-packages of '%s'. No files needed modification.", refactoredPkgPath),
+		}, nil
 	}
 
-	// --- FIX: Determine Refactored Package Dir for Exclusion (No helper needed) ---
-	// We need the relative path part of the import path to join with the scan scope.
-	// Assumes refactoredPkgPath is like "module/path/to/package"
-	// TODO: Robustly get module path instead of assuming structure/hardcoding.
-	// For test fixtures (module testtool), we strip "testtool/".
-	// A better way might be needed for real projects.
-	modulePrefix := ""
-	// Attempt to get module path - could run 'go list -m'
-	// For now, assume standard structure or known prefix based on context
-	parts := strings.SplitN(refactoredPkgPath, "/", 2)
-	if len(parts) == 2 { // Assuming first part is module path
-		modulePrefix = parts[0] + "/"
-	} else {
-		interpreter.logger.Printf("[WARN GoUpdateImportsForMovedPackage] Could not determine module prefix from '%s'. Exclusion logic might be inaccurate.", refactoredPkgPath)
-	}
-	relativePkgDir := strings.TrimPrefix(refactoredPkgPath, modulePrefix)
-	if relativePkgDir == "" && modulePrefix != "" {
-		interpreter.logger.Printf("[WARN GoUpdateImportsForMovedPackage] Relative package directory is empty after stripping module prefix from '%s'. Exclusion logic might be inaccurate.", refactoredPkgPath)
-		// Use the original path fragment if stripping failed unexpectedly
-		relativePkgDir = filepath.Base(refactoredPkgPath)
-	}
-
-	refactoredDirAbs := filepath.Join(validatedScanScope, filepath.FromSlash(relativePkgDir))
-	interpreter.logger.Printf("[TOOL GoUpdateImportsForMovedPackage] Calculated refactored dir path for exclusion: '%s'", refactoredDirAbs)
-	// --- END FIX ---
+	// --- Determine Refactored Package Dir for Exclusion ---
+	refactoredDirAbs := filepath.Join(sandboxRoot, filepath.FromSlash(refactoredPkgPath))
+	interpreter.logger.Printf("%s Calculated refactored dir path (absolute): '%s'", logPrefix, refactoredDirAbs)
 
 	// --- Step 1: Collect target Go file paths ---
-	goFilePaths := []string{}
-	interpreter.logger.Printf("[TOOL GoUpdateImportsForMovedPackage] Starting file walk to collect .go files in '%s'", validatedScanScope)
-	walkErr := filepath.WalkDir(validatedScanScope, func(path string, d os.DirEntry, walkErrInCb error) error {
-		// (Walk logic remains the same as before)
-		if walkErrInCb != nil {
-			interpreter.logger.Printf("[WARN GoUpdateImportsForMovedPackage] Error accessing path %q during collection: %v", path, walkErrInCb)
-			if d != nil && d.IsDir() {
-				return filepath.SkipDir
-			}
-			return nil
-		}
-		if d.IsDir() {
-			name := d.Name()
-			if name == "vendor" || name == ".git" || name == "testdata" {
-				return filepath.SkipDir
-			}
-			cleanedPath := filepath.Clean(path)
-			cleanedRefactoredDir := filepath.Clean(refactoredDirAbs)
-			// Ensure we compare absolute paths if possible, or consistently relative
-			if strings.HasPrefix(cleanedPath, cleanedRefactoredDir) {
-				interpreter.logger.Printf("[TOOL GoUpdateImportsForMovedPackage] Skipping directory within refactored scope: %s", path)
-				return filepath.SkipDir
-			}
-			return nil
-		}
-		if !strings.HasSuffix(d.Name(), ".go") || strings.HasSuffix(d.Name(), "_test.go") {
-			return nil
-		}
-		absPath, pathErr := filepath.Abs(path)
-		if pathErr != nil {
-			interpreter.logger.Printf("[WARN GoUpdateImportsForMovedPackage] Failed to get absolute path for %s: %v. Skipping.", path, pathErr)
-			return nil
-		}
-		goFilePaths = append(goFilePaths, absPath)
-		return nil
-	})
+	goFilePaths, walkErr := collectGoFiles(validatedScanScope, refactoredDirAbs, interpreter)
 	if walkErr != nil {
-		topLevelError = fmt.Sprintf("File collection walk failed: %v", walkErr)
-		interpreter.logger.Printf("[ERROR GoUpdateImportsForMovedPackage] %s", topLevelError)
-		return map[string]interface{}{"error": topLevelError}, nil
+		topLevelError = fmt.Errorf("file collection failed: %w", walkErr)
+		interpreter.logger.Printf("%s [ERROR] %s", logPrefix, topLevelError.Error())
+		return map[string]interface{}{
+			"modified_files": []interface{}{},
+			"skipped_files":  map[string]interface{}{},
+			"failed_files":   map[string]interface{}{},
+			"error":          topLevelError.Error(),
+		}, nil
 	}
-	interpreter.logger.Printf("[TOOL GoUpdateImportsForMovedPackage] Collected %d potentially relevant Go files.", len(goFilePaths))
+	interpreter.logger.Printf("%s Collected %d potentially relevant Go files.", logPrefix, len(goFilePaths))
 	if len(goFilePaths) == 0 {
-		interpreter.logger.Printf("[TOOL GoUpdateImportsForMovedPackage] No .go files found in scan scope. Exiting.")
-		return map[string]interface{}{}, nil
+		interpreter.logger.Printf("%s No .go files found in scan scope to analyze. Exiting.", logPrefix)
+		return map[string]interface{}{
+			"modified_files": []interface{}{},
+			"skipped_files":  map[string]interface{}{},
+			"failed_files":   map[string]interface{}{},
+			"error":          nil,
+			"message":        "No Go files found in the specified scan_scope (excluding the refactored package directory).",
+		}, nil
 	}
 
-	// --- Step 2: Load packages with type information ---
-	// (Loading logic remains the same as before)
-	interpreter.logger.Printf("[TOOL GoUpdateImportsForMovedPackage] Loading packages for analysis...")
-	cfg := &packages.Config{Mode: packages.NeedName | packages.NeedFiles | packages.NeedSyntax | packages.NeedTypes | packages.NeedTypesInfo, Fset: fset, Dir: validatedScanScope}
-	loadPatterns := make([]string, 0, len(goFilePaths))
-	for _, p := range goFilePaths {
-		loadPatterns = append(loadPatterns, "file="+p)
-	}
-	pkgs, loadErr := packages.Load(cfg, loadPatterns...)
-	if loadErr != nil {
-		topLevelError = fmt.Sprintf("Failed to load packages: %v", loadErr)
-		interpreter.logger.Printf("[ERROR GoUpdateImportsForMovedPackage] %s", topLevelError)
-		return map[string]interface{}{"error": topLevelError}, nil
-	}
-	loadErrors := []string{}
-	packages.Visit(pkgs, nil, func(pkg *packages.Package) {
-		for _, err := range pkg.Errors {
-			loadErrors = append(loadErrors, fmt.Sprintf("file=%s: %v", pkg.ID, err))
+	// --- Step 2: Parse target files and analyze AST ---
+	interpreter.logger.Printf("%s === Parsing and Analyzing Files (AST ONLY) ===", logPrefix)
+	for _, filePath := range goFilePaths {
+		relPath, relErr := filepath.Rel(sandboxRoot, filePath)
+		if relErr != nil {
+			interpreter.logger.Printf("%s [WARN] Could not make path relative '%s': %v. Using absolute path.", logPrefix, filePath, relErr)
+			relPath = filePath
 		}
-	})
-	if len(loadErrors) > 0 {
-		topLevelError = fmt.Sprintf("errors encountered loading packages: %s", strings.Join(loadErrors, "; "))
-		interpreter.logger.Printf("[ERROR GoUpdateImportsForMovedPackage] %s", topLevelError)
-		return map[string]interface{}{"error": topLevelError}, nil
-	}
-	interpreter.logger.Printf("[TOOL GoUpdateImportsForMovedPackage] Successfully loaded %d package(s) for analysis.", len(pkgs))
+		relPathSlash := filepath.ToSlash(relPath)
+		interpreter.logger.Printf("%s Processing file: %s", logPrefix, relPathSlash)
 
-	// --- Step 3: Process loaded packages/files ---
-	// (Processing logic remains the same as before)
-	processedFiles := make(map[string]bool)
-	for _, pkg := range pkgs {
-		interpreter.logger.Printf("[TOOL GoUpdateImportsForMovedPackage] Processing package: %s", pkg.ID) // Use pkg.ID which might be file path
-		typesInfo := pkg.TypesInfo
-		if typesInfo == nil {
-			interpreter.logger.Printf("[WARN GoUpdateImportsForMovedPackage] TypesInfo is nil for package %s. Skipping analysis for files in this package.", pkg.ID)
-			for _, astFile := range pkg.Syntax {
-				filePath := fset.Position(astFile.Pos()).Filename
-				if !processedFiles[filePath] {
-					failedFiles[filePath] = "Failed to get type information for analysis"
-					processedFiles[filePath] = true
-				}
-			}
+		// Parse the file
+		astFile, parseErr := parser.ParseFile(fset, filePath, nil, parser.ParseComments)
+		if parseErr != nil {
+			failReason := fmt.Sprintf("Failed to parse file: %v", parseErr)
+			failedFilesMap[relPathSlash] = failReason
+			interpreter.logger.Printf("%s [ERROR] %s: %s", logPrefix, failReason, relPathSlash)
 			continue
 		}
-		for _, astFile := range pkg.Syntax {
-			tokenFile := fset.File(astFile.Pos())
-			if tokenFile == nil {
-				interpreter.logger.Printf("[WARN GoUpdateImportsForMovedPackage] Could not get file info from token.Pos for AST node in package %s. Skipping.", pkg.ID)
-				continue
-			}
-			filePath := tokenFile.Name()
-			if processedFiles[filePath] {
-				continue
-			}
-			processedFiles[filePath] = true
-			interpreter.logger.Printf("[TOOL GoUpdateImportsForMovedPackage] Analyzing file: %s", filePath)
-			needsMod, requiredNewImports, analysisErr := analyzeImportsAndSymbols(astFile, fset, refactoredPkgPath, symbolMap, typesInfo)
-			if analysisErr != nil {
-				failReason := fmt.Sprintf("Analysis failed: %v", analysisErr)
-				failedFiles[filePath] = failReason
-				interpreter.logger.Printf("[ERROR GoUpdateImportsForMovedPackage] Failed analysis for '%s': %s", filePath, failReason)
-				continue
-			}
-			if !needsMod {
-				importExists := false
-				astutil.Apply(astFile, func(c *astutil.Cursor) bool {
-					if impSpec, ok := c.Node().(*ast.ImportSpec); ok {
-						if strings.Trim(impSpec.Path.Value, `"`) == refactoredPkgPath {
-							importExists = true
-							return false
-						}
-					}
-					return true
-				}, nil)
-				if !importExists {
-					skippedFiles[filePath] = "Original package not imported"
-				} else {
-					skippedFiles[filePath] = "Original package imported, but no relevant symbols found/mapped"
-				}
-				interpreter.logger.Printf("[TOOL GoUpdateImportsForMovedPackage] Skipped '%s': %s", filePath, skippedFiles[filePath])
-				continue
-			}
-			modifyErr := applyAstImportChanges(fset, astFile, refactoredPkgPath, requiredNewImports)
+
+		// Analyze imports and symbols
+		interpreter.logger.Printf("%s Analyzing file: %s", logPrefix, relPathSlash)
+		needsMod, requiredNewImports, analysisErr := analyzeImportsAndSymbols(astFile, fset, refactoredPkgPath, symbolMap)
+		if analysisErr != nil {
+			failReason := fmt.Sprintf("Analysis failed: %v", analysisErr)
+			failedFilesMap[relPathSlash] = failReason
+			interpreter.logger.Printf("%s [ERROR] Failed analysis for '%s': %s", logPrefix, relPathSlash, failReason)
+			continue
+		}
+
+		if needsMod {
+			// Apply changes using the function now in the helpers file
+			modifyErr := applyAstImportChanges(fset, astFile, refactoredPkgPath, requiredNewImports) // This call assumes applyAstImportChanges is accessible
 			if modifyErr != nil {
 				failReason := fmt.Sprintf("Failed to apply AST import changes: %v", modifyErr)
-				failedFiles[filePath] = failReason
-				interpreter.logger.Printf("[ERROR GoUpdateImportsForMovedPackage] Failed AST modification for '%s': %s", filePath, failReason)
+				failedFilesMap[relPathSlash] = failReason
+				interpreter.logger.Printf("%s [ERROR] Failed AST modification for '%s': %s", logPrefix, relPathSlash, failReason)
 				continue
 			}
+
+			// Format and write back
 			var buf strings.Builder
 			formatErr := format.Node(&buf, fset, astFile)
 			if formatErr != nil {
 				failReason := fmt.Sprintf("Failed to format modified AST: %v", formatErr)
-				failedFiles[filePath] = failReason
-				interpreter.logger.Printf("[ERROR GoUpdateImportsForMovedPackage] Failed formatting for '%s': %s", filePath, failReason)
+				failedFilesMap[relPathSlash] = failReason
+				interpreter.logger.Printf("%s [ERROR] Failed formatting for '%s': %s", logPrefix, relPathSlash, failReason)
 				continue
 			}
-			formattedCode := buf.String()
+
+			// Write file
 			info, statErr := os.Stat(filePath)
 			perm := os.FileMode(0644)
 			if statErr == nil {
 				perm = info.Mode().Perm()
 			} else {
-				interpreter.logger.Printf("[WARN GoUpdateImportsForMovedPackage] Could not stat original file '%s': %v. Using default 0644.", filePath, statErr)
+				interpreter.logger.Printf("%s [WARN] Could not stat original file '%s' to get permissions: %v. Using default 0644.", logPrefix, filePath, statErr)
 			}
-			// Convert absolute path back to relative for reporting
-			relPath, relErr := filepath.Rel(validatedScanScope, filePath)
-			if relErr != nil {
-				interpreter.logger.Printf("[WARN GoUpdateImportsForMovedPackage] Could not get relative path for reporting modified file %s: %v", filePath, relErr)
-				relPath = filePath // Use absolute path if relativization fails
-			}
-			writeErr := os.WriteFile(filePath, []byte(formattedCode), perm)
+			writeErr := os.WriteFile(filePath, []byte(buf.String()), perm)
 			if writeErr != nil {
 				failReason := fmt.Sprintf("Failed to write modified file: %v", writeErr)
-				failedFiles[relPath] = failReason
-				interpreter.logger.Printf("[ERROR GoUpdateImportsForMovedPackage] Failed writing '%s': %s", relPath, failReason)
+				failedFilesMap[relPathSlash] = failReason
+				interpreter.logger.Printf("%s [ERROR] Failed writing '%s': %s", logPrefix, relPathSlash, failReason)
 			} else {
-				modifiedFiles = append(modifiedFiles, relPath)
-				interpreter.logger.Printf("[TOOL GoUpdateImportsForMovedPackage] Successfully modified and wrote file '%s'", relPath)
+				modifiedFilesList = append(modifiedFilesList, relPathSlash)
+				interpreter.logger.Printf("%s Successfully modified and wrote file '%s'", logPrefix, relPathSlash)
 			}
-		}
-	}
-	// Final check for files not processed
-	for _, fp := range goFilePaths {
-		if !processedFiles[fp] {
-			relPath, _ := filepath.Rel(validatedScanScope, fp)
-			if _, exists := failedFiles[relPath]; !exists {
-				failedFiles[relPath] = "File was not processed by packages.Load (check build constraints or parse errors)"
-				interpreter.logger.Printf("[WARN GoUpdateImportsForMovedPackage] File collected but not processed: %s", relPath)
+		} else {
+			// Determine skip reason
+			importExists := false
+			for _, impSpec := range astFile.Imports {
+				if impSpec.Path != nil {
+					if strings.Trim(impSpec.Path.Value, `"`) == refactoredPkgPath {
+						importExists = true
+						break
+					}
+				}
 			}
+			if !importExists {
+				skippedFilesMap[relPathSlash] = "Original package not imported"
+			} else {
+				skippedFilesMap[relPathSlash] = "Original package imported, but no relevant symbols found/used"
+			}
+			interpreter.logger.Printf("%s Skipped '%s': %s", logPrefix, relPathSlash, skippedFilesMap[relPathSlash])
 		}
-	}
+	} // End loop through files
 
 	// --- Return Results ---
-	result := map[string]interface{}{"modified_files": interface{}(modifiedFiles), "skipped_files": interface{}(skippedFiles), "failed_files": interface{}(failedFiles), "error": nil}
-	if topLevelError != "" {
-		result["error"] = topLevelError
+	var finalErrorValue interface{}
+	if topLevelError != nil {
+		finalErrorValue = topLevelError.Error()
 	}
-	interpreter.logger.Printf("[TOOL GoUpdateImportsForMovedPackage EXIT] Results: modified=%d, skipped=%d, failed=%d, error='%v'", len(modifiedFiles), len(skippedFiles), len(failedFiles), topLevelError)
+	finalModifiedFiles := make([]interface{}, len(modifiedFilesList))
+	for i, v := range modifiedFilesList {
+		finalModifiedFiles[i] = v
+	}
+	finalSkippedFiles := make(map[string]interface{})
+	for k, v := range skippedFilesMap {
+		finalSkippedFiles[k] = v
+	}
+	finalFailedFiles := make(map[string]interface{})
+	for k, v := range failedFilesMap {
+		finalFailedFiles[k] = v
+	}
+	result := map[string]interface{}{
+		"modified_files": finalModifiedFiles,
+		"skipped_files":  finalSkippedFiles,
+		"failed_files":   finalFailedFiles,
+		"error":          finalErrorValue,
+	}
+	if len(symbolMap) == 0 && topLevelError == nil && len(modifiedFilesList) == 0 && len(failedFilesMap) == 0 {
+		result["message"] = fmt.Sprintf("No exported symbols found in sub-packages of '%s'. No files needed modification.", refactoredPkgPath)
+	}
+	interpreter.logger.Printf("%s EXIT] Results: modified=%d, skipped=%d, failed=%d, error='%v'", logPrefix, len(modifiedFilesList), len(skippedFilesMap), len(failedFilesMap), finalErrorValue)
 	return result, nil
 }
 
-// --- Registration --- (Remains the same)
-func registerGoAstPackageTools(registry *ToolRegistry) error { /* ... */ return nil } // Elided for brevity
+// --- Helper: collectGoFiles ---
+func collectGoFiles(scanScopeAbs, excludeDirAbs string, interpreter *Interpreter) ([]string, error) {
+	// (Content of function remains the same as previous version)
+	logPrefix := fmt.Sprintf("[collectGoFiles %s]", packageToolDebugVersion)
+	goFilePaths := []string{}
+	interpreter.logger.Printf("%s Starting file walk in '%s' (excluding '%s')", logPrefix, scanScopeAbs, excludeDirAbs)
+
+	walkErr := filepath.WalkDir(scanScopeAbs, func(path string, d fs.DirEntry, walkErrInCb error) error {
+		absPath := path
+		if !filepath.IsAbs(path) {
+			absPath = filepath.Join(scanScopeAbs, path)
+		}
+		if walkErrInCb != nil {
+			interpreter.logger.Printf("%s [WARN] Error accessing path %q during walk: %v", logPrefix, absPath, walkErrInCb)
+			if d != nil && d.IsDir() {
+				interpreter.logger.Printf("%s Skipping directory due to error: %s", logPrefix, absPath)
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		if d.IsDir() {
+			cleanedPath := filepath.Clean(absPath)
+			cleanedExcludeDir := filepath.Clean(excludeDirAbs)
+			if cleanedPath == cleanedExcludeDir {
+				interpreter.logger.Printf("%s Skipping excluded directory: %s", logPrefix, absPath)
+				return filepath.SkipDir
+			}
+			if strings.HasPrefix(cleanedPath, cleanedExcludeDir+string(filepath.Separator)) {
+				interpreter.logger.Printf("%s Skipping subdirectory of excluded dir: %s", logPrefix, absPath)
+				return nil // Continue walk, but files inside will be skipped
+			}
+			dirName := d.Name()
+			if dirName == "vendor" || dirName == ".git" || dirName == "testdata" {
+				interpreter.logger.Printf("%s Skipping special directory: %s", logPrefix, absPath)
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		fileName := d.Name()
+		if strings.HasSuffix(fileName, ".go") && !strings.HasSuffix(fileName, "_test.go") {
+			cleanedPath := filepath.Clean(absPath)
+			cleanedExcludeDir := filepath.Clean(excludeDirAbs)
+			if !strings.HasPrefix(cleanedPath, cleanedExcludeDir+string(filepath.Separator)) && cleanedPath != cleanedExcludeDir {
+				goFilePaths = append(goFilePaths, absPath)
+			}
+		}
+		return nil
+	})
+
+	if walkErr != nil {
+		return nil, fmt.Errorf("file collection walk failed: %w", walkErr)
+	}
+
+	interpreter.logger.Printf("%s Collected %d Go files.", logPrefix, len(goFilePaths))
+	return goFilePaths, nil
+}
+
+// --- Registration ---
+func registerGoAstPackageTools(registry *ToolRegistry) error {
+	// (Content of function remains the same)
+	err := registry.RegisterTool(ToolImplementation{
+		Spec: ToolSpec{
+			Name:        "GoUpdateImportsForMovedPackage",
+			Description: fmt.Sprintf("Version: %s. Analyzes Go files within a scope, updating import paths for symbols moved from an 'original' package path into its sub-packages. Uses AST analysis and a symbol map. Removes the old import and adds necessary new ones. Does NOT update code qualifiers.", packageToolDebugVersion),
+			Args: []ArgSpec{
+				{Name: "refactored_package_path", Type: ArgTypeString, Required: true, Description: "The original import path that now contains sub-packages (e.g., 'github.com/org/repo/original')."},
+				{Name: "scan_scope", Type: ArgTypeString, Required: true, Description: "Directory path (relative to sandbox root) to scan for Go files (e.g., '.', './cmd/app')."},
+			},
+			ReturnType: ArgTypeAny, // map[string]interface{}
+		},
+		Func: toolGoUpdateImportsForMovedPackage,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to register tool GoUpdateImportsForMovedPackage: %w", err)
+	}
+	return nil
+}
+
+// --- Variable checks ---
+// REMOVED check for applyAstImportChanges
+var _ func(astFile *ast.File, fset *token.FileSet, oldPath string, symbolMap map[string]string) (bool, map[string]string, error) = analyzeImportsAndSymbols

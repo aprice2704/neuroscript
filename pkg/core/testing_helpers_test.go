@@ -2,96 +2,86 @@
 package core
 
 import (
-	// *** ADDED for errors.Is ***
-	"fmt"
-	"io"
-	"log" // *** ADDED for float comparison ***
+	// Keep for errors.Is potentially used elsewhere
+	"fmt" // Keep io
+	"log" // Keep os
 	"path/filepath"
-	"reflect" // *** ADDED for map iteration in tests ***
+	"reflect" // Keep sort
 	"strings"
 	"testing"
 )
 
 // --- Interpreter Test Specific Helpers ---
 
-// newTestInterpreter creates an interpreter instance for testing,
-// initializing variables, last result, registering core tools, and setting up sandbox.
-// It now expects a *testing.T argument and sets the interpreter's sandboxDir.
-// *** MODIFIED: Sets interpreter.sandboxDir, removes os.Chdir ***
+// testWriter is a helper to redirect log output to t.Logf
+// Make sure this struct is defined, e.g., copied from tools_go_ast_symbol_map_test.go or defined globally here.
+// type testWriter struct {
+// 	t *testing.T
+// }
+
+func (tw testWriter) Write(p []byte) (n int, err error) {
+	tw.t.Logf("%s", p) // Use t.Logf to print the log message
+	return len(p), nil
+}
+
+// newTestInterpreter creates an interpreter instance for testing.
+// *** MODIFIED: Uses testWriter for logging to t.Logf ***
 func newTestInterpreter(t *testing.T, vars map[string]interface{}, lastResult interface{}) (*Interpreter, string) {
 	t.Helper()
-	// Use a discarding logger for tests unless explicitly needed otherwise
-	testLogger := log.New(io.Discard, "[TEST-INTERP] ", log.Lshortfile)
-	// uncomment below to enable test logging
-	// testLogger = log.New(os.Stderr, "[TEST-INTERP] ", log.Ltime|log.Lmicroseconds|log.Lshortfile)
 
-	// Create a minimal LLMClient - it won't be able to make real calls
-	// Pass empty API key, empty model, discard logger, and debug=false
+	// --- FIX: Use testWriter to redirect logs to t.Logf ---
+	// Use Ltime|Lmicroseconds for timing info if helpful, Lshortfile for source line
+	testLogger := log.New(testWriter{t}, "[TEST-INTERP] ", log.Ltime|log.Lmicroseconds|log.Lshortfile)
+	// --- END FIX ---
+
+	// Create a minimal LLMClient (can keep using testLogger now)
 	minimalLLMClient := NewLLMClient("", "", testLogger, false)
 	if minimalLLMClient == nil {
-		// This shouldn't happen based on NewLLMClient logic, but check defensively
 		t.Fatal("Failed to create even a minimal LLMClient for testing")
 	}
 
-	interp := NewInterpreter(testLogger, minimalLLMClient) // Pass the logger
+	interp := NewInterpreter(testLogger, minimalLLMClient) // Pass the working logger
 
-	// *** ADDED: Log before registration attempt ***
 	testLogger.Println("Attempting to register core tools...")
-
-	// Register core tools and check for errors immediately
 	if err := RegisterCoreTools(interp.ToolRegistry()); err != nil {
-		// *** ADDED: Log details BEFORE failing ***
-		testLogger.Printf("FATAL: Failed to register core tools during test setup: %v", err) // Log the error
-		t.Fatalf("FATAL: Failed to register core tools during test setup: %v", err)          // Fail fast
+		testLogger.Printf("FATAL: Failed to register core tools during test setup: %v", err)
+		t.Fatalf("FATAL: Failed to register core tools during test setup: %v", err)
 	}
-	// *** ADDED: Log success ***
 	testLogger.Println("Successfully registered core tools.")
 
-	// Create a temporary directory for sandboxing
-	sandboxDirRel := t.TempDir() // This automatically handles cleanup via t.Cleanup()
+	sandboxDirRel := t.TempDir()
 	absSandboxDir, err := filepath.Abs(sandboxDirRel)
 	if err != nil {
 		t.Fatalf("Failed to get absolute path for sandbox %s: %v", sandboxDirRel, err)
 	}
 
-	// *** Store the absolute sandbox path in the interpreter using the field name you added ***
-	interp.sandboxDir = absSandboxDir // Use the field name 'sandboxDir'
+	interp.sandboxDir = absSandboxDir
 	testLogger.Printf("Sandbox root set in interpreter: %s", absSandboxDir)
 
-	// *** REMOVED os.Chdir() ***
-
-	// Initialize variables if provided
 	if vars != nil {
-		// Start with built-ins already in interp.variables
 		for k, v := range vars {
 			interp.variables[k] = v
 		}
 	}
-	// else: interp.variables already initialized with built-ins by NewInterpreter
 
-	// Set last result if provided
 	interp.lastCallResult = lastResult
 
-	return interp, absSandboxDir // Return interpreter and the sandbox path (path useful for setup funcs)
+	return interp, absSandboxDir
 }
 
-// newDefaultTestInterpreter creates a new interpreter with default settings
-// and registers core tools, setting up a sandbox directory.
-// It now expects a *testing.T argument.
+// newDefaultTestInterpreter creates a new interpreter with default settings.
+// *** MODIFIED: Uses newTestInterpreter which now uses t.Logf ***
 func newDefaultTestInterpreter(t *testing.T) (*Interpreter, string) {
 	t.Helper()
-	// Delegate to the more general helper with nil initial vars/last result
 	return newTestInterpreter(t, nil, nil)
 }
 
 // --- Step Creation Helpers (Moved from interpreter_test.go) ---
 // (These helpers remain unchanged)
-func createTestStep(typ string, target string, valueNode interface{}, argNodes []interface{}) Step {
-	// Ensure Value and Args are distinct concepts in Step struct if needed
-	// Assuming Step struct has fields like Type, Target, Value, Args
-	return newStep(typ, target, nil, valueNode, nil, argNodes) // Pass nil for Cond, ElseValue if not applicable
+func createTestStep(typ string, target string, valueNode interface{}, argNodes []interface{}) Step { /* ... */
+	return newStep(typ, target, nil, valueNode, nil, argNodes)
 }
-func createIfStep(condNode interface{}, thenSteps []Step, elseSteps []Step) Step {
+func createIfStep(condNode interface{}, thenSteps []Step, elseSteps []Step) Step { /* ... */
 	var thenVal, elseVal interface{}
 	if thenSteps != nil {
 		thenVal = thenSteps
@@ -99,43 +89,35 @@ func createIfStep(condNode interface{}, thenSteps []Step, elseSteps []Step) Step
 	if elseSteps != nil {
 		elseVal = elseSteps
 	}
-	// Assuming Step struct has fields Cond, Value (for then), ElseValue
 	return Step{Type: "IF", Cond: condNode, Value: thenVal, ElseValue: elseVal}
 }
-func createWhileStep(condNode interface{}, bodySteps []Step) Step {
+func createWhileStep(condNode interface{}, bodySteps []Step) Step { /* ... */
 	var bodyVal interface{}
 	if bodySteps != nil {
 		bodyVal = bodySteps
 	}
-	// Assuming Step struct has fields Cond, Value (for body)
 	return Step{Type: "WHILE", Cond: condNode, Value: bodyVal}
 }
-func createForStep(loopVar string, collectionNode interface{}, bodySteps []Step) Step {
+func createForStep(loopVar string, collectionNode interface{}, bodySteps []Step) Step { /* ... */
 	var bodyVal interface{}
 	if bodySteps != nil {
 		bodyVal = bodySteps
 	}
-	// Assuming Step struct has fields Target (loopVar), Cond (collection), Value (body)
 	return Step{Type: "FOR", Target: loopVar, Cond: collectionNode, Value: bodyVal}
 }
 
 // runEvalExpressionTest executes a single expression evaluation test case.
-// *** MODIFIED: Uses newDefaultTestInterpreter ***
+// *** MODIFIED: Uses corrected newDefaultTestInterpreter ***
 func runEvalExpressionTest(t *testing.T, tc EvalTestCase) {
 	t.Helper()
-	// Use newDefaultTestInterpreter which now returns sandboxDir (ignored here)
-	interp, _ := newDefaultTestInterpreter(t) // Ignore sandboxDir for eval tests
-	// Initialize variables if provided
+	interp, _ := newDefaultTestInterpreter(t)
 	if tc.InitialVars != nil {
 		for k, v := range tc.InitialVars {
 			interp.variables[k] = v
 		}
 	}
-	// Set last result if provided
 	interp.lastCallResult = tc.LastResult
-
 	got, err := interp.evaluateExpression(tc.InputNode)
-
 	if tc.WantErr {
 		if err == nil {
 			t.Errorf("%s: Expected an error, but got nil", tc.Name)
@@ -147,24 +129,23 @@ func runEvalExpressionTest(t *testing.T, tc EvalTestCase) {
 		return
 	}
 	if err != nil {
-		t.Errorf("%s: Unexpected error: %v", tc.Name, err)
+		t.Errorf("Unexpected error: %v", tc.Name)
 		return
 	}
 	if !reflect.DeepEqual(got, tc.Expected) {
-		t.Errorf("%s: Result mismatch.\nInput Node: %+v\nExpected:   %v (%T)\nGot:        %v (%T)",
-			tc.Name, tc.InputNode, tc.Expected, tc.Expected, got, got)
+		t.Errorf("%s: Result mismatch.\nInput Node: %+v\nExpected:   %v (%T)\nGot:        %v (%T)", tc.Name, tc.InputNode, tc.Expected, tc.Expected, got, got)
 	}
 }
 
 // --- General Test Helpers ---
 // (makeArgs, AssertNoError remain unchanged)
-//
-//	func makeArgs(vals ...interface{}) []interface{} {
-//		if vals == nil {
-//			return []interface{}{}
-//		}
-//		return vals
-//	}
+// func makeArgs(vals ...interface{}) []interface{} {
+// 	if vals == nil {
+// 		return []interface{}{}
+// 	}
+// 	return vals
+// }
+
 func AssertNoError(t *testing.T, err error, msgAndArgs ...interface{}) {
 	t.Helper()
 	if err != nil {
@@ -172,11 +153,7 @@ func AssertNoError(t *testing.T, err error, msgAndArgs ...interface{}) {
 	}
 }
 
-// --- Filesystem Test Helper (Consolidated) ---
-// (testFsToolHelper needs updating in tools_fs_helpers_test.go - see next step)
-
-// EvalTestCase defines the structure for testing expression evaluation.
-// (Struct definition remains unchanged)
+// --- Struct Definitions (Remain unchanged) ---
 type EvalTestCase struct {
 	Name        string
 	InputNode   interface{}
@@ -186,14 +163,50 @@ type EvalTestCase struct {
 	WantErr     bool
 	ErrContains string
 }
-
-// ValidationTestCase defines a test case for ValidateAndConvertArgs.
 type ValidationTestCase struct {
-	Name          string        // Name of the test case
-	ToolName      string        // Tool name for error messages
-	InputArgs     []interface{} // Arguments provided to the tool function
-	ArgSpecs      []ArgSpec     // Tool's argument specification
-	ExpectedArgs  []interface{} // Expected arguments after successful validation/conversion
-	ExpectedError error         // Expected error (nil for success)
-	CheckErrorIs  bool          // Use errors.Is for error checking if true
+	Name          string
+	ToolName      string
+	InputArgs     []interface{}
+	ArgSpecs      []ArgSpec
+	ExpectedArgs  []interface{}
+	ExpectedError error
+	CheckErrorIs  bool
 }
+
+// --- Result Normalization Helpers (From tools_go_ast_package_test.go, ensure they are defined once) ---
+// (Include normalizeResultMapPaths, setDefaultResultMapValues, compareErrorString if not already present/imported)
+// Assuming these helpers might already be in tools_go_ast_package_test.go, defining them here might cause duplication.
+// Ensure they are defined *once* accessible to all tests needing them.
+// Example (if needed here):
+/*
+func normalizeResultMapPaths(t *testing.T, dataMap map[string]interface{}, basePath string) { ... }
+func setDefaultResultMapValues(resultMap map[string]interface{}) { ... }
+func compareErrorString(t *testing.T, actualMap, expectedMap map[string]interface{}) { ... }
+*/
+
+// --- Other potential helpers like runValidationTestCases ---
+// Ensure runValidationTestCases is also defined once, potentially here or in a specific _test file.
+/*
+func runValidationTestCases(t *testing.T, toolName string, testCases []ValidationTestCase) {
+	t.Helper()
+	interp, _ := newDefaultTestInterpreter(t) // Now uses logging interpreter
+	toolImpl, found := interp.ToolRegistry().GetTool(toolName)
+	if !found { t.Fatalf("Tool %s not found in registry", toolName) }
+	spec := toolImpl.Spec
+	for _, tc := range testCases {
+		t.Run(tc.Name, func(t *testing.T) {
+			_, err := ValidateAndConvertArgs(spec, tc.InputArgs)
+			if tc.ExpectedError != nil {
+				if err == nil { t.Errorf("Expected error [%v], got nil", tc.ExpectedError) } else if !errors.Is(err, tc.ExpectedError) { t.Errorf("Expected error wrapping [%v], but errors.Is is false. Got error: [%T] %v", tc.ExpectedError, err, err) } else { t.Logf("Got expected error type via errors.Is: %v", err) }
+			} else if err != nil { t.Errorf("Unexpected validation error: %v", err) }
+		})
+	}
+}
+*/
+
+// Ensure core errors are accessible if needed by helpers here
+var (
+	_ = ErrValidationArgCount
+	_ = ErrValidationRequiredArgNil
+	_ = ErrValidationTypeMismatch
+)
