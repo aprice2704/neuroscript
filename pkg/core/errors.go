@@ -22,6 +22,7 @@ var (
 	ErrSecurityViolation = errors.New("security violation")
 	ErrPathViolation     = errors.New("path resolves outside allowed directory")
 	ErrInternalSecurity  = errors.New("internal security error")
+	ErrInvalidPath       = errors.New("invalid path") // Ensure this is present
 )
 
 // --- Core Tool Execution Errors ---
@@ -38,7 +39,7 @@ var (
 	ErrCannotCreateDir      = errors.New("cannot create directory")
 	ErrCannotDelete         = errors.New("cannot delete file or directory")
 	ErrInvalidHashAlgorithm = errors.New("invalid or unsupported hash algorithm")
-	ErrFileNotFound         = errors.New("file not found") // <<< ADDED HERE <<< // Note: Already present in fetched code. Kept for clarity.
+	ErrFileNotFound         = errors.New("file not found")
 	// Go Tooling Errors
 	ErrGoParseFailed                 = errors.New("failed to parse Go source")
 	ErrGoModifyFailed                = errors.New("failed to modify Go AST")
@@ -48,9 +49,10 @@ var (
 	ErrGoModifyEmptyMap              = errors.New("GoModifyAST modifications map cannot be empty")
 	ErrGoModifyUnknownDirective      = errors.New("GoModifyAST modifications map contains no known directives")
 	ErrGoInvalidIdentifierFormat     = errors.New("invalid identifier format (e.g., empty string)")
-	ErrRefactoredPathNotFound        = errors.New("refactored package path not found for symbol mapping")            // New
-	ErrSymbolMappingFailed           = errors.New("failed to build symbol map from refactored packages")             // New
-	ErrSymbolNotFoundInMap           = errors.New("symbol used from original package not found in new location map") // New
+	ErrRefactoredPathNotFound        = errors.New("refactored package path not found for symbol mapping")
+	ErrSymbolMappingFailed           = errors.New("failed to build symbol map from refactored packages")
+	ErrSymbolNotFoundInMap           = errors.New("symbol used from original package not found in new location map")
+	ErrAmbiguousSymbol               = errors.New("ambiguous exported symbol") // Ensure this is present
 	// Cache Errors
 	ErrCacheObjectNotFound  = errors.New("object not found in cache")
 	ErrCacheObjectWrongType = errors.New("object found in cache has wrong type")
@@ -61,9 +63,9 @@ var (
 
 // --- Core Interpreter Errors ---
 var (
-	ErrProcedureNotFound    = errors.New("procedure not found")         // Moved here from general
-	ErrArgumentMismatch     = errors.New("argument mismatch")           // Moved here
-	ErrMaxCallDepthExceeded = errors.New("maximum call depth exceeded") // Moved here
-	ErrUnknownKeyword       = errors.New("unknown keyword")             // Moved here
+	ErrProcedureNotFound    = errors.New("procedure not found")
+	ErrArgumentMismatch     = errors.New("argument mismatch")
+	ErrMaxCallDepthExceeded = errors.New("maximum call depth exceeded")
+	ErrUnknownKeyword       = errors.New("unknown keyword")
 	// Add others like ErrVariableNotFound if needed
 )

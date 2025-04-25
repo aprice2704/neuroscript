@@ -7,197 +7,222 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"io/fs"
 	"os"
-	"path/filepath"
+	"path"          // *** Use standard 'path' for joining import paths ***
+	"path/filepath" // Use filepath for OS-specific operations
 	"sort"
 	"strings"
+
+	"golang.org/x/mod/modfile" // Using modfile as requested
 )
 
 // buildSymbolMap analyzes the sub-packages of a given original package path
 // and creates a map of exported symbols to their new full import paths.
-// Uses direct AST parsing instead of packages.Load for simplicity in test environments.
-func buildSymbolMap(refactoredPkgPath string, interp *Interpreter) (map[string]string, error) {
-	interp.logger.Printf("[buildSymbolMap MANUAL] Building symbol map for package path: %s", refactoredPkgPath)
+func buildSymbolMap(refactoredPkgPathRel string, interp *Interpreter) (map[string]string, error) {
+	logPrefix := "[buildSymbolMap MANUAL]"
+	interp.logger.Printf("%s Building symbol map for relative package path: %s", logPrefix, refactoredPkgPathRel)
 	symbolMap := make(map[string]string)
-	ambiguousSymbols := make(map[string]string) // Stores symbol -> "found in path1 and path2"
+	ambiguousSymbols := make(map[string]string)
 	foundSymbols := false
 	goFilesProcessed := false
+	var err error
 
 	if interp.sandboxDir == "" {
 		return nil, fmt.Errorf("%w: interpreter sandboxDir is empty", ErrSymbolMappingFailed)
 	}
 
-	baseScanDir := filepath.Join(interp.sandboxDir, filepath.FromSlash(refactoredPkgPath))
-	interp.logger.Printf("[buildSymbolMap MANUAL] Base directory for sub-package scan: %s", baseScanDir)
+	// --- Path Validation ---
+	absBaseScanDir, secErr := SecureFilePath(refactoredPkgPathRel, interp.sandboxDir)
+	if secErr != nil {
+		if errors.Is(secErr, ErrPathViolation) {
+			return nil, fmt.Errorf("%w: %w", ErrInvalidPath, secErr)
+		}
+		return nil, fmt.Errorf("%w: security error validating refactored package path '%s': %w", ErrSymbolMappingFailed, refactoredPkgPathRel, secErr)
+	}
 
-	dirInfo, err := os.Stat(baseScanDir)
-	if errors.Is(err, os.ErrNotExist) {
-		return nil, fmt.Errorf("%w: base directory '%s' corresponding to package '%s' not found", ErrRefactoredPathNotFound, baseScanDir, refactoredPkgPath)
-	} else if err != nil {
-		return nil, fmt.Errorf("%w: error stating base directory '%s': %v", ErrSymbolMappingFailed, baseScanDir, err)
+	dirInfo, statErr := os.Stat(absBaseScanDir)
+	if errors.Is(statErr, os.ErrNotExist) {
+		return nil, fmt.Errorf("%w: base directory '%s' corresponding to package '%s' not found", ErrRefactoredPathNotFound, absBaseScanDir, refactoredPkgPathRel)
+	} else if statErr != nil {
+		return nil, fmt.Errorf("%w: error stating base directory '%s': %v", ErrSymbolMappingFailed, absBaseScanDir, statErr)
 	}
 	if !dirInfo.IsDir() {
-		return nil, fmt.Errorf("%w: path '%s' is not a directory", ErrSymbolMappingFailed, baseScanDir)
+		return nil, fmt.Errorf("%w: path '%s' is not a directory", ErrSymbolMappingFailed, absBaseScanDir)
 	}
+	interp.logger.Printf("%s Base directory for sub-package scan: %s", logPrefix, absBaseScanDir)
 
-	subDirs, err := os.ReadDir(baseScanDir)
-	if err != nil {
-		return nil, fmt.Errorf("%w: failed to read base directory '%s': %v", ErrSymbolMappingFailed, baseScanDir, err)
+	// --- Determine Module Path using modfile package ---
+	modulePath := ""
+	moduleRootDir := interp.sandboxDir
+	goModPath := filepath.Join(moduleRootDir, "go.mod")
+
+	modContent, modErr := os.ReadFile(goModPath)
+	if modErr == nil {
+		modF, parseModErr := modfile.Parse(goModPath, modContent, nil)
+		if parseModErr != nil {
+			interp.logger.Printf("%s [ERROR] Could not parse %s using modfile: %v", logPrefix, goModPath, parseModErr)
+			return nil, fmt.Errorf("%w: failed to parse go.mod at %s using modfile: %w", ErrSymbolMappingFailed, goModPath, parseModErr)
+		}
+		if modF.Module != nil && modF.Module.Mod.Path != "" {
+			modulePath = modF.Module.Mod.Path
+			interp.logger.Printf("%s Found module path from go.mod using modfile: %s", logPrefix, modulePath)
+		} else {
+			interp.logger.Printf("%s [ERROR] Could not find module path declaration in parsed %s", logPrefix, goModPath)
+			return nil, fmt.Errorf("%w: could not find module declaration in go.mod at %s", ErrSymbolMappingFailed, goModPath)
+		}
+	} else {
+		interp.logger.Printf("%s [ERROR] Could not read %s to determine module path: %v.", logPrefix, goModPath, modErr)
+		return nil, fmt.Errorf("%w: failed to read go.mod at %s: %w", ErrSymbolMappingFailed, goModPath, modErr)
 	}
+	// --- End Module Path Determination ---
 
 	fset := token.NewFileSet()
+
+	// --- Function to process a directory ---
+	processDirectory := func(dirPath string) error {
+		// *** REVISED Canonical Path Calculation (Take 4) ***
+		if moduleRootDir == "" {
+			interp.logger.Printf("%s [WARN] Interpreter sandboxDir (used as module root) is empty.", logPrefix)
+			return nil
+		}
+
+		// Get the path of the *current directory being processed* relative to the module root
+		relFromModuleRoot, relErr := filepath.Rel(moduleRootDir, dirPath)
+		if relErr != nil {
+			interp.logger.Printf("%s [WARN] Cannot get relative path for '%s' from '%s': %v. Skipping.", logPrefix, dirPath, moduleRootDir, relErr)
+			return nil
+		}
+
+		// Convert OS-specific path to slash-separated path
+		relFromModuleRootSlash := filepath.ToSlash(relFromModuleRoot)
+
+		// The canonical import path is the module path joined with the relative path
+		// Use standard 'path.Join' for import paths
+		var canonicalPkgPath string
+		if relFromModuleRootSlash == "." {
+			canonicalPkgPath = modulePath // It's the root module directory
+		} else {
+			canonicalPkgPath = path.Join(modulePath, relFromModuleRootSlash)
+		}
+		// Clean just in case join added extra slashes (though path.Join is generally good)
+		canonicalPkgPath = path.Clean(canonicalPkgPath)
+		// *** END REVISED Canonical Path Calculation ***
+
+		interp.logger.Printf("%s Processing directory: %s (Canonical Path: %s)", logPrefix, dirPath, canonicalPkgPath)
+
+		// Parsing and symbol extraction logic remains the same...
+		pkgs, parseErr := parser.ParseDir(fset, dirPath, func(fi os.FileInfo) bool {
+			return !fi.IsDir() && strings.HasSuffix(fi.Name(), ".go") && !strings.HasSuffix(fi.Name(), "_test.go")
+		}, parser.ParseComments)
+
+		if parseErr != nil {
+			if !strings.Contains(parseErr.Error(), "no buildable Go source files") {
+				interp.logger.Printf("%s [WARN] Error parsing directory %s: %v. Skipping symbols.", logPrefix, dirPath, parseErr)
+			} else {
+				interp.logger.Printf("%s [INFO] No buildable Go source files in %s.", logPrefix, dirPath)
+			}
+			return nil
+		}
+
+		for _, pkg := range pkgs {
+			goFilesProcessed = true
+			for fileName, astFile := range pkg.Files {
+				interp.logger.Printf("%s   Processing symbols in file: %s", logPrefix, fileName)
+				ast.Inspect(astFile, func(node ast.Node) bool {
+					checkAndAddSymbol := func(ident *ast.Ident, nodeType string) {
+						if ident != nil && ident.IsExported() {
+							symbolName := ident.Name
+							foundSymbols = true
+							if existingPath, exists := symbolMap[symbolName]; exists {
+								cleanedExisting := path.Clean(existingPath)
+								cleanedCurrent := path.Clean(canonicalPkgPath)
+								if cleanedExisting != cleanedCurrent {
+									if _, ambigExists := ambiguousSymbols[symbolName]; !ambigExists {
+										ambiguousSymbols[symbolName] = fmt.Sprintf("found in %s and %s", existingPath, canonicalPkgPath)
+										interp.logger.Printf("%s [WARN] AMBIGUITY DETECTED for %s '%s': %s", logPrefix, nodeType, symbolName, ambiguousSymbols[symbolName])
+									}
+								}
+							} else {
+								symbolMap[symbolName] = canonicalPkgPath
+								interp.logger.Printf("%s     Found exported %s: %s in %s", logPrefix, nodeType, symbolName, canonicalPkgPath)
+							}
+						}
+					}
+
+					switch decl := node.(type) {
+					case *ast.FuncDecl:
+						if decl.Recv == nil {
+							checkAndAddSymbol(decl.Name, "func")
+						}
+						return false
+					case *ast.GenDecl:
+						for _, spec := range decl.Specs {
+							switch specificSpec := spec.(type) {
+							case *ast.TypeSpec:
+								checkAndAddSymbol(specificSpec.Name, "type")
+							case *ast.ValueSpec:
+								for _, nameIdent := range specificSpec.Names {
+									checkAndAddSymbol(nameIdent, "value")
+								}
+							}
+						}
+						return false
+					}
+					return true
+				})
+			}
+		}
+		return nil
+	}
+
+	// Process baseScanDir and subdirectories (logic unchanged)
+	err = processDirectory(absBaseScanDir)
+	if err != nil {
+		interp.logger.Printf("%s [ERROR] processing base directory %s: %v", logPrefix, absBaseScanDir, err)
+	}
+
+	var subDirs []fs.DirEntry
+	subDirs, err = os.ReadDir(absBaseScanDir)
+	if err != nil {
+		return nil, fmt.Errorf("%w: failed to read base directory '%s': %v", ErrSymbolMappingFailed, absBaseScanDir, err)
+	}
 
 	for _, subEntry := range subDirs {
 		if !subEntry.IsDir() {
 			continue
 		}
-		subPkgName := subEntry.Name()
-		subDirPath := filepath.Join(baseScanDir, subPkgName)
-
-		// Construct canonicalPkgPath (forward slashes for import paths)
-		canonicalPkgPath := refactoredPkgPath + "/" + subPkgName
-
-		interp.logger.Printf("[buildSymbolMap MANUAL] Scanning subdir: %s (Canonical Path: %s)", subDirPath, canonicalPkgPath)
-
-		filesInSubDir, err := os.ReadDir(subDirPath)
+		subDirPath := filepath.Join(absBaseScanDir, subEntry.Name())
+		err = processDirectory(subDirPath)
 		if err != nil {
-			interp.logger.Printf("[WARN buildSymbolMap MANUAL] Failed to read subdir %s: %v. Skipping.", subDirPath, err)
-			continue
+			interp.logger.Printf("%s [ERROR] processing subdirectory %s: %v", logPrefix, subDirPath, err)
 		}
+	}
 
-		pkgHasGoFiles := false
-		for _, fileEntry := range filesInSubDir {
-			if fileEntry.IsDir() || !strings.HasSuffix(fileEntry.Name(), ".go") || strings.HasSuffix(fileEntry.Name(), "_test.go") {
-				continue
-			}
-			pkgHasGoFiles = true
-			goFilesProcessed = true
-			filePath := filepath.Join(subDirPath, fileEntry.Name())
-			interp.logger.Printf("[buildSymbolMap MANUAL]   Parsing file: %s", filePath)
-
-			astFile, err := parser.ParseFile(fset, filePath, nil, parser.ParseComments) // ParseComments might be useful later if needed
-			if err != nil {
-				interp.logger.Printf("[WARN buildSymbolMap MANUAL] Failed to parse file %s: %v. Skipping symbols from this file.", filePath, err)
-				continue
-			}
-
-			// --- Inspect AST for EXPORTED declarations ---
-			ast.Inspect(astFile, func(node ast.Node) bool {
-				var symbolName string
-				var isExported bool
-
-				// Identify potential exported symbols
-				switch d := node.(type) {
-				case *ast.FuncDecl:
-					// Only consider top-level functions (no methods)
-					if d.Recv == nil && d.Name != nil {
-						symbolName = d.Name.Name
-						isExported = d.Name.IsExported()
-					}
-					// Don't traverse into function bodies
-					return false // Stop descent for FuncDecl
-				case *ast.TypeSpec:
-					// Consider top-level type definitions
-					if d.Name != nil {
-						symbolName = d.Name.Name
-						isExported = d.Name.IsExported()
-					}
-					// Don't traverse into type specs further (like struct fields)
-					return false // Stop descent for TypeSpec
-				case *ast.ValueSpec:
-					// Consider top-level variables and constants
-					for _, name := range d.Names {
-						if name != nil && name.IsExported() {
-							// Handle potential multiple declarations (var a, b int)
-							valSymbolName := name.Name
-							interp.logger.Printf("[buildSymbolMap MANUAL]     Found exported value spec: %s in %s", valSymbolName, canonicalPkgPath)
-							// Process each exported name from ValueSpec immediately
-							// This ensures ambiguity is checked correctly even within a single ValueSpec
-							foundSymbols = true
-							if existingPath, exists := symbolMap[valSymbolName]; exists {
-								if existingPath != canonicalPkgPath {
-									// Ambiguity detected across packages
-									if _, ambigExists := ambiguousSymbols[valSymbolName]; !ambigExists {
-										ambiguousSymbols[valSymbolName] = fmt.Sprintf("found in %s and %s", existingPath, canonicalPkgPath)
-										interp.logger.Printf("[WARN buildSymbolMap MANUAL] AMBIGUITY DETECTED for symbol '%s': %s", valSymbolName, ambiguousSymbols[valSymbolName])
-									}
-								}
-								// If exists and same path, do nothing (already recorded)
-							} else {
-								// Symbol not seen before, add it
-								symbolMap[valSymbolName] = canonicalPkgPath
-							}
-						}
-					}
-					// Don't traverse into value specs further
-					return false // Stop descent for ValueSpec
-				default:
-					// Continue traversal for other node types
-					return true
-				}
-
-				// --- FIX: Process identified FuncDecl/TypeSpec symbols HERE ---
-				if symbolName != "" && isExported {
-					interp.logger.Printf("[buildSymbolMap MANUAL]     Found exported %T: %s in %s", node, symbolName, canonicalPkgPath)
-					foundSymbols = true
-					if existingPath, exists := symbolMap[symbolName]; exists {
-						if existingPath != canonicalPkgPath {
-							// Ambiguity detected across packages
-							if _, ambigExists := ambiguousSymbols[symbolName]; !ambigExists {
-								ambiguousSymbols[symbolName] = fmt.Sprintf("found in %s and %s", existingPath, canonicalPkgPath)
-								interp.logger.Printf("[WARN buildSymbolMap MANUAL] AMBIGUITY DETECTED for symbol '%s': %s", symbolName, ambiguousSymbols[symbolName])
-							}
-						}
-						// If exists and same path, do nothing (already recorded)
-					} else {
-						// Symbol not seen before, add it
-						symbolMap[symbolName] = canonicalPkgPath
-					}
-					// For FuncDecl/TypeSpec, we already returned false, so no further descent needed.
-				}
-
-				// This point is reached only if the switch didn't handle the node
-				// or didn't explicitly return false (e.g. for non-exported items).
-				// We generally want to continue searching the file.
-				return true
-			}) // End ast.Inspect
-		} // End file loop
-
-		if !pkgHasGoFiles {
-			interp.logger.Printf("[buildSymbolMap MANUAL]   No Go files found in %s", subDirPath)
-		}
-	} // End subdir loop
-
-	// --- Check for Ambiguity ---
+	// Final Ambiguity Check (unchanged)
 	if len(ambiguousSymbols) > 0 {
 		errorList := []string{}
-		// Sort symbols for consistent error messages
 		sortedSymbols := make([]string, 0, len(ambiguousSymbols))
 		for symbol := range ambiguousSymbols {
 			sortedSymbols = append(sortedSymbols, symbol)
 		}
-		sort.Strings(sortedSymbols) // Requires "sort" import
-
+		sort.Strings(sortedSymbols)
 		for _, symbol := range sortedSymbols {
 			locations := ambiguousSymbols[symbol]
 			errorList = append(errorList, fmt.Sprintf("symbol '%s' (%s)", symbol, locations))
 		}
 		errMsg := fmt.Sprintf("ambiguous exported symbols found: %s", strings.Join(errorList, "; "))
-		interp.logger.Printf("[ERROR buildSymbolMap MANUAL] %s", errMsg)
-		// Return the map containing non-ambiguous symbols found *before* ambiguity was detected?
-		// Or return nil? Returning nil seems safer as the map is incomplete/unreliable.
-		// Also wrap the specific error message within the general failure error.
-		return nil, fmt.Errorf("%w: %w", ErrSymbolMappingFailed, errors.New(errMsg))
+		interp.logger.Printf("%s [ERROR] %s", logPrefix, errMsg)
+		return nil, fmt.Errorf("%w: %s", ErrAmbiguousSymbol, errMsg)
 	}
 
+	// Final Logging (unchanged)
 	if !foundSymbols && goFilesProcessed {
-		interp.logger.Printf("[WARN buildSymbolMap MANUAL] No exported symbols found in any Go files under %s.", baseScanDir)
-		// Return empty map, not an error
+		interp.logger.Printf("%s [WARN] No exported symbols found in any Go files under %s and its subdirectories.", logPrefix, absBaseScanDir)
 	} else if !goFilesProcessed {
-		interp.logger.Printf("[WARN buildSymbolMap MANUAL] No .go files processed under %s.", baseScanDir)
-		// Return empty map, not an error
+		interp.logger.Printf("%s [WARN] No Go files processed under %s and its subdirectories.", logPrefix, absBaseScanDir)
 	}
 
-	interp.logger.Printf("[buildSymbolMap MANUAL] Finished building map. Total unique symbols found: %d", len(symbolMap))
+	interp.logger.Printf("%s Finished building map. Total unique symbols found: %d", logPrefix, len(symbolMap))
 	return symbolMap, nil
 }

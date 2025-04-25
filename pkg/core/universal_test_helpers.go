@@ -1,9 +1,10 @@
-// filename: pkg/core/universal_test_helpers.go
 package core
 
 import (
 	"bufio"
 	"fmt"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"testing"
@@ -12,8 +13,31 @@ import (
 	"github.com/pmezard/go-difflib/difflib"
 )
 
-// --- String Normalization ---
+// --- Test Logging Helpers ---
 
+// testWriter redirects log output to t.Logf.
+type testWriter struct {
+	t *testing.T
+}
+
+// Write implements io.Writer, sending log output to the test's log.
+func (tw testWriter) Write(p []byte) (n int, err error) {
+	// Trim trailing newline added by log package if present, t.Logf adds its own.
+	trimmed := strings.TrimSuffix(string(p), "\n")
+	tw.t.Logf("%s", trimmed) // Use t.Logf to print the log message
+	return len(p), nil
+}
+
+// logTest is a simple helper for logging during tests using t.Logf.
+// It prevents needing to pass 't' everywhere explicitly just for logging.
+// Deprecated: Prefer direct use of t.Logf for clarity unless this provides significant utility.
+func logTest(t *testing.T, format string, args ...interface{}) {
+	t.Helper()
+	t.Logf("[TEST LOG] "+format, args...)
+}
+
+// --- String Normalization ---
+// (Normalization flags and functions remain unchanged)
 // Normalization flags
 const (
 	NormTrimSpace         uint32 = 1 << 0 // Trim leading/trailing space characters (ASCII 32) from each line.
@@ -117,7 +141,7 @@ func NormalizeString(content string, flags uint32) string {
 }
 
 // --- String Diffing ---
-
+// (Diff flags and functions remain unchanged)
 // Diff display flags
 const (
 	DiffShowFull     uint32 = 1 << 0 // Show full expected and actual strings before the diff
@@ -348,6 +372,27 @@ func AssertEqualStrings(t *testing.T, expected, actual string, msgAndArgs ...int
 }
 
 // Helper for max function used in diff replace logic (if needed)
+// func max(a, b int) int { // Moved to end to avoid conflict
+// 	if a > b {
+// 		return a
+// 	}
+// 	return b
+// }
+
+// writeFileHelper writes content to a file, creating directories if needed.
+// Added from tools_go_ast_symbol_helpers_test.go.txt
+func writeFileHelper(t *testing.T, path string, content string) {
+	t.Helper()
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		t.Fatalf("writeFileHelper: failed to create directory %s: %v", dir, err)
+	}
+	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+		t.Fatalf("writeFileHelper: failed to write file %s: %v", path, err)
+	}
+}
+
+// max helper function
 func max(a, b int) int {
 	if a > b {
 		return a

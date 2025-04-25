@@ -1,4 +1,3 @@
-// filename: pkg/core/testing_helpers_test.go
 package core
 
 import (
@@ -19,10 +18,10 @@ import (
 // 	t *testing.T
 // }
 
-func (tw testWriter) Write(p []byte) (n int, err error) {
-	tw.t.Logf("%s", p) // Use t.Logf to print the log message
-	return len(p), nil
-}
+// func (tw testWriter) Write(p []byte) (n int, err error) { // Defined in universal_test_helpers.go
+// 	tw.t.Logf("%s", p) // Use t.Logf to print the log message
+// 	return len(p), nil
+// }
 
 // newTestInterpreter creates an interpreter instance for testing.
 // *** MODIFIED: Uses testWriter for logging to t.Logf ***
@@ -177,7 +176,6 @@ type ValidationTestCase struct {
 // (Include normalizeResultMapPaths, setDefaultResultMapValues, compareErrorString if not already present/imported)
 // Assuming these helpers might already be in tools_go_ast_package_test.go, defining them here might cause duplication.
 // Ensure they are defined *once* accessible to all tests needing them.
-// Example (if needed here):
 /*
 func normalizeResultMapPaths(t *testing.T, dataMap map[string]interface{}, basePath string) { ... }
 func setDefaultResultMapValues(resultMap map[string]interface{}) { ... }
@@ -210,3 +208,5 @@ var (
 	_ = ErrValidationRequiredArgNil
 	_ = ErrValidationTypeMismatch
 )
+
+// --- END --- // Added comment for clarity
