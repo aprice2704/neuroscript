@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	// Keep for potential future use if regex fails, but regex is better
 	"github.com/pmezard/go-difflib/difflib"
 )
 
@@ -15,24 +16,26 @@ import (
 
 // Normalization flags
 const (
-	NormTrimSpace         uint32 = 1 << 0 // Trim leading/trailing whitespace from each line and the whole string
-	NormCompressSpace     uint32 = 1 << 1 // Replace multiple consecutive whitespace chars with a single space (implies TrimSpace)
-	NormRemoveGoComments  uint32 = 1 << 2 // Remove // comments
-	NormRemoveNSComments  uint32 = 1 << 3 // Remove # comments (assuming # for NeuroScript)
-	NormRemoveBlankLines  uint32 = 1 << 4 // Remove lines that become empty after comment removal and potential trimming
-	NormSpaceAroundTokens uint32 = 1 << 5 // Ensure single space around common tokens like {}, (), [], =, ==, etc. (More advanced)
+	NormTrimSpace         uint32 = 1 << 0 // Trim leading/trailing space characters (ASCII 32) from each line.
+	NormCompressSpace     uint32 = 1 << 1 // Replace multiple consecutive whitespace chars with a single space (implies NormTrimSpace).
+	NormRemoveGoComments  uint32 = 1 << 2 // Remove // comments.
+	NormRemoveNSComments  uint32 = 1 << 3 // Remove # comments (assuming # for NeuroScript).
+	NormRemoveBlankLines  uint32 = 1 << 4 // Remove lines containing only whitespace after comment removal.
+	NormSpaceAroundTokens uint32 = 1 << 5 // Ensure single space around common tokens like {}, (), [], =, ==, etc. (More advanced, NYI).
 
+	// NormDefault combines common normalization options.
 	NormDefault uint32 = NormTrimSpace | NormCompressSpace | NormRemoveGoComments | NormRemoveNSComments | NormRemoveBlankLines
 )
 
 var (
-	goCommentRegex  = regexp.MustCompile(`//.*`)
-	nsCommentRegex  = regexp.MustCompile(`#.*`)
-	multiSpaceRegex = regexp.MustCompile(`\s+`)
+	goCommentRegex      = regexp.MustCompile(`//.*`)
+	nsCommentRegex      = regexp.MustCompile(`#.*`)
+	multiSpaceRegex     = regexp.MustCompile(`\s+`)
+	onlyWhitespaceRegex = regexp.MustCompile(`^\s*$`) // Regex to check for lines containing only whitespace
 )
 
 // NormalizeString applies various normalization options to a string.
-// Revised logic V8: Final attempt at blank line logic.
+// Revised logic V12: Restore Debug + Fix compiler nits. (Debug Removed V13)
 func NormalizeString(content string, flags uint32) string {
 	if flags == 0 {
 		flags = NormDefault
@@ -66,14 +69,10 @@ func NormalizeString(content string, flags uint32) string {
 			lineAfterComments = nsCommentRegex.ReplaceAllString(lineAfterComments, "")
 		}
 
-		// 2. Determine if the line *is* effectively blank based on the original trim flag intent
+		// 2. Determine if the line *is* effectively blank (contains only whitespace chars)
 		isEffectivelyBlank := false
-		// Check based on the explicit TrimSpace flag requested by the user for blank check logic
-		if originalTrimFlag != 0 {
-			isEffectivelyBlank = (strings.TrimSpace(lineAfterComments) == "")
-		} else {
-			// If TrimSpace was NOT explicitly requested, blank only if originally empty after comments
-			isEffectivelyBlank = (lineAfterComments == "")
+		if shouldRemoveBlankLines { // Check only if flag is set
+			isEffectivelyBlank = onlyWhitespaceRegex.MatchString(lineAfterComments)
 		}
 
 		// 3. Skip blank lines if requested AND the line is effectively blank
@@ -83,24 +82,37 @@ func NormalizeString(content string, flags uint32) string {
 
 		// 4. Process the non-blank line for spacing using the *effective* trim status for output
 		lineForOutput := lineAfterComments // Start with comment-removed version
-		if shouldTrim {                    // Use effective trim (includes implied by compress) for processing
+
+		// Apply compression first if needed, as it implies trimming logic.
+		if shouldCompress {
+			// Replace any sequence of one or more whitespace chars with a single space.
+			lineForOutput = multiSpaceRegex.ReplaceAllString(lineForOutput, " ")
+			// Compression includes trimming edges, so TrimSpace handles residual edge spaces.
+			lineForOutput = strings.TrimSpace(lineForOutput)
+		} else if shouldTrim {
+			// Apply standard TrimSpace if only trimming (not compressing) was requested.
+			// This only removes leading/trailing ASCII 32 spaces.
 			lineForOutput = strings.TrimSpace(lineForOutput)
 		}
-		if shouldCompress {
-			// Compress implies trim, TrimSpace above already handled edges
-			lineForOutput = multiSpaceRegex.ReplaceAllString(lineForOutput, " ")
-			// Final safety trim if compress created single space edge case (and trim is effectively on)
-			if shouldTrim {
-				lineForOutput = strings.TrimSpace(lineForOutput)
+
+		// Only append if the line wasn't skipped (redundant check, but safe)
+		// and handle the edge case where trimming/compression results in an empty string
+		// which should still be skipped if NormRemoveBlankLines is active.
+		// Re-check blankness *after* processing, but only if removing blank lines.
+		finalBlankCheckNeeded := shouldRemoveBlankLines
+		if finalBlankCheckNeeded {
+			if onlyWhitespaceRegex.MatchString(lineForOutput) {
+				continue // Skip lines that *become* blank after processing
 			}
 		}
 
 		processedLines = append(processedLines, lineForOutput)
 	}
+	// Ignore scanner errors for this helper
 
 	result := strings.Join(processedLines, "\n")
 
-	// No final trim needed.
+	// No final trim needed on the whole result.
 	return result
 }
 
@@ -138,34 +150,45 @@ var visibleWsReplacer = strings.NewReplacer(
 
 // DiffStrings compares two strings (typically expected and actual test results)
 // and logs a formatted diff using t.Logf or t.Errorf.
-// It normalizes inputs using NormalizeString before diffing.
-// Returns true if strings are equal after normalization, false otherwise.
+// It normalizes inputs using NormalizeString before diffing if normFlags != 0.
+// Returns true if strings are equal after optional normalization, false otherwise.
 func DiffStrings(t testing.TB, expected, actual string, normFlags, diffFlags uint32) bool {
 	t.Helper()
 
-	normExpected := NormalizeString(expected, normFlags)
-	normActual := NormalizeString(actual, normFlags)
+	normExpected := expected
+	normActual := actual
+	if normFlags != 0 { // Only normalize if flags are provided
+		normExpected = NormalizeString(expected, normFlags)
+		normActual = NormalizeString(actual, normFlags)
+	}
 
 	if normExpected == normActual {
 		return true
 	}
 
-	t.Errorf("Content mismatch after normalization (flags: %d):", normFlags)
+	// Use constant format string for Errorf
+	t.Errorf("Content mismatch after normalization (norm flags: %d, diff flags: %d):", normFlags, diffFlags) // Mark test as failed
 
+	// Use Logf for supplementary info, Errorf already marked the failure.
 	if diffFlags&DiffShowFull != 0 {
 		t.Logf("--- Expected (Original) ---\n%s\n--------------------------", expected)
 		t.Logf("--- Actual (Original) ---\n%s\n------------------------", actual)
+		if normFlags != 0 {
+			t.Logf("--- Expected (Normalized) ---\n%s\n--------------------------", normExpected)
+			t.Logf("--- Actual (Normalized) ---\n%s\n------------------------", normActual)
+		}
 	}
 
 	var diffBuilder strings.Builder
 	separator := strings.Repeat("-", 60)
-	diffBuilder.WriteString(separator + "\n")
+	diffBuilder.WriteString("\n" + separator + "\n") // Add newline before diff for clarity
 	diffBuilder.WriteString(fmt.Sprintf("%-4s %-4s | Content\n", "EXP", "ACT"))
 	diffBuilder.WriteString(separator + "\n")
 
 	// Use SplitAfter to keep newlines attached for visualization
 	aLines := strings.SplitAfter(normExpected, "\n")
 	bLines := strings.SplitAfter(normActual, "\n")
+	// Remove trailing empty string if present after split (difflib common issue)
 	if len(aLines) > 0 && aLines[len(aLines)-1] == "" {
 		aLines = aLines[:len(aLines)-1]
 	}
@@ -174,43 +197,51 @@ func DiffStrings(t testing.TB, expected, actual string, normFlags, diffFlags uin
 	}
 
 	matcher := difflib.NewMatcher(aLines, bLines)
-	opcodes := matcher.GetOpCodes() // Corrected method name
+	opcodes := matcher.GetOpCodes()
 
 	useColor := diffFlags&DiffAnsiColor != 0
 	showVisible := diffFlags&DiffVisibleSpace != 0 && useColor
 
 	// Helper to format lines with optional color and visible whitespace
 	formatDiffLine := func(line string, linePrefixColor string) string {
-		// Preserve trailing newline if showVisible is true, because replacer handles it.
-		// Otherwise, trim it for cleaner non-visible output.
-		originalNewline := ""
-		lineContent := line
-		if strings.HasSuffix(line, "\n") {
-			originalNewline = "\n"
-			lineContent = strings.TrimSuffix(line, "\n")
-		}
+		hasNewline := strings.HasSuffix(line, "\n")
+		lineContent := strings.TrimSuffix(line, "\n")
 		// CR should already be removed by NormalizeString
 
 		if showVisible {
 			// Apply replacements only to the content part first
-			lineContent = strings.ReplaceAll(lineContent, "\t", tabSym) // Replace individually before coloring
+			lineContent = strings.ReplaceAll(lineContent, "\t", tabSym)
 			lineContent = strings.ReplaceAll(lineContent, " ", spaceSym)
 			// Add color around symbols
-			lineContent = strings.ReplaceAll(lineContent, tabSym, colorVisibleWs+tabSym+colorReset+linePrefixColor) // Add back line color
-			lineContent = strings.ReplaceAll(lineContent, spaceSym, colorVisibleWs+spaceSym+colorReset+linePrefixColor)
+			coloredLineContent := ""
+			for _, r := range lineContent {
+				symStr := string(r)
+				switch r {
+				case []rune(tabSym)[0]:
+					coloredLineContent += colorVisibleWs + symStr + colorReset + linePrefixColor
+				case []rune(spaceSym)[0]:
+					coloredLineContent += colorVisibleWs + symStr + colorReset + linePrefixColor
+				default:
+					coloredLineContent += symStr
+				}
+			}
+			lineContent = coloredLineContent
 
 			// Add back newline symbol if needed, applying color correctly
-			if originalNewline == "\n" {
+			if hasNewline {
 				lineContent += colorVisibleWs + nlSym + colorReset
 			}
 		} else {
-			// If not showing visible, add back the original newline
-			lineContent += originalNewline
+			// If not showing visible, add back the original newline if it existed
+			if hasNewline {
+				lineContent += "\n"
+			}
 		}
 
 		// Apply overall line color (Red/Green) *after* potential internal coloring of symbols
 		if useColor {
-			return fmt.Sprintf("%s%s%s", linePrefixColor, lineContent, colorReset) // Add final reset for safety
+			// Ensure reset at the very end of the line
+			return fmt.Sprintf("%s%s%s", linePrefixColor, lineContent, colorReset)
 		}
 		return lineContent
 	}
@@ -224,67 +255,102 @@ func DiffStrings(t testing.TB, expected, actual string, normFlags, diffFlags uin
 		switch tag {
 		case 'e': // Equal lines
 			for i := i1; i < i2; i++ {
+				// Display equal lines without color/prefix for clarity
 				lineContent := strings.TrimSuffix(aLines[i], "\n") // Display without newline char
-				// Optionally show visible whitespace on equal lines too? Maybe dim?
-				// if showVisible { lineContent = strings.ReplaceAll(strings.ReplaceAll(lineContent, " ", spaceSym), "\t", tabSym)}
-				diffBuilder.WriteString(fmt.Sprintf("%-4d %-4d |  %s\n", lineNumA, lineNumB, lineContent))
+				// Optionally format equal lines for visible WS
+				prefix := " " // Default prefix for equal lines
+				formattedLine := lineContent
+				if showVisible {
+					prefix = ""                                             // formatDiffLine will handle spacing/symbols
+					formattedLine = formatDiffLine(aLines[i], colorGray)    // Use gray for context
+					formattedLine = strings.TrimSuffix(formattedLine, "\n") // Remove extra newline from helper
+				} else if useColor {
+					formattedLine = colorGray + lineContent + colorReset
+				}
+
+				diffBuilder.WriteString(fmt.Sprintf("%-4d %-4d |%s %s\n", lineNumA, lineNumB, prefix, formattedLine))
 				lineNumA++
 				lineNumB++
 			}
 		case 'd': // Delete lines (only in A/Expected)
 			for i := i1; i < i2; i++ {
 				formattedLine := formatDiffLine(aLines[i], colorRed)
-				diffBuilder.WriteString(fmt.Sprintf("%-4d %-4s |-%s\n", lineNumA, "", formattedLine))
+				diffBuilder.WriteString(fmt.Sprintf("%-4d %-4s |-%s", lineNumA, "", strings.TrimSuffix(formattedLine, "\n")))
+				if strings.HasSuffix(aLines[i], "\n") || (showVisible && strings.HasSuffix(formattedLine, nlSym+colorReset)) {
+					diffBuilder.WriteString("\n")
+				}
 				lineNumA++
 			}
 		case 'i': // Insert lines (only in B/Actual)
 			for j := j1; j < j2; j++ {
 				formattedLine := formatDiffLine(bLines[j], colorGreen)
-				diffBuilder.WriteString(fmt.Sprintf("%-4s %-4d |+%s\n", "", lineNumB, formattedLine))
+				diffBuilder.WriteString(fmt.Sprintf("%-4s %-4d |+%s", "", lineNumB, strings.TrimSuffix(formattedLine, "\n")))
+				if strings.HasSuffix(bLines[j], "\n") || (showVisible && strings.HasSuffix(formattedLine, nlSym+colorReset)) {
+					diffBuilder.WriteString("\n")
+				}
 				lineNumB++
 			}
 		case 'r': // Replace lines (differs between A and B)
-			// Optional: Limit replaced block size for readability
-			delCount := i2 - i1
-			addCount := j2 - j1
-			// maxLines := 10 // Example limit
-
-			for i := 0; i < delCount; i++ {
-				// Add logic here to omit lines if needed (using maxLines)
-				idx := i1 + i
-				formattedLine := formatDiffLine(aLines[idx], colorRed)
-				diffBuilder.WriteString(fmt.Sprintf("%-4d %-4s |-%s\n", lineNumA, "", formattedLine))
+			// Simpler 'r' handling: Show deletes then inserts
+			for i := i1; i < i2; i++ {
+				formattedLineA := formatDiffLine(aLines[i], colorRed)
+				diffBuilder.WriteString(fmt.Sprintf("%-4d %-4s |-%s", lineNumA, "", strings.TrimSuffix(formattedLineA, "\n")))
+				if strings.HasSuffix(aLines[i], "\n") || (showVisible && strings.HasSuffix(formattedLineA, nlSym+colorReset)) {
+					diffBuilder.WriteString("\n")
+				}
 				lineNumA++
 			}
-			for j := 0; j < addCount; j++ {
-				// Add logic here to omit lines if needed (using maxLines)
-				idx := j1 + j
-				formattedLine := formatDiffLine(bLines[idx], colorGreen)
-				diffBuilder.WriteString(fmt.Sprintf("%-4s %-4d |+%s\n", "", lineNumB, formattedLine))
+			for j := j1; j < j2; j++ {
+				formattedLineB := formatDiffLine(bLines[j], colorGreen)
+				diffBuilder.WriteString(fmt.Sprintf("%-4s %-4d |+%s", "", lineNumB, strings.TrimSuffix(formattedLineB, "\n")))
+				if strings.HasSuffix(bLines[j], "\n") || (showVisible && strings.HasSuffix(formattedLineB, nlSym+colorReset)) {
+					diffBuilder.WriteString("\n")
+				}
 				lineNumB++
 			}
 		}
 	}
 	diffBuilder.WriteString(separator + "\n")
 
+	// Log the final diff string using Logf as it's supplementary info
 	t.Logf("--- Diff ---\n%s", diffBuilder.String())
 
 	return false // Indicate that strings were different
 }
 
-// AssertEqualStrings is a convenience helper that uses DiffStrings and fails the test if needed.
+// AssertEqualStrings is a convenience helper that uses DiffStrings with default flags
+// and fails the test immediately if strings are not equal after normalization.
 func AssertEqualStrings(t *testing.T, expected, actual string, msgAndArgs ...interface{}) {
 	t.Helper()
-	defaultDiffFlags := DiffAnsiColor | DiffVisibleSpace // Enable visible space by default
+	// Use default normalization (NormDefault) and default diff flags for assertion convenience
+	defaultDiffFlags := DiffAnsiColor | DiffVisibleSpace
 	if !DiffStrings(t, expected, actual, NormDefault, defaultDiffFlags) {
+		// DiffStrings already called t.Errorf. We just need to stop the test.
+		// Construct message if provided
+		message := "Assertion failed: Strings not equal after default normalization."
+		var finalMsg string
 		if len(msgAndArgs) > 0 {
 			format, ok := msgAndArgs[0].(string)
 			if !ok {
-				t.Fatalf("First argument to AssertEqualStrings message must be a format string.")
+				// Handle case where first arg is not a format string - just prepend our message
+				finalMsg = fmt.Sprintf("%s (%+v)", message, msgAndArgs)
+			} else {
+				// Format the user's message and prepend ours
+				userMsg := fmt.Sprintf(format, msgAndArgs[1:]...)
+				finalMsg = fmt.Sprintf("%s (%s)", message, userMsg)
 			}
-			t.Fatalf(format, msgAndArgs[1:]...)
 		} else {
-			t.FailNow()
+			finalMsg = message
 		}
+		// Use constant format string "%s" for Fatalf
+		t.Fatalf("%s", finalMsg)
 	}
+}
+
+// Helper for max function used in diff replace logic (if needed)
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }

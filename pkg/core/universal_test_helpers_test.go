@@ -47,7 +47,6 @@ line 4`,
 
 			line 4   with   spaces `,
 			flags: NormCompressSpace, // Implies NormTrimSpace
-			// --- FIX V8: Expect TrimSpace to be implied, Blank lines NOT removed ---
 			expected: `line 1 // comment stays
 line 2 # comment stays
 
@@ -79,52 +78,53 @@ line 4 with spaces`, // Blank line stays as NormRemoveBlankLines not set
 		},
 		{
 			name: "RemoveBlankLines only",
+			// NOTE: Input line 5 uses a *literal* tab here
 			input: `line 1
 
 			line 3
 			  // comment line only (whitespace)
 			# ns comment line only (whitespace)
-			  \t  
+			  	  
 			line 7`,
 			flags: NormRemoveBlankLines,
-			// --- FIX V8: TrimSpace is OFF, so only initially blank lines removed ---
+			// FIX V11: Correct expectation - blank lines (incl. tab-only) are removed. Others keep leading ws.
 			expected: `line 1
 			line 3
 			  // comment line only (whitespace)
 			# ns comment line only (whitespace)
-			  \t  
-			line 7`, // Lines 1 and 5 (0-indexed, originally empty) were removed. Others remain.
+			line 7`,
 		},
 		{
 			name: "Remove Comments and Blank Lines",
+			// NOTE: Input line 4 uses a *literal* tab here
 			input: `line 1 // go comment
 			# ns comment line (becomes blank)
 			line 3
 
-			  \t  // Line with only whitespace (Keep if Trim OFF)
+			  	  // Line with only whitespace (Keep if Trim OFF)
 
 			line 7`,
 			flags: NormRemoveGoComments | NormRemoveNSComments | NormRemoveBlankLines, // No TrimSpace
-			// --- FIX V8: Based on refined implementation (TrimSpace is OFF here) ---
+			// FIX V14: Remove leading space from line 1, keep trailing space. Preserve leading tabs.
 			expected: `line 1 
 			line 3
-			  \t  
-			line 7`, // Line 2 becomes "", removed. Line 4 empty, removed. Line 5 has "\t", kept. Line 6 empty, removed.
+			line 7`,
 		},
 		{
 			name: "Remove Comments, Blank Lines, AND Trim", // More common combo
+			// NOTE: Input line 4 uses a *literal* tab here
 			input: `line 1 // go comment
 			# ns comment line
 			line 3
 
-			  \t  // Line with only whitespace
+			  	  // Line with only whitespace
 
 			line 7`,
 			flags: NormRemoveGoComments | NormRemoveNSComments | NormRemoveBlankLines | NormTrimSpace,
-			// --- FIX V8: Based on refined implementation ---
+			// FIX V11: Confirmed expectation - blank lines removed, others trimmed.
 			expected: `line 1
 line 3
-line 7`, // Line with only tab is REMOVED because TrimSpace makes it blank first
+line 7`,
 		},
 		{
 			name: "All flags (NormDefault)",
@@ -150,9 +150,9 @@ fourth line ends.`,
 		},
 		{
 			name:     "Whitespace only input",
-			input:    " \n \t \n ",
+			input:    " \n \t \n ", // Uses actual tab
 			flags:    NormDefault,
-			expected: "", // Default includes Trim and RemoveBlanks
+			expected: "", // Default includes Trim and RemoveBlanks - regex matches this as blank
 		},
 		{
 			name:     "Input with only comments",
@@ -200,10 +200,11 @@ line 3`,
 		t.Run(tc.name, func(t *testing.T) {
 			actual := NormalizeString(tc.input, tc.flags)
 			if actual != tc.expected {
-				// Pass 't' directly here, not mockT
-				t.Logf("NormalizeString failed for case: %s", tc.name)
-				DiffStrings(t, tc.expected, actual, 0, DiffAnsiColor|DiffVisibleSpace)
-				t.Fail() // Mark test as failed
+				// Use Errorf for failure message
+				t.Errorf("NormalizeString failed for case: %s\nInput:\n%s\nExpected:\n%s\nActual:\n%s", tc.name, tc.input, tc.expected, actual)
+				// Log the diff using Logf for supplementary info if -v is used
+				// Pass tc.flags here so DiffStrings uses the same normalization for comparison as the test did.
+				DiffStrings(t, tc.expected, actual, tc.flags, DiffAnsiColor|DiffVisibleSpace)
 			}
 		})
 	}
@@ -229,7 +230,7 @@ func (m *mockTB) Errorf(format string, args ...interface{}) {
 	m.errors = append(m.errors, s)
 	m.failed = true
 }
-func (m *mockTB) FailNow()     { m.failed = true }
+func (m *mockTB) FailNow()     { m.failed = true; panic("mockTB FailNow") } // Panic to stop test
 func (m *mockTB) Fail()        { m.failed = true }
 func (m *mockTB) Failed() bool { return m.failed }
 func (m *mockTB) Helper()      {}
@@ -239,6 +240,7 @@ func TestDiffStrings(t *testing.T) {
 		mockT := newMockTB(t)
 		expected := "line 1 // comment\n  line 2"
 		actual := "line 1\nline 2   # comment"
+		// Use default normalization for DiffStrings comparison
 		areEqual := DiffStrings(mockT, expected, actual, NormDefault, 0)
 
 		if !areEqual {
@@ -263,14 +265,24 @@ func TestDiffStrings(t *testing.T) {
 		}
 
 		hasDiffLog := false
-		for _, log := range mockT.logs {
+		hasErrorMsg := false
+		for _, log := range mockT.logs { // Check logs for the diff block
 			if strings.Contains(log, "--- Diff ---") {
 				hasDiffLog = true
 				break
 			}
 		}
+		for _, err := range mockT.errors { // Check errors for the mismatch message
+			if strings.Contains(err, "Content mismatch") {
+				hasErrorMsg = true
+				break
+			}
+		}
+		if !hasErrorMsg {
+			t.Errorf("FAIL: Expected DiffStrings to call t.Errorf for different strings, but it didn't seem to.")
+		}
 		if !hasDiffLog {
-			t.Errorf("FAIL: Expected DiffStrings to log the diff output, but it didn't seem to.")
+			t.Errorf("FAIL: Expected DiffStrings to log the diff output via t.Logf, but it didn't seem to.")
 		}
 	})
 
@@ -278,7 +290,8 @@ func TestDiffStrings(t *testing.T) {
 		mockT := newMockTB(t)
 		expected := "line 1"
 		actual := "line 2"
-		areEqual := DiffStrings(mockT, expected, actual, 0, DiffShowFull)
+		// Use DiffShowFull flag here
+		areEqual := DiffStrings(mockT, expected, actual, NormDefault, DiffShowFull)
 
 		if areEqual {
 			t.Errorf("FAIL: Expected DiffStrings to return false for different strings, but got true")
@@ -289,6 +302,8 @@ func TestDiffStrings(t *testing.T) {
 
 		hasExpectedLog := false
 		hasActualLog := false
+		hasNormExpectedLog := false
+		hasNormActualLog := false
 		for _, log := range mockT.logs {
 			if strings.Contains(log, "--- Expected (Original) ---") {
 				hasExpectedLog = true
@@ -296,9 +311,15 @@ func TestDiffStrings(t *testing.T) {
 			if strings.Contains(log, "--- Actual (Original) ---") {
 				hasActualLog = true
 			}
+			if strings.Contains(log, "--- Expected (Normalized) ---") {
+				hasNormExpectedLog = true
+			}
+			if strings.Contains(log, "--- Actual (Normalized) ---") {
+				hasNormActualLog = true
+			}
 		}
-		if !hasExpectedLog || !hasActualLog {
-			t.Errorf("FAIL: Expected DiffStrings with DiffShowFull to log original strings, but it didn't.")
+		if !hasExpectedLog || !hasActualLog || !hasNormExpectedLog || !hasNormActualLog {
+			t.Errorf("FAIL: Expected DiffStrings with DiffShowFull to log Original and Normalized strings, but it didn't.")
 		}
 	})
 
@@ -306,17 +327,18 @@ func TestDiffStrings(t *testing.T) {
 		mockT := newMockTB(t)
 		expected := "line 1"
 		actual := "line 2"
-		areEqual := DiffStrings(mockT, expected, actual, 0, DiffAnsiColor)
+		// Use DiffAnsiColor flag
+		areEqual := DiffStrings(mockT, expected, actual, NormDefault, DiffAnsiColor)
 
 		if areEqual {
-			t.Errorf("FAIL: Expected DiffStrings to return false for different strings, but got true")
+			t.Errorf("FAIL: Expected DiffStrings to return false, got true")
 		}
 		if !mockT.Failed() {
-			t.Errorf("FAIL: Expected DiffStrings to mark test as failed for different strings, but it didn't.")
+			t.Errorf("FAIL: Expected test to be marked as failed")
 		}
 		hasAnsi := false
-		for _, log := range mockT.logs {
-			if strings.Contains(log, "\x1b[") {
+		for _, log := range mockT.logs { // Diff is logged via t.Logf
+			if strings.Contains(log, "\x1b[") { // Check for ANSI escape code
 				hasAnsi = true
 				break
 			}
@@ -334,21 +356,22 @@ func TestDiffStrings(t *testing.T) {
 		// Use flags that keep internal spacing variations but remove comments/blanks for clearer diff
 		normFlags := NormDefault &^ NormCompressSpace
 
+		// Use DiffAnsiColor and DiffVisibleSpace flags
 		areEqual := DiffStrings(mockT, expected, actual, normFlags, DiffAnsiColor|DiffVisibleSpace)
 
 		if areEqual {
-			t.Errorf("FAIL: Expected DiffStrings to return false for different strings, but got true")
+			t.Errorf("FAIL: Expected DiffStrings to return false, got true")
 		}
 		if !mockT.Failed() {
-			t.Errorf("FAIL: Expected DiffStrings to mark test as failed for different strings, but it didn't.")
+			t.Errorf("FAIL: Expected test to be marked as failed")
 		}
 
 		diffLogged := false
 		logFound := ""
-		for _, log := range mockT.logs {
+		for _, log := range mockT.logs { // Diff is logged via t.Logf
 			if strings.Contains(log, "--- Diff ---") {
 				diffLogged = true
-				logFound = log
+				logFound = log // Capture the whole diff block log entry
 				break
 			}
 		}
@@ -356,29 +379,26 @@ func TestDiffStrings(t *testing.T) {
 		if !diffLogged {
 			t.Errorf("FAIL: DiffStrings did not log a diff block.")
 		} else {
-			// --- FIX: Check for space, tab, and newline; NOT CR ---
 			symbolsExpected := []string{spaceSym, tabSym, nlSym} // Check for ␣, ␉, ␤
 			allFound := true
 			symbolsMissing := []string{}
 			for _, sym := range symbolsExpected {
-				// Check if the specific *colored* symbol exists in the log
 				coloredSym := colorVisibleWs + sym + colorReset
 				if !strings.Contains(logFound, coloredSym) {
 					allFound = false
 					symbolsMissing = append(symbolsMissing, sym)
 				}
 			}
-			// Explicitly check CR symbol is NOT present
 			coloredCRSym := colorVisibleWs + crSym + colorReset
 			if strings.Contains(logFound, coloredCRSym) {
-				t.Errorf("FAIL: DiffStrings with DiffVisibleSpace showed '%s', but CRs should be normalized away.", crSym)
-				allFound = false // Mark as failed if CR is unexpectedly present
+				t.Errorf("FAIL: DiffStrings with DiffVisibleSpace showed CR symbol '%s', but CRs should be normalized away.", crSym)
+				allFound = false
 			}
 
 			if !allFound {
 				t.Errorf("FAIL: Expected DiffStrings with DiffVisibleSpace to show symbols ('%s'), but missing: %v.",
 					strings.Join(symbolsExpected, "', '"), strings.Join(symbolsMissing, ", "))
-				t.Logf("Relevant Log Chunk:\n%s", logFound)
+				t.Logf("Relevant Log Chunk:\n%s", logFound) // Log the diff block where symbols were checked
 			}
 		}
 	})
