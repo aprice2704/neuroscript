@@ -2,7 +2,6 @@
 package blocks
 
 import (
-	"log"
 	"os"
 	"path/filepath" // Keep reflect for the remaining test
 	"testing"
@@ -54,10 +53,9 @@ func TestExtractAllAndMetadataSimple(t *testing.T) {
 		// --- USE os.Stderr for logger to see debug output ---
 		// To disable debug logging for this test, comment out the next line
 		// and uncomment the line after it.
-		testLogger := log.New(os.Stderr, "[TEST-SIMPLE] ", log.Ltime|log.Lmicroseconds)
 		// testLogger := log.New(io.Discard, "[TEST-SIMPLE] ", 0)
 		// --- END Logger Change ---
-		gotBlocks, err := ExtractAll(simpleContent, testLogger)
+		gotBlocks, err := ExtractAll(simpleContent, logger)
 		if err != nil {
 			// Only fail if there's an unexpected error (e.g., scanner error)
 			t.Fatalf("ExtractAll failed unexpectedly for simple fixture: %v\nGot Blocks: %#v", err, gotBlocks)

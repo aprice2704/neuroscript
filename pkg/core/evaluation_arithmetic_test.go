@@ -6,7 +6,7 @@ import (
 	// Removed reflect and strings - now handled by runEvalExpressionTest in helpers
 )
 
-// Assumes newTestInterpreter( and runEvalExpressionTest are defined in test_helpers_test.go
+// Assumes NewTestInterpreter( and runEvalExpressionTest are defined in test_helpers_test.go
 
 func TestArithmeticOps(t *testing.T) {
 	vars := map[string]interface{}{

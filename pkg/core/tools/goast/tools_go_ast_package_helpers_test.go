@@ -8,12 +8,10 @@ import (
 	"go/parser"
 	"go/token"
 
-	// "io" // No longer needed
-	// "log" // No longer needed
 	"strings"
 	"testing"
-	// Assumes Interpreter and core.NewDefaultTestInterpreter are defined
-	// in this package (core), likely via universal_test_helpers.go
+
+	"github.com/aprice2704/neuroscript/pkg/core"
 )
 
 // formatNode helper (remains the same)
@@ -28,14 +26,10 @@ func formatNode(fset *token.FileSet, node ast.Node) (string, error) {
 
 // TestApplyAstImportChanges tests the import manipulation logic.
 func TestApplyAstImportChanges(t *testing.T) {
-	// Use the *existing* helper function to get an interpreter instance
-	// *** FIX: Pass 't' argument to the helper ***
-	testInterpreter, interpErr := core.NewDefaultTestInterpreter(t) // Assume it returns (*core.Interpreter, error)
-	if interpErr != nil {
-		// *** FIX: Check the 'interpErr' variable, not 'err' ***
+	testInterpreter, interpErr := core.NewDefaultTestInterpreter(t)
+	if len(interpErr) > 0 {
 		t.Fatalf("Failed to create default test interpreter: %v", interpErr)
 	}
-	// *** END FIX ***
 
 	testCases := []struct {
 		name         string

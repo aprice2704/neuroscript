@@ -14,6 +14,7 @@ import (
 	"go/token"
 	"os"
 	"strings" // Needed for registration error joining fallback
+	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/core"
 	// "golang.org/x/tools/go/ast/astutil" // Not needed here anymore? Or maybe by find/modify? Keep for now.
@@ -210,4 +211,9 @@ func registerGoAstTools(registry *core.ToolRegistry) error {
 	}
 
 	return nil // Success
+}
+
+func NewDefaultTestInterpreter(t *testing.T) (*core.Interpreter, string) {
+	t.Helper()
+	return core.NewTestInterpreter(t, nil, nil)
 }

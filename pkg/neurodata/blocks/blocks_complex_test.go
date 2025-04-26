@@ -4,7 +4,7 @@ package blocks
 import (
 	"errors" // Keep for error check
 	"io"
-	"log"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings" // Keep for error check
@@ -13,6 +13,8 @@ import (
 
 // Assume fixtureDir is defined in blocks_helpers.go
 // Assume helper functions minInt, compareBlockSlices are defined in blocks_helpers.go
+
+var logger = slog.New(slog.NewTextHandler(os.Stderr, nil))
 
 func TestExtractAllAndMetadataComplex(t *testing.T) {
 	complexFixturePath := filepath.Join(fixtureDir, "complex_blocks.md")
@@ -76,8 +78,7 @@ func TestExtractAllAndMetadataComplex(t *testing.T) {
 
 	t.Run("Complex Fixture Extraction (Ignore Unclosed)", func(t *testing.T) {
 		t.Logf("Running ExtractAll on %s (expecting NO error, ignore unclosed block)...", complexFixturePath)
-		testLogger := log.New(io.Discard, "[TEST-COMPLEX] ", 0) // Use discard logger for less noise
-		gotBlocks, err := ExtractAll(complexContent, testLogger)
+		gotBlocks, err := ExtractAll(complexContent, logger)
 
 		// Check for Unexpected Error
 		if expectError {

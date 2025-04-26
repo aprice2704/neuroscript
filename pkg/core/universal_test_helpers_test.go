@@ -14,7 +14,7 @@ func TestNormalizeString(t *testing.T) {
 	testCases := []struct {
 		name     string
 		input    string
-		flags    uint32
+		flags    NormalizationFlags
 		expected string
 	}{
 		{

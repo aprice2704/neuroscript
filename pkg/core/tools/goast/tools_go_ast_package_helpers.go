@@ -78,7 +78,7 @@ func analyzeImportsAndSymbols(astFile *ast.File, fset *token.FileSet, oldPath st
 func applyAstImportChanges(fset *token.FileSet, f *ast.File, oldImportPath string, requiredNewImports map[string]string, interpreter *core.Interpreter) error {
 	// Use constant from main file (assuming same package)
 	logPrefix := fmt.Sprintf("[applyAstImportChanges %s]", packageToolDebugVersion)
-	logger := interpreter.logger // Use interpreter's logger
+	logger := interpreter.Logger() // Use interpreter's logger
 	logger.Debug("%s Applying import changes: remove %s, add %d new paths", logPrefix, oldImportPath, len(requiredNewImports))
 
 	// Delete old import (try path first)

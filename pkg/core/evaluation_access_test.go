@@ -25,8 +25,8 @@ func TestEvaluateElementAccess(t *testing.T) {
 		"name":    "World",
 		"numVar":  int64(123),
 	}
-	// *** FIXED: Use newTestInterpreter from test scope ***
-	interp, _ := newTestInterpreter(t, vars, nil) // Get interpreter and ignore sandbox path
+	// *** FIXED: Use NewTestInterpreter from test scope ***
+	interp, _ := NewTestInterpreter(t, vars, nil) // Get interpreter and ignore sandbox path
 
 	tests := []struct {
 		name        string

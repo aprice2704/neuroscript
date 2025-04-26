@@ -1,7 +1,7 @@
 #!/bin/bash
 
-source_dir="neuroscript"
-dest_dir="neuroscript_sm2"
+source_dir="/home/aprice/dev/neuroscript"
+dest_dir="/home/aprice/dev/neuroscript_sm2"
 
 # Ensure destination directory exists
 mkdir -p "$dest_dir"

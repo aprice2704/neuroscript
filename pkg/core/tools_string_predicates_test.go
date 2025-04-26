@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-// Assume newTestInterpreter and MakeArgs are defined in testing_helpers.go
+// Assume NewTestInterpreter and MakeArgs are defined in testing_helpers.go
 
 // TestToolContainsPrefixSuffix
 func TestToolContainsPrefixSuffix(t *testing.T) {

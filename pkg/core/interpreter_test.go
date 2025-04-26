@@ -31,8 +31,8 @@ type executeStepsTestCase struct {
 
 func runExecuteStepsTest(t *testing.T, tc executeStepsTestCase) {
 	t.Helper()
-	// Use newTestInterpreter from test scope, passing t and handling 2 return values
-	interp, _ := newTestInterpreter(t, tc.initialVars, nil) // Use initialVars, ignore sandbox path
+	// Use NewTestInterpreter from test scope, passing t and handling 2 return values
+	interp, _ := NewTestInterpreter(t, tc.initialVars, nil) // Use initialVars, ignore sandbox path
 
 	finalResult, wasReturn, err := interp.executeSteps(tc.inputSteps)
 

@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-// Assumes newTestInterpreter( and runEvalExpressionTest (with EvalTestCase) are defined in test_helpers_test.go
+// Assumes NewTestInterpreter( and runEvalExpressionTest (with EvalTestCase) are defined in test_helpers_test.go
 
 func TestMathFunctions(t *testing.T) {
 	vars := map[string]interface{}{

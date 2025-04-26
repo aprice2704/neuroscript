@@ -14,7 +14,7 @@ import (
 // ParseOptions structure to pass flags/logger
 type ParseOptions struct {
 	DebugAST bool
-	logger   interfaces.Logger // Use standard log.logger
+	Logger   interfaces.Logger // Use standard log.logger
 }
 
 // ParseNeuroScript reads NeuroScript code, parses it using ANTLR,
@@ -22,7 +22,7 @@ type ParseOptions struct {
 // Updated signature to return fileVersion string.
 func ParseNeuroScript(r io.Reader, sourceName string, options ParseOptions) ([]Procedure, string, error) {
 	// Use logger from options, default to discard if nil
-	logger := options.logger
+	logger := options.Logger
 	if logger == nil {
 		panic("Parser requires a valid logger")
 	}

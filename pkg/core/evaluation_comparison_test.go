@@ -98,8 +98,8 @@ func TestEvaluateCondition(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// *** FIXED: Use newTestInterpreter from test scope ***
-			interp, _ := newTestInterpreter(t, vars, lastValue) // Get interpreter, ignore sandbox path
+			// *** FIXED: Use NewTestInterpreter from test scope ***
+			interp, _ := NewTestInterpreter(t, vars, lastValue) // Get interpreter, ignore sandbox path
 			got, err := interp.evaluateCondition(tt.node)
 
 			if (err != nil) != tt.wantErr {

@@ -6,12 +6,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
-	"log"
+	"log/slog"
 	"os"
 
 	// Needed for error joining fallback
-	"github.com/aprice2704/neuroscript/pkg/core" // Import core
+	slogadapter "github.com/aprice2704/neuroscript/pkg/adapters"
+	"github.com/aprice2704/neuroscript/pkg/core"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 )
 
@@ -19,7 +19,6 @@ import (
 type App struct {
 	Config *Config
 	Logger interfaces.Logger
-	LLMLog interfaces.Logger
 
 	// Core components needed by the app
 	interpreter *core.Interpreter // Keep interpreter internal
@@ -29,33 +28,44 @@ type App struct {
 
 // NewApp creates a new App instance with default loggers and registers agent tools.
 func NewApp() *App {
-	// Initialize core logger first for components that need it
-	tmpLogger := log.New(os.Stderr, "INIT: ", log.LstdFlags|log.Lshortfile) // Temporary logger
 
-	// Create components (LLM client might be nil initially)
-	var llmClient *core.LLMClient                            // Initialize as nil, will be created in initLLMClient
-	interpreter := core.NewInterpreter(tmpLogger, llmClient) // Pass nil client for now
+	logLevel := slog.LevelDebug
+
+	// Create the handler
+	handlerOpts := &slog.HandlerOptions{
+		Level:     logLevel,
+		AddSource: true, // include source file and line number
+	}
+	// Use NewTextHandler for human-readable key=value output (not JSON)
+	handler := slog.NewTextHandler(os.Stderr, handlerOpts) // Log to Stderr
+
+	// Create the core slog logger
+	slogLogger := slog.New(handler)
+
+	// Use the concrete slog.Logger to create our adapter that satisfies interfaces.Logger
+	appLogger, err := slogadapter.NewSlogAdapter(slogLogger)
+	if err != nil {
+		// Use the raw slogLogger for bootstrap errors, as appLogger might be nil
+		slogLogger.Error("Failed to create logger adapter", "error", err)
+		os.Exit(1)
+	}
+
+	appLogger.Info("Logger initialized", "level", logLevel.String())
+
+	var llmClient *core.LLMClient
+	interpreter := core.NewInterpreter(appLogger, llmClient)
 
 	app := &App{
-		Config:   NewConfig(),
-		InfoLog:  log.New(os.Stdout, "INFO:  ", log.LstdFlags),
-		WarnLog:  log.New(os.Stderr, "WARN:  ", log.LstdFlags|log.Lshortfile),
-		ErrorLog: log.New(os.Stderr, "ERROR: ", log.LstdFlags|log.Lshortfile),
-		DebugLog: log.New(io.Discard, "DEBUG: ", log.LstdFlags|log.Lshortfile), // Start discarded
-		LLMLog:   log.New(io.Discard, "LLM:   ", log.LstdFlags|log.Lshortfile), // Start discarded
+		Config: NewConfig(),
+		Logger: appLogger,
 
-		// Assign core components
 		interpreter: interpreter,
-		llmClient:   llmClient, // Still nil here
-		// agentCtx will be created when agent mode starts
+		llmClient:   llmClient,
 	}
 
 	// Ensure essential loggers are non-nil right away
 	if app.Logger == nil {
 		panic("App needs a valid logger")
-	}
-	if app.LLMLog == nil {
-		panic("App needs a valid LLM logger")
 	}
 
 	// Register standard and agent-specific tools
@@ -81,6 +91,7 @@ func (a *App) GetInterpreter() *core.Interpreter {
 // Run executes the appropriate application mode based on parsed flags.
 // Assumes Config field is already populated by main.go
 func (a *App) Run(ctx context.Context) error {
+
 	// 1. Initialize logging based on Config
 	if err := a.initLogging(); err != nil { // Call initLogging from app_helpers.go
 		// Log to initial stderr logger if possible

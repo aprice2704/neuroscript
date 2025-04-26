@@ -3,7 +3,6 @@ package neurogo
 
 import (
 	"fmt"
-	"log"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -33,20 +32,17 @@ type AgentContext struct {
 	pinnedFileURIs    map[string]string // Populated by TOOL.AgentPinFile, always included
 	tempRequestedURIs map[string]string // Populated by TOOL.RequestFileContext, cleared after use
 
-	log *log.Logger // Logger for internal operations
+	Logger interfaces.Logger // Logger for internal operations
 }
 
 // NewAgentContext creates a new, initialized AgentContext.
 func NewAgentContext(logger interfaces.Logger) *AgentContext {
-	if logger == nil {
-		// Fallback if nil logger is passed, though ideally App should provide one
-		logger = log.New(log.Writer(), "AgentContext: ", log.LstdFlags|log.Lshortfile)
-	}
+
 	return &AgentContext{
 		syncedFileURIs:    make(map[string]string),
 		pinnedFileURIs:    make(map[string]string),
 		tempRequestedURIs: make(map[string]string),
-		log:               logger,
+		Logger:            logger,
 		// Initialize defaults for config? Or rely solely on startup script?
 		// For now, leave them zero/empty. Startup script MUST set them.
 	}
@@ -60,7 +56,7 @@ func (ac *AgentContext) SetSandboxDir(path string) {
 	ac.mu.Lock()
 	defer ac.mu.Unlock()
 	ac.sandboxDir = path
-	ac.log.Printf("Agent sandbox directory set to: %s", path)
+	ac.Logger.Info("Agent sandbox directory set to: %s", path)
 }
 
 // GetSandboxDir returns the configured sandbox directory.
@@ -76,7 +72,7 @@ func (ac *AgentContext) SetAllowlistPath(path string) {
 	ac.mu.Lock()
 	defer ac.mu.Unlock()
 	ac.allowlistPath = path
-	ac.log.Printf("Agent allowlist path set to: %s", path)
+	ac.Logger.Info("Agent allowlist path set to: %s", path)
 }
 
 // GetAllowlistPath returns the configured allowlist path.
@@ -92,7 +88,7 @@ func (ac *AgentContext) SetModelName(name string) {
 	ac.mu.Lock()
 	defer ac.mu.Unlock()
 	ac.modelName = name
-	ac.log.Printf("Agent model name set to: %s", name)
+	ac.Logger.Info("Agent model name set to: %s", name)
 }
 
 // GetModelName returns the configured model name.
@@ -114,7 +110,7 @@ func (ac *AgentContext) UpdateSyncedURIs(syncedURIs map[string]string) {
 	for relPath, uri := range syncedURIs {
 		ac.syncedFileURIs[relPath] = uri
 	}
-	ac.log.Printf("Updated synced file URIs map (count: %d)", len(ac.syncedFileURIs))
+	ac.Logger.Info("Updated synced file URIs map (count: %d)", len(ac.syncedFileURIs))
 }
 
 // PinFile adds a file (by its relative path and URI) to the pinned context.
@@ -126,9 +122,9 @@ func (ac *AgentContext) PinFile(relativePath string, uri string) error {
 	ac.mu.Lock()
 	defer ac.mu.Unlock()
 	if _, exists := ac.pinnedFileURIs[relativePath]; exists {
-		ac.log.Printf("Note: Re-pinning file '%s' (URI: %s)", relativePath, uri)
+		ac.Logger.Info("Note: Re-pinning file '%s' (URI: %s)", relativePath, uri)
 	} else {
-		ac.log.Printf("Pinning file '%s' (URI: %s)", relativePath, uri)
+		ac.Logger.Info("Pinning file '%s' (URI: %s)", relativePath, uri)
 	}
 	ac.pinnedFileURIs[relativePath] = uri
 	return nil
@@ -142,9 +138,9 @@ func (ac *AgentContext) UnpinFile(relativePath string) bool {
 	_, exists := ac.pinnedFileURIs[relativePath]
 	if exists {
 		delete(ac.pinnedFileURIs, relativePath)
-		ac.log.Printf("Unpinned file '%s'", relativePath)
+		ac.Logger.Info("Unpinned file '%s'", relativePath)
 	} else {
-		ac.log.Printf("Attempted to unpin non-existent file '%s'", relativePath)
+		ac.Logger.Info("Attempted to unpin non-existent file '%s'", relativePath)
 	}
 	return exists
 }
@@ -157,9 +153,9 @@ func (ac *AgentContext) UnpinAllFiles() int {
 	count := len(ac.pinnedFileURIs)
 	if count > 0 {
 		ac.pinnedFileURIs = make(map[string]string) // Reset the map
-		ac.log.Printf("Unpinned all %d files", count)
+		ac.Logger.Info("Unpinned all %d files", count)
 	} else {
-		ac.log.Println("Attempted to unpin all files, but none were pinned.")
+		ac.Logger.Info("Attempted to unpin all files, but none were pinned.")
 	}
 	return count
 }
@@ -174,9 +170,9 @@ func (ac *AgentContext) AddTemporaryURI(relativePath string, uri string) error {
 	defer ac.mu.Unlock()
 	if _, exists := ac.tempRequestedURIs[relativePath]; exists {
 		// Already requested, maybe log? Or just overwrite? Overwriting seems fine.
-		ac.log.Printf("Note: Re-requesting temporary file '%s' (URI: %s)", relativePath, uri)
+		ac.Logger.Info("Note: Re-requesting temporary file '%s' (URI: %s)", relativePath, uri)
 	} else {
-		ac.log.Printf("Adding temporary file '%s' (URI: %s)", relativePath, uri)
+		ac.Logger.Info("Adding temporary file '%s' (URI: %s)", relativePath, uri)
 	}
 	ac.tempRequestedURIs[relativePath] = uri
 	return nil
@@ -202,9 +198,9 @@ func (ac *AgentContext) GetURIsForNextContext() []*genai.File {
 				Name:        uri,      // API expects the "files/..." URI here
 				DisplayName: fileName, // A user-friendly name
 			})
-			// ac.log.Printf("Adding pinned URI to context: %s (Display: %s)", uri, fileName) // Too verbose?
+			// ac.Logger.Info("Adding pinned URI to context: %s (Display: %s)", uri, fileName) // Too verbose?
 		} else {
-			ac.log.Printf("Skipping duplicate pinned URI: %s (Path: %s)", uri, relPath)
+			ac.Logger.Info("Skipping duplicate pinned URI: %s (Path: %s)", uri, relPath)
 		}
 	}
 
@@ -217,9 +213,9 @@ func (ac *AgentContext) GetURIsForNextContext() []*genai.File {
 				Name:        uri,
 				DisplayName: fileName,
 			})
-			// ac.log.Printf("Adding temporary URI to context: %s (Display: %s)", uri, fileName) // Too verbose?
+			// ac.Logger.Info("Adding temporary URI to context: %s (Display: %s)", uri, fileName) // Too verbose?
 		} else {
-			ac.log.Printf("Skipping duplicate temporary URI: %s (Path: %s)", uri, relPath)
+			ac.Logger.Info("Skipping duplicate temporary URI: %s (Path: %s)", uri, relPath)
 		}
 	}
 
@@ -227,10 +223,10 @@ func (ac *AgentContext) GetURIsForNextContext() []*genai.File {
 	clearedCount := len(ac.tempRequestedURIs)
 	if clearedCount > 0 {
 		ac.tempRequestedURIs = make(map[string]string)
-		// ac.log.Printf("Cleared %d temporary file URIs.", clearedCount) // Maybe too verbose?
+		// ac.Logger.Info("Cleared %d temporary file URIs.", clearedCount) // Maybe too verbose?
 	}
 
-	ac.log.Printf("Compiled %d unique URIs for next context.", len(uriList))
+	ac.Logger.Info("Compiled %d unique URIs for next context.", len(uriList))
 	return uriList
 }
 
@@ -256,7 +252,7 @@ func (ac *AgentContext) LookupURI(relativePath string) (string, bool) {
 	// Fallback: Check if the path exists in temporary (might be useful)
 	uri, found = ac.tempRequestedURIs[relativePath]
 	if found {
-		ac.log.Printf("Warning: Looked up URI for '%s' found in temporary list, this might be unexpected.", relativePath)
+		ac.Logger.Info("Warning: Looked up URI for '%s' found in temporary list, this might be unexpected.", relativePath)
 		return uri, true
 	}
 

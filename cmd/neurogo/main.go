@@ -5,10 +5,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"io"
-	"log"
 	"os"
-	"strings"
 
 	"github.com/aprice2704/neuroscript/pkg/neurogo"
 	"github.com/aprice2704/neuroscript/pkg/neurogo/tui"
@@ -19,8 +16,6 @@ func main() {
 	// Logging (Keep these)
 	logFile := flag.String("log-file", "", "Path to log file (optional, defaults to stderr)")
 	logLevel := flag.String("log-level", "info", "Log level (debug, info, warn, error)")
-	debugLogFile := flag.String("debug-log-file", "", "Path to debug log file (optional)")
-	llmDebugLogFile := flag.String("llm-debug-log-file", "", "Path to LLM debug log file (optional)")
 
 	// Modes (Keep these)
 	scriptFile := flag.String("script", "", "Path to a NeuroScript file to execute (script mode)")
@@ -122,70 +117,24 @@ func main() {
 	}
 
 	// --- Logger Initialization ---
-	var logOutput io.Writer = os.Stderr
-	var err error
 	if *logFile != "" {
-		logOutput, err = os.OpenFile(*logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		logOutput, err := os.OpenFile(*logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error opening log file %s: %v\n", *logFile, err)
 			os.Exit(1)
-		}
-	}
-	logFlags := log.Ldate | log.Ltime | log.Lshortfile
-	infoLog := log.New(logOutput, "INFO:  ", logFlags)
-	warnLog := log.New(logOutput, "WARN:  ", logFlags)
-	errorLog := log.New(logOutput, "ERROR: ", logFlags)
-	debugLog := log.New(io.Discard, "DEBUG: ", logFlags)
-	llmLog := log.New(io.Discard, "LLM:   ", logFlags)
-
-	switch strings.ToLower(*logLevel) {
-	case "debug":
-		debugLog.SetOutput(logOutput)
-		llmLog.SetOutput(logOutput) // Enable LLM log in debug too
-		fallthrough
-	case "info":
-	case "warn":
-	case "error":
-	default:
-		infoLog.Printf("Invalid log level '%s', defaulting to info", *logLevel)
-	}
-	if *debugLogFile != "" {
-		f, err := os.OpenFile(*debugLogFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-		if err != nil {
-			errorLog.Printf("Error opening debug log file %s: %v", *debugLogFile, err)
-		} else {
-			debugLog.SetOutput(f) // Direct debug logs to file if specified
-			// Consider also logging debug to stderr if logLevel=debug? Or make it exclusive?
-		}
-	}
-	if *llmDebugLogFile != "" {
-		f, err := os.OpenFile(*llmDebugLogFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-		if err != nil {
-			errorLog.Printf("Error opening LLM debug log file %s: %v", *llmDebugLogFile, err)
-		} else {
-			llmLog.SetOutput(f) // Direct LLM logs to file if specified
 		}
 	}
 
 	// --- App Initialization ---
 	app := neurogo.NewApp() // Constructor remains the same
 
-	// Assign loggers (remains the same)
-	app.InfoLog = infoLog
-	app.WarnLog = warnLog
-	app.ErrorLog = errorLog
-	app.DebugLog = debugLog
-	app.LLMLog = llmLog
-
 	// Configure app.Config struct with REMAINING flags
 	// The core configuration (sandbox, model, etc.) will be set
 	// via the startup script and AgentContext for agent/tui modes.
 	// We pass the paths/flags needed to *find* and run those scripts.
-	app.Config.APIKey = *apiKey                   // Still needed globally for client init
-	app.Config.Insecure = *insecure               // Security flag
-	app.Config.StartupScript = *startupScript     // NEW: Pass startup script path
-	app.Config.DebugLogFile = *debugLogFile       // For app_helpers/logging setup
-	app.Config.LLMDebugLogFile = *llmDebugLogFile // For app_helpers/logging setup
+	app.Config.APIKey = *apiKey               // Still needed globally for client init
+	app.Config.Insecure = *insecure           // Security flag
+	app.Config.StartupScript = *startupScript // NEW: Pass startup script path
 
 	// Set mode flags in config
 	app.Config.RunAgentMode = runAgent
@@ -214,17 +163,13 @@ func main() {
 	// TUI mode might eventually leverage AgentContext/startup script too,
 	// but keep its separate invocation for now.
 	if runTui {
-		app.DebugLog.Println("Starting in TUI mode...")
-		// TUI startup might need adjustment to potentially run startup script
-		if err := app.InitLoggingAndLLMClient(context.Background()); err != nil {
-			app.ErrorLog.Printf("TUI Mode: Failed to initialize prerequisites: %v", err)
-		}
+		app.Logger.Info("Starting in TUI mode...")
 		if err := tui.Start(app); err != nil {
-			app.ErrorLog.Fatalf("TUI Error: %v", err)
+			app.Logger.Error("TUI Error: %v", err)
 			fmt.Fprintf(os.Stderr, "TUI Error: %v\n", err)
 			os.Exit(1)
 		}
-		app.DebugLog.Println("TUI finished.")
+		app.Logger.Debug("TUI finished.")
 		os.Exit(0)
 	}
 
@@ -236,5 +181,5 @@ func main() {
 		os.Exit(1)
 	}
 
-	app.InfoLog.Println("NeuroGo finished successfully.")
+	app.Logger.Info("NeuroGo finished successfully.")
 }

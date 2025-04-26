@@ -288,20 +288,20 @@ func toolGoUpdateImportsForMovedPackage(interpreter *core.Interpreter, args []in
 }
 
 // --- Registration ---
-func registerGoAstPackageTools(registry *core.ToolRegistry) error {
-	err := registry.RegisterTool(core..ToolcoreImplementation{
-		Spec: core..ToolSpec{
-			Name:        "GoUpdateImportsForMovedPackage",
-			Description: fmt.Sprintf("Version: %s. Analyzes Go files, updating imports/qualifiers for symbols moved into sub-packages. Uses AST, two-pass rewrite, returns nil map on error. Refactored helpers.", packageToolDebugVersion),
-			Args: []core..ArgSpec{
-				{Name: "refactored_package_path", Type: core..ArgTypeString, Required: true, Description: "Original import path now containing sub-packages."},
-				{Name: "scan_scope", Type: core..ArgTypeString, Required: true, Description: "Directory path (relative to sandbox root) to scan."},
-			},
-			ReturnType: core..ArgTypeAny, // map[string]interface{} or nil on error
-		}, Func: toolGoUpdateImportsForMovedPackage,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to register tool GoUpdateImportsForMovedPackage: %w", err)
-	}
-	return nil
-}
+// func registerGoAstPackageTools(registry *core.ToolRegistry) error {
+// 	err := registry.RegisterTool(core.ToolcoreImplementation{
+// 		Spec: core.ToolSpec{
+// 			Name:        "GoUpdateImportsForMovedPackage",
+// 			Description: fmt.Sprintf("Version: %s. Analyzes Go files, updating imports/qualifiers for symbols moved into sub-packages. Uses AST, two-pass rewrite, returns nil map on error. Refactored helpers.", packageToolDebugVersion),
+// 			Args: []core.ArgSpec{
+// 				{Name: "refactored_package_path", Type: core.ArgTypeString, Required: true, Description: "Original import path now containing sub-packages."},
+// 				{Name: "scan_scope", Type: core.ArgTypeString, Required: true, Description: "Directory path (relative to sandbox root) to scan."},
+// 			},
+// 			ReturnType: core.ArgTypeAny, // map[string]interface{} or nil on error
+// 		}, Func: toolGoUpdateImportsForMovedPackage,
+// 	})
+// 	if err != nil {
+// 		return fmt.Errorf("failed to register tool GoUpdateImportsForMovedPackage: %w", err)
+// 	}
+// 	return nil
+// }

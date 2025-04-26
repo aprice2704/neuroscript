@@ -3,12 +3,14 @@ package checklist
 
 import (
 	"errors"
-	"log"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"reflect"
 	"testing"
 )
+
+var testlogger = slog.New(slog.NewTextHandler(os.Stderr, nil))
 
 // Helper to compare Checklists, ignoring line numbers
 func checklistsEqual(t *testing.T, got, want *ParsedChecklist) bool {
@@ -54,7 +56,7 @@ func checklistsEqual(t *testing.T, got, want *ParsedChecklist) bool {
 }
 
 func TestParseChecklistScannerFixtures(t *testing.T) {
-	testLogger := log.New(os.Stderr, "[TEST CHECKLIST DEBUG] ", log.Ltime|log.Lmicroseconds)
+
 	fixtureBaseDir := "test_fixtures"
 
 	tests := []struct {
@@ -254,7 +256,7 @@ func TestParseChecklistScannerFixtures(t *testing.T) {
 
 			// Parse Content
 			content := string(contentBytes)
-			got, parseErr := ParseChecklist(content, testLogger)
+			got, parseErr := ParseChecklist(content, testlogger)
 
 			// Check Parse Error Expectation
 			if tt.wantParseErr {

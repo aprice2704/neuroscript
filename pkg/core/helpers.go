@@ -3,8 +3,12 @@ package core
 
 import (
 	"fmt"
+	"log/slog"
+	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
+	"testing"
 )
 
 // Helper for logging snippets
@@ -96,4 +100,56 @@ func convertToSliceOfAny(rawValue interface{}) ([]interface{}, bool, error) {
 		// Type is not []interface{} or []string
 		return nil, false, fmt.Errorf("expected a slice (list), got %T", rawValue)
 	}
+}
+
+func NewTestInterpreter(t *testing.T, vars map[string]interface{}, lastResult interface{}) (*Interpreter, string) {
+	t.Helper()
+
+	handlerOpts := &slog.HandlerOptions{
+		Level:     slog.LevelWarn,
+		AddSource: true, // include source file and line number
+	}
+	handler := slog.NewTextHandler(os.Stderr, handlerOpts) // Log to Stderr
+
+	// Create the core slog logger
+	testLogger := slog.New(handler)
+
+	// Create a minimal LLMClient (can keep using testLogger now)
+	minimalLLMClient := NewLLMClient("", "", testLogger, false)
+	if minimalLLMClient == nil {
+		t.Fatal("Failed to create even a minimal LLMClient for testing")
+	}
+
+	interp := NewInterpreter(testLogger, minimalLLMClient) // Pass the working logger
+
+	testLogger.Info("Attempting to register core tools...")
+	if err := RegisterCoreTools(interp.ToolRegistry()); err != nil {
+		testLogger.Error("FATAL: Failed to register core tools during test setup: %v", err)
+		t.Fatalf("FATAL: Failed to register core tools during test setup: %v", err)
+	}
+	testLogger.Info("Successfully registered core tools.")
+
+	sandboxDirRel := t.TempDir()
+	absSandboxDir, err := filepath.Abs(sandboxDirRel)
+	if err != nil {
+		t.Fatalf("Failed to get absolute path for sandbox %s: %v", sandboxDirRel, err)
+	}
+
+	interp.sandboxDir = absSandboxDir
+	testLogger.Info("Sandbox root set in interpreter: %s", absSandboxDir)
+
+	if vars != nil {
+		for k, v := range vars {
+			interp.variables[k] = v
+		}
+	}
+
+	interp.lastCallResult = lastResult
+
+	return interp, absSandboxDir
+}
+
+func NewDefaultTestInterpreter(t *testing.T) (*Interpreter, string) {
+	t.Helper()
+	return NewTestInterpreter(t, nil, nil)
 }

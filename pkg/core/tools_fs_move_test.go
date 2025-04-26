@@ -32,7 +32,7 @@ func TestToolMoveFileValidation(t *testing.T) {
 func TestToolMoveFileFunctional(t *testing.T) {
 	// Use t.TempDir for sandboxed filesystem operations
 	sandboxDir := t.TempDir()
-	interp := newTestInterpreterWithSandbox(t, sandboxDir) // Assumes a helper like this exists or create one
+	interp := NewTestInterpreterWithSandbox(t, sandboxDir) // Assumes a helper like this exists or create one
 
 	// --- Test Setup Helper ---
 	createTestFile := func(relativePath, content string) string {
@@ -219,7 +219,7 @@ func TestToolMoveFileFunctional(t *testing.T) {
 
 // Helper function to create a test interpreter with a sandbox directory
 // Replace with your actual test setup if different
-func newTestInterpreterWithSandbox(t *testing.T, sandboxDir string) *Interpreter {
+func NewTestInterpreterWithSandbox(t *testing.T, sandboxDir string) *Interpreter {
 	t.Helper()
 	// Create a minimal interpreter for testing
 	interp, _ := NewDefaultTestInterpreter(t) // Use nil logger or a test logger

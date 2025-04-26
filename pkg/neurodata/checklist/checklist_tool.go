@@ -46,7 +46,7 @@ func toolParseChecklistFromString(interpreter *core.Interpreter, args []interfac
 		if len(logSnippet) > 100 {
 			logSnippet = logSnippet[:100] + "..."
 		}
-		logger.Printf("[TOOL ParseChecklistFromString] Parsing content (snippet): %q", logSnippet)
+		logger.Info("[TOOL ParseChecklistFromString] Parsing content (snippet): %q", logSnippet)
 	}
 
 	// Call the actual parser function (V12 or later recommended)
@@ -67,7 +67,7 @@ func toolParseChecklistFromString(interpreter *core.Interpreter, args []interfac
 			errMsg = fmt.Sprintf("ParseChecklistFromString Error: An unexpected parsing error occurred: %s", parseErr.Error())
 		}
 		if logger != nil {
-			logger.Printf("[ERROR TOOL ParseChecklistFromString] %s", errMsg)
+			logger.Error("[ERROR TOOL ParseChecklistFromString] %s", errMsg)
 		}
 		return errMsg, nil // Return error message as string result
 	}
@@ -101,7 +101,7 @@ func toolParseChecklistFromString(interpreter *core.Interpreter, args []interfac
 	}
 
 	if logger != nil {
-		logger.Printf("[TOOL ParseChecklistFromString] Successfully parsed. Returning map with %d metadata keys and %d items.", len(metadataMapInterface), len(itemsListInterface))
+		logger.Info("[TOOL ParseChecklistFromString] Successfully parsed. Returning map with %d metadata keys and %d items.", len(metadataMapInterface), len(itemsListInterface))
 	}
 
 	return resultMap, nil // Return the map on success

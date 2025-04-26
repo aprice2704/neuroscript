@@ -16,6 +16,8 @@ func NewToolRegistry() *ToolRegistry {
 	return &ToolRegistry{tools: make(map[string]ToolImplementation)}
 }
 
+var DefaultRegistry = NewToolRegistry()
+
 // GlobalToolRegistry is a default registry instance.
 // Deprecated: Avoid using global registry; pass registries explicitly.
 var GlobalToolRegistry = NewToolRegistry()

@@ -3,13 +3,14 @@ package main
 
 import (
 	"fmt"
-	"io"
-	"log"
+	"log/slog"
 	"os"
 
 	// Adjust the import path based on your Go module setup
 	"github.com/aprice2704/neuroscript/pkg/neurodata/blocks"
 )
+
+var logger = slog.New(slog.NewTextHandler(os.Stdout, nil))
 
 func main() {
 	// --- Argument Handling ---
@@ -27,11 +28,6 @@ func main() {
 		os.Exit(1)
 	}
 	content := string(contentBytes)
-
-	// --- Block Extraction ---
-	// Use a logger that discards output for this simple tool,
-	// unless debugging is needed. Change io.Discard to os.Stderr to see logs.
-	logger := log.New(io.Discard, "[BlockPrinter] ", log.Lshortfile)
 
 	extractedBlocks, err := blocks.ExtractAll(content, logger)
 	if err != nil {

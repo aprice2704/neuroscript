@@ -307,7 +307,7 @@ func TestToolGoFindIdentifiers(t *testing.T) {
 			}
 
 			// --- Tool Lookup & Validation ---
-			toolImpl, found := interp.core.ToolRegistry().GetTool("GoFindIdentifiers")
+			toolImpl, found := interp.ToolRegistry().GetTool("GoFindIdentifiers")
 			if !found {
 				t.Fatalf("Tool GoFindIdentifiers not found")
 			}

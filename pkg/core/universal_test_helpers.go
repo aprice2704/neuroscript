@@ -36,19 +36,23 @@ func LogTest(t *testing.T, format string, args ...interface{}) {
 	t.Logf("[TEST LOG] "+format, args...)
 }
 
+type NormalizationFlags uint32
+type DiffFlags uint32
+
 // --- String Normalization ---
 // (Normalization flags and functions remain unchanged)
 // Normalization flags
 const (
-	NormTrimSpace         uint32 = 1 << 0 // Trim leading/trailing space characters (ASCII 32) from each line.
-	NormCompressSpace     uint32 = 1 << 1 // Replace multiple consecutive whitespace chars with a single space (implies NormTrimSpace).
-	NormRemoveGoComments  uint32 = 1 << 2 // Remove // comments.
-	NormRemoveNSComments  uint32 = 1 << 3 // Remove # comments (assuming # for NeuroScript).
-	NormRemoveBlankLines  uint32 = 1 << 4 // Remove lines containing only whitespace after comment removal.
-	NormSpaceAroundTokens uint32 = 1 << 5 // Ensure single space around common tokens like {}, (), [], =, ==, etc. (More advanced, NYI).
+	NormTrimSpace         NormalizationFlags = 1 << 0 // Trim leading/trailing space characters (ASCII 32) from each line.
+	NormCompressSpace     NormalizationFlags = 1 << 1 // Replace multiple consecutive whitespace chars with a single space (implies NormTrimSpace).
+	NormRemoveGoComments  NormalizationFlags = 1 << 2 // Remove // comments.
+	NormRemoveNSComments  NormalizationFlags = 1 << 3 // Remove # comments (assuming # for NeuroScript).
+	NormRemoveBlankLines  NormalizationFlags = 1 << 4 // Remove lines containing only whitespace after comment removal.
+	NormSpaceAroundTokens NormalizationFlags = 1 << 5 // Ensure single space around common tokens like {}, (), [], =, ==, etc. (More advanced, NYI).
 
 	// NormDefault combines common normalization options.
-	NormDefault uint32 = NormTrimSpace | NormCompressSpace | NormRemoveGoComments | NormRemoveNSComments | NormRemoveBlankLines
+	NormDefault          NormalizationFlags = NormTrimSpace | NormCompressSpace | NormRemoveGoComments | NormRemoveNSComments | NormRemoveBlankLines
+	DefaultNormalization                    = NormDefault
 )
 
 var (
@@ -60,7 +64,7 @@ var (
 
 // NormalizeString applies various normalization options to a string.
 // Revised logic V12: Restore Debug + Fix compiler nits. (Debug Removed V13)
-func NormalizeString(content string, flags uint32) string {
+func NormalizeString(content string, flags NormalizationFlags) string {
 	if flags == 0 {
 		flags = NormDefault
 	}
@@ -144,10 +148,11 @@ func NormalizeString(content string, flags uint32) string {
 // (Diff flags and functions remain unchanged)
 // Diff display flags
 const (
-	DiffShowFull     uint32 = 1 << 0 // Show full expected and actual strings before the diff
-	DiffAnsiColor    uint32 = 1 << 1 // Add ANSI color codes
-	DiffNoContext    uint32 = 1 << 2 // Use difflib context=0 for minimal diff (N/A for custom diff)
-	DiffVisibleSpace uint32 = 1 << 3 // Replace spaces/tabs/CR/NL with visible symbols (requires DiffAnsiColor)
+	DiffShowFull     DiffFlags = 1 << 0 // Show full expected and actual strings before the diff
+	DiffAnsiColor    DiffFlags = 1 << 1 // Add ANSI color codes
+	DiffNoContext    DiffFlags = 1 << 2 // Use difflib context=0 for minimal diff (N/A for custom diff)
+	DiffVisibleSpace DiffFlags = 1 << 3 // Replace spaces/tabs/CR/NL with visible symbols (requires DiffAnsiColor)
+	DefaultDiff                = DiffShowFull | DiffAnsiColor | DiffVisibleSpace
 )
 
 const (
@@ -176,7 +181,7 @@ var visibleWsReplacer = strings.NewReplacer(
 // and logs a formatted diff using t.Logf or t.Errorf.
 // It normalizes inputs using NormalizeString before diffing if normFlags != 0.
 // Returns true if strings are equal after optional normalization, false otherwise.
-func DiffStrings(t testing.TB, expected, actual string, normFlags, diffFlags uint32) bool {
+func DiffStrings(t testing.TB, expected, actual string, normFlags NormalizationFlags, diffFlags DiffFlags) bool {
 	t.Helper()
 
 	normExpected := expected

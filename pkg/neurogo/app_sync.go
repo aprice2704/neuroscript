@@ -56,9 +56,7 @@ func (a *App) runSyncMode(ctx context.Context) error {
 		a.Config.SyncFilter,
 		a.Config.SyncIgnoreGitignore,
 		a.llmClient.Client(), // Pass the underlying *genai.Client
-		a.InfoLog,
-		a.ErrorLog,
-		a.DebugLog, // Pass DebugLog for potential verbose output in helper
+		a.Logger,
 	)
 
 	// 4. Log Summary Stats (Similar to gensync)
@@ -90,7 +88,7 @@ func (a *App) runSyncMode(ctx context.Context) error {
 		a.Logger.Error("Sync operation failed: %v", syncErr)
 		// Check stats map for specific error counts if available
 		if stats != nil && (stats["upload_errors"].(int64) > 0 || stats["delete_errors"].(int64) > 0 || stats["list_api_errors"].(int64) > 0) {
-			a.ErrorLog.Println("Sync completed with errors.")
+			a.Logger.Warn("Sync completed with errors.")
 		}
 		return fmt.Errorf("sync operation failed: %w", syncErr) // Return the error
 	}

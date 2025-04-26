@@ -166,7 +166,7 @@ func newModel(app AppAccess) model {
 
 	// Any logging here should use app.GetLogger()
 	if app != nil && app.GetLogger() != nil {
-		app.GetLogger().Println("TUI model initialized.")
+		app.GetLogger().Info("TUI model initialized.")
 	}
 
 	return model{

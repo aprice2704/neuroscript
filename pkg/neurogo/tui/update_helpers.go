@@ -134,18 +134,15 @@ func (m *model) runSyncCmd() tea.Cmd {
 
 		syncDir := m.app.GetSyncDir()
 		if syncDir == "" {
-			// Use Error Logger from interface
-			if errLog := m.app.GetLogger(); errLog != nil {
-				errLog.Println("Sync command failed: Sync directory not configured.")
-			}
+			m.app.GetLogger().Error("Sync command failed: Sync directory not configured.")
 			return errMsg{fmt.Errorf("sync directory not configured")}
 		}
 
 		llmClient := m.app.GetLLMClient() // Use interface getter
 		if llmClient == nil || llmClient.Client() == nil {
-			if errLog := m.app.GetLogger(); errLog != nil {
-				errLog.Println("Sync command failed: LLM Client not available.")
-			}
+			logger := m.app.GetLogger()
+			logger.Error("Sync command failed: LLM Client not available.")
+
 			return errMsg{fmt.Errorf("LLM Client not available for sync operation")}
 		}
 
@@ -168,9 +165,8 @@ func (m *model) runSyncCmd() tea.Cmd {
 			if sandboxDir != "" {
 				baseDesc = "sandbox directory '" + sandboxDir + "'"
 			}
-			if errLog := m.app.GetLogger(); errLog != nil {
-				Logger.Error("Sync command failed: Invalid sync directory path '%s' (relative to %s): %v", syncDir, baseDesc, secErr)
-			}
+			m.app.GetLogger().Error("Sync command failed: Invalid sync directory path '%s' (relative to %s): %v", syncDir, baseDesc, secErr)
+
 			return errMsg{fmt.Errorf("invalid sync directory path '%s': %w", syncDir, secErr)}
 		}
 
@@ -181,9 +177,8 @@ func (m *model) runSyncCmd() tea.Cmd {
 			if os.IsNotExist(statErr) {
 				errMsgFmt = "sync directory does not exist: %s: %w" // Add error wrapping if needed
 			}
-			if errLog := m.app.GetLogger(); errLog != nil {
-				Logger.Error(errMsgFmt, absSyncDir, statErr)
-			}
+			m.app.GetLogger().Error(errMsgFmt, absSyncDir, statErr)
+
 			// Return a user-friendly error message
 			if os.IsNotExist(statErr) {
 				return errMsg{fmt.Errorf("sync directory does not exist: %s", absSyncDir)}
@@ -192,7 +187,7 @@ func (m *model) runSyncCmd() tea.Cmd {
 		}
 		if !dirInfo.IsDir() {
 			if errLog := m.app.GetLogger(); errLog != nil {
-				Logger.Error("Sync command failed: Sync path is not a directory: %s", absSyncDir)
+				m.app.GetLogger().Error("Sync command failed: Sync path is not a directory: %s", absSyncDir)
 			}
 			return errMsg{fmt.Errorf("sync path is not a directory: %s", absSyncDir)}
 		}
@@ -200,9 +195,7 @@ func (m *model) runSyncCmd() tea.Cmd {
 		ctx := context.Background()
 
 		// Use interface getters for loggers and config needed by the helper
-		infoLog := m.app.GetInfoLogger()
-		errLog := m.app.GetLogger()
-		dbgLog := m.app.GetLogger()
+		logger := m.app.GetLogger()
 		syncFilter := m.app.GetSyncFilter()
 		ignoreGitignore := m.app.GetSyncIgnoreGitignore()
 
@@ -213,9 +206,7 @@ func (m *model) runSyncCmd() tea.Cmd {
 			syncFilter,
 			ignoreGitignore,
 			llmClient.Client(), // Pass the underlying *genai.Client
-			infoLog,            // Pass loggers obtained via interface
-			errLog,
-			dbgLog,
+			logger,
 		)
 
 		// Return the result message

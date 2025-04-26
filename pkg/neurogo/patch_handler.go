@@ -6,12 +6,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/aprice2704/neuroscript/pkg/core"    // For core types like Interpreter, SecurityLayer & SecureFilePath func
+	"github.com/aprice2704/neuroscript/pkg/core" // For core types like Interpreter, SecurityLayer & SecureFilePath func
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/nspatch" // For patch types and application logic
 )
 
@@ -57,19 +57,19 @@ func writeLines(filePath string, lines []string) error {
 
 // handleReceivedPatch processes a JSON patch string, prompts for confirmation, and applies it.
 // It requires the interpreter, security layer, and sandbox root for context and validation.
-func handleReceivedPatch(patchJSON string, interp *core.Interpreter, securityLayer *core.SecurityLayer, sandboxRoot string, infoLog, errorLog *log.Logger) error {
-	a.Logger.Info("[PATCH] Received patch request.")
+func handleReceivedPatch(patchJSON string, interp *core.Interpreter, securityLayer *core.SecurityLayer, sandboxRoot string, logger interfaces.Logger) error {
+	logger.Info("[PATCH] Received patch request.")
 
 	// 1. Unmarshal JSON
 	var changes []nspatch.PatchChange
 	err := json.Unmarshal([]byte(patchJSON), &changes)
 	if err != nil {
-		errorLog.Printf("[PATCH] Error unmarshaling patch JSON: %v", err)
+		logger.Error("[PATCH] Error unmarshaling patch JSON: %v", err)
 		return fmt.Errorf("invalid patch format: %w", err)
 	}
 
 	if len(changes) == 0 {
-		a.Logger.Info("[PATCH] Received empty patch list. No action taken.")
+		logger.Info("[PATCH] Received empty patch list. No action taken.")
 		return nil
 	}
 
@@ -78,7 +78,7 @@ func handleReceivedPatch(patchJSON string, interp *core.Interpreter, securityLay
 	fileOrder := []string{}
 	for _, change := range changes {
 		if filepath.IsAbs(change.File) || strings.Contains(change.File, "..") {
-			errorLog.Printf("[PATCH] Security violation: Patch contains non-relative or invalid path element '..': %q", change.File)
+			logger.Error("[PATCH] Security violation: Patch contains non-relative or invalid path element '..': %q", change.File)
 			return fmt.Errorf("invalid path in patch for file %q: %w", change.File, core.ErrPathViolation)
 		}
 		if _, exists := changesByFile[change.File]; !exists {
@@ -103,62 +103,62 @@ func handleReceivedPatch(patchJSON string, interp *core.Interpreter, securityLay
 	reader := bufio.NewReader(os.Stdin)
 	confirmation, err := reader.ReadString('\n')
 	if err != nil {
-		errorLog.Printf("[PATCH] Error reading confirmation: %v", err)
+		logger.Error("[PATCH] Error reading confirmation: %v", err)
 		return fmt.Errorf("failed to read confirmation: %w", err)
 	}
 	confirmation = strings.ToLower(strings.TrimSpace(confirmation))
 
 	if confirmation != "y" && confirmation != "yes" {
-		a.Logger.Info("[PATCH] User aborted patch application.")
+		logger.Info("[PATCH] User aborted patch application.")
 		return ErrPatchAbortedByUser
 	}
-	a.Logger.Info("[PATCH] User confirmed patch application.")
+	logger.Info("[PATCH] User confirmed patch application.")
 
 	// 4. Process each file
 	for _, fileRelPath := range fileOrder {
 		fileSpecificChanges := changesByFile[fileRelPath]
-		a.Logger.Info("[PATCH] Processing %d changes for file: %s", len(fileSpecificChanges), fileRelPath)
+		logger.Info("[PATCH] Processing %d changes for file: %s", len(fileSpecificChanges), fileRelPath)
 
 		// a. Security Check (Get validated absolute path using the correct function call)
 		// *** CORRECTED CALL: Use core.SecureFilePath ***
 		absPath, err := core.SecureFilePath(fileRelPath, sandboxRoot)
 		if err != nil {
-			errorLog.Printf("[PATCH] Security violation for file %q: %v", fileRelPath, err)
+			logger.Error("[PATCH] Security violation for file %q: %v", fileRelPath, err)
 			// Ensure the error is wrapped or identifiable as a security path error
 			return fmt.Errorf("patch security error for %q: %w", fileRelPath, err)
 		}
-		a.Logger.Info("[PATCH] Secured absolute path: %s", absPath)
+		logger.Info("[PATCH] Secured absolute path: %s", absPath)
 
 		// b. Read Original File Content
 		originalLines, err := readLines(absPath)
 		if err != nil {
 			if !errors.Is(err, os.ErrNotExist) {
-				errorLog.Printf("[PATCH] Error reading original file %q (%q): %v", fileRelPath, absPath, err)
+				logger.Error("[PATCH] Error reading original file %q (%q): %v", fileRelPath, absPath, err)
 				return fmt.Errorf("failed to read original file %q: %w", fileRelPath, err)
 			}
-			a.Logger.Info("[PATCH] Original file %q does not exist, starting with empty content.", fileRelPath)
+			logger.Info("[PATCH] Original file %q does not exist, starting with empty content.", fileRelPath)
 			originalLines = []string{}
 		} else {
-			a.Logger.Info("[PATCH] Read %d lines from %q", len(originalLines), fileRelPath)
+			logger.Info("[PATCH] Read %d lines from %q", len(originalLines), fileRelPath)
 		}
 
 		// c. Apply Patch using nspatch library
 		modifiedLines, err := nspatch.ApplyPatch(originalLines, fileSpecificChanges)
 		if err != nil {
-			errorLog.Printf("[PATCH] Error applying patch logic to %q: %v", fileRelPath, err)
+			logger.Error("[PATCH] Error applying patch logic to %q: %v", fileRelPath, err)
 			return fmt.Errorf("patch application failed for file %q: %w", fileRelPath, err)
 		}
-		a.Logger.Info("[PATCH] Patch logic applied successfully for %q. Resulting lines: %d", fileRelPath, len(modifiedLines))
+		logger.Info("[PATCH] Patch logic applied successfully for %q. Resulting lines: %d", fileRelPath, len(modifiedLines))
 
 		// d. Write Modified File Content
 		err = writeLines(absPath, modifiedLines)
 		if err != nil {
-			errorLog.Printf("[PATCH] Error writing modified file %q (%q): %v", fileRelPath, absPath, err)
+			logger.Error("[PATCH] Error writing modified file %q (%q): %v", fileRelPath, absPath, err)
 			return fmt.Errorf("failed to write modified file %q: %w", fileRelPath, err)
 		}
-		a.Logger.Info("[PATCH] Successfully wrote modified content to %q", fileRelPath)
+		logger.Info("[PATCH] Successfully wrote modified content to %q", fileRelPath)
 	} // End loop through files
 
-	a.Logger.Info("[PATCH] All files processed successfully.")
+	logger.Info("[PATCH] All files processed successfully.")
 	return nil // Success
 }

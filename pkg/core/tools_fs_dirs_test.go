@@ -31,8 +31,8 @@ func TestToolListDirectoryValidation(t *testing.T) {
 // *** MODIFIED: Standardize expectations ***
 func TestToolListDirectoryFunctional(t *testing.T) {
 	sandboxDir := t.TempDir()
-	// Assuming newTestInterpreterWithSandbox registers tools correctly
-	interp := newTestInterpreterWithSandbox(t, sandboxDir)
+	// Assuming NewTestInterpreterWithSandbox registers tools correctly
+	interp := NewTestInterpreterWithSandbox(t, sandboxDir)
 	// Ensure ListDirectory is registered if helper doesn't do it automatically
 	// registry := interp.ToolRegistry()
 	// registerFsDirTools(registry) // Usually done by RegisterCoreTools called by test setup

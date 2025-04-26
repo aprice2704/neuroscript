@@ -343,7 +343,7 @@ func TestToolGoFormatASTNode(t *testing.T) {
 			}
 
 			// --- Tool Lookup & Validation ---
-			toolImpl, found := interp.core.ToolRegistry().GetTool("GoFormatASTNode") // Use local stub registry
+			toolImpl, found := interp.ToolRegistry().GetTool("GoFormatASTNode") // Use local stub registry
 			if !found {
 				t.Fatalf("Tool GoFormatASTNode not found in registry")
 			}

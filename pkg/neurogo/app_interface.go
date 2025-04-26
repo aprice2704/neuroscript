@@ -44,10 +44,10 @@ func (a *App) GetSyncIgnoreGitignore() bool {
 
 func (a *App) GetLogger() interfaces.Logger {
 	// Ensure non-nil
-	if a.ErrorLog == nil {
+	if a.Logger == nil {
 		panic("Must have a valid logger")
 	}
-	return a.logger
+	return a.Logger
 }
 
 func (a *App) GetLLMClient() *core.LLMClient {

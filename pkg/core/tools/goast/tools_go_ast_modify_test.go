@@ -185,7 +185,7 @@ func main() {
 				finalArgs = core.MakeArgs(initialHandle, tc.modifications)
 			}
 
-			toolImpl, found := currentInterp.core.ToolRegistry().GetTool("GoModifyAST")
+			toolImpl, found := currentInterp.ToolRegistry().GetTool("GoModifyAST")
 			if !found {
 				t.Fatalf("Tool GoModifyAST not found")
 			}

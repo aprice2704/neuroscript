@@ -4,12 +4,11 @@ package checklist
 import (
 	"bufio"
 	"fmt"
-	"io"
-	"log"
 	"regexp"
 	"strings"
 	"unicode/utf8"
 
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/neurodata/metadata"
 )
 
@@ -39,18 +38,15 @@ var (
 )
 
 // ParseChecklist scans content line by line using string manipulation.
-func ParseChecklist(content string, logger *log.Logger) (*ParsedChecklist, error) {
-	if logger == nil {
-		logger = log.New(io.Discard, "", 0)
-	}
-	logger.Printf("[DEBUG ChecklistParser V12] Starting ParseChecklist (String Manipulation)") // Version bump
+func ParseChecklist(content string, logger interfaces.Logger) (*ParsedChecklist, error) {
+	logger.Debug("[DEBUG ChecklistParser V12] Starting ParseChecklist (String Manipulation)") // Version bump
 
 	meta, metaErr := metadata.Extract(content)
 	if metaErr != nil {
-		logger.Printf("[WARN ChecklistParser V12] Error extracting metadata: %v", metaErr)
+		logger.Debug("[WARN ChecklistParser V12] Error extracting metadata: %v", metaErr)
 	}
 	if len(meta) > 0 {
-		logger.Printf("[DEBUG ChecklistParser V12] Extracted %d metadata pairs.", len(meta))
+		logger.Debug("[DEBUG ChecklistParser V12] Extracted %d metadata pairs.", len(meta))
 	}
 
 	var items []ChecklistItem
@@ -65,13 +61,13 @@ func ParseChecklist(content string, logger *log.Logger) (*ParsedChecklist, error
 
 		// 1. Skip blank/comment/heading
 		if blankLineRegex.MatchString(line) || commentRegex.MatchString(line) || headingRegex.MatchString(line) {
-			// logger.Printf("[DEBUG ChecklistParser V12] L%d: Skipping blank/comment/heading: %q", lineNumber, line)
+			// logger.Debug("[DEBUG ChecklistParser V12] L%d: Skipping blank/comment/heading: %q", lineNumber, line)
 			continue
 		}
 
 		// 2. Skip metadata before items
 		if !itemsSeen && metadata.IsMetadataLine(line) {
-			// logger.Printf("[DEBUG ChecklistParser V12] L%d: Skipping pre-item metadata line: %q", lineNumber, line)
+			// logger.Debug("[DEBUG ChecklistParser V12] L%d: Skipping pre-item metadata line: %q", lineNumber, line)
 			// Even if skipped, it counts as content if metadata was actually extracted
 			if len(meta) > 0 {
 				contentFound = true
@@ -80,13 +76,13 @@ func ParseChecklist(content string, logger *log.Logger) (*ParsedChecklist, error
 		}
 
 		contentFound = true // Found a line that wasn't skipped initially
-		logger.Printf("[DEBUG ChecklistParser V12] L%d: Processing line: %q", lineNumber, line)
+		logger.Debug("[DEBUG ChecklistParser V12] L%d: Processing line: %q", lineNumber, line)
 
 		// --- V11 String Manipulation Logic ---
 		trimmedLine := strings.TrimSpace(line)
 
 		if !strings.HasPrefix(trimmedLine, "- ") {
-			logger.Printf("[DEBUG ChecklistParser V12] L%d: Non-checklist line, stopping parse: %q", lineNumber, line)
+			logger.Debug("[DEBUG ChecklistParser V12] L%d: Non-checklist line, stopping parse: %q", lineNumber, line)
 			break
 		}
 
@@ -104,7 +100,7 @@ func ParseChecklist(content string, logger *log.Logger) (*ParsedChecklist, error
 				description = strings.TrimSpace(contentPart[endBracketPos+1:])
 				isAutomatic = false
 				itemFound = true
-				// logger.Printf("[DEBUG ChecklistParser V12] L%d: Found potential Manual Item. Delimiter: %q, Desc: %q", lineNumber, delimiterContent, description)
+				// logger.Debug("[DEBUG ChecklistParser V12] L%d: Found potential Manual Item. Delimiter: %q, Desc: %q", lineNumber, delimiterContent, description)
 			}
 		}
 
@@ -121,12 +117,12 @@ func ParseChecklist(content string, logger *log.Logger) (*ParsedChecklist, error
 				description = strings.TrimSpace(contentPart[endPipePos+1:])
 				isAutomatic = true
 				itemFound = true
-				// logger.Printf("[DEBUG ChecklistParser V12] L%d: Found potential Automatic Item. Delimiter: %q, Desc: %q", lineNumber, delimiterContent, description)
+				// logger.Debug("[DEBUG ChecklistParser V12] L%d: Found potential Automatic Item. Delimiter: %q, Desc: %q", lineNumber, delimiterContent, description)
 			}
 		}
 
 		if !itemFound {
-			logger.Printf("[DEBUG ChecklistParser V12] L%d: Non-checklist line (bad format after '- '), stopping parse: %q", lineNumber, line)
+			logger.Debug("[DEBUG ChecklistParser V12] L%d: Non-checklist line (bad format after '- '), stopping parse: %q", lineNumber, line)
 			break
 		}
 
@@ -139,7 +135,7 @@ func ParseChecklist(content string, logger *log.Logger) (*ParsedChecklist, error
 			indentStr := line[:dashIndex]
 			indentationLevel = utf8.RuneCountInString(indentStr)
 		}
-		// logger.Printf("[DEBUG ChecklistParser V12] L%d: Calculated Indent: %d", lineNumber, indentationLevel)
+		// logger.Debug("[DEBUG ChecklistParser V12] L%d: Calculated Indent: %d", lineNumber, indentationLevel)
 
 		item := ChecklistItem{
 			Text:        description,
@@ -164,28 +160,28 @@ func ParseChecklist(content string, logger *log.Logger) (*ParsedChecklist, error
 			} else {
 				err := fmt.Errorf("line %d: %w: invalid content %q inside %s delimiters",
 					lineNumber, ErrMalformedItem, delimiterContent, map[bool]string{true: "| |", false: "[ ]"}[isAutomatic])
-				logger.Printf("[ERROR ChecklistParser V12] %v", err)
+				logger.Debug("[ERROR ChecklistParser V12] %v", err)
 				return nil, err
 			}
 		}
-		// logger.Printf("[DEBUG ChecklistParser V12] L%d: Parsed Item Status: %q, Symbol: '%c', Auto: %t", lineNumber, item.Status, item.Symbol, item.IsAutomatic)
+		// logger.Debug("[DEBUG ChecklistParser V12] L%d: Parsed Item Status: %q, Symbol: '%c', Auto: %t", lineNumber, item.Status, item.Symbol, item.IsAutomatic)
 		items = append(items, item)
 
 	} // End scanner loop
 
 	if err := scanner.Err(); err != nil {
-		logger.Printf("[ERROR ChecklistParser V12] Scanner error: %v", err)
+		logger.Debug("[ERROR ChecklistParser V12] Scanner error: %v", err)
 		return nil, fmt.Errorf("error scanning checklist content: %w: %w", ErrScannerFailed, err)
 	}
 
 	// --- V12 Add check for no content ---
 	if !contentFound && len(items) == 0 && len(meta) == 0 {
-		logger.Printf("[DEBUG ChecklistParser V12] Finished ParseChecklist. Input had no metadata or items.")
+		logger.Debug("[DEBUG ChecklistParser V12] Finished ParseChecklist. Input had no metadata or items.")
 		return nil, ErrNoContent // Return specific error for no content
 	}
 	// --- End V12 check ---
 
-	logger.Printf("[DEBUG ChecklistParser V12] Finished ParseChecklist. Found %d items.", len(items))
+	logger.Debug("[DEBUG ChecklistParser V12] Finished ParseChecklist. Found %d items.", len(items))
 	return &ParsedChecklist{
 		Items:    items,
 		Metadata: meta,

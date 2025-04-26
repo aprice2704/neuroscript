@@ -4,13 +4,10 @@ import (
 	// Keep for errors.Is potentially used elsewhere
 	"fmt" // Keep io
 	// Keep os
-	"os"
-	"path/filepath"
+
 	"reflect" // Keep sort
 	"strings"
 	"testing"
-
-	"golang.org/x/exp/slog"
 )
 
 // --- Interpreter Test Specific Helpers ---
@@ -26,61 +23,59 @@ import (
 // 	return len(p), nil
 // }
 
-// newTestInterpreter creates an interpreter instance for testing.
-// *** MODIFIED: Uses testWriter for logging to t.Logf ***
-func newTestInterpreter(t *testing.T, vars map[string]interface{}, lastResult interface{}) (*Interpreter, string) {
-	t.Helper()
+// // NewTestInterpreter creates an interpreter instance for testing.
 
-	handlerOpts := &slog.HandlerOptions{
-		Level:     slog.LevelWarn,
-		AddSource: true, // include source file and line number
-	}
-	handler := slog.NewTextHandler(os.Stderr, handlerOpts) // Log to Stderr
+// func NewTestInterpreter(t *testing.T, vars map[string]interface{}, lastResult interface{}) (*Interpreter, string) {
+// 	t.Helper()
 
-	// Create the core slog logger
-	testLogger := slog.New(handler)
+// 	handlerOpts := &slog.HandlerOptions{
+// 		Level:     slog.LevelWarn,
+// 		AddSource: true, // include source file and line number
+// 	}
+// 	handler := slog.NewTextHandler(os.Stderr, handlerOpts) // Log to Stderr
 
-	// Create a minimal LLMClient (can keep using testLogger now)
-	minimalLLMClient := NewLLMClient("", "", testLogger, false)
-	if minimalLLMClient == nil {
-		t.Fatal("Failed to create even a minimal LLMClient for testing")
-	}
+// 	// Create the core slog logger
+// 	testLogger := slog.New(handler)
 
-	interp := NewInterpreter(testLogger, minimalLLMClient) // Pass the working logger
+// 	// Create a minimal LLMClient (can keep using testLogger now)
+// 	minimalLLMClient := NewLLMClient("", "", testLogger, false)
+// 	if minimalLLMClient == nil {
+// 		t.Fatal("Failed to create even a minimal LLMClient for testing")
+// 	}
 
-	testLogger.Info("Attempting to register core tools...")
-	if err := RegisterCoreTools(interp.ToolRegistry()); err != nil {
-		testLogger.Error("FATAL: Failed to register core tools during test setup: %v", err)
-		t.Fatalf("FATAL: Failed to register core tools during test setup: %v", err)
-	}
-	testLogger.Info("Successfully registered core tools.")
+// 	interp := NewInterpreter(testLogger, minimalLLMClient) // Pass the working logger
 
-	sandboxDirRel := t.TempDir()
-	absSandboxDir, err := filepath.Abs(sandboxDirRel)
-	if err != nil {
-		t.Fatalf("Failed to get absolute path for sandbox %s: %v", sandboxDirRel, err)
-	}
+// 	testLogger.Info("Attempting to register core tools...")
+// 	if err := RegisterCoreTools(interp.ToolRegistry()); err != nil {
+// 		testLogger.Error("FATAL: Failed to register core tools during test setup: %v", err)
+// 		t.Fatalf("FATAL: Failed to register core tools during test setup: %v", err)
+// 	}
+// 	testLogger.Info("Successfully registered core tools.")
 
-	interp.sandboxDir = absSandboxDir
-	testLogger.Info("Sandbox root set in interpreter: %s", absSandboxDir)
+// 	sandboxDirRel := t.TempDir()
+// 	absSandboxDir, err := filepath.Abs(sandboxDirRel)
+// 	if err != nil {
+// 		t.Fatalf("Failed to get absolute path for sandbox %s: %v", sandboxDirRel, err)
+// 	}
 
-	if vars != nil {
-		for k, v := range vars {
-			interp.variables[k] = v
-		}
-	}
+// 	interp.sandboxDir = absSandboxDir
+// 	testLogger.Info("Sandbox root set in interpreter: %s", absSandboxDir)
 
-	interp.lastCallResult = lastResult
+// 	if vars != nil {
+// 		for k, v := range vars {
+// 			interp.variables[k] = v
+// 		}
+// 	}
 
-	return interp, absSandboxDir
-}
+// 	interp.lastCallResult = lastResult
 
-// NewDefaultTestInterpreter creates a new interpreter with default settings.
-// *** MODIFIED: Uses newTestInterpreter which now uses t.Logf ***
-func NewDefaultTestInterpreter(t *testing.T) (*Interpreter, string) {
-	t.Helper()
-	return newTestInterpreter(t, nil, nil)
-}
+// 	return interp, absSandboxDir
+// }
+
+// func NewDefaultTestInterpreter(t *testing.T) (*Interpreter, string) {
+// 	t.Helper()
+// 	return NewTestInterpreter(t, nil, nil)
+// }
 
 // --- Step Creation Helpers (Moved from interpreter_test.go) ---
 // (These helpers remain unchanged)

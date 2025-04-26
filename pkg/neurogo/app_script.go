@@ -19,7 +19,7 @@ func (a *App) runScriptMode(ctx context.Context) error {
 	a.Logger.Info("Procedure args: %v", a.Config.ProcArgs)
 
 	// +++ MODIFIED: Pass a.llmClient to NewInterpreter +++
-	interpreter := core.NewInterpreter(a.DebugLog, a.llmClient)
+	interpreter := core.NewInterpreter(a.Logger, a.llmClient)
 	// --- END MODIFIED ---
 
 	// --- Tool Registration (unchanged) ---

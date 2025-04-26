@@ -61,9 +61,8 @@ func toolBlocksExtractAll(interpreter *core.Interpreter, args []interface{}) (in
 	// It only returns errors for lexer/parser issues.
 	if extractErr != nil {
 		errMsg := fmt.Sprintf("Error during block extraction: %s", extractErr.Error())
-		if logger != nil {
-			logger.Printf("[ERROR TOOL] TOOL.BlocksExtractAll failed: %s", extractErr.Error())
-		}
+		logger.Error("[ERROR TOOL] TOOL.BlocksExtractAll failed: %s", extractErr.Error())
+
 		// Return the error message as a string, consistent with other tools
 		return errMsg, nil
 	}
@@ -87,9 +86,8 @@ func toolBlocksExtractAll(interpreter *core.Interpreter, args []interface{}) (in
 		resultsList = append(resultsList, blockMap)
 	}
 
-	if logger != nil {
-		logger.Printf("[DEBUG TOOL] TOOL.BlocksExtractAll successful. Found %d blocks.", len(resultsList))
-	}
+	logger.Info("[DEBUG TOOL] TOOL.BlocksExtractAll successful. Found %d blocks.", len(resultsList))
+
 	return resultsList, nil // Return the list of maps
 }
 

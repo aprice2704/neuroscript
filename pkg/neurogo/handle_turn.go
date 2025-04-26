@@ -125,7 +125,7 @@ func (a *App) handleAgentTurn(
 						}
 					}
 					sandboxDir := securityLayer.SandboxRoot()
-					patchErr := handleReceivedPatch(patchJSON, agentInterpreter, securityLayer, sandboxDir, a.InfoLog, a.ErrorLog)
+					patchErr := handleReceivedPatch(patchJSON, agentInterpreter, securityLayer, sandboxDir, a.Logger)
 					if patchErr != nil {
 						fmt.Printf("[AGENT] Patch failed: %v\n", patchErr)
 						return fmt.Errorf("patch failed: %w", patchErr)

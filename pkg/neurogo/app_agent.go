@@ -178,7 +178,7 @@ func (a *App) runAgentMode(ctx context.Context) error {
 				syncTargetDir = defaultSyncDir
 			}
 			fmt.Printf("[AGENT] Starting sync for directory '%s'...\n", syncTargetDir)
-			_, syncErr := core.SyncDirectoryUpHelper(ctx, syncTargetDir, "", false, llmClient.Client(), a.InfoLog, a.ErrorLog, a.DebugLog) // Assumes helper exists
+			_, syncErr := core.SyncDirectoryUpHelper(ctx, syncTargetDir, "", false, llmClient.Client(), a.Logger) // Assumes helper exists
 			if syncErr != nil {
 				fmt.Printf("[AGENT] Sync FAIL for '%s': %v\n", syncTargetDir, syncErr)
 			} else {
@@ -199,7 +199,7 @@ func (a *App) runAgentMode(ctx context.Context) error {
 				syncFilterArg = parts[2]
 			}
 			fmt.Printf("[AGENT] Starting sync for directory '%s'...\n", syncDirArg)
-			_, syncErr := core.SyncDirectoryUpHelper(ctx, syncDirArg, syncFilterArg, false, llmClient.Client(), a.InfoLog, a.ErrorLog, a.DebugLog) // Assumes helper exists
+			_, syncErr := core.SyncDirectoryUpHelper(ctx, syncDirArg, syncFilterArg, false, llmClient.Client(), a.Logger) // Assumes helper exists
 			if syncErr != nil {
 				fmt.Printf("[AGENT] Sync FAIL for '%s': %v\n", syncDirArg, syncErr)
 			} else {

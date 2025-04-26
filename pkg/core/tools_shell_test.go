@@ -11,7 +11,7 @@ import (
 	"testing"
 )
 
-// Assume newTestInterpreter and MakeArgs are defined elsewhere (e.g., testing_helpers.go)
+// Assume NewTestInterpreter and MakeArgs are defined elsewhere (e.g., testing_helpers.go)
 
 // --- Test ToolExecuteCommand ---
 func TestToolExecuteCommand(t *testing.T) {

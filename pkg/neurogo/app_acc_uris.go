@@ -60,7 +60,7 @@ func updateAccumulatedURIs(
 	}
 	// --- End FIX V3 ---
 
-	apiFiles, listErr := core.HelperListApiFiles(ctx, llmClient.Client(), a.DebugLog)
+	apiFiles, listErr := core.HelperListApiFiles(ctx, llmClient.Client(), a.Logger)
 	if listErr != nil {
 		a.Logger.Error("Failed list API files: %v", listErr)
 		fmt.Println("[AGENT] Warning: Ctx update failed.")
