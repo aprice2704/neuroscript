@@ -1,60 +1,111 @@
-// filename: cmd/neurogo/main.go
 package main
 
 import (
 	"context"
 	"flag"
 	"fmt"
+	"io"
+	"log/slog"
 	"os"
 
+	"github.com/aprice2704/neuroscript/pkg/adapters"
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/neurogo"
 	"github.com/aprice2704/neuroscript/pkg/neurogo/tui"
 )
 
+// initializeLogger sets up the slog logger based on configuration strings.
+func initializeLogger(levelStr string, filePath string) (interfaces.Logger, error) {
+	var level slog.Level
+	// Parse the log level string
+	switch levelStr {
+	case "debug":
+		level = slog.LevelDebug
+	case "info":
+		level = slog.LevelInfo
+	case "warn":
+		level = slog.LevelWarn
+	case "error":
+		level = slog.LevelError
+	default:
+		return nil, fmt.Errorf("invalid log level: %q", levelStr)
+	}
+
+	var output io.Writer = os.Stderr // Default to stderr
+
+	// If a log file path is provided, open or create the file
+	if filePath != "" {
+		file, err := os.OpenFile(filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			// Return error, cannot proceed with file logging
+			return nil, fmt.Errorf("failed to open log file %q: %w", filePath, err)
+		}
+		// Note: Closing the file will be the responsibility of the caller or program exit.
+		// If this function managed the file lifecycle completely, it would need to return the file handle too.
+		// For simplicity here, we assume the file remains open for the application's lifetime.
+		output = file
+	}
+
+	// Create the slog handler (TextHandler as requested)
+	handlerOpts := &slog.HandlerOptions{
+		Level: level,
+		// AddSource: true, // Optionally add source file/line numbers
+	}
+	handler := slog.NewTextHandler(output, handlerOpts)
+
+	// Create the slog logger
+	slogLogger := slog.New(handler)
+
+	// Create the adapter (using the constructor we defined earlier)
+	// Note: Your adapter constructor might panic on nil, but we handle other potential errors.
+	appLogger, err := adapters.NewSlogAdapter(slogLogger)
+	if err != nil {
+		// This might happen if the adapter constructor changes to return errors for other reasons
+		return nil, fmt.Errorf("failed to create logger adapter: %w", err)
+	}
+
+	// Optionally set the global logger (useful for libraries that might use slog directly)
+	// slog.SetDefault(slogLogger) // Uncomment if needed
+
+	// Return the adapter which satisfies the interfaces.Logger interface
+	return appLogger, nil
+}
+
 func main() {
 	// --- Configuration Setup ---
-	// Logging (Keep these)
-	logFile := flag.String("log-file", "", "Path to log file (optional, defaults to stderr)")
-	logLevel := flag.String("log-level", "info", "Log level (debug, info, warn, error)")
+	logFile := flag.String("log-file", "", "Path to log file (optional, defaults to stderr)") //
+	logLevel := flag.String("log-level", "info", "Log level (debug, info, warn, error)")      //
 
-	// Modes (Keep these)
-	scriptFile := flag.String("script", "", "Path to a NeuroScript file to execute (script mode)")
-	agentMode := flag.Bool("agent", false, "Run in interactive agent mode (uses -startup-script)")
-	syncMode := flag.Bool("sync", false, "Run in sync-only mode") // Sync logic might also move to AgentContext/startup later
-	cleanAPI := flag.Bool("clean-api", false, "Delete all files from the File API (use with caution!)")
-	tuiMode := flag.Bool("tui", false, "Run in interactive TUI mode (experimental)") // TUI might also use startup script
+	// ... rest of your flags ...
+	apiKey := flag.String("api-key", os.Getenv("GEMINI_API_KEY"), "Gemini API Key (env: GEMINI_API_KEY)")                   //
+	insecure := flag.Bool("insecure", false, "Disable security checks (Use with extreme caution!)")                         //
+	startupScript := flag.String("startup-script", "agent_startup.ns", "Path to NeuroScript file for agent initialization") //
 
-	// Agent Startup Script (NEW)
-	startupScript := flag.String("startup-script", "agent_startup.ns", "Path to NeuroScript file for agent initialization")
+	syncDir := flag.String("sync-dir", ".", "Directory for sync operations (-sync mode)")                          //
+	syncFilter := flag.String("sync-filter", "", "Glob pattern for sync (-sync mode)")                             //
+	syncIgnoreGitignore := flag.Bool("sync-ignore-gitignore", false, "Ignore .gitignore during sync (-sync mode)") //
 
-	// Essential Config (Keep/Review)
-	apiKey := flag.String("api-key", os.Getenv("GEMINI_API_KEY"), "Gemini API Key (env: GEMINI_API_KEY)")
-	insecure := flag.Bool("insecure", false, "Disable security checks (Use with extreme caution!)") // Keep for now, review necessity
+	scriptFile := flag.String("script", "", "Path to a NeuroScript file to execute (script mode)")      //
+	agentMode := flag.Bool("agent", false, "Run in interactive agent mode (uses -startup-script)")      //
+	syncMode := flag.Bool("sync", false, "Run in sync-only mode")                                       //
+	cleanAPI := flag.Bool("clean-api", false, "Delete all files from the File API (use with caution!)") //
+	tuiMode := flag.Bool("tui", false, "Run in interactive TUI mode (experimental)")                    //
 
-	// --- REMOVED FLAGS ---
-	// modelName := flag.String("model", "gemini-1.5-flash", ...) -> Handled by startup script
-	// sandboxDir := flag.String("sandbox", ".", ...) -> Handled by startup script
-	// allowlistFile := flag.String("allowlist", "", ...) -> Handled by startup script
-	// initialAttachments := flag.String("attach", "", ...) -> Handled by startup script (e.g., TOOL.AgentPinFile)
-	// syncDir := flag.String("sync-dir", ".", ...) -> Handled by startup script (or kept for -sync mode?)
-	// syncFilter := flag.String("sync-filter", "", ...) -> Handled by startup script (or kept for -sync mode?)
-	// syncIgnoreGitignore := flag.Bool("sync-ignore-gitignore", false, ...) -> Handled by startup script (or kept for -sync mode?)
-
-	// TODO: Revisit sync-related flags. Do they only apply to -sync mode, or should agent's TOOL.Sync also use them?
-	// If only for -sync mode, keep them. If used by agent tools, remove them and handle via startup script.
-	// For now, let's assume they are primarily for the standalone -sync mode and keep them minimally.
-	syncDir := flag.String("sync-dir", ".", "Directory for sync operations (-sync mode)")
-	syncFilter := flag.String("sync-filter", "", "Glob pattern for sync (-sync mode)")
-	syncIgnoreGitignore := flag.Bool("sync-ignore-gitignore", false, "Ignore .gitignore during sync (-sync mode)")
-
-	// TODO: Decide on flag parsing library. The `flag` package is basic.
-	// Consider `pflag` or `cobra` if more complex flag interactions are needed.
-	// The simple `flag` package doesn't handle default mode logic as elegantly.
 	flag.Parse()
 
+	// --- Logger Initialization ---
+	// *** Call the new initialization function ***
+	logger, err := initializeLogger(*logLevel, *logFile)
+	if err != nil {
+		// If logger init fails, print to stderr and exit
+		fmt.Fprintf(os.Stderr, "Error initializing logger: %v\n", err)
+		os.Exit(1)
+	}
+	// *** Logger initialization successful ***
+	logger.Info("Logger initialized", "level", *logLevel, "file", *logFile) // Log initialization success
+
 	// --- Determine Mode ---
-	// Basic mode precedence check. This logic could be improved.
-	// Config parsing in config.go handled this better, consider moving back.
+	// ... (your mode determination logic remains the same) ...
 	modeCount := 0
 	if *scriptFile != "" {
 		modeCount++
@@ -90,7 +141,7 @@ func main() {
 	// If agent flag wasn't explicitly set BUT no other mode was, default to agent mode
 	if !runScript && !runAgent && !runSync && !runCleanAPI && !runTui {
 		runAgent = true
-		fmt.Fprintln(os.Stderr, "Defaulting to interactive agent mode.")
+		logger.Info("Defaulting to interactive agent mode.") // Use logger here
 	}
 	// Simple check for multiple modes after defaulting
 	finalModeCount := 0
@@ -111,48 +162,25 @@ func main() {
 	}
 
 	if finalModeCount > 1 {
+		logger.Error("Multiple execution modes specified", "script", runScript, "agent", runAgent, "sync", runSync, "cleanAPI", runCleanAPI, "tui", runTui)
 		fmt.Fprintln(os.Stderr, "Error: Only one execution mode (-script, -agent, -sync, -clean-api, -tui) can be specified.")
-		flag.Usage() // Consider defining a better Usage message
+		flag.Usage()
 		os.Exit(1)
 	}
 
-	// --- Logger Initialization ---
-	if *logFile != "" {
-		logOutput, err := os.OpenFile(*logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error opening log file %s: %v\n", *logFile, err)
-			os.Exit(1)
-		}
-	}
+	app := neurogo.NewApp(logger)
 
-	// --- App Initialization ---
-	app := neurogo.NewApp() // Constructor remains the same
-
-	// Configure app.Config struct with REMAINING flags
-	// The core configuration (sandbox, model, etc.) will be set
-	// via the startup script and AgentContext for agent/tui modes.
-	// We pass the paths/flags needed to *find* and run those scripts.
-	app.Config.APIKey = *apiKey               // Still needed globally for client init
-	app.Config.Insecure = *insecure           // Security flag
-	app.Config.StartupScript = *startupScript // NEW: Pass startup script path
-
-	// Set mode flags in config
+	app.Config.APIKey = *apiKey
+	app.Config.Insecure = *insecure
+	app.Config.StartupScript = *startupScript
 	app.Config.RunAgentMode = runAgent
 	app.Config.RunScriptMode = runScript
 	app.Config.RunSyncMode = runSync
 	app.Config.RunCleanAPIMode = runCleanAPI
 	app.Config.RunTuiMode = runTui
-
-	// Pass script-specific args if in script mode
 	if runScript {
 		app.Config.ScriptFile = *scriptFile
-		// TODO: Re-add -L, -target, -arg flags if needed for script mode
-		// app.Config.LibPaths = ...
-		// app.Config.TargetArg = ...
-		// app.Config.ProcArgs = flag.Args() // Or handle args more explicitly
 	}
-
-	// Pass sync-specific args if in sync mode
 	if runSync {
 		app.Config.SyncDir = *syncDir
 		app.Config.SyncFilter = *syncFilter
@@ -160,26 +188,26 @@ func main() {
 	}
 
 	// --- Application Execution ---
-	// TUI mode might eventually leverage AgentContext/startup script too,
-	// but keep its separate invocation for now.
 	if runTui {
-		app.Logger.Info("Starting in TUI mode...")
+		logger.Info("Starting in TUI mode...")
+		// Ensure tui.Start accepts the App struct which now contains the logger
 		if err := tui.Start(app); err != nil {
-			app.Logger.Error("TUI Error: %v", err)
+			logger.Error("TUI Error", "error", err) // Use structured logging
 			fmt.Fprintf(os.Stderr, "TUI Error: %v\n", err)
 			os.Exit(1)
 		}
-		app.Logger.Debug("TUI finished.")
+		logger.Debug("TUI finished.")
 		os.Exit(0)
 	}
 
 	// --- Run selected mode via app.Run ---
 	ctx := context.Background()
 	if err := app.Run(ctx); err != nil {
-		// app.Run handles logging the error detail internally
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err) // Keep simple stderr message
+		// app.Run should use its injected logger internally
+		// Keep a simple stderr message for the final exit
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
 
-	app.Logger.Info("NeuroGo finished successfully.")
+	logger.Info("NeuroGo finished successfully.")
 }

@@ -1,5 +1,5 @@
 // internal/adapters/slogadapter/slogadapter.go
-package slogadapter
+package adapters
 
 import (
 	"fmt"

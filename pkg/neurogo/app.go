@@ -6,11 +6,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log/slog"
-	"os"
 
 	// Needed for error joining fallback
-	slogadapter "github.com/aprice2704/neuroscript/pkg/adapters"
+
 	"github.com/aprice2704/neuroscript/pkg/core"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 )
@@ -27,37 +25,16 @@ type App struct {
 }
 
 // NewApp creates a new App instance with default loggers and registers agent tools.
-func NewApp() *App {
+func NewApp(logger interfaces.Logger) *App {
 
-	logLevel := slog.LevelDebug
-
-	// Create the handler
-	handlerOpts := &slog.HandlerOptions{
-		Level:     logLevel,
-		AddSource: true, // include source file and line number
-	}
-	// Use NewTextHandler for human-readable key=value output (not JSON)
-	handler := slog.NewTextHandler(os.Stderr, handlerOpts) // Log to Stderr
-
-	// Create the core slog logger
-	slogLogger := slog.New(handler)
-
-	// Use the concrete slog.Logger to create our adapter that satisfies interfaces.Logger
-	appLogger, err := slogadapter.NewSlogAdapter(slogLogger)
-	if err != nil {
-		// Use the raw slogLogger for bootstrap errors, as appLogger might be nil
-		slogLogger.Error("Failed to create logger adapter", "error", err)
-		os.Exit(1)
-	}
-
-	appLogger.Info("Logger initialized", "level", logLevel.String())
+	logger.Info("Logger initialized")
 
 	var llmClient *core.LLMClient
-	interpreter := core.NewInterpreter(appLogger, llmClient)
+	interpreter := core.NewInterpreter(logger, llmClient)
 
 	app := &App{
 		Config: NewConfig(),
-		Logger: appLogger,
+		Logger: logger,
 
 		interpreter: interpreter,
 		llmClient:   llmClient,
@@ -91,13 +68,6 @@ func (a *App) GetInterpreter() *core.Interpreter {
 // Run executes the appropriate application mode based on parsed flags.
 // Assumes Config field is already populated by main.go
 func (a *App) Run(ctx context.Context) error {
-
-	// 1. Initialize logging based on Config
-	if err := a.initLogging(); err != nil { // Call initLogging from app_helpers.go
-		// Log to initial stderr logger if possible
-		a.GetLogger().Debug("CRITICAL: Logging initialization failed: %v", err)
-		return fmt.Errorf("logging initialization failed: %w", err)
-	}
 
 	// Ensure config is not nil before proceeding
 	if a.Config == nil {
