@@ -1,5 +1,5 @@
 // filename: pkg/core/tools_go_ast_symbol_map.go
-package core
+package goast
 
 import (
 	"errors"
@@ -9,12 +9,12 @@ import (
 	"go/token"
 	"io/fs"
 	"os"
-	"path"          // *** Use standard 'path' for joining import paths ***
-	"path/filepath" // Use filepath for OS-specific operations
+	"path"
+	"path/filepath"
 	"sort"
 	"strings"
 
-	"golang.org/x/mod/modfile" // Using modfile as requested
+	"golang.org/x/mod/modfile"
 )
 
 // buildSymbolMap analyzes the sub-packages of a given original package path
@@ -26,7 +26,7 @@ func buildSymbolMap(refactoredPkgPathRel string, interp *Interpreter) (map[strin
 	ambiguousSymbols := make(map[string]string)
 	foundSymbols := false
 	goFilesProcessed := false
-	var err error
+	var err error // Declare err here for broader scope
 
 	if interp.sandboxDir == "" {
 		return nil, fmt.Errorf("%w: interpreter sandboxDir is empty", ErrSymbolMappingFailed)
@@ -81,37 +81,18 @@ func buildSymbolMap(refactoredPkgPathRel string, interp *Interpreter) (map[strin
 
 	// --- Function to process a directory ---
 	processDirectory := func(dirPath string) error {
-		// *** REVISED Canonical Path Calculation (Take 4) ***
-		if moduleRootDir == "" {
-			interp.logger.Printf("%s [WARN] Interpreter sandboxDir (used as module root) is empty.", logPrefix)
-			return nil
+		// *** CALL DEBUG HELPER for Canonical Path ***
+		canonicalPkgPath, pathErr := debugCalculateCanonicalPath(modulePath, moduleRootDir, dirPath, interp.logger)
+		if pathErr != nil {
+			// Log the error from the helper and skip this directory
+			interp.logger.Printf("%s [WARN] Skipping directory '%s' due to canonical path error: %v", logPrefix, dirPath, pathErr)
+			return nil // Don't stop the whole scan, just skip this dir
 		}
-
-		// Get the path of the *current directory being processed* relative to the module root
-		relFromModuleRoot, relErr := filepath.Rel(moduleRootDir, dirPath)
-		if relErr != nil {
-			interp.logger.Printf("%s [WARN] Cannot get relative path for '%s' from '%s': %v. Skipping.", logPrefix, dirPath, moduleRootDir, relErr)
-			return nil
-		}
-
-		// Convert OS-specific path to slash-separated path
-		relFromModuleRootSlash := filepath.ToSlash(relFromModuleRoot)
-
-		// The canonical import path is the module path joined with the relative path
-		// Use standard 'path.Join' for import paths
-		var canonicalPkgPath string
-		if relFromModuleRootSlash == "." {
-			canonicalPkgPath = modulePath // It's the root module directory
-		} else {
-			canonicalPkgPath = path.Join(modulePath, relFromModuleRootSlash)
-		}
-		// Clean just in case join added extra slashes (though path.Join is generally good)
-		canonicalPkgPath = path.Clean(canonicalPkgPath)
-		// *** END REVISED Canonical Path Calculation ***
+		// *** END CALL DEBUG HELPER ***
 
 		interp.logger.Printf("%s Processing directory: %s (Canonical Path: %s)", logPrefix, dirPath, canonicalPkgPath)
 
-		// Parsing and symbol extraction logic remains the same...
+		// Rest of the directory processing logic remains the same...
 		pkgs, parseErr := parser.ParseDir(fset, dirPath, func(fi os.FileInfo) bool {
 			return !fi.IsDir() && strings.HasSuffix(fi.Name(), ".go") && !strings.HasSuffix(fi.Name(), "_test.go")
 		}, parser.ParseComments)

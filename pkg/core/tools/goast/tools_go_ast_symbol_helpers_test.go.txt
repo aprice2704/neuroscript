@@ -1,5 +1,7 @@
 // filename: core/tools_go_ast_symbol_map_test.go (or a shared test helper file)
-package core
+package goast
+import "github.com/aprice2704/neuroscript/pkg/core/tools/goast"
+
 
 import (
 	"os"

@@ -1,6 +1,6 @@
 // filename: pkg/core/tools_go_ast_find_test.go
 // UPDATED: Use GetHandleValue, RegisterHandle
-package core
+package goast
 
 import (
 	"errors"

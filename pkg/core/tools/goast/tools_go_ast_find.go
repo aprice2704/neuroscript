@@ -1,7 +1,7 @@
 // filename: pkg/core/tools_go_ast_find.go
 // NEW FILE
 // UPDATED: Use GetHandleValue
-package core
+package goast
 
 import (
 	"errors"

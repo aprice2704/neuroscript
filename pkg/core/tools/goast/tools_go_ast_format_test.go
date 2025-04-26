@@ -1,6 +1,6 @@
 // filename: pkg/core/tools_go_ast_format_test.go
 // UPDATED: Use RegisterHandle and GetHandleValue
-package core
+package goast
 
 import (
 	"bytes"

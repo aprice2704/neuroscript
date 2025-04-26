@@ -1,6 +1,6 @@
 // filename: pkg/core/tools_go_ast_modify_imports_test.go
 // UPDATED: Expect specific errors using errors.Is, removed wantResultMsg
-package core
+package goast
 
 import (
 	"errors" // Now needed for errors.Is

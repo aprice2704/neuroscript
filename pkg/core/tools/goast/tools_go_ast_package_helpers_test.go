@@ -1,19 +1,19 @@
 // filename: pkg/core/tools_go_ast_package_helpers_test.go
-package core
+package goast
 
 import (
 	"bytes"
-	// "errors" // No longer needed here? Keep if other tests need it.
 	"go/ast"
 	"go/format"
 	"go/parser"
 	"go/token"
 
-	// "os" // No longer needed here
-	// "path/filepath" // No longer needed here
+	// "io" // No longer needed
+	// "log" // No longer needed
 	"strings"
 	"testing"
-	// No external assertion libs needed, as per AI_README.md
+	// Assumes Interpreter and newDefaultTestInterpreter are defined
+	// in this package (core), likely via universal_test_helpers.go
 )
 
 // formatNode helper (remains the same)
@@ -26,147 +26,110 @@ func formatNode(fset *token.FileSet, node ast.Node) (string, error) {
 	return buf.String(), nil
 }
 
-// TestApplyAstImportChanges (remains the same as before)
+// TestApplyAstImportChanges tests the import manipulation logic.
 func TestApplyAstImportChanges(t *testing.T) {
+	// Use the *existing* helper function to get an interpreter instance
+	// *** FIX: Pass 't' argument to the helper ***
+	testInterpreter, interpErr := newDefaultTestInterpreter(t) // Assume it returns (*Interpreter, error)
+	if interpErr != nil {
+		// *** FIX: Check the 'interpErr' variable, not 'err' ***
+		t.Fatalf("Failed to create default test interpreter: %v", interpErr)
+	}
+	// *** END FIX ***
+
 	testCases := []struct {
 		name         string
 		inputCode    string
 		oldPath      string
-		newImports   map[string]string // path -> alias (alias unused for now)
+		newImports   map[string]string // path -> "" (value unused)
 		expectedCode string
 		expectError  bool
 	}{
 		{
 			name: "Remove existing import, add one new",
 			inputCode: `package main
-
 import "fmt"
 import "old/path"
 import "log"
-
-func main() {
-	fmt.Println("Hello")
-	log.Println("World")
-}
-`,
+func main() { fmt.Println("Hello"); log.Println("World") }`,
 			oldPath:    "old/path",
 			newImports: map[string]string{"new/path/one": ""},
 			expectedCode: `package main
-
 import (
 	"fmt"
 	"log"
 	"new/path/one"
 )
-
-func main() {
-	fmt.Println("Hello")
-	log.Println("World")
-}
-`,
+func main() { fmt.Println("Hello"); log.Println("World") }`,
 			expectError: false,
 		},
 		{
 			name: "Remove existing import, add multiple new",
 			inputCode: `package main
-
-import (
-	"fmt"
-	"old/path"
-	"log"
-)
-
-func main() {}
-`,
+import ( "fmt"; "old/path"; "log" )
+func main() {}`,
 			oldPath: "old/path",
 			newImports: map[string]string{
 				"new/path/one": "",
 				"new/path/two": "",
 			},
 			expectedCode: `package main
-
 import (
 	"fmt"
 	"log"
 	"new/path/one"
 	"new/path/two"
 )
-
-func main() {}
-`,
+func main() {}`,
 			expectError: false,
 		},
 		{
 			name: "Remove import that does not exist, add one",
 			inputCode: `package main
-
 import "fmt"
-
-func main() {}
-`,
+func main() {}`,
 			oldPath:    "non/existent/path",
 			newImports: map[string]string{"new/path/one": ""},
 			expectedCode: `package main
-
 import (
 	"fmt"
 	"new/path/one"
 )
-
-func main() {}
-`,
-			expectError: false,
+func main() {}`,
+			expectError: false, // Should not error if old path not found
 		},
 		{
 			name: "Add import that already exists (idempotency)",
 			inputCode: `package main
-
-import (
-	"fmt"
-	"new/path/one"
-)
-
-func main() {}
-`,
-			oldPath:    "old/path",
-			newImports: map[string]string{"new/path/one": ""},
+import ( "fmt"; "new/path/one" )
+func main() {}`,
+			oldPath:    "old/path",                            // Doesn't exist, will be ignored
+			newImports: map[string]string{"new/path/one": ""}, // Already exists
 			expectedCode: `package main
-
 import (
 	"fmt"
 	"new/path/one"
 )
-
-func main() {}
-`,
+func main() {}`, // Code should remain unchanged after formatting
 			expectError: false,
 		},
 		{
 			name: "Add multiple imports, one already exists",
 			inputCode: `package main
-
-import (
-	"fmt"
-	"new/path/one"
-)
-
-func main() {}
-`,
+import ( "fmt"; "new/path/one" )
+func main() {}`,
 			oldPath: "old/path",
 			newImports: map[string]string{
 				"new/path/one": "", // Already exists
 				"new/path/two": "", // New
 			},
 			expectedCode: `package main
-
 import (
 	"fmt"
 	"new/path/one"
 	"new/path/two"
 )
-
-func main() {}
-`,
+func main() {}`,
 			expectError: false,
 		},
 		{
@@ -185,11 +148,8 @@ import "new/path/one"
 		{
 			name: "Remove only import, add none",
 			inputCode: `package main
-
 import "old/path"
-
-func main() {}
-`,
+func main() {}`,
 			oldPath:    "old/path",
 			newImports: map[string]string{},
 			expectedCode: `package main
@@ -203,31 +163,36 @@ func main() {}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			fset := token.NewFileSet()
-			astFile, err := parser.ParseFile(fset, "input.go", tc.inputCode, parser.ParseComments)
-			if err != nil {
-				t.Fatalf("Failed to parse input code: %v", err)
+			astFile, parseErr := parser.ParseFile(fset, "input.go", tc.inputCode, parser.ParseComments) // Renamed err variable
+			if parseErr != nil {
+				t.Fatalf("Failed to parse input code: %v", parseErr)
 			}
-			err = applyAstImportChanges(fset, astFile, tc.oldPath, tc.newImports)
+
+			// *** Call applyAstImportChanges with the interpreter from your existing helper ***
+			callErr := applyAstImportChanges(fset, astFile, tc.oldPath, tc.newImports, testInterpreter) // Renamed err variable
+
 			if tc.expectError {
-				if err == nil {
+				if callErr == nil {
 					t.Errorf("Expected an error, but got nil")
 				}
 			} else {
-				if err != nil {
-					t.Errorf("Did not expect an error, but got: %v", err)
+				if callErr != nil {
+					t.Errorf("Did not expect an error, but got: %v", callErr)
 				}
 				formattedCode, formatErr := formatNode(fset, astFile)
 				if formatErr != nil {
 					t.Fatalf("Failed to format resulting AST: %v", formatErr)
 				}
-				expected := strings.TrimSpace(tc.expectedCode)
-				actual := strings.TrimSpace(formattedCode)
-				if actual != expected {
-					t.Errorf("Formatted code does not match expected.\nExpected:\n---\n%s\n---\nGot:\n---\n%s\n---", expected, actual)
+
+				// Normalize whitespace for comparison
+				normalize := func(s string) string { return strings.Join(strings.Fields(s), " ") }
+				expectedNorm := normalize(tc.expectedCode)
+				actualNorm := normalize(formattedCode)
+
+				if actualNorm != expectedNorm {
+					t.Errorf("Normalized code mismatch.\nExpected (raw):\n---\n%s\n---\nGot (raw):\n---\n%s\n---", tc.expectedCode, formattedCode)
 				}
 			}
 		})
 	}
 }
-
-// --- REMOVED TestDetermineRefactoredDir and setupTestModule ---

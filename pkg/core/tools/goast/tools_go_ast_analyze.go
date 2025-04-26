@@ -1,5 +1,5 @@
 // filename: pkg/core/tools_go_ast_analyze.go
-package core
+package goast
 
 // --- analyzeImportsAndSymbols function REMOVED from this file ---
 // (Keep other functions if they exist and are used elsewhere)

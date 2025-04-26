@@ -2,7 +2,7 @@
 // UPDATED: Register new tool GoFindIdentifiers
 // UPDATED: Use RegisterHandle and GetHandleValue
 // UPDATED: REMOVED registration for GoUpdateImportsForMovedPackage (moved to tools_go_ast_package.go)
-package core
+package goast
 
 import (
 	"bytes"
