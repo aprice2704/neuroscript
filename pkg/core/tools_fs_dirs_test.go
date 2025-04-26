@@ -14,14 +14,14 @@ import (
 // --- ListDirectory Validation Tests ---
 func TestToolListDirectoryValidation(t *testing.T) {
 	testCases := []ValidationTestCase{
-		{Name: "Wrong Arg Count (None)", InputArgs: makeArgs(), ExpectedError: ErrValidationArgCount},
-		{Name: "Wrong Arg Count (Three)", InputArgs: makeArgs("path", true, "extra"), ExpectedError: ErrValidationArgCount},
-		{Name: "Nil First Arg", InputArgs: makeArgs(nil), ExpectedError: ErrValidationRequiredArgNil},
-		{Name: "Wrong First Arg Type", InputArgs: makeArgs(123), ExpectedError: ErrValidationTypeMismatch},
-		{Name: "Wrong Second Arg Type", InputArgs: makeArgs("path", "not-a-bool"), ExpectedError: ErrValidationTypeMismatch},
-		{Name: "Correct Args (Path Only)", InputArgs: makeArgs("some/dir"), ExpectedError: nil},
-		{Name: "Correct Args (Path and Recursive)", InputArgs: makeArgs("some/dir", true), ExpectedError: nil},
-		{Name: "Correct Args (Path and Nil Recursive)", InputArgs: makeArgs("some/dir", nil), ExpectedError: nil},
+		{Name: "Wrong Arg Count (None)", InputArgs: MakeArgs(), ExpectedError: ErrValidationArgCount},
+		{Name: "Wrong Arg Count (Three)", InputArgs: MakeArgs("path", true, "extra"), ExpectedError: ErrValidationArgCount},
+		{Name: "Nil First Arg", InputArgs: MakeArgs(nil), ExpectedError: ErrValidationRequiredArgNil},
+		{Name: "Wrong First Arg Type", InputArgs: MakeArgs(123), ExpectedError: ErrValidationTypeMismatch},
+		{Name: "Wrong Second Arg Type", InputArgs: MakeArgs("path", "not-a-bool"), ExpectedError: ErrValidationTypeMismatch},
+		{Name: "Correct Args (Path Only)", InputArgs: MakeArgs("some/dir"), ExpectedError: nil},
+		{Name: "Correct Args (Path and Recursive)", InputArgs: MakeArgs("some/dir", true), ExpectedError: nil},
+		{Name: "Correct Args (Path and Nil Recursive)", InputArgs: MakeArgs("some/dir", nil), ExpectedError: nil},
 	}
 	// Assuming runValidationTestCases helper is available via another _test.go file in package core
 	runValidationTestCases(t, "ListDirectory", testCases)

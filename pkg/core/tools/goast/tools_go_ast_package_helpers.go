@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/aprice2704/neuroscript/pkg/core"
 	"golang.org/x/tools/go/ast/astutil"
 )
 
@@ -74,16 +75,16 @@ func analyzeImportsAndSymbols(astFile *ast.File, fset *token.FileSet, oldPath st
 
 // applyAstImportChanges modifies the AST in place to remove the old import and add the new ones.
 // Needs interpreter for logging.
-func applyAstImportChanges(fset *token.FileSet, f *ast.File, oldImportPath string, requiredNewImports map[string]string, interpreter *Interpreter) error {
+func applyAstImportChanges(fset *token.FileSet, f *ast.File, oldImportPath string, requiredNewImports map[string]string, interpreter *core.Interpreter) error {
 	// Use constant from main file (assuming same package)
 	logPrefix := fmt.Sprintf("[applyAstImportChanges %s]", packageToolDebugVersion)
 	logger := interpreter.logger // Use interpreter's logger
-	logger.Printf("%s Applying import changes: remove %s, add %d new paths", logPrefix, oldImportPath, len(requiredNewImports))
+	logger.Debug("%s Applying import changes: remove %s, add %d new paths", logPrefix, oldImportPath, len(requiredNewImports))
 
 	// Delete old import (try path first)
 	deleted := astutil.DeleteImport(fset, f, oldImportPath)
 	if deleted {
-		logger.Printf("%s Successfully deleted import %s", logPrefix, oldImportPath)
+		logger.Debug("%s Successfully deleted import %s", logPrefix, oldImportPath)
 	} else {
 		// Try deleting by name if path failed
 		var oldImportName string
@@ -91,7 +92,7 @@ func applyAstImportChanges(fset *token.FileSet, f *ast.File, oldImportPath strin
 		for _, impSpec := range f.Imports {
 			if impSpec.Path != nil && strings.Trim(impSpec.Path.Value, `"`) == oldImportPath && impSpec.Name != nil {
 				oldImportName = impSpec.Name.Name
-				logger.Printf("%s Attempting to delete named import '%s' \"%s\".", logPrefix, oldImportName, oldImportPath)
+				logger.Debug("%s Attempting to delete named import '%s' \"%s\".", logPrefix, oldImportName, oldImportPath)
 				deletedNamed = astutil.DeleteNamedImport(fset, f, oldImportName, oldImportPath)
 				if deletedNamed {
 					break
@@ -99,20 +100,20 @@ func applyAstImportChanges(fset *token.FileSet, f *ast.File, oldImportPath strin
 			}
 		}
 		if deletedNamed {
-			logger.Printf("%s Successfully deleted named import '%s' %s", logPrefix, oldImportName, oldImportPath)
+			logger.Debug("%s Successfully deleted named import '%s' %s", logPrefix, oldImportName, oldImportPath)
 		} else {
-			logger.Printf("%s [WARN] Could not find or delete import '%s'", logPrefix, oldImportPath)
+			logger.Debug("%s [WARN] Could not find or delete import '%s'", logPrefix, oldImportPath)
 		}
 	}
 
 	// Add new imports
 	for newPath := range requiredNewImports {
-		logger.Printf("%s Adding import: %s", logPrefix, newPath)
+		logger.Debug("%s Adding import: %s", logPrefix, newPath)
 		added := astutil.AddImport(fset, f, newPath) // Handles name collisions
 		if added {
-			logger.Printf("%s Successfully added import %s", logPrefix, newPath)
+			logger.Debug("%s Successfully added import %s", logPrefix, newPath)
 		} else {
-			logger.Printf("%s [INFO] Import '%s' was not added (likely already present).", logPrefix, newPath)
+			logger.Debug("%s [INFO] Import '%s' was not added (likely already present).", logPrefix, newPath)
 		}
 	}
 
@@ -123,11 +124,11 @@ func applyAstImportChanges(fset *token.FileSet, f *ast.File, oldImportPath strin
 
 // collectGoFiles walks the scan scope and collects paths to .go files, excluding specific directories.
 // Needs interpreter for logging.
-func collectGoFiles(scanScopeAbs, excludeDirAbs string, interpreter *Interpreter) ([]string, error) {
+func collectGoFiles(scanScopeAbs, excludeDirAbs string, interpreter *core.Interpreter) ([]string, error) {
 	// Use constant from main file (assuming same package)
 	logPrefix := fmt.Sprintf("[collectGoFiles %s]", packageToolDebugVersion)
 	goFilePaths := []string{}
-	interpreter.logger.Printf("%s Starting file walk in '%s' (excluding '%s')", logPrefix, scanScopeAbs, excludeDirAbs)
+	interpreter.Logger().Debug("%s Starting file walk in '%s' (excluding '%s')", logPrefix, scanScopeAbs, excludeDirAbs)
 	cleanedExcludeDir := filepath.Clean(excludeDirAbs)
 
 	walkErr := filepath.WalkDir(scanScopeAbs, func(path string, d fs.DirEntry, walkErrInCb error) error {
@@ -138,9 +139,9 @@ func collectGoFiles(scanScopeAbs, excludeDirAbs string, interpreter *Interpreter
 		absPath = filepath.Clean(absPath)
 
 		if walkErrInCb != nil { // Handle access errors
-			interpreter.logger.Printf("%s [WARN] Error accessing path %q: %v", logPrefix, absPath, walkErrInCb)
+			interpreter.Logger().Debug("%s [WARN]core.Error accessing path %q: %v", logPrefix, absPath, walkErrInCb)
 			if d != nil && d.IsDir() {
-				interpreter.logger.Printf("%s Skipping dir due to error: %s", logPrefix, absPath)
+				interpreter.Logger().Debug("%s Skipping dir due to error: %s", logPrefix, absPath)
 				return filepath.SkipDir
 			}
 			return nil // Skip entry, continue walk
@@ -148,12 +149,12 @@ func collectGoFiles(scanScopeAbs, excludeDirAbs string, interpreter *Interpreter
 
 		if d.IsDir() { // Handle directories
 			if absPath == cleanedExcludeDir {
-				interpreter.logger.Printf("%s Skipping excluded directory: %s", logPrefix, absPath)
+				interpreter.Logger().Debug("%s Skipping excluded directory: %s", logPrefix, absPath)
 				return filepath.SkipDir
 			}
 			dirName := d.Name()
 			if dirName == "vendor" || dirName == ".git" || dirName == "testdata" {
-				interpreter.logger.Printf("%s Skipping special directory: %s", logPrefix, absPath)
+				interpreter.Logger().Debug("%s Skipping special directory: %s", logPrefix, absPath)
 				return filepath.SkipDir
 			}
 			return nil // Continue into directory
@@ -173,6 +174,6 @@ func collectGoFiles(scanScopeAbs, excludeDirAbs string, interpreter *Interpreter
 	if walkErr != nil {
 		return nil, fmt.Errorf("file collection walk failed: %w", walkErr)
 	}
-	interpreter.logger.Printf("%s Collected %d Go files.", logPrefix, len(goFilePaths))
+	interpreter.Logger().Debug("%s Collected %d Go files.", logPrefix, len(goFilePaths))
 	return goFilePaths, nil
 }

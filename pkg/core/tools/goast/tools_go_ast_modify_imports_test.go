@@ -7,16 +7,17 @@ import (
 	// "strings" // No longer needed for error checks
 	"testing"
 
+	"github.com/aprice2704/neuroscript/pkg/core"
 	"github.com/google/go-cmp/cmp"
 )
 
-// Assume testFsToolHelper, newDefaultTestInterpreter, makeArgs, etc. are available from testing_helpers_test.go
+// Assume testFsToolHelper, core.NewDefaultTestInterpreter, core.MakeArgs, etc. are available from testing_helpers_test.go
 // Assume golangASTTypeTag, CachedAst are defined in tools_go_ast.go
 
 // Helper to get formatted string from handle (duplicated for focused testing)
-func getFormattedCodeModifyImportsTest(t *testing.T, interp *Interpreter, handleID string) string {
+func getFormattedCodeModifyImportsTest(t *testing.T, interp *core.Interpreter, handleID string) string {
 	t.Helper()
-	res, err := toolGoFormatAST(interp, makeArgs(handleID))
+	res, err := toolGoFormatAST(interp, core.MakeArgs(handleID))
 	if err != nil {
 		t.Fatalf("getFormattedCodeModifyImportsTest: toolGoFormatAST failed for handle %s: %v", handleID, err)
 	}
@@ -28,9 +29,9 @@ func getFormattedCodeModifyImportsTest(t *testing.T, interp *Interpreter, handle
 }
 
 // Helper to parse code and return a handle (duplicated for focused testing)
-func setupParseModifyImportsTest(t *testing.T, interp *Interpreter, content string) string {
+func setupParseModifyImportsTest(t *testing.T, interp *core.Interpreter, content string) string {
 	t.Helper()
-	handleID, err := toolGoParseFile(interp, makeArgs(nil, content))
+	handleID, err := toolGoParseFile(interp, core.MakeArgs(nil, content))
 	if err != nil {
 		t.Fatalf("setupParseModifyImportsTest: toolGoParseFile failed: %v", err)
 	}
@@ -107,20 +108,20 @@ func main() {
 		// --- Add Import Tests ---
 		{name: "Add Import", initialContent: simpleSource, modifications: map[string]interface{}{"add_import": "os"}, wantCode: simpleSourceAddImport_Want},
 		{name: "Add Existing Import", initialContent: simpleSource, modifications: map[string]interface{}{"add_import": "fmt"}, wantCode: simpleSource, wantHandleSame: true},
-		{name: "Add Import Empty Path", initialContent: simpleSource, modifications: map[string]interface{}{"add_import": ""}, wantErrIs: ErrGoModifyInvalidDirectiveValue},
+		{name: "Add Import Empty Path", initialContent: simpleSource, modifications: map[string]interface{}{"add_import": ""}, wantErrIs: core.ErrGoModifyInvalidDirectiveValue},
 
 		// --- Remove Import Tests ---
 		{name: "Remove Import", initialContent: simpleSource, modifications: map[string]interface{}{"remove_import": "fmt"}, wantCode: simpleSourceNoFmt_Want},
 		{name: "Remove Non-Existent Import", initialContent: simpleSource, modifications: map[string]interface{}{"remove_import": "nosuchpkg"}, wantCode: simpleSource, wantHandleSame: true},
-		{name: "Remove Import Empty Path", initialContent: simpleSource, modifications: map[string]interface{}{"remove_import": ""}, wantErrIs: ErrGoModifyInvalidDirectiveValue},
+		{name: "Remove Import Empty Path", initialContent: simpleSource, modifications: map[string]interface{}{"remove_import": ""}, wantErrIs: core.ErrGoModifyInvalidDirectiveValue},
 
 		// --- Replace Import Tests ---
 		{name: "Replace Import", initialContent: simpleSource, modifications: map[string]interface{}{"replace_import": map[string]interface{}{"old_path": "fmt", "new_path": "new/fmt/path"}}, wantCode: simpleSourceReplaceFmt_Want},
 		{name: "Replace Import With Alias", initialContent: `package main; import x "fmt"; func main(){ x.Println("hi") }`, modifications: map[string]interface{}{"replace_import": map[string]interface{}{"old_path": "fmt", "new_path": "new/fmt/path"}}, wantCode: simpleSourceReplaceFmtWithAlias_Want},
 		{name: "Replace Non-Existent Import", initialContent: simpleSource, modifications: map[string]interface{}{"replace_import": map[string]interface{}{"old_path": "nosuchpkg", "new_path": "new/nosuchpkg"}}, wantCode: simpleSource, wantHandleSame: true},
-		{name: "Replace Import Missing Keys", initialContent: simpleSource, modifications: map[string]interface{}{"replace_import": map[string]interface{}{"old_path": "fmt"}}, wantErrIs: ErrGoModifyMissingMapKey},
-		{name: "Replace Import Empty Path (Old)", initialContent: simpleSource, modifications: map[string]interface{}{"replace_import": map[string]interface{}{"old_path": "", "new_path": "new/path"}}, wantErrIs: ErrGoModifyInvalidDirectiveValue},
-		{name: "Replace Import Empty Path (New)", initialContent: simpleSource, modifications: map[string]interface{}{"replace_import": map[string]interface{}{"old_path": "fmt", "new_path": ""}}, wantErrIs: ErrGoModifyInvalidDirectiveValue},
+		{name: "Replace Import Missing Keys", initialContent: simpleSource, modifications: map[string]interface{}{"replace_import": map[string]interface{}{"old_path": "fmt"}}, wantErrIs: core.ErrGoModifyMissingMapKey},
+		{name: "Replace Import Empty Path (Old)", initialContent: simpleSource, modifications: map[string]interface{}{"replace_import": map[string]interface{}{"old_path": "", "new_path": "new/path"}}, wantErrIs: core.ErrGoModifyInvalidDirectiveValue},
+		{name: "Replace Import Empty Path (New)", initialContent: simpleSource, modifications: map[string]interface{}{"replace_import": map[string]interface{}{"old_path": "fmt", "new_path": ""}}, wantErrIs: core.ErrGoModifyInvalidDirectiveValue},
 
 		// --- Combined Test ---
 		{name: "Change Package and Add Import", initialContent: simpleSource, modifications: map[string]interface{}{"change_package": "other", "add_import": "os"}, wantCode: simpleSourceNewPkgAddImport_Want},
@@ -129,18 +130,18 @@ func main() {
 	for _, tt := range tests {
 		tc := tt // Capture range variable
 		t.Run(tc.name, func(t *testing.T) {
-			currentInterp, _ := newDefaultTestInterpreter(t)
+			currentInterp, _ := core.NewDefaultTestInterpreter(t)
 			initialHandle := setupParseModifyImportsTest(t, currentInterp, tc.initialContent)
-			finalArgs := makeArgs(initialHandle, tc.modifications)
+			finalArgs := core.MakeArgs(initialHandle, tc.modifications)
 
-			toolImpl, found := currentInterp.ToolRegistry().GetTool("GoModifyAST")
+			toolImpl, found := currentInterp.core.ToolRegistry().GetTool("GoModifyAST")
 			if !found {
 				t.Fatalf("Tool GoModifyAST not found")
 			}
 
 			gotResult, toolErr := toolImpl.Func(currentInterp, finalArgs)
 
-			// --- UPDATED Error Checking Logic ---
+			// --- UPDATEDcore.Error Checking Logic ---
 			if tc.wantErrIs != nil {
 				// Case 1: Expecting a specific Go error type from the tool
 				if toolErr == nil {
@@ -158,7 +159,7 @@ func main() {
 				// Case 2: Unexpected Go error from the tool
 				t.Fatalf("Execute: unexpected Go error: %v. Result: %v (%T)", toolErr, gotResult, gotResult)
 			}
-			// --- END UPDATED Error Checking ---
+			// --- END UPDATEDcore.Error Checking ---
 
 			// --- Success Result Check (Only run if no error expected) ---
 			if tc.wantErrIs == nil {

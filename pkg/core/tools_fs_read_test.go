@@ -13,7 +13,7 @@ import (
 // Assume testFsToolHelper is defined in testing_helpers_test.go
 
 func TestToolReadFile(t *testing.T) {
-	interp, sandboxDirAbs := newDefaultTestInterpreter(t) // Get interpreter and sandbox path
+	interp, sandboxDirAbs := NewDefaultTestInterpreter(t) // Get interpreter and sandbox path
 
 	// --- Test Setup Data ---
 	testFilePathRel := "readTest.txt"
@@ -48,14 +48,14 @@ func TestToolReadFile(t *testing.T) {
 		{
 			name:       "Read Existing File",
 			toolName:   "ReadFile",
-			args:       makeArgs(testFilePathRel), // Use relative path for arg
+			args:       MakeArgs(testFilePathRel), // Use relative path for arg
 			setupFunc:  setupReadFileTest,         // Pass setup function
 			wantResult: testContent,
 		},
 		{
 			name:          "Read Non-Existent File",
 			toolName:      "ReadFile",
-			args:          makeArgs("nonexistent.txt"),
+			args:          MakeArgs("nonexistent.txt"),
 			setupFunc:     setupReadFileTest,
 			wantResult:    "ReadFile failed: File not found at path 'nonexistent.txt'",
 			wantToolErrIs: ErrInternalTool,
@@ -63,7 +63,7 @@ func TestToolReadFile(t *testing.T) {
 		{
 			name:      "Read Directory",
 			toolName:  "ReadFile",
-			args:      makeArgs(testDirPathRel), // Use relative path
+			args:      MakeArgs(testDirPathRel), // Use relative path
 			setupFunc: setupReadFileTest,
 			// Construct expected absolute path for error message comparison
 			wantResult:    fmt.Sprintf("ReadFile failed for '%s': read %s: is a directory", testDirPathRel, filepath.Join(sandboxDirAbs, testDirPathRel)),
@@ -72,19 +72,19 @@ func TestToolReadFile(t *testing.T) {
 		{
 			name:         "Validation_Wrong_Arg_Type",
 			toolName:     "ReadFile",
-			args:         makeArgs(123),
+			args:         MakeArgs(123),
 			valWantErrIs: ErrValidationTypeMismatch,
 		},
 		{
 			name:         "Validation_Missing_Arg",
 			toolName:     "ReadFile",
-			args:         makeArgs(),
+			args:         MakeArgs(),
 			valWantErrIs: ErrValidationArgCount,
 		},
 		{
 			name:          "Path_Outside_Sandbox",
 			toolName:      "ReadFile",
-			args:          makeArgs("../outside.txt"),
+			args:          MakeArgs("../outside.txt"),
 			setupFunc:     setupReadFileTest,
 			wantResult:    fmt.Sprintf("ReadFile path error for '../outside.txt': %s: relative path '../outside.txt' resolves to '%s' which is outside the allowed directory '%s'", ErrPathViolation.Error(), filepath.Clean(filepath.Join(sandboxDirAbs, "../outside.txt")), sandboxDirAbs),
 			wantToolErrIs: ErrPathViolation,
@@ -92,7 +92,7 @@ func TestToolReadFile(t *testing.T) {
 		{
 			name:         "Validation_Nil_Arg",
 			toolName:     "ReadFile",
-			args:         makeArgs(nil),
+			args:         MakeArgs(nil),
 			valWantErrIs: ErrValidationRequiredArgNil,
 		},
 	}

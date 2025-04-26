@@ -243,7 +243,7 @@ func loadToolListFromFile(filePath string) ([]string, error) {
 // executeAgentTool executes a validated tool call from the agent.
 // Takes validated arguments (map) and converts them to ordered slice for ToolFunc.
 func executeAgentTool(toolName string, args map[string]interface{}, interp *core.Interpreter) (interface{}, error) {
-	interp.Logger().Printf("[AGENT TOOL] Attempting execution for tool '%s'", toolName)
+	interp.logger().Printf("[AGENT TOOL] Attempting execution for tool '%s'", toolName)
 	toolImpl, found := interp.ToolRegistry().GetTool(toolName)
 	if !found {
 		return nil, fmt.Errorf("internal error: agent tool '%s' not found in registry", toolName)
@@ -276,11 +276,11 @@ func executeAgentTool(toolName string, args map[string]interface{}, interp *core
 			}
 		}
 		if len(extraArgs) > 0 {
-			interp.Logger().Printf("[WARN AGENT TOOL] Tool '%s' called with extra arguments not in spec (ignored): %v", toolName, extraArgs)
+			interp.logger().Printf("[WARN AGENT TOOL] Tool '%s' called with extra arguments not in spec (ignored): %v", toolName, extraArgs)
 		}
 	}
 
-	interp.Logger().Printf("[AGENT TOOL] Calling %s with ordered args: %v", toolName, orderedArgs)
+	interp.logger().Printf("[AGENT TOOL] Calling %s with ordered args: %v", toolName, orderedArgs)
 	// Call the actual tool implementation function
 	toolOutput, execErr := toolImpl.Func(interp, orderedArgs)
 	// Return the direct output and error from the tool function

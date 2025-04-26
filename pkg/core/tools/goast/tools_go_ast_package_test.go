@@ -4,7 +4,7 @@ package goast
 import (
 	"errors"
 	"testing"
-	// Assuming ToolTestCase, DefaultRegistry, etc. are defined in this package (e.g., universal_test_helpers.go)
+	// Assuming core.ToolTestCase, core.DefaultRegistry, etc. are defined in this package (e.g., universal_test_helpers.go)
 )
 
 // TestToolGoUpdateImportsForMovedPackage tests the GoUpdateImportsForMovedPackage tool.
@@ -106,7 +106,7 @@ func main() {
 }
 ` // Standard gofmt formatting
 
-	// --- Test Cases (Ensure ToolTestCase struct is defined in your helpers) ---
+	// --- Test Cases (Ensure core.ToolTestCase struct is defined in your helpers) ---
 	testCases := []ToolTestCase{
 		// --- SUCCESS CASES ---
 		{
@@ -136,7 +136,7 @@ func main() {
 				"testtool/refactored/sub2/s2.go": refactoredS2Content,
 				"other/nousage.go":               otherNoUsageContent,
 			},
-			NormalizationFlags: DefaultNormalization, DiffFlags: DefaultDiff, // Ensure these are defined
+			NormalizationFlags: core..DefaultNormalization, DiffFlags: core..DefaultDiff, // Ensure these are defined
 		},
 		{
 			Name: "Scan scope limited to client dir",
@@ -162,7 +162,7 @@ func main() {
 				"testtool/refactored/sub2/s2.go": refactoredS2Content,
 				"other/nousage.go":               otherNoUsageContent,
 			},
-			NormalizationFlags: DefaultNormalization, DiffFlags: DefaultDiff, // Ensure these are defined
+			NormalizationFlags: core..DefaultNormalization, DiffFlags: core..DefaultDiff, // Ensure these are defined
 		},
 
 		// --- FAILURE CASES ---
@@ -185,7 +185,7 @@ func main() {
 				"client/main.go":                 clientMainSyntaxErrorContent, // Should not be modified
 				"other/nousage.go":               otherNoUsageContent,
 			},
-			NormalizationFlags: DefaultNormalization, DiffFlags: DefaultDiff, // Ensure these are defined
+			NormalizationFlags: core.DefaultNormalization, DiffFlags: core.DefaultDiff, // Ensure these are defined
 		},
 		{
 			Name: "Symbol map ambiguity",
@@ -204,24 +204,24 @@ func main() {
 				"testtool/refactored/sub2/s2.go": ambiguousS2Content,
 				"client/main.go":                 clientUsingAmbiguousOriginal, // Should not be modified
 			},
-			NormalizationFlags: DefaultNormalization, DiffFlags: DefaultDiff, // Ensure these are defined
+			NormalizationFlags: core.DefaultNormalization, DiffFlags: core.DefaultDiff, // Ensure these are defined
 		},
 	}
 
 	// --- Run Tests ---
-	// Ensure registry includes the tool (Assumes DefaultRegistry is initialized and accessible)
-	err := EnsureCoreToolsRegistered(DefaultRegistry) // Ensure this helper exists
+	// Ensure registry includes the tool (Assumes core.DefaultRegistry is initialized and accessible)
+	err := core.EnsureCoreToolsRegistered(core.DefaultRegistry) // Ensure this helper exists
 	if err != nil {
 		t.Fatalf("Failed to register core tools: %v", err)
 	}
-	// Assumes RunToolTestCases helper exists and handles execution/assertions
-	RunToolTestCases(t, DefaultRegistry, "GoUpdateImportsForMovedPackage", testCases)
+	// Assumes Runcore.ToolTestCases helper exists and handles execution/assertions
+	core.Runcore.ToolTestCases(t, core.DefaultRegistry, "GoUpdateImportsForMovedPackage", testCases)
 }
 
 // Note: Assumes the following are defined in the core package (e.g., universal_test_helpers.go):
-// - ToolTestCase struct
-// - DefaultRegistry (*ToolRegistry)
+// - core.ToolTestCase struct
+// - core.DefaultRegistry (*core.ToolRegistry)
 // - EnsureCoreToolsRegistered function
-// - RunToolTestCases function
-// - DefaultNormalization and DefaultDiff constants/vars
+// - Runcore.ToolTestCases function
+// - core.DefaultNormalization and core.DefaultDiff constants/vars
 // - buildSymbolMap function

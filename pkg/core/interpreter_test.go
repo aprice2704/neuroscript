@@ -63,7 +63,7 @@ func runExecuteStepsTest(t *testing.T, tc executeStepsTestCase) {
 	// Check final variable state (only if no error expected)
 	if !tc.expectError && tc.expectedVars != nil {
 		// Get built-ins from a clean interpreter
-		cleanInterp, _ := newDefaultTestInterpreter(t) // Pass t
+		cleanInterp, _ := NewDefaultTestInterpreter(t) // Pass t
 		baseVars := cleanInterp.variables              // Get base built-ins
 
 		// Check expected variables exist and match

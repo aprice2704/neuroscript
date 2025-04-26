@@ -12,7 +12,7 @@ import (
 // Assume testFsToolHelper is defined in tools_fs_helpers_test.go
 
 func TestToolDeleteFile(t *testing.T) {
-	interp, _ := newDefaultTestInterpreter(t) // Get interpreter and sandbox path
+	interp, _ := NewDefaultTestInterpreter(t) // Get interpreter and sandbox path
 
 	// --- Test Setup Data ---
 	fileToDeleteRel := "deleteMe.txt"
@@ -69,7 +69,7 @@ func TestToolDeleteFile(t *testing.T) {
 		{
 			name:        "Delete Existing File",
 			toolName:    "DeleteFile",
-			args:        makeArgs(fileToDeleteRel),
+			args:        MakeArgs(fileToDeleteRel),
 			setupFunc:   setupDeleteFileTest,
 			wantResult:  "OK",
 			cleanupFunc: func(sb string) error { return verifyDeletion(sb, fileToDeleteRel, false) },
@@ -77,7 +77,7 @@ func TestToolDeleteFile(t *testing.T) {
 		{
 			name:        "Delete Empty Directory",
 			toolName:    "DeleteFile",
-			args:        makeArgs(dirToDeleteRel),
+			args:        MakeArgs(dirToDeleteRel),
 			setupFunc:   setupDeleteFileTest,
 			wantResult:  "OK",
 			cleanupFunc: func(sb string) error { return verifyDeletion(sb, dirToDeleteRel, false) },
@@ -85,14 +85,14 @@ func TestToolDeleteFile(t *testing.T) {
 		{
 			name:       "Delete Non-Existent File",
 			toolName:   "DeleteFile",
-			args:       makeArgs("noSuchFile.txt"),
+			args:       MakeArgs("noSuchFile.txt"),
 			setupFunc:  setupDeleteFileTest, // Setup other files, doesn't matter for this one
 			wantResult: "OK",                // Returns OK if not found
 		},
 		{
 			name:          "Delete Non-Empty Directory",
 			toolName:      "DeleteFile",
-			args:          makeArgs(nonEmptyDirRel),
+			args:          MakeArgs(nonEmptyDirRel),
 			setupFunc:     setupDeleteFileTest,
 			wantResult:    fmt.Sprintf("DeleteFile failed for '%s': remove %s: directory not empty", nonEmptyDirRel, filepath.Join(interp.sandboxDir, nonEmptyDirRel)),
 			wantToolErrIs: ErrCannotDelete,
@@ -101,13 +101,13 @@ func TestToolDeleteFile(t *testing.T) {
 		{
 			name:         "Validation_Wrong_Arg_Type",
 			toolName:     "DeleteFile",
-			args:         makeArgs(12345),
+			args:         MakeArgs(12345),
 			valWantErrIs: ErrValidationTypeMismatch,
 		},
 		{
 			name:          "Path_Outside_Sandbox",
 			toolName:      "DeleteFile",
-			args:          makeArgs("../someFile"),
+			args:          MakeArgs("../someFile"),
 			setupFunc:     setupDeleteFileTest, // Setup doesn't matter
 			wantResult:    fmt.Sprintf("DeleteFile path error for '../someFile': %s: relative path '../someFile' resolves to '%s' which is outside the allowed directory '%s'", ErrPathViolation.Error(), filepath.Clean(filepath.Join(interp.sandboxDir, "../someFile")), interp.sandboxDir),
 			wantToolErrIs: ErrPathViolation,
@@ -115,13 +115,13 @@ func TestToolDeleteFile(t *testing.T) {
 		{
 			name:         "Validation_Missing_Arg",
 			toolName:     "DeleteFile",
-			args:         makeArgs(),
+			args:         MakeArgs(),
 			valWantErrIs: ErrValidationArgCount,
 		},
 		{
 			name:         "Validation_Nil_Arg",
 			toolName:     "DeleteFile",
-			args:         makeArgs(nil),
+			args:         MakeArgs(nil),
 			valWantErrIs: ErrValidationRequiredArgNil,
 		},
 	}

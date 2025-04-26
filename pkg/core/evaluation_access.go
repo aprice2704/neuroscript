@@ -21,7 +21,7 @@ func (i *Interpreter) evaluateElementAccess(n ElementAccessNode) (interface{}, e
 	}
 
 	if i.logger != nil {
-		i.logger.Printf("[DEBUG-INTERP]      Evaluating Element Access: Collection=%T, Accessor=%T (%v)", collectionVal, accessorVal, accessorVal)
+		i.logger.Debug("-INTERP]      Evaluating Element Access: Collection=%T, Accessor=%T (%v)", collectionVal, accessorVal, accessorVal)
 	}
 
 	// Handle case where collection evaluated to nil before attempting access
@@ -81,7 +81,7 @@ func (i *Interpreter) evaluateListElementAccess(list []interface{}, accessorVal 
 	// Return the element and nil error on success
 	element := list[int(index)]
 	if i.logger != nil {
-		i.logger.Printf("[DEBUG-INTERP]        List access successful: Index=%d, Value=%v", index, element)
+		i.logger.Debug("-INTERP]        List access successful: Index=%d, Value=%v", index, element)
 	}
 	return element, nil
 }
@@ -94,7 +94,7 @@ func (i *Interpreter) evaluateMapElementAccess(m map[string]interface{}, accesso
 		// Lenient: convert accessor to string representation
 		key = fmt.Sprintf("%v", accessorVal)
 		if i.logger != nil {
-			i.logger.Printf("[INFO] Map key was not a string (%T), converted to string key '%s' for access", accessorVal, key)
+			i.logger.Info("] Map key was not a string (%T), converted to string key '%s' for access", accessorVal, key)
 		}
 	}
 
@@ -104,7 +104,7 @@ func (i *Interpreter) evaluateMapElementAccess(m map[string]interface{}, accesso
 	}
 	// Return the found value and nil error
 	if i.logger != nil {
-		i.logger.Printf("[DEBUG-INTERP]        Map access successful: Key='%s', Value=%v", key, value)
+		i.logger.Debug("-INTERP]        Map access successful: Key='%s', Value=%v", key, value)
 	}
 	return value, nil
 }

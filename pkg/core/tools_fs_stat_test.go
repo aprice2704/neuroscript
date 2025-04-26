@@ -18,7 +18,7 @@ func createTestInterpreterWithSandbox(t *testing.T, sandboxDir string) *Interpre
 	t.Helper()
 
 	// Use correct NewInterpreter signature
-	interpreter, _ := newDefaultTestInterpreter(t)
+	interpreter, _ := NewDefaultTestInterpreter(t)
 	// Set sandbox directory manually
 	interpreter.sandboxDir = sandboxDir
 	// Register tools (assuming this is needed - adapt if registration happens elsewhere)

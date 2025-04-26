@@ -16,7 +16,7 @@ import (
 func createWalkTestInterpreter(t *testing.T, sandboxDir string) *Interpreter {
 	t.Helper()
 	// Use correct NewInterpreter signature found in interpreter.go
-	interpreter, _ := newDefaultTestInterpreter(t)
+	interpreter, _ := NewDefaultTestInterpreter(t)
 	// Set sandbox directory directly
 	interpreter.sandboxDir = sandboxDir
 	// No need to register all tools if calling toolWalkDir directly

@@ -31,7 +31,7 @@ func (tw testWriter) Write(p []byte) (n int, err error) {
 // logTest is a simple helper for logging during tests using t.Logf.
 // It prevents needing to pass 't' everywhere explicitly just for logging.
 // Deprecated: Prefer direct use of t.Logf for clarity unless this provides significant utility.
-func logTest(t *testing.T, format string, args ...interface{}) {
+func LogTest(t *testing.T, format string, args ...interface{}) {
 	t.Helper()
 	t.Logf("[TEST LOG] "+format, args...)
 }

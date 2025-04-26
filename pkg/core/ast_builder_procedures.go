@@ -30,7 +30,7 @@ func (l *neuroScriptListenerImpl) EnterProcedure_definition(ctx *gen.Procedure_d
 		content = strings.TrimSuffix(strings.TrimSpace(content), "ENDCOMMENT") // Trim space AND suffix
 		docstring = parseDocstring(strings.TrimSpace(content))
 	} else {
-		l.logger.Printf("[WARN] Procedure '%s' is missing COMMENT: block.", procName)
+		l.logger.Warn("Procedure '%s' is missing COMMENT: block.", procName)
 		docstring.Purpose = "(Docstring missing)"
 	}
 	l.currentProc = &Procedure{Name: procName, Params: params, Steps: make([]Step, 0), Docstring: docstring}
@@ -53,7 +53,7 @@ func (l *neuroScriptListenerImpl) ExitProcedure_definition(ctx *gen.Procedure_de
 	l.currentProc = nil
 	l.currentSteps = nil
 	if len(l.valueStack) > 0 { // Should be empty if parsing was correct
-		l.logger.Printf("[WARN] Value stack not empty at end of procedure %s (Size: %d)", procName, len(l.valueStack))
+		l.logger.Warn("Value stack not empty at end of procedure %s (Size: %d)", procName, len(l.valueStack))
 		l.valueStack = l.valueStack[:0] // Clear anyway
 	}
 }

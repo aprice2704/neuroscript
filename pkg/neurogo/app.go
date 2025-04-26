@@ -12,16 +12,14 @@ import (
 
 	// Needed for error joining fallback
 	"github.com/aprice2704/neuroscript/pkg/core" // Import core
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 )
 
 // App encapsulates the application's state and configuration.
 type App struct {
-	Config   *Config
-	InfoLog  *log.Logger
-	WarnLog  *log.Logger // Keep the field
-	ErrorLog *log.Logger
-	DebugLog *log.Logger
-	LLMLog   *log.Logger
+	Config *Config
+	Logger interfaces.Logger
+	LLMLog interfaces.Logger
 
 	// Core components needed by the app
 	interpreter *core.Interpreter // Keep interpreter internal
@@ -53,53 +51,27 @@ func NewApp() *App {
 	}
 
 	// Ensure essential loggers are non-nil right away
-	if app.InfoLog == nil {
-		app.InfoLog = log.New(io.Discard, "INFO: ", log.LstdFlags)
-	}
-	if app.WarnLog == nil {
-		app.WarnLog = log.New(io.Discard, "WARN: ", log.LstdFlags|log.Lshortfile)
-	} // Ensure WarnLog is also non-nil
-	if app.ErrorLog == nil {
-		app.ErrorLog = log.New(io.Discard, "ERROR: ", log.LstdFlags|log.Lshortfile)
-	}
-	if app.DebugLog == nil {
-		app.DebugLog = log.New(io.Discard, "DEBUG: ", log.LstdFlags|log.Lshortfile)
+	if app.Logger == nil {
+		panic("App needs a valid logger")
 	}
 	if app.LLMLog == nil {
-		app.LLMLog = log.New(io.Discard, "LLM:   ", log.LstdFlags|log.Lshortfile)
+		panic("App needs a valid LLM logger")
 	}
 
 	// Register standard and agent-specific tools
 	// Standard tools first
 	if err := core.RegisterCoreTools(interpreter.ToolRegistry()); err != nil {
-		app.GetErrorLogger().Printf("CRITICAL: Failed to register standard tools: %v", err)
+		app.GetLogger().Debug("CRITICAL: Failed to register standard tools: %v", err)
 		// Potentially panic or os.Exit(1) here if standard tools are essential
 	}
 	// Agent-specific tools (lives in this package)
 	if err := RegisterAgentTools(interpreter.ToolRegistry()); err != nil {
-		app.GetErrorLogger().Printf("CRITICAL: Failed to register agent tools: %v", err)
+		app.GetLogger().Debug("CRITICAL: Failed to register agent tools: %v", err)
 		// Potentially panic or os.Exit(1)
 	}
 
 	return app
 }
-
-// --- ADDED BACK: GetWarnLogger ---
-// Ensure non-nil WarnLog and return it.
-func (a *App) GetWarnLogger() *log.Logger {
-	if a.WarnLog == nil {
-		a.WarnLog = log.New(io.Discard, "WARN-FALLBACK: ", log.LstdFlags|log.Lshortfile)
-	}
-	return a.WarnLog
-}
-
-// --- Logger Getters Removed (defined in app_interface.go) ---
-// func (a *App) GetInfoLogger() *log.Logger { ... }
-// func (a *App) GetErrorLogger() *log.Logger { ... }
-// func (a *App) GetDebugLogger() *log.Logger { ... }
-
-// --- GetLLMClient Removed (defined in app_interface.go) ---
-// func (a *App) GetLLMClient() *core.LLMClient { ... }
 
 // GetInterpreter returns the application's NeuroScript interpreter.
 func (a *App) GetInterpreter() *core.Interpreter {
@@ -112,20 +84,14 @@ func (a *App) Run(ctx context.Context) error {
 	// 1. Initialize logging based on Config
 	if err := a.initLogging(); err != nil { // Call initLogging from app_helpers.go
 		// Log to initial stderr logger if possible
-		a.GetErrorLogger().Printf("CRITICAL: Logging initialization failed: %v", err)
+		a.GetLogger().Debug("CRITICAL: Logging initialization failed: %v", err)
 		return fmt.Errorf("logging initialization failed: %w", err)
 	}
-
-	// Use loggers safely now (use getters defined in app_interface.go or here)
-	infoLog := a.GetInfoLogger()
-	errLog := a.GetErrorLogger()
-	debugLog := a.GetDebugLogger()
-	warnLog := a.GetWarnLogger() // Now defined again
 
 	// Ensure config is not nil before proceeding
 	if a.Config == nil {
 		errMsg := "internal error: App.Config is nil at start of Run"
-		errLog.Println(errMsg) // Use getter now that it's safe
+		a.Logger.Info(errMsg) // Use getter now that it's safe
 		return errors.New(errMsg)
 	}
 
@@ -139,14 +105,14 @@ func (a *App) Run(ctx context.Context) error {
 
 	initErr := a.initLLMClient(ctx) // Attempt initialization (defined in app_helpers.go)
 	llmClientAvailable := a.llmClient != nil && a.llmClient.Client() != nil
-	debugLog.Printf("Run: initLLMClient finished. Error: %v, Client Available: %v, Needs LLM: %v", initErr, llmClientAvailable, needsLLM)
+	a.Logger.Debug("Run: initLLMClient finished. Error: %v, Client Available: %v, Needs LLM: %v", initErr, llmClientAvailable, needsLLM)
 
 	if initErr != nil {
-		errLog.Printf("LLM Client initialization failed: %v", initErr)
+		a.Logger.Error("LLM Client initialization failed: %v", initErr)
 		if needsLLM {
 			return fmt.Errorf("LLM client required but initialization failed: %w", initErr)
 		} else {
-			warnLog.Printf("Continuing without LLM client despite initialization error: %v", initErr)
+			a.Logger.Warn("Continuing without LLM client despite initialization error: %v", initErr)
 		}
 	} else if needsLLM && !llmClientAvailable {
 		return errors.New("LLM client required but is unavailable after initialization")
@@ -157,36 +123,36 @@ func (a *App) Run(ctx context.Context) error {
 	// a.interpreter.LLMClient = a.llmClient // REMOVED - Interpreter handles its client via constructor
 
 	// 4. Select Mode Based on Config
-	infoLog.Println("Run: Dispatching based on mode...")
+	a.Logger.Info("Run: Dispatching based on mode...")
 
 	// Mode precedence was handled in main.go which set the boolean flags.
 	if a.Config.RunCleanAPIMode {
-		infoLog.Println("--- Running in Clean API Mode ---")
+		a.Logger.Info("--- Running in Clean API Mode ---")
 		if !llmClientAvailable {
 			return errors.New("LLM Client (for File API) required for clean-api mode but is unavailable")
 		}
 		return a.runCleanAPIMode(ctx) // Assumes exists in app_helpers.go or similar
 	} else if a.Config.RunSyncMode {
-		infoLog.Println("--- Running in Sync Mode ---")
+		a.Logger.Info("--- Running in Sync Mode ---")
 		if !llmClientAvailable {
 			return errors.New("LLM Client (for File API) required for sync mode but is unavailable")
 		}
 		return a.runSyncMode(ctx) // Assumes exists in app_sync.go
 	} else if a.Config.RunScriptMode {
-		infoLog.Println("--- Running in Script Mode ---")
+		a.Logger.Info("--- Running in Script Mode ---")
 		return a.runScriptMode(ctx) // Assumes exists in app_script.go
 	} else if a.Config.RunTuiMode {
-		infoLog.Println("--- Running in TUI Mode ---")
+		a.Logger.Info("--- Running in TUI Mode ---")
 		return a.runTuiMode(ctx) // Assumes exists in app_tui.go
 	} else if a.Config.RunAgentMode {
-		infoLog.Println("--- Running in Agent Mode ---")
+		a.Logger.Info("--- Running in Agent Mode ---")
 		if !llmClientAvailable {
 			return errors.New("LLM Client required for agent mode but is unavailable")
 		}
 		return a.runAgentMode(ctx) // Assumes exists in app_agent.go
 	} else {
 		errMsg := "internal error: no execution mode determined"
-		errLog.Println(errMsg)
+		a.Logger.Error(errMsg)
 		return errors.New(errMsg)
 	}
 }

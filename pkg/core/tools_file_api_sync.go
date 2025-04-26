@@ -5,10 +5,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"os" // Added for direct output in progress printer
 	"sync"
 
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/google/generative-ai-go/genai"
 	// Assumes sync_types.go, sync_morehelpers.go, sync_logic.go, sync_workers.go
 	// and their necessary imports (like path/filepath, io, etc.) exist
@@ -23,7 +23,7 @@ func SyncDirectoryUpHelper(
 	filterPattern string,
 	ignoreGitignore bool,
 	client *genai.Client,
-	infoLog, errorLog, debugLog *log.Logger, // Receive potentially nil loggers
+	logger interfaces.Logger,
 ) (map[string]interface{}, error) {
 
 	// 1. Initialize Context, Loggers, Stats
@@ -42,19 +42,19 @@ func SyncDirectoryUpHelper(
 	var incrementStat func(string)
 	// Call initializeSyncState (assumed in sync_morehelpers.go) and get back the potentially defaulted loggers
 	// Ensure initializeSyncState signature returns the loggers.
-	stats, incrementStat, syncCtx.infoLog, syncCtx.errorLog, syncCtx.debugLog = initializeSyncState(infoLog, errorLog, debugLog)
+	stats, incrementStat, syncCtx.logger = initializeSyncState(logger)
 	syncCtx.stats = stats
 	syncCtx.incrementStat = incrementStat
 	// *** End Fix ***
 
 	// Now syncCtx loggers are guaranteed to be non-nil
-	syncCtx.infoLog.Println("[API HELPER Sync] Starting sync 'up' for directory:", syncCtx.absLocalDir)
+	syncCtx.logger.Debug("[API HELPER Sync] Starting sync 'up' for directory:", syncCtx.absLocalDir)
 
 	// --- Phase 1: Gather State ---
 	// Ensure listExistingAPIFiles is defined (e.g., in sync_morehelpers.go)
 	remoteFilesMap, listErr := listExistingAPIFiles(syncCtx)
 	if listErr != nil {
-		syncCtx.errorLog.Printf("[ERROR API HELPER Sync] Failed to list initial API files: %v", listErr)
+		syncCtx.logger.Error("[ERROR API HELPER Sync] Failed to list initial API files: %v", listErr)
 		// Return stats map even on error, as some might have been initialized
 		return syncCtx.stats, listErr // Return critical list error
 	}
@@ -65,10 +65,10 @@ func SyncDirectoryUpHelper(
 	// Check if walkErr indicates a critical failure vs. just skipped files
 	// For now, treat any error returned by gatherLocalFiles as critical for stopping sync
 	if walkErr != nil {
-		syncCtx.errorLog.Printf("[ERROR API HELPER Sync] Critical error during local file scan: %v", walkErr)
+		syncCtx.logger.Error("[ERROR API HELPER Sync] Critical error during local file scan: %v", walkErr)
 		return syncCtx.stats, fmt.Errorf("local file scan failed: %w", walkErr)
 	}
-	syncCtx.infoLog.Printf("[API HELPER Sync] Local scan complete, found %d files passing filters.", len(localFilesMap))
+	syncCtx.logger.Info("[API HELPER Sync] Local scan complete, found %d files passing filters.", len(localFilesMap))
 
 	// --- Phase 2: Compare and Plan ---
 	// Ensure computeSyncActions and SyncActions are defined (e.g., in sync_logic.go and sync_types.go)
@@ -90,10 +90,10 @@ func SyncDirectoryUpHelper(
 		}
 	} else {
 		// Handle case where no operations are needed
-		syncCtx.infoLog.Println("[API HELPER Sync] No sync operations required.")
+		syncCtx.logger.Debug("[API HELPER Sync] No sync operations required.")
 		syncCtx.stats["files_processed"] = syncCtx.stats["files_scanned"].(int64) // All scanned files processed (by doing nothing)
-		syncCtx.infoLog.Printf("[API HELPER Sync] Sync finished. Final Stats: %+v", syncCtx.stats)
-		syncCtx.infoLog.Println("[FINAL API HELPER Sync] Sync completed successfully (No operations needed).")
+		syncCtx.logger.Info("[API HELPER Sync] Sync finished. Final Stats: %+v", syncCtx.stats)
+		syncCtx.logger.Debug("[FINAL API HELPER Sync] Sync completed successfully (No operations needed).")
 		return syncCtx.stats, nil // Success, nothing to do
 	}
 
@@ -109,11 +109,11 @@ func SyncDirectoryUpHelper(
 		// Wait for Uploads/Updates and Process Results (Prints progress chars)
 		uploadErr = waitForUploadResultsAndPrintProgress(syncCtx, &uploadWg, resultsChan, totalPlannedUploadsUpdates)
 		if uploadErr != nil {
-			syncCtx.errorLog.Printf("[ERROR API HELPER Sync] Error during upload/update phase: %v", uploadErr)
+			syncCtx.logger.Error("[ERROR API HELPER Sync] Error during upload/update phase: %v", uploadErr)
 		}
 		fmt.Println(" Done.") // Finish progress line for uploads/updates
 	} else {
-		syncCtx.infoLog.Println("[API HELPER Sync] Skipping upload/update phase (0 operations).")
+		syncCtx.logger.Debug("[API HELPER Sync] Skipping upload/update phase (0 operations).")
 		uploadErr = nil // No error occurred if skipped
 	}
 
@@ -122,12 +122,12 @@ func SyncDirectoryUpHelper(
 	// Ensure startDeleteWorkers is defined (e.g., in sync_workers.go)
 	startDeleteWorkers(syncCtx, &deleteWg, actions.FilesToDelete)
 	if totalPlannedDeletes > 0 {
-		syncCtx.debugLog.Println("[DEBUG API HELPER Sync] Waiting for deleteWg.Wait()...")
+		syncCtx.logger.Debug("[DEBUG API HELPER Sync] Waiting for deleteWg.Wait()...")
 		deleteWg.Wait()
-		syncCtx.debugLog.Println("[DEBUG API HELPER Sync] deleteWg.Wait() finished.")
-		syncCtx.infoLog.Println("[API HELPER Sync] Deletion phase complete.")
+		syncCtx.logger.Debug("[DEBUG API HELPER Sync] deleteWg.Wait() finished.")
+		syncCtx.logger.Debug("[API HELPER Sync] Deletion phase complete.")
 	} else {
-		syncCtx.infoLog.Println("[API HELPER Sync] Skipping delete phase (0 operations).")
+		syncCtx.logger.Debug("[API HELPER Sync] Skipping delete phase (0 operations).")
 	}
 
 	// --- Finalize ---
@@ -138,7 +138,7 @@ func SyncDirectoryUpHelper(
 	syncCtx.stats["files_updated_api"] = int64(len(actions.FilesToUpdate))
 	// Note: delete_errors and files_deleted_api counts are incremented within startDeleteWorkers/workers
 
-	syncCtx.infoLog.Printf("[API HELPER Sync] Sync finished. Final Stats: %+v", syncCtx.stats)
+	syncCtx.logger.Info("[API HELPER Sync] Sync finished. Final Stats: %+v", syncCtx.stats)
 
 	// Determine overall success/failure
 	finalError := walkErr // Start with potential critical walk error
@@ -150,9 +150,9 @@ func SyncDirectoryUpHelper(
 	}
 
 	if finalError != nil {
-		syncCtx.errorLog.Printf("[FINAL API HELPER Sync] Sync completed with errors: %v", finalError)
+		syncCtx.logger.Error("[FINAL API HELPER Sync] Sync completed with errors: %v", finalError)
 	} else {
-		syncCtx.infoLog.Println("[FINAL API HELPER Sync] Sync completed successfully.")
+		syncCtx.logger.Debug("[FINAL API HELPER Sync] Sync completed successfully.")
 	}
 
 	// Return stats and the first critical error encountered (or nil if successful)
@@ -165,16 +165,16 @@ func SyncDirectoryUpHelper(
 func waitForUploadResultsAndPrintProgress(sc *syncContext, wg *sync.WaitGroup, resultsChan chan uploadResult, totalPlannedOps int) error {
 	waitDoneChan := make(chan struct{})
 	go func() {
-		sc.debugLog.Println("[DEBUG WaitGroup] Starting wg.Wait()...")
+		sc.logger.Debug("[DEBUG WaitGroup] Starting wg.Wait()...")
 		wg.Wait()
-		sc.debugLog.Println("[DEBUG WaitGroup] wg.Wait() finished.")
-		sc.debugLog.Println("[DEBUG WaitGroup] Closing resultsChan.")
+		sc.logger.Debug("[DEBUG WaitGroup] wg.Wait() finished.")
+		sc.logger.Debug("[DEBUG WaitGroup] Closing resultsChan.")
 		close(resultsChan) // Close after all workers are done
-		sc.debugLog.Println("[DEBUG WaitGroup] Closed resultsChan.")
+		sc.logger.Debug("[DEBUG WaitGroup] Closed resultsChan.")
 		close(waitDoneChan)
 	}()
 
-	sc.debugLog.Println("[DEBUG Progress] Starting results processing loop...")
+	sc.logger.Debug("[DEBUG Progress] Starting results processing loop...")
 	processedCount := 0
 	charsOnLine := 0
 	const maxCharsPerLine = 80 // Characters per line for progress bar
@@ -182,11 +182,11 @@ func waitForUploadResultsAndPrintProgress(sc *syncContext, wg *sync.WaitGroup, r
 
 	for result := range resultsChan { // Process results and print progress chars
 		processedCount++
-		sc.debugLog.Printf("[DEBUG Progress] Result %d: %s (Err: %v)", processedCount, result.job.relPath, result.err)
+		sc.logger.Debug("Progress] Result %d: %s (Err: %v)", processedCount, result.job.relPath, result.err)
 		if result.err != nil {
 			sc.incrementStat("upload_errors")
 			// Log error details via ErrorLog
-			sc.errorLog.Printf("[ERROR API HELPER Sync] Fail: %s: %v", result.job.relPath, result.err)
+			sc.logger.Error("[ERROR API HELPER Sync] Fail: %s: %v", result.job.relPath, result.err)
 			if firstError == nil {
 				firstError = result.err // Store first error
 			}
@@ -194,7 +194,7 @@ func waitForUploadResultsAndPrintProgress(sc *syncContext, wg *sync.WaitGroup, r
 		} else {
 			// Log detailed success only to debug log
 			if result.apiFile != nil {
-				sc.debugLog.Printf("[DEBUG API HELPER Sync] Upload successful: %s -> %s", result.job.relPath, result.apiFile.Name)
+				sc.logger.Debug("API HELPER Sync] Upload successful: %s -> %s", result.job.relPath, result.apiFile.Name)
 			}
 			fmt.Print(".") // Print '.' for success to stdout progress
 		}
@@ -209,11 +209,11 @@ func waitForUploadResultsAndPrintProgress(sc *syncContext, wg *sync.WaitGroup, r
 		}
 	} // End results processing loop
 
-	sc.debugLog.Printf("[DEBUG Progress] Finished results loop (%d results).", processedCount)
-	sc.infoLog.Printf("[API HELPER Sync] Finished processing %d upload/update results.", processedCount) // Summary log
-	sc.debugLog.Println("[DEBUG Progress] Waiting for waitDoneChan...")
+	sc.logger.Debug("Progress] Finished results loop (%d results).", processedCount)
+	sc.logger.Info("[API HELPER Sync] Finished processing %d upload/update results.", processedCount) // Summary log
+	sc.logger.Debug("[DEBUG Progress] Waiting for waitDoneChan...")
 	<-waitDoneChan
-	sc.debugLog.Println("[DEBUG Progress] Received waitDoneChan.")
+	sc.logger.Debug("[DEBUG Progress] Received waitDoneChan.")
 	return firstError // Return the first upload/update error encountered
 }
 

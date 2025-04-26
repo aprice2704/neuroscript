@@ -21,19 +21,19 @@ import (
 // Requires access to syncContext definition (from sync_types.go) and helpers.
 func gatherLocalFiles(sc *syncContext) (map[string]LocalFileInfo, error) {
 	// Ensure loggers are valid
-	if sc.infoLog == nil || sc.errorLog == nil || sc.debugLog == nil {
+	if sc.logger == nil {
 		log.Println("ERROR: gatherLocalFiles called with nil loggers in syncContext!")
 		// Return error as we cannot safely proceed without logging/stats
 		return nil, errors.New("internal error: loggers not initialized in sync context")
 	}
 
-	sc.infoLog.Printf("[API HELPER Sync] Scanning local directory: %s", sc.absLocalDir)
+	sc.logger.Info("[API HELPER Sync] Scanning local directory: %s", sc.absLocalDir)
 	localFiles := make(map[string]LocalFileInfo)
 	var firstWalkError error
 
 	walkErr := filepath.WalkDir(sc.absLocalDir, func(currentPath string, d fs.DirEntry, err error) error {
 		if err != nil {
-			sc.errorLog.Printf("[ERROR API HELPER Sync Walk] Initial error for %q: %v", currentPath, err)
+			sc.logger.Error("[ERROR API HELPER Sync Walk] Initial error for %q: %v", currentPath, err)
 			sc.incrementStat("walk_errors")
 			if firstWalkError == nil {
 				firstWalkError = err
@@ -46,14 +46,14 @@ func gatherLocalFiles(sc *syncContext) (map[string]LocalFileInfo, error) {
 			}
 			return err // Stop walk on other errors
 		}
-		sc.debugLog.Printf("[DEBUG API HELPER Sync Walk] Visiting: %q (IsDir: %t)", currentPath, d.IsDir())
+		sc.logger.Debug("API HELPER Sync Walk] Visiting: %q (IsDir: %t)", currentPath, d.IsDir())
 		if currentPath == sc.absLocalDir {
 			return nil
 		} // Skip root
 
 		relPath, relErr := filepath.Rel(sc.absLocalDir, currentPath)
 		if relErr != nil {
-			sc.errorLog.Printf("[ERROR API HELPER Sync Walk] Failed RelPath %q: %v", currentPath, relErr)
+			sc.logger.Error("[ERROR API HELPER Sync Walk] Failed RelPath %q: %v", currentPath, relErr)
 			sc.incrementStat("walk_errors")
 			return nil // Skip entry
 		}
@@ -64,10 +64,10 @@ func gatherLocalFiles(sc *syncContext) (map[string]LocalFileInfo, error) {
 		if sc.ignorer != nil && sc.ignorer.MatchesPath(relPath) {
 			sc.incrementStat("files_ignored")
 			if d.IsDir() {
-				sc.debugLog.Printf("[DEBUG API HELPER Sync Walk] Gitignored dir: %s", relPath)
+				sc.logger.Debug("API HELPER Sync Walk] Gitignored dir: %s", relPath)
 				return filepath.SkipDir
 			}
-			sc.debugLog.Printf("[DEBUG API HELPER Sync Walk] Gitignored file: %s", relPath)
+			sc.logger.Debug("API HELPER Sync Walk] Gitignored file: %s", relPath)
 			return nil
 		}
 		if d.IsDir() {
@@ -79,26 +79,26 @@ func gatherLocalFiles(sc *syncContext) (map[string]LocalFileInfo, error) {
 			baseName := filepath.Base(currentPath)
 			match, matchErr := filepath.Match(sc.filterPattern, baseName)
 			if matchErr != nil {
-				sc.errorLog.Printf("[ERROR API HELPER Sync Walk] Invalid filter %q: %v", sc.filterPattern, matchErr)
+				sc.logger.Error("[ERROR API HELPER Sync Walk] Invalid filter %q: %v", sc.filterPattern, matchErr)
 				sc.incrementStat("walk_errors")
 				return fmt.Errorf("invalid filter pattern: %w", matchErr) // Stop on bad filter
 			}
 			if !match {
 				sc.incrementStat("files_filtered")
-				sc.debugLog.Printf("[DEBUG API HELPER Sync Walk] Filtered out file: %s", relPath)
+				sc.logger.Debug("API HELPER Sync Walk] Filtered out file: %s", relPath)
 				return nil
 			}
 		}
 
 		// Passed checks, process the file
 		sc.incrementStat("files_scanned")
-		sc.debugLog.Printf("[DEBUG API HELPER Sync Walk] Processing file: %s", relPath)
+		sc.logger.Debug("API HELPER Sync Walk] Processing file: %s", relPath)
 
 		// Calculate Hash
 		// Assumes calculateFileHash is accessible (e.g., from tools_file_api.go)
 		localHash, hashErr := calculateFileHash(currentPath)
 		if hashErr != nil {
-			sc.errorLog.Printf("[ERROR API HELPER Sync Walk] Hash failed %s: %v", relPath, hashErr)
+			sc.logger.Error("[ERROR API HELPER Sync Walk] Hash failed %s: %v", relPath, hashErr)
 			sc.incrementStat("hash_errors")
 			return nil // Skip file on hash error
 		}
@@ -111,11 +111,11 @@ func gatherLocalFiles(sc *syncContext) (map[string]LocalFileInfo, error) {
 			Hash:    localHash,
 		}
 		// Assumes min is accessible (e.g. from helpers.go)
-		sc.debugLog.Printf("[DEBUG API HELPER Sync Walk] Stored local info for: %s (Hash: %s...)", relPath, localHash[:min(len(localHash), 8)])
+		sc.logger.Debug("API HELPER Sync Walk] Stored local info for: %s (Hash: %s...)", relPath, localHash[:min(len(localHash), 8)])
 		return nil
 	}) // End WalkDir Callback
 
-	sc.infoLog.Printf("[API HELPER Sync] Local scan completed. Found %d candidate files. WalkErr: %v", len(localFiles), walkErr)
+	sc.logger.Info("[API HELPER Sync] Local scan completed. Found %d candidate files. WalkErr: %v", len(localFiles), walkErr)
 	// Return combined error
 	if walkErr != nil {
 		return localFiles, walkErr
@@ -128,12 +128,10 @@ func gatherLocalFiles(sc *syncContext) (map[string]LocalFileInfo, error) {
 // FIXED: Hash comparison treats API bytes as ASCII hex representation.
 func computeSyncActions(sc *syncContext, localFiles map[string]LocalFileInfo, remoteFiles map[string]*genai.File) SyncActions {
 	// Ensure loggers are valid
-	if sc.infoLog == nil || sc.errorLog == nil || sc.debugLog == nil {
-		log.Println("ERROR: computeSyncActions called with nil loggers in syncContext!")
-		// Return empty actions, although this indicates a programming error elsewhere.
-		return SyncActions{}
+	if sc.logger == nil {
+		panic("ERROR: computeSyncActions called with nil loggers in syncContext!")
 	}
-	sc.infoLog.Println("[API HELPER Sync] Comparing local and remote file states...")
+	sc.logger.Debug("[API HELPER Sync] Comparing local and remote file states...")
 	actions := SyncActions{}
 	localProcessed := make(map[string]bool)
 	upToDateCount := int64(0) // Local counter for logging
@@ -143,7 +141,7 @@ func computeSyncActions(sc *syncContext, localFiles map[string]LocalFileInfo, re
 		apiFileInfo, existsInAPI := remoteFiles[relPath]
 
 		if !existsInAPI || apiFileInfo == nil { // Upload case: Exists locally, not remotely
-			sc.debugLog.Printf("[DEBUG Compare] Action=Upload for %s (Not found in API map)", relPath)
+			sc.logger.Debug("Compare] Action=Upload for %s (Not found in API map)", relPath)
 			actions.FilesToUpload = append(actions.FilesToUpload, localInfo)
 		} else { // Exists in both, compare hashes
 
@@ -151,11 +149,11 @@ func computeSyncActions(sc *syncContext, localFiles map[string]LocalFileInfo, re
 			apiHashStr := string(apiFileInfo.Sha256Hash)
 
 			if apiHashStr != localInfo.Hash { // Update case: Hashes differ
-				sc.debugLog.Printf(
+				sc.logger.Debug(
 					"[DEBUG Compare] Action=Update for %s --- HASH MISMATCH --- Local: [%s] != Remote Str: [%s]",
 					relPath, localInfo.Hash, apiHashStr,
 				)
-				sc.debugLog.Printf("[DEBUG Compare] API File Details: Name=%s, Raw Hash Bytes: %x",
+				sc.logger.Debug("Compare] API File Details: Name=%s, Raw Hash Bytes: %x",
 					apiFileInfo.Name, apiFileInfo.Sha256Hash) // Log raw bytes for inspection
 
 				actions.FilesToUpdate = append(actions.FilesToUpdate, uploadJob{
@@ -168,7 +166,7 @@ func computeSyncActions(sc *syncContext, localFiles map[string]LocalFileInfo, re
 				sc.incrementStat("files_up_to_date") // Increment global stat counter
 				upToDateCount++                      // Increment local counter for summary log
 				// Reduce noise: only log up-to-date in debug
-				sc.debugLog.Printf("[DEBUG Compare] Action=None (Up-to-date) for %s (Hashes Match: %s)", relPath, localInfo.Hash[:min(len(localInfo.Hash), 8)])
+				sc.logger.Debug("Compare] Action=None (Up-to-date) for %s (Hashes Match: %s)", relPath, localInfo.Hash[:min(len(localInfo.Hash), 8)])
 			}
 		}
 	}
@@ -181,19 +179,19 @@ func computeSyncActions(sc *syncContext, localFiles map[string]LocalFileInfo, re
 				baseName := filepath.Base(dispName)
 				match, _ := filepath.Match(sc.filterPattern, baseName)
 				if !match {
-					sc.debugLog.Printf("[DEBUG Compare] Skipping delete for remote %s (doesn't match filter %q)", dispName, sc.filterPattern)
+					sc.logger.Debug("Compare] Skipping delete for remote %s (doesn't match filter %q)", dispName, sc.filterPattern)
 					continue
 				}
 			}
 			// Passed filter or no filter exists
-			sc.debugLog.Printf("[DEBUG Compare] Action=Delete for remote %s (API Name: %s)", dispName, apiFileInfo.Name)
+			sc.logger.Debug("Compare] Action=Delete for remote %s (API Name: %s)", dispName, apiFileInfo.Name)
 			sc.incrementStat("files_deleted_locally") // Stat counts files *identified* for deletion
 			actions.FilesToDelete = append(actions.FilesToDelete, apiFileInfo)
 		}
 	}
 
 	// Use the local counter for the summary message
-	sc.infoLog.Printf("[API HELPER Sync] Comparison complete. Plan: %d uploads, %d updates (%d up-to-date), %d deletes.",
+	sc.logger.Info("[API HELPER Sync] Comparison complete. Plan: %d uploads, %d updates (%d up-to-date), %d deletes.",
 		len(actions.FilesToUpload), len(actions.FilesToUpdate), upToDateCount, len(actions.FilesToDelete))
 	return actions
 }
@@ -250,8 +248,8 @@ func toolSyncFiles(interpreter *Interpreter, args []interface{}) (interface{}, e
 	if !dirInfo.IsDir() {
 		return nil, fmt.Errorf("TOOL.SyncFiles: local_dir '%s' is not a directory", localDir)
 	}
-	interpreter.logger.Printf("[TOOL SyncFiles] Validated dir: %s (Ignore .gitignore: %t)", absLocalDir, ignoreGitignore)
+	interpreter.logger.Info("Tool: SyncFiles] Validated dir: %s (Ignore .gitignore: %t)", absLocalDir, ignoreGitignore)
 	// Assumes SyncDirectoryUpHelper is defined elsewhere (e.g., tools_file_api_sync.go)
-	statsMap, syncErr := SyncDirectoryUpHelper(context.Background(), absLocalDir, filterPattern, ignoreGitignore, client, interpreter.logger, interpreter.logger, interpreter.logger)
+	statsMap, syncErr := SyncDirectoryUpHelper(context.Background(), absLocalDir, filterPattern, ignoreGitignore, client, interpreter.logger)
 	return statsMap, syncErr
 }

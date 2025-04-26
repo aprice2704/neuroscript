@@ -15,6 +15,8 @@ import (
 	"path/filepath" // Import path/filepath
 	"strings"       // Import strings
 	"testing"
+
+	"github.com/aprice2704/neuroscript/pkg/core"
 )
 
 // --- START: Local Helpers and Minimal Stubs ---
@@ -32,35 +34,35 @@ type ToolRegistryAPI interface {
 }
 type ToolDefinition struct {
 	Spec *ToolParameterSpec
-	Func ToolFunc
+	Func core.ToolFunc
 }
 type ToolParameterSpec struct { /* Minimal stub - define fields if ValidateAndConvertArgs needs them */
 }
 
-// Registry Stubs
-type mockToolRegistry struct{ tools map[string]*ToolDefinition }
+// // Registry Stubs
+// type mockcore.ToolRegistry struct{ tools map[string]*ToolDefinition }
 
-func (m *mockToolRegistry) GetTool(name string) (*ToolDefinition, bool) {
-	if m.tools == nil {
-		return nil, false
-	}
-	tool, found := m.tools[name]
-	return tool, found
-}
-func (m *mockToolRegistry) RegisterTool(name string, tool *ToolDefinition) {
-	if m.tools == nil {
-		m.tools = make(map[string]*ToolDefinition)
-	}
-	m.tools[name] = tool
-}
-func NewMockToolRegistry() ToolRegistryAPI {
-	return &mockToolRegistry{tools: make(map[string]*ToolDefinition)}
-}
+// func (m *mockcore.ToolRegistry) GetTool(name string) (*ToolDefinition, bool) {
+// 	if m.tools == nil {
+// 		return nil, false
+// 	}
+// 	tool, found := m.tools[name]
+// 	return tool, found
+// }
+// func (m *mockcore.ToolRegistry) RegisterTool(name string, tool *ToolDefinition) {
+// 	if m.tools == nil {
+// 		m.tools = make(map[string]*ToolDefinition)
+// 	}
+// 	m.tools[name] = tool
+// }
+// func NewMockcore.ToolRegistry() core.ToolRegistryAPI {
+// 	return &mockcore.ToolRegistry{tools: make(map[string]*ToolDefinition)}
+// }
 
 // --- Stubs Updated to use new handle methods ---
 
 func RegisterGoFormatTool(registry ToolRegistryAPI) {
-	formatFunc := func(interp *Interpreter, args []interface{}) (interface{}, error) {
+	formatFunc := func(interp *core.Interpreter, args []interface{}) (interface{}, error) {
 		// Validation is assumed to be done by ValidateAndConvertArgs stub
 		handle := args[0].(string) // Assume validation passed
 
@@ -70,20 +72,20 @@ func RegisterGoFormatTool(registry ToolRegistryAPI) {
 			// Wrap specific cache/handle errors if needed, or just the general error
 			wrappedErr := fmt.Errorf("handle '%s' retrieval failed: %w", handle, err)
 			// Check for specific underlying causes if desired using errors.Is(err, ...)
-			return nil, fmt.Errorf("%w: %w", ErrGoFormatFailed, wrappedErr)
+			return nil, fmt.Errorf("%w: %w", core.ErrGoFormatFailed, wrappedErr)
 		}
 		// *** END UPDATE ***
 
 		node, ok := nodeIntf.(ast.Node)
 		if !ok {
-			return nil, fmt.Errorf("%w: internal error: cached object is not ast.Node (%T)", ErrGoFormatFailed, nodeIntf)
+			return nil, fmt.Errorf("%w: internal error: cached object is not ast.Node (%T)", core.ErrGoFormatFailed, nodeIntf)
 		}
 
 		var buf bytes.Buffer
 		fset := token.NewFileSet() // Need a fileset for formatting
 		err = format.Node(&buf, fset, node)
 		if err != nil {
-			return nil, fmt.Errorf("%w: format.Node error: %v", ErrGoFormatFailed, err)
+			return nil, fmt.Errorf("%w: format.Node error: %v", core.ErrGoFormatFailed, err)
 		}
 		return buf.String(), nil
 	}
@@ -91,7 +93,7 @@ func RegisterGoFormatTool(registry ToolRegistryAPI) {
 }
 
 func RegisterGoParseTool(registry ToolRegistryAPI) {
-	parseFunc := func(interp *Interpreter, args []interface{}) (interface{}, error) {
+	parseFunc := func(interp *core.Interpreter, args []interface{}) (interface{}, error) {
 		// Basic validation within stub
 		if len(args) != 2 {
 			return nil, errors.New("GoParseFile stub expects 2 args (nil, content)")
@@ -166,9 +168,9 @@ func loadGoFixture(t *testing.T, baseFilename string) string {
 }
 
 // Setup helper using the local parse stub
-func setupParseGoTest(t *testing.T, interp *Interpreter, content string) string {
+func setupParseGoTest(t *testing.T, interp *core.Interpreter, content string) string {
 	t.Helper()
-	handleIDIntf, err := toolGoParseFile(interp, makeArgs(nil, content)) // Uses local parse stub
+	handleIDIntf, err := toolGoParseFile(interp, core.MakeArgs(nil, content)) // Uses local parse stub
 	if err != nil {
 		t.Logf("Content that failed parsing in setupParseGoTest:\n%s", content)
 		t.Fatalf("setupParseGoTest: toolGoParseFile failed: %v", err)
@@ -273,22 +275,22 @@ func TestToolGoFormatASTNode(t *testing.T) {
 		{
 			name:          "Error: Invalid Handle",
 			sourceContent: findBasicContent,
-			wantErrIs:     ErrGoFormatFailed, // Error comes from GetHandleValue/stub
+			wantErrIs:     core.ErrGoFormatFailed, //core.Error comes from GetHandleValue/stub
 		},
 		{
 			name:          "Error: Handle Wrong Type",
 			sourceContent: findBasicContent,
-			wantErrIs:     ErrGoFormatFailed, // Error comes from GetHandleValue/stub
+			wantErrIs:     core.ErrGoFormatFailed, //core.Error comes from GetHandleValue/stub
 		},
 		{
 			name:          "Validation: Wrong Arg Count (no handle)",
 			sourceContent: "",
-			valWantErrIs:  ErrValidationArgCount,
+			valWantErrIs:  core.ErrValidationArgCount,
 		},
 		{
 			name:          "Validation: Nil Handle",
 			sourceContent: "",
-			valWantErrIs:  ErrValidationRequiredArgNil,
+			valWantErrIs:  core.ErrValidationRequiredArgNil,
 		},
 	}
 
@@ -296,7 +298,7 @@ func TestToolGoFormatASTNode(t *testing.T) {
 		tc := tt // Capture range variable
 		t.Run(tc.name, func(t *testing.T) {
 			// Setup interpreter using local helper/stub
-			interp, _ := newDefaultTestInterpreter(t) // Gets interp with mock tools registered
+			interp, _ := core.NewDefaultTestInterpreter(t) // Gets interp with mock tools registered
 
 			var handleID string
 			var initialCommentCount int
@@ -320,7 +322,7 @@ func TestToolGoFormatASTNode(t *testing.T) {
 				if handleID == "" { // Ensure handleID is parsed for setting up the test case
 					handleID = setupParseGoTest(t, interp, tc.sourceContent)
 				}
-				rawArgs = makeArgs("non-existent-handle")
+				rawArgs = core.MakeArgs("non-existent-handle")
 			case "Error: Handle Wrong Type":
 				if handleID == "" { // Ensure handleID is parsed for setting up the test case
 					handleID = setupParseGoTest(t, interp, tc.sourceContent)
@@ -331,25 +333,25 @@ func TestToolGoFormatASTNode(t *testing.T) {
 					t.Fatalf("Failed to register handle for wrong type test: %v", regErr)
 				}
 				// *** END UPDATE ***
-				rawArgs = makeArgs(wrongTypeHandle)
+				rawArgs = core.MakeArgs(wrongTypeHandle)
 			case "Validation: Wrong Arg Count (no handle)":
-				rawArgs = makeArgs()
+				rawArgs = core.MakeArgs()
 			case "Validation: Nil Handle":
-				rawArgs = makeArgs(nil)
+				rawArgs = core.MakeArgs(nil)
 			default: // Happy paths
-				rawArgs = makeArgs(handleID)
+				rawArgs = core.MakeArgs(handleID)
 			}
 
 			// --- Tool Lookup & Validation ---
-			toolImpl, found := interp.ToolRegistry().GetTool("GoFormatASTNode") // Use local stub registry
+			toolImpl, found := interp.core.ToolRegistry().GetTool("GoFormatASTNode") // Use local stub registry
 			if !found {
 				t.Fatalf("Tool GoFormatASTNode not found in registry")
 			}
 
 			spec := toolImpl.Spec
-			convertedArgs, valErr := ValidateAndConvertArgs(spec, rawArgs) // Use local validation stub
+			convertedArgs, valErr := core.ValidateAndConvertArgs(spec, rawArgs) // Use local validation stub
 
-			// Check Validation Error Expectation (same logic as before)
+			// Check Validationcore.Error Expectation (same logic as before)
 			if tc.valWantErrIs != nil {
 				if valErr == nil {
 					t.Errorf("ValidateAndConvertArgs() expected error [%v], but got nil", tc.valWantErrIs)
@@ -365,22 +367,22 @@ func TestToolGoFormatASTNode(t *testing.T) {
 			// --- Execution ---
 			gotResultIntf, toolErr := toolImpl.Func(interp, convertedArgs) // Use local stub Func
 
-			// Check Tool Execution Error Expectation (same logic as before)
+			// Check Tool Executioncore.Error Expectation (same logic as before)
 			if tc.wantErrIs != nil {
 				if toolErr == nil {
 					t.Errorf("Execute: expected Go error type [%T], but got nil error. Result: %v", tc.wantErrIs, gotResultIntf)
 				} else if !errors.Is(toolErr, tc.wantErrIs) {
 					// Check underlying error for handle cases specifically if needed
 					if strings.Contains(tc.name, "Invalid Handle") {
-						// Error comes from GetHandleValue -> handle not found
-						// The stub wraps it, check for specific text or just the main type ErrGoFormatFailed
+						//core.Error comes from GetHandleValue -> handle not found
+						// The stub wraps it, check for specific text or just the main typecore.ErrGoFormatFailed
 					} else if strings.Contains(tc.name, "Handle Wrong Type") {
-						// Error comes from GetHandleValue -> invalid handle type
-						// The stub wraps it, check for specific text or just the main type ErrGoFormatFailed
+						//core.Error comes from GetHandleValue -> invalid handle type
+						// The stub wraps it, check for specific text or just the main typecore.ErrGoFormatFailed
 					}
 
 					// Simpler check: Just ensure the main error type matches
-					if errors.Is(toolErr, ErrGoFormatFailed) {
+					if errors.Is(toolErr, core.ErrGoFormatFailed) {
 						t.Logf("Execute: Got expected error type [%T] (Details: %v)", tc.wantErrIs, toolErr)
 					} else {
 						t.Errorf("Execute: wrong Go error type. \n got error: %v\nwant error type [%T]", toolErr, tc.wantErrIs)

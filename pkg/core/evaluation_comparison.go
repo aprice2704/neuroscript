@@ -22,7 +22,7 @@ func (i *Interpreter) evaluateCondition(condNode interface{}) (bool, error) {
 		// Allow "variable not found" to evaluate to false in conditions
 		if strings.Contains(errEval.Error(), "not found") {
 			if i.logger != nil {
-				i.logger.Printf("[DEBUG-INTERP]        Condition variable not found, evaluating as false: %v", errEval)
+				i.logger.Debug("-INTERP]        Condition variable not found, evaluating as false: %v", errEval)
 			}
 			return false, nil
 		} else {
@@ -34,7 +34,7 @@ func (i *Interpreter) evaluateCondition(condNode interface{}) (bool, error) {
 	// Determine truthiness of the final evaluated value
 	result := isTruthy(evaluatedValue)
 	if i.logger != nil {
-		i.logger.Printf("[DEBUG-INTERP]        Condition node %T evaluated to %v (%T), truthiness: %t", condNode, evaluatedValue, evaluatedValue, result)
+		i.logger.Debug("-INTERP]        Condition node %T evaluated to %v (%T), truthiness: %t", condNode, evaluatedValue, evaluatedValue, result)
 	}
 	return result, nil
 }

@@ -19,7 +19,7 @@ func toolWriteFile(interpreter *Interpreter, args []interface{}) (interface{}, e
 	if sandboxRoot == "" {
 		// Fallback or error if sandboxRoot is somehow empty
 		if interpreter.logger != nil {
-			interpreter.logger.Printf("[WARN TOOL WriteFile] Interpreter sandboxDir is empty, using default relative path validation.")
+			interpreter.logger.Warn("TOOL WriteFile] Interpreter sandboxDir is empty, using default relative path validation.")
 		}
 		sandboxRoot = "." // Ensure it's at least relative to CWD if empty
 	}
@@ -31,14 +31,14 @@ func toolWriteFile(interpreter *Interpreter, args []interface{}) (interface{}, e
 		// Path validation failed (absolute, outside sandboxDir, etc.)
 		errMsg := fmt.Sprintf("WriteFile path error for '%s': %s", filePath, secErr.Error())
 		if interpreter.logger != nil {
-			interpreter.logger.Printf("[TOOL WriteFile] %s (Sandbox Root: %s)", errMsg, sandboxRoot)
+			interpreter.logger.Info("Tool: WriteFile] %s (Sandbox Root: %s)", errMsg, sandboxRoot)
 		}
 		// Return the error message string for NeuroScript, but the actual Go error for context.
 		return errMsg, secErr
 	}
 
 	if interpreter.logger != nil {
-		interpreter.logger.Printf("[TOOL WriteFile] Writing to validated path: %s (Original Relative: %s, Sandbox: %s)", absPath, filePath, sandboxRoot)
+		interpreter.logger.Info("Tool: WriteFile] Writing to validated path: %s (Original Relative: %s, Sandbox: %s)", absPath, filePath, sandboxRoot)
 	}
 
 	// Ensure directory exists before writing (using the validated absolute path)
@@ -46,7 +46,7 @@ func toolWriteFile(interpreter *Interpreter, args []interface{}) (interface{}, e
 	if dirErr := os.MkdirAll(dirPath, 0755); dirErr != nil {
 		errMsg := fmt.Sprintf("WriteFile mkdir failed for dir '%s': %s", dirPath, dirErr.Error())
 		if interpreter.logger != nil {
-			interpreter.logger.Printf("[TOOL WriteFile] %s", errMsg)
+			interpreter.logger.Info("Tool: WriteFile] %s", errMsg)
 		}
 		return errMsg, fmt.Errorf("%w: creating directory '%s': %w", ErrInternalTool, dirPath, dirErr)
 	}
@@ -56,13 +56,13 @@ func toolWriteFile(interpreter *Interpreter, args []interface{}) (interface{}, e
 	if writeErr != nil {
 		errMsg := fmt.Sprintf("WriteFile failed for '%s': %s", filePath, writeErr.Error())
 		if interpreter.logger != nil {
-			interpreter.logger.Printf("[TOOL WriteFile] %s", errMsg)
+			interpreter.logger.Info("Tool: WriteFile] %s", errMsg)
 		}
 		return errMsg, fmt.Errorf("%w: writing file '%s': %w", ErrInternalTool, filePath, writeErr)
 	}
 
 	if interpreter.logger != nil {
-		interpreter.logger.Printf("[TOOL WriteFile] Wrote %d bytes successfully to %s", len(content), filePath)
+		interpreter.logger.Info("Tool: WriteFile] Wrote %d bytes successfully to %s", len(content), filePath)
 	}
 	// Return "OK" on success
 	return "OK", nil

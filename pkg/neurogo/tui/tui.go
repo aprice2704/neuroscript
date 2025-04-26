@@ -18,7 +18,7 @@ func Start(app AppAccess) error {
 	}
 
 	// Use the interface method to get the logger
-	debugLogger := app.GetDebugLogger()
+	debugLogger := app.GetLogger()
 	if debugLogger == nil {
 		// Fallback if logger isn't available via interface (shouldn't happen ideally)
 		log.Println("WARN: TUI Start called with app returning nil DebugLogger.")
@@ -35,7 +35,7 @@ func Start(app AppAccess) error {
 
 	if err != nil {
 		// Log the error using the app's logger if possible
-		debugLogger.Printf("Bubble Tea program run failed: %v", err)
+		debugLogger.Debug("Bubble Tea program run failed: %v", err)
 		return fmt.Errorf("error running TUI: %w", err)
 	}
 	debugLogger.Println("Bubble Tea program finished.")

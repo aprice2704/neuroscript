@@ -12,7 +12,7 @@ import (
 // executeIf handles IF/ELSE statement, checking condition evaluation error
 func (i *Interpreter) executeIf(step Step, stepNum int) (result interface{}, wasReturn bool, err error) {
 	if i.logger != nil {
-		i.logger.Printf("[DEBUG-INTERP]      Executing IF (Step %d)", stepNum+1)
+		i.logger.Debug("-INTERP]      Executing IF (Step %d)", stepNum+1)
 	}
 	conditionNode := step.Cond
 	conditionResult, evalErr := i.evaluateCondition(conditionNode)
@@ -20,13 +20,13 @@ func (i *Interpreter) executeIf(step Step, stepNum int) (result interface{}, was
 		return nil, false, fmt.Errorf("evaluating IF condition: %w", evalErr)
 	}
 	if i.logger != nil {
-		i.logger.Printf("[DEBUG-INTERP]        IF condition evaluated to %t", conditionResult)
+		i.logger.Debug("-INTERP]        IF condition evaluated to %t", conditionResult)
 	}
 
 	if conditionResult {
 		// --- Execute THEN block (step.Value) ---
 		if i.logger != nil {
-			i.logger.Printf("[DEBUG-INTERP]        IF condition TRUE, executing THEN block.")
+			i.logger.Debug("-INTERP]        IF condition TRUE, executing THEN block.")
 		}
 		blockResult, blockReturned, blockErr := i.executeBlock(step.Value, stepNum, "IF-THEN")
 		if blockErr != nil {
@@ -40,7 +40,7 @@ func (i *Interpreter) executeIf(step Step, stepNum int) (result interface{}, was
 		// --- Execute ELSE block (step.ElseValue) ---
 		if step.ElseValue != nil {
 			if i.logger != nil {
-				i.logger.Printf("[DEBUG-INTERP]        IF condition FALSE, executing ELSE block.")
+				i.logger.Debug("-INTERP]        IF condition FALSE, executing ELSE block.")
 			}
 			// NOTE: This relies on AST Builder correctly populating ElseValue.
 			blockResult, blockReturned, blockErr := i.executeBlock(step.ElseValue, stepNum, "IF-ELSE")
@@ -53,7 +53,7 @@ func (i *Interpreter) executeIf(step Step, stepNum int) (result interface{}, was
 			return nil, false, nil
 		} else {
 			if i.logger != nil {
-				i.logger.Printf("[DEBUG-INTERP]        IF condition FALSE, no ELSE block found, skipping.")
+				i.logger.Debug("-INTERP]        IF condition FALSE, no ELSE block found, skipping.")
 			}
 			return nil, false, nil
 		}
@@ -63,7 +63,7 @@ func (i *Interpreter) executeIf(step Step, stepNum int) (result interface{}, was
 // executeWhile handles WHILE loops (remains the same)
 func (i *Interpreter) executeWhile(step Step, stepNum int) (result interface{}, wasReturn bool, err error) {
 	if i.logger != nil {
-		i.logger.Printf("[DEBUG-INTERP]      Executing WHILE (Step %d)", stepNum+1)
+		i.logger.Debug("-INTERP]      Executing WHILE (Step %d)", stepNum+1)
 	}
 	conditionNode := step.Cond
 	loopCounter := 0
@@ -74,13 +74,13 @@ func (i *Interpreter) executeWhile(step Step, stepNum int) (result interface{}, 
 			return nil, false, fmt.Errorf("evaluating WHILE condition (iteration %d): %w", loopCounter, evalErr)
 		}
 		if i.logger != nil {
-			i.logger.Printf("[DEBUG-INTERP]        WHILE condition (iter %d) evaluated to %t", loopCounter, conditionResult)
+			i.logger.Debug("-INTERP]        WHILE condition (iter %d) evaluated to %t", loopCounter, conditionResult)
 		}
 		if !conditionResult {
 			break // Exit loop if condition is false
 		}
 		if i.logger != nil {
-			i.logger.Printf("[DEBUG-INTERP]        WHILE condition TRUE, executing block (iter %d).", loopCounter)
+			i.logger.Debug("-INTERP]        WHILE condition TRUE, executing block (iter %d).", loopCounter)
 		}
 		bodyResult, bodyReturned, bodyErr := i.executeBlock(step.Value, stepNum, fmt.Sprintf("WHILE Iter %d", loopCounter))
 		if bodyErr != nil {
@@ -89,7 +89,7 @@ func (i *Interpreter) executeWhile(step Step, stepNum int) (result interface{}, 
 		if bodyReturned {
 			// If the block executed a RETURN, propagate it up immediately
 			if i.logger != nil {
-				i.logger.Printf("[DEBUG-INTERP]        WHILE loop body returned (iter %d). Propagating.", loopCounter)
+				i.logger.Debug("-INTERP]        WHILE loop body returned (iter %d). Propagating.", loopCounter)
 			}
 			return bodyResult, true, nil
 		}
@@ -101,7 +101,7 @@ func (i *Interpreter) executeWhile(step Step, stepNum int) (result interface{}, 
 	}
 
 	if i.logger != nil {
-		i.logger.Printf("[DEBUG-INTERP]      WHILE loop finished after %d iterations.", loopCounter)
+		i.logger.Debug("-INTERP]      WHILE loop finished after %d iterations.", loopCounter)
 	}
 	return nil, false, nil // Normal loop completion
 }
@@ -112,7 +112,7 @@ func (i *Interpreter) executeFor(step Step, stepNum int) (result interface{}, wa
 	collectionNode := step.Cond // The AST node representing the collection
 
 	if i.logger != nil {
-		i.logger.Printf("[DEBUG-INTERP]      Executing FOR EACH %s IN ... (Step %d)", loopVar, stepNum+1)
+		i.logger.Debug("-INTERP]      Executing FOR EACH %s IN ... (Step %d)", loopVar, stepNum+1)
 	}
 	// Validate loop variable name
 	if !isValidIdentifier(loopVar) {
@@ -126,7 +126,7 @@ func (i *Interpreter) executeFor(step Step, stepNum int) (result interface{}, wa
 			condType = fmt.Sprintf("%T", collectionNode)
 			condStr = fmt.Sprintf("%+v", collectionNode) // Log AST node details
 		}
-		i.logger.Printf("[DEBUG-INTERP]        FOR evaluating collection node: (%s %s)", condType, condStr)
+		i.logger.Debug("-INTERP]        FOR evaluating collection node: (%s %s)", condType, condStr)
 	}
 
 	// Evaluate the collection expression
@@ -136,7 +136,7 @@ func (i *Interpreter) executeFor(step Step, stepNum int) (result interface{}, wa
 	}
 
 	if i.logger != nil {
-		i.logger.Printf("[DEBUG-INTERP]        FOR evaluated collection: %v (%T)", evaluatedCollection, evaluatedCollection)
+		i.logger.Debug("-INTERP]        FOR evaluated collection: %v (%T)", evaluatedCollection, evaluatedCollection)
 	}
 
 	// --- Scope handling for loop variable ---
@@ -149,7 +149,7 @@ func (i *Interpreter) executeFor(step Step, stepNum int) (result interface{}, wa
 			delete(i.variables, loopVar) // Clean up
 		}
 		if i.logger != nil {
-			i.logger.Printf("[DEBUG-INTERP]        Restored loop variable '%s' state after FOR.", loopVar)
+			i.logger.Debug("-INTERP]        Restored loop variable '%s' state after FOR.", loopVar)
 		}
 	}()
 
@@ -163,13 +163,13 @@ func (i *Interpreter) executeFor(step Step, stepNum int) (result interface{}, wa
 	// *** NEW: Explicit case for []string (from TOOL.ListDirectory) ***
 	case []string:
 		if i.logger != nil {
-			i.logger.Printf("[DEBUG-INTERP]        FOR iterating over []string (len %d)...", len(collection))
+			i.logger.Debug("-INTERP]        FOR iterating over []string (len %d)...", len(collection))
 		}
 		for itemNum, item := range collection {
 			iterations++
 			i.variables[loopVar] = item // Assign current string item
 			if i.logger != nil {
-				i.logger.Printf("[DEBUG-INTERP]          String List Iter %d: Assigned '%s' = %q (%T)", itemNum, loopVar, item, item)
+				i.logger.Debug("-INTERP]          String List Iter %d: Assigned '%s' = %q (%T)", itemNum, loopVar, item, item)
 			}
 			// Execute the loop body block
 			resultFromLoop, returnedFromBody, bodyErr = i.executeBlock(step.Value, stepNum, fmt.Sprintf("FOR String List Iter %d", itemNum))
@@ -182,13 +182,13 @@ func (i *Interpreter) executeFor(step Step, stepNum int) (result interface{}, wa
 	// *** EXISTING CASE for []interface{} (from list literals) ***
 	case []interface{}:
 		if i.logger != nil {
-			i.logger.Printf("[DEBUG-INTERP]        FOR iterating over []interface{} (len %d)...", len(collection))
+			i.logger.Debug("-INTERP]        FOR iterating over []interface{} (len %d)...", len(collection))
 		}
 		for itemNum, item := range collection {
 			iterations++
 			i.variables[loopVar] = item // Assign current element (any type)
 			if i.logger != nil {
-				i.logger.Printf("[DEBUG-INTERP]          Interface List Iter %d: Assigned '%s' = %v (%T)", itemNum, loopVar, item, item)
+				i.logger.Debug("-INTERP]          Interface List Iter %d: Assigned '%s' = %v (%T)", itemNum, loopVar, item, item)
 			}
 			// Execute the loop body block
 			resultFromLoop, returnedFromBody, bodyErr = i.executeBlock(step.Value, stepNum, fmt.Sprintf("FOR Interface List Iter %d", itemNum))
@@ -201,7 +201,7 @@ func (i *Interpreter) executeFor(step Step, stepNum int) (result interface{}, wa
 	case map[string]interface{}:
 		// Map iteration (keys) - logic remains the same
 		if i.logger != nil {
-			i.logger.Printf("[DEBUG-INTERP]        FOR iterating over map keys (size %d)...", len(collection))
+			i.logger.Debug("-INTERP]        FOR iterating over map keys (size %d)...", len(collection))
 		}
 		keys := make([]string, 0, len(collection))
 		for k := range collection {
@@ -212,7 +212,7 @@ func (i *Interpreter) executeFor(step Step, stepNum int) (result interface{}, wa
 			iterations++
 			i.variables[loopVar] = key // Assign current KEY
 			if i.logger != nil {
-				i.logger.Printf("[DEBUG-INTERP]          Map Key Iter %d: Assigned '%s' = %q", itemNum, loopVar, key)
+				i.logger.Debug("-INTERP]          Map Key Iter %d: Assigned '%s' = %q", itemNum, loopVar, key)
 			}
 			resultFromLoop, returnedFromBody, bodyErr = i.executeBlock(step.Value, stepNum, fmt.Sprintf("FOR Map Key Iter %d", itemNum))
 			if bodyErr != nil || returnedFromBody {
@@ -228,7 +228,7 @@ func (i *Interpreter) executeFor(step Step, stepNum int) (result interface{}, wa
 		}
 		if shouldCommaSplit {
 			if i.logger != nil {
-				i.logger.Printf("[DEBUG-INTERP]        FOR iterating over comma-separated string...")
+				i.logger.Debug("-INTERP]        FOR iterating over comma-separated string...")
 			}
 			items := strings.Split(collection, ",")
 			for itemNum, item := range items {
@@ -236,7 +236,7 @@ func (i *Interpreter) executeFor(step Step, stepNum int) (result interface{}, wa
 				trimmedItem := strings.TrimSpace(item)
 				i.variables[loopVar] = trimmedItem // Assign current part
 				if i.logger != nil {
-					i.logger.Printf("[DEBUG-INTERP]          Comma Iter %d: Assigned '%s' = %q", itemNum, loopVar, trimmedItem)
+					i.logger.Debug("-INTERP]          Comma Iter %d: Assigned '%s' = %q", itemNum, loopVar, trimmedItem)
 				}
 				resultFromLoop, returnedFromBody, bodyErr = i.executeBlock(step.Value, stepNum, fmt.Sprintf("FOR Comma Iter %d", itemNum))
 				if bodyErr != nil || returnedFromBody {
@@ -246,14 +246,14 @@ func (i *Interpreter) executeFor(step Step, stepNum int) (result interface{}, wa
 		} else {
 			// Iterate over characters (runes) if no comma is detected
 			if i.logger != nil {
-				i.logger.Printf("[DEBUG-INTERP]        FOR iterating over string characters...")
+				i.logger.Debug("-INTERP]        FOR iterating over string characters...")
 			}
 			for itemNum, charRune := range collection {
 				iterations++
 				charStr := string(charRune)
 				i.variables[loopVar] = charStr // Assign current character
 				if i.logger != nil {
-					i.logger.Printf("[DEBUG-INTERP]          Char Iter %d: Assigned '%s' = %q", itemNum, loopVar, charStr)
+					i.logger.Debug("-INTERP]          Char Iter %d: Assigned '%s' = %q", itemNum, loopVar, charStr)
 				}
 				resultFromLoop, returnedFromBody, bodyErr = i.executeBlock(step.Value, stepNum, fmt.Sprintf("FOR Char Iter %d", itemNum))
 				if bodyErr != nil || returnedFromBody {
@@ -264,13 +264,13 @@ func (i *Interpreter) executeFor(step Step, stepNum int) (result interface{}, wa
 	case nil:
 		// Iterating over nil results in 0 iterations
 		if i.logger != nil {
-			i.logger.Printf("[DEBUG-INTERP]        FOR iterating over nil collection (0 iterations).")
+			i.logger.Debug("-INTERP]        FOR iterating over nil collection (0 iterations).")
 		}
 	default:
 		// Collection type is not iterable
 		bodyErr = fmt.Errorf("cannot iterate over type %T in FOR EACH loop", evaluatedCollection)
 		if i.logger != nil {
-			i.logger.Printf("[ERROR] %v", bodyErr) // Log the error immediately
+			i.logger.Error("%v", bodyErr) // Log the error immediately
 		}
 	} // End switch
 
@@ -286,7 +286,7 @@ func (i *Interpreter) executeFor(step Step, stepNum int) (result interface{}, wa
 
 	// Normal loop completion (finished all iterations or collection was empty/nil)
 	if i.logger != nil {
-		i.logger.Printf("[DEBUG-INTERP]      FOR EACH loop finished normally after %d iterations.", iterations)
+		i.logger.Debug("-INTERP]      FOR EACH loop finished normally after %d iterations.", iterations)
 	}
 	return nil, false, nil
 }

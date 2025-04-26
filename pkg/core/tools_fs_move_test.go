@@ -11,18 +11,18 @@ import (
 // --- MoveFile Validation Tests ---
 func TestToolMoveFileValidation(t *testing.T) {
 	testCases := []ValidationTestCase{
-		{Name: "Wrong Arg Count (None)", InputArgs: makeArgs(), ExpectedError: ErrValidationArgCount},
-		{Name: "Wrong Arg Count (One)", InputArgs: makeArgs("src"), ExpectedError: ErrValidationArgCount},
-		{Name: "Wrong Arg Count (Three)", InputArgs: makeArgs("src", "dest", "extra"), ExpectedError: ErrValidationArgCount},
-		{Name: "Nil First Arg", InputArgs: makeArgs(nil, "dest"), ExpectedError: ErrValidationRequiredArgNil},
-		{Name: "Nil Second Arg", InputArgs: makeArgs("src", nil), ExpectedError: ErrValidationRequiredArgNil},
-		{Name: "Wrong First Arg Type", InputArgs: makeArgs(123, "dest"), ExpectedError: ErrValidationTypeMismatch},
-		{Name: "Wrong Second Arg Type", InputArgs: makeArgs("src", 456), ExpectedError: ErrValidationTypeMismatch},
+		{Name: "Wrong Arg Count (None)", InputArgs: MakeArgs(), ExpectedError: ErrValidationArgCount},
+		{Name: "Wrong Arg Count (One)", InputArgs: MakeArgs("src"), ExpectedError: ErrValidationArgCount},
+		{Name: "Wrong Arg Count (Three)", InputArgs: MakeArgs("src", "dest", "extra"), ExpectedError: ErrValidationArgCount},
+		{Name: "Nil First Arg", InputArgs: MakeArgs(nil, "dest"), ExpectedError: ErrValidationRequiredArgNil},
+		{Name: "Nil Second Arg", InputArgs: MakeArgs("src", nil), ExpectedError: ErrValidationRequiredArgNil},
+		{Name: "Wrong First Arg Type", InputArgs: MakeArgs(123, "dest"), ExpectedError: ErrValidationTypeMismatch},
+		{Name: "Wrong Second Arg Type", InputArgs: MakeArgs("src", 456), ExpectedError: ErrValidationTypeMismatch},
 		// --- REMOVED: Empty path checks are done inside tool func, not ValidateAndConvertArgs ---
-		// {Name: "Empty First Arg", InputArgs: makeArgs("", "dest"), ExpectedError: ErrValidationArgValue}, // Tool func validates empty path
-		// {Name: "Empty Second Arg", InputArgs: makeArgs("src", ""), ExpectedError: ErrValidationArgValue}, // Tool func validates empty path
+		// {Name: "Empty First Arg", InputArgs: MakeArgs("", "dest"), ExpectedError: ErrValidationArgValue}, // Tool func validates empty path
+		// {Name: "Empty Second Arg", InputArgs: MakeArgs("src", ""), ExpectedError: ErrValidationArgValue}, // Tool func validates empty path
 		// --- END REMOVED ---
-		{Name: "Correct Args", InputArgs: makeArgs("source.txt", "destination.txt"), ExpectedError: nil},
+		{Name: "Correct Args", InputArgs: MakeArgs("source.txt", "destination.txt"), ExpectedError: nil},
 		// Note: Path security validation happens inside the tool function
 	}
 	runValidationTestCases(t, "MoveFile", testCases)
@@ -164,7 +164,7 @@ func TestToolMoveFileFunctional(t *testing.T) {
 			}
 
 			// Call the tool function
-			resultIntf, err := toolMoveFile(interp, makeArgs(tc.sourcePath, tc.destPath))
+			resultIntf, err := toolMoveFile(interp, MakeArgs(tc.sourcePath, tc.destPath))
 
 			// Check for Go-level error
 			if tc.expectErr {
@@ -222,7 +222,7 @@ func TestToolMoveFileFunctional(t *testing.T) {
 func newTestInterpreterWithSandbox(t *testing.T, sandboxDir string) *Interpreter {
 	t.Helper()
 	// Create a minimal interpreter for testing
-	interp, _ := newDefaultTestInterpreter(t) // Use nil logger or a test logger
+	interp, _ := NewDefaultTestInterpreter(t) // Use nil logger or a test logger
 	interp.sandboxDir = sandboxDir
 	// Register necessary tools if validation relies on them (unlikely for MoveFile validation itself)
 	// RegisterCoreTools(interp.toolRegistry) // Maybe not needed for just validation tests
@@ -230,6 +230,6 @@ func newTestInterpreterWithSandbox(t *testing.T, sandboxDir string) *Interpreter
 }
 
 // Helper to create arguments easily (assuming it exists from other tests)
-// func makeArgs(args ...interface{}) []interface{} {
+// func MakeArgs(args ...interface{}) []interface{} {
 // 	return args
 // }

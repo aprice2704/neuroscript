@@ -12,13 +12,13 @@ import (
 func (l *neuroScriptListenerImpl) buildBinaryOpNode(ctx antlr.ParserRuleContext, opToken antlr.TerminalNode) {
 	right, okR := l.popValue()
 	if !okR {
-		l.logger.Printf("[ERROR] AST Builder: Stack error popping right operand for op %q in rule %T", opToken.GetText(), ctx)
+		l.logger.Error("AST Builder: Stack error popping right operand for op %q in rule %T", opToken.GetText(), ctx)
 		l.pushValue(nil) // Push error marker
 		return
 	}
 	left, okL := l.popValue()
 	if !okL {
-		l.logger.Printf("[ERROR] AST Builder: Stack error popping left operand for op %q in rule %T", opToken.GetText(), ctx)
+		l.logger.Error("AST Builder: Stack error popping left operand for op %q in rule %T", opToken.GetText(), ctx)
 		l.pushValue(nil) // Push error marker
 		return
 	}
@@ -41,7 +41,7 @@ func (l *neuroScriptListenerImpl) ExitLogical_or_expr(ctx *gen.Logical_or_exprCo
 			if opNode, ok := ctx.GetChild(i).(antlr.TerminalNode); ok && opNode.GetSymbol().GetTokenType() == gen.NeuroScriptLexerKW_OR {
 				l.buildBinaryOpNode(ctx, opNode)
 			} else {
-				l.logger.Printf("[WARN] Unexpected child type %T or token type at operator position in Logical_or_expr", ctx.GetChild(i))
+				l.logger.Warn("Unexpected child type %T or token type at operator position in Logical_or_expr", ctx.GetChild(i))
 			}
 		}
 	}
@@ -56,7 +56,7 @@ func (l *neuroScriptListenerImpl) ExitLogical_and_expr(ctx *gen.Logical_and_expr
 			if opNode, ok := ctx.GetChild(i).(antlr.TerminalNode); ok && opNode.GetSymbol().GetTokenType() == gen.NeuroScriptLexerKW_AND {
 				l.buildBinaryOpNode(ctx, opNode)
 			} else {
-				l.logger.Printf("[WARN] Unexpected child type %T or token type at operator position in Logical_and_expr", ctx.GetChild(i))
+				l.logger.Warn("Unexpected child type %T or token type at operator position in Logical_and_expr", ctx.GetChild(i))
 			}
 		}
 	}
@@ -71,7 +71,7 @@ func (l *neuroScriptListenerImpl) ExitBitwise_or_expr(ctx *gen.Bitwise_or_exprCo
 			if opNode, ok := ctx.GetChild(i).(antlr.TerminalNode); ok && opNode.GetSymbol().GetTokenType() == gen.NeuroScriptLexerPIPE {
 				l.buildBinaryOpNode(ctx, opNode)
 			} else {
-				l.logger.Printf("[WARN] Unexpected child type %T or token type at operator position in Bitwise_or_expr", ctx.GetChild(i))
+				l.logger.Warn("Unexpected child type %T or token type at operator position in Bitwise_or_expr", ctx.GetChild(i))
 			}
 		}
 	}
@@ -86,7 +86,7 @@ func (l *neuroScriptListenerImpl) ExitBitwise_xor_expr(ctx *gen.Bitwise_xor_expr
 			if opNode, ok := ctx.GetChild(i).(antlr.TerminalNode); ok && opNode.GetSymbol().GetTokenType() == gen.NeuroScriptLexerCARET {
 				l.buildBinaryOpNode(ctx, opNode)
 			} else {
-				l.logger.Printf("[WARN] Unexpected child type %T or token type at operator position in Bitwise_xor_expr", ctx.GetChild(i))
+				l.logger.Warn("Unexpected child type %T or token type at operator position in Bitwise_xor_expr", ctx.GetChild(i))
 			}
 		}
 	}
@@ -101,7 +101,7 @@ func (l *neuroScriptListenerImpl) ExitBitwise_and_expr(ctx *gen.Bitwise_and_expr
 			if opNode, ok := ctx.GetChild(i).(antlr.TerminalNode); ok && opNode.GetSymbol().GetTokenType() == gen.NeuroScriptLexerAMPERSAND {
 				l.buildBinaryOpNode(ctx, opNode)
 			} else {
-				l.logger.Printf("[WARN] Unexpected child type %T or token type at operator position in Bitwise_and_expr", ctx.GetChild(i))
+				l.logger.Warn("Unexpected child type %T or token type at operator position in Bitwise_and_expr", ctx.GetChild(i))
 			}
 		}
 	}
@@ -117,7 +117,7 @@ func (l *neuroScriptListenerImpl) ExitEquality_expr(ctx *gen.Equality_exprContex
 			if ok && (opNode.GetSymbol().GetTokenType() == gen.NeuroScriptLexerEQ || opNode.GetSymbol().GetTokenType() == gen.NeuroScriptLexerNEQ) {
 				l.buildBinaryOpNode(ctx, opNode)
 			} else {
-				l.logger.Printf("[WARN] Unexpected child type %T or token type at operator position in Equality_expr", ctx.GetChild(i))
+				l.logger.Warn("Unexpected child type %T or token type at operator position in Equality_expr", ctx.GetChild(i))
 			}
 		}
 	}
@@ -136,10 +136,10 @@ func (l *neuroScriptListenerImpl) ExitRelational_expr(ctx *gen.Relational_exprCo
 					atype == gen.NeuroScriptLexerLTE || atype == gen.NeuroScriptLexerGTE {
 					l.buildBinaryOpNode(ctx, opNode)
 				} else {
-					l.logger.Printf("[WARN] Unexpected token type %d at operator position in Relational_expr", atype)
+					l.logger.Warn("Unexpected token type %d at operator position in Relational_expr", atype)
 				}
 			} else {
-				l.logger.Printf("[WARN] Unexpected child type %T at operator position in Relational_expr", ctx.GetChild(i))
+				l.logger.Warn("Unexpected child type %T at operator position in Relational_expr", ctx.GetChild(i))
 			}
 		}
 	}
@@ -156,7 +156,7 @@ func (l *neuroScriptListenerImpl) ExitAdditive_expr(ctx *gen.Additive_exprContex
 			if ok && (opNode.GetSymbol().GetTokenType() == gen.NeuroScriptLexerPLUS || opNode.GetSymbol().GetTokenType() == gen.NeuroScriptLexerMINUS) {
 				l.buildBinaryOpNode(ctx, opNode)
 			} else {
-				l.logger.Printf("[WARN] Unexpected child type %T or token type at operator position in Additive_expr", ctx.GetChild(i))
+				l.logger.Warn("Unexpected child type %T or token type at operator position in Additive_expr", ctx.GetChild(i))
 			}
 		}
 	}
@@ -174,7 +174,7 @@ func (l *neuroScriptListenerImpl) ExitMultiplicative_expr(ctx *gen.Multiplicativ
 				opNode.GetSymbol().GetTokenType() == gen.NeuroScriptLexerPERCENT) {
 				l.buildBinaryOpNode(ctx, opNode)
 			} else {
-				l.logger.Printf("[WARN] Unexpected child type %T or token type at operator position in Multiplicative_expr", ctx.GetChild(i))
+				l.logger.Warn("Unexpected child type %T or token type at operator position in Multiplicative_expr", ctx.GetChild(i))
 			}
 		}
 	}
@@ -195,7 +195,7 @@ func (l *neuroScriptListenerImpl) ExitUnary_expr(ctx *gen.Unary_exprContext) {
 	if opToken != nil {
 		operand, ok := l.popValue()
 		if !ok {
-			l.logger.Printf("[ERROR] AST Builder: Stack error popping operand for unary op %q", opToken.GetText())
+			l.logger.Error("AST Builder: Stack error popping operand for unary op %q", opToken.GetText())
 			l.pushValue(nil) // Push error marker
 			return
 		}
@@ -215,14 +215,14 @@ func (l *neuroScriptListenerImpl) ExitPower_expr(ctx *gen.Power_exprContext) {
 		// Pop the right operand (exponent) first due to right-associativity processing
 		exponent, okE := l.popValue()
 		if !okE {
-			l.logger.Println("[ERROR] AST Builder: Stack error popping exponent for POWER")
+			l.logger.Error("AST Builder: Stack error popping exponent for POWER")
 			l.pushValue(nil)
 			return
 		}
 		// Pop the left operand (base)
 		base, okB := l.popValue()
 		if !okB {
-			l.logger.Println("[ERROR] AST Builder: Stack error popping base for POWER")
+			l.logger.Error("AST Builder: Stack error popping base for POWER")
 			l.pushValue(nil)
 			return
 		}

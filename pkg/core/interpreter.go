@@ -5,11 +5,10 @@ package core
 import (
 	"errors"
 	"fmt"
-	"io"
-	"log"
 	"strings" // Added for handle prefix checking
 
 	"github.com/aprice2704/neuroscript/pkg/core/prompts"
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/google/generative-ai-go/genai"
 	"github.com/google/uuid" // Added for handle generation
 )
@@ -22,13 +21,25 @@ type Interpreter struct {
 	vectorIndex     map[string][]float32
 	embeddingDim    int
 	currentProcName string
-	sandboxDir      string // TODO: Still needed here? Or only AgentContext? Review usage.
-	toolRegistry    *ToolRegistry
-	logger          *log.Logger
-	objectCache     map[string]interface{} // Cache for handle objects
-	// handleTypes     map[string]string // Optional: if needed for type inspection later
+	sandboxDir      string
+
+	toolRegistry *ToolRegistry
+
+	logger interfaces.Logger
+
+	objectCache map[string]interface{} // Cache for handle objects
+	handleTypes map[string]string
+
 	llmClient *LLMClient // Renamed from genaiClient
 	modelName string
+}
+
+func (i *Interpreter) SandboxDir() string {
+	return i.sandboxDir
+}
+
+func (i *Interpreter) Logger() interfaces.Logger {
+	return i.logger
 }
 
 // --- Variable Management ---
@@ -39,7 +50,7 @@ func (i *Interpreter) SetVariable(name string, value interface{}) error {
 		// This shouldn't happen if initialized correctly, but safeguard
 		i.variables = make(map[string]interface{})
 		if i.logger != nil {
-			i.logger.Println("[WARN INTERP] variables map was nil during SetVariable, initialized.")
+			i.logger.Info("[WARN INTERP] variables map was nil during SetVariable, initialized.")
 		}
 	}
 	if name == "" {
@@ -48,7 +59,7 @@ func (i *Interpreter) SetVariable(name string, value interface{}) error {
 	// Add any other validation for variable names if needed (e.g., reserved words)
 	i.variables[name] = value
 	if i.logger != nil {
-		i.logger.Printf("[DEBUG-INTERP] Set variable '%s' = %v (%T)", name, value, value)
+		i.logger.Info("[DEBUG-INTERP] Set variable '%s' = %v (%T)", name, value, value)
 	}
 	return nil
 }
@@ -69,7 +80,7 @@ func (i *Interpreter) SetModelName(name string) error {
 	}
 	i.modelName = name
 	if i.logger != nil { // Added nil check for safety
-		i.logger.Printf("[INFO INTERP] Interpreter model name set to: %s (Note: LLMClient might use its own)", name)
+		i.logger.Info("[INFO INTERP] Interpreter model name set to: %s (Note: LLMClient might use its own)", name)
 	}
 	return nil
 }
@@ -78,7 +89,7 @@ func (i *Interpreter) SetModelName(name string) error {
 func (i *Interpreter) ToolRegistry() *ToolRegistry {
 	if i.toolRegistry == nil {
 		if i.logger != nil {
-			i.logger.Println("[WARN INTERP] ToolRegistry accessed before initialization, creating new one.")
+			i.logger.Info("[WARN INTERP] ToolRegistry accessed before initialization, creating new one.")
 		}
 		i.toolRegistry = NewToolRegistry() // Initialize if nil
 	}
@@ -89,7 +100,7 @@ func (i *Interpreter) ToolRegistry() *ToolRegistry {
 func (i *Interpreter) GenAIClient() *genai.Client {
 	if i.llmClient == nil {
 		if i.logger != nil {
-			i.logger.Println("[WARN INTERP] GenAIClient() called but internal LLMClient is nil.")
+			i.logger.Info("[WARN INTERP] GenAIClient() called but internal LLMClient is nil.")
 		}
 		return nil
 	}
@@ -106,7 +117,7 @@ func (i *Interpreter) AddProcedure(proc Procedure) error {
 	}
 	i.knownProcedures[proc.Name] = proc
 	if i.logger != nil {
-		i.logger.Printf("[DEBUG-INTERP] Added procedure '%s' to known procedures.", proc.Name)
+		i.logger.Info("[DEBUG-INTERP] Added procedure '%s' to known procedures.", proc.Name)
 	}
 	return nil
 }
@@ -116,14 +127,6 @@ func (i *Interpreter) KnownProcedures() map[string]Procedure {
 		return make(map[string]Procedure) // Return empty map if not initialized
 	}
 	return i.knownProcedures
-}
-
-// --- Logger ---
-func (i *Interpreter) Logger() *log.Logger {
-	if i.logger == nil {
-		return log.New(io.Discard, "", 0)
-	}
-	return i.logger
 }
 
 // --- Vector Index ---
@@ -149,7 +152,7 @@ func (i *Interpreter) RegisterHandle(obj interface{}, typePrefix string) (string
 	if i.objectCache == nil {
 		i.objectCache = make(map[string]interface{})
 		if i.logger != nil {
-			i.logger.Println("[WARN INTERP] objectCache was nil during RegisterHandle, initialized.")
+			i.logger.Info("[WARN INTERP] objectCache was nil during RegisterHandle, initialized.")
 		}
 	}
 
@@ -158,7 +161,7 @@ func (i *Interpreter) RegisterHandle(obj interface{}, typePrefix string) (string
 	i.objectCache[fullHandle] = obj
 
 	if i.logger != nil {
-		i.logger.Printf("[DEBUG-INTERP] Registered handle '%s' for type '%s'", fullHandle, typePrefix)
+		i.logger.Info("[DEBUG-INTERP] Registered handle '%s' for type '%s'", fullHandle, typePrefix)
 	}
 	return fullHandle, nil
 }
@@ -183,7 +186,7 @@ func (i *Interpreter) GetHandleValue(handle string, expectedTypePrefix string) (
 
 	if i.objectCache == nil {
 		if i.logger != nil {
-			i.logger.Println("[ERROR INTERP] GetHandleValue called but objectCache is nil.")
+			i.logger.Info("[ERROR INTERP] GetHandleValue called but objectCache is nil.")
 		}
 		return nil, errors.New("internal error: object cache is not initialized")
 	}
@@ -193,7 +196,7 @@ func (i *Interpreter) GetHandleValue(handle string, expectedTypePrefix string) (
 		return nil, fmt.Errorf("handle not found: '%s'", handle)
 	}
 	if i.logger != nil {
-		i.logger.Printf("[DEBUG-INTERP] Retrieved handle '%s' with expected type '%s'", handle, expectedTypePrefix)
+		i.logger.Info("[DEBUG-INTERP] Retrieved handle '%s' with expected type '%s'", handle, expectedTypePrefix)
 	}
 	return obj, nil
 }
@@ -206,17 +209,18 @@ func (i *Interpreter) RemoveHandle(handle string) bool {
 	if found {
 		delete(i.objectCache, handle)
 		if i.logger != nil {
-			i.logger.Printf("[DEBUG-INTERP] Removed handle '%s'", handle)
+			i.logger.Info("[DEBUG-INTERP] Removed handle '%s'", handle)
 		}
 	}
 	return found
 }
 
 // --- Constructor ---
-func NewInterpreter(logger *log.Logger, llmClient *LLMClient) *Interpreter {
+func NewInterpreter(logger interfaces.Logger, llmClient *LLMClient) *Interpreter {
+
 	effectiveLogger := logger
 	if effectiveLogger == nil {
-		effectiveLogger = log.New(io.Discard, "", 0)
+		panic("FATAL: Interpreter requires a non-nil logger dependency")
 	}
 
 	interp := &Interpreter{
@@ -244,7 +248,7 @@ func NewInterpreter(logger *log.Logger, llmClient *LLMClient) *Interpreter {
 
 func (i *Interpreter) RunProcedure(procName string, args ...string) (result interface{}, err error) {
 	if i.logger != nil {
-		i.logger.Printf("[DEBUG-INTERP] Running procedure '%s' with args: %v", procName, args)
+		i.logger.Info("[DEBUG-INTERP] Running procedure '%s' with args: %v", procName, args)
 	}
 	i.currentProcName = procName
 
@@ -252,7 +256,7 @@ func (i *Interpreter) RunProcedure(procName string, args ...string) (result inte
 	if !exists {
 		err = fmt.Errorf("procedure '%s' not found", procName)
 		if i.logger != nil {
-			i.logger.Printf("[ERROR] %v", err)
+			i.logger.Info("[ERROR] %v", err)
 		}
 		return nil, err
 	}
@@ -260,7 +264,7 @@ func (i *Interpreter) RunProcedure(procName string, args ...string) (result inte
 	// Argument Handling
 	if len(args) != len(proc.Params) {
 		if i.logger != nil {
-			i.logger.Printf("[WARN INTERP] Procedure '%s' called with %d args, expected %d based on docstring params.", procName, len(args), len(proc.Params))
+			i.logger.Info("[WARN INTERP] Procedure '%s' called with %d args, expected %d based on docstring params.", procName, len(args), len(proc.Params))
 		}
 	}
 	// Assign arguments to variables
@@ -269,13 +273,13 @@ func (i *Interpreter) RunProcedure(procName string, args ...string) (result inte
 			if setErr := i.SetVariable(paramName, args[idx]); setErr != nil {
 				// Log or handle error setting variable? Usually shouldn't fail here.
 				if i.logger != nil {
-					i.logger.Printf("[ERROR INTERP] Failed setting proc arg %s: %v", paramName, setErr)
+					i.logger.Info("[ERROR INTERP] Failed setting proc arg %s: %v", paramName, setErr)
 				}
 			}
 		} else {
 			if setErr := i.SetVariable(paramName, nil); setErr != nil {
 				if i.logger != nil {
-					i.logger.Printf("[ERROR INTERP] Failed setting proc arg %s to nil: %v", paramName, setErr)
+					i.logger.Info("[ERROR INTERP] Failed setting proc arg %s to nil: %v", paramName, setErr)
 				}
 			}
 		}
@@ -287,7 +291,7 @@ func (i *Interpreter) RunProcedure(procName string, args ...string) (result inte
 	}
 
 	if i.logger != nil {
-		i.logger.Printf("[DEBUG-INTERP] Procedure '%s' finished, result: %v (%T)", procName, result, result)
+		i.logger.Info("[DEBUG-INTERP] Procedure '%s' finished, result: %v (%T)", procName, result, result)
 	}
 	i.lastCallResult = result
 	return result, nil
@@ -295,11 +299,11 @@ func (i *Interpreter) RunProcedure(procName string, args ...string) (result inte
 
 func (i *Interpreter) executeSteps(steps []Step) (result interface{}, wasReturn bool, err error) {
 	if i.logger != nil {
-		i.logger.Printf("[DEBUG-INTERP] Executing %d steps...", len(steps))
+		i.logger.Info("[DEBUG-INTERP] Executing %d steps...", len(steps))
 	}
 	for stepNum, step := range steps {
 		if i.logger != nil {
-			i.logger.Printf("[DEBUG-INTERP]   Step %d: Type=%s, Target=%s", stepNum+1, step.Type, step.Target)
+			i.logger.Info("[DEBUG-INTERP]   Step %d: Type=%s, Target=%s", stepNum+1, step.Type, step.Target)
 		}
 
 		switch step.Type {
@@ -360,13 +364,13 @@ func (i *Interpreter) executeSteps(steps []Step) (result interface{}, wasReturn 
 		default:
 			err = fmt.Errorf("step %d: unknown step type '%s'", stepNum+1, step.Type)
 			if i.logger != nil {
-				i.logger.Printf("[ERROR] %v", err)
+				i.logger.Info("[ERROR] %v", err)
 			}
 			return nil, false, err
 		}
 	}
 	if i.logger != nil {
-		i.logger.Printf("[DEBUG-INTERP] Finished executing steps block.")
+		i.logger.Info("[DEBUG-INTERP] Finished executing steps block.")
 	}
 	return result, false, nil
 }
@@ -376,16 +380,16 @@ func (i *Interpreter) executeBlock(blockValue interface{}, parentStepNum int, bl
 	if !ok {
 		err = fmt.Errorf("step %d (%s): invalid block format - expected []Step, got %T", parentStepNum+1, blockType, blockValue)
 		if i.logger != nil {
-			i.logger.Printf("[ERROR] %v", err)
+			i.logger.Info("[ERROR] %v", err)
 		}
 		return nil, false, err
 	}
 	if i.logger != nil {
-		i.logger.Printf("[DEBUG-INTERP] >> Entering block execution for %s (parent step %d)", blockType, parentStepNum+1)
+		i.logger.Info("[DEBUG-INTERP] >> Entering block execution for %s (parent step %d)", blockType, parentStepNum+1)
 	}
 	result, wasReturn, err = i.executeSteps(steps)
 	if i.logger != nil {
-		i.logger.Printf("[DEBUG-INTERP] << Exiting block execution for %s (parent step %d), wasReturn: %v, err: %v", blockType, parentStepNum+1, wasReturn, err)
+		i.logger.Info("[DEBUG-INTERP] << Exiting block execution for %s (parent step %d), wasReturn: %v, err: %v", blockType, parentStepNum+1, wasReturn, err)
 	}
 	return result, wasReturn, err
 }
@@ -393,7 +397,7 @@ func (i *Interpreter) executeBlock(blockValue interface{}, parentStepNum int, bl
 // executeFail handles the FAIL statement.
 func (i *Interpreter) executeFail(step Step, stepNum int) error {
 	if i.logger != nil {
-		i.logger.Printf("[DEBUG-INTERP]      Executing FAIL")
+		i.logger.Info("[DEBUG-INTERP]      Executing FAIL")
 	}
 	valueNode := step.Value
 	var failMessage string
@@ -407,12 +411,12 @@ func (i *Interpreter) executeFail(step Step, stepNum int) error {
 		}
 		failMessage = fmt.Sprintf("%v", evaluatedValue) // Convert evaluated value to string
 		if i.logger != nil {
-			i.logger.Printf("[DEBUG-INTERP]        FAIL evaluated message: %q", failMessage)
+			i.logger.Info("[DEBUG-INTERP]        FAIL evaluated message: %q", failMessage)
 		}
 	} else {
 		failMessage = "FAIL statement encountered" // Default message
 		if i.logger != nil {
-			i.logger.Printf("[DEBUG-INTERP]        FAIL with no message (using default)")
+			i.logger.Info("[DEBUG-INTERP]        FAIL with no message (using default)")
 		}
 	}
 

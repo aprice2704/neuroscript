@@ -27,59 +27,59 @@ const (
 
 // runAgentMode is the main entry point for interactive agent execution.
 func (a *App) runAgentMode(ctx context.Context) error {
-	a.InfoLog.Println("--- Starting NeuroGo in Agent Mode ---")
+	a.Logger.Info("--- Starting NeuroGo in Agent Mode ---")
 
 	// --- AgentContext and Startup Script Initialization ---
-	a.DebugLog.Println("Initializing AgentContext...")
-	a.agentCtx = NewAgentContext(a.GetInfoLogger()) // Create AgentContext, store on App
+	a.Logger.Debug("Initializing AgentContext...")
+	a.agentCtx = NewAgentContext(a.GetLogger()) // Create AgentContext, store on App
 
 	agentCtxHandle, regErr := a.interpreter.RegisterHandle(a.agentCtx, HandlePrefixAgentContext)
 	if regErr != nil {
-		a.ErrorLog.Printf("CRITICAL: Failed to register AgentContext handle: %v", regErr)
+		a.Logger.Error("CRITICAL: Failed to register AgentContext handle: %v", regErr)
 		return fmt.Errorf("failed to register agent context handle: %w", regErr)
 	}
-	a.DebugLog.Printf("AgentContext registered with handle: %s", agentCtxHandle)
+	a.Logger.Debug("AgentContext registered with handle: %s", agentCtxHandle)
 
 	if err := a.interpreter.SetVariable("AGENT_CONTEXT_HANDLE", agentCtxHandle); err != nil {
-		a.ErrorLog.Printf("CRITICAL: Failed to set AGENT_CONTEXT_HANDLE variable: %v", err)
+		a.Logger.Error("CRITICAL: Failed to set AGENT_CONTEXT_HANDLE variable: %v", err)
 		return fmt.Errorf("failed set agent context handle variable: %w", err)
 	}
 
 	startupScriptPath := a.Config.StartupScript
-	a.InfoLog.Printf("Attempting to load and execute startup script: %s", startupScriptPath)
+	a.Logger.Info("Attempting to load and execute startup script: %s", startupScriptPath)
 
 	if _, statErr := os.Stat(startupScriptPath); errors.Is(statErr, os.ErrNotExist) {
-		a.WarnLog.Printf("Startup script '%s' not found, skipping agent initialization script.", startupScriptPath)
+		a.Logger.Warn("Startup script '%s' not found, skipping agent initialization script.", startupScriptPath)
 	} else if statErr != nil {
-		a.ErrorLog.Printf("Error accessing startup script '%s': %v", startupScriptPath, statErr)
+		a.Logger.Error("Error accessing startup script '%s': %v", startupScriptPath, statErr)
 		return fmt.Errorf("error accessing startup script %s: %w", startupScriptPath, statErr)
 	} else {
 		scriptContentBytes, readErr := os.ReadFile(startupScriptPath)
 		if readErr != nil {
-			a.ErrorLog.Printf("Failed to read startup script '%s': %v", startupScriptPath, readErr)
+			a.Logger.Error("Failed to read startup script '%s': %v", startupScriptPath, readErr)
 			return fmt.Errorf("failed to read startup script %s: %w", startupScriptPath, readErr)
 		}
 		scriptContent := string(scriptContentBytes)
 
 		parseReader := strings.NewReader(scriptContent)
 		parseOptions := core.ParseOptions{
-			DebugAST: false,              // Or get from config/flag?
-			Logger:   a.GetDebugLogger(), // Pass appropriate logger
+			DebugAST: false,         // Or get from config/flag?
+			Logger:   a.GetLogger(), // Pass appropriate logger
 		}
 		parsedProcsSlice, fileVersion, parseErr := core.ParseNeuroScript(parseReader, startupScriptPath, parseOptions)
 		if parseErr != nil {
-			a.ErrorLog.Printf("Failed to parse startup script '%s':\n%v", startupScriptPath, parseErr)
+			a.Logger.Error("Failed to parse startup script '%s':\n%v", startupScriptPath, parseErr)
 			return fmt.Errorf("failed to parse startup script %s: %w", startupScriptPath, parseErr)
 		}
-		a.DebugLog.Printf("Startup script parsed successfully. File version: '%s'", fileVersion)
+		a.Logger.Debug("Startup script parsed successfully. File version: '%s'", fileVersion)
 
 		mainExists := false
 		for _, proc := range parsedProcsSlice {
 			if addErr := a.interpreter.AddProcedure(proc); addErr != nil {
 				if strings.Contains(addErr.Error(), "already defined") {
-					a.WarnLog.Printf("Redefining procedure '%s' from startup script.", proc.Name)
+					a.Logger.Warn("Redefining procedure '%s' from startup script.", proc.Name)
 				} else {
-					a.ErrorLog.Printf("Error adding procedure '%s' from startup script: %v", proc.Name, addErr)
+					a.Logger.Error("Error adding procedure '%s' from startup script: %v", proc.Name, addErr)
 				}
 			}
 			if proc.Name == "main" {
@@ -88,15 +88,15 @@ func (a *App) runAgentMode(ctx context.Context) error {
 		}
 
 		if !mainExists {
-			a.WarnLog.Printf("Startup script '%s' does not contain a 'main' procedure, cannot execute.", startupScriptPath)
+			a.Logger.Warn("Startup script '%s' does not contain a 'main' procedure, cannot execute.", startupScriptPath)
 		} else {
-			a.InfoLog.Printf("Executing 'main' procedure from startup script '%s'...", startupScriptPath)
+			a.Logger.Info("Executing 'main' procedure from startup script '%s'...", startupScriptPath)
 			_, execErr := a.interpreter.RunProcedure("main")
 			if execErr != nil {
-				a.ErrorLog.Printf("Error executing startup script '%s': %v", startupScriptPath, execErr)
+				a.Logger.Error("Error executing startup script '%s': %v", startupScriptPath, execErr)
 				return fmt.Errorf("error executing startup script %s: %w", startupScriptPath, execErr)
 			}
-			a.InfoLog.Printf("Startup script '%s' executed successfully.", startupScriptPath)
+			a.Logger.Info("Startup script '%s' executed successfully.", startupScriptPath)
 		}
 	}
 	// --- End AgentContext and Startup Script Initialization ---
@@ -104,18 +104,18 @@ func (a *App) runAgentMode(ctx context.Context) error {
 	// --- Existing Agent Setup (Post-Startup Script) ---
 	sandboxDir := a.agentCtx.GetSandboxDir()
 	if sandboxDir == "" {
-		a.WarnLog.Println("Startup script did not set sandbox directory, using default '.'")
+		a.Logger.Warn("Startup script did not set sandbox directory, using default '.'")
 		sandboxDir = "."
 	}
 	cleanSandboxDir := filepath.Clean(sandboxDir)
-	a.DebugLog.Printf("Using effective sandbox dir (after startup script): %s", cleanSandboxDir)
+	a.Logger.Debug("Using effective sandbox dir (after startup script): %s", cleanSandboxDir)
 
 	allowlistPath := a.agentCtx.GetAllowlistPath()
 	allowlist, _ := loadToolListFromFile(allowlistPath)
 	if allowlistPath != "" {
-		a.InfoLog.Printf("Using tool allowlist: %s (%d tools allowed)", allowlistPath, len(allowlist))
+		a.Logger.Info("Using tool allowlist: %s (%d tools allowed)", allowlistPath, len(allowlist))
 	} else {
-		a.InfoLog.Println("Tool allowlist disabled.")
+		a.Logger.Info("Tool allowlist disabled.")
 	}
 	denylistSet := make(map[string]bool)
 
@@ -125,33 +125,33 @@ func (a *App) runAgentMode(ctx context.Context) error {
 	}
 
 	agentInterpreter := a.interpreter
-	securityLayer := core.NewSecurityLayer(allowlist, denylistSet, cleanSandboxDir, agentInterpreter.ToolRegistry(), a.GetInfoLogger())
+	securityLayer := core.NewSecurityLayer(allowlist, denylistSet, cleanSandboxDir, agentInterpreter.ToolRegistry(), a.GetLogger())
 	toolDeclarations, genErr := securityLayer.GetToolDeclarations()
 	if genErr != nil {
-		a.ErrorLog.Printf("Failed to generate tool declarations: %v", genErr)
+		a.Logger.Error("Failed to generate tool declarations: %v", genErr)
 		return fmt.Errorf("failed to generate tool declarations: %w", genErr)
 	}
-	a.InfoLog.Printf("Initialized agent components. Sandbox: %s, Allowlist: %d, Tools: %d",
+	a.Logger.Info("Initialized agent components. Sandbox: %s, Allowlist: %d, Tools: %d",
 		cleanSandboxDir, len(allowlist), len(toolDeclarations))
 
-	convoManager := core.NewConversationManager(a.GetInfoLogger())
-	a.InfoLog.Println("Initial attachments should now be handled by the startup script via TOOL.AgentPinFile.")
+	convoManager := core.NewConversationManager(a.GetLogger())
+	a.Logger.Info("Initial attachments should now be handled by the startup script via TOOL.AgentPinFile.")
 
 	// --- Main Agent Loop ---
-	a.InfoLog.Printf("Enter prompt (or '%s', '%s', '%s <dir> [filter]', 'quit'):", multiLineCommand, syncCommand, syncCommand)
+	a.Logger.Info("Enter prompt (or '%s', '%s', '%s <dir> [filter]', 'quit'):", multiLineCommand, syncCommand, syncCommand)
 	stdinScanner := bufio.NewScanner(os.Stdin) // Correctly initialized here
 	turnCounter := 0
 
 	for { // Main input loop
 		turnCounter++
-		a.InfoLog.Printf("--- Agent Conversation Turn %d ---", turnCounter)
+		a.Logger.Info("--- Agent Conversation Turn %d ---", turnCounter)
 
 		currentTurnFiles := a.agentCtx.GetURIsForNextContext()
 		currentTurnURIs := make([]string, len(currentTurnFiles))
 		for i, f := range currentTurnFiles {
 			currentTurnURIs[i] = f.Name
 		}
-		a.DebugLog.Printf("Using %d URIs for turn %d context: %v", len(currentTurnURIs), turnCounter, currentTurnURIs)
+		a.Logger.Debug("Using %d URIs for turn %d context: %v", len(currentTurnURIs), turnCounter, currentTurnURIs)
 
 		fmt.Printf("\nPrompt (or '%s', '%s', '%s <dir> [filter]', 'quit'): ", multiLineCommand, syncCommand, syncCommand)
 		if !stdinScanner.Scan() {
@@ -161,7 +161,7 @@ func (a *App) runAgentMode(ctx context.Context) error {
 
 		switch {
 		case strings.ToLower(userInput) == "quit":
-			a.InfoLog.Println("Quit command received.")
+			a.Logger.Info("Quit command received.")
 			return nil
 		case userInput == multiLineCommand:
 			// *** UPDATED Call: Use stdinScanner ***
@@ -172,7 +172,7 @@ func (a *App) runAgentMode(ctx context.Context) error {
 			}
 		// --- Sync Command Handling (Simplified - Needs integration with AgentContext/Tools) ---
 		case userInput == syncCommand:
-			a.WarnLog.Println("Bare '/sync' command executed - state NOT YET reflected in AgentContext.")
+			a.Logger.Warn("Bare '/sync' command executed - state NOT YET reflected in AgentContext.")
 			syncTargetDir := a.agentCtx.GetSandboxDir() // Default to sandbox
 			if syncTargetDir == "" {
 				syncTargetDir = defaultSyncDir
@@ -187,7 +187,7 @@ func (a *App) runAgentMode(ctx context.Context) error {
 			}
 			continue
 		case strings.HasPrefix(userInput, syncCommand+" "):
-			a.WarnLog.Println("'/sync <dir>' command executed - state NOT YET reflected in AgentContext.")
+			a.Logger.Warn("'/sync <dir>' command executed - state NOT YET reflected in AgentContext.")
 			parts := strings.Fields(userInput)
 			if len(parts) < 2 {
 				fmt.Println("[AGENT] Usage: /sync <directory> [optional_filter]")
@@ -212,29 +212,29 @@ func (a *App) runAgentMode(ctx context.Context) error {
 			continue
 		default: // Process as LLM Prompt
 			convoManager.AddUserMessage(userInput)
-			a.DebugLog.Printf("Added user message to history: %q", userInput)
+			a.Logger.Debug("Added user message to history: %q", userInput)
 
 			// Use correct signature for handleAgentTurn found in handle_turn.go
 			errTurn := a.handleAgentTurn(ctx, llmClient, convoManager, agentInterpreter, securityLayer, toolDeclarations, currentTurnURIs)
 
 			if errTurn != nil {
-				a.ErrorLog.Printf("Error agent turn %d: %v", turnCounter, errTurn)
+				a.Logger.Error("Error agent turn %d: %v", turnCounter, errTurn)
 				fmt.Printf("\n[AGENT] Error processing turn: %v\n", errTurn)
 			}
 		} // End switch
 	} // End main input loop
 
-	a.InfoLog.Println("--- Exiting Agent Mode ---")
+	a.Logger.Info("--- Exiting Agent Mode ---")
 	return nil
 }
 
 // handleMultilineInput requires scanner argument
 func handleMultilineInput(a *App, scanner *bufio.Scanner) string { // Argument name matches call site
-	a.InfoLog.Printf("Launching nsinput...")
+	a.Logger.Info("Launching nsinput...")
 	fmt.Println("Launching multi-line editor (nsinput)...")
 	tempFile, err := os.CreateTemp("", "nsinput-*.txt")
 	if err != nil {
-		a.ErrorLog.Printf("Failed create temp file: %v", err)
+		a.Logger.Error("Failed create temp file: %v", err)
 		fmt.Println("[AGENT] Error creating temp file.")
 		return ""
 	}
@@ -247,19 +247,19 @@ func handleMultilineInput(a *App, scanner *bufio.Scanner) string { // Argument n
 	cmd.Stderr = os.Stderr
 	runErr := cmd.Run()
 	if runErr != nil {
-		a.ErrorLog.Printf("nsinput error: %v", runErr)
+		a.Logger.Error("nsinput error: %v", runErr)
 		fmt.Printf("[AGENT] Multi-line input cancelled/error.\n")
 		return ""
 	}
 	contentBytes, readErr := os.ReadFile(tempFilePath)
 	if readErr != nil {
-		a.ErrorLog.Printf("Failed read temp file %s: %v", tempFilePath, readErr)
+		a.Logger.Error("Failed read temp file %s: %v", tempFilePath, readErr)
 		fmt.Println("[AGENT] Error reading input.")
 		return ""
 	}
 	userInput := string(contentBytes)
 	if userInput == "" {
-		a.InfoLog.Println("Multi-line input empty.")
+		a.Logger.Info("Multi-line input empty.")
 		fmt.Println("[AGENT] Multi-line input empty.")
 	}
 	return strings.TrimSpace(userInput)

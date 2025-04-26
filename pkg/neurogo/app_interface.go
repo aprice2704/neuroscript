@@ -1,10 +1,8 @@
 package neurogo
 
 import (
-	"io"
-	"log"
-
 	"github.com/aprice2704/neuroscript/pkg/core"
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 )
 
 // --- Interface Implementation Methods (tui.AppAccess) ---
@@ -44,28 +42,12 @@ func (a *App) GetSyncIgnoreGitignore() bool {
 	return false
 }
 
-func (a *App) GetDebugLogger() *log.Logger {
-	// Ensure non-nil
-	if a.DebugLog == nil {
-		a.DebugLog = log.New(io.Discard, "DEBUG-FALLBACK: ", log.LstdFlags|log.Lshortfile)
-	}
-	return a.DebugLog
-}
-
-func (a *App) GetInfoLogger() *log.Logger {
-	// Ensure non-nil
-	if a.InfoLog == nil {
-		a.InfoLog = log.New(io.Discard, "INFO-FALLBACK: ", log.LstdFlags)
-	}
-	return a.InfoLog
-}
-
-func (a *App) GetErrorLogger() *log.Logger {
+func (a *App) GetLogger() interfaces.Logger {
 	// Ensure non-nil
 	if a.ErrorLog == nil {
-		a.ErrorLog = log.New(io.Discard, "ERROR-FALLBACK: ", log.LstdFlags|log.Lshortfile)
+		panic("Must have a valid logger")
 	}
-	return a.ErrorLog
+	return a.logger
 }
 
 func (a *App) GetLLMClient() *core.LLMClient {

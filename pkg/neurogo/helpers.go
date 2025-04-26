@@ -44,7 +44,7 @@ func executeAgentTool(toolName string, args map[string]interface{}, interp *core
 		}
 		orderedArgs[i] = val
 	}
-	interp.Logger().Printf("[AGENT TOOL] Calling %s with ordered args: %v", toolName, orderedArgs)
+	interp.Logger().Debug("[AGENT TOOL] Calling %s with ordered args: %v", toolName, orderedArgs)
 	return toolImpl.Func(interp, orderedArgs)
 }
 func formatToolResult(toolOutput interface{}, execErr error) map[string]interface{} {

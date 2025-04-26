@@ -19,6 +19,7 @@ import (
 
 	// Remove gabriel-vasile/mimetype if only using standard library now
 	// "github.com/gabriel-vasile/mimetype"
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/google/generative-ai-go/genai"
 )
 
@@ -39,17 +40,14 @@ func init() {
 }
 
 // --- Helper: Upload File and Poll --- (Unchanged logic, corrected errors)
-func HelperUploadAndPollFile(ctx context.Context, absLocalPath string, displayName string, client *genai.Client, logger *log.Logger) (*genai.File, error) {
+func HelperUploadAndPollFile(ctx context.Context, absLocalPath string, displayName string, client *genai.Client, logger interfaces.Logger) (*genai.File, error) {
 	if client == nil {
 		return nil, errors.New("genai client is nil")
 	}
 	if logger == nil {
-		logger = log.New(io.Discard, "", 0)
+		panic("Uploader requires a valid logger")
 	}
-	debugLog := logger
-	infoLog := logger
-	errorLog := logger // Simple assignment for this helper
-	debugLog.Printf("[API HELPER Upload] Processing: %s (Display: %s)", absLocalPath, displayName)
+	logger.Debug("HELPER Upload] Processing: %s (Display: %s)", absLocalPath, displayName)
 	fileInfo, err := os.Stat(absLocalPath)
 	if err != nil {
 		return nil, fmt.Errorf("stat file %s: %w", absLocalPath, err)
@@ -60,15 +58,15 @@ func HelperUploadAndPollFile(ctx context.Context, absLocalPath string, displayNa
 
 	if isZeroByte {
 		uploadMimeType = "text/plain"
-		debugLog.Printf("[API HELPER Upload] Handling zero-byte file: %s as text/plain", absLocalPath)
+		logger.Debug("HELPER Upload] Handling zero-byte file: %s as text/plain", absLocalPath)
 	} else {
 		// Use standard library mime detection based on extension first
 		stdMime := mime.TypeByExtension(fileExt)
 		if stdMime != "" {
 			uploadMimeType = stdMime
-			debugLog.Printf("[API HELPER Upload] Detected MIME by extension: %s for %s", uploadMimeType, absLocalPath)
+			logger.Debug("HELPER Upload] Detected MIME by extension: %s for %s", uploadMimeType, absLocalPath)
 		} else {
-			debugLog.Printf("[API HELPER Upload] MIME not detected by extension for %s, keeping default %s", absLocalPath, uploadMimeType)
+			logger.Debug("HELPER Upload] MIME not detected by extension for %s, keeping default %s", absLocalPath, uploadMimeType)
 			// Could add sniffing here if needed, but keeping simple for now
 		}
 
@@ -76,11 +74,11 @@ func HelperUploadAndPollFile(ctx context.Context, absLocalPath string, displayNa
 		// This logic might need refinement based on File API actual compatibility
 		if fileExt == ".go" || strings.HasPrefix(uploadMimeType, "text/") {
 			uploadMimeType = "text/plain"
-			debugLog.Printf("[API HELPER Upload] Forcing upload MIME type to text/plain for compatibility: %s", absLocalPath)
+			logger.Debug("HELPER Upload] Forcing upload MIME type to text/plain for compatibility: %s", absLocalPath)
 		} else {
 			// If not obviously text, warn and consider skipping (or allow generic upload)
 			warnMsg := fmt.Sprintf("File type for %s is %s (not text/* or .go). Uploading as %s, but processing might fail.", absLocalPath, stdMime, uploadMimeType)
-			infoLog.Printf("[WARN API HELPER Upload] %s", warnMsg)
+			logger.Info("[WARN API HELPER Upload] %s", warnMsg)
 			// Decide whether to return an error or proceed with generic upload
 			// Proceeding for now, but this could be where ErrSkippedBinaryFile is used
 		}
@@ -90,7 +88,7 @@ func HelperUploadAndPollFile(ctx context.Context, absLocalPath string, displayNa
 	var reader io.Reader
 	if isZeroByte {
 		reader = strings.NewReader("")
-		debugLog.Printf("[API HELPER Upload] Using empty string reader for zero-byte file: %s", absLocalPath)
+		logger.Debug("HELPER Upload] Using empty string reader for zero-byte file: %s", absLocalPath)
 	} else {
 		fileHandle, err := os.Open(absLocalPath)
 		if err != nil {
@@ -103,12 +101,12 @@ func HelperUploadAndPollFile(ctx context.Context, absLocalPath string, displayNa
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	infoLog.Printf("[API HELPER Upload] Starting upload for %s (Display: %s, MIME: %s)...", absLocalPath, displayName, uploadMimeType)
+	logger.Info("[API HELPER Upload] Starting upload for %s (Display: %s, MIME: %s)...", absLocalPath, displayName, uploadMimeType)
 	apiFile, err := client.UploadFile(ctx, "", reader, options)
 	if err != nil {
 		return nil, fmt.Errorf("api upload failed for %q (Display: %s): %w", absLocalPath, displayName, err)
 	}
-	debugLog.Printf("[API HELPER Upload] Upload initiated -> API Name: %s (URI: %s)", apiFile.Name, apiFile.URI)
+	logger.Debug("HELPER Upload] Upload initiated -> API Name: %s (URI: %s)", apiFile.Name, apiFile.URI)
 
 	// Polling Logic (Unchanged from fetch)
 	startTime := time.Now()
@@ -118,19 +116,19 @@ func HelperUploadAndPollFile(ctx context.Context, absLocalPath string, displayNa
 	for apiFile.State == genai.FileStateProcessing {
 		if time.Since(startTime) > timeout {
 			errMsg := fmt.Sprintf("polling timeout for file %s (API Name: %s, Display: %s)", absLocalPath, apiFile.Name, displayName)
-			errorLog.Printf("[ERROR API HELPER Upload] %s. Attempting to delete orphaned API file.", errMsg)
+			logger.Error("[ERROR API HELPER Upload] %s. Attempting to delete orphaned API file.", errMsg)
 			_ = client.DeleteFile(context.Background(), apiFile.Name) // Best effort delete
 			// --- FIX Line 122 ---
 			return nil, errors.New(errMsg) // Use errors.New instead of fmt.Errorf
 			// --- END FIX ---
 		}
 		time.Sleep(pollInterval)
-		debugLog.Printf("[DEBUG API HELPER Upload] Polling status for API file %s...", apiFile.Name)
+		logger.Debug("API HELPER Upload] Polling status for API file %s...", apiFile.Name)
 		getCtx, cancelGet := context.WithTimeout(context.Background(), 30*time.Second)
 		updatedFile, getErr := client.GetFile(getCtx, apiFile.Name)
 		cancelGet()
 		if getErr != nil {
-			errorLog.Printf("[WARN API HELPER Upload] Error getting status for %s (will retry): %v", apiFile.Name, getErr)
+			logger.Error("[WARN API HELPER Upload] Error getting status for %s (will retry): %v", apiFile.Name, getErr)
 			continue
 		}
 		apiFile = updatedFile
@@ -138,35 +136,32 @@ func HelperUploadAndPollFile(ctx context.Context, absLocalPath string, displayNa
 		if pollInterval > maxPollInterval {
 			pollInterval = maxPollInterval
 		}
-		debugLog.Printf("[DEBUG API HELPER Upload] Poll %s successful, state: %s (Next poll in %v)", apiFile.Name, apiFile.State, pollInterval)
+		logger.Debug("API HELPER Upload] Poll %s successful, state: %s (Next poll in %v)", apiFile.Name, apiFile.State, pollInterval)
 	}
 	if apiFile.State != genai.FileStateActive {
 		errMsg := fmt.Sprintf("file processing failed for %s (API Name: %s, Display: %s). Final State: %s", absLocalPath, apiFile.Name, displayName, apiFile.State)
-		errorLog.Printf("[ERROR API HELPER Upload] %s. Attempting to delete failed API file.", errMsg)
+		logger.Error("[ERROR API HELPER Upload] %s. Attempting to delete failed API file.", errMsg)
 		_ = client.DeleteFile(context.Background(), apiFile.Name) // Best effort delete
 		// --- FIX Line 144 ---
 		return nil, errors.New(errMsg) // Use errors.New instead of fmt.Errorf
 		// --- END FIX ---
 	}
-	infoLog.Printf("[API HELPER Upload] Upload successful and ACTIVE: %s -> %s", displayName, apiFile.Name)
+	logger.Info("[API HELPER Upload] Upload successful and ACTIVE: %s -> %s", displayName, apiFile.Name)
 	return apiFile, nil
 }
 
 // HelperUploadStringAndPollFile handles uploading string content and waiting for it to be ACTIVE.
 // (Unchanged logic, corrected errors)
-func HelperUploadStringAndPollFile(ctx context.Context, content string, displayName string, client *genai.Client, logger *log.Logger) (*genai.File, error) {
+func HelperUploadStringAndPollFile(ctx context.Context, content string, displayName string, client *genai.Client, logger interfaces.Logger) (*genai.File, error) {
 	if client == nil {
 		return nil, errors.New("genai client is nil")
 	}
 	if logger == nil {
-		logger = log.New(io.Discard, "", 0)
+		panic("Upload and string requires a valid logger")
 	}
-	debugLog := logger
-	infoLog := logger
-	errorLog := logger
 
 	uploadMimeType := "text/plain"
-	debugLog.Printf("[API HELPER UploadString] Processing content (Display: %s, Length: %d) as %s", displayName, len(content), uploadMimeType)
+	logger.Debug("HELPER UploadString] Processing content (Display: %s, Length: %d) as %s", displayName, len(content), uploadMimeType)
 
 	options := &genai.UploadFileOptions{MIMEType: uploadMimeType, DisplayName: displayName}
 	reader := strings.NewReader(content)
@@ -175,12 +170,12 @@ func HelperUploadStringAndPollFile(ctx context.Context, content string, displayN
 		ctx = context.Background()
 	}
 
-	infoLog.Printf("[API HELPER UploadString] Starting upload for content (Display: %s, MIME: %s)...", displayName, uploadMimeType)
+	logger.Info("[API HELPER UploadString] Starting upload for content (Display: %s, MIME: %s)...", displayName, uploadMimeType)
 	apiFile, err := client.UploadFile(ctx, "", reader, options)
 	if err != nil {
 		return nil, fmt.Errorf("api upload failed for content (Display: %s): %w", displayName, err)
 	}
-	debugLog.Printf("[API HELPER UploadString] Upload initiated -> API Name: %s (URI: %s)", apiFile.Name, apiFile.URI)
+	logger.Debug("HELPER UploadString] Upload initiated -> API Name: %s (URI: %s)", apiFile.Name, apiFile.URI)
 
 	// Polling Logic (Identical to HelperUploadAndPollFile)
 	startTime := time.Now()
@@ -190,19 +185,19 @@ func HelperUploadStringAndPollFile(ctx context.Context, content string, displayN
 	for apiFile.State == genai.FileStateProcessing {
 		if time.Since(startTime) > timeout {
 			errMsg := fmt.Sprintf("polling timeout for content (API Name: %s, Display: %s)", apiFile.Name, displayName)
-			errorLog.Printf("[ERROR API HELPER UploadString] %s. Attempting to delete orphaned API file.", errMsg)
+			logger.Error("[ERROR API HELPER UploadString] %s. Attempting to delete orphaned API file.", errMsg)
 			_ = client.DeleteFile(context.Background(), apiFile.Name) // Best effort delete
 			// --- FIX Line 191 ---
 			return nil, errors.New(errMsg) // Use errors.New instead of fmt.Errorf
 			// --- END FIX ---
 		}
 		time.Sleep(pollInterval)
-		debugLog.Printf("[DEBUG API HELPER UploadString] Polling status for API file %s...", apiFile.Name)
+		logger.Debug("API HELPER UploadString] Polling status for API file %s...", apiFile.Name)
 		getCtx, cancelGet := context.WithTimeout(context.Background(), 30*time.Second)
 		updatedFile, getErr := client.GetFile(getCtx, apiFile.Name)
 		cancelGet()
 		if getErr != nil {
-			errorLog.Printf("[WARN API HELPER UploadString] Error getting status for %s (will retry): %v", apiFile.Name, getErr)
+			logger.Error("[WARN API HELPER UploadString] Error getting status for %s (will retry): %v", apiFile.Name, getErr)
 			continue
 		}
 		apiFile = updatedFile
@@ -210,17 +205,17 @@ func HelperUploadStringAndPollFile(ctx context.Context, content string, displayN
 		if pollInterval > maxPollInterval {
 			pollInterval = maxPollInterval
 		}
-		debugLog.Printf("[DEBUG API HELPER UploadString] Poll %s successful, state: %s (Next poll in %v)", apiFile.Name, apiFile.State, pollInterval)
+		logger.Debug("API HELPER UploadString] Poll %s successful, state: %s (Next poll in %v)", apiFile.Name, apiFile.State, pollInterval)
 	}
 	if apiFile.State != genai.FileStateActive {
 		errMsg := fmt.Sprintf("file processing failed for content (API Name: %s, Display: %s). Final State: %s", apiFile.Name, displayName, apiFile.State)
-		errorLog.Printf("[ERROR API HELPER UploadString] %s. Attempting to delete failed API file.", errMsg)
+		logger.Error("[ERROR API HELPER UploadString] %s. Attempting to delete failed API file.", errMsg)
 		_ = client.DeleteFile(context.Background(), apiFile.Name) // Best effort delete
 		// --- FIX Line 213 ---
 		return nil, errors.New(errMsg) // Use errors.New instead of fmt.Errorf
 		// --- END FIX ---
 	}
-	infoLog.Printf("[API HELPER UploadString] Upload successful and ACTIVE: %s -> %s", displayName, apiFile.Name)
+	logger.Info("[API HELPER UploadString] Upload successful and ACTIVE: %s -> %s", displayName, apiFile.Name)
 	return apiFile, nil
 }
 
@@ -232,7 +227,7 @@ func toolListAPIFiles(interpreter *Interpreter, args []interface{}) (interface{}
 	}
 	apiFiles, err := HelperListApiFiles(context.Background(), client, interpreter.logger)
 	if err != nil {
-		interpreter.logger.Printf("[TOOL ListAPIFiles] Warning: Error from helper (returning partial list if any): %v", err)
+		interpreter.logger.Info("Tool: ListAPIFiles] Warning: Error from helper (returning partial list if any): %v", err)
 	}
 	results := []map[string]interface{}{}
 	for _, file := range apiFiles {
@@ -283,16 +278,16 @@ func toolUploadFile(interpreter *Interpreter, args []interface{}) (interface{}, 
 	if secErr != nil {
 		return nil, fmt.Errorf("TOOL.UploadFile: invalid path %q: %w", localPath, secErr)
 	}
-	interpreter.logger.Printf("[TOOL UploadFile] Validated path: %s -> %s", localPath, securePath)
+	interpreter.logger.Info("Tool: UploadFile] Validated path: %s -> %s", localPath, securePath)
 	if displayName == "" {
 		relPath, err := filepath.Rel(interpreter.sandboxDir, securePath)
 		if err == nil {
 			displayName = filepath.ToSlash(relPath)
 		} else {
 			displayName = filepath.Base(securePath)
-			interpreter.logger.Printf("[WARN TOOL UploadFile] Could not get relative path for default display name, using basename: %v", err)
+			interpreter.logger.Warn("TOOL UploadFile] Could not get relative path for default display name, using basename: %v", err)
 		}
-		interpreter.logger.Printf("[TOOL UploadFile] Using default display name: %s", displayName)
+		interpreter.logger.Info("Tool: UploadFile] Using default display name: %s", displayName)
 	}
 	apiFile, uploadErr := HelperUploadAndPollFile(context.Background(), securePath, displayName, client, interpreter.logger)
 	if uploadErr != nil {
@@ -348,7 +343,7 @@ func toolUpsertAs(interpreter *Interpreter, args []interface{}) (interface{}, er
 		return nil, fmt.Errorf("TOOL.UpsertAs: upload helper returned nil or empty File/URI for display name '%s'", displayName)
 	}
 	resultMap := map[string]interface{}{"displayName": displayName, "uri": apiFile.Name}
-	interpreter.logger.Printf("[TOOL UpsertAs] Successfully uploaded content '%s' -> URI: %s", displayName, apiFile.Name)
+	interpreter.logger.Info("Tool: UpsertAs] Successfully uploaded content '%s' -> URI: %s", displayName, apiFile.Name)
 	return resultMap, nil
 }
 
@@ -373,7 +368,7 @@ func registerFileAPITools(registry *ToolRegistry) error {
 
 // Assumed functions/helpers (ensure defined elsewhere)
 // - func checkGenAIClient(interpreter *Interpreter) (*genai.Client, error)
-// - func HelperListApiFiles(ctx context.Context, client *genai.Client, logger *log.Logger) ([]*genai.File, error)
+// - func HelperListApiFiles(ctx context.Context, client *genai.Client, logger interfaces.Logger) ([]*genai.File, error)
 // - func toolDeleteAPIFile(interpreter *Interpreter, args []interface{}) (interface{}, error)
 // - func toolSyncFiles(interpreter *Interpreter, args []interface{}) (interface{}, error)
 // - func ResolveAndSecurePath(localPath string, sandboxDir string) (string, error)

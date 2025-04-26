@@ -82,35 +82,35 @@ func toolListDirectory(interpreter *Interpreter, args []interface{}) (interface{
 	// --- Path Security Validation ---
 	sandboxRoot := interpreter.sandboxDir
 	if sandboxRoot == "" {
-		interpreter.logger.Printf("[WARN TOOL ListDirectory] Interpreter sandboxDir is empty, using default relative path validation from current directory.")
+		interpreter.logger.Warn("TOOL ListDirectory] Interpreter sandboxDir is empty, using default relative path validation from current directory.")
 		sandboxRoot = "."
 	}
 	absBasePath, secErr := SecureFilePath(relPath, sandboxRoot)
 	if secErr != nil {
 		errMsg := fmt.Sprintf("ListDirectory path security error for %q: %v", relPath, secErr)
-		interpreter.logger.Printf("[TOOL ListDirectory] %s (Sandbox Root: %s)", errMsg, sandboxRoot)
+		interpreter.logger.Info("Tool: ListDirectory] %s (Sandbox Root: %s)", errMsg, sandboxRoot)
 		// Propagate security error directly
 		return nil, fmt.Errorf("TOOL.ListDirectory: %w", secErr)
 	}
-	interpreter.logger.Printf("[TOOL ListDirectory] Validated base path: %s (Original Relative: %q, Sandbox: %q, Recursive: %t)", absBasePath, relPath, sandboxRoot, recursive)
+	interpreter.logger.Info("Tool: ListDirectory] Validated base path: %s (Original Relative: %q, Sandbox: %q, Recursive: %t)", absBasePath, relPath, sandboxRoot, recursive)
 
 	// --- Check if Path is a Directory ---
 	baseInfo, statErr := os.Stat(absBasePath)
 	if statErr != nil {
 		// Return specific errors based on stat failure
 		if errors.Is(statErr, os.ErrNotExist) {
-			interpreter.logger.Printf("[TOOL ListDirectory] Path not found %q", relPath)
+			interpreter.logger.Info("Tool: ListDirectory] Path not found %q", relPath)
 			// Tests expect ErrInternalTool here, maintain consistency for now
 			return nil, fmt.Errorf("TOOL.ListDirectory: %w: %w", ErrInternalTool, statErr)
 		}
-		interpreter.logger.Printf("[TOOL ListDirectory] Failed to stat path %q: %v", relPath, statErr)
+		interpreter.logger.Info("Tool: ListDirectory] Failed to stat path %q: %v", relPath, statErr)
 		// Tests expect ErrInternalTool here
 		return nil, fmt.Errorf("TOOL.ListDirectory: %w: %w", ErrInternalTool, statErr)
 	}
 
 	if !baseInfo.IsDir() {
 		errMsg := fmt.Sprintf("ListDirectory: Path %q is not a directory", relPath)
-		interpreter.logger.Printf("[TOOL ListDirectory] %s", errMsg)
+		interpreter.logger.Info("Tool: ListDirectory] %s", errMsg)
 		// Tests expect ErrInternalTool here, wrapping ErrInvalidArgument
 		return nil, fmt.Errorf("TOOL.ListDirectory: %w: %w", ErrInternalTool, ErrInvalidArgument)
 	}
@@ -120,10 +120,10 @@ func toolListDirectory(interpreter *Interpreter, args []interface{}) (interface{
 	var listErr error
 
 	if recursive {
-		interpreter.logger.Printf("[TOOL ListDirectory] Walking recursively...")
+		interpreter.logger.Info("Tool: ListDirectory] Walking recursively...")
 		walkErr := filepath.WalkDir(absBasePath, func(currentPath string, d fs.DirEntry, err error) error {
 			if err != nil {
-				interpreter.logger.Printf("[TOOL ListDirectory Walk] Error accessing %q during walk: %v", currentPath, err)
+				interpreter.logger.Info("Tool: ListDirectory Walk] Error accessing %q during walk: %v", currentPath, err)
 				return fmt.Errorf("error accessing %q: %w", currentPath, err)
 			}
 			if currentPath == absBasePath { // Skip root
@@ -132,13 +132,13 @@ func toolListDirectory(interpreter *Interpreter, args []interface{}) (interface{
 
 			info, infoErr := d.Info()
 			if infoErr != nil {
-				interpreter.logger.Printf("[TOOL ListDirectory Walk] Error getting FileInfo for %q: %v", currentPath, infoErr)
+				interpreter.logger.Info("Tool: ListDirectory Walk] Error getting FileInfo for %q: %v", currentPath, infoErr)
 				return nil // Skip entry
 			}
 
 			entryRelPath, relErr := filepath.Rel(absBasePath, currentPath)
 			if relErr != nil {
-				interpreter.logger.Printf("[TOOL ListDirectory Walk] Error calculating relative path for %q (base %q): %v", currentPath, absBasePath, relErr)
+				interpreter.logger.Info("Tool: ListDirectory Walk] Error calculating relative path for %q (base %q): %v", currentPath, absBasePath, relErr)
 				return nil // Skip entry
 			}
 
@@ -156,7 +156,7 @@ func toolListDirectory(interpreter *Interpreter, args []interface{}) (interface{
 		listErr = walkErr
 
 	} else {
-		interpreter.logger.Printf("[TOOL ListDirectory] Reading directory non-recursively...")
+		interpreter.logger.Info("Tool: ListDirectory] Reading directory non-recursively...")
 		entries, readErr := os.ReadDir(absBasePath)
 		if readErr != nil {
 			listErr = fmt.Errorf("failed reading directory %q: %w", relPath, readErr)
@@ -169,7 +169,7 @@ func toolListDirectory(interpreter *Interpreter, args []interface{}) (interface{
 					size = info.Size()
 					modTime = info.ModTime()
 				} else {
-					interpreter.logger.Printf("[TOOL ListDirectory] Error getting FileInfo for %q: %v", entry.Name(), infoErr)
+					interpreter.logger.Info("Tool: ListDirectory] Error getting FileInfo for %q: %v", entry.Name(), infoErr)
 				}
 
 				// --- Standardized Map ---
@@ -188,12 +188,12 @@ func toolListDirectory(interpreter *Interpreter, args []interface{}) (interface{
 	// --- Handle Errors from Listing ---
 	if listErr != nil {
 		errMsg := fmt.Sprintf("ListDirectory: Failed listing directory %q (Recursive: %t): %v", relPath, recursive, listErr)
-		interpreter.logger.Printf("[TOOL ListDirectory] %s", errMsg)
+		interpreter.logger.Info("Tool: ListDirectory] %s", errMsg)
 		// Tests expect ErrInternalTool here
 		return nil, fmt.Errorf("TOOL.ListDirectory: %w: %w", ErrInternalTool, listErr)
 	}
 
-	interpreter.logger.Printf("[TOOL ListDirectory] Listing successful for %q (Recursive: %t). Found %d entries.", relPath, recursive, len(fileInfos))
+	interpreter.logger.Info("Tool: ListDirectory] Listing successful for %q (Recursive: %t). Found %d entries.", relPath, recursive, len(fileInfos))
 
 	// --- REMOVED conversion to []interface{} ---
 	return fileInfos, nil // Return []map[string]interface{} directly
@@ -216,7 +216,7 @@ func toolMkdir(interpreter *Interpreter, args []interface{}) (interface{}, error
 	// Path Security Validation
 	sandboxRoot := interpreter.sandboxDir
 	if sandboxRoot == "" {
-		interpreter.logger.Printf("[WARN TOOL Mkdir] Interpreter sandboxDir is empty, using default relative path validation from current directory.")
+		interpreter.logger.Warn("TOOL Mkdir] Interpreter sandboxDir is empty, using default relative path validation from current directory.")
 		sandboxRoot = "."
 	}
 	parentDir := filepath.Dir(relPath)
@@ -230,7 +230,7 @@ func toolMkdir(interpreter *Interpreter, args []interface{}) (interface{}, error
 	absBasePath, secErr := SecureFilePath(parentDir, sandboxRoot)
 	if secErr != nil {
 		errMsg := fmt.Sprintf("Mkdir path security error for parent of %q: %v", relPath, secErr)
-		interpreter.logger.Printf("[TOOL Mkdir] %s (Sandbox Root: %s)", errMsg, sandboxRoot)
+		interpreter.logger.Info("Tool: Mkdir] %s (Sandbox Root: %s)", errMsg, sandboxRoot)
 		return errMsg, fmt.Errorf("TOOL.Mkdir: %w", secErr)
 	}
 
@@ -259,22 +259,22 @@ func toolMkdir(interpreter *Interpreter, args []interface{}) (interface{}, error
 	if isOutside {
 		secErr = fmt.Errorf("%w: resultant path '%s' escapes validated base '%s'", ErrPathViolation, relPath, parentDir)
 		errMsg := fmt.Sprintf("Mkdir path security error for %q: %v", relPath, secErr)
-		interpreter.logger.Printf("[TOOL Mkdir] Error: %s", errMsg)
+		interpreter.logger.Info("Tool: Mkdir] Error: %s", errMsg)
 		return errMsg, fmt.Errorf("TOOL.Mkdir: %w", secErr)
 	}
 
-	interpreter.logger.Printf("[TOOL Mkdir] Validated base path: %s. Attempting to create: %s", cleanAbsBasePath, cleanAbsPathToCreate)
+	interpreter.logger.Info("Tool: Mkdir] Validated base path: %s. Attempting to create: %s", cleanAbsBasePath, cleanAbsPathToCreate)
 
 	// Create Directory
 	err := os.MkdirAll(cleanAbsPathToCreate, 0755)
 	if err != nil {
 		errMsg := fmt.Sprintf("Failed to create directory '%s': %v", relPath, err)
-		interpreter.logger.Printf("[TOOL Mkdir] %s", errMsg)
+		interpreter.logger.Info("Tool: Mkdir] %s", errMsg)
 		return errMsg, fmt.Errorf("TOOL.Mkdir: %w", err)
 	}
 
 	// Success
 	successMsg := fmt.Sprintf("Successfully created directory: %s", relPath)
-	interpreter.logger.Printf("[TOOL Mkdir] %s", successMsg)
+	interpreter.logger.Info("Tool: Mkdir] %s", successMsg)
 	return successMsg, nil
 }

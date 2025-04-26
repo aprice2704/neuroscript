@@ -38,7 +38,7 @@ func toolExtractMetadataFromString(interpreter *Interpreter, args []interface{})
 		if len(logSnippet) > maxLen {
 			logSnippet = logSnippet[:maxLen] + "..."
 		}
-		interpreter.logger.Printf("[TOOL ExtractMetadata] Extracting from content (snippet): %q", logSnippet)
+		interpreter.logger.Info("Tool: ExtractMetadata] Extracting from content (snippet): %q", logSnippet)
 	}
 
 	// Call the actual extraction function from the metadata package
@@ -48,7 +48,7 @@ func toolExtractMetadataFromString(interpreter *Interpreter, args []interface{})
 		// If it could, we'd handle it here.
 		errMsg := fmt.Sprintf("ExtractMetadata failed: %s", err.Error())
 		if interpreter.logger != nil {
-			interpreter.logger.Printf("[ERROR TOOL ExtractMetadata] %s", errMsg)
+			interpreter.logger.Error("TOOL ExtractMetadata] %s", errMsg)
 		}
 		return errMsg, nil // Return error message as string
 	}
@@ -60,7 +60,7 @@ func toolExtractMetadataFromString(interpreter *Interpreter, args []interface{})
 	}
 
 	if interpreter.logger != nil {
-		interpreter.logger.Printf("[TOOL ExtractMetadata] Extracted %d metadata pairs.", len(metadataMapInterface))
+		interpreter.logger.Info("Tool: ExtractMetadata] Extracted %d metadata pairs.", len(metadataMapInterface))
 	}
 
 	return metadataMapInterface, nil // Return the map

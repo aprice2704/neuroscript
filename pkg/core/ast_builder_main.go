@@ -2,13 +2,12 @@
 package core
 
 import (
-	"io"
-	"log"
 	"strconv" // Needed for Unquote
 
 	// "strings" // Not needed directly here
 	"github.com/antlr4-go/antlr/v4" // Import antlr
 	gen "github.com/aprice2704/neuroscript/pkg/core/generated"
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 )
 
 // neuroScriptListenerImpl builds the AST.
@@ -24,14 +23,14 @@ type neuroScriptListenerImpl struct {
 
 	blockSteps map[antlr.ParserRuleContext][]Step // For IF/ELSE step collection
 
-	logger   *log.Logger
+	logger   interfaces.Logger
 	debugAST bool
 }
 
 // newNeuroScriptListener creates a new listener instance.
-func newNeuroScriptListener(logger *log.Logger, debugAST bool) *neuroScriptListenerImpl {
+func newNeuroScriptListener(logger interfaces.Logger, debugAST bool) *neuroScriptListenerImpl {
 	if logger == nil {
-		logger = log.New(io.Discard, "", 0) // Default to discarding logs if none provided
+		panic("NeuroScript listener must have valid logger")
 	}
 	return &neuroScriptListenerImpl{
 		fileVersion:    "", // <-- ADDED: Initialize
@@ -56,7 +55,7 @@ func (l *neuroScriptListenerImpl) pushValue(v interface{}) {
 }
 func (l *neuroScriptListenerImpl) popValue() (interface{}, bool) {
 	if len(l.valueStack) == 0 {
-		l.logger.Println("[ERROR] AST Builder: Pop from empty value stack!")
+		l.logger.Error("AST Builder: Pop from empty value stack!")
 		return nil, false
 	}
 	index := len(l.valueStack) - 1
@@ -67,7 +66,7 @@ func (l *neuroScriptListenerImpl) popValue() (interface{}, bool) {
 }
 func (l *neuroScriptListenerImpl) popNValues(n int) ([]interface{}, bool) {
 	if len(l.valueStack) < n {
-		l.logger.Printf("[ERROR] AST Builder: Stack underflow pop %d, have %d.", n, len(l.valueStack))
+		l.logger.Error("AST Builder: Stack underflow pop %d, have %d.", n, len(l.valueStack))
 		return nil, false
 	}
 	startIndex := len(l.valueStack) - n
@@ -82,7 +81,7 @@ func (l *neuroScriptListenerImpl) popNValues(n int) ([]interface{}, bool) {
 func (l *neuroScriptListenerImpl) GetResult() []Procedure { return l.procedures }
 func (l *neuroScriptListenerImpl) logDebugAST(format string, v ...interface{}) {
 	if l.debugAST {
-		l.logger.Printf(format, v...)
+		l.logger.Debug(format, v...)
 	}
 }
 func (l *neuroScriptListenerImpl) EnterProgram(ctx *gen.ProgramContext) {
@@ -100,7 +99,7 @@ func (l *neuroScriptListenerImpl) ExitFile_version_decl(ctx *gen.File_version_de
 		versionStr := ctx.STRING_LIT().GetText()
 		unquotedVersion, err := strconv.Unquote(versionStr)
 		if err != nil {
-			l.logger.Printf("[WARN] Failed to unquote FILE_VERSION string literal: %q - %v", versionStr, err)
+			l.logger.Warn("Failed to unquote FILE_VERSION string literal: %q - %v", versionStr, err)
 			// Optionally store the raw string or report error more formally
 			l.fileVersion = versionStr // Store raw as fallback
 		} else {
@@ -108,7 +107,7 @@ func (l *neuroScriptListenerImpl) ExitFile_version_decl(ctx *gen.File_version_de
 			l.logDebugAST("    Captured FILE_VERSION: %q", l.fileVersion)
 		}
 	} else {
-		l.logger.Printf("[WARN] FILE_VERSION keyword found but missing string literal value.")
+		l.logger.Warn("FILE_VERSION keyword found but missing string literal value.")
 	}
 }
 

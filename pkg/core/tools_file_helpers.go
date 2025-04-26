@@ -7,9 +7,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"os"
 
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/google/generative-ai-go/genai"
 	"google.golang.org/api/iterator"
 )
@@ -31,28 +31,28 @@ func toolDeleteAPIFile(interpreter *Interpreter, args []interface{}) (interface{
 	if apiFileName == "" {
 		return nil, errors.New("TOOL.DeleteAPIFile: API file name cannot be empty")
 	}
-	interpreter.logger.Printf("[TOOL DeleteAPIFile] Attempting delete: %s", apiFileName)
+	interpreter.logger.Info("Tool: DeleteAPIFile] Attempting delete: %s", apiFileName)
 	err := client.DeleteFile(context.Background(), apiFileName)
 	if err != nil {
 		errMsg := fmt.Sprintf("Failed delete %s: %v", apiFileName, err)
-		interpreter.logger.Printf("[TOOL DeleteAPIFile] Error: %s", errMsg)
+		interpreter.logger.Info("Tool: DeleteAPIFile] Error: %s", errMsg)
 		return map[string]interface{}{"error": errMsg}, fmt.Errorf("TOOL.DeleteAPIFile: %w", err)
 	}
 	successMsg := fmt.Sprintf("Successfully deleted: %s", apiFileName)
-	interpreter.logger.Printf("[TOOL DeleteAPIFile] %s", successMsg)
+	interpreter.logger.Info("Tool: DeleteAPIFile] %s", successMsg)
 	return map[string]interface{}{"status": "success", "message": successMsg}, nil
 }
 
 // --- Helper: List API Files Helper ---
 // (Function unchanged)
-func HelperListApiFiles(ctx context.Context, client *genai.Client, logger *log.Logger) ([]*genai.File, error) {
+func HelperListApiFiles(ctx context.Context, client *genai.Client, logger interfaces.Logger) ([]*genai.File, error) {
 	if client == nil {
 		return nil, errors.New("genai client is nil")
 	}
 	if logger == nil {
-		logger = log.New(io.Discard, "", 0)
+		panic("List API files needs a valid logger")
 	}
-	logger.Println("[API HELPER List] Fetching file list from API...")
+	logger.Debug("[API HELPER List] Fetching file list from API...")
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -67,14 +67,14 @@ func HelperListApiFiles(ctx context.Context, client *genai.Client, logger *log.L
 		}
 		if err != nil {
 			errMsg := fmt.Sprintf("Error fetching file list page: %v", err)
-			logger.Printf("[API HELPER List] %s", errMsg)
+			logger.Debug("[API HELPER List] %s", errMsg)
 			fetchErrors++
 			continue
 		}
 		results = append(results, file)
 		fileCount++
 	}
-	logger.Printf("[API HELPER List] Found %d files. Encountered %d errors during fetch.", fileCount, fetchErrors)
+	logger.Debug("[API HELPER List] Found %d files. Encountered %d errors during fetch.", fileCount, fetchErrors)
 	if fetchErrors > 0 {
 		return results, fmt.Errorf("encountered %d errors fetching file list", fetchErrors)
 	}

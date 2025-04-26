@@ -16,13 +16,13 @@ import (
 // Requires access to syncContext definition (from sync_types.go).
 // VERSION 2: Uses specific loggers from syncContext
 func listExistingAPIFiles_v2(sc *syncContext) (map[string]*genai.File, error) {
-	sc.infoLog.Println("[API HELPER Sync] Listing current API files...")
+	sc.logger.Debug("[API HELPER Sync] Listing current API files...")
 
 	if sc.client == nil {
 		return nil, errors.New("genai client is nil in listExistingAPIFiles")
 	}
 
-	sc.infoLog.Println("[API HELPER List] Fetching file list from API...") // Use infoLog
+	sc.logger.Debug("[API HELPER List] Fetching file list from API...") // Use infoLog
 	if sc.ctx == nil {
 		sc.ctx = context.Background()
 	}
@@ -37,13 +37,13 @@ func listExistingAPIFiles_v2(sc *syncContext) (map[string]*genai.File, error) {
 		}
 		if err != nil {
 			errMsg := fmt.Sprintf("Error fetching file list page: %v", err)
-			sc.errorLog.Printf("[API HELPER List] %s", errMsg) // Use errorLog
+			sc.logger.Error("[API HELPER List] %s", errMsg) // Use errorLog
 			fetchErrors++
 			continue
 		}
 		results = append(results, file)
 	}
-	sc.infoLog.Printf("[API HELPER List] Found %d files. Encountered %d errors during fetch.", len(results), fetchErrors) // Use infoLog
+	sc.logger.Info("[API HELPER List] Found %d files. Encountered %d errors during fetch.", len(results), fetchErrors) // Use infoLog
 
 	apiFilesMap := make(map[string]*genai.File)
 	for _, file := range results {
@@ -53,18 +53,18 @@ func listExistingAPIFiles_v2(sc *syncContext) (map[string]*genai.File, error) {
 			if len(file.Sha256Hash) > 0 {
 				hashPrefix = hex.EncodeToString(file.Sha256Hash)[:min(len(hex.EncodeToString(file.Sha256Hash)), 8)]
 			}
-			sc.debugLog.Printf("[DEBUG API HELPER Sync] API File Found: Name=%s, DisplayName=%s, SHA=%s...", file.Name, file.DisplayName, hashPrefix) // Use debugLog
+			sc.logger.Debug("API HELPER Sync] API File Found: Name=%s, DisplayName=%s, SHA=%s...", file.Name, file.DisplayName, hashPrefix) // Use debugLog
 		} else {
-			sc.debugLog.Printf("[WARN API HELPER Sync] API File Found empty DisplayName: %s", file.Name) // Use debugLog
+			sc.logger.Warn("[WARN API HELPER Sync] API File Found empty DisplayName: %s", file.Name) // Use debugLog
 		}
 	}
-	sc.infoLog.Printf("[API HELPER Sync] Found %d API files.", len(apiFilesMap)) // Use infoLog
+	sc.logger.Info("[API HELPER Sync] Found %d API files.", len(apiFilesMap)) // Use infoLog
 
 	var returnErr error
 	if fetchErrors > 0 {
 		sc.incrementStat("list_api_errors")
 		returnErr = fmt.Errorf("encountered %d errors fetching file list", fetchErrors)
-		sc.errorLog.Printf("[ERROR API HELPER Sync] List API files finished with errors: %v", returnErr) // Use errorLog
+		sc.logger.Error("[ERROR API HELPER Sync] List API files finished with errors: %v", returnErr) // Use errorLog
 	}
 
 	return apiFilesMap, returnErr

@@ -26,11 +26,11 @@ func toolDeleteFile(interpreter *Interpreter, args []interface{}) (interface{}, 
 	absPath, secErr := SecureFilePath(relPath, sandboxRoot)
 	if secErr != nil { /* ... */
 		errMsg := fmt.Sprintf("DeleteFile path security error for %q: %v", relPath, secErr)
-		interpreter.logger.Printf("[TOOL DeleteFile] %s (Sandbox Root: %s)", errMsg, sandboxRoot)
+		interpreter.logger.Info("Tool: DeleteFile] %s (Sandbox Root: %s)", errMsg, sandboxRoot)
 		return errMsg, fmt.Errorf("TOOL.DeleteFile: %w", secErr)
 	}
 
-	interpreter.logger.Printf("[TOOL DeleteFile] Validated path: %s. Attempting deletion.", absPath)
+	interpreter.logger.Info("Tool: DeleteFile] Validated path: %s. Attempting deletion.", absPath)
 
 	// --- Perform Deletion ---
 	err := os.Remove(absPath)
@@ -40,7 +40,7 @@ func toolDeleteFile(interpreter *Interpreter, args []interface{}) (interface{}, 
 		// --- FIX: Handle ErrNotExist specifically to match test expectation ---
 		if errors.Is(err, os.ErrNotExist) {
 			errMsg := fmt.Sprintf("File or directory not found: %s", relPath)
-			interpreter.logger.Printf("[TOOL DeleteFile] Info: %s", errMsg)
+			interpreter.logger.Info("Tool: DeleteFile] Info: %s", errMsg)
 			// Test expects "OK" and nil error even if not found
 			// return errMsg, nil // Return specific message, nil Go error
 			return "OK", nil // Return "OK" and nil error to match test expectation literally
@@ -53,7 +53,7 @@ func toolDeleteFile(interpreter *Interpreter, args []interface{}) (interface{}, 
 			strings.Contains(errMsgText, "The directory is not empty.") // Windows? (Guessing)
 
 		errMsg := fmt.Sprintf("Failed to delete '%s': %v", relPath, err)
-		interpreter.logger.Printf("[TOOL DeleteFile] Error: %s", errMsg)
+		interpreter.logger.Info("Tool: DeleteFile] Error: %s", errMsg)
 
 		if isDirNotEmptyErr {
 			// Return the specific message string AND the wrapped sentinel error
@@ -65,7 +65,7 @@ func toolDeleteFile(interpreter *Interpreter, args []interface{}) (interface{}, 
 	}
 
 	// --- Success ---
-	interpreter.logger.Printf("[TOOL DeleteFile] Successfully deleted: %s", relPath)
+	interpreter.logger.Info("Tool: DeleteFile] Successfully deleted: %s", relPath)
 	// --- FIX: Return "OK" on success to match test ---
 	return "OK", nil
 	// --- END FIX ---

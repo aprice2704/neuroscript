@@ -12,7 +12,7 @@ import (
 	// "log" // No longer needed
 	"strings"
 	"testing"
-	// Assumes Interpreter and newDefaultTestInterpreter are defined
+	// Assumes Interpreter and core.NewDefaultTestInterpreter are defined
 	// in this package (core), likely via universal_test_helpers.go
 )
 
@@ -30,7 +30,7 @@ func formatNode(fset *token.FileSet, node ast.Node) (string, error) {
 func TestApplyAstImportChanges(t *testing.T) {
 	// Use the *existing* helper function to get an interpreter instance
 	// *** FIX: Pass 't' argument to the helper ***
-	testInterpreter, interpErr := newDefaultTestInterpreter(t) // Assume it returns (*Interpreter, error)
+	testInterpreter, interpErr := core.NewDefaultTestInterpreter(t) // Assume it returns (*core.Interpreter, error)
 	if interpErr != nil {
 		// *** FIX: Check the 'interpErr' variable, not 'err' ***
 		t.Fatalf("Failed to create default test interpreter: %v", interpErr)

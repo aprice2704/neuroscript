@@ -15,16 +15,16 @@ func (sl *SecurityLayer) validateArgumentsAgainstSpec(toolSpec ToolSpec, rawArgs
 		argName := specArg.Name
 		rawValue, argProvided := rawArgs[argName]
 
-		sl.logger.Printf("[SEC VALIDATE] Checking arg '%s': Provided=%t, Required=%t, SpecType=%s", argName, argProvided, specArg.Required, specArg.Type)
+		sl.logger.Debug("VALIDATE] Checking arg '%s': Provided=%t, Required=%t, SpecType=%s", argName, argProvided, specArg.Required, specArg.Type)
 
 		if !argProvided {
 			if specArg.Required {
 				// *** FIXED: Use Sentinel Error + Wrapping ***
 				err := fmt.Errorf("required argument %q missing for tool %q: %w", argName, toolSpec.Name, ErrMissingArgument)
-				sl.logger.Printf("[SEC VALIDATE] DENIED: %v", err)
+				sl.logger.Debug("VALIDATE] DENIED: %v", err)
 				return nil, err
 			}
-			sl.logger.Printf("[SEC VALIDATE] Optional arg '%s' not provided.", argName)
+			sl.logger.Debug("VALIDATE] Optional arg '%s' not provided.", argName)
 			continue
 		}
 
@@ -43,7 +43,7 @@ func (sl *SecurityLayer) validateArgumentsAgainstSpec(toolSpec ToolSpec, rawArgs
 		if validationError != nil {
 			// *** FIXED: Wrap Sentinel Error ***
 			err := fmt.Errorf("content validation failed for argument %q: %w", argName, validationError)
-			sl.logger.Printf("[SEC VALIDATE] DENIED: %v", err)
+			sl.logger.Debug("VALIDATE] DENIED: %v", err)
 			return nil, err
 		}
 
@@ -51,7 +51,7 @@ func (sl *SecurityLayer) validateArgumentsAgainstSpec(toolSpec ToolSpec, rawArgs
 		validatedValue, validationError = sl.validateAndCoerceType(rawValue, specArg.Type, toolSpec.Name, argName)
 		if validationError != nil {
 			// Error from validateAndCoerceType should already be properly formatted/wrapped
-			sl.logger.Printf("[SEC VALIDATE] DENIED (Type Coercion): %v", validationError)
+			sl.logger.Debug("VALIDATE] DENIED (Type Coercion): %v", validationError)
 			// *** FIXED: Wrap type validation error with context ***
 			// Wrap the already wrapped error coming from validateAndCoerceType
 			return nil, fmt.Errorf("type validation failed for argument %q of tool %q: %w", argName, toolSpec.Name, validationError)
@@ -70,7 +70,7 @@ func (sl *SecurityLayer) validateArgumentsAgainstSpec(toolSpec ToolSpec, rawArgs
 		if validationError != nil {
 			// *** FIXED: Wrap Sentinel Error ***
 			err := fmt.Errorf("tool-specific validation failed for argument %q of tool %q: %w", argName, toolSpec.Name, validationError)
-			sl.logger.Printf("[SEC VALIDATE] DENIED (Tool Specific Check): %v", err)
+			sl.logger.Debug("VALIDATE] DENIED (Tool Specific Check): %v", err)
 			return nil, err
 		}
 
@@ -91,16 +91,16 @@ func (sl *SecurityLayer) validateArgumentsAgainstSpec(toolSpec ToolSpec, rawArgs
 				// Wrap the error from SecureFilePath with context
 				// *** FIXED: Wrap returned error ***
 				err := fmt.Errorf("sandbox validation failed for path argument %q (%q) relative to root %q: %w", argName, pathStr, sl.sandboxRoot, pathErr)
-				sl.logger.Printf("[SEC VALIDATE] DENIED (Sandbox): %v", err)
+				sl.logger.Debug("VALIDATE] DENIED (Sandbox): %v", err)
 				return nil, err
 			}
 			// Store the validated *relative* path string back.
 			validatedValue = pathStr
-			sl.logger.Printf("[SEC VALIDATE] Path argument '%s' (%q) validated successfully within sandbox %q.", argName, pathStr, sl.sandboxRoot)
+			sl.logger.Debug("VALIDATE] Path argument '%s' (%q) validated successfully within sandbox %q.", argName, pathStr, sl.sandboxRoot)
 		}
 
 		validatedArgs[argName] = validatedValue
-		sl.logger.Printf("[SEC VALIDATE] Arg '%s' validated successfully. Value: %v (%T)", argName, validatedValue, validatedValue)
+		sl.logger.Debug("VALIDATE] Arg '%s' validated successfully. Value: %v (%T)", argName, validatedValue, validatedValue)
 
 	} // End loop through spec args
 
@@ -114,7 +114,7 @@ func (sl *SecurityLayer) validateArgumentsAgainstSpec(toolSpec ToolSpec, rawArgs
 			}
 		}
 		if !foundInSpec {
-			sl.logger.Printf("[WARN SEC VALIDATE] Tool '%s' called with unexpected argument '%s'. Ignoring.", toolSpec.Name, rawArgName)
+			sl.logger.Warn("SEC VALIDATE] Tool '%s' called with unexpected argument '%s'. Ignoring.", toolSpec.Name, rawArgName)
 			// Potentially return an error here if unexpected args are strictly disallowed
 			// return nil, fmt.Errorf("unexpected argument %q provided for tool %q: %w", rawArgName, toolSpec.Name, ErrInvalidArgument)
 		}

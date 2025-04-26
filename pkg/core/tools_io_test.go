@@ -18,41 +18,41 @@ import (
 func TestToolIOInputValidation(t *testing.T) {
 	// Create a default test interpreter to access the tool registry and spec
 	// Ignore the sandbox path as it's not needed for validation testing.
-	interp, _ := newDefaultTestInterpreter(t)
+	interp, _ := NewDefaultTestInterpreter(t)
 
 	// --- Define Test Cases ---
-	// Use standard Go types and the makeArgs helper
+	// Use standard Go types and the MakeArgs helper
 	testCases := []ValidationTestCase{
 		{
 			Name:          "Valid prompt (string)",
-			InputArgs:     makeArgs("Enter name: "), // Use makeArgs and string literal
+			InputArgs:     MakeArgs("Enter name: "), // Use MakeArgs and string literal
 			ExpectedError: nil,                      // Validation should pass
 		},
 		{
 			Name:          "No arguments",
-			InputArgs:     makeArgs(), // Use makeArgs for empty slice
+			InputArgs:     MakeArgs(), // Use MakeArgs for empty slice
 			ExpectedError: ErrValidationArgCount,
 		},
 		{
 			Name:          "Too many arguments",
-			InputArgs:     makeArgs("prompt", "extra"), // Use makeArgs
+			InputArgs:     MakeArgs("prompt", "extra"), // Use MakeArgs
 			ExpectedError: ErrValidationArgCount,
 		},
 		{
 			Name:          "Incorrect argument type (number)",
-			InputArgs:     makeArgs(int64(123)), // Use makeArgs and int64
+			InputArgs:     MakeArgs(int64(123)), // Use MakeArgs and int64
 			ExpectedError: ErrValidationTypeMismatch,
 		},
 		{
 			Name:          "Incorrect argument type (bool)",
-			InputArgs:     makeArgs(true), // Use makeArgs and bool
+			InputArgs:     MakeArgs(true), // Use MakeArgs and bool
 			ExpectedError: ErrValidationTypeMismatch,
 		},
 		{
 			// Although nil is not the *correct* type (string expected),
 			// ValidateAndConvertArgs should catch it as a required arg being nil first.
 			Name:          "Incorrect argument type (nil)",
-			InputArgs:     makeArgs(nil), // Use makeArgs and nil
+			InputArgs:     MakeArgs(nil), // Use MakeArgs and nil
 			ExpectedError: ErrValidationRequiredArgNil,
 		},
 	}

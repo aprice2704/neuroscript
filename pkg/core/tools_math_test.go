@@ -87,7 +87,7 @@ func testMathToolHelper(t *testing.T, interp *Interpreter, tc struct {
 }
 
 func TestToolAdd(t *testing.T) {
-	interp, _ := newDefaultTestInterpreter(t)
+	interp, _ := NewDefaultTestInterpreter(t)
 	tests := []struct {
 		name          string
 		toolName      string
@@ -96,23 +96,23 @@ func TestToolAdd(t *testing.T) {
 		wantToolErrIs error
 		valWantErrIs  error
 	}{
-		{name: "Add Integers", toolName: "Add", args: makeArgs(int64(5), int64(3)), wantResult: float64(8)},
-		{name: "Add Floats", toolName: "Add", args: makeArgs(float64(2.5), float64(1.5)), wantResult: float64(4.0)},
-		{name: "Add Mixed Int/Float", toolName: "Add", args: makeArgs(int64(5), float64(2.5)), wantResult: float64(7.5)},
-		{name: "Add Mixed Float/Int", toolName: "Add", args: makeArgs(float64(1.5), int64(3)), wantResult: float64(4.5)},
-		{name: "Add Zero", toolName: "Add", args: makeArgs(int64(10), int64(0)), wantResult: float64(10)},
-		{name: "Add Negative", toolName: "Add", args: makeArgs(int64(5), int64(-2)), wantResult: float64(3)},
-		{name: "Add Negative Floats", toolName: "Add", args: makeArgs(float64(-1.5), float64(-0.5)), wantResult: float64(-2.0)},
-		{name: "Add String Number Coercion", toolName: "Add", args: makeArgs("10", "20.5"), wantResult: float64(30.5)}, // Validation should coerce
+		{name: "Add Integers", toolName: "Add", args: MakeArgs(int64(5), int64(3)), wantResult: float64(8)},
+		{name: "Add Floats", toolName: "Add", args: MakeArgs(float64(2.5), float64(1.5)), wantResult: float64(4.0)},
+		{name: "Add Mixed Int/Float", toolName: "Add", args: MakeArgs(int64(5), float64(2.5)), wantResult: float64(7.5)},
+		{name: "Add Mixed Float/Int", toolName: "Add", args: MakeArgs(float64(1.5), int64(3)), wantResult: float64(4.5)},
+		{name: "Add Zero", toolName: "Add", args: MakeArgs(int64(10), int64(0)), wantResult: float64(10)},
+		{name: "Add Negative", toolName: "Add", args: MakeArgs(int64(5), int64(-2)), wantResult: float64(3)},
+		{name: "Add Negative Floats", toolName: "Add", args: MakeArgs(float64(-1.5), float64(-0.5)), wantResult: float64(-2.0)},
+		{name: "Add String Number Coercion", toolName: "Add", args: MakeArgs("10", "20.5"), wantResult: float64(30.5)}, // Validation should coerce
 		// Validation Errors
-		{name: "Non-Numeric String Arg1", toolName: "Add", args: makeArgs("abc", int64(1)), valWantErrIs: ErrValidationTypeMismatch},
-		{name: "Non-Numeric String Arg2", toolName: "Add", args: makeArgs(int64(1), "def"), valWantErrIs: ErrValidationTypeMismatch},
-		{name: "Boolean Arg1", toolName: "Add", args: makeArgs(true, int64(1)), valWantErrIs: ErrValidationTypeMismatch},
-		{name: "Slice Arg2", toolName: "Add", args: makeArgs(int64(1), []string{"a"}), valWantErrIs: ErrValidationTypeMismatch},
-		{name: "Nil Arg1", toolName: "Add", args: makeArgs(nil, int64(1)), valWantErrIs: ErrValidationRequiredArgNil},
-		{name: "Nil Arg2", toolName: "Add", args: makeArgs(int64(1), nil), valWantErrIs: ErrValidationRequiredArgNil},
-		{name: "Wrong Arg Count (1)", toolName: "Add", args: makeArgs(int64(1)), valWantErrIs: ErrValidationArgCount},
-		{name: "Wrong Arg Count (0)", toolName: "Add", args: makeArgs(), valWantErrIs: ErrValidationArgCount},
+		{name: "Non-Numeric String Arg1", toolName: "Add", args: MakeArgs("abc", int64(1)), valWantErrIs: ErrValidationTypeMismatch},
+		{name: "Non-Numeric String Arg2", toolName: "Add", args: MakeArgs(int64(1), "def"), valWantErrIs: ErrValidationTypeMismatch},
+		{name: "Boolean Arg1", toolName: "Add", args: MakeArgs(true, int64(1)), valWantErrIs: ErrValidationTypeMismatch},
+		{name: "Slice Arg2", toolName: "Add", args: MakeArgs(int64(1), []string{"a"}), valWantErrIs: ErrValidationTypeMismatch},
+		{name: "Nil Arg1", toolName: "Add", args: MakeArgs(nil, int64(1)), valWantErrIs: ErrValidationRequiredArgNil},
+		{name: "Nil Arg2", toolName: "Add", args: MakeArgs(int64(1), nil), valWantErrIs: ErrValidationRequiredArgNil},
+		{name: "Wrong Arg Count (1)", toolName: "Add", args: MakeArgs(int64(1)), valWantErrIs: ErrValidationArgCount},
+		{name: "Wrong Arg Count (0)", toolName: "Add", args: MakeArgs(), valWantErrIs: ErrValidationArgCount},
 	}
 	for _, tt := range tests {
 		testMathToolHelper(t, interp, tt)
@@ -122,7 +122,7 @@ func TestToolAdd(t *testing.T) {
 // Add tests for other math tools (Subtract, Multiply, Divide, Modulo) similarly...
 // Example for Subtract:
 func TestToolSubtract(t *testing.T) {
-	interp, _ := newDefaultTestInterpreter(t)
+	interp, _ := NewDefaultTestInterpreter(t)
 	tests := []struct {
 		name          string
 		toolName      string
@@ -131,11 +131,11 @@ func TestToolSubtract(t *testing.T) {
 		wantToolErrIs error
 		valWantErrIs  error
 	}{
-		{name: "Subtract Integers", toolName: "Subtract", args: makeArgs(int64(5), int64(3)), wantResult: float64(2)},
-		{name: "Subtract Floats", toolName: "Subtract", args: makeArgs(float64(2.5), float64(1.5)), wantResult: float64(1.0)},
-		{name: "Subtract String Number Coercion", toolName: "Subtract", args: makeArgs("10", "5.5"), wantResult: float64(4.5)},
-		{name: "Validation Nil Arg1", toolName: "Subtract", args: makeArgs(nil, int64(1)), valWantErrIs: ErrValidationRequiredArgNil},
-		{name: "Validation Wrong Type Arg2", toolName: "Subtract", args: makeArgs(int64(1), "abc"), valWantErrIs: ErrValidationTypeMismatch},
+		{name: "Subtract Integers", toolName: "Subtract", args: MakeArgs(int64(5), int64(3)), wantResult: float64(2)},
+		{name: "Subtract Floats", toolName: "Subtract", args: MakeArgs(float64(2.5), float64(1.5)), wantResult: float64(1.0)},
+		{name: "Subtract String Number Coercion", toolName: "Subtract", args: MakeArgs("10", "5.5"), wantResult: float64(4.5)},
+		{name: "Validation Nil Arg1", toolName: "Subtract", args: MakeArgs(nil, int64(1)), valWantErrIs: ErrValidationRequiredArgNil},
+		{name: "Validation Wrong Type Arg2", toolName: "Subtract", args: MakeArgs(int64(1), "abc"), valWantErrIs: ErrValidationTypeMismatch},
 	}
 	for _, tt := range tests {
 		testMathToolHelper(t, interp, tt)
@@ -144,7 +144,7 @@ func TestToolSubtract(t *testing.T) {
 
 // Example for Divide:
 func TestToolDivide(t *testing.T) {
-	interp, _ := newDefaultTestInterpreter(t)
+	interp, _ := NewDefaultTestInterpreter(t)
 	tests := []struct {
 		name          string
 		toolName      string
@@ -153,12 +153,12 @@ func TestToolDivide(t *testing.T) {
 		wantToolErrIs error
 		valWantErrIs  error
 	}{
-		{name: "Divide Integers", toolName: "Divide", args: makeArgs(int64(10), int64(2)), wantResult: float64(5.0)},
-		{name: "Divide Floats", toolName: "Divide", args: makeArgs(float64(5.0), float64(2.0)), wantResult: float64(2.5)},
-		{name: "Divide by Zero", toolName: "Divide", args: makeArgs(int64(10), int64(0)), wantToolErrIs: ErrInternalTool}, // Division by zero is an execution error
-		{name: "Divide Zero by Number", toolName: "Divide", args: makeArgs(int64(0), int64(5)), wantResult: float64(0.0)},
-		{name: "Validation Nil Arg1", toolName: "Divide", args: makeArgs(nil, int64(1)), valWantErrIs: ErrValidationRequiredArgNil},
-		{name: "Validation Wrong Type Arg2", toolName: "Divide", args: makeArgs(int64(1), false), valWantErrIs: ErrValidationTypeMismatch},
+		{name: "Divide Integers", toolName: "Divide", args: MakeArgs(int64(10), int64(2)), wantResult: float64(5.0)},
+		{name: "Divide Floats", toolName: "Divide", args: MakeArgs(float64(5.0), float64(2.0)), wantResult: float64(2.5)},
+		{name: "Divide by Zero", toolName: "Divide", args: MakeArgs(int64(10), int64(0)), wantToolErrIs: ErrInternalTool}, // Division by zero is an execution error
+		{name: "Divide Zero by Number", toolName: "Divide", args: MakeArgs(int64(0), int64(5)), wantResult: float64(0.0)},
+		{name: "Validation Nil Arg1", toolName: "Divide", args: MakeArgs(nil, int64(1)), valWantErrIs: ErrValidationRequiredArgNil},
+		{name: "Validation Wrong Type Arg2", toolName: "Divide", args: MakeArgs(int64(1), false), valWantErrIs: ErrValidationTypeMismatch},
 	}
 	for _, tt := range tests {
 		testMathToolHelper(t, interp, tt)

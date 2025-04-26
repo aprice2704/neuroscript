@@ -164,9 +164,9 @@ func newModel(app AppAccess) model {
 		{sender: "System", text: "Welcome! Focus is on Command input. Type commands like 'quit', '?', or Tab to switch."},
 	}
 
-	// Any logging here should use app.GetDebugLogger()
-	if app != nil && app.GetDebugLogger() != nil {
-		app.GetDebugLogger().Println("TUI model initialized.")
+	// Any logging here should use app.GetLogger()
+	if app != nil && app.GetLogger() != nil {
+		app.GetLogger().Println("TUI model initialized.")
 	}
 
 	return model{

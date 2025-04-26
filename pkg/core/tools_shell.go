@@ -43,7 +43,7 @@ func toolExecuteCommand(interpreter *Interpreter, args []interface{}) (interface
 	if strings.Contains(commandPath, "..") || strings.ContainsAny(commandPath, "|;&$><`\\") {
 		errMsg := fmt.Sprintf("ExecuteCommand blocked suspicious command path: %q", commandPath)
 		if interpreter.logger != nil {
-			interpreter.logger.Printf("[ERROR] %s", errMsg)
+			interpreter.logger.Error("%s", errMsg)
 		}
 		return map[string]interface{}{"stdout": "", "stderr": errMsg, "exit_code": int64(-1), "success": false}, nil
 	}
@@ -57,7 +57,7 @@ func toolExecuteCommand(interpreter *Interpreter, args []interface{}) (interface
 				logArgs[i] = arg
 			}
 		}
-		interpreter.logger.Printf("[DEBUG-INTERP]      Executing Command: %s %s", commandPath, strings.Join(logArgs, " "))
+		interpreter.logger.Debug("INTERP]      Executing Command: %s %s", commandPath, strings.Join(logArgs, " "))
 	}
 
 	cmd := exec.Command(commandPath, commandArgs...)
@@ -85,11 +85,11 @@ func toolExecuteCommand(interpreter *Interpreter, args []interface{}) (interface
 			stderrStr += fmt.Sprintf("Execution Error: %v", execErr)
 		}
 		if interpreter.logger != nil {
-			interpreter.logger.Printf("[DEBUG-INTERP]        Command failed. Exit Code: %d, Stderr: %q", exitCode, stderrStr)
+			interpreter.logger.Debug("INTERP]        Command failed. Exit Code: %d, Stderr: %q", exitCode, stderrStr)
 		}
 	} else {
 		if interpreter.logger != nil {
-			interpreter.logger.Printf("[DEBUG-INTERP]        Command finished successfully. Exit Code: 0, Stdout: %q", stdoutStr)
+			interpreter.logger.Debug("INTERP]        Command finished successfully. Exit Code: 0, Stdout: %q", stdoutStr)
 		}
 	}
 	resultMap := map[string]interface{}{"stdout": stdoutStr, "stderr": stderrStr, "exit_code": int64(exitCode), "success": success}
@@ -124,7 +124,7 @@ func toolGoCheck(interpreter *Interpreter, args []interface{}) (interface{}, err
 	executeArgs := []interface{}{cmd, cmdArgs}
 
 	if interpreter.logger != nil {
-		interpreter.logger.Printf("[DEBUG-INTERP]      Calling TOOL.GoCheck (executing: go list -e -json %s)", cleanTargetPath)
+		interpreter.logger.Debug("INTERP]      Calling TOOL.GoCheck (executing: go list -e -json %s)", cleanTargetPath)
 	}
 
 	// Execute the command
@@ -150,7 +150,7 @@ func toolGoCheck(interpreter *Interpreter, args []interface{}) (interface{}, err
 		checkSuccess = false
 		errorDetails = fmt.Sprintf("go list command failed (exit code %v). Stderr: %s", execResultMap["exit_code"], execStderr)
 		if interpreter.logger != nil {
-			interpreter.logger.Printf("[DEBUG-INTERP]        GoCheck failed: %s", errorDetails)
+			interpreter.logger.Debug("INTERP]        GoCheck failed: %s", errorDetails)
 		}
 	} else {
 		// 2. If command ran, check stdout for JSON error fields
@@ -178,14 +178,14 @@ func toolGoCheck(interpreter *Interpreter, args []interface{}) (interface{}, err
 			}
 
 			if interpreter.logger != nil {
-				interpreter.logger.Printf("[DEBUG-INTERP]        GoCheck found errors in JSON output.")
+				interpreter.logger.Debug("INTERP]        GoCheck found errors in JSON output.")
 			}
 		} else {
 			// Command succeeded and no "Error": field found in stdout
 			checkSuccess = true
 			errorDetails = "" // Explicitly empty
 			if interpreter.logger != nil {
-				interpreter.logger.Printf("[DEBUG-INTERP]        GoCheck successful (no errors found in 'go list' output).")
+				interpreter.logger.Debug("INTERP]        GoCheck successful (no errors found in 'go list' output).")
 			}
 		}
 	}
@@ -225,7 +225,7 @@ func toolGoBuild(interpreter *Interpreter, args []interface{}) (interface{}, err
 	cmdArgs := []interface{}{"build", buildTarget}
 	executeArgs := []interface{}{cmd, cmdArgs}
 	if interpreter.logger != nil {
-		interpreter.logger.Printf("[DEBUG-INTERP]      Calling TOOL.GoBuild (executing: go build %s)", buildTarget)
+		interpreter.logger.Debug("INTERP]      Calling TOOL.GoBuild (executing: go build %s)", buildTarget)
 	}
 	return toolExecuteCommand(interpreter, executeArgs)
 }
@@ -236,7 +236,7 @@ func toolGoTest(interpreter *Interpreter, args []interface{}) (interface{}, erro
 	cmdArgs := []interface{}{"test", "./..."}
 	executeArgs := []interface{}{cmd, cmdArgs}
 	if interpreter.logger != nil {
-		interpreter.logger.Printf("[DEBUG-INTERP]      Calling TOOL.GoTest (executing: go test ./...)")
+		interpreter.logger.Debug("INTERP]      Calling TOOL.GoTest (executing: go test ./...)")
 	}
 	return toolExecuteCommand(interpreter, executeArgs)
 }
@@ -250,7 +250,7 @@ func toolGoFmt(interpreter *Interpreter, args []interface{}) (interface{}, error
 		if len(logSnippet) > 100 {
 			logSnippet = logSnippet[:100] + "..."
 		}
-		interpreter.logger.Printf("[DEBUG-INTERP]      Calling TOOL.GoFmt on input content (snippet): %q", logSnippet)
+		interpreter.logger.Debug("INTERP]      Calling TOOL.GoFmt on input content (snippet): %q", logSnippet)
 	}
 
 	formattedBytes, fmtErr := format.Source(srcBytes)
@@ -259,9 +259,9 @@ func toolGoFmt(interpreter *Interpreter, args []interface{}) (interface{}, error
 		formattedContent := string(formattedBytes)
 		if interpreter.logger != nil {
 			if !bytes.Equal(srcBytes, formattedBytes) {
-				interpreter.logger.Printf("[DEBUG-INTERP]        GoFmt successful (content changed).")
+				interpreter.logger.Debug("INTERP]        GoFmt successful (content changed).")
 			} else {
-				interpreter.logger.Printf("[DEBUG-INTERP]        GoFmt successful (no changes needed).")
+				interpreter.logger.Debug("INTERP]        GoFmt successful (no changes needed).")
 			}
 		}
 		// On success, return the formatted string directly and nil error
@@ -271,7 +271,7 @@ func toolGoFmt(interpreter *Interpreter, args []interface{}) (interface{}, error
 		// *and* return a wrapped ErrInternalTool.
 		errorString := fmtErr.Error()
 		if interpreter.logger != nil {
-			interpreter.logger.Printf("[DEBUG-INTERP]        GoFmt failed. Error: %q", errorString)
+			interpreter.logger.Debug("INTERP]        GoFmt failed. Error: %q", errorString)
 		}
 		resultMap := map[string]interface{}{
 			"formatted_content": content, // Return original content on error
@@ -291,7 +291,7 @@ func toolGoModTidy(interpreter *Interpreter, args []interface{}) (interface{}, e
 	cmdArgs := []interface{}{"mod", "tidy"}
 	executeArgs := []interface{}{cmd, cmdArgs}
 	if interpreter.logger != nil {
-		interpreter.logger.Printf("[DEBUG-INTERP]      Calling TOOL.GoModTidy (executing: go mod tidy)")
+		interpreter.logger.Debug("INTERP]      Calling TOOL.GoModTidy (executing: go mod tidy)")
 	}
 	return toolExecuteCommand(interpreter, executeArgs)
 }

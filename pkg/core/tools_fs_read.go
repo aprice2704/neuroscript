@@ -20,7 +20,7 @@ func toolReadFile(interpreter *Interpreter, args []interface{}) (interface{}, er
 		// Let SecureFilePath handle "." as CWD if it happens.
 		// Or return an internal error? Let's rely on SecureFilePath handling "."
 		if interpreter.logger != nil {
-			interpreter.logger.Printf("[WARN TOOL ReadFile] Interpreter sandboxDir is empty, using default relative path validation.")
+			interpreter.logger.Warn("TOOL ReadFile] Interpreter sandboxDir is empty, using default relative path validation.")
 		}
 		sandboxRoot = "." // Ensure it's at least relative to CWD if empty
 	}
@@ -32,7 +32,7 @@ func toolReadFile(interpreter *Interpreter, args []interface{}) (interface{}, er
 		// Path validation failed (absolute, outside sandboxDir, etc.)
 		errMsg := fmt.Sprintf("ReadFile path error for '%s': %s", filePathRel, secErr.Error())
 		if interpreter.logger != nil {
-			interpreter.logger.Printf("[TOOL ReadFile] %s (Sandbox Root: %s)", errMsg, sandboxRoot)
+			interpreter.logger.Info("Tool: ReadFile] %s (Sandbox Root: %s)", errMsg, sandboxRoot)
 		}
 		// Return the error message string for NeuroScript, but the actual Go error for context.
 		return errMsg, secErr
@@ -40,7 +40,7 @@ func toolReadFile(interpreter *Interpreter, args []interface{}) (interface{}, er
 
 	// Path is validated and within the sandbox, attempt to read the file using the absolute path
 	if interpreter.logger != nil {
-		interpreter.logger.Printf("[TOOL ReadFile] Attempting to read validated path: %s (Original Relative: %s, Sandbox: %s)", absPath, filePathRel, sandboxRoot)
+		interpreter.logger.Info("Tool: ReadFile] Attempting to read validated path: %s (Original Relative: %s, Sandbox: %s)", absPath, filePathRel, sandboxRoot)
 	}
 	contentBytes, readErr := os.ReadFile(absPath)
 	if readErr != nil {
@@ -52,14 +52,14 @@ func toolReadFile(interpreter *Interpreter, args []interface{}) (interface{}, er
 			errMsg = fmt.Sprintf("ReadFile failed for '%s': %s", filePathRel, readErr.Error())
 		}
 		if interpreter.logger != nil {
-			interpreter.logger.Printf("[TOOL ReadFile] %s", errMsg)
+			interpreter.logger.Info("Tool: ReadFile] %s", errMsg)
 		}
 		// Return error message string for script, but wrap the actual os error for Go context.
 		return errMsg, fmt.Errorf("%w: reading file '%s': %w", ErrInternalTool, filePathRel, readErr)
 	}
 
 	if interpreter.logger != nil {
-		interpreter.logger.Printf("[TOOL ReadFile] Read %d bytes successfully from %s", len(contentBytes), filePathRel)
+		interpreter.logger.Info("Tool: ReadFile] Read %d bytes successfully from %s", len(contentBytes), filePathRel)
 	}
 
 	// Return file content as string

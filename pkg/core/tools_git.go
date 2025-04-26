@@ -75,7 +75,7 @@ func toolGitNewBranch(interpreter *Interpreter, args []interface{}) (interface{}
 		return nil, fmt.Errorf("branch name '%s' contains invalid characters: %w", branchName, ErrValidationArgValue)
 	}
 
-	interpreter.logger.Printf("[TOOL GitNewBranch] Executing: git checkout -b %s", branchName)
+	interpreter.logger.Info("Tool: GitNewBranch] Executing: git checkout -b %s", branchName)
 	// --- FIX: Call toolExec correctly ---
 	output, err := toolExec(interpreter, "git", "checkout", "-b", branchName)
 	// --- END FIX ---
@@ -84,7 +84,7 @@ func toolGitNewBranch(interpreter *Interpreter, args []interface{}) (interface{}
 		return nil, fmt.Errorf("failed to create new branch '%s': %w", branchName, err)
 	}
 
-	interpreter.logger.Printf("[TOOL GitNewBranch] Success. Output:\n%s", output)
+	interpreter.logger.Info("Tool: GitNewBranch] Success. Output:\n%s", output)
 	return fmt.Sprintf("Successfully created and checked out new branch '%s'.\nOutput:\n%s", branchName, output), nil
 }
 
@@ -96,7 +96,7 @@ func toolGitCheckout(interpreter *Interpreter, args []interface{}) (interface{},
 		return nil, fmt.Errorf("branch name cannot be empty: %w", ErrValidationArgValue)
 	}
 
-	interpreter.logger.Printf("[TOOL GitCheckout] Executing: git checkout %s", branchName)
+	interpreter.logger.Info("Tool: GitCheckout] Executing: git checkout %s", branchName)
 	// --- FIX: Call toolExec correctly ---
 	output, err := toolExec(interpreter, "git", "checkout", branchName)
 	// --- END FIX ---
@@ -104,7 +104,7 @@ func toolGitCheckout(interpreter *Interpreter, args []interface{}) (interface{},
 	if err != nil {
 		return nil, fmt.Errorf("failed to checkout branch/ref '%s': %w", branchName, err)
 	}
-	interpreter.logger.Printf("[TOOL GitCheckout] Success. Output:\n%s", output)
+	interpreter.logger.Info("Tool: GitCheckout] Success. Output:\n%s", output)
 	return fmt.Sprintf("Successfully checked out branch/ref '%s'.\nOutput:\n%s", branchName, output), nil
 }
 
@@ -118,7 +118,7 @@ func toolGitRm(interpreter *Interpreter, args []interface{}) (interface{}, error
 	}
 	relativePath := path
 
-	interpreter.logger.Printf("[TOOL GitRm] Executing: git rm %s (validated path: %s)", relativePath, securePath)
+	interpreter.logger.Info("Tool: GitRm] Executing: git rm %s (validated path: %s)", relativePath, securePath)
 	// --- FIX: Call toolExec correctly ---
 	output, err := toolExec(interpreter, "git", "rm", relativePath)
 	// --- END FIX ---
@@ -126,7 +126,7 @@ func toolGitRm(interpreter *Interpreter, args []interface{}) (interface{}, error
 	if err != nil {
 		return nil, fmt.Errorf("failed to remove path '%s': %w", relativePath, err)
 	}
-	interpreter.logger.Printf("[TOOL GitRm] Success. Output:\n%s", output)
+	interpreter.logger.Info("Tool: GitRm] Success. Output:\n%s", output)
 	return fmt.Sprintf("Successfully removed path '%s' from git index.\nOutput:\n%s", relativePath, output), nil
 }
 
@@ -138,7 +138,7 @@ func toolGitMerge(interpreter *Interpreter, args []interface{}) (interface{}, er
 		return nil, fmt.Errorf("branch name cannot be empty: %w", ErrValidationArgValue)
 	}
 
-	interpreter.logger.Printf("[TOOL GitMerge] Executing: git merge %s", branchName)
+	interpreter.logger.Info("Tool: GitMerge] Executing: git merge %s", branchName)
 	// --- FIX: Call toolExec correctly ---
 	output, err := toolExec(interpreter, "git", "merge", branchName)
 	// --- END FIX ---
@@ -149,7 +149,7 @@ func toolGitMerge(interpreter *Interpreter, args []interface{}) (interface{}, er
 		return nil, fmt.Errorf("failed to merge branch '%s' (check for conflicts): %w", branchName, err)
 	}
 
-	interpreter.logger.Printf("[TOOL GitMerge] Success. Output:\n%s", output)
+	interpreter.logger.Info("Tool: GitMerge] Success. Output:\n%s", output)
 	return fmt.Sprintf("Successfully merged branch '%s'.\nOutput:\n%s", branchName, output), nil
 }
 
@@ -157,7 +157,7 @@ func toolGitMerge(interpreter *Interpreter, args []interface{}) (interface{}, er
 func toolGitPull(interpreter *Interpreter, args []interface{}) (interface{}, error) {
 	// GitPull takes no arguments, validation ensures len(args) == 0
 
-	interpreter.logger.Printf("[TOOL GitPull] Executing: git pull")
+	interpreter.logger.Info("Tool: GitPull] Executing: git pull")
 	output, err := toolExec(interpreter, "git", "pull")
 
 	if err != nil {
@@ -165,7 +165,7 @@ func toolGitPull(interpreter *Interpreter, args []interface{}) (interface{}, err
 		return nil, fmt.Errorf("GitPull failed: %w", err)
 	}
 
-	interpreter.logger.Printf("[TOOL GitPull] Success. Output:\n%s", output)
+	interpreter.logger.Info("Tool: GitPull] Success. Output:\n%s", output)
 	return fmt.Sprintf("GitPull successful.\nOutput:\n%s", output), nil
 }
 
@@ -174,7 +174,7 @@ func toolGitPush(interpreter *Interpreter, args []interface{}) (interface{}, err
 	// GitPush takes no arguments currently (pushes the current branch to its upstream)
 	// Validation ensures len(args) == 0
 
-	interpreter.logger.Printf("[TOOL GitPush] Executing: git push")
+	interpreter.logger.Info("Tool: GitPush] Executing: git push")
 	output, err := toolExec(interpreter, "git", "push")
 
 	if err != nil {
@@ -183,7 +183,7 @@ func toolGitPush(interpreter *Interpreter, args []interface{}) (interface{}, err
 		return nil, fmt.Errorf("GitPush failed: %w", err)
 	}
 
-	interpreter.logger.Printf("[TOOL GitPush] Success. Output:\n%s", output)
+	interpreter.logger.Info("Tool: GitPush] Success. Output:\n%s", output)
 	return fmt.Sprintf("GitPush successful.\nOutput:\n%s", output), nil
 }
 
@@ -192,7 +192,7 @@ func toolGitDiff(interpreter *Interpreter, args []interface{}) (interface{}, err
 	// GitDiff takes no arguments currently (shows working tree changes vs index)
 	// Validation ensures len(args) == 0
 
-	interpreter.logger.Printf("[TOOL GitDiff] Executing: git diff")
+	interpreter.logger.Info("Tool: GitDiff] Executing: git diff")
 	// Note: `git diff` returns a non-zero exit code (which toolExec treats as error)
 	// only for fatal errors, not when there are differences found.
 	// Differences are simply printed to stdout.
@@ -203,7 +203,7 @@ func toolGitDiff(interpreter *Interpreter, args []interface{}) (interface{}, err
 		return nil, fmt.Errorf("GitDiff command failed: %w", err)
 	}
 
-	interpreter.logger.Printf("[TOOL GitDiff] Success. Output:\n%s", output)
+	interpreter.logger.Info("Tool: GitDiff] Success. Output:\n%s", output)
 	// If there are no differences, output will be empty.
 	if output == "" {
 		return "GitDiff: No changes detected in the working tree.", nil

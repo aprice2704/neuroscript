@@ -3,11 +3,14 @@ package core
 import (
 	// Keep for errors.Is potentially used elsewhere
 	"fmt" // Keep io
-	"log" // Keep os
+	// Keep os
+	"os"
 	"path/filepath"
 	"reflect" // Keep sort
 	"strings"
 	"testing"
+
+	"golang.org/x/exp/slog"
 )
 
 // --- Interpreter Test Specific Helpers ---
@@ -28,10 +31,14 @@ import (
 func newTestInterpreter(t *testing.T, vars map[string]interface{}, lastResult interface{}) (*Interpreter, string) {
 	t.Helper()
 
-	// --- FIX: Use testWriter to redirect logs to t.Logf ---
-	// Use Ltime|Lmicroseconds for timing info if helpful, Lshortfile for source line
-	testLogger := log.New(testWriter{t}, "[TEST-INTERP] ", log.Ltime|log.Lmicroseconds|log.Lshortfile)
-	// --- END FIX ---
+	handlerOpts := &slog.HandlerOptions{
+		Level:     slog.LevelWarn,
+		AddSource: true, // include source file and line number
+	}
+	handler := slog.NewTextHandler(os.Stderr, handlerOpts) // Log to Stderr
+
+	// Create the core slog logger
+	testLogger := slog.New(handler)
 
 	// Create a minimal LLMClient (can keep using testLogger now)
 	minimalLLMClient := NewLLMClient("", "", testLogger, false)
@@ -41,12 +48,12 @@ func newTestInterpreter(t *testing.T, vars map[string]interface{}, lastResult in
 
 	interp := NewInterpreter(testLogger, minimalLLMClient) // Pass the working logger
 
-	testLogger.Println("Attempting to register core tools...")
+	testLogger.Info("Attempting to register core tools...")
 	if err := RegisterCoreTools(interp.ToolRegistry()); err != nil {
-		testLogger.Printf("FATAL: Failed to register core tools during test setup: %v", err)
+		testLogger.Error("FATAL: Failed to register core tools during test setup: %v", err)
 		t.Fatalf("FATAL: Failed to register core tools during test setup: %v", err)
 	}
-	testLogger.Println("Successfully registered core tools.")
+	testLogger.Info("Successfully registered core tools.")
 
 	sandboxDirRel := t.TempDir()
 	absSandboxDir, err := filepath.Abs(sandboxDirRel)
@@ -55,7 +62,7 @@ func newTestInterpreter(t *testing.T, vars map[string]interface{}, lastResult in
 	}
 
 	interp.sandboxDir = absSandboxDir
-	testLogger.Printf("Sandbox root set in interpreter: %s", absSandboxDir)
+	testLogger.Info("Sandbox root set in interpreter: %s", absSandboxDir)
 
 	if vars != nil {
 		for k, v := range vars {
@@ -68,9 +75,9 @@ func newTestInterpreter(t *testing.T, vars map[string]interface{}, lastResult in
 	return interp, absSandboxDir
 }
 
-// newDefaultTestInterpreter creates a new interpreter with default settings.
+// NewDefaultTestInterpreter creates a new interpreter with default settings.
 // *** MODIFIED: Uses newTestInterpreter which now uses t.Logf ***
-func newDefaultTestInterpreter(t *testing.T) (*Interpreter, string) {
+func NewDefaultTestInterpreter(t *testing.T) (*Interpreter, string) {
 	t.Helper()
 	return newTestInterpreter(t, nil, nil)
 }
@@ -106,10 +113,10 @@ func createForStep(loopVar string, collectionNode interface{}, bodySteps []Step)
 }
 
 // runEvalExpressionTest executes a single expression evaluation test case.
-// *** MODIFIED: Uses corrected newDefaultTestInterpreter ***
+// *** MODIFIED: Uses corrected NewDefaultTestInterpreter ***
 func runEvalExpressionTest(t *testing.T, tc EvalTestCase) {
 	t.Helper()
-	interp, _ := newDefaultTestInterpreter(t)
+	interp, _ := NewDefaultTestInterpreter(t)
 	if tc.InitialVars != nil {
 		for k, v := range tc.InitialVars {
 			interp.variables[k] = v
@@ -138,7 +145,7 @@ func runEvalExpressionTest(t *testing.T, tc EvalTestCase) {
 
 // --- General Test Helpers ---
 // (makeArgs, AssertNoError remain unchanged)
-// func makeArgs(vals ...interface{}) []interface{} {
+// func MakeArgs(vals ...interface{}) []interface{} {
 // 	if vals == nil {
 // 		return []interface{}{}
 // 	}
@@ -187,7 +194,7 @@ func compareErrorString(t *testing.T, actualMap, expectedMap map[string]interfac
 /*
 func runValidationTestCases(t *testing.T, toolName string, testCases []ValidationTestCase) {
 	t.Helper()
-	interp, _ := newDefaultTestInterpreter(t) // Now uses logging interpreter
+	interp, _ := NewDefaultTestInterpreter(t) // Now uses logging interpreter
 	toolImpl, found := interp.ToolRegistry().GetTool(toolName)
 	if !found { t.Fatalf("Tool %s not found in registry", toolName) }
 	spec := toolImpl.Spec

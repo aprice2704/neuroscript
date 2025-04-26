@@ -2,6 +2,8 @@
 package goast
 import "github.com/aprice2704/neuroscript/pkg/core/tools/goast"
 
+import "github.com/aprice2704/neuroscript/pkg/core/tools/goast"
+
 
 import (
 	"os"

@@ -118,7 +118,7 @@ func toolLineCountString(interpreter *Interpreter, args []interface{}) (interfac
 		if len(logSnippet) > 80 {
 			logSnippet = logSnippet[:80] + "..."
 		}
-		interpreter.logger.Printf("[TOOL LineCountString] Counting lines in string (snippet): %q", logSnippet)
+		interpreter.logger.Info("Tool: LineCountString] Counting lines in string (snippet): %q", logSnippet)
 	}
 
 	if len(content) == 0 {
@@ -133,7 +133,7 @@ func toolLineCountString(interpreter *Interpreter, args []interface{}) (interfac
 	} // Handle single newline case
 
 	if interpreter.logger != nil {
-		interpreter.logger.Printf("[TOOL LineCountString] Counted %d lines.", lineCount)
+		interpreter.logger.Info("Tool: LineCountString] Counted %d lines.", lineCount)
 	}
 	return lineCount, nil
 }

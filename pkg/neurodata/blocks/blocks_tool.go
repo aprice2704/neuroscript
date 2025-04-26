@@ -51,7 +51,7 @@ func toolBlocksExtractAll(interpreter *core.Interpreter, args []interface{}) (in
 		if len(logSnippet) > 100 {
 			logSnippet = logSnippet[:100] + "..."
 		}
-		logger.Printf("[DEBUG TOOL] Calling TOOL.BlocksExtractAll (Listener Based) on content (snippet): %q", logSnippet)
+		logger.Debug("[DEBUG TOOL] Calling TOOL.BlocksExtractAll (Listener Based) on content (snippet): %q", logSnippet)
 	}
 
 	// Call the new listener-based extractor

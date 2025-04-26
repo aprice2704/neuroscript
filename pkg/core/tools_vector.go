@@ -50,12 +50,12 @@ func toolSearchSkills(interpreter *Interpreter, args []interface{}) (interface{}
 	query := args[0].(string)
 
 	if interpreter.logger != nil {
-		interpreter.logger.Printf("[DEBUG-INTERP]      Calling TOOL.SearchSkills (Mock) for query: %q", query)
+		interpreter.logger.Debug("INTERP]      Calling TOOL.SearchSkills (Mock) for query: %q", query)
 	}
 
 	if interpreter.vectorIndex == nil {
 		interpreter.vectorIndex = make(map[string][]float32) // Initialize if nil
-		interpreter.logger.Printf("[INFO] Vector index was nil, initialized.")
+		interpreter.logger.Info("] Vector index was nil, initialized.")
 	}
 
 	// 1. Generate embedding for the query
@@ -75,7 +75,7 @@ func toolSearchSkills(interpreter *Interpreter, args []interface{}) (interface{}
 	for path, storedEmb := range interpreter.vectorIndex {
 		score, simErr := cosineSimilarity(queryEmb, storedEmb)
 		if simErr != nil {
-			interpreter.logger.Printf("[WARN] Could not calculate similarity for '%s': %v", path, simErr)
+			interpreter.logger.Warn("Could not calculate similarity for '%s': %v", path, simErr)
 			continue // Skip this entry if similarity fails
 		}
 		if score >= threshold {
@@ -86,7 +86,7 @@ func toolSearchSkills(interpreter *Interpreter, args []interface{}) (interface{}
 				if err == nil {
 					relativePath = rel
 				} else {
-					interpreter.logger.Printf("[WARN SearchSkills] Could not make path relative to sandbox '%s': %s (%v)", interpreter.sandboxDir, path, err)
+					interpreter.logger.Warn("SearchSkills] Could not make path relative to sandbox '%s': %s (%v)", interpreter.sandboxDir, path, err)
 				}
 			}
 			results = append(results, SearchResult{Path: relativePath, Score: score})
@@ -106,7 +106,7 @@ func toolSearchSkills(interpreter *Interpreter, args []interface{}) (interface{}
 	}
 
 	if interpreter.logger != nil {
-		interpreter.logger.Printf("[DEBUG-INTERP]      SearchSkills found %d results.", len(results))
+		interpreter.logger.Debug("INTERP]      SearchSkills found %d results.", len(results))
 	}
 
 	return string(resultBytes), nil
@@ -122,7 +122,7 @@ func toolVectorUpdate(interpreter *Interpreter, args []interface{}) (interface{}
 	sandboxRoot := interpreter.sandboxDir // Use the field name you added
 	if sandboxRoot == "" {
 		if interpreter.logger != nil {
-			interpreter.logger.Printf("[WARN TOOL VectorUpdate] Interpreter sandboxDir is empty, using default relative path validation.")
+			interpreter.logger.Warn("TOOL VectorUpdate] Interpreter sandboxDir is empty, using default relative path validation.")
 		}
 		sandboxRoot = "." // Ensure it's at least relative to CWD if empty
 	}
@@ -133,13 +133,13 @@ func toolVectorUpdate(interpreter *Interpreter, args []interface{}) (interface{}
 		// Path validation failed
 		errMsg := fmt.Sprintf("VectorUpdate path error: %s", secErr.Error())
 		if interpreter.logger != nil {
-			interpreter.logger.Printf("[TOOL VectorUpdate] %s (Sandbox Root: %s)", errMsg, sandboxRoot)
+			interpreter.logger.Info("Tool: VectorUpdate] %s (Sandbox Root: %s)", errMsg, sandboxRoot)
 		}
 		return errMsg, secErr // Return error message and actual error
 	}
 
 	if interpreter.logger != nil {
-		interpreter.logger.Printf("[DEBUG-INTERP]      Calling TOOL.VectorUpdate (Mock) for %s (Resolved: %s, Sandbox: %s)", filePathRel, absPath, sandboxRoot)
+		interpreter.logger.Debug("INTERP]      Calling TOOL.VectorUpdate (Mock) for %s (Resolved: %s, Sandbox: %s)", filePathRel, absPath, sandboxRoot)
 	}
 
 	// 1. Read file content using the absolute path
@@ -147,7 +147,7 @@ func toolVectorUpdate(interpreter *Interpreter, args []interface{}) (interface{}
 	if readErr != nil {
 		errMsg := fmt.Sprintf("VectorUpdate read error for '%s': %s", filePathRel, readErr.Error())
 		if interpreter.logger != nil {
-			interpreter.logger.Printf("[TOOL VectorUpdate] %s", errMsg)
+			interpreter.logger.Info("Tool: VectorUpdate] %s", errMsg)
 		}
 		return errMsg, fmt.Errorf("%w: reading file '%s': %w", ErrInternalTool, filePathRel, readErr) // Return error message and wrapped Go error
 	}
@@ -157,7 +157,7 @@ func toolVectorUpdate(interpreter *Interpreter, args []interface{}) (interface{}
 	if embErr != nil {
 		errMsg := fmt.Sprintf("VectorUpdate embedding generation failed: %s", embErr.Error())
 		if interpreter.logger != nil {
-			interpreter.logger.Printf("[TOOL VectorUpdate] %s", errMsg)
+			interpreter.logger.Info("Tool: VectorUpdate] %s", errMsg)
 		}
 		// Decide if embedding error is internal or should be reported as string
 		return errMsg, fmt.Errorf("%w: generating embedding for '%s': %w", ErrInternalTool, filePathRel, embErr) // Return error message and wrapped Go error
@@ -170,7 +170,7 @@ func toolVectorUpdate(interpreter *Interpreter, args []interface{}) (interface{}
 	interpreter.vectorIndex[absPath] = embedding // Store with absolute path key
 
 	if interpreter.logger != nil {
-		interpreter.logger.Printf("[DEBUG-INTERP]      VectorUpdate successful for %s", filePathRel)
+		interpreter.logger.Debug("INTERP]      VectorUpdate successful for %s", filePathRel)
 	}
 	return "OK", nil
 }

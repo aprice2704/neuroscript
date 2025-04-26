@@ -12,11 +12,11 @@ import (
 
 // runSyncMode handles the file synchronization logic when -sync flag is used.
 func (a *App) runSyncMode(ctx context.Context) error {
-	a.InfoLog.Printf("Sync Target Directory: %s", a.Config.SyncDir)
+	a.Logger.Info("Sync Target Directory: %s", a.Config.SyncDir)
 	if a.Config.SyncFilter != "" {
-		a.InfoLog.Printf("Sync Filter Pattern: %s", a.Config.SyncFilter)
+		a.Logger.Info("Sync Filter Pattern: %s", a.Config.SyncFilter)
 	}
-	a.InfoLog.Printf("Sync Ignore Gitignore: %t", a.Config.SyncIgnoreGitignore)
+	a.Logger.Info("Sync Ignore Gitignore: %t", a.Config.SyncIgnoreGitignore)
 
 	// 1. Validate Sync Directory
 	// Use current working directory as the base for SecureFilePath validation
@@ -40,7 +40,7 @@ func (a *App) runSyncMode(ctx context.Context) error {
 	if !dirInfo.IsDir() {
 		return fmt.Errorf("sync path is not a directory: %s (resolved to %s)", a.Config.SyncDir, absSyncDir)
 	}
-	a.InfoLog.Printf("Validated absolute sync directory: %s", absSyncDir)
+	a.Logger.Info("Validated absolute sync directory: %s", absSyncDir)
 
 	// 2. Ensure LLM Client is available (checked in Run, but double-check)
 	if a.llmClient == nil || a.llmClient.Client() == nil {
@@ -62,10 +62,10 @@ func (a *App) runSyncMode(ctx context.Context) error {
 	)
 
 	// 4. Log Summary Stats (Similar to gensync)
-	a.InfoLog.Println("--------------------")
-	a.InfoLog.Println("Sync Summary:")
+	a.Logger.Info("--------------------")
+	a.Logger.Info("Sync Summary:")
 	logStat := func(key string, value interface{}) { // Simple helper for consistent logging
-		a.InfoLog.Printf("  %-25s: %v", key, value)
+		a.Logger.Info("  %-25s: %v", key, value)
 	}
 	logStat("Directory Synced", absSyncDir)
 	if stats != nil { // Check if stats map was returned
@@ -81,13 +81,13 @@ func (a *App) runSyncMode(ctx context.Context) error {
 		logStat("Hash Errors", stats["hash_errors"])
 		logStat("List API Errors", stats["list_api_errors"])
 	} else {
-		a.InfoLog.Println("  (Sync statistics not available)")
+		a.Logger.Info("  (Sync statistics not available)")
 	}
-	a.InfoLog.Println("--------------------")
+	a.Logger.Info("--------------------")
 
 	if syncErr != nil {
 		// Log the primary error returned by the sync helper
-		a.ErrorLog.Printf("Sync operation failed: %v", syncErr)
+		a.Logger.Error("Sync operation failed: %v", syncErr)
 		// Check stats map for specific error counts if available
 		if stats != nil && (stats["upload_errors"].(int64) > 0 || stats["delete_errors"].(int64) > 0 || stats["list_api_errors"].(int64) > 0) {
 			a.ErrorLog.Println("Sync completed with errors.")
@@ -95,6 +95,6 @@ func (a *App) runSyncMode(ctx context.Context) error {
 		return fmt.Errorf("sync operation failed: %w", syncErr) // Return the error
 	}
 
-	a.InfoLog.Println("Sync completed successfully.")
+	a.Logger.Info("Sync completed successfully.")
 	return nil // Success
 }

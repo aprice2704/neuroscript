@@ -65,7 +65,7 @@ func toolLog(interpreter *Interpreter, args []interface{}) (interface{}, error) 
 	}
 
 	// Use the interpreter's logger (ensured non-nil by Logger() method)
-	logger := interpreter.Logger()
+	logger := interpreter.logger
 
 	// Prepend level to the message (simple approach)
 	logPrefix := "[NS-LOG]" // Default prefix
@@ -81,12 +81,12 @@ func toolLog(interpreter *Interpreter, args []interface{}) (interface{}, error) 
 	default:
 		// Log unknown levels as INFO? Or WARN? Let's use WARN.
 		logPrefix = "[NS-WARN]"
-		logger.Printf("[NS-WARN] Unknown log level '%s' used in TOOL.Log. Original message: %s", levelStr, message)
+		logger.Warn("[NS-WARN] Unknown log level '%s' used in TOOL.Log. Original message: %s", levelStr, message)
 		// Continue logging with the original message under WARN
 	}
 
 	// Log using the interpreter's standard logger
-	logger.Printf("%s %s", logPrefix, message)
+	logger.Debug("%s %s", logPrefix, message)
 
 	return nil, nil // No return value
 }

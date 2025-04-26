@@ -3,26 +3,25 @@ package core
 
 import (
 	"fmt"
-	"io"
 	"log"
 	"strings" // Added for text formatting
 
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/google/generative-ai-go/genai"
 )
 
 // ConversationManager holds the state of an interaction with the LLM agent.
 type ConversationManager struct {
 	History []*genai.Content // Stores the conversation turns
-	logger  *log.Logger
+	logger  interfaces.Logger
 }
 
 // NewConversationManager creates a new manager.
-func NewConversationManager(logger *log.Logger) *ConversationManager {
+func NewConversationManager(logger interfaces.Logger) *ConversationManager {
 	// Ensure logger is not nil
 	effectiveLogger := logger
 	if effectiveLogger == nil {
-		// Should not happen if App initializes correctly, but be safe
-		effectiveLogger = log.New(io.Discard, "[CONVO-NIL-LOGGER] ", 0)
+		panic("ConversationManager requires a valid logger")
 	}
 	return &ConversationManager{
 		History: make([]*genai.Content, 0),
@@ -36,7 +35,7 @@ func (cm *ConversationManager) AddUserMessage(text string) {
 		Role:  "user",
 		Parts: []genai.Part{genai.Text(text)},
 	})
-	cm.logger.Printf("[CONVO] Added User: %q", text)
+	cm.logger.Info("[CONVO] Added User: %q", text)
 }
 
 // +++ ADDED: AddModelMessage +++
@@ -52,14 +51,14 @@ func (cm *ConversationManager) AddModelMessage(text string) {
 	if len(logSnippet) > maxLogLen {
 		logSnippet = logSnippet[:maxLogLen] + "..."
 	}
-	cm.logger.Printf("[CONVO] Added Model Text: %q", logSnippet)
+	cm.logger.Info("[CONVO] Added Model Text: %q", logSnippet)
 }
 
 // AddModelResponse adds a model's response (potentially including function calls) to the history.
 // NOTE: This might be replaced by more granular additions below if preferred.
 func (cm *ConversationManager) AddModelResponse(candidate *genai.Candidate) error {
 	if candidate == nil || candidate.Content == nil {
-		cm.logger.Printf("[WARN CONVO] Attempted to add nil candidate or candidate content.")
+		cm.logger.Warn("CONVO] Attempted to add nil candidate or candidate content.")
 		return nil // Return nil, as it's not a critical error for the manager itself
 	}
 
@@ -69,7 +68,7 @@ func (cm *ConversationManager) AddModelResponse(candidate *genai.Candidate) erro
 	}
 	if candidate.Content.Role != "model" {
 		err := fmt.Errorf("attempted to add non-model content (Role: %s) as model response", candidate.Content.Role)
-		cm.logger.Printf("[ERROR CONVO] %v", err)
+		cm.logger.Error("CONVO] %v", err)
 		return err // Return error as this indicates misuse
 	}
 
@@ -77,7 +76,7 @@ func (cm *ConversationManager) AddModelResponse(candidate *genai.Candidate) erro
 
 	// Enhanced logging based on parts
 	if len(candidate.Content.Parts) == 0 {
-		cm.logger.Printf("[CONVO] Added Model response with no parts.")
+		cm.logger.Info("[CONVO] Added Model response with no parts.")
 	} else {
 		logMsgs := []string{}
 		for _, part := range candidate.Content.Parts {
@@ -95,7 +94,7 @@ func (cm *ConversationManager) AddModelResponse(candidate *genai.Candidate) erro
 				logMsgs = append(logMsgs, fmt.Sprintf("UnknownPart(%T)", v))
 			}
 		}
-		cm.logger.Printf("[CONVO] Added Model response with parts: [%s]", strings.Join(logMsgs, ", "))
+		cm.logger.Info("[CONVO] Added Model response with parts: [%s]", strings.Join(logMsgs, ", "))
 	}
 	return nil
 }
@@ -108,13 +107,13 @@ func (cm *ConversationManager) AddFunctionCallMessage(fc genai.FunctionCall) {
 		Role:  "model", // The FunctionCall is part of the *model's* turn
 		Parts: []genai.Part{fc},
 	})
-	cm.logger.Printf("[CONVO] Added Model FunctionCall request: %s", fc.Name)
+	cm.logger.Info("[CONVO] Added Model FunctionCall request: %s", fc.Name)
 }
 
 // AddFunctionResponse adds the result of a function execution back into the history.
 // Deprecated: Use AddFunctionResultMessage instead for clarity.
 func (cm *ConversationManager) AddFunctionResponse(toolName string, responseData map[string]interface{}) error {
-	cm.logger.Printf("[WARN CONVO] AddFunctionResponse is deprecated, use AddFunctionResultMessage.")
+	cm.logger.Warn("CONVO] AddFunctionResponse is deprecated, use AddFunctionResultMessage.")
 	// Create the part and call the new method
 	part := genai.FunctionResponse{
 		Name:     toolName,
@@ -131,7 +130,7 @@ func (cm *ConversationManager) AddFunctionResultMessage(part genai.Part) error {
 	fr, ok := part.(genai.FunctionResponse)
 	if !ok {
 		err := fmt.Errorf("attempted to add part of type %T as function result, expected genai.FunctionResponse", part)
-		cm.logger.Printf("[ERROR CONVO] %v", err)
+		cm.logger.Error("CONVO] %v", err)
 		return err
 	}
 
@@ -139,7 +138,7 @@ func (cm *ConversationManager) AddFunctionResultMessage(part genai.Part) error {
 		Role:  "function", // Role is 'function' for results
 		Parts: []genai.Part{fr},
 	})
-	cm.logger.Printf("[CONVO] Added FunctionResponse result for: %s", fr.Name)
+	cm.logger.Info("[CONVO] Added FunctionResponse result for: %s", fr.Name)
 	return nil
 }
 
@@ -152,7 +151,7 @@ func (cm *ConversationManager) GetHistory() []*genai.Content {
 // ClearHistory resets the conversation.
 func (cm *ConversationManager) ClearHistory() {
 	cm.History = make([]*genai.Content, 0)
-	cm.logger.Printf("[CONVO] History cleared.")
+	cm.logger.Info("[CONVO] History cleared.")
 }
 
 // --- Helper for creating error responses ---

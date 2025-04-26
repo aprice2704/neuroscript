@@ -14,7 +14,7 @@ func toolStat(interpreter *Interpreter, args []interface{}) (interface{}, error)
 	sandboxRoot := interpreter.sandboxDir
 	if sandboxRoot == "" {
 		if interpreter.logger != nil {
-			interpreter.logger.Printf("[WARN TOOL Stat] Interpreter sandboxDir is empty, using default relative path validation.")
+			interpreter.logger.Warn("TOOL Stat] Interpreter sandboxDir is empty, using default relative path validation.")
 		}
 		sandboxRoot = "."
 	}
@@ -24,7 +24,7 @@ func toolStat(interpreter *Interpreter, args []interface{}) (interface{}, error)
 	if secErr != nil {
 		errMsg := fmt.Sprintf("Stat path error for '%s': %s", relPath, secErr.Error())
 		if interpreter.logger != nil {
-			interpreter.logger.Printf("[TOOL Stat] %s (Sandbox Root: %s)", errMsg, sandboxRoot)
+			interpreter.logger.Info("Tool: Stat] %s (Sandbox Root: %s)", errMsg, sandboxRoot)
 		}
 		// Return nil for non-existent or invalid paths, consistent with returning map or nil
 		// Return the security error for Go context
@@ -32,7 +32,7 @@ func toolStat(interpreter *Interpreter, args []interface{}) (interface{}, error)
 	}
 
 	if interpreter.logger != nil {
-		interpreter.logger.Printf("[TOOL Stat] Attempting to stat validated path: %s (Original Relative: %s, Sandbox: %s)", absPath, relPath, sandboxRoot)
+		interpreter.logger.Info("Tool: Stat] Attempting to stat validated path: %s (Original Relative: %s, Sandbox: %s)", absPath, relPath, sandboxRoot)
 	}
 
 	// Get file info using the validated absolute path
@@ -42,14 +42,14 @@ func toolStat(interpreter *Interpreter, args []interface{}) (interface{}, error)
 		if os.IsNotExist(statErr) {
 			errMsg := fmt.Sprintf("Stat: Path not found '%s'", relPath)
 			if interpreter.logger != nil {
-				interpreter.logger.Printf("[TOOL Stat] %s", errMsg)
+				interpreter.logger.Info("Tool: Stat] %s", errMsg)
 			}
 			return nil, nil // Return nil value and nil error for script if not found
 		}
 		// Other errors (permissions, etc.)
 		errMsg := fmt.Sprintf("Stat failed for '%s': %s", relPath, statErr.Error())
 		if interpreter.logger != nil {
-			interpreter.logger.Printf("[TOOL Stat] %s", errMsg)
+			interpreter.logger.Info("Tool: Stat] %s", errMsg)
 		}
 		// Return error message for script, wrap OS error for Go context
 		return nil, fmt.Errorf("%w: stating file '%s': %w", ErrInternalTool, relPath, statErr)
@@ -66,7 +66,7 @@ func toolStat(interpreter *Interpreter, args []interface{}) (interface{}, error)
 	}
 
 	if interpreter.logger != nil {
-		interpreter.logger.Printf("[TOOL Stat] Stat successful for '%s'", relPath)
+		interpreter.logger.Info("Tool: Stat] Stat successful for '%s'", relPath)
 	}
 
 	// Return the map and nil error

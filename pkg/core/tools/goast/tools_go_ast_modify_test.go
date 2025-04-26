@@ -8,16 +8,17 @@ import (
 
 	"strings" // Keep strings import
 
+	"github.com/aprice2704/neuroscript/pkg/core"
 	"github.com/google/go-cmp/cmp"
 	// Import astutil not needed here directly
 )
 
 // Helper to get formatted string from handle (duplicated for focused testing)
-func getFormattedCodeModifyTest(t *testing.T, interp *Interpreter, handleID string) string {
+func getFormattedCodeModifyTest(t *testing.T, interp *core.Interpreter, handleID string) string {
 	t.Helper()
 	// Use the correct tool name
 	// Assume "GoFormatASTNode" is the registered name
-	res, err := toolGoFormatAST(interp, makeArgs(handleID))
+	res, err := toolGoFormatAST(interp, core.MakeArgs(handleID))
 	if err != nil {
 		t.Fatalf("getFormattedCodeModifyTest: toolGoFormatASTNode failed for handle %s: %v", handleID, err)
 	}
@@ -29,9 +30,9 @@ func getFormattedCodeModifyTest(t *testing.T, interp *Interpreter, handleID stri
 }
 
 // Helper to parse code and return a handle (duplicated for focused testing)
-func setupParseModifyTest(t *testing.T, interp *Interpreter, content string) string {
+func setupParseModifyTest(t *testing.T, interp *core.Interpreter, content string) string {
 	t.Helper()
-	handleIDIntf, err := toolGoParseFile(interp, makeArgs(nil, content))
+	handleIDIntf, err := toolGoParseFile(interp, core.MakeArgs(nil, content))
 	if err != nil {
 		t.Fatalf("setupParseModifyTest: toolGoParseFile failed: %v", err)
 	}
@@ -122,31 +123,31 @@ func main() {
 		{name: "Replace Identifier Not Found", initialContent: simpleSource, modifications: map[string]interface{}{"replace_identifier": map[string]interface{}{"old": "os.Exit", "new": "log.Fatal"}}, wantCode: simpleSource, wantHandleSame: true}, // Uses comment-free input/want
 
 		// Other tests use simpleSource (now comment-free) as input, errors expected so wantCode doesn't matter
-		{name: "Change Package Empty Name", initialContent: simpleSource, modifications: map[string]interface{}{"change_package": ""}, wantErrIs: ErrGoModifyInvalidDirectiveValue},
-		{name: "Change Package Wrong Type", initialContent: simpleSource, modifications: map[string]interface{}{"change_package": 123}, wantErrIs: ErrGoModifyInvalidDirectiveValue},
-		{name: "Replace Identifier Invalid Format (Old)", initialContent: simpleSource, modifications: map[string]interface{}{"replace_identifier": map[string]interface{}{"old": "fmtPrintln", "new": "log.Printf"}}, wantErrIs: ErrGoInvalidIdentifierFormat},
-		{name: "Replace Identifier Invalid Format (New)", initialContent: simpleSource, modifications: map[string]interface{}{"replace_identifier": map[string]interface{}{"old": "fmt.Println", "new": "logPrintf"}}, wantErrIs: ErrGoInvalidIdentifierFormat},
-		{name: "Replace Identifier Empty Part (Old)", initialContent: simpleSource, modifications: map[string]interface{}{"replace_identifier": map[string]interface{}{"old": ".Println", "new": "log.Printf"}}, wantErrIs: ErrGoInvalidIdentifierFormat},
-		{name: "Replace Identifier Empty Part (New)", initialContent: simpleSource, modifications: map[string]interface{}{"replace_identifier": map[string]interface{}{"old": "fmt.Println", "new": "log."}}, wantErrIs: ErrGoInvalidIdentifierFormat},
-		{name: "Replace Identifier Missing 'new' Key", initialContent: simpleSource, modifications: map[string]interface{}{"replace_identifier": map[string]interface{}{"old": "fmt.Println"}}, wantErrIs: ErrGoModifyMissingMapKey},
-		{name: "Replace Identifier Wrong Value Type", initialContent: simpleSource, modifications: map[string]interface{}{"replace_identifier": map[string]interface{}{"old": 123, "new": "log.Printf"}}, wantErrIs: ErrGoModifyInvalidDirectiveValue},
-		{name: "Invalid Handle", initialContent: simpleSource, modifications: map[string]interface{}{"change_package": "other"}, wantErrIs: ErrGoModifyFailed}, // Error originates from GetHandleValue
-		{name: "Non-AST Handle", initialContent: simpleSource, modifications: map[string]interface{}{"change_package": "other"}, wantErrIs: ErrGoModifyFailed}, // Error originates from type assertion after GetHandleValue
-		{name: "No Known Directive", initialContent: simpleSource, modifications: map[string]interface{}{"unknown_directive": "value"}, wantErrIs: ErrGoModifyUnknownDirective},
-		{name: "Empty Modifications Map", initialContent: simpleSource, modifications: map[string]interface{}{}, wantErrIs: ErrGoModifyEmptyMap},
+		{name: "Change Package Empty Name", initialContent: simpleSource, modifications: map[string]interface{}{"change_package": ""}, wantErrIs: core.ErrGoModifyInvalidDirectiveValue},
+		{name: "Change Package Wrong Type", initialContent: simpleSource, modifications: map[string]interface{}{"change_package": 123}, wantErrIs: core.ErrGoModifyInvalidDirectiveValue},
+		{name: "Replace Identifier Invalid Format (Old)", initialContent: simpleSource, modifications: map[string]interface{}{"replace_identifier": map[string]interface{}{"old": "fmtPrintln", "new": "log.Printf"}}, wantErrIs: core.ErrGoInvalidIdentifierFormat},
+		{name: "Replace Identifier Invalid Format (New)", initialContent: simpleSource, modifications: map[string]interface{}{"replace_identifier": map[string]interface{}{"old": "fmt.Println", "new": "logPrintf"}}, wantErrIs: core.ErrGoInvalidIdentifierFormat},
+		{name: "Replace Identifier Empty Part (Old)", initialContent: simpleSource, modifications: map[string]interface{}{"replace_identifier": map[string]interface{}{"old": ".Println", "new": "log.Printf"}}, wantErrIs: core.ErrGoInvalidIdentifierFormat},
+		{name: "Replace Identifier Empty Part (New)", initialContent: simpleSource, modifications: map[string]interface{}{"replace_identifier": map[string]interface{}{"old": "fmt.Println", "new": "log."}}, wantErrIs: core.ErrGoInvalidIdentifierFormat},
+		{name: "Replace Identifier Missing 'new' Key", initialContent: simpleSource, modifications: map[string]interface{}{"replace_identifier": map[string]interface{}{"old": "fmt.Println"}}, wantErrIs: core.ErrGoModifyMissingMapKey},
+		{name: "Replace Identifier Wrong Value Type", initialContent: simpleSource, modifications: map[string]interface{}{"replace_identifier": map[string]interface{}{"old": 123, "new": "log.Printf"}}, wantErrIs: core.ErrGoModifyInvalidDirectiveValue},
+		{name: "Invalid Handle", initialContent: simpleSource, modifications: map[string]interface{}{"change_package": "other"}, wantErrIs: core.ErrGoModifyFailed}, //core.Error originates from GetHandleValue
+		{name: "Non-AST Handle", initialContent: simpleSource, modifications: map[string]interface{}{"change_package": "other"}, wantErrIs: core.ErrGoModifyFailed}, //core.Error originates from type assertion after GetHandleValue
+		{name: "No Known Directive", initialContent: simpleSource, modifications: map[string]interface{}{"unknown_directive": "value"}, wantErrIs: core.ErrGoModifyUnknownDirective},
+		{name: "Empty Modifications Map", initialContent: simpleSource, modifications: map[string]interface{}{}, wantErrIs: core.ErrGoModifyEmptyMap},
 
-		// --- Validation Error Tests ---
-		{name: "Validation Wrong Arg Count", valWantErrIs: ErrValidationArgCount},
-		{name: "Validation Nil Handle", valWantErrIs: ErrValidationRequiredArgNil},
-		{name: "Validation Nil Modifications", valWantErrIs: ErrValidationRequiredArgNil},
-		{name: "Validation Wrong Handle Type", valWantErrIs: ErrValidationTypeMismatch},
-		{name: "Validation Wrong Mod Type", wantErrIs: ErrValidationTypeMismatch}, // toolGoModifyAST now returns this directly
+		// --- Validationcore.Error Tests ---
+		{name: "Validation Wrong Arg Count", valWantErrIs: core.ErrValidationArgCount},
+		{name: "Validation Nil Handle", valWantErrIs: core.ErrValidationRequiredArgNil},
+		{name: "Validation Nil Modifications", valWantErrIs: core.ErrValidationRequiredArgNil},
+		{name: "Validation Wrong Handle Type", valWantErrIs: core.ErrValidationTypeMismatch},
+		{name: "Validation Wrong Mod Type", wantErrIs: core.ErrValidationTypeMismatch}, // toolGoModifyAST now returns this directly
 	}
 
 	for _, tt := range tests {
 		tc := tt // Capture range variable
 		t.Run(tc.name, func(t *testing.T) {
-			currentInterp, _ := newDefaultTestInterpreter(t)
+			currentInterp, _ := core.NewDefaultTestInterpreter(t)
 			var initialHandle string
 			var finalArgs []interface{}
 
@@ -161,7 +162,7 @@ func main() {
 			// Construct args based on test case name (Simplified/Combined)
 			switch tc.name {
 			case "Invalid Handle":
-				finalArgs = makeArgs("invalid-handle", tc.modifications)
+				finalArgs = core.MakeArgs("invalid-handle", tc.modifications)
 			case "Non-AST Handle":
 				// *** UPDATED CALL ***
 				handleToUse, regErr := currentInterp.RegisterHandle("not an ast", "OtherType") // Use RegisterHandle
@@ -169,29 +170,29 @@ func main() {
 					t.Fatalf("Failed to register handle for Non-AST test: %v", regErr)
 				}
 				// *** END UPDATE ***
-				finalArgs = makeArgs(handleToUse, tc.modifications)
+				finalArgs = core.MakeArgs(handleToUse, tc.modifications)
 			case "Validation Wrong Arg Count":
-				finalArgs = makeArgs(initialHandle)
+				finalArgs = core.MakeArgs(initialHandle)
 			case "Validation Nil Handle":
-				finalArgs = makeArgs(nil, tc.modifications)
+				finalArgs = core.MakeArgs(nil, tc.modifications)
 			case "Validation Nil Modifications":
-				finalArgs = makeArgs(initialHandle, nil)
+				finalArgs = core.MakeArgs(initialHandle, nil)
 			case "Validation Wrong Handle Type":
-				finalArgs = makeArgs(123, tc.modifications)
+				finalArgs = core.MakeArgs(123, tc.modifications)
 			case "Validation Wrong Mod Type":
-				finalArgs = makeArgs(initialHandle, "not-a-map")
+				finalArgs = core.MakeArgs(initialHandle, "not-a-map")
 			default:
-				finalArgs = makeArgs(initialHandle, tc.modifications)
+				finalArgs = core.MakeArgs(initialHandle, tc.modifications)
 			}
 
-			toolImpl, found := currentInterp.ToolRegistry().GetTool("GoModifyAST")
+			toolImpl, found := currentInterp.core.ToolRegistry().GetTool("GoModifyAST")
 			if !found {
 				t.Fatalf("Tool GoModifyAST not found")
 			}
 			spec := toolImpl.Spec
-			convertedArgs, valErr := ValidateAndConvertArgs(spec, finalArgs)
+			convertedArgs, valErr := core.ValidateAndConvertArgs(spec, finalArgs)
 
-			// --- Validation Layer Error Check ---
+			// --- Validation Layercore.Error Check ---
 			if tc.valWantErrIs != nil {
 				if valErr == nil {
 					t.Errorf("Validate: expected error [%v], got nil", tc.valWantErrIs)
@@ -206,7 +207,7 @@ func main() {
 
 			gotResult, toolErr := toolImpl.Func(currentInterp, convertedArgs)
 
-			// --- Tool Execution Error Check (Using errors.Is) ---
+			// --- Tool Executioncore.Error Check (Using errors.Is) ---
 			if tc.wantErrIs != nil {
 				if toolErr == nil {
 					t.Errorf("Execute: expected Go error type [%T], but got nil error. Result: %v", tc.wantErrIs, gotResult)

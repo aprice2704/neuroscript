@@ -17,31 +17,31 @@ func toolLineCountFile(interpreter *Interpreter, args []interface{}) (interface{
 	sandboxRoot := interpreter.sandboxDir
 	if sandboxRoot == "" {
 		if interpreter.logger != nil {
-			interpreter.logger.Printf("[WARN TOOL LineCountFile] Interpreter sandboxDir is empty, using default relative path validation.")
+			interpreter.logger.Warn("TOOL LineCountFile] Interpreter sandboxDir is empty, using default relative path validation.")
 		}
 		sandboxRoot = "."
 	}
 	absPath, secErr := SecureFilePath(filePath, sandboxRoot)
 	if secErr != nil {
 		if interpreter.logger != nil {
-			interpreter.logger.Printf("[WARN TOOL LineCountFile] Path validation failed for '%s': %v. (Sandbox Root: %s)", filePath, secErr, sandboxRoot)
+			interpreter.logger.Warn("TOOL LineCountFile] Path validation failed for '%s': %v. (Sandbox Root: %s)", filePath, secErr, sandboxRoot)
 		}
 		return int64(-1), nil
 	}
 	if interpreter.logger != nil {
-		interpreter.logger.Printf("[TOOL LineCountFile] Attempting to read validated path: %s (Original: %s, Sandbox: %s)", absPath, filePath, sandboxRoot)
+		interpreter.logger.Info("Tool: LineCountFile] Attempting to read validated path: %s (Original: %s, Sandbox: %s)", absPath, filePath, sandboxRoot)
 	}
 	contentBytes, readErr := os.ReadFile(absPath)
 	if readErr != nil {
 		if interpreter.logger != nil {
-			interpreter.logger.Printf("[WARN TOOL LineCountFile] Read error for path '%s': %v.", filePath, readErr)
+			interpreter.logger.Warn("TOOL LineCountFile] Read error for path '%s': %v.", filePath, readErr)
 		}
 		return int64(-1), nil
 	}
 	content := string(contentBytes)
 	if len(content) == 0 {
 		if interpreter.logger != nil {
-			interpreter.logger.Printf("[TOOL LineCountFile] Counted 0 lines (empty file '%s').", filePath)
+			interpreter.logger.Info("Tool: LineCountFile] Counted 0 lines (empty file '%s').", filePath)
 		}
 		return int64(0), nil
 	}
@@ -53,7 +53,7 @@ func toolLineCountFile(interpreter *Interpreter, args []interface{}) (interface{
 		lineCount = 1
 	}
 	if interpreter.logger != nil {
-		interpreter.logger.Printf("[TOOL LineCountFile] Counted %d lines in file '%s'.", lineCount, filePath)
+		interpreter.logger.Info("Tool: LineCountFile] Counted %d lines in file '%s'.", lineCount, filePath)
 	}
 	return lineCount, nil
 }
@@ -64,7 +64,7 @@ func toolSanitizeFilename(interpreter *Interpreter, args []interface{}) (interfa
 	name := args[0].(string)
 	sanitized := SanitizeFilename(name)
 	if interpreter.logger != nil {
-		interpreter.logger.Printf("[TOOL SanitizeFilename] Input: %q -> Output: %q", name, sanitized)
+		interpreter.logger.Info("Tool: SanitizeFilename] Input: %q -> Output: %q", name, sanitized)
 	}
 	return sanitized, nil
 }

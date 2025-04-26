@@ -9,9 +9,12 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/aprice2704/neuroscript/pkg/core"
 	"github.com/google/go-cmp/cmp"
 	// log import removed
 )
+
+const testModuleName = "testmodule"
 
 // --- Test Setup ---
 
@@ -21,7 +24,7 @@ import (
 func setupSymbolMapTestEnv(t *testing.T, files map[string]string) (string, func()) {
 	t.Helper()
 	rootDir := t.TempDir()
-	logTest(t, "Test rootDir: %s", rootDir) // Use logTest from universal_test_helpers
+	core.LogTest(t, "Test rootDir: %s", rootDir) // Use core.LogTest from universal_test_helpers
 
 	// Create go.mod using the constant defined in tools_go_ast_package_test.go
 	goModPath := filepath.Join(rootDir, "go.mod")
@@ -30,7 +33,7 @@ func setupSymbolMapTestEnv(t *testing.T, files map[string]string) (string, func(
 	if err := os.WriteFile(goModPath, []byte(goModContent), 0644); err != nil {
 		t.Fatalf("Failed to write go.mod: %v", err)
 	}
-	logTest(t, "Writing %d bytes to: %s", len(goModContent), "go.mod") // Use logTest
+	core.LogTest(t, "Writing %d bytes to: %s", len(goModContent), "go.mod") // Use core.LogTest
 
 	for name, content := range files {
 		filePath := filepath.Join(rootDir, name)
@@ -41,7 +44,7 @@ func setupSymbolMapTestEnv(t *testing.T, files map[string]string) (string, func(
 		if err := os.WriteFile(filePath, []byte(content), 0644); err != nil {
 			t.Fatalf("Failed to write file %s: %v", name, err)
 		}
-		logTest(t, "Writing %d bytes to: %s", len(content), name) // Use logTest
+		core.LogTest(t, "Writing %d bytes to: %s", len(content), name) // Use core.LogTest
 
 	}
 
@@ -114,7 +117,7 @@ type AmbiguousType struct{}
 			},
 			packagePath:       "testtool/refactored",
 			expectedMap:       nil,
-			expectedErrorType: ErrAmbiguousSymbol,
+			expectedErrorType: core.ErrAmbiguousSymbol,
 		},
 		{
 			name: "No Go files",
@@ -132,7 +135,7 @@ type AmbiguousType struct{}
 			},
 			packagePath:       "nonexistent/path",
 			expectedMap:       nil,
-			expectedErrorType: ErrRefactoredPathNotFound,
+			expectedErrorType: core.ErrRefactoredPathNotFound,
 		},
 		{
 			name: "Nested packages",
@@ -157,7 +160,7 @@ const ExportedConst = 1`,
 			},
 			packagePath:       "../outside",
 			expectedMap:       nil,
-			expectedErrorType: ErrPathViolation, // Expect sentinel error
+			expectedErrorType: core.ErrPathViolation, // Expect sentinel error
 		},
 	}
 
@@ -166,13 +169,13 @@ const ExportedConst = 1`,
 			rootDir, cleanup := setupSymbolMapTestEnv(t, tc.files)
 			defer cleanup()
 
-			interpreter, _ := newDefaultTestInterpreter(t)
-			interpreter.sandboxDir = rootDir
+			interpreter, _ := core.NewDefaultTestInterpreter(t)
+			interpreter.SandboxDir() = rootDir
 
 			// --- Execute ---
 			symbolMap, err := buildSymbolMap(tc.packagePath, interpreter)
 
-			// --- Assert Error using errors.Is ---
+			// --- Assertcore.Error using errors.Is ---
 			if tc.expectedErrorType != nil {
 				if err == nil {
 					t.Fatalf("Expected error wrapping [%v], but got nil error", tc.expectedErrorType)

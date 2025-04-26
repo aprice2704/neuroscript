@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-func makeArgs(vals ...interface{}) []interface{} {
+func MakeArgs(vals ...interface{}) []interface{} {
 	if vals == nil {
 		return []interface{}{}
 	}
@@ -50,7 +50,7 @@ func toolExec(interpreter *Interpreter, cmdAndArgs ...string) (string, error) {
 	if strings.Contains(commandPath, "..") || strings.ContainsAny(commandPath, "|;&$><`\\") {
 		errMsg := fmt.Sprintf("toolExec blocked suspicious command path: %q", commandPath)
 		if interpreter.logger != nil {
-			interpreter.logger.Printf("[ERROR][toolExec] %s", errMsg)
+			interpreter.logger.Error("[toolExec] %s", errMsg)
 		}
 		// Return error message and a wrapped ErrInternalTool or a specific execution error
 		return errMsg, fmt.Errorf("%w: %s", ErrInternalTool, errMsg)
@@ -65,7 +65,7 @@ func toolExec(interpreter *Interpreter, cmdAndArgs ...string) (string, error) {
 				logArgs[i] = arg
 			}
 		}
-		interpreter.logger.Printf("[DEBUG][toolExec] Executing: %s %s", commandPath, strings.Join(logArgs, " "))
+		interpreter.logger.Debug("[toolExec] Executing: %s %s", commandPath, strings.Join(logArgs, " "))
 	}
 
 	cmd := exec.Command(commandPath, commandArgs...)
@@ -84,7 +84,7 @@ func toolExec(interpreter *Interpreter, cmdAndArgs ...string) (string, error) {
 		errMsg := fmt.Sprintf("command '%s %s' failed with exit error: %v. Output:\n%s",
 			commandPath, strings.Join(commandArgs, " "), execErr, combinedOutput)
 		if interpreter.logger != nil {
-			interpreter.logger.Printf("[ERROR][toolExec] %s", errMsg)
+			interpreter.logger.Error("[toolExec] %s", errMsg)
 		}
 		// Return the combined output along with the error
 		return combinedOutput, fmt.Errorf("%w: %s", ErrInternalTool, errMsg)
@@ -92,7 +92,7 @@ func toolExec(interpreter *Interpreter, cmdAndArgs ...string) (string, error) {
 
 	// Command succeeded
 	if interpreter.logger != nil {
-		interpreter.logger.Printf("[DEBUG][toolExec] Command successful. Output:\n%s", combinedOutput)
+		interpreter.logger.Debug("[toolExec] Command successful. Output:\n%s", combinedOutput)
 	}
 	return combinedOutput, nil
 }

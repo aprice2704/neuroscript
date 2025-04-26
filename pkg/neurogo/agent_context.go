@@ -8,6 +8,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/google/generative-ai-go/genai" // For File API types if needed
 )
 
@@ -36,7 +37,7 @@ type AgentContext struct {
 }
 
 // NewAgentContext creates a new, initialized AgentContext.
-func NewAgentContext(logger *log.Logger) *AgentContext {
+func NewAgentContext(logger interfaces.Logger) *AgentContext {
 	if logger == nil {
 		// Fallback if nil logger is passed, though ideally App should provide one
 		logger = log.New(log.Writer(), "AgentContext: ", log.LstdFlags|log.Lshortfile)

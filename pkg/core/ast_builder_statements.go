@@ -11,11 +11,11 @@ func (l *neuroScriptListenerImpl) ExitSet_statement(ctx *gen.Set_statementContex
 	l.logDebugAST("<<< Exit Set_statement: %q", ctx.GetText())
 	valueNode, ok := l.popValue() // Pop the AST node for the RHS expression
 	if !ok {
-		l.logger.Println("[ERROR] AST Builder: Failed to pop value for SET")
+		l.logger.Error("AST Builder: Failed to pop value for SET")
 		return
 	}
 	if l.currentSteps == nil {
-		l.logger.Println("[WARN] Set_statement exited with nil currentSteps")
+		l.logger.Warn("Set_statement exited with nil currentSteps")
 		return
 	}
 
@@ -39,13 +39,13 @@ func (l *neuroScriptListenerImpl) ExitCall_statement(ctx *gen.Call_statementCont
 	if !ok {
 		// Don't log error if numArgs was 0, as popNValues(0) is okay.
 		if numArgs > 0 {
-			l.logger.Printf("[ERROR] AST Builder: Failed to pop %d args for CALL", numArgs)
+			l.logger.Error("AST Builder: Failed to pop %d args for CALL", numArgs)
 		}
 		// Proceed even if args failed to pop, maybe it's a no-arg call. Check target.
 	} // Error handling improved
 
 	if l.currentSteps == nil {
-		l.logger.Println("[WARN] Call_statement exited with nil currentSteps")
+		l.logger.Warn("Call_statement exited with nil currentSteps")
 		return
 	}
 	target := ctx.Call_target().GetText()
@@ -61,12 +61,12 @@ func (l *neuroScriptListenerImpl) ExitReturn_statement(ctx *gen.Return_statement
 		var ok bool
 		valueNode, ok = l.popValue() // Pop the node for the return expression
 		if !ok {
-			l.logger.Println("[ERROR] AST Builder: Failed to pop value for RETURN")
+			l.logger.Error("AST Builder: Failed to pop value for RETURN")
 			// Keep valueNode as nil, which is valid for RETURN
 		}
 	}
 	if l.currentSteps == nil {
-		l.logger.Println("[WARN] Return_statement exited with nil currentSteps")
+		l.logger.Warn("Return_statement exited with nil currentSteps")
 		return
 	}
 	// *** UPDATED newStep call: added nil for elseValue ***
@@ -81,12 +81,12 @@ func (l *neuroScriptListenerImpl) ExitEmit_statement(ctx *gen.Emit_statementCont
 		var ok bool
 		valueNode, ok = l.popValue() // Pop the node for the emit expression
 		if !ok {
-			l.logger.Println("[ERROR] AST Builder: Failed to pop value for EMIT")
+			l.logger.Error("AST Builder: Failed to pop value for EMIT")
 			// Keep valueNode as nil? Or should EMIT require a value? For now, allow nil.
 		}
 	}
 	if l.currentSteps == nil {
-		l.logger.Println("[WARN] Emit_statement exited with nil currentSteps")
+		l.logger.Warn("Emit_statement exited with nil currentSteps")
 		return
 	}
 	// *** UPDATED newStep call: added nil for elseValue ***

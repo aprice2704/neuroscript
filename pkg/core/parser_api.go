@@ -3,18 +3,18 @@ package core
 
 import (
 	"fmt"
-	"io"
-	"log" // Import log package
+	"io" // Import log package
 	"strings"
 
 	"github.com/antlr4-go/antlr/v4"
 	gen "github.com/aprice2704/neuroscript/pkg/core/generated"
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 )
 
 // ParseOptions structure to pass flags/logger
 type ParseOptions struct {
 	DebugAST bool
-	Logger   *log.Logger // Use standard log.Logger
+	logger   interfaces.Logger // Use standard log.logger
 }
 
 // ParseNeuroScript reads NeuroScript code, parses it using ANTLR,
@@ -22,9 +22,9 @@ type ParseOptions struct {
 // Updated signature to return fileVersion string.
 func ParseNeuroScript(r io.Reader, sourceName string, options ParseOptions) ([]Procedure, string, error) {
 	// Use logger from options, default to discard if nil
-	logger := options.Logger
+	logger := options.logger
 	if logger == nil {
-		logger = log.New(io.Discard, "", 0)
+		panic("Parser requires a valid logger")
 	}
 
 	inputBytes, err := io.ReadAll(r) // Use io.ReadAll for consistency

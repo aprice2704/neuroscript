@@ -23,18 +23,18 @@ func updateAccumulatedURIs(
 	syncFilter string, // The filter used for the sync
 	accumulatedContextURIs *[]string, // Pointer to the slice to update
 ) {
-	a.InfoLog.Println("Listing API files to update context for next turn...")
-	a.DebugLog.Printf("Updating context for synced directory: %s", absSyncedDir)
+	a.Logger.Info("Listing API files to update context for next turn...")
+	a.Logger.Debug("Updating context for synced directory: %s", absSyncedDir)
 
 	cleanSandboxDir := filepath.Clean(a.Config.SandboxDir)
 	absCleanSandboxDir, err := filepath.Abs(cleanSandboxDir)
 	if err != nil {
-		a.ErrorLog.Printf("Error getting absolute path for sandbox dir %q: %v", cleanSandboxDir, err)
+		a.Logger.Error("Error getting absolute path for sandbox dir %q: %v", cleanSandboxDir, err)
 		fmt.Println("[AGENT] Warning: Could not determine absolute sandbox path for context update.")
 		return
 	}
 	absCleanSandboxDir = filepath.Clean(absCleanSandboxDir)
-	a.DebugLog.Printf("Context update using absolute sandbox root: %s", absCleanSandboxDir)
+	a.Logger.Debug("Context update using absolute sandbox root: %s", absCleanSandboxDir)
 
 	// --- Start FIX V3 for Relative Path & Prefix ---
 	syncDirRel := ""
@@ -44,7 +44,7 @@ func updateAccumulatedURIs(
 	if absSyncedDir != absCleanSandboxDir {
 		relPath, relErr := filepath.Rel(absCleanSandboxDir, absSyncedDir)
 		if relErr != nil {
-			a.ErrorLog.Printf("Cannot get relative path for synced dir %q relative to sandbox %q: %v", absSyncedDir, absCleanSandboxDir, relErr)
+			a.Logger.Error("Cannot get relative path for synced dir %q relative to sandbox %q: %v", absSyncedDir, absCleanSandboxDir, relErr)
 			fmt.Println("[AGENT] Warning: Could not determine relative path for context update filtering.")
 			return // Abort if we can't get relative path when needed
 		}
@@ -53,47 +53,47 @@ func updateAccumulatedURIs(
 		if syncDirRel != "" && syncDirRel != "." {
 			prefix = syncDirRel + "/"
 		}
-		a.DebugLog.Printf("Calculated relative sync path: %s, using prefix: '%s'", syncDirRel, prefix)
+		a.Logger.Debug("Calculated relative sync path: %s, using prefix: '%s'", syncDirRel, prefix)
 	} else {
-		a.DebugLog.Printf("Synced directory is the sandbox root. Using empty prefix ''.")
+		a.Logger.Debug("Synced directory is the sandbox root. Using empty prefix ''.")
 		// syncDirRel remains "", prefix remains ""
 	}
 	// --- End FIX V3 ---
 
 	apiFiles, listErr := core.HelperListApiFiles(ctx, llmClient.Client(), a.DebugLog)
 	if listErr != nil {
-		a.ErrorLog.Printf("Failed list API files: %v", listErr)
+		a.Logger.Error("Failed list API files: %v", listErr)
 		fmt.Println("[AGENT] Warning: Ctx update failed.")
 		return
 	}
-	a.DebugLog.Printf("Found %d total API files to filter for context update.", len(apiFiles))
+	a.Logger.Debug("Found %d total API files to filter for context update.", len(apiFiles))
 
 	urisCollected := 0
 	newURIs := []string{}
-	a.DebugLog.Printf("Filtering API files using prefix: [%s]", prefix) // Show prefix clearly
+	a.Logger.Debug("Filtering API files using prefix: [%s]", prefix) // Show prefix clearly
 
 	for _, file := range apiFiles {
 		if file.DisplayName == "" || file.State != genai.FileStateActive || file.URI == "" {
 			continue
 		}
-		a.DebugLog.Printf("Checking API DisplayName: [%s]", file.DisplayName)
+		a.Logger.Debug("Checking API DisplayName: [%s]", file.DisplayName)
 
 		// Use the calculated prefix for matching
 		if strings.HasPrefix(file.DisplayName, prefix) {
 			if syncFilter != "" { /* ... filter check ... */
 				match, _ := filepath.Match(syncFilter, filepath.Base(file.DisplayName))
 				if !match {
-					a.DebugLog.Printf("-> Matched prefix, SKIPPED by filter: %s", file.DisplayName)
+					a.Logger.Debug("-> Matched prefix, SKIPPED by filter: %s", file.DisplayName)
 					continue
 				}
-				a.DebugLog.Printf("-> Matched prefix AND filter: %s", file.DisplayName)
+				a.Logger.Debug("-> Matched prefix AND filter: %s", file.DisplayName)
 			} else {
-				a.DebugLog.Printf("-> Matched prefix (no filter): %s", file.DisplayName)
+				a.Logger.Debug("-> Matched prefix (no filter): %s", file.DisplayName)
 			}
 			newURIs = append(newURIs, file.URI)
 			urisCollected++
 		} else {
-			a.DebugLog.Printf("-> Did NOT match prefix.") // Log non-matches
+			a.Logger.Debug("-> Did NOT match prefix.") // Log non-matches
 		}
 	} // End file loop
 
@@ -109,7 +109,7 @@ func updateAccumulatedURIs(
 	for uri := range uriSet {
 		*accumulatedContextURIs = append(*accumulatedContextURIs, uri)
 	}
-	a.InfoLog.Printf("Collected %d URIs from sync (Dir: '%s', Filter: '%s'). Total accumulated URIs: %d", urisCollected, absSyncedDir, syncFilter, len(*accumulatedContextURIs))
+	a.Logger.Info("Collected %d URIs from sync (Dir: '%s', Filter: '%s'). Total accumulated URIs: %d", urisCollected, absSyncedDir, syncFilter, len(*accumulatedContextURIs))
 	displayDir := filepath.Base(absSyncedDir)
 	if absSyncedDir == absCleanSandboxDir && a.Config.SandboxDir == "." {
 		displayDir = "."

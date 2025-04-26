@@ -3,8 +3,8 @@ package core
 
 import (
 	"context"
-	"log"
 
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/google/generative-ai-go/genai"
 	gitignore "github.com/sabhiram/go-gitignore"
 )
@@ -16,9 +16,7 @@ type syncContext struct {
 	filterPattern string
 	ignorer       *gitignore.GitIgnore // Gitignore rules
 	client        *genai.Client        // GenAI client
-	infoLog       *log.Logger
-	errorLog      *log.Logger
-	debugLog      *log.Logger
+	logger        interfaces.Logger
 	stats         map[string]interface{} // Statistics map
 	incrementStat func(string)           // Function to increment stats
 }

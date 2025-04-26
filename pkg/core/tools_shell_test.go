@@ -11,14 +11,14 @@ import (
 	"testing"
 )
 
-// Assume newTestInterpreter and makeArgs are defined elsewhere (e.g., testing_helpers.go)
+// Assume newTestInterpreter and MakeArgs are defined elsewhere (e.g., testing_helpers.go)
 
 // --- Test ToolExecuteCommand ---
 func TestToolExecuteCommand(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("Skipping shell command tests on Windows")
 	}
-	dummyInterp, _ := newDefaultTestInterpreter(t)
+	dummyInterp, _ := NewDefaultTestInterpreter(t)
 	tests := []struct {
 		name         string
 		command      string
@@ -38,9 +38,9 @@ func TestToolExecuteCommand(t *testing.T) {
 		{name: "Command Not Found", command: "nonexistent_command_ajsdflk", cmdArgs: []interface{}{}, wantStdout: "", wantStderr: "executable file not found", wantExitCode: -1, wantSuccess: false},
 
 		// Validation Error Tests
-		{name: "Validation Wrong Arg Count (1)", command: "echo", cmdArgs: nil, valWantErrIs: ErrValidationArgCount},                                             // cmdArgs is nil, but makeArgs below passes only command
-		{name: "Validation Wrong Arg Type (Command not string)", command: "", cmdArgs: makeArgs(123, []interface{}{}), valWantErrIs: ErrValidationTypeMismatch},  // Setup provides wrong type
-		{name: "Validation Wrong Arg Type (Args not slice)", command: "echo", cmdArgs: makeArgs("echo", "not_a_slice"), valWantErrIs: ErrValidationTypeMismatch}, // Setup provides wrong type
+		{name: "Validation Wrong Arg Count (1)", command: "echo", cmdArgs: nil, valWantErrIs: ErrValidationArgCount},                                             // cmdArgs is nil, but MakeArgs below passes only command
+		{name: "Validation Wrong Arg Type (Command not string)", command: "", cmdArgs: MakeArgs(123, []interface{}{}), valWantErrIs: ErrValidationTypeMismatch},  // Setup provides wrong type
+		{name: "Validation Wrong Arg Type (Args not slice)", command: "echo", cmdArgs: MakeArgs("echo", "not_a_slice"), valWantErrIs: ErrValidationTypeMismatch}, // Setup provides wrong type
 	}
 	spec := ToolSpec{Name: "ExecuteCommand", Args: []ArgSpec{{Name: "command", Type: ArgTypeString, Required: true}, {Name: "args_list", Type: ArgTypeSliceAny, Required: true}}, ReturnType: ArgTypeAny}
 
@@ -48,14 +48,14 @@ func TestToolExecuteCommand(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			var rawArgs []interface{}
 			if tt.name == "Validation Wrong Arg Count (1)" {
-				rawArgs = makeArgs(tt.command) // Only pass command
+				rawArgs = MakeArgs(tt.command) // Only pass command
 			} else if tt.name == "Validation Wrong Arg Type (Command not string)" {
 				rawArgs = tt.cmdArgs // Use predefined setup with wrong type
 			} else if tt.name == "Validation Wrong Arg Type (Args not slice)" {
 				rawArgs = tt.cmdArgs // Use predefined setup with wrong type
 			} else {
 				// Correct structure for execution tests: command string, then slice of command args
-				rawArgs = makeArgs(tt.command, tt.cmdArgs) // Pass the command args as the second element
+				rawArgs = MakeArgs(tt.command, tt.cmdArgs) // Pass the command args as the second element
 			}
 
 			convertedArgs, valErr := ValidateAndConvertArgs(spec, rawArgs)
@@ -125,7 +125,7 @@ func TestToolGoModTidy(t *testing.T) {
 		t.Skip("Skipping GoModTidy test: 'go' command not found")
 	}
 
-	dummyInterp, _ := newDefaultTestInterpreter(t)
+	dummyInterp, _ := NewDefaultTestInterpreter(t)
 	testDir := "gomodtidy_test_run_cwd_dir_5" // Use different dir name
 	err := os.MkdirAll(testDir, 0755)
 	if err != nil {
@@ -153,7 +153,7 @@ func TestToolGoModTidy(t *testing.T) {
 	}
 	defer os.Chdir(originalWd)
 
-	rawArgs := makeArgs() // GoModTidy takes no arguments
+	rawArgs := MakeArgs() // GoModTidy takes no arguments
 	spec := ToolSpec{Name: "GoModTidy", Args: []ArgSpec{}, ReturnType: ArgTypeAny}
 	convertedArgs, valErr := ValidateAndConvertArgs(spec, rawArgs) // Use convertedArgs
 	if valErr != nil {

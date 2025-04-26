@@ -28,7 +28,7 @@ func toolAskLLM(interpreter *Interpreter, args []interface{}) (interface{}, erro
 	// --- MODIFIED: Use Interpreter's LLMClient ---
 	llmClient := interpreter.llmClient                 // Get client from interpreter
 	if llmClient == nil || llmClient.Client() == nil { // Check underlying client too
-		interpreter.Logger().Println("[ERROR TOOL.AskLLM] LLM client not available via interpreter.")
+		interpreter.logger.Error("TOOL.AskLLM] LLM client not available via interpreter.")
 		return nil, errors.New("TOOL.AskLLM: LLM client not available or not initialized")
 	}
 	// --- END MODIFIED ---
@@ -62,34 +62,34 @@ func toolAskLLMWithFiles(interpreter *Interpreter, args []interface{}) (interfac
 	for i, item := range fileURIsArg {
 		uri, ok := item.(string)
 		if !ok || uri == "" {
-			interpreter.Logger().Printf("[WARN TOOL.AskLLMWithFiles] Skipping invalid/empty URI at index %d in file_uris list.", i)
+			interpreter.logger.Warn("TOOL.AskLLMWithFiles] Skipping invalid/empty URI at index %d in file_uris list.", i)
 			continue
 		}
 		fileURIs = append(fileURIs, uri)
 	}
 
 	if len(fileURIs) == 0 {
-		interpreter.Logger().Println("[WARN TOOL.AskLLMWithFiles] file_uris list contained no valid URIs.")
+		interpreter.logger.Warn("TOOL.AskLLMWithFiles] file_uris list contained no valid URIs.")
 		return nil, errors.New("TOOL.AskLLMWithFiles: requires at least one valid file URI in the list")
 	}
 
 	parts := []genai.Part{}
-	interpreter.Logger().Printf("[TOOL.AskLLMWithFiles] Preparing parts. Files: %d, Prompt: %q", len(fileURIs), promptText)
+	interpreter.logger.Info("Tool: AskLLMWithFiles] Preparing parts. Files: %d, Prompt: %q", len(fileURIs), promptText)
 	for _, uri := range fileURIs {
 		parts = append(parts, genai.FileData{URI: uri})
-		interpreter.Logger().Printf("[TOOL.AskLLMWithFiles] Added FileData: %s", uri)
+		interpreter.logger.Info("Tool: AskLLMWithFiles] Added FileData: %s", uri)
 	}
 	if promptText != "" {
 		parts = append(parts, genai.Text(promptText))
-		interpreter.Logger().Printf("[TOOL.AskLLMWithFiles] Added Text part.")
+		interpreter.logger.Info("Tool: AskLLMWithFiles] Added Text part.")
 	} else {
-		interpreter.Logger().Printf("[TOOL.AskLLMWithFiles] No text prompt provided, sending files only.")
+		interpreter.logger.Info("Tool: AskLLMWithFiles] No text prompt provided, sending files only.")
 	}
 
 	// --- MODIFIED: Use Interpreter's LLMClient ---
 	llmClient := interpreter.llmClient                 // Get client from interpreter
 	if llmClient == nil || llmClient.Client() == nil { // Check underlying client too
-		interpreter.Logger().Println("[ERROR TOOL.AskLLMWithFiles] LLM client not available via interpreter.")
+		interpreter.logger.Error("TOOL.AskLLMWithFiles] LLM client not available via interpreter.")
 		return nil, errors.New("TOOL.AskLLMWithFiles: LLM client not available or not initialized")
 	}
 	// --- END MODIFIED ---
@@ -106,11 +106,11 @@ func toolAskLLMWithFiles(interpreter *Interpreter, args []interface{}) (interfac
 	if len(resp.Candidates) > 0 && len(resp.Candidates[0].Content.Parts) > 0 {
 		part := resp.Candidates[0].Content.Parts[0]
 		if text, ok := part.(genai.Text); ok {
-			interpreter.Logger().Printf("[TOOL.AskLLMWithFiles] Received text response.")
+			interpreter.logger.Info("Tool: AskLLMWithFiles] Received text response.")
 			return string(text), nil
 		}
 	}
-	interpreter.Logger().Printf("[WARN TOOL.AskLLMWithFiles] Received non-text or empty response.")
+	interpreter.logger.Warn("TOOL.AskLLMWithFiles] Received non-text or empty response.")
 	return "", errors.New("TOOL.AskLLMWithFiles received non-text or empty response")
 }
 

@@ -80,7 +80,7 @@ func testGoFmtToolHelper(t *testing.T, interp *Interpreter, tc struct {
 }
 
 func TestToolGoFmt(t *testing.T) {
-	interp, _ := newDefaultTestInterpreter(t)
+	interp, _ := NewDefaultTestInterpreter(t)
 
 	unformattedSource := `
 package main
@@ -111,32 +111,32 @@ func main() {
 		{
 			name:       "Format valid code",
 			toolName:   "GoFmt",
-			args:       makeArgs(unformattedSource),
+			args:       MakeArgs(unformattedSource),
 			wantResult: formattedSource,
 		},
 		{
 			name:       "Format already formatted code",
 			toolName:   "GoFmt",
-			args:       makeArgs(formattedSource),
+			args:       MakeArgs(formattedSource),
 			wantResult: formattedSource, // Should be idempotent
 		},
 		{
 			name:          "Format invalid code",
 			toolName:      "GoFmt",
-			args:          makeArgs(invalidSource),
+			args:          MakeArgs(invalidSource),
 			wantResult:    invalidSource,   // Should return original source on format error
 			wantToolErrIs: ErrInternalTool, // Expect an internal tool error wrapping the gofmt error
 		},
 		{
 			name:         "Validation_Wrong_Arg_Type",
 			toolName:     "GoFmt",
-			args:         makeArgs(123),
+			args:         MakeArgs(123),
 			valWantErrIs: ErrValidationTypeMismatch,
 		},
 		{
 			name:         "Validation_Missing_Arg",
 			toolName:     "GoFmt",
-			args:         makeArgs(),
+			args:         MakeArgs(),
 			valWantErrIs: ErrValidationArgCount,
 		},
 	}

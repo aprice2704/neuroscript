@@ -19,7 +19,7 @@ import (
 
 // runCleanAPIMode handles deleting all files from the File API.
 func (a *App) runCleanAPIMode(ctx context.Context) error {
-	a.InfoLog.Println("Initiating Clean API operation.")
+	a.Logger.Info("Initiating Clean API operation.")
 
 	// Use the correct exported interface method GetLLMClient()
 	llmClient := a.GetLLMClient()
@@ -28,21 +28,21 @@ func (a *App) runCleanAPIMode(ctx context.Context) error {
 	}
 	client := llmClient.Client() // Get the underlying client
 
-	a.InfoLog.Println("Listing all files from the API...")
+	a.Logger.Info("Listing all files from the API...")
 	// Pass the app's DebugLog (via interface method)
-	apiFiles, listErr := core.HelperListApiFiles(ctx, client, a.GetDebugLogger())
+	apiFiles, listErr := core.HelperListApiFiles(ctx, client, a.GetLogger())
 	if listErr != nil {
-		a.ErrorLog.Printf("Failed list API files: %v", listErr)
+		a.Logger.Error("Failed list API files: %v", listErr)
 		return fmt.Errorf("failed list API files: %w", listErr)
 	}
 
 	fileCount := len(apiFiles)
 	if fileCount == 0 {
-		a.InfoLog.Println("No files found in API.")
+		a.Logger.Info("No files found in API.")
 		fmt.Println("No files found in the API.")
 		return nil
 	}
-	a.InfoLog.Printf("Found %d files in API.", fileCount)
+	a.Logger.Info("Found %d files in API.", fileCount)
 	fmt.Printf("Found %d files in the API.\n", fileCount)
 
 	// Confirmation
@@ -54,17 +54,17 @@ func (a *App) runCleanAPIMode(ctx context.Context) error {
 	reader := bufio.NewReader(os.Stdin)
 	confirmation, err := reader.ReadString('\n')
 	if err != nil {
-		a.ErrorLog.Printf("Failed read confirm: %v", err)
+		a.Logger.Error("Failed read confirm: %v", err)
 		return fmt.Errorf("failed read confirm: %w", err)
 	}
 	confirmation = strings.TrimSpace(strings.ToLower(confirmation))
 	if confirmation != "yes" {
-		a.InfoLog.Println("Clean API operation cancelled.")
+		a.Logger.Info("Clean API operation cancelled.")
 		fmt.Println("Clean API operation cancelled.")
 		return nil
 	}
 
-	a.InfoLog.Println("User confirmed. Proceeding with API file deletion...")
+	a.Logger.Info("User confirmed. Proceeding with API file deletion...")
 	fmt.Println("Proceeding with deletion...")
 
 	// Concurrent Deletion
@@ -74,8 +74,8 @@ func (a *App) runCleanAPIMode(ctx context.Context) error {
 	errorChan := make(chan error, fileCount) // Channel for collecting errors
 
 	// Use interface method to get logger
-	dbgLog := a.GetDebugLogger()
-	errLog := a.GetErrorLogger() // Use interface method here too for consistency
+	dbgLog := a.GetLogger()
+	errLog := a.GetLogger() // Use interface method here too for consistency
 
 	dbgLog.Printf("Starting %d API delete workers...", maxConcurrentDeletes)
 	for i := 0; i < maxConcurrentDeletes; i++ {
@@ -127,12 +127,12 @@ func (a *App) runCleanAPIMode(ctx context.Context) error {
 
 	// Report Summary
 	summaryTitle := "Clean API Summary"
-	a.InfoLog.Println("--------------------")
-	a.InfoLog.Println(summaryTitle)
-	a.InfoLog.Printf("  Files Found:     %d", fileCount)
-	a.InfoLog.Printf("  Files Deleted:   %d", deleteSuccess)
-	a.InfoLog.Printf("  Deletion Errors: %d", deleteErrors)
-	a.InfoLog.Println("--------------------")
+	a.Logger.Info("--------------------")
+	a.Logger.Info(summaryTitle)
+	a.Logger.Info("  Files Found:     %d", fileCount)
+	a.Logger.Info("  Files Deleted:   %d", deleteSuccess)
+	a.Logger.Info("  Deletion Errors: %d", deleteErrors)
+	a.Logger.Info("--------------------")
 	fmt.Println("--------------------")
 	fmt.Println(summaryTitle)
 	fmt.Printf("  Files Found:     %d\n", fileCount)
@@ -141,18 +141,18 @@ func (a *App) runCleanAPIMode(ctx context.Context) error {
 	fmt.Println("--------------------")
 
 	if deleteErrors > 0 {
-		a.ErrorLog.Printf("Clean API operation completed with %d errors:", deleteErrors)
+		a.Logger.Error("Clean API operation completed with %d errors:", deleteErrors)
 		maxLoggedErrors := 5
 		for i := 0; i < min(len(errorMessages), maxLoggedErrors); i++ {
-			a.ErrorLog.Printf("  - %s", errorMessages[i])
+			a.Logger.Error("  - %s", errorMessages[i])
 		}
 		if len(errorMessages) > maxLoggedErrors {
-			a.ErrorLog.Printf("  ... (logged %d of %d errors)", maxLoggedErrors, deleteErrors)
+			a.Logger.Error("  ... (logged %d of %d errors)", maxLoggedErrors, deleteErrors)
 		}
 		return fmt.Errorf("clean API operation completed with %d errors", deleteErrors)
 	}
 
-	a.InfoLog.Println("Clean API operation completed successfully.")
+	a.Logger.Info("Clean API operation completed successfully.")
 	fmt.Println("Clean API operation completed successfully.")
 	return nil
 }
@@ -173,9 +173,9 @@ func (a *App) InitLoggingAndLLMClient(ctx context.Context) error {
 	}
 	if err := a.initLLMClient(ctx); err != nil {
 		// Use interface getter for logger here too
-		errLog := a.GetErrorLogger()
+		errLog := a.GetLogger()
 		if errLog != nil {
-			errLog.Printf("LLM Client init failed during combined init: %v", err)
+			Logger.Error("LLM Client init failed during combined init: %v", err)
 		} else {
 			// Fallback if ErrorLog itself is nil
 			log.Printf("ERROR: LLM Client init failed during combined init: %v (ErrorLog nil)", err)
@@ -189,9 +189,9 @@ func (a *App) InitLoggingAndLLMClient(ctx context.Context) error {
 // Assume runTuiMode is defined in app_tui.go
 // initLogging sets up logging based on Config.
 func (a *App) initLogging() error {
-	infoLog := a.GetInfoLogger()   // Use getter to ensure non-nil
-	debugLog := a.GetDebugLogger() // Use getter
-	llmLog := a.LLMLog             // Keep direct access if needed, ensure non-nil below
+	infoLog := a.GetLogger()  // Use getter to ensure non-nil
+	debugLog := a.GetLogger() // Use getter
+	llmLog := a.LLMLog        // Keep direct access if needed, ensure non-nil below
 
 	// Debug Log File
 	if a.Config.DebugLogFile != "" {
@@ -201,11 +201,11 @@ func (a *App) initLogging() error {
 			log.Printf("ERROR: failed open debug log %s: %v", a.Config.DebugLogFile, err)
 			return fmt.Errorf("failed open debug log %s: %w", a.Config.DebugLogFile, err)
 		}
-		debugLog.SetOutput(f) // NOTE: Need close later
-		debugLog.Printf("--- Debug Logging Enabled to %s ---", a.Config.DebugLogFile)
-		infoLog.Println("Debug logging enabled to file:", a.Config.DebugLogFile)
+		a.Logger.SetOutput(f) // NOTE: Need close later
+		a.Logger.Debug("--- Debug Logging Enabled to %s ---", a.Config.DebugLogFile)
+		a.Logger.Info("Debug logging enabled to file:", a.Config.DebugLogFile)
 	} else {
-		debugLog.SetOutput(io.Discard) // Ensure it discards if no file
+		a.Logger.SetOutput(io.Discard) // Ensure it discards if no file
 	}
 
 	// LLM Debug Log File
@@ -222,7 +222,7 @@ func (a *App) initLogging() error {
 		} // NOTE: Need close later
 		a.LLMLog = llmLog // Update App field if it was nil
 		llmLog.Printf("--- LLM Debug Logging Enabled to %s ---", a.Config.LLMDebugLogFile)
-		infoLog.Println("LLM Debug logging enabled to file:", a.Config.LLMDebugLogFile)
+		a.Logger.Info("LLM Debug logging enabled to file:", a.Config.LLMDebugLogFile)
 	} else {
 		if llmLog == nil {
 			llmLog = log.New(io.Discard, "LLM:   ", log.LstdFlags|log.Lshortfile)
@@ -236,8 +236,8 @@ func (a *App) initLogging() error {
 
 // initLLMClient initializes the GenAI client if needed for the current mode.
 func (a *App) initLLMClient(ctx context.Context) error {
-	debugLogger := a.GetDebugLogger() // Use interface getter
-	infoLogger := a.GetInfoLogger()
+	debugLogger := a.GetLogger() // Use interface getter
+	infoLogger := a.GetLogger()
 	warnLogger := a.WarnLog // Use direct field, ensure non-nil if needed
 
 	// Determine if LLM is needed based on finalized config flags
@@ -258,7 +258,7 @@ func (a *App) initLLMClient(ctx context.Context) error {
 		enableLLMFlag = a.Config.EnableLLM // Assumes EnableLLM field exists
 	}
 
-	debugLogger.Printf("initLLMClient: NeedsLLM=%v, StrictNeed=%v, APIKeyPresent=%v, EnableLLMFlag=%v",
+	debugLogger.Debug("initLLMClient: NeedsLLM=%v, StrictNeed=%v, APIKeyPresent=%v, EnableLLMFlag=%v",
 		needsLLM, strictNeed, apiKeyPresent, enableLLMFlag)
 
 	if !needsLLM {
@@ -285,18 +285,18 @@ func (a *App) initLLMClient(ctx context.Context) error {
 		// Fail if strictly needed OR (needed AND enabled)
 		if strictNeed || (needsLLM && enableLLMFlag) {
 			errMsg = fmt.Sprintf("%s but required for this mode", errMsg)
-			errLog := a.GetErrorLogger()
+			errLog := a.GetLogger()
 			if errLog != nil {
 				errLog.Println(errMsg)
 			}
-			debugLogger.Printf("initLLMClient: Failing - %s", errMsg)
+			debugLogger.Debug("initLLMClient: Failing - %s", errMsg)
 			return errors.New(errMsg) // Return fatal error
 		} else {
 			// Log warning if key missing but not strictly fatal
 			if warnLogger != nil {
-				warnLogger.Printf("%s; LLM operations will fail if used.", errMsg)
+				warnLogger.Debug("%s; LLM operations will fail if used.", errMsg)
 			}
-			debugLogger.Printf("initLLMClient: Continuing without LLM client - %s", errMsg)
+			debugLogger.Debug("initLLMClient: Continuing without LLM client - %s", errMsg)
 			return nil // Not a fatal error for this path
 		}
 	}
@@ -321,7 +321,7 @@ func (a *App) initLLMClient(ctx context.Context) error {
 	// Ensure API key is definitely not empty before calling core
 	if apiKey == "" {
 		errMsg := "internal error: API key is empty despite passing initial check"
-		errLog := a.GetErrorLogger()
+		errLog := a.GetLogger()
 		if errLog != nil {
 			errLog.Println(errMsg)
 		}
@@ -334,16 +334,16 @@ func (a *App) initLLMClient(ctx context.Context) error {
 	if client == nil || client.Client() == nil {
 		errMsg := "LLM client initialization failed (core.NewLLMClient returned nil or client.Client() is nil)"
 		// This is generally fatal if we got this far (API key was present)
-		errLog := a.GetErrorLogger()
+		errLog := a.GetLogger()
 		if errLog != nil {
 			errLog.Println(errMsg)
 		}
-		debugLogger.Printf("initLLMClient: Failing - %s", errMsg)
+		debugLogger.Debug("initLLMClient: Failing - %s", errMsg)
 		return errors.New(errMsg) // Return fatal error
 	}
 
 	a.llmClient = client // Assign the successfully created client
-	infoLogger.Printf("LLM Client initialized successfully (Model: %s)", a.GetModelName())
-	debugLogger.Printf("initLLMClient: Success, a.llmClient is NOT nil: %v", a.llmClient != nil)
+	infoLogger.Debug("LLM Client initialized successfully (Model: %s)", a.GetModelName())
+	debugLogger.Debug("initLLMClient: Success, a.llmClient is NOT nil: %v", a.llmClient != nil)
 	return nil
 }

@@ -32,7 +32,7 @@ func (l *neuroScriptListenerImpl) ExitAccessor_expr(ctx *gen.Accessor_exprContex
 		for i := 0; i < numAccessors; i++ {
 			node, ok := l.popValue()
 			if !ok {
-				l.logger.Printf("[ERROR] AST Builder: Stack error popping accessor node %d for %q", numAccessors-1-i, ctx.GetText())
+				l.logger.Error("AST Builder: Stack error popping accessor node %d for %q", numAccessors-1-i, ctx.GetText())
 				l.pushValue(nil) // Push error marker
 				return
 			}
@@ -43,7 +43,7 @@ func (l *neuroScriptListenerImpl) ExitAccessor_expr(ctx *gen.Accessor_exprContex
 		// Pop the base primary expression node (was parsed first, pushed by ExitPrimary)
 		collectionNode, okColl := l.popValue()
 		if !okColl {
-			l.logger.Printf("[ERROR] AST Builder: Stack error popping collection node for %q", ctx.GetText())
+			l.logger.Error("AST Builder: Stack error popping collection node for %q", ctx.GetText())
 			l.pushValue(nil) // Push error marker
 			return
 		}
@@ -92,7 +92,7 @@ func (l *neuroScriptListenerImpl) ExitPrimary(ctx *gen.PrimaryContext) {
 	if ctx.KW_EVAL() != nil {
 		argNode, ok := l.popValue()
 		if !ok {
-			l.logger.Println("[ERROR] AST Builder: Failed to pop argument for EVAL")
+			l.logger.Error("AST Builder: Failed to pop argument for EVAL")
 			l.pushValue(nil)
 		} else {
 			l.pushValue(EvalNode{Argument: argNode})
@@ -104,7 +104,7 @@ func (l *neuroScriptListenerImpl) ExitPrimary(ctx *gen.PrimaryContext) {
 		l.logDebugAST("    Primary is Parenthesized Expression")
 		return // Value pushed by inner ExitExpression
 	}
-	l.logger.Printf("[WARN] ExitPrimary reached unexpected state for text: %q", ctx.GetText())
+	l.logger.Warn("ExitPrimary reached unexpected state for text: %q", ctx.GetText())
 }
 
 // ExitFunction_call builds a FunctionCallNode.
@@ -119,7 +119,7 @@ func (l *neuroScriptListenerImpl) ExitFunction_call(ctx *gen.Function_callContex
 	args, ok := l.popNValues(numArgs)
 	if !ok {
 		if numArgs > 0 {
-			l.logger.Printf("[ERROR] AST Builder: Stack error popping %d args for function %s", numArgs, funcName)
+			l.logger.Error("AST Builder: Stack error popping %d args for function %s", numArgs, funcName)
 			l.pushValue(nil)
 			return
 		}
@@ -138,7 +138,7 @@ func (l *neuroScriptListenerImpl) ExitPlaceholder(ctx *gen.PlaceholderContext) {
 	} else if ctx.KW_LAST() != nil {
 		name = "LAST"
 	} else {
-		l.logger.Printf("[WARN] ExitPlaceholder found unexpected content: %q", ctx.GetText())
+		l.logger.Warn("ExitPlaceholder found unexpected content: %q", ctx.GetText())
 	}
 	l.pushValue(PlaceholderNode{Name: name})
 	l.logDebugAST("    Constructed PlaceholderNode: Name=%s", name)
@@ -151,7 +151,7 @@ func (l *neuroScriptListenerImpl) ExitLiteral(ctx *gen.LiteralContext) {
 		strContent := ctx.STRING_LIT().GetText()
 		unquoted, err := strconv.Unquote(strContent)
 		if err != nil {
-			l.logger.Printf("[ERROR] Failed to unquote string literal: %q - %v", strContent, err)
+			l.logger.Error("Failed to unquote string literal: %q - %v", strContent, err)
 			l.pushValue(StringLiteralNode{Value: strContent}) // Fallback
 		} else {
 			l.pushValue(StringLiteralNode{Value: unquoted})
@@ -179,7 +179,7 @@ func (l *neuroScriptListenerImpl) ExitLiteral(ctx *gen.LiteralContext) {
 			}
 		}
 		if parseErr != nil {
-			l.logger.Printf("[WARN] Failed to parse number literal '%s': %v. Storing as string.", numStr, parseErr)
+			l.logger.Warn("Failed to parse number literal '%s': %v. Storing as string.", numStr, parseErr)
 			l.pushValue(NumberLiteralNode{Value: numStr}) // Fallback
 		} else {
 			l.pushValue(NumberLiteralNode{Value: numValue})

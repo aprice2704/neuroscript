@@ -32,7 +32,7 @@ func (a *App) handleAgentTurn(
 ) error {
 
 	for cycle := 0; cycle < maxFunctionCallCycles; cycle++ {
-		a.InfoLog.Printf("--- Agent Inner Loop Cycle %d ---", cycle+1)
+		a.Logger.Info("--- Agent Inner Loop Cycle %d ---", cycle+1)
 
 		// +++ MODIFIED: Use initialAttachmentURIs in context +++
 		requestContext := core.LLMRequestContext{
@@ -56,10 +56,10 @@ func (a *App) handleAgentTurn(
 
 		candidate := llmResponse.Candidates[0]
 		if err := convoManager.AddModelResponse(candidate); err != nil {
-			a.ErrorLog.Printf("Failed to add model response to history: %v", err)
+			a.Logger.Error("Failed to add model response to history: %v", err)
 		}
 		if candidate.Content == nil || len(candidate.Content.Parts) == 0 {
-			a.InfoLog.Println("LLM candidate empty. Turn ends.")
+			a.Logger.Info("LLM candidate empty. Turn ends.")
 			fmt.Println("\n[AGENT] LLM returned empty response.")
 			return nil
 		}
@@ -87,14 +87,14 @@ func (a *App) handleAgentTurn(
 			fc := *firstFunctionCall
 			funcResultPart, execErr := securityLayer.ExecuteToolCall(agentInterpreter, fc)
 			if execErr != nil {
-				a.ErrorLog.Printf("Tool exec error '%s': %v", fc.Name, execErr)
+				a.Logger.Error("Tool exec error '%s': %v", fc.Name, execErr)
 			} else {
-				a.InfoLog.Printf("OK exec tool: %s", fc.Name)
+				a.Logger.Info("OK exec tool: %s", fc.Name)
 			}
 			if err := convoManager.AddFunctionResultMessage(funcResultPart); err != nil {
 				return fmt.Errorf("failed record func result %s: %w", fc.Name, err)
 			}
-			a.DebugLog.Println("Func call done, continue cycle.")
+			a.Logger.Debug("Func call done, continue cycle.")
 			continue // Next iteration
 
 		} else {
@@ -148,7 +148,7 @@ func (a *App) handleAgentTurn(
 	} // End inner loop
 
 	errLoop := fmt.Errorf("exceeded max cycles (%d)", maxFunctionCallCycles)
-	a.ErrorLog.Printf("Agent turn failed: %v", errLoop)
+	a.Logger.Error("Agent turn failed: %v", errLoop)
 	fmt.Printf("\n[AGENT] Error: %v\n", errLoop)
 	return errLoop
 }

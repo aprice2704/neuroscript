@@ -29,7 +29,7 @@ func toolWalkDir(interpreter *Interpreter, args []interface{}) (interface{}, err
 	sandboxRoot := interpreter.sandboxDir
 	if sandboxRoot == "" {
 		if interpreter.logger != nil {
-			interpreter.logger.Printf("[WARN TOOL WalkDir] Interpreter sandboxDir is empty, using default relative path validation from current directory.")
+			interpreter.logger.Warn("TOOL WalkDir] Interpreter sandboxDir is empty, using default relative path validation from current directory.")
 		}
 		sandboxRoot = "."
 	}
@@ -38,13 +38,13 @@ func toolWalkDir(interpreter *Interpreter, args []interface{}) (interface{}, err
 	if secErr != nil {
 		errMsg := fmt.Sprintf("WalkDir path security error for %q: %v", relPath, secErr)
 		if interpreter.logger != nil {
-			interpreter.logger.Printf("[TOOL WalkDir] %s (Sandbox Root: %s)", errMsg, sandboxRoot)
+			interpreter.logger.Info("Tool: WalkDir] %s (Sandbox Root: %s)", errMsg, sandboxRoot)
 		}
 		return nil, secErr
 	}
 
 	if interpreter.logger != nil {
-		interpreter.logger.Printf("[TOOL WalkDir] Validated base path: %s (Original Relative: %q, Sandbox: %q)", absBasePath, relPath, sandboxRoot)
+		interpreter.logger.Info("Tool: WalkDir] Validated base path: %s (Original Relative: %q, Sandbox: %q)", absBasePath, relPath, sandboxRoot)
 	}
 
 	// --- Check if Path is a Directory ---
@@ -53,13 +53,13 @@ func toolWalkDir(interpreter *Interpreter, args []interface{}) (interface{}, err
 		if errors.Is(statErr, os.ErrNotExist) {
 			errMsg := fmt.Sprintf("WalkDir: Start path not found %q", relPath)
 			if interpreter.logger != nil {
-				interpreter.logger.Printf("[TOOL WalkDir] %s", errMsg)
+				interpreter.logger.Info("Tool: WalkDir] %s", errMsg)
 			}
 			return nil, nil // Return nil result, nil error if start path doesn't exist
 		}
 		errMsg := fmt.Sprintf("WalkDir: Failed to stat start path %q: %v", relPath, statErr)
 		if interpreter.logger != nil {
-			interpreter.logger.Printf("[TOOL WalkDir] %s", errMsg)
+			interpreter.logger.Info("Tool: WalkDir] %s", errMsg)
 		}
 		return nil, fmt.Errorf("failed getting info for path %q: %w", relPath, statErr)
 	}
@@ -67,7 +67,7 @@ func toolWalkDir(interpreter *Interpreter, args []interface{}) (interface{}, err
 	if !baseInfo.IsDir() {
 		errMsg := fmt.Sprintf("WalkDir: Start path %q is not a directory", relPath)
 		if interpreter.logger != nil {
-			interpreter.logger.Printf("[TOOL WalkDir] %s", errMsg)
+			interpreter.logger.Info("Tool: WalkDir] %s", errMsg)
 		}
 		return nil, fmt.Errorf("%s: %w", errMsg, ErrInvalidArgument)
 	}
@@ -79,7 +79,7 @@ func toolWalkDir(interpreter *Interpreter, args []interface{}) (interface{}, err
 	walkErr := filepath.WalkDir(absBasePath, func(currentPath string, d fs.DirEntry, err error) error {
 		if err != nil {
 			if interpreter.logger != nil {
-				interpreter.logger.Printf("[TOOL WalkDir] Error accessing %q during walk: %v", currentPath, err)
+				interpreter.logger.Info("Tool: WalkDir] Error accessing %q during walk: %v", currentPath, err)
 			}
 			if errors.Is(err, fs.ErrPermission) {
 				return fmt.Errorf("permission error accessing %q: %w", currentPath, err)
@@ -94,7 +94,7 @@ func toolWalkDir(interpreter *Interpreter, args []interface{}) (interface{}, err
 		info, infoErr := d.Info()
 		if infoErr != nil {
 			if interpreter.logger != nil {
-				interpreter.logger.Printf("[TOOL WalkDir] Error getting FileInfo for %q: %v", currentPath, infoErr)
+				interpreter.logger.Info("Tool: WalkDir] Error getting FileInfo for %q: %v", currentPath, infoErr)
 			}
 			return fmt.Errorf("failed getting FileInfo for %q: %w", currentPath, infoErr)
 		}
@@ -102,7 +102,7 @@ func toolWalkDir(interpreter *Interpreter, args []interface{}) (interface{}, err
 		entryRelPath, relErr := filepath.Rel(absBasePath, currentPath)
 		if relErr != nil {
 			if interpreter.logger != nil {
-				interpreter.logger.Printf("[TOOL WalkDir] Error calculating relative path for %q (base %q): %v", currentPath, absBasePath, relErr)
+				interpreter.logger.Info("Tool: WalkDir] Error calculating relative path for %q (base %q): %v", currentPath, absBasePath, relErr)
 			}
 			return fmt.Errorf("internal error calculating relative path for %q: %w", currentPath, relErr)
 		}
@@ -125,13 +125,13 @@ func toolWalkDir(interpreter *Interpreter, args []interface{}) (interface{}, err
 	if walkErr != nil {
 		errMsg := fmt.Sprintf("WalkDir: Failed walking directory %q: %v", relPath, walkErr)
 		if interpreter.logger != nil {
-			interpreter.logger.Printf("[TOOL WalkDir] %s", errMsg)
+			interpreter.logger.Info("Tool: WalkDir] %s", errMsg)
 		}
 		return nil, fmt.Errorf("failed walking directory %q: %w", relPath, walkErr)
 	}
 
 	if interpreter.logger != nil {
-		interpreter.logger.Printf("[TOOL WalkDir] Walk successful for %q. Found %d entries.", relPath, len(fileInfos))
+		interpreter.logger.Info("Tool: WalkDir] Walk successful for %q. Found %d entries.", relPath, len(fileInfos))
 	}
 
 	// --- Return Result ---

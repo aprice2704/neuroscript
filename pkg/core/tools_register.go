@@ -21,19 +21,19 @@ func registerCoreTools(registry *ToolRegistry) error {
 	}
 
 	// Register core tool groups
-	collectErr("FS", registerFsTools(registry))                       // Assumes exists in tools_fs.go (or similar)
-	collectErr("Vector", registerVectorTools(registry))               // Assumes exists in tools_vector.go
-	collectErr("Git", registerGitTools(registry))                     // Assumes exists in tools_git_register.go
-	collectErr("String", registerStringTools(registry))               // Assumes exists in tools_string.go
-	collectErr("Shell", registerShellTools(registry))                 // Assumes exists in tools_shell.go
-	collectErr("Math", registerMathTools(registry))                   // Assumes exists in tools_math.go
-	collectErr("Metadata", registerMetadataTools(registry))           // Assumes exists in tools_metadata.go
-	collectErr("List", registerListTools(registry))                   // Assumes exists in tools_list_register.go
-	collectErr("Go AST", registerGoAstTools(registry))                // Assumes exists in tools_go_ast.go (Registers basic AST tools)
-	collectErr("Go AST Package", registerGoAstPackageTools(registry)) // NEW: Registers package-level refactoring tools
-	collectErr("IO", registerIOTools(registry))                       // Assumes exists in tools_io.go (now includes Log)
-	collectErr("File API", registerFileAPITools(registry))            // Assumes exists in tools_file_api.go
-	collectErr("LLM", registerLLMTools(registry))                     // Assumes exists in llm_tools.go
+	collectErr("FS", registerFsTools(registry))             // Assumes exists in tools_fs.go (or similar)
+	collectErr("Vector", registerVectorTools(registry))     // Assumes exists in tools_vector.go
+	collectErr("Git", registerGitTools(registry))           // Assumes exists in tools_git_register.go
+	collectErr("String", registerStringTools(registry))     // Assumes exists in tools_string.go
+	collectErr("Shell", registerShellTools(registry))       // Assumes exists in tools_shell.go
+	collectErr("Math", registerMathTools(registry))         // Assumes exists in tools_math.go
+	collectErr("Metadata", registerMetadataTools(registry)) // Assumes exists in tools_metadata.go
+	collectErr("List", registerListTools(registry))         // Assumes exists in tools_list_register.go
+	// collectErr("Go AST", registerGoAstTools(registry))                // Assumes exists in tools_go_ast.go (Registers basic AST tools)
+	//collectErr("Go AST Package", registerGoAstPackageTools(registry)) // NEW: Registers package-level refactoring tools
+	collectErr("IO", registerIOTools(registry))            // Assumes exists in tools_io.go (now includes Log)
+	collectErr("File API", registerFileAPITools(registry)) // Assumes exists in tools_file_api.go
+	collectErr("LLM", registerLLMTools(registry))          // Assumes exists in llm_tools.go
 
 	if len(errs) > 0 {
 		// Combine multiple registration errors if necessary

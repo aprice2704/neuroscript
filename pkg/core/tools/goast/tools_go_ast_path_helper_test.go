@@ -99,7 +99,7 @@ func TestDebugCalculateCanonicalPath(t *testing.T) {
 			expectedPath:  "testtool/refactored",
 			expectError:   false,
 		},
-		// Error cases for helper inputs
+		//core.Error cases for helper inputs
 		{
 			name:          "Error: Empty module path",
 			modulePath:    "",

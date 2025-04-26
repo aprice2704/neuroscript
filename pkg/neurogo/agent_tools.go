@@ -37,7 +37,7 @@ func toolAgentSetSandbox(interpreter *core.Interpreter, args []interface{}) (int
 	}
 	cleanedPath := filepath.Clean(path)
 	agentCtx.SetSandboxDir(cleanedPath)
-	interpreter.Logger().Printf("[TOOL AgentSetSandbox] Set sandbox directory to '%s' for handle '%s'", cleanedPath, handle)
+	interpreter.Logger().Debug("[TOOL AgentSetSandbox] Set sandbox directory to '%s' for handle '%s'", cleanedPath, handle)
 	return nil, nil
 }
 func toolAgentSetModel(interpreter *core.Interpreter, args []interface{}) (interface{}, error) {
@@ -61,7 +61,7 @@ func toolAgentSetModel(interpreter *core.Interpreter, args []interface{}) (inter
 		return nil, fmt.Errorf("TOOL.AgentSetModel: %w: handle '%s' did not contain expected *neurogo.AgentContext", core.ErrInternalTool, handle)
 	}
 	agentCtx.SetModelName(name)
-	interpreter.Logger().Printf("[TOOL AgentSetModel] Set model name to '%s' for handle '%s'", name, handle)
+	interpreter.Logger().Debug("[TOOL AgentSetModel] Set model name to '%s' for handle '%s'", name, handle)
 	return nil, nil
 }
 func toolAgentSetAllowlist(interpreter *core.Interpreter, args []interface{}) (interface{}, error) {
@@ -80,7 +80,7 @@ func toolAgentSetAllowlist(interpreter *core.Interpreter, args []interface{}) (i
 	if path != "" {
 		cleanedPath = filepath.Clean(path)
 	} else {
-		interpreter.Logger().Printf("[TOOL AgentSetAllowlist] Warning: Setting empty allowlist path for handle '%s', effectively disabling allowlist.", handle)
+		interpreter.Logger().Debug("[TOOL AgentSetAllowlist] Warning: Setting empty allowlist path for handle '%s', effectively disabling allowlist.", handle)
 	}
 	obj, err := interpreter.GetHandleValue(handle, HandlePrefixAgentContext)
 	if err != nil {
@@ -91,7 +91,7 @@ func toolAgentSetAllowlist(interpreter *core.Interpreter, args []interface{}) (i
 		return nil, fmt.Errorf("TOOL.AgentSetAllowlist: %w: handle '%s' did not contain expected *neurogo.AgentContext", core.ErrInternalTool, handle)
 	}
 	agentCtx.SetAllowlistPath(cleanedPath)
-	interpreter.Logger().Printf("[TOOL AgentSetAllowlist] Set allowlist path to '%s' for handle '%s'", cleanedPath, handle)
+	interpreter.Logger().Debug("[TOOL AgentSetAllowlist] Set allowlist path to '%s' for handle '%s'", cleanedPath, handle)
 	return nil, nil
 }
 
@@ -150,11 +150,11 @@ func toolAgentPin(interpreter *core.Interpreter, args []interface{}) (interface{
 	// 3. Pin file in AgentContext
 	pinErr := agentCtx.PinFile(keyPath, uri)
 	if pinErr != nil {
-		logger.Printf("[TOOL AgentPin] Error pinning file in AgentContext: %v", pinErr)
+		logger.Error("[TOOL AgentPin] Error pinning file in AgentContext: %v", pinErr)
 		return nil, fmt.Errorf("TOOL.AgentPin: failed to pin file '%s' (URI: %s) in context: %w", keyPath, uri, pinErr)
 	}
 
-	logger.Printf("[TOOL AgentPin] Successfully pinned '%s' (URI: %s)", keyPath, uri)
+	logger.Debug("[TOOL AgentPin] Successfully pinned '%s' (URI: %s)", keyPath, uri)
 	return nil, nil // Success
 }
 

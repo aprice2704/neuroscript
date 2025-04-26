@@ -36,7 +36,7 @@ func (l *neuroScriptListenerImpl) EnterMap_entry(ctx *gen.Map_entryContext) {
 	keyText := ctx.STRING_LIT().GetText()
 	unquotedKey, err := strconv.Unquote(keyText)
 	if err != nil {
-		l.logger.Printf("[ERROR] Failed to unquote map key literal: %q - %v", keyText, err)
+		l.logger.Error("Failed to unquote map key literal: %q - %v", keyText, err)
 		l.currentMapKey = &StringLiteralNode{Value: keyText} // Store raw as fallback
 	} else {
 		l.currentMapKey = &StringLiteralNode{Value: unquotedKey}
@@ -48,7 +48,7 @@ func (l *neuroScriptListenerImpl) ExitMap_entry(ctx *gen.Map_entryContext) {
 	l.logDebugAST("<<< Exit Map_entry: %q", ctx.GetText())
 	valueNode, ok := l.popValue()
 	if !ok || l.currentMapKey == nil {
-		l.logger.Printf("[ERROR] Failed to pop value or key missing for map entry: %q", ctx.GetText())
+		l.logger.Error("Failed to pop value or key missing for map entry: %q", ctx.GetText())
 		l.currentMapKey = nil
 		l.pushValue(nil) // Push error marker?
 		return
@@ -83,7 +83,7 @@ func (l *neuroScriptListenerImpl) ExitMap_literal(ctx *gen.Map_literalContext) {
 	for i := 0; i < numEntries; i++ {
 		entry, ok := entryNodesRaw[i].(MapEntryNode)
 		if !ok {
-			l.logger.Printf("[ERROR] Expected MapEntryNode on stack, got %T for map literal entry %d: %q", entryNodesRaw[i], i, ctx.GetText())
+			l.logger.Error("Expected MapEntryNode on stack, got %T for map literal entry %d: %q", entryNodesRaw[i], i, ctx.GetText())
 			validEntries = false
 			break
 		}

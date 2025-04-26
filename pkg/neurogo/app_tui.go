@@ -13,7 +13,7 @@ import (
 
 // runTuiMode handles the execution logic for the TUI mode.
 func (a *App) runTuiMode(ctx context.Context) error {
-	a.InfoLog.Println("Starting TUI mode...")
+	a.Logger.Info("Starting TUI mode...")
 
 	// Ensure loggers are not nil before using them
 	warnLog := a.WarnLog
@@ -46,6 +46,6 @@ func (a *App) runTuiMode(ctx context.Context) error {
 		return fmt.Errorf("TUI execution failed: %w", err)
 	}
 
-	a.InfoLog.Println("TUI mode finished.")
+	a.Logger.Info("TUI mode finished.")
 	return nil
 }

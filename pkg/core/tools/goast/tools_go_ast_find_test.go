@@ -10,16 +10,18 @@ import (
 	"sort"
 	"strings" // Import strings for file extension check
 	"testing"
+
+	"github.com/aprice2704/neuroscript/pkg/core"
 	// No go-cmp needed if comparing simple maps carefully
 )
 
 // --- Helper Functions ---
 
 // setupParseForFindTest: Parses content and returns handle. Assumes helpers are available.
-func setupParseForFindTest(t *testing.T, interp *Interpreter, content string) string {
+func setupParseForFindTest(t *testing.T, interp *core.Interpreter, content string) string {
 	t.Helper()
 	// IMPORTANT: toolGoParseFile likely uses "<content string>" as filename when parsing from string
-	handleIDIntf, err := toolGoParseFile(interp, makeArgs(nil, content)) // Parse from content
+	handleIDIntf, err := toolGoParseFile(interp, core.MakeArgs(nil, content)) // Parse from content
 	if err != nil {
 		t.Fatalf("setupParseForFindTest: toolGoParseFile failed: %v", err)
 	}
@@ -205,14 +207,14 @@ func TestToolGoFindIdentifiers(t *testing.T) {
 			wantResult:    []map[string]interface{}{}, // Expect empty list
 		},
 
-		// --- Unhappy Paths (Errors) ---
+		// --- Unhappy Paths (core.Errors) ---
 		{
 			name:          "Error: Invalid Handle",
 			sourceContent: findBasicContent, // Need valid content to attempt parse first
 			findPkg:       "fmt",
 			findID:        "Println",
 			wantResult:    nil,
-			wantErrIs:     ErrGoModifyFailed, // Assuming AST retrieval issues still use this error, maybe define ErrGoFindFailed?
+			wantErrIs:     core.ErrGoModifyFailed, // Assuming AST retrieval issues still use this error, maybe definecore.ErrGoFindFailed?
 		},
 		{
 			name:          "Error: Handle Wrong Type",
@@ -220,7 +222,7 @@ func TestToolGoFindIdentifiers(t *testing.T) {
 			findPkg:       "fmt",
 			findID:        "Println",
 			wantResult:    nil,
-			wantErrIs:     ErrGoModifyFailed, // Assuming AST retrieval issues still use this error, maybe define ErrGoFindFailed?
+			wantErrIs:     core.ErrGoModifyFailed, // Assuming AST retrieval issues still use this error, maybe definecore.ErrGoFindFailed?
 		},
 		{
 			name:          "Error: Empty Package Name Arg",
@@ -228,7 +230,7 @@ func TestToolGoFindIdentifiers(t *testing.T) {
 			findPkg:       "",               // Invalid pkg_name
 			findID:        "Println",
 			wantResult:    nil,
-			wantErrIs:     ErrGoInvalidIdentifierFormat,
+			wantErrIs:     core.ErrGoInvalidIdentifierFormat,
 		},
 		{
 			name:          "Error: Empty Identifier Arg",
@@ -236,35 +238,35 @@ func TestToolGoFindIdentifiers(t *testing.T) {
 			findPkg:       "fmt",
 			findID:        "", // Invalid identifier
 			wantResult:    nil,
-			wantErrIs:     ErrGoInvalidIdentifierFormat,
+			wantErrIs:     core.ErrGoInvalidIdentifierFormat,
 		},
-		// --- Validation Errors ---
+		// --- Validationcore.Errors ---
 		{
 			name:         "Validation: Wrong Arg Count (Missing ID)",
 			findPkg:      "fmt",
 			wantResult:   nil,
-			valWantErrIs: ErrValidationArgCount,
+			valWantErrIs: core.ErrValidationArgCount,
 		},
 		{
 			name:         "Validation: Nil Handle",
 			findPkg:      "fmt",
 			findID:       "Println",
 			wantResult:   nil,
-			valWantErrIs: ErrValidationRequiredArgNil,
+			valWantErrIs: core.ErrValidationRequiredArgNil,
 		},
 		{
 			name: "Validation: Nil PkgName",
 			// handle set dynamically
 			findID:       "Println",
 			wantResult:   nil,
-			valWantErrIs: ErrValidationRequiredArgNil,
+			valWantErrIs: core.ErrValidationRequiredArgNil,
 		},
 		{
 			name: "Validation: Nil Identifier",
 			// handle set dynamically
 			findPkg:      "fmt",
 			wantResult:   nil,
-			valWantErrIs: ErrValidationRequiredArgNil,
+			valWantErrIs: core.ErrValidationRequiredArgNil,
 		},
 	}
 
@@ -272,7 +274,7 @@ func TestToolGoFindIdentifiers(t *testing.T) {
 		tc := tt // Capture range variable
 		t.Run(tc.name, func(t *testing.T) {
 			// Setup interpreter and parse the source content for this test case
-			interp, _ := newDefaultTestInterpreter(t)
+			interp, _ := core.NewDefaultTestInterpreter(t)
 			var handleID string
 			if tc.sourceContent != "" && tc.valWantErrIs == nil { // Only parse if content provided and no validation error expected early
 				handleID = setupParseForFindTest(t, interp, tc.sourceContent)
@@ -281,7 +283,7 @@ func TestToolGoFindIdentifiers(t *testing.T) {
 			var rawArgs []interface{}
 			// Construct args, handling specific error cases
 			if tc.name == "Error: Invalid Handle" {
-				rawArgs = makeArgs("non-existent-handle", tc.findPkg, tc.findID)
+				rawArgs = core.MakeArgs("non-existent-handle", tc.findPkg, tc.findID)
 			} else if tc.name == "Error: Handle Wrong Type" {
 				// Create a dummy object in cache with wrong type tag
 				// *** UPDATED CALL ***
@@ -290,29 +292,29 @@ func TestToolGoFindIdentifiers(t *testing.T) {
 					t.Fatalf("Failed to register handle for wrong type test: %v", regErr)
 				}
 				// *** END UPDATE ***
-				rawArgs = makeArgs(wrongTypeHandle, tc.findPkg, tc.findID)
+				rawArgs = core.MakeArgs(wrongTypeHandle, tc.findPkg, tc.findID)
 			} else if tc.name == "Validation: Wrong Arg Count (Missing ID)" {
-				rawArgs = makeArgs(handleID, tc.findPkg) // Missing identifier arg
+				rawArgs = core.MakeArgs(handleID, tc.findPkg) // Missing identifier arg
 			} else if tc.name == "Validation: Nil Handle" {
-				rawArgs = makeArgs(nil, tc.findPkg, tc.findID)
+				rawArgs = core.MakeArgs(nil, tc.findPkg, tc.findID)
 			} else if tc.name == "Validation: Nil PkgName" {
-				rawArgs = makeArgs(handleID, nil, tc.findID)
+				rawArgs = core.MakeArgs(handleID, nil, tc.findID)
 			} else if tc.name == "Validation: Nil Identifier" {
-				rawArgs = makeArgs(handleID, tc.findPkg, nil)
+				rawArgs = core.MakeArgs(handleID, tc.findPkg, nil)
 			} else {
 				// Default case for valid structure
-				rawArgs = makeArgs(handleID, tc.findPkg, tc.findID)
+				rawArgs = core.MakeArgs(handleID, tc.findPkg, tc.findID)
 			}
 
 			// --- Tool Lookup & Validation ---
-			toolImpl, found := interp.ToolRegistry().GetTool("GoFindIdentifiers")
+			toolImpl, found := interp.core.ToolRegistry().GetTool("GoFindIdentifiers")
 			if !found {
 				t.Fatalf("Tool GoFindIdentifiers not found")
 			}
 			spec := toolImpl.Spec
-			convertedArgs, valErr := ValidateAndConvertArgs(spec, rawArgs)
+			convertedArgs, valErr := core.ValidateAndConvertArgs(spec, rawArgs)
 
-			// Check Validation Error Expectation
+			// Check Validationcore.Error Expectation
 			if tc.valWantErrIs != nil {
 				if valErr == nil {
 					t.Errorf("ValidateAndConvertArgs() expected error [%v], but got nil", tc.valWantErrIs)
@@ -328,7 +330,7 @@ func TestToolGoFindIdentifiers(t *testing.T) {
 			// --- Execution ---
 			gotResultIntf, toolErr := toolImpl.Func(interp, convertedArgs)
 
-			// Check Tool Execution Error Expectation
+			// Check Tool Executioncore.Error Expectation
 			if tc.wantErrIs != nil {
 				if toolErr == nil {
 					t.Errorf("Execute: expected Go error type [%T], but got nil error. Result: %v", tc.wantErrIs, gotResultIntf)
@@ -415,18 +417,18 @@ func TestToolGoFindIdentifiers(t *testing.T) {
 // getCachedObjectAndType is used by setupParseForFindTest, needs to be defined or removed
 // For testing purposes, a simple placeholder accessing the interpreter's cache might suffice
 // or setupParseForFindTest should just use GetHandleValue
-func (i *Interpreter) getCachedObjectAndType(handleID string) (object interface{}, typeTag string, found bool) {
-	// Determine typeTag from handle prefix (basic implementation)
-	parts := strings.SplitN(handleID, handleSeparator, 2)
-	if len(parts) == 2 {
-		typeTag = parts[0]
-	}
+// func (i *core.Interpreter) getCachedObjectAndType(handleID string) (object interface{}, typeTag string, found bool) {
+// 	// Determine typeTag from handle prefix (basic implementation)
+// 	parts := strings.SplitN(handleID, handleSeparator, 2)
+// 	if len(parts) == 2 {
+// 		typeTag = parts[0]
+// 	}
 
-	if i.objectCache != nil {
-		object, found = i.objectCache[handleID]
-	}
-	// If using GetHandleValue, you don't need this method, just call:
-	// object, err := i.GetHandleValue(handleID, golangASTTypeTag)
-	// found = (err == nil)
-	return object, typeTag, found
-}
+// 	if i.objectCache != nil {
+// 		object, found = i.objectCache[handleID]
+// 	}
+// 	// If using GetHandleValue, you don't need this method, just call:
+// 	// object, err := i.GetHandleValue(handleID, golangASTTypeTag)
+// 	// found = (err == nil)
+// 	return object, typeTag, found
+// }
