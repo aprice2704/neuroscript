@@ -62,7 +62,6 @@ require (
 	github.com/charmbracelet/bubbles v0.21.0
 	github.com/charmbracelet/bubbletea v1.3.4
 	github.com/google/generative-ai-go v0.19.0
-	github.com/google/go-cmp v0.7.0
 	github.com/google/uuid v1.6.0
 	github.com/pmezard/go-difflib v1.0.0
 	golang.org/x/mod v0.24.0

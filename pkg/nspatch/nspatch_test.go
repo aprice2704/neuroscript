@@ -269,30 +269,39 @@ func TestApplyPatch(t *testing.T) {
 			// --- Apply Patch ---
 			modifiedLines, applyErr := ApplyPatch(initialLines, changes)
 
-			// --- Assertions ---
 			if tc.expectError {
 				if applyErr == nil {
+					// Failure case: Expected an error, but got none.
 					t.Errorf("Expected an error (Type: %T) but ApplyPatch succeeded", tc.expectedErr)
-				} else if tc.expectedErr != nil && !errors.Is(applyErr, tc.expectedErr) {
-					t.Errorf("Expected error type [%v], but got: [%v] (Type: %T)", tc.expectedErr, applyErr, applyErr)
-				} else if tc.expectedErr == nil && applyErr != nil {
-					// Expected *some* error, and got one. Pass.
-					t.Logf("ApplyPatch failed with an expected error: %v", applyErr)
 				} else {
-					// Error occurred as expected
-					t.Logf("ApplyPatch failed with expected error: %v", applyErr)
+					// applyErr != nil here (an error did occur, as expected)
+
+					// 1. Check if it's the *correct type* of error, if specified
+					if tc.expectedErr != nil && !errors.Is(applyErr, tc.expectedErr) {
+						// Failure case: Got an error, but it was the wrong type.
+						t.Errorf("Expected error type [%v], but got: [%v] (Type: %T)", tc.expectedErr, applyErr, applyErr)
+					} else {
+						// Success case (for error expectation):
+						// Either we got the specific error we expected (tc.expectedErr != nil and errors.Is matched),
+						// OR we expected *any* error (tc.expectedErr == nil) and we got one.
+						t.Logf("ApplyPatch failed with expected error: %v", applyErr)
+					}
+
+					// 2. Check the contract: On ANY error, modifiedLines should be nil.
+					// This check now happens *only* when applyErr is definitely not nil.
+					if modifiedLines != nil {
+						// Failure case: Violated the nil-slice-on-error contract.
+						t.Errorf("Expected nil slice on error, but got %d lines", len(modifiedLines))
+					}
 				}
-				// On error, ApplyPatch should return nil slice
-				if applyErr != nil && modifiedLines != nil {
-					t.Errorf("Expected nil slice on error, but got %d lines", len(modifiedLines))
-				}
-			} else { // Expect success
+			} else { // !tc.expectError
+				// ... your existing logic for when no error is expected ...
 				if applyErr != nil {
 					t.Errorf("Did not expect an error but got: %v", applyErr)
 				}
 				// On success, compare content
 				if applyErr == nil {
-					if modifiedLines == nil && len(expectedLines) > 0 {
+					if modifiedLines == nil && len(expectedLines) > 0 { // Assuming expectedLines is defined earlier
 						t.Errorf("Expected modified lines on success but got nil slice")
 					} else {
 						compareStringSlices(t, modifiedLines, expectedLines, "Final content mismatch")
