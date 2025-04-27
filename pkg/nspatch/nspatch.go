@@ -7,6 +7,8 @@ import (
 	"io"
 	"os"
 	"strings"
+
+	"github.com/aprice2704/neuroscript/pkg/adapters"
 )
 
 // --- Exported Errors (remain the same) ---
@@ -40,6 +42,8 @@ type VerificationResult struct {
 	Err         error
 }
 
+var logger = adapters.SimpleTestLogger()
+
 // --- Core Logic Functions ---
 
 // VerifyChanges performs the verification pass against the provided lines.
@@ -49,9 +53,9 @@ func VerifyChanges(originalLines []string, changes []PatchChange) ([]Verificatio
 	results := make([]VerificationResult, 0, len(changes))
 	var firstError error = nil // Initialize error to nil
 	originalContentLen := len(originalLines)
-	currentContentLen := originalContentLen                                                                                            // Track conceptual length for bounds checking
-	verificationOffset := 0                                                                                                            // Tracks index shifts due to inserts/deletes
-	fmt.Printf("[DEBUG VerifyChanges] Initial originalContentLen: %d, currentContentLen: %d\n", originalContentLen, currentContentLen) // DEBUG
+	currentContentLen := originalContentLen                                                                        // Track conceptual length for bounds checking
+	verificationOffset := 0                                                                                        // Tracks index shifts due to inserts/deletes
+	logger.Debug("Initial originalContentLen: %d, currentContentLen: %d\n", originalContentLen, currentContentLen) // DEBUG
 
 	for i, change := range changes {
 		fmt.Printf("\n[DEBUG VerifyChanges] Processing Change #%d: Op=%s, Line=%d, Offset=%d\n", i, change.Operation, change.Line, verificationOffset) // DEBUG
@@ -62,7 +66,7 @@ func VerifyChanges(originalLines []string, changes []PatchChange) ([]Verificatio
 		isVerificationError := false
 		var currentError error = nil // Error for THIS change
 
-		fmt.Printf("[DEBUG VerifyChanges] Calculated TargetIndex: %d (currentContentLen: %d)\n", targetIndex, currentContentLen) // DEBUG
+		logger.Debug("Calculated TargetIndex: %d (currentContentLen: %d)\n", targetIndex, currentContentLen) // DEBUG
 
 		res := VerificationResult{
 			ChangeIndex: i,
@@ -74,34 +78,34 @@ func VerifyChanges(originalLines []string, changes []PatchChange) ([]Verificatio
 		// 1. Validate Operation type first
 		switch change.Operation {
 		case "replace", "delete", "insert":
-			fmt.Printf("[DEBUG VerifyChanges] Operation '%s' is valid.\n", change.Operation) // DEBUG
+			logger.Debug("Operation '%s' is valid.\n", change.Operation) // DEBUG
 		default:
 			isOperationError = true
 			currentError = fmt.Errorf("%w: unknown operation '%s'", ErrInvalidOperation, change.Operation)
 			status = fmt.Sprintf("Error: %v", currentError)
-			fmt.Printf("[DEBUG VerifyChanges] Invalid Operation Error: %v\n", currentError) // DEBUG
+			logger.Debug("Invalid Operation Error: %v\n", currentError) // DEBUG
 		}
 
 		// 2. Bounds checks (if operation is valid)
 		if !isOperationError {
 			if targetIndex < 0 {
 				isOutOfBounds = true
-				fmt.Printf("[DEBUG VerifyChanges] Bounds Check: FAILED (targetIndex %d < 0)\n", targetIndex) // DEBUG
+				logger.Debug("Bounds Check: FAILED (targetIndex %d < 0)\n", targetIndex) // DEBUG
 			} else {
 				switch change.Operation {
 				case "replace", "delete":
 					if targetIndex >= currentContentLen {
 						isOutOfBounds = true
-						fmt.Printf("[DEBUG VerifyChanges] Bounds Check (%s): FAILED (targetIndex %d >= currentContentLen %d)\n", change.Operation, targetIndex, currentContentLen) // DEBUG
+						logger.Debug("Bounds Check (%s): FAILED (targetIndex %d >= currentContentLen %d)\n", change.Operation, targetIndex, currentContentLen) // DEBUG
 					} else {
-						fmt.Printf("[DEBUG VerifyChanges] Bounds Check (%s): OK (targetIndex %d < currentContentLen %d)\n", change.Operation, targetIndex, currentContentLen) // DEBUG
+						logger.Debug("Bounds Check (%s): OK (targetIndex %d < currentContentLen %d)\n", change.Operation, targetIndex, currentContentLen) // DEBUG
 					}
 				case "insert":
 					if targetIndex > currentContentLen {
 						isOutOfBounds = true
-						fmt.Printf("[DEBUG VerifyChanges] Bounds Check (%s): FAILED (targetIndex %d > currentContentLen %d)\n", change.Operation, targetIndex, currentContentLen) // DEBUG
+						logger.Debug("Bounds Check (%s): FAILED (targetIndex %d > currentContentLen %d)\n", change.Operation, targetIndex, currentContentLen) // DEBUG
 					} else {
-						fmt.Printf("[DEBUG VerifyChanges] Bounds Check (%s): OK (targetIndex %d <= currentContentLen %d)\n", change.Operation, targetIndex, currentContentLen) // DEBUG
+						logger.Debug("Bounds Check (%s): OK (targetIndex %d <= currentContentLen %d)\n", change.Operation, targetIndex, currentContentLen) // DEBUG
 					}
 				}
 			}
@@ -111,50 +115,50 @@ func VerifyChanges(originalLines []string, changes []PatchChange) ([]Verificatio
 				currentError = fmt.Errorf("%w: target index %d for %s out of bounds (conceptual lines: %d, line: %d, offset: %d)",
 					ErrOutOfBounds, targetIndex, change.Operation, currentContentLen, change.Line, verificationOffset)
 				status = fmt.Sprintf("Error: %v", currentError)
-				fmt.Printf("[DEBUG VerifyChanges] Bounds Error Set: %v\n", currentError) // DEBUG
+				logger.Debug("Bounds Error Set: %v\n", currentError) // DEBUG
 			}
 		}
 
 		// 3. Verification Check (only if operation and bounds are okay)
 		if !isOperationError && !isOutOfBounds {
-			fmt.Printf("[DEBUG VerifyChanges] Proceeding to Verification Check (change.OldLine provided: %t)\n", change.OldLine != nil) // DEBUG
-			if change.OldLine != nil {                                                                                                  // Verification requested
+			logger.Debug("Proceeding to Verification Check (change.OldLine provided: %t)\n", change.OldLine != nil) // DEBUG
+			if change.OldLine != nil {                                                                              // Verification requested
 				originalLineIndex := change.Line - 1 // Use original line number for indexing originalLines
 
-				fmt.Printf("[DEBUG VerifyChanges] Verification: originalLineIndex = %d (originalContentLen: %d)\n", originalLineIndex, originalContentLen) // DEBUG
+				logger.Debug("Verification: originalLineIndex = %d (originalContentLen: %d)\n", originalLineIndex, originalContentLen) // DEBUG
 				// Check if original index is valid for the *original* slice
 				if originalLineIndex >= 0 && originalLineIndex < originalContentLen {
 					originalFromFileRaw := originalLines[originalLineIndex]
 					originalFromFileTrimmed := strings.TrimSpace(strings.TrimSuffix(originalFromFileRaw, "\n"))
 					oldLineFromPatch := strings.TrimSpace(*change.OldLine)
 
-					fmt.Printf("[DEBUG VerifyChanges] Comparing:\n  Original Line %d (Trimmed): %q\n  Patch 'old'     (Trimmed): %q\n", originalLineIndex+1, originalFromFileTrimmed, oldLineFromPatch) // DEBUG
+					logger.Debug("Comparing:\n  Original Line %d (Trimmed): %q\n  Patch 'old'     (Trimmed): %q\n", originalLineIndex+1, originalFromFileTrimmed, oldLineFromPatch) // DEBUG
 
 					if originalFromFileTrimmed == oldLineFromPatch {
 						status = "Matched"
-						fmt.Println("[DEBUG VerifyChanges] Comparison Result: Matched") // DEBUG
+						logger.Debug("Comparison Result: Matched") // DEBUG
 					} else {
 						status = fmt.Sprintf("MISMATCHED (Expected: %q, Found: %q)", *change.OldLine, originalFromFileRaw)
 						isVerificationError = true // Mark verification specifically failed
 						currentError = fmt.Errorf("%w: line %d: expected %q, found %q", ErrVerificationFailed, change.Line, *change.OldLine, originalFromFileRaw)
-						fmt.Printf("[DEBUG VerifyChanges] Comparison Result: MISMATCHED! Error: %v\n", currentError) // DEBUG
+						logger.Debug("Comparison Result: MISMATCHED! Error: %v\n", currentError) // DEBUG
 					}
 				} else {
 					// OldLine provided, but original index itself is invalid
 					status = fmt.Sprintf("Error: Verification Failed (Original line number %d outside original bounds [1-%d])", change.Line, originalContentLen)
 					isVerificationError = true // Mark verification specifically failed
 					currentError = fmt.Errorf("%w: line %d verification requested, but original file only has %d lines", ErrVerificationFailed, change.Line, originalContentLen)
-					fmt.Printf("[DEBUG VerifyChanges] Verification Error (Original Index Out of Bounds): %v\n", currentError) // DEBUG
+					logger.Debug("Verification Error (Original Index Out of Bounds): %v\n", currentError) // DEBUG
 				}
 			} else if change.Operation == "replace" || change.Operation == "delete" {
 				status = "Not Verified (No Ref)"
-				fmt.Println("[DEBUG VerifyChanges] Status: Not Verified (No Ref)") // DEBUG
+				logger.Debug("Status: Not Verified (No Ref)") // DEBUG
 			} else { // insert
 				status = "OK (No Verification Needed)"
-				fmt.Println("[DEBUG VerifyChanges] Status: OK (No Verification Needed for Insert)") // DEBUG
+				logger.Debug("Status: OK (No Verification Needed for Insert)") // DEBUG
 			}
 		} else {
-			fmt.Printf("[DEBUG VerifyChanges] Skipping Verification Check because isOperationError=%t or isOutOfBounds=%t\n", isOperationError, isOutOfBounds) // DEBUG
+			logger.Debug("Skipping Verification Check because isOperationError=%t or isOutOfBounds=%t\n", isOperationError, isOutOfBounds) // DEBUG
 		}
 
 		// --- Finalize Result ---
@@ -170,13 +174,13 @@ func VerifyChanges(originalLines []string, changes []PatchChange) ([]Verificatio
 		}
 		res.Status = status
 		results = append(results, res)
-		fmt.Printf("[DEBUG VerifyChanges] Final Result for Change #%d: Status=%s, IsError=%t, Err=%v\n", i, res.Status, res.IsError, res.Err) // DEBUG
+		logger.Debug("Final Result for Change #%d: Status=%s, IsError=%t, Err=%v\n", i, res.Status, res.IsError, res.Err) // DEBUG
 
 		// Store the first *actual* error encountered for the function's return value
 		// ** CRITICAL: Check res.IsError which combines all error sources **
 		if res.IsError && firstError == nil {
 			firstError = fmt.Errorf("change #%d (%s line %d): %w", i+1, change.Operation, change.Line, currentError)
-			fmt.Printf("[DEBUG VerifyChanges] Storing First Error: %v\n", firstError) // DEBUG
+			logger.Debug("Storing First Error: %v\n", firstError) // DEBUG
 		}
 
 		// --- Update conceptual length and offset for the *next* iteration ---
@@ -192,9 +196,9 @@ func VerifyChanges(originalLines []string, changes []PatchChange) ([]Verificatio
 				// case "replace": offset and length remain the same
 			}
 		} else {
-			fmt.Printf("[DEBUG VerifyChanges] Offset/Length NOT adjusted due to error in current change.\n") // DEBUG
+			logger.Debug("Offset/Length NOT adjusted due to error in current change.\n") // DEBUG
 		}
-		fmt.Printf("[DEBUG VerifyChanges] End of Loop #%d: Next verificationOffset=%d, Next currentContentLen=%d\n", i, verificationOffset, currentContentLen) // DEBUG
+		logger.Debug("End of Loop #%d: Next verificationOffset=%d, Next currentContentLen=%d\n", i, verificationOffset, currentContentLen) // DEBUG
 
 	} // End verification loop
 
@@ -209,8 +213,8 @@ func ApplyPatch(originalLines []string, changes []PatchChange) ([]string, error)
 	// --- Pass 1: Verify ---
 	_, firstVerificationError := VerifyChanges(originalLines, changes)
 	if firstVerificationError != nil {
-		fmt.Printf("[DEBUG ApplyPatch] Verification failed: %v. Returning error.\n", firstVerificationError) // DEBUG
-		return nil, firstVerificationError                                                                   // Return the specific error from VerifyChanges
+		logger.Debug("Verification failed: %v. Returning error.\n", firstVerificationError) // DEBUG
+		return nil, firstVerificationError                                                  // Return the specific error from VerifyChanges
 	}
 	fmt.Println("[DEBUG ApplyPatch] Verification successful.") // DEBUG
 
@@ -222,7 +226,7 @@ func ApplyPatch(originalLines []string, changes []PatchChange) ([]string, error)
 
 	for i, change := range changes {
 		targetIndex := change.Line - 1 + applyOffset
-		fmt.Printf("[DEBUG ApplyPatch] Applying Change #%d: Op=%s, Line=%d, TargetIndex=%d\n", i, change.Operation, change.Line, targetIndex) //DEBUG
+		logger.Debug("Applying Change #%d: Op=%s, Line=%d, TargetIndex=%d\n", i, change.Operation, change.Line, targetIndex) //DEBUG
 
 		// Re-check bounds against the *current* state of modifiedLines before applying
 		currentLen := len(modifiedLines)
@@ -237,13 +241,13 @@ func ApplyPatch(originalLines []string, changes []PatchChange) ([]string, error)
 				isValid = false
 			}
 		default:
-			fmt.Printf("[DEBUG ApplyPatch] ERROR: Unknown operation '%s' during apply.\n", change.Operation) // DEBUG
+			logger.Debug("ERROR: Unknown operation '%s' during apply.\n", change.Operation) // DEBUG
 			return nil, fmt.Errorf("%w: change #%d: unknown operation '%s' encountered during apply phase", ErrInternal, i+1, change.Operation)
 
 		}
 
 		if !isValid {
-			fmt.Printf("[DEBUG ApplyPatch] ERROR: Index %d became invalid during apply (Op=%s, Line=%d, Offset=%d, currentLen=%d).\n", targetIndex, change.Operation, change.Line, applyOffset, currentLen) //DEBUG
+			logger.Debug("ERROR: Index %d became invalid during apply (Op=%s, Line=%d, Offset=%d, currentLen=%d).\n", targetIndex, change.Operation, change.Line, applyOffset, currentLen) //DEBUG
 			return nil, fmt.Errorf("%w: change #%d (%s line %d): index %d became invalid during apply (lines: %d, offset: %d)", ErrInternal, i+1, change.Operation, change.Line, targetIndex, currentLen, applyOffset)
 		}
 
@@ -252,14 +256,14 @@ func ApplyPatch(originalLines []string, changes []PatchChange) ([]string, error)
 			if change.NewLine == nil {
 				return nil, fmt.Errorf("%w: change #%d (%s line %d): missing 'new'", ErrInternal, i+1, change.Operation, change.Line)
 			}
-			fmt.Printf("[DEBUG ApplyPatch] Replacing line %d with %q\n", targetIndex, *change.NewLine) // DEBUG
+			logger.Debug("Replacing line %d with %q\n", targetIndex, *change.NewLine) // DEBUG
 			modifiedLines[targetIndex] = *change.NewLine
 		case "insert":
 			if change.NewLine == nil {
 				return nil, fmt.Errorf("%w: change #%d (%s line %d): missing 'new'", ErrInternal, i+1, change.Operation, change.Line)
 			}
 			newLine := *change.NewLine
-			fmt.Printf("[DEBUG ApplyPatch] Inserting %q at index %d\n", newLine, targetIndex) // DEBUG
+			logger.Debug("Inserting %q at index %d\n", newLine, targetIndex) // DEBUG
 			// Efficient insertion
 			modifiedLines = append(modifiedLines, "")                        // Grow slice cap/len if needed
 			copy(modifiedLines[targetIndex+1:], modifiedLines[targetIndex:]) // Shift elements right
@@ -267,11 +271,11 @@ func ApplyPatch(originalLines []string, changes []PatchChange) ([]string, error)
 
 			applyOffset++
 		case "delete":
-			fmt.Printf("[DEBUG ApplyPatch] Deleting line %d (%q)\n", targetIndex, modifiedLines[targetIndex]) // DEBUG
+			logger.Debug("Deleting line %d (%q)\n", targetIndex, modifiedLines[targetIndex]) // DEBUG
 			modifiedLines = append(modifiedLines[:targetIndex], modifiedLines[targetIndex+1:]...)
 			applyOffset--
 		}
-		fmt.Printf("[DEBUG ApplyPatch] After Change #%d: Offset=%d, Lines=%d\n", i, applyOffset, len(modifiedLines)) //DEBUG
+		logger.Debug("After Change #%d: Offset=%d, Lines=%d\n", i, applyOffset, len(modifiedLines)) //DEBUG
 	}
 
 	fmt.Println("--- Finished ApplyPatch Successfully ---") // DEBUG
