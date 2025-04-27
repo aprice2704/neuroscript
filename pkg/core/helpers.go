@@ -3,12 +3,12 @@ package core
 
 import (
 	"fmt"
-	"log/slog"
-	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/aprice2704/neuroscript/pkg/adapters"
 )
 
 // Helper for logging snippets
@@ -104,15 +104,7 @@ func convertToSliceOfAny(rawValue interface{}) ([]interface{}, bool, error) {
 
 func NewTestInterpreter(t *testing.T, vars map[string]interface{}, lastResult interface{}) (*Interpreter, string) {
 	t.Helper()
-
-	handlerOpts := &slog.HandlerOptions{
-		Level:     slog.LevelWarn,
-		AddSource: true, // include source file and line number
-	}
-	handler := slog.NewTextHandler(os.Stderr, handlerOpts) // Log to Stderr
-
-	// Create the core slog logger
-	testLogger := slog.New(handler)
+	testLogger := adapters.SimpleTestLogger()
 
 	// Create a minimal LLMClient (can keep using testLogger now)
 	minimalLLMClient := NewLLMClient("", "", testLogger, false)
@@ -124,7 +116,7 @@ func NewTestInterpreter(t *testing.T, vars map[string]interface{}, lastResult in
 
 	testLogger.Info("Attempting to register core tools...")
 	if err := RegisterCoreTools(interp.ToolRegistry()); err != nil {
-		testLogger.Error("FATAL: Failed to register core tools during test setup: %v", err)
+		testLogger.Error("FATAL: Failed to register core tools during test setup: ", err)
 		t.Fatalf("FATAL: Failed to register core tools during test setup: %v", err)
 	}
 	testLogger.Info("Successfully registered core tools.")
@@ -136,7 +128,7 @@ func NewTestInterpreter(t *testing.T, vars map[string]interface{}, lastResult in
 	}
 
 	interp.sandboxDir = absSandboxDir
-	testLogger.Info("Sandbox root set in interpreter: %s", absSandboxDir)
+	testLogger.Info("Sandbox root set in interpreter: " + absSandboxDir)
 
 	if vars != nil {
 		for k, v := range vars {

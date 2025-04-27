@@ -3,14 +3,15 @@ package checklist
 
 import (
 	"errors"
-	"log/slog"
 	"os"
 	"path/filepath"
 	"reflect"
 	"testing"
+
+	"github.com/aprice2704/neuroscript/pkg/adapters"
 )
 
-var testlogger = slog.New(slog.NewTextHandler(os.Stderr, nil))
+var testlogger = adapters.SimpleTestLogger()
 
 // Helper to compare Checklists, ignoring line numbers
 func checklistsEqual(t *testing.T, got, want *ParsedChecklist) bool {

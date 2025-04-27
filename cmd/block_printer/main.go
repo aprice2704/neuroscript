@@ -3,14 +3,14 @@ package main
 
 import (
 	"fmt"
-	"log/slog"
 	"os"
 
 	// Adjust the import path based on your Go module setup
+	"github.com/aprice2704/neuroscript/pkg/adapters"
 	"github.com/aprice2704/neuroscript/pkg/neurodata/blocks"
 )
 
-var logger = slog.New(slog.NewTextHandler(os.Stdout, nil))
+var logger = adapters.SimpleTestLogger()
 
 func main() {
 	// --- Argument Handling ---
