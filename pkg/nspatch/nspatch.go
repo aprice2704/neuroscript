@@ -5,10 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog" // Correct import for slog
 	"os"
 	"strings"
-
-	"github.com/aprice2704/neuroscript/pkg/adapters"
+	// Assuming adapters package is correctly located relative to this file
+	// Adjust if your adapters package is elsewhere (e.g., internal/adapters)
+	// Example path
 )
 
 // --- Exported Errors (remain the same) ---
@@ -28,8 +30,8 @@ type PatchChange struct {
 	File      string  `json:"file"`
 	Line      int     `json:"line"`
 	Operation string  `json:"op"`
-	OldLine   *string `json:"old"`
-	NewLine   *string `json:"new"`
+	OldLine   *string `json:"old"` // Pointer to distinguish between unset and empty string
+	NewLine   *string `json:"new"` // Pointer to distinguish between unset and empty string
 }
 
 type VerificationResult struct {
@@ -42,23 +44,32 @@ type VerificationResult struct {
 	Err         error
 }
 
-var logger = adapters.SimpleTestLogger()
+// Use a package-level logger, initialized simply here.
+// Consider proper initialization if more complex setup is needed.
+var logger = slog.New(slog.NewTextHandler(io.Discard, nil)) // Default to discard, can be set externally
+
+// SetLogger allows setting the logger for the package. Useful for testing or central config.
+func SetLogger(l *slog.Logger) {
+	if l != nil {
+		logger = l
+	}
+}
 
 // --- Core Logic Functions ---
 
 // VerifyChanges performs the verification pass against the provided lines.
-// *** INCORPORATING PREVIOUS LOGIC FIX + DEBUGGING ***
 func VerifyChanges(originalLines []string, changes []PatchChange) ([]VerificationResult, error) {
-	fmt.Println("--- Starting VerifyChanges ---") // DEBUG
+	// Using logger.Debug instead of fmt.Println
+	logger.Debug("--- Starting VerifyChanges ---")
 	results := make([]VerificationResult, 0, len(changes))
 	var firstError error = nil // Initialize error to nil
 	originalContentLen := len(originalLines)
-	currentContentLen := originalContentLen                                                                        // Track conceptual length for bounds checking
-	verificationOffset := 0                                                                                        // Tracks index shifts due to inserts/deletes
-	logger.Debug("Initial originalContentLen: %d, currentContentLen: %d\n", originalContentLen, currentContentLen) // DEBUG
+	currentContentLen := originalContentLen // Track conceptual length for bounds checking
+	verificationOffset := 0                 // Tracks index shifts due to inserts/deletes
+	logger.Debug("VerifyChanges initial state", "originalLen", originalContentLen, "currentLen", currentContentLen, "offset", verificationOffset)
 
 	for i, change := range changes {
-		fmt.Printf("\n[DEBUG VerifyChanges] Processing Change #%d: Op=%s, Line=%d, Offset=%d\n", i, change.Operation, change.Line, verificationOffset) // DEBUG
+		logger.Debug("Processing change", "index", i, "op", change.Operation, "line", change.Line, "offset", verificationOffset)
 		targetIndex := change.Line - 1 + verificationOffset
 		status := "Not Checked"
 		isOutOfBounds := false
@@ -66,7 +77,7 @@ func VerifyChanges(originalLines []string, changes []PatchChange) ([]Verificatio
 		isVerificationError := false
 		var currentError error = nil // Error for THIS change
 
-		logger.Debug("Calculated TargetIndex: %d (currentContentLen: %d)\n", targetIndex, currentContentLen) // DEBUG
+		logger.Debug("Calculated target index", "targetIndex", targetIndex, "currentLen", currentContentLen)
 
 		res := VerificationResult{
 			ChangeIndex: i,
@@ -78,87 +89,90 @@ func VerifyChanges(originalLines []string, changes []PatchChange) ([]Verificatio
 		// 1. Validate Operation type first
 		switch change.Operation {
 		case "replace", "delete", "insert":
-			logger.Debug("Operation '%s' is valid.\n", change.Operation) // DEBUG
+			logger.Debug("Operation valid", "op", change.Operation)
 		default:
 			isOperationError = true
 			currentError = fmt.Errorf("%w: unknown operation '%s'", ErrInvalidOperation, change.Operation)
 			status = fmt.Sprintf("Error: %v", currentError)
-			logger.Debug("Invalid Operation Error: %v\n", currentError) // DEBUG
+			logger.Debug("Invalid operation error", "error", currentError)
 		}
 
 		// 2. Bounds checks (if operation is valid)
 		if !isOperationError {
 			if targetIndex < 0 {
 				isOutOfBounds = true
-				logger.Debug("Bounds Check: FAILED (targetIndex %d < 0)\n", targetIndex) // DEBUG
+				logger.Debug("Bounds check failed: target index < 0", "targetIndex", targetIndex)
 			} else {
 				switch change.Operation {
 				case "replace", "delete":
 					if targetIndex >= currentContentLen {
 						isOutOfBounds = true
-						logger.Debug("Bounds Check (%s): FAILED (targetIndex %d >= currentContentLen %d)\n", change.Operation, targetIndex, currentContentLen) // DEBUG
+						logger.Debug("Bounds check failed (replace/delete)", "targetIndex", targetIndex, "currentLen", currentContentLen)
 					} else {
-						logger.Debug("Bounds Check (%s): OK (targetIndex %d < currentContentLen %d)\n", change.Operation, targetIndex, currentContentLen) // DEBUG
+						logger.Debug("Bounds check OK (replace/delete)", "targetIndex", targetIndex, "currentLen", currentContentLen)
 					}
 				case "insert":
+					// Allow inserting at the very end (index == currentContentLen)
 					if targetIndex > currentContentLen {
 						isOutOfBounds = true
-						logger.Debug("Bounds Check (%s): FAILED (targetIndex %d > currentContentLen %d)\n", change.Operation, targetIndex, currentContentLen) // DEBUG
+						logger.Debug("Bounds check failed (insert)", "targetIndex", targetIndex, "currentLen", currentContentLen)
 					} else {
-						logger.Debug("Bounds Check (%s): OK (targetIndex %d <= currentContentLen %d)\n", change.Operation, targetIndex, currentContentLen) // DEBUG
+						logger.Debug("Bounds check OK (insert)", "targetIndex", targetIndex, "currentLen", currentContentLen)
 					}
 				}
 			}
 
 			if isOutOfBounds {
-				// isOperationError = true // Don't set this here, keep bounds error separate
 				currentError = fmt.Errorf("%w: target index %d for %s out of bounds (conceptual lines: %d, line: %d, offset: %d)",
 					ErrOutOfBounds, targetIndex, change.Operation, currentContentLen, change.Line, verificationOffset)
 				status = fmt.Sprintf("Error: %v", currentError)
-				logger.Debug("Bounds Error Set: %v\n", currentError) // DEBUG
+				logger.Debug("Bounds error set", "error", currentError)
 			}
 		}
 
 		// 3. Verification Check (only if operation and bounds are okay)
 		if !isOperationError && !isOutOfBounds {
-			logger.Debug("Proceeding to Verification Check (change.OldLine provided: %t)\n", change.OldLine != nil) // DEBUG
-			if change.OldLine != nil {                                                                              // Verification requested
+			oldLineProvided := change.OldLine != nil
+			logger.Debug("Proceeding to verification check", "oldLineProvided", oldLineProvided)
+			if oldLineProvided { // Verification requested
 				originalLineIndex := change.Line - 1 // Use original line number for indexing originalLines
 
-				logger.Debug("Verification: originalLineIndex = %d (originalContentLen: %d)\n", originalLineIndex, originalContentLen) // DEBUG
+				logger.Debug("Verification details", "originalLineIndex", originalLineIndex, "originalLen", originalContentLen)
 				// Check if original index is valid for the *original* slice
 				if originalLineIndex >= 0 && originalLineIndex < originalContentLen {
 					originalFromFileRaw := originalLines[originalLineIndex]
-					originalFromFileTrimmed := strings.TrimSpace(strings.TrimSuffix(originalFromFileRaw, "\n"))
+					// Trim space only for comparison - error message shows raw value
+					originalFromFileTrimmed := strings.TrimSpace(originalFromFileRaw)
 					oldLineFromPatch := strings.TrimSpace(*change.OldLine)
 
-					logger.Debug("Comparing:\n  Original Line %d (Trimmed): %q\n  Patch 'old'     (Trimmed): %q\n", originalLineIndex+1, originalFromFileTrimmed, oldLineFromPatch) // DEBUG
+					logger.Debug("Comparing lines", "originalTrimmed", originalFromFileTrimmed, "patchOldTrimmed", oldLineFromPatch)
 
 					if originalFromFileTrimmed == oldLineFromPatch {
 						status = "Matched"
-						logger.Debug("Comparison Result: Matched") // DEBUG
+						logger.Debug("Comparison result: Matched")
 					} else {
+						// Show non-trimmed values in error for clarity
 						status = fmt.Sprintf("MISMATCHED (Expected: %q, Found: %q)", *change.OldLine, originalFromFileRaw)
 						isVerificationError = true // Mark verification specifically failed
 						currentError = fmt.Errorf("%w: line %d: expected %q, found %q", ErrVerificationFailed, change.Line, *change.OldLine, originalFromFileRaw)
-						logger.Debug("Comparison Result: MISMATCHED! Error: %v\n", currentError) // DEBUG
+						logger.Debug("Comparison result: Mismatched", "error", currentError)
 					}
 				} else {
 					// OldLine provided, but original index itself is invalid
 					status = fmt.Sprintf("Error: Verification Failed (Original line number %d outside original bounds [1-%d])", change.Line, originalContentLen)
 					isVerificationError = true // Mark verification specifically failed
 					currentError = fmt.Errorf("%w: line %d verification requested, but original file only has %d lines", ErrVerificationFailed, change.Line, originalContentLen)
-					logger.Debug("Verification Error (Original Index Out of Bounds): %v\n", currentError) // DEBUG
+					logger.Debug("Verification error: Original index out of bounds", "error", currentError)
 				}
 			} else if change.Operation == "replace" || change.Operation == "delete" {
 				status = "Not Verified (No Ref)"
-				logger.Debug("Status: Not Verified (No Ref)") // DEBUG
+				logger.Debug("Status: Not Verified (No Ref)")
 			} else { // insert
 				status = "OK (No Verification Needed)"
-				logger.Debug("Status: OK (No Verification Needed for Insert)") // DEBUG
+				logger.Debug("Status: OK (No Verification Needed for Insert)")
 			}
 		} else {
-			logger.Debug("Skipping Verification Check because isOperationError=%t or isOutOfBounds=%t\n", isOperationError, isOutOfBounds) // DEBUG
+			logger.Debug("Skipping verification check", "isOperationError", isOperationError, "isOutOfBounds", isOutOfBounds)
 		}
 
 		// --- Finalize Result ---
@@ -169,23 +183,23 @@ func VerifyChanges(originalLines []string, changes []PatchChange) ([]Verificatio
 			if res.IsError {
 				status = fmt.Sprintf("Error: %v", currentError)
 			} else {
-				status = "OK (No Verification Needed)" // Should not happen if logic above is sound
+				// This path should ideally not be hit if logic above is exhaustive
+				status = "OK (Internal Status Error)"
+				logger.Warn("Internal status error: Reached 'Not Checked' state without error flag set.")
 			}
 		}
 		res.Status = status
 		results = append(results, res)
-		logger.Debug("Final Result for Change #%d: Status=%s, IsError=%t, Err=%v\n", i, res.Status, res.IsError, res.Err) // DEBUG
+		logger.Debug("Final result for change", "index", i, "status", res.Status, "isError", res.IsError, "error", res.Err)
 
 		// Store the first *actual* error encountered for the function's return value
-		// ** CRITICAL: Check res.IsError which combines all error sources **
 		if res.IsError && firstError == nil {
 			firstError = fmt.Errorf("change #%d (%s line %d): %w", i+1, change.Operation, change.Line, currentError)
-			logger.Debug("Storing First Error: %v\n", firstError) // DEBUG
+			logger.Debug("Storing first error", "error", firstError)
 		}
 
 		// --- Update conceptual length and offset for the *next* iteration ---
-		// ** CRITICAL: Only adjust if the CURRENT operation had no error of any kind **
-		if !res.IsError { // Only adjust if the current operation was valid and verification passed (if applicable)
+		if !res.IsError { // Only adjust if the current operation was valid and verification passed
 			switch change.Operation {
 			case "insert":
 				verificationOffset++
@@ -195,38 +209,37 @@ func VerifyChanges(originalLines []string, changes []PatchChange) ([]Verificatio
 				currentContentLen--
 				// case "replace": offset and length remain the same
 			}
+			logger.Debug("Offset/Length updated", "nextOffset", verificationOffset, "nextCurrentLen", currentContentLen)
 		} else {
-			logger.Debug("Offset/Length NOT adjusted due to error in current change.\n") // DEBUG
+			logger.Debug("Offset/Length NOT updated due to error in current change.")
 		}
-		logger.Debug("End of Loop #%d: Next verificationOffset=%d, Next currentContentLen=%d\n", i, verificationOffset, currentContentLen) // DEBUG
 
 	} // End verification loop
 
-	fmt.Printf("--- Finished VerifyChanges --- Returning Error: %v\n", firstError) // DEBUG: Check error just before return
-	return results, firstError                                                     // Return the first error encountered
+	logger.Debug("--- Finished VerifyChanges ---", "returningError", firstError)
+	return results, firstError // Return the first error encountered
 }
 
 // ApplyPatch performs the two-pass (verify, then apply) patch operation.
-// (ApplyPatch function remains unchanged from the user-provided base version)
 func ApplyPatch(originalLines []string, changes []PatchChange) ([]string, error) {
-	fmt.Println("--- Starting ApplyPatch ---") // DEBUG
+	logger.Debug("--- Starting ApplyPatch ---")
 	// --- Pass 1: Verify ---
 	_, firstVerificationError := VerifyChanges(originalLines, changes)
 	if firstVerificationError != nil {
-		logger.Debug("Verification failed: %v. Returning error.\n", firstVerificationError) // DEBUG
-		return nil, firstVerificationError                                                  // Return the specific error from VerifyChanges
+		logger.Debug("Verification failed, returning error.", "error", firstVerificationError)
+		return nil, firstVerificationError // Return the specific error from VerifyChanges
 	}
-	fmt.Println("[DEBUG ApplyPatch] Verification successful.") // DEBUG
+	logger.Debug("Verification successful.")
 
 	// --- Pass 2: Application ---
-	fmt.Println("[DEBUG ApplyPatch] Starting application phase.") // DEBUG
+	logger.Debug("Starting application phase.")
 	modifiedLines := make([]string, len(originalLines))
 	copy(modifiedLines, originalLines)
 	applyOffset := 0
 
 	for i, change := range changes {
 		targetIndex := change.Line - 1 + applyOffset
-		logger.Debug("Applying Change #%d: Op=%s, Line=%d, TargetIndex=%d\n", i, change.Operation, change.Line, targetIndex) //DEBUG
+		logger.Debug("Applying change", "index", i, "op", change.Operation, "line", change.Line, "targetIndex", targetIndex)
 
 		// Re-check bounds against the *current* state of modifiedLines before applying
 		currentLen := len(modifiedLines)
@@ -237,53 +250,70 @@ func ApplyPatch(originalLines []string, changes []PatchChange) ([]string, error)
 				isValid = false
 			}
 		case "insert":
-			if targetIndex < 0 || targetIndex > currentLen { // Allow insert at end
+			if targetIndex < 0 || targetIndex > currentLen { // Allow insert at end (index == currentLen)
 				isValid = false
 			}
 		default:
-			logger.Debug("ERROR: Unknown operation '%s' during apply.\n", change.Operation) // DEBUG
+			logger.Error("Unknown operation during apply phase", "index", i, "op", change.Operation)
 			return nil, fmt.Errorf("%w: change #%d: unknown operation '%s' encountered during apply phase", ErrInternal, i+1, change.Operation)
-
 		}
 
 		if !isValid {
-			logger.Debug("ERROR: Index %d became invalid during apply (Op=%s, Line=%d, Offset=%d, currentLen=%d).\n", targetIndex, change.Operation, change.Line, applyOffset, currentLen) //DEBUG
+			logger.Error("Index became invalid during apply phase", "index", i, "op", change.Operation, "line", change.Line, "targetIndex", targetIndex, "currentLen", currentLen, "offset", applyOffset)
 			return nil, fmt.Errorf("%w: change #%d (%s line %d): index %d became invalid during apply (lines: %d, offset: %d)", ErrInternal, i+1, change.Operation, change.Line, targetIndex, currentLen, applyOffset)
 		}
 
+		// Apply the change
 		switch change.Operation {
 		case "replace":
 			if change.NewLine == nil {
-				return nil, fmt.Errorf("%w: change #%d (%s line %d): missing 'new'", ErrInternal, i+1, change.Operation, change.Line)
+				logger.Error("Missing 'new' field for replace operation", "index", i, "line", change.Line)
+				return nil, fmt.Errorf("%w: change #%d (replace line %d): missing 'new' field during apply phase", ErrInternal, i+1, change.Line)
 			}
-			logger.Debug("Replacing line %d with %q\n", targetIndex, *change.NewLine) // DEBUG
+			logger.Debug("Replacing line", "targetIndex", targetIndex, "oldValue", modifiedLines[targetIndex], "newValue", *change.NewLine)
 			modifiedLines[targetIndex] = *change.NewLine
 		case "insert":
 			if change.NewLine == nil {
-				return nil, fmt.Errorf("%w: change #%d (%s line %d): missing 'new'", ErrInternal, i+1, change.Operation, change.Line)
+				logger.Error("Missing 'new' field for insert operation", "index", i, "line", change.Line)
+				return nil, fmt.Errorf("%w: change #%d (insert line %d): missing 'new' field during apply phase", ErrInternal, i+1, change.Line)
 			}
 			newLine := *change.NewLine
-			logger.Debug("Inserting %q at index %d\n", newLine, targetIndex) // DEBUG
-			// Efficient insertion
-			modifiedLines = append(modifiedLines, "")                        // Grow slice cap/len if needed
-			copy(modifiedLines[targetIndex+1:], modifiedLines[targetIndex:]) // Shift elements right
-			modifiedLines[targetIndex] = newLine                             // Insert new element
+			logger.Debug("Inserting line", "targetIndex", targetIndex, "value", newLine)
 
-			applyOffset++
+			// --- Replace the existing insert logic lines with this line: ---
+			modifiedLines = append(modifiedLines[:targetIndex], append([]string{newLine}, modifiedLines[targetIndex:]...)...)
+			// --- End of replacement ---
+
+			applyOffset++ // Keep this line to increment the offset
+			applyOffset++ // Increment offset *after* successful insertion
 		case "delete":
-			logger.Debug("Deleting line %d (%q)\n", targetIndex, modifiedLines[targetIndex]) // DEBUG
+			logger.Debug("Deleting line", "targetIndex", targetIndex, "value", modifiedLines[targetIndex])
 			modifiedLines = append(modifiedLines[:targetIndex], modifiedLines[targetIndex+1:]...)
-			applyOffset--
+			applyOffset-- // Decrement offset *after* successful deletion
 		}
-		logger.Debug("After Change #%d: Offset=%d, Lines=%d\n", i, applyOffset, len(modifiedLines)) //DEBUG
+		logger.Debug("State after change", "index", i, "nextOffset", applyOffset, "currentLineCount", len(modifiedLines))
 	}
 
-	fmt.Println("--- Finished ApplyPatch Successfully ---") // DEBUG
-	return modifiedLines, nil                               // Success
+	// --- Replace previous debug block with this UNCONDITIONAL print ---
+	fmt.Println(">>> APPLY PATCH FUNCTION WAS DEFINITELY CALLED <<<")
+	// --- End of simplified print ---
+
+	// --- Add this block just before the final return ---
+	// Heuristic to target the failing test case (inserting 2 lines into empty)
+	if len(originalLines) == 0 && len(changes) == 2 {
+		fmt.Printf("[DEBUG ApplyPatch End - InsertEmpty Case] Final modifiedLines (len=%d):\n", len(modifiedLines))
+		for idx, line := range modifiedLines {
+			// Use %q to clearly show quotes and escaped characters if any
+			fmt.Printf("  [%d]: %q\n", idx, line)
+		}
+	}
+	// --- End of added block ---
+
+	logger.Debug("--- Finished ApplyPatch Successfully ---")
+	return modifiedLines, nil // Success
 }
 
 // --- File Loading Helper ---
-// (LoadPatchFile function remains unchanged from the user-provided base version)
 func LoadPatchFile(filePath string) ([]PatchChange, error) {
 	file, err := os.Open(filePath)
 	if err != nil {
@@ -302,35 +332,37 @@ func LoadPatchFile(filePath string) ([]PatchChange, error) {
 		var syntaxError *json.SyntaxError
 		if errors.As(err, &syntaxError) {
 			line, char := calculateErrorPosition(data, syntaxError.Offset)
+			// Include file path in syntax error message
 			return nil, fmt.Errorf("%w: unmarshaling json in %q at line %d, char %d: %w", ErrInvalidPatchFile, filePath, line, char, err)
-
 		}
+		// Include file path in general unmarshal error message
 		return nil, fmt.Errorf("%w: unmarshaling json from %q: %w", ErrInvalidPatchFile, filePath, err)
 	}
 
+	// Validate individual changes after successful unmarshal
 	for i, change := range changes {
-		if change.File == "" { /* Allow empty file field */
-		}
+		// File field is optional, no check needed.
 		if change.Line <= 0 {
-			// Add the file path context to the error message
-			return nil, fmt.Errorf("%w: change #%d in file %q (from patch %q) has invalid 'line': %d (must be >= 1)", ErrOutOfBounds, i+1, change.File, filePath, change.Line)
+			return nil, fmt.Errorf("%w: change #%d in patch file %q has invalid 'line': %d (must be >= 1)", ErrOutOfBounds, i+1, filePath, change.Line)
 		}
 		switch change.Operation {
 		case "replace", "insert":
+			// Check if 'new' field is missing (nil pointer)
 			if change.NewLine == nil {
-				// Add the file path context to the error message
-				return nil, fmt.Errorf("%w: change #%d (%s line %d) in file %q (from patch %q) missing 'new'", ErrMissingField, i+1, change.Operation, change.Line, change.File, filePath)
+				return nil, fmt.Errorf("%w: change #%d (%s line %d) in patch file %q missing required 'new' field", ErrMissingField, i+1, change.Operation, change.Line, filePath)
 			}
-		case "delete": /* Ok */
+		case "delete":
+			// 'old' field is optional for verification, not required for loading
+			// 'new' field is not applicable
 		default:
-			// Add the file path context to the error message
-			return nil, fmt.Errorf("%w: change #%d in file %q (from patch %q) has unknown operation: %q", ErrInvalidOperation, i+1, change.File, filePath, change.Operation)
+			return nil, fmt.Errorf("%w: change #%d in patch file %q has unknown operation: %q", ErrInvalidOperation, i+1, filePath, change.Operation)
 		}
+		// Add check for OldLine being nil if needed by application logic validation beyond basic parsing
 	}
 	return changes, nil
 }
 
-// calculateErrorPosition function (remains unchanged from the user-provided base version)
+// calculateErrorPosition calculates the line and character number from a byte offset.
 func calculateErrorPosition(data []byte, offset int64) (line, char int) {
 	line = 1
 	char = 1
@@ -343,15 +375,18 @@ func calculateErrorPosition(data []byte, offset int64) (line, char int) {
 			line++
 			char = 1
 		} else {
-			// Assuming UTF-8, multi-byte characters advance char position by 1 visually
+			// Assuming UTF-8, multi-byte characters still advance char position by 1 visually
+			// This might not be perfect for complex scripts but works for basic JSON/text
 			char++
 		}
 		currentOffset++
 	}
-	if offset > 0 && offset == currentOffset && len(data) > 0 && data[offset-1] == '\n' {
-		line++
-		char = 1
-	} else if offset > 0 && offset == currentOffset {
+	// Handle case where error is exactly at the end of file or line
+	if offset > 0 && offset == currentOffset {
+		// If the character *at* the offset (which caused the error) is a newline,
+		// the error is arguably on the *next* line, position 1.
+		// However, syntax errors often point *after* the problematic token.
+		// Sticking to the position *before* the newline seems more common for JSON errors.
 	}
 
 	return line, char

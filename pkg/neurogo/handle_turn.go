@@ -141,7 +141,7 @@ func (a *App) handleAgentTurn(
 			if finalText != "" {
 				fmt.Printf("\n[AGENT RESPONSE]\n%s\n\n", finalText)
 			} else {
-				fmt.Println("\n[AGENT RESPONSE]\n(Agent provided no text response.)\n")
+				fmt.Println("\n[AGENT RESPONSE]\n(Agent provided no text response.)")
 			}
 			return nil // End turn
 		}
