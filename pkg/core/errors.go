@@ -8,9 +8,9 @@ var (
 	ErrValidationRequiredArgNil = errors.New("required argument is nil")
 	ErrValidationTypeMismatch   = errors.New("argument type mismatch")
 	ErrValidationArgCount       = errors.New("incorrect argument count")
-	ErrValidationArgValue       = errors.New("invalid argument value")
-	ErrMissingArgument          = errors.New("required argument missing")
-	ErrInvalidArgument          = errors.New("invalid argument")
+	ErrValidationArgValue       = errors.New("invalid argument value")    // Used more broadly now
+	ErrMissingArgument          = errors.New("required argument missing") // Deprecated? Use ErrValidationRequiredArgNil? Keep for now.
+	ErrInvalidArgument          = errors.New("invalid argument")          // Generic invalid arg
 	ErrNullByteInArgument       = errors.New("argument contains null byte")
 )
 
@@ -22,7 +22,7 @@ var (
 	ErrSecurityViolation = errors.New("security violation")
 	ErrPathViolation     = errors.New("path resolves outside allowed directory")
 	ErrInternalSecurity  = errors.New("internal security error")
-	ErrInvalidPath       = errors.New("invalid path") // Ensure this is present
+	ErrInvalidPath       = errors.New("invalid path")
 )
 
 // --- Core Tool Execution Errors ---
@@ -52,10 +52,20 @@ var (
 	ErrRefactoredPathNotFound        = errors.New("refactored package path not found for symbol mapping")
 	ErrSymbolMappingFailed           = errors.New("failed to build symbol map from refactored packages")
 	ErrSymbolNotFoundInMap           = errors.New("symbol used from original package not found in new location map")
-	ErrAmbiguousSymbol               = errors.New("ambiguous exported symbol") // Ensure this is present
+	ErrAmbiguousSymbol               = errors.New("ambiguous exported symbol")
 	// Cache Errors
 	ErrCacheObjectNotFound  = errors.New("object not found in cache")
 	ErrCacheObjectWrongType = errors.New("object found in cache has wrong type")
+	// Math/Evaluation Errors
+	ErrDivisionByZero            = errors.New("division by zero")
+	ErrInvalidOperandTypeNumeric = errors.New("requires numeric operand(s)")
+	ErrInvalidOperandTypeInteger = errors.New("requires integer operand(s)")
+	ErrInvalidOperandTypeString  = errors.New("requires string operand(s)")
+	ErrInvalidOperandTypeBool    = errors.New("requires boolean operand(s)")
+	ErrInvalidFunctionArgument   = errors.New("invalid argument for function")
+	ErrVariableNotFound          = errors.New("variable not found") // Added for eval errors
+	// Verification Errors (NEW for v0.2.0)
+	ErrMustConditionFailed = errors.New("must condition evaluated to false")
 	// General Tool Error
 	ErrInternalTool      = errors.New("internal tool error")
 	ErrSkippedBinaryFile = errors.New("skipped potentially binary file")
@@ -67,5 +77,6 @@ var (
 	ErrArgumentMismatch     = errors.New("argument mismatch")
 	ErrMaxCallDepthExceeded = errors.New("maximum call depth exceeded")
 	ErrUnknownKeyword       = errors.New("unknown keyword")
-	// Add others like ErrVariableNotFound if needed
+	ErrUnhandledException   = errors.New("unhandled exception during execution") // NEW for v0.2.0 try/catch
+	ErrFailStatement        = errors.New("execution halted by FAIL statement")   // NEW for v0.2.0
 )

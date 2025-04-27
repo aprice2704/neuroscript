@@ -2,41 +2,33 @@
 package core
 
 import (
-	"context"
-	"errors"
 	"fmt"
 	"strings"
-	// Added for logging if needed, ensure it's present
 )
 
 // --- Simple Statement Execution Helpers ---
 
-// executeSet evaluates the expression node and assigns the result
+// executeSet (Unchanged)
 func (i *Interpreter) executeSet(step Step, stepNum int) error {
 	if i.logger != nil {
 		i.logger.Debug("-INTERP]      Executing SET for variable '%s'", step.Target)
 	}
 	targetVar := step.Target
 	valueNode := step.Value
-
 	if !isValidIdentifier(targetVar) {
-		return fmt.Errorf("SET target '%s' is not a valid variable name", targetVar)
+		return fmt.Errorf("SET target '%s' is not valid", targetVar)
 	}
-
-	// Evaluate expression and check for errors
-	finalValue, err := i.evaluateExpression(valueNode) // Use depth 0 for top-level call
+	finalValue, err := i.evaluateExpression(valueNode)
 	if err != nil {
-		return fmt.Errorf("evaluating value for SET '%s': %w", targetVar, err) // Propagate error
+		return fmt.Errorf("evaluating value for SET '%s': %w", targetVar, err)
 	}
-
 	if i.logger != nil {
 		i.logger.Debug("-INTERP]        SET evaluated value: %v (%T)", finalValue, finalValue)
 	}
-
-	// Special handling for 'generated_code' remains
+	// Special handling for 'generated_code'
 	if targetVar == "generated_code" {
 		if finalStr, isStr := finalValue.(string); isStr {
-			trimmedVal := trimCodeFences(finalStr) // Use helper
+			trimmedVal := trimCodeFences(finalStr)
 			if trimmedVal != finalStr {
 				if i.logger != nil {
 					i.logger.Debug("-INTERP]        Trimmed code fences for 'generated_code'")
@@ -45,15 +37,15 @@ func (i *Interpreter) executeSet(step Step, stepNum int) error {
 			}
 		}
 	}
-
 	i.variables[targetVar] = finalValue
 	if i.logger != nil {
 		i.logger.Debug("-INTERP]        Stored var '%s' = %v (%T)", targetVar, finalValue, finalValue)
 	}
-	return nil // Return nil error on success
+	return nil
 }
 
-// executeCall evaluates argument nodes and performs the call
+// executeCall evaluates arguments and performs procedure, TOOL, or built-in calls.
+// REMOVED specific KW_LLM handling. Assumes askAI etc. are TOOLs or user procedures.
 func (i *Interpreter) executeCall(step Step, stepNum int) (interface{}, error) {
 	if i.logger != nil {
 		i.logger.Debug("-INTERP]      Executing CALL %q", step.Target)
@@ -62,12 +54,11 @@ func (i *Interpreter) executeCall(step Step, stepNum int) (interface{}, error) {
 	argNodes := step.Args
 
 	evaluatedArgs := make([]interface{}, len(argNodes))
-	var err error // Declare err here for use in the loop
+	var err error
 	for idx, argNode := range argNodes {
-		// Evaluate each argument and check for errors
-		evaluatedArgs[idx], err = i.evaluateExpression(argNode) // Use depth 0 for top-level call
+		evaluatedArgs[idx], err = i.evaluateExpression(argNode)
 		if err != nil {
-			return nil, fmt.Errorf("evaluating argument %d for CALL %q: %w", idx, target, err) // Propagate error
+			return nil, fmt.Errorf("evaluating argument %d for CALL %q: %w", idx, target, err)
 		}
 		if i.logger != nil {
 			i.logger.Debug("-INTERP]        CALL Arg %d evaluated: %v (%T)", idx, evaluatedArgs[idx], evaluatedArgs[idx])
@@ -77,85 +68,45 @@ func (i *Interpreter) executeCall(step Step, stepNum int) (interface{}, error) {
 	var callResultValue interface{}
 	var callErr error
 
-	if strings.HasPrefix(target, "TOOL.") {
-		toolName := strings.TrimPrefix(target, "TOOL.")
+	if strings.HasPrefix(target, "tool.") { // Updated prefix check
+		toolName := strings.TrimPrefix(target, "tool.")
 		if i.logger != nil {
-			i.logger.Debug("-INTERP]        Calling TOOL.%s", toolName)
+			i.logger.Debug("-INTERP]        Calling tool.%s", toolName)
 		}
-		toolImpl, found := i.toolRegistry.GetTool(toolName)
+		toolImpl, found := i.toolRegistry.GetTool(toolName) // Use base name for lookup
 		if !found {
-			callErr = fmt.Errorf("unknown TOOL '%s'", toolName) // Set error
+			callErr = fmt.Errorf("unknown tool '%s'", toolName)
 		} else {
 			preparedArgs, validationErr := ValidateAndConvertArgs(toolImpl.Spec, evaluatedArgs)
 			if validationErr != nil {
-				callErr = fmt.Errorf("TOOL %s argument error: %w", toolName, validationErr) // Set error
+				callErr = fmt.Errorf("tool %s argument error: %w", toolName, validationErr)
 			} else {
 				if i.logger != nil {
 					i.logger.Debug("-INTERP]          Prepared TOOL args: %+v", preparedArgs)
 				}
-				// Execute the tool function
 				callResultValue, callErr = toolImpl.Func(i, preparedArgs) // Captures potential tool execution error
 				if callErr == nil {                                       // Only log/set last result on SUCCESS
 					if i.logger != nil {
-						i.logger.Debug("-INTERP]          TOOL.%s Result: %v (%T)", toolName, callResultValue, callResultValue)
+						i.logger.Debug("-INTERP]          tool.%s Result: %v (%T)", toolName, callResultValue, callResultValue)
 					}
-					i.lastCallResult = callResultValue // Store successful result
+					i.lastCallResult = callResultValue
 				} else {
-					// Propagate error from tool execution
-					callErr = fmt.Errorf("TOOL %s execution failed: %w", toolName, callErr)
+					callErr = fmt.Errorf("tool %s execution failed: %w", toolName, callErr)
 				}
 			}
 		}
-
-	} else if target == "LLM" {
-		if i.logger != nil {
-			i.logger.Debug("-INTERP]        Calling LLM (stateless)")
-		}
-		if len(evaluatedArgs) != 1 {
-			callErr = errors.New("CALL LLM expects 1 prompt arg") // Set error
-		} else {
-			prompt := fmt.Sprintf("%v", evaluatedArgs[0]) // Convert evaluated arg to string
-			if i.logger != nil {
-				i.logger.Debug("-INTERP]          LLM Prompt: %q", prompt)
-			}
-
-			// *** CORRECTED: Provide model name (using interpreter's or default) and use i.logger() ***
-			modelToUse := i.modelName // Use interpreter's configured model if set
-			if modelToUse == "" {
-				modelToUse = "gemini-1.5-pro-latest" // Fallback if not set on interpreter
-				if i.logger != nil {
-					i.logger.Warn("INTERP] Interpreter modelName not set for LLM call, using default: %s", modelToUse)
-				}
-			}
-			// Create a temporary client using interpreter's logger
-			llmClient := NewLLMClient("", modelToUse, i.logger, false)
-			if llmClient.client == nil { // Check if client init failed
-				callErr = errors.New("failed to initialize LLM client for CALL LLM")
-			} else {
-				ctx := context.Background()
-				response, llmErr := llmClient.CallLLM(ctx, prompt) // Use stateless call
-				if llmErr != nil {
-					callErr = fmt.Errorf("CALL LLM failed: %w", llmErr) // Propagate LLM error
-				} else {
-					callResultValue = response
-					callErr = nil // Explicitly nil on success
-					if i.logger != nil {
-						i.logger.Debug("-INTERP]          LLM Result: %q", response)
-					}
-					i.lastCallResult = callResultValue // Store successful result
-				}
-			}
-			// *** End Correction ***
-		}
-
-	} else { // Procedure Call
+		// --- REMOVED 'LLM' keyword check ---
+		// } else if target == "LLM" { ... }
+		// --- END REMOVED ---
+	} else { // Assume Procedure Call or potential Built-in like askAI (if not TOOLs)
+		// Check for specific built-in actor interactions first?
+		// For now, assume they are dispatched as procedure calls or TOOL calls.
+		// If they were distinct keywords, they'd need specific step types.
 		procToCall := target
 		if i.logger != nil {
-			i.logger.Debug("-INTERP]        Calling Procedure %q", procToCall)
+			i.logger.Debug("-INTERP]        Calling Procedure/Function %q", procToCall)
 		}
-
-		// Convert evaluated arguments to strings for procedure call signature
-		stringArgs := make([]string, len(evaluatedArgs))
+		stringArgs := make([]string, len(evaluatedArgs)) // Prepare args for RunProcedure if needed
 		for idx, val := range evaluatedArgs {
 			stringArgs[idx] = fmt.Sprintf("%v", val)
 		}
@@ -163,27 +114,26 @@ func (i *Interpreter) executeCall(step Step, stepNum int) (interface{}, error) {
 			i.logger.Debug("-INTERP]          Procedure args (as strings): %v", stringArgs)
 		}
 
-		// Recursively call RunProcedure
+		// Try RunProcedure
 		procResultValue, procCallErr := i.RunProcedure(procToCall, stringArgs...)
 		if procCallErr != nil {
-			// Propagate error from nested procedure call
-			// Error context is already added within RunProcedure/executeSteps
-			callErr = procCallErr
+			// If not found, maybe it's a built-in? (This logic needs refinement)
+			// For now, just propagate the error.
+			callErr = procCallErr // Error context added within RunProcedure
 		} else {
 			callResultValue = procResultValue
-			callErr = nil // Explicitly nil on success
+			callErr = nil
 			if i.logger != nil {
 				i.logger.Debug("-INTERP]          Procedure %q Result: %v (%T)", procToCall, callResultValue, callResultValue)
 			}
-			i.lastCallResult = callResultValue // Store successful result
+			i.lastCallResult = callResultValue
 		}
 	}
 
-	// Return the captured result (if any) and the error status from the call
 	return callResultValue, callErr
 }
 
-// executeReturn handles the RETURN statement, now checking expression evaluation error
+// executeReturn (Unchanged)
 func (i *Interpreter) executeReturn(step Step, stepNum int) (result interface{}, wasReturn bool, err error) {
 	if i.logger != nil {
 		i.logger.Debug("-INTERP]      Executing RETURN")
@@ -191,29 +141,24 @@ func (i *Interpreter) executeReturn(step Step, stepNum int) (result interface{},
 	valueNode := step.Value
 	var returnValue interface{}
 	var evalErr error
-
 	if valueNode != nil {
-		// Evaluate return value expression and check for errors
-		returnValue, evalErr = i.evaluateExpression(valueNode) // Depth 0
+		returnValue, evalErr = i.evaluateExpression(valueNode)
 		if evalErr != nil {
-			// Return error immediately if return value evaluation fails
-			return nil, true, fmt.Errorf("evaluating RETURN value: %w", evalErr) // Still signal RETURN intent
+			return nil, true, fmt.Errorf("evaluating RETURN value: %w", evalErr)
 		}
 		if i.logger != nil {
 			i.logger.Debug("-INTERP]        RETURN evaluated value: %v (%T)", returnValue, returnValue)
 		}
 	} else {
-		returnValue = nil // No value provided
+		returnValue = nil
 		if i.logger != nil {
 			i.logger.Debug("-INTERP]        RETURN with no value (implicit nil)")
 		}
 	}
-
-	// Signal RETURN occurred, return the value (or nil) and nil error
 	return returnValue, true, nil
 }
 
-// executeEmit handles the EMIT statement, now checking expression evaluation error
+// executeEmit (Unchanged)
 func (i *Interpreter) executeEmit(step Step, stepNum int) error {
 	if i.logger != nil {
 		i.logger.Debug("-INTERP]      Executing EMIT")
@@ -221,24 +166,63 @@ func (i *Interpreter) executeEmit(step Step, stepNum int) error {
 	valueNode := step.Value
 	var evaluatedValue interface{}
 	var evalErr error
-
 	if valueNode != nil {
-		// Evaluate emit value expression and check for errors
-		evaluatedValue, evalErr = i.evaluateExpression(valueNode) // Depth 0
+		evaluatedValue, evalErr = i.evaluateExpression(valueNode)
 		if evalErr != nil {
-			return fmt.Errorf("evaluating EMIT value: %w", evalErr) // Return error
+			return fmt.Errorf("evaluating EMIT value: %w", evalErr)
 		}
 		if i.logger != nil {
 			i.logger.Debug("-INTERP]        EMIT evaluated value: %v (%T)", evaluatedValue, evaluatedValue)
 		}
 	} else {
-		evaluatedValue = "" // Default to empty string if no value node
+		evaluatedValue = ""
 		if i.logger != nil {
 			i.logger.Debug("-INTERP]        EMIT with no value (implicit empty string)")
 		}
 	}
+	fmt.Printf("[EMIT] %v\n", evaluatedValue)
+	return nil
+}
 
-	fmt.Printf("[EMIT] %v\n", evaluatedValue) // Direct print for EMIT
+// --- NEW: executeMust ---
+func (i *Interpreter) executeMust(step Step, stepNum int) error {
+	stepType := step.Type // "must" or "mustbe"
+	if i.logger != nil {
+		i.logger.Debug("-INTERP]      Executing %s", strings.ToUpper(stepType))
+	}
+	valueNode := step.Value // This holds the expression node or FunctionCallNode
 
-	return nil // Return nil error on success
+	// Evaluate the expression/function call
+	evaluatedValue, evalErr := i.evaluateExpression(valueNode)
+	if evalErr != nil {
+		// An error during evaluation itself is considered a MUST failure
+		err := fmt.Errorf("%s check failed during evaluation: %w", stepType, evalErr)
+		if i.logger != nil {
+			i.logger.Debug("-INTERP]        %s", err)
+		}
+		// Wrap with sentinel error ErrMustConditionFailed
+		return fmt.Errorf("%w: %w", ErrMustConditionFailed, err)
+	}
+
+	// Check the truthiness of the result
+	isOk := isTruthy(evaluatedValue)
+	if i.logger != nil {
+		i.logger.Debug("-INTERP]        %s evaluated value: %v (%T), Truthiness: %t", stepType, evaluatedValue, evaluatedValue, isOk)
+	}
+
+	if !isOk {
+		// Condition failed, return specific error
+		err := fmt.Errorf("%s condition evaluated to false (value: %v)", stepType, evaluatedValue)
+		if i.logger != nil {
+			i.logger.Debug("-INTERP]        %s", err)
+		}
+		// Wrap with sentinel error ErrMustConditionFailed
+		return fmt.Errorf("%w: %w", ErrMustConditionFailed, err)
+	}
+
+	// Condition passed
+	if i.logger != nil {
+		i.logger.Debug("-INTERP]        %s check PASSED.", stepType)
+	}
+	return nil // Success
 }

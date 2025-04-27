@@ -1,79 +1,79 @@
 // pkg/core/ast.go
 package core
 
-// --- Expression Node Types (Revised for Arithmetic/Boolean/Functions) ---
-
-// Basic Value Nodes (Unchanged)
+// --- Expression Node Types (Unchanged from previous version) ---
 type VariableNode struct{ Name string }
-type PlaceholderNode struct{ Name string }   // Represents {{...}} syntax - value is raw name
-type LastNode struct{}                       // Represents LAST keyword
-type EvalNode struct{ Argument interface{} } // Represents EVAL(expression)
-
-// Literal Nodes (Unchanged)
-type StringLiteralNode struct{ Value string }
+type PlaceholderNode struct{ Name string }
+type LastNode struct{}
+type EvalNode struct{ Argument interface{} } // For EVAL() function
+type StringLiteralNode struct {
+	Value string
+	IsRaw bool
+}
 type NumberLiteralNode struct{ Value interface{} } // Holds int64 or float64
 type BooleanLiteralNode struct{ Value bool }
 type ListLiteralNode struct{ Elements []interface{} }
 type MapEntryNode struct {
-	Key   StringLiteralNode // Key must be string literal
+	Key   StringLiteralNode
 	Value interface{}
 }
 type MapLiteralNode struct{ Entries []MapEntryNode }
-
-// Access Node (Unchanged)
 type ElementAccessNode struct {
-	Collection interface{} // List or Map node/variable
-	Accessor   interface{} // Index (int) or Key (string) expression node
+	Collection interface{}
+	Accessor   interface{}
 }
-
-// --- NEW/REVISED Operation Nodes ---
-
-// UnaryOpNode: Represents prefix operations like negation (-) or NOT.
 type UnaryOpNode struct {
-	Operator string // e.g., "-", "NOT"
+	Operator string
 	Operand  interface{}
 }
-
-// BinaryOpNode: Represents all infix binary operations (+, -, *, /, %, **, ==, !=, <, >, <=, >=, AND, OR, &, |, ^).
-// Replaces previous ConcatenationNode and ComparisonNode.
 type BinaryOpNode struct {
 	Left     interface{}
-	Operator string // e.g., "+", "*", "==", "AND", "&"
+	Operator string
 	Right    interface{}
 }
-
-// FunctionCallNode: Represents built-in function calls like SIN(x), LN(x).
 type FunctionCallNode struct {
-	FunctionName string        // e.g., "SIN", "LN"
-	Arguments    []interface{} // List of argument expression nodes
+	FunctionName string
+	Arguments    []interface{}
 }
 
-// --- REMOVED ConcatenationNode and ComparisonNode ---
+// --- Procedure & Step Structures (Revised for v0.2.0) ---
 
-// --- Procedure & Step Structures ---
-
-// Docstring: Includes LangVersion (Unchanged from previous update)
-type Docstring struct {
-	Purpose, Output, Algorithm, Caveats, Examples string
-	LangVersion                                   string
-	InputLines                                    []string
-	Inputs                                        map[string]string
-}
 type Procedure struct {
-	Name      string
-	Params    []string
-	Docstring Docstring
-	Steps     []Step
+	Name              string
+	RequiredParams    []string // From 'needs' clause
+	OptionalParams    []string // From 'optional' clause
+	ReturnVarNames    []string // From 'returns' clause
+	Steps             []Step
+	OriginalSignature string
 }
 
-// Step: Value, Cond, ElseValue, Args can now hold new node types like BinaryOpNode etc.
 type Step struct {
-	Type, Target           string
-	Value, ElseValue, Cond interface{}   // e.g., Cond might be a BinaryOpNode (a == b) or UnaryOpNode (NOT flag)
-	Args                   []interface{} // Arguments for CALL (remain expression nodes)
+	Type           string        // "set", "call", "return", "emit", "if", "while", "for", "must", "mustbe", "try", "fail"
+	Target         string        // Variable name (SET, FOR), Call target (CALL, mustbe), Catch var (CATCH)
+	Cond           interface{}   // Condition expr (IF, WHILE), Collection expr (FOR)
+	Value          interface{}   // RHS (SET), Return val (RETURN), Emit val (EMIT), Must expr/call (MUST/MUSTBE), Body steps []Step (IF-THEN, WHILE, FOR, TRY)
+	ElseValue      interface{}   // Else body steps []Step (IF)
+	Args           []interface{} // Arguments (CALL)
+	CatchVar       string        // Variable name for caught error in CATCH block
+	CatchSteps     []Step        // Steps for the CATCH block
+	FinallySteps   []Step        // Steps for the FINALLY block
+	SourceLineInfo string        // Optional: Store original line number/content for debugging
 }
 
-// newStep helper (Unchanged)
+// newStep helper function - ensures correct assignment for Args
 func newStep(typ, target string, cond, value, elseValue interface{}, args []interface{}) Step {
-	return Step{Type: typ, Target: target, Cond: cond, Value: value, ElseValue: elseValue, Args: args}
+	// Signature correctly takes args as []interface{}
+	s := Step{
+		Type:         typ,
+		Target:       target,
+		Cond:         cond,
+		Value:        value,
+		ElseValue:    elseValue,
+		Args:         args, // Direct assignment is correct here
+		CatchVar:     "",   // Initialize explicitly
+		CatchSteps:   nil,  // Initialize explicitly
+		FinallySteps: nil,  // Initialize explicitly
+	}
+	// Specific setting for CatchVar, CatchSteps, FinallySteps done in ExitTry_statement listener method.
+	return s
 }

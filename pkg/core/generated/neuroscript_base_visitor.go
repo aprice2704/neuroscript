@@ -1,6 +1,6 @@
 // Code generated from NeuroScript.g4 by ANTLR 4.13.2. DO NOT EDIT.
 
-package generated // NeuroScript
+package core // NeuroScript
 import "github.com/antlr4-go/antlr/v4"
 
 type BaseNeuroScriptVisitor struct {
@@ -23,11 +23,23 @@ func (v *BaseNeuroScriptVisitor) VisitProcedure_definition(ctx *Procedure_defini
 	return v.VisitChildren(ctx)
 }
 
-func (v *BaseNeuroScriptVisitor) VisitParam_list_opt(ctx *Param_list_optContext) interface{} {
+func (v *BaseNeuroScriptVisitor) VisitNeeds_clause(ctx *Needs_clauseContext) interface{} {
+	return v.VisitChildren(ctx)
+}
+
+func (v *BaseNeuroScriptVisitor) VisitOptional_clause(ctx *Optional_clauseContext) interface{} {
+	return v.VisitChildren(ctx)
+}
+
+func (v *BaseNeuroScriptVisitor) VisitReturns_clause(ctx *Returns_clauseContext) interface{} {
 	return v.VisitChildren(ctx)
 }
 
 func (v *BaseNeuroScriptVisitor) VisitParam_list(ctx *Param_listContext) interface{} {
+	return v.VisitChildren(ctx)
+}
+
+func (v *BaseNeuroScriptVisitor) VisitMetadata_block(ctx *Metadata_blockContext) interface{} {
 	return v.VisitChildren(ctx)
 }
 
@@ -67,6 +79,14 @@ func (v *BaseNeuroScriptVisitor) VisitEmit_statement(ctx *Emit_statementContext)
 	return v.VisitChildren(ctx)
 }
 
+func (v *BaseNeuroScriptVisitor) VisitMust_statement(ctx *Must_statementContext) interface{} {
+	return v.VisitChildren(ctx)
+}
+
+func (v *BaseNeuroScriptVisitor) VisitFail_statement(ctx *Fail_statementContext) interface{} {
+	return v.VisitChildren(ctx)
+}
+
 func (v *BaseNeuroScriptVisitor) VisitIf_statement(ctx *If_statementContext) interface{} {
 	return v.VisitChildren(ctx)
 }
@@ -76,6 +96,10 @@ func (v *BaseNeuroScriptVisitor) VisitWhile_statement(ctx *While_statementContex
 }
 
 func (v *BaseNeuroScriptVisitor) VisitFor_each_statement(ctx *For_each_statementContext) interface{} {
+	return v.VisitChildren(ctx)
+}
+
+func (v *BaseNeuroScriptVisitor) VisitTry_statement(ctx *Try_statementContext) interface{} {
 	return v.VisitChildren(ctx)
 }
 

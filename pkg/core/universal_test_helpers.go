@@ -1,3 +1,4 @@
+// filename: pkg/core/universal_test_helpers.go
 package core
 
 import (
@@ -404,3 +405,6 @@ func max(a, b int) int {
 	}
 	return b
 }
+
+// --- REMOVED deepEqualWithTolerance function definition ---
+// func deepEqualWithTolerance(a, b interface{}) bool { ... }

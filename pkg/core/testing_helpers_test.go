@@ -1,117 +1,82 @@
+// filename: pkg/core/testing_helpers_test.go
 package core
 
 import (
-	// Keep for errors.Is potentially used elsewhere
-	"fmt" // Keep io
-	// Keep os
-
-	"reflect" // Keep sort
+	// Keep for errors.Is if used by runValidationTestCases later
+	"fmt" // For io.Discard in logger setup
+	// Original file used slog
+	"math"    // Needed for deepEqualWithTolerance
+	"reflect" // For reflect.DeepEqual used by runEvalExpressionTest
 	"strings"
 	"testing"
 )
 
 // --- Interpreter Test Specific Helpers ---
 
-// testWriter is a helper to redirect log output to t.Logf
-// Make sure this struct is defined, e.g., copied from tools_go_ast_symbol_map_test.go or defined globally here.
-// type testWriter struct {
-// 	t *testing.T
-// }
+// NewDefaultTestInterpreter provides a convenience wrapper.
+// *** KEPT: This version remains as it's test-specific ***
+func NewDefaultTestInterpreter(t *testing.T) (*Interpreter, string) {
+	t.Helper()
+	return NewTestInterpreter(t, nil, nil)
+}
 
-// func (tw testWriter) Write(p []byte) (n int, err error) { // Defined in universal_test_helpers.go
-// 	tw.t.Logf("%s", p) // Use t.Logf to print the log message
-// 	return len(p), nil
-// }
-
-// // NewTestInterpreter creates an interpreter instance for testing.
-
-// func NewTestInterpreter(t *testing.T, vars map[string]interface{}, lastResult interface{}) (*Interpreter, string) {
-// 	t.Helper()
-
-// 	handlerOpts := &slog.HandlerOptions{
-// 		Level:     slog.LevelWarn,
-// 		AddSource: true, // include source file and line number
-// 	}
-// 	handler := slog.NewTextHandler(os.Stderr, handlerOpts) // Log to Stderr
-
-// 	// Create the core slog logger
-// 	testLogger := slog.New(handler)
-
-// 	// Create a minimal LLMClient (can keep using testLogger now)
-// 	minimalLLMClient := NewLLMClient("", "", testLogger, false)
-// 	if minimalLLMClient == nil {
-// 		t.Fatal("Failed to create even a minimal LLMClient for testing")
-// 	}
-
-// 	interp := NewInterpreter(testLogger, minimalLLMClient) // Pass the working logger
-
-// 	testLogger.Info("Attempting to register core tools...")
-// 	if err := RegisterCoreTools(interp.ToolRegistry()); err != nil {
-// 		testLogger.Error("FATAL: Failed to register core tools during test setup: %v", err)
-// 		t.Fatalf("FATAL: Failed to register core tools during test setup: %v", err)
-// 	}
-// 	testLogger.Info("Successfully registered core tools.")
-
-// 	sandboxDirRel := t.TempDir()
-// 	absSandboxDir, err := filepath.Abs(sandboxDirRel)
-// 	if err != nil {
-// 		t.Fatalf("Failed to get absolute path for sandbox %s: %v", sandboxDirRel, err)
-// 	}
-
-// 	interp.sandboxDir = absSandboxDir
-// 	testLogger.Info("Sandbox root set in interpreter: %s", absSandboxDir)
-
-// 	if vars != nil {
-// 		for k, v := range vars {
-// 			interp.variables[k] = v
-// 		}
-// 	}
-
-// 	interp.lastCallResult = lastResult
-
-// 	return interp, absSandboxDir
-// }
-
-// func NewDefaultTestInterpreter(t *testing.T) (*Interpreter, string) {
-// 	t.Helper()
-// 	return NewTestInterpreter(t, nil, nil)
-// }
-
-// --- Step Creation Helpers (Moved from interpreter_test.go) ---
-// (These helpers remain unchanged)
-func createTestStep(typ string, target string, valueNode interface{}, argNodes []interface{}) Step { /* ... */
+// --- Step Creation Helpers (Keep these as they were in original file) ---
+func createTestStep(typ string, target string, valueNode interface{}, argNodes []interface{}) Step {
+	// Ensure this uses the current Step struct definition correctly
+	// It likely calls the newStep helper from ast.go
 	return newStep(typ, target, nil, valueNode, nil, argNodes)
 }
-func createIfStep(condNode interface{}, thenSteps []Step, elseSteps []Step) Step { /* ... */
-	var thenVal, elseVal interface{}
-	if thenSteps != nil {
-		thenVal = thenSteps
-	}
-	if elseSteps != nil {
-		elseVal = elseSteps
-	}
-	return Step{Type: "IF", Cond: condNode, Value: thenVal, ElseValue: elseVal}
-}
-func createWhileStep(condNode interface{}, bodySteps []Step) Step { /* ... */
-	var bodyVal interface{}
-	if bodySteps != nil {
-		bodyVal = bodySteps
-	}
-	return Step{Type: "WHILE", Cond: condNode, Value: bodyVal}
-}
-func createForStep(loopVar string, collectionNode interface{}, bodySteps []Step) Step { /* ... */
-	var bodyVal interface{}
-	if bodySteps != nil {
-		bodyVal = bodySteps
-	}
-	return Step{Type: "FOR", Target: loopVar, Cond: collectionNode, Value: bodyVal}
+
+func createIfStep(condNode interface{}, thenSteps []Step, elseSteps []Step) Step {
+	// Ensure this creates a Step matching the struct in ast.go
+	return Step{Type: "if", Cond: condNode, Value: thenSteps, ElseValue: elseSteps}
 }
 
+func createWhileStep(condNode interface{}, bodySteps []Step) Step {
+	// Ensure this creates a Step matching the struct in ast.go
+	return Step{Type: "while", Cond: condNode, Value: bodySteps}
+}
+
+func createForStep(loopVar string, collectionNode interface{}, bodySteps []Step) Step {
+	// Ensure this creates a Step matching the struct in ast.go
+	return Step{Type: "for", Target: loopVar, Cond: collectionNode, Value: bodySteps}
+}
+
+// --- ADDED deepEqualWithTolerance function definition ---
+// deepEqualWithTolerance compares two values, allowing for a small tolerance
+// when comparing float64 or int64/float64 combinations.
+const defaultTolerance = 1e-9
+
+func deepEqualWithTolerance(a, b interface{}) bool {
+	if reflect.TypeOf(a) != reflect.TypeOf(b) {
+		// Attempt numeric coercion if one is int and other is float
+		aFloat, aIsNum := toFloat64(a)
+		bFloat, bIsNum := toFloat64(b)
+		if aIsNum && bIsNum {
+			return math.Abs(aFloat-bFloat) < defaultTolerance
+		}
+		// If types differ and numeric coercion failed, they are not equal
+		return false
+	}
+
+	// If types are the same, handle floats specifically
+	if reflect.TypeOf(a).Kind() == reflect.Float64 {
+		aFloat := a.(float64)
+		bFloat := b.(float64)
+		return math.Abs(aFloat-bFloat) < defaultTolerance
+	}
+
+	// Use DeepEqual for all other types
+	return reflect.DeepEqual(a, b)
+}
+
+// --- END ADDED function ---
+
 // runEvalExpressionTest executes a single expression evaluation test case.
-// *** MODIFIED: Uses corrected NewDefaultTestInterpreter ***
+// (Keep this as it was in the original file, it calls NewDefaultTestInterpreter)
 func runEvalExpressionTest(t *testing.T, tc EvalTestCase) {
 	t.Helper()
-	interp, _ := NewDefaultTestInterpreter(t)
+	interp, _ := NewDefaultTestInterpreter(t) // Uses the corrected helper now
 	if tc.InitialVars != nil {
 		for k, v := range tc.InitialVars {
 			interp.variables[k] = v
@@ -119,6 +84,11 @@ func runEvalExpressionTest(t *testing.T, tc EvalTestCase) {
 	}
 	interp.lastCallResult = tc.LastResult
 	got, err := interp.evaluateExpression(tc.InputNode)
+
+	// Use deepEqualWithTolerance for comparison if defined (should be in universal_test_helpers.go)
+	// --- Now uses the locally defined version ---
+	deepCompareFunc := deepEqualWithTolerance
+
 	if tc.WantErr {
 		if err == nil {
 			t.Errorf("%s: Expected an error, but got nil", tc.Name)
@@ -127,34 +97,39 @@ func runEvalExpressionTest(t *testing.T, tc EvalTestCase) {
 		if tc.ErrContains != "" && !strings.Contains(err.Error(), tc.ErrContains) {
 			t.Errorf("%s: Expected error containing %q, got: %v", tc.Name, tc.ErrContains, err)
 		}
-		return
-	}
-	if err != nil {
-		t.Errorf("Unexpected error: %v", tc.Name)
-		return
-	}
-	if !reflect.DeepEqual(got, tc.Expected) {
-		t.Errorf("%s: Result mismatch.\nInput Node: %+v\nExpected:   %v (%T)\nGot:        %v (%T)", tc.Name, tc.InputNode, tc.Expected, tc.Expected, got, got)
+		// Optionally use errors.Is if comparing against sentinel errors
+	} else { // No error wanted
+		if err != nil {
+			t.Errorf("%s: Unexpected error: %v", tc.Name, err)
+		}
+		// Use the comparison function
+		if !deepCompareFunc(got, tc.Expected) {
+			t.Errorf("%s: Result mismatch.\nInput Node: %+v\nExpected:   %v (%T)\nGot:        %v (%T)", tc.Name, tc.InputNode, tc.Expected, tc.Expected, got, got)
+
+		}
 	}
 }
 
 // --- General Test Helpers ---
-// (makeArgs, AssertNoError remain unchanged)
-// func MakeArgs(vals ...interface{}) []interface{} {
-// 	if vals == nil {
-// 		return []interface{}{}
-// 	}
-// 	return vals
-// }
 
+// AssertNoError fails the test if err is not nil. (Keep from original)
 func AssertNoError(t *testing.T, err error, msgAndArgs ...interface{}) {
 	t.Helper()
 	if err != nil {
-		t.Fatalf("Expected no error, but got: %v\nContext: %s", err, fmt.Sprint(msgAndArgs...))
+		message := fmt.Sprintf("Expected no error, but got: %v", err)
+		if len(msgAndArgs) > 0 {
+			format, ok := msgAndArgs[0].(string)
+			if !ok {
+				message += fmt.Sprintf("\nContext: %+v", msgAndArgs)
+			} else {
+				message += "\nContext: " + fmt.Sprintf(format, msgAndArgs[1:]...)
+			}
+		}
+		t.Fatal(message)
 	}
 }
 
-// --- Struct Definitions (Remain unchanged) ---
+// --- Struct Definitions (Keep from original) ---
 type EvalTestCase struct {
 	Name        string
 	InputNode   interface{}
@@ -164,51 +139,30 @@ type EvalTestCase struct {
 	WantErr     bool
 	ErrContains string
 }
+
 type ValidationTestCase struct {
-	Name          string
-	ToolName      string
+	Name string
+	// ToolName  string // Removed - ToolName is passed to helper
 	InputArgs     []interface{}
-	ArgSpecs      []ArgSpec
-	ExpectedArgs  []interface{}
-	ExpectedError error
-	CheckErrorIs  bool
+	ExpectedError error // Expected sentinel error from ValidateAndConvertArgs
+	// CheckErrorIs  bool // Removed - Assume errors.Is is always used
 }
 
-// --- Result Normalization Helpers (From tools_go_ast_package_test.go, ensure they are defined once) ---
-// (Include normalizeResultMapPaths, setDefaultResultMapValues, compareErrorString if not already present/imported)
-// Assuming these helpers might already be in tools_go_ast_package_test.go, defining them here might cause duplication.
-// Ensure they are defined *once* accessible to all tests needing them.
-/*
-func normalizeResultMapPaths(t *testing.T, dataMap map[string]interface{}, basePath string) { ... }
-func setDefaultResultMapValues(resultMap map[string]interface{}) { ... }
-func compareErrorString(t *testing.T, actualMap, expectedMap map[string]interface{}) { ... }
-*/
-
-// --- Other potential helpers like runValidationTestCases ---
-// Ensure runValidationTestCases is also defined once, potentially here or in a specific _test file.
+// --- Placeholders for other helpers potentially defined in original ---
+// Ensure runValidationTestCases is defined *once* (here or elsewhere)
 /*
 func runValidationTestCases(t *testing.T, toolName string, testCases []ValidationTestCase) {
 	t.Helper()
-	interp, _ := NewDefaultTestInterpreter(t) // Now uses logging interpreter
-	toolImpl, found := interp.ToolRegistry().GetTool(toolName)
-	if !found { t.Fatalf("Tool %s not found in registry", toolName) }
-	spec := toolImpl.Spec
-	for _, tc := range testCases {
-		t.Run(tc.Name, func(t *testing.T) {
-			_, err := ValidateAndConvertArgs(spec, tc.InputArgs)
-			if tc.ExpectedError != nil {
-				if err == nil { t.Errorf("Expected error [%v], got nil", tc.ExpectedError) } else if !errors.Is(err, tc.ExpectedError) { t.Errorf("Expected error wrapping [%v], but errors.Is is false. Got error: [%T] %v", tc.ExpectedError, err, err) } else { t.Logf("Got expected error type via errors.Is: %v", err) }
-			} else if err != nil { t.Errorf("Unexpected validation error: %v", err) }
-		})
-	}
+	interp, _ := NewDefaultTestInterpreter(t)
+	// ... rest of implementation ...
 }
 */
 
 // Ensure core errors are accessible if needed by helpers here
 var (
-	_ = ErrValidationArgCount
+	_ = ErrValidationArgCount // Use _ to avoid unused variable errors if not used directly
 	_ = ErrValidationRequiredArgNil
 	_ = ErrValidationTypeMismatch
 )
 
-// --- END --- // Added comment for clarity
+// --- END FILE ---

@@ -1,6 +1,6 @@
 // Code generated from NeuroScript.g4 by ANTLR 4.13.2. DO NOT EDIT.
 
-package generated // NeuroScript
+package core // NeuroScript
 import "github.com/antlr4-go/antlr/v4"
 
 // A complete Visitor for a parse tree produced by NeuroScriptParser.
@@ -19,11 +19,20 @@ type NeuroScriptVisitor interface {
 	// Visit a parse tree produced by NeuroScriptParser#procedure_definition.
 	VisitProcedure_definition(ctx *Procedure_definitionContext) interface{}
 
-	// Visit a parse tree produced by NeuroScriptParser#param_list_opt.
-	VisitParam_list_opt(ctx *Param_list_optContext) interface{}
+	// Visit a parse tree produced by NeuroScriptParser#needs_clause.
+	VisitNeeds_clause(ctx *Needs_clauseContext) interface{}
+
+	// Visit a parse tree produced by NeuroScriptParser#optional_clause.
+	VisitOptional_clause(ctx *Optional_clauseContext) interface{}
+
+	// Visit a parse tree produced by NeuroScriptParser#returns_clause.
+	VisitReturns_clause(ctx *Returns_clauseContext) interface{}
 
 	// Visit a parse tree produced by NeuroScriptParser#param_list.
 	VisitParam_list(ctx *Param_listContext) interface{}
+
+	// Visit a parse tree produced by NeuroScriptParser#metadata_block.
+	VisitMetadata_block(ctx *Metadata_blockContext) interface{}
 
 	// Visit a parse tree produced by NeuroScriptParser#statement_list.
 	VisitStatement_list(ctx *Statement_listContext) interface{}
@@ -52,6 +61,12 @@ type NeuroScriptVisitor interface {
 	// Visit a parse tree produced by NeuroScriptParser#emit_statement.
 	VisitEmit_statement(ctx *Emit_statementContext) interface{}
 
+	// Visit a parse tree produced by NeuroScriptParser#must_statement.
+	VisitMust_statement(ctx *Must_statementContext) interface{}
+
+	// Visit a parse tree produced by NeuroScriptParser#fail_statement.
+	VisitFail_statement(ctx *Fail_statementContext) interface{}
+
 	// Visit a parse tree produced by NeuroScriptParser#if_statement.
 	VisitIf_statement(ctx *If_statementContext) interface{}
 
@@ -60,6 +75,9 @@ type NeuroScriptVisitor interface {
 
 	// Visit a parse tree produced by NeuroScriptParser#for_each_statement.
 	VisitFor_each_statement(ctx *For_each_statementContext) interface{}
+
+	// Visit a parse tree produced by NeuroScriptParser#try_statement.
+	VisitTry_statement(ctx *Try_statementContext) interface{}
 
 	// Visit a parse tree produced by NeuroScriptParser#call_target.
 	VisitCall_target(ctx *Call_targetContext) interface{}

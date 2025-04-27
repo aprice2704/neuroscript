@@ -2,8 +2,8 @@
 package core
 
 import (
+	"errors"
 	"fmt"
-	"strings" // Keep for variable not found check
 )
 
 // evaluateExpression evaluates an AST node representing an expression.
@@ -14,22 +14,30 @@ func (i *Interpreter) evaluateExpression(node interface{}) (interface{}, error) 
 
 	// --- Basic Value Nodes ---
 	case StringLiteralNode:
-		return n.Value, nil // Return RAW string value
+		// RAW strings (```...```) potentially need placeholder evaluation by default.
+		// Regular strings ('...', "...") need EVAL().
+		// Let's handle this based on the IsRaw flag.
+		if n.IsRaw {
+			// Design doc says ``` strings evaluate placeholders by default.
+			resolvedStr, resolveErr := i.resolvePlaceholdersWithError(n.Value)
+			if resolveErr != nil {
+				return nil, fmt.Errorf("evaluating raw string literal '%s...': %w", n.Value[:min(len(n.Value), 20)], resolveErr)
+			}
+			return resolvedStr, nil
+		}
+		// Regular strings are returned raw, need EVAL() for placeholders.
+		return n.Value, nil
 	case NumberLiteralNode:
-		return n.Value, nil // Return raw int64 or float64
+		return n.Value, nil
 	case BooleanLiteralNode:
 		return n.Value, nil
 	case VariableNode:
 		val, exists := i.variables[n.Name]
 		if !exists {
-			return nil, fmt.Errorf("variable '%s' not found", n.Name)
+			return nil, fmt.Errorf("%w: '%s'", ErrVariableNotFound, n.Name)
 		}
-		return val, nil // Return RAW variable value
-	case PlaceholderNode: // Placeholders only have meaning within EVAL
-		// Evaluating a standalone placeholder node returns an error or its name?
-		// Let's return an error to enforce EVAL usage.
-		// return nil, fmt.Errorf("cannot evaluate raw placeholder '{{%s}}'; use EVAL()", n.Name)
-		// OR - lenient approach: return the raw value of the referenced var/LAST
+		return val, nil
+	case PlaceholderNode:
 		var refValue interface{}
 		var varName string
 		var exists bool
@@ -42,11 +50,11 @@ func (i *Interpreter) evaluateExpression(node interface{}) (interface{}, error) 
 			varName = n.Name
 		}
 		if !exists {
-			return nil, fmt.Errorf("variable '{{%s}}' referenced in placeholder not found", varName)
+			return nil, fmt.Errorf("%w: '{{%s}}' referenced in placeholder", ErrVariableNotFound, varName)
 		}
-		return refValue, nil // Return RAW referenced value (consistent with previous behavior)
+		return refValue, nil
 	case LastNode:
-		return i.lastCallResult, nil // Return RAW last result
+		return i.lastCallResult, nil
 
 	// --- Collection Literals ---
 	case ListLiteralNode:
@@ -63,7 +71,6 @@ func (i *Interpreter) evaluateExpression(node interface{}) (interface{}, error) 
 		evaluatedMap := make(map[string]interface{})
 		var err error
 		for _, entry := range n.Entries {
-			// Key is already validated as StringLiteralNode by builder
 			mapKey := entry.Key.Value
 			evaluatedMap[mapKey], err = i.evaluateExpression(entry.Value)
 			if err != nil {
@@ -74,7 +81,6 @@ func (i *Interpreter) evaluateExpression(node interface{}) (interface{}, error) 
 
 	// --- Operations ---
 	case EvalNode:
-		// Evaluate argument, convert to string, THEN resolve placeholders
 		argValueRaw, err := i.evaluateExpression(n.Argument)
 		if err != nil {
 			return nil, fmt.Errorf("evaluating argument for EVAL: %w", err)
@@ -83,70 +89,59 @@ func (i *Interpreter) evaluateExpression(node interface{}) (interface{}, error) 
 		if argValueRaw != nil {
 			argStr = fmt.Sprintf("%v", argValueRaw)
 		}
-		resolvedStr, resolveErr := i.resolvePlaceholdersWithError(argStr) // RESOLUTION HAPPENS HERE ONLY
+		resolvedStr, resolveErr := i.resolvePlaceholdersWithError(argStr)
 		if resolveErr != nil {
 			return nil, fmt.Errorf("resolving placeholders during EVAL: %w", resolveErr)
 		}
 		return resolvedStr, nil
-
 	case UnaryOpNode:
 		operandVal, err := i.evaluateExpression(n.Operand)
 		if err != nil {
-			// Check if error is "variable not found" - treat operand as nil in that case for NOT?
-			// For now, propagate error strictly.
 			return nil, fmt.Errorf("evaluating operand for unary operator '%s': %w", n.Operator, err)
 		}
-		return evaluateUnaryOp(n.Operator, operandVal) // Call helper
-
+		return evaluateUnaryOp(n.Operator, operandVal)
 	case BinaryOpNode:
 		leftVal, errL := i.evaluateExpression(n.Left)
 		if errL != nil {
-			// Handle "variable not found" gracefully for comparisons?
-			// Treat not found var as nil for == / != ?
-			if (n.Operator == "==" || n.Operator == "!=") && strings.Contains(errL.Error(), "not found") {
-				leftVal = nil // Treat as nil for comparison
+			if (n.Operator == "==" || n.Operator == "!=") && errors.Is(errL, ErrVariableNotFound) {
+				leftVal = nil
 			} else {
-				return nil, fmt.Errorf("evaluating left operand for binary operator '%s': %w", n.Operator, errL)
+				return nil, fmt.Errorf("evaluating left operand for '%s': %w", n.Operator, errL)
 			}
 		}
-		// Short-circuit AND/OR before evaluating right side
-		if n.Operator == "AND" && !isTruthy(leftVal) {
+		if n.Operator == "and" && !isTruthy(leftVal) {
 			return false, nil
 		}
-		if n.Operator == "OR" && isTruthy(leftVal) {
+		if n.Operator == "or" && isTruthy(leftVal) {
 			return true, nil
 		}
-
 		rightVal, errR := i.evaluateExpression(n.Right)
 		if errR != nil {
-			if (n.Operator == "==" || n.Operator == "!=") && strings.Contains(errR.Error(), "not found") {
-				rightVal = nil // Treat as nil for comparison
+			if (n.Operator == "==" || n.Operator == "!=") && errors.Is(errR, ErrVariableNotFound) {
+				rightVal = nil
 			} else {
-				return nil, fmt.Errorf("evaluating right operand for binary operator '%s': %w", n.Operator, errR)
+				return nil, fmt.Errorf("evaluating right operand for '%s': %w", n.Operator, errR)
 			}
 		}
-		return evaluateBinaryOp(leftVal, rightVal, n.Operator) // Call helper
-
+		return evaluateBinaryOp(leftVal, rightVal, n.Operator)
 	case FunctionCallNode:
 		evaluatedArgs := make([]interface{}, len(n.Arguments))
 		var err error
 		for idx, argNode := range n.Arguments {
 			evaluatedArgs[idx], err = i.evaluateExpression(argNode)
 			if err != nil {
-				return nil, fmt.Errorf("evaluating argument %d for function '%s': %w", idx+1, n.FunctionName, err)
+				return nil, fmt.Errorf("evaluating arg %d for func '%s': %w", idx+1, n.FunctionName, err)
 			}
 		}
-		return evaluateFunctionCall(n.FunctionName, evaluatedArgs) // Call helper
-
+		return evaluateFunctionCall(n.FunctionName, evaluatedArgs)
 	case ElementAccessNode:
-		return i.evaluateElementAccess(n) // Existing logic
+		return i.evaluateElementAccess(n)
 
-	// --- Pass-through for already evaluated values ---
-	case string, int64, float64, bool, nil, []interface{}, map[string]interface{}:
-		return n, nil // Return value if node is already a primitive/collection type
+	// --- Pass-through ---
+	case string, int64, float64, bool, nil, []interface{}, map[string]interface{}, []string:
+		return n, nil
 
-	// --- Error for unexpected node types ---
 	default:
-		return nil, fmt.Errorf("internal error: evaluateExpression encountered unhandled node type: %T", node)
+		return nil, fmt.Errorf("internal error: evaluateExpression unhandled node type: %T", node)
 	}
 }

@@ -15,6 +15,7 @@ rsync -av \
   --include='*.go' \
   --include='*.txt' \
   --include='*.md' \
+  --include='*.g4' \
   --prune-empty-dirs \
   --include='*/' \
   --exclude='*' \

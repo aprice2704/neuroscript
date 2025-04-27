@@ -1,6 +1,6 @@
 // Code generated from NeuroScript.g4 by ANTLR 4.13.2. DO NOT EDIT.
 
-package generated // NeuroScript
+package core // NeuroScript
 import "github.com/antlr4-go/antlr/v4"
 
 // BaseNeuroScriptListener is a complete listener for a parse tree produced by NeuroScriptParser.
@@ -44,17 +44,35 @@ func (s *BaseNeuroScriptListener) EnterProcedure_definition(ctx *Procedure_defin
 // ExitProcedure_definition is called when production procedure_definition is exited.
 func (s *BaseNeuroScriptListener) ExitProcedure_definition(ctx *Procedure_definitionContext) {}
 
-// EnterParam_list_opt is called when production param_list_opt is entered.
-func (s *BaseNeuroScriptListener) EnterParam_list_opt(ctx *Param_list_optContext) {}
+// EnterNeeds_clause is called when production needs_clause is entered.
+func (s *BaseNeuroScriptListener) EnterNeeds_clause(ctx *Needs_clauseContext) {}
 
-// ExitParam_list_opt is called when production param_list_opt is exited.
-func (s *BaseNeuroScriptListener) ExitParam_list_opt(ctx *Param_list_optContext) {}
+// ExitNeeds_clause is called when production needs_clause is exited.
+func (s *BaseNeuroScriptListener) ExitNeeds_clause(ctx *Needs_clauseContext) {}
+
+// EnterOptional_clause is called when production optional_clause is entered.
+func (s *BaseNeuroScriptListener) EnterOptional_clause(ctx *Optional_clauseContext) {}
+
+// ExitOptional_clause is called when production optional_clause is exited.
+func (s *BaseNeuroScriptListener) ExitOptional_clause(ctx *Optional_clauseContext) {}
+
+// EnterReturns_clause is called when production returns_clause is entered.
+func (s *BaseNeuroScriptListener) EnterReturns_clause(ctx *Returns_clauseContext) {}
+
+// ExitReturns_clause is called when production returns_clause is exited.
+func (s *BaseNeuroScriptListener) ExitReturns_clause(ctx *Returns_clauseContext) {}
 
 // EnterParam_list is called when production param_list is entered.
 func (s *BaseNeuroScriptListener) EnterParam_list(ctx *Param_listContext) {}
 
 // ExitParam_list is called when production param_list is exited.
 func (s *BaseNeuroScriptListener) ExitParam_list(ctx *Param_listContext) {}
+
+// EnterMetadata_block is called when production metadata_block is entered.
+func (s *BaseNeuroScriptListener) EnterMetadata_block(ctx *Metadata_blockContext) {}
+
+// ExitMetadata_block is called when production metadata_block is exited.
+func (s *BaseNeuroScriptListener) ExitMetadata_block(ctx *Metadata_blockContext) {}
 
 // EnterStatement_list is called when production statement_list is entered.
 func (s *BaseNeuroScriptListener) EnterStatement_list(ctx *Statement_listContext) {}
@@ -110,6 +128,18 @@ func (s *BaseNeuroScriptListener) EnterEmit_statement(ctx *Emit_statementContext
 // ExitEmit_statement is called when production emit_statement is exited.
 func (s *BaseNeuroScriptListener) ExitEmit_statement(ctx *Emit_statementContext) {}
 
+// EnterMust_statement is called when production must_statement is entered.
+func (s *BaseNeuroScriptListener) EnterMust_statement(ctx *Must_statementContext) {}
+
+// ExitMust_statement is called when production must_statement is exited.
+func (s *BaseNeuroScriptListener) ExitMust_statement(ctx *Must_statementContext) {}
+
+// EnterFail_statement is called when production fail_statement is entered.
+func (s *BaseNeuroScriptListener) EnterFail_statement(ctx *Fail_statementContext) {}
+
+// ExitFail_statement is called when production fail_statement is exited.
+func (s *BaseNeuroScriptListener) ExitFail_statement(ctx *Fail_statementContext) {}
+
 // EnterIf_statement is called when production if_statement is entered.
 func (s *BaseNeuroScriptListener) EnterIf_statement(ctx *If_statementContext) {}
 
@@ -127,6 +157,12 @@ func (s *BaseNeuroScriptListener) EnterFor_each_statement(ctx *For_each_statemen
 
 // ExitFor_each_statement is called when production for_each_statement is exited.
 func (s *BaseNeuroScriptListener) ExitFor_each_statement(ctx *For_each_statementContext) {}
+
+// EnterTry_statement is called when production try_statement is entered.
+func (s *BaseNeuroScriptListener) EnterTry_statement(ctx *Try_statementContext) {}
+
+// ExitTry_statement is called when production try_statement is exited.
+func (s *BaseNeuroScriptListener) ExitTry_statement(ctx *Try_statementContext) {}
 
 // EnterCall_target is called when production call_target is entered.
 func (s *BaseNeuroScriptListener) EnterCall_target(ctx *Call_targetContext) {}

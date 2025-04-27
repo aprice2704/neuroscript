@@ -1,6 +1,6 @@
 // Code generated from NeuroScript.g4 by ANTLR 4.13.2. DO NOT EDIT.
 
-package generated // NeuroScript
+package core // NeuroScript
 import "github.com/antlr4-go/antlr/v4"
 
 // NeuroScriptListener is a complete listener for a parse tree produced by NeuroScriptParser.
@@ -19,11 +19,20 @@ type NeuroScriptListener interface {
 	// EnterProcedure_definition is called when entering the procedure_definition production.
 	EnterProcedure_definition(c *Procedure_definitionContext)
 
-	// EnterParam_list_opt is called when entering the param_list_opt production.
-	EnterParam_list_opt(c *Param_list_optContext)
+	// EnterNeeds_clause is called when entering the needs_clause production.
+	EnterNeeds_clause(c *Needs_clauseContext)
+
+	// EnterOptional_clause is called when entering the optional_clause production.
+	EnterOptional_clause(c *Optional_clauseContext)
+
+	// EnterReturns_clause is called when entering the returns_clause production.
+	EnterReturns_clause(c *Returns_clauseContext)
 
 	// EnterParam_list is called when entering the param_list production.
 	EnterParam_list(c *Param_listContext)
+
+	// EnterMetadata_block is called when entering the metadata_block production.
+	EnterMetadata_block(c *Metadata_blockContext)
 
 	// EnterStatement_list is called when entering the statement_list production.
 	EnterStatement_list(c *Statement_listContext)
@@ -52,6 +61,12 @@ type NeuroScriptListener interface {
 	// EnterEmit_statement is called when entering the emit_statement production.
 	EnterEmit_statement(c *Emit_statementContext)
 
+	// EnterMust_statement is called when entering the must_statement production.
+	EnterMust_statement(c *Must_statementContext)
+
+	// EnterFail_statement is called when entering the fail_statement production.
+	EnterFail_statement(c *Fail_statementContext)
+
 	// EnterIf_statement is called when entering the if_statement production.
 	EnterIf_statement(c *If_statementContext)
 
@@ -60,6 +75,9 @@ type NeuroScriptListener interface {
 
 	// EnterFor_each_statement is called when entering the for_each_statement production.
 	EnterFor_each_statement(c *For_each_statementContext)
+
+	// EnterTry_statement is called when entering the try_statement production.
+	EnterTry_statement(c *Try_statementContext)
 
 	// EnterCall_target is called when entering the call_target production.
 	EnterCall_target(c *Call_targetContext)
@@ -151,11 +169,20 @@ type NeuroScriptListener interface {
 	// ExitProcedure_definition is called when exiting the procedure_definition production.
 	ExitProcedure_definition(c *Procedure_definitionContext)
 
-	// ExitParam_list_opt is called when exiting the param_list_opt production.
-	ExitParam_list_opt(c *Param_list_optContext)
+	// ExitNeeds_clause is called when exiting the needs_clause production.
+	ExitNeeds_clause(c *Needs_clauseContext)
+
+	// ExitOptional_clause is called when exiting the optional_clause production.
+	ExitOptional_clause(c *Optional_clauseContext)
+
+	// ExitReturns_clause is called when exiting the returns_clause production.
+	ExitReturns_clause(c *Returns_clauseContext)
 
 	// ExitParam_list is called when exiting the param_list production.
 	ExitParam_list(c *Param_listContext)
+
+	// ExitMetadata_block is called when exiting the metadata_block production.
+	ExitMetadata_block(c *Metadata_blockContext)
 
 	// ExitStatement_list is called when exiting the statement_list production.
 	ExitStatement_list(c *Statement_listContext)
@@ -184,6 +211,12 @@ type NeuroScriptListener interface {
 	// ExitEmit_statement is called when exiting the emit_statement production.
 	ExitEmit_statement(c *Emit_statementContext)
 
+	// ExitMust_statement is called when exiting the must_statement production.
+	ExitMust_statement(c *Must_statementContext)
+
+	// ExitFail_statement is called when exiting the fail_statement production.
+	ExitFail_statement(c *Fail_statementContext)
+
 	// ExitIf_statement is called when exiting the if_statement production.
 	ExitIf_statement(c *If_statementContext)
 
@@ -192,6 +225,9 @@ type NeuroScriptListener interface {
 
 	// ExitFor_each_statement is called when exiting the for_each_statement production.
 	ExitFor_each_statement(c *For_each_statementContext)
+
+	// ExitTry_statement is called when exiting the try_statement production.
+	ExitTry_statement(c *Try_statementContext)
 
 	// ExitCall_target is called when exiting the call_target production.
 	ExitCall_target(c *Call_targetContext)
