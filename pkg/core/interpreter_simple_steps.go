@@ -2,6 +2,7 @@
 package core
 
 import (
+	// Import errors package for sentinel errors
 	"fmt"
 	"strings"
 )
@@ -45,12 +46,12 @@ func (i *Interpreter) executeSet(step Step, stepNum int) error {
 }
 
 // executeCall evaluates arguments and performs procedure, TOOL, or built-in calls.
-// REMOVED specific KW_LLM handling. Assumes askAI etc. are TOOLs or user procedures.
+// UPDATED: Handles case-insensitive "TOOL." prefix and uses ErrProcedureNotFound.
 func (i *Interpreter) executeCall(step Step, stepNum int) (interface{}, error) {
 	if i.logger != nil {
 		i.logger.Debug("-INTERP]      Executing CALL %q", step.Target)
 	}
-	target := step.Target
+	target := step.Target // e.g., "TOOL.StringLength" or "MyProcedure"
 	argNodes := step.Args
 
 	evaluatedArgs := make([]interface{}, len(argNodes))
@@ -68,45 +69,53 @@ func (i *Interpreter) executeCall(step Step, stepNum int) (interface{}, error) {
 	var callResultValue interface{}
 	var callErr error
 
-	if strings.HasPrefix(target, "tool.") { // Updated prefix check
-		toolName := strings.TrimPrefix(target, "tool.")
+	isToolCall := false
+	var baseToolName string
+
+	// *** Case-insensitive check for "TOOL." prefix ***
+	if len(target) > 5 && strings.ToLower(target[:5]) == "tool." {
+		isToolCall = true
+		baseToolName = target[5:] // Extract base name, e.g., "StringLength"
+	}
+
+	if isToolCall {
 		if i.logger != nil {
-			i.logger.Debug("-INTERP]        Calling tool.%s", toolName)
+			i.logger.Debug("-INTERP]        Calling tool with base name: %s (Original target: %s)", baseToolName, target)
 		}
-		toolImpl, found := i.toolRegistry.GetTool(toolName) // Use base name for lookup
+		// Use base name for lookup in the registry
+		toolImpl, found := i.toolRegistry.GetTool(baseToolName)
 		if !found {
-			callErr = fmt.Errorf("unknown tool '%s'", toolName)
+			// *** Use specific sentinel error ***
+			callErr = fmt.Errorf("%w: TOOL '%s' (base name: '%s')", ErrProcedureNotFound, target, baseToolName)
 		} else {
+			// Validate arguments against the found tool's spec
 			preparedArgs, validationErr := ValidateAndConvertArgs(toolImpl.Spec, evaluatedArgs)
 			if validationErr != nil {
-				callErr = fmt.Errorf("tool %s argument error: %w", toolName, validationErr)
+				callErr = fmt.Errorf("tool '%s' argument error: %w", baseToolName, validationErr)
 			} else {
 				if i.logger != nil {
-					i.logger.Debug("-INTERP]          Prepared TOOL args: %+v", preparedArgs)
+					i.logger.Debug("-INTERP]          Prepared TOOL '%s' args: %+v", baseToolName, preparedArgs)
 				}
+				// Execute the tool function
 				callResultValue, callErr = toolImpl.Func(i, preparedArgs) // Captures potential tool execution error
 				if callErr == nil {                                       // Only log/set last result on SUCCESS
 					if i.logger != nil {
-						i.logger.Debug("-INTERP]          tool.%s Result: %v (%T)", toolName, callResultValue, callResultValue)
+						i.logger.Debug("-INTERP]          Tool '%s' Result: %v (%T)", baseToolName, callResultValue, callResultValue)
 					}
 					i.lastCallResult = callResultValue
 				} else {
-					callErr = fmt.Errorf("tool %s execution failed: %w", toolName, callErr)
+					// Wrap the error from the tool execution
+					callErr = fmt.Errorf("tool '%s' execution failed: %w", baseToolName, callErr)
 				}
 			}
 		}
-		// --- REMOVED 'LLM' keyword check ---
-		// } else if target == "LLM" { ... }
-		// --- END REMOVED ---
-	} else { // Assume Procedure Call or potential Built-in like askAI (if not TOOLs)
-		// Check for specific built-in actor interactions first?
-		// For now, assume they are dispatched as procedure calls or TOOL calls.
-		// If they were distinct keywords, they'd need specific step types.
+	} else { // Assume Procedure Call
 		procToCall := target
 		if i.logger != nil {
 			i.logger.Debug("-INTERP]        Calling Procedure/Function %q", procToCall)
 		}
-		stringArgs := make([]string, len(evaluatedArgs)) // Prepare args for RunProcedure if needed
+		// Prepare args for RunProcedure (which expects strings)
+		stringArgs := make([]string, len(evaluatedArgs))
 		for idx, val := range evaluatedArgs {
 			stringArgs[idx] = fmt.Sprintf("%v", val)
 		}
@@ -114,19 +123,18 @@ func (i *Interpreter) executeCall(step Step, stepNum int) (interface{}, error) {
 			i.logger.Debug("-INTERP]          Procedure args (as strings): %v", stringArgs)
 		}
 
-		// Try RunProcedure
+		// Try RunProcedure - it returns ErrProcedureNotFound if not found
 		procResultValue, procCallErr := i.RunProcedure(procToCall, stringArgs...)
 		if procCallErr != nil {
-			// If not found, maybe it's a built-in? (This logic needs refinement)
-			// For now, just propagate the error.
-			callErr = procCallErr // Error context added within RunProcedure
+			callErr = procCallErr // Propagate error (includes ErrProcedureNotFound context)
 		} else {
+			// Procedure call successful
 			callResultValue = procResultValue
 			callErr = nil
 			if i.logger != nil {
 				i.logger.Debug("-INTERP]          Procedure %q Result: %v (%T)", procToCall, callResultValue, callResultValue)
 			}
-			i.lastCallResult = callResultValue
+			i.lastCallResult = callResultValue // Update last result
 		}
 	}
 
@@ -184,7 +192,7 @@ func (i *Interpreter) executeEmit(step Step, stepNum int) error {
 	return nil
 }
 
-// --- NEW: executeMust ---
+// executeMust (Unchanged)
 func (i *Interpreter) executeMust(step Step, stepNum int) error {
 	stepType := step.Type // "must" or "mustbe"
 	if i.logger != nil {

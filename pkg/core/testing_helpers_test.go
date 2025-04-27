@@ -2,57 +2,50 @@
 package core
 
 import (
-	// Keep for errors.Is if used by runValidationTestCases later
-	"fmt" // For io.Discard in logger setup
-	// Original file used slog
-	"math"    // Needed for deepEqualWithTolerance
-	"reflect" // For reflect.DeepEqual used by runEvalExpressionTest
-	"strings"
+	"errors" // Import errors package for errors.Is
+	"fmt"    // For io.Discard if logger setup remains here (may move to helpers.go)
+
+	// If logger setup remains here
+	"math" // Keep for deepEqualWithTolerance if defined here
+	// "path/filepath" // Likely not needed here anymore
+	"reflect" // Keep for deepEqual comparison
 	"testing"
+	// Assuming slogadapter is needed for logger setup if it remains here
+	// It seems logger setup moved to helpers.go, so this might be removable later
 )
 
 // --- Interpreter Test Specific Helpers ---
+// Removed NewTestInterpreter and NewDefaultTestInterpreter as they are in helpers.go
 
-// NewDefaultTestInterpreter provides a convenience wrapper.
-// *** KEPT: This version remains as it's test-specific ***
-func NewDefaultTestInterpreter(t *testing.T) (*Interpreter, string) {
-	t.Helper()
-	return NewTestInterpreter(t, nil, nil)
-}
-
-// --- Step Creation Helpers (Keep these as they were in original file) ---
+// --- Step Creation Helpers (Keep these as they were) ---
 func createTestStep(typ string, target string, valueNode interface{}, argNodes []interface{}) Step {
-	// Ensure this uses the current Step struct definition correctly
-	// It likely calls the newStep helper from ast.go
 	return newStep(typ, target, nil, valueNode, nil, argNodes)
 }
 
 func createIfStep(condNode interface{}, thenSteps []Step, elseSteps []Step) Step {
-	// Ensure this creates a Step matching the struct in ast.go
 	return Step{Type: "if", Cond: condNode, Value: thenSteps, ElseValue: elseSteps}
 }
 
 func createWhileStep(condNode interface{}, bodySteps []Step) Step {
-	// Ensure this creates a Step matching the struct in ast.go
 	return Step{Type: "while", Cond: condNode, Value: bodySteps}
 }
 
 func createForStep(loopVar string, collectionNode interface{}, bodySteps []Step) Step {
-	// Ensure this creates a Step matching the struct in ast.go
 	return Step{Type: "for", Target: loopVar, Cond: collectionNode, Value: bodySteps}
 }
 
-// --- ADDED deepEqualWithTolerance function definition ---
-// deepEqualWithTolerance compares two values, allowing for a small tolerance
-// when comparing float64 or int64/float64 combinations.
+// --- deepEqualWithTolerance function definition (Keep from previous steps) ---
 const defaultTolerance = 1e-9
 
+// deepEqualWithTolerance compares two values, allowing for a small tolerance
+// when comparing float64 or int64/float64 combinations.
 func deepEqualWithTolerance(a, b interface{}) bool {
+	// If types differ, attempt numeric coercion if one is int and other is float
 	if reflect.TypeOf(a) != reflect.TypeOf(b) {
-		// Attempt numeric coercion if one is int and other is float
 		aFloat, aIsNum := toFloat64(a)
 		bFloat, bIsNum := toFloat64(b)
 		if aIsNum && bIsNum {
+			// Compare floats with tolerance
 			return math.Abs(aFloat-bFloat) < defaultTolerance
 		}
 		// If types differ and numeric coercion failed, they are not equal
@@ -60,23 +53,59 @@ func deepEqualWithTolerance(a, b interface{}) bool {
 	}
 
 	// If types are the same, handle floats specifically
-	if reflect.TypeOf(a).Kind() == reflect.Float64 {
+	// Need to check for nil type before calling Kind()
+	if a != nil && reflect.TypeOf(a).Kind() == reflect.Float64 {
+		// Assuming b is also float64 due to type check above
 		aFloat := a.(float64)
 		bFloat := b.(float64)
 		return math.Abs(aFloat-bFloat) < defaultTolerance
 	}
 
-	// Use DeepEqual for all other types
+	// Use DeepEqual for all other types (including nil comparison)
 	return reflect.DeepEqual(a, b)
 }
 
-// --- END ADDED function ---
+// // Helper for deepEqualWithTolerance
+// func toFloat64(v interface{}) (float64, bool) {
+// 	switch val := v.(type) {
+// 	case float64:
+// 		return val, true
+// 	case float32:
+// 		return float64(val), true
+// 	case int:
+// 		return float64(val), true
+// 	case int8:
+// 		return float64(val), true
+// 	case int16:
+// 		return float64(val), true
+// 	case int32:
+// 		return float64(val), true
+// 	case int64:
+// 		return float64(val), true
+// 	case uint:
+// 		return float64(val), true
+// 	case uint8:
+// 		return float64(val), true
+// 	case uint16:
+// 		return float64(val), true
+// 	case uint32:
+// 		return float64(val), true
+// 	case uint64:
+// 		// Potential overflow, but okay for typical test values
+// 		return float64(val), true
+// 	default:
+// 		return 0, false
+// 	}
+// }
+
+// --- END deepEqualWithTolerance section ---
 
 // runEvalExpressionTest executes a single expression evaluation test case.
-// (Keep this as it was in the original file, it calls NewDefaultTestInterpreter)
+// *** MODIFIED: Uses ExpectedErrorIs with errors.Is instead of ErrContains ***
 func runEvalExpressionTest(t *testing.T, tc EvalTestCase) {
 	t.Helper()
-	interp, _ := NewDefaultTestInterpreter(t) // Uses the corrected helper now
+	// Assuming NewDefaultTestInterpreter is exported from helpers.go now
+	interp, _ := NewDefaultTestInterpreter(t)
 	if tc.InitialVars != nil {
 		for k, v := range tc.InitialVars {
 			interp.variables[k] = v
@@ -85,8 +114,7 @@ func runEvalExpressionTest(t *testing.T, tc EvalTestCase) {
 	interp.lastCallResult = tc.LastResult
 	got, err := interp.evaluateExpression(tc.InputNode)
 
-	// Use deepEqualWithTolerance for comparison if defined (should be in universal_test_helpers.go)
-	// --- Now uses the locally defined version ---
+	// Use deepEqualWithTolerance for comparison
 	deepCompareFunc := deepEqualWithTolerance
 
 	if tc.WantErr {
@@ -94,10 +122,18 @@ func runEvalExpressionTest(t *testing.T, tc EvalTestCase) {
 			t.Errorf("%s: Expected an error, but got nil", tc.Name)
 			return
 		}
-		if tc.ErrContains != "" && !strings.Contains(err.Error(), tc.ErrContains) {
-			t.Errorf("%s: Expected error containing %q, got: %v", tc.Name, tc.ErrContains, err)
+		// *** Check for specific sentinel error using errors.Is ***
+		if tc.ExpectedErrorIs != nil {
+			if !errors.Is(err, tc.ExpectedErrorIs) {
+				t.Errorf("%s: Expected error wrapping [%v], but got [%v]", tc.Name, tc.ExpectedErrorIs, err)
+			}
+		} else {
+			// Optional: If no specific error is expected, maybe log a warning or just accept any error?
+			// For now, if WantErr is true but ExpectedErrorIs is nil, we just verify *an* error occurred.
+			t.Logf("%s: Got expected error: %v (No specific sentinel check provided)", tc.Name, err)
 		}
-		// Optionally use errors.Is if comparing against sentinel errors
+		// *** Removed ErrContains check ***
+
 	} else { // No error wanted
 		if err != nil {
 			t.Errorf("%s: Unexpected error: %v", tc.Name, err)
@@ -105,7 +141,6 @@ func runEvalExpressionTest(t *testing.T, tc EvalTestCase) {
 		// Use the comparison function
 		if !deepCompareFunc(got, tc.Expected) {
 			t.Errorf("%s: Result mismatch.\nInput Node: %+v\nExpected:   %v (%T)\nGot:        %v (%T)", tc.Name, tc.InputNode, tc.Expected, tc.Expected, got, got)
-
 		}
 	}
 }
@@ -129,36 +164,44 @@ func AssertNoError(t *testing.T, err error, msgAndArgs ...interface{}) {
 	}
 }
 
-// --- Struct Definitions (Keep from original) ---
+// --- Struct Definitions ---
+// *** MODIFIED: Added ExpectedErrorIs, removed ErrContains ***
 type EvalTestCase struct {
-	Name        string
-	InputNode   interface{}
-	InitialVars map[string]interface{}
-	LastResult  interface{}
-	Expected    interface{}
-	WantErr     bool
-	ErrContains string
+	Name            string
+	InputNode       interface{}
+	InitialVars     map[string]interface{}
+	LastResult      interface{}
+	Expected        interface{}
+	WantErr         bool
+	ExpectedErrorIs error // Use this for errors.Is checks
+	// ErrContains string // REMOVED
 }
 
+// *** MODIFIED: Removed CheckErrorIs (assume always use errors.Is if ExpectedError provided) ***
 type ValidationTestCase struct {
-	Name string
-	// ToolName  string // Removed - ToolName is passed to helper
+	Name          string
+	ToolName      string // Keep field
 	InputArgs     []interface{}
-	ExpectedError error // Expected sentinel error from ValidateAndConvertArgs
-	// CheckErrorIs  bool // Removed - Assume errors.Is is always used
+	ExpectedArgs  []interface{} // Optional: Check converted args
+	ExpectedError error         // Expected sentinel error from ValidateAndConvertArgs
+	// CheckErrorIs  bool          // REMOVED
 }
 
 // --- Placeholders for other helpers potentially defined in original ---
 // Ensure runValidationTestCases is defined *once* (here or elsewhere)
+// *** NOTE: runValidationTestCases may also need updating if it checks ExpectedError ***
 /*
 func runValidationTestCases(t *testing.T, toolName string, testCases []ValidationTestCase) {
 	t.Helper()
-	interp, _ := NewDefaultTestInterpreter(t)
-	// ... rest of implementation ...
+	// ... Check if tc.ExpectedError != nil ...
+	// if tc.ExpectedError != nil && !errors.Is(actualError, tc.ExpectedError) {
+	//     t.Errorf(...)
+	// }
 }
 */
 
 // Ensure core errors are accessible if needed by helpers here
+// Import 'errors' is now needed at the top of the file
 var (
 	_ = ErrValidationArgCount // Use _ to avoid unused variable errors if not used directly
 	_ = ErrValidationRequiredArgNil

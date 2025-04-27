@@ -8,10 +8,11 @@ var (
 	ErrValidationRequiredArgNil = errors.New("required argument is nil")
 	ErrValidationTypeMismatch   = errors.New("argument type mismatch")
 	ErrValidationArgCount       = errors.New("incorrect argument count")
-	ErrValidationArgValue       = errors.New("invalid argument value")    // Used more broadly now
-	ErrMissingArgument          = errors.New("required argument missing") // Deprecated? Use ErrValidationRequiredArgNil? Keep for now.
-	ErrInvalidArgument          = errors.New("invalid argument")          // Generic invalid arg
+	ErrValidationArgValue       = errors.New("invalid argument value")
+	ErrMissingArgument          = errors.New("required argument missing")
+	ErrInvalidArgument          = errors.New("invalid argument")
 	ErrNullByteInArgument       = errors.New("argument contains null byte")
+	ErrIncorrectArgCount        = errors.New("incorrect function argument count")
 )
 
 // --- Core Security Errors ---
@@ -58,12 +59,17 @@ var (
 	ErrCacheObjectWrongType = errors.New("object found in cache has wrong type")
 	// Math/Evaluation Errors
 	ErrDivisionByZero            = errors.New("division by zero")
+	ErrInvalidOperandType        = errors.New("invalid operand type") // Added V0.2.0 for generic type errors
 	ErrInvalidOperandTypeNumeric = errors.New("requires numeric operand(s)")
 	ErrInvalidOperandTypeInteger = errors.New("requires integer operand(s)")
 	ErrInvalidOperandTypeString  = errors.New("requires string operand(s)")
 	ErrInvalidOperandTypeBool    = errors.New("requires boolean operand(s)")
 	ErrInvalidFunctionArgument   = errors.New("invalid argument for function")
-	ErrVariableNotFound          = errors.New("variable not found") // Added for eval errors
+	ErrVariableNotFound          = errors.New("variable not found")
+	ErrUnsupportedOperator       = errors.New("unsupported operator")
+	ErrNilOperand                = errors.New("operation received nil operand")
+	ErrUnknownFunction           = errors.New("unknown function called")
+
 	// Verification Errors (NEW for v0.2.0)
 	ErrMustConditionFailed = errors.New("must condition evaluated to false")
 	// General Tool Error
@@ -77,6 +83,6 @@ var (
 	ErrArgumentMismatch     = errors.New("argument mismatch")
 	ErrMaxCallDepthExceeded = errors.New("maximum call depth exceeded")
 	ErrUnknownKeyword       = errors.New("unknown keyword")
-	ErrUnhandledException   = errors.New("unhandled exception during execution") // NEW for v0.2.0 try/catch
-	ErrFailStatement        = errors.New("execution halted by FAIL statement")   // NEW for v0.2.0
+	ErrUnhandledException   = errors.New("unhandled exception during execution")
+	ErrFailStatement        = errors.New("execution halted by FAIL statement")
 )

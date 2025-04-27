@@ -3,15 +3,15 @@ package core
 
 import (
 	"fmt"
-	"io"
-	"log/slog"
 	"path/filepath"
 	"reflect"
+
+	// "sort" // No longer needed after removing diagnostic logging
 	"strings"
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/adapters"
-	// Keep adapter import if needed elsewhere, otherwise remove
+	// interfaces "github.com/aprice2704/neuroscript/pkg/interfaces" // Uncomment if Logger interface is needed directly
 )
 
 // Helper for logging snippets
@@ -105,79 +105,65 @@ func convertToSliceOfAny(rawValue interface{}) ([]interface{}, bool, error) {
 	}
 }
 
-// --- REMOVED NewTestInterpreter ---
-// func NewTestInterpreter(...) (*Interpreter, string) { ... }
-
-// --- REMOVED NewDefaultTestInterpreter ---
-// func NewDefaultTestInterpreter(...) (*Interpreter, string) { ... }
-// NewTestInterpreter creates an interpreter instance for testing.
-// *** KEPT: This version remains as it's test-specific ***
+// NewTestInterpreter creates a new interpreter instance suitable for testing.
+// It uses a SimpleTestLogger, registers core tools (via NewInterpreter),
+// and sets up a temporary sandbox.
 func NewTestInterpreter(t *testing.T, vars map[string]interface{}, lastResult interface{}) (*Interpreter, string) {
 	t.Helper()
+	// Use the SimpleTestLogger which logs to Stderr
+	testLogger := adapters.SimpleTestLogger()
 
-	// Setup logger based on original file's approach (using slog directly initially)
-	// Using discard handler for tests unless specific output is needed
-	handlerOpts := &slog.HandlerOptions{
-		Level:     slog.LevelDebug, // Use Debug for test helpers maybe? Or configurable?
-		AddSource: false,           // Keep source off for typical tests
-	}
-	// Log to io.Discard to keep test output clean by default
-	handler := slog.NewTextHandler(io.Discard, handlerOpts)
-	testSlogLogger := slog.New(handler) // This is the concrete slog logger
-
-	// Adapt the slog logger to the interfaces.Logger expected by Interpreter
-	// *** Use the imported adapters package ***
-	testLoggerAdapter, errLog := adapters.NewSlogAdapter(testSlogLogger)
-	if errLog != nil {
-		t.Fatalf("Failed to create logger adapter for test: %v", errLog)
+	// Create a minimal LLMClient
+	minimalLLMClient := NewLLMClient("", "", testLogger, false)
+	if minimalLLMClient == nil {
+		t.Fatal("Failed to create even a minimal LLMClient for testing")
 	}
 
-	// Create a minimal LLMClient (using the adapted logger)
-	minimalLLMClient := NewLLMClient("", "", testLoggerAdapter, false)
-	// Check? NewLLMClient doesn't return error, assumes defaults
+	// Create interpreter - NOTE: NewInterpreter ALREADY registers core tools
+	interp := NewInterpreter(testLogger, minimalLLMClient)
+	effectiveLogger := interp.Logger() // Use the logger attached to the interpreter
 
-	// *** Create a NEW, EMPTY registry for this test interpreter ***
-	testRegistry := NewToolRegistry()
-	testLoggerAdapter.Info("Attempting to register core tools into NEW registry for test...")
-	// Register core tools into the *new* registry instance
-	if err := RegisterCoreTools(testRegistry); err != nil {
-		testLoggerAdapter.Error("FATAL: Failed to register core tools during test setup", "error", err)
-		t.Fatalf("FATAL: Failed to register core tools during test setup: %v", err)
-	}
-	testLoggerAdapter.Info("Successfully registered core tools into new registry.")
-	// *** End Registry Correction ***
+	// *** REMOVED Diagnostic Logging Block ***
+	/*
+		effectiveLogger.Info("Dumping registered tools (from NewInterpreter) for diagnostics...")
+		registry := interp.ToolRegistry() // Get registry from the interpreter
+		registeredToolNames := make([]string, 0, len(registry.tools))
+		for name := range registry.tools {
+			registeredToolNames = append(registeredToolNames, name)
+		}
+		sort.Strings(registeredToolNames) // Sort for consistent output
+		for _, name := range registeredToolNames {
+			t.Logf("Registered tool: %s", name) // Log directly using t.Logf
+		}
+		effectiveLogger.Info("Finished dumping registered tools.")
+	*/
+	// *** End Diagnostic Logging Removal ***
 
-	// Create interpreter with the NEW registry and other components
-	// Note: Ensure Interpreter struct fields match the latest definition
-	interp := &Interpreter{
-		variables:       make(map[string]interface{}),
-		knownProcedures: make(map[string]Procedure),
-		vectorIndex:     make(map[string][]float32),
-		embeddingDim:    16,           // Or default from constants
-		toolRegistry:    testRegistry, // Assign the NEW registry
-		logger:          testLoggerAdapter,
-		objectCache:     make(map[string]interface{}),
-		llmClient:       minimalLLMClient,
-		modelName:       "gemini-1.5-flash-latest", // Default test model
-		sandboxDir:      ".",                       // Default sandbox, will be replaced below
-	}
-
-	// Setup sandbox using t.TempDir()
+	// Setup sandbox directory
 	sandboxDirRel := t.TempDir()
 	absSandboxDir, err := filepath.Abs(sandboxDirRel)
 	if err != nil {
 		t.Fatalf("Failed to get absolute path for sandbox %s: %v", sandboxDirRel, err)
 	}
-	interp.sandboxDir = absSandboxDir // Set the actual sandbox path
-	testLoggerAdapter.Info("Sandbox root set in interpreter", "path", absSandboxDir)
 
-	// Initialize variables and last result if provided
+	interp.sandboxDir = absSandboxDir // Set the sandbox path on the interpreter
+	effectiveLogger.Info("Sandbox root set in interpreter: " + absSandboxDir)
+
+	// Initialize variables if provided
 	if vars != nil {
 		for k, v := range vars {
 			interp.variables[k] = v
 		}
 	}
+
+	// Set last result if provided
 	interp.lastCallResult = lastResult
 
 	return interp, absSandboxDir
+}
+
+// NewDefaultTestInterpreter provides a convenience wrapper around NewTestInterpreter.
+func NewDefaultTestInterpreter(t *testing.T) (*Interpreter, string) {
+	t.Helper()
+	return NewTestInterpreter(t, nil, nil)
 }

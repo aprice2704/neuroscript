@@ -1,4 +1,4 @@
-// pkg/core/evaluation_main.go
+// filename: pkg/core/evaluation_main.go
 package core
 
 import (
@@ -8,6 +8,7 @@ import (
 
 // evaluateExpression evaluates an AST node representing an expression.
 // Returns the evaluated RAW value. Handles new expression types.
+// UPDATED: Implemented short-circuiting for AND/OR
 func (i *Interpreter) evaluateExpression(node interface{}) (interface{}, error) {
 
 	switch n := node.(type) {
@@ -16,16 +17,13 @@ func (i *Interpreter) evaluateExpression(node interface{}) (interface{}, error) 
 	case StringLiteralNode:
 		// RAW strings (```...```) potentially need placeholder evaluation by default.
 		// Regular strings ('...', "...") need EVAL().
-		// Let's handle this based on the IsRaw flag.
 		if n.IsRaw {
-			// Design doc says ``` strings evaluate placeholders by default.
 			resolvedStr, resolveErr := i.resolvePlaceholdersWithError(n.Value)
 			if resolveErr != nil {
 				return nil, fmt.Errorf("evaluating raw string literal '%s...': %w", n.Value[:min(len(n.Value), 20)], resolveErr)
 			}
 			return resolvedStr, nil
 		}
-		// Regular strings are returned raw, need EVAL() for placeholders.
 		return n.Value, nil
 	case NumberLiteralNode:
 		return n.Value, nil
@@ -34,6 +32,7 @@ func (i *Interpreter) evaluateExpression(node interface{}) (interface{}, error) 
 	case VariableNode:
 		val, exists := i.variables[n.Name]
 		if !exists {
+			// Handle variable not found specifically for conditions if needed? No, let it error normally first.
 			return nil, fmt.Errorf("%w: '%s'", ErrVariableNotFound, n.Name)
 		}
 		return val, nil
@@ -71,7 +70,14 @@ func (i *Interpreter) evaluateExpression(node interface{}) (interface{}, error) 
 		evaluatedMap := make(map[string]interface{})
 		var err error
 		for _, entry := range n.Entries {
-			mapKey := entry.Key.Value
+			// Evaluate the key expression first
+			keyValRaw, keyErr := i.evaluateExpression(entry.Key)
+			if keyErr != nil {
+				return nil, fmt.Errorf("evaluating map key expression: %w", keyErr)
+			}
+			// Convert evaluated key to string
+			mapKey := fmt.Sprintf("%v", keyValRaw)
+
 			evaluatedMap[mapKey], err = i.evaluateExpression(entry.Value)
 			if err != nil {
 				return nil, fmt.Errorf("evaluating value for map key %q: %w", mapKey, err)
@@ -99,31 +105,52 @@ func (i *Interpreter) evaluateExpression(node interface{}) (interface{}, error) 
 		if err != nil {
 			return nil, fmt.Errorf("evaluating operand for unary operator '%s': %w", n.Operator, err)
 		}
+		// Delegate to helper in evaluation_logic.go
 		return evaluateUnaryOp(n.Operator, operandVal)
 	case BinaryOpNode:
+		// Evaluate left operand first
 		leftVal, errL := i.evaluateExpression(n.Left)
 		if errL != nil {
+			// Special handling for ==/!= where var not found becomes nil
 			if (n.Operator == "==" || n.Operator == "!=") && errors.Is(errL, ErrVariableNotFound) {
-				leftVal = nil
+				leftVal = nil // Treat not found as nil for comparison
 			} else {
+				// For other operators or errors, propagate the error
 				return nil, fmt.Errorf("evaluating left operand for '%s': %w", n.Operator, errL)
 			}
 		}
-		if n.Operator == "and" && !isTruthy(leftVal) {
-			return false, nil
+
+		// *** Implement Short-Circuiting for AND/OR HERE ***
+		if n.Operator == "and" || n.Operator == "AND" {
+			leftBool := isTruthy(leftVal)
+			if !leftBool {
+				return false, nil // Short-circuit: false AND anything is false
+			}
+			// Don't return yet, need right side
+		} else if n.Operator == "or" || n.Operator == "OR" {
+			leftBool := isTruthy(leftVal)
+			if leftBool {
+				return true, nil // Short-circuit: true OR anything is true
+			}
+			// Don't return yet, need right side
 		}
-		if n.Operator == "or" && isTruthy(leftVal) {
-			return true, nil
-		}
+
+		// If not short-circuited (or not AND/OR), evaluate right operand
 		rightVal, errR := i.evaluateExpression(n.Right)
 		if errR != nil {
+			// Special handling for ==/!= where var not found becomes nil
 			if (n.Operator == "==" || n.Operator == "!=") && errors.Is(errR, ErrVariableNotFound) {
-				rightVal = nil
+				rightVal = nil // Treat not found as nil for comparison
 			} else {
+				// For other operators or errors, propagate the error
 				return nil, fmt.Errorf("evaluating right operand for '%s': %w", n.Operator, errR)
 			}
 		}
+
+		// Delegate the actual operation (including non-short-circuited AND/OR)
+		// to the helper in evaluation_logic.go
 		return evaluateBinaryOp(leftVal, rightVal, n.Operator)
+
 	case FunctionCallNode:
 		evaluatedArgs := make([]interface{}, len(n.Arguments))
 		var err error
@@ -133,15 +160,21 @@ func (i *Interpreter) evaluateExpression(node interface{}) (interface{}, error) 
 				return nil, fmt.Errorf("evaluating arg %d for func '%s': %w", idx+1, n.FunctionName, err)
 			}
 		}
+		// Delegate to helper in evaluation_logic.go
 		return evaluateFunctionCall(n.FunctionName, evaluatedArgs)
 	case ElementAccessNode:
+		// Delegate to helper in evaluation_access.go
 		return i.evaluateElementAccess(n)
 
-	// --- Pass-through ---
-	case string, int64, float64, bool, nil, []interface{}, map[string]interface{}, []string:
-		return n, nil
-
+	// --- Pass-through for already evaluated values ---
+	// (string, int64, etc., handled previously)
 	default:
+		// Check if it's a simple value type that doesn't need evaluation
+		switch node.(type) {
+		case string, int64, float64, bool, nil, []interface{}, map[string]interface{}, []string:
+			return node, nil // Return primitive types directly
+		}
+		// Otherwise, it's an unhandled node type
 		return nil, fmt.Errorf("internal error: evaluateExpression unhandled node type: %T", node)
 	}
 }

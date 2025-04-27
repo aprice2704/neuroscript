@@ -1,4 +1,4 @@
-// filename: neuroscript/pkg/core/evaluation_access_test.go
+// filename: pkg/core/evaluation_access_test.go
 package core
 
 import (
@@ -39,14 +39,16 @@ func TestEvaluateElementAccess(t *testing.T) {
 		{"List Access Valid Index 0", ElementAccessNode{Collection: VariableNode{Name: "listVar"}, Accessor: NumberLiteralNode{Value: int64(0)}}, "x", false, ""},
 		{"List Access Valid Index 1 (Num)", ElementAccessNode{Collection: VariableNode{Name: "listVar"}, Accessor: NumberLiteralNode{Value: int64(1)}}, int64(99), false, ""},
 		{"List Access Valid Index Var", ElementAccessNode{Collection: VariableNode{Name: "listVar"}, Accessor: VariableNode{Name: "idx"}}, int64(99), false, ""},
-		{"List Access Index Out of Bounds (High)", ElementAccessNode{Collection: VariableNode{Name: "listVar"}, Accessor: NumberLiteralNode{Value: int64(10)}}, nil, true, "index 10 is out of bounds"},
-		{"List Access Index Out of Bounds (Neg)", ElementAccessNode{Collection: VariableNode{Name: "listVar"}, Accessor: NumberLiteralNode{Value: int64(-1)}}, nil, true, "index -1 is out of bounds"},
+		{"List Access Index Out of Bounds (High)", ElementAccessNode{Collection: VariableNode{Name: "listVar"}, Accessor: NumberLiteralNode{Value: int64(10)}}, nil, true, "list index 10 is out of bounds"},
+		{"List Access Index Out of Bounds (Neg)", ElementAccessNode{Collection: VariableNode{Name: "listVar"}, Accessor: NumberLiteralNode{Value: int64(-1)}}, nil, true, "list index -1 is out of bounds"},
 		{"List Access Invalid Index Type (String)", ElementAccessNode{Collection: VariableNode{Name: "listVar"}, Accessor: StringLiteralNode{Value: "one"}}, nil, true, "list index must evaluate to an integer"},
 		{"List Access Invalid Index Type (Var)", ElementAccessNode{Collection: VariableNode{Name: "listVar"}, Accessor: VariableNode{Name: "bad_idx"}}, nil, true, "list index must evaluate to an integer"},
 		{"List Access Returns List", ElementAccessNode{Collection: VariableNode{Name: "listVar"}, Accessor: NumberLiteralNode{Value: int64(3)}}, []interface{}{"nested"}, false, ""},
 		{"List Literal Access", ElementAccessNode{Collection: ListLiteralNode{Elements: []interface{}{StringLiteralNode{Value: "a"}, NumberLiteralNode{Value: int64(5)}}}, Accessor: NumberLiteralNode{Value: int64(0)}}, "a", false, ""},
-		{"List Access Error in Collection", ElementAccessNode{Collection: VariableNode{Name: "missing"}, Accessor: NumberLiteralNode{Value: int64(0)}}, nil, true, "variable 'missing' not found"},
-		{"List Access Error in Accessor", ElementAccessNode{Collection: VariableNode{Name: "listVar"}, Accessor: VariableNode{Name: "missing"}}, nil, true, "variable 'missing' not found"},
+		// *** FIX: Update expected error messages to include wrapper context ***
+		{"List Access Error in Collection", ElementAccessNode{Collection: VariableNode{Name: "missing"}, Accessor: NumberLiteralNode{Value: int64(0)}}, nil, true, "evaluating collection for element access: variable not found: 'missing'"},
+		{"List Access Error in Accessor", ElementAccessNode{Collection: VariableNode{Name: "listVar"}, Accessor: VariableNode{Name: "missing"}}, nil, true, "evaluating accessor for element access: variable not found: 'missing'"},
+		// *** END FIX ***
 		{"List Access Collection Nil", ElementAccessNode{Collection: VariableNode{Name: "nilVar"}, Accessor: NumberLiteralNode{Value: int64(0)}}, nil, true, "collection evaluated to nil"},
 		{"List Access Accessor Nil", ElementAccessNode{Collection: VariableNode{Name: "listVar"}, Accessor: VariableNode{Name: "nilVar"}}, nil, true, "accessor evaluated to nil"},
 
@@ -55,11 +57,13 @@ func TestEvaluateElementAccess(t *testing.T) {
 		{"Map Access Valid Key Num", ElementAccessNode{Collection: VariableNode{Name: "mapVar"}, Accessor: StringLiteralNode{Value: "mNum"}}, int64(1), false, ""},
 		{"Map Access Valid Key Var", ElementAccessNode{Collection: VariableNode{Name: "mapVar"}, Accessor: VariableNode{Name: "key"}}, "mVal", false, ""},
 		{"Map Access Key Not Found", ElementAccessNode{Collection: VariableNode{Name: "mapVar"}, Accessor: StringLiteralNode{Value: "notFound"}}, nil, true, "key 'notFound' not found"},
-		{"Map Access Invalid Key Type (Converted)", ElementAccessNode{Collection: VariableNode{Name: "mapVar"}, Accessor: VariableNode{Name: "bad_key"}}, nil, true, "key '123' not found"},
+		{"Map Access Invalid Key Type (Converted)", ElementAccessNode{Collection: VariableNode{Name: "mapVar"}, Accessor: VariableNode{Name: "bad_key"}}, nil, true, "key '123' not found"}, // Conversion happens, then key lookup fails
 		{"Map Access Returns List", ElementAccessNode{Collection: VariableNode{Name: "mapVar"}, Accessor: StringLiteralNode{Value: "mList"}}, []interface{}{"a"}, false, ""},
 		{"Map Literal Access", ElementAccessNode{Collection: MapLiteralNode{Entries: []MapEntryNode{{Key: StringLiteralNode{Value: "k"}, Value: StringLiteralNode{Value: "v"}}}}, Accessor: StringLiteralNode{Value: "k"}}, "v", false, ""},
-		{"Map Access Error in Collection", ElementAccessNode{Collection: VariableNode{Name: "missing"}, Accessor: StringLiteralNode{Value: "k"}}, nil, true, "variable 'missing' not found"},
-		{"Map Access Error in Accessor", ElementAccessNode{Collection: VariableNode{Name: "mapVar"}, Accessor: VariableNode{Name: "missing"}}, nil, true, "variable 'missing' not found"},
+		// *** FIX: Update expected error messages to include wrapper context ***
+		{"Map Access Error in Collection", ElementAccessNode{Collection: VariableNode{Name: "missing"}, Accessor: StringLiteralNode{Value: "k"}}, nil, true, "evaluating collection for element access: variable not found: 'missing'"},
+		{"Map Access Error in Accessor", ElementAccessNode{Collection: VariableNode{Name: "mapVar"}, Accessor: VariableNode{Name: "missing"}}, nil, true, "evaluating accessor for element access: variable not found: 'missing'"},
+		// *** END FIX ***
 		{"Map Access Collection Nil", ElementAccessNode{Collection: VariableNode{Name: "nilVar"}, Accessor: StringLiteralNode{Value: "k"}}, nil, true, "collection evaluated to nil"},
 		{"Map Access Accessor Nil", ElementAccessNode{Collection: VariableNode{Name: "mapVar"}, Accessor: VariableNode{Name: "nilVar"}}, nil, true, "accessor evaluated to nil"},
 
@@ -95,6 +99,7 @@ func TestEvaluateElementAccess(t *testing.T) {
 				if tt.errContains != "" && (err == nil || !strings.Contains(err.Error(), tt.errContains)) {
 					coreErrorFound := false
 					if err != nil {
+						// Check wrapped error too
 						if strings.Contains(err.Error(), tt.errContains) {
 							coreErrorFound = true
 						}

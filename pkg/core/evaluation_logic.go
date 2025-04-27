@@ -1,12 +1,10 @@
-// pkg/core/evaluation_logic.go
+// filename: pkg/core/evaluation_logic.go
 package core
 
 import (
-	// Need errors package
 	"fmt"
 	"math" // Keep for evaluateFunctionCall
 	"reflect"
-	// strconv is likely not needed here anymore
 )
 
 // --- Evaluation Logic for Operations ---
@@ -36,11 +34,16 @@ func isZeroValue(val interface{}) bool {
 }
 
 // evaluateUnaryOp performs prefix unary operations (not, -, no, some).
+// Updated to handle NOT correctly based on truthiness.
 func evaluateUnaryOp(op string, operand interface{}) (interface{}, error) {
 	switch op {
-	case "not":
+	// ** Logical NOT **
+	// Uses the language's truthiness rules defined in isTruthy (evaluation_helpers.go)
+	case "NOT", "not": // Support uppercase and lowercase keywords
 		return !isTruthy(operand), nil
-	case "-": // Numeric negation
+
+	// ** Numeric Negation **
+	case "-":
 		iVal, isInt := toInt64(operand)
 		if isInt {
 			return -iVal, nil
@@ -49,69 +52,88 @@ func evaluateUnaryOp(op string, operand interface{}) (interface{}, error) {
 		if isFloat {
 			return -fVal, nil
 		}
-		return nil, fmt.Errorf("%w: unary operator '-' needs number, got %T", ErrInvalidOperandTypeNumeric, operand)
+		// Use specific error type if defined, otherwise wrap standard error
+		return nil, fmt.Errorf("%w: unary operator '-' needs number, got %T", ErrInvalidOperandTypeNumeric, operand) // Assuming ErrInvalidOperandTypeNumeric is defined
+
+	// ** Zero Value Checks **
 	case "no": // Check if operand IS the zero value for its type
 		return isZeroValue(operand), nil
 	case "some": // Check if operand is NOT the zero value for its type
 		return !isZeroValue(operand), nil
+
 	default:
-		return nil, fmt.Errorf("unsupported unary operator '%s'", op)
+		// Use specific error type if defined
+		return nil, fmt.Errorf("%w: '%s'", ErrUnsupportedOperator, op) // Assuming ErrUnsupportedOperator is defined
 	}
 }
 
 // evaluateBinaryOp performs infix binary operations (dispatching).
+// Updated to handle AND, OR directly with short-circuiting logic.
 func evaluateBinaryOp(left, right interface{}, op string) (interface{}, error) {
 	switch op {
-	// Logical (Short-circuit handled by caller evaluateExpression)
-	case "and":
-		fallthrough // Use non-short-circuit helper
-	case "or":
-		return performLogical(left, right, op) // Pass to helper
+	// ** Logical AND (Short-circuiting) **
+	case "AND", "and": // Support uppercase and lowercase keywords
+		leftBool := isTruthy(left)
+		if !leftBool {
+			return false, nil // Short-circuit: false AND anything is false
+		}
+		// If left is true, the result depends on the right side
+		return isTruthy(right), nil
+
+	// ** Logical OR (Short-circuiting) **
+	case "OR", "or": // Support uppercase and lowercase keywords
+		leftBool := isTruthy(left)
+		if leftBool {
+			return true, nil // Short-circuit: true OR anything is true
+		}
+		// If left is false, the result depends on the right side
+		return isTruthy(right), nil
 
 	// Comparison (handle nil checks first)
 	case "==", "!=":
 		leftIsNil := left == nil
 		rightIsNil := right == nil
-		// Handle comparisons involving nil directly
 		if leftIsNil || rightIsNil {
-			isEqual := leftIsNil && rightIsNil // True only if both are nil
-			if op == "==" {
-				return isEqual, nil
-			} else {
-				return !isEqual, nil
-			} // op == "!="
+			isEqual := leftIsNil && rightIsNil
+			return op == "==" == isEqual, nil // Simpler way to return isEqual for == and !isEqual for !=
 		}
-		// If neither is nil, use the helper
+		// If neither is nil, use the comparison helper
 		result, err := performComparison(left, right, op)
 		if err != nil {
+			// Wrap the specific error from performComparison
 			return nil, fmt.Errorf("compare %T %s %T: %w", left, op, right, err)
 		}
 		return result, nil
 
 	case "<", ">", "<=", ">=":
 		if left == nil || right == nil {
-			return nil, fmt.Errorf("operator '%s' needs non-nil operands", op)
+			// Use specific error type if defined
+			return nil, fmt.Errorf("%w: operator '%s' needs non-nil operands", ErrNilOperand, op) // Assuming ErrNilOperand is defined
 		}
 		result, err := performComparison(left, right, op)
 		if err != nil {
+			// Wrap the specific error from performComparison
 			return nil, fmt.Errorf("compare %T %s %T: %w", left, op, right, err)
 		}
 		return result, nil
 
-	// Arithmetic (includes '+')
+	// Arithmetic (includes string concat via '+')
 	case "+":
-		result, err := performStringConcatOrNumericAdd(left, right) // Handles string vs numeric
+		result, err := performStringConcatOrNumericAdd(left, right)
 		if err != nil {
-			return nil, fmt.Errorf("op %T %s %T: %w", left, op, right, err)
+			// Wrap the specific error from helper
+			return nil, fmt.Errorf("op %T + %T: %w", left, right, err)
 		}
 		return result, nil
 
 	case "-", "*", "/", "%", "**":
 		if left == nil || right == nil {
-			return nil, fmt.Errorf("operator '%s' needs non-nil operands", op)
+			// Use specific error type if defined
+			return nil, fmt.Errorf("%w: operator '%s' needs non-nil operands", ErrNilOperand, op)
 		}
 		result, err := performArithmetic(left, right, op)
 		if err != nil {
+			// Wrap the specific error from helper
 			return nil, fmt.Errorf("arithmetic %T %s %T: %w", left, op, right, err)
 		}
 		return result, nil
@@ -119,38 +141,56 @@ func evaluateBinaryOp(left, right interface{}, op string) (interface{}, error) {
 	// Bitwise
 	case "&", "|", "^":
 		if left == nil || right == nil {
-			return nil, fmt.Errorf("operator '%s' needs non-nil operands", op)
+			// Use specific error type if defined
+			return nil, fmt.Errorf("%w: operator '%s' needs non-nil operands", ErrNilOperand, op)
 		}
 		result, err := performBitwise(left, right, op)
 		if err != nil {
+			// Wrap the specific error from helper
 			return nil, fmt.Errorf("bitwise %T %s %T: %w", left, op, right, err)
 		}
-		return result, nil // Added missing return
+		return result, nil
 
 	default:
-		return nil, fmt.Errorf("unsupported binary operator '%s'", op)
+		// Use specific error type if defined
+		return nil, fmt.Errorf("%w: '%s'", ErrUnsupportedOperator, op)
 	}
 }
 
 // evaluateFunctionCall handles built-in function calls.
+// (No changes needed here based on the logical operator fixes)
 func evaluateFunctionCall(funcName string, args []interface{}) (interface{}, error) {
 	// Helper to check arg count and types
 	checkArgs := func(expectedCount int, argTypes ...string) error {
 		if len(args) != expectedCount {
-			return fmt.Errorf("func %s expects %d arg(s), got %d", funcName, expectedCount, len(args))
+			// Use specific error type if defined
+			return fmt.Errorf("%w: func %s expects %d arg(s), got %d", ErrIncorrectArgCount, funcName, expectedCount, len(args)) // Assuming ErrIncorrectArgCount
 		}
 		for i, expectedType := range argTypes {
+			valid := false
 			switch expectedType {
-			case "float":
-				if _, ok := toFloat64(args[i]); !ok {
+			case "number": // Check for any numeric type (int or float)
+				_, isInt := toInt64(args[i])
+				_, isFlt := toFloat64(args[i])
+				valid = isInt || isFlt
+				if !valid {
 					return fmt.Errorf("%w: func %s arg %d needs number, got %T", ErrInvalidFunctionArgument, funcName, i+1, args[i])
 				}
 			case "int":
-				if _, ok := toInt64(args[i]); !ok {
+				_, isInt := toInt64(args[i])
+				valid = isInt
+				if !valid {
 					return fmt.Errorf("%w: func %s arg %d needs integer, got %T", ErrInvalidFunctionArgument, funcName, i+1, args[i])
 				}
+			case "float": // Specifically check for float or convertible to float
+				_, isFlt := toFloat64(args[i])
+				valid = isFlt
+				if !valid {
+					return fmt.Errorf("%w: func %s arg %d needs float, got %T", ErrInvalidFunctionArgument, funcName, i+1, args[i])
+				}
 			default:
-				return fmt.Errorf("internal: unknown type check '%s' for func %s", expectedType, funcName)
+				// This indicates an internal issue with the test setup itself
+				return fmt.Errorf("internal error: unknown type check '%s' for func %s", expectedType, funcName)
 			}
 		}
 		return nil
@@ -159,16 +199,16 @@ func evaluateFunctionCall(funcName string, args []interface{}) (interface{}, err
 	// Built-in math functions
 	switch funcName {
 	case "LN":
-		if err := checkArgs(1, "float"); err != nil {
+		if err := checkArgs(1, "number"); err != nil {
 			return nil, err
 		}
-		fVal, _ := toFloat64(args[0])
+		fVal, _ := toFloat64(args[0]) // Assume checkArgs ensures conversion is possible
 		if fVal <= 0 {
 			return nil, fmt.Errorf("%w: LN needs positive arg, got %v", ErrInvalidFunctionArgument, fVal)
 		}
 		return math.Log(fVal), nil
 	case "LOG":
-		if err := checkArgs(1, "float"); err != nil {
+		if err := checkArgs(1, "number"); err != nil {
 			return nil, err
 		}
 		fVal, _ := toFloat64(args[0])
@@ -177,25 +217,25 @@ func evaluateFunctionCall(funcName string, args []interface{}) (interface{}, err
 		}
 		return math.Log10(fVal), nil
 	case "SIN":
-		if err := checkArgs(1, "float"); err != nil {
+		if err := checkArgs(1, "number"); err != nil {
 			return nil, err
 		}
 		fVal, _ := toFloat64(args[0])
 		return math.Sin(fVal), nil
 	case "COS":
-		if err := checkArgs(1, "float"); err != nil {
+		if err := checkArgs(1, "number"); err != nil {
 			return nil, err
 		}
 		fVal, _ := toFloat64(args[0])
 		return math.Cos(fVal), nil
 	case "TAN":
-		if err := checkArgs(1, "float"); err != nil {
+		if err := checkArgs(1, "number"); err != nil {
 			return nil, err
 		}
 		fVal, _ := toFloat64(args[0])
 		return math.Tan(fVal), nil
 	case "ASIN":
-		if err := checkArgs(1, "float"); err != nil {
+		if err := checkArgs(1, "number"); err != nil {
 			return nil, err
 		}
 		fVal, _ := toFloat64(args[0])
@@ -204,7 +244,7 @@ func evaluateFunctionCall(funcName string, args []interface{}) (interface{}, err
 		}
 		return math.Asin(fVal), nil
 	case "ACOS":
-		if err := checkArgs(1, "float"); err != nil {
+		if err := checkArgs(1, "number"); err != nil {
 			return nil, err
 		}
 		fVal, _ := toFloat64(args[0])
@@ -213,15 +253,15 @@ func evaluateFunctionCall(funcName string, args []interface{}) (interface{}, err
 		}
 		return math.Acos(fVal), nil
 	case "ATAN":
-		if err := checkArgs(1, "float"); err != nil {
+		if err := checkArgs(1, "number"); err != nil {
 			return nil, err
 		}
 		fVal, _ := toFloat64(args[0])
 		return math.Atan(fVal), nil
-	// Add cases for askAI, askHuman, askComputer if they are treated as built-in functions here later
+	// TODO: Add other built-in functions (string, list, etc.) handled here later?
 	default:
 		// If not a known built-in, it might be a user-defined procedure or tool handled elsewhere.
-		// For now, assume only built-ins are handled here.
-		return nil, fmt.Errorf("unknown built-in function '%s'", funcName)
+		// Return a specific error indicating it's not a built-in function handled by this evaluator.
+		return nil, fmt.Errorf("%w: '%s'", ErrUnknownFunction, funcName) // Assuming ErrUnknownFunction
 	}
 }
