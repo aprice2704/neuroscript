@@ -67,6 +67,9 @@ type NeuroScriptVisitor interface {
 	// Visit a parse tree produced by NeuroScriptParser#fail_statement.
 	VisitFail_statement(ctx *Fail_statementContext) interface{}
 
+	// Visit a parse tree produced by NeuroScriptParser#clearErrorStmt.
+	VisitClearErrorStmt(ctx *ClearErrorStmtContext) interface{}
+
 	// Visit a parse tree produced by NeuroScriptParser#if_statement.
 	VisitIf_statement(ctx *If_statementContext) interface{}
 
@@ -76,8 +79,8 @@ type NeuroScriptVisitor interface {
 	// Visit a parse tree produced by NeuroScriptParser#for_each_statement.
 	VisitFor_each_statement(ctx *For_each_statementContext) interface{}
 
-	// Visit a parse tree produced by NeuroScriptParser#try_statement.
-	VisitTry_statement(ctx *Try_statementContext) interface{}
+	// Visit a parse tree produced by NeuroScriptParser#onErrorStmt.
+	VisitOnErrorStmt(ctx *OnErrorStmtContext) interface{}
 
 	// Visit a parse tree produced by NeuroScriptParser#call_target.
 	VisitCall_target(ctx *Call_targetContext) interface{}

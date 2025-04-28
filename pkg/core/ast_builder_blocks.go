@@ -2,12 +2,12 @@
 package core
 
 import (
+	// Added fmt import
 	"github.com/antlr4-go/antlr/v4" // Required for ParserRuleContext
 	gen "github.com/aprice2704/neuroscript/pkg/core/generated"
 )
 
 // --- Block Handling Helpers (Unchanged) ---
-// ... (EnterBlock, ExitBlock, restoreParentContext remain the same) ...
 func (l *neuroScriptListenerImpl) EnterBlock(blockType string, targetVar string) {
 	l.logDebugAST(">>> EnterBlock Start: %s (Target: %q)", blockType, targetVar)
 	if l.currentSteps == nil {
@@ -47,29 +47,41 @@ func (l *neuroScriptListenerImpl) restoreParentContext(blockType string) {
 	l.blockStepStack = l.blockStepStack[:lastIndex]
 	if parentStepsPtr == nil {
 		l.logger.Warn("restoreParentContext (%s): Parent step list pointer from stack was nil.", blockType)
-		l.currentSteps = nil
-		return
+		l.currentSteps = nil // Set to nil if parent was nil
+	} else {
+		l.currentSteps = parentStepsPtr
 	}
-	l.currentSteps = parentStepsPtr
 	l.logDebugAST("    Restored currentSteps to parent context: %p (Stack size: %d)", l.currentSteps, len(l.blockStepStack))
 }
 
 // --- Shared Statement List Logic ---
-// (This logic seems okay, relies on parent context identification)
 func (l *neuroScriptListenerImpl) EnterStatement_list(ctx *gen.Statement_listContext) {
 	parentCtx := ctx.GetParent()
 	switch pCtx := parentCtx.(type) {
-	case *gen.If_statementContext, *gen.While_statementContext, *gen.For_each_statementContext, *gen.Try_statementContext:
+	// ADDED: OnErrorStmtContext
+	case *gen.If_statementContext, *gen.While_statementContext, *gen.For_each_statementContext, *gen.OnErrorStmtContext:
 		l.logDebugAST(">>> Enter Statement_list within structured block context (%T)", pCtx)
 		if l.currentSteps == nil {
 			newBlockSteps := make([]Step, 0)
 			l.currentSteps = &newBlockSteps
 			l.logDebugAST("    Initialized new currentSteps list (%p) for block", l.currentSteps)
 		} else {
+			// Store current steps in blockSteps map ONLY if it's an IF or ON_ERROR context,
+			// because these blocks might have multiple statement lists (THEN/ELSE or the handler body itself)
+			// whose steps need to be retrieved later using the context as a key.
+			// WHILE/FOR only have one body, managed by Enter/ExitBlock stack.
 			if _, isIf := pCtx.(*gen.If_statementContext); isIf {
-				l.logger.Warn("EnterStatement_list (IF context): currentSteps was not nil (%p). May be expected for THEN block, check if ELSE intended.", l.currentSteps)
-			} else if _, isTry := pCtx.(*gen.Try_statementContext); isTry {
-				l.logger.Warn("EnterStatement_list (TRY context): currentSteps was not nil (%p). Check if expected for TRY vs CATCH/FINALLY.", l.currentSteps)
+				l.logger.Warn("EnterStatement_list (IF context): currentSteps was not nil (%p). Storing steps for potential later retrieval.", l.currentSteps)
+				if l.blockSteps == nil {
+					l.blockSteps = make(map[antlr.ParserRuleContext][]Step)
+				}
+				l.blockSteps[ctx] = *l.currentSteps // Store steps associated with this specific list context
+				newSteps := make([]Step, 0)         // Start fresh for the *next* statement list in the IF
+				l.currentSteps = &newSteps
+			} else if _, isOnError := pCtx.(*gen.OnErrorStmtContext); isOnError {
+				l.logDebugAST("    EnterStatement_list (ON_ERROR context): currentSteps (%p) likely holds steps from outer scope. Will start fresh.", l.currentSteps)
+				newSteps := make([]Step, 0) // Start fresh steps for the handler body
+				l.currentSteps = &newSteps
 			} else {
 				l.logDebugAST("    currentSteps (%p) already initialized, expected for WHILE/FOR block", l.currentSteps)
 			}
@@ -98,32 +110,25 @@ func (l *neuroScriptListenerImpl) ExitStatement_list(ctx *gen.Statement_listCont
 		if l.blockSteps == nil {
 			l.blockSteps = make(map[antlr.ParserRuleContext][]Step)
 		}
-		l.blockSteps[ctx] = []Step{}
+		l.blockSteps[ctx] = []Step{} // Store empty steps for this context
 	} else {
-		switch parentCtx.(type) {
-		case *gen.If_statementContext:
+		// Store the completed steps for this specific statement list context if it's within IF or ON_ERROR
+		switch pCtx := parentCtx.(type) {
+		case *gen.If_statementContext, *gen.OnErrorStmtContext:
 			if l.blockSteps == nil {
 				l.blockSteps = make(map[antlr.ParserRuleContext][]Step)
 			}
 			l.blockSteps[ctx] = *l.currentSteps
-			l.logDebugAST("<<< Exit Statement_list (IF context). Stored %d steps for context %p", len(*l.currentSteps), ctx)
-			l.currentSteps = nil
-
-		case *gen.Try_statementContext:
-			if l.blockSteps == nil {
-				l.blockSteps = make(map[antlr.ParserRuleContext][]Step)
-			}
-			l.blockSteps[ctx] = *l.currentSteps
-			l.logDebugAST("<<< Exit Statement_list (TRY context). Stored %d steps for context %p", len(*l.currentSteps), ctx)
-			l.currentSteps = nil
-
+			l.logDebugAST("<<< Exit Statement_list (%T context). Stored %d steps for context %p", pCtx, len(*l.currentSteps), ctx)
+			l.currentSteps = nil // Reset currentSteps, expect parent Exit method to handle restoration or finalization
 		default:
+			// For PROC, WHILE, FOR, the steps remain in l.currentSteps until the block/proc exits.
 			l.logDebugAST("<<< Exit Statement_list (%T context). Current steps count: %d", parentCtx, len(*l.currentSteps))
 		}
 	}
 }
 
-// --- IF Statement Handling (v0.2.0: uses ENDIF) ---
+// --- IF Statement Handling (Unchanged) ---
 func (l *neuroScriptListenerImpl) EnterIf_statement(ctx *gen.If_statementContext) {
 	l.logDebugAST(">>> Enter If_statement context")
 	if l.currentSteps != nil {
@@ -133,7 +138,8 @@ func (l *neuroScriptListenerImpl) EnterIf_statement(ctx *gen.If_statementContext
 		l.logger.Warn("EnterIf_statement called with nil currentSteps")
 		l.blockStepStack = append(l.blockStepStack, nil)
 	}
-	l.currentSteps = nil
+	l.currentSteps = nil // Reset for block processing
+	// Clear blockSteps map for this specific IF statement
 	l.blockSteps = make(map[antlr.ParserRuleContext][]Step)
 }
 
@@ -143,18 +149,18 @@ func (l *neuroScriptListenerImpl) ExitIf_statement(ctx *gen.If_statementContext)
 	conditionNode, ok := l.popValue()
 	if !ok {
 		l.logger.Error("AST Builder: Failed to pop condition expression for IF")
-		l.restoreParentContext("IF")
+		l.restoreParentContext("IF error")
 		return
 	}
 	l.logDebugAST("    Popped IF condition node: %T", conditionNode)
 
 	var thenSteps []Step
-	// FIX: Use indexed Statement_list(0) accessor based on user's confirmed generated code structure
+	// Get THEN block steps (always the first statement list)
 	if len(ctx.AllStatement_list()) > 0 {
-		thenCtx := ctx.Statement_list(0) // First statement list is the THEN block
+		thenCtx := ctx.Statement_list(0)
 		if steps, found := l.blockSteps[thenCtx]; found {
 			thenSteps = steps
-			delete(l.blockSteps, thenCtx)
+			delete(l.blockSteps, thenCtx) // Clean up map
 			l.logDebugAST("    Retrieved %d THEN steps from map using key %p", len(thenSteps), thenCtx)
 		} else {
 			l.logger.Warn("ExitIf_statement: Did not find stored steps for THEN block context %p", thenCtx)
@@ -165,22 +171,23 @@ func (l *neuroScriptListenerImpl) ExitIf_statement(ctx *gen.If_statementContext)
 		thenSteps = []Step{}
 	}
 
-	var elseSteps []Step = nil
+	var elseSteps []Step = nil // nil indicates no ELSE block steps
 	if ctx.KW_ELSE() != nil {
-		// FIX: Use indexed Statement_list(1) accessor based on user's confirmed generated code structure
+		// Get ELSE block steps (always the second statement list if present)
 		if len(ctx.AllStatement_list()) > 1 {
-			elseCtx := ctx.Statement_list(1) // Second statement list is the ELSE block
+			elseCtx := ctx.Statement_list(1)
 			if steps, found := l.blockSteps[elseCtx]; found {
 				elseSteps = steps
-				delete(l.blockSteps, elseCtx)
+				delete(l.blockSteps, elseCtx) // Clean up map
 				l.logDebugAST("    Retrieved %d ELSE steps from map using key %p", len(elseSteps), elseCtx)
 			} else {
+				// This case means ExitStatement_list didn't store steps for the ELSE block correctly
 				l.logger.Error("ExitIf_statement: Did not find stored steps for ELSE block context %p", elseCtx)
-				elseSteps = []Step{}
+				elseSteps = []Step{} // Use empty slice instead of nil to indicate empty block vs no block? Let's use empty slice.
 			}
 		} else {
 			l.logger.Error("ExitIf_statement: ELSE clause present but second Statement_list context was nil.")
-			elseSteps = []Step{}
+			elseSteps = []Step{} // Empty slice
 		}
 	} else {
 		l.logDebugAST("    No ELSE clause found.")
@@ -189,9 +196,13 @@ func (l *neuroScriptListenerImpl) ExitIf_statement(ctx *gen.If_statementContext)
 	l.restoreParentContext("IF")
 	if l.currentSteps == nil {
 		l.logger.Error("ExitIf_statement: Parent step list nil after restore")
-		return
+		// Attempt to recover by creating a new list, though this might indicate a deeper issue
+		newSteps := make([]Step, 0)
+		l.currentSteps = &newSteps
+		// return // Early return might lose the IF step entirely. Let's try appending anyway.
 	}
 
+	// Ensure Value/ElseValue are Step slices
 	ifStep := Step{Type: "if", Cond: conditionNode, Value: thenSteps, ElseValue: elseSteps}
 	*l.currentSteps = append(*l.currentSteps, ifStep)
 	thenLen := 0
@@ -201,14 +212,13 @@ func (l *neuroScriptListenerImpl) ExitIf_statement(ctx *gen.If_statementContext)
 	elseLen := 0
 	if elseSteps != nil {
 		elseLen = len(elseSteps)
-	}
+	} // Check elseSteps itself for nilness
 	l.logDebugAST("    Appended complete IF Step to parent: Cond=%T, THEN Steps=%d, ELSE Steps=%d", ifStep.Cond, thenLen, elseLen)
 
-	l.blockSteps = nil
+	l.blockSteps = nil // Clear map after use for this IF
 }
 
-// --- WHILE and FOR EACH ---
-// (No changes needed here as they use ExitBlock which uses l.currentSteps)
+// --- WHILE and FOR EACH (Unchanged) ---
 func (l *neuroScriptListenerImpl) EnterWhile_statement(ctx *gen.While_statementContext) {
 	l.logDebugAST(">>> Enter While_statement")
 	l.EnterBlock("WHILE", "")
@@ -284,115 +294,64 @@ func (l *neuroScriptListenerImpl) ExitFor_each_statement(ctx *gen.For_each_state
 	}
 }
 
-// --- Try/Catch/Finally Handling ---
-// FIX: Use indexed Statement_list(i) and check indices carefully
-func (l *neuroScriptListenerImpl) EnterTry_statement(ctx *gen.Try_statementContext) {
-	l.logDebugAST(">>> Enter Try_statement")
+// --- REMOVED: Try/Catch/Finally Handling ---
+// func (l *neuroScriptListenerImpl) EnterTry_statement(ctx *gen.Try_statementContext) { ... }
+// func (l *neuroScriptListenerImpl) ExitTry_statement(ctx *gen.Try_statementContext) { ... }
+
+// --- ADDED: OnError Handling ---
+func (l *neuroScriptListenerImpl) EnterOnErrorStmt(ctx *gen.OnErrorStmtContext) {
+	l.logDebugAST(">>> Enter OnErrorStmt")
+	// Push the parent step context onto the stack before starting the handler block
 	if l.currentSteps != nil {
 		l.blockStepStack = append(l.blockStepStack, l.currentSteps)
-		l.logDebugAST("    TRY: Pushed parent context %p. Stack size: %d", l.currentSteps, len(l.blockStepStack))
+		l.logDebugAST("    ON_ERROR: Pushed parent context %p. Stack size: %d", l.currentSteps, len(l.blockStepStack))
 	} else {
-		l.logger.Warn("EnterTry_statement called with nil currentSteps")
+		l.logger.Warn("EnterOnErrorStmt called with nil currentSteps")
 		l.blockStepStack = append(l.blockStepStack, nil)
 	}
+	// Reset currentSteps; the steps for the handler body will be collected via Enter/ExitStatement_list
 	l.currentSteps = nil
+	// Clear blockSteps map specifically for this on_error statement
 	l.blockSteps = make(map[antlr.ParserRuleContext][]Step)
 }
 
-func (l *neuroScriptListenerImpl) ExitTry_statement(ctx *gen.Try_statementContext) {
-	l.logDebugAST("<<< Exit Try_statement")
+func (l *neuroScriptListenerImpl) ExitOnErrorStmt(ctx *gen.OnErrorStmtContext) {
+	l.logDebugAST("<<< Exit OnErrorStmt")
 
-	var trySteps, catchSteps, finallySteps []Step
-	catchVar := ""
-	stmtLists := ctx.AllStatement_list() // Get all statement lists
-
-	// TRY Body is always the first statement list
-	if len(stmtLists) > 0 {
-		tryCtx := stmtLists[0]
-		if steps, ok := l.blockSteps[tryCtx]; ok {
-			trySteps = steps
-			delete(l.blockSteps, tryCtx)
-			l.logDebugAST("    TRY: Retrieved %d try steps for context %p", len(trySteps), tryCtx)
+	var handlerSteps []Step
+	// Retrieve the handler body steps stored by ExitStatement_list
+	if stmtListCtx := ctx.Statement_list(); stmtListCtx != nil {
+		if steps, ok := l.blockSteps[stmtListCtx]; ok {
+			handlerSteps = steps
+			delete(l.blockSteps, stmtListCtx) // Clean up map
+			l.logDebugAST("    ON_ERROR: Retrieved %d handler steps for context %p", len(handlerSteps), stmtListCtx)
 		} else {
-			l.logger.Warn("ExitTry_statement: No steps found for TRY context %p", tryCtx)
-			trySteps = []Step{}
+			l.logger.Warn("ExitOnErrorStmt: No steps found for handler context %p", stmtListCtx)
+			handlerSteps = []Step{}
 		}
 	} else {
-		l.logger.Error("ExitTry_statement: No statement list found for TRY body!")
-		trySteps = []Step{}
+		l.logger.Error("ExitOnErrorStmt: No statement list found for handler body!")
+		handlerSteps = []Step{}
 	}
 
-	// CATCH Body (assuming max 1 catch block for now)
-	if len(ctx.AllKW_CATCH()) > 0 {
-		// Catch body is the second statement list IF it exists
-		if len(stmtLists) > 1 {
-			catchBodyCtx := stmtLists[1]
-			if steps, ok := l.blockSteps[catchBodyCtx]; ok {
-				catchSteps = steps
-				delete(l.blockSteps, catchBodyCtx)
-				l.logDebugAST("    TRY: Retrieved %d catch steps for context %p", len(catchSteps), catchBodyCtx)
-			} else {
-				l.logger.Warn("ExitTry_statement: No steps found for CATCH context %p", catchBodyCtx)
-				catchSteps = []Step{}
-			}
-			// Get corresponding catch parameter if it exists
-			if catchParamToken := ctx.GetCatch_param(); catchParamToken != nil { // Use specific accessor
-				catchVar = catchParamToken.GetText()
-				l.logDebugAST("    TRY: Found catch variable: %s", catchVar)
-			} else {
-				l.logDebugAST("    TRY: Catch clause found but no variable specified.")
-			}
-		} else {
-			l.logger.Error("ExitTry_statement: KW_CATCH present but only one statement list found!")
-			catchSteps = []Step{}
-		}
-		if len(ctx.AllKW_CATCH()) > 1 {
-			l.logger.Warn("ExitTry_statement: Multiple catch clauses found in grammar, AST builder currently only handles the first.")
-		}
-	} else {
-		l.logDebugAST("    TRY: No catch clause found.")
-	}
-
-	// FINALLY Body
-	if ctx.KW_FINALLY() != nil {
-		// Finally body is the last statement list
-		finallyIndex := len(stmtLists) - 1                     // Calculate expected index
-		if finallyIndex > 0 && finallyIndex < len(stmtLists) { // Index must be valid and after try block
-			finallyBodyCtx := stmtLists[finallyIndex]
-			if steps, ok := l.blockSteps[finallyBodyCtx]; ok {
-				finallySteps = steps
-				delete(l.blockSteps, finallyBodyCtx)
-				l.logDebugAST("    TRY: Retrieved %d finally steps for context %p", len(finallySteps), finallyBodyCtx)
-			} else {
-				l.logger.Warn("ExitTry_statement: No steps found for FINALLY context %p", finallyBodyCtx)
-				finallySteps = []Step{}
-			}
-		} else {
-			l.logger.Error("ExitTry_statement: KW_FINALLY present but could not determine valid index for its statement list (Index: %d, Count: %d)", finallyIndex, len(stmtLists))
-			finallySteps = []Step{}
-		}
-	} else {
-		l.logDebugAST("    TRY: No finally clause found.")
-	}
-
-	// Restore parent context
-	l.restoreParentContext("TRY")
+	// Restore the parent context
+	l.restoreParentContext("ON_ERROR")
 	if l.currentSteps == nil {
-		l.logger.Error("ExitTry_statement: Parent step list nil after restore")
-		return
+		l.logger.Error("ExitOnErrorStmt: Parent step list nil after restore")
+		// Attempt recovery - maybe this is the top level?
+		newSteps := make([]Step, 0)
+		l.currentSteps = &newSteps
+		// return // Avoid losing the step
 	}
 
-	// Create and append the TRY step
-	tryStep := Step{
-		Type:         "try",
-		Value:        trySteps, // TRY body steps
-		CatchVar:     catchVar,
-		CatchSteps:   catchSteps,
-		FinallySteps: finallySteps,
+	// Create and append the ON_ERROR step
+	// We store the handler steps in the 'Value' field for simplicity, like loops/if blocks.
+	onErrorStep := Step{
+		Type:  "on_error",
+		Value: handlerSteps, // Handler body steps stored here
 	}
-	*l.currentSteps = append(*l.currentSteps, tryStep)
-	l.logDebugAST("    Appended TRY Step: TrySteps=%d, CatchVar=%q, CatchSteps=%d, FinallySteps=%d",
-		len(trySteps), catchVar, len(catchSteps), len(finallySteps))
+	*l.currentSteps = append(*l.currentSteps, onErrorStep)
+	l.logDebugAST("    Appended ON_ERROR Step: HandlerSteps=%d", len(handlerSteps))
 
-	l.blockSteps = nil
+	l.blockSteps = nil // Clear map after use
 }

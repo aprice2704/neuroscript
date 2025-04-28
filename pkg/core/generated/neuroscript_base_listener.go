@@ -140,6 +140,12 @@ func (s *BaseNeuroScriptListener) EnterFail_statement(ctx *Fail_statementContext
 // ExitFail_statement is called when production fail_statement is exited.
 func (s *BaseNeuroScriptListener) ExitFail_statement(ctx *Fail_statementContext) {}
 
+// EnterClearErrorStmt is called when production clearErrorStmt is entered.
+func (s *BaseNeuroScriptListener) EnterClearErrorStmt(ctx *ClearErrorStmtContext) {}
+
+// ExitClearErrorStmt is called when production clearErrorStmt is exited.
+func (s *BaseNeuroScriptListener) ExitClearErrorStmt(ctx *ClearErrorStmtContext) {}
+
 // EnterIf_statement is called when production if_statement is entered.
 func (s *BaseNeuroScriptListener) EnterIf_statement(ctx *If_statementContext) {}
 
@@ -158,11 +164,11 @@ func (s *BaseNeuroScriptListener) EnterFor_each_statement(ctx *For_each_statemen
 // ExitFor_each_statement is called when production for_each_statement is exited.
 func (s *BaseNeuroScriptListener) ExitFor_each_statement(ctx *For_each_statementContext) {}
 
-// EnterTry_statement is called when production try_statement is entered.
-func (s *BaseNeuroScriptListener) EnterTry_statement(ctx *Try_statementContext) {}
+// EnterOnErrorStmt is called when production onErrorStmt is entered.
+func (s *BaseNeuroScriptListener) EnterOnErrorStmt(ctx *OnErrorStmtContext) {}
 
-// ExitTry_statement is called when production try_statement is exited.
-func (s *BaseNeuroScriptListener) ExitTry_statement(ctx *Try_statementContext) {}
+// ExitOnErrorStmt is called when production onErrorStmt is exited.
+func (s *BaseNeuroScriptListener) ExitOnErrorStmt(ctx *OnErrorStmtContext) {}
 
 // EnterCall_target is called when production call_target is entered.
 func (s *BaseNeuroScriptListener) EnterCall_target(ctx *Call_targetContext) {}

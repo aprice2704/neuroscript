@@ -33,9 +33,10 @@
   - [x] Implement storage/access for `::` metadata. *(Parser/AST Builder done)*
   - [ ] Define initial vocabulary for standard metadata keys and inline annotations.
 - [-] 5. Implement Foundational Robustness Features (Phase 1 / Near-Term)
-  - [ ] Define and implement `must`/`mustBe` failure semantics (halt vs error?).
-  - [ ] Create essential built-in check functions for `mustBe`.
-  - [ ] Design simple `try/catch` mechanism and semantics (implementation might extend beyond 0.2.0).
+  - [x] Define and implement `must`/`mustBe` failure semantics (halt vs error?). *(Using halt-via-error)*
+  - [x] Create essential built-in check functions for `mustBe`. *(Implemented internally)*
+  - [ ] Design simple `try/catch` mechanism and semantics. *(Parser done, Semantics needed)*
+  - [ ] Consider explicit `halt` command/mechanism? *(New Item)*
 - [x] 6. Tooling & Ecosystem
   - [x] Standardize internal tool naming to use `tool.` prefix consistently. *(Verified via test fixes)*
   - [ ] Update checklists/docs to reflect standardized tool names.

@@ -67,6 +67,9 @@ type NeuroScriptListener interface {
 	// EnterFail_statement is called when entering the fail_statement production.
 	EnterFail_statement(c *Fail_statementContext)
 
+	// EnterClearErrorStmt is called when entering the clearErrorStmt production.
+	EnterClearErrorStmt(c *ClearErrorStmtContext)
+
 	// EnterIf_statement is called when entering the if_statement production.
 	EnterIf_statement(c *If_statementContext)
 
@@ -76,8 +79,8 @@ type NeuroScriptListener interface {
 	// EnterFor_each_statement is called when entering the for_each_statement production.
 	EnterFor_each_statement(c *For_each_statementContext)
 
-	// EnterTry_statement is called when entering the try_statement production.
-	EnterTry_statement(c *Try_statementContext)
+	// EnterOnErrorStmt is called when entering the onErrorStmt production.
+	EnterOnErrorStmt(c *OnErrorStmtContext)
 
 	// EnterCall_target is called when entering the call_target production.
 	EnterCall_target(c *Call_targetContext)
@@ -217,6 +220,9 @@ type NeuroScriptListener interface {
 	// ExitFail_statement is called when exiting the fail_statement production.
 	ExitFail_statement(c *Fail_statementContext)
 
+	// ExitClearErrorStmt is called when exiting the clearErrorStmt production.
+	ExitClearErrorStmt(c *ClearErrorStmtContext)
+
 	// ExitIf_statement is called when exiting the if_statement production.
 	ExitIf_statement(c *If_statementContext)
 
@@ -226,8 +232,8 @@ type NeuroScriptListener interface {
 	// ExitFor_each_statement is called when exiting the for_each_statement production.
 	ExitFor_each_statement(c *For_each_statementContext)
 
-	// ExitTry_statement is called when exiting the try_statement production.
-	ExitTry_statement(c *Try_statementContext)
+	// ExitOnErrorStmt is called when exiting the onErrorStmt production.
+	ExitOnErrorStmt(c *OnErrorStmtContext)
 
 	// ExitCall_target is called when exiting the call_target production.
 	ExitCall_target(c *Call_targetContext)

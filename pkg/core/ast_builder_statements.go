@@ -7,7 +7,6 @@ import (
 
 // --- Simple Statement Exit Handlers ---
 
-// ... (ExitSet_statement, ExitCall_statement unchanged) ...
 func (l *neuroScriptListenerImpl) ExitSet_statement(ctx *gen.Set_statementContext) {
 	l.logDebugAST("<<< Exit Set_statement: %q", ctx.GetText())
 	valueNode, ok := l.popValue()
@@ -51,7 +50,6 @@ func (l *neuroScriptListenerImpl) ExitCall_statement(ctx *gen.Call_statementCont
 	*l.currentSteps = append(*l.currentSteps, step)
 }
 
-// FIX: Ensure Step.Value is always nil or []interface{} for return
 func (l *neuroScriptListenerImpl) ExitReturn_statement(ctx *gen.Return_statementContext) {
 	l.logDebugAST("<<< Exit Return_statement: %q", ctx.GetText())
 	var returnNodes []interface{} = nil // Default nil if no expression list
@@ -59,24 +57,20 @@ func (l *neuroScriptListenerImpl) ExitReturn_statement(ctx *gen.Return_statement
 	if exprListCtx := ctx.Expression_list(); exprListCtx != nil {
 		numExpr := len(exprListCtx.AllExpression())
 		if numExpr > 0 { // Only pop if there are expressions
-			var ok bool
-			// Pop N nodes from the value stack
 			nodesPopped, ok := l.popNValues(numExpr)
 			if !ok {
 				l.logger.Error("AST Builder: Failed to pop %d value(s) for RETURN", numExpr)
-				returnNodes = nil // Indicate error by setting back to nil? Or append error? For now, nil.
+				returnNodes = nil
 			} else {
-				returnNodes = nodesPopped // Store the slice of nodes
+				returnNodes = nodesPopped
 				l.logDebugAST("    Popped %d return nodes", len(returnNodes))
 			}
 		} else {
-			// Expression_list context exists but has no expressions (shouldn't happen with current grammar?)
 			l.logger.Warn("RETURN statement has Expression_list context but no expressions found.")
-			returnNodes = []interface{}{} // Represent return with empty list as empty slice? Or nil? Let's try nil.
+			returnNodes = []interface{}{}
 		}
 	} else {
 		l.logDebugAST("    RETURN statement has no expression list (value will be nil)")
-		// returnNodes remains nil
 	}
 
 	if l.currentSteps == nil {
@@ -84,7 +78,6 @@ func (l *neuroScriptListenerImpl) ExitReturn_statement(ctx *gen.Return_statement
 		return
 	}
 
-	// Store the slice of expression nodes (or nil) in Step.Value
 	step := newStep("return", "", nil, returnNodes, nil, nil)
 	*l.currentSteps = append(*l.currentSteps, step)
 }
@@ -120,14 +113,20 @@ func (l *neuroScriptListenerImpl) ExitMust_statement(ctx *gen.Must_statementCont
 	}
 
 	target := "" // Target only relevant for mustbe
-	if _, isFuncCall := valueNode.(FunctionCallNode); isFuncCall {
+	// Check if the context has a Function_call node specifically
+	if mustBeCtx := ctx.Function_call(); mustBeCtx != nil {
+		// If mustBeCtx exists, we know it must be a mustBe statement
 		stepType = "mustbe"
-		// Safely access FunctionName
+		// The value popped should correspond to the FunctionCallNode built from mustBeCtx
 		if fnCall, fnOk := valueNode.(FunctionCallNode); fnOk {
-			target = fnCall.FunctionName
+			target = fnCall.FunctionName // Retrieve name from the parsed node
+			l.logDebugAST("    Interpreting as MUSTBE, Target=%s", target)
+		} else {
+			l.logger.Error("MUSTBE statement expected FunctionCallNode on stack, got %T", valueNode)
+			// Handle error or proceed with incorrect interpretation? Let's log and proceed.
 		}
-		l.logDebugAST("    Interpreting as MUSTBE, Target=%s", target)
 	} else {
+		// If no Function_call context, it's a regular must statement
 		l.logDebugAST("    Interpreting as MUST")
 	}
 
@@ -158,3 +157,24 @@ func (l *neuroScriptListenerImpl) ExitFail_statement(ctx *gen.Fail_statementCont
 	step := newStep("fail", "", nil, valueNode, nil, nil)
 	*l.currentSteps = append(*l.currentSteps, step)
 }
+
+// --- ADDED: Exit handler for clear_error statement ---
+func (l *neuroScriptListenerImpl) ExitClearErrorStmt(ctx *gen.ClearErrorStmtContext) {
+	l.logDebugAST("<<< Exit ClearErrorStmt: %q", ctx.GetText())
+	if l.currentSteps == nil {
+		l.logger.Warn("ClearErrorStmt exited with nil currentSteps")
+		return
+	}
+	// Create a new Step type for clear_error
+	step := Step{Type: "clear_error"} // Uses the simpler Step struct directly
+	*l.currentSteps = append(*l.currentSteps, step)
+	l.logDebugAST("    Appended CLEAR_ERROR Step")
+}
+
+// --- REMOVED: Try/Catch/Finally related Exit methods ---
+// func (l *neuroScriptListenerImpl) VisitTryStmt(...) ...
+// func (l *neuroScriptListenerImpl) VisitCatchClause(...) ...
+// func (l *neuroScriptListenerImpl) VisitFinallyClause(...) ...
+// Note: Since this builder uses the Listener pattern, these visitor methods
+// wouldn't exist. The relevant logic was likely within Enter/Exit Try_statement
+// in ast_builder_blocks.go, which will be removed there.

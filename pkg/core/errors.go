@@ -1,9 +1,63 @@
 // filename: pkg/core/errors.go
 package core
 
-import "errors"
+import (
+	"errors"
+	"fmt"
+)
 
-// --- Core Validation Errors (for ValidateAndConvertArgs & Security) ---
+// --- NEW: RuntimeError ---
+// RuntimeError represents a structured error originating from NeuroScript execution.
+type RuntimeError struct {
+	Code    int    // Numeric code for categorization
+	Message string // Human-readable error message
+	Wrapped error  // Optional: The original underlying Go error, if any
+}
+
+// Error implements the standard Go error interface.
+func (e *RuntimeError) Error() string {
+	if e.Wrapped != nil {
+		// Consider including wrapped error details if helpful for debugging Go side
+		// return fmt.Sprintf("NeuroScript Error %d: %s (wrapped: %v)", e.Code, e.Message, e.Wrapped)
+		return fmt.Sprintf("NeuroScript Error %d: %s", e.Code, e.Message) // Simpler message for script
+	}
+	return fmt.Sprintf("NeuroScript Error %d: %s", e.Code, e.Message)
+}
+
+// Unwrap provides compatibility for errors.Is and errors.As.
+func (e *RuntimeError) Unwrap() error {
+	return e.Wrapped
+}
+
+// Helper to create a new RuntimeError
+func NewRuntimeError(code int, message string, wrapped error) *RuntimeError {
+	return &RuntimeError{Code: code, Message: message, Wrapped: wrapped}
+}
+
+// --- Basic Runtime Error Codes (Expand as needed) ---
+const (
+	ErrorCodeGeneric         = 0  // Default or unknown script error
+	ErrorCodeFailStatement   = 1  // Error explicitly raised by 'fail'
+	ErrorCodeProcNotFound    = 2  // Procedure call target not found
+	ErrorCodeToolNotFound    = 3  // Tool or tool function not found
+	ErrorCodeArgMismatch     = 4  // Incorrect number/type of arguments
+	ErrorCodeMustFailed      = 5  // 'must' or 'mustbe' condition failed
+	ErrorCodeInternal        = 6  // Internal interpreter error (e.g., bad AST, nil pointer)
+	ErrorCodeType            = 7  // Type error during operation (e.g., adding string to int)
+	ErrorCodeBounds          = 8  // Index out of bounds
+	ErrorCodeKeyNotFound     = 9  // Map key not found
+	ErrorCodeSecurity        = 10 // Security policy violation
+	ErrorCodeReadOnly        = 11 // Attempt to modify read-only variable (err_code/err_msg)
+	ErrorCodeReturnViolation = 12 // 'return' used inside 'on_error'
+	ErrorCodeClearViolation  = 13 // 'clear_error' used outside 'on_error'
+	ErrorCodeDivisionByZero  = 14 // Division by zero
+	ErrorCodeSyntax          = 15 // Syntax error during parsing or interpretation
+	// ... add more specific codes ...
+	ErrorCodeToolSpecific = 1000 // Base for tool-specific errors
+)
+
+// --- Core Validation Errors ---
+// (Keep existing sentinel errors - they might be used internally or wrapped)
 var (
 	ErrValidationRequiredArgNil = errors.New("required argument is nil")
 	ErrValidationTypeMismatch   = errors.New("argument type mismatch")
@@ -59,7 +113,7 @@ var (
 	ErrCacheObjectWrongType = errors.New("object found in cache has wrong type")
 	// Math/Evaluation Errors
 	ErrDivisionByZero            = errors.New("division by zero")
-	ErrInvalidOperandType        = errors.New("invalid operand type") // Added V0.2.0 for generic type errors
+	ErrInvalidOperandType        = errors.New("invalid operand type")
 	ErrInvalidOperandTypeNumeric = errors.New("requires numeric operand(s)")
 	ErrInvalidOperandTypeInteger = errors.New("requires integer operand(s)")
 	ErrInvalidOperandTypeString  = errors.New("requires string operand(s)")
@@ -70,7 +124,7 @@ var (
 	ErrNilOperand                = errors.New("operation received nil operand")
 	ErrUnknownFunction           = errors.New("unknown function called")
 
-	// Verification Errors (NEW for v0.2.0)
+	// Verification Errors
 	ErrMustConditionFailed = errors.New("must condition evaluated to false")
 	// General Tool Error
 	ErrInternalTool      = errors.New("internal tool error")
@@ -85,4 +139,10 @@ var (
 	ErrUnknownKeyword       = errors.New("unknown keyword")
 	ErrUnhandledException   = errors.New("unhandled exception during execution")
 	ErrFailStatement        = errors.New("execution halted by FAIL statement")
+	ErrInternal             = errors.New("internal interpreter error")
+	ErrReadOnlyViolation    = errors.New("attempt to modify read-only variable")
+	ErrUnsupportedSyntax    = errors.New("unsupported syntax") // Used for invalid tool call format etc.
+	ErrClearViolation       = errors.New("clear_error used outside on_error block")
+	ErrReturnViolation      = errors.New("'return' statement is not permitted inside an on_error block")
+	ErrToolNotFound         = errors.New("tool or tool function not found")
 )

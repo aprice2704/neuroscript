@@ -87,6 +87,10 @@ func (v *BaseNeuroScriptVisitor) VisitFail_statement(ctx *Fail_statementContext)
 	return v.VisitChildren(ctx)
 }
 
+func (v *BaseNeuroScriptVisitor) VisitClearErrorStmt(ctx *ClearErrorStmtContext) interface{} {
+	return v.VisitChildren(ctx)
+}
+
 func (v *BaseNeuroScriptVisitor) VisitIf_statement(ctx *If_statementContext) interface{} {
 	return v.VisitChildren(ctx)
 }
@@ -99,7 +103,7 @@ func (v *BaseNeuroScriptVisitor) VisitFor_each_statement(ctx *For_each_statement
 	return v.VisitChildren(ctx)
 }
 
-func (v *BaseNeuroScriptVisitor) VisitTry_statement(ctx *Try_statementContext) interface{} {
+func (v *BaseNeuroScriptVisitor) VisitOnErrorStmt(ctx *OnErrorStmtContext) interface{} {
 	return v.VisitChildren(ctx)
 }
 

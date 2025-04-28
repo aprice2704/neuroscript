@@ -1,7 +1,7 @@
-// File:      NeuroScript.g4
+// File:     NeuroScript.g4
 // Grammar: NeuroScript
-// Version: 0.2.0-alpha-onerror // Marked version
-// Date:      2025-04-28 // Updated date
+// Version: 0.2.0
+// Date:    2025-04-27 // Updated date
 
 grammar NeuroScript;
 
@@ -20,7 +20,7 @@ procedure_definition:
     optional_clause?
     returns_clause?
     KW_MEANS NEWLINE
-    metadata_block?
+    metadata_block? // Use the metadata_block rule here
     statement_list
     KW_ENDFUNC NEWLINE?;
 
@@ -35,33 +35,37 @@ metadata_block: METADATA_LINE+;
 
 statement_list: body_line*;
 
+// FIX: Removed reference to metadata_line_inline from body_line
 body_line: statement NEWLINE | NEWLINE; // Allow statements or blank lines
 
+// FIX: Removed metadata_line_inline from statement alternatives
 statement: simple_statement | block_statement ;
+
+// FIX: Removed metadata_line_inline rule completely for now
+// metadata_line_inline : METADATA_LINE;
 
 simple_statement:
     set_statement
     | call_statement
-    | return_statement
+    | return_statement // Modified rule referenced below
     | emit_statement
     | must_statement
-    | fail_statement
-    | clearErrorStmt; // Added clearErrorStmt
+    | fail_statement;
 
 block_statement:
     if_statement
     | while_statement
     | for_each_statement
-    | onErrorStmt; // Replaced try_statement with onErrorStmt
+    | try_statement;
 
 // Simple Statements (Keywords Lowercase)
 set_statement: KW_SET IDENTIFIER ASSIGN expression;
 call_statement: KW_CALL call_target LPAREN expression_list_opt RPAREN;
+// FIX: Use expression_list? to allow zero, one, or more return expressions
 return_statement: KW_RETURN expression_list?;
 emit_statement: KW_EMIT expression;
 must_statement: KW_MUST expression | KW_MUSTBE function_call;
-fail_statement: KW_FAIL expression?; // Keep fail_statement for initiating errors
-clearErrorStmt: KW_CLEAR_ERROR;     // Added rule for clear_error
+fail_statement: KW_FAIL expression?;
 
 // Block Statements (Keywords Lowercase, specific terminators)
 if_statement:
@@ -77,17 +81,19 @@ for_each_statement:
     KW_FOR KW_EACH IDENTIFIER KW_IN expression NEWLINE
     statement_list
     KW_ENDFOR;
-onErrorStmt: // Added rule for on_error
-    KW_ON_ERROR KW_MEANS NEWLINE
-    statement_list
-    KW_ENDON;
+try_statement:
+    KW_TRY NEWLINE
+    try_body=statement_list
+    (KW_CATCH catch_param=IDENTIFIER? NEWLINE catch_body=statement_list)*
+    (KW_FINALLY NEWLINE finally_body=statement_list)?
+    KW_ENDTRY;
 
 // Call Target
 call_target: IDENTIFIER | KW_TOOL DOT IDENTIFIER;
 
 // --- Expression Rules with Precedence ---
-// (Expression rules remain unchanged from your provided version)
 expression: logical_or_expr;
+// ... (Rest of expression rules remain the same) ...
 logical_or_expr: logical_and_expr (KW_OR logical_and_expr)*;
 logical_and_expr: bitwise_or_expr (KW_AND bitwise_or_expr)*;
 bitwise_or_expr: bitwise_xor_expr (PIPE bitwise_xor_expr)*;
@@ -157,10 +163,10 @@ KW_FOR         : 'for';
 KW_EACH        : 'each';
 KW_IN          : 'in';
 KW_ENDFOR      : 'endfor';
-// Removed TRY, CATCH, FINALLY, ENDTRY
-KW_ON_ERROR    : 'on_error';     // Added
-KW_ENDON       : 'endon';        // Added
-KW_CLEAR_ERROR : 'clear_error';  // Added
+KW_TRY         : 'try';
+KW_CATCH       : 'catch';
+KW_FINALLY     : 'finally';
+KW_ENDTRY      : 'endtry';
 KW_MUST        : 'must';
 KW_MUSTBE      : 'mustbe';
 KW_FAIL        : 'fail';
@@ -235,7 +241,7 @@ LINE_COMMENT: ('#' | '--') ~[\r\n]* -> skip;
 
 // Whitespace and Newlines
 NEWLINE: '\r'? '\n' | '\r'; // Default Channel
-WS: [ \t]+ -> skip;         // Skip whitespace
+WS: [ \t]+ -> skip;       // Skip whitespace
 
 // Fragments
 fragment EscapeSequence: '\\' (["'\\nrt] | UNICODE_ESC | '`');
