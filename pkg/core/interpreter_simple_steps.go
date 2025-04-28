@@ -2,7 +2,6 @@
 package core
 
 import (
-	// Import errors package for sentinel errors
 	"fmt"
 	"strings"
 )
@@ -10,6 +9,7 @@ import (
 // --- Simple Statement Execution Helpers ---
 
 // executeSet (Unchanged)
+// ...
 func (i *Interpreter) executeSet(step Step, stepNum int) error {
 	if i.logger != nil {
 		i.logger.Debug("-INTERP]      Executing SET for variable '%s'", step.Target)
@@ -26,7 +26,6 @@ func (i *Interpreter) executeSet(step Step, stepNum int) error {
 	if i.logger != nil {
 		i.logger.Debug("-INTERP]        SET evaluated value: %v (%T)", finalValue, finalValue)
 	}
-	// Special handling for 'generated_code'
 	if targetVar == "generated_code" {
 		if finalStr, isStr := finalValue.(string); isStr {
 			trimmedVal := trimCodeFences(finalStr)
@@ -45,13 +44,13 @@ func (i *Interpreter) executeSet(step Step, stepNum int) error {
 	return nil
 }
 
-// executeCall evaluates arguments and performs procedure, TOOL, or built-in calls.
-// UPDATED: Handles case-insensitive "TOOL." prefix and uses ErrProcedureNotFound.
+// executeCall (Unchanged)
+// ...
 func (i *Interpreter) executeCall(step Step, stepNum int) (interface{}, error) {
 	if i.logger != nil {
 		i.logger.Debug("-INTERP]      Executing CALL %q", step.Target)
 	}
-	target := step.Target // e.g., "TOOL.StringLength" or "MyProcedure"
+	target := step.Target
 	argNodes := step.Args
 
 	evaluatedArgs := make([]interface{}, len(argNodes))
@@ -68,27 +67,21 @@ func (i *Interpreter) executeCall(step Step, stepNum int) (interface{}, error) {
 
 	var callResultValue interface{}
 	var callErr error
-
 	isToolCall := false
 	var baseToolName string
-
-	// *** Case-insensitive check for "TOOL." prefix ***
 	if len(target) > 5 && strings.ToLower(target[:5]) == "tool." {
 		isToolCall = true
-		baseToolName = target[5:] // Extract base name, e.g., "StringLength"
+		baseToolName = target[5:]
 	}
 
 	if isToolCall {
 		if i.logger != nil {
 			i.logger.Debug("-INTERP]        Calling tool with base name: %s (Original target: %s)", baseToolName, target)
 		}
-		// Use base name for lookup in the registry
 		toolImpl, found := i.toolRegistry.GetTool(baseToolName)
 		if !found {
-			// *** Use specific sentinel error ***
 			callErr = fmt.Errorf("%w: TOOL '%s' (base name: '%s')", ErrProcedureNotFound, target, baseToolName)
 		} else {
-			// Validate arguments against the found tool's spec
 			preparedArgs, validationErr := ValidateAndConvertArgs(toolImpl.Spec, evaluatedArgs)
 			if validationErr != nil {
 				callErr = fmt.Errorf("tool '%s' argument error: %w", baseToolName, validationErr)
@@ -96,15 +89,13 @@ func (i *Interpreter) executeCall(step Step, stepNum int) (interface{}, error) {
 				if i.logger != nil {
 					i.logger.Debug("-INTERP]          Prepared TOOL '%s' args: %+v", baseToolName, preparedArgs)
 				}
-				// Execute the tool function
-				callResultValue, callErr = toolImpl.Func(i, preparedArgs) // Captures potential tool execution error
-				if callErr == nil {                                       // Only log/set last result on SUCCESS
+				callResultValue, callErr = toolImpl.Func(i, preparedArgs)
+				if callErr == nil {
 					if i.logger != nil {
 						i.logger.Debug("-INTERP]          Tool '%s' Result: %v (%T)", baseToolName, callResultValue, callResultValue)
 					}
 					i.lastCallResult = callResultValue
 				} else {
-					// Wrap the error from the tool execution
 					callErr = fmt.Errorf("tool '%s' execution failed: %w", baseToolName, callErr)
 				}
 			}
@@ -114,59 +105,75 @@ func (i *Interpreter) executeCall(step Step, stepNum int) (interface{}, error) {
 		if i.logger != nil {
 			i.logger.Debug("-INTERP]        Calling Procedure/Function %q", procToCall)
 		}
-		// Prepare args for RunProcedure (which expects strings)
-		stringArgs := make([]string, len(evaluatedArgs))
-		for idx, val := range evaluatedArgs {
-			stringArgs[idx] = fmt.Sprintf("%v", val)
-		}
-		if i.logger != nil {
-			i.logger.Debug("-INTERP]          Procedure args (as strings): %v", stringArgs)
-		}
-
-		// Try RunProcedure - it returns ErrProcedureNotFound if not found
-		procResultValue, procCallErr := i.RunProcedure(procToCall, stringArgs...)
+		procResultValue, procCallErr := i.RunProcedure(procToCall, evaluatedArgs...)
 		if procCallErr != nil {
-			callErr = procCallErr // Propagate error (includes ErrProcedureNotFound context)
+			callErr = procCallErr
 		} else {
-			// Procedure call successful
 			callResultValue = procResultValue
 			callErr = nil
 			if i.logger != nil {
 				i.logger.Debug("-INTERP]          Procedure %q Result: %v (%T)", procToCall, callResultValue, callResultValue)
 			}
-			i.lastCallResult = callResultValue // Update last result
+			i.lastCallResult = callResultValue
 		}
 	}
-
 	return callResultValue, callErr
 }
 
-// executeReturn (Unchanged)
+// FIX: Simplify executeReturn logic - always return nil or []interface{}
 func (i *Interpreter) executeReturn(step Step, stepNum int) (result interface{}, wasReturn bool, err error) {
 	if i.logger != nil {
 		i.logger.Debug("-INTERP]      Executing RETURN")
 	}
-	valueNode := step.Value
-	var returnValue interface{}
-	var evalErr error
-	if valueNode != nil {
-		returnValue, evalErr = i.evaluateExpression(valueNode)
+
+	// Step.Value should hold []interface{} (slice of expression nodes) or nil
+	valueNodesRaw := step.Value
+
+	if valueNodesRaw == nil {
+		if i.logger != nil {
+			i.logger.Debug("-INTERP]        RETURN with no value (result is nil)")
+		}
+		return nil, true, nil // Return nil result for `return;`
+	}
+
+	// Attempt to cast to a slice of interfaces
+	valueNodes, ok := valueNodesRaw.([]interface{})
+	if !ok {
+		// This should not happen if AST builder is correct
+		return nil, true, fmt.Errorf("internal error: RETURN step value is not nil or []interface{} (%T)", valueNodesRaw)
+	}
+
+	// If the slice of nodes is empty (shouldn't happen with current AST builder logic, but defensive)
+	if len(valueNodes) == 0 {
+		if i.logger != nil {
+			i.logger.Debug("-INTERP]        RETURN with empty expression list (result is nil)")
+		}
+		return nil, true, nil // Return nil result for `return` followed by nothing? Or empty slice? Nil seems better.
+	}
+
+	// Evaluate each expression node in the list
+	returnValues := make([]interface{}, len(valueNodes))
+	for idx, node := range valueNodes {
+		evaluatedValue, evalErr := i.evaluateExpression(node)
 		if evalErr != nil {
-			return nil, true, fmt.Errorf("evaluating RETURN value: %w", evalErr)
+			return nil, true, fmt.Errorf("evaluating RETURN value #%d: %w", idx+1, evalErr)
 		}
+		returnValues[idx] = evaluatedValue
 		if i.logger != nil {
-			i.logger.Debug("-INTERP]        RETURN evaluated value: %v (%T)", returnValue, returnValue)
-		}
-	} else {
-		returnValue = nil
-		if i.logger != nil {
-			i.logger.Debug("-INTERP]        RETURN with no value (implicit nil)")
+			i.logger.Debug("-INTERP]        RETURN evaluated value #%d: %v (%T)", idx+1, evaluatedValue, evaluatedValue)
 		}
 	}
-	return returnValue, true, nil
+
+	// Return the slice of evaluated results.
+	// The RunProcedure function will handle unpacking if only one value is expected/returned.
+	if i.logger != nil {
+		i.logger.Debug("-INTERP]        Returning %d value(s) as slice.", len(returnValues))
+	}
+	return returnValues, true, nil
 }
 
 // executeEmit (Unchanged)
+// ...
 func (i *Interpreter) executeEmit(step Step, stepNum int) error {
 	if i.logger != nil {
 		i.logger.Debug("-INTERP]      Executing EMIT")
@@ -193,44 +200,61 @@ func (i *Interpreter) executeEmit(step Step, stepNum int) error {
 }
 
 // executeMust (Unchanged)
+// ...
 func (i *Interpreter) executeMust(step Step, stepNum int) error {
 	stepType := step.Type // "must" or "mustbe"
 	if i.logger != nil {
 		i.logger.Debug("-INTERP]      Executing %s", strings.ToUpper(stepType))
 	}
-	valueNode := step.Value // This holds the expression node or FunctionCallNode
+	valueNode := step.Value
 
-	// Evaluate the expression/function call
 	evaluatedValue, evalErr := i.evaluateExpression(valueNode)
 	if evalErr != nil {
-		// An error during evaluation itself is considered a MUST failure
 		err := fmt.Errorf("%s check failed during evaluation: %w", stepType, evalErr)
 		if i.logger != nil {
 			i.logger.Debug("-INTERP]        %s", err)
 		}
-		// Wrap with sentinel error ErrMustConditionFailed
 		return fmt.Errorf("%w: %w", ErrMustConditionFailed, err)
 	}
-
-	// Check the truthiness of the result
 	isOk := isTruthy(evaluatedValue)
 	if i.logger != nil {
 		i.logger.Debug("-INTERP]        %s evaluated value: %v (%T), Truthiness: %t", stepType, evaluatedValue, evaluatedValue, isOk)
 	}
-
 	if !isOk {
-		// Condition failed, return specific error
 		err := fmt.Errorf("%s condition evaluated to false (value: %v)", stepType, evaluatedValue)
 		if i.logger != nil {
 			i.logger.Debug("-INTERP]        %s", err)
 		}
-		// Wrap with sentinel error ErrMustConditionFailed
 		return fmt.Errorf("%w: %w", ErrMustConditionFailed, err)
 	}
-
-	// Condition passed
 	if i.logger != nil {
 		i.logger.Debug("-INTERP]        %s check PASSED.", stepType)
 	}
-	return nil // Success
+	return nil
+}
+
+// executeFail (Unchanged)
+// ...
+func (i *Interpreter) executeFail(step Step, stepNum int) error {
+	if i.logger != nil {
+		i.logger.Info("[DEBUG-INTERP]      Executing FAIL (Step %d)", stepNum+1)
+	}
+	valueNode := step.Value
+	var failMessage string
+	if valueNode != nil {
+		evaluatedValue, evalErr := i.evaluateExpression(valueNode)
+		if evalErr != nil {
+			return fmt.Errorf("evaluating FAIL message: %w", evalErr)
+		}
+		failMessage = fmt.Sprintf("%v", evaluatedValue)
+		if i.logger != nil {
+			i.logger.Info("[DEBUG-INTERP]        FAIL evaluated message: %q", failMessage)
+		}
+	} else {
+		failMessage = "FAIL statement encountered"
+		if i.logger != nil {
+			i.logger.Info("[DEBUG-INTERP]        FAIL with no message (using default)")
+		}
+	}
+	return fmt.Errorf("%w: %s", ErrFailStatement, failMessage)
 }

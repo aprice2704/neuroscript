@@ -43,9 +43,6 @@ type NeuroScriptVisitor interface {
 	// Visit a parse tree produced by NeuroScriptParser#statement.
 	VisitStatement(ctx *StatementContext) interface{}
 
-	// Visit a parse tree produced by NeuroScriptParser#metadata_line_inline.
-	VisitMetadata_line_inline(ctx *Metadata_line_inlineContext) interface{}
-
 	// Visit a parse tree produced by NeuroScriptParser#simple_statement.
 	VisitSimple_statement(ctx *Simple_statementContext) interface{}
 

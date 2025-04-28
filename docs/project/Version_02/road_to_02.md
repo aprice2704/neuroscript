@@ -17,11 +17,11 @@
   - [x] Implement `no`/`some` keyword parsing in expressions.
   - [x] Implement `must`/`mustBe` statement/expression parsing.
   - [x] Implement basic `try`/`catch`/`finally` structure parsing.
-- [x] 2. Implement Core v0.2.0 Semantics (Interpreter Level)
+- [-] 2. Implement Core v0.2.0 Semantics (Interpreter Level)
   - [ ] Implement `askAI`/`askHuman`/`askComputer` execution logic.
   - [ ] Implement initial `handle` mechanism for `ask...` functions (e.g., string identifiers).
   - [ ] Implement direct assignment from `ask...` and returning `call tool...` (e.g., `set result = askAI(...)`).
-  - [ ] Implement multiple return value handling (`returns` clause).
+  - [x] Implement multiple return value handling (`returns` clause). *(Grammar, AST, Interpreter, Semantic Check)*
   - [x] Implement `no`/`some` keyword evaluation logic (runtime type zero-value checks).
   - [x] Ensure standard comparison and arithmetic operators function correctly. *(Verified via test fixes)*
 - [ ] 3. Implement Tree Data Type & Core Tools (Phase 1 / Near-Term)
@@ -40,6 +40,6 @@
   - [x] Standardize internal tool naming to use `tool.` prefix consistently. *(Verified via test fixes)*
   - [ ] Update checklists/docs to reflect standardized tool names.
   - [ ] Begin development of `nsfmt` formatting tool.
-- [ ] 7. Example App -- language flashcards
-  - [ ] Add ability to record sound clips
-  - [ ] Add ability to upload such sound clips
+- [ ] 7. Example App -- language flashcards *(New)*
+  - [ ] Add ability to record sound clips *(New)*
+  - [ ] Add ability to upload such sound clips *(New)*

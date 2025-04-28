@@ -7,9 +7,10 @@ import (
 
 // --- Simple Statement Exit Handlers ---
 
+// ... (ExitSet_statement, ExitCall_statement unchanged) ...
 func (l *neuroScriptListenerImpl) ExitSet_statement(ctx *gen.Set_statementContext) {
 	l.logDebugAST("<<< Exit Set_statement: %q", ctx.GetText())
-	valueNode, ok := l.popValue() // Pop the AST node for the RHS expression
+	valueNode, ok := l.popValue()
 	if !ok {
 		l.logger.Error("AST Builder: Failed to pop value for SET")
 		return
@@ -18,10 +19,8 @@ func (l *neuroScriptListenerImpl) ExitSet_statement(ctx *gen.Set_statementContex
 		l.logger.Warn("Set_statement exited with nil currentSteps")
 		return
 	}
-
 	varName := ctx.IDENTIFIER().GetText()
-	// Use generic newStep, ElseValue is nil for SET
-	step := Step{Type: "set", Target: varName, Value: valueNode}
+	step := newStep("set", varName, nil, valueNode, nil, nil)
 	*l.currentSteps = append(*l.currentSteps, step)
 }
 
@@ -34,16 +33,13 @@ func (l *neuroScriptListenerImpl) ExitCall_statement(ctx *gen.Call_statementCont
 		}
 	}
 
-	argNodes, ok := l.popNValues(numArgs) // Pop arg nodes from stack
+	argNodes, ok := l.popNValues(numArgs)
 	if !ok {
 		if numArgs > 0 {
 			l.logger.Error("AST Builder: Failed to pop %d args for CALL", numArgs)
+			return
 		}
-		if numArgs == 0 {
-			argNodes = []interface{}{} // Valid case: no args popped is okay
-		} else {
-			return // Don't append step if args failed to pop and were expected
-		}
+		argNodes = []interface{}{}
 	}
 
 	if l.currentSteps == nil {
@@ -51,68 +47,86 @@ func (l *neuroScriptListenerImpl) ExitCall_statement(ctx *gen.Call_statementCont
 		return
 	}
 	target := ctx.Call_target().GetText()
-	// Use generic newStep, pass argNodes via Args field
-	step := Step{Type: "call", Target: target, Args: argNodes}
+	step := newStep("call", target, nil, nil, nil, argNodes)
 	*l.currentSteps = append(*l.currentSteps, step)
 }
 
+// FIX: Ensure Step.Value is always nil or []interface{} for return
 func (l *neuroScriptListenerImpl) ExitReturn_statement(ctx *gen.Return_statementContext) {
 	l.logDebugAST("<<< Exit Return_statement: %q", ctx.GetText())
-	var valueNode interface{} = nil // Default nil if no expression
-	if ctx.Expression() != nil {
-		var ok bool
-		valueNode, ok = l.popValue() // Pop the node for the return expression
-		if !ok {
-			l.logger.Error("AST Builder: Failed to pop value for RETURN")
-			// Keep valueNode as nil
+	var returnNodes []interface{} = nil // Default nil if no expression list
+
+	if exprListCtx := ctx.Expression_list(); exprListCtx != nil {
+		numExpr := len(exprListCtx.AllExpression())
+		if numExpr > 0 { // Only pop if there are expressions
+			var ok bool
+			// Pop N nodes from the value stack
+			nodesPopped, ok := l.popNValues(numExpr)
+			if !ok {
+				l.logger.Error("AST Builder: Failed to pop %d value(s) for RETURN", numExpr)
+				returnNodes = nil // Indicate error by setting back to nil? Or append error? For now, nil.
+			} else {
+				returnNodes = nodesPopped // Store the slice of nodes
+				l.logDebugAST("    Popped %d return nodes", len(returnNodes))
+			}
+		} else {
+			// Expression_list context exists but has no expressions (shouldn't happen with current grammar?)
+			l.logger.Warn("RETURN statement has Expression_list context but no expressions found.")
+			returnNodes = []interface{}{} // Represent return with empty list as empty slice? Or nil? Let's try nil.
 		}
+	} else {
+		l.logDebugAST("    RETURN statement has no expression list (value will be nil)")
+		// returnNodes remains nil
 	}
+
 	if l.currentSteps == nil {
 		l.logger.Warn("Return_statement exited with nil currentSteps")
 		return
 	}
-	step := Step{Type: "return", Value: valueNode}
+
+	// Store the slice of expression nodes (or nil) in Step.Value
+	step := newStep("return", "", nil, returnNodes, nil, nil)
 	*l.currentSteps = append(*l.currentSteps, step)
 }
 
 func (l *neuroScriptListenerImpl) ExitEmit_statement(ctx *gen.Emit_statementContext) {
 	l.logDebugAST("<<< Exit Emit_statement: %q", ctx.GetText())
-	var valueNode interface{} = nil // Default nil if no expression
+	var valueNode interface{} = nil
 	if ctx.Expression() != nil {
 		var ok bool
-		valueNode, ok = l.popValue() // Pop the node for the emit expression
+		valueNode, ok = l.popValue()
 		if !ok {
 			l.logger.Error("AST Builder: Failed to pop value for EMIT")
-			// Allow nil value for EMIT
 		}
 	}
 	if l.currentSteps == nil {
 		l.logger.Warn("Emit_statement exited with nil currentSteps")
 		return
 	}
-	step := Step{Type: "emit", Value: valueNode}
+	step := newStep("emit", "", nil, valueNode, nil, nil)
 	*l.currentSteps = append(*l.currentSteps, step)
 }
 
-// --- NEW: Must Statement Handling (v0.2.0) ---
 func (l *neuroScriptListenerImpl) ExitMust_statement(ctx *gen.Must_statementContext) {
 	l.logDebugAST("<<< Exit Must_statement: %q", ctx.GetText())
-	var valueNode interface{} = nil
+	var valueNode interface{}
 	var ok bool
-	stepType := "must" // Default type
+	stepType := "must"
 
-	// Pop the single value from the stack (either the expression or the function call node)
 	valueNode, ok = l.popValue()
 	if !ok {
 		l.logger.Error("AST Builder: Failed to pop value/node for MUST/MUSTBE")
 		return
 	}
 
-	// Determine if it was 'must expression' or 'mustbe function_call'
-	// We can infer from the type of node popped, assuming the grammar is correct.
+	target := "" // Target only relevant for mustbe
 	if _, isFuncCall := valueNode.(FunctionCallNode); isFuncCall {
 		stepType = "mustbe"
-		l.logDebugAST("    Interpreting as MUSTBE")
+		// Safely access FunctionName
+		if fnCall, fnOk := valueNode.(FunctionCallNode); fnOk {
+			target = fnCall.FunctionName
+		}
+		l.logDebugAST("    Interpreting as MUSTBE, Target=%s", target)
 	} else {
 		l.logDebugAST("    Interpreting as MUST")
 	}
@@ -122,33 +136,25 @@ func (l *neuroScriptListenerImpl) ExitMust_statement(ctx *gen.Must_statementCont
 		return
 	}
 
-	// Store the expression/FunctionCallNode in the 'Value' field.
-	// For 'mustbe', the Target field can optionally store the function name if needed later.
-	target := ""
-	if stepType == "mustbe" {
-		target = valueNode.(FunctionCallNode).FunctionName // Store func name in Target for mustbe
-	}
-	step := Step{Type: stepType, Target: target, Value: valueNode}
+	step := newStep(stepType, target, nil, valueNode, nil, nil)
 	*l.currentSteps = append(*l.currentSteps, step)
 	l.logDebugAST("    Appended %s Step: Value=%T", stepType, valueNode)
 }
 
-// --- NEW: Fail Statement Handling (v0.2.0) ---
 func (l *neuroScriptListenerImpl) ExitFail_statement(ctx *gen.Fail_statementContext) {
 	l.logDebugAST("<<< Exit Fail_statement: %q", ctx.GetText())
-	var valueNode interface{} = nil // Default nil if no expression
+	var valueNode interface{} = nil
 	if ctx.Expression() != nil {
 		var ok bool
-		valueNode, ok = l.popValue() // Pop the node for the fail message expression
+		valueNode, ok = l.popValue()
 		if !ok {
 			l.logger.Error("AST Builder: Failed to pop value for FAIL")
-			// Allow nil value for FAIL (will use default message)
 		}
 	}
 	if l.currentSteps == nil {
 		l.logger.Warn("Fail_statement exited with nil currentSteps")
 		return
 	}
-	step := Step{Type: "fail", Value: valueNode}
+	step := newStep("fail", "", nil, valueNode, nil, nil)
 	*l.currentSteps = append(*l.currentSteps, step)
 }
