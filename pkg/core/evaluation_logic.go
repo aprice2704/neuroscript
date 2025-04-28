@@ -33,9 +33,14 @@ func isZeroValue(val interface{}) bool {
 	}
 }
 
-// evaluateUnaryOp performs prefix unary operations (not, -, no, some).
-// Updated to handle NOT correctly based on truthiness.
+// evaluateUnaryOp performs prefix unary operations (not, -, no, some, ~).
+// Updated to handle NOT correctly based on truthiness and add bitwise NOT (~).
 func evaluateUnaryOp(op string, operand interface{}) (interface{}, error) {
+	// Handle nil operand early for operators that require a value
+	if operand == nil && (op == "-" || op == "~") {
+		return nil, fmt.Errorf("%w: unary operator '%s'", ErrNilOperand, op)
+	}
+
 	switch op {
 	// ** Logical NOT **
 	// Uses the language's truthiness rules defined in isTruthy (evaluation_helpers.go)
@@ -54,6 +59,17 @@ func evaluateUnaryOp(op string, operand interface{}) (interface{}, error) {
 		}
 		// Use specific error type if defined, otherwise wrap standard error
 		return nil, fmt.Errorf("%w: unary operator '-' needs number, got %T", ErrInvalidOperandTypeNumeric, operand) // Assuming ErrInvalidOperandTypeNumeric is defined
+
+	// ** Bitwise NOT **
+	// ADDED: Handle '~' operator
+	case "~":
+		iVal, isInt := toInt64(operand)
+		if isInt {
+			// Go uses ^ for bitwise NOT on integers
+			return ^iVal, nil
+		}
+		// Use specific error type for non-integer operands
+		return nil, fmt.Errorf("%w: unary operator '~' needs integer, got %T", ErrInvalidOperandTypeInteger, operand)
 
 	// ** Zero Value Checks **
 	case "no": // Check if operand IS the zero value for its type

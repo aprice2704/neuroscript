@@ -7,6 +7,27 @@ import (
 
 // --- Utility Helpers ---
 
+// FIX: Added parseMetadataLine helper
+// parseMetadataLine extracts the key and value from a metadata line content.
+// Assumes input is the raw text *after* the initial ":: ".
+// Returns key, value, and ok=true if successful.
+func parseMetadataLine(lineContent string) (key string, value string, ok bool) {
+	lineContent = strings.TrimSpace(lineContent)
+	parts := strings.SplitN(lineContent, ":", 2)
+	if len(parts) != 2 {
+		// Malformed line, missing colon or key/value
+		return "", "", false
+	}
+	key = strings.TrimSpace(parts[0])
+	value = strings.TrimSpace(parts[1])
+	if key == "" {
+		// Key cannot be empty
+		return "", "", false
+	}
+	ok = true
+	return
+}
+
 // trimCodeFences removes code fences (```) from the beginning and end of a code string.
 // Handles optional language identifiers and whitespace.
 func trimCodeFences(code string) string {

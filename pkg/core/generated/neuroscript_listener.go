@@ -43,6 +43,9 @@ type NeuroScriptListener interface {
 	// EnterStatement is called when entering the statement production.
 	EnterStatement(c *StatementContext)
 
+	// EnterMetadata_line_inline is called when entering the metadata_line_inline production.
+	EnterMetadata_line_inline(c *Metadata_line_inlineContext)
+
 	// EnterSimple_statement is called when entering the simple_statement production.
 	EnterSimple_statement(c *Simple_statementContext)
 
@@ -192,6 +195,9 @@ type NeuroScriptListener interface {
 
 	// ExitStatement is called when exiting the statement production.
 	ExitStatement(c *StatementContext)
+
+	// ExitMetadata_line_inline is called when exiting the metadata_line_inline production.
+	ExitMetadata_line_inline(c *Metadata_line_inlineContext)
 
 	// ExitSimple_statement is called when exiting the simple_statement production.
 	ExitSimple_statement(c *Simple_statementContext)

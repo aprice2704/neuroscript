@@ -55,6 +55,10 @@ func (v *BaseNeuroScriptVisitor) VisitStatement(ctx *StatementContext) interface
 	return v.VisitChildren(ctx)
 }
 
+func (v *BaseNeuroScriptVisitor) VisitMetadata_line_inline(ctx *Metadata_line_inlineContext) interface{} {
+	return v.VisitChildren(ctx)
+}
+
 func (v *BaseNeuroScriptVisitor) VisitSimple_statement(ctx *Simple_statementContext) interface{} {
 	return v.VisitChildren(ctx)
 }

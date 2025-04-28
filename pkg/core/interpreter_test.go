@@ -2,11 +2,10 @@
 package core
 
 import (
-	"reflect" // Import reflect package
-	"sort"    // Import sort package for stable map key iteration
-	"strings"
+	"errors" // Import errors package for errors.Is
+	"reflect"
+	"sort" // Import sort package for stable map key iteration
 	"testing"
-	// Import sort
 )
 
 // Remove helper functions - MOVED to testing_helpers_test.go
@@ -18,17 +17,19 @@ import (
 */
 
 // --- Test Suite for executeSteps (Blocks, Loops, Tools) ---
+// FIX: Removed errorContains, added ExpectedErrorIs
 type executeStepsTestCase struct {
-	name           string
-	inputSteps     []Step
-	initialVars    map[string]interface{}
-	expectedVars   map[string]interface{}
-	expectedResult interface{} // Expected result from RETURN or last expression if no RETURN
-	expectError    bool
-	errorContains  string
-	// checkOrder removed
+	name            string
+	inputSteps      []Step
+	initialVars     map[string]interface{}
+	expectedVars    map[string]interface{}
+	expectedResult  interface{} // Expected result from RETURN or last expression if no RETURN
+	expectError     bool
+	ExpectedErrorIs error // Use this for errors.Is checks
+	// errorContains  string // REMOVED
 }
 
+// FIX: Updated to use ExpectedErrorIs and errors.Is
 func runExecuteStepsTest(t *testing.T, tc executeStepsTestCase) {
 	t.Helper()
 	// Use NewTestInterpreter from test scope, passing t and handling 2 return values
@@ -41,10 +42,21 @@ func runExecuteStepsTest(t *testing.T, tc executeStepsTestCase) {
 			t.Errorf("Test %q: Expected an error, but got nil", tc.name)
 			return
 		}
-		if tc.errorContains != "" && !strings.Contains(err.Error(), tc.errorContains) {
-			t.Errorf("Test %q: Expected error containing %q, but got: %v", tc.name, tc.errorContains, err)
+		// *** Check for specific sentinel error using errors.Is ***
+		if tc.ExpectedErrorIs != nil {
+			if !errors.Is(err, tc.ExpectedErrorIs) {
+				t.Errorf("Test %q: Error mismatch.\nExpected error wrapping: [%v]\nGot:                     [%v]", tc.name, tc.ExpectedErrorIs, err)
+			} else {
+				// Log confirmation when the correct specific error is found
+				t.Logf("Test %q: Got expected error wrapping [%v]: %v", tc.name, tc.ExpectedErrorIs, err)
+			}
+		} else {
+			// If expectError is true, but no specific error is set, log it.
+			t.Logf("Test %q: Got expected error (no specific sentinel check provided): %v", tc.name, err)
 		}
-	} else {
+		// *** Removed errorContains check ***
+
+	} else { // No error wanted
 		if err != nil {
 			t.Errorf("Test %q: Unexpected error: %v", tc.name, err)
 		}
@@ -151,14 +163,12 @@ func TestExecuteStepsBlocksAndLoops(t *testing.T) {
 			expectedResult: nil, expectError: false,
 		},
 
-		// *** FIX: Update FOR EACH List/Map tests to handle string/number concatenation ***
+		// FOR EACH List/Map tests (errors expected due to type mismatches with '+')
 		{
 			name: "FOR EACH list literal",
 			inputSteps: []Step{
 				createTestStep("SET", "output", StringLiteralNode{Value: ""}, nil),
 				createForStep("item", ListLiteralNode{Elements: []interface{}{NumberLiteralNode{Value: int64(1)}, StringLiteralNode{Value: "X"}, BooleanLiteralNode{Value: true}, ListLiteralNode{Elements: []interface{}{StringLiteralNode{Value: "nest"}}}}}, []Step{
-					// Need to handle the types explicitly, e.g., by converting number to string if concat is intended
-					// Simulating this by expecting an error for now, as '+' will fail on string+int64
 					createTestStep("SET", "output",
 						BinaryOpNode{
 							Left:     BinaryOpNode{Left: VariableNode{Name: "output"}, Operator: "+", Right: VariableNode{Name: "item"}},
@@ -166,26 +176,26 @@ func TestExecuteStepsBlocksAndLoops(t *testing.T) {
 						}, nil),
 				}),
 			},
-			initialVars:   map[string]interface{}{},
-			expectedVars:  map[string]interface{}{"output": ""}, // Output shouldn't change before error
-			expectError:   true,
-			errorContains: "invalid operand type: operator '+' cannot mix numeric and string types",
+			initialVars:  map[string]interface{}{},
+			expectedVars: map[string]interface{}{"output": ""}, // Output shouldn't change before error
+			expectError:  true,
+			// FIX: Expect the sentinel error for invalid '+' operation
+			ExpectedErrorIs: ErrInvalidOperandType, // '+' error between numeric/string
 		},
 		{
 			name: "FOR EACH list variable",
 			inputSteps: []Step{
 				createTestStep("SET", "output", StringLiteralNode{Value: ""}, nil),
 				createForStep("val", VariableNode{Name: "myListVar"}, []Step{
-					// Simulating error on the third iteration (string + int64)
 					createTestStep("SET", "output", BinaryOpNode{Left: VariableNode{Name: "output"}, Operator: "+", Right: VariableNode{Name: "val"}}, nil),
 				}),
 			},
-			initialVars:   map[string]interface{}{"myListVar": []interface{}{"A", "B", int64(3)}},
-			expectedVars:  map[string]interface{}{"myListVar": []interface{}{"A", "B", int64(3)}, "output": "AB"}, // Output stops at "AB" before error
-			expectError:   true,
-			errorContains: "invalid operand type: operator '+' cannot mix numeric and string types",
+			initialVars:  map[string]interface{}{"myListVar": []interface{}{"A", "B", int64(3)}},
+			expectedVars: map[string]interface{}{"myListVar": []interface{}{"A", "B", int64(3)}, "output": "AB"}, // Output stops at "AB" before error
+			expectError:  true,
+			// FIX: Expect the sentinel error for invalid '+' operation
+			ExpectedErrorIs: ErrInvalidOperandType, // '+' error between string/numeric
 		},
-		// *** END FIX ***
 
 		// FOR EACH Map Iteration (Keys)
 		{
@@ -201,7 +211,7 @@ func TestExecuteStepsBlocksAndLoops(t *testing.T) {
 				}),
 			},
 			initialVars:    map[string]interface{}{},
-			expectedVars:   map[string]interface{}{"output": "a,b,"},
+			expectedVars:   map[string]interface{}{"output": "a,b,"}, // Map iteration order is stable
 			expectedResult: nil, expectError: false,
 		},
 		{
@@ -213,15 +223,16 @@ func TestExecuteStepsBlocksAndLoops(t *testing.T) {
 				}),
 			},
 			initialVars:    map[string]interface{}{"myMap": map[string]interface{}{"z": true, "x": "hello", "a": 1}},
-			expectedVars:   map[string]interface{}{"myMap": map[string]interface{}{"z": true, "x": "hello", "a": 1}, "output": "axz"},
+			expectedVars:   map[string]interface{}{"myMap": map[string]interface{}{"z": true, "x": "hello", "a": 1}, "output": "axz"}, // Map iteration order is stable
 			expectedResult: nil, expectError: false,
 		},
 
 		// Tool Call Tests
-		{name: "CALL TOOL StringLength AST", inputSteps: []Step{createTestStep("SET", "myStr", StringLiteralNode{Value: "Test"}, nil), createTestStep("CALL", "StringLength", nil, []interface{}{VariableNode{Name: "myStr"}}), createTestStep("SET", "lenResult", LastNode{}, nil)}, initialVars: map[string]interface{}{}, expectedVars: map[string]interface{}{"myStr": "Test", "lenResult": int64(4)}, expectedResult: nil, expectError: false},
-		{name: "CALL TOOL Substring AST", inputSteps: []Step{createTestStep("CALL", "Substring", nil, []interface{}{StringLiteralNode{Value: "ABCDE"}, NumberLiteralNode{Value: int64(1)}, NumberLiteralNode{Value: int64(4)}}), createTestStep("SET", "sub", LastNode{}, nil)}, initialVars: map[string]interface{}{}, expectedVars: map[string]interface{}{"sub": "BCD"}, expectedResult: nil, expectError: false},
-		{name: "CALL TOOL Substring Wrong Arg Type AST", inputSteps: []Step{createTestStep("CALL", "Substring", nil, []interface{}{StringLiteralNode{Value: "hello"}, StringLiteralNode{Value: "one"}, NumberLiteralNode{Value: int64(3)}})}, initialVars: map[string]interface{}{}, expectedResult: nil, expectError: true, errorContains: "cannot be converted to int"},
-		{name: "CALL TOOL JoinStrings with ListLiteral", inputSteps: []Step{createTestStep("CALL", "JoinStrings", nil, []interface{}{ListLiteralNode{Elements: []interface{}{StringLiteralNode{Value: "A"}, NumberLiteralNode{Value: int64(1)}, BooleanLiteralNode{Value: true}}}, StringLiteralNode{Value: "-"}}), createTestStep("SET", "joined", LastNode{}, nil)}, initialVars: map[string]interface{}{}, expectedVars: map[string]interface{}{"joined": "A-1-true"}, expectedResult: nil, expectError: false},
+		{name: "CALL TOOL StringLength AST", inputSteps: []Step{createTestStep("SET", "myStr", StringLiteralNode{Value: "Test"}, nil), createTestStep("CALL", "TOOL.StringLength", nil, []interface{}{VariableNode{Name: "myStr"}}), createTestStep("SET", "lenResult", LastNode{}, nil)}, initialVars: map[string]interface{}{}, expectedVars: map[string]interface{}{"myStr": "Test", "lenResult": int64(4)}, expectedResult: nil, expectError: false},
+		{name: "CALL TOOL Substring AST", inputSteps: []Step{createTestStep("CALL", "TOOL.Substring", nil, []interface{}{StringLiteralNode{Value: "ABCDE"}, NumberLiteralNode{Value: int64(1)}, NumberLiteralNode{Value: int64(4)}}), createTestStep("SET", "sub", LastNode{}, nil)}, initialVars: map[string]interface{}{}, expectedVars: map[string]interface{}{"sub": "BCD"}, expectedResult: nil, expectError: false},
+		// FIX: Use ExpectedErrorIs with ErrValidationTypeMismatch per Rule #16
+		{name: "CALL TOOL Substring Wrong Arg Type AST", inputSteps: []Step{createTestStep("CALL", "TOOL.Substring", nil, []interface{}{StringLiteralNode{Value: "hello"}, StringLiteralNode{Value: "one"}, NumberLiteralNode{Value: int64(3)}})}, initialVars: map[string]interface{}{}, expectedResult: nil, expectError: true, ExpectedErrorIs: ErrValidationTypeMismatch},
+		{name: "CALL TOOL JoinStrings with ListLiteral", inputSteps: []Step{createTestStep("CALL", "TOOL.JoinStrings", nil, []interface{}{ListLiteralNode{Elements: []interface{}{StringLiteralNode{Value: "A"}, NumberLiteralNode{Value: int64(1)}, BooleanLiteralNode{Value: true}}}, StringLiteralNode{Value: "-"}}), createTestStep("SET", "joined", LastNode{}, nil)}, initialVars: map[string]interface{}{}, expectedVars: map[string]interface{}{"joined": "A-1-true"}, expectedResult: nil, expectError: false},
 	} // End testCases slice
 
 	// Run tests

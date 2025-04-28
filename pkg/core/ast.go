@@ -1,14 +1,15 @@
 // pkg/core/ast.go
 package core
 
-// --- Expression Node Types (Unchanged from previous version) ---
+// --- Expression Node Types (Unchanged) ---
+// ... (VariableNode, PlaceholderNode, etc. as before) ...
 type VariableNode struct{ Name string }
 type PlaceholderNode struct{ Name string }
 type LastNode struct{}
 type EvalNode struct{ Argument interface{} } // For EVAL() function
 type StringLiteralNode struct {
 	Value string
-	IsRaw bool
+	IsRaw bool // True if TRIPLE_BACKTICK_STRING
 }
 type NumberLiteralNode struct{ Value interface{} } // Holds int64 or float64
 type BooleanLiteralNode struct{ Value bool }
@@ -40,9 +41,10 @@ type FunctionCallNode struct {
 
 type Procedure struct {
 	Name              string
-	RequiredParams    []string // From 'needs' clause
-	OptionalParams    []string // From 'optional' clause
-	ReturnVarNames    []string // From 'returns' clause
+	RequiredParams    []string          // From 'needs' clause
+	OptionalParams    []string          // From 'optional' clause
+	ReturnVarNames    []string          // From 'returns' clause
+	Metadata          map[string]string // FIX: Added map to store parsed :: metadata
 	Steps             []Step
 	OriginalSignature string
 }
@@ -58,22 +60,23 @@ type Step struct {
 	CatchSteps     []Step        // Steps for the CATCH block
 	FinallySteps   []Step        // Steps for the FINALLY block
 	SourceLineInfo string        // Optional: Store original line number/content for debugging
+	// FIX: Added map for inline metadata (maybe needed later, initialize for now)
+	Metadata map[string]string
 }
 
 // newStep helper function - ensures correct assignment for Args
 func newStep(typ, target string, cond, value, elseValue interface{}, args []interface{}) Step {
-	// Signature correctly takes args as []interface{}
 	s := Step{
 		Type:         typ,
 		Target:       target,
 		Cond:         cond,
 		Value:        value,
 		ElseValue:    elseValue,
-		Args:         args, // Direct assignment is correct here
-		CatchVar:     "",   // Initialize explicitly
-		CatchSteps:   nil,  // Initialize explicitly
-		FinallySteps: nil,  // Initialize explicitly
+		Args:         args,
+		CatchVar:     "",
+		CatchSteps:   nil,
+		FinallySteps: nil,
+		Metadata:     make(map[string]string), // FIX: Initialize metadata map
 	}
-	// Specific setting for CatchVar, CatchSteps, FinallySteps done in ExitTry_statement listener method.
 	return s
 }

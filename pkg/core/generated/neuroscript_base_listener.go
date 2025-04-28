@@ -92,6 +92,12 @@ func (s *BaseNeuroScriptListener) EnterStatement(ctx *StatementContext) {}
 // ExitStatement is called when production statement is exited.
 func (s *BaseNeuroScriptListener) ExitStatement(ctx *StatementContext) {}
 
+// EnterMetadata_line_inline is called when production metadata_line_inline is entered.
+func (s *BaseNeuroScriptListener) EnterMetadata_line_inline(ctx *Metadata_line_inlineContext) {}
+
+// ExitMetadata_line_inline is called when production metadata_line_inline is exited.
+func (s *BaseNeuroScriptListener) ExitMetadata_line_inline(ctx *Metadata_line_inlineContext) {}
+
 // EnterSimple_statement is called when production simple_statement is entered.
 func (s *BaseNeuroScriptListener) EnterSimple_statement(ctx *Simple_statementContext) {}
 
