@@ -52,12 +52,18 @@ const (
 	ErrorCodeClearViolation  = 13 // 'clear_error' used outside 'on_error'
 	ErrorCodeDivisionByZero  = 14 // Division by zero
 	ErrorCodeSyntax          = 15 // Syntax error during parsing or interpretation
+
+	// --- NEW Codes for ask... ---
+	ErrorCodeLLMError               = 16 // Error during LLM API call or processing
+	ErrorCodeHumanInteractionError  = 17 // Error during askHuman interaction (future use)
+	ErrorCodeComputerExecutionError = 18 // Error during askComputer specific logic (if distinct from tool errors)
+	// --- End NEW Codes ---
+
 	// ... add more specific codes ...
 	ErrorCodeToolSpecific = 1000 // Base for tool-specific errors
 )
 
 // --- Core Validation Errors ---
-// (Keep existing sentinel errors - they might be used internally or wrapped)
 var (
 	ErrValidationRequiredArgNil = errors.New("required argument is nil")
 	ErrValidationTypeMismatch   = errors.New("argument type mismatch")
@@ -141,8 +147,11 @@ var (
 	ErrFailStatement        = errors.New("execution halted by FAIL statement")
 	ErrInternal             = errors.New("internal interpreter error")
 	ErrReadOnlyViolation    = errors.New("attempt to modify read-only variable")
-	ErrUnsupportedSyntax    = errors.New("unsupported syntax") // Used for invalid tool call format etc.
+	ErrUnsupportedSyntax    = errors.New("unsupported syntax")
 	ErrClearViolation       = errors.New("clear_error used outside on_error block")
 	ErrReturnViolation      = errors.New("'return' statement is not permitted inside an on_error block")
 	ErrToolNotFound         = errors.New("tool or tool function not found")
+	// --- NEW Sentinels for ask... ---
+	ErrLLMError = errors.New("LLM interaction failed") // Used in executeAskAI
+	// --- End NEW Sentinels ---
 )
