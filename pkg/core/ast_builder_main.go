@@ -2,13 +2,28 @@
 package core
 
 import (
-	"fmt"     // Needed for Unquote if used elsewhere
-	"strings" // Needed for metadata parsing
+	"errors" // Import errors package
+	"fmt"
+	"strings"
 
 	"github.com/antlr4-go/antlr/v4" // Import antlr
 	gen "github.com/aprice2704/neuroscript/pkg/core/generated"
 	"github.com/aprice2704/neuroscript/pkg/logging"
 )
+
+// --- Position Helper ---
+
+// tokenToPosition converts an ANTLR token to a core.Position.
+func tokenToPosition(token antlr.Token) *Position {
+	if token == nil {
+		return nil // Or return a default position?
+	}
+	return &Position{
+		Line:   token.GetLine(),
+		Column: token.GetColumn() + 1, // ANTLR columns are 0-based, prefer 1-based
+		File:   token.GetInputStream().GetSourceName(),
+	}
+}
 
 // --- ASTBuilder (Exported Constructor and Build Method) ---
 
@@ -21,7 +36,8 @@ type ASTBuilder struct {
 // NewASTBuilder creates a new ASTBuilder instance.
 func NewASTBuilder(logger logging.Logger) *ASTBuilder {
 	if logger == nil {
-		logger = &coreNoOpLogger{}
+		// Using the NoOpLogger from adapters for safety
+		logger = &coreNoOpLogger{} // Assumes NoOpLogger is available in core or adapters package
 		logger.Warn("ASTBuilder created with nil logger, using NoOpLogger.")
 	}
 	return &ASTBuilder{
@@ -31,6 +47,7 @@ func NewASTBuilder(logger logging.Logger) *ASTBuilder {
 }
 
 // Build takes an ANTLR parse tree and constructs the NeuroScript Program AST (*core.Program).
+// *** MODIFIED: Checks for errors collected by the listener. ***
 func (b *ASTBuilder) Build(tree antlr.Tree) (*Program, error) {
 	if tree == nil {
 		return nil, fmt.Errorf("cannot build AST from nil parse tree")
@@ -44,90 +61,141 @@ func (b *ASTBuilder) Build(tree antlr.Tree) (*Program, error) {
 	walker := antlr.NewParseTreeWalker()
 	walker.Walk(listener, tree)
 
+	// Check for errors collected during the walk
+	if len(listener.errors) > 0 {
+		// Return the first error encountered
+		return nil, listener.errors[0]
+	}
+
 	// Assemble Program AST using collected metadata and procedures.
-	programAST := &Program{
-		Metadata:   listener.GetFileMetadata(), // Get collected metadata
-		Procedures: listener.GetResult(),
+	programAST := listener.program // Get the assembled program
+
+	if programAST == nil {
+		// Should not happen if no errors were reported, but check defensively
+		return nil, errors.New("AST build completed without errors, but resulted in a nil program AST")
 	}
 
 	b.logger.Debug("AST build process completed successfully.")
-	// TODO: Add error collection/checking to the listener if needed. Currently returns nil error.
 	return programAST, nil
 }
 
 // --- neuroScriptListenerImpl (Internal Listener Implementation) ---
 
 // neuroScriptListenerImpl builds the AST using the Listener pattern.
+// *** MODIFIED: Added program field and errors slice. ***
 type neuroScriptListenerImpl struct {
 	*gen.BaseNeuroScriptListener
+	program        *Program          // Field to hold the final program AST
 	fileMetadata   map[string]string // For file-level metadata
 	procedures     []Procedure
 	currentProc    *Procedure
 	currentSteps   *[]Step
 	blockStepStack []*[]Step
 	valueStack     []interface{}
-	currentMapKey  *StringLiteralNode // Assuming this is used for map literal parsing elsewhere
-	blockSteps     map[antlr.ParserRuleContext][]Step
-	// isInFileMetadataBlock bool // REMOVED: No longer needed with file_header rule
+	currentMapKey  *StringLiteralNode // Keep for map literal building
+	// blockSteps     map[antlr.ParserRuleContext][]Step // REMOVED: Direct building preferred over map
 	logger   logging.Logger
 	debugAST bool
+	errors   []error // Slice to collect errors during build
 }
 
 // newNeuroScriptListener creates a new listener instance.
 func newNeuroScriptListener(logger logging.Logger, debugAST bool) *neuroScriptListenerImpl {
 	return &neuroScriptListenerImpl{
+		program:        &Program{}, // Initialize program struct
 		fileMetadata:   make(map[string]string),
 		procedures:     make([]Procedure, 0),
 		blockStepStack: make([]*[]Step, 0),
 		valueStack:     make([]interface{}, 0, 10),
-		blockSteps:     make(map[antlr.ParserRuleContext][]Step),
-		// isInFileMetadataBlock: false, // REMOVED
+		// blockSteps:     make(map[antlr.ParserRuleContext][]Step), // REMOVED
 		logger:   logger,
 		debugAST: debugAST,
+		errors:   make([]error, 0), // Initialize errors slice
 	}
+}
+
+// --- Listener Error Handling ---
+
+// addError records an error encountered during AST building.
+func (l *neuroScriptListenerImpl) addError(ctx antlr.ParserRuleContext, format string, args ...interface{}) {
+	pos := tokenToPosition(ctx.GetStart())
+	errMsg := fmt.Sprintf(format, args...)
+	err := fmt.Errorf("AST build error at %s: %s", pos.String(), errMsg)
+	l.errors = append(l.errors, err)
+	l.logger.Error(err.Error()) // Log the error immediately as well
+}
+
+// addErrorf creates and adds an error with file/line info.
+func (l *neuroScriptListenerImpl) addErrorf(token antlr.Token, format string, args ...interface{}) {
+	pos := tokenToPosition(token)
+	errMsg := fmt.Sprintf(format, args...)
+	err := fmt.Errorf("AST build error near %s: %s", pos.String(), errMsg)
+	l.errors = append(l.errors, err)
+	l.logger.Error(err.Error())
 }
 
 // --- Listener Getters ---
 
 // GetFileMetadata returns the collected file-level metadata.
 func (l *neuroScriptListenerImpl) GetFileMetadata() map[string]string {
-	return l.fileMetadata
+	// Return from the program struct
+	if l.program != nil {
+		return l.program.Metadata
+	}
+	return l.fileMetadata // Fallback just in case
 }
 
-func (l *neuroScriptListenerImpl) GetResult() []Procedure { return l.procedures }
+// GetResult returns the collected procedures (now part of Program).
+func (l *neuroScriptListenerImpl) GetResult() []Procedure {
+	// Return from the program struct
+	if l.program != nil {
+		return l.program.Procedures
+	}
+	return l.procedures // Fallback
+}
 
-// --- Listener Stack Helpers (Unchanged) ---
+// --- Listener Stack Helpers ---
+// *** MODIFIED: Add error reporting on stack issues ***
 
 func (l *neuroScriptListenerImpl) pushValue(v interface{}) {
 	l.valueStack = append(l.valueStack, v)
-	l.logDebugAST("      Pushed Value: %T %+v (Stack size: %d)", v, v, len(l.valueStack))
+	// Use more detailed logging if debugAST is on
+	if l.debugAST {
+		l.logDebugAST("      Pushed Value: %T %+v (Stack size: %d)", v, v, len(l.valueStack))
+	}
 }
 
 func (l *neuroScriptListenerImpl) popValue() (interface{}, bool) {
 	if len(l.valueStack) == 0 {
 		l.logger.Error("AST Builder: Pop from empty value stack!")
+		// Add error to listener errors - use a generic context if none available
+		l.errors = append(l.errors, errors.New("AST builder internal error: attempted pop from empty value stack"))
 		return nil, false
 	}
 	index := len(l.valueStack) - 1
 	value := l.valueStack[index]
 	l.valueStack = l.valueStack[:index]
-	l.logDebugAST("      Popped Value: %T %+v (Stack size: %d)", value, value, len(l.valueStack))
+	if l.debugAST {
+		l.logDebugAST("      Popped Value: %T %+v (Stack size: %d)", value, value, len(l.valueStack))
+	}
 	return value, true
 }
 
 func (l *neuroScriptListenerImpl) popNValues(n int) ([]interface{}, bool) {
+	if n < 0 {
+		l.logger.Error("AST Builder: popNValues called with negative count", "n", n)
+		l.errors = append(l.errors, fmt.Errorf("AST builder internal error: popNValues called with negative count %d", n))
+		return nil, false
+	}
 	if len(l.valueStack) < n {
 		l.logger.Error("AST Builder: Stack underflow pop %d, have %d.", n, len(l.valueStack))
+		l.errors = append(l.errors, fmt.Errorf("AST builder internal error: stack underflow, needed %d values, only have %d", n, len(l.valueStack)))
 		return nil, false
 	}
 	startIndex := len(l.valueStack) - n
 	values := make([]interface{}, n)
-	if len(l.valueStack) >= startIndex+n {
-		copy(values, l.valueStack[startIndex:])
-	} else {
-		l.logger.Error("AST Builder: Slice bounds out of range during popNValues.", "n", n, "stack_size", len(l.valueStack), "start_index", startIndex)
-		return nil, false
-	}
+	// Safe copy
+	copy(values, l.valueStack[startIndex:])
 	l.valueStack = l.valueStack[:startIndex]
 	l.logDebugAST("      Popped %d Values (Stack size: %d)", n, len(l.valueStack))
 	return values, true
@@ -145,12 +213,21 @@ func (l *neuroScriptListenerImpl) logDebugAST(format string, v ...interface{}) {
 
 func (l *neuroScriptListenerImpl) EnterProgram(ctx *gen.ProgramContext) {
 	l.logDebugAST(">>> Enter Program")
-	l.procedures = make([]Procedure, 0)
-	l.fileMetadata = make(map[string]string) // Reset file metadata
+	l.program = &Program{ // Initialize the program AST node
+		Metadata:   make(map[string]string),
+		Procedures: make([]Procedure, 0),
+		Pos:        tokenToPosition(ctx.GetStart()), // Record start position
+	}
+	l.fileMetadata = l.program.Metadata // Use program's metadata map
+	l.procedures = l.program.Procedures // Use program's procedures slice
+	l.errors = make([]error, 0)         // Reset errors for this build
 }
 
 func (l *neuroScriptListenerImpl) ExitProgram(ctx *gen.ProgramContext) {
-	l.logDebugAST("<<< Exit Program (Metadata Keys: %v)", MapKeysListener(l.fileMetadata))
+	// Update program fields after visiting children
+	l.program.Metadata = l.fileMetadata
+	l.program.Procedures = l.procedures
+	l.logDebugAST("<<< Exit Program (Metadata Keys: %v, Procedures: %d, Errors: %d)", MapKeysListener(l.program.Metadata), len(l.program.Procedures), len(l.errors))
 }
 
 // --- MODIFIED: Metadata Handling via file_header ---
@@ -163,6 +240,7 @@ func (l *neuroScriptListenerImpl) EnterFile_header(ctx *gen.File_headerContext) 
 		// Check if the child is a METADATA_LINE terminal node
 		if termNode, ok := child.(antlr.TerminalNode); ok && termNode.GetSymbol().GetTokenType() == gen.NeuroScriptLexerMETADATA_LINE {
 			lineText := termNode.GetText()
+			token := termNode.GetSymbol()
 			l.logDebugAST("   - Processing File Metadata Line: %s", lineText)
 			// Parse the line
 			lineText = strings.TrimSpace(lineText)
@@ -173,17 +251,18 @@ func (l *neuroScriptListenerImpl) EnterFile_header(ctx *gen.File_headerContext) 
 					key := strings.TrimSpace(parts[0])
 					value := strings.TrimSpace(parts[1]) // TODO: Handle potential quoting/escaping
 					if key != "" {
-						l.fileMetadata[key] = value
+						// Use program's metadata map directly
+						l.program.Metadata[key] = value
 						l.logDebugAST("     Stored File Metadata: '%s' = '%s'", key, value)
 					} else {
-						l.logger.Warn("Ignoring file metadata line with empty key", "line", lineText)
+						l.addErrorf(token, "Ignoring file metadata line with empty key")
 					}
 				} else {
-					l.logger.Warn("Ignoring malformed file metadata line (missing or misplaced ':'?)", "line", lineText)
+					l.addErrorf(token, "Ignoring malformed file metadata line (missing or misplaced ':'?)")
 				}
 			} else {
 				// Should not happen if lexer rule is correct
-				l.logger.Warn("Unexpected line format in file_header (missing '::'?)", "line", lineText)
+				l.addErrorf(token, "Unexpected line format in file_header (missing '::'?)")
 			}
 		}
 		// Ignore NEWLINE tokens within the file_header
@@ -193,11 +272,6 @@ func (l *neuroScriptListenerImpl) EnterFile_header(ctx *gen.File_headerContext) 
 func (l *neuroScriptListenerImpl) ExitFile_header(ctx *gen.File_headerContext) {
 	l.logDebugAST("  << Exit File Header")
 }
-
-// REMOVED: Enter/ExitMetadata_block are no longer needed for file-level metadata
-// func (l *neuroScriptListenerImpl) EnterMetadata_block(ctx *gen.Metadata_blockContext) { ... }
-// func (l *neuroScriptListenerImpl) ExitMetadata_block(ctx *gen.Metadata_blockContext) { ... }
-// Procedure-level metadata is handled within EnterProcedure_definition now.
 
 // --- END MODIFIED Methods ---
 
@@ -213,6 +287,19 @@ func MapKeysListener(m map[string]string) []string {
 	return keys
 }
 
-// IMPORTANT: Ensure that listener methods for procedure definitions, statements,
-// and expressions are implemented correctly in other ast_builder_*.go files
-// or within this file.
+// --- Methods to be implemented in other ast_builder_*.go files ---
+// EnterProcedure_definition, ExitProcedure_definition
+// EnterSet_stmt, ExitSet_stmt
+// EnterReturn_stmt, ExitReturn_stmt
+// EnterIf_stmt, ExitIf_stmt
+// EnterWhile_stmt, ExitWhile_stmt
+// EnterFor_stmt, ExitFor_stmt
+// EnterMust_stmt, ExitMust_stmt
+// EnterMustbe_stmt, ExitMustbe_stmt
+// EnterFail_stmt, ExitFail_stmt
+// EnterOn_error_handler, ExitOn_error_handler
+// EnterCall_expr, ExitCall_expr
+// EnterLiteral_expr, ExitLiteral_expr
+// EnterVariable_expr, ExitVariable_expr
+// EnterBinary_op_expr, ExitBinary_op_expr
+// etc...

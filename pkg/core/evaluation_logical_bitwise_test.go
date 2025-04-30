@@ -1,12 +1,14 @@
+// filename: pkg/core/evaluation_logical_bitwise_test.go
 package core
 
 import (
 	"testing"
+	// Assuming Position is defined in this package (e.g., ast.go)
+	// No sub-package import needed.
 )
 
 // --- Test Suite for Logical and Bitwise Operations ---
 func TestLogicalBitwiseOps(t *testing.T) {
-	// FIX: Added list/map variables
 	vars := map[string]interface{}{
 		"trueVar":      true,
 		"falseVar":     false,
@@ -30,170 +32,200 @@ func TestLogicalBitwiseOps(t *testing.T) {
 	}
 	lastResult := "LastResult" // Placeholder for LAST tests, value doesn't matter here
 
+	// Define dummyPos using local Position type pointer
+	dummyPos := &Position{Line: 1, Column: 1}
+
 	tests := []EvalTestCase{
 		// --- NOT Operator ---
-		{"NOT True Literal", UnaryOpNode{Operator: "NOT", Operand: BooleanLiteralNode{Value: true}}, vars, lastResult, false, false, nil},
-		{"NOT False Literal", UnaryOpNode{Operator: "NOT", Operand: BooleanLiteralNode{Value: false}}, vars, lastResult, true, false, nil},
-		{"NOT True Var", UnaryOpNode{Operator: "NOT", Operand: VariableNode{Name: "trueVar"}}, vars, lastResult, false, false, nil},
-		{"NOT False Var", UnaryOpNode{Operator: "NOT", Operand: VariableNode{Name: "falseVar"}}, vars, lastResult, true, false, nil},
-		{"NOT Num NonZero", UnaryOpNode{Operator: "NOT", Operand: VariableNode{Name: "numOne"}}, vars, lastResult, false, false, nil},             // 1 is truthy, NOT 1 is false
-		{"NOT Num Zero", UnaryOpNode{Operator: "NOT", Operand: VariableNode{Name: "numZero"}}, vars, lastResult, true, false, nil},                // 0 is falsy, NOT 0 is true
-		{"NOT Str Empty", UnaryOpNode{Operator: "NOT", Operand: VariableNode{Name: "strEmpty"}}, vars, lastResult, true, false, nil},              // "" is falsy, NOT "" is true
-		{"NOT Str Other", UnaryOpNode{Operator: "NOT", Operand: VariableNode{Name: "strOther"}}, vars, lastResult, true, false, nil},              // "hello" is falsy, NOT "hello" is true
-		{"NOT Str True", UnaryOpNode{Operator: "NOT", Operand: VariableNode{Name: "strTrue"}}, vars, lastResult, false, false, nil},               // "true" is truthy, NOT "true" is false
-		{"NOT Nil", UnaryOpNode{Operator: "NOT", Operand: VariableNode{Name: "nilVar"}}, vars, lastResult, true, false, nil},                      // nil is falsy, NOT nil is true
-		{"NOT Empty List", UnaryOpNode{Operator: "NOT", Operand: VariableNode{Name: "emptyListVar"}}, vars, lastResult, true, false, nil},         // [] is falsy, NOT [] is true
-		{"NOT List", UnaryOpNode{Operator: "NOT", Operand: VariableNode{Name: "listVar"}}, vars, lastResult, false, false, nil},                   // [1,"a"] is truthy, NOT [...] is false
-		{"NOT Empty Map", UnaryOpNode{Operator: "NOT", Operand: VariableNode{Name: "emptyMapVar"}}, vars, lastResult, true, false, nil},           // {} is falsy, NOT {} is true
-		{"NOT Map", UnaryOpNode{Operator: "NOT", Operand: VariableNode{Name: "mapVar"}}, vars, lastResult, false, false, nil},                     // {k:v} is truthy, NOT {...} is false
-		{"NOT Not Found", UnaryOpNode{Operator: "NOT", Operand: VariableNode{Name: "missing"}}, vars, lastResult, nil, true, ErrVariableNotFound}, // Expect error
+		// *** CORRECTED: Add & to node literals where Expression is expected ***
+		{"NOT True Literal", &UnaryOpNode{Pos: dummyPos, Operator: "NOT", Operand: &BooleanLiteralNode{Pos: dummyPos, Value: true}}, vars, lastResult, false, false, nil},
+		{"NOT False Literal", &UnaryOpNode{Pos: dummyPos, Operator: "NOT", Operand: &BooleanLiteralNode{Pos: dummyPos, Value: false}}, vars, lastResult, true, false, nil},
+		{"NOT True Var", &UnaryOpNode{Pos: dummyPos, Operator: "NOT", Operand: &VariableNode{Pos: dummyPos, Name: "trueVar"}}, vars, lastResult, false, false, nil},
+		{"NOT False Var", &UnaryOpNode{Pos: dummyPos, Operator: "NOT", Operand: &VariableNode{Pos: dummyPos, Name: "falseVar"}}, vars, lastResult, true, false, nil},
+		{"NOT Num NonZero", &UnaryOpNode{Pos: dummyPos, Operator: "NOT", Operand: &VariableNode{Pos: dummyPos, Name: "numOne"}}, vars, lastResult, false, false, nil},
+		{"NOT Num Zero", &UnaryOpNode{Pos: dummyPos, Operator: "NOT", Operand: &VariableNode{Pos: dummyPos, Name: "numZero"}}, vars, lastResult, true, false, nil},
+		{"NOT Str Empty", &UnaryOpNode{Pos: dummyPos, Operator: "NOT", Operand: &VariableNode{Pos: dummyPos, Name: "strEmpty"}}, vars, lastResult, true, false, nil},
+		{"NOT Str Other", &UnaryOpNode{Pos: dummyPos, Operator: "NOT", Operand: &VariableNode{Pos: dummyPos, Name: "strOther"}}, vars, lastResult, true, false, nil},
+		{"NOT Str True", &UnaryOpNode{Pos: dummyPos, Operator: "NOT", Operand: &VariableNode{Pos: dummyPos, Name: "strTrue"}}, vars, lastResult, false, false, nil},
+		{"NOT Nil", &UnaryOpNode{Pos: dummyPos, Operator: "NOT", Operand: &VariableNode{Pos: dummyPos, Name: "nilVar"}}, vars, lastResult, true, false, nil},
+		{"NOT Empty List", &UnaryOpNode{Pos: dummyPos, Operator: "NOT", Operand: &VariableNode{Pos: dummyPos, Name: "emptyListVar"}}, vars, lastResult, true, false, nil},
+		{"NOT List", &UnaryOpNode{Pos: dummyPos, Operator: "NOT", Operand: &VariableNode{Pos: dummyPos, Name: "listVar"}}, vars, lastResult, false, false, nil},
+		{"NOT Empty Map", &UnaryOpNode{Pos: dummyPos, Operator: "NOT", Operand: &VariableNode{Pos: dummyPos, Name: "emptyMapVar"}}, vars, lastResult, true, false, nil},
+		{"NOT Map", &UnaryOpNode{Pos: dummyPos, Operator: "NOT", Operand: &VariableNode{Pos: dummyPos, Name: "mapVar"}}, vars, lastResult, false, false, nil},
+		{"NOT Not Found", &UnaryOpNode{Pos: dummyPos, Operator: "NOT", Operand: &VariableNode{Pos: dummyPos, Name: "missing"}}, vars, lastResult, nil, true, ErrVariableNotFound},
 
 		// --- AND Operator ---
-		{"AND True True", BinaryOpNode{Left: VariableNode{Name: "trueVar"}, Operator: "AND", Right: BooleanLiteralNode{Value: true}}, vars, lastResult, true, false, nil},
-		{"AND True False", BinaryOpNode{Left: VariableNode{Name: "trueVar"}, Operator: "AND", Right: VariableNode{Name: "falseVar"}}, vars, lastResult, false, false, nil},
-		{"AND False True", BinaryOpNode{Left: VariableNode{Name: "falseVar"}, Operator: "AND", Right: VariableNode{Name: "trueVar"}}, vars, lastResult, false, false, nil},                 // Short-circuits
-		{"AND False False", BinaryOpNode{Left: VariableNode{Name: "falseVar"}, Operator: "AND", Right: VariableNode{Name: "falseVar"}}, vars, lastResult, false, false, nil},               // Short-circuits
-		{"AND Num1 StrTrue", BinaryOpNode{Left: VariableNode{Name: "numOne"}, Operator: "AND", Right: VariableNode{Name: "strTrue"}}, vars, lastResult, true, false, nil},                  // 1(T) AND "true"(T) -> T
-		{"AND Num0 StrTrue", BinaryOpNode{Left: VariableNode{Name: "numZero"}, Operator: "AND", Right: VariableNode{Name: "strTrue"}}, vars, lastResult, false, false, nil},                // 0(F) AND "true"(T) -> F (Short-circuits)
-		{"AND Nil True", BinaryOpNode{Left: VariableNode{Name: "nilVar"}, Operator: "AND", Right: VariableNode{Name: "trueVar"}}, vars, lastResult, false, false, nil},                     // nil(F) AND true(T) -> F (Short-circuits)
-		{"AND True Nil", BinaryOpNode{Left: VariableNode{Name: "trueVar"}, Operator: "AND", Right: VariableNode{Name: "nilVar"}}, vars, lastResult, false, false, nil},                     // true(T) AND nil(F) -> F
-		{"AND Not Found Left", BinaryOpNode{Left: VariableNode{Name: "missing"}, Operator: "AND", Right: VariableNode{Name: "trueVar"}}, vars, lastResult, nil, true, ErrVariableNotFound}, // Expect error
+		{"AND True True", &BinaryOpNode{Pos: dummyPos, Left: &VariableNode{Pos: dummyPos, Name: "trueVar"}, Operator: "AND", Right: &BooleanLiteralNode{Pos: dummyPos, Value: true}}, vars, lastResult, true, false, nil},
+		{"AND True False", &BinaryOpNode{Pos: dummyPos, Left: &VariableNode{Pos: dummyPos, Name: "trueVar"}, Operator: "AND", Right: &VariableNode{Pos: dummyPos, Name: "falseVar"}}, vars, lastResult, false, false, nil},
+		{"AND False True", &BinaryOpNode{Pos: dummyPos, Left: &VariableNode{Pos: dummyPos, Name: "falseVar"}, Operator: "AND", Right: &VariableNode{Pos: dummyPos, Name: "trueVar"}}, vars, lastResult, false, false, nil},
+		{"AND False False", &BinaryOpNode{Pos: dummyPos, Left: &VariableNode{Pos: dummyPos, Name: "falseVar"}, Operator: "AND", Right: &VariableNode{Pos: dummyPos, Name: "falseVar"}}, vars, lastResult, false, false, nil},
+		{"AND Num1 StrTrue", &BinaryOpNode{Pos: dummyPos, Left: &VariableNode{Pos: dummyPos, Name: "numOne"}, Operator: "AND", Right: &VariableNode{Pos: dummyPos, Name: "strTrue"}}, vars, lastResult, true, false, nil},
+		{"AND Num0 StrTrue", &BinaryOpNode{Pos: dummyPos, Left: &VariableNode{Pos: dummyPos, Name: "numZero"}, Operator: "AND", Right: &VariableNode{Pos: dummyPos, Name: "strTrue"}}, vars, lastResult, false, false, nil},
+		{"AND Nil True", &BinaryOpNode{Pos: dummyPos, Left: &VariableNode{Pos: dummyPos, Name: "nilVar"}, Operator: "AND", Right: &VariableNode{Pos: dummyPos, Name: "trueVar"}}, vars, lastResult, false, false, nil},
+		{"AND True Nil", &BinaryOpNode{Pos: dummyPos, Left: &VariableNode{Pos: dummyPos, Name: "trueVar"}, Operator: "AND", Right: &VariableNode{Pos: dummyPos, Name: "nilVar"}}, vars, lastResult, false, false, nil},
+		{"AND Not Found Left", &BinaryOpNode{Pos: dummyPos, Left: &VariableNode{Pos: dummyPos, Name: "missing"}, Operator: "AND", Right: &VariableNode{Pos: dummyPos, Name: "trueVar"}}, vars, lastResult, nil, true, ErrVariableNotFound},
 
 		// --- OR Operator ---
-		{"OR True True", BinaryOpNode{Left: VariableNode{Name: "trueVar"}, Operator: "OR", Right: BooleanLiteralNode{Value: true}}, vars, lastResult, true, false, nil}, // Short-circuits
-		{"OR True False", BinaryOpNode{Left: VariableNode{Name: "trueVar"}, Operator: "OR", Right: VariableNode{Name: "falseVar"}}, vars, lastResult, true, false, nil}, // Short-circuits
-		{"OR False True", BinaryOpNode{Left: VariableNode{Name: "falseVar"}, Operator: "OR", Right: VariableNode{Name: "trueVar"}}, vars, lastResult, true, false, nil},
-		{"OR False False", BinaryOpNode{Left: VariableNode{Name: "falseVar"}, Operator: "OR", Right: VariableNode{Name: "falseVar"}}, vars, lastResult, false, false, nil},
-		{"OR Num0 StrFalse", BinaryOpNode{Left: VariableNode{Name: "numZero"}, Operator: "OR", Right: VariableNode{Name: "strFalse"}}, vars, lastResult, false, false, nil},                // 0(F) OR "false"(F) -> F
-		{"OR Num1 StrFalse", BinaryOpNode{Left: VariableNode{Name: "numOne"}, Operator: "OR", Right: VariableNode{Name: "strFalse"}}, vars, lastResult, true, false, nil},                  // 1(T) OR "false"(F) -> T (Short-circuits)
-		{"OR StrOther Nil", BinaryOpNode{Left: VariableNode{Name: "strOther"}, Operator: "OR", Right: VariableNode{Name: "nilVar"}}, vars, lastResult, false, false, nil},                  // "hello"(F) OR nil(F) -> F
-		{"OR Nil False", BinaryOpNode{Left: VariableNode{Name: "nilVar"}, Operator: "OR", Right: VariableNode{Name: "falseVar"}}, vars, lastResult, false, false, nil},                     // nil(F) OR false(F) -> F
-		{"OR Not Found Right", BinaryOpNode{Left: VariableNode{Name: "falseVar"}, Operator: "OR", Right: VariableNode{Name: "missing"}}, vars, lastResult, nil, true, ErrVariableNotFound}, // Expect error
+		{"OR True True", &BinaryOpNode{Pos: dummyPos, Left: &VariableNode{Pos: dummyPos, Name: "trueVar"}, Operator: "OR", Right: &BooleanLiteralNode{Pos: dummyPos, Value: true}}, vars, lastResult, true, false, nil},
+		{"OR True False", &BinaryOpNode{Pos: dummyPos, Left: &VariableNode{Pos: dummyPos, Name: "trueVar"}, Operator: "OR", Right: &VariableNode{Pos: dummyPos, Name: "falseVar"}}, vars, lastResult, true, false, nil},
+		{"OR False True", &BinaryOpNode{Pos: dummyPos, Left: &VariableNode{Pos: dummyPos, Name: "falseVar"}, Operator: "OR", Right: &VariableNode{Pos: dummyPos, Name: "trueVar"}}, vars, lastResult, true, false, nil},
+		{"OR False False", &BinaryOpNode{Pos: dummyPos, Left: &VariableNode{Pos: dummyPos, Name: "falseVar"}, Operator: "OR", Right: &VariableNode{Pos: dummyPos, Name: "falseVar"}}, vars, lastResult, false, false, nil},
+		{"OR Num0 StrFalse", &BinaryOpNode{Pos: dummyPos, Left: &VariableNode{Pos: dummyPos, Name: "numZero"}, Operator: "OR", Right: &VariableNode{Pos: dummyPos, Name: "strFalse"}}, vars, lastResult, false, false, nil},
+		{"OR Num1 StrFalse", &BinaryOpNode{Pos: dummyPos, Left: &VariableNode{Pos: dummyPos, Name: "numOne"}, Operator: "OR", Right: &VariableNode{Pos: dummyPos, Name: "strFalse"}}, vars, lastResult, true, false, nil},
+		{"OR StrOther Nil", &BinaryOpNode{Pos: dummyPos, Left: &VariableNode{Pos: dummyPos, Name: "strOther"}, Operator: "OR", Right: &VariableNode{Pos: dummyPos, Name: "nilVar"}}, vars, lastResult, false, false, nil},
+		{"OR Nil False", &BinaryOpNode{Pos: dummyPos, Left: &VariableNode{Pos: dummyPos, Name: "nilVar"}, Operator: "OR", Right: &VariableNode{Pos: dummyPos, Name: "falseVar"}}, vars, lastResult, false, false, nil},
+		{"OR Not Found Right", &BinaryOpNode{Pos: dummyPos, Left: &VariableNode{Pos: dummyPos, Name: "falseVar"}, Operator: "OR", Right: &VariableNode{Pos: dummyPos, Name: "missing"}}, vars, lastResult, nil, true, ErrVariableNotFound},
 
 		// --- Bitwise AND (&) ---
-		{"Bitwise AND 5&3", BinaryOpNode{Left: VariableNode{Name: "num5"}, Operator: "&", Right: VariableNode{Name: "num3"}}, vars, lastResult, int64(1), false, nil}, // 0101 & 0011 = 0001
-		{"Bitwise AND 5&0", BinaryOpNode{Left: VariableNode{Name: "num5"}, Operator: "&", Right: VariableNode{Name: "numZero"}}, vars, lastResult, int64(0), false, nil},
-		{"Bitwise AND Error Float", BinaryOpNode{Left: VariableNode{Name: "num5"}, Operator: "&", Right: VariableNode{Name: "floatOne"}}, vars, lastResult, nil, true, ErrInvalidOperandTypeInteger},
-		{"Bitwise AND Error String", BinaryOpNode{Left: VariableNode{Name: "strOne"}, Operator: "&", Right: VariableNode{Name: "num3"}}, vars, lastResult, nil, true, ErrInvalidOperandTypeInteger},
-		{"Bitwise AND Error Nil", BinaryOpNode{Left: VariableNode{Name: "num5"}, Operator: "&", Right: VariableNode{Name: "nilVar"}}, vars, lastResult, nil, true, ErrNilOperand},
+		{"Bitwise AND 5&3", &BinaryOpNode{Pos: dummyPos, Left: &VariableNode{Pos: dummyPos, Name: "num5"}, Operator: "&", Right: &VariableNode{Pos: dummyPos, Name: "num3"}}, vars, lastResult, int64(1), false, nil},
+		{"Bitwise AND 5&0", &BinaryOpNode{Pos: dummyPos, Left: &VariableNode{Pos: dummyPos, Name: "num5"}, Operator: "&", Right: &VariableNode{Pos: dummyPos, Name: "numZero"}}, vars, lastResult, int64(0), false, nil},
+		{"Bitwise AND Error Float", &BinaryOpNode{Pos: dummyPos, Left: &VariableNode{Pos: dummyPos, Name: "num5"}, Operator: "&", Right: &VariableNode{Pos: dummyPos, Name: "floatOne"}}, vars, lastResult, nil, true, ErrInvalidOperandTypeInteger},
+		{"Bitwise AND Error String", &BinaryOpNode{Pos: dummyPos, Left: &VariableNode{Pos: dummyPos, Name: "strOne"}, Operator: "&", Right: &VariableNode{Pos: dummyPos, Name: "num3"}}, vars, lastResult, nil, true, ErrInvalidOperandTypeInteger},
+		{"Bitwise AND Error Nil", &BinaryOpNode{Pos: dummyPos, Left: &VariableNode{Pos: dummyPos, Name: "num5"}, Operator: "&", Right: &VariableNode{Pos: dummyPos, Name: "nilVar"}}, vars, lastResult, nil, true, ErrNilOperand},
 
 		// --- Bitwise OR (|) ---
-		{"Bitwise OR 5|3", BinaryOpNode{Left: VariableNode{Name: "num5"}, Operator: "|", Right: VariableNode{Name: "num3"}}, vars, lastResult, int64(7), false, nil}, // 0101 | 0011 = 0111
-		{"Bitwise OR 5|0", BinaryOpNode{Left: VariableNode{Name: "num5"}, Operator: "|", Right: VariableNode{Name: "numZero"}}, vars, lastResult, int64(5), false, nil},
-		{"Bitwise OR Error Float", BinaryOpNode{Left: VariableNode{Name: "num5"}, Operator: "|", Right: VariableNode{Name: "floatOne"}}, vars, lastResult, nil, true, ErrInvalidOperandTypeInteger},
-		{"Bitwise OR Error String", BinaryOpNode{Left: VariableNode{Name: "strOne"}, Operator: "|", Right: VariableNode{Name: "num3"}}, vars, lastResult, nil, true, ErrInvalidOperandTypeInteger},
-		{"Bitwise OR Error Nil", BinaryOpNode{Left: VariableNode{Name: "num5"}, Operator: "|", Right: VariableNode{Name: "nilVar"}}, vars, lastResult, nil, true, ErrNilOperand},
+		{"Bitwise OR 5|3", &BinaryOpNode{Pos: dummyPos, Left: &VariableNode{Pos: dummyPos, Name: "num5"}, Operator: "|", Right: &VariableNode{Pos: dummyPos, Name: "num3"}}, vars, lastResult, int64(7), false, nil},
+		{"Bitwise OR 5|0", &BinaryOpNode{Pos: dummyPos, Left: &VariableNode{Pos: dummyPos, Name: "num5"}, Operator: "|", Right: &VariableNode{Pos: dummyPos, Name: "numZero"}}, vars, lastResult, int64(5), false, nil},
+		{"Bitwise OR Error Float", &BinaryOpNode{Pos: dummyPos, Left: &VariableNode{Pos: dummyPos, Name: "num5"}, Operator: "|", Right: &VariableNode{Pos: dummyPos, Name: "floatOne"}}, vars, lastResult, nil, true, ErrInvalidOperandTypeInteger},
+		{"Bitwise OR Error String", &BinaryOpNode{Pos: dummyPos, Left: &VariableNode{Pos: dummyPos, Name: "strOne"}, Operator: "|", Right: &VariableNode{Pos: dummyPos, Name: "num3"}}, vars, lastResult, nil, true, ErrInvalidOperandTypeInteger},
+		{"Bitwise OR Error Nil", &BinaryOpNode{Pos: dummyPos, Left: &VariableNode{Pos: dummyPos, Name: "num5"}, Operator: "|", Right: &VariableNode{Pos: dummyPos, Name: "nilVar"}}, vars, lastResult, nil, true, ErrNilOperand},
 
 		// --- Bitwise XOR (^) ---
-		{"Bitwise XOR 5^3", BinaryOpNode{Left: VariableNode{Name: "num5"}, Operator: "^", Right: VariableNode{Name: "num3"}}, vars, lastResult, int64(6), false, nil}, // 0101 ^ 0011 = 0110
-		{"Bitwise XOR 5^5", BinaryOpNode{Left: VariableNode{Name: "num5"}, Operator: "^", Right: VariableNode{Name: "num5"}}, vars, lastResult, int64(0), false, nil},
-		{"Bitwise XOR Error Float", BinaryOpNode{Left: VariableNode{Name: "num5"}, Operator: "^", Right: VariableNode{Name: "floatOne"}}, vars, lastResult, nil, true, ErrInvalidOperandTypeInteger},
-		{"Bitwise XOR Error String", BinaryOpNode{Left: VariableNode{Name: "strOne"}, Operator: "^", Right: VariableNode{Name: "num3"}}, vars, lastResult, nil, true, ErrInvalidOperandTypeInteger},
-		{"Bitwise XOR Error Nil", BinaryOpNode{Left: VariableNode{Name: "num5"}, Operator: "^", Right: VariableNode{Name: "nilVar"}}, vars, lastResult, nil, true, ErrNilOperand},
+		{"Bitwise XOR 5^3", &BinaryOpNode{Pos: dummyPos, Left: &VariableNode{Pos: dummyPos, Name: "num5"}, Operator: "^", Right: &VariableNode{Pos: dummyPos, Name: "num3"}}, vars, lastResult, int64(6), false, nil},
+		{"Bitwise XOR 5^5", &BinaryOpNode{Pos: dummyPos, Left: &VariableNode{Pos: dummyPos, Name: "num5"}, Operator: "^", Right: &VariableNode{Pos: dummyPos, Name: "num5"}}, vars, lastResult, int64(0), false, nil},
+		{"Bitwise XOR Error Float", &BinaryOpNode{Pos: dummyPos, Left: &VariableNode{Pos: dummyPos, Name: "num5"}, Operator: "^", Right: &VariableNode{Pos: dummyPos, Name: "floatOne"}}, vars, lastResult, nil, true, ErrInvalidOperandTypeInteger},
+		{"Bitwise XOR Error String", &BinaryOpNode{Pos: dummyPos, Left: &VariableNode{Pos: dummyPos, Name: "strOne"}, Operator: "^", Right: &VariableNode{Pos: dummyPos, Name: "num3"}}, vars, lastResult, nil, true, ErrInvalidOperandTypeInteger},
+		{"Bitwise XOR Error Nil", &BinaryOpNode{Pos: dummyPos, Left: &VariableNode{Pos: dummyPos, Name: "num5"}, Operator: "^", Right: &VariableNode{Pos: dummyPos, Name: "nilVar"}}, vars, lastResult, nil, true, ErrNilOperand},
 
 		// --- Bitwise NOT (~) ---
-		{"Bitwise NOT ~5", UnaryOpNode{Operator: "~", Operand: VariableNode{Name: "num5"}}, vars, lastResult, int64(-6), false, nil}, // ~0...0101 = 1...1010 which is -6
-		{"Bitwise NOT ~0", UnaryOpNode{Operator: "~", Operand: VariableNode{Name: "numZero"}}, vars, lastResult, int64(-1), false, nil},
-		{"Bitwise NOT Error Float", UnaryOpNode{Operator: "~", Operand: VariableNode{Name: "floatNonInt"}}, vars, lastResult, nil, true, ErrInvalidOperandTypeInteger},
-		{"Bitwise NOT Error String", UnaryOpNode{Operator: "~", Operand: VariableNode{Name: "strOther"}}, vars, lastResult, nil, true, ErrInvalidOperandTypeInteger},
-		{"Bitwise NOT Error Nil", UnaryOpNode{Operator: "~", Operand: VariableNode{Name: "nilVar"}}, vars, lastResult, nil, true, ErrNilOperand},
+		{"Bitwise NOT ~5", &UnaryOpNode{Pos: dummyPos, Operator: "~", Operand: &VariableNode{Pos: dummyPos, Name: "num5"}}, vars, lastResult, int64(-6), false, nil},
+		{"Bitwise NOT ~0", &UnaryOpNode{Pos: dummyPos, Operator: "~", Operand: &VariableNode{Pos: dummyPos, Name: "numZero"}}, vars, lastResult, int64(-1), false, nil},
+		{"Bitwise NOT Error Float", &UnaryOpNode{Pos: dummyPos, Operator: "~", Operand: &VariableNode{Pos: dummyPos, Name: "floatNonInt"}}, vars, lastResult, nil, true, ErrInvalidOperandTypeInteger},
+		{"Bitwise NOT Error String", &UnaryOpNode{Pos: dummyPos, Operator: "~", Operand: &VariableNode{Pos: dummyPos, Name: "strOther"}}, vars, lastResult, nil, true, ErrInvalidOperandTypeInteger},
+		{"Bitwise NOT Error Nil", &UnaryOpNode{Pos: dummyPos, Operator: "~", Operand: &VariableNode{Pos: dummyPos, Name: "nilVar"}}, vars, lastResult, nil, true, ErrNilOperand},
 
-		// +++ Tests for 'no' and 'some' +++
 		// --- no Operator (Zero Value Check) ---
-		{"no nilVar", UnaryOpNode{Operator: "no", Operand: VariableNode{Name: "nilVar"}}, vars, lastResult, true, false, nil},
-		{"no strEmpty", UnaryOpNode{Operator: "no", Operand: VariableNode{Name: "strEmpty"}}, vars, lastResult, true, false, nil},
-		{"no numZero", UnaryOpNode{Operator: "no", Operand: VariableNode{Name: "numZero"}}, vars, lastResult, true, false, nil},
-		{"no floatZero", UnaryOpNode{Operator: "no", Operand: VariableNode{Name: "floatZero"}}, vars, lastResult, true, false, nil},
-		{"no falseVar", UnaryOpNode{Operator: "no", Operand: VariableNode{Name: "falseVar"}}, vars, lastResult, true, false, nil},
-		{"no emptyListVar", UnaryOpNode{Operator: "no", Operand: VariableNode{Name: "emptyListVar"}}, vars, lastResult, true, false, nil},
-		{"no emptyMapVar", UnaryOpNode{Operator: "no", Operand: VariableNode{Name: "emptyMapVar"}}, vars, lastResult, true, false, nil},
-		// FIX: Expect error for variable not found
-		{"no notFoundVar", UnaryOpNode{Operator: "no", Operand: VariableNode{Name: "notFoundVar"}}, vars, lastResult, nil, true, ErrVariableNotFound},
-		{"no strOther", UnaryOpNode{Operator: "no", Operand: VariableNode{Name: "strOther"}}, vars, lastResult, false, false, nil},
-		{"no numOne", UnaryOpNode{Operator: "no", Operand: VariableNode{Name: "numOne"}}, vars, lastResult, false, false, nil},
-		{"no floatOne", UnaryOpNode{Operator: "no", Operand: VariableNode{Name: "floatOne"}}, vars, lastResult, false, false, nil},
-		{"no trueVar", UnaryOpNode{Operator: "no", Operand: VariableNode{Name: "trueVar"}}, vars, lastResult, false, false, nil},
-		{"no listVar", UnaryOpNode{Operator: "no", Operand: VariableNode{Name: "listVar"}}, vars, lastResult, false, false, nil},
-		{"no mapVar", UnaryOpNode{Operator: "no", Operand: VariableNode{Name: "mapVar"}}, vars, lastResult, false, false, nil},
+		{"no nilVar", &UnaryOpNode{Pos: dummyPos, Operator: "no", Operand: &VariableNode{Pos: dummyPos, Name: "nilVar"}}, vars, lastResult, true, false, nil},
+		{"no strEmpty", &UnaryOpNode{Pos: dummyPos, Operator: "no", Operand: &VariableNode{Pos: dummyPos, Name: "strEmpty"}}, vars, lastResult, true, false, nil},
+		{"no numZero", &UnaryOpNode{Pos: dummyPos, Operator: "no", Operand: &VariableNode{Pos: dummyPos, Name: "numZero"}}, vars, lastResult, true, false, nil},
+		{"no floatZero", &UnaryOpNode{Pos: dummyPos, Operator: "no", Operand: &VariableNode{Pos: dummyPos, Name: "floatZero"}}, vars, lastResult, true, false, nil},
+		{"no falseVar", &UnaryOpNode{Pos: dummyPos, Operator: "no", Operand: &VariableNode{Pos: dummyPos, Name: "falseVar"}}, vars, lastResult, true, false, nil},
+		{"no emptyListVar", &UnaryOpNode{Pos: dummyPos, Operator: "no", Operand: &VariableNode{Pos: dummyPos, Name: "emptyListVar"}}, vars, lastResult, true, false, nil},
+		{"no emptyMapVar", &UnaryOpNode{Pos: dummyPos, Operator: "no", Operand: &VariableNode{Pos: dummyPos, Name: "emptyMapVar"}}, vars, lastResult, true, false, nil},
+		{"no notFoundVar", &UnaryOpNode{Pos: dummyPos, Operator: "no", Operand: &VariableNode{Pos: dummyPos, Name: "notFoundVar"}}, vars, lastResult, nil, true, ErrVariableNotFound},
+		{"no strOther", &UnaryOpNode{Pos: dummyPos, Operator: "no", Operand: &VariableNode{Pos: dummyPos, Name: "strOther"}}, vars, lastResult, false, false, nil},
+		{"no numOne", &UnaryOpNode{Pos: dummyPos, Operator: "no", Operand: &VariableNode{Pos: dummyPos, Name: "numOne"}}, vars, lastResult, false, false, nil},
+		{"no floatOne", &UnaryOpNode{Pos: dummyPos, Operator: "no", Operand: &VariableNode{Pos: dummyPos, Name: "floatOne"}}, vars, lastResult, false, false, nil},
+		{"no trueVar", &UnaryOpNode{Pos: dummyPos, Operator: "no", Operand: &VariableNode{Pos: dummyPos, Name: "trueVar"}}, vars, lastResult, false, false, nil},
+		{"no listVar", &UnaryOpNode{Pos: dummyPos, Operator: "no", Operand: &VariableNode{Pos: dummyPos, Name: "listVar"}}, vars, lastResult, false, false, nil},
+		{"no mapVar", &UnaryOpNode{Pos: dummyPos, Operator: "no", Operand: &VariableNode{Pos: dummyPos, Name: "mapVar"}}, vars, lastResult, false, false, nil},
 
 		// --- some Operator (Non-Zero Value Check) ---
-		{"some nilVar", UnaryOpNode{Operator: "some", Operand: VariableNode{Name: "nilVar"}}, vars, lastResult, false, false, nil},
-		{"some strEmpty", UnaryOpNode{Operator: "some", Operand: VariableNode{Name: "strEmpty"}}, vars, lastResult, false, false, nil},
-		{"some numZero", UnaryOpNode{Operator: "some", Operand: VariableNode{Name: "numZero"}}, vars, lastResult, false, false, nil},
-		{"some floatZero", UnaryOpNode{Operator: "some", Operand: VariableNode{Name: "floatZero"}}, vars, lastResult, false, false, nil},
-		{"some falseVar", UnaryOpNode{Operator: "some", Operand: VariableNode{Name: "falseVar"}}, vars, lastResult, false, false, nil},
-		{"some emptyListVar", UnaryOpNode{Operator: "some", Operand: VariableNode{Name: "emptyListVar"}}, vars, lastResult, false, false, nil},
-		{"some emptyMapVar", UnaryOpNode{Operator: "some", Operand: VariableNode{Name: "emptyMapVar"}}, vars, lastResult, false, false, nil},
-		// FIX: Expect error for variable not found
-		{"some notFoundVar", UnaryOpNode{Operator: "some", Operand: VariableNode{Name: "notFoundVar"}}, vars, lastResult, nil, true, ErrVariableNotFound},
-		{"some strOther", UnaryOpNode{Operator: "some", Operand: VariableNode{Name: "strOther"}}, vars, lastResult, true, false, nil},
-		{"some numOne", UnaryOpNode{Operator: "some", Operand: VariableNode{Name: "numOne"}}, vars, lastResult, true, false, nil},
-		{"some floatOne", UnaryOpNode{Operator: "some", Operand: VariableNode{Name: "floatOne"}}, vars, lastResult, true, false, nil},
-		{"some trueVar", UnaryOpNode{Operator: "some", Operand: VariableNode{Name: "trueVar"}}, vars, lastResult, true, false, nil},
-		{"some listVar", UnaryOpNode{Operator: "some", Operand: VariableNode{Name: "listVar"}}, vars, lastResult, true, false, nil},
-		{"some mapVar", UnaryOpNode{Operator: "some", Operand: VariableNode{Name: "mapVar"}}, vars, lastResult, true, false, nil},
-		// +++ END Tests +++
+		{"some nilVar", &UnaryOpNode{Pos: dummyPos, Operator: "some", Operand: &VariableNode{Pos: dummyPos, Name: "nilVar"}}, vars, lastResult, false, false, nil},
+		{"some strEmpty", &UnaryOpNode{Pos: dummyPos, Operator: "some", Operand: &VariableNode{Pos: dummyPos, Name: "strEmpty"}}, vars, lastResult, false, false, nil},
+		{"some numZero", &UnaryOpNode{Pos: dummyPos, Operator: "some", Operand: &VariableNode{Pos: dummyPos, Name: "numZero"}}, vars, lastResult, false, false, nil},
+		{"some floatZero", &UnaryOpNode{Pos: dummyPos, Operator: "some", Operand: &VariableNode{Pos: dummyPos, Name: "floatZero"}}, vars, lastResult, false, false, nil},
+		{"some falseVar", &UnaryOpNode{Pos: dummyPos, Operator: "some", Operand: &VariableNode{Pos: dummyPos, Name: "falseVar"}}, vars, lastResult, false, false, nil},
+		{"some emptyListVar", &UnaryOpNode{Pos: dummyPos, Operator: "some", Operand: &VariableNode{Pos: dummyPos, Name: "emptyListVar"}}, vars, lastResult, false, false, nil},
+		{"some emptyMapVar", &UnaryOpNode{Pos: dummyPos, Operator: "some", Operand: &VariableNode{Pos: dummyPos, Name: "emptyMapVar"}}, vars, lastResult, false, false, nil},
+		{"some notFoundVar", &UnaryOpNode{Pos: dummyPos, Operator: "some", Operand: &VariableNode{Pos: dummyPos, Name: "notFoundVar"}}, vars, lastResult, nil, true, ErrVariableNotFound},
+		{"some strOther", &UnaryOpNode{Pos: dummyPos, Operator: "some", Operand: &VariableNode{Pos: dummyPos, Name: "strOther"}}, vars, lastResult, true, false, nil},
+		{"some numOne", &UnaryOpNode{Pos: dummyPos, Operator: "some", Operand: &VariableNode{Pos: dummyPos, Name: "numOne"}}, vars, lastResult, true, false, nil},
+		{"some floatOne", &UnaryOpNode{Pos: dummyPos, Operator: "some", Operand: &VariableNode{Pos: dummyPos, Name: "floatOne"}}, vars, lastResult, true, false, nil},
+		{"some trueVar", &UnaryOpNode{Pos: dummyPos, Operator: "some", Operand: &VariableNode{Pos: dummyPos, Name: "trueVar"}}, vars, lastResult, true, false, nil},
+		{"some listVar", &UnaryOpNode{Pos: dummyPos, Operator: "some", Operand: &VariableNode{Pos: dummyPos, Name: "listVar"}}, vars, lastResult, true, false, nil},
+		{"some mapVar", &UnaryOpNode{Pos: dummyPos, Operator: "some", Operand: &VariableNode{Pos: dummyPos, Name: "mapVar"}}, vars, lastResult, true, false, nil},
+		// *** END CORRECTIONS ***
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.Name, func(t *testing.T) {
-			// Ensure errors is imported if runEvalExpressionTest is copied here
-			runEvalExpressionTest(t, tt) // Use the helper from testing_helpers_test.go
+			// Assuming runEvalExpressionTest is defined in testing_helpers_test.go
+			// It takes EvalTestCase which has InputNode interface{}
+			// The helper itself should handle asserting InputNode to Expression if needed
+			runEvalExpressionTest(t, tt)
 		})
 	}
 }
 
+// NOTE: Commented out helper stubs below as they are defined elsewhere or not needed
+/*
 // Helper Function (already provided in testing_helpers_test.go)
 // Assume runEvalExpressionTest is correctly defined elsewhere and handles the EvalTestCase struct.
 
 // EvalTestCase struct (already provided in testing_helpers_test.go)
-/*
 type EvalTestCase struct {
-	Name            string
-	InputNode       interface{}
-	InitialVars     map[string]interface{}
-	LastResult      interface{}
-	Expected        interface{}
-	WantErr         bool
-	ExpectedErrorIs error // Use sentinel error or nil
+    Name            string
+    InputNode       interface{} // The AST node (or sometimes a literal value for simplicity)
+    InitialVars     map[string]interface{}
+    LastResult      interface{} // Mocked result of previous step if needed
+    Expected        interface{} // Expected result of evaluation
+    WantErr         bool
+    ExpectedErrorIs error // Use sentinel error or nil
 }
-*/
 
 // runEvalExpressionTest (already provided in testing_helpers_test.go)
-/*
 func runEvalExpressionTest(t *testing.T, tt EvalTestCase) {
-	t.Helper()
-	// Ensure errors is imported if runEvalExpressionTest is copied here
-	// import "errors"
-	interp, _ := NewDefaultTestInterpreter(t) // Use default interpreter
-	if tt.InitialVars != nil {
-		for k, v := range tt.InitialVars {
-			interp.variables[k] = v
-		}
-	}
-	interp.lastCallResult = tt.LastResult
+    t.Helper()
+    interp, _ := NewDefaultTestInterpreter(t) // Use default interpreter
+    if tt.InitialVars != nil {
+        for k, v := range tt.InitialVars {
+            interp.variables[k] = v
+        }
+    }
+    interp.lastCallResult = tt.LastResult
 
-	got, err := interp.evaluateExpression(tt.InputNode)
+    // Assert InputNode to Expression before passing to evaluateExpression
+    var inputExpr Expression
+    if tt.InputNode != nil {
+ 		var ok bool
+ 		inputExpr, ok = tt.InputNode.(Expression)
+ 		if !ok {
+ 			t.Fatalf("Test setup error in %s: InputNode (%T) does not implement Expression", tt.Name, tt.InputNode)
+ 		}
+ 	} // else inputExpr remains nil, evaluateExpression should handle nil input if necessary
 
-	// Use errors.Is for specific error checking
-	if tt.WantErr {
-		if err == nil {
-			t.Errorf("%s: Expected error, but got nil", tt.Name)
-			return
-		}
-		if tt.ExpectedErrorIs != nil && !errors.Is(err, tt.ExpectedErrorIs) {
-			t.Errorf("%s: Error mismatch.\nExpected error wrapping [%v]\nGot:                 [%v]", tt.Name, tt.ExpectedErrorIs, err)
-		} else if tt.ExpectedErrorIs == nil {
-			// Just ensure *an* error occurred if ExpectedErrorIs is nil but WantErr is true
-			t.Logf("%s: Got expected error: %v", tt.Name, err) // Log for info
-		}
-	} else { // No error wanted
-		if err != nil {
-			t.Errorf("%s: Unexpected error: %v", tt.Name, err)
-		} else if !reflect.DeepEqual(got, tt.Expected) {
-			t.Errorf("%s: Result mismatch.\nInput Node: %+v\nExpected:   %v (%T)\nGot:        %v (%T)",
-				tt.Name, tt.InputNode, tt.Expected, tt.Expected, got, got)
-		}
-	}
+    got, err := interp.evaluateExpression(inputExpr) // Pass asserted Expression
+
+    // ... rest of the validation logic using reflect.DeepEqual or errors.Is ...
+	// (Keep the existing validation logic from the pasted file)
+    if tt.WantErr {
+        if err == nil {
+            t.Errorf("%s: Expected error, but got nil", tt.Name)
+            return
+        }
+        if tt.ExpectedErrorIs != nil && !errors.Is(err, tt.ExpectedErrorIs) {
+            t.Errorf("%s: Error mismatch.\nExpected error wrapping [%v]\nGot:               [%v]", tt.Name, tt.ExpectedErrorIs, err)
+        } else if tt.ExpectedErrorIs == nil {
+            t.Logf("%s: Got expected error: %v", tt.Name, err)
+        }
+    } else { // No error wanted
+        if err != nil {
+            t.Errorf("%s: Unexpected error: %v", tt.Name, err)
+        } else if !reflect.DeepEqual(got, tt.Expected) { // Use reflect.DeepEqual here
+            t.Errorf("%s: Result mismatch.\nInput Node: %+v\nExpected:   %v (%T)\nGot:        %v (%T)",
+                tt.Name, tt.InputNode, tt.Expected, tt.Expected, got, got)
+        }
+    }
 }
+
+// Minimal Position struct if not imported
+type Position struct { Line int; Column int }
+func (p *Position) GetPos() *Position { return p }
+// Minimal Node structs if not imported
+type UnaryOpNode struct { Pos *Position; Operator string; Operand Expression }
+func (n *UnaryOpNode) GetPos() *Position { return n.Pos }
+func (n *UnaryOpNode) expressionNode() {} // Marker method if Expression requires it
+
+type BinaryOpNode struct { Pos *Position; Left Expression; Operator string; Right Expression }
+func (n *BinaryOpNode) GetPos() *Position { return n.Pos }
+func (n *BinaryOpNode) expressionNode() {} // Marker method
+
+type BooleanLiteralNode struct { Pos *Position; Value bool }
+func (n *BooleanLiteralNode) GetPos() *Position { return n.Pos }
+func (n *BooleanLiteralNode) expressionNode() {} // Marker method
+
+type VariableNode struct { Pos *Position; Name string }
+func (n *VariableNode) GetPos() *Position { return n.Pos }
+func (n *VariableNode) expressionNode() {} // Marker method
 */

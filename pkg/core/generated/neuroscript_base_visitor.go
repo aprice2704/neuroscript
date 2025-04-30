@@ -87,6 +87,10 @@ func (v *BaseNeuroScriptVisitor) VisitClearErrorStmt(ctx *ClearErrorStmtContext)
 	return v.VisitChildren(ctx)
 }
 
+func (v *BaseNeuroScriptVisitor) VisitAsk_stmt(ctx *Ask_stmtContext) interface{} {
+	return v.VisitChildren(ctx)
+}
+
 func (v *BaseNeuroScriptVisitor) VisitIf_statement(ctx *If_statementContext) interface{} {
 	return v.VisitChildren(ctx)
 }

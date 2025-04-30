@@ -140,6 +140,12 @@ func (s *BaseNeuroScriptListener) EnterClearErrorStmt(ctx *ClearErrorStmtContext
 // ExitClearErrorStmt is called when production clearErrorStmt is exited.
 func (s *BaseNeuroScriptListener) ExitClearErrorStmt(ctx *ClearErrorStmtContext) {}
 
+// EnterAsk_stmt is called when production ask_stmt is entered.
+func (s *BaseNeuroScriptListener) EnterAsk_stmt(ctx *Ask_stmtContext) {}
+
+// ExitAsk_stmt is called when production ask_stmt is exited.
+func (s *BaseNeuroScriptListener) ExitAsk_stmt(ctx *Ask_stmtContext) {}
+
 // EnterIf_statement is called when production if_statement is entered.
 func (s *BaseNeuroScriptListener) EnterIf_statement(ctx *If_statementContext) {}
 

@@ -9,6 +9,9 @@ import (
 
 	// Import the logging interface
 	"github.com/aprice2704/neuroscript/pkg/logging"
+	// Import genai client and option types
+	"github.com/google/generative-ai-go/genai"
+	"google.golang.org/api/option" // <<< ADDED IMPORT
 )
 
 // LLMClient interface definition is in llm_types.go
@@ -17,13 +20,12 @@ import (
 
 // ConcreteLLMClient represents the actual implementation that talks to an LLM API.
 type concreteLLMClient struct {
-	apiKey  string
-	apiHost string
-	logger  logging.Logger
-	enabled bool   // Tracks if real calls should be made
-	modelID string // Added modelID field
-	// Add other fields like http.Client, etc.
-	// httpClient *http.Client
+	apiKey      string
+	apiHost     string
+	logger      logging.Logger
+	enabled     bool          // Tracks if real calls should be made
+	modelID     string        // Added modelID field
+	genaiClient *genai.Client // Store the actual client
 }
 
 // Ensure concreteLLMClient implements the LLMClient interface.
@@ -48,104 +50,94 @@ func NewLLMClient(apiKey, apiHost string, logger logging.Logger, enabled bool) L
 		return NewNoOpLLMClient(logger)
 	}
 
-	// TODO: Add modelID configuration if needed
-	// For now, just store basic info
+	// --- Initialize actual GenAI Client ---
+	ctx := context.Background()
+	// *** CORRECTED: Use option.WithAPIKey ***
+	client, err := genai.NewClient(ctx, option.WithAPIKey(apiKey)) // <<< CORRECTED
+	if err != nil {
+		logger.Error("Failed to initialize GenAI client", "error", err)
+		logger.Warn("GenAI client init failed, falling back to NoOpLLMClient.")
+		return NewNoOpLLMClient(logger)
+	}
+	// --- End GenAI Client Init ---
+
 	return &concreteLLMClient{
-		apiKey:  apiKey,
-		apiHost: apiHost,
-		logger:  logger,
-		enabled: true,
-		// modelID: modelID, // Get modelID from config or args if needed
-		// Initialize other fields like httpClient
+		apiKey:      apiKey,
+		apiHost:     apiHost,
+		logger:      logger,
+		enabled:     true,
+		genaiClient: client, // Store the initialized client
 	}
 }
 
 // Ask sends a request to the actual LLM API.
-// CORRECTED: Receiver is *concreteLLMClient
 func (c *concreteLLMClient) Ask(ctx context.Context, turns []*ConversationTurn) (*ConversationTurn, error) {
 	c.logger.Debug("ConcreteLLMClient Ask called", "turn_count", len(turns))
-	if !c.enabled {
-		c.logger.Warn("Ask called on disabled concrete LLM client. Returning empty response.")
-		// Return the standard no-op response
+	if !c.enabled || c.genaiClient == nil {
+		c.logger.Warn("Ask called on disabled or uninitialized concrete LLM client. Returning empty response.")
 		return &ConversationTurn{Role: RoleAssistant, Content: ""}, nil
 	}
-	// TODO: Implement actual API call logic using c.apiKey, c.apiHost, turns
-	c.logger.Warn("ConcreteLLMClient Ask not implemented")
-	// Use fmt.Errorf for errors
+	// TODO: Implement actual API call logic
+	c.logger.Warn("ConcreteLLMClient Ask not fully implemented")
 	return nil, fmt.Errorf("concrete LLM Ask method not implemented")
 }
 
 // AskWithTools sends a request with tools to the actual LLM API.
-// CORRECTED: Receiver is *concreteLLMClient
 func (c *concreteLLMClient) AskWithTools(ctx context.Context, turns []*ConversationTurn, tools []ToolDefinition) (*ConversationTurn, []*ToolCall, error) {
 	c.logger.Debug("ConcreteLLMClient AskWithTools called", "turn_count", len(turns), "tool_count", len(tools))
-	if !c.enabled {
-		c.logger.Warn("AskWithTools called on disabled concrete LLM client. Returning empty response.")
-		// Return the standard no-op response
+	if !c.enabled || c.genaiClient == nil {
+		c.logger.Warn("AskWithTools called on disabled or uninitialized concrete LLM client. Returning empty response.")
 		return &ConversationTurn{Role: RoleAssistant, Content: ""}, nil, nil
 	}
 	// TODO: Implement actual API call logic with tools
-	c.logger.Warn("ConcreteLLMClient AskWithTools not implemented")
-	// Use fmt.Errorf for errors
+	c.logger.Warn("ConcreteLLMClient AskWithTools not fully implemented")
 	return nil, nil, fmt.Errorf("concrete LLM AskWithTools method not implemented")
 }
 
 // Embed generates embeddings using the actual LLM API.
-// CORRECTED: Receiver is *concreteLLMClient
 func (c *concreteLLMClient) Embed(ctx context.Context, text string) ([]float32, error) {
 	c.logger.Debug("ConcreteLLMClient Embed called", "text_length", len(text))
-	if !c.enabled {
-		c.logger.Warn("Embed called on disabled concrete LLM client. Returning empty slice.")
+	if !c.enabled || c.genaiClient == nil {
+		c.logger.Warn("Embed called on disabled or uninitialized concrete LLM client. Returning empty slice.")
 		return []float32{}, nil
 	}
 	// TODO: Implement actual embedding API call logic
 	c.logger.Warn("ConcreteLLMClient Embed not implemented")
-	// Use fmt.Errorf for errors
 	return nil, fmt.Errorf("concrete LLM Embed method not implemented")
+}
+
+// Client returns the underlying *genai.Client.
+func (c *concreteLLMClient) Client() *genai.Client {
+	return c.genaiClient
 }
 
 // --- No-Op LLM Client Implementation (Internal to Core) ---
 
-// coreNoOpLLMClient provides a default implementation that does nothing.
 type coreNoOpLLMClient struct {
 	logger logging.Logger
 }
 
-// Ensure coreNoOpLLMClient implements the LLMClient interface.
 var _ LLMClient = (*coreNoOpLLMClient)(nil)
 
-// NewNoOpLLMClient creates a new instance of the internal No-Op LLM Client.
 func NewNoOpLLMClient(logger logging.Logger) LLMClient {
 	if logger == nil {
-		logger = &coreNoOpLogger{} // Use internal core no-op logger
+		logger = &coreNoOpLogger{}
 	}
 	logger.Info("Creating internal coreNoOpLLMClient.")
 	return &coreNoOpLLMClient{logger: logger}
 }
-
-// Ask performs no action and returns a minimal valid response.
-// CORRECTED: Receiver is *coreNoOpLLMClient
 func (c *coreNoOpLLMClient) Ask(ctx context.Context, turns []*ConversationTurn) (*ConversationTurn, error) {
 	c.logger.Debug("coreNoOpLLMClient Ask called")
-	return &ConversationTurn{
-		Role:    RoleAssistant,
-		Content: "",
-	}, nil
+	return &ConversationTurn{Role: RoleAssistant, Content: ""}, nil
 }
-
-// AskWithTools performs no action and returns minimal valid responses.
-// CORRECTED: Receiver is *coreNoOpLLMClient
 func (c *coreNoOpLLMClient) AskWithTools(ctx context.Context, turns []*ConversationTurn, tools []ToolDefinition) (*ConversationTurn, []*ToolCall, error) {
 	c.logger.Debug("coreNoOpLLMClient AskWithTools called")
-	return &ConversationTurn{
-		Role:    RoleAssistant,
-		Content: "",
-	}, nil, nil
+	return &ConversationTurn{Role: RoleAssistant, Content: ""}, nil, nil
 }
-
-// Embed performs no action and returns an empty slice.
-// CORRECTED: Receiver is *coreNoOpLLMClient
 func (c *coreNoOpLLMClient) Embed(ctx context.Context, text string) ([]float32, error) {
 	c.logger.Debug("coreNoOpLLMClient Embed called")
 	return []float32{}, nil
+}
+func (c *coreNoOpLLMClient) Client() *genai.Client {
+	return nil // No-op client doesn't have an underlying client
 }

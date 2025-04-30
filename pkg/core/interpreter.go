@@ -1,16 +1,21 @@
-// filename: pkg/core/interpreter_new.go
+// filename: pkg/core/interpreter.go
+// No changes needed from the version in the previous response.
+// It already uses `*FileAPI` type and `NewFileAPI(...)` constructor.
+// It already has the `FileAPI()` getter method.
+
 package core
 
 import (
 	"errors"
 	"fmt"
 	"reflect"
-	"strings" // Keep strings import
+	"strings"
 
 	"github.com/aprice2704/neuroscript/pkg/core/prompts"
 	"github.com/aprice2704/neuroscript/pkg/logging"
 	"github.com/google/generative-ai-go/genai"
 	"github.com/google/uuid"
+	// FileAPI and NewFileAPI are now defined in file_api.go in this package.
 )
 
 // Interpreter holds the state of a running NeuroScript program.
@@ -21,15 +26,13 @@ type Interpreter struct {
 	vectorIndex     map[string][]float32
 	embeddingDim    int
 	currentProcName string // Track current proc for semantic checks
-	sandboxDir      string
+	sandboxDir      string // The initial path given for the sandbox
 
 	toolRegistry *ToolRegistry
 	logger       logging.Logger
 	objectCache  map[string]interface{} // Cache for handle objects
 	llmClient    LLMClient              // Store the interface value directly
-
-	// Note: No Frame/CallStack here based on user's provided code structure.
-	// Error state is handled via return values from executeSteps.
+	fileAPI      *FileAPI               // The FileAPI instance using the defined type
 }
 
 // --- Constants ---
@@ -50,18 +53,26 @@ func NewInterpreter(logger logging.Logger, llmClient LLMClient) *Interpreter {
 		effectiveLLMClient = NewNoOpLLMClient(effectiveLogger)
 	}
 
+	// Default sandbox directory (can be overridden later if needed)
+	defaultSandbox := "."
+
 	interp := &Interpreter{
 		variables:       make(map[string]interface{}),
 		knownProcedures: make(map[string]Procedure),
 		vectorIndex:     make(map[string][]float32),
-		embeddingDim:    16,
-		// CORRECTED: NewToolRegistry takes no arguments
-		toolRegistry: NewToolRegistry(),
-		logger:       effectiveLogger,
-		objectCache:  make(map[string]interface{}),
-		llmClient:    effectiveLLMClient,
-		sandboxDir:   ".",
+		embeddingDim:    16, // Default, might be overridden by LLM
+		toolRegistry:    NewToolRegistry(),
+		logger:          effectiveLogger,
+		objectCache:     make(map[string]interface{}),
+		llmClient:       effectiveLLMClient,
+		sandboxDir:      defaultSandbox, // Store the original setting
+		fileAPI:         nil,            // Initialize as nil first
 	}
+
+	// Initialize FileAPI *after* logger and sandboxDir are set
+	// Use the new exported constructor from file_api.go
+	// Pass the originally configured sandboxDir (NewFileAPI handles defaults/abs path)
+	interp.fileAPI = NewFileAPI(interp.sandboxDir, interp.logger) // <<< USE EXPORTED CONSTRUCTOR
 
 	// Initialize default prompts
 	interp.variables["NEUROSCRIPT_DEVELOP_PROMPT"] = prompts.PromptDevelop
@@ -70,6 +81,7 @@ func NewInterpreter(logger logging.Logger, llmClient LLMClient) *Interpreter {
 	// Register core tools
 	if err := RegisterCoreTools(interp.toolRegistry); err != nil {
 		effectiveLogger.Error("FATAL: Failed to register core tools during interpreter initialization", "error", err)
+		// Using panic here because core tools failing to register is likely unrecoverable
 		panic(fmt.Sprintf("FATAL: Failed to register core tools: %v", err))
 	} else {
 		effectiveLogger.Info("Core tools registered successfully.")
@@ -78,12 +90,38 @@ func NewInterpreter(logger logging.Logger, llmClient LLMClient) *Interpreter {
 }
 
 // --- Getters / Setters ---
+
+// SandboxDir returns the originally configured sandbox directory path.
+// Note: The actual sandboxing is handled by FileAPI using its internal absolute path.
 func (i *Interpreter) SandboxDir() string { return i.sandboxDir }
+
 func (i *Interpreter) Logger() logging.Logger {
 	if i.logger == nil {
+		// This should be caught by NewInterpreter, but defensive check.
 		panic("FATAL: Interpreter logger is nil")
 	}
 	return i.logger
+}
+
+// FileAPI returns the initialized FileAPI instance.
+// This provides safe access to the unexported fileAPI field.
+func (i *Interpreter) FileAPI() *FileAPI {
+	if i.fileAPI == nil {
+		// This should be caught by NewInterpreter, but defensive check.
+		i.Logger().Error("FATAL: Interpreter.FileAPI() called but fileAPI field is nil!")
+		panic("FATAL: Interpreter fileAPI not initialized")
+	}
+	return i.fileAPI
+}
+
+// SetSandboxDir updates the sandbox directory AND re-initializes the FileAPI.
+// Use with caution after initialization, as it changes the security boundary.
+func (i *Interpreter) SetSandboxDir(newSandboxDir string) {
+	i.Logger().Warn("Interpreter sandbox directory is being changed post-initialization.", "old", i.sandboxDir, "new", newSandboxDir)
+	i.sandboxDir = newSandboxDir
+	// Re-initialize FileAPI with the new path
+	i.fileAPI = NewFileAPI(i.sandboxDir, i.logger)
+	i.Logger().Info("FileAPI re-initialized with new sandbox directory.", "path", i.fileAPI.sandboxRoot)
 }
 
 func (i *Interpreter) SetVariable(name string, value interface{}) error {
@@ -109,7 +147,6 @@ func (i *Interpreter) GetVariable(name string) (interface{}, bool) {
 func (i *Interpreter) ToolRegistry() *ToolRegistry {
 	if i.toolRegistry == nil {
 		i.Logger().Warn("ToolRegistry accessed before initialization, creating new one.")
-		// CORRECTED: NewToolRegistry takes no arguments
 		i.toolRegistry = NewToolRegistry()
 	}
 	return i.toolRegistry
@@ -122,18 +159,12 @@ func (i *Interpreter) GenAIClient() *genai.Client {
 		i.Logger().Warn("GenAIClient() called but internal LLMClient is nil.")
 		return nil
 	}
-	// Placeholder: Requires concreteLLMClient to expose the *genai.Client
-	// Option 1: Via method
-	// type genAIProvider interface { Client() *genai.Client }
-	// if provider, ok := i.llmClient.(genAIProvider); ok {
-	//     return provider.Client()
-	// }
-	// Option 2: Via field (less ideal)
-	// if concrete, ok := i.llmClient.(*concreteLLMClient); ok {
-	//     // return concrete.GenAI // Requires exported field GenAI *genai.Client
-	// }
-	i.Logger().Warn("GenAIClient() called, but the configured LLMClient does not provide a *genai.Client via type assertion.")
-	return nil
+	client := i.llmClient.Client() // Use the interface method
+	if client == nil {
+		// This is not necessarily an error, could be a different LLM type
+		i.Logger().Debug("GenAIClient() called, but the configured LLMClient implementation does not provide a *genai.Client.")
+	}
+	return client
 }
 
 // AddProcedure adds a parsed procedure definition.
@@ -229,7 +260,13 @@ func (i *Interpreter) RunProcedure(procName string, args ...interface{}) (result
 	i.Logger().Info("Running procedure", "name", procName, "arg_count", len(args))
 	i.currentProcName = procName
 
+	// Use recover for panics during execution (e.g., nil pointer dereference)
 	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("panic occurred during procedure '%s': %v", procName, r)
+			i.Logger().Error("Panic recovered during procedure execution", "proc_name", procName, "panic_value", r)
+			// Potentially log stack trace here if needed
+		}
 		i.currentProcName = originalProcName
 		logArgs := []any{"proc_name", procName, "restored_proc_name", i.currentProcName, "result", result, "result_type", fmt.Sprintf("%T", result), "error", err}
 		i.Logger().Info("Finished procedure.", logArgs...)
@@ -281,7 +318,7 @@ func (i *Interpreter) RunProcedure(procName string, args ...interface{}) (result
 	i.Logger().Debug("Assigning optional parameters", "count", numOptional, "proc_name", procName)
 	for idx, paramName := range proc.OptionalParams {
 		providedArgIndex := numRequired + idx
-		valueToSet := interface{}(nil)
+		valueToSet := interface{}(nil) // Default to nil if not provided
 		argProvided := false
 		if providedArgIndex < numProvided {
 			valueToSet = args[providedArgIndex]
@@ -295,32 +332,46 @@ func (i *Interpreter) RunProcedure(procName string, args ...interface{}) (result
 	}
 
 	// Execute steps
+	// Ensure executeSteps propagates errors correctly
 	result, _, _, err = i.executeSteps(proc.Steps, false, nil)
 	if err != nil {
-		return nil, err
+		// Error already logged within executeSteps or its called functions
+		return nil, err // Return the error directly
 	}
 
 	// Return Count Validation
 	expectedReturnCount := len(proc.ReturnVarNames)
 	actualReturnCount := 0
+	var finalResult interface{} // Variable to hold the result in the expected format (single value or slice)
+
 	if result != nil {
 		resultValue := reflect.ValueOf(result)
 		kind := resultValue.Kind()
+		// Handle pointers/interfaces correctly
 		if kind == reflect.Ptr || kind == reflect.Interface {
 			if !resultValue.IsNil() {
 				resultValue = resultValue.Elem()
 				kind = resultValue.Kind()
 			} else {
-				kind = reflect.Invalid
+				kind = reflect.Invalid // Treat nil pointer/interface as invalid for counting
 			}
 		}
+
 		if kind == reflect.Slice {
 			actualReturnCount = resultValue.Len()
+			// If expected 1, but got a slice, maybe wrap it? For now, strict check.
+			// Keep the result as the slice for multi-return
+			finalResult = result
 		} else if resultValue.IsValid() {
 			actualReturnCount = 1
+			// If expected > 1, this is an error. If expected 1, this is correct.
+			// Store the single value.
+			finalResult = result
 		}
+		// If kind is Invalid (e.g., nil interface/pointer), actualReturnCount remains 0.
 	}
 
+	// Strict check: number of returns must match declaration exactly
 	if actualReturnCount != expectedReturnCount {
 		err = fmt.Errorf("%w: procedure '%s' expected %d return values (declared in 'returns'), but returned %d", ErrArgumentMismatch, procName, expectedReturnCount, actualReturnCount)
 		i.Logger().Error("Return count mismatch", "proc_name", procName, "expected", expectedReturnCount, "actual", actualReturnCount)
@@ -328,24 +379,7 @@ func (i *Interpreter) RunProcedure(procName string, args ...interface{}) (result
 	}
 	i.Logger().Debug("Return count validated", "proc_name", procName, "count", actualReturnCount)
 
-	i.lastCallResult = result
-	return result, nil
+	// If we reached here, the return count is correct.
+	i.lastCallResult = finalResult // Store the validated result
+	return finalResult, nil        // Return the validated result and nil error
 }
-
-// --- Assumed Definitions (for reference) ---
-// type Procedure struct { Name string; RequiredParams []string; OptionalParams []string; ReturnVarNames []string; Steps []Step; Metadata map[string]string }
-// type Step interface { GetPos() *Position } // Base interface for all steps
-// var ErrProcedureNotFound = errors.New("procedure not found")
-// var ErrArgumentMismatch = errors.New("argument count mismatch")
-// var ErrCacheObjectNotFound = errors.New("object not found in handle cache")
-// var ErrCacheObjectWrongType = errors.New("cached object has wrong type prefix")
-// type RuntimeError struct { Code ErrorCode; Message string; Pos *Position }
-// type ErrorCode int
-// func RegisterCoreTools(registry *ToolRegistry) error { panic("not implemented") }
-// func NewToolRegistry() *ToolRegistry { panic("not implemented") }
-// func (i *Interpreter) executeSteps(steps []Step, isInErrorHandler bool, activeError *RuntimeError) (result interface{}, stopExecution bool, returned bool, err error) { panic("not implemented") }
-// type FileAPI struct { sandboxRoot string; logger logging.Logger }
-// func NewFileAPI(sandboxRoot string, logger logging.Logger) *FileAPI { return &FileAPI{sandboxRoot, logger} }
-// type SecurityPolicy interface { IsAllowed(op SecurityOperation, target string) bool }
-// func DefaultSecurityPolicy() SecurityPolicy { panic("not implemented") }
-// type SecurityOperation string

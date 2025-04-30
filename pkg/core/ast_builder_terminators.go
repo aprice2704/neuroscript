@@ -1,222 +1,267 @@
-// pkg/core/ast_builder_terminals.go
+// filename: pkg/core/ast_builder_terminators.go
 package core
 
 import (
-	"strconv"
+	// "strconv" // Now handled in helpers
 	"strings"
 
+	"github.com/antlr4-go/antlr/v4" // Ensure antlr is imported
 	gen "github.com/aprice2704/neuroscript/pkg/core/generated"
 )
 
 // --- Exit methods for Primary Expressions, Literals, Placeholders, Access ---
+// *** MODIFIED: Create specific AST nodes, set Pos, push nodes, add error handling ***
 
 // ExitExpression is just a pass-through in the listener for the top-level expression rule.
+// The actual Expression node will be pushed by one of its children (e.g., ExitLogical_or_expr).
 func (l *neuroScriptListenerImpl) ExitExpression(ctx *gen.ExpressionContext) {
-	l.logDebugAST(">>> Exit Expression: %q (Pass through)", ctx.GetText())
+	l.logDebugAST("--- Exit Expression: %q (Pass through)", ctx.GetText())
+	// No value pushed here; value comes from child (logical_or_expr)
 }
 
 // ExitAccessor_expr handles primary expressions potentially followed by element accessors
 func (l *neuroScriptListenerImpl) ExitAccessor_expr(ctx *gen.Accessor_exprContext) {
-	l.logDebugAST(">>> Exit Accessor_expr: %q", ctx.GetText())
+	l.logDebugAST("--- Exit Accessor_expr: %q", ctx.GetText())
 	numAccessors := len(ctx.AllLBRACK())
-	if numAccessors > 0 {
-		accessorNodes := make([]interface{}, numAccessors)
-		for i := 0; i < numAccessors; i++ {
-			node, ok := l.popValue()
-			if !ok {
-				l.logger.Error("AST Builder: Stack error popping accessor %d for %q", numAccessors-1-i, ctx.GetText())
-				l.pushValue(nil) // Error marker
-				return
-			}
-			// Store in reverse order popped, so it's left-to-right
-			accessorNodes[numAccessors-1-i] = node
-		}
-		collectionNode, okColl := l.popValue()
-		if !okColl {
-			l.logger.Error("AST Builder: Stack error popping collection for %q", ctx.GetText())
-			l.pushValue(nil) // Error marker
+
+	if numAccessors == 0 {
+		l.logDebugAST("    Accessor_expr is just a primary, passing through.")
+		// Value pushed by ExitPrimary
+		return
+	}
+
+	// If there are accessors, we need to build ElementAccessNode(s) iteratively.
+	// The stack should contain: [CollectionNode, AccessorNode1, AccessorNode2, ...]
+
+	// 1. Pop all accessor expressions first
+	accessorNodes := make([]Expression, numAccessors)
+	accessorTokens := ctx.AllLBRACK()        // Get tokens for position info
+	for i := numAccessors - 1; i >= 0; i-- { // Pop in reverse order
+		accessorRaw, ok := l.popValue()
+		if !ok {
+			l.addError(ctx, "Internal error: Stack error popping accessor %d for %q", i, ctx.GetText())
+			l.pushValue(nil) // Push error marker
 			return
 		}
-		currentNode := collectionNode
-		for _, accessorNode := range accessorNodes {
-			currentNode = ElementAccessNode{Collection: currentNode, Accessor: accessorNode}
-			l.logDebugAST("    Constructed intermediate ElementAccessNode: %T[%T]", currentNode.(ElementAccessNode).Collection, accessorNode)
+		accessorExpr, ok := accessorRaw.(Expression)
+		if !ok {
+			l.addError(ctx, "Internal error: Accessor %d for %q is not an Expression (got %T)", i, ctx.GetText(), accessorRaw)
+			l.pushValue(nil) // Push error marker
+			return
 		}
-		l.pushValue(currentNode)
-		l.logDebugAST("    Pushed final ElementAccessNode")
-	} else {
-		l.logDebugAST("    Accessor_expr is just a primary, passing through.")
+		accessorNodes[i] = accessorExpr // Store in correct order
 	}
+
+	// 2. Pop the base collection expression
+	collectionRaw, ok := l.popValue()
+	if !ok {
+		l.addError(ctx, "Internal error: Stack error popping collection for %q", ctx.GetText())
+		l.pushValue(nil) // Push error marker
+		return
+	}
+	collectionExpr, ok := collectionRaw.(Expression)
+	if !ok {
+		l.addError(ctx, "Internal error: Collection for %q is not an Expression (got %T)", ctx.GetText(), collectionRaw)
+		l.pushValue(nil) // Push error marker
+		return
+	}
+
+	// 3. Build nested ElementAccessNodes left-to-right
+	currentNode := collectionExpr
+	for i := 0; i < numAccessors; i++ {
+		newNode := &ElementAccessNode{
+			Pos:        tokenToPosition(accessorTokens[i].GetSymbol()), // Position of the '['
+			Collection: currentNode,
+			Accessor:   accessorNodes[i],
+		}
+		l.logDebugAST("    Constructed intermediate ElementAccessNode: [%T]", accessorNodes[i])
+		currentNode = newNode // The new node becomes the collection for the next accessor
+	}
+
+	// 4. Push the final, outermost ElementAccessNode
+	l.pushValue(currentNode)
+	l.logDebugAST("    Pushed final ElementAccessNode: %T", currentNode)
 }
 
 // ExitPrimary handles the base cases of expressions.
-// MODIFIED: Check for Callable_expr instead of Function_call
 func (l *neuroScriptListenerImpl) ExitPrimary(ctx *gen.PrimaryContext) {
-	l.logDebugAST(">>> Exit Primary: %q", ctx.GetText())
-	if ctx.Literal() != nil {
-		// Value pushed by ExitLiteral
+	l.logDebugAST("--- Exit Primary: %q", ctx.GetText())
+	if ctx.Literal() != nil || ctx.Placeholder() != nil || ctx.Callable_expr() != nil || ctx.LPAREN() != nil {
+		// Value already pushed by the corresponding child Exit* method (or passed through for parens).
+		l.logDebugAST("    Primary is Literal, Placeholder, Call, or Parenthesized (Pass through)")
 		return
 	}
-	if ctx.Placeholder() != nil {
-		// Value pushed by ExitPlaceholder
-		return
-	}
-	if ctx.Callable_expr() != nil { // <<< CHANGED from Function_call()
-		// Value pushed by ExitCallable_expr
-		return
-	}
+
+	var nodeToPush Expression // Node to push if handled directly here
+
 	if ctx.IDENTIFIER() != nil {
-		l.pushValue(VariableNode{Name: ctx.IDENTIFIER().GetText()})
-		l.logDebugAST("    Constructed VariableNode: %s", ctx.IDENTIFIER().GetText())
-		return
-	}
-	if ctx.KW_LAST() != nil {
-		l.pushValue(LastNode{})
-		l.logDebugAST("    Constructed LastNode")
-		return
-	}
-	if ctx.KW_EVAL() != nil {
-		argNode, ok := l.popValue()
-		if !ok {
-			l.logger.Error("AST Builder: Failed to pop argument for EVAL")
-			l.pushValue(nil)
-		} else {
-			l.pushValue(EvalNode{Argument: argNode})
-			l.logDebugAST("    Constructed EvalNode")
+		token := ctx.IDENTIFIER().GetSymbol()
+		node := &VariableNode{
+			Pos:  tokenToPosition(token),
+			Name: token.GetText(),
 		}
-		return
-	}
-	if ctx.LPAREN() != nil {
-		// Parenthesized expression value passed through
-		return
-	}
-	// If none of the above, log a warning, as it indicates an unexpected state
-	l.logger.Warn("ExitPrimary reached unexpected state for text: %q", ctx.GetText())
-}
+		nodeToPush = node
+		l.logDebugAST("    Constructed VariableNode: %s", node.Name)
 
-// --- REMOVED ExitFunction_call ---
-// func (l *neuroScriptListenerImpl) ExitFunction_call(ctx *gen.Function_callContext) { ... }
-// This logic is now handled by ExitCallable_expr in ast_builder_operators.go
-
-// ExitPlaceholder builds a PlaceholderNode (e.g., {{var}} or {{LAST}}).
-// (Unchanged)
-func (l *neuroScriptListenerImpl) ExitPlaceholder(ctx *gen.PlaceholderContext) {
-	l.logDebugAST(">>> Exit Placeholder: %q", ctx.GetText())
-	name := ""
-	if ctx.IDENTIFIER() != nil {
-		name = ctx.IDENTIFIER().GetText()
 	} else if ctx.KW_LAST() != nil {
-		name = "LAST"
+		token := ctx.KW_LAST().GetSymbol()
+		node := &LastNode{
+			Pos: tokenToPosition(token),
+		}
+		nodeToPush = node
+		l.logDebugAST("    Constructed LastNode")
+
+	} else if ctx.KW_EVAL() != nil {
+		token := ctx.KW_EVAL().GetSymbol() // Position of 'eval' keyword
+		// Pop the argument expression pushed by visiting ctx.Expression()
+		argRaw, ok := l.popValue()
+		if !ok {
+			l.addError(ctx, "Internal error: Failed to pop argument for EVAL")
+			l.pushValue(nil) // Push error marker
+			return
+		}
+		argExpr, ok := argRaw.(Expression)
+		if !ok {
+			l.addError(ctx, "Internal error: Argument for EVAL is not an Expression (got %T)", argRaw)
+			l.pushValue(nil) // Push error marker
+			return
+		}
+		node := &EvalNode{
+			Pos:      tokenToPosition(token),
+			Argument: argExpr,
+		}
+		nodeToPush = node
+		l.logDebugAST("    Constructed EvalNode")
+
 	} else {
-		l.logger.Warn("ExitPlaceholder found unexpected content: %q", ctx.GetText())
-	}
-	l.pushValue(PlaceholderNode{Name: name})
-	l.logDebugAST("    Constructed PlaceholderNode: Name=%s", name)
-}
-
-// ExitLiteral handles different types of literals.
-// (Unchanged from previous correct version)
-func (l *neuroScriptListenerImpl) ExitLiteral(ctx *gen.LiteralContext) {
-	l.logDebugAST(">>> Exit Literal: %q", ctx.GetText())
-	var nodeToPush interface{} // Node to push at the end
-
-	if ctx.STRING_LIT() != nil {
-		strContent := ctx.STRING_LIT().GetText()
-		unquoted, err := strconv.Unquote(strContent)
-		valueNode := StringLiteralNode{Value: strContent, IsRaw: false} // Assume quoted string is not raw
-		if err != nil {
-			l.logger.Error("Failed to unquote string literal: %q - %v", strContent, err)
-			// Keep raw value in node as fallback
-		} else {
-			valueNode.Value = unquoted
-		}
-		nodeToPush = valueNode
-		l.logDebugAST("    Constructed StringLiteralNode (Quoted)")
-
-	} else if ctx.TRIPLE_BACKTICK_STRING() != nil {
-		rawContent := ctx.TRIPLE_BACKTICK_STRING().GetText()
-		valueNode := StringLiteralNode{Value: rawContent, IsRaw: true} // Assume raw, push raw content as fallback
-		// Remove the ``` delimiters
-		if len(rawContent) >= 6 && strings.HasPrefix(rawContent, "```") && strings.HasSuffix(rawContent, "```") {
-			valueNode.Value = rawContent[3 : len(rawContent)-3] // Use content inside backticks
-			l.logDebugAST("    Constructed StringLiteralNode (Triple-Backtick/Raw)")
-		} else {
-			l.logger.Error("Invalid triple-backtick string format: %q", rawContent)
-			// Keep rawContent in valueNode as fallback
-		}
-		nodeToPush = valueNode
-
-	} else if ctx.NUMBER_LIT() != nil {
-		numStr := ctx.NUMBER_LIT().GetText()
-		var numValue interface{}
-		var parseErr error
-		if !strings.Contains(numStr, ".") {
-			if iVal, err := strconv.ParseInt(numStr, 10, 64); err == nil {
-				numValue = iVal
-			} else {
-				parseErr = err
-			}
-		}
-		if numValue == nil { // Try float if int failed or if '.' was present
-			if fVal, err := strconv.ParseFloat(numStr, 64); err == nil {
-				numValue = fVal
-				parseErr = nil // Clear previous int parse error if float succeeded
-			} else if parseErr == nil { // Only assign float parse error if int didn't already fail
-				parseErr = err
-			}
-		}
-		if parseErr != nil {
-			l.logger.Warn("Failed to parse number literal '%s': %v. Storing as string.", numStr, parseErr)
-			nodeToPush = NumberLiteralNode{Value: numStr} // Fallback to storing raw string
-		} else {
-			nodeToPush = NumberLiteralNode{Value: numValue}
-		}
-		l.logDebugAST("    Constructed NumberLiteralNode")
-
-	} else if ctx.Boolean_literal() != nil {
-		l.logDebugAST("    Literal is Boolean (value already on stack)")
-		val, ok := l.popValue()
-		if !ok {
-			l.logger.Error("AST Builder: Stack error popping value for Boolean Literal in ExitLiteral")
-			nodeToPush = nil // Error marker
-		} else {
-			nodeToPush = val
-		}
-	} else if ctx.List_literal() != nil {
-		l.logDebugAST("    Literal is List (value already on stack)")
-		val, ok := l.popValue()
-		if !ok {
-			l.logger.Error("AST Builder: Stack error popping value for List Literal in ExitLiteral")
-			nodeToPush = nil // Error marker
-		} else {
-			nodeToPush = val
-		}
-	} else if ctx.Map_literal() != nil {
-		l.logDebugAST("    Literal is Map (value already on stack)")
-		val, ok := l.popValue()
-		if !ok {
-			l.logger.Error("AST Builder: Stack error popping value for Map Literal in ExitLiteral")
-			nodeToPush = nil // Error marker
-		} else {
-			nodeToPush = val
-		}
-	} else {
-		l.logger.Error("ExitLiteral reached unexpected state - no known literal type found for text: %q", ctx.GetText())
-		nodeToPush = nil // Push nil as an error marker
+		// Should not happen if grammar is correct
+		l.addError(ctx, "Internal error: ExitPrimary reached unexpected state for text: %q", ctx.GetText())
+		l.pushValue(nil) // Push error marker
+		return
 	}
 
-	// Push the determined node (or nil if error) onto the stack
+	// Push the node created directly in this method
 	l.pushValue(nodeToPush)
 }
 
+// ExitPlaceholder builds a PlaceholderNode (e.g., {{var}} or {{LAST}}).
+func (l *neuroScriptListenerImpl) ExitPlaceholder(ctx *gen.PlaceholderContext) {
+	l.logDebugAST("--- Exit Placeholder: %q", ctx.GetText())
+	name := ""
+	token := ctx.GetStart() // Position of '{{'
+
+	if ctx.IDENTIFIER() != nil {
+		name = ctx.IDENTIFIER().GetText()
+	} else if ctx.KW_LAST() != nil {
+		name = "LAST" // Use canonical name
+	} else {
+		// Should not happen based on grammar rule
+		l.addErrorf(token, "Internal error: ExitPlaceholder found unexpected content: %q", ctx.GetText())
+		l.pushValue(nil) // Push error marker
+		return
+	}
+
+	node := &PlaceholderNode{
+		Pos:  tokenToPosition(token),
+		Name: name,
+	}
+	l.pushValue(node)
+	l.logDebugAST("    Constructed PlaceholderNode: Name=%s", node.Name)
+}
+
+// ExitLiteral handles different types of literals.
+func (l *neuroScriptListenerImpl) ExitLiteral(ctx *gen.LiteralContext) {
+	l.logDebugAST("--- Exit Literal: %q", ctx.GetText())
+
+	// Handle specific literal types first
+	if ctx.STRING_LIT() != nil {
+		token := ctx.STRING_LIT().GetSymbol()
+		quotedStr := token.GetText()
+		unquotedVal, err := unescapeString(quotedStr) // Use helper
+		if err != nil {
+			l.addErrorf(token, "Invalid string literal: %v", err)
+			l.pushValue(nil) // Push error marker
+			return
+		}
+		node := &StringLiteralNode{
+			Pos:   tokenToPosition(token),
+			Value: unquotedVal,
+			IsRaw: false,
+		}
+		l.pushValue(node)
+		l.logDebugAST("    Constructed StringLiteralNode (Quoted)")
+		return
+
+	} else if ctx.TRIPLE_BACKTICK_STRING() != nil {
+		token := ctx.TRIPLE_BACKTICK_STRING().GetSymbol()
+		rawContent := token.GetText()
+		// Remove the ``` delimiters
+		var actualContent string
+		if len(rawContent) >= 6 && strings.HasPrefix(rawContent, "```") && strings.HasSuffix(rawContent, "```") {
+			actualContent = rawContent[3 : len(rawContent)-3]
+		} else {
+			l.addErrorf(token, "Invalid triple-backtick string format: %q", rawContent)
+			l.pushValue(nil) // Push error marker
+			return
+		}
+		node := &StringLiteralNode{
+			Pos:   tokenToPosition(token),
+			Value: actualContent,
+			IsRaw: true,
+		}
+		l.pushValue(node)
+		l.logDebugAST("    Constructed StringLiteralNode (Triple-Backtick/Raw)")
+		return
+
+	} else if ctx.NUMBER_LIT() != nil {
+		token := ctx.NUMBER_LIT().GetSymbol()
+		numStr := token.GetText()
+		numValue, err := parseNumber(numStr) // Use helper
+		if err != nil {
+			l.addErrorf(token, "Invalid number literal: %v", err)
+			l.pushValue(nil) // Push error marker
+			return
+		}
+		node := &NumberLiteralNode{
+			Pos:   tokenToPosition(token),
+			Value: numValue, // Holds int64 or float64
+		}
+		l.pushValue(node)
+		l.logDebugAST("    Constructed NumberLiteralNode: Value=%v (%T)", node.Value, node.Value)
+		return
+	}
+
+	// If it's not one of the above, it must be a boolean, list, or map literal.
+	// The values for these should have already been pushed onto the stack by their
+	// respective Exit* methods (ExitBoolean_literal, ExitList_literal, ExitMap_literal).
+	// So, here we just act as a pass-through.
+	if ctx.Boolean_literal() != nil || ctx.List_literal() != nil || ctx.Map_literal() != nil {
+		l.logDebugAST("    Literal is Boolean, List, or Map (Pass through)")
+		// Value already pushed by child Exit* method.
+		return
+	}
+
+	// If none of the above matched, something is wrong.
+	l.addError(ctx, "Internal error: ExitLiteral reached unexpected state - no known literal type found for text: %q", ctx.GetText())
+	l.pushValue(nil) // Push nil as an error marker
+}
+
 // ExitBoolean_literal pushes a BooleanLiteralNode.
-// (Unchanged)
 func (l *neuroScriptListenerImpl) ExitBoolean_literal(ctx *gen.Boolean_literalContext) {
-	l.logDebugAST(">>> Exit Boolean_literal: %q", ctx.GetText())
+	l.logDebugAST("--- Exit Boolean_literal: %q", ctx.GetText())
 	value := false
+	var token antlr.Token
 	if ctx.KW_TRUE() != nil {
 		value = true
+		token = ctx.KW_TRUE().GetSymbol()
+	} else {
+		token = ctx.KW_FALSE().GetSymbol()
 	}
-	l.pushValue(BooleanLiteralNode{Value: value})
-	l.logDebugAST("    Constructed BooleanLiteralNode: Value=%t", value)
+
+	node := &BooleanLiteralNode{
+		Pos:   tokenToPosition(token),
+		Value: value,
+	}
+	l.pushValue(node)
+	l.logDebugAST("    Constructed BooleanLiteralNode: Value=%t", node.Value)
 }

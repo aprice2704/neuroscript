@@ -6,19 +6,28 @@ import (
 	"fmt"
 )
 
-// --- NEW: RuntimeError ---
+// --- ErrorCode Type ---
+type ErrorCode int // Define a specific type for error codes
+
+// --- RuntimeError ---
 // RuntimeError represents a structured error originating from NeuroScript execution.
 type RuntimeError struct {
-	Code    int    // Numeric code for categorization
-	Message string // Human-readable error message
-	Wrapped error  // Optional: The original underlying Go error, if any
+	Code    ErrorCode // Use specific type
+	Message string    // Human-readable error message
+	Wrapped error     // Optional: The original underlying Go error, if any
+	// Pos     *Position // Optional: Add position directly here if desired later
 }
 
 // Error implements the standard Go error interface.
 func (e *RuntimeError) Error() string {
+	// Optionally include Position info if added to struct:
+	// posStr := ""
+	// if e.Pos != nil {
+	//  posStr = fmt.Sprintf(" at %s", e.Pos.String())
+	// }
 	if e.Wrapped != nil {
 		// Consider including wrapped error details if helpful for debugging Go side
-		// return fmt.Sprintf("NeuroScript Error %d: %s (wrapped: %v)", e.Code, e.Message, e.Wrapped)
+		// return fmt.Sprintf("NeuroScript Error %d%s: %s (wrapped: %v)", e.Code, posStr, e.Message, e.Wrapped)
 		return fmt.Sprintf("NeuroScript Error %d: %s", e.Code, e.Message) // Simpler message for script
 	}
 	return fmt.Sprintf("NeuroScript Error %d: %s", e.Code, e.Message)
@@ -30,37 +39,35 @@ func (e *RuntimeError) Unwrap() error {
 }
 
 // Helper to create a new RuntimeError
-func NewRuntimeError(code int, message string, wrapped error) *RuntimeError {
+// NOTE: Does NOT accept Position directly. Position should be added to Message or struct later if needed.
+func NewRuntimeError(code ErrorCode, message string, wrapped error) *RuntimeError {
 	return &RuntimeError{Code: code, Message: message, Wrapped: wrapped}
 }
 
 // --- Basic Runtime Error Codes (Expand as needed) ---
+// *** UPDATED: Added ErrorCodeEvaluation, ErrorCodeConfiguration ***
 const (
-	ErrorCodeGeneric         = 0  // Default or unknown script error
-	ErrorCodeFailStatement   = 1  // Error explicitly raised by 'fail'
-	ErrorCodeProcNotFound    = 2  // Procedure call target not found
-	ErrorCodeToolNotFound    = 3  // Tool or tool function not found
-	ErrorCodeArgMismatch     = 4  // Incorrect number/type of arguments
-	ErrorCodeMustFailed      = 5  // 'must' or 'mustbe' condition failed
-	ErrorCodeInternal        = 6  // Internal interpreter error (e.g., bad AST, nil pointer)
-	ErrorCodeType            = 7  // Type error during operation (e.g., adding string to int)
-	ErrorCodeBounds          = 8  // Index out of bounds
-	ErrorCodeKeyNotFound     = 9  // Map key not found
-	ErrorCodeSecurity        = 10 // Security policy violation
-	ErrorCodeReadOnly        = 11 // Attempt to modify read-only variable (err_code/err_msg)
-	ErrorCodeReturnViolation = 12 // 'return' used inside 'on_error'
-	ErrorCodeClearViolation  = 13 // 'clear_error' used outside 'on_error'
-	ErrorCodeDivisionByZero  = 14 // Division by zero
-	ErrorCodeSyntax          = 15 // Syntax error during parsing or interpretation
-
-	// --- NEW Codes for ask... ---
-	ErrorCodeLLMError               = 16 // Error during LLM API call or processing
-	ErrorCodeHumanInteractionError  = 17 // Error during askHuman interaction (future use)
-	ErrorCodeComputerExecutionError = 18 // Error during askComputer specific logic (if distinct from tool errors)
-	// --- End NEW Codes ---
-
-	// ... add more specific codes ...
-	ErrorCodeToolSpecific = 1000 // Base for tool-specific errors
+	ErrorCodeGeneric         ErrorCode = 0    // Default or unknown script error
+	ErrorCodeFailStatement   ErrorCode = 1    // Error explicitly raised by 'fail'
+	ErrorCodeProcNotFound    ErrorCode = 2    // Procedure call target not found
+	ErrorCodeToolNotFound    ErrorCode = 3    // Tool or tool function not found
+	ErrorCodeArgMismatch     ErrorCode = 4    // Incorrect number/type of arguments
+	ErrorCodeMustFailed      ErrorCode = 5    // 'must' or 'mustbe' condition failed
+	ErrorCodeInternal        ErrorCode = 6    // Internal interpreter error (e.g., bad AST, nil pointer)
+	ErrorCodeType            ErrorCode = 7    // Type error during operation (e.g., adding string to int)
+	ErrorCodeBounds          ErrorCode = 8    // Index out of bounds
+	ErrorCodeKeyNotFound     ErrorCode = 9    // Map key not found
+	ErrorCodeSecurity        ErrorCode = 10   // Security policy violation
+	ErrorCodeReadOnly        ErrorCode = 11   // Attempt to modify read-only variable (err_code/err_msg)
+	ErrorCodeReturnViolation ErrorCode = 12   // 'return' used inside 'on_error'
+	ErrorCodeClearViolation  ErrorCode = 13   // 'clear_error' used outside 'on_error'
+	ErrorCodeDivisionByZero  ErrorCode = 14   // Division by zero
+	ErrorCodeSyntax          ErrorCode = 15   // Syntax error during parsing or interpretation
+	ErrorCodeLLMError        ErrorCode = 16   // Error during LLM API call or processing
+	ErrorCodeEvaluation      ErrorCode = 17   // Error during expression evaluation (ADDED)
+	ErrorCodeConfiguration   ErrorCode = 18   // Error related to interpreter/tool configuration (ADDED)
+	ErrorCodeToolSpecific    ErrorCode = 1000 // Base for tool-specific errors
+	// Add more codes as needed
 )
 
 // --- Core Validation Errors ---
@@ -112,11 +119,10 @@ var (
 	ErrGoInvalidIdentifierFormat     = errors.New("invalid identifier format (e.g., empty string)")
 	ErrRefactoredPathNotFound        = errors.New("refactored package path not found for symbol mapping")
 	ErrSymbolMappingFailed           = errors.New("failed to build symbol map from refactored packages")
-	ErrSymbolNotFoundInMap           = errors.New("symbol used from original package not found in new location map")
 	ErrAmbiguousSymbol               = errors.New("ambiguous exported symbol")
 	// Cache Errors
 	ErrCacheObjectNotFound  = errors.New("object not found in cache")
-	ErrCacheObjectWrongType = errors.New("object found in cache has wrong type")
+	ErrCacheObjectWrongType = errors.New("cached object has wrong type")
 	// Math/Evaluation Errors
 	ErrDivisionByZero            = errors.New("division by zero")
 	ErrInvalidOperandType        = errors.New("invalid operand type")
@@ -129,6 +135,7 @@ var (
 	ErrUnsupportedOperator       = errors.New("unsupported operator")
 	ErrNilOperand                = errors.New("operation received nil operand")
 	ErrUnknownFunction           = errors.New("unknown function called")
+	ErrTypeAssertionFailed       = errors.New("type assertion failed") // <<< ADDED DEFINITION HERE
 
 	// Verification Errors
 	ErrMustConditionFailed = errors.New("must condition evaluated to false")
@@ -138,6 +145,7 @@ var (
 )
 
 // --- Core Interpreter Errors ---
+// *** UPDATED: Added ErrLLMNotConfigured ***
 var (
 	ErrProcedureNotFound    = errors.New("procedure not found")
 	ErrArgumentMismatch     = errors.New("argument mismatch")
@@ -151,7 +159,6 @@ var (
 	ErrClearViolation       = errors.New("clear_error used outside on_error block")
 	ErrReturnViolation      = errors.New("'return' statement is not permitted inside an on_error block")
 	ErrToolNotFound         = errors.New("tool or tool function not found")
-	// --- NEW Sentinels for ask... ---
-	ErrLLMError = errors.New("LLM interaction failed") // Used in executeAskAI
-	// --- End NEW Sentinels ---
+	ErrLLMError             = errors.New("LLM interaction failed")
+	ErrLLMNotConfigured     = errors.New("LLM client not configured in interpreter") // ADDED
 )

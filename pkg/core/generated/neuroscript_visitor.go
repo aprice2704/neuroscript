@@ -67,6 +67,9 @@ type NeuroScriptVisitor interface {
 	// Visit a parse tree produced by NeuroScriptParser#clearErrorStmt.
 	VisitClearErrorStmt(ctx *ClearErrorStmtContext) interface{}
 
+	// Visit a parse tree produced by NeuroScriptParser#ask_stmt.
+	VisitAsk_stmt(ctx *Ask_stmtContext) interface{}
+
 	// Visit a parse tree produced by NeuroScriptParser#if_statement.
 	VisitIf_statement(ctx *If_statementContext) interface{}
 

@@ -2,26 +2,29 @@
 package core
 
 import (
+	// Needed for errors.Is if used, keep for now
 	"fmt"
 	"strings"
 	// Assuming NsError, RuntimeError, error codes, etc. defined in errors.go
 )
 
 // executeSet handles the "set" step.
-// It evaluates the RHS expression (which might now involve a function call)
-// and sets the variable. Returns the set value for 'LAST'.
+// Evaluates the RHS expression and sets the variable. Returns the set value for 'LAST'.
 func (i *Interpreter) executeSet(step Step, stepNum int, isInHandler bool, activeError *RuntimeError) (interface{}, error) {
-	i.Logger().Debug("[DEBUG-INTERP]   Executing SET: Target=%s", step.Target)
+	posStr := step.Pos.String() // Get position string once
+	i.Logger().Debug("[DEBUG-INTERP]   Executing SET", "Target", step.Target, "pos", posStr)
 	// Evaluate the RHS expression node. This call might trigger function/tool execution.
-	value, err := i.evaluateExpression(step.Value)
+	value, err := i.evaluateExpression(step.Value) // Value field holds the RHS expression node
 	if err != nil {
-		// Wrap underlying evaluation error (could be from call execution now)
-		return nil, NewRuntimeError(ErrorCodeGeneric, fmt.Sprintf("evaluating value for SET %s", step.Target), fmt.Errorf("evaluating value for set %s: %w", step.Target, err))
+		// Wrap underlying evaluation error
+		errMsg := fmt.Sprintf("evaluating value for SET %s at %s", step.Target, posStr)
+		// Use ErrorCodeEvaluation for evaluation errors
+		return nil, NewRuntimeError(ErrorCodeEvaluation, errMsg, fmt.Errorf("%s: %w", errMsg, err))
 	}
 
 	// Check for read-only assignment in error handler
 	if isInHandler && (step.Target == "err_code" || step.Target == "err_msg") {
-		errMsg := fmt.Sprintf("cannot assign to read-only variable '%s' within on_error handler", step.Target)
+		errMsg := fmt.Sprintf("cannot assign to read-only variable '%s' within on_error handler at %s", step.Target, posStr)
 		return nil, NewRuntimeError(ErrorCodeReadOnly, errMsg, fmt.Errorf("%s: %w", errMsg, ErrReadOnlyViolation))
 	}
 
@@ -29,31 +32,32 @@ func (i *Interpreter) executeSet(step Step, stepNum int, isInHandler bool, activ
 	setErr := i.SetVariable(step.Target, value)
 	if setErr != nil {
 		// Wrap internal error from variable scope management
-		return nil, NewRuntimeError(ErrorCodeInternal, fmt.Sprintf("setting variable '%s'", step.Target), fmt.Errorf("setting variable %s: %w", step.Target, setErr))
+		errMsg := fmt.Sprintf("setting variable '%s' at %s", step.Target, posStr)
+		return nil, NewRuntimeError(ErrorCodeInternal, errMsg, fmt.Errorf("%s: %w", errMsg, setErr))
 	}
 
 	// Return the successfully evaluated and set value.
 	return value, nil
 }
 
-// --- REMOVED executeCall ---
-
 // executeReturn handles the "return" step.
 // Evaluates return expressions and signals return.
 func (i *Interpreter) executeReturn(step Step, stepNum int, isInHandler bool, activeError *RuntimeError) (interface{}, bool, error) {
-	i.Logger().Debug("[DEBUG-INTERP]   Executing RETURN")
-	rawValue := step.Value // This is usually []interface{} (AST nodes) or nil
+	posStr := step.Pos.String()
+	i.Logger().Debug("[DEBUG-INTERP]   Executing RETURN", "pos", posStr)
+	rawValue := step.Value // This is usually []Expression or nil
 
 	if rawValue == nil {
-		i.Logger().Debug("[DEBUG-INTERP]     Return has no value (implicit nil)")
+		i.Logger().Debug("[DEBUG-INTERP]     Return has no value (implicit nil)", "pos", posStr)
 		return nil, true, nil // Return nil value, signal return=true, no error
 	}
 
 	// Expect rawValue to be a slice of expression nodes from the AST builder
-	if exprSlice, ok := rawValue.([]interface{}); ok {
-		i.Logger().Debug("[DEBUG-INTERP]     Return has %d expression(s)", len(exprSlice))
+	// Now expect []Expression directly from AST
+	if exprSlice, ok := rawValue.([]Expression); ok {
+		i.Logger().Debug("[DEBUG-INTERP]     Return has %d expression(s)", "count", len(exprSlice), "pos", posStr)
 		if len(exprSlice) == 0 {
-			i.Logger().Debug("[DEBUG-INTERP]     Return has empty expression list (equivalent to nil)")
+			i.Logger().Debug("[DEBUG-INTERP]     Return has empty expression list (equivalent to nil)", "pos", posStr)
 			return nil, true, nil // Treat 'return ()' like 'return'
 		}
 
@@ -61,17 +65,27 @@ func (i *Interpreter) executeReturn(step Step, stepNum int, isInHandler bool, ac
 		for idx, exprNode := range exprSlice {
 			evaluatedValue, err := i.evaluateExpression(exprNode) // Evaluate each expression
 			if err != nil {
-				// Wrap evaluation error
-				return nil, true, NewRuntimeError(ErrorCodeGeneric, fmt.Sprintf("evaluating return expression %d", idx+1), fmt.Errorf("evaluating return expression %d: %w", idx+1, err))
+				// Wrap evaluation error, include position if possible from exprNode
+				exprPosStr := "<unknown>"
+				if exprNode != nil && exprNode.GetPos() != nil {
+					exprPosStr = exprNode.GetPos().String()
+				}
+				errMsg := fmt.Sprintf("evaluating return expression %d at %s", idx+1, exprPosStr)
+				// Use ErrorCodeEvaluation for evaluation errors
+				return nil, true, NewRuntimeError(ErrorCodeEvaluation, errMsg, fmt.Errorf("%s: %w", errMsg, err))
 			}
 			results[idx] = evaluatedValue
 		}
 		// Return evaluated results slice, signal return=true, no error
+		// If only one result, return it directly instead of a slice
+		if len(results) == 1 {
+			return results[0], true, nil
+		}
 		return results, true, nil
 	} else {
-		// This case should ideally not happen
-		i.Logger().Error("[ERROR INTERP] RETURN step value was not []interface{}: %T", rawValue)
-		errMsg := fmt.Sprintf("internal error: RETURN step value was not []interface{}, but %T", rawValue)
+		// This case should ideally not happen if AST builder is correct
+		errMsg := fmt.Sprintf("internal error at %s: RETURN step value was not []Expression, but %T", posStr, rawValue)
+		i.Logger().Error("[ERROR INTERP] %s", errMsg)
 		return nil, true, NewRuntimeError(ErrorCodeInternal, errMsg, fmt.Errorf("%s: %w", errMsg, ErrInternal))
 	}
 }
@@ -79,10 +93,12 @@ func (i *Interpreter) executeReturn(step Step, stepNum int, isInHandler bool, ac
 // executeEmit handles the "emit" step.
 // Evaluates expression and prints. Returns emitted value for 'LAST'.
 func (i *Interpreter) executeEmit(step Step, stepNum int, isInHandler bool, activeError *RuntimeError) (interface{}, error) {
-	i.Logger().Debug("[DEBUG-INTERP]   Executing EMIT")
-	value, err := i.evaluateExpression(step.Value) // Evaluate the expression
+	posStr := step.Pos.String()
+	i.Logger().Debug("[DEBUG-INTERP]   Executing EMIT", "pos", posStr)
+	value, err := i.evaluateExpression(step.Value) // Evaluate the expression node
 	if err != nil {
-		return nil, NewRuntimeError(ErrorCodeGeneric, "evaluating value for EMIT", fmt.Errorf("evaluating emit value: %w", err))
+		errMsg := fmt.Sprintf("evaluating value for EMIT at %s", posStr)
+		return nil, NewRuntimeError(ErrorCodeEvaluation, errMsg, fmt.Errorf("%s: %w", errMsg, err))
 	}
 	fmt.Printf("EMIT: %v\n", value) // Default print mechanism
 	return value, nil               // Return emitted value for potential 'LAST' use
@@ -92,18 +108,20 @@ func (i *Interpreter) executeEmit(step Step, stepNum int, isInHandler bool, acti
 // Uses NodeToString for error message source.
 func (i *Interpreter) executeMust(step Step, stepNum int, isInHandler bool, activeError *RuntimeError) (interface{}, error) {
 	stepType := strings.ToLower(step.Type) // must or mustbe
-	i.Logger().Debug("[DEBUG-INTERP]   Executing %s", strings.ToUpper(stepType))
+	posStr := step.Pos.String()
+	i.Logger().Debug("[DEBUG-INTERP]   Executing %s", "type", strings.ToUpper(stepType), "pos", posStr)
 
-	// Evaluate the condition expression (which might be a CallableExprNode for mustbe)
+	// Evaluate the condition expression (Value field holds the condition for 'must' or the CallableExprNode for 'mustbe')
 	value, err := i.evaluateExpression(step.Value)
 
 	// Handle evaluation errors (could be from the call in 'mustbe')
 	if err != nil {
-		errMsg := fmt.Sprintf("error evaluating condition for %s", stepType)
+		errMsg := fmt.Sprintf("error evaluating condition for %s at %s", stepType, posStr)
 		// If it was 'mustbe', the step.Target contains the function name.
 		if stepType == "mustbe" && step.Target != "" {
-			errMsg = fmt.Sprintf("error executing check function '%s' for mustbe", step.Target)
+			errMsg = fmt.Sprintf("error executing check function '%s' for mustbe at %s", step.Target, posStr)
 		}
+		// Wrap error using ErrMustConditionFailed sentinel
 		wrappedErr := fmt.Errorf("%w: evaluation failed (%v)", ErrMustConditionFailed, err)
 		return nil, NewRuntimeError(ErrorCodeMustFailed, errMsg, wrappedErr)
 	}
@@ -113,74 +131,89 @@ func (i *Interpreter) executeMust(step Step, stepNum int, isInHandler bool, acti
 		errMsg := ""
 		// Use step.Target for 'mustbe' error messages if available
 		if stepType == "mustbe" && step.Target != "" {
-			errMsg = fmt.Sprintf("'%s %s' evaluated to false", stepType, step.Target)
+			errMsg = fmt.Sprintf("'%s %s' check failed (returned falsy) at %s", stepType, step.Target, posStr)
 		} else {
 			// Fallback for regular 'must' or if target wasn't captured
 			nodeStr := NodeToString(step.Value) // Try to stringify the original AST node
-			errMsg = fmt.Sprintf("'%s %s' condition evaluated to false", stepType, nodeStr)
+			errMsg = fmt.Sprintf("'%s %s' condition evaluated to false at %s", stepType, nodeStr, posStr)
 		}
+		// Use ErrMustConditionFailed sentinel
 		return nil, NewRuntimeError(ErrorCodeMustFailed, errMsg, ErrMustConditionFailed)
 	}
 
-	i.Logger().Debug("[DEBUG-INTERP]     %s condition TRUE.", strings.ToUpper(stepType))
+	i.Logger().Debug("[DEBUG-INTERP]     %s condition TRUE.", "type", strings.ToUpper(stepType), "pos", posStr)
 	// Return the successfully evaluated condition value
 	return value, nil
 }
 
-// executeFail handles the "fail" step. (Unchanged)
+// executeFail handles the "fail" step.
+// *** MODIFIED: Cast integers to ErrorCode ***
 func (i *Interpreter) executeFail(step Step, stepNum int, isInHandler bool, activeError *RuntimeError) error {
-	i.Logger().Debug("[DEBUG-INTERP]   Executing FAIL")
-	errCode := ErrorCodeFailStatement
+	posStr := step.Pos.String()
+	i.Logger().Debug("[DEBUG-INTERP]   Executing FAIL", "pos", posStr)
+	errCode := ErrorCodeFailStatement // Default error code
 	errMsg := "fail statement executed"
 	var evalErr error = nil
-	var wrappedErr error = ErrFailStatement
+	wrappedErr := ErrFailStatement // Use specific sentinel error
 
-	if step.Value != nil {
+	if step.Value != nil { // Value field holds the optional expression node
 		failValue, err := i.evaluateExpression(step.Value)
 		if err != nil {
-			evalErr = err
-			errMsg = fmt.Sprintf("fail statement executed (error evaluating message/code: %v)", err)
+			evalErr = err // Store evaluation error
+			errMsg = fmt.Sprintf("fail statement executed at %s (error evaluating message/code: %v)", posStr, err)
 		} else {
+			errMsg = fmt.Sprintf("fail statement executed at %s with value: %v", posStr, failValue) // Include pos
+			// Check type of evaluated value to determine code/message
 			switch v := failValue.(type) {
 			case string:
-				errMsg = v
+				errMsg = v // Use string directly as message
 			case int:
-				errCode = v
+				errCode = ErrorCode(v) // *** CAST int to ErrorCode ***
+				errMsg = fmt.Sprintf("fail statement executed at %s with code %d", posStr, errCode)
 			case int64:
-				errCode = int(v)
+				errCode = ErrorCode(int(v)) // *** CAST int64 to ErrorCode ***
+				errMsg = fmt.Sprintf("fail statement executed at %s with code %d", posStr, errCode)
 			case float64:
-				errCode = int(v)
-				errMsg = fmt.Sprintf("fail statement executed with code %d (from float %v)", errCode, v)
-			default:
-				errMsg = fmt.Sprintf("fail statement executed with value: %v", failValue)
+				// Potential precision loss, but try casting
+				errCode = ErrorCode(int(v)) // *** CAST float64 to ErrorCode ***
+				errMsg = fmt.Sprintf("fail statement executed at %s with code %d (from float %v)", posStr, errCode, v)
 			}
 		}
+	} else {
+		errMsg = fmt.Sprintf("fail statement executed at %s", posStr) // Include pos
 	}
+
 	finalErrMsg := errMsg
 	if evalErr != nil {
 		finalErrMsg = fmt.Sprintf("%s [evaluation error: %v]", errMsg, evalErr)
+		wrappedErr = evalErr // Wrap the evaluation error instead of ErrFailStatement
 	}
+
 	return NewRuntimeError(errCode, finalErrMsg, wrappedErr)
 }
 
-// executeOnError handles the "on_error" step setup. (Unchanged)
+// executeOnError handles the "on_error" step setup.
 func (i *Interpreter) executeOnError(step Step, stepNum int, isInHandler bool, activeError *RuntimeError) (*Step, error) {
-	i.Logger().Debug("[DEBUG-INTERP]   Executing ON_ERROR - Handler now active for subsequent steps in this scope.")
-	handlerStep := step // The step contains the body ([]Step) in its Value field
+	posStr := step.Pos.String()
+	i.Logger().Debug("[DEBUG-INTERP]   Executing ON_ERROR - Handler now active.", "pos", posStr)
+	// Return the step itself (which contains the handler body in Value) to be used as the active handler
+	handlerStep := step
 	return &handlerStep, nil
 }
 
-// executeClearError handles the "clear_error" step. (Unchanged)
+// executeClearError handles the "clear_error" step.
 func (i *Interpreter) executeClearError(step Step, stepNum int, isInHandler bool, activeError *RuntimeError) (bool, error) {
-	i.Logger().Debug("[DEBUG-INTERP]   Executing CLEAR_ERROR")
+	posStr := step.Pos.String()
+	i.Logger().Debug("[DEBUG-INTERP]   Executing CLEAR_ERROR", "pos", posStr)
 	if !isInHandler {
-		errMsg := fmt.Sprintf("step %d: 'clear_error' can only be used inside an on_error block", stepNum+1)
+		errMsg := fmt.Sprintf("step %d at %s: 'clear_error' can only be used inside an on_error block", stepNum+1, posStr)
+		// Use ErrorCodeClearViolation
 		return false, NewRuntimeError(ErrorCodeClearViolation, errMsg, fmt.Errorf("%s: %w", errMsg, ErrClearViolation))
 	}
 	return true, nil // Signal clear was called
 }
 
-// --- ADDED NodeToString Helper ---
+// --- Helper: NodeToString --- (Moved from interpreter_exec.go to avoid dependency)
 // NodeToString converts an AST node to a string representation for error messages.
 func NodeToString(node interface{}) string {
 	if node == nil {

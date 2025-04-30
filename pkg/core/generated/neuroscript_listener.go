@@ -67,6 +67,9 @@ type NeuroScriptListener interface {
 	// EnterClearErrorStmt is called when entering the clearErrorStmt production.
 	EnterClearErrorStmt(c *ClearErrorStmtContext)
 
+	// EnterAsk_stmt is called when entering the ask_stmt production.
+	EnterAsk_stmt(c *Ask_stmtContext)
+
 	// EnterIf_statement is called when entering the if_statement production.
 	EnterIf_statement(c *If_statementContext)
 
@@ -216,6 +219,9 @@ type NeuroScriptListener interface {
 
 	// ExitClearErrorStmt is called when exiting the clearErrorStmt production.
 	ExitClearErrorStmt(c *ClearErrorStmtContext)
+
+	// ExitAsk_stmt is called when exiting the ask_stmt production.
+	ExitAsk_stmt(c *Ask_stmtContext)
 
 	// ExitIf_statement is called when exiting the if_statement production.
 	ExitIf_statement(c *If_statementContext)

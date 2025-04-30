@@ -11,9 +11,6 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/core"
 	"github.com/aprice2704/neuroscript/pkg/logging"
 
-	// Import the interfaces package for Logger and the new LLMClient location
-	"github.com/aprice2704/neuroscript/pkg/logging"
-
 	"github.com/aprice2704/neuroscript/pkg/nspatch" // Import nspatch
 )
 

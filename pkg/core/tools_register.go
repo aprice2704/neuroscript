@@ -9,7 +9,6 @@ import (
 
 // registerCoreTools defines the specs for built-in tools and registers them
 // by calling registration functions from specific tool files WITHIN THE CORE PACKAGE.
-// UPDATED: Added call to registerGoAstPackageTools
 func registerCoreTools(registry *ToolRegistry) error {
 	var errs []error // Collect errors
 
@@ -21,23 +20,21 @@ func registerCoreTools(registry *ToolRegistry) error {
 	}
 
 	// Register core tool groups
-	collectErr("FS", registerFsTools(registry))             // Assumes exists in tools_fs.go (or similar)
-	collectErr("Vector", registerVectorTools(registry))     // Assumes exists in tools_vector.go
-	collectErr("Git", registerGitTools(registry))           // Assumes exists in tools_git_register.go
-	collectErr("String", registerStringTools(registry))     // Assumes exists in tools_string.go
-	collectErr("Shell", registerShellTools(registry))       // Assumes exists in tools_shell.go
-	collectErr("Math", registerMathTools(registry))         // Assumes exists in tools_math.go
-	collectErr("Metadata", registerMetadataTools(registry)) // Assumes exists in tools_metadata.go
-	collectErr("List", registerListTools(registry))         // Assumes exists in tools_list_register.go
-	// collectErr("Go AST", registerGoAstTools(registry))                // Assumes exists in tools_go_ast.go (Registers basic AST tools)
-	//collectErr("Go AST Package", registerGoAstPackageTools(registry)) // NEW: Registers package-level refactoring tools
-	collectErr("IO", registerIOTools(registry))            // Assumes exists in tools_io.go (now includes Log)
-	collectErr("File API", registerFileAPITools(registry)) // Assumes exists in tools_file_api.go
-	collectErr("LLM", registerLLMTools(registry))          // Assumes exists in llm_tools.go
+	collectErr("FS", registerFsTools(registry))
+	collectErr("Vector", registerVectorTools(registry))
+	collectErr("Git", registerGitTools(registry))
+	collectErr("String", registerStringTools(registry))
+	collectErr("Shell", registerShellTools(registry))
+	collectErr("Math", registerMathTools(registry))
+	collectErr("Metadata", registerMetadataTools(registry))
+	collectErr("List", registerListTools(registry))
+	collectErr("IO", registerIOTools(registry))
+	collectErr("File API", registerFileAPITools(registry))
+	collectErr("LLM", RegisterLLMTools(registry)) // <<< CORRECTED FUNCTION NAME
+
+	// GoAST tools might be registered elsewhere
 
 	if len(errs) > 0 {
-		// Combine multiple registration errors if necessary
-		// Fallback for older Go versions:
 		errorMessages := make([]string, len(errs))
 		for i, e := range errs {
 			errorMessages[i] = e.Error()
@@ -59,6 +56,3 @@ func RegisterCoreTools(registry *ToolRegistry) error {
 	}
 	return nil // Success
 }
-
-// NOTE: The implementations for registerFsTools, registerVectorTools, etc.,
-// must exist in their respective files within the core package.

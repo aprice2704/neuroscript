@@ -2,8 +2,11 @@
 package core
 
 import (
-	"context" // Added import for context
+	"context"
 	"fmt"
+
+	// Need genai import for the new Client() method return type
+	"github.com/google/generative-ai-go/genai"
 )
 
 // Role defines the speaker role in a conversation turn.
@@ -46,7 +49,7 @@ type ToolDefinition struct {
 }
 
 // LLMClient defines the interface for interacting with a Large Language Model.
-// Moved here from interfaces package and llm_client.go to consolidate and break cycles.
+// *** MODIFIED: Added Client() method ***
 type LLMClient interface {
 	// Ask sends a conversation history to the LLM and expects a response turn.
 	Ask(ctx context.Context, turns []*ConversationTurn) (*ConversationTurn, error)
@@ -57,6 +60,10 @@ type LLMClient interface {
 
 	// Embed generates vector embeddings for the given text.
 	Embed(ctx context.Context, text string) ([]float32, error)
+
+	// Client returns the underlying *genai.Client, if available, otherwise nil.
+	// This allows helpers needing the specific client type to access it safely.
+	Client() *genai.Client // <<< ADDED METHOD
 }
 
 // String returns a string representation of the ConversationTurn.

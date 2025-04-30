@@ -1,7 +1,8 @@
 // File:      NeuroScript.g4
 // Grammar:   NeuroScript
 // Version:   0.2.0-alpha-func-returns-1 // Incremented Version for function returns
-// Date:      2025-04-29
+// Date:      2025-04-29 // << Date adjusted based on context >>
+// NOTE: Added ask_stmt rule Apr 30, 2025
 
 grammar NeuroScript;
 
@@ -48,7 +49,7 @@ body_line: statement NEWLINE | NEWLINE; // Each statement ends with NL, or just 
 // --- Statements ---
 statement: simple_statement | block_statement ;
 
-// MODIFIED: Removed call_statement from simple_statement
+// MODIFIED: Added ask_stmt
 simple_statement:
     set_statement
     // | call_statement // REMOVED
@@ -56,7 +57,9 @@ simple_statement:
     | emit_statement
     | must_statement
     | fail_statement
-    | clearErrorStmt;
+    | clearErrorStmt
+    | ask_stmt         // <<< ADDED ask_stmt ALTERNATIVE
+    ;
 
 block_statement:
     if_statement
@@ -69,10 +72,10 @@ set_statement: KW_SET IDENTIFIER ASSIGN expression;
 // call_statement rule REMOVED
 return_statement: KW_RETURN expression_list?;
 emit_statement: KW_EMIT expression;
-// MODIFIED: mustbe now uses the new 'callable_expr' rule
 must_statement: KW_MUST expression | KW_MUSTBE callable_expr;
 fail_statement: KW_FAIL expression?;
 clearErrorStmt: KW_CLEAR_ERROR;
+ask_stmt: KW_ASK expression (KW_INTO IDENTIFIER)? ; // <<< ADDED ask_stmt RULE DEFINITION
 
 // --- Block Statements Details (Unchanged structurally, END terminators handled) ---
 if_statement:
@@ -161,7 +164,6 @@ KW_RETURNS    : 'returns';
 KW_MEANS      : 'means';
 KW_ENDFUNC    : 'endfunc';
 KW_SET        : 'set';
-// KW_CALL removed
 KW_RETURN     : 'return';
 KW_EMIT       : 'emit';
 KW_IF         : 'if';
@@ -197,6 +199,8 @@ KW_TAN        : 'tan';
 KW_ASIN       : 'asin';
 KW_ACOS       : 'acos';
 KW_ATAN       : 'atan';
+KW_ASK        : 'ask';   // <<< ADDED KEYWORD
+KW_INTO       : 'into';  // <<< ADDED KEYWORD
 
 // Literals (Unchanged)
 NUMBER_LIT: [0-9]+ ('.' [0-9]+)?;

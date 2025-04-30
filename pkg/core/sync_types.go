@@ -10,6 +10,7 @@ import (
 )
 
 // syncContext holds shared state and configuration for the sync operation.
+// *** MODIFIED: Added interp field ***
 type syncContext struct {
 	ctx           context.Context
 	absLocalDir   string
@@ -19,6 +20,7 @@ type syncContext struct {
 	logger        logging.Logger
 	stats         map[string]interface{} // Statistics map
 	incrementStat func(string)           // Function to increment stats
+	interp        *Interpreter           // <<< ADDED: Interpreter reference needed by helpers
 }
 
 // LocalFileInfo stores details about a local file found during the walk.

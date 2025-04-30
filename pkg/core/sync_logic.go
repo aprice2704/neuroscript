@@ -2,8 +2,8 @@
 package core
 
 import (
-	// Still needed for logging the local hash prefix if desired
 	"context"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -18,13 +18,12 @@ import (
 )
 
 // gatherLocalFiles walks the local directory and collects info about files that pass filters.
-// Requires access to syncContext definition (from sync_types.go) and helpers.
+// *** MODIFIED: Calls calculateFileHash with interpreter from syncContext ***
 func gatherLocalFiles(sc *syncContext) (map[string]LocalFileInfo, error) {
-	// Ensure loggers are valid
-	if sc.logger == nil {
-		log.Println("ERROR: gatherLocalFiles called with nil loggers in syncContext!")
-		// Return error as we cannot safely proceed without logging/stats
-		return nil, errors.New("internal error: loggers not initialized in sync context")
+	// Ensure loggers and interp are valid
+	if sc.logger == nil || sc.interp == nil { // Check interp too
+		log.Println("ERROR: gatherLocalFiles called with nil loggers or interpreter in syncContext!")
+		return nil, errors.New("internal error: loggers or interpreter not initialized in sync context")
 	}
 
 	sc.logger.Info("[API HELPER Sync] Scanning local directory: %s", sc.absLocalDir)
@@ -60,7 +59,6 @@ func gatherLocalFiles(sc *syncContext) (map[string]LocalFileInfo, error) {
 		relPath = filepath.ToSlash(relPath)
 
 		// Gitignore Check
-		// Assumes sc.ignorer was initialized correctly earlier
 		if sc.ignorer != nil && sc.ignorer.MatchesPath(relPath) {
 			sc.incrementStat("files_ignored")
 			if d.IsDir() {
@@ -95,23 +93,31 @@ func gatherLocalFiles(sc *syncContext) (map[string]LocalFileInfo, error) {
 		sc.logger.Debug("API HELPER Sync Walk] Processing file: %s", relPath)
 
 		// Calculate Hash
-		// Assumes calculateFileHash is accessible (e.g., from tools_file_api.go)
-		localHash, hashErr := calculateFileHash(currentPath)
+		// *** MODIFIED CALL: Pass sc.interp ***
+		localHash, hashErr := calculateFileHash(sc.interp, relPath) // Pass interpreter and relative path
 		if hashErr != nil {
 			sc.logger.Error("[ERROR API HELPER Sync Walk] Hash failed %s: %v", relPath, hashErr)
 			sc.incrementStat("hash_errors")
-			return nil // Skip file on hash error
+			// Decide if hash error is fatal or just skips file
+			if errors.Is(hashErr, ErrFileNotFound) {
+				sc.logger.Warn("API HELPER Sync Walk] Skipping file %s as it was not found during hashing (possibly deleted during walk)", relPath)
+				return nil // Skip file if not found during hash
+			}
+			// For other hash errors, maybe stop the walk? For now, skip file.
+			return nil // Skip file on other hash errors
 		}
 
 		// Store file info
-		// Assumes LocalFileInfo struct is defined (e.g., in sync_types.go)
 		localFiles[relPath] = LocalFileInfo{
 			RelPath: relPath,
-			AbsPath: currentPath,
+			AbsPath: currentPath, // Store absolute path for upload worker
 			Hash:    localHash,
 		}
-		// Assumes min is accessible (e.g. from helpers.go)
-		sc.logger.Debug("API HELPER Sync Walk] Stored local info for: %s (Hash: %s...)", relPath, localHash[:min(len(localHash), 8)])
+		hashPrefix := localHash
+		if len(hashPrefix) > 8 {
+			hashPrefix = hashPrefix[:8]
+		} // Safe slice
+		sc.logger.Debug("API HELPER Sync Walk] Stored local info for: %s (Hash: %s...)", relPath, hashPrefix)
 		return nil
 	}) // End WalkDir Callback
 
@@ -124,7 +130,6 @@ func gatherLocalFiles(sc *syncContext) (map[string]LocalFileInfo, error) {
 }
 
 // computeSyncActions compares local and remote file lists and determines necessary actions.
-// Assumes syncContext, LocalFileInfo, SyncActions, uploadJob defined (sync_types.go).
 // FIXED: Hash comparison treats API bytes as ASCII hex representation.
 func computeSyncActions(sc *syncContext, localFiles map[string]LocalFileInfo, remoteFiles map[string]*genai.File) SyncActions {
 	// Ensure loggers are valid
@@ -146,15 +151,14 @@ func computeSyncActions(sc *syncContext, localFiles map[string]LocalFileInfo, re
 		} else { // Exists in both, compare hashes
 
 			// *** FIX: Treat API hash bytes as ASCII hex string ***
-			apiHashStr := string(apiFileInfo.Sha256Hash)
+			apiHashStr := hex.EncodeToString(apiFileInfo.Sha256Hash) // Convert API hash bytes to hex string
 
 			if apiHashStr != localInfo.Hash { // Update case: Hashes differ
 				sc.logger.Debug(
-					"[DEBUG Compare] Action=Update for %s --- HASH MISMATCH --- Local: [%s] != Remote Str: [%s]",
+					"[DEBUG Compare] Action=Update for %s --- HASH MISMATCH --- Local: [%s] != Remote Hex: [%s]",
 					relPath, localInfo.Hash, apiHashStr,
 				)
-				sc.logger.Debug("Compare] API File Details: Name=%s, Raw Hash Bytes: %x",
-					apiFileInfo.Name, apiFileInfo.Sha256Hash) // Log raw bytes for inspection
+				// sc.logger.Debug("Compare] API File Details: Name=%s, Raw Hash Bytes: %x", apiFileInfo.Name, apiFileInfo.Sha256Hash) // Log raw bytes for inspection
 
 				actions.FilesToUpdate = append(actions.FilesToUpdate, uploadJob{
 					localAbsPath:    localInfo.AbsPath,
@@ -165,8 +169,11 @@ func computeSyncActions(sc *syncContext, localFiles map[string]LocalFileInfo, re
 			} else { // Up-to-date case: Hashes match
 				sc.incrementStat("files_up_to_date") // Increment global stat counter
 				upToDateCount++                      // Increment local counter for summary log
-				// Reduce noise: only log up-to-date in debug
-				sc.logger.Debug("Compare] Action=None (Up-to-date) for %s (Hashes Match: %s)", relPath, localInfo.Hash[:min(len(localInfo.Hash), 8)])
+				hashPrefix := localInfo.Hash
+				if len(hashPrefix) > 8 {
+					hashPrefix = hashPrefix[:8]
+				} // Safe slice
+				sc.logger.Debug("Compare] Action=None (Up-to-date) for %s (Hashes Match: %s...)", relPath, hashPrefix)
 			}
 		}
 	}
@@ -196,14 +203,17 @@ func computeSyncActions(sc *syncContext, localFiles map[string]LocalFileInfo, re
 	return actions
 }
 
-// Ensure calculateFileHash and min are accessible (defined in core package, e.g., tools_file_api.go and helpers.go)
 // --- Tool: SyncFiles (Wrapper) ---
-// (Function unchanged)
+// *** MODIFIED: Calls checkGenAIClient with interpreter ***
 func toolSyncFiles(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	client, clientErr := checkGenAIClient(interpreter)
+	// *** MODIFIED: Call checkGenAIClient helper ***
+	_, clientErr := checkGenAIClient(interpreter) // Check and get client
 	if clientErr != nil {
 		return nil, fmt.Errorf("TOOL.SyncFiles: %w", clientErr)
 	}
+	// *** END MODIFIED ***
+
+	// Argument parsing (unchanged)
 	if len(args) < 2 || len(args) > 4 {
 		return nil, fmt.Errorf("TOOL.SyncFiles: expected 2-4 arguments (direction, local_dir, [filter_pattern], [ignore_gitignore]), got %d", len(args))
 	}
@@ -217,30 +227,39 @@ func toolSyncFiles(interpreter *Interpreter, args []interface{}) (interface{}, e
 	}
 	if localDir == "" {
 		return nil, errors.New("TOOL.SyncFiles: local_dir empty")
-	}
+	} // Use errors.New
+
 	var filterPattern string
 	if len(args) >= 3 {
-		filterPattern, ok = args[2].(string)
-		if !ok && args[2] != nil {
-			return nil, fmt.Errorf("TOOL.SyncFiles: filter_pattern must be string or null")
+		if args[2] != nil { // Check if optional arg was provided and not nil
+			filterPattern, ok = args[2].(string)
+			if !ok {
+				return nil, fmt.Errorf("TOOL.SyncFiles: filter_pattern must be string or null")
+			}
 		}
 	}
-	var ignoreGitignore bool = false
+
+	var ignoreGitignore bool = false // Default value
 	if len(args) == 4 {
-		ignoreGitignore, ok = args[3].(bool)
-		if !ok {
-			return nil, fmt.Errorf("TOOL.SyncFiles: ignore_gitignore must be boolean")
+		if args[3] != nil { // Check if optional arg was provided and not nil
+			ignoreGitignore, ok = args[3].(bool)
+			if !ok {
+				return nil, fmt.Errorf("TOOL.SyncFiles: ignore_gitignore must be boolean or null")
+			}
 		}
 	}
+
 	direction = strings.ToLower(direction)
 	if direction != "up" {
 		return nil, fmt.Errorf("TOOL.SyncFiles: direction '%s' not supported", direction)
 	}
-	// Assumes ErrValidationArgValue exists
+
+	// Path validation (unchanged)
 	absLocalDir, secErr := ResolveAndSecurePath(localDir, interpreter.sandboxDir)
 	if secErr != nil {
-		return nil, fmt.Errorf("TOOL.SyncFiles: invalid local_dir '%s': %w", localDir, errors.Join(secErr))
-	}
+		return nil, fmt.Errorf("TOOL.SyncFiles: invalid local_dir '%s': %w", localDir, secErr)
+	} // Wrap directly
+
 	dirInfo, statErr := os.Stat(absLocalDir)
 	if statErr != nil {
 		return nil, fmt.Errorf("TOOL.SyncFiles: cannot access local_dir '%s': %w", localDir, statErr)
@@ -248,8 +267,12 @@ func toolSyncFiles(interpreter *Interpreter, args []interface{}) (interface{}, e
 	if !dirInfo.IsDir() {
 		return nil, fmt.Errorf("TOOL.SyncFiles: local_dir '%s' is not a directory", localDir)
 	}
+
 	interpreter.logger.Info("Tool: SyncFiles] Validated dir: %s (Ignore .gitignore: %t)", absLocalDir, ignoreGitignore)
-	// Assumes SyncDirectoryUpHelper is defined elsewhere (e.g., tools_file_api_sync.go)
-	statsMap, syncErr := SyncDirectoryUpHelper(context.Background(), absLocalDir, filterPattern, ignoreGitignore, client, interpreter.logger)
+
+	// Call the main helper (passing interpreter)
+	// *** MODIFIED: Pass interpreter instead of client/logger ***
+	statsMap, syncErr := SyncDirectoryUpHelper(context.Background(), absLocalDir, filterPattern, ignoreGitignore, interpreter)
+
 	return statsMap, syncErr
 }
