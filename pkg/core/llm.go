@@ -2,198 +2,150 @@
 package core
 
 import (
-	"context"
-	"encoding/json"
-	"errors"
-	"os"
+	"context" // Ensure context is imported
+	"fmt"
 
-	"github.com/aprice2704/neuroscript/pkg/interfaces"
-	"github.com/google/generative-ai-go/genai"
-	"google.golang.org/api/option"
+	// Standard library imports needed for actual LLM client implementation (e.g., net/http, encoding/json)
+
+	// Import the logging interface
+	"github.com/aprice2704/neuroscript/pkg/logging"
 )
 
-// LLMClient wraps the genai.Client and stores the configured model name.
-type LLMClient struct {
-	client    *genai.Client
-	logger    interfaces.Logger
-	modelName string
-	debugLLM  bool
+// LLMClient interface definition is in llm_types.go
+
+// --- Concrete LLM Client Implementation ---
+
+// ConcreteLLMClient represents the actual implementation that talks to an LLM API.
+type concreteLLMClient struct {
+	apiKey  string
+	apiHost string
+	logger  logging.Logger
+	enabled bool   // Tracks if real calls should be made
+	modelID string // Added modelID field
+	// Add other fields like http.Client, etc.
+	// httpClient *http.Client
 }
 
-// NewLLMClient creates a new LLM client instance.
-func NewLLMClient(apiKey string, modelName string, logger interfaces.Logger, debugLLM bool) *LLMClient {
-	ctx := context.Background()
-	effectiveAPIKey := apiKey
-	if effectiveAPIKey == "" {
-		effectiveAPIKey = os.Getenv("GEMINI_API_KEY")
+// Ensure concreteLLMClient implements the LLMClient interface.
+var _ LLMClient = (*concreteLLMClient)(nil)
+
+// NewLLMClient creates a new instance of the concrete LLM client.
+// It acts as a factory, returning an LLMClient interface type.
+// If enabled is false, it returns the internal no-op client.
+func NewLLMClient(apiKey, apiHost string, logger logging.Logger, enabled bool) LLMClient {
+	if logger == nil {
+		logger = &coreNoOpLogger{} // Use internal no-op logger if nil
+	}
+	if !enabled {
+		logger.Info("LLM client created but disabled. Using NoOp behavior.")
+		return NewNoOpLLMClient(logger) // Return the NoOp client
 	}
 
-	if effectiveAPIKey == "" {
-		logger.Error(" LLM] No API key provided via flag or GEMINI_API_KEY env var. LLM calls will fail.")
-		return &LLMClient{client: nil, logger: logger, debugLLM: debugLLM}
+	logger.Info("Creating concrete LLM client.", "host", apiHost, "enabled", enabled)
+	if apiKey == "" {
+		logger.Error("API Key is missing for enabled LLM client.")
+		logger.Warn("API Key missing, falling back to NoOpLLMClient.")
+		return NewNoOpLLMClient(logger)
 	}
 
-	logger.Info("LLM] Creating GenAI client for Google AI API...")
-
-	client, err := genai.NewClient(ctx, option.WithAPIKey(effectiveAPIKey))
-	if err != nil {
-		logger.Error("LLM] Failed to create GenAI client: %v", err)
-		return &LLMClient{client: nil, logger: logger, debugLLM: debugLLM}
-	}
-	logger.Info("LLM] GenAI client created successfully.")
-
-	effectiveModelName := modelName
-	if effectiveModelName == "" {
-		effectiveModelName = "gemini-1.5-pro-latest" // Default model
-		logger.Info("LLM] No model name provided, using default: %s", effectiveModelName)
-	} else {
-		logger.Info("LLM] Configured to use model: %s", effectiveModelName)
-	}
-
-	return &LLMClient{
-		client:    client,
-		logger:    logger,
-		modelName: effectiveModelName,
-		debugLLM:  debugLLM,
+	// TODO: Add modelID configuration if needed
+	// For now, just store basic info
+	return &concreteLLMClient{
+		apiKey:  apiKey,
+		apiHost: apiHost,
+		logger:  logger,
+		enabled: true,
+		// modelID: modelID, // Get modelID from config or args if needed
+		// Initialize other fields like httpClient
 	}
 }
 
-// +++ ADDED: Client getter +++
-// Client returns the underlying genai.Client, needed by components like File API tools
-// that might not use the LLMClient wrapper directly.
-func (c *LLMClient) Client() *genai.Client {
-	return c.client
+// Ask sends a request to the actual LLM API.
+// CORRECTED: Receiver is *concreteLLMClient
+func (c *concreteLLMClient) Ask(ctx context.Context, turns []*ConversationTurn) (*ConversationTurn, error) {
+	c.logger.Debug("ConcreteLLMClient Ask called", "turn_count", len(turns))
+	if !c.enabled {
+		c.logger.Warn("Ask called on disabled concrete LLM client. Returning empty response.")
+		// Return the standard no-op response
+		return &ConversationTurn{Role: RoleAssistant, Content: ""}, nil
+	}
+	// TODO: Implement actual API call logic using c.apiKey, c.apiHost, turns
+	c.logger.Warn("ConcreteLLMClient Ask not implemented")
+	// Use fmt.Errorf for errors
+	return nil, fmt.Errorf("concrete LLM Ask method not implemented")
 }
 
-// --- END ADDED ---
-
-// CallLLMAgent sends a request to the LLM agent model using StartChat.
-func (c *LLMClient) CallLLMAgent(ctx context.Context, requestContext LLMRequestContext, tools []*genai.Tool) (*genai.GenerateContentResponse, error) {
-	if c.client == nil {
-		return nil, errors.New("LLM client not initialized (missing API key?)")
+// AskWithTools sends a request with tools to the actual LLM API.
+// CORRECTED: Receiver is *concreteLLMClient
+func (c *concreteLLMClient) AskWithTools(ctx context.Context, turns []*ConversationTurn, tools []ToolDefinition) (*ConversationTurn, []*ToolCall, error) {
+	c.logger.Debug("ConcreteLLMClient AskWithTools called", "turn_count", len(turns), "tool_count", len(tools))
+	if !c.enabled {
+		c.logger.Warn("AskWithTools called on disabled concrete LLM client. Returning empty response.")
+		// Return the standard no-op response
+		return &ConversationTurn{Role: RoleAssistant, Content: ""}, nil, nil
 	}
-
-	c.logger.Debug("LLM CallLLMAgent] Using model: %s", c.modelName)
-	model := c.client.GenerativeModel(c.modelName)
-	model.Tools = tools
-	cs := model.StartChat()
-	cs.History = requestContext.History
-
-	parts := []genai.Part{}
-	lastUserText := ""
-
-	// --- Logic to construct parts (unchanged from previous version) ---
-	if len(requestContext.History) > 0 {
-		lastMsg := requestContext.History[len(requestContext.History)-1]
-		if lastMsg.Role == "user" && len(lastMsg.Parts) > 0 {
-			if textPart, ok := lastMsg.Parts[0].(genai.Text); ok {
-				lastUserText = string(textPart)
-			}
-		}
-	}
-	if len(requestContext.FileURIs) > 0 {
-		c.logger.Debug("LLM CallLLMAgent] Adding %d file URI(s) to request.", len(requestContext.FileURIs))
-		for _, uri := range requestContext.FileURIs {
-			if uri == "" {
-				c.logger.Warn("LLM CallLLMAgent] Skipping empty file URI provided in context.")
-				continue
-			}
-			c.logger.Debug("LLM CallLLMAgent] Adding FileData part for URI: %s", uri)
-			parts = append(parts, genai.FileData{URI: uri})
-		}
-	}
-	if lastUserText != "" {
-		c.logger.Debug("LLM CallLLMAgent] Adding last user text part: %q", lastUserText)
-		parts = append(parts, genai.Text(lastUserText))
-	}
-	if len(parts) == 0 {
-		c.logger.Warn("LLM CallLLMAgent] No parts constructed to send for this turn.")
-		return nil, errors.New("no content parts to send in CallLLMAgent")
-	}
-	// --- End parts construction ---
-
-	c.logger.Debug("LLM CallLLMAgent] Sending message via StartChat. Part count: %d", len(parts))
-	resp, err := cs.SendMessage(ctx, parts...)
-
-	// Debug Raw Response (as implemented before)
-	if c.debugLLM && resp != nil {
-		jsonData, jsonErr := json.MarshalIndent(resp, "", "  ")
-		if jsonErr != nil {
-			c.logger.Debug("LLM RAW] Failed to marshal raw response: %v", jsonErr)
-		} else {
-			c.logger.Debug("LLM RAW] Raw Response (CallLLMAgent):\n%s", string(jsonData))
-		}
-	}
-
-	if err != nil {
-		c.logger.Error("LLM CallLLMAgent] SendMessage failed: %v", err)
-		return nil, err
-	}
-	c.logger.Debug("LLM CallLLMAgent] Received response from SendMessage.")
-	return resp, nil
+	// TODO: Implement actual API call logic with tools
+	c.logger.Warn("ConcreteLLMClient AskWithTools not implemented")
+	// Use fmt.Errorf for errors
+	return nil, nil, fmt.Errorf("concrete LLM AskWithTools method not implemented")
 }
 
-// CallLLM is a simpler function for non-agent, stateless calls using GenerateContent.
-func (c *LLMClient) CallLLM(ctx context.Context, prompt string) (string, error) {
-	if c.client == nil {
-		return "", errors.New("LLM client not initialized (missing API key?)")
+// Embed generates embeddings using the actual LLM API.
+// CORRECTED: Receiver is *concreteLLMClient
+func (c *concreteLLMClient) Embed(ctx context.Context, text string) ([]float32, error) {
+	c.logger.Debug("ConcreteLLMClient Embed called", "text_length", len(text))
+	if !c.enabled {
+		c.logger.Warn("Embed called on disabled concrete LLM client. Returning empty slice.")
+		return []float32{}, nil
 	}
-	c.logger.Debug("LLM CallLLM] Using model: %s", c.modelName)
-	model := c.client.GenerativeModel(c.modelName)
-	c.logger.Debug("LLM CallLLM] Sending simple prompt: %q", prompt)
-	resp, err := model.GenerateContent(ctx, genai.Text(prompt))
-
-	// Debug Raw Response (as implemented before)
-	if c.debugLLM && resp != nil {
-		jsonData, jsonErr := json.MarshalIndent(resp, "", "  ")
-		if jsonErr != nil {
-			c.logger.Debug("LLM RAW] Failed to marshal raw response: %v", jsonErr)
-		} else {
-			c.logger.Debug("LLM RAW] Raw Response (CallLLM):\n%s", string(jsonData))
-		}
-	}
-
-	if err != nil {
-		c.logger.Error("LLM CallLLM] GenerateContent failed: %v", err)
-		return "", err
-	}
-
-	if len(resp.Candidates) > 0 && len(resp.Candidates[0].Content.Parts) > 0 {
-		part := resp.Candidates[0].Content.Parts[0]
-		if text, ok := part.(genai.Text); ok {
-			c.logger.Debug("LLM CallLLM] Received simple text response.")
-			return string(text), nil
-		}
-	}
-	c.logger.Warn("LLM CallLLM] Received non-text or empty response.")
-	return "", errors.New("received non-text or empty response")
+	// TODO: Implement actual embedding API call logic
+	c.logger.Warn("ConcreteLLMClient Embed not implemented")
+	// Use fmt.Errorf for errors
+	return nil, fmt.Errorf("concrete LLM Embed method not implemented")
 }
 
-// CallLLMWithParts calls the LLM with specific parts (stateless).
-func (c *LLMClient) CallLLMWithParts(ctx context.Context, partsToCall []genai.Part, tools []*genai.Tool) (*genai.GenerateContentResponse, error) {
-	if c.client == nil {
-		return nil, errors.New("LLM client not initialized")
-	}
-	c.logger.Debug("LLM CallLLMWithParts] Using model: %s", c.modelName)
-	model := c.client.GenerativeModel(c.modelName)
-	model.Tools = tools
-	c.logger.Debug("LLM CallLLMWithParts] Sending %d parts.", len(partsToCall))
-	resp, err := model.GenerateContent(ctx, partsToCall...)
+// --- No-Op LLM Client Implementation (Internal to Core) ---
 
-	// Debug Raw Response (as implemented before)
-	if c.debugLLM && resp != nil {
-		jsonData, jsonErr := json.MarshalIndent(resp, "", "  ")
-		if jsonErr != nil {
-			c.logger.Debug("LLM RAW] Failed to marshal raw response: %v", jsonErr)
-		} else {
-			c.logger.Debug("LLM RAW] Raw Response (CallLLMWithParts):\n%s", string(jsonData))
-		}
-	}
+// coreNoOpLLMClient provides a default implementation that does nothing.
+type coreNoOpLLMClient struct {
+	logger logging.Logger
+}
 
-	if err != nil {
-		c.logger.Error("LLM CallLLMWithParts] GenerateContent failed: %v", err)
-		return nil, err
+// Ensure coreNoOpLLMClient implements the LLMClient interface.
+var _ LLMClient = (*coreNoOpLLMClient)(nil)
+
+// NewNoOpLLMClient creates a new instance of the internal No-Op LLM Client.
+func NewNoOpLLMClient(logger logging.Logger) LLMClient {
+	if logger == nil {
+		logger = &coreNoOpLogger{} // Use internal core no-op logger
 	}
-	c.logger.Debug("LLM CallLLMWithParts] Received response.")
-	return resp, nil
+	logger.Info("Creating internal coreNoOpLLMClient.")
+	return &coreNoOpLLMClient{logger: logger}
+}
+
+// Ask performs no action and returns a minimal valid response.
+// CORRECTED: Receiver is *coreNoOpLLMClient
+func (c *coreNoOpLLMClient) Ask(ctx context.Context, turns []*ConversationTurn) (*ConversationTurn, error) {
+	c.logger.Debug("coreNoOpLLMClient Ask called")
+	return &ConversationTurn{
+		Role:    RoleAssistant,
+		Content: "",
+	}, nil
+}
+
+// AskWithTools performs no action and returns minimal valid responses.
+// CORRECTED: Receiver is *coreNoOpLLMClient
+func (c *coreNoOpLLMClient) AskWithTools(ctx context.Context, turns []*ConversationTurn, tools []ToolDefinition) (*ConversationTurn, []*ToolCall, error) {
+	c.logger.Debug("coreNoOpLLMClient AskWithTools called")
+	return &ConversationTurn{
+		Role:    RoleAssistant,
+		Content: "",
+	}, nil, nil
+}
+
+// Embed performs no action and returns an empty slice.
+// CORRECTED: Receiver is *coreNoOpLLMClient
+func (c *coreNoOpLLMClient) Embed(ctx context.Context, text string) ([]float32, error) {
+	c.logger.Debug("coreNoOpLLMClient Embed called")
+	return []float32{}, nil
 }

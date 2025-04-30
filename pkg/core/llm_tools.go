@@ -3,151 +3,169 @@ package core
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
-	// "log" // Logger comes from interpreter
-	// No longer need NewLLMClient from core.llm
-
-	"github.com/google/generative-ai-go/genai"
+	"github.com/google/generative-ai-go/genai" // Keep for genai.Part potentially
 )
 
-// --- Existing toolAskLLM ---
-func toolAskLLM(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	if len(args) != 1 {
-		return nil, fmt.Errorf("TOOL.AskLLM requires exactly one argument (prompt string), got %d", len(args))
+// callLLM is a helper function used by tools to interact with the LLM.
+func callLLM(ctx context.Context, llmClient LLMClient, prompt string) (string, error) {
+	if llmClient == nil {
+		return "", fmt.Errorf("LLM client is nil")
 	}
-	prompt, ok := args[0].(string)
-	if !ok {
-		return nil, fmt.Errorf("TOOL.AskLLM argument must be a string, got %T", args[0])
-	}
-	if prompt == "" {
-		return nil, errors.New("TOOL.AskLLM prompt cannot be empty")
-	}
-
-	// --- MODIFIED: Use Interpreter's LLMClient ---
-	llmClient := interpreter.llmClient                 // Get client from interpreter
-	if llmClient == nil || llmClient.Client() == nil { // Check underlying client too
-		interpreter.logger.Error("TOOL.AskLLM] LLM client not available via interpreter.")
-		return nil, errors.New("TOOL.AskLLM: LLM client not available or not initialized")
-	}
-	// --- END MODIFIED ---
-
-	ctx := context.Background()
-	// Call method on the existing client instance
-	response, err := llmClient.CallLLM(ctx, prompt)
+	turns := []*ConversationTurn{{Role: RoleUser, Content: prompt}}
+	responseTurn, err := llmClient.Ask(ctx, turns)
 	if err != nil {
-		return nil, fmt.Errorf("TOOL.AskLLM failed: %w", err)
+		return "", fmt.Errorf("LLM Ask failed: %w", err)
+	}
+	if responseTurn == nil {
+		return "", fmt.Errorf("LLM returned nil response without error")
+	}
+	return responseTurn.Content, nil
+}
+
+// callLLMWithParts sends a multimodal request. Needs redesign or type assertion.
+func callLLMWithParts(ctx context.Context, llmClient LLMClient, parts []genai.Part) (string, error) {
+	if llmClient == nil {
+		return "", fmt.Errorf("LLM client is nil")
+	}
+	// --- PROBLEM: Standard LLMClient interface doesn't support []genai.Part directly. ---
+	// --- See previous responses for potential solutions (type assertion, encoding) ---
+
+	// --- Simulating encoding into a single turn (likely insufficient) ---
+	textContent := ""
+	for _, p := range parts {
+		if str, ok := p.(genai.Text); ok {
+			textContent += string(str) + "\n"
+		} else {
+			// Placeholder for non-text parts
+			textContent += fmt.Sprintf("[Non-text part: %T]\n", p)
+		}
+	}
+	turns := []*ConversationTurn{{Role: RoleUser, Content: textContent}}
+	responseTurn, err := llmClient.Ask(ctx, turns)
+	if err != nil {
+		return "", fmt.Errorf("LLM Ask failed simulating parts: %w", err)
+	}
+	if responseTurn == nil {
+		return "", fmt.Errorf("LLM nil response simulating parts")
+	}
+	return responseTurn.Content, nil
+
+	// --- Fallback Error (if no solution implemented) ---
+	// return "", fmt.Errorf("callLLMWithParts requires specific LLMClient support")
+}
+
+// --- Tool Implementations ---
+
+// TOOL.LLM.Ask
+func toolLLMAsk(ctx context.Context, interp *Interpreter, args map[string]interface{}) (interface{}, error) {
+	// Use the helper function defined in tools_helpers.go
+	prompt, err := getStringArg(args, "prompt")
+	if err != nil {
+		return nil, err
+	}
+	if interp.llmClient == nil {
+		return nil, fmt.Errorf("LLM client not configured in interpreter")
+	}
+	response, err := callLLM(ctx, interp.llmClient, prompt)
+	if err != nil {
+		return nil, err // Error already wrapped by callLLM
 	}
 	return response, nil
 }
 
-// --- NEW Tool: AskLLMWithFiles ---
-func toolAskLLMWithFiles(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	if len(args) != 2 {
-		return nil, fmt.Errorf("TOOL.AskLLMWithFiles requires exactly two arguments (prompt_text string, file_uris list), got %d", len(args))
-	}
-
-	promptText, ok := args[0].(string)
+// TOOL.LLM.AskWithParts
+func toolLLMAskWithParts(ctx context.Context, interp *Interpreter, args map[string]interface{}) (interface{}, error) {
+	partsArg, ok := args["parts"]
 	if !ok {
-		return nil, fmt.Errorf("TOOL.AskLLMWithFiles: first argument (prompt_text) must be a string, got %T", args[0])
+		return nil, fmt.Errorf("missing required argument 'parts'")
 	}
 
-	fileURIsArg, ok := args[1].([]interface{})
-	if !ok {
-		return nil, fmt.Errorf("TOOL.AskLLMWithFiles: second argument (file_uris) must be a list, got %T", args[1])
-	}
-
-	fileURIs := []string{}
-	for i, item := range fileURIsArg {
-		uri, ok := item.(string)
-		if !ok || uri == "" {
-			interpreter.logger.Warn("TOOL.AskLLMWithFiles] Skipping invalid/empty URI at index %d in file_uris list.", i)
-			continue
+	var parts []genai.Part
+	if partsSlice, ok := partsArg.([]interface{}); ok {
+		for idx, p := range partsSlice {
+			// Attempt to convert interface{} back to genai.Part
+			// This is simplified and likely needs more robust handling
+			if text, ok := p.(string); ok {
+				parts = append(parts, genai.Text(text))
+			} else {
+				// Handle other potential part types (e.g., maps representing blobs) here
+				return nil, fmt.Errorf("cannot convert 'parts' element at index %d (type %T) to genai.Part; complex parts conversion not implemented", idx, p)
+			}
 		}
-		fileURIs = append(fileURIs, uri)
-	}
-
-	if len(fileURIs) == 0 {
-		interpreter.logger.Warn("TOOL.AskLLMWithFiles] file_uris list contained no valid URIs.")
-		return nil, errors.New("TOOL.AskLLMWithFiles: requires at least one valid file URI in the list")
-	}
-
-	parts := []genai.Part{}
-	interpreter.logger.Info("Tool: AskLLMWithFiles] Preparing parts. Files: %d, Prompt: %q", len(fileURIs), promptText)
-	for _, uri := range fileURIs {
-		parts = append(parts, genai.FileData{URI: uri})
-		interpreter.logger.Info("Tool: AskLLMWithFiles] Added FileData: %s", uri)
-	}
-	if promptText != "" {
-		parts = append(parts, genai.Text(promptText))
-		interpreter.logger.Info("Tool: AskLLMWithFiles] Added Text part.")
 	} else {
-		interpreter.logger.Info("Tool: AskLLMWithFiles] No text prompt provided, sending files only.")
+		return nil, fmt.Errorf("invalid argument type for 'parts': expected a list, got %T", partsArg)
 	}
 
-	// --- MODIFIED: Use Interpreter's LLMClient ---
-	llmClient := interpreter.llmClient                 // Get client from interpreter
-	if llmClient == nil || llmClient.Client() == nil { // Check underlying client too
-		interpreter.logger.Error("TOOL.AskLLMWithFiles] LLM client not available via interpreter.")
-		return nil, errors.New("TOOL.AskLLMWithFiles: LLM client not available or not initialized")
+	if interp.llmClient == nil {
+		return nil, fmt.Errorf("LLM client not configured in interpreter")
 	}
-	// --- END MODIFIED ---
-
-	ctx := context.Background()
-	// Call method on the existing client instance
-	resp, err := llmClient.CallLLMWithParts(ctx, parts, nil)
-
+	// Use the helper, acknowledging its limitations
+	response, err := callLLMWithParts(ctx, interp.llmClient, parts)
 	if err != nil {
-		return nil, fmt.Errorf("TOOL.AskLLMWithFiles LLM call failed: %w", err)
+		return nil, err // Error already wrapped by callLLMWithParts
 	}
-
-	// Existing response processing logic
-	if len(resp.Candidates) > 0 && len(resp.Candidates[0].Content.Parts) > 0 {
-		part := resp.Candidates[0].Content.Parts[0]
-		if text, ok := part.(genai.Text); ok {
-			interpreter.logger.Info("Tool: AskLLMWithFiles] Received text response.")
-			return string(text), nil
-		}
-	}
-	interpreter.logger.Warn("TOOL.AskLLMWithFiles] Received non-text or empty response.")
-	return "", errors.New("TOOL.AskLLMWithFiles received non-text or empty response")
+	return response, nil
 }
 
-// --- Registration Function ---
-// (Registration logic remains unchanged)
-func registerLLMTools(registry *ToolRegistry) error {
-	var err error
-	err = registry.RegisterTool(ToolImplementation{
-		Spec: ToolSpec{
-			Name:        "AskLLM",
-			Description: "Sends a single text prompt to the LLM and returns the text response. This call is stateless.",
-			Args: []ArgSpec{
-				{Name: "prompt", Type: ArgTypeString, Required: true, Description: "The text prompt to send to the LLM."},
-			},
-			ReturnType: ArgTypeString,
-		},
-		Func: toolAskLLM,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to register tool AskLLM: %w", err)
+// RegisterLLMTools registers the LLM interaction tools.
+// Assumes ToolRegistry and ToolImplementation types are defined correctly.
+func RegisterLLMTools(registry *ToolRegistry) error {
+	if registry == nil {
+		return fmt.Errorf("cannot register tools: ToolRegistry is nil")
 	}
 
-	err = registry.RegisterTool(ToolImplementation{
-		Spec: ToolSpec{
-			Name:        "AskLLMWithFiles",
-			Description: "Sends a request to the LLM including both text prompt and references to uploaded files (via their API URIs). Returns the text response.",
-			Args: []ArgSpec{
-				{Name: "prompt_text", Type: ArgTypeString, Required: true, Description: "The text prompt to accompany the files."},
-				{Name: "file_uris", Type: ArgTypeList, Required: true, Description: "A list of strings, where each string is a File API URI (e.g., 'files/...') for an uploaded file."},
+	// Tool: LLM.Ask
+	err := registry.RegisterTool(ToolImplementation{
+		Definition: ToolDefinition{
+			Name:        "LLM.Ask",
+			Description: "Sends a text prompt to the configured LLM and returns the text response.",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"prompt": map[string]interface{}{"type": "string", "description": "The text prompt to send to the LLM."},
+				},
+				"required": []string{"prompt"},
 			},
-			ReturnType: ArgTypeString,
+			// OutputSchema removed
 		},
-		Func: toolAskLLMWithFiles,
+		Execute: toolLLMAsk,
 	})
 	if err != nil {
-		return fmt.Errorf("failed to register tool AskLLMWithFiles: %w", err)
+		return fmt.Errorf("failed to register tool LLM.Ask: %w", err)
 	}
 
-	return nil
+	// Tool: LLM.AskWithParts
+	err = registry.RegisterTool(ToolImplementation{
+		Definition: ToolDefinition{
+			Name:        "LLM.AskWithParts",
+			Description: "Sends a multimodal prompt (text and other data parts) to the LLM. NOTE: Requires specific LLM client support and careful 'parts' argument construction.",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"parts": map[string]interface{}{
+						"type":        "array",
+						"description": "A list of prompt parts (e.g., text strings).",
+						"items":       map[string]interface{}{"type": "string"}, // Simplified schema
+					},
+				},
+				"required": []string{"parts"},
+			},
+			// OutputSchema removed
+		},
+		Execute: toolLLMAskWithParts,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to register tool LLM.AskWithParts: %w", err)
+	}
+
+	return nil // Indicate success
 }
+
+// --- Assumed Type Definitions (ensure they exist) ---
+// type ToolRegistry struct { ... }
+// func (tr *ToolRegistry) RegisterTool(impl ToolImplementation) error
+// type ToolImplementation struct { Definition ToolDefinition; Execute ToolExecutorFunc }
+// type ToolDefinition struct { Name string; Description string; InputSchema any }
+// type ToolExecutorFunc func(ctx context.Context, interp *Interpreter, args map[string]interface{}) (interface{}, error)

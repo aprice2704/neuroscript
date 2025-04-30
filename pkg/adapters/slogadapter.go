@@ -6,17 +6,18 @@ import (
 	"log/slog"
 	"os"
 
+	"github.com/aprice2704/neuroscript/pkg/logging"
 	// Ensure this import path matches where your interface is defined
-	"github.com/aprice2704/neuroscript/pkg/interfaces" // Adjusted based on previous turn
+	// Adjusted based on previous turn
 )
 
-// SlogAdapter adapts the standard log/slog Logger to the interfaces.Logger interface.
+// SlogAdapter adapts the standard log/slog Logger to the logging.Logger interface.
 type SlogAdapter struct {
 	logger *slog.Logger
 }
 
-// Compile-time check to ensure SlogAdapter implements the updated interfaces.Logger
-var _ interfaces.Logger = (*SlogAdapter)(nil)
+// Compile-time check to ensure SlogAdapter implements the updated logging.Logger
+var _ logging.Logger = (*SlogAdapter)(nil)
 
 // NewSlogAdapter creates a new adapter instance.
 // It returns an error if the provided logger is nil.
@@ -82,7 +83,7 @@ func (a *SlogAdapter) Errorf(format string, args ...any) {
 
 // --- Optional: With method ---
 /*
-func (a *SlogAdapter) With(args ...any) interfaces.Logger {
+func (a *SlogAdapter) With(args ...any) logging.Logger {
 	newLogger := a.logger.With(args...)
 	// Ignoring error because NewSlogAdapter only errors if logger is nil,
 	// and a.logger is guaranteed non-nil if 'a' was correctly created.

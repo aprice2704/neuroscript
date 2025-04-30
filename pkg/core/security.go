@@ -8,7 +8,7 @@ import (
 	"regexp" // Make sure regexp is imported
 	"strings"
 
-	"github.com/aprice2704/neuroscript/pkg/interfaces"
+	"github.com/aprice2704/neuroscript/pkg/logging"
 	"github.com/google/generative-ai-go/genai"
 )
 
@@ -28,11 +28,11 @@ type SecurityLayer struct {
 	denylist     map[string]bool
 	sandboxRoot  string // Unexported field storing the validated path
 	toolRegistry *ToolRegistry
-	logger       interfaces.Logger
+	logger       logging.Logger
 }
 
 // NewSecurityLayer creates a new security layer instance.
-func NewSecurityLayer(allowlistTools []string, denylistSet map[string]bool, sandboxRoot string, registry *ToolRegistry, logger interfaces.Logger) *SecurityLayer {
+func NewSecurityLayer(allowlistTools []string, denylistSet map[string]bool, sandboxRoot string, registry *ToolRegistry, logger logging.Logger) *SecurityLayer {
 	allowlistMap := make(map[string]bool)
 	for _, tool := range allowlistTools {
 		// Ensure the key includes the TOOL. prefix for consistency

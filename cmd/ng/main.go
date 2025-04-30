@@ -9,13 +9,13 @@ import (
 	"os"
 
 	"github.com/aprice2704/neuroscript/pkg/adapters"
-	"github.com/aprice2704/neuroscript/pkg/interfaces"
+	"github.com/aprice2704/neuroscript/pkg/logging"
 	"github.com/aprice2704/neuroscript/pkg/neurogo"
 	"github.com/aprice2704/neuroscript/pkg/neurogo/tui"
 )
 
 // initializeLogger sets up the slog logger based on configuration strings.
-func initializeLogger(levelStr string, filePath string) (interfaces.Logger, error) {
+func initializeLogger(levelStr string, filePath string) (logging.Logger, error) {
 	var level slog.Level
 	// Parse the log level string
 	switch levelStr {
@@ -67,7 +67,7 @@ func initializeLogger(levelStr string, filePath string) (interfaces.Logger, erro
 	// Optionally set the global logger (useful for libraries that might use slog directly)
 	// slog.SetDefault(slogLogger) // Uncomment if needed
 
-	// Return the adapter which satisfies the interfaces.Logger interface
+	// Return the adapter which satisfies the logging.Logger interface
 	return appLogger, nil
 }
 

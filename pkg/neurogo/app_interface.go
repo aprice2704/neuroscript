@@ -1,57 +1,23 @@
+// filename: pkg/neurogo/app_interface.go
 package neurogo
 
-import (
-	"github.com/aprice2704/neuroscript/pkg/core"
-	"github.com/aprice2704/neuroscript/pkg/interfaces"
-)
+// import (
+// 	 "context" // No longer needed here
+//
+// 	 "github.com/aprice2704/neuroscript/pkg/core" // No longer needed here
+// )
 
-// --- Interface Implementation Methods (tui.AppAccess) ---
+// LLMClient interface definition moved to pkg/interfaces/llm_client.go
+// to break import cycles.
 
-func (a *App) GetModelName() string {
-	if a.Config != nil && a.Config.ModelName != "" {
-		return a.Config.ModelName
-	}
-	return "unknown"
+// PatchHandler defines the interface for handling patch requests.
+type PatchHandler interface {
+	HandlePatch(patch string) error
 }
 
-func (a *App) GetSyncDir() string {
-	if a.Config != nil {
-		return a.Config.SyncDir
-	}
-	return "." // Default from NewConfig
-}
-
-func (a *App) GetSandboxDir() string {
-	if a.Config != nil {
-		return a.Config.SandboxDir
-	}
-	return "." // Default from NewConfig
-}
-
-func (a *App) GetSyncFilter() string {
-	if a.Config != nil {
-		return a.Config.SyncFilter
-	}
-	return ""
-}
-
-func (a *App) GetSyncIgnoreGitignore() bool {
-	if a.Config != nil {
-		return a.Config.SyncIgnoreGitignore
-	}
-	return false
-}
-
-func (a *App) GetLogger() interfaces.Logger {
-	// Ensure non-nil
-	if a.Logger == nil {
-		panic("Must have a valid logger")
-	}
-	return a.Logger
-}
-
-func (a *App) GetLLMClient() *core.LLMClient {
-	return a.llmClient
-}
-
-// --- End Interface Implementation Methods ---
+// Add other interfaces specific to the neurogo application's internal components here.
+// For example, if the TUI needed to interact with the main App logic via an interface:
+// type TUIController interface {
+//     SubmitInput(input string)
+//     GetCurrentState() SomeStateType
+// }

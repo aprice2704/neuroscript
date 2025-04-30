@@ -6,18 +6,18 @@ import (
 	"log"
 	"strings" // Added for text formatting
 
-	"github.com/aprice2704/neuroscript/pkg/interfaces"
+	"github.com/aprice2704/neuroscript/pkg/logging"
 	"github.com/google/generative-ai-go/genai"
 )
 
 // ConversationManager holds the state of an interaction with the LLM agent.
 type ConversationManager struct {
 	History []*genai.Content // Stores the conversation turns
-	logger  interfaces.Logger
+	logger  logging.Logger
 }
 
 // NewConversationManager creates a new manager.
-func NewConversationManager(logger interfaces.Logger) *ConversationManager {
+func NewConversationManager(logger logging.Logger) *ConversationManager {
 	// Ensure logger is not nil
 	effectiveLogger := logger
 	if effectiveLogger == nil {

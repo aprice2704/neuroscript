@@ -7,21 +7,21 @@ import (
 
 	"github.com/antlr4-go/antlr/v4" // Import antlr
 	gen "github.com/aprice2704/neuroscript/pkg/core/generated"
-	"github.com/aprice2704/neuroscript/pkg/interfaces"
+	"github.com/aprice2704/neuroscript/pkg/logging"
 )
 
 // --- ASTBuilder (Exported Constructor and Build Method) ---
 
 // ASTBuilder encapsulates the logic for building the NeuroScript AST using a listener.
 type ASTBuilder struct {
-	logger   interfaces.Logger
+	logger   logging.Logger
 	debugAST bool // Option to enable detailed AST construction logging
 }
 
 // NewASTBuilder creates a new ASTBuilder instance.
-func NewASTBuilder(logger interfaces.Logger) *ASTBuilder {
+func NewASTBuilder(logger logging.Logger) *ASTBuilder {
 	if logger == nil {
-		logger = &interfaces.NoOpLogger{}
+		logger = &coreNoOpLogger{}
 		logger.Warn("ASTBuilder created with nil logger, using NoOpLogger.")
 	}
 	return &ASTBuilder{
@@ -69,12 +69,12 @@ type neuroScriptListenerImpl struct {
 	currentMapKey  *StringLiteralNode // Assuming this is used for map literal parsing elsewhere
 	blockSteps     map[antlr.ParserRuleContext][]Step
 	// isInFileMetadataBlock bool // REMOVED: No longer needed with file_header rule
-	logger   interfaces.Logger
+	logger   logging.Logger
 	debugAST bool
 }
 
 // newNeuroScriptListener creates a new listener instance.
-func newNeuroScriptListener(logger interfaces.Logger, debugAST bool) *neuroScriptListenerImpl {
+func newNeuroScriptListener(logger logging.Logger, debugAST bool) *neuroScriptListenerImpl {
 	return &neuroScriptListenerImpl{
 		fileMetadata:   make(map[string]string),
 		procedures:     make([]Procedure, 0),

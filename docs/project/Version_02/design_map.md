@@ -147,11 +147,11 @@
  * **Example Pattern:**
      ```go
      type MyService struct {
-         logger interfaces.Logger
+         logger logging.Logger
          aiClient interfaces.AIClient
      }
  
-     func NewMyService(log interfaces.Logger, client interfaces.AIClient) *MyService {
+     func NewMyService(log logging.Logger, client interfaces.AIClient) *MyService {
          // ... nil checks ...
          return &MyService{logger: log, aiClient: client}
      }

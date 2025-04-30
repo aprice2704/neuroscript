@@ -3,72 +3,50 @@ package neurogo
 
 import (
 	"context"
-	"os"
-	"path/filepath"
+	// Removed os and path/filepath as createTempScript is removed
 	"testing"
 
-	"github.com/aprice2704/neuroscript/pkg/interfaces"
-	"github.com/aprice2704/neuroscript/pkg/llm/noop" // Use NoOpLLMClient
+	// Import the adapters package for NoOp implementations
+	"github.com/aprice2704/neuroscript/pkg/adapters"
+	// Keep core import if needed by other tests or helpers in this file
+	// "github.com/aprice2704/neuroscript/pkg/core"
 )
 
-// Helper to create a temporary script file
-func createTempScript(t *testing.T, dir string, filename string, content string) string {
-	t.Helper()
-	filePath := filepath.Join(dir, filename)
-	err := os.WriteFile(filePath, []byte(content), 0644)
-	if err != nil {
-		t.Fatalf("Failed to write temp script file '%s': %v", filePath, err)
-	}
-	return filePath
-}
+// Removed createTempScript helper function as it's no longer needed here.
+// If other tests use it, keep it; otherwise, it can be deleted.
 
 // Test for executing a script with multi-return functions
 func TestApp_RunScriptMode_MultiReturn(t *testing.T) {
-	// Setup: Create temp directory and script file
-	tempDir := t.TempDir()
-	scriptContent := `
-:: title: Multi-Return Test Script
-:: version: 1.0
-
-func multiReturnFunc() returns val1, val2, val3 means
-    emit "Inside multiReturnFunc"
-    set val1 = 100
-    set val2 = "Success"
-    set val3 = true
-    return val1, val2, val3
-endfunc
-
-func main() means
-    emit "Calling multiReturnFunc..."
-    set resultList = multiReturnFunc()
-    emit "Call complete. Result list:", resultList
-    must resultList[0] == 100
-    must resultList[1] == "Success"
-    must resultList[2] == true
-    emit "Checks passed."
-endfunc
-`
-	scriptPath := createTempScript(t, tempDir, "multi_return.ns.txt", scriptContent)
+	// Setup: Define path relative to the test file's package directory
+	scriptPath := "testdata/multi_return.ns.txt" // Assumes testdata is in the same dir or accessible
 
 	// Configure the App
-	// Using NoOpLogger and NoOpLLMClient for testing script execution logic
-	logger := &interfaces.NoOpLogger{}
-	llmClient := noop.NewNoOpLLMClient(logger) // Use the NoOp LLM Client
-	cfg := Config{
-		Mode:       "script", // Set mode to script
-		ScriptFile: scriptPath,
-		TargetArg:  "main", // Target the main procedure
-		// LibPaths and ProcArgs are empty for this test
+	// Use NoOpLogger and NoOpLLMClient from the adapters package
+	logger := adapters.NewNoOpLogger()
+	llmClient := adapters.NewNoOpLLMClient()
+
+	cfg := &Config{
+		RunScriptMode: true,       // Indicate script mode
+		ScriptFile:    scriptPath, // Path to the script file
+		TargetArg:     "main",     // Target the main procedure
+		EnableLLM:     false,      // Disable LLM for this script test
+		// LibPaths and ProcArgs are empty/nil by default
 	}
 
 	// Create and run the App
-	app := NewApp(cfg, logger, llmClient) // Pass LLM client to NewApp
+	app := NewApp(logger)     // Create App with the NoOp logger
+	app.Config = cfg          // Assign the config
+	app.llmClient = llmClient // Assign the NoOp LLM client
+
+	// Execute the script via the App's Run method
 	err := app.Run(context.Background())
 
 	// Assert: Check for errors during execution
+	// The script itself contains 'must' checks which will cause 'Run' to return an error if they fail.
 	if err != nil {
-		t.Errorf("Expected successful execution of multi-return script, but got error: %v", err)
+		t.Errorf("Expected successful execution of multi-return script '%s', but got error: %v", scriptPath, err)
 	}
 }
 
 // Add more tests for app_script.go functionality as needed
+// E.g., TestApp_RunScriptMode_FileNotFound, TestApp_RunScriptMode_SyntaxError, etc.

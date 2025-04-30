@@ -1,142 +1,207 @@
 // filename: pkg/neurogo/app.go
-// UPDATED: Add back GetWarnLogger, remove direct assignment to interpreter.LLMClient
 package neurogo
 
 import (
 	"context"
-	"errors"
 	"fmt"
-
-	// Needed for error joining fallback
+	"os"
+	"path/filepath"
+	"sync" // Added for Mutex
 
 	"github.com/aprice2704/neuroscript/pkg/core"
-	"github.com/aprice2704/neuroscript/pkg/interfaces"
+	"github.com/aprice2704/neuroscript/pkg/logging"
+
+	// Import the interfaces package for Logger and the new LLMClient location
+	"github.com/aprice2704/neuroscript/pkg/logging"
+
+	"github.com/aprice2704/neuroscript/pkg/nspatch" // Import nspatch
 )
 
-// App encapsulates the application's state and configuration.
+// App orchestrates the NeuroScript agent, TUI, and script execution modes.
 type App struct {
 	Config *Config
-	Logger interfaces.Logger
+	Log    logging.Logger // Use the Logger interface
 
-	// Core components needed by the app
-	interpreter *core.Interpreter // Keep interpreter internal
-	llmClient   *core.LLMClient   // Keep LLM client internal
-	agentCtx    *AgentContext     // Added: Hold the agent context if in agent mode
+	// LLM Interaction
+	// Use the LLMClient interface from pkg/interfaces
+	llmClient core.LLMClient
+
+	// Interpreter and State
+	interpreter *core.Interpreter
+	// agentState  *AgentState // Consider defining AgentState struct if complex
+	mu sync.Mutex // Protect access to shared state if needed
+
+	// TUI components (if TUI is enabled)
+	// tui *tea.Program // Assuming bubbletea is used
+
+	// Patch Handling
+	patchHandler PatchHandler // Use the interface defined in app_interface.go
+
+	// Other components like vector store, file syncer etc.
+	// vectorStore VectorStoreInterface
+	// fileSyncer  FileSyncerInterface
 }
 
-// NewApp creates a new App instance with default loggers and registers agent tools.
-func NewApp(logger interfaces.Logger) *App {
-
-	logger.Info("Logger initialized")
-
-	var llmClient *core.LLMClient
-	interpreter := core.NewInterpreter(logger, llmClient)
-
-	app := &App{
-		Config: NewConfig(),
-		Logger: logger,
-
-		interpreter: interpreter,
-		llmClient:   llmClient,
+// NewApp creates a new NeuroGo application instance.
+// It requires a logger. The LLM client is configured later based on Config.
+func NewApp(logger logging.Logger) *App {
+	if logger == nil {
+		fmt.Fprintf(os.Stderr, "Warning: NewApp called with nil logger\n")
+		// Potentially create a default logger here if absolutely necessary
+		// logger = someDefaultLogger()
 	}
-
-	// Ensure essential loggers are non-nil right away
-	if app.Logger == nil {
-		panic("App needs a valid logger")
-	}
-
-	// Register standard and agent-specific tools
-	// Standard tools first
-	if err := core.RegisterCoreTools(interpreter.ToolRegistry()); err != nil {
-		app.GetLogger().Debug("CRITICAL: Failed to register standard tools: %v", err)
-		// Potentially panic or os.Exit(1) here if standard tools are essential
-	}
-	// Agent-specific tools (lives in this package)
-	if err := RegisterAgentTools(interpreter.ToolRegistry()); err != nil {
-		app.GetLogger().Debug("CRITICAL: Failed to register agent tools: %v", err)
-		// Potentially panic or os.Exit(1)
-	}
-
-	return app
-}
-
-// GetInterpreter returns the application's NeuroScript interpreter.
-func (a *App) GetInterpreter() *core.Interpreter {
-	return a.interpreter
-}
-
-// Run executes the appropriate application mode based on parsed flags.
-// Assumes Config field is already populated by main.go
-func (a *App) Run(ctx context.Context) error {
-
-	// Ensure config is not nil before proceeding
-	if a.Config == nil {
-		errMsg := "internal error: App.Config is nil at start of Run"
-		a.Logger.Info(errMsg) // Use getter now that it's safe
-		return errors.New(errMsg)
-	}
-
-	// 2. Initialize LLM Client if needed for the selected mode
-	needsLLM := false
-	if a.Config.RunAgentMode || a.Config.RunTuiMode || a.Config.RunSyncMode || a.Config.RunCleanAPIMode {
-		needsLLM = true
-	} else if a.Config.RunScriptMode && a.Config.EnableLLM {
-		needsLLM = true
-	}
-
-	initErr := a.initLLMClient(ctx) // Attempt initialization (defined in app_helpers.go)
-	llmClientAvailable := a.llmClient != nil && a.llmClient.Client() != nil
-	a.Logger.Debug("Run: initLLMClient finished. Error: %v, Client Available: %v, Needs LLM: %v", initErr, llmClientAvailable, needsLLM)
-
-	if initErr != nil {
-		a.Logger.Error("LLM Client initialization failed: %v", initErr)
-		if needsLLM {
-			return fmt.Errorf("LLM client required but initialization failed: %w", initErr)
-		} else {
-			a.Logger.Warn("Continuing without LLM client despite initialization error: %v", initErr)
-		}
-	} else if needsLLM && !llmClientAvailable {
-		return errors.New("LLM client required but is unavailable after initialization")
-	}
-
-	// 3. Update interpreter with the (potentially nil) LLMClient
-	// --- REMOVED direct assignment to interpreter fields ---
-	// a.interpreter.LLMClient = a.llmClient // REMOVED - Interpreter handles its client via constructor
-
-	// 4. Select Mode Based on Config
-	a.Logger.Info("Run: Dispatching based on mode...")
-
-	// Mode precedence was handled in main.go which set the boolean flags.
-	if a.Config.RunCleanAPIMode {
-		a.Logger.Info("--- Running in Clean API Mode ---")
-		if !llmClientAvailable {
-			return errors.New("LLM Client (for File API) required for clean-api mode but is unavailable")
-		}
-		return a.runCleanAPIMode(ctx) // Assumes exists in app_helpers.go or similar
-	} else if a.Config.RunSyncMode {
-		a.Logger.Info("--- Running in Sync Mode ---")
-		if !llmClientAvailable {
-			return errors.New("LLM Client (for File API) required for sync mode but is unavailable")
-		}
-		return a.runSyncMode(ctx) // Assumes exists in app_sync.go
-	} else if a.Config.RunScriptMode {
-		a.Logger.Info("--- Running in Script Mode ---")
-		return a.runScriptMode(ctx) // Assumes exists in app_script.go
-	} else if a.Config.RunTuiMode {
-		a.Logger.Info("--- Running in TUI Mode ---")
-		return a.runTuiMode(ctx) // Assumes exists in app_tui.go
-	} else if a.Config.RunAgentMode {
-		a.Logger.Info("--- Running in Agent Mode ---")
-		if !llmClientAvailable {
-			return errors.New("LLM Client required for agent mode but is unavailable")
-		}
-		return a.runAgentMode(ctx) // Assumes exists in app_agent.go
-	} else {
-		errMsg := "internal error: no execution mode determined"
-		a.Logger.Error(errMsg)
-		return errors.New(errMsg)
+	return &App{
+		Log: logger,
+		// Config and other fields initialized later or in Run()
 	}
 }
 
-// NOTE: Ensure methods like runCleanAPIMode, runSyncMode, initLogging, initLLMClient etc.
-// are defined either here or (more likely) in their respective app_*.go files (app_helpers, app_sync, etc).
+// Run starts the application based on the configuration.
+func (app *App) Run(ctx context.Context) error {
+	if app.Config == nil {
+		return fmt.Errorf("application config is nil")
+	}
+	if app.Log == nil {
+		// This should ideally not happen if NewApp ensures logger is non-nil
+		return fmt.Errorf("application logger is nil")
+	}
+
+	app.Log.Info("Starting NeuroGo application...")
+	app.Log.Debug("Configuration:", "config", fmt.Sprintf("%+v", app.Config)) // Log config details
+
+	// --- Initialize LLM Client ---
+	// Moved initialization here from NewApp to use Config
+	var err error
+	app.llmClient, err = app.createLLMClient() // Use helper to create client
+	if err != nil {
+		return fmt.Errorf("failed to initialize LLM client: %w", err)
+	}
+	if app.llmClient == nil && app.Config.EnableLLM {
+		// If LLM is enabled but client creation failed silently (shouldn't happen with error check)
+		return fmt.Errorf("LLM client is nil despite LLM being enabled")
+	}
+	app.Log.Info("LLM Client initialized.")
+
+	// --- Initialize Interpreter ---
+	// Pass the potentially NoOp LLM client to the interpreter
+	app.interpreter = core.NewInterpreter(app.Log, app.llmClient)
+	app.Log.Info("Interpreter initialized.")
+
+	// --- Initialize Patch Handler ---
+	// Default patch handler using the interpreter's file API
+	// Ensure interpreter is initialized first
+	app.patchHandler = nspatch.NewHandler(app.interpreter.FileAPI, app.Log)
+	app.Log.Info("Patch Handler initialized.")
+
+	// --- Mode Dispatch ---
+	switch {
+	case app.Config.RunScriptMode:
+		app.Log.Info("Running in Script Mode.")
+		return app.runScriptMode(ctx)
+	case app.Config.RunTUIMode:
+		app.Log.Info("Running in TUI Mode.")
+		return app.runTUIMode(ctx)
+	case app.Config.RunSyncMode:
+		app.Log.Info("Running in Sync Mode.")
+		return app.runSyncMode(ctx)
+	default:
+		// Default to Agent mode if no specific mode is set? Or return error?
+		// Let's assume Agent mode is the default interactive mode if TUI is off.
+		if !app.Config.EnableLLM {
+			return fmt.Errorf("cannot run in default Agent mode: LLM must be enabled (check --enable-llm or config)")
+		}
+		app.Log.Info("Running in Agent Mode (default).")
+		return app.runAgentMode(ctx)
+	}
+}
+
+// loadSchema loads the NeuroData schema from the specified path.
+// Placeholder implementation.
+func (app *App) loadSchema(schemaPath string) (*schema.Schema, error) {
+	app.Log.Info("Loading schema...", "path", schemaPath)
+	// TODO: Implement actual schema loading logic from neurodata/schema package
+	if schemaPath == "" {
+		app.Log.Warn("Schema path is empty, using default or no schema.")
+		return nil, nil // Or return a default schema
+	}
+	// _, err := os.Stat(schemaPath)
+	// if os.IsNotExist(err) {
+	// 	 return nil, fmt.Errorf("schema file not found at %s", schemaPath)
+	// } else if err != nil {
+	// 	 return nil, fmt.Errorf("error checking schema file %s: %w", schemaPath, err)
+	// }
+	// Actual parsing logic needed here
+	return nil, fmt.Errorf("schema loading not yet implemented")
+}
+
+// findProjectRoot searches upwards from the current directory for a marker file.
+// Placeholder implementation.
+func findProjectRoot() (string, error) {
+	// TODO: Implement project root finding logic (e.g., look for .neuroproject, .git)
+	cwd, err := os.Getwd()
+	if err != nil {
+		return "", fmt.Errorf("failed to get current working directory: %w", err)
+	}
+	dir := cwd
+	// Simplified: Assume cwd is project root for now
+	// Add logic to search upwards for a marker like ".git" or a specific project file
+	for {
+		// Check for marker file (e.g., .git directory)
+		gitPath := filepath.Join(dir, ".git")
+		if _, err := os.Stat(gitPath); err == nil {
+			return dir, nil // Found project root
+		}
+
+		// Move up one directory
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			// Reached root directory without finding marker
+			return cwd, fmt.Errorf("project root marker (.git) not found upwards from %s", cwd) // Or return cwd as default?
+		}
+		dir = parent
+	}
+	// return cwd, nil // Default to current dir if no marker found? Needs decision.
+}
+
+// Helper to create the LLM client based on config
+func (app *App) createLLMClient() (core.LLMClient, error) {
+	if !app.Config.EnableLLM {
+		app.Log.Info("LLM is disabled, using NoOpLLMClient.")
+		// We need an adapter for NoOpLLMClient, assuming it's in pkg/adapters
+		// Ensure adapters package is created and imported if needed
+		// return adapters.NewNoOpLLMClient(), nil // Assuming NewNoOpLLMClient exists
+		// TEMPORARY: Return nil until NoOpLLMClient adapter is confirmed/created
+		// return nil, fmt.Errorf("NoOpLLMClient adapter not available")
+		// If core defines a NoOp client directly:
+		return core.NewNoOpLLMClient(app.Log), nil // Use core's NoOp client
+	}
+
+	app.Log.Info("LLM is enabled, creating real LLMClient.")
+	// Use configuration values
+	apiKey := app.Config.APIKey
+	apiHost := app.Config.APIHost
+	modelID := app.Config.ModelID // Assuming ModelID is added to Config
+
+	if apiKey == "" {
+		// Attempt to get from environment variable if not in config
+		apiKey = os.Getenv("NEUROSCRIPT_API_KEY") // Example env var name
+		if apiKey == "" {
+			return nil, fmt.Errorf("LLM API key is required but not found in config or environment variables")
+		}
+		app.Log.Info("Using LLM API key from environment variable.")
+	}
+
+	// Use the core LLM client factory function
+	// Assuming NewLLMClient handles different providers based on host/config later
+	llmClient := core.NewLLMClient(apiKey, apiHost, app.Log, true) // Pass true for enabled
+	if llmClient == nil {
+		// NewLLMClient should ideally return an error, but handle nil just in case
+		return nil, fmt.Errorf("failed to create LLM client instance (NewLLMClient returned nil)")
+	}
+
+	app.Log.Info("Real LLMClient created.", "host", apiHost, "model", modelID)
+	// We might need to configure the specific model on the client here if NewLLMClient doesn't handle it
+	// e.g., if llmClient has a SetModel(modelID) method
+
+	return llmClient, nil
+}

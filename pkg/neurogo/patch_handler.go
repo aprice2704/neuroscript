@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"github.com/aprice2704/neuroscript/pkg/core" // For core types like Interpreter, SecurityLayer & SecureFilePath func
-	"github.com/aprice2704/neuroscript/pkg/interfaces"
+	"github.com/aprice2704/neuroscript/pkg/logging"
 	"github.com/aprice2704/neuroscript/pkg/nspatch" // For patch types and application logic
 )
 
@@ -57,7 +57,7 @@ func writeLines(filePath string, lines []string) error {
 
 // handleReceivedPatch processes a JSON patch string, prompts for confirmation, and applies it.
 // It requires the interpreter, security layer, and sandbox root for context and validation.
-func handleReceivedPatch(patchJSON string, interp *core.Interpreter, securityLayer *core.SecurityLayer, sandboxRoot string, logger interfaces.Logger) error {
+func handleReceivedPatch(patchJSON string, interp *core.Interpreter, securityLayer *core.SecurityLayer, sandboxRoot string, logger logging.Logger) error {
 	logger.Info("[PATCH] Received patch request.")
 
 	// 1. Unmarshal JSON

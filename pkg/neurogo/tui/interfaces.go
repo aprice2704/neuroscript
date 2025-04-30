@@ -3,7 +3,7 @@ package tui
 
 import (
 	"github.com/aprice2704/neuroscript/pkg/core" // Need this for LLMClient type
-	"github.com/aprice2704/neuroscript/pkg/interfaces"
+	"github.com/aprice2704/neuroscript/pkg/logging"
 )
 
 // AppAccess defines the methods the TUI components need
@@ -19,7 +19,7 @@ type AppAccess interface {
 	// Add other config getters as needed
 
 	// Logger Accessors
-	GetLogger() interfaces.Logger
+	GetLogger() logging.Logger
 
 	// Client Accessors
 	GetLLMClient() *core.LLMClient // Added

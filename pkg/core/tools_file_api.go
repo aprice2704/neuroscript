@@ -1,374 +1,321 @@
 // filename: pkg/core/tools_file_api.go
-// UPDATED: Add HelperUploadStringAndPollFile, toolUpsertAs, and register UpsertAs
-// FIXED: Non-constant format string errors
 package core
 
 import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"io"
-	"log"
-	"mime" // Using standard library mime package
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
-	// Remove gabriel-vasile/mimetype if only using standard library now
-	// "github.com/gabriel-vasile/mimetype"
-	"github.com/aprice2704/neuroscript/pkg/interfaces"
-	"github.com/google/generative-ai-go/genai"
+	"github.com/aprice2704/neuroscript/pkg/logging"
+	// For generating unique IDs if needed by FileAPI state
 )
 
-// --- Constants, init, and Hash Helper --- (Unchanged)
-const (
-	emptyFileContentForHash = " "
-)
-
-var (
-	emptyFileHash string
-	// ErrSkippedBinaryFile defined in errors.go
-)
-
-func init() {
-	hasher := sha256.New()
-	hasher.Write([]byte(emptyFileContentForHash))
-	emptyFileHash = hex.EncodeToString(hasher.Sum(nil))
+// FileAPI provides sandboxed file system operations for the interpreter.
+type FileAPI struct {
+	sandboxRoot string
+	logger      logging.Logger
+	// Potentially add state like open file handles if needed
+	// openFiles map[string]*os.File
 }
 
-// --- Helper: Upload File and Poll --- (Unchanged logic, corrected errors)
-func HelperUploadAndPollFile(ctx context.Context, absLocalPath string, displayName string, client *genai.Client, logger interfaces.Logger) (*genai.File, error) {
-	if client == nil {
-		return nil, errors.New("genai client is nil")
-	}
+// NewFileAPI creates a new FileAPI instance.
+// It requires the absolute path to the sandbox root directory and a logger.
+func NewFileAPI(sandboxRoot string, logger logging.Logger) *FileAPI {
 	if logger == nil {
-		panic("Uploader requires a valid logger")
+		logger = &coreNoOpLogger{}
+		// logger.Warn("FileAPI created with nil logger, using internal NoOpLogger.")
 	}
-	logger.Debug("HELPER Upload] Processing: %s (Display: %s)", absLocalPath, displayName)
-	fileInfo, err := os.Stat(absLocalPath)
+	if sandboxRoot == "" {
+		// This should be prevented by the Interpreter's SetSandbox logic
+		logger.Error("FATAL: FileAPI created with empty sandboxRoot.")
+		panic("FATAL: FileAPI requires a non-empty sandbox root directory.")
+	}
+	// Ensure the path is absolute and clean
+	absRoot, err := filepath.Abs(sandboxRoot)
 	if err != nil {
-		return nil, fmt.Errorf("stat file %s: %w", absLocalPath, err)
-	}
-	isZeroByte := fileInfo.Size() == 0
-	fileExt := filepath.Ext(absLocalPath)
-	uploadMimeType := "application/octet-stream" // Default to generic byte stream
-
-	if isZeroByte {
-		uploadMimeType = "text/plain"
-		logger.Debug("HELPER Upload] Handling zero-byte file: %s as text/plain", absLocalPath)
-	} else {
-		// Use standard library mime detection based on extension first
-		stdMime := mime.TypeByExtension(fileExt)
-		if stdMime != "" {
-			uploadMimeType = stdMime
-			logger.Debug("HELPER Upload] Detected MIME by extension: %s for %s", uploadMimeType, absLocalPath)
-		} else {
-			logger.Debug("HELPER Upload] MIME not detected by extension for %s, keeping default %s", absLocalPath, uploadMimeType)
-			// Could add sniffing here if needed, but keeping simple for now
-		}
-
-		// Force text/plain for known text types or Go files for compatibility
-		// This logic might need refinement based on File API actual compatibility
-		if fileExt == ".go" || strings.HasPrefix(uploadMimeType, "text/") {
-			uploadMimeType = "text/plain"
-			logger.Debug("HELPER Upload] Forcing upload MIME type to text/plain for compatibility: %s", absLocalPath)
-		} else {
-			// If not obviously text, warn and consider skipping (or allow generic upload)
-			warnMsg := fmt.Sprintf("File type for %s is %s (not text/* or .go). Uploading as %s, but processing might fail.", absLocalPath, stdMime, uploadMimeType)
-			logger.Info("[WARN API HELPER Upload] %s", warnMsg)
-			// Decide whether to return an error or proceed with generic upload
-			// Proceeding for now, but this could be where ErrSkippedBinaryFile is used
-		}
+		logger.Error("FATAL: Failed to get absolute path for sandbox root", "path", sandboxRoot, "error", err)
+		panic(fmt.Sprintf("FATAL: Invalid sandbox root '%s': %v", sandboxRoot, err))
 	}
 
-	options := &genai.UploadFileOptions{MIMEType: uploadMimeType, DisplayName: displayName}
-	var reader io.Reader
-	if isZeroByte {
-		reader = strings.NewReader("")
-		logger.Debug("HELPER Upload] Using empty string reader for zero-byte file: %s", absLocalPath)
-	} else {
-		fileHandle, err := os.Open(absLocalPath)
-		if err != nil {
-			return nil, fmt.Errorf("open file %s for upload: %w", absLocalPath, err)
-		}
-		defer fileHandle.Close()
-		reader = fileHandle
+	logger.Info("Initializing FileAPI.", "sandboxRoot", absRoot)
+	return &FileAPI{
+		sandboxRoot: absRoot,
+		logger:      logger,
+		// openFiles:   make(map[string]*os.File),
+	}
+}
+
+// ResolvePath converts a relative path provided by the script into an absolute path
+// confined within the sandbox. It returns an error if the path tries to escape.
+func (f *FileAPI) ResolvePath(relativePath string) (string, error) {
+	if filepath.IsAbs(relativePath) {
+		// Forbid absolute paths from the script for security
+		return "", fmt.Errorf("absolute paths are not allowed: '%s'", relativePath)
 	}
 
-	if ctx == nil {
-		ctx = context.Background()
+	// Clean the path to prevent tricks like '..' escaping
+	cleanedPath := filepath.Clean(relativePath)
+
+	// Check for '..' components that might lead outside the root *after* joining
+	// Note: filepath.Join calls Clean internally, but explicit check adds clarity/safety.
+	if strings.HasPrefix(cleanedPath, ".."+string(filepath.Separator)) || cleanedPath == ".." {
+		return "", fmt.Errorf("path attempts to traverse above sandbox root: '%s'", relativePath)
 	}
-	logger.Info("[API HELPER Upload] Starting upload for %s (Display: %s, MIME: %s)...", absLocalPath, displayName, uploadMimeType)
-	apiFile, err := client.UploadFile(ctx, "", reader, options)
+
+	// Join with the sandbox root
+	absPath := filepath.Join(f.sandboxRoot, cleanedPath)
+
+	// Final check: Ensure the resulting absolute path is still within the sandbox root
+	// This protects against symlink tricks or complex '..' scenarios missed by simple checks.
+	if !strings.HasPrefix(absPath, f.sandboxRoot) {
+		f.logger.Error("Path resolution resulted in escaping sandbox", "relativePath", relativePath, "resolvedPath", absPath, "sandbox", f.sandboxRoot)
+		return "", fmt.Errorf("resolved path '%s' is outside sandbox '%s'", absPath, f.sandboxRoot)
+	}
+
+	f.logger.Debug("Resolved path", "relative", relativePath, "absolute", absPath)
+	return absPath, nil
+}
+
+// --- File Operation Methods ---
+
+// Read reads the entire content of a file within the sandbox.
+func (f *FileAPI) Read(path string) (string, error) {
+	absPath, err := f.ResolvePath(path)
 	if err != nil {
-		return nil, fmt.Errorf("api upload failed for %q (Display: %s): %w", absLocalPath, displayName, err)
-	}
-	logger.Debug("HELPER Upload] Upload initiated -> API Name: %s (URI: %s)", apiFile.Name, apiFile.URI)
-
-	// Polling Logic (Unchanged from fetch)
-	startTime := time.Now()
-	pollInterval := 1 * time.Second
-	const maxPollInterval = 10 * time.Second
-	const timeout = 2 * time.Minute
-	for apiFile.State == genai.FileStateProcessing {
-		if time.Since(startTime) > timeout {
-			errMsg := fmt.Sprintf("polling timeout for file %s (API Name: %s, Display: %s)", absLocalPath, apiFile.Name, displayName)
-			logger.Error("[ERROR API HELPER Upload] %s. Attempting to delete orphaned API file.", errMsg)
-			_ = client.DeleteFile(context.Background(), apiFile.Name) // Best effort delete
-			// --- FIX Line 122 ---
-			return nil, errors.New(errMsg) // Use errors.New instead of fmt.Errorf
-			// --- END FIX ---
-		}
-		time.Sleep(pollInterval)
-		logger.Debug("API HELPER Upload] Polling status for API file %s...", apiFile.Name)
-		getCtx, cancelGet := context.WithTimeout(context.Background(), 30*time.Second)
-		updatedFile, getErr := client.GetFile(getCtx, apiFile.Name)
-		cancelGet()
-		if getErr != nil {
-			logger.Error("[WARN API HELPER Upload] Error getting status for %s (will retry): %v", apiFile.Name, getErr)
-			continue
-		}
-		apiFile = updatedFile
-		pollInterval *= 2
-		if pollInterval > maxPollInterval {
-			pollInterval = maxPollInterval
-		}
-		logger.Debug("API HELPER Upload] Poll %s successful, state: %s (Next poll in %v)", apiFile.Name, apiFile.State, pollInterval)
-	}
-	if apiFile.State != genai.FileStateActive {
-		errMsg := fmt.Sprintf("file processing failed for %s (API Name: %s, Display: %s). Final State: %s", absLocalPath, apiFile.Name, displayName, apiFile.State)
-		logger.Error("[ERROR API HELPER Upload] %s. Attempting to delete failed API file.", errMsg)
-		_ = client.DeleteFile(context.Background(), apiFile.Name) // Best effort delete
-		// --- FIX Line 144 ---
-		return nil, errors.New(errMsg) // Use errors.New instead of fmt.Errorf
-		// --- END FIX ---
-	}
-	logger.Info("[API HELPER Upload] Upload successful and ACTIVE: %s -> %s", displayName, apiFile.Name)
-	return apiFile, nil
-}
-
-// HelperUploadStringAndPollFile handles uploading string content and waiting for it to be ACTIVE.
-// (Unchanged logic, corrected errors)
-func HelperUploadStringAndPollFile(ctx context.Context, content string, displayName string, client *genai.Client, logger interfaces.Logger) (*genai.File, error) {
-	if client == nil {
-		return nil, errors.New("genai client is nil")
-	}
-	if logger == nil {
-		panic("Upload and string requires a valid logger")
+		return "", err // Error includes context from ResolvePath
 	}
 
-	uploadMimeType := "text/plain"
-	logger.Debug("HELPER UploadString] Processing content (Display: %s, Length: %d) as %s", displayName, len(content), uploadMimeType)
-
-	options := &genai.UploadFileOptions{MIMEType: uploadMimeType, DisplayName: displayName}
-	reader := strings.NewReader(content)
-
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
-	logger.Info("[API HELPER UploadString] Starting upload for content (Display: %s, MIME: %s)...", displayName, uploadMimeType)
-	apiFile, err := client.UploadFile(ctx, "", reader, options)
+	f.logger.Debug("Reading file", "path", absPath)
+	contentBytes, err := os.ReadFile(absPath)
 	if err != nil {
-		return nil, fmt.Errorf("api upload failed for content (Display: %s): %w", displayName, err)
-	}
-	logger.Debug("HELPER UploadString] Upload initiated -> API Name: %s (URI: %s)", apiFile.Name, apiFile.URI)
-
-	// Polling Logic (Identical to HelperUploadAndPollFile)
-	startTime := time.Now()
-	pollInterval := 1 * time.Second
-	const maxPollInterval = 10 * time.Second
-	const timeout = 2 * time.Minute
-	for apiFile.State == genai.FileStateProcessing {
-		if time.Since(startTime) > timeout {
-			errMsg := fmt.Sprintf("polling timeout for content (API Name: %s, Display: %s)", apiFile.Name, displayName)
-			logger.Error("[ERROR API HELPER UploadString] %s. Attempting to delete orphaned API file.", errMsg)
-			_ = client.DeleteFile(context.Background(), apiFile.Name) // Best effort delete
-			// --- FIX Line 191 ---
-			return nil, errors.New(errMsg) // Use errors.New instead of fmt.Errorf
-			// --- END FIX ---
+		// Check if it's a "not found" error vs. other read error
+		if os.IsNotExist(err) {
+			return "", fmt.Errorf("%w: file not found at '%s'", ErrFileNotFound, path) // Use specific error type
 		}
-		time.Sleep(pollInterval)
-		logger.Debug("API HELPER UploadString] Polling status for API file %s...", apiFile.Name)
-		getCtx, cancelGet := context.WithTimeout(context.Background(), 30*time.Second)
-		updatedFile, getErr := client.GetFile(getCtx, apiFile.Name)
-		cancelGet()
-		if getErr != nil {
-			logger.Error("[WARN API HELPER UploadString] Error getting status for %s (will retry): %v", apiFile.Name, getErr)
-			continue
-		}
-		apiFile = updatedFile
-		pollInterval *= 2
-		if pollInterval > maxPollInterval {
-			pollInterval = maxPollInterval
-		}
-		logger.Debug("API HELPER UploadString] Poll %s successful, state: %s (Next poll in %v)", apiFile.Name, apiFile.State, pollInterval)
+		return "", fmt.Errorf("failed to read file '%s': %w", absPath, err)
 	}
-	if apiFile.State != genai.FileStateActive {
-		errMsg := fmt.Sprintf("file processing failed for content (API Name: %s, Display: %s). Final State: %s", apiFile.Name, displayName, apiFile.State)
-		logger.Error("[ERROR API HELPER UploadString] %s. Attempting to delete failed API file.", errMsg)
-		_ = client.DeleteFile(context.Background(), apiFile.Name) // Best effort delete
-		// --- FIX Line 213 ---
-		return nil, errors.New(errMsg) // Use errors.New instead of fmt.Errorf
-		// --- END FIX ---
-	}
-	logger.Info("[API HELPER UploadString] Upload successful and ACTIVE: %s -> %s", displayName, apiFile.Name)
-	return apiFile, nil
+	return string(contentBytes), nil
 }
 
-// --- Tool: ListAPIFiles --- (Unchanged)
-func toolListAPIFiles(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	client, clientErr := checkGenAIClient(interpreter)
-	if clientErr != nil {
-		return nil, fmt.Errorf("TOOL.ListAPIFiles: %w", clientErr)
-	}
-	apiFiles, err := HelperListApiFiles(context.Background(), client, interpreter.logger)
+// Write writes content to a file within the sandbox, overwriting if it exists.
+// Creates directories if they don't exist.
+func (f *FileAPI) Write(path string, content string) error {
+	absPath, err := f.ResolvePath(path)
 	if err != nil {
-		interpreter.logger.Info("Tool: ListAPIFiles] Warning: Error from helper (returning partial list if any): %v", err)
+		return err
 	}
-	results := []map[string]interface{}{}
-	for _, file := range apiFiles {
-		if file == nil {
-			continue
-		}
-		createTimeStr := ""
-		if !file.CreateTime.IsZero() {
-			createTimeStr = file.CreateTime.Format(time.RFC3339)
-		}
-		updateTimeStr := ""
-		if !file.UpdateTime.IsZero() {
-			updateTimeStr = file.UpdateTime.Format(time.RFC3339)
-		}
-		fileInfo := map[string]interface{}{"name": file.Name, "displayName": file.DisplayName, "mimeType": file.MIMEType, "sizeBytes": file.SizeBytes, "createTime": createTimeStr, "updateTime": updateTimeStr, "state": string(file.State), "uri": file.URI, "sha256Hash": ""}
-		if len(file.Sha256Hash) > 0 {
-			fileInfo["sha256Hash"] = hex.EncodeToString(file.Sha256Hash)
-		}
-		results = append(results, fileInfo)
-	}
-	return map[string]interface{}{"files": results}, err
-}
 
-// --- Tool: UploadFile --- (Unchanged)
-func toolUploadFile(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	client, clientErr := checkGenAIClient(interpreter)
-	if clientErr != nil {
-		return nil, fmt.Errorf("TOOL.UploadFile: %w", clientErr)
-	}
-	if len(args) < 1 || len(args) > 2 {
-		return nil, fmt.Errorf("TOOL.UploadFile: expected 1-2 args (local_path, [display_name]), got %d", len(args))
-	}
-	localPath, ok := args[0].(string)
-	if !ok {
-		return nil, fmt.Errorf("TOOL.UploadFile: local_path must be string, got %T", args[0])
-	}
-	if localPath == "" {
-		return nil, errors.New("TOOL.UploadFile: local_path cannot be empty")
-	}
-	var displayName string
-	if len(args) == 2 {
-		displayName, ok = args[1].(string)
-		if !ok && args[1] != nil {
-			return nil, fmt.Errorf("TOOL.UploadFile: display_name must be string or null, got %T", args[1])
-		}
-	}
-	securePath, secErr := ResolveAndSecurePath(localPath, interpreter.sandboxDir)
-	if secErr != nil {
-		return nil, fmt.Errorf("TOOL.UploadFile: invalid path %q: %w", localPath, secErr)
-	}
-	interpreter.logger.Info("Tool: UploadFile] Validated path: %s -> %s", localPath, securePath)
-	if displayName == "" {
-		relPath, err := filepath.Rel(interpreter.sandboxDir, securePath)
-		if err == nil {
-			displayName = filepath.ToSlash(relPath)
-		} else {
-			displayName = filepath.Base(securePath)
-			interpreter.logger.Warn("TOOL UploadFile] Could not get relative path for default display name, using basename: %v", err)
-		}
-		interpreter.logger.Info("Tool: UploadFile] Using default display name: %s", displayName)
-	}
-	apiFile, uploadErr := HelperUploadAndPollFile(context.Background(), securePath, displayName, client, interpreter.logger)
-	if uploadErr != nil {
-		if strings.HasPrefix(uploadErr.Error(), "skipped potentially binary file") {
-			reason := uploadErr.Error()
-			return map[string]interface{}{"status": "skipped", "reason": reason, "path": localPath}, nil
-		}
-		return nil, fmt.Errorf("TOOL.UploadFile: %w", uploadErr)
-	}
-	if apiFile == nil {
-		return nil, errors.New("TOOL.UploadFile: helper returned nil file without error")
-	}
-	createTimeStr := ""
-	if !apiFile.CreateTime.IsZero() {
-		createTimeStr = apiFile.CreateTime.Format(time.RFC3339)
-	}
-	updateTimeStr := ""
-	if !apiFile.UpdateTime.IsZero() {
-		updateTimeStr = apiFile.UpdateTime.Format(time.RFC3339)
-	}
-	resultMap := map[string]interface{}{"name": apiFile.Name, "displayName": apiFile.DisplayName, "mimeType": apiFile.MIMEType, "sizeBytes": apiFile.SizeBytes, "createTime": createTimeStr, "updateTime": updateTimeStr, "state": string(apiFile.State), "uri": apiFile.URI, "sha256Hash": ""}
-	if len(apiFile.Sha256Hash) > 0 {
-		resultMap["sha256Hash"] = hex.EncodeToString(apiFile.Sha256Hash)
-	}
-	return resultMap, nil
-}
+	f.logger.Debug("Writing file", "path", absPath, "content_length", len(content))
 
-// Tool: UpsertAs (Unchanged)
-func toolUpsertAs(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	client, clientErr := checkGenAIClient(interpreter)
-	if clientErr != nil {
-		return nil, fmt.Errorf("TOOL.UpsertAs: %w", clientErr)
+	// Ensure the target directory exists
+	dir := filepath.Dir(absPath)
+	// Use MkdirAll for robustness - requires appropriate permissions
+	if err := os.MkdirAll(dir, 0750); err != nil {
+		return fmt.Errorf("failed to create directory '%s' for writing: %w", dir, err)
 	}
-	if len(args) != 2 {
-		return nil, fmt.Errorf("TOOL.UpsertAs: expected 2 arguments (contents, display_name), got %d", len(args))
-	}
-	contents, okC := args[0].(string)
-	if !okC {
-		return nil, fmt.Errorf("TOOL.UpsertAs: contents argument must be a string, got %T", args[0])
-	}
-	displayName, okN := args[1].(string)
-	if !okN {
-		return nil, fmt.Errorf("TOOL.UpsertAs: display_name argument must be a string, got %T", args[1])
-	}
-	if displayName == "" {
-		return nil, errors.New("TOOL.UpsertAs: display_name cannot be empty")
-	}
-	apiFile, uploadErr := HelperUploadStringAndPollFile(context.Background(), contents, displayName, client, interpreter.logger)
-	if uploadErr != nil {
-		return nil, fmt.Errorf("TOOL.UpsertAs: failed to upload content for display name '%s': %w", displayName, uploadErr)
-	}
-	if apiFile == nil || apiFile.Name == "" {
-		return nil, fmt.Errorf("TOOL.UpsertAs: upload helper returned nil or empty File/URI for display name '%s'", displayName)
-	}
-	resultMap := map[string]interface{}{"displayName": displayName, "uri": apiFile.Name}
-	interpreter.logger.Info("Tool: UpsertAs] Successfully uploaded content '%s' -> URI: %s", displayName, apiFile.Name)
-	return resultMap, nil
-}
 
-// --- Registration --- (Unchanged)
-func registerFileAPITools(registry *ToolRegistry) error {
-	var err error
-	tools := []ToolImplementation{
-		{Spec: ToolSpec{Name: "ListAPIFiles", Description: "Lists files previously uploaded to the API.", Args: []ArgSpec{}, ReturnType: ArgTypeAny}, Func: toolListAPIFiles},
-		{Spec: ToolSpec{Name: "DeleteAPIFile", Description: "Deletes a file from the API by its name (e.g., 'files/abc123xyz').", Args: []ArgSpec{{Name: "api_file_name", Type: ArgTypeString, Required: true, Description: "The full API name of the file (e.g., files/xyz)."}}, ReturnType: ArgTypeAny}, Func: toolDeleteAPIFile},
-		{Spec: ToolSpec{Name: "UploadFile", Description: "Uploads a local file (relative to sandbox) to the API.", Args: []ArgSpec{{Name: "local_path", Type: ArgTypeString, Required: true, Description: "Relative path to the local file."}, {Name: "display_name", Type: ArgTypeString, Required: false, Description: "Optional display name (defaults to relative path)."}}, ReturnType: ArgTypeAny}, Func: toolUploadFile},
-		{Spec: ToolSpec{Name: "SyncFiles", Description: "Syncs local directory (relative to sandbox) to API ('up' only).", Args: []ArgSpec{{Name: "direction", Type: ArgTypeString, Required: true, Description: "Sync direction ('up')."}, {Name: "local_dir", Type: ArgTypeString, Required: true, Description: "Relative path to local directory."}, {Name: "filter_pattern", Type: ArgTypeString, Required: false, Description: "Optional filename glob pattern."}, {Name: "ignore_gitignore", Type: ArgTypeBool, Required: false, Description: "Ignore .gitignore files if true (default: false)."}}, ReturnType: ArgTypeAny}, Func: toolSyncFiles},
-		{Spec: ToolSpec{Name: "UpsertAs", Description: "Uploads string content to the File API with a specified display name.", Args: []ArgSpec{{Name: "contents", Type: ArgTypeString, Required: true, Description: "The string content to upload."}, {Name: "display_name", Type: ArgTypeString, Required: true, Description: "The desired display name for the file in the API."}}, ReturnType: ArgTypeMap}, Func: toolUpsertAs},
+	// Write the file - use appropriate permissions
+	err = os.WriteFile(absPath, []byte(content), 0640)
+	if err != nil {
+		return fmt.Errorf("failed to write file '%s': %w", absPath, err)
 	}
-	for _, tool := range tools {
-		if err = registry.RegisterTool(tool); err != nil {
-			log.Printf("Error registering tool %s: %v", tool.Spec.Name, err)
-			return fmt.Errorf("failed register tool %s: %w", tool.Spec.Name, err)
-		}
-	}
+	f.logger.Info("File written successfully", "path", absPath)
 	return nil
 }
 
-// Assumed functions/helpers (ensure defined elsewhere)
-// - func checkGenAIClient(interpreter *Interpreter) (*genai.Client, error)
-// - func HelperListApiFiles(ctx context.Context, client *genai.Client, logger interfaces.Logger) ([]*genai.File, error)
-// - func toolDeleteAPIFile(interpreter *Interpreter, args []interface{}) (interface{}, error)
-// - func toolSyncFiles(interpreter *Interpreter, args []interface{}) (interface{}, error)
-// - func ResolveAndSecurePath(localPath string, sandboxDir string) (string, error)
+// Delete removes a file or an empty directory within the sandbox.
+func (f *FileAPI) Delete(path string) error {
+	absPath, err := f.ResolvePath(path)
+	if err != nil {
+		return err
+	}
+
+	// Prevent deleting the sandbox root itself
+	if absPath == f.sandboxRoot {
+		return fmt.Errorf("cannot delete the sandbox root directory")
+	}
+
+	f.logger.Debug("Deleting path", "path", absPath)
+	err = os.Remove(absPath) // os.Remove handles both files and empty directories
+	if err != nil {
+		if os.IsNotExist(err) {
+			return fmt.Errorf("%w: cannot delete, path not found at '%s'", ErrFileNotFound, path)
+		}
+		// Check if it's a "directory not empty" error
+		// This requires checking the specific error type or string, which can be fragile.
+		// Example check (may vary across OS):
+		// if strings.Contains(err.Error(), "directory not empty") {
+		//     return fmt.Errorf("cannot delete directory '%s': it is not empty", path)
+		// }
+		return fmt.Errorf("failed to delete path '%s': %w", absPath, err)
+	}
+	f.logger.Info("Path deleted successfully", "path", absPath)
+	return nil
+}
+
+// Stat returns information about a file or directory within the sandbox.
+func (f *FileAPI) Stat(path string) (os.FileInfo, error) {
+	absPath, err := f.ResolvePath(path)
+	if err != nil {
+		return nil, err
+	}
+
+	f.logger.Debug("Stating path", "path", absPath)
+	info, err := os.Stat(absPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, fmt.Errorf("%w: path not found at '%s'", ErrFileNotFound, path)
+		}
+		return nil, fmt.Errorf("failed to stat path '%s': %w", absPath, err)
+	}
+	return info, nil
+}
+
+// ListDir lists the contents of a directory within the sandbox.
+func (f *FileAPI) ListDir(path string) ([]string, error) {
+	absPath, err := f.ResolvePath(path)
+	if err != nil {
+		return nil, err
+	}
+
+	f.logger.Debug("Listing directory", "path", absPath)
+	info, err := os.Stat(absPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, fmt.Errorf("%w: directory not found at '%s'", ErrFileNotFound, path)
+		}
+		return nil, fmt.Errorf("failed to stat directory '%s': %w", absPath, err)
+	}
+	if !info.IsDir() {
+		return nil, fmt.Errorf("path is not a directory: '%s'", path)
+	}
+
+	entries, err := os.ReadDir(absPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read directory '%s': %w", absPath, err)
+	}
+
+	names := make([]string, len(entries))
+	for i, entry := range entries {
+		names[i] = entry.Name()
+	}
+	f.logger.Debug("Directory listed successfully", "path", absPath, "entry_count", len(names))
+	return names, nil
+}
+
+// Embed generates embeddings for a file's content using the interpreter's LLM client.
+// This method requires the Interpreter context to access the LLMClient.
+func (f *FileAPI) Embed(ctx context.Context, interp *Interpreter, path string) ([]float32, error) {
+	f.logger.Debug("Requesting embedding for file", "path", path)
+
+	// CORRECTED: Replace checkGenAIClient with direct nil check
+	if interp.llmClient == nil {
+		return nil, fmt.Errorf("LLM client not configured in interpreter, cannot generate embeddings")
+	}
+
+	// Read file content using the FileAPI's own Read method to ensure sandboxing
+	content, err := f.Read(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read file '%s' for embedding: %w", path, err)
+	}
+
+	// Call the Embed method on the LLMClient interface instance
+	embeddings, err := interp.llmClient.Embed(ctx, content)
+	if err != nil {
+		return nil, fmt.Errorf("LLM Embed call failed for file '%s': %w", path, err)
+	}
+
+	f.logger.Debug("Embedding generated successfully", "path", path, "vector_length", len(embeddings))
+	return embeddings, nil
+}
+
+// --- Sync Related Methods (Placeholder - requires sync logic integration) ---
+
+// GetFileHash calculates the SHA256 hash of a file.
+func (f *FileAPI) GetFileHash(path string) (string, error) {
+	absPath, err := f.ResolvePath(path)
+	if err != nil {
+		return "", err
+	}
+	file, err := os.Open(absPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return "", fmt.Errorf("%w: file not found at '%s'", ErrFileNotFound, path)
+		}
+		return "", fmt.Errorf("failed to open file '%s' for hashing: %w", absPath, err)
+	}
+	defer file.Close()
+	hasher := sha256.New()
+	if _, err := io.Copy(hasher, file); err != nil {
+		return "", fmt.Errorf("failed to hash file content for '%s': %w", absPath, err)
+	}
+	return hex.EncodeToString(hasher.Sum(nil)), nil
+}
+
+// SyncState represents the state needed for synchronization.
+type SyncState struct {
+	Files map[string]string // Map of relative path -> hash
+	// Add other relevant state like last sync time, etc.
+	LastSyncTime time.Time
+}
+
+// GetSyncState calculates the current state of the sandbox for synchronization.
+func (f *FileAPI) GetSyncState() (*SyncState, error) {
+	f.logger.Debug("Calculating sandbox sync state...")
+	state := &SyncState{
+		Files:        make(map[string]string),
+		LastSyncTime: time.Now().UTC(), // Record current time
+	}
+
+	err := filepath.Walk(f.sandboxRoot, func(absPath string, info os.FileInfo, err error) error {
+		if err != nil {
+			f.logger.Warn("Error accessing path during sync state calculation", "path", absPath, "error", err)
+			return nil // Continue walking if possible
+		}
+		// Skip the root directory itself
+		if absPath == f.sandboxRoot {
+			return nil
+		}
+		// Ensure we are still in sandbox (defense in depth)
+		if !strings.HasPrefix(absPath, f.sandboxRoot) {
+			return fmt.Errorf("security violation: path '%s' escaped sandbox '%s' during sync state calculation", absPath, f.sandboxRoot)
+		}
+
+		if !info.IsDir() {
+			// Calculate relative path
+			relPath, err := filepath.Rel(f.sandboxRoot, absPath)
+			if err != nil {
+				// Should not happen if absPath starts with sandboxRoot
+				f.logger.Error("Failed to calculate relative path", "absolute", absPath, "root", f.sandboxRoot, "error", err)
+				return err // Stop the walk
+			}
+
+			// Calculate hash
+			hash, err := f.GetFileHash(relPath) // Use relative path for GetFileHash
+			if err != nil {
+				// Log error but continue if possible? Or fail sync state?
+				f.logger.Error("Failed to get hash for file during sync state calculation", "path", relPath, "error", err)
+				// Decide whether to skip this file or abort
+				return nil // Skip this file
+			}
+			state.Files[relPath] = hash
+		}
+		return nil
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("error walking sandbox for sync state: %w", err)
+	}
+
+	f.logger.Debug("Sandbox sync state calculated", "file_count", len(state.Files))
+	return state, nil
+}
+
+// --- Assumed Definitions ---
+// var ErrFileNotFound = errors.New("file not found") // Assumed defined in errors.go

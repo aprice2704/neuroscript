@@ -152,6 +152,6 @@ func (i *Interpreter) resolvePlaceholdersWithError(rawString string) (string, er
 
 // --- Placeholder Implementations (ensure these exist elsewhere) ---
 // func (i *Interpreter) GetVariable(name string) (interface{}, bool)
-// func (i *Interpreter) Logger() interfaces.Logger { ... }
+// func (i *Interpreter) Logger() logging.Logger { ... }
 // var ErrVariableNotFound = errors.New(...) // Assumed defined in errors.go
 // AST Node definitions (VariableNode, StringLiteralNode, etc.) assumed in ast.go

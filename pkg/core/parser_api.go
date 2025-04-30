@@ -7,29 +7,30 @@ import (
 
 	"github.com/antlr4-go/antlr/v4"
 	// Use a shorter alias for the generated package
+
 	gen "github.com/aprice2704/neuroscript/pkg/core/generated"
-	"github.com/aprice2704/neuroscript/pkg/interfaces" // Ensure this path is correct relative to your project structure
+	"github.com/aprice2704/neuroscript/pkg/logging" // Ensure this path is correct relative to your project structure
 )
 
 // ParserAPI provides a simplified interface to the ANTLR parser.
 type ParserAPI struct {
-	logger interfaces.Logger
+	logger logging.Logger
 }
 
 // NewParserAPI creates a new ParserAPI instance.
-func NewParserAPI(logger interfaces.Logger) *ParserAPI {
+func NewParserAPI(logger logging.Logger) *ParserAPI {
 	if logger == nil {
 		// Fallback to a no-op logger if nil is provided
-		logger = &interfaces.NoOpLogger{} // Use the exported NoOpLogger
+		logger = &coreNoOpLogger{}
 	}
 	return &ParserAPI{logger: logger}
 }
 
 // ErrorListener captures syntax errors during lexing and parsing.
 type ErrorListener struct {
-	*antlr.DefaultErrorListener                   // Embed default listener behavior
-	Errors                      []string          // Store collected error messages
-	logger                      interfaces.Logger // Logger for reporting errors
+	*antlr.DefaultErrorListener                // Embed default listener behavior
+	Errors                      []string       // Store collected error messages
+	logger                      logging.Logger // Logger for reporting errors
 }
 
 // SyntaxError is called by ANTLR when a syntax error is encountered.

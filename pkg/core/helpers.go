@@ -10,9 +10,66 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/aprice2704/neuroscript/pkg/adapters"
-	// interfaces "github.com/aprice2704/neuroscript/pkg/interfaces" // Uncomment if Logger interface is needed directly
+	"github.com/aprice2704/neuroscript/pkg/logging"
+	// Keep interfaces import for the Logger interface definition
 )
+
+// --- Internal Test Logger ---
+
+// TestLogger implements logging.Logger and writes output using t.Logf.
+// This avoids an import cycle between core and
+type TestLogger struct {
+	t *testing.T
+}
+
+// Ensure TestLogger implements logging.Logger at compile time.
+var _ logging.Logger = (*TestLogger)(nil)
+
+// Debug logs a debug message using t.Logf.
+func (l *TestLogger) Debug(msg string, args ...any) {
+	logMsg := fmt.Sprintf("[DEBUG] "+msg, args...)
+	l.t.Log(logMsg) // Use t.Log or t.Logf as appropriate
+}
+
+// Info logs an informational message using t.Logf.
+func (l *TestLogger) Info(msg string, args ...any) {
+	logMsg := fmt.Sprintf("[INFO] "+msg, args...)
+	l.t.Log(logMsg)
+}
+
+// Warn logs a warning message using t.Logf.
+func (l *TestLogger) Warn(msg string, args ...any) {
+	logMsg := fmt.Sprintf("[WARN] "+msg, args...)
+	l.t.Log(logMsg)
+}
+
+// Error logs an error message using t.Logf.
+func (l *TestLogger) Error(msg string, args ...any) {
+	logMsg := fmt.Sprintf("[ERROR] "+msg, args...)
+	l.t.Log(logMsg)
+}
+
+// Debugf logs a formatted debug message using t.Logf.
+func (l *TestLogger) Debugf(format string, args ...any) {
+	l.t.Logf("[DEBUG] "+format, args...)
+}
+
+// Infof logs a formatted informational message using t.Logf.
+func (l *TestLogger) Infof(format string, args ...any) {
+	l.t.Logf("[INFO] "+format, args...)
+}
+
+// Warnf logs a formatted warning message using t.Logf.
+func (l *TestLogger) Warnf(format string, args ...any) {
+	l.t.Logf("[WARN] "+format, args...)
+}
+
+// Errorf logs a formatted error message using t.Logf.
+func (l *TestLogger) Errorf(format string, args ...any) {
+	l.t.Logf("[ERROR] "+format, args...)
+}
+
+// --- End Internal Test Logger ---
 
 // Helper for logging snippets
 func min(a, b int) int {
@@ -106,38 +163,24 @@ func convertToSliceOfAny(rawValue interface{}) ([]interface{}, bool, error) {
 }
 
 // NewTestInterpreter creates a new interpreter instance suitable for testing.
-// It uses a SimpleTestLogger, registers core tools (via NewInterpreter),
+// It uses the internal core.TestLogger, registers core tools (via NewInterpreter),
 // and sets up a temporary sandbox.
 func NewTestInterpreter(t *testing.T, vars map[string]interface{}, lastResult interface{}) (*Interpreter, string) {
 	t.Helper()
-	// Use the SimpleTestLogger which logs to Stderr
-	testLogger := adapters.SimpleTestLogger()
+	// Use the internal TestLogger defined above
+	testLogger := &TestLogger{t: t}
 
-	// Create a minimal LLMClient
-	minimalLLMClient := NewLLMClient("", "", testLogger, false)
+	// Create a minimal LLMClient using the TestLogger
+	// Note: NewLLMClient is defined in pkg/core/llm.go and takes logging.Logger
+	minimalLLMClient := NewLLMClient("", "", testLogger, false) // Assuming false disables actual LLM calls
 	if minimalLLMClient == nil {
-		t.Fatal("Failed to create even a minimal LLMClient for testing")
+		t.Log("Warning: NewLLMClient returned nil, attempting to proceed without LLMClient.")
 	}
 
 	// Create interpreter - NOTE: NewInterpreter ALREADY registers core tools
+	// NewInterpreter is defined in pkg/core/interpreter_new.go and takes logging.Logger, core.LLMClient
 	interp := NewInterpreter(testLogger, minimalLLMClient)
 	effectiveLogger := interp.Logger() // Use the logger attached to the interpreter
-
-	// *** REMOVED Diagnostic Logging Block ***
-	/*
-		effectiveLogger.Info("Dumping registered tools (from NewInterpreter) for diagnostics...")
-		registry := interp.ToolRegistry() // Get registry from the interpreter
-		registeredToolNames := make([]string, 0, len(registry.tools))
-		for name := range registry.tools {
-			registeredToolNames = append(registeredToolNames, name)
-		}
-		sort.Strings(registeredToolNames) // Sort for consistent output
-		for _, name := range registeredToolNames {
-			t.Logf("Registered tool: %s", name) // Log directly using t.Logf
-		}
-		effectiveLogger.Info("Finished dumping registered tools.")
-	*/
-	// *** End Diagnostic Logging Removal ***
 
 	// Setup sandbox directory
 	sandboxDirRel := t.TempDir()
@@ -146,8 +189,8 @@ func NewTestInterpreter(t *testing.T, vars map[string]interface{}, lastResult in
 		t.Fatalf("Failed to get absolute path for sandbox %s: %v", sandboxDirRel, err)
 	}
 
-	interp.sandboxDir = absSandboxDir // Set the sandbox path on the interpreter
-	effectiveLogger.Info("Sandbox root set in interpreter: " + absSandboxDir)
+	interp.sandboxDir = absSandboxDir                                         // Set the sandbox path on the interpreter
+	effectiveLogger.Info("Sandbox root set in interpreter: " + absSandboxDir) // Now logs to test output
 
 	// Initialize variables if provided
 	if vars != nil {

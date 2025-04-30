@@ -8,7 +8,7 @@ import (
 	"os" // Added for direct output in progress printer
 	"sync"
 
-	"github.com/aprice2704/neuroscript/pkg/interfaces"
+	"github.com/aprice2704/neuroscript/pkg/logging"
 	"github.com/google/generative-ai-go/genai"
 	// Assumes sync_types.go, sync_morehelpers.go, sync_logic.go, sync_workers.go
 	// and their necessary imports (like path/filepath, io, etc.) exist
@@ -23,7 +23,7 @@ func SyncDirectoryUpHelper(
 	filterPattern string,
 	ignoreGitignore bool,
 	client *genai.Client,
-	logger interfaces.Logger,
+	logger logging.Logger,
 ) (map[string]interface{}, error) {
 
 	// 1. Initialize Context, Loggers, Stats

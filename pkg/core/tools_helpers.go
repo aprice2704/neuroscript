@@ -98,3 +98,34 @@ func toolExec(interpreter *Interpreter, cmdAndArgs ...string) (string, error) {
 }
 
 // --- END ADDED toolExec function definition ---
+
+// getStringArg retrieves a required string argument from the args map.
+func getStringArg(args map[string]interface{}, key string) (string, error) {
+	val, ok := args[key]
+	if !ok {
+		return "", fmt.Errorf("missing required argument '%s'", key)
+	}
+	strVal, ok := val.(string)
+	if !ok {
+		return "", fmt.Errorf("invalid type for argument '%s': expected string, got %T", key, val)
+	}
+	return strVal, nil
+}
+
+// makeArgMap is a convenience function to create a map[string]interface{}
+// from key-value pairs, useful for constructing tool arguments programmatically.
+// Example: makeArgMap("prompt", "hello", "count", 5)
+func makeArgMap(kvPairs ...interface{}) (map[string]interface{}, error) {
+	if len(kvPairs)%2 != 0 {
+		return nil, fmt.Errorf("makeArgMap requires an even number of arguments (key-value pairs)")
+	}
+	args := make(map[string]interface{})
+	for i := 0; i < len(kvPairs); i += 2 {
+		key, ok := kvPairs[i].(string)
+		if !ok {
+			return nil, fmt.Errorf("makeArgMap requires string keys, got %T at index %d", kvPairs[i], i)
+		}
+		args[key] = kvPairs[i+1]
+	}
+	return args, nil
+}

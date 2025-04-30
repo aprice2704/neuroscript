@@ -3,172 +3,187 @@ package core
 
 import (
 	"context"
-	"errors"
 	"fmt"
-
-	"github.com/google/generative-ai-go/genai"
-	// Assuming other necessary imports like interfaces Logger etc.
+	// Ensure necessary types like Expression, ConversationTurn, ToolCall, etc. are accessible
+	// Imports might be needed depending on where those types are defined.
 )
 
-// executeAskAI handles the "call askAI ..." step.
-func (i *Interpreter) executeAskAI(step Step, stepNum int, evaluatedArgs []interface{}) (interface{}, error) {
-	i.Logger().Info("[DEBUG-INTERP]   Executing AskAI (Step %d)", stepNum+1)
+// executeAskAI handles the 'ask ai' step.
+func (i *Interpreter) executeAskAI(step *AskAIStep) error {
+	i.logger.Debug("Executing 'ask ai' step")
 
-	// --- Argument Validation ---
-	if len(evaluatedArgs) == 0 || len(evaluatedArgs) > 2 {
-		// Basic check: Allow prompt (string) and optional context (map or string?)
-		// Refine this based on more detailed spec if available.
-		return nil, NewRuntimeError(ErrorCodeArgMismatch,
-			fmt.Sprintf("askAI expects 1 or 2 arguments (prompt string, [optional context]), got %d", len(evaluatedArgs)),
-			ErrArgumentMismatch)
-	}
-
-	prompt, promptOk := evaluatedArgs[0].(string)
-	if !promptOk {
-		return nil, NewRuntimeError(ErrorCodeType,
-			fmt.Sprintf("askAI first argument (prompt) must be a string, got %T", evaluatedArgs[0]),
-			ErrInvalidFunctionArgument)
-	}
-
-	// Optional context argument handling (placeholder)
-	// var requestContext interface{} = nil
-	// if len(evaluatedArgs) == 2 {
-	//  requestContext = evaluatedArgs[1]
-	//  // TODO: Process context if needed (e.g., format into prompt preamble)
-	// }
-	// --- End Argument Validation ---
-
-	if i.llmClient == nil {
-		i.Logger().Error("[ERROR INTERP] askAI called but LLMClient is not configured.")
-		return nil, NewRuntimeError(ErrorCodeLLMError, "LLM client not configured in interpreter", ErrInternal) // Or a more specific sentinel?
-	}
-
-	// --- LLM Call ---
-	i.Logger().Info("[INFO INTERP] Calling LLM (Model: %s) with prompt: %q", i.modelName, prompt) // Log prompt potentially truncated
-	// Simple text generation for now. Adapt if history/context needs more complex handling.
-	// Use a background context for now. Consider making it configurable/passed down.
-	ctx := context.Background()
-	model := i.llmClient.Client().GenerativeModel(i.modelName)
-	resp, err := model.GenerateContent(ctx, genai.Text(prompt))
-
+	// 1. Prepare Conversation History
+	//    This involves evaluating the prompt expression and potentially retrieving
+	//    existing conversation history managed elsewhere.
+	conversationTurns, err := i.prepareConversationForAsk(step.Prompt)
 	if err != nil {
-		i.Logger().Error("[ERROR INTERP] LLM content generation failed: %v", err)
-		// Wrap the LLM error
-		return nil, NewRuntimeError(ErrorCodeLLMError, "LLM API call failed", fmt.Errorf("generating content: %w", err))
+		return fmt.Errorf("failed to prepare conversation for 'ask ai': %w", err)
 	}
 
-	// --- Process Response ---
-	// Assuming a simple text response is expected. Need to handle potential errors/empty responses.
-	// This part needs refinement based on how genai library structures responses and potential errors within responses.
-	if resp == nil || len(resp.Candidates) == 0 || resp.Candidates[0].Content == nil || len(resp.Candidates[0].Content.Parts) == 0 {
-		i.Logger().Warn("[WARN INTERP] LLM response was empty or malformed.")
-		// Return empty string or a specific error? Return empty string for now.
-		return "", nil // Considered successful call, but empty result.
+	// 2. Get Available Tools
+	//    Determine which tools should be sent to the LLM for this specific call.
+	availableTools := i.getAvailableToolsForAsk() // Helper to get currently relevant tools
+
+	var responseTurn *ConversationTurn
+	var toolCalls []*ToolCall
+
+	// 3. Call LLMClient using the interface methods
+	if i.llmClient == nil {
+		// Use specific error type if defined
+		return NewRuntimeError(ErrLLMError, "LLM client is not configured in the interpreter", step.GetPos())
 	}
 
-	// Extract text from the first candidate's first part. Adapt if multiple parts/candidates are expected.
-	// Ensure the part is actually text.
-	textContent := ""
-	if textPart, ok := resp.Candidates[0].Content.Parts[0].(genai.Text); ok {
-		textContent = string(textPart)
+	if len(availableTools) > 0 {
+		i.logger.Debug("Calling LLM with tools", "turn_count", len(conversationTurns), "tool_count", len(availableTools))
+		// Call AskWithTools directly on the interface
+		responseTurn, toolCalls, err = i.llmClient.AskWithTools(context.Background(), conversationTurns, availableTools)
 	} else {
-		i.Logger().Warn("[WARN INTERP] LLM response part was not text: %T", resp.Candidates[0].Content.Parts[0])
-		// Return empty string or error? Let's return empty string.
-		return "", nil
+		i.logger.Debug("Calling LLM without tools", "turn_count", len(conversationTurns))
+		// Call Ask directly on the interface
+		responseTurn, err = i.llmClient.Ask(context.Background(), conversationTurns)
 	}
 
-	i.Logger().Info("[INFO INTERP] LLM call successful. Response length: %d", len(textContent))
-	// Return the text content
-	return textContent, nil
-}
-
-// executeAskHuman handles the "call askHuman ..." step.
-func (i *Interpreter) executeAskHuman(step Step, stepNum int, evaluatedArgs []interface{}) (interface{}, error) {
-	i.Logger().Info("[DEBUG-INTERP]   Executing AskHuman (Step %d)", stepNum+1)
-
-	// --- Argument Validation ---
-	if len(evaluatedArgs) != 1 {
-		return nil, NewRuntimeError(ErrorCodeArgMismatch,
-			fmt.Sprintf("askHuman expects 1 argument (prompt string), got %d", len(evaluatedArgs)),
-			ErrArgumentMismatch)
+	// Handle LLM call errors
+	if err != nil {
+		// Ensure NewRuntimeError and ErrLLMError are defined (e.g., in errors.go)
+		return NewRuntimeError(ErrLLMError, fmt.Sprintf("LLM interaction failed: %v", err), step.GetPos())
 	}
-	prompt, ok := evaluatedArgs[0].(string)
-	if !ok {
-		return nil, NewRuntimeError(ErrorCodeType,
-			fmt.Sprintf("askHuman first argument (prompt) must be a string, got %T", evaluatedArgs[0]),
-			ErrInvalidFunctionArgument)
-	}
-	// --- End Argument Validation ---
-
-	// --- Placeholder Implementation ---
-	// Log the prompt and return a placeholder response.
-	// In a real implementation, this would involve interacting with a UI or external system.
-	i.Logger().Info("[INFO INTERP] AskHuman: Prompt for user: %q", prompt)
-	placeholderResponse := fmt.Sprintf("[Placeholder response for: %s]", prompt)
-
-	// Return placeholder response
-	return placeholderResponse, nil
-}
-
-// executeAskComputer handles the "call askComputer ..." step.
-// Delegates to tool execution logic.
-func (i *Interpreter) executeAskComputer(step Step, stepNum int, evaluatedArgs []interface{}) (interface{}, error) {
-	i.Logger().Info("[DEBUG-INTERP]   Executing AskComputer (Step %d)", stepNum+1)
-
-	// --- Argument Validation ---
-	if len(evaluatedArgs) == 0 {
-		return nil, NewRuntimeError(ErrorCodeArgMismatch,
-			"askComputer requires at least one argument (tool name string)",
-			ErrArgumentMismatch)
-	}
-	toolName, ok := evaluatedArgs[0].(string)
-	if !ok {
-		return nil, NewRuntimeError(ErrorCodeType,
-			fmt.Sprintf("askComputer first argument (tool name) must be a string, got %T", evaluatedArgs[0]),
-			ErrInvalidFunctionArgument)
-	}
-	// --- End Argument Validation ---
-
-	// --- Delegate to Tool Call ---
-	// Synthesize arguments for the tool (excluding the tool name itself)
-	toolArgs := evaluatedArgs[1:]
-
-	// Re-evaluate: executeCall expects *AST nodes* in step.Args, then evaluates them.
-	// We already have evaluated args. We need to call the *tool execution* logic directly,
-	// bypassing the argument evaluation part of executeCall.
-
-	// Let's extract the relevant part from executeCall's tool logic:
-	toolImpl, found := i.ToolRegistry().GetTool(toolName)
-	if !found {
-		errMsg := fmt.Sprintf("tool '%s' (called via askComputer) not found in registry", toolName)
-		return nil, NewRuntimeError(ErrorCodeToolNotFound, errMsg, fmt.Errorf("%s: %w", errMsg, ErrToolNotFound))
+	if responseTurn == nil {
+		// Defensive check, should ideally be covered by the error return
+		return NewRuntimeError(ErrLLMError, "LLM returned nil response without error", step.GetPos())
 	}
 
-	// Validate and Convert the ALREADY EVALUATED arguments (excluding the tool name itself)
-	validatedAndConvertedArgs, validationErr := ValidateAndConvertArgs(toolImpl.Spec, toolArgs)
-	if validationErr != nil {
-		code := ErrorCodeArgMismatch
-		if errors.Is(validationErr, ErrValidationTypeMismatch) {
-			code = ErrorCodeType
-		} else if errors.Is(validationErr, ErrValidationArgCount) {
-			code = ErrorCodeArgMismatch
+	i.logger.Debug("LLM response received", "role", responseTurn.Role, "content_length", len(responseTurn.Content), "tool_calls", len(toolCalls))
+
+	// 4. Process Response
+	//    Update conversation history (implementation needed)
+	i.addResponseToConversation(responseTurn)
+
+	// Handle Tool Calls if any were returned
+	if len(toolCalls) > 0 {
+		err = i.handleToolCalls(toolCalls) // Execute tools and update history
+		if err != nil {
+			// Decide if tool execution errors should halt the script
+			// For now, return the error. Could potentially log and continue.
+			return fmt.Errorf("failed during tool execution: %w", err)
 		}
-		return nil, NewRuntimeError(code, fmt.Sprintf("argument validation failed for tool '%s' (called via askComputer)", toolName), fmt.Errorf("validating args for %s: %w", toolName, validationErr))
+		i.logger.Info("Tool calls requested by LLM were processed.")
+		// NOTE: Depending on the desired flow, after handling tool calls,
+		// you might need to call the LLM *again* with the tool results
+		// to get a final natural language response. This requires looping logic.
 	}
 
-	// Execute the tool directly
-	i.Logger().Debug("[DEBUG-INTERP]     Executing Tool '%s' (via askComputer)...", toolName)
-	toolResult, toolErr := toolImpl.Func(i, validatedAndConvertedArgs)
+	// 5. Store Result
+	//    The result of 'ask ai' is typically the assistant's text content.
+	//    If the step assigns to a variable ('ask ai ... into myVar'), that logic
+	//    would happen in the main executeStep function after this returns.
+	i.lastCallResult = responseTurn.Content // Store the primary text response
 
-	if toolErr != nil {
-		if re, ok := toolErr.(*RuntimeError); ok {
-			return nil, re // Already a RuntimeError
-		}
-		code := ErrorCodeToolSpecific
-		return nil, NewRuntimeError(code, fmt.Sprintf("tool '%s' (via askComputer) execution failed", toolName), fmt.Errorf("executing tool %s: %w", toolName, toolErr))
-	}
-
-	i.Logger().Debug("[DEBUG-INTERP]     Tool '%s' (via askComputer) execution successful.", toolName)
-	return toolResult, nil
-	// --- End Delegate to Tool Call ---
+	return nil
 }
+
+// --- Helper methods (Placeholders - require actual implementation or confirmation) ---
+
+// prepareConversationForAsk evaluates the prompt and constructs the turn list for the LLM.
+// Needs access to evaluateExpression and potentially conversation history management.
+func (i *Interpreter) prepareConversationForAsk(promptExpr Expression) ([]*ConversationTurn, error) {
+	promptVal, err := i.evaluateExpression(promptExpr) // Assumes evaluateExpression exists
+	if err != nil {
+		return nil, fmt.Errorf("failed to evaluate prompt expression: %w", err)
+	}
+	promptStr, ok := promptVal.(string)
+	if !ok {
+		return nil, fmt.Errorf("prompt expression did not evaluate to a string, got %T", promptVal)
+	}
+
+	// Placeholder: Get actual conversation history if needed
+	currentHistory := []*ConversationTurn{}
+
+	// Construct the turns to send
+	// May need to add system prompts, etc.
+	finalHistory := append(currentHistory, &ConversationTurn{Role: RoleUser, Content: promptStr})
+
+	return finalHistory, nil
+}
+
+// getAvailableToolsForAsk determines which tools to offer the LLM.
+// Needs access to the ToolRegistry.
+func (i *Interpreter) getAvailableToolsForAsk() []ToolDefinition {
+	if i.toolRegistry == nil {
+		i.logger.Warn("getAvailableToolsForAsk called but toolRegistry is nil")
+		return nil
+	}
+	// Assumes ToolRegistry has a method to get all definitions
+	return i.toolRegistry.GetAllToolDefinitions()
+}
+
+// addResponseToConversation updates the managed conversation history.
+// Implementation depends on how conversation state is stored.
+func (i *Interpreter) addResponseToConversation(turn *ConversationTurn) {
+	// TODO: Implement conversation history management logic
+	i.logger.Debug("Adding LLM response to conversation history (Not Implemented)", "role", turn.Role)
+}
+
+// handleToolCalls executes requested tool calls and adds results to the conversation.
+// Needs access to the ToolRegistry and conversation management.
+func (i *Interpreter) handleToolCalls(calls []*ToolCall) error {
+	i.logger.Info("Handling tool calls requested by LLM", "count", len(calls))
+	if len(calls) == 0 {
+		return nil
+	}
+	if i.toolRegistry == nil {
+		return fmt.Errorf("cannot handle tool calls: toolRegistry is nil")
+	}
+
+	results := make([]*ToolResult, len(calls))
+	for idx, call := range calls {
+		i.logger.Debug("Executing tool call", "id", call.ID, "name", call.Name, "args", call.Arguments)
+		// Assumes ToolRegistry has ExecuteTool method
+		resultVal, err := i.toolRegistry.ExecuteTool(context.Background(), call.Name, call.Arguments)
+
+		// Create result struct regardless of error
+		results[idx] = &ToolResult{
+			ID:     call.ID,
+			Result: resultVal, // Store result even if error occurred
+		}
+		if err != nil {
+			errMsg := fmt.Sprintf("Tool '%s' execution failed: %v", call.Name, err)
+			results[idx].Error = errMsg // Record error message in the result
+			i.logger.Error("Tool execution failed", "id", call.ID, "name", call.Name, "error", err)
+			// Continue processing other calls, errors are recorded in results
+		} else {
+			i.logger.Debug("Tool execution successful", "id", call.ID, "name", call.Name /*, "result", resultVal */) // Avoid logging potentially large results by default
+		}
+	}
+
+	// Add tool results back to the conversation history
+	i.addToolResultsToConversation(results) // Assumes this helper exists
+
+	// Check if any tool failed critically (optional - could return combined error)
+	// for _, res := range results {
+	// 	if res.Error != "" {
+	// 		return fmt.Errorf("one or more tool executions failed")
+	// 	}
+	// }
+
+	return nil // Indicate overall handling success (individual errors are in results)
+}
+
+// addToolResultsToConversation updates the managed conversation history with tool results.
+// Implementation depends on how conversation state is stored.
+func (i *Interpreter) addToolResultsToConversation(results []*ToolResult) {
+	// TODO: Implement conversation history management logic for tool results
+	i.logger.Debug("Adding tool results to conversation history (Not Implemented)", "count", len(results))
+}
+
+// --- Assumed helper function/type definitions (ensure they exist) ---
+// func (i *Interpreter) evaluateExpression(expr Expression) (interface{}, error) // Defined in evaluation_main.go or similar
+// func (tr *ToolRegistry) GetAllToolDefinitions() []ToolDefinition // Defined in tools_registry.go
+// func (tr *ToolRegistry) ExecuteTool(ctx context.Context, name string, args map[string]interface{}) (interface{}, error) // Defined in tools_registry.go
+// type Expression interface { ... } // Defined in ast.go
+// type AskAIStep struct { Prompt Expression; StepPos } // Defined in ast.go
+// type StepPos interface { GetPos() *Position } // Defined in ast.go
+// type Position struct { ... } // Defined in ast.go
+// type RuntimeError struct { ... } // Defined in errors.go
+// func NewRuntimeError(code ErrorCode, message string, pos *Position) *RuntimeError // Defined in errors.go
+// var ErrLLMError ErrorCode // Defined in errors.go

@@ -16,7 +16,7 @@ import (
 )
 
 // initializeLogger sets up the slog logger based on configuration strings.
-func initializeLogger(levelStr string, filePath string) (interfaces.Logger, error) {
+func initializeLogger(levelStr string, filePath string) (logging.Logger, error) {
 	var level slog.Level
 	// Parse the log level string
 	switch levelStr {
@@ -68,7 +68,7 @@ func initializeLogger(levelStr string, filePath string) (interfaces.Logger, erro
 	// Optionally set the global logger (useful for libraries that might use slog directly)
 	// slog.SetDefault(slogLogger) // Uncomment if needed
 
-	// Return the adapter which satisfies the interfaces.Logger interface
+	// Return the adapter which satisfies the logging.Logger interface
 	return appLogger, nil
 }
 
@@ -171,9 +171,9 @@ func main() {
 	}
 
 	// --- App Initialization ---
-	// Pass the initialized logger to NewApp (Assuming NewApp accepts interfaces.Logger)
+	// Pass the initialized logger to NewApp (Assuming NewApp accepts logging.Logger)
 	// You'll need to modify NewApp's signature if it doesn't already accept the logger.
-	// Example modification: func NewApp(logger interfaces.Logger) *App { ... }
+	// Example modification: func NewApp(logger logging.Logger) *App { ... }
 	app := neurogo.NewApp(logger) // *** Pass the logger here ***
 
 	// Configure app.Config struct...
