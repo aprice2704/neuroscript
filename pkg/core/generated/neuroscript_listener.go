@@ -52,9 +52,6 @@ type NeuroScriptListener interface {
 	// EnterSet_statement is called when entering the set_statement production.
 	EnterSet_statement(c *Set_statementContext)
 
-	// EnterCall_statement is called when entering the call_statement production.
-	EnterCall_statement(c *Call_statementContext)
-
 	// EnterReturn_statement is called when entering the return_statement production.
 	EnterReturn_statement(c *Return_statementContext)
 
@@ -127,8 +124,8 @@ type NeuroScriptListener interface {
 	// EnterPrimary is called when entering the primary production.
 	EnterPrimary(c *PrimaryContext)
 
-	// EnterFunction_call is called when entering the function_call production.
-	EnterFunction_call(c *Function_callContext)
+	// EnterCallable_expr is called when entering the callable_expr production.
+	EnterCallable_expr(c *Callable_exprContext)
 
 	// EnterPlaceholder is called when entering the placeholder production.
 	EnterPlaceholder(c *PlaceholderContext)
@@ -205,9 +202,6 @@ type NeuroScriptListener interface {
 	// ExitSet_statement is called when exiting the set_statement production.
 	ExitSet_statement(c *Set_statementContext)
 
-	// ExitCall_statement is called when exiting the call_statement production.
-	ExitCall_statement(c *Call_statementContext)
-
 	// ExitReturn_statement is called when exiting the return_statement production.
 	ExitReturn_statement(c *Return_statementContext)
 
@@ -280,8 +274,8 @@ type NeuroScriptListener interface {
 	// ExitPrimary is called when exiting the primary production.
 	ExitPrimary(c *PrimaryContext)
 
-	// ExitFunction_call is called when exiting the function_call production.
-	ExitFunction_call(c *Function_callContext)
+	// ExitCallable_expr is called when exiting the callable_expr production.
+	ExitCallable_expr(c *Callable_exprContext)
 
 	// ExitPlaceholder is called when exiting the placeholder production.
 	ExitPlaceholder(c *PlaceholderContext)

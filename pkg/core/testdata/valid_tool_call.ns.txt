@@ -1,7 +1,7 @@
 :: title: Tool Call Test
 
 func callTools() means
-    call tool.ReadFile("./some/path")
-    set content = LAST               
-    emit content["content"]          
+    # Use direct assignment - tool call is now an expression
+    set content = tool.ReadFile("./some/path")
+    emit content["content"]
 endfunc

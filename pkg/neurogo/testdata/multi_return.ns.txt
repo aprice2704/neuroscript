@@ -1,0 +1,35 @@
+:: title: Multi-Return Test Script
+:: version: 1.0
+
+# Define a function that returns multiple values
+func multiReturnFunc() returns val1, val2, val3 means
+    emit "Inside multiReturnFunc"
+    set val1 = 100
+    set val2 = "Success"
+    set val3 = true
+    return val1, val2, val3
+endfunc
+
+# Main procedure to call the multi-return function
+func main() returns resultList means
+    emit "Calling multiReturnFunc..."
+    # Call the function and assign the result (which will be a list)
+    set resultList = multiReturnFunc()
+    emit "Call complete. Result list:", resultList
+
+    # Optionally, check individual elements
+    must resultList[0] == 100
+    must resultList[1] == "Success"
+    must resultList[2] == true
+
+    emit "Checks passed."
+    # The list itself is returned by main implicitly if needed,
+    # or explicitly via 'return resultList'
+    return resultList
+endfunc
+
+func errorCase() means
+    # This will fail at runtime because set doesn't support multi-assignment yet
+    # set x, y = multiReturnFunc()
+    emit "This shouldn't run in current implementation."
+endfunc

@@ -67,10 +67,6 @@ func (v *BaseNeuroScriptVisitor) VisitSet_statement(ctx *Set_statementContext) i
 	return v.VisitChildren(ctx)
 }
 
-func (v *BaseNeuroScriptVisitor) VisitCall_statement(ctx *Call_statementContext) interface{} {
-	return v.VisitChildren(ctx)
-}
-
 func (v *BaseNeuroScriptVisitor) VisitReturn_statement(ctx *Return_statementContext) interface{} {
 	return v.VisitChildren(ctx)
 }
@@ -167,7 +163,7 @@ func (v *BaseNeuroScriptVisitor) VisitPrimary(ctx *PrimaryContext) interface{} {
 	return v.VisitChildren(ctx)
 }
 
-func (v *BaseNeuroScriptVisitor) VisitFunction_call(ctx *Function_callContext) interface{} {
+func (v *BaseNeuroScriptVisitor) VisitCallable_expr(ctx *Callable_exprContext) interface{} {
 	return v.VisitChildren(ctx)
 }
 

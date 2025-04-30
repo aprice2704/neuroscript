@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"math"
 	"reflect"
-	"strings" // Added for function names comparison
+	"strings"
 	// Assuming errors like ErrNilOperand, ErrInvalidOperandType*, ErrUnsupportedOperator,
 	// ErrIncorrectArgCount, ErrInvalidFunctionArgument, ErrUnknownFunction
 	// are defined in errors.go
@@ -13,18 +13,17 @@ import (
 
 // --- Evaluation Logic for Operations ---
 
-// isZeroValue checks if a value is the zero value for its type.
+// isZeroValue checks if a value is the zero value for its type. (Unchanged)
 func isZeroValue(val interface{}) bool {
 	if val == nil {
 		return true
 	}
 	v := reflect.ValueOf(val)
-	// Use val.IsValid() check first for safety, especially with interfaces
 	if !v.IsValid() {
-		return true // Treat invalid reflect.Value as zero/nil equivalent
+		return true
 	}
 	switch v.Kind() {
-	case reflect.Slice, reflect.Map, reflect.String, reflect.Array: // Added Array
+	case reflect.Slice, reflect.Map, reflect.String, reflect.Array:
 		return v.Len() == 0
 	case reflect.Bool:
 		return !v.Bool()
@@ -34,25 +33,20 @@ func isZeroValue(val interface{}) bool {
 		return v.Uint() == 0
 	case reflect.Float32, reflect.Float64:
 		return v.Float() == 0
-	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Ptr, reflect.UnsafePointer: // Added more nillable types
+	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Ptr, reflect.UnsafePointer:
 		return v.IsNil()
-	// case reflect.Struct: // Structs are zero if all fields are zero - more complex, skip for now
 	default:
-		// For other types (like struct), assume non-zero unless it's the zero value instance.
-		// This check might be sufficient for many cases.
 		return v.IsZero()
 	}
 }
 
-// evaluateUnaryOp performs prefix unary operations (not, -, no, some, ~).
+// evaluateUnaryOp performs prefix unary operations (not, -, no, some, ~). (Unchanged)
 func evaluateUnaryOp(op string, operand interface{}) (interface{}, error) {
 	if operand == nil && (op == "-" || op == "~") {
 		return nil, fmt.Errorf("%w: unary operator '%s'", ErrNilOperand, op)
 	}
-
-	switch strings.ToLower(op) { // Convert op to lower for case-insensitivity
+	switch strings.ToLower(op) {
 	case "not":
-		// isTruthy should be defined in evaluation_helpers.go
 		return !isTruthy(operand), nil
 	case "-":
 		iVal, isInt := toInt64(operand)
@@ -68,7 +62,7 @@ func evaluateUnaryOp(op string, operand interface{}) (interface{}, error) {
 		iVal, isInt := toInt64(operand)
 		if isInt {
 			return ^iVal, nil
-		} // Go uses ^ for bitwise NOT
+		}
 		return nil, fmt.Errorf("%w: unary operator '~' needs integer, got %T", ErrInvalidOperandTypeInteger, operand)
 	case "no":
 		return isZeroValue(operand), nil
@@ -79,41 +73,26 @@ func evaluateUnaryOp(op string, operand interface{}) (interface{}, error) {
 	}
 }
 
-// evaluateBinaryOp performs infix binary operations (dispatching).
+// evaluateBinaryOp performs infix binary operations (dispatching). (Unchanged)
 func evaluateBinaryOp(left, right interface{}, op string) (interface{}, error) {
-	opLower := strings.ToLower(op) // Convert op to lower once
-
+	opLower := strings.ToLower(op)
 	switch opLower {
 	case "and":
-		leftBool := isTruthy(left)
-		if !leftBool {
+		if !isTruthy(left) {
 			return false, nil
-		} // Short-circuit
+		}
 		return isTruthy(right), nil
 	case "or":
-		leftBool := isTruthy(left)
-		if leftBool {
+		if isTruthy(left) {
 			return true, nil
-		} // Short-circuit
-		return isTruthy(right), nil
-
-	// Comparison (handle nil checks first)
-	case "==", "!=":
-		// performComparison handles nil checks internally now
-		result, err := performComparison(left, right, op) // Pass original op for correct != logic
-		if err != nil {
-			return nil, fmt.Errorf("compare %T %s %T: %w", left, op, right, err)
 		}
-		return result, nil
-	case "<", ">", "<=", ">=":
-		// performComparison handles nil checks internally now
+		return isTruthy(right), nil
+	case "==", "!=", "<", ">", "<=", ">=":
 		result, err := performComparison(left, right, op)
 		if err != nil {
 			return nil, fmt.Errorf("compare %T %s %T: %w", left, op, right, err)
 		}
 		return result, nil
-
-	// Arithmetic (includes string concat via '+')
 	case "+":
 		result, err := performStringConcatOrNumericAdd(left, right)
 		if err != nil {
@@ -121,13 +100,11 @@ func evaluateBinaryOp(left, right interface{}, op string) (interface{}, error) {
 		}
 		return result, nil
 	case "-", "*", "/", "%", "**":
-		result, err := performArithmetic(left, right, op) // Pass original op for "**"
+		result, err := performArithmetic(left, right, op)
 		if err != nil {
 			return nil, fmt.Errorf("arithmetic %T %s %T: %w", left, op, right, err)
 		}
 		return result, nil
-
-	// Bitwise
 	case "&", "|", "^":
 		result, err := performBitwise(left, right, op)
 		if err != nil {
@@ -139,9 +116,21 @@ func evaluateBinaryOp(left, right interface{}, op string) (interface{}, error) {
 	}
 }
 
-// evaluateFunctionCall handles built-in function calls.
-// ADDED: Cases for is_string, is_number, is_int, is_float, is_bool, is_list, is_map, not_empty
-func evaluateFunctionCall(funcName string, args []interface{}) (interface{}, error) {
+// --- ADDED isBuiltInFunction helper ---
+// isBuiltInFunction checks if a name corresponds to a known built-in function.
+func isBuiltInFunction(name string) bool {
+	switch strings.ToLower(name) { // Use lower case for check
+	case "ln", "log", "sin", "cos", "tan", "asin", "acos", "atan",
+		"is_string", "is_number", "is_int", "is_float", "is_bool", "is_list", "is_map", "not_empty":
+		return true
+	default:
+		return false
+	}
+}
+
+// --- RESTORED evaluateBuiltInFunction ---
+// evaluateBuiltInFunction handles built-in function calls.
+func evaluateBuiltInFunction(funcName string, args []interface{}) (interface{}, error) {
 	// Helper to check arg count
 	checkArgCount := func(expectedCount int) error {
 		if len(args) != expectedCount {
@@ -149,9 +138,6 @@ func evaluateFunctionCall(funcName string, args []interface{}) (interface{}, err
 		}
 		return nil
 	}
-	// Helper to check arg count and type (basic check, specific checks below)
-	// Deprecated in favor of specific checks within cases
-	_ = func(expectedCount int, argTypes ...string) error { /* ... */ return nil }
 
 	funcLower := strings.ToLower(funcName) // Convert func name for case-insensitive matching
 
@@ -163,20 +149,19 @@ func evaluateFunctionCall(funcName string, args []interface{}) (interface{}, err
 		}
 		_, ok := args[0].(string)
 		return ok, nil
-	case "is_number": // Checks if it's any numeric Go type (int*, uint*, float*)
+	case "is_number":
 		if err := checkArgCount(1); err != nil {
 			return nil, err
 		}
 		if args[0] == nil {
 			return false, nil
-		} // nil is not a number
+		}
 		k := reflect.ValueOf(args[0]).Kind()
 		isNum := (k >= reflect.Int && k <= reflect.Int64) ||
-			(k >= reflect.Uint && k <= reflect.Uintptr) || // Include Uintptr? Maybe not. Let's exclude Uintptr.
-			(k >= reflect.Uint && k <= reflect.Uint64) ||
+			(k >= reflect.Uint && k <= reflect.Uint64) || // Exclude Uintptr
 			k == reflect.Float32 || k == reflect.Float64
 		return isNum, nil
-	case "is_int": // Checks specifically for integer types (signed or unsigned)
+	case "is_int":
 		if err := checkArgCount(1); err != nil {
 			return nil, err
 		}
@@ -187,7 +172,7 @@ func evaluateFunctionCall(funcName string, args []interface{}) (interface{}, err
 		isInt := (k >= reflect.Int && k <= reflect.Int64) ||
 			(k >= reflect.Uint && k <= reflect.Uint64) // Exclude Uintptr
 		return isInt, nil
-	case "is_float": // Checks specifically for float types
+	case "is_float":
 		if err := checkArgCount(1); err != nil {
 			return nil, err
 		}
@@ -203,42 +188,38 @@ func evaluateFunctionCall(funcName string, args []interface{}) (interface{}, err
 		}
 		_, ok := args[0].(bool)
 		return ok, nil
-	case "is_list": // Checks for slice or array
+	case "is_list":
 		if err := checkArgCount(1); err != nil {
 			return nil, err
 		}
 		if args[0] == nil {
 			return false, nil
-		} // nil is not a list
+		}
 		k := reflect.ValueOf(args[0]).Kind()
 		isList := k == reflect.Slice || k == reflect.Array
 		return isList, nil
-	case "is_map": // Checks for map kind
+	case "is_map":
 		if err := checkArgCount(1); err != nil {
 			return nil, err
 		}
 		if args[0] == nil {
 			return false, nil
-		} // nil is not a map
+		}
 		k := reflect.ValueOf(args[0]).Kind()
 		isMap := k == reflect.Map
 		return isMap, nil
-	case "not_empty": // Checks if list, map, or string is not empty (opposite of isZeroValue for these types)
+	case "not_empty":
 		if err := checkArgCount(1); err != nil {
 			return nil, err
 		}
-		// Use !isZeroValue, but only for types where "empty" makes sense (list, map, string)
 		if args[0] == nil {
 			return false, nil
-		} // nil is considered empty
+		}
 		v := reflect.ValueOf(args[0])
 		k := v.Kind()
 		if k == reflect.Slice || k == reflect.Map || k == reflect.String || k == reflect.Array {
 			return v.Len() > 0, nil
 		}
-		// For other types, is "not_empty" meaningful? Maybe equivalent to isTruthy?
-		// Let's return false for types where length isn't applicable.
-		// Or should it error? Let's error for clarity.
 		return nil, fmt.Errorf("%w: func %s expects list, map, or string argument, got %T", ErrInvalidFunctionArgument, funcName, args[0])
 
 	// --- Built-in Math Functions ---
@@ -329,15 +310,17 @@ func evaluateFunctionCall(funcName string, args []interface{}) (interface{}, err
 
 	default:
 		// Return specific error for unknown functions
+		// This case should technically not be reached if isBuiltInFunction is checked first by the caller,
+		// but handle it defensively.
 		return nil, fmt.Errorf("%w: '%s'", ErrUnknownFunction, funcName)
 	}
 }
 
 // --- Placeholders for other evaluation logic functions ---
-// func performComparison(left, right interface{}, op string) (bool, error) { ... } // Assumed defined in evaluation_comparison.go
-// func performStringConcatOrNumericAdd(left, right interface{}) (interface{}, error) { ... } // Assumed defined in evaluation_operators.go
-// func performArithmetic(left, right interface{}, op string) (interface{}, error) { ... } // Assumed defined in evaluation_operators.go
-// func performBitwise(left, right interface{}, op string) (interface{}, error) { ... } // Assumed defined in evaluation_operators.go
-// func toInt64(v interface{}) (int64, bool) { ... } // Assumed defined in evaluation_helpers.go
-// func toFloat64(v interface{}) (float64, bool) { ... } // Assumed defined in evaluation_helpers.go
-// func isTruthy(value interface{}) bool { ... } // Assumed defined in evaluation_helpers.go
+// func performComparison(left, right interface{}, op string) (bool, error) { ... }
+// func performStringConcatOrNumericAdd(left, right interface{}) (interface{}, error) { ... }
+// func performArithmetic(left, right interface{}, op string) (interface{}, error) { ... }
+// func performBitwise(left, right interface{}, op string) (interface{}, error) { ... }
+// func toInt64(v interface{}) (int64, bool) { ... }
+// func toFloat64(v interface{}) (float64, bool) { ... }
+// func isTruthy(value interface{}) bool { ... }

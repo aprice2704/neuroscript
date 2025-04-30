@@ -52,9 +52,6 @@ type NeuroScriptVisitor interface {
 	// Visit a parse tree produced by NeuroScriptParser#set_statement.
 	VisitSet_statement(ctx *Set_statementContext) interface{}
 
-	// Visit a parse tree produced by NeuroScriptParser#call_statement.
-	VisitCall_statement(ctx *Call_statementContext) interface{}
-
 	// Visit a parse tree produced by NeuroScriptParser#return_statement.
 	VisitReturn_statement(ctx *Return_statementContext) interface{}
 
@@ -127,8 +124,8 @@ type NeuroScriptVisitor interface {
 	// Visit a parse tree produced by NeuroScriptParser#primary.
 	VisitPrimary(ctx *PrimaryContext) interface{}
 
-	// Visit a parse tree produced by NeuroScriptParser#function_call.
-	VisitFunction_call(ctx *Function_callContext) interface{}
+	// Visit a parse tree produced by NeuroScriptParser#callable_expr.
+	VisitCallable_expr(ctx *Callable_exprContext) interface{}
 
 	// Visit a parse tree produced by NeuroScriptParser#placeholder.
 	VisitPlaceholder(ctx *PlaceholderContext) interface{}

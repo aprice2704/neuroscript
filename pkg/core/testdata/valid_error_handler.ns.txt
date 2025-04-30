@@ -14,6 +14,8 @@ func handleErrorExample() means
         emit "Inner handler"
     endon
 
-    call tool.SomeToolThatMightFail()
+    # REMOVED old call statement: call tool.SomeToolThatMightFail()
+    # To test runtime error handling later, you could use:
+    # set _ = tool.SomeToolThatMightFail()
 
 endfunc

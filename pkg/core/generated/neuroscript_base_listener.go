@@ -110,12 +110,6 @@ func (s *BaseNeuroScriptListener) EnterSet_statement(ctx *Set_statementContext) 
 // ExitSet_statement is called when production set_statement is exited.
 func (s *BaseNeuroScriptListener) ExitSet_statement(ctx *Set_statementContext) {}
 
-// EnterCall_statement is called when production call_statement is entered.
-func (s *BaseNeuroScriptListener) EnterCall_statement(ctx *Call_statementContext) {}
-
-// ExitCall_statement is called when production call_statement is exited.
-func (s *BaseNeuroScriptListener) ExitCall_statement(ctx *Call_statementContext) {}
-
 // EnterReturn_statement is called when production return_statement is entered.
 func (s *BaseNeuroScriptListener) EnterReturn_statement(ctx *Return_statementContext) {}
 
@@ -260,11 +254,11 @@ func (s *BaseNeuroScriptListener) EnterPrimary(ctx *PrimaryContext) {}
 // ExitPrimary is called when production primary is exited.
 func (s *BaseNeuroScriptListener) ExitPrimary(ctx *PrimaryContext) {}
 
-// EnterFunction_call is called when production function_call is entered.
-func (s *BaseNeuroScriptListener) EnterFunction_call(ctx *Function_callContext) {}
+// EnterCallable_expr is called when production callable_expr is entered.
+func (s *BaseNeuroScriptListener) EnterCallable_expr(ctx *Callable_exprContext) {}
 
-// ExitFunction_call is called when production function_call is exited.
-func (s *BaseNeuroScriptListener) ExitFunction_call(ctx *Function_callContext) {}
+// ExitCallable_expr is called when production callable_expr is exited.
+func (s *BaseNeuroScriptListener) ExitCallable_expr(ctx *Callable_exprContext) {}
 
 // EnterPlaceholder is called when production placeholder is entered.
 func (s *BaseNeuroScriptListener) EnterPlaceholder(ctx *PlaceholderContext) {}

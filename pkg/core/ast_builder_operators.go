@@ -12,13 +12,13 @@ func (l *neuroScriptListenerImpl) buildBinaryOpNode(ctx antlr.ParserRuleContext,
 	right, okR := l.popValue()
 	if !okR {
 		l.logger.Error("AST Builder: Stack error popping right operand for op %q in rule %T", opToken.GetText(), ctx)
-		l.pushValue(nil)
+		l.pushValue(nil) // Push error marker
 		return
 	}
 	left, okL := l.popValue()
 	if !okL {
 		l.logger.Error("AST Builder: Stack error popping left operand for op %q in rule %T", opToken.GetText(), ctx)
-		l.pushValue(nil)
+		l.pushValue(nil) // Push error marker
 		return
 	}
 	op := opToken.GetText()
@@ -27,6 +27,7 @@ func (l *neuroScriptListenerImpl) buildBinaryOpNode(ctx antlr.ParserRuleContext,
 }
 
 // --- Exit methods for expression precedence rules (Operators) ---
+// ExitLogical_or_expr ... ExitPower_expr remain UNCHANGED from your last provided version
 
 // ExitLogical_or_expr (Unchanged)
 func (l *neuroScriptListenerImpl) ExitLogical_or_expr(ctx *gen.Logical_or_exprContext) {
@@ -175,7 +176,8 @@ func (l *neuroScriptListenerImpl) ExitMultiplicative_expr(ctx *gen.Multiplicativ
 	}
 }
 
-// ExitUnary_expr handles unary minus (-), logical NOT, and NEW: no/some.
+// ExitUnary_expr handles unary minus (-), logical NOT, and no/some.
+// (Unchanged)
 func (l *neuroScriptListenerImpl) ExitUnary_expr(ctx *gen.Unary_exprContext) {
 	l.logDebugAST(">>> Exit Unary_expr: %q", ctx.GetText())
 	var opToken antlr.TerminalNode
@@ -224,4 +226,74 @@ func (l *neuroScriptListenerImpl) ExitPower_expr(ctx *gen.Power_exprContext) {
 		l.pushValue(BinaryOpNode{Left: base, Operator: "**", Right: exponent})
 		l.logDebugAST("    Constructed BinaryOpNode: %T ** %T", base, exponent)
 	}
+}
+
+// --- NEW: Exit method for callable_expr ---
+func (l *neuroScriptListenerImpl) ExitCallable_expr(ctx *gen.Callable_exprContext) {
+	l.logDebugAST(">>> Exit Callable_expr: %q", ctx.GetText())
+
+	// 1. Pop Arguments
+	numArgs := 0
+	if exprListOpt := ctx.Expression_list_opt(); exprListOpt != nil {
+		if exprList := exprListOpt.Expression_list(); exprList != nil {
+			numArgs = len(exprList.AllExpression())
+		}
+	}
+
+	argNodes, ok := l.popNValues(numArgs)
+	if !ok {
+		if numArgs > 0 {
+			l.logger.Error("AST Builder: Failed to pop %d args for callable expression %q", numArgs, ctx.GetText())
+		}
+		argNodes = []interface{}{} // Ensure it's an empty slice if pop failed or numArgs was 0
+	}
+
+	// 2. Determine Call Target
+	var target CallTarget
+	if callTargetCtx := ctx.Call_target(); callTargetCtx != nil {
+		// User function or Tool call
+		target.Name = callTargetCtx.IDENTIFIER().GetText()
+		if callTargetCtx.KW_TOOL() != nil {
+			target.IsTool = true
+			l.logDebugAST("    Identified Tool call target: %s", target.Name)
+		} else {
+			target.IsTool = false
+			l.logDebugAST("    Identified User Function call target: %s", target.Name)
+		}
+	} else {
+		// Built-in function call (check specific keywords)
+		target.IsTool = false // Built-ins are not tools
+		switch {
+		case ctx.KW_LN() != nil:
+			target.Name = ctx.KW_LN().GetText()
+		case ctx.KW_LOG() != nil:
+			target.Name = ctx.KW_LOG().GetText()
+		case ctx.KW_SIN() != nil:
+			target.Name = ctx.KW_SIN().GetText()
+		case ctx.KW_COS() != nil:
+			target.Name = ctx.KW_COS().GetText()
+		case ctx.KW_TAN() != nil:
+			target.Name = ctx.KW_TAN().GetText()
+		case ctx.KW_ASIN() != nil:
+			target.Name = ctx.KW_ASIN().GetText()
+		case ctx.KW_ACOS() != nil:
+			target.Name = ctx.KW_ACOS().GetText()
+		case ctx.KW_ATAN() != nil:
+			target.Name = ctx.KW_ATAN().GetText()
+		default:
+			l.logger.Error("AST Builder: Unhandled target type in Callable_expr: %q", ctx.GetText())
+			// Handle error - push nil?
+			l.pushValue(nil)
+			return
+		}
+		l.logDebugAST("    Identified Built-in function call target: %s", target.Name)
+	}
+
+	// 3. Create and Push Node
+	node := CallableExprNode{
+		Target:    target,
+		Arguments: argNodes,
+	}
+	l.pushValue(node)
+	l.logDebugAST("    Constructed CallableExprNode: Target=%+v, Args=%d", node.Target, len(node.Arguments))
 }

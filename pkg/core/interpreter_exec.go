@@ -35,42 +35,18 @@ func (i *Interpreter) executeSteps(steps []Step, isInHandler bool, activeError *
 		switch strings.ToLower(step.Type) {
 		case "set":
 			stepResult, stepErr = i.executeSet(step, stepNum, isInHandler, activeError)
-		case "call":
-			// --- FIX: Dispatch ask... calls here ---
-			switch strings.ToLower(step.Target) {
-			case "askai":
-				// Need evaluated args for ask functions
-				evaluatedArgs, evalErr := i.evaluateCallArgs(step.Args)
-				if evalErr != nil {
-					stepErr = evalErr // Assign evaluation error
-				} else {
-					stepResult, stepErr = i.executeAskAI(step, stepNum, evaluatedArgs)
-				}
-			case "askhuman":
-				evaluatedArgs, evalErr := i.evaluateCallArgs(step.Args)
-				if evalErr != nil {
-					stepErr = evalErr
-				} else {
-					stepResult, stepErr = i.executeAskHuman(step, stepNum, evaluatedArgs)
-				}
-			case "askcomputer":
-				evaluatedArgs, evalErr := i.evaluateCallArgs(step.Args)
-				if evalErr != nil {
-					stepErr = evalErr
-				} else {
-					stepResult, stepErr = i.executeAskComputer(step, stepNum, evaluatedArgs)
-				}
-			default:
-				// Original procedure/tool call logic
-				stepResult, stepErr = i.executeCall(step, stepNum, isInHandler, activeError)
-			}
-			// --- End FIX ---
+		// --- REMOVED case "call": ---
+		// case "call":
+		//     // Calls are now handled within evaluateExpression
+		//     stepErr = NewRuntimeError(ErrorCodeInternal, "encountered obsolete 'call' step type", ErrInternal)
 		case "return":
 			if isInHandler {
 				stepErr = NewRuntimeError(ErrorCodeReturnViolation, fmt.Sprintf("step %d: 'return' statement is not permitted inside an on_error block", stepNum+1), ErrReturnViolation)
 			} else {
 				finalResult, wasReturn, stepErr = i.executeReturn(step, stepNum, isInHandler, activeError)
 				if stepErr == nil && wasReturn {
+					// Note: 'lastCallResult' is updated within evaluateExpression for calls now.
+					// Should 'return' update it too? Let's say yes for consistency.
 					i.lastCallResult = finalResult
 					return finalResult, true, false, nil
 				}
@@ -82,7 +58,7 @@ func (i *Interpreter) executeSteps(steps []Step, isInHandler bool, activeError *
 			stepResult, ifReturned, ifCleared, stepErr = i.executeIf(step, stepNum, isInHandler, activeError)
 			if stepErr == nil {
 				if ifReturned {
-					i.lastCallResult = stepResult
+					i.lastCallResult = stepResult // Update LAST on return from IF block
 					return stepResult, true, false, nil
 				}
 				if ifCleared {
@@ -94,7 +70,7 @@ func (i *Interpreter) executeSteps(steps []Step, isInHandler bool, activeError *
 			stepResult, whileReturned, whileCleared, stepErr = i.executeWhile(step, stepNum, isInHandler, activeError)
 			if stepErr == nil {
 				if whileReturned {
-					i.lastCallResult = stepResult
+					i.lastCallResult = stepResult // Update LAST on return from WHILE block
 					return stepResult, true, false, nil
 				}
 				if whileCleared {
@@ -106,7 +82,7 @@ func (i *Interpreter) executeSteps(steps []Step, isInHandler bool, activeError *
 			stepResult, forReturned, forCleared, stepErr = i.executeFor(step, stepNum, isInHandler, activeError)
 			if stepErr == nil {
 				if forReturned {
-					i.lastCallResult = stepResult
+					i.lastCallResult = stepResult // Update LAST on return from FOR block
 					return stepResult, true, false, nil
 				}
 				if forCleared {
@@ -154,14 +130,15 @@ func (i *Interpreter) executeSteps(steps []Step, isInHandler bool, activeError *
 					return nil, false, false, finalError
 				}
 				outerHandler := currentErrorHandler
-				currentErrorHandler = nil
+				currentErrorHandler = nil // Deactivate handler *while executing* the handler body
 				_, handlerReturned, handlerCleared, handlerErr := i.executeSteps(handlerSteps, true, rtErr)
-				currentErrorHandler = outerHandler
+				currentErrorHandler = outerHandler // Reactivate handler if needed after body execution (e.g., nested errors)
 				if handlerErr != nil {
 					i.Logger().Warn("[WARN INTERP] Error occurred inside on_error handler: %v. Propagating this new error.", handlerErr)
-					return nil, false, false, handlerErr
+					return nil, false, false, handlerErr // New error from handler overrides original
 				}
 				if handlerReturned {
+					// This shouldn't happen if 'return' is disallowed in handlers
 					finalError = NewRuntimeError(ErrorCodeInternal, "internal error: 'return' propagated incorrectly from handler", ErrInternal)
 					i.Logger().Error("[ERROR INTERP] %v", finalError)
 					return nil, false, false, finalError
@@ -172,29 +149,40 @@ func (i *Interpreter) executeSteps(steps []Step, isInHandler bool, activeError *
 					wasCleared = true
 				} else {
 					i.Logger().Info("[DEBUG-INTERP]   Handler executed but did not clear error. Propagating original error: %v", rtErr)
-					finalError = fmt.Errorf("step %d (%s): %w", stepNum+1, step.Type, rtErr)
+					finalError = fmt.Errorf("step %d (%s): %w", stepNum+1, step.Type, rtErr) // Wrap original error
 					return nil, false, false, finalError
 				}
 			} else {
 				i.Logger().Debug("[DEBUG-INTERP]   Error occurred: %v. No active handler in scope. Propagating.", rtErr)
-				finalError = fmt.Errorf("step %d (%s): %w", stepNum+1, step.Type, rtErr)
+				finalError = fmt.Errorf("step %d (%s): %w", stepNum+1, step.Type, rtErr) // Wrap original error
 				return nil, false, false, finalError
 			}
 		} // --- End Error Handling Check ---
 
 		// If the step executed successfully (stepErr is nil now)
 		if stepErr == nil {
-			// Update Interpreter's lastCallResult field
-			i.lastCallResult = stepResult
-			i.Logger().Debug("[DEBUG-INTERP]     Step %d successful. Last result set to: %v (%T)", stepNum+1, i.lastCallResult, i.lastCallResult)
+			// Update Interpreter's lastCallResult field IF the step potentially produced a meaningful result
+			// Set, Emit, Must/MustBe return the evaluated value. Blocks return their last step's result.
+			// Return, Fail, OnError, ClearError don't set a 'last result' in the same way.
+			// Note: Calls now update lastCallResult within evaluateExpression.
+			switch strings.ToLower(step.Type) {
+			case "set", "emit", "must", "mustbe", "if", "while", "for":
+				i.lastCallResult = stepResult
+				i.Logger().Debug("[DEBUG-INTERP]     Step %d successful. Last result updated: %v (%T)", stepNum+1, i.lastCallResult, i.lastCallResult)
+			default:
+				// Don't update lastCallResult for return, fail, on_error, clear_error
+				i.Logger().Debug("[DEBUG-INTERP]     Step %d successful. (Type %s does not update LAST)", stepNum+1, strings.ToUpper(step.Type))
+
+			}
 			// Update finalResult for the block - result of the *last* successful step
-			finalResult = i.lastCallResult
+			finalResult = stepResult // Always update the block's potential final result
 		}
 
-		if wasCleared && strings.ToLower(step.Type) == "clear_error" && stepErr == nil {
-			i.Logger().Info("[DEBUG-INTERP]     Continuing loop after successful clear_error step.")
-			// Reset wasCleared? No, let it propagate up if block finishes.
-			continue
+		// Propagate wasCleared signal immediately if set by clear_error
+		if wasCleared {
+			i.Logger().Info("[DEBUG-INTERP]     Error was cleared in this step or sub-block. Continuing execution.")
+			// Should we reset wasCleared here? No, let it propagate up.
+			// We need to continue the loop normally now that stepErr is nil.
 		}
 
 	} // End of steps loop
@@ -204,22 +192,11 @@ func (i *Interpreter) executeSteps(steps []Step, isInHandler bool, activeError *
 	return finalResult, false, wasCleared, nil // Normal finish
 }
 
-// evaluateCallArgs helper to evaluate arguments for ask... calls
-func (i *Interpreter) evaluateCallArgs(args []interface{}) ([]interface{}, error) {
-	evaluatedArgs := make([]interface{}, len(args))
-	for idx, arg := range args {
-		evaluatedArg, err := i.evaluateExpression(arg)
-		if err != nil {
-			// Wrap error with arg index info
-			return nil, NewRuntimeError(ErrorCodeGeneric, fmt.Sprintf("evaluating arg %d for call", idx+1), fmt.Errorf("evaluating arg %d: %w", idx+1, err))
-		}
-		evaluatedArgs[idx] = evaluatedArg
-	}
-	return evaluatedArgs, nil
-}
+// evaluateCallArgs helper to evaluate arguments for ask... calls (REMOVED - No longer needed as 'call' step is gone)
+// func (i *Interpreter) evaluateCallArgs(args []interface{}) ([]interface{}, error) { ... }
 
 // executeBlock executes a block of steps, passing context flags.
-// It now returns the final result of the block (often the result of the last step).
+// (Unchanged from previous version)
 func (i *Interpreter) executeBlock(blockValue interface{}, parentStepNum int, blockType string, isInHandler bool, activeError *RuntimeError) (result interface{}, wasReturn bool, wasCleared bool, err error) {
 	steps, ok := blockValue.([]Step)
 	if !ok {
