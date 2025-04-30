@@ -1,9 +1,0 @@
-DEFINE PROCEDURE Test(a, b)
-COMMENT:
-    PURPOSE: Test procedure
-    INPUTS:
-      - a (int): First input
-      - b (int): Second input
-    OUTPUT: Sum of inputs
-    ALGORITHM: Add the inputs
-END

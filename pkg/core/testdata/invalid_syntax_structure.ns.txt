@@ -1,0 +1,12 @@
+:: title: Invalid Structure Test
+
+func missingMeans
+    set x = 1
+endfunc
+
+func mismatchEnd(a) means
+    if a > 0
+        emit "Positive"
+    endif
+    emit "Done"
+endwhile

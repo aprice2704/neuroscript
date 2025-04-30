@@ -1,59 +1,106 @@
-// pkg/core/ast_builder_main.go
+// filename: pkg/core/ast_builder_main.go
 package core
 
 import (
-	// Added fmt import
-	"strconv" // Needed for Unquote
+	"fmt"     // Needed for Unquote if used elsewhere
+	"strings" // Needed for metadata parsing
 
-	// "strings" // Not needed directly here
 	"github.com/antlr4-go/antlr/v4" // Import antlr
 	gen "github.com/aprice2704/neuroscript/pkg/core/generated"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 )
 
+// --- ASTBuilder (Exported Constructor and Build Method) ---
+
+// ASTBuilder encapsulates the logic for building the NeuroScript AST using a listener.
+type ASTBuilder struct {
+	logger   interfaces.Logger
+	debugAST bool // Option to enable detailed AST construction logging
+}
+
+// NewASTBuilder creates a new ASTBuilder instance.
+func NewASTBuilder(logger interfaces.Logger) *ASTBuilder {
+	if logger == nil {
+		logger = &interfaces.NoOpLogger{}
+		logger.Warn("ASTBuilder created with nil logger, using NoOpLogger.")
+	}
+	return &ASTBuilder{
+		logger:   logger,
+		debugAST: false, // Default to false, could be configurable
+	}
+}
+
+// Build takes an ANTLR parse tree and constructs the NeuroScript Program AST (*core.Program).
+func (b *ASTBuilder) Build(tree antlr.Tree) (*Program, error) {
+	if tree == nil {
+		return nil, fmt.Errorf("cannot build AST from nil parse tree")
+	}
+	b.logger.Debug("Starting AST build process using Listener.")
+
+	// Create the listener instance.
+	listener := newNeuroScriptListener(b.logger, b.debugAST)
+
+	// Walk the parse tree with the listener.
+	walker := antlr.NewParseTreeWalker()
+	walker.Walk(listener, tree)
+
+	// Assemble Program AST using collected metadata and procedures.
+	programAST := &Program{
+		Metadata:   listener.GetFileMetadata(), // Get collected metadata
+		Procedures: listener.GetResult(),
+	}
+
+	b.logger.Debug("AST build process completed successfully.")
+	// TODO: Add error collection/checking to the listener if needed. Currently returns nil error.
+	return programAST, nil
+}
+
+// --- neuroScriptListenerImpl (Internal Listener Implementation) ---
+
 // neuroScriptListenerImpl builds the AST using the Listener pattern.
-// It uses a stack-based approach for expressions and manages block scopes.
 type neuroScriptListenerImpl struct {
 	*gen.BaseNeuroScriptListener
-	fileVersion    string
+	fileMetadata   map[string]string // For file-level metadata
 	procedures     []Procedure
 	currentProc    *Procedure
 	currentSteps   *[]Step
 	blockStepStack []*[]Step
 	valueStack     []interface{}
-	currentMapKey  *StringLiteralNode
-
-	// blockSteps map is needed for IF statement's THEN/ELSE branch collection
-	// because their ExitStatement_list happens before ExitIf_statement.
-	blockSteps map[antlr.ParserRuleContext][]Step
-
+	currentMapKey  *StringLiteralNode // Assuming this is used for map literal parsing elsewhere
+	blockSteps     map[antlr.ParserRuleContext][]Step
+	// isInFileMetadataBlock bool // REMOVED: No longer needed with file_header rule
 	logger   interfaces.Logger
 	debugAST bool
 }
 
 // newNeuroScriptListener creates a new listener instance.
 func newNeuroScriptListener(logger interfaces.Logger, debugAST bool) *neuroScriptListenerImpl {
-	if logger == nil {
-		panic("NeuroScript listener must have valid logger")
-	}
 	return &neuroScriptListenerImpl{
-		fileVersion:    "",
+		fileMetadata:   make(map[string]string),
 		procedures:     make([]Procedure, 0),
 		blockStepStack: make([]*[]Step, 0),
 		valueStack:     make([]interface{}, 0, 10),
-		logger:         logger,
-		debugAST:       debugAST,
 		blockSteps:     make(map[antlr.ParserRuleContext][]Step),
+		// isInFileMetadataBlock: false, // REMOVED
+		logger:   logger,
+		debugAST: debugAST,
 	}
 }
 
-func (l *neuroScriptListenerImpl) GetFileVersion() string {
-	return l.fileVersion
+// --- Listener Getters ---
+
+// GetFileMetadata returns the collected file-level metadata.
+func (l *neuroScriptListenerImpl) GetFileMetadata() map[string]string {
+	return l.fileMetadata
 }
+
+func (l *neuroScriptListenerImpl) GetResult() []Procedure { return l.procedures }
+
+// --- Listener Stack Helpers (Unchanged) ---
 
 func (l *neuroScriptListenerImpl) pushValue(v interface{}) {
 	l.valueStack = append(l.valueStack, v)
-	l.logDebugAST("    Pushed Value: %T %+v (Stack size: %d)", v, v, len(l.valueStack))
+	l.logDebugAST("      Pushed Value: %T %+v (Stack size: %d)", v, v, len(l.valueStack))
 }
 
 func (l *neuroScriptListenerImpl) popValue() (interface{}, bool) {
@@ -64,7 +111,7 @@ func (l *neuroScriptListenerImpl) popValue() (interface{}, bool) {
 	index := len(l.valueStack) - 1
 	value := l.valueStack[index]
 	l.valueStack = l.valueStack[:index]
-	l.logDebugAST("    Popped Value: %T %+v (Stack size: %d)", value, value, len(l.valueStack))
+	l.logDebugAST("      Popped Value: %T %+v (Stack size: %d)", value, value, len(l.valueStack))
 	return value, true
 }
 
@@ -75,13 +122,18 @@ func (l *neuroScriptListenerImpl) popNValues(n int) ([]interface{}, bool) {
 	}
 	startIndex := len(l.valueStack) - n
 	values := make([]interface{}, n)
-	copy(values, l.valueStack[startIndex:])
+	if len(l.valueStack) >= startIndex+n {
+		copy(values, l.valueStack[startIndex:])
+	} else {
+		l.logger.Error("AST Builder: Slice bounds out of range during popNValues.", "n", n, "stack_size", len(l.valueStack), "start_index", startIndex)
+		return nil, false
+	}
 	l.valueStack = l.valueStack[:startIndex]
-	l.logDebugAST("    Popped %d Values (Stack size: %d)", n, len(l.valueStack))
+	l.logDebugAST("      Popped %d Values (Stack size: %d)", n, len(l.valueStack))
 	return values, true
 }
 
-func (l *neuroScriptListenerImpl) GetResult() []Procedure { return l.procedures }
+// --- Listener Logging Helper (Unchanged) ---
 
 func (l *neuroScriptListenerImpl) logDebugAST(format string, v ...interface{}) {
 	if l.debugAST {
@@ -89,36 +141,78 @@ func (l *neuroScriptListenerImpl) logDebugAST(format string, v ...interface{}) {
 	}
 }
 
+// --- Listener ANTLR Method Implementations ---
+
 func (l *neuroScriptListenerImpl) EnterProgram(ctx *gen.ProgramContext) {
 	l.logDebugAST(">>> Enter Program")
 	l.procedures = make([]Procedure, 0)
-	l.fileVersion = "" // Reset on new program
+	l.fileMetadata = make(map[string]string) // Reset file metadata
 }
 
 func (l *neuroScriptListenerImpl) ExitProgram(ctx *gen.ProgramContext) {
-	l.logDebugAST("<<< Exit Program (File Version: %q)", l.fileVersion)
+	l.logDebugAST("<<< Exit Program (Metadata Keys: %v)", MapKeysListener(l.fileMetadata))
 }
 
-func (l *neuroScriptListenerImpl) ExitFile_version_decl(ctx *gen.File_version_declContext) {
-	if ctx.STRING_LIT() != nil {
-		versionStr := ctx.STRING_LIT().GetText()
-		unquotedVersion, err := strconv.Unquote(versionStr)
-		if err != nil {
-			l.logger.Warn("Failed to unquote FILE_VERSION string literal: %q - %v", versionStr, err)
-			l.fileVersion = versionStr // Store raw as fallback
-		} else {
-			l.fileVersion = unquotedVersion
-			l.logDebugAST("    Captured FILE_VERSION: %q", l.fileVersion)
+// --- MODIFIED: Metadata Handling via file_header ---
+
+// EnterFile_header processes all metadata lines found at the start of the file.
+func (l *neuroScriptListenerImpl) EnterFile_header(ctx *gen.File_headerContext) {
+	l.logDebugAST("  >> Enter File Header")
+	// Iterate through all children of the header context
+	for _, child := range ctx.GetChildren() {
+		// Check if the child is a METADATA_LINE terminal node
+		if termNode, ok := child.(antlr.TerminalNode); ok && termNode.GetSymbol().GetTokenType() == gen.NeuroScriptLexerMETADATA_LINE {
+			lineText := termNode.GetText()
+			l.logDebugAST("   - Processing File Metadata Line: %s", lineText)
+			// Parse the line
+			lineText = strings.TrimSpace(lineText)
+			if strings.HasPrefix(lineText, "::") {
+				trimmedLine := strings.TrimSpace(lineText[2:])
+				parts := strings.SplitN(trimmedLine, ":", 2)
+				if len(parts) == 2 {
+					key := strings.TrimSpace(parts[0])
+					value := strings.TrimSpace(parts[1]) // TODO: Handle potential quoting/escaping
+					if key != "" {
+						l.fileMetadata[key] = value
+						l.logDebugAST("     Stored File Metadata: '%s' = '%s'", key, value)
+					} else {
+						l.logger.Warn("Ignoring file metadata line with empty key", "line", lineText)
+					}
+				} else {
+					l.logger.Warn("Ignoring malformed file metadata line (missing or misplaced ':'?)", "line", lineText)
+				}
+			} else {
+				// Should not happen if lexer rule is correct
+				l.logger.Warn("Unexpected line format in file_header (missing '::'?)", "line", lineText)
+			}
 		}
-	} else {
-		l.logger.Warn("FILE_VERSION keyword found but missing string literal value.")
+		// Ignore NEWLINE tokens within the file_header
 	}
 }
 
-// Note: This AST Builder uses the Listener pattern. Visitor methods like
-// VisitStatement are not part of the Listener pattern. The logic is distributed
-// across EnterXxx and ExitXxx methods triggered by the ANTLR walker.
-// Statement processing happens within the Exit methods of specific statement types
-// (e.g., ExitSet_statement, ExitCall_statement) defined in ast_builder_statements.go
-// or block types (e.g., ExitIf_statement) in ast_builder_blocks.go.
-// Therefore, no changes are needed in this file for VisitStatement.
+func (l *neuroScriptListenerImpl) ExitFile_header(ctx *gen.File_headerContext) {
+	l.logDebugAST("  << Exit File Header")
+}
+
+// REMOVED: Enter/ExitMetadata_block are no longer needed for file-level metadata
+// func (l *neuroScriptListenerImpl) EnterMetadata_block(ctx *gen.Metadata_blockContext) { ... }
+// func (l *neuroScriptListenerImpl) ExitMetadata_block(ctx *gen.Metadata_blockContext) { ... }
+// Procedure-level metadata is handled within EnterProcedure_definition now.
+
+// --- END MODIFIED Methods ---
+
+// MapKeysListener is a helper function (consider moving to utils)
+func MapKeysListener(m map[string]string) []string {
+	if m == nil {
+		return nil
+	}
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	return keys
+}
+
+// IMPORTANT: Ensure that listener methods for procedure definitions, statements,
+// and expressions are implemented correctly in other ast_builder_*.go files
+// or within this file.

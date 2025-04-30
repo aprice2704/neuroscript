@@ -10,14 +10,14 @@ type NeuroScriptVisitor interface {
 	// Visit a parse tree produced by NeuroScriptParser#program.
 	VisitProgram(ctx *ProgramContext) interface{}
 
-	// Visit a parse tree produced by NeuroScriptParser#optional_newlines.
-	VisitOptional_newlines(ctx *Optional_newlinesContext) interface{}
-
-	// Visit a parse tree produced by NeuroScriptParser#file_version_decl.
-	VisitFile_version_decl(ctx *File_version_declContext) interface{}
+	// Visit a parse tree produced by NeuroScriptParser#file_header.
+	VisitFile_header(ctx *File_headerContext) interface{}
 
 	// Visit a parse tree produced by NeuroScriptParser#procedure_definition.
 	VisitProcedure_definition(ctx *Procedure_definitionContext) interface{}
+
+	// Visit a parse tree produced by NeuroScriptParser#parameter_clauses.
+	VisitParameter_clauses(ctx *Parameter_clausesContext) interface{}
 
 	// Visit a parse tree produced by NeuroScriptParser#needs_clause.
 	VisitNeeds_clause(ctx *Needs_clauseContext) interface{}

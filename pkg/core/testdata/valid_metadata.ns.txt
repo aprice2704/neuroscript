@@ -1,0 +1,15 @@
+:: title: Metadata Test
+:: version: 0.2.0
+:: author: Gemini
+
+func withMeta() means
+    :: purpose: Demonstrate procedure metadata
+    :: status: example
+    set x = 1
+    emit x
+endfunc
+
+func noMeta() means
+    set y = 2
+    emit y
+endfunc

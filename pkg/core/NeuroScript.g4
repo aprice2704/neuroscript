@@ -1,42 +1,51 @@
 // File:      NeuroScript.g4
-// Grammar: NeuroScript
-// Version: 0.2.0-alpha-onerror // Marked version
-// Date:      2025-04-28 // Updated date
+// Grammar:   NeuroScript
+// Version:   0.2.0-alpha-onerror-fix-4 // Incremented Version
+// Date:      2025-04-29
 
 grammar NeuroScript;
 
 // --- PARSER RULES ---
 
-program: optional_newlines file_version_decl? optional_newlines procedure_definition* optional_newlines EOF;
+// MODIFIED: Allow optional NEWLINEs between procedure definitions
+program: file_header (procedure_definition NEWLINE*)* EOF;
 
-optional_newlines: NEWLINE*;
+file_header: (METADATA_LINE | NEWLINE)*;
 
-file_version_decl: KW_FILE_VERSION STRING_LIT NEWLINE;
-
-// Procedure Definition (v0.2.0)
+// Procedure definition uses optional parameter clauses block
 procedure_definition:
     KW_FUNC IDENTIFIER
-    needs_clause?
-    optional_clause?
-    returns_clause?
+    parameter_clauses? // The whole clause group is optional
     KW_MEANS NEWLINE
-    metadata_block?
+    metadata_block?    // Optional metadata block after 'means'
     statement_list
-    KW_ENDFUNC NEWLINE?;
+    KW_ENDFUNC; // REMOVED optional NEWLINE here - let program rule handle it
 
+// Groups parameter clauses and handles optional parens
+parameter_clauses:
+    // Option 1: Parens are present (clauses inside are still optional)
+    LPAREN needs_clause? optional_clause? returns_clause? RPAREN
+    // Option 2: Parens are absent - AT LEAST ONE clause must exist
+    | needs_clause optional_clause? returns_clause?
+    | optional_clause returns_clause?
+    | returns_clause
+    ;
+
+// Parameter clause rules (unchanged)
 needs_clause: KW_NEEDS param_list;
 optional_clause: KW_OPTIONAL param_list;
 returns_clause: KW_RETURNS param_list;
 
 param_list: IDENTIFIER (COMMA IDENTIFIER)*;
 
-// Metadata block collects one or more metadata lines
-metadata_block: METADATA_LINE+;
+// Metadata block rule: Use '*' and consume NEWLINE after each line
+metadata_block: (METADATA_LINE NEWLINE)*;
 
+// Statement list and body line allow blank lines
 statement_list: body_line*;
+body_line: statement NEWLINE | NEWLINE; // Each statement ends with NL, or just NL
 
-body_line: statement NEWLINE | NEWLINE; // Allow statements or blank lines
-
+// --- Statements (unchanged) ---
 statement: simple_statement | block_statement ;
 
 simple_statement:
@@ -46,47 +55,43 @@ simple_statement:
     | emit_statement
     | must_statement
     | fail_statement
-    | clearErrorStmt; // Added clearErrorStmt
+    | clearErrorStmt;
 
 block_statement:
     if_statement
     | while_statement
     | for_each_statement
-    | onErrorStmt; // Replaced try_statement with onErrorStmt
+    | onErrorStmt;
 
-// Simple Statements (Keywords Lowercase)
 set_statement: KW_SET IDENTIFIER ASSIGN expression;
 call_statement: KW_CALL call_target LPAREN expression_list_opt RPAREN;
 return_statement: KW_RETURN expression_list?;
 emit_statement: KW_EMIT expression;
 must_statement: KW_MUST expression | KW_MUSTBE function_call;
-fail_statement: KW_FAIL expression?; // Keep fail_statement for initiating errors
-clearErrorStmt: KW_CLEAR_ERROR;     // Added rule for clear_error
+fail_statement: KW_FAIL expression?; // Allow optional expression for fail
+clearErrorStmt: KW_CLEAR_ERROR;
 
-// Block Statements (Keywords Lowercase, specific terminators)
 if_statement:
     KW_IF expression NEWLINE
     statement_list
     (KW_ELSE NEWLINE statement_list)?
-    KW_ENDIF;
+    KW_ENDIF; // Removed NEWLINE - handled by body_line
 while_statement:
     KW_WHILE expression NEWLINE
     statement_list
-    KW_ENDWHILE;
+    KW_ENDWHILE; // Removed NEWLINE - handled by body_line
 for_each_statement:
     KW_FOR KW_EACH IDENTIFIER KW_IN expression NEWLINE
     statement_list
-    KW_ENDFOR;
-onErrorStmt: // Added rule for on_error
+    KW_ENDFOR; // Removed NEWLINE - handled by body_line
+onErrorStmt:
     KW_ON_ERROR KW_MEANS NEWLINE
     statement_list
-    KW_ENDON;
+    KW_ENDON; // Removed NEWLINE - handled by body_line
 
-// Call Target
 call_target: IDENTIFIER | KW_TOOL DOT IDENTIFIER;
 
-// --- Expression Rules with Precedence ---
-// (Expression rules remain unchanged from your provided version)
+// --- Expression Rules with Precedence --- (Unchanged)
 expression: logical_or_expr;
 logical_or_expr: logical_and_expr (KW_OR logical_and_expr)*;
 logical_and_expr: bitwise_or_expr (KW_AND bitwise_or_expr)*;
@@ -103,18 +108,18 @@ unary_expr:
 power_expr:
     accessor_expr (STAR_STAR power_expr)?;
 accessor_expr:
-    primary ( LBRACK expression RBRACK )* ;
+    primary ( LBRACK expression RBRACK )* ; // Map/List access
 primary:
     literal
     | placeholder
     | IDENTIFIER
-    | KW_LAST
+    | KW_LAST             // Access last implicit result
     | function_call
-    | KW_EVAL LPAREN expression RPAREN
-    | LPAREN expression RPAREN;
+    | KW_EVAL LPAREN expression RPAREN // Explicit eval
+    | LPAREN expression RPAREN;        // Grouping
 function_call:
-    ( IDENTIFIER
-    | KW_LN | KW_LOG | KW_SIN | KW_COS | KW_TAN | KW_ASIN | KW_ACOS | KW_ATAN
+    ( IDENTIFIER // User functions
+    | KW_LN | KW_LOG | KW_SIN | KW_COS | KW_TAN | KW_ASIN | KW_ACOS | KW_ATAN // Built-ins
     )
     LPAREN expression_list_opt RPAREN;
 placeholder: PLACEHOLDER_START (IDENTIFIER | KW_LAST) PLACEHOLDER_END;
@@ -132,63 +137,61 @@ expression_list_opt: expression_list?;
 expression_list: expression (COMMA expression)*;
 map_entry_list_opt: map_entry_list?;
 map_entry_list: map_entry (COMMA map_entry)*;
-map_entry: STRING_LIT COLON expression;
+map_entry: STRING_LIT COLON expression; // Map keys must be string literals
 
-// --- LEXER RULES ---
+// --- LEXER RULES --- (Unchanged)
 
 // Keywords (All Lowercase)
-KW_FILE_VERSION: 'file_version';
-KW_FUNC        : 'func';
-KW_NEEDS       : 'needs';
-KW_OPTIONAL    : 'optional';
-KW_RETURNS     : 'returns';
-KW_MEANS       : 'means';
-KW_ENDFUNC     : 'endfunc';
-KW_SET         : 'set';
-KW_CALL        : 'call';
-KW_RETURN      : 'return';
-KW_EMIT        : 'emit';
-KW_IF          : 'if';
-KW_ELSE        : 'else';
-KW_ENDIF       : 'endif';
-KW_WHILE       : 'while';
-KW_ENDWHILE    : 'endwhile';
-KW_FOR         : 'for';
-KW_EACH        : 'each';
-KW_IN          : 'in';
-KW_ENDFOR      : 'endfor';
-// Removed TRY, CATCH, FINALLY, ENDTRY
-KW_ON_ERROR    : 'on_error';     // Added
-KW_ENDON       : 'endon';        // Added
-KW_CLEAR_ERROR : 'clear_error';  // Added
-KW_MUST        : 'must';
-KW_MUSTBE      : 'mustbe';
-KW_FAIL        : 'fail';
-KW_NO          : 'no';
-KW_SOME        : 'some';
-KW_TOOL        : 'tool';
-KW_LAST        : 'last';
-KW_EVAL        : 'eval';
-KW_TRUE        : 'true';
-KW_FALSE       : 'false';
-KW_AND         : 'and';
-KW_OR          : 'or';
-KW_NOT         : 'not';
-KW_LN          : 'ln';
-KW_LOG         : 'log';
-KW_SIN         : 'sin';
-KW_COS         : 'cos';
-KW_TAN         : 'tan';
-KW_ASIN        : 'asin';
-KW_ACOS        : 'acos';
-KW_ATAN        : 'atan';
+KW_FUNC       : 'func';
+KW_NEEDS      : 'needs';
+KW_OPTIONAL   : 'optional';
+KW_RETURNS    : 'returns';
+KW_MEANS      : 'means';
+KW_ENDFUNC    : 'endfunc';
+KW_SET        : 'set';
+KW_CALL       : 'call';
+KW_RETURN     : 'return';
+KW_EMIT       : 'emit';
+KW_IF         : 'if';
+KW_ELSE       : 'else';
+KW_ENDIF      : 'endif';
+KW_WHILE      : 'while';
+KW_ENDWHILE   : 'endwhile';
+KW_FOR        : 'for';
+KW_EACH       : 'each';
+KW_IN         : 'in';
+KW_ENDFOR     : 'endfor';
+KW_ON_ERROR   : 'on_error';
+KW_ENDON      : 'endon';
+KW_CLEAR_ERROR: 'clear_error';
+KW_MUST       : 'must';
+KW_MUSTBE     : 'mustbe';
+KW_FAIL       : 'fail';
+KW_NO         : 'no';
+KW_SOME       : 'some';
+KW_TOOL       : 'tool';
+KW_LAST       : 'last';
+KW_EVAL       : 'eval';
+KW_TRUE       : 'true';
+KW_FALSE      : 'false';
+KW_AND        : 'and';
+KW_OR         : 'or';
+KW_NOT        : 'not';
+KW_LN         : 'ln';
+KW_LOG        : 'log';
+KW_SIN        : 'sin';
+KW_COS        : 'cos';
+KW_TAN        : 'tan';
+KW_ASIN       : 'asin';
+KW_ACOS       : 'acos';
+KW_ATAN       : 'atan';
 
 // Literals
 NUMBER_LIT: [0-9]+ ('.' [0-9]+)?;
 STRING_LIT:
     '"' (EscapeSequence | ~["\\\r\n])* '"'
     | '\'' (EscapeSequence | ~['\\\r\n])* '\'';
-TRIPLE_BACKTICK_STRING: '```' .*? '```';
+TRIPLE_BACKTICK_STRING: '```' .*? '```'; // Non-greedy match inside
 
 // Operators
 ASSIGN: '=';
@@ -223,21 +226,21 @@ LT: '<';
 GTE: '>=';
 LTE: '<=';
 
-IDENTIFIER: [a-zA-Z_] [a-zA-Z0-9_]*;
+IDENTIFIER: [a-zA-Z_] [a-zA-Z0-9_]*; // Standard identifier
 
 // --- Comments, Metadata, and Whitespace ---
 
-// Send whole content after ':: ' to parser
-METADATA_LINE: [\t ]* '::' [ \t]+ .*? ;
+// Metadata line: consumes content, leaves newline for parser rule
+METADATA_LINE: [\t ]* '::' [ \t]+ ~[\r\n]* ;
 
-// Line comments start with # or --
+// Line comments start with # or --, skipped entirely
 LINE_COMMENT: ('#' | '--') ~[\r\n]* -> skip;
 
 // Whitespace and Newlines
-NEWLINE: '\r'? '\n' | '\r'; // Default Channel
-WS: [ \t]+ -> skip;         // Skip whitespace
+NEWLINE: '\r'? '\n' | '\r'; // Handle different line endings (Default Channel)
+WS: [ \t]+ -> skip;        // Skip spaces and tabs
 
-// Fragments
-fragment EscapeSequence: '\\' (["'\\nrt] | UNICODE_ESC | '`');
+// Fragments used in Lexer rules
+fragment EscapeSequence: '\\' (["'\\nrt] | UNICODE_ESC | '`'); // Allow escaped backtick in strings
 fragment UNICODE_ESC: 'u' HEX_DIGIT HEX_DIGIT HEX_DIGIT HEX_DIGIT;
 fragment HEX_DIGIT: [0-9a-fA-F];

@@ -11,15 +11,15 @@ func (v *BaseNeuroScriptVisitor) VisitProgram(ctx *ProgramContext) interface{} {
 	return v.VisitChildren(ctx)
 }
 
-func (v *BaseNeuroScriptVisitor) VisitOptional_newlines(ctx *Optional_newlinesContext) interface{} {
-	return v.VisitChildren(ctx)
-}
-
-func (v *BaseNeuroScriptVisitor) VisitFile_version_decl(ctx *File_version_declContext) interface{} {
+func (v *BaseNeuroScriptVisitor) VisitFile_header(ctx *File_headerContext) interface{} {
 	return v.VisitChildren(ctx)
 }
 
 func (v *BaseNeuroScriptVisitor) VisitProcedure_definition(ctx *Procedure_definitionContext) interface{} {
+	return v.VisitChildren(ctx)
+}
+
+func (v *BaseNeuroScriptVisitor) VisitParameter_clauses(ctx *Parameter_clausesContext) interface{} {
 	return v.VisitChildren(ctx)
 }
 

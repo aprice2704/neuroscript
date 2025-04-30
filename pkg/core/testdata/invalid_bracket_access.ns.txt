@@ -1,0 +1,7 @@
+:: title: Invalid Access Test
+
+func badAccess() means
+    set myMap = { "a": 1 }
+    set myVal = myMap.a
+    set myVal2 = myMap[a]
+endfunc

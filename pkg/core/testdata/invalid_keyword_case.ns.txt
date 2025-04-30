@@ -1,0 +1,7 @@
+:: title: Invalid Keyword Case Test
+:: version: 0.2.0
+
+FUNC main() means
+    SET x = 1
+    EMIT x
+ENDFUNC

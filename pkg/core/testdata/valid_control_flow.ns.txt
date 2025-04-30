@@ -1,0 +1,14 @@
+:: title: Control Flow Test
+
+func checkValue needs val means
+    if val > 10
+        emit "Value is large"
+    else
+        emit "Value is small or medium"
+    endif
+
+    # Correction: Grammar requires newline after condition
+    if val == 0
+         emit "Value is exactly zero"
+    endif
+endfunc

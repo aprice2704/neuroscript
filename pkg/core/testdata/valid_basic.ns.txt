@@ -1,0 +1,8 @@
+:: title: Valid Basic Script
+:: version: 0.2.0-alpha-onerror
+
+func main() means
+    :: description: A minimal valid script.
+    set message = "Hello, NeuroScript!"
+    emit message
+endfunc

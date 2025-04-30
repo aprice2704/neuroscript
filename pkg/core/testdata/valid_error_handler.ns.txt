@@ -1,0 +1,19 @@
+:: title: Error Handler Syntax Test
+
+func handleErrorExample() means
+    on_error means
+        emit "Caught error: " + error_code + " msg: " + error_msg
+        clear_error
+    endon
+
+    emit "About to potentially fail..."
+    # fail "This is a test failure" # Uncomment to test runtime
+    emit "This runs if no error or error was cleared."
+
+    on_error means
+        emit "Inner handler"
+    endon
+
+    call tool.SomeToolThatMightFail()
+
+endfunc

@@ -7,7 +7,7 @@ import (
 	"reflect" // Needed for isTruthy map/slice check
 	"strconv" // Required for toInt64/toFloat64 placeholders
 	"strings"
-	"unicode" // Keep for isValidIdentifier
+	// Keep for isValidIdentifier
 )
 
 // --- Type Conversion/Checking Helpers ---
@@ -165,75 +165,6 @@ func isTruthy(val interface{}) bool {
 		// If reflect couldn't determine or type is invalid, default to truthy (as before)
 		return true
 	}
-}
-
-// --- Other Helpers ---
-
-// isValidIdentifier checks if a string is a valid NeuroScript identifier (and not a keyword).
-func isValidIdentifier(name string) bool {
-	if name == "" {
-		return false
-	}
-	for idx, r := range name {
-		if idx == 0 {
-			// Must start with a letter or underscore
-			if !unicode.IsLetter(r) && r != '_' {
-				return false
-			}
-		} else {
-			// Subsequent characters can be letters, digits, or underscores
-			if !unicode.IsLetter(r) && !unicode.IsDigit(r) && r != '_' {
-				return false
-			}
-		}
-	}
-	// Case-insensitive keyword check
-	upperName := strings.ToUpper(name)
-	// This map should be kept in sync with the grammar
-	keywords := map[string]bool{
-		"DEFINE":    true,
-		"PROCEDURE": true,
-		"END":       true,
-		"ENDBLOCK":  true,
-		"SET":       true,
-		"CALL":      true,
-		"RETURN":    true,
-		"EMIT":      true,
-		"FAIL":      true,
-		"IF":        true,
-		"THEN":      true,
-		"ELSE":      true,
-		"WHILE":     true,
-		"DO":        true,
-		"FOR":       true,
-		"EACH":      true,
-		"IN":        true,
-		"TRY":       true,
-		"CATCH":     true,
-		"FINALLY":   true,
-		"MUST":      true,
-		"MUSTBE":    true,
-		"TOOL":      true,
-		"LLM":       true,
-		"LAST":      true,
-		"EVAL":      true,
-		"TRUE":      true,
-		"FALSE":     true,
-		"NIL":       true, // Added NIL
-		"AND":       true,
-		"OR":        true,
-		"NOT":       true,
-		"NO":        true, // Added NO, SOME
-		"SOME":      true,
-		// Built-in functions are NOT keywords (can be variable names)
-		// "LN": true, "LOG": true, "SIN": true, "COS": true, "TAN": true,
-		// "ASIN": true, "ACOS": true, "ATAN": true,
-	}
-
-	if keywords[upperName] {
-		return false
-	}
-	return true
 }
 
 // *** ADDED trimCodeFences helper ***

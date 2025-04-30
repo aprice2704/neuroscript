@@ -26,23 +26,23 @@ func (s *BaseNeuroScriptListener) EnterProgram(ctx *ProgramContext) {}
 // ExitProgram is called when production program is exited.
 func (s *BaseNeuroScriptListener) ExitProgram(ctx *ProgramContext) {}
 
-// EnterOptional_newlines is called when production optional_newlines is entered.
-func (s *BaseNeuroScriptListener) EnterOptional_newlines(ctx *Optional_newlinesContext) {}
+// EnterFile_header is called when production file_header is entered.
+func (s *BaseNeuroScriptListener) EnterFile_header(ctx *File_headerContext) {}
 
-// ExitOptional_newlines is called when production optional_newlines is exited.
-func (s *BaseNeuroScriptListener) ExitOptional_newlines(ctx *Optional_newlinesContext) {}
-
-// EnterFile_version_decl is called when production file_version_decl is entered.
-func (s *BaseNeuroScriptListener) EnterFile_version_decl(ctx *File_version_declContext) {}
-
-// ExitFile_version_decl is called when production file_version_decl is exited.
-func (s *BaseNeuroScriptListener) ExitFile_version_decl(ctx *File_version_declContext) {}
+// ExitFile_header is called when production file_header is exited.
+func (s *BaseNeuroScriptListener) ExitFile_header(ctx *File_headerContext) {}
 
 // EnterProcedure_definition is called when production procedure_definition is entered.
 func (s *BaseNeuroScriptListener) EnterProcedure_definition(ctx *Procedure_definitionContext) {}
 
 // ExitProcedure_definition is called when production procedure_definition is exited.
 func (s *BaseNeuroScriptListener) ExitProcedure_definition(ctx *Procedure_definitionContext) {}
+
+// EnterParameter_clauses is called when production parameter_clauses is entered.
+func (s *BaseNeuroScriptListener) EnterParameter_clauses(ctx *Parameter_clausesContext) {}
+
+// ExitParameter_clauses is called when production parameter_clauses is exited.
+func (s *BaseNeuroScriptListener) ExitParameter_clauses(ctx *Parameter_clausesContext) {}
 
 // EnterNeeds_clause is called when production needs_clause is entered.
 func (s *BaseNeuroScriptListener) EnterNeeds_clause(ctx *Needs_clauseContext) {}

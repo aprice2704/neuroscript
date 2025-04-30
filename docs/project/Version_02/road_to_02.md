@@ -35,7 +35,7 @@
  - [-] 5. Implement Foundational Robustness Features (Phase 1 / Near-Term)
    - [x] Define and implement `must`/`mustBe` failure semantics (halt vs error?). *(Using halt-via-error)*
    - [x] Create essential built-in check functions for `mustBe`. *(Implemented internally)*
-   - [ ] Design simple `try/catch` mechanism and semantics. *(Parser done, Semantics needed - Superseded by on_error)*
+   - [x] On_Error implemented
    - [ ] Consider explicit `halt` command/mechanism? *(New Item)*
  - [x] 6. Tooling & Ecosystem
    - [x] Standardize internal tool naming to use `tool.` prefix consistently. *(Verified via test fixes)*

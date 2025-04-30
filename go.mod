@@ -65,6 +65,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/pmezard/go-difflib v1.0.0
 	golang.org/x/mod v0.24.0
+	golang.org/x/term v0.31.0
 	golang.org/x/tools v0.32.0
 	google.golang.org/api v0.229.0
 )

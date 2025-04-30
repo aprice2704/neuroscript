@@ -1,0 +1,7 @@
+:: title: Tool Call Test
+
+func callTools() means
+    call tool.ReadFile("./some/path")
+    set content = LAST               
+    emit content["content"]          
+endfunc

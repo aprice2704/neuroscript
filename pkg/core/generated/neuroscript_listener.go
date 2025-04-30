@@ -10,14 +10,14 @@ type NeuroScriptListener interface {
 	// EnterProgram is called when entering the program production.
 	EnterProgram(c *ProgramContext)
 
-	// EnterOptional_newlines is called when entering the optional_newlines production.
-	EnterOptional_newlines(c *Optional_newlinesContext)
-
-	// EnterFile_version_decl is called when entering the file_version_decl production.
-	EnterFile_version_decl(c *File_version_declContext)
+	// EnterFile_header is called when entering the file_header production.
+	EnterFile_header(c *File_headerContext)
 
 	// EnterProcedure_definition is called when entering the procedure_definition production.
 	EnterProcedure_definition(c *Procedure_definitionContext)
+
+	// EnterParameter_clauses is called when entering the parameter_clauses production.
+	EnterParameter_clauses(c *Parameter_clausesContext)
 
 	// EnterNeeds_clause is called when entering the needs_clause production.
 	EnterNeeds_clause(c *Needs_clauseContext)
@@ -163,14 +163,14 @@ type NeuroScriptListener interface {
 	// ExitProgram is called when exiting the program production.
 	ExitProgram(c *ProgramContext)
 
-	// ExitOptional_newlines is called when exiting the optional_newlines production.
-	ExitOptional_newlines(c *Optional_newlinesContext)
-
-	// ExitFile_version_decl is called when exiting the file_version_decl production.
-	ExitFile_version_decl(c *File_version_declContext)
+	// ExitFile_header is called when exiting the file_header production.
+	ExitFile_header(c *File_headerContext)
 
 	// ExitProcedure_definition is called when exiting the procedure_definition production.
 	ExitProcedure_definition(c *Procedure_definitionContext)
+
+	// ExitParameter_clauses is called when exiting the parameter_clauses production.
+	ExitParameter_clauses(c *Parameter_clausesContext)
 
 	// ExitNeeds_clause is called when exiting the needs_clause production.
 	ExitNeeds_clause(c *Needs_clauseContext)

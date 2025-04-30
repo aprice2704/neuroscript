@@ -1,7 +1,20 @@
-// pkg/core/ast.go
+// filename: pkg/core/ast.go
 package core
 
 import "fmt" // Ensure fmt is imported if needed by String() methods etc.
+
+// --- START ADDITION: Define Program struct ---
+
+// Program represents the root of the NeuroScript Abstract Syntax Tree (AST).
+// It contains top-level information like file version and the list of procedures.
+type Program struct {
+	// FileVersion string      // REMOVED: File version is now part of the Metadata map
+	Metadata   map[string]string // ADDED: Stores file-level metadata (:: key: value)
+	Procedures []Procedure       // List of procedures defined in the script
+	// TODO: Add Imports, Globals if they become part of the top-level AST structure
+}
+
+// --- END ADDITION ---
 
 // --- Expression Node Types (Unchanged from user-provided version) ---
 // Note: These are defined as interfaces in the provided code snippet,
@@ -41,7 +54,7 @@ type FunctionCallNode struct {
 	Arguments    []interface{}
 }
 
-// --- Procedure & Step Structures (Revised for v0.2.0 based on on_error) ---
+// --- Procedure & Step Structures (Unchanged from user-provided version, except Metadata initialization) ---
 
 type Procedure struct {
 	Name              string
@@ -50,26 +63,23 @@ type Procedure struct {
 	ReturnVarNames    []string // From 'returns' clause
 	Steps             []Step
 	OriginalSignature string
-	// Add Metadata map if needed based on other files
+	// Metadata map already exists here from your version
 	Metadata map[string]string
 }
 
 type Step struct {
-	Type      string        // "set", "call", "return", "emit", "if", "while", "for", "must", "mustbe", "fail", "on_error", "clear_error" // Updated types
-	Target    string        // Variable name (SET, FOR), Call target (CALL, mustbe)
-	Cond      interface{}   // Condition expr (IF, WHILE), Collection expr (FOR)
-	Value     interface{}   // RHS (SET), Return val(s) (RETURN), Emit val (EMIT), Must expr/call (MUST/MUSTBE), Fail expr (FAIL), Body steps []Step (IF-THEN, WHILE, FOR, ON_ERROR)
-	ElseValue interface{}   // Else body steps []Step (IF)
-	Args      []interface{} // Arguments (CALL)
-	// CatchVar       string      // REMOVED
-	// CatchSteps     []Step      // REMOVED
-	// FinallySteps   []Step      // REMOVED
-	SourceLineInfo string // Optional: Store original line number/content for debugging
-	// Ensure Metadata field exists if Procedure has it and it's needed per-step
+	Type           string        // "set", "call", "return", "emit", "if", "while", "for", "must", "mustbe", "fail", "on_error", "clear_error" // Updated types
+	Target         string        // Variable name (SET, FOR), Call target (CALL, mustbe)
+	Cond           interface{}   // Condition expr (IF, WHILE), Collection expr (FOR)
+	Value          interface{}   // RHS (SET), Return val(s) (RETURN), Emit val (EMIT), Must expr/call (MUST/MUSTBE), Fail expr (FAIL), Body steps []Step (IF-THEN, WHILE, FOR, ON_ERROR)
+	ElseValue      interface{}   // Else body steps []Step (IF)
+	Args           []interface{} // Arguments (CALL)
+	SourceLineInfo string        // Optional: Store original line number/content for debugging
+	// Metadata map already exists here from your version
 	Metadata map[string]string
 }
 
-// newStep helper function - revised for removed fields
+// newStep helper function - Unchanged from user-provided version
 func newStep(typ, target string, cond, value, elseValue interface{}, args []interface{}) Step {
 	s := Step{
 		Type:      typ,
@@ -78,8 +88,8 @@ func newStep(typ, target string, cond, value, elseValue interface{}, args []inte
 		Value:     value,
 		ElseValue: elseValue,
 		Args:      args,
-		// CatchVar, CatchSteps, FinallySteps removed
-		Metadata: make(map[string]string), // Initialize if Metadata field exists
+		// Initialize Metadata if it exists, as per your version
+		Metadata: make(map[string]string),
 	}
 	// Specific setting for fields like Value (for block steps) or Target (loop var)
 	// happens in the respective ExitXxx listener methods.
