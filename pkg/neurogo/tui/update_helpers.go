@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/aprice2704/neuroscript/pkg/core"
+	"github.com/aprice2704/neuroscript/pkg/core" // Keep for direct logging if needed
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
@@ -127,46 +127,48 @@ func (m *model) renderStatusBar(width int) string {
 // stored in the model (m.app).
 func (m *model) runSyncCmd() tea.Cmd {
 	return func() tea.Msg {
+		// Use a local logger for this specific operation, obtained via the interface
+		logger := m.app.GetLogger() // Get logger instance
+		if logger == nil {
+			// Fallback if logger retrieval fails, though App should prevent this
+			return errMsg{fmt.Errorf("TUI:runSyncCmd - Logger not available")}
+		}
+
 		// Access config and clients via interface methods on m.app
 		if m.app == nil {
+			logger.Error("Sync command failed: app reference (via interface) not available in TUI model")
 			return errMsg{fmt.Errorf("app reference (via interface) not available in TUI model")}
 		}
 
 		syncDir := m.app.GetSyncDir()
 		if syncDir == "" {
-			m.app.GetLogger().Error("Sync command failed: Sync directory not configured.")
+			logger.Error("Sync command failed: Sync directory not configured.")
 			return errMsg{fmt.Errorf("sync directory not configured")}
 		}
 
-		llmClient := m.app.GetLLMClient() // Use interface getter
-		if llmClient == nil || llmClient.Client() == nil {
-			logger := m.app.GetLogger()
-			logger.Error("Sync command failed: LLM Client not available.")
-
-			return errMsg{fmt.Errorf("LLM Client not available for sync operation")}
+		// --- Get Interpreter (Replaces LLM Client Check) ---
+		interp := m.app.GetInterpreter() // Use interface getter
+		if interp == nil {
+			logger.Error("Sync command failed: Interpreter not available.")
+			return errMsg{fmt.Errorf("interpreter not available for sync operation")}
 		}
+		// --- End Interpreter Check ---
 
 		// Validate Sync Directory securely relative to current working directory or sandbox
-		cwd, err := os.Getwd()
-		if err != nil {
-			return errMsg{fmt.Errorf("failed to get current working directory: %w", err)}
-		}
-		sandboxRoot := cwd
-		sandboxDir := m.app.GetSandboxDir() // Use interface getter
-		if sandboxDir != "" {
-			// TODO: Ensure SandboxDir is absolute or resolve it relative to CWD?
-			// Assuming for now it's a usable path.
-			sandboxRoot = sandboxDir
+		// The interpreter's FileAPI already knows the sandbox root.
+		// We still need the configured syncDir relative path.
+		fileAPI := interp.FileAPI()
+		if fileAPI == nil {
+			logger.Error("Sync command failed: Interpreter's FileAPI is nil.")
+			return errMsg{fmt.Errorf("interpreter FileAPI is nil, cannot resolve sync path")}
 		}
 
-		absSyncDir, secErr := core.SecureFilePath(syncDir, sandboxRoot)
+		// Resolve the sync path securely using FileAPI
+		absSyncDir, secErr := fileAPI.ResolvePath(syncDir)
 		if secErr != nil {
-			baseDesc := "current working directory"
-			if sandboxDir != "" {
-				baseDesc = "sandbox directory '" + sandboxDir + "'"
-			}
-			m.app.GetLogger().Error("Sync command failed: Invalid sync directory path '%s' (relative to %s): %v", syncDir, baseDesc, secErr)
-
+			// Error message from ResolvePath already contains the sandbox root [cite: 2]
+			// *** FIX: Removed ", "base", fileAPI.SandboxRoot()" ***
+			logger.Error("Sync command failed: Invalid sync directory path.", "input_path", syncDir, "error", secErr)
 			return errMsg{fmt.Errorf("invalid sync directory path '%s': %w", syncDir, secErr)}
 		}
 
@@ -175,9 +177,9 @@ func (m *model) runSyncCmd() tea.Cmd {
 		if statErr != nil {
 			errMsgFmt := "failed to stat sync directory %s: %w"
 			if os.IsNotExist(statErr) {
-				errMsgFmt = "sync directory does not exist: %s: %w" // Add error wrapping if needed
+				errMsgFmt = "sync directory does not exist: %s: %w"
 			}
-			m.app.GetLogger().Error(errMsgFmt, absSyncDir, statErr)
+			logger.Error(errMsgFmt, absSyncDir, statErr)
 
 			// Return a user-friendly error message
 			if os.IsNotExist(statErr) {
@@ -186,27 +188,25 @@ func (m *model) runSyncCmd() tea.Cmd {
 			return errMsg{fmt.Errorf("cannot access sync directory %s", absSyncDir)}
 		}
 		if !dirInfo.IsDir() {
-			if errLog := m.app.GetLogger(); errLog != nil {
-				m.app.GetLogger().Error("Sync command failed: Sync path is not a directory: %s", absSyncDir)
-			}
+			logger.Error("Sync command failed: Sync path is not a directory.", "path", absSyncDir)
 			return errMsg{fmt.Errorf("sync path is not a directory: %s", absSyncDir)}
 		}
 
 		ctx := context.Background()
 
-		// Use interface getters for loggers and config needed by the helper
-		logger := m.app.GetLogger()
+		// Use interface getters for config needed by the helper
 		syncFilter := m.app.GetSyncFilter()
 		ignoreGitignore := m.app.GetSyncIgnoreGitignore()
 
-		// Call the core sync helper, passing required components via interface getters
+		// Call the core sync helper, passing the interpreter
+		// The helper will use the interpreter to get the logger and LLM client if needed
 		stats, syncErr := core.SyncDirectoryUpHelper(
 			ctx,
-			absSyncDir,
+			absSyncDir, // Resolved absolute path
 			syncFilter,
 			ignoreGitignore,
-			llmClient.Client(), // Pass the underlying *genai.Client
-			logger,
+			interp, // Pass the Interpreter
+			// Removed logger argument
 		)
 
 		// Return the result message

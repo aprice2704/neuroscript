@@ -47,36 +47,97 @@ func NewASTBuilder(logger logging.Logger) *ASTBuilder {
 }
 
 // Build takes an ANTLR parse tree and constructs the NeuroScript Program AST (*core.Program).
-// *** MODIFIED: Checks for errors collected by the listener. ***
-func (b *ASTBuilder) Build(tree antlr.Tree) (*Program, error) {
+// It now returns the Program, the collected file metadata, and any error.
+// func (b *ASTBuilder) Build(tree antlr.Tree) (*Program, error) { // OLD Signature
+func (b *ASTBuilder) Build(tree antlr.Tree) (*Program, map[string]string, error) { // NEW Signature
 	if tree == nil {
-		return nil, fmt.Errorf("cannot build AST from nil parse tree")
+		// Return nils for program and metadata on initial error
+		return nil, nil, fmt.Errorf("cannot build AST from nil parse tree")
 	}
 	b.logger.Debug("Starting AST build process using Listener.")
 
 	// Create the listener instance.
+	// Assumes newNeuroScriptListener is defined correctly and returns *neuroScriptListenerImpl
 	listener := newNeuroScriptListener(b.logger, b.debugAST)
 
 	// Walk the parse tree with the listener.
 	walker := antlr.NewParseTreeWalker()
 	walker.Walk(listener, tree)
 
-	// Check for errors collected during the walk
-	if len(listener.errors) > 0 {
-		// Return the first error encountered
-		return nil, listener.errors[0]
+	// Get metadata *after* the walk, before returning on error.
+	// Assumes listener has GetFileMetadata method returning map[string]string.
+	fileMetadata := listener.GetFileMetadata()
+	if fileMetadata == nil {
+		// Ensure metadata map is not nil, even if empty
+		fileMetadata = make(map[string]string)
+		b.logger.Warn("Listener returned nil metadata map, initialized empty map.")
 	}
 
-	// Assemble Program AST using collected metadata and procedures.
-	programAST := listener.program // Get the assembled program
+	// Check for errors collected during the walk
+	if len(listener.errors) > 0 {
+		// Combine errors if multiple exist
+		errorMessages := make([]string, 0, len(listener.errors))
+		for _, err := range listener.errors {
+			if err != nil { // Ensure error is not nil before calling Error()
+				errorMessages = append(errorMessages, err.Error())
+			} else {
+				errorMessages = append(errorMessages, "<nil error recorded>")
+			}
+		}
+		combinedError := errors.New(strings.Join(errorMessages, "; "))
+		// Return potentially partial program AST and metadata even on error
+		// It's often useful to have the metadata even if procedures fail to build.
+		// Return listener.program here which might be partially built or nil.
+		return listener.program, fileMetadata, combinedError
+	}
+
+	// Get the assembled program from the listener.
+	// Assumes listener has a 'program' field of type *Program
+	programAST := listener.program
 
 	if programAST == nil {
-		// Should not happen if no errors were reported, but check defensively
-		return nil, errors.New("AST build completed without errors, but resulted in a nil program AST")
+		// This case suggests an internal listener error not caught previously
+		b.logger.Error("AST build completed without explicit errors, but resulted in a nil program AST")
+		// Return metadata even on this internal error
+		return nil, fileMetadata, errors.New("AST build completed without errors, but resulted in a nil program AST")
+	}
+
+	// Ensure the program's metadata field matches what the listener collected/returned.
+	programAST.Metadata = fileMetadata
+
+	// Final assembly: Populate the Program's map from the listener's temporary slice.
+	// This step is necessary based on the listener structure provided earlier.
+	if programAST.Procedures == nil {
+		programAST.Procedures = make(map[string]*Procedure)
+	}
+	duplicateProcs := false
+	for _, proc := range listener.procedures { // Assuming listener has a slice `procedures []*Procedure`
+		if proc != nil {
+			if _, exists := programAST.Procedures[proc.Name]; exists {
+				// Log duplicate, and ensure an error is returned by adding to listener.errors
+				errorMsg := fmt.Sprintf("duplicate procedure definition: %s", proc.Name)
+				b.logger.Error(errorMsg)
+				listener.errors = append(listener.errors, errors.New(errorMsg)) // Add error
+				duplicateProcs = true
+			}
+			programAST.Procedures[proc.Name] = proc // Add pointer to map
+		}
+	}
+
+	// If duplicates were found, report the error state
+	if duplicateProcs {
+		errorMessages := make([]string, 0, len(listener.errors))
+		for _, err := range listener.errors {
+			if err != nil {
+				errorMessages = append(errorMessages, err.Error())
+			}
+		}
+		return programAST, fileMetadata, errors.New(strings.Join(errorMessages, "; "))
 	}
 
 	b.logger.Debug("AST build process completed successfully.")
-	return programAST, nil
+	// Return program, metadata, and nil error on success
+	return programAST, fileMetadata, nil
 }
 
 // --- neuroScriptListenerImpl (Internal Listener Implementation) ---
@@ -285,6 +346,24 @@ func MapKeysListener(m map[string]string) []string {
 		keys = append(keys, k)
 	}
 	return keys
+}
+
+// GetFileMetadata returns the metadata collected from the file header during the build process.
+// It delegates to the internal listener instance created during the Build method.
+func (b *ASTBuilder) GetFileMetadata() map[string]string {
+	// Ensure the listener was created and stored during Build
+	if b.listener == nil {
+		// Log an error if possible, assuming ASTBuilder has a logger field 'logger'
+		if b.logger != nil {
+			b.logger.Error("GetFileMetadata called before Build or after a failed Build where listener was not set.")
+		} else {
+			fmt.Println("Error: GetFileMetadata called on ASTBuilder with nil listener.")
+		}
+		// Return an empty map to avoid nil pointer dereference
+		return make(map[string]string)
+	}
+	// Delegate to the listener's GetFileMetadata method
+	return b.listener.GetFileMetadata()
 }
 
 // --- Methods to be implemented in other ast_builder_*.go files ---

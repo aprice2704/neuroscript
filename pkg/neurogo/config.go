@@ -9,19 +9,17 @@ import (
 )
 
 // Config holds the application configuration.
-// Flag parsing is primarily handled in main.go, but this struct holds the values.
 type Config struct {
 	// --- Execution Mode Flags ---
-	// These are set by main.go based on which flag was provided or default logic.
 	RunAgentMode    bool // -agent
 	RunScriptMode   bool // -script (Implied by ScriptFile != "")
 	RunSyncMode     bool // -sync
-	RunTuiMode      bool // -tui
+	RunTuiMode      bool // -tui (Corrected case)
 	RunCleanAPIMode bool // -clean-api
 
 	// --- Script/Agent Execution ---
 	ScriptFile    string   // -script: Path to the .ns script file to execute
-	StartupScript string   // -startup-script: Path to agent initialization script (NEW)
+	StartupScript string   // -startup-script: Path to agent initialization script
 	LibPaths      []string // -L: Library paths for script execution
 	TargetArg     string   // -target: Target argument for the script
 	ProcArgs      []string // -arg: Arguments for the script process/procedure
@@ -31,39 +29,34 @@ type Config struct {
 	SyncFilter          string // -sync-filter: Glob pattern to filter files during sync
 	SyncIgnoreGitignore bool   // -sync-ignore-gitignore: Ignore .gitignore during sync
 
-	// --- Agent/General Configuration (May be overridden by startup script) ---
-	SandboxDir         string   // -sandbox: Root directory for agent file operations (set by main, used by app?)
-	AllowlistFile      string   // -allowlist: Path to the tool allowlist file (set by main, used by app?)
-	InitialAttachments []string // -attach: List of files to attach initially (DEPRECATED? Handle via startup?)
-	APIKey             string   // API Key (usually from env)
-	ModelName          string   // -model: Name of the GenAI model to use (set by main, potentially overridden by startup)
-	EnableLLM          bool     // -enable-llm: Enable LLM client (default true, mainly affects script mode) (set by main)
-	Insecure           bool     // -insecure: Disable security checks (Use with extreme caution!) (set by main)
-	CleanAPI           bool     // -clean-api: Delete all files from the File API (set by main)
+	// --- Agent/General Configuration ---
+	SandboxDir    string // -sandbox: Root directory for agent file operations
+	AllowlistFile string // -allowlist: Path to the tool allowlist file
+	APIKey        string // API Key (usually from env)
+	APIHost       string // API Host / Endpoint (e.g., for custom LLM providers) <<< ADDED
+	ModelID       string // -model / ModelName field: Specific model identifier <<< ADDED (using ModelID for clarity)
+	EnableLLM     bool   // -enable-llm: Enable LLM client
+	Insecure      bool   // -insecure: Disable security checks
+	CleanAPI      bool   // -clean-api: Delete all files from the File API
 
 	// --- Logging ---
 	DebugLogFile    string // -debug-log: Path to the debug log file
 	LLMDebugLogFile string // -llm-debug-log: Path to the LLM raw communication log file
 
-	// Internal fields (Consider removing flagSet if parsing is fully in main.go)
-	// flagSet *flag.FlagSet
+	// --- Schema ---
+	SchemaPath string // Path to the schema definition file <<< ADDED (Placeholder for previous discussion)
+
+	// Note: Removed InitialAttachments as it seems deprecated/handled by startup script
 }
 
 // NewConfig creates a new Config struct with default values.
-// Defaults for flags removed from here are handled in main.go's flag definitions.
 func NewConfig() *Config {
 	return &Config{
-		// Defaults for SyncDir/SandboxDir now set in main.go's flag definitions
 		EnableLLM: true, // Default LLM client to enabled
+		// Default other fields like APIHost if applicable
+		// APIHost: "default-llm-host.com",
 	}
 }
-
-// --- NOTE: The ParseFlags method below is likely now obsolete ---
-// Flag parsing logic has been moved to main.go.
-// Keeping the method signature here might be useful if some validation logic
-// specific to Config fields needs to live here, but the flag definitions and parsing
-// should primarily occur in main.go.
-// Consider removing or refactoring this method based on final design.
 
 // StringSliceFlag is a custom flag type for handling multiple occurrences of a flag.
 type stringSliceFlag []string
@@ -71,62 +64,41 @@ type stringSliceFlag []string
 func (i *stringSliceFlag) String() string         { return strings.Join(*i, ", ") }
 func (i *stringSliceFlag) Set(value string) error { *i = append(*i, value); return nil }
 
-// ParseFlags parses command-line arguments into the Config struct.
-// OBSOLETE? Flag parsing is now primarily in main.go.
-// This method might need removal or significant refactoring.
+// ParseFlags performs validation after flags have been parsed (likely in main.go).
 func (c *Config) ParseFlags(args []string) error {
-	// If this method is kept, it should likely only perform validation
-	// on the fields already populated by main.go, rather than defining/parsing flags itself.
-	fmt.Fprintln(os.Stderr, "Warning: Config.ParseFlags called, but flag parsing should occur in main.go.")
+	// This function assumes flags have already been parsed into 'c' by main.go
+	fmt.Fprintln(os.Stderr, "Warning: Config.ParseFlags called, performing post-parse validation.")
 
-	// Example validation (can be expanded):
-	if c.RunCleanAPIMode {
-		modeCount := 0
-		if c.RunAgentMode {
+	// Mode Exclusivity Check
+	modeCount := 0
+	modes := []bool{c.RunAgentMode, c.RunScriptMode, c.RunSyncMode, c.RunTuiMode, c.RunCleanAPIMode}
+	for _, mode := range modes {
+		if mode {
 			modeCount++
-		}
-		if c.RunScriptMode {
-			modeCount++
-		}
-		if c.RunSyncMode {
-			modeCount++
-		}
-		if c.RunTuiMode {
-			modeCount++
-		}
-		if modeCount > 0 {
-			return errors.New("the -clean-api mode cannot be combined with -agent, -script, -sync, or -tui")
-		}
-	} else {
-		modeCount := 0
-		if c.RunAgentMode {
-			modeCount++
-		}
-		if c.RunScriptMode {
-			modeCount++
-		}
-		if c.RunSyncMode {
-			modeCount++
-		}
-		if c.RunTuiMode {
-			modeCount++
-		}
-		if modeCount > 1 {
-			return errors.New("modes -agent, -script, -sync, and -tui are mutually exclusive")
-		}
-		// Defaulting logic now happens in main.go
-	}
-
-	// API Key Check (still relevant if done here)
-	// This check might be better placed in App.Run or where the client is initialized.
-	if c.APIKey == "" {
-		needsKey := c.RunAgentMode || c.RunTuiMode || c.RunSyncMode || c.RunCleanAPIMode || (c.RunScriptMode && c.EnableLLM)
-		if needsKey {
-			// Check if help was requested? This info isn't easily available here anymore.
-			// Assume key is needed if mode requires it.
-			return errors.New("required environment variable for API Key (e.g., GEMINI_API_KEY) is not set")
 		}
 	}
 
-	return nil // Success (or return validation errors)
+	if c.RunCleanAPIMode && modeCount > 1 {
+		return errors.New("the -clean-api mode cannot be combined with -agent, -script, -sync, or -tui")
+	}
+	if !c.RunCleanAPIMode && modeCount > 1 {
+		// Identify which modes are conflicting for a better error message?
+		return errors.New("modes -agent, -script, -sync, and -tui are mutually exclusive")
+	}
+	if modeCount == 0 {
+		// If no mode is explicitly set, default logic should apply (handled in App.Run now)
+		// return errors.New("no execution mode specified (e.g., -agent, -script, -sync, -tui, -clean-api)")
+		fmt.Fprintln(os.Stderr, "Info: No specific mode flag set, will default based on LLM enablement.")
+	}
+
+	// API Key Check (Crucial if LLM is needed)
+	needsKey := c.EnableLLM && (c.RunAgentMode || c.RunTuiMode || c.RunScriptMode || c.RunSyncMode || c.RunCleanAPIMode) // Refined condition
+	if needsKey && c.APIKey == "" {
+		// Removed environment check here, assumes key is populated by main.go if found
+		return errors.New("API Key is required for the selected mode with LLM enabled, but is missing")
+	}
+
+	// Validate other required fields based on modes if necessary
+
+	return nil // Success
 }

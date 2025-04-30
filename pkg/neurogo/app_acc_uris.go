@@ -1,4 +1,4 @@
-// filename: pkg/neurogo/app_agent.go
+// filename: pkg/neurogo/app_acc_uris.go
 package neurogo
 
 import (
@@ -7,97 +7,120 @@ import (
 	"path/filepath"
 	"strings"
 
+	// Import time for placeholder type
 	"github.com/aprice2704/neuroscript/pkg/core"
 	"github.com/google/generative-ai-go/genai"
 )
 
-// ... Constants, runAgentMode setup, other functions ... (largely unchanged) ...
-
 // updateAccumulatedURIs lists files after a sync and updates the shared URI list.
-// FIXED AGAIN: Correctly calculates relative path and prefix for root case.
 func updateAccumulatedURIs(
 	ctx context.Context,
 	a *App,
-	llmClient *core.LLMClient,
-	absSyncedDir string, // Absolute path of the directory that was just synced
-	syncFilter string, // The filter used for the sync
-	accumulatedContextURIs *[]string, // Pointer to the slice to update
+	llmClient core.LLMClient,
+	absSyncedDir string,
+	accumulatedContextURIs *[]string,
 ) {
-	a.Logger.Info("Listing API files to update context for next turn...")
-	a.Logger.Debug("Updating context for synced directory: %s", absSyncedDir)
+	logger := a.GetLogger()
+	if logger == nil {
+		fmt.Println("[AGENT] Error: Logger not available in updateAccumulatedURIs.")
+		return
+	}
+	logger.Info("Listing API files to update context for next turn...")
+	logger.Debug("Updating context for synced directory.", "path", absSyncedDir)
 
 	cleanSandboxDir := filepath.Clean(a.Config.SandboxDir)
 	absCleanSandboxDir, err := filepath.Abs(cleanSandboxDir)
 	if err != nil {
-		a.Logger.Error("Error getting absolute path for sandbox dir %q: %v", cleanSandboxDir, err)
+		logger.Error("Error getting absolute path for sandbox dir.", "path", cleanSandboxDir, "error", err)
 		fmt.Println("[AGENT] Warning: Could not determine absolute sandbox path for context update.")
 		return
 	}
+	// <<< FIX: Use '=' instead of ':=' as var is already declared >>>
 	absCleanSandboxDir = filepath.Clean(absCleanSandboxDir)
-	a.Logger.Debug("Context update using absolute sandbox root: %s", absCleanSandboxDir)
+	logger.Debug("Context update using absolute sandbox root.", "path", absCleanSandboxDir)
 
-	// --- Start FIX V3 for Relative Path & Prefix ---
 	syncDirRel := ""
-	prefix := "" // Default prefix is empty (matches root files)
+	prefix := ""
 
-	// Only calculate relative path if synced dir is NOT the same as sandbox root
 	if absSyncedDir != absCleanSandboxDir {
 		relPath, relErr := filepath.Rel(absCleanSandboxDir, absSyncedDir)
 		if relErr != nil {
-			a.Logger.Error("Cannot get relative path for synced dir %q relative to sandbox %q: %v", absSyncedDir, absCleanSandboxDir, relErr)
+			logger.Error("Cannot get relative path for synced dir relative to sandbox.", "synced", absSyncedDir, "sandbox", absCleanSandboxDir, "error", relErr)
 			fmt.Println("[AGENT] Warning: Could not determine relative path for context update filtering.")
-			return // Abort if we can't get relative path when needed
+			return
 		}
 		syncDirRel = filepath.ToSlash(relPath)
-		// Ensure prefix ends with slash ONLY if syncDirRel is not empty or "."
 		if syncDirRel != "" && syncDirRel != "." {
 			prefix = syncDirRel + "/"
 		}
-		a.Logger.Debug("Calculated relative sync path: %s, using prefix: '%s'", syncDirRel, prefix)
+		logger.Debug("Calculated relative sync path.", "relative_path", syncDirRel, "prefix", prefix)
 	} else {
-		a.Logger.Debug("Synced directory is the sandbox root. Using empty prefix ''.")
-		// syncDirRel remains "", prefix remains ""
+		logger.Debug("Synced directory is the sandbox root. Using empty prefix.")
 	}
-	// --- End FIX V3 ---
 
-	apiFiles, listErr := core.HelperListApiFiles(ctx, llmClient.Client(), a.Logger)
-	if listErr != nil {
-		a.Logger.Error("Failed list API files: %v", listErr)
-		fmt.Println("[AGENT] Warning: Ctx update failed.")
+	if llmClient == nil {
+		logger.Error("LLM client is nil in updateAccumulatedURIs.")
+		fmt.Println("[AGENT] Error: Cannot list API files, LLM client missing.")
 		return
 	}
-	a.Logger.Debug("Found %d total API files to filter for context update.", len(apiFiles))
+	genaiClient := llmClient.Client()
+	if genaiClient == nil {
+		logger.Error("Underlying genai.Client is nil in updateAccumulatedURIs.")
+		fmt.Println("[AGENT] Error: Cannot list API files, genai client missing.")
+		return
+	}
+
+	// TODO: Find or implement HelperListApiFiles in pkg/core or use genaiClient directly
+	// apiFiles, listErr := core.HelperListApiFiles(ctx, genaiClient, logger)
+	apiFiles := []*ApiFileInfo{} // Use placeholder type defined in app_interface.go
+	listErr := fmt.Errorf("core.HelperListApiFiles is undefined - URI update needs implementation")
+
+	if listErr != nil {
+		logger.Error("Failed list API files.", "error", listErr)
+		fmt.Println("[AGENT] Warning: Context update failed during API file listing.")
+		return
+	}
+	logger.Debug("Found API files to filter for context update.", "count", len(apiFiles))
 
 	urisCollected := 0
 	newURIs := []string{}
-	a.Logger.Debug("Filtering API files using prefix: [%s]", prefix) // Show prefix clearly
+	logger.Debug("Filtering API files.", "prefix", prefix)
+
+	syncFilter := a.Config.SyncFilter
 
 	for _, file := range apiFiles {
-		if file.DisplayName == "" || file.State != genai.FileStateActive || file.URI == "" {
+		// Use placeholder type ApiFileInfo
+		if file == nil || file.DisplayName == "" || file.State != genai.FileStateActive || file.URI == "" {
 			continue
 		}
-		a.Logger.Debug("Checking API DisplayName: [%s]", file.DisplayName)
+		logArgs := []any{"display_name", file.DisplayName, "prefix", prefix}
 
-		// Use the calculated prefix for matching
 		if strings.HasPrefix(file.DisplayName, prefix) {
-			if syncFilter != "" { /* ... filter check ... */
-				match, _ := filepath.Match(syncFilter, filepath.Base(file.DisplayName))
-				if !match {
-					a.Logger.Debug("-> Matched prefix, SKIPPED by filter: %s", file.DisplayName)
-					continue
+			logArgs = append(logArgs, "prefix_match", true)
+			filterMatch := true
+			if syncFilter != "" {
+				var matchErr error
+				filterMatch, matchErr = filepath.Match(syncFilter, filepath.Base(file.DisplayName))
+				if matchErr != nil {
+					logger.Warn("Error applying sync filter pattern.", "pattern", syncFilter, "filename", filepath.Base(file.DisplayName), "error", matchErr)
+					filterMatch = false
 				}
-				a.Logger.Debug("-> Matched prefix AND filter: %s", file.DisplayName)
-			} else {
-				a.Logger.Debug("-> Matched prefix (no filter): %s", file.DisplayName)
 			}
-			newURIs = append(newURIs, file.URI)
-			urisCollected++
-		} else {
-			a.Logger.Debug("-> Did NOT match prefix.") // Log non-matches
-		}
-	} // End file loop
+			logArgs = append(logArgs, "filter_pattern", syncFilter, "filter_match", filterMatch)
 
-	// Update accumulated URIs (unchanged)
+			if filterMatch {
+				newURIs = append(newURIs, file.URI)
+				urisCollected++
+				logArgs = append(logArgs, "action", "collected")
+			} else {
+				logArgs = append(logArgs, "action", "skipped_filter")
+			}
+		} else {
+			logArgs = append(logArgs, "prefix_match", false, "action", "skipped_prefix")
+		}
+		logger.Debug("Filtered API file.", logArgs...)
+	}
+
 	uriSet := make(map[string]bool)
 	for _, uri := range *accumulatedContextURIs {
 		uriSet[uri] = true
@@ -105,16 +128,28 @@ func updateAccumulatedURIs(
 	for _, uri := range newURIs {
 		uriSet[uri] = true
 	}
-	*accumulatedContextURIs = (*accumulatedContextURIs)[:0]
+	*accumulatedContextURIs = (*accumulatedContextURIs)[:0] // Clear slice
 	for uri := range uriSet {
 		*accumulatedContextURIs = append(*accumulatedContextURIs, uri)
 	}
-	a.Logger.Info("Collected %d URIs from sync (Dir: '%s', Filter: '%s'). Total accumulated URIs: %d", urisCollected, absSyncedDir, syncFilter, len(*accumulatedContextURIs))
+
+	syncIgnoreGitignore := a.Config.SyncIgnoreGitignore
+	logger.Info("Context update complete.",
+		"synced_dir", absSyncedDir,
+		"filter", syncFilter,
+		"ignore_gitignore", syncIgnoreGitignore,
+		"uris_collected", urisCollected,
+		"total_uris", len(*accumulatedContextURIs),
+	)
+
 	displayDir := filepath.Base(absSyncedDir)
-	if absSyncedDir == absCleanSandboxDir && a.Config.SandboxDir == "." {
-		displayDir = "."
+	// Use already declared absCleanSandboxDir
+	if absSyncedDir == absCleanSandboxDir {
+		if a.Config.SandboxDir == "." {
+			displayDir = "."
+		} else {
+			displayDir = filepath.Clean(a.Config.SandboxDir)
+		}
 	}
 	fmt.Printf("[AGENT] Context updated with %d files from '%s'.\n", urisCollected, displayDir)
 }
-
-// ... rest of app_agent.go, handleMultilineInput, etc. ...

@@ -47,6 +47,7 @@
    - [x] Standardize internal tool naming to use `tool.` prefix consistently. *(Verified via test fixes)* [cite: 1]
    - [ ] Update checklists/docs to reflect standardized tool names.
    - [ ] Begin development of `nsfmt` formatting tool.
+   - [ ] High priority: reach point where upload, then request-update-compile loop works for golang programs
 
  - [ ] 7. Example App -- language flashcards *(New)*
    - [ ] Add ability to record sound clips *(New)*

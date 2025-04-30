@@ -5,8 +5,10 @@
  ## Project Setup & Awareness
  
  1.  **Understand Context:** Before coding, review project docs (`docs/`, if present) and existing code to grasp the goals and architecture. Remember the dependency on the `neuroscript` folder.
+ 1a. **USE THE INDEX** you should have a file `neuroscript_index.json`, **if not, ask for it**, use it to find things in the codebase **instead of making assumptions**. 
  2.  **Request Missing Files:** If you need files you don't have (e.g., `.g4`, `.y`, fixtures, source code), ask for them immediately. Don't guess contents.
- 3.  **Pause for Discussion:** During design discussions, wait for an explicit request before generating new/updated code files.
+ 3.  **Pause for Discussion:** During design discussions, wait for an explicit request before generating new/updated code files -- especially more than 2.
+ 3. a. If you think the problem is build cache issues or build environment issues **you are wrong**, it has **never** been these things yet. It **may well** be that you have a stale file however, so just ask for the latest.
  
  ## Code Output & Structure
  

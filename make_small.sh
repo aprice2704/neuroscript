@@ -3,6 +3,8 @@
 source_dir="/home/aprice/dev/neuroscript"
 dest_dir="/home/aprice/dev/neuroscript_sm2"
 
+goindexer -dirs "$source_dir"
+
 # Ensure destination directory exists
 mkdir -p "$dest_dir"
 
@@ -16,6 +18,7 @@ rsync -av \
   --include='*.txt' \
   --include='*.md' \
   --include='*.g4' \
+  --include='*.json' \
   --prune-empty-dirs \
   --include='*/' \
   --exclude='*' \

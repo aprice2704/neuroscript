@@ -3,139 +3,297 @@ package neurogo
 
 import (
 	"bufio"
-	"context"
+	"context" // Keep context for other parts of the file
 	"fmt"
 	"os"
 	"strings"
 
+	// "time" // No longer needed directly in this file
+
 	"github.com/aprice2704/neuroscript/pkg/core"
-	// Import interfaces for Logger (and potentially LLMClient if needed directly)
+	"github.com/google/generative-ai-go/genai"
 )
 
-// runAgentMode starts the interactive agent loop.
+// runAgentMode starts the interactive agent mode.
 func (app *App) runAgentMode(ctx context.Context) error {
-	app.Log.Info("Entering Agent Mode...")
-
+	// ... (setup unchanged) ...
+	app.Log.Info("--- Running in Agent Mode ---")
 	if app.llmClient == nil {
-		return fmt.Errorf("cannot run Agent Mode: LLM client is not initialized")
+		return fmt.Errorf("cannot run agent mode: LLM client is nil")
+	}
+	if app.interpreter == nil {
+		return fmt.Errorf("cannot run agent mode: Interpreter is nil")
 	}
 
-	// Initialize conversation history
-	conversation := core.NewConversation() // Assuming NewConversation exists
+	convoManager := core.NewConversationManager(app.Log)
+	if convoManager == nil {
+		return fmt.Errorf("failed to create conversation manager")
+	}
 
-	// Agent execution context
-	agentCtx := NewAgentContext(app.Log, app.interpreter, app.llmClient, conversation)
+	agentCtx := NewAgentContext(app.Log)
+	if agentCtx == nil {
+		return fmt.Errorf("failed to create agent context")
+	}
+	if app.interpreter != nil {
+		agentCtx.SetSandboxDir(app.Config.SandboxDir)
+	} else {
+		return fmt.Errorf("cannot set agent sandbox: interpreter is nil")
+	}
 
-	// Register built-in tools for the agent
-	app.registerAgentTools(agentCtx)
+	if app.interpreter != nil {
+		err := app.registerAgentTools(agentCtx)
+		if err != nil {
+			app.Log.Error("Failed to register agent tools", "error", err)
+		}
+	} else {
+		return fmt.Errorf("cannot register agent tools: interpreter is nil")
+	}
 
-	// Main interactive loop
+	if app.Config.StartupScript != "" {
+		app.Log.Info("Executing startup script.", "path", app.Config.StartupScript)
+		if app.interpreter != nil {
+			// Pass ctx here for potential future use, even if RunProcedure doesn't take it now
+			err := app.executeStartupScript(ctx, app.Config.StartupScript, agentCtx)
+			if err != nil {
+				app.Log.Error("Failed to execute startup script.", "path", app.Config.StartupScript, "error", err)
+				fmt.Printf("[AGENT] Warning: Startup script '%s' failed: %v\n", app.Config.StartupScript, err)
+			} else {
+				app.Log.Info("Startup script executed successfully.", "path", app.Config.StartupScript)
+			}
+		} else {
+			app.Log.Error("Cannot execute startup script: interpreter is nil.")
+		}
+	} else {
+		app.Log.Info("No startup script specified.")
+	}
+
+	fmt.Println("Entering interactive agent mode. Type 'exit' or 'quit' to end.")
 	reader := bufio.NewReader(os.Stdin)
-	fmt.Println("Agent ready. Type your request or 'exit' to quit.")
 
 	for {
+		// ... (input loop unchanged) ...
 		fmt.Print("> ")
-		userInput, err := reader.ReadString('\n')
+		input, err := reader.ReadString('\n')
 		if err != nil {
 			app.Log.Error("Error reading user input", "error", err)
-			return fmt.Errorf("failed to read input: %w", err)
-		}
-		userInput = strings.TrimSpace(userInput)
-
-		if strings.ToLower(userInput) == "exit" {
-			fmt.Println("Exiting agent mode.")
-			break
-		}
-
-		if userInput == "" {
+			fmt.Println("Error reading input:", err)
 			continue
 		}
 
-		// Add user input to conversation
-		conversation.AddTurn(core.RoleUser, userInput)
+		input = strings.TrimSpace(input)
+		if input == "" {
+			continue
+		}
+		if strings.ToLower(input) == "quit" || strings.ToLower(input) == "exit" {
+			app.Log.Info("Exiting agent mode.")
+			break
+		}
 
-		// Process the turn using the agent context
-		// The handleTurn function encapsulates the core agent logic
-		err = app.handleTurn(ctx, agentCtx)
+		convoManager.AddUserMessage(input)
+
+		err = app.handleTurn(ctx, convoManager, agentCtx)
 		if err != nil {
-			app.Log.Error("Error handling turn", "error", err)
-			fmt.Println("An error occurred:", err)
-			// Decide whether to continue or exit on error
-			// For now, let's continue the loop
-			// Optionally remove the last user turn if handling failed critically?
+			app.Log.Error("Error handling agent turn", "error", err)
+			fmt.Println("Error processing turn:", err)
 		}
 
-		// Display the latest assistant response (or tool results) from the conversation
-		lastTurn := conversation.LastTurn()
-		if lastTurn != nil {
-			// Simple display, TUI mode would format this better
-			fmt.Printf("[%s]: %s\n", lastTurn.Role, lastTurn.Content)
-			if len(lastTurn.ToolCalls) > 0 {
-				fmt.Println("Tool Calls Requested:")
-				for _, tc := range lastTurn.ToolCalls {
-					fmt.Printf("  - %s(%v)\n", tc.Name, tc.Arguments)
+		// Display the latest model response
+		history := convoManager.GetHistory()
+		if len(history) > 0 {
+			lastContent := history[len(history)-1]
+			contentRole := lastContent.Role
+			if contentRole == "model" {
+				var modelTextResponse strings.Builder
+				if lastContent.Parts != nil {
+					for _, part := range lastContent.Parts {
+						if textPart, ok := part.(genai.Text); ok {
+							modelTextResponse.WriteString(string(textPart))
+						}
+					}
 				}
-			}
-			if len(lastTurn.ToolResults) > 0 {
-				fmt.Println("Tool Results:")
-				for _, tr := range lastTurn.ToolResults {
-					fmt.Printf("  - ID %s: %v\n", tr.ID, tr.Result) // Displaying raw result
+				responseText := modelTextResponse.String()
+				if responseText != "" {
+					fmt.Println("<", responseText)
+				} else if err == nil {
+					fmt.Println("< (Turn processed, check logs for details or tool output)")
 				}
+			} else if err == nil {
+				fmt.Println("< (Waiting for model response...)")
 			}
+		} else if err == nil {
+			fmt.Println("< (No response and no history?)")
 		}
+		fmt.Println()
 
-		// TODO: Add context management (e.g., pruning conversation history)
-	}
+	} // End input loop
 
+	fmt.Println("Agent mode finished.")
 	return nil
 }
 
-// registerAgentTools registers the tools available to the agent.
-func (app *App) registerAgentTools(agentCtx *AgentContext) {
+// registerAgentTools registers tools specifically needed for the agent mode.
+func (app *App) registerAgentTools(agentCtx *AgentContext) error {
+	// ... (unchanged) ...
 	app.Log.Info("Registering agent tools...")
+	if app.interpreter == nil {
+		return fmt.Errorf("cannot register agent tools: interpreter is nil")
+	}
+	registry := app.interpreter.ToolRegistry()
+	if registry == nil {
+		return fmt.Errorf("interpreter tool registry is nil")
+	}
 
-	// Example: Registering a simple echo tool (implementation would be elsewhere)
-	// agentCtx.RegisterTool(core.ToolDefinition{
-	// 	 Name:        "echo",
-	// 	 Description: "Echoes the input message back.",
-	// 	 InputSchema: map[string]any{
-	// 		 "type": "object",
-	// 		 "properties": map[string]any{
-	// 			 "message": map[string]any{"type": "string", "description": "The message to echo."},
-	// 		 },
-	// 		 "required": []string{"message"},
-	// 	 },
-	// }, func(ctx context.Context, args map[string]interface{}) (interface{}, error) {
-	// 	 message, ok := args["message"].(string)
-	// 	 if !ok {
-	// 		 return nil, fmt.Errorf("invalid 'message' argument type: %T", args["message"])
-	// 	 }
-	// 	 return message, nil
-	// })
-
-	// Register tools defined in agent_tools.go
-	RegisterCoreAgentTools(agentCtx)
+	err := RegisterAgentTools(registry)
+	if err != nil {
+		return fmt.Errorf("failed during agent tool registration: %w", err)
+	}
 
 	app.Log.Info("Agent tools registered.")
+	return nil
 }
 
 // handleTurn processes a single turn of the conversation.
-// This is a placeholder and should delegate to handle_turn.go logic.
-func (app *App) handleTurn(ctx context.Context, agentCtx *AgentContext) error {
+func (app *App) handleTurn(ctx context.Context, convoManager *core.ConversationManager, agentCtx *AgentContext) error {
+	// ... (setup unchanged) ...
 	app.Log.Debug("Handling agent turn...")
-	// This function should contain the logic currently in pkg/neurogo/handle_turn.go
-	// Call app.processAgentTurn or similar function defined in handle_turn.go
-	return app.processAgentTurn(ctx, agentCtx) // Assuming processAgentTurn exists in handle_turn.go
+
+	llmClient := app.GetLLMClient()
+	if app.interpreter == nil {
+		app.Log.Error("Interpreter is nil within handleTurn.")
+		return fmt.Errorf("cannot handle turn: interpreter is nil")
+	}
+	if llmClient == nil {
+		return fmt.Errorf("cannot handle turn: LLM client is nil")
+	}
+
+	registry := app.interpreter.ToolRegistry()
+	if registry == nil {
+		app.Log.Error("Interpreter's ToolRegistry is nil.")
+		return fmt.Errorf("cannot handle turn: tool registry is nil")
+	}
+
+	var allowedTools []string = nil
+	var allowedPaths map[string]bool = nil
+	sandboxDir := app.interpreter.SandboxDir()
+	securityLayer := core.NewSecurityLayer(
+		allowedTools,
+		allowedPaths,
+		sandboxDir,
+		registry,
+		app.Log,
+	)
+	if securityLayer == nil {
+		return fmt.Errorf("failed to create security layer")
+	}
+
+	availableTools := getAvailableTools(agentCtx, registry)
+
+	fileInfoList := agentCtx.GetURIsForNextContext()
+	stringURIs := make([]string, 0, len(fileInfoList))
+	for _, fileInfo := range fileInfoList {
+		if fileInfo != nil && fileInfo.URI != "" {
+			stringURIs = append(stringURIs, fileInfo.URI)
+		}
+	}
+	accumulatedContextURIsForCall := stringURIs
+
+	// Call handleAgentTurn, passing app.interpreter
+	// Note: handleAgentTurn might need context passed if *it* calls context-aware funcs
+	err := app.handleAgentTurn(
+		ctx, // Pass context along
+		llmClient,
+		convoManager,
+		app.interpreter,
+		securityLayer,
+		availableTools,
+		accumulatedContextURIsForCall,
+	)
+	if err != nil {
+		app.Log.Error("handleAgentTurn implementation failed", "error", err)
+		return err
+	}
+
+	app.Log.Debug("Agent turn processing complete in handleTurn.")
+	return nil
 }
 
-// Helper function to get available tools from the agent context
-// This might be better placed within AgentContext itself.
-func getAvailableTools(agentCtx *AgentContext) []core.ToolDefinition {
-	agentCtx.mu.RLock()
-	defer agentCtx.mu.RUnlock()
-	tools := make([]core.ToolDefinition, 0, len(agentCtx.tools))
-	for _, t := range agentCtx.tools {
-		tools = append(tools, t.Definition)
+// executeStartupScript handles running the initial agent configuration script.
+func (app *App) executeStartupScript(ctx context.Context, scriptPath string, agentCtx *AgentContext) error {
+	app.Log.Info("Executing startup script.", "path", scriptPath)
+
+	if app.interpreter == nil {
+		app.Log.Error("Interpreter is nil before executing startup script.")
+		return fmt.Errorf("cannot execute startup script: interpreter is nil")
 	}
-	return tools
+
+	procDefs, fileMeta, err := app.processNeuroScriptFile(scriptPath, app.interpreter)
+	if err != nil {
+		return fmt.Errorf("failed to process startup script %s: %w", scriptPath, err)
+	}
+	app.Log.Debug("Startup script processed.", "path", scriptPath, "procedures_found", len(procDefs), "metadata", fileMeta)
+
+	startupProcName := "main"
+	found := false
+	for _, proc := range procDefs {
+		if proc != nil && proc.Name == startupProcName {
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		app.Log.Warn("No 'main' procedure found in startup script, nothing to execute.", "path", scriptPath)
+		return nil
+	}
+
+	app.Log.Info("Running startup procedure.", "name", startupProcName, "script", scriptPath)
+
+	var results interface{}
+	procName := startupProcName
+	// arguments map is nil, so we pass no variadic args
+
+	// <<< FIX: Call RunProcedure matching gopls signature (procName string, args ...interface{}) >>>
+	results, runErr := app.interpreter.RunProcedure(procName) // Pass only procName
+
+	if runErr != nil {
+		// Don't need the specific context error check anymore
+		app.Log.Error("Error running startup procedure.", "proc", startupProcName, "error", runErr)
+		return fmt.Errorf("error running startup procedure '%s' from %s: %w", startupProcName, scriptPath, runErr)
+	}
+
+	app.Log.Info("Startup procedure finished.", "name", startupProcName, "result_type", fmt.Sprintf("%T", results))
+	return nil
+}
+
+// getAvailableTools prepares the list of genai.Tools for the LLM call.
+func getAvailableTools(agentCtx *AgentContext, registry *core.ToolRegistry) []*genai.Tool {
+	// ... (unchanged) ...
+	if registry == nil {
+		fmt.Println("[AGENT] Warning: Tool registry is nil in getAvailableTools.")
+		return []*genai.Tool{}
+	}
+
+	allTools := registry.GetAllTools()
+	genaiTools := make([]*genai.Tool, 0, len(allTools))
+	for name, toolImpl := range allTools {
+		// Use qualified name for declaration if tools are registered/called that way
+		qualifiedName := "TOOL." + name // Assuming tools need TOOL. prefix for LLM
+		genaiFunc := &genai.FunctionDeclaration{
+			Name:        qualifiedName,
+			Description: toolImpl.Spec.Description,
+		}
+		genaiTools = append(genaiTools, &genai.Tool{
+			FunctionDeclarations: []*genai.FunctionDeclaration{genaiFunc},
+		})
+	}
+	return genaiTools
+}
+
+// snippet returns the first n characters of a string.
+func snippet(s string, n int) string {
+	// ... (unchanged) ...
+	if len(s) <= n {
+		return s
+	}
+	return s[:n] + "..."
 }

@@ -2,7 +2,7 @@
 package tui
 
 import (
-	"github.com/aprice2704/neuroscript/pkg/core" // Need this for LLMClient type
+	"github.com/aprice2704/neuroscript/pkg/core" // Need this for LLMClient & Interpreter types
 	"github.com/aprice2704/neuroscript/pkg/logging"
 )
 
@@ -22,5 +22,8 @@ type AppAccess interface {
 	GetLogger() logging.Logger
 
 	// Client Accessors
-	GetLLMClient() *core.LLMClient // Added
+	GetLLMClient() core.LLMClient // Keep this if other parts of TUI need direct LLM access
+
+	// Interpreter Accessor
+	GetInterpreter() *core.Interpreter // Added
 }
