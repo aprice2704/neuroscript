@@ -1,6 +1,6 @@
- # NeuroScript Go Development Guidelines (Revised April 24, 2025)
+ # NeuroScript Go Development RULES (Revised 1-May-2025) by AJP
  
- Please follow these guidelines carefully for all Go code contributions to the NeuroScript project.
+Follow these **RULES** **very strictly** for all Go code contributions to the NeuroScript project, unless I say otherwise. DO NOT FORGET THEM.
  
  ## Project Setup & Awareness
  
@@ -8,7 +8,9 @@
  1a. **USE THE INDEX** you should have a file `neuroscript_index.json`, **if not, ask for it**, use it to find things in the codebase **instead of making assumptions**. 
  2.  **Request Missing Files:** If you need files you don't have (e.g., `.g4`, `.y`, fixtures, source code), ask for them immediately. Don't guess contents.
  3.  **Pause for Discussion:** During design discussions, wait for an explicit request before generating new/updated code files -- especially more than 2.
- 3. a. If you think the problem is build cache issues or build environment issues **you are wrong**, it has **never** been these things yet. It **may well** be that you have a stale file however, so just ask for the latest.
+ 3. a. Most of the time, generate one file at a time.
+ 3. b. If we experience stale files, **ask** for the latest contents to update.
+ 3. c. If you think the problem is build cache issues or build environment issues **you are wrong**, it has **never** been these things yet. It **may well** be that you have a stale file however, so just ask for the latest.
  
  ## Code Output & Structure
  
@@ -18,6 +20,8 @@
  7.  **Helpers:** Place reusable helpers in shared files (e.g., `utils.go`, `parsing_helpers.go`). Add new helpers cautiously; modify existing ones **rarely**.
  8.  **Package Comments:** Keep `// Package ...` comments accurate.
  9.  **Import Paths:** Use plain string literals for import paths (e.g., `"path/to/pkg"`), not Markdown links.
+ 9. a. Please **version stamp** each file you touch, e.g. `// NeuroScript Version: 0.3.0
+// Last Modified: 2025-05-01 12:41:54 PDT` as we have been having some stale file problems
  
  ## Error Handling Protocol
  

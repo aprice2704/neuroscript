@@ -63,7 +63,15 @@ func (v *BaseNeuroScriptVisitor) VisitBlock_statement(ctx *Block_statementContex
 	return v.VisitChildren(ctx)
 }
 
+func (v *BaseNeuroScriptVisitor) VisitExpressionStatement(ctx *ExpressionStatementContext) interface{} {
+	return v.VisitChildren(ctx)
+}
+
 func (v *BaseNeuroScriptVisitor) VisitSet_statement(ctx *Set_statementContext) interface{} {
+	return v.VisitChildren(ctx)
+}
+
+func (v *BaseNeuroScriptVisitor) VisitCall_statement(ctx *Call_statementContext) interface{} {
 	return v.VisitChildren(ctx)
 }
 
@@ -88,6 +96,14 @@ func (v *BaseNeuroScriptVisitor) VisitClearErrorStmt(ctx *ClearErrorStmtContext)
 }
 
 func (v *BaseNeuroScriptVisitor) VisitAsk_stmt(ctx *Ask_stmtContext) interface{} {
+	return v.VisitChildren(ctx)
+}
+
+func (v *BaseNeuroScriptVisitor) VisitBreak_statement(ctx *Break_statementContext) interface{} {
+	return v.VisitChildren(ctx)
+}
+
+func (v *BaseNeuroScriptVisitor) VisitContinue_statement(ctx *Continue_statementContext) interface{} {
 	return v.VisitChildren(ctx)
 }
 

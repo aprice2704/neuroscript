@@ -49,8 +49,14 @@ type NeuroScriptListener interface {
 	// EnterBlock_statement is called when entering the block_statement production.
 	EnterBlock_statement(c *Block_statementContext)
 
+	// EnterExpressionStatement is called when entering the expressionStatement production.
+	EnterExpressionStatement(c *ExpressionStatementContext)
+
 	// EnterSet_statement is called when entering the set_statement production.
 	EnterSet_statement(c *Set_statementContext)
+
+	// EnterCall_statement is called when entering the call_statement production.
+	EnterCall_statement(c *Call_statementContext)
 
 	// EnterReturn_statement is called when entering the return_statement production.
 	EnterReturn_statement(c *Return_statementContext)
@@ -69,6 +75,12 @@ type NeuroScriptListener interface {
 
 	// EnterAsk_stmt is called when entering the ask_stmt production.
 	EnterAsk_stmt(c *Ask_stmtContext)
+
+	// EnterBreak_statement is called when entering the break_statement production.
+	EnterBreak_statement(c *Break_statementContext)
+
+	// EnterContinue_statement is called when entering the continue_statement production.
+	EnterContinue_statement(c *Continue_statementContext)
 
 	// EnterIf_statement is called when entering the if_statement production.
 	EnterIf_statement(c *If_statementContext)
@@ -202,8 +214,14 @@ type NeuroScriptListener interface {
 	// ExitBlock_statement is called when exiting the block_statement production.
 	ExitBlock_statement(c *Block_statementContext)
 
+	// ExitExpressionStatement is called when exiting the expressionStatement production.
+	ExitExpressionStatement(c *ExpressionStatementContext)
+
 	// ExitSet_statement is called when exiting the set_statement production.
 	ExitSet_statement(c *Set_statementContext)
+
+	// ExitCall_statement is called when exiting the call_statement production.
+	ExitCall_statement(c *Call_statementContext)
 
 	// ExitReturn_statement is called when exiting the return_statement production.
 	ExitReturn_statement(c *Return_statementContext)
@@ -222,6 +240,12 @@ type NeuroScriptListener interface {
 
 	// ExitAsk_stmt is called when exiting the ask_stmt production.
 	ExitAsk_stmt(c *Ask_stmtContext)
+
+	// ExitBreak_statement is called when exiting the break_statement production.
+	ExitBreak_statement(c *Break_statementContext)
+
+	// ExitContinue_statement is called when exiting the continue_statement production.
+	ExitContinue_statement(c *Continue_statementContext)
 
 	// ExitIf_statement is called when exiting the if_statement production.
 	ExitIf_statement(c *If_statementContext)

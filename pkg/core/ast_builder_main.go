@@ -1,4 +1,5 @@
-// filename: pkg/core/ast_builder_main.go
+// NeuroScript Version: 0.3.0
+// Last Modified: 2025-05-01 12:41:54 PDT
 package core
 
 import (
@@ -53,7 +54,7 @@ func NewASTBuilder(logger logging.Logger) *ASTBuilder {
 	// Forcing debugAST true here for continued debugging.
 	return &ASTBuilder{
 		logger:   logger,
-		debugAST: true,
+		debugAST: false,
 	}
 }
 
@@ -199,6 +200,7 @@ type neuroScriptListenerImpl struct {
 	logger         logging.Logger
 	debugAST       bool
 	errors         []error
+	loopDepth      int // <<< ADDED: Track nesting level of loops
 }
 
 // newNeuroScriptListener creates a new listener instance.
@@ -218,6 +220,7 @@ func newNeuroScriptListener(logger logging.Logger, debugAST bool) *neuroScriptLi
 		logger:                  logger,
 		debugAST:                debugAST,
 		errors:                  make([]error, 0),
+		loopDepth:               0, // <<< ADDED: Initialize loop depth
 	}
 }
 
@@ -337,6 +340,11 @@ func (l *neuroScriptListenerImpl) logDebugAST(format string, v ...interface{}) {
 	}
 }
 
+// --- ADDED: Loop Context Helper ---
+func (l *neuroScriptListenerImpl) isInsideLoop() bool {
+	return l.loopDepth > 0
+}
+
 // --- Listener ANTLR Method Implementations ---
 func (l *neuroScriptListenerImpl) EnterProgram(ctx *gen.ProgramContext) {
 	l.logDebugAST(">>> Enter Program")
@@ -353,6 +361,7 @@ func (l *neuroScriptListenerImpl) EnterProgram(ctx *gen.ProgramContext) {
 	l.currentProc = nil
 	l.currentSteps = nil
 	l.currentMapKey = nil
+	l.loopDepth = 0 // Reset loop depth at program start
 }
 
 func (l *neuroScriptListenerImpl) ExitProgram(ctx *gen.ProgramContext) {
@@ -385,7 +394,7 @@ func (l *neuroScriptListenerImpl) ExitProgram(ctx *gen.ProgramContext) {
 }
 
 func (l *neuroScriptListenerImpl) EnterFile_header(ctx *gen.File_headerContext) {
-	l.logDebugAST("  >> Enter File Header")
+	l.logDebugAST("   >> Enter File Header")
 	if l.program == nil || l.program.Metadata == nil {
 		l.logger.Error("EnterFile_header called with nil program or metadata map!")
 		l.errors = append(l.errors, errors.New("internal AST builder error: program/metadata nil in EnterFile_header"))
@@ -421,7 +430,7 @@ func (l *neuroScriptListenerImpl) EnterFile_header(ctx *gen.File_headerContext) 
 }
 
 func (l *neuroScriptListenerImpl) ExitFile_header(ctx *gen.File_headerContext) {
-	l.logDebugAST("  << Exit File Header")
+	l.logDebugAST("   << Exit File Header")
 }
 
 // --- END MODIFIED Methods ---

@@ -1,10 +1,12 @@
-// filename: pkg/core/ast_builder_statements.go
+// NeuroScript Version: 0.3.0
+// Last Modified: 2025-05-01 12:37:21 PDT
 package core
 
 import (
 	"fmt" // Import fmt
 
 	gen "github.com/aprice2704/neuroscript/pkg/core/generated"
+	// "log" // Use logger from listener impl instead
 )
 
 // --- Simple Statement Exit Handlers ---
@@ -47,7 +49,7 @@ func (l *neuroScriptListenerImpl) ExitSet_statement(ctx *gen.Set_statementContex
 		Metadata:  make(map[string]string), // Initialize metadata map
 	}
 	*l.currentSteps = append(*l.currentSteps, step)
-	l.logDebugAST("    Appended SET Step: Target=%s, Value=%T", varName, valueNode)
+	l.logDebugAST("      Appended SET Step: Target=%s, Value=%T", varName, valueNode)
 }
 
 func (l *neuroScriptListenerImpl) ExitReturn_statement(ctx *gen.Return_statementContext) {
@@ -77,16 +79,16 @@ func (l *neuroScriptListenerImpl) ExitReturn_statement(ctx *gen.Return_statement
 				}
 				returnNodes = append(returnNodes, nodeExpr)
 			}
-			l.logDebugAST("    Popped and asserted %d return nodes", len(returnNodes))
+			l.logDebugAST("      Popped and asserted %d return nodes", len(returnNodes))
 
 		} else {
 			// Expression_list exists but is empty (e.g., `return ()`)
-			l.logDebugAST("    RETURN statement has empty Expression_list (value will be empty list).")
+			l.logDebugAST("      RETURN statement has empty Expression_list (value will be empty list).")
 			returnNodes = []Expression{} // Return empty slice
 		}
 	} else {
 		// No expression list (e.g., `return`)
-		l.logDebugAST("    RETURN statement has no expression list (value will be nil)")
+		l.logDebugAST("      RETURN statement has no expression list (value will be nil)")
 		returnNodes = nil // Return nil slice
 	}
 
@@ -106,6 +108,7 @@ func (l *neuroScriptListenerImpl) ExitReturn_statement(ctx *gen.Return_statement
 		Metadata:  make(map[string]string),
 	}
 	*l.currentSteps = append(*l.currentSteps, step)
+	l.logDebugAST("      Appended RETURN Step")
 }
 
 func (l *neuroScriptListenerImpl) ExitEmit_statement(ctx *gen.Emit_statementContext) {
@@ -141,11 +144,12 @@ func (l *neuroScriptListenerImpl) ExitEmit_statement(ctx *gen.Emit_statementCont
 		Metadata:  make(map[string]string),
 	}
 	*l.currentSteps = append(*l.currentSteps, step)
+	l.logDebugAST("      Appended EMIT Step")
 }
 
 func (l *neuroScriptListenerImpl) ExitMust_statement(ctx *gen.Must_statementContext) {
 	l.logDebugAST("<<< Exit Must_statement: %q", ctx.GetText())
-	var valueNode Expression // For 'must', this holds the condition Expression
+	var valueNode Expression // For 'must', this holds the condition Expression. For 'mustbe', holds the CallableExprNode
 	var target string        // For 'mustbe', this holds the function name
 	stepType := "must"       // Default
 
@@ -173,7 +177,7 @@ func (l *neuroScriptListenerImpl) ExitMust_statement(ctx *gen.Must_statementCont
 		}
 		// The Value field for mustbe holds the *CallableExprNode itself
 		valueNode = callNode // Assign the callable node to valueNode (it implements Expression)
-		l.logDebugAST("    Interpreting as MUSTBE, Target=%s", target)
+		l.logDebugAST("      Interpreting as MUSTBE, Target=%s", target)
 
 	} else if ctx.Expression() != nil {
 		// It's a 'must' statement
@@ -185,7 +189,7 @@ func (l *neuroScriptListenerImpl) ExitMust_statement(ctx *gen.Must_statementCont
 			return
 		}
 		target = "" // Target not used for 'must'
-		l.logDebugAST("    Interpreting as MUST")
+		l.logDebugAST("      Interpreting as MUST")
 	} else {
 		// Should not happen based on grammar
 		l.addError(ctx, "Internal error: Invalid structure for Must_statementContext")
@@ -207,7 +211,7 @@ func (l *neuroScriptListenerImpl) ExitMust_statement(ctx *gen.Must_statementCont
 		Metadata:  make(map[string]string),
 	}
 	*l.currentSteps = append(*l.currentSteps, step)
-	l.logDebugAST("    Appended %s Step: Value=%T", stepType, valueNode)
+	l.logDebugAST("      Appended %s Step: Value=%T", stepType, valueNode)
 }
 
 func (l *neuroScriptListenerImpl) ExitFail_statement(ctx *gen.Fail_statementContext) {
@@ -242,6 +246,7 @@ func (l *neuroScriptListenerImpl) ExitFail_statement(ctx *gen.Fail_statementCont
 		Metadata:  make(map[string]string),
 	}
 	*l.currentSteps = append(*l.currentSteps, step)
+	l.logDebugAST("      Appended FAIL Step")
 }
 
 func (l *neuroScriptListenerImpl) ExitClearErrorStmt(ctx *gen.ClearErrorStmtContext) {
@@ -261,7 +266,7 @@ func (l *neuroScriptListenerImpl) ExitClearErrorStmt(ctx *gen.ClearErrorStmtCont
 		Metadata:  make(map[string]string),
 	}
 	*l.currentSteps = append(*l.currentSteps, step)
-	l.logDebugAST("    Appended CLEAR_ERROR Step")
+	l.logDebugAST("      Appended CLEAR_ERROR Step")
 }
 
 // *** ADDED: Handler for Ask statement ***
@@ -292,7 +297,7 @@ func (l *neuroScriptListenerImpl) ExitAsk_stmt(ctx *gen.Ask_stmtContext) {
 	targetVar := ""
 	if ctx.IDENTIFIER() != nil {
 		targetVar = ctx.IDENTIFIER().GetText()
-		l.logDebugAST("    Ask target variable: %s", targetVar)
+		l.logDebugAST("      Ask target variable: %s", targetVar)
 	}
 
 	// 5. Create and append step
@@ -306,7 +311,67 @@ func (l *neuroScriptListenerImpl) ExitAsk_stmt(ctx *gen.Ask_stmtContext) {
 		Metadata:  make(map[string]string),
 	}
 	*l.currentSteps = append(*l.currentSteps, step)
-	l.logDebugAST("    Appended ASK Step: Target=%s, Prompt=%T", targetVar, promptExpr)
+	l.logDebugAST("      Appended ASK Step: Target=%s, Prompt=%T", targetVar, promptExpr)
+}
+
+// --- ADDED Listeners for Break/Continue ---
+
+func (l *neuroScriptListenerImpl) ExitBreak_statement(ctx *gen.Break_statementContext) {
+	l.logDebugAST("<<< Exit Break_statement: %q", ctx.GetText())
+
+	// 1. Check loop context
+	if !l.isInsideLoop() {
+		l.addError(ctx, "'break' statement is not allowed outside of a loop ('while' or 'for each')")
+		return // Stop processing this statement
+	}
+
+	// 2. Check destination
+	if l.currentSteps == nil {
+		l.addError(ctx, "Internal error: Break_statement exited with nil currentSteps")
+		return
+	}
+
+	// 3. Create and append step
+	step := Step{
+		Pos:       tokenToPosition(ctx.GetStart()), // Position of 'break' keyword
+		Type:      "break",
+		Target:    "",  // Not used
+		Cond:      nil, // Not used
+		Value:     nil, // Not used
+		ElseValue: nil, // Not used
+		Metadata:  make(map[string]string),
+	}
+	*l.currentSteps = append(*l.currentSteps, step)
+	l.logDebugAST("      Appended BREAK Step")
+}
+
+func (l *neuroScriptListenerImpl) ExitContinue_statement(ctx *gen.Continue_statementContext) {
+	l.logDebugAST("<<< Exit Continue_statement: %q", ctx.GetText())
+
+	// 1. Check loop context
+	if !l.isInsideLoop() {
+		l.addError(ctx, "'continue' statement is not allowed outside of a loop ('while' or 'for each')")
+		return // Stop processing this statement
+	}
+
+	// 2. Check destination
+	if l.currentSteps == nil {
+		l.addError(ctx, "Internal error: Continue_statement exited with nil currentSteps")
+		return
+	}
+
+	// 3. Create and append step
+	step := Step{
+		Pos:       tokenToPosition(ctx.GetStart()), // Position of 'continue' keyword
+		Type:      "continue",
+		Target:    "",  // Not used
+		Cond:      nil, // Not used
+		Value:     nil, // Not used
+		ElseValue: nil, // Not used
+		Metadata:  make(map[string]string),
+	}
+	*l.currentSteps = append(*l.currentSteps, step)
+	l.logDebugAST("      Appended CONTINUE Step")
 }
 
 // --- REMOVED: ExitCall_statement ---

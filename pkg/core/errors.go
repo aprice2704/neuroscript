@@ -1,3 +1,5 @@
+// NeuroScript Version: 0.3.0
+// Last Modified: 2025-05-01 12:49:26 PDT
 // filename: pkg/core/errors.go
 package core
 
@@ -161,4 +163,14 @@ var (
 	ErrToolNotFound         = errors.New("tool or tool function not found")
 	ErrLLMError             = errors.New("LLM interaction failed")
 	ErrLLMNotConfigured     = errors.New("LLM client not configured in interpreter") // ADDED
+)
+
+// --- ADDED: Control Flow Sentinel Errors ---
+var (
+	// These are used internally to signal control flow, not typically user-facing errors.
+	ErrBreak    = errors.New("internal: break signal")
+	ErrContinue = errors.New("internal: continue signal")
+	// TODO: Consider if ErrReturn should also be a simple sentinel error here,
+	// or if it needs to carry values (currently handled via panic/recover in interpreter?).
+	// For now, defining ErrBreak and ErrContinue is sufficient for this task.
 )

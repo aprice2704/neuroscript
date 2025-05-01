@@ -6,6 +6,9 @@
 
  # NeuroScript v0.3.0 Development Tasks
 
+ - [ ] 1. Language features
+     [ ] `break` and `continue` flow control words
+
  - [ ] 3. Implement Go Tooling (Core Tools)
    - [ ] Add go module awareness (`go.mod`).
    - [ ] Implement `goimports` functionality.

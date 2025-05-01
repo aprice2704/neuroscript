@@ -1,3 +1,5 @@
+// NeuroScript Version: 0.3.0
+// Last Modified: 2025-05-01 13:08:08 PDT
 // filename: pkg/core/interpreter_steps_simple.go
 package core
 
@@ -285,6 +287,26 @@ func (i *Interpreter) executeAsk(step Step, stepNum int, isInHandler bool, activ
 
 	// ASK step result itself (for LAST) is the LLM's response
 	return llmResult, nil
+}
+
+// --- ADDED Handlers for Break/Continue ---
+
+// executeBreak handles the "break" step by returning ErrBreak.
+func (i *Interpreter) executeBreak(step Step, stepNum int, isInHandler bool, activeError *RuntimeError) (interface{}, error) {
+	posStr := step.Pos.String()
+	i.Logger().Debug("[DEBUG-INTERP]   Executing BREAK", "pos", posStr)
+	// Break simply returns the sentinel error to signal the loop execution to stop.
+	// No value is returned.
+	return nil, ErrBreak
+}
+
+// executeContinue handles the "continue" step by returning ErrContinue.
+func (i *Interpreter) executeContinue(step Step, stepNum int, isInHandler bool, activeError *RuntimeError) (interface{}, error) {
+	posStr := step.Pos.String()
+	i.Logger().Debug("[DEBUG-INTERP]   Executing CONTINUE", "pos", posStr)
+	// Continue simply returns the sentinel error to signal the loop execution to skip to the next iteration.
+	// No value is returned.
+	return nil, ErrContinue
 }
 
 // --- Helpers --- (NodeToString, isTruthy etc. assumed to exist elsewhere)

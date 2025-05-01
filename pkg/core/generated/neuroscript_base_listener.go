@@ -104,11 +104,23 @@ func (s *BaseNeuroScriptListener) EnterBlock_statement(ctx *Block_statementConte
 // ExitBlock_statement is called when production block_statement is exited.
 func (s *BaseNeuroScriptListener) ExitBlock_statement(ctx *Block_statementContext) {}
 
+// EnterExpressionStatement is called when production expressionStatement is entered.
+func (s *BaseNeuroScriptListener) EnterExpressionStatement(ctx *ExpressionStatementContext) {}
+
+// ExitExpressionStatement is called when production expressionStatement is exited.
+func (s *BaseNeuroScriptListener) ExitExpressionStatement(ctx *ExpressionStatementContext) {}
+
 // EnterSet_statement is called when production set_statement is entered.
 func (s *BaseNeuroScriptListener) EnterSet_statement(ctx *Set_statementContext) {}
 
 // ExitSet_statement is called when production set_statement is exited.
 func (s *BaseNeuroScriptListener) ExitSet_statement(ctx *Set_statementContext) {}
+
+// EnterCall_statement is called when production call_statement is entered.
+func (s *BaseNeuroScriptListener) EnterCall_statement(ctx *Call_statementContext) {}
+
+// ExitCall_statement is called when production call_statement is exited.
+func (s *BaseNeuroScriptListener) ExitCall_statement(ctx *Call_statementContext) {}
 
 // EnterReturn_statement is called when production return_statement is entered.
 func (s *BaseNeuroScriptListener) EnterReturn_statement(ctx *Return_statementContext) {}
@@ -145,6 +157,18 @@ func (s *BaseNeuroScriptListener) EnterAsk_stmt(ctx *Ask_stmtContext) {}
 
 // ExitAsk_stmt is called when production ask_stmt is exited.
 func (s *BaseNeuroScriptListener) ExitAsk_stmt(ctx *Ask_stmtContext) {}
+
+// EnterBreak_statement is called when production break_statement is entered.
+func (s *BaseNeuroScriptListener) EnterBreak_statement(ctx *Break_statementContext) {}
+
+// ExitBreak_statement is called when production break_statement is exited.
+func (s *BaseNeuroScriptListener) ExitBreak_statement(ctx *Break_statementContext) {}
+
+// EnterContinue_statement is called when production continue_statement is entered.
+func (s *BaseNeuroScriptListener) EnterContinue_statement(ctx *Continue_statementContext) {}
+
+// ExitContinue_statement is called when production continue_statement is exited.
+func (s *BaseNeuroScriptListener) ExitContinue_statement(ctx *Continue_statementContext) {}
 
 // EnterIf_statement is called when production if_statement is entered.
 func (s *BaseNeuroScriptListener) EnterIf_statement(ctx *If_statementContext) {}

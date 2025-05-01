@@ -1,4 +1,5 @@
-// filename: pkg/core/ast_builder_blocks.go
+// NeuroScript Version: 0.3.0
+// Last Modified: 2025-05-01 12:46:14 PDT
 package core
 
 import (
@@ -19,7 +20,7 @@ func (l *neuroScriptListenerImpl) enterBlockContext(blockType string) {
 		l.blockStepStack = append(l.blockStepStack, l.currentSteps) // Push pointer to parent list
 		newSteps := make([]Step, 0)
 		l.currentSteps = &newSteps // Start new list for the block body
-		l.logDebugAST("    %s: Pushed parent context %p. Stack size: %d. New steps: %p", blockType, l.blockStepStack[len(l.blockStepStack)-1], len(l.blockStepStack), l.currentSteps)
+		l.logDebugAST("      %s: Pushed parent context %p. Stack size: %d. New steps: %p", blockType, l.blockStepStack[len(l.blockStepStack)-1], len(l.blockStepStack), l.currentSteps)
 	}
 }
 
@@ -33,7 +34,7 @@ func (l *neuroScriptListenerImpl) exitBlockContext(blockType string) []Step {
 	var completedSteps []Step
 	if l.currentSteps != nil {
 		completedSteps = *l.currentSteps
-		l.logDebugAST("    %s: Captured %d steps from context %p", blockType, len(completedSteps), l.currentSteps)
+		l.logDebugAST("      %s: Captured %d steps from context %p", blockType, len(completedSteps), l.currentSteps)
 	} else {
 		l.logger.Warn("%s: Exiting block, but currentSteps is nil. Returning empty slice.", blockType)
 		completedSteps = []Step{} // Return empty, not nil
@@ -56,7 +57,7 @@ func (l *neuroScriptListenerImpl) exitBlockContext(blockType string) []Step {
 	if l.currentSteps == nil {
 		l.logger.Warn("%s: Restored parent context, but it was nil (Stack size: %d)", blockType, len(l.blockStepStack))
 	} else {
-		l.logDebugAST("    %s: Restored parent context %p (Stack size: %d)", blockType, l.currentSteps, len(l.blockStepStack))
+		l.logDebugAST("      %s: Restored parent context %p (Stack size: %d)", blockType, l.currentSteps, len(l.blockStepStack))
 	}
 
 	return completedSteps // Return the captured steps
@@ -86,6 +87,7 @@ func (l *neuroScriptListenerImpl) ExitStatement_list(ctx *gen.Statement_listCont
 func (l *neuroScriptListenerImpl) EnterIf_statement(ctx *gen.If_statementContext) {
 	l.logDebugAST(">>> Enter IF Statement Context")
 	// Do NOT call enterBlockContext here yet. We handle it when entering the THEN list.
+	// Also, do NOT modify loopDepth here.
 }
 
 // EnterStatement_list is now responsible for context switching within IF/ELSE
@@ -125,13 +127,13 @@ func (l *neuroScriptListenerImpl) ExitIf_statement(ctx *gen.If_statementContext)
 	if ctx.KW_ELSE() != nil {
 		// Exit the context created for the ELSE block's statement list
 		elseSteps = l.exitBlockContext("IF-ELSE")
-		l.logDebugAST("    Captured %d ELSE steps", len(elseSteps))
+		l.logDebugAST("      Captured %d ELSE steps", len(elseSteps))
 	}
 
 	// Capture Then Steps by calling exitBlockContext
 	// Exit the context created for the THEN block's statement list
 	thenSteps = l.exitBlockContext("IF-THEN")
-	l.logDebugAST("    Captured %d THEN steps", len(thenSteps))
+	l.logDebugAST("      Captured %d THEN steps", len(thenSteps))
 
 	// Pop Condition Expression (still needed from value stack)
 	conditionRaw, ok := l.popValue()
@@ -146,7 +148,7 @@ func (l *neuroScriptListenerImpl) ExitIf_statement(ctx *gen.If_statementContext)
 		return
 	}
 	conditionNode = conditionAsserted
-	l.logDebugAST("    Popped IF condition: %T", conditionNode)
+	l.logDebugAST("      Popped IF condition: %T", conditionNode)
 
 	// Parent context should now be restored (by the last exitBlockContext call)
 	if l.currentSteps == nil {
@@ -169,20 +171,27 @@ func (l *neuroScriptListenerImpl) ExitIf_statement(ctx *gen.If_statementContext)
 	if elseSteps != nil {
 		elseLen = len(elseSteps)
 	}
-	l.logDebugAST("    Appended complete IF Step to parent: Cond=%T, THEN Steps=%d, ELSE Steps=%d", ifStep.Cond, thenLen, elseLen)
+	l.logDebugAST("      Appended complete IF Step to parent: Cond=%T, THEN Steps=%d, ELSE Steps=%d", ifStep.Cond, thenLen, elseLen)
 }
 
 // --- WHILE Statement ---
 func (l *neuroScriptListenerImpl) EnterWhile_statement(ctx *gen.While_statementContext) {
+	l.loopDepth++ // <<< Increment loop depth
+	l.logDebugAST(">>> Enter WHILE Statement Context (Loop Depth: %d)", l.loopDepth)
 	l.enterBlockContext("WHILE") // Push parent, prepare for body steps
 }
 
 func (l *neuroScriptListenerImpl) ExitWhile_statement(ctx *gen.While_statementContext) {
+	defer func() { // <<< Decrement loop depth when function exits
+		l.loopDepth--
+		l.logDebugAST("<<< Exit WHILE Statement Context (Loop Depth: %d)", l.loopDepth)
+	}()
+
 	l.logDebugAST("--- Exit While_statement Finalization")
 
 	// Capture Body Steps *before* restoring parent context
 	bodySteps := l.exitBlockContext("WHILE")
-	l.logDebugAST("    Captured %d WHILE body steps", len(bodySteps))
+	l.logDebugAST("      Captured %d WHILE body steps", len(bodySteps))
 
 	// Pop Condition Expression
 	conditionRaw, ok := l.popValue()
@@ -197,7 +206,7 @@ func (l *neuroScriptListenerImpl) ExitWhile_statement(ctx *gen.While_statementCo
 		// l.exitBlockContext("WHILE - Error") // Context already exited
 		return
 	}
-	l.logDebugAST("    Popped WHILE condition: %T", conditionNode)
+	l.logDebugAST("      Popped WHILE condition: %T", conditionNode)
 
 	// Parent context should be restored now
 	if l.currentSteps == nil {
@@ -215,20 +224,27 @@ func (l *neuroScriptListenerImpl) ExitWhile_statement(ctx *gen.While_statementCo
 		Metadata:  make(map[string]string),
 	}
 	*l.currentSteps = append(*l.currentSteps, whileStep)
-	l.logDebugAST("    Appended WHILE Step: Cond=%T, Steps=%d", conditionNode, len(bodySteps))
+	l.logDebugAST("      Appended WHILE Step: Cond=%T, Steps=%d", conditionNode, len(bodySteps))
 }
 
 // --- FOR EACH Statement ---
 func (l *neuroScriptListenerImpl) EnterFor_each_statement(ctx *gen.For_each_statementContext) {
+	l.loopDepth++ // <<< Increment loop depth
+	l.logDebugAST(">>> Enter FOR EACH Statement Context (Loop Depth: %d)", l.loopDepth)
 	l.enterBlockContext("FOR") // Push parent, prepare for body steps
 }
 
 func (l *neuroScriptListenerImpl) ExitFor_each_statement(ctx *gen.For_each_statementContext) {
+	defer func() { // <<< Decrement loop depth when function exits
+		l.loopDepth--
+		l.logDebugAST("<<< Exit FOR EACH Statement Context (Loop Depth: %d)", l.loopDepth)
+	}()
+
 	l.logDebugAST("--- Exit For_each_statement Finalization")
 
 	// Capture Body Steps
 	bodySteps := l.exitBlockContext("FOR")
-	l.logDebugAST("    Captured %d FOR body steps", len(bodySteps))
+	l.logDebugAST("      Captured %d FOR body steps", len(bodySteps))
 
 	// Pop Collection Expression
 	collectionRaw, ok := l.popValue()
@@ -241,7 +257,7 @@ func (l *neuroScriptListenerImpl) ExitFor_each_statement(ctx *gen.For_each_state
 		l.addError(ctx, "Internal error: FOR collection is not an Expression (got %T)", collectionRaw)
 		return
 	}
-	l.logDebugAST("    Popped FOR collection: %T", collectionNode)
+	l.logDebugAST("      Popped FOR collection: %T", collectionNode)
 
 	// Get Loop Variable Name
 	loopVar := ""
@@ -261,7 +277,7 @@ func (l *neuroScriptListenerImpl) ExitFor_each_statement(ctx *gen.For_each_state
 	// Create and Append FOR Step to Parent
 	forStep := Step{
 		Pos:       tokenToPosition(ctx.KW_FOR().GetSymbol()),
-		Type:      "for",
+		Type:      "for", // "for" still seems appropriate for for-each
 		Target:    loopVar,
 		Cond:      collectionNode, // Collection expr -> Cond
 		Value:     bodySteps,      // Body steps -> Value
@@ -269,12 +285,13 @@ func (l *neuroScriptListenerImpl) ExitFor_each_statement(ctx *gen.For_each_state
 		Metadata:  make(map[string]string),
 	}
 	*l.currentSteps = append(*l.currentSteps, forStep)
-	l.logDebugAST("    Appended FOR Step: Var=%q, Collection=%T, Steps=%d", loopVar, collectionNode, len(bodySteps))
+	l.logDebugAST("      Appended FOR Step: Var=%q, Collection=%T, Steps=%d", loopVar, collectionNode, len(bodySteps))
 }
 
 // --- ON ERROR Statement ---
 func (l *neuroScriptListenerImpl) EnterOnErrorStmt(ctx *gen.OnErrorStmtContext) {
 	l.enterBlockContext("ON_ERROR") // Push parent, prepare for handler steps
+	// Does not affect loop depth
 }
 
 func (l *neuroScriptListenerImpl) ExitOnErrorStmt(ctx *gen.OnErrorStmtContext) {
@@ -282,7 +299,7 @@ func (l *neuroScriptListenerImpl) ExitOnErrorStmt(ctx *gen.OnErrorStmtContext) {
 
 	// Capture Handler Steps
 	handlerSteps := l.exitBlockContext("ON_ERROR")
-	l.logDebugAST("    Captured %d ON_ERROR handler steps", len(handlerSteps))
+	l.logDebugAST("      Captured %d ON_ERROR handler steps", len(handlerSteps))
 
 	// Parent context should be restored
 	if l.currentSteps == nil {
@@ -301,5 +318,5 @@ func (l *neuroScriptListenerImpl) ExitOnErrorStmt(ctx *gen.OnErrorStmtContext) {
 		Metadata:  make(map[string]string),
 	}
 	*l.currentSteps = append(*l.currentSteps, onErrorStep)
-	l.logDebugAST("    Appended ON_ERROR Step: HandlerSteps=%d", len(handlerSteps))
+	l.logDebugAST("      Appended ON_ERROR Step: HandlerSteps=%d", len(handlerSteps))
 }

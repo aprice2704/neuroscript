@@ -49,8 +49,14 @@ type NeuroScriptVisitor interface {
 	// Visit a parse tree produced by NeuroScriptParser#block_statement.
 	VisitBlock_statement(ctx *Block_statementContext) interface{}
 
+	// Visit a parse tree produced by NeuroScriptParser#expressionStatement.
+	VisitExpressionStatement(ctx *ExpressionStatementContext) interface{}
+
 	// Visit a parse tree produced by NeuroScriptParser#set_statement.
 	VisitSet_statement(ctx *Set_statementContext) interface{}
+
+	// Visit a parse tree produced by NeuroScriptParser#call_statement.
+	VisitCall_statement(ctx *Call_statementContext) interface{}
 
 	// Visit a parse tree produced by NeuroScriptParser#return_statement.
 	VisitReturn_statement(ctx *Return_statementContext) interface{}
@@ -69,6 +75,12 @@ type NeuroScriptVisitor interface {
 
 	// Visit a parse tree produced by NeuroScriptParser#ask_stmt.
 	VisitAsk_stmt(ctx *Ask_stmtContext) interface{}
+
+	// Visit a parse tree produced by NeuroScriptParser#break_statement.
+	VisitBreak_statement(ctx *Break_statementContext) interface{}
+
+	// Visit a parse tree produced by NeuroScriptParser#continue_statement.
+	VisitContinue_statement(ctx *Continue_statementContext) interface{}
 
 	// Visit a parse tree produced by NeuroScriptParser#if_statement.
 	VisitIf_statement(ctx *If_statementContext) interface{}

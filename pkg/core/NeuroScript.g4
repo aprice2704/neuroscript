@@ -1,8 +1,8 @@
-// File:      NeuroScript.g4
-// Grammar:   NeuroScript
-// Version:   0.2.0-alpha-func-returns-2 // Incremented Version for signature fix
-// Date:      2025-04-30 // Updated Date
-// NOTE: Added ask_stmt rule Apr 30, 2025. Fixed func signature parsing Apr 30, 2025.
+// File:       NeuroScript.g4
+// Grammar:    NeuroScript
+// Version:    0.3.4 // Updated Version
+// Date:       2025-05-01 // Updated Date
+// NOTE: Corrected STRING_LIT definition. Removed '-> skip' from NEWLINE. Added expressionStatement. Added break/continue.
 
 grammar NeuroScript;
 
@@ -25,15 +25,15 @@ procedure_definition:
 
 // NEW rule: signature_part handles all variations between func name and 'means'
 signature_part:
-     // Option 1: Parens are present (clauses inside are optional)
-     LPAREN needs_clause? optional_clause? returns_clause? RPAREN
-     // Option 2: Parens are absent - requires at least one clause
-     | needs_clause optional_clause? returns_clause?
-     | optional_clause returns_clause?
-     | returns_clause
-     // Option 3: No clauses at all (empty alternative matches nothing)
-     |
-     ;
+      // Option 1: Parens are present (clauses inside are optional)
+      LPAREN needs_clause? optional_clause? returns_clause? RPAREN
+      // Option 2: Parens are absent - requires at least one clause
+      | needs_clause optional_clause? returns_clause?
+      | optional_clause returns_clause?
+      | returns_clause
+      // Option 3: No clauses at all (empty alternative matches nothing)
+      |
+      ;
 
 // Parameter clause rules (unchanged - still used by signature_part)
 needs_clause: KW_NEEDS param_list;
@@ -51,18 +51,25 @@ statement_list: body_line*;
 body_line: statement NEWLINE | NEWLINE; // Each statement ends with NL, or just NL
 
 // --- Statements ---
-statement: simple_statement | block_statement ;
+// MODIFIED: Added expressionStatement and explicit call_statement
+statement:
+      simple_statement
+    | block_statement
+    | expressionStatement // Allow expressions (like calls) as statements
+    ;
 
-// MODIFIED: Added ask_stmt
+// MODIFIED: Added call_statement back, break/continue
 simple_statement:
     set_statement
-    // | call_statement // REMOVED
+    | call_statement      // <<< ADDED BACK
     | return_statement
     | emit_statement
     | must_statement
     | fail_statement
     | clearErrorStmt
-    | ask_stmt         // <<< ADDED ask_stmt ALTERNATIVE
+    | ask_stmt
+    | break_statement
+    | continue_statement
     ;
 
 block_statement:
@@ -71,17 +78,25 @@ block_statement:
     | for_each_statement
     | onErrorStmt;
 
+// Definition for expressionStatement (Can handle things other than calls if needed)
+expressionStatement:
+    expression
+    ;
+
+
 // --- Simple Statements Details ---
 set_statement: KW_SET IDENTIFIER ASSIGN expression;
-// call_statement rule REMOVED
+call_statement: callable_expr; // <<< ADDED DEFINITION: Call statement IS a callable expression
 return_statement: KW_RETURN expression_list?;
 emit_statement: KW_EMIT expression;
 must_statement: KW_MUST expression | KW_MUSTBE callable_expr;
 fail_statement: KW_FAIL expression?;
 clearErrorStmt: KW_CLEAR_ERROR;
-ask_stmt: KW_ASK expression (KW_INTO IDENTIFIER)? ; // <<< ADDED ask_stmt RULE DEFINITION
+ask_stmt: KW_ASK expression (KW_INTO IDENTIFIER)? ;
+break_statement: KW_BREAK;
+continue_statement: KW_CONTINUE;
 
-// --- Block Statements Details (Unchanged structurally, END terminators handled) ---
+// --- Block Statements Details ---
 if_statement:
     KW_IF expression NEWLINE
     statement_list
@@ -96,14 +111,14 @@ for_each_statement:
     statement_list
     KW_ENDFOR;
 onErrorStmt:
-    KW_ON_ERROR KW_MEANS NEWLINE
+    KW_ON_ERROR KW_MEANS NEWLINE // 'means' is correct here for this specific block
     statement_list
     KW_ENDON;
 
 // --- Call Target (Used within callable_expr now) ---
 call_target: IDENTIFIER | KW_TOOL DOT IDENTIFIER;
 
-// --- Expression Rules with Precedence --- (Largely Unchanged down to primary)
+// --- Expression Rules with Precedence ---
 expression: logical_or_expr;
 logical_or_expr: logical_and_expr (KW_OR logical_and_expr)*;
 logical_and_expr: bitwise_or_expr (KW_AND bitwise_or_expr)*;
@@ -115,7 +130,7 @@ relational_expr: additive_expr ((GT | LT | GTE | LTE) additive_expr)*;
 additive_expr: multiplicative_expr ((PLUS | MINUS) multiplicative_expr)*;
 multiplicative_expr: unary_expr ((STAR | SLASH | PERCENT) unary_expr)*;
 unary_expr:
-    (MINUS | KW_NOT | KW_NO | KW_SOME) unary_expr
+    (MINUS | KW_NOT | KW_NO | KW_SOME | TILDE) unary_expr // Added TILDE for bitwise not
     | power_expr;
 power_expr:
     accessor_expr (STAR_STAR power_expr)?;
@@ -128,7 +143,7 @@ primary:
     | placeholder
     | IDENTIFIER // Simple variable access
     | KW_LAST
-    | callable_expr // <<< ADDED: Function/Tool calls are now primary expressions
+    | callable_expr // Function/Tool calls used *within* expressions
     | KW_EVAL LPAREN expression RPAREN
     | LPAREN expression RPAREN;
 
@@ -158,7 +173,7 @@ map_entry_list_opt: map_entry_list?;
 map_entry_list: map_entry (COMMA map_entry)*;
 map_entry: STRING_LIT COLON expression; // Map keys must be string literals
 
-// --- LEXER RULES --- (Unchanged)
+// --- LEXER RULES ---
 
 // Keywords (All Lowercase)
 KW_FUNC       : 'func';
@@ -203,17 +218,23 @@ KW_TAN        : 'tan';
 KW_ASIN       : 'asin';
 KW_ACOS       : 'acos';
 KW_ATAN       : 'atan';
-KW_ASK        : 'ask';     // <<< ADDED KEYWORD
-KW_INTO       : 'into';    // <<< ADDED KEYWORD
+KW_ASK        : 'ask';
+KW_INTO       : 'into';
+KW_BREAK      : 'break';
+KW_CONTINUE   : 'continue';
 
-// Literals (Unchanged)
+// Literals
 NUMBER_LIT: [0-9]+ ('.' [0-9]+)?;
-STRING_LIT:
-    '"' (EscapeSequence | ~["\\\r\n])* '"'
-    | '\'' (EscapeSequence | ~['\\\r\n])* '\'';
-TRIPLE_BACKTICK_STRING: '```' .*? '```';
 
-// Operators (Unchanged)
+// <<< CORRECTED STRING_LIT definition >>>
+STRING_LIT:
+    '"' ( '\\"' | ~["\\] )*? '"'    // Allow escaped double quote OR any char except backslash or double quote
+    | '\'' ( '\\\'' | ~['\\] )*? '\'' // Allow escaped single quote OR any char except backslash or single quote
+    ;
+
+TRIPLE_BACKTICK_STRING: '```' .*? '```'; // Non-greedy match inside backticks
+
+// Operators
 ASSIGN: '=';
 PLUS: '+';
 MINUS: '-';
@@ -224,8 +245,9 @@ STAR_STAR: '**';
 AMPERSAND: '&';
 PIPE: '|';
 CARET: '^';
+TILDE: '~';
 
-// Punctuation (Unchanged)
+// Punctuation
 LPAREN: '(';
 RPAREN: ')';
 COMMA: ',';
@@ -238,7 +260,7 @@ DOT: '.';
 PLACEHOLDER_START: '{{';
 PLACEHOLDER_END: '}}';
 
-// Comparison (Unchanged)
+// Comparison
 EQ: '==';
 NEQ: '!=';
 GT: '>';
@@ -248,11 +270,16 @@ LTE: '<=';
 
 IDENTIFIER: [a-zA-Z_] [a-zA-Z0-9_]*;
 
-// --- Comments, Metadata, and Whitespace --- (Unchanged)
+// --- Comments, Metadata, and Whitespace ---
 METADATA_LINE: [\t ]* '::' [ \t]+ ~[\r\n]* ;
-LINE_COMMENT: ('#' | '--') ~[\r\n]* -> skip;
-NEWLINE: '\r'? '\n' | '\r';
-WS: [ \t]+ -> skip;
-fragment EscapeSequence: '\\' (["'\\nrt] | UNICODE_ESC | '`');
+LINE_COMMENT: ('#' | '--') ~[\r\n]* -> skip; // Skip comments
+
+NEWLINE: ('\r'? '\n' | '\r'); // Newline is now a token, NOT skipped.
+
+WS: [ \t]+ -> skip; // Skip other whitespace
+
+// EscapeSequence fragment might not be needed now with the new STRING_LIT rule,
+// but keep it in case it's used elsewhere or for future reference.
+fragment EscapeSequence: '\\' (["'\\nrt~] | UNICODE_ESC | '`');
 fragment UNICODE_ESC: 'u' HEX_DIGIT HEX_DIGIT HEX_DIGIT HEX_DIGIT;
 fragment HEX_DIGIT: [0-9a-fA-F];
