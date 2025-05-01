@@ -2,56 +2,62 @@
 package prompts
 
 const (
-	// PromptDevelop provides strict rules for an LLM generating NeuroScript code, reflecting NeuroScript.g4
-	PromptDevelop = `You are generating NeuroScript code based on the NeuroScript.g4 grammar.
-Adhere strictly to the following rules. Generate ONLY the raw code, with no explanations or markdown fences (using three backticks).
-**NeuroScript Syntax Rules (Reflecting NeuroScript.g4):**
+	// PromptDevelop provides strict rules for an AI generating NeuroScript code, reflecting NeuroScript.g4
+	PromptDevelop = "You are generating NeuroScript code based on the NeuroScript.g4 grammar.\n" +
+		"Adhere strictly to the following rules. Generate ONLY the raw code, with no explanations or markdown fences (using three backticks).\n" +
+		"**NeuroScript Syntax Rules (Reflecting NeuroScript.g4 v0.2.0-alpha-func-returns-2):**\n\n" +
+		"1.  **File Structure:** Optional '# comment' or ':: metadata' lines at the START of the file. File-level ':: metadata' (like ':: lang_version:', ':: file_version:') should conventionally be placed at the START. Follow with zero or more procedure definitions.\n" + // Corrected Placement
+		"2.  **Procedure Definition:** Start with 'func ProcedureName'. Follow with the signature part (parameters/returns). Follow with 'means' keyword and a newline. End with 'endfunc'.\n" +
+		"3.  **Signature Part:** After 'ProcedureName', optionally include clauses 'needs param1, param2', 'optional opt1', 'returns ret1, ret2'. Parentheses '()' around the clauses are optional for grouping only. If no clauses, nothing is needed between the name and 'means'.\n" +
+		"4.  **Metadata ('::')**: Procedure-level metadata (like ':: description:', ':: purpose:', ':: param:<name>:', ':: return:<name>:', ':: algorithm:', ':: caveats:') MUST be placed immediately after 'func ... means NEWLINE' and before the first statement. Step-level metadata immediately precedes the step. Use ':: key: value' format. See docs/metadata.md for standard keys.\n" +
+		"5.  **Assignment ('set')**: Use 'set variable = expression'. Variable must be a valid identifier.\n" +
+		"6.  **Calls (Expressions)**: Procedure and tool calls are expressions. Use them directly where a value is needed, typically with 'set': 'set result = MyProcedure(arg)', 'set data = tool.ReadFile(\"path\")'. Calls can stand alone as statements if the return value is ignored: 'tool.LogMessage(\"Done\")'.\n" +
+		"7.  **'last' Keyword**: Use 'last' keyword directly in an expression to refer to the result of the *most recent* successful procedure or tool call expression.\n" +
+		"8.  **'eval(expr)' Function**: Use 'eval(expression)' explicitly to resolve '{{placeholder}}' syntax within the string *result* of the expression.\n" +
+		"9.  **Placeholders ('{{...}}')**: Placeholder syntax '{{varname}}' or '{{LAST}}' is ONLY processed within raw strings (```...```) during execution OR when explicitly passed to 'eval()'. In normal strings (\"...\", '...') or other expressions, they are treated literally. Use bare 'varname' or 'last' keyword directly in most expression contexts.\n" +
+		"10. **Block Structure ('if', 'while', 'for each', 'on_error'):**\n" +
+		"    * Headers: 'if condition NEWLINE', 'while condition NEWLINE', 'for each var in collection NEWLINE', 'on_error means NEWLINE'. Note the required newline.\n" +
+		"    * Body: One or more 'statement NEWLINE' or just 'newline'.\n" +
+		"    * Termination: Use 'endif', 'endwhile', 'endfor', 'endon' respectively.\n" +
+		"    * 'else': Optional clause 'else NEWLINE statement_list' within 'if'.\n" +
+		"11. **Looping ('for each')**: ONLY 'for each var in collection'. 'collection' expression must evaluate to list, map (iterates values), or string (iterates characters).\n" +
+		"12. **Literals**:\n" +
+		"    * Strings: '\"...\"' or \"'...'\".\n" + // Escaped quote for example
+		"    * Raw Strings: '```...```' (Triple backticks; literal content including newlines, placeholders evaluated on execution/eval).\n" + // Triple backticks included literally
+		"    * Lists: '[expr, ...]' (elements are evaluated expressions).\n" +
+		"    * Maps: '{\"key\": expr, ...}' (keys MUST be string literals).\n" +
+		"    * Numbers: '123', '4.5'.\n" +
+		"    * Booleans: 'true', 'false'.\n" +
+		"13. **Element Access**: Use 'collection_expr[accessor_expr]'.\n" +
+		"14. **Operators**: Follow standard precedence (Power '**' -> Unary '- not no some ~' -> Mul/Div/Mod '* / %' -> Add/Sub '+ -' -> Relational '> < >= <=' -> Equality '== !=' -> Bitwise '& ^ |' -> Logical 'and or'). Use '()' for grouping.\n" +
+		"15. **Built-in Functions**: Use math functions like 'ln(expr)', 'sin(expr)', etc., directly within expressions.\n" +
+		"16. **Statements**: Valid statements are 'set', 'return', 'emit', 'must', 'mustbe', 'fail', 'clear_error', 'ask', 'if', 'while', 'for each', 'on_error', and call expressions used standalone.\n" +
+		"17. **'ask' Statement**: Use 'ask prompt_expr' or 'ask prompt_expr into variable'.\n" +
+		"18. **Available 'tool's:** (List may be incomplete, use available tools) tool.ReadFile, tool.WriteFile, tool.ListFiles, tool.ExecuteCommand, tool.GoBuild, tool.GoCheck, tool.GoFmt, tool.GitAdd, tool.GitCommit, tool.VectorIndex, tool.VectorSearch, tool.StrEndsWith, tool.StrContains, tool.StrReplaceAll, etc. Do NOT invent tools.\n" +
+		"19. **Comments**: Use '#' or '--' for single-line comments (skipped). Use '::' metadata for documentation.\n" +
+		"20. **Output Format**: Generate ONLY raw code. Start with optional ':: metadata', then 'func'. End with 'endfunc' and a final newline. Do NOT include markdown fences or explanations." // Updated Rule 20 to mention optional start metadata
 
-1.  **File Structure:** Optional '# comment' or ':: metadata', then optional 'FILE_VERSION "semver"', then 'DEFINE PROCEDURE Name(args)', then required 'COMMENT:' block, then statements, then 'END'. End procedures and blocks with a final newline if appropriate.
-2.  **'COMMENT:' Block:** Required after 'DEFINE PROCEDURE ...() NEWLINE'. Must include PURPOSE:, INPUTS:, OUTPUT:, ALGORITHM:. Use '- arg: Desc' for INPUTS. End with 'ENDCOMMENT' marker (lexed as part of COMMENT_BLOCK). LANG_VERSION: is optional.
-3.  **Assignment ('SET')**: Use 'SET variable = expression'. Variable must be a valid identifier.
-4.  **Invocations ('CALL')**: Use 'CALL Target(args...)'. Target is IDENTIFIER (procedure name), TOOL.IDENTIFIER (tool function), or LLM.
-5.  **'LAST' Keyword**: Use 'LAST' keyword directly in an expression to refer to the result of the *most recent* 'CALL' statement. Assign results like 'CALL SomeTool() \n SET result = LAST'.
-6.  **'EVAL(expr)' Function**: Use 'EVAL(expression)' explicitly to resolve '{{placeholder}}' syntax within the string *result* of the expression. Placeholders are NOT resolved automatically in regular string literals or concatenation.
-7.  **Block Structure ('IF', 'WHILE', 'FOR EACH'):**
-    * Headers: 'IF condition THEN NEWLINE', 'WHILE condition DO NEWLINE', 'FOR EACH var IN collection DO NEWLINE'.
-    * Body: One or more 'statement NEWLINE' or just 'NEWLINE'.
-    * Termination: All blocks MUST end with 'ENDBLOCK' followed by an optional newline. The procedure definition itself ends with 'END' followed by an optional newline.
-    * 'ELSE': Optional clause 'ELSE NEWLINE statement_list' within 'IF'.
-8.  **Looping ('FOR EACH')**: ONLY 'FOR EACH var IN collection DO ... ENDBLOCK'. 'collection' expression must evaluate to list, map, or string.
-9.  **Literals**:
-    * Strings: '"..."' or "'...'" (raw, standard escapes, no auto-eval).
-    * Lists: '[expr, ...]' (elements are evaluated expressions).
-    * Maps: '{"key": expr, ...}' (keys MUST be string literals).
-    * Numbers: '123', '4.5' (parsed as int64 or float64).
-    * Booleans: 'true', 'false'.
-10. **Element Access**: Use 'collection_expr[accessor_expr]'. List accessor must evaluate to int64 index. Map accessor is converted to string key.
-11. **Expressions**: Follow operator precedence (Power/Access -> Unary -> Mul/Div/Mod -> Add/Sub -> Relational -> Equality -> Bitwise AND -> XOR -> OR -> Logical AND -> Logical OR). Parentheses '()' override precedence.
-12. **Function Calls**: Use built-in math functions like 'LN(expr)', 'SIN(expr)', etc., directly within expressions.
-13. **Available 'TOOL's:** TOOL.ReadFile, TOOL.WriteFile, TOOL.SanitizeFilename, TOOL.VectorUpdate, TOOL.GitAdd, TOOL.GitCommit, TOOL.SearchSkills, TOOL.ListDirectory, TOOL.LineCount, TOOL.ExecuteCommand, TOOL.GoBuild, TOOL.GoCheck, TOOL.GoTest, TOOL.GoFmt, TOOL.GoModTidy, TOOL.BlocksExtractAll, TOOL.StringLength, TOOL.Substring, TOOL.ToUpper, TOOL.ToLower, TOOL.TrimSpace, TOOL.SplitString, TOOL.SplitWords, TOOL.JoinStrings, TOOL.ReplaceAll, TOOL.Contains, TOOL.HasPrefix, TOOL.HasSuffix. Do NOT invent tools.
-14. **Variables & Placeholders**: '{{varname}}' or '{{LAST}}' placeholder syntax is ONLY processed when inside a string passed to 'EVAL()'. Use bare 'varname' or 'LAST' keyword directly in all other expression contexts.
-15. **Comments**: Use '#' or '--' for single-line comments (skipped). 'COMMENT:' block for docstrings.
-16. **Output Format**: Generate ONLY raw code. Start with DEFINE PROCEDURE. End with END and a final newline. Do NOT include markdown fences or explanations.`
-
-	// PromptExecute provides guidance for an LLM executing NeuroScript code based on NeuroScript.g4
-	PromptExecute = `You are executing the provided NeuroScript procedure step-by-step based on the NeuroScript.g4 grammar. Track variable state.
-Key execution points (Reflecting NeuroScript.g4):
-
-* **'SET var = expr'**: Evaluate 'expr' according to operator precedence (getting raw value: string, int64, float64, bool, list, map, or nil). Store raw result in 'var'. String literals like "Hi {{x}}" remain raw.
-* **'CALL Target(...)'**: Evaluate argument expressions (raw). Execute Procedure (recursive call), LLM (send prompt), or TOOL.Function (call registered Go func). Store single raw return value in internal 'LAST' state.
-* **'LAST'**: Keyword evaluates to the raw value returned by the most recent successful 'CALL'.
-* **'EVAL(expr)'**: Evaluate 'expr' to get a raw value (must resolve to string). Recursively resolve any '{{placeholder}}' syntax within that resulting string using current variable/LAST values. Returns the final resolved string. This is the ONLY way placeholders are resolved.
-* **'IF cond THEN ... [ELSE ...] ENDBLOCK'**: Evaluate 'cond' expression. Use truthiness rules (true, non-zero numbers, string "true"/"1" are true; false, 0, other strings, nil, lists, maps are false). Comparisons (==, !=, >, <, >=, <=) work numerically or string-wise. Execute THEN or ELSE block.
-* **'WHILE cond DO ... ENDBLOCK'**: Evaluate 'cond' expression. Repeat block while condition is truthy.
-* **'FOR EACH var IN coll DO ... ENDBLOCK'**: Evaluate 'coll' expression. Iterate based on type: list elements ([]interface{}), map keys (sorted strings), string characters (runes). Assign current item/key/char to 'var' in each iteration. Run block.
-* **List/Map Literals**: '[...]' evaluates to []interface{} containing raw evaluated elements. '{ "key": expr, ... }' evaluates to map[string]interface{} containing raw evaluated values (keys are literal strings).
-* **Element Access**: 'list[index_expr]' gets element (index must evaluate to int64). 'map[key_expr]' gets value (key_expr converted to string). Returns error if index out of bounds, key not found, or access attempted on wrong type.
-* **Operators**: Follow standard precedence (PEMDAS/BEDMAS like, Logical lowest). '+' concatenates if either operand is string, otherwise adds numerically. Other arithmetic/comparison/bitwise/logical operators apply.
-* **Function Calls**: 'LN(num)', 'SIN(num)' etc. - Evaluate argument(s), call corresponding math function.
-* **'RETURN expr'**: Evaluate 'expr' (raw), stop procedure, return the value (or nil if no expr).
-* **'EMIT expr'**: Evaluate 'expr' (raw), print its string representation (fmt.Sprintf "%v").
-* **'END' / 'ENDBLOCK'**: Terminates procedure or block scope.
-* **Comments**: '#', '--', 'COMMENT:' blocks are ignored for execution flow.
-
-Execute step-by-step, maintain state, determine final 'RETURN' value or outcome.`
+	// PromptExecute provides guidance for an AI executing NeuroScript code based on NeuroScript.g4
+	PromptExecute = "You are executing the provided NeuroScript procedure step-by-step based on the NeuroScript.g4 grammar (v0.2.0-alpha-func-returns-2). Track variable state precisely.\n" +
+		"Key execution points:\n\n" +
+		"* **'set var = expr'**: Evaluate 'expr' according to operator precedence (getting raw value: string, int64, float64, bool, list, map, or nil). Store raw result in 'var'. Normal strings (\"...\", '...') containing '{{...}}' remain raw. Raw strings ('```...```') containing '{{...}}' ARE evaluated upon assignment or use.\n" + // Triple backticks included literally
+		"* **Calls (Expressions)**: Evaluate argument expressions (raw). Execute Procedure (recursive call) or TOOL.Function (call registered Go func). Store single raw return value in internal 'last' state.\n" +
+		"* **'last'**: Keyword evaluates to the raw value returned by the most recent successful call expression (procedure or tool).\n" +
+		"* **'eval(expr)'**: Evaluate 'expr' to get a raw value (must resolve to string). Recursively resolve any '{{placeholder}}' syntax within that resulting string using current variable/'last' values. Returns the final resolved string. This is the primary way placeholders in normal strings are resolved.\n" +
+		"* **Placeholders ('{{...}}')**: Primarily resolved via 'eval()' or implicitly within raw strings ('```...```').\n" + // Triple backticks included literally
+		"* **'if cond ... [else ...] endif'**: Evaluate 'cond' expression. Use truthiness rules (true, non-zero numbers, string \"true\"/\"1\" are true; false, 0, other strings, nil, empty lists/maps/strings are false). Comparisons (==, !=, >, <, >=, <=) work numerically or string-wise. Execute first or else block. Requires 'endif'.\n" +
+		"* **'while cond ... endwhile'**: Evaluate 'cond' expression. Repeat block while condition is truthy. Requires 'endwhile'.\n" +
+		"* **'for each var in coll ... endfor'**: Evaluate 'coll' expression. Iterate based on type: list elements ([]interface{}), map values (map[string]interface{}), string characters (runes as strings). Assign current item/value/char to 'var' in each iteration. Run block. Requires 'endfor'.\n" +
+		"* **'on_error means ... endon'**: Defines an error handling block. If a runtime error occurs, execution jumps here. 'clear_error' resets the error. Otherwise, error propagates after the block. Requires 'endon'.\n" +
+		"* **List/Map Literals**: '[...]' evaluates to []interface{} containing raw evaluated elements. '{ \"key\": expr, ... }' evaluates to map[string]interface{} containing raw evaluated values (keys are literal strings).\n" +
+		"* **Element Access**: 'list[index_expr]' gets element (index must evaluate to int64). 'map[key_expr]' gets value (key_expr converted to string). Returns error if index out of bounds, key not found, or access attempted on wrong type.\n" +
+		"* **Operators**: Follow standard precedence (PEMDAS/BEDMAS like, Logical lowest). '+' concatenates if either operand is string (converts non-strings), otherwise adds numerically. Other arithmetic/comparison/bitwise/logical ('and', 'or', 'not', 'no', 'some', '~') operators apply. '**' is power.\n" +
+		"* **Built-in Functions**: 'ln(num)', 'sin(num)' etc. - Evaluate argument(s), call corresponding math function.\n" +
+		"* **'return expr?'**: Evaluate 'expr' (raw), stop procedure, return the value (or nil if no expr).\n" +
+		"* **'emit expr'**: Evaluate 'expr' (likely resolving placeholders as if via `eval`), print its string representation (fmt.Sprintf \"%v\").\n" +
+		"* **'must expr' / 'mustbe check(args)'**: Evaluate condition/check. Halt with error if false.\n" +
+		"* **'fail expr?'**: Evaluate optional message, halt with error.\n" +
+		"* **'ask prompt [into var]'**: Evaluate prompt (resolving placeholders). Send to AI client. If 'into var', store text response in 'var'. Result stored in 'last'.\n" +
+		"* **Metadata/Comments**: '::', '#', '--' are ignored for execution flow.\n\n" +
+		"Execute step-by-step, maintain variable state, handle 'last', determine final 'RETURN' value or error outcome."
 )

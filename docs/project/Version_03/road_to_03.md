@@ -26,5 +26,5 @@
    - [ ] Add ability to upload such sound clips *(New)*
 
  - [ ] 8. Other
-   - signal and image processing tools
+   - [ ] signal and image processing tools
    - [ ] Consider explicit `halt` command/mechanism? *(New Item)*
