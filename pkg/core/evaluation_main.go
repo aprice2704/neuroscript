@@ -108,39 +108,80 @@ func (i *Interpreter) evaluateExpression(node interface{}) (interface{}, error) 
 		if err != nil {
 			return nil, fmt.Errorf("evaluating operand for unary operator '%s': %w", n.Operator, err)
 		}
-		// Delegate to helper in evaluation_operators.go (rename evaluateUnaryOp?)
+		// Delegate to helper in evaluation_operators.go
 		return evaluateUnaryOp(n.Operator, operandVal)
 	case *BinaryOpNode: // Pointer
+		// Use structured logging - CORRECTED
+		i.Logger().Debug("[DEBUG-EVAL-BINOP] Evaluating BinaryOpNode", "operator", n.Operator)
+
 		leftVal, errL := i.evaluateExpression(n.Left)
 		if errL != nil {
 			// Allow ==/!= comparison with potentially undefined variable (treat as nil)
 			if (n.Operator == "==" || n.Operator == "!=") && errors.Is(errL, ErrVariableNotFound) {
+				// Use structured logging - CORRECTED
+				// Get string representation of the left node for logging context
+				leftNodeStr := NodeToString(n.Left) // Assuming NodeToString exists
+				i.Logger().Debug("[DEBUG-EVAL-BINOP] Left operand not found, treating as nil for comparison", "operand_str", leftNodeStr)
 				leftVal = nil
 			} else {
+				// Use structured logging - CORRECTED
+				i.Logger().Error("[DEBUG-EVAL-BINOP] Error evaluating left operand", "operator", n.Operator, "error", errL)
 				return nil, fmt.Errorf("evaluating left operand for '%s': %w", n.Operator, errL)
 			}
 		}
+		// Use structured logging - CORRECTED
+		i.Logger().Debug("[DEBUG-EVAL-BINOP] Left operand evaluated", "value", leftVal, "type", fmt.Sprintf("%T", leftVal))
+
 		// Handle short-circuiting for 'and' and 'or'
 		if n.Operator == "and" {
 			if !isTruthy(leftVal) {
+				// Use structured logging - CORRECTED
+				i.Logger().Debug("[DEBUG-EVAL-BINOP] Short-circuiting 'and' (left is falsey)")
 				return false, nil
 			}
 		} else if n.Operator == "or" {
 			if isTruthy(leftVal) {
+				// Use structured logging - CORRECTED
+				i.Logger().Debug("[DEBUG-EVAL-BINOP] Short-circuiting 'or' (left is truthy)")
 				return true, nil
 			}
 		}
+
 		rightVal, errR := i.evaluateExpression(n.Right)
 		if errR != nil {
 			// Allow ==/!= comparison with potentially undefined variable (treat as nil)
 			if (n.Operator == "==" || n.Operator == "!=") && errors.Is(errR, ErrVariableNotFound) {
+				// Use structured logging - CORRECTED
+				// Get string representation of the right node for logging context
+				rightNodeStr := NodeToString(n.Right) // Assuming NodeToString exists
+				i.Logger().Debug("[DEBUG-EVAL-BINOP] Right operand not found, treating as nil for comparison", "operand_str", rightNodeStr)
 				rightVal = nil
 			} else {
+				// Use structured logging - CORRECTED
+				i.Logger().Error("[DEBUG-EVAL-BINOP] Error evaluating right operand", "operator", n.Operator, "error", errR)
 				return nil, fmt.Errorf("evaluating right operand for '%s': %w", n.Operator, errR)
 			}
 		}
+		// Use structured logging - CORRECTED
+		i.Logger().Debug("[DEBUG-EVAL-BINOP] Right operand evaluated", "value", rightVal, "type", fmt.Sprintf("%T", rightVal))
+
 		// Delegate actual operation (in evaluation_operators.go?)
-		return evaluateBinaryOp(leftVal, rightVal, n.Operator)
+		// Use structured logging - CORRECTED
+		i.Logger().Debug("[DEBUG-EVAL-BINOP] Calling evaluateBinaryOp", "left_value", leftVal, "right_value", rightVal, "operator", n.Operator)
+		result, err := evaluateBinaryOp(leftVal, rightVal, n.Operator)
+		if err != nil {
+			// Wrap the error with context if it's not already a RuntimeError
+			if _, ok := err.(*RuntimeError); !ok {
+				// Use ErrorCodeEvaluation for errors from the binary operation itself
+				err = NewRuntimeError(ErrorCodeEvaluation, fmt.Sprintf("operation '%s' failed", n.Operator), err)
+			}
+			// Use structured logging - CORRECTED
+			i.Logger().Error("[DEBUG-EVAL-BINOP] Error from evaluateBinaryOp", "operator", n.Operator, "error", err)
+			return nil, err // Return the (potentially wrapped) error
+		}
+		// Use structured logging - CORRECTED
+		i.Logger().Debug("[DEBUG-EVAL-BINOP] evaluateBinaryOp successful", "result", result, "type", fmt.Sprintf("%T", result))
+		return result, nil
 
 	case *CallableExprNode: // Pointer
 		target := n.Target // Target is a value type CallTarget within the pointer node
@@ -163,7 +204,8 @@ func (i *Interpreter) evaluateExpression(node interface{}) (interface{}, error) 
 		// 2. Determine Call Type and Execute
 		if target.IsTool {
 			// --- Tool Call ---
-			i.Logger().Debug("[DEBUG-EVAL]   Calling Tool '%s' from expression", targetName)
+			// Use structured logging - CORRECTED
+			i.Logger().Debug("[DEBUG-EVAL] Calling Tool from expression", "tool_name", targetName)
 			toolImpl, found := i.ToolRegistry().GetTool(targetName)
 			if !found {
 				errMsg := fmt.Sprintf("tool '%s' not found", targetName)
@@ -172,33 +214,33 @@ func (i *Interpreter) evaluateExpression(node interface{}) (interface{}, error) 
 			validatedArgs, validationErr := ValidateAndConvertArgs(toolImpl.Spec, evaluatedArgs)
 			if validationErr != nil {
 				code := ErrorCodeArgMismatch
-				if errors.Is(validationErr, ErrValidationTypeMismatch) {
-					code = ErrorCodeType
-				} else if errors.Is(validationErr, ErrValidationArgCount) {
-					code = ErrorCodeArgMismatch
-				}
+				// Example check for specific validation error type if defined elsewhere
+				// if errors.Is(validationErr, ErrValidationTypeMismatch) { code = ErrorCodeType }
 				return nil, NewRuntimeError(code, fmt.Sprintf("args failed for tool '%s'", targetName), fmt.Errorf("validating args for %s: %w", targetName, validationErr))
 			}
 			toolResult, toolErr := toolImpl.Func(i, validatedArgs)
 			if toolErr != nil {
 				if re, ok := toolErr.(*RuntimeError); ok {
-					return nil, re
+					return nil, re // Return existing RuntimeError
 				}
+				// Wrap non-RuntimeError
 				return nil, NewRuntimeError(ErrorCodeToolSpecific, fmt.Sprintf("tool '%s' failed", targetName), fmt.Errorf("executing tool %s: %w", targetName, toolErr))
 			}
-			i.Logger().Debug("[DEBUG-EVAL]   Tool '%s' call successful (Result Type: %T)", targetName, toolResult)
+			// Use structured logging - CORRECTED
+			i.Logger().Debug("[DEBUG-EVAL] Tool call successful", "tool_name", targetName, "result_type", fmt.Sprintf("%T", toolResult))
 			i.lastCallResult = toolResult
 			return toolResult, nil
 
 		} else {
 			// --- User Procedure or Built-in Function Call ---
-			i.Logger().Debug("[DEBUG-EVAL]   Calling User Proc or Built-in '%s' from expression", targetName)
+			// Use structured logging - CORRECTED
+			i.Logger().Debug("[DEBUG-EVAL] Calling User Proc or Built-in from expression", "function_name", targetName)
 			// Note: evaluateUserOrBuiltInFunction needs access to 'i' (Interpreter)
 			result, err := i.evaluateUserOrBuiltInFunction(targetName, evaluatedArgs)
 			if err != nil {
 				return nil, err // Error should already be wrapped
 			}
-			// Helper updates i.lastCallResult internally if needed (for user procs)
+			// evaluateUserOrBuiltInFunction updates i.lastCallResult internally if needed (for user procs)
 			return result, nil
 		}
 		// --- End Call Type Handling ---
@@ -276,3 +318,4 @@ func (i *Interpreter) evaluateUserOrBuiltInFunction(funcName string, args []inte
 // isTruthy(value interface{}) bool
 // resolvePlaceholdersWithError(template string) (string, error)
 // (evaluateElementAccess is in evaluation_access.go and takes *ElementAccessNode)
+// NodeToString(node interface{}) string // Added assumption

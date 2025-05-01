@@ -635,16 +635,30 @@
               "Receiver": "*ASTBuilder",
               "Name": "Build",
               "calls": [
+                "b.logger.Error(?)",
                 "b.logger.Debug(?)",
                 "newNeuroScriptListener",
+                "b.logger.Debug(?)",
                 "antlr.NewParseTreeWalker(?)",
                 "walker.Walk(?)",
+                "b.logger.Debug(?)",
                 "listener.GetFileMetadata(?)",
                 "b.logger.Warn(?)",
                 "err.Error(?)",
                 "b.logger.Error(?)",
                 "b.logger.Error(?)",
+                "b.logger.Error(?)",
+                "b.logger.Warn(?)",
+                "b.logger.Debug(?)",
+                "b.logger.Debug(?)",
+                "proc.Pos.String(?)",
+                "existingProc.Pos.String(?)",
+                "b.logger.Error(?)",
+                "proc.Pos.String(?)",
+                "existingProc.Pos.String(?)",
+                "b.logger.Warn(?)",
                 "err.Error(?)",
+                "b.logger.Error(?)",
                 "b.logger.Debug(?)"
               ]
             },
@@ -655,8 +669,12 @@
                 "tokenToPosition",
                 "ctx.GetStart(?)",
                 "pos.String(?)",
+                "existingErr.Error(?)",
+                "err.Error(?)",
                 "l.logger.Error(?)",
-                "err.Error(?)"
+                "pos.String(?)",
+                "l.logger.Debug(?)",
+                "pos.String(?)"
               ]
             },
             {
@@ -665,17 +683,27 @@
               "calls": [
                 "tokenToPosition",
                 "pos.String(?)",
+                "existingErr.Error(?)",
+                "err.Error(?)",
                 "l.logger.Error(?)",
-                "err.Error(?)"
+                "pos.String(?)",
+                "l.logger.Debug(?)",
+                "pos.String(?)"
               ]
             },
             {
               "Receiver": "*neuroScriptListenerImpl",
-              "Name": "GetFileMetadata"
+              "Name": "GetFileMetadata",
+              "calls": [
+                "l.logger.Warn(?)"
+              ]
             },
             {
               "Receiver": "*neuroScriptListenerImpl",
-              "Name": "GetResult"
+              "Name": "GetResult",
+              "calls": [
+                "l.logger.Warn(?)"
+              ]
             },
             {
               "Receiver": "*neuroScriptListenerImpl",
@@ -721,8 +749,12 @@
               "Receiver": "*neuroScriptListenerImpl",
               "Name": "ExitProgram",
               "calls": [
-                "MapKeysListener",
-                "l.logDebugAST(?)"
+                "l.logger.Error(?)",
+                "l.logger.Error(?)",
+                "l.logger.Error(?)",
+                "l.logDebugAST(?)",
+                "l.logger.Error(?)",
+                "l.logger.Error(?)"
               ]
             },
             {
@@ -731,11 +763,10 @@
               "calls": [
                 "l.logDebugAST(?)",
                 "l.logger.Error(?)",
-                "ctx.GetChildren(?)",
-                "termNode.GetSymbol().GetTokenType(?)",
-                "termNode.GetSymbol(?)",
-                "termNode.GetText(?)",
-                "termNode.GetSymbol(?)",
+                "ctx.AllMETADATA_LINE(?)",
+                "metaLineNode.GetText(?)",
+                "metaLineNode.GetSymbol(?)",
+                "l.logDebugAST(?)",
                 "l.logDebugAST(?)",
                 "l.logDebugAST(?)",
                 "l.addErrorf(?)",

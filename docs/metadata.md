@@ -69,7 +69,7 @@
  The general principle is to place metadata as close as possible to the element it describes.
  
  * **NeuroScript Files (`.ns`):**
-     * **File-Level:** Place all file-level `::` metadata lines **at the end of the file (EOF)**. This improves human readability by presenting the executable code first. The parser is designed to find this metadata regardless of its position.
+     * **File-Level:** Place all file-level `::` metadata lines **at the start of the file (SOF)**. The parser is designed to find this metadata regardless of its position.
      * **Procedure-Level:** Place procedure-level `::` metadata *inside* the `func`/`endfunc` block, immediately after the `func ... means` line and before the first executable step.
      * **Step-Level:** Place step-level `::` metadata on the line(s) *immediately preceding* the step it refers to.
      * *(AST Mapping: File-level -> `Program.Metadata`, Procedure-level -> `Procedure.Metadata`, Step-level -> `Step.Metadata`)*
@@ -78,13 +78,21 @@
  * **NeuroData Files (`.nd*`):**
      * File-level metadata should generally appear at the **start of the file (SOF)**.
  * **Markdown & Specification Files (`.md`, etc.):**
-     * File-level metadata (`:: key: value`) should appear at the **start of the file (SOF)**. Each metadata line should end in double space to be rendered on separate lines.
+     * File-level metadata (`:: key: value`) should appear at the **end of the file (EOF)**. Each metadata line should end in double space to be rendered on separate lines.
  * **Embedded Blocks (in Markdown, etc.):**
      * Block-level metadata (`:: key: value`) should be placed immediately *inside* the block, after the opening fence (e.g., ```neuroscript) and before the block's main content. Include relevant tags like `:: id:`, `:: version:` (or `:: file_version:`), `:: type:`, `:: grammar:` (or `:: lang_version:`).
  
  ## Example (NeuroScript `.ns` File)
  
  ```neuroscript
+ :: lang_version: neuroscript@0.2.0
+ :: file_version: 1.1.0 
+ :: author: Alice Price
+ :: created: 2025-04-30
+ :: license: MIT
+ :: description: Example script demonstrating metadata placement.
+ :: tags: example, metadata
+
  func ProcessData(needs inputData, optional threshold returns processedCount, errorMsg) means
    :: purpose: Processes input data according to a threshold.
    :: param:inputData: The raw data list to process.
@@ -113,14 +121,6 @@
    return count, err
  endfunc
  
- # --- File Metadata Below ---
- :: lang_version: neuroscript@0.2.0
- :: file_version: 1.1.0 
- :: author: Alice Price
- :: created: 2025-04-30
- :: license: MIT
- :: description: Example script demonstrating metadata placement.
- :: tags: example, metadata
  ```
 
  :: version: 0.5.1  

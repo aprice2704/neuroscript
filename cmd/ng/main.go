@@ -1,12 +1,16 @@
 package main
 
 import (
-	"context"
+	"context" // Added context import
 	"flag"
 	"fmt"
 	"io"
 	"log/slog"
 	"os"
+
+	// Added imports for signal and syscall for graceful shutdown context
+	"os/signal"
+	"syscall" // Added syscall import
 
 	"github.com/aprice2704/neuroscript/pkg/adapters"
 	"github.com/aprice2704/neuroscript/pkg/logging"
@@ -41,8 +45,6 @@ func initializeLogger(levelStr string, filePath string) (logging.Logger, error) 
 			return nil, fmt.Errorf("failed to open log file %q: %w", filePath, err)
 		}
 		// Note: Closing the file will be the responsibility of the caller or program exit.
-		// If this function managed the file lifecycle completely, it would need to return the file handle too.
-		// For simplicity here, we assume the file remains open for the application's lifetime.
 		output = file
 	}
 
@@ -56,16 +58,11 @@ func initializeLogger(levelStr string, filePath string) (logging.Logger, error) 
 	// Create the slog logger
 	slogLogger := slog.New(handler)
 
-	// Create the adapter (using the constructor we defined earlier)
-	// Note: Your adapter constructor might panic on nil, but we handle other potential errors.
+	// Create the adapter
 	appLogger, err := adapters.NewSlogAdapter(slogLogger)
 	if err != nil {
-		// This might happen if the adapter constructor changes to return errors for other reasons
 		return nil, fmt.Errorf("failed to create logger adapter: %w", err)
 	}
-
-	// Optionally set the global logger (useful for libraries that might use slog directly)
-	// slog.SetDefault(slogLogger) // Uncomment if needed
 
 	// Return the adapter which satisfies the logging.Logger interface
 	return appLogger, nil
@@ -73,39 +70,34 @@ func initializeLogger(levelStr string, filePath string) (logging.Logger, error) 
 
 func main() {
 	// --- Configuration Setup ---
-	logFile := flag.String("log-file", "", "Path to log file (optional, defaults to stderr)") //
-	logLevel := flag.String("log-level", "info", "Log level (debug, info, warn, error)")      //
+	logFile := flag.String("log-file", "", "Path to log file (optional, defaults to stderr)")
+	logLevel := flag.String("log-level", "info", "Log level (debug, info, warn, error)")
 
-	// ... rest of your flags ...
-	apiKey := flag.String("api-key", os.Getenv("GEMINI_API_KEY"), "Gemini API Key (env: GEMINI_API_KEY)")                   //
-	insecure := flag.Bool("insecure", false, "Disable security checks (Use with extreme caution!)")                         //
-	startupScript := flag.String("startup-script", "agent_startup.ns", "Path to NeuroScript file for agent initialization") //
+	apiKey := flag.String("api-key", os.Getenv("GEMINI_API_KEY"), "Gemini API Key (env: GEMINI_API_KEY)")
+	insecure := flag.Bool("insecure", false, "Disable security checks (Use with extreme caution!)")
+	startupScript := flag.String("startup-script", "agent_startup.ns", "Path to NeuroScript file for agent initialization")
 
-	syncDir := flag.String("sync-dir", ".", "Directory for sync operations (-sync mode)")                          //
-	syncFilter := flag.String("sync-filter", "", "Glob pattern for sync (-sync mode)")                             //
-	syncIgnoreGitignore := flag.Bool("sync-ignore-gitignore", false, "Ignore .gitignore during sync (-sync mode)") //
+	syncDir := flag.String("sync-dir", ".", "Directory for sync operations (-sync mode)")
+	syncFilter := flag.String("sync-filter", "", "Glob pattern for sync (-sync mode)")
+	syncIgnoreGitignore := flag.Bool("sync-ignore-gitignore", false, "Ignore .gitignore during sync (-sync mode)")
 
-	scriptFile := flag.String("script", "", "Path to a NeuroScript file to execute (script mode)")      //
-	agentMode := flag.Bool("agent", false, "Run in interactive agent mode (uses -startup-script)")      //
-	syncMode := flag.Bool("sync", false, "Run in sync-only mode")                                       //
-	cleanAPI := flag.Bool("clean-api", false, "Delete all files from the File API (use with caution!)") //
-	tuiMode := flag.Bool("tui", false, "Run in interactive TUI mode (experimental)")                    //
+	scriptFile := flag.String("script", "", "Path to a NeuroScript file to execute (script mode)")
+	agentMode := flag.Bool("agent", false, "Run in interactive agent mode (uses -startup-script)")
+	syncMode := flag.Bool("sync", false, "Run in sync-only mode")
+	cleanAPI := flag.Bool("clean-api", false, "Delete all files from the File API (use with caution!)")
+	tuiMode := flag.Bool("tui", false, "Run in interactive TUI mode (experimental)")
 
 	flag.Parse()
 
 	// --- Logger Initialization ---
-	// *** Call the new initialization function ***
 	logger, err := initializeLogger(*logLevel, *logFile)
 	if err != nil {
-		// If logger init fails, print to stderr and exit
 		fmt.Fprintf(os.Stderr, "Error initializing logger: %v\n", err)
 		os.Exit(1)
 	}
-	// *** Logger initialization successful ***
 	logger.Info("Logger initialized", "level", *logLevel, "file", *logFile) // Log initialization success
 
 	// --- Determine Mode ---
-	// ... (your mode determination logic remains the same) ...
 	modeCount := 0
 	if *scriptFile != "" {
 		modeCount++
@@ -129,7 +121,8 @@ func main() {
 	runCleanAPI := *cleanAPI
 	runTui := *tuiMode
 
-	if *cleanAPI { // Highest precedence
+	// Mode precedence
+	if *cleanAPI {
 		runScript, runAgent, runSync, runTui = false, false, false, false
 	} else if *syncMode {
 		runScript, runAgent, runCleanAPI, runTui = false, false, false, false
@@ -138,12 +131,12 @@ func main() {
 	} else if *tuiMode {
 		runAgent, runSync, runCleanAPI, runScript = false, false, false, false
 	}
-	// If agent flag wasn't explicitly set BUT no other mode was, default to agent mode
+	// Default mode
 	if !runScript && !runAgent && !runSync && !runCleanAPI && !runTui {
 		runAgent = true
-		logger.Info("Defaulting to interactive agent mode.") // Use logger here
+		logger.Info("Defaulting to interactive agent mode.")
 	}
-	// Simple check for multiple modes after defaulting
+	// Final check for multiple modes
 	finalModeCount := 0
 	if runScript {
 		finalModeCount++
@@ -168,7 +161,19 @@ func main() {
 		os.Exit(1)
 	}
 
-	app := neurogo.NewApp(logger)
+	// --- Create App and Populate Config ---
+	app := neurogo.NewApp(logger) // Should log "Creating new App instance."
+
+	// Check if app or app.Config is nil AFTER NewApp returns (defensive)
+	if app == nil {
+		logger.Error("neurogo.NewApp returned nil App instance")
+		os.Exit(1)
+	}
+	if app.Config == nil {
+		// Initialize config if NewApp doesn't guarantee it (it should)
+		logger.Warn("neurogo.NewApp returned App with nil Config, initializing.")
+		app.Config = neurogo.NewConfig() // Use constructor if available
+	}
 
 	app.Config.APIKey = *apiKey
 	app.Config.Insecure = *insecure
@@ -186,13 +191,13 @@ func main() {
 		app.Config.SyncFilter = *syncFilter
 		app.Config.SyncIgnoreGitignore = *syncIgnoreGitignore
 	}
+	// Note: No Validate() call shown here, consistent with neurogo.Config definition
 
 	// --- Application Execution ---
 	if runTui {
 		logger.Info("Starting in TUI mode...")
-		// Ensure tui.Start accepts the App struct which now contains the logger
 		if err := tui.Start(app); err != nil {
-			logger.Error("TUI Error", "error", err) // Use structured logging
+			logger.Error("TUI Error", "error", err)
 			fmt.Fprintf(os.Stderr, "TUI Error: %v\n", err)
 			os.Exit(1)
 		}
@@ -200,14 +205,21 @@ func main() {
 		os.Exit(0)
 	}
 
-	// --- Run selected mode via app.Run ---
-	ctx := context.Background()
+	// Setup context for non-TUI modes
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer cancel()
+
+	// --- ADDED DEBUG LOG ---
+	logger.Debug("Configuration populated. About to call app.Run.")
+	// --- END ADDED DEBUG LOG ---
+
+	// --- Run selected mode via app.Run --- (Approx line 173 in original trace?)
 	if err := app.Run(ctx); err != nil {
-		// app.Run should use its injected logger internally
-		// Keep a simple stderr message for the final exit
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		// Error logging happens within app.Run using the injected logger
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err) // Simple final message
 		os.Exit(1)
 	}
 
 	logger.Info("NeuroGo finished successfully.")
+	os.Exit(0) // Explicit success exit
 }

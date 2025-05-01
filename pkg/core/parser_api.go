@@ -33,16 +33,29 @@ type ErrorListener struct {
 	logger                      logging.Logger // Logger for reporting errors
 }
 
+// NewErrorListener creates a new ErrorListener instance.
+// It requires a logger; if nil is passed, it uses a no-op logger.
+func NewErrorListener(logger logging.Logger) *ErrorListener {
+	if logger == nil {
+		logger = &coreNoOpLogger{} // Ensure logger is never nil
+	}
+	return &ErrorListener{
+		DefaultErrorListener: antlr.NewDefaultErrorListener(),
+		Errors:               make([]string, 0),
+		logger:               logger,
+	}
+}
+
 // SyntaxError is called by ANTLR when a syntax error is encountered.
 // It formats the error message and stores it.
 func (l *ErrorListener) SyntaxError(recognizer antlr.Recognizer, offendingSymbol interface{}, line, column int, msg string, e antlr.RecognitionException) {
 	errorMsg := fmt.Sprintf("line %d:%d: %s", line, column, msg)
 	l.Errors = append(l.Errors, errorMsg)
 	if l.logger != nil {
-		// Log the error using the provided logger
-		l.logger.Error("[SYNTAX ERROR] %s", errorMsg)
+		// Log the error using structured logging - CORRECTED
+		l.logger.Error("Syntax Error", "line", line, "column", column, "message", msg)
 	} else {
-		// Fallback to standard output if no logger is available (should not happen ideally)
+		// Fallback to standard output if no logger is available (should not happen with NewErrorListener fix)
 		fmt.Printf("[SYNTAX ERROR] %s\n", errorMsg)
 	}
 }
@@ -50,7 +63,8 @@ func (l *ErrorListener) SyntaxError(recognizer antlr.Recognizer, offendingSymbol
 // Parse takes NeuroScript source code as input and returns the ANTLR parse tree (antlr.Tree).
 // It handles setting up the lexer, parser, error listeners, and initiating the parsing process.
 func (p *ParserAPI) Parse(source string) (antlr.Tree, error) {
-	p.logger.Debug("Parsing source code (length: %d)", len(source))
+	// Use structured logging - CORRECTED
+	p.logger.Debug("Parsing source code", "length", len(source))
 
 	// 1. Create an ANTLR input stream from the source string.
 	inputStream := antlr.NewInputStream(source)
@@ -59,11 +73,10 @@ func (p *ParserAPI) Parse(source string) (antlr.Tree, error) {
 	lexer := gen.NewNeuroScriptLexer(inputStream)
 
 	// 3. Remove the default console error listener from the lexer.
-	// We use our custom listener to collect errors.
 	lexer.RemoveErrorListeners()
 
 	// 4. Add our custom error listener to the lexer.
-	lexerErrorListener := &ErrorListener{logger: p.logger}
+	lexerErrorListener := NewErrorListener(p.logger) // Pass logger
 	lexer.AddErrorListener(lexerErrorListener)
 
 	// 5. Create a token stream from the lexer's output.
@@ -76,11 +89,10 @@ func (p *ParserAPI) Parse(source string) (antlr.Tree, error) {
 	parser.RemoveErrorListeners()
 
 	// 8. Add our custom error listener to the parser.
-	parserErrorListener := &ErrorListener{logger: p.logger}
+	parserErrorListener := NewErrorListener(p.logger) // Pass logger
 	parser.AddErrorListener(parserErrorListener)
 
-	// 9. Set the error handling strategy. DefaultErrorStrategy attempts recovery.
-	// BailErrorStrategy would stop at the first error.
+	// 9. Set the error handling strategy.
 	parser.SetErrorHandler(antlr.NewDefaultErrorStrategy())
 
 	// 10. Start parsing using the root rule defined in the grammar ('program').
@@ -88,24 +100,22 @@ func (p *ParserAPI) Parse(source string) (antlr.Tree, error) {
 
 	// 11. Check for errors collected by the lexer's listener.
 	if len(lexerErrorListener.Errors) > 0 {
-		p.logger.Error("Lexer Errors encountered during parsing.")
+		// Use structured logging - CORRECTED
+		p.logger.Error("Lexer Errors encountered during parsing.", "count", len(lexerErrorListener.Errors))
 		// Combine lexer errors into a single error message.
 		return nil, fmt.Errorf("lexer errors: %s", strings.Join(lexerErrorListener.Errors, "; "))
 	}
 
 	// 12. Check for errors collected by the parser's listener.
-	// This is now the primary way we detect parser-level syntax errors.
 	if len(parserErrorListener.Errors) > 0 {
-		p.logger.Error("Parser Errors encountered during parsing.")
+		// Use structured logging - CORRECTED
+		p.logger.Error("Parser Errors encountered during parsing.", "count", len(parserErrorListener.Errors))
 		// Combine parser errors into a single error message.
 		return nil, fmt.Errorf("parser errors: %s", strings.Join(parserErrorListener.Errors, "; "))
 	}
 
-	// --- REMOVED: The check for parser.GetNumberOfSyntaxErrors() ---
-	// The custom ErrorListener (parserErrorListener) should reliably capture
-	// any syntax errors reported by the parser during the parsing process.
-
 	// 13. If no errors were found by the listeners, log success and return the parse tree.
+	// Use structured logging
 	p.logger.Debug("Parsing completed successfully.")
 	return tree, nil
 }

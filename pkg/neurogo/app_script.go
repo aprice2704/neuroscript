@@ -10,8 +10,9 @@ import (
 	"time"
 
 	"github.com/aprice2704/neuroscript/pkg/core"
-	"github.com/aprice2704/neuroscript/pkg/neurodata/blocks"
-	"github.com/aprice2704/neuroscript/pkg/neurodata/checklist"
+	// Keep data tool imports if needed elsewhere, or remove if only used for registration
+	// "github.com/aprice2704/neuroscript/pkg/neurodata/blocks"
+	// "github.com/aprice2704/neuroscript/pkg/neurodata/checklist"
 )
 
 // runScriptMode executes a NeuroScript (.ns) file.
@@ -19,7 +20,6 @@ func (a *App) runScriptMode(ctx context.Context) error {
 	startTime := time.Now()
 	a.Log.Info("--- Running in Script Mode ---")
 	a.Log.Info("Script File:", "path", a.Config.ScriptFile)
-	// ... (logging args unchanged) ...
 
 	// Direct nil check, no type assertion needed as a.interpreter is *core.Interpreter
 	if a.interpreter == nil {
@@ -28,23 +28,25 @@ func (a *App) runScriptMode(ctx context.Context) error {
 	}
 	interpreter := a.interpreter // Use the field directly
 
-	registry := interpreter.ToolRegistry()
-	if registry == nil {
-		return fmt.Errorf("tool registry is nil")
-	}
-	// ... (tool registration unchanged) ...
-	a.Log.Debug("Registering core tools for script mode.")
-	if err := core.RegisterCoreTools(registry); err != nil {
-		a.Log.Error("Failed to register core tools", "error", err)
-		// Decide if this should be fatal for script mode
-	}
-	a.Log.Debug("Registering data tools (Blocks, Checklist).")
-	if err := blocks.RegisterBlockTools(registry); err != nil {
-		a.Log.Error("Failed to register block tools", "error", err)
-	}
-	if err := checklist.RegisterChecklistTools(registry); err != nil {
-		a.Log.Error("Failed to register checklist tools", "error", err)
-	}
+	// registry := interpreter.ToolRegistry() // No longer needed here
+	// if registry == nil {
+	// 	return fmt.Errorf("tool registry is nil") // Should not happen if interpreter is initialized
+	// }
+
+	// --- REMOVED Redundant Tool Registration ---
+	// Tools (core, blocks, checklist) are now registered only once during interpreter initialization.
+	// a.Log.Debug("Registering core tools for script mode.") // Removed
+	// if err := core.RegisterCoreTools(registry); err != nil { // Removed
+	// 	a.Log.Error("Failed to register core tools", "error", err)
+	// }
+	// a.Log.Debug("Registering data tools (Blocks, Checklist).") // Removed
+	// if err := blocks.RegisterBlockTools(registry); err != nil { // Removed
+	// 	a.Log.Error("Failed to register block tools", "error", err)
+	// }
+	// if err := checklist.RegisterChecklistTools(registry); err != nil { // Removed
+	// 	a.Log.Error("Failed to register checklist tools", "error", err)
+	// }
+	// --- End REMOVED Block ---
 
 	a.Log.Debug("Loading library files.")
 	if err := a.loadLibraries(interpreter); err != nil { // Pass the interpreter
@@ -59,20 +61,12 @@ func (a *App) runScriptMode(ctx context.Context) error {
 	}
 	if procedureToRun == "" {
 		a.Log.Error("No procedure specified to run (use -target or ensure a 'main' procedure exists).")
-		// Assuming KnownProcedures exists and returns map[string]*core.Procedure
-		// knownProcs := interpreter.KnownProcedures() // Method expects Procedure value, not pointer
-		// procNames := make([]string, 0, len(knownProcs))
-		// for name := range knownProcs {
-		// 	procNames = append(procNames, name)
-		// }
-		// a.Log.Info("Available procedures:", "procs", procNames) // Log names only
 		return fmt.Errorf("no procedure target specified or found")
 	}
 
 	a.Log.Info("Target procedure determined.", "name", procedureToRun)
 
 	procArgsMap := make(map[string]interface{})
-	// ... (arg map population unchanged) ...
 	for i, arg := range a.Config.ProcArgs {
 		procArgsMap[fmt.Sprintf("arg%d", i+1)] = arg
 	}
@@ -85,7 +79,6 @@ func (a *App) runScriptMode(ctx context.Context) error {
 
 	// Use the interpreter directly
 	procName := procedureToRun
-	// arguments := procArgsMap // Map not directly usable with current RunProcedure signature
 
 	// --- FIX for RunProcedure call ---
 	// Current RunProcedure expects (string, ...interface{})
@@ -97,10 +90,8 @@ func (a *App) runScriptMode(ctx context.Context) error {
 	var results interface{}
 	if len(procArgsMap) > 0 {
 		a.Log.Warn("Procedure arguments provided via flags/map, but current RunProcedure call doesn't support passing them easily. Executing procedure without these arguments.", "procedure", procName)
-		// Attempt call without variadic args
 		results, runErr = interpreter.RunProcedure(procName)
 	} else {
-		// Call normally if no map args
 		results, runErr = interpreter.RunProcedure(procName)
 	}
 	// --- End FIX ---
@@ -110,18 +101,16 @@ func (a *App) runScriptMode(ctx context.Context) error {
 	a.Log.Info("Procedure execution finished.", "name", procedureToRun, "duration", duration)
 
 	if runErr != nil {
-		// ... (error logging unchanged) ...
 		a.Log.Error("Script execution failed.", "procedure", procedureToRun, "error", runErr)
 		fmt.Fprintf(os.Stderr, "Error executing procedure '%s':\n%v\n", procedureToRun, runErr)
 		return fmt.Errorf("script execution failed: %w", runErr)
 	}
 
-	// ... (result printing unchanged) ...
 	a.Log.Info("Script executed successfully.", "procedure", procedureToRun)
 	if results != nil {
 		fmt.Println("--- Script Result ---")
-		fmt.Printf("%+v\n", results)
-		a.Log.Debug("Script Result Value", "result", results)
+		fmt.Printf("%+v\n", results)                                              // Keep using fmt.Printf for direct console output of results
+		a.Log.Debug("Script Result Value", "result", fmt.Sprintf("%+v", results)) // Use fmt.Sprintf for logging complex results
 	} else {
 		fmt.Println("--- Script Finished (No explicit return value) ---")
 		a.Log.Debug("Script Result Value: nil")
