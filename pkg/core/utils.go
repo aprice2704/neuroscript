@@ -110,3 +110,28 @@ func normalizeNewlines(s string) string {
 	s = strings.ReplaceAll(s, "\r", "\n")
 	return s
 }
+
+// NodeToString converts an AST node (or any interface{}) to a string representation
+// suitable for including in error messages or debug logs.
+// It attempts to use the .String() method if available and truncates long output.
+func NodeToString(node interface{}) string {
+	if node == nil {
+		return "<nil>"
+	}
+
+	var str string
+	// Attempt to use String() method if available (common pattern for AST nodes)
+	if stringer, ok := node.(fmt.Stringer); ok {
+		str = stringer.String()
+	} else {
+		// Basic fallback using fmt.Sprintf with %#v for potentially more detail
+		str = fmt.Sprintf("%#v", node)
+	}
+
+	// Truncate long representations for brevity in error messages
+	maxLen := 50 // Adjust max length as needed
+	if len(str) > maxLen {
+		str = str[:maxLen-3] + "..."
+	}
+	return str
+}

@@ -8,7 +8,9 @@ import (
 
 // evaluateElementAccess handles the logic for accessing elements within lists or maps.
 // It's called by evaluateExpression when an ElementAccessNode is encountered.
-func (i *Interpreter) evaluateElementAccess(n ElementAccessNode) (interface{}, error) {
+func (i *Interpreter) evaluateElementAccess(n *ElementAccessNode) (interface{}, error) {
+	// Input 'n' is a pointer, access fields normally.
+
 	// 1. Evaluate the collection part
 	collectionVal, errColl := i.evaluateExpression(n.Collection)
 	if errColl != nil {
@@ -21,15 +23,22 @@ func (i *Interpreter) evaluateElementAccess(n ElementAccessNode) (interface{}, e
 	}
 
 	if i.logger != nil {
-		i.logger.Debug("-INTERP]      Evaluating Element Access: Collection=%T, Accessor=%T (%v)", collectionVal, accessorVal, accessorVal)
+		posStr := ""
+		if n.Pos != nil {
+			posStr = fmt.Sprintf(" (at %s)", n.Pos.String())
+		}
+		i.logger.Debug("[DEBUG-INTERP] Evaluating Element Access%s: Collection=%T, Accessor=%T (%v)", posStr, collectionVal, accessorVal, accessorVal)
 	}
 
 	// Handle case where collection evaluated to nil before attempting access
 	if collectionVal == nil {
-		return nil, fmt.Errorf("cannot perform element access: collection evaluated to nil")
+		// Use RuntimeError - consistent error type
+		return nil, NewRuntimeError(ErrorCodeEvaluation, "collection evaluated to nil", ErrCollectionIsNil)
 	}
 	if accessorVal == nil {
-		return nil, fmt.Errorf("cannot perform element access: accessor evaluated to nil")
+		// Use RuntimeError - consistent error type
+		return nil, NewRuntimeError(ErrorCodeEvaluation, "accessor evaluated to nil", ErrAccessorIsNil)
+
 	}
 
 	// 3. Perform access based on the evaluated collection type
@@ -39,8 +48,11 @@ func (i *Interpreter) evaluateElementAccess(n ElementAccessNode) (interface{}, e
 	case map[string]interface{}: // Map Access
 		return i.evaluateMapElementAccess(coll, accessorVal)
 	default:
-		// Return error for attempting access on unsupported type
-		return nil, fmt.Errorf("cannot perform element access using [...] on type %T", collectionVal)
+		// Return RuntimeError for attempting access on unsupported type
+		// Use ErrorCodeType for this kind of error
+		return nil, NewRuntimeError(ErrorCodeType,
+			fmt.Sprintf("cannot perform element access using [...] on type %T", collectionVal),
+			ErrCannotAccessType) // Use the pre-defined error variable
 	}
 }
 
@@ -70,18 +82,27 @@ func (i *Interpreter) evaluateListElementAccess(list []interface{}, accessorVal 
 	}
 
 	if !converted {
-		return nil, fmt.Errorf("list index must evaluate to an integer, but got %T (%v)", accessorVal, accessorVal)
+		// Use RuntimeError - Use ErrorCodeType
+		return nil, NewRuntimeError(ErrorCodeType,
+			fmt.Sprintf("list index must evaluate to an integer, but got %T (%v)", accessorVal, accessorVal),
+			ErrListInvalidIndexType) // Use pre-defined error
 	}
 
 	// Bounds check
 	listLen := len(list)
 	if index < 0 || int(index) >= listLen {
-		return nil, fmt.Errorf("list index %d is out of bounds for list of length %d", index, listLen)
+		// Use RuntimeError for user-facing boundary errors
+		// --- MODIFIED: Use ErrorCodeBounds ---
+		return nil, NewRuntimeError(ErrorCodeBounds, // Corrected constant
+			fmt.Sprintf("list index %d is out of bounds", index),
+			// Use pre-defined error variable for wrapping if desired, or keep specific fmt.Errorf
+			// Using ErrListIndexOutOfBounds here for consistency if Is/As checks are used elsewhere
+			fmt.Errorf("%w: index %d, length %d", ErrListIndexOutOfBounds, index, listLen))
 	}
 	// Return the element and nil error on success
 	element := list[int(index)]
 	if i.logger != nil {
-		i.logger.Debug("-INTERP]        List access successful: Index=%d, Value=%v", index, element)
+		i.logger.Debug("[DEBUG-INTERP]   List access successful: Index=%d, Value=%v", index, element)
 	}
 	return element, nil
 }
@@ -94,17 +115,22 @@ func (i *Interpreter) evaluateMapElementAccess(m map[string]interface{}, accesso
 		// Lenient: convert accessor to string representation
 		key = fmt.Sprintf("%v", accessorVal)
 		if i.logger != nil {
-			i.logger.Info("] Map key was not a string (%T), converted to string key '%s' for access", accessorVal, key)
+			i.logger.Info("[INFO-INTERP] Map key was not a string (%T), converted to string key '%s' for access", accessorVal, key)
 		}
 	}
 
 	value, found := m[key]
 	if !found {
-		return nil, fmt.Errorf("key '%s' not found in map", key)
+		// Use RuntimeError for user-facing key errors
+		// ErrorCodeKeyNotFound is correctly defined in errors.go
+		return nil, NewRuntimeError(ErrorCodeKeyNotFound,
+			fmt.Sprintf("key '%s' not found", key),
+			// Use pre-defined error variable
+			fmt.Errorf("%w: key '%s'", ErrMapKeyNotFound, key))
 	}
 	// Return the found value and nil error
 	if i.logger != nil {
-		i.logger.Debug("-INTERP]        Map access successful: Key='%s', Value=%v", key, value)
+		i.logger.Debug("[DEBUG-INTERP]   Map access successful: Key='%s', Value=%v", key, value)
 	}
 	return value, nil
 }

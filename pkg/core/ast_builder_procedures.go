@@ -10,10 +10,9 @@ import (
 	// Assuming interfaces logger is imported via ast_builder_main or here if needed
 )
 
-// --- Procedure Definition Handling (v0.2.0 - Optional Parens via parameter_clauses) ---
-// Grammar Version: 0.2.0-alpha-onerror-fix-2 // <<< Incremented Version
+// --- Procedure Definition Handling (v0.2.0 - signature_part rule) ---
 
-// EnterProcedure_definition initializes the Procedure struct and processes parameters and metadata.
+// EnterProcedure_definition initializes the Procedure struct and processes the signature and metadata.
 func (l *neuroScriptListenerImpl) EnterProcedure_definition(ctx *gen.Procedure_definitionContext) {
 	procName := ""
 	if id := ctx.IDENTIFIER(); id != nil {
@@ -38,38 +37,67 @@ func (l *neuroScriptListenerImpl) EnterProcedure_definition(ctx *gen.Procedure_d
 		Steps:          make([]Step, 0),
 		Metadata:       make(map[string]string), // Initialize metadata map
 	}
-	// Capture original signature text using helper
+	// Capture original signature text using helper (includes 'func' keyword and 'means')
+	// We might want a more precise capture later if needed.
 	if sig := getRuleText(ctx); sig != "" {
-		l.currentProc.OriginalSignature = sig
+		// Attempt to capture just the signature part before 'means' for better representation
+		if meansToken := ctx.KW_MEANS(); meansToken != nil {
+			startToken := ctx.GetStart()
+			stopToken := meansToken.GetSymbol()
+			// Adjust stop index to be just before 'means'
+			stopIndex := stopToken.GetStart() - 1
+			if stopIndex >= startToken.GetStart() {
+				l.currentProc.OriginalSignature = startToken.GetInputStream().GetText(startToken.GetStart(), stopIndex)
+			} else {
+				// Fallback if something is weird with indices
+				l.currentProc.OriginalSignature = getRuleText(ctx.Signature_part())
+			}
+		} else {
+			// Fallback if KW_MEANS isn't found somehow (grammar error?)
+			l.currentProc.OriginalSignature = getRuleText(ctx.Signature_part())
+		}
 	}
 
-	// 2. Process Parameter Clauses (Check for parameter_clauses context first)
-	l.logDebugAST("    Checking for parameter clauses context for %s", procName)
+	// 2. Process Signature Part (Check for signature_part context first)
+	l.logDebugAST("    Checking for signature part context for %s", procName)
 
-	// --- Access clauses via intermediate parameter_clauses context ---
-	if paramClausesCtx := ctx.Parameter_clauses(); paramClausesCtx != nil {
-		l.logDebugAST("      Found parameter_clauses context. Processing clauses...")
-		// Now access individual clauses via paramClausesCtx
-		if needsCtx := paramClausesCtx.Needs_clause(); needsCtx != nil {
-			l.currentProc.RequiredParams = l.extractParamList(needsCtx.Param_list())
-			l.logDebugAST("        Found 'needs' params: %v", l.currentProc.RequiredParams)
+	// --- Access clauses via intermediate signature_part context ---
+	// Use Signature_part() instead of Parameter_clauses()
+	if sigPartCtx := ctx.Signature_part(); sigPartCtx != nil {
+		l.logDebugAST("      Found signature_part context. Processing clauses...")
+		// Access individual clauses via sigPartCtx
+		if needsCtx := sigPartCtx.Needs_clause(); needsCtx != nil {
+			// Ensure Param_list() is not nil before accessing (robustness)
+			if paramListCtx := needsCtx.Param_list(); paramListCtx != nil {
+				l.currentProc.RequiredParams = l.extractParamList(paramListCtx)
+				l.logDebugAST("        Found 'needs' params: %v", l.currentProc.RequiredParams)
+			}
 		}
-		if optionalCtx := paramClausesCtx.Optional_clause(); optionalCtx != nil {
-			l.currentProc.OptionalParams = l.extractParamList(optionalCtx.Param_list())
-			l.logDebugAST("        Found 'optional' params: %v", l.currentProc.OptionalParams)
+		if optionalCtx := sigPartCtx.Optional_clause(); optionalCtx != nil {
+			// Ensure Param_list() is not nil
+			if paramListCtx := optionalCtx.Param_list(); paramListCtx != nil {
+				l.currentProc.OptionalParams = l.extractParamList(paramListCtx)
+				l.logDebugAST("        Found 'optional' params: %v", l.currentProc.OptionalParams)
+			}
 		}
-		if returnsCtx := paramClausesCtx.Returns_clause(); returnsCtx != nil {
-			l.currentProc.ReturnVarNames = l.extractParamList(returnsCtx.Param_list())
-			l.logDebugAST("        Found 'returns' params: %v", l.currentProc.ReturnVarNames)
+		if returnsCtx := sigPartCtx.Returns_clause(); returnsCtx != nil {
+			// Ensure Param_list() is not nil
+			if paramListCtx := returnsCtx.Param_list(); paramListCtx != nil {
+				l.currentProc.ReturnVarNames = l.extractParamList(paramListCtx)
+				l.logDebugAST("        Found 'returns' params: %v", l.currentProc.ReturnVarNames)
+			}
 		}
+		// Note: The signature_part rule itself handles the structure (parens vs no parens).
+		// We only need to check for the presence of the individual clause contexts here.
 	} else {
-		// No parameter_clauses context means no needs/optional/returns clauses were present
-		l.logDebugAST("      No parameter_clauses context found (no needs/optional/returns).")
+		// This case should be less likely now as signature_part is not optional '?'
+		// in the grammar rule `procedure_definition`, but handle defensively.
+		l.logDebugAST("      No signature_part context found (grammar/parse issue?).")
 		// Slices are already initialized empty, so nothing more needed here.
 	}
-	// --- END Parameter Clause Processing ---
+	// --- END Signature Part Processing ---
 
-	// 3. Process Metadata Block (if it exists)
+	// 3. Process Metadata Block (if it exists) - Unchanged
 	if metaBlockCtx := ctx.Metadata_block(); metaBlockCtx != nil {
 		l.logDebugAST("    Processing procedure metadata block...")
 		for _, metaLineNode := range metaBlockCtx.AllMETADATA_LINE() {
@@ -79,13 +107,11 @@ func (l *neuroScriptListenerImpl) EnterProcedure_definition(ctx *gen.Procedure_d
 				trimmedLine := strings.TrimSpace(fullLineText)
 				if strings.HasPrefix(trimmedLine, "::") {
 					content := strings.TrimSpace(trimmedLine[2:])
-					// Assuming ParseMetadataLine exists (or implement inline)
 					parts := strings.SplitN(content, ":", 2)
 					if len(parts) == 2 {
 						key := strings.TrimSpace(parts[0])
 						value := strings.TrimSpace(parts[1])
 						if key != "" {
-							// Ensure metadata map is initialized (should be by step 1)
 							if l.currentProc.Metadata == nil {
 								l.currentProc.Metadata = make(map[string]string)
 							}
@@ -106,16 +132,17 @@ func (l *neuroScriptListenerImpl) EnterProcedure_definition(ctx *gen.Procedure_d
 		l.logDebugAST("    No procedure metadata block found.")
 	}
 
-	// 4. Setup for processing steps
+	// 4. Setup for processing steps - Unchanged
 	l.currentSteps = &l.currentProc.Steps
 	l.blockStepStack = append(l.blockStepStack, l.currentSteps)
 	l.logDebugAST("    Pushed procedure step block onto stack (Stack size: %d)", len(l.blockStepStack))
 
-	// Clear value stack for the new procedure body
+	// Clear value stack for the new procedure body - Unchanged
 	l.valueStack = l.valueStack[:0]
 }
 
 // ExitProcedure_definition finalizes the procedure and adds it to the listener's temporary list.
+// --- Unchanged ---
 func (l *neuroScriptListenerImpl) ExitProcedure_definition(ctx *gen.Procedure_definitionContext) {
 	procName := "(nil)"
 	if l.currentProc != nil {
@@ -125,20 +152,16 @@ func (l *neuroScriptListenerImpl) ExitProcedure_definition(ctx *gen.Procedure_de
 
 	if l.currentProc == nil {
 		l.logger.Error("AST Builder: Cannot append procedure, currentProc is nil on exit.")
-		// Attempt to pop stack anyway to prevent further issues?
 		if len(l.blockStepStack) > 0 {
 			l.blockStepStack = l.blockStepStack[:len(l.blockStepStack)-1]
 		}
 		return // Cannot proceed
 	}
 
-	// Pop the procedure's step block from the stack
 	if len(l.blockStepStack) > 0 {
-		// Verify top of stack matches currentSteps before popping
 		if l.currentSteps != l.blockStepStack[len(l.blockStepStack)-1] {
 			l.logger.Error("Internal Error: Block stack mismatch on exiting procedure", "procedure_name", procName)
 			l.errors = append(l.errors, fmt.Errorf("internal AST builder error: block stack mismatch for procedure %s", procName))
-			// State might be corrupted, attempt recovery by just popping
 		}
 		l.blockStepStack = l.blockStepStack[:len(l.blockStepStack)-1]
 		l.logDebugAST("    Popped procedure step block from stack (Stack size: %d)", len(l.blockStepStack))
@@ -147,72 +170,71 @@ func (l *neuroScriptListenerImpl) ExitProcedure_definition(ctx *gen.Procedure_de
 		l.errors = append(l.errors, fmt.Errorf("internal AST builder error: empty block stack for procedure %s", procName))
 	}
 
-	// Add the completed procedure POINTER to the temporary list
 	l.logDebugAST("    Appending procedure pointer: %s (ReqParams: %d, OptParams: %d, Returns: %d, Steps: %d, Metadata: %d)",
 		l.currentProc.Name, len(l.currentProc.RequiredParams), len(l.currentProc.OptionalParams),
 		len(l.currentProc.ReturnVarNames), len(l.currentProc.Steps), len(l.currentProc.Metadata))
 
-	// --- THIS IS THE CORRECTED LINE ---
-	l.procedures = append(l.procedures, l.currentProc) // Append the pointer, not the value
+	l.procedures = append(l.procedures, l.currentProc)
 
-	// Reset current procedure and steps pointers
 	l.currentProc = nil
 	if len(l.blockStepStack) > 0 {
-		// Restore the step slice pointer for the parent block (if any)
 		l.currentSteps = l.blockStepStack[len(l.blockStepStack)-1]
 	} else {
-		l.currentSteps = nil // No longer inside any block
+		l.currentSteps = nil
 	}
 
-	// Sanity check: Value stack should be empty after processing a procedure body
 	if len(l.valueStack) > 0 {
 		l.logger.Warn("Value stack not empty at end of procedure", "procedure", procName, "size", len(l.valueStack))
-		// Add error? This indicates an issue in expression/statement handling.
 		l.errors = append(l.errors, fmt.Errorf("internal AST builder error: value stack not empty (%d elements) at end of procedure %s", len(l.valueStack), procName))
-		l.valueStack = l.valueStack[:0] // Clear it to prevent issues
+		l.valueStack = l.valueStack[:0]
 	}
 }
 
 // --- Helper Methods ---
 
 // extractParamList extracts a slice of strings from a Param_listContext.
+// --- Unchanged ---
 func (l *neuroScriptListenerImpl) extractParamList(ctx gen.IParam_listContext) []string {
 	if ctx == nil {
-		return []string{}
+		return []string{} // Return empty slice if context is nil
 	}
 	params := []string{}
-	for _, identifier := range ctx.AllIDENTIFIER() {
-		params = append(params, identifier.GetText())
+	// Check if AllIDENTIFIER itself might be nil in some parse error cases
+	identifiers := ctx.AllIDENTIFIER()
+	if identifiers == nil {
+		return []string{}
+	}
+	for _, identifier := range identifiers {
+		if identifier != nil { // Also check individual identifiers
+			params = append(params, identifier.GetText())
+		}
 	}
 	return params
 }
 
 // getRuleText safely gets the text for a context using ctx.GetText().
+// --- Unchanged ---
 func getRuleText(ctx antlr.ParserRuleContext) string {
 	if ctx == nil {
 		return ""
 	}
-	// Consider using GetText() which handles streams better, but might be slow
-	// Or reconstruct from start/stop tokens if performance is critical
 	startToken := ctx.GetStart()
 	stopToken := ctx.GetStop()
 	if startToken == nil || stopToken == nil || startToken.GetInputStream() == nil {
 		return "" // Cannot get text
 	}
-	return startToken.GetInputStream().GetText(
-		startToken.GetStart(),
-		stopToken.GetStop(),
-	)
+	// Ensure indices are valid before accessing the stream
+	startIndex := startToken.GetStart()
+	stopIndex := stopToken.GetStop()
+	if startIndex < 0 || stopIndex < 0 || stopIndex < startIndex {
+		return "" // Invalid range
+	}
+	return startToken.GetInputStream().GetText(startIndex, stopIndex)
 }
 
-// --- Empty Stubs for Clause Rules (Not strictly needed if logic is in EnterProcedure_definition) ---
-func (l *neuroScriptListenerImpl) EnterParameter_clauses(ctx *gen.Parameter_clausesContext) {}
-func (l *neuroScriptListenerImpl) ExitParameter_clauses(ctx *gen.Parameter_clausesContext)  {}
-func (l *neuroScriptListenerImpl) EnterNeeds_clause(ctx *gen.Needs_clauseContext)           {}
-func (l *neuroScriptListenerImpl) ExitNeeds_clause(ctx *gen.Needs_clauseContext)            {}
-func (l *neuroScriptListenerImpl) EnterOptional_clause(ctx *gen.Optional_clauseContext)     {}
-func (l *neuroScriptListenerImpl) ExitOptional_clause(ctx *gen.Optional_clauseContext)      {}
-func (l *neuroScriptListenerImpl) EnterReturns_clause(ctx *gen.Returns_clauseContext)       {}
-func (l *neuroScriptListenerImpl) ExitReturns_clause(ctx *gen.Returns_clauseContext)        {}
-func (l *neuroScriptListenerImpl) EnterParam_list(ctx *gen.Param_listContext)               {}
-func (l *neuroScriptListenerImpl) ExitParam_list(ctx *gen.Param_listContext)                {}
+// --- REMOVED Empty Stubs for Obsolete/Unused Rules ---
+// Removed Enter/Exit Parameter_clauses
+// Removed Enter/Exit Needs_clause
+// Removed Enter/Exit Optional_clause
+// Removed Enter/Exit Returns_clause
+// Removed Enter/Exit Param_list

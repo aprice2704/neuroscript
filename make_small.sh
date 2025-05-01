@@ -5,6 +5,9 @@ dest_dir="/home/aprice/dev/neuroscript_sm2"
 
 goindexer -dirs "$source_dir"
 
+rm pkg/core/NeuroScript.g4.txt
+cp pkg/core/NeuroScript.g4 pkg/core/NeuroScript.g4.txt
+
 # Ensure destination directory exists
 mkdir -p "$dest_dir"
 

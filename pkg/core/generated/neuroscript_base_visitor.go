@@ -19,7 +19,7 @@ func (v *BaseNeuroScriptVisitor) VisitProcedure_definition(ctx *Procedure_defini
 	return v.VisitChildren(ctx)
 }
 
-func (v *BaseNeuroScriptVisitor) VisitParameter_clauses(ctx *Parameter_clausesContext) interface{} {
+func (v *BaseNeuroScriptVisitor) VisitSignature_part(ctx *Signature_partContext) interface{} {
 	return v.VisitChildren(ctx)
 }
 

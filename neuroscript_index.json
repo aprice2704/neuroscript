@@ -735,8 +735,8 @@
               "Receiver": "*neuroScriptListenerImpl",
               "Name": "ExitProgram",
               "calls": [
-                "l.logDebugAST(?)",
-                "MapKeysListener"
+                "MapKeysListener",
+                "l.logDebugAST(?)"
               ]
             },
             {
@@ -744,6 +744,7 @@
               "Name": "EnterFile_header",
               "calls": [
                 "l.logDebugAST(?)",
+                "l.logger.Error(?)",
                 "ctx.GetChildren(?)",
                 "termNode.GetSymbol().GetTokenType(?)",
                 "termNode.GetSymbol(?)",
@@ -761,14 +762,6 @@
               "Name": "ExitFile_header",
               "calls": [
                 "l.logDebugAST(?)"
-              ]
-            },
-            {
-              "Receiver": "*ASTBuilder",
-              "Name": "GetFileMetadata",
-              "calls": [
-                "b.logger.Error(?)",
-                "b.listener.GetFileMetadata(?)"
               ]
             }
           ]
@@ -1046,7 +1039,10 @@
                 "ctx.IDENTIFIER(?)",
                 "id.GetText(?)",
                 "l.logger.Error(?)",
+                "l.addError(?)",
                 "l.logDebugAST(?)",
+                "tokenToPosition",
+                "ctx.GetStart(?)",
                 "getRuleText",
                 "l.logDebugAST(?)",
                 "ctx.Parameter_clauses(?)",
@@ -1068,10 +1064,11 @@
                 "l.logDebugAST(?)",
                 "metaBlockCtx.AllMETADATA_LINE(?)",
                 "termNode.GetText(?)",
-                "ParseMetadataLine",
+                "termNode.GetSymbol(?)",
                 "l.logDebugAST(?)",
-                "l.logger.Warn(?)",
-                "l.logger.Warn(?)",
+                "l.addErrorf(?)",
+                "l.addErrorf(?)",
+                "l.addErrorf(?)",
                 "l.logDebugAST(?)",
                 "l.logDebugAST(?)"
               ]
@@ -10399,16 +10396,13 @@
                 "a.Log.Info(?)",
                 "a.determineProcedureToRun(?)",
                 "a.Log.Error(?)",
-                "interpreter.KnownProcedures(?)",
                 "a.Log.Info(?)",
                 "a.Log.Info(?)",
-                "a.Log.Info(?)",
-                "runProcFunc",
+                "a.Log.Warn(?)",
+                "interpreter.RunProcedure(?)",
+                "interpreter.RunProcedure(?)",
                 "execEndTime.Sub(?)",
                 "a.Log.Info(?)",
-                "a.Log.Error(?)",
-                "runErr.Error(?)",
-                "runErr.Error(?)",
                 "a.Log.Error(?)",
                 "a.Log.Info(?)",
                 "a.Log.Debug(?)",
@@ -10446,6 +10440,7 @@
               "calls": [
                 "a.Log.Info(?)",
                 "a.processNeuroScriptFile(?)",
+                "a.Log.Warn(?)",
                 "a.Log.Info(?)",
                 "a.Log.Info(?)",
                 "a.Log.Info(?)"
@@ -10472,7 +10467,6 @@
                 "interp.AddProcedure(?)",
                 "a.Log.Error(?)",
                 "a.Log.Debug(?)",
-                "astBuilder.GetFileMetadata(?)",
                 "a.Log.Debug(?)"
               ]
             }
@@ -10586,22 +10580,28 @@
                 "logger.Info(?)",
                 "convoManager.GetHistory(?)",
                 "logger.Warn(?)",
+                "pkg/core.Role",
+                "textContent.WriteString(?)",
+                "string",
+                "logger.Warn(?)",
+                "logger.Warn(?)",
+                "logger.Warn(?)",
+                "textContent.String(?)",
+                "logger.Warn(?)",
+                "logger.Warn(?)",
                 "logger.Debug(?)",
                 "llmClient.AskWithTools(?)",
                 "logger.Error(?)",
-                "logger.Error(?)",
-                "convoManager.AddModelResponse(?)",
-                "logger.Error(?)",
                 "logger.Info(?)",
+                "snippet",
+                "logger.Info(?)",
+                "logger.Info(?)",
+                "logger.Info(?)",
+                "logger.Warn(?)",
+                "logger.Warn(?)",
                 "logger.Debug(?)",
                 "snippet",
-                "string",
                 "accumulatedText.WriteString(?)",
-                "string",
-                "logger.Debug(?)",
-                "logger.Info(?)",
-                "logger.Warn(?)",
-                "logger.Warn(?)",
                 "logger.Info(?)",
                 "securityLayer.ExecuteToolCall(?)",
                 "logger.Error(?)",
@@ -10616,7 +10616,7 @@
                 "logger.Debug(?)",
                 "snippet",
                 "logger.Info(?)",
-                "app.patchHandler.ApplyPatch(?)",
+                "a.patchHandler.ApplyPatch(?)",
                 "logger.Error(?)",
                 "logger.Info(?)",
                 "logger.Warn(?)",

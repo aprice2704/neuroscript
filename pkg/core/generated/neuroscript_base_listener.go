@@ -38,11 +38,11 @@ func (s *BaseNeuroScriptListener) EnterProcedure_definition(ctx *Procedure_defin
 // ExitProcedure_definition is called when production procedure_definition is exited.
 func (s *BaseNeuroScriptListener) ExitProcedure_definition(ctx *Procedure_definitionContext) {}
 
-// EnterParameter_clauses is called when production parameter_clauses is entered.
-func (s *BaseNeuroScriptListener) EnterParameter_clauses(ctx *Parameter_clausesContext) {}
+// EnterSignature_part is called when production signature_part is entered.
+func (s *BaseNeuroScriptListener) EnterSignature_part(ctx *Signature_partContext) {}
 
-// ExitParameter_clauses is called when production parameter_clauses is exited.
-func (s *BaseNeuroScriptListener) ExitParameter_clauses(ctx *Parameter_clausesContext) {}
+// ExitSignature_part is called when production signature_part is exited.
+func (s *BaseNeuroScriptListener) ExitSignature_part(ctx *Signature_partContext) {}
 
 // EnterNeeds_clause is called when production needs_clause is entered.
 func (s *BaseNeuroScriptListener) EnterNeeds_clause(ctx *Needs_clauseContext) {}

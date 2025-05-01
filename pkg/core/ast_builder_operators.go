@@ -7,8 +7,6 @@ import (
 )
 
 // --- Helper and Operator Exit methods ---
-// (Includes processBinaryOperators helper and Exit<Operator>_expr methods from the previous correct version)
-// ... (Previous correct methods like processBinaryOperators, ExitLogical_or_expr, etc. go here - assuming they are correct now) ...
 
 // Helper to get the specific operator token at a given child index, checking multiple types
 func getOperatorToken(ctx antlr.ParserRuleContext, index int, tokenTypes ...int) antlr.TerminalNode {
@@ -141,7 +139,6 @@ func (l *neuroScriptListenerImpl) ExitEquality_expr(ctx *gen.Equality_exprContex
 	l.logDebugAST("--- Exit Equality_expr: %q", ctx.GetText())
 	numOperands := len(ctx.AllRelational_expr())
 	opGetter := func(i int) antlr.TerminalNode {
-		// Need to find the i-th operator (EQ or NEQ) in the children list
 		opCount := 0
 		for _, child := range ctx.GetChildren() {
 			if term, ok := child.(antlr.TerminalNode); ok {
@@ -154,7 +151,7 @@ func (l *neuroScriptListenerImpl) ExitEquality_expr(ctx *gen.Equality_exprContex
 				}
 			}
 		}
-		return nil // Should not happen if numOperands > 1
+		return nil
 	}
 	l.processBinaryOperators(ctx, numOperands, opGetter)
 }
@@ -247,6 +244,7 @@ func (l *neuroScriptListenerImpl) ExitUnary_expr(ctx *gen.Unary_exprContext) {
 	if opToken == nil {
 		// No operator, just pass through value from child (power_expr)
 		l.logDebugAST("    Unary is just Power_expr (Pass through)")
+		// The result of visiting power_expr is already on the stack.
 		return
 	}
 
@@ -283,6 +281,7 @@ func (l *neuroScriptListenerImpl) ExitPower_expr(ctx *gen.Power_exprContext) {
 	if opToken == nil {
 		// No power operator, pass through value from child (accessor_expr)
 		l.logDebugAST("    Power is just Accessor_expr (Pass through)")
+		// The result of visiting accessor_expr is already on the stack.
 		return
 	}
 
@@ -327,7 +326,79 @@ func (l *neuroScriptListenerImpl) ExitPower_expr(ctx *gen.Power_exprContext) {
 	l.logDebugAST("    Constructed BinaryOpNode (Power): [%T %s %T]", baseExpr, opText, exponentExpr)
 }
 
-// ExitCall_target -- *** CORRECTED ***
+// --- ADDED ---
+// ExitAccessor_expr handles list/map element access like list[index] or map["key"]
+// Grammar: accessor_expr: primary ( LBRACK expression RBRACK )* ;
+func (l *neuroScriptListenerImpl) ExitAccessor_expr(ctx *gen.Accessor_exprContext) {
+	l.logDebugAST("--- Exit Accessor_expr: %q", ctx.GetText())
+	// Get results for all accessor expressions (inside brackets)
+	numAccessors := len(ctx.AllExpression())
+
+	if numAccessors == 0 {
+		// No brackets, just pass through the primary expression result.
+		// The result of visiting Primary() is already on the stack.
+		l.logDebugAST("    Accessor is just Primary (Pass through)")
+		return
+	}
+
+	// Stack should contain: [PrimaryResult, Accessor1Result, Accessor2Result, ...]
+	// Pop results in reverse order (last accessor first)
+	accessorExprs := make([]Expression, numAccessors)
+	for i := numAccessors - 1; i >= 0; i-- {
+		accessorRaw, ok := l.popValue()
+		if !ok {
+			l.addError(ctx.Expression(i), "Internal error: Stack error popping accessor %d", i)
+			l.pushValue(nil) // Push error marker
+			return
+		}
+		accessorExpr, ok := accessorRaw.(Expression)
+		if !ok {
+			l.addError(ctx.Expression(i), "Internal error: Accessor %d is not an Expression (got %T)", i, accessorRaw)
+			l.pushValue(nil) // Push error marker
+			return
+		}
+		accessorExprs[i] = accessorExpr
+	}
+
+	// Pop the primary collection expression result
+	collectionRaw, ok := l.popValue()
+	if !ok {
+		l.addError(ctx.Primary(), "Internal error: Stack error popping primary collection")
+		l.pushValue(nil) // Push error marker
+		return
+	}
+	collectionExpr, ok := collectionRaw.(Expression)
+	if !ok {
+		l.addError(ctx.Primary(), "Internal error: Primary collection is not an Expression (got %T)", collectionRaw)
+		l.pushValue(nil) // Push error marker
+		return
+	}
+
+	// Build nested ElementAccessNodes from left to right
+	currentCollectionExpr := collectionExpr
+	for i := 0; i < numAccessors; i++ {
+		lBracketToken := ctx.LBRACK(i) // Get the '[' token for position
+		if lBracketToken == nil {
+			l.addError(ctx, "Internal error: Missing LBRACK token for accessor %d", i)
+			l.pushValue(nil) // Push error marker
+			return
+		}
+
+		newNode := &ElementAccessNode{
+			Pos:        tokenToPosition(lBracketToken.GetSymbol()), // Position of the '['
+			Collection: currentCollectionExpr,
+			Accessor:   accessorExprs[i],
+		}
+		l.logDebugAST("    Constructed ElementAccessNode: [Coll: %T Acc: %T]", newNode.Collection, newNode.Accessor)
+		currentCollectionExpr = newNode // The new node becomes the collection for the next access
+	}
+
+	// Push the final result (the outermost ElementAccessNode)
+	l.pushValue(currentCollectionExpr)
+	l.logDebugAST("    Final Accessor_expr result: %T", currentCollectionExpr)
+}
+
+// ExitCall_target -- *** CORRECTED PREVIOUSLY ***
 func (l *neuroScriptListenerImpl) ExitCall_target(ctx *gen.Call_targetContext) {
 	l.logDebugAST("--- Exit Call_target: %q", ctx.GetText())
 	var node CallTarget

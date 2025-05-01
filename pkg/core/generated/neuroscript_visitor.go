@@ -16,8 +16,8 @@ type NeuroScriptVisitor interface {
 	// Visit a parse tree produced by NeuroScriptParser#procedure_definition.
 	VisitProcedure_definition(ctx *Procedure_definitionContext) interface{}
 
-	// Visit a parse tree produced by NeuroScriptParser#parameter_clauses.
-	VisitParameter_clauses(ctx *Parameter_clausesContext) interface{}
+	// Visit a parse tree produced by NeuroScriptParser#signature_part.
+	VisitSignature_part(ctx *Signature_partContext) interface{}
 
 	// Visit a parse tree produced by NeuroScriptParser#needs_clause.
 	VisitNeeds_clause(ctx *Needs_clauseContext) interface{}

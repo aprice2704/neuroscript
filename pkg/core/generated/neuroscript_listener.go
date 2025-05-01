@@ -16,8 +16,8 @@ type NeuroScriptListener interface {
 	// EnterProcedure_definition is called when entering the procedure_definition production.
 	EnterProcedure_definition(c *Procedure_definitionContext)
 
-	// EnterParameter_clauses is called when entering the parameter_clauses production.
-	EnterParameter_clauses(c *Parameter_clausesContext)
+	// EnterSignature_part is called when entering the signature_part production.
+	EnterSignature_part(c *Signature_partContext)
 
 	// EnterNeeds_clause is called when entering the needs_clause production.
 	EnterNeeds_clause(c *Needs_clauseContext)
@@ -169,8 +169,8 @@ type NeuroScriptListener interface {
 	// ExitProcedure_definition is called when exiting the procedure_definition production.
 	ExitProcedure_definition(c *Procedure_definitionContext)
 
-	// ExitParameter_clauses is called when exiting the parameter_clauses production.
-	ExitParameter_clauses(c *Parameter_clausesContext)
+	// ExitSignature_part is called when exiting the signature_part production.
+	ExitSignature_part(c *Signature_partContext)
 
 	// ExitNeeds_clause is called when exiting the needs_clause production.
 	ExitNeeds_clause(c *Needs_clauseContext)

@@ -9,7 +9,7 @@ import (
 	gen "github.com/aprice2704/neuroscript/pkg/core/generated"
 )
 
-// --- Exit methods for Primary Expressions, Literals, Placeholders, Access ---
+// --- Exit methods for Primary Expressions, Literals, Placeholders ---
 // *** MODIFIED: Create specific AST nodes, set Pos, push nodes, add error handling ***
 
 // ExitExpression is just a pass-through in the listener for the top-level expression rule.
@@ -19,69 +19,8 @@ func (l *neuroScriptListenerImpl) ExitExpression(ctx *gen.ExpressionContext) {
 	// No value pushed here; value comes from child (logical_or_expr)
 }
 
-// ExitAccessor_expr handles primary expressions potentially followed by element accessors
-func (l *neuroScriptListenerImpl) ExitAccessor_expr(ctx *gen.Accessor_exprContext) {
-	l.logDebugAST("--- Exit Accessor_expr: %q", ctx.GetText())
-	numAccessors := len(ctx.AllLBRACK())
-
-	if numAccessors == 0 {
-		l.logDebugAST("    Accessor_expr is just a primary, passing through.")
-		// Value pushed by ExitPrimary
-		return
-	}
-
-	// If there are accessors, we need to build ElementAccessNode(s) iteratively.
-	// The stack should contain: [CollectionNode, AccessorNode1, AccessorNode2, ...]
-
-	// 1. Pop all accessor expressions first
-	accessorNodes := make([]Expression, numAccessors)
-	accessorTokens := ctx.AllLBRACK()        // Get tokens for position info
-	for i := numAccessors - 1; i >= 0; i-- { // Pop in reverse order
-		accessorRaw, ok := l.popValue()
-		if !ok {
-			l.addError(ctx, "Internal error: Stack error popping accessor %d for %q", i, ctx.GetText())
-			l.pushValue(nil) // Push error marker
-			return
-		}
-		accessorExpr, ok := accessorRaw.(Expression)
-		if !ok {
-			l.addError(ctx, "Internal error: Accessor %d for %q is not an Expression (got %T)", i, ctx.GetText(), accessorRaw)
-			l.pushValue(nil) // Push error marker
-			return
-		}
-		accessorNodes[i] = accessorExpr // Store in correct order
-	}
-
-	// 2. Pop the base collection expression
-	collectionRaw, ok := l.popValue()
-	if !ok {
-		l.addError(ctx, "Internal error: Stack error popping collection for %q", ctx.GetText())
-		l.pushValue(nil) // Push error marker
-		return
-	}
-	collectionExpr, ok := collectionRaw.(Expression)
-	if !ok {
-		l.addError(ctx, "Internal error: Collection for %q is not an Expression (got %T)", ctx.GetText(), collectionRaw)
-		l.pushValue(nil) // Push error marker
-		return
-	}
-
-	// 3. Build nested ElementAccessNodes left-to-right
-	currentNode := collectionExpr
-	for i := 0; i < numAccessors; i++ {
-		newNode := &ElementAccessNode{
-			Pos:        tokenToPosition(accessorTokens[i].GetSymbol()), // Position of the '['
-			Collection: currentNode,
-			Accessor:   accessorNodes[i],
-		}
-		l.logDebugAST("    Constructed intermediate ElementAccessNode: [%T]", accessorNodes[i])
-		currentNode = newNode // The new node becomes the collection for the next accessor
-	}
-
-	// 4. Push the final, outermost ElementAccessNode
-	l.pushValue(currentNode)
-	l.logDebugAST("    Pushed final ElementAccessNode: %T", currentNode)
-}
+// --- REMOVED Duplicate ExitAccessor_expr method ---
+// The implementation now resides in ast_builder_operators.go
 
 // ExitPrimary handles the base cases of expressions.
 func (l *neuroScriptListenerImpl) ExitPrimary(ctx *gen.PrimaryContext) {
@@ -89,6 +28,7 @@ func (l *neuroScriptListenerImpl) ExitPrimary(ctx *gen.PrimaryContext) {
 	if ctx.Literal() != nil || ctx.Placeholder() != nil || ctx.Callable_expr() != nil || ctx.LPAREN() != nil {
 		// Value already pushed by the corresponding child Exit* method (or passed through for parens).
 		l.logDebugAST("    Primary is Literal, Placeholder, Call, or Parenthesized (Pass through)")
+		// If it's LPAREN expression RPAREN, the value from the inner expression is already on the stack.
 		return
 	}
 

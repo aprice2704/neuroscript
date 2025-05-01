@@ -58,7 +58,7 @@ func (app *App) Run(ctx context.Context) error {
 		} else {
 			fmt.Fprintf(os.Stderr, "Error: %s\n", errMsg)
 		}
-		return fmt.Errorf(errMsg)
+		return fmt.Errorf("%s", errMsg)
 	}
 	if app.Log == nil {
 		fmt.Fprintf(os.Stderr, "Error: application logger is nil\n")
