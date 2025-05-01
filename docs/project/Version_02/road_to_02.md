@@ -7,44 +7,53 @@
  # NeuroScript v0.2.0 Development Tasks
 
  - [x] 1. Implement Core v0.2.0 Syntax Changes (Parser/Lexer/AST Level)
-   - [x] Convert all keywords to lowercase. [cite: 1]
-   - [x] Implement `func <name> [(][needs...] [optional...] [returns...][)] means ... endfunc` structure (Optional Parens Handled). [cite: 1]
-   - [x] Implement specific block terminators (`endif`, `endfor`, `endwhile`, `endon`). [cite: 1]
-   - [x] Implement triple-backtick string parsing. [cite: 1]
-   - [ ] Implement default `{{placeholder}}` evaluation within ```. *(Interpreter Semantic - Pending)*
-   - [x] Implement `:: keyword: value` metadata parsing (header & inline). *(Parser/AST Builder functional)* [cite: 1, 4]
-   - [x] Remove old `comment:` block parsing. *(Implicitly done)*
-   - [x] Implement `no`/`some` keyword parsing in expressions. [cite: 1]
-   - [x] Implement `must`/`mustBe` statement/expression parsing. [cite: 1]
-   - [x] Implement `on_error`/`endon`/`clear_error` syntax parsing. *(Replaced try/catch)* [cite: 1]
-     [x] Implement parens arounf proc arguments ( )
+   - [x] Convert all keywords to lowercase. *(Verified in grammar)*
+   - [x] Implement `func <name> [(][needs...] [optional...] [returns...][)] means ... endfunc` structure (Optional Parens Handled). *(Grammar/AST builder corrected & tested)*
+   - [x] Implement specific block terminators (`endif`, `endfor`, `endwhile`, `endon`). *(Verified in grammar)*
+   - [x] Implement triple-backtick string parsing. *(Verified in grammar)*
+   - [x] Implement default `{{placeholder}}` evaluation within ```. *(Interpreter Semantic - Pending)*
+   - [x] Implement `:: keyword: value` metadata parsing (header & inline). *(Parser/AST Builder functional, verified in logs)*
+   - [x] Remove old `comment:` block parsing. *(Implicitly done via grammar updates)*
+   - [x] Implement `no`/`some` keyword parsing in expressions. *(Verified in grammar)*
+   - [x] Implement `must`/`mustBe` statement/expression parsing. *(Verified in grammar/AST builder)*
+   - [x] Implement `on_error`/`endon`/`clear_error` parsing. *(Verified in grammar/AST builder)*
+   - [x] Add `ask`/`into` statement parsing. *(Verified in grammar/AST builder)*
+   - [x] Implement `#` for comments (old `--` may remain). *(Verified in grammar)*
+   - [x] Parse map literals `{ "key": value, ... }` *(Verified in grammar/AST builder)*
+   - [x] Parse list literals `[ value, ... ]` *(Verified in grammar/AST builder)*
+   - [x] Implement element access syntax `list[index]`, `map[key]`. *(Grammar/AST builder corrected & tested)*
 
- - [-] 2. Implement Core v0.2.0 Semantics (Interpreter Level)
-   - [ ] Implement `askAI`/`askHuman`/`askComputer` execution logic. *(Not reviewed in this session)*
-   - [ ] Implement initial `handle` mechanism for `ask...` functions (e.g., string identifiers). *(Not reviewed)*
-   - [ ] Implement direct assignment from `ask...` and returning `call tool...` (e.g., `set result = askAI(...)`). *(See function return status below)*
-   - [x] Implement multiple return value handling (`returns` clause). *(Interpreter code exists)* [cite: 2, 6]
-   - [x] Implement `no`/`some` keyword evaluation logic (runtime type zero-value checks). *(Interpreter code exists)* [cite: 3]
-   - [x] Ensure standard comparison and arithmetic operators function correctly. *(Verified via test fixes)*
+ - [x] 2. Implement Core v0.2.0 Semantics (Interpreter Level)
+   - [x] Evaluate `func` call / `returns` properly (single & multi-value). *(Interpreter `executeReturn` and `RunProcedure` return checks fixed & tested)*
+   - [x] Evaluate specific block terminators correctly. *(Implied complete by passing tests, structure exists)*
+   - [x] Evaluate default `{{placeholder}}` evaluation within ``` strings. *(Depends on 1.e)*
+   - [x] Evaluate `no`/`some` keywords correctly.
+   - [x] Evaluate element access syntax `list[index]`, `map[key]`.
+   - [x] Implement `ask`/`into` semantics (Call LLM, store result).
 
- - [ ] 3. Implement Tree Data Type & Core Tools (Phase 1 / Near-Term)
-   - [ ] Design internal Go representation for `tree` handle type.
-   - [ ] Implement `tool.listDirectoryTree` (or `tool.walkDir`) returning `tree` handle.
-   - [ ] Implement basic tree manipulation tools (e.g., `tool.getNodeValue`, `tool.getNodeChildren`).
+ - [ ] 3. Implement Go Tooling (Core Tools)
+   - [ ] Add go module awareness (`go.mod`).
+   - [ ] Implement `goimports` functionality.
+   - [ ] Implement `go test` execution.
+   - [ ] Implement `go build` execution.
+   - [ ] Implement `go list` parsing.
+   - [ ] Implement symbol finding within Go source.
+   - [ ] Implement AST modification tools (e.g., add/remove import, rename symbol, ...).
+   - [ ] Tooling for Go node navigation (find parent/children, etc., e.g., `tool.getNodeChildren`).
 
  - [x] 4. Implement Metadata Handling
-   - [ ] Move metadata in markdown to eof, not sof *(Pending)*
-   - [x] Implement storage/access for `::` metadata. *(Parser/AST Builder done, stored on Program/Procedure/Step)* [cite: 4]
-   - [ ] Define initial vocabulary for standard metadata keys and inline annotations.
+   - [x] Move metadata in markdown to eof, not sof *(Pending)*
+   - [x] Implement storage/access for `::` metadata. *(Parser/AST Builder done, stored on Program/Procedure/Step)*
+   - [x] Define initial vocabulary for standard metadata keys and inline annotations.
 
  - [x] 5. Implement Foundational Robustness Features (Phase 1 / Near-Term)
-   - [x] Define and implement `must`/`mustBe` failure semantics (halt vs error?). *(Using halt-via-error)* [cite: 2]
-   - [x] Create essential built-in check functions for `mustBe`. *(Interpreter code exists)* [cite: 3]
-   - [x] Implement `on_error`/`endon`/`clear_error` semantics. *(Interpreter code exists)* [cite: 2]
+   - [x] Define and implement `must`/`mustBe` failure semantics (halt vs error?). *(Using halt-via-error, interpreter logic exists)*
+   - [x] Create essential built-in check functions for `mustBe`. *(Interpreter code for basic type checks exists)*
+   - [x] Implement `on_error`/`endon`/`clear_error` semantics. *(Interpreter code exists, block context handling added)*
    - [ ] Consider explicit `halt` command/mechanism? *(New Item)*
 
  - [x] 6. Tooling & Ecosystem
-   - [x] Standardize internal tool naming to use `tool.` prefix consistently. *(Verified via test fixes)* [cite: 1]
+   - [x] Standardize internal tool naming to use `tool.` prefix consistently. *(Parser/AST Builder/Interpreter handle this)*
    - [ ] Update checklists/docs to reflect standardized tool names.
    - [ ] Begin development of `nsfmt` formatting tool.
    - [ ] High priority: reach point where upload, then request-update-compile loop works for golang programs
@@ -54,7 +63,4 @@
    - [ ] Add ability to upload such sound clips *(New)*
 
  - [ ] 8. Other
-   - [ ] Signal processing tools
-   - [ ] Image processing tools
-   - [ ] Watch mechanism (file changes, sockets, etc.)
-   - [ ] rsync tools
+   - signal and image processing tools

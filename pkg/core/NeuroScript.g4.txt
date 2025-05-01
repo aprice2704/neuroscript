@@ -1,8 +1,8 @@
 // File:      NeuroScript.g4
 // Grammar:   NeuroScript
-// Version:   0.2.0-alpha-func-returns-1 // Incremented Version for function returns
-// Date:      2025-04-29 // << Date adjusted based on context >>
-// NOTE: Added ask_stmt rule Apr 30, 2025
+// Version:   0.2.0-alpha-func-returns-2 // Incremented Version for signature fix
+// Date:      2025-04-30 // Updated Date
+// NOTE: Added ask_stmt rule Apr 30, 2025. Fixed func signature parsing Apr 30, 2025.
 
 grammar NeuroScript;
 
@@ -13,31 +13,35 @@ program: file_header (procedure_definition NEWLINE*)* EOF;
 
 file_header: (METADATA_LINE | NEWLINE)*;
 
-// Procedure definition uses optional parameter clauses block
+// MODIFIED procedure_definition: 'means' now follows the signature_part
 procedure_definition:
     KW_FUNC IDENTIFIER
-    parameter_clauses? // The whole clause group is optional
-    KW_MEANS NEWLINE
-    metadata_block?    // Optional metadata block after 'means'
+    signature_part // Use the new rule for the section before 'means'
+    KW_MEANS NEWLINE // 'means' is now required AFTER the signature_part
+    metadata_block?
     statement_list
-    KW_ENDFUNC; // NEWLINE handled by program rule
+    KW_ENDFUNC;
+    // NEWLINE handled by program rule
 
-// Groups parameter clauses and handles optional parens
-parameter_clauses:
-    // Option 1: Parens are present (clauses inside are still optional)
-    LPAREN needs_clause? optional_clause? returns_clause? RPAREN
-    // Option 2: Parens are absent - AT LEAST ONE clause must exist
-    | needs_clause optional_clause? returns_clause?
-    | optional_clause returns_clause?
-    | returns_clause
-    ;
+// NEW rule: signature_part handles all variations between func name and 'means'
+signature_part:
+     // Option 1: Parens are present (clauses inside are optional)
+     LPAREN needs_clause? optional_clause? returns_clause? RPAREN
+     // Option 2: Parens are absent - requires at least one clause
+     | needs_clause optional_clause? returns_clause?
+     | optional_clause returns_clause?
+     | returns_clause
+     // Option 3: No clauses at all (empty alternative matches nothing)
+     |
+     ;
 
-// Parameter clause rules (unchanged)
+// Parameter clause rules (unchanged - still used by signature_part)
 needs_clause: KW_NEEDS param_list;
 optional_clause: KW_OPTIONAL param_list;
 returns_clause: KW_RETURNS param_list;
-
 param_list: IDENTIFIER (COMMA IDENTIFIER)*;
+
+// REMOVED: The old parameter_clauses rule is effectively replaced by signature_part
 
 // Metadata block rule: Use '*' and consume NEWLINE after each line
 metadata_block: (METADATA_LINE NEWLINE)*;
@@ -134,10 +138,10 @@ callable_expr:
     | KW_LN | KW_LOG | KW_SIN | KW_COS | KW_TAN | KW_ASIN | KW_ACOS | KW_ATAN // Built-ins
     )
     LPAREN expression_list_opt RPAREN;
-
 // function_call rule REMOVED (subsumed by callable_expr in primary)
 
 placeholder: PLACEHOLDER_START (IDENTIFIER | KW_LAST) PLACEHOLDER_END;
+
 literal:
     STRING_LIT
     | TRIPLE_BACKTICK_STRING
@@ -199,8 +203,8 @@ KW_TAN        : 'tan';
 KW_ASIN       : 'asin';
 KW_ACOS       : 'acos';
 KW_ATAN       : 'atan';
-KW_ASK        : 'ask';   // <<< ADDED KEYWORD
-KW_INTO       : 'into';  // <<< ADDED KEYWORD
+KW_ASK        : 'ask';     // <<< ADDED KEYWORD
+KW_INTO       : 'into';    // <<< ADDED KEYWORD
 
 // Literals (Unchanged)
 NUMBER_LIT: [0-9]+ ('.' [0-9]+)?;

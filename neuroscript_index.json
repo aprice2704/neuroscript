@@ -397,6 +397,8 @@
               "Name": "exitBlockContext",
               "calls": [
                 "l.logDebugAST(?)",
+                "l.logDebugAST(?)",
+                "l.logger.Warn(?)",
                 "l.logger.Error(?)",
                 "l.logger.Warn(?)",
                 "l.logDebugAST(?)"
@@ -414,16 +416,31 @@
               "Receiver": "*neuroScriptListenerImpl",
               "Name": "ExitStatement_list",
               "calls": [
-                "l.logger.Warn(?)",
-                "l.pushValue(?)",
-                "l.logDebugAST(?)",
-                "l.pushValue(?)"
+                "l.logDebugAST(?)"
               ]
             },
             {
               "Receiver": "*neuroScriptListenerImpl",
               "Name": "EnterIf_statement",
               "calls": [
+                "l.logDebugAST(?)"
+              ]
+            },
+            {
+              "Receiver": "*neuroScriptListenerImpl",
+              "Name": "EnterStatement_list_within_if",
+              "calls": [
+                "ctx.GetParent(?)",
+                "ifCtx.KW_ELSE(?)",
+                "ifCtx.Statement_list(?)",
+                "l.logDebugAST(?)",
+                "l.enterBlockContext(?)",
+                "ifCtx.Statement_list(?)",
+                "l.logDebugAST(?)",
+                "l.enterBlockContext(?)",
+                "l.logger.Error(?)",
+                "l.enterBlockContext(?)",
+                "l.logger.Error(?)",
                 "l.enterBlockContext(?)"
               ]
             },
@@ -433,25 +450,14 @@
               "calls": [
                 "l.logDebugAST(?)",
                 "ctx.KW_ELSE(?)",
-                "l.popValue(?)",
-                "l.addError(?)",
                 "l.exitBlockContext(?)",
-                "l.addError(?)",
+                "l.logDebugAST(?)",
                 "l.exitBlockContext(?)",
                 "l.logDebugAST(?)",
                 "l.popValue(?)",
                 "l.addError(?)",
-                "l.exitBlockContext(?)",
                 "l.addError(?)",
-                "l.exitBlockContext(?)",
                 "l.logDebugAST(?)",
-                "l.popValue(?)",
-                "l.addError(?)",
-                "l.exitBlockContext(?)",
-                "l.addError(?)",
-                "l.exitBlockContext(?)",
-                "l.logDebugAST(?)",
-                "l.exitBlockContext(?)",
                 "l.logger.Error(?)",
                 "tokenToPosition",
                 "ctx.KW_IF().GetSymbol(?)",
@@ -471,19 +477,12 @@
               "Name": "ExitWhile_statement",
               "calls": [
                 "l.logDebugAST(?)",
-                "l.popValue(?)",
-                "l.addError(?)",
-                "l.exitBlockContext(?)",
-                "l.addError(?)",
                 "l.exitBlockContext(?)",
                 "l.logDebugAST(?)",
                 "l.popValue(?)",
                 "l.addError(?)",
-                "l.exitBlockContext(?)",
                 "l.addError(?)",
-                "l.exitBlockContext(?)",
                 "l.logDebugAST(?)",
-                "l.exitBlockContext(?)",
                 "l.logger.Error(?)",
                 "tokenToPosition",
                 "ctx.KW_WHILE().GetSymbol(?)",
@@ -503,23 +502,15 @@
               "Name": "ExitFor_each_statement",
               "calls": [
                 "l.logDebugAST(?)",
-                "l.popValue(?)",
-                "l.addError(?)",
-                "l.exitBlockContext(?)",
-                "l.addError(?)",
                 "l.exitBlockContext(?)",
                 "l.logDebugAST(?)",
                 "l.popValue(?)",
                 "l.addError(?)",
-                "l.exitBlockContext(?)",
                 "l.addError(?)",
-                "l.exitBlockContext(?)",
                 "l.logDebugAST(?)",
                 "ctx.IDENTIFIER(?)",
                 "id.GetText(?)",
                 "l.addError(?)",
-                "l.exitBlockContext(?)",
-                "l.exitBlockContext(?)",
                 "l.logger.Error(?)",
                 "tokenToPosition",
                 "ctx.KW_FOR().GetSymbol(?)",
@@ -539,13 +530,8 @@
               "Name": "ExitOnErrorStmt",
               "calls": [
                 "l.logDebugAST(?)",
-                "l.popValue(?)",
-                "l.addError(?)",
-                "l.exitBlockContext(?)",
-                "l.addError(?)",
                 "l.exitBlockContext(?)",
                 "l.logDebugAST(?)",
-                "l.exitBlockContext(?)",
                 "l.logger.Error(?)",
                 "tokenToPosition",
                 "ctx.KW_ON_ERROR().GetSymbol(?)",
@@ -695,7 +681,7 @@
               "Receiver": "*neuroScriptListenerImpl",
               "Name": "pushValue",
               "calls": [
-                "l.logDebugAST(?)"
+                "l.logger.Debug(?)"
               ]
             },
             {
@@ -703,7 +689,7 @@
               "Name": "popValue",
               "calls": [
                 "l.logger.Error(?)",
-                "l.logDebugAST(?)"
+                "l.logger.Debug(?)"
               ]
             },
             {
@@ -712,7 +698,7 @@
               "calls": [
                 "l.logger.Error(?)",
                 "l.logger.Error(?)",
-                "l.logDebugAST(?)"
+                "l.logger.Debug(?)"
               ]
             },
             {
@@ -956,6 +942,38 @@
             },
             {
               "Receiver": "*neuroScriptListenerImpl",
+              "Name": "ExitAccessor_expr",
+              "calls": [
+                "l.logDebugAST(?)",
+                "ctx.GetText(?)",
+                "ctx.AllExpression(?)",
+                "l.logDebugAST(?)",
+                "l.popValue(?)",
+                "l.addError(?)",
+                "ctx.Expression(?)",
+                "l.pushValue(?)",
+                "l.addError(?)",
+                "ctx.Expression(?)",
+                "l.pushValue(?)",
+                "l.popValue(?)",
+                "l.addError(?)",
+                "ctx.Primary(?)",
+                "l.pushValue(?)",
+                "l.addError(?)",
+                "ctx.Primary(?)",
+                "l.pushValue(?)",
+                "ctx.LBRACK(?)",
+                "l.addError(?)",
+                "l.pushValue(?)",
+                "tokenToPosition",
+                "lBracketToken.GetSymbol(?)",
+                "l.logDebugAST(?)",
+                "l.pushValue(?)",
+                "l.logDebugAST(?)"
+              ]
+            },
+            {
+              "Receiver": "*neuroScriptListenerImpl",
               "Name": "ExitCall_target",
               "calls": [
                 "l.logDebugAST(?)",
@@ -1044,20 +1062,32 @@
                 "tokenToPosition",
                 "ctx.GetStart(?)",
                 "getRuleText",
+                "ctx.KW_MEANS(?)",
+                "ctx.GetStart(?)",
+                "meansToken.GetSymbol(?)",
+                "stopToken.GetStart(?)",
+                "startToken.GetStart(?)",
+                "startToken.GetInputStream().GetText(?)",
+                "startToken.GetInputStream(?)",
+                "startToken.GetStart(?)",
+                "getRuleText",
+                "ctx.Signature_part(?)",
+                "getRuleText",
+                "ctx.Signature_part(?)",
                 "l.logDebugAST(?)",
-                "ctx.Parameter_clauses(?)",
+                "ctx.Signature_part(?)",
                 "l.logDebugAST(?)",
-                "paramClausesCtx.Needs_clause(?)",
-                "l.extractParamList(?)",
+                "sigPartCtx.Needs_clause(?)",
                 "needsCtx.Param_list(?)",
-                "l.logDebugAST(?)",
-                "paramClausesCtx.Optional_clause(?)",
                 "l.extractParamList(?)",
+                "l.logDebugAST(?)",
+                "sigPartCtx.Optional_clause(?)",
                 "optionalCtx.Param_list(?)",
-                "l.logDebugAST(?)",
-                "paramClausesCtx.Returns_clause(?)",
                 "l.extractParamList(?)",
+                "l.logDebugAST(?)",
+                "sigPartCtx.Returns_clause(?)",
                 "returnsCtx.Param_list(?)",
+                "l.extractParamList(?)",
                 "l.logDebugAST(?)",
                 "l.logDebugAST(?)",
                 "ctx.Metadata_block(?)",
@@ -1093,46 +1123,6 @@
                 "ctx.AllIDENTIFIER(?)",
                 "identifier.GetText(?)"
               ]
-            },
-            {
-              "Receiver": "*neuroScriptListenerImpl",
-              "Name": "EnterParameter_clauses"
-            },
-            {
-              "Receiver": "*neuroScriptListenerImpl",
-              "Name": "ExitParameter_clauses"
-            },
-            {
-              "Receiver": "*neuroScriptListenerImpl",
-              "Name": "EnterNeeds_clause"
-            },
-            {
-              "Receiver": "*neuroScriptListenerImpl",
-              "Name": "ExitNeeds_clause"
-            },
-            {
-              "Receiver": "*neuroScriptListenerImpl",
-              "Name": "EnterOptional_clause"
-            },
-            {
-              "Receiver": "*neuroScriptListenerImpl",
-              "Name": "ExitOptional_clause"
-            },
-            {
-              "Receiver": "*neuroScriptListenerImpl",
-              "Name": "EnterReturns_clause"
-            },
-            {
-              "Receiver": "*neuroScriptListenerImpl",
-              "Name": "ExitReturns_clause"
-            },
-            {
-              "Receiver": "*neuroScriptListenerImpl",
-              "Name": "EnterParam_list"
-            },
-            {
-              "Receiver": "*neuroScriptListenerImpl",
-              "Name": "ExitParam_list"
             }
           ]
         },
@@ -1269,36 +1259,6 @@
               "calls": [
                 "l.logDebugAST(?)",
                 "ctx.GetText(?)"
-              ]
-            },
-            {
-              "Receiver": "*neuroScriptListenerImpl",
-              "Name": "ExitAccessor_expr",
-              "calls": [
-                "l.logDebugAST(?)",
-                "ctx.GetText(?)",
-                "ctx.AllLBRACK(?)",
-                "l.logDebugAST(?)",
-                "ctx.AllLBRACK(?)",
-                "l.popValue(?)",
-                "l.addError(?)",
-                "ctx.GetText(?)",
-                "l.pushValue(?)",
-                "l.addError(?)",
-                "ctx.GetText(?)",
-                "l.pushValue(?)",
-                "l.popValue(?)",
-                "l.addError(?)",
-                "ctx.GetText(?)",
-                "l.pushValue(?)",
-                "l.addError(?)",
-                "ctx.GetText(?)",
-                "l.pushValue(?)",
-                "tokenToPosition",
-                "accessorTokens[i].GetSymbol(?)",
-                "l.logDebugAST(?)",
-                "l.pushValue(?)",
-                "l.logDebugAST(?)"
               ]
             },
             {
@@ -1534,9 +1494,13 @@
               "calls": [
                 "i.evaluateExpression(?)",
                 "i.evaluateExpression(?)",
+                "n.Pos.String(?)",
                 "i.logger.Debug(?)",
+                "NewRuntimeError",
+                "NewRuntimeError",
                 "i.evaluateListElementAccess(?)",
-                "i.evaluateMapElementAccess(?)"
+                "i.evaluateMapElementAccess(?)",
+                "NewRuntimeError"
               ]
             },
             {
@@ -1547,7 +1511,9 @@
                 "float64",
                 "int64",
                 "int64",
+                "NewRuntimeError",
                 "int",
+                "NewRuntimeError",
                 "int",
                 "i.logger.Debug(?)"
               ]
@@ -1557,6 +1523,7 @@
               "Name": "evaluateMapElementAccess",
               "calls": [
                 "i.logger.Info(?)",
+                "NewRuntimeError",
                 "i.logger.Debug(?)"
               ]
             }
@@ -2024,6 +1991,7 @@
                 "i.executeFail(?)",
                 "i.executeOnError(?)",
                 "i.executeClearError(?)",
+                "i.executeAsk(?)",
                 "NewRuntimeError",
                 "i.Logger().Warn(?)",
                 "i.Logger(?)",
@@ -2260,9 +2228,6 @@
           ]
         },
         "pkg/core/interpreter_steps_simple.go": {
-          "functions": [
-            "NodeToString"
-          ],
           "methods": [
             {
               "Receiver": "*Interpreter",
@@ -2361,6 +2326,24 @@
                 "i.Logger().Debug(?)",
                 "i.Logger(?)",
                 "NewRuntimeError"
+              ]
+            },
+            {
+              "Receiver": "*Interpreter",
+              "Name": "executeAsk",
+              "calls": [
+                "step.Pos.String(?)",
+                "i.Logger().Info(?)",
+                "i.Logger(?)",
+                "i.evaluateExpression(?)",
+                "NewRuntimeError",
+                "NewRuntimeError",
+                "i.Logger().Warn(?)",
+                "i.Logger(?)",
+                "i.SetVariable(?)",
+                "NewRuntimeError",
+                "i.Logger().Debug(?)",
+                "i.Logger(?)"
               ]
             }
           ]
@@ -3141,7 +3124,8 @@
           "functions": [
             "IsTruthy",
             "InterfaceToString",
-            "normalizeNewlines"
+            "normalizeNewlines",
+            "NodeToString"
           ],
           "methods": [
             {
@@ -3226,11 +3210,11 @@
             },
             {
               "Receiver": "*BaseNeuroScriptListener",
-              "Name": "EnterParameter_clauses"
+              "Name": "EnterSignature_part"
             },
             {
               "Receiver": "*BaseNeuroScriptListener",
-              "Name": "ExitParameter_clauses"
+              "Name": "ExitSignature_part"
             },
             {
               "Receiver": "*BaseNeuroScriptListener",
@@ -3635,7 +3619,7 @@
             },
             {
               "Receiver": "*BaseNeuroScriptVisitor",
-              "Name": "VisitParameter_clauses",
+              "Name": "VisitSignature_part",
               "calls": [
                 "v.VisitChildren(?)"
               ]
@@ -3996,9 +3980,9 @@
             "NewEmptyProcedure_definitionContext",
             "InitEmptyProcedure_definitionContext",
             "NewProcedure_definitionContext",
-            "NewEmptyParameter_clausesContext",
-            "InitEmptyParameter_clausesContext",
-            "NewParameter_clausesContext",
+            "NewEmptySignature_partContext",
+            "InitEmptySignature_partContext",
+            "NewSignature_partContext",
             "NewEmptyNeeds_clauseContext",
             "InitEmptyNeeds_clauseContext",
             "NewNeeds_clauseContext",
@@ -4412,6 +4396,13 @@
             },
             {
               "Receiver": "*Procedure_definitionContext",
+              "Name": "Signature_part",
+              "calls": [
+                "s.GetChildren(?)"
+              ]
+            },
+            {
+              "Receiver": "*Procedure_definitionContext",
               "Name": "KW_MEANS",
               "calls": [
                 "s.GetToken(?)"
@@ -4436,13 +4427,6 @@
               "Name": "KW_ENDFUNC",
               "calls": [
                 "s.GetToken(?)"
-              ]
-            },
-            {
-              "Receiver": "*Procedure_definitionContext",
-              "Name": "Parameter_clauses",
-              "calls": [
-                "s.GetChildren(?)"
               ]
             },
             {
@@ -4501,15 +4485,7 @@
                 "p.Match(?)",
                 "p.HasError(?)",
                 "p.SetState(?)",
-                "p.GetErrorHandler().Sync(?)",
-                "p.GetErrorHandler(?)",
-                "p.HasError(?)",
-                "p.GetTokenStream().LA(?)",
-                "p.GetTokenStream(?)",
-                "int64",
-                "int64",
-                "p.SetState(?)",
-                "p.Parameter_clauses(?)",
+                "p.Signature_part(?)",
                 "p.SetState(?)",
                 "p.Match(?)",
                 "p.HasError(?)",
@@ -4543,86 +4519,86 @@
               ]
             },
             {
-              "Receiver": "*Parameter_clausesContext",
-              "Name": "IsParameter_clausesContext"
+              "Receiver": "*Signature_partContext",
+              "Name": "IsSignature_partContext"
             },
             {
-              "Receiver": "*Parameter_clausesContext",
+              "Receiver": "*Signature_partContext",
               "Name": "GetParser"
             },
             {
-              "Receiver": "*Parameter_clausesContext",
+              "Receiver": "*Signature_partContext",
               "Name": "LPAREN",
               "calls": [
                 "s.GetToken(?)"
               ]
             },
             {
-              "Receiver": "*Parameter_clausesContext",
+              "Receiver": "*Signature_partContext",
               "Name": "RPAREN",
               "calls": [
                 "s.GetToken(?)"
               ]
             },
             {
-              "Receiver": "*Parameter_clausesContext",
+              "Receiver": "*Signature_partContext",
               "Name": "Needs_clause",
               "calls": [
                 "s.GetChildren(?)"
               ]
             },
             {
-              "Receiver": "*Parameter_clausesContext",
+              "Receiver": "*Signature_partContext",
               "Name": "Optional_clause",
               "calls": [
                 "s.GetChildren(?)"
               ]
             },
             {
-              "Receiver": "*Parameter_clausesContext",
+              "Receiver": "*Signature_partContext",
               "Name": "Returns_clause",
               "calls": [
                 "s.GetChildren(?)"
               ]
             },
             {
-              "Receiver": "*Parameter_clausesContext",
+              "Receiver": "*Signature_partContext",
               "Name": "GetRuleContext"
             },
             {
-              "Receiver": "*Parameter_clausesContext",
+              "Receiver": "*Signature_partContext",
               "Name": "ToStringTree",
               "calls": [
                 "antlr.TreesStringTree(?)"
               ]
             },
             {
-              "Receiver": "*Parameter_clausesContext",
+              "Receiver": "*Signature_partContext",
               "Name": "EnterRule",
               "calls": [
-                "listenerT.EnterParameter_clauses(?)"
+                "listenerT.EnterSignature_part(?)"
               ]
             },
             {
-              "Receiver": "*Parameter_clausesContext",
+              "Receiver": "*Signature_partContext",
               "Name": "ExitRule",
               "calls": [
-                "listenerT.ExitParameter_clauses(?)"
+                "listenerT.ExitSignature_part(?)"
               ]
             },
             {
-              "Receiver": "*Parameter_clausesContext",
+              "Receiver": "*Signature_partContext",
               "Name": "Accept",
               "calls": [
-                "t.VisitParameter_clauses(?)",
+                "t.VisitSignature_part(?)",
                 "t.VisitChildren(?)"
               ]
             },
             {
               "Receiver": "*NeuroScriptParser",
-              "Name": "Parameter_clauses",
+              "Name": "Signature_part",
               "calls": [
-                "NewParameter_clausesContext",
+                "NewSignature_partContext",
                 "p.GetParserRuleContext(?)",
                 "p.GetState(?)",
                 "p.EnterRule(?)",
@@ -4696,6 +4672,7 @@
                 "p.EnterOuterAlt(?)",
                 "p.SetState(?)",
                 "p.Returns_clause(?)",
+                "p.EnterOuterAlt(?)",
                 "p.SetError(?)",
                 "antlr.NewNoViableAltException(?)",
                 "p.HasError(?)",
