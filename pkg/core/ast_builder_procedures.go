@@ -2,6 +2,7 @@
 package core
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/antlr4-go/antlr/v4"
@@ -19,13 +20,17 @@ func (l *neuroScriptListenerImpl) EnterProcedure_definition(ctx *gen.Procedure_d
 		procName = id.GetText()
 	} else {
 		l.logger.Error("AST Builder: Procedure definition missing identifier!")
-		// TODO: Add error to listener's error list?
-		procName = "_INVALID_PROC_" // Use a placeholder name
+		l.addError(ctx, "procedure definition missing identifier") // Add error
+		procName = "_INVALID_PROC_"                                // Use a placeholder name
 	}
 	l.logDebugAST(">>> Enter Procedure_definition (func): %s", procName)
 
+	// Set position for the procedure
+	procPos := tokenToPosition(ctx.GetStart()) // Use start of 'func' keyword
+
 	// 1. Initialize the current Procedure struct early
 	l.currentProc = &Procedure{
+		Pos:            procPos, // Set position
 		Name:           procName,
 		RequiredParams: []string{}, // Initialize as empty
 		OptionalParams: []string{}, // Initialize as empty
@@ -64,30 +69,36 @@ func (l *neuroScriptListenerImpl) EnterProcedure_definition(ctx *gen.Procedure_d
 	}
 	// --- END Parameter Clause Processing ---
 
-	// 3. Process Metadata Block (if it exists) - THIS LOGIC REMAINS THE SAME
+	// 3. Process Metadata Block (if it exists)
 	if metaBlockCtx := ctx.Metadata_block(); metaBlockCtx != nil {
 		l.logDebugAST("    Processing procedure metadata block...")
 		for _, metaLineNode := range metaBlockCtx.AllMETADATA_LINE() {
 			if termNode, ok := metaLineNode.(antlr.TerminalNode); ok {
 				fullLineText := termNode.GetText()
+				token := termNode.GetSymbol() // Get token for error reporting
 				trimmedLine := strings.TrimSpace(fullLineText)
 				if strings.HasPrefix(trimmedLine, "::") {
 					content := strings.TrimSpace(trimmedLine[2:])
-					// Assuming ParseMetadataLine exists in utils.go or similar
-					key, value, ok := ParseMetadataLine(content)
-					if ok {
-						// Ensure metadata map is initialized (should be by step 1)
-						if l.currentProc.Metadata == nil {
-							l.currentProc.Metadata = make(map[string]string)
+					// Assuming ParseMetadataLine exists (or implement inline)
+					parts := strings.SplitN(content, ":", 2)
+					if len(parts) == 2 {
+						key := strings.TrimSpace(parts[0])
+						value := strings.TrimSpace(parts[1])
+						if key != "" {
+							// Ensure metadata map is initialized (should be by step 1)
+							if l.currentProc.Metadata == nil {
+								l.currentProc.Metadata = make(map[string]string)
+							}
+							l.currentProc.Metadata[key] = value
+							l.logDebugAST("      Parsed proc metadata: [%s] = %q", key, value)
+						} else {
+							l.addErrorf(token, "Ignoring procedure metadata line with empty key")
 						}
-						l.currentProc.Metadata[key] = value
-						l.logDebugAST("      Parsed proc metadata: [%s] = %q", key, value)
 					} else {
-						l.logger.Warn("Malformed procedure metadata line ignored", "line", fullLineText)
-						// TODO: Optionally add an error to l.errors here
+						l.addErrorf(token, "Ignoring malformed procedure metadata line (missing ':'?)")
 					}
 				} else {
-					l.logger.Warn("Unexpected procedure metadata line format (missing '::'?)", "line", fullLineText)
+					l.addErrorf(token, "Unexpected procedure metadata line format (missing '::'?)")
 				}
 			}
 		}
@@ -95,7 +106,7 @@ func (l *neuroScriptListenerImpl) EnterProcedure_definition(ctx *gen.Procedure_d
 		l.logDebugAST("    No procedure metadata block found.")
 	}
 
-	// 4. Setup for processing steps - THIS LOGIC REMAINS THE SAME
+	// 4. Setup for processing steps
 	l.currentSteps = &l.currentProc.Steps
 	l.blockStepStack = append(l.blockStepStack, l.currentSteps)
 	l.logDebugAST("    Pushed procedure step block onto stack (Stack size: %d)", len(l.blockStepStack))
@@ -104,8 +115,7 @@ func (l *neuroScriptListenerImpl) EnterProcedure_definition(ctx *gen.Procedure_d
 	l.valueStack = l.valueStack[:0]
 }
 
-// ExitProcedure_definition finalizes the procedure and adds it to the list.
-// (This function remains largely unchanged from the previous version)
+// ExitProcedure_definition finalizes the procedure and adds it to the listener's temporary list.
 func (l *neuroScriptListenerImpl) ExitProcedure_definition(ctx *gen.Procedure_definitionContext) {
 	procName := "(nil)"
 	if l.currentProc != nil {
@@ -127,19 +137,23 @@ func (l *neuroScriptListenerImpl) ExitProcedure_definition(ctx *gen.Procedure_de
 		// Verify top of stack matches currentSteps before popping
 		if l.currentSteps != l.blockStepStack[len(l.blockStepStack)-1] {
 			l.logger.Error("Internal Error: Block stack mismatch on exiting procedure", "procedure_name", procName)
+			l.errors = append(l.errors, fmt.Errorf("internal AST builder error: block stack mismatch for procedure %s", procName))
 			// State might be corrupted, attempt recovery by just popping
 		}
 		l.blockStepStack = l.blockStepStack[:len(l.blockStepStack)-1]
 		l.logDebugAST("    Popped procedure step block from stack (Stack size: %d)", len(l.blockStepStack))
 	} else {
 		l.logger.Error("Internal Error: Attempted to pop from empty block stack on exiting procedure", "procedure_name", procName)
+		l.errors = append(l.errors, fmt.Errorf("internal AST builder error: empty block stack for procedure %s", procName))
 	}
 
-	// Add the completed procedure to the list
-	l.logDebugAST("    Appending procedure: %s (ReqParams: %d, OptParams: %d, Returns: %d, Steps: %d, Metadata: %d)",
+	// Add the completed procedure POINTER to the temporary list
+	l.logDebugAST("    Appending procedure pointer: %s (ReqParams: %d, OptParams: %d, Returns: %d, Steps: %d, Metadata: %d)",
 		l.currentProc.Name, len(l.currentProc.RequiredParams), len(l.currentProc.OptionalParams),
 		len(l.currentProc.ReturnVarNames), len(l.currentProc.Steps), len(l.currentProc.Metadata))
-	l.procedures = append(l.procedures, *l.currentProc)
+
+	// --- THIS IS THE CORRECTED LINE ---
+	l.procedures = append(l.procedures, l.currentProc) // Append the pointer, not the value
 
 	// Reset current procedure and steps pointers
 	l.currentProc = nil
@@ -153,6 +167,8 @@ func (l *neuroScriptListenerImpl) ExitProcedure_definition(ctx *gen.Procedure_de
 	// Sanity check: Value stack should be empty after processing a procedure body
 	if len(l.valueStack) > 0 {
 		l.logger.Warn("Value stack not empty at end of procedure", "procedure", procName, "size", len(l.valueStack))
+		// Add error? This indicates an issue in expression/statement handling.
+		l.errors = append(l.errors, fmt.Errorf("internal AST builder error: value stack not empty (%d elements) at end of procedure %s", len(l.valueStack), procName))
 		l.valueStack = l.valueStack[:0] // Clear it to prevent issues
 	}
 }
@@ -160,7 +176,6 @@ func (l *neuroScriptListenerImpl) ExitProcedure_definition(ctx *gen.Procedure_de
 // --- Helper Methods ---
 
 // extractParamList extracts a slice of strings from a Param_listContext.
-// (This helper remains the same)
 func (l *neuroScriptListenerImpl) extractParamList(ctx gen.IParam_listContext) []string {
 	if ctx == nil {
 		return []string{}
@@ -173,16 +188,24 @@ func (l *neuroScriptListenerImpl) extractParamList(ctx gen.IParam_listContext) [
 }
 
 // getRuleText safely gets the text for a context using ctx.GetText().
-// (This helper remains the same)
 func getRuleText(ctx antlr.ParserRuleContext) string {
 	if ctx == nil {
 		return ""
 	}
-	return ctx.GetText()
+	// Consider using GetText() which handles streams better, but might be slow
+	// Or reconstruct from start/stop tokens if performance is critical
+	startToken := ctx.GetStart()
+	stopToken := ctx.GetStop()
+	if startToken == nil || stopToken == nil || startToken.GetInputStream() == nil {
+		return "" // Cannot get text
+	}
+	return startToken.GetInputStream().GetText(
+		startToken.GetStart(),
+		stopToken.GetStop(),
+	)
 }
 
 // --- Empty Stubs for Clause Rules (Not strictly needed if logic is in EnterProcedure_definition) ---
-// We added Parameter_clauses here.
 func (l *neuroScriptListenerImpl) EnterParameter_clauses(ctx *gen.Parameter_clausesContext) {}
 func (l *neuroScriptListenerImpl) ExitParameter_clauses(ctx *gen.Parameter_clausesContext)  {}
 func (l *neuroScriptListenerImpl) EnterNeeds_clause(ctx *gen.Needs_clauseContext)           {}
@@ -193,6 +216,3 @@ func (l *neuroScriptListenerImpl) EnterReturns_clause(ctx *gen.Returns_clauseCon
 func (l *neuroScriptListenerImpl) ExitReturns_clause(ctx *gen.Returns_clauseContext)        {}
 func (l *neuroScriptListenerImpl) EnterParam_list(ctx *gen.Param_listContext)               {}
 func (l *neuroScriptListenerImpl) ExitParam_list(ctx *gen.Param_listContext)                {}
-
-// Assuming ParseMetadataLine exists in utils.go or similar:
-// func ParseMetadataLine(lineContent string) (key, value string, ok bool) { ... }

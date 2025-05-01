@@ -33,9 +33,10 @@ func (p *Position) String() string {
 
 // Program represents the root of the NeuroScript Abstract Syntax Tree (AST).
 type Program struct {
-	Metadata   map[string]string // Stores file-level metadata (:: key: value)
-	Procedures []Procedure       // List of procedures defined in the script
-	Pos        *Position         // Position of the start of the program (e.g., first token)
+	Metadata map[string]string // Stores file-level metadata (:: key: value)
+	// Procedures []Procedure       // OLD: List of procedures defined in the script
+	Procedures map[string]*Procedure // NEW: Map of procedure name to Procedure pointer
+	Pos        *Position             // Position of the start of the program (e.g., first token)
 }
 
 // GetPos returns the program's starting position.

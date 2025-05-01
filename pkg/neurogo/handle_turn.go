@@ -18,11 +18,17 @@ const (
 	maxFunctionCallCycles  = 5 // Limit recursive function calls
 )
 
+// Define locally until added to core/llm_types.go
+type llmRequestContext struct {
+	History  []*core.ConversationTurn // Use core type
+	FileURIs []string
+}
+
 // handleAgentTurn processes a single response from the LLM, potentially involving tool calls.
 // It manages the inner loop of interacting with the LLM and tools.
 func (a *App) handleAgentTurn(
 	ctx context.Context,
-	llmClient core.LLMClient, // <<< FIX: Accept the interface type
+	llmClient core.LLMClient, // Accept the interface type
 	convoManager *core.ConversationManager,
 	agentInterpreter *core.Interpreter, // Pass interpreter for tool execution context if needed
 	securityLayer *core.SecurityLayer, // Pass security layer for validation
@@ -33,7 +39,6 @@ func (a *App) handleAgentTurn(
 	// Need logger inside this method
 	logger := a.GetLogger()
 	if logger == nil {
-		// Fallback or return error if logger is essential
 		fmt.Println("Error: Logger not available in handleAgentTurn")
 		return errors.New("logger not available in handleAgentTurn")
 	}
@@ -43,140 +48,191 @@ func (a *App) handleAgentTurn(
 	for cycle := 0; cycle < maxFunctionCallCycles; cycle++ {
 		logger.Info("--- Agent Inner Loop Cycle ---", "cycle", cycle+1)
 
+		// --- FIX: Convert History Format ---
+		genaiHistory := convoManager.GetHistory()
+		coreHistory := make([]*core.ConversationTurn, 0, len(genaiHistory))
+		for _, content := range genaiHistory {
+			if content == nil {
+				logger.Warn("[CONVO] Skipping nil content during history conversion.")
+				continue
+			}
+			turn := &core.ConversationTurn{
+				Role: core.Role(content.Role), // Cast role
+				// Simplified conversion: assumes first text part is main content
+				// Ignores tool calls/results stored in genai.Content during this conversion for now
+			}
+			var textContent strings.Builder
+			var toolCalls []*core.ToolCall // Collect core tool calls if present (unlikely in genai.Content usually)
+			for _, part := range content.Parts {
+				switch v := part.(type) {
+				case genai.Text:
+					textContent.WriteString(string(v))
+				case genai.FunctionCall:
+					// Convert genai.FunctionCall to core.ToolCall if needed
+					toolCalls = append(toolCalls, &core.ToolCall{
+						// ID is not directly available in genai.FunctionCall, generate or leave empty?
+						Name:      v.Name,
+						Arguments: v.Args,
+					})
+					logger.Warn("[CONVO] Converting genai.FunctionCall found in history part to core.ToolCall (ID missing).")
+				case genai.FunctionResponse:
+					// Convert genai.FunctionResponse to core.ToolResult if needed
+					// TODO: Add conversion logic if ToolResult is needed in core.ConversationTurn
+					logger.Warn("[CONVO] genai.FunctionResponse found in history part, conversion to core.ToolResult not implemented.")
+				default:
+					logger.Warn("[CONVO] Unknown part type in history during conversion.", "type", fmt.Sprintf("%T", v))
+				}
+			}
+			turn.Content = textContent.String()
+			turn.ToolCalls = toolCalls // Add converted/collected tool calls
+			// turn.ToolResults = ... // Add converted tool results if needed
+			coreHistory = append(coreHistory, turn)
+		}
+		// --- End History Conversion ---
+
 		// Prepare request context for this cycle
-		requestContext := core.LLMRequestContext{
-			History:  convoManager.GetHistory(), // Get current history
-			FileURIs: currentURIs,               // Use URIs relevant for this cycle
+		requestContext := llmRequestContext{ // Use local type definition
+			History:  coreHistory, // Use converted history
+			FileURIs: currentURIs,
 		}
 
 		if len(requestContext.History) == 0 {
-			logger.Warn("Attempting agent call with empty history.")
-			// Decide if this is an error or just needs skipping
+			logger.Warn("Attempting agent call with empty history (after conversion).")
 			return errors.New("cannot call LLM with empty history")
 		}
 
+		// Convert []*genai.Tool to []core.ToolDefinition
+		coreToolDefs := make([]core.ToolDefinition, 0, len(toolDeclarations))
+		for _, genaiTool := range toolDeclarations {
+			if len(genaiTool.FunctionDeclarations) > 0 {
+				decl := genaiTool.FunctionDeclarations[0]
+				coreToolDefs = append(coreToolDefs, core.ToolDefinition{
+					Name:        decl.Name,
+					Description: decl.Description,
+					InputSchema: decl.Parameters,
+				})
+			} else {
+				logger.Warn("Tool declaration found with no FunctionDeclarations.", "tool", fmt.Sprintf("%+v", genaiTool))
+			}
+		}
+
 		// Call LLM
-		logger.Debug("Calling LLM.", "history_len", len(requestContext.History), "uri_count", len(requestContext.FileURIs))
-		llmResponse, err := llmClient.AskWithTools(ctx, requestContext.History, toolDeclarations) // Use AskWithTools
+		logger.Debug("Calling LLM.", "history_len", len(requestContext.History), "uri_count", len(requestContext.FileURIs), "tool_def_count", len(coreToolDefs))
+		// --- FIX: Adapt to LLMClient return types ---
+		llmResponseTurn, returnedToolCalls, err := llmClient.AskWithTools(ctx, requestContext.History, coreToolDefs)
 		if err != nil {
-			// Log specific API error
 			logger.Error("LLM API call failed.", "error", err)
 			return fmt.Errorf("LLM API call failed: %w", err)
 		}
-		if llmResponse == nil || len(llmResponse.Candidates) == 0 {
-			logger.Error("Invalid LLM response: nil or no candidates.")
-			// Check safety ratings if available on llmResponse
-			// ... safety rating check logic ...
-			return errors.New("invalid LLM response (nil or no candidates)")
-		}
 
-		// Process first candidate
-		candidate := llmResponse.Candidates[0]
-		if err := convoManager.AddModelResponse(candidate); err != nil {
-			// Log failure but might not be fatal for the turn
-			logger.Error("Failed to add model response to conversation history.", "error", err)
+		// Log the turn received from the LLM interface
+		if llmResponseTurn != nil {
+			logger.Info("[CONVO] Received Model Turn:", "role", llmResponseTurn.Role, "content_snippet", snippet(llmResponseTurn.Content, 50), "tool_calls_in_turn", len(llmResponseTurn.ToolCalls))
+			// TODO: Convert llmResponseTurn back to genai.Content to add to history via convoManager, or update convoManager.
+			// For now, we *don't* add this core.ConversationTurn back automatically.
+			// The history update logic needs refinement based on core vs genai types.
+		} else if len(returnedToolCalls) > 0 {
+			logger.Info("[CONVO] LLMClient returned Tool Calls but nil ConversationTurn.")
+		} else {
+			logger.Info("[CONVO] LLMClient returned nil ConversationTurn and no Tool Calls.")
+			// This might be a valid end state if the LLM just stops.
 		}
-		if candidate.Content == nil || len(candidate.Content.Parts) == 0 {
-			logger.Info("LLM candidate has no content parts. Ending turn.")
-			fmt.Println("\n[AGENT] LLM returned empty response content.")
-			return nil // End turn successfully, nothing more to process
-		}
+		// --- End FIX ---
 
 		// --- Process Response Parts ---
 		foundFunctionCall := false
-		var firstFunctionCall *genai.FunctionCall
+		var firstToolCallToExecute *core.ToolCall // Use core type
 		var accumulatedText strings.Builder
 
-		for _, part := range candidate.Content.Parts {
-			switch v := part.(type) {
-			case genai.Text:
-				logger.Debug("LLM Response Part: Text", "content", snippet(string(v), 50))
-				accumulatedText.WriteString(string(v))
-			case genai.FunctionCall:
-				logger.Debug("LLM Response Part: FunctionCall", "name", v.Name, "args", v.Args)
-				if !foundFunctionCall {
-					foundFunctionCall = true
-					fcCopy := v // Make a copy since v is a loop variable
-					firstFunctionCall = &fcCopy
-					logger.Info("LLM requested tool call.", "tool_name", fcCopy.Name)
-				} else {
-					logger.Warn("Multiple function calls in one response, only processing the first.", "ignored_tool", v.Name)
-				}
-			default:
-				logger.Warn("Unhandled LLM response part type.", "type", fmt.Sprintf("%T", v))
+		// --- FIX: Prioritize returnedToolCalls ---
+		if len(returnedToolCalls) > 0 {
+			logger.Info("Processing tool calls returned separately by LLMClient.", "count", len(returnedToolCalls))
+			foundFunctionCall = true
+			firstToolCallToExecute = returnedToolCalls[0] // Use core.ToolCall
+			if len(returnedToolCalls) > 1 {
+				logger.Warn("Multiple tool calls returned by LLMClient, only processing the first.", "ignored_count", len(returnedToolCalls)-1)
 			}
+		} else if llmResponseTurn != nil && len(llmResponseTurn.ToolCalls) > 0 {
+			// Fallback: Check if tool calls are embedded in the turn object (less ideal)
+			logger.Warn("Tool calls found within ConversationTurn response object. LLMClient should return them separately. Processing first.", "count", len(llmResponseTurn.ToolCalls))
+			foundFunctionCall = true
+			firstToolCallToExecute = llmResponseTurn.ToolCalls[0] // Use core.ToolCall
 		}
-		// --- End Process Response Parts ---
+		// --- End FIX ---
+
+		// Process text content if no function call was prioritized, or if the turn also had text
+		if !foundFunctionCall && llmResponseTurn != nil && llmResponseTurn.Content != "" {
+			logger.Debug("LLM Response Turn: Text", "content", snippet(llmResponseTurn.Content, 50))
+			accumulatedText.WriteString(llmResponseTurn.Content)
+		}
 
 		// --- Decide Next Action ---
-		if foundFunctionCall && firstFunctionCall != nil {
-			fc := *firstFunctionCall // Use the captured first call
-			logger.Info("Executing tool call.", "tool_name", fc.Name)
+		if foundFunctionCall && firstToolCallToExecute != nil {
+			toolCall := *firstToolCallToExecute // Use the captured first call (core.ToolCall)
 
-			// TODO: Pass agentInterpreter correctly if tool execution needs it
-			// funcResultPart, execErr := securityLayer.ExecuteToolCall(agentInterpreter, fc)
-			// Placeholder execution - replace with actual call
-			funcResultPart, execErr := securityLayer.ExecuteToolCall(fc) // Assuming ExecuteToolCall takes only FunctionCall now? Check definition
+			// --- FIX: Convert core.ToolCall back to genai.FunctionCall for SecurityLayer ---
+			// This highlights that SecurityLayer likely needs updating to use core types.
+			genaiFC := genai.FunctionCall{
+				Name: toolCall.Name,
+				Args: toolCall.Arguments, // Assume map[string]any is compatible
+			}
+			logger.Info("Executing tool call.", "tool_name", genaiFC.Name)
+
+			// Execute using genai.FunctionCall (as SecurityLayer expects it currently)
+			funcResultPart, execErr := securityLayer.ExecuteToolCall(agentInterpreter, genaiFC) // Pass interpreter
 
 			if execErr != nil {
-				logger.Error("Tool execution failed.", "tool_name", fc.Name, "error", execErr)
-				// Format error as FunctionResponse for the LLM
-				funcResultPart = core.CreateErrorFunctionResultPart(fc.Name, execErr)
-				// Decide if tool execution error should stop the cycle or let LLM retry
+				logger.Error("Tool execution failed.", "tool_name", genaiFC.Name, "error", execErr)
+				funcResultPart = core.CreateErrorFunctionResultPart(genaiFC.Name, execErr)
 			} else {
-				logger.Info("Tool execution successful.", "tool_name", fc.Name)
+				logger.Info("Tool execution successful.", "tool_name", genaiFC.Name)
 			}
 
-			// Add the function result back to the conversation
+			// Add the function result (genai.Part) back to the conversation manager (which expects genai.Part)
 			if err := convoManager.AddFunctionResultMessage(funcResultPart); err != nil {
-				// This is more critical, log and potentially return error
-				logger.Error("Failed to add function result to conversation history.", "tool_name", fc.Name, "error", err)
-				return fmt.Errorf("failed to record function result for %s: %w", fc.Name, err)
+				logger.Error("Failed to add function result to conversation history.", "tool_name", genaiFC.Name, "error", err)
+				return fmt.Errorf("failed to record function result for %s: %w", genaiFC.Name, err)
 			}
+			// --- End FIX ---
+
 			logger.Debug("Function call result added to history. Continuing agent cycle.")
-			// Clear accumulated text for this cycle as we handled a function call
-			accumulatedText.Reset()
-			// URIs likely don't change based *only* on a tool call unless the tool itself updates context
-			// currentURIs = ... update if tool modifies context state ...
-			continue // Go to the next cycle, LLM will see the tool result
+			accumulatedText.Reset() // Reset text since we handled a tool call
+			continue                // Go to the next cycle
 
 		} else {
-			// No function call requested, process final text output
+			// No function call requested or processed, handle final text output
 			finalText := accumulatedText.String()
-			logger.Info("No function call requested by LLM. Processing final text response.")
+			logger.Info("No function call requested or processed. Handling final text response.")
 			logger.Debug("Final text response", "content", snippet(finalText, 100))
 
-			// Check for patch pattern (assuming handleReceivedPatch exists)
-			if app.patchHandler != nil { // Check if patch handler is initialized
+			// Check for patch pattern
+			if a.patchHandler != nil { // Corrected: Use receiver 'a'
 				trimmedResponse := strings.TrimSpace(finalText)
-				// Simple check for patch prefix/suffix - refine as needed
 				if strings.HasPrefix(trimmedResponse, "@@@PATCH") && strings.HasSuffix(trimmedResponse, "@@@") {
 					logger.Info("Detected patch pattern in response.")
-					// Extract patch content (needs robust extraction)
 					patchContent := strings.TrimPrefix(trimmedResponse, "@@@PATCH")
 					patchContent = strings.TrimSuffix(patchContent, "@@@")
 					patchContent = strings.TrimSpace(patchContent)
 
-					patchErr := app.patchHandler.ApplyPatch(ctx, patchContent)
+					patchErr := a.patchHandler.ApplyPatch(ctx, patchContent) // Corrected: Use receiver 'a'
 					if patchErr != nil {
 						logger.Error("Applying patch failed.", "error", patchErr)
 						fmt.Printf("[AGENT] Error applying patch: %v\n", patchErr)
-						// Let the user see the raw response that contained the failed patch
 						if finalText != "" {
 							fmt.Printf("\n[AGENT RESPONSE (Patch Failed)]\n%s\n\n", finalText)
 						}
-						return fmt.Errorf("patch application failed: %w", patchErr) // End turn with error
+						return fmt.Errorf("patch application failed: %w", patchErr)
 					} else {
 						logger.Info("Patch applied successfully.")
 						fmt.Println("[AGENT] Patch applied successfully.")
-						return nil // End turn successfully after patch
+						return nil
 					}
 				}
 			} else {
 				logger.Warn("Patch handler is nil, cannot check for or apply patches.")
 			}
 
-			// If no patch detected or handler is nil, output the text
+			// Output final text if not handled as patch
 			if finalText != "" {
 				fmt.Printf("\n[AGENT RESPONSE]\n%s\n\n", finalText)
 			} else {

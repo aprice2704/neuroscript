@@ -2,7 +2,7 @@
 package core
 
 import (
-	"errors" // Import errors package
+	"errors"
 	"fmt"
 	"strings"
 
@@ -31,6 +31,7 @@ func tokenToPosition(token antlr.Token) *Position {
 type ASTBuilder struct {
 	logger   logging.Logger
 	debugAST bool // Option to enable detailed AST construction logging
+	// REMOVED: listener field - it's local to Build
 }
 
 // NewASTBuilder creates a new ASTBuilder instance.
@@ -48,7 +49,6 @@ func NewASTBuilder(logger logging.Logger) *ASTBuilder {
 
 // Build takes an ANTLR parse tree and constructs the NeuroScript Program AST (*core.Program).
 // It now returns the Program, the collected file metadata, and any error.
-// func (b *ASTBuilder) Build(tree antlr.Tree) (*Program, error) { // OLD Signature
 func (b *ASTBuilder) Build(tree antlr.Tree) (*Program, map[string]string, error) { // NEW Signature
 	if tree == nil {
 		// Return nils for program and metadata on initial error
@@ -103,16 +103,19 @@ func (b *ASTBuilder) Build(tree antlr.Tree) (*Program, map[string]string, error)
 	}
 
 	// Ensure the program's metadata field matches what the listener collected/returned.
-	programAST.Metadata = fileMetadata
+	// This should already be the case as the listener modifies the program's map directly.
+	// programAST.Metadata = fileMetadata // This line is likely redundant now
 
 	// Final assembly: Populate the Program's map from the listener's temporary slice.
-	// This step is necessary based on the listener structure provided earlier.
+	// Initialize the map (now correct type based on modified ast.go)
 	if programAST.Procedures == nil {
-		programAST.Procedures = make(map[string]*Procedure)
+		programAST.Procedures = make(map[string]*Procedure) // Correct type now
 	}
 	duplicateProcs := false
-	for _, proc := range listener.procedures { // Assuming listener has a slice `procedures []*Procedure`
-		if proc != nil {
+	// Loop iterates over []*Procedure now
+	for _, proc := range listener.procedures {
+		if proc != nil { // Comparison with nil is now valid for *Procedure
+			// Map key check is now valid
 			if _, exists := programAST.Procedures[proc.Name]; exists {
 				// Log duplicate, and ensure an error is returned by adding to listener.errors
 				errorMsg := fmt.Sprintf("duplicate procedure definition: %s", proc.Name)
@@ -120,6 +123,7 @@ func (b *ASTBuilder) Build(tree antlr.Tree) (*Program, map[string]string, error)
 				listener.errors = append(listener.errors, errors.New(errorMsg)) // Add error
 				duplicateProcs = true
 			}
+			// Map assignment is now valid
 			programAST.Procedures[proc.Name] = proc // Add pointer to map
 		}
 	}
@@ -132,6 +136,7 @@ func (b *ASTBuilder) Build(tree antlr.Tree) (*Program, map[string]string, error)
 				errorMessages = append(errorMessages, err.Error())
 			}
 		}
+		// Return the program (with duplicates possibly overwritten) and the error
 		return programAST, fileMetadata, errors.New(strings.Join(errorMessages, "; "))
 	}
 
@@ -146,32 +151,37 @@ func (b *ASTBuilder) Build(tree antlr.Tree) (*Program, map[string]string, error)
 // *** MODIFIED: Added program field and errors slice. ***
 type neuroScriptListenerImpl struct {
 	*gen.BaseNeuroScriptListener
-	program        *Program          // Field to hold the final program AST
-	fileMetadata   map[string]string // For file-level metadata
-	procedures     []Procedure
+	program      *Program          // Field to hold the final program AST
+	fileMetadata map[string]string // Points to program.Metadata
+	// procedures     []Procedure    // OLD: Slice of Procedure values
+	procedures     []*Procedure // NEW: Temporary slice of Procedure pointers
 	currentProc    *Procedure
 	currentSteps   *[]Step
 	blockStepStack []*[]Step
 	valueStack     []interface{}
 	currentMapKey  *StringLiteralNode // Keep for map literal building
-	// blockSteps     map[antlr.ParserRuleContext][]Step // REMOVED: Direct building preferred over map
-	logger   logging.Logger
-	debugAST bool
-	errors   []error // Slice to collect errors during build
+	logger         logging.Logger
+	debugAST       bool
+	errors         []error // Slice to collect errors during build
 }
 
 // newNeuroScriptListener creates a new listener instance.
 func newNeuroScriptListener(logger logging.Logger, debugAST bool) *neuroScriptListenerImpl {
+	// Initialize program struct with the correct Procedures map type
+	prog := &Program{
+		Metadata:   make(map[string]string),
+		Procedures: make(map[string]*Procedure), // Initialize the map
+		Pos:        nil,                         // Will be set in EnterProgram
+	}
 	return &neuroScriptListenerImpl{
-		program:        &Program{}, // Initialize program struct
-		fileMetadata:   make(map[string]string),
-		procedures:     make([]Procedure, 0),
+		program:        prog,
+		fileMetadata:   prog.Metadata,         // Point to program's map
+		procedures:     make([]*Procedure, 0), // NEW: Initialize slice of pointers
 		blockStepStack: make([]*[]Step, 0),
 		valueStack:     make([]interface{}, 0, 10),
-		// blockSteps:     make(map[antlr.ParserRuleContext][]Step), // REMOVED
-		logger:   logger,
-		debugAST: debugAST,
-		errors:   make([]error, 0), // Initialize errors slice
+		logger:         logger,
+		debugAST:       debugAST,
+		errors:         make([]error, 0), // Initialize errors slice
 	}
 }
 
@@ -203,16 +213,15 @@ func (l *neuroScriptListenerImpl) GetFileMetadata() map[string]string {
 	if l.program != nil {
 		return l.program.Metadata
 	}
-	return l.fileMetadata // Fallback just in case
+	// Fallback shouldn't be necessary but kept for safety
+	return l.fileMetadata
 }
 
-// GetResult returns the collected procedures (now part of Program).
-func (l *neuroScriptListenerImpl) GetResult() []Procedure {
-	// Return from the program struct
-	if l.program != nil {
-		return l.program.Procedures
-	}
-	return l.procedures // Fallback
+// GetResult returns the temporary slice of collected procedures.
+// Note: The final result is in program.Procedures map. This might be obsolete.
+func (l *neuroScriptListenerImpl) GetResult() []*Procedure { // UPDATED Return Type
+	// Return from the temporary slice used during building
+	return l.procedures
 }
 
 // --- Listener Stack Helpers ---
@@ -274,21 +283,31 @@ func (l *neuroScriptListenerImpl) logDebugAST(format string, v ...interface{}) {
 
 func (l *neuroScriptListenerImpl) EnterProgram(ctx *gen.ProgramContext) {
 	l.logDebugAST(">>> Enter Program")
+	// Initialize or reset the program struct correctly
 	l.program = &Program{ // Initialize the program AST node
 		Metadata:   make(map[string]string),
-		Procedures: make([]Procedure, 0),
+		Procedures: make(map[string]*Procedure),     // Initialize map
 		Pos:        tokenToPosition(ctx.GetStart()), // Record start position
 	}
 	l.fileMetadata = l.program.Metadata // Use program's metadata map
-	l.procedures = l.program.Procedures // Use program's procedures slice
-	l.errors = make([]error, 0)         // Reset errors for this build
+	// Reset temporary procedures slice for this build
+	l.procedures = make([]*Procedure, 0) // Use slice of pointers
+	l.errors = make([]error, 0)          // Reset errors for this build
 }
 
 func (l *neuroScriptListenerImpl) ExitProgram(ctx *gen.ProgramContext) {
-	// Update program fields after visiting children
-	l.program.Metadata = l.fileMetadata
-	l.program.Procedures = l.procedures
-	l.logDebugAST("<<< Exit Program (Metadata Keys: %v, Procedures: %d, Errors: %d)", MapKeysListener(l.program.Metadata), len(l.program.Procedures), len(l.errors))
+	// Metadata is already part of l.program
+	// Procedures map is populated directly in Build method now
+	// Log final state
+	procCount := 0
+	if l.program != nil && l.program.Procedures != nil {
+		procCount = len(l.program.Procedures)
+	}
+	metaKeys := []string{}
+	if l.program != nil && l.program.Metadata != nil {
+		metaKeys = MapKeysListener(l.program.Metadata)
+	}
+	l.logDebugAST("<<< Exit Program (Metadata Keys: %v, Procedures: %d, Errors: %d)", metaKeys, procCount, len(l.errors))
 }
 
 // --- MODIFIED: Metadata Handling via file_header ---
@@ -296,6 +315,11 @@ func (l *neuroScriptListenerImpl) ExitProgram(ctx *gen.ProgramContext) {
 // EnterFile_header processes all metadata lines found at the start of the file.
 func (l *neuroScriptListenerImpl) EnterFile_header(ctx *gen.File_headerContext) {
 	l.logDebugAST("  >> Enter File Header")
+	if l.program == nil || l.program.Metadata == nil {
+		l.logger.Error("EnterFile_header called with nil program or metadata map!")
+		l.errors = append(l.errors, errors.New("internal AST builder error: program/metadata nil in EnterFile_header"))
+		return // Avoid panic
+	}
 	// Iterate through all children of the header context
 	for _, child := range ctx.GetChildren() {
 		// Check if the child is a METADATA_LINE terminal node
@@ -319,7 +343,8 @@ func (l *neuroScriptListenerImpl) EnterFile_header(ctx *gen.File_headerContext) 
 						l.addErrorf(token, "Ignoring file metadata line with empty key")
 					}
 				} else {
-					l.addErrorf(token, "Ignoring malformed file metadata line (missing or misplaced ':'?)")
+					// Store the whole line as key if no ':' found? Or error? Currently errors.
+					l.addErrorf(token, "Ignoring malformed file metadata line (missing ':'?)")
 				}
 			} else {
 				// Should not happen if lexer rule is correct
@@ -348,23 +373,7 @@ func MapKeysListener(m map[string]string) []string {
 	return keys
 }
 
-// GetFileMetadata returns the metadata collected from the file header during the build process.
-// It delegates to the internal listener instance created during the Build method.
-func (b *ASTBuilder) GetFileMetadata() map[string]string {
-	// Ensure the listener was created and stored during Build
-	if b.listener == nil {
-		// Log an error if possible, assuming ASTBuilder has a logger field 'logger'
-		if b.logger != nil {
-			b.logger.Error("GetFileMetadata called before Build or after a failed Build where listener was not set.")
-		} else {
-			fmt.Println("Error: GetFileMetadata called on ASTBuilder with nil listener.")
-		}
-		// Return an empty map to avoid nil pointer dereference
-		return make(map[string]string)
-	}
-	// Delegate to the listener's GetFileMetadata method
-	return b.listener.GetFileMetadata()
-}
+// REMOVED ASTBuilder.GetFileMetadata method as it's redundant
 
 // --- Methods to be implemented in other ast_builder_*.go files ---
 // EnterProcedure_definition, ExitProcedure_definition
