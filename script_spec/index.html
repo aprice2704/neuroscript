@@ -1,0 +1,2444 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://aprice2704.github.io/neuroscript/script_spec/">
+      
+      
+        <link rel="prev" href="../front/contributing/">
+      
+      
+        <link rel="next" href="../formal%20script%20spec/">
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.12">
+    
+    
+      
+        <title>Quick Spec - NeuroScript</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.2afb09e1.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="NeuroScript" class="md-header__button md-logo" aria-label="NeuroScript" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            NeuroScript
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Quick Spec
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/aprice2704/neuroscript" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="NeuroScript" class="md-nav__button md-logo" aria-label="NeuroScript" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    NeuroScript
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/aprice2704/neuroscript" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Home
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../RoadMap.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Road Map
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Overview
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Overview
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../front/why-ns/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Why NeuroScript
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../front/architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Architecture
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../front/concepts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Core Concepts
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../front/installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Installation
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../front/faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    FAQ
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../front/contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Contributing
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Specifications
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Specifications
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    Quick Spec
+    
+  </span>
+  
+
+      </a>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../formal%20script%20spec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Formal Spec
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../metadata/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Metadata
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../neurodata_and_composite_file_spec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    NeuroData & Composite
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../llm_agent_facilities/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    LLM Agent Facilities
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../restricted_mode/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Restricted Mode
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../specification_structure/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Spec Structure Guide
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    NeuroData Types
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            NeuroData Types
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/checklist/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Checklist
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/cryptographic/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Cryptographic
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/decision_table/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Decision Table
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/enum/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Enum
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/form/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Form
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/geometry/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Geometry
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/graph/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Graph
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/list/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    List
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/map_literal/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Map Literal
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/map_schema/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Map Schema
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/patch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Patch
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/references/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    References
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/symbolic_math/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Symbolic Math
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/table/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Table
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/templates/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Templates
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/tree/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Tree
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Tools
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            Tools
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Index
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/delete_api_file/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    delete_api_file
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/fs_deletefile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_deletefile
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/fs_filehash/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_filehash
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/fs_linecountfile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_linecountfile
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/fs_mkdir/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_mkdir
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/fs_movefile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_movefile
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/fs_readfile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_readfile
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/fs_sanitizefilename/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_sanitizefilename
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/fs_walkdir/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_walkdir
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/fs_writefile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_writefile
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/git_add/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_add
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/git_checkout/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_checkout
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/git_commit/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_commit
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/git_diff/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_diff
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/git_gitstatus/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_gitstatus
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/git_merge/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_merge
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/git_newbranch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_newbranch
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/git_pull/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_pull
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/git_push/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_push
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/git_rm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_rm
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/git_status/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_status
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/go_build/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    go_build
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/go_update_imports_for_moved_package/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    go_update_imports_for_moved_package
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/list_api_files/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    list_api_files
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/maths/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    maths
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/move_file/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    move_file
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/query_table/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    query_table
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/strings/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    strings
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/sync_files/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    sync_files
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/tool_spec_structure/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    tool_spec_structure
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/upload_file/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    upload_file
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/vector_searchskills/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    vector_searchskills
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/vector_update/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    vector_update
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Status & Build
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            Status & Build
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../build/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Build Guide
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../completed.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Completed Checklist
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release_checklist.ndcl/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Release Checklist
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+  <h1>Quick Spec</h1>
+
+<p># NeuroScript: A script for humans, AIs and computers (Revised 2025-04-30)</p>
+<p>Version: 0.2.0 </p>
+<p>NeuroScript is a structured, human-readable language that provides a <em>procedural scaffolding</em> for Artificial Intelligence (AI) systems. It is designed to store, discover, and reuse <strong>\"skills\"</strong> (procedures) with clear docstrings and robust metadata, enabling AI systems to build up a library of <strong>reusable, well-documented knowledge</strong>.</p>
+<p>## 1. Goals and Principles</p>
+<ol>
+<li><strong>Explicit Reasoning</strong>: Rather than relying on hidden chain-of-thought, NeuroScript encourages step-by-step logic in a code-like format that is both <em>executable</em> and <em>self-documenting</em>.</li>
+<li><strong>Reusable Skills</strong>: Each procedure is stored and can be retrieved via a standard interface. AIs or humans can then call, refine, or extend these procedures without re-implementing from scratch.</li>
+<li><strong>Self-Documenting</strong>: NeuroScript procedures should include metadata (<code>:: key: value</code>) that clarify <em>purpose</em>, <em>parameters</em>, <em>return values</em>, <em>algorithmic rationale</em>, <em>language version</em>, and <em>caveats</em>—mirroring how humans comment code. See <code>docs/metadata.md</code>.</li>
+<li><strong>AI Integration</strong>: NeuroScript natively supports interacting with AI models (and potentially other agents) via the <code>ask</code> statement.</li>
+<li><strong>Structured Data</strong>: Supports basic list (<code>[]</code>) and map (<code>{}</code>) literals inspired by JSON/Python for handling structured data.</li>
+<li><strong>Versioning</strong>: Supports file-level version tracking via <code>:: lang_version:</code> and <code>:: file_version:</code> metadata. See <code>docs/metadata.md</code>.</li>
+</ol>
+<hr />
+<p>## 2. Language Constructs</p>
+<p>### 2.1 High-Level Structure</p>
+<ul>
+<li><strong>File Extension:</strong> Typically <code>.ns</code>.</li>
+<li><strong>File Structure:</strong> A NeuroScript file consists of:<ul>
+<li>Optional file header (metadata lines <code>:: key: value</code> or blank lines). <strong>Conventionally, file-level metadata is placed at the end of the file for <code>.ns</code> files.</strong></li>
+<li>Zero or more procedure definitions, separated by optional blank lines.</li>
+</ul>
+</li>
+<li><strong>File-Level Metadata:</strong> Use <code>:: key: value</code> format. Key standard keys include <code>lang_version</code>, <code>file_version</code>, <code>author</code>, <code>description</code>. See <code>docs/metadata.md</code>. File-level metadata is associated with the <code>Program</code> node in the AST.</li>
+</ul>
+<p>### 2.2 Procedure Definition</p>
+<p>Procedures (or "skills") are the core reusable units.</p>
+<ul>
+<li>
+<p><strong>Syntax:</strong>
+     <div class="highlight"><pre><span></span><code>func ProcedureName signature_part means
+  :: procedure_metadata_key: value
+  :: description: Describes what this does.
+  :: param:input_arg: Describes this parameter.
+  :: return:0: Describes the first return value.
+  :: algorithm: Describes the steps.
+
+  statement_1
+  statement_2
+  ...
+endfunc 
+</code></pre></div></p>
+</li>
+<li>
+<p><strong>Keywords:</strong> Starts with <code>func</code>, ends with <code>endfunc</code>. The <code>means</code> keyword separates the signature/metadata from the body.</p>
+</li>
+<li><strong>Signature (<code>signature_part</code>):</strong> Defines parameters and return value names using optional <code>needs</code>, <code>optional</code>, and <code>returns</code> clauses. Parentheses <code>()</code> around the signature part are optional and serve only as visual grouping; if present, they must enclose the entire signature part (from after the procedure name to before <code>means</code>).<ul>
+<li>Example without Parens: <code>needs req1 optional opt1 returns ret1</code></li>
+<li>Example with Parens: <code>(needs req1 optional opt1 returns ret1)</code></li>
+<li>Example Empty: (no clauses or parentheses)</li>
+</ul>
+</li>
+<li><strong>Clauses:</strong><ul>
+<li><code>needs param1, param2</code>: Required parameters.</li>
+<li><code>optional opt_param1, opt_param2</code>: Optional parameters (receive <code>nil</code> if not provided).</li>
+<li><code>returns ret_name1, ret_name2</code>: Names for return values (used for documentation via <code>:: return:&lt;name&gt;:</code>, but execution returns an ordered list).</li>
+</ul>
+</li>
+<li><strong>Metadata:</strong> <code>:: key: value</code> lines placed immediately after <code>means</code> and before the first statement define procedure-level metadata. Key standard keys include <code>description</code>, <code>purpose</code>, <code>param:&lt;name&gt;</code>, <code>return:&lt;name&gt;</code>, <code>algorithm</code>, <code>caveats</code>. See <code>docs/metadata.md</code>. Procedure-level metadata is associated with the <code>Procedure</code> node in the AST.</li>
+<li><strong>Body (<code>statement_list</code>):</strong> A sequence of statements, one per line (blank lines allowed).</li>
+</ul>
+<p>### 2.3 Statements</p>
+<p>Statements define the actions within a procedure body.</p>
+<ul>
+<li>
+<p><strong>Set Statement:</strong> Assigns the result of an expression to a variable. Variables are dynamically typed and scoped to the procedure execution.
+     <div class="highlight"><pre><span></span><code>set my_variable = expression 
+set result = tool.ReadFile(&quot;input.txt&quot;) # Calls are expressions
+set sum = 1 + 2
+</code></pre></div></p>
+</li>
+<li>
+<p><strong>Return Statement:</strong> Exits the current procedure and returns zero or more values (as a list if more than one).
+     <div class="highlight"><pre><span></span><code>return # Returns nil implicitly
+return single_value
+return value1, value2, value3 # Returns a list [value1, value2, value3]
+</code></pre></div></p>
+</li>
+<li>
+<p><strong>Emit Statement:</strong> Outputs a value (typically a string) to the primary output stream or log. Useful for status updates.
+     <div class="highlight"><pre><span></span><code>emit &quot;Processing started...&quot;
+emit &quot;Result: &quot; + result_variable 
+</code></pre></div></p>
+</li>
+<li>
+<p><strong>Must / MustBe Statement:</strong> Asserts a condition must be true. If false, execution halts with an error. <code>mustbe</code> uses a built-in check function (like <code>is_string</code>).
+     <div class="highlight"><pre><span></span><code>must isTruthy(some_variable) # Check truthiness
+must file_handle != nil 
+mustbe is_string(input_name) # Check type using built-in
+mustbe not_empty(input_list)
+</code></pre></div></p>
+</li>
+<li>
+<p><strong>Fail Statement:</strong> Intentionally halts execution with an optional error message expression.
+     <div class="highlight"><pre><span></span><code>fail # Halts with a generic failure
+fail &quot;Required input file not found: &quot; + filepath
+</code></pre></div></p>
+</li>
+<li>
+<p><strong>Clear Error Statement:</strong> Clears the current error state within an <code>on_error</code> block, allowing execution to continue.
+     <div class="highlight"><pre><span></span><code>clear_error 
+</code></pre></div></p>
+</li>
+<li>
+<p><strong>Ask Statement:</strong> Sends a prompt expression to a configured AI agent (currently implemented via an <code>LLMClient</code> interface) and optionally stores the response in a variable. <em>(Future versions may allow specifying different agent handles, such as human-in-the-loop or other computational agents).</em>
+     <div class="highlight"><pre><span></span><code>ask &quot;Summarize this text: &quot; + document_content # Send prompt, discard result
+ask &quot;Generate code for: &quot; + task into generated_code # Send prompt, store result
+</code></pre></div></p>
+</li>
+<li>
+<p><strong>Procedure/Tool Calls as Statements:</strong> A call expression can stand alone as a statement if its return value is intentionally ignored.
+     <div class="highlight"><pre><span></span><code>tool.LogMessage(&quot;Starting phase 1&quot;) # Return value ignored
+MyProcedureWithoutReturnValues()   # Return value ignored (or is nil)
+</code></pre></div></p>
+</li>
+</ul>
+<p>### 2.4 Control Flow Blocks</p>
+<ul>
+<li>
+<p><strong>If Statement:</strong> Conditional execution. Requires <code>endif</code>. <code>else</code> is optional. <code>NEWLINE</code> is required after <code>if condition</code> and <code>else</code>.
+     <div class="highlight"><pre><span></span><code>if count &gt; 10
+  emit &quot;Count exceeds threshold.&quot;
+  set status = &quot;High&quot;
+else
+  emit &quot;Count is within limits.&quot;
+  set status = &quot;Normal&quot;
+endif 
+</code></pre></div></p>
+</li>
+<li>
+<p><strong>While Statement:</strong> Loop while a condition is true. Requires <code>endwhile</code>. <code>NEWLINE</code> is required after <code>while condition</code>.
+     <div class="highlight"><pre><span></span><code>set i = 0
+while i &lt; 5
+  emit &quot;Iteration: &quot; + i
+  set i = i + 1
+endwhile 
+</code></pre></div></p>
+</li>
+<li>
+<p><strong>For Each Statement:</strong> Iterates over elements of a list, map (values), or string (characters). Requires <code>endfor</code>. <code>NEWLINE</code> is required after the <code>for each</code> line.
+     <div class="highlight"><pre><span></span><code>for each item in my_list
+  emit &quot;Processing item: &quot; + item
+endfor 
+
+for each char in &quot;hello&quot;
+  emit &quot;Char: &quot; + char
+endfor
+</code></pre></div></p>
+</li>
+<li>
+<p><strong>On Error Statement:</strong> Defines a block to execute if an error occurs within the current procedure. Requires <code>endon</code>. The <code>means</code> keyword and a <code>NEWLINE</code> are required after <code>on_error</code>.
+     <div class="highlight"><pre><span></span><code>on_error means
+  emit &quot;An error occurred: &quot; + system.error_message # Hypothetical error variable
+  # clear_error # Optionally clear the error to allow execution to continue
+  fail &quot;Procedure failed.&quot; # Or explicitly fail
+endon 
+</code></pre></div></p>
+</li>
+</ul>
+<p>### 2.5 Expressions</p>
+<p>Expressions evaluate to a value. NeuroScript supports:</p>
+<ul>
+<li><strong>Literals:</strong><ul>
+<li>Strings: <code>"Hello"</code> or <code>'World'</code> (Escape sequences like <code>\n</code>, <code>\"</code> are supported).</li>
+<li>Raw Strings: <code>Code block with {{placeholders}}</code> (Triple backticks; allows literal content including newlines). Placeholders are <strong>only</strong> evaluated within raw strings during execution.</li>
+<li>Numbers: <code>123</code>, <code>3.14</code> (Parsed as int64 or float64).</li>
+<li>Booleans: <code>true</code>, <code>false</code>.</li>
+<li>Lists: <code>[1, "apple", true, another_list]</code> (Ordered sequence, heterogeneous types).</li>
+<li>Maps: <code>{"key1": "value", "num": 123, "active": true}</code> (Key-value pairs, keys must be string literals, values can be any expression).</li>
+</ul>
+</li>
+<li><strong>Variables:</strong> <code>my_variable</code> (Accesses the value stored in a variable).</li>
+<li><strong><code>last</code> Keyword:</strong> Accesses the result of the most recent procedure or tool call within the current scope.</li>
+<li><strong>Placeholders:</strong> <code>{{variable_name}}</code> or <code>{{LAST}}</code>. These are <strong>only substituted</strong> within raw strings (<code>...</code>) or when explicitly evaluated using <code>eval()</code>. In normal strings or other contexts, they are treated literally.</li>
+<li><strong>Operators (Standard Precedence):</strong><ul>
+<li>Unary: <code>-</code> (negation), <code>not</code> (logical NOT), <code>no</code> (is zero value), <code>some</code> (is not zero value), <code>~</code> (bitwise NOT).</li>
+<li>Power: <code>**</code> (exponentiation).</li>
+<li>Multiplicative: <code>*</code>, <code>/</code>, <code>%</code>.</li>
+<li>Additive: <code>+</code> (also string concatenation), <code>-</code>.</li>
+<li>Bitwise Shift (Not currently in G4): <code>&lt;&lt;</code>, <code>&gt;&gt;</code>.</li>
+<li>Relational: <code>&gt;</code>, <code>&lt;</code>, <code>&gt;=</code>, <code>&lt;=</code>.</li>
+<li>Equality: <code>==</code>, <code>!=</code>.</li>
+<li>Bitwise AND: <code>&amp;</code>.</li>
+<li>Bitwise XOR: <code>^</code>.</li>
+<li>Bitwise OR: <code>|</code>.</li>
+<li>Logical AND: <code>and</code>.</li>
+<li>Logical OR: <code>or</code>.</li>
+</ul>
+</li>
+<li><strong>Element Access:</strong> <code>my_list[index]</code> or <code>my_map["key"]</code>. Index/key must be an expression.</li>
+<li><strong>Calls (<code>callable_expr</code>):</strong><ul>
+<li>User Procedures: <code>MyProcedure(arg1, optional=arg2)</code></li>
+<li>Tools: <code>tool.ReadFile("path/to/file")</code></li>
+<li>Built-ins: <code>ln(number)</code>, <code>log(number)</code>, <code>sin(rad)</code>, <code>cos(rad)</code>, <code>tan(rad)</code>, <code>asin(val)</code>, <code>acos(val)</code>, <code>atan(val)</code>.</li>
+</ul>
+</li>
+<li><strong><code>eval()</code>:</strong> Explicitly evaluates placeholders within a string expression.
+     <div class="highlight"><pre><span></span><code>set template = &quot;User: {{user_name}}, ID: {{user_id}}&quot; # Normal string, placeholders literal
+set user_name = &quot;Alice&quot;
+set user_id = 123
+set resolved_string = eval(template) # Result: &quot;User: Alice, ID: 123&quot;
+
+set raw_template = ```Data for {{target}}```
+set target = &quot;systemA&quot;
+emit raw_template # Output depends on execution context of &#39;emit&#39;
+                 # If emit evaluates its arg like eval(), output: &quot;Data for systemA&quot;
+                 # If emit treats its arg literally, output: &quot;Data for {{target}}&quot;
+                 # Current emit likely evaluates like eval()
+emit eval(raw_template) # Explicit evaluation: &quot;Data for systemA&quot; 
+</code></pre></div></li>
+<li><strong>Parentheses:</strong> <code>(1 + 2) * 3</code> for grouping.</li>
+</ul>
+<p>### 2.6 Comments</p>
+<p>Lines starting with <code>#</code> or <code>--</code> are ignored by the parser.
+ <div class="highlight"><pre><span></span><code># This is a full-line comment
+set x = 1 -- This is an end-of-line comment
+</code></pre></div></p>
+<p>### 2.7 Metadata</p>
+<p>Lines starting with <code>:: key: value</code> define metadata. See <code>docs/metadata.md</code> for standard keys and placement guidelines (file-level, procedure-level, step-level).</p>
+<hr />
+<p>## 3. Tools (<code>tool.&lt;Name&gt;</code>)</p>
+<p>External capabilities are exposed via tools, prefixed with <code>tool.</code>.
+ <div class="highlight"><pre><span></span><code>set content = tool.ReadFile(&quot;config.json&quot;)
+set status = tool.WriteFile(&quot;output.log&quot;, log_data)
+</code></pre></div>
+ Tools are registered within the interpreter and handle interactions with the file system, network, external processes, etc. Standard tools (availability may vary) include <code>ReadFile</code>, <code>WriteFile</code>, <code>ListFiles</code>, <code>ExecuteCommand</code>, <code>GoBuild</code>, <code>GoCheck</code>, <code>GoFmt</code>, <code>VectorIndex</code>, <code>VectorSearch</code>, <code>GitAdd</code>, <code>GitCommit</code>, etc.</p>
+<hr />
+<p>## 4. Core Semantics</p>
+<p>### 4.1 Explicit Evaluation Model (<code>eval</code>, <code>last</code>, Placeholders)</p>
+<ul>
+<li><strong>Raw Values Default:</strong> Standard expression evaluation returns <em>raw</em> values. String literals containing <code>{{...}}</code> are returned <em>with</em> the placeholders intact. Variables holding such strings also return the raw string.</li>
+<li><strong><code>eval(string_expression)</code>:</strong> This is the <strong>explicit trigger</strong> for placeholder substitution. It evaluates its string argument, finds <code>{{VAR}}</code> or <code>{{LAST}}</code> placeholders within it, looks up <code>VAR</code> or the <code>last</code> result, substitutes their string representation, and returns the final resolved string.</li>
+<li><strong><code>last</code> Keyword:</strong> Directly accesses the <em>raw</em> value returned by the most recent <code>func</code> or <code>tool</code> call in the current scope.</li>
+<li><strong><code>{{LAST}}</code> Placeholder:</strong> Used <em>within</em> <code>eval()</code> or raw strings to substitute the string representation of the <code>last</code> result.</li>
+<li><strong>Raw Strings (<code>...</code>):</strong> Allow literal content but <em>also</em> undergo placeholder substitution during execution steps like <code>set</code>, <code>emit</code>, <code>return</code>, <code>ask</code>, or when passed to <code>eval()</code>. This differs from normal strings (<code>"..."</code>, <code>'...'</code>) which <em>never</em> have placeholders substituted unless explicitly passed to <code>eval()</code>.</li>
+</ul>
+<p>### 4.2 Scope</p>
+<ul>
+<li>Variables set within a procedure are local to that procedure's execution call stack.</li>
+<li>There is currently no global scope across procedure calls, other than potentially through external state modified by tools.</li>
+</ul>
+<p>### 4.3 Error Handling (<code>on_error</code>, <code>fail</code>, <code>must</code>, <code>mustbe</code>)</p>
+<ul>
+<li>Runtime errors (invalid operations, tool failures) trigger the <code>on_error</code> block if defined.</li>
+<li>Inside <code>on_error</code>, execution continues sequentially. <code>clear_error</code> resets the error state. If the block finishes without <code>clear_error</code> or <code>fail</code>, the error propagates up.</li>
+<li><code>fail</code> immediately stops execution and signals an error.</li>
+<li><code>must</code>/<code>mustbe</code> check conditions and trigger a specific <code>ErrMustConditionFailed</code> if false.</li>
+</ul>
+<hr />
+<p>## 5. Examples (Illustrative - using updated syntax)</p>
+<div class="highlight"><pre><span></span><code>func GreetUser(needs name) means
+  :: description: Creates a greeting string.
+  :: param:name: The name of the user.
+  :: return:0: The formatted greeting.
+
+  set message = &quot;Hello, &quot; + name + &quot;!&quot; 
+  # Note: No eval() needed here as &#39;+&#39; operates on raw strings
+  return message
+endfunc
+
+func ReadAndGreet(needs file_path) returns status means
+  :: description: Reads a name from a file and emits a greeting.
+  :: param:file_path: Path to the file containing the name.
+  :: return:status: Success or error message.
+  :: requires_ai: false # Example metadata
+
+  set file_content = tool.ReadFile(file_path)
+  must file_content != nil # Basic check if read succeeded (tool might return nil on error)
+
+  set greeting = GreetUser(needs=file_content) # Call user function
+  emit greeting 
+  return &quot;Success&quot;
+
+  on_error means
+    # Error occurred during ReadFile or GreetUser
+    emit &quot;Failed to greet from file: &quot; + file_path
+    # Error propagates implicitly as clear_error/fail is not used
+  endon
+endfunc 
+
+# --- File Metadata ---
+:: lang_version: neuroscript@0.2.0
+:: file_version: 1.0.0
+</code></pre></div>
+<hr />
+<p>## 6. AI Integration (<code>ask</code>)</p>
+<p>The <code>ask</code> statement provides direct access to configured AI agents (currently via an LLM client interface).</p>
+<p><div class="highlight"><pre><span></span><code>func GenerateSummary(needs text_content) returns summary means
+  :: description: Asks an AI to summarize text.
+  :: requires_ai: true
+
+  set prompt = &quot;Please summarize the following text:\n&quot; + text_content
+  ask prompt into llm_response 
+  return llm_response
+endfunc
+</code></pre></div>
+ The interpreter manages the connection details and interaction protocol with the configured AI service. <em>(Future: potentially dispatch to different agent types based on handles).</em></p>
+<hr />
+<p>## 7. Tooling Ecosystem (Conceptual)</p>
+<p>### 7.1 Interpreter/Executor</p>
+<ul>
+<li>Parses <code>.ns</code> files based on the G4 grammar.</li>
+<li>Builds an Abstract Syntax Tree (AST).</li>
+<li>Executes the AST, managing variables, call stacks, and tool interactions.</li>
+<li>Handles the <code>ask</code> statement interaction with a configured AI client.</li>
+</ul>
+<p>### 7.2 Skill Storage &amp; Discovery</p>
+<ul>
+<li>Procedures are stored as individual <code>.ns</code> files.</li>
+<li><strong>Discovery Mechanism:</strong> Likely involves:<ul>
+<li>Indexing procedure metadata (<code>description</code>, <code>purpose</code>, <code>tags</code>) and potentially code content into a Vector Database.</li>
+<li>Using <code>tool.VectorSearch</code> (or similar) with natural language queries to find relevant skill files.</li>
+</ul>
+</li>
+<li><strong>Version Control:</strong> Git is the assumed underlying version control system. Metadata should facilitate tracking.</li>
+</ul>
+<p>### 7.3 Language Server Protocol (LSP) - Future</p>
+<ul>
+<li>An LSP server would provide IDE features like syntax highlighting, diagnostics (linting), code completion (keywords, variables, procedure names), hover information (displaying metadata), and go-to-definition.</li>
+</ul>
+<p>### 7.4 Version Control Tools</p>
+<ul>
+<li>Basic <code>tool.GitAdd</code>, <code>tool.GitCommit</code> are available. More Git operations could be added as tools.</li>
+</ul>
+<hr />
+<p>## 8. Summary and Future Directions</p>
+<ul>
+<li><strong>NeuroScript</strong> provides <strong>structured, procedural code</strong> for explicit AI reasoning and skill accumulation.</li>
+<li><strong>Metadata</strong> (<code>:: key: value</code>) is crucial, with conventions like <code>lang_version</code> and <code>file_version</code>. Procedure documentation uses keys like <code>purpose</code>, <code>param</code>, <code>return</code>, <code>algorithm</code>.</li>
+<li><strong>Explicit Evaluation</strong>: <code>eval()</code> is required for substituting placeholders (<code>{{...}}</code>) in normal strings. Raw strings (<code>...</code>) have placeholders evaluated implicitly in most execution contexts. <code>last</code> keyword accesses the prior call result.</li>
+<li><strong>Syntax:</strong> Uses <code>func</code>/<code>endfunc</code>, optional <code>needs</code>/<code>optional</code>/<code>returns</code> clauses (parens optional), <code>means</code>, <code>if</code>/<code>endif</code>, <code>while</code>/<code>endwhile</code>, <code>for each</code>/<code>endfor</code>, <code>on_error</code>/<code>endon</code>. Calls (<code>MyProc()</code>, <code>tool.MyTool()</code>) are expressions.</li>
+<li><strong>Store/Discover/Retrieve</strong> via external tools connected to Git/Vector DB is key (conceptual).</li>
+<li><strong>AI Integration</strong> via <code>ask ... into ...</code> is central. <em>(Future: Agent handles)</em>.</li>
+<li><strong>Current Implementation:</strong> Core parsing and execution working for G4 syntax. Basic tools available. Metadata parsing/storage implemented. <code>ask</code> statement implemented.</li>
+<li><strong>Next Steps:</strong> Implement real Vector DB/Git integration tools; Add more built-in functions/tools (HTTP, JSON, etc.); Refine AI integration (agent routing, context passing, configuration); Consider LSP server implementation.</li>
+</ul>
+<hr />
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      <script id="__config" type="application/json">{"base": "..", "features": [], "search": "../assets/javascripts/workers/search.f8cc74c7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.c8b220af.min.js"></script>
+      
+    
+  </body>
+</html>
