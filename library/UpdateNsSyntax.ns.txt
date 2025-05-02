@@ -1,154 +1,102 @@
- 
- # NeuroScript Skill: Comprehensive Syntax Update
- # Version 29: Update self to current NeuroScript G4 syntax.
- 
+ :: Name: Update NeuroScript Syntax
+ :: Purpose: Recursively finds and refactors NeuroScript files (.ns) in a directory to conform to the current grammar using AI, then stages and commits changes via Git.
+ :: Version: 0.3.0
+ :: Author: Gemini
+ :: requires_tool: tool.ListFiles, tool.ReadFile, tool.WriteFile, tool.GitAdd, tool.GitCommit, tool.StrEndsWith, tool.IsList
+ :: requires_ai: true
+ :: file_version: 30.2.0
+
  func UpdateNsSyntax(needs directory_path returns status_message) means
-   :: purpose: Recursively finds and refactors NeuroScript files (.ns) in a directory
-   ::          and its subdirectories to conform to the current grammar.
-   ::          Uses an AI for refactoring. Stages and commits changes via Git tools.
-   :: inputs:
-   ::     - directory_path (string): The relative path to the directory to process.
-   :: output:
-   ::     - status_message (string): Indicates completion or errors encountered (cumulative status).
-   :: algorithm:
-   ::     1. List entries (as maps {name, is_dir}) in the current directory_path using tool.ListFiles.
-   ::     2. Iterate through each entry map.
-   ::     3. Get name and is_dir status from map using element access.
-   ::     4. Construct the full relative path for the entry.
-   ::     5. If the entry is a directory (is_dir == true): Recursively call UpdateNsSyntax on the subdirectory path.
-   ::     6. If the entry is a file (is_dir == false) ending in .ns (and not self): Process it.
-   ::        a. Read file content using tool.ReadFile. Handle read errors.
-   ::        b. Construct AI prompt including current syntax rules.
-   ::        c. Call AI using 'ask ... into ...'.
-   ::        d. Write back the AI response using tool.WriteFile if changed. Handle write errors.
-   ::        e. Stage successful changes using tool.GitAdd. Handle stage errors. Accumulate staged file paths.
-   ::     7. Commit changes staged at this level using tool.GitCommit.
-   :: caveats: High reliance on AI accuracy for refactoring.
-   ::          Assumes presence of NEUROSCRIPT_DEVELOP_PROMPT or similar variable.
-   ::          Requires Git tools to be functional in the environment.
-   :: requires_tool: tool.ListFiles, tool.ReadFile, tool.WriteFile, tool.GitAdd, tool.GitCommit
-   :: requires_ai: true
-   :: lang_version: neuroscript@0.2.0
-   :: file_version: 29.0.0
- 
-   # 1. List directory entries
    emit "Processing directory: " + directory_path
    set list_result = tool.ListFiles(directory_path)
-   # Check if list_result is a list (success) or string (error)
-   mustbe is_list(list_result) # Halt if ListFiles failed
- 
-   set local_staged_files_csv = "" # Accumulator for files staged in this directory level
- 
-   # 2. Iterate through entries
+   must tool.IsList(list_result) # Halt if ListFiles failed
+
+   set local_staged_files_csv = ""
+
    for each entry_map in list_result
- 
-     # 3. Get entry details
      set name = entry_map["name"]
      set is_dir = entry_map["is_dir"]
- 
-     # 4. Construct full path
      set full_path = directory_path + "/" + name
- 
-     # 5. Handle directories (recursive call)
+
+     # Handle directories (recursive call) or skip non .ns files
      if is_dir == true
        emit "Entering subdirectory: " + full_path
-       # Recursive call - ignore result for now, errors handled internally?
-       set recursive_status = UpdateNsSyntax(needs=full_path) 
-     else
-       # 6. Handle files
-       # Check if it's a .ns file (simple string check)
-       set is_ns_file = tool.StrEndsWith(name, ".ns")
- 
-       if is_ns_file == true
- 
-          # Avoid processing self (simple check, might need refinement)
-          set is_self = tool.StrEndsWith(full_path, "UpdateNsSyntax.ns")
-          if is_self == true
-             emit "Skipping self: " + full_path
-          else
-             emit "Processing file: " + full_path
- 
-             # 6a. Read file content
-             set original_code = tool.ReadFile(full_path)
- 
-             if original_code == nil # Simple check, ReadFile might return "" on error too
-                 emit "[ERROR] Failed to read file: " + full_path
-             else
-                 # 6b. Construct AI prompt
-                 # Fetch the standard prompt which should contain syntax rules
-                 # Assume NEUROSCRIPT_DEVELOP_PROMPT exists and contains the rules
-                 set syntax_rules_prompt = NEUROSCRIPT_DEVELOP_PROMPT 
-                 
-                 # Construct specific task prompt
-                 set task_prompt = ```Refactor the following NeuroScript code to strictly adhere to the latest syntax rules provided. 
+       call UpdateNsSyntax(needs=full_path) # Ignore result, errors handled internally
+       continue # Skip to next entry
+     endif
+     if tool.StrEndsWith(name, ".ns") == false
+       continue # Skip non .ns files
+     endif
+
+     # Skip self
+     if tool.StrEndsWith(full_path, "UpdateNsSyntax.ns") == true # Simple check
+       emit "Skipping self: " + full_path
+       continue
+     endif
+
+     # Process .ns file
+     emit "Processing file: " + full_path
+     set original_code = tool.ReadFile(full_path)
+     if original_code == "" # Assumes empty string on read error or empty file
+         emit "[WARN] Failed to read or file empty: " + full_path
+         continue # Skip this file
+     endif
+
+     # Construct AI prompt (Assuming NEUROSCRIPT_DEVELOP_PROMPT has rules)
+     # Use {{{}}} substitution within the triple-backtick string
+     set task_prompt = ```Refactor the following NeuroScript code to strictly adhere to the latest syntax rules provided.
  Ensure the final output is ONLY the raw, refactored NeuroScript code, without any markdown fences or explanations.
  Original Code:
- ```
- + original_code +
- ```
+ {{{original_code}}}
  Refactored Code:
  ```
- 
-                 set full_prompt = syntax_rules_prompt + "\n\n" + task_prompt
- 
-                 # 6c. Call AI
-                 emit "Asking AI to refactor: " + full_path
-                 # Use ask...into
-                 ask full_prompt into refactored_code 
- 
-                 # Basic check if AI response is valid (non-empty)
-                 if refactored_code == nil or refactored_code == ""
-                     emit "[ERROR] AI returned empty or nil response for: " + full_path
-                 else
-                     # Optional: Add more validation for refactored_code here if needed
- 
-                     # 6d. Write back if changed
-                     # Simple check: write if AI response differs from original
-                     if refactored_code != original_code
-                         emit "Writing updated file: " + full_path
-                         set write_status = tool.WriteFile(full_path, refactored_code)
-                         
-                         # 6e. Stage successful changes
-                         if write_status == "OK"
-                             emit "Staging updated file: " + full_path
-                             set add_status = tool.GitAdd(full_path)
- 
-                             if add_status == "OK"
-                                 set local_staged_files_csv = local_staged_files_csv + full_path + ","
-                             else
-                                 emit "[WARN] Failed to stage file: " + full_path + " - Error: " + add_status
-                             endif
-                         else
-                             emit "[WARN] Failed to write updated file: " + full_path + " - Error: " + write_status
-                         endif # End IF write_status OK
- 
-                     else
-                         emit "No changes needed for file: " + full_path
-                     endif # End IF refactored_code != original_code
- 
-                 endif # End IF AI response valid
- 
-             endif # End IF read failed / ELSE
- 
-          endif # End IF skip self / ELSE
- 
-       endif # End IF is_ns_file == true
- 
-     endif # End IF is_directory / ELSE (is file)
- 
+     # Concatenate the standard prompt with the task-specific one
+     set full_prompt = NEUROSCRIPT_DEVELOP_PROMPT + "\n\n" + task_prompt
+
+     # Call AI
+     emit "Asking AI to refactor: " + full_path
+     ask full_prompt into refactored_code
+
+     # Validate AI response and check for changes
+     if refactored_code == nil or refactored_code == ""
+       emit "[ERROR] AI returned empty or nil response for: " + full_path
+       continue # Skip this file
+     endif
+     if refactored_code == original_code
+       emit "No changes needed for file: " + full_path
+       continue # Skip this file
+     endif
+
+     # Write back changes
+     emit "Writing updated file: " + full_path
+     set write_status = tool.WriteFile(full_path, refactored_code)
+     if write_status != "OK"
+       emit "[WARN] Failed to write updated file: " + full_path + " - Error: " + write_status
+       continue # Skip staging
+     endif
+
+     # Stage successful changes
+     emit "Staging updated file: " + full_path
+     set add_status = tool.GitAdd(full_path)
+     if add_status != "OK"
+       emit "[WARN] Failed to stage file: " + full_path + " - Error: " + add_status
+       continue # Skip adding to commit list
+     endif
+
+     # Add to list for commit
+     set local_staged_files_csv = local_staged_files_csv + full_path + ","
+
    endfor # End FOR EACH loop
- 
-   # 7. Commit changes using TOOL.GitCommit directly
+
+   # Commit changes for this directory level
    if local_staged_files_csv != ""
      emit "Committing updated files staged in " + directory_path + " ..."
      set commit_message = "AUTO: Update NeuroScript syntax for " + directory_path
      set commit_result = tool.GitCommit(commit_message)
-     emit "Commit Result: " + commit_result # commit_result is "OK" or error string
-   else
-     # emit "No files required changes or staging in " + directory_path
-   endif # End IF local_staged_files_csv != ""
- 
+     emit "Commit Result: " + commit_result
+   endif
+
    set status_message = "Syntax update attempt finished for directory: " + directory_path + ". Check log and git status."
    return status_message
- 
- endfunc # End of func UpdateNsSyntax
+
+ endfunc

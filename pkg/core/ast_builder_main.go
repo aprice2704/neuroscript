@@ -54,7 +54,7 @@ func NewASTBuilder(logger logging.Logger) *ASTBuilder {
 	// Forcing debugAST true here for continued debugging.
 	return &ASTBuilder{
 		logger:   logger,
-		debugAST: false,
+		debugAST: true,
 	}
 }
 

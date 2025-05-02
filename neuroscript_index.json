@@ -400,7 +400,9 @@
                 "l.logDebugAST(?)",
                 "l.logger.Warn(?)",
                 "l.logger.Error(?)",
-                "l.logger.Warn(?)",
+                "l.logger.Debug(?)",
+                "l.logger.Debug(?)",
+                "l.logger.Debug(?)",
                 "l.logDebugAST(?)"
               ]
             },
@@ -408,14 +410,19 @@
               "Receiver": "*neuroScriptListenerImpl",
               "Name": "EnterStatement_list",
               "calls": [
+                "ctx.GetParent(?)",
                 "l.logDebugAST(?)",
-                "l.logDebugAST(?)"
+                "l.logDebugAST(?)",
+                "l.logDebugAST(?)",
+                "l.EnterStatement_list_within_if(?)"
               ]
             },
             {
               "Receiver": "*neuroScriptListenerImpl",
               "Name": "ExitStatement_list",
               "calls": [
+                "ctx.GetParent(?)",
+                "l.logDebugAST(?)",
                 "l.logDebugAST(?)"
               ]
             },
@@ -469,6 +476,7 @@
               "Receiver": "*neuroScriptListenerImpl",
               "Name": "EnterWhile_statement",
               "calls": [
+                "l.logDebugAST(?)",
                 "l.enterBlockContext(?)"
               ]
             },
@@ -476,6 +484,8 @@
               "Receiver": "*neuroScriptListenerImpl",
               "Name": "ExitWhile_statement",
               "calls": [
+                "func() { l.loopDepth--; l.logDebugAST(\"\u003c\u003c\u003c Exit WHILE Statement Final (Loop Depth: %d)\", l.loopDepth) }(?)",
+                "l.logDebugAST(?)",
                 "l.logDebugAST(?)",
                 "l.exitBlockContext(?)",
                 "l.logDebugAST(?)",
@@ -494,6 +504,7 @@
               "Receiver": "*neuroScriptListenerImpl",
               "Name": "EnterFor_each_statement",
               "calls": [
+                "l.logDebugAST(?)",
                 "l.enterBlockContext(?)"
               ]
             },
@@ -501,6 +512,8 @@
               "Receiver": "*neuroScriptListenerImpl",
               "Name": "ExitFor_each_statement",
               "calls": [
+                "func() {\n\tl.loopDepth--\n\tl.logDebugAST(\"\u003c\u003c\u003c Exit FOR EACH Statement Final (Loop Depth: %d)\", l.loopDepth)\n}(?)",
+                "l.logDebugAST(?)",
                 "l.logDebugAST(?)",
                 "l.exitBlockContext(?)",
                 "l.logDebugAST(?)",
@@ -522,6 +535,7 @@
               "Receiver": "*neuroScriptListenerImpl",
               "Name": "EnterOnErrorStmt",
               "calls": [
+                "l.logDebugAST(?)",
                 "l.enterBlockContext(?)"
               ]
             },
@@ -536,6 +550,7 @@
                 "tokenToPosition",
                 "ctx.KW_ON_ERROR().GetSymbol(?)",
                 "ctx.KW_ON_ERROR(?)",
+                "l.logDebugAST(?)",
                 "l.logDebugAST(?)"
               ]
             }
@@ -735,6 +750,10 @@
               "calls": [
                 "l.logger.Debug(?)"
               ]
+            },
+            {
+              "Receiver": "*neuroScriptListenerImpl",
+              "Name": "isInsideLoop"
             },
             {
               "Receiver": "*neuroScriptListenerImpl",
@@ -1131,6 +1150,7 @@
                 "l.addErrorf(?)",
                 "l.addErrorf(?)",
                 "l.logDebugAST(?)",
+                "l.logger.Error(?)",
                 "l.logDebugAST(?)"
               ]
             },
@@ -1141,8 +1161,7 @@
                 "l.logDebugAST(?)",
                 "l.logger.Error(?)",
                 "l.logger.Error(?)",
-                "l.logDebugAST(?)",
-                "l.logger.Error(?)",
+                "l.logger.Warn(?)",
                 "l.logDebugAST(?)",
                 "l.logger.Warn(?)"
               ]
@@ -1195,7 +1214,8 @@
                 "l.logDebugAST(?)",
                 "l.addError(?)",
                 "tokenToPosition",
-                "ctx.GetStart(?)"
+                "ctx.GetStart(?)",
+                "l.logDebugAST(?)"
               ]
             },
             {
@@ -1210,7 +1230,8 @@
                 "l.addError(?)",
                 "l.addError(?)",
                 "tokenToPosition",
-                "ctx.GetStart(?)"
+                "ctx.GetStart(?)",
+                "l.logDebugAST(?)"
               ]
             },
             {
@@ -1228,6 +1249,9 @@
                 "l.addError(?)",
                 "l.logDebugAST(?)",
                 "l.addError(?)",
+                "l.logger.Debug(?)",
+                "l.logger.Debug(?)",
+                "l.logger.Debug(?)",
                 "l.addError(?)",
                 "tokenToPosition",
                 "ctx.GetStart(?)",
@@ -1246,7 +1270,8 @@
                 "l.addError(?)",
                 "l.addError(?)",
                 "tokenToPosition",
-                "ctx.GetStart(?)"
+                "ctx.GetStart(?)",
+                "l.logDebugAST(?)"
               ]
             },
             {
@@ -1275,6 +1300,47 @@
                 "ctx.IDENTIFIER().GetText(?)",
                 "ctx.IDENTIFIER(?)",
                 "l.logDebugAST(?)",
+                "tokenToPosition",
+                "ctx.GetStart(?)",
+                "l.logDebugAST(?)"
+              ]
+            },
+            {
+              "Receiver": "*neuroScriptListenerImpl",
+              "Name": "ExitCall_statement",
+              "calls": [
+                "l.logDebugAST(?)",
+                "ctx.GetText(?)",
+                "l.popValue(?)",
+                "l.addError(?)",
+                "l.addError(?)",
+                "l.addError(?)",
+                "l.logDebugAST(?)"
+              ]
+            },
+            {
+              "Receiver": "*neuroScriptListenerImpl",
+              "Name": "ExitBreak_statement",
+              "calls": [
+                "l.logDebugAST(?)",
+                "ctx.GetText(?)",
+                "l.isInsideLoop(?)",
+                "l.addError(?)",
+                "l.addError(?)",
+                "tokenToPosition",
+                "ctx.GetStart(?)",
+                "l.logDebugAST(?)"
+              ]
+            },
+            {
+              "Receiver": "*neuroScriptListenerImpl",
+              "Name": "ExitContinue_statement",
+              "calls": [
+                "l.logDebugAST(?)",
+                "ctx.GetText(?)",
+                "l.isInsideLoop(?)",
+                "l.addError(?)",
+                "l.addError(?)",
                 "tokenToPosition",
                 "ctx.GetStart(?)",
                 "l.logDebugAST(?)"
@@ -2043,14 +2109,24 @@
                 "i.executeReturn(?)",
                 "i.executeEmit(?)",
                 "i.executeIf(?)",
+                "i.Logger().Debug(?)",
+                "i.Logger(?)",
                 "i.executeWhile(?)",
+                "i.Logger().Warn(?)",
+                "i.Logger(?)",
                 "i.executeFor(?)",
+                "i.Logger().Warn(?)",
+                "i.Logger(?)",
                 "i.executeMust(?)",
                 "i.executeFail(?)",
                 "i.executeOnError(?)",
                 "i.executeClearError(?)",
                 "i.executeAsk(?)",
+                "i.executeBreak(?)",
+                "i.executeContinue(?)",
                 "NewRuntimeError",
+                "i.Logger().Debug(?)",
+                "i.Logger(?)",
                 "i.Logger().Warn(?)",
                 "i.Logger(?)",
                 "NewRuntimeError",
@@ -2058,8 +2134,12 @@
                 "i.Logger(?)",
                 "NewRuntimeError",
                 "i.executeSteps(?)",
+                "i.Logger().Debug(?)",
+                "i.Logger(?)",
                 "i.Logger().Warn(?)",
                 "i.Logger(?)",
+                "currentErrorHandler.Pos.String(?)",
+                "NewRuntimeError",
                 "NewRuntimeError",
                 "i.Logger().Error(?)",
                 "i.Logger(?)",
@@ -2209,6 +2289,7 @@
                 "i.Logger().Debug(?)",
                 "i.Logger(?)",
                 "i.evaluateExpression(?)",
+                "step.Pos.String(?)",
                 "NewRuntimeError",
                 "isTruthy",
                 "i.Logger().Debug(?)",
@@ -2216,13 +2297,16 @@
                 "i.executeBlock(?)",
                 "i.Logger().Debug(?)",
                 "i.Logger(?)",
-                "i.executeBlock(?)"
+                "i.executeBlock(?)",
+                "step.Pos.String(?)",
+                "NewRuntimeError"
               ]
             },
             {
               "Receiver": "*Interpreter",
               "Name": "executeWhile",
               "calls": [
+                "step.Pos.String(?)",
                 "i.Logger().Debug(?)",
                 "i.Logger(?)",
                 "i.evaluateExpression(?)",
@@ -2233,6 +2317,10 @@
                 "i.Logger().Debug(?)",
                 "i.Logger(?)",
                 "i.executeBlock(?)",
+                "i.Logger().Debug(?)",
+                "i.Logger(?)",
+                "i.Logger().Debug(?)",
+                "i.Logger(?)",
                 "NewRuntimeError",
                 "i.Logger().Debug(?)",
                 "i.Logger(?)",
@@ -2245,11 +2333,13 @@
               "Receiver": "*Interpreter",
               "Name": "executeFor",
               "calls": [
+                "step.Pos.String(?)",
                 "i.Logger().Debug(?)",
                 "i.Logger(?)",
                 "i.evaluateExpression(?)",
                 "NewRuntimeError",
                 "reflect.ValueOf",
+                "NewRuntimeError",
                 "i.SetVariable(?)",
                 "NewRuntimeError",
                 "i.Logger().Debug(?)",
@@ -2257,20 +2347,32 @@
                 "i.executeBlock(?)",
                 "val.Kind(?)",
                 "val.Len(?)",
-                "NewRuntimeError",
-                "executeLoopBody",
                 "val.Index(idx).Interface(?)",
                 "val.Index(?)",
+                "executeLoopBody",
+                "i.Logger().Debug(?)",
+                "i.Logger(?)",
+                "i.Logger().Debug(?)",
+                "i.Logger(?)",
                 "val.MapRange(?)",
                 "mapRange.Next(?)",
-                "NewRuntimeError",
-                "executeLoopBody",
                 "mapRange.Value().Interface(?)",
                 "mapRange.Value(?)",
-                "val.String(?)",
-                "NewRuntimeError",
                 "executeLoopBody",
+                "i.Logger().Debug(?)",
+                "i.Logger(?)",
+                "i.Logger().Debug(?)",
+                "i.Logger(?)",
+                "val.String(?)",
                 "string",
+                "executeLoopBody",
+                "i.Logger().Debug(?)",
+                "i.Logger(?)",
+                "i.Logger().Debug(?)",
+                "i.Logger(?)",
+                "NewRuntimeError",
+                "i.Logger().Debug(?)",
+                "i.Logger(?)",
                 "NewRuntimeError",
                 "i.Logger().Debug(?)",
                 "i.Logger(?)"
@@ -2395,6 +2497,24 @@
                 "i.Logger().Debug(?)",
                 "i.Logger(?)"
               ]
+            },
+            {
+              "Receiver": "*Interpreter",
+              "Name": "executeBreak",
+              "calls": [
+                "step.Pos.String(?)",
+                "i.Logger().Debug(?)",
+                "i.Logger(?)"
+              ]
+            },
+            {
+              "Receiver": "*Interpreter",
+              "Name": "executeContinue",
+              "calls": [
+                "step.Pos.String(?)",
+                "i.Logger().Debug(?)",
+                "i.Logger(?)"
+              ]
             }
           ]
         },
@@ -2496,6 +2616,9 @@
               "Receiver": "*ErrorListener",
               "Name": "SyntaxError",
               "calls": [
+                "token.GetLine(?)",
+                "token.GetColumn(?)",
+                "token.GetText(?)",
                 "l.logger.Error(?)"
               ]
             },
@@ -2516,13 +2639,21 @@
                 "parser.AddErrorListener(?)",
                 "parser.SetErrorHandler(?)",
                 "antlr.NewDefaultErrorStrategy(?)",
+                "p.logger.Debug(?)",
                 "parser.Program(?)",
+                "p.logger.Debug(?)",
                 "p.logger.Error(?)",
                 "p.logger.Error(?)",
                 "p.logger.Debug(?)"
               ]
             }
           ]
+        },
+        "pkg/core/parser_minimal_test.go": {
+          "functions": [
+            "TestParseMinimalNewline"
+          ],
+          "methods": []
         },
         "pkg/core/parser_test.go": {
           "functions": [
@@ -3351,11 +3482,27 @@
             },
             {
               "Receiver": "*BaseNeuroScriptListener",
+              "Name": "EnterExpressionStatement"
+            },
+            {
+              "Receiver": "*BaseNeuroScriptListener",
+              "Name": "ExitExpressionStatement"
+            },
+            {
+              "Receiver": "*BaseNeuroScriptListener",
               "Name": "EnterSet_statement"
             },
             {
               "Receiver": "*BaseNeuroScriptListener",
               "Name": "ExitSet_statement"
+            },
+            {
+              "Receiver": "*BaseNeuroScriptListener",
+              "Name": "EnterCall_statement"
+            },
+            {
+              "Receiver": "*BaseNeuroScriptListener",
+              "Name": "ExitCall_statement"
             },
             {
               "Receiver": "*BaseNeuroScriptListener",
@@ -3404,6 +3551,22 @@
             {
               "Receiver": "*BaseNeuroScriptListener",
               "Name": "ExitAsk_stmt"
+            },
+            {
+              "Receiver": "*BaseNeuroScriptListener",
+              "Name": "EnterBreak_statement"
+            },
+            {
+              "Receiver": "*BaseNeuroScriptListener",
+              "Name": "ExitBreak_statement"
+            },
+            {
+              "Receiver": "*BaseNeuroScriptListener",
+              "Name": "EnterContinue_statement"
+            },
+            {
+              "Receiver": "*BaseNeuroScriptListener",
+              "Name": "ExitContinue_statement"
             },
             {
               "Receiver": "*BaseNeuroScriptListener",
@@ -3749,7 +3912,21 @@
             },
             {
               "Receiver": "*BaseNeuroScriptVisitor",
+              "Name": "VisitExpressionStatement",
+              "calls": [
+                "v.VisitChildren(?)"
+              ]
+            },
+            {
+              "Receiver": "*BaseNeuroScriptVisitor",
               "Name": "VisitSet_statement",
+              "calls": [
+                "v.VisitChildren(?)"
+              ]
+            },
+            {
+              "Receiver": "*BaseNeuroScriptVisitor",
+              "Name": "VisitCall_statement",
               "calls": [
                 "v.VisitChildren(?)"
               ]
@@ -3792,6 +3969,20 @@
             {
               "Receiver": "*BaseNeuroScriptVisitor",
               "Name": "VisitAsk_stmt",
+              "calls": [
+                "v.VisitChildren(?)"
+              ]
+            },
+            {
+              "Receiver": "*BaseNeuroScriptVisitor",
+              "Name": "VisitBreak_statement",
+              "calls": [
+                "v.VisitChildren(?)"
+              ]
+            },
+            {
+              "Receiver": "*BaseNeuroScriptVisitor",
+              "Name": "VisitContinue_statement",
               "calls": [
                 "v.VisitChildren(?)"
               ]
@@ -4066,9 +4257,15 @@
             "NewEmptyBlock_statementContext",
             "InitEmptyBlock_statementContext",
             "NewBlock_statementContext",
+            "NewEmptyExpressionStatementContext",
+            "InitEmptyExpressionStatementContext",
+            "NewExpressionStatementContext",
             "NewEmptySet_statementContext",
             "InitEmptySet_statementContext",
             "NewSet_statementContext",
+            "NewEmptyCall_statementContext",
+            "InitEmptyCall_statementContext",
+            "NewCall_statementContext",
             "NewEmptyReturn_statementContext",
             "InitEmptyReturn_statementContext",
             "NewReturn_statementContext",
@@ -4087,6 +4284,12 @@
             "NewEmptyAsk_stmtContext",
             "InitEmptyAsk_stmtContext",
             "NewAsk_stmtContext",
+            "NewEmptyBreak_statementContext",
+            "InitEmptyBreak_statementContext",
+            "NewBreak_statementContext",
+            "NewEmptyContinue_statementContext",
+            "InitEmptyContinue_statementContext",
+            "NewContinue_statementContext",
             "NewEmptyIf_statementContext",
             "InitEmptyIf_statementContext",
             "NewIf_statementContext",
@@ -5484,6 +5687,13 @@
             },
             {
               "Receiver": "*Simple_statementContext",
+              "Name": "Call_statement",
+              "calls": [
+                "s.GetChildren(?)"
+              ]
+            },
+            {
+              "Receiver": "*Simple_statementContext",
               "Name": "Return_statement",
               "calls": [
                 "s.GetChildren(?)"
@@ -5520,6 +5730,20 @@
             {
               "Receiver": "*Simple_statementContext",
               "Name": "Ask_stmt",
+              "calls": [
+                "s.GetChildren(?)"
+              ]
+            },
+            {
+              "Receiver": "*Simple_statementContext",
+              "Name": "Break_statement",
+              "calls": [
+                "s.GetChildren(?)"
+              ]
+            },
+            {
+              "Receiver": "*Simple_statementContext",
+              "Name": "Continue_statement",
               "calls": [
                 "s.GetChildren(?)"
               ]
@@ -5576,6 +5800,9 @@
                 "p.Set_statement(?)",
                 "p.EnterOuterAlt(?)",
                 "p.SetState(?)",
+                "p.Call_statement(?)",
+                "p.EnterOuterAlt(?)",
+                "p.SetState(?)",
                 "p.Return_statement(?)",
                 "p.EnterOuterAlt(?)",
                 "p.SetState(?)",
@@ -5592,6 +5819,12 @@
                 "p.EnterOuterAlt(?)",
                 "p.SetState(?)",
                 "p.Ask_stmt(?)",
+                "p.EnterOuterAlt(?)",
+                "p.SetState(?)",
+                "p.Break_statement(?)",
+                "p.EnterOuterAlt(?)",
+                "p.SetState(?)",
+                "p.Continue_statement(?)",
                 "p.SetError(?)",
                 "antlr.NewNoViableAltException(?)",
                 "p.HasError(?)",
@@ -5714,6 +5947,76 @@
               ]
             },
             {
+              "Receiver": "*ExpressionStatementContext",
+              "Name": "IsExpressionStatementContext"
+            },
+            {
+              "Receiver": "*ExpressionStatementContext",
+              "Name": "GetParser"
+            },
+            {
+              "Receiver": "*ExpressionStatementContext",
+              "Name": "Expression",
+              "calls": [
+                "s.GetChildren(?)"
+              ]
+            },
+            {
+              "Receiver": "*ExpressionStatementContext",
+              "Name": "GetRuleContext"
+            },
+            {
+              "Receiver": "*ExpressionStatementContext",
+              "Name": "ToStringTree",
+              "calls": [
+                "antlr.TreesStringTree(?)"
+              ]
+            },
+            {
+              "Receiver": "*ExpressionStatementContext",
+              "Name": "EnterRule",
+              "calls": [
+                "listenerT.EnterExpressionStatement(?)"
+              ]
+            },
+            {
+              "Receiver": "*ExpressionStatementContext",
+              "Name": "ExitRule",
+              "calls": [
+                "listenerT.ExitExpressionStatement(?)"
+              ]
+            },
+            {
+              "Receiver": "*ExpressionStatementContext",
+              "Name": "Accept",
+              "calls": [
+                "t.VisitExpressionStatement(?)",
+                "t.VisitChildren(?)"
+              ]
+            },
+            {
+              "Receiver": "*NeuroScriptParser",
+              "Name": "ExpressionStatement",
+              "calls": [
+                "NewExpressionStatementContext",
+                "p.GetParserRuleContext(?)",
+                "p.GetState(?)",
+                "p.EnterRule(?)",
+                "p.EnterOuterAlt(?)",
+                "p.SetState(?)",
+                "p.Expression(?)",
+                "p.HasError(?)",
+                "p.GetError(?)",
+                "localctx.SetException(?)",
+                "p.GetErrorHandler().ReportError(?)",
+                "p.GetErrorHandler(?)",
+                "p.GetErrorHandler().Recover(?)",
+                "p.GetErrorHandler(?)",
+                "p.SetError(?)",
+                "p.ExitRule(?)"
+              ]
+            },
+            {
               "Receiver": "*Set_statementContext",
               "Name": "IsSet_statementContext"
             },
@@ -5802,6 +6105,86 @@
                 "p.HasError(?)",
                 "p.SetState(?)",
                 "p.Expression(?)",
+                "p.HasError(?)",
+                "p.GetError(?)",
+                "localctx.SetException(?)",
+                "p.GetErrorHandler().ReportError(?)",
+                "p.GetErrorHandler(?)",
+                "p.GetErrorHandler().Recover(?)",
+                "p.GetErrorHandler(?)",
+                "p.SetError(?)",
+                "p.ExitRule(?)"
+              ]
+            },
+            {
+              "Receiver": "*Call_statementContext",
+              "Name": "IsCall_statementContext"
+            },
+            {
+              "Receiver": "*Call_statementContext",
+              "Name": "GetParser"
+            },
+            {
+              "Receiver": "*Call_statementContext",
+              "Name": "KW_CALL",
+              "calls": [
+                "s.GetToken(?)"
+              ]
+            },
+            {
+              "Receiver": "*Call_statementContext",
+              "Name": "Callable_expr",
+              "calls": [
+                "s.GetChildren(?)"
+              ]
+            },
+            {
+              "Receiver": "*Call_statementContext",
+              "Name": "GetRuleContext"
+            },
+            {
+              "Receiver": "*Call_statementContext",
+              "Name": "ToStringTree",
+              "calls": [
+                "antlr.TreesStringTree(?)"
+              ]
+            },
+            {
+              "Receiver": "*Call_statementContext",
+              "Name": "EnterRule",
+              "calls": [
+                "listenerT.EnterCall_statement(?)"
+              ]
+            },
+            {
+              "Receiver": "*Call_statementContext",
+              "Name": "ExitRule",
+              "calls": [
+                "listenerT.ExitCall_statement(?)"
+              ]
+            },
+            {
+              "Receiver": "*Call_statementContext",
+              "Name": "Accept",
+              "calls": [
+                "t.VisitCall_statement(?)",
+                "t.VisitChildren(?)"
+              ]
+            },
+            {
+              "Receiver": "*NeuroScriptParser",
+              "Name": "Call_statement",
+              "calls": [
+                "NewCall_statementContext",
+                "p.GetParserRuleContext(?)",
+                "p.GetState(?)",
+                "p.EnterRule(?)",
+                "p.EnterOuterAlt(?)",
+                "p.SetState(?)",
+                "p.Match(?)",
+                "p.HasError(?)",
+                "p.SetState(?)",
+                "p.Callable_expr(?)",
                 "p.HasError(?)",
                 "p.GetError(?)",
                 "localctx.SetException(?)",
@@ -6340,6 +6723,148 @@
                 "p.SetState(?)",
                 "p.Match(?)",
                 "p.HasError(?)",
+                "p.SetState(?)",
+                "p.Match(?)",
+                "p.HasError(?)",
+                "p.HasError(?)",
+                "p.GetError(?)",
+                "localctx.SetException(?)",
+                "p.GetErrorHandler().ReportError(?)",
+                "p.GetErrorHandler(?)",
+                "p.GetErrorHandler().Recover(?)",
+                "p.GetErrorHandler(?)",
+                "p.SetError(?)",
+                "p.ExitRule(?)"
+              ]
+            },
+            {
+              "Receiver": "*Break_statementContext",
+              "Name": "IsBreak_statementContext"
+            },
+            {
+              "Receiver": "*Break_statementContext",
+              "Name": "GetParser"
+            },
+            {
+              "Receiver": "*Break_statementContext",
+              "Name": "KW_BREAK",
+              "calls": [
+                "s.GetToken(?)"
+              ]
+            },
+            {
+              "Receiver": "*Break_statementContext",
+              "Name": "GetRuleContext"
+            },
+            {
+              "Receiver": "*Break_statementContext",
+              "Name": "ToStringTree",
+              "calls": [
+                "antlr.TreesStringTree(?)"
+              ]
+            },
+            {
+              "Receiver": "*Break_statementContext",
+              "Name": "EnterRule",
+              "calls": [
+                "listenerT.EnterBreak_statement(?)"
+              ]
+            },
+            {
+              "Receiver": "*Break_statementContext",
+              "Name": "ExitRule",
+              "calls": [
+                "listenerT.ExitBreak_statement(?)"
+              ]
+            },
+            {
+              "Receiver": "*Break_statementContext",
+              "Name": "Accept",
+              "calls": [
+                "t.VisitBreak_statement(?)",
+                "t.VisitChildren(?)"
+              ]
+            },
+            {
+              "Receiver": "*NeuroScriptParser",
+              "Name": "Break_statement",
+              "calls": [
+                "NewBreak_statementContext",
+                "p.GetParserRuleContext(?)",
+                "p.GetState(?)",
+                "p.EnterRule(?)",
+                "p.EnterOuterAlt(?)",
+                "p.SetState(?)",
+                "p.Match(?)",
+                "p.HasError(?)",
+                "p.HasError(?)",
+                "p.GetError(?)",
+                "localctx.SetException(?)",
+                "p.GetErrorHandler().ReportError(?)",
+                "p.GetErrorHandler(?)",
+                "p.GetErrorHandler().Recover(?)",
+                "p.GetErrorHandler(?)",
+                "p.SetError(?)",
+                "p.ExitRule(?)"
+              ]
+            },
+            {
+              "Receiver": "*Continue_statementContext",
+              "Name": "IsContinue_statementContext"
+            },
+            {
+              "Receiver": "*Continue_statementContext",
+              "Name": "GetParser"
+            },
+            {
+              "Receiver": "*Continue_statementContext",
+              "Name": "KW_CONTINUE",
+              "calls": [
+                "s.GetToken(?)"
+              ]
+            },
+            {
+              "Receiver": "*Continue_statementContext",
+              "Name": "GetRuleContext"
+            },
+            {
+              "Receiver": "*Continue_statementContext",
+              "Name": "ToStringTree",
+              "calls": [
+                "antlr.TreesStringTree(?)"
+              ]
+            },
+            {
+              "Receiver": "*Continue_statementContext",
+              "Name": "EnterRule",
+              "calls": [
+                "listenerT.EnterContinue_statement(?)"
+              ]
+            },
+            {
+              "Receiver": "*Continue_statementContext",
+              "Name": "ExitRule",
+              "calls": [
+                "listenerT.ExitContinue_statement(?)"
+              ]
+            },
+            {
+              "Receiver": "*Continue_statementContext",
+              "Name": "Accept",
+              "calls": [
+                "t.VisitContinue_statement(?)",
+                "t.VisitChildren(?)"
+              ]
+            },
+            {
+              "Receiver": "*NeuroScriptParser",
+              "Name": "Continue_statement",
+              "calls": [
+                "NewContinue_statementContext",
+                "p.GetParserRuleContext(?)",
+                "p.GetState(?)",
+                "p.EnterRule(?)",
+                "p.EnterOuterAlt(?)",
                 "p.SetState(?)",
                 "p.Match(?)",
                 "p.HasError(?)",
@@ -8166,6 +8691,13 @@
             {
               "Receiver": "*Unary_exprContext",
               "Name": "KW_SOME",
+              "calls": [
+                "s.GetToken(?)"
+              ]
+            },
+            {
+              "Receiver": "*Unary_exprContext",
+              "Name": "TILDE",
               "calls": [
                 "s.GetToken(?)"
               ]
@@ -10492,6 +11024,12 @@
               ]
             }
           ]
+        },
+        "pkg/neurogo/app_script_break_continue_test.go": {
+          "functions": [
+            "TestApp_RunScriptMode_BreakContinue"
+          ],
+          "methods": []
         },
         "pkg/neurogo/app_script_test.go": {
           "functions": [

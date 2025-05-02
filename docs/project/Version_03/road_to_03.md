@@ -1,4 +1,4 @@
-:: title: NeuroScript Road to v0.3.0 Checklist
+ :: title: NeuroScript Road to v0.3.0 Checklist
  :: version: 0.3.0-alpha
  :: id: ns-roadmap-v0.3.0
  :: status: draft
@@ -6,8 +6,8 @@
 
  # NeuroScript v0.3.0 Development Tasks
 
- - [ ] 1. Language features
-     [ ] `break` and `continue` flow control words
+ - [x] 1. Language features
+     [x] `break` and `continue` flow control words
 
  - [ ] 3. Implement Go Tooling (Core Tools)
    - [ ] Add go module awareness (`go.mod`).
@@ -29,5 +29,4 @@
    - [ ] Add ability to upload such sound clips *(New)*
 
  - [ ] 8. Other
-   - [ ] signal and image processing tools
-   - [ ] Consider explicit `halt` command/mechanism? *(New Item)*
+   - [ ]...
