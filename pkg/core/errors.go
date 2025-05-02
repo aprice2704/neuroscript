@@ -1,5 +1,5 @@
 // NeuroScript Version: 0.3.0
-// Last Modified: 2025-05-01 21:32:15 PDT // Add Tree Tool errors to user's version
+// Last Modified: 2025-05-02 15:40:49 PDT // Add ErrTreeNodeNotObject
 // filename: pkg/core/errors.go
 package core
 
@@ -9,67 +9,48 @@ import (
 )
 
 // --- ErrorCode Type ---
-type ErrorCode int // Define a specific type for error codes
+type ErrorCode int
 
 // --- RuntimeError ---
-// RuntimeError represents a structured error originating from NeuroScript execution.
 type RuntimeError struct {
-	Code    ErrorCode // Use specific type
-	Message string    // Human-readable error message
-	Wrapped error     // Optional: The original underlying Go error, if any
-	// Pos     *Position // Optional: Add position directly here if desired later
+	Code    ErrorCode
+	Message string
+	Wrapped error
 }
 
-// Error implements the standard Go error interface.
 func (e *RuntimeError) Error() string {
-	// Optionally include Position info if added to struct:
-	// posStr := ""
-	// if e.Pos != nil {
-	//  posStr = fmt.Sprintf(" at %s", e.Pos.String())
-	// }
 	if e.Wrapped != nil {
-		// Consider including wrapped error details if helpful for debugging Go side
-		// return fmt.Sprintf("NeuroScript Error %d%s: %s (wrapped: %v)", e.Code, posStr, e.Message, e.Wrapped)
-		return fmt.Sprintf("NeuroScript Error %d: %s", e.Code, e.Message) // Simpler message for script
+		return fmt.Sprintf("NeuroScript Error %d: %s", e.Code, e.Message)
 	}
 	return fmt.Sprintf("NeuroScript Error %d: %s", e.Code, e.Message)
 }
-
-// Unwrap provides compatibility for errors.Is and errors.As.
-func (e *RuntimeError) Unwrap() error {
-	return e.Wrapped
-}
-
-// Helper to create a new RuntimeError
-// NOTE: Does NOT accept Position directly. Position should be added to Message or struct later if needed.
+func (e *RuntimeError) Unwrap() error { return e.Wrapped }
 func NewRuntimeError(code ErrorCode, message string, wrapped error) *RuntimeError {
 	return &RuntimeError{Code: code, Message: message, Wrapped: wrapped}
 }
 
-// --- Basic Runtime Error Codes (Expand as needed) ---
-// *** UPDATED: Added ErrorCodeEvaluation, ErrorCodeConfiguration ***
+// --- Basic Runtime Error Codes ---
 const (
-	ErrorCodeGeneric         ErrorCode = 0    // Default or unknown script error
-	ErrorCodeFailStatement   ErrorCode = 1    // Error explicitly raised by 'fail'
-	ErrorCodeProcNotFound    ErrorCode = 2    // Procedure call target not found
-	ErrorCodeToolNotFound    ErrorCode = 3    // Tool or tool function not found
-	ErrorCodeArgMismatch     ErrorCode = 4    // Incorrect number/type of arguments
-	ErrorCodeMustFailed      ErrorCode = 5    // 'must' or 'mustbe' condition failed
-	ErrorCodeInternal        ErrorCode = 6    // Internal interpreter error (e.g., bad AST, nil pointer)
-	ErrorCodeType            ErrorCode = 7    // Type error during operation (e.g., adding string to int)
-	ErrorCodeBounds          ErrorCode = 8    // Index out of bounds
-	ErrorCodeKeyNotFound     ErrorCode = 9    // Map key not found
-	ErrorCodeSecurity        ErrorCode = 10   // Security policy violation
-	ErrorCodeReadOnly        ErrorCode = 11   // Attempt to modify read-only variable (err_code/err_msg)
-	ErrorCodeReturnViolation ErrorCode = 12   // 'return' used inside 'on_error'
-	ErrorCodeClearViolation  ErrorCode = 13   // 'clear_error' used outside 'on_error'
-	ErrorCodeDivisionByZero  ErrorCode = 14   // Division by zero
-	ErrorCodeSyntax          ErrorCode = 15   // Syntax error during parsing or interpretation
-	ErrorCodeLLMError        ErrorCode = 16   // Error during LLM API call or processing
-	ErrorCodeEvaluation      ErrorCode = 17   // Error during expression evaluation (ADDED)
-	ErrorCodeConfiguration   ErrorCode = 18   // Error related to interpreter/tool configuration (ADDED)
-	ErrorCodeToolSpecific    ErrorCode = 1000 // Base for tool-specific errors
-	// Add more codes as needed
+	ErrorCodeGeneric         ErrorCode = 0
+	ErrorCodeFailStatement   ErrorCode = 1
+	ErrorCodeProcNotFound    ErrorCode = 2
+	ErrorCodeToolNotFound    ErrorCode = 3
+	ErrorCodeArgMismatch     ErrorCode = 4
+	ErrorCodeMustFailed      ErrorCode = 5
+	ErrorCodeInternal        ErrorCode = 6
+	ErrorCodeType            ErrorCode = 7
+	ErrorCodeBounds          ErrorCode = 8
+	ErrorCodeKeyNotFound     ErrorCode = 9
+	ErrorCodeSecurity        ErrorCode = 10
+	ErrorCodeReadOnly        ErrorCode = 11
+	ErrorCodeReturnViolation ErrorCode = 12
+	ErrorCodeClearViolation  ErrorCode = 13
+	ErrorCodeDivisionByZero  ErrorCode = 14
+	ErrorCodeSyntax          ErrorCode = 15
+	ErrorCodeLLMError        ErrorCode = 16
+	ErrorCodeEvaluation      ErrorCode = 17
+	ErrorCodeConfiguration   ErrorCode = 18
+	ErrorCodeToolSpecific    ErrorCode = 1000
 )
 
 // --- Core Validation Errors ---
@@ -97,35 +78,26 @@ var (
 )
 
 // --- Core Handle Errors ---
-// (Existing handle errors will be used by GetHandleValue)
 var (
-	// Definitions likely exist in interpreter/handle logic, represented here conceptually:
-	// ErrHandleNotFound = errors.New("handle not found")
-	// ErrHandleInvalidType = errors.New("handle refers to object of wrong type")
-	ErrHandleInvalid = errors.New("handle is invalid or refers to invalid data") // More general error often used by GetHandleValue
+	ErrHandleInvalid = errors.New("handle is invalid or refers to invalid data")
 )
 
 // --- Core Tool Execution Errors ---
 var (
-	// General
-	ErrInternalTool = errors.New("internal tool error")
-	ErrNotFound     = errors.New("item not found") // Generic not found, can be used by GetHandleValue or Map access etc.
-
-	// List/Map Access
-	ErrListIndexOutOfBounds     = errors.New("list index out of bounds")
-	ErrListCannotSortMixedTypes = errors.New("cannot sort list with mixed or non-sortable types")
-	ErrListInvalidIndexType     = errors.New("list index must be an integer")
-	ErrListInvalidAccessorType  = errors.New("invalid accessor type for collection")
-	ErrMapKeyNotFound           = errors.New("key not found in map")
-	ErrCannotAccessType         = errors.New("cannot perform element access on type")
-	ErrCollectionIsNil          = errors.New("collection evaluated to nil")
-	ErrAccessorIsNil            = errors.New("accessor evaluated to nil")
-	// File System Tool Errors
-	ErrCannotCreateDir      = errors.New("cannot create directory")
-	ErrCannotDelete         = errors.New("cannot delete file or directory")
-	ErrInvalidHashAlgorithm = errors.New("invalid or unsupported hash algorithm")
-	ErrFileNotFound         = errors.New("file not found")
-	// Go Tooling Errors
+	ErrInternalTool                  = errors.New("internal tool error")
+	ErrNotFound                      = errors.New("item not found")
+	ErrListIndexOutOfBounds          = errors.New("list index out of bounds")
+	ErrListCannotSortMixedTypes      = errors.New("cannot sort list with mixed or non-sortable types")
+	ErrListInvalidIndexType          = errors.New("list index must be an integer")
+	ErrListInvalidAccessorType       = errors.New("invalid accessor type for collection")
+	ErrMapKeyNotFound                = errors.New("key not found in map")
+	ErrCannotAccessType              = errors.New("cannot perform element access on type")
+	ErrCollectionIsNil               = errors.New("collection evaluated to nil")
+	ErrAccessorIsNil                 = errors.New("accessor evaluated to nil")
+	ErrCannotCreateDir               = errors.New("cannot create directory")
+	ErrCannotDelete                  = errors.New("cannot delete file or directory")
+	ErrInvalidHashAlgorithm          = errors.New("invalid or unsupported hash algorithm")
+	ErrFileNotFound                  = errors.New("file not found")
 	ErrGoParseFailed                 = errors.New("failed to parse Go source")
 	ErrGoModifyFailed                = errors.New("failed to modify Go AST")
 	ErrGoFormatFailed                = errors.New("failed to format Go AST")
@@ -137,39 +109,32 @@ var (
 	ErrRefactoredPathNotFound        = errors.New("refactored package path not found for symbol mapping")
 	ErrSymbolMappingFailed           = errors.New("failed to build symbol map from refactored packages")
 	ErrAmbiguousSymbol               = errors.New("ambiguous exported symbol")
-	// Cache Errors
-	ErrCacheObjectNotFound  = errors.New("object not found in cache")
-	ErrCacheObjectWrongType = errors.New("cached object has wrong type")
-	// Math/Evaluation Errors
-	ErrDivisionByZero            = errors.New("division by zero")
-	ErrInvalidOperandType        = errors.New("invalid operand type")
-	ErrInvalidOperandTypeNumeric = errors.New("requires numeric operand(s)")
-	ErrInvalidOperandTypeInteger = errors.New("requires integer operand(s)")
-	ErrInvalidOperandTypeString  = errors.New("requires string operand(s)")
-	ErrInvalidOperandTypeBool    = errors.New("requires boolean operand(s)")
-	ErrInvalidFunctionArgument   = errors.New("invalid argument for function")
-	ErrVariableNotFound          = errors.New("variable not found")
-	ErrUnsupportedOperator       = errors.New("unsupported operator")
-	ErrNilOperand                = errors.New("operation received nil operand")
-	ErrUnknownFunction           = errors.New("unknown function called")
-	ErrTypeAssertionFailed       = errors.New("type assertion failed")
-
-	// Verification Errors
-	ErrMustConditionFailed = errors.New("must condition evaluated to false")
-	// File Processing
-	ErrSkippedBinaryFile = errors.New("skipped potentially binary file")
-
-	// --- ADDED: Tree Tool Errors ---
-	ErrTreeJSONUnmarshal = errors.New("failed to unmarshal JSON input")
-	ErrTreeBuildFailed   = errors.New("failed to build internal tree structure")
-	// ErrTreeNodeNotFound    = errors.New("node ID not found in tree") // Using generic ErrNotFound for now
-	ErrTreeFormatFailed = errors.New("failed to reconstruct data for formatting")
-	ErrTreeJSONMarshal  = errors.New("failed to marshal tree data to JSON")
-	// --- END ADDED ---
+	ErrCacheObjectNotFound           = errors.New("object not found in cache")
+	ErrCacheObjectWrongType          = errors.New("cached object has wrong type")
+	ErrDivisionByZero                = errors.New("division by zero")
+	ErrInvalidOperandType            = errors.New("invalid operand type")
+	ErrInvalidOperandTypeNumeric     = errors.New("requires numeric operand(s)")
+	ErrInvalidOperandTypeInteger     = errors.New("requires integer operand(s)")
+	ErrInvalidOperandTypeString      = errors.New("requires string operand(s)")
+	ErrInvalidOperandTypeBool        = errors.New("requires boolean operand(s)")
+	ErrInvalidFunctionArgument       = errors.New("invalid argument for function")
+	ErrVariableNotFound              = errors.New("variable not found")
+	ErrUnsupportedOperator           = errors.New("unsupported operator")
+	ErrNilOperand                    = errors.New("operation received nil operand")
+	ErrUnknownFunction               = errors.New("unknown function called")
+	ErrTypeAssertionFailed           = errors.New("type assertion failed")
+	ErrMustConditionFailed           = errors.New("must condition evaluated to false")
+	ErrSkippedBinaryFile             = errors.New("skipped potentially binary file")
+	ErrTreeJSONUnmarshal             = errors.New("failed to unmarshal JSON input")
+	ErrTreeBuildFailed               = errors.New("failed to build internal tree structure")
+	ErrTreeFormatFailed              = errors.New("failed to reconstruct data for formatting")
+	ErrTreeJSONMarshal               = errors.New("failed to marshal tree data to JSON")
+	ErrTreeInvalidQuery              = errors.New("invalid query map structure or values")
+	ErrTreeCannotSetValueOnType      = errors.New("cannot set Value on node types object or array")
+	ErrTreeNodeNotObject             = errors.New("target node is not type object") // <<< ADDED
 )
 
 // --- Core Interpreter Errors ---
-// *** UPDATED: Added ErrLLMNotConfigured ***
 var (
 	ErrProcedureNotFound    = errors.New("procedure not found")
 	ErrArgumentMismatch     = errors.New("argument mismatch")
@@ -184,15 +149,11 @@ var (
 	ErrReturnViolation      = errors.New("'return' statement is not permitted inside an on_error block")
 	ErrToolNotFound         = errors.New("tool or tool function not found")
 	ErrLLMError             = errors.New("LLM interaction failed")
-	ErrLLMNotConfigured     = errors.New("LLM client not configured in interpreter") // ADDED
+	ErrLLMNotConfigured     = errors.New("LLM client not configured in interpreter")
 )
 
-// --- ADDED: Control Flow Sentinel Errors ---
+// --- Control Flow Sentinel Errors ---
 var (
-	// These are used internally to signal control flow, not typically user-facing errors.
 	ErrBreak    = errors.New("internal: break signal")
 	ErrContinue = errors.New("internal: continue signal")
-	// TODO: Consider if ErrReturn should also be a simple sentinel error here,
-	// or if it needs to carry values (currently handled via panic/recover in interpreter?).
-	// For now, defining ErrBreak and ErrContinue is sufficient for this task.
 )

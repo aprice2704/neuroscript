@@ -10,6 +10,7 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/core"
 	"github.com/aprice2704/neuroscript/pkg/logging"
+	"github.com/aprice2704/neuroscript/pkg/toolsets"
 
 	"github.com/aprice2704/neuroscript/pkg/neurodata/models" // Keep the import for type signature
 	// Import nspatch package (even if NewHandler is gone)
@@ -104,6 +105,19 @@ func (app *App) Run(ctx context.Context) error {
 		app.Log.Warn("No sandbox directory configured, interpreter using default.")
 	}
 	app.Log.Info("Interpreter initialized.")
+
+	app.Log.Info("Registering extended toolsets...")                           // Log before calling
+	err := toolsets.RegisterExtendedTools(app.GetInterpreter().ToolRegistry()) // <-- Capture the error
+	if err != nil {
+		// Log the error from toolsets registration
+		app.Log.Error("Failed to register one or more extended toolsets", "error", err)
+		// --- Decide how critical this is ---
+		// Option 1: Log and continue (if tools are optional)
+		// Option 2: Return the error to stop app startup (if tools are essential)
+		return fmt.Errorf("failed during extended tool registration: %w", err)
+		// --- End Decision ---
+	}
+	app.Log.Info("Extended toolsets registered successfully.") // Log success
 
 	// --- Initialize Patch Handler ---
 	if app.interpreter == nil {

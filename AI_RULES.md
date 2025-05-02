@@ -1,6 +1,6 @@
  # NeuroScript Go Development RULES (Revised 1-May-2025) by AJP
  
-Follow these **RULES** **very strictly** for all Go code contributions to the NeuroScript project, unless I say otherwise. DO NOT FORGET THEM.
+Follow these **RULES** **very strictly** for all Go code contributions to the NeuroScript project, unless I say otherwise. DO NOT FORGET THEM. We use golang version 1.24 or later.
  
  ## Project Setup & Awareness
  
@@ -16,12 +16,13 @@ Follow these **RULES** **very strictly** for all Go code contributions to the Ne
  
  4.  **Full & Functional Files:** Always provide complete Go files. **NEVER** generate code with function bodies "shorted out" or replaced by comments (e.g., `// ... implementation ...`); this wastes significant time if missed. Ensure all provided code is intended to be functional.
  5.  **Single Update Block (Optional):** *Exception:* If modifying a large existing file with localized changes, you *may* provide just the single, contiguous changed block (e.g., a modified function) clearly marked for replacement, *instead* of the whole file. **Never provide more than one update block per file.** If in doubt, provide the full file.
- 6.  **File Size:** Split Go files logically if they exceed ~200 lines.
+ 6.  **File Size:** YOU MUST Split Go files logically if they exceed ~200-300 lines. You don't have to ask first, just do it. **THIS IS VITAL** for development efficiency (moving text between you and I).
  7.  **Helpers:** Place reusable helpers in shared files (e.g., `utils.go`, `parsing_helpers.go`). Add new helpers cautiously; modify existing ones **rarely**.
  8.  **Package Comments:** Keep `// Package ...` comments accurate.
  9.  **Import Paths:** Use plain string literals for import paths (e.g., `"path/to/pkg"`), not Markdown links.
  9. a. Please **version stamp** each file you touch, e.g. `// NeuroScript Version: 0.3.0
 // Last Modified: 2025-05-01 12:41:54 PDT` as we have been having some stale file problems
+ 9. b. **Comments**: add and maintain package comments please. No comments within import blocks please. Remember: **do not** put // comments in ns file, they are no permitted.
  
  ## Error Handling Protocol
  

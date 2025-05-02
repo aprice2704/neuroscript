@@ -335,13 +335,17 @@ func ConvertToolSpecArgsToInputSchema(args []ArgSpec) (map[string]interface{}, e
 			jsonType = "number"
 		case ArgTypeBool:
 			jsonType = "boolean"
-		case ArgTypeList, ArgTypeSliceAny, ArgTypeSliceString:
+		// *** REMOVED invalid case: case ArgTypeList: ***
+		case ArgTypeSlice, ArgTypeSliceAny, ArgTypeSliceString, ArgTypeSliceInt, ArgTypeSliceFloat, ArgTypeSliceBool, ArgTypeSliceMap: // Group all slice types
 			jsonType = "array"
+			// TODO: Could add "items": {"type": "string"} etc. here if needed for better schema
 		case ArgTypeMap:
 			jsonType = "object"
 		case ArgTypeAny:
 			jsonType = "string" // Defaulting 'any' to string for schema
+		// NOTE: ArgTypeNil is intentionally excluded here as it doesn't make sense for an *input* argument schema.
 		default:
+			// This case handles genuinely unknown or unsupported ArgType values
 			return nil, fmt.Errorf("unsupported ArgType '%s' for tool argument '%s' cannot be converted to JSON schema", argSpec.Type, argSpec.Name)
 		}
 
@@ -349,6 +353,7 @@ func ConvertToolSpecArgsToInputSchema(args []ArgSpec) (map[string]interface{}, e
 		if argSpec.Description != "" {
 			propSchema["description"] = argSpec.Description
 		}
+		// TODO: Add handling for nested schemas if ArgTypeMap/ArgTypeList need item/property definitions?
 		props[argSpec.Name] = propSchema
 		if argSpec.Required {
 			required = append(required, argSpec.Name)
@@ -358,8 +363,3 @@ func ConvertToolSpecArgsToInputSchema(args []ArgSpec) (map[string]interface{}, e
 	schema["properties"] = props
 	return schema, nil
 }
-
-// --- Assumed Type Definitions (ensure they exist in relevant files) ---
-// type Step struct { Pos *Position; Type string; Target string; Cond Expression; Value interface{}; ElseValue interface{}; Metadata map[string]string } // Defined in ast.go
-// func (s Step) GetPos() *Position { return s.Pos } // Add this method to Step struct if needed elsewhere
-// ... (other type definitions listed previously) ...

@@ -1,17 +1,17 @@
 // NeuroScript Version: 0.3.0
-// Last Modified: 2025-05-01 21:35:11 PDT // Register Tree tools
+// Last Modified: 2025-05-02 14:58:13 PDT // Refactor tree tool registration
 // filename: pkg/core/tools_register.go
 package core
 
 import (
 	"errors"
 	"fmt"
-	"strings" // Needed for Join fallback
+	// "strings" // No longer needed if using errors.Join
 )
 
-// registerCoreTools defines the specs for built-in tools and registers them
-// by calling registration functions from specific tool files WITHIN THE CORE PACKAGE.
-func registerCoreTools(registry *ToolRegistry) error {
+// registerCoreTools collects registration calls for all CORE tool groups.
+// Extended toolsets (checklist, blocks) are registered elsewhere (e.g., pkg/toolsets).
+func registerCoreToolsInternal(registry *ToolRegistry) error {
 	var allErrors []error
 
 	// Helper function to append errors
@@ -21,12 +21,12 @@ func registerCoreTools(registry *ToolRegistry) error {
 		}
 	}
 
-	// Register core tool groups
+	// Register core tool groups by calling their specific registration functions
 	collectErr("FS", registerFsTools(registry))
 	collectErr("Vector", registerVectorTools(registry))
 	collectErr("Git", registerGitTools(registry))
 	collectErr("String", registerStringTools(registry))
-	collectErr("Shell", registerShellTools(registry)) // Now only registers ExecuteCommand
+	collectErr("Shell", registerShellTools(registry))
 	collectErr("Go", registerGoTools(registry))
 	collectErr("Math", registerMathTools(registry))
 	collectErr("Metadata", registerMetadataTools(registry))
@@ -34,32 +34,29 @@ func registerCoreTools(registry *ToolRegistry) error {
 	collectErr("IO", registerIOTools(registry))
 	collectErr("File API", registerFileAPITools(registry))
 	collectErr("LLM", RegisterLLMTools(registry))
-	collectErr("Tree", registerTreeTools(registry)) // <<< ADDED Tree Tools registration
 
-	// GoAST tools might be registered elsewhere (e.g., within goast package init or explicitly?)
+	// --- Updated Tree Tool Registration ---
+	collectErr("Tree (Core)", registerTreeTools(registry))         // Registers load, nav, find, etc.
+	collectErr("Tree (Render)", registerTreeRenderTools(registry)) // Registers format, render
+	// --- End Update ---
+
 	// TODO: Clarify GoAST tool registration strategy.
 
 	if len(allErrors) > 0 {
-		// Using errors.Join requires Go 1.20+
-		// return errors.Join(allErrors...) // Prefer this if >= Go 1.20
-
-		// Fallback for potentially older Go versions:
-		errorMessages := make([]string, len(allErrors))
-		for i, e := range allErrors {
-			errorMessages[i] = e.Error()
-		}
-		return errors.New(strings.Join(errorMessages, "; "))
+		return errors.Join(allErrors...) // Use errors.Join (Go 1.20+)
 	}
 
 	return nil // Success
 }
 
-// RegisterCoreTools initializes all tools defined within the core package.
+// RegisterCoreTools is the public entry point for registering all core tools.
+// It mainly validates the registry and calls the internal registration logic.
 func RegisterCoreTools(registry *ToolRegistry) error {
 	if registry == nil {
 		return fmt.Errorf("RegisterCoreTools called with a nil registry")
 	}
-	if err := registerCoreTools(registry); err != nil {
+	// Call the internal function that does the actual registration work
+	if err := registerCoreToolsInternal(registry); err != nil {
 		return err // Propagate error
 	}
 	return nil // Success
