@@ -1,35 +1,32 @@
 // filename: pkg/core/tools_go_ast.go
-// UPDATED: Register new tool GoFindIdentifiers
-// UPDATED: Use RegisterHandle and GetHandleValue
-// UPDATED: REMOVED registration for GoUpdateImportsForMovedPackage (moved to tools_go_ast_package.go)
+// UPDATED: Register GoGetNodeInfo
 package goast
 
 import (
 	"bytes"
-	"errors" // Added for Join
+	"errors"
 	"fmt"
 	"go/ast"
 	"go/parser"
 	"go/printer"
 	"go/token"
 	"os"
-	"strings" // Needed for registration error joining fallback
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/core"
-	// "golang.org/x/tools/go/ast/astutil" // Not needed here anymore? Or maybe by find/modify? Keep for now.
 )
 
 // --- Helper Struct ---
+// --- (CachedAst struct remains unchanged) ---
 type CachedAst struct {
 	File *ast.File
 	Fset *token.FileSet
 }
 
-const golangASTTypeTag = "GolangAST" // Use this as the type prefix for handles
+const golangASTTypeTag = "GolangAST"
 
 // --- GoParseFile Tool ---
-// (Implementation remains the same as before)
+// --- (toolGoParseFile remains unchanged) ---
 func toolGoParseFile(interpreter *core.Interpreter, args []interface{}) (interface{}, error) {
 	var content string
 	var filePath string
@@ -57,7 +54,7 @@ func toolGoParseFile(interpreter *core.Interpreter, args []interface{}) (interfa
 	}
 	if pathHasValue && contentHasValue {
 		return "GoParseFile requires exactly one of 'path' or 'content' argument, both provided.", nil
-	} // Return error msg string
+	}
 	if !pathHasValue && !contentHasValue {
 		if pathArgProvided && !pathHasValue && !contentArgProvided {
 			return fmt.Sprintf("GoParseFile: 'path' argument was provided but empty, and 'content' was not provided."), nil
@@ -69,11 +66,11 @@ func toolGoParseFile(interpreter *core.Interpreter, args []interface{}) (interfa
 			return fmt.Sprintf("GoParseFile: Both 'path' and 'content' arguments were provided but empty."), nil
 		}
 		return "GoParseFile requires 'path' (string) or 'content' (string) argument.", nil
-	} // Return error msg string
+	}
 	var sourceName string
 	if pathHasValue {
 		sourceName = filePath
-		sandboxRoot := interpreter.SandboxDir() // TODO: Get sandbox from AgentContext if applicable?
+		sandboxRoot := interpreter.SandboxDir()
 		if sandboxRoot == "" {
 			sandboxRoot = "."
 		}
@@ -90,24 +87,24 @@ func toolGoParseFile(interpreter *core.Interpreter, args []interface{}) (interfa
 		sourceName = "<content string>"
 	} else {
 		return nil, fmt.Errorf("GoParseFile: Internal logic error determining input source: %w", core.ErrInternalTool)
-	} // Return Go error for internal issues
+	}
 	fset := token.NewFileSet()
 	astFile, err := parser.ParseFile(fset, sourceName, content, parser.ParseComments)
 	if err != nil {
 		return fmt.Sprintf("GoParseFile failed: %s", err.Error()), fmt.Errorf("%w: %w", core.ErrGoParseFailed, err)
-	} // Return wrapped Go error
+	}
 	cachedData := CachedAst{File: astFile, Fset: fset}
 	handleID, err := interpreter.RegisterHandle(cachedData, golangASTTypeTag)
 	if err != nil {
 		interpreter.Logger().Error("Failed to register AST handle for '%s': %v", sourceName, err)
-		return nil, fmt.Errorf("failed to register AST handle: %w", err) // Return internal error
+		return nil, fmt.Errorf("failed to register AST handle: %w", err)
 	}
 	interpreter.Logger().Info("Tool: GoParseFile] Successfully parsed '%s'. Stored AST+FileSet with handle ID: %s", sourceName, handleID)
 	return handleID, nil
 }
 
 // --- GoFormatASTNode Tool ---
-// (Implementation remains the same as before)
+// --- (toolGoFormatAST remains unchanged) ---
 func toolGoFormatAST(interpreter *core.Interpreter, args []interface{}) (interface{}, error) {
 	interpreter.Logger().Info("Tool: GoFormatAST ENTRY] Received args: %v", args)
 	if len(args) != 1 {
@@ -144,12 +141,9 @@ func toolGoFormatAST(interpreter *core.Interpreter, args []interface{}) (interfa
 }
 
 // --- Registration ---
-// Registers BASIC Go AST tools (Parse, Modify, Format, Find).
-// Package-level refactoring tools are registered separately.
+// Registers Go AST tools (Parse, Modify, Format, Find, Analyze).
 func registerGoAstTools(registry *core.ToolRegistry) error {
 	var registrationErrors []error
-
-	// Helper to collect registration errors
 	collectRegErr := func(toolName string, err error) {
 		if err != nil {
 			fmt.Printf("!!! CRITICAL: Failed to register Go AST tool %s: %v\n", toolName, err)
@@ -157,62 +151,37 @@ func registerGoAstTools(registry *core.ToolRegistry) error {
 		}
 	}
 
-	// GoParseFile registration
-	collectRegErr("GoParseFile", registry.RegisterTool(core.ToolImplementation{
-		Spec: core.ToolSpec{
-			Name: "GoParseFile", Description: "Parses Go source code from path or content string. Returns AST handle.",
-			Args: []core.ArgSpec{{Name: "path", Type: core.ArgTypeString, Required: false}, {Name: "content", Type: core.ArgTypeString, Required: false}}, ReturnType: core.ArgTypeString,
-		}, Func: toolGoParseFile,
-	}))
+	// GoParseFile
+	collectRegErr("GoParseFile", registry.RegisterTool(core.ToolImplementation{Spec: core.ToolSpec{Name: "GoParseFile", Description: "Parses Go source code from path or content string. Returns AST handle.", Args: []core.ArgSpec{{Name: "path", Type: core.ArgTypeString, Required: false}, {Name: "content", Type: core.ArgTypeString, Required: false}}, ReturnType: core.ArgTypeString}, Func: toolGoParseFile}))
+	// GoModifyAST
+	collectRegErr("GoModifyAST", registry.RegisterTool(core.ToolImplementation{Spec: core.ToolSpec{Name: "GoModifyAST", Description: "Modifies Go AST (handle) using directives. Returns NEW handle on success.", Args: []core.ArgSpec{{Name: "handle", Type: core.ArgTypeString, Required: true}, {Name: "modifications", Type: core.ArgTypeMap, Required: true}}, ReturnType: core.ArgTypeString}, Func: toolGoModifyAST})) // Assumes toolGoModifyAST exists
+	// GoFormatASTNode
+	collectRegErr("GoFormatASTNode", registry.RegisterTool(core.ToolImplementation{Spec: core.ToolSpec{Name: "GoFormatASTNode", Description: "Formats Go AST (handle). Returns formatted code string.", Args: []core.ArgSpec{{Name: "handle", Type: core.ArgTypeString, Required: true}}, ReturnType: core.ArgTypeString}, Func: toolGoFormatAST}))
+	// GoFindIdentifiers
+	collectRegErr("GoFindIdentifiers", registry.RegisterTool(core.ToolImplementation{Spec: core.ToolSpec{Name: "GoFindIdentifiers", Description: "Finds occurrences of qualified identifiers (pkg.Symbol) in a Go AST (handle). Returns list of positions.", Args: []core.ArgSpec{{Name: "handle", Type: core.ArgTypeString, Required: true, Description: "Handle for the AST."}, {Name: "pkg_name", Type: core.ArgTypeString, Required: true, Description: "Package name part (e.g., 'fmt')."}, {Name: "identifier", Type: core.ArgTypeString, Required: true, Description: "Identifier name part (e.g., 'Println')."}}, ReturnType: core.ArgTypeSliceMap}, Func: toolGoFindIdentifiers})) // Assumes toolGoFindIdentifiers exists
 
-	// GoModifyAST registration (Func defined in tools_go_ast_modify.go)
-	collectRegErr("GoModifyAST", registry.RegisterTool(core.ToolImplementation{
+	// +++ Add GoGetNodeInfo registration +++
+	collectRegErr("GoGetNodeInfo", registry.RegisterTool(core.ToolImplementation{
 		Spec: core.ToolSpec{
-			Name: "GoModifyAST", Description: "Modifies Go AST (handle) using directives (change_package, add/remove/replace_import, replace_id). Returns NEW handle on success.",
-			Args: []core.ArgSpec{{Name: "handle", Type: core.ArgTypeString, Required: true}, {Name: "modifications", Type: core.ArgTypeAny, Required: true}}, ReturnType: core.ArgTypeString,
-		}, Func: toolGoModifyAST, // Assumes toolGoModifyAST is accessible (defined in another file in the same package)
-	}))
-
-	// GoFormatASTNode registration
-	collectRegErr("GoFormatASTNode", registry.RegisterTool(core.ToolImplementation{
-		Spec: core.ToolSpec{
-			Name:        "GoFormatASTNode", // Changed from "GoFormatAST"
-			Description: "Formats Go AST (handle). Returns formatted code string.",
-			Args:        []core.ArgSpec{{Name: "handle", Type: core.ArgTypeString, Required: true}}, ReturnType: core.ArgTypeString,
-		}, Func: toolGoFormatAST, // Keep the function name toolGoFormatAST
-	}))
-
-	// GoFindIdentifiers registration
-	collectRegErr("GoFindIdentifiers", registry.RegisterTool(core.ToolImplementation{
-		Spec: core.ToolSpec{
-			Name:        "GoFindIdentifiers",
-			Description: "Finds occurrences of qualified identifiers (pkg.Symbol) in a Go AST (handle). Returns list of positions.",
+			Name:        "GoGetNodeInfo",
+			Description: "Finds the AST node at a specific position (offset or line/column) within an AST handle and returns information about it.",
 			Args: []core.ArgSpec{
-				{Name: "handle", Type: core.ArgTypeString, Required: true, Description: "Handle for the AST."},
-				{Name: "pkg_name", Type: core.ArgTypeString, Required: true, Description: "Package name part (e.g., 'fmt')."},
-				{Name: "identifier", Type: core.ArgTypeString, Required: true, Description: "Identifier name part (e.g., 'Println')."},
+				{Name: "handle", Type: core.ArgTypeString, Required: true, Description: "Handle for the AST (from GoParseFile)."},
+				{Name: "position", Type: core.ArgTypeMap, Required: true, Description: "Map specifying position, e.g. {\"offset\": 123} or {\"line\": 10, \"column\": 5} (1-based)."},
 			},
-			ReturnType: core.ArgTypeSliceAny, // Returns a list of maps [{filename, line, column}, ...]
+			ReturnType: core.ArgTypeMap, // Returns map describing the node, or nil if not found/error
 		},
-		Func: toolGoFindIdentifiers, // Assumes toolGoFindIdentifiers is accessible (defined in another file in the same package)
+		Func: toolGoGetNodeInfo, // Assumes toolGoGetNodeInfo exists (in tools_go_ast_analyze.go)
 	}))
+	// +++ End GoGetNodeInfo registration +++
 
-	// --- REMOVED: GoUpdateImportsForMovedPackage registration (moved to tools_go_ast_package.go) ---
-
-	// Combine collected errors if any
 	if len(registrationErrors) > 0 {
-		errorMessages := make([]string, len(registrationErrors))
-		for i, e := range registrationErrors {
-			errorMessages[i] = e.Error()
-		}
-		// Use errors.Join if Go 1.20+, otherwise fallback
-		// return errors.Join(registrationErrors...) // Preferred
-		return fmt.Errorf("errors registering basic Go AST tools: %s", strings.Join(errorMessages, "; ")) // Fallback
-	}
-
+		return fmt.Errorf("errors registering basic Go AST tools: %s", errors.Join(registrationErrors...))
+	} // Use errors.Join
 	return nil // Success
 }
 
+// --- (NewDefaultTestInterpreter remains unchanged) ---
 func NewDefaultTestInterpreter(t *testing.T) (*core.Interpreter, string) {
 	t.Helper()
 	return core.NewTestInterpreter(t, nil, nil)

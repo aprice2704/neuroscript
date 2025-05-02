@@ -3033,10 +3033,48 @@
           ],
           "methods": []
         },
+        "pkg/core/tools_go.go": {
+          "functions": [
+            "registerGoTools"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_go_execution.go": {
+          "functions": [
+            "toolGoBuild",
+            "toolGoCheck",
+            "toolGoTest",
+            "toolGoModTidy",
+            "toolGoListPackages",
+            "executeGoCommandHelper"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_go_fmt.go": {
+          "functions": [
+            "toolGoFmt",
+            "toolGoImports"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_go_mod.go": {
+          "functions": [
+            "FindAndParseGoMod",
+            "toolGoGetModuleInfo"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_go_test.go": {
+          "functions": [
+            "TestToolGoGetModuleInfo"
+          ],
+          "methods": []
+        },
         "pkg/core/tools_gofmt_test.go": {
           "functions": [
-            "testGoFmtToolHelper",
-            "TestToolGoFmt"
+            "testGoFormatToolHelper",
+            "TestToolGoFmt",
+            "TestToolGoImports"
           ],
           "methods": []
         },
@@ -3161,19 +3199,13 @@
         "pkg/core/tools_shell.go": {
           "functions": [
             "registerShellTools",
-            "toolExecuteCommand",
-            "toolGoCheck",
-            "toolGoBuild",
-            "toolGoTest",
-            "toolGoFmt",
-            "toolGoModTidy"
+            "toolExecuteCommand"
           ],
           "methods": []
         },
         "pkg/core/tools_shell_test.go": {
           "functions": [
-            "TestToolExecuteCommand",
-            "TestToolGoModTidy"
+            "TestToolExecuteCommand"
           ],
           "methods": []
         },
@@ -3225,6 +3257,49 @@
         "pkg/core/tools_string_utils_test.go": {
           "functions": [
             "TestToolLineCountString"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_tree.go": {
+          "functions": [
+            "toolTreeLoadJSON",
+            "getNodeFromHandle",
+            "toolTreeGetNode",
+            "toolTreeGetChildren",
+            "toolTreeGetParent",
+            "registerTreeTools"
+          ],
+          "methods": [
+            {
+              "Receiver": "*GenericTree",
+              "Name": "newNode"
+            }
+          ]
+        },
+        "pkg/core/tools_tree_render.go": {
+          "functions": [
+            "toolTreeFormatJSON",
+            "toolTreeRenderText"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_tree_render_test.go": {
+          "functions": [
+            "TestTreeFormatJSON",
+            "TestTreeRenderText"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_tree_test.go": {
+          "functions": [
+            "loadJSONHelper",
+            "getNodeHelper",
+            "getNodeAttributes",
+            "getNodeChildren",
+            "getAttrNodeID",
+            "getChildNodeID",
+            "TestTreeLoadJSON",
+            "TestTreeNavigation"
           ],
           "methods": []
         },
@@ -3306,6 +3381,7 @@
         },
         "pkg/core/utils.go": {
           "functions": [
+            "ConvertToIntE",
             "IsTruthy",
             "InterfaceToString",
             "normalizeNewlines",
@@ -10351,6 +10427,11 @@
           "methods": []
         },
         "pkg/core/tools/goast/tools_go_ast_analyze.go": {
+          "functions": [
+            "getOffsetFromLineCol",
+            "formatPos",
+            "toolGoGetNodeInfo"
+          ],
           "methods": []
         },
         "pkg/core/tools/goast/tools_go_ast_find.go": {

@@ -1,5 +1,5 @@
 // NeuroScript Version: 0.3.0
-// Last Modified: 2025-05-01 12:49:26 PDT
+// Last Modified: 2025-05-01 21:32:15 PDT // Add Tree Tool errors to user's version
 // filename: pkg/core/errors.go
 package core
 
@@ -82,6 +82,7 @@ var (
 	ErrInvalidArgument          = errors.New("invalid argument")
 	ErrNullByteInArgument       = errors.New("argument contains null byte")
 	ErrIncorrectArgCount        = errors.New("incorrect function argument count")
+	ErrValidationRequired       = errors.New("validation error: missing required argument")
 )
 
 // --- Core Security Errors ---
@@ -95,8 +96,22 @@ var (
 	ErrInvalidPath       = errors.New("invalid path")
 )
 
+// --- Core Handle Errors ---
+// (Existing handle errors will be used by GetHandleValue)
+var (
+	// Definitions likely exist in interpreter/handle logic, represented here conceptually:
+	// ErrHandleNotFound = errors.New("handle not found")
+	// ErrHandleInvalidType = errors.New("handle refers to object of wrong type")
+	ErrHandleInvalid = errors.New("handle is invalid or refers to invalid data") // More general error often used by GetHandleValue
+)
+
 // --- Core Tool Execution Errors ---
 var (
+	// General
+	ErrInternalTool = errors.New("internal tool error")
+	ErrNotFound     = errors.New("item not found") // Generic not found, can be used by GetHandleValue or Map access etc.
+
+	// List/Map Access
 	ErrListIndexOutOfBounds     = errors.New("list index out of bounds")
 	ErrListCannotSortMixedTypes = errors.New("cannot sort list with mixed or non-sortable types")
 	ErrListInvalidIndexType     = errors.New("list index must be an integer")
@@ -137,13 +152,20 @@ var (
 	ErrUnsupportedOperator       = errors.New("unsupported operator")
 	ErrNilOperand                = errors.New("operation received nil operand")
 	ErrUnknownFunction           = errors.New("unknown function called")
-	ErrTypeAssertionFailed       = errors.New("type assertion failed") // <<< ADDED DEFINITION HERE
+	ErrTypeAssertionFailed       = errors.New("type assertion failed")
 
 	// Verification Errors
 	ErrMustConditionFailed = errors.New("must condition evaluated to false")
-	// General Tool Error
-	ErrInternalTool      = errors.New("internal tool error")
+	// File Processing
 	ErrSkippedBinaryFile = errors.New("skipped potentially binary file")
+
+	// --- ADDED: Tree Tool Errors ---
+	ErrTreeJSONUnmarshal = errors.New("failed to unmarshal JSON input")
+	ErrTreeBuildFailed   = errors.New("failed to build internal tree structure")
+	// ErrTreeNodeNotFound    = errors.New("node ID not found in tree") // Using generic ErrNotFound for now
+	ErrTreeFormatFailed = errors.New("failed to reconstruct data for formatting")
+	ErrTreeJSONMarshal  = errors.New("failed to marshal tree data to JSON")
+	// --- END ADDED ---
 )
 
 // --- Core Interpreter Errors ---

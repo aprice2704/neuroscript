@@ -1,3 +1,5 @@
+// NeuroScript Version: 0.3.0
+// Last Modified: 2025-05-01 19:49:00 PDT
 // filename: pkg/core/tools_types.go
 package core
 
@@ -21,10 +23,10 @@ const (
 	ArgTypeMap    ArgType = "map"   // Represents map[string]interface{} -> genai.TypeObject
 	ArgTypeAny    ArgType = "any"   // Any type allowed -> Defaulting to String for schema
 
-	// Deprecated potentially? Use ArgTypeList instead.
+	// Specific slice types (may consolidate with ArgTypeList/ArgTypeMap later)
 	ArgTypeSliceString ArgType = "slice_string" // -> genai.TypeArray (items: string)
 	ArgTypeSliceAny    ArgType = "slice_any"    // -> genai.TypeArray (items: any/string?)
-
+	ArgTypeSliceMap    ArgType = "slice_map"    // +++ ADDED +++ -> genai.TypeArray (items: object)
 )
 
 // ToGenaiType converts the internal ArgType to the corresponding genai.Type for function declarations.
@@ -38,13 +40,16 @@ func (at ArgType) ToGenaiType() (genai.Type, error) {
 		return genai.TypeNumber, nil // Gemini uses "Number" for floats/ints
 	case ArgTypeBool:
 		return genai.TypeBoolean, nil
-	case ArgTypeList, ArgTypeSliceString, ArgTypeSliceAny: // Treat all list types as Array for now
+	// +++ ADDED ArgTypeSliceMap to this case +++
+	case ArgTypeList, ArgTypeSliceString, ArgTypeSliceAny, ArgTypeSliceMap: // Treat all list types as Array for now
+		// TODO: Potentially specify item types (e.g., genai.Items(genai.TypeObject)) for more accurate schemas
 		return genai.TypeArray, nil
 	case ArgTypeMap:
 		return genai.TypeObject, nil
 	case ArgTypeAny:
 		return genai.TypeString, nil // Defaulting 'any' to String for schema
 	default:
+		// Use fmt.Errorf for consistent error formatting
 		return genai.TypeUnspecified, fmt.Errorf("unsupported ArgType: %q", at)
 	}
 }
@@ -68,7 +73,6 @@ type ToolSpec struct {
 // ToolFunc is the signature for the Go function that implements a tool.
 // It receives the interpreter context and validated/converted arguments.
 // Arguments are passed as a slice in the order defined in ToolSpec.Args.
-// *** CONFIRMED: No context.Context parameter ***
 type ToolFunc func(interpreter *Interpreter, args []interface{}) (interface{}, error)
 
 // ToolImplementation holds the specification and the Go function for a tool.
@@ -82,5 +86,5 @@ type ToolRegistrar interface {
 	RegisterTool(impl ToolImplementation) error
 }
 
-// *** ADDED: ToolPrefix Constant ***
+// ToolPrefix Constant
 const ToolPrefix = "TOOL." // Standard prefix for tool calls in NeuroScript

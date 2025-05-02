@@ -1,8 +1,11 @@
+// NeuroScript Version: 0.3.0
+// Last Modified: 2025-05-01 22:35:18 PDT // Add ConvertToIntE helper
 // filename: pkg/core/utils.go
 package core
 
 import (
 	"fmt"
+	"math" // Needed for ConvertToIntE
 	"reflect"
 	"strings"
 
@@ -11,28 +14,68 @@ import (
 )
 
 // --- Internal No-Op Logger ---
-// Used as a fallback within the core package if no logger is provided,
-// avoiding a dependency on the adapters package.
-
+// --- (coreNoOpLogger struct and methods remain unchanged) ---
 type coreNoOpLogger struct{}
 
-// Ensure coreNoOpLogger implements logging.Logger at compile time.
 var _ logging.Logger = (*coreNoOpLogger)(nil)
 
-func (l *coreNoOpLogger) Debug(msg string, args ...any) {}
-func (l *coreNoOpLogger) Info(msg string, args ...any)  {}
-func (l *coreNoOpLogger) Warn(msg string, args ...any)  {}
-func (l *coreNoOpLogger) Error(msg string, args ...any) {}
-
+func (l *coreNoOpLogger) Debug(msg string, args ...any)     {}
+func (l *coreNoOpLogger) Info(msg string, args ...any)      {}
+func (l *coreNoOpLogger) Warn(msg string, args ...any)      {}
+func (l *coreNoOpLogger) Error(msg string, args ...any)     {}
 func (l *coreNoOpLogger) Debugf(format string, args ...any) {}
 func (l *coreNoOpLogger) Infof(format string, args ...any)  {}
 func (l *coreNoOpLogger) Warnf(format string, args ...any)  {}
 func (l *coreNoOpLogger) Errorf(format string, args ...any) {}
 
-// --- End Internal No-Op Logger ---
+// --- Type Conversion / Checking Utilities ---
 
-// IsTruthy determines the truthiness of a NeuroScript value according to language rules.
-// nil, false, 0, 0.0, "" are false. Everything else is true.
+// ConvertToIntE attempts to convert an interface{} value to an int.
+// It handles int, int64, and float64 (if the float has no fractional part).
+// It returns the int value and true on success, or 0 and false on failure.
+func ConvertToIntE(value interface{}) (int, bool) {
+	if value == nil {
+		return 0, false
+	}
+	switch v := value.(type) {
+	case int:
+		return v, true
+	case int64:
+		// Check for potential overflow if converting int64 to int
+		// (though unlikely in typical use cases like line/col numbers)
+		if v < math.MinInt || v > math.MaxInt {
+			return 0, false // Overflow
+		}
+		return int(v), true
+	case float64:
+		// Check if float is actually a whole number
+		if v == math.Trunc(v) {
+			// Check for potential overflow
+			if v < math.MinInt || v > math.MaxInt {
+				return 0, false
+			}
+			return int(v), true
+		}
+		return 0, false // Has fractional part
+		// Add cases for other potential numeric types if needed (e.g., float32, int32)
+	case float32:
+		if v == float32(math.Trunc(float64(v))) {
+			if v < math.MinInt || v > math.MaxInt {
+				return 0, false
+			}
+			return int(v), true
+		}
+		return 0, false
+	case int32:
+		// int32 always fits in int on 32-bit and 64-bit systems
+		return int(v), true
+	default:
+		return 0, false // Not a convertible numeric type
+	}
+}
+
+// IsTruthy determines the truthiness of a NeuroScript value.
+// --- (IsTruthy remains unchanged) ---
 func IsTruthy(val interface{}) bool {
 	if val == nil {
 		return false
@@ -46,7 +89,6 @@ func IsTruthy(val interface{}) bool {
 		return v != 0.0
 	case string:
 		return v != ""
-	// Handle potential JSON number types
 	case int:
 		return v != 0
 	case int32:
@@ -54,22 +96,19 @@ func IsTruthy(val interface{}) bool {
 	case float32:
 		return v != 0.0
 	default:
-		// Slices, maps, etc., are generally considered "truthy" if non-nil
-		// Check if it's a pointer type and if it's nil
 		rv := reflect.ValueOf(val)
 		if rv.Kind() == reflect.Ptr || rv.Kind() == reflect.Interface || rv.Kind() == reflect.Map || rv.Kind() == reflect.Slice || rv.Kind() == reflect.Chan || rv.Kind() == reflect.Func {
 			return !rv.IsNil()
 		}
-		// Other non-nil values are true
 		return true
 	}
 }
 
 // InterfaceToString attempts to convert an interface{} value to its string representation.
-// Handles basic types and uses fmt.Sprintf for others.
+// --- (InterfaceToString remains unchanged) ---
 func InterfaceToString(value interface{}) string {
 	if value == nil {
-		return "" // Represent nil as empty string in NeuroScript? Or "none"? Let's use empty for now.
+		return ""
 	}
 	switch v := value.(type) {
 	case string:
@@ -79,57 +118,42 @@ func InterfaceToString(value interface{}) string {
 	case int64:
 		return fmt.Sprintf("%d", v)
 	case float64:
-		// Format float without unnecessary trailing zeros
-		// Use %g which automatically chooses %f or %e
 		s := fmt.Sprintf("%g", v)
-		// Ensure it looks like a float if it's a whole number, e.g., "5.0" not "5"
-		// This might be too complex/opinionated for a simple conversion.
-		// Let's stick with %g for now. If specific formatting needed, use a tool.
 		return s
 	case bool:
 		if v {
 			return "true"
+		} else {
+			return "false"
 		}
-		return "false"
-	case []interface{}:
-		// Represent slice/list in a readable format (e.g., comma-separated)
-		// This could become complex for nested structures. Using fmt is safer.
-		return fmt.Sprintf("%v", v) // Default Go representation
-	case map[string]interface{}:
-		// Represent map in a readable format. Using fmt is safer.
-		return fmt.Sprintf("%v", v) // Default Go representation
+	case []interface{}, map[string]interface{}:
+		return fmt.Sprintf("%v", v)
 	default:
-		// Use reflection for other types, potentially falling back to fmt
 		return fmt.Sprintf("%v", value)
 	}
 }
 
 // normalizeNewlines converts all newline variations (\r\n, \r) to a single \n.
+// --- (normalizeNewlines remains unchanged) ---
 func normalizeNewlines(s string) string {
 	s = strings.ReplaceAll(s, "\r\n", "\n")
 	s = strings.ReplaceAll(s, "\r", "\n")
 	return s
 }
 
-// NodeToString converts an AST node (or any interface{}) to a string representation
-// suitable for including in error messages or debug logs.
-// It attempts to use the .String() method if available and truncates long output.
+// NodeToString converts an AST node (or any interface{}) to a string representation.
+// --- (NodeToString remains unchanged) ---
 func NodeToString(node interface{}) string {
 	if node == nil {
 		return "<nil>"
 	}
-
 	var str string
-	// Attempt to use String() method if available (common pattern for AST nodes)
 	if stringer, ok := node.(fmt.Stringer); ok {
 		str = stringer.String()
 	} else {
-		// Basic fallback using fmt.Sprintf with %#v for potentially more detail
 		str = fmt.Sprintf("%#v", node)
 	}
-
-	// Truncate long representations for brevity in error messages
-	maxLen := 50 // Adjust max length as needed
+	maxLen := 50
 	if len(str) > maxLen {
 		str = str[:maxLen-3] + "..."
 	}
