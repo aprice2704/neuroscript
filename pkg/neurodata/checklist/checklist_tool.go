@@ -1,6 +1,5 @@
 // NeuroScript Version: 0.3.0
-// Last Modified: 2025-05-02 21:28:16 PDT // Fix compiler error: use core.ErrValidationArgCount
-// pkg/neurodata/checklist/checklist_tool.go
+// Last Modified: 2025-05-03 01:19:00 AM PDT // Consolidate all tool var definitions here
 package checklist
 
 import (
@@ -9,7 +8,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/aprice2704/neuroscript/pkg/core"
-	"github.com/aprice2704/neuroscript/pkg/toolsets" // <<< ADDED import for init()
+	"github.com/aprice2704/neuroscript/pkg/toolsets"
 )
 
 // --- ADDED: init() function for self-registration ---
@@ -30,7 +29,7 @@ var allowedLeafStatuses = map[string]bool{
 	"special":    true,
 }
 
-// --- Tool Implementations ---
+// --- Tool Definitions (ALL CONSOLIDATED HERE) ---
 
 // ChecklistLoadTree - Parses checklist, returns GenericTree handle
 var toolChecklistLoadTreeImpl = core.ToolImplementation{
@@ -48,7 +47,7 @@ var toolChecklistSetItemStatusImpl = core.ToolImplementation{
 	Spec: core.ToolSpec{
 		Name: "ChecklistSetItemStatus",
 		Description: "Sets the status of a specific *manual* checklist item node within a checklist tree handle. " +
-			"It's recommended to use Checklist.UpdateStatus afterwards to ensure automatic parent statuses are correct.", // Updated description slightly
+			"It's recommended to use Checklist.UpdateStatus afterwards to ensure automatic parent statuses are correct.",
 		Args: []core.ArgSpec{
 			{Name: "handle", Type: core.ArgTypeString, Required: true, Description: "Handle ID of the checklist tree."},
 			{Name: "nodeId", Type: core.ArgTypeString, Required: true, Description: "ID of the target checklist_item node."},
@@ -61,6 +60,7 @@ var toolChecklistSetItemStatusImpl = core.ToolImplementation{
 }
 
 // ChecklistFormatTree - Formats a checklist tree handle back to Markdown string
+// (Defined here, Implemented in checklist_tool2.go)
 var toolChecklistFormatTreeImpl = core.ToolImplementation{
 	Spec: core.ToolSpec{
 		Name:        "ChecklistFormatTree",
@@ -72,6 +72,7 @@ var toolChecklistFormatTreeImpl = core.ToolImplementation{
 }
 
 // ChecklistSetItemText - Updates the text description of a checklist item node
+// (Defined here, Implemented in checklist_tool2.go)
 var toolChecklistSetItemTextImpl = core.ToolImplementation{
 	Spec: core.ToolSpec{
 		Name:        "ChecklistSetItemText",
@@ -86,7 +87,8 @@ var toolChecklistSetItemTextImpl = core.ToolImplementation{
 	Func: toolChecklistSetItemText, // Implementation in checklist_tool2.go
 }
 
-// NEW: ChecklistUpdateStatus - Recalculates status for all automatic items
+// ChecklistUpdateStatus - Recalculates status for all automatic items
+// (Defined here, Implemented in checklist_tool2.go)
 var toolChecklistUpdateStatusImpl = core.ToolImplementation{
 	Spec: core.ToolSpec{
 		Name:        "Checklist.UpdateStatus", // Using dot notation convention
@@ -99,45 +101,68 @@ var toolChecklistUpdateStatusImpl = core.ToolImplementation{
 	Func: toolChecklistUpdateStatus, // Implementation in checklist_tool2.go
 }
 
+// ChecklistAddItem - Adds a new checklist item node
+// (Defined here, Implemented in checklist_tool_add.go)
+var toolChecklistAddItemImpl = core.ToolImplementation{
+	Spec: core.ToolSpec{
+		Name: "ChecklistAddItem",
+		Description: "Adds a new checklist item node as a child of a specified parent node within a checklist tree handle. " +
+			"Returns the ID of the newly created node.",
+		Args: []core.ArgSpec{
+			{Name: "handle", Type: core.ArgTypeString, Required: true, Description: "Handle ID of the checklist tree."},
+			{Name: "parentId", Type: core.ArgTypeString, Required: true, Description: "ID of the parent node to add the new item under."},
+			{Name: "newItemText", Type: core.ArgTypeString, Required: true, Description: "The text description for the new item."},
+			{Name: "newItemStatus", Type: core.ArgTypeString, Required: false, Description: "Initial status (e.g., 'open', 'done'). Defaults to 'open' if null/omitted."},
+			{Name: "isAutomatic", Type: core.ArgTypeBool, Required: false, Description: "Set to true if the new item's status should be automatically calculated. Defaults to false if null/omitted."},
+			{Name: "specialSymbol", Type: core.ArgTypeString, Required: false, Description: "Required only if newItemStatus is 'special'. The single character symbol."},
+			{Name: "index", Type: core.ArgTypeInt, Required: false, Description: "Optional zero-based index to insert item. Appends if omitted/null."},
+		},
+		ReturnType: core.ArgTypeString, // Returns the new node ID
+	},
+	Func: toolChecklistAddItem, // Implementation in checklist_tool_add.go
+}
+
 // --- Registration ---
 
 // RegisterChecklistTools adds the checklist tools.
-// This function is now called via the init() mechanism.
 func RegisterChecklistTools(registry core.ToolRegistrar) error {
 	if registry == nil {
 		return fmt.Errorf("RegisterChecklistTools called with nil registry")
 	}
 	toolsToRegister := []core.ToolImplementation{
-		toolChecklistLoadTreeImpl,
-		toolChecklistSetItemStatusImpl,
-		toolChecklistFormatTreeImpl,
-		toolChecklistSetItemTextImpl,
-		toolChecklistUpdateStatusImpl,
-		toolChecklistAddItemImpl,
+		toolChecklistLoadTreeImpl,      // Defined above
+		toolChecklistSetItemStatusImpl, // Defined above
+		toolChecklistFormatTreeImpl,    // Defined above
+		toolChecklistSetItemTextImpl,   // Defined above
+		toolChecklistUpdateStatusImpl,  // Defined above
+		toolChecklistAddItemImpl,       // Defined above
 	}
 
 	var registrationErrors []error
 	for _, tool := range toolsToRegister {
-		// Use Spec.Name for registration key
+		// Ensure Spec is not nil and Name is not empty before registering
+		if tool.Spec.Name == "" {
+			// This check prevents the "ToolSpec.Name cannot be empty" error at runtime
+			registrationErrors = append(registrationErrors, fmt.Errorf("attempted to register a tool with an empty name (check tool variable definitions)"))
+			continue // Skip registration of this invalid tool
+		}
 		if err := registry.RegisterTool(tool); err != nil {
 			registrationErrors = append(registrationErrors, fmt.Errorf("failed to register checklist tool %q: %w", tool.Spec.Name, err))
 		}
 	}
 
 	if len(registrationErrors) > 0 {
-		// Consider using errors.Join if available (Go 1.20+)
-		return errors.Join(registrationErrors...)
+		return errors.Join(registrationErrors...) // Use errors.Join (Go 1.20+)
 	}
 	fmt.Println("Checklist tools registered via RegisterChecklistTools.") // Debug
 	return nil
 }
 
-// --- Tool Functions ---
+// --- Tool Functions (Implementations for tools defined in this file) ---
 
 // toolChecklistLoadTree implements the ChecklistLoadTree tool.
 func toolChecklistLoadTree(interpreter *core.Interpreter, args []interface{}) (interface{}, error) {
 	toolName := "ChecklistLoadTree"
-	// Argument count validation
 	if len(args) != 1 {
 		return nil, fmt.Errorf("%w: %s expected 1 argument (content), got %d", core.ErrValidationArgCount, toolName, len(args))
 	}
@@ -147,19 +172,16 @@ func toolChecklistLoadTree(interpreter *core.Interpreter, args []interface{}) (i
 	}
 	logger := interpreter.Logger()
 	logger.Debug("Parsing checklist content", "tool", toolName)
-	parsedData, parseErr := ParseChecklist(content, logger) // Pass logger to parser
+	parsedData, parseErr := ParseChecklist(content, logger)
 	if parseErr != nil {
-		// Handle specific parsing errors as invalid argument vs internal error
 		if errors.Is(parseErr, ErrNoContent) || errors.Is(parseErr, ErrMalformedItem) || errors.Is(parseErr, ErrScannerFailed) || errors.Is(parseErr, ErrMetadataExtraction) {
 			return nil, fmt.Errorf("%w: %s parsing failed: %w", core.ErrInvalidArgument, toolName, parseErr)
 		}
-		// Assume other errors are internal
 		return nil, fmt.Errorf("%w: %s parsing failed unexpectedly: %w", core.ErrInternalTool, toolName, parseErr)
 	}
 	logger.Debug("Adapting parsed checklist to GenericTree", "tool", toolName, "itemCount", len(parsedData.Items))
 	tree, adaptErr := ChecklistToTree(parsedData.Items, parsedData.Metadata)
 	if adaptErr != nil {
-		// Adapter errors are likely internal
 		return nil, fmt.Errorf("%w: %s failed adapting checklist: %w", core.ErrInternalTool, toolName, adaptErr)
 	}
 	if tree == nil {
@@ -167,7 +189,6 @@ func toolChecklistLoadTree(interpreter *core.Interpreter, args []interface{}) (i
 	}
 	handleID, handleErr := interpreter.RegisterHandle(tree, core.GenericTreeHandleType)
 	if handleErr != nil {
-		// Handle registration error is internal
 		return nil, fmt.Errorf("%w: %s failed to register checklist tree handle: %w", core.ErrInternalTool, toolName, handleErr)
 	}
 	logger.Debug("Successfully loaded checklist into tree", "tool", toolName, "handle", handleID)
@@ -175,13 +196,9 @@ func toolChecklistLoadTree(interpreter *core.Interpreter, args []interface{}) (i
 }
 
 // toolChecklistSetItemStatus implements the ChecklistSetItemStatus tool.
-// NOTE: This tool NO LONGER automatically triggers recalculation.
-// Use Checklist.UpdateStatus explicitly after making changes.
 func toolChecklistSetItemStatus(interpreter *core.Interpreter, args []interface{}) (interface{}, error) {
 	toolName := "ChecklistSetItemStatus"
 	logger := interpreter.Logger()
-
-	// --- Argument Parsing and Validation ---
 	if len(args) < 3 || len(args) > 4 {
 		return nil, fmt.Errorf("%w: %s expected 3 or 4 arguments (handle, nodeId, newStatus, [specialSymbol]), got %d", core.ErrValidationArgCount, toolName, len(args))
 	}
@@ -201,10 +218,9 @@ func toolChecklistSetItemStatus(interpreter *core.Interpreter, args []interface{
 		return nil, fmt.Errorf("%w: %s invalid value for 'newStatus': %q", core.ErrInvalidArgument, toolName, newStatus)
 	}
 	specialSymbol := ""
-	var specialSymbolArg interface{}
 	if len(args) > 3 {
-		specialSymbolArg = args[3]   // Optional 4th argument
-		if specialSymbolArg != nil { // Allow explicit nil/omission
+		specialSymbolArg := args[3]
+		if specialSymbolArg != nil {
 			specialSymbol, ok = specialSymbolArg.(string)
 			if !ok {
 				return nil, fmt.Errorf("%w: %s expected string arg[3] 'specialSymbol', got %T", core.ErrValidationTypeMismatch, toolName, args[3])
@@ -219,11 +235,8 @@ func toolChecklistSetItemStatus(interpreter *core.Interpreter, args []interface{
 			return nil, fmt.Errorf("%w: %s 'specialSymbol' must be a single character, got %q", core.ErrInvalidArgument, toolName, specialSymbol)
 		}
 	}
-
-	// --- Get Tree and Node ---
 	treeObj, err := interpreter.GetHandleValue(handleID, core.GenericTreeHandleType)
 	if err != nil {
-		// Propagate errors like ErrHandleNotFound, ErrHandleWrongType, ErrInvalidArgument directly
 		return nil, fmt.Errorf("failed getting handle %q: %w", handleID, err)
 	}
 	tree, ok := treeObj.(*core.GenericTree)
@@ -232,28 +245,21 @@ func toolChecklistSetItemStatus(interpreter *core.Interpreter, args []interface{
 	}
 	targetNode, exists := tree.NodeMap[nodeID]
 	if !exists {
-		return nil, fmt.Errorf("%w: node ID %q", core.ErrNotFound, nodeID) // Simplified error for ErrNotFound
+		return nil, fmt.Errorf("%w: node ID %q", core.ErrNotFound, nodeID)
 	}
 	if targetNode.Type != "checklist_item" {
 		return nil, fmt.Errorf("%w: node ID %q is type %q, expected 'checklist_item'", core.ErrInvalidArgument, nodeID, targetNode.Type)
 	}
 	if targetNode.Attributes == nil {
-		// Initialize attributes map if it doesn't exist
 		targetNode.Attributes = make(map[string]string)
 	}
-
-	// --- Update Status Attributes ---
-	currentStatus := targetNode.Attributes["status"] // Get current status for logging
+	currentStatus := targetNode.Attributes["status"]
 	targetNode.Attributes["status"] = newStatus
 	if newStatus == "special" {
 		targetNode.Attributes["special_symbol"] = specialSymbol
 	} else {
-		// Remove special symbol if status is no longer special
 		delete(targetNode.Attributes, "special_symbol")
-	}
-	// NodeMap already points to the updated targetNode struct (it's a pointer)
-
+	} // Fix: Use targetNode
 	logger.Debug("Manual node status updated", "tool", toolName, "nodeId", nodeID, "oldStatus", currentStatus, "newStatus", newStatus)
-
-	return nil, nil // Return null on success
+	return nil, nil
 }

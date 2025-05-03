@@ -1,47 +1,62 @@
+// NeuroScript Version: 0.3.0
+// Last Modified: 2025-05-03 15:55:00 PM PDT // Use SLogAdapter for actual log output in tests
 // filename: pkg/neurodata/checklist/test_helpers.go
 package checklist
 
 import (
 	"fmt"
+	"log/slog" // <<< Added import
+	"os"       // <<< Added import
 	"testing"
 
 	// Import necessary packages WITHOUT causing cycles
-	"github.com/aprice2704/neuroscript/pkg/adapters" // For NoOp implementations
-	"github.com/aprice2704/neuroscript/pkg/core"
-	"github.com/aprice2704/neuroscript/pkg/toolsets" // Can safely import toolsets here
+	"github.com/aprice2704/neuroscript/pkg/adapters"
+	"github.com/aprice2704/neuroscript/pkg/core" // <<< Added import for LevelDebug
+	"github.com/aprice2704/neuroscript/pkg/toolsets"
 )
 
 // newTestInterpreterWithAllTools creates a new interpreter instance for checklist testing,
-// initializing it with BOTH core AND extended tools.
+// initializing it with BOTH core AND extended tools, using a functional logger.
 func newTestInterpreterWithAllTools(t *testing.T) (*core.Interpreter, *core.ToolRegistry) {
 	t.Helper() // Mark this as a test helper
 
 	tempDir := t.TempDir()
-	// Use implementations from pkg/adapters
-	logger := adapters.NewNoOpLogger()
+
+	// --- Logger Setup ---
+	// <<< FIX: Create a real SLog logger that outputs Debug messages to Stderr >>>
+	slogHandler := slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
+		Level:     slog.LevelDebug, // Ensure Debug messages are logged
+		AddSource: false,           // Optional: Add source file/line to logs
+	})
+	slogger := slog.New(slogHandler)
+	// Create the adapter implementing our logging.Logger interface
+	logger, err := adapters.NewSlogAdapter(slogger)
+	if err != nil {
+		t.Fatalf("Setup Error: Failed to create SLogAdapter: %v", err)
+	}
+	// --- End Logger Setup ---
+
 	llmClient := adapters.NewNoOpLLMClient() // Assuming constructor doesn't require logger
 
 	// Initialize the ToolRegistry from core
 	registry := core.NewToolRegistry()
 
 	// Register CORE tools first
-	err := core.RegisterCoreTools(registry)
+	err = core.RegisterCoreTools(registry)
 	assertNoErrorSetup(t, err, "Failed to register core tools") // Use local helper
 
 	// Register EXTENDED tools (Checklist, Blocks, etc.) via toolsets
 	err = toolsets.RegisterExtendedTools(registry)
 	assertNoErrorSetup(t, err, "Failed to register extended toolsets") // Use local helper
 
-	// Create the core interpreter instance (which sets up default registry, fileAPI etc.)
-	interp := core.NewInterpreter(logger, llmClient) // <<< CORRECTED ARGS
+	// Create the core interpreter instance, passing the REAL logger
+	interp := core.NewInterpreter(logger, llmClient) // <<< Passes the SLogAdapter
 
 	// Inject the registry containing ALL tools
 	interp.SetToolRegistry(registry) // <<< ADDED CALL
 
 	// Create/Set FileAPI and Sandbox Dir
-	// NewInterpreter already creates a FileAPI with a default (".") sandbox.
-	// SetSandboxDir re-initializes FileAPI with the correct tempDir.
-	interp.SetSandboxDir(tempDir) // <<< REMOVED error assignment
+	interp.SetSandboxDir(tempDir)
 
 	return interp, registry
 }

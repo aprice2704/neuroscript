@@ -1946,11 +1946,7 @@
             },
             {
               "Receiver": "*Interpreter",
-              "Name": "FileAPI",
-              "calls": [
-                "i.Logger().Error(?)",
-                "i.Logger(?)"
-              ]
+              "Name": "FileAPI"
             },
             {
               "Receiver": "*Interpreter",
@@ -1961,6 +1957,14 @@
                 "NewFileAPI",
                 "i.Logger().Info(?)",
                 "i.Logger(?)"
+              ]
+            },
+            {
+              "Receiver": "*Interpreter",
+              "Name": "SetToolRegistry",
+              "calls": [
+                "i.logger.Error(?)",
+                "i.logger.Info(?)"
               ]
             },
             {
@@ -1979,9 +1983,8 @@
               "Receiver": "*Interpreter",
               "Name": "ToolRegistry",
               "calls": [
-                "i.Logger().Warn(?)",
-                "i.Logger(?)",
-                "NewToolRegistry"
+                "i.Logger().Error(?)",
+                "i.Logger(?)"
               ]
             },
             {
@@ -10627,6 +10630,7 @@
         },
         "pkg/neurodata/blocks/blocks_tool.go": {
           "functions": [
+            "init",
             "RegisterBlockTools",
             "toolBlocksExtractAll"
           ],
@@ -10657,14 +10661,25 @@
         "pkg/neurodata/checklist/checklist_modify_tool_test.go": {
           "functions": [
             "getNodeViaTool",
-            "getNodeValue",
-            "getNodeAttributesMap",
             "TestChecklistSetItemTextTool"
+          ],
+          "methods": []
+        },
+        "pkg/neurodata/checklist/checklist_status.go": {
+          "functions": [
+            "calculateAutomaticStatus"
+          ],
+          "methods": []
+        },
+        "pkg/neurodata/checklist/checklist_status_test.go": {
+          "functions": [
+            "TestCalculateAutomaticStatus"
           ],
           "methods": []
         },
         "pkg/neurodata/checklist/checklist_tool.go": {
           "functions": [
+            "init",
             "RegisterChecklistTools",
             "toolChecklistLoadTree",
             "toolChecklistSetItemStatus"
@@ -10681,22 +10696,24 @@
           ],
           "methods": []
         },
+        "pkg/neurodata/checklist/checklist_tool_add.go": {
+          "functions": [
+            "toolChecklistAddItem"
+          ],
+          "methods": []
+        },
         "pkg/neurodata/checklist/checklist_tool_add_test.go": {
           "functions": [
-            "getNodeChildrenList",
-            "pstr",
-            "pbool",
-            "pint",
             "TestChecklistAddItemTool",
             "TestChecklistUpdateStatusTool",
-            "verifyNodeStatus"
+            "verifyNodeStatus",
+            "getNodeChildrenIDs"
           ],
           "methods": []
         },
         "pkg/neurodata/checklist/checklist_tool_test.go": {
           "functions": [
             "getNodeAttributes",
-            "pstr",
             "TestChecklistLoadTree",
             "TestChecklistSetItemStatusTool",
             "TestChecklistFormatTreeTool"
@@ -10716,6 +10733,19 @@
           "functions": [
             "checklistsEqual",
             "TestParseChecklistScannerFixtures"
+          ],
+          "methods": []
+        },
+        "pkg/neurodata/checklist/test_helpers.go": {
+          "functions": [
+            "newTestInterpreterWithAllTools",
+            "getNodeValue",
+            "getNodeAttributesMap",
+            "assertNoErrorSetup",
+            "assertToolFound",
+            "pstr",
+            "pbool",
+            "pint"
           ],
           "methods": []
         }
@@ -11655,6 +11685,7 @@
       "files": {
         "pkg/toolsets/register.go": {
           "functions": [
+            "AddToolsetRegistration",
             "RegisterExtendedTools"
           ],
           "methods": []
