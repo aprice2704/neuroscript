@@ -126,6 +126,7 @@ func NewNoOpLLMClient(logger logging.Logger) LLMClient {
 	logger.Info("Creating internal coreNoOpLLMClient.")
 	return &coreNoOpLLMClient{logger: logger}
 }
+
 func (c *coreNoOpLLMClient) Ask(ctx context.Context, turns []*ConversationTurn) (*ConversationTurn, error) {
 	c.logger.Debug("coreNoOpLLMClient Ask called")
 	return &ConversationTurn{Role: RoleAssistant, Content: ""}, nil

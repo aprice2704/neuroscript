@@ -3,51 +3,74 @@
 // filename: pkg/toolsets/register.go
 
 // Package toolsets provides central registration for extended NeuroScript toolsets.
-// It decouples core interpreter initialization from specific non-core tool implementations.
+// It decouples core interpreter initialization from specific non-core tool implementations
+// by allowing tool packages to register themselves via init().
 package toolsets
 
 import (
-	"errors" // Using errors package for Join
+	"errors"
 	"fmt"
+	"sync" // Added for safe concurrent access to the registry map
 
-	// Core package for registry type
+	// Core package for registry type and registrar interface
 	"github.com/aprice2704/neuroscript/pkg/core"
-
-	// --- Import ALL packages that provide tool registration functions ---
-	"github.com/aprice2704/neuroscript/pkg/neurodata/blocks"
-	"github.com/aprice2704/neuroscript/pkg/neurodata/checklist"
-	// Import other tool packages here as they are created...
-	// e.g., "github.com/aprice2704/neuroscript/pkg/goast"
+	// --- REMOVED direct imports of specific tool packages ---
+	// "github.com/aprice2704/neuroscript/pkg/neurodata/blocks"
+	// "github.com/aprice2704/neuroscript/pkg/neurodata/checklist"
 )
 
-// RegisterExtendedTools registers all non-core toolsets.
-// It assumes core tools (FS, String, Math, Tree, etc.) are registered elsewhere
-// (e.g., during interpreter initialization via core.RegisterCoreTools).
-func RegisterExtendedTools(registry *core.ToolRegistry) error {
+// ToolRegisterFunc defines the function signature expected for registering a toolset.
+// It matches the signature of functions like checklist.RegisterChecklistTools.
+type ToolRegisterFunc func(registry core.ToolRegistrar) error // Use core.ToolRegistrar interface
+
+// --- Registry for Toolset Registration Functions ---
+
+var (
+	// Use a mutex for safe concurrent access during init potentially
+	registrationMu       sync.RWMutex
+	toolsetRegistrations = make(map[string]ToolRegisterFunc)
+)
+
+// AddToolsetRegistration is called by tool packages (typically in their init() function)
+// to register their main registration function with the toolsets package.
+func AddToolsetRegistration(name string, regFunc ToolRegisterFunc) {
+	registrationMu.Lock()
+	defer registrationMu.Unlock()
+
+	if _, exists := toolsetRegistrations[name]; exists {
+		// Log or handle duplicate registration attempts if necessary
+		// For now, allow overwrite (last one wins) but could panic or log warning.
+		fmt.Printf("[WARN] Toolset registration function for '%s' overwritten.\n", name)
+	}
+	if regFunc == nil {
+		panic(fmt.Sprintf("attempted to register nil registration function for toolset '%s'", name))
+	}
+	toolsetRegistrations[name] = regFunc
+	fmt.Printf("Toolset registration function added for: %s\n", name) // Debug output
+}
+
+// RegisterExtendedTools registers all non-core toolsets that have added themselves
+// via AddToolsetRegistration.
+func RegisterExtendedTools(registry core.ToolRegistrar) error { // Accept interface
+	registrationMu.RLock() // Read lock while iterating
+	defer registrationMu.RUnlock()
+
 	if registry == nil {
 		return fmt.Errorf("cannot register extended tools: registry is nil")
 	}
 
+	fmt.Printf("Registering %d discovered extended toolsets...\n", len(toolsetRegistrations)) // Debug
+
 	var allErrors []error
 
-	// Helper function to append errors gracefully
-	collectErr := func(toolsetName string, err error) {
-		if err != nil {
+	// --- Iterate and call registered functions ---
+	for name, regFunc := range toolsetRegistrations {
+		fmt.Printf("Calling registration function for: %s\n", name) // Debug
+		if err := regFunc(registry); err != nil {
 			// Wrap the error with context about which toolset failed
-			allErrors = append(allErrors, fmt.Errorf("failed registering %s tools: %w", toolsetName, err))
+			allErrors = append(allErrors, fmt.Errorf("failed registering %s tools: %w", name, err))
 		}
 	}
-
-	// --- Register Individual Extended Toolsets ---
-	fmt.Println("Registering Checklist tools...") // Temporary debug output
-	collectErr("Checklist", checklist.RegisterChecklistTools(registry))
-
-	fmt.Println("Registering Blocks tools...") // Temporary debug output
-	collectErr("Blocks", blocks.RegisterBlockTools(registry))
-
-	// Add calls for other toolsets here...
-	// fmt.Println("Registering GoAST tools...")
-	// collectErr("GoAST", goast.RegisterGoASTTools(registry))
 
 	// --- Error Handling ---
 	if len(allErrors) > 0 {
@@ -55,6 +78,6 @@ func RegisterExtendedTools(registry *core.ToolRegistry) error {
 		return errors.Join(allErrors...)
 	}
 
-	fmt.Println("Extended tools registered successfully.") // Temporary debug output
-	return nil                                             // Success
+	fmt.Println("Extended tools registered successfully via toolsets.") // Debug output
+	return nil                                                          // Success
 }

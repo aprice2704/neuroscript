@@ -1,5 +1,5 @@
 // NeuroScript Version: 0.3.0
-// Last Modified: 2025-05-01 22:19:01 PDT // Remove node IDs from wantText, fix indentation
+// Last Modified: 2025-05-02 20:29:00 PM PDT // Update error expectations after interpreter fix
 // filename: pkg/core/tools_tree_render_test.go
 
 package core
@@ -7,18 +7,15 @@ package core
 import (
 	"encoding/json"
 	"errors"
-	"reflect"
-	"regexp" // Import regexp
+	"regexp"
 	"strings"
 	"testing"
-)
 
-// --- Test Helper ---
+	"github.com/google/go-cmp/cmp" // Using cmp for better diffs
+)
 
 // --- Tests ---
 
-// TestTreeFormatJSON
-// --- (TestTreeFormatJSON remains unchanged) ---
 func TestTreeFormatJSON(t *testing.T) {
 	interp, _ := NewDefaultTestInterpreter(t)
 	tests := []struct {
@@ -46,8 +43,9 @@ func TestTreeFormatJSON(t *testing.T) {
 			if errFmt != nil {
 				t.Fatalf("Unmarshal formatted failed: %v\nString:\n%s", errFmt, formattedStr)
 			}
-			if !reflect.DeepEqual(originalIntf, formattedIntf) {
-				t.Errorf("Formatted JSON mismatch.\nOriginal:\n%s\n\nFormatted:\n%s", trimmedInput, formattedStr)
+			// Use cmp.Diff for better reporting
+			if diff := cmp.Diff(originalIntf, formattedIntf); diff != "" {
+				t.Errorf("Formatted JSON mismatch (-want +got):\n%s", diff)
 			} else {
 				t.Logf("DeepEqual check passed.")
 			}
@@ -57,10 +55,11 @@ func TestTreeFormatJSON(t *testing.T) {
 		_, err := toolTreeFormatJSON(interp, MakeArgs("badprefix::123"))
 		if err == nil {
 			t.Error("Expected error, got nil")
-		} else if !errors.Is(err, ErrCacheObjectWrongType) {
-			t.Errorf("Expected ErrCacheObjectWrongType, got: %v", err)
+			// UPDATED Error Expectation
+		} else if !errors.Is(err, ErrHandleWrongType) {
+			t.Errorf("Expected ErrHandleWrongType, got: %v (Type: %T)", err, err)
 		} else {
-			t.Logf("Got expected ErrCacheObjectWrongType: %v", err)
+			t.Logf("Got expected ErrHandleWrongType: %v", err)
 		}
 	})
 	t.Run("InvalidHandle_NotFound", func(t *testing.T) {
@@ -68,10 +67,22 @@ func TestTreeFormatJSON(t *testing.T) {
 		_, err := toolTreeFormatJSON(interp, MakeArgs(validLookingHandle))
 		if err == nil {
 			t.Error("Expected error, got nil")
-		} else if !errors.Is(err, ErrCacheObjectNotFound) {
-			t.Errorf("Expected ErrCacheObjectNotFound, got: %v", err)
+			// UPDATED Error Expectation
+		} else if !errors.Is(err, ErrNotFound) {
+			t.Errorf("Expected ErrNotFound, got: %v (Type: %T)", err, err)
 		} else {
-			t.Logf("Got expected ErrCacheObjectNotFound: %v", err)
+			t.Logf("Got expected ErrNotFound: %v", err)
+		}
+	})
+	t.Run("InvalidHandle_Malformed", func(t *testing.T) {
+		_, err := toolTreeFormatJSON(interp, MakeArgs("badhandle"))
+		if err == nil {
+			t.Error("Expected error, got nil")
+			// UPDATED Error Expectation
+		} else if !errors.Is(err, ErrInvalidArgument) {
+			t.Errorf("Expected ErrInvalidArgument, got: %v (Type: %T)", err, err)
+		} else {
+			t.Logf("Got expected ErrInvalidArgument: %v", err)
 		}
 	})
 }
@@ -79,19 +90,16 @@ func TestTreeFormatJSON(t *testing.T) {
 // TestTreeRenderText tests the new text rendering tool.
 func TestTreeRenderText(t *testing.T) {
 	interp, _ := NewDefaultTestInterpreter(t)
-
-	// Regex to remove the [node-X] part for comparison
 	nodeIdRegex := regexp.MustCompile(`\[node-\d+\] `)
 
 	tests := []struct {
 		name      string
 		jsonInput string
-		wantText  string // Expected indented text output (WITHOUT node IDs)
+		wantText  string
 	}{
 		{
 			name:      "Simple Object",
 			jsonInput: `{"key": "value", "num": 123, "active": true}`,
-			// *** UPDATED WANTTEXT: No node IDs, corrected indentation ***
 			wantText: `- (object) (attrs: 3)
   * Key: "active"
     - (boolean): true
@@ -104,7 +112,6 @@ func TestTreeRenderText(t *testing.T) {
 		{
 			name:      "Simple Array",
 			jsonInput: `[1, "two", null]`,
-			// *** UPDATED WANTTEXT: No node IDs, corrected indentation ***
 			wantText: `- (array) (len: 3)
   - (number): 1
   - (string): "two"
@@ -113,8 +120,7 @@ func TestTreeRenderText(t *testing.T) {
 		},
 		{
 			name:      "Nested Structure",
-			jsonInput: `{"d": null, "a": [true, {"b": "c"}]}`, // Keys sorted a, d
-			// *** UPDATED WANTTEXT: No node IDs, corrected indentation ***
+			jsonInput: `{"d": null, "a": [true, {"b": "c"}]}`,
 			wantText: `- (object) (attrs: 2)
   * Key: "a"
     - (array) (len: 2)
@@ -126,24 +132,9 @@ func TestTreeRenderText(t *testing.T) {
     - (null): null
 `,
 		},
-		{
-			name:      "Empty Object",
-			jsonInput: `{}`,
-			wantText: `- (object) (attrs: 0)
-`,
-		},
-		{
-			name:      "Empty Array",
-			jsonInput: `[]`,
-			wantText: `- (array) (len: 0)
-`,
-		},
-		{
-			name:      "Just String",
-			jsonInput: `"hello"`,
-			wantText: `- (string): "hello"
-`,
-		},
+		{name: "Empty Object", jsonInput: `{}`, wantText: "- (object) (attrs: 0)\n"},
+		{name: "Empty Array", jsonInput: `[]`, wantText: "- (array) (len: 0)\n"},
+		{name: "Just String", jsonInput: `"hello"`, wantText: "- (string): \"hello\"\n"},
 	}
 
 	for _, tt := range tests {
@@ -157,28 +148,24 @@ func TestTreeRenderText(t *testing.T) {
 			if !ok {
 				t.Fatalf("toolTreeRenderText did not return string, got %T", renderedData)
 			}
-
-			// Normalize expected output
 			want := strings.TrimSpace(tt.wantText) + "\n"
-			// Normalize actual output AND remove node IDs
 			gotRaw := strings.TrimSpace(renderedStr) + "\n"
-			got := nodeIdRegex.ReplaceAllString(gotRaw, "") // Remove [node-X]
-
-			if got != want {
-				t.Errorf("Rendered text mismatch (Node IDs ignored).\n--- GOT (Raw) ---\n%s\n--- GOT (Cleaned) ---\n%s\n--- WANT (No IDs) ---\n%s", gotRaw, got, want)
+			got := nodeIdRegex.ReplaceAllString(gotRaw, "")
+			if diff := cmp.Diff(want, got); diff != "" {
+				t.Errorf("Rendered text mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}
 
-	// Test invalid handle remains unchanged (checking error type)
 	t.Run("InvalidHandle_WrongPrefix", func(t *testing.T) {
 		_, err := toolTreeRenderText(interp, MakeArgs("badprefix::123"))
 		if err == nil {
 			t.Error("Expected error, got nil")
-		} else if !errors.Is(err, ErrCacheObjectWrongType) {
-			t.Errorf("Expected ErrCacheObjectWrongType, got: %v", err)
+			// UPDATED Error Expectation
+		} else if !errors.Is(err, ErrHandleWrongType) {
+			t.Errorf("Expected ErrHandleWrongType, got: %v (Type: %T)", err, err)
 		} else {
-			t.Logf("Got expected ErrCacheObjectWrongType: %v", err)
+			t.Logf("Got expected ErrHandleWrongType: %v", err)
 		}
 	})
 	t.Run("InvalidHandle_NotFound", func(t *testing.T) {
@@ -186,10 +173,22 @@ func TestTreeRenderText(t *testing.T) {
 		_, err := toolTreeRenderText(interp, MakeArgs(validLookingHandle))
 		if err == nil {
 			t.Error("Expected error, got nil")
-		} else if !errors.Is(err, ErrCacheObjectNotFound) {
-			t.Errorf("Expected ErrCacheObjectNotFound, got: %v", err)
+			// UPDATED Error Expectation
+		} else if !errors.Is(err, ErrNotFound) {
+			t.Errorf("Expected ErrNotFound, got: %v (Type: %T)", err, err)
 		} else {
-			t.Logf("Got expected ErrCacheObjectNotFound: %v", err)
+			t.Logf("Got expected ErrNotFound: %v", err)
+		}
+	})
+	t.Run("InvalidHandle_Malformed", func(t *testing.T) {
+		_, err := toolTreeRenderText(interp, MakeArgs("badhandle"))
+		if err == nil {
+			t.Error("Expected error, got nil")
+			// UPDATED Error Expectation
+		} else if !errors.Is(err, ErrInvalidArgument) {
+			t.Errorf("Expected ErrInvalidArgument, got: %v (Type: %T)", err, err)
+		} else {
+			t.Logf("Got expected ErrInvalidArgument: %v", err)
 		}
 	})
 }

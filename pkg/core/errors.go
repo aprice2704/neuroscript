@@ -1,5 +1,5 @@
 // NeuroScript Version: 0.3.0
-// Last Modified: 2025-05-02 15:40:49 PDT // Add ErrTreeNodeNotObject
+// Last Modified: 2025-05-02 17:36:24 PDT // Add ErrCannotRemoveRoot
 // filename: pkg/core/errors.go
 package core
 
@@ -20,6 +20,8 @@ type RuntimeError struct {
 
 func (e *RuntimeError) Error() string {
 	if e.Wrapped != nil {
+		// Including wrapped error might be too verbose for user-facing errors.
+		// Consider logging it separately.
 		return fmt.Sprintf("NeuroScript Error %d: %s", e.Code, e.Message)
 	}
 	return fmt.Sprintf("NeuroScript Error %d: %s", e.Code, e.Message)
@@ -79,13 +81,15 @@ var (
 
 // --- Core Handle Errors ---
 var (
-	ErrHandleInvalid = errors.New("handle is invalid or refers to invalid data")
+	ErrHandleInvalid   = errors.New("handle is invalid or refers to invalid data")
+	ErrHandleNotFound  = errors.New("handle not found")
+	ErrHandleWrongType = errors.New("handle has wrong type")
 )
 
 // --- Core Tool Execution Errors ---
 var (
 	ErrInternalTool                  = errors.New("internal tool error")
-	ErrNotFound                      = errors.New("item not found")
+	ErrNotFound                      = errors.New("item not found") // Generic not found
 	ErrListIndexOutOfBounds          = errors.New("list index out of bounds")
 	ErrListCannotSortMixedTypes      = errors.New("cannot sort list with mixed or non-sortable types")
 	ErrListInvalidIndexType          = errors.New("list index must be an integer")
@@ -97,7 +101,7 @@ var (
 	ErrCannotCreateDir               = errors.New("cannot create directory")
 	ErrCannotDelete                  = errors.New("cannot delete file or directory")
 	ErrInvalidHashAlgorithm          = errors.New("invalid or unsupported hash algorithm")
-	ErrFileNotFound                  = errors.New("file not found")
+	ErrFileNotFound                  = errors.New("file not found") // Specific file not found
 	ErrGoParseFailed                 = errors.New("failed to parse Go source")
 	ErrGoModifyFailed                = errors.New("failed to modify Go AST")
 	ErrGoFormatFailed                = errors.New("failed to format Go AST")
@@ -131,7 +135,10 @@ var (
 	ErrTreeJSONMarshal               = errors.New("failed to marshal tree data to JSON")
 	ErrTreeInvalidQuery              = errors.New("invalid query map structure or values")
 	ErrTreeCannotSetValueOnType      = errors.New("cannot set Value on node types object or array")
-	ErrTreeNodeNotObject             = errors.New("target node is not type object") // <<< ADDED
+	ErrTreeNodeNotObject             = errors.New("target node is not type object")
+	ErrAttributeNotFound             = errors.New("attribute key not found on node")
+	ErrNodeIDExists                  = errors.New("node ID already exists in tree")
+	ErrCannotRemoveRoot              = errors.New("cannot remove the root node") // <<< ADDED
 )
 
 // --- Core Interpreter Errors ---

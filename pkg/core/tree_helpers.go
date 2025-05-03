@@ -1,5 +1,5 @@
 // NeuroScript Version: 0.3.0
-// Last Modified: 2025-05-02 14:58:13 PDT // Split from tools_tree.go
+// Last Modified: 2025-05-02 17:37:26 PDT // Add TreeRemoveNode helpers
 // filename: pkg/core/tree_helpers.go
 
 package core
@@ -47,4 +47,76 @@ func getNodeFromHandle(interpreter *Interpreter, handleID, nodeID, toolName stri
 	}
 
 	return tree, node, nil
+}
+
+// removeChildFromParent removes a child ID from its parent's ChildIDs or Attributes.
+// Returns true if the child was found and removed, false otherwise.
+func removeChildFromParent(parent *GenericTreeNode, childID string) bool {
+	if parent == nil || childID == "" {
+		return false // Invalid input
+	}
+
+	removed := false
+
+	// Attempt removal from ChildIDs (typically for arrays, but check anyway)
+	if parent.ChildIDs != nil {
+		newChildIDs := make([]string, 0, len(parent.ChildIDs))
+		for _, id := range parent.ChildIDs {
+			if id == childID {
+				removed = true // Mark as removed, continue to build list without it
+			} else {
+				newChildIDs = append(newChildIDs, id)
+			}
+		}
+		if removed {
+			parent.ChildIDs = newChildIDs
+			return true // Found and removed from ChildIDs
+		}
+	}
+
+	// Attempt removal from Attributes (for objects)
+	if parent.Type == "object" && parent.Attributes != nil {
+		for key, valID := range parent.Attributes {
+			if valID == childID {
+				delete(parent.Attributes, key)
+				return true // Found and removed from Attributes
+			}
+		}
+	}
+
+	return false // Not found in either structure
+}
+
+// removeNodeRecursive removes a node and all its descendants from the tree's NodeMap.
+// It uses a set to track visited nodes during the current removal operation to handle potential cycles (though unlikely for JSON).
+func removeNodeRecursive(tree *GenericTree, nodeID string, visited map[string]struct{}) {
+	if _, alreadyVisited := visited[nodeID]; alreadyVisited {
+		return // Avoid infinite loops in cyclic graphs
+	}
+	visited[nodeID] = struct{}{} // Mark as visited for this removal operation
+
+	node, exists := tree.NodeMap[nodeID]
+	if !exists {
+		return // Node already removed or never existed
+	}
+
+	// Collect all descendant node IDs first
+	descendantIDs := make([]string, 0)
+	if node.ChildIDs != nil {
+		descendantIDs = append(descendantIDs, node.ChildIDs...)
+	}
+	if node.Attributes != nil {
+		for _, childNodeID := range node.Attributes {
+			descendantIDs = append(descendantIDs, childNodeID)
+		}
+	}
+
+	// Recursively remove all descendants
+	for _, descendantID := range descendantIDs {
+		// Pass the same visited set down to detect cycles within this specific removal call chain
+		removeNodeRecursive(tree, descendantID, visited)
+	}
+
+	// After all descendants are processed and removed, remove the current node itself
+	delete(tree.NodeMap, nodeID)
 }

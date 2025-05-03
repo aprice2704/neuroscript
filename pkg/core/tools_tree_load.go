@@ -61,7 +61,7 @@ func toolTreeLoadJSON(interpreter *Interpreter, args []interface{}) (interface{}
 		switch v := value.(type) {
 		case map[string]interface{}:
 			nodeType = "object"
-			node = tree.newNode(parentID, nodeType)
+			node = tree.NewNode(parentID, nodeType)
 			for k, val := range v {
 				childID, errBuild := buildNode(node.ID, k, val)
 				if errBuild != nil {
@@ -71,7 +71,7 @@ func toolTreeLoadJSON(interpreter *Interpreter, args []interface{}) (interface{}
 			}
 		case []interface{}:
 			nodeType = "array"
-			node = tree.newNode(parentID, nodeType)
+			node = tree.NewNode(parentID, nodeType)
 			node.ChildIDs = make([]string, len(v))
 			for i, item := range v {
 				childID, errBuild := buildNode(node.ID, strconv.Itoa(i), item)
@@ -82,19 +82,19 @@ func toolTreeLoadJSON(interpreter *Interpreter, args []interface{}) (interface{}
 			}
 		case string:
 			nodeType = "string"
-			node = tree.newNode(parentID, nodeType)
+			node = tree.NewNode(parentID, nodeType)
 			node.Value = v
 		case float64:
 			nodeType = "number"
-			node = tree.newNode(parentID, nodeType)
+			node = tree.NewNode(parentID, nodeType)
 			node.Value = v
 		case bool:
 			nodeType = "boolean"
-			node = tree.newNode(parentID, nodeType)
+			node = tree.NewNode(parentID, nodeType)
 			node.Value = v
 		case nil:
 			nodeType = "null"
-			node = tree.newNode(parentID, nodeType)
+			node = tree.NewNode(parentID, nodeType)
 			node.Value = nil
 		default:
 			return "", fmt.Errorf("%w: unsupported JSON type encountered: %T", ErrTreeBuildFailed, value)

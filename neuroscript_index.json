@@ -1866,6 +1866,7 @@
           "functions": [
             "min",
             "ConvertToBool",
+            "ConvertToInt64E",
             "ConvertToSliceOfString",
             "convertToSliceOfAny",
             "NewTestInterpreter",
@@ -2047,7 +2048,7 @@
               "calls": [
                 "i.Logger().Info(?)",
                 "i.Logger(?)",
-                "func() {\n\tif r := recover(); r != nil {\n\t\terr = fmt.Errorf(\"panic occurred during procedure '%s': %v\", procName, r)\n\t\ti.Logger().Error(\"Panic recovered during procedure execution\", \"proc_name\", procName, \"panic_value\", r)\n\n\t}\n\ti.currentProcName = originalProcName\n\tlogArgs := []any{\"proc_name\", procName, \"restored_proc_name\", i.currentProcName, \"result\", result, \"result_type\", fmt.Sprintf(\"%T\", result), \"error\", err}\n\ti.Logger().Info(\"Finished procedure.\", logArgs...)\n}(?)",
+                "func() {\n\tif r := recover(); r != nil {\n\t\terr = fmt.Errorf(\"panic occurred during procedure '%s': %v\", procName, r)\n\t\ti.Logger().Error(\"Panic recovered during procedure execution\", \"proc_name\", procName, \"panic_value\", r)\n\t}\n\ti.currentProcName = originalProcName\n\tlogArgs := []any{\"proc_name\", procName, \"restored_proc_name\", i.currentProcName, \"result\", result, \"result_type\", fmt.Sprintf(\"%T\", result), \"error\", err}\n\ti.Logger().Info(\"Finished procedure.\", logArgs...)\n}(?)",
                 "i.Logger().Error(?)",
                 "i.Logger(?)",
                 "i.Logger().Info(?)",
@@ -3172,7 +3173,7 @@
         },
         "pkg/core/tools_register.go": {
           "functions": [
-            "registerCoreTools",
+            "registerCoreToolsInternal",
             "RegisterCoreTools"
           ],
           "methods": []
@@ -3260,26 +3261,62 @@
           ],
           "methods": []
         },
-        "pkg/core/tools_tree.go": {
+        "pkg/core/tools_tree_find.go": {
           "functions": [
-            "toolTreeLoadJSON",
-            "getNodeFromHandle",
+            "toolTreeFindNodes"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_tree_load.go": {
+          "functions": [
+            "toolTreeLoadJSON"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_tree_modify.go": {
+          "functions": [
+            "toolTreeModifyNode",
+            "toolTreeSetAttribute",
+            "toolTreeRemoveAttribute",
+            "toolTreeAddNode",
+            "toolTreeRemoveNode"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_tree_modify_test.go": {
+          "functions": [
+            "setupTreeTestStd",
+            "Pint",
+            "getNodeValueStd",
+            "getNodeAttributesStd",
+            "getNodeChildrenStd",
+            "TestTreeModifyNodeStd",
+            "TestTreeSetAttributeStd",
+            "TestTreeRemoveAttributeStd",
+            "TestTreeAddNodeStd",
+            "TestTreeRemoveNodeStd"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_tree_nav.go": {
+          "functions": [
             "toolTreeGetNode",
             "toolTreeGetChildren",
-            "toolTreeGetParent",
+            "toolTreeGetParent"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_tree_register.go": {
+          "functions": [
             "registerTreeTools"
           ],
-          "methods": [
-            {
-              "Receiver": "*GenericTree",
-              "Name": "newNode"
-            }
-          ]
+          "methods": []
         },
         "pkg/core/tools_tree_render.go": {
           "functions": [
             "toolTreeFormatJSON",
-            "toolTreeRenderText"
+            "toolTreeRenderText",
+            "registerTreeRenderTools"
           ],
           "methods": []
         },
@@ -3325,6 +3362,26 @@
             "toolVectorUpdate"
           ],
           "methods": []
+        },
+        "pkg/core/tree_helpers.go": {
+          "functions": [
+            "getTreeFromHandle",
+            "getNodeFromHandle",
+            "removeChildFromParent",
+            "removeNodeRecursive"
+          ],
+          "methods": []
+        },
+        "pkg/core/tree_types.go": {
+          "functions": [
+            "NewGenericTree"
+          ],
+          "methods": [
+            {
+              "Receiver": "*GenericTree",
+              "Name": "NewNode"
+            }
+          ]
         },
         "pkg/core/universal_test_helpers.go": {
           "functions": [
@@ -10579,10 +10636,70 @@
     },
     "pkg/neurodata/checklist": {
       "files": {
+        "pkg/neurodata/checklist/checklist_adapter.go": {
+          "functions": [
+            "ChecklistToTree",
+            "mapParserStatusToTreeStatus",
+            "TreeToChecklistString",
+            "formatChecklistNodeRecursive",
+            "mapTreeStatusToMarkdown"
+          ],
+          "methods": []
+        },
+        "pkg/neurodata/checklist/checklist_adapter_test.go": {
+          "functions": [
+            "verifyTreeNode",
+            "TestChecklistToTree",
+            "TestTreeToChecklistString"
+          ],
+          "methods": []
+        },
+        "pkg/neurodata/checklist/checklist_modify_tool_test.go": {
+          "functions": [
+            "getNodeViaTool",
+            "getNodeValue",
+            "getNodeAttributesMap",
+            "TestChecklistSetItemTextTool"
+          ],
+          "methods": []
+        },
         "pkg/neurodata/checklist/checklist_tool.go": {
           "functions": [
             "RegisterChecklistTools",
-            "toolParseChecklistFromString"
+            "toolChecklistLoadTree",
+            "toolChecklistSetItemStatus"
+          ],
+          "methods": []
+        },
+        "pkg/neurodata/checklist/checklist_tool2.go": {
+          "functions": [
+            "toolChecklistFormatTree",
+            "toolChecklistSetItemText",
+            "toolChecklistUpdateStatus",
+            "updateChecklistTreeStatus",
+            "updateAutomaticNodeStatus"
+          ],
+          "methods": []
+        },
+        "pkg/neurodata/checklist/checklist_tool_add_test.go": {
+          "functions": [
+            "getNodeChildrenList",
+            "pstr",
+            "pbool",
+            "pint",
+            "TestChecklistAddItemTool",
+            "TestChecklistUpdateStatusTool",
+            "verifyNodeStatus"
+          ],
+          "methods": []
+        },
+        "pkg/neurodata/checklist/checklist_tool_test.go": {
+          "functions": [
+            "getNodeAttributes",
+            "pstr",
+            "TestChecklistLoadTree",
+            "TestChecklistSetItemStatusTool",
+            "TestChecklistFormatTreeTool"
           ],
           "methods": []
         },
@@ -10804,6 +10921,12 @@
                 "app.interpreter.SetSandboxDir(?)",
                 "app.Log.Info(?)",
                 "app.Log.Warn(?)",
+                "app.Log.Info(?)",
+                "app.Log.Info(?)",
+                "pkg/toolsets.RegisterExtendedTools",
+                "app.GetInterpreter().ToolRegistry(?)",
+                "app.GetInterpreter(?)",
+                "app.Log.Error(?)",
                 "app.Log.Info(?)",
                 "app.interpreter.FileAPI(?)",
                 "app.Log.Warn(?)",
@@ -11523,6 +11646,16 @@
             "checkFixtures",
             "TestLoadPatchFile",
             "TestApplyPatch"
+          ],
+          "methods": []
+        }
+      }
+    },
+    "pkg/toolsets": {
+      "files": {
+        "pkg/toolsets/register.go": {
+          "functions": [
+            "RegisterExtendedTools"
           ],
           "methods": []
         }

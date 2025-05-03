@@ -1,5 +1,5 @@
 // NeuroScript Version: 0.3.0
-// Last Modified: 2025-05-02 15:40:49 PDT // Register TreeSetAttribute
+// Last Modified: 2025-05-02 17:32:05 PDT // Register TreeAddNode
 // filename: pkg/core/tools_tree_register.go
 
 // Package core contains core interpreter functionality, including built-in tools.
@@ -27,9 +27,11 @@ func registerTreeTools(registry *ToolRegistry) error {
 		// Find
 		toolTreeFindNodesImpl,
 		// Modify
-		toolTreeModifyNodeImpl,   // Modifies simple Value
-		toolTreeSetAttributeImpl, // <<< ADDED
-		// Add TreeRemoveAttributeImpl etc. here when created
+		toolTreeModifyNodeImpl,      // Modifies simple Value
+		toolTreeSetAttributeImpl,    // Adds/Updates an attribute on an object node
+		toolTreeRemoveAttributeImpl, // Removes an attribute from an object node
+		toolTreeAddNodeImpl,         // <<< ADDED: Adds a new node as a child
+		// Add TreeRemoveNodeImpl etc. here when created
 	}
 
 	var registrationErrors []error

@@ -3,16 +3,24 @@ package blocks
 
 import (
 	"fmt"
-	"log" // Import log
+	"log" // Keep if used
 
-	"github.com/aprice2704/neuroscript/pkg/core" // Import core
+	"github.com/aprice2704/neuroscript/pkg/core"     // Import core
+	"github.com/aprice2704/neuroscript/pkg/toolsets" // <<< ADDED import for init()
 )
 
+// --- ADDED: init() function for self-registration ---
+func init() {
+	fmt.Println("Blocks package init() running...") // Debug output
+	// Register the main registration function with the toolsets package.
+	toolsets.AddToolsetRegistration("Blocks", RegisterBlockTools)
+}
+
 // RegisterBlockTools adds the updated block extraction tool.
-// --- UPDATED: Now returns an error ---
-func RegisterBlockTools(registry *core.ToolRegistry) error {
-	// --- TOOL.BlocksExtractAll registration (Updated) ---
-	err := registry.RegisterTool(core.ToolImplementation{ // Capture potential error
+// This function is now called via the init() mechanism.
+func RegisterBlockTools(registry core.ToolRegistrar) error { // Use interface
+	// --- TOOL.BlocksExtractAll registration ---
+	err := registry.RegisterTool(core.ToolImplementation{
 		Spec: core.ToolSpec{
 			Name: "BlocksExtractAll",
 			Description: "Extracts all fenced code blocks (handling nesting) from input content using ANTLR Listener. " +
@@ -27,50 +35,53 @@ func RegisterBlockTools(registry *core.ToolRegistry) error {
 		Func: toolBlocksExtractAll,
 	})
 
-	// --- Handle and return error if registration failed ---
 	if err != nil {
-		log.Printf("[ERROR] Failed to register tool 'BlocksExtractAll': %v", err) // Log the error
+		// Log or wrap the error appropriately
+		log.Printf("[ERROR] Failed to register tool 'BlocksExtractAll': %v", err)
 		return fmt.Errorf("failed to register blocks tool 'BlocksExtractAll': %w", err)
 	}
 
 	// Add registration for other block-related tools here if needed
 
-	return nil // Return nil on successful registration
-	// --- END ERROR HANDLING ---
-
-	// --- TOOL.BlockGetMetadata removed ---
+	fmt.Println("Blocks tools registered via RegisterBlockTools.") // Debug
+	return nil                                                     // Return nil on successful registration
 }
 
-// --- toolBlocksExtractAll implementation (Updated) ---
+// --- toolBlocksExtractAll implementation ---
 func toolBlocksExtractAll(interpreter *core.Interpreter, args []interface{}) (interface{}, error) {
-	content := args[0].(string) // Assumes validation already done
+	// Argument Validation (should ideally happen before calling the func, but good practice)
+	if len(args) != 1 {
+		return nil, fmt.Errorf("%w: %s expected 1 argument (content), got %d", core.ErrValidationArgCount, "BlocksExtractAll", len(args))
+	}
+	content, ok := args[0].(string)
+	if !ok {
+		return nil, fmt.Errorf("%w: %s expected string arg[0] 'content', got %T", core.ErrValidationTypeMismatch, "BlocksExtractAll", args[0])
+	}
+
 	logger := interpreter.Logger()
 
-	if logger != nil {
-		logSnippet := content
-		if len(logSnippet) > 100 {
-			logSnippet = logSnippet[:100] + "..."
-		}
-		logger.Debug("[DEBUG TOOL] Calling TOOL.BlocksExtractAll (Listener Based) on content (snippet): %q", logSnippet)
+	// Log snippet for debugging
+	logSnippet := content
+	if len(logSnippet) > 100 {
+		logSnippet = logSnippet[:100] + "..."
 	}
+	logger.Debug("Calling TOOL.BlocksExtractAll (Listener Based)", "snippet", logSnippet)
 
-	// Call the new listener-based extractor
-	extractedBlocks, extractErr := ExtractAll(content, logger)
+	// Call the listener-based extractor
+	extractedBlocks, extractErr := ExtractAll(content, logger) // Pass logger
 
-	// ExtractAll now handles ignoring unclosed blocks and returns nil error for that case.
-	// It only returns errors for lexer/parser issues.
+	// Handle potential errors from the parser/lexer
 	if extractErr != nil {
-		errMsg := fmt.Sprintf("Error during block extraction: %s", extractErr.Error())
-		logger.Error("[ERROR TOOL] TOOL.BlocksExtractAll failed: %s", extractErr.Error())
-
-		// Return the error message as a string, consistent with other tools
-		return errMsg, nil
+		logger.Error("TOOL.BlocksExtractAll failed during extraction", "error", extractErr)
+		// Return a user-friendly error, masking internal details unless necessary
+		// Consider if this should be ErrInternalTool or ErrInvalidArgument depending on cause
+		return nil, fmt.Errorf("%w: error during block extraction: %w", core.ErrInternalTool, extractErr)
 	}
 
-	// Convert FencedBlock structs (which now include metadata) to []interface{} of maps
+	// Convert FencedBlock structs to []interface{} of maps for NeuroScript
 	resultsList := make([]interface{}, 0, len(extractedBlocks))
 	for _, block := range extractedBlocks {
-		// Convert metadata map[string]string to map[string]interface{} for NeuroScript compatibility
+		// Convert metadata map[string]string to map[string]interface{}
 		metadataInterfaceMap := make(map[string]interface{}, len(block.Metadata))
 		for k, v := range block.Metadata {
 			metadataInterfaceMap[k] = v
@@ -86,9 +97,6 @@ func toolBlocksExtractAll(interpreter *core.Interpreter, args []interface{}) (in
 		resultsList = append(resultsList, blockMap)
 	}
 
-	logger.Info("[DEBUG TOOL] TOOL.BlocksExtractAll successful. Found %d blocks.", len(resultsList))
-
+	logger.Info("TOOL.BlocksExtractAll successful.", "blocks_found", len(resultsList))
 	return resultsList, nil // Return the list of maps
 }
-
-// --- toolBlockGetMetadata function removed ---
