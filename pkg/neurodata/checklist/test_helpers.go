@@ -1,68 +1,87 @@
 // NeuroScript Version: 0.3.0
-// Last Modified: 2025-05-03 15:55:00 PM PDT // Use SLogAdapter for actual log output in tests
+// Last Modified: 2025-05-03 17:10:00 PM PDT // Use SimpleTestLogger
 // filename: pkg/neurodata/checklist/test_helpers.go
 package checklist
 
 import (
+	"errors"
 	"fmt"
-	"log/slog" // <<< Added import
-	"os"       // <<< Added import
+
+	// "log/slog" // No longer needed directly here
+	// "os"       // No longer needed directly here
 	"testing"
 
-	// Import necessary packages WITHOUT causing cycles
 	"github.com/aprice2704/neuroscript/pkg/adapters"
-	"github.com/aprice2704/neuroscript/pkg/core" // <<< Added import for LevelDebug
+	"github.com/aprice2704/neuroscript/pkg/core"
+
+	// "github.com/aprice2704/neuroscript/pkg/logging" // No longer needed directly here
 	"github.com/aprice2704/neuroscript/pkg/toolsets"
 )
 
 // newTestInterpreterWithAllTools creates a new interpreter instance for checklist testing,
 // initializing it with BOTH core AND extended tools, using a functional logger.
 func newTestInterpreterWithAllTools(t *testing.T) (*core.Interpreter, *core.ToolRegistry) {
-	t.Helper() // Mark this as a test helper
+	t.Helper()
 
 	tempDir := t.TempDir()
 
-	// --- Logger Setup ---
-	// <<< FIX: Create a real SLog logger that outputs Debug messages to Stderr >>>
-	slogHandler := slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
-		Level:     slog.LevelDebug, // Ensure Debug messages are logged
-		AddSource: false,           // Optional: Add source file/line to logs
-	})
-	slogger := slog.New(slogHandler)
-	// Create the adapter implementing our logging.Logger interface
-	logger, err := adapters.NewSlogAdapter(slogger)
-	if err != nil {
-		t.Fatalf("Setup Error: Failed to create SLogAdapter: %v", err)
+	// <<< FIX: Use SimpleTestLogger from adapters >>>
+	logger := adapters.SimpleTestLogger() // Returns *SlogAdapter which implements logging.Logger
+	if logger == nil {
+		// SimpleTestLogger should panic internally if it fails, but defensive check
+		t.Fatalf("Setup Error: Failed to create logger using SimpleTestLogger")
 	}
-	// --- End Logger Setup ---
 
-	llmClient := adapters.NewNoOpLLMClient() // Assuming constructor doesn't require logger
+	llmClient := adapters.NewNoOpLLMClient()
 
-	// Initialize the ToolRegistry from core
 	registry := core.NewToolRegistry()
 
-	// Register CORE tools first
-	err = core.RegisterCoreTools(registry)
-	assertNoErrorSetup(t, err, "Failed to register core tools") // Use local helper
+	err := core.RegisterCoreTools(registry)
+	assertNoErrorSetup(t, err, "Failed to register core tools")
 
-	// Register EXTENDED tools (Checklist, Blocks, etc.) via toolsets
 	err = toolsets.RegisterExtendedTools(registry)
-	assertNoErrorSetup(t, err, "Failed to register extended toolsets") // Use local helper
+	assertNoErrorSetup(t, err, "Failed to register extended toolsets") // Check error here
 
-	// Create the core interpreter instance, passing the REAL logger
-	interp := core.NewInterpreter(logger, llmClient) // <<< Passes the SLogAdapter
-
-	// Inject the registry containing ALL tools
-	interp.SetToolRegistry(registry) // <<< ADDED CALL
-
-	// Create/Set FileAPI and Sandbox Dir
+	interp := core.NewInterpreter(logger, llmClient)
+	interp.SetToolRegistry(registry)
 	interp.SetSandboxDir(tempDir)
 
 	return interp, registry
 }
 
-// Helper function to get a node's value from the map returned by getNodeViaTool
-// (Implementation unchanged)
+// --- Node Data Access Helpers --- (Unchanged from previous version)
+
+// getNodeViaTool uses the TreeGetNode tool to get node data as a map.
+func getNodeViaTool(t *testing.T, interp *core.Interpreter, handleID string, nodeID string) map[string]interface{} {
+	t.Helper()
+	toolReg := interp.ToolRegistry()
+	impl, exists := toolReg.GetTool("TreeGetNode")
+	if !exists {
+		t.Fatalf("getNodeViaTool: Prerequisite tool 'TreeGetNode' not registered.")
+	}
+	if impl.Func == nil {
+		t.Fatalf("getNodeViaTool: Tool 'TreeGetNode' has nil function.")
+	}
+	nodeDataIntf, err := impl.Func(interp, core.MakeArgs(handleID, nodeID))
+	if err != nil {
+		if errors.Is(err, core.ErrNotFound) || errors.Is(err, core.ErrInvalidArgument) || errors.Is(err, core.ErrHandleWrongType) || errors.Is(err, core.ErrHandleNotFound) || errors.Is(err, core.ErrHandleInvalid) {
+			t.Logf("getNodeViaTool: Got expected error getting node %q: %v", nodeID, err)
+			return nil
+		}
+		t.Fatalf("getNodeViaTool: TreeGetNode tool function failed unexpectedly for node %q: %v", nodeID, err)
+	}
+	if nodeDataIntf == nil {
+		t.Logf("getNodeViaTool: TreeGetNode tool function returned nil data for node %q", nodeID)
+		return nil
+	}
+	nodeMap, ok := nodeDataIntf.(map[string]interface{})
+	if !ok {
+		t.Fatalf("getNodeViaTool: TreeGetNode tool function did not return map[string]interface{}, got %T", nodeDataIntf)
+	}
+	return nodeMap
+}
+
+// getNodeValue extracts the 'value' field from the map returned by getNodeViaTool.
 func getNodeValue(t *testing.T, nodeData map[string]interface{}) interface{} {
 	t.Helper()
 	if nodeData == nil {
@@ -75,18 +94,14 @@ func getNodeValue(t *testing.T, nodeData map[string]interface{}) interface{} {
 	return val
 }
 
-// Helper function to get node attributes from the map returned by getNodeViaTool
-// (Implementation unchanged)
+// getNodeAttributesMap extracts the 'attributes' field from the map returned by getNodeViaTool.
 func getNodeAttributesMap(t *testing.T, nodeData map[string]interface{}) map[string]string {
 	t.Helper()
 	if nodeData == nil {
 		t.Fatalf("getNodeAttributesMap: called with nil nodeData")
 	}
 	attrsVal, exists := nodeData["attributes"]
-	if !exists {
-		return make(map[string]string)
-	}
-	if attrsVal == nil {
+	if !exists || attrsVal == nil {
 		return make(map[string]string)
 	}
 	rawAttrsMap, ok := attrsVal.(map[string]interface{})
@@ -104,7 +119,36 @@ func getNodeAttributesMap(t *testing.T, nodeData map[string]interface{}) map[str
 	return stringAttrsMap
 }
 
-// Helper to fail test immediately if error occurs during setup
+// getNodeAttributesDirectly bypasses the TreeGetNode tool and accesses the tree/node directly via handle.
+func getNodeAttributesDirectly(t *testing.T, interp *core.Interpreter, handleID string, nodeID string) (map[string]string, error) {
+	t.Helper()
+	treeObj, err := interp.GetHandleValue(handleID, core.GenericTreeHandleType)
+	if err != nil {
+		return nil, fmt.Errorf("getNodeAttributesDirectly: failed getting handle %q: %w", handleID, err)
+	}
+	tree, ok := treeObj.(*core.GenericTree)
+	if !ok || tree == nil || tree.NodeMap == nil {
+		return nil, fmt.Errorf("getNodeAttributesDirectly: handle %q did not contain a valid GenericTree", handleID)
+	}
+	node, exists := tree.NodeMap[nodeID]
+	if !exists {
+		return nil, fmt.Errorf("%w: getNodeAttributesDirectly: node %q not found in handle %q", core.ErrNotFound, nodeID, handleID)
+	}
+	if node == nil {
+		return nil, fmt.Errorf("getNodeAttributesDirectly: node %q exists in map but is nil", nodeID)
+	}
+	if node.Attributes == nil {
+		return make(map[string]string), nil
+	}
+	attrsCopy := make(map[string]string, len(node.Attributes))
+	for k, v := range node.Attributes {
+		attrsCopy[k] = v
+	}
+	return attrsCopy, nil
+}
+
+// --- Test Setup Helpers ---
+
 func assertNoErrorSetup(t *testing.T, err error, msgFormat string, args ...interface{}) {
 	t.Helper()
 	if err != nil {
@@ -113,8 +157,6 @@ func assertNoErrorSetup(t *testing.T, err error, msgFormat string, args ...inter
 	}
 }
 
-// --- ADDED: Helper to check if a tool was found in the registry ---
-// assertToolFound fails the test if the tool was not found (found is false).
 func assertToolFound(t *testing.T, found bool, toolName string) {
 	t.Helper()
 	if !found {
@@ -122,20 +164,8 @@ func assertToolFound(t *testing.T, found bool, toolName string) {
 	}
 }
 
-// --- ADDED: Local pstr helper ---
-// pstr returns a pointer to the given string. Useful for optional string args.
-func pstr(s string) *string {
-	return &s
-}
+// --- Pointer Helpers ---
 
-// pbool returns a pointer to the given boolean.
-func pbool(b bool) *bool {
-	return &b
-}
-
-// pint returns a pointer to the given integer.
-func pint(i int) *int {
-	return &i
-}
-
-// --- End Pointer Helpers ---
+func pstr(s string) *string { return &s }
+func pbool(b bool) *bool    { return &b }
+func pint(i int) *int       { return &i }

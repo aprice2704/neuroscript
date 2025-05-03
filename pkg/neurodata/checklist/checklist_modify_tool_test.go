@@ -1,5 +1,5 @@
 // NeuroScript Version: 0.3.0
-// Last Modified: 2025-05-02 20:56:10 PM PDT // Fix initialStatus expectation in SetItemText test
+// Last Modified: 2025-05-03 17:10:00 PM PDT // Remove redeclared getNodeViaTool
 // filename: pkg/neurodata/checklist/checklist_modify_tool_test.go
 
 package checklist
@@ -12,36 +12,9 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/core"
 )
 
-// Helper function to get node data via the TreeGetNode tool function directly.
-// (Implementation unchanged)
-func getNodeViaTool(t *testing.T, interp *core.Interpreter, handleID string, nodeID string) map[string]interface{} {
-	t.Helper()
-	toolReg := interp.ToolRegistry()
-	impl, exists := toolReg.GetTool("TreeGetNode")
-	if !exists {
-		t.Fatalf("getNodeViaTool: Prerequisite tool 'TreeGetNode' not registered.")
-	}
-	if impl.Func == nil {
-		t.Fatalf("getNodeViaTool: Tool 'TreeGetNode' has nil function.")
-	}
-	nodeDataIntf, err := impl.Func(interp, core.MakeArgs(handleID, nodeID))
-	if err != nil {
-		if errors.Is(err, core.ErrNotFound) || errors.Is(err, core.ErrInvalidArgument) || errors.Is(err, core.ErrHandleWrongType) {
-			t.Logf("getNodeViaTool: Got expected error getting node %q: %v", nodeID, err)
-			return nil
-		}
-		t.Fatalf("getNodeViaTool: TreeGetNode tool function failed for node %q: %v", nodeID, err)
-	}
-	if nodeDataIntf == nil {
-		t.Logf("getNodeViaTool: TreeGetNode tool function returned nil data for node %q", nodeID)
-		return nil
-	}
-	nodeMap, ok := nodeDataIntf.(map[string]interface{})
-	if !ok {
-		t.Fatalf("getNodeViaTool: TreeGetNode tool function did not return map[string]interface{}, got %T", nodeDataIntf)
-	}
-	return nodeMap
-}
+// <<< REMOVED local getNodeViaTool function definition >>>
+// It is now defined in test_helpers.go
+
 func TestChecklistSetItemTextTool(t *testing.T) {
 	fixtureChecklist := `:: type: Rollup Example
 
@@ -74,7 +47,7 @@ func TestChecklistSetItemTextTool(t *testing.T) {
 			targetNodeID:  "node-4", // L1 Auto Child (| |)
 			newText:       "L1 Auto Child - Renamed",
 			expectError:   false,
-			initialStatus: "open", // CORRECTED: Status from | | is open, not rolled up initially
+			initialStatus: "open", // Status from | | is open initially
 		},
 		{
 			name:          "Set text to empty string",
@@ -106,18 +79,25 @@ func TestChecklistSetItemTextTool(t *testing.T) {
 		},
 	}
 
-	toolFunc := toolChecklistSetItemTextImpl.Func
+	// Get tool implementation directly (assuming it's registered)
+	// No need to call newTestInterpreterWithAllTools just to get the func if static
+	toolImpl := toolChecklistSetItemTextImpl // Assuming this var is accessible or defined globally/package-level
+	toolFunc := toolImpl.Func
 	if toolFunc == nil {
 		t.Fatal("toolChecklistSetItemTextImpl.Func is nil")
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			interp, _ := newTestInterpreterWithAllTools(t)
+			// Need interpreter for handle management and potential tool calls inside tested func
+			interp, _ := newTestInterpreterWithAllTools(t) // Use helper for consistent setup
 
-			// Setup: Load the fixture
-			loadToolFunc := toolChecklistLoadTreeImpl.Func
-			result, loadErr := loadToolFunc(interp, core.MakeArgs(fixtureChecklist))
+			// Setup: Load the fixture using the specific load tool
+			loadToolImpl, foundLoad := interp.ToolRegistry().GetTool("ChecklistLoadTree")
+			if !foundLoad || loadToolImpl.Func == nil {
+				t.Fatalf("Prerequisite tool ChecklistLoadTree not found or invalid")
+			}
+			result, loadErr := loadToolImpl.Func(interp, core.MakeArgs(fixtureChecklist))
 			if loadErr != nil {
 				t.Fatalf("Failed to load fixture checklist: %v", loadErr)
 			}
@@ -150,19 +130,22 @@ func TestChecklistSetItemTextTool(t *testing.T) {
 					return
 				}
 
-				// Verify the text (Value) was updated using the tool-based helper
+				// Verify the text (Value) was updated using the tool-based helper from test_helpers
 				nodeData := getNodeViaTool(t, interp, handleID, tc.targetNodeID)
 				if nodeData == nil {
 					t.Fatalf("Node %s not found after presumably successful update", tc.targetNodeID)
 				}
-				actualValue := getNodeValue(t, nodeData)
+				actualValue := getNodeValue(t, nodeData) // Assumes helper exists
 
 				if !reflect.DeepEqual(tc.newText, actualValue) {
 					t.Errorf("Node text mismatch. got = %v (%T), want = %v (%T)", actualValue, actualValue, tc.newText, tc.newText)
 				}
 
-				// Verify status wasn't changed (check against the CORRECT initial status)
-				actualAttrs := getNodeAttributesMap(t, nodeData)
+				// Verify status wasn't changed (use direct access helper for robustness)
+				actualAttrs, attrErr := getNodeAttributesDirectly(t, interp, handleID, tc.targetNodeID)
+				if attrErr != nil {
+					t.Fatalf("Failed to get attributes directly for node %q: %v", tc.targetNodeID, attrErr)
+				}
 				currentStatus := actualAttrs["status"]
 				if currentStatus != tc.initialStatus {
 					t.Errorf("Node status changed unexpectedly or initial expectation wrong. got = %q, want = %q", currentStatus, tc.initialStatus)
