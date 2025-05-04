@@ -1,5 +1,5 @@
 // NeuroScript Version: 0.3.0
-// Last Modified: 2025-05-02 17:32:05 PDT // Register TreeAddNode
+// Last Modified: 2025-05-03 19:07:50 PM PDT // Register tree metadata tools
 // filename: pkg/core/tools_tree_register.go
 
 // Package core contains core interpreter functionality, including built-in tools.
@@ -10,7 +10,7 @@ import (
 	"fmt"
 )
 
-// registerTreeTools registers the core tree manipulation tools (load, nav, find, modify).
+// registerTreeTools registers the core tree manipulation tools (load, nav, find, modify, metadata).
 // Rendering tools are registered separately in registerTreeRenderTools.
 func registerTreeTools(registry *ToolRegistry) error {
 	if registry == nil {
@@ -26,12 +26,15 @@ func registerTreeTools(registry *ToolRegistry) error {
 		toolTreeGetParentImpl,
 		// Find
 		toolTreeFindNodesImpl,
-		// Modify
-		toolTreeModifyNodeImpl,      // Modifies simple Value
-		toolTreeSetAttributeImpl,    // Adds/Updates an attribute on an object node
-		toolTreeRemoveAttributeImpl, // Removes an attribute from an object node
-		toolTreeAddNodeImpl,         // <<< ADDED: Adds a new node as a child
-		// Add TreeRemoveNodeImpl etc. here when created
+		// Modify (Structure & Simple Value)
+		toolTreeModifyNodeImpl,      // Modifies simple Value (string, number, bool, null, checklist_item)
+		toolTreeSetAttributeImpl,    // Adds/Updates an attribute on an OBJECT node (maps key->childID)
+		toolTreeRemoveAttributeImpl, // Removes an attribute from an OBJECT node
+		toolTreeAddNodeImpl,         // Adds a new node as a child
+		toolTreeRemoveNodeImpl,      // Removes a node and descendants
+		// Modify (Metadata)
+		toolTreeSetNodeMetadataImpl,    // Sets/Updates string metadata on ANY node type
+		toolTreeRemoveNodeMetadataImpl, // Removes string metadata from ANY node type
 	}
 
 	var registrationErrors []error

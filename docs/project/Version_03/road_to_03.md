@@ -90,8 +90,8 @@
          - [x] Define Checklist <-> GenericTree representation mapping.
          - [x] Implement Checklist <-> GenericTree adapter logic/tool(s).
          - [x] Define/Implement Checklist formatting/serialization logic (from Tree representation to Markdown).
-         - [ ] Define/Implement in-memory Checklist update logic **using Tree tools** (FindNodes, ModifyNode, etc.).
-         - [ ] Ensure update logic correctly recomputes status of automatic ('| |') items based on tree structure/dependencies.
+         - [x] Define/Implement in-memory Checklist update logic **using Tree tools** (FindNodes, ModifyNode, etc.).
+         - [x] Ensure update logic correctly recomputes status of automatic ('| |') items based on tree structure/dependencies.
          - [ ] Define/Implement Checklist tool(s) for updates via Tree (**depends on Tree find/modify tools & adapter**).
          - [ ] Consider optional file persistence tools (`Checklist.LoadFromFile`, `Checklist.SaveToFile`) (Lower priority).
  

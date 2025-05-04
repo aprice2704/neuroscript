@@ -213,7 +213,15 @@ func TestChecklistSetItemStatusTool(t *testing.T) {
 			skipTest:            false, skipReason: ""},
 		{name: "Error: Invalid Node ID", targetNodeID: "node-99", newStatus: "done", expectError: true, expectedErrorIs: core.ErrNotFound, skipTest: false, skipReason: ""},
 		{name: "Error: Invalid Status", targetNodeID: "node-3", newStatus: "invalid-status", expectError: true, expectedErrorIs: core.ErrInvalidArgument, skipTest: false, skipReason: ""},
-		{name: "Error: Special Status, Missing Symbol", targetNodeID: "node-3", newStatus: "special", expectError: true, expectedErrorIs: core.ErrInvalidArgument, skipTest: false, skipReason: ""},
+		{
+			name:            "Error: Special Status, Missing Symbol",
+			targetNodeID:    "node-3",
+			newStatus:       "special",
+			expectError:     true,
+			expectedErrorIs: core.ErrValidationRequiredArgNil, // <<< FIXED EXPECTED ERROR
+			skipTest:        false,
+			skipReason:      "",
+		},
 		{name: "Error: Special Status, Invalid Symbol", targetNodeID: "node-3", newStatus: "special", specialSymbol: pstr("xx"), expectError: true, expectedErrorIs: core.ErrInvalidArgument, skipTest: false, skipReason: ""}, // <<< Use local pstr
 	}
 

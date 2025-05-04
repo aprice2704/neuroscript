@@ -1,5 +1,5 @@
 // NeuroScript Version: 0.3.0
-// Last Modified: 2025-05-02 17:39:03 PDT // Add TreeRemoveNode tool implementation
+// Last Modified: 2025-05-03 19:03:16 PM PDT // Add 'checklist_item' to allowed types in TreeAddNode
 // filename: pkg/core/tools_tree_modify.go
 
 // Package core contains core interpreter functionality, including built-in tools.
@@ -48,6 +48,7 @@ func toolTreeModifyNode(interpreter *Interpreter, args []interface{}) (interface
 	}
 
 	// Check Node Type Compatibility
+	// Updated: checklist_item nodes *can* have their value modified (represents the item text)
 	if node.Type == "object" || node.Type == "array" {
 		return nil, fmt.Errorf("%w: %s (node '%s' is type '%s')", ErrTreeCannotSetValueOnType, toolName, nodeID, node.Type)
 	}
@@ -99,6 +100,8 @@ func toolTreeSetAttribute(interpreter *Interpreter, args []interface{}) (interfa
 	}
 
 	// --- Validate Target Node Type ---
+	// This tool *remains* specific to Type: "object" nodes that map attributes to child IDs.
+	// Metadata attributes (like status for checklist items) should use TreeSetNodeMetadata.
 	if node.Type != "object" {
 		return nil, fmt.Errorf("%w: %s target node '%s' is type '%s'", ErrTreeNodeNotObject, toolName, nodeID, node.Type)
 	}
@@ -163,6 +166,7 @@ func toolTreeRemoveAttribute(interpreter *Interpreter, args []interface{}) (inte
 	}
 
 	// --- Validate Target Node Type ---
+	// This tool *remains* specific to Type: "object" nodes that map attributes to child IDs.
 	if node.Type != "object" {
 		return nil, fmt.Errorf("%w: %s target node '%s' is type '%s'", ErrTreeNodeNotObject, toolName, nodeID, node.Type)
 	}
@@ -199,12 +203,8 @@ var toolTreeAddNodeImpl = ToolImplementation{
 			{Name: "tree_handle", Type: ArgTypeString, Required: true, Description: "Handle for the tree structure."},
 			{Name: "parent_node_id", Type: ArgTypeString, Required: true, Description: "ID of the node that will become the parent."},
 			{Name: "new_node_id", Type: ArgTypeString, Required: true, Description: "Unique ID for the new node to be created."},
-			{Name: "node_type", Type: ArgTypeString, Required: true, Description: `Type of the new node (e.g., "string", "number", "boolean", "null", "object", "array").`},
-			{Name: "node_value", Type: ArgTypeAny, Required: false, Description: "Value for simple node types (string, number, boolean, null). Ignored for object/array."},
-			// Note: Adding attributes/children directly via this tool is complex.
-			// Recommend creating object/array node first, then using TreeSetAttribute/TreeAddNode recursively.
-			// {Name: "attributes", Type: ArgTypeMap, Required: false, Description: "Optional map of attribute keys to child node IDs (for type 'object')."},
-			// {Name: "child_ids", Type: ArgTypeSliceString, Required: false, Description: "Optional slice of child node IDs (for type 'array')."},
+			{Name: "node_type", Type: ArgTypeString, Required: true, Description: `Type of the new node (e.g., "string", "number", "boolean", "null", "object", "array", "checklist_item").`}, // <-- Added checklist_item to description
+			{Name: "node_value", Type: ArgTypeAny, Required: false, Description: `Value for simple node types (string, number, boolean, null, checklist_item). Ignored for object/array.`},    // <-- Added checklist_item here too
 			{Name: "index", Type: ArgTypeInt, Required: false, Description: "Optional insertion index for parent's children list (only for 'array' parents, -1 or omitted to append)."},
 		},
 		ReturnType: ArgTypeNil, // Returns nil on success
@@ -242,13 +242,24 @@ func toolTreeAddNode(interpreter *Interpreter, args []interface{}) (interface{},
 		return nil, fmt.Errorf("%w: %s 'new_node_id' cannot be empty", ErrInvalidArgument, toolName)
 	}
 	// Validate nodeType is one of the allowed types
-	allowedTypes := []string{"string", "number", "boolean", "null", "object", "array"}
+	// <<< MODIFICATION: Added "checklist_item" >>>
+	allowedTypes := []string{"string", "number", "boolean", "null", "object", "array", "checklist_item"}
 	if !slices.Contains(allowedTypes, nodeType) {
 		return nil, fmt.Errorf("%w: %s invalid 'node_type' specified: %q", ErrInvalidArgument, toolName, nodeType)
 	}
+	// --- End Modification ---
+
+	// Value is valid for checklist_item (text), string, number, boolean, null
+	// Value should be ignored (and cleared) for object/array types
 	if (nodeType == "object" || nodeType == "array") && nodeValue != nil {
 		interpreter.Logger().Warn("node_value provided but ignored for object/array type", "tool", toolName, "nodeType", nodeType)
 		nodeValue = nil // Ensure value is nil for complex types
+	}
+	// Ensure checklist_item value is a string if provided (it represents the text)
+	if nodeType == "checklist_item" && nodeValue != nil {
+		if _, ok := nodeValue.(string); !ok {
+			return nil, fmt.Errorf("%w: %s 'node_value' must be a string for type 'checklist_item', got %T", ErrInvalidArgument, toolName, nodeValue)
+		}
 	}
 
 	// --- Get Tree and Parent Node ---
@@ -263,12 +274,13 @@ func toolTreeAddNode(interpreter *Interpreter, args []interface{}) (interface{},
 	}
 
 	// --- Create New Node ---
+	// For checklist_item, Value holds the text, Attributes will hold status etc. (via metadata tools)
 	newNode := &GenericTreeNode{
 		ID:         newNodeID,
 		Type:       nodeType,
-		Value:      nodeValue,               // Will be nil for object/array
-		Attributes: make(map[string]string), // Initialize even if object type
-		ChildIDs:   make([]string, 0),       // Initialize even if array type
+		Value:      nodeValue,               // Can be set for checklist_item
+		Attributes: make(map[string]string), // Initialize always
+		ChildIDs:   make([]string, 0),       // Initialize always
 		ParentID:   parentID,
 		Tree:       tree, // Back-pointer
 	}
@@ -284,12 +296,8 @@ func toolTreeAddNode(interpreter *Interpreter, args []interface{}) (interface{},
 	if parentNode.Type == "array" && index >= 0 {
 		// Insert at index for array parent
 		if index > len(parentNode.ChildIDs) {
-			// Treat out-of-bounds index as append for robustness? Or error?
-			// Let's error for now to be strict.
+			// Error on out-of-bounds index
 			return nil, fmt.Errorf("%w: %s index %d out of bounds for parent array (len %d)", ErrListIndexOutOfBounds, toolName, index, len(parentNode.ChildIDs))
-			// OR: append instead:
-			// parentNode.ChildIDs = append(parentNode.ChildIDs, newNodeID)
-			// interpreter.Logger().Warn("Index out of bounds, appending instead.", "tool", toolName, "index", index, "len", len(parentNode.ChildIDs))
 		} else {
 			// Use slices.Insert
 			parentNode.ChildIDs = slices.Insert(parentNode.ChildIDs, index, newNodeID)
@@ -357,10 +365,16 @@ func toolTreeRemoveNode(interpreter *Interpreter, args []interface{}) (interface
 	}
 
 	// --- Remove from Parent ---
+	// Note: This helper assumes children are stored in ChildIDs.
+	// If parent is an 'object' node, this node ID might be referenced in Attributes.
+	// TreeRemoveNode should perhaps also check parent Attributes if parent is 'object'?
+	// For now, it only removes from ChildIDs slice.
+	// The new Metadata tools don't store children in attributes, only the core TreeSetAttribute does.
+	// So, for the purpose of removing child nodes, checking ChildIDs should suffice.
 	removedFromParent := removeChildFromParent(parentNode, nodeID)
 	if !removedFromParent {
 		// Log this inconsistency, but proceed with removing the node from the map anyway
-		interpreter.Logger().Warn("Node to remove was not found in its parent's children/attributes list.",
+		interpreter.Logger().Warn("Node to remove was not found in its parent's ChildIDs list.",
 			"tool", toolName, "nodeId", nodeID, "parentId", parentNode.ID)
 	}
 

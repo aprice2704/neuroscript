@@ -1,5 +1,5 @@
 // NeuroScript Version: 0.3.0
-// Last Modified: 2025-05-03 15:38:29 PM PDT
+// Last Modified: 2025-05-03 19:20:38 PM PDT // Enforce type check before removing
 // filename: pkg/neurodata/checklist/checklist_tool_remove.go
 package checklist
 
@@ -31,10 +31,10 @@ func toolChecklistRemoveItem(interpreter *core.Interpreter, args []interface{}) 
 		return nil, fmt.Errorf("%w: %s 'nodeId' cannot be empty", core.ErrValidationRequiredArgNil, toolName)
 	}
 
-	// 2. Get Tree (needed to check if removing root)
+	// 2. Get Tree and Node
 	treeObj, err := interpreter.GetHandleValue(handleID, core.GenericTreeHandleType)
 	if err != nil {
-		return nil, fmt.Errorf("%s failed getting handle %q: %w", toolName, handleID, err) // Let GetHandleValue handle specifics
+		return nil, fmt.Errorf("%s failed getting handle %q: %w", toolName, handleID, err)
 	}
 	tree, ok := treeObj.(*core.GenericTree)
 	if !ok || tree == nil || tree.NodeMap == nil || tree.RootID == "" {
@@ -43,24 +43,23 @@ func toolChecklistRemoveItem(interpreter *core.Interpreter, args []interface{}) 
 
 	// 3. Prevent removing the root node
 	if nodeID == tree.RootID {
-		// Use ErrCannotRemoveRoot directly if appropriate, otherwise wrap InvalidArgument
-		// Let's wrap InvalidArgument as it's a user-provided ID constraint violation
 		return nil, fmt.Errorf("%w: %s cannot remove the root node ('%s') of the checklist tree", core.ErrInvalidArgument, toolName, nodeID)
 	}
 
-	// 4. Check if node exists before attempting removal (TreeRemoveNode might do this, but explicit check is clearer)
+	// 4. Check if node exists and is a checklist_item
 	targetNode, exists := tree.NodeMap[nodeID]
 	if !exists {
 		return nil, fmt.Errorf("%w: %s node ID %q not found in tree handle %q", core.ErrNotFound, toolName, nodeID, handleID)
 	}
-	// Optional: Check if it's actually a checklist_item? TreeRemoveNode doesn't care, but maybe we should?
+
+	// <<< MODIFICATION: Enforce type check >>>
 	if targetNode.Type != "checklist_item" {
-		logger.Warn("Attempting to remove a non-checklist_item node from checklist tree", "tool", toolName, "nodeId", nodeID, "nodeType", targetNode.Type)
-		// Proceed anyway, TreeRemoveNode will handle it generically.
+		// Return error instead of just warning
+		return nil, fmt.Errorf("%w: %s node %q has type %q, expected 'checklist_item'", core.ErrInvalidArgument, toolName, nodeID, targetNode.Type)
 	}
+	// --- End Modification ---
 
 	// 5. Call the Core TreeRemoveNode Tool
-	// We need to get the tool implementation from the registry
 	removeToolImpl, found := interpreter.ToolRegistry().GetTool("TreeRemoveNode")
 	if !found || removeToolImpl.Func == nil {
 		logger.Error("Core tool 'TreeRemoveNode' not found in registry", "tool", toolName)
@@ -72,7 +71,6 @@ func toolChecklistRemoveItem(interpreter *core.Interpreter, args []interface{}) 
 
 	// 6. Handle errors from TreeRemoveNode
 	if removeErr != nil {
-		// Wrap errors from the core tool
 		logger.Error("TreeRemoveNode failed", "tool", toolName, "handle", handleID, "nodeId", nodeID, "error", removeErr)
 		// Map specific core errors if needed, otherwise wrap as internal or invalid argument
 		if errors.Is(removeErr, core.ErrNotFound) {
@@ -83,15 +81,17 @@ func toolChecklistRemoveItem(interpreter *core.Interpreter, args []interface{}) 
 			// Should have been caught above
 			return nil, fmt.Errorf("%w: %s cannot remove root node (reported by TreeRemoveNode)", core.ErrInvalidArgument, toolName)
 		}
-		// Assume other errors might indicate issues with the arguments or internal state
+		// Check for internal tool errors from core
+		if errors.Is(removeErr, core.ErrInternalTool) {
+			return nil, fmt.Errorf("%w: %s internal error removing node %q: %w", core.ErrInternal, toolName, nodeID, removeErr)
+		}
+		// Assume other errors might indicate issues with the arguments
 		return nil, fmt.Errorf("%w: %s failed to remove node %q: %w", core.ErrInvalidArgument, toolName, nodeID, removeErr)
 	}
 
 	logger.Debug("Successfully removed node using TreeRemoveNode", "tool", toolName, "handle", handleID, "nodeId", nodeID)
 
-	// 7. Trigger status update automatically? Or require explicit call?
-	// Let's require an explicit call to Checklist.UpdateStatus afterwards for consistency.
-	// If automatic update is desired, call toolChecklistUpdateStatus here.
+	// Note: Automatic status update requires explicit call to Checklist.UpdateStatus
 
 	return nil, nil // Success
 }
