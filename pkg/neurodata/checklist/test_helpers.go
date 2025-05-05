@@ -6,6 +6,7 @@ package checklist
 import (
 	"errors"
 	"fmt"
+	"os"
 
 	// "log/slog" // No longer needed directly here
 	// "os"       // No longer needed directly here
@@ -13,6 +14,7 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/adapters"
 	"github.com/aprice2704/neuroscript/pkg/core"
+	"github.com/aprice2704/neuroscript/pkg/logging"
 
 	// "github.com/aprice2704/neuroscript/pkg/logging" // No longer needed directly here
 	"github.com/aprice2704/neuroscript/pkg/toolsets"
@@ -25,8 +27,7 @@ func newTestInterpreterWithAllTools(t *testing.T) (*core.Interpreter, *core.Tool
 
 	tempDir := t.TempDir()
 
-	// <<< FIX: Use SimpleTestLogger from adapters >>>
-	logger := adapters.SimpleTestLogger() // Returns *SlogAdapter which implements logging.Logger
+	logger, _ := adapters.NewSimpleSlogAdapter(os.Stderr, logging.LogLevelDebug)
 	if logger == nil {
 		// SimpleTestLogger should panic internally if it fails, but defensive check
 		t.Fatalf("Setup Error: Failed to create logger using SimpleTestLogger")

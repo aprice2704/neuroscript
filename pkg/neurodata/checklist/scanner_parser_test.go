@@ -9,9 +9,14 @@ import (
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/adapters"
+	"github.com/aprice2704/neuroscript/pkg/logging"
 )
 
-var testlogger = adapters.SimpleTestLogger()
+var testLogger *adapters.SlogAdapter
+
+func init() {
+	testLogger, _ = adapters.NewSimpleSlogAdapter(os.Stderr, logging.LogLevelDebug)
+}
 
 // Helper to compare Checklists, ignoring line numbers
 func checklistsEqual(t *testing.T, got, want *ParsedChecklist) bool {
@@ -257,7 +262,7 @@ func TestParseChecklistScannerFixtures(t *testing.T) {
 
 			// Parse Content
 			content := string(contentBytes)
-			got, parseErr := ParseChecklist(content, testlogger)
+			got, parseErr := ParseChecklist(content, testLogger)
 
 			// Check Parse Error Expectation
 			if tt.wantParseErr {

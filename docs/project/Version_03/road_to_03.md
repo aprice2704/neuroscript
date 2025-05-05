@@ -34,9 +34,9 @@
      * [x] Formatting/Imports: `GoFmt`, `GoImports`. (DONE)
      * [x] Execution: `GoTest`, `GoBuild`. (DONE)
      * [x] Basic Listing: `GoListPackages`, `GoCheck`. (DONE)
-     * [ ] Diagnostics: Implement `GoVet`, `GoLint` (or similar static analysis) tools. **(NEW - Vision #11)**
+     * [x] Diagnostics: Implement `GoVet`, `GoLint` (or similar static analysis) tools.
      * [ ] Code Indexing & Search:
-         * [ ] Implement `GoIndexCode` tool (using `go/packages`?) to build a semantic index. **(NEW - Vision #5, #9)**
+         * [ ] Implement `GoIndexCode` tool (using `go/packages`?) to build a semantic index.
          * [ ] Enhance/replace `GoFindIdentifiers` to use index for faster/better search.
          * [ ] Implement `GoFindDeclarations` tool (using index/AST).
          * [ ] Implement `GoFindUsages` tool (using index/AST).
@@ -59,41 +59,38 @@
      - [x] Implement `TreeGetParent`. (DONE)
      - [x] Implement `TreeFormatJSON`. (DONE)
      - [x] Implement `TreeRenderText`. (DONE)
-     - [ ] Implement `TreeFromGoAST` adapter tool.
-     - [x] Implement `TreeFindNodes` (querying based on type/value/attributes). **(Prerequisite for Checklist Updates)** (DONE)
-     - [x] Implement Tree Modification Tools: **(Prerequisite for Checklist Updates)** (DONE)
+     - [x] Implement `TreeFindNodes` (querying based on type/value/attributes).
+     - [x] Implement Tree Modification Tools:
          - [x] `TreeModifyNode` (basic Value modify)
          - [x] `TreeSetAttribute`
          - [x] `TreeRemoveAttribute`
          - [x] `TreeAddNode`
          - [x] `TreeRemoveNode`
          - [ ] Array modification tools? (`TreeAppendChild`, `TreeRemoveChild`, etc.) (Optional/Lower priority for now)
-     - [ ] Implement `TreeLoadXML`?
  
  - [ ] 5. Filesystem / OS / Version Control Tools
      - [x] Basic FS: Read/Write/Stat/Delete/ListDir/WalkDir/MkdirAll (`FS.*`). (Existing)
      - [x] Hashing: `FS.Hash`. (Existing)
      - [x] Command Execution: `Shell.ExecuteCommand`. (Existing)
      - [x] Basic Git: `Git.Status`. (Existing)
-     - [ ] Enhanced Git: Add `Git.Branch`, `Git.Checkout`, `Git.Commit`, `Git.Push`, `Git.Diff`. **(NEW - Vision #3)**
-     - [ ] Diff/Patching: Add `FS.DiffFiles`, potentially `NSPatch.Apply` tool. **(NEW - Vision Implied)**
+     - [ ] Enhanced Git: Add `Git.Branch`, `Git.Checkout`, `Git.Commit`, `Git.Push`, `Git.Diff`.
+     - [ ] Diff/Patching: Add `FS.DiffFiles`, potentially `NSPatch.Apply` tool.
      - [ ] FileAPI Review: Ensure consistency/no overlap between `FS.*` tools and direct `FileAPI`.
-     - [ ] `ng` -> FileAPI Sync: Design and implement mechanism/tools. **(NEW - Vision #10)**
-     - [ ] Build Artifacts: Review `GoBuild` output handling; add tools if needed (e.g., `FS.Copy`, retrieve artifacts). **(NEW - Vision Implied)**
+     - [ ] `ng` -> FileAPI Sync: Design and implement mechanism/tools.
+     - [ ] Build Artifacts: Review `GoBuild` output handling; add tools if needed (e.g., `FS.Copy`, retrieve artifacts).
  
  - [ ] 6. Tooling & Ecosystem
      - [ ] Documentation: Update tool docs, checklists to reflect new tools/status.
      - [ ] Formatting: Begin development of `nsfmt` formatting tool for `.ns` files.
-     - [ ] Workflow Test: Create end-to-end test script simulating SAI interaction (upload, read, modify, build, test). **(Refined - Vision #6)**
-     - [ ] Checklist Tooling (**using Tree Tools**): **(NEW - Vision #13)**
+     - [ ] Workflow Test: Create end-to-end test script simulating SAI interaction (upload, read, modify, build, test).
+     - [x] Checklist Tooling (**using Tree Tools**):
          - [x] Implement `ParseChecklistFromString` tool (Provides initial data).
          - [x] Define Checklist <-> GenericTree representation mapping.
          - [x] Implement Checklist <-> GenericTree adapter logic/tool(s).
          - [x] Define/Implement Checklist formatting/serialization logic (from Tree representation to Markdown).
          - [x] Define/Implement in-memory Checklist update logic **using Tree tools** (FindNodes, ModifyNode, etc.).
          - [x] Ensure update logic correctly recomputes status of automatic ('| |') items based on tree structure/dependencies.
-         - [ ] Define/Implement Checklist tool(s) for updates via Tree (**depends on Tree find/modify tools & adapter**).
-         - [ ] Consider optional file persistence tools (`Checklist.LoadFromFile`, `Checklist.SaveToFile`) (Lower priority).
+         - [x] Define/Implement Checklist tool(s) for updates via Tree (**depends on Tree find/modify tools & adapter**).
  
  - [ ] 7. Example App -- language flashcards *(New)*
      - [ ] Define core features (add card, review, save/load).

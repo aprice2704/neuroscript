@@ -1,33 +1,33 @@
 // internal/adapters/slogadapter/slogadapter.go
-package adapters // Note: Your previous code showed 'package adapters', ensure this is correct or adjust if needed.
+package adapters
 
 import (
 	"fmt"
+	"io"
 	"log/slog"
-	"os"
 
 	"github.com/aprice2704/neuroscript/pkg/logging"
-	// Ensure this import path matches where your interface is defined
-	// Adjusted based on previous turn
 )
 
 // SlogAdapter adapts the standard log/slog Logger to the logging.Logger interface.
 type SlogAdapter struct {
-	logger *slog.Logger
+	logger  *slog.Logger
+	handler slog.Handler
+	opts    *slog.HandlerOptions
 }
 
 // Compile-time check to ensure SlogAdapter implements the updated logging.Logger
 var _ logging.Logger = (*SlogAdapter)(nil)
 
-// NewSlogAdapter creates a new adapter instance.
-// It returns an error if the provided logger is nil.
-func NewSlogAdapter(logger *slog.Logger) (*SlogAdapter, error) {
-	if logger == nil {
-		// Decision from previous turn: Return error, do not panic here.
-		// Panic should happen in the component constructor receiving the logger.
-		return nil, fmt.Errorf("slog.Logger cannot be nil")
-	}
-	return &SlogAdapter{logger: logger}, nil
+// A simple logger to an io output and at a given level
+func NewSimpleSlogAdapter(output io.Writer, level logging.LogLevel) (*SlogAdapter, error) {
+	lv486 := new(slog.LevelVar)
+	lv486.Set(slog.LevelInfo)
+	newopts := &slog.HandlerOptions{AddSource: false, Level: lv486}
+	newhandler := slog.NewTextHandler(output, newopts)
+	newlogger := slog.New(newhandler)
+	nadapt := &SlogAdapter{logger: newlogger, handler: newhandler, opts: newopts}
+	return nadapt, nil
 }
 
 // --- Standard slog-style logging ---
@@ -56,10 +56,7 @@ func (a *SlogAdapter) Error(msg string, args ...any) {
 
 // Debugf logs a formatted message at the Debug level.
 func (a *SlogAdapter) Debugf(format string, args ...any) {
-	// Format the message using Sprintf
 	msg := fmt.Sprintf(format, args...)
-	// Pass the formatted message to the underlying logger's Debug method.
-	// Do not pass the original args... here, as slog expects key-value pairs.
 	a.logger.Debug(msg)
 }
 
@@ -81,30 +78,6 @@ func (a *SlogAdapter) Errorf(format string, args ...any) {
 	a.logger.Error(msg)
 }
 
-// --- Optional: With method ---
-/*
-func (a *SlogAdapter) With(args ...any) logging.Logger {
-	newLogger := a.logger.With(args...)
-	// Ignoring error because NewSlogAdapter only errors if logger is nil,
-	// and a.logger is guaranteed non-nil if 'a' was correctly created.
-	// If NewSlogAdapter's error conditions change, this might need adjustment.
-	newAdapter, _ := NewSlogAdapter(newLogger)
-	return newAdapter
-}
-*/
-
-// SimpleTestLogger provides a basic slog.Logger for testing purposes.
-// Logs to Stderr at Warn level with source info.
-func SimpleTestLogger() *SlogAdapter {
-	defhandlerOpts := &slog.HandlerOptions{
-		Level:     slog.LevelWarn,
-		AddSource: true, // include source file and line number
-	}
-	handler := slog.NewTextHandler(os.Stderr, defhandlerOpts) // Log to Stderr
-	s := slog.New(handler)
-	sa, err := NewSlogAdapter(s)
-	if err != nil {
-		panic("Could not init slogadapter for SimpleTestLogger")
-	}
-	return sa
+func (a *SlogAdapter) SetLevel(level logging.LogLevel) {
+	a.opts.Level.(*slog.LevelVar).Set(slog.Level(level))
 }

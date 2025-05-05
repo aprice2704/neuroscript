@@ -51,7 +51,7 @@ func registerCoreToolsInternal(registry *ToolRegistry) error {
 	// If registry has a logger:
 	// registry.interpreter.Logger().Info("Core tools registered successfully.")
 	// Otherwise, fallback or adjust as needed:
-	fmt.Println("Core tools registered successfully.")
+	// fmt.Println("Core tools registered successfully.")
 
 	return nil // Success
 }

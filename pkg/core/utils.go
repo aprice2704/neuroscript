@@ -27,6 +27,7 @@ func (l *coreNoOpLogger) Debugf(format string, args ...any) {}
 func (l *coreNoOpLogger) Infof(format string, args ...any)  {}
 func (l *coreNoOpLogger) Warnf(format string, args ...any)  {}
 func (l *coreNoOpLogger) Errorf(format string, args ...any) {}
+func (l *coreNoOpLogger) SetLevel(level logging.LogLevel)   {}
 
 // --- Type Conversion / Checking Utilities ---
 

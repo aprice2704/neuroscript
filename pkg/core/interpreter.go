@@ -80,7 +80,7 @@ func NewInterpreter(logger logging.Logger, llmClient LLMClient) *Interpreter {
 		effectiveLogger.Error("FATAL: Failed to register core tools during interpreter initialization", "error", err)
 		panic(fmt.Sprintf("FATAL: Failed to register core tools: %v", err))
 	} else {
-		effectiveLogger.Info("Core tools registered successfully.")
+		effectiveLogger.Debug("Core tools registered successfully.")
 	}
 	return interp
 }

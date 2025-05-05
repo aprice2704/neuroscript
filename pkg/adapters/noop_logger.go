@@ -44,6 +44,9 @@ func (l *NoOpLogger) Warnf(format string, args ...any) {}
 // Errorf logs a formatted error message. Does nothing in NoOpLogger.
 func (l *NoOpLogger) Errorf(format string, args ...any) {}
 
+func (a *NoOpLogger) SetLevel(level logging.LogLevel) {
+}
+
 // Note: The logging.Logger provided does not include Fatal or With methods.
 // If they were intended, the interface definition would need updating.
 // Fatal logs a fatal message and exits. Does nothing in NoOpLogger (does not exit).

@@ -10,12 +10,17 @@ import (
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/adapters"
+	"github.com/aprice2704/neuroscript/pkg/logging"
 )
 
 // Assume fixtureDir is defined in blocks_helpers.go
 // Assume helper functions minInt, compareBlockSlices are defined in blocks_helpers.go
 
-var logger = adapters.SimpleTestLogger()
+var logger *adapters.SlogAdapter
+
+func init() {
+	logger, _ = adapters.NewSimpleSlogAdapter(os.Stderr, logging.LogLevelDebug)
+}
 
 func TestExtractAllAndMetadataComplex(t *testing.T) {
 	complexFixturePath := filepath.Join(fixtureDir, "complex_blocks.md")

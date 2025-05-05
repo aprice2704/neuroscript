@@ -1,6 +1,19 @@
 // filename: pkg/logging/logger.go
 package logging
 
+import "log/slog" // Import slog for level constants mapping
+
+// LogLevel defines the severity level for logging.
+// Uses standard slog levels for compatibility.
+type LogLevel int
+
+const (
+	LogLevelDebug LogLevel = LogLevel(slog.LevelDebug) // Debug level (-4)
+	LogLevelInfo  LogLevel = LogLevel(slog.LevelInfo)  // Info level (0)
+	LogLevelWarn  LogLevel = LogLevel(slog.LevelWarn)  // Warn level (4)
+	LogLevelError LogLevel = LogLevel(slog.LevelError) // Error level (8)
+)
+
 // Logger defines a standard interface for logging operations,
 // compatible with log/slog levels and including Printf-style formatting methods.
 // This interface is defined in its own package to avoid import cycles.
@@ -16,6 +29,9 @@ type Logger interface {
 	Infof(format string, args ...any)
 	Warnf(format string, args ...any)
 	Errorf(format string, args ...any)
+
+	// --- New method to control verbosity ---
+	SetLevel(level LogLevel)
 
 	// Note: Consider adding Fatal and With if needed universally,
 	// but they were not in the last interface definition provided.
