@@ -11,14 +11,15 @@ import (
 	"strings" // Needed for path splitting
 
 	"github.com/aprice2704/neuroscript/pkg/adapters"
+	"github.com/aprice2704/neuroscript/pkg/logging"
 	nspatch "github.com/aprice2704/neuroscript/pkg/nspatch"
 )
 
 var (
 	dryRun = flag.Bool("dry", false, "Perform a dry run verification without modifying files")
 	// Define the -p flag as an integer
-	pLevel = flag.Int("p", 0, "Strip <p> leading path components (e.g., -p1)")
-	logger = adapters.SimpleTestLogger()
+	pLevel    = flag.Int("p", 0, "Strip <p> leading path components (e.g., -p1)")
+	logger, _ = adapters.NewSimpleSlogAdapter(os.Stderr, logging.LogLevelError)
 )
 
 // stripPrefixComponents removes the first 'level' path components from a path string.

@@ -1,5 +1,5 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.0.2 // Fix compile errors: Use NewSimpleSlogAdapter and interpreter.ExecuteTool.
+// File version: 0.0.3 // Fix compile errors: Use NewSimpleSlogAdapter and direct tool func call.
 // Test file for GeneratePatch tool.
 // filename: pkg/nspatch/tools_generate_test.go
 
@@ -7,7 +7,8 @@ package nspatch_test // Use _test package convention
 
 import (
 	"errors" // Needed by helper
-	"io"     // Needed by helper
+	// Needed for error formatting
+	"io" // Needed by helper
 	"reflect"
 	"sort"
 	"strings"
@@ -66,14 +67,13 @@ func sortPatchMaps(results []interface{}) {
 func TestGeneratePatch(t *testing.T) {
 	// --- Test Setup ---
 	// Use SimpleSlogAdapter as confirmed available
-	// *** FIXED: Use correct constructor name ***
 	logger, err := adapters.NewSimpleSlogAdapter(TestingTBLogWriter(t), logging.LogLevelDebug) // Use test helper for output
 	if err != nil {
 		t.Fatalf("Failed to create logger: %v", err)
 	}
 	logger.Debug("Test logger initialized")
 
-	llmClient := adapters.NewNoOpLLMClient()
+	llmClient := adapters.NewNoOpLLMClient() // Pass logger if constructor accepts it
 	// Sandbox directory is irrelevant for this tool
 	interpreter, err := core.NewInterpreter(logger, llmClient, ".", nil) // Use "." as dummy sandbox
 	if err != nil {
@@ -82,7 +82,6 @@ func TestGeneratePatch(t *testing.T) {
 
 	// Manually register the tool under test
 	registry := interpreter.ToolRegistry()
-	// Assuming toolGeneratePatchImpl is accessible or RegisterNsPatchTools exists and works
 	err = nspatch.RegisterNsPatchTools(registry) // Call the registration func directly
 	if err != nil {
 		t.Fatalf("Failed to register nspatch tools: %v", err)
@@ -234,6 +233,7 @@ func TestGeneratePatch(t *testing.T) {
 	}
 
 	// --- Run Tests ---
+	toolName := "GeneratePatch" // Tool name used in registration and retrieval
 	for _, tc := range testCases {
 		tc := tc // Capture range variable
 		t.Run(tc.name, func(t *testing.T) {
@@ -243,25 +243,36 @@ func TestGeneratePatch(t *testing.T) {
 			// Prepare arguments, handle nil path explicitly
 			args := []interface{}{tc.original, tc.modified, tc.path}
 
-			// *** FIXED: Execute tool via interpreter ***
-			result, runErr := interpreter.ExecuteTool("GeneratePatch", args)
+			// *** FIXED: Execute tool by retrieving from registry and calling Func ***
+			registry := interpreter.ToolRegistry()
+			toolImpl, found := registry.GetTool(toolName)
+			if !found {
+				t.Fatalf("Tool '%s' not found in registry", toolName)
+			}
+
+			result, runErr := toolImpl.Func(interpreter, args) // Call the tool's function directly
 
 			// --- Error Checking ---
 			if tc.wantErr != nil {
 				if runErr == nil {
 					t.Errorf("Expected error %v, but got nil", tc.wantErr)
-				} else if !errors.Is(runErr, tc.wantErr) { // Use errors.Is for potential wrapping
-					// Allow ErrInvalidArgument wrapping the specific semantic error
-					isCorrectError := errors.Is(runErr, core.ErrInvalidArgument) && strings.Contains(runErr.Error(), tc.wantErr.Error())
-					if !isCorrectError {
-						t.Errorf("Expected error wrapping %q, but got %q", tc.wantErr, runErr)
+				} else {
+					// Check if the specific error is wrapped or is the direct cause
+					// For tool execution, often check for core.ErrInvalidArgument or specific tool errors
+					underlyingErr := tc.wantErr
+					if !errors.Is(runErr, underlyingErr) {
+						// Allow checking for specific argument errors wrapped by ErrInvalidArgument
+						if !(errors.Is(runErr, core.ErrInvalidArgument) && strings.Contains(runErr.Error(), underlyingErr.Error())) {
+							t.Errorf("Expected error wrapping %q, but got %q", underlyingErr, runErr)
+						}
 					}
 				}
 				// Don't check result if error was expected
 				return
 			}
 			if runErr != nil {
-				t.Fatalf("Did not expect error, but got: %v", runErr)
+				// Use %+v for potentially more detailed error stack if available
+				t.Fatalf("Did not expect error, but got: %+v", runErr)
 			}
 
 			// --- Result Comparison ---
@@ -283,6 +294,9 @@ func TestGeneratePatch(t *testing.T) {
 			// Compare using reflect.DeepEqual
 			if !reflect.DeepEqual(actualResults, wantResultInterfaces) {
 				t.Errorf("Result mismatch:\nExpected: %#v\nGot:      %#v", wantResultInterfaces, actualResults)
+				// Optionally print diffs if useful
+				// diff := cmp.Diff(wantResultInterfaces, actualResults)
+				// t.Errorf("Diff (-want +got):\n%s", diff)
 			}
 		})
 	}
@@ -292,7 +306,7 @@ func TestGeneratePatch(t *testing.T) {
 type tbLogWriter struct{ t testing.TB }
 
 func (w tbLogWriter) Write(p []byte) (n int, err error) {
-	w.t.Log(string(p)) // Use t.Log to integrate with test output
+	w.t.Logf("%s", p) // Use t.Logf with %s to ensure output is treated as a single log line
 	return len(p), nil
 }
 

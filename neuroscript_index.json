@@ -212,13 +212,16 @@
             {
               "Receiver": "*NoOpLogger",
               "Name": "Errorf"
+            },
+            {
+              "Receiver": "*NoOpLogger",
+              "Name": "SetLevel"
             }
           ]
         },
         "pkg/adapters/slogadapter.go": {
           "functions": [
-            "NewSlogAdapter",
-            "SimpleTestLogger"
+            "NewSimpleSlogAdapter"
           ],
           "methods": [
             {
@@ -275,6 +278,14 @@
               "Name": "Errorf",
               "calls": [
                 "a.logger.Error(?)"
+              ]
+            },
+            {
+              "Receiver": "*SlogAdapter",
+              "Name": "SetLevel",
+              "calls": [
+                "a.opts.Level.(*slog.LevelVar).Set(?)",
+                "log/slog.Level"
               ]
             }
           ]
@@ -1480,7 +1491,6 @@
         "pkg/core/conversation.go": {
           "functions": [
             "NewConversationManager",
-            "CreateErrorFunctionResultPart",
             "parseSafetySettings"
           ],
           "methods": [
@@ -1516,14 +1526,6 @@
               "Name": "AddFunctionCallMessage",
               "calls": [
                 "cm.logger.Info(?)"
-              ]
-            },
-            {
-              "Receiver": "*ConversationManager",
-              "Name": "AddFunctionResponse",
-              "calls": [
-                "cm.logger.Warn(?)",
-                "cm.AddFunctionResultMessage(?)"
               ]
             },
             {
@@ -1877,29 +1879,33 @@
               "Receiver": "*TestLogger",
               "Name": "Debug",
               "calls": [
-                "l.t.Log(?)"
+                "l.t.Logf(?)"
               ]
             },
             {
               "Receiver": "*TestLogger",
               "Name": "Info",
               "calls": [
-                "l.t.Log(?)"
+                "l.t.Logf(?)"
               ]
             },
             {
               "Receiver": "*TestLogger",
               "Name": "Warn",
               "calls": [
-                "l.t.Log(?)"
+                "l.t.Logf(?)"
               ]
             },
             {
               "Receiver": "*TestLogger",
               "Name": "Error",
               "calls": [
-                "l.t.Log(?)"
+                "l.t.Logf(?)"
               ]
+            },
+            {
+              "Receiver": "*TestLogger",
+              "Name": "SetLevel"
             },
             {
               "Receiver": "*TestLogger",
@@ -1952,10 +1958,18 @@
               "Receiver": "*Interpreter",
               "Name": "SetSandboxDir",
               "calls": [
+                "i.Logger().Debug(?)",
+                "i.Logger(?)",
                 "i.Logger().Warn(?)",
+                "i.Logger(?)",
+                "i.Logger().Error(?)",
+                "i.Logger(?)",
+                "i.Logger().Info(?)",
                 "i.Logger(?)",
                 "NewFileAPI",
                 "i.Logger().Info(?)",
+                "i.Logger(?)",
+                "i.Logger().Debug(?)",
                 "i.Logger(?)"
               ]
             },
@@ -1964,6 +1978,7 @@
               "Name": "SetToolRegistry",
               "calls": [
                 "i.logger.Error(?)",
+                "i.logger.Warn(?)",
                 "i.logger.Info(?)"
               ]
             },
@@ -2051,7 +2066,7 @@
               "calls": [
                 "i.Logger().Info(?)",
                 "i.Logger(?)",
-                "func() {\n\tif r := recover(); r != nil {\n\t\terr = fmt.Errorf(\"panic occurred during procedure '%s': %v\", procName, r)\n\t\ti.Logger().Error(\"Panic recovered during procedure execution\", \"proc_name\", procName, \"panic_value\", r)\n\t}\n\ti.currentProcName = originalProcName\n\tlogArgs := []any{\"proc_name\", procName, \"restored_proc_name\", i.currentProcName, \"result\", result, \"result_type\", fmt.Sprintf(\"%T\", result), \"error\", err}\n\ti.Logger().Info(\"Finished procedure.\", logArgs...)\n}(?)",
+                "func() {\n\tif r := recover(); r != nil {\n\t\terr = fmt.Errorf(\"panic occurred during procedure '%s': %v\", procName, r)\n\t\ti.Logger().Error(\"Panic recovered during procedure execution\", \"proc_name\", procName, \"panic_value\", r)\n\t\tresult = nil\n\t}\n\ti.currentProcName = originalProcName\n\tlogArgs := []any{\"proc_name\", procName, \"restored_proc_name\", i.currentProcName, \"result_type\", fmt.Sprintf(\"%T\", result), \"error\", err}\n\ti.Logger().Info(\"Finished procedure.\", logArgs...)\n}(?)",
                 "i.Logger().Error(?)",
                 "i.Logger(?)",
                 "i.Logger().Info(?)",
@@ -2062,15 +2077,13 @@
                 "i.Logger(?)",
                 "i.Logger().Warn(?)",
                 "i.Logger(?)",
-                "func() {\n\ti.variables = originalScope\n\ti.Logger().Debug(\"Restored variable scope.\", \"proc_name\", procName)\n}(?)",
+                "func() {\n\ti.variables = originalScope\n\ti.Logger().Debug(\"Restored parent variable scope.\", \"proc_name\", procName)\n}(?)",
                 "i.Logger().Debug(?)",
                 "i.Logger(?)",
                 "i.Logger().Debug(?)",
                 "i.Logger(?)",
                 "i.SetVariable(?)",
                 "i.Logger().Error(?)",
-                "i.Logger(?)",
-                "i.Logger().Debug(?)",
                 "i.Logger(?)",
                 "i.Logger().Debug(?)",
                 "i.Logger(?)",
@@ -2236,7 +2249,7 @@
               "calls": [
                 "i.logger.Warn(?)",
                 "step.Pos.String(?)",
-                "i.toolRegistry.GetAllTools(?)",
+                "i.toolRegistry.ListTools(?)",
                 "ConvertToolSpecArgsToInputSchema",
                 "i.logger.Warn(?)",
                 "step.Pos.String(?)"
@@ -2259,7 +2272,6 @@
                 "NewRuntimeError",
                 "i.logger.Debug(?)",
                 "pos.String(?)",
-                "i.toolRegistry.GetTool(?)",
                 "i.toolRegistry.GetTool(?)",
                 "i.logger.Error(?)",
                 "pos.String(?)",
@@ -2681,13 +2693,14 @@
               "Name": "GetToolDeclarations",
               "calls": [
                 "sl.logger.Error(?)",
-                "sl.toolRegistry.GetAllTools(?)",
-                "sl.logger.Warn(?)",
-                "sl.logger.Warn(?)",
+                "sl.toolRegistry.ListTools(?)",
+                "sl.logger.Debug(?)",
+                "sl.logger.Debug(?)",
                 "argSpec.Type.ToGenaiType(?)",
                 "sl.logger.Error(?)",
+                "sl.logger.Debug(?)",
                 "sl.logger.Warn(?)",
-                "sl.logger.Warn(?)"
+                "sl.logger.Info(?)"
               ]
             },
             {
@@ -2697,7 +2710,7 @@
                 "sl.logger.Error(?)",
                 "CreateErrorFunctionResultPart",
                 "sl.ValidateToolCall(?)",
-                "sl.logger.Debug(?)",
+                "sl.logger.Warn(?)",
                 "CreateErrorFunctionResultPart",
                 "sl.toolRegistry.GetTool(?)",
                 "sl.logger.Error(?)",
@@ -2709,33 +2722,32 @@
                 "sl.logger.Error(?)",
                 "CreateErrorFunctionResultPart",
                 "sl.logger.Debug(?)",
-                "sl.logger.Warn(?)",
-                "sl.logger.Debug(?)"
+                "CreateSuccessFunctionResultPart"
               ]
             },
             {
               "Receiver": "*SecurityLayer",
               "Name": "ValidateToolCall",
               "calls": [
-                "sl.logger.Warn(?)",
-                "sl.logger.Warn(?)",
-                "sl.logger.Warn(?)",
+                "sl.logger.Debug(?)",
                 "sl.logger.Warn(?)",
                 "sl.logger.Warn(?)",
                 "sl.logger.Warn(?)",
                 "sl.logger.Error(?)",
                 "sl.toolRegistry.GetTool(?)",
                 "sl.logger.Error(?)",
-                "sl.logger.Warn(?)",
+                "sl.logger.Debug(?)",
                 "sl.validateArgumentsAgainstSpec(?)",
                 "sl.logger.Warn(?)",
-                "sl.logger.Warn(?)"
+                "sl.logger.Debug(?)"
               ]
             }
           ]
         },
         "pkg/core/security_helpers.go": {
           "functions": [
+            "CreateErrorFunctionResultPart",
+            "CreateSuccessFunctionResultPart",
             "GetSandboxPath",
             "IsPathInSandbox",
             "ResolveAndSecurePath"
@@ -2825,6 +2837,13 @@
           "methods": []
         },
         "pkg/core/testing_helpers_test.go": {
+          "methods": []
+        },
+        "pkg/core/tool_go_diagnostics.go": {
+          "functions": [
+            "toolGoVet",
+            "toolStaticcheck"
+          ],
           "methods": []
         },
         "pkg/core/tools_file_api.go": {
@@ -3043,6 +3062,12 @@
           ],
           "methods": []
         },
+        "pkg/core/tools_go_diagnostics_test.go": {
+          "functions": [
+            "TestGoDiagnosticTools"
+          ],
+          "methods": []
+        },
         "pkg/core/tools_go_execution.go": {
           "functions": [
             "toolGoBuild",
@@ -3051,6 +3076,36 @@
             "toolGoModTidy",
             "toolGoListPackages",
             "executeGoCommandHelper"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_go_find_declarations.go": {
+          "functions": [
+            "toolGoFindDeclarations",
+            "findPosInFileSet",
+            "getObjectKind"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_go_find_declarations_test.go": {
+          "functions": [
+            "TestToolGoFindDeclarations"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_go_find_usages.go": {
+          "functions": [
+            "toolGoFindUsages",
+            "findIdentAndPackageAtPos"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_go_find_usages_test.go": {
+          "functions": [
+            "setupFindUsagesTest",
+            "sortResults",
+            "compareUsageResults",
+            "TestToolGoFindUsages"
           ],
           "methods": []
         },
@@ -3065,6 +3120,19 @@
           "functions": [
             "FindAndParseGoMod",
             "toolGoGetModuleInfo"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_go_semantic.go": {
+          "functions": [
+            "toolGoIndexCode"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_go_semantic_test.go": {
+          "functions": [
+            "setupIndexForTest",
+            "TestToolGoIndexCode"
           ],
           "methods": []
         },
@@ -3183,20 +3251,34 @@
         },
         "pkg/core/tools_registry.go": {
           "functions": [
+            "AddToolImplementations",
             "NewToolRegistry"
           ],
           "methods": [
             {
               "Receiver": "*ToolRegistry",
-              "Name": "RegisterTool"
+              "Name": "RegisterTool",
+              "calls": [
+                "r.mu.Lock(?)",
+                "r.mu.Unlock(?)",
+                "r.interpreter.logger.Debug(?)"
+              ]
             },
             {
               "Receiver": "*ToolRegistry",
-              "Name": "GetTool"
+              "Name": "GetTool",
+              "calls": [
+                "r.mu.RLock(?)",
+                "r.mu.RUnlock(?)"
+              ]
             },
             {
               "Receiver": "*ToolRegistry",
-              "Name": "GetAllTools"
+              "Name": "ListTools",
+              "calls": [
+                "r.mu.RLock(?)",
+                "r.mu.RUnlock(?)"
+              ]
             }
           ]
         },
@@ -3273,6 +3355,14 @@
         "pkg/core/tools_tree_load.go": {
           "functions": [
             "toolTreeLoadJSON"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_tree_metadata.go": {
+          "functions": [
+            "toolTreeSetNodeMetadata",
+            "toolTreeRemoveNodeMetadata",
+            "registerTreeMetadataTools"
           ],
           "methods": []
         },
@@ -3479,6 +3569,10 @@
             {
               "Receiver": "*coreNoOpLogger",
               "Name": "Errorf"
+            },
+            {
+              "Receiver": "*coreNoOpLogger",
+              "Name": "SetLevel"
             }
           ]
         }
@@ -10481,8 +10575,8 @@
           "functions": [
             "toolGoParseFile",
             "toolGoFormatAST",
-            "registerGoAstTools",
-            "NewDefaultTestInterpreter"
+            "init",
+            "RegisterGoAstTools"
           ],
           "methods": []
         },
@@ -10496,7 +10590,19 @@
         },
         "pkg/core/tools/goast/tools_go_ast_find.go": {
           "functions": [
-            "toolGoFindIdentifiers"
+            "resolveObject",
+            "toolGoFindIdentifiers",
+            "findPosInFileSet",
+            "findIdentAndPackageAtPos"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools/goast/tools_go_ast_find_test.go": {
+          "functions": [
+            "setupFindIdentifiersTest",
+            "sortResults",
+            "compareFindIdentifierResults",
+            "TestToolGoFindIdentifiers"
           ],
           "methods": []
         },
@@ -10553,43 +10659,82 @@
         }
       }
     },
-    "pkg/interfaces": {
+    "pkg/core/tools/gosemantic": {
       "files": {
-        "pkg/interfaces/logger.go": {
-          "methods": [
-            {
-              "Receiver": "*NoOpLogger",
-              "Name": "Debug"
-            },
-            {
-              "Receiver": "*NoOpLogger",
-              "Name": "Info"
-            },
-            {
-              "Receiver": "*NoOpLogger",
-              "Name": "Warn"
-            },
-            {
-              "Receiver": "*NoOpLogger",
-              "Name": "Error"
-            },
-            {
-              "Receiver": "*NoOpLogger",
-              "Name": "Debugf"
-            },
-            {
-              "Receiver": "*NoOpLogger",
-              "Name": "Infof"
-            },
-            {
-              "Receiver": "*NoOpLogger",
-              "Name": "Warnf"
-            },
-            {
-              "Receiver": "*NoOpLogger",
-              "Name": "Errorf"
-            }
-          ]
+        "pkg/core/tools/gosemantic/errors.go": {
+          "methods": []
+        },
+        "pkg/core/tools/gosemantic/find_declarations_lc.go": {
+          "functions": [
+            "toolGoFindDeclarations"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools/gosemantic/find_declarations_query.go": {
+          "functions": [
+            "toolGoGetDeclarationOfSymbol",
+            "parseSemanticQuery",
+            "findObjectInIndex",
+            "isKind",
+            "findFieldInType",
+            "findMethodOnType",
+            "lookupMethodWithReceiver"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools/gosemantic/find_declarations_query_test.go": {
+          "functions": [
+            "TestGoGetDeclarationOfSymbol"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools/gosemantic/find_usages.go": {
+          "functions": [
+            "toolGoFindUsages"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools/gosemantic/find_usages_test.go": {
+          "functions": [
+            "sortResultsFiltered",
+            "TestGoFindUsages"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools/gosemantic/helpers.go": {
+          "functions": [
+            "getObjectKind",
+            "findPosInFileSet",
+            "findIdentAndPackageAtPos"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools/gosemantic/register.go": {
+          "functions": [
+            "init"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools/gosemantic/rename_symbol.go": {
+          "functions": [
+            "toolGoRenameSymbol",
+            "isValidGoIdentifier",
+            "filterAndRelativizePath"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools/gosemantic/rename_symbol_test.go": {
+          "functions": [
+            "sortAndFilterRenamePatches",
+            "TestGoRenameSymbol"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools/gosemantic/semantic_index.go": {
+          "functions": [
+            "toolGoIndexCode"
+          ],
+          "methods": []
         }
       }
     },
@@ -10604,6 +10749,7 @@
       "files": {
         "pkg/neurodata/blocks/blocks_complex_test.go": {
           "functions": [
+            "init",
             "TestExtractAllAndMetadataComplex"
           ],
           "methods": []
@@ -10658,9 +10804,15 @@
           ],
           "methods": []
         },
+        "pkg/neurodata/checklist/checklist_modify_tool.go": {
+          "functions": [
+            "toolChecklistSetItemStatus",
+            "registerChecklistModifyTools"
+          ],
+          "methods": []
+        },
         "pkg/neurodata/checklist/checklist_modify_tool_test.go": {
           "functions": [
-            "getNodeViaTool",
             "TestChecklistSetItemTextTool"
           ],
           "methods": []
@@ -10680,9 +10832,7 @@
         "pkg/neurodata/checklist/checklist_tool.go": {
           "functions": [
             "init",
-            "RegisterChecklistTools",
-            "toolChecklistLoadTree",
-            "toolChecklistSetItemStatus"
+            "RegisterChecklistTools"
           ],
           "methods": []
         },
@@ -10704,10 +10854,29 @@
         },
         "pkg/neurodata/checklist/checklist_tool_add_test.go": {
           "functions": [
+            "getNodeChildrenIDs",
             "TestChecklistAddItemTool",
             "TestChecklistUpdateStatusTool",
             "verifyNodeStatus",
-            "getNodeChildrenIDs"
+            "logTreeStateForDebugging"
+          ],
+          "methods": []
+        },
+        "pkg/neurodata/checklist/checklist_tool_load.go": {
+          "functions": [
+            "toolChecklistLoadTree"
+          ],
+          "methods": []
+        },
+        "pkg/neurodata/checklist/checklist_tool_remove.go": {
+          "functions": [
+            "toolChecklistRemoveItem"
+          ],
+          "methods": []
+        },
+        "pkg/neurodata/checklist/checklist_tool_remove_test.go": {
+          "functions": [
+            "TestChecklistRemoveItemTool"
           ],
           "methods": []
         },
@@ -10731,6 +10900,7 @@
         },
         "pkg/neurodata/checklist/scanner_parser_test.go": {
           "functions": [
+            "init",
             "checklistsEqual",
             "TestParseChecklistScannerFixtures"
           ],
@@ -10739,8 +10909,10 @@
         "pkg/neurodata/checklist/test_helpers.go": {
           "functions": [
             "newTestInterpreterWithAllTools",
+            "getNodeViaTool",
             "getNodeValue",
             "getNodeAttributesMap",
+            "getNodeAttributesDirectly",
             "assertNoErrorSetup",
             "assertToolFound",
             "pstr",
@@ -11678,6 +11850,37 @@
             "TestApplyPatch"
           ],
           "methods": []
+        },
+        "pkg/nspatch/register.go": {
+          "functions": [
+            "init",
+            "RegisterNsPatchTools"
+          ],
+          "methods": []
+        },
+        "pkg/nspatch/tools_generate.go": {
+          "functions": [
+            "normalizeNewlines",
+            "toolGeneratePatch"
+          ],
+          "methods": []
+        },
+        "pkg/nspatch/tools_generate_test.go": {
+          "functions": [
+            "sortPatchMaps",
+            "TestGeneratePatch",
+            "TestingTBLogWriter"
+          ],
+          "methods": [
+            {
+              "Receiver": "tbLogWriter",
+              "Name": "Write",
+              "calls": [
+                "w.t.Log(?)",
+                "string"
+              ]
+            }
+          ]
         }
       }
     },

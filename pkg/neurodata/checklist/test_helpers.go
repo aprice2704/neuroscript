@@ -33,9 +33,10 @@ func newTestInterpreterWithAllTools(t *testing.T) (*core.Interpreter, *core.Tool
 		t.Fatalf("Setup Error: Failed to create logger using SimpleTestLogger")
 	}
 
-	llmClient := adapters.NewNoOpLLMClient()
+	llmClient := core.LLMClient(adapters.NewNoOpLLMClient())
+	interp, _ := core.NewInterpreter(logger, llmClient, tempDir, nil)
 
-	registry := core.NewToolRegistry()
+	registry := core.NewToolRegistry(interp)
 
 	err := core.RegisterCoreTools(registry)
 	assertNoErrorSetup(t, err, "Failed to register core tools")
@@ -43,7 +44,6 @@ func newTestInterpreterWithAllTools(t *testing.T) (*core.Interpreter, *core.Tool
 	err = toolsets.RegisterExtendedTools(registry)
 	assertNoErrorSetup(t, err, "Failed to register extended toolsets") // Check error here
 
-	interp := core.NewInterpreter(logger, llmClient)
 	interp.SetToolRegistry(registry)
 	interp.SetSandboxDir(tempDir)
 

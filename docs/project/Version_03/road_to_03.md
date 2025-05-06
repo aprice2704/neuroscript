@@ -1,8 +1,8 @@
 :: title: NeuroScript Road to v0.3.0 Checklist
-:: version: 0.3.7
+:: version: 0.3.9
 :: id: ns-roadmap-v0.3.0
 :: status: draft
-:: description: Prioritized tasks to implement NeuroScript v0.3.0 based on design discussions and Vision (May 1, 2025).
+:: description: Prioritized tasks to implement NeuroScript v0.3.0 based on design discussions and Vision (May 5, 2025).
 
 # NeuroScript v0.3.0 Development Tasks
 
@@ -29,27 +29,27 @@ Achieve an AI-driven development loop where a Supervising AI (SAI) interacts wit
     - [ ] Investigate potential for parallel step execution? (Future/low priority)
     - [ ] Configuration: Mechanism for SAI to configure ng sandbox/tools?
 
-- [ ] 3. Core Go Tooling (Go-Specific)
+- [-] 3. Core Go Tooling (Go-Specific)
     - [x] Go Module Awareness: GoGetModuleInfo, FindAndParseGoMod helper. (DONE)
-    * [x] Formatting/Imports: GoFmt, GoImports. (DONE)
-    * [x] Execution: GoTest, GoBuild. (DONE)
-    * [x] Basic Listing: GoListPackages, GoCheck. (DONE)
-    * [x] Diagnostics: Implement GoVet, GoLint (or similar static analysis) tools.
-    * [ ] Code Indexing & Search:
-        * [x] Implement GoIndexCode tool (using go/packages?) to build a semantic index.
-        * [x] Enhance/replace GoFindIdentifiers to use index for faster/better search.
-        * [x] Implement GoFindDeclarations tool (using index/AST).
-        * [ ] Implement GoFindUsages tool (using index/AST).
-        * [ ] Handle package aliases properly in all find tools.
-    - [ ] AST Modification:
+    - [x] Formatting/Imports: GoFmt, GoImports. (DONE)
+    - [x] Execution: GoTest, GoBuild. (DONE)
+    - [x] Basic Listing: GoListPackages, GoCheck. (DONE)
+    - [x] Diagnostics: Implement GoVet, GoLint (or similar static analysis) tools.
+    - [x] Code Indexing & Search:
+        - [x] Implement GoIndexCode tool (using go/packages?) to build a semantic index.
+        - [x] Enhance/replace GoFindIdentifiers to use index for faster/better search. (Superseded by semantic tools)
+        - [x] Implement GoFindDeclarations tool (using index/AST).
+        - [x] Implement GoFindUsages tool (using index/AST).
+        - [x] Handle package aliases properly in all find tools. (Tests exist)
+    - [x] AST Modification:
         - [x] Basic Structure: Change package, Add/Remove/Replace imports, Replace pkg.Symbol. (Existing GoModifyAST)
-        * [ ] Renaming: RenameLocalVariable, RenameParameter, RenameFunction (cross-file?).
-        * [ ] Refactoring: Extract Function, Extract Variable.
-    - [ ] AST Navigation:
-        * [x] Get node info at position. (DONE: GoGetNodeInfo)
-        * [ ] Get parent node info. (GoGetNodeParent - NEXT?)
-        * [ ] Get child node info list. (GoGetNodeChildren - NEXT?)
-        * [ ] Get node siblings. (GoGetNodeSiblings?)
+        - [x] Renaming: RenameLocalVariable, RenameParameter, RenameFunction (cross-file?). (Covered by GoRenameSymbol)
+        - [ ] Refactoring: Extract Function, Extract Variable.
+    - [x] AST Navigation:
+        - [x] Get node info at position. (DONE: GoGetNodeInfo)
+        - [ ] Get parent node info. (GoGetNodeParent - NEXT?)
+        - [ ] Get child node info list. (GoGetNodeChildren - NEXT?)
+        - [ ] Get node siblings. (GoGetNodeSiblings?)
 
 - [ ] 4. Core Generic Tree Tooling
     - [x] Define GenericTree/GenericTreeNode. (DONE)
@@ -68,13 +68,18 @@ Achieve an AI-driven development loop where a Supervising AI (SAI) interacts wit
         - [x] TreeRemoveNode
         - [ ] Array modification tools? (TreeAppendChild, TreeRemoveChild, etc.) (Optional/Lower priority for now)
 
-- [ ] 5. Filesystem / OS / Version Control Tools
+- [x] 5. Filesystem / OS / Version Control Tools
     - [x] Basic FS: Read/Write/Stat/Delete/ListDir/WalkDir/MkdirAll (FS.*). (Existing)
     - [x] Hashing: FS.Hash. (Existing)
     - [x] Command Execution: Shell.ExecuteCommand. (Existing)
     - [x] Basic Git: Git.Status. (Existing)
     - [ ] Enhanced Git: Add Git.Branch, Git.Checkout, Git.Commit, Git.Push, Git.Diff.
-    - [ ] Diff/Patching: Add FS.DiffFiles, potentially NSPatch.Apply tool.
+    - [x] Diff/Patching:
+        - [x] Implement/refine NSPatch.GeneratePatch tool (line-based diff).
+        - [x] Implement NSPatch.ApplyPatch tool (validates/applies patches).
+        - [x] Define .ndpatch format (JSON list of operations used by tools).
+        - [x] Add tests for various patch scenarios (add, delete, replace, empty files).
+        - [ ] Consider FS.DiffFiles tool (or is NSPatch sufficient?).
     - [ ] FileAPI Review: Ensure consistency/no overlap between FS.* tools and direct FileAPI.
     - [ ] ng -> FileAPI Sync: Design and implement mechanism/tools.
     - [ ] Build Artifacts: Review GoBuild output handling; add tools if needed (e.g., FS.Copy, retrieve artifacts).
@@ -97,6 +102,6 @@ Achieve an AI-driven development loop where a Supervising AI (SAI) interacts wit
     - [ ] Design data structure (simple list/map, maybe JSON file).
     - [ ] Implement basic TUI or script interaction logic.
 
-- [-] 8. Language / Interpreter Polish (Internal / Done)
-    - [-] core.ToIntE undefined error fixed by adding core.ConvertToInt64E. (DONE)
-    - [-] Handle non-deterministic map iteration in tests. (DONE)
+- [x] 8. Language / Interpreter Polish (Internal / Done)
+    - [x] core.ToIntE undefined error fixed by adding core.ConvertToInt64E. (DONE)
+    - [x] Handle non-deterministic map iteration in tests. (DONE)

@@ -1,5 +1,5 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.0.2 // Redesign for line-based diff and PatchChange struct.
+// File version: 0.0.4 // Fix line numbering for inserts following deletes (replaces).
 // Implements the GeneratePatch tool using go-diff.
 // filename: pkg/nspatch/tools_generate.go
 
@@ -42,6 +42,24 @@ func normalizeNewlines(s string) string {
 	return s
 }
 
+// splitLines handles splitting text into lines, ensuring trailing newline behavior is correct.
+func splitLines(text string) []string {
+	// If empty string, return empty slice, not {""}
+	if text == "" {
+		return []string{}
+	}
+	lines := strings.Split(text, "\n")
+	// If the original text ended with \n, Split creates an extra empty string at the end.
+	// Keep it if the text was just "\n", otherwise remove it.
+	if strings.HasSuffix(text, "\n") && len(lines) > 1 {
+		lines = lines[:len(lines)-1]
+	} else if text == "\n" { // Handle the case of exactly one newline
+		lines = []string{""} // Represent a single empty line
+	}
+
+	return lines
+}
+
 // toolGeneratePatch implements the GeneratePatch tool.
 func toolGeneratePatch(interpreter *core.Interpreter, args []interface{}) (interface{}, error) {
 	logger := interpreter.Logger()
@@ -67,79 +85,83 @@ func toolGeneratePatch(interpreter *core.Interpreter, args []interface{}) (inter
 
 	logger.Debug("[TOOL-GENERATEPATCH] Request", "originalLen", len(originalContent), "modifiedLen", len(modifiedContent), "path", filePath)
 
-	// Normalize content and split into lines for line-based diff
-	// IMPORTANT: DiffLinesToChars works best if lines end consistently (e.g., with \n)
+	// Normalize content
 	normOriginal := normalizeNewlines(originalContent)
 	normModified := normalizeNewlines(modifiedContent)
 
 	// --- Diff Calculation using LinesToChars ---
 	dmp := diffmatchpatch.New()
-	// Encode lines to chars for efficient diffing
 	charsA, charsB, lineArray := dmp.DiffLinesToChars(normOriginal, normModified)
-	// Perform diff on encoded strings
-	diffs := dmp.DiffMain(charsA, charsB, false) // Use word mode? false=char mode on encoded lines
-	// Convert back to line-based diffs
+	diffs := dmp.DiffMain(charsA, charsB, false)
 	diffs = dmp.DiffCharsToLines(diffs, lineArray)
 
 	// --- Convert Diffs to PatchChange structs ---
 	patches := []PatchChange{}
-	originalLineNo := 1 // 1-based line number for PatchChange
+	currentLineNumber := 1                                               // Tracks the line number in the *original* file context
+	var lastDeleteStartLine int = -1                                     // Track the start line of the last delete block
+	var prevDiffType diffmatchpatch.Operation = diffmatchpatch.DiffEqual // Initialize previous diff type
 
 	for _, diff := range diffs {
-		// Split the text block into individual lines for processing
-		// Note: Split will produce an empty string after the last \n if the text ends with \n
-		lines := strings.Split(diff.Text, "\n")
-		// If the original diff text ended with \n, Split creates an extra empty string at the end. Remove it.
-		if strings.HasSuffix(diff.Text, "\n") && len(lines) > 0 {
-			lines = lines[:len(lines)-1]
-		}
+		lines := splitLines(diff.Text) // Use helper for splitting
 
 		switch diff.Type {
 		case diffmatchpatch.DiffEqual:
-			// For equal lines, just advance the line counter
-			originalLineNo += len(lines)
+			// For equal lines, just advance the line counter based on original lines consumed
+			currentLineNumber += len(lines)
+			lastDeleteStartLine = -1 // Reset delete tracking
 		case diffmatchpatch.DiffDelete:
 			// Generate a 'delete' operation for each line deleted
-			for _, line := range lines {
-				// Need to allocate memory for the string pointer
-				deletedLine := line
+			lastDeleteStartLine = currentLineNumber // Record where this delete block started
+			for _, lineContent := range lines {
+				deletedLine := lineContent // Allocate memory for pointer
 				patch := PatchChange{
 					Operation: "delete",
 					File:      filePath,
-					Line:      originalLineNo, // Deletes happen *at* the original line number
-					OldLine:   &deletedLine,   // Provide original line for verification
-					NewLine:   nil,            // Not applicable for delete
+					Line:      currentLineNumber, // Deletes happen *at* the current original line number
+					OldLine:   &deletedLine,
+					NewLine:   nil,
 				}
 				patches = append(patches, patch)
-				originalLineNo++ // Increment the line number *in the original file* for each deleted line
+				currentLineNumber++ // Increment original line number *after* recording the delete for that line
 			}
 		case diffmatchpatch.DiffInsert:
 			// Generate an 'insert' operation for each line inserted
-			for _, line := range lines {
-				// Need to allocate memory for the string pointer
-				insertedLine := line
+			insertTargetLine := currentLineNumber // Default: insert happens before the current line context
+
+			// *** FIXED LOGIC for REPLACES ***
+			// If this insert immediately follows a delete, the insert should target
+			// the line number where the delete *started*.
+			if prevDiffType == diffmatchpatch.DiffDelete && lastDeleteStartLine != -1 {
+				insertTargetLine = lastDeleteStartLine
+			}
+
+			for _, lineContent := range lines {
+				insertedLine := lineContent // Allocate memory for pointer
 				patch := PatchChange{
 					Operation: "insert",
 					File:      filePath,
-					Line:      originalLineNo, // Inserts happen *before* the original line number
-					OldLine:   nil,            // Not applicable for insert
+					Line:      insertTargetLine, // Use the calculated (potentially adjusted) target line
+					OldLine:   nil,
 					NewLine:   &insertedLine,
 				}
 				patches = append(patches, patch)
-				// Do *not* increment originalLineNo for inserts, as they don't consume original lines.
-				// The ApplyPatch logic needs to handle inserting before the specified original line number.
+				// Increment the target line number for the *next* inserted line within this block
+				insertTargetLine++
 			}
+			lastDeleteStartLine = -1 // Reset delete tracking after an insert
+			// *** DO NOT increment currentLineNumber here *** - Inserts don't consume original lines
 		}
+		// Update previous diff type for the next iteration
+		prevDiffType = diff.Type
 	}
 
 	// Convert []PatchChange to []interface{} of maps for tool return
 	result := make([]interface{}, len(patches))
 	for i, p := range patches {
 		patchMap := map[string]interface{}{
-			"op":   p.Operation, // Renamed from "operation"
+			"op":   p.Operation,
 			"file": p.File,
-			"line": int64(p.Line), // Use int64 for consistency
-			// Only include optional fields if they have non-nil pointers
+			"line": int64(p.Line), // Use int64
 		}
 		if p.OldLine != nil {
 			patchMap["old"] = *p.OldLine

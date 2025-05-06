@@ -273,14 +273,14 @@ func getAvailableTools(agentCtx *AgentContext, registry *core.ToolRegistry) []*g
 		return []*genai.Tool{}
 	}
 
-	allTools := registry.GetAllTools()
+	allTools := registry.ListTools()
 	genaiTools := make([]*genai.Tool, 0, len(allTools))
-	for name, toolImpl := range allTools {
+	for _, toolImpl := range allTools {
 		// Use qualified name for declaration if tools are registered/called that way
-		qualifiedName := "TOOL." + name // Assuming tools need TOOL. prefix for LLM
+		qualifiedName := "TOOL." + toolImpl.Name // Assuming tools need TOOL. prefix for LLM
 		genaiFunc := &genai.FunctionDeclaration{
 			Name:        qualifiedName,
-			Description: toolImpl.Spec.Description,
+			Description: toolImpl.Description,
 		}
 		genaiTools = append(genaiTools, &genai.Tool{
 			FunctionDeclarations: []*genai.FunctionDeclaration{genaiFunc},

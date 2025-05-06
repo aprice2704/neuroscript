@@ -97,7 +97,7 @@ func (app *App) Run(ctx context.Context) error {
 	app.Log.Info("LLM Client initialized.")
 
 	// --- Initialize Interpreter ---
-	app.interpreter = core.NewInterpreter(app.Log, app.llmClient)
+	app.interpreter, _ = core.NewInterpreter(app.Log, app.llmClient, "", nil)
 	if app.Config.SandboxDir != "" {
 		app.interpreter.SetSandboxDir(app.Config.SandboxDir)
 		app.Log.Info("Interpreter sandbox directory configured.", "path", app.Config.SandboxDir)

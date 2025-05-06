@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"log/slog"
 	"os"
 
 	// Added imports for signal and syscall for graceful shutdown context
@@ -20,17 +19,18 @@ import (
 
 // initializeLogger sets up the slog logger based on configuration strings.
 func initializeLogger(levelStr string, filePath string) (logging.Logger, error) {
-	var level slog.Level
+
+	var level logging.LogLevel
 	// Parse the log level string
 	switch levelStr {
 	case "debug":
-		level = slog.LevelDebug
+		level = logging.LogLevelDebug
 	case "info":
-		level = slog.LevelInfo
+		level = logging.LogLevelInfo
 	case "warn":
-		level = slog.LevelWarn
+		level = logging.LogLevelWarn
 	case "error":
-		level = slog.LevelError
+		level = logging.LogLevelError
 	default:
 		return nil, fmt.Errorf("invalid log level: %q", levelStr)
 	}
@@ -48,18 +48,8 @@ func initializeLogger(levelStr string, filePath string) (logging.Logger, error) 
 		output = file
 	}
 
-	// Create the slog handler (TextHandler as requested)
-	handlerOpts := &slog.HandlerOptions{
-		Level: level,
-		// AddSource: true, // Optionally add source file/line numbers
-	}
-	handler := slog.NewTextHandler(output, handlerOpts)
-
-	// Create the slog logger
-	slogLogger := slog.New(handler)
-
 	// Create the adapter
-	appLogger, err := adapters.NewSlogAdapter(slogLogger)
+	appLogger, err := adapters.NewSimpleSlogAdapter(output, level)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create logger adapter: %w", err)
 	}
