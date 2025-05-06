@@ -1,0 +1,298 @@
+// NeuroScript Version: 0.3.1
+// File version: 0.0.3
+// Fix ToolDefinition structure and remove unused logger in helper.
+// filename: pkg/core/tools_go_find_usages.go
+
+package core
+
+import (
+	"fmt"
+	"go/ast"
+	"go/token"
+	"go/types"
+	"math" // Needed for candidate selection range comparison
+	"path/filepath"
+	"strings"
+
+	"golang.org/x/tools/go/packages"
+)
+
+// Note: Renamed var to match ToolImplementation type for clarity
+var toolGoFindUsagesImpl = ToolImplementation{ // Use ToolImplementation
+	Spec: ToolSpec{ // Define the Spec field
+		Name: "GoFindUsages",
+		Description: "Finds all usage locations of a Go symbol given its definition site or any usage site. " +
+			"Requires a semantic index handle created by GoIndexCode.",
+		Args: []ArgSpec{ // Correct field name: Args
+			{Name: "handle", Type: ArgTypeString, Required: true, Description: "Handle to the semantic index (from GoIndexCode)."},
+			{Name: "path", Type: ArgTypeString, Required: true, Description: "Relative path within the indexed directory to the file containing the symbol identifier."},
+			{Name: "line", Type: ArgTypeInt, Required: true, Description: "1-based line number of the symbol identifier."},
+			{Name: "column", Type: ArgTypeInt, Required: true, Description: "1-based column number of the symbol identifier."},
+		},
+		ReturnType: ArgTypeSliceAny, // Correct field name: ReturnType. Returns a slice of maps: []map[string]interface{}
+	},
+	Func: toolGoFindUsages, // Correct field name: Func
+}
+
+// toolGoFindUsages finds all usage locations of a Go symbol identified by its position.
+// Args: handle (string), path (string), line (int64), column (int64)
+// Returns: []map[string]interface{} or nil, error
+func toolGoFindUsages(interpreter *Interpreter, args []interface{}) (interface{}, error) {
+	logger := interpreter.Logger()
+
+	// --- Argument Parsing and Validation ---
+	if len(args) != 4 {
+		return nil, fmt.Errorf("%w: GoFindUsages requires 4 arguments (handle, path, line, column)", ErrInvalidArgument)
+	}
+	handle, okH := args[0].(string)
+	pathRel, okP := args[1].(string)
+	lineRaw, okL := args[2].(int64)
+	colRaw, okC := args[3].(int64)
+
+	if !okH || !okP || !okL || !okC {
+		return nil, fmt.Errorf("%w: GoFindUsages invalid argument types (expected string, string, int64, int64)", ErrInvalidArgument)
+	}
+	if lineRaw <= 0 || colRaw <= 0 {
+		return nil, fmt.Errorf("%w: GoFindUsages line/column must be positive", ErrInvalidArgument)
+	}
+	line, col := int(lineRaw), int(colRaw)
+
+	logger.Debug("[TOOL-GOFINDUSAGES] Request", "handle", handle, "path", pathRel, "L", line, "C", col)
+
+	// --- Get Index ---
+	indexValue, err := interpreter.GetHandleValue(handle, "semantic_index")
+	if err != nil {
+		logger.Error("[TOOL-GOFINDUSAGES] Failed get handle", "handle", handle, "error", err)
+		return nil, err // Propagate handle error
+	}
+	index, ok := indexValue.(*SemanticIndex)
+	if !ok {
+		logger.Error("[TOOL-GOFINDUSAGES] Handle not *SemanticIndex", "handle", handle, "type", fmt.Sprintf("%T", indexValue))
+		return nil, fmt.Errorf("%w: handle '%s' not a SemanticIndex", ErrHandleWrongType, handle)
+	}
+	if index.Fset == nil || len(index.Packages) == 0 {
+		logger.Error("[TOOL-GOFINDUSAGES] Index FileSet nil or no packages loaded", "handle", handle)
+		return nil, fmt.Errorf("%w: index '%s' has nil FileSet or no packages", ErrInternal, handle)
+	}
+
+	// --- Resolve Path and Position for the initial identifier ---
+	absPath, pathErr := ResolveAndSecurePath(pathRel, index.LoadDir)
+	if pathErr != nil {
+		logger.Error("[TOOL-GOFINDUSAGES] Path resolve failed", "path", pathRel, "load_dir", index.LoadDir, "error", pathErr)
+		return nil, fmt.Errorf("%w: path '%s': %w", ErrInvalidPath, pathRel, pathErr)
+	}
+
+	targetPos, posErr := findPosInFileSet(index.Fset, absPath, line, col)
+	if posErr != nil {
+		logger.Error("[TOOL-GOFINDUSAGES] Error resolving target position", "path", absPath, "L", line, "C", col, "error", posErr)
+		return nil, fmt.Errorf("%w: error finding target position in fileset for %s:%d:%d: %w", ErrInternal, absPath, line, col, posErr)
+	}
+	if targetPos == token.NoPos {
+		logger.Warn("[TOOL-GOFINDUSAGES] Target position not found in FileSet", "path", absPath, "L", line, "C", col)
+		return nil, nil // Target identifier not found
+	}
+	logger.Debug("[TOOL-GOFINDUSAGES] Resolved target", "abs_path", absPath, "pos", targetPos)
+
+	// --- Find the AST Identifier and its Type Object at the target position ---
+	targetIdent, targetPkg, findErr := findIdentAndPackageAtPos(index, targetPos)
+	if findErr != nil {
+		// findIdentAndPackageAtPos logs details internally if needed
+		return nil, findErr // Propagate internal errors
+	}
+	if targetIdent == nil || targetPkg == nil || targetPkg.TypesInfo == nil {
+		logger.Warn("[TOOL-GOFINDUSAGES] Could not find identifier or package/type info at target position", "pos", targetPos)
+		return nil, nil // Target identifier not found or package info missing
+	}
+
+	targetObj := targetPkg.TypesInfo.ObjectOf(targetIdent)
+	if targetObj == nil {
+		// Attempt fallbacks if necessary, although ObjectOf is usually sufficient if ident/pkginfo are valid
+		targetObj = targetPkg.TypesInfo.Uses[targetIdent]
+		if targetObj == nil {
+			targetObj = targetPkg.TypesInfo.Defs[targetIdent]
+		}
+	}
+
+	if targetObj == nil {
+		logger.Warn("[TOOL-GOFINDUSAGES] Could not resolve type object for target identifier", "ident", targetIdent.Name, "pos", index.Fset.Position(targetIdent.Pos()))
+		return nil, nil // Cannot find usages without the defining object
+	}
+
+	// We don't want to find usages of package names themselves
+	if _, isPkgName := targetObj.(*types.PkgName); isPkgName {
+		logger.Info("[TOOL-GOFINDUSAGES] Target is a package name, skipping usage search.", "name", targetObj.Name())
+		return []map[string]interface{}{}, nil // Return empty list for package names
+	}
+
+	logger.Debug("[TOOL-GOFINDUSAGES] Found target object", "name", targetObj.Name(), "type", fmt.Sprintf("%T", targetObj), "declPos", index.Fset.Position(targetObj.Pos()))
+
+	// --- Find Usages ---
+	usages := []map[string]interface{}{} // Initialize as empty slice
+
+	for _, pkg := range index.Packages {
+		if pkg == nil || pkg.TypesInfo == nil { // Need TypesInfo for the package containing potential usages
+			continue
+		}
+
+		for _, fileNode := range pkg.Syntax {
+			if fileNode == nil {
+				continue
+			}
+			tokenFile := index.Fset.File(fileNode.Pos())
+			if tokenFile == nil {
+				continue // Skip if file info is missing
+			}
+			currentAbsPath := filepath.Clean(tokenFile.Name())
+
+			// Ensure we only process files within the original LoadDir scope
+			// (This is a safety check; packages.Load should ideally only load relevant files)
+			relCheckPath, errRelCheck := filepath.Rel(index.LoadDir, currentAbsPath)
+			if errRelCheck != nil || (strings.HasPrefix(relCheckPath, "..") && relCheckPath != "..") {
+				continue // Skip files outside the indexed directory
+			}
+
+			ast.Inspect(fileNode, func(n ast.Node) bool {
+				if n == nil {
+					return true
+				}
+
+				ident, ok := n.(*ast.Ident)
+				if !ok {
+					return true // Only interested in identifiers
+				}
+
+				// Get the object this identifier resolves to in its package context
+				usageObj := pkg.TypesInfo.ObjectOf(ident)
+
+				// Compare the object of the current identifier with the target object
+				if usageObj != nil && usageObj == targetObj {
+					// Check if this usage is the declaration itself; skip if so.
+					if ident.Pos() == targetObj.Pos() {
+						return true // Skip the declaration site
+					}
+
+					usagePosition := index.Fset.Position(ident.Pos())
+					// Re-calculate relative path for the usage location file
+					relUsagePath, errRel := filepath.Rel(index.LoadDir, currentAbsPath)
+					if errRel != nil {
+						logger.Error("[TOOL-GOFINDUSAGES] Failed to get relative path for usage file", "absPath", currentAbsPath, "loadDir", index.LoadDir, "error", errRel)
+						return true // Skip this usage
+					}
+					relUsagePath = filepath.ToSlash(relUsagePath)
+
+					// Add to results
+					usageInfo := map[string]interface{}{
+						"path":   relUsagePath,
+						"line":   int64(usagePosition.Line),
+						"column": int64(usagePosition.Column),
+						"name":   ident.Name,
+						// "snippet": "", // TODO: Optionally add a snippet later
+					}
+					usages = append(usages, usageInfo)
+					logger.Debug("[TOOL-GOFINDUSAGES] Found usage", "name", ident.Name, "path", relUsagePath, "L", usagePosition.Line, "C", usagePosition.Column)
+				}
+
+				return true // Continue inspection
+			})
+		}
+	}
+
+	logger.Info("[TOOL-GOFINDUSAGES] Search complete.", "target", targetObj.Name(), "usages_found", len(usages))
+
+	// Return the slice (will be empty if no usages found, not nil)
+	return usages, nil
+}
+
+// findIdentAndPackageAtPos (helper function - logger removed)
+func findIdentAndPackageAtPos(index *SemanticIndex, pos token.Pos) (*ast.Ident, *packages.Package, error) {
+	// logger := NewNoOpLogger() // REMOVED - No logging needed in this focused helper
+	var targetIdent *ast.Ident
+	var targetPkg *packages.Package
+	var candidateIdents []*ast.Ident
+
+	foundFileNode := false
+	for _, pkg := range index.Packages {
+		if pkg == nil {
+			continue
+		}
+
+		for _, fileNode := range pkg.Syntax {
+			if fileNode == nil {
+				continue
+			}
+
+			// Check if the position falls within this file's range
+			if pos < fileNode.Pos() || pos >= fileNode.End() {
+				continue
+			}
+
+			// Found the correct file node
+			foundFileNode = true
+			targetPkg = pkg
+
+			ast.Inspect(fileNode, func(n ast.Node) bool {
+				if n == nil {
+					return true
+				}
+
+				// Check Composite Literals specifically for type identifiers
+				if clit, ok := n.(*ast.CompositeLit); ok {
+					if typeNode := clit.Type; typeNode != nil {
+						startPos := typeNode.Pos()
+						endPos := typeNode.End()
+						if startPos.IsValid() && endPos.IsValid() && pos >= startPos && pos < endPos {
+							if typeIdent, ok := typeNode.(*ast.Ident); ok {
+								candidateIdents = append(candidateIdents, typeIdent)
+							}
+						}
+					}
+				}
+
+				// General Identifier Check
+				ident, ok := n.(*ast.Ident)
+				if !ok {
+					return true
+				}
+
+				startPos := ident.Pos()
+				endPos := ident.End()
+				if !startPos.IsValid() || !endPos.IsValid() {
+					return true
+				}
+
+				if pos >= startPos && pos < endPos {
+					candidateIdents = append(candidateIdents, ident)
+				}
+				return true
+			})
+			break // Stop file loop
+		}
+		if foundFileNode {
+			break // Stop package loop
+		}
+	}
+
+	// Select best candidate
+	if len(candidateIdents) > 0 {
+		minRange := int32(math.MaxInt32) // Use math.MaxInt32
+		for _, ident := range candidateIdents {
+			if !ident.Pos().IsValid() || !ident.End().IsValid() {
+				continue
+			}
+			currentRange := int32(ident.End() - ident.Pos())
+			if currentRange < 0 {
+				continue
+			}
+			if currentRange <= minRange { // <= prefers innermost on equal range
+				minRange = currentRange
+				targetIdent = ident
+			}
+		}
+	}
+
+	if targetIdent == nil || targetPkg == nil || targetPkg.TypesInfo == nil {
+		return nil, nil, nil // Not found or essential info missing
+	}
+
+	return targetIdent, targetPkg, nil
+}

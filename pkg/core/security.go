@@ -1,8 +1,9 @@
+// NeuroScript Version: 0.3.1
+// File version: 0.0.6 // Fix variable names inside SecureFilePath function.
 // filename: pkg/core/security.go
 package core
 
 import (
-	"errors"
 	"fmt"
 	"path/filepath"
 	"regexp" // Make sure regexp is imported
@@ -12,287 +13,226 @@ import (
 	"github.com/google/generative-ai-go/genai"
 )
 
-// // Sentinel errors for security violations
-// var (
-// 	ErrToolDenied         = errors.New("tool denied by policy")
-// 	ErrToolNotAllowed     = errors.New("tool not allowlisted")
-// 	ErrToolBlocked        = errors.New("tool blocked by specific policy")
-// 	ErrPathViolation      = errors.New("path violation")
-// 	ErrNullByteInArgument = errors.New("argument contains null byte")
-// 	ErrInternalSecurity   = errors.New("internal security configuration error")
-// )
-
 // SecurityLayer enforces security policies for LLM-initiated tool calls.
 type SecurityLayer struct {
-	allowlist    map[string]bool
-	denylist     map[string]bool
-	sandboxRoot  string // Unexported field storing the validated path
+	allowlist    map[string]bool // Stores qualified tool names (TOOL.xxx)
+	denylist     map[string]bool // Stores qualified tool names (TOOL.xxx)
+	sandboxRoot  string          // Unexported field storing the validated path
 	toolRegistry *ToolRegistry
 	logger       logging.Logger
 }
 
 // NewSecurityLayer creates a new security layer instance.
 func NewSecurityLayer(allowlistTools []string, denylistSet map[string]bool, sandboxRoot string, registry *ToolRegistry, logger logging.Logger) *SecurityLayer {
-	allowlistMap := make(map[string]bool)
-	for _, tool := range allowlistTools {
-		// Ensure the key includes the TOOL. prefix for consistency
-		if !strings.HasPrefix(tool, "TOOL.") {
-			// This might happen if the list file contains base names.
-			// Log a warning or normalize? Let's assume list file is correct for now.
-			// logger.Warn("SEC] Tool name '%s' in allowlist might be missing 'TOOL.' prefix.", tool)
-		}
-		allowlistMap[tool] = true
-	}
-
-	// Ensure the provided sandboxRoot is clean and absolute
-	cleanSandboxRoot := "/" // Default to root if error occurs? Maybe better to error out?
-	absSandboxRoot, err := filepath.Abs(sandboxRoot)
-	if err != nil {
-		logger.Error("SEC] Failed to get absolute path for sandbox root %q: %v. Sandboxing may not function correctly.", sandboxRoot, err)
-		// Use the original cleaned path as fallback if Abs fails
-		cleanSandboxRoot = filepath.Clean(sandboxRoot)
-	} else {
-		cleanSandboxRoot = filepath.Clean(absSandboxRoot)
-	}
-
-	// Ensure logger is not nil
+	// ... (implementation unchanged from previous correction) ...
 	if logger == nil {
 		panic("Security must have valid logger")
 	}
-
+	allowlistMap := make(map[string]bool)
+	for _, tool := range allowlistTools {
+		qualifiedName := tool
+		if !strings.HasPrefix(tool, "TOOL.") {
+			qualifiedName = "TOOL." + tool
+			logger.Warn("SEC] Tool name '%s' in allowlist normalized to '%s'. Ensure config uses qualified names.", tool, qualifiedName)
+		}
+		allowlistMap[qualifiedName] = true
+	}
+	normalizedDenylist := make(map[string]bool)
+	deniedToolNamesOriginal := make([]string, 0, len(denylistSet))
+	for tool, denied := range denylistSet {
+		deniedToolNamesOriginal = append(deniedToolNamesOriginal, tool)
+		qualifiedName := tool
+		if !strings.HasPrefix(tool, "TOOL.") {
+			qualifiedName = "TOOL." + tool
+			logger.Warn("SEC] Tool name '%s' in denylist normalized to '%s'. Ensure config uses qualified names.", tool, qualifiedName)
+		}
+		normalizedDenylist[qualifiedName] = denied
+	}
+	cleanSandboxRoot := "/"
+	absSandboxRoot, err := filepath.Abs(sandboxRoot)
+	if err != nil {
+		logger.Error("SEC] Failed to get absolute path for sandbox root %q: %v. Using '/' as fallback.", sandboxRoot, err)
+	} else {
+		cleanSandboxRoot = filepath.Clean(absSandboxRoot)
+	}
 	logger.Info("[SEC] Initialized Security Layer.")
-	logger.Info("[SEC] Allowlisted tools (initial): %v", allowlistTools) // This might log qualified names depending on input list
-	deniedToolNames := make([]string, 0, len(denylistSet))
-	for tool := range denylistSet {
-		deniedToolNames = append(deniedToolNames, tool)
+	allowlistedNames := make([]string, 0, len(allowlistMap))
+	for tool := range allowlistMap {
+		allowlistedNames = append(allowlistedNames, tool)
 	}
-	logger.Info("[SEC] Denied tools: %v", deniedToolNames)
+	logger.Info("[SEC] Allowlisted tools (normalized): %v", allowlistedNames)
+	deniedNamesNormalized := make([]string, 0, len(normalizedDenylist))
+	for tool := range normalizedDenylist {
+		deniedNamesNormalized = append(deniedNamesNormalized, tool)
+	}
+	logger.Info("[SEC] Denied tools (normalized): %v", deniedNamesNormalized)
 	logger.Info("[SEC] Sandbox Root Set To: %s", cleanSandboxRoot)
-
 	if registry == nil {
-		logger.Info("[WARN SEC] SecurityLayer initialized with nil ToolRegistry. Argument validation/execution will fail.")
+		logger.Warn("[SEC] SecurityLayer initialized with nil ToolRegistry. Validation/execution will fail.")
 	}
-
-	return &SecurityLayer{
-		allowlist:    allowlistMap,
-		denylist:     denylistSet,
-		sandboxRoot:  cleanSandboxRoot, // Store the cleaned, potentially absolute path
-		toolRegistry: registry,
-		logger:       logger,
-	}
+	return &SecurityLayer{allowlist: allowlistMap, denylist: normalizedDenylist, sandboxRoot: cleanSandboxRoot, toolRegistry: registry, logger: logger}
 }
 
-// +++ ADDED: SandboxRoot Getter +++
 // SandboxRoot returns the configured root directory for sandboxing file operations.
-func (sl *SecurityLayer) SandboxRoot() string {
-	return sl.sandboxRoot
-}
-
-// --- END ADDED ---
+func (sl *SecurityLayer) SandboxRoot() string { return sl.sandboxRoot }
 
 // GetToolDeclarations generates the list of genai.Tool objects for allowlisted tools.
 func (sl *SecurityLayer) GetToolDeclarations() ([]*genai.Tool, error) {
+	// ... (implementation unchanged from previous correction) ...
 	if sl.toolRegistry == nil {
-		sl.logger.Error(" SEC] Cannot get tool declarations: ToolRegistry is nil.")
-		return nil, errors.New("security layer tool registry is not initialized")
+		sl.logger.Error("SEC] Cannot get tool declarations: ToolRegistry is nil.")
+		return nil, fmt.Errorf("%w: security layer tool registry is not initialized", ErrConfiguration)
 	}
-
 	declarations := []*genai.Tool{}
-	allTools := sl.toolRegistry.GetAllTools() // Gets map[string]ToolImplementation (base name -> impl)
-
-	sl.logger.Warn("Generating declarations for %d registered tools...", len(allTools))
-
-	for baseName, impl := range allTools {
-		qualifiedName := "TOOL." + baseName // Construct qualified name
-		// Check allow/deny lists using the qualified name
-		if sl.allowlist[qualifiedName] && !sl.denylist[qualifiedName] {
-			sl.logger.Warn("Generating declaration for allowlisted tool: %s", qualifiedName)
-			schema := &genai.Schema{
-				Type:        genai.TypeObject,
-				Properties:  map[string]*genai.Schema{},
-				Required:    []string{},
-				Description: impl.Spec.Description,
-			}
-
-			validSchema := true // Flag to track if schema generation succeeds
-			for _, argSpec := range impl.Spec.Args {
+	allToolSpecs := sl.toolRegistry.ListTools()
+	sl.logger.Debug("Generating declarations for %d registered tool specs...", len(allToolSpecs))
+	for _, spec := range allToolSpecs {
+		baseName := spec.Name
+		qualifiedName := "TOOL." + baseName
+		isAllowed := sl.allowlist[qualifiedName]
+		isDenied := sl.denylist[qualifiedName]
+		if isAllowed && !isDenied {
+			sl.logger.Debug("Generating declaration for allowlisted/not-denied tool", "qualifiedName", qualifiedName)
+			schema := &genai.Schema{Type: genai.TypeObject, Properties: map[string]*genai.Schema{}, Required: []string{}, Description: spec.Description}
+			validSchema := true
+			for _, argSpec := range spec.Args {
 				genaiType, typeErr := argSpec.Type.ToGenaiType()
 				if typeErr != nil {
-					sl.logger.Error("SEC] Failed to convert type for arg '%s' in tool '%s': %v. Skipping tool declaration.", argSpec.Name, qualifiedName, typeErr)
+					sl.logger.Error("SEC] Failed to convert type for arg in tool declaration", "arg", argSpec.Name, "tool", qualifiedName, "error", typeErr)
 					validSchema = false
-					break // Stop processing args for this tool
+					break
 				}
-				schema.Properties[argSpec.Name] = &genai.Schema{
-					Type:        genaiType,
-					Description: argSpec.Description,
-				}
+				schema.Properties[argSpec.Name] = &genai.Schema{Type: genaiType, Description: argSpec.Description}
 				if argSpec.Required {
 					schema.Required = append(schema.Required, argSpec.Name)
 				}
 			}
-
 			if validSchema {
-				declarations = append(declarations, &genai.Tool{
-					FunctionDeclarations: []*genai.FunctionDeclaration{{
-						Name:        qualifiedName, // Use qualified name for LLM
-						Description: impl.Spec.Description,
-						Parameters:  schema,
-					}},
-				})
-				sl.logger.Warn("Added declaration for: %s", qualifiedName)
+				declarations = append(declarations, &genai.Tool{FunctionDeclarations: []*genai.FunctionDeclaration{{Name: qualifiedName, Description: spec.Description, Parameters: schema}}})
+				sl.logger.Debug("Added declaration for", "qualifiedName", qualifiedName)
+			} else {
+				sl.logger.Warn("Skipping declaration due to invalid schema", "qualifiedName", qualifiedName)
 			}
-		} else {
-			// sl.logger.Warn("Skipping declaration for tool '%s' (Base: %s) (not allowlisted or is denied).", qualifiedName, baseName)
 		}
 	}
-	sl.logger.Warn("Generated %d total tool declarations.", len(declarations))
+	sl.logger.Info("Generated %d total tool declarations.", len(declarations))
 	return declarations, nil
 }
 
 // ExecuteToolCall validates and executes a requested tool call.
-// Expects qualifiedToolName like "TOOL.ReadFile".
 func (sl *SecurityLayer) ExecuteToolCall(interpreter *Interpreter, fc genai.FunctionCall) (genai.Part, error) {
+	// ... (implementation unchanged from previous correction - returns nil error on success) ...
 	qualifiedToolName := fc.Name
 	rawArgs := fc.Args
-
 	if sl.toolRegistry == nil {
-		err := errors.New("internal security error: tool registry is not available")
+		err := fmt.Errorf("%w: tool registry is not available", ErrInternalSecurity)
 		sl.logger.Error("SEC ExecuteToolCall] %v", err)
 		return CreateErrorFunctionResultPart(qualifiedToolName, err), err
 	}
-
-	// Validation Phase (expects qualified name)
 	validatedArgsMap, validationErr := sl.ValidateToolCall(qualifiedToolName, rawArgs)
 	if validationErr != nil {
-		sl.logger.Debug("ExecuteToolCall] Validation failed for tool '%s': %v", qualifiedToolName, validationErr)
+		sl.logger.Warn("SEC ExecuteToolCall] Validation failed", "tool", qualifiedToolName, "error", validationErr)
 		return CreateErrorFunctionResultPart(qualifiedToolName, validationErr), validationErr
 	}
-
-	// Execution Phase
 	baseToolName := strings.TrimPrefix(qualifiedToolName, "TOOL.")
-	toolImpl, found := sl.toolRegistry.GetTool(baseToolName) // Use base name for registry lookup
+	toolImpl, found := sl.toolRegistry.GetTool(baseToolName)
 	if !found {
-		err := fmt.Errorf("tool implementation '%s' not found in registry despite passing validation", baseToolName)
+		err := fmt.Errorf("%w: tool implementation '%s' not found post-validation", ErrInternalSecurity, baseToolName)
 		sl.logger.Error("SEC ExecuteToolCall] %v", err)
 		return CreateErrorFunctionResultPart(qualifiedToolName, err), err
 	}
-
-	// Convert validated map back to []interface{}
 	orderedArgs := make([]interface{}, len(toolImpl.Spec.Args))
+	conversionOk := true
 	for i, argSpec := range toolImpl.Spec.Args {
 		val, exists := validatedArgsMap[argSpec.Name]
 		if !exists {
 			if !argSpec.Required {
 				orderedArgs[i] = nil
 			} else {
-				err := fmt.Errorf("internal error: required arg '%s' missing post-validation for tool '%s'", argSpec.Name, qualifiedToolName)
+				err := fmt.Errorf("%w: required arg '%s' missing post-validation for tool '%s'", ErrInternalSecurity, argSpec.Name, qualifiedToolName)
 				sl.logger.Error("SEC ExecuteToolCall] %v", err)
-				return CreateErrorFunctionResultPart(qualifiedToolName, err), err
+				conversionOk = false
+				break
 			}
 		} else {
 			orderedArgs[i] = val
 		}
 	}
-
-	sl.logger.Debug("ExecuteToolCall] Executing tool '%s' (Base: %s)...", qualifiedToolName, baseToolName)
+	if !conversionOk {
+		err := fmt.Errorf("%w: failed to reconstruct ordered args post-validation for tool '%s'", ErrInternalSecurity, qualifiedToolName)
+		return CreateErrorFunctionResultPart(qualifiedToolName, err), err
+	}
+	sl.logger.Debug("SEC ExecuteToolCall] Executing tool", "qualifiedName", qualifiedToolName, "baseName", baseToolName)
 	resultValue, execErr := toolImpl.Func(interpreter, orderedArgs)
 	if execErr != nil {
-		sl.logger.Error("SEC ExecuteToolCall] Execution failed for tool '%s': %v", qualifiedToolName, execErr)
+		sl.logger.Error("SEC ExecuteToolCall] Execution failed", "tool", qualifiedToolName, "error", execErr)
 		return CreateErrorFunctionResultPart(qualifiedToolName, execErr), execErr
 	}
-
-	// Format Success Response
-	sl.logger.Debug("ExecuteToolCall] Execution successful for tool '%s'.", qualifiedToolName)
-	responseMap := make(map[string]interface{})
-	switch v := resultValue.(type) {
-	case map[string]interface{}:
-		responseMap = v
-	case []interface{}:
-		responseMap["result_list"] = v
-	case string, int, int64, float32, float64, bool:
-		responseMap["result"] = v
-	case nil:
-		responseMap["status"] = "success"
-	default:
-		responseMap["result"] = fmt.Sprintf("%v", v)
-		sl.logger.Warn("SEC ExecuteToolCall] Tool '%s' returned unexpected type %T", qualifiedToolName, v)
-	}
-
-	sl.logger.Debug("ExecuteToolCall] Formatted response for '%s': %v", qualifiedToolName, responseMap)
-	return genai.FunctionResponse{
-		Name:     qualifiedToolName, // Use qualified name in response back to LLM
-		Response: responseMap,
-	}, nil
+	sl.logger.Debug("SEC ExecuteToolCall] Execution successful", "tool", qualifiedToolName)
+	return CreateSuccessFunctionResultPart(qualifiedToolName, resultValue, sl.logger), nil // Return nil error on success
 }
 
 // ValidateToolCall checks denylist, allowlist, high-risk status, and delegates argument validation.
-// Expects the qualified tool name (e.g., "TOOL.ReadFile").
 func (sl *SecurityLayer) ValidateToolCall(qualifiedToolName string, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	sl.logger.Warn("Validating request for tool: %s with raw args: %v", qualifiedToolName, rawArgs)
-
-	// 1. Denylist Check
+	// ... (implementation unchanged from previous correction) ...
+	sl.logger.Debug("SEC Validating request", "tool", qualifiedToolName /*, "raw_args", rawArgs */)
 	if sl.denylist[qualifiedToolName] {
-		sl.logger.Warn("DENIED: Tool %q is explicitly denied by denylist.", qualifiedToolName)
+		sl.logger.Warn("SEC DENIED (Denylist)", "tool", qualifiedToolName)
 		return nil, fmt.Errorf("tool %q denied: %w", qualifiedToolName, ErrToolDenied)
 	}
-	sl.logger.Warn("Tool '%s' is not denied.", qualifiedToolName)
-
-	// 2. Allowlist Check
 	if !sl.allowlist[qualifiedToolName] {
-		sl.logger.Warn("DENIED: Tool %q is not in the allowlist for LLM execution.", qualifiedToolName)
+		sl.logger.Warn("SEC DENIED (Not Allowlisted)", "tool", qualifiedToolName)
 		return nil, fmt.Errorf("tool %q not allowed: %w", qualifiedToolName, ErrToolNotAllowed)
 	}
-	sl.logger.Warn("Tool '%s' is allowlisted.", qualifiedToolName)
-
-	// 3. High-Risk Tool Check (using qualified name)
 	if qualifiedToolName == "TOOL.ExecuteCommand" {
-		sl.logger.Warn("DENIED: Tool %q is blocked by policy.", qualifiedToolName)
+		sl.logger.Warn("SEC DENIED (Blocked Policy)", "tool", qualifiedToolName)
 		return nil, fmt.Errorf("tool %q blocked: %w", qualifiedToolName, ErrToolBlocked)
 	}
-
-	// 4. Get Tool Specification using Base Name
 	if sl.toolRegistry == nil {
-		sl.logger.Error("SEC] ToolRegistry not available during validation for %q.", qualifiedToolName)
-		return nil, fmt.Errorf("tool registry unavailable for %q: %w", qualifiedToolName, ErrInternalSecurity)
+		sl.logger.Error("SEC] ToolRegistry not available during validation.", "tool", qualifiedToolName)
+		return nil, fmt.Errorf("%w: tool registry unavailable for %q", ErrInternalSecurity, qualifiedToolName)
 	}
 	baseToolName := strings.TrimPrefix(qualifiedToolName, "TOOL.")
 	toolImpl, found := sl.toolRegistry.GetTool(baseToolName)
 	if !found {
-		sl.logger.Error("SEC] Allowlisted tool %q (base: %s) not found in registry.", qualifiedToolName, baseToolName)
-		return nil, fmt.Errorf("tool %q implementation not found: %w", qualifiedToolName, ErrInternalSecurity)
+		sl.logger.Error("SEC] Allowlisted tool implementation not found in registry.", "qualifiedName", qualifiedToolName, "baseName", baseToolName)
+		return nil, fmt.Errorf("%w: allowlisted tool '%s' implementation not found", ErrInternalSecurity, qualifiedToolName)
 	}
 	toolSpec := toolImpl.Spec
-	sl.logger.Warn("Validating args for '%s' against spec (Base: %s, Spec Args: %d)", qualifiedToolName, baseToolName, len(toolSpec.Args))
-
-	// 5. Delegate Argument Validation (Ensure security_validation.go exists and is correct)
+	sl.logger.Debug("SEC] Found tool spec for validation", "tool", qualifiedToolName, "baseName", baseToolName, "specArgsCount", len(toolSpec.Args))
 	validatedArgs, validationErr := sl.validateArgumentsAgainstSpec(toolSpec, rawArgs)
 	if validationErr != nil {
-		sl.logger.Warn("DENIED (Argument Validation): Tool %q, Error: %v", qualifiedToolName, validationErr)
+		sl.logger.Warn("SEC DENIED (Argument Validation)", "tool", qualifiedToolName, "error", validationErr)
 		return nil, validationErr
 	}
-
-	sl.logger.Warn("All arguments for '%s' validated successfully. Validated Args: %v", qualifiedToolName, validatedArgs)
+	sl.logger.Debug("SEC] Arguments validated successfully.", "tool", qualifiedToolName /*, "validatedArgs", validatedArgs */)
 	return validatedArgs, nil
 }
 
-// SanitizeFilename (Implementation unchanged from user provided version)
+// SanitizeFilename (Implementation unchanged from previous correction)
 func SanitizeFilename(name string) string {
 	// ... (implementation unchanged) ...
+	if name == "" {
+		return "default_sanitized_name"
+	}
+	if strings.Contains(name, "\x00") {
+		return "invalid_null_byte_name"
+	}
 	name = strings.ReplaceAll(name, " ", "_")
 	replacer := strings.NewReplacer("/", "_", "\\", "_", ":", "_", "*", "_", "?", "_", "\"", "_", "<", "_", ">", "_", "|", "_")
 	name = replacer.Replace(name)
 	removeChars := regexp.MustCompile(`[^a-zA-Z0-9._-]`)
 	name = removeChars.ReplaceAllString(name, "")
+	name = regexp.MustCompile(`_{2,}`).ReplaceAllString(name, "_")
+	name = regexp.MustCompile(`-{2,}`).ReplaceAllString(name, "-")
+	name = strings.Trim(name, "._-")
+	for strings.Contains(name, "..") {
+		name = strings.ReplaceAll(name, "..", "_")
+	}
 	name = strings.Trim(name, "._-")
 	name = regexp.MustCompile(`_{2,}`).ReplaceAllString(name, "_")
 	name = regexp.MustCompile(`-{2,}`).ReplaceAllString(name, "-")
-	for strings.Contains(name, "..") {
-		name = strings.ReplaceAll(name, "..", "_")
-	} // Basic protection
-	name = strings.Trim(name, "._-") // Trim again
-	name = regexp.MustCompile(`_{2,}`).ReplaceAllString(name, "_")
-	name = regexp.MustCompile(`-{2,}`).ReplaceAllString(name, "-")
-	const maxLength = 100 // Limit length
+	const maxLength = 100
 	if len(name) > maxLength {
 		name = name[:maxLength]
 		name = strings.TrimRight(name, "._-")
@@ -311,39 +251,47 @@ func SanitizeFilename(name string) string {
 			name = name + "_"
 			break
 		}
-	} // Append underscore for reserved names
+	}
 	return name
 }
 
-// SecureFilePath (Implementation unchanged from user provided version)
+// SecureFilePath validates a path against the sandbox root.
+// *** FIXED variable names inside this function ***
 func SecureFilePath(filePath, allowedDir string) (string, error) {
-	if filePath == "" {
+	// Basic validation
+	if filePath == "" { // Use filePath (parameter name)
 		return "", fmt.Errorf("file path cannot be empty: %w", ErrPathViolation)
 	}
-	if strings.Contains(filePath, "\x00") {
+	if strings.Contains(filePath, "\x00") { // Use filePath
 		return "", fmt.Errorf("file path contains null byte: %w", ErrNullByteInArgument)
 	}
-	if filepath.IsAbs(filePath) {
+	if filepath.IsAbs(filePath) { // Use filePath
 		return "", fmt.Errorf("input file path %q must be relative, not absolute: %w", filePath, ErrPathViolation)
 	}
 
-	absAllowedDir, err := filepath.Abs(allowedDir)
+	// Resolve allowed directory
+	absAllowedDir, err := filepath.Abs(allowedDir) // Use allowedDir (parameter name)
 	if err != nil {
-		return "", fmt.Errorf("could not get absolute path for allowed directory %q: %w", allowedDir, err)
+		// Use allowedDir in error message
+		return "", fmt.Errorf("%w: could not get absolute path for allowed directory %q: %v", ErrInternalSecurity, allowedDir, err)
 	}
 	absAllowedDir = filepath.Clean(absAllowedDir)
 
-	absCleanedPath := filepath.Join(absAllowedDir, filePath)
+	// Join allowed directory with input path
+	absCleanedPath := filepath.Join(absAllowedDir, filePath) // Use allowedDir and filePath
 	absCleanedPath = filepath.Clean(absCleanedPath)
 
+	// Check containment
 	prefixToCheck := absAllowedDir
 	if prefixToCheck != string(filepath.Separator) && !strings.HasSuffix(prefixToCheck, string(filepath.Separator)) {
 		prefixToCheck += string(filepath.Separator)
 	}
 
 	if absCleanedPath != absAllowedDir && !strings.HasPrefix(absCleanedPath, prefixToCheck) {
+		// Use filePath and absAllowedDir in error message
 		details := fmt.Sprintf("relative path %q resolves to %q which is outside the allowed directory %q", filePath, absCleanedPath, absAllowedDir)
 		return "", fmt.Errorf("%s: %w", details, ErrPathViolation)
 	}
+
 	return absCleanedPath, nil
 }

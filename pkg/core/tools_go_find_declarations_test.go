@@ -242,7 +242,7 @@ func TestToolGoFindDeclarations(t *testing.T) {
 			name:   "Find_MyStruct_type_usage_in_composite_lit", // L16 C14 -> should find def L7 C6
 			path:   "main.go",
 			line:   16, // instance := &MyStruct{Field: 10}
-			column: 14, // Column of 'M' in MyStruct
+			column: 15, // Column of 'M' in MyStruct
 			expectedResult: map[string]interface{}{ // Keep expectation, but test might still fail here
 				"path":   "main.go",
 				"line":   int64(7),

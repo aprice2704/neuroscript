@@ -1,20 +1,22 @@
 // NeuroScript Version: 0.3.0
-// Last Modified: 2025-05-03 22:38:00 PDT // Add GoFindDeclarations tool registration
+// File version: 0.0.1 // Register GoFindUsages tool
 // filename: pkg/core/tools_go.go
 
 package core
 
 import (
 	"fmt"
-	// Keep existing imports
+	// Keep existing imports: go/token, golang.org/x/tools/go/packages etc. from sub-files assumed available
 )
 
 // registerGoTools adds Go toolchain interaction tools to the registry.
 // Includes build, format, test, diagnostics, and semantic indexing tools.
-func registerGoTools(registry *ToolRegistry) error {
+func registerGoTools(registry ToolRegistrar) error { // Changed signature to accept ToolRegistrar interface
+	// Note: ToolImplementation structs defined inline here for tools whose impl funcs
+	// are in separate files but don't have their own *_impl.go variable defined.
+	// Consider defining impl variables in respective files (e.g., toolGoBuildImpl) for consistency later.
 	tools := []ToolImplementation{
 		// --- Build / Test / Basic Commands ---
-		// ... (GoBuild, GoCheck, GoTest, GoModTidy, GoListPackages, GoGetModuleInfo specs unchanged) ...
 		{
 			Spec: ToolSpec{Name: "GoBuild", Description: "Runs 'go build [target]' within the sandbox.", Args: []ArgSpec{{Name: "target", Type: ArgTypeString, Required: false, Description: "Optional build target relative to sandbox (e.g., './cmd/app', '.'). Defaults to './...'"}}, ReturnType: ArgTypeAny},
 			Func: toolGoBuild,
@@ -41,7 +43,6 @@ func registerGoTools(registry *ToolRegistry) error {
 		},
 
 		// --- Formatting ---
-		// ... (GoFmt, GoImports specs unchanged) ...
 		{
 			Spec: ToolSpec{Name: "GoFmt", Description: "Formats Go source code provided as a string using 'gofmt'. Returns formatted string on success, map with error details on failure.", Args: []ArgSpec{{Name: "content", Type: ArgTypeString, Required: true, Description: "Go source code content as a string."}}, ReturnType: ArgTypeAny},
 			Func: toolGoFmt,
@@ -52,7 +53,6 @@ func registerGoTools(registry *ToolRegistry) error {
 		},
 
 		// --- Diagnostics ---
-		// ... (GoVet, Staticcheck specs unchanged) ...
 		{
 			Spec: ToolSpec{Name: "GoVet", Description: "Runs 'go vet [target]' within the sandbox to find possible errors and suspicious constructs.", Args: []ArgSpec{{Name: "target", Type: ArgTypeString, Required: false, Description: "Optional target relative to sandbox (e.g., './pkg/core/...', '.'). Defaults to './...'"}}, ReturnType: ArgTypeAny},
 			Func: toolGoVet,
@@ -63,7 +63,8 @@ func registerGoTools(registry *ToolRegistry) error {
 		},
 
 		// --- Semantic Indexing & Search ---
-		{
+		// Note: Using ToolImplementation variables defined in respective files where available
+		{ // Defined inline previously, keep for now unless we define toolGoIndexCodeImpl
 			Spec: ToolSpec{
 				Name:        "GoIndexCode",
 				Description: "Loads Go package information for the specified directory using 'go/packages' to build an in-memory semantic index. Returns a handle to the index.",
@@ -74,25 +75,18 @@ func registerGoTools(registry *ToolRegistry) error {
 			},
 			Func: toolGoIndexCode, // Implementation in tools_go_semantic.go
 		},
-		{ // +++ NEW GoFindDeclarations Spec +++
-			Spec: ToolSpec{
-				Name:        "GoFindDeclarations",
-				Description: "Finds the declaration location of the Go symbol at the specified file position using a semantic index handle.",
-				Args: []ArgSpec{
-					{Name: "index_handle", Type: ArgTypeString, Required: true, Description: "Handle returned by GoIndexCode."},
-					{Name: "path", Type: ArgTypeString, Required: true, Description: "File path relative to the indexed directory root."},
-					{Name: "line", Type: ArgTypeInt, Required: true, Description: "1-based line number of the symbol."},
-					{Name: "column", Type: ArgTypeInt, Required: true, Description: "1-based column number of the symbol."},
-				},
-				ReturnType: ArgTypeMap, // Returns map {path, line, column, name, kind} or nil
-			},
-			Func: toolGoFindDeclarations, // Implementation in tools_go_semantic.go
-		},
-		// Add GoFindUsages here later...
+		toolGoFindDeclarationsImpl, // Defined in tools_go_find_declarations.go
+		toolGoFindUsagesImpl,       // +++ ADDED: Defined in tools_go_find_usages.go +++
+
+		// --- AST Tools (Registered Separately) ---
+		// toolGoParseFileImpl, // Example if registered here
+		// toolGoFormatASTImpl,
+		// ... etc ...
 	}
 
 	// Register all defined tools
 	for _, tool := range tools {
+		// Basic validation before registration attempt
 		if tool.Func == nil || tool.Spec.Name == "" {
 			return fmt.Errorf("internal error: invalid Go tool definition provided for registration (tool name: %q, func defined: %t)", tool.Spec.Name, tool.Func != nil)
 		}
@@ -100,5 +94,28 @@ func registerGoTools(registry *ToolRegistry) error {
 			return fmt.Errorf("failed to register Go tool %q: %w", tool.Spec.Name, err)
 		}
 	}
+
+	// Register sub-packages of Go tools
+	// Example: err := registerGoAstTools(registry)
+	// if err != nil { return fmt.Errorf("failed to register Go AST tools: %w", err) }
+
 	return nil // Success
 }
+
+// Define other tool implementation functions (toolGoBuild, toolGoCheck, etc.) here or in separate files...
+// Ensure funcs used above (toolGoBuild, toolGoCheck, toolGoTest, toolGoModTidy,
+// toolGoListPackages, toolGoGetModuleInfo, toolGoFmt, toolGoImports, toolGoVet,
+// toolStaticcheck) are defined in this package or imported.
+
+// Dummy implementations for functions potentially defined elsewhere to allow this file to compile standalone for review
+// In the actual project, these would be defined in their respective files (e.g., tools_go_execution.go)
+// func toolGoBuild(interpreter *Interpreter, args []interface{}) (interface{}, error)           { return nil, nil }
+// func toolGoCheck(interpreter *Interpreter, args []interface{}) (interface{}, error)           { return nil, nil }
+// func toolGoTest(interpreter *Interpreter, args []interface{}) (interface{}, error)            { return nil, nil }
+// func toolGoModTidy(interpreter *Interpreter, args []interface{}) (interface{}, error)         { return nil, nil }
+// func toolGoListPackages(interpreter *Interpreter, args []interface{}) (interface{}, error)    { return nil, nil }
+// func toolGoGetModuleInfo(interpreter *Interpreter, args []interface{}) (interface{}, error)   { return nil, nil }
+// func toolGoFmt(interpreter *Interpreter, args []interface{}) (interface{}, error)             { return nil, nil }
+// func toolGoImports(interpreter *Interpreter, args []interface{}) (interface{}, error)         { return nil, nil }
+// func toolGoVet(interpreter *Interpreter, args []interface{}) (interface{}, error)             { return nil, nil }
+// func toolStaticcheck(interpreter *Interpreter, args []interface{}) (interface{}, error)       { return nil, nil }

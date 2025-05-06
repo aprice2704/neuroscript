@@ -1,5 +1,5 @@
-// NeuroScript Version: 0.3.0
-// Last Modified: 2025-05-01 20:06:00 PDT // Updated timestamp
+// NeuroScript Version: 0.3.1
+// File version: 0.0.2 // Add CreateSuccessFunctionResultPart
 // filename: pkg/core/security_helpers.go
 package core
 
@@ -8,15 +8,85 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
-	// "os" // Not strictly needed for path manipulation/checks
+
+	"github.com/aprice2704/neuroscript/pkg/logging" // Needed for logger in CreateSuccess
+	"github.com/google/generative-ai-go/genai"      // Needed for genai types
 )
 
-// GetSandboxPath joins a relative path with the sandbox root, returning the absolute path.
-// It does NOT perform any validation.
+// CreateErrorFunctionResultPart formats a tool execution error into a genai.Part suitable
+// for returning to the LLM. It wraps the error message in a standard map structure.
+// Assumes this function already exists or is desired here.
+func CreateErrorFunctionResultPart(qualifiedToolName string, execErr error) genai.Part {
+	errMsg := "unknown execution error"
+	if execErr != nil {
+		errMsg = execErr.Error() // Use the error's message
+	}
+	// Log the error before creating the response? Security Layer already logs.
+	return genai.FunctionResponse{
+		Name: qualifiedToolName,
+		Response: map[string]interface{}{
+			"error": fmt.Sprintf("Tool execution failed: %s", errMsg),
+		},
+	}
+}
+
+// CreateSuccessFunctionResultPart formats a successful tool execution result into a genai.Part.
+// It attempts to intelligently format common result types (maps, slices, primitives)
+// into a map structure for the LLM response.
+func CreateSuccessFunctionResultPart(qualifiedToolName string, resultValue interface{}, logger logging.Logger) genai.Part {
+	responseMap := make(map[string]interface{})
+
+	switch v := resultValue.(type) {
+	case map[string]interface{}:
+		// If the tool already returned a map, use it directly.
+		// Avoid potential key collisions by merging instead? For now, direct use.
+		responseMap = v
+		// Add a default status if not present?
+		if _, ok := responseMap["status"]; !ok {
+			responseMap["status"] = "success"
+		}
+	case []interface{}:
+		// If it's a slice, wrap it in a "result_list" key.
+		responseMap["result_list"] = v
+		responseMap["status"] = "success"
+	case []string: // Handle specific common slice types
+		responseMap["result_list"] = v
+		responseMap["status"] = "success"
+	case string, int, int64, float32, float64, bool:
+		// For primitive types, wrap them in a "result" key.
+		responseMap["result"] = v
+		responseMap["status"] = "success"
+	case nil:
+		// If the tool returned nil explicitly, indicate success without a specific result.
+		responseMap["status"] = "success (no explicit result returned)"
+	default:
+		// For other types, attempt to format them as a string in the "result" key.
+		formattedResult := fmt.Sprintf("%v", v)
+		responseMap["result"] = formattedResult
+		responseMap["status"] = "success (formatted)"
+		if logger != nil { // Check logger exists
+			logger.Warn("Tool returned unexpected type, formatting as string",
+				"tool", qualifiedToolName,
+				"type", fmt.Sprintf("%T", v),
+				"formatted_result", formattedResult)
+		}
+	}
+
+	// Log the final response map being sent back? Maybe too verbose.
+	// logger.Debug("Formatted success response", "tool", qualifiedToolName, "responseMap", responseMap)
+
+	return genai.FunctionResponse{
+		Name:     qualifiedToolName, // Use qualified name back to LLM
+		Response: responseMap,
+	}
+}
+
+// --- Other existing helpers ---
+
 // Deprecated: Use ResolveAndSecurePath instead for safer path handling.
 func GetSandboxPath(sandboxRoot, relativePath string) string {
-	// This helper should ideally also use filepath.Abs on sandboxRoot first for robustness
-	absRoot, _ := filepath.Abs(sandboxRoot) // Ignore error for deprecated func?
+	// ... (implementation unchanged) ...
+	absRoot, _ := filepath.Abs(sandboxRoot)
 	if absRoot == "" {
 		absRoot = "."
 	}
@@ -26,17 +96,14 @@ func GetSandboxPath(sandboxRoot, relativePath string) string {
 // IsPathInSandbox checks if the given path is within the allowed sandbox directory.
 // Returns true if the path is valid and within bounds, false otherwise.
 func IsPathInSandbox(sandboxRoot, inputPath string) (bool, error) {
-	// Use ResolveAndSecurePath internally for consistent logic
+	// ... (implementation unchanged) ...
 	_, err := ResolveAndSecurePath(inputPath, sandboxRoot)
 	if err != nil {
-		// If the error indicates it's outside the root (ErrPathViolation), return false, nil error.
-		// If it's another error (like null byte, internal security), return false and the error.
 		if errors.Is(err, ErrPathViolation) {
-			return false, nil // It's not in the sandbox, but not necessarily an "error" state for this check
+			return false, nil
 		}
-		return false, err // Propagate other validation errors
+		return false, err
 	}
-	// If ResolveAndSecurePath succeeded, the path is inside.
 	return true, nil
 }
 
@@ -44,6 +111,7 @@ func IsPathInSandbox(sandboxRoot, inputPath string) (bool, error) {
 // to an absolute path and validates it is contained within the allowed directory root.
 // Returns the validated *absolute* path or an error (wrapping ErrPathViolation or others).
 func ResolveAndSecurePath(inputPath, allowedRoot string) (string, error) {
+	// ... (implementation unchanged) ...
 	if inputPath == "" {
 		return "", fmt.Errorf("input path cannot be empty: %w", ErrPathViolation)
 	}
@@ -51,42 +119,29 @@ func ResolveAndSecurePath(inputPath, allowedRoot string) (string, error) {
 		return "", fmt.Errorf("input path contains null byte: %w", ErrNullByteInArgument)
 	}
 
-	// 1. Resolve the allowed directory root to an absolute, clean path.
 	absAllowedRoot, err := filepath.Abs(allowedRoot)
 	if err != nil {
-		// This is likely an internal config error if allowedRoot is invalid
 		return "", fmt.Errorf("%w: could not get absolute path for allowed root %q: %v", ErrInternalSecurity, allowedRoot, err)
 	}
 	absAllowedRoot = filepath.Clean(absAllowedRoot)
 
-	// --- CORRECTED Step 2: Resolve inputPath relative to absAllowedRoot ---
 	resolvedPath := ""
 	if filepath.IsAbs(inputPath) {
-		// If input is already absolute, just clean it.
-		// Security check later will ensure it's within the allowed root.
 		resolvedPath = filepath.Clean(inputPath)
 	} else {
-		// If input is relative, join it with the *absolute allowed root*
 		resolvedPath = filepath.Join(absAllowedRoot, inputPath)
-		// Clean the resulting path (handles redundant separators, .. elements)
 		resolvedPath = filepath.Clean(resolvedPath)
 	}
-	// --- End CORRECTION ---
 
-	// 3. Check for containment: resolvedPath must be exactly absAllowedRoot or a descendant.
 	prefixToCheck := absAllowedRoot
-	// Add trailing separator if missing AND if it's not the root directory itself "/"
-	// This handles cases like allowedRoot="/tmp/sandbox" and path="/tmp/sandboxExt" correctly
 	if prefixToCheck != string(filepath.Separator) && !strings.HasSuffix(prefixToCheck, string(filepath.Separator)) {
 		prefixToCheck += string(filepath.Separator)
 	}
 
-	// Check if the cleaned, resolved path is exactly the allowed root OR starts with the prefix
 	if resolvedPath != absAllowedRoot && !strings.HasPrefix(resolvedPath, prefixToCheck) {
 		details := fmt.Sprintf("path %q (resolves to %q) is outside the allowed root %q", inputPath, resolvedPath, absAllowedRoot)
 		return "", fmt.Errorf("%s: %w", details, ErrPathViolation)
 	}
 
-	// 4. Return the validated *absolute* path.
 	return resolvedPath, nil
 }

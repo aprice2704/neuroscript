@@ -1,5 +1,6 @@
-// NeuroScript Version: 0.3.0_patch1
-// Last Modified: 2025-05-04 00:45:00 PDT // Simplify Inspect check, keep AST dump ON
+// NeuroScript Version: 0.3.1
+// File version: 0.0.1
+// Add debug logging to GoIndexCode to inspect FileSet metadata after load.
 // filename: pkg/core/tools_go_semantic.go
 
 package core
@@ -7,69 +8,152 @@ package core
 import (
 	"fmt"
 	"go/token"
+	"log" // Add log for temporary debugging
+	"os"  // Add os for reading file content
+	"path/filepath"
+	"strings" // Add strings for line counting
 
-	// Needed for MaxInt32
-	// Needed for ast.Print
-
-	// "golang.org/x/tools/go/ast/astutil" // No longer needed
 	"golang.org/x/tools/go/packages"
 )
 
-// SemanticIndex struct definition (unchanged)
+// SemanticIndex struct definition
 type SemanticIndex struct {
 	Fset     *token.FileSet
 	Packages []*packages.Package
-	LoadDir  string
-	LoadErrs []error
+	LoadDir  string  // Absolute path to the directory that was loaded
+	LoadErrs []error // Any non-fatal errors encountered during loading
 }
 
-// toolGoIndexCode implementation (unchanged)
+// Structure definition for the ToolImplementation - needed if not defined inline elsewhere
+var toolGoIndexCodeImpl = ToolImplementation{ // Assuming this var is needed for registration
+	Spec: ToolSpec{
+		Name:        "GoIndexCode",
+		Description: "Loads Go package information for the specified directory using 'go/packages' to build an in-memory semantic index. Returns a handle to the index.",
+		Args: []ArgSpec{
+			{Name: "directory", Type: ArgTypeString, Required: false, Description: "Directory relative to sandbox to index (packages loaded via './...'). Defaults to sandbox root ('.')."},
+		},
+		ReturnType: ArgTypeString, // Returns the handle
+	},
+	Func: toolGoIndexCode,
+}
+
+// toolGoIndexCode implementation with added logging
 func toolGoIndexCode(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	// ... (implementation unchanged) ...
 	logger := interpreter.Logger()
-	targetDirRel := "."
+	targetDirRel := "." // Default to current directory (sandbox root)
 	if len(args) > 0 && args[0] != nil {
 		dirStr, ok := args[0].(string)
 		if !ok {
 			errMsg := fmt.Sprintf("GoIndexCode: directory argument type mismatch, expected string, got %T", args[0])
-			logger.Error("[TOOL-GOINDEX] %s", errMsg)
+			logger.Error("[TOOL-GOINDEX] " + errMsg)
 			return "", fmt.Errorf("%w: %s", ErrInvalidArgument, errMsg)
 		}
 		targetDirRel = dirStr
 	}
+
 	sandboxRoot := interpreter.SandboxDir()
 	absValidatedDir, pathErr := ResolveAndSecurePath(targetDirRel, sandboxRoot)
 	if pathErr != nil {
 		errMsg := fmt.Sprintf("GoIndexCode path validation failed for directory %q (relative to sandbox %q): %v", targetDirRel, sandboxRoot, pathErr)
-		logger.Error("[TOOL-GOINDEX] %s", errMsg)
+		logger.Error("[TOOL-GOINDEX] " + errMsg)
 		return "", fmt.Errorf("%w: %s", ErrInvalidPath, errMsg)
 	}
+
 	logger.Info("[TOOL-GOINDEX] Starting indexing", "relative_dir", targetDirRel, "absolute_dir", absValidatedDir)
-	fset := token.NewFileSet()
-	cfg := &packages.Config{Mode: packages.NeedName | packages.NeedFiles | packages.NeedSyntax | packages.NeedTypes | packages.NeedTypesInfo | packages.NeedTypesSizes | packages.NeedImports | packages.NeedDeps, Dir: absValidatedDir, Fset: fset, Tests: true}
-	pkgs, loadErr := packages.Load(cfg, "./...")
+
+	// +++ DEBUG: Check file content on disk before loading +++
+	debugFilePath := filepath.Join(absValidatedDir, "main.go") // Assuming the test file is main.go
+	if _, statErr := os.Stat(debugFilePath); statErr == nil {
+		contentBytes, readErr := os.ReadFile(debugFilePath)
+		if readErr == nil {
+			contentStr := string(contentBytes)
+			actualLineCount := strings.Count(contentStr, "\n") + 1 // Simple line count
+			actualSize := len(contentBytes)
+			log.Printf("[DEBUG GoIndexCode] Pre-Load Check for %s: Size=%d, ActualLines=%d", debugFilePath, actualSize, actualLineCount)
+		} else {
+			log.Printf("[DEBUG GoIndexCode] Pre-Load Check: Error reading %s: %v", debugFilePath, readErr)
+		}
+	} else {
+		log.Printf("[DEBUG GoIndexCode] Pre-Load Check: Test file %s not found or error: %v", debugFilePath, statErr)
+	}
+	// +++ END DEBUG +++
+
+	fset := token.NewFileSet() // Create a new FileSet for this load operation
+
+	// Load packages
+	cfg := &packages.Config{
+		Mode: packages.NeedName | packages.NeedFiles | packages.NeedSyntax |
+			packages.NeedTypes | packages.NeedTypesInfo | packages.NeedTypesSizes |
+			packages.NeedImports | packages.NeedDeps,
+		Dir:  absValidatedDir, // Load from the validated absolute directory
+		Fset: fset,            // Provide the FileSet to be populated
+		// Tests: true,        // Include test files if needed, could affect results? Let's try keeping it for now.
+		Tests: true,
+		// Overlay:?           // Not typically needed unless modifying content in memory
+	}
+	pkgs, loadErr := packages.Load(cfg, "./...") // Load pattern relative to cfg.Dir
+
+	// Collect loading errors
 	loadErrs := []error{}
 	if loadErr != nil {
 		logger.Warn("[TOOL-GOINDEX] Error during packages.Load execution", "error", loadErr)
 		loadErrs = append(loadErrs, fmt.Errorf("packages.Load execution error: %w", loadErr))
 	}
+	// Visit packages to collect detailed errors
 	packages.Visit(pkgs, nil, func(pkg *packages.Package) {
 		for _, err := range pkg.Errors {
 			logger.Warn("[TOOL-GOINDEX] Error loading package", "package", pkg.ID, "error", err)
 			loadErrs = append(loadErrs, fmt.Errorf("package %s: %w", pkg.ID, err))
 		}
 	})
+
+	// +++ DEBUG: Check FileSet metadata AFTER loading +++
+	//	log.Printf("[DEBUG GoIndexCode] Post-Load Check: Iterating populated FileSet (fset base: %d)", fset.Base())
+	fset.Iterate(func(f *token.File) bool {
+		if f != nil {
+			//log.Printf("[DEBUG GoIndexCode]   - File: Name=%q, Size=%d, LineCount=%d, Base=%d", f.Name(), f.Size(), f.LineCount(), f.Base())
+		} else {
+			log.Printf("[DEBUG GoIndexCode]   - Nil file encountered in FileSet")
+		}
+		return true
+	})
+	// +++ END DEBUG +++
+
+	// Check for fatal loading failure
 	if len(pkgs) == 0 && len(loadErrs) > 0 {
-		logger.Error("[TOOL-GOINDEX] Failed to load any packages.", "first_error", loadErrs[0])
-		return "", fmt.Errorf("failed to load any packages: %w", loadErrs[0])
+		// Check if it was just "no Go files" error vs something else
+		isNoGoFilesError := false
+		for _, err := range loadErrs {
+			if strings.Contains(err.Error(), "no Go files") {
+				isNoGoFilesError = true
+				break
+			}
+		}
+		if isNoGoFilesError {
+			logger.Warn("[TOOL-GOINDEX] packages.Load reported 'no Go files' - this might be expected for empty dirs.", "dir", absValidatedDir)
+			// Proceed, but the index will be empty
+		} else {
+			logger.Error("[TOOL-GOINDEX] Failed to load any packages.", "first_error", loadErrs[0])
+			// Return the first critical error encountered
+			return "", fmt.Errorf("failed to load any packages: %w", loadErrs[0])
+		}
 	}
+
 	logger.Info("[TOOL-GOINDEX] Package loading complete", "loaded_packages", len(pkgs), "errors_encountered", len(loadErrs))
-	index := &SemanticIndex{Fset: fset, Packages: pkgs, LoadDir: absValidatedDir, LoadErrs: loadErrs}
+
+	// Create and register the index
+	index := &SemanticIndex{
+		Fset:     fset, // Store the populated FileSet
+		Packages: pkgs,
+		LoadDir:  absValidatedDir,
+		LoadErrs: loadErrs, // Store non-fatal errors
+	}
 	handle, err := interpreter.RegisterHandle(index, "semantic_index")
 	if err != nil {
 		logger.Error("[TOOL-GOINDEX] Failed to register handle", "error", err)
 		return "", fmt.Errorf("%w: failed to register index handle: %w", ErrInternal, err)
 	}
+
 	logger.Info("[TOOL-GOINDEX] Semantic index created successfully", "handle", handle)
-	return handle, nil
+	return handle, nil // Return only handle on success
 }

@@ -2,9 +2,8 @@
 package neurogo
 
 import (
-	"context"
-	"log/slog" // Import slog
-	"os"       // Import os for stderr
+	"context" // Import slog
+	"os"      // Import os for stderr
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/adapters"
@@ -17,17 +16,8 @@ func TestApp_RunScriptMode_MultiReturn(t *testing.T) {
 	// Setup: Define path relative to the test file's package directory
 	scriptPath := "testdata/multi_return.ns.txt"
 
-	// Configure the App
-	// --- CORRECTED: Use SlogAdapter properly ---
-	// 1. Create the slog handler
-	slogHandler := slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
-		Level: slog.LevelDebug, // Ensure Debug level to see stack traces
-	})
-	// 2. Create the slog Logger instance using the handler
-	slogLogger := slog.New(slogHandler)
-	// 3. Create the adapter using the slog Logger instance
 	var logger logging.Logger // Declare logger with the interface type
-	loggerAdapter, err := adapters.NewSlogAdapter(slogLogger)
+	loggerAdapter, err := adapters.NewSimpleSlogAdapter(os.Stderr, logging.LogLevelDebug)
 	if err != nil {
 		// Handle error during logger creation - fail the test
 		t.Fatalf("Failed to create SlogAdapter for testing: %v", err)

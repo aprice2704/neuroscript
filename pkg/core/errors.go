@@ -1,5 +1,5 @@
-// NeuroScript Version: 0.3.0
-// Last Modified: 2025-05-02 17:36:24 PDT // Add ErrCannotRemoveRoot
+// NeuroScript Version: 0.3.1
+// File version: 0.1.0 // Add ErrProcedureExists, ErrReturnMismatch, ErrConfiguration
 // filename: pkg/core/errors.go
 package core
 
@@ -20,9 +20,7 @@ type RuntimeError struct {
 
 func (e *RuntimeError) Error() string {
 	if e.Wrapped != nil {
-		// Including wrapped error might be too verbose for user-facing errors.
-		// Consider logging it separately.
-		return fmt.Sprintf("NeuroScript Error %d: %s", e.Code, e.Message)
+		return fmt.Sprintf("NeuroScript Error %d: %s (wrapped: %v)", e.Code, e.Message, e.Wrapped) // Show wrapped for debug
 	}
 	return fmt.Sprintf("NeuroScript Error %d: %s", e.Code, e.Message)
 }
@@ -32,26 +30,27 @@ func NewRuntimeError(code ErrorCode, message string, wrapped error) *RuntimeErro
 }
 
 // --- Basic Runtime Error Codes ---
+// (Keep existing codes)
 const (
 	ErrorCodeGeneric         ErrorCode = 0
 	ErrorCodeFailStatement   ErrorCode = 1
-	ErrorCodeProcNotFound    ErrorCode = 2
+	ErrorCodeProcNotFound    ErrorCode = 2 // Renamed from ErrorCodeProcNotFound below? Let's use below.
 	ErrorCodeToolNotFound    ErrorCode = 3
-	ErrorCodeArgMismatch     ErrorCode = 4
+	ErrorCodeArgMismatch     ErrorCode = 4 // Related to ErrArgumentMismatch below
 	ErrorCodeMustFailed      ErrorCode = 5
 	ErrorCodeInternal        ErrorCode = 6
 	ErrorCodeType            ErrorCode = 7
 	ErrorCodeBounds          ErrorCode = 8
-	ErrorCodeKeyNotFound     ErrorCode = 9
+	ErrorCodeKeyNotFound     ErrorCode = 9 // Related to ErrMapKeyNotFound below
 	ErrorCodeSecurity        ErrorCode = 10
-	ErrorCodeReadOnly        ErrorCode = 11
+	ErrorCodeReadOnly        ErrorCode = 11 // Related to ErrReadOnlyViolation below
 	ErrorCodeReturnViolation ErrorCode = 12
 	ErrorCodeClearViolation  ErrorCode = 13
-	ErrorCodeDivisionByZero  ErrorCode = 14
+	ErrorCodeDivisionByZero  ErrorCode = 14 // Related to ErrDivisionByZero below
 	ErrorCodeSyntax          ErrorCode = 15
 	ErrorCodeLLMError        ErrorCode = 16
 	ErrorCodeEvaluation      ErrorCode = 17
-	ErrorCodeConfiguration   ErrorCode = 18
+	ErrorCodeConfiguration   ErrorCode = 18 // Added - Maps to ErrConfiguration
 	ErrorCodeToolSpecific    ErrorCode = 1000
 )
 
@@ -77,6 +76,7 @@ var (
 	ErrPathViolation     = errors.New("path resolves outside allowed directory")
 	ErrInternalSecurity  = errors.New("internal security error")
 	ErrInvalidPath       = errors.New("invalid path")
+	ErrConfiguration     = errors.New("invalid configuration") // <<< ADDED
 )
 
 // --- Core Handle Errors ---
@@ -87,6 +87,7 @@ var (
 )
 
 // --- Core Tool Execution Errors ---
+// (Keep existing errors)
 var (
 	ErrInternalTool                  = errors.New("internal tool error")
 	ErrNotFound                      = errors.New("item not found") // Generic not found
@@ -138,13 +139,15 @@ var (
 	ErrTreeNodeNotObject             = errors.New("target node is not type object")
 	ErrAttributeNotFound             = errors.New("attribute key not found on node")
 	ErrNodeIDExists                  = errors.New("node ID already exists in tree")
-	ErrCannotRemoveRoot              = errors.New("cannot remove the root node") // <<< ADDED
+	ErrCannotRemoveRoot              = errors.New("cannot remove the root node")
 )
 
 // --- Core Interpreter Errors ---
 var (
 	ErrProcedureNotFound    = errors.New("procedure not found")
-	ErrArgumentMismatch     = errors.New("argument mismatch")
+	ErrArgumentMismatch     = errors.New("argument mismatch")               // Use this for proc arg count mismatch
+	ErrReturnMismatch       = errors.New("procedure return count mismatch") // <<< ADDED
+	ErrProcedureExists      = errors.New("procedure already defined")       // <<< ADDED
 	ErrMaxCallDepthExceeded = errors.New("maximum call depth exceeded")
 	ErrUnknownKeyword       = errors.New("unknown keyword")
 	ErrUnhandledException   = errors.New("unhandled exception during execution")

@@ -1,3 +1,5 @@
+// NeuroScript Version: 0.3.1
+// File version: 0.0.2 // Replace GetAllTools with ListTools.
 // filename: pkg/core/interpreter_steps_ask.go
 package core
 
@@ -5,12 +7,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings" // Added for tool name prefix handling
+	// Added for tool name prefix handling
 	// Ensure necessary types like Expression, ConversationTurn, ToolCall, etc. are accessible
 )
 
 // executeAskAI handles the 'ask ai' step.
-// *** MODIFIED: Accepts step Step instead of *AskAIStep ***
 func (i *Interpreter) executeAskAI(step Step) error {
 	i.logger.Debug("Executing 'ask ai' step", "pos", step.Pos.String()) // Log position
 
@@ -29,7 +30,6 @@ func (i *Interpreter) executeAskAI(step Step) error {
 	conversationTurns, err := i.prepareConversationForAsk(promptExpr)
 	if err != nil {
 		// Use specific error code, include position in message
-		// *** MODIFIED: Use ErrorCodeEvaluation, format message with position ***
 		errMsg := fmt.Sprintf("failed to prepare conversation for 'ask ai' at %s: %v", step.Pos.String(), err)
 		// Wrap original error if it's not already a RuntimeError
 		var runtimeErr *RuntimeError
@@ -49,40 +49,32 @@ func (i *Interpreter) executeAskAI(step Step) error {
 
 	// 3. Call LLMClient using the interface methods
 	if i.llmClient == nil {
-		// Use correct error code constant
-		// *** MODIFIED: Format message with position ***
 		errMsg := fmt.Sprintf("LLM client is not configured in the interpreter (required at %s)", step.Pos.String())
 		return NewRuntimeError(ErrorCodeLLMError, errMsg, nil)
 	}
 
 	if len(availableTools) > 0 {
 		i.logger.Debug("Calling LLM with tools", "turn_count", len(conversationTurns), "tool_count", len(availableTools))
-		// Call AskWithTools directly on the interface
 		responseTurn, toolCalls, err = i.llmClient.AskWithTools(context.Background(), conversationTurns, availableTools)
 	} else {
 		i.logger.Debug("Calling LLM without tools", "turn_count", len(conversationTurns))
-		// Call Ask directly on the interface
 		responseTurn, err = i.llmClient.Ask(context.Background(), conversationTurns)
 	}
 
 	// Handle LLM call errors
 	if err != nil {
-		// Use correct error code constant and wrap original error
-		// *** MODIFIED: Remove extra step.Pos argument, add pos to message ***
 		errMsg := fmt.Sprintf("LLM interaction failed (ask at %s)", step.Pos.String())
-		return NewRuntimeError(ErrorCodeLLMError, errMsg, err) // Corrected: Use ErrorCode constant and wrap error
+		return NewRuntimeError(ErrorCodeLLMError, errMsg, err) // Use ErrorCode constant and wrap error
 	}
 	if responseTurn == nil {
-		// Use correct error code constant
-		// *** MODIFIED: Remove extra step.Pos argument, add pos to message ***
 		errMsg := fmt.Sprintf("LLM returned nil response without error (ask at %s)", step.Pos.String())
-		return NewRuntimeError(ErrorCodeLLMError, errMsg, nil) // Corrected: Use ErrorCode constant
+		return NewRuntimeError(ErrorCodeLLMError, errMsg, nil) // Use ErrorCode constant
 	}
 
 	i.logger.Debug("LLM response received", "role", responseTurn.Role, "content_length", len(responseTurn.Content), "tool_calls", len(toolCalls))
 
 	// 4. Process Response
-	//    Update conversation history (implementation needed)
+	//    Update conversation history (placeholder)
 	i.addResponseToConversation(responseTurn)
 
 	// Handle Tool Calls if any were returned
@@ -90,7 +82,6 @@ func (i *Interpreter) executeAskAI(step Step) error {
 		err = i.handleToolCalls(toolCalls, step.Pos) // Execute tools and update history, pass position
 		if err != nil {
 			// If handleToolCalls returns an error, wrap it appropriately.
-			// Assuming handleToolCalls returns a *RuntimeError or wrapped error:
 			// Add position info if not already present
 			var runtimeErr *RuntimeError
 			if errors.As(err, &runtimeErr) {
@@ -127,7 +118,6 @@ func (i *Interpreter) prepareConversationForAsk(promptExpr Expression) ([]*Conve
 		} else {
 			// Add position from the expression node itself
 			errMsg := fmt.Sprintf("failed to evaluate prompt expression at %s: %v", promptExpr.GetPos().String(), err)
-			// Use evaluation error code if appropriate, or wrap generic error
 			return nil, NewRuntimeError(ErrorCodeEvaluation, errMsg, err)
 		}
 	}
@@ -148,23 +138,22 @@ func (i *Interpreter) prepareConversationForAsk(promptExpr Expression) ([]*Conve
 }
 
 // getAvailableToolsForAsk determines which tools (as ToolDefinition for the LLM) to offer.
-// *** MODIFIED: Accepts step Step instead of *AskAIStep ***
-func (i *Interpreter) getAvailableToolsForAsk(step Step) []ToolDefinition { // Return core.ToolDefinition
+func (i *Interpreter) getAvailableToolsForAsk(step Step) []ToolDefinition {
 	if i.toolRegistry == nil {
 		i.logger.Warn("getAvailableToolsForAsk called but toolRegistry is nil", "pos", step.Pos.String())
 		return nil
 	}
-	// Corrected: Get ToolImplementation map, then convert Spec to Definition
-	allToolsImpl := i.toolRegistry.GetAllTools()
-	definitions := make([]ToolDefinition, 0, len(allToolsImpl)) // Use core.ToolDefinition
+	// *** FIXED: Use ListTools() which returns []ToolSpec ***
+	allToolSpecs := i.toolRegistry.ListTools()
+	definitions := make([]ToolDefinition, 0, len(allToolSpecs)) // Use core.ToolDefinition
 
-	for _, impl := range allToolsImpl {
+	for _, spec := range allToolSpecs {
 		// Convert ToolSpec.Args ( []ArgSpec ) to ToolDefinition.InputSchema ( any / JSON schema map )
-		inputSchema, err := ConvertToolSpecArgsToInputSchema(impl.Spec.Args)
+		inputSchema, err := ConvertToolSpecArgsToInputSchema(spec.Args) // Use existing helper
 		if err != nil {
 			// Log error and skip tool if conversion fails
 			i.logger.Warn("Skipping tool for LLM due to schema conversion error",
-				"tool", impl.Spec.Name,
+				"tool", spec.Name, // Use name from ToolSpec
 				"error", err,
 				"pos", step.Pos.String(), // Log position of the ask step
 			)
@@ -172,8 +161,8 @@ func (i *Interpreter) getAvailableToolsForAsk(step Step) []ToolDefinition { // R
 		}
 
 		definitions = append(definitions, ToolDefinition{ // Construct core.ToolDefinition
-			Name:        impl.Spec.Name, // Use base name from ToolSpec
-			Description: impl.Spec.Description,
+			Name:        spec.Name, // Use name from ToolSpec
+			Description: spec.Description,
 			InputSchema: inputSchema,
 		})
 	}
@@ -194,9 +183,8 @@ func (i *Interpreter) handleToolCalls(calls []*ToolCall, pos *Position) error { 
 	}
 	if i.toolRegistry == nil {
 		// Return a runtime error if the registry isn't available
-		// *** MODIFIED: Use ErrorCodeConfiguration, format message, pass nil error ***
 		errMsg := fmt.Sprintf("cannot handle tool calls at %s: toolRegistry is nil", pos.String())
-		return NewRuntimeError(ErrorCodeConfiguration, errMsg, nil) // Corrected
+		return NewRuntimeError(ErrorCodeConfiguration, errMsg, nil)
 	}
 
 	results := make([]*ToolResult, len(calls)) // Ensure this is core.ToolResult
@@ -207,18 +195,9 @@ func (i *Interpreter) handleToolCalls(calls []*ToolCall, pos *Position) error { 
 
 		i.logger.Debug("Processing tool call", "id", call.ID, "name", call.Name, "args", call.Arguments, "pos", pos.String())
 
-		// --- Corrected Tool Execution Logic ---
-		// 1. Find the tool implementation
-		// *** MODIFIED: Use ToolPrefix constant ***
-		baseToolName := strings.TrimPrefix(call.Name, ToolPrefix) // Assumes ToolPrefix = "TOOL."
-		// Handle cases where LLM might return base name directly
-		implName := baseToolName
-		toolImpl, found := i.toolRegistry.GetTool(implName)
-		// If not found with base name, try original name (in case prefix wasn't used)
-		if !found && implName != call.Name {
-			implName = call.Name
-			toolImpl, found = i.toolRegistry.GetTool(implName)
-		}
+		// --- Tool Execution Logic ---
+		// 1. Find the tool implementation by name
+		toolImpl, found := i.toolRegistry.GetTool(call.Name) // Use the name directly from the call
 
 		if !found {
 			errMsg := fmt.Sprintf("Tool '%s' not found in registry", call.Name)
@@ -242,7 +221,9 @@ func (i *Interpreter) handleToolCalls(calls []*ToolCall, pos *Position) error { 
 				}
 				orderedRawArgs[iSpec] = nil // Use nil for missing optional arg
 			} else {
-				orderedRawArgs[iSpec] = val // Use provided value
+				// Basic type check/conversion might be needed here if call.Arguments are map[string]interface{}
+				// For now, assume the types are compatible enough for ValidateAndConvertArgs
+				orderedRawArgs[iSpec] = val
 			}
 		}
 		if argConversionError {
@@ -259,15 +240,14 @@ func (i *Interpreter) handleToolCalls(calls []*ToolCall, pos *Position) error { 
 		}
 
 		// 3. Execute the tool's function
-		// *** MODIFIED: Remove context argument from call ***
 		resultVal, execErr := toolImpl.Func(i, validatedArgs) // Pass Interpreter `i`
 
 		// 4. Record Result or Error
 		if execErr != nil {
 			// Check if it's already a RuntimeError
-			runtimeErr, isRuntimeErr := execErr.(*RuntimeError)
+			var runtimeErr *RuntimeError
 			var errMsg string
-			if isRuntimeErr {
+			if errors.As(execErr, &runtimeErr) {
 				errMsg = fmt.Sprintf("Tool '%s' execution failed: %s (code %d)", call.Name, runtimeErr.Message, runtimeErr.Code)
 			} else {
 				errMsg = fmt.Sprintf("Tool '%s' execution failed: %v", call.Name, execErr)
@@ -280,22 +260,13 @@ func (i *Interpreter) handleToolCalls(calls []*ToolCall, pos *Position) error { 
 			results[idx].Result = resultVal                                                                          // Store successful result
 			i.logger.Debug("Tool execution successful", "id", call.ID, "name", call.Name /*, "result", resultVal */) // Avoid logging potentially large results
 		}
-		// --- End Corrected Tool Execution Logic ---
+		// --- End Tool Execution Logic ---
 	}
 
 	// Add tool results back to the conversation history
 	i.addToolResultsToConversation(results) // Assumes this helper exists
 
-	// Check if any tool failed critically. For now, errors are recorded in results.
-	// If strict handling needed, loop through results and return first RuntimeError.
-	// for _, res := range results {
-	//  if res.Error != "" {
-	//      // Maybe wrap the first error encountered
-	//      return NewRuntimeError(ErrorCodeToolExecution, fmt.Sprintf("Tool call %s failed: %s", res.ID, res.Error), nil) // No original error to wrap easily here
-	//  }
-	// }
-
-	return nil // Indicate overall handling success
+	return nil // Indicate overall handling success (individual errors are in results)
 }
 
 // addToolResultsToConversation updates the managed conversation history with tool results.
@@ -304,7 +275,7 @@ func (i *Interpreter) addToolResultsToConversation(results []*ToolResult) {
 	i.logger.Debug("Adding tool results to conversation history (Not Implemented)", "count", len(results))
 }
 
-// --- Helper Function for Schema Conversion (Copied from previous correction - Consider moving) ---
+// --- Helper Function for Schema Conversion ---
 // ConvertToolSpecArgsToInputSchema converts the []ArgSpec from a ToolImplementation
 // into a JSON Schema-like map[string]interface{} suitable for ToolDefinition.InputSchema.
 func ConvertToolSpecArgsToInputSchema(args []ArgSpec) (map[string]interface{}, error) {
@@ -313,12 +284,10 @@ func ConvertToolSpecArgsToInputSchema(args []ArgSpec) (map[string]interface{}, e
 		"properties": map[string]interface{}{},
 		"required":   []string{},
 	}
-	// Type assertion needed because map values are interface{}
 	props, okProps := schema["properties"].(map[string]interface{})
 	if !okProps {
 		return nil, fmt.Errorf("internal error: could not assert schema properties as map[string]interface{}")
 	}
-	// Type assertion needed
 	required, okReq := schema["required"].([]string)
 	if !okReq {
 		return nil, fmt.Errorf("internal error: could not assert schema required as []string")
@@ -335,17 +304,18 @@ func ConvertToolSpecArgsToInputSchema(args []ArgSpec) (map[string]interface{}, e
 			jsonType = "number"
 		case ArgTypeBool:
 			jsonType = "boolean"
-		// *** REMOVED invalid case: case ArgTypeList: ***
-		case ArgTypeSlice, ArgTypeSliceAny, ArgTypeSliceString, ArgTypeSliceInt, ArgTypeSliceFloat, ArgTypeSliceBool, ArgTypeSliceMap: // Group all slice types
+		case ArgTypeSlice, ArgTypeSliceAny, ArgTypeSliceString, ArgTypeSliceInt, ArgTypeSliceFloat, ArgTypeSliceBool, ArgTypeSliceMap:
 			jsonType = "array"
-			// TODO: Could add "items": {"type": "string"} etc. here if needed for better schema
+			// TODO: Add "items": {"type": "..."} based on specific slice type if possible/needed
 		case ArgTypeMap:
 			jsonType = "object"
+			// TODO: Add "properties": {} or "additionalProperties": true/false/schema ?
 		case ArgTypeAny:
-			jsonType = "string" // Defaulting 'any' to string for schema
-		// NOTE: ArgTypeNil is intentionally excluded here as it doesn't make sense for an *input* argument schema.
+			// Represent 'any' loosely. Could be object or string? String is simpler.
+			jsonType = "string" // Or omit type? JSON Schema allows omitting type.
+		case ArgTypeNil:
+			continue // Nil is not a valid input type for a schema property
 		default:
-			// This case handles genuinely unknown or unsupported ArgType values
 			return nil, fmt.Errorf("unsupported ArgType '%s' for tool argument '%s' cannot be converted to JSON schema", argSpec.Type, argSpec.Name)
 		}
 
@@ -353,7 +323,6 @@ func ConvertToolSpecArgsToInputSchema(args []ArgSpec) (map[string]interface{}, e
 		if argSpec.Description != "" {
 			propSchema["description"] = argSpec.Description
 		}
-		// TODO: Add handling for nested schemas if ArgTypeMap/ArgTypeList need item/property definitions?
 		props[argSpec.Name] = propSchema
 		if argSpec.Required {
 			required = append(required, argSpec.Name)

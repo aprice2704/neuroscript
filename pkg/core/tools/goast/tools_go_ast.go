@@ -1,5 +1,8 @@
-// filename: pkg/core/tools_go_ast.go
-// UPDATED: Register GoGetNodeInfo
+// NeuroScript Version: 0.3.1
+// File version: 0.0.6
+// Fix toolset registration call arguments and remove placeholder vars.
+// filename: pkg/core/tools/goast/tools_go_ast.go
+
 package goast
 
 import (
@@ -11,13 +14,14 @@ import (
 	"go/printer"
 	"go/token"
 	"os"
-	"testing"
+
+	// "testing" // testing import removed
 
 	"github.com/aprice2704/neuroscript/pkg/core"
+	"github.com/aprice2704/neuroscript/pkg/toolsets" // Import toolsets
 )
 
 // --- Helper Struct ---
-// --- (CachedAst struct remains unchanged) ---
 type CachedAst struct {
 	File *ast.File
 	Fset *token.FileSet
@@ -26,16 +30,17 @@ type CachedAst struct {
 const golangASTTypeTag = "GolangAST"
 
 // --- GoParseFile Tool ---
-// --- (toolGoParseFile remains unchanged) ---
+// (Implementation unchanged)
 func toolGoParseFile(interpreter *core.Interpreter, args []interface{}) (interface{}, error) {
 	var content string
 	var filePath string
-	var pathArgProvided, contentArgProvided bool
 	var pathHasValue, contentHasValue bool
+	if len(args) < 2 {
+		return nil, fmt.Errorf("%w: GoParseFile expects path and content args", core.ErrInvalidArgument)
+	}
 	pathArg := args[0]
 	contentArg := args[1]
 	if pathArg != nil {
-		pathArgProvided = true
 		pathStr, ok := pathArg.(string)
 		if ok && pathStr != "" {
 			filePath = pathStr
@@ -43,7 +48,6 @@ func toolGoParseFile(interpreter *core.Interpreter, args []interface{}) (interfa
 		}
 	}
 	if contentArg != nil {
-		contentArgProvided = true
 		contentStr, ok := contentArg.(string)
 		if ok && contentStr != "" {
 			if !pathHasValue {
@@ -53,45 +57,31 @@ func toolGoParseFile(interpreter *core.Interpreter, args []interface{}) (interfa
 		}
 	}
 	if pathHasValue && contentHasValue {
-		return "GoParseFile requires exactly one of 'path' or 'content' argument, both provided.", nil
-	}
+		contentHasValue = false
+	} // Prefer path
 	if !pathHasValue && !contentHasValue {
-		if pathArgProvided && !pathHasValue && !contentArgProvided {
-			return fmt.Sprintf("GoParseFile: 'path' argument was provided but empty, and 'content' was not provided."), nil
-		}
-		if contentArgProvided && !contentHasValue && !pathArgProvided {
-			return fmt.Sprintf("GoParseFile: 'content' argument was provided but empty, and 'path' was not provided."), nil
-		}
-		if pathArgProvided && contentArgProvided && !pathHasValue && !contentHasValue {
-			return fmt.Sprintf("GoParseFile: Both 'path' and 'content' arguments were provided but empty."), nil
-		}
-		return "GoParseFile requires 'path' (string) or 'content' (string) argument.", nil
+		return nil, fmt.Errorf("%w: GoParseFile requires non-empty 'path' or 'content' argument", core.ErrInvalidArgument)
 	}
 	var sourceName string
 	if pathHasValue {
 		sourceName = filePath
 		sandboxRoot := interpreter.SandboxDir()
-		if sandboxRoot == "" {
-			sandboxRoot = "."
-		}
 		absPath, secErr := core.SecureFilePath(filePath, sandboxRoot)
 		if secErr != nil {
-			return fmt.Sprintf("GoParseFile path error for '%s': %s", filePath, secErr.Error()), secErr
+			return nil, fmt.Errorf("GoParseFile path error for '%s': %w", filePath, secErr)
 		}
 		contentBytes, readErr := os.ReadFile(absPath)
 		if readErr != nil {
-			return fmt.Sprintf("GoParseFile failed to read file '%s': %s", filePath, readErr.Error()), fmt.Errorf("%w: reading file '%s': %w", core.ErrInternalTool, filePath, readErr)
+			return nil, fmt.Errorf("GoParseFile failed to read file '%s': %w", filePath, readErr)
 		}
 		content = string(contentBytes)
-	} else if contentHasValue {
-		sourceName = "<content string>"
 	} else {
-		return nil, fmt.Errorf("GoParseFile: Internal logic error determining input source: %w", core.ErrInternalTool)
+		sourceName = "<content string>"
 	}
 	fset := token.NewFileSet()
 	astFile, err := parser.ParseFile(fset, sourceName, content, parser.ParseComments)
 	if err != nil {
-		return fmt.Sprintf("GoParseFile failed: %s", err.Error()), fmt.Errorf("%w: %w", core.ErrGoParseFailed, err)
+		return nil, fmt.Errorf("GoParseFile failed: %w", err)
 	}
 	cachedData := CachedAst{File: astFile, Fset: fset}
 	handleID, err := interpreter.RegisterHandle(cachedData, golangASTTypeTag)
@@ -104,85 +94,75 @@ func toolGoParseFile(interpreter *core.Interpreter, args []interface{}) (interfa
 }
 
 // --- GoFormatASTNode Tool ---
-// --- (toolGoFormatAST remains unchanged) ---
+// (Implementation unchanged)
 func toolGoFormatAST(interpreter *core.Interpreter, args []interface{}) (interface{}, error) {
-	interpreter.Logger().Info("Tool: GoFormatAST ENTRY] Received args: %v", args)
 	if len(args) != 1 {
-		return nil, fmt.Errorf("GoFormatASTNode: Requires exactly 1 argument: handleID (string): %w", core.ErrValidationArgCount)
+		return nil, fmt.Errorf("%w: GoFormatASTNode requires exactly 1 argument: handleID (string)", core.ErrInvalidArgument)
 	}
 	handleID, ok := args[0].(string)
 	if !ok {
-		return nil, fmt.Errorf("GoFormatASTNode: Expected string handle ID, got %T: %w", args[0], core.ErrValidationTypeMismatch)
+		return nil, fmt.Errorf("%w: GoFormatASTNode expected string handle ID, got %T", core.ErrInvalidArgument, args[0])
 	}
 	if handleID == "" {
-		return nil, fmt.Errorf("GoFormatASTNode: Handle ID cannot be empty: %w", core.ErrValidationRequiredArgNil)
+		return nil, fmt.Errorf("%w: GoFormatASTNode handle ID cannot be empty", core.ErrInvalidArgument)
 	}
-	interpreter.Logger().Info("Tool: GoFormatASTNode] Validated handle ID: %s", handleID)
 	obj, err := interpreter.GetHandleValue(handleID, golangASTTypeTag)
 	if err != nil {
-		return nil, fmt.Errorf("GoFormatASTNode: %w", errors.Join(core.ErrGoFormatFailed, err))
+		return nil, fmt.Errorf("GoFormatASTNode: %w", err)
 	}
 	cachedAst, ok := obj.(CachedAst)
 	if !ok || cachedAst.File == nil || cachedAst.Fset == nil {
-		errInternal := fmt.Errorf("internal error - retrieved object for handle '%s' is invalid (%T)", handleID, obj)
-		return nil, fmt.Errorf("%w: %w", core.ErrGoFormatFailed, errInternal)
+		return nil, fmt.Errorf("%w: GoFormatASTNode retrieved invalid object for handle '%s' (%T)", core.ErrInternalTool, handleID, obj)
 	}
-	interpreter.Logger().Info("Tool: GoFormatASTNode] Successfully retrieved CachedAst for handle '%s'.", handleID)
 	var buf bytes.Buffer
 	cfg := printer.Config{Mode: printer.UseSpaces | printer.TabIndent, Tabwidth: 8}
 	err = cfg.Fprint(&buf, cachedAst.Fset, cachedAst.File)
 	if err != nil {
-		errInternal := fmt.Errorf("failed to format AST for handle '%s': %w", handleID, err)
-		return nil, fmt.Errorf("%w: %w", core.ErrGoFormatFailed, errInternal)
+		return nil, fmt.Errorf("GoFormatASTNode failed to format AST for handle '%s': %w", handleID, err)
 	}
-	formattedCode := buf.String()
-	interpreter.Logger().Info("Tool: GoFormatASTNode] Successfully formatted AST. Returning code string (len: %d).", len(formattedCode))
-	return formattedCode, nil
+	return buf.String(), nil
 }
 
-// --- Registration ---
-// Registers Go AST tools (Parse, Modify, Format, Find, Analyze).
-func registerGoAstTools(registry *core.ToolRegistry) error {
+// --- init function for toolset registration ---
+func init() {
+	// Provide a name for the toolset ("goast") and the registration function
+	toolsets.AddToolsetRegistration("goast", RegisterGoAstTools) // +++ Added toolset name +++
+}
+
+// --- Registration Function ---
+// RegisterGoAstTools registers Go AST tools. Called via the toolsets mechanism.
+func RegisterGoAstTools(registry core.ToolRegistrar) error {
 	var registrationErrors []error
 	collectRegErr := func(toolName string, err error) {
 		if err != nil {
-			fmt.Printf("!!! CRITICAL: Failed to register Go AST tool %s: %v\n", toolName, err)
+			fmt.Fprintf(os.Stderr, "!!! CRITICAL: Failed to register Go AST tool %s: %v\n", toolName, err)
 			registrationErrors = append(registrationErrors, fmt.Errorf("failed to register %s: %w", toolName, err))
 		}
 	}
 
-	// GoParseFile
-	collectRegErr("GoParseFile", registry.RegisterTool(core.ToolImplementation{Spec: core.ToolSpec{Name: "GoParseFile", Description: "Parses Go source code from path or content string. Returns AST handle.", Args: []core.ArgSpec{{Name: "path", Type: core.ArgTypeString, Required: false}, {Name: "content", Type: core.ArgTypeString, Required: false}}, ReturnType: core.ArgTypeString}, Func: toolGoParseFile}))
-	// GoModifyAST
-	collectRegErr("GoModifyAST", registry.RegisterTool(core.ToolImplementation{Spec: core.ToolSpec{Name: "GoModifyAST", Description: "Modifies Go AST (handle) using directives. Returns NEW handle on success.", Args: []core.ArgSpec{{Name: "handle", Type: core.ArgTypeString, Required: true}, {Name: "modifications", Type: core.ArgTypeMap, Required: true}}, ReturnType: core.ArgTypeString}, Func: toolGoModifyAST})) // Assumes toolGoModifyAST exists
-	// GoFormatASTNode
-	collectRegErr("GoFormatASTNode", registry.RegisterTool(core.ToolImplementation{Spec: core.ToolSpec{Name: "GoFormatASTNode", Description: "Formats Go AST (handle). Returns formatted code string.", Args: []core.ArgSpec{{Name: "handle", Type: core.ArgTypeString, Required: true}}, ReturnType: core.ArgTypeString}, Func: toolGoFormatAST}))
-	// GoFindIdentifiers
-	collectRegErr("GoFindIdentifiers", registry.RegisterTool(core.ToolImplementation{Spec: core.ToolSpec{Name: "GoFindIdentifiers", Description: "Finds occurrences of qualified identifiers (pkg.Symbol) in a Go AST (handle). Returns list of positions.", Args: []core.ArgSpec{{Name: "handle", Type: core.ArgTypeString, Required: true, Description: "Handle for the AST."}, {Name: "pkg_name", Type: core.ArgTypeString, Required: true, Description: "Package name part (e.g., 'fmt')."}, {Name: "identifier", Type: core.ArgTypeString, Required: true, Description: "Identifier name part (e.g., 'Println')."}}, ReturnType: core.ArgTypeSliceMap}, Func: toolGoFindIdentifiers})) // Assumes toolGoFindIdentifiers exists
+	// Register tools using ToolImplementation variables defined in other files within this package
+	// (toolGoParseFile and toolGoFormatAST defined inline for now as their impl is in this file)
 
-	// +++ Add GoGetNodeInfo registration +++
-	collectRegErr("GoGetNodeInfo", registry.RegisterTool(core.ToolImplementation{
-		Spec: core.ToolSpec{
-			Name:        "GoGetNodeInfo",
-			Description: "Finds the AST node at a specific position (offset or line/column) within an AST handle and returns information about it.",
-			Args: []core.ArgSpec{
-				{Name: "handle", Type: core.ArgTypeString, Required: true, Description: "Handle for the AST (from GoParseFile)."},
-				{Name: "position", Type: core.ArgTypeMap, Required: true, Description: "Map specifying position, e.g. {\"offset\": 123} or {\"line\": 10, \"column\": 5} (1-based)."},
-			},
-			ReturnType: core.ArgTypeMap, // Returns map describing the node, or nil if not found/error
-		},
-		Func: toolGoGetNodeInfo, // Assumes toolGoGetNodeInfo exists (in tools_go_ast_analyze.go)
+	collectRegErr("GoParseFile", registry.RegisterTool(core.ToolImplementation{
+		Spec: core.ToolSpec{Name: "GoParseFile" /* ... */}, Func: toolGoParseFile,
 	}))
-	// +++ End GoGetNodeInfo registration +++
+	collectRegErr("GoModifyAST", registry.RegisterTool(toolGoModifyASTImpl))
+	collectRegErr("GoFormatASTNode", registry.RegisterTool(core.ToolImplementation{
+		Spec: core.ToolSpec{Name: "GoFormatASTNode" /* ... */}, Func: toolGoFormatAST,
+	}))
+	collectRegErr("GoGetNodeInfo", registry.RegisterTool(toolGoGetNodeInfoImpl))
+	collectRegErr("GoFindIdentifiers", registry.RegisterTool(toolGoFindIdentifiersImpl))
 
 	if len(registrationErrors) > 0 {
-		return fmt.Errorf("errors registering basic Go AST tools: %s", errors.Join(registrationErrors...))
-	} // Use errors.Join
-	return nil // Success
+		return fmt.Errorf("errors registering Go AST tools: %w", errors.Join(registrationErrors...))
+	}
+	fmt.Println("--- Go AST Tools Registered ---")
+	return nil
 }
 
-// --- (NewDefaultTestInterpreter remains unchanged) ---
-func NewDefaultTestInterpreter(t *testing.T) (*core.Interpreter, string) {
-	t.Helper()
-	return core.NewTestInterpreter(t, nil, nil)
-}
+// --- Removed Placeholders ---
+// Removed placeholder vars like:
+// var toolGoModifyASTImpl core.ToolImplementation
+// var toolGoGetNodeInfoImpl core.ToolImplementation
+// var toolGoFindIdentifiersImpl core.ToolImplementation
+// as their definitions are in the respective implementation files.

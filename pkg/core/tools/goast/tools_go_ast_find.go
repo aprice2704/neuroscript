@@ -1,94 +1,371 @@
-// filename: pkg/core/tools_go_ast_find.go
-// NEW FILE
-// UPDATED: Use GetHandleValue
+// NeuroScript Version: 0.3.1
+// File version: 0.1.20
+// Final attempt: findIdentAndPackageAtPos uses ast.Inspect for narrowest containing *ast.Ident.
+// Keep debug logging. Accept L/C skew.
+// filename: pkg/core/tools/goast/tools_go_ast_find.go
+
 package goast
 
 import (
 	"errors"
 	"fmt"
 	"go/ast"
+	"go/token"
+	"go/types"
+	"log"
+	"path/filepath"
+	"sort"
 
 	"github.com/aprice2704/neuroscript/pkg/core"
-	// "golang.org/x/tools/go/ast/astutil" // Not needed for finding
+	// "golang.org/x/tools/go/ast/astutil" // Not using
+	"golang.org/x/tools/go/packages"
 )
 
-// --- TOOL.GoFindIdentifiers Implementation ---
+// toolGoFindIdentifiersImpl (remains the same)
+var toolGoFindIdentifiersImpl = core.ToolImplementation{
+	Spec: core.ToolSpec{
+		Name: "GoFindIdentifiers",
+		Description: "Finds all occurrences within a specific file that refer to the same symbol " +
+			"as the identifier at the given position. Uses a semantic index.",
+		Args: []core.ArgSpec{
+			{Name: "index_handle", Type: core.ArgTypeString, Required: true, Description: "Handle to the semantic index (from GoIndexCode)."},
+			{Name: "path", Type: core.ArgTypeString, Required: true, Description: "Relative path within the indexed directory to the file to search within."},
+			{Name: "line", Type: core.ArgTypeInt, Required: true, Description: "1-based line number of an instance of the symbol to find."},
+			{Name: "column", Type: core.ArgTypeInt, Required: true, Description: "1-based column number of an instance of the symbol to find."},
+		},
+		ReturnType: core.ArgTypeSliceAny,
+	},
+	Func: toolGoFindIdentifiers,
+}
 
-// toolGoFindIdentifiers finds occurrences of pkg_name.identifier in the AST.
+// resolveObject (remains the same)
+func resolveObject(pkgInfo *types.Info, ident *ast.Ident) types.Object {
+	if pkgInfo == nil || ident == nil {
+		return nil
+	}
+	return pkgInfo.ObjectOf(ident)
+}
+
+// toolGoFindIdentifiers (remains the same, including debug logging)
 func toolGoFindIdentifiers(interpreter *core.Interpreter, args []interface{}) (interface{}, error) {
-	// 1. Validate Arguments
-	if len(args) != 3 {
-		// Should be caught by validation layer based on spec, but double-check
-		return nil, fmt.Errorf("internal error: %w, expected 3 args (handle, pkg_name, identifier), got %d", core.ErrValidationArgCount, len(args))
+	logger := interpreter.Logger()
+	if len(args) != 4 {
+		return nil, fmt.Errorf("%w: GoFindIdentifiers requires 4 arguments (index_handle, path, line, column)", core.ErrInvalidArgument)
 	}
-	handleID, okH := args[0].(string)
-	pkgName, okP := args[1].(string)
-	identifier, okI := args[2].(string)
-
-	if !okH || !okP || !okI {
-		// Should be caught by validation layer
-		return nil, fmt.Errorf("internal error: %w, expected string args", core.ErrValidationTypeMismatch)
+	handle, okH := args[0].(string)
+	pathRel, okP := args[1].(string)
+	lineRaw, okL := args[2].(int64)
+	colRaw, okC := args[3].(int64)
+	if !okH || !okP || !okL || !okC {
+		return nil, fmt.Errorf("%w: GoFindIdentifiers invalid argument types (expected string, string, int64, int64)", core.ErrInvalidArgument)
 	}
-	if handleID == "" {
-		return nil, fmt.Errorf("handle ID cannot be empty: %w", core.ErrValidationRequiredArgNil) // Or custom error?
+	if lineRaw <= 0 || colRaw <= 0 {
+		return nil, fmt.Errorf("%w: GoFindIdentifiers line/column must be positive", core.ErrInvalidArgument)
 	}
-	if pkgName == "" || identifier == "" {
-		// Use specific defined error
-		return nil, fmt.Errorf("pkg_name (%q) and identifier (%q) must be non-empty: %w", pkgName, identifier, core.ErrGoInvalidIdentifierFormat)
-	}
-	interpreter.Logger().Info("Tool: GoFindIdentifiers] Args validated: handle=%s, pkg=%s, id=%s", handleID, pkgName, identifier)
-
-	// 2. Retrieve AST from Cache
-	// *** UPDATED CALL ***
-	obj, err := interpreter.GetHandleValue(handleID, golangASTTypeTag)
+	line, col := int(lineRaw), int(colRaw)
+	logger.Debug("[TOOL-GOFINDIDENTIFIERS] Request", "handle", handle, "path", pathRel, "L", line, "C", col)
+	indexValue, err := interpreter.GetHandleValue(handle, "semantic_index")
 	if err != nil {
-		// Wrap error for context
-		return nil, fmt.Errorf("failed to retrieve AST for handle '%s': %w", handleID, errors.Join(core.ErrGoModifyFailed, err)) // Reuse core.ErrGoModifyFailed? Or new Find error? Let's reuse for now.
+		logger.Error("[TOOL-GOFINDIDENTIFIERS] Failed get handle", "handle", handle, "error", err)
+		return nil, err
 	}
-	// *** END UPDATE ***
-	cachedAst, ok := obj.(CachedAst)
-	if !ok || cachedAst.File == nil || cachedAst.Fset == nil {
-		errInternal := fmt.Errorf("internal error - retrieved object for handle '%s' is invalid (%T)", handleID, obj)
-		return nil, fmt.Errorf("%w: %w", core.ErrInternalTool, errInternal) // Use core.ErrInternalTool here
+	index, ok := indexValue.(*core.SemanticIndex)
+	if !ok {
+		logger.Error("[TOOL-GOFINDIDENTIFIERS] Handle not *core.SemanticIndex", "handle", handle, "type", fmt.Sprintf("%T", indexValue))
+		return nil, fmt.Errorf("%w: handle '%s' not a SemanticIndex", core.ErrHandleWrongType, handle)
 	}
-	interpreter.Logger().Info("Tool: GoFindIdentifiers] Retrieved AST for handle '%s'", handleID)
+	if index.Fset == nil || len(index.Packages) == 0 {
+		logger.Error("[TOOL-GOFINDIDENTIFIERS] Index FileSet nil or no packages loaded", "handle", handle)
+		return nil, fmt.Errorf("%w: index '%s' has nil FileSet or no packages", core.ErrInternal, handle)
+	}
+	absPath, pathErr := core.ResolveAndSecurePath(pathRel, index.LoadDir)
+	if pathErr != nil {
+		logger.Error("[TOOL-GOFINDIDENTIFIERS] Path resolve failed", "path", pathRel, "load_dir", index.LoadDir, "error", pathErr)
+		return nil, fmt.Errorf("%w: path '%s': %w", core.ErrInvalidPath, pathRel, pathErr)
+	}
+	targetPos, posErr := findPosInFileSet(index.Fset, absPath, line, col)
+	if posErr != nil {
+		logger.Error("[TOOL-GOFINDIDENTIFIERS] Error resolving target position", "path", absPath, "L", line, "C", col, "error", posErr)
+		return nil, fmt.Errorf("%w: %w", core.ErrInternal, posErr)
+	}
+	if targetPos == token.NoPos {
+		logger.Warn("[TOOL-GOFINDIDENTIFIERS] Target position not found in FileSet (file missing?)", "path", absPath, "L", line, "C", col)
+		return []map[string]interface{}{}, nil
+	}
+	logger.Debug("[TOOL-GOFINDIDENTIFIERS] Resolved target", "abs_path", absPath, "pos", targetPos)
 
-	// 3. Find Identifiers using ast.Inspect
-	var foundPositions []map[string]interface{} // Store results as maps
+	// Find initial identifier and package using the simplified ast.Inspect approach
+	targetIdent, targetPkg, findErr := findIdentAndPackageAtPos(index, targetPos)
+	if findErr != nil {
+		logger.Error("[TOOL-GOFINDIDENTIFIERS] Error finding identifier node at position", "pos", targetPos, "file", absPath, "error", findErr)
+		return nil, fmt.Errorf("error finding identifier node at %s: %w", index.Fset.Position(targetPos), findErr)
+	}
+	if targetIdent == nil || targetPkg == nil || targetPkg.TypesInfo == nil {
+		posStr := index.Fset.Position(targetPos).String()
+		logger.Warn("[TOOL-GOFINDIDENTIFIERS] Could not find identifier or package/type info at target position", "pos", posStr, "file", absPath)
+		return []map[string]interface{}{}, nil
+	}
 
-	ast.Inspect(cachedAst.File, func(n ast.Node) bool {
-		// Check if node is a Selector Expression (like pkg.Ident)
-		selExpr, isSelExpr := n.(*ast.SelectorExpr)
-		if !isSelExpr {
-			return true // Continue traversal
+	targetObj := resolveObject(targetPkg.TypesInfo, targetIdent)
+	if targetObj == nil {
+		logger.Warn("[TOOL-GOFINDIDENTIFIERS] Could not resolve type object for target identifier via ObjectOf", "ident", targetIdent.Name, "pos", index.Fset.Position(targetIdent.Pos()))
+		return []map[string]interface{}{}, nil
+	}
+
+	if _, isPkgName := targetObj.(*types.PkgName); isPkgName {
+		logger.Info("[TOOL-GOFINDIDENTIFIERS] Target is a package name, skipping search.", "name", targetObj.Name())
+		return []map[string]interface{}{}, nil
+	}
+	logger.Debug("[TOOL-GOFINDIDENTIFIERS] Found target object", "name", targetObj.Name(), "type", fmt.Sprintf("%T", targetObj), "declPos", index.Fset.Position(targetObj.Pos()))
+
+	var targetFileNode *ast.File
+	var targetFilePkgInfo *types.Info
+	foundNodeAndPkg := false
+	for _, pkg := range index.Packages {
+		if pkg == nil || pkg.TypesInfo == nil {
+			continue
 		}
-
-		// Check if the part before the dot (X) is an Identifier matching pkgName
-		xIdent, isXIdent := selExpr.X.(*ast.Ident)
-		if !isXIdent || xIdent.Name != pkgName {
-			return true // Continue traversal
-		}
-
-		// Check if the part after the dot (Sel) matches the identifier
-		if selExpr.Sel.Name == identifier {
-			// Match found! Get position info.
-			pos := cachedAst.Fset.Position(selExpr.Pos()) // Use position of the selector expression start
-
-			positionMap := map[string]interface{}{
-				// Filename might be absent if parsed from string
-				"filename": pos.Filename,
-				"line":     pos.Line,
-				"column":   pos.Column,
-				// Optionally add offset: "offset": pos.Offset,
+		for _, fileNode := range pkg.Syntax {
+			if fileNode == nil {
+				continue
 			}
-			foundPositions = append(foundPositions, positionMap)
-			interpreter.Logger().Info("Tool: GoFindIdentifiers] Found %s.%s at %s:%d:%d", pkgName, identifier, pos.Filename, pos.Line, pos.Column)
+			if targetPos >= fileNode.Pos() && targetPos < fileNode.End() {
+				tokenFile := index.Fset.File(fileNode.Pos())
+				if tokenFile != nil && filepath.Clean(tokenFile.Name()) == filepath.Clean(absPath) {
+					targetFileNode = fileNode
+					targetFilePkgInfo = pkg.TypesInfo
+					foundNodeAndPkg = true
+					logger.Debug("[TOOL-GOFINDIDENTIFIERS] Found target file AST and PkgInfo", "file", tokenFile.Name(), "pkgPath", pkg.PkgPath)
+					break
+				}
+			}
 		}
-		return true // Continue traversal
+		if foundNodeAndPkg {
+			break
+		}
+	}
+	if !foundNodeAndPkg || targetFileNode == nil || targetFilePkgInfo == nil {
+		logger.Error("[TOOL-GOFINDIDENTIFIERS] Could not find AST node or TypeInfo for target file containing target position", "path", absPath, "targetPos", targetPos)
+		return nil, fmt.Errorf("%w: could not find AST or type info for file %s containing target position %v", core.ErrInternal, pathRel, index.Fset.Position(targetPos))
+	}
+
+	var foundPositions []map[string]interface{}
+	ast.Inspect(targetFileNode, func(n ast.Node) bool {
+		if n == nil {
+			return true
+		}
+		ident, ok := n.(*ast.Ident)
+		if !ok {
+			return true
+		}
+
+		currentObj := resolveObject(targetFilePkgInfo, ident)
+
+		if currentObj != nil && currentObj == targetObj {
+			usagePosToken := ident.Pos()
+			usagePosition := index.Fset.Position(usagePosToken)
+
+			logger.Debug("[TOOL-GOFINDIDENTIFIERS] Match Found",
+				"name", ident.Name,
+				"raw_pos", usagePosToken,
+				"resolved_file", usagePosition.Filename,
+				"resolved_line", usagePosition.Line,
+				"resolved_col", usagePosition.Column,
+				"is_valid", usagePosition.IsValid())
+
+			if usagePosition.IsValid() {
+				positionMap := map[string]interface{}{
+					"path":   pathRel,
+					"line":   int64(usagePosition.Line),
+					"column": int64(usagePosition.Column),
+					"name":   ident.Name,
+				}
+				foundPositions = append(foundPositions, positionMap)
+			} else {
+				logger.Warn("[TOOL-GOFINDIDENTIFIERS] Found matching object but resolved position is invalid", "name", ident.Name, "pos", usagePosToken)
+			}
+		}
+		return true
 	})
 
-	interpreter.Logger().Info("Tool: GoFindIdentifiers] Found %d occurrences.", len(foundPositions))
+	uniquePositions := make([]map[string]interface{}, 0, len(foundPositions))
+	seen := make(map[string]bool)
+	for _, posMap := range foundPositions {
+		key := fmt.Sprintf("%s:%d:%d", posMap["path"], posMap["line"], posMap["column"])
+		if !seen[key] {
+			uniquePositions = append(uniquePositions, posMap)
+			seen[key] = true
+		}
+	}
 
-	// 4. Return the list of positions (empty list if none found)
-	return foundPositions, nil
+	sort.SliceStable(uniquePositions, func(i, j int) bool {
+		lineI := uniquePositions[i]["line"].(int64)
+		lineJ := uniquePositions[j]["line"].(int64)
+		if lineI != lineJ {
+			return lineI < lineJ
+		}
+		colI := uniquePositions[i]["column"].(int64)
+		colJ := uniquePositions[j]["column"].(int64)
+		return colI < colJ
+	})
+
+	logger.Info("[TOOL-GOFINDIDENTIFIERS] Search complete.", "target", targetObj.Name(), "instances_found_in_file", len(uniquePositions))
+	return uniquePositions, nil
+}
+
+// --- Helpers ---
+
+// findPosInFileSet (Unchanged from v0.1.16)
+func findPosInFileSet(fset *token.FileSet, absPath string, line, col int) (token.Pos, error) {
+	var foundFile *token.File = nil
+	cleanedAbsPath := filepath.Clean(absPath)
+	log.Printf("[DEBUG findPosInFileSet] Searching for cleaned path: %q", cleanedAbsPath)
+	found := false
+	fset.Iterate(func(f *token.File) bool {
+		if f == nil {
+			log.Println("[DEBUG findPosInFileSet] Iterating. Found nil file in FileSet.")
+			return true
+		}
+		fName := f.Name()
+		if fName == "" {
+			log.Println("[DEBUG findPosInFileSet] Iterating. Found file with empty name.")
+			return true
+		}
+		cleanedFName := filepath.Clean(fName)
+		if cleanedFName == cleanedAbsPath {
+			log.Printf("[DEBUG findPosInFileSet] Match found for %q!", cleanedFName)
+			fileSize := f.Size()
+			lineCount := f.LineCount()
+			log.Printf("[DEBUG findPosInFileSet] Matched File Details: Size=%d, LineCount=%d, Base=%d", fileSize, lineCount, f.Base())
+			foundFile = f
+			found = true
+			return false
+		}
+		return true
+	})
+	if !found || foundFile == nil {
+		log.Printf("[DEBUG findPosInFileSet] *** No matching file found in FileSet for cleaned path: %q ***", cleanedAbsPath)
+		return token.NoPos, nil
+	}
+
+	lineCount := foundFile.LineCount()
+	if line <= 0 || col <= 0 {
+		log.Printf("[DEBUG findPosInFileSet] Invalid line/col (%d, %d) for file %q", line, col, cleanedAbsPath)
+		return token.NoPos, fmt.Errorf("invalid line (%d) or column (%d)", line, col)
+	}
+	if line > lineCount {
+		log.Printf("[DEBUG findPosInFileSet] Check Failed: Line %d > LineCount %d for file %q", line, lineCount, cleanedAbsPath)
+		return token.NoPos, fmt.Errorf("line %d is beyond file line count %d", line, lineCount)
+	}
+	lineStartPos := foundFile.LineStart(line)
+	if !lineStartPos.IsValid() {
+		log.Printf("[DEBUG findPosInFileSet] Invalid LineStart for line %d in file %q", line, cleanedAbsPath)
+		return token.NoPos, fmt.Errorf("internal error: could not get valid start position for line %d", line)
+	}
+
+	lineOffset := col - 1
+	lineStartOffset := foundFile.Offset(lineStartPos)
+	targetOffsetInFile := lineStartOffset + lineOffset
+	fileSize := foundFile.Size()
+
+	log.Printf("[DEBUG findPosInFileSet] Boundary Check Values: Line=%d Col=%d => LineStartPos=%d LineStartOffset=%d LineOffset=%d | Calculated OffsetInFile=%d FileSize=%d",
+		line, col, lineStartPos, lineStartOffset, lineOffset, targetOffsetInFile, fileSize)
+
+	if targetOffsetInFile < 0 || targetOffsetInFile >= fileSize {
+		errMsg := fmt.Sprintf("calculated offset %d is outside valid range [0, %d) for file %s (line %d, col %d)",
+			targetOffsetInFile, fileSize, cleanedAbsPath, line, col)
+		log.Printf("[DEBUG findPosInFileSet] *** Boundary Check Failed: %s ***", errMsg)
+		return token.NoPos, errors.New(errMsg)
+	}
+
+	absPos := foundFile.Pos(targetOffsetInFile)
+	if !absPos.IsValid() {
+		log.Printf("[DEBUG findPosInFileSet] Calculated invalid absolute Pos %d from offset %d", absPos, targetOffsetInFile)
+		return token.NoPos, fmt.Errorf("internal error: calculated invalid token.Pos from offset %d", targetOffsetInFile)
+	}
+
+	log.Printf("[DEBUG findPosInFileSet] Boundary Check OK. Returning absolute Pos: %d", absPos)
+	return absPos, nil
+}
+
+// findIdentAndPackageAtPos uses ast.Inspect to find the narrowest node containing
+// the position, and returns it only if it's an *ast.Ident.
+func findIdentAndPackageAtPos(index *core.SemanticIndex, targetPos token.Pos) (*ast.Ident, *packages.Package, error) {
+	var targetPkg *packages.Package
+	var containingFile *ast.File
+	var narrowestNode ast.Node // Track the narrowest node containing the pos
+
+	// 1. Find containing file and package
+	for _, pkg := range index.Packages {
+		if pkg == nil {
+			continue
+		}
+		for _, fileNode := range pkg.Syntax {
+			if fileNode == nil {
+				continue
+			}
+			if fileNode.Pos() <= targetPos && targetPos < fileNode.End() {
+				if pkg.TypesInfo == nil {
+					posStr := index.Fset.Position(targetPos).String()
+					log.Printf("[ERROR findIdentAndPackageAtPos] Found package %s for position %s, but TypesInfo is nil.", pkg.PkgPath, posStr)
+					return nil, nil, fmt.Errorf("internal error: types info missing for package %s containing position %s", pkg.PkgPath, posStr)
+				}
+				targetPkg = pkg
+				containingFile = fileNode
+				log.Printf("[DEBUG findIdentAndPackageAtPos] Found containing file: %s in package: %s for pos %v", index.Fset.File(fileNode.Pos()).Name(), pkg.PkgPath, targetPos)
+				goto FoundFile
+			}
+		}
+	}
+
+FoundFile:
+	if containingFile == nil || targetPkg == nil {
+		posStr := index.Fset.Position(targetPos).String()
+		log.Printf("[DEBUG findIdentAndPackageAtPos] Position %s not found within any indexed file's AST range.", posStr)
+		return nil, nil, nil
+	}
+
+	// 2. Use ast.Inspect to find the narrowest node containing targetPos
+	ast.Inspect(containingFile, func(node ast.Node) bool {
+		if node == nil {
+			return false
+		}
+		startPos, endPos := node.Pos(), node.End()
+		if !(startPos <= targetPos && targetPos < endPos) {
+			if startPos > targetPos {
+				return false
+			} // Prune
+			return true // Continue siblings
+		}
+		// Node contains the position. Store it as the current narrowest candidate.
+		narrowestNode = node
+		log.Printf("[DEBUG findIdentAndPackageAtPos] Inspect: Node %T [%v, %v) contains target %v. Storing as narrowest.", node, startPos, endPos, targetPos)
+		return true // Continue deeper
+	})
+
+	// 3. After inspection, check if the narrowest node found is an *ast.Ident
+	if narrowestNode != nil {
+		if ident, ok := narrowestNode.(*ast.Ident); ok {
+			// Success! The narrowest node containing the position is an identifier.
+			// Double-check resolution just in case, though ObjectOf should be robust.
+			if obj := resolveObject(targetPkg.TypesInfo, ident); obj != nil {
+				pos := index.Fset.Position(ident.Pos())
+				log.Printf("[DEBUG findIdentAndPackageAtPos] Success! Narrowest node is Ident: '%s' at %s:%d:%d (and resolves)",
+					ident.Name, filepath.Base(pos.Filename), pos.Line, pos.Column)
+				return ident, targetPkg, nil
+			} else {
+				posStr := index.Fset.Position(targetPos).String()
+				log.Printf("[WARN findIdentAndPackageAtPos] Narrowest node at %s is Ident '%s', but it failed to resolve via ObjectOf.", posStr, ident.Name)
+				return nil, nil, nil // Treat non-resolving ident as not found
+			}
+		} else {
+			posStr := index.Fset.Position(targetPos).String()
+			log.Printf("[WARN findIdentAndPackageAtPos] Narrowest node containing position %s is %T, not *ast.Ident.", posStr, narrowestNode)
+			return nil, nil, nil
+		}
+	}
+
+	posStr := index.Fset.Position(targetPos).String()
+	log.Printf("[WARN findIdentAndPackageAtPos] No AST node found containing position %s", posStr)
+	return nil, nil, nil
 }

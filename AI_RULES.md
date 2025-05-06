@@ -20,8 +20,17 @@ Follow these **RULES** **very strictly** for all Go code contributions to the Ne
  7.  **Helpers:** Place reusable helpers in shared files (e.g., `utils.go`, `parsing_helpers.go`). Add new helpers cautiously; modify existing ones **rarely**.
  8.  **Package Comments:** Keep `// Package ...` comments accurate.
  9.  **Import Paths:** Use plain string literals for import paths (e.g., `"path/to/pkg"`), not Markdown links.
- 9. a. Please **version stamp** each file you touch, e.g. `// NeuroScript Version: 0.3.0
-// Last Modified: 2025-05-01 12:41:54 PDT` as we have been having some stale file problems. btw, keep bumping the patch # in the version # on the files please.
+ 
+ 9. a. **Versioning** Please place a **version stamp** at the top of each file you modify, like this:
+ 
+// NeuroScript Version: 0.3.0
+// File version: 0.1.3 <<-- bump this right hand most number
+// Simplify Inspect check, keep AST dump ON
+// filename: pkg/core/tools_go_semantic.go
+
+and bump the minor number in the file version each time. Please remove the last modified date/time -- it proved not to be useful.
+ 
+ 
  9. b. **Comments**: add and maintain package comments please. No comments within import blocks please. Remember: **do not** put // comments in ns file, they are no permitted.
  
  ## Error Handling Protocol
@@ -134,7 +143,6 @@ Follow these **RULES** **very strictly** for all Go code contributions to the Ne
      	"github.com/aprice2704/neuroscript/pkg/core"
      	"github.com/aprice2704/neuroscript/pkg/adapters"
         "github.com/aprice2704/neuroscript/pkg/logging"
-     	// "[github.com/aprice2704/neuroscript/pkg/toolsets](https://github.com/aprice2704/neuroscript/pkg/toolsets)" // If needed
      )
 
      func TestMyIntegration(t *testing.T) {
@@ -175,4 +183,5 @@ Follow these **RULES** **very strictly** for all Go code contributions to the Ne
 
  * **Tool Registration:** Tools are *not* automatically registered when using `core.NewInterpreter` directly. You *must* call the relevant `Register...` functions.
  * **Sandbox:** Always use `t.TempDir()` to create isolated sandboxes for tests. Ensure the interpreter's sandbox is correctly set using `SetSandboxDir()`.
- * **Dependencies:** Use `NoOpLLMClient` and a test logger (`TestLogger` via helpers or `adapters.NewNoOpLogger`/`adapters.NewSLogAdapter`) to isolate tests from external services and complex logging setups.
+ * **Dependencies:** Use `NoOpLLMClient` for testing.
+ Use adapters.NewSimpleSlogAdapter(output io.Writer, level logging.LogLevel) for most regular logging.
