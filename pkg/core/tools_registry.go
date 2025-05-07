@@ -1,11 +1,12 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.0.2 // Add central list and func for init-based registration.
+// File version: 0.0.4 // Removed DEBUG log for successful first-time tool registration.
 // filename: pkg/core/tools_registry.go
 
 package core
 
 import (
 	"fmt"
+	"log" // Standard Go logging package for init-time/early phase logging
 	"sync"
 )
 
@@ -25,48 +26,73 @@ func AddToolImplementations(impls ...ToolImplementation) {
 	globalToolImplementations = append(globalToolImplementations, impls...)
 }
 
-// --- ToolRegistry definition remains the same ---
-
 // ToolRegistry manages the available tools for an Interpreter instance.
 type ToolRegistry struct {
 	tools       map[string]ToolImplementation
-	interpreter *Interpreter // Reference back to the interpreter
+	interpreter *Interpreter // Reference back to the interpreter for its logger, if available
 	mu          sync.RWMutex
 }
 
 // NewToolRegistry creates a new registry associated with an interpreter.
+// It processes the globalToolImplementations collected during init phases.
 func NewToolRegistry(interpreter *Interpreter) *ToolRegistry {
-	return &ToolRegistry{
+	r := &ToolRegistry{
 		tools:       make(map[string]ToolImplementation),
 		interpreter: interpreter,
 	}
+
+	globalRegMutex.Lock()
+	toolsToProcess := make([]ToolImplementation, len(globalToolImplementations))
+	copy(toolsToProcess, globalToolImplementations)
+	globalRegMutex.Unlock()
+
+	for _, impl := range toolsToProcess {
+		if err := r.RegisterTool(impl); err != nil {
+			// Log critical errors (e.g., nil func, empty name)
+			log.Printf("[ERROR] NewToolRegistry: Failed to register tool '%s' from global list: %v\n", impl.Spec.Name, err)
+		}
+	}
+	return r
 }
 
 // RegisterTool adds or updates a tool in the registry.
-// It checks for naming conflicts.
+// If a tool with the same name already exists, the first registration wins,
+// an error is logged, and no error is returned from this function for that case.
+// Returns an error for other issues like empty name or nil function.
 func (r *ToolRegistry) RegisterTool(impl ToolImplementation) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	if impl.Spec.Name == "" {
-		return fmt.Errorf("attempted to register tool with empty name")
+		err := fmt.Errorf("attempted to register tool with empty name")
+		// Use interpreter's logger if available, otherwise standard log
+		if r.interpreter != nil && r.interpreter.logger != nil {
+			r.interpreter.logger.Error("[ToolRegistry] Registration failed", "error", err.Error())
+		} else {
+			log.Printf("[ERROR] ToolRegistry: Registration failed: %v\n", err)
+		}
+		return err // Return error for this critical issue
 	}
 	if impl.Func == nil {
-		return fmt.Errorf("attempted to register tool '%s' with nil function", impl.Spec.Name)
+		err := fmt.Errorf("attempted to register tool '%s' with nil function", impl.Spec.Name)
+		if r.interpreter != nil && r.interpreter.logger != nil {
+			r.interpreter.logger.Error("[ToolRegistry] Registration failed", "tool_name", impl.Spec.Name, "error", err.Error())
+		} else {
+			log.Printf("[ERROR] ToolRegistry: Registration failed for tool '%s': %v\n", impl.Spec.Name, err)
+		}
+		return err // Return error for this critical issue
 	}
 
-	// Basic validation for spec could go here if needed
+	// Check for duplicate registration
+	if _, exists := r.tools[impl.Spec.Name]; exists {
+		log.Printf("[ERROR] ToolRegistry: Attempted to re-register tool '%s'. First registration wins.\n", impl.Spec.Name)
+		return nil // Do not overwrite, do not return an error from this function for this case
+	}
 
-	// Allow overwriting for now, maybe add configuration later?
-	// if _, exists := r.tools[impl.Spec.Name]; exists {
-	//  return fmt.Errorf("tool '%s' already registered", impl.Spec.Name)
-	// }
-
+	// Register the new tool
 	r.tools[impl.Spec.Name] = impl
-	// Add logging if interpreter and logger are available and configured
-	if r.interpreter != nil && r.interpreter.logger != nil {
-		r.interpreter.logger.Debug("Tool registered", "name", impl.Spec.Name)
-	}
+	// DEBUG log for successful registration has been removed as per request.
+	// The summary logs from zz_core_tools_registrar.go and error logs for duplicates remain.
 	return nil
 }
 
@@ -86,7 +112,5 @@ func (r *ToolRegistry) ListTools() []ToolSpec {
 	for _, impl := range r.tools {
 		list = append(list, impl.Spec)
 	}
-	// Sort list alphabetically by name?
-	// sort.Slice(list, func(i, j int) bool { return list[i].Name < list[j].Name })
 	return list
 }

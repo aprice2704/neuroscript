@@ -17,66 +17,7 @@ func registerGoTools(registry ToolRegistrar) error { // Changed signature to acc
 	// Consider defining impl variables in respective files (e.g., toolGoBuildImpl) for consistency later.
 	tools := []ToolImplementation{
 		// --- Build / Test / Basic Commands ---
-		{
-			Spec: ToolSpec{Name: "GoBuild", Description: "Runs 'go build [target]' within the sandbox.", Args: []ArgSpec{{Name: "target", Type: ArgTypeString, Required: false, Description: "Optional build target relative to sandbox (e.g., './cmd/app', '.'). Defaults to './...'"}}, ReturnType: ArgTypeAny},
-			Func: toolGoBuild,
-		},
-		{
-			Spec: ToolSpec{Name: "GoCheck", Description: "Checks Go code validity using 'go list -e -json <target>' within the sandbox.", Args: []ArgSpec{{Name: "target", Type: ArgTypeString, Required: true, Description: "Target Go package path or file path relative to sandbox (e.g., './pkg/core', 'main.go')."}}, ReturnType: ArgTypeAny},
-			Func: toolGoCheck,
-		},
-		{
-			Spec: ToolSpec{Name: "GoTest", Description: "Runs 'go test [target]' within the sandbox. Target paths must be relative to the sandbox. Defaults to './...'", Args: []ArgSpec{{Name: "target", Type: ArgTypeString, Required: false, Description: "Optional test target relative to sandbox (e.g., './pkg/core/...', '.'). Defaults to './...'"}}, ReturnType: ArgTypeAny},
-			Func: toolGoTest,
-		},
-		{
-			Spec: ToolSpec{Name: "GoModTidy", Description: "Runs 'go mod tidy' within the sandbox.", Args: []ArgSpec{}, ReturnType: ArgTypeAny},
-			Func: toolGoModTidy,
-		},
-		{
-			Spec: ToolSpec{Name: "GoListPackages", Description: "Executes 'go list -json <patterns...>' in a specified directory (relative to sandbox) and returns parsed JSON information about the packages found.", Args: []ArgSpec{{Name: "directory", Type: ArgTypeString, Required: false, Description: "Directory relative to sandbox to run 'go list' in. Defaults to sandbox root ('.')."}, {Name: "patterns", Type: ArgTypeSliceString, Required: false, Description: "Go package patterns (e.g., './...', 'github.com/some/pkg'). Defaults to './...'."}}, ReturnType: ArgTypeSliceMap},
-			Func: toolGoListPackages,
-		},
-		{
-			Spec: ToolSpec{Name: "GoGetModuleInfo", Description: "Finds and parses the go.mod file relevant to a directory by searching upwards. Returns a map with module path, go version, root directory, requires, and replaces, or nil if not found.", Args: []ArgSpec{{Name: "directory", Type: ArgTypeString, Required: false, Description: "Directory (relative to sandbox) to start searching upwards for go.mod. Defaults to '.' (sandbox root)."}}, ReturnType: ArgTypeMap},
-			Func: toolGoGetModuleInfo,
-		},
-
-		// --- Formatting ---
-		{
-			Spec: ToolSpec{Name: "GoFmt", Description: "Formats Go source code provided as a string using 'gofmt'. Returns formatted string on success, map with error details on failure.", Args: []ArgSpec{{Name: "content", Type: ArgTypeString, Required: true, Description: "Go source code content as a string."}}, ReturnType: ArgTypeAny},
-			Func: toolGoFmt,
-		},
-		{
-			Spec: ToolSpec{Name: "GoImports", Description: "Formats Go source code string using 'goimports' logic (adds/removes imports, formats code). Returns formatted string on success, map with error details on failure.", Args: []ArgSpec{{Name: "content", Type: ArgTypeString, Required: true, Description: "Go source code content as a string."}}, ReturnType: ArgTypeAny},
-			Func: toolGoImports,
-		},
-
-		// --- Diagnostics ---
-		{
-			Spec: ToolSpec{Name: "GoVet", Description: "Runs 'go vet [target]' within the sandbox to find possible errors and suspicious constructs.", Args: []ArgSpec{{Name: "target", Type: ArgTypeString, Required: false, Description: "Optional target relative to sandbox (e.g., './pkg/core/...', '.'). Defaults to './...'"}}, ReturnType: ArgTypeAny},
-			Func: toolGoVet,
-		},
-		{
-			Spec: ToolSpec{Name: "Staticcheck", Description: "Runs 'staticcheck [target]' within the sandbox for advanced static analysis. Assumes 'staticcheck' executable is in PATH.", Args: []ArgSpec{{Name: "target", Type: ArgTypeString, Required: false, Description: "Optional target relative to sandbox (e.g., './pkg/core/...', '.'). Defaults to './...'"}}, ReturnType: ArgTypeAny},
-			Func: toolStaticcheck,
-		},
-
-		// --- Semantic Indexing & Search ---
-		// Note: Using ToolImplementation variables defined in respective files where available
-		{ // Defined inline previously, keep for now unless we define toolGoIndexCodeImpl
-			Spec: ToolSpec{
-				Name:        "GoIndexCode",
-				Description: "Loads Go package information for the specified directory using 'go/packages' to build an in-memory semantic index. Returns a handle to the index.",
-				Args: []ArgSpec{
-					{Name: "directory", Type: ArgTypeString, Required: false, Description: "Directory relative to sandbox to index (packages loaded via './...'). Defaults to sandbox root ('.')."},
-				},
-				ReturnType: ArgTypeString, // Returns the handle
-			},
-			Func: toolGoIndexCode, // Implementation in tools_go_semantic.go
-		},
-		toolGoFindDeclarationsImpl, // Defined in tools_go_find_declarations.go
-		toolGoFindUsagesImpl,       // +++ ADDED: Defined in tools_go_find_usages.go +++
+		// +++ ADDED: Defined in tools_go_find_usages.go +++
 
 		// --- AST Tools (Registered Separately) ---
 		// toolGoParseFileImpl, // Example if registered here

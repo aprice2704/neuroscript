@@ -1,96 +1,77 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.1.1 // Use init()-based registration list, remove direct sub-package imports/calls.
+// File version: 0.1.2 // Simplified: NewToolRegistry now handles globalToolImplementations.
 // filename: pkg/core/tools_register.go
 package core
 
 import (
 	"fmt"
-	// No longer import sub-packages like gosemantic here
-	// "github.com/aprice2704/neuroscript/pkg/core/tools/gosemantic"
-	// "github.com/aprice2704/neuroscript/pkg/core/tools/goast" // Example if goast had register func
+	// "log" // Standard log, if needed for any direct registrations remaining.
 )
 
-// registerCoreToolsInternal registers all tools added via AddToolImplementations.
-// It's called by the public RegisterCoreTools.
+// registerCoreToolsInternal is called by the public RegisterCoreTools.
+// Its primary role is now to register any core tools that *cannot* use the
+// init() + AddToolImplementations pattern.
+// Processing of globalToolImplementations is handled by NewToolRegistry.
 func registerCoreToolsInternal(registry *ToolRegistry) error {
-	var allErrors []error
+	// var allErrors []error // Only needed if there are direct registrations below.
 
-	// Get the list of tools registered via init()
-	// Lock isn't strictly needed here if AddToolImplementations is only called during init,
-	// but it's safer if there's any chance of concurrent access later.
-	globalRegMutex.Lock()
-	implementationsToRegister := make([]ToolImplementation, len(globalToolImplementations))
-	copy(implementationsToRegister, globalToolImplementations)
-	globalRegMutex.Unlock()
+	// The globalToolImplementations slice (populated by all init() functions)
+	// is now processed by NewToolRegistry when the registry is created.
+	// Therefore, this function should no longer iterate over globalToolImplementations.
 
-	// Register each tool
-	registeredNames := make(map[string]string) // Track names to report duplicates clearly
-	for _, impl := range implementationsToRegister {
-		toolName := impl.Spec.Name
-		if existingPkg, exists := registeredNames[toolName]; exists {
-			// This indicates two different packages tried to register the same tool name via init()
-			// Or the same package added it twice.
-			err := fmt.Errorf("duplicate tool name registration detected via init(): '%s' already registered (potentially by package providing %s)", toolName, existingPkg)
-			allErrors = append(allErrors, err)
-			// Skip registering the duplicate
-			continue
-		}
-
-		if err := registry.RegisterTool(impl); err != nil {
-			allErrors = append(allErrors, fmt.Errorf("failed registering tool '%s' from global list: %w", toolName, err))
-		} else {
-			// Record successful registration (value doesn't matter much here, maybe store package later?)
-			registeredNames[toolName] = toolName
-		}
-	}
-
-	// --- Legacy Registration (Example - Keep if some tools are still registered directly within core) ---
-	// If some tool groups are still defined *entirely within core* and use the old pattern:
+	// --- Legacy or Non-Init Registration Section ---
+	// If there are any core tools that absolutely cannot be registered via init()
+	// (e.g., they require a fully initialized interpreter instance for their ToolSpec),
+	// their registration would go here.
+	// For example:
 	// collectErr := func(name string, err error) {
-	// 	if err != nil {
-	// 		allErrors = append(allErrors, fmt.Errorf("failed registering core %s tools: %w", name, err))
-	// 	}
+	//  if err != nil {
+	//      allErrors = append(allErrors, fmt.Errorf("failed registering core %s tools: %w", name, err))
+	//  }
 	// }
-	// collectErr("String", registerStringTools(registry)) // Assuming this only registers tools defined *in* core
-	// collectErr("Math", registerMathTools(registry))     // Assuming this only registers tools defined *in* core
-	// ... etc for FS, Vector, Git, Shell, Metadata, List, IO, FileAPI, LLM, Tree IF they are defined in core.
-	// --- End Legacy Registration ---
+	//
+	// Example: if some specific tools needed direct registration:
+	// specificTool := ToolImplementation{Spec: ToolSpec{Name: "MySpecialTool", ...}, Func: toolMySpecialTool}
+	// if err := registry.RegisterTool(specificTool); err != nil {
+	//     allErrors = append(allErrors, fmt.Errorf("failed registering MySpecialTool: %w", err))
+	// }
 
-	if len(allErrors) > 0 {
-		// Use errors.Join for better formatting if Go >= 1.20
-		// return errors.Join(allErrors...)
-		// Fallback for broader compatibility:
-		finalError := fmt.Errorf("errors during tool registration")
-		for _, err := range allErrors {
-			finalError = fmt.Errorf("%w; %w", finalError, err)
-		}
-		return finalError
-	}
+	// if len(allErrors) > 0 {
+	//  finalError := fmt.Errorf("errors during explicit tool registration in RegisterCoreTools")
+	//  for _, err := range allErrors {
+	//      finalError = fmt.Errorf("%w; %w", finalError, err)
+	//  }
+	//  return finalError
+	// }
+	// --- End Legacy or Non-Init Registration Section ---
 
-	return nil // Success
+	return nil // Success, assuming init-based tools are primary and handled.
 }
 
-// RegisterCoreTools is the public entry point for registering all core tools.
-// It now relies on tools being added via AddToolImplementations in their respective packages' init() functions.
+// RegisterCoreTools is the public entry point for ensuring core tools are available.
+// With the init-based registration pattern, NewToolRegistry handles the primary
+// registration from globalToolImplementations. This function's role is now minimal
+// unless there are core tools that cannot use the init() pattern.
 func RegisterCoreTools(registry *ToolRegistry) error {
 	if registry == nil {
 		return fmt.Errorf("RegisterCoreTools called with a nil registry")
 	}
-	// Call the internal function that processes the globally registered tools
+
+	// Call the internal function, which now handles only non-init registrations if any.
 	if err := registerCoreToolsInternal(registry); err != nil {
-		return err // Propagate error
+		// This error would now primarily come from any direct/legacy registrations
+		// made within registerCoreToolsInternal.
+		// The FATAL error from tests was due to re-processing globalToolImplementations here.
+		return err
 	}
 
-	// Log success (assuming logger is accessible, otherwise might need adjustment)
-	// if registry.interpreter != nil && registry.interpreter.logger != nil {
-	// 	registry.interpreter.logger.Info("Tools registered successfully via global list.")
-	// }
+	// Log successful completion of this phase.
+	// The interpreter's logger might be available here.
+	if registry.interpreter != nil && registry.interpreter.logger != nil {
+		registry.interpreter.logger.Info("RegisterCoreTools: Explicit core tool registration phase complete (most tools registered via init).")
+	} else {
+		// log.Println("[INFO] RegisterCoreTools: Explicit core tool registration phase complete.")
+	}
 
 	return nil // Success
 }
-
-// Remove or comment out dummy registration functions if they are not needed or if
-// those tools are now registered via init() in their respective packages.
-// func registerStringTools(registry *ToolRegistry) error { return nil } // Keep if string tools defined in core
-// func registerMathTools(registry *ToolRegistry) error { return nil } // Keep if math tools defined in core
-// ... and so on

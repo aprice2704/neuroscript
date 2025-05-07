@@ -1,69 +1,63 @@
+// NeuroScript Version: 0.3.0
+// File version: 0.1.6 // Adjusted error wrapping for internal OS errors to align with test expectations.
 // filename: pkg/core/tools_fs_write.go
+
 package core
 
 import (
+	"errors" // Added for errors.Join
 	"fmt"
 	"os"
-	"path/filepath"
+	"path/filepath" // For ensuring directory exists
 )
 
-// toolWriteFile writes content to a specified file.
-// *** MODIFIED: Uses interpreter.sandboxDir instead of os.Getwd() ***
+// toolWriteFile implements TOOL.WriteFile
+// Its ToolImplementation is now defined in tooldefs_fs.go and registered by zz_core_tools_registrar.go
 func toolWriteFile(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	// Validation guarantees args[0] and args[1] are strings
-	filePath := args[0].(string)
-	content := args[1].(string)
+	if len(args) != 2 {
+		return nil, NewRuntimeError(ErrorCodeArgMismatch, fmt.Sprintf("WriteFile expects 2 arguments, got %d", len(args)), ErrInvalidArgument)
+	}
+	filepathRelative, okPath := args[0].(string)
+	content, okContent := args[1].(string)
 
-	// *** Get sandbox root directly from the interpreter ***
-	sandboxRoot := interpreter.sandboxDir // Use the field name you added
-	if sandboxRoot == "" {
-		// Fallback or error if sandboxRoot is somehow empty
-		if interpreter.logger != nil {
-			interpreter.logger.Warn("TOOL WriteFile] Interpreter sandboxDir is empty, using default relative path validation.")
-		}
-		sandboxRoot = "." // Ensure it's at least relative to CWD if empty
+	if !okPath {
+		return nil, NewRuntimeError(ErrorCodeArgMismatch, "WriteFile expects a string filepath argument", ErrInvalidArgument)
+	}
+	if !okContent {
+		return nil, NewRuntimeError(ErrorCodeArgMismatch, "WriteFile expects string content argument", ErrInvalidArgument)
 	}
 
-	// Use SecureFilePath to validate the relative path is within the interpreter's sandboxDir
-	// and get the secure absolute path.
-	absPath, secErr := SecureFilePath(filePath, sandboxRoot) // *** Use sandboxRoot ***
-	if secErr != nil {
-		// Path validation failed (absolute, outside sandboxDir, etc.)
-		errMsg := fmt.Sprintf("WriteFile path error for '%s': %s", filePath, secErr.Error())
-		if interpreter.logger != nil {
-			interpreter.logger.Info("Tool: WriteFile] %s (Sandbox Root: %s)", errMsg, sandboxRoot)
-		}
-		// Return the error message string for NeuroScript, but the actual Go error for context.
-		return errMsg, secErr
+	if filepathRelative == "" {
+		return nil, NewRuntimeError(ErrorCodeArgMismatch, "WriteFile filepath cannot be empty", ErrInvalidArgument)
 	}
 
-	if interpreter.logger != nil {
-		interpreter.logger.Info("Tool: WriteFile] Writing to validated path: %s (Original Relative: %s, Sandbox: %s)", absPath, filePath, sandboxRoot)
+	// Resolve and secure the path using the interpreter's FileAPI
+	absPath, err := interpreter.FileAPI().ResolvePath(filepathRelative)
+	if err != nil {
+		// ResolvePath already creates a RuntimeError
+		return nil, err
 	}
 
-	// Ensure directory exists before writing (using the validated absolute path)
-	dirPath := filepath.Dir(absPath)
-	if dirErr := os.MkdirAll(dirPath, 0755); dirErr != nil {
-		errMsg := fmt.Sprintf("WriteFile mkdir failed for dir '%s': %s", dirPath, dirErr.Error())
-		if interpreter.logger != nil {
-			interpreter.logger.Info("Tool: WriteFile] %s", errMsg)
-		}
-		return errMsg, fmt.Errorf("%w: creating directory '%s': %w", ErrInternalTool, dirPath, dirErr)
+	interpreter.Logger().Debugf("Tool WriteFile: Attempting to write to resolved absolute path: %s (original relative: %s)", absPath, filepathRelative)
+
+	// Ensure the directory exists
+	dir := filepath.Dir(absPath)
+	if mkDirErr := os.MkdirAll(dir, 0755); mkDirErr != nil { // 0755 are typical directory permissions
+		errMsg := fmt.Sprintf("failed to create directory '%s' for file '%s'", dir, filepathRelative)
+		interpreter.Logger().Errorf("Tool WriteFile: %s: %v", errMsg, mkDirErr)
+		// Wrap ErrInternalTool to satisfy test expectation
+		return nil, NewRuntimeError(ErrorCodeInternal, errMsg, errors.Join(ErrInternalTool, mkDirErr))
 	}
 
-	// Write the file (using the validated absolute path)
-	writeErr := os.WriteFile(absPath, []byte(content), 0644)
+	// Write the file
+	writeErr := os.WriteFile(absPath, []byte(content), 0644) // 0644 are typical file permissions
 	if writeErr != nil {
-		errMsg := fmt.Sprintf("WriteFile failed for '%s': %s", filePath, writeErr.Error())
-		if interpreter.logger != nil {
-			interpreter.logger.Info("Tool: WriteFile] %s", errMsg)
-		}
-		return errMsg, fmt.Errorf("%w: writing file '%s': %w", ErrInternalTool, filePath, writeErr)
+		errMsg := fmt.Sprintf("failed writing to file '%s'", filepathRelative)
+		interpreter.Logger().Errorf("Tool WriteFile: %s (resolved: '%s'): %v", errMsg, absPath, writeErr)
+		// Wrap ErrInternalTool to satisfy test expectation
+		return nil, NewRuntimeError(ErrorCodeInternal, errMsg, errors.Join(ErrInternalTool, writeErr))
 	}
 
-	if interpreter.logger != nil {
-		interpreter.logger.Info("Tool: WriteFile] Wrote %d bytes successfully to %s", len(content), filePath)
-	}
-	// Return "OK" on success
-	return "OK", nil
+	interpreter.Logger().Infof("Tool WriteFile: Successfully wrote %d bytes to '%s'", len(content), filepathRelative)
+	return "OK", nil // CRITICAL: Ensure this returns "OK"
 }

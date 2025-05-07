@@ -1,4 +1,8 @@
+// NeuroScript Version: 0.3.0
+// File version: 0.1.0
+// Add version stamp
 // filename: pkg/core/tools_file_api_test.go
+
 package core
 
 import (
@@ -73,6 +77,8 @@ func TestToolSyncFilesValidation(t *testing.T) {
 }
 
 // TODO: Add functional tests for File API tools, requiring mocking of the genai.Client interface.
+// These functional tests would be the place to verify the correct wrapping of sentinel errors
+// like ErrLLMNotConfigured, ErrFileNotFound, etc., using errors.Is().
 
 // Ensure required error variables are defined (assuming they are in errors.go)
 var (

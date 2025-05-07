@@ -1,46 +1,40 @@
+// NeuroScript Version: 0.3.0
+// File version: 0.1.5
+// Correct remaining undefined errors
 // filename: pkg/core/tools_file_api.go
+
 package core
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
-	// For generating unique IDs if needed by FileAPI state
 )
-
-// --- Define FileAPIClient interface (if not already defined elsewhere) ---
-// type FileAPIClient interface { ... see interpreter.go ... }
-
-// --- Define FileAPI struct (if not already defined elsewhere) ---
-// type FileAPI struct { ... see file containing its definition ... }
-
-// --- Tool Implementations ---
 
 // toolListAPIFiles implements TOOL.ListAPIFiles
 func toolListAPIFiles(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	interpreter.logger.Info("Tool: ListAPIFiles] Listing files via API...")
+	interpreter.Logger().Info("Tool: ListAPIFiles] Listing files via API...")
 	client, err := checkGenAIClient(interpreter)
 	if err != nil {
-		errMsg := fmt.Sprintf("ListAPIFiles failed: %v", err)
-		interpreter.logger.Error("Tool: ListAPIFiles] %s", errMsg)
-		return map[string]interface{}{"error": errMsg}, nil // Return error in map
+		errMsg := fmt.Sprintf("ListAPIFiles failed to get GenAI client: %v", err)
+		interpreter.Logger().Error("Tool: ListAPIFiles] %s", errMsg)
+		// Use ErrorCodeLLMError and wrap ErrLLMNotConfigured
+		return map[string]interface{}{"error": errMsg}, NewRuntimeError(ErrorCodeLLMError, errMsg, ErrLLMNotConfigured)
 	}
 
-	// Call HelperListApiFiles (which uses syncContext internally)
-	// We need to create a minimal context here for the helper
-	syncCtx := &syncContext{client: client, logger: interpreter.logger, ctx: context.Background()}
-	apiFiles, listErr := listExistingAPIFiles(syncCtx) // Call helper
+	syncCtx := &syncContext{client: client, logger: interpreter.Logger(), ctx: context.Background()}
+	apiFiles, listErr := listExistingAPIFiles(syncCtx)
 	if listErr != nil {
-		errMsg := fmt.Sprintf("ListAPIFiles failed: %v", listErr)
-		interpreter.logger.Error("Tool: ListAPIFiles] %s", errMsg)
-		return map[string]interface{}{"error": errMsg}, nil // Return error in map
+		errMsg := fmt.Sprintf("ListAPIFiles call failed: %v", listErr)
+		interpreter.Logger().Error("Tool: ListAPIFiles] %s", errMsg)
+		// Using ErrorCodeInternal for general API call failures.
+		// If listExistingAPIFiles returns specific sentinel errors, they should be preserved or wrapped.
+		return map[string]interface{}{"error": errMsg}, NewRuntimeError(ErrorCodeInternal, errMsg, listErr)
 	}
 
-	// Convert []*genai.File to []map[string]interface{} for NeuroScript
 	resultList := make([]interface{}, 0, len(apiFiles))
 	for _, file := range apiFiles {
 		fileMap := map[string]interface{}{
@@ -48,139 +42,184 @@ func toolListAPIFiles(interpreter *Interpreter, args []interface{}) (interface{}
 			"display_name": file.DisplayName,
 			"uri":          file.URI,
 			"size_bytes":   file.SizeBytes,
-			"create_time":  file.CreateTime.Format(time.RFC3339),
-			"update_time":  file.UpdateTime.Format(time.RFC3339),
-			"sha256_hash":  fmt.Sprintf("%x", file.Sha256Hash), // Hex encode hash
-			"mime_type":    file.MIMEType,                      // <<< CORRECTED FIELD NAME
+			"create_time":  file.CreateTime.Format(time.RFC3339Nano),
+			"update_time":  file.UpdateTime.Format(time.RFC3339Nano),
+			"sha256_hash":  fmt.Sprintf("%x", file.Sha256Hash),
+			"mime_type":    file.MIMEType,
 			"state":        file.State.String(),
 		}
 		resultList = append(resultList, fileMap)
 	}
 
-	interpreter.logger.Info("Tool: ListAPIFiles] Found %d files.", len(resultList))
+	interpreter.Logger().Infof("Tool: ListAPIFiles] Found %d files.", len(resultList))
 	return resultList, nil
 }
 
 // toolDeleteAPIFile implements TOOL.DeleteAPIFile
 func toolDeleteAPIFile(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	fileName := args[0].(string)
-	interpreter.logger.Info("Tool: DeleteAPIFile] Requesting deletion of API file: %s", fileName)
-
-	if fileName == "" {
-		return "DeleteAPIFile failed: File name cannot be empty.", nil
+	if len(args) != 1 {
+		return nil, NewRuntimeError(ErrorCodeArgMismatch, "DeleteAPIFile expects 1 argument: file_name", ErrInvalidArgument)
 	}
+	fileName, ok := args[0].(string)
+	if !ok || fileName == "" {
+		return nil, NewRuntimeError(ErrorCodeArgMismatch, "DeleteAPIFile expects a non-empty string file_name", ErrInvalidArgument)
+	}
+	interpreter.Logger().Infof("Tool: DeleteAPIFile] Requesting deletion of API file: %s", fileName)
+
 	if !strings.HasPrefix(fileName, "files/") {
-		interpreter.logger.Warn("Tool: DeleteAPIFile] Filename '%s' does not look like a standard File API name.", fileName)
+		interpreter.Logger().Warnf("Tool: DeleteAPIFile] Filename '%s' does not start with 'files/'. This might not be a valid File API name.", fileName)
 	}
 
 	client, err := checkGenAIClient(interpreter)
 	if err != nil {
-		errMsg := fmt.Sprintf("DeleteAPIFile failed: %v", err)
-		interpreter.logger.Error("Tool: DeleteAPIFile] %s", errMsg)
-		return map[string]interface{}{"error": errMsg}, nil
+		errMsg := fmt.Sprintf("DeleteAPIFile failed to get GenAI client: %v", err)
+		interpreter.Logger().Error("Tool: DeleteAPIFile] %s", errMsg)
+		// Use ErrorCodeLLMError and wrap ErrLLMNotConfigured
+		return map[string]interface{}{"error": errMsg}, NewRuntimeError(ErrorCodeLLMError, errMsg, ErrLLMNotConfigured)
 	}
 
-	err = client.DeleteFile(context.Background(), fileName)
-	if err != nil {
-		errMsg := fmt.Sprintf("DeleteAPIFile API call failed for '%s': %v", fileName, err)
-		interpreter.logger.Error("Tool: DeleteAPIFile] %s", errMsg)
-		return map[string]interface{}{"error": errMsg}, nil
+	deleteErr := client.DeleteFile(context.Background(), fileName)
+	if deleteErr != nil {
+		errMsg := fmt.Sprintf("DeleteAPIFile API call failed for '%s': %v", fileName, deleteErr)
+		interpreter.Logger().Error("Tool: DeleteAPIFile] %s", errMsg)
+		// Using ErrorCodeInternal. If client.DeleteFile returns specific sentinel errors (e.g., for not found),
+		// those should be checked and mapped appropriately (e.g., to ErrorCodeKeyNotFound and ErrFileNotFound).
+		return map[string]interface{}{"error": errMsg}, NewRuntimeError(ErrorCodeInternal, errMsg, deleteErr)
 	}
 
-	interpreter.logger.Info("Tool: DeleteAPIFile] Successfully requested deletion for: %s", fileName)
-	return map[string]interface{}{"error": nil}, nil
+	successMsg := fmt.Sprintf("Deletion requested successfully for API file: %s", fileName)
+	interpreter.Logger().Infof("Tool: DeleteAPIFile] %s", successMsg)
+	return map[string]interface{}{"message": successMsg, "error": nil}, nil
 }
 
 // toolUploadFile implements TOOL.UploadFile
 func toolUploadFile(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	localPathRel := args[0].(string)
+	if len(args) < 1 || len(args) > 2 {
+		return nil, NewRuntimeError(ErrorCodeArgMismatch, "UploadFile expects 1 or 2 arguments: local_path, [display_name]", ErrInvalidArgument)
+	}
+	localPathRel, ok := args[0].(string)
+	if !ok || localPathRel == "" {
+		return nil, NewRuntimeError(ErrorCodeArgMismatch, "UploadFile expects a non-empty string local_path", ErrInvalidArgument)
+	}
+
 	var displayName string
 	if len(args) > 1 && args[1] != nil {
-		displayName = args[1].(string)
-	} else {
+		displayName, ok = args[1].(string)
+		if !ok {
+			return nil, NewRuntimeError(ErrorCodeArgMismatch, "UploadFile display_name must be a string if provided", ErrInvalidArgument)
+		}
+	}
+	if displayName == "" {
 		displayName = filepath.Base(localPathRel)
 	}
 
-	interpreter.logger.Info("Tool: UploadFile] Requesting upload for local path: %s as display name: %s", localPathRel, displayName)
+	interpreter.Logger().Infof("Tool: UploadFile] Requesting upload for local path: %s as display name: %s", localPathRel, displayName)
 
-	absLocalPath, secErr := SecureFilePath(localPathRel, interpreter.sandboxDir)
+	// SecureFilePath already returns a RuntimeError wrapping a sentinel error (e.g., ErrInvalidPath, ErrPathViolation)
+	absLocalPath, secErr := SecureFilePath(localPathRel, interpreter.SandboxDir())
 	if secErr != nil {
-		errMsg := fmt.Sprintf("UploadFile invalid local path '%s': %v", localPathRel, secErr)
-		interpreter.logger.Error("Tool: UploadFile] %s", errMsg)
-		return map[string]interface{}{"error": errMsg}, nil
+		// secErr is already a *RuntimeError, so we can return it directly.
+		interpreter.Logger().Error("Tool: UploadFile] SecureFilePath failed for '%s': %v", localPathRel, secErr)
+		return map[string]interface{}{"error": secErr.Error()}, secErr
 	}
 
 	info, statErr := os.Stat(absLocalPath)
 	if statErr != nil {
 		errMsg := ""
+		var rtErr *RuntimeError
 		if os.IsNotExist(statErr) {
-			errMsg = fmt.Sprintf("UploadFile failed: Local file not found at '%s'", localPathRel)
+			errMsg = fmt.Sprintf("local file not found at '%s'", localPathRel)
+			// Use ErrorCodeKeyNotFound and wrap ErrFileNotFound
+			rtErr = NewRuntimeError(ErrorCodeKeyNotFound, errMsg, ErrFileNotFound)
 		} else {
-			errMsg = fmt.Sprintf("UploadFile failed stat local file '%s': %v", localPathRel, statErr)
+			errMsg = fmt.Sprintf("failed to stat local file '%s'", localPathRel)
+			// Use ErrorCodeToolSpecific (since ErrorCodeFileRead is not defined) and wrap the original statErr
+			rtErr = NewRuntimeError(ErrorCodeToolSpecific, errMsg, statErr)
 		}
-		interpreter.logger.Error("Tool: UploadFile] %s", errMsg)
-		return map[string]interface{}{"error": errMsg}, nil
+		interpreter.Logger().Error("Tool: UploadFile] %s (resolved: %s): %v", errMsg, absLocalPath, statErr)
+		return map[string]interface{}{"error": errMsg}, rtErr
 	}
 	if info.IsDir() {
-		errMsg := fmt.Sprintf("UploadFile failed: Local path '%s' is a directory, not a file", localPathRel)
-		interpreter.logger.Error("Tool: UploadFile] %s", errMsg)
-		return map[string]interface{}{"error": errMsg}, nil
+		errMsg := fmt.Sprintf("local path '%s' is a directory, not a file", localPathRel)
+		interpreter.Logger().Error("Tool: UploadFile] %s (resolved: %s)", errMsg, absLocalPath)
+		// Use ErrorCodeArgMismatch and wrap ErrInvalidArgument (since ErrPathIsDirectory is not defined)
+		return map[string]interface{}{"error": errMsg}, NewRuntimeError(ErrorCodeArgMismatch, errMsg, ErrInvalidArgument)
 	}
 
 	client, err := checkGenAIClient(interpreter)
 	if err != nil {
-		errMsg := fmt.Sprintf("UploadFile failed: %v", err)
-		interpreter.logger.Error("Tool: UploadFile] %s", errMsg)
-		return map[string]interface{}{"error": errMsg}, nil
+		errMsg := fmt.Sprintf("UploadFile failed to get GenAI client: %v", err)
+		interpreter.Logger().Error("Tool: UploadFile] %s", errMsg)
+		// Use ErrorCodeLLMError and wrap ErrLLMNotConfigured
+		return map[string]interface{}{"error": errMsg}, NewRuntimeError(ErrorCodeLLMError, errMsg, ErrLLMNotConfigured)
 	}
 
-	apiFile, uploadErr := HelperUploadAndPollFile(context.Background(), absLocalPath, displayName, client, interpreter.logger)
-
+	apiFile, uploadErr := HelperUploadAndPollFile(context.Background(), absLocalPath, displayName, client, interpreter.Logger())
 	if uploadErr != nil {
 		errMsg := fmt.Sprintf("UploadFile failed for '%s': %v", localPathRel, uploadErr)
-		interpreter.logger.Error("Tool: UploadFile] %s", errMsg)
-		if apiFile != nil {
-			return map[string]interface{}{"error": errMsg, "api_name": apiFile.Name, "display_name": apiFile.DisplayName, "state": apiFile.State.String()}, nil
+		interpreter.Logger().Error("Tool: UploadFile] %s", errMsg)
+		// Using ErrorCodeLLMError if it's an LLM/API interaction issue, otherwise ErrorCodeInternal.
+		// HelperUploadAndPollFile should ideally return wrapped sentinel errors.
+		var returnErr error
+		if _, ok := uploadErr.(*RuntimeError); ok {
+			returnErr = uploadErr
+		} else {
+			// Defaulting to ErrorCodeInternal, but could be ErrorCodeLLMError if appropriate
+			returnErr = NewRuntimeError(ErrorCodeInternal, errMsg, uploadErr)
 		}
-		return map[string]interface{}{"error": errMsg}, nil
+
+		if apiFile != nil {
+			return map[string]interface{}{"error": errMsg, "api_name": apiFile.Name, "display_name": apiFile.DisplayName, "state": apiFile.State.String()}, returnErr
+		}
+		return map[string]interface{}{"error": errMsg}, returnErr
+	}
+	if apiFile == nil {
+		errMsg := fmt.Sprintf("UploadFile failed for '%s': HelperUploadAndPollFile returned nil file without error", localPathRel)
+		interpreter.Logger().Error("Tool: UploadFile] %s", errMsg)
+		return map[string]interface{}{"error": errMsg}, NewRuntimeError(ErrorCodeInternal, errMsg, ErrInternalTool) // Wrap ErrInternalTool
 	}
 
-	interpreter.logger.Info("Tool: UploadFile] Successfully uploaded '%s' as '%s' (API Name: %s)", localPathRel, displayName, apiFile.Name)
+	interpreter.Logger().Infof("Tool: UploadFile] Successfully uploaded '%s' as '%s' (API Name: %s, URI: %s)", localPathRel, displayName, apiFile.Name, apiFile.URI)
 	resultMap := map[string]interface{}{
 		"error":        nil,
 		"api_name":     apiFile.Name,
 		"display_name": apiFile.DisplayName,
 		"uri":          apiFile.URI,
 		"size_bytes":   apiFile.SizeBytes,
-		"create_time":  apiFile.CreateTime.Format(time.RFC3339),
-		"update_time":  apiFile.UpdateTime.Format(time.RFC3339),
+		"create_time":  apiFile.CreateTime.Format(time.RFC3339Nano),
+		"update_time":  apiFile.UpdateTime.Format(time.RFC3339Nano),
 		"sha256_hash":  fmt.Sprintf("%x", apiFile.Sha256Hash),
-		"mime_type":    apiFile.MIMEType, // <<< CORRECTED FIELD NAME
+		"mime_type":    apiFile.MIMEType,
 		"state":        apiFile.State.String(),
 	}
 	return resultMap, nil
 }
 
-// --- Registration Function (ADDED) ---
-func registerFileAPITools(registry *ToolRegistry) error {
-	tools := []ToolImplementation{
+// toolSyncFiles is defined in pkg/core/tools_file_api_sync.go
+// Its spec is included here for registration.
+
+func init() {
+	// This debug print is kept as per Rule 22.
+	fmt.Println(">>>>>>>>>>>> DEBUG: pkg/core/tools_file_api.go init() CALLED <<<<<<<<<<<<")
+
+	fileApiTools := []ToolImplementation{
 		{
 			Spec: ToolSpec{
 				Name:        "ListAPIFiles",
 				Description: "Lists files currently available in the File API.",
-				Args:        []ArgSpec{},     // No arguments
-				ReturnType:  ArgTypeSliceAny, // Returns list of maps
+				Args:        []ArgSpec{},
+				ReturnType:  ArgTypeSliceMap,
 			},
 			Func: toolListAPIFiles,
 		},
 		{
 			Spec: ToolSpec{
 				Name:        "DeleteAPIFile",
-				Description: "Deletes a specific file from the File API using its full name (e.g., 'files/...')",
+				Description: "Deletes a specific file from the File API using its full name (e.g., 'files/...').",
 				Args: []ArgSpec{
 					{Name: "file_name", Type: ArgTypeString, Required: true, Description: "The full API name of the file to delete."},
 				},
-				ReturnType: ArgTypeAny, // Returns map {"error": string|null}
+				ReturnType: ArgTypeMap,
 			},
 			Func: toolDeleteAPIFile,
 		},
@@ -192,7 +231,7 @@ func registerFileAPITools(registry *ToolRegistry) error {
 					{Name: "local_path", Type: ArgTypeString, Required: true, Description: "Relative path to the local file to upload."},
 					{Name: "display_name", Type: ArgTypeString, Required: false, Description: "Optional display name for the file in the API (defaults to local filename)."},
 				},
-				ReturnType: ArgTypeAny, // Returns map with file details or error
+				ReturnType: ArgTypeMap,
 			},
 			Func: toolUploadFile,
 		},
@@ -208,23 +247,13 @@ func registerFileAPITools(registry *ToolRegistry) error {
 					{Name: "filter_pattern", Type: ArgTypeString, Required: false, Description: "Optional glob pattern to filter files (e.g., '*.ns')."},
 					{Name: "ignore_gitignore", Type: ArgTypeBool, Required: false, Description: "If true, ignores .gitignore files (defaults to false)."},
 				},
-				ReturnType: ArgTypeAny, // Returns map[string]interface{}
+				ReturnType: ArgTypeMap,
 			},
-			Func: toolSyncFiles, // Assumes toolSyncFiles is defined elsewhere (sync_logic.go)
+			Func: toolSyncFiles, // Defined in tools_file_api_sync.go
 		},
 	}
-	var errs []error
-	for _, tool := range tools {
-		if err := registry.RegisterTool(tool); err != nil {
-			errs = append(errs, fmt.Errorf("register %s: %w", tool.Spec.Name, err))
-		}
-	}
-	if len(errs) > 0 {
-		errorMessages := make([]string, len(errs))
-		for i, e := range errs {
-			errorMessages[i] = e.Error()
-		}
-		return errors.New(strings.Join(errorMessages, "; "))
-	}
-	return nil
+	// Ensure AddToolImplementations is called correctly.
+	AddToolImplementations(fileApiTools...)
+	// This debug print is kept as per Rule 22.
+	fmt.Printf(">>>>>>>>>>>> DEBUG: pkg/core/tools_file_api.go AddToolImplementations called for %d tools <<<<<<<<<<<<\n", len(fileApiTools))
 }

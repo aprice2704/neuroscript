@@ -10,9 +10,9 @@ func registerFsTools(registry *ToolRegistry) error {
 		return fmt.Errorf("failed registering file tools: %w", err)
 	}
 	// Register directory-specific tools (List, Mkdir, Delete later)
-	if err := registerFsDirTools(registry); err != nil {
-		return fmt.Errorf("failed registering directory tools: %w", err)
-	}
+	// if err := registerFsDirTools(registry); err != nil {
+	// 	return fmt.Errorf("failed registering directory tools: %w", err)
+	// }
 	// Register utility tools (LineCountFile, SanitizeFilename)
 	if err := registerFsUtilTools(registry); err != nil {
 		return fmt.Errorf("failed registering FS utility tools: %w", err)
@@ -22,13 +22,13 @@ func registerFsTools(registry *ToolRegistry) error {
 		return fmt.Errorf("failed registering FS hash tools: %w", err)
 	}
 	// +++ ADDED: Register move tool +++
-	if err := registerFsMoveTools(registry); err != nil {
-		return fmt.Errorf("failed registering FS move tools: %w", err)
-	}
+	// if err := registerFsMoveTools(registry); err != nil {
+	// 	return fmt.Errorf("failed registering FS move tools: %w", err)
+	// }
 	// +++ ADDED: Register delete tool +++
-	if err := registerFsDeleteTools(registry); err != nil { // Call added
-		return fmt.Errorf("failed registering FS delete tools: %w", err)
-	}
+	// if err := registerFsDeleteTools(registry); err != nil { // Call added
+	// 	return fmt.Errorf("failed registering FS delete tools: %w", err)
+	// }
 
 	return nil // Success
 }

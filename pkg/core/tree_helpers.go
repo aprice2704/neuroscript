@@ -1,49 +1,77 @@
 // NeuroScript Version: 0.3.0
-// Last Modified: 2025-05-02 17:37:26 PDT // Add TreeRemoveNode helpers
+// File version: 0.1.3 // Modified getTreeFromHandle to wrap ErrNotFound when ErrHandleNotFound occurs.
 // filename: pkg/core/tree_helpers.go
 
 package core
 
 import (
+	"errors" // Added for errors.Is and errors.Join
 	"fmt"
 )
 
 // getTreeFromHandle retrieves the GenericTree from the interpreter's handle registry.
+// If the handle is not found, it returns an error wrapping ErrNotFound.
 func getTreeFromHandle(interpreter *Interpreter, handleID, toolName string) (*GenericTree, error) {
 	if handleID == "" {
-		return nil, fmt.Errorf("%w: %s requires non-empty 'tree_handle'", ErrValidationRequiredArgNil, toolName)
+		// It's better to return an error that can be checked with errors.Is if it's a common case.
+		// ErrValidationRequiredArgNil is a sentinel error.
+		return nil, NewRuntimeError(ErrorCodeArgMismatch,
+			fmt.Sprintf("%s requires non-empty 'tree_handle'", toolName),
+			ErrValidationRequiredArgNil,
+		)
 	}
 
 	obj, err := interpreter.GetHandleValue(handleID, GenericTreeHandleType)
 	if err != nil {
-		// Wrap error for context, including the specific handle type expected
-		return nil, fmt.Errorf("%s failed getting handle '%s' (type %s): %w", toolName, handleID, GenericTreeHandleType, err)
+		// Check if the error from GetHandleValue is because the handle was not found.
+		if errors.Is(err, ErrHandleNotFound) {
+			// If so, wrap ErrNotFound for the test and also include the original error details.
+			// This makes errors.Is(returnedError, ErrNotFound) true.
+			return nil, NewRuntimeError(ErrorCodeKeyNotFound, // Or a more specific tree error code
+				fmt.Sprintf("%s: tree handle '%s' not found", toolName, handleID),
+				errors.Join(ErrNotFound, err), // Ensure ErrNotFound is in the chain
+			)
+		}
+		// For other errors from GetHandleValue (e.g., wrong type if GetHandleValue checked that, or other internal errors)
+		return nil, NewRuntimeError(ErrorCodeInternal, // Or a more specific tree error code
+			fmt.Sprintf("%s: error retrieving handle '%s' (type %s)", toolName, handleID, GenericTreeHandleType),
+			err, // Wrap the original error
+		)
 	}
 
 	tree, ok := obj.(*GenericTree)
-	// Check all conditions: type assertion, not nil pointer, and internal map initialized
 	if !ok || tree == nil || tree.NodeMap == nil {
-		return nil, fmt.Errorf("%w: %s handle '%s' contains unexpected or uninitialized data type (%T), expected %s", ErrHandleInvalid, toolName, handleID, obj, GenericTreeHandleType)
+		// This indicates the handle existed but contained unexpected data.
+		return nil, NewRuntimeError(ErrorCodeInternal, // Or a more specific tree error code for invalid structure
+			fmt.Sprintf("%s: handle '%s' contains unexpected or uninitialized data type (%T), expected %s", toolName, handleID, obj, GenericTreeHandleType),
+			ErrHandleInvalid,
+		)
 	}
 	return tree, nil
 }
 
 // getNodeFromHandle retrieves the GenericTree and the specific GenericTreeNode.
+// If the node is not found within a valid tree, it returns an error wrapping ErrNotFound.
 func getNodeFromHandle(interpreter *Interpreter, handleID, nodeID, toolName string) (*GenericTree, *GenericTreeNode, error) {
 	if nodeID == "" {
-		return nil, nil, fmt.Errorf("%w: %s requires non-empty 'node_id'", ErrValidationRequiredArgNil, toolName)
+		return nil, nil, NewRuntimeError(ErrorCodeArgMismatch,
+			fmt.Sprintf("%s requires non-empty 'node_id'", toolName),
+			ErrValidationRequiredArgNil,
+		)
 	}
 
-	// First, get the tree using the helper
 	tree, err := getTreeFromHandle(interpreter, handleID, toolName)
 	if err != nil {
-		return nil, nil, err // Error already has context from getTreeFromHandle
+		return nil, nil, err // Error already has context and correct wrapping from getTreeFromHandle
 	}
 
-	// Then, find the specific node within the retrieved tree
 	node, exists := tree.NodeMap[nodeID]
 	if !exists {
-		return nil, nil, fmt.Errorf("%w: %s node ID '%s' not found in tree handle '%s'", ErrNotFound, toolName, nodeID, handleID)
+		// Node not found within a valid tree. Wrap ErrNotFound.
+		return nil, nil, NewRuntimeError(ErrorCodeKeyNotFound, // Or a more specific tree node error code
+			fmt.Sprintf("%s: node ID '%s' not found in tree handle '%s'", toolName, nodeID, handleID),
+			ErrNotFound, // Ensure ErrNotFound is the sentinel error
+		)
 	}
 
 	return tree, node, nil
