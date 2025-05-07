@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"sync" // Added for Mutex
 
+	"github.com/aprice2704/neuroscript/pkg/adapters"
 	"github.com/aprice2704/neuroscript/pkg/core"
 	"github.com/aprice2704/neuroscript/pkg/logging"
 	"github.com/aprice2704/neuroscript/pkg/toolsets"
@@ -206,7 +207,7 @@ func findProjectRoot() (string, error) {
 func (app *App) createLLMClient() (core.LLMClient, error) {
 	if !app.Config.EnableLLM {
 		app.Log.Info("LLM is disabled by config, creating NoOpLLMClient.")
-		return core.NewNoOpLLMClient(app.Log), nil
+		return adapters.NewNoOpLLMClient(), nil
 	}
 
 	app.Log.Info("LLM is enabled, creating real LLMClient.")
@@ -225,7 +226,7 @@ func (app *App) createLLMClient() (core.LLMClient, error) {
 		app.Log.Debug("Using LLM API key from configuration.")
 	}
 
-	llmClient := core.NewLLMClient(apiKey, apiHost, app.Log, true)
+	llmClient := core.NewLLMClient(apiKey, apiHost, modelID, app.Log, true)
 	if llmClient == nil {
 		app.Log.Error("NewLLMClient returned nil unexpectedly.")
 		return nil, fmt.Errorf("failed to create LLM client instance (NewLLMClient returned nil)")

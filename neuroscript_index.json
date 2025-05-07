@@ -294,6 +294,532 @@
     },
     "pkg/core": {
       "files": {
+        "pkg/core/ai_wm.go": {
+          "functions": [
+            "NewAIWorkerManager",
+            "smartTrim",
+            "ifErrorToString"
+          ],
+          "methods": [
+            {
+              "Receiver": "*AIWorkerManager",
+              "Name": "resolveAPIKey",
+              "calls": [
+                "m.logger.Debugf(?)",
+                "NewRuntimeError",
+                "m.logger.Warnf(?)",
+                "NewRuntimeError",
+                "m.logger.Debugf(?)",
+                "m.logger.Warnf(?)",
+                "m.logger.Debugf(?)",
+                "m.logger.Debugf(?)",
+                "m.logger.Errorf(?)",
+                "NewRuntimeError",
+                "m.logger.Errorf(?)",
+                "NewRuntimeError"
+              ]
+            },
+            {
+              "Receiver": "*AIWorkerManager",
+              "Name": "saveDefinitionsToFileUnsafe",
+              "calls": [
+                "m.logger.Warnf(?)",
+                "m.logger.Errorf(?)",
+                "NewRuntimeError",
+                "m.logger.Errorf(?)",
+                "NewRuntimeError",
+                "m.logger.Debugf(?)"
+              ]
+            }
+          ]
+        },
+        "pkg/core/ai_wm_definitions.go": {
+          "methods": [
+            {
+              "Receiver": "*AIWorkerManager",
+              "Name": "loadWorkerDefinitionsFromFileInternal",
+              "calls": [
+                "m.logger.Infof(?)",
+                "NewRuntimeError",
+                "github.com/google/uuid.NewString",
+                "m.logger.Warnf(?)",
+                "m.logger.Infof(?)"
+              ]
+            },
+            {
+              "Receiver": "*AIWorkerManager",
+              "Name": "LoadWorkerDefinitionsFromFile",
+              "calls": [
+                "m.mu.Lock(?)",
+                "m.mu.Unlock(?)",
+                "m.logger.Infof(?)",
+                "m.loadWorkerDefinitionsFromFileInternal(?)",
+                "m.logger.Infof(?)",
+                "m.initializeRateTrackersUnsafe(?)",
+                "m.logger.Errorf(?)",
+                "NewRuntimeError",
+                "m.initializeRateTrackersUnsafe(?)",
+                "m.logger.Infof(?)"
+              ]
+            },
+            {
+              "Receiver": "*AIWorkerManager",
+              "Name": "SaveWorkerDefinitionsToFile",
+              "calls": [
+                "m.mu.Lock(?)",
+                "m.mu.Unlock(?)",
+                "m.logger.Infof(?)",
+                "m.saveDefinitionsToFileUnsafe(?)"
+              ]
+            },
+            {
+              "Receiver": "*AIWorkerManager",
+              "Name": "AddWorkerDefinition",
+              "calls": [
+                "m.mu.Lock(?)",
+                "m.mu.Unlock(?)",
+                "github.com/google/uuid.NewString",
+                "m.logger.Debugf(?)",
+                "m.logger.Warnf(?)",
+                "NewRuntimeError",
+                "reflect.DeepEqual",
+                "m.initializeRateTrackerForDefinitionUnsafe(?)",
+                "m.logger.Infof(?)",
+                "m.saveDefinitionsToFileUnsafe(?)",
+                "m.logger.Errorf(?)",
+                "NewRuntimeError"
+              ]
+            },
+            {
+              "Receiver": "*AIWorkerManager",
+              "Name": "GetWorkerDefinition",
+              "calls": [
+                "m.mu.RLock(?)",
+                "m.mu.RUnlock(?)",
+                "NewRuntimeError",
+                "m.logger.Warnf(?)"
+              ]
+            },
+            {
+              "Receiver": "*AIWorkerManager",
+              "Name": "ListWorkerDefinitions",
+              "calls": [
+                "m.mu.RLock(?)",
+                "m.mu.RUnlock(?)",
+                "m.matchesDefinitionFilters(?)",
+                "m.logger.Warnf(?)"
+              ]
+            },
+            {
+              "Receiver": "*AIWorkerManager",
+              "Name": "UpdateWorkerDefinition",
+              "calls": [
+                "m.mu.Lock(?)",
+                "m.mu.Unlock(?)",
+                "NewRuntimeError",
+                "setChanged",
+                "AIWorkerProvider",
+                "AIWorkerProvider",
+                "setChanged",
+                "setChanged",
+                "APIKeySourceMethod",
+                "APIKeySourceMethod",
+                "setChanged",
+                "InteractionModelType",
+                "reflect.DeepEqual",
+                "setChanged",
+                "reflect.DeepEqual",
+                "setChanged",
+                "reflect.DeepEqual",
+                "setChanged",
+                "toFloat64",
+                "reflect.DeepEqual",
+                "setChanged",
+                "int",
+                "int",
+                "int",
+                "int",
+                "int",
+                "int",
+                "int",
+                "int",
+                "setChanged",
+                "AIWorkerDefinitionStatus",
+                "AIWorkerDefinitionStatus",
+                "setChanged",
+                "reflect.DeepEqual",
+                "setChanged",
+                "reflect.DeepEqual",
+                "setChanged",
+                "m.logger.Infof(?)",
+                "m.saveDefinitionsToFileUnsafe(?)",
+                "NewRuntimeError",
+                "m.logger.Infof(?)"
+              ]
+            },
+            {
+              "Receiver": "*AIWorkerManager",
+              "Name": "RemoveWorkerDefinition",
+              "calls": [
+                "m.mu.Lock(?)",
+                "m.mu.Unlock(?)",
+                "NewRuntimeError",
+                "m.logger.Warnf(?)",
+                "NewRuntimeError",
+                "m.logger.Infof(?)",
+                "m.saveDefinitionsToFileUnsafe(?)",
+                "NewRuntimeError"
+              ]
+            },
+            {
+              "Receiver": "*AIWorkerManager",
+              "Name": "matchesDefinitionFilters",
+              "calls": [
+                "AIWorkerProvider",
+                "AIWorkerDefinitionStatus",
+                "InteractionModelType",
+                "m.logger.Debugf(?)"
+              ]
+            }
+          ]
+        },
+        "pkg/core/ai_wm_instances.go": {
+          "methods": [
+            {
+              "Receiver": "*AIWorkerManager",
+              "Name": "SpawnWorkerInstance",
+              "calls": [
+                "m.mu.Lock(?)",
+                "m.mu.Unlock(?)",
+                "NewRuntimeError",
+                "NewRuntimeError",
+                "NewRuntimeError",
+                "m.getOrCreateRateTrackerUnsafe(?)",
+                "m.logger.Warnf(?)",
+                "NewRuntimeError",
+                "github.com/google/uuid.NewString",
+                "m.logger.Infof(?)"
+              ]
+            },
+            {
+              "Receiver": "*AIWorkerManager",
+              "Name": "GetWorkerInstance",
+              "calls": [
+                "m.mu.RLock(?)",
+                "m.mu.RUnlock(?)",
+                "NewRuntimeError"
+              ]
+            },
+            {
+              "Receiver": "*AIWorkerManager",
+              "Name": "ListActiveWorkerInstances",
+              "calls": [
+                "m.mu.RLock(?)",
+                "m.mu.RUnlock(?)",
+                "m.matchesInstanceFilters(?)"
+              ]
+            },
+            {
+              "Receiver": "*AIWorkerManager",
+              "Name": "RetireWorkerInstance",
+              "calls": [
+                "m.mu.Lock(?)",
+                "m.mu.Unlock(?)",
+                "m.logger.Warnf(?)",
+                "NewRuntimeError",
+                "m.logger.Warnf(?)",
+                "m.appendRetiredInstanceToFileUnsafe(?)",
+                "m.logger.Errorf(?)",
+                "NewRuntimeError",
+                "m.logger.Infof(?)",
+                "m.getOrCreateRateTrackerUnsafe(?)",
+                "m.logger.Debugf(?)",
+                "m.logger.Warnf(?)",
+                "m.logger.Infof(?)"
+              ]
+            },
+            {
+              "Receiver": "*AIWorkerManager",
+              "Name": "UpdateInstanceStatus",
+              "calls": [
+                "m.mu.Lock(?)",
+                "m.mu.Unlock(?)",
+                "NewRuntimeError",
+                "m.logger.Debugf(?)",
+                "m.logger.Infof(?)"
+              ]
+            },
+            {
+              "Receiver": "*AIWorkerManager",
+              "Name": "matchesInstanceFilters",
+              "calls": [
+                "AIWorkerInstanceStatus",
+                "m.logger.Debugf(?)"
+              ]
+            },
+            {
+              "Receiver": "*AIWorkerManager",
+              "Name": "UpdateInstanceSessionTokenUsage",
+              "calls": [
+                "m.mu.Lock(?)",
+                "m.mu.Unlock(?)",
+                "NewRuntimeError",
+                "m.logger.Debugf(?)"
+              ]
+            }
+          ]
+        },
+        "pkg/core/ai_wm_performance.go": {
+          "methods": [
+            {
+              "Receiver": "*AIWorkerManager",
+              "Name": "logPerformanceRecordUnsafe",
+              "calls": [
+                "NewRuntimeError",
+                "NewRuntimeError",
+                "m.logger.Warnf(?)",
+                "m.logger.Warnf(?)",
+                "NewRuntimeError",
+                "toInt64",
+                "m.logger.Warnf(?)",
+                "toInt64",
+                "m.logger.Warnf(?)",
+                "record.TimestampEnd.After(?)",
+                "float64",
+                "float64",
+                "m.logger.Debugf(?)"
+              ]
+            },
+            {
+              "Receiver": "*AIWorkerManager",
+              "Name": "GetPerformanceRecordsForDefinition",
+              "calls": [
+                "m.mu.RLock(?)",
+                "m.mu.RUnlock(?)",
+                "NewRuntimeError",
+                "m.loadAllRetiredInstanceDataUnsafe(?)",
+                "m.logger.Debugf(?)",
+                "m.logger.Errorf(?)",
+                "NewRuntimeError",
+                "m.matchesPerformanceRecordFilters(?)",
+                "m.logger.Debugf(?)"
+              ]
+            },
+            {
+              "Receiver": "*AIWorkerManager",
+              "Name": "loadAllRetiredInstanceDataUnsafe",
+              "calls": [
+                "m.logger.Debugf(?)",
+                "m.logger.Errorf(?)",
+                "NewRuntimeError",
+                "m.logger.Debugf(?)",
+                "m.logger.Errorf(?)",
+                "NewRuntimeError",
+                "m.logger.Debugf(?)"
+              ]
+            },
+            {
+              "Receiver": "*AIWorkerManager",
+              "Name": "appendRetiredInstanceToFileUnsafe",
+              "calls": [
+                "m.loadAllRetiredInstanceDataUnsafe(?)",
+                "m.logger.Errorf(?)",
+                "NewRuntimeError",
+                "m.logger.Warnf(?)",
+                "m.logger.Errorf(?)",
+                "NewRuntimeError",
+                "m.logger.Errorf(?)",
+                "NewRuntimeError",
+                "m.logger.Infof(?)"
+              ]
+            },
+            {
+              "Receiver": "*AIWorkerManager",
+              "Name": "loadRetiredInstancePerformanceDataInternal",
+              "calls": [
+                "m.loadAllRetiredInstanceDataUnsafe(?)",
+                "m.logger.Debugf(?)",
+                "NewRuntimeError",
+                "m.logger.Debugf(?)",
+                "m.logger.Debugf(?)",
+                "toInt64",
+                "toInt64",
+                "rec.TimestampEnd.After(?)",
+                "m.logger.Warnf(?)",
+                "tsu.LastActivityTimestamp.After(?)",
+                "float64",
+                "float64",
+                "m.logger.Infof(?)"
+              ]
+            },
+            {
+              "Receiver": "*AIWorkerManager",
+              "Name": "matchesPerformanceRecordFilters",
+              "calls": [
+                "toInt64",
+                "toInt64",
+                "toFloat64",
+                "toFloat64",
+                "m.logger.Debugf(?)"
+              ]
+            }
+          ]
+        },
+        "pkg/core/ai_wm_ratelimit.go": {
+          "methods": [
+            {
+              "Receiver": "*AIWorkerManager",
+              "Name": "initializeRateTrackersUnsafe",
+              "calls": [
+                "m.initializeRateTrackerForDefinitionUnsafe(?)",
+                "m.logger.Debugf(?)",
+                "m.logger.Debugf(?)"
+              ]
+            },
+            {
+              "Receiver": "*AIWorkerManager",
+              "Name": "initializeRateTrackerForDefinitionUnsafe",
+              "calls": [
+                "m.logger.Debugf(?)"
+              ]
+            },
+            {
+              "Receiver": "*AIWorkerManager",
+              "Name": "getOrCreateRateTrackerUnsafe",
+              "calls": [
+                "m.logger.Warnf(?)",
+                "m.initializeRateTrackerForDefinitionUnsafe(?)"
+              ]
+            },
+            {
+              "Receiver": "*AIWorkerManager",
+              "Name": "checkAndRecordUsageUnsafe",
+              "calls": [
+                "m.logger.Warnf(?)",
+                "NewRuntimeError",
+                "now.Sub(tracker.RequestsMinuteMarker).Minutes(?)",
+                "now.Sub(?)",
+                "now.Sub(tracker.TokensMinuteMarker).Minutes(?)",
+                "now.Sub(?)",
+                "m.logger.Warnf(?)",
+                "NewRuntimeError",
+                "int64",
+                "m.logger.Warnf(?)",
+                "NewRuntimeError",
+                "now.Sub(tracker.TokensDayMarker).Hours(?)",
+                "now.Sub(?)",
+                "int64",
+                "m.logger.Warnf(?)",
+                "NewRuntimeError",
+                "m.logger.Debugf(?)"
+              ]
+            },
+            {
+              "Receiver": "*AIWorkerManager",
+              "Name": "recordUsageUnsafe",
+              "calls": [
+                "now.Sub(tracker.RequestsMinuteMarker).Minutes(?)",
+                "now.Sub(?)",
+                "now.Sub(tracker.TokensMinuteMarker).Minutes(?)",
+                "now.Sub(?)",
+                "now.Sub(tracker.TokensDayMarker).Hours(?)",
+                "now.Sub(?)",
+                "m.logger.Debugf(?)"
+              ]
+            },
+            {
+              "Receiver": "*AIWorkerManager",
+              "Name": "updateTokenCountForRateLimitsUnsafe",
+              "calls": [
+                "now.Sub(tracker.TokensMinuteMarker).Minutes(?)",
+                "now.Sub(?)",
+                "m.logger.Debugf(?)",
+                "now.Sub(tracker.TokensDayMarker).Hours(?)",
+                "now.Sub(?)",
+                "m.logger.Debugf(?)",
+                "m.logger.Debugf(?)"
+              ]
+            }
+          ]
+        },
+        "pkg/core/ai_wm_stateless.go": {
+          "functions": [
+            "convertGenaiContentsToConversationTurns"
+          ],
+          "methods": [
+            {
+              "Receiver": "*AIWorkerManager",
+              "Name": "ExecuteStatelessTask",
+              "calls": [
+                "m.mu.Lock(?)",
+                "m.mu.Unlock(?)",
+                "NewRuntimeError",
+                "m.mu.Unlock(?)",
+                "NewRuntimeError",
+                "m.mu.Unlock(?)",
+                "NewRuntimeError",
+                "m.getOrCreateRateTrackerUnsafe(?)",
+                "now.Sub(tracker.RequestsMinuteMarker).Minutes(?)",
+                "now.Sub(?)",
+                "NewRuntimeError",
+                "m.mu.Unlock(?)",
+                "m.logger.Warnf(?)",
+                "m.mu.Unlock(?)",
+                "m.resolveAPIKey(?)",
+                "NewRuntimeError",
+                "m.logger.Warnf(?)",
+                "int64",
+                "int64",
+                "NewConversationManager",
+                "tempConvoMgr.AddUserMessage(?)",
+                "convertGenaiContentsToConversationTurns",
+                "tempConvoMgr.GetHistory(?)",
+                "llmClient.Ask(?)",
+                "NewRuntimeError",
+                "NewRuntimeError",
+                "int64",
+                "int64",
+                "int64",
+                "endTime.Sub(startTime).Milliseconds(?)",
+                "endTime.Sub(?)",
+                "float64",
+                "float64",
+                "m.mu.Lock(?)",
+                "m.mu.Unlock(?)",
+                "m.getOrCreateRateTrackerUnsafe(?)",
+                "now.Sub(tracker.RequestsMinuteMarker).Minutes(?)",
+                "now.Sub(?)",
+                "m.updateTokenCountForRateLimitsUnsafe(?)",
+                "github.com/google/uuid.NewString",
+                "github.com/google/uuid.NewString",
+                "smartTrim",
+                "ifErrorToString",
+                "m.logPerformanceRecordUnsafe(?)",
+                "m.logger.Errorf(?)",
+                "m.saveDefinitionsToFileUnsafe(?)",
+                "m.logger.Errorf(?)",
+                "NewRuntimeError"
+              ]
+            }
+          ]
+        },
+        "pkg/core/ai_wm_tools.go": {
+          "functions": [
+            "getAIWorkerManager",
+            "mapValidatedArgsListToMapByName",
+            "convertAIWorkerDefinitionToMap",
+            "convertAIWorkerInstanceToMap",
+            "convertPerformanceRecordToMap",
+            "convertPerformanceSummaryToMap",
+            "convertRateLimitPolicyToMap",
+            "convertTokenUsageMetricsToMap",
+            "RegisterAIWorkerTools"
+          ],
+          "methods": []
+        },
+        "pkg/core/ai_worker_types.go": {
+          "methods": []
+        },
         "pkg/core/ast.go": {
           "functions": [
             "newStep"
@@ -1944,6 +2470,10 @@
           "methods": [
             {
               "Receiver": "*Interpreter",
+              "Name": "SetAIWorkerManager"
+            },
+            {
+              "Receiver": "*Interpreter",
               "Name": "SandboxDir"
             },
             {
@@ -3011,9 +3541,10 @@
         },
         "pkg/core/tools_git.go": {
           "functions": [
+            "getCurrentGitBranch",
             "toolGitAdd",
             "toolGitCommit",
-            "toolGitNewBranch",
+            "toolGitBranch",
             "toolGitCheckout",
             "toolGitRm",
             "toolGitMerge",
@@ -3025,7 +3556,8 @@
         },
         "pkg/core/tools_git_register.go": {
           "functions": [
-            "registerGitTools"
+            "RegisterGitTools",
+            "formatExecOutput"
           ],
           "methods": []
         },
@@ -11861,6 +12393,7 @@
         "pkg/nspatch/tools_generate.go": {
           "functions": [
             "normalizeNewlines",
+            "splitLines",
             "toolGeneratePatch"
           ],
           "methods": []
@@ -11876,8 +12409,7 @@
               "Receiver": "tbLogWriter",
               "Name": "Write",
               "calls": [
-                "w.t.Log(?)",
-                "string"
+                "w.t.Logf(?)"
               ]
             }
           ]

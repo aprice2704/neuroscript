@@ -1,5 +1,6 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.1.0 // Add ErrProcedureExists, ErrReturnMismatch, ErrConfiguration
+// File version: 0.1.2
+// Add ErrRateLimited, ErrorCodeRateLimited
 // filename: pkg/core/errors.go
 package core
 
@@ -30,28 +31,29 @@ func NewRuntimeError(code ErrorCode, message string, wrapped error) *RuntimeErro
 }
 
 // --- Basic Runtime Error Codes ---
-// (Keep existing codes)
 const (
-	ErrorCodeGeneric         ErrorCode = 0
-	ErrorCodeFailStatement   ErrorCode = 1
-	ErrorCodeProcNotFound    ErrorCode = 2 // Renamed from ErrorCodeProcNotFound below? Let's use below.
-	ErrorCodeToolNotFound    ErrorCode = 3
-	ErrorCodeArgMismatch     ErrorCode = 4 // Related to ErrArgumentMismatch below
-	ErrorCodeMustFailed      ErrorCode = 5
-	ErrorCodeInternal        ErrorCode = 6
-	ErrorCodeType            ErrorCode = 7
-	ErrorCodeBounds          ErrorCode = 8
-	ErrorCodeKeyNotFound     ErrorCode = 9 // Related to ErrMapKeyNotFound below
-	ErrorCodeSecurity        ErrorCode = 10
-	ErrorCodeReadOnly        ErrorCode = 11 // Related to ErrReadOnlyViolation below
-	ErrorCodeReturnViolation ErrorCode = 12
-	ErrorCodeClearViolation  ErrorCode = 13
-	ErrorCodeDivisionByZero  ErrorCode = 14 // Related to ErrDivisionByZero below
-	ErrorCodeSyntax          ErrorCode = 15
-	ErrorCodeLLMError        ErrorCode = 16
-	ErrorCodeEvaluation      ErrorCode = 17
-	ErrorCodeConfiguration   ErrorCode = 18 // Added - Maps to ErrConfiguration
-	ErrorCodeToolSpecific    ErrorCode = 1000
+	ErrorCodeGeneric            ErrorCode = 0
+	ErrorCodeFailStatement      ErrorCode = 1
+	ErrorCodeProcNotFound       ErrorCode = 2
+	ErrorCodeToolNotFound       ErrorCode = 3
+	ErrorCodeArgMismatch        ErrorCode = 4
+	ErrorCodeMustFailed         ErrorCode = 5
+	ErrorCodeInternal           ErrorCode = 6
+	ErrorCodeType               ErrorCode = 7
+	ErrorCodeBounds             ErrorCode = 8
+	ErrorCodeKeyNotFound        ErrorCode = 9
+	ErrorCodeSecurity           ErrorCode = 10
+	ErrorCodeReadOnly           ErrorCode = 11
+	ErrorCodeReturnViolation    ErrorCode = 12
+	ErrorCodeClearViolation     ErrorCode = 13
+	ErrorCodeDivisionByZero     ErrorCode = 14
+	ErrorCodeSyntax             ErrorCode = 15
+	ErrorCodeLLMError           ErrorCode = 16
+	ErrorCodeEvaluation         ErrorCode = 17
+	ErrorCodeConfiguration      ErrorCode = 18
+	ErrorCodePreconditionFailed ErrorCode = 19
+	ErrorCodeRateLimited        ErrorCode = 20 // <<< ADDED
+	ErrorCodeToolSpecific       ErrorCode = 1000
 )
 
 // --- Core Validation Errors ---
@@ -76,7 +78,7 @@ var (
 	ErrPathViolation     = errors.New("path resolves outside allowed directory")
 	ErrInternalSecurity  = errors.New("internal security error")
 	ErrInvalidPath       = errors.New("invalid path")
-	ErrConfiguration     = errors.New("invalid configuration") // <<< ADDED
+	ErrConfiguration     = errors.New("invalid configuration")
 )
 
 // --- Core Handle Errors ---
@@ -87,7 +89,6 @@ var (
 )
 
 // --- Core Tool Execution Errors ---
-// (Keep existing errors)
 var (
 	ErrInternalTool                  = errors.New("internal tool error")
 	ErrNotFound                      = errors.New("item not found") // Generic not found
@@ -140,14 +141,16 @@ var (
 	ErrAttributeNotFound             = errors.New("attribute key not found on node")
 	ErrNodeIDExists                  = errors.New("node ID already exists in tree")
 	ErrCannotRemoveRoot              = errors.New("cannot remove the root node")
+	ErrFailedPrecondition            = errors.New("operation failed due to a precondition not being met")
+	ErrRateLimited                   = errors.New("operation failed due to rate limiting") // <<< ADDED
 )
 
 // --- Core Interpreter Errors ---
 var (
 	ErrProcedureNotFound    = errors.New("procedure not found")
-	ErrArgumentMismatch     = errors.New("argument mismatch")               // Use this for proc arg count mismatch
-	ErrReturnMismatch       = errors.New("procedure return count mismatch") // <<< ADDED
-	ErrProcedureExists      = errors.New("procedure already defined")       // <<< ADDED
+	ErrArgumentMismatch     = errors.New("argument mismatch")
+	ErrReturnMismatch       = errors.New("procedure return count mismatch")
+	ErrProcedureExists      = errors.New("procedure already defined")
 	ErrMaxCallDepthExceeded = errors.New("maximum call depth exceeded")
 	ErrUnknownKeyword       = errors.New("unknown keyword")
 	ErrUnhandledException   = errors.New("unhandled exception during execution")

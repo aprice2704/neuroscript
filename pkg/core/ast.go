@@ -1,3 +1,5 @@
+// NeuroScript Version: 0.3.1
+// File version: 0.0.2 // Add ParamSpec, Variadic fields to Procedure
 // filename: pkg/core/ast.go
 package core
 
@@ -33,9 +35,8 @@ func (p *Position) String() string {
 
 // Program represents the root of the NeuroScript Abstract Syntax Tree (AST).
 type Program struct {
-	Metadata map[string]string // Stores file-level metadata (:: key: value)
-	// Procedures []Procedure       // OLD: List of procedures defined in the script
-	Procedures map[string]*Procedure // NEW: Map of procedure name to Procedure pointer
+	Metadata   map[string]string     // Stores file-level metadata (:: key: value)
+	Procedures map[string]*Procedure // Map of procedure name to Procedure pointer
 	Pos        *Position             // Position of the start of the program (e.g., first token)
 }
 
@@ -50,12 +51,9 @@ func (p *Program) GetPos() *Position {
 // to produce a value.
 type Expression interface {
 	GetPos() *Position // All expression nodes must report their position
-	// String() string    // Optional: For debugging via String() method
 }
 
 // --- Expression Node Types ---
-// Using concrete types for expression nodes
-// *** Includes Pos *Position and GetPos() method on all expression nodes ***
 
 // Represents the target of a function or tool call
 type CallTarget struct {
@@ -169,7 +167,6 @@ type MapEntryNode struct {
 
 // GetPos returns the map entry key's position.
 func (n *MapEntryNode) GetPos() *Position {
-	// Return position of the Key, as it's the start of the entry
 	return n.Key.GetPos()
 }
 
@@ -219,12 +216,21 @@ func (n *BinaryOpNode) GetPos() *Position {
 
 // --- Procedure & Step Structures ---
 
+// ParamSpec defines the specification for a procedure parameter, including its name and optional default value.
+type ParamSpec struct {
+	Name         string      // Name of the parameter
+	DefaultValue interface{} // Default value if it's an optional parameter (can be nil)
+	// Pos *Position // Optional: Position of the parameter definition
+}
+
 type Procedure struct {
 	Pos               *Position         // Position of the 'func' or procedure keyword
-	Name              string            // Position is part of the identifier token
-	RequiredParams    []string          // Names only for now, positions could be added later if needed
-	OptionalParams    []string          // Names only
-	ReturnVarNames    []string          // Names only
+	Name              string            // Name of the procedure
+	RequiredParams    []string          // Names of required parameters
+	OptionalParams    []ParamSpec       // Specifications for optional parameters (name and default value)
+	Variadic          bool              // True if the procedure accepts variadic arguments
+	VariadicParamName string            // Name of the slice variable holding variadic arguments (if Variadic is true)
+	ReturnVarNames    []string          // Names of declared return variables
 	Steps             []Step            // The sequence of operations
 	OriginalSignature string            // Original text for reference/debugging
 	Metadata          map[string]string // Metadata defined within the procedure (:: key: value)
@@ -253,34 +259,24 @@ func (s *Step) GetPos() *Position {
 }
 
 // newStep helper function - Position should be set by the caller (AST Builder).
-// *** MODIFIED: Added type assertion for 'cond' parameter. ***
 func newStep(typ, target string, cond, value, elseValue interface{}) Step {
-	// Type assert 'cond' if it's provided and expected to be an Expression
-	// (e.g., for 'if', 'while', 'must' steps).
 	var condExpr Expression
 	if cond != nil {
 		var ok bool
 		condExpr, ok = cond.(Expression)
 		if !ok {
-			// Log a warning if the assertion fails, as this helper is likely for tests.
-			// The real builder should add a proper error with position info.
 			log.Printf("Warning: newStep helper received 'cond' of type %T, expected Expression", cond)
-			condExpr = nil // Ensure Cond is nil if assertion fails
+			condExpr = nil
 		}
 	}
 
-	// NOTE: Similar assertions might be needed for 'value' depending on 'typ',
-	// but we are only fixing the reported error for 'Cond' for now.
-	// The primary AST construction logic in the builder needs careful handling.
-
 	return Step{
-		// Pos: Set by caller (AST Builder) using tokenToPosition(ctx.GetStart())
 		Type:      typ,
 		Target:    target,
-		Cond:      condExpr,                // Assign the result of the type assertion
-		Value:     value,                   // Keep as interface{} for now
-		ElseValue: elseValue,               // Keep as interface{} for now
-		Metadata:  make(map[string]string), // Initialize metadata map
+		Cond:      condExpr,
+		Value:     value,
+		ElseValue: elseValue,
+		Metadata:  make(map[string]string),
 	}
 }
 
@@ -295,11 +291,8 @@ func (s StringLiteralNode) String() string {
 func (c CallableExprNode) String() string {
 	targetStr := c.Target.Name
 	if c.Target.IsTool {
-		targetStr = "tool." + targetStr // Adjust prefix if needed
+		targetStr = "tool." + targetStr
 	}
-	// Avoid printing complex arguments in default String()
 	argSummary := fmt.Sprintf("%d args", len(c.Arguments))
 	return fmt.Sprintf("%s(%s)", targetStr, argSummary)
 }
-
-// ... Add other String() methods for expression nodes as needed ...

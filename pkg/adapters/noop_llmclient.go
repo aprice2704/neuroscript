@@ -25,13 +25,13 @@ func NewNoOpLLMClient() *NoOpLLMClient {
 var _ core.LLMClient = (*NoOpLLMClient)(nil)
 
 // Ask sends a request to the LLM (no-op).
-// Returns a minimal valid ConversationTurn (RoleAssistant, empty content) and nil error.
+// Returns a minimal valid ConversationTurn (RoleAssistant, empty content, zero TokenUsage) and nil error.
 // Uses types imported from pkg/core.
 func (c *NoOpLLMClient) Ask(ctx context.Context, turns []*core.ConversationTurn) (*core.ConversationTurn, error) {
-	// Return a minimal valid response to prevent nil pointer issues downstream.
 	return &core.ConversationTurn{
-		Role:    core.RoleAssistant, // Use the defined constant for the role from core
-		Content: "",
+		Role:       core.RoleAssistant, // Use the defined constant for the role from core
+		Content:    "",
+		TokenUsage: core.TokenUsageMetrics{}, // Initialize with zero values
 		// ToolCalls will be nil by default for this struct literal
 	}, nil
 }
@@ -40,17 +40,16 @@ func (c *NoOpLLMClient) Ask(ctx context.Context, turns []*core.ConversationTurn)
 // Returns a minimal valid ConversationTurn, nil tool calls slice, and nil error.
 // Uses types imported from pkg/core.
 func (c *NoOpLLMClient) AskWithTools(ctx context.Context, turns []*core.ConversationTurn, tools []core.ToolDefinition) (*core.ConversationTurn, []*core.ToolCall, error) {
-	// Return minimal valid responses.
 	return &core.ConversationTurn{
-		Role:    core.RoleAssistant, // Use the defined constant for the role from core
-		Content: "",
+		Role:       core.RoleAssistant, // Use the defined constant for the role from core
+		Content:    "",
+		TokenUsage: core.TokenUsageMetrics{}, // Initialize with zero values
 	}, nil, nil // Explicitly return nil for the []*core.ToolCall slice and nil error.
 }
 
 // Embed generates embeddings for text (no-op).
 // Returns an empty float32 slice and nil error.
 func (c *NoOpLLMClient) Embed(ctx context.Context, text string) ([]float32, error) {
-	// Return an empty (but non-nil) slice to satisfy the interface contract.
 	return []float32{}, nil
 }
 

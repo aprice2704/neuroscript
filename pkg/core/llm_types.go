@@ -7,6 +7,11 @@ import (
 
 	// Need genai import for the new Client() method return type
 	"github.com/google/generative-ai-go/genai"
+	// TokenUsageMetrics is defined in ai_worker_types.go, ensure it's accessible
+	// If not directly, this implies ai_worker_types.go is in the same package or imported.
+	// Assuming it's accessible as `TokenUsageMetrics` directly or as `core.TokenUsageMetrics`
+	// For this file, direct accessibility implies it's in the same package 'core',
+	// which aligns with `ai_worker_types.go` also being in `package core`.
 )
 
 // Role defines the speaker role in a conversation turn.
@@ -16,15 +21,16 @@ const (
 	RoleSystem    Role = "system"
 	RoleUser      Role = "user"
 	RoleAssistant Role = "assistant"
-	RoleTool      Role = "tool"
+	RoleTool      Role = "tool" // For tool execution results, distinct from model's function call request
 )
 
 // ConversationTurn represents a single turn in a conversation.
 type ConversationTurn struct {
-	Role        Role          `json:"role"`                   // Speaker role (system, user, assistant, tool)
-	Content     string        `json:"content"`                // Text content of the turn
-	ToolCalls   []*ToolCall   `json:"tool_calls,omitempty"`   // List of tool calls requested by the assistant
-	ToolResults []*ToolResult `json:"tool_results,omitempty"` // List of results from tool calls (added by the system/tool)
+	Role        Role              `json:"role"`                   // Speaker role (system, user, assistant, tool)
+	Content     string            `json:"content"`                // Text content of the turn
+	ToolCalls   []*ToolCall       `json:"tool_calls,omitempty"`   // List of tool calls requested by the assistant
+	ToolResults []*ToolResult     `json:"tool_results,omitempty"` // List of results from tool calls (added by the system/tool)
+	TokenUsage  TokenUsageMetrics `json:"token_usage,omitempty"`  // <<< ADDED FIELD: Token usage for generating this turn (primarily for assistant turns)
 }
 
 // ToolCall represents a request from the LLM to call a specific tool.
@@ -49,13 +55,14 @@ type ToolDefinition struct {
 }
 
 // LLMClient defines the interface for interacting with a Large Language Model.
-// *** MODIFIED: Added Client() method ***
 type LLMClient interface {
 	// Ask sends a conversation history to the LLM and expects a response turn.
+	// The returned ConversationTurn should have TokenUsage populated if available.
 	Ask(ctx context.Context, turns []*ConversationTurn) (*ConversationTurn, error)
 
 	// AskWithTools sends a conversation history and available tools, expecting
 	// either a response turn or a request to call specific tools.
+	// The returned ConversationTurn should have TokenUsage populated if available.
 	AskWithTools(ctx context.Context, turns []*ConversationTurn, tools []ToolDefinition) (*ConversationTurn, []*ToolCall, error)
 
 	// Embed generates vector embeddings for the given text.
@@ -63,7 +70,7 @@ type LLMClient interface {
 
 	// Client returns the underlying *genai.Client, if available, otherwise nil.
 	// This allows helpers needing the specific client type to access it safely.
-	Client() *genai.Client // <<< ADDED METHOD
+	Client() *genai.Client
 }
 
 // String returns a string representation of the ConversationTurn.
@@ -86,6 +93,9 @@ func (t *ConversationTurn) String() string {
 			results += fmt.Sprintf("\n  ToolResult(ID: %s, Result: %s)", tr.ID, resStr)
 		}
 		base += results
+	}
+	if t.TokenUsage.TotalTokens > 0 || t.TokenUsage.InputTokens > 0 || t.TokenUsage.OutputTokens > 0 { // Only show if non-zero
+		base += fmt.Sprintf("\n  Tokens(In: %d, Out: %d, Total: %d)", t.TokenUsage.InputTokens, t.TokenUsage.OutputTokens, t.TokenUsage.TotalTokens)
 	}
 	return base
 }
