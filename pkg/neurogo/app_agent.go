@@ -1,4 +1,9 @@
+// NeuroScript Version: 0.3.0
+// File version: 0.1.4
+// Correct ToolRegistry type in getAvailableTools
 // filename: pkg/neurogo/app_agent.go
+// nlines: 285
+// risk_rating: MEDIUM
 package neurogo
 
 import (
@@ -138,11 +143,13 @@ func (app *App) registerAgentTools(agentCtx *AgentContext) error {
 	if app.interpreter == nil {
 		return fmt.Errorf("cannot register agent tools: interpreter is nil")
 	}
+	// app.interpreter.ToolRegistry() returns core.ToolRegistry (interface type)
 	registry := app.interpreter.ToolRegistry()
 	if registry == nil {
 		return fmt.Errorf("interpreter tool registry is nil")
 	}
 
+	// This call is now correct as RegisterAgentTools expects core.ToolRegistry
 	err := RegisterAgentTools(registry)
 	if err != nil {
 		return fmt.Errorf("failed during agent tool registration: %w", err)
@@ -166,6 +173,7 @@ func (app *App) handleTurn(ctx context.Context, convoManager *core.ConversationM
 		return fmt.Errorf("cannot handle turn: LLM client is nil")
 	}
 
+	// app.interpreter.ToolRegistry() returns core.ToolRegistry (interface type)
 	registry := app.interpreter.ToolRegistry()
 	if registry == nil {
 		app.Log.Error("Interpreter's ToolRegistry is nil.")
@@ -179,13 +187,14 @@ func (app *App) handleTurn(ctx context.Context, convoManager *core.ConversationM
 		allowedTools,
 		allowedPaths,
 		sandboxDir,
-		registry,
+		registry, // registry is core.ToolRegistry, which is expected by NewSecurityLayer if it takes the interface
 		app.Log,
 	)
 	if securityLayer == nil {
 		return fmt.Errorf("failed to create security layer")
 	}
 
+	// This call is now correct as getAvailableTools expects core.ToolRegistry
 	availableTools := getAvailableTools(agentCtx, registry)
 
 	fileInfoList := agentCtx.GetURIsForNextContext()
@@ -266,13 +275,16 @@ func (app *App) executeStartupScript(ctx context.Context, scriptPath string, age
 }
 
 // getAvailableTools prepares the list of genai.Tools for the LLM call.
-func getAvailableTools(agentCtx *AgentContext, registry *core.ToolRegistry) []*genai.Tool {
+// CORRECTED: Changed registry type from *core.ToolRegistry to core.ToolRegistry
+func getAvailableTools(agentCtx *AgentContext, registry core.ToolRegistry) []*genai.Tool {
 	// ... (unchanged) ...
 	if registry == nil {
 		fmt.Println("[AGENT] Warning: Tool registry is nil in getAvailableTools.")
 		return []*genai.Tool{}
 	}
 
+	// This call is now correct because 'registry' is core.ToolRegistry (interface)
+	// and 'ListTools' is a method on that interface.
 	allTools := registry.ListTools()
 	genaiTools := make([]*genai.Tool, 0, len(allTools))
 	for _, toolImpl := range allTools {

@@ -1,56 +1,49 @@
+// NeuroScript Version: 0.3.1
+// File version: 0.1.1 // Removed local registerMetadataTools function.
+// nlines: 45 // Approximate
+// risk_rating: LOW
+// filename: pkg/core/tools_metadata.go
+
 package core
 
 import (
 	"fmt"
-	// Keep log
+
 	"github.com/aprice2704/neuroscript/pkg/neurodata/metadata" // Import the actual metadata package
+	// "errors" - Not needed currently
+	// "log" - Not needed currently
 )
 
-// registerMetadataTools adds metadata extraction tool.
-// *** MODIFIED: Returns error ***
-func registerMetadataTools(registry *ToolRegistry) error {
-	err := registry.RegisterTool(ToolImplementation{ // Capture potential error
-		Spec: ToolSpec{
-			Name:        "ExtractMetadata", // Use base name for registry key
-			Description: "Extracts ':: key: value' metadata from the beginning of the provided string content. Skips comments/blank lines before the first non-metadata line.",
-			Args: []ArgSpec{
-				{Name: "content", Type: ArgTypeString, Required: true, Description: "The string content from which to extract metadata."},
-			},
-			ReturnType: ArgTypeAny, // Returns a map[string]interface{}
-		},
-		Func: toolExtractMetadataFromString,
-	})
-	// *** Check error from RegisterTool ***
-	if err != nil {
-		return fmt.Errorf("failed to register Metadata tool ExtractMetadata: %w", err)
-	}
-	return nil // Success
-}
-
 // toolExtractMetadataFromString extracts metadata from a string.
+// Corresponds to ToolSpec "ExtractMetadata".
 func toolExtractMetadataFromString(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	// Validation ensures args[0] is a string
-	content := args[0].(string)
+	toolName := "ExtractMetadata" // Assuming this is the public name
 
-	if interpreter.logger != nil {
-		logSnippet := content
-		maxLen := 100
-		if len(logSnippet) > maxLen {
-			logSnippet = logSnippet[:maxLen] + "..."
-		}
-		interpreter.logger.Info("Tool: ExtractMetadata] Extracting from content (snippet): %q", logSnippet)
+	// Argument validation (Count=1, Type=string) expected from validation layer
+	if len(args) != 1 {
+		return nil, NewRuntimeError(ErrorCodeArgMismatch, fmt.Sprintf("%s: expected 1 argument (content), got %d", toolName, len(args)), ErrArgumentMismatch)
+	}
+	content, ok := args[0].(string)
+	if !ok {
+		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("%s: content argument must be a string, got %T", toolName, args[0]), ErrInvalidArgument)
 	}
 
-	// Call the actual extraction function from the metadata package
+	// Log snippet before extraction
+	logSnippet := content
+	maxLen := 100
+	if len(logSnippet) > maxLen {
+		logSnippet = logSnippet[:maxLen] + "..."
+	}
+	interpreter.Logger().Debug(fmt.Sprintf("%s: Extracting from content", toolName), "snippet", logSnippet)
+
+	// Call the actual extraction function
 	metadataMapString, err := metadata.Extract(content)
 	if err != nil {
-		// Should Extract return an error? Currently it doesn't seem to based on tests.
-		// If it could, we'd handle it here.
-		errMsg := fmt.Sprintf("ExtractMetadata failed: %s", err.Error())
-		if interpreter.logger != nil {
-			interpreter.logger.Error("TOOL ExtractMetadata] %s", errMsg)
-		}
-		return errMsg, nil // Return error message as string
+		// If metadata.Extract can return errors, wrap them. Assuming it doesn't for now.
+		// If it could fail (e.g., malformed input?), use appropriate ErrorCode/Sentinel.
+		interpreter.Logger().Error(fmt.Sprintf("%s: Error from metadata.Extract", toolName), "error", err)
+		// Depending on the error type, choose ErrorCode. Using ErrorCodeInternal as placeholder.
+		return nil, NewRuntimeError(ErrorCodeInternal, fmt.Sprintf("%s: failed during metadata extraction: %v", toolName, err), err)
 	}
 
 	// Convert map[string]string to map[string]interface{} for NeuroScript compatibility
@@ -59,9 +52,8 @@ func toolExtractMetadataFromString(interpreter *Interpreter, args []interface{})
 		metadataMapInterface[k] = v
 	}
 
-	if interpreter.logger != nil {
-		interpreter.logger.Info("Tool: ExtractMetadata] Extracted %d metadata pairs.", len(metadataMapInterface))
-	}
-
-	return metadataMapInterface, nil // Return the map
+	interpreter.Logger().Debug(fmt.Sprintf("%s: Extraction complete", toolName), "pairs_found", len(metadataMapInterface))
+	return metadataMapInterface, nil
 }
+
+// Removed registerMetadataTools function - registration handled centrally.

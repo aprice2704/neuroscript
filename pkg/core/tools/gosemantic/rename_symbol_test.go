@@ -1,5 +1,5 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.0.2 // Correct expectation for Rename_to_Keyword test case.
+// File version: 0.0.3 // Updated NewInterpreter call signature.
 // Test file for GoRenameSymbol tool.
 // filename: pkg/core/tools/gosemantic/rename_symbol_test.go
 
@@ -21,7 +21,6 @@ import (
 )
 
 // --- Fixtures ---
-// Use the same fixtures as find_declarations_query_test.go / find_usages_test.go
 const renameSymbolFixturePkgAContent = `package pkga // L1
 
 import "fmt" // L3
@@ -90,49 +89,32 @@ func sortAndFilterRenamePatches(results []interface{}, t *testing.T) ([]map[stri
 	for i, item := range results {
 		originalMap, ok := item.(map[string]interface{})
 		if !ok {
-			return nil, fmt.Errorf("item at index %d is not map[string]interface{}: %T", i, item)
+			return nil, fmt.Errorf("item %d not map: %T", i, item)
 		}
-
-		// Validate offsets before filtering
 		offsetStart, okS := originalMap["offset_start"].(int64)
 		offsetEnd, okE := originalMap["offset_end"].(int64)
 		if !okS || !okE {
-			return nil, fmt.Errorf("patch at index %d missing or invalid offset_start/offset_end. Got: %#v", i, originalMap)
+			return nil, fmt.Errorf("patch %d bad offsets: %#v", i, originalMap)
 		}
 		if offsetStart < 0 || offsetEnd <= offsetStart {
-			return nil, fmt.Errorf("patch at index %d has invalid offsets: start=%d, end=%d", i, offsetStart, offsetEnd)
+			return nil, fmt.Errorf("patch %d invalid offsets: %d, %d", i, offsetStart, offsetEnd)
 		}
-
-		// Extract required fields for comparison
 		path, okP := originalMap["path"].(string)
 		originalText, okO := originalMap["original_text"].(string)
 		newText, okN := originalMap["new_text"].(string)
-
 		if !okP || !okO || !okN {
-			return nil, fmt.Errorf("patch at index %d missing path, original_text, or new_text. Got: %#v", i, originalMap)
+			return nil, fmt.Errorf("patch %d missing keys: %#v", i, originalMap)
 		}
-
-		filteredMap := map[string]interface{}{
-			"path":          path,
-			"original_text": originalText,
-			"new_text":      newText,
-		}
+		filteredMap := map[string]interface{}{"path": path, "original_text": originalText, "new_text": newText}
 		filtered = append(filtered, filteredMap)
 	}
-
-	// Sort the filtered slice
 	sort.SliceStable(filtered, func(i, j int) bool {
-		mapI := filtered[i]
-		mapJ := filtered[j]
-
-		// Assume keys exist after filtering logic above
-		pathI := mapI["path"].(string)
-		pathJ := mapJ["path"].(string)
+		mapI, mapJ := filtered[i], filtered[j]
+		pathI, pathJ := mapI["path"].(string), mapJ["path"].(string)
 		if pathI != pathJ {
 			return pathI < pathJ
 		}
-		origI := mapI["original_text"].(string)
-		origJ := mapJ["original_text"].(string)
+		origI, origJ := mapI["original_text"].(string), mapJ["original_text"].(string)
 		return origI < origJ
 	})
 	return filtered, nil
@@ -145,14 +127,12 @@ func TestGoRenameSymbol(t *testing.T) {
 	logger.Debug("Test logger initialized")
 	llmClient := adapters.NewNoOpLLMClient()
 	sandboxDir := t.TempDir()
-	interpreter, err := core.NewInterpreter(logger, llmClient, sandboxDir, nil)
+	// *** CORRECTED NewInterpreter call with 5 arguments ***
+	interpreter, err := core.NewInterpreter(logger, llmClient, sandboxDir, nil, nil) // Pass nil for initialVars and libPaths
 	if err != nil {
 		t.Fatalf("Failed create interpreter: %v", err)
 	}
-	err = core.RegisterCoreTools(interpreter.ToolRegistry()) // Assumes gosemantic registered via init
-	if err != nil {
-		t.Fatalf("Failed register core tools: %v", err)
-	}
+	// core.RegisterCoreTools is called within NewInterpreter
 	err = interpreter.SetSandboxDir(sandboxDir)
 	if err != nil {
 		t.Fatalf("Failed set sandbox dir: %v", err)
@@ -172,7 +152,12 @@ func TestGoRenameSymbol(t *testing.T) {
 		t.Fatalf("Failed write go.mod: %v", err)
 	}
 	logger.Info("Created go.mod in sandbox", "path", filepath.Join(sandboxDir, "go.mod"))
-	indexResult, indexErr := toolGoIndexCode(interpreter, []interface{}{"."})
+
+	indexTool, found := interpreter.ToolRegistry().GetTool("GoIndexCode")
+	if !found {
+		t.Fatalf("Tool GoIndexCode not found")
+	}
+	indexResult, indexErr := indexTool.Func(interpreter, []interface{}{"."})
 	if indexErr != nil {
 		handleCheck, _ := indexResult.(string)
 		if handleCheck == "" {
@@ -196,9 +181,7 @@ func TestGoRenameSymbol(t *testing.T) {
 		wantErr     error
 	}{
 		{
-			name:    "Rename Global Constant",
-			query:   "package:mytestmodule/pkga; const:GlobalConst",
-			newName: "GlobalConstant",
+			name: "Rename Global Constant", query: "package:mytestmodule/pkga; const:GlobalConst", newName: "GlobalConstant",
 			wantPatches: []map[string]interface{}{
 				{"path": "pkga/pkga.go", "original_text": "GlobalConst", "new_text": "GlobalConstant"},
 				{"path": "main.go", "original_text": "GlobalConst", "new_text": "GlobalConstant"},
@@ -206,9 +189,7 @@ func TestGoRenameSymbol(t *testing.T) {
 			},
 		},
 		{
-			name:    "Rename Global Variable",
-			query:   "package:mytestmodule/pkga; var:GlobalVar",
-			newName: "GlobalVariable",
+			name: "Rename Global Variable", query: "package:mytestmodule/pkga; var:GlobalVar", newName: "GlobalVariable",
 			wantPatches: []map[string]interface{}{
 				{"path": "pkga/pkga.go", "original_text": "GlobalVar", "new_text": "GlobalVariable"},
 				{"path": "pkga/pkga.go", "original_text": "GlobalVar", "new_text": "GlobalVariable"},
@@ -216,30 +197,22 @@ func TestGoRenameSymbol(t *testing.T) {
 			},
 		},
 		{
-			name:    "Rename Type",
-			query:   "package:mytestmodule/pkga; type:MyStruct",
-			newName: "MyStructure",
+			name: "Rename Type", query: "package:mytestmodule/pkga; type:MyStruct", newName: "MyStructure",
 			wantPatches: []map[string]interface{}{
-				{"path": "pkga/pkga.go", "original_text": "MyStruct", "new_text": "MyStructure"},
-				{"path": "pkga/pkga.go", "original_text": "MyStruct", "new_text": "MyStructure"},
-				{"path": "pkga/pkga.go", "original_text": "MyStruct", "new_text": "MyStructure"},
-				{"path": "pkga/pkga.go", "original_text": "MyStruct", "new_text": "MyStructure"},
+				{"path": "pkga/pkga.go", "original_text": "MyStruct", "new_text": "MyStructure"}, {"path": "pkga/pkga.go", "original_text": "MyStruct", "new_text": "MyStructure"},
+				{"path": "pkga/pkga.go", "original_text": "MyStruct", "new_text": "MyStructure"}, {"path": "pkga/pkga.go", "original_text": "MyStruct", "new_text": "MyStructure"},
 				{"path": "main.go", "original_text": "MyStruct", "new_text": "MyStructure"},
 			},
 		},
 		{
-			name:    "Rename Function",
-			query:   "package:mytestmodule/pkga; function:TopLevelFunc",
-			newName: "TopLevelFunction",
+			name: "Rename Function", query: "package:mytestmodule/pkga; function:TopLevelFunc", newName: "TopLevelFunction",
 			wantPatches: []map[string]interface{}{
 				{"path": "pkga/pkga.go", "original_text": "TopLevelFunc", "new_text": "TopLevelFunction"},
 				{"path": "main.go", "original_text": "TopLevelFunc", "new_text": "TopLevelFunction"},
 			},
 		},
 		{
-			name:    "Rename Method",
-			query:   "package:mytestmodule/pkga; type:MyStruct; method:PointerMethod",
-			newName: "PointerReceiverMethod",
+			name: "Rename Method", query: "package:mytestmodule/pkga; type:MyStruct; method:PointerMethod", newName: "PointerReceiverMethod",
 			wantPatches: []map[string]interface{}{
 				{"path": "pkga/pkga.go", "original_text": "PointerMethod", "new_text": "PointerReceiverMethod"},
 				{"path": "pkga/pkga.go", "original_text": "PointerMethod", "new_text": "PointerReceiverMethod"},
@@ -247,20 +220,14 @@ func TestGoRenameSymbol(t *testing.T) {
 			},
 		},
 		{
-			name:    "Rename Field",
-			query:   "package:mytestmodule/pkga; type:MyStruct; field:FieldA",
-			newName: "FieldAlpha",
+			name: "Rename Field", query: "package:mytestmodule/pkga; type:MyStruct; field:FieldA", newName: "FieldAlpha",
 			wantPatches: []map[string]interface{}{
-				{"path": "pkga/pkga.go", "original_text": "FieldA", "new_text": "FieldAlpha"},
-				{"path": "pkga/pkga.go", "original_text": "FieldA", "new_text": "FieldAlpha"},
-				{"path": "pkga/pkga.go", "original_text": "FieldA", "new_text": "FieldAlpha"},
-				{"path": "main.go", "original_text": "FieldA", "new_text": "FieldAlpha"},
+				{"path": "pkga/pkga.go", "original_text": "FieldA", "new_text": "FieldAlpha"}, {"path": "pkga/pkga.go", "original_text": "FieldA", "new_text": "FieldAlpha"},
+				{"path": "pkga/pkga.go", "original_text": "FieldA", "new_text": "FieldAlpha"}, {"path": "main.go", "original_text": "FieldA", "new_text": "FieldAlpha"},
 			},
 		},
 		{
-			name:    "Rename Unexported Field",
-			query:   "package:mytestmodule/pkga; type:MyStruct; field:fieldB", // Find via field alias
-			newName: "fieldBeta",
+			name: "Rename Unexported Field", query: "package:mytestmodule/pkga; type:MyStruct; field:fieldB", newName: "fieldBeta",
 			wantPatches: []map[string]interface{}{
 				{"path": "pkga/pkga.go", "original_text": "fieldB", "new_text": "fieldBeta"},
 				{"path": "pkga/pkga.go", "original_text": "fieldB", "new_text": "fieldBeta"},
@@ -268,67 +235,44 @@ func TestGoRenameSymbol(t *testing.T) {
 			},
 		},
 		{
-			name:    "Rename Unexported Function",
-			query:   "package:mytestmodule/pkga; function:anotherFunc",
-			newName: "anotherFunction",
-			wantPatches: []map[string]interface{}{
-				{"path": "pkga/pkga.go", "original_text": "anotherFunc", "new_text": "anotherFunction"},
-			},
+			name: "Rename Unexported Function", query: "package:mytestmodule/pkga; function:anotherFunc", newName: "anotherFunction",
+			wantPatches: []map[string]interface{}{{"path": "pkga/pkga.go", "original_text": "anotherFunc", "new_text": "anotherFunction"}},
 		},
-		{
-			name:        "Rename Symbol Not Found",
-			query:       "package:mytestmodule/pkga; function:NoSuchFunc",
-			newName:     "NewFuncName",
-			wantPatches: []map[string]interface{}{},
-		},
-		{
-			name:        "Rename Package Not Found",
-			query:       "package:nonexistent/pkg; function:SomeFunc",
-			newName:     "NewFuncName",
-			wantPatches: []map[string]interface{}{},
-		},
-		{
-			name:        "Rename Same Name",
-			query:       "package:mytestmodule/pkga; const:GlobalConst",
-			newName:     "GlobalConst",
-			wantPatches: []map[string]interface{}{},
-		},
-		{
-			name:    "Rename Invalid New Name",
-			query:   "package:mytestmodule/pkga; const:GlobalConst",
-			newName: "Invalid-Name",
-			wantErr: core.ErrInvalidArgument,
-		},
-		{
-			name:    "Rename to Keyword", // Should generate patches, but might cause compile error if applied
-			query:   "package:mytestmodule/pkga; var:GlobalVar",
-			newName: "type",
-			// *** FIXED: Expect error because validation prevents renaming to keyword ***
-			wantErr: core.ErrInvalidArgument,
-		},
-		{
-			name:    "Rename Builtin Type (Expect Empty)",
-			query:   "package:builtin; type:string", // This query format might not work anyway
-			newName: "MyString",
-			// *** FIXED: Expect empty list because findObjectInIndex likely returns nil/error ***
-			wantPatches: []map[string]interface{}{},
-		},
+		{name: "Rename Symbol Not Found", query: "package:mytestmodule/pkga; function:NoSuchFunc", newName: "NewFuncName", wantPatches: []map[string]interface{}{}},
+		{name: "Rename Package Not Found", query: "package:nonexistent/pkg; function:SomeFunc", newName: "NewFuncName", wantPatches: []map[string]interface{}{}},
+		{name: "Rename Same Name", query: "package:mytestmodule/pkga; const:GlobalConst", newName: "GlobalConst", wantPatches: []map[string]interface{}{}},
+		{name: "Rename Invalid New Name", query: "package:mytestmodule/pkga; const:GlobalConst", newName: "Invalid-Name", wantErr: core.ErrInvalidArgument},
+		{name: "Rename to Keyword", query: "package:mytestmodule/pkga; var:GlobalVar", newName: "type", wantErr: core.ErrInvalidArgument},
+		{name: "Rename Builtin Type (Expect Empty)", query: "package:builtin; type:string", newName: "MyString", wantPatches: []map[string]interface{}{}},
 	}
 
 	// --- Run Tests ---
-	for _, tc := range testCases {
-		tc := tc // Capture range variable
-		t.Run(tc.name, func(t *testing.T) {
-			// t.Parallel() // Disable parallel due to potential file system interaction if validation reads files
+	renameTool, foundRename := interpreter.ToolRegistry().GetTool("GoRenameSymbol")
+	if !foundRename {
+		t.Fatalf("Tool GoRenameSymbol not found in registry")
+	}
 
-			result, runErr := toolGoRenameSymbol(interpreter, []interface{}{indexHandle, tc.query, tc.newName})
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			// t.Parallel() // Disable parallel
+
+			result, runErr := renameTool.Func(interpreter, []interface{}{indexHandle, tc.query, tc.newName})
 
 			// --- Error Checking ---
 			if tc.wantErr != nil {
 				if runErr == nil {
 					t.Errorf("Expected error wrapping %q, but got nil", tc.wantErr)
 				} else {
-					isCorrectError := errors.Is(runErr, tc.wantErr) || (errors.Is(runErr, core.ErrInvalidArgument) && strings.Contains(runErr.Error(), tc.wantErr.Error()))
+					// Check if the error is the expected sentinel OR if it's ErrInvalidArgument wrapping the expected format error message
+					isCorrectError := errors.Is(runErr, tc.wantErr)
+					if !isCorrectError && errors.Is(tc.wantErr, ErrInvalidQueryFormat) {
+						var rtErr *core.RuntimeError
+						if errors.As(runErr, &rtErr) && errors.Is(rtErr.Wrapped, core.ErrInvalidArgument) && strings.Contains(rtErr.Message, ErrInvalidQueryFormat.Error()) {
+							isCorrectError = true
+						}
+					}
+					// Allow direct match for ErrInvalidArgument as well
 					if !isCorrectError && tc.wantErr == core.ErrInvalidArgument {
 						isCorrectError = errors.Is(runErr, core.ErrInvalidArgument)
 					}
@@ -341,8 +285,6 @@ func TestGoRenameSymbol(t *testing.T) {
 				}
 				return
 			}
-
-			// If no error was expected, fail if one occurred
 			if runErr != nil {
 				t.Fatalf("Did not expect error for query %q, newName %q, but got: %v", tc.query, tc.newName, runErr)
 			}
@@ -350,22 +292,18 @@ func TestGoRenameSymbol(t *testing.T) {
 			// --- Result Comparison ---
 			actualResultsRaw, ok := result.([]interface{})
 			if !ok {
-				t.Fatalf("Expected result type []interface{}, but got %T: %v", result, result)
+				t.Fatalf("Expected result type []interface{}, got %T: %v", result, result)
 			}
-
-			// Filter and sort actual results (validate offsets, keep path/orig/new)
 			actualResultsFiltered, filterErr := sortAndFilterRenamePatches(actualResultsRaw, t)
 			if filterErr != nil {
 				t.Fatalf("Error filtering/sorting actual results for query %q: %v\nActual Raw Results: %#v", tc.query, filterErr, actualResultsRaw)
 			}
 
-			// Create expected results for comparison (already filtered, just need sorting)
-			// Handle nil case for expected results
 			var expectedResultsSorted []map[string]interface{}
 			if tc.wantPatches != nil {
 				wantResultInterfaces := make([]interface{}, len(tc.wantPatches))
 				for i, v := range tc.wantPatches {
-					v["offset_start"] = int64(0) // Add dummy offsets for helper compatibility
+					v["offset_start"] = int64(0)
 					v["offset_end"] = int64(1)
 					wantResultInterfaces[i] = v
 				}
@@ -375,18 +313,11 @@ func TestGoRenameSymbol(t *testing.T) {
 					t.Fatalf("Internal Test Error: Error sorting expected results for query %q: %v", tc.query, sortErr)
 				}
 			} else {
-				// If tc.wantPatches was nil, expectedResultsSorted should be nil or empty slice for comparison
-				// sortAndFilterRenamePatches returns empty for empty input, so use that
 				expectedResultsSorted = []map[string]interface{}{}
 			}
 
-			// Use reflect.DeepEqual for comparison on filtered, sorted slices
 			if !reflect.DeepEqual(actualResultsFiltered, expectedResultsSorted) {
-				// Special case message for empty slices vs nil slices which DeepEqual treats differently
-				if (len(actualResultsFiltered) == 0 && expectedResultsSorted == nil) || (len(expectedResultsSorted) == 0 && actualResultsFiltered == nil) {
-					// Consider empty and nil slices equivalent for this test's purpose
-				} else if len(actualResultsFiltered) == 0 && len(expectedResultsSorted) == 0 {
-					// Both are empty slices, treat as equal
+				if len(actualResultsFiltered) == 0 && len(expectedResultsSorted) == 0 { // Treat empty slices as equal
 				} else {
 					t.Errorf("Result mismatch for query %q -> %q (ignoring offsets):\n Expected (sorted): %#v\n Got (sorted/filtered): %#v", tc.query, tc.newName, expectedResultsSorted, actualResultsFiltered)
 					t.Logf("Original Got (unsorted, with offsets): %#v", actualResultsRaw)

@@ -1,107 +1,117 @@
-// NeuroScript Version: 0.3.0
-// Last Modified: 2025-05-01 19:37:06 PDT
+// NeuroScript Version: 0.3.1
+// File version: 0.1.1 // Use FileAPI.ResolvePath, add os.Stat check for directory.
+// nlines: 115 // Approximate
+// risk_rating: HIGH // Due to shell execution capabilities
 // filename: pkg/core/tools_shell.go
+
 package core
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 	"syscall"
-	// Removed encoding/json, go/format, os, path/filepath
 )
 
-// registerShellTools adds general shell execution tools to the registry.
-// Go-specific tools are registered in registerGoTools.
-func registerShellTools(registry *ToolRegistry) error {
-	tools := []ToolImplementation{
-		{
-			Spec: ToolSpec{
-				Name:        "ExecuteCommand",
-				Description: "Executes an arbitrary shell command. WARNING: Use with extreme caution due to security risks. Command path validation is basic. Consider using specific tools (e.g., GoBuild, GitAdd) instead.",
-				Args: []ArgSpec{
-					{Name: "command", Type: ArgTypeString, Required: true, Description: "The command or executable path."},
-					// Changed args_list to ArgTypeSliceString for better type safety if possible, or keep SliceAny if mixed types needed
-					{Name: "args_list", Type: ArgTypeSliceString, Required: false, Description: "A list of string arguments for the command."},
-					{Name: "directory", Type: ArgTypeString, Required: false, Description: "Optional directory (relative to sandbox) to execute the command in. Defaults to sandbox root."},
-				},
-				ReturnType: ArgTypeAny, // Returns map {stdout, stderr, exit_code, success}
-			},
-			Func: toolExecuteCommand,
-		},
-		// Removed GoBuild, GoCheck, GoTest, GoFmt, GoModTidy registrations
-	}
-	for _, tool := range tools {
-		if err := registry.RegisterTool(tool); err != nil {
-			return fmt.Errorf("failed to register Shell tool %s: %w", tool.Spec.Name, err)
-		}
-	}
-	return nil // Success
-}
-
 // toolExecuteCommand executes an external command securely within the sandbox.
+// Corresponds to ToolSpec "ExecuteCommand".
 func toolExecuteCommand(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	commandPath := args[0].(string)
+	toolName := "ExecuteCommand"
+
+	// Expected args: command (string), args_list ([]string, optional), directory (string, optional)
+	if len(args) < 1 || len(args) > 3 {
+		return nil, NewRuntimeError(ErrorCodeArgMismatch, fmt.Sprintf("%s: expected 1 to 3 arguments, got %d", toolName, len(args)), ErrArgumentMismatch)
+	}
+
+	commandPath, okCmd := args[0].(string)
+	if !okCmd {
+		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("%s: command argument must be a string, got %T", toolName, args[0]), ErrInvalidArgument)
+	}
+
 	var commandArgs []string
 	var targetDirRel string = "." // Default directory relative to sandbox
 
 	// Parse args_list (optional, index 1)
 	if len(args) > 1 && args[1] != nil {
-		// Expect []string based on updated spec
-		strArgs, ok := args[1].([]string)
-		if !ok {
-			// Fallback: Try converting from []interface{}
-			intfArgs, okFallback := args[1].([]interface{})
-			if !okFallback {
-				errMsg := fmt.Sprintf("ExecuteCommand: args_list type mismatch, expected []string or []interface{}, got %T", args[1])
-				interpreter.Logger().Error("[TOOL-EXEC] %s", errMsg)
-				return map[string]interface{}{"stdout": "", "stderr": errMsg, "exit_code": int64(-1), "success": false}, nil
-			}
+		if intfArgs, okIntf := args[1].([]interface{}); okIntf {
 			commandArgs = make([]string, len(intfArgs))
 			for i, v := range intfArgs {
-				commandArgs[i] = fmt.Sprintf("%v", v)
+				if s, okConv := v.(string); okConv {
+					commandArgs[i] = s
+				} else {
+					commandArgs[i] = fmt.Sprintf("%v", v)
+				}
 			}
-		} else {
+		} else if strArgs, okStr := args[1].([]string); okStr {
 			commandArgs = strArgs
+		} else {
+			return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("%s: args_list argument must be a list (slice), got %T", toolName, args[1]), ErrInvalidArgument)
 		}
 	} else {
-		commandArgs = []string{} // Empty args list if nil or not provided
+		commandArgs = []string{}
 	}
 
 	// Parse directory (optional, index 2)
 	if len(args) > 2 && args[2] != nil {
-		dirStr, ok := args[2].(string)
-		if !ok {
-			errMsg := fmt.Sprintf("ExecuteCommand: directory argument type mismatch, expected string, got %T", args[2])
-			interpreter.Logger().Error("[TOOL-EXEC] %s", errMsg)
-			return map[string]interface{}{"stdout": "", "stderr": errMsg, "exit_code": int64(-1), "success": false}, nil
+		dirStr, okDir := args[2].(string)
+		if !okDir {
+			return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("%s: directory argument must be a string or null, got %T", toolName, args[2]), ErrInvalidArgument)
 		}
-		targetDirRel = dirStr
+		// Allow empty string to mean sandbox root (effectively same as ".")
+		if dirStr != "" {
+			targetDirRel = dirStr
+		}
 	}
 
-	// Basic security check on command path itself (preventing injection via command name)
-	if strings.Contains(commandPath, "..") || strings.ContainsAny(commandPath, "|;&$><`\\") {
-		errMsg := fmt.Sprintf("ExecuteCommand blocked suspicious command path: %q", commandPath)
-		interpreter.Logger().Error("[TOOL-EXEC] %s", errMsg)
-		return map[string]interface{}{"stdout": "", "stderr": errMsg, "exit_code": int64(-1), "success": false}, nil
+	// Basic security check on command path itself
+	if !IsValidCommandPath(commandPath) {
+		errMsg := fmt.Sprintf("%s blocked suspicious command path: %q", toolName, commandPath)
+		interpreter.Logger().Error(errMsg)
+		return nil, NewRuntimeError(ErrorCodeSecurity, errMsg, ErrSecurityViolation)
 	}
-	// We don't necessarily need to resolve commandPath here if it's expected to be in PATH
 
-	// --- Security: Validate and Resolve Directory ---
-	sandboxRoot := interpreter.SandboxDir()
-	absValidatedDir, pathErr := ResolveAndSecurePath(targetDirRel, sandboxRoot)
+	// Validate and Resolve Directory using FileAPI
+	if interpreter.fileAPI == nil {
+		return nil, NewRuntimeError(ErrorCodeInternal, fmt.Sprintf("%s: FileAPI not initialized in interpreter", toolName), ErrInternal)
+	}
+	// Resolve the path first
+	absValidatedDir, pathErr := interpreter.fileAPI.ResolvePath(targetDirRel)
 	if pathErr != nil {
-		errMsg := fmt.Sprintf("ExecuteCommand path validation failed for directory %q (relative to sandbox %q): %v", targetDirRel, sandboxRoot, pathErr)
-		interpreter.Logger().Error("[TOOL-EXEC] %s", errMsg)
-		return map[string]interface{}{"stdout": "", "stderr": errMsg, "exit_code": int64(-1), "success": false}, nil
+		// ResolvePath returns RuntimeError already
+		errMsg := fmt.Sprintf("%s: invalid execution directory %q: %v", toolName, targetDirRel, pathErr)
+		interpreter.Logger().Error(errMsg)
+		return nil, pathErr
 	}
-	// --- End Security ---
 
-	interpreter.Logger().Debug("[TOOL-EXEC] Preparing command", "command", commandPath, "args", commandArgs, "directory", absValidatedDir)
+	// Check if the resolved path exists and is a directory
+	dirInfo, statErr := os.Stat(absValidatedDir)
+	if statErr != nil {
+		sentinel := ErrIOFailed
+		ec := ErrorCodeIOFailed
+		if os.IsNotExist(statErr) {
+			sentinel = ErrNotFound
+			ec = ErrorCodeFileNotFound // Use specific code for not found
+		} else if os.IsPermission(statErr) {
+			sentinel = ErrPermissionDenied
+			ec = ErrorCodePermissionDenied
+		}
+		errMsg := fmt.Sprintf("%s: cannot stat execution directory %q: %v", toolName, targetDirRel, statErr)
+		interpreter.Logger().Error(errMsg, "absolute_path", absValidatedDir)
+		return nil, NewRuntimeError(ec, errMsg, errors.Join(sentinel, statErr))
+	}
+	if !dirInfo.IsDir() {
+		errMsg := fmt.Sprintf("%s: execution path %q is not a directory", toolName, targetDirRel)
+		interpreter.Logger().Error(errMsg, "absolute_path", absValidatedDir)
+		return nil, NewRuntimeError(ErrorCodePathTypeMismatch, errMsg, ErrPathNotDirectory) // Use specific sentinel
+	}
+
+	interpreter.Logger().Debug(fmt.Sprintf("[%s] Preparing command", toolName), "command", commandPath, "args", commandArgs, "directory", absValidatedDir)
 
 	cmd := exec.Command(commandPath, commandArgs...)
-	cmd.Dir = absValidatedDir // *** Run in the validated absolute directory ***
+	cmd.Dir = absValidatedDir
 
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
@@ -125,11 +135,11 @@ func toolExecuteCommand(interpreter *Interpreter, args []interface{}) (interface
 			if stderrStr != "" && !strings.HasSuffix(stderrStr, "\n") {
 				stderrStr += "\n"
 			}
-			stderrStr += fmt.Sprintf("Execution Error: %v", execErr)
+			stderrStr += fmt.Sprintf("[NeuroScript Execution Error: %v]", execErr)
 		}
-		interpreter.Logger().Warn("[TOOL-EXEC] Command failed", "command", commandPath, "args", commandArgs, "dir", absValidatedDir, "exit_code", exitCode, "stderr", stderrStr)
+		interpreter.Logger().Warn(fmt.Sprintf("[%s] Command failed", toolName), "command", commandPath, "exit_code", exitCode, "stderr", stderrStr)
 	} else {
-		interpreter.Logger().Debug("[TOOL-EXEC] Command successful", "command", commandPath, "args", commandArgs, "dir", absValidatedDir, "exit_code", 0)
+		interpreter.Logger().Debug(fmt.Sprintf("[%s] Command successful", toolName), "command", commandPath, "exit_code", 0)
 	}
 
 	resultMap := map[string]interface{}{
@@ -138,5 +148,24 @@ func toolExecuteCommand(interpreter *Interpreter, args []interface{}) (interface
 		"exit_code": int64(exitCode),
 		"success":   success,
 	}
-	return resultMap, nil // Return map, nil Go-level error
+	return resultMap, nil
+}
+
+// IsValidCommandPath performs basic checks
+func IsValidCommandPath(command string) bool {
+	if command == "" {
+		return false
+	}
+	// Basic check: prevent directory traversal in the command itself.
+	// Allow simple paths like "go" or "python" etc. assumed to be in PATH.
+	// Disallow absolute paths or paths containing separators to force reliance on PATH
+	// unless a more sophisticated allowlist/validation mechanism is implemented.
+	if strings.ContainsAny(command, "/\\") {
+		return false
+	}
+	// Disallow common shell metacharacters
+	if strings.ContainsAny(command, "|;&$><`") {
+		return false
+	}
+	return true
 }

@@ -1,118 +1,148 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.1.1 // Added ReadFile, WriteFile, DeleteFile, ListDirectory, Mkdir, MoveFile
-// Defines ToolImplementation structs for selected File System tools.
+// File version: 0.0.4 // Consolidated all FS tool definitions as literals.
+// nlines: 159
+// risk_rating: MEDIUM
 // filename: pkg/core/tooldefs_fs.go
-
 package core
 
-// fstoolsToRegister contains ToolImplementation definitions for a subset of File System tools.
-// This array is intended to be concatenated with other similar arrays in a central
-// registrar (e.g., zz_core_tools_registrar.go) to be processed by AddToolImplementations.
-//
-// It's crucial that if a tool is listed here, its original init() based registration
-// (if any, in its own file like tools_fs_read.go) is removed to avoid double registration.
-var fstoolsToRegister = []ToolImplementation{
-	{
+import (
+	"fmt"
+	"time"
+) // Required for time format constants used in some tool descriptions
+
+var fsToolsToRegister = []ToolImplementation{
+	ToolImplementation{
 		Spec: ToolSpec{
 			Name:        "FileHash",
-			Description: "Calculates the SHA256 hash of a specified file within the sandbox. Returns the hex-encoded hash string.",
+			Description: "Calculates the SHA256 hash of a specified file. Returns the hex-encoded hash string.",
 			Args: []ArgSpec{
-				{Name: "filepath", Type: ArgTypeString, Required: true, Description: "The relative path (within the sandbox) of the file to hash."},
+				{Name: "filepath", Type: ArgTypeString, Required: true, Description: "Relative path (within the sandbox) of the file to hash."},
 			},
 			ReturnType: ArgTypeString,
 		},
-		Func: toolFileHash, // Assumes toolFileHash is defined in pkg/core/tools_fs_hash.go
+		Func: toolFileHash, // from tools_fs_hash.go
 	},
-	{
+	// --- LineCountFile Tool ---
+	ToolImplementation{
 		Spec: ToolSpec{
-			Name:        "FileStat",
-			Description: "Gets information about a file or directory within the sandbox. Returns a map with 'name', 'path', 'size', 'is_dir', 'mod_time', or nil if not found.",
+			Name:        "LineCountFile",
+			Description: "Counts lines in a specified file. Returns line count as an integer.",
 			Args: []ArgSpec{
-				{Name: "path", Type: ArgTypeString, Required: true, Description: "The relative path to the file or directory to stat."},
+				{Name: "filepath", Type: ArgTypeString, Required: true, Description: "Relative path to the file."},
 			},
-			ReturnType: ArgTypeMap, // Returns a map or nil (nil indicates not found, compatible with map type for script)
+			ReturnType: ArgTypeInt,
 		},
-		Func: toolStat, // Assumes toolStat is defined in pkg/core/tools_fs_stat.go
+		Func: toolLineCountFile, // from tools_fs_utils.go
 	},
-	{
+	// --- SanitizeFilename Tool ---
+	ToolImplementation{
 		Spec: ToolSpec{
-			Name:        "WalkDir",
-			Description: "Recursively walks a directory within the sandbox and returns a list of maps containing file/directory information (name, path, isDir, size, modTime).",
+			Name:        "SanitizeFilename",
+			Description: "Cleans a string to make it suitable for use as part of a filename.",
 			Args: []ArgSpec{
-				{Name: "path", Type: ArgTypeString, Required: true, Description: "The relative path to the directory to walk."},
+				{Name: "name", Type: ArgTypeString, Required: true, Description: "The string to sanitize."},
 			},
-			ReturnType: ArgTypeSliceMap, // Returns []map[string]interface{}
+			ReturnType: ArgTypeString,
 		},
-		Func: toolWalkDir, // Assumes toolWalkDir is defined in pkg/core/tools_fs_walk.go
+		Func: toolSanitizeFilename, // from tools_fs_utils.go
 	},
-	{ // Added ReadFile
+	// --- ReadFile Tool ---
+	ToolImplementation{
 		Spec: ToolSpec{
 			Name:        "ReadFile",
-			Description: "Reads the entire content of a file within the sandbox. Returns the content as a string.",
+			Description: "Reads the entire content of a specific file. Returns the content as a string.",
 			Args: []ArgSpec{
-				{Name: "filepath", Type: ArgTypeString, Required: true, Description: "The relative path to the file within the sandbox."},
+				{Name: "filepath", Type: ArgTypeString, Required: true, Description: "Relative path to the file."},
 			},
 			ReturnType: ArgTypeString,
 		},
-		Func: toolReadFile, // Assumes toolReadFile is defined in pkg/core/tools_fs_read.go
+		Func: toolReadFile, // from tools_fs_read.go
 	},
-	{ // Added WriteFile
+	// --- WriteFile Tool ---
+	ToolImplementation{
 		Spec: ToolSpec{
 			Name:        "WriteFile",
-			Description: "Writes content to a specified file within the sandbox. Creates the file if it doesn't exist, overwrites if it does.",
+			Description: "Writes content to a specific file. Creates parent directories if needed. Returns 'OK' on success.",
 			Args: []ArgSpec{
-				{Name: "filepath", Type: ArgTypeString, Required: true, Description: "The relative path to the file within the sandbox."},
-				{Name: "content", Type: ArgTypeString, Required: true, Description: "The string content to write to the file."},
+				{Name: "filepath", Type: ArgTypeString, Required: true, Description: "Relative path to the file."},
+				{Name: "content", Type: ArgTypeString, Required: true, Description: "The content to write."},
 			},
-			ReturnType: ArgTypeString,
+			ReturnType: ArgTypeString, // Returns "OK"
 		},
-		Func: toolWriteFile, // Assumes toolWriteFile is defined in pkg/core/tools_fs_write.go
+		Func: toolWriteFile, // from tools_fs_write.go
 	},
-	{ // Added DeleteFile (using existing toolDeleteFileImpl structure)
+	// --- ListDirectory Tool ---
+	ToolImplementation{
 		Spec: ToolSpec{
-			Name:        "DeleteFile",
-			Description: "Deletes a file or an empty directory within the sandbox.",
+			Name:        "ListDirectory",
+			Description: "Lists files and subdirectories at a given path. Returns a list of maps, each describing an entry (keys: name, path, isDir, size, modTime).",
 			Args: []ArgSpec{
-				{Name: "path", Type: ArgTypeString, Required: true, Description: "The relative path to the file or empty directory to delete."},
+				{Name: "path", Type: ArgTypeString, Required: true, Description: "Relative path to the directory (use '.' for current)."},
+				{Name: "recursive", Type: ArgTypeBool, Required: false, Description: "Whether to list recursively (default: false)."},
 			},
-			ReturnType: ArgTypeString,
+			ReturnType: ArgTypeSliceAny, // Returns []map[string]interface{}
 		},
-		Func: toolDeleteFile, // Assumes toolDeleteFile is defined in pkg/core/tools_fs_delete.go
+		Func: toolListDirectory, // from tools_fs_dirs.go
 	},
-	{ // Added ListDirectory (using existing toolListDirectoryImpl structure)
-		Spec: ToolSpec{
-			Name: "ListDirectory",
-			Description: "Lists the contents (files and subdirectories) of a specified directory. " +
-				"Returns a list of maps, each containing 'name', 'path', 'isDir', 'size', 'modTime'.",
-			Args: []ArgSpec{
-				{Name: "path", Type: ArgTypeString, Required: true, Description: "The relative path to the directory to list."},
-				{Name: "recursive", Type: ArgTypeBool, Required: false, Description: "If true, list contents recursively. Defaults to false."},
-			},
-			ReturnType: ArgTypeSliceMap,
-		},
-		Func: toolListDirectory, // Assumes toolListDirectory is defined in pkg/core/tools_fs_dirs.go
-	},
-	{ // Added Mkdir (using existing toolMkdirImpl structure)
+	// --- Mkdir Tool ---
+	ToolImplementation{
 		Spec: ToolSpec{
 			Name:        "Mkdir",
-			Description: "Creates a new directory (including any necessary parents) within the sandbox.",
+			Description: "Creates a directory. Parent directories are created if they do not exist (like mkdir -p). Returns a success message.",
 			Args: []ArgSpec{
-				{Name: "path", Type: ArgTypeString, Required: true, Description: "The relative path of the directory to create."},
+				{Name: "path", Type: ArgTypeString, Required: true, Description: "Relative path of the directory to create."},
 			},
-			ReturnType: ArgTypeString,
+			ReturnType: ArgTypeString, // Returns a success message.
 		},
-		Func: toolMkdir, // Assumes toolMkdir is defined in pkg/core/tools_fs_dirs.go
+		Func: toolMkdir, // from tools_fs_dirs.go
 	},
-	{ // Added MoveFile (using existing toolMoveFileImpl structure)
+	// --- DeleteFile Tool ---
+	ToolImplementation{
 		Spec: ToolSpec{
-			Name:        "MoveFile",
-			Description: "Moves or renames a file or directory within the sandbox.",
+			Name:        "DeleteFile",
+			Description: "Deletes a file or an empty directory. Returns 'OK' on success or if path doesn't exist.",
 			Args: []ArgSpec{
-				{Name: "source", Type: ArgTypeString, Required: true, Description: "The current relative path to the file/directory within the sandbox."},
-				{Name: "destination", Type: ArgTypeString, Required: true, Description: "The desired new relative path for the file/directory within the sandbox."},
+				{Name: "path", Type: ArgTypeString, Required: true, Description: "Relative path to the file or empty directory to delete."},
+			},
+			ReturnType: ArgTypeString, // Returns "OK"
+		},
+		Func: toolDeleteFile, // from tools_fs_delete.go
+	},
+	// --- StatPath Tool ---
+	ToolImplementation{
+		Spec: ToolSpec{
+			Name:        "StatPath",
+			Description: fmt.Sprintf("Gets information about a file or directory. Returns a map containing: name(string), path(string), size_bytes(int), is_dir(bool), modified_unix(int), modified_rfc3339(string - format %s), mode_string(string), mode_perm(string).", time.RFC3339Nano),
+			Args: []ArgSpec{
+				{Name: "path", Type: ArgTypeString, Required: true, Description: "Relative path to the file or directory."},
 			},
 			ReturnType: ArgTypeMap,
 		},
-		Func: toolMoveFile, // Assumes toolMoveFile is defined in pkg/core/tools_fs_move.go
+		Func: toolStat, // from tools_fs_stat.go
+	},
+	// --- MoveFile Tool ---
+	ToolImplementation{
+		Spec: ToolSpec{
+			Name:        "MoveFile",
+			Description: "Moves or renames a file or directory within the sandbox. Returns a map: {'message': 'success message', 'error': nil} on success.",
+			Args: []ArgSpec{
+				{Name: "source_path", Type: ArgTypeString, Required: true, Description: "Relative path of the source file/directory."},
+				{Name: "destination_path", Type: ArgTypeString, Required: true, Description: "Relative path of the destination."},
+			},
+			ReturnType: ArgTypeMap, // Returns map[string]interface{}
+		},
+		Func: toolMoveFile, // from tools_fs_move.go
+	},
+	// --- WalkDir Tool ---
+	ToolImplementation{
+		Spec: ToolSpec{
+			Name:        "WalkDir",
+			Description: fmt.Sprintf("Recursively walks a directory, returning a list of maps describing files/subdirectories found (keys: name, path_relative, is_dir, size_bytes, modified_unix, modified_rfc3339 (format %s), mode_string). Skips the root directory itself.", time.RFC3339Nano),
+			Args: []ArgSpec{
+				{Name: "path", Type: ArgTypeString, Required: true, Description: "Relative path to the directory to walk."},
+			},
+			ReturnType: ArgTypeSliceAny, // Returns []map[string]interface{}
+		},
+		Func: toolWalkDir, // from tools_fs_walk.go
 	},
 }

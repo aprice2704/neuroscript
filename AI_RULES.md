@@ -27,6 +27,9 @@ Follow these **RULES** **very strictly** for all Go code contributions to the Ne
 // File version: 0.1.3 <<-- bump this right hand most number
 // Simplify Inspect check, keep AST dump ON
 // filename: pkg/core/tools_go_semantic.go
+comment lines at the top of files thus:
+// nlines: 295 (number of LoC in the file)
+// risk_rating: HIGH (or medium or low depending on how central the contents of the file are to other parts of the system -- interpreter.go is high, as are many helper files for instance)
 
 and bump the minor number in the file version each time. Please remove the last modified date/time -- it proved not to be useful.
  

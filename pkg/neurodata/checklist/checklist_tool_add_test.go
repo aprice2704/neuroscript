@@ -1,6 +1,9 @@
 // NeuroScript Version: 0.3.0
-// Last Modified: 2025-05-03 16:40:00 PM PDT // Modify verifyNodeStatus to use direct attribute access
+// File version: 0.1.1
+// Uses corrected newTestInterpreterWithAllTools return type
 // filename: pkg/neurodata/checklist/checklist_tool_add_test.go
+// nlines: 430
+// risk_rating: LOW
 package checklist
 
 import (
@@ -213,11 +216,14 @@ func TestChecklistAddItemTool(t *testing.T) {
 		},
 	}
 
-	// --- Test Execution Loop (remains the same) ---
+	// --- Test Execution Loop ---
+	// The 'registry' variable will now be of type core.ToolRegistry (interface)
+	// because newTestInterpreterWithAllTools returns it as such.
+	// Calls like registry.GetTool(...) will work correctly.
 	for _, tc := range testCases {
 		tc := tc // Capture range variable
 		t.Run(tc.name, func(t *testing.T) {
-			interp, registry := newTestInterpreterWithAllTools(t)
+			interp, registry := newTestInterpreterWithAllTools(t) // registry is core.ToolRegistry
 			toolAddItemImpl, foundAddItem := registry.GetTool("ChecklistAddItem")
 			assertToolFound(t, foundAddItem, "ChecklistAddItem")
 			toolFunc := toolAddItemImpl.Func
@@ -317,7 +323,7 @@ func TestChecklistUpdateStatusTool(t *testing.T) {
 	}
 
 	t.Run("SequentialStatusUpdates", func(t *testing.T) {
-		interp, registry := newTestInterpreterWithAllTools(t)
+		interp, registry := newTestInterpreterWithAllTools(t) // registry is core.ToolRegistry
 		toolLoadTreeImpl, foundLoad := registry.GetTool("ChecklistLoadTree")
 		assertToolFound(t, foundLoad, "ChecklistLoadTree")
 		loadToolFunc := toolLoadTreeImpl.Func
@@ -409,8 +415,19 @@ func TestChecklistUpdateStatusTool(t *testing.T) {
 		}
 
 		// Error checks remain the same...
-		t.Run("Error: Invalid Handle", func(t *testing.T) { /* ... */ })
-		t.Run("Error: Handle Not Found", func(t *testing.T) { /* ... */ })
+		t.Run("Error: Invalid Handle", func(t *testing.T) {
+			_, err := updateToolFunc(interp, core.MakeArgs("invalid-handle"))
+			if !errors.Is(err, core.ErrHandleNotFound) { // Updated to check for specific handle error
+				t.Errorf("Expected ErrHandleNotFound, got %v", err)
+			}
+		})
+		t.Run("Error: Handle Not Found", func(t *testing.T) { // This test might be redundant if the above catches it
+			_, err := updateToolFunc(interp, core.MakeArgs("clh::nonexistent-uuid"))
+			if !errors.Is(err, core.ErrHandleNotFound) {
+				t.Errorf("Expected ErrHandleNotFound, got %v", err)
+			}
+		})
+
 	})
 }
 
@@ -475,7 +492,7 @@ func verifyNodeStatus(t *testing.T, interp *core.Interpreter, handleID, nodeID, 
 func logTreeStateForDebugging(t *testing.T, interp *core.Interpreter, handleID string, contextMsg string) {
 	// ... implementation remains the same ...
 	t.Helper()
-	toolReg := interp.ToolRegistry()
+	toolReg := interp.ToolRegistry() // Get registry from interpreter
 	formatToolImpl, exists := toolReg.GetTool("ChecklistFormatTree")
 	if !exists || formatToolImpl.Func == nil {
 		t.Logf("DEBUG: Could not find ChecklistFormatTree tool to dump state for handle %s (%s)", handleID, contextMsg)

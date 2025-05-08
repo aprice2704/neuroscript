@@ -1,6 +1,9 @@
 // NeuroScript Version: 0.3.0
-// Last Modified: 2025-05-01 18:31:17 PDT
+// File version: 0.1.1
+// Updated Config struct field names
 // filename: pkg/neurogo/app_script_break_continue_test.go
+// nlines: 70
+// risk_rating: LOW
 package neurogo
 
 import (
@@ -32,10 +35,10 @@ func TestApp_RunScriptMode_BreakContinue(t *testing.T) {
 	llmClient := adapters.NewNoOpLLMClient() // From adapters package
 
 	cfg := &Config{ // Assuming Config struct is defined in neurogo/config.go
-		RunScriptMode: true,
-		ScriptFile:    scriptPath,
-		TargetArg:     "main", // Target the main procedure in the script
-		EnableLLM:     false,
+		StartupScript: scriptPath, // CORRECTED: Was ScriptFile
+		TargetArg:     "main",     // Target the main procedure in the script
+		// REMOVED: RunScriptMode: true,
+		// REMOVED: EnableLLM:     false,
 	}
 
 	// Create and run the App (assuming NewApp is defined in neurogo/app.go)
@@ -44,7 +47,7 @@ func TestApp_RunScriptMode_BreakContinue(t *testing.T) {
 		t.Fatal("Failed to create App")
 	}
 	app.Config = cfg
-	app.llmClient = llmClient // Ensure LLM client is set even if disabled in cfg
+	app.llmClient = llmClient // Ensure LLM client is set
 
 	// Execute the script via the App's Run method
 	runErr := app.Run(context.Background())
@@ -63,32 +66,6 @@ func TestApp_RunScriptMode_BreakContinue(t *testing.T) {
 	// 'main' procedure inaccessible after app.Run() completes.
 	// The test now relies on the internal 'must' statements within the script
 	// to verify correctness, ensuring app.Run() returns nil on success.
-
-	// Example of removed assertion helper:
-	/*
-		assertVariableEqualsStd := func(varName string, expectedValue interface{}) {
-			t.Helper() // Mark this as a helper function
-			if app.interpreter == nil {
-				t.Fatalf("Test '%s': App interpreter is nil after execution. Cannot verify variables.", t.Name())
-				return // Redundant due to Fatalf
-			}
-			value, exists := app.interpreter.GetVariable(varName)
-			if !exists {
-				t.Errorf("Variable '%s' should exist after execution, but was not found", varName)
-				return
-			}
-			if !reflect.DeepEqual(expectedValue, value) {
-				t.Errorf("Variable '%s' has unexpected value. Expected: [%v] (%T), Got: [%v] (%T)",
-					varName, expectedValue, expectedValue, value, value)
-			}
-		}
-	*/
-
-	// Examples of removed assertions:
-	// assertVariableEqualsStd("result", int64(3))
-	// assertVariableEqualsStd("counter", int64(5))
-	// assertVariableEqualsStd("sum", int64(12))
-	// ... etc ...
 
 	// If we reach here without t.Fatalf, the script executed without error.
 	t.Logf("Test '%s': Script '%s' executed successfully (no 'must' failures detected via app.Run error).", t.Name(), scriptPath)

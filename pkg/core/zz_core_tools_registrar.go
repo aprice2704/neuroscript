@@ -25,7 +25,7 @@ func registerCoreToolBundle() {
 	// are defined in their respective tooldefs_*.go files within the core package.
 	var toolsToRegister []ToolImplementation
 	toolsToRegister = append(toolsToRegister, goToolsToRegister...)
-	toolsToRegister = append(toolsToRegister, fstoolsToRegister...)
+	toolsToRegister = append(toolsToRegister, fsToolsToRegister...)
 	toolsToRegister = append(toolsToRegister, gitToolsToRegister...)
 	toolsToRegister = append(toolsToRegister, aiWmToolsToRegister...)
 	toolsToRegister = append(toolsToRegister, ioToolsToRegister...)

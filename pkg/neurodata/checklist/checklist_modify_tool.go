@@ -1,7 +1,9 @@
 // NeuroScript Version: 0.3.0
-// Last Modified: 2025-05-03 19:17:30 PM PDT // Fix node access, remove core.GetNodeFromHandle call
+// File version: 0.1.1
+// Correct ToolRegistry type in registerChecklistModifyTools
 // filename: pkg/neurodata/checklist/checklist_modify_tool.go
-
+// nlines: 190
+// risk_rating: LOW
 package checklist
 
 import (
@@ -179,7 +181,8 @@ func toolChecklistSetItemStatus(interpreter *core.Interpreter, args []interface{
 
 // Register the tool implementation (assuming a registration mechanism exists in this package)
 // This function likely needs to be called from the main toolset registration area.
-func registerChecklistModifyTools(registry *core.ToolRegistry) error {
+// CORRECTED: Changed registry type from *core.ToolRegistry to core.ToolRegistry
+func registerChecklistModifyTools(registry core.ToolRegistry) error {
 	if registry == nil {
 		return errors.New("registry cannot be nil for registerChecklistModifyTools")
 	}

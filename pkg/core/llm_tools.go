@@ -1,9 +1,14 @@
+// NeuroScript Version: 0.3.1
+// File version: 0.0.1 // Correct ToolRegistry interface usage in RegisterLLMTools.
+// nlines: 121
+// risk_rating: MEDIUM
 // filename: pkg/core/llm_tools.go
 package core
 
 import (
-	"context" // Import errors
+	"context"
 	"fmt"
+	"strings"
 
 	"github.com/google/generative-ai-go/genai" // Keep for genai.Part potentially
 )
@@ -24,28 +29,38 @@ func callLLM(ctx context.Context, llmClient LLMClient, prompt string) (string, e
 	return responseTurn.Content, nil
 }
 
-// callLLMWithParts sends a multimodal request. Needs redesign or type assertion.
+// callLLMWithParts sends a multimodal request.
+// Note: This function's current implementation converts all parts to text,
+// which might not be suitable for true multimodal inputs.
+// The standard LLMClient interface might need extension for direct multimodal support.
 func callLLMWithParts(ctx context.Context, llmClient LLMClient, parts []genai.Part) (string, error) {
 	if llmClient == nil {
 		return "", ErrLLMNotConfigured // Return specific error
 	}
-	// --- PROBLEM: Standard LLMClient interface doesn't support []genai.Part directly. ---
-	// --- Simulating encoding into a single turn (likely insufficient) ---
-	textContent := ""
+
+	// Convert genai.Part to a text-based representation for the current LLMClient.Ask interface
+	var contentBuilder strings.Builder
 	for _, p := range parts {
-		if str, ok := p.(genai.Text); ok {
-			textContent += string(str) + "\n"
-		} else {
-			textContent += fmt.Sprintf("[Non-text part: %T]\n", p)
+		switch v := p.(type) {
+		case genai.Text:
+			contentBuilder.WriteString(string(v))
+		case genai.Blob:
+			// For now, just indicate a blob was present. A real implementation might
+			// use a specific encoding or store it and pass a reference if the LLM supports it.
+			contentBuilder.WriteString(fmt.Sprintf("[Blob Content (MIME: %s)]", v.MIMEType))
+		default:
+			contentBuilder.WriteString(fmt.Sprintf("[Unsupported genai.Part type: %T]", p))
 		}
+		contentBuilder.WriteString("\n") // Add a newline between parts for readability
 	}
-	turns := []*ConversationTurn{{Role: RoleUser, Content: textContent}}
+
+	turns := []*ConversationTurn{{Role: RoleUser, Content: strings.TrimSpace(contentBuilder.String())}}
 	responseTurn, err := llmClient.Ask(ctx, turns)
 	if err != nil {
-		return "", fmt.Errorf("%w: LLM Ask failed simulating parts: %w", ErrLLMError, err)
+		return "", fmt.Errorf("%w: LLM Ask failed while simulating parts: %w", ErrLLMError, err)
 	}
 	if responseTurn == nil {
-		return "", fmt.Errorf("%w: LLM nil response simulating parts", ErrLLMError)
+		return "", fmt.Errorf("%w: LLM returned nil response while simulating parts", ErrLLMError)
 	}
 	return responseTurn.Content, nil
 }
@@ -54,13 +69,12 @@ func callLLMWithParts(ctx context.Context, llmClient LLMClient, parts []genai.Pa
 
 // TOOL.LLM.Ask
 func toolLLMAsk(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	// Assumes validation layer ensures args[0] exists and is a string.
 	if len(args) < 1 {
-		return nil, fmt.Errorf("%w: expected 1 argument (prompt), got %d", ErrArgumentMismatch, len(args))
+		return nil, NewRuntimeError(ErrorCodeArgMismatch, "LLM.Ask: expected 1 argument (prompt)", ErrArgumentMismatch)
 	}
 	prompt, ok := args[0].(string)
 	if !ok {
-		return nil, fmt.Errorf("%w: argument 'prompt' must be a string, got %T", ErrInvalidArgument, args[0])
+		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("LLM.Ask: argument 'prompt' must be a string, got %T", args[0]), ErrInvalidArgument)
 	}
 
 	if interpreter.llmClient == nil {
@@ -69,6 +83,7 @@ func toolLLMAsk(interpreter *Interpreter, args []interface{}) (interface{}, erro
 
 	response, err := callLLM(context.Background(), interpreter.llmClient, prompt)
 	if err != nil {
+		// callLLM already wraps ErrLLMError, so just return it.
 		return nil, err
 	}
 	return response, nil
@@ -76,30 +91,38 @@ func toolLLMAsk(interpreter *Interpreter, args []interface{}) (interface{}, erro
 
 // TOOL.LLM.AskWithParts
 func toolLLMAskWithParts(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	// Assumes validation layer ensures args[0] exists and is a slice/list.
 	if len(args) < 1 {
-		return nil, fmt.Errorf("%w: expected 1 argument (parts), got %d", ErrArgumentMismatch, len(args))
+		return nil, NewRuntimeError(ErrorCodeArgMismatch, "LLM.AskWithParts: expected 1 argument (parts)", ErrArgumentMismatch)
 	}
-	partsArg := args[0] // Should be []interface{} after validation/conversion
+	partsArg := args[0]
 
-	var parts []genai.Part
+	var genaiParts []genai.Part
 	if partsSlice, ok := partsArg.([]interface{}); ok {
-		parts = make([]genai.Part, 0, len(partsSlice)) // Initialize slice
+		genaiParts = make([]genai.Part, 0, len(partsSlice))
 		for idx, p := range partsSlice {
+			// For simplicity, assuming parts are strings for now.
+			// A more robust implementation would handle various genai.Part types (Text, Blob, etc.)
+			// and might require specific input structures or type assertions.
 			if text, ok := p.(string); ok {
-				parts = append(parts, genai.Text(text))
+				genaiParts = append(genaiParts, genai.Text(text))
 			} else {
-				return nil, fmt.Errorf("%w: cannot convert 'parts' element at index %d (type %T) to genai.Part; complex parts conversion not implemented", ErrInvalidArgument, idx, p)
+				// If it's already a genai.Part, use it directly. This is unlikely with current NeuroScript arg passing.
+				// else if part, ok := p.(genai.Part); ok {
+				// genaiParts = append(genaiParts, part)
+				// }
+				return nil, NewRuntimeError(ErrorCodeType,
+					fmt.Sprintf("LLM.AskWithParts: 'parts' element at index %d (type %T) must be a string for current implementation", idx, p),
+					ErrInvalidArgument)
 			}
 		}
 	} else {
-		return nil, fmt.Errorf("%w: invalid argument type for 'parts': expected a list, got %T", ErrInvalidArgument, partsArg)
+		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("LLM.AskWithParts: invalid argument type for 'parts': expected a list, got %T", partsArg), ErrInvalidArgument)
 	}
 
 	if interpreter.llmClient == nil {
 		return nil, ErrLLMNotConfigured
 	}
-	response, err := callLLMWithParts(context.Background(), interpreter.llmClient, parts)
+	response, err := callLLMWithParts(context.Background(), interpreter.llmClient, genaiParts)
 	if err != nil {
 		return nil, err
 	}
@@ -107,13 +130,13 @@ func toolLLMAskWithParts(interpreter *Interpreter, args []interface{}) (interfac
 }
 
 // RegisterLLMTools registers the LLM interaction tools.
-func RegisterLLMTools(registry *ToolRegistry) error {
+// <<< CHANGED: registry parameter is now ToolRegistry (interface type)
+func RegisterLLMTools(registry ToolRegistry) error {
 	if registry == nil {
-		return fmt.Errorf("cannot register LLM tools: ToolRegistry is nil")
+		return fmt.Errorf("cannot register LLM tools: provided ToolRegistry is nil")
 	}
-	var err error // Declare error variable
+	var err error
 
-	// Define input schema for LLM.Ask using map literal for helper conversion
 	llmAskInputSchema := map[string]interface{}{
 		"type": "object",
 		"properties": map[string]interface{}{
@@ -121,19 +144,17 @@ func RegisterLLMTools(registry *ToolRegistry) error {
 		},
 		"required": []string{"prompt"},
 	}
-	// Convert schema to ArgSpec slice using the helper (now in ast_builder_helpers.go)
-	llmAskArgs, argsErr := ConvertInputSchemaToArgSpec(llmAskInputSchema) // <<< USES HELPER
+	llmAskArgs, argsErr := ConvertInputSchemaToArgSpec(llmAskInputSchema)
 	if argsErr != nil {
 		return fmt.Errorf("failed to convert args for LLM.Ask: %w", argsErr)
 	}
 
-	// Tool: LLM.Ask
 	err = registry.RegisterTool(ToolImplementation{
 		Spec: ToolSpec{
 			Name:        "LLM.Ask",
 			Description: "Sends a text prompt to the configured LLM and returns the text response.",
-			Args:        llmAskArgs,    // Use converted ArgSpec slice
-			ReturnType:  ArgTypeString, // Specify return type
+			Args:        llmAskArgs,
+			ReturnType:  ArgTypeString,
 		},
 		Func: toolLLMAsk,
 	})
@@ -141,31 +162,28 @@ func RegisterLLMTools(registry *ToolRegistry) error {
 		return fmt.Errorf("failed to register tool LLM.Ask: %w", err)
 	}
 
-	// Define input schema for LLM.AskWithParts
 	llmAskPartsInputSchema := map[string]interface{}{
 		"type": "object",
 		"properties": map[string]interface{}{
 			"parts": map[string]interface{}{
 				"type":        "array",
-				"description": "A list of prompt parts (e.g., text strings). Complex parts may need specific encoding.",
-				"items":       map[string]interface{}{"type": "string"}, // Simplified schema: assumes list of strings for now
+				"description": "A list of prompt parts (e.g., text strings). Complex parts may need specific encoding or LLM client support.",
+				"items":       map[string]interface{}{"type": "string"}, // Simplified: assumes list of strings.
 			},
 		},
 		"required": []string{"parts"},
 	}
-	// Convert schema to ArgSpec slice using the helper
-	llmAskPartsArgs, argsErr := ConvertInputSchemaToArgSpec(llmAskPartsInputSchema) // <<< USES HELPER
+	llmAskPartsArgs, argsErr := ConvertInputSchemaToArgSpec(llmAskPartsInputSchema)
 	if argsErr != nil {
 		return fmt.Errorf("failed to convert args for LLM.AskWithParts: %w", argsErr)
 	}
 
-	// Tool: LLM.AskWithParts
 	err = registry.RegisterTool(ToolImplementation{
 		Spec: ToolSpec{
 			Name:        "LLM.AskWithParts",
-			Description: "Sends a multimodal prompt (e.g., list of text strings) to the LLM. NOTE: Requires specific LLM client support and careful 'parts' argument construction.",
-			Args:        llmAskPartsArgs, // Use converted ArgSpec slice
-			ReturnType:  ArgTypeString,   // Specify return type
+			Description: "Sends a list of parts (currently treated as text strings) as a prompt to the LLM.",
+			Args:        llmAskPartsArgs,
+			ReturnType:  ArgTypeString,
 		},
 		Func: toolLLMAskWithParts,
 	})
@@ -173,8 +191,5 @@ func RegisterLLMTools(registry *ToolRegistry) error {
 		return fmt.Errorf("failed to register tool LLM.AskWithParts: %w", err)
 	}
 
-	return nil // Indicate success
+	return nil
 }
-
-// --- REMOVED Helper Function for Schema Conversion ---
-// func ConvertInputSchemaToArgSpec(schema map[string]interface{}) ([]ArgSpec, error) { ... }

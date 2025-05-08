@@ -1,33 +1,42 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.1.0
-// Defines ToolImplementation structs for IO tools.
+// File version: 0.0.1 // Defines IO tools registration variable.
+// nlines: 31
+// risk_rating: LOW
 // filename: pkg/core/tooldefs_io.go
 
 package core
 
-// ioToolsToRegister contains ToolImplementation definitions for IO tools.
+// ioToolsToRegister defines the ToolImplementation structs for core I/O tools.
+// This variable is used by zz_core_tools_registrar.go to register the tools.
 var ioToolsToRegister = []ToolImplementation{
 	{
 		Spec: ToolSpec{
-			Name:        "IO.Input",
-			Description: "Prompts the user for text input via the console. Enforces max input size. Not allowed in agent mode.",
+			Name:        "Input",
+			Description: "Reads a single line of text from standard input.",
 			Args: []ArgSpec{
-				{Name: "prompt", Type: ArgTypeString, Required: true, Description: "The text prompt to display to the user."},
+				{
+					Name:        "prompt",
+					Type:        ArgTypeString,
+					Description: "Optional prompt message to display to the user.",
+					Required:    false,
+				},
 			},
-			ReturnType: ArgTypeMap, // Returns map {"input": string|null, "error": string|null}
+			ReturnType: ArgTypeString, // Returns the line read from input
 		},
-		Func: toolIOInput, // Assumes toolIOInput is defined in pkg/core/tools_io.go
+		Func: toolInput, // Assumes toolInput is defined in tools_io.go
 	},
 	{
 		Spec: ToolSpec{
-			Name:        "Log",
-			Description: "Writes a message to the application's internal log stream at a specified level.",
+			Name:        "Print",
+			Description: "Prints the provided arguments to standard output, separated by spaces, followed by a newline.",
 			Args: []ArgSpec{
-				{Name: "level", Type: ArgTypeString, Required: true, Description: "Log level (e.g., 'Info', 'Debug', 'Warn', 'Error'). Case-insensitive."},
-				{Name: "message", Type: ArgTypeString, Required: true, Description: "The message to log."},
+				// Note: Uses VariadicArgs field in the underlying implementation if available,
+				// otherwise Args needs to handle different types or expect a list.
+				// Keeping Args simple here, toolPrint needs to handle variadic nature.
+				{Name: "values", Type: ArgTypeAny, Required: true, Description: "One or more values to print."},
 			},
-			ReturnType: ArgTypeNil, // No meaningful return value
+			ReturnType: ArgTypeNil, // Print has no return value
 		},
-		Func: toolLog, // Assumes toolLog is defined in pkg/core/tools_io.go
+		Func: toolPrint, // Assumes toolPrint is defined in tools_io.go
 	},
 }

@@ -1,53 +1,69 @@
 // NeuroScript Version: 0.3.0
-// Last Modified: 2025-05-03 17:10:00 PM PDT // Use SimpleTestLogger
+// File version: 0.1.1
+// Corrected NewInterpreter call, tool registration, and return type.
 // filename: pkg/neurodata/checklist/test_helpers.go
+// nlines: 150
+// risk_rating: MEDIUM
 package checklist
 
 import (
 	"errors"
 	"fmt"
 	"os"
-
-	// "log/slog" // No longer needed directly here
-	// "os"       // No longer needed directly here
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/adapters"
 	"github.com/aprice2704/neuroscript/pkg/core"
 	"github.com/aprice2704/neuroscript/pkg/logging"
-
-	// "github.com/aprice2704/neuroscript/pkg/logging" // No longer needed directly here
 	"github.com/aprice2704/neuroscript/pkg/toolsets"
 )
 
 // newTestInterpreterWithAllTools creates a new interpreter instance for checklist testing,
 // initializing it with BOTH core AND extended tools, using a functional logger.
-func newTestInterpreterWithAllTools(t *testing.T) (*core.Interpreter, *core.ToolRegistry) {
+// CORRECTED: Return type for registry is core.ToolRegistry (interface).
+// CORRECTED: NewInterpreter call, RegisterCoreTools/RegisterExtendedTools calls.
+// CORRECTED: Removed SetToolRegistry.
+func newTestInterpreterWithAllTools(t *testing.T) (*core.Interpreter, core.ToolRegistry) {
 	t.Helper()
 
 	tempDir := t.TempDir()
 
-	logger, _ := adapters.NewSimpleSlogAdapter(os.Stderr, logging.LogLevelDebug)
+	logger, errLog := adapters.NewSimpleSlogAdapter(os.Stderr, logging.LogLevelDebug)
+	assertNoErrorSetup(t, errLog, "Failed to create logger")
 	if logger == nil {
-		// SimpleTestLogger should panic internally if it fails, but defensive check
-		t.Fatalf("Setup Error: Failed to create logger using SimpleTestLogger")
+		t.Fatalf("Setup Error: Failed to create logger using SimpleTestLogger, returned nil unexpectedly")
 	}
 
-	llmClient := core.LLMClient(adapters.NewNoOpLLMClient())
-	interp, _ := core.NewInterpreter(logger, llmClient, tempDir, nil)
+	llmClient := adapters.NewNoOpLLMClient() // No need to cast to core.LLMClient explicitly
 
-	registry := core.NewToolRegistry(interp)
+	// CORRECTED: Provide libPaths (nil or []string{})
+	interp, errInterp := core.NewInterpreter(logger, llmClient, tempDir, nil, nil)
+	assertNoErrorSetup(t, errInterp, "Failed to create core.Interpreter")
 
-	err := core.RegisterCoreTools(registry)
-	assertNoErrorSetup(t, err, "Failed to register core tools")
+	// core.NewInterpreter now registers core tools by default.
+	// If core.RegisterCoreTools was called here, it would use 'interp' (which is a core.ToolRegistry).
+	// err := core.RegisterCoreTools(interp)
+	// assertNoErrorSetup(t, err, "Failed to register core tools")
 
-	err = toolsets.RegisterExtendedTools(registry)
-	assertNoErrorSetup(t, err, "Failed to register extended toolsets") // Check error here
+	// RegisterExtendedTools also needs the interpreter (which is a ToolRegistry)
+	errExt := toolsets.RegisterExtendedTools(interp)
+	assertNoErrorSetup(t, errExt, "Failed to register extended toolsets")
 
-	interp.SetToolRegistry(registry)
-	interp.SetSandboxDir(tempDir)
+	// The checklist-specific tools (RegisterChecklistTools) should also be registered here using 'interp'.
+	// Assuming RegisterChecklistTools is defined in this package (e.g., in checklist_tool.go or similar)
+	// and takes a core.ToolRegistry (which 'interp' satisfies).
+	errChecklist := RegisterChecklistTools(interp) // Example call
+	assertNoErrorSetup(t, errChecklist, "Failed to register checklist tools")
 
-	return interp, registry
+	// REMOVED: interp.SetToolRegistry(registry) - Interpreter manages its own internal registry.
+	// After NewInterpreter, 'interp' itself is the ToolRegistry.
+
+	// SetSandboxDir is good to ensure it's set, though NewInterpreter also sets it.
+	errSandbox := interp.SetSandboxDir(tempDir)
+	assertNoErrorSetup(t, errSandbox, "Failed to set sandbox dir")
+
+	// RETURN: interp itself serves as the ToolRegistry
+	return interp, interp.ToolRegistry()
 }
 
 // --- Node Data Access Helpers --- (Unchanged from previous version)
@@ -55,7 +71,7 @@ func newTestInterpreterWithAllTools(t *testing.T) (*core.Interpreter, *core.Tool
 // getNodeViaTool uses the TreeGetNode tool to get node data as a map.
 func getNodeViaTool(t *testing.T, interp *core.Interpreter, handleID string, nodeID string) map[string]interface{} {
 	t.Helper()
-	toolReg := interp.ToolRegistry()
+	toolReg := interp.ToolRegistry() // Get the registry from the interpreter
 	impl, exists := toolReg.GetTool("TreeGetNode")
 	if !exists {
 		t.Fatalf("getNodeViaTool: Prerequisite tool 'TreeGetNode' not registered.")
@@ -90,7 +106,7 @@ func getNodeValue(t *testing.T, nodeData map[string]interface{}) interface{} {
 	}
 	val, ok := nodeData["value"]
 	if !ok {
-		return nil
+		return nil // Or t.Fatalf if value is always expected
 	}
 	return val
 }
@@ -114,7 +130,7 @@ func getNodeAttributesMap(t *testing.T, nodeData map[string]interface{}) map[str
 		if vStr, ok := v.(string); ok {
 			stringAttrsMap[k] = vStr
 		} else {
-			stringAttrsMap[k] = fmt.Sprintf("%v", v)
+			stringAttrsMap[k] = fmt.Sprintf("%v", v) // Convert non-strings
 		}
 	}
 	return stringAttrsMap
@@ -139,8 +155,9 @@ func getNodeAttributesDirectly(t *testing.T, interp *core.Interpreter, handleID 
 		return nil, fmt.Errorf("getNodeAttributesDirectly: node %q exists in map but is nil", nodeID)
 	}
 	if node.Attributes == nil {
-		return make(map[string]string), nil
+		return make(map[string]string), nil // Return empty map if attributes are nil
 	}
+	// Create a copy to prevent external modification
 	attrsCopy := make(map[string]string, len(node.Attributes))
 	for k, v := range node.Attributes {
 		attrsCopy[k] = v

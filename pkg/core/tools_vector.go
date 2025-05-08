@@ -1,176 +1,144 @@
-// pkg/core/tools_vector.go
+// NeuroScript Version: 0.3.1
+// File version: 0.1.1 // Use FileAPI.ResolvePath and FileAPI.ReadFile.
+// nlines: 120 // Approximate
+// risk_rating: LOW // Mock implementation
+// filename: pkg/core/tools_vector.go
+
 package core
 
 import (
 	"encoding/json"
-	"fmt"
-	"os"
-	"path/filepath" // *** ADDED filepath import ***
+	"errors"
+	"fmt" // Still needed for os errors like IsNotExist
+	"path/filepath"
 	"sort"
 )
 
-// registerVectorTools adds Vector DB related tools to the registry.
-func registerVectorTools(registry *ToolRegistry) error {
-	tools := []ToolImplementation{
-		{
-			Spec: ToolSpec{
-				Name:        "SearchSkills",
-				Description: "Searches the (mock) vector index for skills matching a query.",
-				Args: []ArgSpec{
-					{Name: "query", Type: ArgTypeString, Required: true, Description: "Natural language query."},
-				},
-				ReturnType: ArgTypeString, // Returns JSON string of results
-			},
-			Func: toolSearchSkills,
-		},
-		{
-			Spec: ToolSpec{
-				Name:        "VectorUpdate",
-				Description: "Updates the (mock) vector index for a given file.",
-				Args: []ArgSpec{
-					{Name: "filepath", Type: ArgTypeString, Required: true, Description: "Relative path to the skill file to index (within the sandbox)."},
-				},
-				ReturnType: ArgTypeString, // Returns "OK" or error message
-			},
-			Func: toolVectorUpdate,
-		},
-	}
-	for _, tool := range tools {
-		if err := registry.RegisterTool(tool); err != nil {
-			return fmt.Errorf("failed to register Vector tool %s: %w", tool.Spec.Name, err)
-		}
-	}
-	return nil
-}
-
 // toolSearchSkills performs a mock similarity search.
-// (Implementation remains the same)
+// Corresponds to ToolSpec "SearchSkills".
 func toolSearchSkills(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	// Validation handled by ValidateAndConvertArgs
-	query := args[0].(string)
+	toolName := "SearchSkills"
 
-	if interpreter.logger != nil {
-		interpreter.logger.Debug("INTERP]      Calling TOOL.SearchSkills (Mock) for query: %q", query)
+	if len(args) != 1 {
+		return nil, NewRuntimeError(ErrorCodeArgMismatch, fmt.Sprintf("%s: expected 1 argument (query), got %d", toolName, len(args)), ErrArgumentMismatch)
 	}
+	query, ok := args[0].(string)
+	if !ok {
+		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("%s: query argument must be a string, got %T", toolName, args[0]), ErrInvalidArgument)
+	}
+
+	interpreter.Logger().Debug(fmt.Sprintf("[%s] (Mock) searching for query", toolName), "query", query)
 
 	if interpreter.vectorIndex == nil {
-		interpreter.vectorIndex = make(map[string][]float32) // Initialize if nil
-		interpreter.logger.Info("] Vector index was nil, initialized.")
+		interpreter.vectorIndex = make(map[string][]float32)
+		interpreter.Logger().Info(fmt.Sprintf("[%s] Vector index was nil, initialized.", toolName))
 	}
 
-	// 1. Generate embedding for the query
 	queryEmb, embErr := interpreter.GenerateEmbedding(query)
 	if embErr != nil {
-		return fmt.Sprintf("SearchSkills embedding generation failed: %s", embErr.Error()), nil
+		errMsg := fmt.Sprintf("%s: embedding generation failed", toolName)
+		interpreter.Logger().Error(errMsg, "error", embErr)
+		return nil, NewRuntimeError(ErrorCodeInternal, errMsg, errors.Join(ErrInternalTool, embErr))
 	}
 
-	// 2. Define result structure and search
 	type SearchResult struct {
-		Path  string  `json:"path"` // Use JSON tags for output consistency
+		Path  string  `json:"path"`
 		Score float64 `json:"score"`
 	}
 	results := []SearchResult{}
-	threshold := 0.5 // Example similarity threshold
+	threshold := 0.5
 
-	for path, storedEmb := range interpreter.vectorIndex {
+	for pathKeyAbs, storedEmb := range interpreter.vectorIndex {
 		score, simErr := cosineSimilarity(queryEmb, storedEmb)
 		if simErr != nil {
-			interpreter.logger.Warn("Could not calculate similarity for '%s': %v", path, simErr)
-			continue // Skip this entry if similarity fails
+			interpreter.Logger().Warn(fmt.Sprintf("[%s] Could not calculate similarity", toolName), "path", pathKeyAbs, "error", simErr)
+			continue
 		}
 		if score >= threshold {
-			// Convert absolute path from index back to relative path for result consistency
-			relativePath := path // Default if conversion fails
-			if interpreter.sandboxDir != "" && filepath.IsAbs(path) {
-				rel, err := filepath.Rel(interpreter.sandboxDir, path)
+			relativePath := pathKeyAbs
+			sandboxRoot := interpreter.SandboxDir()
+			if sandboxRoot != "" && filepath.IsAbs(pathKeyAbs) {
+				rel, err := filepath.Rel(sandboxRoot, pathKeyAbs)
 				if err == nil {
 					relativePath = rel
 				} else {
-					interpreter.logger.Warn("SearchSkills] Could not make path relative to sandbox '%s': %s (%v)", interpreter.sandboxDir, path, err)
+					interpreter.Logger().Warn(fmt.Sprintf("[%s] Could not make path relative to sandbox", toolName), "sandbox", sandboxRoot, "absPath", pathKeyAbs, "error", err)
 				}
 			}
 			results = append(results, SearchResult{Path: relativePath, Score: score})
 		}
 	}
 
-	// 3. Sort results by score (descending)
 	sort.Slice(results, func(i, j int) bool {
 		return results[i].Score > results[j].Score
 	})
 
-	// 4. Marshal results to JSON string
 	resultBytes, jsonErr := json.Marshal(results)
 	if jsonErr != nil {
-		// This is an internal error
-		return nil, fmt.Errorf("SearchSkills failed to marshal results to JSON: %w", jsonErr)
+		errMsg := fmt.Sprintf("%s: failed to marshal results to JSON", toolName)
+		interpreter.Logger().Error(errMsg, "error", jsonErr)
+		return nil, NewRuntimeError(ErrorCodeInternal, errMsg, errors.Join(ErrInternalTool, jsonErr))
 	}
 
-	if interpreter.logger != nil {
-		interpreter.logger.Debug("INTERP]      SearchSkills found %d results.", len(results))
-	}
-
+	interpreter.Logger().Debug(fmt.Sprintf("[%s] Search complete", toolName), "results_count", len(results))
 	return string(resultBytes), nil
 }
 
 // toolVectorUpdate adds or updates a file's mock embedding in the index.
-// *** MODIFIED: Use interpreter.sandboxDir instead of os.Getwd() ***
+// Corresponds to ToolSpec "VectorUpdate".
 func toolVectorUpdate(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	// Validation handled by ValidateAndConvertArgs
-	filePathRel := args[0].(string)
+	toolName := "VectorUpdate"
 
-	// *** Get sandbox root directly from the interpreter ***
-	sandboxRoot := interpreter.sandboxDir // Use the field name you added
-	if sandboxRoot == "" {
-		if interpreter.logger != nil {
-			interpreter.logger.Warn("TOOL VectorUpdate] Interpreter sandboxDir is empty, using default relative path validation.")
-		}
-		sandboxRoot = "." // Ensure it's at least relative to CWD if empty
+	if len(args) != 1 {
+		return nil, NewRuntimeError(ErrorCodeArgMismatch, fmt.Sprintf("%s: expected 1 argument (filepath), got %d", toolName, len(args)), ErrArgumentMismatch)
+	}
+	filePathRel, ok := args[0].(string)
+	if !ok {
+		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("%s: filepath argument must be a string, got %T", toolName, args[0]), ErrInvalidArgument)
+	}
+	if filePathRel == "" {
+		return nil, NewRuntimeError(ErrorCodeArgMismatch, fmt.Sprintf("%s: filepath cannot be empty", toolName), ErrInvalidArgument)
 	}
 
-	// Use SecureFilePath to ensure path is safe relative to sandboxDir
-	absPath, secErr := SecureFilePath(filePathRel, sandboxRoot) // *** Use sandboxRoot ***
-	if secErr != nil {
-		// Path validation failed
-		errMsg := fmt.Sprintf("VectorUpdate path error: %s", secErr.Error())
-		if interpreter.logger != nil {
-			interpreter.logger.Info("Tool: VectorUpdate] %s (Sandbox Root: %s)", errMsg, sandboxRoot)
-		}
-		return errMsg, secErr // Return error message and actual error
+	if interpreter.fileAPI == nil {
+		return nil, NewRuntimeError(ErrorCodeInternal, fmt.Sprintf("%s: FileAPI not initialized in interpreter", toolName), ErrInternal)
 	}
 
-	if interpreter.logger != nil {
-		interpreter.logger.Debug("INTERP]      Calling TOOL.VectorUpdate (Mock) for %s (Resolved: %s, Sandbox: %s)", filePathRel, absPath, sandboxRoot)
-	}
+	interpreter.Logger().Debug(fmt.Sprintf("[%s] (Mock) updating index for", toolName), "relative_path", filePathRel)
 
-	// 1. Read file content using the absolute path
-	contentBytes, readErr := os.ReadFile(absPath)
+	// Read file content using FileAPI.ReadFile (which handles path resolution internally)
+	contentBytes, readErr := interpreter.fileAPI.ReadFile(filePathRel)
 	if readErr != nil {
-		errMsg := fmt.Sprintf("VectorUpdate read error for '%s': %s", filePathRel, readErr.Error())
-		if interpreter.logger != nil {
-			interpreter.logger.Info("Tool: VectorUpdate] %s", errMsg)
-		}
-		return errMsg, fmt.Errorf("%w: reading file '%s': %w", ErrInternalTool, filePathRel, readErr) // Return error message and wrapped Go error
+		// ReadFile now returns a RuntimeError, just propagate it
+		interpreter.Logger().Error(fmt.Sprintf("%s: failed to read file", toolName), "relative_path", filePathRel, "error", readErr)
+		return nil, readErr
 	}
 
-	// 2. Generate embedding
+	// Generate embedding
 	embedding, embErr := interpreter.GenerateEmbedding(string(contentBytes))
 	if embErr != nil {
-		errMsg := fmt.Sprintf("VectorUpdate embedding generation failed: %s", embErr.Error())
-		if interpreter.logger != nil {
-			interpreter.logger.Info("Tool: VectorUpdate] %s", errMsg)
-		}
-		// Decide if embedding error is internal or should be reported as string
-		return errMsg, fmt.Errorf("%w: generating embedding for '%s': %w", ErrInternalTool, filePathRel, embErr) // Return error message and wrapped Go error
+		errMsg := fmt.Sprintf("%s: embedding generation failed for %q", toolName, filePathRel)
+		interpreter.Logger().Error(errMsg, "error", embErr)
+		return nil, NewRuntimeError(ErrorCodeInternal, errMsg, errors.Join(ErrInternalTool, embErr))
 	}
 
-	// 3. Update index (using absolute path as key for consistency internally)
+	// We need the absolute path to use as the key in the vector index,
+	// as relative paths could be ambiguous if the CWD changes.
+	// Resolve the path again (ReadFile did it internally, but didn't return it).
+	absPath, pathErr := interpreter.fileAPI.ResolvePath(filePathRel)
+	if pathErr != nil {
+		// This shouldn't happen if ReadFile succeeded, but handle defensively.
+		interpreter.Logger().Error(fmt.Sprintf("%s: failed to resolve path after successful read", toolName), "relative_path", filePathRel, "error", pathErr)
+		return nil, pathErr // Propagate RuntimeError from ResolvePath
+	}
+
 	if interpreter.vectorIndex == nil {
-		interpreter.vectorIndex = make(map[string][]float32) // Initialize if nil
+		interpreter.vectorIndex = make(map[string][]float32)
 	}
 	interpreter.vectorIndex[absPath] = embedding // Store with absolute path key
 
-	if interpreter.logger != nil {
-		interpreter.logger.Debug("INTERP]      VectorUpdate successful for %s", filePathRel)
-	}
+	interpreter.Logger().Debug(fmt.Sprintf("[%s] Update successful", toolName), "relative_path", filePathRel)
 	return "OK", nil
 }
+
+// Note: cosineSimilarity function assumed to exist elsewhere or be defined.

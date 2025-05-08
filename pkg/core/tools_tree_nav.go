@@ -1,128 +1,129 @@
-// NeuroScript Version: 0.3.0
-// Last Modified: 2025-05-02 15:19:59 PDT // Fix: Remove strict type check in toolTreeGetChildren
+// NeuroScript Version: 0.3.1
+// File version: 0.1.0 // Removed local ToolImplementations, standardized error handling.
+// nlines: 100 // Approximate
+// risk_rating: LOW
 // filename: pkg/core/tools_tree_nav.go
 
-// Package core contains core interpreter functionality, including built-in tools.
 package core
 
-var toolTreeGetNodeImpl = ToolImplementation{
-	Spec: ToolSpec{
-		Name:        "TreeGetNode",
-		Description: "Retrieves information about a specific node within a tree handle.",
-		Args: []ArgSpec{
-			{Name: "tree_handle", Type: ArgTypeString, Required: true, Description: "Handle for the tree structure."},
-			{Name: "node_id", Type: ArgTypeString, Required: true, Description: "Unique ID of the node within the tree."},
-		},
-		ReturnType: ArgTypeMap,
-	},
-	Func: toolTreeGetNode,
-}
-
-var toolTreeGetChildrenImpl = ToolImplementation{
-	Spec: ToolSpec{
-		Name:        "TreeGetChildren",
-		Description: "Returns a list of child node IDs for a given node. Returns empty list for non-array nodes.", // Updated description
-		Args: []ArgSpec{
-			{Name: "tree_handle", Type: ArgTypeString, Required: true, Description: "Handle for the tree structure."},
-			{Name: "node_id", Type: ArgTypeString, Required: true, Description: "Unique ID of the node."}, // Removed "must be of type 'array'"
-		},
-		ReturnType: ArgTypeSliceString, // Returns []string
-	},
-	Func: toolTreeGetChildren,
-}
-
-var toolTreeGetParentImpl = ToolImplementation{
-	Spec: ToolSpec{
-		Name:        "TreeGetParent",
-		Description: "Returns the parent node ID for a given node (empty string for root).",
-		Args: []ArgSpec{
-			{Name: "tree_handle", Type: ArgTypeString, Required: true, Description: "Handle for the tree structure."},
-			{Name: "node_id", Type: ArgTypeString, Required: true, Description: "Unique ID of the node."},
-		},
-		ReturnType: ArgTypeString,
-	},
-	Func: toolTreeGetParent,
-}
+import (
+	"fmt"
+	// "errors" - Not directly needed if helpers handle error wrapping appropriately
+)
 
 // toolTreeGetNode returns information about a specific node.
+// Corresponds to ToolSpec "Tree.GetNode".
 func toolTreeGetNode(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	toolName := "TreeGetNode"
-	// Assumes validation layer handles arg count and type checking.
-	handleID := args[0].(string)
-	nodeID := args[1].(string)
+	toolName := "Tree.GetNode"
+
+	if len(args) != 2 {
+		return nil, NewRuntimeError(ErrorCodeArgMismatch,
+			fmt.Sprintf("%s: expected 2 arguments (tree_handle, node_id), got %d", toolName, len(args)),
+			ErrArgumentMismatch,
+		)
+	}
+
+	handleID, okHandle := args[0].(string)
+	if !okHandle {
+		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("%s: tree_handle argument must be a string, got %T", toolName, args[0]), ErrInvalidArgument)
+	}
+	nodeID, okNodeID := args[1].(string)
+	if !okNodeID {
+		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("%s: node_id argument must be a string, got %T", toolName, args[1]), ErrInvalidArgument)
+	}
 
 	_, node, err := getNodeFromHandle(interpreter, handleID, nodeID, toolName)
 	if err != nil {
-		return nil, err // Return the detailed error from helper
+		return nil, err // getNodeFromHandle already returns a RuntimeError
 	}
 
-	// Convert node data to a map for NeuroScript
-	// Use anonymous functions to avoid allocating empty maps/slices if not needed
-	nodeMap := map[string]interface{}{
-		"id":    node.ID,
-		"type":  node.Type,
-		"value": node.Value, // Will be nil for object/array types
-		"attributes": func() map[string]interface{} {
-			if len(node.Attributes) == 0 {
-				return nil // Return nil instead of empty map
-			}
-			attrs := make(map[string]interface{}, len(node.Attributes))
-			for k, v := range node.Attributes {
-				attrs[k] = v // Return child node IDs as strings
-			}
-			return attrs
-		}(),
-		"children": func() []interface{} {
-			if len(node.ChildIDs) == 0 {
-				return nil // Return nil instead of empty slice
-			}
-			children := make([]interface{}, len(node.ChildIDs))
-			for i, id := range node.ChildIDs {
-				children[i] = id // Return child node IDs as strings
-			}
-			return children
-		}(),
-		"parentId": node.ParentID, // Will be "" for root
+	// Prepare attributes map for return
+	attributesMap := make(map[string]interface{}) // Always create, even if empty, for consistent return structure
+	if node.Attributes != nil {
+		for k, v := range node.Attributes {
+			attributesMap[k] = v
+		}
 	}
+
+	// Prepare children IDs slice for return
+	childrenSlice := make([]interface{}, len(node.ChildIDs)) // Correctly handles nil or empty node.ChildIDs
+	for i, id := range node.ChildIDs {
+		childrenSlice[i] = id
+	}
+
+	nodeMap := map[string]interface{}{
+		"id":         node.ID,
+		"type":       node.Type,
+		"value":      node.Value,    // Will be nil for object/array types if not explicitly set otherwise
+		"attributes": attributesMap, // Contains metadata or object key->childID mappings
+		"children":   childrenSlice, // Contains ordered child IDs for arrays, or general children
+		"parentId":   node.ParentID, // Will be "" for root
+	}
+	interpreter.Logger().Debug(fmt.Sprintf("%s: Retrieved node information", toolName), "handle", handleID, "nodeId", nodeID)
 	return nodeMap, nil
 }
 
 // toolTreeGetChildren returns a list of child node IDs for a given node.
-// If the node is not an array type, it correctly returns an empty list.
+// If the node is not an object/array or has no children, it returns an empty list.
+// Corresponds to ToolSpec "Tree.GetChildren".
 func toolTreeGetChildren(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	toolName := "TreeGetChildren"
-	// Assumes validation layer handles arg count and type checking.
-	handleID := args[0].(string)
-	nodeID := args[1].(string)
+	toolName := "Tree.GetChildren"
+
+	if len(args) != 2 {
+		return nil, NewRuntimeError(ErrorCodeArgMismatch,
+			fmt.Sprintf("%s: expected 2 arguments (tree_handle, node_id), got %d", toolName, len(args)),
+			ErrArgumentMismatch,
+		)
+	}
+	handleID, okHandle := args[0].(string)
+	if !okHandle {
+		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("%s: tree_handle argument must be a string, got %T", toolName, args[0]), ErrInvalidArgument)
+	}
+	nodeID, okNodeID := args[1].(string)
+	if !okNodeID {
+		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("%s: node_id argument must be a string, got %T", toolName, args[1]), ErrInvalidArgument)
+	}
 
 	_, node, err := getNodeFromHandle(interpreter, handleID, nodeID, toolName)
 	if err != nil {
-		return nil, err
+		return nil, err // getNodeFromHandle already returns a RuntimeError
 	}
 
-	// *** REMOVED: Check for node.Type == "array" ***
-	// It's valid to ask for children of any node type; non-arrays just have none.
-
-	// Convert []string to []interface{} for return.
-	// If node.ChildIDs is empty (because it's not an array or an empty array),
-	// this correctly creates and returns an empty []interface{}.
-	children := make([]interface{}, len(node.ChildIDs))
+	// node.ChildIDs is []string. Convert to []interface{} for return.
+	// If node.ChildIDs is nil or empty, this correctly creates and returns an empty []interface{}.
+	childrenIDs := make([]interface{}, len(node.ChildIDs))
 	for i, id := range node.ChildIDs {
-		children[i] = id
+		childrenIDs[i] = id
 	}
-	return children, nil
+	interpreter.Logger().Debug(fmt.Sprintf("%s: Retrieved children IDs", toolName), "handle", handleID, "nodeId", nodeID, "count", len(childrenIDs))
+	return childrenIDs, nil
 }
 
 // toolTreeGetParent returns the parent node ID (string).
+// Returns an empty string if the node is the root or has no parent.
+// Corresponds to ToolSpec "Tree.GetParent".
 func toolTreeGetParent(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	toolName := "TreeGetParent"
-	// Assumes validation layer handles arg count and type checking.
-	handleID := args[0].(string)
-	nodeID := args[1].(string)
+	toolName := "Tree.GetParent"
+
+	if len(args) != 2 {
+		return nil, NewRuntimeError(ErrorCodeArgMismatch,
+			fmt.Sprintf("%s: expected 2 arguments (tree_handle, node_id), got %d", toolName, len(args)),
+			ErrArgumentMismatch,
+		)
+	}
+	handleID, okHandle := args[0].(string)
+	if !okHandle {
+		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("%s: tree_handle argument must be a string, got %T", toolName, args[0]), ErrInvalidArgument)
+	}
+	nodeID, okNodeID := args[1].(string)
+	if !okNodeID {
+		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("%s: node_id argument must be a string, got %T", toolName, args[1]), ErrInvalidArgument)
+	}
 
 	_, node, err := getNodeFromHandle(interpreter, handleID, nodeID, toolName)
 	if err != nil {
-		return nil, err
+		return nil, err // getNodeFromHandle already returns a RuntimeError
 	}
+	interpreter.Logger().Debug(fmt.Sprintf("%s: Retrieved parent ID", toolName), "handle", handleID, "nodeId", nodeID, "parentId", node.ParentID)
 	return node.ParentID, nil // ParentID is already a string ("" for root)
 }

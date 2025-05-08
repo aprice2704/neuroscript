@@ -1,5 +1,6 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.0.3 // Fix compile errors: Use NewSimpleSlogAdapter and direct tool func call.
+// File version: 0.0.4
+// Fix compile errors: Correct NewInterpreter call.
 // Test file for GeneratePatch tool.
 // filename: pkg/nspatch/tools_generate_test.go
 
@@ -75,7 +76,8 @@ func TestGeneratePatch(t *testing.T) {
 
 	llmClient := adapters.NewNoOpLLMClient() // Pass logger if constructor accepts it
 	// Sandbox directory is irrelevant for this tool
-	interpreter, err := core.NewInterpreter(logger, llmClient, ".", nil) // Use "." as dummy sandbox
+	// CORRECTED: Added nil for libPaths argument
+	interpreter, err := core.NewInterpreter(logger, llmClient, ".", nil, nil) // Use "." as dummy sandbox, nil for initialVars and libPaths
 	if err != nil {
 		t.Fatalf("Failed to create interpreter: %v", err)
 	}

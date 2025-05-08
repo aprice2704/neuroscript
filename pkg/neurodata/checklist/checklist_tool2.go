@@ -1,6 +1,9 @@
 // NeuroScript Version: 0.3.0
-// Last Modified: 2025-05-03 19:01:20 PM PDT // Updated type checks to 'checklist_item'
+// File version: 0.1.1
+// Corrected error check from ErrTreeCannotSetValueOnType to ErrCannotSetValueOnType
 // filename: pkg/neurodata/checklist/checklist_tool2.go
+// nlines: 290
+// risk_rating: MEDIUM
 package checklist
 
 import (
@@ -112,8 +115,8 @@ func toolChecklistSetItemText(interpreter *core.Interpreter, args []interface{})
 	// 5. Handle result/error from TreeModifyNode
 	if err != nil {
 		logger.Error("Core TreeModifyNode tool failed", "tool", toolName, "error", err)
-		// ErrTreeCannotSetValueOnType might still happen if core logic changes, keep checking
-		if errors.Is(err, core.ErrNotFound) || errors.Is(err, core.ErrInvalidArgument) || errors.Is(err, core.ErrTreeCannotSetValueOnType) {
+		// CORRECTED: Check against core.ErrCannotSetValueOnType
+		if errors.Is(err, core.ErrNotFound) || errors.Is(err, core.ErrInvalidArgument) || errors.Is(err, core.ErrCannotSetValueOnType) {
 			return nil, fmt.Errorf("%w: %s failed: %w", core.ErrInvalidArgument, toolName, err)
 		}
 		return nil, fmt.Errorf("%w: %s internal error calling TreeModifyNode: %w", core.ErrInternal, toolName, err)

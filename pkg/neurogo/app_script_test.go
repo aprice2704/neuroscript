@@ -1,4 +1,9 @@
+// NeuroScript Version: 0.3.0
+// File version: 0.1.1
+// Updated Config struct field names
 // filename: pkg/neurogo/app_script_test.go
+// nlines: 45
+// risk_rating: LOW
 package neurogo
 
 import (
@@ -28,10 +33,10 @@ func TestApp_RunScriptMode_MultiReturn(t *testing.T) {
 	llmClient := adapters.NewNoOpLLMClient() // Keep LLM as NoOp
 
 	cfg := &Config{
-		RunScriptMode: true,       // Indicate script mode
-		ScriptFile:    scriptPath, // Path to the script file
+		StartupScript: scriptPath, // CORRECTED: Was ScriptFile
 		TargetArg:     "main",     // Target the main procedure
-		EnableLLM:     false,      // Disable LLM for this script test
+		// REMOVED: RunScriptMode: true,
+		// REMOVED: EnableLLM:     false,
 	}
 
 	// Create and run the App

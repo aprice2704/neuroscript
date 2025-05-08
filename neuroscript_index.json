@@ -99,8 +99,20 @@
       "files": {
         "cmd/ng/main.go": {
           "functions": [
-            "initializeLogger",
             "main"
+          ],
+          "methods": []
+        },
+        "cmd/ng/repl.go": {
+          "functions": [
+            "runRepl"
+          ],
+          "methods": []
+        },
+        "cmd/ng/setup.go": {
+          "functions": [
+            "initializeLogger",
+            "initializeCoreComponents"
           ],
           "methods": []
         }
@@ -303,32 +315,92 @@
           "methods": [
             {
               "Receiver": "*AIWorkerManager",
+              "Name": "FullPathForDefinitions",
+              "calls": [
+                "m.logger.Warnf(?)"
+              ]
+            },
+            {
+              "Receiver": "*AIWorkerManager",
+              "Name": "FullPathForPerformanceData",
+              "calls": [
+                "m.logger.Warnf(?)"
+              ]
+            },
+            {
+              "Receiver": "*AIWorkerManager",
+              "Name": "loadWorkerDefinitionsFromContent",
+              "calls": [
+                "m.logger.Infof(?)",
+                "m.logger.Errorf(?)",
+                "NewRuntimeError",
+                "m.logger.Warnf(?)",
+                "m.logger.Warnf(?)",
+                "m.logger.Debugf(?)",
+                "m.logger.Infof(?)"
+              ]
+            },
+            {
+              "Receiver": "*AIWorkerManager",
+              "Name": "prepareDefinitionsForSaving",
+              "calls": [
+                "m.logger.Warnf(?)",
+                "m.logger.Errorf(?)",
+                "NewRuntimeError",
+                "m.logger.Debugf(?)",
+                "string"
+              ]
+            },
+            {
+              "Receiver": "*AIWorkerManager",
               "Name": "resolveAPIKey",
               "calls": [
                 "m.logger.Debugf(?)",
                 "NewRuntimeError",
                 "m.logger.Warnf(?)",
                 "NewRuntimeError",
-                "m.logger.Debugf(?)",
                 "m.logger.Warnf(?)",
                 "m.logger.Debugf(?)",
                 "m.logger.Debugf(?)",
-                "m.logger.Errorf(?)",
+                "m.logger.Debugf(?)",
+                "m.logger.Debugf(?)",
                 "NewRuntimeError",
                 "m.logger.Errorf(?)",
-                "NewRuntimeError"
+                "NewRuntimeError",
+                "m.logger.Errorf(?)"
               ]
             },
             {
               "Receiver": "*AIWorkerManager",
-              "Name": "saveDefinitionsToFileUnsafe",
+              "Name": "initializeRateTrackersUnsafe",
               "calls": [
                 "m.logger.Warnf(?)",
-                "m.logger.Errorf(?)",
-                "NewRuntimeError",
-                "m.logger.Errorf(?)",
-                "NewRuntimeError",
+                "m.logger.Debugf(?)",
                 "m.logger.Debugf(?)"
+              ]
+            },
+            {
+              "Receiver": "*AIWorkerManager",
+              "Name": "loadRetiredInstancePerformanceDataFromContent",
+              "calls": [
+                "m.logger.Debug(?)",
+                "m.logger.Infof(?)",
+                "m.logger.Errorf(?)",
+                "NewRuntimeError",
+                "m.logger.Infof(?)"
+              ]
+            },
+            {
+              "Receiver": "*AIWorkerManager",
+              "Name": "prepareRetiredInstanceForAppending",
+              "calls": [
+                "NewRuntimeError",
+                "[]byte(?)",
+                "m.logger.Errorf(?)",
+                "m.logger.Errorf(?)",
+                "NewRuntimeError",
+                "m.logger.Debugf(?)",
+                "string"
               ]
             }
           ]
@@ -337,13 +409,18 @@
           "methods": [
             {
               "Receiver": "*AIWorkerManager",
-              "Name": "loadWorkerDefinitionsFromFileInternal",
+              "Name": "persistDefinitionsUnsafe",
               "calls": [
-                "m.logger.Infof(?)",
+                "m.prepareDefinitionsForSaving(?)",
+                "m.FullPathForDefinitions(?)",
+                "m.logger.Error(?)",
                 "NewRuntimeError",
-                "github.com/google/uuid.NewString",
-                "m.logger.Warnf(?)",
-                "m.logger.Infof(?)"
+                "m.logger.Errorf(?)",
+                "NewRuntimeError",
+                "[]byte(?)",
+                "m.logger.Errorf(?)",
+                "NewRuntimeError",
+                "m.logger.Debugf(?)"
               ]
             },
             {
@@ -352,12 +429,18 @@
               "calls": [
                 "m.mu.Lock(?)",
                 "m.mu.Unlock(?)",
+                "m.FullPathForDefinitions(?)",
+                "m.logger.Error(?)",
+                "m.initializeRateTrackersUnsafe(?)",
+                "NewRuntimeError",
                 "m.logger.Infof(?)",
-                "m.loadWorkerDefinitionsFromFileInternal(?)",
                 "m.logger.Infof(?)",
                 "m.initializeRateTrackersUnsafe(?)",
                 "m.logger.Errorf(?)",
+                "m.initializeRateTrackersUnsafe(?)",
                 "NewRuntimeError",
+                "m.loadWorkerDefinitionsFromContent(?)",
+                "m.initializeRateTrackersUnsafe(?)",
                 "m.initializeRateTrackersUnsafe(?)",
                 "m.logger.Infof(?)"
               ]
@@ -368,8 +451,9 @@
               "calls": [
                 "m.mu.Lock(?)",
                 "m.mu.Unlock(?)",
+                "m.FullPathForDefinitions(?)",
                 "m.logger.Infof(?)",
-                "m.saveDefinitionsToFileUnsafe(?)"
+                "m.persistDefinitionsUnsafe(?)"
               ]
             },
             {
@@ -382,10 +466,9 @@
                 "m.logger.Debugf(?)",
                 "m.logger.Warnf(?)",
                 "NewRuntimeError",
-                "reflect.DeepEqual",
                 "m.initializeRateTrackerForDefinitionUnsafe(?)",
                 "m.logger.Infof(?)",
-                "m.saveDefinitionsToFileUnsafe(?)",
+                "m.persistDefinitionsUnsafe(?)",
                 "m.logger.Errorf(?)",
                 "NewRuntimeError"
               ]
@@ -397,6 +480,7 @@
                 "m.mu.RLock(?)",
                 "m.mu.RUnlock(?)",
                 "NewRuntimeError",
+                "m.logger.Warnf(?)",
                 "m.logger.Warnf(?)"
               ]
             },
@@ -407,6 +491,7 @@
                 "m.mu.RLock(?)",
                 "m.mu.RUnlock(?)",
                 "m.matchesDefinitionFilters(?)",
+                "m.logger.Warnf(?)",
                 "m.logger.Warnf(?)"
               ]
             },
@@ -435,12 +520,16 @@
                 "toFloat64",
                 "reflect.DeepEqual",
                 "setChanged",
+                "toInt64",
                 "int",
                 "int",
+                "toInt64",
                 "int",
                 "int",
+                "toInt64",
                 "int",
                 "int",
+                "toInt64",
                 "int",
                 "int",
                 "setChanged",
@@ -452,7 +541,7 @@
                 "reflect.DeepEqual",
                 "setChanged",
                 "m.logger.Infof(?)",
-                "m.saveDefinitionsToFileUnsafe(?)",
+                "m.persistDefinitionsUnsafe(?)",
                 "NewRuntimeError",
                 "m.logger.Infof(?)"
               ]
@@ -467,7 +556,7 @@
                 "m.logger.Warnf(?)",
                 "NewRuntimeError",
                 "m.logger.Infof(?)",
-                "m.saveDefinitionsToFileUnsafe(?)",
+                "m.persistDefinitionsUnsafe(?)",
                 "NewRuntimeError"
               ]
             },
@@ -475,6 +564,7 @@
               "Receiver": "*AIWorkerManager",
               "Name": "matchesDefinitionFilters",
               "calls": [
+                "m.logger.Warnf(?)",
                 "AIWorkerProvider",
                 "AIWorkerDefinitionStatus",
                 "InteractionModelType",
@@ -580,6 +670,7 @@
                 "m.logger.Warnf(?)",
                 "m.logger.Warnf(?)",
                 "NewRuntimeError",
+                "m.logger.Infof(?)",
                 "toInt64",
                 "m.logger.Warnf(?)",
                 "toInt64",
@@ -599,8 +690,6 @@
                 "NewRuntimeError",
                 "m.loadAllRetiredInstanceDataUnsafe(?)",
                 "m.logger.Debugf(?)",
-                "m.logger.Errorf(?)",
-                "NewRuntimeError",
                 "m.matchesPerformanceRecordFilters(?)",
                 "m.logger.Debugf(?)"
               ]
@@ -609,6 +698,9 @@
               "Receiver": "*AIWorkerManager",
               "Name": "loadAllRetiredInstanceDataUnsafe",
               "calls": [
+                "m.FullPathForPerformanceData(?)",
+                "m.logger.Error(?)",
+                "NewRuntimeError",
                 "m.logger.Debugf(?)",
                 "m.logger.Errorf(?)",
                 "NewRuntimeError",
@@ -622,33 +714,18 @@
               "Receiver": "*AIWorkerManager",
               "Name": "appendRetiredInstanceToFileUnsafe",
               "calls": [
+                "m.FullPathForPerformanceData(?)",
+                "m.logger.Error(?)",
+                "NewRuntimeError",
                 "m.loadAllRetiredInstanceDataUnsafe(?)",
                 "m.logger.Errorf(?)",
-                "NewRuntimeError",
                 "m.logger.Warnf(?)",
                 "m.logger.Errorf(?)",
                 "NewRuntimeError",
                 "m.logger.Errorf(?)",
                 "NewRuntimeError",
-                "m.logger.Infof(?)"
-              ]
-            },
-            {
-              "Receiver": "*AIWorkerManager",
-              "Name": "loadRetiredInstancePerformanceDataInternal",
-              "calls": [
-                "m.loadAllRetiredInstanceDataUnsafe(?)",
-                "m.logger.Debugf(?)",
+                "m.logger.Errorf(?)",
                 "NewRuntimeError",
-                "m.logger.Debugf(?)",
-                "m.logger.Debugf(?)",
-                "toInt64",
-                "toInt64",
-                "rec.TimestampEnd.After(?)",
-                "m.logger.Warnf(?)",
-                "tsu.LastActivityTimestamp.After(?)",
-                "float64",
-                "float64",
                 "m.logger.Infof(?)"
               ]
             },
@@ -667,15 +744,6 @@
         },
         "pkg/core/ai_wm_ratelimit.go": {
           "methods": [
-            {
-              "Receiver": "*AIWorkerManager",
-              "Name": "initializeRateTrackersUnsafe",
-              "calls": [
-                "m.initializeRateTrackerForDefinitionUnsafe(?)",
-                "m.logger.Debugf(?)",
-                "m.logger.Debugf(?)"
-              ]
-            },
             {
               "Receiver": "*AIWorkerManager",
               "Name": "initializeRateTrackerForDefinitionUnsafe",
@@ -779,7 +847,6 @@
                 "NewRuntimeError",
                 "int64",
                 "int64",
-                "int64",
                 "endTime.Sub(startTime).Milliseconds(?)",
                 "endTime.Sub(?)",
                 "float64",
@@ -787,6 +854,7 @@
                 "m.mu.Lock(?)",
                 "m.mu.Unlock(?)",
                 "m.getOrCreateRateTrackerUnsafe(?)",
+                "int64",
                 "now.Sub(tracker.RequestsMinuteMarker).Minutes(?)",
                 "now.Sub(?)",
                 "m.updateTokenCountForRateLimitsUnsafe(?)",
@@ -796,14 +864,23 @@
                 "ifErrorToString",
                 "m.logPerformanceRecordUnsafe(?)",
                 "m.logger.Errorf(?)",
-                "m.saveDefinitionsToFileUnsafe(?)",
+                "m.persistDefinitionsUnsafe(?)",
                 "m.logger.Errorf(?)",
                 "NewRuntimeError"
               ]
             }
           ]
         },
-        "pkg/core/ai_wm_tools.go": {
+        "pkg/core/ai_wm_tools_admin.go": {
+          "methods": []
+        },
+        "pkg/core/ai_wm_tools_definitions.go": {
+          "methods": []
+        },
+        "pkg/core/ai_wm_tools_execution.go": {
+          "methods": []
+        },
+        "pkg/core/ai_wm_tools_helpers.go": {
           "functions": [
             "getAIWorkerManager",
             "mapValidatedArgsListToMapByName",
@@ -812,7 +889,18 @@
             "convertPerformanceRecordToMap",
             "convertPerformanceSummaryToMap",
             "convertRateLimitPolicyToMap",
-            "convertTokenUsageMetricsToMap",
+            "convertTokenUsageMetricsToMap"
+          ],
+          "methods": []
+        },
+        "pkg/core/ai_wm_tools_instances.go": {
+          "methods": []
+        },
+        "pkg/core/ai_wm_tools_performance.go": {
+          "methods": []
+        },
+        "pkg/core/ai_wm_tools_register.go": {
+          "functions": [
             "RegisterAIWorkerTools"
           ],
           "methods": []
@@ -1648,33 +1736,25 @@
                 "l.logDebugAST(?)",
                 "tokenToPosition",
                 "ctx.GetStart(?)",
+                "ctx.Signature_part(?)",
                 "getRuleText",
                 "ctx.KW_MEANS(?)",
                 "ctx.GetStart(?)",
                 "meansToken.GetSymbol(?)",
-                "stopToken.GetStart(?)",
-                "startToken.GetStart(?)",
-                "startToken.GetInputStream().GetText(?)",
-                "startToken.GetInputStream(?)",
-                "startToken.GetStart(?)",
-                "getRuleText",
-                "ctx.Signature_part(?)",
-                "getRuleText",
-                "ctx.Signature_part(?)",
                 "l.logDebugAST(?)",
                 "ctx.Signature_part(?)",
                 "l.logDebugAST(?)",
                 "sigPartCtx.Needs_clause(?)",
                 "needsCtx.Param_list(?)",
-                "l.extractParamList(?)",
+                "l.extractParamNamesList(?)",
                 "l.logDebugAST(?)",
                 "sigPartCtx.Optional_clause(?)",
                 "optionalCtx.Param_list(?)",
-                "l.extractParamList(?)",
+                "l.extractParamNamesList(?)",
                 "l.logDebugAST(?)",
                 "sigPartCtx.Returns_clause(?)",
                 "returnsCtx.Param_list(?)",
-                "l.extractParamList(?)",
+                "l.extractParamNamesList(?)",
                 "l.logDebugAST(?)",
                 "l.logDebugAST(?)",
                 "ctx.Metadata_block(?)",
@@ -1687,7 +1767,7 @@
                 "l.addErrorf(?)",
                 "l.addErrorf(?)",
                 "l.logDebugAST(?)",
-                "l.logger.Error(?)",
+                "l.logger.Errorf(?)",
                 "l.logDebugAST(?)"
               ]
             },
@@ -1697,15 +1777,17 @@
               "calls": [
                 "l.logDebugAST(?)",
                 "l.logger.Error(?)",
-                "l.logger.Error(?)",
-                "l.logger.Warn(?)",
+                "l.logger.Debugf(?)",
+                "l.logger.Errorf(?)",
+                "l.logger.Warnf(?)",
                 "l.logDebugAST(?)",
-                "l.logger.Warn(?)"
+                "l.logDebugAST(?)",
+                "l.logger.Warnf(?)"
               ]
             },
             {
               "Receiver": "*neuroScriptListenerImpl",
-              "Name": "extractParamList",
+              "Name": "extractParamNamesList",
               "calls": [
                 "ctx.AllIDENTIFIER(?)",
                 "identifier.GetText(?)"
@@ -2370,26 +2452,6 @@
           ],
           "methods": []
         },
-        "pkg/core/file_api.go": {
-          "functions": [
-            "NewFileAPI"
-          ],
-          "methods": [
-            {
-              "Receiver": "*FileAPI",
-              "Name": "ResolvePath",
-              "calls": [
-                "f.logger.Error(?)",
-                "f.logger.Debug(?)",
-                "f.logger.Debug(?)",
-                "string",
-                "string",
-                "f.logger.Warn(?)",
-                "f.logger.Debug(?)"
-              ]
-            }
-          ]
-        },
         "pkg/core/helpers.go": {
           "functions": [
             "min",
@@ -2470,6 +2532,59 @@
           "methods": [
             {
               "Receiver": "*Interpreter",
+              "Name": "ToolRegistry"
+            },
+            {
+              "Receiver": "*Interpreter",
+              "Name": "RegisterTool",
+              "calls": [
+                "i.logger.Error(?)",
+                "i.toolRegistry.RegisterTool(?)"
+              ]
+            },
+            {
+              "Receiver": "*Interpreter",
+              "Name": "GetTool",
+              "calls": [
+                "i.logger.Error(?)",
+                "i.toolRegistry.GetTool(?)"
+              ]
+            },
+            {
+              "Receiver": "*Interpreter",
+              "Name": "ListTools",
+              "calls": [
+                "i.logger.Error(?)",
+                "i.toolRegistry.ListTools(?)"
+              ]
+            },
+            {
+              "Receiver": "*Interpreter",
+              "Name": "ExecuteTool",
+              "calls": [
+                "i.logger.Debug(?)",
+                "now.Add(?)",
+                "ts.After(?)",
+                "NewRuntimeError",
+                "i.rateLimitDuration.String(?)",
+                "i.logger.Warn(?)",
+                "i.GetTool(?)",
+                "i.logger.Error(?)",
+                "NewRuntimeError",
+                "i.logger.Error(?)",
+                "NewRuntimeError",
+                "i.logger.Debug(?)",
+                "i.logger.Warn(?)",
+                "i.logger.Info(?)",
+                "impl.Func(?)",
+                "i.logger.Error(?)",
+                "NewRuntimeError",
+                "i.logger.Error(?)",
+                "i.logger.Info(?)"
+              ]
+            },
+            {
+              "Receiver": "*Interpreter",
               "Name": "SetAIWorkerManager"
             },
             {
@@ -2505,7 +2620,7 @@
             },
             {
               "Receiver": "*Interpreter",
-              "Name": "SetToolRegistry",
+              "Name": "SetInternalToolRegistry",
               "calls": [
                 "i.logger.Error(?)",
                 "i.logger.Warn(?)",
@@ -2516,17 +2631,23 @@
               "Receiver": "*Interpreter",
               "Name": "SetVariable",
               "calls": [
+                "i.Logger().Warn(?)",
+                "i.Logger(?)",
                 "i.Logger().Debug(?)",
                 "i.Logger(?)"
               ]
             },
             {
               "Receiver": "*Interpreter",
-              "Name": "GetVariable"
+              "Name": "GetVariable",
+              "calls": [
+                "i.Logger().Warn(?)",
+                "i.Logger(?)"
+              ]
             },
             {
               "Receiver": "*Interpreter",
-              "Name": "ToolRegistry",
+              "Name": "InternalToolRegistry",
               "calls": [
                 "i.Logger().Error(?)",
                 "i.Logger(?)"
@@ -2547,6 +2668,8 @@
               "Receiver": "*Interpreter",
               "Name": "AddProcedure",
               "calls": [
+                "i.Logger().Warn(?)",
+                "i.Logger(?)",
                 "i.Logger().Debug(?)",
                 "i.Logger(?)"
               ]
@@ -2567,6 +2690,8 @@
               "Receiver": "*Interpreter",
               "Name": "RegisterHandle",
               "calls": [
+                "i.Logger().Warn(?)",
+                "i.Logger(?)",
                 "github.com/google/uuid.NewString",
                 "i.Logger().Debug(?)",
                 "i.Logger(?)"
@@ -2586,6 +2711,8 @@
               "Receiver": "*Interpreter",
               "Name": "RemoveHandle",
               "calls": [
+                "i.Logger().Warn(?)",
+                "i.Logger(?)",
                 "i.Logger().Debug(?)",
                 "i.Logger(?)"
               ]
@@ -2596,7 +2723,8 @@
               "calls": [
                 "i.Logger().Info(?)",
                 "i.Logger(?)",
-                "func() {\n\tif r := recover(); r != nil {\n\t\terr = fmt.Errorf(\"panic occurred during procedure '%s': %v\", procName, r)\n\t\ti.Logger().Error(\"Panic recovered during procedure execution\", \"proc_name\", procName, \"panic_value\", r)\n\t\tresult = nil\n\t}\n\ti.currentProcName = originalProcName\n\tlogArgs := []any{\"proc_name\", procName, \"restored_proc_name\", i.currentProcName, \"result_type\", fmt.Sprintf(\"%T\", result), \"error\", err}\n\ti.Logger().Info(\"Finished procedure.\", logArgs...)\n}(?)",
+                "func() {\n\tif r := recover(); r != nil {\n\t\terr = NewRuntimeError(ErrorCodeInternal, fmt.Sprintf(\"panic occurred during procedure '%s': %v\", procName, r), errors.New(\"panic\"))\n\t\ti.Logger().Error(\"Panic recovered during procedure execution\", \"proc_name\", procName, \"panic_value\", r, \"error\", err)\n\t\tresult = nil\n\t}\n\ti.currentProcName = originalProcName\n\tlogArgsMap := map[string]interface{}{\n\t\t\"proc_name\":\tprocName,\n\t\t\"restored_proc_name\":\ti.currentProcName,\n\t\t\"result_type\":\tfmt.Sprintf(\"%T\", result),\n\t\t\"error\":\terr,\n\t}\n\ti.Logger().Info(\"Finished procedure.\", \"details\", logArgsMap)\n}(?)",
+                "NewRuntimeError",
                 "i.Logger().Error(?)",
                 "i.Logger(?)",
                 "i.Logger().Info(?)",
@@ -2610,19 +2738,9 @@
                 "func() {\n\ti.variables = originalScope\n\ti.Logger().Debug(\"Restored parent variable scope.\", \"proc_name\", procName)\n}(?)",
                 "i.Logger().Debug(?)",
                 "i.Logger(?)",
-                "i.Logger().Debug(?)",
-                "i.Logger(?)",
                 "i.SetVariable(?)",
-                "i.Logger().Error(?)",
-                "i.Logger(?)",
-                "i.Logger().Debug(?)",
-                "i.Logger(?)",
-                "interface{}(?)",
                 "i.SetVariable(?)",
-                "i.Logger().Error(?)",
-                "i.Logger(?)",
-                "i.Logger().Debug(?)",
-                "i.Logger(?)",
+                "i.SetVariable(?)",
                 "i.executeSteps(?)",
                 "reflect.ValueOf",
                 "resultValue.Kind(?)",
@@ -2630,11 +2748,7 @@
                 "resultValue.Elem(?)",
                 "resultValue.Kind(?)",
                 "resultValue.Len(?)",
-                "resultValue.IsValid(?)",
-                "i.Logger().Error(?)",
-                "i.Logger(?)",
-                "i.Logger().Debug(?)",
-                "i.Logger(?)"
+                "resultValue.IsValid(?)"
               ]
             }
           ]
@@ -3073,7 +3187,8 @@
         "pkg/core/llm.go": {
           "functions": [
             "NewLLMClient",
-            "NewNoOpLLMClient"
+            "convertCoreTurnsToGenaiContents",
+            "newCoreInternalNoOpLLMClient"
           ],
           "methods": [
             {
@@ -3082,7 +3197,28 @@
               "calls": [
                 "c.logger.Debug(?)",
                 "c.logger.Warn(?)",
-                "c.logger.Warn(?)"
+                "c.genaiClient.GenerativeModel(?)",
+                "convertCoreTurnsToGenaiContents",
+                "NewRuntimeError",
+                "model.StartChat(?)",
+                "c.logger.Warnf(?)",
+                "chat.SendMessage(?)",
+                "c.logger.Error(?)",
+                "NewRuntimeError",
+                "c.logger.Error(?)",
+                "NewRuntimeError",
+                "responseTextBuilder.WriteString(?)",
+                "string",
+                "responseTextBuilder.String(?)",
+                "resp.PromptFeedback.BlockReason.String(?)",
+                "resp.Candidates[0].FinishReason.String(?)",
+                "c.logger.Warn(?)",
+                "NewRuntimeError",
+                "int64",
+                "int64",
+                "int64",
+                "c.logger.Debugf(?)",
+                "c.logger.Warnf(?)"
               ]
             },
             {
@@ -3091,7 +3227,33 @@
               "calls": [
                 "c.logger.Debug(?)",
                 "c.logger.Warn(?)",
-                "c.logger.Warn(?)"
+                "c.genaiClient.GenerativeModel(?)",
+                "c.logger.Warnf(?)",
+                "c.logger.Debugf(?)",
+                "c.logger.Debug(?)",
+                "convertCoreTurnsToGenaiContents",
+                "model.StartChat(?)",
+                "c.logger.Warnf(?)",
+                "NewRuntimeError",
+                "chat.SendMessage(?)",
+                "c.logger.Error(?)",
+                "NewRuntimeError",
+                "c.logger.Error(?)",
+                "NewRuntimeError",
+                "responseTextBuilder.WriteString(?)",
+                "string",
+                "github.com/google/uuid.NewString",
+                "c.logger.Warnf(?)",
+                "responseTextBuilder.String(?)",
+                "resp.PromptFeedback.BlockReason.String(?)",
+                "resp.Candidates[0].FinishReason.String(?)",
+                "c.logger.Warn(?)",
+                "NewRuntimeError",
+                "int64",
+                "int64",
+                "int64",
+                "c.logger.Debugf(?)",
+                "c.logger.Warnf(?)"
               ]
             },
             {
@@ -3100,7 +3262,15 @@
               "calls": [
                 "c.logger.Debug(?)",
                 "c.logger.Warn(?)",
-                "c.logger.Warn(?)"
+                "c.genaiClient.EmbeddingModel(?)",
+                "c.logger.Error(?)",
+                "NewRuntimeError",
+                "em.EmbedContent(?)",
+                "github.com/google/generative-ai-go/genai.Text",
+                "c.logger.Error(?)",
+                "NewRuntimeError",
+                "c.logger.Warn(?)",
+                "NewRuntimeError"
               ]
             },
             {
@@ -3108,28 +3278,28 @@
               "Name": "Client"
             },
             {
-              "Receiver": "*coreNoOpLLMClient",
+              "Receiver": "*coreInternalNoOpLLMClient",
               "Name": "Ask",
               "calls": [
                 "c.logger.Debug(?)"
               ]
             },
             {
-              "Receiver": "*coreNoOpLLMClient",
+              "Receiver": "*coreInternalNoOpLLMClient",
               "Name": "AskWithTools",
               "calls": [
                 "c.logger.Debug(?)"
               ]
             },
             {
-              "Receiver": "*coreNoOpLLMClient",
+              "Receiver": "*coreInternalNoOpLLMClient",
               "Name": "Embed",
               "calls": [
                 "c.logger.Debug(?)"
               ]
             },
             {
-              "Receiver": "*coreNoOpLLMClient",
+              "Receiver": "*coreInternalNoOpLLMClient",
               "Name": "Client"
             }
           ]
@@ -3230,6 +3400,7 @@
                 "sl.logger.Error(?)",
                 "sl.logger.Debug(?)",
                 "sl.logger.Warn(?)",
+                "sl.logger.Debug(?)",
                 "sl.logger.Info(?)"
               ]
             },
@@ -3237,21 +3408,24 @@
               "Receiver": "*SecurityLayer",
               "Name": "ExecuteToolCall",
               "calls": [
+                "sl.logger.Debug(?)",
                 "sl.logger.Error(?)",
                 "CreateErrorFunctionResultPart",
                 "sl.ValidateToolCall(?)",
                 "sl.logger.Warn(?)",
                 "CreateErrorFunctionResultPart",
+                "sl.logger.Debug(?)",
                 "sl.toolRegistry.GetTool(?)",
                 "sl.logger.Error(?)",
                 "CreateErrorFunctionResultPart",
+                "sl.logger.Error(?)",
                 "sl.logger.Error(?)",
                 "CreateErrorFunctionResultPart",
                 "sl.logger.Debug(?)",
                 "toolImpl.Func(?)",
                 "sl.logger.Error(?)",
                 "CreateErrorFunctionResultPart",
-                "sl.logger.Debug(?)",
+                "sl.logger.Info(?)",
                 "CreateSuccessFunctionResultPart"
               ]
             },
@@ -3376,14 +3550,84 @@
           ],
           "methods": []
         },
+        "pkg/core/tooldefs_ai.go": {
+          "methods": []
+        },
+        "pkg/core/tooldefs_fs.go": {
+          "methods": []
+        },
+        "pkg/core/tooldefs_git.go": {
+          "methods": []
+        },
+        "pkg/core/tooldefs_go.go": {
+          "methods": []
+        },
+        "pkg/core/tooldefs_io.go": {
+          "methods": []
+        },
+        "pkg/core/tooldefs_list.go": {
+          "methods": []
+        },
+        "pkg/core/tooldefs_math.go": {
+          "methods": []
+        },
+        "pkg/core/tooldefs_shell.go": {
+          "methods": []
+        },
+        "pkg/core/tooldefs_string.go": {
+          "methods": []
+        },
+        "pkg/core/tooldefs_tree.go": {
+          "methods": []
+        },
         "pkg/core/tools_file_api.go": {
           "functions": [
-            "toolListAPIFiles",
-            "toolDeleteAPIFile",
-            "toolUploadFile",
-            "registerFileAPITools"
+            "NewFileAPI"
           ],
-          "methods": []
+          "methods": [
+            {
+              "Receiver": "*FileAPI",
+              "Name": "ResolvePath",
+              "calls": [
+                "f.logger.Error(?)",
+                "NewRuntimeError",
+                "NewRuntimeError",
+                "f.logger.Debug(?)",
+                "f.logger.Debug(?)",
+                "string",
+                "string",
+                "f.logger.Warn(?)",
+                "NewRuntimeError",
+                "f.logger.Debug(?)"
+              ]
+            },
+            {
+              "Receiver": "*FileAPI",
+              "Name": "ReadFile",
+              "calls": [
+                "f.logger.Debug(?)",
+                "f.ResolvePath(?)",
+                "f.logger.Error(?)",
+                "f.logger.Error(?)",
+                "NewRuntimeError",
+                "info.IsDir(?)",
+                "f.logger.Error(?)",
+                "NewRuntimeError",
+                "f.logger.Error(?)",
+                "NewRuntimeError",
+                "f.logger.Debug(?)"
+              ]
+            },
+            {
+              "Receiver": "*FileAPI",
+              "Name": "Stat",
+              "calls": [
+                "f.ResolvePath(?)",
+                "f.logger.Error(?)",
+                "NewRuntimeError"
+              ]
+            }
+          ]
         },
         "pkg/core/tools_file_api_sync.go": {
           "functions": [
@@ -3411,17 +3655,9 @@
           ],
           "methods": []
         },
-        "pkg/core/tools_fs.go": {
-          "functions": [
-            "registerFsTools",
-            "registerFsFileTools"
-          ],
-          "methods": []
-        },
         "pkg/core/tools_fs_delete.go": {
           "functions": [
-            "toolDeleteFile",
-            "registerFsDeleteTools"
+            "toolDeleteFile"
           ],
           "methods": []
         },
@@ -3433,7 +3669,6 @@
         },
         "pkg/core/tools_fs_dirs.go": {
           "functions": [
-            "registerFsDirTools",
             "toolListDirectory",
             "toolMkdir"
           ],
@@ -3450,8 +3685,7 @@
         },
         "pkg/core/tools_fs_hash.go": {
           "functions": [
-            "toolFileHash",
-            "registerFsHashTools"
+            "toolFileHash"
           ],
           "methods": []
         },
@@ -3463,8 +3697,7 @@
         },
         "pkg/core/tools_fs_move.go": {
           "functions": [
-            "toolMoveFile",
-            "registerFsMoveTools"
+            "toolMoveFile"
           ],
           "methods": []
         },
@@ -3506,8 +3739,7 @@
         "pkg/core/tools_fs_utils.go": {
           "functions": [
             "toolLineCountFile",
-            "toolSanitizeFilename",
-            "registerFsUtilTools"
+            "toolSanitizeFilename"
           ],
           "methods": []
         },
@@ -3551,13 +3783,6 @@
             "toolGitPull",
             "toolGitPush",
             "toolGitDiff"
-          ],
-          "methods": []
-        },
-        "pkg/core/tools_git_register.go": {
-          "functions": [
-            "RegisterGitTools",
-            "formatExecOutput"
           ],
           "methods": []
         },
@@ -3694,10 +3919,8 @@
         },
         "pkg/core/tools_io.go": {
           "functions": [
-            "toolIOInput",
-            "toolLog",
-            "registerLogTools",
-            "registerIOTools"
+            "toolInput",
+            "toolPrint"
           ],
           "methods": []
         },
@@ -3724,12 +3947,6 @@
           ],
           "methods": []
         },
-        "pkg/core/tools_list_register.go": {
-          "functions": [
-            "registerListTools"
-          ],
-          "methods": []
-        },
         "pkg/core/tools_list_test.go": {
           "functions": [
             "testListToolHelper",
@@ -3749,7 +3966,6 @@
         },
         "pkg/core/tools_math.go": {
           "functions": [
-            "registerMathTools",
             "toolAdd",
             "toolSubtract",
             "toolMultiply",
@@ -3769,7 +3985,6 @@
         },
         "pkg/core/tools_metadata.go": {
           "functions": [
-            "registerMetadataTools",
             "toolExtractMetadataFromString"
           ],
           "methods": []
@@ -3788,16 +4003,20 @@
           ],
           "methods": [
             {
-              "Receiver": "*ToolRegistry",
+              "Receiver": "*toolRegistryImpl",
               "Name": "RegisterTool",
               "calls": [
                 "r.mu.Lock(?)",
                 "r.mu.Unlock(?)",
-                "r.interpreter.logger.Debug(?)"
+                "r.interpreter.logger.Error(?)",
+                "err.Error(?)",
+                "r.interpreter.logger.Error(?)",
+                "err.Error(?)",
+                "r.interpreter.logger.Warn(?)"
               ]
             },
             {
-              "Receiver": "*ToolRegistry",
+              "Receiver": "*toolRegistryImpl",
               "Name": "GetTool",
               "calls": [
                 "r.mu.RLock(?)",
@@ -3805,7 +4024,7 @@
               ]
             },
             {
-              "Receiver": "*ToolRegistry",
+              "Receiver": "*toolRegistryImpl",
               "Name": "ListTools",
               "calls": [
                 "r.mu.RLock(?)",
@@ -3816,8 +4035,8 @@
         },
         "pkg/core/tools_shell.go": {
           "functions": [
-            "registerShellTools",
-            "toolExecuteCommand"
+            "toolExecuteCommand",
+            "IsValidCommandPath"
           ],
           "methods": []
         },
@@ -3829,19 +4048,19 @@
         },
         "pkg/core/tools_string.go": {
           "functions": [
-            "registerStringTools",
             "toolStringLength",
-            "toolSubstring",
-            "toolToUpper",
-            "toolToLower",
-            "toolTrimSpace",
-            "toolSplitString",
+            "toolStringSubstring",
+            "toolStringConcat",
+            "toolStringSplit",
             "toolSplitWords",
-            "toolJoinStrings",
-            "toolReplaceAll",
-            "toolContains",
-            "toolHasPrefix",
-            "toolHasSuffix",
+            "toolStringJoin",
+            "toolStringContains",
+            "toolStringHasPrefix",
+            "toolStringHasSuffix",
+            "toolStringToUpper",
+            "toolStringToLower",
+            "toolStringTrimSpace",
+            "toolStringReplace",
             "toolLineCountString"
           ],
           "methods": []
@@ -3880,7 +4099,9 @@
         },
         "pkg/core/tools_tree_find.go": {
           "functions": [
-            "toolTreeFindNodes"
+            "toolTreeFindNodes",
+            "nodeMatchesQuery",
+            "ConvertToFloat64"
           ],
           "methods": []
         },
@@ -3893,8 +4114,7 @@
         "pkg/core/tools_tree_metadata.go": {
           "functions": [
             "toolTreeSetNodeMetadata",
-            "toolTreeRemoveNodeMetadata",
-            "registerTreeMetadataTools"
+            "toolTreeRemoveNodeMetadata"
           ],
           "methods": []
         },
@@ -3908,21 +4128,6 @@
           ],
           "methods": []
         },
-        "pkg/core/tools_tree_modify_test.go": {
-          "functions": [
-            "setupTreeTestStd",
-            "Pint",
-            "getNodeValueStd",
-            "getNodeAttributesStd",
-            "getNodeChildrenStd",
-            "TestTreeModifyNodeStd",
-            "TestTreeSetAttributeStd",
-            "TestTreeRemoveAttributeStd",
-            "TestTreeAddNodeStd",
-            "TestTreeRemoveNodeStd"
-          ],
-          "methods": []
-        },
         "pkg/core/tools_tree_nav.go": {
           "functions": [
             "toolTreeGetNode",
@@ -3931,37 +4136,25 @@
           ],
           "methods": []
         },
-        "pkg/core/tools_tree_register.go": {
-          "functions": [
-            "registerTreeTools"
-          ],
-          "methods": []
-        },
         "pkg/core/tools_tree_render.go": {
           "functions": [
             "toolTreeFormatJSON",
-            "toolTreeRenderText",
-            "registerTreeRenderTools"
-          ],
-          "methods": []
-        },
-        "pkg/core/tools_tree_render_test.go": {
-          "functions": [
-            "TestTreeFormatJSON",
-            "TestTreeRenderText"
+            "toolTreeRenderText"
           ],
           "methods": []
         },
         "pkg/core/tools_tree_test.go": {
           "functions": [
-            "loadJSONHelper",
-            "getNodeHelper",
-            "getNodeAttributes",
-            "getNodeChildren",
-            "getAttrNodeID",
-            "getChildNodeID",
-            "TestTreeLoadJSON",
-            "TestTreeNavigation"
+            "testTreeToolHelper",
+            "setupTreeWithJSON",
+            "callGetNode",
+            "callSetMetadata",
+            "callGetChildren",
+            "TestTreeLoadJSONAndToJSON",
+            "TestTreeNavigationTools",
+            "TestTreeModificationTools",
+            "TestTreeMetadataTools",
+            "TestTreeFindAndRenderTools"
           ],
           "methods": []
         },
@@ -3982,7 +4175,6 @@
         },
         "pkg/core/tools_vector.go": {
           "functions": [
-            "registerVectorTools",
             "toolSearchSkills",
             "toolVectorUpdate"
           ],
@@ -4107,6 +4299,13 @@
               "Name": "SetLevel"
             }
           ]
+        },
+        "pkg/core/zz_core_tools_registrar.go": {
+          "functions": [
+            "init",
+            "registerCoreToolBundle"
+          ],
+          "methods": []
         }
       }
     },
@@ -11632,76 +11831,55 @@
         },
         "pkg/neurogo/app.go": {
           "functions": [
-            "NewApp",
-            "findProjectRoot"
+            "NewApp"
           ],
           "methods": [
             {
               "Receiver": "*App",
-              "Name": "Run",
+              "Name": "SetInterpreter",
               "calls": [
-                "app.Log.Error(?)",
-                "app.Log.Info(?)",
-                "app.Log.Debug(?)",
-                "app.loadSchema(?)",
-                "app.Log.Warn(?)",
-                "app.Log.Info(?)",
-                "app.Log.Info(?)",
-                "app.Log.Info(?)",
-                "app.createLLMClient(?)",
-                "app.Log.Error(?)",
-                "app.Log.Info(?)",
-                "pkg/core.NewInterpreter",
-                "app.interpreter.SetSandboxDir(?)",
-                "app.Log.Info(?)",
-                "app.Log.Warn(?)",
-                "app.Log.Info(?)",
-                "app.Log.Info(?)",
-                "pkg/toolsets.RegisterExtendedTools",
-                "app.GetInterpreter().ToolRegistry(?)",
-                "app.GetInterpreter(?)",
-                "app.Log.Error(?)",
-                "app.Log.Info(?)",
-                "app.interpreter.FileAPI(?)",
-                "app.Log.Warn(?)",
-                "app.Log.Warn(?)",
-                "app.Log.Info(?)",
-                "app.Log.Debug(?)",
-                "app.Log.Info(?)",
-                "app.runScriptMode(?)",
-                "app.Log.Info(?)",
-                "app.runTuiMode(?)",
-                "app.Log.Info(?)",
-                "app.runSyncMode(?)",
-                "app.Log.Info(?)",
-                "app.runAgentMode(?)"
+                "app.mu.Lock(?)",
+                "app.mu.Unlock(?)"
+              ]
+            },
+            {
+              "Receiver": "*App",
+              "Name": "SetAIWorkerManager",
+              "calls": [
+                "app.mu.Lock(?)",
+                "app.mu.Unlock(?)",
+                "app.interpreter.SetAIWorkerManager(?)",
+                "app.Log.Warn(?)"
               ]
             },
             {
               "Receiver": "*App",
               "Name": "GetInterpreter",
               "calls": [
+                "app.mu.RLock(?)",
+                "app.mu.RUnlock(?)",
                 "app.Log.Error(?)"
               ]
             },
             {
               "Receiver": "*App",
-              "Name": "loadSchema",
+              "Name": "GetAIWorkerManager",
               "calls": [
-                "app.Log.Info(?)",
+                "app.mu.RLock(?)",
+                "app.mu.RUnlock(?)",
                 "app.Log.Warn(?)"
               ]
             },
             {
               "Receiver": "*App",
-              "Name": "createLLMClient",
+              "Name": "CreateLLMClient",
               "calls": [
                 "app.Log.Info(?)",
-                "pkg/core.NewNoOpLLMClient",
-                "app.Log.Info(?)",
-                "app.Log.Error(?)",
+                "pkg/adapters.NewNoOpLLMClient",
                 "app.Log.Info(?)",
                 "app.Log.Debug(?)",
+                "app.Log.Info(?)",
+                "pkg/adapters.NewNoOpLogger",
                 "pkg/core.NewLLMClient",
                 "app.Log.Error(?)",
                 "app.Log.Info(?)"
@@ -11709,33 +11887,141 @@
             },
             {
               "Receiver": "*App",
-              "Name": "GetModelName"
+              "Name": "processNeuroScriptFile",
+              "calls": [
+                "a.Log.Debug(?)",
+                "a.Log.Error(?)",
+                "string",
+                "pkg/core.NewParserAPI",
+                "parser.Parse(?)",
+                "a.Log.Error(?)",
+                "a.Log.Error(?)",
+                "a.Log.Debug(?)",
+                "pkg/core.NewASTBuilder",
+                "astBuilder.Build(?)",
+                "a.Log.Error(?)",
+                "a.Log.Error(?)",
+                "a.Log.Debug(?)",
+                "a.Log.Warn(?)",
+                "interp.AddProcedure(?)",
+                "a.Log.Error(?)",
+                "a.Log.Debug(?)",
+                "a.Log.Debug(?)"
+              ]
             },
             {
               "Receiver": "*App",
-              "Name": "GetSyncDir"
+              "Name": "loadLibraries",
+              "calls": [
+                "a.Log.Debug(?)",
+                "a.Log.Warn(?)",
+                "a.Log.Info(?)",
+                "a.Log.Warn(?)",
+                "info.IsDir(?)",
+                "a.Log.Warn(?)",
+                "d.IsDir(?)",
+                "d.Name(?)",
+                "a.Log.Debug(?)",
+                "a.processNeuroScriptFile(?)",
+                "a.Log.Error(?)",
+                "a.Log.Error(?)",
+                "info.Name(?)",
+                "a.Log.Debug(?)",
+                "a.processNeuroScriptFile(?)",
+                "a.Log.Error(?)",
+                "a.Log.Warn(?)",
+                "a.Log.Debug(?)"
+              ]
             },
             {
               "Receiver": "*App",
-              "Name": "GetSandboxDir"
+              "Name": "ExecuteScriptFile",
+              "calls": [
+                "app.Log.Info(?)",
+                "app.GetInterpreter(?)",
+                "app.Log.Error(?)",
+                "app.loadLibraries(?)",
+                "app.Log.Error(?)",
+                "app.processNeuroScriptFile(?)",
+                "app.Log.Warn(?)",
+                "app.Log.Info(?)",
+                "app.Log.Info(?)",
+                "app.Log.Info(?)",
+                "app.Log.Info(?)",
+                "app.Log.Warn(?)",
+                "interpreter.RunProcedure(?)",
+                "interpreter.RunProcedure(?)",
+                "execEndTime.Sub(?)",
+                "app.Log.Info(?)",
+                "app.Log.Error(?)",
+                "app.Log.Info(?)",
+                "app.Log.Debug(?)",
+                "app.Log.Debug(?)",
+                "app.Log.Info(?)"
+              ]
             },
             {
               "Receiver": "*App",
-              "Name": "GetSyncFilter"
+              "Name": "Run",
+              "calls": [
+                "app.Log.Error(?)"
+              ]
             },
             {
               "Receiver": "*App",
-              "Name": "GetSyncIgnoreGitignore"
+              "Name": "GetModelName",
+              "calls": [
+                "a.mu.RLock(?)",
+                "a.mu.RUnlock(?)"
+              ]
             },
             {
               "Receiver": "*App",
-              "Name": "GetLogger"
+              "Name": "GetSyncDir",
+              "calls": [
+                "a.mu.RLock(?)",
+                "a.mu.RUnlock(?)"
+              ]
+            },
+            {
+              "Receiver": "*App",
+              "Name": "GetSandboxDir",
+              "calls": [
+                "a.mu.RLock(?)",
+                "a.mu.RUnlock(?)"
+              ]
+            },
+            {
+              "Receiver": "*App",
+              "Name": "GetSyncFilter",
+              "calls": [
+                "a.mu.RLock(?)",
+                "a.mu.RUnlock(?)"
+              ]
+            },
+            {
+              "Receiver": "*App",
+              "Name": "GetSyncIgnoreGitignore",
+              "calls": [
+                "a.mu.RLock(?)",
+                "a.mu.RUnlock(?)"
+              ]
+            },
+            {
+              "Receiver": "*App",
+              "Name": "GetLogger",
+              "calls": [
+                "pkg/adapters.NewNoOpLogger"
+              ]
             },
             {
               "Receiver": "*App",
               "Name": "GetLLMClient",
               "calls": [
-                "a.Log.Warn(?)"
+                "a.mu.RLock(?)",
+                "a.mu.RUnlock(?)",
+                "a.GetLogger(?)",
+                "logger.Warn(?)"
               ]
             }
           ]
@@ -11829,139 +12115,13 @@
           "functions": [
             "min"
           ],
-          "methods": [
-            {
-              "Receiver": "*App",
-              "Name": "runCleanAPIMode",
-              "calls": [
-                "a.Log.Info(?)",
-                "reader.ReadString(?)",
-                "a.Log.Info(?)",
-                "a.Log.Warn(?)",
-                "a.GetLLMClient(?)",
-                "llmClient.Client(?)",
-                "a.GetLogger(?)",
-                "logger.Info(?)",
-                "logger.Error(?)",
-                "logger.Info(?)",
-                "logger.Info(?)",
-                "deleteWg.Add(?)",
-                "func(workerID int) {\n\tdefer deleteWg.Done()\n\tlogger.Debug(\"API Delete Worker started.\", \"worker_id\", workerID)\n\tfor fileToDelete := range deleteJobsChan {\n\t\tif fileToDelete == nil || fileToDelete.Name == \"\" {\n\t\t\tlogger.Debug(\"API Delete Worker received nil/empty file, skipping.\", \"worker_id\", workerID)\n\t\t\tcontinue\n\t\t}\n\t\tlogger.Debug(\"API Delete Worker deleting file.\", \"worker_id\", workerID, \"file_name\", fileToDelete.Name, \"display_name\", fileToDelete.DisplayName)\n\t\tdelCtx, cancelDel := context.WithTimeout(ctx, 30*time.Second)\n\n\t\tdeleteErr := genaiClient.DeleteFile(delCtx, fileToDelete.Name)\n\t\tcancelDel()\n\t\tif deleteErr != nil {\n\t\t\tdetailedErr := fmt.Errorf(\"worker %d failed delete %s (%s): %w\", workerID, fileToDelete.Name, fileToDelete.DisplayName, deleteErr)\n\t\t\tlogger.Error(\"API file deletion failed.\", \"worker_id\", workerID, \"file_name\", fileToDelete.Name, \"error\", detailedErr)\n\t\t\terrorChan \u003c- detailedErr\n\t\t} else {\n\t\t\tlogger.Debug(\"API Delete Worker deleted file.\", \"worker_id\", workerID, \"file_name\", fileToDelete.Name)\n\t\t}\n\t}\n\tlogger.Debug(\"API Delete Worker exiting.\", \"worker_id\", workerID)\n}(?)",
-                "deleteWg.Done(?)",
-                "logger.Debug(?)",
-                "logger.Debug(?)",
-                "logger.Debug(?)",
-                "genaiClient.DeleteFile(?)",
-                "cancelDel",
-                "logger.Error(?)",
-                "logger.Debug(?)",
-                "logger.Debug(?)",
-                "logger.Debug(?)",
-                "logger.Debug(?)",
-                "logger.Debug(?)",
-                "deleteWg.Wait(?)",
-                "logger.Debug(?)",
-                "logger.Error(?)",
-                "logger.Error(?)",
-                "logger.Info(?)",
-                "logger.Info(?)"
-              ]
-            }
-          ]
+          "methods": []
         },
         "pkg/neurogo/app_interface.go": {
           "methods": []
         },
         "pkg/neurogo/app_script.go": {
-          "methods": [
-            {
-              "Receiver": "*App",
-              "Name": "runScriptMode",
-              "calls": [
-                "a.Log.Info(?)",
-                "a.Log.Info(?)",
-                "a.Log.Error(?)",
-                "a.Log.Debug(?)",
-                "a.loadLibraries(?)",
-                "a.Log.Error(?)",
-                "a.Log.Info(?)",
-                "a.determineProcedureToRun(?)",
-                "a.Log.Error(?)",
-                "a.Log.Info(?)",
-                "a.Log.Info(?)",
-                "a.Log.Warn(?)",
-                "interpreter.RunProcedure(?)",
-                "interpreter.RunProcedure(?)",
-                "execEndTime.Sub(?)",
-                "a.Log.Info(?)",
-                "a.Log.Error(?)",
-                "a.Log.Info(?)",
-                "a.Log.Debug(?)",
-                "a.Log.Debug(?)",
-                "a.Log.Info(?)"
-              ]
-            },
-            {
-              "Receiver": "*App",
-              "Name": "loadLibraries",
-              "calls": [
-                "a.Log.Debug(?)",
-                "a.Log.Warn(?)",
-                "a.Log.Info(?)",
-                "a.Log.Warn(?)",
-                "info.IsDir(?)",
-                "a.Log.Warn(?)",
-                "d.IsDir(?)",
-                "d.Name(?)",
-                "a.Log.Debug(?)",
-                "a.processNeuroScriptFile(?)",
-                "a.Log.Error(?)",
-                "a.Log.Error(?)",
-                "info.Name(?)",
-                "a.Log.Debug(?)",
-                "a.processNeuroScriptFile(?)",
-                "a.Log.Error(?)",
-                "a.Log.Warn(?)",
-                "a.Log.Debug(?)"
-              ]
-            },
-            {
-              "Receiver": "*App",
-              "Name": "determineProcedureToRun",
-              "calls": [
-                "a.Log.Info(?)",
-                "a.processNeuroScriptFile(?)",
-                "a.Log.Warn(?)",
-                "a.Log.Info(?)",
-                "a.Log.Info(?)",
-                "a.Log.Info(?)"
-              ]
-            },
-            {
-              "Receiver": "*App",
-              "Name": "processNeuroScriptFile",
-              "calls": [
-                "a.Log.Debug(?)",
-                "a.Log.Error(?)",
-                "string",
-                "pkg/core.NewParserAPI",
-                "parser.Parse(?)",
-                "a.Log.Error(?)",
-                "a.Log.Error(?)",
-                "a.Log.Debug(?)",
-                "pkg/core.NewASTBuilder",
-                "astBuilder.Build(?)",
-                "a.Log.Error(?)",
-                "a.Log.Error(?)",
-                "a.Log.Debug(?)",
-                "a.Log.Warn(?)",
-                "interp.AddProcedure(?)",
-                "a.Log.Error(?)",
-                "a.Log.Debug(?)",
-                "a.Log.Debug(?)"
-              ]
-            }
-          ]
+          "methods": []
         },
         "pkg/neurogo/app_script_break_continue_test.go": {
           "functions": [
@@ -12036,21 +12196,25 @@
               "Receiver": "*App",
               "Name": "runTuiMode",
               "calls": [
-                "a.Log.Info(?)",
+                "a.GetLogger(?)",
+                "logger.Info(?)",
                 "a.GetLLMClient(?)",
-                "a.Log.Warn(?)",
+                "logger.Warn(?)",
+                "logger.Error(?)",
                 "llmClient.Client(?)",
-                "a.Log.Warn(?)",
+                "logger.Warn(?)",
+                "logger.Info(?)",
                 "pkg/neurogo/tui.Start",
-                "a.Log.Error(?)",
-                "a.Log.Info(?)"
+                "logger.Error(?)",
+                "logger.Info(?)"
               ]
             }
           ]
         },
         "pkg/neurogo/config.go": {
           "functions": [
-            "NewConfig"
+            "NewConfig",
+            "NewStringSliceFlag"
           ],
           "methods": [
             {
@@ -12060,12 +12224,11 @@
             {
               "Receiver": "*stringSliceFlag",
               "Name": "Set"
-            },
-            {
-              "Receiver": "*Config",
-              "Name": "ParseFlags"
             }
           ]
+        },
+        "pkg/neurogo/constants.go": {
+          "methods": []
         },
         "pkg/neurogo/handle_turn.go": {
           "methods": [
@@ -12091,10 +12254,10 @@
                 "logger.Error(?)",
                 "logger.Info(?)",
                 "snippet",
-                "logger.Info(?)",
-                "logger.Info(?)",
-                "logger.Info(?)",
                 "logger.Warn(?)",
+                "logger.Info(?)",
+                "logger.Info(?)",
+                "logger.Info(?)",
                 "logger.Warn(?)",
                 "logger.Debug(?)",
                 "snippet",
@@ -12106,16 +12269,14 @@
                 "logger.Info(?)",
                 "convoManager.AddFunctionResultMessage(?)",
                 "logger.Error(?)",
+                "logger.Warn(?)",
                 "logger.Debug(?)",
                 "accumulatedText.Reset(?)",
                 "accumulatedText.String(?)",
                 "logger.Info(?)",
                 "logger.Debug(?)",
                 "snippet",
-                "logger.Info(?)",
                 "a.patchHandler.ApplyPatch(?)",
-                "logger.Error(?)",
-                "logger.Info(?)",
                 "logger.Warn(?)",
                 "logger.Info(?)",
                 "logger.Error(?)"

@@ -1,123 +1,86 @@
+// NeuroScript Version: 0.3.1
+// File version: 0.0.4 // Corrected NewRuntimeError calls with standard ErrorCodes/Sentinels.
+// nlines: 77
+// risk_rating: LOW
 // filename: pkg/core/tools_fs_utils.go
 package core
 
 import (
+	"errors" // Required for errors.Is
 	"fmt"
 	"os"
 	"strings"
-	// No extra import needed for ArgTypeSliceAny as it's defined in tools_types.go
 )
 
-// --- Tool Implementations ---
+// --- Tool Implementations (Functions only) ---
 
 // toolLineCountFile counts lines in a specified file.
 func toolLineCountFile(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	// ... (implementation remains unchanged) ...
-	filePath := args[0].(string)
-	sandboxRoot := interpreter.sandboxDir
-	if sandboxRoot == "" {
-		if interpreter.logger != nil {
-			interpreter.logger.Warn("TOOL LineCountFile] Interpreter sandboxDir is empty, using default relative path validation.")
-		}
-		sandboxRoot = "."
+	if len(args) != 1 {
+		return int64(-1), NewRuntimeError(ErrorCodeArgMismatch, "LineCountFile: expected 1 argument (filepath)", ErrArgumentMismatch)
 	}
+	filePath, ok := args[0].(string)
+	if !ok {
+		// Using ErrorCodeType for wrong type, but wrapping ErrInvalidArgument as the specific type mismatch is an invalid argument for this tool.
+		return int64(-1), NewRuntimeError(ErrorCodeType, fmt.Sprintf("LineCountFile: filepath argument must be a string, got %T", args[0]), ErrInvalidArgument)
+	}
+	if filePath == "" {
+		// Empty path is treated as an invalid argument value.
+		return int64(-1), NewRuntimeError(ErrorCodeArgMismatch, "LineCountFile: filepath cannot be empty", ErrInvalidArgument)
+	}
+
+	sandboxRoot := interpreter.SandboxDir()
 	absPath, secErr := SecureFilePath(filePath, sandboxRoot)
 	if secErr != nil {
-		if interpreter.logger != nil {
-			interpreter.logger.Warn("TOOL LineCountFile] Path validation failed for '%s': %v. (Sandbox Root: %s)", filePath, secErr, sandboxRoot)
-		}
-		// Return consistent type on error path if possible, or handle differently
-		return int64(-1), fmt.Errorf("LineCountFile path error: %w", secErr) // Return error for consistency?
+		interpreter.Logger().Warn("TOOL LineCountFile] Path validation failed", "path", filePath, "error", secErr, "sandbox_root", sandboxRoot)
+		// SecureFilePath returns a RuntimeError already, directly return it.
+		// Ensure SecureFilePath wraps appropriate sentinels like ErrPathViolation.
+		return int64(-1), secErr
 	}
-	if interpreter.logger != nil {
-		interpreter.logger.Info("Tool: LineCountFile] Attempting to read validated path: %s (Original: %s, Sandbox: %s)", absPath, filePath, sandboxRoot)
-	}
+
+	interpreter.Logger().Debug("Tool: LineCountFile] Attempting to read validated path", "absolute_path", absPath, "original_path", filePath, "sandbox", sandboxRoot)
 	contentBytes, readErr := os.ReadFile(absPath)
 	if readErr != nil {
-		if interpreter.logger != nil {
-			interpreter.logger.Warn("TOOL LineCountFile] Read error for path '%s': %v.", filePath, readErr)
+		interpreter.Logger().Warn("TOOL LineCountFile] Read error", "path", filePath, "error", readErr)
+		if errors.Is(readErr, os.ErrNotExist) {
+			// Use the specific ErrorCodeFileNotFound and ErrFileNotFound sentinel
+			return int64(-1), NewRuntimeError(ErrorCodeFileNotFound, fmt.Sprintf("LineCountFile: file not found '%s'", filePath), ErrFileNotFound)
 		}
-		return int64(-1), fmt.Errorf("LineCountFile read error: %w", readErr) // Return error for consistency?
+		if errors.Is(readErr, os.ErrPermission) {
+			// Use the specific ErrorCodePermissionDenied and ErrPermissionDenied sentinel
+			return int64(-1), NewRuntimeError(ErrorCodePermissionDenied, fmt.Sprintf("LineCountFile: permission denied for '%s'", filePath), ErrPermissionDenied)
+		}
+		// For other I/O errors, use ErrorCodeIOFailed and wrap the specific error
+		return int64(-1), NewRuntimeError(ErrorCodeIOFailed, fmt.Sprintf("LineCountFile: error reading file '%s'", filePath), errors.Join(ErrIOFailed, readErr))
 	}
+
 	content := string(contentBytes)
 	if len(content) == 0 {
-		if interpreter.logger != nil {
-			interpreter.logger.Info("Tool: LineCountFile] Counted 0 lines (empty file '%s').", filePath)
-		}
+		interpreter.Logger().Info("Tool: LineCountFile] Counted 0 lines (empty file)", "file_path", filePath)
 		return int64(0), nil
 	}
+
 	lineCount := int64(strings.Count(content, "\n"))
-	// Handle files that don't end with a newline
-	if len(content) > 0 && !strings.HasSuffix(content, "\n") {
+	if !strings.HasSuffix(content, "\n") {
 		lineCount++
 	}
-	// Handle edge case of single newline file (strings.Count returns 1, which is correct)
-	// if content == "\n" { // This check might be redundant now
-	// 	lineCount = 1
-	// }
-	if interpreter.logger != nil {
-		interpreter.logger.Info("Tool: LineCountFile] Counted %d lines in file '%s'.", lineCount, filePath)
-	}
+
+	interpreter.Logger().Info("Tool: LineCountFile] Counted lines", "count", lineCount, "file_path", filePath)
 	return lineCount, nil
 }
 
-// toolSanitizeFilename calls the exported helper function.
+// toolSanitizeFilename calls the exported helper function SanitizeFilename (from security.go).
 func toolSanitizeFilename(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	// ... (implementation remains unchanged) ...
-	name := args[0].(string)
+	if len(args) != 1 {
+		return "", NewRuntimeError(ErrorCodeArgMismatch, "SanitizeFilename: expected 1 argument (name)", ErrArgumentMismatch)
+	}
+	name, ok := args[0].(string)
+	if !ok {
+		return "", NewRuntimeError(ErrorCodeType, fmt.Sprintf("SanitizeFilename: name argument must be a string, got %T", args[0]), ErrInvalidArgument)
+	}
+
+	// SanitizeFilename itself doesn't currently return an error. If it did, we'd handle it here.
 	sanitized := SanitizeFilename(name)
-	if interpreter.logger != nil {
-		interpreter.logger.Info("Tool: SanitizeFilename] Input: %q -> Output: %q", name, sanitized)
-	}
+	interpreter.Logger().Info("Tool: SanitizeFilename", "input", name, "output", sanitized)
 	return sanitized, nil
-}
-
-// --- Tool Specifications ---
-
-var lineCountFileSpec = ToolSpec{
-	Name:        "LineCountFile",
-	Description: "Counts lines in a specified file within the sandbox. Returns line count or error.", // Updated description slightly
-	Args: []ArgSpec{
-		{Name: "filepath", Type: ArgTypeString, Required: true, Description: "Relative path to the file."},
-	},
-	ReturnType: ArgTypeInt,
-}
-
-var sanitizeFilenameSpec = ToolSpec{
-	Name:        "SanitizeFilename",
-	Description: "Cleans a string to make it suitable for use as part of a filename.",
-	Args: []ArgSpec{
-		{Name: "name", Type: ArgTypeString, Required: true, Description: "The string to sanitize."},
-	},
-	ReturnType: ArgTypeString,
-}
-
-var walkDirSpec = ToolSpec{
-	// *** CORRECTED Name to use Base Name ***
-	Name:        "WalkDir",
-	Description: "Recursively walks a directory, returning a list of maps describing files/subdirectories found.",
-	Args: []ArgSpec{
-		{Name: "path", Type: ArgTypeString, Required: true, Description: "Relative path to the directory to walk."},
-	},
-	ReturnType: ArgTypeSliceAny, // Expects a list of maps (represented as []interface{} internally)
-}
-
-// --- Tool Implementations Slice (for potential registration) ---
-
-// Assumes toolWalkDir implementation exists in tools_fs_walk.go
-var fsUtilTools = []ToolImplementation{
-	{Spec: lineCountFileSpec, Func: toolLineCountFile},
-	{Spec: sanitizeFilenameSpec, Func: toolSanitizeFilename},
-	{Spec: walkDirSpec, Func: toolWalkDir}, // Uses the corrected walkDirSpec
-}
-
-// registerFsUtilTools registers the utility filesystem tools.
-func registerFsUtilTools(registry *ToolRegistry) error {
-	for _, tool := range fsUtilTools {
-		if err := registry.RegisterTool(tool); err != nil {
-			// Make error message more specific
-			return fmt.Errorf("registering FS util tool '%s': %w", tool.Spec.Name, err)
-		}
-	}
-	return nil
 }

@@ -1,50 +1,53 @@
-// NeuroScript Version: 0.3.0
-// Last Modified: 2025-05-02 15:15:12 PDT // Fix: Match test output format for TreeRenderText
+// NeuroScript Version: 0.3.1
+// File version: 0.1.0 // Removed local ToolImplementations and registration func, standardized error handling.
+// nlines: 130 // Approximate
+// risk_rating: LOW
 // filename: pkg/core/tools_tree_render.go
 
 package core
 
 import (
 	"encoding/json"
-	"errors"
+	"errors" // Required for errors.Is/Join
 	"fmt"
 	"sort"
 	"strings"
 )
 
-// --- toolTreeFormatJSON Implementation (No change needed here) ---
-
-var toolTreeFormatJSONImpl = ToolImplementation{
-	Spec: ToolSpec{
-		Name:        "TreeFormatJSON",
-		Description: "Serializes the tree structure associated with a handle back into a formatted JSON string.",
-		Args: []ArgSpec{
-			{Name: "tree_handle", Type: ArgTypeString, Required: true, Description: "Handle for the tree structure."},
-		},
-		ReturnType: ArgTypeString,
-	},
-	Func: toolTreeFormatJSON,
-}
-
+// toolTreeFormatJSON serializes the tree structure associated with a handle back into a formatted JSON string.
+// Corresponds to ToolSpec "Tree.ToJSON".
 func toolTreeFormatJSON(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	toolName := "TreeFormatJSON"
-	handleID := args[0].(string)
+	toolName := "Tree.ToJSON" // User-facing tool name
 
-	tree, err := getTreeFromHandle(interpreter, handleID, toolName) // Use helper
+	if len(args) != 1 {
+		return nil, NewRuntimeError(ErrorCodeArgMismatch,
+			fmt.Sprintf("%s: expected 1 argument (tree_handle), got %d", toolName, len(args)),
+			ErrArgumentMismatch,
+		)
+	}
+	handleID, okHandle := args[0].(string)
+	if !okHandle {
+		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("%s: tree_handle argument must be a string, got %T", toolName, args[0]), ErrInvalidArgument)
+	}
+
+	tree, err := getTreeFromHandle(interpreter, handleID, toolName)
 	if err != nil {
-		return nil, err
+		return nil, err // getTreeFromHandle returns RuntimeError
 	}
 
 	rootNode, exists := tree.NodeMap[tree.RootID]
 	if !exists {
-		return nil, fmt.Errorf("%w: %s cannot find root node ID '%s' in tree handle '%s'", ErrInternalTool, toolName, tree.RootID, handleID)
+		return nil, NewRuntimeError(ErrorCodeInternal, // Root node missing in a valid tree is an internal inconsistency
+			fmt.Sprintf("%s: cannot find root node ID '%s' in tree handle '%s'", toolName, tree.RootID, handleID),
+			ErrInternal, // Or a more specific ErrTreeIntegrity sentinel
+		)
 	}
 
 	var buildOutput func(node *GenericTreeNode) (interface{}, error)
 	buildOutput = func(node *GenericTreeNode) (interface{}, error) {
-		// ... (implementation unchanged) ...
 		if node == nil {
-			return nil, fmt.Errorf("%w: attempted to build output from nil node", ErrInternalTool)
+			// This indicates a programming error in the traversal logic.
+			return nil, NewRuntimeError(ErrorCodeInternal, fmt.Sprintf("%s: attempted to build output from nil node", toolName), ErrInternal)
 		}
 		switch node.Type {
 		case "object":
@@ -53,16 +56,19 @@ func toolTreeFormatJSON(interpreter *Interpreter, args []interface{}) (interface
 			for k := range node.Attributes {
 				keys = append(keys, k)
 			}
-			sort.Strings(keys)
+			sort.Strings(keys) // For deterministic output
 			for _, key := range keys {
 				childID := node.Attributes[key]
 				childNode, ok := tree.NodeMap[childID]
 				if !ok {
-					return nil, fmt.Errorf("%w: %s child node ID '%s' (key '%s') not found", ErrInternalTool, toolName, childID, key)
+					return nil, NewRuntimeError(ErrorCodeInternal, // Child ID in attributes but not in NodeMap
+						fmt.Sprintf("%s: child node ID '%s' (key '%s') not found in tree map", toolName, childID, key),
+						ErrInternal, // Or ErrTreeIntegrity
+					)
 				}
 				childValue, buildErr := buildOutput(childNode)
 				if buildErr != nil {
-					return nil, buildErr
+					return nil, buildErr // Propagate RuntimeError
 				}
 				objMap[key] = childValue
 			}
@@ -72,11 +78,14 @@ func toolTreeFormatJSON(interpreter *Interpreter, args []interface{}) (interface
 			for i, childID := range node.ChildIDs {
 				childNode, ok := tree.NodeMap[childID]
 				if !ok {
-					return nil, fmt.Errorf("%w: %s child node ID '%s' (index %d) not found", ErrInternalTool, toolName, childID, i)
+					return nil, NewRuntimeError(ErrorCodeInternal, // Child ID in ChildIDs but not in NodeMap
+						fmt.Sprintf("%s: child node ID '%s' (index %d) not found in tree map", toolName, childID, i),
+						ErrInternal, // Or ErrTreeIntegrity
+					)
 				}
 				childValue, buildErr := buildOutput(childNode)
 				if buildErr != nil {
-					return nil, buildErr
+					return nil, buildErr // Propagate RuntimeError
 				}
 				arrSlice[i] = childValue
 			}
@@ -84,73 +93,79 @@ func toolTreeFormatJSON(interpreter *Interpreter, args []interface{}) (interface
 		case "string", "number", "boolean", "null":
 			return node.Value, nil
 		default:
-			return nil, fmt.Errorf("%w: %s unknown node type '%s'", ErrInternalTool, toolName, node.Type)
+			return nil, NewRuntimeError(ErrorCodeInternal, // Unknown node type implies data corruption or bad node creation
+				fmt.Sprintf("%s: unknown node type '%s' encountered during JSON serialization", toolName, node.Type),
+				ErrInternal, // Or ErrNodeWrongType with a different connotation
+			)
 		}
 	}
 
 	outputData, err := buildOutput(rootNode)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %w", ErrTreeFormatFailed, err)
+		// If err is already RuntimeError, return it, otherwise wrap
+		var rtErr *RuntimeError
+		if errors.As(err, &rtErr) {
+			return nil, rtErr
+		}
+		return nil, NewRuntimeError(ErrorCodeInternal, fmt.Sprintf("%s: failed to build data for JSON serialization: %v", toolName, err), ErrInternal)
 	}
-	jsonBytes, err := json.MarshalIndent(outputData, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("%w: %w", ErrTreeJSONMarshal, err)
+
+	jsonBytes, marshalErr := json.MarshalIndent(outputData, "", "  ") // Default indent from original code
+	if marshalErr != nil {
+		return nil, NewRuntimeError(ErrorCodeInternal, // JSON marshalling is an internal operation failure
+			fmt.Sprintf("%s: failed to marshal tree data to JSON: %v", toolName, marshalErr),
+			errors.Join(ErrTreeJSONMarshal, marshalErr), // Use specific sentinel
+		)
 	}
+	interpreter.Logger().Debug(fmt.Sprintf("%s: Successfully formatted tree to JSON", toolName), "handle", handleID)
 	return string(jsonBytes), nil
 }
 
-// --- toolTreeRenderText Implementation (Updated Formatting) ---
-
-var toolTreeRenderTextImpl = ToolImplementation{
-	Spec: ToolSpec{
-		Name:        "TreeRenderText",
-		Description: "Renders the tree structure associated with a handle as an indented text string, matching test format.",
-		Args: []ArgSpec{
-			{Name: "tree_handle", Type: ArgTypeString, Required: true, Description: "Handle for the tree structure."},
-		},
-		ReturnType: ArgTypeString,
-	},
-	Func: toolTreeRenderText,
-}
-
 // toolTreeRenderText creates an indented text representation of the tree.
+// Corresponds to ToolSpec "Tree.RenderText".
 func toolTreeRenderText(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	toolName := "TreeRenderText"
-	// Assumes validation layer handles arg count and type checking.
-	handleID := args[0].(string)
+	toolName := "Tree.RenderText"
 
-	tree, err := getTreeFromHandle(interpreter, handleID, toolName) // Use helper
+	if len(args) != 1 {
+		return nil, NewRuntimeError(ErrorCodeArgMismatch,
+			fmt.Sprintf("%s: expected 1 argument (tree_handle), got %d", toolName, len(args)),
+			ErrArgumentMismatch,
+		)
+	}
+	handleID, okHandle := args[0].(string)
+	if !okHandle {
+		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("%s: tree_handle argument must be a string, got %T", toolName, args[0]), ErrInvalidArgument)
+	}
+
+	tree, err := getTreeFromHandle(interpreter, handleID, toolName)
 	if err != nil {
-		return nil, err
+		return nil, err // getTreeFromHandle returns RuntimeError
 	}
 
 	rootNode, exists := tree.NodeMap[tree.RootID]
 	if !exists {
-		return nil, fmt.Errorf("%w: %s cannot find root node ID '%s' in tree handle '%s'", ErrInternalTool, toolName, tree.RootID, handleID)
+		return nil, NewRuntimeError(ErrorCodeInternal,
+			fmt.Sprintf("%s: cannot find root node ID '%s' in tree handle '%s'", toolName, tree.RootID, handleID),
+			ErrInternal,
+		)
 	}
 
 	var builder strings.Builder
-
-	// Recursive helper function
 	var renderNodeRec func(node *GenericTreeNode, indentLevel int) error
 	renderNodeRec = func(node *GenericTreeNode, indentLevel int) error {
 		if node == nil {
-			return fmt.Errorf("%w: %s renderNodeRec called with nil node", ErrInternalTool, toolName)
+			return NewRuntimeError(ErrorCodeInternal, fmt.Sprintf("%s: renderNodeRec called with nil node", toolName), ErrInternal)
 		}
 
 		indent := strings.Repeat(defaultIndent, indentLevel)
+		builder.WriteString(fmt.Sprintf("%s- (%s)", indent, node.Type))
 
-		// --- Build the main node line ---
-		builder.WriteString(fmt.Sprintf("%s- (%s)", indent, node.Type)) // Node type
-
-		// Add count for objects/arrays
 		if node.Type == "object" {
 			builder.WriteString(fmt.Sprintf(" (attrs: %d)", len(node.Attributes)))
 		} else if node.Type == "array" {
 			builder.WriteString(fmt.Sprintf(" (len: %d)", len(node.ChildIDs)))
 		}
 
-		// Add value for simple types
 		switch node.Type {
 		case "string":
 			builder.WriteString(fmt.Sprintf(": %q", node.Value))
@@ -159,79 +174,54 @@ func toolTreeRenderText(interpreter *Interpreter, args []interface{}) (interface
 		case "null":
 			builder.WriteString(": null")
 		}
-		builder.WriteString("\n") // End of the main node line
+		builder.WriteString("\n")
 
-		// --- Recurse for complex types ---
 		if node.Type == "object" {
 			keys := make([]string, 0, len(node.Attributes))
 			for k := range node.Attributes {
 				keys = append(keys, k)
 			}
-			sort.Strings(keys) // Sort keys for deterministic test output
-
-			keyIndent := strings.Repeat(defaultIndent, indentLevel+1) // Indent for keys
-
+			sort.Strings(keys)
+			keyIndent := strings.Repeat(defaultIndent, indentLevel+1)
 			for _, key := range keys {
 				childID := node.Attributes[key]
-				childNode, exists := tree.NodeMap[childID]
-
-				// Write the "Key:" line
+				childNode, childExists := tree.NodeMap[childID]
 				builder.WriteString(fmt.Sprintf("%s* Key: %q\n", keyIndent, key))
-
-				if !exists {
-					// Indicate missing node clearly, indented under the key
+				if !childExists {
 					builder.WriteString(fmt.Sprintf("%s<ERROR: missing node '%s'>\n", strings.Repeat(defaultIndent, indentLevel+2), childID))
-					continue
+					continue // Log or handle as critical error? For rendering, showing error might be best.
 				}
-				// Render the child node, further indented under the key
-				if err := renderNodeRec(childNode, indentLevel+2); err != nil {
-					return err // Propagate error
+				if errRender := renderNodeRec(childNode, indentLevel+2); errRender != nil {
+					return errRender
 				}
 			}
 		} else if node.Type == "array" {
-			itemIndent := strings.Repeat(defaultIndent, indentLevel+1) // Indent for array items
+			itemIndent := strings.Repeat(defaultIndent, indentLevel+1)
 			for i, childID := range node.ChildIDs {
-				childNode, exists := tree.NodeMap[childID]
-				if !exists {
-					// Indicate missing node clearly, indented as an item
+				childNode, childExists := tree.NodeMap[childID]
+				if !childExists {
 					builder.WriteString(fmt.Sprintf("%s- <ERROR: missing node '%s' at index %d>\n", itemIndent, childID, i))
 					continue
 				}
-				// Render the child node, indented as an array item
-				if err := renderNodeRec(childNode, indentLevel+1); err != nil {
-					return err // Propagate error
+				if errRender := renderNodeRec(childNode, indentLevel+1); errRender != nil {
+					return errRender
 				}
 			}
 		}
-		return nil // Success for this node
+		return nil
 	}
 
-	// Start rendering from the root
-	err = renderNodeRec(rootNode, 0)
-	if err != nil {
-		interpreter.Logger().Error("Error during TreeRenderText execution", "error", err)
-		return nil, fmt.Errorf("%w: %s failed during rendering: %w", ErrInternalTool, toolName, err)
-	}
-
-	return builder.String(), nil
-}
-
-// --- Registration Function (registerTreeRenderTools) ---
-// (No changes needed in the registration function itself)
-func registerTreeRenderTools(registry *ToolRegistry) error {
-	if registry == nil {
-		return fmt.Errorf("registerTreeRenderTools called with nil registry")
-	}
-	toolsToRegister := []ToolImplementation{toolTreeFormatJSONImpl, toolTreeRenderTextImpl}
-	var registrationErrors []error
-	for _, tool := range toolsToRegister {
-		if err := registry.RegisterTool(tool); err != nil {
-			fmt.Printf("! Error registering tree render tool %s: %v\n", tool.Spec.Name, err)
-			registrationErrors = append(registrationErrors, fmt.Errorf("failed register tree render tool %q: %w", tool.Spec.Name, err))
+	if err := renderNodeRec(rootNode, 0); err != nil {
+		var rtErr *RuntimeError
+		if errors.As(err, &rtErr) { // If it's already a RuntimeError, pass it through
+			return nil, rtErr
 		}
+		// Wrap other internal find errors
+		return nil, NewRuntimeError(ErrorCodeInternal,
+			fmt.Sprintf("%s: failed during text rendering: %v", toolName, err),
+			errors.Join(ErrInternal, err), // Or ErrTreeFormatFailed
+		)
 	}
-	if len(registrationErrors) > 0 {
-		return errors.Join(registrationErrors...)
-	}
-	return nil
+	interpreter.Logger().Debug(fmt.Sprintf("%s: Successfully rendered tree to text", toolName), "handle", handleID)
+	return builder.String(), nil
 }

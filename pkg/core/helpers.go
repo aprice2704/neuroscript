@@ -1,6 +1,8 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.0.4 // Fix NewNoOpLLMClient call in NewTestInterpreter.
+// File version: 0.0.5 // Fix NewInterpreter calls for procedurePaths arg.
 // filename: pkg/core/helpers.go
+// nlines: 198 // Corrected line count
+// risk_rating: MEDIUM
 package core
 
 import (
@@ -163,14 +165,13 @@ func convertToSliceOfAny(rawValue interface{}) ([]interface{}, bool, error) {
 }
 
 // NewTestInterpreter creates a new interpreter instance suitable for testing.
+// It initializes with a NoOpLLMClient and a temporary sandbox directory.
 func NewTestInterpreter(t *testing.T, vars map[string]interface{}, lastResult interface{}) (*Interpreter, string) {
 	t.Helper()
 	testLogger := &TestLogger{t: t}
 
 	// Use core.NewLLMClient to get a NoOp client for testing.
-	// Parameters for NewLLMClient: apiKey, apiHost, modelID, logger, enabled
-	// For a NoOp client, apiKey, apiHost, and modelID can be empty.
-	noOpLLMClient := NewLLMClient("", "", "", testLogger, false) // <<< FIXED: Call to core.NewLLMClient
+	noOpLLMClient := NewLLMClient("", "", "", testLogger, false)
 
 	sandboxDir := t.TempDir()
 
@@ -178,22 +179,37 @@ func NewTestInterpreter(t *testing.T, vars map[string]interface{}, lastResult in
 	if initialVars == nil { // Ensure initialVars is not nil for NewInterpreter
 		initialVars = make(map[string]interface{})
 	}
-	// Note: NewInterpreter does not directly take lastResult.
-	// It's set on the interpreter instance after creation if needed.
 
-	interp, err := NewInterpreter(testLogger, noOpLLMClient, sandboxDir, initialVars)
+	// Call NewInterpreter with all required arguments, passing nil for procedurePaths
+	interp, err := NewInterpreter(testLogger, noOpLLMClient, sandboxDir, initialVars, nil) // <<< FIXED: Added nil for procedurePaths
 	if err != nil {
 		t.Fatalf("Failed to create test interpreter: %v", err)
 	}
 
+	// Set last result if provided
 	if lastResult != nil {
 		interp.lastCallResult = lastResult
 	}
+
+	// Register core tools (essential for most tests)
+	err = RegisterCoreTools(interp)
+	if err != nil {
+		t.Fatalf("Failed to register core tools for test interpreter: %v", err)
+	}
+
+	// Ensure sandbox dir is set correctly AFTER tools might be registered
+	// (though NewInterpreter should handle initial setting)
+	err = interp.SetSandboxDir(sandboxDir)
+	if err != nil {
+		t.Fatalf("Failed to set sandbox dir for test interpreter: %v", err)
+	}
+
 	return interp, sandboxDir
 }
 
 // NewDefaultTestInterpreter provides a convenience wrapper around NewTestInterpreter.
 func NewDefaultTestInterpreter(t *testing.T) (*Interpreter, string) {
 	t.Helper()
+	// The call to NewTestInterpreter handles passing nil for procedurePaths internally now
 	return NewTestInterpreter(t, nil, nil)
 }

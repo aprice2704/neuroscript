@@ -1,5 +1,9 @@
+// NeuroScript Version: 0.3.0
+// File version: 0.1.4
+// Correct ToolRegistry type in RegisterAgentTools
 // filename: pkg/neurogo/agent_tools.go
-// UPDATED: Add TOOL.AgentPin implementation and registration.
+// nlines: 190
+// risk_rating: LOW
 package neurogo
 
 import (
@@ -164,7 +168,8 @@ func toolAgentPin(interpreter *core.Interpreter, args []interface{}) (interface{
 
 // RegisterAgentTools registers all tools specific to agent configuration with the provided registry.
 // UPDATED: Add AgentPin registration
-func RegisterAgentTools(registry *core.ToolRegistry) error {
+// CORRECTED: Changed registry type from *core.ToolRegistry to core.ToolRegistry
+func RegisterAgentTools(registry core.ToolRegistry) error {
 	tools := []core.ToolImplementation{
 		// Existing tools...
 		{Spec: core.ToolSpec{Name: "AgentSetSandbox", Description: "Sets the agent's sandbox directory.", Args: []core.ArgSpec{{Name: "agentCtxHandle", Type: core.ArgTypeString, Required: true}, {Name: "path", Type: core.ArgTypeString, Required: true}}, ReturnType: core.ArgTypeAny}, Func: toolAgentSetSandbox},
@@ -186,6 +191,8 @@ func RegisterAgentTools(registry *core.ToolRegistry) error {
 
 	var errs []error
 	for _, tool := range tools {
+		// This call is now correct because 'registry' is core.ToolRegistry (interface)
+		// and 'RegisterTool' is a method on that interface.
 		if err := registry.RegisterTool(tool); err != nil {
 			errs = append(errs, fmt.Errorf("failed to register agent tool %s: %w", tool.Spec.Name, err))
 		}

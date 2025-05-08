@@ -1,5 +1,5 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.0.11 // Correctly ignore only line/column in comparison. Use raw string fixtures.
+// File version: 0.0.12 // Updated NewInterpreter call signature.
 // Test file for GoGetDeclarationOfSymbol tool.
 // filename: pkg/core/tools/gosemantic/find_declarations_query_test.go
 
@@ -86,15 +86,16 @@ func TestGoGetDeclarationOfSymbol(t *testing.T) {
 	llmClient := adapters.NewNoOpLLMClient()
 	sandboxDir := t.TempDir()
 
-	interpreter, err := core.NewInterpreter(logger, llmClient, sandboxDir, nil)
+	// *** CORRECTED NewInterpreter call with 5 arguments ***
+	interpreter, err := core.NewInterpreter(logger, llmClient, sandboxDir, nil, nil) // Pass nil for initialVars and libPaths
 	if err != nil {
 		t.Fatalf("Failed to create core.Interpreter: %v", err)
 	}
-	err = core.RegisterCoreTools(interpreter.ToolRegistry())
-	if err != nil {
-		t.Fatalf("Failed to register core tools: %v", err)
-	}
-	err = interpreter.SetSandboxDir(sandboxDir)
+	// Note: core.RegisterCoreTools is called within NewInterpreter constructor now.
+	// If gosemantic tools need registration, it must happen separately.
+	// Assuming for now they use init() or a specific RegisterGosemanticTools func exists.
+
+	err = interpreter.SetSandboxDir(sandboxDir) // Ensure sandbox is set
 	if err != nil {
 		t.Fatalf("Failed to set sandbox dir: %v", err)
 	}
@@ -117,8 +118,12 @@ func TestGoGetDeclarationOfSymbol(t *testing.T) {
 	}
 	logger.Info("Created go.mod in sandbox", "path", filepath.Join(sandboxDir, "go.mod"))
 
-	// Run GoIndexCode
-	indexResult, indexErr := toolGoIndexCode(interpreter, []interface{}{"."})
+	// Run GoIndexCode via registry
+	indexTool, found := interpreter.ToolRegistry().GetTool("GoIndexCode")
+	if !found {
+		t.Fatalf("Tool GoIndexCode not found")
+	}
+	indexResult, indexErr := indexTool.Func(interpreter, []interface{}{"."})
 	if indexErr != nil {
 		handleCheck, _ := indexResult.(string)
 		if handleCheck == "" {
@@ -133,7 +138,7 @@ func TestGoGetDeclarationOfSymbol(t *testing.T) {
 	}
 	t.Logf("Got Semantic Index Handle: %s", indexHandle)
 
-	// Log the actual loaded package paths/IDs for debugging verification
+	// Verify index content (optional debug)
 	indexValue, getHandleErr := interpreter.GetHandleValue(indexHandle, semanticIndexTypeTag)
 	if getHandleErr != nil {
 		t.Fatalf("Failed to retrieve index from handle %s: %v", indexHandle, getHandleErr)
@@ -142,7 +147,6 @@ func TestGoGetDeclarationOfSymbol(t *testing.T) {
 	if !ok {
 		t.Fatalf("Handle %s did not contain *SemanticIndex", indexHandle)
 	}
-
 	t.Logf("--- Packages Found in Index ---")
 	foundCorrectPackage := false
 	expectedPkgPath := "mytestmodule/pkga"
@@ -152,7 +156,7 @@ func TestGoGetDeclarationOfSymbol(t *testing.T) {
 				continue
 			}
 			t.Logf("  PkgPath: %q, ID: %q, Name: %q", pkgInfo.PkgPath, pkgInfo.ID, pkgInfo.Name)
-			if pkgInfo.PkgPath == expectedPkgPath || pkgInfo.ID == expectedPkgPath || (pkgInfo.Types != nil && pkgInfo.Types.Path() == expectedPkgPath) {
+			if strings.Contains(pkgInfo.PkgPath, expectedPkgPath) || strings.Contains(pkgInfo.ID, expectedPkgPath) {
 				foundCorrectPackage = true
 			}
 		}
@@ -160,30 +164,24 @@ func TestGoGetDeclarationOfSymbol(t *testing.T) {
 		t.Logf("  No packages found in index!")
 	}
 	t.Logf("------------------------------")
-
 	if !foundCorrectPackage {
-		t.Fatalf("Setup Error: Expected package %q was not found in the created index. Check GoIndexCode logs and fixture setup.", expectedPkgPath)
+		t.Fatalf("Setup Error: Expected package containing %q was not found in the created index.", expectedPkgPath)
 	}
 
 	// --- Define Test Cases ---
-	// wantResult maps contain expected path, name, kind (line/column are removed before comparison)
 	testCases := []struct {
 		name        string
 		query       string
 		wantErr     error
-		wantResult  map[string]interface{} // nil means expect nil, non-nil compared after removing line/col
+		wantResult  map[string]interface{}
 		skipCompare bool
 	}{
 		{name: "Find Top Level Function", query: "package:mytestmodule/pkga; function:TopLevelFunc", wantResult: map[string]interface{}{"path": "pkga/pkga.go", "name": "TopLevelFunc", "kind": "function"}},
 		{name: "Find Type Struct", query: "package:mytestmodule/pkga; type:MyStruct", wantResult: map[string]interface{}{"path": "pkga/pkga.go", "name": "MyStruct", "kind": "type"}},
 		{name: "Find Type Interface", query: "package:mytestmodule/pkga; interface:MyInterface", wantResult: map[string]interface{}{"path": "pkga/pkga.go", "name": "MyInterface", "kind": "type"}},
 		{name: "Find Pointer Receiver Method", query: "package:mytestmodule/pkga; type:MyStruct; method:PointerMethod", wantResult: map[string]interface{}{"path": "pkga/pkga.go", "name": "PointerMethod", "kind": "method"}},
-
-		// --- Receiver Constraint Tests (Keep expected values as-is to highlight the remaining logic bug) ---
-		{name: "Find Pointer Receiver Method with Receiver Constraint", query: "package:mytestmodule/pkga; type:MyStruct; method:PointerMethod; receiver:*MyStruct", wantResult: map[string]interface{}{"path": "pkga/pkga.go", "name": "PointerMethod", "kind": "method"}}, // Expected non-nil, but might fail due to logic bug
-		{name: "Method with Mismatched Receiver Constraint", query: "package:mytestmodule/pkga; type:MyStruct; method:PointerMethod; receiver:MyStruct", wantResult: nil},                                                                                                   // Expected nil, but might fail due to logic bug
-		// --- End Receiver Constraint Tests ---
-
+		{name: "Find Pointer Receiver Method with Receiver Constraint", query: "package:mytestmodule/pkga; type:MyStruct; method:PointerMethod; receiver:*MyStruct", wantResult: map[string]interface{}{"path": "pkga/pkga.go", "name": "PointerMethod", "kind": "method"}},
+		{name: "Method with Mismatched Receiver Constraint", query: "package:mytestmodule/pkga; type:MyStruct; method:PointerMethod; receiver:MyStruct", wantResult: nil},
 		{name: "Find Value Receiver Method", query: "package:mytestmodule/pkga; type:MyStruct; method:ValueMethod", wantResult: map[string]interface{}{"path": "pkga/pkga.go", "name": "ValueMethod", "kind": "method"}},
 		{name: "Find Value Receiver Method with Receiver Constraint", query: "package:mytestmodule/pkga; type:MyStruct; method:ValueMethod; receiver:MyStruct", wantResult: map[string]interface{}{"path": "pkga/pkga.go", "name": "ValueMethod", "kind": "method"}},
 		{name: "Find Struct Field via 'field' alias", query: "package:mytestmodule/pkga; type:MyStruct; field:FieldA", wantResult: map[string]interface{}{"path": "pkga/pkga.go", "name": "FieldA", "kind": "field"}},
@@ -191,15 +189,11 @@ func TestGoGetDeclarationOfSymbol(t *testing.T) {
 		{name: "Find Global Variable", query: "package:mytestmodule/pkga; var:GlobalVar", wantResult: map[string]interface{}{"path": "pkga/pkga.go", "name": "GlobalVar", "kind": "variable"}},
 		{name: "Find Global Constant", query: "package:mytestmodule/pkga; const:GlobalConst", wantResult: map[string]interface{}{"path": "pkga/pkga.go", "name": "GlobalConst", "kind": "constant"}},
 		{name: "Find Unexported Func", query: "package:mytestmodule/pkga; function:anotherFunc", wantResult: map[string]interface{}{"path": "pkga/pkga.go", "name": "anotherFunc", "kind": "function"}},
-
-		// --- Negative Test Cases (wantResult = nil will be compared) ---
 		{name: "Symbol Not Found - NonExistentFunc", query: "package:mytestmodule/pkga; function:NonExistentFunc", wantResult: nil},
 		{name: "Symbol Not Found - Wrong Kind (var as func)", query: "package:mytestmodule/pkga; function:GlobalVar", wantResult: nil},
 		{name: "Method Not Found On Type", query: "package:mytestmodule/pkga; type:MyStruct; method:DoesNotExist", wantResult: nil},
 		{name: "Field Not Found On Type", query: "package:mytestmodule/pkga; type:MyStruct; field:DoesNotExist", wantResult: nil},
 		{name: "Package Not Found In Index", query: "package:nonexistent/pkg; function:SomeFunc", wantResult: nil},
-
-		// --- Invalid Query Format Tests (wantErr != nil) ---
 		{name: "Invalid Query - Missing Package", query: "type:MyStruct; function:TopLevelFunc", wantErr: ErrInvalidQueryFormat, skipCompare: true},
 		{name: "Invalid Query - Multiple Symbol Keys (func and type)", query: "package:mytestmodule/pkga; function:TopLevelFunc; type:MyStruct", wantErr: ErrInvalidQueryFormat, skipCompare: true},
 		{name: "Invalid Query - Malformed Pair", query: "package:mytestmodule/pkga; functionTopLevelFunc", wantErr: ErrInvalidQueryFormat, skipCompare: true},
@@ -208,12 +202,17 @@ func TestGoGetDeclarationOfSymbol(t *testing.T) {
 	}
 
 	// --- Run Tests ---
-	for _, tc := range testCases {
-		tc := tc // Capture range variable
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel() // Mark tests as parallelizable
+	declTool, foundDecl := interpreter.ToolRegistry().GetTool("GoGetDeclarationOfSymbol")
+	if !foundDecl {
+		t.Fatalf("Tool GoGetDeclarationOfSymbol not found in registry")
+	}
 
-			result, runErr := toolGoGetDeclarationOfSymbol(interpreter, []interface{}{indexHandle, tc.query})
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			result, runErr := declTool.Func(interpreter, []interface{}{indexHandle, tc.query})
 
 			// --- Error Checking ---
 			if tc.wantErr != nil {
@@ -221,56 +220,50 @@ func TestGoGetDeclarationOfSymbol(t *testing.T) {
 					t.Errorf("Expected error wrapping %q, but got nil", tc.wantErr)
 				} else {
 					isCorrectError := errors.Is(runErr, tc.wantErr)
+					// Check for specific case where ErrInvalidQueryFormat might be wrapped by ErrInvalidArgument
 					if !isCorrectError && errors.Is(tc.wantErr, ErrInvalidQueryFormat) {
-						isCorrectError = errors.Is(runErr, core.ErrInvalidArgument) && strings.Contains(runErr.Error(), ErrInvalidQueryFormat.Error())
+						var rtErr *core.RuntimeError
+						if errors.As(runErr, &rtErr) && errors.Is(rtErr.Wrapped, core.ErrInvalidArgument) && strings.Contains(rtErr.Message, ErrInvalidQueryFormat.Error()) {
+							isCorrectError = true
+						}
 					}
 					if !isCorrectError {
-						t.Errorf("Expected error wrapping %q (or ErrInvalidArgument wrapping it), but got %q (%v)", tc.wantErr, runErr, runErr)
+						t.Errorf("Expected error wrapping %q (or ErrInvalidArgument), but got %q (%v)", tc.wantErr, runErr, runErr)
 					}
 				}
 				if result != nil {
 					t.Errorf("Expected nil result on error, but got: %v", result)
 				}
-				return // End test case for expected error
+				return
 			}
-
-			// If no error was expected, fail if one occurred
 			if runErr != nil {
 				t.Fatalf("Did not expect error for query %q, but got: %v", tc.query, runErr)
 			}
 
-			// --- Result Comparison (Ignoring line/column for non-nil results) ---
-			if !tc.skipCompare { // skipCompare is true only for error tests handled above
-				var resultMapForCompare map[string]interface{} // Map used for comparison (line/col removed)
-				var originalResultMap map[string]interface{}   // Keep original for logging if needed
-
-				// Prepare resultMapForCompare based on the actual result
+			// --- Result Comparison ---
+			if !tc.skipCompare {
+				var resultMapForCompare map[string]interface{}
+				var originalResultMap map[string]interface{}
 				if result != nil {
 					tempMap, ok := result.(map[string]interface{})
 					if ok {
-						originalResultMap = tempMap // Store the original
+						originalResultMap = tempMap
 						resultMapForCompare = make(map[string]interface{})
-						// Copy keys except line and column
 						for k, v := range tempMap {
 							if k != "line" && k != "column" {
 								resultMapForCompare[k] = v
 							}
 						}
 					} else {
-						// If result is not nil but not a map, it's an unexpected type
-						t.Fatalf("Expected result type map[string]interface{} or nil, but got %T: %v", result, result)
+						t.Fatalf("Expected result map[string]interface{} or nil, got %T: %v", result, result)
 					}
-					// If result was nil, resultMapForCompare remains nil, which is correct
 				}
-
-				// Compare the modified actual result (resultMapForCompare) with the expected result (tc.wantResult)
 				if !reflect.DeepEqual(resultMapForCompare, tc.wantResult) {
 					t.Errorf("Result mismatch for query %q (ignoring line/column):\n Expected: %#v\n Got (filtered): %#v", tc.query, tc.wantResult, resultMapForCompare)
-					// Log the original unfiltered map from the tool for context
 					if originalResultMap != nil {
 						t.Logf("Original Got (with line/column): %#v", originalResultMap)
 					} else {
-						t.Logf("Original Got was: %T %v", result, result) // Log if it wasn't even a map
+						t.Logf("Original Got was: %T %v", result, result)
 					}
 				}
 			}

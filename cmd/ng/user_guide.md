@@ -1,153 +1,140 @@
-# NeuroGo User Guide
+ # NeuroGo User Guide (v0.3.x - Forward Looking)
 
-## Overview
+ ## 1. Overview
 
-`neurogo` is a command-line application designed to interact with Large Language Models (LLMs) via the Google AI API. It serves several primary purposes:
+ `neurogo` (or `ng`) is the command-line interface for the NeuroScript ecosystem. It serves as a versatile host environment for:
 
-* **Interactive Agent Mode:** Chat with an LLM agent that can utilize a defined set of tools to perform tasks, including file manipulation within a secure sandbox.
-* **NeuroScript Execution:** Run scripts written in the NeuroScript language (`.ns` files).
-* **File Synchronization:** Synchronize local files with the Google AI File API, useful for providing context to the LLM.
-* **API File Management:** Cleanly remove all files currently stored in the Google AI File API.
+ * **Executing NeuroScript (`.ns`) files:** Running scripts for automation, AI interaction, and various tasks.
+ * **Managing AI Workers:** Defining, configuring, and interacting with AI agents (LLMs) using the built-in AI Worker Management system. This allows orchestrating complex workflows involving multiple AI agents.
+ * **Interactive Usage:** Providing interfaces like an interactive Terminal UI (TUI) and a basic Read-Eval-Print Loop (REPL) for direct interaction with the NeuroScript environment and AI workers. A Web UI is also planned.
+ * **Utilizing Tools:** Exposing a rich set of tools (filesystem operations, Go language tools, Git integration, AI worker management, etc.) accessible from NeuroScript.
 
-## Installation and Setup
+ The architecture emphasizes a unified environment where core components (Interpreter, LLM Client, AI Worker Manager) are always initialized. The application's behavior is then determined by configuration flags (e.g., running a startup script, activating the TUI).
 
-1.  **Build:** Build the `neurogo` executable from the source code using the Go toolchain:
-    ```bash
-    go build ./cmd/neurogo
-    ```
-2.  **API Key:** Set the `GEMINI_API_KEY` environment variable to your Google AI API key. `neurogo` requires this key to communicate with the LLM and File APIs.
-    ```bash
-    export GEMINI_API_KEY="YOUR_API_KEY_HERE"
-    ```
+ ## 2. Installation and Setup
 
-## Execution Modes
+ 1.  **Build:** Build the `neurogo` executable from the source code using the Go toolchain:
+     ```bash
+     go build ./cmd/ng # Note: command is now 'ng'
+     ```
+ 2.  **API Key:** `neurogo` requires an API key for interacting with external LLM services. Set **one** of the following environment variables:
+     * `NEUROSCRIPT_API_KEY="YOUR_API_KEY_HERE"` (Recommended)
+     * `GEMINI_API_KEY="YOUR_API_KEY_HERE"` (Legacy, may be used as fallback)
+     Alternatively, use the `-api-key` flag. If no key is provided, `neurogo` will operate with a No-Op LLM client, disabling actual AI interaction.
 
-`neurogo` operates in one of several mutually exclusive modes, determined by command-line flags. The order of precedence is: `-clean-api` > `-sync` > `-script` > `-agent` (default).
+ ## 3. Running NeuroGo
 
-* **Agent Mode (Default):** `-agent`
-    * Runs an interactive chat session with the LLM agent.
-    * This is the default mode if no other mode flag (`-clean-api`, `-sync`, `-script`) is specified.
-    * See "Agent Mode Usage" below for interactive commands.
+ `neurogo`'s behavior on startup depends on the flags provided:
 
-* **Script Mode:** `-script <file.ns>`
-    * Executes the specified NeuroScript file (`.ns`).
-    * Requires the path to the script file as an argument.
+ * **Startup Script (`-script <path>`):** If the `-script` flag is provided, `neurogo` will execute the specified NeuroScript file upon startup. After the script finishes, the application will exit unless an interactive UI flag (`-tui` or future `-webui-port`) is also present.
+ * **Terminal UI (`-tui`):** If the `-tui` flag is present, `neurogo` will launch the interactive Terminal User Interface after initialization (and after running any specified startup script).
+ * **Web UI (`-webui-port <port>` - *Planned*):** A future `-webui-port` flag will launch a web-based interface accessible via a browser.
+ * **Basic REPL (Default):** If no startup script is provided and no UI flag is set, `neurogo` will fall back to a basic command-line REPL for minimal interaction.
 
-* **Sync Mode:** `-sync`
-    * Performs a single synchronization of local files to the Google AI File API based on configuration flags (`-sync-dir`, `-sync-filter`, etc.) and then exits.
+ ## 4. Command-Line Flags
 
-* **Clean API Mode:** `-clean-api`
-    * Deletes ALL files currently associated with your API key from the Google AI File API.
-    * This flag must be used alone (potentially with logging or model flags).
-    * It requires explicit confirmation before proceeding. **Use with extreme caution!**
+ ### General Configuration
+ * `-sandbox <dir>`: Specifies the root directory for secure file operations and persistence (e.g., AI Worker definitions). Defaults to `.` (current directory). **Crucial for isolating work.** Resolved to an absolute path.
+ * `-insecure`: If set, disables security checks like TLS verification for LLM clients. **Use with extreme caution!**
+ * `-h`, `-help`: Display the help message.
 
-## Command-Line Flags
+ ### Script Execution
+ * `-script <file.ns>`: Path to a NeuroScript file to execute on startup.
+ * `-L <path>`: Add a directory to the library path for NeuroScript execution (e.g., finding imported `.ns` files). Can be used multiple times.
+ * `-target <procedure_name>`: Specifies the target procedure to run within the startup script. Defaults to `main` or a procedure specified in the script's `:: target:` metadata.
+ * `-arg <argument>`: Provides an argument to the target procedure in the startup script. Can be used multiple times (passed as `arg1`, `arg2`, etc.).
 
-### Mode Selection
+ ### User Interface
+ * `-tui`: Launch the interactive Terminal UI.
+ * `-webui-port <port>`: (*Planned*) Launch the Web UI on the specified port (0 or flag omitted disables).
 
-* `-agent`: Force execution in interactive agent mode.
-* `-script <file.ns>`: Execute the specified NeuroScript file.
-* `-sync`: Run file synchronization based on config flags and exit.
-* `-clean-api`: Delete all files from the File API (requires confirmation).
+ ### LLM Configuration
+ * `-api-key <key>`: Explicitly provide the LLM API Key (overrides environment variables).
+ * `-api-host <hostname>`: Specify a custom API endpoint/host for the LLM service.
+ * `-model <name>`: Specify the default generative model name to use (e.g., `gemini-1.5-pro-latest`). This is used if an AI Worker Definition doesn't specify its own model.
 
-### Sync Configuration (Used by `-sync` mode and `/sync` agent command)
+ ### Logging
+ * `-log-level <level>`: Set the logging level (`debug`, `info`, `warn`, `error`). Defaults to `info`.
+ * `-log-file <path>`: Path to a file where logs should be written (appends). Defaults to stderr.
 
-* `-sync-dir <dir>`: Directory to synchronize. Defaults to `.` (current directory). Used by the `-sync` flag and as the *explicit* target for the bare `/sync` agent command if set.
-* `-sync-filter <pattern>`: Glob pattern (matching filename only) to include specific files during sync (e.g., `*.go`, `data?.txt`).
-* `-sync-ignore-gitignore`: If set, the `.gitignore` file in the sync directory will be ignored. Defaults to `false` (gitignore is respected).
+ ### Deprecated / Replaced Flags
+ * `-agent`, `-sync`, `-clean-api`: These modes are deprecated. Their functionality should be accessed via NeuroScript tools (e.g., `AIWorker.*` tools, `Core.SyncDirectoryUp`, `Core.CleanFileAPI`).
+ * `-sync-dir`, `-sync-filter`, `-sync-ignore-gitignore`: These may still be read by specific sync-related tools but do not dictate an application mode.
+ * `-allowlist`: Tool permissions are intended to be managed via the AI Worker Management system definitions in the future.
 
-### Agent & Script Configuration
+ ## 5. Interactive Usage (TUI / REPL)
 
-* `-sandbox <dir>`: Specifies the root directory for secure file operations by the agent/script tools. Defaults to `.` (current directory). Relative paths are interpreted relative to where `neurogo` is run. **Important:** This also influences the default target directory for the bare `/sync` agent command if `-sync-dir` is not explicitly set.
-* `-allowlist <file>`: Path to a file containing a list of tools (one per line) that the agent is permitted to use.
-* `-attach <file>`: Attach a local file to the agent session context initially. The file will be uploaded to the File API. Can be used multiple times. Paths are validated against the sandbox.
+ ### 5.1 Terminal UI (`-tui`)
+ The TUI provides a richer interactive experience:
+ * **Conversation View:** Displays the history of interactions.
+ * **Input Area:** Enter prompts or commands. Press Enter to submit. Use arrow keys for history.
+ * **Status Bar:** Shows connection status, activity spinner, errors, and current mode/context.
+ * **Help View:** Accessible via `Ctrl+H` (toggle full help).
+ * **Commands:**
+     * `/`: Enter command mode (input area prefix changes). Type command and press Enter.
+     * `/sync [dir] [filter]`: (Functionality may change) Trigger file synchronization. Arguments might allow specifying target directory/filter temporarily.
+     * `/quit`: Exit the TUI and `neurogo`.
+     * (Other commands related to AI Worker Management may be added, e.g., `/list-workers`, `/interact <worker_id>`).
+ * **Multi-line Input:** Press `Ctrl+M` to open an external editor (`nsinput` or `$EDITOR`) for easier multi-line prompt entry. Save and exit the editor to submit.
 
-### Script Execution Configuration (Used with `-script`)
+ ### 5.2 Basic REPL (Default Fallback)
+ If `neurogo` starts without a startup script and without the `-tui` flag, it enters a basic REPL:
+ * **Prompt:** Shows a `>` prompt.
+ * **Input:** Type NeuroScript code or commands.
+ * **Execution:** (*Partially Implemented*) Currently logs input. Planned to execute simple statements or predefined commands.
+ * **Exiting:** Type `exit` or `quit` and press Enter, or use `Ctrl+C`.
 
-* `-L <path>`: Add a directory to the library path for NeuroScript execution (e.g., finding imported modules). Can be used multiple times.
-* `-target <arg>`: A specific target argument passed to the main procedure of the script.
-* `-arg <arg>`: A general argument passed to the main procedure of the script. Can be used multiple times.
+ ## 6. AI Worker Management System
 
-### LLM Configuration
+ A key feature of `neurogo` is its integration with the AI Worker Management system (`ai_wm_*`). This system, configured via JSON files within the `-sandbox` directory (`ai_worker_definitions.json`, `ai_worker_performance_data.json`), allows you to:
 
-* `-model <name>`: Specify the generative model name to use (e.g., `gemini-1.5-pro-latest`, `gemini-1.5-flash-latest`). If omitted, a default model is used.
+ * **Define Worker Blueprints (`AIWorkerDefinition`):** Specify different AI worker types, including their provider (Google, OpenAI, Ollama, etc.), model, capabilities, authentication method, rate limits, default configurations, and cost metrics.
+ * **Manage Instances (`AIWorkerInstance`):** Spawn stateful instances of workers for conversational tasks, manage their lifecycle, and track their performance.
+ * **Execute Stateless Tasks:** Run one-off AI tasks using a definition without needing a persistent instance.
+ * **Monitor Performance:** Track token usage, costs, execution times, and success rates automatically.
 
-### Logging
+ You interact with this system primarily through NeuroScript using the dedicated `AIWorker.*` tools (e.g., `AIWorkerDefinition.Add`, `AIWorkerInstance.Spawn`, `AIWorker.ExecuteStatelessTask`, `AIWorker.GetPerformanceRecords`). This enables building complex, multi-agent workflows controlled by NeuroScript.
 
-* `-debug-log <file>`: Path to a file where detailed debug logs will be written. If omitted, debug logs are discarded.
-* `-llm-debug-log <file>`: Path to a file where raw LLM request/response JSON communication will be written. If omitted, these logs are discarded.
+ ## 7. Examples
 
-### Other
+ ### Run a Startup Script
+ ```bash
+ # Make sure NEUROSCRIPT_API_KEY is set
+ # Executes 'scripts/setup_workers.ns' and then exits
+ ./ng -script scripts/setup_workers.ns -L ./lib
+ ```
 
-* `-h`, `-help`: Display the help message listing all flags and modes.
+ ### Start the Interactive TUI
+ ```bash
+ # Make sure NEUROSCRIPT_API_KEY is set
+ # Starts the TUI for interactive use
+ ./ng -tui -sandbox ./my_project_sandbox -log-level debug -log-file ng.log
+ ```
 
-## Agent Mode Usage
+ ### Run a Startup Script then Enter TUI
+ ```bash
+ # Make sure NEUROSCRIPT_API_KEY is set
+ # Executes 'init.ns', then launches the TUI
+ ./ng -script init.ns -tui -sandbox ./my_project_sandbox
+ ```
 
-When running in agent mode (either explicitly with `-agent` or by default), you can interact with the LLM via prompts. There are also special commands:
+ ### Default to Basic REPL
+ ```bash
+ # Make sure NEUROSCRIPT_API_KEY is set (or use -api-key)
+ # Starts the basic REPL as no script or TUI flag is given
+ ./ng -sandbox ./repl_sandbox
+ ```
 
-* `/sync`:
-    * Triggers a file synchronization process *during* the agent session.
-    * The target directory is determined as follows:
-        1.  Uses the directory specified by `-sync-dir` if that flag was provided.
-        2.  Otherwise, uses the directory specified by `-sandbox` if that flag was provided.
-        3.  Otherwise, defaults to `.` (the directory where `neurogo` was started).
-    * Uses the filter from `-sync-filter` and the ignore setting from `-sync-ignore-gitignore`.
-    * Files successfully synced become available in the context for the *next* prompt you provide to the agent.
+ ### Using AI Worker Tools (Conceptual Example within a `.ns` script)
+ ```neuroscript
+ # Assumes definitions exist in ai_worker_definitions.json in the sandbox
 
-* `/sync <directory> [filter]`:
-    * Triggers a file synchronization for the specified `<directory>` (relative to the sandbox).
-    * Optionally, you can provide a glob `[filter]` pattern for this specific sync operation, overriding the global `-sync-filter` for this command only.
-    * This command always respects the `.gitignore` file (it does not use the `-sync-ignore-gitignore` flag).
-    * Files successfully synced become available in the context for the *next* prompt.
+ # Execute a one-off task using a 'code-analyzer' definition
+ set analysisResult = CALL AIWorker.ExecuteStatelessTask(definition_id: "code-analyzer-def-id", prompt: "Analyze this code: ...")
+ Log("Analysis Result:", analysisResult)
 
-* `/m`:
-    * Launches an external editor (`nsinput`) to allow you to enter multi-line prompts more easily.
-    * Save and exit the editor to submit the prompt, or quit the editor without saving to cancel.
-
-* `quit`:
-    * Exits the `neurogo` application.
-
-## Examples
-
-### Run Agent Mode (Default)
-```bash
-# Make sure GEMINI_API_KEY is set
-./neurogo
-```
-
-### Run Agent Mode with Sandbox and Initial Attachment
-```bash
-# Make sure GEMINI_API_KEY is set
-./neurogo -agent -sandbox ./project_files -attach ./project_files/main.go
-```
-
-### Execute a NeuroScript File
-```bash
-# Make sure GEMINI_API_KEY is set
-./neurogo -script ./scripts/generate_docs.ns -L ./scripts/lib -target main.go
-```
-
-### Synchronize Files and Exit
-```bash
-# Make sure GEMINI_API_KEY is set
-# Sync only *.go and *.md files from ./src directory
-./neurogo -sync -sync-dir ./src -sync-filter '*.[gm][od]'
-```
-
-### Clean All Files from API (Use Carefully!)
-```bash
-# Make sure GEMINI_API_KEY is set
-./neurogo -clean-api
-(Requires confirmation)
-```
-
-### Agent Mode: Sync Sandbox Directory, then Ask Question
-```bash
-# Make sure GEMINI_API_KEY is set
-./neurogo -sandbox ./project
-
-# Inside agent prompt:
-# Prompt: /sync
-# (Wait for sync confirmation)
-# Prompt: Summarize the Go files in the project.
-```
+ # Spawn a conversational worker instance
+ set chatWorkerHandle = CALL AIWorkerInstance.Spawn(definition_id: "chat-bot-def-id")
+ # ... use chatWorkerHandle with other tools to interact ...
+ CALL AIWorkerInstance.Retire(instance_id: chatWorkerHandle) # Assuming handle is the ID
+ ```

@@ -1,5 +1,7 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.1.2 // Simplified: NewToolRegistry now handles globalToolImplementations.
+// File version: 0.1.3 // Change RegisterCoreTools and internal to accept ToolRegistry interface
+// nlines: 70
+// risk_rating: MEDIUM
 // filename: pkg/core/tools_register.go
 package core
 
@@ -9,69 +11,49 @@ import (
 )
 
 // registerCoreToolsInternal is called by the public RegisterCoreTools.
-// Its primary role is now to register any core tools that *cannot* use the
+// It now accepts the ToolRegistry interface.
+// Its role is to register any core tools that *cannot* use the
 // init() + AddToolImplementations pattern.
 // Processing of globalToolImplementations is handled by NewToolRegistry.
-func registerCoreToolsInternal(registry *ToolRegistry) error {
-	// var allErrors []error // Only needed if there are direct registrations below.
-
-	// The globalToolImplementations slice (populated by all init() functions)
-	// is now processed by NewToolRegistry when the registry is created.
-	// Therefore, this function should no longer iterate over globalToolImplementations.
+func registerCoreToolsInternal(registry ToolRegistry) error {
+	// If this function needs to log, it should obtain a logger via the registry
+	// interface if such a method is added to ToolRegistry, or handle logging externally.
 
 	// --- Legacy or Non-Init Registration Section ---
-	// If there are any core tools that absolutely cannot be registered via init()
-	// (e.g., they require a fully initialized interpreter instance for their ToolSpec),
-	// their registration would go here.
-	// For example:
-	// collectErr := func(name string, err error) {
-	//  if err != nil {
-	//      allErrors = append(allErrors, fmt.Errorf("failed registering core %s tools: %w", name, err))
-	//  }
-	// }
-	//
-	// Example: if some specific tools needed direct registration:
+	// Example:
 	// specificTool := ToolImplementation{Spec: ToolSpec{Name: "MySpecialTool", ...}, Func: toolMySpecialTool}
-	// if err := registry.RegisterTool(specificTool); err != nil {
-	//     allErrors = append(allErrors, fmt.Errorf("failed registering MySpecialTool: %w", err))
-	// }
-
-	// if len(allErrors) > 0 {
-	//  finalError := fmt.Errorf("errors during explicit tool registration in RegisterCoreTools")
-	//  for _, err := range allErrors {
-	//      finalError = fmt.Errorf("%w; %w", finalError, err)
-	//  }
-	//  return finalError
+	// if err := registry.RegisterTool(specificTool); err != nil { // Uses the interface method
+	//     return fmt.Errorf("failed registering MySpecialTool: %w", err)
 	// }
 	// --- End Legacy or Non-Init Registration Section ---
 
-	return nil // Success, assuming init-based tools are primary and handled.
+	// For now, assume NewToolRegistry (called during Interpreter init) handles all core tool registrations
+	// that use the init-time pattern. If there are other core tools needing explicit registration
+	// after the registry is created, they would be registered here using registry.RegisterTool().
+	return nil
 }
 
 // RegisterCoreTools is the public entry point for ensuring core tools are available.
-// With the init-based registration pattern, NewToolRegistry handles the primary
-// registration from globalToolImplementations. This function's role is now minimal
-// unless there are core tools that cannot use the init() pattern.
-func RegisterCoreTools(registry *ToolRegistry) error {
+// It accepts the ToolRegistry interface.
+// With the init-based registration pattern, NewToolRegistry (called by Interpreter)
+// handles the primary registration from globalToolImplementations.
+func RegisterCoreTools(registry ToolRegistry) error {
 	if registry == nil {
 		return fmt.Errorf("RegisterCoreTools called with a nil registry")
 	}
 
-	// Call the internal function, which now handles only non-init registrations if any.
+	// Call the internal function, passing the interface.
 	if err := registerCoreToolsInternal(registry); err != nil {
-		// This error would now primarily come from any direct/legacy registrations
-		// made within registerCoreToolsInternal.
-		// The FATAL error from tests was due to re-processing globalToolImplementations here.
 		return err
 	}
 
-	// Log successful completion of this phase.
-	// The interpreter's logger might be available here.
-	if registry.interpreter != nil && registry.interpreter.logger != nil {
-		registry.interpreter.logger.Info("RegisterCoreTools: Explicit core tool registration phase complete (most tools registered via init).")
-	} else {
-		// log.Println("[INFO] RegisterCoreTools: Explicit core tool registration phase complete.")
-	}
+	// Logging: If the ToolRegistry interface had a Logger() method, we could use it.
+	// Example:
+	// if logger := registry.Logger(); logger != nil {
+	//     logger.Info("RegisterCoreTools: Explicit core tool registration phase complete.")
+	// }
+	// For now, this specific logging is removed as the interface doesn't expose the logger directly.
+	// The creation of the toolRegistryImpl within NewInterpreter already logs.
 
-	return nil // Success
+	return nil
 }

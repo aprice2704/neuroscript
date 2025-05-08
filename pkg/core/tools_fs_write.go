@@ -1,63 +1,71 @@
-// NeuroScript Version: 0.3.0
-// File version: 0.1.6 // Adjusted error wrapping for internal OS errors to align with test expectations.
+// NeuroScript Version: 0.3.1
+// File version: 0.0.2 // Corrected NewRuntimeError calls with standard ErrorCodes/Sentinels.
+// nlines: 67
+// risk_rating: HIGH
 // filename: pkg/core/tools_fs_write.go
-
 package core
 
 import (
-	"errors" // Added for errors.Join
+	"errors" // Required for errors.Join
 	"fmt"
 	"os"
-	"path/filepath" // For ensuring directory exists
+	"path/filepath"
 )
 
-// toolWriteFile implements TOOL.WriteFile
-// Its ToolImplementation is now defined in tooldefs_fs.go and registered by zz_core_tools_registrar.go
+// toolWriteFile writes content to a specified file within the sandbox.
+// It creates parent directories if they don't exist.
+// Returns "OK" on success, or an error on failure.
+// Its ToolImplementation is defined in tooldefs_fs.go.
 func toolWriteFile(interpreter *Interpreter, args []interface{}) (interface{}, error) {
 	if len(args) != 2 {
-		return nil, NewRuntimeError(ErrorCodeArgMismatch, fmt.Sprintf("WriteFile expects 2 arguments, got %d", len(args)), ErrInvalidArgument)
+		return "", NewRuntimeError(ErrorCodeArgMismatch, fmt.Sprintf("WriteFile: expected 2 arguments (filepath, content), got %d", len(args)), ErrArgumentMismatch)
 	}
-	filepathRelative, okPath := args[0].(string)
-	content, okContent := args[1].(string)
+	filePath, pathOk := args[0].(string)
+	content, contentOk := args[1].(string)
 
-	if !okPath {
-		return nil, NewRuntimeError(ErrorCodeArgMismatch, "WriteFile expects a string filepath argument", ErrInvalidArgument)
+	if !pathOk {
+		// Using ErrorCodeType for wrong type, wrapping ErrInvalidArgument
+		return "", NewRuntimeError(ErrorCodeType, fmt.Sprintf("WriteFile: filepath argument must be a string, got %T", args[0]), ErrInvalidArgument)
 	}
-	if !okContent {
-		return nil, NewRuntimeError(ErrorCodeArgMismatch, "WriteFile expects string content argument", ErrInvalidArgument)
-	}
-
-	if filepathRelative == "" {
-		return nil, NewRuntimeError(ErrorCodeArgMismatch, "WriteFile filepath cannot be empty", ErrInvalidArgument)
+	if !contentOk {
+		// Using ErrorCodeType for wrong type, wrapping ErrInvalidArgument
+		return "", NewRuntimeError(ErrorCodeType, fmt.Sprintf("WriteFile: content argument must be a string, got %T", args[1]), ErrInvalidArgument)
 	}
 
-	// Resolve and secure the path using the interpreter's FileAPI
-	absPath, err := interpreter.FileAPI().ResolvePath(filepathRelative)
-	if err != nil {
-		// ResolvePath already creates a RuntimeError
-		return nil, err
+	if filePath == "" {
+		// Empty path is treated as an invalid argument value.
+		return "", NewRuntimeError(ErrorCodeArgMismatch, "WriteFile: filepath cannot be empty", ErrInvalidArgument)
 	}
 
-	interpreter.Logger().Debugf("Tool WriteFile: Attempting to write to resolved absolute path: %s (original relative: %s)", absPath, filepathRelative)
+	sandboxRoot := interpreter.SandboxDir()
+	absPath, secErr := SecureFilePath(filePath, sandboxRoot)
+	if secErr != nil {
+		interpreter.Logger().Warn("Tool: WriteFile path validation failed", "relative_path", filePath, "sandbox_root", sandboxRoot, "error", secErr)
+		// Directly return the RuntimeError from SecureFilePath
+		return "", secErr
+	}
 
-	// Ensure the directory exists
+	interpreter.Logger().Debug("Tool: WriteFile attempting to write", "validated_path", absPath, "original_relative_path", filePath, "sandbox_root", sandboxRoot)
+
+	// Create parent directories if they don't exist
 	dir := filepath.Dir(absPath)
-	if mkDirErr := os.MkdirAll(dir, 0755); mkDirErr != nil { // 0755 are typical directory permissions
-		errMsg := fmt.Sprintf("failed to create directory '%s' for file '%s'", dir, filepathRelative)
-		interpreter.Logger().Errorf("Tool WriteFile: %s: %v", errMsg, mkDirErr)
-		// Wrap ErrInternalTool to satisfy test expectation
-		return nil, NewRuntimeError(ErrorCodeInternal, errMsg, errors.Join(ErrInternalTool, mkDirErr))
+	if mkDirErr := os.MkdirAll(dir, 0755); mkDirErr != nil { // Permissions 0755 are common for directories
+		errMsg := fmt.Sprintf("WriteFile: could not create directories for '%s'", filePath)
+		interpreter.Logger().Error("Tool: WriteFile MkdirAll failed", "path", dir, "error", mkDirErr)
+		// Use ErrorCodeIOFailed as it's an OS-level I/O issue, wrap ErrCannotCreateDir sentinel for context.
+		return "", NewRuntimeError(ErrorCodeIOFailed, errMsg, errors.Join(ErrCannotCreateDir, mkDirErr))
 	}
 
 	// Write the file
-	writeErr := os.WriteFile(absPath, []byte(content), 0644) // 0644 are typical file permissions
+	writeErr := os.WriteFile(absPath, []byte(content), 0644) // Permissions 0644 are common for files
 	if writeErr != nil {
-		errMsg := fmt.Sprintf("failed writing to file '%s'", filepathRelative)
-		interpreter.Logger().Errorf("Tool WriteFile: %s (resolved: '%s'): %v", errMsg, absPath, writeErr)
-		// Wrap ErrInternalTool to satisfy test expectation
-		return nil, NewRuntimeError(ErrorCodeInternal, errMsg, errors.Join(ErrInternalTool, writeErr))
+		errMsg := fmt.Sprintf("WriteFile: could not write to file '%s'", filePath)
+		interpreter.Logger().Error("Tool: WriteFile failed", "path", absPath, "error", writeErr)
+		// Use ErrorCodeIOFailed and wrap ErrIOFailed sentinel + original error.
+		return "", NewRuntimeError(ErrorCodeIOFailed, errMsg, errors.Join(ErrIOFailed, writeErr))
 	}
 
-	interpreter.Logger().Infof("Tool WriteFile: Successfully wrote %d bytes to '%s'", len(content), filepathRelative)
-	return "OK", nil // CRITICAL: Ensure this returns "OK"
+	interpreter.Logger().Info("Tool: WriteFile successful", "file_path", filePath, "bytes_written", len(content))
+	// Return "OK" string literal on success as defined in tooldefs_fs.go spec.
+	return "OK", nil
 }

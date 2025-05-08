@@ -1,81 +1,53 @@
+// NeuroScript Version: 0.3.0
+// File version: 0.1.10 // Correct NewApp, RegisterAIWorkerTools calls, procArgsConfig type. Remove unused llmClient var.
+// filename: cmd/ng/main.go
 package main
 
 import (
-	"context" // Added context import
+	"context"
 	"flag"
 	"fmt"
-	"io"
 	"os"
-
-	// Added imports for signal and syscall for graceful shutdown context
 	"os/signal"
-	"syscall" // Added syscall import
+	"path/filepath"
+	"syscall"
 
-	"github.com/aprice2704/neuroscript/pkg/adapters"
-	"github.com/aprice2704/neuroscript/pkg/logging"
-	"github.com/aprice2704/neuroscript/pkg/neurogo"
+	"github.com/aprice2704/neuroscript/pkg/core"    // Import logging for type usage
+	"github.com/aprice2704/neuroscript/pkg/neurogo" // neurogo package for App, Config, constants
 	"github.com/aprice2704/neuroscript/pkg/neurogo/tui"
+	// "github.com/aprice2704/neuroscript/pkg/toolsets" // Not used currently, but might be for RegisterExtendedTools
 )
 
-// initializeLogger sets up the slog logger based on configuration strings.
-func initializeLogger(levelStr string, filePath string) (logging.Logger, error) {
-
-	var level logging.LogLevel
-	// Parse the log level string
-	switch levelStr {
-	case "debug":
-		level = logging.LogLevelDebug
-	case "info":
-		level = logging.LogLevelInfo
-	case "warn":
-		level = logging.LogLevelWarn
-	case "error":
-		level = logging.LogLevelError
-	default:
-		return nil, fmt.Errorf("invalid log level: %q", levelStr)
-	}
-
-	var output io.Writer = os.Stderr // Default to stderr
-
-	// If a log file path is provided, open or create the file
-	if filePath != "" {
-		file, err := os.OpenFile(filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-		if err != nil {
-			// Return error, cannot proceed with file logging
-			return nil, fmt.Errorf("failed to open log file %q: %w", filePath, err)
-		}
-		// Note: Closing the file will be the responsibility of the caller or program exit.
-		output = file
-	}
-
-	// Create the adapter
-	appLogger, err := adapters.NewSimpleSlogAdapter(output, level)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create logger adapter: %w", err)
-	}
-
-	// Return the adapter which satisfies the logging.Logger interface
-	return appLogger, nil
-}
-
 func main() {
-	// --- Configuration Setup ---
+	// --- Configuration Setup (Flag Definitions) ---
 	logFile := flag.String("log-file", "", "Path to log file (optional, defaults to stderr)")
 	logLevel := flag.String("log-level", "info", "Log level (debug, info, warn, error)")
+	sandboxDir := flag.String("sandbox", ".", "Root directory for secure file operations and ai_wm persistence")
 
-	apiKey := flag.String("api-key", os.Getenv("GEMINI_API_KEY"), "Gemini API Key (env: GEMINI_API_KEY)")
-	insecure := flag.Bool("insecure", false, "Disable security checks (Use with extreme caution!)")
-	startupScript := flag.String("startup-script", "agent_startup.ns", "Path to NeuroScript file for agent initialization")
+	apiKey := flag.String("api-key", os.Getenv("GEMINI_API_KEY"), "Gemini API Key (env: GEMINI_API_KEY or NEUROSCRIPT_API_KEY)")
+	if *apiKey == "" {
+		*apiKey = os.Getenv("NEUROSCRIPT_API_KEY") // Fallback to NEUROSCRIPT_API_KEY
+	}
+	apiHost := flag.String("api-host", "", "Optional API Host/Endpoint override")
+	insecure := flag.Bool("insecure", false, "Disable security checks (Use with extreme caution!)") // Used for Config.Insecure
+	modelName := flag.String("model", neurogo.DefaultModelName, "Default generative model name for LLM interactions")
+	startupScript := flag.String("script", "", "Path to a NeuroScript (.ns) file to execute on startup")
+	tuiMode := flag.Bool("tui", true, "Enable Terminal User Interface (TUI) mode") // Default to TUI true
+	replMode := flag.Bool("repl", false, "Enable basic REPL mode (if TUI is false and no script is run)")
 
-	syncDir := flag.String("sync-dir", ".", "Directory for sync operations (-sync mode)")
-	syncFilter := flag.String("sync-filter", "", "Glob pattern for sync (-sync mode)")
-	syncIgnoreGitignore := flag.Bool("sync-ignore-gitignore", false, "Ignore .gitignore during sync (-sync mode)")
+	libPathsConfig := neurogo.NewStringSliceFlag()
+	flag.Var(libPathsConfig, "lib-path", "Path to a NeuroScript library directory (can be specified multiple times)")
 
-	scriptFile := flag.String("script", "", "Path to a NeuroScript file to execute (script mode)")
-	agentMode := flag.Bool("agent", false, "Run in interactive agent mode (uses -startup-script)")
-	syncMode := flag.Bool("sync", false, "Run in sync-only mode")
-	cleanAPI := flag.Bool("clean-api", false, "Delete all files from the File API (use with caution!)")
-	tuiMode := flag.Bool("tui", false, "Run in interactive TUI mode (experimental)")
+	aiServiceAllowCfg := neurogo.NewStringSliceFlag()
+	flag.Var(aiServiceAllowCfg, "ai-allow", "Tool/service name to allow for AI (can be specified multiple times, e.g., 'FileSystem.ReadFile')")
+
+	aiServiceDenyCfg := neurogo.NewStringSliceFlag()
+	flag.Var(aiServiceDenyCfg, "ai-deny", "Tool/service name to deny for AI (can be specified multiple times, overrides allows)")
+
+	targetArg := flag.String("target", "main", "Target procedure for the script")
+	// CORRECTED: Use NewStringSliceFlag for procArgsConfig as well
+	procArgsConfig := neurogo.NewStringSliceFlag()
+	flag.Var(procArgsConfig, "arg", "Argument for the script process/procedure (can be specified multiple times)")
 
 	flag.Parse()
 
@@ -85,131 +57,132 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Error initializing logger: %v\n", err)
 		os.Exit(1)
 	}
-	logger.Info("Logger initialized", "level", *logLevel, "file", *logFile) // Log initialization success
+	logger.Info("Logger initialized", "level", *logLevel, "file", *logFile)
 
-	// --- Determine Mode ---
-	modeCount := 0
-	if *scriptFile != "" {
-		modeCount++
+	// --- Application Context ---
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Trap SIGINT and SIGTERM to trigger context cancellation
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		sig := <-sigChan
+		logger.Info("Received signal, shutting down...", "signal", sig.String())
+		cancel()
+	}()
+
+	// --- Sandbox Directory Resolution ---
+	absSandboxDir, err := filepath.Abs(*sandboxDir)
+	if err != nil {
+		logger.Error("Failed to resolve absolute path for sandbox directory", "path", *sandboxDir, "error", err)
+		fmt.Fprintf(os.Stderr, "Error resolving sandbox directory '%s': %v\n", *sandboxDir, err)
+		os.Exit(1)
 	}
-	if *agentMode {
-		modeCount++
+	logger.Info("Sandbox directory resolved", "path", absSandboxDir)
+
+	// --- NeuroGo App Configuration & Initialization ---
+	appConfig := &neurogo.Config{
+		APIKey:        *apiKey,
+		APIHost:       *apiHost,
+		ModelName:     *modelName,
+		StartupScript: *startupScript,
+		SandboxDir:    absSandboxDir,
+		Insecure:      *insecure,
+		LibPaths:      libPathsConfig.Value,
+		TargetArg:     *targetArg,
+		ProcArgs:      procArgsConfig.Value, // Access the .Value field
 	}
-	if *syncMode {
-		modeCount++
+
+	// CORRECTED: NewApp only takes the logger now.
+	app := neurogo.NewApp(logger)
+	app.Config = appConfig // Assign config after creation
+
+	// --- Initialize Core Components (LLM, Interpreter, AIWM) ---
+	// REMOVED: Unused declaration: var llmClient core.LLMClient
+	var interpreter *core.Interpreter
+	var aiWm *core.AIWorkerManager
+
+	// Pass app (which contains config) and logger to initializeCoreComponents
+	// initializeCoreComponents now returns the components it creates/initializes.
+	// We capture them here, although they are also set within the app instance by initializeCoreComponents.
+	_, interpreter, aiWm, err = initializeCoreComponents(app, logger, absSandboxDir) // Capture interpreter and aiWm
+	if err != nil {
+		logger.Error("Failed to initialize core components", "error", err)
+		fmt.Fprintf(os.Stderr, "Initialization error: %v\n", err)
+		os.Exit(1)
 	}
-	if *cleanAPI {
-		modeCount++
+
+	logger.Info("Core components (LLM, Interpreter, AIWM) initialized successfully.")
+
+	// --- Register Tools ---
+	// Core tools are registered within NewInterpreter.
+	// AI Worker tools are registered if AIWM is available.
+	if aiWm != nil {
+		// CORRECTED: RegisterAIWorkerTools only takes the interpreter.
+		if err := core.RegisterAIWorkerTools(interpreter); err != nil {
+			logger.Error("Failed to register AI Worker tools", "error", err)
+			fmt.Fprintf(os.Stderr, "Warning: Failed to register AI Worker tools: %v\n", err)
+		} else {
+			logger.Info("AI Worker tools registered.")
+		}
+	} else {
+		logger.Warn("AI Worker Manager not initialized, skipping AI Worker tool registration.")
 	}
+
+	// --- Execute Startup Script (if provided) ---
+	scriptExecuted := false
+	if app.Config.StartupScript != "" {
+		logger.Info("Executing startup script", "script", app.Config.StartupScript)
+		if err := app.ExecuteScriptFile(ctx, app.Config.StartupScript); err != nil {
+			logger.Error("Error executing startup script", "script", app.Config.StartupScript, "error", err)
+			fmt.Fprintf(os.Stderr, "Error executing startup script '%s': %v\n", app.Config.StartupScript, err)
+			os.Exit(1)
+		} else {
+			logger.Info("Startup script finished successfully.")
+			scriptExecuted = true
+		}
+	} else {
+		logger.Info("No startup script specified.")
+	}
+
+	// --- Start Primary Interaction (TUI or REPL or Exit) ---
 	if *tuiMode {
-		modeCount++
-	}
-
-	runScript := *scriptFile != ""
-	runAgent := *agentMode
-	runSync := *syncMode
-	runCleanAPI := *cleanAPI
-	runTui := *tuiMode
-
-	// Mode precedence
-	if *cleanAPI {
-		runScript, runAgent, runSync, runTui = false, false, false, false
-	} else if *syncMode {
-		runScript, runAgent, runCleanAPI, runTui = false, false, false, false
-	} else if *scriptFile != "" {
-		runAgent, runSync, runCleanAPI, runTui = false, false, false, false
-	} else if *tuiMode {
-		runAgent, runSync, runCleanAPI, runScript = false, false, false, false
-	}
-	// Default mode
-	if !runScript && !runAgent && !runSync && !runCleanAPI && !runTui {
-		runAgent = true
-		logger.Info("Defaulting to interactive agent mode.")
-	}
-	// Final check for multiple modes
-	finalModeCount := 0
-	if runScript {
-		finalModeCount++
-	}
-	if runAgent {
-		finalModeCount++
-	}
-	if runSync {
-		finalModeCount++
-	}
-	if runCleanAPI {
-		finalModeCount++
-	}
-	if runTui {
-		finalModeCount++
-	}
-
-	if finalModeCount > 1 {
-		logger.Error("Multiple execution modes specified", "script", runScript, "agent", runAgent, "sync", runSync, "cleanAPI", runCleanAPI, "tui", runTui)
-		fmt.Fprintln(os.Stderr, "Error: Only one execution mode (-script, -agent, -sync, -clean-api, -tui) can be specified.")
-		flag.Usage()
-		os.Exit(1)
-	}
-
-	// --- Create App and Populate Config ---
-	app := neurogo.NewApp(logger) // Should log "Creating new App instance."
-
-	// Check if app or app.Config is nil AFTER NewApp returns (defensive)
-	if app == nil {
-		logger.Error("neurogo.NewApp returned nil App instance")
-		os.Exit(1)
-	}
-	if app.Config == nil {
-		// Initialize config if NewApp doesn't guarantee it (it should)
-		logger.Warn("neurogo.NewApp returned App with nil Config, initializing.")
-		app.Config = neurogo.NewConfig() // Use constructor if available
-	}
-
-	app.Config.APIKey = *apiKey
-	app.Config.Insecure = *insecure
-	app.Config.StartupScript = *startupScript
-	app.Config.RunAgentMode = runAgent
-	app.Config.RunScriptMode = runScript
-	app.Config.RunSyncMode = runSync
-	app.Config.RunCleanAPIMode = runCleanAPI
-	app.Config.RunTuiMode = runTui
-	if runScript {
-		app.Config.ScriptFile = *scriptFile
-	}
-	if runSync {
-		app.Config.SyncDir = *syncDir
-		app.Config.SyncFilter = *syncFilter
-		app.Config.SyncIgnoreGitignore = *syncIgnoreGitignore
-	}
-	// Note: No Validate() call shown here, consistent with neurogo.Config definition
-
-	// --- Application Execution ---
-	if runTui {
-		logger.Info("Starting in TUI mode...")
+		logger.Info("Starting interactive TUI...")
 		if err := tui.Start(app); err != nil {
 			logger.Error("TUI Error", "error", err)
 			fmt.Fprintf(os.Stderr, "TUI Error: %v\n", err)
 			os.Exit(1)
 		}
-		logger.Debug("TUI finished.")
-		os.Exit(0)
+		logger.Info("TUI finished.")
+	} else if scriptExecuted {
+		logger.Info("Startup script executed and no interactive UI specified. Exiting.")
+	} else if *replMode {
+		logger.Info("TUI disabled, no script run. Starting basic REPL...")
+		runRepl(ctx, app)
+		logger.Info("Basic REPL finished.")
+	} else {
+		logger.Info("No TUI, no script, no REPL. Nothing to do. Exiting.")
+		if flag.NArg() > 0 {
+			scriptPath := flag.Arg(0)
+			logger.Info("Found positional argument, attempting to execute as script", "script", scriptPath)
+			app.Config.StartupScript = scriptPath
+			if err := app.ExecuteScriptFile(ctx, scriptPath); err != nil {
+				logger.Error("Error executing script from positional argument", "script", scriptPath, "error", err)
+				fmt.Fprintf(os.Stderr, "Error executing script '%s': %v\n", scriptPath, err)
+				os.Exit(1)
+			}
+			logger.Info("Script from positional argument finished successfully.")
+		} else {
+			fmt.Println("No action specified. Use -script <file>, -tui, or provide a script file as an argument.")
+			flag.Usage()
+		}
 	}
 
-	// Setup context for non-TUI modes
-	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer cancel()
-
-	// --- ADDED DEBUG LOG ---
-	logger.Debug("Configuration populated. About to call app.Run.")
-	// --- END ADDED DEBUG LOG ---
-
-	// --- Run selected mode via app.Run --- (Approx line 173 in original trace?)
-	if err := app.Run(ctx); err != nil {
-		// Error logging happens within app.Run using the injected logger
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err) // Simple final message
-		os.Exit(1)
+	logger.Info("NeuroScript application finished.")
+	if closer, ok := logger.(interface{ Close() error }); ok {
+		if err := closer.Close(); err != nil {
+			fmt.Fprintf(os.Stderr, "Error closing logger: %v\n", err)
+		}
 	}
-
-	logger.Info("NeuroGo finished successfully.")
-	os.Exit(0) // Explicit success exit
 }
