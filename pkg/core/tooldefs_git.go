@@ -9,7 +9,7 @@ package core
 var gitToolsToRegister = []ToolImplementation{
 	ToolImplementation{
 		Spec: ToolSpec{
-			Name: "Git.Status",
+			Name: "GitStatus",
 			Description: "Gets the current Git repository status using 'git status --porcelain -b --untracked-files=all' and returns a structured map. " +
 				"Keys: 'branch', 'remote_branch', 'ahead', 'behind', 'files', 'untracked_files_present', 'is_clean', 'error'.",
 			Args:       []ArgSpec{},
@@ -19,7 +19,7 @@ var gitToolsToRegister = []ToolImplementation{
 	},
 	ToolImplementation{
 		Spec: ToolSpec{
-			Name:        "Git.Add",
+			Name:        "GitAdd",
 			Description: "Add file contents to the index. Accepts a single path string or a list of path strings.",
 			Args: []ArgSpec{
 				{Name: "paths", Type: ArgTypeAny, Required: true, Description: "A single file path string or a list of file path strings to stage."},
@@ -31,7 +31,7 @@ var gitToolsToRegister = []ToolImplementation{
 	// --- Git.Commit ---
 	ToolImplementation{
 		Spec: ToolSpec{
-			Name:        "Git.Commit",
+			Name:        "GitCommit",
 			Description: "Records changes to the repository.",
 			Args: []ArgSpec{
 				{Name: "message", Type: ArgTypeString, Required: true, Description: "The commit message."},
@@ -44,7 +44,7 @@ var gitToolsToRegister = []ToolImplementation{
 	// --- Git.Branch ---
 	ToolImplementation{
 		Spec: ToolSpec{
-			Name:        "Git.Branch",
+			Name:        "GitBranch",
 			Description: "Lists existing branches or creates a new branch. By default lists local branches.",
 			Args: []ArgSpec{
 				{Name: "name", Type: ArgTypeString, Required: false, Description: "If provided, create a branch with this name. If omitted, list existing branches."},
@@ -59,7 +59,7 @@ var gitToolsToRegister = []ToolImplementation{
 	// --- Git.Checkout ---
 	ToolImplementation{
 		Spec: ToolSpec{
-			Name:        "Git.Checkout",
+			Name:        "GitCheckout",
 			Description: "Switches branches or restores working tree files. Can also create a new branch before switching.",
 			Args: []ArgSpec{
 				{Name: "branch", Type: ArgTypeString, Required: true, Description: "The name of the branch or commit to check out."},
@@ -72,7 +72,7 @@ var gitToolsToRegister = []ToolImplementation{
 	// --- Git.Rm ---
 	ToolImplementation{
 		Spec: ToolSpec{
-			Name:        "Git.Rm",
+			Name:        "GitRm",
 			Description: "Remove files from the working tree and from the index.",
 			Args: []ArgSpec{
 				{Name: "paths", Type: ArgTypeAny, Required: true, Description: "A single file path string or a list of file path strings to remove."},
@@ -84,7 +84,7 @@ var gitToolsToRegister = []ToolImplementation{
 	// --- Git.Merge ---
 	ToolImplementation{
 		Spec: ToolSpec{
-			Name:        "Git.Merge",
+			Name:        "GitMerge",
 			Description: "Join two or more development histories together.",
 			Args: []ArgSpec{
 				{Name: "branch", Type: ArgTypeString, Required: true, Description: "The name of the branch to merge into the current branch."},
@@ -96,7 +96,7 @@ var gitToolsToRegister = []ToolImplementation{
 	// --- Git.Pull ---
 	ToolImplementation{
 		Spec: ToolSpec{
-			Name:        "Git.Pull",
+			Name:        "GitPull",
 			Description: "Fetch from and integrate with another repository or a local branch.",
 			Args:        []ArgSpec{},
 			ReturnType:  ArgTypeString, // Success message or error/conflict output
@@ -106,7 +106,7 @@ var gitToolsToRegister = []ToolImplementation{
 	// --- Git.Push ---
 	ToolImplementation{
 		Spec: ToolSpec{
-			Name:        "Git.Push",
+			Name:        "GitPush",
 			Description: "Updates remote refs along with associated objects.",
 			Args: []ArgSpec{
 				{Name: "remote", Type: ArgTypeString, Required: false, Description: "The remote repository name. Default: 'origin'."},
@@ -120,7 +120,7 @@ var gitToolsToRegister = []ToolImplementation{
 	// --- Git.Diff ---
 	ToolImplementation{
 		Spec: ToolSpec{
-			Name:        "Git.Diff",
+			Name:        "GitDiff",
 			Description: "Shows changes between commits, commit and working tree, etc. Returns the diff output or a message indicating no changes.",
 			Args: []ArgSpec{
 				{Name: "cached", Type: ArgTypeBool, Required: false, Description: "Show diff of staged changes against HEAD (`--cached`). Default: false."},
@@ -128,7 +128,7 @@ var gitToolsToRegister = []ToolImplementation{
 				{Name: "commit2", Type: ArgTypeString, Required: false, Description: "Second commit/branch/tree reference. Default: Working tree."},
 				{Name: "path", Type: ArgTypeString, Required: false, Description: "Limit the diff to the specified file or directory path."},
 			},
-			ReturnType: ArgTypeString, // The diff output or "Git.Diff: No changes detected."
+			ReturnType: ArgTypeString, // The diff output or "GitDiff: No changes detected."
 		},
 		Func: toolGitDiff, // from tools_git.go
 	},

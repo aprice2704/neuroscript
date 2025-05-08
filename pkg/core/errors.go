@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.1.7 // Add Tree-specific ErrorCodes and Sentinels.
-// nlines: 185 // Approximate
+// File version: 0.1.8 // Add ErrorCodeNotImplemented and ErrNotImplemented.
+// nlines: 190 // Approximate
 // risk_rating: HIGH
 // filename: pkg/core/errors.go
 package core
@@ -57,6 +57,7 @@ const (
 	ErrorCodePreconditionFailed  ErrorCode = 19
 	ErrorCodeRateLimited         ErrorCode = 20
 	ErrorCodeToolExecutionFailed ErrorCode = 21
+	//ErrorCodeNotImplemented      ErrorCode = 30 // <<< ADDED
 
 	// Filesystem Specific Error Codes (start from 22)
 	ErrorCodeFileNotFound     ErrorCode = 22
@@ -118,6 +119,7 @@ var (
 	ErrNotFound           = errors.New("item not found")                                       // Generic not found by a tool
 	ErrFailedPrecondition = errors.New("operation failed due to a precondition not being met") // For ErrorCodePreconditionFailed
 	ErrRateLimited        = errors.New("operation failed due to rate limiting")                // For ErrorCodeRateLimited
+	ErrNotImplemented     = errors.New("feature or tool not implemented")                      // <<< ADDED
 
 	// Filesystem Errors
 	ErrFileNotFound      = errors.New("file not found")                  // For ErrorCodeFileNotFound

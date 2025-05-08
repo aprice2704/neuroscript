@@ -3380,8 +3380,7 @@
         "pkg/core/security.go": {
           "functions": [
             "NewSecurityLayer",
-            "SanitizeFilename",
-            "SecureFilePath"
+            "SanitizeFilename"
           ],
           "methods": [
             {
@@ -3454,7 +3453,15 @@
             "CreateSuccessFunctionResultPart",
             "GetSandboxPath",
             "IsPathInSandbox",
-            "ResolveAndSecurePath"
+            "ResolveAndSecurePath",
+            "SecureFilePath"
+          ],
+          "methods": []
+        },
+        "pkg/core/security_helpers_test.go": {
+          "functions": [
+            "TestResolveAndSecurePath",
+            "TestIsPathInSandbox"
           ],
           "methods": []
         },
@@ -3691,7 +3698,9 @@
         },
         "pkg/core/tools_fs_helpers_test.go": {
           "functions": [
-            "testFsToolHelper"
+            "testFsToolHelper",
+            "testFsToolHelperWithCompare",
+            "testFsToolHelperInternal"
           ],
           "methods": []
         },
@@ -3729,7 +3738,6 @@
         },
         "pkg/core/tools_fs_stat_test.go": {
           "functions": [
-            "createTestInterpreterWithSandbox",
             "createTempFile",
             "createTempDir",
             "TestToolStat"
@@ -3752,10 +3760,12 @@
         "pkg/core/tools_fs_walk_test.go": {
           "functions": [
             "createWalkTestInterpreter",
-            "createWalkTempFile",
-            "createWalkTempDir",
+            "mustMkdir",
+            "mustWriteFile",
             "assertWalkResultsEqual",
-            "TestToolWalkDir"
+            "getPaths",
+            "TestToolWalkDir",
+            "runWalkTest"
           ],
           "methods": []
         },
@@ -4180,6 +4190,9 @@
           ],
           "methods": []
         },
+        "pkg/core/toolsdefs_file_api.go": {
+          "methods": []
+        },
         "pkg/core/tree_helpers.go": {
           "functions": [
             "getTreeFromHandle",
@@ -4303,6 +4316,7 @@
         "pkg/core/zz_core_tools_registrar.go": {
           "functions": [
             "init",
+            "MakeUnimplementedToolFunc",
             "registerCoreToolBundle"
           ],
           "methods": []

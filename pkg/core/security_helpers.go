@@ -1,11 +1,14 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.0.2 // Add CreateSuccessFunctionResultPart
+// File version: 0.0.9 // Remove debug Printf statements.
+// nlines: 105 // Approximate
+// risk_rating: HIGH // Security-critical path validation
 // filename: pkg/core/security_helpers.go
 package core
 
 import (
 	"errors"
 	"fmt"
+	"os" // Import os for PathSeparator
 	"path/filepath"
 	"strings"
 
@@ -13,15 +16,12 @@ import (
 	"github.com/google/generative-ai-go/genai"      // Needed for genai types
 )
 
-// CreateErrorFunctionResultPart formats a tool execution error into a genai.Part suitable
-// for returning to the LLM. It wraps the error message in a standard map structure.
-// Assumes this function already exists or is desired here.
+// --- CreateErrorFunctionResultPart unchanged ---
 func CreateErrorFunctionResultPart(qualifiedToolName string, execErr error) genai.Part {
 	errMsg := "unknown execution error"
 	if execErr != nil {
 		errMsg = execErr.Error() // Use the error's message
 	}
-	// Log the error before creating the response? Security Layer already logs.
 	return genai.FunctionResponse{
 		Name: qualifiedToolName,
 		Response: map[string]interface{}{
@@ -30,62 +30,42 @@ func CreateErrorFunctionResultPart(qualifiedToolName string, execErr error) gena
 	}
 }
 
-// CreateSuccessFunctionResultPart formats a successful tool execution result into a genai.Part.
-// It attempts to intelligently format common result types (maps, slices, primitives)
-// into a map structure for the LLM response.
+// --- CreateSuccessFunctionResultPart unchanged ---
 func CreateSuccessFunctionResultPart(qualifiedToolName string, resultValue interface{}, logger logging.Logger) genai.Part {
 	responseMap := make(map[string]interface{})
-
 	switch v := resultValue.(type) {
 	case map[string]interface{}:
-		// If the tool already returned a map, use it directly.
-		// Avoid potential key collisions by merging instead? For now, direct use.
 		responseMap = v
-		// Add a default status if not present?
 		if _, ok := responseMap["status"]; !ok {
 			responseMap["status"] = "success"
 		}
-	case []interface{}:
-		// If it's a slice, wrap it in a "result_list" key.
+	case []map[string]interface{}:
 		responseMap["result_list"] = v
 		responseMap["status"] = "success"
-	case []string: // Handle specific common slice types
+	case []interface{}:
+		responseMap["result_list"] = v
+		responseMap["status"] = "success"
+	case []string:
 		responseMap["result_list"] = v
 		responseMap["status"] = "success"
 	case string, int, int64, float32, float64, bool:
-		// For primitive types, wrap them in a "result" key.
 		responseMap["result"] = v
 		responseMap["status"] = "success"
 	case nil:
-		// If the tool returned nil explicitly, indicate success without a specific result.
 		responseMap["status"] = "success (no explicit result returned)"
 	default:
-		// For other types, attempt to format them as a string in the "result" key.
 		formattedResult := fmt.Sprintf("%v", v)
 		responseMap["result"] = formattedResult
 		responseMap["status"] = "success (formatted)"
-		if logger != nil { // Check logger exists
-			logger.Warn("Tool returned unexpected type, formatting as string",
-				"tool", qualifiedToolName,
-				"type", fmt.Sprintf("%T", v),
-				"formatted_result", formattedResult)
+		if logger != nil {
+			logger.Warn("Tool returned unexpected type, formatting as string", "tool", qualifiedToolName, "type", fmt.Sprintf("%T", v), "formatted_result", formattedResult)
 		}
 	}
-
-	// Log the final response map being sent back? Maybe too verbose.
-	// logger.Debug("Formatted success response", "tool", qualifiedToolName, "responseMap", responseMap)
-
-	return genai.FunctionResponse{
-		Name:     qualifiedToolName, // Use qualified name back to LLM
-		Response: responseMap,
-	}
+	return genai.FunctionResponse{Name: qualifiedToolName, Response: responseMap}
 }
 
-// --- Other existing helpers ---
-
-// Deprecated: Use ResolveAndSecurePath instead for safer path handling.
+// --- Deprecated: GetSandboxPath unchanged ---
 func GetSandboxPath(sandboxRoot, relativePath string) string {
-	// ... (implementation unchanged) ...
 	absRoot, _ := filepath.Abs(sandboxRoot)
 	if absRoot == "" {
 		absRoot = "."
@@ -93,55 +73,78 @@ func GetSandboxPath(sandboxRoot, relativePath string) string {
 	return filepath.Join(absRoot, relativePath)
 }
 
-// IsPathInSandbox checks if the given path is within the allowed sandbox directory.
-// Returns true if the path is valid and within bounds, false otherwise.
+// --- IsPathInSandbox unchanged ---
 func IsPathInSandbox(sandboxRoot, inputPath string) (bool, error) {
-	// ... (implementation unchanged) ...
 	_, err := ResolveAndSecurePath(inputPath, sandboxRoot)
 	if err != nil {
-		if errors.Is(err, ErrPathViolation) {
-			return false, nil
+		if re, ok := err.(*RuntimeError); ok && errors.Is(re.Wrapped, ErrPathViolation) {
+			return false, nil // Specific path violation is not an error for the check, just means "false"
 		}
-		return false, err
+		return false, err // Other errors during resolution are returned
 	}
-	return true, nil
+	return true, nil // No error means path is inside
 }
 
-// ResolveAndSecurePath resolves an input path (absolute or relative TO THE ALLOWED ROOT)
+// ResolveAndSecurePath resolves an input path (expected to be relative to allowedRoot)
 // to an absolute path and validates it is contained within the allowed directory root.
-// Returns the validated *absolute* path or an error (wrapping ErrPathViolation or others).
+// Returns the validated *absolute* path or a *RuntimeError.
 func ResolveAndSecurePath(inputPath, allowedRoot string) (string, error) {
-	// ... (implementation unchanged) ...
+	// --- Input Validation ---
 	if inputPath == "" {
-		return "", fmt.Errorf("input path cannot be empty: %w", ErrPathViolation)
+		return "", NewRuntimeError(ErrorCodeArgMismatch, "input path cannot be empty", ErrInvalidArgument)
 	}
 	if strings.Contains(inputPath, "\x00") {
-		return "", fmt.Errorf("input path contains null byte: %w", ErrNullByteInArgument)
+		return "", NewRuntimeError(ErrorCodeSecurity, "input path contains null byte", ErrNullByteInArgument)
+	}
+	if filepath.IsAbs(inputPath) {
+		errMsg := fmt.Sprintf("input file path %q must be relative, not absolute", inputPath)
+		return "", NewRuntimeError(ErrorCodeSecurity, errMsg, ErrPathViolation)
 	}
 
+	// --- Resolve Paths ---
 	absAllowedRoot, err := filepath.Abs(allowedRoot)
 	if err != nil {
-		return "", fmt.Errorf("%w: could not get absolute path for allowed root %q: %v", ErrInternalSecurity, allowedRoot, err)
+		return "", NewRuntimeError(ErrorCodeConfiguration, fmt.Sprintf("could not get absolute path for allowed root %q: %v", allowedRoot, err), errors.Join(ErrConfiguration, err))
 	}
 	absAllowedRoot = filepath.Clean(absAllowedRoot)
 
-	resolvedPath := ""
-	if filepath.IsAbs(inputPath) {
-		resolvedPath = filepath.Clean(inputPath)
-	} else {
-		resolvedPath = filepath.Join(absAllowedRoot, inputPath)
-		resolvedPath = filepath.Clean(resolvedPath)
+	resolvedPath := filepath.Join(absAllowedRoot, inputPath)
+	resolvedPath = filepath.Clean(resolvedPath) // Critical: Simplifies ../ etc.
+
+	// --- Robust Check: Use filepath.Rel ---
+	rel, err := filepath.Rel(absAllowedRoot, resolvedPath)
+	if err != nil {
+		// This error might occur if paths are on different volumes on Windows, etc.
+		details := fmt.Sprintf("internal error checking path relationship between %q and %q", absAllowedRoot, resolvedPath)
+		return "", NewRuntimeError(ErrorCodeInternal, details, errors.Join(ErrInternalSecurity, err))
 	}
 
-	prefixToCheck := absAllowedRoot
-	if prefixToCheck != string(filepath.Separator) && !strings.HasSuffix(prefixToCheck, string(filepath.Separator)) {
-		prefixToCheck += string(filepath.Separator)
+	// --- IsOutside Check using path components ---
+	parts := strings.Split(rel, string(os.PathSeparator))
+	isOutside := false
+	// If the first path component after splitting is "..", it's outside.
+	if len(parts) > 0 && parts[0] == ".." {
+		isOutside = true
 	}
+	// Handle the case where rel is exactly ".." which Split might return as [".."]
+	if rel == ".." {
+		isOutside = true
+	}
+	// Ensure the root itself (rel == ".") is not considered outside.
+	if rel == "." {
+		isOutside = false
+	}
+	// --- End Check ---
 
-	if resolvedPath != absAllowedRoot && !strings.HasPrefix(resolvedPath, prefixToCheck) {
-		details := fmt.Sprintf("path %q (resolves to %q) is outside the allowed root %q", inputPath, resolvedPath, absAllowedRoot)
-		return "", fmt.Errorf("%s: %w", details, ErrPathViolation)
+	if isOutside {
+		details := fmt.Sprintf("relative path %q resolves to %q which is outside the allowed directory %q", inputPath, resolvedPath, absAllowedRoot)
+		return "", NewRuntimeError(ErrorCodeSecurity, details, ErrPathViolation)
 	}
 
 	return resolvedPath, nil
+}
+
+// SecureFilePath wraps ResolveAndSecurePath
+func SecureFilePath(relativePath, allowedRoot string) (string, error) {
+	return ResolveAndSecurePath(relativePath, allowedRoot)
 }

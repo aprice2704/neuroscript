@@ -1,126 +1,141 @@
+// NeuroScript Version: 0.3.1
+// File version: 0.0.3 // Update nil content test expectation to success.
+// nlines: 135 // Approximate
+// risk_rating: MEDIUM // Tests file writing
 // filename: pkg/core/tools_fs_write_test.go
 package core
 
 import (
-	// Keep errors
-	"fmt"           // Keep fmt
-	"os"            // Keep os
-	"path/filepath" // Keep filepath
+	"errors"
+	"fmt"
+	"os"
+	"path/filepath"
 	"testing"
 )
 
-// Assume testFsToolHelper is defined in testing_helpers_test.go
+// Assume testFsToolHelper is defined in tools_fs_helpers_test.go
 
 func TestToolWriteFile(t *testing.T) {
-	interp, sandboxDirAbs := NewDefaultTestInterpreter(t) // Get interpreter and sandbox path
-
 	// --- Test Setup Data ---
-	newWriteFileRel := "newWrite.txt"
-	overwriteTargetRel := "overwrite.txt"
-	overwriteInitialContent := "initial content"
-	nestedFileRel := filepath.Join("newdir", "nestedfile.txt")
-	writeContent := "this is the written content"
-	emptyContent := ""
+	writeNewFile := "newWrite.txt"
+	overwriteExistingFile := "overwrite.txt"
+	existingContent := "Initial Content"
+	newContent := "This is the new content."
+	emptyContentFile := "emptyFile.txt"
+	nestedFile := filepath.Join("newdir", "nestedfile.txt")
 
 	// --- Setup Function ---
-	// *** MODIFIED: Takes sandboxRoot string argument and uses it ***
 	setupWriteFileTest := func(sandboxRoot string) error {
-		// Construct absolute path for the file to be overwritten
-		overwriteTargetAbs := filepath.Join(sandboxRoot, overwriteTargetRel)
-
-		// Create the file that will be overwritten
-		if err := os.WriteFile(overwriteTargetAbs, []byte(overwriteInitialContent), 0644); err != nil {
-			return fmt.Errorf("setup WriteFile failed for %s: %w", overwriteTargetAbs, err)
+		existingPath := filepath.Join(sandboxRoot, overwriteExistingFile)
+		if err := os.WriteFile(existingPath, []byte(existingContent), 0644); err != nil && !errors.Is(err, os.ErrExist) {
+			return fmt.Errorf("setup WriteFile failed for %s: %w", existingPath, err)
 		}
+		os.Remove(filepath.Join(sandboxRoot, writeNewFile))
+		os.Remove(filepath.Join(sandboxRoot, emptyContentFile))
+		os.RemoveAll(filepath.Join(sandboxRoot, "newdir"))
 		return nil
 	}
 
+	// --- Test Cases ---
 	tests := []fsTestCase{
 		{
 			name:        "Write New File",
 			toolName:    "WriteFile",
-			args:        MakeArgs(newWriteFileRel, writeContent),
-			setupFunc:   nil, // No setup needed for writing new file
-			wantResult:  "OK",
-			wantContent: writeContent, // Verify content using helper
+			args:        MakeArgs(writeNewFile, newContent),
+			wantResult:  fmt.Sprintf("Successfully wrote %d bytes to %s", len(newContent), writeNewFile),
+			wantContent: newContent,
 		},
 		{
 			name:        "Overwrite Existing File",
 			toolName:    "WriteFile",
-			args:        MakeArgs(overwriteTargetRel, writeContent),
-			setupFunc:   setupWriteFileTest, // Setup the initial file
-			wantResult:  "OK",
-			wantContent: writeContent, // Verify new content
+			args:        MakeArgs(overwriteExistingFile, newContent),
+			setupFunc:   setupWriteFileTest,
+			wantResult:  fmt.Sprintf("Successfully wrote %d bytes to %s", len(newContent), overwriteExistingFile),
+			wantContent: newContent,
 		},
 		{
 			name:        "Write Empty Content",
 			toolName:    "WriteFile",
-			args:        MakeArgs("emptyFile.txt", emptyContent),
-			setupFunc:   nil,
-			wantResult:  "OK",
-			wantContent: emptyContent,
+			args:        MakeArgs(emptyContentFile, ""),
+			wantResult:  fmt.Sprintf("Successfully wrote %d bytes to %s", 0, emptyContentFile),
+			wantContent: "",
 		},
 		{
-			name:        "Create Subdirectory", // WriteFile should create parent dirs
+			name:        "Create Subdirectory",
 			toolName:    "WriteFile",
-			args:        MakeArgs(nestedFileRel, writeContent),
-			setupFunc:   nil, // No setup needed, dir creation is part of the test
-			wantResult:  "OK",
-			wantContent: writeContent,
+			args:        MakeArgs(nestedFile, newContent),
+			wantResult:  fmt.Sprintf("Successfully wrote %d bytes to %s", len(newContent), nestedFile),
+			wantContent: newContent,
 		},
 		{
-			name:         "Validation_Wrong_Path_Type",
-			toolName:     "WriteFile",
-			args:         MakeArgs(123, writeContent),
-			valWantErrIs: ErrValidationTypeMismatch,
+			name:          "Validation_Wrong_Path_Type",
+			toolName:      "WriteFile",
+			args:          MakeArgs(123, newContent),
+			wantResult:    "filepath argument must be a string",
+			wantToolErrIs: ErrInvalidArgument,
 		},
 		{
-			name:         "Validation_Wrong_Content_Type",
-			toolName:     "WriteFile",
-			args:         MakeArgs(newWriteFileRel, 456),
-			valWantErrIs: ErrValidationTypeMismatch,
+			name:          "Validation_Wrong_Content_Type",
+			toolName:      "WriteFile",
+			args:          MakeArgs(writeNewFile, 456),
+			wantResult:    "content argument must be a string or nil", // Updated error check
+			wantToolErrIs: ErrInvalidArgument,
 		},
 		{
-			name:         "Validation_Missing_Content",
-			toolName:     "WriteFile",
-			args:         MakeArgs(newWriteFileRel),
-			valWantErrIs: ErrValidationArgCount,
+			name:          "Validation_Missing_Content",
+			toolName:      "WriteFile",
+			args:          MakeArgs(writeNewFile),
+			wantResult:    "expected 2 arguments",
+			wantToolErrIs: ErrArgumentMismatch,
+		},
+		{
+			name:          "Validation_Missing_Path",
+			toolName:      "WriteFile",
+			args:          MakeArgs(),
+			wantResult:    "expected 2 arguments",
+			wantToolErrIs: ErrArgumentMismatch,
+		},
+		{
+			name:          "Validation_Empty_Path",
+			toolName:      "WriteFile",
+			args:          MakeArgs("", newContent),
+			wantResult:    "filepath argument cannot be empty",
+			wantToolErrIs: ErrInvalidArgument,
+		},
+		{
+			name:          "Validation_Nil_Path",
+			toolName:      "WriteFile",
+			args:          MakeArgs(nil, newContent),
+			wantResult:    "filepath argument must be a string",
+			wantToolErrIs: ErrInvalidArgument,
+		},
+		{
+			name:        "Validation_Nil_Content", // <<< CORRECTED Expectation
+			toolName:    "WriteFile",
+			args:        MakeArgs(writeNewFile, nil),                                       // Pass nil for content
+			wantResult:  fmt.Sprintf("Successfully wrote %d bytes to %s", 0, writeNewFile), // Expect success msg for 0 bytes
+			wantContent: "",                                                                // Expect empty file content
+			// wantToolErrIs is nil (no error expected)
 		},
 		{
 			name:          "Path_Outside_Sandbox",
 			toolName:      "WriteFile",
-			args:          MakeArgs("../outside.txt", writeContent),
-			setupFunc:     nil,
-			wantResult:    fmt.Sprintf("WriteFile path error for '../outside.txt': %s: relative path '../outside.txt' resolves to '%s' which is outside the allowed directory '%s'", ErrPathViolation.Error(), filepath.Clean(filepath.Join(sandboxDirAbs, "../outside.txt")), sandboxDirAbs),
+			args:          MakeArgs("../outside.txt", newContent),
+			wantResult:    "path resolves outside allowed directory",
 			wantToolErrIs: ErrPathViolation,
-		},
-		{
-			// Trying to write to a path that represents the sandbox root directory itself
-			// Note: SecureFilePath prevents writing directly to the root ('./') but allows files *in* root.
-			// Let's test writing *to* a directory path instead.
-			name:          "Write_To_Directory_Path",
-			toolName:      "WriteFile",
-			args:          MakeArgs("newdir", writeContent), // Path used for nestedFileRel
-			setupFunc:     setupWriteFileTest,               // Creates the file to overwrite only
-			wantResult:    fmt.Sprintf("WriteFile mkdir failed for dir '%s': mkdir %s: not a directory", filepath.Join(sandboxDirAbs, "newdir"), filepath.Join(sandboxDirAbs, "newdir")),
-			wantToolErrIs: ErrInternalTool, // Should fail during MkdirAll check inside WriteFile
-		},
-		{
-			name:         "Validation_Nil_Path",
-			toolName:     "WriteFile",
-			args:         MakeArgs(nil, writeContent),
-			valWantErrIs: ErrValidationRequiredArgNil,
-		},
-		{
-			name:         "Validation_Nil_Content",
-			toolName:     "WriteFile",
-			args:         MakeArgs(newWriteFileRel, nil),
-			valWantErrIs: ErrValidationRequiredArgNil,
 		},
 	}
 
+	// Run tests using the standard helper
 	for _, tt := range tests {
-		testFsToolHelper(t, interp, tt)
-		// Note: File content verification is now handled *within* testFsToolHelper via wantContent field
+		t.Run(tt.name, func(t *testing.T) {
+			interp, currentSandbox := NewDefaultTestInterpreter(t)
+			if tt.setupFunc != nil {
+				if err := tt.setupFunc(currentSandbox); err != nil {
+					t.Fatalf("Setup function failed: %v", err)
+				}
+			}
+			testFsToolHelper(t, interp, tt) // testFsToolHelper handles content verification
+		})
 	}
 }

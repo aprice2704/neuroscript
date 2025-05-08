@@ -10,7 +10,7 @@ package core
 var stringToolsToRegister = []ToolImplementation{
 	{
 		Spec: ToolSpec{
-			Name:        "StringLength",
+			Name:        "Length",
 			Description: "Returns the number of UTF-8 characters (runes) in a string.",
 			Args: []ArgSpec{
 				{Name: "input_string", Type: ArgTypeString, Required: true, Description: "The string to measure."},
@@ -21,7 +21,7 @@ var stringToolsToRegister = []ToolImplementation{
 	},
 	{
 		Spec: ToolSpec{
-			Name:        "StringSubstring", // Renamed for clarity if preferred, or keep "Substring"
+			Name:        "Substring", // Renamed for clarity if preferred, or keep "Substring"
 			Description: "Returns a portion of the string (rune-based indexing), from start_index for a given length.",
 			Args: []ArgSpec{
 				{Name: "input_string", Type: ArgTypeString, Required: true, Description: "The string to take a substring from."},
@@ -34,7 +34,7 @@ var stringToolsToRegister = []ToolImplementation{
 	},
 	{
 		Spec: ToolSpec{
-			Name:        "StringToUpper", // Renamed for clarity
+			Name:        "ToUpper", // Renamed for clarity
 			Description: "Converts a string to uppercase.",
 			Args: []ArgSpec{
 				{Name: "input_string", Type: ArgTypeString, Required: true, Description: "The string to convert."},
@@ -45,7 +45,7 @@ var stringToolsToRegister = []ToolImplementation{
 	},
 	{
 		Spec: ToolSpec{
-			Name:        "StringToLower", // Renamed for clarity
+			Name:        "ToLower", // Renamed for clarity
 			Description: "Converts a string to lowercase.",
 			Args: []ArgSpec{
 				{Name: "input_string", Type: ArgTypeString, Required: true, Description: "The string to convert."},
@@ -56,7 +56,7 @@ var stringToolsToRegister = []ToolImplementation{
 	},
 	{
 		Spec: ToolSpec{
-			Name:        "StringTrimSpace", // Renamed for clarity
+			Name:        "TrimSpace", // Renamed for clarity
 			Description: "Removes leading and trailing whitespace from a string.",
 			Args: []ArgSpec{
 				{Name: "input_string", Type: ArgTypeString, Required: true, Description: "The string to trim."},
@@ -67,7 +67,7 @@ var stringToolsToRegister = []ToolImplementation{
 	},
 	{
 		Spec: ToolSpec{
-			Name:        "StringSplit", // Renamed for clarity
+			Name:        "Split", // Renamed for clarity
 			Description: "Splits a string by a delimiter.",
 			Args: []ArgSpec{
 				{Name: "input_string", Type: ArgTypeString, Required: true, Description: "The string to split."},
@@ -79,7 +79,7 @@ var stringToolsToRegister = []ToolImplementation{
 	},
 	{
 		Spec: ToolSpec{
-			Name:        "StringSplitWords", // Renamed for clarity
+			Name:        "SplitWords", // Renamed for clarity
 			Description: "Splits a string into words based on whitespace.",
 			Args: []ArgSpec{
 				{Name: "input_string", Type: ArgTypeString, Required: true, Description: "The string to split into words."},
@@ -90,7 +90,7 @@ var stringToolsToRegister = []ToolImplementation{
 	},
 	{
 		Spec: ToolSpec{
-			Name:        "StringJoin", // Renamed for clarity
+			Name:        "Join", // Renamed for clarity
 			Description: "Joins elements of a list of strings with a separator.",
 			Args: []ArgSpec{
 				{Name: "string_list", Type: ArgTypeSliceString, Required: true, Description: "List of strings to join."},
@@ -102,7 +102,7 @@ var stringToolsToRegister = []ToolImplementation{
 	},
 	{
 		Spec: ToolSpec{
-			Name:        "StringConcat", // New tool, was toolStringConcat
+			Name:        "Concat", // New tool, was toolStringConcat
 			Description: "Concatenates a list of strings without a separator.",
 			Args: []ArgSpec{
 				{Name: "strings_list", Type: ArgTypeSliceString, Required: true, Description: "List of strings to concatenate."},
@@ -113,7 +113,7 @@ var stringToolsToRegister = []ToolImplementation{
 	},
 	{
 		Spec: ToolSpec{
-			Name:        "StringReplace", // Was ReplaceAll
+			Name:        "Replace", // Was ReplaceAll
 			Description: "Replaces occurrences of a substring with another, up to a specified count.",
 			Args: []ArgSpec{
 				{Name: "input_string", Type: ArgTypeString, Required: true, Description: "The string to perform replacements on."},
@@ -127,7 +127,7 @@ var stringToolsToRegister = []ToolImplementation{
 	},
 	{
 		Spec: ToolSpec{
-			Name:        "StringContains", // Renamed for clarity
+			Name:        "Contains", // Renamed for clarity
 			Description: "Checks if a string contains a substring.",
 			Args: []ArgSpec{
 				{Name: "input_string", Type: ArgTypeString, Required: true, Description: "The string to check."},
@@ -139,7 +139,7 @@ var stringToolsToRegister = []ToolImplementation{
 	},
 	{
 		Spec: ToolSpec{
-			Name:        "StringHasPrefix", // Renamed for clarity
+			Name:        "HasPrefix", // Renamed for clarity
 			Description: "Checks if a string starts with a prefix.",
 			Args: []ArgSpec{
 				{Name: "input_string", Type: ArgTypeString, Required: true, Description: "The string to check."},
@@ -151,7 +151,7 @@ var stringToolsToRegister = []ToolImplementation{
 	},
 	{
 		Spec: ToolSpec{
-			Name:        "StringHasSuffix", // Renamed for clarity
+			Name:        "HasSuffix", // Renamed for clarity
 			Description: "Checks if a string ends with a suffix.",
 			Args: []ArgSpec{
 				{Name: "input_string", Type: ArgTypeString, Required: true, Description: "The string to check."},
@@ -163,7 +163,7 @@ var stringToolsToRegister = []ToolImplementation{
 	},
 	{
 		Spec: ToolSpec{
-			Name:        "StringLineCount", // Renamed for clarity
+			Name:        "LineCount", // Renamed for clarity
 			Description: "Counts the number of lines in the given string content.",
 			Args: []ArgSpec{
 				{Name: "content_string", Type: ArgTypeString, Required: true, Description: "The string content in which to count lines."},

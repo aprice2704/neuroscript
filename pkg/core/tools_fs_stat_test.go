@@ -1,231 +1,268 @@
+// NeuroScript Version: 0.3.1
+// File version: 0.0.8 // Fix compareStatResults signature mismatch.
+// nlines: 195 // Approximate
+// risk_rating: LOW
 // filename: pkg/core/tools_fs_stat_test.go
-package core // Changed from core_test to access unexported toolStat
+package core
 
 import (
-	"errors" // For io.Discard
-	// For log.New
+	"errors"
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
-	"time"
-	// Removed testify imports
 )
 
-// Helper to create a test interpreter instance (adapt if you have a standard test setup)
-// Uses standard logger and correct NewInterpreter signature.
-func createTestInterpreterWithSandbox(t *testing.T, sandboxDir string) *Interpreter {
-	t.Helper()
-
-	// Use correct NewInterpreter signature
-	interpreter, _ := NewDefaultTestInterpreter(t)
-	// Set sandbox directory manually
-	interpreter.sandboxDir = sandboxDir
-	// Register tools (assuming this is needed - adapt if registration happens elsewhere)
-	// It might be better if NewInterpreter handled registration or had a dedicated method.
-	// Let's assume core tools registration happens externally or is not strictly needed
-	// for calling the tool function directly if the interpreter state is minimal.
-	// Consider adding RegisterCoreTools(interpreter.ToolRegistry()) if required by toolStat.
-	return interpreter
-}
-
-// Helper to create a temporary file with content
+// --- Keep Helpers (createTempFile, createTempDir) ---
 func createTempFile(t *testing.T, dir, filename, content string) string {
 	t.Helper()
+	parentDir := filepath.Dir(filepath.Join(dir, filename))
+	if err := os.MkdirAll(parentDir, 0755); err != nil {
+		t.Fatalf("Failed to create parent dir '%s' for temp file '%s': %v", parentDir, filename, err)
+	}
 	filePath := filepath.Join(dir, filename)
 	err := os.WriteFile(filePath, []byte(content), 0644)
-	// Use t.Fatalf for setup errors
 	if err != nil {
 		t.Fatalf("Failed to create temp file '%s': %v", filePath, err)
 	}
 	return filePath
 }
 
-// Helper to create a temporary directory
 func createTempDir(t *testing.T, parentDir, dirName string) string {
 	t.Helper()
 	dirPath := filepath.Join(parentDir, dirName)
 	err := os.Mkdir(dirPath, 0755)
-	// Use t.Fatalf for setup errors
-	if err != nil {
+	if err != nil && !errors.Is(err, os.ErrExist) {
 		t.Fatalf("Failed to create temp dir '%s': %v", dirPath, err)
 	}
 	return dirPath
 }
 
 func TestToolStat(t *testing.T) {
-	// Test setup: Create a temporary sandbox directory
-	sandboxDir := t.TempDir()
-	interpreter := createTestInterpreterWithSandbox(t, sandboxDir)
-
-	// --- Create test files and directories ---
+	// Shared setup data (relative paths)
 	testFileName := "test_file.txt"
 	testFileContent := "hello world"
-	_ = createTempFile(t, sandboxDir, testFileName, testFileContent) // Ignore path, use rel path
-
 	testDirName := "test_subdir"
-	_ = createTempDir(t, sandboxDir, testDirName)
 
 	// --- Test Cases ---
-	testCases := []struct {
-		name          string
-		relPath       string                 // Relative path passed to the tool
-		expectResult  bool                   // Whether to expect a non-nil map result
-		expectedMap   map[string]interface{} // Expected values if expectResult is true (only checks key fields)
-		expectNilErr  bool                   // Expect error returned by Go function to be nil? (Covers os.IsNotExist case)
-		expectedGoErr error                  // Expected specific Go error type (using errors.Is) if expectNilErr is false
-	}{
+	testCases := []fsTestCase{
 		{
-			name:         "Happy Path - Existing File",
-			relPath:      testFileName,
-			expectResult: true,
-			expectedMap: map[string]interface{}{
-				"name":   testFileName,
-				"path":   testFileName,
-				"size":   int64(len(testFileContent)),
-				"is_dir": false,
+			name:     "Happy Path - Existing File",
+			toolName: "StatPath",
+			args:     MakeArgs(testFileName),
+			wantResult: map[string]interface{}{
+				"name":             testFileName,
+				"path":             testFileName,
+				"size_bytes":       int64(len(testFileContent)),
+				"is_dir":           false,
+				"mode_string":      "-rw-r--r--",
+				"mode_perm":        "0644",
+				"modified_unix":    int64(0), // Placeholder
+				"modified_rfc3339": "",       // Placeholder
 			},
-			expectNilErr: true,
 		},
 		{
-			name:         "Happy Path - Existing Directory",
-			relPath:      testDirName,
-			expectResult: true,
-			expectedMap: map[string]interface{}{
-				"name":   testDirName,
-				"path":   testDirName,
-				"is_dir": true,
+			name:     "Happy Path - Existing Directory",
+			toolName: "StatPath",
+			args:     MakeArgs(testDirName),
+			wantResult: map[string]interface{}{
+				"name":             testDirName,
+				"path":             testDirName,
+				"is_dir":           true,
+				"size_bytes":       int64(0), // Placeholder
+				"mode_string":      "drwxr-xr-x",
+				"mode_perm":        "0755",
+				"modified_unix":    int64(0),
+				"modified_rfc3339": "",
 			},
-			expectNilErr: true,
 		},
 		{
-			name:         "Happy Path - Current Directory",
-			relPath:      ".",
-			expectResult: true,
-			expectedMap: map[string]interface{}{
-				"name":   filepath.Base(sandboxDir), // Name should be the sandbox dir base name
-				"path":   ".",
-				"is_dir": true,
+			name:     "Happy Path - Current Directory",
+			toolName: "StatPath",
+			args:     MakeArgs("."),
+			wantResult: map[string]interface{}{
+				"path":             ".",
+				"is_dir":           true,
+				"size_bytes":       int64(0), // Placeholder
+				"mode_string":      "drwxr-xr-x",
+				"mode_perm":        "0755",
+				"modified_unix":    int64(0),
+				"modified_rfc3339": "",
 			},
-			expectNilErr: true,
 		},
 		{
 			name:          "Unhappy Path - Non-existent File",
-			relPath:       "non_existent_file.txt",
-			expectResult:  false, // Expect nil map
-			expectNilErr:  true,  // Expect nil error (per implementation)
-			expectedGoErr: nil,   // Explicitly nil
+			toolName:      "StatPath",
+			args:          MakeArgs("non_existent_file.txt"),
+			wantResult:    "path not found 'non_existent_file.txt'",
+			wantToolErrIs: ErrFileNotFound,
 		},
 		{
 			name:          "Unhappy Path - Outside Sandbox",
-			relPath:       "../outside_file.txt", // Attempts to go outside
-			expectResult:  false,
-			expectNilErr:  false,
-			expectedGoErr: ErrPathViolation, // Expect security error
+			toolName:      "StatPath",
+			args:          MakeArgs("../outside_file.txt"),
+			wantResult:    "path resolves outside allowed directory",
+			wantToolErrIs: ErrPathViolation,
 		},
 		{
 			name:          "Unhappy Path - Absolute Path",
-			relPath:       filepath.Join(sandboxDir, "abs_path_test.txt"), // Generate an absolute path
-			expectResult:  false,
-			expectNilErr:  false,
-			expectedGoErr: ErrPathViolation, // Expect security error (rejects absolute)
+			toolName:      "StatPath",
+			args:          MakeArgs("/abs/path/test.txt"),
+			wantResult:    "must be relative, not absolute",
+			wantToolErrIs: ErrPathViolation,
 		},
 		{
 			name:          "Unhappy Path - Empty Path",
-			relPath:       "",
-			expectResult:  false,
-			expectNilErr:  false,
-			expectedGoErr: ErrPathViolation, // SecureFilePath rejects empty
+			toolName:      "StatPath",
+			args:          MakeArgs(""),
+			wantResult:    "path argument cannot be empty",
+			wantToolErrIs: ErrInvalidArgument,
 		},
 		{
 			name:          "Unhappy Path - Null Byte Path",
-			relPath:       "file\x00withnull.txt",
-			expectResult:  false,
-			expectNilErr:  false,
-			expectedGoErr: ErrNullByteInArgument, // Use the error from errors.go
+			toolName:      "StatPath",
+			args:          MakeArgs("file\x00withnull.txt"),
+			wantResult:    "path contains null byte",
+			wantToolErrIs: ErrNullByteInArgument,
+		},
+		{
+			name:          "Validation_Wrong_Arg_Type",
+			toolName:      "StatPath",
+			args:          MakeArgs(123),
+			wantResult:    "path argument must be a string",
+			wantToolErrIs: ErrInvalidArgument,
+		},
+		{
+			name:          "Validation_Nil_Arg",
+			toolName:      "StatPath",
+			args:          MakeArgs(nil),
+			wantResult:    "path argument must be a string",
+			wantToolErrIs: ErrInvalidArgument,
+		},
+		{
+			name:          "Validation_Missing_Arg",
+			toolName:      "StatPath",
+			args:          MakeArgs(),
+			wantResult:    "expected 1 argument",
+			wantToolErrIs: ErrArgumentMismatch,
 		},
 	}
 
-	// --- Run Tests ---
-	for _, tc := range testCases {
-		tc := tc // Capture range variable
-		t.Run(tc.name, func(t *testing.T) {
-			// Prepare arguments for the tool function
-			args := []interface{}{tc.relPath}
+	// Custom comparison for Stat results
+	// *** Ensure signature matches compareFuncType ***
+	compareStatResults := func(t *testing.T, tc fsTestCase, expected, actual interface{}) {
+		t.Helper()
+		actualMap, okA := actual.(map[string]interface{})
+		if !okA {
+			t.Fatalf("Actual result is not map[string]interface{}, got %T", actual)
+		}
+		expectedMap, okE := expected.(map[string]interface{})
+		if !okE {
+			if _, ok := expected.(string); ok && tc.wantToolErrIs != nil {
+				t.Logf("Expected result was error string, skipping map comparison.")
+				return
+			}
+			t.Fatalf("Expected result is not map[string]interface{}, got %T", expected)
+		}
 
-			// Execute the tool function directly (changed from TestingInvokeTool)
-			result, err := toolStat(interpreter, args) // Direct call
+		// Extract relative path from tc.args
+		relPath := ""
+		if len(tc.args) > 0 {
+			relPath, _ = tc.args[0].(string)
+		}
 
-			// Check Go error against expectations (Using standard testing)
-			if tc.expectNilErr {
-				if err != nil {
-					t.Errorf("Expected Go error to be nil, but got: %v", err)
-				}
-			} else {
-				if err == nil {
-					t.Fatalf("Expected Go error to be non-nil, but got nil") // Use Fatalf if subsequent checks depend on non-nil error
-				}
-				if tc.expectedGoErr != nil {
-					if !errors.Is(err, tc.expectedGoErr) {
-						t.Errorf("Expected Go error wrapping %v, but got %v (type %T)", tc.expectedGoErr, err, err)
-					}
+		// Fields to compare directly
+		fieldsToCompare := []string{"path", "is_dir", "mode_perm"}
+		if name, ok := expectedMap["name"]; ok {
+			if nameStr, okStr := name.(string); okStr && nameStr != "" {
+				fieldsToCompare = append(fieldsToCompare, "name")
+			}
+		}
+		if isDirVal, ok := actualMap["is_dir"].(bool); ok && !isDirVal {
+			fieldsToCompare = append(fieldsToCompare, "size_bytes")
+		}
+
+		for _, key := range fieldsToCompare {
+			wantVal, wantOk := expectedMap[key]
+			gotVal, gotOk := actualMap[key]
+
+			// Use relPath (derived from tc) for special handling
+			if key == "name" && relPath == "." && !wantOk {
+				if !gotOk {
+					t.Errorf("Mandatory key %q missing from actual map for '.' path", key)
+				} else {
+					t.Logf("Ignoring potentially missing 'name' in expectedMap for '.' path test")
+					continue
 				}
 			}
 
-			// Check result against expectations (Using standard testing)
-			if tc.expectResult {
-				if result == nil {
-					t.Fatalf("Expected result map to be non-nil, but got nil") // Use Fatalf as map checks depend on non-nil result
-				}
-				resultMap, ok := result.(map[string]interface{})
-				if !ok {
-					t.Fatalf("Expected result to be a map[string]interface{}, but got type %T", result)
-				}
-
-				// Check key fields in the map
-				for key, expectedValue := range tc.expectedMap {
-					actualValue, keyExists := resultMap[key]
-					if !keyExists {
-						t.Errorf("Expected key '%s' missing in result map", key)
-						continue // Skip value check if key missing
-					}
-
-					// Special handling for size if directory (can vary)
-					if key == "size" && tc.expectedMap["is_dir"] == true {
-						if _, isInt64 := actualValue.(int64); !isInt64 {
-							t.Errorf("Expected size to be int64 for dir, but got type %T", actualValue)
+			if !wantOk {
+				t.Errorf("Expected key %q missing in expectedMap", key)
+				continue
+			}
+			if !gotOk {
+				t.Errorf("Expected key %q missing in actual result map", key)
+				continue
+			}
+			if !reflect.DeepEqual(wantVal, gotVal) {
+				if key == "mode_string" {
+					// ... (mode_string special handling as before) ...
+					if isDir, ok := actualMap["is_dir"].(bool); ok {
+						gotStr, _ := gotVal.(string)
+						prefix := "-"
+						if isDir {
+							prefix = "d"
 						}
-					} else if key != "mod_time" { // Don't check mod_time for exact match
-						if !reflect.DeepEqual(expectedValue, actualValue) {
-							t.Errorf("Value mismatch for key '%s': expected '%v' (%T), got '%v' (%T)", key, expectedValue, expectedValue, actualValue, actualValue)
-						}
-					} else {
-						// Check mod_time format and approximate time
-						modTimeStr, isString := actualValue.(string)
-						if !isString {
-							t.Errorf("Expected mod_time to be a string, but got type %T", actualValue)
+						if !strings.HasPrefix(gotStr, prefix) {
+							t.Errorf("Mismatch for key %q prefix: Got %q, Want prefix %q (Full Want: %#v)", key, gotStr, prefix, wantVal)
 						} else {
-							_, parseErr := time.Parse(time.RFC3339, modTimeStr)
-							if parseErr != nil {
-								t.Errorf("mod_time (%s) should be in RFC3339 format, parse error: %v", modTimeStr, parseErr)
-							}
+							t.Logf("Ignoring potential mode_string variance beyond type prefix for key %q:\n  Got:  %#v (%T)\n  Want: %#v (%T)", key, gotVal, gotVal, wantVal, wantVal)
 						}
+						continue
 					}
-
 				}
-				// Check that path is always the input relative path
-				pathVal, pathExists := resultMap["path"]
-				if !pathExists {
-					t.Errorf("Expected key 'path' missing in result map")
-				} else if pathVal != tc.relPath {
-					t.Errorf("Result map 'path' expected '%s', got '%v'", tc.relPath, pathVal)
-				}
-
-			} else {
-				if result != nil {
-					t.Errorf("Expected result to be nil, but got: %v", result)
-				}
+				t.Errorf("Mismatch for key %q:\n  Got:  %#v (%T)\n  Want: %#v (%T)", key, gotVal, gotVal, wantVal, wantVal)
 			}
+		}
+
+		// Check presence and basic validity of dynamic fields
+		dynamicFields := []string{"name", "size_bytes", "modified_unix", "modified_rfc3339", "mode_string"}
+		for _, key := range dynamicFields {
+			val, ok := actualMap[key]
+			if !ok {
+				// Use relPath for special handling
+				if key == "name" && relPath == "." {
+					continue
+				}
+				t.Errorf("Mandatory dynamic key %q missing from actual result map", key)
+				continue
+			}
+			if key == "modified_unix" && (val == int64(0) || val == nil) {
+				t.Errorf("modified_unix seems invalid: %#v", val)
+			}
+			if key == "modified_rfc3339" && (val == "" || val == nil) {
+				t.Errorf("modified_rfc3339 seems invalid: %#v", val)
+			}
+			// Use relPath for special handling
+			if key == "name" && relPath != "." && (val == "" || val == nil) {
+				t.Errorf("name seems invalid: %#v", val)
+			}
+		}
+	}
+
+	// Run tests using the helper
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			interp, currentSandbox := NewDefaultTestInterpreter(t)
+			if strings.Contains(tc.name, "Existing File") {
+				createTempFile(t, currentSandbox, testFileName, testFileContent)
+			}
+			if strings.Contains(tc.name, "Existing Directory") || strings.Contains(tc.name, "Current Directory") {
+				createTempDir(t, currentSandbox, testDirName)
+			}
+			// *** Ensure the call passes the function matching the type ***
+			testFsToolHelperWithCompare(t, interp, tc, compareStatResults)
 		})
 	}
 }

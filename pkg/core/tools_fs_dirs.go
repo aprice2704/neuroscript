@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.0.2 // Corrected NewRuntimeError calls with standard ErrorCodes/Sentinels.
-// nlines: 150
+// File version: 0.1.0 // Add explicit logging for secErr value immediately after call.
+// nlines: 157 // Approximate
 // risk_rating: MEDIUM
 // filename: pkg/core/tools_fs_dirs.go
 package core
@@ -11,12 +11,10 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 )
 
-// toolListDirectory lists contents of a directory.
-// Returns []map[string]interface{} with keys: name, path, isDir, size, modTime
+// --- toolListDirectory unchanged ---
 func toolListDirectory(interpreter *Interpreter, args []interface{}) (interface{}, error) {
 	if len(args) < 1 || len(args) > 2 {
 		return nil, NewRuntimeError(ErrorCodeArgMismatch, fmt.Sprintf("ListDirectory: expected 1 or 2 arguments (path, [recursive]), got %d", len(args)), ErrArgumentMismatch)
@@ -26,17 +24,12 @@ func toolListDirectory(interpreter *Interpreter, args []interface{}) (interface{
 		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("ListDirectory: path argument must be a string, got %T", args[0]), ErrInvalidArgument)
 	}
 	if relPath == "" {
-		// Treat empty path as current sandbox root for listing, consistent with shell behavior.
 		relPath = "."
-		// return nil, NewRuntimeError(ErrorCodeArgMismatch, "ListDirectory: path argument cannot be empty", ErrInvalidArgument)
 	}
 
 	recursive := false
 	if len(args) == 2 {
-		if args[1] == nil {
-			// Allow null for optional boolean, treat as false
-			recursive = false
-		} else {
+		if args[1] != nil {
 			recursiveVal, okBool := args[1].(bool)
 			if !okBool {
 				return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("ListDirectory: recursive argument must be a boolean or null, got %T", args[1]), ErrInvalidArgument)
@@ -51,18 +44,17 @@ func toolListDirectory(interpreter *Interpreter, args []interface{}) (interface{
 		return nil, NewRuntimeError(ErrorCodeConfiguration, "ListDirectory: interpreter sandbox directory is not set", ErrConfiguration)
 	}
 
-	absBasePath, secErr := SecureFilePath(relPath, sandboxRoot)
+	absBasePath, secErr := ResolveAndSecurePath(relPath, sandboxRoot)
 	if secErr != nil {
-		interpreter.Logger().Infof("Tool: ListDirectory] Path security error for %q: %v (Sandbox Root: %s)", relPath, secErr, sandboxRoot)
-		return nil, secErr // SecureFilePath returns RuntimeError
+		interpreter.Logger().Infof("Tool: ListDirectory] Path security error for %q: %v (Sandbox Root: %s)", relPath, secErr.Error(), sandboxRoot)
+		return nil, secErr
 	}
-	interpreter.Logger().Infof("Tool: ListDirectory] Validated base path: %s (Original Relative: %q, Sandbox: %q, Recursive: %t)", absBasePath, relPath, sandboxRoot, recursive)
 
+	interpreter.Logger().Infof("Tool: ListDirectory] Validated base path: %s (Original Relative: %q, Sandbox: %q, Recursive: %t)", absBasePath, relPath, sandboxRoot, recursive)
 	baseInfo, statErr := os.Stat(absBasePath)
 	if statErr != nil {
 		if errors.Is(statErr, os.ErrNotExist) {
 			interpreter.Logger().Infof("Tool: ListDirectory] Path not found %q (resolved: %s)", relPath, absBasePath)
-			// Use ErrorCodeFileNotFound
 			return nil, NewRuntimeError(ErrorCodeFileNotFound, fmt.Sprintf("ListDirectory: path not found '%s'", relPath), ErrFileNotFound)
 		}
 		if errors.Is(statErr, os.ErrPermission) {
@@ -76,42 +68,37 @@ func toolListDirectory(interpreter *Interpreter, args []interface{}) (interface{
 	if !baseInfo.IsDir() {
 		errMsg := fmt.Sprintf("path '%s' is not a directory", relPath)
 		interpreter.Logger().Infof("Tool: ListDirectory] %s (resolved: %s)", errMsg, absBasePath)
-		// Use ErrorCodePathTypeMismatch and ErrPathNotDirectory
 		return nil, NewRuntimeError(ErrorCodePathTypeMismatch, errMsg, ErrPathNotDirectory)
 	}
 
 	var fileInfos = make([]map[string]interface{}, 0)
-
 	if recursive {
 		interpreter.Logger().Debugf("Tool: ListDirectory] Walking recursively from %s...", absBasePath)
 		walkErr := filepath.WalkDir(absBasePath, func(currentPath string, d fs.DirEntry, err error) error {
 			if err != nil {
-				interpreter.Logger().Warnf("Tool: ListDirectory Walk] Error accessing %q during walk: %v. Skipping entry/subtree.", currentPath, err)
-				// Check for specific errors if needed (e.g., permission)
-				if errors.Is(err, os.ErrPermission) {
-					// Optionally, halt the walk on permission error, or just skip
-					// return NewRuntimeError(ErrorCodePermissionDenied, fmt.Sprintf("ListDirectory walk: permission denied for '%s'", currentPath), ErrPermissionDenied) // Halts walk
-					return nil // Skips entry
+				if errors.Is(err, fs.ErrPermission) {
+					interpreter.Logger().Warnf("Tool: ListDirectory Walk] Permission error accessing %q: %v. Skipping entry/subtree.", currentPath, err)
+				} else {
+					interpreter.Logger().Warnf("Tool: ListDirectory Walk] Error accessing %q during walk: %v. Skipping entry/subtree.", currentPath, err)
 				}
-				// For other errors, skip the entry
+				if d != nil && d.IsDir() {
+					return fs.SkipDir
+				}
 				return nil
 			}
-			if currentPath == absBasePath && d.IsDir() {
-				return nil // Skip the root dir itself
+			if currentPath == absBasePath {
+				return nil
 			}
-
 			info, infoErr := d.Info()
 			if infoErr != nil {
 				interpreter.Logger().Warnf("Tool: ListDirectory Walk] Error getting FileInfo for %q: %v. Skipping entry.", currentPath, infoErr)
-				return nil // Skip this entry
+				return nil
 			}
-
 			entryRelPath, relErr := filepath.Rel(absBasePath, currentPath)
 			if relErr != nil {
 				interpreter.Logger().Warnf("Tool: ListDirectory Walk] Error calculating relative path for %q (base %q): %v. Skipping entry.", currentPath, absBasePath, relErr)
-				return nil // Skip this entry
+				return nil
 			}
-
 			entryMap := map[string]interface{}{
 				"name":    d.Name(),
 				"path":    filepath.ToSlash(entryRelPath),
@@ -122,17 +109,15 @@ func toolListDirectory(interpreter *Interpreter, args []interface{}) (interface{
 			fileInfos = append(fileInfos, entryMap)
 			return nil
 		})
-		// Check the error returned by WalkDir itself (e.g., if the callback returned an error)
 		if walkErr != nil {
 			errMsg := fmt.Sprintf("failed during recursive directory walk for '%s'", relPath)
 			interpreter.Logger().Errorf("Tool: ListDirectory] %s: %v", errMsg, walkErr)
-			// Determine specific ErrorCode if possible (e.g., from wrapped error)
-			if errors.Is(walkErr, os.ErrPermission) { // Check if permission error halted the walk
+			if errors.Is(walkErr, os.ErrPermission) {
 				return nil, NewRuntimeError(ErrorCodePermissionDenied, errMsg, ErrPermissionDenied)
 			}
 			return nil, NewRuntimeError(ErrorCodeIOFailed, errMsg, errors.Join(ErrIOFailed, walkErr))
 		}
-	} else { // Non-recursive
+	} else {
 		interpreter.Logger().Debugf("Tool: ListDirectory] Reading directory non-recursively: %s...", absBasePath)
 		entries, readErr := os.ReadDir(absBasePath)
 		if readErr != nil {
@@ -144,13 +129,15 @@ func toolListDirectory(interpreter *Interpreter, args []interface{}) (interface{
 			return nil, NewRuntimeError(ErrorCodeIOFailed, errMsg, errors.Join(ErrIOFailed, readErr))
 		}
 		for _, entry := range entries {
-			info, infoErr := entry.Info() // Best effort to get info
+			info, infoErr := entry.Info()
 			var size int64 = 0
 			var modTime time.Time
 			if infoErr == nil && info != nil {
 				size = info.Size()
 				modTime = info.ModTime()
-			} // Ignore infoErr for basic listing
+			} else if infoErr != nil {
+				interpreter.Logger().Warnf("Tool: ListDirectory ReadDir] Error getting FileInfo for %q: %v. Size/ModTime omitted.", entry.Name(), infoErr)
+			}
 			entryMap := map[string]interface{}{
 				"name":    entry.Name(),
 				"path":    filepath.ToSlash(entry.Name()),
@@ -161,7 +148,6 @@ func toolListDirectory(interpreter *Interpreter, args []interface{}) (interface{
 			fileInfos = append(fileInfos, entryMap)
 		}
 	}
-
 	interpreter.Logger().Infof("Tool: ListDirectory] Listing successful for %q (Recursive: %t). Found %d entries.", relPath, recursive, len(fileInfos))
 	return fileInfos, nil
 }
@@ -178,10 +164,9 @@ func toolMkdir(interpreter *Interpreter, args []interface{}) (interface{}, error
 	if relPath == "" {
 		return nil, NewRuntimeError(ErrorCodeArgMismatch, "Mkdir: path argument cannot be empty", ErrInvalidArgument)
 	}
-	// Prevent creating "." or using ".."
 	cleanRelPath := filepath.Clean(relPath)
-	if cleanRelPath == "." || strings.HasPrefix(cleanRelPath, "..") {
-		return nil, NewRuntimeError(ErrorCodeArgMismatch, fmt.Sprintf("Mkdir: path '%s' is invalid or attempts to traverse upwards", relPath), ErrInvalidArgument)
+	if cleanRelPath == "." {
+		return nil, NewRuntimeError(ErrorCodeArgMismatch, "Mkdir: path '.' is invalid for creating a directory", ErrInvalidArgument)
 	}
 
 	sandboxRoot := interpreter.SandboxDir()
@@ -190,29 +175,32 @@ func toolMkdir(interpreter *Interpreter, args []interface{}) (interface{}, error
 		return nil, NewRuntimeError(ErrorCodeConfiguration, "Mkdir: interpreter sandbox directory is not set", ErrConfiguration)
 	}
 
-	absPathToCreate, secErr := SecureFilePath(relPath, sandboxRoot)
+	// Resolve and secure the path
+	interpreter.Logger().Debugf("Tool: Mkdir] PRE ResolveAndSecurePath for %q", relPath)
+	absPathToCreate, secErr := ResolveAndSecurePath(relPath, sandboxRoot)
+	// *** ADDED Explicit Logging of returned error value and type ***
+	fmt.Printf("[DEBUG toolMkdir] POST ResolveAndSecurePath for %q -> err: <%v> (type: %T)\n", relPath, secErr, secErr)
+	interpreter.Logger().Debugf("Tool: Mkdir] POST ResolveAndSecurePath for %q -> err: <%v> (type: %T)", relPath, secErr, secErr)
+
 	if secErr != nil {
-		interpreter.Logger().Infof("Tool: Mkdir] Path security error for %q: %v (Sandbox Root: %s)", relPath, secErr, sandboxRoot)
-		return nil, secErr // SecureFilePath returns RuntimeError
+		interpreter.Logger().Infof("Tool: Mkdir] Path validation failed for %q: %v (Sandbox Root: %s)", relPath, secErr, sandboxRoot)
+		return nil, secErr
 	}
 
-	interpreter.Logger().Infof("Tool: Mkdir] Validated path. Attempting to create directory: %s (Original Relative: %q)", absPathToCreate, relPath)
-
+	interpreter.Logger().Debugf("Tool: Mkdir] Validated path. Checking state for: %s (Original Relative: %q)", absPathToCreate, relPath)
 	info, statErr := os.Stat(absPathToCreate)
 	if statErr == nil {
 		if !info.IsDir() {
-			// Path exists but is a file!
 			errMsg := fmt.Sprintf("path '%s' already exists and is a file, not a directory", relPath)
-			interpreter.Logger().Errorf("Tool: Mkdir] %s (resolved: %s)", errMsg, absPathToCreate)
-			// Use ErrorCodePathExists and ErrPathNotDirectory sentinel
-			return nil, NewRuntimeError(ErrorCodePathExists, errMsg, ErrPathNotDirectory)
+			interpreter.Logger().Infof("Tool: Mkdir] %s (resolved: %s)", errMsg, absPathToCreate)
+			return nil, NewRuntimeError(ErrorCodePathTypeMismatch, errMsg, ErrPathNotDirectory)
 		}
-		// Path exists and is a directory - MkdirAll is idempotent, so this is fine.
-		interpreter.Logger().Infof("Tool: Mkdir] Directory '%s' already exists.", relPath)
-		return fmt.Sprintf("Directory '%s' already exists.", relPath), nil
+		errMsg := fmt.Sprintf("directory '%s' already exists", relPath)
+		interpreter.Logger().Infof("Tool: Mkdir] %s (resolved: %s)", errMsg, absPathToCreate)
+		return nil, NewRuntimeError(ErrorCodePathExists, errMsg, ErrPathExists)
+
 	} else if !errors.Is(statErr, os.ErrNotExist) {
-		// Error stating path other than "not found" (e.g., permission error)
-		errMsg := fmt.Sprintf("failed to check path '%s'", relPath)
+		errMsg := fmt.Sprintf("failed to check path status for '%s'", relPath)
 		interpreter.Logger().Errorf("Tool: Mkdir] Stat error: %s (resolved: %s): %v", errMsg, absPathToCreate, statErr)
 		if errors.Is(statErr, os.ErrPermission) {
 			return nil, NewRuntimeError(ErrorCodePermissionDenied, errMsg, ErrPermissionDenied)
@@ -220,16 +208,23 @@ func toolMkdir(interpreter *Interpreter, args []interface{}) (interface{}, error
 		return nil, NewRuntimeError(ErrorCodeIOFailed, errMsg, errors.Join(ErrIOFailed, statErr))
 	}
 
-	// Path does not exist, proceed with MkdirAll
+	interpreter.Logger().Infof("Tool: Mkdir] Path does not exist, attempting to create directory: %s", absPathToCreate)
 	err := os.MkdirAll(absPathToCreate, 0755)
 	if err != nil {
 		errMsg := fmt.Sprintf("failed to create directory '%s'", relPath)
 		interpreter.Logger().Errorf("Tool: Mkdir] %s (resolved: %s): %v", errMsg, absPathToCreate, err)
-		// Use ErrorCodeIOFailed and wrap ErrCannotCreateDir sentinel + OS error
+		if errors.Is(err, os.ErrPermission) {
+			return nil, NewRuntimeError(ErrorCodePermissionDenied, errMsg, ErrPermissionDenied)
+		}
 		return nil, NewRuntimeError(ErrorCodeIOFailed, errMsg, errors.Join(ErrCannotCreateDir, err))
 	}
 
 	successMsg := fmt.Sprintf("Successfully created directory: %s", relPath)
 	interpreter.Logger().Infof("Tool: Mkdir] %s", successMsg)
-	return successMsg, nil
+	resultMap := map[string]interface{}{
+		"status":  "success",
+		"message": successMsg,
+		"path":    relPath,
+	}
+	return resultMap, nil
 }

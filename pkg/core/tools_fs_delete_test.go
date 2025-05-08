@@ -1,3 +1,7 @@
+// NeuroScript Version: 0.3.1
+// File version: 0.0.4 // Fix scope issues with verifyDeletion helper.
+// nlines: 145 // Approximate
+// risk_rating: MEDIUM // Test file for a destructive operation
 // filename: pkg/core/tools_fs_delete_test.go
 package core
 
@@ -6,37 +10,39 @@ import (
 	"fmt"           // Keep fmt
 	"os"            // Keep os
 	"path/filepath" // Keep filepath
+	// For checking error substrings
 	"testing"
 )
 
 // Assume testFsToolHelper is defined in tools_fs_helpers_test.go
 
 func TestToolDeleteFile(t *testing.T) {
-	interp, _ := NewDefaultTestInterpreter(t) // Get interpreter and sandbox path
 
-	// --- Test Setup Data ---
+	// --- Test Setup Data (relative paths) ---
 	fileToDeleteRel := "deleteMe.txt"
 	dirToDeleteRel := "deleteMeDir" // Should be empty
 	nonEmptyDirRel := "dontDeleteMeDir"
 	nonEmptyFileRel := filepath.Join(nonEmptyDirRel, "keepMe.txt")
 	fileToDeleteContent := "some content"
 
-	// --- Setup Function ---
+	// --- Setup Function (runs in the specific sandbox for each test) ---
 	setupDeleteFileTest := func(sandboxRoot string) error {
 		fileToDeleteAbs := filepath.Join(sandboxRoot, fileToDeleteRel)
 		dirToDeleteAbs := filepath.Join(sandboxRoot, dirToDeleteRel)
 		nonEmptyDirAbs := filepath.Join(sandboxRoot, nonEmptyDirRel)
 		nonEmptyFileAbs := filepath.Join(sandboxRoot, nonEmptyFileRel)
 
-		// Create file to delete
+		os.Remove(fileToDeleteAbs)
+		os.Remove(nonEmptyFileAbs)
+		os.Remove(dirToDeleteAbs)
+		os.Remove(nonEmptyDirAbs)
+
 		if err := os.WriteFile(fileToDeleteAbs, []byte(fileToDeleteContent), 0644); err != nil {
 			return fmt.Errorf("setup WriteFile failed for %s: %w", fileToDeleteAbs, err)
 		}
-		// Create empty directory to delete
 		if err := os.Mkdir(dirToDeleteAbs, 0755); err != nil && !os.IsExist(err) {
 			return fmt.Errorf("setup Mkdir failed for %s: %w", dirToDeleteAbs, err)
 		}
-		// Create non-empty directory (should fail deletion)
 		if err := os.Mkdir(nonEmptyDirAbs, 0755); err != nil && !os.IsExist(err) {
 			return fmt.Errorf("setup Mkdir failed for %s: %w", nonEmptyDirAbs, err)
 		}
@@ -46,32 +52,38 @@ func TestToolDeleteFile(t *testing.T) {
 		return nil
 	}
 
-	// --- Cleanup Function (Verify deletion) ---
+	// --- Verification Helper (defined outside loop) ---
+	// Takes sandboxRoot explicitly now.
 	verifyDeletion := func(sandboxRoot string, pathRel string, shouldExist bool) error {
+		if sandboxRoot == "" {
+			return fmt.Errorf("verifyDeletion called with empty sandboxRoot for path %s", pathRel)
+		}
 		pathAbs := filepath.Join(sandboxRoot, pathRel)
 		_, err := os.Stat(pathAbs)
 		if shouldExist {
 			if err != nil {
-				return fmt.Errorf("verify failed: expected '%s' to exist, but got error: %w", pathRel, err)
+				return fmt.Errorf("verify failed: expected '%s' (abs: %s) to exist, but got error: %w", pathRel, pathAbs, err)
 			}
 		} else { // Should NOT exist
 			if err == nil {
-				return fmt.Errorf("verify failed: expected '%s' to be deleted, but it still exists", pathRel)
+				return fmt.Errorf("verify failed: expected '%s' (abs: %s) to be deleted, but it still exists", pathRel, pathAbs)
 			}
 			if !errors.Is(err, os.ErrNotExist) {
-				return fmt.Errorf("verify failed: expected '%s' to not exist, but got unexpected error: %w", pathRel, err)
+				return fmt.Errorf("verify failed: expected '%s' (abs: %s) to not exist, but got unexpected error: %w", pathRel, pathAbs, err)
 			}
 		}
 		return nil
 	}
 
+	// --- Test Cases ---
 	tests := []fsTestCase{
 		{
-			name:        "Delete Existing File",
-			toolName:    "DeleteFile",
-			args:        MakeArgs(fileToDeleteRel),
-			setupFunc:   setupDeleteFileTest,
-			wantResult:  "OK",
+			name:       "Delete Existing File",
+			toolName:   "DeleteFile",
+			args:       MakeArgs(fileToDeleteRel),
+			setupFunc:  setupDeleteFileTest,
+			wantResult: "OK",
+			// Original cleanup func calls the *outer* verifyDeletion
 			cleanupFunc: func(sb string) error { return verifyDeletion(sb, fileToDeleteRel, false) },
 		},
 		{
@@ -86,48 +98,84 @@ func TestToolDeleteFile(t *testing.T) {
 			name:       "Delete Non-Existent File",
 			toolName:   "DeleteFile",
 			args:       MakeArgs("noSuchFile.txt"),
-			setupFunc:  setupDeleteFileTest, // Setup other files, doesn't matter for this one
-			wantResult: "OK",                // Returns OK if not found
+			setupFunc:  setupDeleteFileTest,
+			wantResult: "OK",
+			// No cleanup needed as nothing should change
 		},
 		{
 			name:          "Delete Non-Empty Directory",
 			toolName:      "DeleteFile",
 			args:          MakeArgs(nonEmptyDirRel),
 			setupFunc:     setupDeleteFileTest,
-			wantResult:    fmt.Sprintf("DeleteFile failed for '%s': remove %s: directory not empty", nonEmptyDirRel, filepath.Join(interp.sandboxDir, nonEmptyDirRel)),
+			wantResult:    "directory not empty", // Expect substring
 			wantToolErrIs: ErrCannotDelete,
-			cleanupFunc:   func(sb string) error { return verifyDeletion(sb, nonEmptyDirRel, true) }, // Ensure it still exists
+			cleanupFunc:   func(sb string) error { return verifyDeletion(sb, nonEmptyDirRel, true) }, // Verify it still exists
 		},
 		{
-			name:         "Validation_Wrong_Arg_Type",
-			toolName:     "DeleteFile",
-			args:         MakeArgs(12345),
-			valWantErrIs: ErrValidationTypeMismatch,
+			name:          "Validation_Wrong_Arg_Type",
+			toolName:      "DeleteFile",
+			args:          MakeArgs(12345),
+			wantResult:    "path argument must be a string",
+			wantToolErrIs: ErrInvalidArgument,
 		},
 		{
 			name:          "Path_Outside_Sandbox",
 			toolName:      "DeleteFile",
 			args:          MakeArgs("../someFile"),
-			setupFunc:     setupDeleteFileTest, // Setup doesn't matter
-			wantResult:    fmt.Sprintf("DeleteFile path error for '../someFile': %s: relative path '../someFile' resolves to '%s' which is outside the allowed directory '%s'", ErrPathViolation.Error(), filepath.Clean(filepath.Join(interp.sandboxDir, "../someFile")), interp.sandboxDir),
+			setupFunc:     setupDeleteFileTest,
+			wantResult:    "path resolves outside allowed directory",
 			wantToolErrIs: ErrPathViolation,
 		},
 		{
-			name:         "Validation_Missing_Arg",
-			toolName:     "DeleteFile",
-			args:         MakeArgs(),
-			valWantErrIs: ErrValidationArgCount,
+			name:          "Validation_Missing_Arg",
+			toolName:      "DeleteFile",
+			args:          MakeArgs(),
+			wantResult:    "expected 1 argument",
+			wantToolErrIs: ErrArgumentMismatch,
 		},
 		{
-			name:         "Validation_Nil_Arg",
-			toolName:     "DeleteFile",
-			args:         MakeArgs(nil),
-			valWantErrIs: ErrValidationRequiredArgNil,
+			name:          "Validation_Nil_Arg",
+			toolName:      "DeleteFile",
+			args:          MakeArgs(nil),
+			wantResult:    "path argument must be a string",
+			wantToolErrIs: ErrInvalidArgument,
+		},
+		{
+			name:          "Validation_Empty_String_Arg",
+			toolName:      "DeleteFile",
+			args:          MakeArgs(""),
+			wantResult:    "path cannot be empty",
+			wantToolErrIs: ErrInvalidArgument,
 		},
 	}
 
 	for _, tt := range tests {
-		testFsToolHelper(t, interp, tt)
-		// Verification is handled by cleanup funcs where appropriate
+		// Capture range variable for safety, although not running in parallel here
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			interp, currentSandbox := NewDefaultTestInterpreter(t)
+
+			// *** Crucial Step: Update cleanupFunc for the current test iteration ***
+			// If the test case has a cleanup function defined...
+			if tt.cleanupFunc != nil {
+				// Store the original function defined in the test case slice.
+				originalCleanup := tt.cleanupFunc
+				// Replace the test case's cleanupFunc with a *new* closure.
+				// This new closure captures the 'currentSandbox' from this specific t.Run call.
+				// It also calls the *original* cleanup logic, passing it the correct sandbox.
+				tt.cleanupFunc = func(ignoredSandbox string) error {
+					// Call the original cleanup function, providing the correct sandbox path.
+					// The 'ignoredSandbox' argument comes from the test helper's t.Cleanup,
+					// but we use the 'currentSandbox' captured here.
+					return originalCleanup(currentSandbox)
+				}
+			}
+
+			// Now call the test helper. It will use the *updated* tt.cleanupFunc
+			// which correctly passes the currentSandbox to the underlying verifyDeletion call.
+			testFsToolHelper(t, interp, tt)
+
+			// No explicit cleanup call here, as testFsToolHelper handles t.Cleanup internally.
+		})
 	}
 }
