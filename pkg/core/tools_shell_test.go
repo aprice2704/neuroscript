@@ -47,9 +47,9 @@ func TestToolExecuteCommand(t *testing.T) {
 		{name: "Directory outside sandbox", command: "pwd", cmdArgs: nil, dirArg: "../escaped", wantStderr: "ExecuteCommand path validation failed", wantExitCode: -1, wantSuccess: false, valWantErrIs: nil},
 	}
 
-	toolImpl, found := dummyInterp.ToolRegistry().GetTool("ExecuteCommand")
+	toolImpl, found := dummyInterp.ToolRegistry().GetTool("Shell.Execute")
 	if !found {
-		t.Fatalf("Tool %q not found in registry", "ExecuteCommand")
+		t.Fatalf("Tool %q not found in registry", "Shell.Execute")
 	}
 	spec := toolImpl.Spec
 

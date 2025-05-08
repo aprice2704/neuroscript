@@ -46,14 +46,14 @@ func TestToolReadFile(t *testing.T) {
 	tests := []fsTestCase{
 		{
 			name:       "Read Existing File",
-			toolName:   "ReadFile", // Added toolName
+			toolName:   "FS.Read", // Added toolName
 			args:       MakeArgs(readTestFile),
 			setupFunc:  setupReadFileTest,
 			wantResult: readTestContent, // Expect file content string
 		},
 		{
 			name:          "Read Non-Existent File",
-			toolName:      "ReadFile", // Added toolName
+			toolName:      "FS.Read", // Added toolName
 			args:          MakeArgs("nonexistent.txt"),
 			setupFunc:     setupReadFileTest,
 			wantResult:    "file not found 'nonexistent.txt'", // Expect specific error message substring
@@ -61,7 +61,7 @@ func TestToolReadFile(t *testing.T) {
 		},
 		{
 			name:          "Read Directory",
-			toolName:      "ReadFile", // Added toolName
+			toolName:      "FS.Read", // Added toolName
 			args:          MakeArgs(readTestDir),
 			setupFunc:     setupReadFileTest,
 			wantResult:    "path 'readTestDir' is a directory", // Expect specific error message substring
@@ -69,21 +69,21 @@ func TestToolReadFile(t *testing.T) {
 		},
 		{
 			name:          "Validation_Wrong_Arg_Type",
-			toolName:      "ReadFile", // Added toolName
+			toolName:      "FS.Read", // Added toolName
 			args:          MakeArgs(123),
 			wantResult:    "filepath argument must be a string", // Error substring
 			wantToolErrIs: ErrInvalidArgument,
 		},
 		{
 			name:          "Validation_Missing_Arg",
-			toolName:      "ReadFile", // Added toolName
+			toolName:      "FS.Read", // Added toolName
 			args:          MakeArgs(),
 			wantResult:    "expected 1 argument", // Error substring
 			wantToolErrIs: ErrArgumentMismatch,
 		},
 		{
 			name:          "Path_Outside_Sandbox",
-			toolName:      "ReadFile", // Added toolName
+			toolName:      "FS.Read", // Added toolName
 			args:          MakeArgs("../outside.txt"),
 			setupFunc:     setupReadFileTest,
 			wantResult:    "path resolves outside allowed directory", // Error substring
@@ -91,14 +91,14 @@ func TestToolReadFile(t *testing.T) {
 		},
 		{
 			name:          "Validation_Nil_Arg",
-			toolName:      "ReadFile", // Added toolName
+			toolName:      "FS.Read", // Added toolName
 			args:          MakeArgs(nil),
 			wantResult:    "filepath argument must be a string", // Error substring
 			wantToolErrIs: ErrInvalidArgument,
 		},
 		{
 			name:          "Validation_Empty_Filepath_Arg",
-			toolName:      "ReadFile", // Added toolName
+			toolName:      "FS.Read", // Added toolName
 			args:          MakeArgs(""),
 			wantResult:    "filepath argument cannot be empty", // Error substring
 			wantToolErrIs: ErrInvalidArgument,

@@ -54,7 +54,7 @@ func TestToolGitNewBranchValidation(t *testing.T) {
 		{Name: "Wrong Arg Type", InputArgs: MakeArgs(123), ExpectedError: ErrValidationTypeMismatch},
 		{Name: "Correct Args", InputArgs: MakeArgs("new-feature"), ExpectedError: nil}, // Validation should pass
 	}
-	runValidationTestCases(t, "GitNewBranch", testCases)
+	runValidationTestCases(t, "Git.Branch", testCases)
 	// Note: Actual branch name validation happens inside the tool function currently
 }
 
@@ -95,7 +95,7 @@ func TestToolGitMergeValidation(t *testing.T) {
 		{Name: "Wrong Arg Type", InputArgs: MakeArgs(123), ExpectedError: ErrValidationTypeMismatch},
 		{Name: "Correct Args", InputArgs: MakeArgs("develop"), ExpectedError: nil}, // Validation should pass
 	}
-	runValidationTestCases(t, "GitMerge", testCases)
+	runValidationTestCases(t, "Git.Merge", testCases)
 }
 
 // --- GitPull Validation Tests ---
@@ -113,7 +113,7 @@ func TestToolGitPushValidation(t *testing.T) {
 		{Name: "Correct Arg Count (None)", InputArgs: MakeArgs(), ExpectedError: nil}, // Expects zero args
 		{Name: "Wrong Arg Count (One)", InputArgs: MakeArgs("arg1"), ExpectedError: ErrValidationArgCount},
 	}
-	runValidationTestCases(t, "GitPush", testCases)
+	runValidationTestCases(t, "Git.Push", testCases)
 }
 
 // --- GitDiff Validation Tests (NEW) ---
@@ -122,7 +122,7 @@ func TestToolGitDiffValidation(t *testing.T) {
 		{Name: "Correct Arg Count (None)", InputArgs: MakeArgs(), ExpectedError: nil}, // Expects zero args
 		{Name: "Wrong Arg Count (One)", InputArgs: MakeArgs("arg1"), ExpectedError: ErrValidationArgCount},
 	}
-	runValidationTestCases(t, "GitDiff", testCases)
+	runValidationTestCases(t, "Git.Diff", testCases)
 }
 
 // TODO: Add functional tests for Git tools, likely requiring mocking of toolExec or a test repo setup.

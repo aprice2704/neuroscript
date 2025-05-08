@@ -101,19 +101,19 @@ func TestToolSplitString(t *testing.T) {
 		valWantErrIs  error
 	}{
 		// *** FIXED toolName prefix ***
-		{name: "Simple Split", toolName: "SplitString", args: MakeArgs("a,b,c", ","), wantResult: []string{"a", "b", "c"}},
-		{name: "Split With Spaces", toolName: "SplitString", args: MakeArgs(" a , b , c ", ","), wantResult: []string{" a ", " b ", " c "}},
-		{name: "Multi-char Delimiter", toolName: "SplitString", args: MakeArgs("one<>two<>three", "<>"), wantResult: []string{"one", "two", "three"}},
-		{name: "Leading Delimiter", toolName: "SplitString", args: MakeArgs(",a,b", ","), wantResult: []string{"", "a", "b"}},
-		{name: "Trailing Delimiter", toolName: "SplitString", args: MakeArgs("a,b,", ","), wantResult: []string{"a", "b", ""}},
-		{name: "Only Delimiter", toolName: "SplitString", args: MakeArgs(",", ","), wantResult: []string{"", ""}},
-		{name: "Empty String", toolName: "SplitString", args: MakeArgs("", ","), wantResult: []string{""}},
-		{name: "Empty Delimiter", toolName: "SplitString", args: MakeArgs("abc", ""), wantResult: []string{"a", "b", "c"}}, // Splits between UTF-8 chars
-		{name: "No Delimiter Found", toolName: "SplitString", args: MakeArgs("abc", ","), wantResult: []string{"abc"}},
-		{name: "Non-string Input", toolName: "SplitString", args: MakeArgs(123, ","), valWantErrIs: ErrValidationTypeMismatch},
-		{name: "Non-string Delimiter", toolName: "SplitString", args: MakeArgs("abc", 1), valWantErrIs: ErrValidationTypeMismatch},
-		{name: "Nil Input", toolName: "SplitString", args: MakeArgs(nil, ","), valWantErrIs: ErrValidationRequiredArgNil},
-		{name: "Nil Delimiter", toolName: "SplitString", args: MakeArgs("abc", nil), valWantErrIs: ErrValidationRequiredArgNil},
+		{name: "Simple Split", toolName: "Split", args: MakeArgs("a,b,c", ","), wantResult: []string{"a", "b", "c"}},
+		{name: "Split With Spaces", toolName: "Split", args: MakeArgs(" a , b , c ", ","), wantResult: []string{" a ", " b ", " c "}},
+		{name: "Multi-char Delimiter", toolName: "Split", args: MakeArgs("one<>two<>three", "<>"), wantResult: []string{"one", "two", "three"}},
+		{name: "Leading Delimiter", toolName: "Split", args: MakeArgs(",a,b", ","), wantResult: []string{"", "a", "b"}},
+		{name: "Trailing Delimiter", toolName: "Split", args: MakeArgs("a,b,", ","), wantResult: []string{"a", "b", ""}},
+		{name: "Only Delimiter", toolName: "Split", args: MakeArgs(",", ","), wantResult: []string{"", ""}},
+		{name: "Empty String", toolName: "Split", args: MakeArgs("", ","), wantResult: []string{""}},
+		{name: "Empty Delimiter", toolName: "Split", args: MakeArgs("abc", ""), wantResult: []string{"a", "b", "c"}}, // Splits between UTF-8 chars
+		{name: "No Delimiter Found", toolName: "Split", args: MakeArgs("abc", ","), wantResult: []string{"abc"}},
+		{name: "Non-string Input", toolName: "Split", args: MakeArgs(123, ","), valWantErrIs: ErrValidationTypeMismatch},
+		{name: "Non-string Delimiter", toolName: "Split", args: MakeArgs("abc", 1), valWantErrIs: ErrValidationTypeMismatch},
+		{name: "Nil Input", toolName: "Split", args: MakeArgs(nil, ","), valWantErrIs: ErrValidationRequiredArgNil},
+		{name: "Nil Delimiter", toolName: "Split", args: MakeArgs("abc", nil), valWantErrIs: ErrValidationRequiredArgNil},
 	}
 	for _, tt := range tests {
 		testStringSplitJoinToolHelper(t, interp, tt)
@@ -160,16 +160,16 @@ func TestToolJoinStrings(t *testing.T) {
 		valWantErrIs  error
 	}{
 		// *** FIXED toolName prefix ***
-		{name: "Join Simple", toolName: "JoinStrings", args: MakeArgs(stringSlice, ","), wantResult: "a,b,c"},
-		{name: "Join Empty Sep", toolName: "JoinStrings", args: MakeArgs(stringSlice, ""), wantResult: "abc"},
-		{name: "Join Single Elem", toolName: "JoinStrings", args: MakeArgs([]interface{}{"a"}, ","), wantResult: "a"},
-		{name: "Join Empty Slice", toolName: "JoinStrings", args: MakeArgs([]interface{}{}, ","), wantResult: ""},
-		{name: "Join Mixed Types", toolName: "JoinStrings", args: MakeArgs(mixedSlice, "-"), wantResult: "a-1-true"}, // Converts elements to string
-		{name: "Join Numeric Types", toolName: "JoinStrings", args: MakeArgs(numSlice, " "), wantResult: "1 2.5 3"},
-		{name: "Non-slice First Arg (Validation Err)", toolName: "JoinStrings", args: MakeArgs("abc", ","), valWantErrIs: ErrValidationTypeMismatch},
-		{name: "Non-string Separator (Validation Err)", toolName: "JoinStrings", args: MakeArgs(stringSlice, 123), valWantErrIs: ErrValidationTypeMismatch},
-		{name: "Nil Slice", toolName: "JoinStrings", args: MakeArgs(nil, ","), valWantErrIs: ErrValidationRequiredArgNil},
-		{name: "Nil Separator", toolName: "JoinStrings", args: MakeArgs(stringSlice, nil), valWantErrIs: ErrValidationRequiredArgNil},
+		{name: "Join Simple", toolName: "Join", args: MakeArgs(stringSlice, ","), wantResult: "a,b,c"},
+		{name: "Join Empty Sep", toolName: "Join", args: MakeArgs(stringSlice, ""), wantResult: "abc"},
+		{name: "Join Single Elem", toolName: "Join", args: MakeArgs([]interface{}{"a"}, ","), wantResult: "a"},
+		{name: "Join Empty Slice", toolName: "Join", args: MakeArgs([]interface{}{}, ","), wantResult: ""},
+		{name: "Join Mixed Types", toolName: "Join", args: MakeArgs(mixedSlice, "-"), wantResult: "a-1-true"}, // Converts elements to string
+		{name: "Join Numeric Types", toolName: "Join", args: MakeArgs(numSlice, " "), wantResult: "1 2.5 3"},
+		{name: "Non-slice First Arg (Validation Err)", toolName: "Join", args: MakeArgs("abc", ","), valWantErrIs: ErrValidationTypeMismatch},
+		{name: "Non-string Separator (Validation Err)", toolName: "Join", args: MakeArgs(stringSlice, 123), valWantErrIs: ErrValidationTypeMismatch},
+		{name: "Nil Slice", toolName: "Join", args: MakeArgs(nil, ","), valWantErrIs: ErrValidationRequiredArgNil},
+		{name: "Nil Separator", toolName: "Join", args: MakeArgs(stringSlice, nil), valWantErrIs: ErrValidationRequiredArgNil},
 	}
 	for _, tt := range tests {
 		testStringSplitJoinToolHelper(t, interp, tt)

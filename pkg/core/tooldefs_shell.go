@@ -9,7 +9,7 @@ package core
 var shellToolsToRegister = []ToolImplementation{
 	{
 		Spec: ToolSpec{
-			Name:        "ExecuteCommand",
+			Name:        "Shell.Execute",
 			Description: "Executes an arbitrary shell command. WARNING: Use with extreme caution due to security risks. Command path validation is basic. Consider using specific tools (e.g., GoBuild, GitAdd) instead.",
 			Args: []ArgSpec{
 				{Name: "command", Type: ArgTypeString, Required: true, Description: "The command or executable path."},

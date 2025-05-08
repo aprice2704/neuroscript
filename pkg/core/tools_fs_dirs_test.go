@@ -26,7 +26,7 @@ func TestToolListDirectoryValidation(t *testing.T) {
 		{Name: "Correct Args (Path and Recursive)", InputArgs: MakeArgs("some/dir", true), ExpectedError: nil},
 		{Name: "Correct Args (Path and Nil Recursive)", InputArgs: MakeArgs("some/dir", nil), ExpectedError: nil},
 	}
-	runValidationTestCases(t, "ListDirectory", testCases)
+	runValidationTestCases(t, "FS.List", testCases)
 }
 
 // --- ListDirectory Functional Tests (Unchanged) ---
@@ -130,7 +130,7 @@ func TestToolListDirectoryFunctional(t *testing.T) {
 	testCases := []fsTestCase{
 		{
 			name:      "NonRecursive_Root_TestDir",
-			toolName:  "ListDirectory",
+			toolName:  "FS.List",
 			args:      MakeArgs("listTest", false),
 			setupFunc: setupListTest,
 			wantResult: []map[string]interface{}{
@@ -140,7 +140,7 @@ func TestToolListDirectoryFunctional(t *testing.T) {
 		},
 		{
 			name:      "NonRecursive_SubDir",
-			toolName:  "ListDirectory",
+			toolName:  "FS.List",
 			args:      MakeArgs("listTest/sub", nil), // Use nil for recursive arg
 			setupFunc: setupListTest,
 			wantResult: []map[string]interface{}{
@@ -150,7 +150,7 @@ func TestToolListDirectoryFunctional(t *testing.T) {
 		},
 		{
 			name:      "NonRecursive_SandboxRoot",
-			toolName:  "ListDirectory",
+			toolName:  "FS.List",
 			args:      MakeArgs(".", false),
 			setupFunc: setupListTest,
 			wantResult: []map[string]interface{}{
@@ -160,7 +160,7 @@ func TestToolListDirectoryFunctional(t *testing.T) {
 		},
 		{
 			name:      "Recursive_Root_TestDir",
-			toolName:  "ListDirectory",
+			toolName:  "FS.List",
 			args:      MakeArgs("listTest", true),
 			setupFunc: setupListTest,
 			wantResult: []map[string]interface{}{
@@ -173,7 +173,7 @@ func TestToolListDirectoryFunctional(t *testing.T) {
 		},
 		{
 			name:      "Recursive_SubDir",
-			toolName:  "ListDirectory",
+			toolName:  "FS.List",
 			args:      MakeArgs("listTest/sub", true),
 			setupFunc: setupListTest,
 			wantResult: []map[string]interface{}{
@@ -184,7 +184,7 @@ func TestToolListDirectoryFunctional(t *testing.T) {
 		},
 		{
 			name:          "Error_NonExistent",
-			toolName:      "ListDirectory",
+			toolName:      "FS.List",
 			args:          MakeArgs("listTest/nonexistent", false),
 			setupFunc:     setupListTest,
 			wantResult:    "path not found 'listTest/nonexistent'", // Expect specific message
@@ -192,7 +192,7 @@ func TestToolListDirectoryFunctional(t *testing.T) {
 		},
 		{
 			name:          "Error_IsFile",
-			toolName:      "ListDirectory",
+			toolName:      "FS.List",
 			args:          MakeArgs("listTest/file1.txt", false),
 			setupFunc:     setupListTest,
 			wantResult:    "path 'listTest/file1.txt' is not a directory", // Expect specific message
@@ -200,7 +200,7 @@ func TestToolListDirectoryFunctional(t *testing.T) {
 		},
 		{
 			name:          "Error_OutsideSandbox",
-			toolName:      "ListDirectory",
+			toolName:      "FS.List",
 			args:          MakeArgs("../listTest", false),
 			setupFunc:     setupListTest,
 			wantResult:    "path resolves outside allowed directory", // Expect specific message
@@ -231,7 +231,7 @@ func TestToolMkdirValidation(t *testing.T) {
 		{Name: "Wrong Arg Type", InputArgs: MakeArgs(123), ExpectedError: ErrValidationTypeMismatch},
 		{Name: "Correct Args", InputArgs: MakeArgs("new/dir"), ExpectedError: nil},
 	}
-	runValidationTestCases(t, "Mkdir", testCases)
+	runValidationTestCases(t, "FS.Mkdir", testCases)
 }
 
 // --- Mkdir Functional Tests ---
@@ -259,7 +259,7 @@ func TestToolMkdirFunctional(t *testing.T) {
 	testCases := []fsTestCase{
 		{
 			name:      "Create New Simple",
-			toolName:  "Mkdir",
+			toolName:  "FS.Mkdir",
 			args:      MakeArgs("newdir"),
 			setupFunc: setupMkdirTest,
 			wantResult: map[string]interface{}{
@@ -270,7 +270,7 @@ func TestToolMkdirFunctional(t *testing.T) {
 		},
 		{
 			name:      "Create Nested",
-			toolName:  "Mkdir",
+			toolName:  "FS.Mkdir",
 			args:      MakeArgs("parent/child"),
 			setupFunc: setupMkdirTest,
 			wantResult: map[string]interface{}{
@@ -281,7 +281,7 @@ func TestToolMkdirFunctional(t *testing.T) {
 		},
 		{
 			name:          "Create Existing Dir",
-			toolName:      "Mkdir",
+			toolName:      "FS.Mkdir",
 			args:          MakeArgs("existing_dir"),
 			setupFunc:     setupMkdirTest,
 			wantResult:    "directory 'existing_dir' already exists", // Specific error message
@@ -289,7 +289,7 @@ func TestToolMkdirFunctional(t *testing.T) {
 		},
 		{
 			name:          "Error_PathIsFile",
-			toolName:      "Mkdir",
+			toolName:      "FS.Mkdir",
 			args:          MakeArgs("existing_file"),
 			setupFunc:     setupMkdirTest,
 			wantResult:    "path 'existing_file' already exists and is a file", // Specific error message
@@ -297,7 +297,7 @@ func TestToolMkdirFunctional(t *testing.T) {
 		},
 		{
 			name:          "Error_OutsideSandbox_Simple",
-			toolName:      "Mkdir",
+			toolName:      "FS.Mkdir",
 			args:          MakeArgs("../outside"),
 			setupFunc:     setupMkdirTest,
 			wantResult:    "path resolves outside allowed directory", // Specific error message
@@ -307,7 +307,7 @@ func TestToolMkdirFunctional(t *testing.T) {
 		// Therefore, Mkdir should succeed.
 		{
 			name:      "Create_Complex_Traversal_Clean_Inside",
-			toolName:  "Mkdir",
+			toolName:  "FS.Mkdir",
 			args:      MakeArgs("some/dir/../../outside"),
 			setupFunc: setupMkdirTest,
 			wantResult: map[string]interface{}{
@@ -319,7 +319,7 @@ func TestToolMkdirFunctional(t *testing.T) {
 		},
 		{
 			name:          "Error_EmptyPath",
-			toolName:      "Mkdir",
+			toolName:      "FS.Mkdir",
 			args:          MakeArgs(""),
 			setupFunc:     setupMkdirTest,
 			wantResult:    "path argument cannot be empty", // Specific error message
@@ -327,7 +327,7 @@ func TestToolMkdirFunctional(t *testing.T) {
 		},
 		{
 			name:          "Error_DotPath",
-			toolName:      "Mkdir",
+			toolName:      "FS.Mkdir",
 			args:          MakeArgs("."),
 			setupFunc:     setupMkdirTest,
 			wantResult:    "path '.' is invalid for creating a directory", // Specific error message

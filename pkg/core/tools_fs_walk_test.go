@@ -179,7 +179,7 @@ func TestToolWalkDir(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			fsTC := fsTestCase{
 				name:          tc.name,
-				toolName:      "WalkDir",
+				toolName:      "FS.Walk",
 				args:          MakeArgs(tc.startPath),
 				wantResult:    tc.wantResult, // This is []walkResult for comparison func
 				wantToolErrIs: tc.wantToolErrIs,

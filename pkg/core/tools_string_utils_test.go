@@ -28,16 +28,16 @@ func TestToolLineCountString(t *testing.T) {
 		valWantErrIs  error
 	}{
 		// *** FIXED toolName prefix ***
-		{name: "Empty String", toolName: "LineCountString", args: MakeArgs(""), wantResult: int64(0)},
-		{name: "Single Line No NL", toolName: "LineCountString", args: MakeArgs("hello"), wantResult: int64(1)},
-		{name: "Single Line With NL", toolName: "LineCountString", args: MakeArgs("hello\n"), wantResult: int64(1)},
-		{name: "Two Lines No Trailing NL", toolName: "LineCountString", args: MakeArgs("hello\nworld"), wantResult: int64(2)},
-		{name: "Two Lines With Trailing NL", toolName: "LineCountString", args: MakeArgs("hello\nworld\n"), wantResult: int64(2)},
-		{name: "Multiple Blank Lines", toolName: "LineCountString", args: MakeArgs("\n\n\n"), wantResult: int64(3)}, // Changed expectation, blank lines count
-		{name: "Mixed Content and Blank", toolName: "LineCountString", args: MakeArgs("line1\n\nline3\n"), wantResult: int64(3)},
-		{name: "CRLF Line Endings", toolName: "LineCountString", args: MakeArgs("line1\r\nline2\r\n"), wantResult: int64(2)}, // Should handle CRLF
-		{name: "Validation Wrong Arg Type", toolName: "LineCountString", args: MakeArgs(123), valWantErrIs: ErrValidationTypeMismatch},
-		{name: "Validation Nil Arg", toolName: "LineCountString", args: MakeArgs(nil), valWantErrIs: ErrValidationRequiredArgNil},
+		{name: "Empty String", toolName: "LineCount", args: MakeArgs(""), wantResult: int64(0)},
+		{name: "Single Line No NL", toolName: "LineCount", args: MakeArgs("hello"), wantResult: int64(1)},
+		{name: "Single Line With NL", toolName: "LineCount", args: MakeArgs("hello\n"), wantResult: int64(1)},
+		{name: "Two Lines No Trailing NL", toolName: "LineCount", args: MakeArgs("hello\nworld"), wantResult: int64(2)},
+		{name: "Two Lines With Trailing NL", toolName: "LineCount", args: MakeArgs("hello\nworld\n"), wantResult: int64(2)},
+		{name: "Multiple Blank Lines", toolName: "LineCount", args: MakeArgs("\n\n\n"), wantResult: int64(3)}, // Changed expectation, blank lines count
+		{name: "Mixed Content and Blank", toolName: "LineCount", args: MakeArgs("line1\n\nline3\n"), wantResult: int64(3)},
+		{name: "CRLF Line Endings", toolName: "LineCount", args: MakeArgs("line1\r\nline2\r\n"), wantResult: int64(2)}, // Should handle CRLF
+		{name: "Validation Wrong Arg Type", toolName: "LineCount", args: MakeArgs(123), valWantErrIs: ErrValidationTypeMismatch},
+		{name: "Validation Nil Arg", toolName: "LineCount", args: MakeArgs(nil), valWantErrIs: ErrValidationRequiredArgNil},
 	}
 	for _, tt := range tests {
 		// *** Use the correct helper ***

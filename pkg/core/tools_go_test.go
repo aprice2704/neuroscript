@@ -171,9 +171,9 @@ func TestToolGoGetModuleInfo(t *testing.T) {
 	}
 
 	// --- Get Tool Spec ---
-	toolImpl, found := baseInterp.ToolRegistry().GetTool("GoGetModuleInfo")
+	toolImpl, found := baseInterp.ToolRegistry().GetTool("Go.GetModuleInfo")
 	if !found {
-		t.Fatalf("Tool %q not found in registry", "GoGetModuleInfo")
+		t.Fatalf("Tool %q not found in registry", "Go.GetModuleInfo")
 	}
 	spec := toolImpl.Spec
 

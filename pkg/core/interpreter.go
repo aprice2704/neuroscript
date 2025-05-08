@@ -276,7 +276,7 @@ func (i *Interpreter) FileAPI() *FileAPI {
 }
 
 func (i *Interpreter) SetSandboxDir(newSandboxDir string) error {
-	i.Logger().Debug("Attempting to set new sandbox directory.", "new_path", newSandboxDir)
+	i.Logger().Debugf("New sandbox directory:%s", newSandboxDir)
 	var cleanNewSandboxDir string
 	if newSandboxDir == "" {
 		cleanNewSandboxDir = "."
@@ -290,12 +290,12 @@ func (i *Interpreter) SetSandboxDir(newSandboxDir string) error {
 		cleanNewSandboxDir = filepath.Clean(absPath)
 	}
 	if i.sandboxDir != cleanNewSandboxDir {
-		i.Logger().Info("Interpreter sandbox directory changed.", "old", i.sandboxDir, "new", cleanNewSandboxDir)
+		i.Logger().Infof("sandbox directory changed to: %s", cleanNewSandboxDir)
 		i.sandboxDir = cleanNewSandboxDir
 		i.fileAPI, _ = NewFileAPI(i.sandboxDir, i.logger)
-		i.Logger().Info("FileAPI re-initialized with new sandbox directory.", "path", i.fileAPI.sandboxRoot)
+		i.Logger().Infof("FileAPI re-initialized with new sandbox directory: %s", i.fileAPI.sandboxRoot)
 	} else {
-		i.Logger().Debug("New sandbox directory is the same as the current one. No change made.", "path", cleanNewSandboxDir)
+		i.Logger().Debug("New sandbox directory is unchanged")
 	}
 	return nil
 }

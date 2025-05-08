@@ -49,7 +49,7 @@ func TestToolStat(t *testing.T) {
 	testCases := []fsTestCase{
 		{
 			name:     "Happy Path - Existing File",
-			toolName: "StatPath",
+			toolName: "FS.Stat",
 			args:     MakeArgs(testFileName),
 			wantResult: map[string]interface{}{
 				"name":             testFileName,
@@ -64,7 +64,7 @@ func TestToolStat(t *testing.T) {
 		},
 		{
 			name:     "Happy Path - Existing Directory",
-			toolName: "StatPath",
+			toolName: "FS.Stat",
 			args:     MakeArgs(testDirName),
 			wantResult: map[string]interface{}{
 				"name":             testDirName,
@@ -79,7 +79,7 @@ func TestToolStat(t *testing.T) {
 		},
 		{
 			name:     "Happy Path - Current Directory",
-			toolName: "StatPath",
+			toolName: "FS.Stat",
 			args:     MakeArgs("."),
 			wantResult: map[string]interface{}{
 				"path":             ".",
@@ -93,56 +93,56 @@ func TestToolStat(t *testing.T) {
 		},
 		{
 			name:          "Unhappy Path - Non-existent File",
-			toolName:      "StatPath",
+			toolName:      "FS.Stat",
 			args:          MakeArgs("non_existent_file.txt"),
 			wantResult:    "path not found 'non_existent_file.txt'",
 			wantToolErrIs: ErrFileNotFound,
 		},
 		{
 			name:          "Unhappy Path - Outside Sandbox",
-			toolName:      "StatPath",
+			toolName:      "FS.Stat",
 			args:          MakeArgs("../outside_file.txt"),
 			wantResult:    "path resolves outside allowed directory",
 			wantToolErrIs: ErrPathViolation,
 		},
 		{
 			name:          "Unhappy Path - Absolute Path",
-			toolName:      "StatPath",
+			toolName:      "FS.Stat",
 			args:          MakeArgs("/abs/path/test.txt"),
 			wantResult:    "must be relative, not absolute",
 			wantToolErrIs: ErrPathViolation,
 		},
 		{
 			name:          "Unhappy Path - Empty Path",
-			toolName:      "StatPath",
+			toolName:      "FS.Stat",
 			args:          MakeArgs(""),
 			wantResult:    "path argument cannot be empty",
 			wantToolErrIs: ErrInvalidArgument,
 		},
 		{
 			name:          "Unhappy Path - Null Byte Path",
-			toolName:      "StatPath",
+			toolName:      "FS.Stat",
 			args:          MakeArgs("file\x00withnull.txt"),
 			wantResult:    "path contains null byte",
 			wantToolErrIs: ErrNullByteInArgument,
 		},
 		{
 			name:          "Validation_Wrong_Arg_Type",
-			toolName:      "StatPath",
+			toolName:      "FS.Stat",
 			args:          MakeArgs(123),
 			wantResult:    "path argument must be a string",
 			wantToolErrIs: ErrInvalidArgument,
 		},
 		{
 			name:          "Validation_Nil_Arg",
-			toolName:      "StatPath",
+			toolName:      "FS.Stat",
 			args:          MakeArgs(nil),
 			wantResult:    "path argument must be a string",
 			wantToolErrIs: ErrInvalidArgument,
 		},
 		{
 			name:          "Validation_Missing_Arg",
-			toolName:      "StatPath",
+			toolName:      "FS.Stat",
 			args:          MakeArgs(),
 			wantResult:    "expected 1 argument",
 			wantToolErrIs: ErrArgumentMismatch,

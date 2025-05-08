@@ -10,6 +10,7 @@ import (
 	"fmt"           // Keep fmt
 	"os"            // Keep os
 	"path/filepath" // Keep filepath
+
 	// For checking error substrings
 	"testing"
 )
@@ -79,7 +80,7 @@ func TestToolDeleteFile(t *testing.T) {
 	tests := []fsTestCase{
 		{
 			name:       "Delete Existing File",
-			toolName:   "DeleteFile",
+			toolName:   "FS.Delete",
 			args:       MakeArgs(fileToDeleteRel),
 			setupFunc:  setupDeleteFileTest,
 			wantResult: "OK",
@@ -88,7 +89,7 @@ func TestToolDeleteFile(t *testing.T) {
 		},
 		{
 			name:        "Delete Empty Directory",
-			toolName:    "DeleteFile",
+			toolName:    "FS.Delete",
 			args:        MakeArgs(dirToDeleteRel),
 			setupFunc:   setupDeleteFileTest,
 			wantResult:  "OK",
@@ -96,7 +97,7 @@ func TestToolDeleteFile(t *testing.T) {
 		},
 		{
 			name:       "Delete Non-Existent File",
-			toolName:   "DeleteFile",
+			toolName:   "FS.Delete",
 			args:       MakeArgs("noSuchFile.txt"),
 			setupFunc:  setupDeleteFileTest,
 			wantResult: "OK",
@@ -104,7 +105,7 @@ func TestToolDeleteFile(t *testing.T) {
 		},
 		{
 			name:          "Delete Non-Empty Directory",
-			toolName:      "DeleteFile",
+			toolName:      "FS.Delete",
 			args:          MakeArgs(nonEmptyDirRel),
 			setupFunc:     setupDeleteFileTest,
 			wantResult:    "directory not empty", // Expect substring
@@ -113,14 +114,14 @@ func TestToolDeleteFile(t *testing.T) {
 		},
 		{
 			name:          "Validation_Wrong_Arg_Type",
-			toolName:      "DeleteFile",
+			toolName:      "FS.Delete",
 			args:          MakeArgs(12345),
 			wantResult:    "path argument must be a string",
 			wantToolErrIs: ErrInvalidArgument,
 		},
 		{
 			name:          "Path_Outside_Sandbox",
-			toolName:      "DeleteFile",
+			toolName:      "FS.Delete",
 			args:          MakeArgs("../someFile"),
 			setupFunc:     setupDeleteFileTest,
 			wantResult:    "path resolves outside allowed directory",
@@ -128,21 +129,21 @@ func TestToolDeleteFile(t *testing.T) {
 		},
 		{
 			name:          "Validation_Missing_Arg",
-			toolName:      "DeleteFile",
+			toolName:      "FS.Delete",
 			args:          MakeArgs(),
 			wantResult:    "expected 1 argument",
 			wantToolErrIs: ErrArgumentMismatch,
 		},
 		{
 			name:          "Validation_Nil_Arg",
-			toolName:      "DeleteFile",
+			toolName:      "FS.Delete",
 			args:          MakeArgs(nil),
 			wantResult:    "path argument must be a string",
 			wantToolErrIs: ErrInvalidArgument,
 		},
 		{
 			name:          "Validation_Empty_String_Arg",
-			toolName:      "DeleteFile",
+			toolName:      "FS.Delete",
 			args:          MakeArgs(""),
 			wantResult:    "path cannot be empty",
 			wantToolErrIs: ErrInvalidArgument,

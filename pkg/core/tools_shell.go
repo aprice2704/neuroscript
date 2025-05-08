@@ -17,9 +17,9 @@ import (
 )
 
 // toolExecuteCommand executes an external command securely within the sandbox.
-// Corresponds to ToolSpec "ExecuteCommand".
+// Corresponds to ToolSpec "Shell.Execute".
 func toolExecuteCommand(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	toolName := "ExecuteCommand"
+	toolName := "Shell.Execute"
 
 	// Expected args: command (string), args_list ([]string, optional), directory (string, optional)
 	if len(args) < 1 || len(args) > 3 {

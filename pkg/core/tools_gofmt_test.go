@@ -14,7 +14,7 @@ import (
 // --- (testGoFormatToolHelper remains unchanged) ---
 func testGoFormatToolHelper(t *testing.T, interp *Interpreter, tc struct {
 	name             string
-	toolName         string        // "GoFmt" or "GoImports"
+	toolName         string        // "Go.Fmt" or "Go.Imports"
 	args             []interface{} // Raw args for the tool
 	wantResult       interface{}   // Expected result (string for success, map for error)
 	wantErrResultNil bool          // Should the result be nil (e.g., validation error)
@@ -154,7 +154,7 @@ func main() {
 	}{
 		{
 			name:             "Format valid code",
-			toolName:         "GoFmt",
+			toolName:         "Go.Fmt",
 			args:             MakeArgs(unformattedSource),
 			wantResult:       formattedSource,
 			wantErrResultNil: false,
@@ -163,7 +163,7 @@ func main() {
 		},
 		{
 			name:             "Format already formatted code",
-			toolName:         "GoFmt",
+			toolName:         "Go.Fmt",
 			args:             MakeArgs(formattedSource),
 			wantResult:       formattedSource, // Should be idempotent
 			wantErrResultNil: false,
@@ -172,7 +172,7 @@ func main() {
 		},
 		{
 			name:     "Format invalid code",
-			toolName: "GoFmt",
+			toolName: "Go.Fmt",
 			args:     MakeArgs(invalidSource),
 			wantResult: map[string]interface{}{
 				"formatted_content": invalidSource,
@@ -185,7 +185,7 @@ func main() {
 		},
 		{
 			name:             "Validation_Wrong_Arg_Type",
-			toolName:         "GoFmt",
+			toolName:         "Go.Fmt",
 			args:             MakeArgs(123),
 			wantResult:       nil,
 			wantErrResultNil: true, // Expect nil result due to validation error
@@ -194,7 +194,7 @@ func main() {
 		},
 		{
 			name:             "Validation_Missing_Arg",
-			toolName:         "GoFmt",
+			toolName:         "Go.Fmt",
 			args:             MakeArgs(),
 			wantResult:       nil,
 			wantErrResultNil: true, // Expect nil result due to validation error
@@ -280,7 +280,7 @@ func main() {
 	}{
 		{
 			name:             "Add missing import",
-			toolName:         "GoImports",
+			toolName:         "Go.Imports",
 			args:             MakeArgs(needsImportAdded),
 			wantResult:       wantImportAdded,
 			wantErrResultNil: false,
@@ -289,7 +289,7 @@ func main() {
 		},
 		{
 			name:             "Remove unused import",
-			toolName:         "GoImports",
+			toolName:         "Go.Imports",
 			args:             MakeArgs(needsImportRemoved),
 			wantResult:       wantImportRemoved,
 			wantErrResultNil: false,
@@ -298,7 +298,7 @@ func main() {
 		},
 		{
 			name:             "Format and manage imports",
-			toolName:         "GoImports",
+			toolName:         "Go.Imports",
 			args:             MakeArgs(needsFmtAndImport),
 			wantResult:       wantFmtAndImport, // Use corrected want string
 			wantErrResultNil: false,
@@ -307,7 +307,7 @@ func main() {
 		},
 		{
 			name:             "Already formatted code",
-			toolName:         "GoImports",
+			toolName:         "Go.Imports",
 			args:             MakeArgs(wantFmtAndImport), // Use already correct code
 			wantResult:       wantFmtAndImport,           // Idempotent
 			wantErrResultNil: false,
@@ -316,7 +316,7 @@ func main() {
 		},
 		{
 			name:     "Syntax error",
-			toolName: "GoImports",
+			toolName: "Go.Imports",
 			args:     MakeArgs(invalidSource),
 			wantResult: map[string]interface{}{
 				"formatted_content": invalidSource,
@@ -329,7 +329,7 @@ func main() {
 		},
 		{
 			name:             "Validation_Wrong_Arg_Type",
-			toolName:         "GoImports",
+			toolName:         "Go.Imports",
 			args:             MakeArgs(false),
 			wantResult:       nil,
 			wantErrResultNil: true,
@@ -338,7 +338,7 @@ func main() {
 		},
 		{
 			name:             "Validation_Missing_Arg",
-			toolName:         "GoImports",
+			toolName:         "Go.Imports",
 			args:             MakeArgs(),
 			wantResult:       nil,
 			wantErrResultNil: true,

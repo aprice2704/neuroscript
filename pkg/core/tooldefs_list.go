@@ -9,13 +9,13 @@ package core
 var listToolsToRegister = []ToolImplementation{
 	// Existing tools...
 	{Spec: ToolSpec{
-		Name:        "ListLength",
+		Name:        "List.Length",
 		Description: "Returns the number of elements in a list.",
 		Args:        []ArgSpec{{Name: "list", Type: ArgTypeSliceAny, Required: true}},
 		ReturnType:  ArgTypeInt,
 	}, Func: toolListLength},
 	{Spec: ToolSpec{
-		Name:        "ListAppend",
+		Name:        "List.Append",
 		Description: "Returns a *new* list with the given element added to the end.",
 		Args: []ArgSpec{
 			{Name: "list", Type: ArgTypeSliceAny, Required: true},
@@ -25,7 +25,7 @@ var listToolsToRegister = []ToolImplementation{
 		ReturnType: ArgTypeSliceAny,
 	}, Func: toolListAppend},
 	{Spec: ToolSpec{
-		Name:        "ListPrepend",
+		Name:        "List.Prepend",
 		Description: "Returns a *new* list with the given element added to the beginning.",
 		Args: []ArgSpec{
 			{Name: "list", Type: ArgTypeSliceAny, Required: true},
@@ -35,7 +35,7 @@ var listToolsToRegister = []ToolImplementation{
 		ReturnType: ArgTypeSliceAny,
 	}, Func: toolListPrepend},
 	{Spec: ToolSpec{
-		Name:        "ListGet",
+		Name:        "List.Get",
 		Description: "Safely gets the element at a specific index (0-based). Returns nil or the optional default value if the index is out of bounds.",
 		Args: []ArgSpec{
 			{Name: "list", Type: ArgTypeSliceAny, Required: true},
@@ -45,7 +45,7 @@ var listToolsToRegister = []ToolImplementation{
 		ReturnType: ArgTypeAny,
 	}, Func: toolListGet},
 	{Spec: ToolSpec{
-		Name:        "ListSlice",
+		Name:        "List.Slice",
 		Description: "Returns a *new* list containing elements from the start index (inclusive) up to the end index (exclusive). Follows Go slice semantics (indices are clamped, invalid range returns empty list).",
 		Args: []ArgSpec{
 			{Name: "list", Type: ArgTypeSliceAny, Required: true},
@@ -55,7 +55,7 @@ var listToolsToRegister = []ToolImplementation{
 		ReturnType: ArgTypeSliceAny,
 	}, Func: toolListSlice},
 	{Spec: ToolSpec{
-		Name:        "ListContains",
+		Name:        "List.Contains",
 		Description: "Checks if a list contains a specific element (using deep equality comparison).",
 		Args: []ArgSpec{
 			{Name: "list", Type: ArgTypeSliceAny, Required: true},
@@ -65,31 +65,31 @@ var listToolsToRegister = []ToolImplementation{
 		ReturnType: ArgTypeBool,
 	}, Func: toolListContains},
 	{Spec: ToolSpec{
-		Name:        "ListReverse",
+		Name:        "List.Reverse",
 		Description: "Returns a *new* list with the elements in reverse order.",
 		Args:        []ArgSpec{{Name: "list", Type: ArgTypeSliceAny, Required: true}},
 		ReturnType:  ArgTypeSliceAny,
 	}, Func: toolListReverse},
 	{Spec: ToolSpec{
-		Name:        "ListSort",
+		Name:        "List.Sort",
 		Description: "Returns a *new* list with elements sorted. Restricted to lists containing only numbers (int/float) or only strings. Throws error for mixed types or non-sortable types (nil, bool, list, map).",
 		Args:        []ArgSpec{{Name: "list", Type: ArgTypeSliceAny, Required: true}},
 		ReturnType:  ArgTypeSliceAny, // Return type is always a slice
 	}, Func: toolListSort},
 	{Spec: ToolSpec{
-		Name:        "ListHead",
+		Name:        "List.Head",
 		Description: "Returns the first element of the list, or nil if the list is empty.",
 		Args:        []ArgSpec{{Name: "list", Type: ArgTypeSliceAny, Required: true}},
 		ReturnType:  ArgTypeAny, // Can return any type or nil
 	}, Func: toolListHead},
 	{Spec: ToolSpec{
-		Name:        "ListRest",
+		Name:        "List.Rest",
 		Description: "Returns a *new* list containing all elements except the first. Returns an empty list if the input list has 0 or 1 element.",
 		Args:        []ArgSpec{{Name: "list", Type: ArgTypeSliceAny, Required: true}},
 		ReturnType:  ArgTypeSliceAny,
 	}, Func: toolListRest},
 	{Spec: ToolSpec{
-		Name:        "ListTail",
+		Name:        "List.Tail",
 		Description: "Returns a *new* list containing the last 'count' elements. Returns an empty list if count <= 0. Returns a copy of the whole list if count >= list length.",
 		Args: []ArgSpec{
 			{Name: "list", Type: ArgTypeSliceAny, Required: true},
@@ -98,7 +98,7 @@ var listToolsToRegister = []ToolImplementation{
 		ReturnType: ArgTypeSliceAny,
 	}, Func: toolListTail},
 	{Spec: ToolSpec{
-		Name:        "ListIsEmpty",
+		Name:        "List.IsEmpty",
 		Description: "Returns true if the list has zero elements, false otherwise.",
 		Args:        []ArgSpec{{Name: "list", Type: ArgTypeSliceAny, Required: true}},
 		ReturnType:  ArgTypeBool,

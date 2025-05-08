@@ -11,7 +11,7 @@ package core
 var goToolsToRegister = []ToolImplementation{
 	{
 		Spec: ToolSpec{
-			Name:        "GoModTidy",
+			Name:        "Go.ModTidy",
 			Description: "Runs 'go mod tidy' in the sandbox to add missing and remove unused modules. Operates in the sandbox root.",
 			Args:        []ArgSpec{},
 			ReturnType:  ArgTypeMap,
@@ -20,7 +20,7 @@ var goToolsToRegister = []ToolImplementation{
 	},
 	{
 		Spec: ToolSpec{
-			Name:        "GoListPackages",
+			Name:        "Go.ListPackages",
 			Description: "Runs 'go list -json' for specified patterns in a target directory. Returns a list of maps, each describing a package.",
 			Args: []ArgSpec{
 				{Name: "target_directory", Type: ArgTypeString, Required: false, Description: "Optional. The directory relative to the sandbox root to run 'go list'. Defaults to '.' (sandbox root)."},
@@ -32,7 +32,7 @@ var goToolsToRegister = []ToolImplementation{
 	},
 	{
 		Spec: ToolSpec{
-			Name:        "GoBuild",
+			Name:        "Go.Build",
 			Description: "Runs 'go build' for a specified target in the sandbox. Defaults to './...'.",
 			Args: []ArgSpec{
 				{Name: "target", Type: ArgTypeString, Required: false, Description: "Optional. The build target (e.g., a package path or './...'). Defaults to './...'."},
@@ -43,7 +43,7 @@ var goToolsToRegister = []ToolImplementation{
 	},
 	{
 		Spec: ToolSpec{
-			Name:        "GoTest",
+			Name:        "Go.Test",
 			Description: "Runs 'go test' for a specified target in the sandbox. Defaults to './...'.",
 			Args: []ArgSpec{
 				{Name: "target", Type: ArgTypeString, Required: false, Description: "Optional. The test target (e.g., a package path or './...'). Defaults to './...'."},
@@ -54,7 +54,7 @@ var goToolsToRegister = []ToolImplementation{
 	},
 	{
 		Spec: ToolSpec{
-			Name:        "GoFmt", // Corrected name to match test expectation for toolGoFmt
+			Name:        "Go.Fmt", // Corrected name to match test expectation for toolGoFmt
 			Description: "Formats Go source code using 'go/format.Source'. Returns the formatted code or an error map.",
 			Args: []ArgSpec{
 				{Name: "content", Type: ArgTypeString, Required: true, Description: "The Go source code content to format."},
@@ -65,7 +65,7 @@ var goToolsToRegister = []ToolImplementation{
 	},
 	{
 		Spec: ToolSpec{
-			Name:        "GoImports",
+			Name:        "Go.Imports",
 			Description: "Formats Go source code and adjusts imports using 'golang.org/x/tools/imports'. Returns the processed code or an error map.",
 			Args: []ArgSpec{
 				{Name: "content", Type: ArgTypeString, Required: true, Description: "The Go source code content to process."},
@@ -76,7 +76,7 @@ var goToolsToRegister = []ToolImplementation{
 	},
 	{
 		Spec: ToolSpec{
-			Name:        "GoVet",
+			Name:        "Go.Vet",
 			Description: "Runs 'go vet' on the specified target(s) in the sandbox to report likely mistakes in Go source code. Defaults to './...'.",
 			Args: []ArgSpec{
 				{Name: "target", Type: ArgTypeString, Required: false, Description: "Optional. The target for 'go vet' (e.g., a package path or './...'). Defaults to './...'."},
@@ -98,7 +98,7 @@ var goToolsToRegister = []ToolImplementation{
 	},
 	{
 		Spec: ToolSpec{
-			Name:        "GoFindDeclarations",
+			Name:        "Go.FindDeclarations",
 			Description: "Finds the declaration location of the Go symbol at the specified file position using a semantic index handle.",
 			Args: []ArgSpec{
 				{Name: "index_handle", Type: ArgTypeString, Required: true, Description: "Handle returned by GoIndexCode."},
@@ -112,7 +112,7 @@ var goToolsToRegister = []ToolImplementation{
 	},
 	{
 		Spec: ToolSpec{
-			Name: "GoFindUsages",
+			Name: "Go.FindUsages",
 			Description: "Finds all usage locations of a Go symbol given its definition site or any usage site. " +
 				"Requires a semantic index handle created by GoIndexCode.",
 			Args: []ArgSpec{
@@ -127,7 +127,7 @@ var goToolsToRegister = []ToolImplementation{
 	},
 	{
 		Spec: ToolSpec{
-			Name:        "GoIndexCode",
+			Name:        "Go.IndexCode",
 			Description: "Loads Go package information for the specified directory using 'go/packages' to build an in-memory semantic index. Returns a handle to the index.",
 			Args: []ArgSpec{
 				{Name: "directory", Type: ArgTypeString, Required: false, Description: "Directory relative to sandbox to index (packages loaded via './...'). Defaults to sandbox root ('.')."},
@@ -138,7 +138,7 @@ var goToolsToRegister = []ToolImplementation{
 	},
 	{
 		Spec: ToolSpec{
-			Name:        "GoCheck",
+			Name:        "Go.Check",
 			Description: "Checks Go code validity using 'go list -e -json <target>' within the sandbox. Returns a map indicating success and error details.",
 			Args:        []ArgSpec{{Name: "target", Type: ArgTypeString, Required: true, Description: "Target Go package path or file path relative to sandbox (e.g., './pkg/core', 'main.go')."}},
 			ReturnType:  ArgTypeMap,
@@ -147,7 +147,7 @@ var goToolsToRegister = []ToolImplementation{
 	},
 	{
 		Spec: ToolSpec{
-			Name:        "GoGetModuleInfo",
+			Name:        "Go.GetModuleInfo",
 			Description: "Finds and parses the go.mod file relevant to a directory by searching upwards. Returns a map with module path, go version, root directory, requires, and replaces, or nil if not found.",
 			Args:        []ArgSpec{{Name: "directory", Type: ArgTypeString, Required: false, Description: "Directory (relative to sandbox) to start searching upwards for go.mod. Defaults to '.' (sandbox root)."}},
 			ReturnType:  ArgTypeMap,

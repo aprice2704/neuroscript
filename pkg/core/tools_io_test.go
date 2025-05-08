@@ -59,7 +59,7 @@ func TestToolIOInputValidation(t *testing.T) {
 
 	// --- Get Tool Spec ---
 	// Use the correct tool name as registered (assuming "IO.Input")
-	toolName := "IO.Input"
+	toolName := "Input"
 	toolImpl, found := interp.ToolRegistry().GetTool(toolName)
 	if !found {
 		t.Fatalf("FATAL: Tool %q not found in registry during test setup.", toolName)

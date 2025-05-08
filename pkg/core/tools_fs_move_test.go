@@ -25,7 +25,7 @@ func TestToolMoveFileValidation(t *testing.T) {
 		{Name: "Correct Args", InputArgs: MakeArgs("source.txt", "destination.txt"), ExpectedError: nil},
 		// Note: Path security validation happens inside the tool function
 	}
-	runValidationTestCases(t, "MoveFile", testCases)
+	runValidationTestCases(t, "FS.Move", testCases)
 }
 
 // --- MoveFile Functional Tests ---

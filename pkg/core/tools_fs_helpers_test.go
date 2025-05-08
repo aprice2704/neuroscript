@@ -154,7 +154,7 @@ func testFsToolHelperInternal(t *testing.T, interp *Interpreter, tc fsTestCase, 
 	}
 
 	// --- File Content Verification (for WriteFile) ---
-	if tc.wantContent != "" && tc.toolName == "WriteFile" {
+	if tc.wantContent != "" && tc.toolName == "FS.Write" {
 		filePathRel, ok := tc.args[0].(string)
 		if !ok || len(tc.args) < 1 {
 			t.Errorf("Test %q: Cannot verify file content, first arg is not a string path", tc.name)

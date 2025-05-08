@@ -90,12 +90,12 @@ func TestToolStringLength(t *testing.T) {
 		wantToolErrIs error
 		valWantErrIs  error
 	}{
-		{name: "Simple", toolName: "StringLength", args: MakeArgs("hello"), wantResult: int64(5)},
-		{name: "Empty", toolName: "StringLength", args: MakeArgs(""), wantResult: int64(0)},
-		{name: "UTF8", toolName: "StringLength", args: MakeArgs("你好"), wantResult: int64(2)}, // 2 runes
-		{name: "Validation Wrong Type", toolName: "StringLength", args: MakeArgs(123), valWantErrIs: ErrValidationTypeMismatch},
-		{name: "Validation Nil", toolName: "StringLength", args: MakeArgs(nil), valWantErrIs: ErrValidationRequiredArgNil},
-		{name: "Validation Wrong Count", toolName: "StringLength", args: MakeArgs("a", "b"), valWantErrIs: ErrValidationArgCount},
+		{name: "Simple", toolName: "Length", args: MakeArgs("hello"), wantResult: int64(5)},
+		{name: "Empty", toolName: "Length", args: MakeArgs(""), wantResult: int64(0)},
+		{name: "UTF8", toolName: "Length", args: MakeArgs("你好"), wantResult: int64(2)}, // 2 runes
+		{name: "Validation Wrong Type", toolName: "Length", args: MakeArgs(123), valWantErrIs: ErrValidationTypeMismatch},
+		{name: "Validation Nil", toolName: "Length", args: MakeArgs(nil), valWantErrIs: ErrValidationRequiredArgNil},
+		{name: "Validation Wrong Count", toolName: "Length", args: MakeArgs("a", "b"), valWantErrIs: ErrValidationArgCount},
 	}
 	for _, tt := range tests {
 		testStringToolHelper(t, interp, struct {
@@ -231,19 +231,19 @@ func TestToolReplaceAll(t *testing.T) {
 		wantToolErrIs error
 		valWantErrIs  error
 	}{
-		{name: "Simple Replace", toolName: "ReplaceAll", args: MakeArgs("hello world", "l", "X"), wantResult: "heXXo worXd"},
-		{name: "Replace Multiple", toolName: "ReplaceAll", args: MakeArgs("banana", "a", "o"), wantResult: "bonono"},
+		{name: "Simple Replace", toolName: "Replace", args: MakeArgs("hello world", "l", "X"), wantResult: "heXXo worXd"},
+		{name: "Replace Multiple", toolName: "Replace", args: MakeArgs("banana", "a", "o"), wantResult: "bonono"},
 		// *** UPDATED Expected Result for Replace Empty Old ***
-		{name: "Replace Empty Old", toolName: "ReplaceAll", args: MakeArgs("abc", "", "X"), wantResult: "XaXbXcX"}, // Corrected expectation
-		{name: "Replace Empty New", toolName: "ReplaceAll", args: MakeArgs("abc", "b", ""), wantResult: "ac"},
-		{name: "Replace Not Found", toolName: "ReplaceAll", args: MakeArgs("abc", "z", "X"), wantResult: "abc"},
-		{name: "Replace In Empty", toolName: "ReplaceAll", args: MakeArgs("", "a", "X"), wantResult: ""},
-		{name: "Non-string Input", toolName: "ReplaceAll", args: MakeArgs(123, "a", "b"), valWantErrIs: ErrValidationTypeMismatch},
-		{name: "Non-string Old", toolName: "ReplaceAll", args: MakeArgs("abc", 1, "b"), valWantErrIs: ErrValidationTypeMismatch},
-		{name: "Non-string New", toolName: "ReplaceAll", args: MakeArgs("abc", "a", 2), valWantErrIs: ErrValidationTypeMismatch},
-		{name: "Nil Input", toolName: "ReplaceAll", args: MakeArgs(nil, "a", "b"), valWantErrIs: ErrValidationRequiredArgNil},
-		{name: "Nil Old", toolName: "ReplaceAll", args: MakeArgs("abc", nil, "b"), valWantErrIs: ErrValidationRequiredArgNil},
-		{name: "Nil New", toolName: "ReplaceAll", args: MakeArgs("abc", "a", nil), valWantErrIs: ErrValidationRequiredArgNil},
+		{name: "Replace Empty Old", toolName: "Replace", args: MakeArgs("abc", "", "X"), wantResult: "XaXbXcX"}, // Corrected expectation
+		{name: "Replace Empty New", toolName: "Replace", args: MakeArgs("abc", "b", ""), wantResult: "ac"},
+		{name: "Replace Not Found", toolName: "Replace", args: MakeArgs("abc", "z", "X"), wantResult: "abc"},
+		{name: "Replace In Empty", toolName: "Replace", args: MakeArgs("", "a", "X"), wantResult: ""},
+		{name: "Non-string Input", toolName: "Replace", args: MakeArgs(123, "a", "b"), valWantErrIs: ErrValidationTypeMismatch},
+		{name: "Non-string Old", toolName: "Replace", args: MakeArgs("abc", 1, "b"), valWantErrIs: ErrValidationTypeMismatch},
+		{name: "Non-string New", toolName: "Replace", args: MakeArgs("abc", "a", 2), valWantErrIs: ErrValidationTypeMismatch},
+		{name: "Nil Input", toolName: "Replace", args: MakeArgs(nil, "a", "b"), valWantErrIs: ErrValidationRequiredArgNil},
+		{name: "Nil Old", toolName: "Replace", args: MakeArgs("abc", nil, "b"), valWantErrIs: ErrValidationRequiredArgNil},
+		{name: "Nil New", toolName: "Replace", args: MakeArgs("abc", "a", nil), valWantErrIs: ErrValidationRequiredArgNil},
 	}
 	for _, tt := range tests {
 		testStringToolHelper(t, interp, struct {
