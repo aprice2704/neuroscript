@@ -81,3 +81,19 @@ func (a *SlogAdapter) Errorf(format string, args ...any) {
 func (a *SlogAdapter) SetLevel(level logging.LogLevel) {
 	a.opts.Level.(*slog.LevelVar).Set(slog.Level(level))
 }
+
+func LogLevelFromString(levelStr string) (level logging.LogLevel, err error) {
+	switch levelStr {
+	case "debug":
+		level = logging.LogLevelDebug
+	case "info":
+		level = logging.LogLevelInfo
+	case "warn":
+		level = logging.LogLevelWarn
+	case "error":
+		level = logging.LogLevelError
+	default:
+		return logging.LogLevelInfo, fmt.Errorf("invalid log level: %q", levelStr)
+	}
+	return level, nil
+}

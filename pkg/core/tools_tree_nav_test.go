@@ -1,14 +1,14 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.1.0
-// Tests for tree navigation tools (GetNode, GetChildren, GetParent).
-// nlines: 115
+// File version: 0.1.1
+// Updated tests to expect "children" key from Tree.GetNode output.
+// nlines: 115 // Approximate
 // risk_rating: MEDIUM
 // filename: pkg/core/tools_tree_nav_test.go
 
 package core
 
 import (
-	"errors"
+	"errors" // Added for DeepEqual
 	"testing"
 )
 
@@ -25,11 +25,10 @@ func TestTreeNavigationTools(t *testing.T) {
 		],
 		"metadata": {"owner": "admin"}
 	}`
-	rootHandle := setupTreeWithJSON(t, interp, jsonInput) // Load once for all nav tests
-	rootNodeID := "node-1"                                // Assume root is node-1 based on current LoadJSON behavior
+	rootHandle := setupTreeWithJSON(t, interp, jsonInput)
+	rootNodeID := "node-1"
 
 	testCases := []treeTestCase{
-		// Tree.GetNode
 		{name: "GetNode Root", toolName: "Tree.GetNode", args: MakeArgs(rootHandle, rootNodeID), checkFunc: func(t *testing.T, interp *Interpreter, result interface{}, err error, ctx interface{}) {
 			if err != nil {
 				t.Fatalf("GetNode Root failed: %v", err)
@@ -41,29 +40,42 @@ func TestTreeNavigationTools(t *testing.T) {
 			if nodeMap["id"] != rootNodeID {
 				t.Errorf("GetNode Root: ID mismatch, got %v", nodeMap["id"])
 			}
-			if nodeMap["type"] != "object" { // The root of the JSON is an object
+			if nodeMap["type"] != "object" {
 				t.Errorf("GetNode Root: type mismatch, got %v, expected 'object'", nodeMap["type"])
 			}
 		}},
-		{name: "GetNode Nested (file1 name)", toolName: "Tree.GetNode", args: MakeArgs(rootHandle, ""), // Node ID determined dynamically in checkFunc
-			checkFunc: func(t *testing.T, interp *Interpreter, result interface{}, err error, ctx interface{}) { // result and err from static args are ignored
+		{name: "GetNode Nested (file1 name)", toolName: "Tree.GetNode", args: MakeArgs(rootHandle, ""),
+			checkFunc: func(t *testing.T, interp *Interpreter, result interface{}, err error, ctx interface{}) {
 				rootMap, _ := callGetNode(t, interp, rootHandle, rootNodeID)
 				childrenArrNodeID := rootMap["attributes"].(map[string]string)["children"]
 				childrenArrMap, _ := callGetNode(t, interp, rootHandle, childrenArrNodeID)
 
-				childNodeIDs, ok := childrenArrMap["child_ids"].([]string)
+				// MODIFIED: Expect "children" key from childrenArrMap (output of Tree.GetNode)
+				childrenVal, valOk := childrenArrMap["children"]
+				if !valOk {
+					t.Fatalf("GetNode Nested: 'children' key not found in node map for children array. Map: %#v", childrenArrMap)
+				}
+				childNodeIDsRaw, ok := childrenVal.([]string)
 				if !ok {
-					t.Fatalf("GetNode Nested: child_ids is not []string, but %T. Value: %#v", childrenArrMap["child_ids"], childrenArrMap["child_ids"])
+					// Try []interface{} and convert
+					childNodeIDsIF, ifOk := childrenVal.([]interface{})
+					if !ifOk {
+						t.Fatalf("GetNode Nested: 'children' is not []string or []interface{}, but %T. Value: %#v", childrenArrMap["children"], childrenArrMap["children"])
+					}
+					childNodeIDsRaw = make([]string, len(childNodeIDsIF))
+					for i, v := range childNodeIDsIF {
+						childNodeIDsRaw[i], _ = v.(string)
+					}
 				}
-				if len(childNodeIDs) == 0 {
-					t.Fatalf("GetNode Nested: child_ids is empty")
+
+				if len(childNodeIDsRaw) == 0 {
+					t.Fatalf("GetNode Nested: children list is empty")
 				}
-				file1ObjNodeID := childNodeIDs[0] // This is the ID of the first child object {"name": "file1.txt", ...}
+				file1ObjNodeID := childNodeIDsRaw[0]
 
 				file1ObjMap, _ := callGetNode(t, interp, rootHandle, file1ObjNodeID)
 				fileNameNodeID := file1ObjMap["attributes"].(map[string]string)["name"]
 
-				// This is the actual node being tested by the test case name
 				nodeMap, errGet := callGetNode(t, interp, rootHandle, fileNameNodeID)
 				if errGet != nil {
 					t.Fatalf("GetNode for file1 name failed: %v", errGet)
@@ -76,47 +88,65 @@ func TestTreeNavigationTools(t *testing.T) {
 				}
 			}},
 		{name: "GetNode NonExistent Node", toolName: "Tree.GetNode", args: MakeArgs(rootHandle, "node-999"), wantToolErrIs: ErrNotFound},
-		{name: "GetNode Invalid Handle", toolName: "Tree.GetNode", args: MakeArgs("bad-handle", "node-1"), wantToolErrIs: ErrInvalidArgument},
+		{name: "GetNode Invalid Handle", toolName: "Tree.GetNode", args: MakeArgs("bad-handle", "node-1"), wantToolErrIs: ErrInvalidArgument}, // Assuming ErrInvalidArgument for bad handle format
 
-		// Tree.GetChildren
-		{name: "GetChildren of Array Node", toolName: "Tree.GetChildren", args: MakeArgs(rootHandle, ""), // Node ID determined dynamically
+		{name: "GetChildren of Array Node", toolName: "Tree.GetChildren", args: MakeArgs(rootHandle, ""),
 			checkFunc: func(t *testing.T, interp *Interpreter, result interface{}, err error, ctx interface{}) {
 				rootMap, _ := callGetNode(t, interp, rootHandle, rootNodeID)
-				childrenArrNodeID := rootMap["attributes"].(map[string]string)["children"] // ID of the array node
+				childrenArrNodeID := rootMap["attributes"].(map[string]string)["children"]
 				childrenIDs, errGet := callGetChildren(t, interp, rootHandle, childrenArrNodeID)
 				if errGet != nil {
 					t.Fatalf("GetChildren for array failed: %v", errGet)
 				}
-				if len(childrenIDs) != 2 { // The "children" array in JSON has 2 elements
+				if len(childrenIDs) != 2 {
 					t.Errorf("Expected 2 children, got %d", len(childrenIDs))
 				}
+				// Example of further check:
+				// _, nodeErr1 := callGetNode(t, interp, rootHandle, childrenIDs[0].(string))
+				// if nodeErr1 != nil { t.Errorf("Could not get child node 0: %v", nodeErr1)}
 			}},
-		{name: "GetChildren of Object Node", toolName: "Tree.GetChildren", args: MakeArgs(rootHandle, rootNodeID), wantToolErrIs: ErrNodeWrongType}, // Cannot get children of object
-		{name: "GetChildren of Leaf Node", toolName: "Tree.GetChildren", args: MakeArgs(rootHandle, ""), // Node ID for a string leaf node
+		{name: "GetChildren of Object Node", toolName: "Tree.GetChildren", args: MakeArgs(rootHandle, rootNodeID), wantToolErrIs: ErrNodeWrongType},
+		{name: "GetChildren of Leaf Node", toolName: "Tree.GetChildren", args: MakeArgs(rootHandle, ""),
 			checkFunc: func(t *testing.T, interp *Interpreter, result interface{}, err error, ctx interface{}) {
 				rootMap, _ := callGetNode(t, interp, rootHandle, rootNodeID)
 				childrenArrNodeID := rootMap["attributes"].(map[string]string)["children"]
 				childrenArrMap, _ := callGetNode(t, interp, rootHandle, childrenArrNodeID)
-				childNodeIDs, ok := childrenArrMap["child_ids"].([]string)
-				if !ok || len(childNodeIDs) == 0 {
-					t.Fatalf("Setup for GetChildren of Leaf: could not get child_ids as []string")
-				}
-				file1ObjNodeID := childNodeIDs[0]
-				file1ObjMap, _ := callGetNode(t, interp, rootHandle, file1ObjNodeID)
-				fileNameNodeID := file1ObjMap["attributes"].(map[string]string)["name"] // This is the ID of the string node "file1.txt"
 
-				_, errGet := callGetChildren(t, interp, rootHandle, fileNameNodeID) // A string node is not an array
+				// MODIFIED: Expect "children" key
+				childrenVal, valOk := childrenArrMap["children"]
+				if !valOk {
+					t.Fatalf("Setup for GetChildren of Leaf: 'children' key not found. Map: %#v", childrenArrMap)
+				}
+				childNodeIDsRaw, ok := childrenVal.([]string)
+				if !ok {
+					childNodeIDsIF, ifOk := childrenVal.([]interface{})
+					if !ifOk {
+						t.Fatalf("Setup for GetChildren of Leaf: could not get 'children' as []string or []interface{}. Got %T", childrenArrMap["children"])
+					}
+					childNodeIDsRaw = make([]string, len(childNodeIDsIF))
+					for i, v := range childNodeIDsIF {
+						childNodeIDsRaw[i], _ = v.(string)
+					}
+				}
+				if len(childNodeIDsRaw) == 0 {
+					t.Fatalf("Setup for GetChildren of Leaf: 'children' list is empty.")
+				}
+
+				file1ObjNodeID := childNodeIDsRaw[0]
+				file1ObjMap, _ := callGetNode(t, interp, rootHandle, file1ObjNodeID)
+				fileNameNodeID := file1ObjMap["attributes"].(map[string]string)["name"]
+
+				_, errGet := callGetChildren(t, interp, rootHandle, fileNameNodeID)
 				if !errors.Is(errGet, ErrNodeWrongType) {
 					t.Fatalf("GetChildren for leaf node expected ErrNodeWrongType, got %v", errGet)
 				}
 			}},
 
-		// Tree.GetParent
-		{name: "GetParent of Root", toolName: "Tree.GetParent", args: MakeArgs(rootHandle, rootNodeID), wantResult: nil}, // Root has no parent ID
-		{name: "GetParent of Child", toolName: "Tree.GetParent", args: MakeArgs(rootHandle, ""), // Node ID determined dynamically
+		{name: "GetParent of Root", toolName: "Tree.GetParent", args: MakeArgs(rootHandle, rootNodeID), wantResult: nil},
+		{name: "GetParent of Child", toolName: "Tree.GetParent", args: MakeArgs(rootHandle, ""),
 			checkFunc: func(t *testing.T, interp *Interpreter, result interface{}, err error, ctx interface{}) {
 				rootMap, _ := callGetNode(t, interp, rootHandle, rootNodeID)
-				childrenArrNodeID := rootMap["attributes"].(map[string]string)["children"] // ID of the array node
+				childrenArrNodeID := rootMap["attributes"].(map[string]string)["children"]
 
 				getParentTool, _ := interp.ToolRegistry().GetTool("Tree.GetParent")
 				parentIDResult, errGet := getParentTool.Func(interp, MakeArgs(rootHandle, childrenArrNodeID))
@@ -124,7 +154,7 @@ func TestTreeNavigationTools(t *testing.T) {
 					t.Fatalf("GetParent failed: %v", errGet)
 				}
 				parentID, ok := parentIDResult.(string)
-				if !ok && parentIDResult != nil { // Allow nil if that's what it means, but here we expect rootNodeID
+				if !ok && parentIDResult != nil {
 					t.Fatalf("GetParent did not return a string or nil, got %T: %v", parentIDResult, parentIDResult)
 				}
 				if parentID != rootNodeID {
@@ -135,6 +165,6 @@ func TestTreeNavigationTools(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		testTreeToolHelper(t, interp, tc) // Use the same interp for nav tests as state is read-only after initial load
+		testTreeToolHelper(t, interp, tc)
 	}
 }

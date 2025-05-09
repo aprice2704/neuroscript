@@ -1,7 +1,8 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.1.3 // Include parent_attribute_key in GetNode result.
+// File version: 0.1.5
+// CRITICAL FIX: Changed "child_ids" key to "children" in GetNode result to match spec.
 // nlines: 82 // Approximate
-// risk_rating: LOW
+// risk_rating: MEDIUM // Critical for correct tool behavior
 // filename: pkg/core/tools_tree_nav.go
 
 package core
@@ -23,17 +24,25 @@ func toolTreeGetNode(interpreter *Interpreter, args []interface{}) (interface{},
 
 	_, node, err := getNodeFromHandle(interpreter, treeHandle, nodeID, toolName)
 	if err != nil {
-		return nil, err // Propagates node not found etc.
+		return nil, err
+	}
+
+	var childrenSlice []string
+	if node.ChildIDs != nil {
+		childrenSlice = make([]string, len(node.ChildIDs))
+		copy(childrenSlice, node.ChildIDs)
+	} else {
+		childrenSlice = []string{}
 	}
 
 	nodeMap := map[string]interface{}{
 		"id":                   node.ID,
 		"type":                 node.Type,
-		"value":                node.Value,              // Will be nil if not applicable
-		"attributes":           node.Attributes,         // Will be nil if not applicable
-		"child_ids":            node.ChildIDs,           // Will be nil if not applicable
-		"parent_id":            node.ParentID,           // Will be empty string if root
-		"parent_attribute_key": node.ParentAttributeKey, // Added this field
+		"value":                node.Value,
+		"attributes":           node.Attributes,
+		"children":             childrenSlice, // CORRECTED KEY
+		"parent_id":            node.ParentID,
+		"parent_attribute_key": node.ParentAttributeKey,
 	}
 
 	interpreter.Logger().Debug(fmt.Sprintf("%s: Retrieved node information", toolName),
@@ -57,24 +66,29 @@ func toolTreeGetChildren(interpreter *Interpreter, args []interface{}) (interfac
 
 	_, node, err := getNodeFromHandle(interpreter, treeHandle, nodeID, toolName)
 	if err != nil {
-		return nil, err // Propagates node not found etc.
+		return nil, err
 	}
 
-	if node.Type != "array" {
+	if node.Type != "array" { // This tool is specific to "array" type nodes
 		return nil, NewRuntimeError(ErrorCodeNodeWrongType,
 			fmt.Sprintf("%s: cannot get children of node type '%s' (expected 'array')", toolName, node.Type),
 			ErrNodeWrongType)
 	}
 
-	childIDsInterface := make([]interface{}, len(node.ChildIDs))
-	for i, id := range node.ChildIDs {
-		childIDsInterface[i] = id
+	var childIDsToReturn []interface{}
+	if node.ChildIDs != nil {
+		childIDsToReturn = make([]interface{}, len(node.ChildIDs))
+		for i, id := range node.ChildIDs {
+			childIDsToReturn[i] = id
+		}
+	} else {
+		childIDsToReturn = []interface{}{}
 	}
 
 	interpreter.Logger().Debug(fmt.Sprintf("%s: Retrieved children IDs", toolName),
-		"handle", treeHandle, "nodeId", nodeID, "count", len(childIDsInterface))
+		"handle", treeHandle, "nodeId", nodeID, "count", len(childIDsToReturn))
 
-	return childIDsInterface, nil
+	return childIDsToReturn, nil
 }
 
 // toolTreeGetParent implements the Tree.GetParent tool.

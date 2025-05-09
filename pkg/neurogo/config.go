@@ -41,6 +41,8 @@ type Config struct {
 	// --- Logging ---
 	// DebugLogFile    string // Handled directly in main.go logger setup
 	// LLMDebugLogFile string // Handled directly in main.go logger setup
+	// LogFile string
+	// LogLevel string
 
 	// --- Schema ---
 	SchemaPath string // Path to the schema definition file (Placeholder for future use)

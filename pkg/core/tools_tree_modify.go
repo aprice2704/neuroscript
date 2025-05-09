@@ -1,15 +1,16 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.1.0 // Removed local ToolImplementations, standardized errors, aligned functions with tooldefs.
-// nlines: 330 // Approximate
+// File version: 0.1.1
+// Modified toolTreeAddNode to allow adding children to 'checklist_root' and 'checklist_item' parent types.
+// nlines: 335 // Approximate
 // risk_rating: MEDIUM
 // filename: pkg/core/tools_tree_modify.go
 
 package core
 
 import (
-	"errors" // Required for errors.Is/Join
+	"errors"
 	"fmt"
-	"slices" // Used for inserting/removing from slices
+	"slices"
 	"strconv"
 )
 
@@ -19,7 +20,6 @@ import (
 func toolTreeModifyNode(interpreter *Interpreter, args []interface{}) (interface{}, error) {
 	toolName := "Tree.SetValue"
 
-	// Expected args: tree_handle (string), node_id (string), value (any)
 	if len(args) != 3 {
 		return nil, NewRuntimeError(ErrorCodeArgMismatch,
 			fmt.Sprintf("%s: expected 3 arguments (tree_handle, node_id, value), got %d", toolName, len(args)),
@@ -37,44 +37,24 @@ func toolTreeModifyNode(interpreter *Interpreter, args []interface{}) (interface
 		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("%s: node_id argument must be a string, got %T", toolName, args[1]), ErrInvalidArgument)
 	}
 
-	newValue := args[2] // Value can be any type, validation of its suitability for the node type happens below.
+	newValue := args[2]
 
-	// Get Node
 	_, node, err := getNodeFromHandle(interpreter, handleID, nodeID, toolName)
 	if err != nil {
-		return nil, err // getNodeFromHandle already returns a RuntimeError
+		return nil, err
 	}
 
-	// Check Node Type Compatibility for setting a direct value
-	// checklist_item nodes can have their text value modified.
-	// Other types like "string", "number", "boolean", "null" are also fine.
 	if node.Type == "object" || node.Type == "array" {
 		return nil, NewRuntimeError(ErrorCodeTreeConstraintViolation,
 			fmt.Sprintf("%s: cannot set value directly on node '%s' of type '%s'; use object/array modification tools", toolName, nodeID, node.Type),
-			ErrCannotSetValueOnType, // Specific sentinel for this case
+			ErrCannotSetValueOnType,
 		)
 	}
 
-	// Validate the type of newValue against node.Type if strict type checking is desired here.
-	// For now, we allow setting, assuming NeuroScript's dynamic typing handles it,
-	// or that specific node types might have implicit conversions or accept various underlying Go types.
-	// E.g., a "number" node might accept int64 or float64.
-	// If node.Type is "string", newValue should ideally be a string.
-	// If node.Type is "number", newValue should be float64 or int64.
-	// If node.Type is "boolean", newValue should be bool.
-	// If node.Type is "null", newValue should be nil.
-	// A more robust implementation might check:
-	// switch node.Type {
-	// case "string": if _, ok := newValue.(string); !ok { /* error */ }
-	// case "number": if _, okF := newValue.(float64); !okF { if _, okI := newValue.(int64); !okI { /* error */ } }
-	// ... etc.
-	// }
-	// For now, simpler assignment:
 	node.Value = newValue
 	interpreter.Logger().Debug(fmt.Sprintf("%s: Modified node value", toolName), "handle", handleID, "nodeId", nodeID)
-	// Avoid logging newValue directly due to potential size/sensitivity.
 
-	return nil, nil // Return nil (NeuroScript null) on success
+	return nil, nil
 }
 
 // --- Tree.SetObjectAttribute (was toolTreeSetAttribute) ---
@@ -83,7 +63,6 @@ func toolTreeModifyNode(interpreter *Interpreter, args []interface{}) (interface
 func toolTreeSetAttribute(interpreter *Interpreter, args []interface{}) (interface{}, error) {
 	toolName := "Tree.SetObjectAttribute"
 
-	// Expected args: tree_handle (string), object_node_id (string), attribute_key (string), child_node_id (string)
 	if len(args) != 4 {
 		return nil, NewRuntimeError(ErrorCodeArgMismatch,
 			fmt.Sprintf("%s: expected 4 arguments (tree_handle, object_node_id, attribute_key, child_node_id), got %d", toolName, len(args)),
@@ -91,7 +70,7 @@ func toolTreeSetAttribute(interpreter *Interpreter, args []interface{}) (interfa
 		)
 	}
 
-	handleID, _ := args[0].(string) // Type already validated by spec
+	handleID, _ := args[0].(string)
 	objectNodeID, _ := args[1].(string)
 	attrKey, _ := args[2].(string)
 	childNodeID, _ := args[3].(string)
@@ -99,7 +78,7 @@ func toolTreeSetAttribute(interpreter *Interpreter, args []interface{}) (interfa
 	if attrKey == "" {
 		return nil, NewRuntimeError(ErrorCodeArgMismatch, fmt.Sprintf("%s: attribute_key cannot be empty", toolName), ErrInvalidArgument)
 	}
-	if childNodeID == "" { // child_node_id must point to an existing node
+	if childNodeID == "" {
 		return nil, NewRuntimeError(ErrorCodeArgMismatch, fmt.Sprintf("%s: child_node_id cannot be empty", toolName), ErrInvalidArgument)
 	}
 
@@ -115,15 +94,14 @@ func toolTreeSetAttribute(interpreter *Interpreter, args []interface{}) (interfa
 		)
 	}
 
-	// Validate Child Node Existence in the same tree
 	if _, childExists := tree.NodeMap[childNodeID]; !childExists {
-		return nil, NewRuntimeError(ErrorCodeKeyNotFound, // More specific than generic ErrNotFound
+		return nil, NewRuntimeError(ErrorCodeKeyNotFound,
 			fmt.Sprintf("%s: specified child_node_id '%s' not found in tree '%s'", toolName, childNodeID, handleID),
-			ErrNotFound, // General sentinel
+			ErrNotFound,
 		)
 	}
 
-	if objectNode.Attributes == nil { // Should be initialized by NewNode
+	if objectNode.Attributes == nil {
 		objectNode.Attributes = make(map[string]string)
 		interpreter.Logger().Warn(fmt.Sprintf("%s: Node attributes map was nil for node '%s', initialized.", toolName, objectNodeID))
 	}
@@ -139,7 +117,6 @@ func toolTreeSetAttribute(interpreter *Interpreter, args []interface{}) (interfa
 func toolTreeRemoveAttribute(interpreter *Interpreter, args []interface{}) (interface{}, error) {
 	toolName := "Tree.RemoveObjectAttribute"
 
-	// Expected args: tree_handle (string), object_node_id (string), attribute_key (string)
 	if len(args) != 3 {
 		return nil, NewRuntimeError(ErrorCodeArgMismatch,
 			fmt.Sprintf("%s: expected 3 arguments (tree_handle, object_node_id, attribute_key), got %d", toolName, len(args)),
@@ -168,7 +145,7 @@ func toolTreeRemoveAttribute(interpreter *Interpreter, args []interface{}) (inte
 	}
 
 	if objectNode.Attributes == nil {
-		return nil, NewRuntimeError(ErrorCodeAttributeNotFound, // No attributes map means key cannot exist
+		return nil, NewRuntimeError(ErrorCodeAttributeNotFound,
 			fmt.Sprintf("%s: node '%s' has no attributes to remove from (key: %q)", toolName, objectNodeID, attrKey),
 			ErrAttributeNotFound,
 		)
@@ -192,8 +169,7 @@ func toolTreeRemoveAttribute(interpreter *Interpreter, args []interface{}) (inte
 func toolTreeAddNode(interpreter *Interpreter, args []interface{}) (interface{}, error) {
 	toolName := "Tree.AddChildNode"
 
-	// Expected args: tree_handle, parent_node_id, new_node_id_suggestion (optional), node_type, value (optional), key_for_object_parent (optional)
-	if len(args) < 4 || len(args) > 6 { // Min 4 args, max 6
+	if len(args) < 4 || len(args) > 6 {
 		return nil, NewRuntimeError(ErrorCodeArgMismatch,
 			fmt.Sprintf("%s: expected 4 to 6 arguments, got %d", toolName, len(args)),
 			ErrArgumentMismatch,
@@ -202,10 +178,6 @@ func toolTreeAddNode(interpreter *Interpreter, args []interface{}) (interface{},
 
 	handleID, _ := args[0].(string)
 	parentID, _ := args[1].(string)
-	// arg[2] is new_node_id_suggestion (string, optional)
-	// arg[3] is node_type (string)
-	// arg[4] is value (any, optional)
-	// arg[5] is key_for_object_parent (string, optional)
 
 	nodeType, okType := args[3].(string)
 	if !okType {
@@ -255,7 +227,6 @@ func toolTreeAddNode(interpreter *Interpreter, args []interface{}) (interface{},
 		return nil, err
 	}
 
-	// Determine the new node's ID
 	var newNodeID string
 	if newNodeIDSuggestion != "" {
 		if _, exists := tree.NodeMap[newNodeIDSuggestion]; exists {
@@ -266,37 +237,17 @@ func toolTreeAddNode(interpreter *Interpreter, args []interface{}) (interface{},
 		}
 		newNodeID = newNodeIDSuggestion
 	} else {
-		// Generate a new ID if no suggestion or suggestion is empty
-		// tree.NewNode would generate one like "node-X", but here we need to ensure it's added to map *with this ID*.
-		// So, generate ID first, then create node.
-		// This deviates from tree.NewNode's internal ID generation if we are to allow user-suggested IDs.
-		// For now, if newNodeIDSuggestion is empty, let tree.NewNode generate it.
-		// If a suggestion is provided, we need a way to tell NewNode to use it or create a node and set its ID.
-		// Let's modify NewNode slightly or handle ID assignment carefully.
-		// For now, we'll rely on tree.NewNode for generation if suggestion is empty.
-		// If suggestion is provided, we'll need to assign it after creation by tree.NewNode, which is not ideal as NewNode adds to map.
-		// Simpler path: if suggestion, check existence. If not, use it. If empty, generate.
-		// This requires NewNode to accept an optional ID. Or a new helper.
-		// Let's assume `tree.GenerateNodeID()` for now if suggestion is empty, and manually check for collision.
-		if newNodeIDSuggestion == "" {
-			// This loop is a placeholder for a robust unique ID generation within the tree context.
-			// tree.nextID is not directly accessible here in the same way.
-			// A method on GenericTree like `GenerateUniqueID()` would be better.
-			tempIDCounter := len(tree.NodeMap) + 1 // Simple, potentially colliding in long-running scenarios
-			for {
-				genID := "node-" + strconv.Itoa(tempIDCounter)
-				if _, exists := tree.NodeMap[genID]; !exists {
-					newNodeID = genID
-					break
-				}
-				tempIDCounter++
+		tempIDCounter := len(tree.NodeMap) + 1
+		for {
+			genID := "node-" + strconv.Itoa(tempIDCounter)
+			if _, exists := tree.NodeMap[genID]; !exists {
+				newNodeID = genID
+				break
 			}
-		} else {
-			newNodeID = newNodeIDSuggestion // Already checked for existence
+			tempIDCounter++
 		}
 	}
 
-	// Create node (without adding to parent's children/attributes yet)
 	newNode := &GenericTreeNode{
 		ID:         newNodeID,
 		Type:       nodeType,
@@ -306,9 +257,9 @@ func toolTreeAddNode(interpreter *Interpreter, args []interface{}) (interface{},
 		ParentID:   parentID,
 		Tree:       tree,
 	}
-	tree.NodeMap[newNodeID] = newNode // Add to the tree's central map
+	tree.NodeMap[newNodeID] = newNode
 
-	// Attach to parent
+	// MODIFIED: Allow adding children to 'checklist_root' and 'checklist_item' as if they were arrays.
 	if parentNode.Type == "object" {
 		if keyForObjectParent == "" {
 			return nil, NewRuntimeError(ErrorCodeArgMismatch,
@@ -320,16 +271,17 @@ func toolTreeAddNode(interpreter *Interpreter, args []interface{}) (interface{},
 			parentNode.Attributes = make(map[string]string)
 		}
 		parentNode.Attributes[keyForObjectParent] = newNodeID
-	} else if parentNode.Type == "array" {
+	} else if parentNode.Type == "array" || parentNode.Type == "checklist_root" || parentNode.Type == "checklist_item" { // MODIFIED HERE
+		// keyForObjectParent (args[5]) should be nil if not an object parent, as handled by ChecklistAddItem.
+		// Log a warning if it was somehow provided for these types.
 		if keyForObjectParent != "" {
-			interpreter.Logger().Warn(fmt.Sprintf("%s: key_for_object_parent '%s' ignored for array parent '%s'", toolName, keyForObjectParent, parentID))
+			interpreter.Logger().Warn(fmt.Sprintf("%s: key_for_object_parent '%s' ignored for %s parent '%s'", toolName, keyForObjectParent, parentNode.Type, parentID))
 		}
 		if parentNode.ChildIDs == nil {
 			parentNode.ChildIDs = make([]string, 0)
 		}
-		parentNode.ChildIDs = append(parentNode.ChildIDs, newNodeID) // Append by default
+		parentNode.ChildIDs = append(parentNode.ChildIDs, newNodeID)
 	} else {
-		// Cannot add keyed or indexed children to simple types
 		return nil, NewRuntimeError(ErrorCodeNodeWrongType,
 			fmt.Sprintf("%s: parent node '%s' is type '%s', cannot add children in this manner", toolName, parentID, parentNode.Type),
 			ErrNodeWrongType,
@@ -337,7 +289,7 @@ func toolTreeAddNode(interpreter *Interpreter, args []interface{}) (interface{},
 	}
 
 	interpreter.Logger().Debug(fmt.Sprintf("%s: Added new node to tree", toolName), "handle", handleID, "parentId", parentID, "newNodeId", newNodeID, "type", nodeType)
-	return newNodeID, nil // Return the new node's ID
+	return newNodeID, nil
 }
 
 // --- Tree.RemoveNode (was toolTreeRemoveNode) ---
@@ -346,7 +298,6 @@ func toolTreeAddNode(interpreter *Interpreter, args []interface{}) (interface{},
 func toolTreeRemoveNode(interpreter *Interpreter, args []interface{}) (interface{}, error) {
 	toolName := "Tree.RemoveNode"
 
-	// Expected args: tree_handle (string), node_id (string)
 	if len(args) != 2 {
 		return nil, NewRuntimeError(ErrorCodeArgMismatch,
 			fmt.Sprintf("%s: expected 2 arguments (tree_handle, node_id), got %d", toolName, len(args)),
@@ -374,7 +325,6 @@ func toolTreeRemoveNode(interpreter *Interpreter, args []interface{}) (interface
 	}
 
 	if nodeToRemove.ParentID == "" {
-		// Should not happen if not root, implies inconsistent tree.
 		return nil, NewRuntimeError(ErrorCodeInternal,
 			fmt.Sprintf("%s: node '%s' is not root but has no ParentID, tree inconsistent", toolName, nodeIDToRemove),
 			ErrInternal,
@@ -383,21 +333,17 @@ func toolTreeRemoveNode(interpreter *Interpreter, args []interface{}) (interface
 
 	_, parentNode, parentErr := getNodeFromHandle(interpreter, handleID, nodeToRemove.ParentID, toolName+" (getting parent)")
 	if parentErr != nil {
-		return nil, NewRuntimeError(ErrorCodeInternal, // Parent of a non-root node must exist
+		return nil, NewRuntimeError(ErrorCodeInternal,
 			fmt.Sprintf("%s: parent node '%s' for node '%s' not found: %v", toolName, nodeToRemove.ParentID, nodeIDToRemove, parentErr),
-			errors.Join(ErrInternal, parentErr), // Or ErrNotFound if it's considered a lookup failure
+			errors.Join(ErrInternal, parentErr),
 		)
 	}
 
-	// Remove from parent's ChildIDs or Attributes
-	// This uses the existing helper which might need adjustment if parent linking changes.
 	if !removeChildFromParent(parentNode, nodeIDToRemove) {
 		interpreter.Logger().Warn(fmt.Sprintf("%s: Node '%s' to remove was not found in its parent's (%s) ChildIDs/Attributes list. Tree might be inconsistent.", toolName, nodeIDToRemove, parentNode.ID))
-		// Continue to remove from NodeMap regardless, as that's the primary goal.
 	}
 
-	// Recursively remove node and its descendants from NodeMap
-	removeNodeRecursive(tree, nodeIDToRemove, make(map[string]struct{})) // Use a fresh visited map
+	removeNodeRecursive(tree, nodeIDToRemove, make(map[string]struct{}))
 
 	interpreter.Logger().Debug(fmt.Sprintf("%s: Removed node and descendants from tree", toolName), "handle", handleID, "nodeId", nodeIDToRemove)
 	return nil, nil

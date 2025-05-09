@@ -18,17 +18,9 @@ import (
 
 // initializeLogger sets up the application's logger based on configuration.
 func initializeLogger(levelStr string, filePath string) (logging.Logger, error) {
-	var level logging.LogLevel
-	switch levelStr {
-	case "debug":
-		level = logging.LogLevelDebug
-	case "info":
-		level = logging.LogLevelInfo
-	case "warn":
-		level = logging.LogLevelWarn
-	case "error":
-		level = logging.LogLevelError
-	default:
+
+	level, err := adapters.LogLevelFromString(levelStr)
+	if err != nil {
 		return nil, fmt.Errorf("invalid log level: %q", levelStr)
 	}
 

@@ -1,72 +1,91 @@
 // NeuroScript Version: 0.3.0
-// File version: 0.1.1
-// Updated Config struct field names
+// File version: 0.1.0
+// Refactored to use app.ExecuteScriptFile instead of deprecated App.Run.
 // filename: pkg/neurogo/app_script_break_continue_test.go
-// nlines: 70
-// risk_rating: LOW
 package neurogo
 
 import (
 	"context"
-	"os"            // Needed for reading test file
-	"path/filepath" // Needed for joining paths
-
-	// "reflect"       // No longer needed for variable comparison
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/adapters"
-	// Import the logging interface definition
+	"github.com/aprice2704/neuroscript/pkg/core"
+	"github.com/aprice2704/neuroscript/pkg/toolsets"
 )
 
-// TestApp_RunScriptMode_BreakContinue tests break/continue execution via the App layer.
-// It relies on the internal 'must' statements within the script to cause an error
-// if the break/continue logic is incorrect. The Go test only checks if app.Run()
-// returns an error.
 func TestApp_RunScriptMode_BreakContinue(t *testing.T) {
-	// Define path relative to this test file's package directory (neurogo)
-	scriptPath := filepath.Join("testdata", "valid_break_continue.ns.txt")
-	// Verify the test script exists before running the test
-	if _, err := os.Stat(scriptPath); os.IsNotExist(err) {
-		t.Fatalf("Test script not found at expected path: %s. Check relative path from pkg/neurogo/", scriptPath)
+	testName := "TestApp_RunScriptMode_BreakContinue"
+	scriptName := "valid_break_continue.ns.txt" // Assumes this file is in testdata relative to this test file
+	scriptPath := filepath.Join("testdata", scriptName)
+
+	// 1. Create Config
+	cfg := Config{}
+	cfg.SandboxDir = t.TempDir()
+	// cfg.LogFile = "" // Log to stderr for test visibility
+	// cfg.LogLevel = "debug"
+	// // cfg.APIKey = "test-dummy-key" // Usually not needed with NoOpLLMClient
+
+	// 2. Initialize Logger
+	loglev, _ := adapters.LogLevelFromString("debug")
+	logger, err := adapters.NewSimpleSlogAdapter(os.Stderr, loglev)
+	if err != nil {
+		t.Fatalf("%s: Failed to create logger: %v", testName, err)
 	}
 
-	// Configure logger (using NoOp for this test)
-	logger := adapters.NewNoOpLogger()       // From adapters package
-	llmClient := adapters.NewNoOpLLMClient() // From adapters package
+	// 3. Initialize LLMClient
+	llmClient := adapters.NewNoOpLLMClient()
 
-	cfg := &Config{ // Assuming Config struct is defined in neurogo/config.go
-		StartupScript: scriptPath, // CORRECTED: Was ScriptFile
-		TargetArg:     "main",     // Target the main procedure in the script
-		// REMOVED: RunScriptMode: true,
-		// REMOVED: EnableLLM:     false,
-	}
-
-	// Create and run the App (assuming NewApp is defined in neurogo/app.go)
+	// 4. Create App (passing nil for interpreter and aiwm, will set them up next)
 	app := NewApp(logger)
-	if app == nil {
-		t.Fatal("Failed to create App")
-	}
-	app.Config = cfg
-	app.llmClient = llmClient // Ensure LLM client is set
-
-	// Execute the script via the App's Run method
-	runErr := app.Run(context.Background())
-
-	// Assert execution success.
-	// If any 'must' statement within 'valid_break_continue.ns.txt' fails,
-	// app.Run() should return a non-nil error.
-	if runErr != nil {
-		// Use t.Fatalf as the rest of the test depends on successful execution
-		t.Fatalf("Test '%s': Expected successful execution of script '%s' (no 'must' failures), but got error: %v", t.Name(), scriptPath, runErr)
+	if err != nil {
+		t.Fatalf("%s: Failed to create App: %v", testName, err)
 	}
 
-	// --- Assertions Removed ---
-	// Variable assertions are removed because interpreter.RunProcedure restores the
-	// previous variable scope upon returning, making variables set *inside* the
-	// 'main' procedure inaccessible after app.Run() completes.
-	// The test now relies on the internal 'must' statements within the script
-	// to verify correctness, ensuring app.Run() returns nil on success.
+	// 5. Setup Interpreter
+	absSandboxDir, err := filepath.Abs(cfg.SandboxDir)
+	if err != nil {
+		t.Fatalf("%s: Failed to get absolute sandbox path: %v", testName, err)
+	}
 
-	// If we reach here without t.Fatalf, the script executed without error.
-	t.Logf("Test '%s': Script '%s' executed successfully (no 'must' failures detected via app.Run error).", t.Name(), scriptPath)
+	var procArgs map[string]interface{} // Assuming test script doesn't rely on specific procArgs from file
+	// If ProcArgsConfig is needed for some tests, it should be handled here.
+	// For this specific test, unlikely to be essential.
+
+	interpreter, err := core.NewInterpreter(logger, llmClient, absSandboxDir, procArgs, cfg.LibPaths)
+	if err != nil {
+		t.Fatalf("%s: Failed to create core.Interpreter: %v", testName, err)
+	}
+	app.SetInterpreter(interpreter) // Link interpreter to the app
+
+	// Core tools are registered by core.NewInterpreter by default.
+	// Register extended toolsets - good practice for app-level tests.
+	if err := toolsets.RegisterExtendedTools(interpreter); err != nil {
+		t.Fatalf("%s: Failed to register extended tools: %v", testName, err)
+	}
+
+	// AIWM setup (simplified - only if strictly needed by NewApp or scripts not using AI tools)
+	// For these specific control-flow tests, AIWM is likely not involved.
+	// If app.ExecuteScriptFile or other app logic requires a non-nil AIWM:
+	aiWm, aiWmErr := core.NewAIWorkerManager(logger, app.Config.SandboxDir, llmClient, "", "")
+	if aiWmErr != nil {
+		t.Logf("%s: Warning - Failed to create AI Worker Manager: %v (continuing as script might not need it)", testName, aiWmErr)
+		// app.SetAIWorkerManager(nil) // Explicitly set to nil if that's acceptable
+	} else {
+		app.SetAIWorkerManager(aiWm)
+		// No need to call app.RegisterAIWorkerTools if the script doesn't use AI tools.
+	}
+
+	// 6. Execute Script
+	ctx := context.Background()
+	executionErr := app.ExecuteScriptFile(ctx, scriptPath)
+
+	// 7. Assert Results
+	// The original error message indicates these tests expect no 'must' failures.
+	// So, any error from ExecuteScriptFile is a test failure.
+	if executionErr != nil {
+		t.Errorf("Test '%s': Expected successful execution of script '%s' (no 'must' failures), but got error: %v",
+			testName, scriptPath, executionErr)
+	}
 }

@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.3.0
-// File version: 0.1.1
-// Corrected NewInterpreter call, tool registration, and return type.
+// File version: 0.1.4
+// Corrected type assertion in getNodeAttributesMap to expect map[string]string.
 // filename: pkg/neurodata/checklist/test_helpers.go
-// nlines: 150
+// nlines: 150 // Approximate
 // risk_rating: MEDIUM
 package checklist
 
@@ -18,87 +18,54 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/toolsets"
 )
 
-// newTestInterpreterWithAllTools creates a new interpreter instance for checklist testing,
-// initializing it with BOTH core AND extended tools, using a functional logger.
-// CORRECTED: Return type for registry is core.ToolRegistry (interface).
-// CORRECTED: NewInterpreter call, RegisterCoreTools/RegisterExtendedTools calls.
-// CORRECTED: Removed SetToolRegistry.
 func newTestInterpreterWithAllTools(t *testing.T) (*core.Interpreter, core.ToolRegistry) {
 	t.Helper()
-
 	tempDir := t.TempDir()
-
 	logger, errLog := adapters.NewSimpleSlogAdapter(os.Stderr, logging.LogLevelDebug)
 	assertNoErrorSetup(t, errLog, "Failed to create logger")
 	if logger == nil {
 		t.Fatalf("Setup Error: Failed to create logger using SimpleTestLogger, returned nil unexpectedly")
 	}
-
-	llmClient := adapters.NewNoOpLLMClient() // No need to cast to core.LLMClient explicitly
-
-	// CORRECTED: Provide libPaths (nil or []string{})
+	llmClient := adapters.NewNoOpLLMClient()
 	interp, errInterp := core.NewInterpreter(logger, llmClient, tempDir, nil, nil)
 	assertNoErrorSetup(t, errInterp, "Failed to create core.Interpreter")
-
-	// core.NewInterpreter now registers core tools by default.
-	// If core.RegisterCoreTools was called here, it would use 'interp' (which is a core.ToolRegistry).
-	// err := core.RegisterCoreTools(interp)
-	// assertNoErrorSetup(t, err, "Failed to register core tools")
-
-	// RegisterExtendedTools also needs the interpreter (which is a ToolRegistry)
 	errExt := toolsets.RegisterExtendedTools(interp)
 	assertNoErrorSetup(t, errExt, "Failed to register extended toolsets")
-
-	// The checklist-specific tools (RegisterChecklistTools) should also be registered here using 'interp'.
-	// Assuming RegisterChecklistTools is defined in this package (e.g., in checklist_tool.go or similar)
-	// and takes a core.ToolRegistry (which 'interp' satisfies).
-	errChecklist := RegisterChecklistTools(interp) // Example call
-	assertNoErrorSetup(t, errChecklist, "Failed to register checklist tools")
-
-	// REMOVED: interp.SetToolRegistry(registry) - Interpreter manages its own internal registry.
-	// After NewInterpreter, 'interp' itself is the ToolRegistry.
-
-	// SetSandboxDir is good to ensure it's set, though NewInterpreter also sets it.
 	errSandbox := interp.SetSandboxDir(tempDir)
 	assertNoErrorSetup(t, errSandbox, "Failed to set sandbox dir")
-
-	// RETURN: interp itself serves as the ToolRegistry
 	return interp, interp.ToolRegistry()
 }
 
-// --- Node Data Access Helpers --- (Unchanged from previous version)
-
-// getNodeViaTool uses the TreeGetNode tool to get node data as a map.
 func getNodeViaTool(t *testing.T, interp *core.Interpreter, handleID string, nodeID string) map[string]interface{} {
 	t.Helper()
-	toolReg := interp.ToolRegistry() // Get the registry from the interpreter
-	impl, exists := toolReg.GetTool("TreeGetNode")
+	toolReg := interp.ToolRegistry()
+	impl, exists := toolReg.GetTool("Tree.GetNode")
 	if !exists {
-		t.Fatalf("getNodeViaTool: Prerequisite tool 'TreeGetNode' not registered.")
+		t.Fatalf("getNodeViaTool: Prerequisite tool 'Tree.GetNode' not registered.")
 	}
 	if impl.Func == nil {
-		t.Fatalf("getNodeViaTool: Tool 'TreeGetNode' has nil function.")
+		t.Fatalf("getNodeViaTool: Tool 'Tree.GetNode' has nil function.")
 	}
 	nodeDataIntf, err := impl.Func(interp, core.MakeArgs(handleID, nodeID))
 	if err != nil {
+		// It's okay for this helper to return nil if the node is not found, as tests might expect this.
 		if errors.Is(err, core.ErrNotFound) || errors.Is(err, core.ErrInvalidArgument) || errors.Is(err, core.ErrHandleWrongType) || errors.Is(err, core.ErrHandleNotFound) || errors.Is(err, core.ErrHandleInvalid) {
 			t.Logf("getNodeViaTool: Got expected error getting node %q: %v", nodeID, err)
 			return nil
 		}
-		t.Fatalf("getNodeViaTool: TreeGetNode tool function failed unexpectedly for node %q: %v", nodeID, err)
+		t.Fatalf("getNodeViaTool: Tree.GetNode tool function failed unexpectedly for node %q: %v", nodeID, err)
 	}
 	if nodeDataIntf == nil {
-		t.Logf("getNodeViaTool: TreeGetNode tool function returned nil data for node %q", nodeID)
+		t.Logf("getNodeViaTool: Tree.GetNode tool function returned nil data for node %q", nodeID)
 		return nil
 	}
 	nodeMap, ok := nodeDataIntf.(map[string]interface{})
 	if !ok {
-		t.Fatalf("getNodeViaTool: TreeGetNode tool function did not return map[string]interface{}, got %T", nodeDataIntf)
+		t.Fatalf("getNodeViaTool: Tree.GetNode tool function did not return map[string]interface{}, got %T", nodeDataIntf)
 	}
 	return nodeMap
 }
 
-// getNodeValue extracts the 'value' field from the map returned by getNodeViaTool.
 func getNodeValue(t *testing.T, nodeData map[string]interface{}) interface{} {
 	t.Helper()
 	if nodeData == nil {
@@ -106,12 +73,11 @@ func getNodeValue(t *testing.T, nodeData map[string]interface{}) interface{} {
 	}
 	val, ok := nodeData["value"]
 	if !ok {
-		return nil // Or t.Fatalf if value is always expected
+		return nil
 	}
 	return val
 }
 
-// getNodeAttributesMap extracts the 'attributes' field from the map returned by getNodeViaTool.
 func getNodeAttributesMap(t *testing.T, nodeData map[string]interface{}) map[string]string {
 	t.Helper()
 	if nodeData == nil {
@@ -119,24 +85,32 @@ func getNodeAttributesMap(t *testing.T, nodeData map[string]interface{}) map[str
 	}
 	attrsVal, exists := nodeData["attributes"]
 	if !exists || attrsVal == nil {
-		return make(map[string]string)
+		return make(map[string]string) // Return empty map if attributes are nil or not present
 	}
-	rawAttrsMap, ok := attrsVal.(map[string]interface{})
+
+	// MODIFIED: Expect map[string]string directly, as this is what GenericTreeNode.Attributes is
+	// and what toolTreeGetNode should be placing in the map.
+	attrsMap, ok := attrsVal.(map[string]string)
 	if !ok {
-		t.Fatalf("getNodeAttributesMap: 'attributes' field is not a map[string]interface{}: %T", attrsVal)
-	}
-	stringAttrsMap := make(map[string]string)
-	for k, v := range rawAttrsMap {
-		if vStr, ok := v.(string); ok {
-			stringAttrsMap[k] = vStr
-		} else {
-			stringAttrsMap[k] = fmt.Sprintf("%v", v) // Convert non-strings
+		// Fallback to check if it was map[string]interface{} and convert, though this shouldn't be the primary path.
+		rawAttrsMap, rawOk := attrsVal.(map[string]interface{})
+		if !rawOk {
+			t.Fatalf("getNodeAttributesMap: 'attributes' field is not map[string]string or map[string]interface{}, got %T. Value: %#v", attrsVal, attrsVal)
 		}
+		t.Logf("getNodeAttributesMap: Warning - 'attributes' field was map[string]interface{}, converting. Should ideally be map[string]string from Tree.GetNode. Value: %#v", attrsVal)
+		attrsMap = make(map[string]string)
+		for k, v := range rawAttrsMap {
+			if vStr, okStr := v.(string); okStr {
+				attrsMap[k] = vStr
+			} else {
+				attrsMap[k] = fmt.Sprintf("%v", v) // Convert non-strings
+			}
+		}
+		return attrsMap
 	}
-	return stringAttrsMap
+	return attrsMap
 }
 
-// getNodeAttributesDirectly bypasses the TreeGetNode tool and accesses the tree/node directly via handle.
 func getNodeAttributesDirectly(t *testing.T, interp *core.Interpreter, handleID string, nodeID string) (map[string]string, error) {
 	t.Helper()
 	treeObj, err := interp.GetHandleValue(handleID, core.GenericTreeHandleType)
@@ -155,17 +129,14 @@ func getNodeAttributesDirectly(t *testing.T, interp *core.Interpreter, handleID 
 		return nil, fmt.Errorf("getNodeAttributesDirectly: node %q exists in map but is nil", nodeID)
 	}
 	if node.Attributes == nil {
-		return make(map[string]string), nil // Return empty map if attributes are nil
+		return make(map[string]string), nil
 	}
-	// Create a copy to prevent external modification
 	attrsCopy := make(map[string]string, len(node.Attributes))
 	for k, v := range node.Attributes {
 		attrsCopy[k] = v
 	}
 	return attrsCopy, nil
 }
-
-// --- Test Setup Helpers ---
 
 func assertNoErrorSetup(t *testing.T, err error, msgFormat string, args ...interface{}) {
 	t.Helper()
@@ -181,8 +152,6 @@ func assertToolFound(t *testing.T, found bool, toolName string) {
 		t.Fatalf("Setup Error: Required tool '%s' not found in registry", toolName)
 	}
 }
-
-// --- Pointer Helpers ---
 
 func pstr(s string) *string { return &s }
 func pbool(b bool) *bool    { return &b }

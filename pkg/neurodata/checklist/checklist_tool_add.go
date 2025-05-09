@@ -1,23 +1,27 @@
 // NeuroScript Version: 0.3.0
-// Last Modified: 2025-05-03 18:38:29 PM PDT // Refactor AddItem with Metadata tools
+// File version: 0.1.2
+// Corrected Tree.AddChildNode call and implemented indexed insertion.
 // filename: pkg/neurodata/checklist/checklist_tool_add.go
+// nlines: 180 // Approximate
+// risk_rating: MEDIUM
 package checklist
 
 import (
-	"errors" // Import errors for Is
-	"fmt"    // Import strconv for boolean conversion
+	"errors"
+	"fmt"
+	"slices" // For slice manipulation
 	"unicode/utf8"
 
 	"github.com/aprice2704/neuroscript/pkg/core"
 	"github.com/google/uuid"
 )
 
-// Implementation for ChecklistAddItem using core TreeAddNode and TreeSetNodeMetadata tools.
+// Implementation for ChecklistAddItem using core Tree.AddChildNode and Tree.SetNodeMetadata tools.
+// Handles indexed insertion for array-like parent nodes.
 func toolChecklistAddItem(interpreter *core.Interpreter, args []interface{}) (interface{}, error) {
 	toolName := "ChecklistAddItem"
 	logger := interpreter.Logger()
 
-	// --- Argument Parsing and Validation (mostly unchanged) ---
 	if len(args) != 7 {
 		return nil, fmt.Errorf("%w: %s expected 7 arguments (handle, parentId, text, status, isAuto, symbol, index), got %d. Use null for optional args.", core.ErrValidationArgCount, toolName, len(args))
 	}
@@ -34,7 +38,7 @@ func toolChecklistAddItem(interpreter *core.Interpreter, args []interface{}) (in
 		return nil, fmt.Errorf("%w: %s expected string arg[2] 'newItemText', got %T", core.ErrValidationTypeMismatch, toolName, args[2])
 	}
 
-	newItemStatus := "open" // Default
+	newItemStatus := "open"
 	if args[3] != nil {
 		statusStr, ok := args[3].(string)
 		if !ok {
@@ -75,21 +79,22 @@ func toolChecklistAddItem(interpreter *core.Interpreter, args []interface{}) (in
 		}
 	}
 
-	index := -1 // Default append
+	index := -1
 	if args[6] != nil {
 		var indexInt64 int64
 		var err error
-		indexInt64, err = core.ConvertToInt64E(args[6]) // Use core helper
+		indexInt64, err = core.ConvertToInt64E(args[6])
 		if err != nil {
 			return nil, fmt.Errorf("%w: %s invalid 'index' argument: %w", core.ErrInvalidArgument, toolName, err)
 		}
 		index = int(indexInt64)
-		if index < 0 {
+		// No negative index for actual insertion, -1 means append.
+		// If user provides < -1, treat as append.
+		if index < -1 {
 			index = -1
 		}
 	}
 
-	// --- Initial Status Adjustment for Automatic Items ---
 	if isAutomatic {
 		if newItemStatus != "open" {
 			logger.Warn("Ignoring specified status for new automatic item; it will start as 'open' until children are added and UpdateStatus is called.",
@@ -99,37 +104,93 @@ func toolChecklistAddItem(interpreter *core.Interpreter, args []interface{}) (in
 		specialSymbol = ""
 	}
 
-	// --- Refactored Logic using Core Tools ---
-
-	// 1. Get Core Tool Functions
-	addNodeImpl, foundAdd := interpreter.ToolRegistry().GetTool("TreeAddNode")
+	addNodeImpl, foundAdd := interpreter.ToolRegistry().GetTool("Tree.AddChildNode")
 	if !foundAdd || addNodeImpl.Func == nil {
-		logger.Error("Core tool 'TreeAddNode' not found in registry", "tool", toolName)
-		return nil, fmt.Errorf("%w: %s requires core tool 'TreeAddNode'", core.ErrInternal, toolName)
+		logger.Error("Core tool 'Tree.AddChildNode' not found in registry", "tool", toolName)
+		return nil, fmt.Errorf("%w: %s requires core tool 'Tree.AddChildNode'", core.ErrInternal, toolName)
 	}
-	setMetaImpl, foundSet := interpreter.ToolRegistry().GetTool("TreeSetNodeMetadata")
+	setMetaImpl, foundSet := interpreter.ToolRegistry().GetTool("Tree.SetNodeMetadata")
 	if !foundSet || setMetaImpl.Func == nil {
-		logger.Error("Core tool 'TreeSetNodeMetadata' not found in registry", "tool", toolName)
-		return nil, fmt.Errorf("%w: %s requires core tool 'TreeSetNodeMetadata'", core.ErrInternal, toolName)
+		logger.Error("Core tool 'Tree.SetNodeMetadata' not found in registry", "tool", toolName)
+		return nil, fmt.Errorf("%w: %s requires core tool 'Tree.SetNodeMetadata'", core.ErrInternal, toolName)
 	}
 
-	// 2. Generate New Node ID
 	newNodeID := uuid.NewString()
 
-	// 3. Call TreeAddNode to create the basic node with Type: "checklist_item"
-	addArgs := core.MakeArgs(handleID, parentID, newNodeID, "checklist_item", newItemText, index)
-	logger.Debug("Calling TreeAddNode", "tool", toolName, "parentId", parentID, "newNodeId", newNodeID, "type", "checklist_item", "value", newItemText, "index", index)
+	// MODIFIED: Pass nil for key_for_object_parent.
+	// Tree.AddChildNode will append if parent is array-like.
+	// Value (newItemText) is appropriate for 'checklist_item' type.
+	addArgs := core.MakeArgs(handleID, parentID, newNodeID, "checklist_item", newItemText, nil)
+	logger.Debug("Calling Tree.AddChildNode", "tool", toolName, "parentId", parentID, "newNodeId", newNodeID, "type", "checklist_item", "value", newItemText, "key_for_object_parent", nil)
 	_, addErr := addNodeImpl.Func(interpreter, addArgs)
 	if addErr != nil {
-		logger.Error("Core TreeAddNode tool failed", "tool", toolName, "error", addErr)
-		if errors.Is(addErr, core.ErrNotFound) || errors.Is(addErr, core.ErrInvalidArgument) || errors.Is(addErr, core.ErrNodeIDExists) || errors.Is(addErr, core.ErrListIndexOutOfBounds) {
+		logger.Error("Core Tree.AddChildNode tool failed", "tool", toolName, "error", addErr)
+		if errors.Is(addErr, core.ErrNotFound) || errors.Is(addErr, core.ErrInvalidArgument) || errors.Is(addErr, core.ErrNodeIDExists) || errors.Is(addErr, core.ErrListIndexOutOfBounds) || errors.Is(addErr, core.ErrNodeWrongType) {
 			return nil, fmt.Errorf("%w: %s failed adding node: %w", core.ErrInvalidArgument, toolName, addErr)
 		}
 		return nil, fmt.Errorf("%w: %s internal error adding node: %w", core.ErrInternal, toolName, addErr)
 	}
-	logger.Debug("TreeAddNode call successful", "tool", toolName, "newNodeId", newNodeID)
+	logger.Debug("Tree.AddChildNode call successful", "tool", toolName, "newNodeId", newNodeID)
 
-	// 4. Call TreeSetNodeMetadata for essential checklist attributes
+	// --- Handle indexed insertion manually for array-like parents ---
+	// This needs to happen after the node is added to the NodeMap by Tree.AddChildNode.
+	if index != -1 { // -1 means append, which Tree.AddChildNode does by default for array types
+		treeObj, getHandleErr := interpreter.GetHandleValue(handleID, core.GenericTreeHandleType)
+		if getHandleErr != nil {
+			return nil, fmt.Errorf("%s: failed to get tree handle %q for indexed insertion: %w", toolName, handleID, getHandleErr)
+		}
+		tree, castOk := treeObj.(*core.GenericTree)
+		if !castOk || tree == nil || tree.NodeMap == nil {
+			return nil, fmt.Errorf("%w: %s: handle %q did not contain a valid GenericTree for indexed insertion", core.ErrHandleInvalid, toolName, handleID)
+		}
+		parentNode, parentExists := tree.NodeMap[parentID]
+		if !parentExists {
+			// Should have been caught by Tree.AddChildNode, but defensive check.
+			return nil, fmt.Errorf("%w: %s: parent node %q not found for indexed insertion", core.ErrNotFound, toolName, parentID)
+		}
+
+		// Only perform indexed insertion if parent is 'checklist_root' or 'checklist_item' (array-like behavior for ChildIDs)
+		// or explicitly an 'array' type.
+		if parentNode.Type == "checklist_root" || parentNode.Type == "checklist_item" || parentNode.Type == "array" {
+			// Remove the newly added nodeID from the end (where Tree.AddChildNode put it for array-like parents)
+			// Ensure ChildIDs is not nil
+			if parentNode.ChildIDs == nil {
+				parentNode.ChildIDs = []string{} // Should not happen if Tree.AddChildNode succeeded
+			}
+
+			// Find and remove the newNodeID from its current position
+			foundAtIndex := -1
+			for i, childNodeID := range parentNode.ChildIDs {
+				if childNodeID == newNodeID {
+					foundAtIndex = i
+					break
+				}
+			}
+
+			if foundAtIndex != -1 {
+				parentNode.ChildIDs = slices.Delete(parentNode.ChildIDs, foundAtIndex, foundAtIndex+1)
+			} else {
+				// This is unexpected if Tree.AddChildNode succeeded and parent type is correct.
+				logger.Warn("Newly added node not found in parent's children list for reordering.", "tool", toolName, "parentNodeId", parentID, "newNodeId", newNodeID)
+				// Continue to attempt insertion at index, NodeMap is the source of truth.
+			}
+
+			// Clamp index to valid range for insertion
+			if index < 0 { // Should be caught by earlier check, but defensive
+				index = 0
+			}
+			if index > len(parentNode.ChildIDs) {
+				index = len(parentNode.ChildIDs) // Insert at the end
+			}
+
+			parentNode.ChildIDs = slices.Insert(parentNode.ChildIDs, index, newNodeID)
+			logger.Debug("Reordered children for indexed insertion", "tool", toolName, "parentNodeId", parentID, "newNodeId", newNodeID, "index", index)
+		} else {
+			logger.Warn("Index parameter provided but parent node is not array-like; index ignored.", "tool", toolName, "parentNodeId", parentID, "parentNodeType", parentNode.Type, "index", index)
+		}
+	}
+
+	// --- Set Metadata ---
 	attributesToSet := map[string]string{
 		"status": newItemStatus,
 	}
@@ -140,14 +201,14 @@ func toolChecklistAddItem(interpreter *core.Interpreter, args []interface{}) (in
 		attributesToSet["special_symbol"] = specialSymbol
 	}
 
-	// Note: No need to explicitly set "Subtype" as the node Type is now "checklist_item"
-
 	for key, value := range attributesToSet {
 		attrArgs := core.MakeArgs(handleID, newNodeID, key, value)
 		logger.Debug("Calling TreeSetNodeMetadata", "tool", toolName, "nodeId", newNodeID, "key", key, "value", value)
 		_, setErr := setMetaImpl.Func(interpreter, attrArgs)
 		if setErr != nil {
 			logger.Error("Core TreeSetNodeMetadata tool failed while setting attributes for new node", "tool", toolName, "newNodeId", newNodeID, "attributeKey", key, "error", setErr)
+			// It's possible the node was removed due to an earlier error in indexed insertion logic if not handled perfectly,
+			// or other concurrent modification (though unlikely in single tool exec).
 			if errors.Is(setErr, core.ErrNotFound) || errors.Is(setErr, core.ErrInvalidArgument) {
 				return nil, fmt.Errorf("%w: %s failed setting attribute '%s': %w", core.ErrInvalidArgument, toolName, key, setErr)
 			}
@@ -156,5 +217,5 @@ func toolChecklistAddItem(interpreter *core.Interpreter, args []interface{}) (in
 	}
 
 	logger.Debug("Added new checklist item node and attributes successfully", "tool", toolName, "newNodeId", newNodeID, "parentId", parentID)
-	return newNodeID, nil // Return the new node's ID
+	return newNodeID, nil
 }

@@ -1,57 +1,79 @@
 // NeuroScript Version: 0.3.0
-// File version: 0.1.1
-// Updated Config struct field names
+// File version: 0.1.0
+// Refactored to use app.ExecuteScriptFile instead of deprecated App.Run.
 // filename: pkg/neurogo/app_script_test.go
-// nlines: 45
-// risk_rating: LOW
 package neurogo
 
 import (
-	"context" // Import slog
-	"os"      // Import os for stderr
+	"context"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/adapters"
-	"github.com/aprice2704/neuroscript/pkg/logging" // Import the logging interface definition
-	// "github.com/aprice2704/neuroscript/pkg/core"
+	"github.com/aprice2704/neuroscript/pkg/core"
+	"github.com/aprice2704/neuroscript/pkg/logging"
+	"github.com/aprice2704/neuroscript/pkg/toolsets"
 )
 
-// Test for executing a script with multi-return functions
 func TestApp_RunScriptMode_MultiReturn(t *testing.T) {
-	// Setup: Define path relative to the test file's package directory
-	scriptPath := "testdata/multi_return.ns.txt"
+	testName := "TestApp_RunScriptMode_MultiReturn"
+	scriptName := "multi_return.ns.txt" // Assumes this file is in testdata relative to this test file
+	scriptPath := filepath.Join("testdata", scriptName)
 
-	var logger logging.Logger // Declare logger with the interface type
-	loggerAdapter, err := adapters.NewSimpleSlogAdapter(os.Stderr, logging.LogLevelDebug)
+	// 1. Create Config
+	cfg := Config{}
+	cfg.SandboxDir = t.TempDir()
+	// cfg.LogFile = "" // Log to stderr for test visibility
+	// cfg.LogLevel = "debug"
+
+	// 2. Initialize Logger
+	logger, err := adapters.NewSimpleSlogAdapter(os.Stderr, logging.LogLevelDebug)
 	if err != nil {
-		// Handle error during logger creation - fail the test
-		t.Fatalf("Failed to create SlogAdapter for testing: %v", err)
-	}
-	logger = loggerAdapter // Assign the created adapter to the interface variable
-	// --- END CORRECTION ---
-
-	llmClient := adapters.NewNoOpLLMClient() // Keep LLM as NoOp
-
-	cfg := &Config{
-		StartupScript: scriptPath, // CORRECTED: Was ScriptFile
-		TargetArg:     "main",     // Target the main procedure
-		// REMOVED: RunScriptMode: true,
-		// REMOVED: EnableLLM:     false,
+		t.Fatalf("%s: Failed to create logger: %v", testName, err)
 	}
 
-	// Create and run the App
-	app := NewApp(logger)     // Create App with the correctly initialized logger
-	app.Config = cfg          // Assign the config
-	app.llmClient = llmClient // Assign the NoOp LLM client
+	// 3. Initialize LLMClient
+	llmClient := adapters.NewNoOpLLMClient()
 
-	// Execute the script via the App's Run method
-	runErr := app.Run(context.Background()) // Renamed err to runErr for clarity
+	// 4. Create App
+	app := NewApp(logger)
 
-	// Assert: Check for errors during execution
-	if runErr != nil {
-		// Include the test name in the error message for clarity
-		t.Errorf("Test '%s': Expected successful execution of script '%s', but got error: %v", t.Name(), scriptPath, runErr)
+	// 5. Setup Interpreter
+	absSandboxDir, err := filepath.Abs(cfg.SandboxDir)
+	if err != nil {
+		t.Fatalf("%s: Failed to get absolute sandbox path: %v", testName, err)
+	}
+	var procArgs map[string]interface{}
+
+	interpreter, err := core.NewInterpreter(logger, llmClient, absSandboxDir, procArgs, cfg.LibPaths)
+	if err != nil {
+		t.Fatalf("%s: Failed to create core.Interpreter: %v", testName, err)
+	}
+	app.SetInterpreter(interpreter)
+
+	if err := toolsets.RegisterExtendedTools(interpreter); err != nil {
+		t.Fatalf("%s: Failed to register extended tools: %v", testName, err)
+	}
+
+	// AIWM setup (simplified)
+	aiWm, aiWmErr := core.NewAIWorkerManager(logger, app.Config.SandboxDir, llmClient, "", "")
+	if aiWmErr != nil {
+		t.Logf("%s: Warning - Failed to create AI Worker Manager: %v", testName, aiWmErr)
+	} else {
+		app.SetAIWorkerManager(aiWm)
+	}
+
+	// 6. Execute Script
+	ctx := context.Background()
+	executionErr := app.ExecuteScriptFile(ctx, scriptPath)
+
+	// 7. Assert Results
+	if executionErr != nil {
+		t.Errorf("Test '%s': Expected successful execution of script '%s', but got error: %v",
+			testName, scriptPath, executionErr)
 	}
 }
 
-// Add more tests for app_script.go functionality as needed
+// Add other tests from app_script_test.go here if they also use App.Run
+// and need similar refactoring.
