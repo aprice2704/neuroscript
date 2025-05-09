@@ -1,6 +1,7 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.1.8 // Add ErrorCodeNotImplemented and ErrNotImplemented.
-// nlines: 190 // Approximate
+// File version: 0.1.9
+// Add ErrValidationRequiredArgMissing.
+// nlines: 191
 // risk_rating: HIGH
 // filename: pkg/core/errors.go
 package core
@@ -57,7 +58,7 @@ const (
 	ErrorCodePreconditionFailed  ErrorCode = 19
 	ErrorCodeRateLimited         ErrorCode = 20
 	ErrorCodeToolExecutionFailed ErrorCode = 21
-	//ErrorCodeNotImplemented      ErrorCode = 30 // <<< ADDED
+	ErrorCodeNotImplemented      ErrorCode = 30
 
 	// Filesystem Specific Error Codes (start from 22)
 	ErrorCodeFileNotFound     ErrorCode = 22
@@ -83,15 +84,16 @@ var (
 
 // --- Core Validation Errors ---
 var (
-	ErrValidationRequiredArgNil = errors.New("required argument is nil")
-	ErrValidationTypeMismatch   = errors.New("argument type mismatch")
-	ErrValidationArgCount       = errors.New("incorrect argument count")
-	ErrValidationArgValue       = errors.New("invalid argument value")
-	ErrMissingArgument          = errors.New("required argument missing")
-	ErrInvalidArgument          = errors.New("invalid argument")
-	ErrNullByteInArgument       = errors.New("argument contains null byte")
-	ErrIncorrectArgCount        = errors.New("incorrect function argument count")
-	ErrValidationRequired       = errors.New("validation error: missing required argument")
+	ErrValidationRequiredArgNil     = errors.New("required argument is nil")
+	ErrValidationRequiredArgMissing = errors.New("required argument is missing") // <<< ADDED
+	ErrValidationTypeMismatch       = errors.New("argument type mismatch")
+	ErrValidationArgCount           = errors.New("incorrect argument count")
+	ErrValidationArgValue           = errors.New("invalid argument value")
+	ErrMissingArgument              = errors.New("required argument missing") // Consider consolidating with ErrValidationRequiredArgMissing
+	ErrInvalidArgument              = errors.New("invalid argument")
+	ErrNullByteInArgument           = errors.New("argument contains null byte")
+	ErrIncorrectArgCount            = errors.New("incorrect function argument count")           // Consider consolidating with ErrValidationArgCount
+	ErrValidationRequired           = errors.New("validation error: missing required argument") // Consider consolidating with ErrValidationRequiredArgMissing
 )
 
 // --- Core Security Errors ---
@@ -116,10 +118,10 @@ var (
 var (
 	// General Tool Errors
 	ErrInternalTool       = errors.New("internal tool error")
-	ErrNotFound           = errors.New("item not found")                                       // Generic not found by a tool
-	ErrFailedPrecondition = errors.New("operation failed due to a precondition not being met") // For ErrorCodePreconditionFailed
-	ErrRateLimited        = errors.New("operation failed due to rate limiting")                // For ErrorCodeRateLimited
-	ErrNotImplemented     = errors.New("feature or tool not implemented")                      // <<< ADDED
+	ErrNotFound           = errors.New("item not found") // Generic not found by a tool
+	ErrFailedPrecondition = errors.New("operation failed due to a precondition not being met")
+	ErrRateLimited        = errors.New("operation failed due to rate limiting")
+	ErrNotImplemented     = errors.New("feature or tool not implemented")
 
 	// Filesystem Errors
 	ErrFileNotFound      = errors.New("file not found")                  // For ErrorCodeFileNotFound

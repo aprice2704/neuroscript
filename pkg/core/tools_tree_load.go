@@ -1,7 +1,7 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.1.0 // Removed local ToolImplementation, standardized error handling.
-// nlines: 90 // Approximate
-// risk_rating: LOW
+// File version: 0.1.2 // Set ParentAttributeKey for nodes created as object attributes.
+// nlines: 95 // Approximate
+// risk_rating: MEDIUM
 // filename: pkg/core/tools_tree_load.go
 
 package core
@@ -14,16 +14,13 @@ import (
 )
 
 // toolTreeLoadJSON parses a JSON string and returns a handle to the generic tree.
-// Corresponds to ToolSpec "Tree.LoadJSON".
 func toolTreeLoadJSON(interpreter *Interpreter, args []interface{}) (interface{}, error) {
 	toolName := "Tree.LoadJSON" // User-facing tool name for error messages
 
-	// Argument validation is expected to be handled by the validation layer
-	// based on ToolSpec. However, a direct call or internal use might bypass it.
 	if len(args) != 1 {
 		return nil, NewRuntimeError(ErrorCodeArgMismatch,
 			fmt.Sprintf("%s: expected 1 argument (json_string), got %d", toolName, len(args)),
-			ErrArgumentMismatch, // Use the more general ErrArgumentMismatch
+			ErrArgumentMismatch,
 		)
 	}
 
@@ -31,124 +28,121 @@ func toolTreeLoadJSON(interpreter *Interpreter, args []interface{}) (interface{}
 	if !ok {
 		return nil, NewRuntimeError(ErrorCodeType,
 			fmt.Sprintf("%s: json_string argument must be a string, got %T", toolName, args[0]),
-			ErrInvalidArgument, // Use ErrInvalidArgument for type issues post-validation if it slips through
+			ErrInvalidArgument,
 		)
 	}
 
 	var data interface{}
 	err := json.Unmarshal([]byte(jsonContent), &data)
 	if err != nil {
-		// For JSON parsing errors, ErrorCodeSyntax is appropriate, wrapping ErrTreeJSONUnmarshal
 		return nil, NewRuntimeError(ErrorCodeSyntax,
 			fmt.Sprintf("%s: failed to unmarshal JSON input: %v", toolName, err),
-			errors.Join(ErrTreeJSONUnmarshal, err), // Ensure ErrTreeJSONUnmarshal is in the chain for specific checks
+			errors.Join(ErrTreeJSONUnmarshal, err),
 		)
 	}
 
-	// Use the NewGenericTree constructor
 	tree := NewGenericTree() // Initializes NodeMap and nextID
 
-	var buildNode func(parentID string, key string, value interface{}) (string, error)
-	buildNode = func(parentID string, key string, value interface{}) (string, error) {
-		var node *GenericTreeNode // Node will be created by tree.NewNode
+	var buildNode func(parentID string, keyForParentAttribute string, value interface{}) (string, error)
+	buildNode = func(parentID string, keyForParentAttribute string, value interface{}) (string, error) {
+		var node *GenericTreeNode
 		nodeType := ""
 
-		switch v := value.(type) {
+		// Determine nodeType first, then create node, then set ParentAttributeKey if applicable
+		switch value.(type) {
 		case map[string]interface{}:
 			nodeType = "object"
-			node = tree.NewNode(parentID, nodeType) // NewNode adds to tree.NodeMap
-			for k, val := range v {
-				childID, errBuild := buildNode(node.ID, k, val)
+		case []interface{}:
+			nodeType = "array"
+		case string:
+			nodeType = "string"
+		case float64:
+			nodeType = "number"
+		case bool:
+			nodeType = "boolean"
+		case nil:
+			nodeType = "null"
+		default:
+			return "", NewRuntimeError(ErrorCodeInternal,
+				fmt.Sprintf("%s: unsupported JSON type encountered during tree build: %T", toolName, value),
+				ErrInternal,
+			)
+		}
+
+		node = tree.NewNode(parentID, nodeType) // NewNode sets ParentID
+
+		// Set ParentAttributeKey if this node is an attribute of an object parent
+		if parentNode, parentExists := tree.NodeMap[parentID]; parentExists && parentNode.Type == "object" {
+			node.ParentAttributeKey = keyForParentAttribute
+		}
+		// For array elements, keyForParentAttribute is its index as a string.
+		// If parent is an array, ParentAttributeKey will be like "0", "1", etc. This is fine.
+
+		// Now populate based on type
+		switch v := value.(type) {
+		case map[string]interface{}:
+			// node.Type is "object", node is already created and ParentAttributeKey potentially set
+			node.Attributes = make(map[string]string)
+			for k, val := range v { // k is the attribute key within this new object node
+				childID, errBuild := buildNode(node.ID, k, val) // Pass k as keyForParentAttribute for children of this object
 				if errBuild != nil {
-					return "", errBuild // Propagate error directly
-				}
-				// Attributes map string keys to child node IDs for objects
-				if node.Attributes == nil { // Should be initialized by NewNode, but defensive
-					node.Attributes = make(map[string]string)
+					return "", errBuild
 				}
 				node.Attributes[k] = childID
 			}
 		case []interface{}:
-			nodeType = "array"
-			node = tree.NewNode(parentID, nodeType) // NewNode adds to tree.NodeMap
-			node.ChildIDs = make([]string, len(v))  // Pre-allocate ChildIDs
+			// node.Type is "array", node is already created
+			node.ChildIDs = make([]string, len(v))
 			for i, item := range v {
-				childID, errBuild := buildNode(node.ID, strconv.Itoa(i), item) // Key for array items is their index as string
+				// Pass the index as string for keyForParentAttribute, though it's less semantically critical for array elements
+				childID, errBuild := buildNode(node.ID, strconv.Itoa(i), item)
 				if errBuild != nil {
-					return "", errBuild // Propagate error
+					return "", errBuild
 				}
 				node.ChildIDs[i] = childID
 			}
 		case string:
-			nodeType = "string"
-			node = tree.NewNode(parentID, nodeType)
 			node.Value = v
-		case float64: // JSON numbers are float64
-			nodeType = "number"
-			node = tree.NewNode(parentID, nodeType)
+		case float64:
 			node.Value = v
 		case bool:
-			nodeType = "boolean"
-			node = tree.NewNode(parentID, nodeType)
 			node.Value = v
 		case nil:
-			nodeType = "null"
-			node = tree.NewNode(parentID, nodeType)
-			node.Value = nil // Explicitly set for clarity, though default is nil
-		default:
-			// This indicates an issue with the JSON unmarshaler or an unexpected type
-			return "", NewRuntimeError(ErrorCodeInternal, // Or ErrorCodeSyntax if considered a parsing issue
-				fmt.Sprintf("%s: unsupported JSON type encountered during tree build: %T", toolName, value),
-				ErrInternal, // Or a more specific tree build error
-			)
+			node.Value = nil
 		}
 
-		// If this is the first node being built (no parentID), it's the root.
-		if parentID == "" {
+		if parentID == "" { // This is the root node of the entire JSON structure
 			tree.RootID = node.ID
 		}
 		return node.ID, nil
 	}
 
-	_, err = buildNode("", "", data) // Initial call for the root of the JSON data
+	_, err = buildNode("", "", data) // Root node has no parentID and no keyForParentAttribute from a JSON perspective
 	if err != nil {
-		// If buildNode returned a RuntimeError, pass it, else wrap it.
 		var rtErr *RuntimeError
 		if errors.As(err, &rtErr) {
 			return nil, rtErr
 		}
-		return nil, NewRuntimeError(ErrorCodeInternal, // Indicates failure in the tree construction logic
+		return nil, NewRuntimeError(ErrorCodeInternal,
 			fmt.Sprintf("%s: failed to build tree from parsed JSON: %v", toolName, err),
-			ErrInternal, // Or a specific ErrTreeBuildFailed sentinel if defined and appropriate
+			ErrInternal,
 		)
 	}
 
-	if tree.RootID == "" && jsonContent != "null" && jsonContent != `""` && jsonContent != "[]" && jsonContent != "{}" {
-		// This case handles if JSON was valid (e.g. "null") but resulted in no root.
-		// Tree.NewNode always creates an ID, so if RootID is empty after buildNode, it's an issue.
-		// However, for valid empty structures like `[]` or `{}`, or `null`, RootID will be set.
-		// This check is more for an unexpected state.
-		// An empty JSON string `""` would fail unmarshal earlier.
-		// A simple JSON value like `"hello"` or `123` will also have RootID set.
-		// The only problematic case could be an empty input that somehow passes unmarshal but not build.
-		// If jsonContent is "null", tree.RootID will be "node-1" of type "null".
-		// Check if tree.RootID is empty ONLY if it's not a case that naturally results in one node.
-		// A single "null" JSON value will result in a root node. An empty string `""` jsonContent errors earlier.
-		if data != nil { // if data was unmarshalled, a root should have been made
-			interpreter.Logger().Error(fmt.Sprintf("%s: RootID is empty after successful JSON unmarshal and build for non-empty data", toolName), "json_content", jsonContent, "parsed_data_type", fmt.Sprintf("%T", data))
-			return nil, NewRuntimeError(ErrorCodeInternal,
-				fmt.Sprintf("%s: failed to determine root node after parsing JSON", toolName),
-				ErrInternal, // Or a specific ErrTreeBuildFailed
-			)
-		}
+	if tree.RootID == "" && data != nil {
+		interpreter.Logger().Error(fmt.Sprintf("%s: RootID is empty after successful JSON unmarshal and build for non-empty data", toolName), "json_content_snippet", fmt.Sprintf("%.30s...", jsonContent), "parsed_data_type", fmt.Sprintf("%T", data))
+		return nil, NewRuntimeError(ErrorCodeInternal,
+			fmt.Sprintf("%s: failed to determine root node after parsing JSON", toolName),
+			ErrInternal,
+		)
 	}
 
 	handleID, handleErr := interpreter.RegisterHandle(tree, GenericTreeHandleType)
 	if handleErr != nil {
 		interpreter.Logger().Error(fmt.Sprintf("%s: Failed to register GenericTree handle", toolName), "error", handleErr)
-		return nil, NewRuntimeError(ErrorCodeInternal, // Handle registration is an internal system concern
+		return nil, NewRuntimeError(ErrorCodeInternal,
 			fmt.Sprintf("%s: failed to register tree handle: %v", toolName, handleErr),
-			errors.Join(ErrInternal, handleErr), // Join to keep original context
+			errors.Join(ErrInternal, handleErr),
 		)
 	}
 

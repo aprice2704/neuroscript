@@ -1,5 +1,5 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.0.12 // Updated NewInterpreter call signature.
+// File version: 0.0.13 // Added registration of extended toolsets.
 // Test file for GoGetDeclarationOfSymbol tool.
 // filename: pkg/core/tools/gosemantic/find_declarations_query_test.go
 
@@ -16,10 +16,10 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/adapters"
 	"github.com/aprice2704/neuroscript/pkg/core"
 	"github.com/aprice2704/neuroscript/pkg/logging"
+	"github.com/aprice2704/neuroscript/pkg/toolsets" // Required for extended toolset registration
 )
 
 // --- Test Fixture Source Code ---
-// Using standard Go raw string literals for fixtures
 const fixturePkgAContent = `package pkga
 
 import "fmt"
@@ -86,14 +86,17 @@ func TestGoGetDeclarationOfSymbol(t *testing.T) {
 	llmClient := adapters.NewNoOpLLMClient()
 	sandboxDir := t.TempDir()
 
-	// *** CORRECTED NewInterpreter call with 5 arguments ***
 	interpreter, err := core.NewInterpreter(logger, llmClient, sandboxDir, nil, nil) // Pass nil for initialVars and libPaths
 	if err != nil {
 		t.Fatalf("Failed to create core.Interpreter: %v", err)
 	}
-	// Note: core.RegisterCoreTools is called within NewInterpreter constructor now.
-	// If gosemantic tools need registration, it must happen separately.
-	// Assuming for now they use init() or a specific RegisterGosemanticTools func exists.
+	// Note: core.RegisterCoreTools is called within NewInterpreter constructor.
+
+	// Register extended toolsets, including GoSemantic which provides Go.IndexCode
+	err = toolsets.RegisterExtendedTools(interpreter)
+	if err != nil {
+		t.Fatalf("Failed to register extended tools: %v", err)
+	}
 
 	err = interpreter.SetSandboxDir(sandboxDir) // Ensure sandbox is set
 	if err != nil {
@@ -118,23 +121,23 @@ func TestGoGetDeclarationOfSymbol(t *testing.T) {
 	}
 	logger.Info("Created go.mod in sandbox", "path", filepath.Join(sandboxDir, "go.mod"))
 
-	// Run GoIndexCode via registry
-	indexTool, found := interpreter.ToolRegistry().GetTool("GoIndexCode")
+	// Run Go.IndexCode via registry
+	indexTool, found := interpreter.ToolRegistry().GetTool("Go.IndexCode")
 	if !found {
-		t.Fatalf("Tool GoIndexCode not found")
+		t.Fatalf("Tool Go.IndexCode not found")
 	}
 	indexResult, indexErr := indexTool.Func(interpreter, []interface{}{"."})
 	if indexErr != nil {
 		handleCheck, _ := indexResult.(string)
 		if handleCheck == "" {
-			t.Fatalf("GoIndexCode failed to produce a handle: %v", indexErr)
+			t.Fatalf("Go.IndexCode failed to produce a handle: %v", indexErr)
 		} else {
-			t.Logf("GoIndexCode reported an error, but returned a handle. Proceeding cautiously: %v", indexErr)
+			t.Logf("Go.IndexCode reported an error, but returned a handle. Proceeding cautiously: %v", indexErr)
 		}
 	}
 	indexHandle, ok := indexResult.(string)
 	if !ok || indexHandle == "" {
-		t.Fatalf("GoIndexCode did not return a valid handle string, got %T: %v", indexResult, indexResult)
+		t.Fatalf("Go.IndexCode did not return a valid handle string, got %T: %v", indexResult, indexResult)
 	}
 	t.Logf("Got Semantic Index Handle: %s", indexHandle)
 
@@ -155,13 +158,13 @@ func TestGoGetDeclarationOfSymbol(t *testing.T) {
 			if pkgInfo == nil {
 				continue
 			}
-			t.Logf("  PkgPath: %q, ID: %q, Name: %q", pkgInfo.PkgPath, pkgInfo.ID, pkgInfo.Name)
+			t.Logf(" 	PkgPath: %q, ID: %q, Name: %q", pkgInfo.PkgPath, pkgInfo.ID, pkgInfo.Name)
 			if strings.Contains(pkgInfo.PkgPath, expectedPkgPath) || strings.Contains(pkgInfo.ID, expectedPkgPath) {
 				foundCorrectPackage = true
 			}
 		}
 	} else {
-		t.Logf("  No packages found in index!")
+		t.Logf(" 	No packages found in index!")
 	}
 	t.Logf("------------------------------")
 	if !foundCorrectPackage {
@@ -202,9 +205,9 @@ func TestGoGetDeclarationOfSymbol(t *testing.T) {
 	}
 
 	// --- Run Tests ---
-	declTool, foundDecl := interpreter.ToolRegistry().GetTool("GoGetDeclarationOfSymbol")
+	declTool, foundDecl := interpreter.ToolRegistry().GetTool("Go.GetDeclarationOfSymbol") // Corrected tool name based on register.go
 	if !foundDecl {
-		t.Fatalf("Tool GoGetDeclarationOfSymbol not found in registry")
+		t.Fatalf("Tool Go.GetDeclarationOfSymbol not found in registry")
 	}
 
 	for _, tc := range testCases {
@@ -220,7 +223,6 @@ func TestGoGetDeclarationOfSymbol(t *testing.T) {
 					t.Errorf("Expected error wrapping %q, but got nil", tc.wantErr)
 				} else {
 					isCorrectError := errors.Is(runErr, tc.wantErr)
-					// Check for specific case where ErrInvalidQueryFormat might be wrapped by ErrInvalidArgument
 					if !isCorrectError && errors.Is(tc.wantErr, ErrInvalidQueryFormat) {
 						var rtErr *core.RuntimeError
 						if errors.As(runErr, &rtErr) && errors.Is(rtErr.Wrapped, core.ErrInvalidArgument) && strings.Contains(rtErr.Message, ErrInvalidQueryFormat.Error()) {
@@ -250,7 +252,7 @@ func TestGoGetDeclarationOfSymbol(t *testing.T) {
 						originalResultMap = tempMap
 						resultMapForCompare = make(map[string]interface{})
 						for k, v := range tempMap {
-							if k != "line" && k != "column" {
+							if k != "line" && k != "column" { // Ignore line and column for comparison as they can vary
 								resultMapForCompare[k] = v
 							}
 						}

@@ -1,3 +1,8 @@
+// NeuroScript Version: 0.3.1
+// File version: 0.1.1
+// Update expected errors for missing required args.
+// nlines: 140
+// risk_rating: LOW
 // filename: pkg/core/tools_math_test.go
 package core
 
@@ -10,7 +15,7 @@ import (
 	"testing"
 )
 
-// Adapt the general test helper logic (used in list tests) for math tools
+// testMathToolHelper encapsulates the logic for validating and executing a math tool test case.
 func testMathToolHelper(t *testing.T, interp *Interpreter, tc struct {
 	name          string
 	toolName      string
@@ -109,18 +114,18 @@ func TestToolAdd(t *testing.T) {
 		{name: "Non-Numeric String Arg2", toolName: "Add", args: MakeArgs(int64(1), "def"), valWantErrIs: ErrValidationTypeMismatch},
 		{name: "Boolean Arg1", toolName: "Add", args: MakeArgs(true, int64(1)), valWantErrIs: ErrValidationTypeMismatch},
 		{name: "Slice Arg2", toolName: "Add", args: MakeArgs(int64(1), []string{"a"}), valWantErrIs: ErrValidationTypeMismatch},
-		{name: "Nil Arg1", toolName: "Add", args: MakeArgs(nil, int64(1)), valWantErrIs: ErrValidationRequiredArgNil},
-		{name: "Nil Arg2", toolName: "Add", args: MakeArgs(int64(1), nil), valWantErrIs: ErrValidationRequiredArgNil},
-		{name: "Wrong Arg Count (1)", toolName: "Add", args: MakeArgs(int64(1)), valWantErrIs: ErrValidationArgCount},
-		{name: "Wrong Arg Count (0)", toolName: "Add", args: MakeArgs(), valWantErrIs: ErrValidationArgCount},
+		{name: "Nil Arg1", toolName: "Add", args: MakeArgs(nil, int64(1)), valWantErrIs: ErrValidationRequiredArgNil}, // num1 required
+		{name: "Nil Arg2", toolName: "Add", args: MakeArgs(int64(1), nil), valWantErrIs: ErrValidationRequiredArgNil}, // num2 required
+		// Corrected: Expect missing arg error
+		{name: "Wrong_Arg_Count_(1)", toolName: "Add", args: MakeArgs(int64(1)), valWantErrIs: ErrValidationRequiredArgMissing}, // Missing num2
+		// Corrected: Expect missing arg error
+		{name: "Wrong_Arg_Count_(0)", toolName: "Add", args: MakeArgs(), valWantErrIs: ErrValidationRequiredArgMissing}, // Missing num1 & num2
 	}
 	for _, tt := range tests {
 		testMathToolHelper(t, interp, tt)
 	}
 }
 
-// Add tests for other math tools (Subtract, Multiply, Divide, Modulo) similarly...
-// Example for Subtract:
 func TestToolSubtract(t *testing.T) {
 	interp, _ := NewDefaultTestInterpreter(t)
 	tests := []struct {
@@ -136,13 +141,15 @@ func TestToolSubtract(t *testing.T) {
 		{name: "Subtract String Number Coercion", toolName: "Subtract", args: MakeArgs("10", "5.5"), wantResult: float64(4.5)},
 		{name: "Validation Nil Arg1", toolName: "Subtract", args: MakeArgs(nil, int64(1)), valWantErrIs: ErrValidationRequiredArgNil},
 		{name: "Validation Wrong Type Arg2", toolName: "Subtract", args: MakeArgs(int64(1), "abc"), valWantErrIs: ErrValidationTypeMismatch},
+		// Add missing arg tests
+		{name: "Validation Missing Arg 2", toolName: "Subtract", args: MakeArgs(int64(1)), valWantErrIs: ErrValidationRequiredArgMissing},
+		{name: "Validation Missing Args", toolName: "Subtract", args: MakeArgs(), valWantErrIs: ErrValidationRequiredArgMissing},
 	}
 	for _, tt := range tests {
 		testMathToolHelper(t, interp, tt)
 	}
 }
 
-// Example for Divide:
 func TestToolDivide(t *testing.T) {
 	interp, _ := NewDefaultTestInterpreter(t)
 	tests := []struct {
@@ -155,14 +162,15 @@ func TestToolDivide(t *testing.T) {
 	}{
 		{name: "Divide Integers", toolName: "Divide", args: MakeArgs(int64(10), int64(2)), wantResult: float64(5.0)},
 		{name: "Divide Floats", toolName: "Divide", args: MakeArgs(float64(5.0), float64(2.0)), wantResult: float64(2.5)},
-		{name: "Divide by Zero", toolName: "Divide", args: MakeArgs(int64(10), int64(0)), wantToolErrIs: ErrInternalTool}, // Division by zero is an execution error
+		{name: "Divide by Zero", toolName: "Divide", args: MakeArgs(int64(10), int64(0)), wantToolErrIs: ErrDivisionByZero}, // Division by zero is an execution error
 		{name: "Divide Zero by Number", toolName: "Divide", args: MakeArgs(int64(0), int64(5)), wantResult: float64(0.0)},
 		{name: "Validation Nil Arg1", toolName: "Divide", args: MakeArgs(nil, int64(1)), valWantErrIs: ErrValidationRequiredArgNil},
 		{name: "Validation Wrong Type Arg2", toolName: "Divide", args: MakeArgs(int64(1), false), valWantErrIs: ErrValidationTypeMismatch},
+		// Add missing arg tests
+		{name: "Validation Missing Arg 2", toolName: "Divide", args: MakeArgs(int64(1)), valWantErrIs: ErrValidationRequiredArgMissing},
+		{name: "Validation Missing Args", toolName: "Divide", args: MakeArgs(), valWantErrIs: ErrValidationRequiredArgMissing},
 	}
 	for _, tt := range tests {
 		testMathToolHelper(t, interp, tt)
 	}
 }
-
-// Add tests for Multiply and Modulo following the same pattern...

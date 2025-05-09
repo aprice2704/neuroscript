@@ -151,7 +151,7 @@ func RegisterGoAstTools(registry core.ToolRegistrar) error {
 		Spec: core.ToolSpec{Name: "GoFormatASTNode" /* ... */}, Func: toolGoFormatAST,
 	}))
 	collectRegErr("GoGetNodeInfo", registry.RegisterTool(toolGoGetNodeInfoImpl))
-	collectRegErr("GoFindIdentifiers", registry.RegisterTool(toolGoFindIdentifiersImpl))
+	//	collectRegErr("GoFindIdentifiers", registry.RegisterTool(toolGoFindIdentifiersImpl))
 
 	if len(registrationErrors) > 0 {
 		return fmt.Errorf("errors registering Go AST tools: %w", errors.Join(registrationErrors...))

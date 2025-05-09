@@ -1,6 +1,7 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.1.9 // Fix unused variable compiler error in post-test check.
-// nlines: 315 // Approximate
+// File version: 0.2.0
+// Update expected errors for missing required args.
+// nlines: 315
 // risk_rating: LOW
 // filename: pkg/core/tools_fs_dirs_test.go
 package core
@@ -14,17 +15,18 @@ import (
 	"testing"
 )
 
-// --- ListDirectory Validation Tests (Unchanged) ---
+// --- ListDirectory Validation Tests ---
 func TestToolListDirectoryValidation(t *testing.T) {
 	testCases := []ValidationTestCase{
-		{Name: "Wrong Arg Count (None)", InputArgs: MakeArgs(), ExpectedError: ErrValidationArgCount},
-		{Name: "Wrong Arg Count (Three)", InputArgs: MakeArgs("path", true, "extra"), ExpectedError: ErrValidationArgCount},
-		{Name: "Nil First Arg", InputArgs: MakeArgs(nil), ExpectedError: ErrValidationRequiredArgNil},
-		{Name: "Wrong First Arg Type", InputArgs: MakeArgs(123), ExpectedError: ErrValidationTypeMismatch},
-		{Name: "Wrong Second Arg Type", InputArgs: MakeArgs("path", "not-a-bool"), ExpectedError: ErrValidationTypeMismatch},
-		{Name: "Correct Args (Path Only)", InputArgs: MakeArgs("some/dir"), ExpectedError: nil},
-		{Name: "Correct Args (Path and Recursive)", InputArgs: MakeArgs("some/dir", true), ExpectedError: nil},
-		{Name: "Correct Args (Path and Nil Recursive)", InputArgs: MakeArgs("some/dir", nil), ExpectedError: nil},
+		// Corrected: Expect ErrValidationRequiredArgMissing when required arg 'path' is missing.
+		{Name: "Wrong_Arg_Count_(None)", InputArgs: MakeArgs(), ExpectedError: ErrValidationRequiredArgMissing},
+		{Name: "Wrong_Arg_Count_(Three)", InputArgs: MakeArgs("path", true, "extra"), ExpectedError: ErrValidationArgCount},
+		{Name: "Nil_First_Arg", InputArgs: MakeArgs(nil), ExpectedError: ErrValidationRequiredArgNil}, // Required arg 'path' cannot be nil
+		{Name: "Wrong_First_Arg_Type", InputArgs: MakeArgs(123), ExpectedError: ErrValidationTypeMismatch},
+		{Name: "Wrong_Second_Arg_Type", InputArgs: MakeArgs("path", "not-a-bool"), ExpectedError: ErrValidationTypeMismatch},
+		{Name: "Correct_Args_(Path_Only)", InputArgs: MakeArgs("some/dir"), ExpectedError: nil},
+		{Name: "Correct_Args_(Path_and_Recursive)", InputArgs: MakeArgs("some/dir", true), ExpectedError: nil},
+		{Name: "Correct_Args_(Path_and_Nil_Recursive)", InputArgs: MakeArgs("some/dir", nil), ExpectedError: nil}, // nil is ok for optional bool
 	}
 	runValidationTestCases(t, "FS.List", testCases)
 }
@@ -222,14 +224,15 @@ func TestToolListDirectoryFunctional(t *testing.T) {
 	}
 }
 
-// --- Mkdir Validation Tests (Unchanged) ---
+// --- Mkdir Validation Tests ---
 func TestToolMkdirValidation(t *testing.T) {
 	testCases := []ValidationTestCase{
-		{Name: "Wrong Arg Count (None)", InputArgs: MakeArgs(), ExpectedError: ErrValidationArgCount},
-		{Name: "Wrong Arg Count (Two)", InputArgs: MakeArgs("path", "extra"), ExpectedError: ErrValidationArgCount},
-		{Name: "Nil Arg", InputArgs: MakeArgs(nil), ExpectedError: ErrValidationRequiredArgNil},
-		{Name: "Wrong Arg Type", InputArgs: MakeArgs(123), ExpectedError: ErrValidationTypeMismatch},
-		{Name: "Correct Args", InputArgs: MakeArgs("new/dir"), ExpectedError: nil},
+		// Corrected: Expect ErrValidationRequiredArgMissing when required arg 'path' is missing.
+		{Name: "Wrong_Arg_Count_(None)", InputArgs: MakeArgs(), ExpectedError: ErrValidationRequiredArgMissing},
+		{Name: "Wrong_Arg_Count_(Two)", InputArgs: MakeArgs("path", "extra"), ExpectedError: ErrValidationArgCount},
+		{Name: "Nil_Arg", InputArgs: MakeArgs(nil), ExpectedError: ErrValidationRequiredArgNil}, // Required arg 'path' cannot be nil
+		{Name: "Wrong_Arg_Type", InputArgs: MakeArgs(123), ExpectedError: ErrValidationTypeMismatch},
+		{Name: "Correct_Args", InputArgs: MakeArgs("new/dir"), ExpectedError: nil},
 	}
 	runValidationTestCases(t, "FS.Mkdir", testCases)
 }

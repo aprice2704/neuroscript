@@ -1,5 +1,5 @@
-// NeuroScript Version: 0.3.0
-// Last Modified: 2025-05-02 13:55:02 PDT // Add package comment
+// NeuroScript Version: 0.3.1
+// File version: 0.1.2 // Use standard log package for bootstrap logging.
 // filename: pkg/toolsets/register.go
 
 // Package toolsets provides central registration for extended NeuroScript toolsets.
@@ -10,23 +10,20 @@ package toolsets
 import (
 	"errors"
 	"fmt"
-	"sync" // Added for safe concurrent access to the registry map
+	"log" // Using standard log package for bootstrap messages
+	"sync"
 
-	// Core package for registry type and registrar interface
 	"github.com/aprice2704/neuroscript/pkg/core"
-	// --- REMOVED direct imports of specific tool packages ---
-	// "github.com/aprice2704/neuroscript/pkg/neurodata/blocks"
-	// "github.com/aprice2704/neuroscript/pkg/neurodata/checklist"
 )
 
+const bootstrapLogPrefix = "[TOOLSET_REGISTRY] "
+
 // ToolRegisterFunc defines the function signature expected for registering a toolset.
-// It matches the signature of functions like checklist.RegisterChecklistTools.
-type ToolRegisterFunc func(registry core.ToolRegistrar) error // Use core.ToolRegistrar interface
+type ToolRegisterFunc func(registry core.ToolRegistrar) error
 
 // --- Registry for Toolset Registration Functions ---
 
 var (
-	// Use a mutex for safe concurrent access during init potentially
 	registrationMu       sync.RWMutex
 	toolsetRegistrations = make(map[string]ToolRegisterFunc)
 )
@@ -37,47 +34,78 @@ func AddToolsetRegistration(name string, regFunc ToolRegisterFunc) {
 	registrationMu.Lock()
 	defer registrationMu.Unlock()
 
-	if _, exists := toolsetRegistrations[name]; exists {
-		// Log or handle duplicate registration attempts if necessary
-		// For now, allow overwrite (last one wins) but could panic or log warning.
-		fmt.Printf("[WARN] Toolset registration function for '%s' overwritten.\n", name)
-	}
 	if regFunc == nil {
-		panic(fmt.Sprintf("attempted to register nil registration function for toolset '%s'", name))
+		// This is a panic because it's a programming error for a toolset to provide a nil func.
+		log.Panicf(bootstrapLogPrefix+"PANIC: Attempted to register nil registration function for toolset '%s'", name)
+	}
+	if _, exists := toolsetRegistrations[name]; exists {
+		log.Printf(bootstrapLogPrefix+"WARN: Toolset registration function for '%s' overwritten.", name)
 	}
 	toolsetRegistrations[name] = regFunc
-	fmt.Printf("Toolset registration function added for: %s\n", name) // Debug output
+	log.Printf(bootstrapLogPrefix+"INFO: Toolset registration function added for: %s", name)
+}
+
+// CreateRegistrationFunc is a helper that takes a toolset name and a slice of ToolImplementations
+// and returns a ToolRegisterFunc. This simplifies the registration logic within each toolset package.
+func CreateRegistrationFunc(toolsetName string, tools []core.ToolImplementation) ToolRegisterFunc {
+	return func(registry core.ToolRegistrar) error {
+		if registry == nil {
+			err := fmt.Errorf("CreateRegistrationFunc for %s: registry is nil", toolsetName)
+			log.Printf(bootstrapLogPrefix+"ERROR: %v", err) // Log error before returning
+			return err
+		}
+		var errs []error
+		for _, toolImpl := range tools {
+			if err := registry.RegisterTool(toolImpl); err != nil {
+				// Log individual tool addition failures
+				detailedErr := fmt.Errorf("failed to add tool %q from %s toolset: %w", toolImpl.Spec.Name, toolsetName, err)
+				log.Printf(bootstrapLogPrefix+"ERROR: In toolset '%s': %v", toolsetName, detailedErr)
+				errs = append(errs, detailedErr)
+			}
+		}
+		if len(errs) > 0 {
+			return errors.Join(errs...) // Return joined errors
+		}
+		log.Printf(bootstrapLogPrefix+"INFO: --- %s Tools Registered ---", toolsetName)
+		return nil
+	}
 }
 
 // RegisterExtendedTools registers all non-core toolsets that have added themselves
-// via AddToolsetRegistration.
-func RegisterExtendedTools(registry core.ToolRegistrar) error { // Accept interface
-	registrationMu.RLock() // Read lock while iterating
+// via AddToolsetRegistration. It uses the provided core.ToolRegistrar (which should be
+// the interpreter's tool registry).
+// The logging within this function will use the standard 'log' package, as the
+// main application logger might not be fully set up or available through core.LogService()
+// when this is called during initial interpreter setup.
+func RegisterExtendedTools(registry core.ToolRegistrar) error {
+	registrationMu.RLock()
 	defer registrationMu.RUnlock()
 
 	if registry == nil {
-		return fmt.Errorf("cannot register extended tools: registry is nil")
+		err := fmt.Errorf("cannot register extended tools: registry is nil")
+		log.Printf(bootstrapLogPrefix+"ERROR: %v", err)
+		return err
 	}
 
-	fmt.Printf("Registering %d discovered extended toolsets...\n", len(toolsetRegistrations)) // Debug
+	log.Printf(bootstrapLogPrefix+"INFO: Registering %d discovered extended toolsets...", len(toolsetRegistrations))
 
 	var allErrors []error
 
-	// --- Iterate and call registered functions ---
 	for name, regFunc := range toolsetRegistrations {
-		fmt.Printf("Calling registration function for: %s\n", name) // Debug
+		log.Printf(bootstrapLogPrefix+"INFO: Calling registration function for toolset: %s", name)
 		if err := regFunc(registry); err != nil {
-			// Wrap the error with context about which toolset failed
-			allErrors = append(allErrors, fmt.Errorf("failed registering %s tools: %w", name, err))
+			wrappedErr := fmt.Errorf("failed registering %s toolset: %w", name, err)
+			allErrors = append(allErrors, wrappedErr)
+			// Log the error, as the caller of RegisterExtendedTools might only get the joined error.
+			log.Printf(bootstrapLogPrefix+"ERROR: During extended tool registration for toolset '%s': %v", name, err)
 		}
 	}
 
-	// --- Error Handling ---
 	if len(allErrors) > 0 {
-		// Use errors.Join (available since Go 1.20)
+		log.Printf(bootstrapLogPrefix+"ERROR: Encountered %d error(s) during extended toolset registration.", len(allErrors))
 		return errors.Join(allErrors...)
 	}
 
-	fmt.Println("Extended tools registered successfully via toolsets.") // Debug output
-	return nil                                                          // Success
+	log.Printf(bootstrapLogPrefix + "INFO: Extended tools registered successfully via toolsets.")
+	return nil
 }

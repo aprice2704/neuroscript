@@ -1,7 +1,8 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.0.2 // Added toolSplitWords, toolLineCountString. Aligned error messages and arg names with tooldefs.
-// nlines: 280 // Approximate
-// risk_rating: LOW
+// File version: 0.0.3
+// Fix Substring logic, Split/Join return types.
+// nlines: 280
+// risk_rating: MEDIUM
 // filename: pkg/core/tools_string.go
 
 package core
@@ -11,10 +12,6 @@ import (
 	"strings"
 	"unicode/utf8"
 )
-
-// NOTE: The init() function that previously registered tools here has been removed.
-// Registration now happens via the stringToolsToRegister variable in tooldefs_string.go
-// being processed by zz_core_tools_registrar.go.
 
 // --- Tool Implementations ---
 
@@ -32,8 +29,8 @@ func toolStringLength(interpreter *Interpreter, args []interface{}) (interface{}
 }
 
 func toolStringSubstring(interpreter *Interpreter, args []interface{}) (interface{}, error) {
+	// Corresponds to "Substring" tool with args: input_string, start_index, length
 	if len(args) != 3 {
-		// Corresponds to "StringSubstring" tool with args: input_string, start_index, length
 		return nil, NewRuntimeError(ErrorCodeArgMismatch, "String.Substring: expected 3 arguments (input_string, start_index, length)", ErrArgumentMismatch)
 	}
 	inputStr, okStr := args[0].(string)
@@ -55,54 +52,52 @@ func toolStringSubstring(interpreter *Interpreter, args []interface{}) (interfac
 	runes := []rune(inputStr)
 	runeCount := len(runes)
 
+	// Check for negative indices/length *before* clamping
 	if startIndex < 0 {
 		return nil, NewRuntimeError(ErrorCodeBounds, fmt.Sprintf("String.Substring: start_index (%d) cannot be negative", startIndex), ErrListIndexOutOfBounds)
 	}
 	if length < 0 {
 		return nil, NewRuntimeError(ErrorCodeBounds, fmt.Sprintf("String.Substring: length (%d) cannot be negative", length), ErrListIndexOutOfBounds)
 	}
+
+	// Clamp start index
 	if startIndex > runeCount {
-		// Allow startIndex == runeCount for zero-length substring at end
-		if startIndex == runeCount && length == 0 {
-			interpreter.Logger().Debug("Tool: String.Substring (empty at end)", "input", inputStr, "start", startIndex, "length", length, "result", "")
-			return "", nil
-		}
-		return nil, NewRuntimeError(ErrorCodeBounds, fmt.Sprintf("String.Substring: start_index (%d) is out of bounds for string length %d", startIndex, runeCount), ErrListIndexOutOfBounds)
+		startIndex = runeCount // Clamp to end (allows empty string result)
 	}
 
+	// Calculate end index based on clamped start and requested length
 	endIndex := startIndex + length
+
+	// Clamp end index
 	if endIndex > runeCount {
 		endIndex = runeCount
 	}
 
-	if startIndex >= endIndex {
-		interpreter.Logger().Debug("Tool: String.Substring (empty due to indices/length)", "input", inputStr, "start", startIndex, "length", length, "rune_count", runeCount, "result", "")
+	// Handle cases resulting in empty string
+	if startIndex >= endIndex || startIndex >= runeCount {
+		interpreter.Logger().Debug("Tool: String.Substring (empty due to indices/length)", "input", inputStr, "start", startIndexRaw, "length", lengthRaw, "rune_count", runeCount, "result", "")
 		return "", nil
 	}
 
 	substring := string(runes[startIndex:endIndex])
-	interpreter.Logger().Debug("Tool: String.Substring", "input", inputStr, "start", startIndex, "length", length, "result", substring)
+	interpreter.Logger().Debug("Tool: String.Substring", "input", inputStr, "start", startIndexRaw, "length", lengthRaw, "result", substring)
 	return substring, nil
 }
 
 func toolStringConcat(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	// Corresponds to "StringConcat" tool with args: strings_list
+	// Corresponds to "Concat" tool with args: strings_list (ArgTypeSliceString)
 	if len(args) != 1 {
 		return nil, NewRuntimeError(ErrorCodeArgMismatch, "String.Concat: expected 1 argument (strings_list)", ErrArgumentMismatch)
 	}
-	stringsList, ok := args[0].([]interface{})
+	// Validation ensures this is []string
+	stringsList, ok := args[0].([]string)
 	if !ok {
-		// This case should ideally be caught by ValidateAndConvertArgs if ArgTypeSliceString is strict.
-		// If it can be []interface{} from validation, then this check is fine.
-		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("String.Concat: strings_list argument must be a list of strings, got %T", args[0]), ErrInvalidArgument)
+		// This should not happen if validation worked correctly with ArgTypeSliceString
+		return nil, NewRuntimeError(ErrorCodeInternal, fmt.Sprintf("String.Concat: internal error - expected []string from validation, got %T", args[0]), ErrTypeAssertionFailed)
 	}
 
 	var builder strings.Builder
-	for i, item := range stringsList {
-		str, ok := item.(string)
-		if !ok {
-			return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("String.Concat: list element at index %d must be a string, got %T", i, item), ErrInvalidArgument)
-		}
+	for _, str := range stringsList {
 		builder.WriteString(str)
 	}
 
@@ -112,7 +107,7 @@ func toolStringConcat(interpreter *Interpreter, args []interface{}) (interface{}
 }
 
 func toolStringSplit(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	// Corresponds to "StringSplit" tool with args: input_string, delimiter
+	// Corresponds to "Split" tool with args: input_string, delimiter
 	if len(args) != 2 {
 		return nil, NewRuntimeError(ErrorCodeArgMismatch, "String.Split: expected 2 arguments (input_string, delimiter)", ErrArgumentMismatch)
 	}
@@ -126,18 +121,15 @@ func toolStringSplit(interpreter *Interpreter, args []interface{}) (interface{},
 		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("String.Split: delimiter argument must be a string, got %T", args[1]), ErrInvalidArgument)
 	}
 
+	// Corrected: Directly return []string
 	parts := strings.Split(inputStr, separator)
-	result := make([]interface{}, len(parts))
-	for i, part := range parts {
-		result[i] = part
-	}
 
 	interpreter.Logger().Debug("Tool: String.Split", "input_length", len(inputStr), "separator", separator, "parts_count", len(parts))
-	return result, nil
+	return parts, nil // Return []string directly
 }
 
 func toolSplitWords(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	// Corresponds to "StringSplitWords" tool with args: input_string
+	// Corresponds to "SplitWords" tool with args: input_string
 	if len(args) != 1 {
 		return nil, NewRuntimeError(ErrorCodeArgMismatch, "String.SplitWords: expected 1 argument (input_string)", ErrArgumentMismatch)
 	}
@@ -146,46 +138,40 @@ func toolSplitWords(interpreter *Interpreter, args []interface{}) (interface{}, 
 		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("String.SplitWords: input_string argument must be a string, got %T", args[0]), ErrInvalidArgument)
 	}
 
+	// Corrected: Directly return []string
 	parts := strings.Fields(inputStr)
-	result := make([]interface{}, len(parts))
-	for i, part := range parts {
-		result[i] = part
-	}
+
 	interpreter.Logger().Debug("Tool: String.SplitWords", "input_length", len(inputStr), "parts_count", len(parts))
-	return result, nil
+	return parts, nil // Return []string directly
 }
 
 func toolStringJoin(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	// Corresponds to "StringJoin" tool with args: string_list, separator
+	// Corresponds to "Join" tool with args: string_list, separator
 	if len(args) != 2 {
 		return nil, NewRuntimeError(ErrorCodeArgMismatch, "String.Join: expected 2 arguments (string_list, separator)", ErrArgumentMismatch)
 	}
-	stringListRaw, okList := args[0].([]interface{})
+	// Corrected: Expect []string directly due to ArgTypeSliceString spec
+	stringList, okList := args[0].([]string)
 	separator, okSep := args[1].(string)
 
 	if !okList {
-		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("String.Join: string_list argument must be a list, got %T", args[0]), ErrInvalidArgument)
+		// This should ideally not happen if validation worked correctly.
+		// It might occur if the input was []interface{} containing non-strings,
+		// which validation should have caught earlier.
+		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("String.Join: string_list argument must be a list of strings, got %T", args[0]), ErrInvalidArgument)
 	}
 	if !okSep {
 		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("String.Join: separator argument must be a string, got %T", args[1]), ErrInvalidArgument)
 	}
 
-	stringList := make([]string, 0, len(stringListRaw))
-	for i, item := range stringListRaw {
-		str, ok := item.(string)
-		if !ok {
-			return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("String.Join: list element at index %d must be a string, got %T", i, item), ErrInvalidArgument)
-		}
-		stringList = append(stringList, str)
-	}
-
+	// No need to convert elements if input is already []string
 	result := strings.Join(stringList, separator)
 	interpreter.Logger().Debug("Tool: String.Join", "input_count", len(stringList), "separator", separator, "result_length", len(result))
 	return result, nil
 }
 
 func toolStringContains(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	// Corresponds to "StringContains" tool with args: input_string, substring
+	// Corresponds to "Contains" tool with args: input_string, substring
 	if len(args) != 2 {
 		return nil, NewRuntimeError(ErrorCodeArgMismatch, "String.Contains: expected 2 arguments (input_string, substring)", ErrArgumentMismatch)
 	}
@@ -205,7 +191,7 @@ func toolStringContains(interpreter *Interpreter, args []interface{}) (interface
 }
 
 func toolStringHasPrefix(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	// Corresponds to "StringHasPrefix" tool with args: input_string, prefix
+	// Corresponds to "HasPrefix" tool with args: input_string, prefix
 	if len(args) != 2 {
 		return nil, NewRuntimeError(ErrorCodeArgMismatch, "String.HasPrefix: expected 2 arguments (input_string, prefix)", ErrArgumentMismatch)
 	}
@@ -225,7 +211,7 @@ func toolStringHasPrefix(interpreter *Interpreter, args []interface{}) (interfac
 }
 
 func toolStringHasSuffix(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	// Corresponds to "StringHasSuffix" tool with args: input_string, suffix
+	// Corresponds to "HasSuffix" tool with args: input_string, suffix
 	if len(args) != 2 {
 		return nil, NewRuntimeError(ErrorCodeArgMismatch, "String.HasSuffix: expected 2 arguments (input_string, suffix)", ErrArgumentMismatch)
 	}
@@ -245,7 +231,7 @@ func toolStringHasSuffix(interpreter *Interpreter, args []interface{}) (interfac
 }
 
 func toolStringToUpper(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	// Corresponds to "StringToUpper" tool with args: input_string
+	// Corresponds to "ToUpper" tool with args: input_string
 	if len(args) != 1 {
 		return nil, NewRuntimeError(ErrorCodeArgMismatch, "String.ToUpper: expected 1 argument (input_string)", ErrArgumentMismatch)
 	}
@@ -259,7 +245,7 @@ func toolStringToUpper(interpreter *Interpreter, args []interface{}) (interface{
 }
 
 func toolStringToLower(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	// Corresponds to "StringToLower" tool with args: input_string
+	// Corresponds to "ToLower" tool with args: input_string
 	if len(args) != 1 {
 		return nil, NewRuntimeError(ErrorCodeArgMismatch, "String.ToLower: expected 1 argument (input_string)", ErrArgumentMismatch)
 	}
@@ -273,7 +259,7 @@ func toolStringToLower(interpreter *Interpreter, args []interface{}) (interface{
 }
 
 func toolStringTrimSpace(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	// Corresponds to "StringTrimSpace" tool with args: input_string
+	// Corresponds to "TrimSpace" tool with args: input_string
 	if len(args) != 1 {
 		return nil, NewRuntimeError(ErrorCodeArgMismatch, "String.TrimSpace: expected 1 argument (input_string)", ErrArgumentMismatch)
 	}
@@ -287,7 +273,7 @@ func toolStringTrimSpace(interpreter *Interpreter, args []interface{}) (interfac
 }
 
 func toolStringReplace(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	// Corresponds to "StringReplace" tool with args: input_string, old_substring, new_substring, count
+	// Corresponds to "Replace" tool with args: input_string, old_substring, new_substring, count
 	if len(args) != 4 {
 		return nil, NewRuntimeError(ErrorCodeArgMismatch, "String.Replace: expected 4 arguments (input_string, old_substring, new_substring, count)", ErrArgumentMismatch)
 	}
@@ -316,7 +302,7 @@ func toolStringReplace(interpreter *Interpreter, args []interface{}) (interface{
 }
 
 func toolLineCountString(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	// Corresponds to "StringLineCount" tool with args: content_string
+	// Corresponds to "LineCount" tool with args: content_string
 	if len(args) != 1 {
 		return nil, NewRuntimeError(ErrorCodeArgMismatch, "String.LineCount: expected 1 argument (content_string)", ErrArgumentMismatch)
 	}
@@ -329,11 +315,13 @@ func toolLineCountString(interpreter *Interpreter, args []interface{}) (interfac
 		interpreter.Logger().Debug("Tool: String.LineCount", "content", content, "line_count", 0)
 		return int64(0), nil
 	}
+	// Count occurrences of newline character
 	lineCount := int64(strings.Count(content, "\n"))
+	// Add 1 if the string doesn't end with a newline (to count the last line)
 	if !strings.HasSuffix(content, "\n") {
 		lineCount++
 	}
 
-	interpreter.Logger().Debug("Tool: String.LineCount", "content", content, "line_count", lineCount)
+	interpreter.Logger().Debug("Tool: String.LineCount", "content_len", len(content), "line_count", lineCount)
 	return lineCount, nil
 }

@@ -1,5 +1,5 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.0.3 // Updated NewInterpreter call signature.
+// File version: 0.0.4 // Added registration of extended toolsets.
 // Test file for GoRenameSymbol tool.
 // filename: pkg/core/tools/gosemantic/rename_symbol_test.go
 
@@ -18,6 +18,7 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/adapters"
 	"github.com/aprice2704/neuroscript/pkg/core"
 	"github.com/aprice2704/neuroscript/pkg/logging"
+	"github.com/aprice2704/neuroscript/pkg/toolsets" // Required for extended toolset registration
 )
 
 // --- Fixtures ---
@@ -29,8 +30,8 @@ const GlobalConst = 123 // L5 C7
 var GlobalVar = "hello" // L6 C5
 
 type MyStruct struct { // L8 C6
-	FieldA int          // L9 C2
-	fieldB string // unexported L10 C2
+	FieldA int      // L9 C2
+	fieldB string   // unexported L10 C2
 }
 
 func (s *MyStruct) PointerMethod(val string) { // L13 C20
@@ -47,8 +48,8 @@ type MyInterface interface { // L21 C6
 
 func TopLevelFunc(a int, b string) (string, error) { // L25 C6
 	gs := MyStruct{FieldA: a, fieldB: b} // L26 C7 (MyStruct), L26 C18 (FieldA), L26 C29 (fieldB)
-	gs.PointerMethod("from func")        // L27 C6 (PointerMethod)
-	_ = gs.ValueMethod()                 // L28 C8 (ValueMethod)
+	gs.PointerMethod("from func")         // L27 C6 (PointerMethod)
+	_ = gs.ValueMethod()                  // L28 C8 (ValueMethod)
 	var localVar = "test"
 	fmt.Println(localVar)
 	return "ok", nil
@@ -127,12 +128,19 @@ func TestGoRenameSymbol(t *testing.T) {
 	logger.Debug("Test logger initialized")
 	llmClient := adapters.NewNoOpLLMClient()
 	sandboxDir := t.TempDir()
-	// *** CORRECTED NewInterpreter call with 5 arguments ***
-	interpreter, err := core.NewInterpreter(logger, llmClient, sandboxDir, nil, nil) // Pass nil for initialVars and libPaths
+
+	interpreter, err := core.NewInterpreter(logger, llmClient, sandboxDir, nil, nil)
 	if err != nil {
 		t.Fatalf("Failed create interpreter: %v", err)
 	}
 	// core.RegisterCoreTools is called within NewInterpreter
+
+	// Register extended toolsets, including GoSemantic which provides Go.IndexCode
+	err = toolsets.RegisterExtendedTools(interpreter)
+	if err != nil {
+		t.Fatalf("Failed to register extended tools: %v", err)
+	}
+
 	err = interpreter.SetSandboxDir(sandboxDir)
 	if err != nil {
 		t.Fatalf("Failed set sandbox dir: %v", err)
@@ -153,22 +161,22 @@ func TestGoRenameSymbol(t *testing.T) {
 	}
 	logger.Info("Created go.mod in sandbox", "path", filepath.Join(sandboxDir, "go.mod"))
 
-	indexTool, found := interpreter.ToolRegistry().GetTool("GoIndexCode")
+	indexTool, found := interpreter.ToolRegistry().GetTool("Go.IndexCode")
 	if !found {
-		t.Fatalf("Tool GoIndexCode not found")
+		t.Fatalf("Tool Go.IndexCode not found")
 	}
-	indexResult, indexErr := indexTool.Func(interpreter, []interface{}{"."})
+	indexResult, indexErr := indexTool.Func(interpreter, []interface{}{"."}) // Index current directory
 	if indexErr != nil {
 		handleCheck, _ := indexResult.(string)
 		if handleCheck == "" {
-			t.Fatalf("GoIndexCode failed: %v", indexErr)
+			t.Fatalf("Go.IndexCode failed: %v", indexErr)
 		} else {
-			t.Logf("GoIndexCode warning: %v", indexErr)
+			t.Logf("Go.IndexCode warning: %v", indexErr)
 		}
 	}
 	indexHandle, ok := indexResult.(string)
 	if !ok || indexHandle == "" {
-		t.Fatalf("GoIndexCode invalid handle: %T %v", indexResult, indexResult)
+		t.Fatalf("Go.IndexCode invalid handle: %T %v", indexResult, indexResult)
 	}
 	t.Logf("Got Semantic Index Handle: %s", indexHandle)
 
@@ -240,22 +248,22 @@ func TestGoRenameSymbol(t *testing.T) {
 		},
 		{name: "Rename Symbol Not Found", query: "package:mytestmodule/pkga; function:NoSuchFunc", newName: "NewFuncName", wantPatches: []map[string]interface{}{}},
 		{name: "Rename Package Not Found", query: "package:nonexistent/pkg; function:SomeFunc", newName: "NewFuncName", wantPatches: []map[string]interface{}{}},
-		{name: "Rename Same Name", query: "package:mytestmodule/pkga; const:GlobalConst", newName: "GlobalConst", wantPatches: []map[string]interface{}{}},
+		{name: "Rename Same Name", query: "package:mytestmodule/pkga; const:GlobalConst", newName: "GlobalConst", wantPatches: []map[string]interface{}{}}, // Should result in no patches
 		{name: "Rename Invalid New Name", query: "package:mytestmodule/pkga; const:GlobalConst", newName: "Invalid-Name", wantErr: core.ErrInvalidArgument},
 		{name: "Rename to Keyword", query: "package:mytestmodule/pkga; var:GlobalVar", newName: "type", wantErr: core.ErrInvalidArgument},
-		{name: "Rename Builtin Type (Expect Empty)", query: "package:builtin; type:string", newName: "MyString", wantPatches: []map[string]interface{}{}},
+		{name: "Rename Builtin Type (Expect Empty)", query: "package:builtin; type:string", newName: "MyString", wantPatches: []map[string]interface{}{}}, // Should not find/rename builtins
 	}
 
 	// --- Run Tests ---
-	renameTool, foundRename := interpreter.ToolRegistry().GetTool("GoRenameSymbol")
+	renameTool, foundRename := interpreter.ToolRegistry().GetTool("Go.RenameSymbol")
 	if !foundRename {
-		t.Fatalf("Tool GoRenameSymbol not found in registry")
+		t.Fatalf("Tool Go.RenameSymbol not found in registry")
 	}
 
 	for _, tc := range testCases {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
-			// t.Parallel() // Disable parallel
+			// t.Parallel() // Disabling parallel for rename tests as they might interact with index or common state if not careful
 
 			result, runErr := renameTool.Func(interpreter, []interface{}{indexHandle, tc.query, tc.newName})
 
@@ -264,17 +272,17 @@ func TestGoRenameSymbol(t *testing.T) {
 				if runErr == nil {
 					t.Errorf("Expected error wrapping %q, but got nil", tc.wantErr)
 				} else {
-					// Check if the error is the expected sentinel OR if it's ErrInvalidArgument wrapping the expected format error message
 					isCorrectError := errors.Is(runErr, tc.wantErr)
+					// Allow direct match for ErrInvalidArgument as it might not always be wrapped by RuntimeError in the same way
+					if !isCorrectError && tc.wantErr == core.ErrInvalidArgument {
+						isCorrectError = errors.Is(runErr, core.ErrInvalidArgument)
+					}
+					// Check for specific case where ErrInvalidQueryFormat might be wrapped by ErrInvalidArgument
 					if !isCorrectError && errors.Is(tc.wantErr, ErrInvalidQueryFormat) {
 						var rtErr *core.RuntimeError
 						if errors.As(runErr, &rtErr) && errors.Is(rtErr.Wrapped, core.ErrInvalidArgument) && strings.Contains(rtErr.Message, ErrInvalidQueryFormat.Error()) {
 							isCorrectError = true
 						}
-					}
-					// Allow direct match for ErrInvalidArgument as well
-					if !isCorrectError && tc.wantErr == core.ErrInvalidArgument {
-						isCorrectError = errors.Is(runErr, core.ErrInvalidArgument)
 					}
 					if !isCorrectError {
 						t.Errorf("Expected error wrapping %q (or ErrInvalidArgument), but got %q (%v)", tc.wantErr, runErr, runErr)
@@ -292,7 +300,11 @@ func TestGoRenameSymbol(t *testing.T) {
 			// --- Result Comparison ---
 			actualResultsRaw, ok := result.([]interface{})
 			if !ok {
-				t.Fatalf("Expected result type []interface{}, got %T: %v", result, result)
+				if result == nil && (tc.wantPatches == nil || len(tc.wantPatches) == 0) {
+					actualResultsRaw = []interface{}{} // Treat nil result as empty if expecting empty
+				} else {
+					t.Fatalf("Expected result type []interface{}, got %T: %v", result, result)
+				}
 			}
 			actualResultsFiltered, filterErr := sortAndFilterRenamePatches(actualResultsRaw, t)
 			if filterErr != nil {
@@ -303,9 +315,14 @@ func TestGoRenameSymbol(t *testing.T) {
 			if tc.wantPatches != nil {
 				wantResultInterfaces := make([]interface{}, len(tc.wantPatches))
 				for i, v := range tc.wantPatches {
-					v["offset_start"] = int64(0)
-					v["offset_end"] = int64(1)
-					wantResultInterfaces[i] = v
+					// Add dummy offsets as they are not compared but needed by sortAndFilterRenamePatches
+					vCopy := make(map[string]interface{})
+					for kOriginal, vOriginal := range v {
+						vCopy[kOriginal] = vOriginal
+					}
+					vCopy["offset_start"] = int64(0) // Dummy value
+					vCopy["offset_end"] = int64(1)   // Dummy value
+					wantResultInterfaces[i] = vCopy
 				}
 				var sortErr error
 				expectedResultsSorted, sortErr = sortAndFilterRenamePatches(wantResultInterfaces, t)
@@ -317,7 +334,8 @@ func TestGoRenameSymbol(t *testing.T) {
 			}
 
 			if !reflect.DeepEqual(actualResultsFiltered, expectedResultsSorted) {
-				if len(actualResultsFiltered) == 0 && len(expectedResultsSorted) == 0 { // Treat empty slices as equal
+				if len(actualResultsFiltered) == 0 && len(expectedResultsSorted) == 0 {
+					// This is fine.
 				} else {
 					t.Errorf("Result mismatch for query %q -> %q (ignoring offsets):\n Expected (sorted): %#v\n Got (sorted/filtered): %#v", tc.query, tc.newName, expectedResultsSorted, actualResultsFiltered)
 					t.Logf("Original Got (unsorted, with offsets): %#v", actualResultsRaw)

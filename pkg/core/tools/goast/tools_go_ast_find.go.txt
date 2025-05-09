@@ -17,6 +17,8 @@ import (
 	"sort"
 
 	"github.com/aprice2704/neuroscript/pkg/core"
+	"github.com/aprice2704/neuroscript/pkg/core/tools/gosemantic"
+
 	// "golang.org/x/tools/go/ast/astutil" // Not using
 	"golang.org/x/tools/go/packages"
 )
@@ -69,7 +71,7 @@ func toolGoFindIdentifiers(interpreter *core.Interpreter, args []interface{}) (i
 		logger.Error("[TOOL-GOFINDIDENTIFIERS] Failed get handle", "handle", handle, "error", err)
 		return nil, err
 	}
-	index, ok := indexValue.(*core.SemanticIndex)
+	index, ok := indexValue.(*gosemantic.SemanticIndex)
 	if !ok {
 		logger.Error("[TOOL-GOFINDIDENTIFIERS] Handle not *core.SemanticIndex", "handle", handle, "type", fmt.Sprintf("%T", indexValue))
 		return nil, fmt.Errorf("%w: handle '%s' not a SemanticIndex", core.ErrHandleWrongType, handle)
@@ -288,84 +290,84 @@ func findPosInFileSet(fset *token.FileSet, absPath string, line, col int) (token
 	return absPos, nil
 }
 
-// findIdentAndPackageAtPos uses ast.Inspect to find the narrowest node containing
-// the position, and returns it only if it's an *ast.Ident.
-func findIdentAndPackageAtPos(index *core.SemanticIndex, targetPos token.Pos) (*ast.Ident, *packages.Package, error) {
-	var targetPkg *packages.Package
-	var containingFile *ast.File
-	var narrowestNode ast.Node // Track the narrowest node containing the pos
+// // findIdentAndPackageAtPos uses ast.Inspect to find the narrowest node containing
+// // the position, and returns it only if it's an *ast.Ident.
+// func findIdentAndPackageAtPos(index *gosemantic.SemanticIndex, targetPos token.Pos) (*ast.Ident, *packages.Package, error) {
+// 	var targetPkg *packages.Package
+// 	var containingFile *ast.File
+// 	var narrowestNode ast.Node // Track the narrowest node containing the pos
 
-	// 1. Find containing file and package
-	for _, pkg := range index.Packages {
-		if pkg == nil {
-			continue
-		}
-		for _, fileNode := range pkg.Syntax {
-			if fileNode == nil {
-				continue
-			}
-			if fileNode.Pos() <= targetPos && targetPos < fileNode.End() {
-				if pkg.TypesInfo == nil {
-					posStr := index.Fset.Position(targetPos).String()
-					log.Printf("[ERROR findIdentAndPackageAtPos] Found package %s for position %s, but TypesInfo is nil.", pkg.PkgPath, posStr)
-					return nil, nil, fmt.Errorf("internal error: types info missing for package %s containing position %s", pkg.PkgPath, posStr)
-				}
-				targetPkg = pkg
-				containingFile = fileNode
-				log.Printf("[DEBUG findIdentAndPackageAtPos] Found containing file: %s in package: %s for pos %v", index.Fset.File(fileNode.Pos()).Name(), pkg.PkgPath, targetPos)
-				goto FoundFile
-			}
-		}
-	}
+// 	// 1. Find containing file and package
+// 	for _, pkg := range index.Packages {
+// 		if pkg == nil {
+// 			continue
+// 		}
+// 		for _, fileNode := range pkg.Syntax {
+// 			if fileNode == nil {
+// 				continue
+// 			}
+// 			if fileNode.Pos() <= targetPos && targetPos < fileNode.End() {
+// 				if pkg.TypesInfo == nil {
+// 					posStr := index.Fset.Position(targetPos).String()
+// 					log.Printf("[ERROR findIdentAndPackageAtPos] Found package %s for position %s, but TypesInfo is nil.", pkg.PkgPath, posStr)
+// 					return nil, nil, fmt.Errorf("internal error: types info missing for package %s containing position %s", pkg.PkgPath, posStr)
+// 				}
+// 				targetPkg = pkg
+// 				containingFile = fileNode
+// 				log.Printf("[DEBUG findIdentAndPackageAtPos] Found containing file: %s in package: %s for pos %v", index.Fset.File(fileNode.Pos()).Name(), pkg.PkgPath, targetPos)
+// 				goto FoundFile
+// 			}
+// 		}
+// 	}
 
-FoundFile:
-	if containingFile == nil || targetPkg == nil {
-		posStr := index.Fset.Position(targetPos).String()
-		log.Printf("[DEBUG findIdentAndPackageAtPos] Position %s not found within any indexed file's AST range.", posStr)
-		return nil, nil, nil
-	}
+// FoundFile:
+// 	if containingFile == nil || targetPkg == nil {
+// 		posStr := index.Fset.Position(targetPos).String()
+// 		log.Printf("[DEBUG findIdentAndPackageAtPos] Position %s not found within any indexed file's AST range.", posStr)
+// 		return nil, nil, nil
+// 	}
 
-	// 2. Use ast.Inspect to find the narrowest node containing targetPos
-	ast.Inspect(containingFile, func(node ast.Node) bool {
-		if node == nil {
-			return false
-		}
-		startPos, endPos := node.Pos(), node.End()
-		if !(startPos <= targetPos && targetPos < endPos) {
-			if startPos > targetPos {
-				return false
-			} // Prune
-			return true // Continue siblings
-		}
-		// Node contains the position. Store it as the current narrowest candidate.
-		narrowestNode = node
-		log.Printf("[DEBUG findIdentAndPackageAtPos] Inspect: Node %T [%v, %v) contains target %v. Storing as narrowest.", node, startPos, endPos, targetPos)
-		return true // Continue deeper
-	})
+// 	// 2. Use ast.Inspect to find the narrowest node containing targetPos
+// 	ast.Inspect(containingFile, func(node ast.Node) bool {
+// 		if node == nil {
+// 			return false
+// 		}
+// 		startPos, endPos := node.Pos(), node.End()
+// 		if !(startPos <= targetPos && targetPos < endPos) {
+// 			if startPos > targetPos {
+// 				return false
+// 			} // Prune
+// 			return true // Continue siblings
+// 		}
+// 		// Node contains the position. Store it as the current narrowest candidate.
+// 		narrowestNode = node
+// 		log.Printf("[DEBUG findIdentAndPackageAtPos] Inspect: Node %T [%v, %v) contains target %v. Storing as narrowest.", node, startPos, endPos, targetPos)
+// 		return true // Continue deeper
+// 	})
 
-	// 3. After inspection, check if the narrowest node found is an *ast.Ident
-	if narrowestNode != nil {
-		if ident, ok := narrowestNode.(*ast.Ident); ok {
-			// Success! The narrowest node containing the position is an identifier.
-			// Double-check resolution just in case, though ObjectOf should be robust.
-			if obj := resolveObject(targetPkg.TypesInfo, ident); obj != nil {
-				pos := index.Fset.Position(ident.Pos())
-				log.Printf("[DEBUG findIdentAndPackageAtPos] Success! Narrowest node is Ident: '%s' at %s:%d:%d (and resolves)",
-					ident.Name, filepath.Base(pos.Filename), pos.Line, pos.Column)
-				return ident, targetPkg, nil
-			} else {
-				posStr := index.Fset.Position(targetPos).String()
-				log.Printf("[WARN findIdentAndPackageAtPos] Narrowest node at %s is Ident '%s', but it failed to resolve via ObjectOf.", posStr, ident.Name)
-				return nil, nil, nil // Treat non-resolving ident as not found
-			}
-		} else {
-			posStr := index.Fset.Position(targetPos).String()
-			log.Printf("[WARN findIdentAndPackageAtPos] Narrowest node containing position %s is %T, not *ast.Ident.", posStr, narrowestNode)
-			return nil, nil, nil
-		}
-	}
+// 	// 3. After inspection, check if the narrowest node found is an *ast.Ident
+// 	if narrowestNode != nil {
+// 		if ident, ok := narrowestNode.(*ast.Ident); ok {
+// 			// Success! The narrowest node containing the position is an identifier.
+// 			// Double-check resolution just in case, though ObjectOf should be robust.
+// 			if obj := resolveObject(targetPkg.TypesInfo, ident); obj != nil {
+// 				pos := index.Fset.Position(ident.Pos())
+// 				log.Printf("[DEBUG findIdentAndPackageAtPos] Success! Narrowest node is Ident: '%s' at %s:%d:%d (and resolves)",
+// 					ident.Name, filepath.Base(pos.Filename), pos.Line, pos.Column)
+// 				return ident, targetPkg, nil
+// 			} else {
+// 				posStr := index.Fset.Position(targetPos).String()
+// 				log.Printf("[WARN findIdentAndPackageAtPos] Narrowest node at %s is Ident '%s', but it failed to resolve via ObjectOf.", posStr, ident.Name)
+// 				return nil, nil, nil // Treat non-resolving ident as not found
+// 			}
+// 		} else {
+// 			posStr := index.Fset.Position(targetPos).String()
+// 			log.Printf("[WARN findIdentAndPackageAtPos] Narrowest node containing position %s is %T, not *ast.Ident.", posStr, narrowestNode)
+// 			return nil, nil, nil
+// 		}
+// 	}
 
-	posStr := index.Fset.Position(targetPos).String()
-	log.Printf("[WARN findIdentAndPackageAtPos] No AST node found containing position %s", posStr)
-	return nil, nil, nil
-}
+// 	posStr := index.Fset.Position(targetPos).String()
+// 	log.Printf("[WARN findIdentAndPackageAtPos] No AST node found containing position %s", posStr)
+// 	return nil, nil, nil
+// }

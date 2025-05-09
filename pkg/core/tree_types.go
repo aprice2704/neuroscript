@@ -1,5 +1,5 @@
-// NeuroScript Version: 0.3.0
-// Last Modified: 2025-05-02 18:12:31 PDT // Add NewGenericTree constructor
+// NeuroScript Version: 0.3.1
+// File version: 0.1.1 // Added ParentAttributeKey to GenericTreeNode
 // filename: pkg/core/tree_types.go
 
 package core
@@ -15,13 +15,14 @@ const defaultIndent = "  " // Default indentation string (used by render)
 
 // GenericTreeNode represents a node within our generic tree structure.
 type GenericTreeNode struct {
-	ID         string            `json:"id"`         // Unique ID within the tree instance (e.g., "node-1", "node-2")
-	Type       string            `json:"type"`       // Node type (e.g., "object", "array", "string", "number", "boolean", "null")
-	Value      interface{}       `json:"value"`      // Holds the value for simple types (string, number, bool, nil)
-	Attributes map[string]string `json:"attributes"` // For object keys (maps string keys to child node IDs) or node metadata
-	ChildIDs   []string          `json:"children"`   // Ordered list of child node IDs (for arrays or nested items)
-	ParentID   string            `json:"-"`          // ID of the parent node ("" for root), excluded from direct node JSON
-	Tree       *GenericTree      `json:"-"`          // Back-pointer to the tree (for convenience, excluded)
+	ID                 string            `json:"id"`         // Unique ID within the tree instance (e.g., "node-1", "node-2")
+	Type               string            `json:"type"`       // Node type (e.g., "object", "array", "string", "number", "boolean", "null")
+	Value              interface{}       `json:"value"`      // Holds the value for simple types (string, number, bool, nil)
+	Attributes         map[string]string `json:"attributes"` // For object keys (maps string keys to child node IDs) or node metadata
+	ChildIDs           []string          `json:"children"`   // Ordered list of child node IDs (for arrays or nested items)
+	ParentID           string            `json:"-"`          // ID of the parent node ("" for root), excluded from direct node JSON
+	ParentAttributeKey string            `json:"-"`          // If this node is the value of an attribute on an object parent, this is the key of that attribute. Excluded from JSON.
+	Tree               *GenericTree      `json:"-"`          // Back-pointer to the tree (for convenience, excluded)
 }
 
 // GenericTree holds the entire tree structure associated with a handle.
@@ -53,7 +54,8 @@ func (gt *GenericTree) NewNode(parentID string, nodeType string) *GenericTreeNod
 		Attributes: make(map[string]string), // Initialize map
 		ChildIDs:   make([]string, 0),       // Initialize slice
 		ParentID:   parentID,
-		Tree:       gt, // Set back-pointer
+		// ParentAttributeKey will be set by the loader (e.g. toolTreeLoadJSON)
+		Tree: gt, // Set back-pointer
 		// Value is left as nil initially
 	}
 

@@ -1,7 +1,9 @@
 // NeuroScript Version: 0.3.0
-// Last Modified: 2025-05-01 21:11:52 PDT // Fix GoImports test wantResult string AGAIN
+// File version: 0.1.2
+// Update expected errors for missing required args.
 // filename: pkg/core/tools_gofmt_test.go
-
+// nlines: 215
+// risk_rating: LOW
 package core
 
 import (
@@ -11,7 +13,6 @@ import (
 )
 
 // --- Test Helper (Used by GoFmt and GoImports) ---
-// --- (testGoFormatToolHelper remains unchanged) ---
 func testGoFormatToolHelper(t *testing.T, interp *Interpreter, tc struct {
 	name             string
 	toolName         string        // "Go.Fmt" or "Go.Imports"
@@ -39,6 +40,11 @@ func testGoFormatToolHelper(t *testing.T, interp *Interpreter, tc struct {
 			} else if !errors.Is(valErr, tc.valWantErrIs) {
 				t.Errorf("ValidateAndConvertArgs() expected validation error type [%v], but got type [%T] with value: %v", tc.valWantErrIs, valErr, valErr)
 			}
+			// Check if the result is nil as expected when validation fails
+			if !tc.wantErrResultNil {
+				// This check might be redundant if we expect validation error, but good for clarity
+				t.Logf("Note: Test case expected a validation error (%v), so result should be nil.", tc.valWantErrIs)
+			}
 			return // Stop if specific validation error expected
 		}
 
@@ -48,8 +54,10 @@ func testGoFormatToolHelper(t *testing.T, interp *Interpreter, tc struct {
 		}
 
 		// --- Execution ---
+		// Ensure execution only happens if validation passed
 		if valErr != nil {
-			t.Fatalf("Internal test error: validation failed but not caught")
+			// This should ideally not be reached if the checks above are correct
+			t.Fatalf("Internal test error: validation failed (%v) but not caught before execution attempt", valErr)
 			return
 		}
 		gotResult, toolErr := toolImpl.Func(interp, convertedArgs)
@@ -74,13 +82,32 @@ func testGoFormatToolHelper(t *testing.T, interp *Interpreter, tc struct {
 				if !ok {
 					t.Errorf("Expected map[string]interface{} result on error [%v], but got type %T: %#v", tc.wantToolErrIs, gotResult, gotResult)
 				}
+				// Compare error maps if provided (be lenient with exact error message)
 				if tc.wantResult != nil {
 					wantMap, okWant := tc.wantResult.(map[string]interface{})
 					gotMap, okGot := gotResult.(map[string]interface{})
 					if okWant && okGot {
-						if !reflect.DeepEqual(gotMap, wantMap) {
-							t.Logf("Note: Error map content mismatch (may be acceptable if error details differ slightly):\nGot:  %#v\nWant: %#v", gotMap, wantMap)
+						// Check success flag if present
+						if wantSuccess, ok := wantMap["success"]; ok {
+							if gotSuccess, ok2 := gotMap["success"]; !ok2 || !reflect.DeepEqual(gotSuccess, wantSuccess) {
+								t.Errorf("Error map 'success' flag mismatch: got %v, want %v", gotSuccess, wantSuccess)
+							}
 						}
+						// Check formatted content if present and expected
+						if wantContent, ok := wantMap["formatted_content"]; ok {
+							if gotContent, ok2 := gotMap["formatted_content"]; !ok2 || !reflect.DeepEqual(gotContent, wantContent) {
+								t.Errorf("Error map 'formatted_content' mismatch: got %v, want %v", gotContent, wantContent)
+							}
+						}
+						// Don't compare error message string strictly
+						if _, wantErrKey := wantMap["error"]; wantErrKey {
+							if _, gotErrKey := gotMap["error"]; !gotErrKey {
+								t.Errorf("Error map missing 'error' key, expected one.")
+							} else {
+								t.Logf("Error map contains 'error' key as expected.")
+							}
+						}
+
 					} else {
 						t.Errorf("Type mismatch comparing error result maps (got %T, want %T)", gotResult, tc.wantResult)
 					}
@@ -120,11 +147,9 @@ func testGoFormatToolHelper(t *testing.T, interp *Interpreter, tc struct {
 }
 
 // --- Tests for GoFmt ---
-// --- (TestToolGoFmt remains unchanged) ---
 func TestToolGoFmt(t *testing.T) {
 	interp, _ := NewDefaultTestInterpreter(t) // Use default interpreter
 
-	// Test cases (using wantToolErrIs and valWantErrIs)
 	unformattedSource := `
 package main
 import "fmt"
@@ -174,9 +199,10 @@ func main() {
 			name:     "Format invalid code",
 			toolName: "Go.Fmt",
 			args:     MakeArgs(invalidSource),
+			// Expect a map containing the original content and success=false
 			wantResult: map[string]interface{}{
-				"formatted_content": invalidSource,
-				"error":             "", // Error message varies, don't assert precisely here
+				"formatted_content": invalidSource, // go/format returns original on error
+				"error":             "",            // Error message varies, check presence not content
 				"success":           false,
 			},
 			wantErrResultNil: false,           // Expect the error map, not nil
@@ -199,7 +225,8 @@ func main() {
 			wantResult:       nil,
 			wantErrResultNil: true, // Expect nil result due to validation error
 			wantToolErrIs:    nil,
-			valWantErrIs:     ErrValidationArgCount,
+			// Corrected: Expect missing arg error
+			valWantErrIs: ErrValidationRequiredArgMissing,
 		},
 	}
 
@@ -212,7 +239,6 @@ func main() {
 func TestToolGoImports(t *testing.T) {
 	interp, _ := NewDefaultTestInterpreter(t) // Use default interpreter
 
-	// Test cases
 	needsImportAdded := `package main
 
 func main() {
@@ -256,7 +282,6 @@ func main() {
 	fmt.Println("hello") // fmt needs import, needs formatting
 	}
 `
-	// *** CORRECTED wantFmtAndImport (removed previous notes) ***
 	wantFmtAndImport := `package main
 
 import "fmt"
@@ -300,7 +325,7 @@ func main() {
 			name:             "Format and manage imports",
 			toolName:         "Go.Imports",
 			args:             MakeArgs(needsFmtAndImport),
-			wantResult:       wantFmtAndImport, // Use corrected want string
+			wantResult:       wantFmtAndImport,
 			wantErrResultNil: false,
 			wantToolErrIs:    nil,
 			valWantErrIs:     nil,
@@ -320,7 +345,7 @@ func main() {
 			args:     MakeArgs(invalidSource),
 			wantResult: map[string]interface{}{
 				"formatted_content": invalidSource,
-				"error":             "",
+				"error":             "", // Error message varies
 				"success":           false,
 			},
 			wantErrResultNil: false,
@@ -343,7 +368,8 @@ func main() {
 			wantResult:       nil,
 			wantErrResultNil: true,
 			wantToolErrIs:    nil,
-			valWantErrIs:     ErrValidationArgCount,
+			// Corrected: Expect missing arg error
+			valWantErrIs: ErrValidationRequiredArgMissing,
 		},
 	}
 

@@ -17,30 +17,6 @@ import (
 	// Import packages
 )
 
-// +++ Tool Definition: GoGetDeclarationOfSymbol +++
-var toolGoGetDeclarationOfSymbolImpl = core.ToolImplementation{
-	Spec: core.ToolSpec{
-		Name: "GoGetDeclarationOfSymbol",
-		Description: "Finds the declaration location of a Go symbol using a semantic query string within an indexed codebase.\n" +
-			"The query should be a semicolon-separated string of key:value pairs identifying the symbol.\n" +
-			"Required Key: 'package' (e.g., 'package:github.com/example/pkg').\n" +
-			"Symbol Keys: 'type', 'interface', 'method', 'function', 'var', 'const'. Use only one.\n" +
-			"Context Keys (optional): 'receiver' (for methods, e.g., 'receiver:MyStruct' or 'receiver:*MyStruct'), 'field' (for fields within structs, same as using 'var' within 'type').\n" +
-			"Examples:\n" +
-			"  'package:github.com/example/pkg; function:ProcessData'\n" +
-			"  'package:github.com/example/pkg; type:MyStruct'\n" +
-			"  'package:github.com/example/pkg; type:MyStruct; method:DoThing'\n" +
-			"  'package:github.com/example/pkg; type:MyStruct; field:counter' (or 'var:counter')\n" +
-			"  'package:github.com/example/pkg; var:globalVar'",
-		Args: []core.ArgSpec{
-			{Name: "index_handle", Type: core.ArgTypeString, Required: true, Description: "Handle returned by GoIndexCode."},
-			{Name: "query", Type: core.ArgTypeString, Required: true, Description: "Semantic query string identifying the symbol."},
-		},
-		ReturnType: core.ArgTypeMap,
-	},
-	Func: toolGoGetDeclarationOfSymbol,
-}
-
 func toolGoGetDeclarationOfSymbol(interpreter *core.Interpreter, args []interface{}) (interface{}, error) {
 	logger := interpreter.Logger()
 

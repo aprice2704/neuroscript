@@ -1,11 +1,13 @@
 // NeuroScript Version: 0.3.0
-// Last Modified: 2025-05-01 20:13:11 PDT // Updated timestamp
+// File version: 0.1.7
+// Add execution expectations to the valid validation test case.
+// nlines: 145
+// risk_rating: LOW
 // filename: pkg/core/tools_shell_test.go
 package core
 
 import (
 	"errors"
-	"fmt"
 	"runtime"
 	"strings"
 	"testing"
@@ -20,31 +22,36 @@ func TestToolExecuteCommand(t *testing.T) {
 	}
 	dummyInterp, _ := NewDefaultTestInterpreter(t)
 	sandboxDir := t.TempDir()
-	dummyInterp.SetSandboxDir(sandboxDir)
+	err := dummyInterp.SetSandboxDir(sandboxDir) // Ensure sandbox is set
+	if err != nil {
+		t.Fatalf("Failed to set sandbox dir: %v", err)
+	}
 
 	tests := []struct {
-		name         string
-		command      string
-		cmdArgs      interface{} // Holds intended args for command, or malformed rawArgs for validation tests
-		dirArg       interface{}
-		wantStdout   string
-		wantStderr   string
-		wantExitCode int64
-		wantSuccess  bool
-		valWantErrIs error
+		name          string
+		command       string
+		cmdArgs       interface{} // Holds intended args for command, or malformed rawArgs for validation tests
+		dirArg        interface{}
+		wantStdout    string
+		wantStderr    string
+		wantExitCode  int64
+		wantSuccess   bool
+		valWantErrIs  error // Expected validation error
+		toolWantErrIs error // Expected tool execution error
 	}{
-		// Test cases ...
 		{name: "Simple Echo Success", command: "echo", cmdArgs: []string{"hello", "world"}, dirArg: nil, wantStdout: "hello world\n", wantStderr: "", wantExitCode: 0, wantSuccess: true},
 		{name: "Command True Success", command: "true", cmdArgs: nil, dirArg: nil, wantStdout: "", wantStderr: "", wantExitCode: 0, wantSuccess: true},
 		{name: "Command False Failure", command: "false", cmdArgs: []string{}, dirArg: nil, wantStdout: "", wantStderr: "", wantExitCode: 1, wantSuccess: false},
 		{name: "Command Writes to Stderr", command: "sh", cmdArgs: []string{"-c", "echo 'error output' >&2"}, dirArg: nil, wantStdout: "", wantStderr: "error output\n", wantExitCode: 0, wantSuccess: true},
-		{name: "Command Not Found", command: "nonexistent_command_ajsdflk", cmdArgs: nil, dirArg: nil, wantStdout: "", wantStderr: "executable file not found", wantExitCode: -1, wantSuccess: false},
+		{name: "Command Not Found", command: "nonexistent_command_ajsdflk", cmdArgs: nil, dirArg: nil, wantStdout: "", wantStderr: "executable file not found", wantExitCode: -1, wantSuccess: false}, // Specific check for stderr content
 		{name: "Run in specified dir (pwd)", command: "pwd", cmdArgs: nil, dirArg: ".", wantStdout: sandboxDir + "\n", wantStderr: "", wantExitCode: 0, wantSuccess: true},
-		{name: "Validation Valid Arg Count (Only Command)", command: "echo", cmdArgs: nil, dirArg: nil, wantStdout: "\n", wantStderr: "", wantExitCode: 0, wantSuccess: true, valWantErrIs: nil}, // Corrected expectation
-		{name: "Validation Wrong Arg Type (Command not string)", command: "", cmdArgs: MakeArgs(123, []string{}, nil), valWantErrIs: ErrValidationTypeMismatch},                                  // cmdArgs holds the bad rawArgs from MakeArgs
-		{name: "Validation Wrong Arg Type (Args not string slice)", command: "echo", cmdArgs: MakeArgs("echo", "not_a_slice", nil), valWantErrIs: ErrValidationTypeMismatch},                     // cmdArgs holds the bad rawArgs from MakeArgs
-		{name: "Validation Wrong Arg Type (Dir not string)", command: "echo", cmdArgs: MakeArgs("echo", []string{}, 123), valWantErrIs: ErrValidationTypeMismatch},                               // cmdArgs holds the bad rawArgs from MakeArgs
-		{name: "Directory outside sandbox", command: "pwd", cmdArgs: nil, dirArg: "../escaped", wantStderr: "ExecuteCommand path validation failed", wantExitCode: -1, wantSuccess: false, valWantErrIs: nil},
+		// Corrected: Added wantSuccess etc. since validation passes and execution occurs
+		{name: "Validation_Valid_Arg_Count_(Only_Command)", command: "echo", cmdArgs: MakeArgs("echo", nil, nil), valWantErrIs: nil, wantStdout: "\n", wantStderr: "", wantExitCode: 0, wantSuccess: true},
+		{name: "Validation Wrong Arg Type (Command not string)", command: "", cmdArgs: MakeArgs(123, []string{}, nil), valWantErrIs: ErrValidationTypeMismatch},
+		{name: "Validation Wrong Arg Type (Args not string slice)", command: "echo", cmdArgs: MakeArgs("echo", "not_a_slice", nil), valWantErrIs: ErrValidationTypeMismatch},
+		{name: "Validation Wrong Arg Type (Dir not string)", command: "echo", cmdArgs: MakeArgs("echo", []string{}, 123), valWantErrIs: ErrValidationTypeMismatch},
+		{name: "Directory_outside_sandbox", command: "pwd", cmdArgs: nil, dirArg: "../escaped", toolWantErrIs: ErrPathViolation},
+		{name: "Validation Missing Command Arg", command: "", cmdArgs: MakeArgs(), valWantErrIs: ErrValidationRequiredArgMissing},
 	}
 
 	toolImpl, found := dummyInterp.ToolRegistry().GetTool("Shell.Execute")
@@ -57,40 +64,46 @@ func TestToolExecuteCommand(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			var rawArgs []interface{}
 			// Construct rawArgs based on test case structure
-			if strings.Contains(tt.name, "Validation Wrong Arg Type") {
-				// For these specific tests, tt.cmdArgs holds the pre-constructed bad []interface{} from MakeArgs
+			// For validation tests, tt.cmdArgs now holds the *entire* raw arg list from MakeArgs
+			if strings.HasPrefix(tt.name, "Validation") {
 				var ok bool
-				// --- Apply Type Assertion ---
 				rawArgs, ok = tt.cmdArgs.([]interface{}) // Assert tt.cmdArgs holds the []interface{} from MakeArgs
 				if !ok {
-					t.Fatalf("Test setup error: Expected tt.cmdArgs to hold []interface{} for validation test %q, but got %T", tt.name, tt.cmdArgs)
+					// Handle the case where cmdArgs might be nil for the missing arg test
+					if tt.name == "Validation Missing Command Arg" && tt.cmdArgs == nil {
+						rawArgs = MakeArgs() // Ensure rawArgs is an empty slice
+					} else {
+						t.Fatalf("Test setup error: Expected tt.cmdArgs to hold []interface{} for validation test %q, but got %T", tt.name, tt.cmdArgs)
+					}
 				}
-				// --- End Assertion ---
 			} else {
-				// Construct args for execution or other validation tests: command, args_list, directory
+				// Construct args for execution tests: command, args_list, directory
 				var argsListForTool []string
-				// Handle conversion from test case's cmdArgs (which holds intended command args)
 				if tt.cmdArgs != nil {
 					switch v := tt.cmdArgs.(type) {
 					case []string:
 						argsListForTool = v
-					case []interface{}:
-						// Convert []interface{} to []string
-						argsListForTool = make([]string, len(v))
-						for i, item := range v {
-							argsListForTool[i] = fmt.Sprintf("%v", item)
+					case []interface{}: // Allow []interface{} for flexibility if needed
+						argsListForTool = make([]string, 0, len(v))
+						for _, item := range v {
+							if strItem, ok := item.(string); ok {
+								argsListForTool = append(argsListForTool, strItem)
+							} else {
+								// Handle non-string items if necessary, or fail the test setup
+								t.Fatalf("Test setup error: cmdArgs contains non-string element %T for execution test %q", item, tt.name)
+							}
 						}
 					default:
-						// This case should ideally not be hit if test setup is correct for execution tests
-						t.Fatalf("Test setup error: cmdArgs has unexpected type %T for execution test %q", tt.cmdArgs, tt.name)
+						t.Fatalf("Test setup error: cmdArgs has unexpected type %T for execution test %q", tt.cmdArgs, tt.cmdArgs)
 					}
-				} // If tt.cmdArgs is nil, argsListForTool remains nil/empty, which is fine
+				} // If tt.cmdArgs is nil, argsListForTool remains nil/empty
 
 				rawArgs = MakeArgs(tt.command, argsListForTool, tt.dirArg)
 			}
 
 			convertedArgs, valErr := ValidateAndConvertArgs(spec, rawArgs)
 
+			// --- Check Validation Error ---
 			if tt.valWantErrIs != nil {
 				if valErr == nil {
 					t.Errorf("ValidateAndConvertArgs() expected error [%v], but got nil (Raw Args: %#v)", tt.valWantErrIs, rawArgs)
@@ -105,9 +118,22 @@ func TestToolExecuteCommand(t *testing.T) {
 
 			// --- Execution Checks (Only if Validation Passed) ---
 			gotInterface, toolErr := toolExecuteCommand(dummyInterp, convertedArgs)
-			if toolErr != nil {
+
+			// --- Check Tool Execution Error ---
+			if tt.toolWantErrIs != nil {
+				if toolErr == nil {
+					t.Errorf("toolExecuteCommand() expected error [%v], but got nil. Result: %+v", tt.toolWantErrIs, gotInterface)
+				} else if !errors.Is(toolErr, tt.toolWantErrIs) {
+					t.Errorf("toolExecuteCommand() expected error type [%v], but got type [%T] with value: %v", tt.toolWantErrIs, toolErr, toolErr)
+				}
+				// Don't check result map content if a tool error was expected
+				return
+			}
+			if toolErr != nil && tt.toolWantErrIs == nil {
 				t.Fatalf("toolExecuteCommand() returned unexpected Go error: %v", toolErr)
 			}
+
+			// --- Check Result Map Content (Only if No Tool Error Expected/Occurred) ---
 			gotMap, ok := gotInterface.(map[string]interface{})
 			if !ok {
 				t.Fatalf("toolExecuteCommand() did not return a map, got %T", gotInterface)
@@ -118,9 +144,16 @@ func TestToolExecuteCommand(t *testing.T) {
 			}
 			gotExitCode, _ := gotMap["exit_code"].(int64)
 
+			// Allow -1 exit code check for specific failures like command not found
 			if tt.wantExitCode == -1 {
 				if gotSuccess {
 					t.Errorf("Expected failure (success=false), but got success=true")
+				}
+				// For -1, don't strictly check the exit code value, just that it failed
+				// Optionally check stderr contains expected message
+				gotStderr, _ := gotMap["stderr"].(string)
+				if tt.wantStderr != "" && !strings.Contains(gotStderr, tt.wantStderr) {
+					t.Errorf("stderr field on expected failure:\ngot:  %q\ndoes not contain: %q", gotStderr, tt.wantStderr)
 				}
 			} else if gotExitCode != tt.wantExitCode {
 				t.Errorf("exit_code field: got %d, want %d", gotExitCode, tt.wantExitCode)
@@ -132,11 +165,12 @@ func TestToolExecuteCommand(t *testing.T) {
 			}
 
 			gotStderr, _ := gotMap["stderr"].(string)
-			if tt.wantStderr != "" {
+			if tt.wantStderr != "" && tt.wantExitCode != -1 { // Don't double-check stderr if already checked for -1 exit code
 				if !strings.Contains(gotStderr, tt.wantStderr) {
 					t.Errorf("stderr field:\ngot:  %q\ndoes not contain: %q", gotStderr, tt.wantStderr)
 				}
 			} else if tt.wantStderr == "" && gotStderr != "" {
+				// Only fail on unexpected stderr if the command was expected to succeed
 				if tt.wantSuccess {
 					t.Errorf("stderr field: got %q, want empty", gotStderr)
 				} else {

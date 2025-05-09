@@ -17,23 +17,6 @@ import (
 
 // --- Tool Definition: GoFindUsages ---
 
-var toolGoFindUsagesImpl = core.ToolImplementation{
-	Spec: core.ToolSpec{
-		Name: "GoFindUsages",
-		Description: "Finds all usages of the Go symbol identified by a semantic query string.\n" +
-			"Requires a semantic index handle created by GoIndexCode.\n" +
-			"Returns a list of locations where the symbol is used. The query format is the same as GoGetDeclarationOfSymbol.",
-		Args: []core.ArgSpec{
-			{Name: "index_handle", Type: core.ArgTypeString, Required: true, Description: "Handle returned by GoIndexCode."},
-			{Name: "query", Type: core.ArgTypeString, Required: true, Description: "Semantic query string identifying the symbol (e.g., 'package:my/pkg; function:MyFunc')."},
-		},
-		// Returns a list of maps: [{"path": string, "line": int64, "column": int64, "name": string, "kind": string}]
-		// *** FIXED: Use correct constant value 'ArgTypeSliceMap' from tools_types.go ***
-		ReturnType: core.ArgTypeSliceMap,
-	},
-	Func: toolGoFindUsages,
-}
-
 func toolGoFindUsages(interpreter *core.Interpreter, args []interface{}) (interface{}, error) {
 	logger := interpreter.Logger()
 

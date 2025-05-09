@@ -39,18 +39,6 @@ const semanticIndexTypeTag = "semantic_index"
 
 // --- Tool: GoIndexCode ---
 
-var toolGoIndexCodeImpl = core.ToolImplementation{
-	Spec: core.ToolSpec{
-		Name:        "GoIndexCode",
-		Description: "Loads Go package information for the specified directory using 'go/packages' to build an in-memory semantic index. Returns a handle to the index.",
-		Args: []core.ArgSpec{
-			{Name: "directory", Type: core.ArgTypeString, Required: false, Description: "Directory relative to sandbox to index (packages loaded via './...'). Defaults to sandbox root ('.')."},
-		},
-		ReturnType: core.ArgTypeString, // Returns the handle
-	},
-	Func: toolGoIndexCode,
-}
-
 func toolGoIndexCode(interpreter *core.Interpreter, args []interface{}) (interface{}, error) {
 	logger := interpreter.Logger()
 	targetDirRel := "."

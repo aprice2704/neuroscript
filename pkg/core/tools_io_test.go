@@ -1,3 +1,8 @@
+// NeuroScript Version: 0.3.1
+// File version: 0.1.1
+// Correct validation expectation for optional Input tool arg.
+// nlines: 90
+// risk_rating: LOW
 // filename: pkg/core/tools_io_test.go
 package core
 
@@ -31,12 +36,12 @@ func TestToolIOInputValidation(t *testing.T) {
 		{
 			Name:          "No arguments",
 			InputArgs:     MakeArgs(), // Use MakeArgs for empty slice
-			ExpectedError: ErrValidationArgCount,
+			ExpectedError: nil,        // Corrected: Input tool allows 0 args (optional prompt)
 		},
 		{
 			Name:          "Too many arguments",
 			InputArgs:     MakeArgs("prompt", "extra"), // Use MakeArgs
-			ExpectedError: ErrValidationArgCount,
+			ExpectedError: ErrValidationArgCount,       // Max 1 arg allowed
 		},
 		{
 			Name:          "Incorrect argument type (number)",
@@ -49,16 +54,15 @@ func TestToolIOInputValidation(t *testing.T) {
 			ExpectedError: ErrValidationTypeMismatch,
 		},
 		{
-			// Although nil is not the *correct* type (string expected),
-			// ValidateAndConvertArgs should catch it as a required arg being nil first.
-			Name:          "Incorrect argument type (nil)",
+			// Corrected: nil is acceptable for an optional argument
+			Name:          "Valid argument type (nil for optional)",
 			InputArgs:     MakeArgs(nil), // Use MakeArgs and nil
-			ExpectedError: ErrValidationRequiredArgNil,
+			ExpectedError: nil,           // Validation should pass
 		},
 	}
 
 	// --- Get Tool Spec ---
-	// Use the correct tool name as registered (assuming "IO.Input")
+	// Use the correct tool name as registered
 	toolName := "Input"
 	toolImpl, found := interp.ToolRegistry().GetTool(toolName)
 	if !found {
@@ -106,7 +110,7 @@ func TestToolIOInputValidation(t *testing.T) {
 //    - Prompt user
 //    - Emit result
 //    ENDCOMMENT
-//    SET result_map = CALL IO.Input("Enter something: ")
+//    SET result_map = CALL Input("Enter something: ") // Use correct tool name
 //    EMIT "Input Result Map: ", result_map
 //    END
 // 3. Run: `neurogo run ./test_input.ns.txt`

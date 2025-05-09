@@ -21,21 +21,6 @@ import (
 
 // --- Tool: GoFindDeclarations ---
 
-var toolGoFindDeclarationsImpl = core.ToolImplementation{
-	Spec: core.ToolSpec{
-		Name:        "GoFindDeclarations",
-		Description: "Finds the declaration location of the Go symbol at the specified file position using a semantic index handle.",
-		Args: []core.ArgSpec{
-			{Name: "index_handle", Type: core.ArgTypeString, Required: true, Description: "Handle returned by GoIndexCode."},
-			{Name: "path", Type: core.ArgTypeString, Required: true, Description: "File path relative to the indexed directory root."},
-			{Name: "line", Type: core.ArgTypeInt, Required: true, Description: "1-based line number of the symbol."},
-			{Name: "column", Type: core.ArgTypeInt, Required: true, Description: "1-based column number of the symbol."},
-		},
-		ReturnType: core.ArgTypeMap, // Returns map {path, line, column, name, kind} or nil
-	},
-	Func: toolGoFindDeclarations,
-}
-
 func toolGoFindDeclarations(interpreter *core.Interpreter, args []interface{}) (interface{}, error) {
 	logger := interpreter.Logger()
 

@@ -378,8 +378,3 @@ func ifErrorToString(err error) string {
 // Placeholder for ErrFeatureNotImplemented if not already defined in errors.go
 // It's better to have this in errors.go and import it.
 // var ErrFeatureNotImplemented = fmt.Errorf("feature not implemented") // Defined in errors.go as of 0.3.1 (ErrorCode 21)
-
-// ErrorCodeNotImplemented might not be defined in the current errors.go,
-// using ErrorCodeGeneric or ensuring it's added.
-// From errors.go v0.1.2, ErrorCodeRateLimited is 20. Let's assume ErrorCodeNotImplemented is 21.
-const ErrorCodeNotImplemented = ErrorCode(21) // Example, ensure this matches errors.go

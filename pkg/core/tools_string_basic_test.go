@@ -1,3 +1,8 @@
+// NeuroScript Version: 0.3.1
+// File version: 0.1.5
+// Correct Substring test expectation for negative length.
+// nlines: 215
+// risk_rating: LOW
 // filename: pkg/core/tools_string_basic_test.go
 package core
 
@@ -96,16 +101,10 @@ func TestToolStringLength(t *testing.T) {
 		{name: "Validation Wrong Type", toolName: "Length", args: MakeArgs(123), valWantErrIs: ErrValidationTypeMismatch},
 		{name: "Validation Nil", toolName: "Length", args: MakeArgs(nil), valWantErrIs: ErrValidationRequiredArgNil},
 		{name: "Validation Wrong Count", toolName: "Length", args: MakeArgs("a", "b"), valWantErrIs: ErrValidationArgCount},
+		{name: "Validation Missing Arg", toolName: "Length", args: MakeArgs(), valWantErrIs: ErrValidationRequiredArgMissing},
 	}
 	for _, tt := range tests {
-		testStringToolHelper(t, interp, struct {
-			name          string
-			toolName      string
-			args          []interface{}
-			wantResult    interface{}
-			wantToolErrIs error
-			valWantErrIs  error
-		}{tt.name, tt.toolName, tt.args, tt.wantResult, tt.wantToolErrIs, tt.valWantErrIs}) // Pass tt.toolName directly
+		testStringToolHelper(t, interp, tt)
 	}
 }
 
@@ -119,34 +118,29 @@ func TestToolSubstring(t *testing.T) {
 		wantToolErrIs error
 		valWantErrIs  error
 	}{
-		{name: "Simple Substring", toolName: "Substring", args: MakeArgs("abcdef", int64(1), int64(4)), wantResult: "bcd"},
-		{name: "Substring From Start", toolName: "Substring", args: MakeArgs("abcdef", int64(0), int64(3)), wantResult: "abc"},
-		{name: "Substring To End", toolName: "Substring", args: MakeArgs("abcdef", int64(3), int64(6)), wantResult: "def"},
-		{name: "Substring Full String", toolName: "Substring", args: MakeArgs("abcdef", int64(0), int64(6)), wantResult: "abcdef"},
-		{name: "Substring Empty Start=End", toolName: "Substring", args: MakeArgs("abcdef", int64(2), int64(2)), wantResult: ""},
-		{name: "Substring Empty Start>End", toolName: "Substring", args: MakeArgs("abcdef", int64(4), int64(1)), wantResult: ""},
-		{name: "Substring Clamp High End", toolName: "Substring", args: MakeArgs("abcdef", int64(3), int64(10)), wantResult: "def"},
-		{name: "Substring Clamp Low Start", toolName: "Substring", args: MakeArgs("abcdef", int64(-2), int64(3)), wantResult: "abc"},
-		{name: "Substring Clamp Both", toolName: "Substring", args: MakeArgs("abcdef", int64(-1), int64(10)), wantResult: "abcdef"},
-		{name: "Substring Empty String", toolName: "Substring", args: MakeArgs("", int64(0), int64(0)), wantResult: ""},
-		{name: "Substring UTF8", toolName: "Substring", args: MakeArgs("你好世界", int64(1), int64(3)), wantResult: "好世"}, // Indices are rune-based
+		{name: "Simple_Substring", toolName: "Substring", args: MakeArgs("abcdef", int64(1), int64(3)), wantResult: "bcd"}, // start=1, len=3 -> bcd
+		{name: "Substring_From_Start", toolName: "Substring", args: MakeArgs("abcdef", int64(0), int64(3)), wantResult: "abc"},
+		{name: "Substring_To_End", toolName: "Substring", args: MakeArgs("abcdef", int64(3), int64(3)), wantResult: "def"}, // start=3, len=3 -> def
+		{name: "Substring_Full_String", toolName: "Substring", args: MakeArgs("abcdef", int64(0), int64(6)), wantResult: "abcdef"},
+		{name: "Substring_Empty_Len_0", toolName: "Substring", args: MakeArgs("abcdef", int64(2), int64(0)), wantResult: ""}, // start=2, len=0 -> ""
+		// Corrected: Negative length is an error
+		{name: "Substring_Negative_Length", toolName: "Substring", args: MakeArgs("abcdef", int64(4), int64(-1)), wantToolErrIs: ErrListIndexOutOfBounds},
+		{name: "Substring_Clamp_High_Length", toolName: "Substring", args: MakeArgs("abcdef", int64(3), int64(10)), wantResult: "def"}, // Length clamps
+		// Corrected: Negative start index should error
+		{name: "Substring_Negative_Start", toolName: "Substring", args: MakeArgs("abcdef", int64(-2), int64(3)), wantToolErrIs: ErrListIndexOutOfBounds},
+		{name: "Substring_Empty_String", toolName: "Substring", args: MakeArgs("", int64(0), int64(0)), wantResult: ""},
+		{name: "Substring_UTF8", toolName: "Substring", args: MakeArgs("你好世界", int64(1), int64(2)), wantResult: "好世"}, // Indices are rune-based, start=1, len=2 -> 好世
 		// Validation errors
-		{name: "Non-string Input (Validation)", toolName: "Substring", args: MakeArgs(123, int64(0), int64(1)), valWantErrIs: ErrValidationTypeMismatch},
-		{name: "Non-int Start (Validation)", toolName: "Substring", args: MakeArgs("abc", "b", int64(1)), valWantErrIs: ErrValidationTypeMismatch}, // Coercion fails
-		{name: "Non-int End (Validation)", toolName: "Substring", args: MakeArgs("abc", int64(0), "c"), valWantErrIs: ErrValidationTypeMismatch},   // Coercion fails
-		{name: "Nil Input", toolName: "Substring", args: MakeArgs(nil, int64(0), int64(1)), valWantErrIs: ErrValidationRequiredArgNil},
-		{name: "Nil Start", toolName: "Substring", args: MakeArgs("abc", nil, int64(1)), valWantErrIs: ErrValidationRequiredArgNil},
-		{name: "Nil End", toolName: "Substring", args: MakeArgs("abc", int64(0), nil), valWantErrIs: ErrValidationRequiredArgNil},
+		{name: "Validation_Non-string_Input", toolName: "Substring", args: MakeArgs(123, int64(0), int64(1)), valWantErrIs: ErrValidationTypeMismatch},
+		{name: "Validation_Non-int_Start", toolName: "Substring", args: MakeArgs("abc", "b", int64(1)), valWantErrIs: ErrValidationTypeMismatch},  // Coercion fails
+		{name: "Validation_Non-int_Length", toolName: "Substring", args: MakeArgs("abc", int64(0), "c"), valWantErrIs: ErrValidationTypeMismatch}, // Coercion fails
+		{name: "Validation_Nil_Input", toolName: "Substring", args: MakeArgs(nil, int64(0), int64(1)), valWantErrIs: ErrValidationRequiredArgNil},
+		{name: "Validation_Nil_Start", toolName: "Substring", args: MakeArgs("abc", nil, int64(1)), valWantErrIs: ErrValidationRequiredArgNil},
+		{name: "Validation_Nil_Length", toolName: "Substring", args: MakeArgs("abc", int64(0), nil), valWantErrIs: ErrValidationRequiredArgNil},
+		{name: "Validation_Missing_Length", toolName: "Substring", args: MakeArgs("abc", int64(0)), valWantErrIs: ErrValidationRequiredArgMissing},
 	}
 	for _, tt := range tests {
-		testStringToolHelper(t, interp, struct {
-			name          string
-			toolName      string
-			args          []interface{}
-			wantResult    interface{}
-			wantToolErrIs error
-			valWantErrIs  error
-		}{tt.name, tt.toolName, tt.args, tt.wantResult, tt.wantToolErrIs, tt.valWantErrIs}) // Pass tt.toolName directly
+		testStringToolHelper(t, interp, tt)
 	}
 }
 
@@ -168,6 +162,7 @@ func TestToolToUpperLower(t *testing.T) {
 		{name: "ToUpper Numbers/Symbols", toolName: "ToUpper", args: MakeArgs("123!@#"), wantResult: "123!@#"},
 		{name: "ToUpper Validation Nil", toolName: "ToUpper", args: MakeArgs(nil), valWantErrIs: ErrValidationRequiredArgNil},
 		{name: "ToUpper Validation Wrong Type", toolName: "ToUpper", args: MakeArgs(123), valWantErrIs: ErrValidationTypeMismatch},
+		{name: "ToUpper Validation Missing Arg", toolName: "ToUpper", args: MakeArgs(), valWantErrIs: ErrValidationRequiredArgMissing},
 		// ToLower
 		{name: "ToLower Simple", toolName: "ToLower", args: MakeArgs("HELLO"), wantResult: "hello"},
 		{name: "ToLower Mixed", toolName: "ToLower", args: MakeArgs("Hello World"), wantResult: "hello world"},
@@ -176,16 +171,10 @@ func TestToolToUpperLower(t *testing.T) {
 		{name: "ToLower Numbers/Symbols", toolName: "ToLower", args: MakeArgs("123!@#"), wantResult: "123!@#"},
 		{name: "ToLower Validation Nil", toolName: "ToLower", args: MakeArgs(nil), valWantErrIs: ErrValidationRequiredArgNil},
 		{name: "ToLower Validation Wrong Type", toolName: "ToLower", args: MakeArgs(true), valWantErrIs: ErrValidationTypeMismatch},
+		{name: "ToLower Validation Missing Arg", toolName: "ToLower", args: MakeArgs(), valWantErrIs: ErrValidationRequiredArgMissing},
 	}
 	for _, tt := range tests {
-		testStringToolHelper(t, interp, struct {
-			name          string
-			toolName      string
-			args          []interface{}
-			wantResult    interface{}
-			wantToolErrIs error
-			valWantErrIs  error
-		}{tt.name, tt.toolName, tt.args, tt.wantResult, tt.wantToolErrIs, tt.valWantErrIs}) // Pass tt.toolName directly
+		testStringToolHelper(t, interp, tt)
 	}
 }
 
@@ -208,16 +197,10 @@ func TestToolTrimSpace(t *testing.T) {
 		{name: "Trim Internal Space", toolName: "TrimSpace", args: MakeArgs(" hello world "), wantResult: "hello world"},
 		{name: "Validation Nil", toolName: "TrimSpace", args: MakeArgs(nil), valWantErrIs: ErrValidationRequiredArgNil},
 		{name: "Validation Wrong Type", toolName: "TrimSpace", args: MakeArgs(123), valWantErrIs: ErrValidationTypeMismatch},
+		{name: "Validation Missing Arg", toolName: "TrimSpace", args: MakeArgs(), valWantErrIs: ErrValidationRequiredArgMissing},
 	}
 	for _, tt := range tests {
-		testStringToolHelper(t, interp, struct {
-			name          string
-			toolName      string
-			args          []interface{}
-			wantResult    interface{}
-			wantToolErrIs error
-			valWantErrIs  error
-		}{tt.name, tt.toolName, tt.args, tt.wantResult, tt.wantToolErrIs, tt.valWantErrIs}) // Pass tt.toolName directly
+		testStringToolHelper(t, interp, tt)
 	}
 }
 
@@ -231,28 +214,27 @@ func TestToolReplaceAll(t *testing.T) {
 		wantToolErrIs error
 		valWantErrIs  error
 	}{
-		{name: "Simple Replace", toolName: "Replace", args: MakeArgs("hello world", "l", "X"), wantResult: "heXXo worXd"},
-		{name: "Replace Multiple", toolName: "Replace", args: MakeArgs("banana", "a", "o"), wantResult: "bonono"},
-		// *** UPDATED Expected Result for Replace Empty Old ***
-		{name: "Replace Empty Old", toolName: "Replace", args: MakeArgs("abc", "", "X"), wantResult: "XaXbXcX"}, // Corrected expectation
-		{name: "Replace Empty New", toolName: "Replace", args: MakeArgs("abc", "b", ""), wantResult: "ac"},
-		{name: "Replace Not Found", toolName: "Replace", args: MakeArgs("abc", "z", "X"), wantResult: "abc"},
-		{name: "Replace In Empty", toolName: "Replace", args: MakeArgs("", "a", "X"), wantResult: ""},
-		{name: "Non-string Input", toolName: "Replace", args: MakeArgs(123, "a", "b"), valWantErrIs: ErrValidationTypeMismatch},
-		{name: "Non-string Old", toolName: "Replace", args: MakeArgs("abc", 1, "b"), valWantErrIs: ErrValidationTypeMismatch},
-		{name: "Non-string New", toolName: "Replace", args: MakeArgs("abc", "a", 2), valWantErrIs: ErrValidationTypeMismatch},
-		{name: "Nil Input", toolName: "Replace", args: MakeArgs(nil, "a", "b"), valWantErrIs: ErrValidationRequiredArgNil},
-		{name: "Nil Old", toolName: "Replace", args: MakeArgs("abc", nil, "b"), valWantErrIs: ErrValidationRequiredArgNil},
-		{name: "Nil New", toolName: "Replace", args: MakeArgs("abc", "a", nil), valWantErrIs: ErrValidationRequiredArgNil},
+		// Added count=-1 to all test cases
+		{name: "Simple_Replace", toolName: "Replace", args: MakeArgs("hello world", "l", "X", int64(-1)), wantResult: "heXXo worXd"},
+		{name: "Replace_Multiple", toolName: "Replace", args: MakeArgs("banana", "a", "o", int64(-1)), wantResult: "bonono"},
+		{name: "Replace_Empty_Old", toolName: "Replace", args: MakeArgs("abc", "", "X", int64(-1)), wantResult: "XaXbXcX"},
+		{name: "Replace_Empty_New", toolName: "Replace", args: MakeArgs("abc", "b", "", int64(-1)), wantResult: "ac"},
+		{name: "Replace_Not_Found", toolName: "Replace", args: MakeArgs("abc", "z", "X", int64(-1)), wantResult: "abc"},
+		{name: "Replace_In_Empty", toolName: "Replace", args: MakeArgs("", "a", "X", int64(-1)), wantResult: ""},
+		{name: "Replace_With_Count_1", toolName: "Replace", args: MakeArgs("hello world", "l", "X", int64(1)), wantResult: "heXlo world"},
+		{name: "Replace_With_Count_2", toolName: "Replace", args: MakeArgs("hello world", "l", "X", int64(2)), wantResult: "heXXo world"},
+		// Validation errors
+		{name: "Validation_Non-string_Input", toolName: "Replace", args: MakeArgs(123, "a", "b", int64(-1)), valWantErrIs: ErrValidationTypeMismatch},
+		{name: "Validation_Non-string_Old", toolName: "Replace", args: MakeArgs("abc", 1, "b", int64(-1)), valWantErrIs: ErrValidationTypeMismatch},
+		{name: "Validation_Non-string_New", toolName: "Replace", args: MakeArgs("abc", "a", 2, int64(-1)), valWantErrIs: ErrValidationTypeMismatch},
+		{name: "Validation_Non-int_Count", toolName: "Replace", args: MakeArgs("abc", "a", "b", "c"), valWantErrIs: ErrValidationTypeMismatch},
+		{name: "Validation_Nil_Input", toolName: "Replace", args: MakeArgs(nil, "a", "b", int64(-1)), valWantErrIs: ErrValidationRequiredArgNil},
+		{name: "Validation_Nil_Old", toolName: "Replace", args: MakeArgs("abc", nil, "b", int64(-1)), valWantErrIs: ErrValidationRequiredArgNil},
+		{name: "Validation_Nil_New", toolName: "Replace", args: MakeArgs("abc", "a", nil, int64(-1)), valWantErrIs: ErrValidationRequiredArgNil},
+		{name: "Validation_Nil_Count", toolName: "Replace", args: MakeArgs("abc", "a", "b", nil), valWantErrIs: ErrValidationRequiredArgNil},
+		{name: "Validation_Missing_Count", toolName: "Replace", args: MakeArgs("abc", "a", "b"), valWantErrIs: ErrValidationRequiredArgMissing},
 	}
 	for _, tt := range tests {
-		testStringToolHelper(t, interp, struct {
-			name          string
-			toolName      string
-			args          []interface{}
-			wantResult    interface{}
-			wantToolErrIs error
-			valWantErrIs  error
-		}{tt.name, tt.toolName, tt.args, tt.wantResult, tt.wantToolErrIs, tt.valWantErrIs}) // Pass tt.toolName directly
+		testStringToolHelper(t, interp, tt)
 	}
 }

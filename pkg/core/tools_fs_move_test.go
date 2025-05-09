@@ -1,3 +1,8 @@
+// NeuroScript Version: 0.3.1
+// File version: 0.1.2
+// Remove unused mapErrMsg variable. Update expected errors.
+// nlines: 170
+// risk_rating: LOW
 // filename: pkg/core/tools_fs_move_test.go
 package core
 
@@ -6,24 +11,22 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	// "strings" // Import strings if needed for error message checks
 )
 
 // --- MoveFile Validation Tests ---
 func TestToolMoveFileValidation(t *testing.T) {
 	testCases := []ValidationTestCase{
-		{Name: "Wrong Arg Count (None)", InputArgs: MakeArgs(), ExpectedError: ErrValidationArgCount},
-		{Name: "Wrong Arg Count (One)", InputArgs: MakeArgs("src"), ExpectedError: ErrValidationArgCount},
-		{Name: "Wrong Arg Count (Three)", InputArgs: MakeArgs("src", "dest", "extra"), ExpectedError: ErrValidationArgCount},
-		{Name: "Nil First Arg", InputArgs: MakeArgs(nil, "dest"), ExpectedError: ErrValidationRequiredArgNil},
-		{Name: "Nil Second Arg", InputArgs: MakeArgs("src", nil), ExpectedError: ErrValidationRequiredArgNil},
-		{Name: "Wrong First Arg Type", InputArgs: MakeArgs(123, "dest"), ExpectedError: ErrValidationTypeMismatch},
-		{Name: "Wrong Second Arg Type", InputArgs: MakeArgs("src", 456), ExpectedError: ErrValidationTypeMismatch},
-		// --- REMOVED: Empty path checks are done inside tool func, not ValidateAndConvertArgs ---
-		// {Name: "Empty First Arg", InputArgs: MakeArgs("", "dest"), ExpectedError: ErrValidationArgValue}, // Tool func validates empty path
-		// {Name: "Empty Second Arg", InputArgs: MakeArgs("src", ""), ExpectedError: ErrValidationArgValue}, // Tool func validates empty path
-		// --- END REMOVED ---
-		{Name: "Correct Args", InputArgs: MakeArgs("source.txt", "destination.txt"), ExpectedError: nil},
-		// Note: Path security validation happens inside the tool function
+		// Corrected: Expect ErrValidationRequiredArgMissing when 'source_path' is missing
+		{Name: "Wrong_Arg_Count_(None)", InputArgs: MakeArgs(), ExpectedError: ErrValidationRequiredArgMissing},
+		// Corrected: Expect ErrValidationRequiredArgMissing when 'destination_path' is missing
+		{Name: "Wrong_Arg_Count_(One)", InputArgs: MakeArgs("src"), ExpectedError: ErrValidationRequiredArgMissing},
+		{Name: "Wrong_Arg_Count_(Three)", InputArgs: MakeArgs("src", "dest", "extra"), ExpectedError: ErrValidationArgCount},
+		{Name: "Nil_First_Arg", InputArgs: MakeArgs(nil, "dest"), ExpectedError: ErrValidationRequiredArgNil}, // source_path required
+		{Name: "Nil_Second_Arg", InputArgs: MakeArgs("src", nil), ExpectedError: ErrValidationRequiredArgNil}, // destination_path required
+		{Name: "Wrong_First_Arg_Type", InputArgs: MakeArgs(123, "dest"), ExpectedError: ErrValidationTypeMismatch},
+		{Name: "Wrong_Second_Arg_Type", InputArgs: MakeArgs("src", 456), ExpectedError: ErrValidationTypeMismatch},
+		{Name: "Correct_Args", InputArgs: MakeArgs("source.txt", "destination.txt"), ExpectedError: nil},
 	}
 	runValidationTestCases(t, "FS.Move", testCases)
 }
@@ -38,6 +41,11 @@ func TestToolMoveFileFunctional(t *testing.T) {
 	createTestFile := func(relativePath, content string) string {
 		t.Helper()
 		absPath := filepath.Join(sandboxDir, relativePath)
+		// Ensure parent directory exists for the test file
+		parentDir := filepath.Dir(absPath)
+		if err := os.MkdirAll(parentDir, 0755); err != nil {
+			t.Fatalf("Failed to create parent directory %s for test file: %v", parentDir, err)
+		}
 		err := os.WriteFile(absPath, []byte(content), 0644)
 		if err != nil {
 			t.Fatalf("Failed to create test file %s: %v", absPath, err)
@@ -48,12 +56,13 @@ func TestToolMoveFileFunctional(t *testing.T) {
 	// --- Test Cases ---
 	testCases := []struct {
 		name           string
-		sourcePath     string             // Relative path for tool arg
-		destPath       string             // Relative path for tool arg
-		setupFunc      func()             // Optional setup specific to this case (e.g., create source/dest)
-		expectErr      bool               // Expect a Go error from the tool func itself
-		expectMapError bool               // Expect the returned map["error"] to be non-nil
-		checkFunc      func(t *testing.T) // Optional function to verify filesystem state
+		sourcePath     string // Relative path for tool arg
+		destPath       string // Relative path for tool arg
+		setupFunc      func() // Optional setup specific to this case (e.g., create source/dest)
+		expectErr      bool   // Expect a Go error from the tool func itself
+		expectMapError bool   // Expect the returned map["error"] to be non-nil
+		// expectedErrMsgSubstring string    // Optional: Check if map error message contains this text
+		checkFunc func(t *testing.T) // Optional function to verify filesystem state
 	}{
 		{
 			name:           "Success: Rename file",
@@ -139,20 +148,19 @@ func TestToolMoveFileFunctional(t *testing.T) {
 				}
 			},
 		},
-		// Add functional tests for empty paths if desired
 		{
 			name:           "Fail: Empty Source Path",
 			sourcePath:     "",
 			destPath:       "some_dest.txt",
-			expectErr:      true,  // Expect Go error from tool func validation
-			expectMapError: false, // Map shouldn't even be returned if Go error occurs
+			expectErr:      true, // Expect Go error from tool func validation (likely ErrInvalidArgument)
+			expectMapError: true, // Tool func should return error in map
 		},
 		{
 			name:           "Fail: Empty Destination Path",
 			sourcePath:     createTestFile("another_valid_src.txt", "content6"),
 			destPath:       "",
-			expectErr:      true, // Expect Go error from tool func validation
-			expectMapError: false,
+			expectErr:      true, // Expect Go error from tool func validation (likely ErrInvalidArgument)
+			expectMapError: true, // Tool func should return error in map
 		},
 	}
 
@@ -169,7 +177,9 @@ func TestToolMoveFileFunctional(t *testing.T) {
 			// Check for Go-level error
 			if tc.expectErr {
 				if err == nil {
-					t.Errorf("Expected a Go error, but got nil")
+					t.Errorf("Expected a Go error, but got nil. Result: %+v", resultIntf)
+				} else {
+					t.Logf("Got expected Go error: %v", err)
 				}
 			} else {
 				if err != nil {
@@ -183,25 +193,32 @@ func TestToolMoveFileFunctional(t *testing.T) {
 				if !ok {
 					t.Fatalf("Expected result to be map[string]interface{}, got %T", resultIntf)
 				}
-				mapErr := resultMap["error"]
+				mapErrVal := resultMap["error"]
+				// mapErrMsg, _ := mapErrVal.(string) // Removed unused variable
+
 				if tc.expectMapError {
-					if mapErr == nil {
+					if mapErrVal == nil {
 						t.Errorf("Expected map[\"error\"] to be non-nil, but got nil")
 					} else {
-						// Optionally check error message contains expected substring? Be careful with exact matches.
-						t.Logf("Got expected error in map: %v", mapErr)
+						t.Logf("Got expected error in map: %v", mapErrVal)
 					}
 				} else {
-					if mapErr != nil {
-						t.Errorf("Expected map[\"error\"] to be nil, but got: %v", mapErr)
+					if mapErrVal != nil {
+						t.Errorf("Expected map[\"error\"] to be nil, but got: %v (%T)", mapErrVal, mapErrVal)
 					}
 				}
+				// Additionally check for specific error messages if needed, e.g.,
+				// if tc.expectMapError && tc.expectedErrMsgSubstring != "" {
+				// 	// Use mapErrMsg here if uncommented
+				// 	if !strings.Contains(mapErrMsg, tc.expectedErrMsgSubstring) {
+				// 		t.Errorf("Expected map error message to contain %q, but got %q", tc.expectedErrMsgSubstring, mapErrMsg)
+				// 	}
+				// }
+
 			} else {
 				// If a Go error was returned, the map might be nil or contain the error again
-				// We prioritize checking the Go error tc.expectErr
 				t.Logf("Tool function returned Go error (as expected or unexpected): %v", err)
 				if resultIntf != nil {
-					// Check if the map also contains the error if present
 					resultMap, ok := resultIntf.(map[string]interface{})
 					if ok && resultMap != nil && resultMap["error"] != nil {
 						t.Logf("Map returned alongside Go error also contains error: %v", resultMap["error"])
@@ -223,13 +240,10 @@ func NewTestInterpreterWithSandbox(t *testing.T, sandboxDir string) *Interpreter
 	t.Helper()
 	// Create a minimal interpreter for testing
 	interp, _ := NewDefaultTestInterpreter(t) // Use nil logger or a test logger
-	interp.sandboxDir = sandboxDir
-	// Register necessary tools if validation relies on them (unlikely for MoveFile validation itself)
-	// RegisterCoreTools(interp.toolRegistry) // Maybe not needed for just validation tests
+	// Ensure the sandbox directory is set correctly *after* potential registration
+	err := interp.SetSandboxDir(sandboxDir)
+	if err != nil {
+		t.Fatalf("Failed to set sandbox dir in test helper: %v", err)
+	}
 	return interp
 }
-
-// Helper to create arguments easily (assuming it exists from other tests)
-// func MakeArgs(args ...interface{}) []interface{} {
-// 	return args
-// }

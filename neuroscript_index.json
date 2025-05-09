@@ -2603,16 +2603,16 @@
               "Receiver": "*Interpreter",
               "Name": "SetSandboxDir",
               "calls": [
-                "i.Logger().Debug(?)",
+                "i.Logger().Debugf(?)",
                 "i.Logger(?)",
                 "i.Logger().Warn(?)",
                 "i.Logger(?)",
                 "i.Logger().Error(?)",
                 "i.Logger(?)",
-                "i.Logger().Info(?)",
+                "i.Logger().Infof(?)",
                 "i.Logger(?)",
                 "NewFileAPI",
-                "i.Logger().Info(?)",
+                "i.Logger().Infof(?)",
                 "i.Logger(?)",
                 "i.Logger().Debug(?)",
                 "i.Logger(?)"
@@ -3846,36 +3846,6 @@
           ],
           "methods": []
         },
-        "pkg/core/tools_go_find_declarations.go": {
-          "functions": [
-            "toolGoFindDeclarations",
-            "findPosInFileSet",
-            "getObjectKind"
-          ],
-          "methods": []
-        },
-        "pkg/core/tools_go_find_declarations_test.go": {
-          "functions": [
-            "TestToolGoFindDeclarations"
-          ],
-          "methods": []
-        },
-        "pkg/core/tools_go_find_usages.go": {
-          "functions": [
-            "toolGoFindUsages",
-            "findIdentAndPackageAtPos"
-          ],
-          "methods": []
-        },
-        "pkg/core/tools_go_find_usages_test.go": {
-          "functions": [
-            "setupFindUsagesTest",
-            "sortResults",
-            "compareUsageResults",
-            "TestToolGoFindUsages"
-          ],
-          "methods": []
-        },
         "pkg/core/tools_go_fmt.go": {
           "functions": [
             "toolGoFmt",
@@ -3887,19 +3857,6 @@
           "functions": [
             "FindAndParseGoMod",
             "toolGoGetModuleInfo"
-          ],
-          "methods": []
-        },
-        "pkg/core/tools_go_semantic.go": {
-          "functions": [
-            "toolGoIndexCode"
-          ],
-          "methods": []
-        },
-        "pkg/core/tools_go_semantic_test.go": {
-          "functions": [
-            "setupIndexForTest",
-            "TestToolGoIndexCode"
           ],
           "methods": []
         },
@@ -4111,6 +4068,7 @@
           "functions": [
             "toolTreeFindNodes",
             "nodeMatchesQuery",
+            "compareAttributeValue",
             "ConvertToFloat64"
           ],
           "methods": []
@@ -4121,10 +4079,22 @@
           ],
           "methods": []
         },
+        "pkg/core/tools_tree_load_test.go": {
+          "functions": [
+            "TestTreeLoadJSONAndToJSON"
+          ],
+          "methods": []
+        },
         "pkg/core/tools_tree_metadata.go": {
           "functions": [
             "toolTreeSetNodeMetadata",
             "toolTreeRemoveNodeMetadata"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_tree_metadata_test.go": {
+          "functions": [
+            "TestTreeMetadataTools"
           ],
           "methods": []
         },
@@ -4138,11 +4108,29 @@
           ],
           "methods": []
         },
+        "pkg/core/tools_tree_modify_test.go": {
+          "functions": [
+            "TestTreeModificationTools"
+          ],
+          "methods": []
+        },
         "pkg/core/tools_tree_nav.go": {
           "functions": [
             "toolTreeGetNode",
             "toolTreeGetChildren",
             "toolTreeGetParent"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_tree_nav_test.go": {
+          "functions": [
+            "TestTreeNavigationTools"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_tree_query_test.go": {
+          "functions": [
+            "TestTreeFindAndRenderTools"
           ],
           "methods": []
         },
@@ -4153,18 +4141,13 @@
           ],
           "methods": []
         },
-        "pkg/core/tools_tree_test.go": {
+        "pkg/core/tools_tree_test_helpers.go": {
           "functions": [
             "testTreeToolHelper",
             "setupTreeWithJSON",
             "callGetNode",
             "callSetMetadata",
-            "callGetChildren",
-            "TestTreeLoadJSONAndToJSON",
-            "TestTreeNavigationTools",
-            "TestTreeModificationTools",
-            "TestTreeMetadataTools",
-            "TestTreeFindAndRenderTools"
+            "callGetChildren"
           ],
           "methods": []
         },
@@ -11333,24 +11316,6 @@
           ],
           "methods": []
         },
-        "pkg/core/tools/goast/tools_go_ast_find.go": {
-          "functions": [
-            "resolveObject",
-            "toolGoFindIdentifiers",
-            "findPosInFileSet",
-            "findIdentAndPackageAtPos"
-          ],
-          "methods": []
-        },
-        "pkg/core/tools/goast/tools_go_ast_find_test.go": {
-          "functions": [
-            "setupFindIdentifiersTest",
-            "sortResults",
-            "compareFindIdentifierResults",
-            "TestToolGoFindIdentifiers"
-          ],
-          "methods": []
-        },
         "pkg/core/tools/goast/tools_go_ast_modify.go": {
           "functions": [
             "toolGoModifyAST"
@@ -12596,6 +12561,7 @@
         "pkg/toolsets/register.go": {
           "functions": [
             "AddToolsetRegistration",
+            "CreateRegistrationFunc",
             "RegisterExtendedTools"
           ],
           "methods": []

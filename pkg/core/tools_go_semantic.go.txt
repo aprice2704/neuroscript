@@ -27,7 +27,7 @@ type SemanticIndex struct {
 // Structure definition for the ToolImplementation - needed if not defined inline elsewhere
 var toolGoIndexCodeImpl = ToolImplementation{ // Assuming this var is needed for registration
 	Spec: ToolSpec{
-		Name:        "GoIndexCode",
+		Name:        "Go.IndexCode",
 		Description: "Loads Go package information for the specified directory using 'go/packages' to build an in-memory semantic index. Returns a handle to the index.",
 		Args: []ArgSpec{
 			{Name: "directory", Type: ArgTypeString, Required: false, Description: "Directory relative to sandbox to index (packages loaded via './...'). Defaults to sandbox root ('.')."},

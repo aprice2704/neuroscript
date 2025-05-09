@@ -21,23 +21,6 @@ import (
 
 // --- Tool Definition: GoRenameSymbol ---
 
-var toolGoRenameSymbolImpl = core.ToolImplementation{
-	Spec: core.ToolSpec{
-		Name: "GoRenameSymbol",
-		Description: "Finds a Go symbol via semantic query and generates a list of specific text replacement operations needed to rename it and all its usages within the indexed scope.\n" +
-			"Does not modify files directly. Returns a list of patch operations.",
-		Args: []core.ArgSpec{
-			{Name: "index_handle", Type: core.ArgTypeString, Required: true, Description: "Handle returned by GoIndexCode."},
-			{Name: "query", Type: core.ArgTypeString, Required: true, Description: "Semantic query string identifying the symbol to rename (e.g., 'package:my/pkg; function:MyFunc')."},
-			{Name: "new_name", Type: core.ArgTypeString, Required: true, Description: "The desired new name for the symbol. Must be a valid Go identifier."},
-		},
-		// Returns a list of maps, each representing a patch operation:
-		// {"path": string, "offset_start": int64, "offset_end": int64, "original_text": string, "new_text": string}
-		ReturnType: core.ArgTypeSliceMap, // Confirmed from tools_types.go
-	},
-	Func: toolGoRenameSymbol,
-}
-
 // toolGoRenameSymbol implements the GoRenameSymbol tool logic.
 func toolGoRenameSymbol(interpreter *core.Interpreter, args []interface{}) (interface{}, error) {
 	logger := interpreter.Logger()

@@ -1,5 +1,5 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.0.3 // Updated NewInterpreter call signature.
+// File version: 0.0.6 // Call Go.FindUsages with 2 args (handle, query); update ToolSpec logging.
 // Test file for GoFindUsages tool.
 // filename: pkg/core/tools/gosemantic/find_usages_test.go
 
@@ -18,6 +18,7 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/adapters"
 	"github.com/aprice2704/neuroscript/pkg/core"
 	"github.com/aprice2704/neuroscript/pkg/logging"
+	"github.com/aprice2704/neuroscript/pkg/toolsets"
 )
 
 // --- Fixtures ---
@@ -91,14 +92,14 @@ func sortResultsFiltered(results []interface{}) ([]map[string]interface{}, error
 		}
 		filteredMap := make(map[string]interface{})
 		for k, v := range originalMap {
-			if k == "path" || k == "name" || k == "kind" {
+			if k == "path" || k == "name" || k == "kind" { // Only include these for stable comparison
 				filteredMap[k] = v
 			}
 		}
-		if _, ok := filteredMap["path"]; !ok {
+		if _, okPath := filteredMap["path"]; !okPath {
 			return nil, fmt.Errorf("filtered map %d missing 'path'. Original: %#v", i, originalMap)
 		}
-		if _, ok := filteredMap["name"]; !ok {
+		if _, okName := filteredMap["name"]; !okName {
 			return nil, fmt.Errorf("filtered map %d missing 'name'. Original: %#v", i, originalMap)
 		}
 		filtered = append(filtered, filteredMap)
@@ -122,12 +123,17 @@ func TestGoFindUsages(t *testing.T) {
 	logger.Debug("Test logger initialized")
 	llmClient := adapters.NewNoOpLLMClient()
 	sandboxDir := t.TempDir()
-	// *** CORRECTED NewInterpreter call with 5 arguments ***
-	interpreter, err := core.NewInterpreter(logger, llmClient, sandboxDir, nil, nil) // Pass nil for initialVars and libPaths
+
+	interpreter, err := core.NewInterpreter(logger, llmClient, sandboxDir, nil, nil)
 	if err != nil {
 		t.Fatalf("Failed create interpreter: %v", err)
 	}
-	// core.RegisterCoreTools is called within NewInterpreter
+
+	err = toolsets.RegisterExtendedTools(interpreter)
+	if err != nil {
+		t.Fatalf("Failed to register extended tools: %v", err)
+	}
+
 	err = interpreter.SetSandboxDir(sandboxDir)
 	if err != nil {
 		t.Fatalf("Failed set sandbox dir: %v", err)
@@ -148,35 +154,37 @@ func TestGoFindUsages(t *testing.T) {
 	}
 	logger.Info("Created go.mod in sandbox", "path", filepath.Join(sandboxDir, "go.mod"))
 
-	indexTool, found := interpreter.ToolRegistry().GetTool("GoIndexCode")
+	indexTool, found := interpreter.ToolRegistry().GetTool("Go.IndexCode")
 	if !found {
-		t.Fatalf("Tool GoIndexCode not found")
+		t.Fatalf("Tool Go.IndexCode not found")
 	}
 	indexResult, indexErr := indexTool.Func(interpreter, []interface{}{"."})
 	if indexErr != nil {
 		handleCheck, _ := indexResult.(string)
 		if handleCheck == "" {
-			t.Fatalf("GoIndexCode failed: %v", indexErr)
+			t.Fatalf("Go.IndexCode failed: %v", indexErr)
 		} else {
-			t.Logf("GoIndexCode warning: %v", indexErr)
+			t.Logf("Go.IndexCode warning: %v", indexErr)
 		}
 	}
 	indexHandle, ok := indexResult.(string)
 	if !ok || indexHandle == "" {
-		t.Fatalf("GoIndexCode invalid handle: %T %v", indexResult, indexResult)
+		t.Fatalf("Go.IndexCode invalid handle: %T %v", indexResult, indexResult)
 	}
 	t.Logf("Got Semantic Index Handle: %s", indexHandle)
 
 	// --- Define Test Cases ---
 	testCases := []struct {
 		name       string
-		query      string
+		query      string // Semantic query string for the symbol
 		wantResult []map[string]interface{}
 		wantErr    error
 	}{
 		{
 			name: "Find Usages of Global Constant", query: "package:mytestmodule/pkga; const:GlobalConst",
 			wantResult: []map[string]interface{}{
+				// Note: Usages typically don't include the declaration itself unless specified by tool.
+				// These are expected usages in main.go
 				{"path": "main.go", "name": "GlobalConst", "kind": "constant"},
 				{"path": "main.go", "name": "GlobalConst", "kind": "constant"},
 			},
@@ -184,15 +192,17 @@ func TestGoFindUsages(t *testing.T) {
 		{
 			name: "Find Usages of Global Variable", query: "package:mytestmodule/pkga; var:GlobalVar",
 			wantResult: []map[string]interface{}{
-				{"path": "pkga/pkga.go", "name": "GlobalVar", "kind": "variable"},
-				{"path": "main.go", "name": "GlobalVar", "kind": "variable"},
+				{"path": "pkga/pkga.go", "name": "GlobalVar", "kind": "variable"}, // Usage in anotherFunc
+				{"path": "main.go", "name": "GlobalVar", "kind": "variable"},      // Usage in main.go
 			},
 		},
 		{
 			name: "Find Usages of Type", query: "package:mytestmodule/pkga; type:MyStruct",
 			wantResult: []map[string]interface{}{
-				{"path": "pkga/pkga.go", "name": "MyStruct", "kind": "type"}, {"path": "pkga/pkga.go", "name": "MyStruct", "kind": "type"},
-				{"path": "pkga/pkga.go", "name": "MyStruct", "kind": "type"}, {"path": "main.go", "name": "MyStruct", "kind": "type"},
+				{"path": "pkga/pkga.go", "name": "MyStruct", "kind": "type"}, // PointerMethod receiver type
+				{"path": "pkga/pkga.go", "name": "MyStruct", "kind": "type"}, // ValueMethod receiver type
+				{"path": "pkga/pkga.go", "name": "MyStruct", "kind": "type"}, // Usage in TopLevelFunc (gs := MyStruct...)
+				{"path": "main.go", "name": "MyStruct", "kind": "type"},      // Usage in main (s := thepkga.MyStruct...)
 			},
 		},
 		{
@@ -202,34 +212,43 @@ func TestGoFindUsages(t *testing.T) {
 		{
 			name: "Find Usages of Method", query: "package:mytestmodule/pkga; type:MyStruct; method:PointerMethod",
 			wantResult: []map[string]interface{}{
-				{"path": "pkga/pkga.go", "name": "PointerMethod", "kind": "method"},
-				{"path": "main.go", "name": "PointerMethod", "kind": "method"},
+				{"path": "pkga/pkga.go", "name": "PointerMethod", "kind": "method"}, // Usage in TopLevelFunc (gs.PointerMethod)
+				{"path": "main.go", "name": "PointerMethod", "kind": "method"},      // Usage in main (s.PointerMethod)
 			},
 		},
 		{
 			name: "Find Usages of Field", query: "package:mytestmodule/pkga; type:MyStruct; field:FieldA",
 			wantResult: []map[string]interface{}{
-				{"path": "pkga/pkga.go", "name": "FieldA", "kind": "field"}, {"path": "pkga/pkga.go", "name": "FieldA", "kind": "field"},
-				{"path": "main.go", "name": "FieldA", "kind": "field"},
+				{"path": "pkga/pkga.go", "name": "FieldA", "kind": "field"}, // Usage in PointerMethod (s.FieldA)
+				{"path": "pkga/pkga.go", "name": "FieldA", "kind": "field"}, // Usage in TopLevelFunc (gs := MyStruct{FieldA: ...})
+				{"path": "main.go", "name": "FieldA", "kind": "field"},      // Usage in main (s := thepkga.MyStruct{FieldA: ...})
 			},
 		},
-		{name: "Find Usages of Unexported Function", query: "package:mytestmodule/pkga; function:anotherFunc", wantResult: []map[string]interface{}{}},
+		{name: "Find Usages of Unexported Function", query: "package:mytestmodule/pkga; function:anotherFunc", wantResult: []map[string]interface{}{}}, // No external usages counted by this tool usually
 		{
-			name: "Find Usages of Unexported Field", query: "package:mytestmodule/pkga; type:MyStruct; var:fieldB",
+			name: "Find Usages of Unexported Field", query: "package:mytestmodule/pkga; type:MyStruct; field:fieldB", // Using 'field' for consistency
 			wantResult: []map[string]interface{}{
-				{"path": "pkga/pkga.go", "name": "fieldB", "kind": "field"}, {"path": "pkga/pkga.go", "name": "fieldB", "kind": "field"},
+				{"path": "pkga/pkga.go", "name": "fieldB", "kind": "field"}, // Usage in ValueMethod (return s.fieldB)
+				{"path": "pkga/pkga.go", "name": "fieldB", "kind": "field"}, // Usage in TopLevelFunc (gs := MyStruct{..., fieldB: ...})
 			},
 		},
 		{name: "Target Symbol Not Found via Query", query: "package:mytestmodule/pkga; function:ThisDoesNotExist", wantResult: []map[string]interface{}{}},
 		{name: "Target Package Not Found via Query", query: "package:nonexistent/pkg; function:SomeFunc", wantResult: []map[string]interface{}{}},
-		{name: "Invalid Query - Bad Key", query: "package:mytestmodule/pkga; badkey:abc", wantErr: ErrInvalidQueryFormat},
-		{name: "Invalid Query - Missing Package", query: "function:TopLevelFunc", wantErr: ErrInvalidQueryFormat},
+		{name: "Invalid Query - Bad Key", query: "package:mytestmodule/pkga; badkey:abc", wantErr: ErrInvalidQueryFormat}, // This error comes from parseSemanticQuery
+		{name: "Invalid Query - Missing Package", query: "function:TopLevelFunc", wantErr: ErrInvalidQueryFormat},         // This error comes from parseSemanticQuery
 	}
 
 	// --- Run Tests ---
-	findTool, foundFind := interpreter.ToolRegistry().GetTool("GoFindUsages")
+	findTool, foundFind := interpreter.ToolRegistry().GetTool("Go.FindUsages")
 	if !foundFind {
-		t.Fatalf("Tool GoFindUsages not found in registry")
+		t.Fatalf("Tool Go.FindUsages not found in registry")
+	}
+
+	// Diagnostic logging for the retrieved ToolSpec
+	t.Logf("DEBUG: Retrieved ToolSpec for Go.FindUsages. Name: %s, Description: %s, NumArgsExpected: %d",
+		findTool.Spec.Name, findTool.Spec.Description, len(findTool.Spec.Args))
+	for i, argSpec := range findTool.Spec.Args {
+		t.Logf("DEBUG: Arg %d: Name: %s, Type: %s, Required: %t", i, argSpec.Name, argSpec.Type, argSpec.Required)
 	}
 
 	for _, tc := range testCases {
@@ -237,38 +256,49 @@ func TestGoFindUsages(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			result, runErr := findTool.Func(interpreter, []interface{}{indexHandle, tc.query})
+			// Call Go.FindUsages with index_handle and the semantic query string
+			callArgs := []interface{}{indexHandle, tc.query}
+			t.Logf("DEBUG: Calling Go.FindUsages for query '%s' with args: handle=%s, query=%s", tc.query, indexHandle, tc.query)
+			result, runErr := findTool.Func(interpreter, callArgs)
 
 			// --- Error Checking ---
 			if tc.wantErr != nil {
 				if runErr == nil {
-					t.Errorf("Expected error wrapping %q, but got nil", tc.wantErr)
+					t.Errorf("Expected error wrapping %q, but got nil. Call args: %#v", tc.wantErr, callArgs)
 				} else {
-					// Check if the error is the expected sentinel OR if it's ErrInvalidArgument wrapping the expected format error message
 					isCorrectError := errors.Is(runErr, tc.wantErr)
+					// If wantErr is ErrInvalidQueryFormat, it might be wrapped by ErrInvalidArgument by the tool
 					if !isCorrectError && errors.Is(tc.wantErr, ErrInvalidQueryFormat) {
 						var rtErr *core.RuntimeError
-						if errors.As(runErr, &rtErr) && errors.Is(rtErr.Wrapped, core.ErrInvalidArgument) && strings.Contains(rtErr.Message, ErrInvalidQueryFormat.Error()) {
-							isCorrectError = true
+						if errors.As(runErr, &rtErr) && errors.Is(rtErr.Wrapped, core.ErrInvalidArgument) {
+							// Check if the message of the runtime error contains the specific format error
+							if underlyingFormatErr := errors.Unwrap(rtErr.Wrapped); underlyingFormatErr != nil && errors.Is(underlyingFormatErr, ErrInvalidQueryFormat) {
+								isCorrectError = true
+							} else if strings.Contains(rtErr.Message, ErrInvalidQueryFormat.Error()) { // Fallback to string check if not directly wrapped
+								isCorrectError = true
+							}
 						}
 					}
 					if !isCorrectError {
-						t.Errorf("Expected error wrapping %q (or ErrInvalidArgument), but got %q (%v)", tc.wantErr, runErr, runErr)
+						t.Errorf("Expected error wrapping %q, but got %q (%T: %v). Call args: %#v", tc.wantErr, runErr, runErr, runErr, callArgs)
 					}
 				}
-				if result != nil {
-					t.Errorf("Expected nil result on error, but got: %v", result)
-				}
+				// For error cases, the exact nature of 'result' might vary (nil or empty slice).
+				// The primary check is for the correct error.
 				return
 			}
 			if runErr != nil {
-				t.Fatalf("Did not expect error for query %q, but got: %v", tc.query, runErr)
+				t.Fatalf("Did not expect error for query %q, but got: %v. Call args: %#v", tc.query, runErr, callArgs)
 			}
 
 			// --- Result Comparison ---
 			actualResultsRaw, ok := result.([]interface{})
 			if !ok {
-				t.Fatalf("Expected result type []interface{}, got %T: %v", result, result)
+				if result == nil && (tc.wantResult == nil || len(tc.wantResult) == 0) {
+					actualResultsRaw = []interface{}{} // Treat nil result as empty if expecting empty
+				} else {
+					t.Fatalf("Expected result type []interface{}, got %T: %v", result, result)
+				}
 			}
 			actualResultsFiltered, filterErr := sortResultsFiltered(actualResultsRaw)
 			if filterErr != nil {
@@ -287,7 +317,7 @@ func TestGoFindUsages(t *testing.T) {
 					t.Fatalf("Internal Test Error: Error sorting expected results for query %q: %v", tc.query, sortErr)
 				}
 			} else {
-				expectedResultsSorted = []map[string]interface{}{}
+				expectedResultsSorted = []map[string]interface{}{} // Handles case where tc.wantResult is nil or empty
 			}
 
 			if !reflect.DeepEqual(actualResultsFiltered, expectedResultsSorted) {

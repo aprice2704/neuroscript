@@ -98,46 +98,6 @@ var goToolsToRegister = []ToolImplementation{
 	},
 	{
 		Spec: ToolSpec{
-			Name:        "Go.FindDeclarations",
-			Description: "Finds the declaration location of the Go symbol at the specified file position using a semantic index handle.",
-			Args: []ArgSpec{
-				{Name: "index_handle", Type: ArgTypeString, Required: true, Description: "Handle returned by GoIndexCode."},
-				{Name: "path", Type: ArgTypeString, Required: true, Description: "File path relative to the indexed directory root."},
-				{Name: "line", Type: ArgTypeInt, Required: true, Description: "1-based line number of the symbol."},
-				{Name: "column", Type: ArgTypeInt, Required: true, Description: "1-based column number of the symbol."},
-			},
-			ReturnType: ArgTypeMap,
-		},
-		Func: toolGoFindDeclarations,
-	},
-	{
-		Spec: ToolSpec{
-			Name: "Go.FindUsages",
-			Description: "Finds all usage locations of a Go symbol given its definition site or any usage site. " +
-				"Requires a semantic index handle created by GoIndexCode.",
-			Args: []ArgSpec{
-				{Name: "handle", Type: ArgTypeString, Required: true, Description: "Handle to the semantic index (from GoIndexCode)."},
-				{Name: "path", Type: ArgTypeString, Required: true, Description: "Relative path within the indexed directory to the file containing the symbol identifier."},
-				{Name: "line", Type: ArgTypeInt, Required: true, Description: "1-based line number of the symbol identifier."},
-				{Name: "column", Type: ArgTypeInt, Required: true, Description: "1-based column number of the symbol identifier."},
-			},
-			ReturnType: ArgTypeSliceAny,
-		},
-		Func: toolGoFindUsages,
-	},
-	{
-		Spec: ToolSpec{
-			Name:        "Go.IndexCode",
-			Description: "Loads Go package information for the specified directory using 'go/packages' to build an in-memory semantic index. Returns a handle to the index.",
-			Args: []ArgSpec{
-				{Name: "directory", Type: ArgTypeString, Required: false, Description: "Directory relative to sandbox to index (packages loaded via './...'). Defaults to sandbox root ('.')."},
-			},
-			ReturnType: ArgTypeString,
-		},
-		Func: toolGoIndexCode,
-	},
-	{
-		Spec: ToolSpec{
 			Name:        "Go.Check",
 			Description: "Checks Go code validity using 'go list -e -json <target>' within the sandbox. Returns a map indicating success and error details.",
 			Args:        []ArgSpec{{Name: "target", Type: ArgTypeString, Required: true, Description: "Target Go package path or file path relative to sandbox (e.g., './pkg/core', 'main.go')."}},
