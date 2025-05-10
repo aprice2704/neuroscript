@@ -1,16 +1,18 @@
 // NeuroScript Version: 0.3.5
-// Last Modified: 2025-05-01 15:20:15 PDT
+// File version: 0.0.1 // Corrected MapLiteralNode and MapEntryNode initializations
 // filename: pkg/core/evaluation_test.go
 package core
 
 import (
 	"testing"
-	// Assuming EvalTestCase and runEvalExpressionTest are defined in testing_helpers_test.go
+	// Assuming EvalTestCase and runEvalExpressionTest are defined in testing_helpers_test.go (likely part of universal_test_helpers.go or a local file)
 	// Assuming AST node types (StringLiteralNode, BinaryOpNode, etc.) and Position are defined in ast.go
 	// Assuming error variables (ErrInvalidOperandType, ErrVariableNotFound) are defined in errors.go
 )
 
-// runEvalExpressionTest is now defined in testing_helpers_test.go
+// runEvalExpressionTest is assumed to be defined in a test helper file,
+// e.g., testing_helpers.go or universal_test_helpers.go.
+// For this correction, we assume it exists and functions correctly.
 
 // --- Tests for General Expression Evaluation (Using BinaryOpNode for +) ---
 func TestEvaluateExpressionASTGeneral(t *testing.T) {
@@ -30,6 +32,7 @@ func TestEvaluateExpressionASTGeneral(t *testing.T) {
 	dummyPos := &Position{Line: 1, Column: 1}
 
 	// Use EvalTestCase struct (updated with ExpectedErrorIs)
+	// This struct is assumed to be defined in a test helper file.
 	tests := []EvalTestCase{
 		// Literals, Variables, Placeholders, LastNode -> Expect RAW
 		// *** CORRECTED: Add & to node literals where Expression is expected ***
@@ -43,11 +46,9 @@ func TestEvaluateExpressionASTGeneral(t *testing.T) {
 		{Name: "Concat Lit(raw) + Var(raw)", InputNode: &BinaryOpNode{Pos: dummyPos, Left: &StringLiteralNode{Pos: dummyPos, Value: "A={{name}} "}, Operator: "+", Right: &VariableNode{Pos: dummyPos, Name: "greeting"}}, InitialVars: vars, LastResult: lastResult, Expected: "A={{name}} Hello {{name}}", WantErr: false, ExpectedErrorIs: nil},
 		{Name: "Concat Var(raw) + Lit(raw)", InputNode: &BinaryOpNode{Pos: dummyPos, Left: &VariableNode{Pos: dummyPos, Name: "greeting"}, Operator: "+", Right: &StringLiteralNode{Pos: dummyPos, Value: " B={{name}}"}}, InitialVars: vars, LastResult: lastResult, Expected: "Hello {{name}} B={{name}}", WantErr: false, ExpectedErrorIs: nil},
 		{Name: "Concat Var(raw) + Var(raw)", InputNode: &BinaryOpNode{Pos: dummyPos, Left: &VariableNode{Pos: dummyPos, Name: "greeting"}, Operator: "+", Right: &VariableNode{Pos: dummyPos, Name: "name"}}, InitialVars: vars, LastResult: lastResult, Expected: "Hello {{name}}World", WantErr: false, ExpectedErrorIs: nil},
-		// --- MODIFIED: Expect successful string concatenation ---
 		{Name: "Concat with Number", InputNode: &BinaryOpNode{Pos: dummyPos, Left: &StringLiteralNode{Pos: dummyPos, Value: "Count: "}, Operator: "+", Right: &VariableNode{Pos: dummyPos, Name: "numVar"}}, InitialVars: vars, LastResult: lastResult, Expected: "Count: 123", WantErr: false, ExpectedErrorIs: nil},
-		// --- END MODIFICATION ---
 		{Name: "Concat Eval + StringLit(Raw)", InputNode: &BinaryOpNode{Pos: dummyPos, Left: &EvalNode{Pos: dummyPos, Argument: &VariableNode{Pos: dummyPos, Name: "greeting"}}, Operator: "+", Right: &StringLiteralNode{Pos: dummyPos, Value: " end {{name}}"}}, InitialVars: vars, LastResult: lastResult, Expected: "Hello World end {{name}}", WantErr: false, ExpectedErrorIs: nil},
-		{Name: "Concat Error Operand", InputNode: &BinaryOpNode{Pos: dummyPos, Left: &StringLiteralNode{Pos: dummyPos, Value: "Val: "}, Operator: "+", Right: &VariableNode{Pos: dummyPos, Name: "missing"}}, InitialVars: vars, LastResult: lastResult, Expected: nil, WantErr: true, ExpectedErrorIs: ErrVariableNotFound},
+		{Name: "Concat Error Operand", InputNode: &BinaryOpNode{Pos: dummyPos, Left: &StringLiteralNode{Pos: dummyPos, Value: "Val: "}, Operator: "+", Right: &VariableNode{Pos: dummyPos, Name: "missing"}}, InitialVars: vars, LastResult: lastResult, Expected: nil, WantErr: true, ExpectedErrorIs: ErrVariableNotFound},                                                                                                                       // variable not found for RHS
 		{Name: "Concat Nil Operand", InputNode: &BinaryOpNode{Pos: dummyPos, Left: &BinaryOpNode{Pos: dummyPos, Left: &StringLiteralNode{Pos: dummyPos, Value: "Start:"}, Operator: "+", Right: &VariableNode{Pos: dummyPos, Name: "nilVar"}}, Operator: "+", Right: &StringLiteralNode{Pos: dummyPos, Value: ":End {{name}}"}}, InitialVars: vars, LastResult: lastResult, Expected: "Start::End {{name}}", WantErr: false, ExpectedErrorIs: nil}, // Concatenating nil results in empty string representation
 
 		// --- Arithmetic Tests using BinaryOpNode ---
@@ -62,17 +63,19 @@ func TestEvaluateExpressionASTGeneral(t *testing.T) {
 
 		// --- Lists, Maps -> Expect RAW values inside ---
 		{Name: "Simple List (Raw)", InputNode: &ListLiteralNode{Pos: dummyPos, Elements: []Expression{&NumberLiteralNode{Pos: dummyPos, Value: int64(1)}, &StringLiteralNode{Pos: dummyPos, Value: "{{name}}"}, &VariableNode{Pos: dummyPos, Name: "boolProp"}}}, InitialVars: vars, LastResult: lastResult, Expected: []interface{}{int64(1), "{{name}}", true}, WantErr: false, ExpectedErrorIs: nil},
-		// *** CORRECTED: MapEntryNode Key needs VALUE, Value needs POINTER (Expression) ***
-		{Name: "Simple Map (Raw)", InputNode: &MapLiteralNode{Pos: dummyPos, Entries: []MapEntryNode{{Pos: dummyPos, Key: StringLiteralNode{Pos: dummyPos, Value: "k1"}, Value: &StringLiteralNode{Pos: dummyPos, Value: "{{name}}"}}}}, InitialVars: vars, LastResult: lastResult, Expected: map[string]interface{}{"k1": "{{name}}"}, WantErr: false, ExpectedErrorIs: nil},
-		// *** END CORRECTIONS ***
+		// *** CORRECTED: MapLiteralNode.Entries is []*MapEntryNode, MapEntryNode.Key is *StringLiteralNode ***
+		{Name: "Simple Map (Raw)", InputNode: &MapLiteralNode{Pos: dummyPos, Entries: []*MapEntryNode{{Pos: dummyPos, Key: &StringLiteralNode{Pos: dummyPos, Value: "k1"}, Value: &StringLiteralNode{Pos: dummyPos, Value: "{{name}}"}}}}, InitialVars: vars, LastResult: lastResult, Expected: map[string]interface{}{"k1": "{{name}}"}, WantErr: false, ExpectedErrorIs: nil},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.Name, func(t *testing.T) {
-			// Assuming runEvalExpressionTest is defined in testing_helpers_test.go
-			// and handles the updated EvalTestCase struct correctly
-			// Also ensure runEvalExpressionTest correctly handles InputNode being Expression
-			runEvalExpressionTest(t, tt) // Use the helper
+			// Assuming runEvalExpressionTest is defined in testing_helpers.go or similar
+			// and handles the updated EvalTestCase struct correctly.
+			// It also needs to correctly handle InputNode being Expression.
+			runEvalExpressionTest(t, tt) // Use the helper from testing_helpers.go (assumed)
 		})
 	}
 }
+
+// nlines: 77
+// risk_rating: LOW

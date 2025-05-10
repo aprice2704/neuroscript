@@ -94,6 +94,9 @@ type NeuroScriptVisitor interface {
 	// Visit a parse tree produced by NeuroScriptParser#onErrorStmt.
 	VisitOnErrorStmt(ctx *OnErrorStmtContext) interface{}
 
+	// Visit a parse tree produced by NeuroScriptParser#qualified_identifier.
+	VisitQualified_identifier(ctx *Qualified_identifierContext) interface{}
+
 	// Visit a parse tree produced by NeuroScriptParser#call_target.
 	VisitCall_target(ctx *Call_targetContext) interface{}
 

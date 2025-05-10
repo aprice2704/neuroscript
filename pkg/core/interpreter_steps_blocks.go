@@ -1,5 +1,5 @@
 // NeuroScript Version: 0.3.0
-// Last Modified: 2025-05-01 13:10:35 PDT
+// File version: 0.0.1 // Corrected use of step.Else
 // filename: pkg/core/interpreter_steps_blocks.go
 package core
 
@@ -27,10 +27,16 @@ func (i *Interpreter) executeIf(step Step, stepNum int, isInHandler bool, active
 	// isTruthy needs to be defined elsewhere
 	if isTruthy(condResult) {
 		i.Logger().Debug("[DEBUG-INTERP]   IF condition TRUE, executing THEN block")
-		result, wasReturn, wasCleared, err = i.executeBlock(step.Value, stepNum, "IF-THEN", isInHandler, activeError)
+		// The 'then' block is in step.Body for an 'if' step according to typical AST designs where 'Value' might be used differently.
+		// Let's assume step.Body holds the 'then' block steps for an 'if'.
+		// If step.Value was intended for the 'then' block and is []Step, this would also need checking.
+		// Given ast.go Step struct: Body []Step, Else []Step. 'Value' is Expression.
+		// So, the 'then' block should be in step.Body.
+		result, wasReturn, wasCleared, err = i.executeBlock(step.Body, stepNum, "IF-THEN", isInHandler, activeError)
 	} else {
 		i.Logger().Debug("[DEBUG-INTERP]   IF condition FALSE, executing ELSE block (if exists)")
-		result, wasReturn, wasCleared, err = i.executeBlock(step.ElseValue, stepNum, "IF-ELSE", isInHandler, activeError)
+		// CORRECTED: Use step.Else which is of type []Step
+		result, wasReturn, wasCleared, err = i.executeBlock(step.Else, stepNum, "IF-ELSE", isInHandler, activeError)
 	}
 	// Propagate break/continue signals if they occurred within the chosen block
 	if errors.Is(err, ErrBreak) || errors.Is(err, ErrContinue) {
@@ -82,7 +88,8 @@ func (i *Interpreter) executeWhile(step Step, stepNum int, isInHandler bool, act
 		var blockResult interface{}
 		var blockReturned, blockCleared bool
 		var blockErr error
-		blockResult, blockReturned, blockCleared, blockErr = i.executeBlock(step.Value, stepNum, "WHILE-BODY", isInHandler, activeError)
+		// The body of a WHILE loop is in step.Body
+		blockResult, blockReturned, blockCleared, blockErr = i.executeBlock(step.Body, stepNum, "WHILE-BODY", isInHandler, activeError)
 
 		// --- Check for control flow signals ---
 		if errors.Is(blockErr, ErrBreak) {
@@ -150,7 +157,7 @@ func (i *Interpreter) executeFor(step Step, stepNum int, isInHandler bool, activ
 	targetVar := step.Target
 	i.Logger().Debug("[DEBUG-INTERP]   Executing FOR EACH", "Var", targetVar, "pos", posStr)
 
-	// Evaluate collection
+	// Evaluate collection (stored in step.Cond for 'for' loops)
 	collectionVal, evalErr := i.evaluateExpression(step.Cond)
 	if evalErr != nil {
 		errMsg := fmt.Sprintf("evaluating collection for FOR EACH %s at %s", targetVar, posStr)
@@ -185,9 +192,9 @@ func (i *Interpreter) executeFor(step Step, stepNum int, isInHandler bool, activ
 			return
 		}
 
-		// Execute block
+		// Execute block (body of the for loop is in step.Body)
 		i.Logger().Debug("[DEBUG-INTERP]   FOR EACH iteration %d", "Var", targetVar, "Value", item, "pos", posStr)
-		blockResult, blockReturned, blockCleared, blockErr = i.executeBlock(step.Value, stepNum, "FOR-BODY", isInHandler, activeError)
+		blockResult, blockReturned, blockCleared, blockErr = i.executeBlock(step.Body, stepNum, "FOR-BODY", isInHandler, activeError)
 		return // Return results from executeBlock
 	}
 
@@ -326,3 +333,6 @@ func (i *Interpreter) executeFor(step Step, stepNum int, isInHandler bool, activ
 
 // --- Placeholder for isTruthy ---
 // func isTruthy(value interface{}) bool { ... } // Assume defined elsewhere
+
+// nlines: 297
+// risk_rating: MEDIUM

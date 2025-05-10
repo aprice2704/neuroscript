@@ -1,5 +1,5 @@
 // NeuroScript Version: 0.3.0
-// Last Modified: 2025-05-01 13:08:08 PDT
+// File version: 0.0.1 // Corrected return value handling
 // filename: pkg/core/interpreter_steps_simple.go
 package core
 
@@ -38,65 +38,67 @@ func (i *Interpreter) executeSet(step Step, stepNum int, isInHandler bool, activ
 }
 
 // executeReturn handles the "return" step.
-// Note: Assumes Step struct has Value field accessible.
+// Note: Assumes Step struct has Value and Values fields accessible.
 // Note: Assumes step.Pos.String() is valid.
 // Note: Assumes Expression interface has GetPos() method.
 func (i *Interpreter) executeReturn(step Step, stepNum int, isInHandler bool, activeError *RuntimeError) (interface{}, bool, error) {
 	posStr := step.Pos.String()
-	// Use structured logging
 	i.Logger().Debug("[DEBUG-INTERP]   Executing RETURN", "pos", posStr)
-	rawValue := step.Value // Value from the Step struct
 
-	if rawValue == nil {
-		// Use structured logging
-		i.Logger().Debug("[DEBUG-INTERP]     Return has no value (implicit nil)", "pos", posStr)
-		return nil, true, nil
-	}
-
-	// Check if the Value is a slice of Expression
-	if exprSlice, ok := rawValue.([]Expression); ok {
-		// Use structured logging - CORRECTED
-		i.Logger().Debug("[DEBUG-INTERP]     Return has expression(s)", "count", len(exprSlice), "pos", posStr)
-		if len(exprSlice) == 0 {
-			// Use structured logging
-			i.Logger().Debug("[DEBUG-INTERP]     Return has empty expression list (equivalent to nil)", "pos", posStr)
-			return nil, true, nil
-		}
-
-		results := make([]interface{}, len(exprSlice))
-		for idx, exprNode := range exprSlice {
+	// Case 1: Multiple return values using 'return val1, val2, ...' syntax
+	// These are stored in step.Values ([]Expression)
+	if len(step.Values) > 0 {
+		i.Logger().Debug("[DEBUG-INTERP]     Return has multiple expressions", "count", len(step.Values), "pos", posStr)
+		results := make([]interface{}, len(step.Values))
+		for idx, exprNode := range step.Values {
 			evaluatedValue, err := i.evaluateExpression(exprNode)
 			if err != nil {
 				exprPosStr := "<unknown>"
-				// Check if exprNode and its position are valid before accessing
 				if exprNode != nil {
-					nodePos := exprNode.GetPos() // Assuming GetPos returns *Position
+					nodePos := exprNode.GetPos()
 					if nodePos != nil {
 						exprPosStr = nodePos.String()
 					}
 				}
 				errMsg := fmt.Sprintf("evaluating return expression %d at %s", idx+1, exprPosStr)
-				// Ensure the error returned here is a RuntimeError
 				if _, ok := err.(*RuntimeError); !ok {
 					err = NewRuntimeError(ErrorCodeEvaluation, errMsg, fmt.Errorf("%s: %w", errMsg, err))
 				}
-				return nil, true, err // Return the evaluation error directly
+				return nil, true, err
 			}
 			results[idx] = evaluatedValue
 		}
-		// Return single value if only one expression, otherwise the slice
-		if len(results) == 1 {
-			return results[0], true, nil
-		}
+		// For multiple return values, we always return the slice of results.
+		// If the proc signature expects multiple return vars, they'll be assigned.
+		// If it expects one, and gets a slice, that might be a type mismatch later,
+		// or the language might allow assigning a list to a single list variable.
+		// For now, return the direct list of evaluated results.
 		return results, true, nil
-	} else {
-		// Handle the case where step.Value is not []Expression
-		errMsg := fmt.Sprintf("internal error at %s: RETURN step value was not []Expression, but %T", posStr, rawValue)
-		// Use structured logging - CORRECTED
-		i.Logger().Error("Internal error: RETURN step value type mismatch", "error", errMsg, "pos", posStr, "actual_type", fmt.Sprintf("%T", rawValue))
-		// Return an internal error
-		return nil, true, NewRuntimeError(ErrorCodeInternal, errMsg, fmt.Errorf("%s: %w", errMsg, ErrInternal))
 	}
+
+	// Case 2: Single return value using 'return expr' syntax, or 'return' with no value.
+	// This uses step.Value (Expression)
+	if step.Value != nil {
+		i.Logger().Debug("[DEBUG-INTERP]     Return has a single expression", "pos", posStr)
+		evaluatedValue, err := i.evaluateExpression(step.Value)
+		if err != nil {
+			exprPosStr := "<unknown>"
+			nodePos := step.Value.GetPos()
+			if nodePos != nil {
+				exprPosStr = nodePos.String()
+			}
+			errMsg := fmt.Sprintf("evaluating return expression at %s", exprPosStr)
+			if _, ok := err.(*RuntimeError); !ok {
+				err = NewRuntimeError(ErrorCodeEvaluation, errMsg, fmt.Errorf("%s: %w", errMsg, err))
+			}
+			return nil, true, err
+		}
+		return evaluatedValue, true, nil
+	}
+
+	// Case 3: 'return' with no value (implicit nil)
+	i.Logger().Debug("[DEBUG-INTERP]     Return has no value (implicit nil)", "pos", posStr)
+	return nil, true, nil
 }
 
 // executeEmit handles the "emit" step.
@@ -132,7 +134,7 @@ func (i *Interpreter) executeMust(step Step, stepNum int, isInHandler bool, acti
 	if err != nil {
 		errMsg := fmt.Sprintf("error evaluating condition for %s at %s", stepType, posStr)
 		// Special message for mustbe if target (function name) exists
-		if stepType == "mustbe" && step.Target != "" {
+		if stepType == "mustbe" && step.Target != "" { // step.Target here would be the name of the check function in 'mustbe @checkFn value'
 			errMsg = fmt.Sprintf("error executing check function '%s' for mustbe at %s", step.Target, posStr)
 		}
 		// Wrap the underlying evaluation error
@@ -145,7 +147,10 @@ func (i *Interpreter) executeMust(step Step, stepNum int, isInHandler bool, acti
 		errMsg := ""
 		if stepType == "mustbe" && step.Target != "" {
 			// MustBe failed - provide specific message
-			errMsg = fmt.Sprintf("'%s %s' check failed (returned falsy) at %s", stepType, step.Target, posStr)
+			// Assuming step.Value was the call to the check function, its string representation might be complex.
+			// The step.Target here is likely the name of the custom check function used.
+			nodeStr := NodeToString(step.Value) // This would be the argument to the check function.
+			errMsg = fmt.Sprintf("'%s %s(%s)' check failed (returned falsy) at %s", stepType, step.Target, nodeStr, posStr)
 		} else {
 			// Must failed - provide specific message
 			nodeStr := NodeToString(step.Value) // Get string representation of the condition node
@@ -314,3 +319,6 @@ func (i *Interpreter) executeContinue(step Step, stepNum int, isInHandler bool, 
 //       NewRuntimeError, ErrorCode*, Err*, evaluateExpression, SetVariable,
 //       isTruthy, NodeToString, evaluateBuiltInFunction, isBuiltInFunction, etc.
 //       These are assumed to be defined correctly in other files.
+
+// nlines: 304
+// risk_rating: MEDIUM

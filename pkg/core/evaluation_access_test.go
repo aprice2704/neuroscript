@@ -1,3 +1,5 @@
+// NeuroScript Version: 0.3.5
+// File version: 0.0.1 // Corrected MapLiteralNode and MapEntryNode initializations
 // filename: pkg/core/evaluation_access_test.go
 package core
 
@@ -62,10 +64,10 @@ func TestEvaluateElementAccess(t *testing.T) {
 		{"Map Access Valid Key Num", &ElementAccessNode{Pos: dummyPos, Collection: &VariableNode{Pos: dummyPos, Name: "mapVar"}, Accessor: &StringLiteralNode{Pos: dummyPos, Value: "mNum"}}, int64(1), false, ""},
 		{"Map Access Valid Key Var", &ElementAccessNode{Pos: dummyPos, Collection: &VariableNode{Pos: dummyPos, Name: "mapVar"}, Accessor: &VariableNode{Pos: dummyPos, Name: "key"}}, "mVal", false, ""},
 		{"Map Access Key Not Found", &ElementAccessNode{Pos: dummyPos, Collection: &VariableNode{Pos: dummyPos, Name: "mapVar"}, Accessor: &StringLiteralNode{Pos: dummyPos, Value: "notFound"}}, nil, true, "key 'notFound' not found"},
-		{"Map Access Invalid Key Type (Converted)", &ElementAccessNode{Pos: dummyPos, Collection: &VariableNode{Pos: dummyPos, Name: "mapVar"}, Accessor: &VariableNode{Pos: dummyPos, Name: "bad_key"}}, nil, true, "key '123' not found"},
+		{"Map Access Invalid Key Type (Converted)", &ElementAccessNode{Pos: dummyPos, Collection: &VariableNode{Pos: dummyPos, Name: "mapVar"}, Accessor: &VariableNode{Pos: dummyPos, Name: "bad_key"}}, nil, true, "key '123' not found"}, // Behavior of ToKey: converts numbers to strings
 		{"Map Access Returns List", &ElementAccessNode{Pos: dummyPos, Collection: &VariableNode{Pos: dummyPos, Name: "mapVar"}, Accessor: &StringLiteralNode{Pos: dummyPos, Value: "mList"}}, []interface{}{"a"}, false, ""},
-		// *** CORRECTED: MapEntryNode Key needs VALUE, Value needs POINTER (Expression) ***
-		{"Map Literal Access", &ElementAccessNode{Pos: dummyPos, Collection: &MapLiteralNode{Pos: dummyPos, Entries: []MapEntryNode{{Pos: dummyPos, Key: StringLiteralNode{Pos: dummyPos, Value: "k"}, Value: &StringLiteralNode{Pos: dummyPos, Value: "v"}}}}, Accessor: &StringLiteralNode{Pos: dummyPos, Value: "k"}}, "v", false, ""},
+		// *** CORRECTED: MapLiteralNode.Entries is []*MapEntryNode, MapEntryNode.Key is *StringLiteralNode ***
+		{"Map Literal Access", &ElementAccessNode{Pos: dummyPos, Collection: &MapLiteralNode{Pos: dummyPos, Entries: []*MapEntryNode{{Pos: dummyPos, Key: &StringLiteralNode{Pos: dummyPos, Value: "k"}, Value: &StringLiteralNode{Pos: dummyPos, Value: "v"}}}}, Accessor: &StringLiteralNode{Pos: dummyPos, Value: "k"}}, "v", false, ""},
 		{"Map Access Error in Collection", &ElementAccessNode{Pos: dummyPos, Collection: &VariableNode{Pos: dummyPos, Name: "missing"}, Accessor: &StringLiteralNode{Pos: dummyPos, Value: "k"}}, nil, true, "evaluating collection for element access: variable not found: 'missing'"},
 		{"Map Access Error in Accessor", &ElementAccessNode{Pos: dummyPos, Collection: &VariableNode{Pos: dummyPos, Name: "mapVar"}, Accessor: &VariableNode{Pos: dummyPos, Name: "missing"}}, nil, true, "evaluating accessor for element access: variable not found: 'missing'"},
 		{"Map Access Collection Nil", &ElementAccessNode{Pos: dummyPos, Collection: &VariableNode{Pos: dummyPos, Name: "nilVar"}, Accessor: &StringLiteralNode{Pos: dummyPos, Value: "k"}}, nil, true, "collection evaluated to nil"},
@@ -91,7 +93,7 @@ func TestEvaluateElementAccess(t *testing.T) {
 			for k, v := range vars {
 				currentVars[k] = v
 			}
-			interp.variables = currentVars
+			interp.variables = currentVars // Reset interpreter's variables
 
 			// Ensure InputNode is an Expression if it's not nil
 			var inputExpr Expression
@@ -126,34 +128,5 @@ func TestEvaluateElementAccess(t *testing.T) {
 	}
 }
 
-// Dummy Struct Definitions (Minimal to satisfy compilation in this file)
-// Replace these with actual definitions if they are simple enough or keep assuming they exist.
-// This is just to ensure the test file itself compiles based on usage.
-
-// type Position struct { Line int; Column int } // Defined in ast.go
-// type Expression interface { GetPos() *Position } // Defined in ast.go
-
-// type VariableNode struct { Pos *Position; Name string }
-// func (n *VariableNode) GetPos() *Position { return n.Pos }
-
-// type NumberLiteralNode struct { Pos *Position; Value interface{} }
-// func (n *NumberLiteralNode) GetPos() *Position { return n.Pos }
-
-// type StringLiteralNode struct { Pos *Position; Value string; IsRaw bool }
-// func (n *StringLiteralNode) GetPos() *Position { return n.Pos }
-
-// type ListLiteralNode struct { Pos *Position; Elements []Expression }
-// func (n *ListLiteralNode) GetPos() *Position { return n.Pos }
-
-// type MapLiteralNode struct { Pos *Position; Entries []MapEntryNode }
-// func (n *MapLiteralNode) GetPos() *Position { return n.Pos }
-
-// type MapEntryNode struct { Pos *Position; Key StringLiteralNode; Value Expression }
-// func (n *MapEntryNode) GetPos() *Position { return n.Key.Pos } // Use Key's Pos
-
-// type ElementAccessNode struct { Pos *Position; Collection Expression; Accessor Expression }
-// func (n *ElementAccessNode) GetPos() *Position { return n.Pos }
-
-// Ensure all nodes above also implement Expression marker methods if needed by the interface definition
-// func (n *VariableNode) expressionNode() {}
-// ... etc for others ...
+// nlines: 144
+// risk_rating: LOW

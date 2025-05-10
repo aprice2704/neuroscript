@@ -1,8 +1,6 @@
-:: file_version: "0.2.0-alpha-onerror"
-
 func main() means
     :: title: Agent Startup Configuration
-    :: version: 0.2.0-alpha-onerror
+    :: version: 0.2.1
     :: description: Sets agent model, sandbox, allowlist, and pins user_guide.md.
     :: author: Gemini
     :: date: 2025-04-28
@@ -15,30 +13,32 @@ func main() means
 
     set model = "gemini-1.5-flash"
     emit "Setting agent model to: " + model
-    call tool.AgentSetModel(model)
+    tool.AgentSetModel(model)
 
     set sandbox_path = "./sandbox"
     emit "Setting agent sandbox to: " + sandbox_path
-    call tool.AgentSetSandbox(sandbox_path)
+    tool.AgentSetSandbox(sandbox_path)
 
     set allowlist_path = "./agent_allowlist.txt"
     emit "Setting agent allowlist from: " + allowlist_path
-    call tool.AgentSetAllowlist(allowlist_path)
+    tool.AgentSetAllowlist(allowlist_path)
 
     set file_path = "./user_guide.md"
     emit "Attempting to read file: " + file_path
-    set read_result = call tool.ReadFile(file_path)
+    set read_result = tool.ReadFile(file_path)
     emit "Read file content."
 
     set display_name = "user_guide.md"
     emit "Attempting to upload file content as: " + display_name
-    set upsert_result = call tool.UpsertAs(read_result["content"], display_name)
+    set upsert_result = tool.UpsertAs(read_result["content"], display_name)
     emit "Uploaded file. URI: " + upsert_result["uri"]
 
     emit "Attempting to pin file URI: " + upsert_result["uri"]
-    call tool.AgentPin(upsert_result["uri"])
+    tool.AgentPin(upsert_result["uri"])
     emit "Pinned file URI: " + upsert_result["uri"]
 
     emit "Agent startup script finished successfully."
     return
 endfunc
+
+:: file_version: "0.2.1"

@@ -94,6 +94,9 @@ type NeuroScriptListener interface {
 	// EnterOnErrorStmt is called when entering the onErrorStmt production.
 	EnterOnErrorStmt(c *OnErrorStmtContext)
 
+	// EnterQualified_identifier is called when entering the qualified_identifier production.
+	EnterQualified_identifier(c *Qualified_identifierContext)
+
 	// EnterCall_target is called when entering the call_target production.
 	EnterCall_target(c *Call_targetContext)
 
@@ -258,6 +261,9 @@ type NeuroScriptListener interface {
 
 	// ExitOnErrorStmt is called when exiting the onErrorStmt production.
 	ExitOnErrorStmt(c *OnErrorStmtContext)
+
+	// ExitQualified_identifier is called when exiting the qualified_identifier production.
+	ExitQualified_identifier(c *Qualified_identifierContext)
 
 	// ExitCall_target is called when exiting the call_target production.
 	ExitCall_target(c *Call_targetContext)

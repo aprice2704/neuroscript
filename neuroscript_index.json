@@ -233,7 +233,8 @@
         },
         "pkg/adapters/slogadapter.go": {
           "functions": [
-            "NewSimpleSlogAdapter"
+            "NewSimpleSlogAdapter",
+            "LogLevelFromString"
           ],
           "methods": [
             {
@@ -910,7 +911,7 @@
         },
         "pkg/core/ast.go": {
           "functions": [
-            "newStep"
+            "getExpressionPosition"
           ],
           "methods": [
             {
@@ -926,6 +927,14 @@
               "Name": "GetPos"
             },
             {
+              "Receiver": "*ErrorNode",
+              "Name": "GetPos"
+            },
+            {
+              "Receiver": "*ErrorNode",
+              "Name": "expressionNode"
+            },
+            {
               "Receiver": "*CallTarget",
               "Name": "GetPos"
             },
@@ -934,59 +943,108 @@
               "Name": "GetPos"
             },
             {
+              "Receiver": "*CallableExprNode",
+              "Name": "expressionNode"
+            },
+            {
               "Receiver": "*VariableNode",
               "Name": "GetPos"
+            },
+            {
+              "Receiver": "*VariableNode",
+              "Name": "expressionNode"
             },
             {
               "Receiver": "*PlaceholderNode",
               "Name": "GetPos"
             },
             {
+              "Receiver": "*PlaceholderNode",
+              "Name": "expressionNode"
+            },
+            {
               "Receiver": "*LastNode",
               "Name": "GetPos"
+            },
+            {
+              "Receiver": "*LastNode",
+              "Name": "expressionNode"
             },
             {
               "Receiver": "*EvalNode",
               "Name": "GetPos"
             },
             {
+              "Receiver": "*EvalNode",
+              "Name": "expressionNode"
+            },
+            {
               "Receiver": "*StringLiteralNode",
               "Name": "GetPos"
+            },
+            {
+              "Receiver": "*StringLiteralNode",
+              "Name": "expressionNode"
             },
             {
               "Receiver": "*NumberLiteralNode",
               "Name": "GetPos"
             },
             {
+              "Receiver": "*NumberLiteralNode",
+              "Name": "expressionNode"
+            },
+            {
               "Receiver": "*BooleanLiteralNode",
               "Name": "GetPos"
+            },
+            {
+              "Receiver": "*BooleanLiteralNode",
+              "Name": "expressionNode"
             },
             {
               "Receiver": "*ListLiteralNode",
               "Name": "GetPos"
             },
             {
+              "Receiver": "*ListLiteralNode",
+              "Name": "expressionNode"
+            },
+            {
               "Receiver": "*MapEntryNode",
-              "Name": "GetPos",
-              "calls": [
-                "n.Key.GetPos(?)"
-              ]
+              "Name": "GetPos"
             },
             {
               "Receiver": "*MapLiteralNode",
               "Name": "GetPos"
             },
             {
+              "Receiver": "*MapLiteralNode",
+              "Name": "expressionNode"
+            },
+            {
               "Receiver": "*ElementAccessNode",
               "Name": "GetPos"
+            },
+            {
+              "Receiver": "*ElementAccessNode",
+              "Name": "expressionNode"
             },
             {
               "Receiver": "*UnaryOpNode",
               "Name": "GetPos"
             },
             {
+              "Receiver": "*UnaryOpNode",
+              "Name": "expressionNode"
+            },
+            {
               "Receiver": "*BinaryOpNode",
               "Name": "GetPos"
+            },
+            {
+              "Receiver": "*BinaryOpNode",
+              "Name": "expressionNode"
             },
             {
               "Receiver": "*Procedure",
@@ -1025,9 +1083,7 @@
                 "l.logDebugAST(?)",
                 "l.logger.Warn(?)",
                 "l.logger.Error(?)",
-                "l.logger.Debug(?)",
-                "l.logger.Debug(?)",
-                "l.logger.Debug(?)",
+                "l.logDebugAST(?)",
                 "l.logDebugAST(?)"
               ]
             },
@@ -1035,44 +1091,23 @@
               "Receiver": "*neuroScriptListenerImpl",
               "Name": "EnterStatement_list",
               "calls": [
-                "ctx.GetParent(?)",
                 "l.logDebugAST(?)",
-                "l.logDebugAST(?)",
-                "l.logDebugAST(?)",
-                "l.EnterStatement_list_within_if(?)"
+                "l.logDebugAST(?)"
               ]
             },
             {
               "Receiver": "*neuroScriptListenerImpl",
               "Name": "ExitStatement_list",
               "calls": [
-                "ctx.GetParent(?)",
                 "l.logDebugAST(?)",
-                "l.logDebugAST(?)"
+                "ctx.GetText(?)"
               ]
             },
             {
               "Receiver": "*neuroScriptListenerImpl",
               "Name": "EnterIf_statement",
               "calls": [
-                "l.logDebugAST(?)"
-              ]
-            },
-            {
-              "Receiver": "*neuroScriptListenerImpl",
-              "Name": "EnterStatement_list_within_if",
-              "calls": [
-                "ctx.GetParent(?)",
-                "ifCtx.KW_ELSE(?)",
-                "ifCtx.Statement_list(?)",
                 "l.logDebugAST(?)",
-                "l.enterBlockContext(?)",
-                "ifCtx.Statement_list(?)",
-                "l.logDebugAST(?)",
-                "l.enterBlockContext(?)",
-                "l.logger.Error(?)",
-                "l.enterBlockContext(?)",
-                "l.logger.Error(?)",
                 "l.enterBlockContext(?)"
               ]
             },
@@ -1081,6 +1116,7 @@
               "Name": "ExitIf_statement",
               "calls": [
                 "l.logDebugAST(?)",
+                "ctx.GetText(?)",
                 "ctx.KW_ELSE(?)",
                 "l.exitBlockContext(?)",
                 "l.logDebugAST(?)",
@@ -1090,7 +1126,7 @@
                 "l.addError(?)",
                 "l.addError(?)",
                 "l.logDebugAST(?)",
-                "l.logger.Error(?)",
+                "l.addError(?)",
                 "tokenToPosition",
                 "ctx.KW_IF().GetSymbol(?)",
                 "ctx.KW_IF(?)",
@@ -1109,16 +1145,17 @@
               "Receiver": "*neuroScriptListenerImpl",
               "Name": "ExitWhile_statement",
               "calls": [
-                "func() { l.loopDepth--; l.logDebugAST(\"\u003c\u003c\u003c Exit WHILE Statement Final (Loop Depth: %d)\", l.loopDepth) }(?)",
+                "func() {\n\tl.loopDepth--\n\tl.logDebugAST(\"\u003c\u003c\u003c Exit WHILE Statement Final (Loop Depth: %d)\", l.loopDepth)\n}(?)",
                 "l.logDebugAST(?)",
                 "l.logDebugAST(?)",
+                "ctx.GetText(?)",
                 "l.exitBlockContext(?)",
                 "l.logDebugAST(?)",
                 "l.popValue(?)",
                 "l.addError(?)",
                 "l.addError(?)",
                 "l.logDebugAST(?)",
-                "l.logger.Error(?)",
+                "l.addError(?)",
                 "tokenToPosition",
                 "ctx.KW_WHILE().GetSymbol(?)",
                 "ctx.KW_WHILE(?)",
@@ -1140,6 +1177,7 @@
                 "func() {\n\tl.loopDepth--\n\tl.logDebugAST(\"\u003c\u003c\u003c Exit FOR EACH Statement Final (Loop Depth: %d)\", l.loopDepth)\n}(?)",
                 "l.logDebugAST(?)",
                 "l.logDebugAST(?)",
+                "ctx.GetText(?)",
                 "l.exitBlockContext(?)",
                 "l.logDebugAST(?)",
                 "l.popValue(?)",
@@ -1147,9 +1185,9 @@
                 "l.addError(?)",
                 "l.logDebugAST(?)",
                 "ctx.IDENTIFIER(?)",
-                "id.GetText(?)",
+                "idNode.GetText(?)",
                 "l.addError(?)",
-                "l.logger.Error(?)",
+                "l.addError(?)",
                 "tokenToPosition",
                 "ctx.KW_FOR().GetSymbol(?)",
                 "ctx.KW_FOR(?)",
@@ -1169,9 +1207,11 @@
               "Name": "ExitOnErrorStmt",
               "calls": [
                 "l.logDebugAST(?)",
+                "ctx.GetText(?)",
                 "l.exitBlockContext(?)",
                 "l.logDebugAST(?)",
-                "l.logger.Error(?)",
+                "l.addError(?)",
+                "l.addError(?)",
                 "tokenToPosition",
                 "ctx.KW_ON_ERROR().GetSymbol(?)",
                 "ctx.KW_ON_ERROR(?)",
@@ -1195,13 +1235,17 @@
                 "l.popNValues(?)",
                 "l.addError(?)",
                 "l.pushValue(?)",
+                "tokenToPosition",
+                "ctx.GetStart(?)",
                 "ctx.Expression_list_opt(?)",
                 "exprListOpt.Expression_list(?)",
                 "exprList.AllExpression(?)",
                 "exprList.Expression(?)",
+                "tokenToPosition",
+                "ctx.GetStart(?)",
+                "tokenToPosition",
+                "elementCtx.GetStart(?)",
                 "l.addError(?)",
-                "l.addError(?)",
-                "l.pushValue(?)",
                 "tokenToPosition",
                 "ctx.LBRACK().GetSymbol(?)",
                 "ctx.LBRACK(?)",
@@ -1218,14 +1262,19 @@
                 "l.popValue(?)",
                 "l.addError(?)",
                 "l.pushValue(?)",
+                "tokenToPosition",
+                "ctx.GetStart(?)",
                 "l.addError(?)",
                 "l.pushValue(?)",
+                "tokenToPosition",
+                "ctx.GetStart(?)",
                 "ctx.STRING_LIT().GetSymbol(?)",
                 "ctx.STRING_LIT(?)",
                 "keyToken.GetText(?)",
                 "unescapeString",
                 "l.addErrorf(?)",
                 "l.pushValue(?)",
+                "tokenToPosition",
                 "tokenToPosition",
                 "l.pushValue(?)",
                 "l.logDebugAST(?)"
@@ -1243,8 +1292,17 @@
                 "l.popNValues(?)",
                 "l.addError(?)",
                 "l.pushValue(?)",
+                "tokenToPosition",
+                "ctx.GetStart(?)",
+                "ctx.Map_entry_list_opt(?)",
+                "mapEntryListOpt.Map_entry_list(?)",
+                "mapEntryList.AllMap_entry(?)",
+                "mapEntryList.Map_entry(?)",
+                "tokenToPosition",
+                "ctx.GetStart(?)",
+                "tokenToPosition",
+                "entryCtx.GetStart(?)",
                 "l.addError(?)",
-                "l.pushValue(?)",
                 "tokenToPosition",
                 "ctx.LBRACE().GetSymbol(?)",
                 "ctx.LBRACE(?)",
@@ -1428,27 +1486,29 @@
           ]
         },
         "pkg/core/ast_builder_operators.go": {
-          "functions": [
-            "getOperatorToken"
-          ],
           "methods": [
             {
               "Receiver": "*neuroScriptListenerImpl",
               "Name": "processBinaryOperators",
               "calls": [
+                "l.addError(?)",
                 "l.popValue(?)",
                 "l.addError(?)",
+                "ctx.GetText(?)",
                 "l.pushValue(?)",
+                "tokenToPosition",
+                "ctx.GetStart(?)",
+                "ctx.GetStart(?)",
                 "l.addError(?)",
+                "ctx.GetText(?)",
                 "l.pushValue(?)",
-                "l.popValue(?)",
-                "l.addError(?)",
-                "l.pushValue(?)",
-                "l.addError(?)",
-                "l.pushValue(?)",
+                "tokenToPosition",
                 "opGetter",
                 "l.addError(?)",
+                "ctx.GetText(?)",
                 "l.pushValue(?)",
+                "tokenToPosition",
+                "ctx.GetStart(?)",
                 "opToken.GetSymbol(?)",
                 "opSymbol.GetText(?)",
                 "tokenToPosition",
@@ -1577,15 +1637,19 @@
                 "ctx.KW_NO(?)",
                 "ctx.KW_SOME(?)",
                 "ctx.KW_SOME(?)",
-                "l.logDebugAST(?)",
-                "opToken.GetSymbol(?)",
-                "opSymbol.GetText(?)",
+                "ctx.TILDE(?)",
+                "ctx.TILDE(?)",
                 "l.popValue(?)",
                 "l.addError(?)",
                 "l.pushValue(?)",
+                "tokenToPosition",
+                "opTokenNode.GetSymbol(?)",
                 "l.addError(?)",
                 "l.pushValue(?)",
                 "tokenToPosition",
+                "opTokenNode.GetSymbol(?)",
+                "tokenToPosition",
+                "opTokenNode.GetSymbol(?)",
                 "l.pushValue(?)",
                 "l.logDebugAST(?)"
               ]
@@ -1597,19 +1661,22 @@
                 "l.logDebugAST(?)",
                 "ctx.GetText(?)",
                 "ctx.STAR_STAR(?)",
-                "l.logDebugAST(?)",
-                "opToken.GetSymbol(?)",
+                "opTokenNode.GetSymbol(?)",
                 "opSymbol.GetText(?)",
                 "l.popValue(?)",
                 "l.addError(?)",
                 "l.pushValue(?)",
+                "tokenToPosition",
                 "l.addError(?)",
                 "l.pushValue(?)",
+                "tokenToPosition",
                 "l.popValue(?)",
                 "l.addError(?)",
                 "l.pushValue(?)",
+                "tokenToPosition",
                 "l.addError(?)",
                 "l.pushValue(?)",
+                "tokenToPosition",
                 "tokenToPosition",
                 "l.pushValue(?)",
                 "l.logDebugAST(?)"
@@ -1621,29 +1688,73 @@
               "calls": [
                 "l.logDebugAST(?)",
                 "ctx.GetText(?)",
-                "ctx.AllExpression(?)",
-                "l.logDebugAST(?)",
+                "ctx.AllLBRACK(?)",
                 "l.popValue(?)",
                 "l.addError(?)",
                 "ctx.Expression(?)",
-                "l.pushValue(?)",
-                "l.addError(?)",
-                "ctx.Expression(?)",
-                "l.pushValue(?)",
-                "l.popValue(?)",
-                "l.addError(?)",
-                "ctx.Primary(?)",
-                "l.pushValue(?)",
-                "l.addError(?)",
-                "ctx.Primary(?)",
-                "l.pushValue(?)",
-                "ctx.LBRACK(?)",
-                "l.addError(?)",
                 "l.pushValue(?)",
                 "tokenToPosition",
-                "lBracketToken.GetSymbol(?)",
+                "ctx.LBRACK(i).GetSymbol(?)",
+                "ctx.LBRACK(?)",
+                "l.addError(?)",
+                "ctx.Expression(?)",
+                "l.pushValue(?)",
+                "tokenToPosition",
+                "ctx.LBRACK(i).GetSymbol(?)",
+                "ctx.LBRACK(?)",
+                "l.popValue(?)",
+                "l.addError(?)",
+                "ctx.Primary(?)",
+                "l.pushValue(?)",
+                "tokenToPosition",
+                "ctx.Primary().GetStart(?)",
+                "ctx.Primary(?)",
+                "l.addError(?)",
+                "ctx.Primary(?)",
+                "l.pushValue(?)",
+                "tokenToPosition",
+                "ctx.Primary().GetStart(?)",
+                "ctx.Primary(?)",
+                "tokenToPosition",
+                "ctx.LBRACK(i).GetSymbol(?)",
+                "ctx.LBRACK(?)",
                 "l.logDebugAST(?)",
                 "l.pushValue(?)",
+                "l.logDebugAST(?)"
+              ]
+            },
+            {
+              "Receiver": "*neuroScriptListenerImpl",
+              "Name": "buildCallTargetFromContext",
+              "calls": [
+                "l.logDebugAST(?)",
+                "ctx.GetText(?)",
+                "ctx.KW_TOOL(?)",
+                "ctx.Qualified_identifier(?)",
+                "qiCtx.AllIDENTIFIER(?)",
+                "idNode.GetText(?)",
+                "tokenToPosition",
+                "idNodes[0].GetSymbol(?)",
+                "tokenToPosition",
+                "toolKeyword.GetSymbol(?)",
+                "l.addError(?)",
+                "ctx.GetText(?)",
+                "l.addError(?)",
+                "ctx.GetText(?)",
+                "tokenToPosition",
+                "toolKeyword.GetSymbol(?)",
+                "l.logDebugAST(?)",
+                "target.Pos.String(?)",
+                "ctx.IDENTIFIER(?)",
+                "userFuncID.GetText(?)",
+                "tokenToPosition",
+                "userFuncID.GetSymbol(?)",
+                "l.logDebugAST(?)",
+                "target.Pos.String(?)",
+                "l.addError(?)",
+                "ctx.GetText(?)",
+                "tokenToPosition",
+                "ctx.GetStart(?)",
                 "l.logDebugAST(?)"
               ]
             },
@@ -1653,17 +1764,7 @@
               "calls": [
                 "l.logDebugAST(?)",
                 "ctx.GetText(?)",
-                "ctx.IDENTIFIER(?)",
-                "l.addError(?)",
-                "l.pushValue(?)",
-                "idTokenNode.GetText(?)",
-                "idTokenNode.GetSymbol(?)",
-                "ctx.KW_TOOL(?)",
-                "ctx.KW_TOOL().GetSymbol(?)",
-                "ctx.KW_TOOL(?)",
-                "l.logDebugAST(?)",
-                "l.logDebugAST(?)",
-                "tokenToPosition",
+                "l.buildCallTargetFromContext(?)",
                 "l.pushValue(?)",
                 "l.logDebugAST(?)"
               ]
@@ -1675,22 +1776,34 @@
                 "l.logDebugAST(?)",
                 "ctx.GetText(?)",
                 "ctx.Expression_list_opt(?)",
-                "exprListOpt.Expression_list(?)",
-                "exprList.AllExpression(?)",
+                "exprListOptCtx.Expression_list(?)",
+                "exprListCtx.AllExpression(?)",
                 "l.popNValues(?)",
-                "l.pushValue(?)",
                 "l.addError(?)",
                 "ctx.GetText(?)",
                 "l.pushValue(?)",
+                "tokenToPosition",
+                "ctx.GetStart(?)",
+                "ctx.Expression_list_opt().Expression_list().Expression(?)",
+                "ctx.Expression_list_opt().Expression_list(?)",
+                "ctx.Expression_list_opt(?)",
+                "l.addError(?)",
+                "ctx.GetText(?)",
+                "l.pushValue(?)",
+                "tokenToPosition",
+                "argSourceCtx.GetStart(?)",
                 "ctx.Call_target(?)",
                 "l.popValue(?)",
                 "l.addError(?)",
                 "ctx.GetText(?)",
                 "l.pushValue(?)",
+                "tokenToPosition",
+                "ctx.GetStart(?)",
                 "l.addError(?)",
                 "ctx.GetText(?)",
                 "l.pushValue(?)",
-                "targetNode.GetPos(?)",
+                "tokenToPosition",
+                "ctx.GetStart(?)",
                 "l.logDebugAST(?)",
                 "ctx.KW_LN(?)",
                 "ctx.KW_LN(?)",
@@ -1711,6 +1824,8 @@
                 "l.addError(?)",
                 "ctx.GetText(?)",
                 "l.pushValue(?)",
+                "tokenToPosition",
+                "ctx.GetStart(?)",
                 "tokenToPosition",
                 "keywordToken.GetSymbol(?)",
                 "l.logDebugAST(?)",
@@ -1824,10 +1939,10 @@
                 "exprListCtx.AllExpression(?)",
                 "l.popNValues(?)",
                 "l.addError(?)",
-                "tokenToPosition",
-                "exprListCtx.Expression(i).GetStart(?)",
                 "exprListCtx.Expression(?)",
-                "pos.String(?)",
+                "tokenToPosition",
+                "actualArgCtx.GetStart(?)",
+                "l.addError(?)",
                 "l.logDebugAST(?)",
                 "l.logDebugAST(?)",
                 "l.logDebugAST(?)",
@@ -1845,6 +1960,7 @@
                 "ctx.GetText(?)",
                 "ctx.Expression(?)",
                 "l.popValue(?)",
+                "l.addError(?)",
                 "l.addError(?)",
                 "l.addError(?)",
                 "l.addError(?)",
@@ -1868,9 +1984,6 @@
                 "l.addError(?)",
                 "l.logDebugAST(?)",
                 "l.addError(?)",
-                "l.logger.Debug(?)",
-                "l.logger.Debug(?)",
-                "l.logger.Debug(?)",
                 "l.addError(?)",
                 "tokenToPosition",
                 "ctx.GetStart(?)",
@@ -1934,6 +2047,8 @@
                 "l.addError(?)",
                 "l.addError(?)",
                 "l.addError(?)",
+                "tokenToPosition",
+                "ctx.GetStart(?)",
                 "l.logDebugAST(?)"
               ]
             },
@@ -3540,10 +3655,13 @@
             "deepEqualWithTolerance",
             "runEvalExpressionTest",
             "runExecuteStepsTest",
-            "createTestStep",
             "createIfStep",
             "createWhileStep",
-            "createForStep"
+            "createForStep",
+            "NewTestStringLiteral",
+            "NewTestNumberLiteral",
+            "NewTestBooleanLiteral",
+            "NewTestVariableNode"
           ],
           "methods": []
         },
@@ -4560,6 +4678,14 @@
             },
             {
               "Receiver": "*BaseNeuroScriptListener",
+              "Name": "EnterQualified_identifier"
+            },
+            {
+              "Receiver": "*BaseNeuroScriptListener",
+              "Name": "ExitQualified_identifier"
+            },
+            {
+              "Receiver": "*BaseNeuroScriptListener",
               "Name": "EnterCall_target"
             },
             {
@@ -4975,6 +5101,13 @@
             },
             {
               "Receiver": "*BaseNeuroScriptVisitor",
+              "Name": "VisitQualified_identifier",
+              "calls": [
+                "v.VisitChildren(?)"
+              ]
+            },
+            {
+              "Receiver": "*BaseNeuroScriptVisitor",
               "Name": "VisitCall_target",
               "calls": [
                 "v.VisitChildren(?)"
@@ -5260,6 +5393,9 @@
             "NewEmptyOnErrorStmtContext",
             "InitEmptyOnErrorStmtContext",
             "NewOnErrorStmtContext",
+            "NewEmptyQualified_identifierContext",
+            "InitEmptyQualified_identifierContext",
+            "NewQualified_identifierContext",
             "NewEmptyCall_targetContext",
             "InitEmptyCall_targetContext",
             "NewCall_targetContext",
@@ -8340,6 +8476,116 @@
               ]
             },
             {
+              "Receiver": "*Qualified_identifierContext",
+              "Name": "IsQualified_identifierContext"
+            },
+            {
+              "Receiver": "*Qualified_identifierContext",
+              "Name": "GetParser"
+            },
+            {
+              "Receiver": "*Qualified_identifierContext",
+              "Name": "AllIDENTIFIER",
+              "calls": [
+                "s.GetTokens(?)"
+              ]
+            },
+            {
+              "Receiver": "*Qualified_identifierContext",
+              "Name": "IDENTIFIER",
+              "calls": [
+                "s.GetToken(?)"
+              ]
+            },
+            {
+              "Receiver": "*Qualified_identifierContext",
+              "Name": "AllDOT",
+              "calls": [
+                "s.GetTokens(?)"
+              ]
+            },
+            {
+              "Receiver": "*Qualified_identifierContext",
+              "Name": "DOT",
+              "calls": [
+                "s.GetToken(?)"
+              ]
+            },
+            {
+              "Receiver": "*Qualified_identifierContext",
+              "Name": "GetRuleContext"
+            },
+            {
+              "Receiver": "*Qualified_identifierContext",
+              "Name": "ToStringTree",
+              "calls": [
+                "antlr.TreesStringTree(?)"
+              ]
+            },
+            {
+              "Receiver": "*Qualified_identifierContext",
+              "Name": "EnterRule",
+              "calls": [
+                "listenerT.EnterQualified_identifier(?)"
+              ]
+            },
+            {
+              "Receiver": "*Qualified_identifierContext",
+              "Name": "ExitRule",
+              "calls": [
+                "listenerT.ExitQualified_identifier(?)"
+              ]
+            },
+            {
+              "Receiver": "*Qualified_identifierContext",
+              "Name": "Accept",
+              "calls": [
+                "t.VisitQualified_identifier(?)",
+                "t.VisitChildren(?)"
+              ]
+            },
+            {
+              "Receiver": "*NeuroScriptParser",
+              "Name": "Qualified_identifier",
+              "calls": [
+                "NewQualified_identifierContext",
+                "p.GetParserRuleContext(?)",
+                "p.GetState(?)",
+                "p.EnterRule(?)",
+                "p.EnterOuterAlt(?)",
+                "p.SetState(?)",
+                "p.Match(?)",
+                "p.HasError(?)",
+                "p.SetState(?)",
+                "p.GetErrorHandler().Sync(?)",
+                "p.GetErrorHandler(?)",
+                "p.HasError(?)",
+                "p.GetTokenStream().LA(?)",
+                "p.GetTokenStream(?)",
+                "p.SetState(?)",
+                "p.Match(?)",
+                "p.HasError(?)",
+                "p.SetState(?)",
+                "p.Match(?)",
+                "p.HasError(?)",
+                "p.SetState(?)",
+                "p.GetErrorHandler().Sync(?)",
+                "p.GetErrorHandler(?)",
+                "p.HasError(?)",
+                "p.GetTokenStream().LA(?)",
+                "p.GetTokenStream(?)",
+                "p.HasError(?)",
+                "p.GetError(?)",
+                "localctx.SetException(?)",
+                "p.GetErrorHandler().ReportError(?)",
+                "p.GetErrorHandler(?)",
+                "p.GetErrorHandler().Recover(?)",
+                "p.GetErrorHandler(?)",
+                "p.SetError(?)",
+                "p.ExitRule(?)"
+              ]
+            },
+            {
               "Receiver": "*Call_targetContext",
               "Name": "IsCall_targetContext"
             },
@@ -8366,6 +8612,13 @@
               "Name": "DOT",
               "calls": [
                 "s.GetToken(?)"
+              ]
+            },
+            {
+              "Receiver": "*Call_targetContext",
+              "Name": "Qualified_identifier",
+              "calls": [
+                "s.GetChildren(?)"
               ]
             },
             {
@@ -8427,8 +8680,7 @@
                 "p.Match(?)",
                 "p.HasError(?)",
                 "p.SetState(?)",
-                "p.Match(?)",
-                "p.HasError(?)",
+                "p.Qualified_identifier(?)",
                 "p.SetError(?)",
                 "antlr.NewNoViableAltException(?)",
                 "p.HasError(?)",

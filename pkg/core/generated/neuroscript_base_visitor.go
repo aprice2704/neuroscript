@@ -123,6 +123,10 @@ func (v *BaseNeuroScriptVisitor) VisitOnErrorStmt(ctx *OnErrorStmtContext) inter
 	return v.VisitChildren(ctx)
 }
 
+func (v *BaseNeuroScriptVisitor) VisitQualified_identifier(ctx *Qualified_identifierContext) interface{} {
+	return v.VisitChildren(ctx)
+}
+
 func (v *BaseNeuroScriptVisitor) VisitCall_target(ctx *Call_targetContext) interface{} {
 	return v.VisitChildren(ctx)
 }

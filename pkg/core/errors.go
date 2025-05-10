@@ -1,7 +1,6 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.1.9
-// Add ErrValidationRequiredArgMissing.
-// nlines: 191
+// File version: 0.2.0 // Added ErrToolExecutionFailed
+// nlines: 192
 // risk_rating: HIGH
 // filename: pkg/core/errors.go
 package core
@@ -57,7 +56,7 @@ const (
 	ErrorCodeConfiguration       ErrorCode = 18
 	ErrorCodePreconditionFailed  ErrorCode = 19
 	ErrorCodeRateLimited         ErrorCode = 20
-	ErrorCodeToolExecutionFailed ErrorCode = 21
+	ErrorCodeToolExecutionFailed ErrorCode = 21 // Error code for general tool execution failures
 	ErrorCodeNotImplemented      ErrorCode = 30
 
 	// Filesystem Specific Error Codes (start from 22)
@@ -85,7 +84,7 @@ var (
 // --- Core Validation Errors ---
 var (
 	ErrValidationRequiredArgNil     = errors.New("required argument is nil")
-	ErrValidationRequiredArgMissing = errors.New("required argument is missing") // <<< ADDED
+	ErrValidationRequiredArgMissing = errors.New("required argument is missing")
 	ErrValidationTypeMismatch       = errors.New("argument type mismatch")
 	ErrValidationArgCount           = errors.New("incorrect argument count")
 	ErrValidationArgValue           = errors.New("invalid argument value")
@@ -117,11 +116,12 @@ var (
 // --- Core Tool Execution Errors (including Filesystem and Tree sentinels) ---
 var (
 	// General Tool Errors
-	ErrInternalTool       = errors.New("internal tool error")
-	ErrNotFound           = errors.New("item not found") // Generic not found by a tool
-	ErrFailedPrecondition = errors.New("operation failed due to a precondition not being met")
-	ErrRateLimited        = errors.New("operation failed due to rate limiting")
-	ErrNotImplemented     = errors.New("feature or tool not implemented")
+	ErrInternalTool        = errors.New("internal tool error")
+	ErrNotFound            = errors.New("item not found") // Generic not found by a tool
+	ErrFailedPrecondition  = errors.New("operation failed due to a precondition not being met")
+	ErrRateLimited         = errors.New("operation failed due to rate limiting")
+	ErrNotImplemented      = errors.New("feature or tool not implemented")
+	ErrToolExecutionFailed = errors.New("tool execution failed") // Sentinel for ErrorCodeToolExecutionFailed
 
 	// Filesystem Errors
 	ErrFileNotFound      = errors.New("file not found")                  // For ErrorCodeFileNotFound

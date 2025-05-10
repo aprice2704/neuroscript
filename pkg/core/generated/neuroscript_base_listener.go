@@ -194,6 +194,12 @@ func (s *BaseNeuroScriptListener) EnterOnErrorStmt(ctx *OnErrorStmtContext) {}
 // ExitOnErrorStmt is called when production onErrorStmt is exited.
 func (s *BaseNeuroScriptListener) ExitOnErrorStmt(ctx *OnErrorStmtContext) {}
 
+// EnterQualified_identifier is called when production qualified_identifier is entered.
+func (s *BaseNeuroScriptListener) EnterQualified_identifier(ctx *Qualified_identifierContext) {}
+
+// ExitQualified_identifier is called when production qualified_identifier is exited.
+func (s *BaseNeuroScriptListener) ExitQualified_identifier(ctx *Qualified_identifierContext) {}
+
 // EnterCall_target is called when production call_target is entered.
 func (s *BaseNeuroScriptListener) EnterCall_target(ctx *Call_targetContext) {}
 
