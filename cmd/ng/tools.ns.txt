@@ -1,0 +1,22 @@
+func main() means
+
+  emit "--- Compact Tool List ---"
+  set compact_list = tool.Meta.ListTools()
+  emit compact_list
+
+  emit "" # Add a blank line for separation
+  emit "--- Detailed Tool Help (All Tools) ---"
+  set detailed_help_all = tool.Meta.ToolsHelp() # No arguments for all tools
+  emit detailed_help_all
+
+  emit "" # Add a blank line for separation
+  emit "--- Detailed Tool Help (Filtered for 'FS.') ---"
+  set detailed_help_fs = tool.Meta.ToolsHelp("FS.") # Positional argument for filter
+  emit detailed_help_fs
+  
+  emit ""
+  emit "--- Detailed Tool Help (Filtered for 'Meta.') ---"
+  set detailed_help_meta = tool.Meta.ToolsHelp("Meta.") # Positional argument for filter
+  emit detailed_help_meta
+
+endfunc
