@@ -1,6 +1,6 @@
 // File:       NeuroScript.g4
 // Grammar:    NeuroScript
-// Version:    0.3.8 (Updated for qualified tool names)
+// Version:    0.3.0 (Updated for qualified tool names)
 // Date:       2025-05-09 // Assuming today's date for the change
 // NOTE: Removed expressionStatement from statement rule.
 //       Added explicit call_statement requiring 'call' keyword.

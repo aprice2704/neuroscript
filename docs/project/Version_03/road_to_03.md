@@ -10,6 +10,7 @@
 ## Vision (Summary)
 
 Achieve an AI-driven development loop where a Supervising AI (SAI) interacts with NeuroScript (ng) and a File API to:
+- Apply a prompt to each file in a file tree 
 - Manage code in branches (Git).
 - Read, write, and understand code structure (FS.*, Go*, Tree tools, Indexing).
 - Run diagnostics and tests (GoCheck, GoVet?, GoTest).

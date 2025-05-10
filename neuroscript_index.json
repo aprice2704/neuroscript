@@ -3696,6 +3696,9 @@
         "pkg/core/tooldefs_math.go": {
           "methods": []
         },
+        "pkg/core/tooldefs_meta.go": {
+          "methods": []
+        },
         "pkg/core/tooldefs_shell.go": {
           "methods": []
         },
@@ -4065,6 +4068,22 @@
             "TestToolAdd",
             "TestToolSubtract",
             "TestToolDivide"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_meta.go": {
+          "functions": [
+            "toolListTools",
+            "toolToolsHelp",
+            "formatParamsSimpleForSpec",
+            "formatParamsMarkdownForSpec"
+          ],
+          "methods": []
+        },
+        "pkg/core/tools_meta_test.go": {
+          "functions": [
+            "TestToolMetaListTools",
+            "TestToolMetaToolsHelp"
           ],
           "methods": []
         },
