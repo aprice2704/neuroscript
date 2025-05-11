@@ -115,7 +115,7 @@ func (i *Interpreter) executeEmit(step Step, stepNum int, isInHandler bool, acti
 		return nil, NewRuntimeError(ErrorCodeEvaluation, errMsg, fmt.Errorf("%s: %w", errMsg, err))
 	}
 	// EMIT's purpose is console output
-	fmt.Printf("EMIT: %v\n", value)
+	fmt.Printf("%v\n", value)
 	return value, nil
 }
 
@@ -257,7 +257,7 @@ func (i *Interpreter) executeAsk(step Step, stepNum int, isInHandler bool, activ
 	posStr := step.Pos.String()
 	targetVar := step.Target
 	// Use structured logging
-	i.Logger().Info("[INFO-INTERP] Executing ASK (Placeholder)", "pos", posStr, "target_var", targetVar)
+	i.Logger().Debug("[INFO-INTERP] Executing ASK (Placeholder)", "pos", posStr, "target_var", targetVar)
 
 	// 1. Evaluate the prompt expression
 	promptValue, err := i.evaluateExpression(step.Value) // Value holds the prompt Expression

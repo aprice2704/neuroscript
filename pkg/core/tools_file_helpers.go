@@ -59,7 +59,7 @@ func writeFileContent(interp *Interpreter, path string, content string) error {
 	if err != nil {
 		return fmt.Errorf("failed to write file '%s': %w", absPath, err)
 	}
-	interp.Logger().Info("File written successfully", "path", absPath) // Use Logger() getter
+	interp.Logger().Debug("File written successfully", "path", absPath) // Use Logger() getter
 	return nil
 }
 

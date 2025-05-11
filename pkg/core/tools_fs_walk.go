@@ -1,5 +1,5 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.0.5 // Add empty path check, return specific slice type.
+// File version: 0.0.6 // Changed INFO logs to DEBUG
 // nlines: 117
 // risk_rating: MEDIUM
 // filename: pkg/core/tools_fs_walk.go
@@ -42,18 +42,18 @@ func toolWalkDir(interpreter *Interpreter, args []interface{}) (interface{}, err
 	// ResolveAndSecurePath handles validation (absolute, traversal, null bytes, empty)
 	absBasePath, secErr := ResolveAndSecurePath(relPath, sandboxRoot)
 	if secErr != nil {
-		interpreter.Logger().Info("Tool: WalkDir] Path validation failed", "error", secErr.Error(), "path", relPath)
-		return nil, secErr // Return the *RuntimeError directly
+		interpreter.Logger().Debug("Tool: WalkDir] Path validation failed", "error", secErr.Error(), "path", relPath) // Changed from Info
+		return nil, secErr                                                                                            // Return the *RuntimeError directly
 	}
 
-	interpreter.Logger().Infof("Tool: WalkDir] Validated base path: %s (Original Relative: %q, Sandbox: %q)", absBasePath, relPath, sandboxRoot)
+	interpreter.Logger().Debugf("Tool: WalkDir] Validated base path: %s (Original Relative: %q, Sandbox: %q)", absBasePath, relPath, sandboxRoot) // Changed from Infof
 
 	// --- Check if Start Path is a Directory ---
 	baseInfo, statErr := os.Stat(absBasePath)
 	if statErr != nil {
 		if errors.Is(statErr, os.ErrNotExist) {
 			errMsg := fmt.Sprintf("WalkDir: start path not found '%s'", relPath)
-			interpreter.Logger().Info("Tool: WalkDir] %s", errMsg)
+			interpreter.Logger().Debug("Tool: WalkDir] %s", errMsg) // Changed from Info
 			return nil, NewRuntimeError(ErrorCodeFileNotFound, errMsg, ErrFileNotFound)
 		}
 		if errors.Is(statErr, os.ErrPermission) {
@@ -66,7 +66,7 @@ func toolWalkDir(interpreter *Interpreter, args []interface{}) (interface{}, err
 
 	if !baseInfo.IsDir() {
 		errMsg := fmt.Sprintf("WalkDir: start path '%s' is not a directory", relPath)
-		interpreter.Logger().Info("Tool: WalkDir] %s", errMsg)
+		interpreter.Logger().Debug("Tool: WalkDir] %s", errMsg) // Changed from Info
 		return nil, NewRuntimeError(ErrorCodePathTypeMismatch, errMsg, ErrPathNotDirectory)
 	}
 
@@ -121,7 +121,7 @@ func toolWalkDir(interpreter *Interpreter, args []interface{}) (interface{}, err
 		return nil, NewRuntimeError(ErrorCodeIOFailed, errMsg, errors.Join(ErrIOFailed, walkErr))
 	}
 
-	interpreter.Logger().Infof("Tool: WalkDir] Walk successful", "path", relPath, "entries_found", len(fileInfos))
+	interpreter.Logger().Debugf("Tool: WalkDir] Walk successful", "path", relPath, "entries_found", len(fileInfos)) // Changed from Infof
 	// Return the correctly typed slice (even if empty)
 	return fileInfos, nil
 }

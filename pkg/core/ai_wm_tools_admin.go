@@ -79,7 +79,7 @@ var toolAIWorkerSavePerformanceData = ToolImplementation{
 		if saveErr := m.persistDefinitionsUnsafe(); saveErr != nil { // Corrected call
 			return nil, saveErr
 		}
-		i.Logger().Info("AIWorker.SavePerformanceData: Called. Ensured definitions (with summaries) are saved. Raw performance data appends automatically on instance retirement.")
+		i.Logger().Debug("AIWorker.SavePerformanceData: Called. Ensured definitions (with summaries) are saved. Raw performance data appends automatically on instance retirement.")
 		return "Ensured definitions (with summaries) are saved. Raw performance data appends automatically.", nil
 	},
 }

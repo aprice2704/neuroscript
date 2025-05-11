@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.1.1 // Use FileAPI.ResolvePath and FileAPI.ReadFile.
-// nlines: 120 // Approximate
+// File version: 0.1.2 // Correctly use FileAPI.ResolvePath and os.ReadFile.
+// nlines: 123 // Approximate
 // risk_rating: LOW // Mock implementation
 // filename: pkg/core/tools_vector.go
 
@@ -9,7 +9,8 @@ package core
 import (
 	"encoding/json"
 	"errors"
-	"fmt" // Still needed for os errors like IsNotExist
+	"fmt"
+	"os" // Import os package for ReadFile
 	"path/filepath"
 	"sort"
 )
@@ -31,7 +32,7 @@ func toolSearchSkills(interpreter *Interpreter, args []interface{}) (interface{}
 
 	if interpreter.vectorIndex == nil {
 		interpreter.vectorIndex = make(map[string][]float32)
-		interpreter.Logger().Info(fmt.Sprintf("[%s] Vector index was nil, initialized.", toolName))
+		interpreter.Logger().Debug(fmt.Sprintf("[%s] Vector index was nil, initialized.", toolName))
 	}
 
 	queryEmb, embErr := interpreter.GenerateEmbedding(query)
@@ -100,18 +101,26 @@ func toolVectorUpdate(interpreter *Interpreter, args []interface{}) (interface{}
 		return nil, NewRuntimeError(ErrorCodeArgMismatch, fmt.Sprintf("%s: filepath cannot be empty", toolName), ErrInvalidArgument)
 	}
 
-	if interpreter.fileAPI == nil {
+	fileAPI := interpreter.FileAPI()
+	if fileAPI == nil {
 		return nil, NewRuntimeError(ErrorCodeInternal, fmt.Sprintf("%s: FileAPI not initialized in interpreter", toolName), ErrInternal)
 	}
 
 	interpreter.Logger().Debug(fmt.Sprintf("[%s] (Mock) updating index for", toolName), "relative_path", filePathRel)
 
-	// Read file content using FileAPI.ReadFile (which handles path resolution internally)
-	contentBytes, readErr := interpreter.fileAPI.ReadFile(filePathRel)
+	// Step 1: Resolve the relative path to a safe, absolute path using FileAPI
+	absPath, pathErr := fileAPI.ResolvePath(filePathRel)
+	if pathErr != nil {
+		interpreter.Logger().Error(fmt.Sprintf("%s: failed to resolve path", toolName), "relative_path", filePathRel, "error", pathErr)
+		// ResolvePath already returns a RuntimeError, so just propagate it
+		return nil, pathErr
+	}
+
+	// Step 2: Read the file content using the resolved absolute path
+	contentBytes, readErr := os.ReadFile(absPath)
 	if readErr != nil {
-		// ReadFile now returns a RuntimeError, just propagate it
-		interpreter.Logger().Error(fmt.Sprintf("%s: failed to read file", toolName), "relative_path", filePathRel, "error", readErr)
-		return nil, readErr
+		interpreter.Logger().Error(fmt.Sprintf("%s: failed to read file", toolName), "absolute_path", absPath, "error", readErr)
+		return nil, NewRuntimeError(ErrorCodeIOFailed, fmt.Sprintf("failed to read file '%s'", filePathRel), readErr)
 	}
 
 	// Generate embedding
@@ -122,22 +131,13 @@ func toolVectorUpdate(interpreter *Interpreter, args []interface{}) (interface{}
 		return nil, NewRuntimeError(ErrorCodeInternal, errMsg, errors.Join(ErrInternalTool, embErr))
 	}
 
-	// We need the absolute path to use as the key in the vector index,
-	// as relative paths could be ambiguous if the CWD changes.
-	// Resolve the path again (ReadFile did it internally, but didn't return it).
-	absPath, pathErr := interpreter.fileAPI.ResolvePath(filePathRel)
-	if pathErr != nil {
-		// This shouldn't happen if ReadFile succeeded, but handle defensively.
-		interpreter.Logger().Error(fmt.Sprintf("%s: failed to resolve path after successful read", toolName), "relative_path", filePathRel, "error", pathErr)
-		return nil, pathErr // Propagate RuntimeError from ResolvePath
-	}
-
+	// The absPath from ResolvePath is already the correct key for the vector index.
 	if interpreter.vectorIndex == nil {
 		interpreter.vectorIndex = make(map[string][]float32)
 	}
 	interpreter.vectorIndex[absPath] = embedding // Store with absolute path key
 
-	interpreter.Logger().Debug(fmt.Sprintf("[%s] Update successful", toolName), "relative_path", filePathRel)
+	interpreter.Logger().Debug(fmt.Sprintf("[%s] Update successful", toolName), "relative_path", filePathRel, "absolute_path", absPath)
 	return "OK", nil
 }
 

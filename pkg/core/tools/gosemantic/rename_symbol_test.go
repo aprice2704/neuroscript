@@ -159,7 +159,7 @@ func TestGoRenameSymbol(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(sandboxDir, "go.mod"), goModContent, 0644); err != nil {
 		t.Fatalf("Failed write go.mod: %v", err)
 	}
-	logger.Info("Created go.mod in sandbox", "path", filepath.Join(sandboxDir, "go.mod"))
+	logger.Debug("Created go.mod in sandbox", "path", filepath.Join(sandboxDir, "go.mod"))
 
 	indexTool, found := interpreter.ToolRegistry().GetTool("Go.IndexCode")
 	if !found {

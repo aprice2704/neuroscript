@@ -76,7 +76,7 @@ func toolPrint(interpreter *Interpreter, args []interface{}) (interface{}, error
 	// for i, v := range valuesToPrint {
 	// 	stringValues[i] = fmt.Sprint(v) // Simple conversion
 	// }
-	// interpreter.Logger().Info("Tool: Print executing", "values", strings.Join(stringValues, " "))
+	// interpreter.Logger().Debug("Tool: Print executing", "values", strings.Join(stringValues, " "))
 
 	// Use fmt.Println which handles different types and adds spaces + newline
 	fmt.Println(valuesToPrint...)

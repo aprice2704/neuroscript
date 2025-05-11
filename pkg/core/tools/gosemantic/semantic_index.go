@@ -60,7 +60,7 @@ func toolGoIndexCode(interpreter *core.Interpreter, args []interface{}) (interfa
 		return "", fmt.Errorf("%w: %s", core.ErrInvalidPath, errMsg)
 	}
 
-	logger.Info("[TOOL-GOINDEX] Starting indexing", "relative_dir", targetDirRel, "absolute_dir", absValidatedDir)
+	logger.Debug("[TOOL-GOINDEX] Starting indexing", "relative_dir", targetDirRel, "absolute_dir", absValidatedDir)
 
 	// +++ DEBUG code from original file (keep for now) +++
 	debugFilePath := filepath.Join(absValidatedDir, "main.go") // Assuming the test file is main.go
@@ -138,7 +138,7 @@ func toolGoIndexCode(interpreter *core.Interpreter, args []interface{}) (interfa
 		}
 	}
 
-	logger.Info("[TOOL-GOINDEX] Package loading complete", "loaded_packages", len(pkgs), "package_infos", len(packageInfos), "errors_encountered", len(loadErrs))
+	logger.Debug("[TOOL-GOINDEX] Package loading complete", "loaded_packages", len(pkgs), "package_infos", len(packageInfos), "errors_encountered", len(loadErrs))
 
 	// Create and register the index
 	index := &SemanticIndex{
@@ -153,6 +153,6 @@ func toolGoIndexCode(interpreter *core.Interpreter, args []interface{}) (interfa
 		return "", fmt.Errorf("%w: failed to register index handle: %w", core.ErrInternal, err)
 	}
 
-	logger.Info("[TOOL-GOINDEX] Semantic index created successfully", "handle", handle)
+	logger.Debug("[TOOL-GOINDEX] Semantic index created successfully", "handle", handle)
 	return handle, nil
 }

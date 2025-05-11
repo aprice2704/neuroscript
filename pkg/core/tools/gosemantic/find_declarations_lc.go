@@ -108,7 +108,7 @@ func toolGoFindDeclarations(interpreter *core.Interpreter, args []interface{}) (
 		logger.Warn("[TOOL-GOFINDDECL-LC] Could not find type object via ObjectOf, Uses, or Defs", "ident", targetIdent.Name, "identPos", index.Fset.Position(targetIdent.Pos()))
 		// Simplified check for unresolved package name
 		if pkgName, isPkg := targetIdent.Obj.Decl.(*types.PkgName); isPkg { // Check if the Ident itself resolves to a PkgName obj
-			logger.Info("[TOOL-GOFINDDECL-LC] Identifier is likely an unresolved PkgName", "ident", targetIdent.Name, "pkgPath", pkgName.Imported().Path())
+			logger.Debug("[TOOL-GOFINDDECL-LC] Identifier is likely an unresolved PkgName", "ident", targetIdent.Name, "pkgPath", pkgName.Imported().Path())
 			return nil, nil
 		}
 		return nil, nil // Truly not found
@@ -117,7 +117,7 @@ func toolGoFindDeclarations(interpreter *core.Interpreter, args []interface{}) (
 	logger.Debug("[TOOL-GOFINDDECL-LC] Found object", "identifier", targetIdent.Name, "objName", obj.Name(), "objType", fmt.Sprintf("%T", obj), "objPos", index.Fset.Position(obj.Pos()))
 
 	if _, isPkgName := obj.(*types.PkgName); isPkgName {
-		logger.Info("[TOOL-GOFINDDECL-LC] Identifier is PkgName, ignoring.", "ident", targetIdent.Name, "pkgPath", obj.(*types.PkgName).Imported().Path())
+		logger.Debug("[TOOL-GOFINDDECL-LC] Identifier is PkgName, ignoring.", "ident", targetIdent.Name, "pkgPath", obj.(*types.PkgName).Imported().Path())
 		return nil, nil
 	}
 
@@ -147,7 +147,7 @@ func toolGoFindDeclarations(interpreter *core.Interpreter, args []interface{}) (
 
 	// Check if the declaration is within the LoadDir or is the LoadDir itself
 	if errCheck != nil || (!strings.HasPrefix(cleanDeclFilenameAbs, cleanLoadDir+string(filepath.Separator)) && cleanDeclFilenameAbs != cleanLoadDir) {
-		logger.Info("[TOOL-GOFINDDECL-LC] Declaration outside indexed dir, filtering.", "object", obj.Name(), "decl_path", declFilenameAbs, "load_dir", cleanLoadDir)
+		logger.Debug("[TOOL-GOFINDDECL-LC] Declaration outside indexed dir, filtering.", "object", obj.Name(), "decl_path", declFilenameAbs, "load_dir", cleanLoadDir)
 		return nil, nil // Outside indexed scope
 	}
 

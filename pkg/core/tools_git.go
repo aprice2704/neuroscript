@@ -125,7 +125,7 @@ func toolGitCommit(interpreter *Interpreter, args []interface{}) (interface{}, e
 	}
 
 	// Perform the commit
-	interpreter.logger.Info("[Tool: GitCommit] Executing: git commit -m '...'")
+	interpreter.logger.Debug("[Tool: GitCommit] Executing: git commit -m '...'")
 	gitArgs := []string{"commit", "-m", message}
 	output, err := toolExec(interpreter, append([]string{"git"}, gitArgs...)...)
 
@@ -140,7 +140,7 @@ func toolGitCommit(interpreter *Interpreter, args []interface{}) (interface{}, e
 		return nil, fmt.Errorf("GitCommit failed: %w", err)
 	}
 
-	interpreter.logger.Info("[Tool: GitCommit] Success. Output:\n%s", output)
+	interpreter.logger.Debug("[Tool: GitCommit] Success. Output:\n%s", output)
 	return fmt.Sprintf("GitCommit successful. Message: %q.\nOutput:\n%s", message, output), nil
 }
 
@@ -217,12 +217,12 @@ func toolGitBranch(interpreter *Interpreter, args []interface{}) (interface{}, e
 		} else {
 			gitArgs = append(gitArgs, "branch", name)
 		}
-		interpreter.logger.Info("[Tool: GitBranch/GitNewBranch] Executing: git %s", strings.Join(gitArgs, " "))
+		interpreter.logger.Debug("[Tool: GitBranch/GitNewBranch] Executing: git %s", strings.Join(gitArgs, " "))
 		_, err := toolExec(interpreter, append([]string{"git"}, gitArgs...)...)
 		if err != nil {
 			return nil, fmt.Errorf("failed to %s branch '%s': %w", action, name, err)
 		}
-		interpreter.logger.Info("[Tool: GitBranch/GitNewBranch] Successfully %s branch '%s'", action, name)
+		interpreter.logger.Debug("[Tool: GitBranch/GitNewBranch] Successfully %s branch '%s'", action, name)
 		return fmt.Sprintf("Successfully %s branch '%s'.", action, name), nil
 
 	} else { // List branches mode
@@ -237,7 +237,7 @@ func toolGitBranch(interpreter *Interpreter, args []interface{}) (interface{}, e
 		}
 		gitArgs = append(gitArgs, "--no-color")
 
-		interpreter.logger.Info("[Tool: GitBranch - List Mode] Executing: git %s", strings.Join(gitArgs, " "))
+		interpreter.logger.Debug("[Tool: GitBranch - List Mode] Executing: git %s", strings.Join(gitArgs, " "))
 		output, err := toolExec(interpreter, append([]string{"git"}, gitArgs...)...)
 		if err != nil {
 			return nil, fmt.Errorf("failed to list branches: %w", err)
@@ -256,7 +256,7 @@ func toolGitBranch(interpreter *Interpreter, args []interface{}) (interface{}, e
 		for i, b := range branches {
 			result[i] = b
 		}
-		interpreter.logger.Info("[Tool: GitBranch - List Mode] Found %d branches.", len(result))
+		interpreter.logger.Debug("[Tool: GitBranch - List Mode] Found %d branches.", len(result))
 		return result, nil // Returns []interface{} (effectively slice of strings)
 	}
 }
@@ -297,13 +297,13 @@ func toolGitCheckout(interpreter *Interpreter, args []interface{}) (interface{},
 	}
 	gitArgs = append(gitArgs, branch)
 
-	interpreter.logger.Info("[Tool: GitCheckout] Executing: git %s", strings.Join(gitArgs, " "))
+	interpreter.logger.Debug("[Tool: GitCheckout] Executing: git %s", strings.Join(gitArgs, " "))
 	output, err := toolExec(interpreter, append([]string{"git"}, gitArgs...)...)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to %s branch/ref '%s': %w", action, branch, err)
 	}
-	interpreter.logger.Info("[Tool: GitCheckout] Success. Output:\n%s", output)
+	interpreter.logger.Debug("[Tool: GitCheckout] Success. Output:\n%s", output)
 	return fmt.Sprintf("Successfully checked out branch/ref '%s'.\nOutput:\n%s", branch, output), nil
 }
 
@@ -323,13 +323,13 @@ func toolGitRm(interpreter *Interpreter, args []interface{}) (interface{}, error
 	}
 	relativePath := path
 
-	interpreter.logger.Info("[Tool: GitRm] Executing: git rm %s (validated path: %s)", relativePath, securePath)
+	interpreter.logger.Debug("[Tool: GitRm] Executing: git rm %s (validated path: %s)", relativePath, securePath)
 	output, err := toolExec(interpreter, "git", "rm", relativePath)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to remove path '%s': %w", relativePath, err)
 	}
-	interpreter.logger.Info("[Tool: GitRm] Success. Output:\n%s", output)
+	interpreter.logger.Debug("[Tool: GitRm] Success. Output:\n%s", output)
 	return fmt.Sprintf("Successfully removed path '%s' from git index.\nOutput:\n%s", relativePath, output), nil
 }
 
@@ -343,14 +343,14 @@ func toolGitMerge(interpreter *Interpreter, args []interface{}) (interface{}, er
 		return nil, fmt.Errorf("%w: invalid type or empty value for 'branch', expected non-empty string", ErrInvalidArgument)
 	}
 
-	interpreter.logger.Info("[Tool: GitMerge] Executing: git merge %s", branchName)
+	interpreter.logger.Debug("[Tool: GitMerge] Executing: git merge %s", branchName)
 	output, err := toolExec(interpreter, "git", "merge", branchName)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to merge branch '%s' (check for conflicts): %w", branchName, err)
 	}
 
-	interpreter.logger.Info("[Tool: GitMerge] Success. Output:\n%s", output)
+	interpreter.logger.Debug("[Tool: GitMerge] Success. Output:\n%s", output)
 	return fmt.Sprintf("Successfully merged branch '%s'.\nOutput:\n%s", branchName, output), nil
 }
 
@@ -360,14 +360,14 @@ func toolGitPull(interpreter *Interpreter, args []interface{}) (interface{}, err
 		return nil, fmt.Errorf("%w: toolGitPull internal: expects no arguments, got %d", ErrInvalidArgument, len(args))
 	}
 
-	interpreter.logger.Info("[Tool: GitPull] Executing: git pull")
+	interpreter.logger.Debug("[Tool: GitPull] Executing: git pull")
 	output, err := toolExec(interpreter, "git", "pull")
 
 	if err != nil {
 		return nil, fmt.Errorf("GitPull failed: %w", err)
 	}
 
-	interpreter.logger.Info("[Tool: GitPull] Success. Output:\n%s", output)
+	interpreter.logger.Debug("[Tool: GitPull] Success. Output:\n%s", output)
 	return fmt.Sprintf("GitPull successful.\nOutput:\n%s", output), nil
 }
 
@@ -418,14 +418,14 @@ func toolGitPush(interpreter *Interpreter, args []interface{}) (interface{}, err
 	}
 	gitArgs = append(gitArgs, remote, branch) // Uses defaults if called by "GitPush" tool
 
-	interpreter.logger.Info("[Tool: GitPush] Executing: git %s", strings.Join(gitArgs, " "))
+	interpreter.logger.Debug("[Tool: GitPush] Executing: git %s", strings.Join(gitArgs, " "))
 	output, pushErr := toolExec(interpreter, append([]string{"git"}, gitArgs...)...)
 
 	if pushErr != nil {
 		return nil, fmt.Errorf("GitPush failed: %w", pushErr)
 	}
 
-	interpreter.logger.Info("[Tool: GitPush] Success. Output:\n%s", output)
+	interpreter.logger.Debug("[Tool: GitPush] Success. Output:\n%s", output)
 	return fmt.Sprintf("GitPush successful (%s -> %s).\nOutput:\n%s", branch, remote, output), nil
 }
 
@@ -482,7 +482,7 @@ func toolGitDiff(interpreter *Interpreter, args []interface{}) (interface{}, err
 	// commit1, commit2, path are empty for 0-arg call.
 	// So, defaults to 'git diff' (working tree vs index).
 
-	interpreter.logger.Info("[Tool: GitDiff] Executing: git %s", strings.Join(gitArgs, " "))
+	interpreter.logger.Debug("[Tool: GitDiff] Executing: git %s", strings.Join(gitArgs, " "))
 	output, err := toolExec(interpreter, append([]string{"git"}, gitArgs...)...)
 
 	if err != nil {
@@ -491,10 +491,10 @@ func toolGitDiff(interpreter *Interpreter, args []interface{}) (interface{}, err
 	}
 
 	if output == "" {
-		interpreter.logger.Info("[Tool: GitDiff] Success. No changes detected.")
+		interpreter.logger.Debug("[Tool: GitDiff] Success. No changes detected.")
 		return "GitDiff: No changes detected.", nil
 	}
 
-	interpreter.logger.Info("[Tool: GitDiff] Success. Changes detected.")
+	interpreter.logger.Debug("[Tool: GitDiff] Success. Changes detected.")
 	return output, nil
 }

@@ -141,7 +141,7 @@ func toolListSort(interpreter *Interpreter, args []interface{}) (interface{}, er
 		if elem == nil { // Cannot sort lists with nil elements easily
 			errMsg := fmt.Sprintf("list contains nil element at index %d", i)
 			if interpreter.logger != nil {
-				interpreter.logger.Info("Tool: ListSort] Error: %s", errMsg)
+				interpreter.logger.Debug("Tool: ListSort] Error: %s", errMsg)
 			}
 			return nil, fmt.Errorf("%w: %s", ErrListCannotSortMixedTypes, errMsg)
 		}
@@ -197,7 +197,7 @@ func toolListSort(interpreter *Interpreter, args []interface{}) (interface{}, er
 		if !canSortNumerically && !canSortLexicographically {
 			errMsg := fmt.Sprintf("list contains mixed or non-sortable types (e.g., element %d [%v] type %T is incompatible with first element type kind %v)", i, elem, elem, firstKind)
 			if interpreter.logger != nil {
-				interpreter.logger.Info("Tool: ListSort] Error: %s", errMsg)
+				interpreter.logger.Debug("Tool: ListSort] Error: %s", errMsg)
 			}
 			return nil, fmt.Errorf("%w: %s", ErrListCannotSortMixedTypes, errMsg)
 
@@ -208,7 +208,7 @@ func toolListSort(interpreter *Interpreter, args []interface{}) (interface{}, er
 	if !canSortNumerically && !canSortLexicographically {
 		errMsg := fmt.Sprintf("list contains mixed or non-sortable types (final check, first kind: %v)", firstKind)
 		if interpreter.logger != nil {
-			interpreter.logger.Info("Tool: ListSort] Error: %s", errMsg)
+			interpreter.logger.Debug("Tool: ListSort] Error: %s", errMsg)
 		}
 		return nil, fmt.Errorf("%w: %s", ErrListCannotSortMixedTypes, errMsg)
 	}
@@ -220,7 +220,7 @@ func toolListSort(interpreter *Interpreter, args []interface{}) (interface{}, er
 	if canSortNumerically {
 		// Sort numerically based on float64 conversion
 		if interpreter.logger != nil {
-			interpreter.logger.Info("Tool: ListSort] Sorting numerically.")
+			interpreter.logger.Debug("Tool: ListSort] Sorting numerically.")
 		}
 		sort.SliceStable(newList, func(i, j int) bool {
 			// Safe conversion due to checks above (all elements were verified convertible to numeric)
@@ -230,7 +230,7 @@ func toolListSort(interpreter *Interpreter, args []interface{}) (interface{}, er
 		})
 	} else { // Must be lexicographically sortable (all strings)
 		if interpreter.logger != nil {
-			interpreter.logger.Info("Tool: ListSort] Sorting lexicographically.")
+			interpreter.logger.Debug("Tool: ListSort] Sorting lexicographically.")
 		}
 		sort.SliceStable(newList, func(i, j int) bool {
 			// Safe to assume string type here due to checks above

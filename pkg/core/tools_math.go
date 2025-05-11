@@ -21,7 +21,7 @@ func toolAdd(interpreter *Interpreter, args []interface{}) (interface{}, error) 
 	}
 	result := num1 + num2
 	if interpreter.logger != nil {
-		interpreter.logger.Info("Tool: Add] Calculated %v + %v = %v", num1, num2, result)
+		interpreter.logger.Debug("Tool: Add] Calculated %v + %v = %v", num1, num2, result)
 	}
 	return result, nil
 }
@@ -34,7 +34,7 @@ func toolSubtract(interpreter *Interpreter, args []interface{}) (interface{}, er
 	}
 	result := num1 - num2
 	if interpreter.logger != nil {
-		interpreter.logger.Info("Tool: Subtract] Calculated %v - %v = %v", num1, num2, result)
+		interpreter.logger.Debug("Tool: Subtract] Calculated %v - %v = %v", num1, num2, result)
 	}
 	return result, nil
 }
@@ -47,7 +47,7 @@ func toolMultiply(interpreter *Interpreter, args []interface{}) (interface{}, er
 	}
 	result := num1 * num2
 	if interpreter.logger != nil {
-		interpreter.logger.Info("Tool: Multiply] Calculated %v * %v = %v", num1, num2, result)
+		interpreter.logger.Debug("Tool: Multiply] Calculated %v * %v = %v", num1, num2, result)
 	}
 	return result, nil
 }
@@ -64,7 +64,7 @@ func toolDivide(interpreter *Interpreter, args []interface{}) (interface{}, erro
 	}
 	result := num1 / num2
 	if interpreter.logger != nil {
-		interpreter.logger.Info("Tool: Divide] Calculated %v / %v = %v", num1, num2, result)
+		interpreter.logger.Debug("Tool: Divide] Calculated %v / %v = %v", num1, num2, result)
 	}
 	return result, nil
 }
@@ -83,7 +83,7 @@ func toolModulo(interpreter *Interpreter, args []interface{}) (interface{}, erro
 	}
 	result := num1 % num2
 	if interpreter.logger != nil {
-		interpreter.logger.Info("Tool: Modulo] Calculated %v %% %v = %v", num1, num2, result)
+		interpreter.logger.Debug("Tool: Modulo] Calculated %v %% %v = %v", num1, num2, result)
 	}
 	// Modulo result should remain int64
 	return result, nil

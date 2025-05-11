@@ -1,7 +1,9 @@
 // NeuroScript Version: 0.3.0
-// File version: 0.1.2 // Corrected SLogAdapter name, corrected NewAIWorkerManager args order and types.
+// File version: 0.1.3
 // Contains setup functions for the ng application.
 // filename: cmd/ng/setup.go
+// nlines: 80
+// risk_rating: MEDIUM
 package main
 
 import (
@@ -70,7 +72,7 @@ func initializeCoreComponents(app *neurogo.App, logger logging.Logger, absSandbo
 		logger.Error("Failed to create LLM client", "error", err)
 		return nil, nil, nil, fmt.Errorf("failed to create LLM client: %w", err)
 	}
-	logger.Info("LLM Client created successfully")
+	logger.Debug("LLM Client created successfully")
 
 	// Call NewInterpreter with the correct signature
 	interpreter, err := core.NewInterpreter(logger, llmClient, app.Config.SandboxDir, nil, app.Config.LibPaths)
@@ -79,7 +81,7 @@ func initializeCoreComponents(app *neurogo.App, logger logging.Logger, absSandbo
 		return nil, nil, nil, fmt.Errorf("failed to create core Interpreter: %w", err)
 	}
 	app.SetInterpreter(interpreter) // Store the interpreter in the App struct
-	logger.Info("Core Interpreter created successfully")
+	logger.Debug("Core Interpreter created successfully")
 
 	// Define paths for AI Worker Manager persistence files within the sandbox
 	// These paths are NOT passed to NewAIWorkerManager anymore, but might be used
@@ -97,7 +99,7 @@ func initializeCoreComponents(app *neurogo.App, logger logging.Logger, absSandbo
 	}
 	if aiWm != nil {
 		app.SetAIWorkerManager(aiWm) // Store the AIWM in the App struct
-		logger.Info("AI Worker Manager created successfully")
+		logger.Debug("AI Worker Manager created successfully")
 	} else {
 		logger.Warn("AI Worker Manager is nil after creation attempt without explicit error.")
 	}

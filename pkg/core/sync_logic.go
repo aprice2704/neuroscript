@@ -26,7 +26,7 @@ func gatherLocalFiles(sc *syncContext) (map[string]LocalFileInfo, error) {
 		return nil, errors.New("internal error: loggers or interpreter not initialized in sync context")
 	}
 
-	sc.logger.Info("[API HELPER Sync] Scanning local directory: %s", sc.absLocalDir)
+	sc.logger.Debug("[API HELPER Sync] Scanning local directory: %s", sc.absLocalDir)
 	localFiles := make(map[string]LocalFileInfo)
 	var firstWalkError error
 
@@ -121,7 +121,7 @@ func gatherLocalFiles(sc *syncContext) (map[string]LocalFileInfo, error) {
 		return nil
 	}) // End WalkDir Callback
 
-	sc.logger.Info("[API HELPER Sync] Local scan completed. Found %d candidate files. WalkErr: %v", len(localFiles), walkErr)
+	sc.logger.Debug("[API HELPER Sync] Local scan completed. Found %d candidate files. WalkErr: %v", len(localFiles), walkErr)
 	// Return combined error
 	if walkErr != nil {
 		return localFiles, walkErr
@@ -198,7 +198,7 @@ func computeSyncActions(sc *syncContext, localFiles map[string]LocalFileInfo, re
 	}
 
 	// Use the local counter for the summary message
-	sc.logger.Info("[API HELPER Sync] Comparison complete. Plan: %d uploads, %d updates (%d up-to-date), %d deletes.",
+	sc.logger.Debug("[API HELPER Sync] Comparison complete. Plan: %d uploads, %d updates (%d up-to-date), %d deletes.",
 		len(actions.FilesToUpload), len(actions.FilesToUpdate), upToDateCount, len(actions.FilesToDelete))
 	return actions
 }
@@ -268,7 +268,7 @@ func toolSyncFiles(interpreter *Interpreter, args []interface{}) (interface{}, e
 		return nil, fmt.Errorf("TOOL.SyncFiles: local_dir '%s' is not a directory", localDir)
 	}
 
-	interpreter.logger.Info("Tool: SyncFiles] Validated dir: %s (Ignore .gitignore: %t)", absLocalDir, ignoreGitignore)
+	interpreter.logger.Debug("Tool: SyncFiles] Validated dir: %s (Ignore .gitignore: %t)", absLocalDir, ignoreGitignore)
 
 	// Call the main helper (passing interpreter)
 	// *** MODIFIED: Pass interpreter instead of client/logger ***

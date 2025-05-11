@@ -74,7 +74,7 @@ func toolGoGetDeclarationOfSymbol(interpreter *core.Interpreter, args []interfac
 
 	// Check Object Type & Filter
 	if _, isPkgName := foundObj.(*types.PkgName); isPkgName {
-		logger.Info("[TOOL-GOGETDECLSYM] Query resolved to PkgName, ignoring.", "query", query, "pkgPath", foundObj.(*types.PkgName).Imported().Path())
+		logger.Debug("[TOOL-GOGETDECLSYM] Query resolved to PkgName, ignoring.", "query", query, "pkgPath", foundObj.(*types.PkgName).Imported().Path())
 		return nil, nil
 	}
 	declPos := foundObj.Pos()
@@ -99,7 +99,7 @@ func toolGoGetDeclarationOfSymbol(interpreter *core.Interpreter, args []interfac
 	isOutside := errCheck != nil || (!strings.HasPrefix(cleanDeclFilenameAbs, cleanLoadDir+string(filepath.Separator)) && cleanDeclFilenameAbs != cleanLoadDir)
 	logger.Debug("[TOOL-GOGETDECLSYM] Path Filter Result", "isOutside", isOutside, "relErr", errCheck, "cleanDeclPath", cleanDeclFilenameAbs, "cleanLoadDir", cleanLoadDir)
 	if isOutside {
-		logger.Info("[TOOL-GOGETDECLSYM] Declaration outside indexed dir, filtering.", "object", foundObj.Name(), "query", query, "decl_path", declFilenameAbs, "load_dir", cleanLoadDir)
+		logger.Debug("[TOOL-GOGETDECLSYM] Declaration outside indexed dir, filtering.", "object", foundObj.Name(), "query", query, "decl_path", declFilenameAbs, "load_dir", cleanLoadDir)
 		return nil, nil // Outside indexed scope
 	}
 

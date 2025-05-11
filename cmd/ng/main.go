@@ -1,6 +1,8 @@
 // NeuroScript Version: 0.3.0
-// File version: 0.1.10 // Correct NewApp, RegisterAIWorkerTools calls, procArgsConfig type. Remove unused llmClient var.
+// File version: 0.1.11
 // filename: cmd/ng/main.go
+// nlines: 178
+// risk_rating: MEDIUM
 package main
 
 import (
@@ -57,7 +59,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Error initializing logger: %v\n", err)
 		os.Exit(1)
 	}
-	logger.Info("Logger initialized", "level", *logLevel, "file", *logFile)
+	logger.Debug("Logger initialized", "level", *logLevel, "file", *logFile)
 
 	// --- Application Context ---
 	ctx, cancel := context.WithCancel(context.Background())
@@ -68,7 +70,7 @@ func main() {
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		sig := <-sigChan
-		logger.Info("Received signal, shutting down...", "signal", sig.String())
+		logger.Debug("Received signal, shutting down...", "signal", sig.String())
 		cancel()
 	}()
 
@@ -79,7 +81,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Error resolving sandbox directory '%s': %v\n", *sandboxDir, err)
 		os.Exit(1)
 	}
-	logger.Info("Sandbox directory resolved", "path", absSandboxDir)
+	logger.Debug("Sandbox directory resolved", "path", absSandboxDir)
 
 	// --- NeuroGo App Configuration & Initialization ---
 	appConfig := &neurogo.Config{
@@ -113,7 +115,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	logger.Info("Core components (LLM, Interpreter, AIWM) initialized successfully.")
+	logger.Debug("Core components (LLM, Interpreter, AIWM) initialized successfully.")
 
 	// --- Register Tools ---
 	// Core tools are registered within NewInterpreter.
@@ -124,7 +126,7 @@ func main() {
 			logger.Error("Failed to register AI Worker tools", "error", err)
 			fmt.Fprintf(os.Stderr, "Warning: Failed to register AI Worker tools: %v\n", err)
 		} else {
-			logger.Info("AI Worker tools registered.")
+			logger.Debug("AI Worker tools registered.")
 		}
 	} else {
 		logger.Warn("AI Worker Manager not initialized, skipping AI Worker tool registration.")
@@ -133,53 +135,53 @@ func main() {
 	// --- Execute Startup Script (if provided) ---
 	scriptExecuted := false
 	if app.Config.StartupScript != "" {
-		logger.Info("Executing startup script", "script", app.Config.StartupScript)
+		logger.Debug("Executing startup script", "script", app.Config.StartupScript)
 		if err := app.ExecuteScriptFile(ctx, app.Config.StartupScript); err != nil {
 			logger.Error("Error executing startup script", "script", app.Config.StartupScript, "error", err)
 			fmt.Fprintf(os.Stderr, "Error executing startup script '%s': %v\n", app.Config.StartupScript, err)
 			os.Exit(1)
 		} else {
-			logger.Info("Startup script finished successfully.")
+			logger.Debug("Startup script finished successfully.")
 			scriptExecuted = true
 		}
 	} else {
-		logger.Info("No startup script specified.")
+		logger.Debug("No startup script specified.")
 	}
 
 	// --- Start Primary Interaction (TUI or REPL or Exit) ---
 	if *tuiMode {
-		logger.Info("Starting interactive TUI...")
+		logger.Debug("Starting interactive TUI...")
 		if err := tui.Start(app); err != nil {
 			logger.Error("TUI Error", "error", err)
 			fmt.Fprintf(os.Stderr, "TUI Error: %v\n", err)
 			os.Exit(1)
 		}
-		logger.Info("TUI finished.")
+		logger.Debug("TUI finished.")
 	} else if scriptExecuted {
-		logger.Info("Startup script executed and no interactive UI specified. Exiting.")
+		logger.Debug("Startup script executed and no interactive UI specified. Exiting.")
 	} else if *replMode {
-		logger.Info("TUI disabled, no script run. Starting basic REPL...")
+		logger.Debug("TUI disabled, no script run. Starting basic REPL...")
 		runRepl(ctx, app)
-		logger.Info("Basic REPL finished.")
+		logger.Debug("Basic REPL finished.")
 	} else {
-		logger.Info("No TUI, no script, no REPL. Nothing to do. Exiting.")
+		logger.Debug("No TUI, no script, no REPL. Nothing to do. Exiting.")
 		if flag.NArg() > 0 {
 			scriptPath := flag.Arg(0)
-			logger.Info("Found positional argument, attempting to execute as script", "script", scriptPath)
+			logger.Debug("Found positional argument, attempting to execute as script", "script", scriptPath)
 			app.Config.StartupScript = scriptPath
 			if err := app.ExecuteScriptFile(ctx, scriptPath); err != nil {
 				logger.Error("Error executing script from positional argument", "script", scriptPath, "error", err)
 				fmt.Fprintf(os.Stderr, "Error executing script '%s': %v\n", scriptPath, err)
 				os.Exit(1)
 			}
-			logger.Info("Script from positional argument finished successfully.")
+			logger.Debug("Script from positional argument finished successfully.")
 		} else {
 			fmt.Println("No action specified. Use -script <file>, -tui, or provide a script file as an argument.")
 			flag.Usage()
 		}
 	}
 
-	logger.Info("NeuroScript application finished.")
+	logger.Debug("NeuroScript application finished.")
 	if closer, ok := logger.(interface{ Close() error }); ok {
 		if err := closer.Close(); err != nil {
 			fmt.Fprintf(os.Stderr, "Error closing logger: %v\n", err)

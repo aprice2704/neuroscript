@@ -56,7 +56,7 @@ func toolLineCountFile(interpreter *Interpreter, args []interface{}) (interface{
 
 	content := string(contentBytes)
 	if len(content) == 0 {
-		interpreter.Logger().Info("Tool: LineCountFile] Counted 0 lines (empty file)", "file_path", filePath)
+		interpreter.Logger().Debug("Tool: LineCountFile] Counted 0 lines (empty file)", "file_path", filePath)
 		return int64(0), nil
 	}
 
@@ -65,7 +65,7 @@ func toolLineCountFile(interpreter *Interpreter, args []interface{}) (interface{
 		lineCount++
 	}
 
-	interpreter.Logger().Info("Tool: LineCountFile] Counted lines", "count", lineCount, "file_path", filePath)
+	interpreter.Logger().Debug("Tool: LineCountFile] Counted lines", "count", lineCount, "file_path", filePath)
 	return lineCount, nil
 }
 
@@ -81,6 +81,6 @@ func toolSanitizeFilename(interpreter *Interpreter, args []interface{}) (interfa
 
 	// SanitizeFilename itself doesn't currently return an error. If it did, we'd handle it here.
 	sanitized := SanitizeFilename(name)
-	interpreter.Logger().Info("Tool: SanitizeFilename", "input", name, "output", sanitized)
+	interpreter.Logger().Debug("Tool: SanitizeFilename", "input", name, "output", sanitized)
 	return sanitized, nil
 }

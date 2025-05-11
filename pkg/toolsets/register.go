@@ -1,5 +1,5 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.1.2 // Use standard log package for bootstrap logging.
+// File version: 0.1.3 // Remove bootstrap log.Printf INFO messages.
 // filename: pkg/toolsets/register.go
 
 // Package toolsets provides central registration for extended NeuroScript toolsets.
@@ -35,14 +35,13 @@ func AddToolsetRegistration(name string, regFunc ToolRegisterFunc) {
 	defer registrationMu.Unlock()
 
 	if regFunc == nil {
-		// This is a panic because it's a programming error for a toolset to provide a nil func.
 		log.Panicf(bootstrapLogPrefix+"PANIC: Attempted to register nil registration function for toolset '%s'", name)
 	}
 	if _, exists := toolsetRegistrations[name]; exists {
 		log.Printf(bootstrapLogPrefix+"WARN: Toolset registration function for '%s' overwritten.", name)
 	}
 	toolsetRegistrations[name] = regFunc
-	log.Printf(bootstrapLogPrefix+"INFO: Toolset registration function added for: %s", name)
+	// REMOVED: log.Printf(bootstrapLogPrefix+"INFO: Toolset registration function added for: %s", name)
 }
 
 // CreateRegistrationFunc is a helper that takes a toolset name and a slice of ToolImplementations
@@ -57,16 +56,15 @@ func CreateRegistrationFunc(toolsetName string, tools []core.ToolImplementation)
 		var errs []error
 		for _, toolImpl := range tools {
 			if err := registry.RegisterTool(toolImpl); err != nil {
-				// Log individual tool addition failures
 				detailedErr := fmt.Errorf("failed to add tool %q from %s toolset: %w", toolImpl.Spec.Name, toolsetName, err)
 				log.Printf(bootstrapLogPrefix+"ERROR: In toolset '%s': %v", toolsetName, detailedErr)
 				errs = append(errs, detailedErr)
 			}
 		}
 		if len(errs) > 0 {
-			return errors.Join(errs...) // Return joined errors
+			return errors.Join(errs...)
 		}
-		log.Printf(bootstrapLogPrefix+"INFO: --- %s Tools Registered ---", toolsetName)
+		// REMOVED: log.Printf(bootstrapLogPrefix+"INFO: --- %s Tools Registered ---", toolsetName)
 		return nil
 	}
 }
@@ -74,9 +72,6 @@ func CreateRegistrationFunc(toolsetName string, tools []core.ToolImplementation)
 // RegisterExtendedTools registers all non-core toolsets that have added themselves
 // via AddToolsetRegistration. It uses the provided core.ToolRegistrar (which should be
 // the interpreter's tool registry).
-// The logging within this function will use the standard 'log' package, as the
-// main application logger might not be fully set up or available through core.LogService()
-// when this is called during initial interpreter setup.
 func RegisterExtendedTools(registry core.ToolRegistrar) error {
 	registrationMu.RLock()
 	defer registrationMu.RUnlock()
@@ -87,16 +82,15 @@ func RegisterExtendedTools(registry core.ToolRegistrar) error {
 		return err
 	}
 
-	log.Printf(bootstrapLogPrefix+"INFO: Registering %d discovered extended toolsets...", len(toolsetRegistrations))
+	// REMOVED: log.Printf(bootstrapLogPrefix+"INFO: Registering %d discovered extended toolsets...", len(toolsetRegistrations))
 
 	var allErrors []error
 
 	for name, regFunc := range toolsetRegistrations {
-		log.Printf(bootstrapLogPrefix+"INFO: Calling registration function for toolset: %s", name)
+		// REMOVED: log.Printf(bootstrapLogPrefix+"INFO: Calling registration function for toolset: %s", name)
 		if err := regFunc(registry); err != nil {
 			wrappedErr := fmt.Errorf("failed registering %s toolset: %w", name, err)
 			allErrors = append(allErrors, wrappedErr)
-			// Log the error, as the caller of RegisterExtendedTools might only get the joined error.
 			log.Printf(bootstrapLogPrefix+"ERROR: During extended tool registration for toolset '%s': %v", name, err)
 		}
 	}
@@ -106,6 +100,6 @@ func RegisterExtendedTools(registry core.ToolRegistrar) error {
 		return errors.Join(allErrors...)
 	}
 
-	log.Printf(bootstrapLogPrefix + "INFO: Extended tools registered successfully via toolsets.")
+	// REMOVED: log.Printf(bootstrapLogPrefix + "INFO: Extended tools registered successfully via toolsets.")
 	return nil
 }

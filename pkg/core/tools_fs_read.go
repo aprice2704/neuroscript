@@ -49,7 +49,7 @@ func toolReadFile(interpreter *Interpreter, args []interface{}) (interface{}, er
 		// Handle specific errors
 		if errors.Is(err, os.ErrNotExist) {
 			errMsg := fmt.Sprintf("ReadFile: file not found '%s'", relPath)
-			interpreter.Logger().Info(errMsg)
+			interpreter.Logger().Debug(errMsg)
 			return "", NewRuntimeError(ErrorCodeFileNotFound, errMsg, ErrFileNotFound) // Return empty string and error
 		}
 		if errors.Is(err, os.ErrPermission) {
@@ -63,7 +63,7 @@ func toolReadFile(interpreter *Interpreter, args []interface{}) (interface{}, er
 		// Note: This might be OS-dependent.
 		if strings.Contains(err.Error(), "is a directory") {
 			errMsg := fmt.Sprintf("ReadFile: path '%s' is a directory, not a file", relPath)
-			interpreter.Logger().Info(errMsg)
+			interpreter.Logger().Debug(errMsg)
 			// Use ErrPathNotFile sentinel error
 			return "", NewRuntimeError(ErrorCodePathTypeMismatch, errMsg, ErrPathNotFile) // Return empty string and error
 		}
@@ -76,6 +76,6 @@ func toolReadFile(interpreter *Interpreter, args []interface{}) (interface{}, er
 
 	// Success
 	content := string(contentBytes)
-	interpreter.Logger().Info("Tool: ReadFile successful", "file_path", relPath, "bytes_read", len(contentBytes))
+	interpreter.Logger().Debug("Tool: ReadFile successful", "file_path", relPath, "bytes_read", len(contentBytes))
 	return content, nil
 }

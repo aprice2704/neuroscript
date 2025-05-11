@@ -39,7 +39,7 @@ func toolStat(interpreter *Interpreter, args []interface{}) (interface{}, error)
 	// ResolveAndSecurePath handles validation (absolute, traversal, null bytes, empty)
 	absPathToStat, secErr := ResolveAndSecurePath(relPath, sandboxRoot)
 	if secErr != nil {
-		interpreter.Logger().Info("Tool: StatPath] Path validation failed", "error", secErr.Error(), "path", relPath)
+		interpreter.Logger().Debug("Tool: StatPath] Path validation failed", "error", secErr.Error(), "path", relPath)
 		return nil, secErr // Return the *RuntimeError directly
 	}
 
@@ -50,7 +50,7 @@ func toolStat(interpreter *Interpreter, args []interface{}) (interface{}, error)
 	if statErr != nil {
 		if errors.Is(statErr, os.ErrNotExist) {
 			errMsg := fmt.Sprintf("StatPath: path not found '%s'", relPath)
-			interpreter.Logger().Info("Tool: StatPath] %s", errMsg)
+			interpreter.Logger().Debug("Tool: StatPath] %s", errMsg)
 			return nil, NewRuntimeError(ErrorCodeFileNotFound, errMsg, ErrFileNotFound)
 		}
 		if errors.Is(statErr, os.ErrPermission) {
@@ -75,6 +75,6 @@ func toolStat(interpreter *Interpreter, args []interface{}) (interface{}, error)
 		"mode_perm":        fmt.Sprintf("%04o", info.Mode().Perm()),
 	}
 
-	interpreter.Logger().Info("Tool: StatPath] Stat successful", "path", relPath)
+	interpreter.Logger().Debug("Tool: StatPath] Stat successful", "path", relPath)
 	return resultMap, nil
 }

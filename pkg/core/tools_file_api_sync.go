@@ -61,7 +61,7 @@ func SyncDirectoryUpHelper(
 		syncCtx.logger.Error("[ERROR API HELPER Sync] Critical error during local file scan: %v", walkErr)
 		return syncCtx.stats, fmt.Errorf("local file scan failed: %w", walkErr)
 	}
-	syncCtx.logger.Info("[API HELPER Sync] Local scan complete, found %d files passing filters.", len(localFilesMap))
+	syncCtx.logger.Debug("[API HELPER Sync] Local scan complete, found %d files passing filters.", len(localFilesMap))
 
 	// --- Phase 2: Compare and Plan ---
 	actions := computeSyncActions(syncCtx, localFilesMap, remoteFilesMap)
@@ -85,7 +85,7 @@ func SyncDirectoryUpHelper(
 			scannedCount = 0
 		}
 		syncCtx.stats["files_processed"] = scannedCount
-		syncCtx.logger.Info("[API HELPER Sync] Sync finished. Final Stats: %+v", syncCtx.stats)
+		syncCtx.logger.Debug("[API HELPER Sync] Sync finished. Final Stats: %+v", syncCtx.stats)
 		syncCtx.logger.Debug("[FINAL API HELPER Sync] Sync completed successfully (No operations needed).")
 		return syncCtx.stats, nil
 	}
@@ -127,7 +127,7 @@ func SyncDirectoryUpHelper(
 	syncCtx.stats["files_uploaded"] = int64(len(actions.FilesToUpload))
 	syncCtx.stats["files_updated_api"] = int64(len(actions.FilesToUpdate))
 
-	syncCtx.logger.Info("[API HELPER Sync] Sync finished. Final Stats: %+v", syncCtx.stats)
+	syncCtx.logger.Debug("[API HELPER Sync] Sync finished. Final Stats: %+v", syncCtx.stats)
 
 	// Determine overall success/failure
 	finalError := walkErr
@@ -197,7 +197,7 @@ func waitForUploadResultsAndPrintProgress(sc *syncContext, wg *sync.WaitGroup, r
 	}
 
 	sc.logger.Debug("Progress] Finished results loop (%d results).", processedCount)
-	sc.logger.Info("[API HELPER Sync] Finished processing %d upload/update results.", processedCount)
+	sc.logger.Debug("[API HELPER Sync] Finished processing %d upload/update results.", processedCount)
 	sc.logger.Debug("[DEBUG Progress] Waiting for waitDoneChan...")
 	<-waitDoneChan
 	sc.logger.Debug("[DEBUG Progress] Received waitDoneChan.")

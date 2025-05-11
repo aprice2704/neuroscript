@@ -2,7 +2,7 @@
 
  ## Vision (Summary)
 
- - Worker Management System able to perform symphonic tasks, with robust configuration and operational controls.
+ - Worker Management System able to perform symphonic tasks, with robust configuration, operational controls, and foundational learning capabilities.
  - gopls integration allows fast, efficient, and reliable AI-driven Go code development.
 
  ## Worker Management System
@@ -38,14 +38,14 @@
    - [-] Design for stateful worker interaction and task lifecycle. @ai_wm
      :: note: Superseded and expanded by v0.5 worker pool and queue design. Stateful interaction will leverage these new components.
    - [-] Tooling for SAI to assign/monitor tasks on workers. @ai_wm @sai
-     :: note: Partially addressed by foundational SAI hooks in v0.5 (Section M of WMS enhancements), further SAI-specific tooling will be a future focus.
+     :: note: Partially addressed by foundational SAI hooks in v0.5 (Section M of WMS enhancements), further SAI-specific tooling will be a future focus. This also ties into the "Shared Memory & Lessons Learned" (Section N).
    - [-] Agent mode permitted, allow & deny lists @ai_wm @security
-     :: note: Addressed by v0.5 enhancements: definition-specific ToolAllowlist/ToolDenylist (Section A.8, D, K.1 of WMS enhancements). Agent mode itself is a higher-level application concern using these features.
+     :: note: Addressed by v0.5 enhancements: definition-specific ToolAllowlist/ToolDenylist (Section A.10, E, K.1 of WMS enhancements). Agent mode itself is a higher-level application concern using these features.
 
  ### New for version 0.5.0
 
  - | | 6. AI Worker Management System Enhancements (v0.5 Focus) @ai_wm @core @roadmap_v0.5
-   :: description: Implement advanced features for AI Worker Management including global data sources, work item definitions, worker pools, work queues, configurable loading policies, and enhanced context resolution.
+   :: description: Implement advanced features for AI Worker Management including global data sources, work item definitions, worker pools, work queues, configurable loading policies, enhanced context resolution, and foundational support for lessons learned.
    :: dependsOn: docs/core/ai_wm_design.md
 
    - | | **A. Foundational Type Definitions (`pkg/core/ai_worker_types.go`)**
@@ -59,12 +59,15 @@
      - [ ] A.8. Define `WorkItemStatus` enum (e.g., `Pending`, `Processing`, `Completed`, `Failed`, `Retrying`, `Cancelled`).
      - [ ] A.9. Define `WorkItem` struct (TaskID, WorkItemDefinitionName?, QueueName, TargetWorkerCriteria, Payload, DataSourceRefs, Priority, Status, Timestamps, RetryCount, Result, Error, PerformanceRecordID, SupervisoryAIRef, Metadata).
      - [ ] A.10. Modify `AIWorkerDefinition` to include `DataSourceRefs []string`, `ToolAllowlist []string`, `ToolDenylist []string`, and `DefaultSupervisoryAIRef string`.
-     - [ ] A.11. Modify `AIWorkerInstance` to include `PoolID string`, `CurrentTaskID string`, instance-level `DataSourceRefs []string`, and `SupervisoryAIRef string`.
+     - [ ] A.11. Modify `AIWorkerInstance` to include `PoolID string`, `CurrentTaskID string`, instance-level `DataSourceRefs []string`, `SupervisoryAIRef string`, `CurrentOperationalLog []OperationalLogEntry` (runtime), and `LastTaskSummary string`.
      - [ ] A.12. Define `ConfigLoadPolicy` enum for `AIWorkerManager` (e.g., `FailFastOnError`, `LoadValidAndReportErrors`).
      - [ ] A.13. Define `AIWorkerManagementConfigBundle` struct for omni-loading.
+     - [ ] A.14. Add `WorkerGeneratedSummary string` and optional `OperationalLogRef string` fields to `PerformanceRecord` struct.
+     - [ ] A.15. Define `DistilledLesson` struct (LessonID, Title, ApplicabilityContext, Insight, ActionableSteps, Confidence, EvidenceLinks, CreatedBySAI, Version, Timestamp) - for future use, define type now.
+     - [ ] A.16. (NEW) Define `OperationalLogEntry` struct (Timestamp, StepName, ObservationDecision, ToolCallDetails, IntermediateResultHash, KeyInsight) - for `AIWorkerInstance.CurrentOperationalLog`.
 
    - | | **B. AIWorkerManager Core Logic Updates (`pkg/core/ai_wm.go`)**
-     - [ ] B.1. Implement `ConfigLoadPolicy` setting and its effect on `LoadConfigBundleFromString`.
+     - [ ] B.1. Implement `ConfigLoadPolicy` setting within `AIWorkerManager` and its effect on `LoadConfigBundleFromString`.
          - [ ] B.1a. Implement "Validate Phase" for `LoadConfigBundleFromString`: validate all definitions in a bundle (structural, security, inter-ref within bundle & existing) before activating any. Collect all errors.
          - [ ] B.1b. Implement "Activate Phase" for `LoadConfigBundleFromString`: commit validated definitions to live registries and persist, based on `ConfigLoadPolicy` and validation results.
      - [ ] B.2. Implement internal `validate<Type>DefinitionUnsafe` methods for each definition type.
@@ -73,7 +76,7 @@
        - [ ] B.4a. Monitor queues for pending `WorkItem`s.
        - [ ] B.4b. Identify compatible `AIWorkerPool`s for a `WorkItem`, considering `IsMissionCritical` status.
        - [ ] B.4c. Request idle instances from pools.
-       - [ ] B.4d. Assign `WorkItem`s to instances, assembling and providing full effective context.
+       - [ ] B.4d. Assign `WorkItem`s to instances, assembling and providing full effective context (including future knowledge injection).
      - [ ] B.5. Refactor or adapt existing `ExecuteStatelessTask` logic to align with the new queueing system.
      - [ ] B.6. Ensure `AIWorkerManager` correctly initializes its own configuration (like `ConfigLoadPolicy`) and manages runtime states of all definitions, pools, and queues.
 
@@ -97,7 +100,7 @@
      - [ ] G.2. Develop runtime `WorkQueue` management logic within `AIWorkerManager` (holding `WorkItem`s - in-memory for Phase 1).
          - [ ] G.2a. Logic for constructing a `WorkItem` (assigning `TaskID`, `SubmitTimestamp`, `Status=Pending`) using an optional `WorkItemDefinitionName` as a template, merging/overriding with explicitly provided fields.
      - [ ] G.3. Implement logic for adding `WorkItem`s to a queue and retrieving them for the dispatcher.
-     - [ ] G.4. Logic for `AIWorkerManager` (or instance via callback) to update `WorkItem` status, result, error, timestamps.
+     - [ ] G.4. Logic for `AIWorkerManager` (or instance via callback) to update `WorkItem` status, result, error, timestamps, and link to `PerformanceRecordID`.
      - [ ] G.5. (Future Phase) Implement `WorkItem` persistence if `WorkQueueDefinition.PersistTasks` is true.
 
    - | | **H. Context Resolution Logic (`pkg/core/ai_wm.go`, task execution path)**
@@ -111,12 +114,13 @@
      - [ ] I.3. Implement persistence for `AIWorkerPoolDefinition`s to/from `ai_worker_pool_definitions.json`.
      - [ ] I.4. Implement persistence for `WorkQueueDefinition`s to/from `ai_work_queue_definitions.json`.
      - [ ] I.5. Ensure `AIWorkerDefinition` persistence handles new fields correctly.
+     - [ ] I.6. (Future) Persistence for `DistilledLesson`s to `ai_knowledge_base.json` or DB.
 
    - | | **J. NeuroScript Tooling (`pkg/core/ai_wm_tools_*.go` - new/modified files)**
      - [ ] J.1. **Omni-Loader Tool**:
          - [ ] `aiWorkerManager.loadConfigBundleFromString(jsonBundleString string, loadPolicyOverride? string)`
-     - [ ] J.2. **Individual Loader Tools** (e.g., `aiWorkerGlobalDataSource.loadFromString`, etc. for all 5 definition types).
-     - [ ] J.3. **CRUD Tools** for all 5 definition types (`.add`, `.get`, `.list`, `.update`, `.remove` - where `add` might be covered by `loadFromString` if it handles creation, and `update` would take ID/Name and JSON string).
+     - [ ] J.2. **Individual Loader Tools** (e.g., `aiWorkerGlobalDataSource.loadFromString`, etc. for all 5 definition types: GlobalDataSource, AIWorker, AIWorkerPool, WorkQueue, WorkItemDefinition).
+     - [ ] J.3. **CRUD Tools** for all 5 definition types (`.add`, `.get`, `.list`, `.update`, `.remove` - where `add` might be covered by `loadFromString` if it handles creation, and `update` would take ID/Name and JSON string for respective fields).
      - [ ] J.4. **Pool/Queue Runtime Info Tools**: `aiWorkerPool.getInstanceStatus`, `aiWorkerWorkQueue.getStatus`.
      - [ ] J.5. **Task Management Tools**: `aiWorkerWorkQueue.submitTask` (updated for `WorkItemDefinitionName`), `aiWorkerWorkQueue.getTaskInfo`.
      - [ ] J.6. **File Sync Tool**: `aiWorker.syncDataSource`.
@@ -132,18 +136,34 @@
      - [ ] L.1. Define event emission points for key lifecycle events.
      - [ ] L.2. Implement logic to resolve Effective SAI (including from `WorkItemDefinition`).
      - [ ] L.3. Basic event routing mechanism to the resolved SAI.
-     - [ ] L.4. Ensure `SupervisorFeedback` in `PerformanceRecord` can be populated by an SAI.
+     - [ ] L.4. Ensure `SupervisorFeedback` in `PerformanceRecord` can be populated by an SAI, and that `PerformanceRecord` (including new `WorkerGeneratedSummary`) is part of the info feed to SAIs.
+     - [ ] L.5. (Design for Future) Outline `KnowledgeBaseManager` component responsible for storing and retrieving `DistilledLesson`s.
 
-   - | | **M. Testing**
-     - [ ] M.1. Unit tests for CRUD and validation of all 5 definition types (including `IsMissionCritical`, external path security for DataSources).
-     - [ ] M.2. Unit tests for `AIWorkerPool` runtime logic (scaling, retirement).
-     - [ ] M.3. Unit tests for `WorkQueue` runtime logic (item add/retrieve from in-memory store, `WorkItem` creation using `WorkItemDefinition`).
-     - [ ] M.4. Unit tests for `AIWorkerManager.LoadConfigBundleFromString` with different `ConfigLoadPolicy` values and error conditions.
-     - [ ] M.5. Unit tests for Task Dispatcher logic.
-     - [ ] M.6. Unit tests for Context Resolution (DataSources, Tool Permissions, basic SAI ref).
-     - [ ] M.7. Integration tests: task submission (using `WorkItemDefinition`) to queue, execution by pooled worker, result retrieval.
-     - [ ] M.8. Tests for all new/updated NeuroScript tools.
-     - [ ] M.9. Security tests: `AllowExternalReadAccess`, tool permissions, write sandboxing.
+   - | | **M. Shared Memory & Lessons Learned (Foundational Work for v0.5 - Full System in v0.6+)** @ai_wm @sai @learning
+     :: description: Lay groundwork for workers to record operational insights and for SAIs to distill these into actionable knowledge.
+     - [ ] M.1. **Worker Insight Logging & Summary**:
+         - [ ] M.1a. Define NeuroScript tool `aiWorker.logOperationalInsight(level string, message string, detailsMap? map)` for workers to record significant observations during task execution.
+         - [ ] M.1b. Implement logic for `AIWorkerInstance` to collect insights logged via this tool into `CurrentOperationalLog`.
+         - [ ] M.1c. Implement logic for `AIWorkerInstance` to produce a `WorkerGeneratedSummary` (e.g., by concatenating logged insights or an LLM call to summarize its log) and ensure it's included in the `PerformanceRecord`.
+     - [ ] M.2. **SAI Data Collection Point for Learning**:
+         - [ ] M.2a. Ensure `PerformanceRecord`s, including `WorkerGeneratedSummary` and any `SupervisorFeedback`, are made available to the designated SAI (e.g., via event feed or queryable mechanism).
+     - [ ] M.3. **Knowledge Base (Design Only for v0.5)**:
+         - [ ] M.3a. Finalize the design for the `KnowledgeBaseManager` component and the structure of `DistilledLesson`s.
+         - [ ] M.3b. Define the API for SAIs to submit lessons and for workers/dispatchers to query lessons (tool stubs, no backend implementation in v0.5).
+     - [ ] M.4. **Contextual Knowledge Injection (Design Only for v0.5)**:
+         - [ ] M.4a. Design how the Task Dispatcher or `AIWorkerInstance` will query the (future) `KnowledgeBaseManager` and how relevant lessons will be formatted and injected into a worker's prompt/context. (No implementation in v0.5)
+
+   - | | **N. Testing** (Renumbered from M)
+     - [ ] N.1. Unit tests for CRUD and validation of all 5 definition types (GDS, AWD, WID, AWPD, WQD - including `IsMissionCritical`, external path security).
+     - [ ] N.2. Unit tests for `AIWorkerPool` runtime logic.
+     - [ ] N.3. Unit tests for `WorkQueue` runtime logic (including item creation from `WorkItemDefinition`).
+     - [ ] N.4. Unit tests for `AIWorkerManager.LoadConfigBundleFromString` with different `ConfigLoadPolicy` values and error conditions.
+     - [ ] N.5. Unit tests for Task Dispatcher logic.
+     - [ ] N.6. Unit tests for Context Resolution (DataSources, Tool Permissions, basic SAI ref, considering all definition inputs).
+     - [ ] N.7. Unit tests for `aiWorker.logOperationalInsight` and `WorkerGeneratedSummary` population in `PerformanceRecord`.
+     - [ ] N.8. Integration tests: task submission (using `WorkItemDefinition`) to queue, execution by pooled worker, result retrieval, and `PerformanceRecord` checks.
+     - [ ] N.9. Tests for all new/updated NeuroScript tools for AI WM.
+     - [ ] N.10. Security tests: `AllowExternalReadAccess` validation, tool permissions, write sandboxing.
 
  ## gopls Integration for Advanced Go Development (v0.5 Focus) @gopls @core @codegen
    :: description: Enable NeuroScript to leverage gopls for precise Go code diagnostics and semantic understanding, empowering AI to write compiling code reliably.
@@ -154,10 +174,10 @@
      :: description: Establish foundational communication with a gopls server instance.
      - [ ] A.1. Design `GoplsClient` interface and basic implementation.
          - [ ] A.1a. Method to start and manage a `gopls` subprocess.
-         - [ ] A.1b. Implement JSON-RPC 2.0 stream handling for LSP messages (consider using `golang.org/x/tools/internal/jsonrpc2` or a similar library if suitable and licensed permissively, otherwise a minimal implementation).
+         - [ ] A.1b. Implement JSON-RPC 2.0 stream handling for LSP messages.
          - [ ] A.1c. Basic LSP request/response/notification handling logic.
      - [ ] A.2. Implement LSP `initialize` / `initialized` handshake sequence.
-         - [ ] A.2a. Send `initialize` request with client capabilities (minimal set needed for diagnostics, hover, definition).
+         - [ ] A.2a. Send `initialize` request with client capabilities.
          - [ ] A.2b. Process `initialize` response from gopls and store server capabilities.
          - [ ] A.2c. Send `initialized` notification.
      - [ ] A.3. Implement LSP `shutdown` / `exit` sequence for graceful termination.
@@ -166,68 +186,60 @@
    - | | **B. Workspace and Document Synchronization**
      :: description: Ensure gopls has an accurate view of the workspace and file contents.
      - [ ] B.1. Implement `GoplsClient` methods for LSP `textDocument/didOpen` notification.
-         - [ ] B.1a. Tool `Gopls.NotifyDidOpen (filePath string, content string)` for NeuroScript to inform gopls.
+         - [ ] B.1a. Tool `Gopls.NotifyDidOpen (filePath string, content string)`.
      - [ ] B.2. Implement `GoplsClient` methods for LSP `textDocument/didChange` notification.
-         - [ ] B.2a. Tool `Gopls.NotifyDidChange (filePath string, newContent string)` (can initially send full content).
-         - [ ] B.2b. (Future) Support for incremental changes if performance becomes an issue.
-     - [ ] B.3. Implement `GoplsClient` methods for LSP `textDocument/didSave` notification (if distinct from didChange for gopls).
-         - [ ] B.3a. Tool `Gopls.NotifyDidSave (filePath string)`
+         - [ ] B.2a. Tool `Gopls.NotifyDidChange (filePath string, newContent string)`.
+         - [ ] B.2b. (Future) Support for incremental changes.
+     - [ ] B.3. Implement `GoplsClient` methods for LSP `textDocument/didSave` notification.
+         - [ ] B.3a. Tool `Gopls.NotifyDidSave (filePath string)`.
      - [ ] B.4. Implement `GoplsClient` methods for LSP `textDocument/didClose` notification.
-         - [ ] B.4a. Tool `Gopls.NotifyDidClose (filePath string)`
-     - [ ] B.5. Tool `Gopls.SetWorkspaceRoot (workspacePath string)` to inform gopls of the project root (likely via `initializeParams.rootUri`).
+         - [ ] B.4a. Tool `Gopls.NotifyDidClose (filePath string)`.
+     - [ ] B.5. Tool `Gopls.SetWorkspaceRoot (workspacePath string)`.
 
-   - | | **C. Diagnostic Tools (`pkg/core/tools_gopls_diags.go` - new file, part of new `tools_gopls.go` toolset)**
+   - | | **C. Diagnostic Tools (`pkg/core/tools_gopls_diags.go` - new conceptual file)**
      :: description: Provide NeuroScript tools to fetch and interpret diagnostics from gopls.
-     - [ ] C.1. Define `DiagnosticInfo` struct in Go (mirroring LSP `Diagnostic` fields: SourceFileURI, Range (precise byte offsets), Severity, Code, Message, Source, SemanticReferenceGuess).
-     - [ ] C.2. Implement `GoplsClient` logic to receive and parse `textDocument/publishDiagnostics` notifications from gopls.
+     - [ ] C.1. Define `DiagnosticInfo` struct in Go (mirroring LSP `Diagnostic`).
+     - [ ] C.2. Implement `GoplsClient` logic to receive/parse `textDocument/publishDiagnostics`.
          - [ ] C.2a. Store diagnostics per file URI.
-     - [ ] C.3. NeuroScript Tool: `Gopls.GetDiagnostics (filePath string) (diagnostics []DiagnosticInfo)`
-         - [ ] C.3a. Retrieves currently stored diagnostics for the given file.
-         - [ ] C.3b. Ensures file is opened/synced with gopls if not already.
-     - [ ] C.4. NeuroScript Tool: `Gopls.GetAllProjectDiagnostics () (map[string][]DiagnosticInfo)`
-         - [ ] C.4a. Returns all diagnostics for all files currently known and managed by the gopls client.
+     - [ ] C.3. NeuroScript Tool: `Gopls.GetDiagnostics (filePath string) (diagnostics []DiagnosticInfo)`.
+     - [ ] C.4. NeuroScript Tool: `Gopls.GetAllProjectDiagnostics () (map[string][]DiagnosticInfo)`.
 
    - | | **D. Semantic Information & Contextual Tools (AI-Focused)** @gopls @semantic
-     :: description: Provide tools for the AI to get rich semantic information about Go code elements, particularly those related to diagnostics, using stable and reliable addressing rather than just line/column. This is crucial for the AI to understand errors and generate correct code.
-     - [ ] D.1. Define NeuroScript internal representation for "SemanticReference" to Go code elements. This should include:
+     :: description: Provide tools for AI to get rich semantic information about Go code elements related to diagnostics, using stable addressing.
+     - [ ] D.1. Define NeuroScript internal representation for "SemanticReference".
          - [ ] D.1a. `ResourceURI` (string).
          - [ ] D.1b. `FullyQualifiedName` (string, optional).
-         - [ ] D.1c. `SymbolKind` (string, optional, from LSP `SymbolKind` or go/ast).
-         - [ ] D.1d. `DeclarationLocation` (`LSPLocation`, optional, using precise byte offsets).
-         - [ ] D.1e. `ByteOffsetRange` (`LSPRange`, optional, precise byte offsets of the symbol's identifier/span).
-         - [ ] D.1f. `Signature` (string, optional, for functions/methods).
+         - [ ] D.1c. `SymbolKind` (string, optional).
+         - [ ] D.1d. `DeclarationLocation` (`LSPLocation`, optional, precise byte offsets).
+         - [ ] D.1e. `ByteOffsetRange` (`LSPRange`, optional, precise byte offsets).
+         - [ ] D.1f. `Signature` (string, optional).
          - [ ] D.1g. `PackagePath` (string, optional).
-     - [ ] D.2. Enhance `DiagnosticInfo` (from C.1) to include a primary `SemanticReferenceGuess` for the code element most directly associated with the diagnostic.
-     - [ ] D.3. NeuroScript Tool: `Gopls.GetSymbolInfoAt(filePath string, byteOffset int) (symbolInfo map[string]interface{}, error string)`
-         :: description: Combines hover and definition for a precise byte offset (often part of a diagnostic's range) to give the AI immediate context. Returns a map containing `semanticReference`, `hoverContent`, `definitionLocation` (as maps).
-         - [ ] D.3a. Internally use LSP `textDocument/hover` and `textDocument/definition` at the given precise location.
-         - [ ] D.3b. Convert the responses into the standardized `SemanticReference` format for locations and `hoverContent` for descriptions.
-         - [ ] D.3c. Ensure byte offsets are handled consistently (UTF-8, as used by gopls).
-     - [ ] D.4. NeuroScript Tool: `Gopls.GetSymbolInfoByName(fullyQualifiedName string) (symbolInfo map[string]interface{}, error string)`
-         :: description: Allows AI to query information using a known symbol name.
-         - [ ] D.4a. Investigate using gopls `workspace/symbol` or a sequence of LSP calls to resolve FQN to a location, then enrich with hover/definition.
-         - [ ] D.4b. Alternatively, leverage/enhance `pkg/core/tools/gosemantic` (e.g., `toolGoGetDeclarationOfSymbol`) to get an initial location, then use gopls to enrich.
-     - [ ] D.5. NeuroScript Tool: `Gopls.ListSymbolsInFile(filePath string) (symbols []map[string]interface{}, error string)`
-         :: description: Wraps `textDocument/documentSymbol` to list symbols as `SemanticReference` maps.
-     - [ ] D.6. NeuroScript Tool: `Gopls.FindWorkspaceSymbols(queryString string) (symbols []map[string]interface{}, error string)`
-         :: description: Wraps `workspace/symbol` to find symbols project-wide, returning `SemanticReference` maps.
-     - [ ] D.7. Ensure all tools returning location information primarily use the defined `SemanticReference` format. Raw offset ranges can be part of the `SemanticReference`.
+     - [ ] D.2. Enhance `DiagnosticInfo` (from C.1) to include `SemanticReferenceGuess`.
+     - [ ] D.3. NeuroScript Tool: `Gopls.GetSymbolInfoAt(filePath string, byteOffset int) (symbolInfo map)`.
+         - [ ] D.3a. Internal LSP `textDocument/hover` and `textDocument/definition`.
+         - [ ] D.3b. Convert responses to `SemanticReference` maps.
+         - [ ] D.3c. Consistent byte offset handling.
+     - [ ] D.4. NeuroScript Tool: `Gopls.GetSymbolInfoByName(fullyQualifiedName string) (symbolInfo map)`.
+         - [ ] D.4a. Investigate gopls `workspace/symbol` or sequence of calls.
+         - [ ] D.4b. Synergize with `pkg/core/tools/gosemantic`.
+     - [ ] D.5. NeuroScript Tool: `Gopls.ListSymbolsInFile(filePath string) (symbols []map)`.
+     - [ ] D.6. NeuroScript Tool: `Gopls.FindWorkspaceSymbols(queryString string) (symbols []map)`.
+     - [ ] D.7. Ensure tools return `SemanticReference` format.
 
    - | | **E. NeuroScript Toolset Registration (`pkg/core/tools_gopls.go` - new file)**
-     - [ ] E.1. Create `RegisterGoplsTools(*core.Interpreter)` function.
-     - [ ] E.2. Instantiate `GoplsClient` (likely as a singleton or per-interpreter service) and manage its lifecycle (start, shutdown).
-         - [ ] E.2a. `GoplsClient` should be accessible to the gopls tools.
-     - [ ] E.3. Register all new `Gopls.*` tools with the interpreter.
+     - [ ] E.1. Create `RegisterGoplsTools(*core.Interpreter)`.
+     - [ ] E.2. Instantiate and manage `GoplsClient` lifecycle.
+     - [ ] E.3. Register all new `Gopls.*` tools.
 
-   - | | **F. Testing**
-     - [ ] F.1. Unit tests for `GoplsClient` LSP message parsing and basic request/response flow (mocking gopls server or using test doubles for JSON-RPC layer).
-     - [ ] F.2. Integration tests (requires starting a real `gopls` server):
-         - [ ] F.2a. Test `initialize` handshake and workspace setup.
-         - [ ] F.2b. Test `didOpen`, `didChange`, `didSave` notifications trigger `publishDiagnostics`.
-         - [ ] F.2c. Test `Gopls.GetDiagnostics` for various Go files with known errors and warnings, verify `DiagnosticInfo` structure and `SemanticReferenceGuess`.
-         - [ ] F.2d. Test `Gopls.GetSymbolInfoAt` and `Gopls.GetSymbolInfoByName` on known symbols, verify `SemanticReference` and other returned info.
-         - [ ] F.2e. Test `Gopls.ListSymbolsInFile` and `Gopls.FindWorkspaceSymbols`.
-     - [ ] F.3. Test error handling for gopls communication failures, invalid responses, or if gopls server is not found/started.
+   - | | **F. Testing (gopls)**
+     - [ ] F.1. Unit tests for `GoplsClient` (mocking LSP).
+     - [ ] F.2. Integration tests with real `gopls` server:
+         - [ ] F.2a. `initialize` handshake.
+         - [ ] F.2b. Document sync notifications and diagnostic updates.
+         - [ ] F.2c. `Gopls.GetDiagnostics` with known errors.
+         - [ ] F.2d. `Gopls.GetSymbolInfoAt/ByName` on known symbols.
+         - [ ] F.2e. `Gopls.ListSymbolsInFile` and `Gopls.FindWorkspaceSymbols`.
+     - [ ] F.3. Test error handling for gopls communication.
 
  ## Other bits
 
@@ -240,5 +252,5 @@
  :: version: 0.5.0
  :: id: ns-roadmap-v0.5.0
  :: status: draft
- :: description: Prioritized tasks to implement NeuroScript v0.5.0 based on design discussions and Vision (May 10, 2025).
+ :: description: Prioritized tasks to implement NeuroScript v0.5.0 based on design discussions and Vision (May 10, 2025), including foundations for lessons learned and gopls integration for AI-driven Go development.
  :: updated: 2025-05-10

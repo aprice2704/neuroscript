@@ -54,7 +54,7 @@ func HelperUploadAndPollFile(
 	defer fileReader.Close()
 
 	// 2. Upload file
-	logger.Info("[HelperUpload] Uploading file", "local_path", localPath, "display_name", displayName)
+	logger.Debug("[HelperUpload] Uploading file", "local_path", localPath, "display_name", displayName)
 	uploadStartTime := time.Now()
 
 	// *** CORRECTED based on VS Code signature ***
@@ -77,7 +77,7 @@ func HelperUploadAndPollFile(
 		logger.Error("[HelperUpload] client.UploadFile returned nil file", "display_name", displayName)
 		return nil, fmt.Errorf("upload API returned nil file for %q", displayName)
 	}
-	logger.Info("[HelperUpload] Initial upload accepted",
+	logger.Debug("[HelperUpload] Initial upload accepted",
 		"requested_display_name", displayName,
 		"remote_name", uploadedFile.Name,
 		"actual_display_name", uploadedFile.DisplayName, // Check if this field is populated correctly now
@@ -93,7 +93,7 @@ func HelperUploadAndPollFile(
 	defer cancelPoll()
 
 	pollingStartTime := time.Now()
-	logger.Info("[HelperUpload] Polling status", "display_name", displayName, "remote_name", uploadedFile.Name)
+	logger.Debug("[HelperUpload] Polling status", "display_name", displayName, "remote_name", uploadedFile.Name)
 
 	for {
 		// Check context cancellation first
@@ -129,7 +129,7 @@ func HelperUploadAndPollFile(
 
 		switch file.State {
 		case genai.FileStateActive:
-			logger.Info("[HelperUpload] File is ACTIVE",
+			logger.Debug("[HelperUpload] File is ACTIVE",
 				"display_name", file.DisplayName,
 				"remote_name", file.Name,
 				"total_polling_duration_ms", time.Since(pollingStartTime).Milliseconds())

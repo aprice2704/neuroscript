@@ -2,7 +2,7 @@
 
  ## 1. Overview
 
- The AI Worker Management system (ai_wm_*) within the pkg/core package of NeuroScript provides a comprehensive framework for defining, managing, executing, and monitoring AI-powered workers. These workers typically represent Large Language Models (LLMs) or other model-based agents. The system is designed to support both stateful, instance-based interactions and stateless, one-shot task executions, potentially managed through worker pools and work queues. Key features include persistent worker definitions; flexible and shared data source configurations with controlled external file access capabilities; definitions for templatizing work items (WorkItemDefinition); API key management; worker-specific tool allow/deny lists; configurable rate limiting; detailed performance tracking; and provisions for Supervisory AI (SAI) attachment for monitoring and feedback. The system exposes its functionalities to NeuroScript via a dedicated toolset.
+ The AI Worker Management system (ai_wm_*) within the pkg/core package of NeuroScript provides a comprehensive framework for defining, managing, executing, and monitoring AI-powered workers. These workers typically represent Large Language Models (LLMs) or other model-based agents. The system is designed to support both stateful, instance-based interactions and stateless, one-shot task executions, potentially managed through worker pools and work queues. Key features include persistent worker definitions; flexible and shared data source configurations with controlled external file access capabilities; definitions for templatizing work items (WorkItemDefinition); API key management; worker-specific tool allow/deny lists; configurable rate limiting; detailed performance tracking; provisions for Supervisory AI (SAI) attachment for monitoring and feedback; **and a mechanism for accumulating, distilling, and utilizing shared operational knowledge and lessons learned to improve ongoing operations (NEW/Future Focus)**. The system exposes its functionalities to NeuroScript via a dedicated toolset.
 
  ## 2. Core Components and Concepts
 
@@ -15,6 +15,7 @@
  -   `WorkQueueDefinition`s and active `WorkQueue`s: For managing task submission and dispatch.
  -   `WorkItemDefinition`s: For templatizing tasks.
  -   Active `AIWorkerInstance`s (live, stateful worker sessions, potentially managed by pools).
+ -   **(NEW/Future)** `KnowledgeBaseManager` for storing and managing `DistilledLesson`s.
 
  It handles persistence of these configurations, performance data, enforces rate limits, resolves API keys, and dispatches tasks from queues to pools.
 
@@ -33,6 +34,7 @@
  -   `AIWorkerPoolDefinition`s and runtime `AIWorkerPool` states.
  -   `WorkQueueDefinition`s and runtime `WorkQueue` states (including `WorkItem`s if queues are in-memory).
  -   `WorkItemDefinition`s.
+ -   **(NEW/Future)** `DistilledLesson`s managed by the `KnowledgeBaseManager`.
  -   **(Future)** References to active Supervisory AI (SAI) instances or configurations.
 
  **Concurrency**: It utilizes a `sync.RWMutex` to ensure thread-safe access and modification of its internal state.
@@ -45,11 +47,12 @@
  -   `AIWorkerPoolDefinition`s to/from `ai_worker_pool_definitions.json`.
  -   `WorkQueueDefinition`s to/from `ai_work_queue_definitions.json`.
  -   `WorkItemDefinition`s to/from `ai_work_item_definitions.json`.
+ -   **(NEW/Future)** `DistilledLesson`s to/from `ai_knowledge_base.json` (or a more structured store).
  -   **(Future)** `WorkItem`s if queue persistence is enabled (e.g., to `ai_work_items.db`).
  These files are stored within a specified sandbox directory.
 
  **Initialization**:
- The `NewAIWorkerManager` constructor initializes the manager, loads its own operational configuration (like `ConfigLoadPolicy`), attempts to load all defined configurations (worker definitions, data sources, work item definitions, pools, queues) and historical performance data from the sandbox, and sets up initial rate trackers for each loaded worker definition.
+ The `NewAIWorkerManager` constructor initializes the manager, loads its own operational configuration (like `ConfigLoadPolicy`), attempts to load all defined configurations (worker definitions, data sources, work item definitions, pools, queues, **distilled lessons (Future)**) and historical performance data from the sandbox, and sets up initial rate trackers for each loaded worker definition.
 
  ---
  ### 2.2. Global Data Source Management (ai_wm_datasources.go - *new conceptual file*)
@@ -117,7 +120,7 @@
  -   **`InstanceRetirementPolicy`** (InstanceRetirementPolicy, omitempty): Policy for when to retire instances (e.g., `MaxTasksPerInstance`, `MaxInstanceAgeHours`).
  -   **`DataSourceRefs`** ([]string, omitempty): References to `GlobalDataSourceDefinition`s that are common to all workers in this pool.
  -   **`SupervisoryAIRef`** (string, omitempty, Future): Reference to an SAI (AIWorkerDefinition name) for this pool.
- -   **`IsMissionCritical`** (bool, omitempty): If true, indicates that this pool's operational status is critical.
+ -   **`IsMissionCritical`** (bool, omitempty): If true, indicates that this pool's operational status is critical. Failures in loading or managing this pool might trigger stricter error handling or alerts.
  -   **`Metadata`** (map[string]interface{}, omitempty).
  -   **`CreatedTimestamp`** (time.Time, omitempty): Set by manager.
  -   **`ModifiedTimestamp`** (time.Time, omitempty): Set by manager.
@@ -212,9 +215,11 @@
  -   **`CurrentTaskID`** (string, omitempty): If processing a `WorkItem`.
  -   **`DataSourceRefs`** ([]string, omitempty): Instance-specific dynamically attached `GlobalDataSourceDefinition` names.
  -   **`SupervisoryAIRef`** (string, omitempty, Future): Instance-specific SAI.
+ -   **`CurrentOperationalLog` ([]OperationalLogEntry, omitempty, Future)**: Runtime log of key operations/decisions for current task. Tagged `json:"-"`.
+ -   **`LastTaskSummary` (string, omitempty, Future)**: Worker-generated summary of its last task's execution.
  -   **`ResolvedDataSources`** ([]*GlobalDataSourceDefinition): Runtime field, not directly persisted in instance JSON. Derived from all applicable contexts.
 
- **Lifecycle**: Spawning can be direct or by a pool. Task execution uses context resolution (Section 9). Retirement can be manual or by pool policy.
+ **Lifecycle**: Spawning can be direct or by a pool. Task execution uses context resolution (Section 9). **(NEW/Future)** Post-task, instance may generate `LastTaskSummary`. Retirement can be manual or by pool policy.
 
  ---
  ### 2.8. Task Execution & Dispatching
@@ -231,10 +236,15 @@
          i.  **Effective DataSources**: Combines `DataSourceRefs` from `WorkItem` (and its `WorkItemDefinition`), `AIWorkerInstance`, `AIWorkerPoolDefinition`, `WorkQueueDefinition`, and `AIWorkerDefinition` (see Section 9).
          ii. **Effective Tool Permissions**: Derived from instance's `AIWorkerDefinition` (`ToolAllowlist`, `ToolDenylist`).
          iii. **Effective SAI**: Resolved from `WorkItem` (and its `WorkItemDefinition`), `Instance`, `Pool`, `Queue`, `Definition` (see Section 9).
+         iv. **(NEW/Future)** **Relevant Knowledge Injection**: Queries the `KnowledgeBaseManager` for `DistilledLesson`s relevant to the `WorkItem`. A summary of these lessons is provided to the `AIWorkerInstance` as part of its initial context/prompt for the task.
      e.  Assigns the `WorkItem` and its context to the instance. Instance status changes to `Busy`, `CurrentTaskID` is set.
  3.  The `AIWorkerInstance` executes the task.
  4.  Tool calls are validated by `SecurityLayer` against effective tool permissions and use effective data sources.
- 5.  Upon completion/failure: A `PerformanceRecord` is generated (linked by `WorkItem.PerformanceRecordID`), `WorkItem` status/result/error updated, instance becomes `Idle` or is retired. (Future) Info fed to SAI.
+ 5.  Upon completion/failure:
+     a.  **(NEW/Future)** The instance may generate its `LastTaskSummary`.
+     b.  A `PerformanceRecord` is generated (linked by `WorkItem.PerformanceRecordID`), **including any `WorkerGeneratedSummary` (NEW/Future)**.
+     c.  `WorkItem` status/result/error updated. Instance becomes `Idle` or is retired.
+     d.  **(MODIFIED/Future)** Relevant information/events, **including the `PerformanceRecord` with `WorkerGeneratedSummary`**, are fed to the effective SAI for learning and knowledge distillation.
  6.  Task originator can query `WorkItem` status/result via `TaskID`.
 
  The original `AIWorkerManager.ExecuteStatelessTask()` method may be refactored as a synchronous convenience wrapper around this queue submission process, using a default or implicit `WorkItemDefinition`.
@@ -242,7 +252,25 @@
  ---
  ### 2.9. Performance Tracking (ai_worker_types.go, ai_wm_performance.go)
 
- `PerformanceRecord`s are generated for each task. If a task originates as a `WorkItem`, the `PerformanceRecord.TaskID` should match `WorkItem.TaskID`. These records contribute to the `AggregatePerformanceSummary` on the `AIWorkerDefinition` used by the executing instance.
+ `PerformanceRecord`s are generated for each task. If a task originates as a `WorkItem`, the `PerformanceRecord.TaskID` should match `WorkItem.TaskID`.
+ **(NEW/Future)** `PerformanceRecord` will include a `WorkerGeneratedSummary` field, capturing condensed operational accounts from the worker.
+ These records contribute to the `AggregatePerformanceSummary` on the `AIWorkerDefinition` used by the executing instance.
+
+ **PerformanceRecord (`ai_worker_types.go`)**:
+ -   **`TaskID`** (string): Can be `WorkItem.TaskID` if applicable, or a unique ID for stateless calls.
+ -   **`InstanceID`** (string): Can be "stateless-<uuid>" for direct calls not using an instance.
+ -   **`DefinitionID`** (string): `AIWorkerDefinition` ID used.
+ -   **`TimestampStart`, `TimestampEnd`** (time.Time).
+ -   **`DurationMs`** (int64).
+ -   **`Success`** (bool).
+ -   **`InputContext`** (map[string]interface{}, omitempty): e.g., prompt hash, summary of `WorkItem` payload, key input parameters.
+ -   **`LLMMetrics`** (map[string]interface{}, omitempty): Raw metrics from LLM (tokens, finish reason, model used etc.).
+ -   **`CostIncurred`** (float64, omitempty).
+ -   **`OutputSummary`** (string, omitempty): Trimmed, hashed, or representative summary of the primary output.
+ -   **`ErrorDetails`** (string, omitempty).
+ -   **`SupervisorFeedback`** (*SupervisorFeedback, omitempty).
+ -   **`WorkerGeneratedSummary`** (string, omitempty): **(NEW/Future)** Condensed summary or key observations provided by the worker instance after completing the task.
+ -   **`OperationalLogRef`** (string, omitempty): **(NEW/Future)** Reference to a more detailed (but still potentially condensed) operational log, if stored separately.
 
  ### 2.10. Rate Limiting (ai_worker_types.go, ai_wm_ratelimit.go)
 
@@ -253,159 +281,164 @@
  API key resolution via `AIWorkerDefinition.Auth` remains unchanged.
 
  ---
+ ### 2.12. Knowledge Base & Lessons Learned (Future Focus)
+
+ **Role**: To enable the AI worker ecosystem to learn from past operations and improve future performance, efficiency, and success rates.
+
+ **Components**:
+ -   **`WorkerOperationalLog` (Conceptual / `PerformanceRecord.WorkerGeneratedSummary`)**:
+     -   Each worker, after completing a task, can generate a condensed account of its operations (stored in `PerformanceRecord.WorkerGeneratedSummary`). This includes key decisions, successful tool sequences, challenges, parameters that worked well, or concise "learnings."
+ -   **Supervisory AI (SAI) - Condensation Role**:
+     -   The designated SAI for a task, worker type, pool, or queue receives `PerformanceRecord`s (including `WorkerGeneratedSummary` and `SupervisorFeedback`).
+     -   The SAI's role includes analyzing these records over time to identify patterns, common issues, best practices, and to synthesize "distilled lessons."
+ -   **`DistilledLesson` (`ai_worker_types.go` - NEW type)**:
+     -   `LessonID` (string): Unique identifier.
+     -   `Title` (string): A concise summary of the lesson.
+     -   `ApplicabilityContext` (map[string]interface{}): Describes when this lesson is relevant (e.g., `{"workItemDefinitionName": "AnalyzeDXF", "encounteredErrorPattern": "timeout_tool_X"}`).
+     -   `Insight` (string): The core learning or recommendation (e.g., "Increase timeout for tool_X to 120s when DXF complexity > Y").
+     -   `ActionableSteps` ([]string, omitempty): Specific steps or parameter changes suggested.
+     -   `Confidence` (float64, omitempty): How confident the SAI is in this lesson.
+     -   `EvidenceLinks` ([]string, omitempty): References to `PerformanceRecord.TaskID`s or `WorkItem.TaskID`s that support this lesson.
+     -   `CreatedBySAI` (string): ID/Name of the SAI worker/definition that generated this lesson.
+     -   `Version` (int): Version of this lesson, allowing refinement.
+     -   `Timestamp` (time.Time).
+ -   **`KnowledgeBaseManager` (Conceptual component within `AIWorkerManager`)**:
+     -   **Storage**: Persistently stores `DistilledLesson`s (e.g., in `ai_knowledge_base.json` or a dedicated database).
+     -   **API for SAIs**: Allows SAIs to submit new `DistilledLesson`s or updates to existing ones.
+     -   **API for Workers/Dispatcher**: Allows querying for relevant `DistilledLesson`s based on the current task context (`WorkItemDefinitionName`, payload characteristics, target worker capabilities).
+
+ **Workflow**:
+ 1.  An `AIWorkerInstance` performs a task and generates a `WorkerGeneratedSummary`.
+ 2.  The `PerformanceRecord` (with this summary) is sent to the effective SAI.
+ 3.  The SAI analyzes records to generate/refine `DistilledLesson`s.
+ 4.  SAI submits `DistilledLesson`s to the `KnowledgeBaseManager`.
+ 5.  Before a new task, dispatcher/instance queries `KnowledgeBaseManager` for relevant lessons.
+ 6.  These lessons are provided as context to the `AIWorkerInstance`.
+
+ ---
  ## 3. Data Structures and Types (Key Types from `ai_worker_types.go`)
 
- -   `InteractionModelType`, `APIKeySourceMethod`, `AIWorkerProvider`, `AIWorkerDefinitionStatus`, `AIWorkerInstanceStatus`, `ConfigLoadPolicy` (NEW)
+ -   `InteractionModelType`, `APIKeySourceMethod`, `AIWorkerProvider`, `AIWorkerDefinitionStatus`, `AIWorkerInstanceStatus`, `ConfigLoadPolicy`
  -   `APIKeySource`, `RateLimitPolicy`, `TokenUsageMetrics`, `SupervisorFeedback`, `AIWorkerPerformanceSummary`
- -   `DataSourceType` (NEW)
- -   `GlobalDataSourceDefinition` (NEW)
- -   `AIWorkerDefinition` (Modified: `DataSourceRefs`, `ToolAllowlist`, `ToolDenylist`, `DefaultSupervisoryAIRef`)
- -   `AIWorkerInstance` (Modified: `PoolID`, `CurrentTaskID`, instance-level `DataSourceRefs` & `SupervisoryAIRef`)
- -   `PerformanceRecord`, `RetiredInstanceInfo`
- -   `InstanceRetirementPolicy` (NEW)
- -   `AIWorkerPoolDefinition` (NEW, includes `IsMissionCritical`)
- -   `RetryPolicy` (NEW)
- -   `WorkQueueDefinition` (NEW, includes `IsMissionCritical`)
- -   `WorkItemDefinition` (NEW)
- -   `WorkItemStatus` (NEW)
- -   `WorkItem` (NEW, includes `WorkItemDefinitionName`)
- -   `AIWorkerManagementConfigBundle` (NEW, for omni-loading)
+ -   `DataSourceType`
+ -   `GlobalDataSourceDefinition`
+ -   `AIWorkerDefinition` (Modified)
+ -   `AIWorkerInstance` (Modified)
+ -   `PerformanceRecord` (Modified: `WorkerGeneratedSummary`, `OperationalLogRef`)
+ -   `RetiredInstanceInfo`
+ -   `InstanceRetirementPolicy`
+ -   `AIWorkerPoolDefinition` (Includes `IsMissionCritical`)
+ -   `RetryPolicy`
+ -   `WorkQueueDefinition` (Includes `IsMissionCritical`)
+ -   `WorkItemDefinition`
+ -   `WorkItemStatus`
+ -   `WorkItem` (Includes `WorkItemDefinitionName`)
+ -   `AIWorkerManagementConfigBundle`
  -   `LLMCallMetrics`
+ -   **`DistilledLesson` (NEW/Future)**
 
  ## 4. Persistence Strategy
 
- **Format**: JSON for definitions. (Future: consider embedded DB for `WorkItem`s if `PersistTasks` is true and volume is high).
+ **Format**: JSON for definitions. (Future: consider embedded DB for `WorkItem`s if `PersistTasks` is true and volume is high, and for `DistilledLesson`s).
 
  **Files** (in `sandboxDir`):
- -   `ai_worker_definitions.json` (Array of `AIWorkerDefinition`)
- -   `ai_worker_performance_data.json` (Array of `RetiredInstanceInfo`)
- -   `ai_global_data_source_definitions.json` (Array of `GlobalDataSourceDefinition`)
- -   `ai_worker_pool_definitions.json` (Array of `AIWorkerPoolDefinition`)
- -   `ai_work_queue_definitions.json` (Array of `WorkQueueDefinition`)
- -   `ai_work_item_definitions.json` (Array of `WorkItemDefinition`)
+ -   `ai_worker_definitions.json`
+ -   `ai_worker_performance_data.json`
+ -   `ai_global_data_source_definitions.json`
+ -   `ai_worker_pool_definitions.json`
+ -   `ai_work_queue_definitions.json`
+ -   `ai_work_item_definitions.json`
+ -   **(Future)** `ai_knowledge_base.json` (or DB) for storing `DistilledLesson`s.
 
- **Loading/Saving**: `AIWorkerManager` handles loading and saving all definition types, respecting its `ConfigLoadPolicy` during bundle loads. Individual `add/update/remove` operations for definitions trigger persistence for that definition type.
+ **Loading/Saving**: `AIWorkerManager` handles loading and saving all definition types, respecting its `ConfigLoadPolicy` during bundle loads. Individual `add/update/remove` operations trigger persistence. A **Load & Activate** principle should be applied: definitions are validated before being committed to the live state and persisted.
 
  ## 5. NeuroScript Tool Integration (ai_wm_tools.go)
 
- **Tool Categories**:
+ **Tool Categories & Key Tools**:
  -   **AIWorkerDefinition Management**:
-     -   `aiWorkerDefinition.addFromString(jsonString string) (id string, error string)`
-     -   `aiWorkerDefinition.get(idOrName string) (definitionMap map, error string)`
-     -   `aiWorkerDefinition.list(filterMap? map) (definitionsList []map, error string)`
-     -   `aiWorkerDefinition.updateFromString(idOrName string, jsonString string) (id string, error string)`
-     -   `aiWorkerDefinition.remove(idOrName string) (error string)`
+     -   `aiWorkerDefinition.loadFromString(jsonString string) (id string, error string)` (and other CRUD: get, list, updateFromString, remove)
  -   **Global Data Source Management**:
-     -   `aiWorkerGlobalDataSource.addFromString(jsonString string) (name string, error string)`
-     -   `aiWorkerGlobalDataSource.get(name string) (dataSourceMap map, error string)`
-     -   `aiWorkerGlobalDataSource.list(filterMap? map) (dataSourcesList []map, error string)`
-     -   `aiWorkerGlobalDataSource.updateFromString(name string, jsonString string) (name string, error string)`
-     -   `aiWorkerGlobalDataSource.remove(name string) (error string)`
+     -   `aiWorkerGlobalDataSource.loadFromString(jsonString string) (name string, error string)` (and other CRUD)
  -   **Work Item Definition Management**:
-     -   `aiWorkerWorkItemDefinition.addFromString(jsonString string) (id string, error string)`
-     -   `aiWorkerWorkItemDefinition.get(idOrName string) (itemDefMap map, error string)`
-     -   `aiWorkerWorkItemDefinition.list(filterMap? map) (itemDefsList []map, error string)`
-     -   `aiWorkerWorkItemDefinition.updateFromString(idOrName string, jsonString string) (id string, error string)`
-     -   `aiWorkerWorkItemDefinition.remove(idOrName string) (error string)`
+     -   `aiWorkerWorkItemDefinition.loadFromString(jsonString string) (id string, error string)` (and other CRUD)
  -   **Worker Pool Management**:
-     -   `aiWorkerPoolDefinition.addFromString(jsonString string) (id string, error string)`
-     -   `aiWorkerPoolDefinition.get(idOrName string) (poolDefMap map, error string)`
-     -   `aiWorkerPoolDefinition.list(filterMap? map) (poolDefsList []map, error string)`
-     -   `aiWorkerPoolDefinition.updateFromString(idOrName string, jsonString string) (id string, error string)`
-     -   `aiWorkerPoolDefinition.remove(idOrName string) (error string)`
+     -   `aiWorkerPoolDefinition.loadFromString(jsonString string) (id string, error string)` (and other CRUD including `isMissionCritical` params)
      -   `aiWorkerPool.getInstanceStatus(poolName string) (statusMap map, error string)`
  -   **Work Queue Management**:
-     -   `aiWorkerWorkQueueDefinition.addFromString(jsonString string) (id string, error string)`
-     -   `aiWorkerWorkQueueDefinition.get(idOrName string) (queueDefMap map, error string)`
-     -   `aiWorkerWorkQueueDefinition.list(filterMap? map) (queueDefsList []map, error string)`
-     -   `aiWorkerWorkQueueDefinition.updateFromString(idOrName string, jsonString string) (id string, error string)`
-     -   `aiWorkerWorkQueueDefinition.remove(idOrName string) (error string)`
+     -   `aiWorkerWorkQueueDefinition.loadFromString(jsonString string) (id string, error string)` (and other CRUD including `isMissionCritical` params)
      -   `aiWorkerWorkQueue.getStatus(queueName string) (statusMap map, error string)`
  -   **Task Management**:
-     -   `aiWorkerWorkQueue.submitTask(queueName string, workItemDefinitionName? string, payloadOverrideJSON? string, targetCriteriaOverrideJSON? string, dataSourceRefsOverrideList? []string, priorityOverride? int, ...) (taskID string, error string)`
+     -   `aiWorkerWorkQueue.submitTask(queueName string, workItemDefinitionName? string, payloadOverrideJSON? string, ...)`
      -   `aiWorkerWorkQueue.getTaskInfo(taskID string) (taskInfoMap map, error string)`
- -   **Instance Management (Standalone/Direct)**:
-     -   `aiWorkerInstance.spawn(definitionNameOrID string, configOverridesJSON? string) (instanceID string, error string)`
-     -   `aiWorkerInstance.get(instanceID string) (instanceMap map, error string)`
-     -   `aiWorkerInstance.listActive(filterMap? map) (instancesList []map, error string)`
-     -   `aiWorkerInstance.retire(instanceID string, reason? string) (error string)`
+ -   **Instance Management (Standalone/Direct)**: (as before)
  -   **File Sync Tools**:
-     -   `aiWorker.syncDataSource(dataSourceName string, definitionContextNameOrID? string) (summaryMap map, error string)`: Syncs a `GlobalDataSourceDefinition` (of type local_directory) to its `RemoteTargetPath`. If `definitionContextNameOrID` is provided, uses data sources available to that worker definition.
- -   **Performance & Logging**: (Existing tools like `AIWorker.GetPerformanceRecords` remain relevant).
+     -   `aiWorker.syncDataSource(dataSourceName string, definitionContextNameOrID? string)`
+ -   **Performance & Logging**: (as before)
  -   **AIWorkerManager Configuration Tools**:
-     -   `aiWorkerManager.setConfigLoadPolicy(policyName string) (error string)`: policyName is "FailFastOnError" or "LoadValidAndReportErrors".
-     -   `aiWorkerManager.getConfigLoadPolicy() (policyName string, error string)`
+     -   `aiWorkerManager.setConfigLoadPolicy(policyName string)`
+     -   `aiWorkerManager.getConfigLoadPolicy()`
  -   **Omni-Loader Tool**:
-     -   `aiWorkerManager.loadConfigBundleFromString(jsonBundleString string, loadPolicyOverride? string) (summaryMap map, errorsList []string)`
-
- **Tool Implementation Notes**: `loadFromString` tools unmarshal, validate (respecting `ConfigLoadPolicy` for bundles), and then activate/store definitions. `updateFromString` tools would fetch by ID/Name, apply changes from JSON, validate, and then activate/store.
+     -   `aiWorkerManager.loadConfigBundleFromString(jsonBundleString string, loadPolicyOverride? string)`
+ -   **(NEW/Future) Worker Self-Reflection/Logging Tools**:
+     -   `aiWorker.logOperationalInsight(level string, message string, detailsMap? map)`
+ -   **(NEW/Future) Knowledge Base Tools**:
+     -   `aiKnowledgeBase.queryLessons(taskContextJSON string) (lessonsList []map, error string)`
+     -   `aiSAI.submitDistilledLesson(lessonJSON string) (lessonID string, error string)`
+     -   `aiSAI.getPendingPerformanceReviews(filterJSON? string) (recordsList []map, error string)`
 
  ## 6. Error Handling
 
- Structured error handling (`RuntimeError`, predefined `ErrorCode`s) will be used. New error codes for pool, queue, task, item definition, data source resolution, SAI resolution, and loading policy issues (e.g., `ErrPoolNotFound`, `ErrWorkItemDefinitionInvalid`, `ErrConfigLoadPolicyViolation`).
+ Structured error handling (`RuntimeError`, predefined `ErrorCode`s) will be used. New error codes for pool, queue, task, item definition, data source resolution, SAI resolution, loading policy issues, and knowledge base operations.
 
  ## 7. Key Design Principles and Considerations
 
- -   **Modularity & Separation of Concerns**: Clear distinction between static definitions and dynamic runtime entities. Centralized management of global definitions.
- -   **State Management & Persistence**: All configurations are persisted. Task persistence optional.
- -   **Extensibility**: `DataSourceType`, SAI integration designed for future expansion.
- -   **Resource Pooling**: Efficient management of worker instances.
- -   **Asynchronous Task Processing**: Decoupled submission/execution via queues.
- -   **Task Templating**: `WorkItemDefinition`s for standardizing task submissions.
- -   **Context Layering**: Flexible hierarchical definition of data access, tool permissions, supervision.
- -   **Defensive Loading (NEW)**: Load-then-activate principle for configuration changes, governed by `ConfigLoadPolicy`.
- -   **Monitoring & Control**: Performance tracking, rate limiting, granular permissions, controlled data access, criticality hints (`IsMissionCritical`).
- -   **Integration with NeuroScript**: Primary control via NeuroScript tools.
- -   **Concurrency Safety**: For shared structures in `AIWorkerManager`.
+ -   **Modularity & Separation of Concerns**
+ -   **State Management & Persistence**
+ -   **Extensibility**
+ -   **Resource Pooling**
+ -   **Asynchronous Task Processing**
+ -   **Task Templating** (`WorkItemDefinition`)
+ -   **Context Layering** (for DataSources, SAI)
+ -   **Defensive Loading** (`ConfigLoadPolicy`, Load & Activate principle)
+ -   **Monitoring & Control** (Performance, Rate Limits, Permissions, Criticality flags)
+ -   **Adaptive Learning & Knowledge Sharing (NEW/Future)**: Via worker summaries, SAI condensation, and knowledge base.
+ -   **Integration with NeuroScript**
+ -   **Concurrency Safety**
 
  ## 8. Security Considerations for DataSources and Tool Permissions
 
- -   **External File Access Validation**: `GlobalDataSourceDefinition.LocalPath` with `AllowExternalReadAccess=true` MUST be validated against a system-admin-defined whitelist of external base directories by `AIWorkerManager` before activation.
- -   **Tool Permissions Enforcement**: The `SecurityLayer` must be made aware of the active `AIWorkerDefinition`'s specific `ToolAllowlist` and `ToolDenylist` when validating any tool call. Denylists always override allowlists.
- -   **Strict Write Sandboxing**: All file write operations by standard NeuroScript tools (`tool.WriteFile`, etc.) are strictly confined to the primary interpreter sandbox, regardless of `GlobalDataSourceDefinition`s.
- -   **Sync Operations**: `aiWorker.syncDataSource` involves reading from potentially external (but validated) local paths and writing to the remote File API service, governed by File API client credentials.
+ -   **External File Access Validation**: `GlobalDataSourceDefinition.LocalPath` with `AllowExternalReadAccess=true` MUST be validated against a system-admin-defined whitelist by `AIWorkerManager`.
+ -   **Tool Permissions Enforcement**: `SecurityLayer` must use the active `AIWorkerDefinition`'s `ToolAllowlist`/`ToolDenylist`.
+ -   **Strict Write Sandboxing**: All file write operations by standard NeuroScript tools are confined to the primary interpreter sandbox.
+ -   **Sync Operations**: `aiWorker.syncDataSource` reads from validated local paths and writes to the remote File API.
 
  ## 9. Context Resolution (DataSources and Supervisory AI)
 
- A hierarchical merging/override strategy determines the "effective" context for a task.
+ A hierarchical merging/override strategy determines the "effective" context.
 
  **9.1. Effective DataSources**
- Determined by an **additive merge** of unique `GlobalDataSourceDefinition` names referenced in the following order (later items add to the set):
- 1.  `AIWorkerDefinition.DataSourceRefs` (of the instance executing the task)
- 2.  `WorkQueueDefinition.DataSourceRefs` (if task is from a queue)
- 3.  `AIWorkerPoolDefinition.DataSourceRefs` (if instance is from a pool)
- 4.  `AIWorkerInstance.DataSourceRefs` (instance-specific, dynamic attachments)
- 5.  `WorkItemDefinition.DefaultDataSourceRefs` (if `WorkItem` used a definition)
- 6.  `WorkItem.DataSourceRefs` (most specific additions/overrides for the task)
- The `AIWorkerManager` resolves these names to full `GlobalDataSourceDefinition` objects for the `AIWorkerInstance.ResolvedDataSources` runtime field.
+ Determined by an **additive merge** of unique `GlobalDataSourceDefinition` names referenced in order: `AIWorkerDefinition` -> `WorkQueueDefinition` -> `AIWorkerPoolDefinition` -> `AIWorkerInstance` -> `WorkItemDefinition` (defaults) -> `WorkItem` (specifics).
 
  **9.2. Effective Supervisory AI (Future)**
- Determined by **hierarchical override** (first non-empty reference found wins):
- 1.  `WorkItem.SupervisoryAIRef`
- 2.  `WorkItemDefinition.DefaultSupervisoryAIRef` (if `WorkItem` used a definition)
- 3.  `AIWorkerInstance.SupervisoryAIRef`
- 4.  `AIWorkerPoolDefinition.SupervisoryAIRef`
- 5.  `WorkQueueDefinition.SupervisoryAIRef`
- 6.  `AIWorkerDefinition.DefaultSupervisoryAIRef`
- The `AIWorkerManager` routes key info (events, performance data) to the effective SAI.
+ Determined by **hierarchical override** (most specific wins): `WorkItem` -> `WorkItemDefinition` -> `AIWorkerInstance` -> `AIWorkerPoolDefinition` -> `WorkQueueDefinition` -> `AIWorkerDefinition`.
 
  **9.3. Computer (`ng`) vs. SAI Management**
- -   **Primary Management**: Definitions (DataSources, Workers, Pools, Queues, ItemDefs) and task submissions are primarily managed via NeuroScript tools (e.g., by `ng`).
- -   **SAI Role**: Observes via "key info feed," generates `SupervisorFeedback`, and can potentially react by executing its own permitted NeuroScript tools.
+ -   **Primary Management**: Definitions and task submissions primarily via NeuroScript tools.
+ -   **SAI Role**: Observes via "key info feed", generates feedback/lessons, and can react by executing permitted NeuroScript tools.
 
  ---
  ## 10. Document Metadata
 
- :: version: 0.4.1
+ :: version: 0.4.2
  :: type: NSproject
  :: subtype: design_document
  :: project: NeuroScript
- :: purpose: Describes the design for the AI Worker Management (ai_wm_*) subsystem, including worker definitions, instances, global data sources, worker pools, work queues, work item definitions, configurable loading policies, and supervisory AI provisions.
+ :: purpose: Describes the design for the AI Worker Management (ai_wm_*) subsystem, including worker definitions, instances, global data sources, worker pools, work queues, work item definitions, configurable loading policies, supervisory AI provisions, and a framework for shared memory and lessons learned.
  :: status: under_review
  :: author: AJP (Primary), Gemini (Contributor)
  :: created: 2025-05-09
  :: modified: 2025-05-10
- :: dependsOn: pkg/core/ai_worker_types.go, pkg/core/ai_wm.go, (conceptual: pkg/core/ai_wm_datasources.go, pkg/core/ai_wm_pools.go, pkg/core/ai_wm_queues.go, pkg/core/ai_wm_item_defs.go)
+ :: dependsOn: pkg/core/ai_worker_types.go, pkg/core/ai_wm.go, (conceptual: pkg/core/ai_wm_datasources.go, pkg/core/ai_wm_pools.go, pkg/core/ai_wm_queues.go, pkg/core/ai_wm_item_defs.go, pkg/core/ai_wm_knowledgebase.go)
  :: reviewCycle: 4
  :: nextReviewDate: 2025-05-17
  ---

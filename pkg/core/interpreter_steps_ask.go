@@ -92,7 +92,7 @@ func (i *Interpreter) executeAskAI(step Step) error {
 				return fmt.Errorf("failed during tool execution (initiated at %s): %w", step.Pos.String(), err)
 			}
 		}
-		i.logger.Info("Tool calls requested by LLM were processed.")
+		i.logger.Debug("Tool calls requested by LLM were processed.")
 		// NOTE: Depending on the desired flow, after handling tool calls,
 		// you might need to call the LLM *again* with the tool results
 		// to get a final natural language response. This requires looping logic.
@@ -177,7 +177,7 @@ func (i *Interpreter) addResponseToConversation(turn *ConversationTurn) {
 
 // handleToolCalls executes requested tool calls and adds results to the conversation.
 func (i *Interpreter) handleToolCalls(calls []*ToolCall, pos *Position) error { // Accept position for error context
-	i.logger.Info("Handling tool calls requested by LLM", "count", len(calls), "pos", pos.String())
+	i.logger.Debug("Handling tool calls requested by LLM", "count", len(calls), "pos", pos.String())
 	if len(calls) == 0 {
 		return nil
 	}

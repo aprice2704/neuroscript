@@ -1,14 +1,13 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.1.0 // Add ReadFile method.
-// nlines: 120 // Approximate
-// risk_rating: MEDIUM
+// File version: 0.0.1
 // filename: pkg/core/file_api.go
+// nlines: 106
+// risk_rating: MEDIUM
 package core
 
 import (
 	"errors"
 	"fmt"
-	"io/fs" // Import fs for file modes
 	"os"
 	"path/filepath"
 	"strings"
@@ -27,31 +26,29 @@ type FileAPI struct {
 // NewFileAPI creates a new FileAPI instance.
 // It resolves the provided sandboxDir to an absolute path and ensures it exists.
 // If sandboxDir is empty or ".", it defaults to the current working directory.
-func NewFileAPI(sandboxDir string, logger logging.Logger) (*FileAPI, error) {
+func NewFileAPI(sandboxDir string, logger logging.Logger) *FileAPI {
 	if logger == nil {
-		// Cannot proceed without a logger, return error or panic? Returning error is safer.
-		// return nil, errors.New("cannot create FileAPI with nil logger")
-		// For now, use NoOpLogger as fallback but log loudly
+		// Fallback to a basic logger if none provided, although Interpreter should always provide one.
 		logger = &coreNoOpLogger{}
-		logger.Error("NewFileAPI created with nil logger, using internal NoOpLogger. This is not recommended.")
+		logger.Warn("NewFileAPI created with nil logger, using internal NoOpLogger.")
 	}
 
 	effectiveSandboxDir := sandboxDir
 	if effectiveSandboxDir == "" || effectiveSandboxDir == "." {
 		cwd, err := os.Getwd()
 		if err != nil {
-			logger.Error("Failed to get current working directory for default sandbox.", "error", err)
-			return nil, fmt.Errorf("failed to get current working directory for default sandbox: %w", err)
+			// This is a fatal error during setup.
+			panic(fmt.Sprintf("Failed to get current working directory for default sandbox: %v", err))
 		}
 		effectiveSandboxDir = cwd
-		logger.Info("Using current working directory as sandbox root.", "path", effectiveSandboxDir)
+		logger.Debug("Using current working directory as sandbox root.", "path", effectiveSandboxDir) // Changed from Info
 	}
 
 	// Clean and ensure the sandbox path is absolute.
 	absSandbox, err := filepath.Abs(effectiveSandboxDir)
 	if err != nil {
-		logger.Error("Failed to get absolute path for sandbox directory.", "path", effectiveSandboxDir, "error", err)
-		return nil, fmt.Errorf("failed to get absolute path for sandbox directory '%s': %w", effectiveSandboxDir, err)
+		// This is a fatal error during setup.
+		panic(fmt.Sprintf("Failed to get absolute path for sandbox directory '%s': %v", effectiveSandboxDir, err))
 	}
 	absSandbox = filepath.Clean(absSandbox)
 
@@ -59,27 +56,26 @@ func NewFileAPI(sandboxDir string, logger logging.Logger) (*FileAPI, error) {
 	info, err := os.Stat(absSandbox)
 	if err != nil {
 		if os.IsNotExist(err) {
-			logger.Info("Sandbox directory does not exist, attempting to create.", "path", absSandbox)
-			if mkErr := os.MkdirAll(absSandbox, 0750); mkErr != nil { // Use appropriate permissions
-				logger.Error("Failed to create sandbox directory.", "path", absSandbox, "error", mkErr)
-				return nil, fmt.Errorf("failed to create sandbox directory '%s': %w", absSandbox, mkErr)
+			// Attempt to create the sandbox directory
+			logger.Debug("Sandbox directory does not exist, attempting to create.", "path", absSandbox) // Changed from Info
+			if mkErr := os.MkdirAll(absSandbox, 0750); mkErr != nil {
+				panic(fmt.Sprintf("Failed to create sandbox directory '%s': %v", absSandbox, mkErr))
 			}
-			logger.Info("Sandbox directory created successfully.", "path", absSandbox)
+			logger.Debug("Sandbox directory created successfully.", "path", absSandbox) // Changed from Info
 		} else {
-			logger.Error("Failed to stat sandbox directory.", "path", absSandbox, "error", err)
-			return nil, fmt.Errorf("failed to stat sandbox directory '%s': %w", absSandbox, err)
+			// Other error (e.g., permission denied)
+			panic(fmt.Sprintf("Failed to stat sandbox directory '%s': %v", absSandbox, err))
 		}
 	} else if !info.IsDir() {
-		logger.Error("Sandbox path exists but is not a directory.", "path", absSandbox)
-		return nil, fmt.Errorf("sandbox path '%s' exists but is not a directory", absSandbox)
+		panic(fmt.Sprintf("Sandbox path '%s' exists but is not a directory", absSandbox))
 	}
 
-	logger.Info("FileAPI initialized.", "sandbox_root", absSandbox)
+	logger.Debug("FileAPI initialized.", "sandbox_root", absSandbox) // Changed from Info
 
 	return &FileAPI{
 		sandboxRoot: absSandbox,
 		logger:      logger,
-	}, nil // Return nil error on success
+	}
 }
 
 // ResolvePath takes a relative or absolute path provided by the user/script
@@ -93,125 +89,43 @@ func (f *FileAPI) ResolvePath(relPath string) (string, error) {
 	}
 	if f.sandboxRoot == "" {
 		f.logger.Error("ResolvePath called but sandboxRoot is empty!")
-		return "", NewRuntimeError(ErrorCodeInternal, "internal error: FileAPI sandbox root not initialized", ErrInternal)
-	}
-	if relPath == "" {
-		// Treat empty path as request for sandbox root itself? Or error?
-		// Error seems safer to avoid ambiguity.
-		return "", NewRuntimeError(ErrorCodeArgMismatch, "path cannot be empty", ErrInvalidArgument)
+		return "", errors.New("internal error: FileAPI sandbox root not initialized")
 	}
 
+	// Clean the input path first to handle redundant separators, ".", etc.
 	cleanedRelPath := filepath.Clean(relPath)
 
+	// If the cleaned path is absolute, check if it's within the sandbox.
+	// Otherwise, join it with the sandbox root.
 	var absPath string
 	if filepath.IsAbs(cleanedRelPath) {
+		// If the user provided an absolute path, it *must* already be inside the sandbox.
+		// We still clean it to ensure consistent formatting.
 		absPath = cleanedRelPath
 		f.logger.Debug("ResolvePath: Received absolute path.", "input", relPath, "cleaned_abs", absPath)
 	} else {
+		// Join the relative path with the sandbox root.
+		// filepath.Join automatically cleans the result.
 		absPath = filepath.Join(f.sandboxRoot, cleanedRelPath)
 		f.logger.Debug("ResolvePath: Received relative path.", "input", relPath, "joined_abs", absPath)
 	}
 
+	// SECURITY CHECK: Ensure the final absolute path is still prefixed
+	// by the sandbox root directory. Add a path separator to the root
+	// to prevent partial matches (e.g., /sandbox/../sandbox-evil).
+	// Note: filepath.Clean removes trailing separators, so we add it back for the check.
 	prefix := f.sandboxRoot
 	if !strings.HasSuffix(prefix, string(os.PathSeparator)) {
 		prefix += string(os.PathSeparator)
 	}
-	isRootOrExact := absPath == f.sandboxRoot
+	// Also check if the resolved path is *exactly* the sandbox root
+	isRoot := absPath == f.sandboxRoot
 
-	// Security Check: Path must be sandbox root itself or within the sandbox root prefix.
-	if !strings.HasPrefix(absPath, prefix) && !isRootOrExact {
+	if !strings.HasPrefix(absPath, prefix) && !isRoot {
 		f.logger.Warn("Path traversal attempt detected!", "requested_path", relPath, "resolved_path", absPath, "sandbox_root", f.sandboxRoot)
-		// Return error using standard NeuroScript error structure
-		return "", NewRuntimeError(ErrorCodeSecurity,
-			fmt.Sprintf("path '%s' resolves outside sandbox '%s'", relPath, f.sandboxRoot),
-			ErrPathViolation, // Use the specific sentinel error
-		)
+		return "", fmt.Errorf("%w: path '%s' resolves outside sandbox '%s'", ErrPathViolation, relPath, f.sandboxRoot)
 	}
 
 	f.logger.Debug("Path resolved successfully within sandbox.", "input", relPath, "output", absPath)
 	return absPath, nil
-}
-
-// ReadFile reads the content of a file within the sandbox.
-// Takes a relative path, resolves it securely, and reads the file.
-func (f *FileAPI) ReadFile(relPath string) ([]byte, error) {
-	if f == nil {
-		return nil, errors.New("FileAPI receiver is nil")
-	}
-	f.logger.Debug("ReadFile requested.", "relative_path", relPath)
-
-	absPath, err := f.ResolvePath(relPath)
-	if err != nil {
-		// ResolvePath already returns a RuntimeError with appropriate sentinel
-		f.logger.Error("ReadFile failed during path resolution.", "relative_path", relPath, "error", err)
-		return nil, err
-	}
-
-	// Check if it's actually a file
-	info, statErr := os.Stat(absPath)
-	if statErr != nil {
-		sentinel := ErrIOFailed
-		ec := ErrorCodeIOFailed
-		if os.IsNotExist(statErr) {
-			sentinel = ErrNotFound
-			ec = ErrorCodeFileNotFound
-		} else if os.IsPermission(statErr) {
-			sentinel = ErrPermissionDenied
-			ec = ErrorCodePermissionDenied
-		}
-		errMsg := fmt.Sprintf("cannot stat path '%s' before reading: %v", relPath, statErr)
-		f.logger.Error(errMsg, "absolute_path", absPath)
-		return nil, NewRuntimeError(ec, errMsg, errors.Join(sentinel, statErr))
-	}
-	if info.IsDir() {
-		errMsg := fmt.Sprintf("cannot read: path '%s' is a directory", relPath)
-		f.logger.Error(errMsg, "absolute_path", absPath)
-		return nil, NewRuntimeError(ErrorCodePathTypeMismatch, errMsg, ErrPathNotFile) // Specific error for type mismatch
-	}
-
-	// Read the file content
-	content, readErr := os.ReadFile(absPath)
-	if readErr != nil {
-		sentinel := ErrIOFailed
-		ec := ErrorCodeIOFailed
-		if os.IsPermission(readErr) { // Check specific errors if needed
-			sentinel = ErrPermissionDenied
-			ec = ErrorCodePermissionDenied
-		}
-		errMsg := fmt.Sprintf("failed to read file '%s': %v", relPath, readErr)
-		f.logger.Error(errMsg, "absolute_path", absPath)
-		return nil, NewRuntimeError(ec, errMsg, errors.Join(sentinel, readErr))
-	}
-
-	f.logger.Debug("ReadFile successful.", "relative_path", relPath, "bytes_read", len(content))
-	return content, nil
-}
-
-// Add other FileAPI methods here as needed (WriteFile, Stat, ListDir, Mkdir, Delete, Move, WalkDir...)
-// Example placeholder for Stat:
-func (f *FileAPI) Stat(relPath string) (fs.FileInfo, error) {
-	if f == nil {
-		return nil, errors.New("FileAPI receiver is nil")
-	}
-	absPath, err := f.ResolvePath(relPath)
-	if err != nil {
-		return nil, err
-	}
-
-	info, statErr := os.Stat(absPath)
-	if statErr != nil {
-		sentinel := ErrIOFailed
-		ec := ErrorCodeIOFailed
-		if os.IsNotExist(statErr) {
-			sentinel = ErrNotFound
-			ec = ErrorCodeFileNotFound
-		} else if os.IsPermission(statErr) {
-			sentinel = ErrPermissionDenied
-			ec = ErrorCodePermissionDenied
-		}
-		errMsg := fmt.Sprintf("cannot stat path '%s': %v", relPath, statErr)
-		f.logger.Error(errMsg, "absolute_path", absPath)
-		return nil, NewRuntimeError(ec, errMsg, errors.Join(sentinel, statErr))
-	}
-	return info, nil
 }

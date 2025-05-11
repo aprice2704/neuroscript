@@ -120,7 +120,7 @@ func toolGoFindUsages(interpreter *Interpreter, args []interface{}) (interface{}
 
 	// We don't want to find usages of package names themselves
 	if _, isPkgName := targetObj.(*types.PkgName); isPkgName {
-		logger.Info("[TOOL-GOFINDUSAGES] Target is a package name, skipping usage search.", "name", targetObj.Name())
+		logger.Debug("[TOOL-GOFINDUSAGES] Target is a package name, skipping usage search.", "name", targetObj.Name())
 		return []map[string]interface{}{}, nil // Return empty list for package names
 	}
 
@@ -197,7 +197,7 @@ func toolGoFindUsages(interpreter *Interpreter, args []interface{}) (interface{}
 		}
 	}
 
-	logger.Info("[TOOL-GOFINDUSAGES] Search complete.", "target", targetObj.Name(), "usages_found", len(usages))
+	logger.Debug("[TOOL-GOFINDUSAGES] Search complete.", "target", targetObj.Name(), "usages_found", len(usages))
 
 	// Return the slice (will be empty if no usages found, not nil)
 	return usages, nil

@@ -1,5 +1,5 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.1.5 // Cycle Fix: Use coreNoOpLogger, ensure internal NoOp LLM client.
+// File version: 0.1.6 // Changed INFO logs to DEBUG
 // filename: pkg/core/llm.go
 package core
 
@@ -49,11 +49,11 @@ func NewLLMClient(apiKey, apiHost, modelID string, logger logging.Logger, enable
 	}
 
 	if !enabled {
-		logger.Info("LLM client explicitly disabled. Using internal NoOpLLMClient.")
+		logger.Debug("LLM client explicitly disabled. Using internal NoOpLLMClient.") // Changed from Info
 		return noopClientFactory()
 	}
 
-	logger.Info("Attempting to create concrete LLM client.", "host", apiHost, "model_id", modelID, "enabled", enabled)
+	logger.Debug("Attempting to create concrete LLM client.", "host", apiHost, "model_id", modelID, "enabled", enabled) // Changed from Info
 	if apiKey == "" {
 		logger.Error("API Key is missing for enabled LLM client.")
 		logger.Warn("API Key missing, falling back to internal NoOpLLMClient.")
@@ -72,7 +72,7 @@ func NewLLMClient(apiKey, apiHost, modelID string, logger logging.Logger, enable
 		logger.Warn("GenAI client init failed, falling back to internal NoOpLLMClient.")
 		return noopClientFactory()
 	}
-	logger.Info("Concrete LLM client created successfully.")
+	logger.Debug("Concrete LLM client created successfully.") // Changed from Info
 	return &concreteLLMClient{
 		apiKey:      apiKey,
 		apiHost:     apiHost,
@@ -416,7 +416,7 @@ var _ LLMClient = (*coreInternalNoOpLLMClient)(nil)
 // newCoreInternalNoOpLLMClient is a private constructor for the internal no-op client.
 func newCoreInternalNoOpLLMClient(logger logging.Logger) LLMClient {
 	// Logger is already guaranteed to be non-nil by NewLLMClient.
-	logger.Info("Creating internal coreInternalNoOpLLMClient.") // Adjusted log message for clarity
+	logger.Debug("Creating internal coreInternalNoOpLLMClient.") // Adjusted log message for clarity, Changed from Info
 	return &coreInternalNoOpLLMClient{logger: logger}
 }
 
@@ -446,6 +446,3 @@ func (c *coreInternalNoOpLLMClient) Embed(ctx context.Context, text string) ([]f
 func (c *coreInternalNoOpLLMClient) Client() *genai.Client {
 	return nil
 }
-
-// coreNoOpLogger is defined in pkg/core/utils.go, so it doesn't need to be redefined here.
-// var _ logging.Logger = (*coreNoOpLogger)(nil) // This would be a duplicate if utils.go has it.

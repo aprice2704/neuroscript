@@ -115,7 +115,7 @@ func toolGoFindIdentifiers(interpreter *core.Interpreter, args []interface{}) (i
 	}
 
 	if _, isPkgName := targetObj.(*types.PkgName); isPkgName {
-		logger.Info("[TOOL-GOFINDIDENTIFIERS] Target is a package name, skipping search.", "name", targetObj.Name())
+		logger.Debug("[TOOL-GOFINDIDENTIFIERS] Target is a package name, skipping search.", "name", targetObj.Name())
 		return []map[string]interface{}{}, nil
 	}
 	logger.Debug("[TOOL-GOFINDIDENTIFIERS] Found target object", "name", targetObj.Name(), "type", fmt.Sprintf("%T", targetObj), "declPos", index.Fset.Position(targetObj.Pos()))
@@ -211,7 +211,7 @@ func toolGoFindIdentifiers(interpreter *core.Interpreter, args []interface{}) (i
 		return colI < colJ
 	})
 
-	logger.Info("[TOOL-GOFINDIDENTIFIERS] Search complete.", "target", targetObj.Name(), "instances_found_in_file", len(uniquePositions))
+	logger.Debug("[TOOL-GOFINDIDENTIFIERS] Search complete.", "target", targetObj.Name(), "instances_found_in_file", len(uniquePositions))
 	return uniquePositions, nil
 }
 

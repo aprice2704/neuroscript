@@ -103,7 +103,7 @@ func main() {
 		os.Exit(1)
 	}
 	// *** Logger initialization successful ***
-	logger.Info("Logger initialized", "level", *logLevel, "file", *logFile) // Log initialization success
+	logger.Debug("Logger initialized", "level", *logLevel, "file", *logFile) // Log initialization success
 
 	// --- Determine Mode ---
 	// ... (your mode determination logic remains the same) ...
@@ -142,7 +142,7 @@ func main() {
 	// If agent flag wasn't explicitly set BUT no other mode was, default to agent mode
 	if !runScript && !runAgent && !runSync && !runCleanAPI && !runTui {
 		runAgent = true
-		logger.Info("Defaulting to interactive agent mode.") // Use logger here
+		logger.Debug("Defaulting to interactive agent mode.") // Use logger here
 	}
 	// Simple check for multiple modes after defaulting
 	finalModeCount := 0
@@ -196,7 +196,7 @@ func main() {
 
 	// --- Application Execution ---
 	if runTui {
-		logger.Info("Starting in TUI mode...")
+		logger.Debug("Starting in TUI mode...")
 		// Ensure tui.Start accepts the App struct which now contains the logger
 		if err := tui.Start(app); err != nil {
 			logger.Error("TUI Error", "error", err) // Use structured logging
@@ -216,5 +216,5 @@ func main() {
 		os.Exit(1)
 	}
 
-	logger.Info("NeuroGo finished successfully.")
+	logger.Debug("NeuroGo finished successfully.")
 }

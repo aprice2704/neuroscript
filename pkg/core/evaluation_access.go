@@ -115,7 +115,7 @@ func (i *Interpreter) evaluateMapElementAccess(m map[string]interface{}, accesso
 		// Lenient: convert accessor to string representation
 		key = fmt.Sprintf("%v", accessorVal)
 		if i.logger != nil {
-			i.logger.Info("[INFO-INTERP] Map key was not a string (%T), converted to string key '%s' for access", accessorVal, key)
+			i.logger.Debug("[INFO-INTERP] Map key was not a string (%T), converted to string key '%s' for access", accessorVal, key)
 		}
 	}
 

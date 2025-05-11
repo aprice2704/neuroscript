@@ -111,7 +111,7 @@ func toolGoRenameSymbol(interpreter *core.Interpreter, args []interface{}) (inte
 
 	originalName := declarationObj.Name()
 	if originalName == newName {
-		logger.Info("[TOOL-GORENAME] Original name is the same as new name, no rename needed.", "name", originalName)
+		logger.Debug("[TOOL-GORENAME] Original name is the same as new name, no rename needed.", "name", originalName)
 		return []interface{}{}, nil // No changes needed
 	}
 
@@ -222,7 +222,7 @@ func toolGoRenameSymbol(interpreter *core.Interpreter, args []interface{}) (inte
 		}
 	}
 
-	logger.Info("[TOOL-GORENAME] Rename analysis complete", "target", originalName, "newName", newName, "patchesGenerated", len(patchOperations))
+	logger.Debug("[TOOL-GORENAME] Rename analysis complete", "target", originalName, "newName", newName, "patchesGenerated", len(patchOperations))
 	return patchOperations, nil
 }
 

@@ -77,7 +77,7 @@ func listExistingAPIFiles(sc *syncContext) (map[string]*genai.File, error) {
 		}
 		results = append(results, file)
 	}
-	sc.logger.Info("[API HELPER List] Found %d files. Encountered %d errors during fetch.", len(results), fetchErrors) // Use infoLog
+	sc.logger.Debug("[API HELPER List] Found %d files. Encountered %d errors during fetch.", len(results), fetchErrors) // Use infoLog
 
 	apiFilesMap := make(map[string]*genai.File)
 	for _, file := range results {
@@ -93,7 +93,7 @@ func listExistingAPIFiles(sc *syncContext) (map[string]*genai.File, error) {
 			sc.logger.Warn("[WARN API HELPER Sync] API File Found empty DisplayName: %s", file.Name) // Use debugLog
 		}
 	}
-	sc.logger.Info("[API HELPER Sync] Found %d API files.", len(apiFilesMap)) // Use infoLog
+	sc.logger.Debug("[API HELPER Sync] Found %d API files.", len(apiFilesMap)) // Use infoLog
 
 	var returnErr error
 	if fetchErrors > 0 {

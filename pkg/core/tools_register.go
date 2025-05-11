@@ -50,7 +50,7 @@ func RegisterCoreTools(registry ToolRegistry) error {
 	// Logging: If the ToolRegistry interface had a Logger() method, we could use it.
 	// Example:
 	// if logger := registry.Logger(); logger != nil {
-	//     logger.Info("RegisterCoreTools: Explicit core tool registration phase complete.")
+	//     logger.Debug("RegisterCoreTools: Explicit core tool registration phase complete.")
 	// }
 	// For now, this specific logging is removed as the interface doesn't expose the logger directly.
 	// The creation of the toolRegistryImpl within NewInterpreter already logs.

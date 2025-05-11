@@ -188,7 +188,7 @@ func toolGoModifyAST(interpreter *core.Interpreter, args []interface{}) (interfa
 			logger.Debug("Tool: GoModifyAST] Applied modification: Changed package name from '%s' to '%s'.", originalCachedAst.File.Name.Name, changePackageName)
 			actionTaken = true
 		} else {
-			logger.Info("Tool: GoModifyAST] Info: Package name already '%s', no action needed for 'change_package'.", changePackageName)
+			logger.Debug("Tool: GoModifyAST] Info: Package name already '%s', no action needed for 'change_package'.", changePackageName)
 		}
 	}
 	// 2. Add Import
@@ -197,7 +197,7 @@ func toolGoModifyAST(interpreter *core.Interpreter, args []interface{}) (interfa
 			logger.Debug("Tool: GoModifyAST] Applied modification: Added import '%s'.", addImportPath)
 			actionTaken = true
 		} else {
-			logger.Info("Tool: GoModifyAST] Info: Import '%s' already exists, no action needed for 'add_import'.", addImportPath)
+			logger.Debug("Tool: GoModifyAST] Info: Import '%s' already exists, no action needed for 'add_import'.", addImportPath)
 		}
 	}
 	// 3. Remove Import
@@ -206,7 +206,7 @@ func toolGoModifyAST(interpreter *core.Interpreter, args []interface{}) (interfa
 			logger.Debug("Tool: GoModifyAST] Applied modification: Removed import '%s'.", removeImportPath)
 			actionTaken = true
 		} else {
-			logger.Info("Tool: GoModifyAST] Info: Import '%s' not found, no action needed for 'remove_import'.", removeImportPath)
+			logger.Debug("Tool: GoModifyAST] Info: Import '%s' not found, no action needed for 'remove_import'.", removeImportPath)
 		}
 	}
 	// 4. Replace Import
@@ -215,7 +215,7 @@ func toolGoModifyAST(interpreter *core.Interpreter, args []interface{}) (interfa
 			logger.Debug("Tool: GoModifyAST] Applied modification: Replaced import '%s' with '%s'.", replaceImportOldPath, replaceImportNewPath)
 			actionTaken = true
 		} else {
-			logger.Info("Tool: GoModifyAST] Info: Import '%s' not found or already matches '%s', no action needed for 'replace_import'.", replaceImportOldPath, replaceImportNewPath)
+			logger.Debug("Tool: GoModifyAST] Info: Import '%s' not found or already matches '%s', no action needed for 'replace_import'.", replaceImportOldPath, replaceImportNewPath)
 		}
 	}
 	// 5. Replace Identifier
@@ -245,7 +245,7 @@ func toolGoModifyAST(interpreter *core.Interpreter, args []interface{}) (interfa
 		astutil.Apply(newAstFile, nil, postVisit)
 		actionTaken = actionTaken || localActionTaken
 		if !localActionTaken {
-			logger.Info("Tool: GoModifyAST] Info: No occurrences of %s.%s found, no action taken for 'replace_identifier'.", replaceIdentOldPkg, replaceIdentOldID)
+			logger.Debug("Tool: GoModifyAST] Info: No occurrences of %s.%s found, no action taken for 'replace_identifier'.", replaceIdentOldPkg, replaceIdentOldID)
 		}
 	}
 
@@ -254,7 +254,7 @@ func toolGoModifyAST(interpreter *core.Interpreter, args []interface{}) (interfa
 		return nil, fmt.Errorf("%w: no known directive provided but directive parsing passed", core.ErrInternalTool)
 	}
 	if !actionTaken {
-		logger.Info("Tool: GoModifyAST] Warning: Modification(s) requested, but no changes made to the AST (e.g., target not found, or already correct). Returning original handle.")
+		logger.Debug("Tool: GoModifyAST] Warning: Modification(s) requested, but no changes made to the AST (e.g., target not found, or already correct). Returning original handle.")
 		return handleID, nil
 	}
 
@@ -267,6 +267,6 @@ func toolGoModifyAST(interpreter *core.Interpreter, args []interface{}) (interfa
 		return nil, fmt.Errorf("%w: failed to register modified AST handle", core.ErrInternalTool)
 	}
 
-	logger.Info("Tool: GoModifyAST] Returning new handle '%s' successfully.", newHandleID)
+	logger.Debug("Tool: GoModifyAST] Returning new handle '%s' successfully.", newHandleID)
 	return newHandleID, nil
 }

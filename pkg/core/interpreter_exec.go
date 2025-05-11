@@ -1,6 +1,8 @@
 // NeuroScript Version: 0.3.0
-// File version: 0.0.4 // Defensive shouldUpdateLast logic for IF/control flow.
+// File version: 0.0.5 // Changed INFO logs to DEBUG, fixed forCleared/ifCleared typo.
 // filename: pkg/core/interpreter_exec.go
+// nlines: 252
+// risk_rating: HIGH
 package core
 
 import (
@@ -19,7 +21,7 @@ func (i *Interpreter) executeSteps(steps []Step, isInHandler bool, activeError *
 			activeErrorStr = fmt.Sprintf("%d: %s", activeError.Code, activeError.Message)
 		}
 	}
-	i.Logger().Info("[DEBUG-INTERP] Executing steps", "count", len(steps), "mode", modeStr, "activeError", activeErrorStr)
+	i.Logger().Debug("[DEBUG-INTERP] Executing steps", "count", len(steps), "mode", modeStr, "activeError", activeErrorStr)
 
 	var currentErrorHandler *Step = nil
 
@@ -30,7 +32,7 @@ func (i *Interpreter) executeSteps(steps []Step, isInHandler bool, activeError *
 		stepTypeLower := strings.ToLower(step.Type) // Lowercase once
 		stepTypeStr := strings.ToUpper(stepTypeLower)
 		stepTargetStr := step.Target
-		i.Logger().Info("[DEBUG-INTERP]   Executing Step", "step_num", stepNum+1, "type", stepTypeStr, "target", stepTargetStr)
+		i.Logger().Debug("[DEBUG-INTERP]   Executing Step", "step_num", stepNum+1, "type", stepTypeStr, "target", stepTargetStr)
 
 		switch stepTypeLower {
 		case "set":
@@ -105,7 +107,7 @@ func (i *Interpreter) executeSteps(steps []Step, isInHandler bool, activeError *
 					i.lastCallResult = stepResult // If FOR block returned, update LAST
 					return stepResult, true, false, nil
 				}
-				if forCleared {
+				if forCleared { // Corrected from ifCleared
 					wasCleared = true
 				}
 			}
@@ -151,7 +153,7 @@ func (i *Interpreter) executeSteps(steps []Step, isInHandler bool, activeError *
 			}
 
 			if currentErrorHandler != nil {
-				i.Logger().Info("Error occurred, executing active ON_ERROR handler", "original_error", rtErr, "step_num", stepNum+1)
+				i.Logger().Debug("Error occurred, executing active ON_ERROR handler", "original_error", rtErr, "step_num", stepNum+1) // Changed from Info
 				handlerSteps := currentErrorHandler.Body
 				outerHandler := currentErrorHandler
 				currentErrorHandler = nil
@@ -177,11 +179,11 @@ func (i *Interpreter) executeSteps(steps []Step, isInHandler bool, activeError *
 					return nil, false, false, finalError
 				}
 				if handlerCleared {
-					i.Logger().Info("ON_ERROR handler executed and cleared the error", "cleared_error", rtErr)
+					i.Logger().Debug("ON_ERROR handler executed and cleared the error", "cleared_error", rtErr) // Changed from Info
 					stepErr = nil
 					wasCleared = true
 				} else {
-					i.Logger().Info("ON_ERROR handler executed but did not clear error, propagating original error", "original_error", rtErr)
+					i.Logger().Debug("ON_ERROR handler executed but did not clear error, propagating original error", "original_error", rtErr) // Changed from Info
 					finalError = fmt.Errorf("step %d (%s): %w", stepNum+1, stepTypeStr, rtErr)
 					return nil, false, false, finalError
 				}
@@ -216,7 +218,7 @@ func (i *Interpreter) executeSteps(steps []Step, isInHandler bool, activeError *
 		}
 	}
 
-	i.Logger().Info("[DEBUG-INTERP] Finished executing steps block normally", "mode", modeStr)
+	i.Logger().Debug("[DEBUG-INTERP] Finished executing steps block normally", "mode", modeStr) // Changed from Info
 	return nil, false, wasCleared, nil
 }
 
@@ -246,7 +248,7 @@ func (i *Interpreter) executeBlock(blockValue interface{}, parentStepNum int, bl
 			activeErrorStr = fmt.Sprintf("%d", activeError.Code)
 		}
 	}
-	i.Logger().Info(">> Entering block execution",
+	i.Logger().Debug(">> Entering block execution", // Changed from Info
 		"block_type", blockType,
 		"handler_mode", isInHandler,
 		"parent_step", parentStepNum+1,
@@ -263,7 +265,7 @@ func (i *Interpreter) executeBlock(blockValue interface{}, parentStepNum int, bl
 	// The 'result' returned here from executeSteps for the block itself is nil if no return.
 	// The 'shouldUpdateLast' logic within executeSteps handles i.lastCallResult correctly.
 
-	i.Logger().Info("<< Exiting block execution",
+	i.Logger().Debug("<< Exiting block execution", // Changed from Info
 		"block_type", blockType,
 		"parent_step", parentStepNum+1,
 		"result_from_block_return", result, // This is nil if no explicit return in block
@@ -274,6 +276,3 @@ func (i *Interpreter) executeBlock(blockValue interface{}, parentStepNum int, bl
 
 	return result, wasReturn, wasCleared, err
 }
-
-// nlines: 252
-// risk_rating: HIGH

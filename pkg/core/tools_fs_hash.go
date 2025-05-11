@@ -40,7 +40,7 @@ func toolFileHash(interpreter *Interpreter, args []interface{}) (interface{}, er
 	absPath, secErr := SecureFilePath(filePathRel, sandboxRoot)
 	if secErr != nil {
 		errMsg := fmt.Sprintf("FileHash: path security error for '%s': %v", filePathRel, secErr)
-		interpreter.Logger().Info("Tool: FileHash] %s (Sandbox Root: %s)", errMsg, sandboxRoot)
+		interpreter.Logger().Debug("Tool: FileHash] %s (Sandbox Root: %s)", errMsg, sandboxRoot)
 		// Return the RuntimeError from SecureFilePath directly
 		return "", secErr
 	}
@@ -53,7 +53,7 @@ func toolFileHash(interpreter *Interpreter, args []interface{}) (interface{}, er
 		errMsg := ""
 		if errors.Is(openErr, os.ErrNotExist) {
 			errMsg = fmt.Sprintf("FileHash: file not found at path '%s'", filePathRel)
-			interpreter.Logger().Info("Tool: FileHash] %s", errMsg)
+			interpreter.Logger().Debug("Tool: FileHash] %s", errMsg)
 			return "", NewRuntimeError(ErrorCodeFileNotFound, errMsg, ErrFileNotFound)
 		}
 		if errors.Is(openErr, os.ErrPermission) {
@@ -78,7 +78,7 @@ func toolFileHash(interpreter *Interpreter, args []interface{}) (interface{}, er
 	}
 	if stat.IsDir() {
 		errMsg := fmt.Sprintf("FileHash: path '%s' is a directory, not a file", filePathRel)
-		interpreter.Logger().Info("Tool: FileHash] %s", errMsg)
+		interpreter.Logger().Debug("Tool: FileHash] %s", errMsg)
 		// Use ErrorCodePathTypeMismatch and ErrPathNotFile sentinel
 		return "", NewRuntimeError(ErrorCodePathTypeMismatch, errMsg, ErrPathNotFile)
 	}
@@ -96,6 +96,6 @@ func toolFileHash(interpreter *Interpreter, args []interface{}) (interface{}, er
 	hashBytes := hasher.Sum(nil)
 	hashString := fmt.Sprintf("%x", hashBytes)
 
-	interpreter.Logger().Info("Tool: FileHash] Successfully calculated SHA256 hash", "file_path", filePathRel, "hash", hashString)
+	interpreter.Logger().Debug("Tool: FileHash] Successfully calculated SHA256 hash", "file_path", filePathRel, "hash", hashString)
 	return hashString, nil
 }

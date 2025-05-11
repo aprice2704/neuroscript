@@ -70,7 +70,7 @@ func toolWriteFile(interpreter *Interpreter, args []interface{}) (interface{}, e
 		info, statErr := os.Stat(absPath)
 		if statErr == nil && info.IsDir() {
 			errMsg = fmt.Sprintf("WriteFile: path '%s' exists and is a directory", relPath)
-			interpreter.Logger().Info(errMsg)
+			interpreter.Logger().Debug(errMsg)
 			return "", NewRuntimeError(ErrorCodePathTypeMismatch, errMsg, ErrPathNotFile)
 		}
 		return "", NewRuntimeError(ErrorCodeIOFailed, errMsg, errors.Join(ErrIOFailed, err))
@@ -80,6 +80,6 @@ func toolWriteFile(interpreter *Interpreter, args []interface{}) (interface{}, e
 	bytesWritten := len([]byte(content))
 	// *** ENSURE detailed success message is returned ***
 	successMsg := fmt.Sprintf("Successfully wrote %d bytes to %s", bytesWritten, relPath)
-	interpreter.Logger().Info("Tool: WriteFile successful", "file_path", relPath, "bytes_written", bytesWritten)
+	interpreter.Logger().Debug("Tool: WriteFile successful", "file_path", relPath, "bytes_written", bytesWritten)
 	return successMsg, nil // Return the formatted string
 }

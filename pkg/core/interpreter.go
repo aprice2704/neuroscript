@@ -1,5 +1,5 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.0.15 // Correct usage of ErrorCodeArgMismatch and ErrorCodeToolExecutionFailed.
+// File version: 0.0.16 // Changed INFO logs to DEBUG
 // nlines: 442
 // risk_rating: HIGH
 // filename: pkg/core/interpreter.go
@@ -69,12 +69,12 @@ func NewInterpreter(logger logging.Logger, llmClient LLMClient, sandboxDir strin
 			return nil, fmt.Errorf("invalid sandbox directory '%s': %w", sandboxDir, err)
 		}
 		cleanSandboxDir = filepath.Clean(absPath)
-		effectiveLogger.Infof("Interpreter sandbox directory set to: %s", cleanSandboxDir)
+		effectiveLogger.Debugf("Interpreter sandbox directory set to: %s", cleanSandboxDir) // Changed from Infof
 	} else {
 		effectiveLogger.Warn("No sandbox directory provided, using default '.'")
 	}
 
-	fileAPI, _ := NewFileAPI(cleanSandboxDir, effectiveLogger)
+	fileAPI := NewFileAPI(cleanSandboxDir, effectiveLogger) // Corrected: NewFileAPI returns *FileAPI, not two values
 
 	vars := make(map[string]interface{})
 	vars["NEUROSCRIPT_DEVELOP_PROMPT"] = prompts.PromptDevelop
@@ -203,53 +203,36 @@ func (i *Interpreter) ExecuteTool(toolName string, args map[string]interface{}) 
 		if !provided {
 			if argSpec.Required {
 				i.logger.Error("Required argument missing for tool", "tool_name", toolName, "arg_name", argSpec.Name)
-				// <<< FIXED: Use ErrorCodeArgMismatch from errors.go
 				return nil, NewRuntimeError(ErrorCodeArgMismatch, fmt.Sprintf("tool '%s': missing required argument '%s'", toolName, argSpec.Name), ErrArgumentMismatch)
 			}
-			// Use default value if optional and not provided (defaults are typically nil/zero for now)
-			// If default values were specified in ArgSpec, we'd use them here.
-			validatedArgs[idx] = nil // Or appropriate zero value based on argSpec.Type
+			validatedArgs[idx] = nil
 			i.logger.Debug("Optional argument not provided, using default (nil)", "tool_name", toolName, "arg_name", argSpec.Name)
 		} else {
-			// Basic type checking (can be expanded)
-			// This is simplified; a more robust check would use reflect and handle type conversions
-			// err := checkType(argSpec.Type, value)
-			// if err != nil {
-			//     i.logger.Error("Argument type mismatch for tool", "tool_name", toolName, "arg_name", argSpec.Name, "expected_type", argSpec.Type, "actual_type", fmt.Sprintf("%T", value), "error", err)
-			// 	   return nil, NewRuntimeError(ErrorCodeTypeMismatch, fmt.Sprintf("tool '%s': argument '%s' type mismatch: %v", toolName, argSpec.Name, err), ErrTypeMismatch)
-			// }
 			validatedArgs[idx] = value
-			delete(providedArgsSet, argSpec.Name) // Mark as used
+			delete(providedArgsSet, argSpec.Name)
 		}
 	}
 
-	// Check for extraneous arguments
 	if len(providedArgsSet) > 0 {
 		extraArgs := []string{}
 		for name := range providedArgsSet {
 			extraArgs = append(extraArgs, name)
 		}
 		i.logger.Warn("Extraneous arguments provided to tool", "tool_name", toolName, "extra_args", strings.Join(extraArgs, ", "))
-		// Decide whether to error out or just ignore extra args. Ignoring for now.
-		// return nil, NewRuntimeError(ErrorCodeArgMismatch, fmt.Sprintf("tool '%s': extraneous arguments provided: %s", toolName, strings.Join(extraArgs, ", ")), ErrArgumentMismatch)
 	}
 
-	// Execute the tool function
-	i.logger.Info("Executing tool function", "tool_name", toolName)
-	result, err := impl.Func(i, validatedArgs) // Pass interpreter and validated args
+	i.logger.Debug("Executing tool function", "tool_name", toolName)
+	result, err := impl.Func(i, validatedArgs)
 	if err != nil {
-		// Wrap error if it's not already a RuntimeError
 		if _, ok := err.(*RuntimeError); !ok {
 			i.logger.Error("Tool execution failed with non-runtime error", "tool_name", toolName, "error", err)
-			// <<< FIXED: Use ErrorCodeToolExecutionFailed from errors.go (added in previous step)
-			return nil, NewRuntimeError(ErrorCodeToolExecutionFailed, fmt.Sprintf("tool '%s' execution failed: %v", toolName, err), err) // Wrap original error
+			return nil, NewRuntimeError(ErrorCodeToolExecutionFailed, fmt.Sprintf("tool '%s' execution failed: %v", toolName, err), err)
 		}
-		// It's already a RuntimeError, return as is
 		i.logger.Error("Tool execution failed", "tool_name", toolName, "error", err)
 		return nil, err
 	}
 
-	i.logger.Info("Tool execution successful", "tool_name", toolName, "result_type", fmt.Sprintf("%T", result))
+	i.logger.Debug("Tool execution successful", "tool_name", toolName, "result_type", fmt.Sprintf("%T", result))
 	return result, nil
 }
 
@@ -290,10 +273,10 @@ func (i *Interpreter) SetSandboxDir(newSandboxDir string) error {
 		cleanNewSandboxDir = filepath.Clean(absPath)
 	}
 	if i.sandboxDir != cleanNewSandboxDir {
-		i.Logger().Infof("sandbox directory changed to: %s", cleanNewSandboxDir)
+		i.Logger().Debugf("sandbox directory changed to: %s", cleanNewSandboxDir) // Changed from Infof
 		i.sandboxDir = cleanNewSandboxDir
-		i.fileAPI, _ = NewFileAPI(i.sandboxDir, i.logger)
-		i.Logger().Infof("FileAPI re-initialized with new sandbox directory: %s", i.fileAPI.sandboxRoot)
+		i.fileAPI = NewFileAPI(i.sandboxDir, i.logger)                                                    // Corrected: NewFileAPI returns *FileAPI
+		i.Logger().Debugf("FileAPI re-initialized with new sandbox directory: %s", i.fileAPI.sandboxRoot) // Changed from Infof
 	} else {
 		i.Logger().Debug("New sandbox directory is unchanged")
 	}
@@ -309,7 +292,7 @@ func (i *Interpreter) SetInternalToolRegistry(registry *toolRegistryImpl) {
 		i.logger.Warn("Setting internal toolRegistryImpl that points to a different interpreter. Re-assigning its interpreter pointer.")
 		registry.interpreter = i
 	}
-	i.logger.Info("Replacing interpreter's internal toolRegistryImpl.")
+	i.logger.Debug("Replacing interpreter's internal toolRegistryImpl.") // Changed from Info
 	i.toolRegistry = registry
 }
 
@@ -456,7 +439,7 @@ func (i *Interpreter) RemoveHandle(handle string) bool {
 
 func (i *Interpreter) RunProcedure(procName string, args ...interface{}) (result interface{}, err error) {
 	originalProcName := i.currentProcName
-	i.Logger().Info("Running procedure", "name", procName, "arg_count", len(args))
+	i.Logger().Debug("Running procedure", "name", procName, "arg_count", len(args)) // Changed from Info
 	i.currentProcName = procName
 	defer func() {
 		if r := recover(); r != nil {
@@ -471,7 +454,7 @@ func (i *Interpreter) RunProcedure(procName string, args ...interface{}) (result
 			"result_type":        fmt.Sprintf("%T", result),
 			"error":              err,
 		}
-		i.Logger().Info("Finished procedure.", "details", logArgsMap)
+		i.Logger().Debug("Finished procedure.", "details", logArgsMap) // Changed from Info
 	}()
 
 	proc, exists := i.knownProcedures[procName]
@@ -532,7 +515,7 @@ func (i *Interpreter) RunProcedure(procName string, args ...interface{}) (result
 		}
 	}
 
-	result, _, _, err = i.executeSteps(proc.Steps, false, nil) // Assuming executeSteps is defined elsewhere
+	result, _, _, err = i.executeSteps(proc.Steps, false, nil)
 	if err != nil {
 		if _, ok := err.(*RuntimeError); !ok {
 			err = fmt.Errorf("error executing steps for procedure '%s': %w", procName, err)

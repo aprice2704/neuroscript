@@ -89,7 +89,7 @@ func toolGoParseFile(interpreter *core.Interpreter, args []interface{}) (interfa
 		interpreter.Logger().Error("Failed to register AST handle for '%s': %v", sourceName, err)
 		return nil, fmt.Errorf("failed to register AST handle: %w", err)
 	}
-	interpreter.Logger().Info("Tool: GoParseFile] Successfully parsed '%s'. Stored AST+FileSet with handle ID: %s", sourceName, handleID)
+	interpreter.Logger().Debug("Tool: GoParseFile] Successfully parsed '%s'. Stored AST+FileSet with handle ID: %s", sourceName, handleID)
 	return handleID, nil
 }
 

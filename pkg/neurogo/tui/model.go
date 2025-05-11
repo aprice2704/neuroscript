@@ -1,3 +1,5 @@
+// NeuroScript Version: 0.3.0
+// File version: 0.0.1 // Changed INFO log in newModel to DEBUG
 // filename: pkg/neurogo/tui/model.go
 package tui
 
@@ -166,7 +168,7 @@ func newModel(app AppAccess) model {
 
 	// Any logging here should use app.GetLogger()
 	if app != nil && app.GetLogger() != nil {
-		app.GetLogger().Info("TUI model initialized.")
+		app.GetLogger().Debug("TUI model initialized.") // Changed from Info
 	}
 
 	return model{

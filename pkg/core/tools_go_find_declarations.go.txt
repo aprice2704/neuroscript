@@ -130,7 +130,7 @@ func toolGoFindDeclarations(interpreter *Interpreter, args []interface{}) (inter
 			if scope != nil {
 				_, objInScope := scope.LookupParent(targetIdent.Name, targetIdent.Pos())
 				if pkgName, isPkg := objInScope.(*types.PkgName); isPkg {
-					logger.Info("[TOOL-GOFINDDECL] Identifier is likely an unresolved PkgName", "ident", targetIdent.Name, "pkgPath", pkgName.Imported().Path())
+					logger.Debug("[TOOL-GOFINDDECL] Identifier is likely an unresolved PkgName", "ident", targetIdent.Name, "pkgPath", pkgName.Imported().Path())
 					return nil, nil // Treat package names as "not found" for declarations
 				}
 			}
@@ -142,7 +142,7 @@ func toolGoFindDeclarations(interpreter *Interpreter, args []interface{}) (inter
 	logger.Debug("[TOOL-GOFINDDECL] Found object", "identifier", targetIdent.Name, "objName", obj.Name(), "objType", fmt.Sprintf("%T", obj), "objPos", index.Fset.Position(obj.Pos()))
 
 	if _, isPkgName := obj.(*types.PkgName); isPkgName {
-		logger.Info("[TOOL-GOFINDDECL] Identifier is PkgName, ignoring.", "ident", targetIdent.Name, "pkgPath", obj.(*types.PkgName).Imported().Path())
+		logger.Debug("[TOOL-GOFINDDECL] Identifier is PkgName, ignoring.", "ident", targetIdent.Name, "pkgPath", obj.(*types.PkgName).Imported().Path())
 		// Return empty map instead of nil? Keep returning nil for now.
 		return nil, nil // Don't return declarations for package names
 	}
@@ -173,7 +173,7 @@ func toolGoFindDeclarations(interpreter *Interpreter, args []interface{}) (inter
 	cleanDeclFilenameAbs := filepath.Clean(declFilenameAbs)
 
 	if errCheck != nil || (!strings.HasPrefix(cleanDeclFilenameAbs, cleanLoadDir+string(filepath.Separator)) && cleanDeclFilenameAbs != cleanLoadDir) {
-		logger.Info("[TOOL-GOFINDDECL] Declaration outside indexed dir, filtering.", "object", obj.Name(), "decl_path", declFilenameAbs, "load_dir", cleanLoadDir)
+		logger.Debug("[TOOL-GOFINDDECL] Declaration outside indexed dir, filtering.", "object", obj.Name(), "decl_path", declFilenameAbs, "load_dir", cleanLoadDir)
 		// Return empty map instead of nil? Keep returning nil for now.
 		return nil, nil // Outside indexed scope
 	}

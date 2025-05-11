@@ -79,7 +79,7 @@ func toolGoFindUsages(interpreter *core.Interpreter, args []interface{}) (interf
 
 	// Ignore PkgName objects if the query somehow resolved to one
 	if pkgNameObj, isPkgName := declarationObj.(*types.PkgName); isPkgName {
-		logger.Info("[TOOL-GOFINDUSAGES] Query resolved to a PkgName, cannot find usages.", "query", query, "pkgPath", pkgNameObj.Imported().Path())
+		logger.Debug("[TOOL-GOFINDUSAGES] Query resolved to a PkgName, cannot find usages.", "query", query, "pkgPath", pkgNameObj.Imported().Path())
 		return []interface{}{}, nil
 	}
 
@@ -139,6 +139,6 @@ func toolGoFindUsages(interpreter *core.Interpreter, args []interface{}) (interf
 		}
 	}
 
-	logger.Info("[TOOL-GOFINDUSAGES] Search complete", "target", declarationObj.Name(), "usagesFound", len(usages))
+	logger.Debug("[TOOL-GOFINDUSAGES] Search complete", "target", declarationObj.Name(), "usagesFound", len(usages))
 	return usages, nil
 }

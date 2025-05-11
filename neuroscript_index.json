@@ -11568,6 +11568,13 @@
         }
       }
     },
+    "pkg/core/tools": {
+      "files": {
+        "pkg/core/tools/ai_wm_default_wdefs.go": {
+          "methods": []
+        }
+      }
+    },
     "pkg/core/tools/goast": {
       "files": {
         "pkg/core/tools/goast/tools_go_ast.go": {

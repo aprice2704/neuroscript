@@ -1,7 +1,9 @@
 // NeuroScript Version: 0.3.0
-// File version: 0.1.0
+// File version: 0.1.1
 // Contains the Read-Eval-Print Loop (REPL) functionality for ng.
 // filename: cmd/ng/repl.go
+// nlines: 78
+// risk_rating: LOW
 package main
 
 import (
@@ -67,7 +69,7 @@ func runRepl(ctx context.Context, app *neurogo.App) {
 				continue
 			}
 
-			logger.Info("REPL executing", "input", input)
+			logger.Debug("REPL executing", "input", input)
 			// TODO: Implement proper REPL execution.
 			// core.Interpreter does not have a RunStatement method.
 			// This requires parsing the input into statements/expressions
@@ -84,7 +86,7 @@ func runRepl(ctx context.Context, app *neurogo.App) {
 				    logger.Error("REPL execution error", "procedure", input, "error", runErr)
 				    fmt.Printf("Error: %v\n", runErr)
 				} else {
-				    logger.Info("REPL execution success", "procedure", input, "result", results)
+				    logger.Info("REPL execution success", "procedure", input, "result", results) // This logger.Info is in a comment, left as is.
 				    if results != nil {
 				        fmt.Printf("Result: %+v\n", results)
 				    } else {

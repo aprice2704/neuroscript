@@ -1,5 +1,5 @@
 // NeuroScript Version: 0.3.0
-// File version: 0.1.0 // Updated version
+// File version: 0.1.1 // Changed INFO logs to DEBUG
 // Refactored App struct and methods for AI Worker Manager integration
 // filename: pkg/neurogo/app.go
 package neurogo
@@ -113,15 +113,15 @@ func (app *App) CreateLLMClient() (core.LLMClient, error) {
 	if apiKey == "" {
 		apiKey = os.Getenv("NEUROSCRIPT_API_KEY") // Standardized env var name
 		if apiKey == "" {
-			app.Log.Info("API key is missing in config and environment variable (NEUROSCRIPT_API_KEY). Creating NoOpLLMClient.")
+			app.Log.Debug("API key is missing in config and environment variable (NEUROSCRIPT_API_KEY). Creating NoOpLLMClient.") // Changed from Info
 			return adapters.NewNoOpLLMClient(), nil
 		}
-		app.Log.Info("Using LLM API key from environment variable NEUROSCRIPT_API_KEY.")
+		app.Log.Debug("Using LLM API key from environment variable NEUROSCRIPT_API_KEY.") // Changed from Info
 	} else {
 		app.Log.Debug("Using LLM API key from configuration.")
 	}
 
-	app.Log.Info("Creating real LLMClient.")
+	app.Log.Debug("Creating real LLMClient.") // Changed from Info
 	apiHost := app.Config.APIHost
 	modelName := app.Config.ModelName
 
@@ -138,7 +138,7 @@ func (app *App) CreateLLMClient() (core.LLMClient, error) {
 		return nil, fmt.Errorf("failed to create LLM client instance (core.NewLLMClient returned nil)")
 	}
 
-	app.Log.Info("Real LLMClient created.", "host", apiHost, "model", modelName)
+	app.Log.Debug("Real LLMClient created.", "host", apiHost, "model", modelName) // Changed from Info
 	return llmClient, nil
 }
 
@@ -217,7 +217,7 @@ func (a *App) loadLibraries(interpreter *core.Interpreter) error {
 			a.Log.Warn("Could not get absolute path for library path, skipping.", "path", libPath, "error", err)
 			continue
 		}
-		a.Log.Info("Processing library path.", "path", absPath)
+		a.Log.Debug("Processing library path.", "path", absPath) // Changed from Info
 
 		info, err := os.Stat(absPath)
 		if err != nil {
@@ -260,7 +260,7 @@ func (a *App) loadLibraries(interpreter *core.Interpreter) error {
 // ExecuteScriptFile loads and runs the main procedure of a given script file.
 func (app *App) ExecuteScriptFile(ctx context.Context, scriptPath string) error {
 	startTime := time.Now()
-	app.Log.Info("--- Executing Script File ---", "path", scriptPath)
+	app.Log.Debug("--- Executing Script File ---", "path", scriptPath) // Changed from Info
 
 	interpreter := app.GetInterpreter() // Use safe getter
 	if interpreter == nil {
@@ -290,13 +290,13 @@ func (app *App) ExecuteScriptFile(ctx context.Context, scriptPath string) error 
 	if procedureToRun == "" {
 		if metaTarget, ok := fileMeta["target"]; ok && metaTarget != "" {
 			procedureToRun = metaTarget
-			app.Log.Info("Using target procedure from script metadata.", "procedure", procedureToRun)
+			app.Log.Debug("Using target procedure from script metadata.", "procedure", procedureToRun) // Changed from Info
 		} else {
 			procedureToRun = "main"
-			app.Log.Info("No target specified via flag or metadata, defaulting to 'main'.")
+			app.Log.Debug("No target specified via flag or metadata, defaulting to 'main'.") // Changed from Info
 		}
 	} else {
-		app.Log.Info("Using target procedure from -target flag.", "procedure", procedureToRun)
+		app.Log.Debug("Using target procedure from -target flag.", "procedure", procedureToRun) // Changed from Info
 	}
 
 	// Prepare arguments (simple map for now)
@@ -311,7 +311,7 @@ func (app *App) ExecuteScriptFile(ctx context.Context, scriptPath string) error 
 		procArgsMap["target"] = app.Config.TargetArg
 	}
 
-	app.Log.Info("Executing procedure.", "name", procedureToRun, "args_count", len(procArgsMap))
+	app.Log.Debug("Executing procedure.", "name", procedureToRun, "args_count", len(procArgsMap)) // Changed from Info
 	execStartTime := time.Now()
 
 	// --- RunProcedure Call ---
@@ -329,7 +329,7 @@ func (app *App) ExecuteScriptFile(ctx context.Context, scriptPath string) error 
 
 	execEndTime := time.Now()
 	duration := execEndTime.Sub(execStartTime)
-	app.Log.Info("Procedure execution finished.", "name", procedureToRun, "duration", duration)
+	app.Log.Debug("Procedure execution finished.", "name", procedureToRun, "duration", duration) // Changed from Info
 
 	if runErr != nil {
 		app.Log.Error("Script execution failed.", "procedure", procedureToRun, "error", runErr)
@@ -337,7 +337,7 @@ func (app *App) ExecuteScriptFile(ctx context.Context, scriptPath string) error 
 		return fmt.Errorf("error executing procedure '%s': %w", procedureToRun, runErr)
 	}
 
-	app.Log.Info("Script executed successfully.", "procedure", procedureToRun)
+	app.Log.Debug("Script executed successfully.", "procedure", procedureToRun) // Changed from Info
 	if results != nil {
 		// Maybe return results or log them, avoid printing directly here
 		app.Log.Debug("Script Result Value", "result", fmt.Sprintf("%+v", results))
@@ -346,7 +346,7 @@ func (app *App) ExecuteScriptFile(ctx context.Context, scriptPath string) error 
 	}
 
 	totalDuration := time.Since(startTime)
-	app.Log.Info("--- Script File Execution Finished ---", "path", scriptPath, "total_duration", totalDuration)
+	app.Log.Debug("--- Script File Execution Finished ---", "path", scriptPath, "total_duration", totalDuration) // Changed from Info
 	return nil
 }
 
@@ -424,9 +424,3 @@ func (a *App) GetLLMClient() core.LLMClient {
 	}
 	return a.llmClient
 }
-
-// --- findProjectRoot removed, as it's not used after refactoring ---
-// func findProjectRoot() (string, error) { ... }
-
-// --- loadSchema removed, as it was a placeholder ---
-// func (app *App) loadSchema(schemaPath string) (*models.Schema, error) { ... }

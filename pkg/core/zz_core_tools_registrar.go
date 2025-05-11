@@ -1,5 +1,5 @@
 // NeuroScript Version: 0.3.8
-// File version: 0.1.4 // Add registration for metaToolsToRegister
+// File version: 0.1.6 // Remove all bootstrap log.Printf INFO messages.
 // Central registrar for a bundle of core tools.
 // filename: pkg/core/zz_core_tools_registrar.go
 
@@ -7,8 +7,6 @@ package core
 
 import (
 	"log" // Standard Go logging package
-	"strings"
-	// "fmt" // Only needed if error wrapping is used below
 )
 
 // init calls the main registration function for the tool bundle.
@@ -17,15 +15,11 @@ func init() {
 	registerCoreToolBundle()
 }
 
-// MakeUnimplementedToolFunc remains the same as provided in your example.
+// MakeUnimplementedToolFunc remains the same.
 func MakeUnimplementedToolFunc(toolName string) ToolFunc {
-	// ... (implementation as in your provided zz_core_tools_registrar.go) ...
-	// For brevity, assuming it's the same.
-	// If you need it explicitly, I can add it back.
-	// It's not directly used by the changes I'm making here but is part of the file.
 	return func(interpreter *Interpreter, args []interface{}) (interface{}, error) {
 		errMsg := "TOOL " + toolName + " NOT IMPLEMENTED"
-		log.Printf("[ERROR] %s\n", errMsg)
+		log.Printf("[ERROR] %s\n", errMsg) // Standard log for critical missing piece
 		return nil, NewRuntimeError(ErrorCodeNotImplemented, errMsg, ErrNotImplemented)
 	}
 }
@@ -35,29 +29,23 @@ func registerCoreToolBundle() {
 	var toolsToRegister []ToolImplementation
 
 	// Append existing tool groups
-	toolsToRegister = append(toolsToRegister, goToolsToRegister...)      // from tooldefs_go.go
-	toolsToRegister = append(toolsToRegister, fsToolsToRegister...)      // from tooldefs_fs.go
-	toolsToRegister = append(toolsToRegister, gitToolsToRegister...)     // from tooldefs_git.go
-	toolsToRegister = append(toolsToRegister, aiWmToolsToRegister...)    // from tooldefs_ai_wm.go (or similar)
-	toolsToRegister = append(toolsToRegister, ioToolsToRegister...)      // from tooldefs_io.go
-	toolsToRegister = append(toolsToRegister, shellToolsToRegister...)   // from tooldefs_shell.go
-	toolsToRegister = append(toolsToRegister, listToolsToRegister...)    // from tooldefs_list.go
-	toolsToRegister = append(toolsToRegister, mathToolsToRegister...)    // from tooldefs_math.go
-	toolsToRegister = append(toolsToRegister, stringToolsToRegister...)  // from tooldefs_string.go
-	toolsToRegister = append(toolsToRegister, treeToolsToRegister...)    // from tooldefs_tree.go
-	toolsToRegister = append(toolsToRegister, fileApiToolsToRegister...) // from tooldefs_file_api.go
-	toolsToRegister = append(toolsToRegister, metaToolsToRegister...)    // from tooldefs_meta.go
+	toolsToRegister = append(toolsToRegister, goToolsToRegister...)
+	toolsToRegister = append(toolsToRegister, fsToolsToRegister...)
+	toolsToRegister = append(toolsToRegister, gitToolsToRegister...)
+	toolsToRegister = append(toolsToRegister, aiWmToolsToRegister...)
+	toolsToRegister = append(toolsToRegister, ioToolsToRegister...)
+	toolsToRegister = append(toolsToRegister, shellToolsToRegister...)
+	toolsToRegister = append(toolsToRegister, listToolsToRegister...)
+	toolsToRegister = append(toolsToRegister, mathToolsToRegister...)
+	toolsToRegister = append(toolsToRegister, stringToolsToRegister...)
+	toolsToRegister = append(toolsToRegister, treeToolsToRegister...)
+	toolsToRegister = append(toolsToRegister, fileApiToolsToRegister...)
+	toolsToRegister = append(toolsToRegister, metaToolsToRegister...)
 
 	if len(toolsToRegister) > 0 {
 		AddToolImplementations(toolsToRegister...)
-		log.Printf("[INFO] zz_core_tools_registrar: Added %d tools to the global registration list via bundle.\n", len(toolsToRegister))
-
-		toolNames := make([]string, len(toolsToRegister))
-		for i, tool := range toolsToRegister {
-			toolNames[i] = tool.Spec.Name
-		}
-		log.Printf("[DEBUG] zz_core_tools_registrar: Tools added by bundle: %s\n", strings.Join(toolNames, ", "))
+		// REMOVED: log.Printf("[INFO] zz_core_tools_registrar: Added %d tools to the global registration list via bundle.\n", len(toolsToRegister))
 	} else {
-		log.Printf("[INFO] zz_core_tools_registrar: No tools were specified in the bundle to register.\n")
+		// REMOVED: log.Printf("[INFO] zz_core_tools_registrar: No tools were specified in the bundle to register.\n")
 	}
 }

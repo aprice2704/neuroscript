@@ -1,5 +1,5 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.2.1 // Refactor file I/O, resolveAPIKey uses os.Getenv.
+// File version: 0.2.2 // Changed INFO logs to DEBUG
 // filename: pkg/core/ai_wm.go
 
 package core
@@ -79,7 +79,7 @@ func NewAIWorkerManager(
 			logger.Errorf("AIWorkerManager: Failed to load definitions from initial content: %v. Proceeding with empty definitions.", err)
 		}
 	} else {
-		logger.Infof("AIWorkerManager: No initial definitions content provided. Starting with an empty set of definitions.")
+		logger.Debugf("AIWorkerManager: No initial definitions content provided. Starting with an empty set of definitions.") // Changed from Infof
 	}
 
 	if initialPerformanceContent != "" {
@@ -88,12 +88,12 @@ func NewAIWorkerManager(
 			logger.Errorf("AIWorkerManager: Failed to load performance data from initial content: %v.", err)
 		}
 	} else {
-		logger.Infof("AIWorkerManager: No initial performance data content provided.")
+		logger.Debugf("AIWorkerManager: No initial performance data content provided.") // Changed from Infof
 	}
 
 	// This needs to be called after m.definitions might have been populated by loadWorkerDefinitionsFromContent
 	m.initializeRateTrackersUnsafe()
-	logger.Infof("AIWorkerManager initialized. Loaded %d definitions from content. Active instances: %d. Sandbox context: '%s'", len(m.definitions), len(m.activeInstances), m.sandboxDir)
+	logger.Debugf("AIWorkerManager initialized. Loaded %d definitions from content. Active instances: %d. Sandbox context: '%s'", len(m.definitions), len(m.activeInstances), m.sandboxDir) // Changed from Infof
 	return m, nil
 }
 
@@ -123,8 +123,8 @@ func (m *AIWorkerManager) loadWorkerDefinitionsFromContent(jsonBytes []byte) err
 	// defer m.mu.Unlock()
 
 	if len(jsonBytes) == 0 {
-		m.logger.Infof("loadWorkerDefinitionsFromContent: Provided content is empty. No definitions loaded.")
-		m.definitions = make(map[string]*AIWorkerDefinition) // Reset to empty
+		m.logger.Debugf("loadWorkerDefinitionsFromContent: Provided content is empty. No definitions loaded.") // Changed from Infof
+		m.definitions = make(map[string]*AIWorkerDefinition)                                                   // Reset to empty
 		return nil
 	}
 
@@ -156,8 +156,8 @@ func (m *AIWorkerManager) loadWorkerDefinitionsFromContent(jsonBytes []byte) err
 		newDefinitions[def.DefinitionID] = def
 	}
 
-	m.definitions = newDefinitions // Replace existing definitions
-	m.logger.Infof("Successfully loaded/reloaded %d worker definitions from content.", len(m.definitions))
+	m.definitions = newDefinitions                                                                          // Replace existing definitions
+	m.logger.Debugf("Successfully loaded/reloaded %d worker definitions from content.", len(m.definitions)) // Changed from Infof
 
 	// Important: Rate trackers need to be re-initialized based on the newly loaded definitions.
 	// This is typically done after this call by the caller (e.g. in NewAIWorkerManager or a reload tool).
@@ -290,7 +290,7 @@ func (m *AIWorkerManager) loadRetiredInstancePerformanceDataFromContent(jsonByte
 	// defer m.mu.Unlock()
 	m.logger.Debug("loadRetiredInstancePerformanceDataFromContent called.")
 	if len(jsonBytes) == 0 {
-		m.logger.Infof("loadRetiredInstancePerformanceDataFromContent: Provided content is empty. No historical performance loaded or processed.")
+		m.logger.Debugf("loadRetiredInstancePerformanceDataFromContent: Provided content is empty. No historical performance loaded or processed.") // Changed from Infof
 		return nil
 	}
 
@@ -300,7 +300,7 @@ func (m *AIWorkerManager) loadRetiredInstancePerformanceDataFromContent(jsonByte
 		return NewRuntimeError(ErrorCodeInternal, "failed to unmarshal performance data from content", err)
 	}
 
-	m.logger.Infof("Successfully unmarshalled %d RetiredInstanceInfo records. Processing them to update definition summaries is pending full implementation.", len(retiredInfos))
+	m.logger.Debugf("Successfully unmarshalled %d RetiredInstanceInfo records. Processing them to update definition summaries is pending full implementation.", len(retiredInfos)) // Changed from Infof
 	// TODO: Iterate through retiredInfos. For each info:
 	//   1. Find the corresponding AIWorkerDefinition using DefinitionID.
 	//   2. If found, iterate through its PerformanceRecords.
@@ -374,7 +374,3 @@ func ifErrorToString(err error) string {
 	}
 	return err.Error()
 }
-
-// Placeholder for ErrFeatureNotImplemented if not already defined in errors.go
-// It's better to have this in errors.go and import it.
-// var ErrFeatureNotImplemented = fmt.Errorf("feature not implemented") // Defined in errors.go as of 0.3.1 (ErrorCode 21)

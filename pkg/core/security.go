@@ -72,19 +72,19 @@ func NewSecurityLayer(allowlistTools []string, denylistSet map[string]bool, sand
 		logger:       logger,
 	}
 
-	logger.Info("[SEC] Initialized Security Layer.")
+	logger.Debug("[SEC] Initialized Security Layer.")
 	allowlistedNames := make([]string, 0, len(sl.allowlist))
 	for tool := range sl.allowlist {
 		allowlistedNames = append(allowlistedNames, tool)
 	}
-	logger.Info("[SEC] Allowlisted tools (normalized)", "tools", strings.Join(allowlistedNames, ", "))
+	logger.Debug("[SEC] Allowlisted tools (normalized)", "tools", strings.Join(allowlistedNames, ", "))
 
 	deniedNamesNormalized := make([]string, 0, len(sl.denylist))
 	for tool := range sl.denylist {
 		deniedNamesNormalized = append(deniedNamesNormalized, tool)
 	}
-	logger.Info("[SEC] Denied tools (normalized)", "tools", strings.Join(deniedNamesNormalized, ", "))
-	logger.Info("[SEC] Sandbox Root Set To", "path", sl.sandboxRoot)
+	logger.Debug("[SEC] Denied tools (normalized)", "tools", strings.Join(deniedNamesNormalized, ", "))
+	logger.Debug("[SEC] Sandbox Root Set To", "path", sl.sandboxRoot)
 
 	if sl.toolRegistry == nil { // Check if the provided interface is nil
 		logger.Warn("[SEC] SecurityLayer initialized with nil ToolRegistry. Tool validation/execution will likely fail.")
@@ -154,7 +154,7 @@ func (sl *SecurityLayer) GetToolDeclarations() ([]*genai.Tool, error) {
 			sl.logger.Debug("[SEC] Tool not included in declarations (not allowed or explicitly denied)", "qualified_name", qualifiedName, "is_allowed", isAllowed, "is_denied", isDenied)
 		}
 	}
-	sl.logger.Info("[SEC] Generated tool declarations.", "count", len(declarations))
+	sl.logger.Debug("[SEC] Generated tool declarations.", "count", len(declarations))
 	return declarations, nil
 }
 
@@ -224,7 +224,7 @@ func (sl *SecurityLayer) ExecuteToolCall(interpreter *Interpreter, fc genai.Func
 		return CreateErrorFunctionResultPart(qualifiedToolName, execErr), execErr
 	}
 
-	sl.logger.Info("[SEC ExecuteToolCall] Tool execution successful", "tool_name", qualifiedToolName)
+	sl.logger.Debug("[SEC ExecuteToolCall] Tool execution successful", "tool_name", qualifiedToolName)
 	return CreateSuccessFunctionResultPart(qualifiedToolName, resultValue, sl.logger), nil
 }
 

@@ -36,7 +36,7 @@ func (cm *ConversationManager) AddUserMessage(text string) {
 		Role:  "user",
 		Parts: []genai.Part{genai.Text(text)},
 	})
-	cm.logger.Info("[CONVO] Added User: %q", text)
+	cm.logger.Debug("[CONVO] Added User: %q", text)
 }
 
 // AddModelMessage adds a pure text response from the model to the history.
@@ -50,7 +50,7 @@ func (cm *ConversationManager) AddModelMessage(text string) {
 	if len(logSnippet) > maxLogLen {
 		logSnippet = logSnippet[:maxLogLen] + "..."
 	}
-	cm.logger.Info("[CONVO] Added Model Text: %q", logSnippet)
+	cm.logger.Debug("[CONVO] Added Model Text: %q", logSnippet)
 }
 
 // AddModelResponse adds a model's response (potentially including function calls) to the history.
@@ -69,7 +69,7 @@ func (cm *ConversationManager) AddModelResponse(candidate *genai.Candidate) erro
 	}
 	cm.History = append(cm.History, candidate.Content)
 	if len(candidate.Content.Parts) == 0 {
-		cm.logger.Info("[CONVO] Added Model response with no parts.")
+		cm.logger.Debug("[CONVO] Added Model response with no parts.")
 	} else {
 		logMsgs := []string{}
 		for _, part := range candidate.Content.Parts {
@@ -87,7 +87,7 @@ func (cm *ConversationManager) AddModelResponse(candidate *genai.Candidate) erro
 				logMsgs = append(logMsgs, fmt.Sprintf("UnknownPart(%T)", v))
 			}
 		}
-		cm.logger.Info("[CONVO] Added Model response with parts: [%s]", strings.Join(logMsgs, ", "))
+		cm.logger.Debug("[CONVO] Added Model response with parts: [%s]", strings.Join(logMsgs, ", "))
 	}
 	return nil
 }
@@ -98,7 +98,7 @@ func (cm *ConversationManager) AddFunctionCallMessage(fc genai.FunctionCall) {
 		Role:  "model", // The FunctionCall is part of the *model's* turn
 		Parts: []genai.Part{fc},
 	})
-	cm.logger.Info("[CONVO] Added Model FunctionCall request: %s", fc.Name)
+	cm.logger.Debug("[CONVO] Added Model FunctionCall request: %s", fc.Name)
 }
 
 // AddFunctionResultMessage adds a function response part to the history.
@@ -113,7 +113,7 @@ func (cm *ConversationManager) AddFunctionResultMessage(part genai.Part) error {
 		Role:  "function", // Role is 'function' for results
 		Parts: []genai.Part{fr},
 	})
-	cm.logger.Info("[CONVO] Added FunctionResponse result for: %s", fr.Name)
+	cm.logger.Debug("[CONVO] Added FunctionResponse result for: %s", fr.Name)
 	return nil
 }
 
@@ -123,7 +123,7 @@ func (cm *ConversationManager) GetHistory() []*genai.Content { return cm.History
 // ClearHistory resets the conversation.
 func (cm *ConversationManager) ClearHistory() {
 	cm.History = make([]*genai.Content, 0)
-	cm.logger.Info("[CONVO] History cleared.")
+	cm.logger.Debug("[CONVO] History cleared.")
 }
 
 // --- Helper for creating error responses (REMOVED - now lives in security_helpers.go) ---

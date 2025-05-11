@@ -80,7 +80,7 @@ func processUploadJob(sc *syncContext, job uploadJob, workerID int) (*genai.File
 	if job.existingApiFile != nil {
 		operation = "Updating"
 	}
-	sc.logger.Info("[API Worker %d] %s: %s...", workerID, operation, job.relPath) // Log start of operation
+	sc.logger.Debug("[API Worker %d] %s: %s...", workerID, operation, job.relPath) // Log start of operation
 
 	sc.logger.Debug("processUploadJob %d] Calling HelperUploadAndPollFile: %s", workerID, job.relPath)
 	uploadCtx, cancelUpload := context.WithTimeout(context.Background(), 5*time.Minute)
@@ -115,7 +115,7 @@ func startDeleteWorkers(sc *syncContext, wg *sync.WaitGroup, filesToDelete []*ge
 					displayName = fileToDelete.Name
 				}
 				// Log start of delete operation? (Removed for now to match progress bar only on upload/update)
-				// sc.logger.Info("[API Delete Worker %d] Deleting: %s (%s)...", workerID, displayName, fileToDelete.Name)
+				// sc.logger.Debug("[API Delete Worker %d] Deleting: %s (%s)...", workerID, displayName, fileToDelete.Name)
 				sc.logger.Debug("HELPER Sync Delete Worker %d] Deleting API File: Name=%s, DisplayName=%s", workerID, fileToDelete.Name, displayName)
 				delCtx, cancelDel := context.WithTimeout(context.Background(), 30*time.Second)
 				deleteErr := sc.client.DeleteFile(delCtx, fileToDelete.Name)
