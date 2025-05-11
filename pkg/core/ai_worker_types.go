@@ -1,29 +1,31 @@
-// NeuroScript Version: 0.3.1
-// File version: 0.2.4 // Uncommented LLMCallMetrics struct.
+// NeuroScript Version: 0.4.0
+// File version: 0.3.5
+// Description: Defines types for the AI Worker Management system, including workers, data sources, pools, queues, and work items.
 // filename: pkg/core/ai_worker_types.go
 
 package core
 
 import (
 	"time"
-	// "github.com/google/generative-ai-go/genai" // Or your internal ConversationManager path
 )
+
+// --- Enums and Basic Types ---
 
 // InteractionModelType specifies the primary intended use of an AIWorkerDefinition.
 type InteractionModelType string
 
 const (
-	InteractionModelConversational InteractionModelType = "conversational" // Stateful, uses instances with conversation history
-	InteractionModelStateless      InteractionModelType = "stateless_task" // One-shot tasks, no instance history needed beyond the call
-	InteractionModelBoth           InteractionModelType = "both"           // Can be used for either
+	InteractionModelConversational InteractionModelType = "conversational"
+	InteractionModelStateless      InteractionModelType = "stateless_task"
+	InteractionModelBoth           InteractionModelType = "both"
 )
 
 // APIKeySourceMethod defines how an API key is to be retrieved.
 type APIKeySourceMethod string
 
 const (
-	APIKeyMethodEnvVar     APIKeySourceMethod = "env_var"     // Key is in an environment variable
-	APIKeyMethodInline     APIKeySourceMethod = "inline"      // Key is provided directly in Value (use with caution)
+	APIKeyMethodEnvVar     APIKeySourceMethod = "env_var"
+	APIKeyMethodInline     APIKeySourceMethod = "inline"      // Use with caution
 	APIKeyMethodConfigPath APIKeySourceMethod = "config_path" // Future: Key is at a path in a secure config file
 	APIKeyMethodVault      APIKeySourceMethod = "vault"       // Future: Key is in a secrets vault
 	APIKeyMethodNone       APIKeySourceMethod = "none"        // For models that don't require an API key
@@ -36,7 +38,7 @@ const (
 	ProviderGoogle    AIWorkerProvider = "google"
 	ProviderOpenAI    AIWorkerProvider = "openai"
 	ProviderAnthropic AIWorkerProvider = "anthropic"
-	ProviderOllama    AIWorkerProvider = "ollama" // For local models via Ollama
+	ProviderOllama    AIWorkerProvider = "ollama"
 	ProviderLocal     AIWorkerProvider = "local"  // For other direct local model integrations
 	ProviderCustom    AIWorkerProvider = "custom" // For other, unspecified types
 )
@@ -45,25 +47,25 @@ const (
 type AIWorkerDefinitionStatus string
 
 const (
-	DefinitionStatusActive   AIWorkerDefinitionStatus = "active"   // Available for spawning instances
-	DefinitionStatusDisabled AIWorkerDefinitionStatus = "disabled" // Not available for spawning
-	DefinitionStatusArchived AIWorkerDefinitionStatus = "archived" // Kept for records but not active
+	DefinitionStatusActive   AIWorkerDefinitionStatus = "active"
+	DefinitionStatusDisabled AIWorkerDefinitionStatus = "disabled"
+	DefinitionStatusArchived AIWorkerDefinitionStatus = "archived"
 )
 
 // AIWorkerInstanceStatus indicates the current state of an AI worker instance.
 type AIWorkerInstanceStatus string
 
 const (
-	InstanceStatusInitializing      AIWorkerInstanceStatus = "initializing"        // Being set up
-	InstanceStatusIdle              AIWorkerInstanceStatus = "idle"                // Active, ready for a task
-	InstanceStatusBusy              AIWorkerInstanceStatus = "busy"                // Active, currently processing a task
-	InstanceStatusContextFull       AIWorkerInstanceStatus = "context_full"        // Active, but context window is (near) full, should be retired
-	InstanceStatusRateLimited       AIWorkerInstanceStatus = "rate_limited"        // Temporarily paused due to rate limits
-	InstanceStatusTokenLimitReached AIWorkerInstanceStatus = "token_limit_reached" // Reached a token usage cap (session or definition)
-	InstanceStatusRetiredCompleted  AIWorkerInstanceStatus = "retired_completed"   // Gracefully retired after completing its work
-	InstanceStatusRetiredExhausted  AIWorkerInstanceStatus = "retired_exhausted"   // Retired due to context, errors, or other exhaustion
-	InstanceStatusRetiredError      AIWorkerInstanceStatus = "retired_error"       // Retired due to a persistent error state
-	InstanceStatusError             AIWorkerInstanceStatus = "error"               // Unexpected error state
+	InstanceStatusInitializing      AIWorkerInstanceStatus = "initializing"
+	InstanceStatusIdle              AIWorkerInstanceStatus = "idle"
+	InstanceStatusBusy              AIWorkerInstanceStatus = "busy"
+	InstanceStatusContextFull       AIWorkerInstanceStatus = "context_full"
+	InstanceStatusRateLimited       AIWorkerInstanceStatus = "rate_limited"
+	InstanceStatusTokenLimitReached AIWorkerInstanceStatus = "token_limit_reached"
+	InstanceStatusRetiredCompleted  AIWorkerInstanceStatus = "retired_completed"
+	InstanceStatusRetiredExhausted  AIWorkerInstanceStatus = "retired_exhausted"
+	InstanceStatusRetiredError      AIWorkerInstanceStatus = "retired_error"
+	InstanceStatusError             AIWorkerInstanceStatus = "error"
 )
 
 // APIKeySource specifies where to find the API key.
@@ -80,85 +82,138 @@ type RateLimitPolicy struct {
 	MaxConcurrentActiveInstances int `json:"max_concurrent_active_instances,omitempty"`
 }
 
-// TokenUsageMetrics tracks token consumption for an AIWorkerInstance session or other contexts.
+// TokenUsageMetrics tracks token consumption.
 type TokenUsageMetrics struct {
 	InputTokens  int64 `json:"input_tokens"`
 	OutputTokens int64 `json:"output_tokens"`
 	TotalTokens  int64 `json:"total_tokens"`
 }
 
-// SupervisorFeedback holds feedback from a supervisory AI on a task's quality.
+// SupervisorFeedback holds feedback, potentially from an SAI.
 type SupervisorFeedback struct {
 	Rating                 float64   `json:"rating,omitempty"`
 	Comments               string    `json:"comments,omitempty"`
 	CorrectionInstructions string    `json:"correction_instructions,omitempty"`
-	SupervisorAgentID      string    `json:"supervisor_agent_id,omitempty"`
+	SupervisorAgentID      string    `json:"supervisor_agent_id,omitempty"` // Could be an AIWorkerInstanceID or AIWorkerDefinition name
 	FeedbackTimestamp      time.Time `json:"feedback_timestamp,omitempty"`
 }
 
-// PerformanceRecord stores data about a single task performed by an AI worker.
+// AIWorkerPerformanceSummary provides aggregated performance statistics.
+// This is typically embedded within AIWorkerDefinition.
+type AIWorkerPerformanceSummary struct {
+	TotalTasksAttempted   int       `json:"total_tasks_attempted"`
+	SuccessfulTasks       int       `json:"successful_tasks"`
+	FailedTasks           int       `json:"failed_tasks"`
+	AverageSuccessRate    float64   `json:"average_success_rate"`            // Calculated: SuccessfulTasks / TotalTasksAttempted
+	AverageDurationMs     float64   `json:"average_duration_ms"`             // For successful tasks
+	TotalTokensProcessed  int64     `json:"total_tokens_processed"`          // Sum of all TokenUsageMetrics.TotalTokens
+	TotalCostIncurred     float64   `json:"total_cost_incurred"`             // Sum of all PerformanceRecord.CostIncurred
+	AverageQualityScore   float64   `json:"average_quality_score,omitempty"` // If supervisor feedback ratings are used
+	LastActivityTimestamp time.Time `json:"last_activity_timestamp,omitempty"`
+	TotalInstancesSpawned int       `json:"total_instances_spawned,omitempty"`
+	ActiveInstancesCount  int       `json:"active_instances_count,omitempty"` // Runtime info, might not be persisted directly here
+}
+
+// ConversationTurn is assumed to be defined elsewhere (e.g., llm_types.go)
+// For example:
+// type ConversationTurn struct {
+//    Role    string      `json:"role"` // "user", "model", "function_call", "function_result"
+//    Parts   []Part      `json:"parts"`
+//    Timestamp time.Time `json:"timestamp"`
+// }
+// type Part interface{} // Could be TextPart, FunctionCallPart, FunctionResultPart etc.
+
+// --- New GlobalDataSourceDefinition ---
+type DataSourceType string
+
+const (
+	DataSourceTypeLocalDirectory DataSourceType = "local_directory"
+	DataSourceTypeFileAPI        DataSourceType = "file_api"
+	// Future: DataSourceTypeGitRepo, DataSourceTypeS3Bucket etc.
+)
+
+type GlobalDataSourceDefinition struct {
+	Name                    string                 `json:"name"` // Unique Name/ID for global reference by other definitions
+	Type                    DataSourceType         `json:"type"`
+	Description             string                 `json:"description,omitempty"`
+	LocalPath               string                 `json:"local_path,omitempty"`                 // Relevant for DataSourceTypeLocalDirectory
+	AllowExternalReadAccess bool                   `json:"allow_external_read_access,omitempty"` // CRITICAL: If true, LocalPath can be outside the main interpreter sandbox. Must be validated by AIWorkerManager.
+	FileAPIPath             string                 `json:"file_api_path,omitempty"`              // Relevant for DataSourceTypeFileAPI (e.g., "fm:/shared_data/my_folder")
+	RemoteTargetPath        string                 `json:"remote_target_path,omitempty"`         // Default target path in File API if this source (e.g. a local dir) is synced. Example: "synced_sources/<DataSourceName>"
+	ReadOnly                bool                   `json:"read_only"`                            // Hint for usage; write operations are always sandboxed.
+	Filters                 []string               `json:"filters,omitempty"`                    // Glob patterns for file inclusion, e.g., ["*.txt", "*.log"]
+	Recursive               bool                   `json:"recursive,omitempty"`                  // Whether to process directories recursively.
+	Metadata                map[string]interface{} `json:"metadata,omitempty"`                   // For custom annotations
+	CreatedTimestamp        time.Time              `json:"created_timestamp,omitempty"`          // Set by manager
+	ModifiedTimestamp       time.Time              `json:"modified_timestamp,omitempty"`         // Set by manager
+}
+
+// --- AIWorkerDefinition (incorporates existing fields and new references) ---
+type AIWorkerDefinition struct {
+	DefinitionID                string                      `json:"definition_id"` // System-generated UUID
+	Name                        string                      `json:"name"`          // User-provided, unique, human-readable
+	Provider                    AIWorkerProvider            `json:"provider"`
+	ModelName                   string                      `json:"model_name"`
+	Auth                        APIKeySource                `json:"auth"`
+	InteractionModels           []InteractionModelType      `json:"interaction_models,omitempty"` // Defaults to ["conversational"] if empty
+	Capabilities                []string                    `json:"capabilities,omitempty"`       // e.g., "code_generation", "text_analysis", "panel_design"
+	BaseConfig                  map[string]interface{}      `json:"base_config,omitempty"`        // Passed to LLM (e.g., temperature, max_tokens)
+	CostMetrics                 map[string]float64          `json:"cost_metrics,omitempty"`       // e.g., {"input_tokens_usd_per_1k": 0.001, "output_tokens_usd_per_1k": 0.002}
+	RateLimits                  RateLimitPolicy             `json:"rate_limits,omitempty"`
+	Status                      AIWorkerDefinitionStatus    `json:"status,omitempty"`                        // Default: "active"
+	DefaultFileContexts         []string                    `json:"default_file_contexts,omitempty"`         // List of URIs (e.g., "datasource://project_assets/file.txt", "fm:/permanent/context.md")
+	AggregatePerformanceSummary *AIWorkerPerformanceSummary `json:"aggregate_performance_summary,omitempty"` // Managed by system
+
+	// New fields for v0.5
+	DataSourceRefs          []string `json:"data_source_refs,omitempty"`           // Names of GlobalDataSourceDefinitions this worker can access
+	ToolAllowlist           []string `json:"tool_allowlist,omitempty"`             // Qualified tool names (e.g., "tool.ReadFile")
+	ToolDenylist            []string `json:"tool_denylist,omitempty"`              // Qualified tool names
+	DefaultSupervisoryAIRef string   `json:"default_supervisory_ai_ref,omitempty"` // Name of an AIWorkerDefinition for supervision (Future)
+
+	Metadata          map[string]interface{} `json:"metadata,omitempty"`
+	CreatedTimestamp  time.Time              `json:"created_timestamp,omitempty"`  // Set by manager
+	ModifiedTimestamp time.Time              `json:"modified_timestamp,omitempty"` // Set by manager
+}
+
+// --- AIWorkerInstance (incorporates existing fields and new references) ---
+// Represents an active or retired conversational session or a pooled worker.
+type AIWorkerInstance struct {
+	InstanceID            string                 `json:"instance_id"`   // System-generated UUID
+	DefinitionID          string                 `json:"definition_id"` // ID of the AIWorkerDefinition it's based on
+	Status                AIWorkerInstanceStatus `json:"status"`
+	ConversationHistory   []*ConversationTurn    `json:"-"` // Managed by ConversationManager, not persisted with instance JSON
+	CreationTimestamp     time.Time              `json:"creation_timestamp"`
+	LastActivityTimestamp time.Time              `json:"last_activity_timestamp"`
+	SessionTokenUsage     TokenUsageMetrics      `json:"session_token_usage"`
+	CurrentConfig         map[string]interface{} `json:"current_config,omitempty"` // Effective config, may include overrides
+	ActiveFileContexts    []string               `json:"-"`                        // Runtime only, not persisted with instance JSON
+	LastError             string                 `json:"last_error,omitempty"`
+	RetirementReason      string                 `json:"retirement_reason,omitempty"`
+
+	// New fields for v0.5
+	PoolID           string   `json:"pool_id,omitempty"`            // If this instance is managed by an AIWorkerPool
+	CurrentTaskID    string   `json:"current_task_id,omitempty"`    // If currently processing a WorkItem
+	DataSourceRefs   []string `json:"data_source_refs,omitempty"`   // Instance-specific dynamically attached GlobalDataSourceDefinition names (augments definition/pool/queue/item refs)
+	SupervisoryAIRef string   `json:"supervisory_ai_ref,omitempty"` // Instance-specific SAI (Future)
+
+	// ResolvedDataSources []GlobalDataSourceDefinition `json:"-"` // Runtime field, not for JSON. Derived from all applicable DataSourceRefs.
+}
+
+// --- PerformanceRecord (existing struct, ensure TaskID can link to WorkItem.TaskID) ---
 type PerformanceRecord struct {
-	TaskID             string                 `json:"task_id"`
-	InstanceID         string                 `json:"instance_id"` // If "stateless-<uuid>", it was a direct call against a definition.
+	TaskID             string                 `json:"task_id"`     // Can be WorkItem.TaskID if applicable
+	InstanceID         string                 `json:"instance_id"` // Can be "stateless-<uuid>" for direct calls
 	DefinitionID       string                 `json:"definition_id"`
 	TimestampStart     time.Time              `json:"timestamp_start"`
 	TimestampEnd       time.Time              `json:"timestamp_end"`
 	DurationMs         int64                  `json:"duration_ms"`
 	Success            bool                   `json:"success"`
-	InputContext       map[string]interface{} `json:"input_context,omitempty"`
-	LLMMetrics         map[string]interface{} `json:"llm_metrics,omitempty"` // This map will store fields that were in LLMCallMetrics
+	InputContext       map[string]interface{} `json:"input_context,omitempty"` // e.g., prompt hash, summary of WorkItem payload
+	LLMMetrics         map[string]interface{} `json:"llm_metrics,omitempty"`   // Raw metrics from LLM (tokens, finish reason etc.)
 	CostIncurred       float64                `json:"cost_incurred,omitempty"`
-	OutputSummary      string                 `json:"output_summary,omitempty"`
+	OutputSummary      string                 `json:"output_summary,omitempty"` // Trimmed or hashed output
 	ErrorDetails       string                 `json:"error_details,omitempty"`
 	SupervisorFeedback *SupervisorFeedback    `json:"supervisor_feedback,omitempty"`
-}
-
-// AIWorkerPerformanceSummary provides aggregated performance statistics.
-type AIWorkerPerformanceSummary struct {
-	TotalTasksAttempted   int       `json:"total_tasks_attempted"`
-	SuccessfulTasks       int       `json:"successful_tasks"`
-	FailedTasks           int       `json:"failed_tasks"`
-	AverageSuccessRate    float64   `json:"average_success_rate"`
-	AverageDurationMs     float64   `json:"average_duration_ms"`
-	TotalTokensProcessed  int64     `json:"total_tokens_processed"`
-	TotalCostIncurred     float64   `json:"total_cost_incurred"`
-	AverageQualityScore   float64   `json:"average_quality_score,omitempty"`
-	LastActivityTimestamp time.Time `json:"last_activity_timestamp,omitempty"`
-	TotalInstancesSpawned int       `json:"total_instances_spawned,omitempty"` // Specific to Definition summary
-	ActiveInstancesCount  int       `json:"active_instances_count,omitempty"`  // Runtime info on definition
-}
-
-// AIWorkerDefinition is the blueprint for AI worker instances or direct stateless calls.
-type AIWorkerDefinition struct {
-	DefinitionID                string                      `json:"definition_id"`
-	Name                        string                      `json:"name,omitempty"`
-	Provider                    AIWorkerProvider            `json:"provider"`
-	ModelName                   string                      `json:"model_name"`
-	Auth                        APIKeySource                `json:"auth"`
-	InteractionModels           []InteractionModelType      `json:"interaction_models,omitempty"` // If empty, defaults to ["conversational"]
-	Capabilities                []string                    `json:"capabilities,omitempty"`
-	BaseConfig                  map[string]interface{}      `json:"base_config,omitempty"`
-	CostMetrics                 map[string]float64          `json:"cost_metrics,omitempty"`
-	RateLimits                  RateLimitPolicy             `json:"rate_limits,omitempty"`
-	Status                      AIWorkerDefinitionStatus    `json:"status,omitempty"` // Default to "active"
-	DefaultFileContexts         []string                    `json:"default_file_contexts,omitempty"`
-	AggregatePerformanceSummary *AIWorkerPerformanceSummary `json:"aggregate_performance_summary,omitempty"`
-	Metadata                    map[string]interface{}      `json:"metadata,omitempty"`
-}
-
-// AIWorkerInstance represents an active or retired conversational session with an LLM.
-type AIWorkerInstance struct {
-	InstanceID            string                 `json:"instance_id"`
-	DefinitionID          string                 `json:"definition_id"`
-	Status                AIWorkerInstanceStatus `json:"status"`
-	ConversationHistory   []*ConversationTurn    `json:"-"` // Managed by ConversationManager, not directly persisted here
-	CreationTimestamp     time.Time              `json:"creation_timestamp"`
-	LastActivityTimestamp time.Time              `json:"last_activity_timestamp"`
-	SessionTokenUsage     TokenUsageMetrics      `json:"session_token_usage"`
-	CurrentConfig         map[string]interface{} `json:"current_config,omitempty"`
-	ActiveFileContexts    []string               `json:"-"` // Runtime only, not persisted with instance
-	LastError             string                 `json:"last_error,omitempty"`
-	RetirementReason      string                 `json:"retirement_reason,omitempty"`
 }
 
 // RetiredInstanceInfo is used for persisting key metadata and performance of a retired instance.
@@ -170,8 +225,96 @@ type RetiredInstanceInfo struct {
 	FinalStatus         AIWorkerInstanceStatus `json:"final_status"`
 	RetirementReason    string                 `json:"retirement_reason,omitempty"`
 	SessionTokenUsage   TokenUsageMetrics      `json:"session_token_usage"`
-	InitialFileContexts []string               `json:"initial_file_contexts,omitempty"` // Files active at spawn time
-	PerformanceRecords  []*PerformanceRecord   `json:"performance_records"`             // All records from this instance's session
+	InitialFileContexts []string               `json:"initial_file_contexts,omitempty"`
+	PerformanceRecords  []*PerformanceRecord   `json:"performance_records"`
+}
+
+// --- AIWorkerPoolDefinition ---
+type InstanceRetirementPolicy struct {
+	MaxTasksPerInstance int `json:"max_tasks_per_instance,omitempty"`
+	MaxInstanceAgeHours int `json:"max_instance_age_hours,omitempty"`
+}
+
+type AIWorkerPoolDefinition struct {
+	PoolID                       string                   `json:"pool_id"`                          // System-generated UUID
+	Name                         string                   `json:"name"`                             // User-defined, unique
+	TargetAIWorkerDefinitionName string                   `json:"target_ai_worker_definition_name"` // Name of an AIWorkerDefinition
+	MinIdleInstances             int                      `json:"min_idle_instances,omitempty"`
+	MaxTotalInstances            int                      `json:"max_total_instances,omitempty"`
+	InstanceRetirementPolicy     InstanceRetirementPolicy `json:"instance_retirement_policy,omitempty"`
+	DataSourceRefs               []string                 `json:"data_source_refs,omitempty"`   // Names of GlobalDataSourceDefinitions applicable to all instances in this pool
+	SupervisoryAIRef             string                   `json:"supervisory_ai_ref,omitempty"` // Name of an AIWorkerDefinition for SAI (Future)
+	Metadata                     map[string]interface{}   `json:"metadata,omitempty"`
+	CreatedTimestamp             time.Time                `json:"created_timestamp,omitempty"`
+	ModifiedTimestamp            time.Time                `json:"modified_timestamp,omitempty"`
+}
+
+// --- WorkQueueDefinition ---
+type RetryPolicy struct {
+	MaxRetries        int `json:"max_retries,omitempty"`
+	RetryDelaySeconds int `json:"retry_delay_seconds,omitempty"`
+}
+
+type WorkQueueDefinition struct {
+	QueueID             string                 `json:"queue_id"`              // System-generated UUID
+	Name                string                 `json:"name"`                  // User-defined, unique
+	AssociatedPoolNames []string               `json:"associated_pool_names"` // Names of AIWorkerPoolDefinitions that service this queue
+	DefaultPriority     int                    `json:"default_priority,omitempty"`
+	RetryPolicy         RetryPolicy            `json:"retry_policy,omitempty"`
+	PersistTasks        bool                   `json:"persist_tasks,omitempty"`      // Hint for future: if true, WorkItems should be persisted
+	DataSourceRefs      []string               `json:"data_source_refs,omitempty"`   // Names of GlobalDataSourceDefinitions relevant to all tasks in this queue
+	SupervisoryAIRef    string                 `json:"supervisory_ai_ref,omitempty"` // Name of an AIWorkerDefinition for SAI (Future)
+	Metadata            map[string]interface{} `json:"metadata,omitempty"`
+	CreatedTimestamp    time.Time              `json:"created_timestamp,omitempty"`
+	ModifiedTimestamp   time.Time              `json:"modified_timestamp,omitempty"`
+}
+
+// --- WorkItemDefinition ---
+type WorkItemDefinition struct {
+	WorkItemDefinitionID        string                 `json:"work_item_definition_id"` // System-generated UUID
+	Name                        string                 `json:"name"`                    // User-defined, unique
+	Description                 string                 `json:"description,omitempty"`
+	DefaultTargetWorkerCriteria map[string]interface{} `json:"default_target_worker_criteria,omitempty"` // e.g., {"definitionName": "panel_analyzer_v2", "capabilities": ["stress_analysis"]}
+	DefaultPayloadSchema        map[string]interface{} `json:"default_payload_schema,omitempty"`         // Map of default values or a more formal JSON schema
+	DefaultDataSourceRefs       []string               `json:"default_data_source_refs,omitempty"`       // Names of GlobalDataSourceDefinitions
+	DefaultPriority             int                    `json:"default_priority,omitempty"`
+	DefaultSupervisoryAIRef     string                 `json:"default_supervisory_ai_ref,omitempty"` // Name of an AIWorkerDefinition for SAI (Future)
+	Metadata                    map[string]interface{} `json:"metadata,omitempty"`
+	CreatedTimestamp            time.Time              `json:"created_timestamp,omitempty"`
+	ModifiedTimestamp           time.Time              `json:"modified_timestamp,omitempty"`
+}
+
+// --- WorkItem ---
+type WorkItemStatus string
+
+const (
+	WorkItemStatusPending    WorkItemStatus = "pending"
+	WorkItemStatusProcessing WorkItemStatus = "processing"
+	WorkItemStatusCompleted  WorkItemStatus = "completed"
+	WorkItemStatusFailed     WorkItemStatus = "failed"
+	WorkItemStatusRetrying   WorkItemStatus = "retrying"
+	WorkItemStatusCancelled  WorkItemStatus = "cancelled" // Future
+)
+
+// WorkItem represents a task to be processed.
+type WorkItem struct {
+	TaskID                 string                 `json:"task_id"`                             // System-generated UUID if not provided on submission
+	WorkItemDefinitionName string                 `json:"work_item_definition_name,omitempty"` // Optional: Name of WorkItemDefinition to use as template
+	QueueName              string                 `json:"queue_name"`                          // Name of the WorkQueueDefinition it's submitted to
+	TargetWorkerCriteria   map[string]interface{} `json:"target_worker_criteria,omitempty"`    // Overrides criteria from WorkItemDefinition or Queue
+	Payload                map[string]interface{} `json:"payload"`                             // Task-specific data; merged with/validated by WorkItemDefinition's schema
+	DataSourceRefs         []string               `json:"data_source_refs,omitempty"`          // Augments/overrides DataSourceRefs from other contexts
+	Priority               int                    `json:"priority,omitempty"`                  // Overrides defaults
+	Status                 WorkItemStatus         `json:"status,omitempty"`                    // Set by system; typically "pending" on submission
+	SubmitTimestamp        time.Time              `json:"submit_timestamp,omitempty"`          // Set by system
+	StartTimestamp         time.Time              `json:"start_timestamp,omitempty"`           // Set by system
+	EndTimestamp           time.Time              `json:"end_timestamp,omitempty"`             // Set by system
+	RetryCount             int                    `json:"retry_count,omitempty"`               // Managed by system
+	Result                 interface{}            `json:"result,omitempty"`                    // Stored upon successful completion
+	Error                  string                 `json:"error,omitempty"`                     // Error message if failed
+	PerformanceRecordID    string                 `json:"performance_record_id,omitempty"`     // Link to the PerformanceRecord
+	SupervisoryAIRef       string                 `json:"supervisory_ai_ref,omitempty"`        // Specific SAI for this item (Future)
+	Metadata               map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // LLMCallMetrics holds detailed metrics from a specific LLM API call.
@@ -184,5 +327,3 @@ type LLMCallMetrics struct {
 	FinishReason string `json:"finish_reason,omitempty"`
 	ModelUsed    string `json:"model_used,omitempty"` // The actual model identifier used for the call
 }
-
-// ConversationTurn is defined in llm_types.go

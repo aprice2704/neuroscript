@@ -1,0 +1,90 @@
+{
+  "globalDataSources": [
+    {
+      "name": "project_cad_files_local",
+      "type": "local_directory",
+      "description": "Primary CAD design files for ongoing projects, stored locally.",
+      "local_path": "/srv/company_data/active_projects/cad_source",
+      "allow_external_read_access": true,
+      "remote_target_path": "projects/cad_backup",
+      "read_only": false, 
+      "filters": ["*.dxf", "*.step", "*.par"],
+      "recursive": true,
+      "metadata": {"access_group": "engineering_team"}
+    },
+    {
+      "name": "standard_parts_library_gdrive",
+      "type": "file_api",
+      "description": "Company-wide library of standard parts and components.",
+      "file_api_path": "fm:/libraries/standard_parts_v3/",
+      "read_only": true,
+      "recursive": true,
+      "metadata": {"maintained_by": "procurement_dept"}
+    }
+  ],
+  "aiWorkerDefinitions": [
+    {
+      "name": "cad_analyzer_gemini_v1",
+      "provider": "google",
+      "model_name": "gemini-1.5-pro-latest",
+      "auth": {"method": "env_var", "value": "GOOGLE_API_KEY"},
+      "interaction_models": ["stateless_task"],
+      "capabilities": ["cad_analysis", "measurement", "dxf_parsing"],
+      "base_config": {"temperature": 0.2, "top_p": 0.9},
+      "rate_limits": {"max_requests_per_minute": 20},
+      "status": "active",
+      "data_source_refs": ["project_cad_files_local", "standard_parts_library_gdrive"],
+      "tool_allowlist": ["tool.ReadFile", "tool.ListDirectory", "tool.AIWorker.SyncDataSource", "tool.GetPanelDimensions"],
+      "tool_denylist": ["tool.WriteFile"],
+      "default_supervisory_ai_ref": "cad_analysis_quality_monitor",
+      "metadata": {"version": "1.0.3", "intended_use": "Automated CAD file validation and basic analysis"}
+    },
+    {
+      "name": "report_generator_ollama_v1",
+      "provider": "ollama",
+      "model_name": "mistral:latest",
+      "auth": {"method": "none"},
+      "interaction_models": ["stateless_task"],
+      "capabilities": ["text_summarization", "report_formatting"],
+      "base_config": {"temperature": 0.8},
+      "status": "active",
+      "tool_allowlist": ["tool.ReadFile"],
+      "metadata": {"notes": "Ensure Ollama server is running with the 'mistral' model."}
+    }
+  ],
+  "aiWorkerPoolDefinitions": [
+    {
+      "name": "cad_analysis_main_pool",
+      "target_ai_worker_definition_name": "cad_analyzer_gemini_v1",
+      "min_idle_instances": 1,
+      "max_total_instances": 5,
+      "instance_retirement_policy": {"max_tasks_per_instance": 500, "max_instance_age_hours": 12},
+      "metadata": {"cost_code": "CAD_AUTO_ANALYSIS"}
+    }
+  ],
+  "workQueueDefinitions": [
+    {
+      "name": "nightly_cad_validation_queue",
+      "associated_pool_names": ["cad_analysis_main_pool"],
+      "default_priority": 10,
+      "retry_policy": {"max_retries": 2, "retry_delay_seconds": 300},
+      "persist_tasks": true,
+      "data_source_refs": ["project_cad_files_local"],
+      "metadata": {"trigger_schedule": "daily_0200_pst"}
+    }
+  ],
+  "workItemDefinitions": [
+    {
+      "name": "ValidateDXFIntegrity",
+      "description": "Template for submitting a DXF file for integrity and basic standards checking.",
+      "default_target_worker_criteria": {"definitionName": "cad_analyzer_gemini_v1"},
+      "default_payload_schema": {
+        "design_file_uri": {"type": "string", "description": "URI to the DXF file (e.g., datasource://project_cad_files_local/drawing_xyz.dxf)"},
+        "validation_profile": {"type": "string", "default": "standard_v1.2"}
+      },
+      "default_data_source_refs": ["project_cad_files_local"],
+      "default_priority": 20,
+      "metadata": {"task_category": "validation"}
+    }
+  ]
+}
