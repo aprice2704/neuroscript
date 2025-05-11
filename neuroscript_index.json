@@ -332,13 +332,13 @@
               "Receiver": "*AIWorkerManager",
               "Name": "loadWorkerDefinitionsFromContent",
               "calls": [
-                "m.logger.Infof(?)",
+                "m.logger.Debugf(?)",
                 "m.logger.Errorf(?)",
                 "NewRuntimeError",
                 "m.logger.Warnf(?)",
                 "m.logger.Warnf(?)",
                 "m.logger.Debugf(?)",
-                "m.logger.Infof(?)"
+                "m.logger.Debugf(?)"
               ]
             },
             {
@@ -385,10 +385,10 @@
               "Name": "loadRetiredInstancePerformanceDataFromContent",
               "calls": [
                 "m.logger.Debug(?)",
-                "m.logger.Infof(?)",
+                "m.logger.Debugf(?)",
                 "m.logger.Errorf(?)",
                 "NewRuntimeError",
-                "m.logger.Infof(?)"
+                "m.logger.Debugf(?)"
               ]
             },
             {
@@ -2222,7 +2222,7 @@
               "Name": "AddUserMessage",
               "calls": [
                 "github.com/google/generative-ai-go/genai.Text",
-                "cm.logger.Info(?)"
+                "cm.logger.Debug(?)"
               ]
             },
             {
@@ -2230,7 +2230,7 @@
               "Name": "AddModelMessage",
               "calls": [
                 "github.com/google/generative-ai-go/genai.Text",
-                "cm.logger.Info(?)"
+                "cm.logger.Debug(?)"
               ]
             },
             {
@@ -2239,16 +2239,16 @@
               "calls": [
                 "cm.logger.Warn(?)",
                 "cm.logger.Error(?)",
-                "cm.logger.Info(?)",
+                "cm.logger.Debug(?)",
                 "string",
-                "cm.logger.Info(?)"
+                "cm.logger.Debug(?)"
               ]
             },
             {
               "Receiver": "*ConversationManager",
               "Name": "AddFunctionCallMessage",
               "calls": [
-                "cm.logger.Info(?)"
+                "cm.logger.Debug(?)"
               ]
             },
             {
@@ -2256,7 +2256,7 @@
               "Name": "AddFunctionResultMessage",
               "calls": [
                 "cm.logger.Error(?)",
-                "cm.logger.Info(?)"
+                "cm.logger.Debug(?)"
               ]
             },
             {
@@ -2267,7 +2267,7 @@
               "Receiver": "*ConversationManager",
               "Name": "ClearHistory",
               "calls": [
-                "cm.logger.Info(?)"
+                "cm.logger.Debug(?)"
               ]
             }
           ]
@@ -2344,7 +2344,7 @@
               "Receiver": "*Interpreter",
               "Name": "evaluateMapElementAccess",
               "calls": [
-                "i.logger.Info(?)",
+                "i.logger.Debug(?)",
                 "NewRuntimeError",
                 "i.logger.Debug(?)"
               ]
@@ -2647,6 +2647,14 @@
           "methods": [
             {
               "Receiver": "*Interpreter",
+              "Name": "SetStdout",
+              "calls": [
+                "i.logger.Warn(?)",
+                "i.logger.Debug(?)"
+              ]
+            },
+            {
+              "Receiver": "*Interpreter",
               "Name": "ToolRegistry"
             },
             {
@@ -2690,12 +2698,12 @@
                 "NewRuntimeError",
                 "i.logger.Debug(?)",
                 "i.logger.Warn(?)",
-                "i.logger.Info(?)",
+                "i.logger.Debug(?)",
                 "impl.Func(?)",
                 "i.logger.Error(?)",
                 "NewRuntimeError",
                 "i.logger.Error(?)",
-                "i.logger.Info(?)"
+                "i.logger.Debug(?)"
               ]
             },
             {
@@ -2724,10 +2732,10 @@
                 "i.Logger(?)",
                 "i.Logger().Error(?)",
                 "i.Logger(?)",
-                "i.Logger().Infof(?)",
+                "i.Logger().Debugf(?)",
                 "i.Logger(?)",
                 "NewFileAPI",
-                "i.Logger().Infof(?)",
+                "i.Logger().Debugf(?)",
                 "i.Logger(?)",
                 "i.Logger().Debug(?)",
                 "i.Logger(?)"
@@ -2739,7 +2747,7 @@
               "calls": [
                 "i.logger.Error(?)",
                 "i.logger.Warn(?)",
-                "i.logger.Info(?)"
+                "i.logger.Debug(?)"
               ]
             },
             {
@@ -2836,13 +2844,13 @@
               "Receiver": "*Interpreter",
               "Name": "RunProcedure",
               "calls": [
-                "i.Logger().Info(?)",
+                "i.Logger().Debug(?)",
                 "i.Logger(?)",
-                "func() {\n\tif r := recover(); r != nil {\n\t\terr = NewRuntimeError(ErrorCodeInternal, fmt.Sprintf(\"panic occurred during procedure '%s': %v\", procName, r), errors.New(\"panic\"))\n\t\ti.Logger().Error(\"Panic recovered during procedure execution\", \"proc_name\", procName, \"panic_value\", r, \"error\", err)\n\t\tresult = nil\n\t}\n\ti.currentProcName = originalProcName\n\tlogArgsMap := map[string]interface{}{\n\t\t\"proc_name\":\tprocName,\n\t\t\"restored_proc_name\":\ti.currentProcName,\n\t\t\"result_type\":\tfmt.Sprintf(\"%T\", result),\n\t\t\"error\":\terr,\n\t}\n\ti.Logger().Info(\"Finished procedure.\", \"details\", logArgsMap)\n}(?)",
+                "func() {\n\tif r := recover(); r != nil {\n\t\terr = NewRuntimeError(ErrorCodeInternal, fmt.Sprintf(\"panic occurred during procedure '%s': %v\", procName, r), errors.New(\"panic\"))\n\t\ti.Logger().Error(\"Panic recovered during procedure execution\", \"proc_name\", procName, \"panic_value\", r, \"error\", err)\n\t\tresult = nil\n\t}\n\ti.currentProcName = originalProcName\n\tlogArgsMap := map[string]interface{}{\n\t\t\"proc_name\":\tprocName,\n\t\t\"restored_proc_name\":\ti.currentProcName,\n\t\t\"result_type\":\tfmt.Sprintf(\"%T\", result),\n\t\t\"error\":\terr,\n\t}\n\ti.Logger().Debug(\"Finished procedure.\", \"details\", logArgsMap)\n}(?)",
                 "NewRuntimeError",
                 "i.Logger().Error(?)",
                 "i.Logger(?)",
-                "i.Logger().Info(?)",
+                "i.Logger().Debug(?)",
                 "i.Logger(?)",
                 "i.Logger().Error(?)",
                 "i.Logger(?)",
@@ -2874,11 +2882,11 @@
               "Receiver": "*Interpreter",
               "Name": "executeSteps",
               "calls": [
-                "i.Logger().Info(?)",
+                "i.Logger().Debug(?)",
                 "i.Logger(?)",
                 "interface{}(?)",
                 "error",
-                "i.Logger().Info(?)",
+                "i.Logger().Debug(?)",
                 "i.Logger(?)",
                 "i.executeSet(?)",
                 "i.evaluateExpression(?)",
@@ -2902,7 +2910,7 @@
                 "i.Logger().Warn(?)",
                 "i.Logger(?)",
                 "NewRuntimeError",
-                "i.Logger().Info(?)",
+                "i.Logger().Debug(?)",
                 "i.Logger(?)",
                 "i.executeSteps(?)",
                 "i.Logger().Debug(?)",
@@ -2914,17 +2922,17 @@
                 "NewRuntimeError",
                 "i.Logger().Error(?)",
                 "i.Logger(?)",
-                "i.Logger().Info(?)",
-                "i.Logger(?)",
-                "i.Logger().Info(?)",
-                "i.Logger(?)",
                 "i.Logger().Debug(?)",
                 "i.Logger(?)",
                 "i.Logger().Debug(?)",
                 "i.Logger(?)",
                 "i.Logger().Debug(?)",
                 "i.Logger(?)",
-                "i.Logger().Info(?)",
+                "i.Logger().Debug(?)",
+                "i.Logger(?)",
+                "i.Logger().Debug(?)",
+                "i.Logger(?)",
+                "i.Logger().Debug(?)",
                 "i.Logger(?)"
               ]
             },
@@ -2939,10 +2947,10 @@
                 "i.Logger(?)",
                 "i.Logger().Debug(?)",
                 "i.Logger(?)",
-                "i.Logger().Info(?)",
+                "i.Logger().Debug(?)",
                 "i.Logger(?)",
                 "i.executeSteps(?)",
-                "i.Logger().Info(?)",
+                "i.Logger().Debug(?)",
                 "i.Logger(?)"
               ]
             }
@@ -2983,7 +2991,7 @@
                 "i.addResponseToConversation(?)",
                 "i.handleToolCalls(?)",
                 "step.Pos.String(?)",
-                "i.logger.Info(?)"
+                "i.logger.Debug(?)"
               ]
             },
             {
@@ -3022,7 +3030,7 @@
               "Receiver": "*Interpreter",
               "Name": "handleToolCalls",
               "calls": [
-                "i.logger.Info(?)",
+                "i.logger.Debug(?)",
                 "pos.String(?)",
                 "pos.String(?)",
                 "NewRuntimeError",
@@ -3199,6 +3207,11 @@
                 "i.Logger().Debug(?)",
                 "i.Logger(?)",
                 "i.evaluateExpression(?)",
+                "NewRuntimeError",
+                "i.Logger().Error(?)",
+                "i.Logger(?)",
+                "i.Logger().Error(?)",
+                "i.Logger(?)",
                 "NewRuntimeError"
               ]
             },
@@ -3259,7 +3272,7 @@
               "Name": "executeAsk",
               "calls": [
                 "step.Pos.String(?)",
-                "i.Logger().Info(?)",
+                "i.Logger().Debug(?)",
                 "i.Logger(?)",
                 "i.evaluateExpression(?)",
                 "NewRuntimeError",
@@ -3514,7 +3527,7 @@
                 "sl.logger.Debug(?)",
                 "sl.logger.Warn(?)",
                 "sl.logger.Debug(?)",
-                "sl.logger.Info(?)"
+                "sl.logger.Debug(?)"
               ]
             },
             {
@@ -3538,7 +3551,7 @@
                 "toolImpl.Func(?)",
                 "sl.logger.Error(?)",
                 "CreateErrorFunctionResultPart",
-                "sl.logger.Info(?)",
+                "sl.logger.Debug(?)",
                 "CreateSuccessFunctionResultPart"
               ]
             },
@@ -3718,41 +3731,12 @@
               "Name": "ResolvePath",
               "calls": [
                 "f.logger.Error(?)",
-                "NewRuntimeError",
-                "NewRuntimeError",
                 "f.logger.Debug(?)",
                 "f.logger.Debug(?)",
                 "string",
                 "string",
                 "f.logger.Warn(?)",
-                "NewRuntimeError",
                 "f.logger.Debug(?)"
-              ]
-            },
-            {
-              "Receiver": "*FileAPI",
-              "Name": "ReadFile",
-              "calls": [
-                "f.logger.Debug(?)",
-                "f.ResolvePath(?)",
-                "f.logger.Error(?)",
-                "f.logger.Error(?)",
-                "NewRuntimeError",
-                "info.IsDir(?)",
-                "f.logger.Error(?)",
-                "NewRuntimeError",
-                "f.logger.Error(?)",
-                "NewRuntimeError",
-                "f.logger.Debug(?)"
-              ]
-            },
-            {
-              "Receiver": "*FileAPI",
-              "Name": "Stat",
-              "calls": [
-                "f.ResolvePath(?)",
-                "f.logger.Error(?)",
-                "NewRuntimeError"
               ]
             }
           ]
@@ -12131,15 +12115,15 @@
               "Receiver": "*App",
               "Name": "CreateLLMClient",
               "calls": [
-                "app.Log.Info(?)",
-                "pkg/adapters.NewNoOpLLMClient",
-                "app.Log.Info(?)",
                 "app.Log.Debug(?)",
-                "app.Log.Info(?)",
+                "pkg/adapters.NewNoOpLLMClient",
+                "app.Log.Debug(?)",
+                "app.Log.Debug(?)",
+                "app.Log.Debug(?)",
                 "pkg/adapters.NewNoOpLogger",
                 "pkg/core.NewLLMClient",
                 "app.Log.Error(?)",
-                "app.Log.Info(?)"
+                "app.Log.Debug(?)"
               ]
             },
             {
@@ -12172,7 +12156,7 @@
               "calls": [
                 "a.Log.Debug(?)",
                 "a.Log.Warn(?)",
-                "a.Log.Info(?)",
+                "a.Log.Debug(?)",
                 "a.Log.Warn(?)",
                 "info.IsDir(?)",
                 "a.Log.Warn(?)",
@@ -12194,27 +12178,27 @@
               "Receiver": "*App",
               "Name": "ExecuteScriptFile",
               "calls": [
-                "app.Log.Info(?)",
+                "app.Log.Debug(?)",
                 "app.GetInterpreter(?)",
                 "app.Log.Error(?)",
                 "app.loadLibraries(?)",
                 "app.Log.Error(?)",
                 "app.processNeuroScriptFile(?)",
                 "app.Log.Warn(?)",
-                "app.Log.Info(?)",
-                "app.Log.Info(?)",
-                "app.Log.Info(?)",
-                "app.Log.Info(?)",
+                "app.Log.Debug(?)",
+                "app.Log.Debug(?)",
+                "app.Log.Debug(?)",
+                "app.Log.Debug(?)",
                 "app.Log.Warn(?)",
                 "interpreter.RunProcedure(?)",
                 "interpreter.RunProcedure(?)",
                 "execEndTime.Sub(?)",
-                "app.Log.Info(?)",
+                "app.Log.Debug(?)",
                 "app.Log.Error(?)",
-                "app.Log.Info(?)",
                 "app.Log.Debug(?)",
                 "app.Log.Debug(?)",
-                "app.Log.Info(?)"
+                "app.Log.Debug(?)",
+                "app.Log.Debug(?)"
               ]
             },
             {
@@ -12577,6 +12561,10 @@
             {
               "Receiver": "keyMap",
               "Name": "FullHelp"
+            },
+            {
+              "Receiver": "*model",
+              "Name": "SetTeaProgram"
             }
           ]
         },
@@ -12597,6 +12585,21 @@
           ],
           "methods": []
         },
+        "pkg/neurogo/tui/tui_writer.go": {
+          "functions": [
+            "NewTUIEmitWriter"
+          ],
+          "methods": [
+            {
+              "Receiver": "*TUIEmitWriter",
+              "Name": "Write",
+              "calls": [
+                "string",
+                "tew.teaProgram.Send(?)"
+              ]
+            }
+          ]
+        },
         "pkg/neurogo/tui/update.go": {
           "methods": [
             {
@@ -12608,6 +12611,7 @@
               "Name": "Update",
               "calls": [
                 "m.viewport.Update(?)",
+                "m.emitLogViewport.Update(?)",
                 "m.spinner.Update(?)",
                 "github.com/charmbracelet/bubbles/key.Matches",
                 "m.addMessage(?)",
@@ -12640,6 +12644,9 @@
                 "m.promptInput.Update(?)",
                 "m.setSizes(?)",
                 "m.viewport.GotoBottom(?)",
+                "m.emitLogViewport.GotoBottom(?)",
+                "m.emitLogViewport.SetContent(?)",
+                "m.emitLogViewport.GotoBottom(?)",
                 "int",
                 "int",
                 "m.addMessage(?)",
@@ -12747,8 +12754,13 @@
                 "m.help.View(?)",
                 "m.commandInput.SetWidth(?)",
                 "m.promptInput.SetWidth(?)",
+                "int",
+                "float64",
                 "m.viewport.SetContent(?)",
-                "m.renderMessages(?)"
+                "m.renderMessages(?)",
+                "m.emitLogViewport.SetContent(?)",
+                "m.viewport.GotoBottom(?)",
+                "m.emitLogViewport.GotoBottom(?)"
               ]
             }
           ]
@@ -12760,11 +12772,13 @@
               "Name": "View",
               "calls": [
                 "m.viewport.View(?)",
+                "m.emitLogViewport.View(?)",
                 "m.renderStatusBar(?)",
                 "m.commandInput.View(?)",
                 "m.promptInput.View(?)",
                 "github.com/charmbracelet/lipgloss.JoinHorizontal",
                 "m.help.View(?)",
+                "github.com/charmbracelet/lipgloss.JoinHorizontal",
                 "github.com/charmbracelet/lipgloss.JoinVertical",
                 "github.com/charmbracelet/lipgloss.JoinVertical"
               ]

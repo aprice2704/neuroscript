@@ -58,8 +58,8 @@ func TestNeuroScriptParser(t *testing.T) {
 		}
 
 		// Capture range variables for parallel execution before t.Run
-		filename = filename // Use = instead of :=
-		tc = tc             // Use = instead of :=
+		// filename = filename // Use = instead of :=
+		// tc = tc             // Use = instead of :=
 
 		// Use t.Run to create subtests for each file
 		t.Run(filename, func(t *testing.T) {

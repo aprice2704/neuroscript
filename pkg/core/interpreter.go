@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.0.16 // Changed INFO logs to DEBUG
-// nlines: 442
+// File version: 0.0.18 // Add Stdout() getter.
+// nlines: 456 // Approximate
 // risk_rating: HIGH
 // filename: pkg/core/interpreter.go
 package core
@@ -8,6 +8,8 @@ package core
 import (
 	"errors"
 	"fmt"
+	"io" // Imported for io.Writer
+	"os" // Imported for os.Stdout
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -29,15 +31,15 @@ type Interpreter struct {
 	currentProcName string
 	sandboxDir      string
 	LibPaths        []string
+	stdout          io.Writer // For EMIT statements, defaults to os.Stdout
 
-	toolRegistry    *toolRegistryImpl // Concrete struct from tools_registry.go
+	toolRegistry    *toolRegistryImpl
 	logger          logging.Logger
 	objectCache     map[string]interface{}
 	llmClient       LLMClient
 	fileAPI         *FileAPI
 	aiWorkerManager *AIWorkerManager
 
-	// Rate limiting for tool execution
 	toolCallTimestamps map[string][]time.Time
 	rateLimitCount     int
 	rateLimitDuration  time.Duration
@@ -69,12 +71,12 @@ func NewInterpreter(logger logging.Logger, llmClient LLMClient, sandboxDir strin
 			return nil, fmt.Errorf("invalid sandbox directory '%s': %w", sandboxDir, err)
 		}
 		cleanSandboxDir = filepath.Clean(absPath)
-		effectiveLogger.Debugf("Interpreter sandbox directory set to: %s", cleanSandboxDir) // Changed from Infof
+		effectiveLogger.Debugf("Interpreter sandbox directory set to: %s", cleanSandboxDir)
 	} else {
 		effectiveLogger.Warn("No sandbox directory provided, using default '.'")
 	}
 
-	fileAPI := NewFileAPI(cleanSandboxDir, effectiveLogger) // Corrected: NewFileAPI returns *FileAPI, not two values
+	fileAPI := NewFileAPI(cleanSandboxDir, effectiveLogger)
 
 	vars := make(map[string]interface{})
 	vars["NEUROSCRIPT_DEVELOP_PROMPT"] = prompts.PromptDevelop
@@ -93,23 +95,26 @@ func NewInterpreter(logger logging.Logger, llmClient LLMClient, sandboxDir strin
 	interp := &Interpreter{
 		variables:          vars,
 		knownProcedures:    make(map[string]Procedure),
+		lastCallResult:     nil,
 		vectorIndex:        make(map[string][]float32),
 		embeddingDim:       16,
+		currentProcName:    "",
+		sandboxDir:         cleanSandboxDir,
+		LibPaths:           effectiveLibPaths,
+		stdout:             os.Stdout, // Default EMIT output to os.Stdout
+		toolRegistry:       nil,
 		logger:             effectiveLogger,
 		objectCache:        make(map[string]interface{}),
 		llmClient:          effectiveLLMClient,
-		sandboxDir:         cleanSandboxDir,
 		fileAPI:            fileAPI,
-		LibPaths:           effectiveLibPaths,
-		toolCallTimestamps: make(map[string][]time.Time), // Initialize rate limit map
-		rateLimitCount:     10,                           // Default: 10 calls
-		rateLimitDuration:  time.Minute,                  // Default: per minute
+		aiWorkerManager:    nil,
+		toolCallTimestamps: make(map[string][]time.Time),
+		rateLimitCount:     10,
+		rateLimitDuration:  time.Minute,
 	}
 
-	interp.toolRegistry = NewToolRegistry(interp) // NewToolRegistry returns *toolRegistryImpl
+	interp.toolRegistry = NewToolRegistry(interp)
 
-	// RegisterCoreTools expects an argument that satisfies the ToolRegistry INTERFACE.
-	// The *Interpreter instance (interp) itself implements this interface.
 	if err := RegisterCoreTools(interp); err != nil {
 		effectiveLogger.Errorf("FATAL: Failed to register core tools during interpreter initialization: %v", err)
 		return nil, fmt.Errorf("FATAL: failed to register core tools: %w", err)
@@ -119,14 +124,33 @@ func NewInterpreter(logger logging.Logger, llmClient LLMClient, sandboxDir strin
 	return interp, nil
 }
 
+// SetStdout allows changing the output writer for EMIT statements.
+func (i *Interpreter) SetStdout(writer io.Writer) {
+	if writer == nil {
+		i.logger.Warn("Attempted to set nil stdout writer on interpreter, using os.Stdout as fallback.")
+		i.stdout = os.Stdout
+		return
+	}
+	i.logger.Debug("Interpreter stdout writer changed.")
+	i.stdout = writer
+}
+
+// Stdout returns the current io.Writer used for EMIT statements.
+func (i *Interpreter) Stdout() io.Writer {
+	if i.stdout == nil {
+		// This should ideally not happen as it's initialized in NewInterpreter.
+		i.logger.Error("Interpreter stdout writer is nil! Defaulting to os.Stdout for this call.")
+		return os.Stdout
+	}
+	return i.stdout
+}
+
 // --- ToolRegistry Interface Compliance ---
 
-// ToolRegistry returns the interpreter itself, as *Interpreter implements the ToolRegistry interface.
 func (i *Interpreter) ToolRegistry() ToolRegistry {
 	return i
 }
 
-// RegisterTool delegates to the internal toolRegistry field.
 func (i *Interpreter) RegisterTool(impl ToolImplementation) error {
 	if i.toolRegistry == nil {
 		i.logger.Error("RegisterTool called on interpreter with nil internal toolRegistry field.")
@@ -135,7 +159,6 @@ func (i *Interpreter) RegisterTool(impl ToolImplementation) error {
 	return i.toolRegistry.RegisterTool(impl)
 }
 
-// GetTool delegates to the internal toolRegistry field.
 func (i *Interpreter) GetTool(name string) (ToolImplementation, bool) {
 	if i.toolRegistry == nil {
 		i.logger.Error("GetTool called on interpreter with nil internal toolRegistry field.")
@@ -144,7 +167,6 @@ func (i *Interpreter) GetTool(name string) (ToolImplementation, bool) {
 	return i.toolRegistry.GetTool(name)
 }
 
-// ListTools delegates to the internal toolRegistry field.
 func (i *Interpreter) ListTools() []ToolSpec {
 	if i.toolRegistry == nil {
 		i.logger.Error("ListTools called on interpreter with nil internal toolRegistry field.")
@@ -153,17 +175,12 @@ func (i *Interpreter) ListTools() []ToolSpec {
 	return i.toolRegistry.ListTools()
 }
 
-// ExecuteTool retrieves and executes a registered tool by name.
-// It handles argument validation, rate limiting, and execution.
-// This method makes *Interpreter satisfy the ToolRegistry interface.
 func (i *Interpreter) ExecuteTool(toolName string, args map[string]interface{}) (interface{}, error) {
 	i.logger.Debug("Attempting to execute tool", "tool_name", toolName, "args_count", len(args))
 
-	// --- Rate Limiting Check ---
 	now := time.Now()
 	if i.rateLimitCount > 0 && i.rateLimitDuration > 0 {
 		timestamps := i.toolCallTimestamps[toolName]
-		// Remove timestamps older than the duration
 		validTimestamps := []time.Time{}
 		cutoff := now.Add(-i.rateLimitDuration)
 		for _, ts := range timestamps {
@@ -171,7 +188,6 @@ func (i *Interpreter) ExecuteTool(toolName string, args map[string]interface{}) 
 				validTimestamps = append(validTimestamps, ts)
 			}
 		}
-		// Check if limit exceeded
 		if len(validTimestamps) >= i.rateLimitCount {
 			err := NewRuntimeError(ErrorCodeRateLimited,
 				fmt.Sprintf("tool '%s' rate limit exceeded (%d calls per %s)", toolName, i.rateLimitCount, i.rateLimitDuration.String()),
@@ -179,19 +195,16 @@ func (i *Interpreter) ExecuteTool(toolName string, args map[string]interface{}) 
 			i.logger.Warn("Tool execution rate limited", "tool_name", toolName, "limit", i.rateLimitCount, "duration", i.rateLimitDuration)
 			return nil, err
 		}
-		// Add current timestamp and update map
 		validTimestamps = append(validTimestamps, now)
 		i.toolCallTimestamps[toolName] = validTimestamps
 	}
-	// --- End Rate Limiting Check ---
 
-	impl, found := i.GetTool(toolName) // Use the GetTool method which delegates
+	impl, found := i.GetTool(toolName)
 	if !found {
 		i.logger.Error("Tool not found during execution attempt", "tool_name", toolName)
 		return nil, NewRuntimeError(ErrorCodeToolNotFound, fmt.Sprintf("tool '%s' not found", toolName), ErrToolNotFound)
 	}
 
-	// Validate provided arguments against the tool's specification
 	validatedArgs := make([]interface{}, len(impl.Spec.Args))
 	providedArgsSet := make(map[string]bool)
 	for k := range args {
@@ -273,10 +286,10 @@ func (i *Interpreter) SetSandboxDir(newSandboxDir string) error {
 		cleanNewSandboxDir = filepath.Clean(absPath)
 	}
 	if i.sandboxDir != cleanNewSandboxDir {
-		i.Logger().Debugf("sandbox directory changed to: %s", cleanNewSandboxDir) // Changed from Infof
+		i.Logger().Debugf("sandbox directory changed to: %s", cleanNewSandboxDir)
 		i.sandboxDir = cleanNewSandboxDir
-		i.fileAPI = NewFileAPI(i.sandboxDir, i.logger)                                                    // Corrected: NewFileAPI returns *FileAPI
-		i.Logger().Debugf("FileAPI re-initialized with new sandbox directory: %s", i.fileAPI.sandboxRoot) // Changed from Infof
+		i.fileAPI = NewFileAPI(i.sandboxDir, i.logger)
+		i.Logger().Debugf("FileAPI re-initialized with new sandbox directory: %s", i.fileAPI.sandboxRoot)
 	} else {
 		i.Logger().Debug("New sandbox directory is unchanged")
 	}
@@ -292,7 +305,7 @@ func (i *Interpreter) SetInternalToolRegistry(registry *toolRegistryImpl) {
 		i.logger.Warn("Setting internal toolRegistryImpl that points to a different interpreter. Re-assigning its interpreter pointer.")
 		registry.interpreter = i
 	}
-	i.logger.Debug("Replacing interpreter's internal toolRegistryImpl.") // Changed from Info
+	i.logger.Debug("Replacing interpreter's internal toolRegistryImpl.")
 	i.toolRegistry = registry
 }
 
@@ -439,7 +452,7 @@ func (i *Interpreter) RemoveHandle(handle string) bool {
 
 func (i *Interpreter) RunProcedure(procName string, args ...interface{}) (result interface{}, err error) {
 	originalProcName := i.currentProcName
-	i.Logger().Debug("Running procedure", "name", procName, "arg_count", len(args)) // Changed from Info
+	i.Logger().Debug("Running procedure", "name", procName, "arg_count", len(args))
 	i.currentProcName = procName
 	defer func() {
 		if r := recover(); r != nil {
@@ -454,7 +467,7 @@ func (i *Interpreter) RunProcedure(procName string, args ...interface{}) (result
 			"result_type":        fmt.Sprintf("%T", result),
 			"error":              err,
 		}
-		i.Logger().Debug("Finished procedure.", "details", logArgsMap) // Changed from Info
+		i.Logger().Debug("Finished procedure.", "details", logArgsMap)
 	}()
 
 	proc, exists := i.knownProcedures[procName]

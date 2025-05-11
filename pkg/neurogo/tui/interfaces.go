@@ -1,8 +1,14 @@
+// NeuroScript Version: 0.3.0
+// File version: 0.0.1 // Add ExecuteScriptFile and Context methods.
 // filename: pkg/neurogo/tui/interfaces.go
+// nlines: 25 // Approximate
+// risk_rating: LOW
 package tui
 
 import (
-	"github.com/aprice2704/neuroscript/pkg/core" // Need this for LLMClient & Interpreter types
+	"context" // Added for Context method and ExecuteScriptFile
+
+	"github.com/aprice2704/neuroscript/pkg/core"
 	"github.com/aprice2704/neuroscript/pkg/logging"
 )
 
@@ -13,17 +19,23 @@ type AppAccess interface {
 	// Config Accessors
 	GetModelName() string
 	GetSyncDir() string
-	GetSandboxDir() string // Needed for secure path validation
+	GetSandboxDir() string
 	GetSyncFilter() string
 	GetSyncIgnoreGitignore() bool
 	// Add other config getters as needed
 
-	// Logger Accessors
+	// Logger Accessor
 	GetLogger() logging.Logger
 
 	// Client Accessors
-	GetLLMClient() core.LLMClient // Keep this if other parts of TUI need direct LLM access
+	GetLLMClient() core.LLMClient
 
 	// Interpreter Accessor
-	GetInterpreter() *core.Interpreter // Added
+	GetInterpreter() *core.Interpreter
+
+	// Script Execution
+	ExecuteScriptFile(ctx context.Context, scriptPath string) error
+
+	// Context Accessor
+	Context() context.Context // Provides a general context if needed by TUI operations
 }

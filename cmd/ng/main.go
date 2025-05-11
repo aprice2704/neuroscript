@@ -1,8 +1,10 @@
 // NeuroScript Version: 0.3.0
-// File version: 0.1.11
+// File version: 0.1.12
 // filename: cmd/ng/main.go
-// nlines: 178
-// risk_rating: MEDIUM
+// Changes:
+// - TUI flag defaults to false.
+// - TUI only starts if -tui is explicitly true.
+// - If -script and -tui, script path is passed to TUI for delayed execution.
 package main
 
 import (
@@ -14,10 +16,9 @@ import (
 	"path/filepath"
 	"syscall"
 
-	"github.com/aprice2704/neuroscript/pkg/core"    // Import logging for type usage
-	"github.com/aprice2704/neuroscript/pkg/neurogo" // neurogo package for App, Config, constants
+	"github.com/aprice2704/neuroscript/pkg/core"
+	"github.com/aprice2704/neuroscript/pkg/neurogo"
 	"github.com/aprice2704/neuroscript/pkg/neurogo/tui"
-	// "github.com/aprice2704/neuroscript/pkg/toolsets" // Not used currently, but might be for RegisterExtendedTools
 )
 
 func main() {
@@ -28,13 +29,15 @@ func main() {
 
 	apiKey := flag.String("api-key", os.Getenv("GEMINI_API_KEY"), "Gemini API Key (env: GEMINI_API_KEY or NEUROSCRIPT_API_KEY)")
 	if *apiKey == "" {
-		*apiKey = os.Getenv("NEUROSCRIPT_API_KEY") // Fallback to NEUROSCRIPT_API_KEY
+		*apiKey = os.Getenv("NEUROSCRIPT_API_KEY")
 	}
 	apiHost := flag.String("api-host", "", "Optional API Host/Endpoint override")
-	insecure := flag.Bool("insecure", false, "Disable security checks (Use with extreme caution!)") // Used for Config.Insecure
+	insecure := flag.Bool("insecure", false, "Disable security checks (Use with extreme caution!)")
 	modelName := flag.String("model", neurogo.DefaultModelName, "Default generative model name for LLM interactions")
-	startupScript := flag.String("script", "", "Path to a NeuroScript (.ns) file to execute on startup")
-	tuiMode := flag.Bool("tui", true, "Enable Terminal User Interface (TUI) mode") // Default to TUI true
+	startupScriptPath := flag.String("script", "", "Path to a NeuroScript (.ns) file to execute")
+
+	// TUI flag now defaults to false
+	tuiMode := flag.Bool("tui", false, "Enable Terminal User Interface (TUI) mode")
 	replMode := flag.Bool("repl", false, "Enable basic REPL mode (if TUI is false and no script is run)")
 
 	libPathsConfig := neurogo.NewStringSliceFlag()
@@ -47,7 +50,6 @@ func main() {
 	flag.Var(aiServiceDenyCfg, "ai-deny", "Tool/service name to deny for AI (can be specified multiple times, overrides allows)")
 
 	targetArg := flag.String("target", "main", "Target procedure for the script")
-	// CORRECTED: Use NewStringSliceFlag for procArgsConfig as well
 	procArgsConfig := neurogo.NewStringSliceFlag()
 	flag.Var(procArgsConfig, "arg", "Argument for the script process/procedure (can be specified multiple times)")
 
@@ -64,8 +66,6 @@ func main() {
 	// --- Application Context ---
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-
-	// Trap SIGINT and SIGTERM to trigger context cancellation
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
@@ -88,40 +88,29 @@ func main() {
 		APIKey:        *apiKey,
 		APIHost:       *apiHost,
 		ModelName:     *modelName,
-		StartupScript: *startupScript,
+		StartupScript: *startupScriptPath, // Use the renamed variable
 		SandboxDir:    absSandboxDir,
 		Insecure:      *insecure,
 		LibPaths:      libPathsConfig.Value,
 		TargetArg:     *targetArg,
-		ProcArgs:      procArgsConfig.Value, // Access the .Value field
+		ProcArgs:      procArgsConfig.Value,
 	}
-
-	// CORRECTED: NewApp only takes the logger now.
 	app := neurogo.NewApp(logger)
-	app.Config = appConfig // Assign config after creation
+	app.Config = appConfig
 
 	// --- Initialize Core Components (LLM, Interpreter, AIWM) ---
-	// REMOVED: Unused declaration: var llmClient core.LLMClient
-	var interpreter *core.Interpreter
-	var aiWm *core.AIWorkerManager
-
-	// Pass app (which contains config) and logger to initializeCoreComponents
-	// initializeCoreComponents now returns the components it creates/initializes.
-	// We capture them here, although they are also set within the app instance by initializeCoreComponents.
-	_, interpreter, aiWm, err = initializeCoreComponents(app, logger, absSandboxDir) // Capture interpreter and aiWm
+	var interpreter *core.Interpreter // Keep declaration
+	var aiWm *core.AIWorkerManager    // Keep declaration
+	_, interpreter, aiWm, err = initializeCoreComponents(app, logger, absSandboxDir)
 	if err != nil {
 		logger.Error("Failed to initialize core components", "error", err)
 		fmt.Fprintf(os.Stderr, "Initialization error: %v\n", err)
 		os.Exit(1)
 	}
-
 	logger.Debug("Core components (LLM, Interpreter, AIWM) initialized successfully.")
 
 	// --- Register Tools ---
-	// Core tools are registered within NewInterpreter.
-	// AI Worker tools are registered if AIWM is available.
 	if aiWm != nil {
-		// CORRECTED: RegisterAIWorkerTools only takes the interpreter.
 		if err := core.RegisterAIWorkerTools(interpreter); err != nil {
 			logger.Error("Failed to register AI Worker tools", "error", err)
 			fmt.Fprintf(os.Stderr, "Warning: Failed to register AI Worker tools: %v\n", err)
@@ -132,52 +121,73 @@ func main() {
 		logger.Warn("AI Worker Manager not initialized, skipping AI Worker tool registration.")
 	}
 
-	// --- Execute Startup Script (if provided) ---
-	scriptExecuted := false
-	if app.Config.StartupScript != "" {
-		logger.Debug("Executing startup script", "script", app.Config.StartupScript)
-		if err := app.ExecuteScriptFile(ctx, app.Config.StartupScript); err != nil {
-			logger.Error("Error executing startup script", "script", app.Config.StartupScript, "error", err)
-			fmt.Fprintf(os.Stderr, "Error executing startup script '%s': %v\n", app.Config.StartupScript, err)
-			os.Exit(1)
-		} else {
-			logger.Debug("Startup script finished successfully.")
-			scriptExecuted = true
-		}
-	} else {
-		logger.Debug("No startup script specified.")
+	// --- Determine Mode of Operation ---
+	scriptToRunNonTUI := app.Config.StartupScript // Script to run if not in TUI mode
+	// If no -script flag but a positional arg exists, and not in TUI mode, use that.
+	if scriptToRunNonTUI == "" && flag.NArg() > 0 && !*tuiMode {
+		scriptToRunNonTUI = flag.Arg(0)
+		logger.Debug("Using positional argument as script for non-TUI execution", "script", scriptToRunNonTUI)
 	}
 
-	// --- Start Primary Interaction (TUI or REPL or Exit) ---
 	if *tuiMode {
-		logger.Debug("Starting interactive TUI...")
-		if err := tui.Start(app); err != nil {
+		logger.Debug("TUI mode requested. Starting TUI...")
+		// Pass the original startup script path (from -script flag) to the TUI.
+		// tui.Start will handle its execution after TUI initialization.
+		// The `app` instance already has the config with the script path.
+		if err := tui.Start(app, app.Config.StartupScript); err != nil {
 			logger.Error("TUI Error", "error", err)
 			fmt.Fprintf(os.Stderr, "TUI Error: %v\n", err)
 			os.Exit(1)
 		}
 		logger.Debug("TUI finished.")
-	} else if scriptExecuted {
-		logger.Debug("Startup script executed and no interactive UI specified. Exiting.")
-	} else if *replMode {
-		logger.Debug("TUI disabled, no script run. Starting basic REPL...")
-		runRepl(ctx, app)
-		logger.Debug("Basic REPL finished.")
 	} else {
-		logger.Debug("No TUI, no script, no REPL. Nothing to do. Exiting.")
-		if flag.NArg() > 0 {
-			scriptPath := flag.Arg(0)
-			logger.Debug("Found positional argument, attempting to execute as script", "script", scriptPath)
-			app.Config.StartupScript = scriptPath
-			if err := app.ExecuteScriptFile(ctx, scriptPath); err != nil {
-				logger.Error("Error executing script from positional argument", "script", scriptPath, "error", err)
-				fmt.Fprintf(os.Stderr, "Error executing script '%s': %v\n", scriptPath, err)
-				os.Exit(1)
+		// --- Non-TUI Mode ---
+		scriptExecutedInNonTUI := false
+		if scriptToRunNonTUI != "" {
+			logger.Debug("Executing script (non-TUI mode)", "script", scriptToRunNonTUI)
+			// If scriptToRunNonTUI came from positional arg, app.Config.StartupScript might be empty.
+			// ExecuteScriptFile uses app.Config.StartupScript internally, so ensure it's set if different.
+			// For simplicity, assume ExecuteScriptFile can take the path directly,
+			// пониor that app.Config.StartupScript is the single source of truth.
+			// The app.Config.StartupScript should already be set correctly from flags or we update it
+			// if scriptToRunNonTUI is from positional arg and different.
+			originalConfigScript := app.Config.StartupScript
+			if app.Config.StartupScript != scriptToRunNonTUI && scriptToRunNonTUI == flag.Arg(0) && flag.NArg() > 0 {
+				app.Config.StartupScript = scriptToRunNonTUI // Temporarily set for this execution
 			}
-			logger.Debug("Script from positional argument finished successfully.")
+
+			if err := app.ExecuteScriptFile(ctx, app.Config.StartupScript); err != nil {
+				logger.Error("Error executing script", "script", app.Config.StartupScript, "error", err)
+				fmt.Fprintf(os.Stderr, "Error executing script '%s': %v\n", app.Config.StartupScript, err)
+				if app.Config.StartupScript != originalConfigScript { // Restore if changed
+					app.Config.StartupScript = originalConfigScript
+				}
+				os.Exit(1) // Exit on script error in non-TUI mode
+			}
+
+			if app.Config.StartupScript != originalConfigScript { // Restore if changed
+				app.Config.StartupScript = originalConfigScript
+			}
+			logger.Debug("Script finished successfully (non-TUI mode).")
+			scriptExecutedInNonTUI = true
+		}
+
+		// Decide on REPL or exit for non-TUI mode
+		if scriptExecutedInNonTUI {
+			logger.Debug("Script executed (non-TUI mode). Exiting.")
+		} else if *replMode {
+			logger.Debug("No script run or TUI disabled. Starting basic REPL...")
+			runRepl(ctx, app)
+			logger.Debug("Basic REPL finished.")
 		} else {
-			fmt.Println("No action specified. Use -script <file>, -tui, or provide a script file as an argument.")
-			flag.Usage()
+			// Only show usage if no script was specified via flag or arg, and no repl mode.
+			if app.Config.StartupScript == "" && flag.NArg() == 0 && !*replMode {
+				logger.Debug("No TUI, no script, no REPL. Nothing to do. Exiting.")
+				fmt.Println("No action specified. Use -script <file>, -tui, or -repl, or provide a script file as an argument.")
+				flag.Usage()
+			} else {
+				logger.Debug("Non-TUI mode: No further action. Exiting.")
+			}
 		}
 	}
 

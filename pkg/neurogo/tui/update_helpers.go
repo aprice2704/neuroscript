@@ -1,4 +1,8 @@
+// NeuroScript Version: 0.3.0
+// File version: 0.0.1 // Adjust setSizes for side-by-side main and emit viewports.
 // filename: pkg/neurogo/tui/update_helpers.go
+// nlines: 200 // Approximate
+// risk_rating: MEDIUM
 package tui
 
 import (
@@ -13,15 +17,12 @@ import (
 )
 
 // addMessage is a helper to append a message to the model's list and scroll.
-// It assumes m.viewport is ready and sized.
 func (m *model) addMessage(sender, text string) {
-	// Prevent excessive message buildup (optional)
 	if len(m.messages) > 1000 {
-		m.messages = m.messages[len(m.messages)-500:] // Keep last 500
+		m.messages = m.messages[len(m.messages)-500:]
 	}
 	m.messages = append(m.messages, message{sender: sender, text: text})
 	if m.ready {
-		// Ensure content is set *before* scrolling
 		m.viewport.SetContent(m.renderMessages())
 		m.viewport.GotoBottom()
 	}
@@ -30,7 +31,7 @@ func (m *model) addMessage(sender, text string) {
 // renderMessages formats the message history for the viewport.
 func (m *model) renderMessages() string {
 	var content strings.Builder
-	maxMessages := 200 // Limit history displayed
+	maxMessages := 200
 	start := 0
 	if len(m.messages) > maxMessages {
 		start = len(m.messages) - maxMessages
@@ -47,22 +48,18 @@ func (m *model) renderMessages() string {
 		case "System":
 			style = systemStyle
 		case "Debug":
-			style = systemStyle.Copy().Italic(true).Foreground(lipgloss.Color("13")) // Magenta Debug
+			style = systemStyle.Copy().Italic(true).Foreground(lipgloss.Color("13"))
 		case "Command":
-			style = systemStyle.Copy().Foreground(lipgloss.Color("14")) // Cyan command log
-		// Add other sender types as needed
+			style = systemStyle.Copy().Foreground(lipgloss.Color("14"))
 		default:
 			style = systemStyle
 		}
-		// Ensure message text doesn't contain excessive newlines if not intended
-		processedText := strings.ReplaceAll(msg.text, "\r\n", "\n") // Normalize newlines
-		// Basic formatting: Sender: Text
+		processedText := strings.ReplaceAll(msg.text, "\r\n", "\n")
 		content.WriteString(style.Render(fmt.Sprintf("%s: %s\n", msg.sender, processedText)))
 	}
-	// Ensure viewport gets at least one line if messages are empty to prevent layout collapse
 	finalContent := content.String()
 	if strings.TrimSpace(finalContent) == "" {
-		return " " // Return a single space to ensure viewport doesn't collapse
+		return " "
 	}
 	return finalContent
 }
@@ -72,23 +69,19 @@ func (m *model) renderStatusBar(width int) string {
 	if !m.ready {
 		return ""
 	}
-
-	// Basic info
 	modelInfo := fmt.Sprintf("AI: %s", m.aiModelName)
-	// Simplified file info for now, update based on actual state later if needed
 	fileInfo := fmt.Sprintf("Files(L:%d/R:%d)", m.localFileCount, m.apiFileCount)
-	syncInfo := fmt.Sprintf("Sync(Up:%d/Del:%d)", m.syncUploads, m.syncDeletes) // Use updated stats fields
+	syncInfo := fmt.Sprintf("Sync(Up:%d/Del:%d)", m.syncUploads, m.syncDeletes)
 	left := strings.Join([]string{modelInfo, fileInfo, syncInfo}, " | ")
 
-	// Activity / Error indicator
 	activity := ""
 	if m.isWaitingForAI {
 		activity = fmt.Sprintf("%s Waiting for AI...", m.spinner.View())
-	} else if m.isSyncing { // Check sync status
-		activity = fmt.Sprintf("%s %s", m.spinner.View(), m.currentActivity) // Use currentActivity
-	} else if m.patchStatus != "" { // Keep patch status if needed
+	} else if m.isSyncing {
+		activity = fmt.Sprintf("%s %s", m.spinner.View(), m.currentActivity)
+	} else if m.patchStatus != "" {
 		activity = fmt.Sprintf("%s %s", m.spinner.View(), m.patchStatus)
-	} else if m.currentActivity != "" { // Display other activities if not syncing/waiting for AI
+	} else if m.currentActivity != "" {
 		activity = fmt.Sprintf("%s %s", m.spinner.View(), m.currentActivity)
 	}
 
@@ -99,80 +92,51 @@ func (m *model) renderStatusBar(width int) string {
 
 	right := ""
 	if errorMsg != "" {
-		right = errorMsg // Error takes precedence
+		right = errorMsg
 	} else {
 		right = activity
 	}
 
-	// Calculate available space for the separator, ensuring it's not negative
-	separatorWidth := width - lipgloss.Width(left) - lipgloss.Width(right) - statusBarSyle.GetHorizontalPadding()*2 // Account for padding
+	separatorWidth := width - lipgloss.Width(left) - lipgloss.Width(right) - statusBarSyle.GetHorizontalPadding()*2
 	if separatorWidth < 0 {
 		separatorWidth = 0
 	}
 	separator := strings.Repeat(" ", separatorWidth)
-
 	finalStatus := lipgloss.JoinHorizontal(lipgloss.Top, left, separator, right)
-
-	// Use PlaceHorizontal to ensure the final string fits the width, padding if necessary
 	return statusBarSyle.Render(lipgloss.PlaceHorizontal(width, lipgloss.Left, finalStatus, lipgloss.WithWhitespaceChars(" "), lipgloss.WithWhitespaceForeground(statusBarSyle.GetBackground())))
 }
 
-// Ensure errMsg type is defined (e.g., in msgs.go)
-// Ensure syncCompleteMsg type is defined (e.g., in msgs.go)
-
-// --- Command Function for Async Sync (Now a method on model) ---
-
 // runSyncCmd performs the sync operation in the background and returns a message.
-// It accesses necessary app configuration and clients via the AppAccess interface
-// stored in the model (m.app).
 func (m *model) runSyncCmd() tea.Cmd {
 	return func() tea.Msg {
-		// Use a local logger for this specific operation, obtained via the interface
-		logger := m.app.GetLogger() // Get logger instance
+		logger := m.app.GetLogger()
 		if logger == nil {
-			// Fallback if logger retrieval fails, though App should prevent this
 			return errMsg{fmt.Errorf("TUI:runSyncCmd - Logger not available")}
 		}
-
-		// Access config and clients via interface methods on m.app
 		if m.app == nil {
 			logger.Error("Sync command failed: app reference (via interface) not available in TUI model")
 			return errMsg{fmt.Errorf("app reference (via interface) not available in TUI model")}
 		}
-
 		syncDir := m.app.GetSyncDir()
 		if syncDir == "" {
 			logger.Error("Sync command failed: Sync directory not configured.")
 			return errMsg{fmt.Errorf("sync directory not configured")}
 		}
-
-		// --- Get Interpreter (Replaces LLM Client Check) ---
-		interp := m.app.GetInterpreter() // Use interface getter
+		interp := m.app.GetInterpreter()
 		if interp == nil {
 			logger.Error("Sync command failed: Interpreter not available.")
 			return errMsg{fmt.Errorf("interpreter not available for sync operation")}
 		}
-		// --- End Interpreter Check ---
-
-		// Validate Sync Directory securely relative to current working directory or sandbox
-		// The interpreter's FileAPI already knows the sandbox root.
-		// We still need the configured syncDir relative path.
 		fileAPI := interp.FileAPI()
 		if fileAPI == nil {
 			logger.Error("Sync command failed: Interpreter's FileAPI is nil.")
 			return errMsg{fmt.Errorf("interpreter FileAPI is nil, cannot resolve sync path")}
 		}
-
-		// Resolve the sync path securely using FileAPI
 		absSyncDir, secErr := fileAPI.ResolvePath(syncDir)
 		if secErr != nil {
-			// Error message from ResolvePath already contains the sandbox root [cite: 2]
-			// *** FIX: Removed ", "base", fileAPI.SandboxRoot()" ***
 			logger.Error("Sync command failed: Invalid sync directory path.", "input_path", syncDir, "error", secErr)
 			return errMsg{fmt.Errorf("invalid sync directory path '%s': %w", syncDir, secErr)}
 		}
-
-		// Stat check
 		dirInfo, statErr := os.Stat(absSyncDir)
 		if statErr != nil {
 			errMsgFmt := "failed to stat sync directory %s: %w"
@@ -180,8 +144,6 @@ func (m *model) runSyncCmd() tea.Cmd {
 				errMsgFmt = "sync directory does not exist: %s: %w"
 			}
 			logger.Error(errMsgFmt, absSyncDir, statErr)
-
-			// Return a user-friendly error message
 			if os.IsNotExist(statErr) {
 				return errMsg{fmt.Errorf("sync directory does not exist: %s", absSyncDir)}
 			}
@@ -191,69 +153,89 @@ func (m *model) runSyncCmd() tea.Cmd {
 			logger.Error("Sync command failed: Sync path is not a directory.", "path", absSyncDir)
 			return errMsg{fmt.Errorf("sync path is not a directory: %s", absSyncDir)}
 		}
-
 		ctx := context.Background()
-
-		// Use interface getters for config needed by the helper
 		syncFilter := m.app.GetSyncFilter()
 		ignoreGitignore := m.app.GetSyncIgnoreGitignore()
-
-		// Call the core sync helper, passing the interpreter
-		// The helper will use the interpreter to get the logger and LLM client if needed
-		stats, syncErr := core.SyncDirectoryUpHelper(
-			ctx,
-			absSyncDir, // Resolved absolute path
-			syncFilter,
-			ignoreGitignore,
-			interp, // Pass the Interpreter
-			// Removed logger argument
-		)
-
-		// Return the result message
+		stats, syncErr := core.SyncDirectoryUpHelper(ctx, absSyncDir, syncFilter, ignoreGitignore, interp)
 		return syncCompleteMsg{stats: stats, err: syncErr}
 	}
 }
 
 // setSizes helper - recalculates component sizes.
-// Assumes renderStatusBar, renderMessages, m.help.View exist elsewhere (e.g., view.go or update_helpers.go)
 func (m *model) setSizes(width, height int) {
-	const commandInputWidth = 25
-	const inputSeparatorWidth = 1
+	// Constants for layout proportions and minimums
+	const commandInputFixedWidth = 25 // Fixed width for command input
+	const inputSeparatorWidth = 1     // Separator between command and prompt inputs
+	const mainViewportRatio = 0.6     // Main viewport gets 60% of the shared width
+	const minInputHeight = 1
+	const minViewportHeight = 3 // Minimum height for viewports
+	const minPromptWidth = 20   // Minimum width for the prompt input area
 
 	m.help.Width = width
 
-	// Ensure inputs have minimum height (e.g., 1)
-	cmdHeight := max(1, m.commandInput.Height())
-	promptHeight := max(1, m.promptInput.Height())
-	// Take the max height for the input row layout
-	inputsRowHeight := max(cmdHeight, promptHeight)
+	// --- Calculate Heights ---
+	// Heights for fixed elements
+	cmdHeight := max(minInputHeight, m.commandInput.Height())   // Use minInputHeight
+	promptHeight := max(minInputHeight, m.promptInput.Height()) // Use minInputHeight
+	inputsRowHeight := max(cmdHeight, promptHeight)             // The row of inputs takes the max of their heights
 
-	statusBarHeight := lipgloss.Height(m.renderStatusBar(width)) // Assumes renderStatusBar exists
+	statusBarHeight := lipgloss.Height(m.renderStatusBar(width))
 	helpHeight := 0
-	if m.helpVisible { // Use m.helpVisible state flag
+	if m.helpVisible {
 		helpHeight = lipgloss.Height(m.help.View(m.keyMap))
 	}
 
-	const verticalMargin = 1 // Margin between viewport and inputs/status/help
-	viewportHeight := height - inputsRowHeight - statusBarHeight - helpHeight - verticalMargin
-	if viewportHeight < 1 { // Ensure viewport has at least height 1
-		viewportHeight = 1
+	// Available height for the main content area (main viewport + emit log viewport)
+	// Subtract one more for a potential margin or to prevent being too cramped
+	const verticalMarginBetweenViewportsAndInputs = 1
+	availableHeightForViewports := height - inputsRowHeight - statusBarHeight - helpHeight - verticalMarginBetweenViewportsAndInputs
+	if availableHeightForViewports < minViewportHeight {
+		availableHeightForViewports = minViewportHeight
 	}
 
-	m.commandInput.SetWidth(commandInputWidth)
-	// Calculate prompt width dynamically
-	promptInputWidth := width - commandInputWidth - inputSeparatorWidth
-	if promptInputWidth < 10 { // Ensure minimum prompt width
-		promptInputWidth = 10
+	// --- Set Heights ---
+	m.viewport.Height = availableHeightForViewports
+	m.emitLogViewport.Height = availableHeightForViewports // Both viewports share the same height
+
+	// --- Calculate Widths ---
+	// Inputs
+	m.commandInput.SetWidth(commandInputFixedWidth)
+	promptInputWidth := width - commandInputFixedWidth - inputSeparatorWidth
+	if promptInputWidth < minPromptWidth {
+		promptInputWidth = minPromptWidth
 	}
 	m.promptInput.SetWidth(promptInputWidth)
 
-	m.viewport.Width = width
-	m.viewport.Height = viewportHeight
+	// Viewports (Main and Emit Log, side-by-side)
+	// They share the total width.
+	mainVPWidth := int(float64(width) * mainViewportRatio)
+	emitLogVPWidth := width - mainVPWidth
 
-	// Update content only if ready, otherwise viewport might not be fully initialized
+	// Ensure minimum widths for viewports if they are too small
+	if mainVPWidth < 10 { // Arbitrary minimum
+		mainVPWidth = 10
+		emitLogVPWidth = max(10, width-mainVPWidth) // Adjust emit log if main was clamped
+	}
+	if emitLogVPWidth < 10 { // Arbitrary minimum
+		emitLogVPWidth = 10
+		mainVPWidth = max(10, width-emitLogVPWidth) // Adjust main if emit log was clamped
+	}
+	// Final check to prevent overlap if both clamped due to very small total width
+	if mainVPWidth+emitLogVPWidth > width {
+		// Prioritize main viewport in extreme cases
+		mainVPWidth = max(10, width-10)
+		emitLogVPWidth = width - mainVPWidth
+	}
+
+	m.viewport.Width = mainVPWidth
+	m.emitLogViewport.Width = emitLogVPWidth
+
+	// Update content now that sizes are set
 	if m.ready {
-		m.viewport.SetContent(m.renderMessages()) // Assumes renderMessages exists
+		m.viewport.SetContent(m.renderMessages())
+		m.emitLogViewport.SetContent(strings.Join(m.emittedLines, "\n")) // Update emit log content
+		m.viewport.GotoBottom()
+		m.emitLogViewport.GotoBottom()
 	}
 }
 
@@ -264,6 +246,3 @@ func max(a, b int) int {
 	}
 	return b
 }
-
-// NOTE: Ensure errMsg, syncCompleteMsg are defined in msgs.go
-// NOTE: Ensure addMessage, renderMessages, renderStatusBar are defined elsewhere (e.g., view.go or update_helpers.go)
