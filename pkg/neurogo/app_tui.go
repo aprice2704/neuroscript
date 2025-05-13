@@ -12,7 +12,7 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/adapters" // For checking NoOp type
 	// For checking LLMClient
-	//"github.com/aprice2704/neuroscript/pkg/neurogo/tui"
+	//"github.com/aprice2704/neuroscript/pkg/neurogo"
 )
 
 // runTuiMode handles the execution logic for the TUI mode.

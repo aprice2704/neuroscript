@@ -1,7 +1,7 @@
 // NeuroScript Version: 0.3.0
 // File version: 0.1.10
 // Call FormatWMStatusView from screen_wm_status.go for WM status display.
-// filename: pkg/neurogo/tui/update.go
+// filename: pkg/neurogo/update.go
 // nlines: 350 // Approximate
 // risk_rating: HIGH
 package neurogo

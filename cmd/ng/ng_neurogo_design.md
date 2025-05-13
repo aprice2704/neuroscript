@@ -26,7 +26,7 @@
  - **Fields**: Contains paths (sandbox, startup script, libraries), API details (key, host, model name), sync parameters (for tools), and control flags (`-insecure`). Strict mode flags (`Run*Mode`) have been removed.
  - **Helpers**: Includes `NewConfig` and the `StringSliceFlag` custom type for multi-value flags (`-L`, `-arg`).
 
- ### 2.4. `pkg/neurogo/tui` (Terminal UI)
+ ### 2.4. `pkg/neurogo` (Terminal UI)
  - **Role**: Provides an interactive terminal-based user interface using the `bubbletea` library.
  - **Functionality**: Displays conversation history, status information (spinner, errors), allows user input via a text area, handles commands (like `/sync`), and interacts with the `neurogo.App` instance (via the `AppAccess` interface) to get configuration, trigger actions (like sync), and potentially interact with the AI Worker Manager in the future.
  - **Activation**: Launched via the `-tui` command-line flag in `main.go`.
@@ -115,7 +115,7 @@
  - | | 2. User Interfaces
    - [x] Implement basic REPL fallback.
    - [ ] Enhance REPL to parse and execute simple NeuroScript statements/expressions.
-   - [ ] Integrate TUI (`pkg/neurogo/tui`) more deeply with `AIWorkerManager` (e.g., list workers, view status, interact with instances).
+   - [ ] Integrate TUI (`pkg/neurogo`) more deeply with `AIWorkerManager` (e.g., list workers, view status, interact with instances).
    - [ ] Design and implement Web UI (`-webui-port`).
      - [ ] Basic HTTP server setup.
      - [ ] API design (REST/WebSocket) for frontend interaction.

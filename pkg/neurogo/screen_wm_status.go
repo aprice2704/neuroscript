@@ -1,7 +1,7 @@
 // NeuroScript Version: 0.3.0
 // File version: 0.1.1
 // Updated to use WMStatusViewDataProvider interface to break import cycle.
-// filename: pkg/neurogo/tui/screen_wm_status.go
+// filename: pkg/neurogo/screen_wm_status.go
 // nlines: 55 // Approximate
 // risk_rating: LOW
 package neurogo

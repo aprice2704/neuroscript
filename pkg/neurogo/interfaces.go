@@ -2,7 +2,7 @@
 // File version: 0.0.4
 // Defines the comprehensive AppAccess interface required by the TUI package.
 // Added missing methods used by TUI components.
-// filename: pkg/neurogo/tui/interfaces.go
+// filename: pkg/neurogo/interfaces.go
 // nlines: 38 // Approximate
 // risk_rating: LOW
 package neurogo

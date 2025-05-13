@@ -12492,7 +12492,7 @@
                 "llmClient.Client(?)",
                 "logger.Warn(?)",
                 "logger.Info(?)",
-                "pkg/neurogo/tui.Start",
+                "Start",
                 "logger.Error(?)",
                 "logger.Info(?)"
               ]
@@ -12581,22 +12581,10 @@
           ],
           "methods": []
         },
-        "pkg/neurogo/patch_handler.go": {
-          "functions": [
-            "readLines",
-            "writeLines",
-            "handleReceivedPatch"
-          ],
-          "methods": []
-        }
-      }
-    },
-    "pkg/neurogo/tui": {
-      "files": {
-        "pkg/neurogo/tui/interfaces.go": {
+        "pkg/neurogo/interfaces.go": {
           "methods": []
         },
-        "pkg/neurogo/tui/model.go": {
+        "pkg/neurogo/model.go": {
           "functions": [
             "If",
             "newModel",
@@ -12630,7 +12618,7 @@
             }
           ]
         },
-        "pkg/neurogo/tui/msgs.go": {
+        "pkg/neurogo/msgs.go": {
           "methods": [
             {
               "Receiver": "errMsg",
@@ -12641,19 +12629,27 @@
             }
           ]
         },
-        "pkg/neurogo/tui/screen_wm_status.go": {
+        "pkg/neurogo/patch_handler.go": {
+          "functions": [
+            "readLines",
+            "writeLines",
+            "handleReceivedPatch"
+          ],
+          "methods": []
+        },
+        "pkg/neurogo/screen_wm_status.go": {
           "functions": [
             "FormatWMStatusView"
           ],
           "methods": []
         },
-        "pkg/neurogo/tui/tui.go": {
+        "pkg/neurogo.go": {
           "functions": [
             "Start"
           ],
           "methods": []
         },
-        "pkg/neurogo/tui/tui_writer.go": {
+        "pkg/neurogo_writer.go": {
           "functions": [
             "NewTUIEmitWriter"
           ],
@@ -12668,7 +12664,7 @@
             }
           ]
         },
-        "pkg/neurogo/tui/update.go": {
+        "pkg/neurogo/update.go": {
           "methods": [
             {
               "Receiver": "model",
@@ -12774,7 +12770,7 @@
             }
           ]
         },
-        "pkg/neurogo/tui/update_helpers.go": {
+        "pkg/neurogo/update_helpers.go": {
           "methods": [
             {
               "Receiver": "*model",
@@ -12867,7 +12863,7 @@
             }
           ]
         },
-        "pkg/neurogo/tui/view.go": {
+        "pkg/neurogo/view.go": {
           "methods": [
             {
               "Receiver": "model",

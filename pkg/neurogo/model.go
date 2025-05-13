@@ -1,7 +1,7 @@
 // NeuroScript Version: 0.3.0
 // File version: 0.1.12
 // Use tui.AppAccess interface.
-// filename: pkg/neurogo/tui/model.go
+// filename: pkg/neurogo/model.go
 // nlines: 225
 // risk_rating: HIGH
 package neurogo

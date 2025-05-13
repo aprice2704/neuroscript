@@ -12,7 +12,7 @@ import (
 	"github.com/aprice2704/neuroscript/internal/adapters/slogadapter" // Your adapter
 	"github.com/aprice2704/neuroscript/internal/interfaces"        // Your logger interface
 	"github.com/aprice2704/neuroscript/pkg/neurogo"
-	"github.com/aprice2704/neuroscript/pkg/neurogo/tui"
+	"github.com/aprice2704/neuroscript/pkg/neurogo"
 )
 
 // initializeLogger sets up the slog logger based on configuration strings.

@@ -1,7 +1,7 @@
 // NeuroScript Version: 0.3.0
 // File version: 0.0.9
 // Dynamic title for Local Output pane based on display mode.
-// filename: pkg/neurogo/tui/view.go
+// filename: pkg/neurogo/view.go
 // nlines: 85
 // risk_rating: MEDIUM
 package neurogo

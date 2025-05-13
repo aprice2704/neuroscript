@@ -2,7 +2,7 @@
 // File version: 0.0.5
 // Use tui.AppAccess interface for Start function.
 // Correctly handle p.Run() return values and type assertion.
-// filename: pkg/neurogo/tui/tui.go
+// filename: pkg/neurogo/tui.go
 // nlines: 60
 // risk_rating: MEDIUM
 package neurogo

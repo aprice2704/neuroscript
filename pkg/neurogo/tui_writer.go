@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.3.0
 // File version: 0.0.2 // Removed redeclaration of scriptEmitMsg.
-// filename: pkg/neurogo/tui/tui_writer.go
+// filename: pkg/neurogo/tui_writer.go
 // nlines: 38 // Approximate
 // risk_rating: LOW
 package neurogo

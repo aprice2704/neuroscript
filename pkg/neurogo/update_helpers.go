@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.3.0
 // File version: 0.0.11 // Adjusted output content height for explicit title string.
-// filename: pkg/neurogo/tui/update_helpers.go
+// filename: pkg/neurogo/update_helpers.go
 // nlines: 205 // Approximate, please update after changes
 // risk_rating: MEDIUM
 package neurogo
