@@ -1,108 +1,129 @@
 // NeuroScript Version: 0.3.0
-// File version: 0.1.3
-// Contains setup functions for the ng application.
+// File version: 0.1.5
+// Initialize AIWorkerManager with default definitions and dedicated sandbox subdir.
+// Corrected NewInterpreter and NewAIWorkerManager calls based on user's setup.go.
+// Added diagnostic print for logger initialization.
 // filename: cmd/ng/setup.go
-// nlines: 80
+// nlines: 95 // Approximate
 // risk_rating: MEDIUM
 package main
 
 import (
 	"fmt"
 	"io"
+	"log/slog" // Import slog for slog.Level
 	"os"
 	"path/filepath"
+	"strings" // Import strings for LogLevelFromString
 
 	"github.com/aprice2704/neuroscript/pkg/adapters"
-	"github.com/aprice2704/neuroscript/pkg/core" // Now directly used
+	"github.com/aprice2704/neuroscript/pkg/core"
 	"github.com/aprice2704/neuroscript/pkg/logging"
-	"github.com/aprice2704/neuroscript/pkg/neurogo" // Now directly used
+	"github.com/aprice2704/neuroscript/pkg/neurogo"
 )
 
 // initializeLogger sets up the application's logger based on configuration.
 func initializeLogger(levelStr string, filePath string) (logging.Logger, error) {
-
 	level, err := adapters.LogLevelFromString(levelStr)
 	if err != nil {
-		return nil, fmt.Errorf("invalid log level: %q", levelStr)
+		// Fallback for diagnostic print if adapters.LogLevelFromString fails
+		fmt.Fprintf(os.Stderr, "[NEUROGO_LoggerInit_DIAG] Error parsing log level string '%s': %v. Defaulting to INFO for diagnostic print.\n", levelStr, err)
+		// Attempt to provide a default slog.Level for the diagnostic print, or make it conditional
+		//	var tempSlogLvl slog.Level = slog.LevelInfo // Default for safety
+		//	fmt.Fprintf(os.Stderr, "[NEUROGO_LoggerInit_DIAG] LogLevelString: '%s', Parsed logging.LogLevel: %v (error path), Effective Slog Level for setup: %s\n", levelStr, level, tempSlogLvl.String())
+		return nil, fmt.Errorf("invalid log level: %q: %w", levelStr, err)
 	}
 
+	// Diagnostic print to os.Stderr before logger is created
+	var slogEquivalentLevel slog.Level
+	switch level {
+	case logging.LogLevelDebug:
+		slogEquivalentLevel = slog.LevelDebug
+	case logging.LogLevelInfo:
+		slogEquivalentLevel = slog.LevelInfo
+	case logging.LogLevelWarn:
+		slogEquivalentLevel = slog.LevelWarn
+	case logging.LogLevelError:
+		slogEquivalentLevel = slog.LevelError
+	default:
+		slogEquivalentLevel = slog.LevelInfo // Should not happen if LogLevelFromString is robust
+	}
+	fmt.Fprintf(os.Stderr, "[NEUROGO_LoggerInit_DIAG] LogLevelString: '%s', Parsed logging.LogLevel: %v, Effective Slog Level for setup: %s\n", strings.ToLower(levelStr), level, slogEquivalentLevel.String())
+
 	var output io.Writer = os.Stderr
-	var closer func() error // To store the file closer if needed
+	var fileCloser io.Closer
 
 	if filePath != "" {
 		dir := filepath.Dir(filePath)
-		if mkDirErr := os.MkdirAll(dir, 0755); mkDirErr != nil {
-			fmt.Fprintf(os.Stderr, "Warning: Could not create log directory %s: %v. Attempting to use file directly.\n", dir, mkDirErr)
+		if dir != "" && dir != "." { // Ensure directory creation only if a directory path is present
+			if mkDirErr := os.MkdirAll(dir, 0755); mkDirErr != nil {
+				fmt.Fprintf(os.Stderr, "Warning: Could not create log directory %s: %v. Attempting to use file directly.\n", dir, mkDirErr)
+			}
 		}
 
-		f, err := os.OpenFile(filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		file, err := os.OpenFile(filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
-			return nil, fmt.Errorf("failed to open log file %q: %w", filePath, err)
+			return nil, fmt.Errorf("failed to open log file %s: %w", filePath, err)
 		}
-		output = f
-		closer = f.Close // Store the closer method
+		output = file
+		fileCloser = file // Store for closing
 	}
 
-	// CORRECTED: Use NewSimpleSlogAdapter
-	loggerAdapter, err := adapters.NewSimpleSlogAdapter(output, level)
-	if err != nil {
-		// Close the file if opened, even if adapter creation failed
-		if closer != nil {
-			_ = closer() // Ignore error on close during error path
-		}
-		return nil, fmt.Errorf("failed to create logger adapter: %w", err)
+	// Use NewSimpleSlogAdapter from pkg/adapters
+	logger, _ := adapters.NewSimpleSlogAdapter(output, level)
+
+	// If logging to a file, return a logger that also handles closing the file.
+	if fileCloser != nil {
+		return struct {
+			logging.Logger
+			io.Closer
+		}{logger, fileCloser}, nil
 	}
 
-	// Assuming NewSimpleSlogAdapter handles closing *os.File if output is one,
-	// or that main() handles closing the logger if it implements io.Closer.
-	return loggerAdapter, nil
+	return logger, nil
 }
 
-// initializeCoreComponents creates and configures the core Interpreter, LLMClient, and AIWorkerManager.
-func initializeCoreComponents(app *neurogo.App, logger logging.Logger, absSandboxDir string) (core.LLMClient, *core.Interpreter, *core.AIWorkerManager, error) {
+// initializeCoreComponents sets up the interpreter and AI worker manager.
+func initializeCoreComponents(app *neurogo.App, logger logging.Logger, llmClient core.LLMClient) (*core.Interpreter, *core.AIWorkerManager, error) {
 	if app == nil || app.Config == nil {
-		return nil, nil, nil, fmt.Errorf("initializeCoreComponents: app or app.Config is nil")
+		return nil, nil, fmt.Errorf("application or application config is nil, cannot initialize core components")
 	}
 	if logger == nil {
-		return nil, nil, nil, fmt.Errorf("initializeCoreComponents: logger is nil")
+		return nil, nil, fmt.Errorf("logger is nil, cannot initialize core components")
 	}
+	// LLM Client is now passed in, so we don't create it here.
+	// if llmClient == nil, some operations might fail, but core components can still init.
 
-	llmClient, err := app.CreateLLMClient() // Uses app.Config internally
+	interpreter, err := core.NewInterpreter(logger, llmClient, app.Config.SandboxDir,
+		map[string]interface{}{}, []string{})
 	if err != nil {
-		logger.Error("Failed to create LLM client", "error", err)
-		return nil, nil, nil, fmt.Errorf("failed to create LLM client: %w", err)
+		return nil, nil, fmt.Errorf("failed to create interpreter: %w", err)
 	}
-	logger.Debug("LLM Client created successfully")
+	app.SetInterpreter(interpreter) // Store interpreter in app
+	logger.Debug("Interpreter created and sandbox set.", "sandbox_path", app.Config.SandboxDir)
 
-	// Call NewInterpreter with the correct signature
-	interpreter, err := core.NewInterpreter(logger, llmClient, app.Config.SandboxDir, nil, app.Config.LibPaths)
-	if err != nil {
-		logger.Error("Failed to create core Interpreter", "error", err)
-		return nil, nil, nil, fmt.Errorf("failed to create core Interpreter: %w", err)
+	// AI Worker Manager setup
+	aiWmSandboxDir := filepath.Join(app.Config.SandboxDir, ".neuroscript_aiwm")
+	if err := os.MkdirAll(aiWmSandboxDir, 0750); err != nil {
+		logger.Error("Failed to create AIWorkerManager sandbox subdirectory", "path", aiWmSandboxDir, "error", err)
+		return interpreter, nil, fmt.Errorf("failed to create AIWorkerManager sandbox directory '%s': %w", aiWmSandboxDir, err)
 	}
-	app.SetInterpreter(interpreter) // Store the interpreter in the App struct
-	logger.Debug("Core Interpreter created successfully")
+	logger.Debug("AIWorkerManager sandbox directory ensured", "path", aiWmSandboxDir)
 
-	// Define paths for AI Worker Manager persistence files within the sandbox
-	// These paths are NOT passed to NewAIWorkerManager anymore, but might be used
-	// by tools later to load/save content.
-	// definitionsFilePath := filepath.Join(absSandboxDir, neurogo.DefaultDefinitionsFilename)
-	// performanceDataFilePath := filepath.Join(absSandboxDir, neurogo.DefaultPerformanceDataFilename)
-
-	// CORRECTED: Argument order and types for NewAIWorkerManager:
-	// logger, sandboxDir, llmClient, initialDefinitionsContent, initialPerformanceContent
-	// Pass empty strings for initial content; loading from files is now handled by tools if needed.
-	aiWm, err := core.NewAIWorkerManager(logger, app.Config.SandboxDir, llmClient, "", "")
+	aiWm, err := core.NewAIWorkerManager(logger, aiWmSandboxDir, llmClient, core.AIWorkerDefinitions_Default, "")
 	if err != nil {
 		logger.Error("Failed to create AI Worker Manager", "error", err)
-		return llmClient, interpreter, nil, fmt.Errorf("failed to create AI Worker Manager: %w", err)
+		return interpreter, nil, fmt.Errorf("failed to create AI Worker Manager: %w", err)
 	}
 	if aiWm != nil {
-		app.SetAIWorkerManager(aiWm) // Store the AIWM in the App struct
-		logger.Debug("AI Worker Manager created successfully")
+		app.SetAIWorkerManager(aiWm)
+		// This Info log is appropriate as it's a summary of component initialization.
+		logger.Infof("AI Worker Manager available.")
+		defs := aiWm.ListWorkerDefinitions(nil)
+		logger.Debug("AIWorkerManager initial definitions loaded check", "count", len(defs))
 	} else {
-		logger.Warn("AI Worker Manager is nil after creation attempt without explicit error.")
+		logger.Warn("AI Worker Manager could not be initialized.")
 	}
 
-	return llmClient, interpreter, aiWm, nil
+	return interpreter, aiWm, nil
 }

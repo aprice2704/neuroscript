@@ -1,99 +1,143 @@
-// internal/adapters/slogadapter/slogadapter.go
+// NeuroScript Version: 0.3.0
+// File version: 0.1.4
+// Removed diagnostic prints from Debug/Debugf.
+// filename: pkg/adapters/slogadapter.go
+// nlines: 90 // Approximate
+// risk_rating: MEDIUM
 package adapters
 
 import (
 	"fmt"
 	"io"
 	"log/slog"
+	"os"
+	"strings"
 
 	"github.com/aprice2704/neuroscript/pkg/logging"
 )
 
-// SlogAdapter adapts the standard log/slog Logger to the logging.Logger interface.
+// SlogAdapter wraps slog.Logger to implement the logging.Logger interface.
 type SlogAdapter struct {
-	logger  *slog.Logger
-	handler slog.Handler
-	opts    *slog.HandlerOptions
+	logger *slog.Logger
+	opts   *slog.HandlerOptions
+	level  logging.LogLevel
 }
 
-// Compile-time check to ensure SlogAdapter implements the updated logging.Logger
-var _ logging.Logger = (*SlogAdapter)(nil)
+// NewSimpleSlogAdapter creates a new SlogAdapter.
+func NewSimpleSlogAdapter(output io.Writer, level logging.LogLevel) (logging.Logger, error) {
+	if output == nil {
+		output = os.Stderr
+	}
 
-// A simple logger to an io output and at a given level
-func NewSimpleSlogAdapter(output io.Writer, level logging.LogLevel) (*SlogAdapter, error) {
-	lv486 := new(slog.LevelVar)
-	lv486.Set(slog.LevelInfo)
-	newopts := &slog.HandlerOptions{AddSource: false, Level: lv486}
-	newhandler := slog.NewTextHandler(output, newopts)
-	newlogger := slog.New(newhandler)
-	nadapt := &SlogAdapter{logger: newlogger, handler: newhandler, opts: newopts}
-	return nadapt, nil
+	var slogLevel slog.Level
+	switch level {
+	case logging.LogLevelDebug:
+		slogLevel = slog.LevelDebug
+	case logging.LogLevelInfo:
+		slogLevel = slog.LevelInfo
+	case logging.LogLevelWarn:
+		slogLevel = slog.LevelWarn
+	case logging.LogLevelError:
+		slogLevel = slog.LevelError
+	default:
+		slogLevel = slog.LevelInfo
+	}
+
+	levelVar := new(slog.LevelVar)
+	levelVar.Set(slogLevel)
+
+	opts := &slog.HandlerOptions{
+		Level: levelVar,
+		ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
+			if a.Key == slog.TimeKey {
+				return slog.Time(slog.TimeKey, a.Value.Time().UTC().Round(0))
+			}
+			return a
+		},
+	}
+
+	return &SlogAdapter{
+		logger: slog.New(slog.NewTextHandler(output, opts)),
+		opts:   opts,
+		level:  level,
+	}, nil
 }
 
-// --- Standard slog-style logging ---
-
-// Debug logs a message at the Debug level.
-func (a *SlogAdapter) Debug(msg string, args ...any) {
+// Debug logs a message at DebugLevel.
+func (a *SlogAdapter) Debug(msg string, args ...interface{}) {
 	a.logger.Debug(msg, args...)
 }
 
-// Info logs a message at the Info level.
-func (a *SlogAdapter) Info(msg string, args ...any) {
+// Info logs a message at InfoLevel.
+func (a *SlogAdapter) Info(msg string, args ...interface{}) {
 	a.logger.Info(msg, args...)
 }
 
-// Warn logs a message at the Warn level.
-func (a *SlogAdapter) Warn(msg string, args ...any) {
+// Warn logs a message at WarnLevel.
+func (a *SlogAdapter) Warn(msg string, args ...interface{}) {
 	a.logger.Warn(msg, args...)
 }
 
-// Error logs a message at the Error level.
-func (a *SlogAdapter) Error(msg string, args ...any) {
+// Error logs a message at ErrorLevel.
+func (a *SlogAdapter) Error(msg string, args ...interface{}) {
 	a.logger.Error(msg, args...)
 }
 
-// --- Printf-style logging ---
-
-// Debugf logs a formatted message at the Debug level.
-func (a *SlogAdapter) Debugf(format string, args ...any) {
-	msg := fmt.Sprintf(format, args...)
-	a.logger.Debug(msg)
+// Debugf logs a formatted message at DebugLevel.
+func (a *SlogAdapter) Debugf(format string, v ...interface{}) {
+	a.logger.Debug(fmt.Sprintf(format, v...))
 }
 
-// Infof logs a formatted message at the Info level.
-func (a *SlogAdapter) Infof(format string, args ...any) {
-	msg := fmt.Sprintf(format, args...)
-	a.logger.Info(msg)
+// Infof logs a formatted message at InfoLevel.
+func (a *SlogAdapter) Infof(format string, v ...interface{}) {
+	a.logger.Info(fmt.Sprintf(format, v...))
 }
 
-// Warnf logs a formatted message at the Warn level.
-func (a *SlogAdapter) Warnf(format string, args ...any) {
-	msg := fmt.Sprintf(format, args...)
-	a.logger.Warn(msg)
+// Warnf logs a formatted message at WarnLevel.
+func (a *SlogAdapter) Warnf(format string, v ...interface{}) {
+	a.logger.Warn(fmt.Sprintf(format, v...))
 }
 
-// Errorf logs a formatted message at the Error level.
-func (a *SlogAdapter) Errorf(format string, args ...any) {
-	msg := fmt.Sprintf(format, args...)
-	a.logger.Error(msg)
+// Errorf logs a formatted message at ErrorLevel.
+func (a *SlogAdapter) Errorf(format string, v ...interface{}) {
+	a.logger.Error(fmt.Sprintf(format, v...))
 }
 
+// SetLevel changes the logger's level.
 func (a *SlogAdapter) SetLevel(level logging.LogLevel) {
-	a.opts.Level.(*slog.LevelVar).Set(slog.Level(level))
+	a.level = level
+	var slogLevel slog.Level
+	switch level {
+	case logging.LogLevelDebug:
+		slogLevel = slog.LevelDebug
+	case logging.LogLevelInfo:
+		slogLevel = slog.LevelInfo
+	case logging.LogLevelWarn:
+		slogLevel = slog.LevelWarn
+	case logging.LogLevelError:
+		slogLevel = slog.LevelError
+	default:
+		slogLevel = slog.LevelInfo
+	}
+	if lv, ok := a.opts.Level.(*slog.LevelVar); ok {
+		lv.Set(slogLevel)
+	} else {
+		fmt.Fprintf(os.Stderr, "[SLOG_ADAPTER_ERROR] SetLevel: opts.Level is not a *slog.LevelVar, cannot dynamically set level.\n")
+	}
 }
 
-func LogLevelFromString(levelStr string) (level logging.LogLevel, err error) {
-	switch levelStr {
+// LogLevelFromString converts a string to a logging.LogLevel.
+func LogLevelFromString(levelStr string) (logging.LogLevel, error) {
+	switch strings.ToLower(levelStr) {
 	case "debug":
-		level = logging.LogLevelDebug
+		return logging.LogLevelDebug, nil
 	case "info":
-		level = logging.LogLevelInfo
-	case "warn":
-		level = logging.LogLevelWarn
-	case "error":
-		level = logging.LogLevelError
+		return logging.LogLevelInfo, nil
+	case "warn", "warning":
+		return logging.LogLevelWarn, nil
+	case "error", "err":
+		return logging.LogLevelError, nil
 	default:
-		return logging.LogLevelInfo, fmt.Errorf("invalid log level: %q", levelStr)
+		return logging.LogLevelInfo, fmt.Errorf("unknown log level: %s", levelStr)
 	}
-	return level, nil
 }

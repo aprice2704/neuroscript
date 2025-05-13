@@ -1,4 +1,10 @@
+// NeuroScript Version: 0.3.0
+// File version: 0.0.4
+// Ensured GetAIWorkerManager and GetLogger (as logging.Logger) are in AppAccess.
+// This is the primary AppAccess interface for the application.
 // filename: pkg/neurogo/app_interface.go
+// nlines: 28
+// risk_rating: LOW
 package neurogo
 
 import (
@@ -7,50 +13,42 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/core"
 	"github.com/aprice2704/neuroscript/pkg/logging"
-	"github.com/google/generative-ai-go/genai" // Needed for ApiFileInfo placeholder
+	"github.com/google/generative-ai-go/genai"
 )
 
-// AppAccess defines the interface for components (like the TUI)
-// to access necessary application state and configuration.
+// AppAccess defines the interface for components (like the TUI model)
+// to access necessary application state and configuration from the neurogo.App.
 type AppAccess interface {
 	GetModelName() string
 	GetSyncDir() string
 	GetSandboxDir() string
 	GetSyncFilter() string
 	GetSyncIgnoreGitignore() bool
-	GetLogger() logging.Logger
+	GetLogger() logging.Logger // Must return logging.Logger
 	GetLLMClient() core.LLMClient
-	GetInterpreter() *core.Interpreter // Added for potential TUI access
-	// Add other necessary methods, e.g., GetAgentContext() *AgentContext
+	GetInterpreter() *core.Interpreter
+	GetAIWorkerManager() *core.AIWorkerManager // Must have this method
+	Context() context.Context
+	ExecuteScriptFile(ctx context.Context, scriptPath string) error
 }
 
 // PatchHandler defines the interface for applying patches.
 type PatchHandler interface {
 	ApplyPatch(ctx context.Context, patchJSON string) error
-	// Add VerifyPatch method if needed later
 }
 
 // InterpreterGetter defines an interface for getting the core interpreter.
-// Used by components that need access but shouldn't know about the full App.
 type InterpreterGetter interface {
 	GetInterpreter() *core.Interpreter
 }
 
-// +++ Placeholder Type Definition +++
-// This type is used by the commented-out API file listing logic.
-// It's defined here temporarily because core.ApiFileInfo is undefined.
-// The actual fields might differ once core.HelperListApiFiles is implemented.
+// ApiFileInfo placeholder
 type ApiFileInfo struct {
-	Name        string          // Example: "files/abcdef123"
-	DisplayName string          // Example: "my_document.txt"
-	URI         string          // Example: "https://generativelanguage.googleapis.com/..."
-	State       genai.FileState // Example: genai.FileStateActive
+	Name        string
+	DisplayName string
+	URI         string
+	State       genai.FileState
 	SizeBytes   int64
 	CreateTime  time.Time
 	UpdateTime  time.Time
-	// Add other fields as needed based on the actual API response
 }
-
-// +++ End Placeholder +++
-
-// Consider adding other interfaces as needed, e.g., AgentContextAccessor

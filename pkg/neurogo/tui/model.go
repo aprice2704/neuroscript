@@ -1,15 +1,19 @@
 // NeuroScript Version: 0.3.0
-// File version: 0.0.5 // Handle initial script path, set distinct full borders, manage initial script running state.
+// File version: 0.1.12
+// Use tui.AppAccess interface.
 // filename: pkg/neurogo/tui/model.go
-// nlines: 165 // Approximate
-// risk_rating: MEDIUM
+// nlines: 225
+// risk_rating: HIGH
 package tui
 
 import (
-	"context"       // For running the initial script
-	"fmt"           // For initial script activity message
-	"path/filepath" // For getting base name of script path
+	"context"
+	"fmt"
+	"path/filepath"
 
+	// "strings" // Already in use by FormatWMStatusView if it were here
+
+	// "github.com/aprice2704/neuroscript/pkg/core" // core types used via interfaces
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/spinner"
@@ -19,7 +23,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-// --- Styles ---
+// --- Styles --- (styles remain the same)
 var (
 	inactiveStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
 	errorStyle       = lipgloss.NewStyle().Foreground(lipgloss.Color("9")).Bold(true)
@@ -32,81 +36,90 @@ var (
 	systemStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Italic(true)
 	statusBarSyle    = lipgloss.NewStyle().Background(lipgloss.Color("236")).Foreground(lipgloss.Color("250")).Padding(0, 1)
 
-	// Styles with distinct, full borders for each component
-	viewportStyle       = lipgloss.NewStyle().Border(lipgloss.NormalBorder(), true, true, true, true).BorderForeground(lipgloss.Color("69"))   // Conversation Viewport (Blue border)
-	emitLogStyle        = lipgloss.NewStyle().Border(lipgloss.NormalBorder(), true, true, true, true).BorderForeground(lipgloss.Color("51"))   // Emit Log Viewport (Cyan border)
-	focusedCommandStyle = lipgloss.NewStyle().Border(lipgloss.RoundedBorder(), true, true, true, true).BorderForeground(lipgloss.Color("205")) // Focused Command (Pink border)
-	blurredCommandStyle = lipgloss.NewStyle().Border(lipgloss.NormalBorder(), true, true, true, true).BorderForeground(lipgloss.Color("240"))  // Blurred Command (Gray border)
-	focusedPromptStyle  = lipgloss.NewStyle().Border(lipgloss.RoundedBorder(), true, true, true, true).BorderForeground(lipgloss.Color("205")) // Focused Prompt (Pink border)
-	blurredPromptStyle  = lipgloss.NewStyle().Border(lipgloss.NormalBorder(), true, true, true, true).BorderForeground(lipgloss.Color("240"))  // Blurred Prompt (Gray border)
+	localOutputBlurredStyle = lipgloss.NewStyle().Border(lipgloss.NormalBorder(), true).BorderForeground(lipgloss.Color("51"))
+	aiOutputBlurredStyle    = lipgloss.NewStyle().Border(lipgloss.NormalBorder(), true).BorderForeground(lipgloss.Color("69"))
+	localOutputFocusedStyle = lipgloss.NewStyle().Border(lipgloss.RoundedBorder(), true).BorderForeground(lipgloss.Color("205"))
+	aiOutputFocusedStyle    = lipgloss.NewStyle().Border(lipgloss.RoundedBorder(), true).BorderForeground(lipgloss.Color("205"))
+
+	localInputFocusedStyle = lipgloss.NewStyle().Border(lipgloss.RoundedBorder(), true).BorderForeground(lipgloss.Color("205"))
+	localInputBlurredStyle = lipgloss.NewStyle().Border(lipgloss.NormalBorder(), true).BorderForeground(lipgloss.Color("240"))
+	aiInputFocusedStyle    = lipgloss.NewStyle().Border(lipgloss.RoundedBorder(), true).BorderForeground(lipgloss.Color("205"))
+	aiInputBlurredStyle    = lipgloss.NewStyle().Border(lipgloss.NormalBorder(), true).BorderForeground(lipgloss.Color("240"))
+
+	paneTitleStyle = lipgloss.NewStyle().Bold(true).Padding(0, 1)
 )
 
-// --- message struct ---
-type message struct { // For main conversation viewport
+type message struct {
 	sender string
 	text   string
 }
 
-// --- keyMap struct and implementation for help.KeyMap ---
-type keyMap struct {
-	Quit key.Binding
-	Help key.Binding
-	Tab  key.Binding
-}
-
-func (k keyMap) ShortHelp() []key.Binding  { return []key.Binding{k.Tab, k.Help, k.Quit} }
-func (k keyMap) FullHelp() [][]key.Binding { return [][]key.Binding{{k.Tab, k.Help, k.Quit}} }
-
-var defaultKeyMap = keyMap{
-	Quit: key.NewBinding(key.WithKeys("ctrl+c"), key.WithHelp("ctrl+c", "quit")),
-	Help: key.NewBinding(key.WithKeys("?"), key.WithHelp("?", "toggle help")),
-	Tab:  key.NewBinding(key.WithKeys("tab"), key.WithHelp("tab", "switch input")),
-}
-
 const (
-	focusCommand = 0
-	focusPrompt  = 1
+	focusLocalInput = iota
+	focusAIInput
+	focusLocalOutput
+	focusAIOutput
+	totalFocusPanes
 )
 
-// --- model struct ---
-type model struct {
-	app AppAccess
+const (
+	localOutputModeScript = iota
+	localOutputModeWMStatus
+	totalLocalOutputModes
+)
 
-	viewport        viewport.Model // Main conversation
-	emitLogViewport viewport.Model // For EMIT statements
-	commandInput    textarea.Model
-	promptInput     textarea.Model
-	spinner         spinner.Model
-	help            help.Model
-	keyMap          keyMap
-	teaProgram      *tea.Program // Can be set by tui.Start
-
-	messages             []message
-	emittedLines         []string
-	initialScriptToRun   string // Path of the script to run on startup, if any
-	initialScriptRunning bool   // True if the initial script is currently executing
-	sender               string
-	lastError            error
-	isWaitingForAI       bool
-	currentActivity      string
-	isSyncing            bool
-	patchStatus          string
-	quitting             bool
-	ready                bool
-	helpVisible          bool
-	focusedInput         int
-
-	aiModelName    string
-	localFileCount int
-	apiFileCount   int
-	syncUploads    int
-	syncDeletes    int
-
-	width  int
-	height int
+type keyMap struct {
+	Quit, Help, Tab, ShiftTab, ScrollUp, ScrollDown, ScrollLeft, ScrollRight, PageUp, PageDown, CycleLocalOutput key.Binding
 }
 
-// If is a simple helper for conditional assignment.
+func (k keyMap) ShortHelp() []key.Binding {
+	return []key.Binding{k.Tab, k.ShiftTab, k.CycleLocalOutput, k.Help, k.Quit}
+}
+func (k keyMap) FullHelp() [][]key.Binding {
+	return [][]key.Binding{
+		{k.Tab, k.ShiftTab, k.CycleLocalOutput, k.Help, k.Quit},
+		{k.ScrollUp, k.ScrollDown, k.ScrollLeft, k.ScrollRight, k.PageUp, k.PageDown},
+	}
+}
+
+var defaultKeyMap = keyMap{
+	Quit:             key.NewBinding(key.WithKeys("ctrl+c"), key.WithHelp("ctrl+c", "quit")),
+	Help:             key.NewBinding(key.WithKeys("?"), key.WithHelp("?", "help")),
+	Tab:              key.NewBinding(key.WithKeys("tab"), key.WithHelp("tab", "next pane")),
+	ShiftTab:         key.NewBinding(key.WithKeys("shift+tab"), key.WithHelp("s+tab", "prev pane")),
+	CycleLocalOutput: key.NewBinding(key.WithKeys("ctrl+b"), key.WithHelp("ctrl+b", "cycle local view")),
+	ScrollUp:         key.NewBinding(key.WithKeys("up"), key.WithHelp("↑", "scroll up")),
+	ScrollDown:       key.NewBinding(key.WithKeys("down"), key.WithHelp("↓", "scroll down")),
+	ScrollLeft:       key.NewBinding(key.WithKeys("left"), key.WithHelp("←", "L")),
+	ScrollRight:      key.NewBinding(key.WithKeys("right"), key.WithHelp("→", "R")),
+	PageUp:           key.NewBinding(key.WithKeys("pgup"), key.WithHelp("pgup", "pgup")),
+	PageDown:         key.NewBinding(key.WithKeys("pgdown"), key.WithHelp("pgdn", "pgdn")),
+}
+
+type model struct {
+	app                                                     AppAccess // Changed to tui.AppAccess
+	localOutput, aiOutput                                   viewport.Model
+	localInput, aiInput                                     textarea.Model
+	spinner                                                 spinner.Model
+	help                                                    help.Model
+	keyMap                                                  keyMap
+	teaProgram                                              *tea.Program
+	messages                                                []message
+	emittedLines                                            []string
+	initialScriptToRun                                      string
+	initialScriptRunning                                    bool
+	sender                                                  string
+	lastError                                               error
+	isWaitingForAI, isSyncing, quitting, ready, helpVisible bool
+	currentActivity, patchStatus                            string
+	focusIndex                                              int
+	aiModelName                                             string
+	localFileCount, apiFileCount, syncUploads, syncDeletes  int
+	width, height                                           int
+
+	localOutputDisplayMode int
+}
+
 func If(condition bool, trueVal, falseVal interface{}) interface{} {
 	if condition {
 		return trueVal
@@ -114,106 +127,128 @@ func If(condition bool, trueVal, falseVal interface{}) interface{} {
 	return falseVal
 }
 
-// newModel constructor
-func newModel(app AppAccess, initialScriptPath string) model {
-	cmdInput := textarea.New()
-	cmdInput.Placeholder = "/cmd or script path"
-	cmdInput.Focus() // Command input focused by default
-	cmdInput.Prompt = "$ "
-	cmdInput.CharLimit = 0
-	cmdInput.SetHeight(1)
-	cmdInput.FocusedStyle.Base = focusedCommandStyle
-	cmdInput.BlurredStyle.Base = blurredCommandStyle
-	cmdInput.KeyMap.InsertNewline.SetEnabled(false)
+func newModel(app AppAccess, initialScriptPath string) model { // app is now tui.AppAccess
+	plainInternalStyle := lipgloss.NewStyle()
+	focusedPromptTextSyle := lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
+	blurredPromptTextSyle := lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
+	placeholderTextSyle := lipgloss.NewStyle().Foreground(lipgloss.Color("242"))
 
-	promptInput := textarea.New()
-	promptInput.Placeholder = "Enter prompt for AI..."
-	promptInput.Prompt = "> "
-	promptInput.CharLimit = 0
-	promptInput.SetHeight(3)
-	promptInput.FocusedStyle.Base = focusedPromptStyle
-	promptInput.BlurredStyle.Base = blurredPromptStyle
-	promptInput.KeyMap.InsertNewline.SetEnabled(true)
+	li := textarea.New()
+	li.Placeholder = "Local Input (/cmd or script path)"
+	li.Focus()
+	li.Prompt = "$ "
+	li.CharLimit = 0
+	li.FocusedStyle.Base = localInputFocusedStyle
+	li.BlurredStyle.Base = localInputBlurredStyle
+	li.FocusedStyle.Prompt = focusedPromptTextSyle
+	li.BlurredStyle.Prompt = blurredPromptTextSyle
+	li.FocusedStyle.Text = plainInternalStyle
+	li.BlurredStyle.Text = plainInternalStyle
+	li.FocusedStyle.Placeholder = placeholderTextSyle
+	li.BlurredStyle.Placeholder = placeholderTextSyle
+	li.FocusedStyle.CursorLine = plainInternalStyle
+	li.BlurredStyle.CursorLine = plainInternalStyle
+	li.FocusedStyle.CursorLineNumber = plainInternalStyle
+	li.BlurredStyle.CursorLineNumber = plainInternalStyle
+	li.FocusedStyle.EndOfBuffer = plainInternalStyle
+	li.BlurredStyle.EndOfBuffer = plainInternalStyle
+	li.KeyMap.InsertNewline.SetEnabled(false)
 
-	vp := viewport.New(10, 5)
-	vp.SetContent("Welcome to NeuroScript TUI!")
-	vp.Style = viewportStyle // Apply border style
+	ai := textarea.New()
+	ai.Placeholder = "AI Input (Enter prompt)"
+	ai.Prompt = "> "
+	ai.CharLimit = 0
+	ai.FocusedStyle.Base = aiInputFocusedStyle
+	ai.BlurredStyle.Base = aiInputBlurredStyle
+	ai.FocusedStyle.Prompt = focusedPromptTextSyle
+	ai.BlurredStyle.Prompt = blurredPromptTextSyle
+	ai.FocusedStyle.Text = plainInternalStyle
+	ai.BlurredStyle.Text = plainInternalStyle
+	ai.FocusedStyle.Placeholder = placeholderTextSyle
+	ai.BlurredStyle.Placeholder = placeholderTextSyle
+	ai.FocusedStyle.CursorLine = plainInternalStyle
+	ai.BlurredStyle.CursorLine = plainInternalStyle
+	ai.FocusedStyle.CursorLineNumber = plainInternalStyle
+	ai.BlurredStyle.CursorLineNumber = plainInternalStyle
+	ai.FocusedStyle.EndOfBuffer = plainInternalStyle
+	ai.BlurredStyle.EndOfBuffer = plainInternalStyle
+	ai.KeyMap.InsertNewline.SetEnabled(true)
 
-	emitVP := viewport.New(5, 10)
-	emitVP.SetContent("--- Script EMIT Log ---")
-	emitVP.Style = emitLogStyle // Apply border style
+	loVP := viewport.New(10, 10)
+	loVP.SetContent("")
+	loVP.Style = plainInternalStyle
+
+	aiVP := viewport.New(10, 10)
+	aiVP.SetContent("Welcome to NeuroScript TUI!")
+	aiVP.Style = plainInternalStyle
 
 	sp := spinner.New()
 	sp.Spinner = spinner.Dot
 	sp.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
-
 	h := help.New()
 	h.ShowAll = false
-
 	modelName := "unknown"
-	if app != nil {
+	if app != nil { // app is tui.AppAccess
 		modelName = app.GetModelName()
 	}
-
-	initialMessages := []message{
-		{sender: "System", text: "Focus: Command. Type '/help', Tab to switch, or prompt."},
-	}
-
+	initialMessages := []message{{sender: "System", text: "Focus: Local Input. Tab/Shift+Tab. ? for help."}}
 	if app != nil && app.GetLogger() != nil {
 		app.GetLogger().Debug("TUI model initialized.")
 	}
-
 	scriptIsPending := initialScriptPath != "" && app != nil
-
 	return model{
-		app:                  app,
-		initialScriptToRun:   initialScriptPath,
-		initialScriptRunning: scriptIsPending, // Set true if script is provided
-		currentActivity:      If(scriptIsPending, fmt.Sprintf("Executing: %s...", filepath.Base(initialScriptPath)), "").(string),
-		commandInput:         cmdInput,
-		promptInput:          promptInput,
-		viewport:             vp,
-		emitLogViewport:      emitVP,
-		spinner:              sp,
-		help:                 h,
-		keyMap:               defaultKeyMap,
-		messages:             initialMessages,
-		emittedLines:         []string{},
-		sender:               "You",
-		aiModelName:          modelName,
-		focusedInput:         focusCommand,
-		helpVisible:          false,
-		ready:                false,
-		isSyncing:            false,
-		patchStatus:          "",
+		app:                    app, // app is tui.AppAccess
+		initialScriptToRun:     initialScriptPath,
+		initialScriptRunning:   scriptIsPending,
+		currentActivity:        If(scriptIsPending, fmt.Sprintf("Executing: %s...", filepath.Base(initialScriptPath)), "").(string),
+		localInput:             li,
+		aiInput:                ai,
+		localOutput:            loVP,
+		aiOutput:               aiVP,
+		spinner:                sp,
+		help:                   h,
+		keyMap:                 defaultKeyMap,
+		messages:               initialMessages,
+		emittedLines:           []string{},
+		sender:                 "You",
+		aiModelName:            modelName,
+		focusIndex:             focusLocalInput,
+		helpVisible:            false,
+		ready:                  false,
+		isSyncing:              false,
+		patchStatus:            "",
+		localOutputDisplayMode: localOutputModeScript,
 	}
 }
 
-// SetTeaProgram allows the main TUI function to set the tea.Program instance
-func (m *model) SetTeaProgram(p *tea.Program) {
-	m.teaProgram = p
-}
+func (m *model) SetTeaProgram(p *tea.Program) { m.teaProgram = p }
 
-// Init is called by Bubble Tea when the model is first started.
 func (m model) Init() tea.Cmd {
 	var cmds []tea.Cmd
 	cmds = append(cmds, textarea.Blink)
-
-	if m.initialScriptToRun != "" && m.app != nil {
-		// currentActivity and initialScriptRunning should be set in newModel if a script is pending.
-		// This command just runs it.
+	if m.initialScriptToRun != "" && m.app != nil { // app is tui.AppAccess
 		scriptCmd := func() tea.Msg {
 			if m.app.GetLogger() != nil {
-				m.app.GetLogger().Debug("Executing initial TUI script (cmd from Init)...", "path", m.initialScriptToRun)
+				m.app.GetLogger().Debug("Executing initial TUI script...", "path", m.initialScriptToRun)
 			}
-			// Script execution happens here. EMITs should be routed to TUIEmitWriter.
-			err := m.app.ExecuteScriptFile(context.Background(), m.initialScriptToRun)
+			ctxToUse := context.Background()
+			if m.app.Context() != nil {
+				ctxToUse = m.app.Context()
+			}
+			err := m.app.ExecuteScriptFile(ctxToUse, m.initialScriptToRun) // Call on tui.AppAccess
 			return initialScriptDoneMsg{Path: m.initialScriptToRun, Err: err}
 		}
 		cmds = append(cmds, scriptCmd)
-		if m.initialScriptRunning { // If set true in newModel
-			cmds = append(cmds, m.spinner.Tick) // Start spinner immediately
+		if m.initialScriptRunning {
+			cmds = append(cmds, m.spinner.Tick)
 		}
 	}
 	return tea.Batch(cmds...)
+}
+
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }

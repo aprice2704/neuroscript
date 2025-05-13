@@ -406,6 +406,9 @@
             }
           ]
         },
+        "pkg/core/ai_wm_default_wdefs.go": {
+          "methods": []
+        },
         "pkg/core/ai_wm_definitions.go": {
           "methods": [
             {
@@ -2651,6 +2654,13 @@
               "calls": [
                 "i.logger.Warn(?)",
                 "i.logger.Debug(?)"
+              ]
+            },
+            {
+              "Receiver": "*Interpreter",
+              "Name": "Stdout",
+              "calls": [
+                "i.logger.Error(?)"
               ]
             },
             {
@@ -11552,13 +11562,6 @@
         }
       }
     },
-    "pkg/core/tools": {
-      "files": {
-        "pkg/core/tools/ai_wm_default_wdefs.go": {
-          "methods": []
-        }
-      }
-    },
     "pkg/core/tools/goast": {
       "files": {
         "pkg/core/tools/goast/tools_go_ast.go": {
@@ -12113,101 +12116,42 @@
             },
             {
               "Receiver": "*App",
-              "Name": "CreateLLMClient",
-              "calls": [
-                "app.Log.Debug(?)",
-                "pkg/adapters.NewNoOpLLMClient",
-                "app.Log.Debug(?)",
-                "app.Log.Debug(?)",
-                "app.Log.Debug(?)",
-                "pkg/adapters.NewNoOpLogger",
-                "pkg/core.NewLLMClient",
-                "app.Log.Error(?)",
-                "app.Log.Debug(?)"
-              ]
-            },
-            {
-              "Receiver": "*App",
-              "Name": "processNeuroScriptFile",
-              "calls": [
-                "a.Log.Debug(?)",
-                "a.Log.Error(?)",
-                "string",
-                "pkg/core.NewParserAPI",
-                "parser.Parse(?)",
-                "a.Log.Error(?)",
-                "a.Log.Error(?)",
-                "a.Log.Debug(?)",
-                "pkg/core.NewASTBuilder",
-                "astBuilder.Build(?)",
-                "a.Log.Error(?)",
-                "a.Log.Error(?)",
-                "a.Log.Debug(?)",
-                "a.Log.Warn(?)",
-                "interp.AddProcedure(?)",
-                "a.Log.Error(?)",
-                "a.Log.Debug(?)",
-                "a.Log.Debug(?)"
-              ]
-            },
-            {
-              "Receiver": "*App",
-              "Name": "loadLibraries",
-              "calls": [
-                "a.Log.Debug(?)",
-                "a.Log.Warn(?)",
-                "a.Log.Debug(?)",
-                "a.Log.Warn(?)",
-                "info.IsDir(?)",
-                "a.Log.Warn(?)",
-                "d.IsDir(?)",
-                "d.Name(?)",
-                "a.Log.Debug(?)",
-                "a.processNeuroScriptFile(?)",
-                "a.Log.Error(?)",
-                "a.Log.Error(?)",
-                "info.Name(?)",
-                "a.Log.Debug(?)",
-                "a.processNeuroScriptFile(?)",
-                "a.Log.Error(?)",
-                "a.Log.Warn(?)",
-                "a.Log.Debug(?)"
-              ]
-            },
-            {
-              "Receiver": "*App",
-              "Name": "ExecuteScriptFile",
-              "calls": [
-                "app.Log.Debug(?)",
-                "app.GetInterpreter(?)",
-                "app.Log.Error(?)",
-                "app.loadLibraries(?)",
-                "app.Log.Error(?)",
-                "app.processNeuroScriptFile(?)",
-                "app.Log.Warn(?)",
-                "app.Log.Debug(?)",
-                "app.Log.Debug(?)",
-                "app.Log.Debug(?)",
-                "app.Log.Debug(?)",
-                "app.Log.Warn(?)",
-                "interpreter.RunProcedure(?)",
-                "interpreter.RunProcedure(?)",
-                "execEndTime.Sub(?)",
-                "app.Log.Debug(?)",
-                "app.Log.Error(?)",
-                "app.Log.Debug(?)",
-                "app.Log.Debug(?)",
-                "app.Log.Debug(?)",
-                "app.Log.Debug(?)"
-              ]
-            },
-            {
-              "Receiver": "*App",
               "Name": "Run",
               "calls": [
                 "app.Log.Error(?)"
               ]
             },
+            {
+              "Receiver": "*App",
+              "Name": "GetLogger",
+              "calls": [
+                "pkg/adapters.NewNoOpLogger"
+              ]
+            },
+            {
+              "Receiver": "*App",
+              "Name": "GetLLMClient",
+              "calls": [
+                "a.mu.RLock(?)",
+                "a.mu.RUnlock(?)",
+                "a.GetLogger(?)",
+                "logger.Warn(?)"
+              ]
+            },
+            {
+              "Receiver": "*App",
+              "Name": "Context"
+            }
+          ]
+        },
+        "pkg/neurogo/app_acc_uris.go": {
+          "functions": [
+            "updateAccumulatedURIs"
+          ],
+          "methods": []
+        },
+        "pkg/neurogo/app_access.go": {
+          "methods": [
             {
               "Receiver": "*App",
               "Name": "GetModelName",
@@ -12247,31 +12191,8 @@
                 "a.mu.RLock(?)",
                 "a.mu.RUnlock(?)"
               ]
-            },
-            {
-              "Receiver": "*App",
-              "Name": "GetLogger",
-              "calls": [
-                "pkg/adapters.NewNoOpLogger"
-              ]
-            },
-            {
-              "Receiver": "*App",
-              "Name": "GetLLMClient",
-              "calls": [
-                "a.mu.RLock(?)",
-                "a.mu.RUnlock(?)",
-                "a.GetLogger(?)",
-                "logger.Warn(?)"
-              ]
             }
           ]
-        },
-        "pkg/neurogo/app_acc_uris.go": {
-          "functions": [
-            "updateAccumulatedURIs"
-          ],
-          "methods": []
         },
         "pkg/neurogo/app_agent.go": {
           "functions": [
@@ -12358,6 +12279,25 @@
           ],
           "methods": []
         },
+        "pkg/neurogo/app_init.go": {
+          "methods": [
+            {
+              "Receiver": "*App",
+              "Name": "CreateLLMClient",
+              "calls": [
+                "app.Log.Debug(?)",
+                "pkg/adapters.NewNoOpLLMClient",
+                "app.Log.Debug(?)",
+                "app.Log.Debug(?)",
+                "app.Log.Debug(?)",
+                "pkg/adapters.NewNoOpLogger",
+                "pkg/core.NewLLMClient",
+                "app.Log.Error(?)",
+                "app.Log.Debug(?)"
+              ]
+            }
+          ]
+        },
         "pkg/neurogo/app_interface.go": {
           "methods": []
         },
@@ -12375,6 +12315,85 @@
             "TestApp_RunScriptMode_MultiReturn"
           ],
           "methods": []
+        },
+        "pkg/neurogo/app_scripting.go": {
+          "methods": [
+            {
+              "Receiver": "*App",
+              "Name": "processNeuroScriptFile",
+              "calls": [
+                "a.Log.Debug(?)",
+                "a.Log.Error(?)",
+                "string",
+                "pkg/core.NewParserAPI",
+                "parser.Parse(?)",
+                "a.Log.Error(?)",
+                "a.Log.Error(?)",
+                "a.Log.Debug(?)",
+                "pkg/core.NewASTBuilder",
+                "astBuilder.Build(?)",
+                "a.Log.Error(?)",
+                "a.Log.Error(?)",
+                "a.Log.Debug(?)",
+                "a.Log.Warn(?)",
+                "interp.AddProcedure(?)",
+                "a.Log.Error(?)",
+                "a.Log.Debug(?)",
+                "a.Log.Debug(?)"
+              ]
+            },
+            {
+              "Receiver": "*App",
+              "Name": "loadLibraries",
+              "calls": [
+                "a.Log.Debug(?)",
+                "a.Log.Warn(?)",
+                "a.Log.Debug(?)",
+                "a.Log.Warn(?)",
+                "info.IsDir(?)",
+                "a.Log.Warn(?)",
+                "d.IsDir(?)",
+                "d.Name(?)",
+                "a.Log.Debug(?)",
+                "a.processNeuroScriptFile(?)",
+                "a.Log.Error(?)",
+                "a.Log.Error(?)",
+                "info.Name(?)",
+                "a.Log.Debug(?)",
+                "a.processNeuroScriptFile(?)",
+                "a.Log.Error(?)",
+                "a.Log.Warn(?)",
+                "a.Log.Debug(?)"
+              ]
+            },
+            {
+              "Receiver": "*App",
+              "Name": "ExecuteScriptFile",
+              "calls": [
+                "app.Log.Debug(?)",
+                "app.GetInterpreter(?)",
+                "app.Log.Error(?)",
+                "app.loadLibraries(?)",
+                "app.Log.Error(?)",
+                "app.processNeuroScriptFile(?)",
+                "app.Log.Warn(?)",
+                "app.Log.Debug(?)",
+                "app.Log.Debug(?)",
+                "app.Log.Debug(?)",
+                "app.Log.Debug(?)",
+                "app.Log.Warn(?)",
+                "interpreter.RunProcedure(?)",
+                "interpreter.RunProcedure(?)",
+                "execEndTime.Sub(?)",
+                "app.Log.Debug(?)",
+                "app.Log.Error(?)",
+                "app.Log.Debug(?)",
+                "app.Log.Debug(?)",
+                "app.Log.Debug(?)",
+                "app.Log.Debug(?)"
+              ]
+            }
+          ]
         },
         "pkg/neurogo/app_sync.go": {
           "methods": [
@@ -12551,7 +12570,9 @@
         },
         "pkg/neurogo/tui/model.go": {
           "functions": [
-            "newModel"
+            "If",
+            "newModel",
+            "max"
           ],
           "methods": [
             {
@@ -12565,6 +12586,19 @@
             {
               "Receiver": "*model",
               "Name": "SetTeaProgram"
+            },
+            {
+              "Receiver": "model",
+              "Name": "Init",
+              "calls": [
+                "m.app.GetLogger(?)",
+                "m.app.GetLogger().Debug(?)",
+                "m.app.GetLogger(?)",
+                "m.app.Context(?)",
+                "m.app.Context(?)",
+                "m.app.ExecuteScriptFile(?)",
+                "github.com/charmbracelet/bubbletea.Batch"
+              ]
             }
           ]
         },
@@ -12604,84 +12638,114 @@
           "methods": [
             {
               "Receiver": "model",
-              "Name": "Init"
-            },
-            {
-              "Receiver": "model",
               "Name": "Update",
               "calls": [
-                "m.viewport.Update(?)",
-                "m.emitLogViewport.Update(?)",
+                "m.localInput.Update(?)",
+                "m.aiInput.Update(?)",
+                "m.localOutput.Update(?)",
+                "m.aiOutput.Update(?)",
+                "m.localOutput.Update(?)",
+                "m.aiOutput.Update(?)",
                 "m.spinner.Update(?)",
                 "github.com/charmbracelet/bubbles/key.Matches",
-                "m.addMessage(?)",
                 "github.com/charmbracelet/bubbles/key.Matches",
-                "m.setSizes(?)",
-                "m.viewport.GotoBottom(?)",
+                "github.com/charmbracelet/bubbletea.Batch",
+                "github.com/charmbracelet/bubbletea.Batch",
                 "github.com/charmbracelet/bubbles/key.Matches",
-                "m.promptInput.Blur(?)",
-                "m.commandInput.Focus(?)",
+                "m.updateFocus(?)",
+                "github.com/charmbracelet/bubbles/key.Matches",
+                "m.updateFocus(?)",
+                "github.com/charmbracelet/bubbles/key.Matches",
+                "m.localInput.Value(?)",
                 "m.addMessage(?)",
-                "m.commandInput.Blur(?)",
-                "m.promptInput.Focus(?)",
-                "m.addMessage(?)",
-                "m.commandInput.Value(?)",
-                "m.addMessage(?)",
-                "m.commandInput.Reset(?)",
-                "m.addMessage(?)",
-                "m.setSizes(?)",
-                "m.addMessage(?)",
+                "m.localInput.Reset(?)",
                 "m.addMessage(?)",
                 "m.addMessage(?)",
                 "m.runSyncCmd(?)",
                 "m.addMessage(?)",
-                "m.promptInput.Value(?)",
                 "m.addMessage(?)",
-                "m.promptInput.Reset(?)",
-                "m.viewport.GotoBottom(?)",
+                "m.executeSpecificScriptCmd(?)",
                 "m.addMessage(?)",
-                "m.commandInput.Update(?)",
-                "m.promptInput.Update(?)",
+                "m.addMessage(?)",
+                "m.aiInput.Value(?)",
+                "m.addMessage(?)",
+                "m.aiInput.Reset(?)",
+                "m.aiOutput.GotoBottom(?)",
+                "m.addMessage(?)",
+                "github.com/charmbracelet/bubbles/key.Matches",
+                "activeViewport.LineUp(?)",
+                "github.com/charmbracelet/bubbles/key.Matches",
+                "activeViewport.LineDown(?)",
+                "github.com/charmbracelet/bubbles/key.Matches",
+                "activeViewport.ScrollLeft(?)",
+                "github.com/charmbracelet/bubbles/key.Matches",
+                "activeViewport.ScrollRight(?)",
+                "github.com/charmbracelet/bubbles/key.Matches",
+                "activeViewport.ViewUp(?)",
+                "github.com/charmbracelet/bubbles/key.Matches",
+                "activeViewport.ViewDown(?)",
                 "m.setSizes(?)",
-                "m.viewport.GotoBottom(?)",
-                "m.emitLogViewport.GotoBottom(?)",
-                "m.emitLogViewport.SetContent(?)",
-                "m.emitLogViewport.GotoBottom(?)",
-                "int",
-                "int",
+                "m.aiOutput.GotoBottom(?)",
+                "m.localOutput.GotoBottom(?)",
+                "m.addMessage(?)",
+                "m.addMessage(?)",
+                "errorStyle.Render(?)",
+                "m.app.GetLogger(?)",
+                "m.app.GetLogger().Error(?)",
+                "m.app.GetLogger(?)",
+                "m.addMessage(?)",
+                "m.app.GetLogger(?)",
+                "m.app.GetLogger().Debug(?)",
+                "m.app.GetLogger(?)",
+                "m.localOutput.GotoBottom(?)",
+                "If",
+                "If",
                 "m.addMessage(?)",
                 "errorStyle.Render(?)",
                 "m.addMessage(?)",
-                "m.viewport.GotoBottom(?)",
+                "m.aiOutput.GotoBottom(?)",
                 "m.addMessage(?)",
                 "errorStyle.Render(?)",
-                "m.viewport.GotoBottom(?)",
-                "m.commandInput.Focused(?)",
-                "m.commandInput.Focus(?)",
-                "m.promptInput.Blur(?)",
-                "m.promptInput.Focused(?)",
-                "m.promptInput.Focus(?)",
-                "m.commandInput.Blur(?)",
-                "m.viewport.SetContent(?)",
-                "m.renderMessages(?)",
-                "m.viewport.GotoBottom(?)",
+                "m.aiOutput.GotoBottom(?)",
                 "github.com/charmbracelet/bubbletea.Batch"
+              ]
+            },
+            {
+              "Receiver": "*model",
+              "Name": "updateFocus",
+              "calls": [
+                "m.localInput.Blur(?)",
+                "m.aiInput.Blur(?)",
+                "m.localInput.Focus(?)",
+                "m.aiInput.Focus(?)",
+                "m.addMessage(?)"
+              ]
+            },
+            {
+              "Receiver": "*model",
+              "Name": "executeSpecificScriptCmd",
+              "calls": [
+                "m.app.GetLogger(?)",
+                "m.app.GetLogger().Debug(?)",
+                "m.app.GetLogger(?)",
+                "m.app.Context(?)",
+                "m.app.Context(?)",
+                "m.app.ExecuteScriptFile(?)"
               ]
             }
           ]
         },
         "pkg/neurogo/tui/update_helpers.go": {
-          "functions": [
-            "max"
-          ],
           "methods": [
             {
               "Receiver": "*model",
               "Name": "addMessage",
               "calls": [
-                "m.viewport.SetContent(?)",
+                "m.localOutput.SetContent(?)",
+                "m.localOutput.GotoBottom(?)",
+                "m.aiOutput.SetContent(?)",
                 "m.renderMessages(?)",
-                "m.viewport.GotoBottom(?)"
+                "m.aiOutput.GotoBottom(?)"
               ]
             },
             {
@@ -12705,19 +12769,19 @@
               "Name": "renderStatusBar",
               "calls": [
                 "m.spinner.View(?)",
-                "m.spinner.View(?)",
-                "m.spinner.View(?)",
-                "m.spinner.View(?)",
                 "errorStyle.Render(?)",
-                "github.com/charmbracelet/lipgloss.Width",
-                "github.com/charmbracelet/lipgloss.Width",
                 "statusBarSyle.GetHorizontalPadding(?)",
+                "github.com/charmbracelet/lipgloss.Width",
+                "github.com/charmbracelet/lipgloss.Width",
+                "github.com/charmbracelet/lipgloss.Width",
+                "github.com/charmbracelet/lipgloss.Width",
+                "github.com/charmbracelet/lipgloss.Width",
+                "github.com/charmbracelet/lipgloss.Width",
+                "github.com/charmbracelet/lipgloss.Width",
                 "github.com/charmbracelet/lipgloss.JoinHorizontal",
-                "statusBarSyle.Render(?)",
-                "github.com/charmbracelet/lipgloss.PlaceHorizontal",
-                "github.com/charmbracelet/lipgloss.WithWhitespaceChars",
-                "github.com/charmbracelet/lipgloss.WithWhitespaceForeground",
-                "statusBarSyle.GetBackground(?)"
+                "statusBarSyle.Copy().Width(width).Render(?)",
+                "statusBarSyle.Copy().Width(?)",
+                "statusBarSyle.Copy(?)"
               ]
             },
             {
@@ -12725,42 +12789,41 @@
               "Name": "runSyncCmd",
               "calls": [
                 "m.app.GetLogger(?)",
-                "logger.Error(?)",
                 "m.app.GetSyncDir(?)",
-                "logger.Error(?)",
                 "m.app.GetInterpreter(?)",
-                "logger.Error(?)",
                 "interp.FileAPI(?)",
-                "logger.Error(?)",
                 "fileAPI.ResolvePath(?)",
-                "logger.Error(?)",
-                "logger.Error(?)",
                 "dirInfo.IsDir(?)",
-                "logger.Error(?)",
+                "pkg/core.SyncDirectoryUpHelper",
                 "m.app.GetSyncFilter(?)",
-                "m.app.GetSyncIgnoreGitignore(?)",
-                "pkg/core.SyncDirectoryUpHelper"
+                "m.app.GetSyncIgnoreGitignore(?)"
               ]
             },
             {
               "Receiver": "*model",
               "Name": "setSizes",
               "calls": [
-                "m.commandInput.Height(?)",
-                "m.promptInput.Height(?)",
                 "github.com/charmbracelet/lipgloss.Height",
                 "m.renderStatusBar(?)",
                 "github.com/charmbracelet/lipgloss.Height",
                 "m.help.View(?)",
-                "m.commandInput.SetWidth(?)",
-                "m.promptInput.SetWidth(?)",
-                "int",
-                "float64",
-                "m.viewport.SetContent(?)",
+                "m.localInput.SetHeight(?)",
+                "m.aiInput.SetHeight(?)",
+                "m.localInput.SetWidth(?)",
+                "localInputFocusedStyle.GetHorizontalFrameSize(?)",
+                "m.aiInput.SetWidth(?)",
+                "aiInputFocusedStyle.GetHorizontalFrameSize(?)",
+                "localOutputFocusedStyle.GetHorizontalFrameSize(?)",
+                "aiOutputFocusedStyle.GetHorizontalFrameSize(?)",
+                "m.localInput.Width(?)",
+                "m.localInput.SetWidth(?)",
+                "m.aiInput.Width(?)",
+                "m.aiInput.SetWidth(?)",
+                "m.aiOutput.SetContent(?)",
                 "m.renderMessages(?)",
-                "m.emitLogViewport.SetContent(?)",
-                "m.viewport.GotoBottom(?)",
-                "m.emitLogViewport.GotoBottom(?)"
+                "m.aiOutput.GotoBottom(?)",
+                "m.localOutput.SetContent(?)",
+                "m.localOutput.GotoBottom(?)"
               ]
             }
           ]
@@ -12771,15 +12834,23 @@
               "Receiver": "model",
               "Name": "View",
               "calls": [
-                "m.viewport.View(?)",
-                "m.emitLogViewport.View(?)",
-                "m.renderStatusBar(?)",
-                "m.commandInput.View(?)",
-                "m.promptInput.View(?)",
-                "github.com/charmbracelet/lipgloss.JoinHorizontal",
-                "m.help.View(?)",
-                "github.com/charmbracelet/lipgloss.JoinHorizontal",
+                "github.com/charmbracelet/lipgloss.Place",
+                "github.com/charmbracelet/lipgloss.Place",
+                "m.localInput.View(?)",
+                "m.aiInput.View(?)",
+                "paneTitleStyle.Render(?)",
+                "m.localOutput.View(?)",
+                "localOutputContainerStyle.Render(?)",
                 "github.com/charmbracelet/lipgloss.JoinVertical",
+                "paneTitleStyle.Render(?)",
+                "m.aiOutput.View(?)",
+                "aiOutputContainerStyle.Render(?)",
+                "github.com/charmbracelet/lipgloss.JoinVertical",
+                "github.com/charmbracelet/lipgloss.JoinVertical",
+                "github.com/charmbracelet/lipgloss.JoinVertical",
+                "github.com/charmbracelet/lipgloss.JoinHorizontal",
+                "m.renderStatusBar(?)",
+                "m.help.View(?)",
                 "github.com/charmbracelet/lipgloss.JoinVertical"
               ]
             }

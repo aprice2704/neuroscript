@@ -1,7 +1,12 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.2.2 // Changed INFO logs to DEBUG
+// File version: 0.2.4
 // filename: pkg/core/ai_wm.go
-
+// nlines: 265 // Approximate
+// risk_rating: HIGH
+// Changes:
+// - Auto-generate DefinitionID in loadWorkerDefinitionsFromContent if missing (log as DEBUG).
+// - Added warning for duplicate definition names in loadWorkerDefinitionsFromContent.
+// - Changed INFO logs to DEBUG
 package core
 
 import (
@@ -13,7 +18,7 @@ import (
 	"time"
 
 	"github.com/aprice2704/neuroscript/pkg/logging"
-	// "github.com/google/uuid" // Keep if other parts of the file use it.
+	"github.com/google/uuid" // Ensure this import is present for UUID generation
 )
 
 // Constants for default filenames remain
@@ -49,14 +54,8 @@ func NewAIWorkerManager(
 ) (*AIWorkerManager, error) {
 
 	if logger == nil {
-		// This should ideally not happen if caller ensures logger. Fallback for safety.
-		// Using a basic fmt.Printf logger here as coreNoOpLogger might not be initialized yet
-		// if this is part of core initialization itself. A true panic might be better.
-		// For now, let's assume logger is always provided.
 		return nil, fmt.Errorf("logger cannot be nil for AIWorkerManager")
 	}
-	// No direct file access here, so sandboxDir existence check is less critical for constructor
-	// but still important for context.
 	if sandboxDir == "" {
 		logger.Warn("AIWorkerManager: sandboxDir is empty during initialization. File operations by tools might be ambiguous or use current working directory.")
 	}
@@ -74,12 +73,11 @@ func NewAIWorkerManager(
 
 	if initialDefinitionsContent != "" {
 		logger.Debugf("AIWorkerManager attempting to load definitions from provided initial content (length: %d).", len(initialDefinitionsContent))
-		// Pass as []byte as json.Unmarshal expects that.
 		if err := m.loadWorkerDefinitionsFromContent([]byte(initialDefinitionsContent)); err != nil {
 			logger.Errorf("AIWorkerManager: Failed to load definitions from initial content: %v. Proceeding with empty definitions.", err)
 		}
 	} else {
-		logger.Debugf("AIWorkerManager: No initial definitions content provided. Starting with an empty set of definitions.") // Changed from Infof
+		logger.Debugf("AIWorkerManager: No initial definitions content provided. Starting with an empty set of definitions.")
 	}
 
 	if initialPerformanceContent != "" {
@@ -88,12 +86,12 @@ func NewAIWorkerManager(
 			logger.Errorf("AIWorkerManager: Failed to load performance data from initial content: %v.", err)
 		}
 	} else {
-		logger.Debugf("AIWorkerManager: No initial performance data content provided.") // Changed from Infof
+		logger.Debugf("AIWorkerManager: No initial performance data content provided.")
 	}
 
-	// This needs to be called after m.definitions might have been populated by loadWorkerDefinitionsFromContent
 	m.initializeRateTrackersUnsafe()
-	logger.Debugf("AIWorkerManager initialized. Loaded %d definitions from content. Active instances: %d. Sandbox context: '%s'", len(m.definitions), len(m.activeInstances), m.sandboxDir) // Changed from Infof
+	// This Info log is appropriate as it's a summary of the constructor's action.
+	m.logger.Infof("AIWorkerManager initialized. Loaded %d definitions. Active instances: %d. Sandbox context: '%s'", len(m.definitions), len(m.activeInstances), m.sandboxDir)
 	return m, nil
 }
 
@@ -117,81 +115,86 @@ func (m *AIWorkerManager) FullPathForPerformanceData() string {
 
 // loadWorkerDefinitionsFromContent loads AI worker definitions from JSON byte content.
 func (m *AIWorkerManager) loadWorkerDefinitionsFromContent(jsonBytes []byte) error {
-	// Caller is responsible for locking if this is called outside of NewAIWorkerManager
-	// and concurrent access to m.definitions is possible.
-	// m.mu.Lock()
-	// defer m.mu.Unlock()
-
 	if len(jsonBytes) == 0 {
-		m.logger.Debugf("loadWorkerDefinitionsFromContent: Provided content is empty. No definitions loaded.") // Changed from Infof
-		m.definitions = make(map[string]*AIWorkerDefinition)                                                   // Reset to empty
+		m.logger.Debugf("loadWorkerDefinitionsFromContent: Provided content is empty. No definitions loaded.")
+		m.definitions = make(map[string]*AIWorkerDefinition) // Reset to empty
 		return nil
 	}
 
 	var defs []*AIWorkerDefinition
 	if err := json.Unmarshal(jsonBytes, &defs); err != nil {
 		m.logger.Errorf("loadWorkerDefinitionsFromContent: Failed to unmarshal definitions JSON: %v", err)
-		// Potentially corrupted content, clear existing definitions to avoid partial state.
 		m.definitions = make(map[string]*AIWorkerDefinition)
 		return NewRuntimeError(ErrorCodeInternal, "failed to unmarshal definitions data from content", err)
 	}
 
 	newDefinitions := make(map[string]*AIWorkerDefinition)
+	namesEncountered := make(map[string]string) // To track names for duplicate warnings: name -> first DefinitionID
+
 	for _, def := range defs {
 		if def == nil {
 			m.logger.Warnf("loadWorkerDefinitionsFromContent: Encountered a nil definition in content. Skipping.")
 			continue
 		}
+
+		originalID := def.DefinitionID
+		currentName := def.Name // Store name before potentially skipping due to true duplication
+
 		if def.DefinitionID == "" {
-			// This could be an issue with data integrity or an older format.
-			// For now, we skip. A more robust solution might assign a UUID if name is present.
-			m.logger.Warnf("loadWorkerDefinitionsFromContent: Encountered definition with empty ID (Name: '%s'). Skipping.", def.Name)
-			continue
+			newID := uuid.NewString()
+			m.logger.Debugf("loadWorkerDefinitionsFromContent: Definition (Name: '%s') has empty ID. Assigning new ID: %s", def.Name, newID)
+			def.DefinitionID = newID
 		}
-		// Basic validation or default setting for status if missing
+
+		// Check for duplicate names
+		if existingDefID, nameFound := namesEncountered[def.Name]; nameFound {
+			// Name found. If IDs are different, it's a problematic duplicate.
+			// If IDs are the same (e.g. from a misconfigured file with multiple identical entries),
+			// the map assignment below will handle it (last one wins), but a warning is still good.
+			if existingDefID != def.DefinitionID {
+				m.logger.Warnf("loadWorkerDefinitionsFromContent: Duplicate AIWorkerDefinition name '%s' encountered. Existing ID: '%s', New/Current ID: '%s'. Ensure names are unique if distinct workers are intended, or consolidate if they are the same worker.", def.Name, existingDefID, def.DefinitionID)
+			} else {
+				// Same name, same ID - likely a full duplicate entry in the JSON
+				m.logger.Warnf("loadWorkerDefinitionsFromContent: Duplicate entry for AIWorkerDefinition (Name: '%s', ID: '%s'). Overwriting with current entry.", def.Name, def.DefinitionID)
+			}
+		} else {
+			namesEncountered[def.Name] = def.DefinitionID
+		}
+
+		// Check if this specific definition (by ID) has already been processed (e.g. if the JSON has exact duplicate objects)
+		if _, idExists := newDefinitions[def.DefinitionID]; idExists && originalID != "" {
+			// This means an explicit ID was duplicated in the source JSON.
+			// The namesEncountered check would have caught logical duplicates by name with different IDs.
+			m.logger.Warnf("loadWorkerDefinitionsFromContent: AIWorkerDefinition ID '%s' (Name: '%s') appears multiple times in the source. The last occurrence will be used.", def.DefinitionID, currentName)
+		}
+
 		if def.Status == "" {
-			def.Status = DefinitionStatusActive // Default to active if not specified
-			m.logger.Debugf("Definition '%s' (%s) had empty status, defaulted to '%s'.", def.Name, def.DefinitionID, def.Status)
+			def.Status = DefinitionStatusActive
+			m.logger.Debugf("Definition (Name: '%s', ID: '%s') had empty status, defaulted to '%s'.", def.Name, def.DefinitionID, def.Status)
 		}
 		newDefinitions[def.DefinitionID] = def
 	}
 
-	m.definitions = newDefinitions                                                                          // Replace existing definitions
-	m.logger.Debugf("Successfully loaded/reloaded %d worker definitions from content.", len(m.definitions)) // Changed from Infof
-
-	// Important: Rate trackers need to be re-initialized based on the newly loaded definitions.
-	// This is typically done after this call by the caller (e.g. in NewAIWorkerManager or a reload tool).
-	// If this method can be called stand-alone later for a "hot reload", it should also trigger tracker re-init.
-	// For now, initializeRateTrackersUnsafe is called in NewAIWorkerManager after this.
-	// If called independently:
-	// m.initializeRateTrackersUnsafe() // Call under the same lock as m.definitions modification.
-
+	m.definitions = newDefinitions
+	m.logger.Debugf("Successfully loaded/reloaded %d worker definitions from content.", len(m.definitions))
 	return nil
 }
 
 // prepareDefinitionsForSaving marshals the current AI worker definitions to a JSON string.
-// Caller must hold appropriate lock (usually Write Lock via m.mu.Lock()).
 func (m *AIWorkerManager) prepareDefinitionsForSaving() (string, error) {
-	// Assumes caller holds the write lock (m.mu.Lock())
 	defsToSave := make([]*AIWorkerDefinition, 0, len(m.definitions))
 	for _, def := range m.definitions {
 		if def == nil {
 			continue
 		}
-
-		// Ensure AggregatePerformanceSummary is not nil before accessing fields
-		if def.AggregatePerformanceSummary == nil { // Should be initialized by definition creation logic
+		if def.AggregatePerformanceSummary == nil {
 			def.AggregatePerformanceSummary = &AIWorkerPerformanceSummary{}
-			m.logger.Warnf("prepareDefinitionsForSaving: DefinitionID %s had nil AggregatePerformanceSummary; initialized.", def.DefinitionID)
+			m.logger.Warnf("prepareDefinitionsForSaving: Definition (Name: '%s', ID: '%s') had nil AggregatePerformanceSummary; initialized.", def.Name, def.DefinitionID)
 		}
-
 		if tracker, ok := m.rateTrackers[def.DefinitionID]; ok {
 			def.AggregatePerformanceSummary.ActiveInstancesCount = tracker.CurrentActiveInstances
 		} else {
-			// If no tracker, it means no active instances are being tracked for it, so 0 is correct.
 			def.AggregatePerformanceSummary.ActiveInstancesCount = 0
-			// This warning might be noisy if definitions are often added without immediate spawning.
-			// m.logger.Debugf("prepareDefinitionsForSaving: No rate tracker found for DefID %s. ActiveInstancesCount in summary is 0.", def.DefinitionID)
 		}
 		defsToSave = append(defsToSave, def)
 	}
@@ -207,7 +210,7 @@ func (m *AIWorkerManager) prepareDefinitionsForSaving() (string, error) {
 
 // resolveAPIKey resolves the API key based on the provided APIKeySource.
 func (m *AIWorkerManager) resolveAPIKey(auth APIKeySource) (string, error) {
-	m.logger.Debugf("Resolving API key with method: %s", auth.Method) // Value not logged for security
+	m.logger.Debugf("Resolving API key with method: %s", auth.Method)
 	switch auth.Method {
 	case APIKeyMethodEnvVar:
 		if auth.Value == "" {
@@ -218,11 +221,11 @@ func (m *AIWorkerManager) resolveAPIKey(auth APIKeySource) (string, error) {
 			m.logger.Warnf("resolveAPIKey: %s", err.Message)
 			return "", err
 		}
-		key := os.Getenv(auth.Value) // Use os.Getenv directly
+		key := os.Getenv(auth.Value)
 		if key == "" {
 			err := NewRuntimeError(ErrorCodeConfiguration,
 				fmt.Sprintf("environment variable '%s' for API key not found or is empty", auth.Value),
-				ErrConfiguration, // Or a more specific ErrAPIKeyNotFound
+				ErrConfiguration,
 			)
 			m.logger.Warnf("resolveAPIKey: Environment variable '%s' for API key not found or is empty.", auth.Value)
 			return "", err
@@ -241,7 +244,6 @@ func (m *AIWorkerManager) resolveAPIKey(auth APIKeySource) (string, error) {
 		return "", nil
 	case APIKeyMethodConfigPath, APIKeyMethodVault:
 		errMessage := fmt.Sprintf("API key method '%s' is not yet implemented", auth.Method)
-		// Consider having a shared ErrFeatureNotImplemented in errors.go
 		err := NewRuntimeError(ErrorCodeNotImplemented, errMessage, fmt.Errorf("feature not implemented: %s", auth.Method))
 		m.logger.Errorf("resolveAPIKey: %s", errMessage)
 		return "", err
@@ -254,96 +256,62 @@ func (m *AIWorkerManager) resolveAPIKey(auth APIKeySource) (string, error) {
 }
 
 // initializeRateTrackersUnsafe ensures rate trackers are set up for all loaded definitions.
-// Caller must hold lock if concurrent access to m.rateTrackers or m.definitions is possible.
 func (m *AIWorkerManager) initializeRateTrackersUnsafe() {
-	newRateTrackers := make(map[string]*WorkerRateTracker) // Create a new map to avoid modifying in place if iterating
+	newRateTrackers := make(map[string]*WorkerRateTracker)
 	for defID, def := range m.definitions {
 		if def == nil {
-			m.logger.Warnf("initializeRateTrackersUnsafe: Encountered nil definition for ID '%s'. Skipping tracker initialization.", defID)
+			m.logger.Warnf("initializeRateTrackersUnsafe: Encountered nil definition for ID '%s' (Name: '%s'). Skipping tracker initialization.", defID, def.Name)
 			continue
 		}
-
 		activeCount := 0
-		// Ensure AggregatePerformanceSummary is not nil
 		if def.AggregatePerformanceSummary != nil && def.AggregatePerformanceSummary.ActiveInstancesCount > 0 {
 			activeCount = def.AggregatePerformanceSummary.ActiveInstancesCount
 		}
-
 		newRateTrackers[defID] = &WorkerRateTracker{
 			DefinitionID:           defID,
-			RequestsMinuteMarker:   time.Now(), // Initialize markers to current time
+			RequestsMinuteMarker:   time.Now(),
 			TokensMinuteMarker:     time.Now(),
 			TokensDayMarker:        time.Now(),
-			CurrentActiveInstances: activeCount, // Initialize from summary, or 0 if summary is nil/empty
-			// Request counts, token counts default to 0
+			CurrentActiveInstances: activeCount,
 		}
-		m.logger.Debugf("Initialized rate tracker for DefinitionID: %s, ActiveInstances from summary: %d", defID, activeCount)
+		m.logger.Debugf("Initialized rate tracker for Definition (Name: '%s', ID: %s), ActiveInstances from summary: %d", def.Name, defID, activeCount)
 	}
-	m.rateTrackers = newRateTrackers // Atomically replace the old map
+	m.rateTrackers = newRateTrackers
 	m.logger.Debugf("Re-initialized all rate trackers. Total count: %d", len(m.rateTrackers))
 }
 
 // loadRetiredInstancePerformanceDataFromContent loads and processes performance data.
-// Placeholder: Actual processing of records to update summaries is complex and needs care.
 func (m *AIWorkerManager) loadRetiredInstancePerformanceDataFromContent(jsonBytes []byte) error {
-	// m.mu.Lock()
-	// defer m.mu.Unlock()
 	m.logger.Debug("loadRetiredInstancePerformanceDataFromContent called.")
 	if len(jsonBytes) == 0 {
-		m.logger.Debugf("loadRetiredInstancePerformanceDataFromContent: Provided content is empty. No historical performance loaded or processed.") // Changed from Infof
+		m.logger.Debugf("loadRetiredInstancePerformanceDataFromContent: Provided content is empty. No historical performance loaded or processed.")
 		return nil
 	}
-
 	var retiredInfos []*RetiredInstanceInfo
 	if err := json.Unmarshal(jsonBytes, &retiredInfos); err != nil {
 		m.logger.Errorf("loadRetiredInstancePerformanceDataFromContent: Failed to unmarshal performance data JSON: %v", err)
 		return NewRuntimeError(ErrorCodeInternal, "failed to unmarshal performance data from content", err)
 	}
-
-	m.logger.Debugf("Successfully unmarshalled %d RetiredInstanceInfo records. Processing them to update definition summaries is pending full implementation.", len(retiredInfos)) // Changed from Infof
-	// TODO: Iterate through retiredInfos. For each info:
-	//   1. Find the corresponding AIWorkerDefinition using DefinitionID.
-	//   2. If found, iterate through its PerformanceRecords.
-	//   3. For each PerformanceRecord, call a method similar to logPerformanceRecordUnsafe (or its logic)
-	//      to update the AggregatePerformanceSummary on that definition.
-	//      This update must be done carefully, especially if the summary was already partially populated.
-	//      It might involve resetting parts of the summary and recalculating from all known records (complex),
-	//      or ensuring new records are additive if that's the design.
-	// For now, this method only unmarshals. The re-aggregation logic needs to be robust.
-	// If definitions are loaded *after* this, then their summaries might already be from definitions.json.
-	// If this is for loading an independent performance log, then aggregation is key.
-
-	// After potentially updating many definitions' summaries, rate trackers might also need a refresh
-	// if their initial state depends on these summaries (which it does for ActiveInstancesCount).
-	// m.initializeRateTrackersUnsafe() // Call under the same lock as definition modifications.
-
+	m.logger.Debugf("Successfully unmarshalled %d RetiredInstanceInfo records. Processing them to update definition summaries is pending full implementation.", len(retiredInfos))
 	return nil
 }
 
 // prepareRetiredInstanceForAppending takes existing JSON string content of performance data,
-// appends new RetiredInstanceInfo, and returns the new marshalled JSON string.
-// Caller should hold the main manager lock (m.mu.Lock()) if reading/modifying shared state related to definitions.
 func (m *AIWorkerManager) prepareRetiredInstanceForAppending(existingJsonContent string, instanceInfoToAdd *RetiredInstanceInfo) (string, error) {
 	if instanceInfoToAdd == nil {
 		return existingJsonContent, NewRuntimeError(ErrorCodeArgMismatch, "instanceInfoToAdd cannot be nil", ErrInvalidArgument)
 	}
-
 	var allInfos []*RetiredInstanceInfo
-	if existingJsonContent != "" && existingJsonContent != "null" { // "null" can be valid JSON for an empty array/object if unmarshalled into empty struct
+	if existingJsonContent != "" && existingJsonContent != "null" {
 		if err := json.Unmarshal([]byte(existingJsonContent), &allInfos); err != nil {
-			// If existing content is invalid, decide policy: overwrite or error?
-			// For append, we probably should error or log and start fresh.
 			m.logger.Errorf("prepareRetiredInstanceForAppending: Failed to unmarshal existing performance data JSON: '%s'. Error: %v. Will attempt to save only new record.", existingJsonContent, err)
-			// Fallback: create a new list with just the new record if unmarshal fails
 			allInfos = []*RetiredInstanceInfo{instanceInfoToAdd}
 		} else {
 			allInfos = append(allInfos, instanceInfoToAdd)
 		}
 	} else {
-		// No existing content, or it's explicitly empty/null, start a new list
 		allInfos = []*RetiredInstanceInfo{instanceInfoToAdd}
 	}
-
 	newData, err := json.MarshalIndent(allInfos, "", "  ")
 	if err != nil {
 		m.logger.Errorf("prepareRetiredInstanceForAppending: Failed to marshal updated performance data: %v", err)

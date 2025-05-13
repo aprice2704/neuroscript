@@ -1,107 +1,19 @@
 // NeuroScript Version: 0.3.0
-// File version: 0.1.2
-// AI Worker Management: Definition Management Methods (Error Handling Corrected, I/O Refactored)
-// filename: pkg/core/ai_wm_definitions.go
-
+// File version: 0.1.0
+// AI Worker Management: Definition CRUD and Listing Methods
+// filename: pkg/core/ai_wm_definitions_crud.go
+// nlines: 230 // Approximate
+// risk_rating: MEDIUM
 package core
 
 import (
 	"fmt"
-	"os"
-	"path/filepath" // Added for directory creation
-	"reflect"       // For deep comparison in update
+	"reflect"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
-	// Ensure logging.Logger is correctly imported if not already covered by the main manager file
-	// "github.com/aprice2704/neuroscript/pkg/logging"
 )
-
-// persistDefinitionsUnsafe prepares and writes the current definitions to their file.
-// Assumes caller holds the write lock.
-func (m *AIWorkerManager) persistDefinitionsUnsafe() error {
-	jsonString, err := m.prepareDefinitionsForSaving() // From ai_wm.go
-	if err != nil {
-		// error already logged by prepareDefinitionsForSaving
-		return err // Should be a RuntimeError
-	}
-
-	defPath := m.FullPathForDefinitions() // From ai_wm.go
-	if defPath == "" {
-		m.logger.Error("Cannot save definitions: file path is not configured in AIWorkerManager.")
-		return NewRuntimeError(ErrorCodeConfiguration, "definitions file path not configured for saving", ErrConfiguration)
-	}
-
-	// Ensure directory exists
-	dir := filepath.Dir(defPath)
-	if mkDirErr := os.MkdirAll(dir, 0755); mkDirErr != nil {
-		m.logger.Errorf("Failed to create directory '%s' for definitions file: %v", dir, mkDirErr)
-		return NewRuntimeError(ErrorCodeInternal, fmt.Sprintf("failed to create directory for definitions file '%s'", dir), mkDirErr)
-	}
-
-	if err := os.WriteFile(defPath, []byte(jsonString), 0644); err != nil {
-		m.logger.Errorf("Failed to write definitions to file '%s': %v", defPath, err)
-		return NewRuntimeError(ErrorCodeInternal, fmt.Sprintf("failed to write definitions to file '%s'", defPath), err)
-	}
-	m.logger.Debugf("Successfully saved definitions to %s", defPath)
-	return nil
-}
-
-// LoadWorkerDefinitionsFromFile is a public method for tools/external calls to reload definitions.
-// It replaces all current definitions and re-initializes rate trackers.
-func (m *AIWorkerManager) LoadWorkerDefinitionsFromFile() error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	defPath := m.FullPathForDefinitions()
-	if defPath == "" {
-		m.logger.Error("Cannot load definitions: file path is not configured in AIWorkerManager.")
-		// Consistent with NewAIWorkerManager: if path isn't set, proceed with empty but log error.
-		m.definitions = make(map[string]*AIWorkerDefinition)
-		m.activeInstances = make(map[string]*AIWorkerInstance)
-		m.initializeRateTrackersUnsafe()
-		return NewRuntimeError(ErrorCodeConfiguration, "definitions file path not configured, cannot load", ErrConfiguration)
-	}
-
-	m.logger.Infof("AIWorkerManager: Public request to load worker definitions from %s", defPath)
-
-	// Clear existing state carefully
-	m.definitions = make(map[string]*AIWorkerDefinition)
-	m.activeInstances = make(map[string]*AIWorkerInstance) // Instances are ephemeral on full reload
-
-	contentBytes, err := os.ReadFile(defPath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			m.logger.Infof("AIWorkerManager: Definitions file '%s' not found. Manager will have no definitions.", defPath)
-			m.initializeRateTrackersUnsafe() // Initialize for empty state
-			return nil                       // Not an error if file simply doesn't exist
-		}
-		m.logger.Errorf("AIWorkerManager: Error reading definitions file '%s': %v", defPath, err)
-		m.initializeRateTrackersUnsafe() // Initialize for empty state
-		return NewRuntimeError(ErrorCodeInternal, fmt.Sprintf("failed to read definitions file '%s'", defPath), err)
-	}
-
-	if loadErr := m.loadWorkerDefinitionsFromContent(contentBytes); loadErr != nil {
-		// loadWorkerDefinitionsFromContent already logs errors and handles m.definitions state.
-		m.initializeRateTrackersUnsafe() // Ensure trackers are set up even if loading had issues.
-		return loadErr                   // This should be a RuntimeError
-	}
-
-	// Re-initialize rate trackers for the newly loaded definitions
-	m.initializeRateTrackersUnsafe()
-
-	m.logger.Infof("AIWorkerManager: Public load definitions complete. %d definitions loaded from %s.", len(m.definitions), defPath)
-	return nil
-}
-
-// SaveWorkerDefinitionsToFile is a public method to persist the current state of definitions.
-func (m *AIWorkerManager) SaveWorkerDefinitionsToFile() error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	defPath := m.FullPathForDefinitions()
-	m.logger.Infof("AIWorkerManager: Public request to save worker definitions to %s", defPath)
-	return m.persistDefinitionsUnsafe()
-}
 
 // AddWorkerDefinition adds a new AI worker definition to the manager and persists it.
 func (m *AIWorkerManager) AddWorkerDefinition(def AIWorkerDefinition) (string, error) {
@@ -110,13 +22,19 @@ func (m *AIWorkerManager) AddWorkerDefinition(def AIWorkerDefinition) (string, e
 
 	if def.DefinitionID == "" {
 		def.DefinitionID = uuid.NewString()
-		m.logger.Debugf("AddWorkerDefinition: No DefinitionID provided for '%s', generated new: %s", def.Name, def.DefinitionID)
+		m.logger.Debugf("AddWorkerDefinition: No DefinitionID provided for (Name: '%s'), generated new: %s", def.Name, def.DefinitionID)
 	} else if _, exists := m.definitions[def.DefinitionID]; exists {
-		m.logger.Warnf("AddWorkerDefinition: Attempt to add definition with existing ID '%s'", def.DefinitionID)
-		return "", NewRuntimeError(ErrorCodeArgMismatch, fmt.Sprintf("worker definition with ID '%s' already exists", def.DefinitionID), ErrInvalidArgument)
+		m.logger.Warnf("AddWorkerDefinition: Attempt to add definition with existing ID '%s' (Name: '%s')", def.DefinitionID, def.Name)
+		return "", NewRuntimeError(ErrorCodeArgMismatch, fmt.Sprintf("worker definition with ID '%s' (Name: '%s') already exists", def.DefinitionID, def.Name), ErrInvalidArgument)
 	}
 
-	// Apply defaults
+	for id, existingDef := range m.definitions {
+		if existingDef.Name == def.Name {
+			m.logger.Warnf("AddWorkerDefinition: Attempt to add definition with name '%s' which is already used by definition ID '%s'.", def.Name, id)
+			return "", NewRuntimeError(ErrorCodeArgMismatch, fmt.Sprintf("worker definition name '%s' already exists for ID '%s'", def.Name, id), ErrInvalidArgument)
+		}
+	}
+
 	if len(def.InteractionModels) == 0 {
 		def.InteractionModels = []InteractionModelType{InteractionModelConversational}
 	}
@@ -126,28 +44,27 @@ func (m *AIWorkerManager) AddWorkerDefinition(def AIWorkerDefinition) (string, e
 	if def.Auth.Method == "" {
 		def.Auth = APIKeySource{Method: APIKeyMethodNone}
 	}
-	// Ensure AggregatePerformanceSummary is initialized if not provided
 	if def.AggregatePerformanceSummary == nil {
 		def.AggregatePerformanceSummary = &AIWorkerPerformanceSummary{}
 	}
+	def.CreatedTimestamp = time.Now()
+	def.ModifiedTimestamp = def.CreatedTimestamp
 
 	m.definitions[def.DefinitionID] = &def
-	m.initializeRateTrackerForDefinitionUnsafe(&def) // Initialize rate tracking for the new definition
-	m.logger.Infof("AIWorkerManager: Added AIWorkerDefinition: ID=%s, Name=%s", def.DefinitionID, def.Name)
+	m.initializeRateTrackerForDefinitionUnsafe(&def)
+	m.logger.Infof("AIWorkerManager: Added AIWorkerDefinition: Name='%s', ID=%s", def.Name, def.DefinitionID)
 
 	if err := m.persistDefinitionsUnsafe(); err != nil {
-		m.logger.Errorf("AIWorkerManager: Failed to save definitions after adding ID %s: %v", def.DefinitionID, err)
-		// Return the original error from persistDefinitionsUnsafe if it's a RuntimeError
+		m.logger.Errorf("AIWorkerManager: Failed to save definitions after adding (Name: '%s', ID: %s): %v", def.Name, def.DefinitionID, err)
 		if _, ok := err.(*RuntimeError); ok {
 			return def.DefinitionID, err
 		}
-		return def.DefinitionID, NewRuntimeError(ErrorCodeInternal, fmt.Sprintf("definition added in memory but failed to save ID %s", def.DefinitionID), err)
+		return def.DefinitionID, NewRuntimeError(ErrorCodeInternal, fmt.Sprintf("definition (Name: '%s', ID: %s) added in memory but failed to save", def.Name, def.DefinitionID), err)
 	}
 	return def.DefinitionID, nil
 }
 
 // GetWorkerDefinition retrieves a copy of an AI worker definition by its ID.
-// It includes runtime information like current active instance count in the summary.
 func (m *AIWorkerManager) GetWorkerDefinition(definitionID string) (*AIWorkerDefinition, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -157,29 +74,25 @@ func (m *AIWorkerManager) GetWorkerDefinition(definitionID string) (*AIWorkerDef
 		return nil, NewRuntimeError(ErrorCodeKeyNotFound, fmt.Sprintf("worker definition with ID '%s' not found", definitionID), ErrNotFound)
 	}
 
-	// Create a copy to return, including dynamic runtime info in the summary
 	defCopy := *def
 	if def.AggregatePerformanceSummary != nil {
-		summaryCopy := *def.AggregatePerformanceSummary // copy the struct
+		summaryCopy := *def.AggregatePerformanceSummary
 		defCopy.AggregatePerformanceSummary = &summaryCopy
 	} else {
-		// If the source summary is nil, the copy's summary should also be nil, or an empty one
-		defCopy.AggregatePerformanceSummary = &AIWorkerPerformanceSummary{} // Or nil, depending on desired behavior
-		m.logger.Warnf("GetWorkerDefinition: DefinitionID %s has nil AggregatePerformanceSummary.", definitionID)
+		defCopy.AggregatePerformanceSummary = &AIWorkerPerformanceSummary{}
+		m.logger.Debugf("GetWorkerDefinition: Definition (Name: '%s', ID: '%s') has nil AggregatePerformanceSummary, initialized empty for copy.", def.Name, definitionID)
 	}
 
 	if tracker, ok := m.rateTrackers[def.DefinitionID]; ok && defCopy.AggregatePerformanceSummary != nil {
 		defCopy.AggregatePerformanceSummary.ActiveInstancesCount = tracker.CurrentActiveInstances
 	} else if defCopy.AggregatePerformanceSummary != nil {
-		// This case should ideally not be hit if trackers are managed consistently
 		defCopy.AggregatePerformanceSummary.ActiveInstancesCount = 0
-		m.logger.Warnf("GetWorkerDefinition: No rate tracker found for definition ID '%s' when fetching active instance count, or summary was nil.", definitionID)
+		m.logger.Debugf("GetWorkerDefinition: No rate tracker found for definition (Name: '%s', ID: '%s') when fetching active instance count, or summary was nil.", def.Name, definitionID)
 	}
 	return &defCopy, nil
 }
 
 // ListWorkerDefinitions returns a list of AI worker definitions, optionally filtered.
-// Includes runtime information like current active instance count in summaries.
 func (m *AIWorkerManager) ListWorkerDefinitions(filters map[string]interface{}) []*AIWorkerDefinition {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -187,20 +100,20 @@ func (m *AIWorkerManager) ListWorkerDefinitions(filters map[string]interface{}) 
 	list := make([]*AIWorkerDefinition, 0, len(m.definitions))
 	for _, def := range m.definitions {
 		if m.matchesDefinitionFilters(def, filters) {
-			defCopy := *def // Create a copy
+			defCopy := *def
 			if def.AggregatePerformanceSummary != nil {
-				summaryCopy := *def.AggregatePerformanceSummary // copy the struct
+				summaryCopy := *def.AggregatePerformanceSummary
 				defCopy.AggregatePerformanceSummary = &summaryCopy
 			} else {
-				defCopy.AggregatePerformanceSummary = &AIWorkerPerformanceSummary{} // Or nil
-				m.logger.Warnf("ListWorkerDefinitions: DefinitionID %s has nil AggregatePerformanceSummary.", def.DefinitionID)
+				defCopy.AggregatePerformanceSummary = &AIWorkerPerformanceSummary{}
+				m.logger.Debugf("ListWorkerDefinitions: Definition (Name: '%s', ID: '%s') has nil AggregatePerformanceSummary, initialized empty for copy.", def.Name, def.DefinitionID)
 			}
 
 			if tracker, ok := m.rateTrackers[def.DefinitionID]; ok && defCopy.AggregatePerformanceSummary != nil {
 				defCopy.AggregatePerformanceSummary.ActiveInstancesCount = tracker.CurrentActiveInstances
 			} else if defCopy.AggregatePerformanceSummary != nil {
 				defCopy.AggregatePerformanceSummary.ActiveInstancesCount = 0
-				m.logger.Warnf("ListWorkerDefinitions: No rate tracker for definition ID '%s', or summary was nil. Active count set to 0.", def.DefinitionID)
+				m.logger.Debugf("ListWorkerDefinitions: No rate tracker for definition (Name: '%s', ID: '%s'), or summary was nil. Active count set to 0.", def.Name, def.DefinitionID)
 			}
 			list = append(list, &defCopy)
 		}
@@ -209,17 +122,32 @@ func (m *AIWorkerManager) ListWorkerDefinitions(filters map[string]interface{}) 
 }
 
 // UpdateWorkerDefinition updates an existing AI worker definition and persists changes.
-// The 'updates' map contains fields to be changed.
 func (m *AIWorkerManager) UpdateWorkerDefinition(definitionID string, updates map[string]interface{}) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
 	def, exists := m.definitions[definitionID]
 	if !exists {
-		return NewRuntimeError(ErrorCodeKeyNotFound, fmt.Sprintf("worker definition ID '%s' not found for update", definitionID), ErrNotFound)
+		if nameVal, nameInUpdates := updates["name"]; nameInUpdates {
+			if nameStr, nameIsStr := nameVal.(string); nameIsStr {
+				for _, d := range m.definitions {
+					if d.Name == nameStr {
+						m.logger.Warnf("UpdateWorkerDefinition: Original ID '%s' not found, but found definition by name '%s' (ID: '%s'). Proceeding with update on found definition.", definitionID, nameStr, d.DefinitionID)
+						def = d
+						definitionID = d.DefinitionID
+						exists = true
+						break
+					}
+				}
+			}
+		}
+		if !exists {
+			return NewRuntimeError(ErrorCodeKeyNotFound, fmt.Sprintf("worker definition ID '%s' not found for update", definitionID), ErrNotFound)
+		}
 	}
 
 	changedFields := []string{}
+	originalName := def.Name
 
 	setChanged := func(fieldName string) {
 		isNew := true
@@ -236,6 +164,12 @@ func (m *AIWorkerManager) UpdateWorkerDefinition(definitionID string, updates ma
 
 	if val, _ok := updates["name"]; _ok {
 		if v, ok := val.(string); ok && def.Name != v {
+			for id, existingDef := range m.definitions {
+				if id != definitionID && existingDef.Name == v {
+					m.logger.Errorf("UpdateWorkerDefinition: Attempt to rename definition (ID: '%s', Original Name: '%s') to '%s', but this name is already used by definition (ID: '%s').", definitionID, originalName, v, id)
+					return NewRuntimeError(ErrorCodeArgMismatch, fmt.Sprintf("worker definition name '%s' already exists for ID '%s'", v, id), ErrInvalidArgument)
+				}
+			}
 			def.Name = v
 			setChanged("Name")
 		}
@@ -252,10 +186,9 @@ func (m *AIWorkerManager) UpdateWorkerDefinition(definitionID string, updates ma
 			setChanged("ModelName")
 		}
 	}
-
 	if authMapVal, ok := updates["auth"]; ok {
 		if authMap, mapOk := authMapVal.(map[string]interface{}); mapOk {
-			newAuth := def.Auth // auth is a struct, so this is a copy
+			newAuth := def.Auth
 			authUpdated := false
 			if methodVal, mOk := authMap["method"]; mOk {
 				if methodStr, sOk := methodVal.(string); sOk && newAuth.Method != APIKeySourceMethod(methodStr) {
@@ -275,7 +208,6 @@ func (m *AIWorkerManager) UpdateWorkerDefinition(definitionID string, updates ma
 			}
 		}
 	}
-
 	if val, ok := updates["interaction_models"]; ok {
 		if vSlice, ok := val.([]interface{}); ok {
 			newIMs := []InteractionModelType{}
@@ -322,25 +254,23 @@ func (m *AIWorkerManager) UpdateWorkerDefinition(definitionID string, updates ma
 					newMetrics[k] = f
 				}
 			}
-			// Check if any keys were removed
-			if len(def.CostMetrics) != len(newMetrics) && !changed { // if lengths differ, it's a change unless already caught
-				for k := range def.CostMetrics {
-					if _, existsInNew := newMetrics[k]; !existsInNew {
+			if len(def.CostMetrics) != len(newMetrics) && !changed {
+				for k_1 := range def.CostMetrics {
+					if _, existsInNew := newMetrics[k_1]; !existsInNew {
 						changed = true
 						break
 					}
 				}
 			}
-			if changed || !reflect.DeepEqual(def.CostMetrics, newMetrics) { // Final deep equal for safety
+			if changed || !reflect.DeepEqual(def.CostMetrics, newMetrics) {
 				def.CostMetrics = newMetrics
 				setChanged("CostMetrics")
 			}
 		}
 	}
-
 	if val, ok := updates["rate_limits"]; ok {
 		if vMap, ok := val.(map[string]interface{}); ok {
-			newLimits := def.RateLimits // RateLimits is a struct, this is a copy
+			newLimits := def.RateLimits
 			updatedLimits := false
 			if v, fOk := toInt64(vMap["max_requests_per_minute"]); fOk && newLimits.MaxRequestsPerMinute != int(v) {
 				newLimits.MaxRequestsPerMinute = int(v)
@@ -358,10 +288,10 @@ func (m *AIWorkerManager) UpdateWorkerDefinition(definitionID string, updates ma
 				newLimits.MaxConcurrentActiveInstances = int(v)
 				updatedLimits = true
 			}
-
 			if updatedLimits {
 				def.RateLimits = newLimits
 				setChanged("RateLimits")
+				m.initializeRateTrackerForDefinitionUnsafe(def)
 			}
 		}
 	}
@@ -391,20 +321,69 @@ func (m *AIWorkerManager) UpdateWorkerDefinition(definitionID string, updates ma
 			setChanged("Metadata")
 		}
 	}
+	if val, ok := updates["data_source_refs"]; ok {
+		if vSlice, ok := val.([]interface{}); ok {
+			newRefs := []string{}
+			for _, item := range vSlice {
+				if s, sOk := item.(string); sOk {
+					newRefs = append(newRefs, s)
+				}
+			}
+			if !reflect.DeepEqual(def.DataSourceRefs, newRefs) {
+				def.DataSourceRefs = newRefs
+				setChanged("DataSourceRefs")
+			}
+		}
+	}
+	if val, ok := updates["tool_allowlist"]; ok {
+		if vSlice, ok := val.([]interface{}); ok {
+			newAllow := []string{}
+			for _, item := range vSlice {
+				if s, sOk := item.(string); sOk {
+					newAllow = append(newAllow, s)
+				}
+			}
+			if !reflect.DeepEqual(def.ToolAllowlist, newAllow) {
+				def.ToolAllowlist = newAllow
+				setChanged("ToolAllowlist")
+			}
+		}
+	}
+	if val, ok := updates["tool_denylist"]; ok {
+		if vSlice, ok := val.([]interface{}); ok {
+			newDeny := []string{}
+			for _, item := range vSlice {
+				if s, sOk := item.(string); sOk {
+					newDeny = append(newDeny, s)
+				}
+			}
+			if !reflect.DeepEqual(def.ToolDenylist, newDeny) {
+				def.ToolDenylist = newDeny
+				setChanged("ToolDenylist")
+			}
+		}
+	}
+	if val, ok := updates["default_supervisory_ai_ref"]; ok {
+		if v, ok := val.(string); ok && def.DefaultSupervisoryAIRef != v {
+			def.DefaultSupervisoryAIRef = v
+			setChanged("DefaultSupervisoryAIRef")
+		}
+	}
 
 	if len(changedFields) > 0 {
-		m.logger.Infof("AIWorkerManager: Updating AIWorkerDefinition ID '%s'. Changed fields: %v", definitionID, changedFields)
+		def.ModifiedTimestamp = time.Now()
+		setChanged("ModifiedTimestamp")
+		m.logger.Infof("AIWorkerManager: Updating AIWorkerDefinition (Name: '%s', ID: '%s'). Changed fields: %v", def.Name, definitionID, changedFields)
 		err := m.persistDefinitionsUnsafe()
 		if err != nil {
-			// Return the original error from persistDefinitionsUnsafe if it's a RuntimeError
 			if _, ok := err.(*RuntimeError); ok {
 				return err
 			}
-			return NewRuntimeError(ErrorCodeInternal, fmt.Sprintf("failed to save updated definition ID %s", definitionID), err)
+			return NewRuntimeError(ErrorCodeInternal, fmt.Sprintf("failed to save updated definition (Name: '%s', ID: %s)", def.Name, definitionID), err)
 		}
 		return nil
 	}
-	m.logger.Infof("AIWorkerManager: UpdateWorkerDefinition ID '%s': No effective changes.", definitionID)
+	m.logger.Infof("AIWorkerManager: UpdateWorkerDefinition (Name: '%s', ID: '%s'): No effective changes.", originalName, definitionID)
 	return nil
 }
 
@@ -413,36 +392,36 @@ func (m *AIWorkerManager) RemoveWorkerDefinition(definitionID string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	if _, exists := m.definitions[definitionID]; !exists {
+	def, exists := m.definitions[definitionID]
+	if !exists {
 		return NewRuntimeError(ErrorCodeKeyNotFound, fmt.Sprintf("worker definition ID '%s' not found for removal", definitionID), ErrNotFound)
 	}
+	defName := def.Name
 
 	if tracker, ok := m.rateTrackers[definitionID]; ok && tracker.CurrentActiveInstances > 0 {
-		m.logger.Warnf("RemoveWorkerDefinition: Cannot remove definition '%s', it has %d active instances.", definitionID, tracker.CurrentActiveInstances)
-		return NewRuntimeError(ErrorCodePreconditionFailed, fmt.Sprintf("cannot remove definition '%s', it has %d active instances. Retire instances first.", definitionID, tracker.CurrentActiveInstances), ErrFailedPrecondition)
+		m.logger.Warnf("RemoveWorkerDefinition: Cannot remove definition (Name: '%s', ID: '%s'), it has %d active instances.", defName, definitionID, tracker.CurrentActiveInstances)
+		return NewRuntimeError(ErrorCodePreconditionFailed, fmt.Sprintf("cannot remove definition (Name: '%s', ID: '%s'), it has %d active instances. Retire instances first.", defName, definitionID, tracker.CurrentActiveInstances), ErrFailedPrecondition)
 	}
 
 	delete(m.definitions, definitionID)
-	delete(m.rateTrackers, definitionID) // Also remove its rate tracker
-	m.logger.Infof("AIWorkerManager: Removed AIWorkerDefinition: ID=%s", definitionID)
+	delete(m.rateTrackers, definitionID)
+	m.logger.Infof("AIWorkerManager: Removed AIWorkerDefinition: Name='%s', ID=%s", defName, definitionID)
 	err := m.persistDefinitionsUnsafe()
 	if err != nil {
-		// Return the original error from persistDefinitionsUnsafe if it's a RuntimeError
 		if _, ok := err.(*RuntimeError); ok {
 			return err
 		}
-		return NewRuntimeError(ErrorCodeInternal, fmt.Sprintf("failed to save after removing definition ID %s", definitionID), err)
+		return NewRuntimeError(ErrorCodeInternal, fmt.Sprintf("failed to save after removing definition (Name: '%s', ID: %s)", defName, definitionID), err)
 	}
 	return nil
 }
 
 // matchesDefinitionFilters is a helper to check if a definition matches given criteria.
-// Called with RLock typically.
 func (m *AIWorkerManager) matchesDefinitionFilters(def *AIWorkerDefinition, filters map[string]interface{}) bool {
 	if len(filters) == 0 {
 		return true
 	}
-	if def == nil { // Should not happen if called from ListWorkerDefinitions where defs are from m.definitions
+	if def == nil {
 		m.logger.Warnf("matchesDefinitionFilters called with a nil definition.")
 		return false
 	}
@@ -493,7 +472,7 @@ func (m *AIWorkerManager) matchesDefinitionFilters(def *AIWorkerDefinition, filt
 			}
 		case "capabilities_contains_all":
 			if capListInterfaces, ok := expectedValue.([]interface{}); ok {
-				if len(capListInterfaces) == 0 { // an empty list of required capabilities means all definitions match this criterion
+				if len(capListInterfaces) == 0 {
 					match = true
 					break
 				}
@@ -522,7 +501,7 @@ func (m *AIWorkerManager) matchesDefinitionFilters(def *AIWorkerDefinition, filt
 				}
 			}
 		default:
-			m.logger.Debugf("AIWorkerManager.matchesDefinitionFilters: Unknown or unhandled filter key '%s'", filterKey)
+			m.logger.Debugf("AIWorkerManager.matchesDefinitionFilters: Unknown or unhandled filter key '%s' for definition (Name: '%s', ID: '%s')", filterKey, def.Name, def.DefinitionID)
 		}
 
 		if !match {

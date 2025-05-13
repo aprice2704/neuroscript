@@ -15,7 +15,8 @@ import (
 var testLogger *adapters.SlogAdapter
 
 func init() {
-	testLogger, _ = adapters.NewSimpleSlogAdapter(os.Stderr, logging.LogLevelDebug)
+	l, _ := adapters.NewSimpleSlogAdapter(os.Stderr, logging.LogLevelDebug)
+	testLogger = l.(*adapters.SlogAdapter)
 }
 
 // Helper to compare Checklists, ignoring line numbers

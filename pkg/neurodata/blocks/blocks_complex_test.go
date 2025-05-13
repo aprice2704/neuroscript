@@ -19,7 +19,8 @@ import (
 var logger *adapters.SlogAdapter
 
 func init() {
-	logger, _ = adapters.NewSimpleSlogAdapter(os.Stderr, logging.LogLevelDebug)
+	l, _ := adapters.NewSimpleSlogAdapter(os.Stderr, logging.LogLevelDebug)
+	logger = l.(*adapters.SlogAdapter)
 }
 
 func TestExtractAllAndMetadataComplex(t *testing.T) {
