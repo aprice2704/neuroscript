@@ -22,7 +22,6 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/core"
 	"github.com/aprice2704/neuroscript/pkg/neurogo"
-	"github.com/aprice2704/neuroscript/pkg/neurogo/tui"
 )
 
 func main() {
@@ -143,7 +142,7 @@ func main() {
 
 	if *tuiMode {
 		logger.Debug("TUI mode requested. Starting TUI...")
-		if err := tui.Start(app, app.Config.StartupScript); err != nil {
+		if err := neurogo.Start(app, app.Config.StartupScript); err != nil {
 			logger.Error("TUI Error", "error", err)
 			fmt.Fprintf(os.Stderr, "TUI Error: %v\n", err)
 			os.Exit(1)

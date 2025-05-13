@@ -12,7 +12,7 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/adapters" // For checking NoOp type
 	// For checking LLMClient
-	"github.com/aprice2704/neuroscript/pkg/neurogo/tui"
+	//"github.com/aprice2704/neuroscript/pkg/neurogo/tui"
 )
 
 // runTuiMode handles the execution logic for the TUI mode.
@@ -44,7 +44,7 @@ func (a *App) runTuiMode(ctx context.Context) error {
 		initialScriptPath = a.Config.StartupScript
 	}
 
-	err := tui.Start(a, initialScriptPath) // MODIFIED: Pass the initial script path
+	err := Start(a, initialScriptPath) // MODIFIED: Pass the initial script path
 
 	if err != nil {
 		logger.Error("TUI execution failed.", "error", err)

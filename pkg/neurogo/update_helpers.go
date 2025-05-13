@@ -3,7 +3,7 @@
 // filename: pkg/neurogo/tui/update_helpers.go
 // nlines: 205 // Approximate, please update after changes
 // risk_rating: MEDIUM
-package tui
+package neurogo
 
 import (
 	"context"

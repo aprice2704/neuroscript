@@ -4,7 +4,7 @@
 // filename: pkg/neurogo/tui/screen_wm_status.go
 // nlines: 55 // Approximate
 // risk_rating: LOW
-package tui
+package neurogo
 
 import (
 	"fmt"

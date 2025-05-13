@@ -4,7 +4,7 @@
 // filename: pkg/neurogo/tui/model.go
 // nlines: 225
 // risk_rating: HIGH
-package tui
+package neurogo
 
 import (
 	"context"
@@ -97,7 +97,7 @@ var defaultKeyMap = keyMap{
 }
 
 type model struct {
-	app                                                     AppAccess // Changed to tui.AppAccess
+	app                                                     *App
 	localOutput, aiOutput                                   viewport.Model
 	localInput, aiInput                                     textarea.Model
 	spinner                                                 spinner.Model
@@ -127,7 +127,7 @@ func If(condition bool, trueVal, falseVal interface{}) interface{} {
 	return falseVal
 }
 
-func newModel(app AppAccess, initialScriptPath string) model { // app is now tui.AppAccess
+func newModel(app *App, initialScriptPath string) model { // app is now tui.AppAccess
 	plainInternalStyle := lipgloss.NewStyle()
 	focusedPromptTextSyle := lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
 	blurredPromptTextSyle := lipgloss.NewStyle().Foreground(lipgloss.Color("240"))

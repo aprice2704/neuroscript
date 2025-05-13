@@ -4,7 +4,7 @@
 // filename: pkg/neurogo/tui/view.go
 // nlines: 85
 // risk_rating: MEDIUM
-package tui
+package neurogo
 
 import (
 	"github.com/charmbracelet/lipgloss"

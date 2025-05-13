@@ -3,7 +3,7 @@
 // filename: pkg/neurogo/tui/tui_writer.go
 // nlines: 38 // Approximate
 // risk_rating: LOW
-package tui
+package neurogo
 
 import (
 	"fmt" // For error formatting

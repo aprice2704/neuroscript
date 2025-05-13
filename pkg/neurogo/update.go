@@ -4,7 +4,7 @@
 // filename: pkg/neurogo/tui/update.go
 // nlines: 350 // Approximate
 // risk_rating: HIGH
-package tui
+package neurogo
 
 import (
 	"context"

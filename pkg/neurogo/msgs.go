@@ -1,7 +1,7 @@
 // NeuroScript Version: 0.3.0
 // File version: 0.0.1 // Added scriptEmitMsg and initialScriptDoneMsg
 // filename: pkg/neurogo/tui/msgs.go
-package tui
+package neurogo
 
 import (
 	"github.com/google/generative-ai-go/genai"

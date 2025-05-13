@@ -297,8 +297,7 @@
               "Receiver": "*SlogAdapter",
               "Name": "SetLevel",
               "calls": [
-                "a.opts.Level.(*slog.LevelVar).Set(?)",
-                "log/slog.Level"
+                "lv.Set(?)"
               ]
             }
           ]
@@ -335,6 +334,10 @@
                 "m.logger.Debugf(?)",
                 "m.logger.Errorf(?)",
                 "NewRuntimeError",
+                "m.logger.Warnf(?)",
+                "github.com/google/uuid.NewString",
+                "m.logger.Debugf(?)",
+                "m.logger.Warnf(?)",
                 "m.logger.Warnf(?)",
                 "m.logger.Warnf(?)",
                 "m.logger.Debugf(?)",
@@ -409,7 +412,140 @@
         "pkg/core/ai_wm_default_wdefs.go": {
           "methods": []
         },
-        "pkg/core/ai_wm_definitions.go": {
+        "pkg/core/ai_wm_definitions_crud.go": {
+          "methods": [
+            {
+              "Receiver": "*AIWorkerManager",
+              "Name": "AddWorkerDefinition",
+              "calls": [
+                "m.mu.Lock(?)",
+                "m.mu.Unlock(?)",
+                "github.com/google/uuid.NewString",
+                "m.logger.Debugf(?)",
+                "m.logger.Warnf(?)",
+                "NewRuntimeError",
+                "m.logger.Warnf(?)",
+                "NewRuntimeError",
+                "m.initializeRateTrackerForDefinitionUnsafe(?)",
+                "m.logger.Infof(?)",
+                "m.persistDefinitionsUnsafe(?)",
+                "m.logger.Errorf(?)",
+                "NewRuntimeError"
+              ]
+            },
+            {
+              "Receiver": "*AIWorkerManager",
+              "Name": "GetWorkerDefinition",
+              "calls": [
+                "m.mu.RLock(?)",
+                "m.mu.RUnlock(?)",
+                "NewRuntimeError",
+                "m.logger.Debugf(?)",
+                "m.logger.Debugf(?)"
+              ]
+            },
+            {
+              "Receiver": "*AIWorkerManager",
+              "Name": "ListWorkerDefinitions",
+              "calls": [
+                "m.mu.RLock(?)",
+                "m.mu.RUnlock(?)",
+                "m.matchesDefinitionFilters(?)",
+                "m.logger.Debugf(?)",
+                "m.logger.Debugf(?)"
+              ]
+            },
+            {
+              "Receiver": "*AIWorkerManager",
+              "Name": "UpdateWorkerDefinition",
+              "calls": [
+                "m.mu.Lock(?)",
+                "m.mu.Unlock(?)",
+                "m.logger.Warnf(?)",
+                "NewRuntimeError",
+                "m.logger.Errorf(?)",
+                "NewRuntimeError",
+                "setChanged",
+                "AIWorkerProvider",
+                "AIWorkerProvider",
+                "setChanged",
+                "setChanged",
+                "APIKeySourceMethod",
+                "APIKeySourceMethod",
+                "setChanged",
+                "InteractionModelType",
+                "reflect.DeepEqual",
+                "setChanged",
+                "reflect.DeepEqual",
+                "setChanged",
+                "reflect.DeepEqual",
+                "setChanged",
+                "toFloat64",
+                "reflect.DeepEqual",
+                "setChanged",
+                "toInt64",
+                "int",
+                "int",
+                "toInt64",
+                "int",
+                "int",
+                "toInt64",
+                "int",
+                "int",
+                "toInt64",
+                "int",
+                "int",
+                "setChanged",
+                "m.initializeRateTrackerForDefinitionUnsafe(?)",
+                "AIWorkerDefinitionStatus",
+                "AIWorkerDefinitionStatus",
+                "setChanged",
+                "reflect.DeepEqual",
+                "setChanged",
+                "reflect.DeepEqual",
+                "setChanged",
+                "reflect.DeepEqual",
+                "setChanged",
+                "reflect.DeepEqual",
+                "setChanged",
+                "reflect.DeepEqual",
+                "setChanged",
+                "setChanged",
+                "setChanged",
+                "m.logger.Infof(?)",
+                "m.persistDefinitionsUnsafe(?)",
+                "NewRuntimeError",
+                "m.logger.Infof(?)"
+              ]
+            },
+            {
+              "Receiver": "*AIWorkerManager",
+              "Name": "RemoveWorkerDefinition",
+              "calls": [
+                "m.mu.Lock(?)",
+                "m.mu.Unlock(?)",
+                "NewRuntimeError",
+                "m.logger.Warnf(?)",
+                "NewRuntimeError",
+                "m.logger.Infof(?)",
+                "m.persistDefinitionsUnsafe(?)",
+                "NewRuntimeError"
+              ]
+            },
+            {
+              "Receiver": "*AIWorkerManager",
+              "Name": "matchesDefinitionFilters",
+              "calls": [
+                "m.logger.Warnf(?)",
+                "AIWorkerProvider",
+                "AIWorkerDefinitionStatus",
+                "InteractionModelType",
+                "m.logger.Debugf(?)"
+              ]
+            }
+          ]
+        },
+        "pkg/core/ai_wm_definitions_io.go": {
           "methods": [
             {
               "Receiver": "*AIWorkerManager",
@@ -458,121 +594,6 @@
                 "m.FullPathForDefinitions(?)",
                 "m.logger.Infof(?)",
                 "m.persistDefinitionsUnsafe(?)"
-              ]
-            },
-            {
-              "Receiver": "*AIWorkerManager",
-              "Name": "AddWorkerDefinition",
-              "calls": [
-                "m.mu.Lock(?)",
-                "m.mu.Unlock(?)",
-                "github.com/google/uuid.NewString",
-                "m.logger.Debugf(?)",
-                "m.logger.Warnf(?)",
-                "NewRuntimeError",
-                "m.initializeRateTrackerForDefinitionUnsafe(?)",
-                "m.logger.Infof(?)",
-                "m.persistDefinitionsUnsafe(?)",
-                "m.logger.Errorf(?)",
-                "NewRuntimeError"
-              ]
-            },
-            {
-              "Receiver": "*AIWorkerManager",
-              "Name": "GetWorkerDefinition",
-              "calls": [
-                "m.mu.RLock(?)",
-                "m.mu.RUnlock(?)",
-                "NewRuntimeError",
-                "m.logger.Warnf(?)",
-                "m.logger.Warnf(?)"
-              ]
-            },
-            {
-              "Receiver": "*AIWorkerManager",
-              "Name": "ListWorkerDefinitions",
-              "calls": [
-                "m.mu.RLock(?)",
-                "m.mu.RUnlock(?)",
-                "m.matchesDefinitionFilters(?)",
-                "m.logger.Warnf(?)",
-                "m.logger.Warnf(?)"
-              ]
-            },
-            {
-              "Receiver": "*AIWorkerManager",
-              "Name": "UpdateWorkerDefinition",
-              "calls": [
-                "m.mu.Lock(?)",
-                "m.mu.Unlock(?)",
-                "NewRuntimeError",
-                "setChanged",
-                "AIWorkerProvider",
-                "AIWorkerProvider",
-                "setChanged",
-                "setChanged",
-                "APIKeySourceMethod",
-                "APIKeySourceMethod",
-                "setChanged",
-                "InteractionModelType",
-                "reflect.DeepEqual",
-                "setChanged",
-                "reflect.DeepEqual",
-                "setChanged",
-                "reflect.DeepEqual",
-                "setChanged",
-                "toFloat64",
-                "reflect.DeepEqual",
-                "setChanged",
-                "toInt64",
-                "int",
-                "int",
-                "toInt64",
-                "int",
-                "int",
-                "toInt64",
-                "int",
-                "int",
-                "toInt64",
-                "int",
-                "int",
-                "setChanged",
-                "AIWorkerDefinitionStatus",
-                "AIWorkerDefinitionStatus",
-                "setChanged",
-                "reflect.DeepEqual",
-                "setChanged",
-                "reflect.DeepEqual",
-                "setChanged",
-                "m.logger.Infof(?)",
-                "m.persistDefinitionsUnsafe(?)",
-                "NewRuntimeError",
-                "m.logger.Infof(?)"
-              ]
-            },
-            {
-              "Receiver": "*AIWorkerManager",
-              "Name": "RemoveWorkerDefinition",
-              "calls": [
-                "m.mu.Lock(?)",
-                "m.mu.Unlock(?)",
-                "NewRuntimeError",
-                "m.logger.Warnf(?)",
-                "NewRuntimeError",
-                "m.logger.Infof(?)",
-                "m.persistDefinitionsUnsafe(?)",
-                "NewRuntimeError"
-              ]
-            },
-            {
-              "Receiver": "*AIWorkerManager",
-              "Name": "matchesDefinitionFilters",
-              "calls": [
-                "m.logger.Warnf(?)",
-                "AIWorkerProvider",
-                "AIWorkerDefinitionStatus",
-                "InteractionModelType",
-                "m.logger.Debugf(?)"
               ]
             }
           ]
@@ -11562,6 +11583,13 @@
         }
       }
     },
+    "pkg/core/tools": {
+      "files": {
+        "pkg/core/tools/ai_wm_definitions_b.go": {
+          "methods": []
+        }
+      }
+    },
     "pkg/core/tools/goast": {
       "files": {
         "pkg/core/tools/goast/tools_go_ast.go": {
@@ -12613,6 +12641,12 @@
             }
           ]
         },
+        "pkg/neurogo/tui/screen_wm_status.go": {
+          "functions": [
+            "FormatWMStatusView"
+          ],
+          "methods": []
+        },
         "pkg/neurogo/tui/tui.go": {
           "functions": [
             "Start"
@@ -12651,6 +12685,11 @@
                 "github.com/charmbracelet/bubbles/key.Matches",
                 "github.com/charmbracelet/bubbletea.Batch",
                 "github.com/charmbracelet/bubbletea.Batch",
+                "github.com/charmbracelet/bubbles/key.Matches",
+                "FormatWMStatusView",
+                "m.localOutput.SetContent(?)",
+                "m.localOutput.GotoTop(?)",
+                "m.addMessage(?)",
                 "github.com/charmbracelet/bubbles/key.Matches",
                 "m.updateFocus(?)",
                 "github.com/charmbracelet/bubbles/key.Matches",

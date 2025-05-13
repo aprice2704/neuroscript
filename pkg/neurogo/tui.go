@@ -5,7 +5,7 @@
 // filename: pkg/neurogo/tui/tui.go
 // nlines: 60
 // risk_rating: MEDIUM
-package tui
+package neurogo
 
 import (
 	"fmt"
@@ -16,7 +16,7 @@ import (
 )
 
 // Start initializes and runs the Bubble Tea TUI.
-func Start(app AppAccess, initialScriptPath string) error { // app is tui.AppAccess
+func Start(app *App, initialScriptPath string) error { // app is tui.AppAccess
 	if app == nil {
 		return fmt.Errorf("cannot start TUI with a nil application reference (tui.AppAccess)")
 	}
