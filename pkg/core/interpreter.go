@@ -573,3 +573,11 @@ func (i *Interpreter) RunProcedure(procName string, args ...interface{}) (result
 // Compile-time check to ensure *Interpreter implements the ToolRegistry interface.
 // The ToolRegistry interface is defined in tools_types.go.
 var _ ToolRegistry = (*Interpreter)(nil)
+
+// AIWorkerManager returns the AIWorkerManager associated with the interpreter.
+// It might be nil if not set.
+func (i *Interpreter) AIWorkerManager() *AIWorkerManager {
+	// Add locking if aiWorkerManager can be set concurrently after interpreter creation.
+	// Assuming it's set once during setup or protected by external synchronization if modified later.
+	return i.aiWorkerManager
+}

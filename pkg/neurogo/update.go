@@ -1,215 +1,48 @@
 // NeuroScript Version: 0.3.0
-// File version: 0.1.10
-// Call FormatWMStatusView from screen_wm_status.go for WM status display.
+// File version: 0.2.4
 // filename: pkg/neurogo/update.go
-// nlines: 350 // Approximate
+// nlines: 200 // Approximate
 // risk_rating: HIGH
 package neurogo
 
 import (
-	"context"
 	"fmt"
-	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/bubbles/key"
+	"github.com/charmbracelet/bubbles/spinner"
+	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-const maxEmitBufferLines = 200
+const (
+	statusBarHeight              = 1
+	inputAreaDefaultVisibleLines = 3
+)
 
-// Update handles messages received by the TUI model.
-func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var (
-		cmds                                                       []tea.Cmd
-		localInputCmd, aiInputCmd, localOutputVPCmd, aiOutputVPCmd tea.Cmd
-		spinnerCmd                                                 tea.Cmd
-		keyHandled                                                 bool
-	)
-
-	m.localInput, localInputCmd = m.localInput.Update(msg)
-	cmds = append(cmds, localInputCmd)
-	m.aiInput, aiInputCmd = m.aiInput.Update(msg)
-	cmds = append(cmds, aiInputCmd)
-
-	if mMouseMsg, ok := msg.(tea.MouseMsg); ok && (mMouseMsg.Type == tea.MouseWheelDown || mMouseMsg.Type == tea.MouseWheelUp) {
-		if m.focusIndex == focusLocalOutput {
-			m.localOutput, localOutputVPCmd = m.localOutput.Update(msg)
-		} else if m.focusIndex == focusAIOutput {
-			m.aiOutput, aiOutputVPCmd = m.aiOutput.Update(msg)
-		}
-	} else {
-		m.localOutput, localOutputVPCmd = m.localOutput.Update(msg)
-		m.aiOutput, aiOutputVPCmd = m.aiOutput.Update(msg)
-	}
-
-	if localOutputVPCmd != nil {
-		cmds = append(cmds, localOutputVPCmd)
-	}
-	if aiOutputVPCmd != nil {
-		cmds = append(cmds, aiOutputVPCmd)
-	}
-
-	if m.isWaitingForAI || m.isSyncing || m.initialScriptRunning || m.patchStatus != "" {
-		m.spinner, spinnerCmd = m.spinner.Update(msg)
-		cmds = append(cmds, spinnerCmd)
-	}
+func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmds []tea.Cmd
+	var cmd tea.Cmd
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		if key.Matches(msg, m.keyMap.Quit) {
 			m.quitting = true
+			if screen := m.getActiveLeftScreen(); screen != nil {
+				cmds = append(cmds, screen.Blur(m.app))
+			}
+			if screen := m.getActiveRightScreen(); screen != nil {
+				cmds = append(cmds, screen.Blur(m.app))
+			}
 			return m, tea.Quit
 		}
-
-		if m.initialScriptRunning || m.isSyncing {
-			if key.Matches(msg, m.keyMap.Help) {
-				m.helpVisible = !m.helpVisible
-				m.help.ShowAll = m.helpVisible
-				keyHandled = true
-			}
-			if keyHandled || msg.Type == tea.KeyCtrlC {
-				return m, tea.Batch(cmds...)
-			}
+		if key.Matches(msg, m.keyMap.Help) {
+			m.helpVisible = !m.helpVisible
+			m.help.ShowAll = m.helpVisible
+			m.currentActivity = If(m.helpVisible, "Help Visible", "Help Hidden").(string)
+			cmds = append(cmds, m.updateFocusStates())
 			return m, tea.Batch(cmds...)
-		}
-
-		if !keyHandled {
-			if key.Matches(msg, m.keyMap.CycleLocalOutput) {
-				m.localOutputDisplayMode = (m.localOutputDisplayMode + 1) % totalLocalOutputModes
-				var newContent string
-				displayModeName := "Unknown View"
-				switch m.localOutputDisplayMode {
-				case localOutputModeScript:
-					newContent = strings.Join(m.emittedLines, "\n")
-					displayModeName = "Script Output"
-				case localOutputModeWMStatus:
-					newContent = FormatWMStatusView(m.app) // Call new function
-					displayModeName = "Worker Manager Status"
-				}
-				m.localOutput.SetContent(newContent)
-				m.localOutput.GotoTop()
-				m.addMessage("System", fmt.Sprintf("Local output view changed to: %s", displayModeName))
-				keyHandled = true
-			} else if key.Matches(msg, m.keyMap.Tab) {
-				currentOrder := []int{focusLocalInput, focusLocalOutput, focusAIOutput, focusAIInput}
-				currentIndex := -1
-				for i, fi := range currentOrder {
-					if fi == m.focusIndex {
-						currentIndex = i
-						break
-					}
-				}
-				if currentIndex != -1 {
-					m.focusIndex = currentOrder[(currentIndex+1)%len(currentOrder)]
-				} else {
-					m.focusIndex = focusLocalInput
-				}
-				m.updateFocus()
-				keyHandled = true
-			} else if key.Matches(msg, m.keyMap.ShiftTab) {
-				currentOrder := []int{focusLocalInput, focusAIInput, focusAIOutput, focusLocalOutput}
-				currentIndex := -1
-				for i, fi := range currentOrder {
-					if fi == m.focusIndex {
-						currentIndex = i
-						break
-					}
-				}
-				if currentIndex != -1 {
-					m.focusIndex = currentOrder[(currentIndex+1)%len(currentOrder)]
-				} else {
-					m.focusIndex = focusLocalInput
-				}
-				m.updateFocus()
-				keyHandled = true
-			} else if key.Matches(msg, m.keyMap.Help) {
-				m.helpVisible = !m.helpVisible
-				m.help.ShowAll = m.helpVisible
-				keyHandled = true
-			}
-
-			if msg.Type == tea.KeyEnter && (m.focusIndex == focusLocalInput || m.focusIndex == focusAIInput) {
-				if m.focusIndex == focusLocalInput {
-					cmdValue := strings.TrimSpace(m.localInput.Value())
-					m.addMessage("Command", cmdValue)
-					m.localInput.Reset()
-					m.lastError = nil
-					switch {
-					case cmdValue == "quit" || cmdValue == "/quit" || cmdValue == "exit":
-						m.quitting = true
-						return m, tea.Quit
-					case cmdValue == "?" || cmdValue == "/help":
-						m.helpVisible = !m.helpVisible
-						m.help.ShowAll = m.helpVisible
-						m.addMessage("System", fmt.Sprintf("Help toggled %v.", m.helpVisible))
-					case cmdValue == "/sync":
-						if !m.isSyncing {
-							m.isSyncing = true
-							m.currentActivity = "Syncing..."
-							m.addMessage("System", m.currentActivity)
-							cmds = append(cmds, m.spinner.Tick, m.runSyncCmd())
-						} else {
-							m.addMessage("System", "Sync already in progress.")
-						}
-					case strings.HasPrefix(cmdValue, "/run "):
-						scriptPath := strings.TrimSpace(strings.TrimPrefix(cmdValue, "/run "))
-						if scriptPath != "" {
-							m.addMessage("System", fmt.Sprintf("Executing script: %s", scriptPath))
-							m.initialScriptRunning = true
-							m.currentActivity = fmt.Sprintf("Running: %s", filepath.Base(scriptPath))
-							cmds = append(cmds, m.spinner.Tick, m.executeSpecificScriptCmd(scriptPath))
-						} else {
-							m.addMessage("System", "Usage: /run <path_to_script>")
-						}
-					default:
-						m.addMessage("System", fmt.Sprintf("Unknown local command: '%s'", cmdValue))
-						m.lastError = fmt.Errorf("unknown local command: %s", cmdValue)
-					}
-					keyHandled = true
-				} else if m.focusIndex == focusAIInput {
-					promptValue := strings.TrimSpace(m.aiInput.Value())
-					if promptValue != "" {
-						m.addMessage("You", promptValue)
-						m.aiInput.Reset()
-						m.aiOutput.GotoBottom()
-						m.isWaitingForAI = true
-						m.currentActivity = "AI is thinking..."
-						m.lastError = nil
-						m.addMessage("System", "Placeholder: AI query sent to processing logic...")
-						cmds = append(cmds, m.spinner.Tick)
-					}
-					keyHandled = true
-				}
-			}
-
-			if !keyHandled && (m.focusIndex == focusLocalOutput || m.focusIndex == focusAIOutput) {
-				activeViewport := &m.localOutput
-				if m.focusIndex == focusAIOutput {
-					activeViewport = &m.aiOutput
-				}
-				scrollAmount := 1
-				switch {
-				case key.Matches(msg, m.keyMap.ScrollUp):
-					activeViewport.LineUp(1)
-					keyHandled = true
-				case key.Matches(msg, m.keyMap.ScrollDown):
-					activeViewport.LineDown(1)
-					keyHandled = true
-				case key.Matches(msg, m.keyMap.ScrollLeft):
-					activeViewport.ScrollLeft(scrollAmount)
-					keyHandled = true
-				case key.Matches(msg, m.keyMap.ScrollRight):
-					activeViewport.ScrollRight(scrollAmount)
-					keyHandled = true
-				case key.Matches(msg, m.keyMap.PageUp):
-					activeViewport.ViewUp()
-					keyHandled = true
-				case key.Matches(msg, m.keyMap.PageDown):
-					activeViewport.ViewDown()
-					keyHandled = true
-				}
-			}
 		}
 
 	case tea.WindowSizeMsg:
@@ -218,31 +51,86 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if !m.ready {
 			m.ready = true
 		}
-		m.setSizes(msg.Width, msg.Height)
-		m.aiOutput.GotoBottom()
-		m.localOutput.GotoBottom()
 
-	case scriptEmitMsg:
-		content := strings.TrimRight(msg.Content, "\n")
-		m.addMessage("emit", content)
+		helpLines := 0
+		if m.helpVisible {
+			helpLines = strings.Count(m.help.View(m.keyMap), "\n") + 1
+		}
+
+		inputContainerVPadding := m.leftInputArea.BlurredStyle.Base.GetVerticalFrameSize()
+		inputAreaRenderSlotHeight := inputAreaDefaultVisibleLines
+		screenContainerVPadding := screenPaneContainerStyle.GetVerticalFrameSize()
+
+		screenHeight := m.height - statusBarHeight - helpLines - (inputAreaRenderSlotHeight + inputContainerVPadding) - screenContainerVPadding
+		if screenHeight < 1 {
+			screenHeight = 1
+		}
+
+		leftPaneWidth := m.width / 2
+		rightPaneWidth := m.width - leftPaneWidth
+
+		screenContentWidthLeft := leftPaneWidth - screenPaneContainerStyle.GetHorizontalFrameSize()
+		if screenContentWidthLeft < 0 {
+			screenContentWidthLeft = 0
+		}
+		screenContentWidthRight := rightPaneWidth - screenPaneContainerStyle.GetHorizontalFrameSize()
+		if screenContentWidthRight < 0 {
+			screenContentWidthRight = 0
+		}
+
+		for _, s := range m.leftScreens {
+			s.SetSize(screenContentWidthLeft, screenHeight)
+		}
+		for _, s := range m.rightScreens {
+			s.SetSize(screenContentWidthRight, screenHeight)
+		}
+
+		m.leftInputArea.SetWidth(leftPaneWidth - m.leftInputArea.BlurredStyle.Base.GetHorizontalFrameSize())
+		m.rightInputArea.SetWidth(rightPaneWidth - m.rightInputArea.BlurredStyle.Base.GetHorizontalFrameSize())
+		m.help.Width = m.width
+		cmds = append(cmds, m.updateFocusStates())
+		return m, tea.Batch(cmds...)
+
+	case spinner.TickMsg:
+		if m.isWaitingForAI || m.isSyncing || m.initialScriptRunning {
+			m.spinner, cmd = m.spinner.Update(msg)
+			cmds = append(cmds, cmd)
+		}
+		if screen := m.getActiveLeftScreen(); screen != nil {
+			_, screenCmd := screen.Update(msg, m.app)
+			cmds = append(cmds, screenCmd)
+		}
+		if screen := m.getActiveRightScreen(); screen != nil {
+			_, screenCmd := screen.Update(msg, m.app)
+			cmds = append(cmds, screenCmd)
+		}
+		return m, tea.Batch(cmds...)
 
 	case initialScriptDoneMsg:
 		m.initialScriptRunning = false
 		m.currentActivity = ""
-		scriptBaseName := filepath.Base(msg.Path)
+		m.systemMessages = append(m.systemMessages, message{"System", fmt.Sprintf("Initial script '%s' done. Error: %v", msg.Path, msg.Err)})
 		if msg.Err != nil {
 			m.lastError = msg.Err
-			m.addMessage("System", errorStyle.Render(fmt.Sprintf("Initial script '%s' FAILED: %v", scriptBaseName, msg.Err)))
-			if m.app.GetLogger() != nil {
-				m.app.GetLogger().Error("Initial script execution failed", "path", msg.Path, "error", msg.Err)
-			}
-		} else {
-			m.addMessage("System", fmt.Sprintf("Initial script '%s' completed successfully.", scriptBaseName))
-			if m.app.GetLogger() != nil {
-				m.app.GetLogger().Debug("Initial script execution succeeded", "path", msg.Path)
-			}
 		}
-		m.localOutput.GotoBottom()
+		if screen := m.getActiveLeftScreen(); screen != nil && screen.Name() == "Script Output" {
+			var newScreen Screen
+			newScreen, cmd = screen.Update(refreshViewMsg{Timestamp: time.Now()}, m.app)
+			m.leftScreens[m.currentLeftScreenIdx] = newScreen
+			cmds = append(cmds, cmd)
+		}
+
+	case scriptEmitMsg:
+		if len(m.emittedLines) >= maxEmitBufferLines {
+			m.emittedLines = m.emittedLines[len(m.emittedLines)-maxEmitBufferLines+1:]
+		}
+		m.emittedLines = append(m.emittedLines, strings.TrimRight(msg.Content, "\n"))
+		if screen := m.getActiveLeftScreen(); screen != nil && screen.Name() == "Script Output" {
+			var newScreen Screen
+			newScreen, cmd = screen.Update(msg, m.app)
+			m.leftScreens[m.currentLeftScreenIdx] = newScreen
+			cmds = append(cmds, cmd)
+		}
 
 	case syncCompleteMsg:
 		m.isSyncing = false
@@ -250,68 +138,268 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.lastError = msg.err
 		summary := "Sync completed."
 		if msg.stats != nil {
-			summary = fmt.Sprintf("Sync: Up:%d Del:%d",
-				If(msg.stats["files_uploaded"] != nil, msg.stats["files_uploaded"], 0).(int64),
-				If(msg.stats["files_deleted_api"] != nil, msg.stats["files_deleted_api"], 0).(int64))
+			uploaded := If(msg.stats["files_uploaded"] != nil, msg.stats["files_uploaded"], int64(0)).(int64)
+			deleted := If(msg.stats["files_deleted_api"] != nil, msg.stats["files_deleted_api"], int64(0)).(int64)
+			summary = fmt.Sprintf("Sync: Up:%d Del:%d", uploaded, deleted)
 		}
 		if msg.err != nil {
 			summary = fmt.Sprintf("%s. Error: %v", summary, msg.err)
-			m.addMessage("System", errorStyle.Render(summary))
-		} else {
-			m.addMessage("System", summary)
 		}
-		m.aiOutput.GotoBottom()
+		m.systemMessages = append(m.systemMessages, message{"System", summary})
+
+	case aiResponseMsg:
+		m.isWaitingForAI = false
+		m.currentActivity = ""
+		if msg.Err != nil {
+			m.lastError = msg.Err
+			m.currentActivity = fmt.Sprintf("AI Error: %v", msg.Err)
+		}
+		foundScreen := false
+		for i, screen := range m.rightScreens {
+			if screen.Name() == msg.TargetScreenName {
+				var updatedScreen Screen
+				updatedScreen, cmd = screen.Update(msg, m.app)
+				m.rightScreens[i] = updatedScreen
+				cmds = append(cmds, cmd)
+				foundScreen = true
+				break
+			}
+		}
+		if !foundScreen && m.app != nil && m.app.GetLogger() != nil {
+			m.app.GetLogger().Warn("aiResponseMsg received for unknown or inactive screen", "target", msg.TargetScreenName)
+		}
+
+	case sendAIChatMsg:
+		m.isWaitingForAI = true
+		m.currentActivity = "AI Chat thinking..."
+		cmds = append(cmds, m.initiateAIChatCall(msg)) // Definition in update_helpers.go
+
+	case closeScreenMsg:
+		cmds = append(cmds, m.handleCloseScreen(msg)) // Definition now in update_helpers.go
 
 	case errMsg:
 		m.lastError = msg.err
+		m.currentActivity = fmt.Sprintf("ERROR: %v", msg.err)
 		m.isWaitingForAI = false
 		m.isSyncing = false
 		m.initialScriptRunning = false
-		m.currentActivity = ""
-		m.patchStatus = ""
-		m.addMessage("System", errorStyle.Render(fmt.Sprintf("ERROR: %v", msg.err)))
-		m.aiOutput.GotoBottom()
+		if screen := m.getActiveLeftScreen(); screen != nil {
+			_, screenCmd := screen.Update(msg, m.app)
+			cmds = append(cmds, screenCmd)
+		}
+		if screen := m.getActiveRightScreen(); screen != nil {
+			_, screenCmd := screen.Update(msg, m.app)
+			cmds = append(cmds, screenCmd)
+		}
+
+	case refreshViewMsg:
+		if screen := m.getActiveLeftScreen(); screen != nil && (msg.ScreenName == "" || msg.ScreenName == screen.Name()) {
+			var newScreen Screen
+			newScreen, cmd = screen.Update(msg, m.app)
+			m.leftScreens[m.currentLeftScreenIdx] = newScreen
+			cmds = append(cmds, cmd)
+		}
+		if screen := m.getActiveRightScreen(); screen != nil && (msg.ScreenName == "" || msg.ScreenName == screen.Name()) {
+			var newScreen Screen
+			newScreen, cmd = screen.Update(msg, m.app)
+			m.rightScreens[m.currentRightScreenIdx] = newScreen
+			cmds = append(cmds, cmd)
+		}
+	}
+
+	keyHandled := false
+	if keyMsg, ok := msg.(tea.KeyMsg); ok {
+		if key.Matches(keyMsg, m.keyMap.Quit) || key.Matches(keyMsg, m.keyMap.Help) {
+			// Already handled
+		} else {
+			switch {
+			case key.Matches(keyMsg, m.keyMap.Tab):
+				cmds = append(cmds, m.cycleFocus(false))
+				keyHandled = true
+			case key.Matches(keyMsg, m.keyMap.ShiftTab):
+				cmds = append(cmds, m.cycleFocus(true))
+				keyHandled = true
+			case key.Matches(keyMsg, m.keyMap.CycleLeftScreen):
+				cmds = append(cmds, m.cycleScreen(true))
+				keyHandled = true
+			case key.Matches(keyMsg, m.keyMap.CycleRightScreen):
+				cmds = append(cmds, m.cycleScreen(false))
+				keyHandled = true
+			case keyMsg.Type == tea.KeyEnter:
+				keyHandled = true
+				focusedGlobalInput := m.getFocusedGlobalInputArea()
+				if focusedGlobalInput != nil {
+					inputValue := strings.TrimSpace(focusedGlobalInput.Value())
+					if strings.HasPrefix(inputValue, "//") {
+						cmds = append(cmds, m.handleSystemCommand(inputValue))
+						focusedGlobalInput.Reset()
+					} else {
+						activeScreen := m.getScreenForFocusedInput()
+						if activeScreen != nil && activeScreen.GetInputBubble() != nil {
+							activeScreen.GetInputBubble().SetValue(inputValue)
+							if submitCmd := activeScreen.HandleSubmit(m.app); submitCmd != nil {
+								cmds = append(cmds, submitCmd)
+							}
+							m.syncInputAreaWithScreen(focusedGlobalInput, activeScreen)
+						} else {
+							m.systemMessages = append(m.systemMessages, message{"System", "No active input target for Enter."})
+							focusedGlobalInput.Reset()
+						}
+					}
+				}
+
+			default:
+				focusedGlobalInput := m.getFocusedGlobalInputArea()
+				if focusedGlobalInput != nil && focusedGlobalInput.Focused() {
+					var currentGlobalInput *textarea.Model
+					var activeScreenForInput Screen
+					if m.focusTarget == FocusLeftInput {
+						currentGlobalInput = &m.leftInputArea
+						activeScreenForInput = m.getActiveLeftScreen()
+					} else if m.focusTarget == FocusRightInput {
+						currentGlobalInput = &m.rightInputArea
+						activeScreenForInput = m.getActiveRightScreen()
+					}
+
+					if currentGlobalInput != nil {
+						*currentGlobalInput, cmd = currentGlobalInput.Update(msg)
+						cmds = append(cmds, cmd)
+						if activeScreenForInput != nil && activeScreenForInput.GetInputBubble() != nil {
+							activeScreenForInput.GetInputBubble().SetValue(currentGlobalInput.Value())
+						}
+						keyHandled = true
+					}
+				} else if !keyHandled { // If not handled by global input, pass to focused pane's screen
+					var targetScreen Screen
+					if m.focusTarget == FocusLeftPane {
+						targetScreen = m.getActiveLeftScreen()
+					} else if m.focusTarget == FocusRightPane {
+						targetScreen = m.getActiveRightScreen()
+					}
+
+					if targetScreen != nil {
+						var updatedScreen Screen
+						updatedScreen, cmd = targetScreen.Update(msg, m.app)
+						cmds = append(cmds, cmd)
+						if m.focusTarget == FocusLeftPane {
+							m.leftScreens[m.currentLeftScreenIdx] = updatedScreen
+						} else if m.focusTarget == FocusRightPane { // Ensure it's specifically the right pane
+							m.rightScreens[m.currentRightScreenIdx] = updatedScreen
+						}
+					}
+				}
+			}
+		}
+	}
+
+	if m.ready {
+		if screen := m.getActiveLeftScreen(); screen != nil {
+			m.syncInputAreaWithScreen(&m.leftInputArea, screen)
+		}
+		if screen := m.getActiveRightScreen(); screen != nil {
+			m.syncInputAreaWithScreen(&m.rightInputArea, screen)
+		}
 	}
 
 	return m, tea.Batch(cmds...)
 }
 
-// updateFocus sets focus to the currently selected pane.
-func (m *model) updateFocus() {
-	m.localInput.Blur()
-	m.aiInput.Blur()
-	activePaneMsg := ""
-	switch m.focusIndex {
-	case focusLocalInput:
-		m.localInput.Focus()
-		activePaneMsg = "Focus: Local Input ($)"
-	case focusAIInput:
-		m.aiInput.Focus()
-		activePaneMsg = "Focus: AI Input (>)"
-	case focusLocalOutput:
-		activePaneMsg = "Focus: Local Output (Scroll with keys/mouse)"
-	case focusAIOutput:
-		activePaneMsg = "Focus: AI Output (Scroll with keys/mouse)"
-	}
-	if activePaneMsg != "" {
-		m.addMessage("System", activePaneMsg)
-	}
-}
+// Suggested location: pkg/neurogo/update_helpers.go
+// Ensure this file has the necessary imports (fmt, tea) and package declaration (package neurogo)
 
-// executeSpecificScriptCmd creates a command to run a script file.
-func (m *model) executeSpecificScriptCmd(scriptPath string) tea.Cmd {
-	return func() tea.Msg {
-		if m.app == nil {
-			return initialScriptDoneMsg{Path: scriptPath, Err: fmt.Errorf("application access not available to run script")}
+// handleCloseScreen manages the removal of a screen from the UI.
+func (m *model) handleCloseScreen(msg closeScreenMsg) tea.Cmd {
+	var cmds []tea.Cmd
+	var screenClosed bool
+
+	// Check left screens
+	for i, s := range m.leftScreens {
+		if s.Name() == msg.ScreenName {
+			if m.app != nil && m.app.GetLogger() != nil {
+				m.app.GetLogger().Info("Closing left screen", "name", msg.ScreenName)
+			}
+			if s.Blur(m.app) != nil { // Assuming Screen interface has Blur
+				cmds = append(cmds, s.Blur(m.app))
+			}
+
+			// Remove the screen
+			m.leftScreens = append(m.leftScreens[:i], m.leftScreens[i+1:]...)
+			screenClosed = true
+
+			if len(m.leftScreens) == 0 {
+				m.currentLeftScreenIdx = -1 // No active screen
+			} else {
+				// Adjust current index if necessary
+				if i < m.currentLeftScreenIdx {
+					m.currentLeftScreenIdx--
+				} else if i == m.currentLeftScreenIdx {
+					// If the closed screen was the active one, adjust index
+					// Try to keep it valid, or move to the previous if it was last
+					if m.currentLeftScreenIdx >= len(m.leftScreens) {
+						m.currentLeftScreenIdx = len(m.leftScreens) - 1
+					}
+					// If list became empty and index was 0, it's now -1 (handled above)
+					// If list not empty, and index was 0, it stays 0 (new screen at index 0)
+				}
+			}
+			// If focus was on left pane or its input, update focus.
+			// updateFocusStates will also sync the input area.
+			if m.focusTarget == FocusLeftPane || m.focusTarget == FocusLeftInput {
+				cmds = append(cmds, m.updateFocusStates())
+			} else {
+				// Still sync input area even if focus isn't directly on the left pane's input
+				m.syncInputAreaWithScreen(&m.leftInputArea, m.getActiveLeftScreen())
+			}
+			break
 		}
-		if m.app.GetLogger() != nil {
-			m.app.GetLogger().Debug("Executing script via TUI command...", "path", scriptPath)
-		}
-		ctxToUse := context.Background()
-		if m.app.Context() != nil {
-			ctxToUse = m.app.Context()
-		}
-		err := m.app.ExecuteScriptFile(ctxToUse, scriptPath)
-		return initialScriptDoneMsg{Path: scriptPath, Err: err}
 	}
+
+	if screenClosed {
+		m.systemMessages = append(m.systemMessages, message{"System", fmt.Sprintf("Screen '%s' closed.", msg.ScreenName)})
+		return tea.Batch(cmds...)
+	}
+
+	// Check right screens if not found in left
+	for i, s := range m.rightScreens {
+		if s.Name() == msg.ScreenName {
+			if m.app != nil && m.app.GetLogger() != nil {
+				m.app.GetLogger().Info("Closing right screen", "name", msg.ScreenName)
+			}
+			if s.Blur(m.app) != nil { // Assuming Screen interface has Blur
+				cmds = append(cmds, s.Blur(m.app))
+			}
+
+			m.rightScreens = append(m.rightScreens[:i], m.rightScreens[i+1:]...)
+			screenClosed = true
+
+			if len(m.rightScreens) == 0 {
+				m.currentRightScreenIdx = -1
+			} else {
+				if i < m.currentRightScreenIdx {
+					m.currentRightScreenIdx--
+				} else if i == m.currentRightScreenIdx {
+					if m.currentRightScreenIdx >= len(m.rightScreens) {
+						m.currentRightScreenIdx = len(m.rightScreens) - 1
+					}
+				}
+			}
+			if m.focusTarget == FocusRightPane || m.focusTarget == FocusRightInput {
+				cmds = append(cmds, m.updateFocusStates())
+			} else {
+				m.syncInputAreaWithScreen(&m.rightInputArea, m.getActiveRightScreen())
+			}
+			break
+		}
+	}
+
+	if screenClosed {
+		m.systemMessages = append(m.systemMessages, message{"System", fmt.Sprintf("Screen '%s' closed.", msg.ScreenName)})
+	} else {
+		if m.app != nil && m.app.GetLogger() != nil {
+			m.app.GetLogger().Warn("Attempted to close screen not found", "name", msg.ScreenName)
+		}
+		m.systemMessages = append(m.systemMessages, message{"System", fmt.Sprintf("Could not close screen: '%s' (not found).", msg.ScreenName)})
+	}
+
+	return tea.Batch(cmds...)
 }

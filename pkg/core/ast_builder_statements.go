@@ -59,13 +59,15 @@ func (l *neuroScriptListenerImpl) ExitReturn_statement(ctx *gen.Return_statement
 			returnExprs = make([]Expression, numExpr) // Correctly initialize
 			for i := 0; i < numExpr; i++ {
 				// popNValues returns in stack order (last pushed = first element). Reverse for parsed order.
-				nodeExpr, isExpr := nodesPoppedRaw[numExpr-1-i].(Expression)
+				//				nodeExpr, isExpr := nodesPoppedRaw[numExpr-1-i].(Expression)
+				idx := i
+				nodeExpr, isExpr := nodesPoppedRaw[idx].(Expression)
 				if !isExpr {
 					actualArgCtx := exprListCtx.Expression(i)
 					pos := tokenToPosition(actualArgCtx.GetStart())
-					l.addError(actualArgCtx, "RETURN argument %d is not an Expression (got %T)", i+1, nodesPoppedRaw[numExpr-1-i])
+					l.addError(actualArgCtx, "RETURN argument %d is not an Expression (got %T)", i+1, nodesPoppedRaw[idx])
 					// Create an ErrorNode to put in the list if desired, or just error out
-					returnExprs[i] = &ErrorNode{Pos: pos, Message: fmt.Sprintf("Return arg %d invalid type %T", i+1, nodesPoppedRaw[numExpr-1-i])}
+					returnExprs[i] = &ErrorNode{Pos: pos, Message: fmt.Sprintf("Return arg %d invalid type %T", i+1, nodesPoppedRaw[idx])}
 					// Potentially return here or continue with error nodes in the list
 				} else {
 					returnExprs[i] = nodeExpr

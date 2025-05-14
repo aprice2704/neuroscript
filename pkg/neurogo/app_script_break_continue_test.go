@@ -36,9 +36,10 @@ func TestApp_RunScriptMode_BreakContinue(t *testing.T) {
 
 	// 3. Initialize LLMClient
 	llmClient := adapters.NewNoOpLLMClient()
+	config := NewConfig()
 
 	// 4. Create App (passing nil for interpreter and aiwm, will set them up next)
-	app := NewApp(logger)
+	app, _ := NewApp(config, logger, llmClient)
 	if err != nil {
 		t.Fatalf("%s: Failed to create App: %v", testName, err)
 	}

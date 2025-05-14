@@ -85,8 +85,7 @@ func main() {
 		os.Exit(1)
 	}
 	logger.Debug("Sandbox directory resolved", "path", absSandboxDir)
-
-	// --- NeuroGo App Configuration & Initialization ---
+	// --- NeuroGo App Configuration & LLM Client Creation FIRST ---
 	appConfig := &neurogo.Config{
 		APIKey:        *apiKey,
 		APIHost:       *apiHost,
@@ -97,30 +96,65 @@ func main() {
 		LibPaths:      libPathsConfig.Value,
 		TargetArg:     *targetArg,
 		ProcArgs:      procArgsConfig.Value,
+		// Note: SyncDir, SyncFilter, SyncIgnoreGitignore, AllowlistFile, SchemaPath are not set here from flags
+		// They might be intended to be set by scripts or TUI later if needed, or flags are missing.
 	}
-	app := neurogo.NewApp(logger)
-	app.Config = appConfig
 
-	// --- Initialize Core Components (LLM, Interpreter, AIWM) ---
-	var interpreter *core.Interpreter
-	var aiWm *core.AIWorkerManager
+	// Create a temporary App shell or pass nil if CreateLLMClient doesn't strictly need a full App instance,
+	// OR, if CreateLLMClient is a static/package-level function.
+	// HOWEVER, app.CreateLLMClient() is a METHOD on *App.
+	// This implies App needs to exist at least partially to call CreateLLMClient.
+	// But NewApp needs the llmClient. This is the chicken/egg.
 
-	// Initialize LLM Client and get it
-	llmClient, err := app.CreateLLMClient() // Corrected: Use CreateLLMClient
+	// Let's look at what App.CreateLLMClient() *actually* needs from `app`:
+	// It needs `app.Config` and `app.Log`.
+	// It does NOT set `app.llmClient`.
+
+	// Solution:
+	// 1. Create a preliminary App instance just for its Config and Log, to call CreateLLMClient.
+	// 2. Create the LLM Client using this preliminary app instance.
+	// 3. Create the *final* App instance by passing this LLM client to NewApp.
+
+	logger.Debug("Preparing to create LLM client...")
+	// Temporary app instance to facilitate CreateLLMClient call, as it needs app.Config and app.Log
+	tempAppForLLMCreation := &neurogo.App{Config: appConfig, Log: logger}
+	llmClient, err := tempAppForLLMCreation.CreateLLMClient()
 	if err != nil {
-		logger.Error("Failed to initialize LLM client", "error", err)
-		fmt.Fprintf(os.Stderr, "LLM client initialization error: %v\n", err)
+		logger.Error("Failed to create LLM client", "error", err)
+		fmt.Fprintf(os.Stderr, "LLM client creation error: %v\n", err)
 		os.Exit(1)
 	}
+	if llmClient == nil { // Should be caught by CreateLLMClient's internal error handling, but good to check.
+		logger.Error("LLM client is nil after creation without error.")
+		fmt.Fprintf(os.Stderr, "LLM client is nil after creation.\n")
+		os.Exit(1)
+	}
+	logger.Debug("LLM client created successfully.")
 
-	interpreter, aiWm, err = initializeCoreComponents(app, logger, llmClient)
+	// --- NeuroGo App Initialization (with LLM Client) ---
+	app, err := neurogo.NewApp(appConfig, logger, llmClient) // Now passing llmClient
+	if err != nil {                                          // NewApp now returns an error
+		logger.Error("Failed to create NeuroGo App", "error", err)
+		fmt.Fprintf(os.Stderr, "NeuroGo App creation error: %v\n", err)
+		os.Exit(1)
+	}
+	// app.Config = appConfig; // This line is redundant if NewApp assigns cfg to app.Config, which it does.
+
+	logger.Debug("NeuroGo App instance created.")
+
+	// --- Initialize Core Components (Interpreter, AIWM) ---
+	// The 'llmClient' passed to initializeCoreComponents is the one already created and given to NewApp.
+	// initializeCoreComponents will then use this to set up Interpreter and AIWM.
+	var interpreter *core.Interpreter // Keep var declarations if they are used later for tool registration
+	var aiWm *core.AIWorkerManager    // Keep var declarations
+
+	interpreter, aiWm, err = initializeCoreComponents(app, logger, llmClient) // llmClient here is the one created above
 	if err != nil {
 		logger.Error("Failed to initialize core components", "error", err)
 		fmt.Fprintf(os.Stderr, "Initialization error: %v\n", err)
 		os.Exit(1)
 	}
-	logger.Debug("Core components (LLM, Interpreter, AIWM) initialized successfully.")
-
+	logger.Debug("Core components (Interpreter, AIWM) initialized successfully.")
 	// --- Register Tools ---
 	if aiWm != nil {
 		if err := core.RegisterAIWorkerTools(interpreter); err != nil {

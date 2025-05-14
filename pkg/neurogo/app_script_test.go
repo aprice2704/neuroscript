@@ -36,8 +36,10 @@ func TestApp_RunScriptMode_MultiReturn(t *testing.T) {
 	// 3. Initialize LLMClient
 	llmClient := adapters.NewNoOpLLMClient()
 
-	// 4. Create App
-	app := NewApp(logger)
+	config := NewConfig()
+
+	// 4. Create App (passing nil for interpreter and aiwm, will set them up next)
+	app, _ := NewApp(config, logger, llmClient)
 
 	// 5. Setup Interpreter
 	absSandboxDir, err := filepath.Abs(cfg.SandboxDir)
