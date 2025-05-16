@@ -112,6 +112,7 @@
         "cmd/ng/setup.go": {
           "functions": [
             "initializeLogger",
+            "ifElse",
             "initializeCoreComponents"
           ],
           "methods": []
@@ -4273,6 +4274,7 @@
         },
         "pkg/core/tools_tree_modify_test.go": {
           "functions": [
+            "findNodeIDByRootAttribute",
             "TestTreeModificationTools"
           ],
           "methods": []
@@ -12171,6 +12173,19 @@
             },
             {
               "Receiver": "*App",
+              "Name": "runTuiMode",
+              "calls": [
+                "a.Log.Info(?)",
+                "a.interpreter.Stdout(?)",
+                "StartTviewTUI",
+                "a.interpreter.SetStdout(?)",
+                "a.Log.Info(?)",
+                "a.Log.Error(?)",
+                "a.Log.Info(?)"
+              ]
+            },
+            {
+              "Receiver": "*App",
               "Name": "GetLogger",
               "calls": [
                 "pkg/adapters.NewNoOpLogger"
@@ -12187,22 +12202,6 @@
             {
               "Receiver": "*App",
               "Name": "Context"
-            },
-            {
-              "Receiver": "*App",
-              "Name": "SetTUImodel",
-              "calls": [
-                "a.mu.Lock(?)",
-                "a.mu.Unlock(?)"
-              ]
-            },
-            {
-              "Receiver": "*App",
-              "Name": "GetTUImodel",
-              "calls": [
-                "a.mu.RLock(?)",
-                "a.mu.RUnlock(?)"
-              ]
             },
             {
               "Receiver": "*App",
@@ -12237,6 +12236,26 @@
                 "a.interpreter.SetAIWorkerManager(?)",
                 "a.Log.Error(?)",
                 "a.Log.Info(?)"
+              ]
+            },
+            {
+              "Receiver": "*App",
+              "Name": "HandleSystemCommand",
+              "calls": [
+                "a.Log.Info(?)",
+                "a.interpreter.Stdout(?)",
+                "a.interpreter.Stdout(?)",
+                "a.tui.tviewApp.QueueUpdateDraw(?)"
+              ]
+            },
+            {
+              "Receiver": "*App",
+              "Name": "ExecuteScriptLine",
+              "calls": [
+                "a.Log.Info(?)",
+                "a.interpreter.Stdout(?)",
+                "a.interpreter.Stdout(?)",
+                "a.tui.tviewApp.QueueUpdateDraw(?)"
               ]
             }
           ]
@@ -12547,27 +12566,6 @@
             }
           ]
         },
-        "pkg/neurogo/app_tui.go": {
-          "methods": [
-            {
-              "Receiver": "*App",
-              "Name": "runTuiMode",
-              "calls": [
-                "a.GetLogger(?)",
-                "logger.Info(?)",
-                "a.GetLLMClient(?)",
-                "logger.Warn(?)",
-                "logger.Error(?)",
-                "llmClient.Client(?)",
-                "logger.Warn(?)",
-                "logger.Info(?)",
-                "Start",
-                "logger.Error(?)",
-                "logger.Info(?)"
-              ]
-            }
-          ]
-        },
         "pkg/neurogo/config.go": {
           "functions": [
             "NewConfig",
@@ -12656,62 +12654,6 @@
         "pkg/neurogo/interfaces.go": {
           "methods": []
         },
-        "pkg/neurogo/model.go": {
-          "functions": [
-            "If",
-            "newModel",
-            "max"
-          ],
-          "methods": [
-            {
-              "Receiver": "keyMap",
-              "Name": "ShortHelp"
-            },
-            {
-              "Receiver": "keyMap",
-              "Name": "FullHelp"
-            },
-            {
-              "Receiver": "*model",
-              "Name": "SetTeaProgram"
-            },
-            {
-              "Receiver": "model",
-              "Name": "Init",
-              "calls": [
-                "m.leftScreens[m.currentLeftScreenIdx].Init(?)",
-                "m.rightScreens[m.currentRightScreenIdx].Init(?)",
-                "m.updateFocusStates(?)",
-                "m.app.GetLogger(?)",
-                "m.app.GetLogger().Debug(?)",
-                "m.app.GetLogger(?)",
-                "m.app.Context(?)",
-                "m.app.Context(?)",
-                "m.app.ExecuteScriptFile(?)",
-                "github.com/charmbracelet/bubbletea.Batch"
-              ]
-            },
-            {
-              "Receiver": "*model",
-              "Name": "getActiveLeftScreen"
-            },
-            {
-              "Receiver": "*model",
-              "Name": "getActiveRightScreen"
-            }
-          ]
-        },
-        "pkg/neurogo/msgs.go": {
-          "methods": [
-            {
-              "Receiver": "errMsg",
-              "Name": "Error",
-              "calls": [
-                "e.err.Error(?)"
-              ]
-            }
-          ]
-        },
         "pkg/neurogo/patch_handler.go": {
           "functions": [
             "readLines",
@@ -12720,740 +12662,42 @@
           ],
           "methods": []
         },
-        "pkg/neurogo/screen.go": {
-          "methods": []
-        },
-        "pkg/neurogo/screen_ai_reply.go": {
+        "pkg/neurogo/tview_tui.go": {
           "functions": [
-            "NewAIReplyScreen"
+            "getPrimitiveName",
+            "StartTviewTUI"
           ],
           "methods": [
             {
-              "Receiver": "*AIReplyScreen",
-              "Name": "Init",
-              "calls": [
-                "s.updateViewportContent(?)",
-                "s.viewport.GotoBottom(?)"
-              ]
-            },
-            {
-              "Receiver": "*AIReplyScreen",
-              "Name": "updateViewportContent",
-              "calls": [
-                "s.app.GetTUImodel(?)",
-                "s.viewport.SetContent(?)",
-                "errorStyle.Render(?)",
-                "s.app.GetLogger(?)",
-                "s.app.GetLogger().Warn(?)",
-                "s.app.GetLogger(?)",
-                "s.app.GetTUImodel(?)",
-                "lipgloss.NewStyle().Foreground(?)",
-                "github.com/charmbracelet/lipgloss.NewStyle",
-                "github.com/charmbracelet/lipgloss.Color",
-                "content.WriteString(?)",
-                "style.Render(?)",
-                "content.WriteString(?)",
-                "content.WriteString(?)",
-                "s.viewport.SetContent(?)",
-                "content.String(?)"
-              ]
-            },
-            {
-              "Receiver": "*AIReplyScreen",
-              "Name": "Update",
-              "calls": [
-                "s.updateViewportContent(?)",
-                "s.viewport.GotoBottom(?)",
-                "s.Name(?)",
-                "s.updateViewportContent(?)",
-                "s.viewport.GotoBottom(?)",
-                "s.viewport.Update(?)",
-                "github.com/charmbracelet/bubbletea.Batch"
-              ]
-            },
-            {
-              "Receiver": "*AIReplyScreen",
-              "Name": "View",
-              "calls": [
-                "s.viewport.View(?)"
-              ]
-            },
-            {
-              "Receiver": "*AIReplyScreen",
-              "Name": "Name"
-            },
-            {
-              "Receiver": "*AIReplyScreen",
-              "Name": "SetSize",
-              "calls": [
-                "s.updateViewportContent(?)"
-              ]
-            },
-            {
-              "Receiver": "*AIReplyScreen",
-              "Name": "GetInputBubble"
-            },
-            {
-              "Receiver": "*AIReplyScreen",
-              "Name": "HandleSubmit"
-            },
-            {
-              "Receiver": "*AIReplyScreen",
-              "Name": "Focus",
-              "calls": [
-                "s.updateViewportContent(?)",
-                "s.viewport.GotoBottom(?)"
-              ]
-            },
-            {
-              "Receiver": "*AIReplyScreen",
-              "Name": "Blur"
-            }
-          ]
-        },
-        "pkg/neurogo/screen_chat.go": {
-          "functions": [
-            "NewChatScreen"
-          ],
-          "methods": [
-            {
-              "Receiver": "*ChatScreen",
-              "Name": "Init",
-              "calls": [
-                "s.conversationManager.AddModelMessage(?)",
-                "s.renderConversation(?)"
-              ]
-            },
-            {
-              "Receiver": "*ChatScreen",
-              "Name": "Update",
-              "calls": [
-                "s.inputArea.Focused(?)",
-                "s.inputArea.Update(?)",
-                "s.viewport.Update(?)",
-                "github.com/charmbracelet/bubbletea.Batch",
-                "s.Name(?)",
-                "s.conversationManager.AddModelMessage(?)",
-                "app.GetLogger(?)",
-                "app.GetLogger().Error(?)",
-                "app.GetLogger(?)",
-                "s.Name(?)",
-                "s.conversationManager.AddModelMessage(?)",
-                "s.conversationManager.AddModelMessage(?)",
-                "s.renderConversation(?)",
-                "s.inputArea.Focus(?)",
-                "s.Name(?)",
-                "s.conversationManager.AddModelMessage(?)",
-                "s.renderConversation(?)",
-                "s.viewport.Update(?)",
-                "s.inputArea.Update(?)",
-                "github.com/charmbracelet/bubbletea.Batch"
-              ]
-            },
-            {
-              "Receiver": "*ChatScreen",
-              "Name": "View",
-              "calls": [
-                "github.com/charmbracelet/lipgloss.JoinVertical",
-                "s.viewport.View(?)",
-                "s.inputArea.View(?)"
-              ]
-            },
-            {
-              "Receiver": "*ChatScreen",
-              "Name": "Name"
-            },
-            {
-              "Receiver": "*ChatScreen",
-              "Name": "SetSize",
-              "calls": [
-                "s.inputArea.LineCount(?)",
-                "s.inputArea.SetHeight(?)",
-                "s.inputArea.SetWidth(?)",
-                "s.renderConversation(?)"
-              ]
-            },
-            {
-              "Receiver": "*ChatScreen",
-              "Name": "GetInputBubble"
-            },
-            {
-              "Receiver": "*ChatScreen",
-              "Name": "HandleSubmit",
-              "calls": [
-                "s.inputArea.Value(?)",
-                "s.inputArea.Reset(?)",
-                "s.inputArea.Focus(?)",
-                "app.GetLogger(?)",
-                "app.GetLogger().Info(?)",
-                "app.GetLogger(?)",
-                "s.Name(?)",
-                "app.GetAIWorkerManager(?)",
-                "func() {\n\n\terr := app.GetAIWorkerManager().RetireWorkerInstance(\n\t\ts.workerInstanceID,\n\t\t\"Chat ended by user.\",\n\t\tcore.InstanceStatusRetiredCompleted,\n\t\tcore.TokenUsageMetrics{},\n\t\tnil,\n\t)\n\tif err != nil \u0026\u0026 app.GetLogger() != nil {\n\t\tapp.GetLogger().Error(\"Failed to retire worker instance on chat end\", \"instanceID\", s.workerInstanceID, \"error\", err)\n\t}\n}(?)",
-                "app.GetAIWorkerManager().RetireWorkerInstance(?)",
-                "app.GetAIWorkerManager(?)",
-                "app.GetLogger(?)",
-                "app.GetLogger().Error(?)",
-                "app.GetLogger(?)",
-                "s.Name(?)",
-                "s.conversationManager.AddUserMessage(?)",
-                "s.renderConversation(?)",
-                "s.conversationManager.GetHistory(?)",
-                "pkg/core.ConvertGenaiContentsToConversationTurns",
-                "app.GetLogger(?)",
-                "app.GetLogger().Error(?)",
-                "app.GetLogger(?)",
-                "s.Name(?)",
-                "s.conversationManager.AddModelMessage(?)",
-                "s.renderConversation(?)",
-                "s.Name(?)"
-              ]
-            },
-            {
-              "Receiver": "*ChatScreen",
-              "Name": "Focus",
-              "calls": [
-                "s.renderConversation(?)",
-                "s.inputArea.Focus(?)"
-              ]
-            },
-            {
-              "Receiver": "*ChatScreen",
-              "Name": "Blur",
-              "calls": [
-                "s.inputArea.Blur(?)"
-              ]
-            },
-            {
-              "Receiver": "*ChatScreen",
-              "Name": "renderConversation",
-              "calls": [
-                "s.conversationManager.GetHistory(?)",
-                "string",
-                "sb.WriteString(?)",
-                "speakerStyle.Render(?)",
-                "sb.WriteString(?)",
-                "s.viewport.SetContent(?)",
-                "sb.String(?)",
-                "s.viewport.GotoBottom(?)"
-              ]
-            }
-          ]
-        },
-        "pkg/neurogo/screen_script_output.go": {
-          "functions": [
-            "NewScriptOutputScreen"
-          ],
-          "methods": [
-            {
-              "Receiver": "*ScriptOutputScreen",
-              "Name": "Init",
-              "calls": [
-                "s.updateViewportContent(?)",
-                "s.viewport.GotoBottom(?)"
-              ]
-            },
-            {
-              "Receiver": "*ScriptOutputScreen",
-              "Name": "updateViewportContent",
-              "calls": [
-                "s.app.GetTUImodel(?)",
-                "s.app.GetTUImodel(?)",
-                "s.app.GetTUImodel(?)",
-                "s.viewport.SetContent(?)",
-                "s.viewport.SetContent(?)",
-                "s.app.GetLogger(?)",
-                "s.app.GetLogger().Warn(?)",
-                "s.app.GetLogger(?)"
-              ]
-            },
-            {
-              "Receiver": "*ScriptOutputScreen",
-              "Name": "Update",
-              "calls": [
-                "s.updateViewportContent(?)",
-                "s.viewport.GotoBottom(?)",
-                "s.Name(?)",
-                "s.updateViewportContent(?)",
-                "s.viewport.GotoBottom(?)",
-                "s.viewport.Update(?)",
-                "github.com/charmbracelet/bubbletea.Batch"
-              ]
-            },
-            {
-              "Receiver": "*ScriptOutputScreen",
-              "Name": "View",
-              "calls": [
-                "s.viewport.View(?)"
-              ]
-            },
-            {
-              "Receiver": "*ScriptOutputScreen",
-              "Name": "Name"
-            },
-            {
-              "Receiver": "*ScriptOutputScreen",
-              "Name": "SetSize",
-              "calls": [
-                "s.updateViewportContent(?)"
-              ]
-            },
-            {
-              "Receiver": "*ScriptOutputScreen",
-              "Name": "GetInputBubble"
-            },
-            {
-              "Receiver": "*ScriptOutputScreen",
-              "Name": "HandleSubmit"
-            },
-            {
-              "Receiver": "*ScriptOutputScreen",
-              "Name": "Focus",
-              "calls": [
-                "s.updateViewportContent(?)",
-                "s.viewport.GotoBottom(?)"
-              ]
-            },
-            {
-              "Receiver": "*ScriptOutputScreen",
-              "Name": "Blur"
-            }
-          ]
-        },
-        "pkg/neurogo/screen_wm_status.go": {
-          "functions": [
-            "FormatWMStatusView"
-          ],
-          "methods": []
-        },
-        "pkg/neurogo/screen_wm_status_display.go": {
-          "functions": [
-            "NewWMStatusScreen"
-          ],
-          "methods": [
-            {
-              "Receiver": "*WMStatusScreen",
-              "Name": "Init",
-              "calls": [
-                "s.updateContent(?)"
-              ]
-            },
-            {
-              "Receiver": "*WMStatusScreen",
-              "Name": "updateContent",
-              "calls": [
-                "s.viewport.SetContent(?)",
-                "wmErrorStyle.Render(?)",
-                "FormatWMStatusView",
-                "s.app.GetTUImodel(?)",
-                "s.app.GetLogger(?)",
-                "s.app.GetLogger().Debug(?)",
-                "s.app.GetLogger(?)",
-                "s.viewport.SetContent(?)",
-                "s.viewport.GotoTop(?)"
-              ]
-            },
-            {
-              "Receiver": "*WMStatusScreen",
-              "Name": "Update",
-              "calls": [
-                "s.viewport.Update(?)",
-                "github.com/charmbracelet/bubbletea.Batch",
-                "s.updateContent(?)",
-                "s.viewport.Update(?)",
-                "github.com/charmbracelet/bubbletea.Batch"
-              ]
-            },
-            {
-              "Receiver": "*WMStatusScreen",
-              "Name": "View",
-              "calls": [
-                "s.viewport.View(?)"
-              ]
-            },
-            {
-              "Receiver": "*WMStatusScreen",
-              "Name": "Name"
-            },
-            {
-              "Receiver": "*WMStatusScreen",
-              "Name": "SetSize",
-              "calls": [
-                "s.updateContent(?)"
-              ]
-            },
-            {
-              "Receiver": "*WMStatusScreen",
-              "Name": "GetInputBubble"
-            },
-            {
-              "Receiver": "*WMStatusScreen",
-              "Name": "HandleSubmit"
-            },
-            {
-              "Receiver": "*WMStatusScreen",
-              "Name": "Focus",
-              "calls": [
-                "s.updateContent(?)"
-              ]
-            },
-            {
-              "Receiver": "*WMStatusScreen",
-              "Name": "Blur"
-            }
-          ]
-        },
-        "pkg/neurogo/tui.go": {
-          "functions": [
-            "Start"
-          ],
-          "methods": []
-        },
-        "pkg/neurogo/tui_writer.go": {
-          "functions": [
-            "NewTUIEmitWriter"
-          ],
-          "methods": [
-            {
-              "Receiver": "*TUIEmitWriter",
+              "Receiver": "*tviewWriter",
               "Name": "Write",
               "calls": [
-                "string",
-                "tew.teaProgram.Send(?)"
-              ]
-            }
-          ]
-        },
-        "pkg/neurogo/update.go": {
-          "methods": [
-            {
-              "Receiver": "model",
-              "Name": "Update",
-              "calls": [
-                "github.com/charmbracelet/bubbles/key.Matches",
-                "m.getActiveLeftScreen(?)",
-                "screen.Blur(?)",
-                "m.getActiveRightScreen(?)",
-                "screen.Blur(?)",
-                "github.com/charmbracelet/bubbles/key.Matches",
-                "If",
-                "m.updateFocusStates(?)",
-                "github.com/charmbracelet/bubbletea.Batch",
-                "m.help.View(?)",
-                "m.leftInputArea.BlurredStyle.Base.GetVerticalFrameSize(?)",
-                "screenPaneContainerStyle.GetVerticalFrameSize(?)",
-                "screenPaneContainerStyle.GetHorizontalFrameSize(?)",
-                "screenPaneContainerStyle.GetHorizontalFrameSize(?)",
-                "s.SetSize(?)",
-                "s.SetSize(?)",
-                "m.leftInputArea.SetWidth(?)",
-                "m.leftInputArea.BlurredStyle.Base.GetHorizontalFrameSize(?)",
-                "m.rightInputArea.SetWidth(?)",
-                "m.rightInputArea.BlurredStyle.Base.GetHorizontalFrameSize(?)",
-                "m.updateFocusStates(?)",
-                "github.com/charmbracelet/bubbletea.Batch",
-                "m.spinner.Update(?)",
-                "m.getActiveLeftScreen(?)",
-                "screen.Update(?)",
-                "m.getActiveRightScreen(?)",
-                "screen.Update(?)",
-                "github.com/charmbracelet/bubbletea.Batch",
-                "m.getActiveLeftScreen(?)",
-                "screen.Name(?)",
-                "screen.Update(?)",
-                "m.getActiveLeftScreen(?)",
-                "screen.Name(?)",
-                "screen.Update(?)",
-                "If",
-                "int64",
-                "If",
-                "int64",
-                "screen.Name(?)",
-                "screen.Update(?)",
-                "m.app.GetLogger(?)",
-                "m.app.GetLogger().Warn(?)",
-                "m.app.GetLogger(?)",
-                "m.initiateAIChatCall(?)",
-                "m.handleCloseScreen(?)",
-                "m.getActiveLeftScreen(?)",
-                "screen.Update(?)",
-                "m.getActiveRightScreen(?)",
-                "screen.Update(?)",
-                "m.getActiveLeftScreen(?)",
-                "screen.Name(?)",
-                "screen.Update(?)",
-                "m.getActiveRightScreen(?)",
-                "screen.Name(?)",
-                "screen.Update(?)",
-                "github.com/charmbracelet/bubbles/key.Matches",
-                "github.com/charmbracelet/bubbles/key.Matches",
-                "github.com/charmbracelet/bubbles/key.Matches",
-                "m.cycleFocus(?)",
-                "github.com/charmbracelet/bubbles/key.Matches",
-                "m.cycleFocus(?)",
-                "github.com/charmbracelet/bubbles/key.Matches",
-                "m.cycleScreen(?)",
-                "github.com/charmbracelet/bubbles/key.Matches",
-                "m.cycleScreen(?)",
-                "m.getFocusedGlobalInputArea(?)",
-                "focusedGlobalInput.Value(?)",
-                "m.handleSystemCommand(?)",
-                "focusedGlobalInput.Reset(?)",
-                "m.getScreenForFocusedInput(?)",
-                "activeScreen.GetInputBubble(?)",
-                "activeScreen.GetInputBubble().SetValue(?)",
-                "activeScreen.GetInputBubble(?)",
-                "activeScreen.HandleSubmit(?)",
-                "m.syncInputAreaWithScreen(?)",
-                "focusedGlobalInput.Reset(?)",
-                "m.getFocusedGlobalInputArea(?)",
-                "focusedGlobalInput.Focused(?)",
-                "m.getActiveLeftScreen(?)",
-                "m.getActiveRightScreen(?)",
-                "currentGlobalInput.Update(?)",
-                "activeScreenForInput.GetInputBubble(?)",
-                "activeScreenForInput.GetInputBubble().SetValue(?)",
-                "activeScreenForInput.GetInputBubble(?)",
-                "currentGlobalInput.Value(?)",
-                "m.getActiveLeftScreen(?)",
-                "m.getActiveRightScreen(?)",
-                "targetScreen.Update(?)",
-                "m.getActiveLeftScreen(?)",
-                "m.syncInputAreaWithScreen(?)",
-                "m.getActiveRightScreen(?)",
-                "m.syncInputAreaWithScreen(?)",
-                "github.com/charmbracelet/bubbletea.Batch"
-              ]
-            }
-          ]
-        },
-        "pkg/neurogo/update_helpers.go": {
-          "methods": [
-            {
-              "Receiver": "*model",
-              "Name": "cycleFocus",
-              "calls": [
-                "m.getActiveLeftScreen(?)",
-                "m.getActiveRightScreen(?)",
-                "activeLeftS.Blur(?)",
-                "m.leftInputArea.Blur(?)",
-                "activeRightS.Blur(?)",
-                "m.rightInputArea.Blur(?)",
-                "activeLeftS.Blur(?)",
-                "activeRightS.Blur(?)",
-                "m.updateFocusStates(?)",
-                "github.com/charmbracelet/bubbletea.Batch"
+                "tw.textView.Write(?)",
+                "tw.app.QueueUpdateDraw(?)"
               ]
             },
             {
-              "Receiver": "*model",
-              "Name": "updateFocusStates",
+              "Receiver": "*tviewAppPointers",
+              "Name": "updateStatusText",
               "calls": [
-                "m.leftInputArea.Blur(?)",
-                "m.rightInputArea.Blur(?)",
-                "m.getActiveLeftScreen(?)",
-                "m.getActiveRightScreen(?)",
-                "m.syncInputAreaWithScreen(?)",
-                "activeLeftScreen.Focus(?)",
-                "m.leftInputArea.Focus(?)",
-                "activeLeftScreen.Name(?)",
-                "m.syncInputAreaWithScreen(?)",
-                "m.leftInputArea.Focus(?)",
-                "m.syncInputAreaWithScreen(?)",
-                "activeRightScreen.Focus(?)",
-                "m.rightInputArea.Focus(?)",
-                "activeRightScreen.Name(?)",
-                "m.syncInputAreaWithScreen(?)",
-                "m.rightInputArea.Focus(?)",
-                "activeLeftScreen.Focus(?)",
-                "activeLeftScreen.Name(?)",
-                "activeRightScreen.Focus(?)",
-                "activeRightScreen.Name(?)",
-                "github.com/charmbracelet/bubbletea.Batch"
+                "tvP.statusBar.SetText(?)"
               ]
             },
             {
-              "Receiver": "*model",
-              "Name": "getFocusedGlobalInputArea"
-            },
-            {
-              "Receiver": "*model",
-              "Name": "getScreenForFocusedInput",
+              "Receiver": "*tviewAppPointers",
+              "Name": "showHelp",
               "calls": [
-                "m.getActiveLeftScreen(?)",
-                "m.getActiveRightScreen(?)"
+                "getPrimitiveName",
+                "tvP.tviewApp.GetFocus(?)",
+                "tvP.localOutputView.ScrollToBeginning(?)",
+                "tvP.localOutputView.Clear(?)",
+                "tvP.localOutputView.SetTitle(?)",
+                "tvP.localOutputView.Write(?)",
+                "[]byte(?)",
+                "tvP.statusBar.SetText(?)",
+                "tvP.localOutputView.SetTitle(?)",
+                "tvP.statusBar.SetText(?)"
               ]
-            },
-            {
-              "Receiver": "*model",
-              "Name": "syncInputAreaWithScreen",
-              "calls": [
-                "globalInput.SetValue(?)",
-                "screen.GetInputBubble(?)",
-                "globalInput.SetValue(?)",
-                "screenBubble.Value(?)",
-                "globalInput.SetValue(?)",
-                "screen.Name(?)"
-              ]
-            },
-            {
-              "Receiver": "*model",
-              "Name": "handleSystemCommand",
-              "calls": [
-                "m.executeChatCommand(?)",
-                "m.executeRunCommand(?)",
-                "m.executeSyncCommand(?)",
-                "github.com/charmbracelet/bubbletea.Batch"
-              ]
-            },
-            {
-              "Receiver": "*model",
-              "Name": "executeChatCommand",
-              "calls": [
-                "base36ToIndex",
-                "indexToBase36",
-                "m.app.GetAIWorkerManager(?)",
-                "aiWM.SpawnWorkerInstance(?)",
-                "m.help.View(?)",
-                "m.leftInputArea.BlurredStyle.Base.GetVerticalFrameSize(?)",
-                "screenPaneContainerStyle.GetVerticalFrameSize(?)",
-                "screenPaneContainerStyle.GetHorizontalFrameSize(?)",
-                "NewChatScreen",
-                "chatScreen.Init(?)",
-                "m.updateFocusStates(?)",
-                "github.com/charmbracelet/bubbletea.Batch"
-              ]
-            },
-            {
-              "Receiver": "*model",
-              "Name": "executeRunCommand",
-              "calls": [
-                "github.com/charmbracelet/bubbletea.Batch",
-                "m.modelExecuteSpecificScriptCmd(?)"
-              ]
-            },
-            {
-              "Receiver": "*model",
-              "Name": "executeSyncCommand",
-              "calls": [
-                "github.com/charmbracelet/bubbletea.Batch",
-                "m.modelRunSyncCmd(?)"
-              ]
-            },
-            {
-              "Receiver": "*model",
-              "Name": "cycleScreen",
-              "calls": [
-                "currentScreen.Blur(?)",
-                "newScreen.Init(?)",
-                "m.syncInputAreaWithScreen(?)",
-                "newScreen.Focus(?)",
-                "globalInputArea.Focus(?)",
-                "newScreen.Name(?)",
-                "github.com/charmbracelet/bubbletea.Batch"
-              ]
-            },
-            {
-              "Receiver": "*model",
-              "Name": "modelExecuteSpecificScriptCmd",
-              "calls": [
-                "m.app.GetLogger(?)",
-                "logger.Debug(?)",
-                "m.app.Context(?)",
-                "m.app.Context(?)",
-                "m.app.ExecuteScriptFile(?)"
-              ]
-            },
-            {
-              "Receiver": "*model",
-              "Name": "modelRunSyncCmd",
-              "calls": [
-                "m.app.GetLogger(?)",
-                "logger.Info(?)",
-                "m.app.GetInterpreter(?)",
-                "logger.Warn(?)"
-              ]
-            },
-            {
-              "Receiver": "*model",
-              "Name": "initiateAIChatCall",
-              "calls": [
-                "m.app.GetLogger(?)",
-                "m.app.GetLogger(?)",
-                "logger.Info(?)",
-                "m.app.GetAIWorkerManager(?)",
-                "logger.Error(?)",
-                "aiWM.ExecuteStatelessTask(?)",
-                "m.app.Context(?)",
-                "logger.Error(?)",
-                "logger.Info(?)"
-              ]
-            }
-          ]
-        },
-        "pkg/neurogo/view.go": {
-          "methods": [
-            {
-              "Receiver": "model",
-              "Name": "View",
-              "calls": [
-                "github.com/charmbracelet/lipgloss.Place",
-                "github.com/charmbracelet/lipgloss.Place",
-                "m.help.View(?)",
-                "github.com/charmbracelet/lipgloss.Height",
-                "m.leftInputArea.View(?)",
-                "github.com/charmbracelet/lipgloss.Height",
-                "m.rightInputArea.View(?)",
-                "m.leftInputArea.BlurredStyle.Base.GetVerticalFrameSize(?)",
-                "screenPaneContainerStyle.GetHorizontalFrameSize(?)",
-                "screenPaneContainerStyle.GetHorizontalFrameSize(?)",
-                "m.getActiveLeftScreen(?)",
-                "activeLeftScreen.View(?)",
-                "activeLeftScreen.Name(?)",
-                "github.com/charmbracelet/lipgloss.Place",
-                "m.getActiveRightScreen(?)",
-                "activeRightScreen.View(?)",
-                "activeRightScreen.Name(?)",
-                "github.com/charmbracelet/lipgloss.Place",
-                "paneTitleStyle.Render(?)",
-                "paneTitleStyle.Render(?)",
-                "screenPaneContainerStyle.Width(leftPaneContainerWidth).Height(availableScreenHeight + lipgloss.Height(leftPaneTitleStr)).Render(?)",
-                "screenPaneContainerStyle.Width(leftPaneContainerWidth).Height(?)",
-                "screenPaneContainerStyle.Width(?)",
-                "github.com/charmbracelet/lipgloss.Height",
-                "github.com/charmbracelet/lipgloss.JoinVertical",
-                "screenPaneContainerStyle.Width(rightPaneContainerWidth).Height(availableScreenHeight + lipgloss.Height(rightPaneTitleStr)).Render(?)",
-                "screenPaneContainerStyle.Width(rightPaneContainerWidth).Height(?)",
-                "screenPaneContainerStyle.Width(?)",
-                "github.com/charmbracelet/lipgloss.Height",
-                "github.com/charmbracelet/lipgloss.JoinVertical",
-                "m.leftInputArea.View(?)",
-                "m.rightInputArea.View(?)",
-                "github.com/charmbracelet/lipgloss.JoinVertical",
-                "github.com/charmbracelet/lipgloss.JoinVertical",
-                "github.com/charmbracelet/lipgloss.JoinHorizontal",
-                "m.renderStatusBar(?)",
-                "m.help.View(?)",
-                "github.com/charmbracelet/lipgloss.JoinVertical"
-              ]
-            },
-            {
-              "Receiver": "*model",
-              "Name": "renderStatusBar",
-              "calls": [
-                "m.spinner.View(?)",
-                "errorStyle.Render(?)",
-                "m.lastError.Error(?)",
-                "patchStatusStyle.Render(?)",
-                "m.focusTarget.String(?)",
-                "github.com/charmbracelet/lipgloss.Width",
-                "statusBarSyle.Width(width).Render(?)",
-                "statusBarSyle.Width(?)"
-              ]
-            },
-            {
-              "Receiver": "FocusTarget",
-              "Name": "String"
             }
           ]
         }

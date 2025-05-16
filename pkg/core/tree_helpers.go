@@ -107,6 +107,7 @@ func removeChildFromParent(parent *GenericTreeNode, childID string) bool {
 		for key, valID := range parent.Attributes {
 			if valID == childID {
 				delete(parent.Attributes, key)
+				fmt.Printf("[DEBUG removeChildFromParent] Deleted key '%s'. Parent '%s' attributes now: %v\n", key, parent.ID, parent.Attributes)
 				return true // Found and removed from Attributes
 			}
 		}

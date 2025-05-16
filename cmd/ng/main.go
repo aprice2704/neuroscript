@@ -176,7 +176,7 @@ func main() {
 
 	if *tuiMode {
 		logger.Debug("TUI mode requested. Starting TUI...")
-		if err := neurogo.Start(app, app.Config.StartupScript); err != nil {
+		if err := neurogo.StartTviewTUI(app, app.Config.StartupScript); err != nil {
 			logger.Error("TUI Error", "error", err)
 			fmt.Fprintf(os.Stderr, "TUI Error: %v\n", err)
 			os.Exit(1)
