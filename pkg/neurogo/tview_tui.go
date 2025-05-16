@@ -27,6 +27,55 @@ type tviewAppPointers struct {
 
 	app                 *App
 	initialActivityText string
+
+	leftScreens  []Screener
+	rightScreens []Screener
+	leftShowing  int
+	rightShowing int
+	helpScreen   int
+}
+
+func (t *tviewAppPointers) addScreen(s Screener, onLeft bool) {
+	if onLeft {
+		t.leftScreens = append(t.leftScreens, s)
+		return
+	}
+	t.rightScreens = append(t.rightScreens, s)
+}
+
+func (t *tviewAppPointers) nextScreen(d int, onLeft bool) {
+	n := len(t.rightScreens)
+	cur := t.rightShowing
+	if onLeft {
+		n = len(t.leftScreens)
+		cur = t.leftShowing
+	}
+	if n < 2 {
+		return
+	}
+	nxt := posmod(cur+d, n)
+	t.setScreen(nxt, onLeft)
+}
+
+func (t *tviewAppPointers) setScreen(s int, onLeft bool) {
+	if onLeft {
+		t.leftShowing = s
+		t.localOutputView.SetTitle(t.leftScreens[s].Title())
+		t.localOutputView.SetText(t.leftScreens[s].Contents())
+	} else {
+		t.rightShowing = s
+		t.aiOutputView.SetTitle(t.rightScreens[s].Title())
+		t.aiOutputView.SetText(t.rightScreens[s].Contents())
+	}
+}
+
+// Jump around a cycle of numbers, always >=0
+func posmod(a, b int) (c int) {
+	c = a % b
+	if c < 0 {
+		c += b
+	}
+	return c
 }
 
 var nprims, Aidx, Bidx, Cidx, Didx int
@@ -97,18 +146,18 @@ func StartTviewTUI(mainApp *App, initialScriptPath string) error {
 	logDebug("tview.Application and tviewAppPointers created.")
 
 	tvP.localOutputView = tview.NewTextView().SetDynamicColors(true).SetScrollable(true).SetRegions(true)
-	tvP.localOutputView.SetChangedFunc(func() { tvP.tviewApp.Draw() }) // Explicit Draw on change
-	tvP.localOutputView.SetBorder(true).SetTitle("A: Local Output")
+	//tvP.localOutputView.SetChangedFunc(func() { tvP.tviewApp.Draw() }) // Explicit Draw on change
+	tvP.localOutputView.SetBorder(false).SetTitle("A: Local Output")
 
 	tvP.aiOutputView = tview.NewTextView().SetDynamicColors(true).SetScrollable(true).SetRegions(true)
-	tvP.aiOutputView.SetChangedFunc(func() { tvP.tviewApp.Draw() }) // Explicit Draw on change
-	tvP.aiOutputView.SetBorder(true).SetTitle("B: AI Output")
+	//tvP.aiOutputView.SetChangedFunc(func() { tvP.tviewApp.Draw() }) // Explicit Draw on change
+	tvP.aiOutputView.SetBorder(false).SetTitle("B: AI Output")
 
 	tvP.localInputArea = tview.NewTextArea().SetWrap(false).SetWordWrap(false)
-	tvP.localInputArea.SetBorder(true).SetTitle("C: Local Input")
+	tvP.localInputArea.SetBorder(false).SetTitle("C: Local Input")
 
 	tvP.aiInputArea = tview.NewTextArea().SetWrap(true).SetWordWrap(true)
-	tvP.aiInputArea.SetBorder(true).SetTitle("D: AI Input")
+	tvP.aiInputArea.SetBorder(false).SetTitle("D: AI Input")
 
 	tvP.initialActivityText = "NeuroScript TUI Ready"
 	if initialScriptPath != "" && mainApp.Config.StartupScript == initialScriptPath {
@@ -128,7 +177,9 @@ func StartTviewTUI(mainApp *App, initialScriptPath string) error {
 	tvP.currentFocusIndex = 0
 	logDebug("Focusable primitives defined.")
 
-	tvP.updateStatusText(tvP.initialActivityText, getPrimitiveName(tvP.focusablePrimitives[tvP.currentFocusIndex], tvP))
+	tvP.updateStatusText()
+
+	//tvP.initialActivityText, getPrimitiveName(tvP.focusablePrimitives[tvP.currentFocusIndex], tvP))
 	logDebug("Initial status bar text set directly.")
 
 	tvP.grid = tview.NewGrid().
@@ -149,49 +200,75 @@ func StartTviewTUI(mainApp *App, initialScriptPath string) error {
 		logDebug("Interpreter Stdout redirected.")
 	}
 
+	hs := &StaticScreen{title: "Help", contents: helpText, name: "Help"}
+	tvP.addScreen(hs, true)
+
+	blnk := &StaticScreen{title: "Blank", contents: " ", name: "Blank"}
+	tvP.addScreen(blnk, true)
+	tvP.addScreen(hs, false)
+
+	if len(tvP.leftScreens) > 0 {
+		tvP.setScreen(0, true) // Display the first screen on the left
+	}
+	if len(tvP.rightScreens) > 0 {
+		tvP.setScreen(0, false) // Display the first screen on the right
+	}
+	tvP.updateStatusText() // Update status bar with correct initial counts
+
+	focusInput := tcell.Style{}.Background(tcell.ColorDarkBlue).Foreground(tcell.ColorYellow)
+	blurInput := tcell.Style{}.Background(tcell.ColorBlack).Foreground(tcell.ColorWhite)
+
 	dFocus := func(df int) {
 		oldFocus := tvP.focusablePrimitives[tvP.currentFocusIndex]
-		tvP.currentFocusIndex = (tvP.currentFocusIndex + df) % nprims
-		if tvP.currentFocusIndex < 0 {
-			tvP.currentFocusIndex += nprims
-		}
+		tvP.currentFocusIndex = posmod(tvP.currentFocusIndex+df, nprims)
 		nextFocus := tvP.focusablePrimitives[tvP.currentFocusIndex]
 		logDebug("Tab: Queuing SetFocus", "targetPrim", getPrimitiveName(nextFocus, tvP))
-		tvP.updateStatusText(tvP.initialActivityText, getPrimitiveName(nextFocus, tvP))
+		tvP.updateStatusText()
 		switch v := nextFocus.(type) {
 		case *tview.TextView:
-			v.SetBorder(true)
-			v.SetBorderColor(tcell.ColorRed)
+			v.SetBackgroundColor(tcell.ColorDarkBlue)
 		case *tview.TextArea:
-			v.SetBorder(true)
-			v.SetBorderColor(tcell.ColorRed)
+			v.SetBackgroundColor(tcell.ColorDarkBlue)
+			v.SetTextStyle(focusInput)
 		}
 		switch v := oldFocus.(type) {
 		case *tview.TextView:
-			v.SetBorder(false)
+			v.SetBackgroundColor(tcell.ColorBlack)
 		case *tview.TextArea:
-			v.SetBorder(false)
+			v.SetBackgroundColor(tcell.ColorBlack)
+			v.SetTextStyle(blurInput)
 		}
 		tvP.tviewApp.SetFocus(nextFocus)
 	}
 
 	keyHandle := func(event *tcell.EventKey) *tcell.EventKey {
+		retEv := event
 		logDebug("InputCapture", "keyName", event.Name(), "key", event.Key(), "rune", event.Rune())
 		switch event.Key() {
 		case tcell.KeyCtrlC:
 			logInfo("Ctrl-C pressed, stopping application.")
 			tvP.tviewApp.Stop()
-			return nil
+			retEv = nil
 		case tcell.KeyTab:
 			dFocus(1)
-			fmt.Printf("> ")
-			return nil
+			retEv = nil
 		case tcell.KeyBacktab:
 			dFocus(-1)
-			fmt.Printf("< ")
-			return nil
+			retEv = nil
+		case tcell.KeyRune:
+			if event.Rune() == '?' {
+				tvP.setScreen(tvP.helpScreen, true)
+				retEv = nil
+			}
+		case tcell.KeyCtrlB:
+			tvP.nextScreen(1, true)
+			retEv = nil
+		case tcell.KeyCtrlN:
+			tvP.nextScreen(1, false)
+			retEv = nil
 		}
-		return event
+		tvP.updateStatusText()
+		return retEv
 	}
 
 	tvP.tviewApp.SetInputCapture(keyHandle)
@@ -228,12 +305,21 @@ func (tw *tviewWriter) Write(p []byte) (n int, err error) {
 	return
 }
 
-func (tvP *tviewAppPointers) updateStatusText(activity string, focusedPrimitiveName string) {
-	statusText := activity
-	if focusedPrimitiveName != "" {
-		statusText = fmt.Sprintf("%s | Focus: %s", activity, focusedPrimitiveName)
+func (tvP *tviewAppPointers) updateStatusText() {
+
+	screens := "no screens yet"
+	if len(tvP.leftScreens) > 0 && len(tvP.leftScreens) > 0 {
+		screens = fmt.Sprintf("%s / %s | %s / %s",
+			tvP.leftScreens[tvP.leftShowing].Name(), "Local input",
+			tvP.rightScreens[tvP.rightShowing].Name(), "AI input",
+		)
 	}
-	statusText = fmt.Sprintf("%s | Tab: Next | Shift-Tab: Prev | Ctrl-C: Quit", statusText)
+
+	statusText := fmt.Sprintf("NS TUI: %d/4 %d/%d %d/%d %s",
+		tvP.currentFocusIndex,
+		tvP.leftShowing, len(tvP.leftScreens),
+		tvP.rightShowing, len(tvP.rightScreens),
+		screens)
 
 	if tvP.statusBar != nil {
 		tvP.statusBar.SetText(statusText)
