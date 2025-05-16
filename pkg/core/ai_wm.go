@@ -321,6 +321,10 @@ func (m *AIWorkerManager) prepareRetiredInstanceForAppending(existingJsonContent
 	return string(newData), nil
 }
 
+func (m *AIWorkerManager) GetSandboxDir() string {
+	return m.sandboxDir
+}
+
 // smartTrim is a general utility.
 func smartTrim(s string, length int) string {
 	if len(s) <= length {
