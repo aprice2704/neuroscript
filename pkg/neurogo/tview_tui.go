@@ -1,5 +1,5 @@
 // NeuroScript Version: 0.4.0
-// File version: 0.1.14
+// File version: 0.2.0
 // filename: pkg/neurogo/tview_tui.go
 // nlines: 250 // Approximate
 // risk_rating: MEDIUM // Changed focus update mechanism
