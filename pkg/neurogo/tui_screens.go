@@ -1,121 +1,154 @@
 // NeuroScript Version: 0.4.0
-// File version: 0.4.0
+// File version: 0.4.2 // Added DynamicPrimitiveOutputScreen
 // filename: pkg/neurogo/tui_screens.go
-// nlines: 80 // Approximate
+// nlines: 230 // Approximate
 // risk_rating: LOW
-// Short description: Defines Screener interface and implementations for TUI.
+// Short description: Defines Screener interfaces and implementations for TUI.
 // Changes:
-// - DynamicOutputScreen now simply buffers output. Refresh callback removed for this phase.
-// - Focus on initial display of buffered content. Live updates deferred.
-// - Updated Screener interface documentation.
+// - Added DynamicPrimitiveOutputScreen implementing PrimitiveScreener and io.Writer.
 
 package neurogo
 
 import (
 	"fmt"
+	"io"
 	"strings"
 	"sync"
+
+	"github.com/gdamore/tcell/v2"
+	"github.com/rivo/tview"
 )
 
-// Screener defines the interface for all displayable screens within TUI panes.
-// Its methods provide the necessary information for the TUI to display and manage the screen.
+// --- Existing Screener Interface (from your v0.4.0) ---
 type Screener interface {
-	Name() string     // Returns a short, unique, human-readable name or identifier for the screen. Used in status bars, logs.
-	Title() string    // Returns the title to be displayed, typically at the top of the pane where the screen is rendered.
-	Contents() string // Returns the main text content to be displayed. For dynamic screens, this reflects their current state.
+	Name() string
+	Title() string
+	Contents() string
 }
 
-// --- StaticScreen ---
-// StaticScreen is a Screener implementation for screens with fixed, predefined content.
+// --- Existing StaticScreen (from your v0.4.0) ---
 type StaticScreen struct {
 	name     string
 	title    string
 	contents string
 }
 
-// NewStaticScreen creates a new StaticScreen.
 func NewStaticScreen(name, title, contents string) *StaticScreen {
-	return &StaticScreen{
+	return &StaticScreen{name: name, title: title, contents: contents}
+}
+func (ss *StaticScreen) Name() string     { return ss.name }
+func (ss *StaticScreen) Title() string    { return ss.title }
+func (ss *StaticScreen) Contents() string { return ss.contents }
+
+var _ Screener = (*StaticScreen)(nil)
+var _ Screener = (*DynamicOutputScreen)(nil)
+var _ io.Writer = (*DynamicOutputScreen)(nil)
+
+// --- NEW PrimitiveScreener Interface ---
+type PrimitiveScreener interface {
+	Name() string
+	Title() string
+	Primitive() tview.Primitive
+	OnFocus(appFocusController func(p tview.Primitive))
+	OnBlur()
+	InputHandler() func(event *tcell.EventKey, setFocusFunc func(p tview.Primitive)) *tcell.EventKey
+	IsFocusable() bool
+}
+
+// --- StaticPrimitiveScreen (Implements PrimitiveScreener) ---
+type StaticPrimitiveScreen struct {
+	name     string
+	title    string
+	contents string
+	textView *tview.TextView
+}
+
+func NewStaticPrimitiveScreen(name, title, contents string) *StaticPrimitiveScreen {
+	tv := tview.NewTextView().
+		SetText(contents).
+		SetWordWrap(true).
+		SetScrollable(true).
+		SetDynamicColors(true)
+	return &StaticPrimitiveScreen{
 		name:     name,
 		title:    title,
 		contents: contents,
+		textView: tv,
 	}
 }
-
-// Name returns the name of the StaticScreen.
-func (ss *StaticScreen) Name() string {
-	return ss.name
+func (sps *StaticPrimitiveScreen) Name() string               { return sps.name }
+func (sps *StaticPrimitiveScreen) Title() string              { return sps.title }
+func (sps *StaticPrimitiveScreen) Primitive() tview.Primitive { return sps.textView }
+func (sps *StaticPrimitiveScreen) OnFocus(setFocus func(p tview.Primitive)) { /* setFocus(sps.textView) can be called here if needed */
 }
-
-// Title returns the title of the StaticScreen.
-func (ss *StaticScreen) Title() string {
-	return ss.title
+func (sps *StaticPrimitiveScreen) OnBlur() {}
+func (sps *StaticPrimitiveScreen) InputHandler() func(event *tcell.EventKey, setFocus func(p tview.Primitive)) *tcell.EventKey {
+	return nil
 }
+func (sps *StaticPrimitiveScreen) IsFocusable() bool { return true }
+func (sps *StaticPrimitiveScreen) Contents() string  { return sps.contents }
 
-// Contents returns the pre-defined content of the StaticScreen.
-func (ss *StaticScreen) Contents() string {
-	return ss.contents
-}
+var _ PrimitiveScreener = (*StaticPrimitiveScreen)(nil)
 
-// --- DynamicOutputScreen ---
-// DynamicOutputScreen is a Screener implementation that buffers content written to it
-// (as an io.Writer). Its Contents() method returns the current buffer.
-// For this version, it does not actively push updates to the TUI; the TUI must
-// call Contents() to get the latest state (e.g., during setScreen).
+// --- Existing DynamicOutputScreen (from your v0.4.0) ---
 type DynamicOutputScreen struct {
-	mu      sync.Mutex
-	name    string
-	title   string
-	builder strings.Builder
+	mu       sync.Mutex
+	name     string
+	title    string
+	builder  strings.Builder
+	textView *tview.TextView
 }
 
-// NewDynamicOutputScreen creates a new DynamicOutputScreen.
 func NewDynamicOutputScreen(name, title string) *DynamicOutputScreen {
-	return &DynamicOutputScreen{
-		name:  name,
-		title: title,
-		// builder is initialized as empty strings.Builder
+	return &DynamicOutputScreen{name: name, title: title, textView: tview.NewTextView()}
+}
+
+func (s *DynamicOutputScreen) FlushBufferToTextView() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.textView != nil {
+		s.textView.SetText(s.builder.String())
+		s.textView.ScrollToBeginning() // Or ScrollToEnd
 	}
 }
 
-// Name returns the name of the DynamicOutputScreen.
-func (s *DynamicOutputScreen) Name() string {
-	// No lock needed as name is immutable after creation
-	return s.name
+func (s *DynamicOutputScreen) SetName(n string) *DynamicOutputScreen {
+	s.name = n
+	return s
 }
-
-// Title returns the title of the DynamicOutputScreen.
-func (s *DynamicOutputScreen) Title() string {
-	// No lock needed as title is immutable after creation
-	return s.title
+func (s *DynamicOutputScreen) SetTitle(t string) *DynamicOutputScreen {
+	s.name = t
+	return s
 }
-
-// Contents returns the current buffered content as a string.
+func (s *DynamicOutputScreen) Name() string  { return s.name }
+func (s *DynamicOutputScreen) Title() string { return s.title }
 func (s *DynamicOutputScreen) Contents() string {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.builder.String()
 }
-
-// Write implements io.Writer. It appends data to the internal buffer.
-// For this simplified version, it does NOT trigger any TUI refresh callback.
 func (s *DynamicOutputScreen) Write(p []byte) (n int, err error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	n, err = s.builder.Write(p)
 	return n, err
 }
-
-// Clear resets the internal buffer.
-// Note: This clear will only be visible in the TUI if Contents() is called again
-// (e.g., by setScreen or a future refresh mechanism).
 func (s *DynamicOutputScreen) Clear() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.builder.Reset()
 }
 
-// helpText is used by the default Help screen.
+func (s *DynamicOutputScreen) Primitive() tview.Primitive               { return s.textView }
+func (s *DynamicOutputScreen) OnFocus(setFocus func(p tview.Primitive)) {}
+func (s *DynamicOutputScreen) OnBlur()                                  {}
+func (s *DynamicOutputScreen) InputHandler() func(
+	event *tcell.EventKey, setFocus func(p tview.Primitive)) *tcell.EventKey {
+	return nil
+}
+func (s *DynamicOutputScreen) IsFocusable() bool { return true }
+
+// helpText (from your v0.4.0 file)
 var helpText = fmt.Sprintf(
 	`[green]Navigation:[white]
 

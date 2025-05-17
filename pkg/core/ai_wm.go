@@ -11,6 +11,7 @@ package core
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os" // Added for os.Getenv
 	"path/filepath"
@@ -323,6 +324,82 @@ func (m *AIWorkerManager) prepareRetiredInstanceForAppending(existingJsonContent
 
 func (m *AIWorkerManager) GetSandboxDir() string {
 	return m.sandboxDir
+}
+
+// ListWorkerDefinitionsForDisplay retrieves all AIWorkerDefinitions and embellishes them
+// with transient status information useful for display, such as chat capability and API key status.
+func (m *AIWorkerManager) ListWorkerDefinitionsForDisplay() ([]*AIWorkerDefinitionDisplayInfo, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	if m.definitions == nil {
+		m.logger.Warn("ListWorkerDefinitionsForDisplay called but definitions map is nil.")
+		return []*AIWorkerDefinitionDisplayInfo{}, nil // Return empty list for TUI
+	}
+
+	displayInfos := make([]*AIWorkerDefinitionDisplayInfo, 0, len(m.definitions))
+
+	for _, def := range m.definitions {
+		if def == nil {
+			m.logger.Warn("Encountered a nil definition in the definitions map. Skipping.")
+			continue
+		}
+
+		// Determine chat capability
+		isChatCapable := false
+		if len(def.InteractionModels) == 0 { // Default to conversational as per design
+			isChatCapable = true
+		} else {
+			for _, model := range def.InteractionModels {
+				// Ensure InteractionModelConversational and InteractionModelBoth are correctly defined
+				// in ai_worker_types.go (e.g., "conversational", "both")
+				if model == InteractionModelConversational || model == InteractionModelBoth {
+					isChatCapable = true
+					break
+				}
+			}
+		}
+
+		// Determine API Key Status
+		var apiKeyStatus APIKeyStatus
+		if def.Auth.Method == "" { // No API auth method specified at all
+			apiKeyStatus = APIKeyStatusNotConfigured
+		} else if def.Auth.Method == APIKeyMethodNone {
+			// Successfully "resolved" as not needing a key, so it's usable for status purposes.
+			apiKeyStatus = APIKeyStatusFound
+		} else {
+			// Attempt to resolve the key to check its plausibility.
+			// We only care about the error status for this display logic.
+			_, err := m.resolveAPIKey(def.Auth)
+			if err != nil {
+				if errors.Is(err, ErrAuthDetailsMissing) {
+					apiKeyStatus = APIKeyStatusNotConfigured // Essential detail for the chosen method is missing.
+				} else if errors.Is(err, ErrAPIKeyNotFound) {
+					apiKeyStatus = APIKeyStatusNotFound // Configured, but key not present where expected.
+				} else if errors.Is(err, ErrFeatureNotImplemented) {
+					m.logger.Warnf("API key resolution for method '%s' (def: %s) is not implemented.", def.Auth.Method, def.Name)
+					apiKeyStatus = APIKeyStatusError // Method itself is known but not usable yet.
+				} else if errors.Is(err, ErrInvalidInput) { // This implies def.Auth.Method was an unknown value
+					m.logger.Warnf("Invalid API key source method '%s' for definition %s (ID: %s).", def.Auth.Method, def.Name, def.DefinitionID)
+					apiKeyStatus = APIKeyStatusError
+				} else {
+					m.logger.Errorf("Unexpected error resolving API key for definition %s (ID: %s): %v", def.Name, def.DefinitionID, err)
+					apiKeyStatus = APIKeyStatusError
+				}
+			} else {
+				// If err is nil, and method was not APIKeyMethodNone (handled above),
+				// then resolveAPIKey succeeded in finding/validating the key.
+				apiKeyStatus = APIKeyStatusFound
+			}
+		}
+
+		displayInfos = append(displayInfos, &AIWorkerDefinitionDisplayInfo{
+			Definition:    def,
+			IsChatCapable: isChatCapable,
+			APIKeyStatus:  apiKeyStatus,
+		})
+	}
+	return displayInfos, nil
 }
 
 // smartTrim is a general utility.

@@ -90,6 +90,7 @@ var (
 	ErrValidationArgValue           = errors.New("invalid argument value")
 	ErrMissingArgument              = errors.New("required argument missing") // Consider consolidating with ErrValidationRequiredArgMissing
 	ErrInvalidArgument              = errors.New("invalid argument")
+	ErrInvalidInput                 = errors.New("invalid input")
 	ErrNullByteInArgument           = errors.New("argument contains null byte")
 	ErrIncorrectArgCount            = errors.New("incorrect function argument count")           // Consider consolidating with ErrValidationArgCount
 	ErrValidationRequired           = errors.New("validation error: missing required argument") // Consider consolidating with ErrValidationRequiredArgMissing
@@ -208,6 +209,11 @@ var (
 	ErrLLMNotConfigured     = errors.New("LLM client not configured in interpreter")
 	ErrDivisionByZero       = errors.New("division by zero")                  // For ErrorCodeDivisionByZero
 	ErrMustConditionFailed  = errors.New("must condition evaluated to false") // For ErrorCodeMustFailed
+
+	// AI WM Errors
+	ErrAuthDetailsMissing    = errors.New("authentication details are missing")
+	ErrAPIKeyNotFound        = errors.New("API key not found though configuration implies one should exist")
+	ErrFeatureNotImplemented = errors.New("feature not implemented")
 )
 
 // --- Control Flow Sentinel Errors ---

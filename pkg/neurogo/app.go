@@ -78,6 +78,12 @@ func (a *App) SetAIWorkerManager(wm *core.AIWorkerManager) {
 	}
 }
 
+// AIWorkerManager returns the application's AIWorkerManager instance.
+// It provides read-only access from other parts of the neurogo package.
+func (a *App) AIWorkerManager() *core.AIWorkerManager {
+	return a.interpreter.AIWorkerManager()
+}
+
 // GetInterpreter safely retrieves the interpreter.
 func (a *App) GetInterpreter() *core.Interpreter {
 	a.mu.RLock()
@@ -280,16 +286,16 @@ func (a *App) HandleSystemCommand(command string) {
 	//       (e.g., //chat <num>, //run <script>, //sync)
 
 	// For now, just EMIT it back to local output (Pane A) for visual feedback
-	if a.interpreter != nil && a.interpreter.Stdout() != nil {
-		// Ensure the write is thread-safe if called from a different goroutine
-		// The tviewWriter already handles QueueUpdateDraw.
-		fmt.Fprintf(a.interpreter.Stdout(), "[App echoed System Command]: %s\n", command)
-	} else if a.tui != nil && a.tui.localOutputView != nil && a.tui.tviewApp != nil {
-		// Fallback if interpreter or its stdout is not set up, write directly to TUI Pane A
-		a.tui.tviewApp.QueueUpdateDraw(func() {
-			fmt.Fprintf(a.tui.localOutputView, "[App echoed System Command]: %s\n", command)
-		})
-	}
+	// if a.interpreter != nil && a.interpreter.Stdout() != nil {
+	// 	// Ensure the write is thread-safe if called from a different goroutine
+	// 	// The tviewWriter already handles QueueUpdateDraw.
+	// 	fmt.Fprintf(a.interpreter.Stdout(), "[App echoed System Command]: %s\n", command)
+	// } else if a.tui != nil && a.tui.localOutputView != nil && a.tui.tviewApp != nil {
+	// 	// Fallback if interpreter or its stdout is not set up, write directly to TUI Pane A
+	// 	a.tui.tviewApp.QueueUpdateDraw(func() {
+	// 		fmt.Fprintf(a.tui.localOutputView, "[App echoed System Command]: %s\n", command)
+	// 	})
+	// }
 }
 
 // ExecuteScriptLine executes a single line of NeuroScript from the TUI.
@@ -320,8 +326,8 @@ func (a *App) ExecuteScriptLine(ctx context.Context, line string) {
 		// }
 	} else if a.tui != nil && a.tui.localOutputView != nil && a.tui.tviewApp != nil {
 		// Fallback if interpreter or its stdout is not set up
-		a.tui.tviewApp.QueueUpdateDraw(func() {
-			fmt.Fprintf(a.tui.localOutputView, "[App echoed Script Line]: %s\n", line)
-		})
+		// 	a.tui.tviewApp.QueueUpdateDraw(func() {
+		// 		fmt.Fprintf(a.tui.localOutputView, "[App echoed Script Line]: %s\n", line)
+		// 	})
 	}
 }

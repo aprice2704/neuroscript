@@ -1,5 +1,5 @@
 // NeuroScript Version: 0.4.0
-// File version: 0.3.5
+// File version: 0.3.6
 // Description: Defines types for the AI Worker Management system, including workers, data sources, pools, queues, and work items.
 // filename: pkg/core/ai_worker_types.go
 
@@ -67,6 +67,26 @@ const (
 	InstanceStatusRetiredError      AIWorkerInstanceStatus = "retired_error"
 	InstanceStatusError             AIWorkerInstanceStatus = "error"
 )
+
+// APIKeyStatus indicates the resolution status of an API key for an AIWorkerDefinition.
+type APIKeyStatus string
+
+const (
+	APIKeyStatusUnknown       APIKeyStatus = "Unknown"
+	APIKeyStatusFound         APIKeyStatus = "Found"
+	APIKeyStatusNotFound      APIKeyStatus = "Not Found"
+	APIKeyStatusNotConfigured APIKeyStatus = "Not Configured"
+	APIKeyStatusError         APIKeyStatus = "Error Resolving"
+)
+
+// AIWorkerDefinitionDisplayInfo provides a snapshot of an AIWorkerDefinition
+// along with transient status information useful for display or selection.
+type AIWorkerDefinitionDisplayInfo struct {
+	Definition    *AIWorkerDefinition
+	IsChatCapable bool
+	APIKeyStatus  APIKeyStatus
+	// Add other TUI-relevant transient info here if needed
+}
 
 // APIKeySource specifies where to find the API key.
 type APIKeySource struct {
@@ -148,31 +168,30 @@ type GlobalDataSourceDefinition struct {
 	ModifiedTimestamp       time.Time              `json:"modified_timestamp,omitempty"`         // Set by manager
 }
 
-// --- AIWorkerDefinition (incorporates existing fields and new references) ---
+// AIWorkerDefinition represents the blueprint for an AI worker.
+// (Keep your existing AIWorkerDefinition struct definition here)
+// For example:
 type AIWorkerDefinition struct {
-	DefinitionID                string                      `json:"definition_id"` // System-generated UUID
-	Name                        string                      `json:"name"`          // User-provided, unique, human-readable
+	DefinitionID                string                      `json:"definitionID"`
+	Name                        string                      `json:"name"`
 	Provider                    AIWorkerProvider            `json:"provider"`
-	ModelName                   string                      `json:"model_name"`
+	ModelName                   string                      `json:"modelName"`
 	Auth                        APIKeySource                `json:"auth"`
-	InteractionModels           []InteractionModelType      `json:"interaction_models,omitempty"` // Defaults to ["conversational"] if empty
-	Capabilities                []string                    `json:"capabilities,omitempty"`       // e.g., "code_generation", "text_analysis", "panel_design"
-	BaseConfig                  map[string]interface{}      `json:"base_config,omitempty"`        // Passed to LLM (e.g., temperature, max_tokens)
-	CostMetrics                 map[string]float64          `json:"cost_metrics,omitempty"`       // e.g., {"input_tokens_usd_per_1k": 0.001, "output_tokens_usd_per_1k": 0.002}
-	RateLimits                  RateLimitPolicy             `json:"rate_limits,omitempty"`
-	Status                      AIWorkerDefinitionStatus    `json:"status,omitempty"`                        // Default: "active"
-	DefaultFileContexts         []string                    `json:"default_file_contexts,omitempty"`         // List of URIs (e.g., "datasource://project_assets/file.txt", "fm:/permanent/context.md")
-	AggregatePerformanceSummary *AIWorkerPerformanceSummary `json:"aggregate_performance_summary,omitempty"` // Managed by system
-
-	// New fields for v0.5
-	DataSourceRefs          []string `json:"data_source_refs,omitempty"`           // Names of GlobalDataSourceDefinitions this worker can access
-	ToolAllowlist           []string `json:"tool_allowlist,omitempty"`             // Qualified tool names (e.g., "tool.ReadFile")
-	ToolDenylist            []string `json:"tool_denylist,omitempty"`              // Qualified tool names
-	DefaultSupervisoryAIRef string   `json:"default_supervisory_ai_ref,omitempty"` // Name of an AIWorkerDefinition for supervision (Future)
-
-	Metadata          map[string]interface{} `json:"metadata,omitempty"`
-	CreatedTimestamp  time.Time              `json:"created_timestamp,omitempty"`  // Set by manager
-	ModifiedTimestamp time.Time              `json:"modified_timestamp,omitempty"` // Set by manager
+	InteractionModels           []InteractionModelType      `json:"interactionModels,omitempty"`
+	Capabilities                []string                    `json:"capabilities,omitempty"`
+	BaseConfig                  map[string]interface{}      `json:"baseConfig,omitempty"`
+	CostMetrics                 map[string]float64          `json:"costMetrics,omitempty"`
+	RateLimits                  RateLimitPolicy             `json:"rateLimits,omitempty"`
+	Status                      AIWorkerDefinitionStatus    `json:"status,omitempty"`
+	DefaultFileContexts         []string                    `json:"defaultFileContexts,omitempty"`
+	DataSourceRefs              []string                    `json:"dataSourceRefs,omitempty"`
+	ToolAllowlist               []string                    `json:"toolAllowlist,omitempty"`
+	ToolDenylist                []string                    `json:"toolDenylist,omitempty"`
+	DefaultSupervisoryAIRef     string                      `json:"defaultSupervisoryAIRef,omitempty"`
+	AggregatePerformanceSummary *AIWorkerPerformanceSummary `json:"aggregatePerformanceSummary,omitempty"`
+	Metadata                    map[string]interface{}      `json:"metadata,omitempty"`
+	CreatedTimestamp            time.Time                   `json:"createdTimestamp,omitempty"`
+	ModifiedTimestamp           time.Time                   `json:"modifiedTimestamp,omitempty"`
 }
 
 // --- AIWorkerInstance (incorporates existing fields and new references) ---
