@@ -1,6 +1,10 @@
 // NeuroScript Version: 0.4.0
-// File version: 0.1.6 // Use FormatEventKeyForLogging
-// Description: TUI screen for AIWM status. InputHandler now attempts to start chat.
+// File version: 0.2.2
+// Description: TUI screen for AIWM status. Synchronous populateTable.
+//
+//	Removed explicit Draw() call and simplified loading message in populateTable.
+//	Further simplified table manipulations in OnFocus.
+//
 // filename: pkg/neurogo/tui_screen_aiwm.go
 package neurogo
 
@@ -48,38 +52,30 @@ func (s *AIWMStatusScreen) Title() string {
 	if s.displayInfo != nil {
 		count = len(s.displayInfo)
 	}
+	// This log helps see if Title() is called frequently or at odd times
+	// if s.app != nil && s.app.tui != nil {
+	// 	s.app.tui.LogToDebugScreen("[AIWM_TITLE] Title() called, count: %d", count)
+	// }
 	return fmt.Sprintf("%s (%d)", s.title, count)
-}
-
-func (s *AIWMStatusScreen) fetchDisplayInfo() {
-	aiwm := s.app.GetAIWorkerManager()
-	if aiwm == nil {
-		s.lastFetchErr = fmt.Errorf("AIWorkerManager is not available in the application")
-		s.displayInfo = nil
-		s.table = nil
-		return
-	}
-
-	infos, err := aiwm.ListWorkerDefinitionsForDisplay()
-	if err != nil {
-		s.lastFetchErr = fmt.Errorf("error fetching AI worker definitions: %w", err)
-		s.displayInfo = nil
-	} else {
-		s.lastFetchErr = nil
-		s.displayInfo = infos
-	}
-	s.table = nil
 }
 
 // Primitive returns the tview.Table widget for this screen.
 func (s *AIWMStatusScreen) Primitive() tview.Primitive {
-	s.fetchDisplayInfo()
-
+	fmt.Printf("start prim\n")
+	if s.app != nil && s.app.tui != nil {
+		s.app.tui.LogToDebugScreen("[AIWM_PRIMITIVE] Primitive() called for %s.", s.name)
+	}
 	if s.table == nil {
+		if s.app != nil && s.app.tui != nil {
+			s.app.tui.LogToDebugScreen("[AIWM_PRIMITIVE] Table is nil, creating new table.")
+		}
 		s.table = tview.NewTable().
 			SetFixed(1, 0).
 			SetSelectable(true, false)
+		s.table.SetBorder(false)
 
+		// Headers are set only once when table is created.
+		// populateTable will clear data rows but should leave headers if SetFixed works as expected.
 		headers := []string{"Idx", "Name", "Status", "Chat?", "API Key"}
 		headerColor := tcell.ColorYellow
 		for c, header := range headers {
@@ -89,74 +85,183 @@ func (s *AIWMStatusScreen) Primitive() tview.Primitive {
 					SetAlign(tview.AlignCenter).
 					SetSelectable(false))
 		}
+		if s.app != nil && s.app.tui != nil {
+			s.app.tui.LogToDebugScreen("[AIWM_PRIMITIVE] Table created and headers set.")
+		}
+	}
+	fmt.Printf("end prim\n")
+	return s.table
+}
 
-		if s.lastFetchErr != nil {
-			s.table.SetCell(1, 0,
-				tview.NewTableCell(fmt.Sprintf("Error: %v", s.lastFetchErr)).
-					SetTextColor(tcell.ColorRed).
-					SetExpansion(len(headers)).
-					SetAlign(tview.AlignCenter))
-		} else if len(s.displayInfo) == 0 {
-			s.table.SetCell(1, 0,
-				tview.NewTableCell("No AI Worker Definitions found or loaded.").
-					SetExpansion(len(headers)).
-					SetAlign(tview.AlignCenter))
+// populateTable (synchronous)
+func (s *AIWMStatusScreen) populateTable() {
+	fmt.Printf("populate\n")
+	if s.app.tui != nil {
+		s.app.tui.LogToDebugScreen("[AIWM_POPULATE] Entered populateTable for %s.", s.name)
+	}
+	if s.table == nil {
+		if s.app.tui != nil {
+			s.app.tui.LogToDebugScreen("[AIWM_POPULATE] Table is nil. Aborting populateTable.")
+		}
+		return
+	}
+
+	// Clear non-fixed rows. Row 0 is fixed for headers.
+	// Start clearing from row 1.
+	for r := s.table.GetRowCount() - 1; r >= 1; r-- {
+		s.table.RemoveRow(r)
+	}
+	if s.app.tui != nil {
+		s.app.tui.LogToDebugScreen("[AIWM_POPULATE] Data rows cleared (if any). Header row should be intact.")
+	}
+
+	// Fetch data (synchronous, expected to be very fast)
+	aiwm := s.app.GetAIWorkerManager()
+	if aiwm == nil {
+		s.lastFetchErr = fmt.Errorf("AIWorkerManager is not available")
+		s.displayInfo = nil
+		if s.app.tui != nil {
+			s.app.tui.LogToDebugScreen("[AIWM_POPULATE] AIWorkerManager is nil.")
+		}
+	} else {
+		if s.app.tui != nil {
+			s.app.tui.LogToDebugScreen("[AIWM_POPULATE] Fetching worker definitions...")
+		}
+		infos, err := aiwm.ListWorkerDefinitionsForDisplay()
+		if err != nil {
+			s.lastFetchErr = fmt.Errorf("error fetching AI worker definitions: %w", err)
+			s.displayInfo = nil
+			if s.app.tui != nil {
+				s.app.tui.LogToDebugScreen("[AIWM_POPULATE] Error fetching definitions: %v", err)
+			}
 		} else {
-			for r, info := range s.displayInfo {
-				if info == nil || info.Definition == nil {
-					s.table.SetCell(r+1, 0, tview.NewTableCell("Error: Invalid data").SetTextColor(tcell.ColorRed).SetExpansion(len(headers)))
-					continue
-				}
-				chatCapableText := "No"
-				chatColor := tcell.ColorDarkGray
-				if info.IsChatCapable {
-					chatCapableText = "Yes"
-					chatColor = tcell.ColorGreen // Keep green for "Yes"
-				}
-				apiKeyStatusText := string(info.APIKeyStatus)
-				apiKeyColor := tcell.ColorWhite // Default
-				switch info.APIKeyStatus {
-				case core.APIKeyStatusFound:
-					apiKeyColor = tcell.ColorGreen
-				case core.APIKeyStatusNotFound, core.APIKeyStatusNotConfigured:
-					apiKeyColor = tcell.ColorOrange
-				case core.APIKeyStatusError:
-					apiKeyColor = tcell.ColorRed
-				}
-
-				defName := info.Definition.Name
-				if len(defName) > 30 {
-					defName = defName[:27] + "..."
-				}
-				statusText := string(info.Definition.Status)
-				if statusText == "" {
-					statusText = string(core.DefinitionStatusActive)
-				}
-
-				s.table.SetCell(r+1, 0, tview.NewTableCell(fmt.Sprintf("%d", r+1)).SetAlign(tview.AlignRight))
-				s.table.SetCell(r+1, 1, tview.NewTableCell(defName))
-				s.table.SetCell(r+1, 2, tview.NewTableCell(statusText))
-				s.table.SetCell(r+1, 3, tview.NewTableCell(chatCapableText).SetTextColor(chatColor).SetAlign(tview.AlignCenter))
-				s.table.SetCell(r+1, 4, tview.NewTableCell(apiKeyStatusText).SetTextColor(apiKeyColor))
+			s.lastFetchErr = nil
+			s.displayInfo = infos
+			if s.app.tui != nil {
+				s.app.tui.LogToDebugScreen("[AIWM_POPULATE] Fetched %d definitions.", len(infos))
 			}
 		}
-		s.table.SetBorder(false)
 	}
-	return s.table
+	fmt.Printf("got defs\n")
+
+	// Populate table with data or error message
+	if s.lastFetchErr != nil {
+		s.table.SetCell(1, 0, // Row 1 for the message
+			tview.NewTableCell(fmt.Sprintf("Error: %v", s.lastFetchErr)).
+				SetTextColor(tcell.ColorRed).
+				SetExpansion(s.table.GetColumnCount()). // Use actual column count
+				SetAlign(tview.AlignCenter))
+	} else if len(s.displayInfo) == 0 {
+		s.table.SetCell(1, 0,
+			tview.NewTableCell("No AI Worker Definitions found or loaded.").
+				SetExpansion(s.table.GetColumnCount()).
+				SetAlign(tview.AlignCenter))
+	} else {
+		for r, info := range s.displayInfo {
+			rowNum := r + 1 // Data rows start from 1
+			if info == nil || info.Definition == nil {
+				s.table.SetCell(rowNum, 0, tview.NewTableCell("Error: Invalid data").SetTextColor(tcell.ColorRed).SetExpansion(s.table.GetColumnCount()))
+				continue
+			}
+			chatCapableText := "No"
+			chatColor := tcell.ColorDarkGray
+			if info.IsChatCapable {
+				chatCapableText = "Yes"
+				chatColor = tcell.ColorGreen
+			}
+			apiKeyStatusText := string(info.APIKeyStatus)
+			apiKeyColor := tcell.ColorWhite
+			switch info.APIKeyStatus {
+			case core.APIKeyStatusFound:
+				apiKeyColor = tcell.ColorGreen
+			case core.APIKeyStatusNotFound, core.APIKeyStatusNotConfigured:
+				apiKeyColor = tcell.ColorOrange
+			case core.APIKeyStatusError:
+				apiKeyColor = tcell.ColorRed
+			}
+			defName := info.Definition.Name
+			if len(defName) > 30 {
+				defName = defName[:27] + "..."
+			}
+			statusText := string(info.Definition.Status)
+			if statusText == "" {
+				statusText = string(core.DefinitionStatusActive)
+			}
+			s.table.SetCell(rowNum, 0, tview.NewTableCell(fmt.Sprintf("%d", rowNum)).SetAlign(tview.AlignRight))
+			s.table.SetCell(rowNum, 1, tview.NewTableCell(EscapeTviewTags(defName)))
+			s.table.SetCell(rowNum, 2, tview.NewTableCell(EscapeTviewTags(statusText)))
+			s.table.SetCell(rowNum, 3, tview.NewTableCell(chatCapableText).SetTextColor(chatColor).SetAlign(tview.AlignCenter))
+			s.table.SetCell(rowNum, 4, tview.NewTableCell(EscapeTviewTags(apiKeyStatusText)).SetTextColor(apiKeyColor))
+		}
+	}
+	if s.app.tui != nil {
+		s.app.tui.LogToDebugScreen("[AIWM_POPULATE] Finished populating table cells for %s.", s.name)
+	}
 }
 
 // OnFocus is called when this screen's primitive is about to receive focus.
 func (s *AIWMStatusScreen) OnFocus(setFocus func(p tview.Primitive)) {
-	if s.table != nil {
-		setFocus(s.table)
-		if s.table.GetRowCount() > 1 && len(s.displayInfo) > 0 {
-			s.table.Select(1, 0)
+	if s.app.tui != nil {
+		s.app.tui.LogToDebugScreen("[AIWM_ONFOCUS] Entered OnFocus for %s.", s.name)
+	}
+	if s.table == nil {
+		if s.app.tui != nil {
+			s.app.tui.LogToDebugScreen("[AIWM_ONFOCUS] Table is nil, calling Primitive().")
 		}
+		s.Primitive() // This creates the table and sets headers if s.table was nil.
+		if s.app.tui != nil {
+			s.app.tui.LogToDebugScreen("[AIWM_ONFOCUS] Primitive() returned.")
+		}
+	}
+
+	if s.app.tui != nil {
+		s.app.tui.LogToDebugScreen("[AIWM_ONFOCUS] Calling populateTable (synchronous).")
+	}
+	s.populateTable() // Populates data rows, headers should already be there or re-added.
+	if s.app.tui != nil {
+		s.app.tui.LogToDebugScreen("[AIWM_ONFOCUS] populateTable returned.")
+	}
+
+	if s.table != nil {
+		if s.app.tui != nil {
+			s.app.tui.LogToDebugScreen("[AIWM_ONFOCUS] Calling setFocus on the table.")
+		}
+		setFocus(s.table)
+		if s.app.tui != nil {
+			s.app.tui.LogToDebugScreen("[AIWM_ONFOCUS] setFocus on table returned.")
+		}
+
+		// Row selection logic
+		if s.table.GetRowCount() > 1 && len(s.displayInfo) > 0 {
+			s.table.Select(1, 0) // Default to selecting the first data row.
+			if s.app.tui != nil {
+				s.app.tui.LogToDebugScreen("[AIWM_ONFOCUS] Selected row 1,0 in table (first data row).")
+			}
+		} else if s.table.GetRowCount() > 0 { // Only header exists or no data
+			s.table.Select(0, 0) // Select header
+			if s.app.tui != nil {
+				s.app.tui.LogToDebugScreen("[AIWM_ONFOCUS] Selected row 0,0 (header or no data).")
+			}
+		}
+		if s.app.tui != nil {
+			s.app.tui.LogToDebugScreen("[AIWM_ONFOCUS] Row selection logic complete.")
+		}
+	} else {
+		if s.app.tui != nil {
+			s.app.tui.LogToDebugScreen("[AIWM_ONFOCUS] Table is nil after populate, cannot set focus/selection.")
+		}
+	}
+	if s.app.tui != nil {
+		s.app.tui.LogToDebugScreen("[AIWM_ONFOCUS] OnFocus completed for %s.", s.name)
 	}
 }
 
 // OnBlur is called when this screen's primitive is about to lose focus.
-func (s *AIWMStatusScreen) OnBlur() {}
+func (s *AIWMStatusScreen) OnBlur() {
+	if s.app.tui != nil {
+		s.app.tui.LogToDebugScreen("[AIWM_SCREEN] OnBlur called for %s.", s.name)
+	}
+}
 
 // InputHandler allows the screen to process key events.
 func (s *AIWMStatusScreen) InputHandler() func(event *tcell.EventKey, setFocus func(p tview.Primitive)) *tcell.EventKey {
@@ -173,11 +278,8 @@ func (s *AIWMStatusScreen) InputHandler() func(event *tcell.EventKey, setFocus f
 			if s.app.tui != nil {
 				s.app.tui.LogToDebugScreen(format, args...)
 			}
-			// Also log to main logger if desired, e.g., logger.Debug(fmt.Sprintf(format, args...))
 		}
-
-		// Use the new helper function for logging the key
-		debugLog("[AIWM_INPUT] Received key: %s, mod: %v", FormatEventKeyForLogging(event), event.Modifiers())
+		// debugLog("[AIWM_INPUT] Key: %s", FormatEventKeyForLogging(event)) // Keep this minimal for now
 
 		initiateChatAttempt := false
 		if event.Key() == tcell.KeyEnter {
@@ -189,66 +291,73 @@ func (s *AIWMStatusScreen) InputHandler() func(event *tcell.EventKey, setFocus f
 		}
 
 		if initiateChatAttempt {
-			row, col := s.table.GetSelection()
-			debugLog("[AIWM_INPUT] Attempting chat initiation. Selected row: %d, col: %d", row, col)
+			row, _ := s.table.GetSelection()
+			debugLog("[AIWM_INPUT] Attempting chat initiation. Selected row: %d", row)
 
 			if s.displayInfo == nil {
 				debugLog("[AIWM_INPUT] displayInfo is nil. Cannot initiate chat.")
-				return nil
+				return nil // Event consumed
 			}
-			debugLog("[AIWM_INPUT] displayInfo length: %d", len(s.displayInfo))
 
 			if row > 0 && row-1 < len(s.displayInfo) {
 				selectedInfo := s.displayInfo[row-1]
-				debugLog("[AIWM_INPUT] Valid row selected. Definition: %s, Name: %s", selectedInfo.Definition.DefinitionID, selectedInfo.Definition.Name)
+				if selectedInfo == nil || selectedInfo.Definition == nil {
+					debugLog("[AIWM_INPUT] Selected info or definition is nil at row %d.", row)
+					return nil // Event consumed
+				}
+				debugLog("[AIWM_INPUT] Valid row. DefID: %s, Name: %s", selectedInfo.Definition.DefinitionID, selectedInfo.Definition.Name)
 
 				if selectedInfo.IsChatCapable && selectedInfo.APIKeyStatus == core.APIKeyStatusFound {
-					debugLog("[AIWM_INPUT] Worker is chat capable and API key found. Calling CreateNewChatSession.")
+					debugLog("[AIWM_INPUT] Worker chat capable & API key OK. Calling CreateNewChatSession.")
+					if s.app.tui == nil {
+						debugLog("[AIWM_INPUT] s.app.tui is nil, cannot switch view.")
+						if logger != nil {
+							logger.Error("TUI is nil, cannot switch to chat view.")
+						}
+						return nil // Event consumed
+					}
+
 					chatSession, err := s.app.CreateNewChatSession(selectedInfo.Definition.DefinitionID)
 					if err != nil {
-						errMsg := fmt.Sprintf("Failed to start chat with worker %s", selectedInfo.Definition.DefinitionID)
+						errMsg := fmt.Sprintf("Failed to start chat with %s", selectedInfo.Definition.Name)
 						debugLog("[AIWM_INPUT] %s: %v", errMsg, err)
-						logger.Error(errMsg, "error", err)
-						if s.app.tui != nil && s.app.tui.statusBar != nil {
-							s.app.tui.tviewApp.QueueUpdateDraw(func() {
-								s.app.tui.statusBar.SetText(fmt.Sprintf("[red]%s: %v[-]", EscapeTviewTags(errMsg), EscapeTviewTags(err.Error())))
-							})
+						if logger != nil {
+							logger.Error(errMsg, "defID", selectedInfo.Definition.DefinitionID, "error", err)
 						}
+						s.app.tui.LogToDebugScreen("[AIWM_ERROR] %s: %v", EscapeTviewTags(errMsg), EscapeTviewTags(err.Error()))
 					} else {
-						successMsg := fmt.Sprintf("Chat session %s created for %s", chatSession.SessionID, chatSession.DefinitionID)
-						debugLog("[AIWM_INPUT] %s. Instance: %s. Calling switchToChatViewAndUpdate.", successMsg, chatSession.WorkerInstance.InstanceID)
-						logger.Info(successMsg, "instanceID", chatSession.WorkerInstance.InstanceID)
-						if s.app.tui != nil {
-							s.app.tui.switchToChatViewAndUpdate(chatSession.SessionID)
+						debugLog("[AIWM_INPUT] Chat session %s created for %s. Instance: %s. Switching view.", chatSession.SessionID, chatSession.DefinitionID, chatSession.WorkerInstance.InstanceID)
+						if logger != nil {
+							logger.Info("Chat session created", "sessionID", chatSession.SessionID, "instanceID", chatSession.WorkerInstance.InstanceID)
 						}
+						s.app.tui.switchToChatViewAndUpdate(chatSession.SessionID)
+						s.app.tui.LogToDebugScreen("[AIWM_INFO] Chat started with %s", EscapeTviewTags(selectedInfo.Definition.Name))
 					}
 				} else {
-					warnMsg := fmt.Sprintf("Worker %s not chat capable or API key missing. Capable: %v, KeyStatus: %s",
-						selectedInfo.Definition.Name, selectedInfo.IsChatCapable, selectedInfo.APIKeyStatus)
+					warnMsg := fmt.Sprintf("Worker %s not chat capable or API key issue. Capable: %v, KeyStatus: %s",
+						EscapeTviewTags(selectedInfo.Definition.Name), selectedInfo.IsChatCapable, selectedInfo.APIKeyStatus)
 					debugLog("[AIWM_INPUT] %s", warnMsg)
-					logger.Warn(warnMsg)
-					if s.app.tui != nil && s.app.tui.statusBar != nil {
-						s.app.tui.tviewApp.QueueUpdateDraw(func() { s.app.tui.statusBar.SetText(fmt.Sprintf("[orange]%s[-]", EscapeTviewTags(warnMsg))) })
+					if logger != nil {
+						logger.Warn(warnMsg)
 					}
+					s.app.tui.LogToDebugScreen("[AIWM_WARN] %s", warnMsg)
 				}
 			} else {
 				debugLog("[AIWM_INPUT] No valid data row selected (row index %d). Cannot initiate chat.", row)
-				if s.app.tui != nil && s.app.tui.statusBar != nil {
-					s.app.tui.tviewApp.QueueUpdateDraw(func() { s.app.tui.statusBar.SetText("[yellow]No definition selected in table to start chat.[-]") })
-				}
+				s.app.tui.LogToDebugScreen("[AIWM_INFO] No definition selected in table to start chat.")
 			}
-			return nil
+			return nil // Event consumed by chat attempt logic
 		}
 
-		tableHandler := s.table.InputHandler()
-		if tableHandler != nil {
-			// Use FormatEventKeyForLogging for debug logging
-			debugLog("[AIWM_INPUT] Passing key %s to table's default handler.", FormatEventKeyForLogging(event))
-			tableHandler(event, setFocus)
-		} else {
-			debugLog("[AIWM_INPUT] Table has no default handler. Key: %s", FormatEventKeyForLogging(event))
+		// If not a chat attempt, pass to table's default input handler
+		if s.table != nil {
+			tableHandler := s.table.InputHandler()
+			if tableHandler != nil {
+				tableHandler(event, setFocus)
+				return nil // Event is handled by the table's default handler
+			}
 		}
-		return event
+		return event // Event not handled
 	}
 }
 

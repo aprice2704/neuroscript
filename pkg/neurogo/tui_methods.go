@@ -1,5 +1,5 @@
 // NeuroScript Version: 0.4.0
-// File version: 0.1.0 // Initial creation, combines tui_layout.go and tview_tui.go methods
+// File version: 0.1.2 // Corrected LogToDebugScreen for compiler error and scrolling.
 // Description: Contains methods for the tviewAppPointers struct, managing TUI logic.
 // filename: pkg/neurogo/tui_methods.go
 package neurogo
@@ -7,10 +7,8 @@ package neurogo
 import (
 	"fmt"
 	"log" // For fallback logging if debug screen isn't ready
-	"strconv"
-	"strings"
 
-	"github.com/gdamore/tcell/v2"
+	"github.com/gdamore/tcell/v2" // Keep for setPrimitiveBackgroundColor, dFocus colors
 	"github.com/rivo/tview"
 )
 
@@ -28,164 +26,13 @@ func setPrimitiveBackgroundColor(p tview.Primitive, color tcell.Color) {
 	}
 }
 
-// addScreen adds a PrimitiveScreener to the specified pane (left or right).
-func (tvP *tviewAppPointers) addScreen(s PrimitiveScreener, onLeft bool) {
-	var pageManager *tview.Pages
-	var screenList *[]PrimitiveScreener
-
-	if onLeft {
-		pageManager = tvP.localOutputView
-		screenList = &tvP.leftScreens
-	} else {
-		pageManager = tvP.aiOutputView
-		screenList = &tvP.rightScreens
-	}
-
-	*screenList = append(*screenList, s)
-	// Page names are their index in the list. This assumes screens are not reordered
-	// or removed in a way that would break this indexing for SwitchToPage.
-	pageNumStr := strconv.Itoa(len(*screenList) - 1)
-	pageManager.AddPage(pageNumStr, s.Primitive(), true, false)
-
-	// Initialize background of newly added screen primitive.
-	setPrimitiveBackgroundColor(s.Primitive(), tcell.ColorBlack)
-	if tvP.app != nil && tvP.app.tui == tvP { // Ensure tvP is the main TUI controller for app
-		tvP.LogToDebugScreen("[ADD_SCREEN] Added screen '%s' to %s pane. Page name: %s. Total screens: %d",
-			s.Name(), map[bool]string{true: "Left", false: "Right"}[onLeft], pageNumStr, len(*screenList))
-	}
-}
-
-// nextScreen cycles to the next/previous screen in the specified pane.
-func (tvP *tviewAppPointers) nextScreen(d int, onLeft bool) {
-	var screens []PrimitiveScreener
-	var currentIndex int
-
-	if onLeft {
-		screens = tvP.leftScreens
-		currentIndex = tvP.leftShowing
-	} else {
-		screens = tvP.rightScreens
-		currentIndex = tvP.rightShowing
-	}
-
-	numScreens := len(screens)
-	if numScreens == 0 {
-		return
-	}
-	nextIndex := posmod(currentIndex+d, numScreens) // posmod is in tui_utils.go
-	tvP.setScreen(nextIndex, onLeft)
-}
-
-// setScreen switches the visible screen in the specified pane.
-func (tvP *tviewAppPointers) setScreen(sIndex int, onLeft bool) {
-	paneName := "Right"
-	if onLeft {
-		paneName = "Left"
-	}
-	tvP.LogToDebugScreen("[SET_SCREEN] Attempting to set screen in %s pane to index %d.", paneName, sIndex)
-
-	var targetPages *tview.Pages
-	var screensList []PrimitiveScreener
-	var showingIndexToUpdate *int
-	var paneIdentifier tview.Primitive
-
-	if onLeft {
-		targetPages = tvP.localOutputView
-		screensList = tvP.leftScreens
-		showingIndexToUpdate = &tvP.leftShowing
-		paneIdentifier = tvP.localOutputView
-	} else {
-		targetPages = tvP.aiOutputView
-		screensList = tvP.rightScreens
-		showingIndexToUpdate = &tvP.rightShowing
-		paneIdentifier = tvP.aiOutputView
-	}
-
-	if targetPages == nil {
-		tvP.LogToDebugScreen("[SET_SCREEN] TargetPages is nil for %s pane. Aborting.", paneName)
-		return
-	}
-	if sIndex < 0 || sIndex >= len(screensList) {
-		tvP.LogToDebugScreen("[SET_SCREEN] sIndex %d out of bounds for %s pane (len %d). Aborting.", sIndex, paneName, len(screensList))
-		return
-	}
-
-	// Handle screen being switched AWAY from
-	_, oldPagePrimitive := targetPages.GetFrontPage()
-	if oldPagePrimitive != nil {
-		setPrimitiveBackgroundColor(oldPagePrimitive, tcell.ColorBlack)
-		oldScreener, oldScreenerExists := tvP.getScreenerFromPrimitive(oldPagePrimitive, onLeft)
-		if oldScreenerExists {
-			tvP.LogToDebugScreen("[SET_SCREEN] Calling OnBlur for old screen: %s", oldScreener.Name())
-			oldScreener.OnBlur()
-		}
-	}
-
-	// Switch to the new screen
-	newPageNameStr := strconv.Itoa(sIndex)
-	tvP.LogToDebugScreen("[SET_SCREEN] Switching %s pane to page name: %s (index %d)", paneName, newPageNameStr, sIndex)
-	targetPages.SwitchToPage(newPageNameStr) // This triggers onPanePageChange via SetChangedFunc
-	*showingIndexToUpdate = sIndex
-
-	// Handle screen being switched TO
-	newlyVisibleScreen := screensList[sIndex]
-	newlyVisiblePrimitive := newlyVisibleScreen.Primitive()
-	tvP.LogToDebugScreen("[SET_SCREEN] New visible screen in %s pane: %s", paneName, newlyVisibleScreen.Name())
-
-	paneHasFocus := false
-	if tvP.tviewApp != nil && tvP.tviewApp.GetFocus() == paneIdentifier {
-		paneHasFocus = true
-	} else if tvP.focusablePrimitives != nil && len(tvP.focusablePrimitives) > 0 && tvP.currentFocusIndex >= 0 && tvP.currentFocusIndex < len(tvP.focusablePrimitives) {
-		paneHasFocus = (tvP.focusablePrimitives[tvP.currentFocusIndex] == paneIdentifier)
-	}
-	tvP.LogToDebugScreen("[SET_SCREEN] Pane %s has focus: %v", paneName, paneHasFocus)
-
-	if paneHasFocus {
-		setPrimitiveBackgroundColor(newlyVisiblePrimitive, tcell.ColorDarkBlue)
-	} else {
-		setPrimitiveBackgroundColor(newlyVisiblePrimitive, tcell.ColorBlack)
-	}
-	// onPanePageChange (called by SwitchToPage) will handle OnFocus for the new screen's content
-	// and update the status text.
-}
-
-// getScreenerFromPrimitive finds the PrimitiveScreener associated with a given tview.Primitive.
-func (tvP *tviewAppPointers) getScreenerFromPrimitive(p tview.Primitive, isLeftPane bool) (PrimitiveScreener, bool) {
-	var screens []PrimitiveScreener
-	if isLeftPane {
-		screens = tvP.leftScreens
-	} else {
-		screens = tvP.rightScreens
-	}
-	for _, s := range screens {
-		if s.Primitive() == p {
-			return s, true
-		}
-	}
-	return nil, false
-}
-
-// getScreenIndex finds the index of a PrimitiveScreener in its pane's list.
-func (tvP *tviewAppPointers) getScreenIndex(s PrimitiveScreener, onLeft bool) int {
-	var list []PrimitiveScreener
-	if onLeft {
-		list = tvP.leftScreens
-	} else {
-		list = tvP.rightScreens
-	}
-	for i, item := range list {
-		if item == s {
-			return i
-		}
-	}
-	tvP.LogToDebugScreen("[GET_SCREEN_INDEX] Screen %s not found in %s pane list.", s.Name(), map[bool]string{true: "Left", false: "Right"}[onLeft])
-	return -1
-}
-
 // dFocus handles cycling focus among major UI components and updating styles.
+// ADD THE fmt.Println STATEMENTS HERE AS PER THE PREVIOUS RESPONSE FOR HANG DIAGNOSIS
 func (tvP *tviewAppPointers) dFocus(df int) {
+	fmt.Println("[STDOUT_DFOCUS_ENTRY] dFocus called with df:", df)
 	if tvP.numFocusablePrimitives == 0 {
 		tvP.LogToDebugScreen("[DFOCUS] No focusable primitives.")
+		fmt.Println("[STDOUT_DFOCUS_EXIT] No focusable primitives, dFocus exiting.")
 		return
 	}
 
@@ -199,26 +46,28 @@ func (tvP *tviewAppPointers) dFocus(df int) {
 		if tvP.numFocusablePrimitives > 0 {
 			tvP.currentFocusIndex = 0
 		} else {
+			fmt.Println("[STDOUT_DFOCUS_EXIT] currentFocusIndex invalid and no primitives, dFocus exiting.")
 			return
 		}
 	}
 	oldFocusPrimitive := tvP.focusablePrimitives[tvP.currentFocusIndex]
-	// tvP.LogToDebugScreen("[DFOCUS] Old focus: %T (%p)", oldFocusPrimitive, oldFocusPrimitive) // Already logged in SetFocus if needed
 
 	if oldPagesView, ok := oldFocusPrimitive.(*tview.Pages); ok {
 		_, oldPageContent := oldPagesView.GetFrontPage()
 		if oldPageContent != nil {
-			isLeftOld := (oldPagesView == tvP.localOutputView) // Determine if it was left for logging
+			isLeftOld := (oldPagesView == tvP.localOutputView)
 			if oldScreener, exists := tvP.getScreenerFromPrimitive(oldPageContent, isLeftOld); exists {
+				fmt.Printf("[STDOUT_DFOCUS] Attempting to call OnBlur for old screener: %s (type %T)\n", oldScreener.Name(), oldScreener)
 				tvP.LogToDebugScreen("[DFOCUS] Calling OnBlur for old focused pane screener: %s", oldScreener.Name())
 				oldScreener.OnBlur()
+				fmt.Printf("[STDOUT_DFOCUS] OnBlur for old screener %s completed.\n", oldScreener.Name())
 			}
 		}
 	}
 
 	tvP.currentFocusIndex = posmod(tvP.currentFocusIndex+df, tvP.numFocusablePrimitives)
 	newFocusTarget := tvP.focusablePrimitives[tvP.currentFocusIndex]
-	// tvP.LogToDebugScreen("[DFOCUS] New focus target: %T (%p), index: %d", newFocusTarget, newFocusTarget, tvP.currentFocusIndex)
+	fmt.Printf("[STDOUT_DFOCUS] New focus target index: %d, type: %T\n", tvP.currentFocusIndex, newFocusTarget)
 
 	primitiveToActuallySetFocusOnTview := newFocusTarget
 
@@ -255,158 +104,106 @@ func (tvP *tviewAppPointers) dFocus(df int) {
 			setPrimitiveBackgroundColor(pageContentB, unfocusedPaneContentBackgroundColor)
 		}
 	}
+	fmt.Println("[STDOUT_DFOCUS] Styling complete.")
 
 	// Call OnFocus for the screener of the NEW focused primitive if it's a pane
 	if newPagesView, ok := newFocusTarget.(*tview.Pages); ok {
 		pageName, newPageContent := newPagesView.GetFrontPage()
+		fmt.Printf("[STDOUT_DFOCUS] New focus target is Pages. Current front page name: %s, content type: %T\n", pageName, newPageContent)
+
 		if newPageContent != nil {
-			isLeftNew := (newPagesView == tvP.localOutputView) // Define isLeftNew here
+			isLeftNew := (newPagesView == tvP.localOutputView)
 			newScreener, exists := tvP.getScreenerFromPrimitive(newPageContent, isLeftNew)
 			if exists {
 				paneSideName := "Right"
-				if isLeftNew { // Use isLeftNew
+				if isLeftNew {
 					paneSideName = "Left"
 				}
-				// Corrected the usage of isLeft, using paneSideName for clarity in the log
 				tvP.LogToDebugScreen("[DFOCUS] New focus is pane %s (Page: %s, Screener: %s). IsFocusable: %v",
 					paneSideName, pageName, newScreener.Name(), newScreener.IsFocusable())
 				if newScreener.IsFocusable() {
+					fmt.Printf("[STDOUT_DFOCUS] Attempting to call OnFocus for new screener: %s (Page Name: %s, Screener Type: %T)\n", newScreener.Name(), pageName, newScreener)
 					newScreener.OnFocus(func(primToFocus tview.Primitive) {
+						fmt.Printf("[STDOUT_DFOCUS_ONFOCUS_CALLBACK] OnFocus callback executed for %s. Primitive to focus: %T\n", newScreener.Name(), primToFocus)
 						tvP.LogToDebugScreen("[DFOCUS] Screener %s delegated focus to %T (%p)", newScreener.Name(), primToFocus, primToFocus)
 						primitiveToActuallySetFocusOnTview = primToFocus
 					})
+					fmt.Printf("[STDOUT_DFOCUS] OnFocus call for new screener %s completed/returned.\n", newScreener.Name())
+				} else {
+					fmt.Printf("[STDOUT_DFOCUS] Screener %s (Page: %s) is not focusable.\n", newScreener.Name(), pageName)
 				}
 			} else {
-				paneSideName := "Right"
-				if isLeftNew { // Use isLeftNew
-					paneSideName = "Left"
-				}
-				tvP.LogToDebugScreen("[DFOCUS] New focus is pane %s (Page: %s), but no screener found for its content.", paneSideName, pageName)
+				fmt.Printf("[STDOUT_DFOCUS] No screener found for newFocusTarget's front page content (Page: %s, Content Type: %T).\n", pageName, newPageContent)
 			}
 		} else {
-			// Determine if it was left or right for logging purposes
-			paneSideName := "Unknown"
-			if newPagesView == tvP.localOutputView {
-				paneSideName = "Left"
-			}
-			if newPagesView == tvP.aiOutputView {
-				paneSideName = "Right"
-			}
-			tvP.LogToDebugScreen("[DFOCUS] New focus is pane %s (Page: %s), but page content is nil.", paneSideName, pageName)
+			fmt.Printf("[STDOUT_DFOCUS] New focus target is Pages (Page Name: %s), but its front page content is nil.\n", pageName)
 		}
 	}
 
 	if tvP.tviewApp != nil {
+		fmt.Printf("[STDOUT_DFOCUS] Attempting tvP.tviewApp.SetFocus on: %T\n", primitiveToActuallySetFocusOnTview)
 		tvP.LogToDebugScreen("[DFOCUS] tviewApp.SetFocus on: %T (%p)", primitiveToActuallySetFocusOnTview, primitiveToActuallySetFocusOnTview)
 		tvP.tviewApp.SetFocus(primitiveToActuallySetFocusOnTview)
+		fmt.Printf("[STDOUT_DFOCUS] tvP.tviewApp.SetFocus completed.\n")
 	}
-	tvP.updateStatusText()
-}
-
-// updateStatusText updates the status bar content.
-func (tvP *tviewAppPointers) updateStatusText() {
-	if tvP.statusBar == nil || tvP.localOutputView == nil || tvP.aiOutputView == nil {
-		return
-	}
-
-	statusBarHighlightStyle := "[yellow]"
-	normalTextStyle := "[-]"
-	dimmedTextStyle := "[gray]%s[-]"
-	separator := " [white]|[-] "
-
-	// Left Pane Screens
-	actualLeftShowing := -1
-	if tvP.localOutputView.GetPageCount() > 0 {
-		leftCurrentPageName, _ := tvP.localOutputView.GetFrontPage() // This is the page *name*, e.g., "0", "1"
-		if leftCurrentPageName != "" {
-			idx, err := strconv.Atoi(leftCurrentPageName)
-			if err == nil && idx >= 0 && idx < len(tvP.leftScreens) {
-				actualLeftShowing = idx
-			}
-		}
-	}
-	var leftScreenDisplayParts []string
-	for i, screen := range tvP.leftScreens {
-		name := EscapeTviewTags(screen.Name())
-		if i == actualLeftShowing {
-			leftScreenDisplayParts = append(leftScreenDisplayParts, fmt.Sprintf("%s%s%s", statusBarHighlightStyle, name, normalTextStyle))
-		} else {
-			leftScreenDisplayParts = append(leftScreenDisplayParts, fmt.Sprintf(dimmedTextStyle, name))
-		}
-	}
-	leftText := strings.Join(leftScreenDisplayParts, separator)
-
-	// Right Pane Screens
-	actualRightShowing := -1
-	if tvP.aiOutputView.GetPageCount() > 0 {
-		rightCurrentPageName, _ := tvP.aiOutputView.GetFrontPage()
-		if rightCurrentPageName != "" {
-			idx, err := strconv.Atoi(rightCurrentPageName)
-			if err == nil && idx >= 0 && idx < len(tvP.rightScreens) {
-				actualRightShowing = idx
-			}
-		}
-	}
-	var rightScreenDisplayParts []string
-	for i, screen := range tvP.rightScreens {
-		var nameToDisplay string
-		if cs, ok := screen.(*ChatConversationScreen); ok {
-			nameToDisplay = cs.Title() // Chat title is dynamic and can have colors
-		} else {
-			nameToDisplay = EscapeTviewTags(screen.Name())
-		}
-		if i == actualRightShowing {
-			rightScreenDisplayParts = append(rightScreenDisplayParts, fmt.Sprintf("%s%s%s", statusBarHighlightStyle, nameToDisplay, normalTextStyle))
-		} else {
-			rightScreenDisplayParts = append(rightScreenDisplayParts, fmt.Sprintf(dimmedTextStyle, nameToDisplay))
-		}
-	}
-	rightText := strings.Join(rightScreenDisplayParts, separator)
-
-	var statusBarActualWidth int
-	if tvP.statusBar != nil {
-		_, _, rectWidth, _ := tvP.statusBar.GetInnerRect()
-		statusBarActualWidth = rectWidth
-	}
-	if statusBarActualWidth <= 0 { // Fallback if GetInnerRect is not yet valid
-		statusBarActualWidth = 120
-	}
-
-	leftTextVisibleWidth := tview.TaggedStringWidth(leftText)
-	rightTextVisibleWidth := tview.TaggedStringWidth(rightText)
-	paddingSize := statusBarActualWidth - leftTextVisibleWidth - rightTextVisibleWidth
-	if paddingSize < 1 { // Ensure at least one space if there's room, or prevent negative
-		paddingSize = 1
-	}
-	padding := strings.Repeat(" ", paddingSize)
-	finalStatusText := leftText + padding + rightText
-
-	if tvP.statusBar != nil {
-		tvP.statusBar.SetText(finalStatusText)
-	}
+	tvP.updateStatusText() // This method is defined in tui_layout.go on *tviewAppPointers
+	fmt.Println("[STDOUT_DFOCUS_EXIT] dFocus exiting.")
 }
 
 // --- Methods from former tview_tui.go (event/app specific) ---
 
-// LogToDebugScreen appends a message to the debug screen.
+// LogToDebugScreen appends a message to the debug screen and scrolls to the end.
 func (tvP *tviewAppPointers) LogToDebugScreen(format string, args ...interface{}) {
-	if tvP.debugScreen == nil {
-		log.Printf("DEBUG_SCREEN_NIL_FALLBACK: "+format, args...) // Standard log fallback
+	if tvP.debugScreen == nil { // tvP.debugScreen is *DynamicOutputScreen (which is a PrimitiveScreener)
+		log.Printf("DEBUG_SCREEN_NIL_FALLBACK: "+format, args...)
 		return
 	}
-	message := fmt.Sprintf(format+"\n", args...)     // Add newline for Fprintln behavior
-	_, err := tvP.debugScreen.Write([]byte(message)) // DynamicOutputScreen.Write uses textView.Write
+
+	message := fmt.Sprintf(format+"\n", args...)
+
+	// Call Write directly on tvP.debugScreen (*DynamicOutputScreen)
+	// Assuming *DynamicOutputScreen has a Write method.
+	// If not, this will be a compiler error, and DynamicOutputScreen needs a Write method.
+	_, err := tvP.debugScreen.Write([]byte(message))
 	if err != nil {
-		log.Printf("ERROR_WRITING_TO_DEBUG_SCREEN: %v | Original message: %s", err, message)
+		log.Printf("ERROR_WRITING_TO_DEBUG_SCREEN (via debugScreen.Write): %v | Original message: %s", err, message)
+	}
+
+	// Scroll the underlying TextView to the end
+	var actualTextView *tview.TextView
+	// Get the primitive from the screen wrapper
+	debugPrimitive := tvP.debugScreen.Primitive()
+	if debugPrimitive != nil {
+		if textView, ok := debugPrimitive.(*tview.TextView); ok {
+			actualTextView = textView
+		} else {
+			log.Printf("LogToDebugScreen: tvP.debugScreen.Primitive() is not a *tview.TextView. Type is %T. Cannot scroll.", debugPrimitive)
+		}
+	} else {
+		log.Printf("LogToDebugScreen: tvP.debugScreen.Primitive() is nil. Cannot scroll.")
+	}
+
+	if actualTextView != nil && tvP.tviewApp != nil {
+		tvP.tviewApp.QueueUpdate(func() { // Use QueueUpdate for UI state changes like scrolling
+			if actualTextView != nil { // Re-check in closure as a good practice
+				actualTextView.ScrollToEnd()
+			}
+		})
 	}
 }
 
 // onPanePageChange is called when a tview.Pages view (a pane) switches its front page.
+// ADD THE fmt.Println STATEMENTS HERE AS PER THE PREVIOUS RESPONSE FOR HANG DIAGNOSIS
 func (tvP *tviewAppPointers) onPanePageChange(pane *tview.Pages) {
 	pageName, currentPrimitive := pane.GetFrontPage()
+	// Attempt to get a unique identifier for the pane if possible, otherwise use its pointer.
+	// For now, let's assume pane pointers are distinct enough for logging here.
+	fmt.Printf("[STDOUT_ONPANEPAGECHANGE_ENTRY] onPanePageChange called. Pane Addr: %p, New Page Name: '%s'\n", pane, pageName)
+
 	tvP.LogToDebugScreen("[PAGE_CHANGE] Pane page changed. New page name: '%s'", pageName)
 	if currentPrimitive == nil {
 		tvP.LogToDebugScreen("[PAGE_CHANGE] Current primitive is nil for page '%s'.", pageName)
+		fmt.Printf("[STDOUT_ONPANEPAGECHANGE_EXIT] Current primitive nil for page '%s', onPanePageChange exiting.\n", pageName)
 		return
 	}
 	isLeftPane := (pane == tvP.localOutputView)
@@ -419,46 +216,55 @@ func (tvP *tviewAppPointers) onPanePageChange(pane *tview.Pages) {
 			paneType = "Left"
 		}
 		tvP.LogToDebugScreen("[PAGE_CHANGE] Active screener in %s pane: %s", paneType, screener.Name())
+		fmt.Printf("[STDOUT_ONPANEPAGECHANGE] Active screener in %s pane: %s (Type: %T)\n", paneType, screener.Name(), screener)
 
-		// If the Pages view itself is the one that should have focus in the main cycle...
 		if tvP.focusablePrimitives != nil && len(tvP.focusablePrimitives) > tvP.currentFocusIndex && tvP.currentFocusIndex >= 0 {
 			currentFocusedElementInCycle := tvP.focusablePrimitives[tvP.currentFocusIndex]
 			paneIsTheFocusedElementInCycle := (isLeftPane && currentFocusedElementInCycle == tvP.localOutputView) ||
 				(!isLeftPane && currentFocusedElementInCycle == tvP.aiOutputView)
 
-			if paneIsTheFocusedElementInCycle { // If the pane itself is supposed to be focused
+			if paneIsTheFocusedElementInCycle { // If the pane itself (e.g. localOutputView) is the one that should be "active" in the focus cycle
 				if screener.IsFocusable() {
+					fmt.Printf("[STDOUT_ONPANEPAGECHANGE] Pane is focused, screener %s is focusable. Attempting to call OnFocus.\n", screener.Name())
 					tvP.LogToDebugScreen("[PAGE_CHANGE] Pane is focused, screener %s is focusable. Calling OnFocus.", screener.Name())
-					screener.OnFocus(func(p tview.Primitive) { // Pass tviewApp's SetFocus
+					screener.OnFocus(func(p tview.Primitive) { // p is the primitive returned by screener's OnFocus's callback argument
+						fmt.Printf("[STDOUT_ONPANEPAGECHANGE_ONFOCUS_CALLBACK] OnFocus callback executed for %s. Primitive to focus: %T\n", screener.Name(), p)
 						if tvP.tviewApp != nil {
+							tvP.LogToDebugScreen("[PAGE_CHANGE] OnFocus callback: Setting tviewApp focus to primitive from %s (%T)", screener.Name(), p)
 							tvP.tviewApp.SetFocus(p)
 						}
 					})
-				} else { // If screen content not focusable, focus the Pages view itself
+					fmt.Printf("[STDOUT_ONPANEPAGECHANGE] OnFocus call for %s completed/returned.\n", screener.Name())
+				} else {
 					tvP.LogToDebugScreen("[PAGE_CHANGE] Pane is focused, but screener %s is NOT focusable. Focusing pane itself.", screener.Name())
 					if tvP.tviewApp != nil {
-						tvP.tviewApp.SetFocus(pane)
+						fmt.Printf("[STDOUT_ONPANEPAGECHANGE] Screener %s not focusable. Attempting tvP.tviewApp.SetFocus on pane itself (%T).\n", screener.Name(), pane)
+						tvP.tviewApp.SetFocus(pane) // Focus the tview.Pages primitive
+						fmt.Printf("[STDOUT_ONPANEPAGECHANGE] tvP.tviewApp.SetFocus on pane completed.\n")
 					}
 				}
+			} else {
+				fmt.Printf("[STDOUT_ONPANEPAGECHANGE] Pane changed (%s), but this pane is NOT the one currently designated for focus in the dFocus cycle.\n", paneType)
 			}
 		} else {
 			tvP.LogToDebugScreen("[PAGE_CHANGE] focusablePrimitives not fully initialized or currentFocusIndex out of bounds.")
+			fmt.Println("[STDOUT_ONPANEPAGECHANGE] focusablePrimitives issue or currentFocusIndex out of bounds.")
 		}
 
 		// Update screen content if necessary
 		if cs, ok := screener.(*ChatConversationScreen); ok {
 			tvP.LogToDebugScreen("[PAGE_CHANGE] Updating ChatConversationScreen: %s", cs.Name())
-			cs.UpdateConversation() // Fetches history for its sessionID
-			cs.Primitive()          // Updates title
+			fmt.Printf("[STDOUT_ONPANEPAGECHANGE] Updating ChatConversationScreen: %s\n", cs.Name())
+			cs.UpdateConversation()
+			cs.Primitive()
 		} else if dos, ok := screener.(*DynamicOutputScreen); ok {
-			// DynamicOutputScreen's Write method now directly updates the TextView.
-			// A Flush might only be needed if content was buffered elsewhere by this screener type.
-			// For now, assume Write is sufficient.
 			tvP.LogToDebugScreen("[PAGE_CHANGE] DynamicOutputScreen %s became visible. Content should be current via its Write method.", dos.Name())
-			// dos.FlushBufferToTextView() // May not be needed if Write is used consistently
+			fmt.Printf("[STDOUT_ONPANEPAGECHANGE] DynamicOutputScreen %s became visible.\n", dos.Name())
 		}
 	} else {
 		tvP.LogToDebugScreen("[PAGE_CHANGE] No screener found for current primitive on page '%s'", pageName)
+		fmt.Printf("[STDOUT_ONPANEPAGECHANGE] No screener found for current primitive on page '%s' (Primitive type: %T).\n", pageName, currentPrimitive)
 	}
-	tvP.updateStatusText() // Update status bar after page change
+	tvP.updateStatusText() // This method is defined in tui_layout.go on *tviewAppPointers
+	fmt.Printf("[STDOUT_ONPANEPAGECHANGE_EXIT] onPanePageChange exiting for page '%s'.\n", pageName)
 }

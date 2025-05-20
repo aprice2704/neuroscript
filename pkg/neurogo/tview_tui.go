@@ -1,5 +1,5 @@
 // NeuroScript Version: 0.4.0
-// File version: 0.3.14 // Slimmed down, methods moved to tui_methods.go
+// File version: 0.3.16 // Commented out Tab/Shift-Tab press logs in keyHandle.
 // Description: Main TUI entry point.
 // filename: pkg/neurogo/tview_tui.go
 package neurogo
@@ -130,7 +130,6 @@ func StartTviewTUI(mainApp *App, initialScriptPath string) error {
 	}
 	tvP.statusBar = tview.NewTextView().SetDynamicColors(true)
 
-	// This log uses the LogToDebugScreen method on tvP
 	tvP.LogToDebugScreen("[TUI_INIT] UI Primitives (like debugScreen, statusbar) initialized.")
 
 	helpStaticScreen := NewStaticPrimitiveScreen("Help", "Help", helpText)
@@ -148,16 +147,18 @@ func StartTviewTUI(mainApp *App, initialScriptPath string) error {
 		tvP.localInputArea, tvP.aiInputArea, tvP.aiOutputView, tvP.localOutputView,
 	}
 	tvP.numFocusablePrimitives = len(tvP.focusablePrimitives)
-	// These indices are informational, dFocus uses the slice directly
-	tvP.paneCIndex, tvP.paneDIndex, tvP.paneBIndex, tvP.paneAIndex = 0, 1, 2, 3
-	tvP.currentFocusIndex = tvP.paneCIndex // Start focus on Local Input
+	tvP.paneCIndex = 0 // localInputArea
+	tvP.paneDIndex = 1 // aiInputArea
+	tvP.paneBIndex = 2 // aiOutputView
+	tvP.paneAIndex = 3 // localOutputView
+	tvP.currentFocusIndex = tvP.paneCIndex
 
 	if len(tvP.leftScreens) > 0 {
 		tvP.setScreen(0, true)
-	} // Show ScriptOut on left
+	}
 	if len(tvP.rightScreens) > 0 {
 		tvP.setScreen(0, false)
-	} // Show DebugLog on right
+	}
 
 	if interp := mainApp.GetInterpreter(); interp != nil {
 		if tvP.originalStdout == nil {
@@ -197,63 +198,87 @@ func StartTviewTUI(mainApp *App, initialScriptPath string) error {
 		SetRows(0, 5, 1).SetColumns(0, 0).SetBorders(false).SetGap(0, 0).
 		AddItem(tvP.localOutputView, 0, 0, 1, 1, 0, 0, false).
 		AddItem(tvP.aiOutputView, 0, 1, 1, 1, 0, 0, false).
-		AddItem(tvP.localInputArea, 1, 0, 1, 1, 0, 100, true). // localInputArea gets initial focus in dFocus(0)
+		AddItem(tvP.localInputArea, 1, 0, 1, 1, 0, 100, true).
 		AddItem(tvP.aiInputArea, 1, 1, 1, 1, 0, 100, false).
 		AddItem(tvP.statusBar, 2, 0, 1, 2, 0, 0, false)
 	tvP.LogToDebugScreen("[TUI_INIT] Grid layout configured.")
 
 	keyHandle := func(event *tcell.EventKey) *tcell.EventKey {
 		var activeScreener PrimitiveScreener
-		currentFocusPrimitive := tvP.tviewApp.GetFocus()
+		var targetPaneIsLeft bool
+		var paneToCheck *tview.Pages
+		var focusedComponent tview.Primitive
 
-		// Determine active screener
-		if tvP.localOutputView != nil && (currentFocusPrimitive == tvP.localOutputView || tvP.localOutputView.HasFocus()) {
-			_, prim := tvP.localOutputView.GetFrontPage()
-			if prim != nil {
-				activeScreener, _ = tvP.getScreenerFromPrimitive(prim, true)
+		if tvP.currentFocusIndex < 0 || tvP.currentFocusIndex >= tvP.numFocusablePrimitives {
+			tvP.LogToDebugScreen("[KEY_HANDLE_ERROR] currentFocusIndex %d out of bounds [0-%d]. Resetting.", tvP.currentFocusIndex, tvP.numFocusablePrimitives-1)
+			if tvP.numFocusablePrimitives > 0 {
+				tvP.currentFocusIndex = 0
+			} else {
+				return event
 			}
-		} else if tvP.aiOutputView != nil && (currentFocusPrimitive == tvP.aiOutputView || tvP.aiOutputView.HasFocus()) {
-			_, prim := tvP.aiOutputView.GetFrontPage()
-			if prim != nil {
-				activeScreener, _ = tvP.getScreenerFromPrimitive(prim, false)
+		}
+		focusedComponent = tvP.focusablePrimitives[tvP.currentFocusIndex]
+
+		if focusedComponent == tvP.localInputArea || focusedComponent == tvP.localOutputView {
+			paneToCheck = tvP.localOutputView
+			targetPaneIsLeft = true
+		} else if focusedComponent == tvP.aiInputArea || focusedComponent == tvP.aiOutputView {
+			paneToCheck = tvP.aiOutputView
+			targetPaneIsLeft = false
+		}
+
+		if paneToCheck != nil {
+			_, primOnPage := paneToCheck.GetFrontPage()
+			if primOnPage != nil {
+				activeScreener, _ = tvP.getScreenerFromPrimitive(primOnPage, targetPaneIsLeft)
 			}
 		}
 
-		// Suppress logging key events if the debug screen itself is the active screener
-		// to prevent the "infinite scroll" effect.
 		shouldLogKeyEventToDebugScreen := true
 		if activeScreener == tvP.debugScreen {
 			shouldLogKeyEventToDebugScreen = false
 		}
 
-		if shouldLogKeyEventToDebugScreen {
-			tvP.LogToDebugScreen("[KEY_HANDLE] Key: %s, Mod: %v (ActiveScreener: %s)",
+		// Conditional logging for general key events, excluding Tab/Backtab details if not needed
+		isTabEvent := event.Key() == tcell.KeyTab || event.Key() == tcell.KeyBacktab
+		if shouldLogKeyEventToDebugScreen && !isTabEvent { // Log if not debug screen AND not a tab event
+			activeScreenerName := "None"
+			if activeScreener != nil {
+				activeScreenerName = activeScreener.Name()
+			}
+			actualTviewFocus := "nil"
+			if tvP.tviewApp != nil && tvP.tviewApp.GetFocus() != nil {
+				actualTviewFocus = fmt.Sprintf("%T", tvP.tviewApp.GetFocus())
+			}
+			focusedCompName := "nil"
+			if focusedComponent != nil {
+				focusedCompName = fmt.Sprintf("%T", focusedComponent)
+			}
+			tvP.LogToDebugScreen("[KEY_HANDLE] Key: %s, Mod: %v (FocusIndex: %d [%s], ActiveScreener: %s, ActualTviewFocus: %s)",
 				FormatEventKeyForLogging(event),
 				event.Modifiers(),
-				func() string {
-					if activeScreener != nil {
-						return activeScreener.Name()
-					} else {
-						return "None"
-					}
-				}())
+				tvP.currentFocusIndex,
+				focusedCompName,
+				activeScreenerName,
+				actualTviewFocus)
 		}
 
 		if activeScreener != nil {
 			if handler := activeScreener.InputHandler(); handler != nil {
-				if shouldLogKeyEventToDebugScreen {
+				// Log screener interaction only if general key logging is enabled for this event type
+				if shouldLogKeyEventToDebugScreen && !isTabEvent {
 					tvP.LogToDebugScreen("[KEY_HANDLE] Passing event to screener %s InputHandler", activeScreener.Name())
 				}
 				returnedEvent := handler(event, func(p tview.Primitive) {
-					if shouldLogKeyEventToDebugScreen {
+					if shouldLogKeyEventToDebugScreen && !isTabEvent { // Also respect tab event silence here
 						tvP.LogToDebugScreen("[KEY_HANDLE] Screener %s requests focus on %T", activeScreener.Name(), p)
 					}
 					if tvP.tviewApp != nil {
 						tvP.tviewApp.SetFocus(p)
 					}
 				})
-				if returnedEvent == nil { // Event was consumed by the screener's handler
-					if shouldLogKeyEventToDebugScreen {
+				if returnedEvent == nil {
+					if shouldLogKeyEventToDebugScreen && !isTabEvent { // Also respect tab event silence here
 						tvP.LogToDebugScreen("[KEY_HANDLE] Event consumed by screener %s", activeScreener.Name())
 					}
 					return nil
@@ -261,7 +286,6 @@ func StartTviewTUI(mainApp *App, initialScriptPath string) error {
 			}
 		}
 
-		// Global key bindings
 		switch event.Key() {
 		case tcell.KeyCtrlC:
 			if shouldLogKeyEventToDebugScreen {
@@ -272,15 +296,11 @@ func StartTviewTUI(mainApp *App, initialScriptPath string) error {
 			}
 			return nil
 		case tcell.KeyTab:
-			if shouldLogKeyEventToDebugScreen {
-				tvP.LogToDebugScreen("[KEY_HANDLE] Tab pressed.")
-			}
+			// if shouldLogKeyEventToDebugScreen {tvP.LogToDebugScreen("[KEY_HANDLE] Tab pressed.")} // Commented out
 			tvP.dFocus(1)
 			return nil
 		case tcell.KeyBacktab:
-			if shouldLogKeyEventToDebugScreen {
-				tvP.LogToDebugScreen("[KEY_HANDLE] Shift+Tab pressed.")
-			}
+			// if shouldLogKeyEventToDebugScreen {tvP.LogToDebugScreen("[KEY_HANDLE] Shift+Tab pressed.")} // Commented out
 			tvP.dFocus(-1)
 			return nil
 		case tcell.KeyRune:
@@ -288,10 +308,14 @@ func StartTviewTUI(mainApp *App, initialScriptPath string) error {
 				if shouldLogKeyEventToDebugScreen {
 					tvP.LogToDebugScreen("[KEY_HANDLE] '?' pressed. Switching to help.")
 				}
-				if tvP.helpScreenIndex >= 0 && tvP.helpScreenIndex < len(tvP.leftScreens) {
+				if tvP.leftScreens != nil && tvP.helpScreenIndex >= 0 && tvP.helpScreenIndex < len(tvP.leftScreens) {
 					tvP.setScreen(tvP.helpScreenIndex, true)
+				} else {
+					if shouldLogKeyEventToDebugScreen {
+						tvP.LogToDebugScreen("[KEY_HANDLE] Help screen index invalid or leftScreens nil for '?' key.")
+					}
 				}
-				return nil // '?' is handled
+				return nil
 			}
 		case tcell.KeyCtrlB:
 			if shouldLogKeyEventToDebugScreen {
@@ -307,22 +331,22 @@ func StartTviewTUI(mainApp *App, initialScriptPath string) error {
 			return nil
 		}
 
-		if shouldLogKeyEventToDebugScreen {
+		if shouldLogKeyEventToDebugScreen && !isTabEvent { // Log pass-through only if general logging for it is on
 			tvP.LogToDebugScreen("[KEY_HANDLE] Event not handled by main keymap, passing through (%s).", FormatEventKeyForLogging(event))
 		}
 		return event
 	}
-	if tvP.tviewApp != nil { // Ensure tviewApp exists before setting input capture
+	if tvP.tviewApp != nil {
 		tvP.tviewApp.SetInputCapture(keyHandle)
 	}
 	tvP.LogToDebugScreen("[TUI_INIT] Global InputCapture function set.")
 
-	tvP.dFocus(0) // Set initial focus and styles
+	tvP.dFocus(0)
 	tvP.LogToDebugScreen("[TUI_INIT] Initial dFocus(0) called.")
 
 	tvP.LogToDebugScreen("[TUI_INIT] Starting tview event loop (app.Run())...")
 	var runErr error
-	if tvP.tviewApp != nil && tvP.grid != nil { // Ensure root and app are set
+	if tvP.tviewApp != nil && tvP.grid != nil {
 		runErr = tvP.tviewApp.SetRoot(tvP.grid, true).Run()
 	} else {
 		runErr = fmt.Errorf("tviewApp or grid was nil before Run()")
@@ -330,7 +354,6 @@ func StartTviewTUI(mainApp *App, initialScriptPath string) error {
 	}
 
 	if runErr != nil {
-		tvP.LogToDebugScreen("[TUI_RUN_ERROR] %v", runErr)
 		logError("tview.Application.Run() exited with error", "error", runErr)
 		if interp := mainApp.GetInterpreter(); interp != nil && tvP.originalStdout != nil {
 			interp.SetStdout(tvP.originalStdout)
@@ -339,8 +362,6 @@ func StartTviewTUI(mainApp *App, initialScriptPath string) error {
 	}
 
 	logInfo("tview.Application.Run() exited normally.")
-	tvP.LogToDebugScreen("[TUI_EXIT] tview.Application.Run() exited normally.")
-
 	if interp := mainApp.GetInterpreter(); interp != nil && tvP.originalStdout != nil {
 		interp.SetStdout(tvP.originalStdout)
 	}

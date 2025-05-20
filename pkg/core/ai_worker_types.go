@@ -1,5 +1,5 @@
 // NeuroScript Version: 0.4.0
-// File version: 0.3.7
+// File version: 0.3.8 // Corrected JSON tag for InteractionModels
 // Description: Defines types for the AI Worker Management system, including workers, data sources, pools, queues, and work items.
 // filename: pkg/core/ai_worker_types.go
 
@@ -168,7 +168,7 @@ type AIWorkerDefinition struct {
 	Provider                    AIWorkerProvider            `json:"provider"`
 	ModelName                   string                      `json:"modelName"`
 	Auth                        APIKeySource                `json:"auth"`
-	InteractionModels           []InteractionModelType      `json:"interactionModels,omitempty"`
+	InteractionModels           []InteractionModelType      `json:"interaction_models,omitempty"` // CORRECTED TAG
 	Capabilities                []string                    `json:"capabilities,omitempty"`
 	BaseConfig                  map[string]interface{}      `json:"baseConfig,omitempty"`
 	CostMetrics                 map[string]float64          `json:"costMetrics,omitempty"`

@@ -4,11 +4,11 @@ Follow these **RULES** **very strictly** for all Go code contributions to the Ne
  
  ## Project Setup & Awareness
  
- 1.  **Understand Context:** Before coding, review project docs (`docs/`, if present) and existing code to grasp the goals and architecture. Remember the dependency on the `neuroscript` folder.
+ 1.  **Understand Context:** Before coding, review project docs (`docs/`, if present) and existing code to grasp the goals and architecture. Remember the dependency on the `neuroscript` folder. ALWAYS read any .md files.
  1a. **USE THE INDEX** you should have a file `neuroscript_index.json`, **if not, ask for it**, use it to find things in the codebase **instead of making assumptions**. 
  2.  **Request Missing Files:** If you need files you don't have (e.g., `.g4`, `.y`, fixtures, source code), ask for them immediately. Don't guess contents.
  3.  **Pause for Discussion:** During design discussions, wait for an explicit request before generating new/updated code files -- especially more than 2.
- 3. a. Most of the time, generate one file at a time.
+ 3. a. Most of the time, generate one file at a time UNLESS splitting a file
  3. b. If we experience stale files, **ask** for the latest contents to update.
  3. c. If you think the problem is build cache issues or build environment issues **you are wrong**, it has **never** been these things yet. It **may well** be that you have a stale file however, so just ask for the latest.
  
@@ -16,7 +16,7 @@ Follow these **RULES** **very strictly** for all Go code contributions to the Ne
  
  4.  **Full & Functional Files:** Always provide complete Go files. **NEVER** generate code with function bodies "shorted out" or replaced by comments (e.g., `// ... implementation ...`); this wastes significant time if missed. Ensure all provided code is intended to be functional.
  5.  **Single Update Block (Optional):** *Exception:* If modifying a large existing file with localized changes, you *may* provide just the single, contiguous changed block (e.g., a modified function) clearly marked for replacement, *instead* of the whole file. **Never provide more than one update block per file.** If in doubt, provide the full file.
- 6.  **File Size:** YOU MUST Split Go files logically if they exceed ~200-300 lines. You don't have to ask first, just do it. **THIS IS VITAL** for development efficiency (moving text between you and I).
+ 6.  **File Size:** YOU MUST Split Go files logically IMMEDIATELY if they exceed 200 lines. You don't have to ask first, just do it. **THIS IS VITAL** for development efficiency (moving text between you and I).
  7.  **Helpers:** Place reusable helpers in shared files (e.g., `utils.go`, `parsing_helpers.go`). Add new helpers cautiously; modify existing ones **rarely**.
  8.  **Package Comments:** Keep `// Package ...` comments accurate.
  9.  **Import Paths:** Use plain string literals for import paths (e.g., `"path/to/pkg"`), not Markdown links.
@@ -34,7 +34,7 @@ comment lines at the top of files thus:
 and bump the minor number in the file version each time. Please remove the last modified date/time -- it proved not to be useful.
  
  
- 9. b. **Comments**: add and maintain package comments please. No comments within import blocks please. Remember: **do not** put // comments in ns file, they are no permitted.
+ 9. b. **Comments**: add and maintain package comments please. No comments within import blocks please. Remember: **do not** put // comments in .ns files, they are no permitted.
  
  ## Error Handling Protocol
  
