@@ -1,63 +1,62 @@
 // NeuroScript Version: 0.4.0
-// File version: 0.2.1 // Based on your 0.2.0, adding initial script display fix
+// File version: 0.3.4
+// Description: Main TUI entry point. Further review of Draw/QueueUpdateDraw calls.
 // filename: pkg/neurogo/tview_tui.go
-// nlines: 280 // Approximate
+// nlines: 200 // Approximate
 // risk_rating: MEDIUM
-// Changes:
-// - Integrated DynamicOutputScreen to capture and display initial script output.
-// - Initial script (-script flag) is now run synchronously during TUI setup
-//   after interpreter's stdout is redirected to DynamicOutputScreen's buffer.
-// - DynamicOutputScreen.Contents() provides the buffered output to localOutputView
-//   when the screen is first set.
-// - No live refresh from DynamicOutputScreen.Write() in this version (deferred).
-
 package neurogo
 
 import (
-	"context" // For context.Background()
+	"context"
 	"fmt"
 	"io"
-	"path/filepath" // For filepath.Base()
+	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
 
+// tviewAppPointers holds references to common tview components and application state.
 type tviewAppPointers struct {
 	tviewApp        *tview.Application
 	grid            *tview.Grid
-	localOutputView *tview.Pages
-	aiOutputView    *tview.Pages
-	localInputArea  *tview.TextArea
-	aiInputArea     *tview.TextArea
+	localOutputView *tview.Pages    // Pane A
+	aiOutputView    *tview.Pages    // Pane B
+	localInputArea  *tview.TextArea // Pane C
+	aiInputArea     *tview.TextArea // Pane D
 	statusBar       *tview.TextView
 
-	focusablePrimitives []tview.Primitive
-	currentFocusIndex   int
+	// Focus management
+	focusablePrimitives    []tview.Primitive
+	currentFocusIndex      int
+	numFocusablePrimitives int
+	paneAIndex             int
+	paneBIndex             int
+	paneCIndex             int
+	paneDIndex             int
 
 	app                 *App
 	initialActivityText string
 
+	// Screen management
 	leftScreens  []PrimitiveScreener
 	rightScreens []PrimitiveScreener
+	chatScreen   *ChatConversationScreen
 
-	leftShowing  int
-	rightShowing int
-	helpScreen   int // This is an index for tvP.leftScreens
+	leftShowing     int
+	rightShowing    int
+	helpScreenIndex int
 
-	localOutputWriter *tviewWriter
-	originalStdout    io.Writer // To store the interpreter's original stdout
+	originalStdout io.Writer
 }
 
-// StartTviewTUI is based on the user's v0.2.0 structure, with minimal changes
-// to integrate DynamicOutputScreen for initial script output.
+// StartTviewTUI initializes and runs the tview-based Text User Interface.
 func StartTviewTUI(mainApp *App, initialScriptPath string) error {
-
-	// Logger setup from user's v0.2.0
 	logInfo := func(msg string, keyvals ...interface{}) {
-		if mainApp != nil && mainApp.Log != nil { // mainApp.Log is the logger instance
+		if mainApp != nil && mainApp.Log != nil {
 			mainApp.Log.Info(msg, keyvals...)
 		} else {
 			fmt.Printf("INFO: %s %v\n", msg, keyvals)
@@ -78,408 +77,297 @@ func StartTviewTUI(mainApp *App, initialScriptPath string) error {
 		}
 	}
 
-	logInfo("StartTviewTUI entered (NeuroGo TUI System)") // Updated version string
+	logInfo("StartTviewTUI initializing...")
 	if mainApp == nil {
-		// Use fmt.Printf directly as logger might not be available if mainApp is nil
 		fmt.Println("CRITICAL ERROR in StartTviewTUI: mainApp parameter is nil.")
 		return fmt.Errorf("mainApp instance cannot be nil")
 	}
 
 	tvApp := tview.NewApplication()
 	tvP := &tviewAppPointers{tviewApp: tvApp, app: mainApp}
-	if mainApp.tui == nil { // As per user's v0.2.0
+	if mainApp.tui == nil {
 		mainApp.tui = tvP
 	}
-	logDebug("tview.Application and tviewAppPointers created.")
 
-	tvP.localOutputView = tview.NewPages()
-	tvP.aiOutputView = tview.NewPages()
+	tvP.localOutputView = tview.NewPages().SetChangedFunc(func() { tvP.onPanePageChange(tvP.localOutputView) })
+	tvP.aiOutputView = tview.NewPages().SetChangedFunc(func() { tvP.onPanePageChange(tvP.aiOutputView) })
 
 	tvP.localInputArea = tview.NewTextArea().SetWrap(false).SetWordWrap(false)
 	tvP.localInputArea.SetBorder(false).SetTitle("C: Local Input")
 
 	tvP.aiInputArea = tview.NewTextArea().SetWrap(true).SetWordWrap(true)
 	tvP.aiInputArea.SetBorder(false).SetTitle("D: AI Input")
+	tvP.aiInputArea.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyEnter && event.Modifiers() == tcell.ModNone {
+			text := strings.TrimSpace(tvP.aiInputArea.GetText())
+			if text != "" {
+				if tvP.app.activeChatInstance == nil {
+					logError("Cannot send chat: No active chat instance.", "text", text)
+					// Update status bar on the main thread
+					tvP.tviewApp.QueueUpdateDraw(func() {
+						tvP.statusBar.SetText("[red]No active chat. Select worker from AIWM (Ctrl+B > Select > Enter) then type here.[-]")
+					})
+					return nil
+				}
+				logInfo("Sending chat message from AI Input", "text", text)
+				// Perform the LLM call in a separate goroutine to avoid blocking the TUI thread
+				go func(msgToSend string) {
+					ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
+					defer cancel()
+					_, err := tvP.app.SendChatMessageToActiveWorker(ctx, msgToSend)
+
+					// Update UI elements on the main thread using QueueUpdateDraw
+					tvP.tviewApp.QueueUpdateDraw(func() {
+						if err != nil {
+							logError("Error sending/processing chat message", "error", err)
+							errorMsg := fmt.Sprintf("\n[red]Error: %s[-]\\n", EscapeTviewTags(err.Error()))
+							if tvP.chatScreen != nil && tvP.chatScreen.textView != nil {
+								fmt.Fprint(tvP.chatScreen.textView, errorMsg)
+								tvP.chatScreen.textView.ScrollToEnd()
+							}
+						}
+						if tvP.chatScreen != nil {
+							tvP.chatScreen.UpdateConversation(tvP.app.GetActiveChatHistory())
+						}
+					})
+				}(text)
+
+				tvP.aiInputArea.SetText("", true) // Clear input area immediately
+			}
+			return nil
+		}
+		return event
+	})
 
 	tvP.initialActivityText = "NeuroScript TUI Ready"
-	if initialScriptPath != "" && mainApp.Config != nil && mainApp.Config.StartupScript == initialScriptPath {
-		tvP.initialActivityText = fmt.Sprintf("Script: %s | Ready", initialScriptPath)
+	if initialScriptPath != "" {
+		tvP.initialActivityText = fmt.Sprintf("Script: %s | Ready", filepath.Base(initialScriptPath))
 	}
 	tvP.statusBar = tview.NewTextView().SetDynamicColors(true)
-	logDebug("UI Primitives created.")
+	logDebug("UI Primitives initialized.")
 
-	hs := NewStaticPrimitiveScreen("Help", "Help", helpText)
-	scriptOut := NewDynamicOutputScreen("Script Out", "Script Output")
-	tvP.addScreen(scriptOut, true)
-	tvP.addScreen(NewAIWMStatusScreen(tvP.app), true)
-	tvP.addScreen(hs, true)
+	helpStaticScreen := NewStaticPrimitiveScreen("Help", "Help", helpText)
+	scriptOutputScreen := NewDynamicOutputScreen("ScriptOut", "Script Output")
+	aiwmScreen := NewAIWMStatusScreen(tvP.app)
+	tvP.chatScreen = NewChatConversationScreen(tvP.app)
 
-	tvP.addScreen(hs, false) // Help screen also on the right, as per user's v0.2.0
-	tvP.addScreen(hs, false) // Help screen also on the right, as per user's v0.2.0
+	tvP.addScreen(scriptOutputScreen, true)
+	tvP.addScreen(aiwmScreen, true)
+	tvP.addScreen(helpStaticScreen, true)
+	tvP.helpScreenIndex = 2
 
+	tvP.addScreen(tvP.chatScreen, false)
+	tvP.addScreen(helpStaticScreen, false)
+
+	tvP.focusablePrimitives = []tview.Primitive{
+		tvP.localInputArea,
+		tvP.aiInputArea,
+		tvP.aiOutputView,
+		tvP.localOutputView,
+	}
+	tvP.numFocusablePrimitives = len(tvP.focusablePrimitives)
+	tvP.paneCIndex = 0
+	tvP.paneDIndex = 1
+	tvP.paneBIndex = 2
+	tvP.paneAIndex = 3
+	tvP.currentFocusIndex = tvP.paneCIndex
+
+	// Set initial screens *after* focusablePrimitives is initialized
 	if len(tvP.leftScreens) > 0 {
-		tvP.setScreen(0, true) // Activates DynamicOutputScreen (index 0)
+		tvP.setScreen(0, true)
 	}
 	if len(tvP.rightScreens) > 0 {
-		tvP.setScreen(0, false) // Activates default right screen (e.g., Help)
+		tvP.setScreen(0, false)
 	}
 
-	// // --- 2. Setup DynamicOutputScreen & Redirect Interpreter Output ---
-	// // This DynamicOutputScreen (from tui_screens.go v0.4.0) only buffers.
-	// scriptOutputScreen := NewDynamicOutputScreen("Script Output", "A: Script Output")
-	// // Add it first to tvP.leftScreens so it's at index 0.
-	// tvP.addScreen(scriptOutputScreen, true)
-
-	if mainApp.GetInterpreter() != nil {
-		// Store original stdout if not already stored, then set new stdout
-		if mainApp.GetInterpreter().Stdout() != nil && tvP.originalStdout == nil {
-			tvP.originalStdout = mainApp.GetInterpreter().Stdout()
+	if interp := mainApp.GetInterpreter(); interp != nil {
+		if tvP.originalStdout == nil {
+			tvP.originalStdout = interp.Stdout()
 		}
-		mainApp.GetInterpreter().SetStdout(scriptOut)
-		logInfo("Interpreter stdout redirected to DynamicOutputScreen buffer.")
-	} else {
-		logError("Interpreter is nil; cannot redirect stdout. Script output may go to console.")
+		interp.SetStdout(scriptOutputScreen)
+		logInfo("Interpreter stdout redirected to script output screen (Pane A).")
 	}
 
 	if initialScriptPath != "" {
-		logInfo("Executing initial script (output to DynamicOutputScreen buffer)", "script", initialScriptPath)
-		ctx := context.Background()
-		baseScript := filepath.Base(initialScriptPath)  // Requires "path/filepath"
-		originalActivityText := tvP.initialActivityText // For restoring status later
-		tvP.initialActivityText = fmt.Sprintf("Running: %s...", baseScript)
-		// updateStatusText not called here yet; will be called by setScreen
+		logInfo("Executing initial TUI script...", "script", initialScriptPath)
+		originalActivityText := tvP.initialActivityText
+		tvP.initialActivityText = fmt.Sprintf("Running: %s...", filepath.Base(initialScriptPath))
+		tvP.updateStatusText() // Update status to "Running..."
 
-		if err := mainApp.ExecuteScriptFile(ctx, initialScriptPath); err != nil {
-			errMsg := fmt.Sprintf("[red]Error executing initial script '%s': %v[-]", initialScriptPath, err)
-			logError("Error executing initial script", "script", initialScriptPath, "error", err)
-			if _, writeErr := fmt.Fprintln(scriptOut, errMsg); writeErr != nil {
-				logError("Failed to write script execution error to DynamicOutputScreen buffer", "error", writeErr)
-			}
+		// Execute script synchronously for now.
+		err := mainApp.ExecuteScriptFile(context.Background(), initialScriptPath)
+		scriptOutputScreen.FlushBufferToTextView() // Ensure content from script execution itself is in the TextView immediately
+
+		// !! DIAGNOSTIC: Temporarily comment out the QueueUpdateDraw block !!
+		/*
+			tvP.tviewApp.QueueUpdateDraw(func() {
+				if err != nil {
+					errMsg := fmt.Sprintf("[red]Error in initial script '%s': %v[-]\\n", initialScriptPath, err)
+					logError("Initial script execution error", "script", initialScriptPath, "error", err)
+					fmt.Fprint(scriptOutputScreen, errMsg)
+				} else {
+					logInfo("Initial script completed.", "script", initialScriptPath)
+					fmt.Fprintf(scriptOutputScreen, "[green]Initial script '%s' completed.[-]\\n", initialScriptPath)
+				}
+				tvP.initialActivityText = fmt.Sprintf("Finished: %s. %s", filepath.Base(initialScriptPath), strings.TrimSpace(originalActivityText))
+				tvP.updateStatusText()
+				scriptOutputScreen.FlushBufferToTextView()
+			})
+		*/
+		// Synchronous fallback for script completion status for diagnostic purposes:
+		if err != nil {
+			// errMsg := fmt.Sprintf("[red]Error in initial script '%s': %v[-]\\n", initialScriptPath, err) // Prepared, but not Fprinting to avoid complex UI interaction
+			logError("Initial script execution error (synchronous log path)", "script", initialScriptPath, "error", err)
+			tvP.initialActivityText = fmt.Sprintf("[red]Script Error: %s[-]", filepath.Base(initialScriptPath))
+			tvP.updateStatusText()
 		} else {
-			successMsg := fmt.Sprintf("[green]Initial script '%s' completed successfully.[-]", initialScriptPath)
-			logInfo("Initial script completed successfully", "script", initialScriptPath)
-			if _, writeErr := fmt.Fprintln(scriptOut, successMsg); writeErr != nil {
-				logError("Failed to write script success message to DynamicOutputScreen buffer", "error", writeErr)
-			}
+			logInfo("Initial script completed (synchronous log path).", "script", initialScriptPath)
+			tvP.initialActivityText = fmt.Sprintf("Finished: %s. %s", filepath.Base(initialScriptPath), strings.TrimSpace(originalActivityText))
+			tvP.updateStatusText()
 		}
-		tvP.initialActivityText = fmt.Sprintf("Finished: %s. %s", baseScript, strings.TrimSpace(originalActivityText))
-		if scriptOutputScreenRef, ok := tvP.leftScreens[0].(*DynamicOutputScreen); ok { // Assuming it's the first screen
-			scriptOutputScreenRef.FlushBufferToTextView()
-		}
-		// At this point, scriptOutputScreen.builder contains all output from the initial script.
 	}
-
-	// --- 6. Focusable Primitives & Grid (as in user's v0.2.0) ---
-	tvP.focusablePrimitives = []tview.Primitive{
-		tvP.localInputArea, tvP.aiInputArea, tvP.aiOutputView, tvP.localOutputView,
-	}
-	nprims = len(tvP.focusablePrimitives) // User's global var
-	// User's global indices, ensure they match the order in focusablePrimitives:
-	Cidx = 0                     // localInputArea
-	Didx = 1                     // aiInputArea
-	Bidx = 2                     // aiOutputView
-	Aidx = 3                     // localOutputView
-	tvP.currentFocusIndex = Cidx // Start focus on localInputArea
-
-	tvP.updateStatusText() // Call after focus setup and initial screens.
-	logDebug("Initial status bar text set directly by updateStatusText.")
 
 	tvP.grid = tview.NewGrid().
-		SetRows(0, 5, 1).SetColumns(0, 0).SetBorders(false).SetGap(0, 0) // User's settings
+		SetRows(0, 5, 1).SetColumns(0, 0).SetBorders(false).SetGap(0, 0)
 	tvP.grid.AddItem(tvP.localOutputView, 0, 0, 1, 1, 0, 0, false).
 		AddItem(tvP.aiOutputView, 0, 1, 1, 1, 0, 0, false).
-		AddItem(tvP.localInputArea, 1, 0, 1, 1, 0, 30, true). // Initial focus here
-		AddItem(tvP.aiInputArea, 1, 1, 1, 1, 0, 30, false).
+		AddItem(tvP.localInputArea, 1, 0, 1, 1, 0, 100, true).
+		AddItem(tvP.aiInputArea, 1, 1, 1, 1, 0, 100, false).
 		AddItem(tvP.statusBar, 2, 0, 1, 2, 0, 0, false)
 	logDebug("Grid layout configured.")
 
-	// tvP.localOutputWriter setup (from user's v0.2.0) - can be kept if needed for direct writes
-	// not related to interpreter stdout, otherwise DynamicOutputScreen handles interpreter stdout.
+	keyHandle := func(event *tcell.EventKey) *tcell.EventKey {
+		var activeScreener PrimitiveScreener = nil
+		// Check focus on Pages views themselves, not their content primitives directly here,
+		// as the content primitives might not be directly in tvP.focusablePrimitives.
+		if tvP.localOutputView.HasFocus() {
+			_, prim := tvP.localOutputView.GetFrontPage()
+			activeScreener, _ = tvP.getScreenerFromPrimitive(prim, true)
+		} else if tvP.aiOutputView.HasFocus() {
+			_, prim := tvP.aiOutputView.GetFrontPage()
+			activeScreener, _ = tvP.getScreenerFromPrimitive(prim, false)
+		}
 
-	// --- 7. Input Capture Logic (dFocus and keyHandle from user's v0.2.0) ---
-	// focusInput := tcell.StyleDefault.Background(tcell.ColorDarkBlue).Foreground(tcell.ColorYellow)
-	// blurInput := tcell.StyleDefault.Background(tcell.ColorBlack).Foreground(tcell.ColorWhite) // Use tcell.StyleDefault
-
-	focusedPagesContentBgColor := tcell.ColorDarkBlue
-	focusInputTextStyle := tcell.StyleDefault.Background(tcell.ColorDarkBlue).Foreground(tcell.ColorYellow)
-
-	blurPagesContentBgColor := tcell.ColorBlack
-	blurInputTextStyle := tcell.StyleDefault.Background(tcell.ColorBlack).Foreground(tcell.ColorWhite)
-
-	dFocus := func(df int) {
-		oldFocus := tvP.focusablePrimitives[tvP.currentFocusIndex]
-		tvP.currentFocusIndex = posmod(tvP.currentFocusIndex+df, nprims)
-		nextFocus := tvP.focusablePrimitives[tvP.currentFocusIndex]
-
-		// --- Blur the previously focused primitive ---
-		switch v := oldFocus.(type) {
-		case *tview.TextArea: // For C: Local Input, D: AI Input
-			v.SetTextStyle(blurInputTextStyle)
-		case *tview.Pages: // For A: Local Output, B: AI Output
-			// Get the actual primitive (TextView) displayed by the Pages
-			_, currentPagePrimitive := v.GetFrontPage()
-			if tv, ok := currentPagePrimitive.(*tview.TextView); ok {
-				tv.SetBackgroundColor(blurPagesContentBgColor)
-			} else if currentPagePrimitive != nil {
-				// Fallback for other Box-like primitives, though TextView is expected here
-				if box, ok := currentPagePrimitive.(interface{ SetBackgroundColor(tcell.Color) *tview.Box }); ok {
-					box.SetBackgroundColor(blurPagesContentBgColor)
+		if activeScreener != nil {
+			if handler := activeScreener.InputHandler(); handler != nil {
+				returnedEvent := handler(event, func(p tview.Primitive) { tvP.tviewApp.SetFocus(p) })
+				if returnedEvent == nil { // Event handled by the screen
+					// If chat was started by AIWM screen, update UI.
+					// This check + update should be on the main UI thread.
+					if _, _, _, chatNowActive := tvP.app.GetActiveChatInstanceDetails(); chatNowActive {
+						// No QueueUpdateDraw here if already on main thread (which keyHandle is)
+						if tvP.chatScreen != nil {
+							chatScreenIdx := tvP.getScreenIndex(tvP.chatScreen, false)
+							if chatScreenIdx != -1 {
+								currentChatPageName, _ := tvP.aiOutputView.GetFrontPage()
+								expectedChatPageName := strconv.Itoa(chatScreenIdx)
+								if currentChatPageName != expectedChatPageName {
+									tvP.setScreen(chatScreenIdx, false)
+								}
+								tvP.chatScreen.UpdateConversation(tvP.app.GetActiveChatHistory())
+							}
+						}
+					}
+					return nil
 				}
 			}
 		}
-		switch v := nextFocus.(type) {
-		case *tview.TextArea: // For C: Local Input, D: AI Input
-			v.SetTextStyle(focusInputTextStyle)
-		case *tview.Pages: // For A: Local Output, B: AI Output
-			// Get the actual primitive (TextView) displayed by the Pages
-			_, currentPagePrimitive := v.GetFrontPage()
-			if tv, ok := currentPagePrimitive.(*tview.TextView); ok {
-				tv.SetBackgroundColor(focusedPagesContentBgColor)
-			} else if currentPagePrimitive != nil {
-				// Fallback for other Box-like primitives
-				if box, ok := currentPagePrimitive.(interface{ SetBackgroundColor(tcell.Color) *tview.Box }); ok {
-					box.SetBackgroundColor(focusedPagesContentBgColor)
-				}
-			}
-		}
-		tvP.tviewApp.SetFocus(nextFocus)
-		tvP.updateStatusText() // Update status bar
-	}
-
-	keyHandle := func(event *tcell.EventKey) *tcell.EventKey { // From user's v0.2.0, adapted
-		retEv := event // Default to returning the event
-		// logDebug("InputCapture", "keyName", event.Name(), "key", event.Key(), "rune", event.Rune()) // Can be verbose
 
 		switch event.Key() {
 		case tcell.KeyCtrlC:
 			logInfo("Ctrl-C pressed, stopping application.")
 			tvP.tviewApp.Stop()
-			retEv = nil // Consume the event
+			return nil
 		case tcell.KeyTab:
-			dFocus(1)
-			retEv = nil
+			tvP.dFocus(1)
+			return nil
 		case tcell.KeyBacktab:
-			dFocus(-1)
-			retEv = nil
+			tvP.dFocus(-1)
+			return nil
 		case tcell.KeyRune:
 			if event.Rune() == '?' {
-				// Ensure helpScreen index is valid
-				if tvP.helpScreen >= 0 && tvP.helpScreen < len(tvP.leftScreens) {
-					tvP.setScreen(tvP.helpScreen, true)
+				if tvP.helpScreenIndex >= 0 && tvP.helpScreenIndex < len(tvP.leftScreens) {
+					// UI updates from key handlers (main thread) don't strictly need QueueUpdateDraw for themselves
+					tvP.setScreen(tvP.helpScreenIndex, true)
 				} else {
-					logError("Help screen index invalid or help screen not found", "index", tvP.helpScreen)
+					logError("Help screen index for left pane is invalid.", "index", tvP.helpScreenIndex)
 				}
-				retEv = nil
+				return nil
 			}
-		case tcell.KeyCtrlB:
+		case tcell.KeyCtrlB: // Cycle Left Pane (A) screens
 			tvP.nextScreen(1, true)
-			retEv = nil
-		case tcell.KeyCtrlN:
+			return nil
+		case tcell.KeyCtrlN: // Cycle Right Pane (B) screens
 			tvP.nextScreen(1, false)
-			retEv = nil
+			return nil
 		}
-		// tvP.updateStatusText() // Called within dFocus and setScreen, might be redundant here unless other keys change state.
-		return retEv
+		return event
 	}
-
 	tvP.tviewApp.SetInputCapture(keyHandle)
 	logDebug("Global InputCapture function set.")
 
-	// --- 8. Start TUI ---
-	logInfo("Setting root primitive and starting tview event loop...")
-	// Initial focus is set by AddItem in the grid if `true` is passed as last arg,
-	// or explicitly here if needed. Grid AddItem for localInputArea has `true`.
-	if err := tvP.tviewApp.SetRoot(tvP.grid, true).SetFocus(tvP.localInputArea).Run(); err != nil {
+	tvP.dFocus(0) // Apply initial focus styles
+
+	logInfo("Starting tview event loop...")
+	if err := tvP.tviewApp.SetRoot(tvP.grid, true).Run(); err != nil {
 		logError("tview.Application.Run() exited with error", "error", err)
-		if mainApp.Log == nil { // User's v0.2.0 check
-			fmt.Printf("FATAL: tview.Application.Run() error: %v\n", err)
-		}
-		// Restore original stdout on error as well
-		if mainApp.GetInterpreter() != nil && tvP.originalStdout != nil { // Use tvP.originalStdout
-			mainApp.GetInterpreter().SetStdout(tvP.originalStdout)
+		if interp := mainApp.GetInterpreter(); interp != nil && tvP.originalStdout != nil {
+			interp.SetStdout(tvP.originalStdout)
 			logInfo("Restored interpreter's original stdout after TUI error.")
 		}
 		return fmt.Errorf("tview application run error: %w", err)
 	}
 
 	logInfo("tview.Application.Run() exited normally.")
-	if mainApp.GetInterpreter() != nil && tvP.originalStdout != nil { // Use tvP.originalStdout
-		mainApp.GetInterpreter().SetStdout(tvP.originalStdout)
-		logInfo("Restored interpreter's original stdout.")
+	if interp := mainApp.GetInterpreter(); interp != nil && tvP.originalStdout != nil {
+		interp.SetStdout(tvP.originalStdout)
+		logInfo("Restored interpreter's original stdout after TUI exit.")
 	}
 	return nil
 }
 
-// tviewWriter struct from user's v0.2.0
-type tviewWriter struct {
-	app      *tview.Application
-	textView *tview.TextView
-}
-
-// Write method from user's v0.2.0
-func (tw *tviewWriter) Write(p []byte) (n int, err error) {
-	if tw.textView == nil { // Added nil check for textView
-		return 0, fmt.Errorf("tviewWriter.textView is nil")
-	}
-	n, err = tw.textView.Write(p)
-	if tw.app != nil {
-		tw.app.QueueUpdateDraw(func() {})
-	}
-	return
-}
-
-// updateStatusText from user's v0.2.0, slightly adapted for safety
-func (tvP *tviewAppPointers) updateStatusText() {
-	if tvP.statusBar == nil {
+func (tvP *tviewAppPointers) onPanePageChange(pane *tview.Pages) {
+	_, currentPrimitive := pane.GetFrontPage()
+	if currentPrimitive == nil {
 		return
 	}
-	// Ensure logger is available for debug messages from this function
-	logDebug := func(msg string, keyvals ...interface{}) {} // No-op by default
-	if tvP.app != nil && tvP.app.GetLogger() != nil {
-		logDebug = tvP.app.GetLogger().Debug
-	}
 
-	// Use user's existing logic for "screens" string
-	screens := "no screens yet"
-	// Corrected condition: check tvP.rightScreens for the second part
-	if len(tvP.leftScreens) > 0 && len(tvP.rightScreens) > 0 &&
-		tvP.leftShowing >= 0 && tvP.leftShowing < len(tvP.leftScreens) &&
-		tvP.rightShowing >= 0 && tvP.rightShowing < len(tvP.rightScreens) {
-		screens = fmt.Sprintf("%s / %s | %s / %s",
-			tvP.leftScreens[tvP.leftShowing].Name(), "Local input", // Placeholder "Local input"
-			tvP.rightScreens[tvP.rightShowing].Name(), "AI input", // Placeholder "AI input"
-		)
-	} else if len(tvP.leftScreens) > 0 && tvP.leftShowing >= 0 && tvP.leftShowing < len(tvP.leftScreens) {
-		screens = fmt.Sprintf("%s / %s | No right screen active", tvP.leftScreens[tvP.leftShowing].Name(), "Local input")
-	} else if len(tvP.rightScreens) > 0 && tvP.rightShowing >= 0 && tvP.rightShowing < len(tvP.rightScreens) {
-		screens = fmt.Sprintf("No left screen active | %s / %s", tvP.rightScreens[tvP.rightShowing].Name(), "AI input")
-	}
+	isLeftPane := (pane == tvP.localOutputView)
+	var screener PrimitiveScreener
 
-	statusText := fmt.Sprintf("NS TUI: FocusIdx: %d | L: %d/%d | R: %d/%d | Screens: %s | Act: %s",
-		tvP.currentFocusIndex,
-		tvP.leftShowing, len(tvP.leftScreens), // Displaying 0-based internal index for now
-		tvP.rightShowing, len(tvP.rightScreens), // Displaying 0-based internal index
-		screens,
-		strings.TrimSpace(tvP.initialActivityText), // Include initialActivityText
-	)
-	logDebug("Updating status bar", "text", statusText)
-	tvP.statusBar.SetText(statusText)
-}
-
-func (tvP *tviewAppPointers) addScreen(s PrimitiveScreener, onLeft bool) {
-	if onLeft {
-		num := strconv.Itoa(len(tvP.leftScreens))
-		tvP.leftScreens = append(tvP.leftScreens, s)
-		tvP.localOutputView.AddPage(
-			num, s.Primitive(), true, true)
+	if isLeftPane {
+		screener, _ = tvP.getScreenerFromPrimitive(currentPrimitive, true)
 	} else {
-		num := strconv.Itoa(len(tvP.rightScreens))
-		tvP.rightScreens = append(tvP.rightScreens, s)
-		tvP.aiOutputView.AddPage(
-			num, s.Primitive(), true, true)
+		screener, _ = tvP.getScreenerFromPrimitive(currentPrimitive, false)
 	}
+
+	if screener != nil {
+		// If the Pages view itself is the one that should have focus in the main cycle...
+		if tvP.focusablePrimitives != nil && len(tvP.focusablePrimitives) > tvP.currentFocusIndex && tvP.currentFocusIndex >= 0 {
+			if (isLeftPane && tvP.focusablePrimitives[tvP.currentFocusIndex] == tvP.localOutputView) ||
+				(!isLeftPane && tvP.focusablePrimitives[tvP.currentFocusIndex] == tvP.aiOutputView) {
+				// ...then try to pass focus to the content of the page if it's focusable.
+				if screener.IsFocusable() {
+					screener.OnFocus(func(p tview.Primitive) {
+						tvP.tviewApp.SetFocus(p)
+					})
+				} else {
+					// If the screen content isn't focusable, keep focus on the Pages view itself.
+					tvP.tviewApp.SetFocus(pane)
+				}
+			}
+		} else if tvP.app != nil && tvP.app.Log != nil {
+			tvP.app.Log.Debug("onPanePageChange: focusablePrimitives not yet initialized or currentFocusIndex out of bounds during page change.")
+		}
+
+		// Update screen content
+		if cs, ok := screener.(*ChatConversationScreen); ok {
+			cs.UpdateConversation(tvP.app.GetActiveChatHistory())
+			cs.Primitive() // Update title
+		} else if dos, ok := screener.(*DynamicOutputScreen); ok {
+			dos.FlushBufferToTextView()
+		}
+	}
+	tvP.updateStatusText()
+	// Let tview handle drawing naturally after state changes. No explicit Draw() here.
 }
-
-func (tvP *tviewAppPointers) nextScreen(d int, onLeft bool) {
-	screens := tvP.rightScreens
-	cur := tvP.rightShowing
-	if onLeft {
-		screens = tvP.leftScreens
-		cur = tvP.leftShowing
-	}
-	n := len(screens)
-	if n < 2 { // If less than 2 screens, no cycling possible
-		return
-	}
-	nxt := posmod(cur+d, n)
-	tvP.setScreen(nxt, onLeft)
-}
-
-func (tvP *tviewAppPointers) setScreen(sIndex int, onLeft bool) {
-
-	logDebug := func(msg string, keyvals ...interface{}) {}
-	if tvP.app != nil && tvP.app.GetLogger() != nil { // Check if logger is available
-		logDebug = tvP.app.GetLogger().Debug
-	}
-
-	var targetPages *tview.Pages
-	var screens []PrimitiveScreener
-	pageName := strconv.Itoa(sIndex)
-
-	paneName := "Right"
-	if onLeft {
-		targetPages = tvP.localOutputView
-		screens = tvP.leftScreens
-		paneName = "Left"
-	} else {
-		targetPages = tvP.aiOutputView
-		screens = tvP.rightScreens
-	}
-
-	if sIndex < 0 || sIndex >= len(screens) {
-		logDebug("setScreen: index out of bounds", "pane", paneName, "index", sIndex, "numScreens", len(screens))
-		return
-	}
-	if targetPages == nil {
-		logDebug("setScreen: targetView is nil", "pane", paneName)
-		return
-	}
-
-	activeScreen := screens[sIndex]
-	targetPages.SwitchToPage(pageName)
-	if dos, ok := activeScreen.(*DynamicOutputScreen); ok {
-		dos.FlushBufferToTextView()
-	}
-
-	if onLeft {
-		tvP.leftShowing = sIndex
-	} else {
-		tvP.rightShowing = sIndex
-	}
-
-	logDebug("setScreen successful", "screenName", activeScreen.Name(), "index", sIndex, "onLeft", onLeft)
-	tvP.updateStatusText() // Assumes updateStatusText is safe to call
-}
-
-// Jump around a cycle of numbers, always >=0
-func posmod(a, b int) (c int) {
-	c = a % b
-	if c < 0 {
-		c += b
-	}
-	return c
-}
-
-// Global vars from user's v0.2.0 file. These should ideally be part of tvP or managed differently.
-var nprims, Aidx, Bidx, Cidx, Didx int
-
-// func getPrimitiveName(p tview.Primitive, tvP *tviewAppPointers) string {
-// 	if p == nil {
-// 		if tvP.focusablePrimitives != nil && len(tvP.focusablePrimitives) > 0 &&
-// 			tvP.currentFocusIndex >= 0 && tvP.currentFocusIndex < len(tvP.focusablePrimitives) {
-// 			p = tvP.focusablePrimitives[tvP.currentFocusIndex]
-// 		} else {
-// 			return "Unknown (no focusable)"
-// 		}
-// 	}
-// 	if p == nil { // Still nil after attempt to get current focus
-// 		return "Unknown (p is nil)"
-// 	}
-// 	switch p {
-// 	case tvP.localInputArea:
-// 		return "C:Local Input"
-// 	case tvP.aiInputArea:
-// 		return "D:AI Input"
-// 	case tvP.aiOutputView:
-// 		return "B:AI Output"
-// 	case tvP.localOutputView:
-// 		return "A:Local Output"
-// 	}
-// 	if titled, ok := p.(interface{ GetTitle() string }); ok {
-// 		name := titled.GetTitle()
-// 		if name != "" {
-// 			return name
-// 		}
-// 	}
-// 	return "Unnamed Primitive" // More descriptive fallback
-// }

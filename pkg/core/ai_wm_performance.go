@@ -8,8 +8,7 @@ package core
 import (
 	"encoding/json"
 	"fmt"
-	"os"
-	"path/filepath" // Required for filepath.Join if FullPathForPerformanceData was inlined, but it's on 'm'
+	"os" // Required for filepath.Join if FullPathForPerformanceData was inlined, but it's on 'm'
 	"strings"
 	// "github.com/aprice2704/neuroscript/pkg/logging"
 	// "github.com/google/uuid" // For TaskID if not provided externally
@@ -163,59 +162,6 @@ func (m *AIWorkerManager) loadAllRetiredInstanceDataUnsafe() ([]RetiredInstanceI
 	}
 	m.logger.Debugf("Successfully loaded %d RetiredInstanceInfo records from %s", len(allInfo), perfPath)
 	return allInfo, nil
-}
-
-// appendRetiredInstanceToFileUnsafe appends a single RetiredInstanceInfo to the JSON file.
-// This method now uses FullPathForPerformanceData() to get the file path.
-func (m *AIWorkerManager) appendRetiredInstanceToFileUnsafe(info RetiredInstanceInfo) error {
-	perfPath := m.FullPathForPerformanceData()
-	if perfPath == "" {
-		m.logger.Error("Cannot append retired instance: performance data file path is not configured in AIWorkerManager.")
-		return NewRuntimeError(ErrorCodeConfiguration, "performance data file path not configured for appending retired instance", ErrConfiguration)
-	}
-
-	allInfo, err := m.loadAllRetiredInstanceDataUnsafe() // This will use the correct path
-	if err != nil {                                      // loadAllRetiredInstanceDataUnsafe handles os.IsNotExist by returning empty list and nil error.
-		// If there's another error (not os.IsNotExist), it's a real issue.
-		m.logger.Errorf("Could not load existing performance data from '%s' to append: %v. Appending will create a new file or overwrite if the error was not 'not found'.", perfPath, err)
-		// Proceeding to attempt to write a new file with only the current record if loading failed for other reasons.
-		// This might overwrite corrupted data, which could be desirable or not depending on policy.
-		// For now, if load fails (and it's not a simple "not found"), we'll initialize allInfo to an empty slice.
-		allInfo = []RetiredInstanceInfo{} // Reset if load had issues other than not found
-	}
-
-	found := false
-	for i, existing := range allInfo {
-		if existing.InstanceID == info.InstanceID {
-			m.logger.Warnf("Attempted to append duplicate retired instance info for ID %s. Overwriting existing entry in %s.", info.InstanceID, perfPath)
-			allInfo[i] = info
-			found = true
-			break
-		}
-	}
-	if !found {
-		allInfo = append(allInfo, info)
-	}
-
-	data, err := json.MarshalIndent(allInfo, "", "  ")
-	if err != nil {
-		m.logger.Errorf("Failed to marshal updated performance data (with instance %s for file %s): %v", info.InstanceID, perfPath, err)
-		return NewRuntimeError(ErrorCodeInternal, fmt.Sprintf("failed to marshal updated performance data for instance %s", info.InstanceID), err)
-	}
-
-	// Ensure directory exists
-	dir := filepath.Dir(perfPath)
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		m.logger.Errorf("Failed to create directory '%s' for performance data file (instance %s): %v", dir, info.InstanceID, err)
-		return NewRuntimeError(ErrorCodeInternal, fmt.Sprintf("failed to create directory for performance data '%s'", dir), err)
-	}
-
-	if err := os.WriteFile(perfPath, data, 0644); err != nil {
-		m.logger.Errorf("Failed to write performance data to file '%s' (instance %s): %v", perfPath, info.InstanceID, err)
-		return NewRuntimeError(ErrorCodeInternal, fmt.Sprintf("failed to write performance data to file '%s' for instance %s", perfPath, info.InstanceID), err)
-	}
-	m.logger.Infof("Successfully appended/updated retired instance %s to %s. Total records in file: %d.", info.InstanceID, perfPath, len(allInfo))
-	return nil
 }
 
 // matchesPerformanceRecordFilters checks if a single performance record matches the given criteria.

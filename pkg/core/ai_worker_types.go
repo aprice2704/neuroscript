@@ -1,11 +1,13 @@
 // NeuroScript Version: 0.4.0
-// File version: 0.3.6
+// File version: 0.3.7
 // Description: Defines types for the AI Worker Management system, including workers, data sources, pools, queues, and work items.
 // filename: pkg/core/ai_worker_types.go
 
 package core
 
 import (
+	"context"
+	"fmt"
 	"time"
 )
 
@@ -134,15 +136,6 @@ type AIWorkerPerformanceSummary struct {
 	ActiveInstancesCount  int       `json:"active_instances_count,omitempty"` // Runtime info, might not be persisted directly here
 }
 
-// ConversationTurn is assumed to be defined elsewhere (e.g., llm_types.go)
-// For example:
-// type ConversationTurn struct {
-//    Role    string      `json:"role"` // "user", "model", "function_call", "function_result"
-//    Parts   []Part      `json:"parts"`
-//    Timestamp time.Time `json:"timestamp"`
-// }
-// type Part interface{} // Could be TextPart, FunctionCallPart, FunctionResultPart etc.
-
 // --- New GlobalDataSourceDefinition ---
 type DataSourceType string
 
@@ -169,8 +162,6 @@ type GlobalDataSourceDefinition struct {
 }
 
 // AIWorkerDefinition represents the blueprint for an AI worker.
-// (Keep your existing AIWorkerDefinition struct definition here)
-// For example:
 type AIWorkerDefinition struct {
 	DefinitionID                string                      `json:"definitionID"`
 	Name                        string                      `json:"name"`
@@ -200,7 +191,7 @@ type AIWorkerInstance struct {
 	InstanceID            string                 `json:"instance_id"`   // System-generated UUID
 	DefinitionID          string                 `json:"definition_id"` // ID of the AIWorkerDefinition it's based on
 	Status                AIWorkerInstanceStatus `json:"status"`
-	ConversationHistory   []*ConversationTurn    `json:"-"` // Managed by ConversationManager, not persisted with instance JSON
+	ConversationHistory   []*ConversationTurn    `json:"-"` // Holds the history of conversation turns for this instance.
 	CreationTimestamp     time.Time              `json:"creation_timestamp"`
 	LastActivityTimestamp time.Time              `json:"last_activity_timestamp"`
 	SessionTokenUsage     TokenUsageMetrics      `json:"session_token_usage"`
@@ -215,7 +206,72 @@ type AIWorkerInstance struct {
 	DataSourceRefs   []string `json:"data_source_refs,omitempty"`   // Instance-specific dynamically attached GlobalDataSourceDefinition names (augments definition/pool/queue/item refs)
 	SupervisoryAIRef string   `json:"supervisory_ai_ref,omitempty"` // Instance-specific SAI (Future)
 
-	// ResolvedDataSources []GlobalDataSourceDefinition `json:"-"` // Runtime field, not for JSON. Derived from all applicable DataSourceRefs.
+	llmClient LLMClient `json:"-"` // Runtime: LLM client for this instance to use.
+}
+
+// ProcessChatMessage sends a user message to the LLM for this instance and updates its history.
+// It uses the llmClient associated with the instance.
+func (instance *AIWorkerInstance) ProcessChatMessage(ctx context.Context, userMessageText string) (*ConversationTurn, error) {
+	if instance.llmClient == nil {
+		return nil, NewRuntimeError(ErrorCodePreconditionFailed, "LLM client not set for instance", nil)
+	}
+	if instance.Status == InstanceStatusRetiredCompleted || instance.Status == InstanceStatusRetiredError || instance.Status == InstanceStatusRetiredExhausted {
+		return nil, NewRuntimeError(ErrorCodePreconditionFailed, fmt.Sprintf("instance %s is retired and cannot process messages", instance.InstanceID), nil)
+	}
+	if instance.Status == InstanceStatusBusy {
+		return nil, NewRuntimeError(ErrorCodePreconditionFailed, fmt.Sprintf("instance %s is currently busy", instance.InstanceID), nil)
+	}
+
+	// 1. Construct and add user message to instance.ConversationHistory
+	userTurn := &ConversationTurn{
+		Role:    RoleUser, // Assumes RoleUser is defined in llm_types.go or similar
+		Content: userMessageText,
+	}
+	instance.ConversationHistory = append(instance.ConversationHistory, userTurn)
+	instance.LastActivityTimestamp = time.Now()
+	previousStatus := instance.Status
+	instance.Status = InstanceStatusBusy // Mark as busy
+
+	// 2. Call llmClient.Ask
+	// The llmClient.Ask method takes the current full history.
+	modelResponseTurn, err := instance.llmClient.Ask(ctx, instance.ConversationHistory)
+
+	if err != nil {
+		instance.Status = InstanceStatusError
+		instance.LastError = err.Error()
+		// Do not return the error directly if it's already a RuntimeError
+		if rtErr, ok := err.(*RuntimeError); ok {
+			return nil, rtErr
+		}
+		return nil, NewRuntimeError(ErrorCodeLLMError, fmt.Sprintf("LLM Ask failed for instance %s: %v", instance.InstanceID, err), err)
+	}
+
+	// 3. Add model response to instance.ConversationHistory
+	if modelResponseTurn != nil {
+		instance.ConversationHistory = append(instance.ConversationHistory, modelResponseTurn)
+		// Update token usage from the model's response turn
+		// Ensure TokenUsage field exists and is populated by the LLMClient implementation.
+		instance.SessionTokenUsage.InputTokens += modelResponseTurn.TokenUsage.InputTokens
+		instance.SessionTokenUsage.OutputTokens += modelResponseTurn.TokenUsage.OutputTokens
+		instance.SessionTokenUsage.TotalTokens = instance.SessionTokenUsage.InputTokens + instance.SessionTokenUsage.OutputTokens
+	}
+
+	instance.LastActivityTimestamp = time.Now()
+	// If it was busy due to this call, set it back to what it was before, or idle.
+	if previousStatus == InstanceStatusBusy || previousStatus == InstanceStatusInitializing {
+		instance.Status = InstanceStatusIdle
+	} else {
+		instance.Status = previousStatus
+	}
+	if modelResponseTurn == nil && err == nil {
+		// This case (nil response, nil error) should ideally be handled by the LLMClient
+		// or represent a specific scenario (e.g., content filtered by safety settings).
+		// For now, we'll assume the LLMClient might return this and we pass nil back.
+		// Log a warning or debug message here.
+		// instance.logger.Debugf("ProcessChatMessage for instance %s received nil modelResponseTurn and nil error from LLMClient.", instance.InstanceID)
+	}
+
+	return modelResponseTurn, nil
 }
 
 // --- PerformanceRecord (existing struct, ensure TaskID can link to WorkItem.TaskID) ---

@@ -1,14 +1,14 @@
 // NeuroScript Version: 0.4.0
-// File version: 0.1.0
-// Description: TUI screen for displaying AI Worker Management status using a tview.Table.
+// File version: 0.1.1
+// Description: TUI screen for AIWM status. InputHandler now attempts to start chat.
 // filename: pkg/neurogo/tui_screen_aiwm.go
-// nlines: 180 // Approximate
+// nlines: 190 // Approximate
 // risk_rating: MEDIUM
 package neurogo
 
 import (
 	"fmt"
-	// For table cell content if needed
+	// For logging a timestamp or context timeout if needed
 	"github.com/aprice2704/neuroscript/pkg/core"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -24,11 +24,6 @@ type AIWMStatusScreen struct {
 	lastFetchErr error
 
 	table *tview.Table // The tview.Primitive for this screen
-
-	// tviewApp is needed if we want to QueueUpdateDraw from here,
-	// but for now, Primitive() will recreate the table on data fetch.
-	// If live updates were needed without full redraw, this would be necessary.
-	// tviewApp *tview.Application
 }
 
 // NewAIWMStatusScreen creates a new screen for AI Worker Management status.
@@ -41,7 +36,6 @@ func NewAIWMStatusScreen(app *App) *AIWMStatusScreen {
 		name:  "AIWM",
 		title: "AI Worker Definitions",
 	}
-	// Initial fetch and table creation can happen here or lazily in Primitive()
 	return s
 }
 
@@ -60,7 +54,6 @@ func (s *AIWMStatusScreen) Title() string {
 }
 
 // fetchDisplayInfo calls the AIWorkerManager to get the latest definition display information.
-// If data is fetched successfully, it invalidates the cached table to force a redraw.
 func (s *AIWMStatusScreen) fetchDisplayInfo() {
 	if s.app.AIWorkerManager() == nil {
 		s.lastFetchErr = fmt.Errorf("AIWorkerManager is not available in the application")
@@ -81,18 +74,14 @@ func (s *AIWMStatusScreen) fetchDisplayInfo() {
 }
 
 // Primitive returns the tview.Table widget for this screen.
-// It creates or recreates the table if necessary.
 func (s *AIWMStatusScreen) Primitive() tview.Primitive {
-	// Always fetch data when primitive is requested to ensure it's up-to-date.
-	// For a more optimized approach, fetch could be triggered by other events.
-	s.fetchDisplayInfo()
+	s.fetchDisplayInfo() // Always fetch data when primitive is requested
 
-	if s.table == nil { // Recreate table if invalidated or first time
+	if s.table == nil {
 		s.table = tview.NewTable().
-			SetFixed(1, 0).            // Fix header row
-			SetSelectable(true, false) // Enable row selection, disable column selection
+			SetFixed(1, 0).
+			SetSelectable(true, false)
 
-		// Set Headers
 		headers := []string{"Idx", "Name", "Status", "Chat?", "API Key"}
 		headerColor := tcell.ColorYellow
 		for c, header := range headers {
@@ -107,7 +96,7 @@ func (s *AIWMStatusScreen) Primitive() tview.Primitive {
 			s.table.SetCell(1, 0,
 				tview.NewTableCell(fmt.Sprintf("Error: %v", s.lastFetchErr)).
 					SetTextColor(tcell.ColorRed).
-					SetExpansion(len(headers)). // Span all columns
+					SetExpansion(len(headers)).
 					SetAlign(tview.AlignCenter))
 		} else if len(s.displayInfo) == 0 {
 			s.table.SetCell(1, 0,
@@ -117,14 +106,14 @@ func (s *AIWMStatusScreen) Primitive() tview.Primitive {
 		} else {
 			for r, info := range s.displayInfo {
 				if info == nil || info.Definition == nil {
-					s.table.SetCell(r+1, 0, tview.NewTableCell("Error: Invalid data").SetTextColor(tcell.ColorRed))
+					s.table.SetCell(r+1, 0, tview.NewTableCell("Error: Invalid data").SetTextColor(tcell.ColorRed).SetExpansion(len(headers)))
 					continue
 				}
 
-				chatCapable := "No"
+				chatCapableText := "No"
 				chatColor := tcell.ColorDarkGray
 				if info.IsChatCapable {
-					chatCapable = "Yes"
+					chatCapableText = "Yes"
 					chatColor = tcell.ColorGreen
 				}
 
@@ -140,22 +129,21 @@ func (s *AIWMStatusScreen) Primitive() tview.Primitive {
 				}
 
 				defName := info.Definition.Name
-				if len(defName) > 30 { // Simple truncation
+				if len(defName) > 30 {
 					defName = defName[:27] + "..."
 				}
 				statusText := string(info.Definition.Status)
 				if statusText == "" {
-					statusText = "unknown"
+					statusText = string(core.DefinitionStatusActive) // Default if empty for some reason
 				}
 
 				s.table.SetCell(r+1, 0, tview.NewTableCell(fmt.Sprintf("%d", r+1)).SetAlign(tview.AlignRight))
 				s.table.SetCell(r+1, 1, tview.NewTableCell(defName))
 				s.table.SetCell(r+1, 2, tview.NewTableCell(statusText))
-				s.table.SetCell(r+1, 3, tview.NewTableCell(chatCapable).SetTextColor(chatColor).SetAlign(tview.AlignCenter))
+				s.table.SetCell(r+1, 3, tview.NewTableCell(chatCapableText).SetTextColor(chatColor).SetAlign(tview.AlignCenter))
 				s.table.SetCell(r+1, 4, tview.NewTableCell(apiKeyStatusText).SetTextColor(apiKeyColor))
 			}
 		}
-		// s.table.SetDoneFunc(func(key tcell.Key) { ... }) // If table itself should handle 'done'
 		s.table.SetBorder(false)
 	}
 	return s.table
@@ -164,8 +152,7 @@ func (s *AIWMStatusScreen) Primitive() tview.Primitive {
 // OnFocus is called when this screen's primitive is about to receive focus.
 func (s *AIWMStatusScreen) OnFocus(setFocus func(p tview.Primitive)) {
 	if s.table != nil {
-		setFocus(s.table) // Ensure the table itself gets focus
-		// Select the first data row if there are items, otherwise header (or stay unselected)
+		setFocus(s.table)
 		if s.table.GetRowCount() > 1 {
 			s.table.Select(1, 0)
 		}
@@ -174,50 +161,60 @@ func (s *AIWMStatusScreen) OnFocus(setFocus func(p tview.Primitive)) {
 
 // OnBlur is called when this screen's primitive is about to lose focus.
 func (s *AIWMStatusScreen) OnBlur() {
-	// Can deselect rows or other cleanup if needed
-	// if s.table != nil {
-	// s.table.Select(-1, -1) // Deselect (implementation might vary)
-	// }
+	// Optional: Deselect rows or other cleanup
 }
 
-// InputHandler allows the screen to process key events when its primitive is focused.
+// InputHandler allows the screen to process key events.
 func (s *AIWMStatusScreen) InputHandler() func(event *tcell.EventKey, setFocus func(p tview.Primitive)) *tcell.EventKey {
 	return func(event *tcell.EventKey, setFocus func(p tview.Primitive)) *tcell.EventKey {
 		if s.table == nil {
-			return event // Table not initialized
+			return event
 		}
 
-		// Handle 'Enter' key on a selected row to initiate chat (example)
 		if event.Key() == tcell.KeyEnter {
 			row, _ := s.table.GetSelection()
-			if row > 0 && row-1 < len(s.displayInfo) { // row 0 is header
+			if row > 0 && row-1 < len(s.displayInfo) {
 				selectedInfo := s.displayInfo[row-1]
-				// TODO: Implement starting chat with selectedInfo.Definition
-				// This would involve calling a method on s.app
-				if s.app != nil && s.app.GetLogger() != nil {
-					s.app.GetLogger().Info("Enter pressed on AIWM screen",
-						"selectedDefName", selectedInfo.Definition.Name,
+				logger := s.app.GetLogger()
+
+				if selectedInfo.IsChatCapable && selectedInfo.APIKeyStatus == core.APIKeyStatusFound {
+					logger.Info("Attempting to start chat with worker...",
+						"definitionID", selectedInfo.Definition.DefinitionID,
+						"name", selectedInfo.Definition.Name)
+
+					// Potentially use a context with timeout for starting chat
+					// ctx, cancel := context.WithTimeout(s.app.Context(), 10*time.Second)
+					// defer cancel()
+					// For now, use app's main context or background.
+					instance, err := s.app.StartChatWithWorker(selectedInfo.Definition.DefinitionID)
+					if err != nil {
+						logger.Error("Failed to start chat with worker",
+							"definitionID", selectedInfo.Definition.DefinitionID, "error", err)
+						// Optionally, display this error in a status bar or popup in TUI
+					} else {
+						logger.Info("Successfully started/resumed chat with worker",
+							"definitionID", instance.DefinitionID, "instanceID", instance.InstanceID)
+						// The main TUI (tview_tui.go) will need to react to this change,
+						// e.g., by checking app.GetActiveChatInstanceDetails() and then
+						// switching focus to AI input and updating the chat view.
+						// This screen (AIWMStatusScreen) has done its job of initiating the chat.
+					}
+				} else {
+					logger.Warn("Selected worker is not chat capable or API key not found/configured.",
+						"name", selectedInfo.Definition.Name,
 						"chatCapable", selectedInfo.IsChatCapable,
 						"apiKeyStatus", selectedInfo.APIKeyStatus)
 				}
-				// Example: s.app.StartChatWithWorker(selectedInfo.Definition.DefinitionID)
-				// For now, just log and consume the event.
 				return nil // Event handled
 			}
 		}
-
-		// Let the table handle its own navigation keys (arrows, pgup/pgdn, home/end)
-		// This is done by returning the event if not handled above.
-		// If tview.Table's default InputHandler is needed, it will be invoked after this.
-		// However, tview.Table handles navigation internally if no custom handler consumes keys.
-		return event
+		return event // Pass to table's default handler
 	}
 }
 
 // IsFocusable indicates if the screen's main primitive should be part of the focus cycle.
 func (s *AIWMStatusScreen) IsFocusable() bool {
-	return true // The table should be focusable for selection and navigation
+	return true
 }
 
-// Ensure AIWMStatusScreen satisfies the PrimitiveScreener interface.
 var _ PrimitiveScreener = (*AIWMStatusScreen)(nil)

@@ -1,64 +1,57 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.2.4
+// File version: 0.2.10
 // filename: pkg/core/ai_wm.go
-// nlines: 265 // Approximate
-// risk_rating: HIGH
 // Changes:
-// - Auto-generate DefinitionID in loadWorkerDefinitionsFromContent if missing (log as DEBUG).
-// - Added warning for duplicate definition names in loadWorkerDefinitionsFromContent.
-// - Changed INFO logs to DEBUG
+// - Ensured 'providerAllowsEmptyInlineKey' is correctly used in ListWorkerDefinitionsForDisplay.
+// - Verified standard import paths.
 package core
 
 import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os" // Added for os.Getenv
+	"os"
 	"path/filepath"
 	"sync"
 	"time"
 
 	"github.com/aprice2704/neuroscript/pkg/logging"
-	"github.com/google/uuid" // Ensure this import is present for UUID generation
+	"github.com/google/uuid"
 )
 
-// Constants for default filenames remain
 const (
 	defaultDefinitionsFile     = "ai_worker_definitions.json"
 	defaultPerformanceDataFile = "ai_worker_performance_data.json"
 	statelessInstanceIDPrefix  = "stateless-"
 )
 
-// AIWorkerManager manages AIWorkerDefinitions and AIWorkerInstances.
 type AIWorkerManager struct {
 	definitions     map[string]*AIWorkerDefinition
 	activeInstances map[string]*AIWorkerInstance
 	rateTrackers    map[string]*WorkerRateTracker
-	// File paths are stored for context, but direct I/O is removed from core manager logic
-	definitionsBaseFilename     string // e.g., "ai_worker_definitions.json"
-	performanceDataBaseFilename string // e.g., "ai_worker_performance_data.json"
-	sandboxDir                  string // Base directory for these files
+
+	definitionsBaseFilename     string
+	performanceDataBaseFilename string
+	sandboxDir                  string
 
 	mu        sync.RWMutex
 	logger    logging.Logger
 	llmClient LLMClient
 }
 
-// NewAIWorkerManager creates and initializes a new AIWorkerManager.
-// It no longer loads from disk directly but can accept initial content.
 func NewAIWorkerManager(
 	logger logging.Logger,
-	sandboxDir string, // Sandbox where files are expected to be by tools
+	sandboxDir string,
 	llmClient LLMClient,
-	initialDefinitionsContent string, // Optional: initial JSON content for definitions
-	initialPerformanceContent string, // Optional: initial JSON content for performance data
+	initialDefinitionsContent string,
+	initialPerformanceContent string,
 ) (*AIWorkerManager, error) {
 
 	if logger == nil {
 		return nil, fmt.Errorf("logger cannot be nil for AIWorkerManager")
 	}
 	if sandboxDir == "" {
-		logger.Warn("AIWorkerManager: sandboxDir is empty during initialization. File operations by tools might be ambiguous or use current working directory.")
+		logger.Warn("AIWorkerManager: sandboxDir is empty during initialization.")
 	}
 
 	m := &AIWorkerManager{
@@ -78,7 +71,7 @@ func NewAIWorkerManager(
 			logger.Errorf("AIWorkerManager: Failed to load definitions from initial content: %v. Proceeding with empty definitions.", err)
 		}
 	} else {
-		logger.Debugf("AIWorkerManager: No initial definitions content provided. Starting with an empty set of definitions.")
+		logger.Debugf("AIWorkerManager: No initial definitions content provided.")
 	}
 
 	if initialPerformanceContent != "" {
@@ -91,12 +84,10 @@ func NewAIWorkerManager(
 	}
 
 	m.initializeRateTrackersUnsafe()
-	// This Info log is appropriate as it's a summary of the constructor's action.
 	m.logger.Infof("AIWorkerManager initialized. Loaded %d definitions. Active instances: %d. Sandbox context: '%s'", len(m.definitions), len(m.activeInstances), m.sandboxDir)
 	return m, nil
 }
 
-// FullPathForDefinitions provides the expected full path for the definitions file.
 func (m *AIWorkerManager) FullPathForDefinitions() string {
 	if m.sandboxDir == "" || m.definitionsBaseFilename == "" {
 		m.logger.Warnf("Cannot determine full path for definitions: sandboxDir ('%s') or baseFilename ('%s') is empty.", m.sandboxDir, m.definitionsBaseFilename)
@@ -105,7 +96,6 @@ func (m *AIWorkerManager) FullPathForDefinitions() string {
 	return filepath.Join(m.sandboxDir, m.definitionsBaseFilename)
 }
 
-// FullPathForPerformanceData provides the expected full path for the performance data file.
 func (m *AIWorkerManager) FullPathForPerformanceData() string {
 	if m.sandboxDir == "" || m.performanceDataBaseFilename == "" {
 		m.logger.Warnf("Cannot determine full path for performance data: sandboxDir ('%s') or baseFilename ('%s') is empty.", m.sandboxDir, m.performanceDataBaseFilename)
@@ -114,74 +104,55 @@ func (m *AIWorkerManager) FullPathForPerformanceData() string {
 	return filepath.Join(m.sandboxDir, m.performanceDataBaseFilename)
 }
 
-// loadWorkerDefinitionsFromContent loads AI worker definitions from JSON byte content.
 func (m *AIWorkerManager) loadWorkerDefinitionsFromContent(jsonBytes []byte) error {
 	if len(jsonBytes) == 0 {
 		m.logger.Debugf("loadWorkerDefinitionsFromContent: Provided content is empty. No definitions loaded.")
-		m.definitions = make(map[string]*AIWorkerDefinition) // Reset to empty
+		m.definitions = make(map[string]*AIWorkerDefinition)
 		return nil
 	}
-
 	var defs []*AIWorkerDefinition
 	if err := json.Unmarshal(jsonBytes, &defs); err != nil {
 		m.logger.Errorf("loadWorkerDefinitionsFromContent: Failed to unmarshal definitions JSON: %v", err)
 		m.definitions = make(map[string]*AIWorkerDefinition)
 		return NewRuntimeError(ErrorCodeInternal, "failed to unmarshal definitions data from content", err)
 	}
-
 	newDefinitions := make(map[string]*AIWorkerDefinition)
-	namesEncountered := make(map[string]string) // To track names for duplicate warnings: name -> first DefinitionID
-
+	namesEncountered := make(map[string]string)
 	for _, def := range defs {
 		if def == nil {
-			m.logger.Warnf("loadWorkerDefinitionsFromContent: Encountered a nil definition in content. Skipping.")
+			m.logger.Warnf("loadWorkerDefinitionsFromContent: Encountered a nil definition. Skipping.")
 			continue
 		}
-
 		originalID := def.DefinitionID
-		currentName := def.Name // Store name before potentially skipping due to true duplication
-
+		currentName := def.Name
 		if def.DefinitionID == "" {
 			newID := uuid.NewString()
 			m.logger.Debugf("loadWorkerDefinitionsFromContent: Definition (Name: '%s') has empty ID. Assigning new ID: %s", def.Name, newID)
 			def.DefinitionID = newID
 		}
-
-		// Check for duplicate names
 		if existingDefID, nameFound := namesEncountered[def.Name]; nameFound {
-			// Name found. If IDs are different, it's a problematic duplicate.
-			// If IDs are the same (e.g. from a misconfigured file with multiple identical entries),
-			// the map assignment below will handle it (last one wins), but a warning is still good.
 			if existingDefID != def.DefinitionID {
-				m.logger.Warnf("loadWorkerDefinitionsFromContent: Duplicate AIWorkerDefinition name '%s' encountered. Existing ID: '%s', New/Current ID: '%s'. Ensure names are unique if distinct workers are intended, or consolidate if they are the same worker.", def.Name, existingDefID, def.DefinitionID)
+				m.logger.Warnf("loadWorkerDefinitionsFromContent: Duplicate AIWorkerDefinition name '%s'. Existing ID: '%s', New ID: '%s'.", def.Name, existingDefID, def.DefinitionID)
 			} else {
-				// Same name, same ID - likely a full duplicate entry in the JSON
-				m.logger.Warnf("loadWorkerDefinitionsFromContent: Duplicate entry for AIWorkerDefinition (Name: '%s', ID: '%s'). Overwriting with current entry.", def.Name, def.DefinitionID)
+				m.logger.Warnf("loadWorkerDefinitionsFromContent: Duplicate entry for AIWorkerDefinition (Name: '%s', ID: '%s').", def.Name, def.DefinitionID)
 			}
 		} else {
 			namesEncountered[def.Name] = def.DefinitionID
 		}
-
-		// Check if this specific definition (by ID) has already been processed (e.g. if the JSON has exact duplicate objects)
 		if _, idExists := newDefinitions[def.DefinitionID]; idExists && originalID != "" {
-			// This means an explicit ID was duplicated in the source JSON.
-			// The namesEncountered check would have caught logical duplicates by name with different IDs.
-			m.logger.Warnf("loadWorkerDefinitionsFromContent: AIWorkerDefinition ID '%s' (Name: '%s') appears multiple times in the source. The last occurrence will be used.", def.DefinitionID, currentName)
+			m.logger.Warnf("loadWorkerDefinitionsFromContent: AIWorkerDefinition ID '%s' (Name: '%s') appears multiple times. Last occurrence used.", def.DefinitionID, currentName)
 		}
-
 		if def.Status == "" {
 			def.Status = DefinitionStatusActive
-			m.logger.Debugf("Definition (Name: '%s', ID: '%s') had empty status, defaulted to '%s'.", def.Name, def.DefinitionID, def.Status)
+			m.logger.Debugf("Definition (Name: '%s', ID: '%s') status defaulted to '%s'.", def.Name, def.DefinitionID, def.Status)
 		}
 		newDefinitions[def.DefinitionID] = def
 	}
-
 	m.definitions = newDefinitions
 	m.logger.Debugf("Successfully loaded/reloaded %d worker definitions from content.", len(m.definitions))
 	return nil
 }
 
-// prepareDefinitionsForSaving marshals the current AI worker definitions to a JSON string.
 func (m *AIWorkerManager) prepareDefinitionsForSaving() (string, error) {
 	defsToSave := make([]*AIWorkerDefinition, 0, len(m.definitions))
 	for _, def := range m.definitions {
@@ -190,7 +161,7 @@ func (m *AIWorkerManager) prepareDefinitionsForSaving() (string, error) {
 		}
 		if def.AggregatePerformanceSummary == nil {
 			def.AggregatePerformanceSummary = &AIWorkerPerformanceSummary{}
-			m.logger.Warnf("prepareDefinitionsForSaving: Definition (Name: '%s', ID: '%s') had nil AggregatePerformanceSummary; initialized.", def.Name, def.DefinitionID)
+			m.logger.Warnf("prepareDefinitionsForSaving: Def (Name: '%s', ID: '%s') had nil AggregatePerformanceSummary; initialized.", def.Name, def.DefinitionID)
 		}
 		if tracker, ok := m.rateTrackers[def.DefinitionID]; ok {
 			def.AggregatePerformanceSummary.ActiveInstancesCount = tracker.CurrentActiveInstances
@@ -199,53 +170,45 @@ func (m *AIWorkerManager) prepareDefinitionsForSaving() (string, error) {
 		}
 		defsToSave = append(defsToSave, def)
 	}
-
 	data, err := json.MarshalIndent(defsToSave, "", "  ")
 	if err != nil {
 		m.logger.Errorf("prepareDefinitionsForSaving: Failed to marshal worker definitions: %v", err)
 		return "", NewRuntimeError(ErrorCodeInternal, "failed to marshal worker definitions for saving", err)
 	}
-	m.logger.Debugf("Successfully prepared %d worker definitions for saving (as JSON string content).", len(defsToSave))
+	m.logger.Debugf("Successfully prepared %d worker definitions for saving.", len(defsToSave))
 	return string(data), nil
 }
 
-// resolveAPIKey resolves the API key based on the provided APIKeySource.
 func (m *AIWorkerManager) resolveAPIKey(auth APIKeySource) (string, error) {
 	m.logger.Debugf("Resolving API key with method: %s", auth.Method)
 	switch auth.Method {
 	case APIKeyMethodEnvVar:
 		if auth.Value == "" {
-			err := NewRuntimeError(ErrorCodeArgMismatch,
-				"API key method is 'env_var' but no environment variable name (Value) was specified",
-				ErrInvalidArgument,
-			)
+			err := NewRuntimeError(ErrorCodeArgMismatch, "API key method 'env_var' but no env var name specified", ErrInvalidArgument)
 			m.logger.Warnf("resolveAPIKey: %s", err.Message)
 			return "", err
 		}
 		key := os.Getenv(auth.Value)
 		if key == "" {
-			err := NewRuntimeError(ErrorCodeConfiguration,
-				fmt.Sprintf("environment variable '%s' for API key not found or is empty", auth.Value),
-				ErrConfiguration,
-			)
-			m.logger.Warnf("resolveAPIKey: Environment variable '%s' for API key not found or is empty.", auth.Value)
+			err := NewRuntimeError(ErrorCodeConfiguration, fmt.Sprintf("env var '%s' for API key not found or empty", auth.Value), ErrAPIKeyNotFound)
+			m.logger.Warnf("resolveAPIKey: Env var '%s' not found or empty.", auth.Value)
 			return "", err
 		}
-		m.logger.Debugf("Successfully resolved API key from environment variable '%s'", auth.Value)
+		m.logger.Debugf("Resolved API key from env var '%s'", auth.Value)
 		return key, nil
 	case APIKeyMethodInline:
 		if auth.Value == "" {
-			m.logger.Debugf("API key method is '%s' but the key value is empty. This might be acceptable for some models.", APIKeyMethodInline)
+			m.logger.Debugf("API key method is '%s' but key value is empty. May be acceptable for some models.", APIKeyMethodInline)
 		} else {
-			m.logger.Debugf("Using inline API key (actual key value is not logged for security).")
+			m.logger.Debugf("Using inline API key.")
 		}
 		return auth.Value, nil
 	case APIKeyMethodNone:
 		m.logger.Debugf("API key method is '%s', no key required.", APIKeyMethodNone)
 		return "", nil
 	case APIKeyMethodConfigPath, APIKeyMethodVault:
-		errMessage := fmt.Sprintf("API key method '%s' is not yet implemented", auth.Method)
-		err := NewRuntimeError(ErrorCodeNotImplemented, errMessage, fmt.Errorf("feature not implemented: %s", auth.Method))
+		errMessage := fmt.Sprintf("API key method '%s' not yet implemented", auth.Method)
+		err := NewRuntimeError(ErrorCodeNotImplemented, errMessage, ErrFeatureNotImplemented)
 		m.logger.Errorf("resolveAPIKey: %s", errMessage)
 		return "", err
 	default:
@@ -256,16 +219,15 @@ func (m *AIWorkerManager) resolveAPIKey(auth APIKeySource) (string, error) {
 	}
 }
 
-// initializeRateTrackersUnsafe ensures rate trackers are set up for all loaded definitions.
 func (m *AIWorkerManager) initializeRateTrackersUnsafe() {
 	newRateTrackers := make(map[string]*WorkerRateTracker)
 	for defID, def := range m.definitions {
 		if def == nil {
-			m.logger.Warnf("initializeRateTrackersUnsafe: Encountered nil definition for ID '%s' (Name: '%s'). Skipping tracker initialization.", defID, def.Name)
+			m.logger.Warnf("initializeRateTrackersUnsafe: Nil definition for ID '%s'. Skipping tracker.", defID)
 			continue
 		}
 		activeCount := 0
-		if def.AggregatePerformanceSummary != nil && def.AggregatePerformanceSummary.ActiveInstancesCount > 0 {
+		if def.AggregatePerformanceSummary != nil {
 			activeCount = def.AggregatePerformanceSummary.ActiveInstancesCount
 		}
 		newRateTrackers[defID] = &WorkerRateTracker{
@@ -275,29 +237,27 @@ func (m *AIWorkerManager) initializeRateTrackersUnsafe() {
 			TokensDayMarker:        time.Now(),
 			CurrentActiveInstances: activeCount,
 		}
-		m.logger.Debugf("Initialized rate tracker for Definition (Name: '%s', ID: %s), ActiveInstances from summary: %d", def.Name, defID, activeCount)
+		m.logger.Debugf("Initialized rate tracker for Def (Name: '%s', ID: %s), ActiveInstances: %d", def.Name, defID, activeCount)
 	}
 	m.rateTrackers = newRateTrackers
-	m.logger.Debugf("Re-initialized all rate trackers. Total count: %d", len(m.rateTrackers))
+	m.logger.Debugf("Re-initialized all rate trackers. Total: %d", len(m.rateTrackers))
 }
 
-// loadRetiredInstancePerformanceDataFromContent loads and processes performance data.
 func (m *AIWorkerManager) loadRetiredInstancePerformanceDataFromContent(jsonBytes []byte) error {
 	m.logger.Debug("loadRetiredInstancePerformanceDataFromContent called.")
 	if len(jsonBytes) == 0 {
-		m.logger.Debugf("loadRetiredInstancePerformanceDataFromContent: Provided content is empty. No historical performance loaded or processed.")
+		m.logger.Debugf("loadRetiredInstancePerformanceDataFromContent: Empty content. No historical performance loaded.")
 		return nil
 	}
 	var retiredInfos []*RetiredInstanceInfo
 	if err := json.Unmarshal(jsonBytes, &retiredInfos); err != nil {
-		m.logger.Errorf("loadRetiredInstancePerformanceDataFromContent: Failed to unmarshal performance data JSON: %v", err)
+		m.logger.Errorf("loadRetiredInstancePerformanceDataFromContent: Failed to unmarshal performance data: %v", err)
 		return NewRuntimeError(ErrorCodeInternal, "failed to unmarshal performance data from content", err)
 	}
-	m.logger.Debugf("Successfully unmarshalled %d RetiredInstanceInfo records. Processing them to update definition summaries is pending full implementation.", len(retiredInfos))
+	m.logger.Debugf("Unmarshalled %d RetiredInstanceInfo records. Processing to update summaries pending.", len(retiredInfos))
 	return nil
 }
 
-// prepareRetiredInstanceForAppending takes existing JSON string content of performance data,
 func (m *AIWorkerManager) prepareRetiredInstanceForAppending(existingJsonContent string, instanceInfoToAdd *RetiredInstanceInfo) (string, error) {
 	if instanceInfoToAdd == nil {
 		return existingJsonContent, NewRuntimeError(ErrorCodeArgMismatch, "instanceInfoToAdd cannot be nil", ErrInvalidArgument)
@@ -305,7 +265,7 @@ func (m *AIWorkerManager) prepareRetiredInstanceForAppending(existingJsonContent
 	var allInfos []*RetiredInstanceInfo
 	if existingJsonContent != "" && existingJsonContent != "null" {
 		if err := json.Unmarshal([]byte(existingJsonContent), &allInfos); err != nil {
-			m.logger.Errorf("prepareRetiredInstanceForAppending: Failed to unmarshal existing performance data JSON: '%s'. Error: %v. Will attempt to save only new record.", existingJsonContent, err)
+			m.logger.Errorf("prepareRetiredInstanceForAppending: Failed to unmarshal existing perf data: '%s'. Error: %v. Will save only new record.", existingJsonContent, err)
 			allInfos = []*RetiredInstanceInfo{instanceInfoToAdd}
 		} else {
 			allInfos = append(allInfos, instanceInfoToAdd)
@@ -315,10 +275,10 @@ func (m *AIWorkerManager) prepareRetiredInstanceForAppending(existingJsonContent
 	}
 	newData, err := json.MarshalIndent(allInfos, "", "  ")
 	if err != nil {
-		m.logger.Errorf("prepareRetiredInstanceForAppending: Failed to marshal updated performance data: %v", err)
+		m.logger.Errorf("prepareRetiredInstanceForAppending: Failed to marshal updated perf data: %v", err)
 		return "", NewRuntimeError(ErrorCodeInternal, "failed to marshal updated performance data", err)
 	}
-	m.logger.Debugf("Successfully prepared performance data for appending. Total records now: %d.", len(allInfos))
+	m.logger.Debugf("Prepared performance data for appending. Total records: %d.", len(allInfos))
 	return string(newData), nil
 }
 
@@ -326,70 +286,91 @@ func (m *AIWorkerManager) GetSandboxDir() string {
 	return m.sandboxDir
 }
 
-// ListWorkerDefinitionsForDisplay retrieves all AIWorkerDefinitions and embellishes them
-// with transient status information useful for display, such as chat capability and API key status.
+// ListWorkerDefinitionsForDisplay retrieves AIWorkerDefinitions embellished with TUI-relevant status.
 func (m *AIWorkerManager) ListWorkerDefinitionsForDisplay() ([]*AIWorkerDefinitionDisplayInfo, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
 	if m.definitions == nil {
-		m.logger.Warn("ListWorkerDefinitionsForDisplay called but definitions map is nil.")
-		return []*AIWorkerDefinitionDisplayInfo{}, nil // Return empty list for TUI
+		m.logger.Warn("ListWorkerDefinitionsForDisplay: definitions map is nil.")
+		return []*AIWorkerDefinitionDisplayInfo{}, nil
 	}
 
 	displayInfos := make([]*AIWorkerDefinitionDisplayInfo, 0, len(m.definitions))
 
 	for _, def := range m.definitions {
 		if def == nil {
-			m.logger.Warn("Encountered a nil definition in the definitions map. Skipping.")
+			m.logger.Warn("ListWorkerDefinitionsForDisplay: Encountered nil definition. Skipping.")
 			continue
 		}
 
-		// Determine chat capability
 		isChatCapable := false
-		if len(def.InteractionModels) == 0 { // Default to conversational as per design
+		if len(def.InteractionModels) == 0 {
 			isChatCapable = true
 		} else {
-			for _, model := range def.InteractionModels {
-				// Ensure InteractionModelConversational and InteractionModelBoth are correctly defined
-				// in ai_worker_types.go (e.g., "conversational", "both")
-				if model == InteractionModelConversational || model == InteractionModelBoth {
+			for _, modelType := range def.InteractionModels {
+				if modelType == InteractionModelConversational || modelType == InteractionModelBoth {
 					isChatCapable = true
 					break
 				}
 			}
 		}
 
-		// Determine API Key Status
 		var apiKeyStatus APIKeyStatus
-		if def.Auth.Method == "" { // No API auth method specified at all
+		resolvedKey, errResolve := "", error(nil)
+
+		if def.Auth.Method == "" {
 			apiKeyStatus = APIKeyStatusNotConfigured
 		} else if def.Auth.Method == APIKeyMethodNone {
-			// Successfully "resolved" as not needing a key, so it's usable for status purposes.
 			apiKeyStatus = APIKeyStatusFound
 		} else {
-			// Attempt to resolve the key to check its plausibility.
-			// We only care about the error status for this display logic.
-			_, err := m.resolveAPIKey(def.Auth)
-			if err != nil {
-				if errors.Is(err, ErrAuthDetailsMissing) {
-					apiKeyStatus = APIKeyStatusNotConfigured // Essential detail for the chosen method is missing.
-				} else if errors.Is(err, ErrAPIKeyNotFound) {
-					apiKeyStatus = APIKeyStatusNotFound // Configured, but key not present where expected.
-				} else if errors.Is(err, ErrFeatureNotImplemented) {
-					m.logger.Warnf("API key resolution for method '%s' (def: %s) is not implemented.", def.Auth.Method, def.Name)
-					apiKeyStatus = APIKeyStatusError // Method itself is known but not usable yet.
-				} else if errors.Is(err, ErrInvalidInput) { // This implies def.Auth.Method was an unknown value
-					m.logger.Warnf("Invalid API key source method '%s' for definition %s (ID: %s).", def.Auth.Method, def.Name, def.DefinitionID)
-					apiKeyStatus = APIKeyStatusError
+			resolvedKey, errResolve = m.resolveAPIKey(def.Auth)
+			if errResolve != nil {
+				if errors.Is(errResolve, ErrAPIKeyNotFound) {
+					apiKeyStatus = APIKeyStatusNotFound
+				} else if runErr, ok := errResolve.(*RuntimeError); ok {
+					switch runErr.Code {
+					case ErrorCodeConfiguration, ErrorCodeArgMismatch:
+						apiKeyStatus = APIKeyStatusNotConfigured
+						m.logger.Warnf("API key for def '%s' (method: %s) NotConfigured/NotFound due to: %s", def.Name, def.Auth.Method, runErr.Message)
+					case ErrorCodeNotImplemented:
+						apiKeyStatus = APIKeyStatusError
+						m.logger.Warnf("API key method '%s' for def '%s' not implemented.", def.Auth.Method, def.Name)
+					default:
+						apiKeyStatus = APIKeyStatusError
+						m.logger.Errorf("Unexpected runtime error resolving API key for def '%s': %v", def.Name, errResolve)
+					}
 				} else {
-					m.logger.Errorf("Unexpected error resolving API key for definition %s (ID: %s): %v", def.Name, def.DefinitionID, err)
 					apiKeyStatus = APIKeyStatusError
+					m.logger.Errorf("Non-runtime error resolving API key for def '%s': %v", def.Name, errResolve)
 				}
-			} else {
-				// If err is nil, and method was not APIKeyMethodNone (handled above),
-				// then resolveAPIKey succeeded in finding/validating the key.
-				apiKeyStatus = APIKeyStatusFound
+			} else { // No error from resolveAPIKey
+				if def.Auth.Method == APIKeyMethodInline && resolvedKey == "" {
+					// This variable IS used now to make the decision.
+					providerAllowsEmptyInlineKey := false
+					switch def.Provider {
+					case ProviderGoogle, ProviderOpenAI, ProviderAnthropic:
+						providerAllowsEmptyInlineKey = false
+					case ProviderOllama:
+						providerAllowsEmptyInlineKey = true
+					default:
+						providerAllowsEmptyInlineKey = false
+						m.logger.Debugf("Def %s (Provider: %s) uses empty inline key. Defaulting to 'key not sufficient' (NotConfigured).", def.Name, def.Provider)
+					}
+
+					if providerAllowsEmptyInlineKey {
+						apiKeyStatus = APIKeyStatusFound
+						m.logger.Infof("Def %s (%s) uses inline auth with empty key, considered 'Found' as provider allows it.", def.Name, def.Provider)
+					} else {
+						apiKeyStatus = APIKeyStatusNotConfigured
+						m.logger.Infof("Def %s (%s) uses inline auth with empty key, provider requires a key. Marked as NotConfigured.", def.Name, def.Provider)
+					}
+				} else if resolvedKey == "" && def.Auth.Method != APIKeyMethodNone {
+					apiKeyStatus = APIKeyStatusNotFound
+					m.logger.Warnf("Def %s (%s) resolved to empty key via method %s without error (or error was not ErrAPIKeyNotFound). Marked as %s.", def.Name, def.Provider, def.Auth.Method, apiKeyStatus)
+				} else {
+					apiKeyStatus = APIKeyStatusFound
+				}
 			}
 		}
 
@@ -402,7 +383,6 @@ func (m *AIWorkerManager) ListWorkerDefinitionsForDisplay() ([]*AIWorkerDefiniti
 	return displayInfos, nil
 }
 
-// smartTrim is a general utility.
 func smartTrim(s string, length int) string {
 	if len(s) <= length {
 		return s
@@ -415,8 +395,6 @@ func smartTrim(s string, length int) string {
 	}
 	return s[:length-3] + "..."
 }
-
-// ifErrorToString is a general utility.
 func ifErrorToString(err error) string {
 	if err == nil {
 		return ""

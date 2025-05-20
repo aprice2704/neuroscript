@@ -1,24 +1,21 @@
 // NeuroScript Version: 0.3.0
-// File version: 0.1.0 // Updated version
-// Refactored Config for AI Worker Manager integration
+// File version: 0.1.1
+// Added TuiMode field to Config struct.
 // filename: pkg/neurogo/config.go
+// nlines: 55 // Approximate
+// risk_rating: LOW
 package neurogo
 
 import (
-	// "errors" // No longer needed here
-	// "fmt" // No longer needed here
-	// "os" // No longer needed here
 	"strings"
 )
 
 // Config holds the application configuration.
 type Config struct {
 	// --- Execution Flags (Informational/Control, not strict modes) ---
-	// RunTuiMode      bool // -tui flag still used in main.go to launch TUI
-	// RunCleanAPIMode bool // Functionality likely moved to a tool
+	TuiMode bool // -tui: Explicitly run in TUI mode. If false and other modes (like -script) are not set, TUI may still be default.
 
 	// --- Script/Agent Execution ---
-	// ScriptFile is now handled by StartupScript
 	StartupScript string   // -script: Path to the .ns script file to execute on startup
 	LibPaths      []string // -L: Library paths for script execution
 	TargetArg     string   // -target: Target argument for the script (if StartupScript is run)
@@ -35,12 +32,10 @@ type Config struct {
 	APIKey        string // API Key (usually from env)
 	APIHost       string // API Host / Endpoint (e.g., for custom LLM providers)
 	ModelName     string // -model: Default/Fallback model identifier
-	// EnableLLM flag removed, LLM client creation is now standard
-	Insecure bool // -insecure: Disable security checks
+	Insecure      bool   // -insecure: Disable security checks
 
 	// --- Logging ---
-	// DebugLogFile    string // Handled directly in main.go logger setup
-	// LLMDebugLogFile string // Handled directly in main.go logger setup
+	// Log related flags are typically handled in main.go during logger setup.
 	// LogFile string
 	// LogLevel string
 
@@ -52,6 +47,8 @@ type Config struct {
 func NewConfig() *Config {
 	return &Config{
 		// Set any necessary defaults here
+		// TuiMode could default to false, and main.go can set it to true if -tui is present
+		// or if no other exclusive mode flags are set.
 	}
 }
 
@@ -70,10 +67,6 @@ func (f *stringSliceFlag) Set(value string) error {
 }
 
 // NewStringSliceFlag creates a new empty StringSliceFlag.
-// Required because flag.Var needs a pointer to a non-nil value.
 func NewStringSliceFlag() *stringSliceFlag {
 	return &stringSliceFlag{}
 }
-
-// ParseFlags is removed as validation logic is simplified and moved mostly to main.go
-// func (c *Config) ParseFlags(args []string) error { ... }
