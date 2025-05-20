@@ -17,7 +17,7 @@ Shift-Tab cycles C-A-B-D (anti-clockwise)
 
 ## Alternate Displays
 
-Ctrl-B cycles through the displays available for A
+Ctrl-B cycles through the screens available for A
 Ctrl-N cycles through those available for B
 
 A:  Script Output display (default)
@@ -30,10 +30,6 @@ B:  AI Reply display (default)
     Function calls from AI - not yet
     Files in File API - not yet
 
-# Other Parts
-
-Help display
-
 
  ## Core Architecture: Screen-Based Panes
 
@@ -44,19 +40,15 @@ Help display
  2.  Right Pane (B): Displays content from the active "Right Screen".
  3.  Left Input Area (C): Positioned below Pane A. Typically used for system-level commands (//command) or commands/input for the active Left Screen.
  4.  Right Input Area (D): Positioned below Pane B. Typically used for commands/input for the active Right Screen (e.g., chat messages).
- 5.  Status Bar: Bottom row for messages, activity indicators.
+ 5.  Status Bar: shows which screens are available, currently showing on each side is highlighted
 
 ### The Screener Interface (for tview Panes)
 
 To manage the different types of content that can be displayed within the Left Pane (A) and Right Pane (B), a Go interface named Screener is defined. This interface provides a contract for any struct that wants to act as a displayable screen within these panes.
 
-The Screener interface is defined in pkg/neurogo/tui_screens.go as follows:
-
-go type Screener interface {  Name() string // Returns a short name or identifier for the screen.  Title() string // Returns the title to be displayed for the screen, typically at the top of the pane.  Contents() string // Returns the main text content to be displayed in the pane. } 
-
 Purpose and Usage:
 
-The primary purpose of the Screener interface is to allow for polymorphic handling of different content views. The main TUI logic, managed in pkg/neurogo/tview_tui.go, can treat various screen types uniformly as long as they satisfy this interface.
+The primary purpose of the Screener* interfaces is to allow for polymorphic handling of different content views. The main TUI logic, managed in pkg/neurogo/tview_tui.go, can treat various screen types uniformly as long as they satisfy this interface.
 
 Key aspects of its usage include:
 
@@ -107,6 +99,8 @@ This StaticScreen type allows you to easily create new views with fixed titles, 
  -   /screen_command [args]: Interpreted as a command specific to the currently active Screener that "owns" the input area (this would require extending Screener or type-asserting to a more capable interface if screens are to handle commands directly).
  -   regular text input: Interpreted as general input. Its handling depends on the focused input area (C or D) and potentially the active Screener if custom input handling is implemented for specific screens.
 
- ## Other Parts
- -   Help Display: Toggled by ? (currently shows the "Help" StaticScreen in the left pane).
- -   Status Bar: Shows current focus, screen counts, and active screen names.
+## Multiple Chat screens
+
+Each chat session will have its own screen which will be added to the right panel (B) list of screens.
+
+Each chat will be initiated by hitting the 'c' (or C) key while the AIWM screen is showing and focussed in pane A, and will be based on the definition selected in the table of them.

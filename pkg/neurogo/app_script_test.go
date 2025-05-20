@@ -39,7 +39,7 @@ func TestApp_RunScriptMode_MultiReturn(t *testing.T) {
 	config := NewConfig()
 
 	// 4. Create App (passing nil for interpreter and aiwm, will set them up next)
-	app, _ := NewApp(config, logger)
+	app, _ := NewApp(config, logger, llmClient)
 
 	// 5. Setup Interpreter
 	absSandboxDir, err := filepath.Abs(cfg.SandboxDir)

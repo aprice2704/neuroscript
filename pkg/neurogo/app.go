@@ -1,5 +1,5 @@
 // NeuroScript Version: 0.3.0
-// File version: 0.1.12
+// File version: 0.1.13 // Modified App struct for multiple chat sessions
 // Added chat session management methods and fields to App struct.
 // filename: pkg/neurogo/app.go
 // nlines: 350 // Approximate
@@ -36,12 +36,12 @@ type App struct {
 	originalStdout io.Writer         // To store interpreter's original stdout
 	// --- End tview specific fields ---
 
-	// --- Active Chat Session Fields ---
-	chatMu                 sync.Mutex // Mutex specifically for chat-related fields below
-	activeChatInstance     *core.AIWorkerInstance
-	activeChatDefinitionID string
-	activeChatInstanceID   string
-	// --- End Active Chat Session Fields ---
+	// --- Chat Session Management Fields ---
+	chatMu              sync.Mutex              // Mutex specifically for chat-related fields below
+	chatSessions        map[string]*ChatSession // Stores all active chat sessions, keyed by a unique session ID
+	activeChatSessionID string                  // ID of the currently focused chat session in the TUI
+	nextChatIDSuffix    int                     // Counter to help generate unique display names or IDs
+	// --- End Chat Session Management Fields ---
 }
 
 // SetInterpreter allows setting the interpreter after App creation.
@@ -150,8 +150,24 @@ func (a *App) initializeCoreComponents() error {
 		// This part needs to be defined or use a.Config directly.
 		// For now, let's assume a.Config.APIKey and a.Config.Provider are used.
 		// This is a placeholder for actual LLM client creation logic.
-		a.llmClient = adapters.NewNoOpLLMClient() // Default, replace with actual creation
-		a.Log.Info("Using default NoOpLLMClient during core component init.", "llm_error", errLLM)
+		// The actual creation is in app_init.go's CreateLLMClient method which NewApp calls.
+		// This path in initializeCoreComponents might be for a scenario where it wasn't pre-created.
+		// For now, ensure it gets a client if nil.
+		if a.Config != nil { // Check if config exists to create a client
+			createdClient, err := a.CreateLLMClient() // CreateLLMClient is on *App
+			if err != nil {
+				a.Log.Error("Failed to create LLM client during core component init", "error", err)
+				// Fallback to NoOp if creation fails
+				a.llmClient = adapters.NewNoOpLLMClient()
+				a.Log.Info("Using default NoOpLLMClient after creation failure in core component init.")
+			} else {
+				a.llmClient = createdClient
+				a.Log.Info("LLM Client created successfully during core component init.")
+			}
+		} else {
+			a.llmClient = adapters.NewNoOpLLMClient()
+			a.Log.Info("Using default NoOpLLMClient during core component init (config was nil).", "llm_error", errLLM)
+		}
 	}
 
 	sandboxDir := a.Config.SandboxDir
@@ -192,7 +208,9 @@ func (a *App) initializeCoreComponents() error {
 	// Ensure initialDefinitionsContent and initialPerformanceContent are handled correctly
 	// For now, assuming nil/empty strings as per NewAIWorkerManager signature for file-based loading.
 	var errInterp error
-	a.interpreter, errInterp = core.NewInterpreter(a.Log, interpLLMClient, sandboxDir, nil, nil)
+	// Initialize interpreter with nil for libPaths initially, can be set from config later if needed
+	a.interpreter, errInterp = core.NewInterpreter(a.Log, interpLLMClient, sandboxDir, nil, a.Config.LibPaths)
+
 	if errInterp != nil {
 		return fmt.Errorf("failed to create interpreter: %w", errInterp)
 	}
@@ -243,11 +261,12 @@ func (a *App) initializeCoreComponents() error {
 		a.Log.Error("Interpreter not initialized, cannot set AIWorkerManager.")
 	}
 
+	// Initialize chat session map
+	a.chatSessions = make(map[string]*ChatSession)
+
 	a.Log.Info("Core components initialization attempt finished.")
 	return nil
 }
-
-// --- End Chat Session Management Methods ---
 
 // HandleSystemCommand (existing method, ensure no conflicts)
 func (a *App) HandleSystemCommand(command string) {
@@ -268,4 +287,54 @@ func (a *App) ExecuteScriptLine(ctx context.Context, line string) {
 		return
 	}
 	a.Log.Info("Script line received by App (from TUI)", "line", line)
+}
+
+// CreateLLMClient function (as it appeared in app_init.go, now part of app.go for self-containment, can be called by NewApp or initializeCoreComponents)
+// This function creates an LLM client based on application configuration.
+func (app *App) CreateLLMClient() (core.LLMClient, error) {
+	if app.Config == nil {
+		return nil, fmt.Errorf("cannot create LLM client: app config is nil")
+	}
+
+	apiKey := app.Config.APIKey
+	if apiKey == "" {
+		apiKey = os.Getenv("NEUROSCRIPT_API_KEY") // Standardized env var name
+		if apiKey == "" {
+			if app.Log != nil { // Check logger
+				app.Log.Debug("API key is missing in config and environment variable (NEUROSCRIPT_API_KEY). Creating NoOpLLMClient.")
+			}
+			return adapters.NewNoOpLLMClient(), nil
+		}
+		if app.Log != nil {
+			app.Log.Debug("Using LLM API key from environment variable NEUROSCRIPT_API_KEY.")
+		}
+	} else {
+		if app.Log != nil {
+			app.Log.Debug("Using LLM API key from configuration.")
+		}
+	}
+
+	if app.Log != nil {
+		app.Log.Debug("Creating real LLMClient.")
+	}
+	apiHost := app.Config.APIHost
+	modelName := app.Config.ModelName // This is ModelID for NewLLMClient
+
+	loggerToUse := app.Log
+	if loggerToUse == nil { // Should be set by NewApp
+		loggerToUse = adapters.NewNoOpLogger() // Safety fallback
+	}
+
+	llmClient := core.NewLLMClient(apiKey, apiHost, modelName, loggerToUse, !app.Config.Insecure)
+
+	if llmClient == nil {
+		if app.Log != nil {
+			app.Log.Error("core.NewLLMClient returned nil unexpectedly. This indicates a critical LLM client creation failure.")
+		}
+		return adapters.NewNoOpLLMClient(), fmt.Errorf("core.NewLLMClient returned nil for real client creation")
+	}
+	if app.Log != nil {
+		app.Log.Debug("Real LLMClient created.", "host", apiHost, "model", modelName)
+	}
+	return llmClient, nil
 }

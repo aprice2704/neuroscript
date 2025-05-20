@@ -1,22 +1,20 @@
 // NeuroScript Version: 0.4.0
-// File version: 0.1.0
+// File version: 0.1.1 // Added FormatEventKeyForLogging
 // Description: Utility functions and types for the TUI package.
 // filename: pkg/neurogo/tui_utils.go
-// nlines: 40 // Approximate
-// risk_rating: LOW
 package neurogo
 
 import (
 	"fmt"
 	"strings"
 
+	"github.com/gdamore/tcell/v2" // Added for tcell.KeyNames and tcell.EventKey
 	"github.com/rivo/tview"
 )
 
 // posmod calculates a non-negative S_size for a given number and modulus.
-// Useful for cycling through slices.
 func posmod(a, b int) (c int) {
-	if b == 0 { // Avoid division by zero if screens list is empty or other modulus is zero
+	if b == 0 {
 		return 0
 	}
 	c = a % b
@@ -27,18 +25,37 @@ func posmod(a, b int) (c int) {
 }
 
 // EscapeTviewTags escapes '[' characters for safe display in tview's dynamic color tags.
-// Note: This is a basic escape. More complex situations might need a robust parser
-// or ensuring content doesn't unintentionally form valid tags.
 func EscapeTviewTags(s string) string {
 	s = strings.ReplaceAll(s, "[", "[[")
-	// To correctly escape ']', one would use '[]]', but this may conflict
-	// if ']' is intended as part of a tag like [-].
-	// Generally, escaping '[' is the primary concern for accidental tag formation.
 	return s
 }
 
+// FormatEventKeyForLogging provides a human-readable string for a tcell.EventKey.
+func FormatEventKeyForLogging(event *tcell.EventKey) string {
+	if event == nil {
+		return "<nil_event>"
+	}
+	key := event.Key()
+	if key == tcell.KeyRune {
+		return fmt.Sprintf("Rune[%c (%d)]", event.Rune(), event.Rune())
+	} else if key == tcell.KeyCtrlUnderscore || key == tcell.KeyCtrlSpace {
+		// These might not have standard names or might be tricky
+		return fmt.Sprintf("Key[%d]", key)
+	} else if key < tcell.KeyCtrlA || key > tcell.KeyCtrlZ && (key < tcell.KeyF1 || key > tcell.KeyF64) && key != tcell.KeyBackspace && key != tcell.KeyTab && key != tcell.KeyEnter && key != tcell.KeyEsc && key != tcell.KeyDelete && key != tcell.KeyInsert && key != tcell.KeyHome && key != tcell.KeyEnd && key != tcell.KeyPgUp && key != tcell.KeyPgDn && key != tcell.KeyUp && key != tcell.KeyDown && key != tcell.KeyLeft && key != tcell.KeyRight {
+		// Check if there's a name in KeyNames for it
+		if name, ok := tcell.KeyNames[key]; ok {
+			return name
+		}
+		return fmt.Sprintf("Key[%d]", key) // Fallback for other special keys without a common name
+	}
+	// For standard keys that have names
+	if name, ok := tcell.KeyNames[key]; ok {
+		return name
+	}
+	return fmt.Sprintf("Key[%d]", key) // Fallback if no name found
+}
+
 // tviewWriter is an io.Writer that writes to a tview.TextView and queues an update.
-// Potentially useful for redirecting general output streams to a TUI pane.
 type tviewWriter struct {
 	app      *tview.Application
 	textView *tview.TextView
@@ -54,24 +71,7 @@ func (tw *tviewWriter) Write(p []byte) (n int, err error) {
 	if tw.textView == nil {
 		return 0, fmt.Errorf("tviewWriter.textView is nil")
 	}
-	// Note: tview.TextView.Write is not inherently thread-safe if called
-	// from goroutines other than the main tview event loop.
-	// QueueUpdateDraw should be used if writes can happen concurrently.
-	// However, for direct calls from within tview handlers, this might be okay.
-	// For safety, especially if this writer is used broadly:
-	// if tw.app != nil {
-	//    tw.app.QueueUpdate(func() {
-	//        n, err = tw.textView.Write(p) // Perform actual write on main thread
-	//    })
-	//    tw.app.Draw() // Ensure redraw is scheduled
-	//    return len(p), nil // Assume success, error handling within QueueUpdate is complex
-	// } else {
-	// Direct write if no app to queue with (e.g., during setup before app.Run)
 	n, err = tw.textView.Write(p)
-	// }
-	// The original had QueueUpdateDraw(func(){}) which is just a redraw trigger.
-	// If Write itself needs to be on the main thread, the above QueueUpdate is better.
-	// For now, keeping it simple and assuming writes are managed correctly by caller context.
 	if tw.app != nil {
 		tw.app.QueueUpdateDraw(func() {}) // Trigger redraw
 	}
