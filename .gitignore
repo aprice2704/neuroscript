@@ -26,3 +26,4 @@ go.work.sum
 cmd/neurogo/neurogo
 cmd/nspatch/nspatch
 cmd/block_printer/block_printer
+library/combined.log.txt
