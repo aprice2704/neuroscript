@@ -1,0 +1,61 @@
+time=2025-05-21T02:43:02.164Z level=INFO msg="Logger initialized" level=0 output_target=stderr
+time=2025-05-21T02:43:02.166Z level=INFO msg="LLM Client provided to NewApp and assigned."
+time=2025-05-21T02:43:02.166Z level=INFO msg="AIWorkerManager initialized. Loaded 4 definitions. Active instances: 0. Sandbox context: '/home/aprice/dev/neuroscript/.neuroscript_aiwm'"
+time=2025-05-21T02:43:02.166Z level=INFO msg="AI Worker Manager initialized and available."
+time=2025-05-21T02:43:02.166Z level=INFO msg="StartTviewTUI initializing..."
+[TUI_INIT] UI Primitives (like debugScreen, statusbar) initialized.
+2025/05/20 19:43:02 [TUI_LOG] [AIWM_NEW] NewAIWMStatusScreen created (v0.1.2M) for AIWM.
+2025/05/20 19:43:02 [TUI_LOG] [PAGE_CHANGE_ENTRY] onPanePageChange called. Pane Addr: 0xc000434060, New Page Name: ''
+2025/05/20 19:43:02 [TUI_LOG] [PAGE_CHANGE] Current primitive is nil for page ''.
+2025/05/20 19:43:02 [TUI_LOG] [PAGE_CHANGE_EXIT] Current primitive nil for page '', onPanePageChange exiting.
+[STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() called.
+2025/05/20 19:43:02 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Primitive() called for AIWM.
+[STDOUT_AIWM_PRIMITIVE_0.1.2M] Table is nil. Creating, fetching data, and populating.
+2025/05/20 19:43:02 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Table is nil, creating new table and populating ONCE.
+2025/05/20 19:43:02 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Data fetched. Error: <nil>. Info count: 4.
+2025/05/20 19:43:02 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Table created and populated ONCE.
+[STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() returning table.
+2025/05/20 19:43:02 [TUI_LOG] [PAGE_CHANGE_ENTRY] onPanePageChange called. Pane Addr: 0xc000434060, New Page Name: ''
+2025/05/20 19:43:02 [TUI_LOG] [PAGE_CHANGE] Current primitive is nil for page ''.
+2025/05/20 19:43:02 [TUI_LOG] [PAGE_CHANGE_EXIT] Current primitive nil for page '', onPanePageChange exiting.
+[STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() called.
+2025/05/20 19:43:02 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Primitive() called for AIWM.
+2025/05/20 19:43:02 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Table already exists, returning same instance.
+[STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() returning table.
+2025/05/20 19:43:02 [TUI_LOG] [PAGE_CHANGE_ENTRY] onPanePageChange called. Pane Addr: 0xc000434060, New Page Name: ''
+2025/05/20 19:43:02 [TUI_LOG] [PAGE_CHANGE] Current primitive is nil for page ''.
+2025/05/20 19:43:02 [TUI_LOG] [PAGE_CHANGE_EXIT] Current primitive nil for page '', onPanePageChange exiting.
+2025/05/20 19:43:02 [TUI_LOG] [PAGE_CHANGE_ENTRY] onPanePageChange called. Pane Addr: 0xc000434090, New Page Name: ''
+2025/05/20 19:43:02 [TUI_LOG] [PAGE_CHANGE] Current primitive is nil for page ''.
+2025/05/20 19:43:02 [TUI_LOG] [PAGE_CHANGE_EXIT] Current primitive nil for page '', onPanePageChange exiting.
+2025/05/20 19:43:02 [TUI_LOG] [PAGE_CHANGE_ENTRY] onPanePageChange called. Pane Addr: 0xc000434090, New Page Name: ''
+2025/05/20 19:43:02 [TUI_LOG] [PAGE_CHANGE] Current primitive is nil for page ''.
+2025/05/20 19:43:02 [TUI_LOG] [PAGE_CHANGE_EXIT] Current primitive nil for page '', onPanePageChange exiting.
+2025/05/20 19:43:02 [TUI_LOG] [PAGE_CHANGE_ENTRY] onPanePageChange called. Pane Addr: 0xc000434060, New Page Name: '0'
+2025/05/20 19:43:02 [TUI_LOG] [PAGE_CHANGE] Active screener in Left pane: ScriptOut (Type: *neurogo.DynamicOutputScreen)
+2025/05/20 19:43:02 [TUI_LOG] [PAGE_CHANGE] Pane changed (Left), but this pane is NOT the one currently designated for focus in the dFocus cycle.
+2025/05/20 19:43:02 [TUI_LOG] [PAGE_CHANGE] DynamicOutputScreen ScriptOut became visible. Content should be current via its Write method.
+2025/05/20 19:43:02 [TUI_LOG] [PAGE_CHANGE_EXIT] onPanePageChange exiting for page '0'.
+2025/05/20 19:43:02 [TUI_LOG] [PAGE_CHANGE_ENTRY] onPanePageChange called. Pane Addr: 0xc000434090, New Page Name: '0'
+2025/05/20 19:43:02 [TUI_LOG] [PAGE_CHANGE] Active screener in Right pane: DebugLog (Type: *neurogo.DynamicOutputScreen)
+2025/05/20 19:43:02 [TUI_LOG] [PAGE_CHANGE] Pane changed (Right), but this pane is NOT the one currently designated for focus in the dFocus cycle.
+2025/05/20 19:43:02 [TUI_LOG] [PAGE_CHANGE] DynamicOutputScreen DebugLog became visible. Content should be current via its Write method.
+2025/05/20 19:43:02 [TUI_LOG] [PAGE_CHANGE_EXIT] onPanePageChange exiting for page '0'.
+[TUI_INIT] Interpreter stdout redirected to ScriptOut screen.
+[TUI_INIT] Executing initial TUI script: list_files.ns.txt
+time=2025-05-21T02:43:02.167Z level=ERROR msg="Failed to read script file." path=list_files.ns.txt error="open list_files.ns.txt: no such file or directory"
+[TUI_INIT] Initial script error: failed to process script list_files.ns.txt: failed to read file list_files.ns.txt: open list_files.ns.txt: no such file or directory (list_files.ns.txt)
+time=2025-05-21T02:43:02.167Z level=ERROR msg="Initial script execution error" script=list_files.ns.txt error="failed to process script list_files.ns.txt: failed to read file list_files.ns.txt: open list_files.ns.txt: no such file or directory"
+[TUI_INIT] Grid layout configured.
+[TUI_INIT] Global InputCapture function set.
+2025/05/20 19:43:02 [TUI_LOG] [DFOCUS_ENTRY] dFocus called with df: 0
+2025/05/20 19:43:02 [TUI_LOG] [DFOCUS] New focus target index: 0, type: *tview.TextArea
+2025/05/20 19:43:02 [TUI_LOG] [DFOCUS] Styling complete.
+2025/05/20 19:43:02 [TUI_LOG] [DFOCUS] Attempting tvP.tviewApp.SetFocus on: *tview.TextArea (0xc0003ee308)
+2025/05/20 19:43:02 [TUI_LOG] [DFOCUS] tvP.tviewApp.SetFocus completed.
+2025/05/20 19:43:02 [TUI_LOG] [DFOCUS_EXIT] dFocus exiting.
+[TUI_INIT] Initial dFocus(0) called.
+[TUI_INIT] Starting tview event loop (app.Run())...
+[KEY_HANDLE] Key: Ctrl+Q, Rune: , Mod: 2 (FocusIndex: 0 [*tview.TextArea], Screener: ScriptOut, TviewFocus: *tview.TextArea)
+[KEY_HANDLE] Ctrl+Q pressed. Stopping app.
+time=2025-05-21T02:43:05.864Z level=INFO msg="tview.Application.Run() exited normally."

@@ -37,7 +37,7 @@ type App struct {
 	// --- End tview specific fields ---
 
 	// --- Chat Session Management Fields ---
-	chatMu              sync.Mutex              // Mutex specifically for chat-related fields below
+	//chatMu              sync.RWMutex            // Mutex specifically for chat-related fields below
 	chatSessions        map[string]*ChatSession // Stores all active chat sessions, keyed by a unique session ID
 	activeChatSessionID string                  // ID of the currently focused chat session in the TUI
 	nextChatIDSuffix    int                     // Counter to help generate unique display names or IDs

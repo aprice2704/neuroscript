@@ -1,5 +1,5 @@
 // NeuroScript Version: 0.3.0
-// File version: 0.0.4
+// File version: 0.0.5 // Modified CreateAndShowNewChatScreen to accept *ChatSession
 // Defines the comprehensive AppAccess interface required by the TUI package.
 // Added missing methods used by TUI components.
 // filename: pkg/neurogo/interfaces.go
@@ -11,7 +11,9 @@ import (
 	"io/fs"
 	"os"
 
-	"github.com/aprice2704/neuroscript/pkg/core"
+	"github.com/aprice2704/neuroscript/pkg/core" // ChatSession is in core or neurogo? Assuming neurogo for now.
+	// If ChatSession is in neurogo package itself, core import might not be needed for it.
+	// Let's assume ChatSession is defined in the neurogo package (e.g. chat_session.go)
 	"github.com/aprice2704/neuroscript/pkg/logging"
 )
 
@@ -21,8 +23,6 @@ import (
 type WMStatusViewDataProvider interface {
 	GetLogger() logging.Logger
 	GetAIWorkerManager() *core.AIWorkerManager
-	// GetModel() *model // If WMStatusScreen needs to update m.lastDisplayedWMDefinitions directly
-	// For now, FormatWMStatusView returns the list, and WMStatusScreen.Update passes it to app.model
 }
 
 // TUIController defines the methods the App can use to interact with the TUI.
@@ -32,7 +32,8 @@ type TUIController interface {
 	// for a chat session, make it active, and handle focusing relevant UI elements.
 	// This method MUST be callable via app.QueueUpdateDraw by the App to ensure
 	// it runs on the TUI's main goroutine.
-	CreateAndShowNewChatScreen(sessionID string, displayName string)
+	// MODIFIED: Now accepts a *ChatSession object directly.
+	CreateAndShowNewChatScreen(session *ChatSession) // << CHANGED SIGNATURE
 
 	// Add other methods here if App needs to command TUI for other specific UI actions.
 }
