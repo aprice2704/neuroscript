@@ -32,11 +32,8 @@ func (tvP *tviewAppPointers) dFocus(df int) {
 		tvP.LogToDebugScreen("[DFOCUS] No focusable primitives.")
 		return
 	}
-
-	focusedPaneContentBackgroundColor := tcell.ColorDarkBlue
-	unfocusedPaneContentBackgroundColor := tcell.ColorBlack
-	defaultInputStyle := tcell.StyleDefault.Background(unfocusedPaneContentBackgroundColor).Foreground(tcell.ColorWhite)
-	focusedInputStyle := tcell.StyleDefault.Background(tcell.ColorDarkSlateGray).Foreground(tcell.ColorYellow)
+	defaultInputStyle := tcell.StyleDefault.Background(blurBackground).Foreground(tcell.ColorWhite)
+	focusedInputStyle := tcell.StyleDefault.Background(focusBackground).Foreground(tcell.ColorYellow)
 
 	if tvP.currentFocusIndex < 0 || tvP.currentFocusIndex >= len(tvP.focusablePrimitives) {
 		tvP.LogToDebugScreen("[DFOCUS] currentFocusIndex %d was out of bounds (0-%d). Resetting to 0.", tvP.currentFocusIndex, tvP.numFocusablePrimitives-1)
@@ -86,17 +83,17 @@ func (tvP *tviewAppPointers) dFocus(df int) {
 	if tvP.localOutputView != nil {
 		_, pageContentA := tvP.localOutputView.GetFrontPage()
 		if newFocusTarget == tvP.localOutputView {
-			setPrimitiveBackgroundColor(pageContentA, focusedPaneContentBackgroundColor)
+			setPrimitiveBackgroundColor(pageContentA, focusBackground)
 		} else {
-			setPrimitiveBackgroundColor(pageContentA, unfocusedPaneContentBackgroundColor)
+			setPrimitiveBackgroundColor(pageContentA, blurBackground)
 		}
 	}
 	if tvP.aiOutputView != nil {
 		_, pageContentB := tvP.aiOutputView.GetFrontPage()
 		if newFocusTarget == tvP.aiOutputView {
-			setPrimitiveBackgroundColor(pageContentB, focusedPaneContentBackgroundColor)
+			setPrimitiveBackgroundColor(pageContentB, focusBackground)
 		} else {
-			setPrimitiveBackgroundColor(pageContentB, unfocusedPaneContentBackgroundColor)
+			setPrimitiveBackgroundColor(pageContentB, blurBackground)
 		}
 	}
 	tvP.LogToDebugScreen("[DFOCUS] Styling complete.")

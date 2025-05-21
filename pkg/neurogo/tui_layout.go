@@ -13,6 +13,9 @@ import (
 	"github.com/rivo/tview"
 )
 
+var blurBackground = tcell.NewRGBColor(0, 0, 0)
+var focusBackground = tcell.NewRGBColor(0, 0, 60)
+
 func (tvP *tviewAppPointers) addScreen(s PrimitiveScreener, onLeft bool) {
 	var pageManager *tview.Pages
 	var screenList *[]PrimitiveScreener
@@ -31,7 +34,7 @@ func (tvP *tviewAppPointers) addScreen(s PrimitiveScreener, onLeft bool) {
 	pageNumStr := strconv.Itoa(len(*screenList) - 1)
 	pageManager.AddPage(pageNumStr, s.Primitive(), true, false)
 
-	setPrimitiveBackgroundColor(s.Primitive(), tcell.ColorBlack)
+	setPrimitiveBackgroundColor(s.Primitive(), blurBackground)
 }
 
 func (tvP *tviewAppPointers) nextScreen(d int, onLeft bool) {
@@ -88,7 +91,7 @@ func (tvP *tviewAppPointers) setScreen(sIndex int, onLeft bool) {
 
 	_, oldPagePrimitive := targetPages.GetFrontPage()
 	if oldPagePrimitive != nil {
-		setPrimitiveBackgroundColor(oldPagePrimitive, tcell.ColorBlack)
+		setPrimitiveBackgroundColor(oldPagePrimitive, blurBackground)
 		oldScreener, oldScreenerExists := tvP.getScreenerFromPrimitive(oldPagePrimitive, onLeft)
 		if oldScreenerExists {
 			oldScreener.OnBlur()
@@ -110,9 +113,9 @@ func (tvP *tviewAppPointers) setScreen(sIndex int, onLeft bool) {
 	}
 
 	if paneHasFocus {
-		setPrimitiveBackgroundColor(newlyVisiblePrimitive, tcell.ColorDarkBlue)
+		setPrimitiveBackgroundColor(newlyVisiblePrimitive, focusBackground)
 	} else {
-		setPrimitiveBackgroundColor(newlyVisiblePrimitive, tcell.ColorBlack)
+		setPrimitiveBackgroundColor(newlyVisiblePrimitive, blurBackground)
 	}
 	logDebug("setScreen done", "newScreen", newlyVisibleScreen.Name(), "paneHasFocus", paneHasFocus)
 }

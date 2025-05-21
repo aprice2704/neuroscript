@@ -12,6 +12,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
+	"strings"
 	"sync"
 
 	"github.com/aprice2704/neuroscript/pkg/logging"
@@ -285,7 +287,8 @@ func (m *AIWorkerManager) GetSandboxDir() string {
 	return m.sandboxDir
 }
 
-// ListWorkerDefinitionsForDisplay retrieves AIWorkerDefinitions embellished with TUI-relevant status.
+// ListWorkerDefinitionsForDisplay retrieves AIWorkerDefinitions embellished with TUI-relevant status,
+// now sorted by Definition Name.
 func (m *AIWorkerManager) ListWorkerDefinitionsForDisplay() ([]*AIWorkerDefinitionDisplayInfo, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -295,17 +298,39 @@ func (m *AIWorkerManager) ListWorkerDefinitionsForDisplay() ([]*AIWorkerDefiniti
 		return []*AIWorkerDefinitionDisplayInfo{}, nil
 	}
 
-	displayInfos := make([]*AIWorkerDefinitionDisplayInfo, 0, len(m.definitions))
-
+	// --- MODIFICATION START: Collect definitions first for sorting ---
+	allDefs := make([]*AIWorkerDefinition, 0, len(m.definitions))
 	for _, def := range m.definitions {
-		if def == nil {
-			m.logger.Warn("ListWorkerDefinitionsForDisplay: Encountered nil definition. Skipping.")
-			continue
+		if def != nil { // Ensure we don't add nil definitions to the slice
+			allDefs = append(allDefs, def)
+		} else {
+			m.logger.Warn("ListWorkerDefinitionsForDisplay: Encountered nil definition in map. Skipping.")
 		}
+	}
+
+	// Sort the collected definitions, e.g., by Name (case-insensitive) then by ID
+	sort.Slice(allDefs, func(i, j int) bool {
+		nameI := strings.ToLower(allDefs[i].Name)
+		nameJ := strings.ToLower(allDefs[j].Name)
+		if nameI != nameJ {
+			return nameI < nameJ
+		}
+		return allDefs[i].DefinitionID < allDefs[j].DefinitionID
+	})
+	// --- MODIFICATION END: Definitions are now sorted ---
+
+	displayInfos := make([]*AIWorkerDefinitionDisplayInfo, 0, len(allDefs))
+
+	// Iterate over the sorted 'allDefs' slice instead of the 'm.definitions' map
+	for _, def := range allDefs {
+		// The check 'if def == nil' is already handled when populating 'allDefs',
+		// but an extra cautious check here doesn't hurt if the source map could have nils.
+		// However, given the population method for allDefs, this inner nil check for 'def' is redundant.
 
 		isChatCapable := false
-		if len(def.InteractionModels) == 0 {
+		if len(def.InteractionModels) == 0 { // Assuming default is chat capable or older defs
 			isChatCapable = true
+			m.logger.Debugf("Definition '%s' has no InteractionModels specified, defaulting to IsChatCapable=true", def.Name)
 		} else {
 			for _, modelType := range def.InteractionModels {
 				if modelType == InteractionModelConversational || modelType == InteractionModelBoth {
@@ -316,23 +341,24 @@ func (m *AIWorkerManager) ListWorkerDefinitionsForDisplay() ([]*AIWorkerDefiniti
 		}
 
 		var apiKeyStatus APIKeyStatus
-		resolvedKey, errResolve := "", error(nil)
+		// Using resolvedKey and errResolve as in your original file
+		resolvedKey, errResolve := "", error(nil) // Initialize for clarity
 
 		if def.Auth.Method == "" {
 			apiKeyStatus = APIKeyStatusNotConfigured
 		} else if def.Auth.Method == APIKeyMethodNone {
-			apiKeyStatus = APIKeyStatusFound
+			apiKeyStatus = APIKeyStatusFound // No key needed is considered "found" for readiness
 		} else {
-			resolvedKey, errResolve = m.resolveAPIKey(def.Auth)
+			resolvedKey, errResolve = m.resolveAPIKey(def.Auth) //
 			if errResolve != nil {
-				if errors.Is(errResolve, ErrAPIKeyNotFound) {
+				if errors.Is(errResolve, ErrAPIKeyNotFound) { //
 					apiKeyStatus = APIKeyStatusNotFound
-				} else if runErr, ok := errResolve.(*RuntimeError); ok {
+				} else if runErr, ok := errResolve.(*RuntimeError); ok { //
 					switch runErr.Code {
-					case ErrorCodeConfiguration, ErrorCodeArgMismatch:
+					case ErrorCodeConfiguration, ErrorCodeArgMismatch: //
 						apiKeyStatus = APIKeyStatusNotConfigured
 						m.logger.Warnf("API key for def '%s' (method: %s) NotConfigured/NotFound due to: %s", def.Name, def.Auth.Method, runErr.Message)
-					case ErrorCodeNotImplemented:
+					case ErrorCodeNotImplemented: //
 						apiKeyStatus = APIKeyStatusError
 						m.logger.Warnf("API key method '%s' for def '%s' not implemented.", def.Auth.Method, def.Name)
 					default:
@@ -344,27 +370,26 @@ func (m *AIWorkerManager) ListWorkerDefinitionsForDisplay() ([]*AIWorkerDefiniti
 					m.logger.Errorf("Non-runtime error resolving API key for def '%s': %v", def.Name, errResolve)
 				}
 			} else { // No error from resolveAPIKey
-				if def.Auth.Method == APIKeyMethodInline && resolvedKey == "" {
-					// This variable IS used now to make the decision.
+				if def.Auth.Method == APIKeyMethodInline && resolvedKey == "" { //
 					providerAllowsEmptyInlineKey := false
-					switch def.Provider {
-					case ProviderGoogle, ProviderOpenAI, ProviderAnthropic:
+					switch def.Provider { //
+					case ProviderGoogle, ProviderOpenAI, ProviderAnthropic: //
 						providerAllowsEmptyInlineKey = false
-					case ProviderOllama:
+					case ProviderOllama: //
 						providerAllowsEmptyInlineKey = true
 					default:
 						providerAllowsEmptyInlineKey = false
 						m.logger.Debugf("Def %s (Provider: %s) uses empty inline key. Defaulting to 'key not sufficient' (NotConfigured).", def.Name, def.Provider)
 					}
 
-					if providerAllowsEmptyInlineKey {
+					if providerAllowsEmptyInlineKey { //
 						apiKeyStatus = APIKeyStatusFound
 						m.logger.Infof("Def %s (%s) uses inline auth with empty key, considered 'Found' as provider allows it.", def.Name, def.Provider)
 					} else {
 						apiKeyStatus = APIKeyStatusNotConfigured
 						m.logger.Infof("Def %s (%s) uses inline auth with empty key, provider requires a key. Marked as NotConfigured.", def.Name, def.Provider)
 					}
-				} else if resolvedKey == "" && def.Auth.Method != APIKeyMethodNone {
+				} else if resolvedKey == "" && def.Auth.Method != APIKeyMethodNone { //
 					apiKeyStatus = APIKeyStatusNotFound
 					m.logger.Warnf("Def %s (%s) resolved to empty key via method %s without error (or error was not ErrAPIKeyNotFound). Marked as %s.", def.Name, def.Provider, def.Auth.Method, apiKeyStatus)
 				} else {

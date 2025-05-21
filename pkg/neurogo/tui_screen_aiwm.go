@@ -212,66 +212,74 @@ func (s *AIWMStatusScreen) OnBlur() {
 
 func (s *AIWMStatusScreen) InputHandler() func(event *tcell.EventKey, setFocus func(p tview.Primitive)) *tcell.EventKey {
 	return func(event *tcell.EventKey, setFocus func(p tview.Primitive)) *tcell.EventKey {
-		// Assuming s.app and s.app.tui are non-nil due to halting policy.
-		s.app.tui.LogToDebugScreen("[AIWM_INPUT_HANDLER] Key: %s, Rune: %c, Mod: %v", event.Name(), event.Rune(), event.Modifiers())
+		// Assuming s.app and s.app.tui are non-nil due to your halting policy.
+		// Log every key received by this handler for debugging if needed.
+		// s.app.tui.LogToDebugScreen("[AIWM_INPUT_HANDLER] Raw Key: %s, Rune: %c, Mod: %v", event.Name(), event.Rune(), event.Modifiers())
 
-		// Assuming s.table is non-nil due to halting policy.
-		// The original 'if s.table == nil' block and its contents are removed.
+		if s.table == nil {
+			s.app.tui.LogToDebugScreen("[AIWM_INPUT_HANDLER] Table is nil, returning event.")
+			return event
+		}
 
-		// Handle Enter key for chat creation specifically.
+		// 1. Handle 'Enter' key for chat creation action.
 		if event.Key() == tcell.KeyEnter {
-			s.app.tui.LogToDebugScreen("[AIWM_INPUT_HANDLER] Enter key pressed.")
+			s.app.tui.LogToDebugScreen("[AIWM_INPUT_HANDLER] Enter key pressed, performing action.")
+			// ... (existing chat creation logic from your previous version)
 			row, _ := s.table.GetSelection()
-
-			// Assuming s.displayInfo is non-nil due to halting policy.
-			// The original 'if s.displayInfo == nil' block and its contents are removed.
-
-			// The check for row bounds is a logical data validation, not a nil check of a disallowed state.
-			if row > 0 && row-1 < len(s.displayInfo) { //
-				selectedInfo := s.displayInfo[row-1] //
-
-				// Assuming selectedInfo and selectedInfo.Definition are non-nil due to halting policy.
-				// The original 'if selectedInfo == nil || selectedInfo.Definition == nil' block is removed.
-
-				logger := s.app.GetLogger() // Assuming GetLogger() guarantees a non-nil logger or panics.
-
-				if selectedInfo.IsChatCapable && selectedInfo.APIKeyStatus == core.APIKeyStatusFound { //
-					logger.Info("Attempting to start chat with worker...", //
+			if row > 0 && row-1 < len(s.displayInfo) {
+				selectedInfo := s.displayInfo[row-1]
+				logger := s.app.GetLogger()
+				if selectedInfo.IsChatCapable && selectedInfo.APIKeyStatus == core.APIKeyStatusFound {
+					logger.Info("Attempting to start chat with worker...",
 						"definitionID", selectedInfo.Definition.DefinitionID,
 						"name", selectedInfo.Definition.Name)
-
-					chatSession, err := s.app.CreateNewChatSession(selectedInfo.Definition.DefinitionID) //
-					if err != nil {                                                                      // Error check (not a nil policy violation) - KEEP
-						logger.Error("Failed to create chat session with worker", //
+					chatSession, err := s.app.CreateNewChatSession(selectedInfo.Definition.DefinitionID)
+					if err != nil {
+						logger.Error("Failed to create chat session with worker",
 							"definitionID", selectedInfo.Definition.DefinitionID, "error", err)
-						s.app.tui.LogToDebugScreen("[AIWM_ERROR_HANDLER] Failed to create chat session: %v", err) //
+						s.app.tui.LogToDebugScreen("[AIWM_ERROR_HANDLER] Failed to create chat session: %v", err)
 					} else {
-						logger.Info("Successfully created chat session", //
+						logger.Info("Successfully created chat session",
 							"definitionID", chatSession.DefinitionID, "sessionID", chatSession.SessionID)
-						s.app.tui.LogToDebugScreen("[AIWM_INFO_HANDLER] Chat session created for %s. Main TUI should handle view/focus switch.", chatSession.DefinitionID) //
+						s.app.tui.LogToDebugScreen("[AIWM_INFO_HANDLER] Chat session created for %s. Focus should shift.", chatSession.DefinitionID)
 					}
 				} else {
-					logger.Warn("Selected worker is not chat capable or API key not found/configured.", //
+					logger.Warn("Selected worker is not chat capable or API key not found/configured.",
 						"name", selectedInfo.Definition.Name,
 						"chatCapable", selectedInfo.IsChatCapable,
 						"apiKeyStatus", selectedInfo.APIKeyStatus)
-					s.app.tui.LogToDebugScreen("[AIWM_WARN_HANDLER] Worker %s not chat capable or API key issue.", selectedInfo.Definition.Name) //
+					s.app.tui.LogToDebugScreen("[AIWM_WARN_HANDLER] Worker %s not chat capable or API key issue.", selectedInfo.Definition.Name)
 				}
 			}
-			return nil // Enter key is consumed by AIWM screen's action
+			return nil // Consume the Enter key as its action is handled here.
 		}
 
-		// For all other keys, let the table handle it first.
+		// 2. Explicitly pass known global navigation keys upwards.
+		//    The global handler in tview_tui.go will catch these.
+		switch event.Key() {
+		case tcell.KeyTab, tcell.KeyBacktab,
+			tcell.KeyCtrlB, tcell.KeyCtrlN, tcell.KeyCtrlP, tcell.KeyCtrlF: // Add any other keys handled globally
+			s.app.tui.LogToDebugScreen("[AIWM_INPUT_HANDLER] Passing global navigation key %s upwards.", event.Name())
+			return event // Return the event for the global handler.
+		}
+
+		// 3. For all other keys, assume they are for the table's internal operations
+		//    (like up/down arrows, PageUp/PageDown, Home, End for selection).
+		//    Let the table's default input handler process them, and then consume the event.
 		tableHandler := s.table.InputHandler()
-		// This 'if' checks if the table *provides* an input handler.
-		// This is a capability check, not a "this should never be nil" state check, so it remains.
 		if tableHandler != nil {
-			s.app.tui.LogToDebugScreen("[AIWM_INPUT_HANDLER] Passing key %s to table's default handler.", event.Name())
-			tableHandler(event, setFocus)
+			s.app.tui.LogToDebugScreen("[AIWM_INPUT_HANDLER] Passing key %s to table's internal handler.", event.Name())
+			tableHandler(event, setFocus) // Let the table handle its navigation.
+			// After the table handles it (e.g., moves selection), consume the event
+			// so it doesn't propagate further and potentially cause unexpected behavior.
+			s.app.tui.LogToDebugScreen("[AIWM_INPUT_HANDLER] Table processed key %s, consuming event.", event.Name())
+			return nil
 		}
 
-		s.app.tui.LogToDebugScreen("[AIWM_INPUT_HANDLER] Returning event %s for further processing by global key handler.", event.Name())
-		return event // Pass all other events to global key handler
+		// Fallback: If the table has no handler or it's not a recognized key type,
+		// return the event for default tview processing.
+		s.app.tui.LogToDebugScreen("[AIWM_INPUT_HANDLER] Key %s not handled by specific cases, returning event.", event.Name())
+		return event
 	}
 }
 

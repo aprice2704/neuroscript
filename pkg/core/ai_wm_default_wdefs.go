@@ -3,7 +3,7 @@ package core
 const AIWorkerDefinitions_Default string = `
 [
   {
-    "name": "google-gemini-1.5-pro",
+    "name": "gem1.5",
     "provider": "google",
     "model_name": "gemini-1.5-pro-latest",
     "auth": {
@@ -22,7 +22,7 @@ const AIWorkerDefinitions_Default string = `
     }
   },
   {
-    "name": "openai-gpt-4o",
+    "name": "gpt4o",
     "provider": "openai",
     "model_name": "gpt-4o",
     "auth": {
@@ -40,7 +40,7 @@ const AIWorkerDefinitions_Default string = `
     }
   },
   {
-    "name": "ollama-llama3-local",
+    "name": "ll3-loc",
     "provider": "ollama",
     "model_name": "llama3:latest",
     "auth": {
@@ -58,7 +58,7 @@ const AIWorkerDefinitions_Default string = `
     }
   },
   {
-    "name": "coding-assistant-gemini",
+    "name": "jun-dev",
     "provider": "google",
     "model_name": "gemini-1.5-pro-latest",
     "auth": {
