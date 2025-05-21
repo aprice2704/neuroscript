@@ -17,7 +17,6 @@ import (
 	// "github.com/aprice2704/neuroscript/pkg/logging"
 )
 
-// SpawnWorkerInstance creates a new AIWorkerInstance from a given definition.
 func (m *AIWorkerManager) SpawnWorkerInstance(
 	definitionID string,
 	instanceConfigOverrides map[string]interface{},
@@ -30,27 +29,27 @@ func (m *AIWorkerManager) SpawnWorkerInstance(
 	if m.logger == nil {
 		log.Fatalf("CRITICAL PANIC (SpawnWorkerInstance): AIWorkerManager's logger (m.logger) is nil.")
 	}
-	fmt.Printf("DEBUG_INSTANCE (v0.1.10): ENTER SpawnWorkerInstance for DefID '%s', AIWM Addr: %p\n", definitionID, m)
+	m.logger.Debugf("DEBUG_INSTANCE (v0.1.10+fix2): ENTER SpawnWorkerInstance for DefID '%s', AIWM Addr: %p", definitionID, m)
 
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	fmt.Printf("DEBUG_INSTANCE (v0.1.10): Mutex locked in SpawnWorkerInstance.\n")
+	m.logger.Debugf("DEBUG_INSTANCE (v0.1.10+fix2): Mutex locked in SpawnWorkerInstance.")
 
-	fmt.Printf("DEBUG_INSTANCE (v0.1.10): Accessing m.definitions (map Addr: %p, len: %d) for DefID '%s'\n", m.definitions, len(m.definitions), definitionID)
+	m.logger.Debugf("DEBUG_INSTANCE (v0.1.10+fix2): Accessing m.definitions (map Addr: %p, len: %d) for DefID '%s'", m.definitions, len(m.definitions), definitionID)
 	def, exists := m.definitions[definitionID]
 	if !exists {
-		fmt.Printf("DEBUG_INSTANCE (v0.1.10): Definition ID '%s' not found in m.definitions.\n", definitionID)
+		m.logger.Debugf("DEBUG_INSTANCE (v0.1.10+fix2): Definition ID '%s' not found in m.definitions.", definitionID)
 		return nil, NewRuntimeError(ErrorCodeKeyNotFound, fmt.Sprintf("worker definition ID '%s' not found for spawning instance", definitionID), ErrNotFound)
 	}
 	if def == nil {
 		errMsg := fmt.Sprintf("CRITICAL PANIC (SpawnWorkerInstance): Definition '%s' found in map but pointer is nil.", definitionID)
-		m.logger.Errorf(errMsg) // m.logger is confirmed non-nil
+		m.logger.Errorf(errMsg)
 		panic(errMsg)
 	}
-	fmt.Printf("DEBUG_INSTANCE (v0.1.10): Fetched 'def' for DefID '%s'. Def Addr: %p, Def Name: '%s'\n", definitionID, def, def.Name)
+	m.logger.Debugf("DEBUG_INSTANCE (v0.1.10+fix2): Fetched 'def' for DefID '%s'. Def Addr: %p, Def Name: '%s'", definitionID, def, def.Name)
 
 	if def.Status != DefinitionStatusActive {
-		fmt.Printf("DEBUG_INSTANCE (v0.1.10): DefID '%s' is not active (Status: %s).\n", definitionID, def.Status)
+		m.logger.Debugf("DEBUG_INSTANCE (v0.1.10+fix2): DefID '%s' is not active (Status: %s).", definitionID, def.Status)
 		return nil, NewRuntimeError(ErrorCodePreconditionFailed, fmt.Sprintf("worker definition '%s' is not active (status: %s), cannot spawn instance", definitionID, def.Status), ErrFailedPrecondition)
 	}
 
@@ -63,63 +62,44 @@ func (m *AIWorkerManager) SpawnWorkerInstance(
 			}
 		}
 	} else {
-		fmt.Printf("DEBUG_INSTANCE (v0.1.10): DefID '%s' has nil InteractionModels slice.\n", definitionID)
+		m.logger.Debugf("DEBUG_INSTANCE (v0.1.10+fix2): DefID '%s' has nil InteractionModels slice.", definitionID)
 	}
 
 	if !supportsConversational {
-		fmt.Printf("DEBUG_INSTANCE (v0.1.10): DefID '%s' does not support conversational interaction.\n", definitionID)
+		m.logger.Debugf("DEBUG_INSTANCE (v0.1.10+fix2): DefID '%s' does not support conversational interaction.", definitionID)
 		return nil, NewRuntimeError(ErrorCodePreconditionFailed, fmt.Sprintf("worker definition '%s' does not support conversational interaction, cannot spawn instance", definitionID), ErrFailedPrecondition)
 	}
-	// fmt.Printf("DEBUG_INSTANCE (v0.1.10): DefID '%s' supports conversational model. Def.RateLimits: %+v\n", definitionID, def.RateLimits)
 
-	// --- Debugging block for line 85 area ---
-	fmt.Printf("DEBUG_INSTANCE (v0.1.10): ---- Immediately BEFORE CALL to m.getOrCreateRateTrackerUnsafe (Original Line 85 area) ----\n")
-	fmt.Printf("DEBUG_INSTANCE (v0.1.10): Current AIWorkerManager (m) Addr: %p\n", m)
-	if m != nil { // Extra safety for accessing m's fields
-		fmt.Printf("DEBUG_INSTANCE (v0.1.10): Current m.logger Addr: %p\n", m.logger)
-		fmt.Printf("DEBUG_INSTANCE (v0.1.10): Current m.rateTrackers map Addr: %p, Len: %d\n", m.rateTrackers, len(m.rateTrackers))
+	m.logger.Debugf("DEBUG_INSTANCE (v0.1.10+fix2): ---- Immediately BEFORE CALL to m.getOrCreateRateTrackerUnsafe ----")
+	m.logger.Debugf("DEBUG_INSTANCE (v0.1.10+fix2): Current AIWorkerManager (m) Addr: %p", m)
+	m.logger.Debugf("DEBUG_INSTANCE (v0.1.10+fix2): Current m.logger Addr: %p", m.logger)
+	m.logger.Debugf("DEBUG_INSTANCE (v0.1.10+fix2): Current m.rateTrackers map Addr: %p, Len: %d", m.rateTrackers, len(m.rateTrackers))
+	m.logger.Debugf("DEBUG_INSTANCE (v0.1.10+fix2): Current AIWorkerDefinition (def) Addr: %p", def)
+	if def != nil {
+		m.logger.Debugf("DEBUG_INSTANCE (v0.1.10+fix2): Current def.DefinitionID: %s", def.DefinitionID)
 	}
-	fmt.Printf("DEBUG_INSTANCE (v0.1.10): Current AIWorkerDefinition (def) Addr: %p\n", def)
-	if def != nil { // Extra safety
-		fmt.Printf("DEBUG_INSTANCE (v0.1.10): Current def.DefinitionID: %s\n", def.DefinitionID)
-	}
-	// ------------------------------------
 
-	tracker := m.getOrCreateRateTrackerUnsafe(def) // THIS IS EFFECTIVELY LINE 85 from original stack trace
+	tracker := m.getOrCreateRateTrackerUnsafe(def)
 
-	// --- Debugging block after line 85 ---
-	fmt.Printf("DEBUG_INSTANCE (v0.1.10): ---- Immediately AFTER CALL to m.getOrCreateRateTrackerUnsafe ----\n")
-	fmt.Printf("DEBUG_INSTANCE (v0.1.10): Returned tracker Addr: %p\n", tracker)
-	// -------------------------------------
+	m.logger.Debugf("DEBUG_INSTANCE (v0.1.10+fix2): ---- Immediately AFTER CALL to m.getOrCreateRateTrackerUnsafe ----")
+	m.logger.Debugf("DEBUG_INSTANCE (v0.1.10+fix2): Returned tracker Addr: %p", tracker)
 
 	if tracker == nil {
 		errMsg := fmt.Sprintf("CRITICAL PANIC (SpawnWorkerInstance): getOrCreateRateTrackerUnsafe returned nil tracker for DefID '%s'. This should have been caught by internal panics in getOrCreateRateTrackerUnsafe.", def.DefinitionID)
-		if m != nil && m.logger != nil { // m should be non-nil here
-			m.logger.Errorf(errMsg)
-		} else if m == nil {
-			log.Printf("CRITICAL PANIC (SpawnWorkerInstance): m is nil, and getOrCreateRateTrackerUnsafe returned nil. DefID: %s", def.DefinitionID)
-		} else { // m.logger is nil
-			log.Printf("CRITICAL PANIC (SpawnWorkerInstance): m.logger is nil, and getOrCreateRateTrackerUnsafe returned nil. DefID: %s", def.DefinitionID)
-		}
+		m.logger.Errorf(errMsg)
 		panic(errMsg)
 	}
-	// fmt.Printf("DEBUG_INSTANCE (v0.1.10): Tracker for DefID '%s' obtained. Tracker Addr: %p, Tracker.DefID: '%s', Tracker.CurrentActiveInstances: %d\n", def.DefinitionID, tracker, tracker.DefinitionID, tracker.CurrentActiveInstances)
 
-	// Rate Limiting: Check MaxConcurrentActiveInstances (using the STUBBED tracker)
-	// This check remains to see if accessing def.RateLimits or tracker.CurrentActiveInstances (if non-nil) causes issues.
-	// Rate limiting itself is stubbed in ai_wm_ratelimit.go v0.1.8.
-	fmt.Printf("DEBUG_INSTANCE (v0.1.10): About to check concurrency. Tracker Addr: %p. Def Addr: %p\n", tracker, def)
-	if def != nil && tracker != nil { // Ensure both are non-nil before accessing fields
-		// fmt.Printf("DEBUG_INSTANCE (v0.1.10): Accessing tracker.CurrentActiveInstances (%d) and def.RateLimits.MaxConcurrentActiveInstances (%d)\n", tracker.CurrentActiveInstances, def.RateLimits.MaxConcurrentActiveInstances)
+	m.logger.Debugf("DEBUG_INSTANCE (v0.1.10+fix2): About to check concurrency. Tracker Addr: %p. Def Addr: %p", tracker, def)
+	if def != nil && tracker != nil {
 		if def.RateLimits.MaxConcurrentActiveInstances > 0 && tracker.CurrentActiveInstances >= def.RateLimits.MaxConcurrentActiveInstances {
-			fmt.Printf("DEBUG_INSTANCE (v0.1.10): Max concurrent instances (%d) reached for DefID '%s'. Current: %d\n", def.RateLimits.MaxConcurrentActiveInstances, definitionID, tracker.CurrentActiveInstances)
+			m.logger.Debugf("DEBUG_INSTANCE (v0.1.10+fix2): Max concurrent instances (%d) reached for DefID '%s'. Current: %d", def.RateLimits.MaxConcurrentActiveInstances, definitionID, tracker.CurrentActiveInstances)
 			m.logger.Warnf("SpawnWorkerInstance: Max concurrent instances (%d) reached for definition '%s'", def.RateLimits.MaxConcurrentActiveInstances, definitionID)
 			return nil, NewRuntimeError(ErrorCodeRateLimited, fmt.Sprintf("max concurrent instances (%d) reached for definition '%s'", def.RateLimits.MaxConcurrentActiveInstances, definitionID), ErrRateLimited)
 		}
 	} else {
-		fmt.Printf("DEBUG_INSTANCE (v0.1.10): Skipped concurrency check because def (%p) or tracker (%p) is nil.\n", def, tracker)
+		m.logger.Debugf("DEBUG_INSTANCE (v0.1.10+fix2): Skipped concurrency check because def (%p) or tracker (%p) is nil.", def, tracker)
 	}
-	// fmt.Printf("DEBUG_INSTANCE (v0.1.10): Concurrency check passed for DefID '%s'.\n", definitionID)
 
 	instanceID := uuid.NewString()
 	effectiveConfig := make(map[string]interface{})
@@ -133,12 +113,26 @@ func (m *AIWorkerManager) SpawnWorkerInstance(
 	}
 
 	var effectiveFileContexts []string
-	if def != nil { // Check def before accessing DefaultFileContexts
+	if def != nil {
 		effectiveFileContexts = def.DefaultFileContexts
 	}
 	if len(initialFileContexts) > 0 {
 		effectiveFileContexts = initialFileContexts
 	}
+
+	// *** START OF THE PRIMARY FIX ***
+	// Ensure the manager's LLM client is available and assign it.
+	instanceLLMClient := m.llmClient // Get the manager's LLM client from AIWorkerManager struct
+	if instanceLLMClient == nil {
+		// This indicates a problem with AIWorkerManager initialization.
+		errMsg := fmt.Sprintf("CRITICAL: AIWorkerManager's default LLM client (m.llmClient) is nil. Cannot spawn instance %s for DefID %s. This is likely NeuroScript Error 19.", instanceID, definitionID)
+		m.logger.Errorf(errMsg)
+		// Use a generic error code if ErrorCodeLLMClientNotSet is not defined,
+		// or use the numeric code if that's how your errors are structured.
+		// For now, using ErrorCodeInternal as a placeholder for "Error 19".
+		return nil, NewRuntimeError(ErrorCodeInternal, errMsg, nil) // Adjusted Error Code
+	}
+	// *** END OF THE PRIMARY FIX (Part 1: Getting and checking manager's client) ***
 
 	now := time.Now()
 	instance := &AIWorkerInstance{
@@ -151,33 +145,29 @@ func (m *AIWorkerManager) SpawnWorkerInstance(
 		SessionTokenUsage:     TokenUsageMetrics{},
 		CurrentConfig:         effectiveConfig,
 		ActiveFileContexts:    effectiveFileContexts,
+		// *** START OF THE PRIMARY FIX (Part 2: Assigning to instance fields) ***
+		llmClient: instanceLLMClient, // Assign the LLM client to the instance
+		// Logger field removed as it's not in AIWorkerInstance struct
+		// *** END OF THE PRIMARY FIX (Part 2) ***
 	}
 
 	m.activeInstances[instanceID] = instance
+	// Adjusted log message as instance.Logger is not a field
+	m.logger.Debugf("DEBUG_INSTANCE (v0.1.10+fix2): Instance %s created. LLMClient assigned: %T", instanceID, instance.llmClient)
 
-	// tracker.CurrentActiveInstances++ // STUBBED OUT - Rate limit tracking is disabled in ai_wm_ratelimit.go v0.1.8
-	// fmt.Printf("DEBUG_INSTANCE (v0.1.10): CurrentActiveInstances increment commented out for DefID '%s'.\n", definitionID)
+	// tracker.CurrentActiveInstances++ // STUBBED OUT by user in uploaded file
+	m.logger.Debugf("DEBUG_INSTANCE (v0.1.10+fix2): CurrentActiveInstances increment commented out for DefID '%s'.", definitionID)
 
-	// Defensively ensure AggregatePerformanceSummary is not nil before incrementing
-	// TODO: Resolve 'undefined: AggregatedPerformanceSummary' by ensuring type is correctly defined and accessible.
-	// For now, commenting out to allow compilation for the main panic debug.
-	/*
-		if def != nil && def.AggregatePerformanceSummary == nil {
-		    fmt.Printf("WARN_INSTANCE (v0.1.10): def.AggregatePerformanceSummary is nil for DefID '%s'. Initializing.\n", def.DefinitionID)
-		    // def.AggregatePerformanceSummary = &AggregatedPerformanceSummary{} // This line caused the compiler error.
-		}
-		if def != nil && def.AggregatePerformanceSummary != nil {
-		    def.AggregatePerformanceSummary.TotalInstancesSpawned++
-		}
-	*/
-	fmt.Printf("DEBUG_INSTANCE (v0.1.10): AggregatePerformanceSummary update skipped/commented due to prior compiler error.\n")
+	// AggregatePerformanceSummary logic commented out by user in uploaded file
+	m.logger.Debugf("DEBUG_INSTANCE (v0.1.10+fix2): AggregatePerformanceSummary update skipped/commented due to prior compiler error.")
 
-	if m.logger != nil && tracker != nil { // Check both before logging with tracker fields
+	if tracker != nil {
 		m.logger.Infof("AIWorkerManager: Spawned AIWorkerInstance ID=%s from DefinitionID=%s. Active instances for def (if tracked by stub): %d", instanceID, definitionID, tracker.CurrentActiveInstances)
-	} else if m.logger != nil {
-		m.logger.Infof("AIWorkerManager: Spawned AIWorkerInstance ID=%s from DefinitionID=%s. Tracker is nil or logger issue for active instances.", instanceID, definitionID)
+	} else {
+		m.logger.Infof("AIWorkerManager: Spawned AIWorkerInstance ID=%s from DefinitionID=%s. Tracker is nil, cannot log active instances for def.", instanceID, definitionID)
 	}
-	fmt.Printf("DEBUG_INSTANCE (v0.1.10): EXIT SpawnWorkerInstance for DefID '%s', returning instance Addr: %p\n", definitionID, instance)
+
+	m.logger.Debugf("DEBUG_INSTANCE (v0.1.10+fix2): EXIT SpawnWorkerInstance for DefID '%s', returning instance Addr: %p", definitionID, instance)
 	return instance, nil
 }
 

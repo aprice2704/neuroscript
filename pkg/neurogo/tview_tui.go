@@ -357,19 +357,11 @@ func StartTviewTUI(mainApp *App, initialScriptPath string) error {
 				}
 			}
 		case tcell.KeyCtrlB:
-			TuiPrintf("[KEY_HANDLE] Ctrl+B pressed. Prev screen left.")
-			tvP.nextScreen(-1, true)
-			return nil
-		case tcell.KeyCtrlN:
-			TuiPrintf("[KEY_HANDLE] Ctrl+N pressed. Next screen left.")
+			TuiPrintf("[KEY_HANDLE] Ctrl+B pressed. Next screen left.")
 			tvP.nextScreen(1, true)
 			return nil
-		case tcell.KeyCtrlP:
-			TuiPrintf("[KEY_HANDLE] Ctrl+P pressed. Prev screen right.")
-			tvP.nextScreen(-1, false)
-			return nil
-		case tcell.KeyCtrlF:
-			TuiPrintf("[KEY_HANDLE] Ctrl+F pressed. Next screen right.")
+		case tcell.KeyCtrlN:
+			TuiPrintf("[KEY_HANDLE] Ctrl+N pressed. Next screen right.")
 			tvP.nextScreen(1, false)
 			return nil
 		}

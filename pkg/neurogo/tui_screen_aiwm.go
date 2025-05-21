@@ -210,86 +210,68 @@ func (s *AIWMStatusScreen) OnBlur() {
 	}
 }
 
-// InputHandler uses CreateNewChatSession
 func (s *AIWMStatusScreen) InputHandler() func(event *tcell.EventKey, setFocus func(p tview.Primitive)) *tcell.EventKey {
 	return func(event *tcell.EventKey, setFocus func(p tview.Primitive)) *tcell.EventKey {
-		if s.table == nil {
-			return event
-		}
-		// fmt.Printf("[STDOUT_AIWM_INPUT_0.1.2M] Key: %s\n", event.Name()) // For detailed input debugging
+		// Assuming s.app and s.app.tui are non-nil due to halting policy.
+		s.app.tui.LogToDebugScreen("[AIWM_INPUT_HANDLER] Key: %s, Rune: %c, Mod: %v", event.Name(), event.Rune(), event.Modifiers())
 
+		// Assuming s.table is non-nil due to halting policy.
+		// The original 'if s.table == nil' block and its contents are removed.
+
+		// Handle Enter key for chat creation specifically.
 		if event.Key() == tcell.KeyEnter {
+			s.app.tui.LogToDebugScreen("[AIWM_INPUT_HANDLER] Enter key pressed.")
 			row, _ := s.table.GetSelection()
-			if s.displayInfo == nil {
-				if s.app.tui != nil {
-					s.app.tui.LogToDebugScreen("[AIWM_INPUT_0.1.2M] Enter pressed but displayInfo is nil.")
-				}
-				return nil
-			}
-			if row > 0 && row-1 < len(s.displayInfo) {
-				selectedInfo := s.displayInfo[row-1]
-				if selectedInfo == nil || selectedInfo.Definition == nil {
-					if s.app.tui != nil {
-						s.app.tui.LogToDebugScreen("[AIWM_INPUT_0.1.2M] Enter pressed, but selectedInfo or Definition is nil at row %d.", row)
-					}
-					return nil
-				}
 
-				logger := s.app.GetLogger()
+			// Assuming s.displayInfo is non-nil due to halting policy.
+			// The original 'if s.displayInfo == nil' block and its contents are removed.
 
-				if selectedInfo.IsChatCapable && selectedInfo.APIKeyStatus == core.APIKeyStatusFound {
-					if logger != nil {
-						logger.Info("Attempting to start chat with worker...",
-							"definitionID", selectedInfo.Definition.DefinitionID,
-							"name", selectedInfo.Definition.Name)
-					}
-					fmt.Printf("[STDOUT_AIWM_INPUT_0.1.2M] Attempting to create chat session with %s\n", selectedInfo.Definition.Name)
+			// The check for row bounds is a logical data validation, not a nil check of a disallowed state.
+			if row > 0 && row-1 < len(s.displayInfo) { //
+				selectedInfo := s.displayInfo[row-1] //
 
-					chatSession, err := s.app.CreateNewChatSession(selectedInfo.Definition.DefinitionID) // Using CreateNewChatSession
-					if err != nil {
-						if logger != nil {
-							logger.Error("Failed to create chat session with worker",
-								"definitionID", selectedInfo.Definition.DefinitionID, "error", err)
-						}
-						if s.app.tui != nil {
-							s.app.tui.LogToDebugScreen("[AIWM_ERROR_0.1.2M] Failed to create chat session: %v", err)
-						}
+				// Assuming selectedInfo and selectedInfo.Definition are non-nil due to halting policy.
+				// The original 'if selectedInfo == nil || selectedInfo.Definition == nil' block is removed.
+
+				logger := s.app.GetLogger() // Assuming GetLogger() guarantees a non-nil logger or panics.
+
+				if selectedInfo.IsChatCapable && selectedInfo.APIKeyStatus == core.APIKeyStatusFound { //
+					logger.Info("Attempting to start chat with worker...", //
+						"definitionID", selectedInfo.Definition.DefinitionID,
+						"name", selectedInfo.Definition.Name)
+
+					chatSession, err := s.app.CreateNewChatSession(selectedInfo.Definition.DefinitionID) //
+					if err != nil {                                                                      // Error check (not a nil policy violation) - KEEP
+						logger.Error("Failed to create chat session with worker", //
+							"definitionID", selectedInfo.Definition.DefinitionID, "error", err)
+						s.app.tui.LogToDebugScreen("[AIWM_ERROR_HANDLER] Failed to create chat session: %v", err) //
 					} else {
-						if logger != nil {
-							logger.Info("Successfully created chat session",
-								"definitionID", chatSession.DefinitionID, "sessionID", chatSession.SessionID)
-						}
-						if s.app.tui != nil {
-							s.app.tui.LogToDebugScreen("[AIWM_INFO_0.1.2M] Chat session created for %s. Main TUI should handle view switch.", chatSession.DefinitionID)
-							// The main TUI event loop (e.g. in tview_tui.go keyHandle or onPanePageChange)
-							// should detect the new active chat session and switch views accordingly.
-							// For example, by calling tvP.switchToChatViewAndUpdate(chatSession.SessionID)
-							// if that method is reinstated or its logic integrated elsewhere.
-							// For now, this screener's job is done by creating the session.
-						}
+						logger.Info("Successfully created chat session", //
+							"definitionID", chatSession.DefinitionID, "sessionID", chatSession.SessionID)
+						s.app.tui.LogToDebugScreen("[AIWM_INFO_HANDLER] Chat session created for %s. Main TUI should handle view/focus switch.", chatSession.DefinitionID) //
 					}
 				} else {
-					// ... (logging for not chat capable)
-					if logger != nil {
-						logger.Warn("Selected worker is not chat capable or API key not found/configured.",
-							"name", selectedInfo.Definition.Name,
-							"chatCapable", selectedInfo.IsChatCapable,
-							"apiKeyStatus", selectedInfo.APIKeyStatus)
-					}
-					if s.app.tui != nil {
-						s.app.tui.LogToDebugScreen("[AIWM_WARN_0.1.2M] Worker %s not chat capable or API key issue.", selectedInfo.Definition.Name)
-					}
+					logger.Warn("Selected worker is not chat capable or API key not found/configured.", //
+						"name", selectedInfo.Definition.Name,
+						"chatCapable", selectedInfo.IsChatCapable,
+						"apiKeyStatus", selectedInfo.APIKeyStatus)
+					s.app.tui.LogToDebugScreen("[AIWM_WARN_HANDLER] Worker %s not chat capable or API key issue.", selectedInfo.Definition.Name) //
 				}
-				return nil // Event handled
 			}
+			return nil // Enter key is consumed by AIWM screen's action
 		}
 
+		// For all other keys, let the table handle it first.
 		tableHandler := s.table.InputHandler()
+		// This 'if' checks if the table *provides* an input handler.
+		// This is a capability check, not a "this should never be nil" state check, so it remains.
 		if tableHandler != nil {
+			s.app.tui.LogToDebugScreen("[AIWM_INPUT_HANDLER] Passing key %s to table's default handler.", event.Name())
 			tableHandler(event, setFocus)
-			return nil
 		}
-		return event
+
+		s.app.tui.LogToDebugScreen("[AIWM_INPUT_HANDLER] Returning event %s for further processing by global key handler.", event.Name())
+		return event // Pass all other events to global key handler
 	}
 }
 
