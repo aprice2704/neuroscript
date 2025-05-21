@@ -204,25 +204,27 @@ var _ Screener = (*DynamicOutputScreen)(nil)
 var _ io.Writer = (*DynamicOutputScreen)(nil)
 var _ PrimitiveScreener = (*DynamicOutputScreen)(nil)
 
-// helpText (remains the same)
 var helpText = fmt.Sprintf(`[green]Navigation:[white]
 
-[yellow]Tab[white] cycles focus: [blue]Left Input (C)[white] -> [blue]Right Input (D)[white] -> [blue]Right Pane (B)[white] -> [blue]Left Pane (A)[white] -> (loop)
-[yellow]Shift+Tab[white] cycles focus: [blue]Left Input (C)[white] -> [blue]Left Pane (A)[white] -> [blue]Right Pane (B)[white] -> [blue]Right Input (D)[white] -> (loop)
+[yellow]Tab[white]         Cycles focus: [blue]Left Input (C)[white] -> [blue]Right Input (D)[white] -> [blue]Right Pane (B)[white] -> [blue]Left Pane (A)[white] -> (loop)
+[yellow]Shift+Tab[white]    Cycles focus: [blue]Left Input (C)[white] -> [blue]Left Pane (A)[white] -> [blue]Right Pane (B)[white] -> [blue]Right Input (D)[white] -> (loop)
 
 [green]Pane Content Cycling:[white]
 
-[yellow]Ctrl+B[white] cycles Left Pane (A) screens
-[yellow]Ctrl+N[white] cycles Right Pane (B) screens
+[yellow]Ctrl+B[white]        Cycles Left Pane (A) screens (e.g., ScriptOut, AIWM, Help)
+[yellow]Ctrl+N[white]        Cycles Right Pane (B) screens (e.g., Chat, DebugLog, HelpRight)
+[yellow]Ctrl+F[white]        (If implemented) Next screen in Right Pane (B)
+[yellow]Ctrl+P[white]        (If implemented) Previous screen in Right Pane (B)
 
-[green]Commands:[white]
+[green]Commands (in Input Areas C or D):[white]
 
-[yellow]//system_command [args][white] - System-level command
-[yellow]/screen_command [args][white] - Screen-specific command (not yet fully implemented for specific screens)
-[yellow]regular text input[white] - Input for the active Screen or system
+[yellow]//system_cmd[white]   System-level command
+[yellow]/screen_cmd[white]   Screen-specific command (if supported by active screen)
+[yellow](other text)[white]  Input for the active screen or system
 
-[green]Other:[white]
+[green]Other Controls:[white]
 
-[yellow]?[white] - Toggle Help Display in Left Pane
-[yellow]Ctrl+C[white] - Quit
+[yellow]?[white]             Toggle Help Display in Left Pane (when input not focused)
+[yellow]Ctrl+C[white]        Copy content of focused pane to clipboard
+[yellow]Ctrl+Q[white]        Quit application
 `)

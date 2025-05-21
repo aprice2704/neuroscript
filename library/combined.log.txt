@@ -1,440 +1,108 @@
-time=2025-05-21T05:33:27.092Z level=INFO msg="Logger initialized" level=0 output_target=stderr
-time=2025-05-21T05:33:27.093Z level=INFO msg="LLM Client provided to NewApp and assigned."
-time=2025-05-21T05:33:27.094Z level=INFO msg="AIWorkerManager initialized. Loaded 4 definitions. Active instances: 0. Sandbox context: '/home/aprice/dev/neuroscript/library/.neuroscript_aiwm'"
-time=2025-05-21T05:33:27.094Z level=INFO msg="AI Worker Manager initialized and available."
-time=2025-05-21T05:33:27.094Z level=INFO msg="StartTviewTUI initializing..."
+time=2025-05-21T05:41:04.206Z level=INFO msg="Logger initialized" level=0 output_target=stderr
+time=2025-05-21T05:41:04.208Z level=INFO msg="LLM Client provided to NewApp and assigned."
+time=2025-05-21T05:41:04.209Z level=INFO msg="AIWorkerManager initialized. Loaded 4 definitions. Active instances: 0. Sandbox context: '/home/aprice/dev/neuroscript/library/.neuroscript_aiwm'"
+time=2025-05-21T05:41:04.209Z level=INFO msg="AI Worker Manager initialized and available."
+time=2025-05-21T05:41:04.209Z level=INFO msg="StartTviewTUI initializing..."
 [TUI_INIT] UI Primitives (like debugScreen, statusbar) initialized.
-2025/05/20 22:33:27 [TUI_LOG] [AIWM_NEW] NewAIWMStatusScreen created (v0.1.2M) for AIWM.
-2025/05/20 22:33:27 [TUI_LOG] [PAGE_CHANGE_ENTRY] onPanePageChange called. Pane Addr: 0xc0003d34a0, New Page Name: ''
-2025/05/20 22:33:27 [TUI_LOG] [PAGE_CHANGE] Current primitive is nil for page ''.
-2025/05/20 22:33:27 [TUI_LOG] [PAGE_CHANGE_EXIT] Current primitive nil for page '', onPanePageChange exiting.
+2025/05/20 22:41:04 [TUI_LOG] [AIWM_NEW] NewAIWMStatusScreen created (v0.1.2M) for AIWM.
+2025/05/20 22:41:04 [TUI_LOG] [PAGE_CHANGE_ENTRY] onPanePageChange called. Pane Addr: 0xc000446810, New Page Name: ''
+2025/05/20 22:41:04 [TUI_LOG] [PAGE_CHANGE] Current primitive is nil for page ''.
+2025/05/20 22:41:04 [TUI_LOG] [PAGE_CHANGE_EXIT] Current primitive nil for page '', onPanePageChange exiting.
 [STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() called.
-2025/05/20 22:33:27 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Primitive() called for AIWM.
+2025/05/20 22:41:04 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Primitive() called for AIWM.
 [STDOUT_AIWM_PRIMITIVE_0.1.2M] Table is nil. Creating, fetching data, and populating.
-2025/05/20 22:33:27 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Table is nil, creating new table and populating ONCE.
-2025/05/20 22:33:27 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Data fetched. Error: <nil>. Info count: 4.
-2025/05/20 22:33:27 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Table created and populated ONCE.
+2025/05/20 22:41:04 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Table is nil, creating new table and populating ONCE.
+2025/05/20 22:41:04 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Data fetched. Error: <nil>. Info count: 4.
+2025/05/20 22:41:04 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Table created and populated ONCE.
 [STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() returning table.
-2025/05/20 22:33:27 [TUI_LOG] [PAGE_CHANGE_ENTRY] onPanePageChange called. Pane Addr: 0xc0003d34a0, New Page Name: ''
-2025/05/20 22:33:27 [TUI_LOG] [PAGE_CHANGE] Current primitive is nil for page ''.
-2025/05/20 22:33:27 [TUI_LOG] [PAGE_CHANGE_EXIT] Current primitive nil for page '', onPanePageChange exiting.
+2025/05/20 22:41:04 [TUI_LOG] [PAGE_CHANGE_ENTRY] onPanePageChange called. Pane Addr: 0xc000446810, New Page Name: ''
+2025/05/20 22:41:04 [TUI_LOG] [PAGE_CHANGE] Current primitive is nil for page ''.
+2025/05/20 22:41:04 [TUI_LOG] [PAGE_CHANGE_EXIT] Current primitive nil for page '', onPanePageChange exiting.
 [STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() called.
-2025/05/20 22:33:27 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Primitive() called for AIWM.
-2025/05/20 22:33:27 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Table already exists, returning same instance.
+2025/05/20 22:41:04 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Primitive() called for AIWM.
+2025/05/20 22:41:04 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Table already exists, returning same instance.
 [STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() returning table.
-2025/05/20 22:33:27 [TUI_LOG] [PAGE_CHANGE_ENTRY] onPanePageChange called. Pane Addr: 0xc0003d34a0, New Page Name: ''
-2025/05/20 22:33:27 [TUI_LOG] [PAGE_CHANGE] Current primitive is nil for page ''.
-2025/05/20 22:33:27 [TUI_LOG] [PAGE_CHANGE_EXIT] Current primitive nil for page '', onPanePageChange exiting.
-2025/05/20 22:33:27 [TUI_LOG] [PAGE_CHANGE_ENTRY] onPanePageChange called. Pane Addr: 0xc0003d34d0, New Page Name: ''
-2025/05/20 22:33:27 [TUI_LOG] [PAGE_CHANGE] Current primitive is nil for page ''.
-2025/05/20 22:33:27 [TUI_LOG] [PAGE_CHANGE_EXIT] Current primitive nil for page '', onPanePageChange exiting.
-2025/05/20 22:33:27 [TUI_LOG] [PAGE_CHANGE_ENTRY] onPanePageChange called. Pane Addr: 0xc0003d34d0, New Page Name: ''
-2025/05/20 22:33:27 [TUI_LOG] [PAGE_CHANGE] Current primitive is nil for page ''.
-2025/05/20 22:33:27 [TUI_LOG] [PAGE_CHANGE_EXIT] Current primitive nil for page '', onPanePageChange exiting.
-2025/05/20 22:33:27 [TUI_LOG] [PAGE_CHANGE_ENTRY] onPanePageChange called. Pane Addr: 0xc0003d34a0, New Page Name: '0'
-2025/05/20 22:33:27 [TUI_LOG] [PAGE_CHANGE] Active screener in Left pane: ScriptOut (Type: *neurogo.DynamicOutputScreen)
-2025/05/20 22:33:27 [TUI_LOG] [PAGE_CHANGE] Pane changed (Left), but this pane is NOT the one currently designated for focus in the dFocus cycle.
-2025/05/20 22:33:27 [TUI_LOG] [PAGE_CHANGE] DynamicOutputScreen ScriptOut became visible. Content should be current via its Write method.
-2025/05/20 22:33:27 [TUI_LOG] [PAGE_CHANGE_EXIT] onPanePageChange exiting for page '0'.
-2025/05/20 22:33:27 [TUI_LOG] [PAGE_CHANGE_ENTRY] onPanePageChange called. Pane Addr: 0xc0003d34d0, New Page Name: '0'
-2025/05/20 22:33:27 [TUI_LOG] [PAGE_CHANGE] Active screener in Right pane: DebugLog (Type: *neurogo.DynamicOutputScreen)
-2025/05/20 22:33:27 [TUI_LOG] [PAGE_CHANGE] Pane changed (Right), but this pane is NOT the one currently designated for focus in the dFocus cycle.
-2025/05/20 22:33:27 [TUI_LOG] [PAGE_CHANGE] DynamicOutputScreen DebugLog became visible. Content should be current via its Write method.
-2025/05/20 22:33:27 [TUI_LOG] [PAGE_CHANGE_EXIT] onPanePageChange exiting for page '0'.
+2025/05/20 22:41:04 [TUI_LOG] [PAGE_CHANGE_ENTRY] onPanePageChange called. Pane Addr: 0xc000446810, New Page Name: ''
+2025/05/20 22:41:04 [TUI_LOG] [PAGE_CHANGE] Current primitive is nil for page ''.
+2025/05/20 22:41:04 [TUI_LOG] [PAGE_CHANGE_EXIT] Current primitive nil for page '', onPanePageChange exiting.
+2025/05/20 22:41:04 [TUI_LOG] [PAGE_CHANGE_ENTRY] onPanePageChange called. Pane Addr: 0xc000446840, New Page Name: ''
+2025/05/20 22:41:04 [TUI_LOG] [PAGE_CHANGE] Current primitive is nil for page ''.
+2025/05/20 22:41:04 [TUI_LOG] [PAGE_CHANGE_EXIT] Current primitive nil for page '', onPanePageChange exiting.
+2025/05/20 22:41:04 [TUI_LOG] [PAGE_CHANGE_ENTRY] onPanePageChange called. Pane Addr: 0xc000446840, New Page Name: ''
+2025/05/20 22:41:04 [TUI_LOG] [PAGE_CHANGE] Current primitive is nil for page ''.
+2025/05/20 22:41:04 [TUI_LOG] [PAGE_CHANGE_EXIT] Current primitive nil for page '', onPanePageChange exiting.
+2025/05/20 22:41:04 [TUI_LOG] [PAGE_CHANGE_ENTRY] onPanePageChange called. Pane Addr: 0xc000446810, New Page Name: '0'
+2025/05/20 22:41:04 [TUI_LOG] [PAGE_CHANGE] Active screener in Left pane: ScriptOut (Type: *neurogo.DynamicOutputScreen)
+2025/05/20 22:41:04 [TUI_LOG] [PAGE_CHANGE] Pane changed (Left), but this pane is NOT the one currently designated for focus in the dFocus cycle.
+2025/05/20 22:41:04 [TUI_LOG] [PAGE_CHANGE] DynamicOutputScreen ScriptOut became visible. Content should be current via its Write method.
+2025/05/20 22:41:04 [TUI_LOG] [PAGE_CHANGE_EXIT] onPanePageChange exiting for page '0'.
+2025/05/20 22:41:04 [TUI_LOG] [PAGE_CHANGE_ENTRY] onPanePageChange called. Pane Addr: 0xc000446840, New Page Name: '0'
+2025/05/20 22:41:04 [TUI_LOG] [PAGE_CHANGE] Active screener in Right pane: DebugLog (Type: *neurogo.DynamicOutputScreen)
+2025/05/20 22:41:04 [TUI_LOG] [PAGE_CHANGE] Pane changed (Right), but this pane is NOT the one currently designated for focus in the dFocus cycle.
+2025/05/20 22:41:04 [TUI_LOG] [PAGE_CHANGE] DynamicOutputScreen DebugLog became visible. Content should be current via its Write method.
+2025/05/20 22:41:04 [TUI_LOG] [PAGE_CHANGE_EXIT] onPanePageChange exiting for page '0'.
 [TUI_INIT] Interpreter stdout redirected to ScriptOut screen.
 [TUI_INIT] Executing initial TUI script: list_files.ns.txt
 [TUI_INIT] Initial script completed: list_files.ns.txt
-time=2025-05-21T05:33:27.103Z level=INFO msg="Initial script completed." script=list_files.ns.txt
+time=2025-05-21T05:41:04.217Z level=INFO msg="Initial script completed." script=list_files.ns.txt
 [TUI_INIT] Grid layout configured.
 [TUI_INIT] Global InputCapture function set.
-2025/05/20 22:33:27 [TUI_LOG] [DFOCUS_ENTRY] dFocus called with df: 0
-2025/05/20 22:33:27 [TUI_LOG] [DFOCUS] New focus target index: 0, type: *tview.TextArea
-2025/05/20 22:33:27 [TUI_LOG] [DFOCUS] Styling complete.
-2025/05/20 22:33:27 [TUI_LOG] [DFOCUS] Attempting tvP.tviewApp.SetFocus on: *tview.TextArea (0xc000347808)
-2025/05/20 22:33:27 [TUI_LOG] [DFOCUS] tvP.tviewApp.SetFocus completed.
-2025/05/20 22:33:27 [TUI_LOG] [DFOCUS_EXIT] dFocus exiting.
+2025/05/20 22:41:04 [TUI_LOG] [DFOCUS_ENTRY] dFocus called with df: 0
+2025/05/20 22:41:04 [TUI_LOG] [DFOCUS] New focus target index: 0, type: *tview.TextArea
+2025/05/20 22:41:04 [TUI_LOG] [DFOCUS] Styling complete.
+2025/05/20 22:41:04 [TUI_LOG] [DFOCUS] Attempting tvP.tviewApp.SetFocus on: *tview.TextArea (0xc000408308)
+2025/05/20 22:41:04 [TUI_LOG] [DFOCUS] tvP.tviewApp.SetFocus completed.
+2025/05/20 22:41:04 [TUI_LOG] [DFOCUS_EXIT] dFocus exiting.
 [TUI_INIT] Initial dFocus(0) called.
 [TUI_INIT] Starting tview event loop (app.Run())...
-2025/05/20 22:33:29 [TUI_LOG] [KEY_HANDLE] Shift+Tab pressed.
-2025/05/20 22:33:29 [TUI_LOG] [DFOCUS_ENTRY] dFocus called with df: -1
-2025/05/20 22:33:29 [TUI_LOG] [DFOCUS] New focus target index: 3, type: *tview.Pages
-2025/05/20 22:33:29 [TUI_LOG] [DFOCUS] Styling complete.
-2025/05/20 22:33:29 [TUI_LOG] [DFOCUS] New focus target is Pages. Current front page name: 0, content type: *tview.TextView
-2025/05/20 22:33:29 [TUI_LOG] [DFOCUS] New focus is pane Left (Page: 0, Screener: ScriptOut). IsFocusable: true
-2025/05/20 22:33:29 [TUI_LOG] [DFOCUS] Attempting to call OnFocus for new screener: ScriptOut (Page Name: 0, Screener Type: *neurogo.DynamicOutputScreen)
-2025/05/20 22:33:29 [TUI_LOG] [DFOCUS_ONFOCUS_CALLBACK] OnFocus callback executed for ScriptOut. Primitive to focus: *tview.TextView
-2025/05/20 22:33:29 [TUI_LOG] [DFOCUS] Screener ScriptOut delegated focus to *tview.TextView (0xc00030cd80)
-2025/05/20 22:33:29 [TUI_LOG] [DFOCUS] OnFocus call for new screener ScriptOut completed/returned.
-2025/05/20 22:33:29 [TUI_LOG] [DFOCUS] Attempting tvP.tviewApp.SetFocus on: *tview.TextView (0xc00030cd80)
-2025/05/20 22:33:29 [TUI_LOG] [DFOCUS] tvP.tviewApp.SetFocus completed.
-2025/05/20 22:33:29 [TUI_LOG] [DFOCUS_EXIT] dFocus exiting.
-2025/05/20 22:33:29 [TUI_LOG] [KEY_HANDLE] Shift+Tab pressed.
-2025/05/20 22:33:29 [TUI_LOG] [DFOCUS_ENTRY] dFocus called with df: -1
-2025/05/20 22:33:29 [TUI_LOG] [DFOCUS] Calling OnBlur for old focused pane screener: ScriptOut (type *neurogo.DynamicOutputScreen)
-2025/05/20 22:33:29 [TUI_LOG] [DFOCUS] OnBlur for old screener ScriptOut completed.
-2025/05/20 22:33:29 [TUI_LOG] [DFOCUS] New focus target index: 2, type: *tview.Pages
-2025/05/20 22:33:29 [TUI_LOG] [DFOCUS] Styling complete.
-2025/05/20 22:33:29 [TUI_LOG] [DFOCUS] New focus target is Pages. Current front page name: 0, content type: *tview.TextView
-2025/05/20 22:33:29 [TUI_LOG] [DFOCUS] New focus is pane Right (Page: 0, Screener: DebugLog). IsFocusable: true
-2025/05/20 22:33:29 [TUI_LOG] [DFOCUS] Attempting to call OnFocus for new screener: DebugLog (Page Name: 0, Screener Type: *neurogo.DynamicOutputScreen)
-2025/05/20 22:33:29 [TUI_LOG] [DFOCUS_ONFOCUS_CALLBACK] OnFocus callback executed for DebugLog. Primitive to focus: *tview.TextView
-2025/05/20 22:33:29 [TUI_LOG] [DFOCUS] Screener DebugLog delegated focus to *tview.TextView (0xc00030cc00)
-2025/05/20 22:33:29 [TUI_LOG] [DFOCUS] OnFocus call for new screener DebugLog completed/returned.
-2025/05/20 22:33:29 [TUI_LOG] [DFOCUS] Attempting tvP.tviewApp.SetFocus on: *tview.TextView (0xc00030cc00)
-2025/05/20 22:33:29 [TUI_LOG] [DFOCUS] tvP.tviewApp.SetFocus completed.
-2025/05/20 22:33:29 [TUI_LOG] [DFOCUS_EXIT] dFocus exiting.
-2025/05/20 22:34:19 [TUI_LOG] [KEY_HANDLE] Shift+Tab pressed.
-2025/05/20 22:34:19 [TUI_LOG] [DFOCUS_ENTRY] dFocus called with df: -1
-2025/05/20 22:34:19 [TUI_LOG] [DFOCUS] Calling OnBlur for old focused pane screener: DebugLog (type *neurogo.DynamicOutputScreen)
-2025/05/20 22:34:19 [TUI_LOG] [DFOCUS] OnBlur for old screener DebugLog completed.
-2025/05/20 22:34:19 [TUI_LOG] [DFOCUS] New focus target index: 1, type: *tview.TextArea
-2025/05/20 22:34:19 [TUI_LOG] [DFOCUS] Styling complete.
-2025/05/20 22:34:19 [TUI_LOG] [DFOCUS] Attempting tvP.tviewApp.SetFocus on: *tview.TextArea (0xc000347b08)
-2025/05/20 22:34:19 [TUI_LOG] [DFOCUS] tvP.tviewApp.SetFocus completed.
-2025/05/20 22:34:19 [TUI_LOG] [DFOCUS_EXIT] dFocus exiting.
-2025/05/20 22:34:20 [TUI_LOG] [KEY_HANDLE] Shift+Tab pressed.
-2025/05/20 22:34:20 [TUI_LOG] [DFOCUS_ENTRY] dFocus called with df: -1
-2025/05/20 22:34:20 [TUI_LOG] [DFOCUS] New focus target index: 0, type: *tview.TextArea
-2025/05/20 22:34:20 [TUI_LOG] [DFOCUS] Styling complete.
-2025/05/20 22:34:20 [TUI_LOG] [DFOCUS] Attempting tvP.tviewApp.SetFocus on: *tview.TextArea (0xc000347808)
-2025/05/20 22:34:20 [TUI_LOG] [DFOCUS] tvP.tviewApp.SetFocus completed.
-2025/05/20 22:34:20 [TUI_LOG] [DFOCUS_EXIT] dFocus exiting.
-2025/05/20 22:34:20 [TUI_LOG] [KEY_HANDLE] Shift+Tab pressed.
-2025/05/20 22:34:20 [TUI_LOG] [DFOCUS_ENTRY] dFocus called with df: -1
-2025/05/20 22:34:20 [TUI_LOG] [DFOCUS] New focus target index: 3, type: *tview.Pages
-2025/05/20 22:34:20 [TUI_LOG] [DFOCUS] Styling complete.
-2025/05/20 22:34:20 [TUI_LOG] [DFOCUS] New focus target is Pages. Current front page name: 0, content type: *tview.TextView
-2025/05/20 22:34:20 [TUI_LOG] [DFOCUS] New focus is pane Left (Page: 0, Screener: ScriptOut). IsFocusable: true
-2025/05/20 22:34:20 [TUI_LOG] [DFOCUS] Attempting to call OnFocus for new screener: ScriptOut (Page Name: 0, Screener Type: *neurogo.DynamicOutputScreen)
-2025/05/20 22:34:20 [TUI_LOG] [DFOCUS_ONFOCUS_CALLBACK] OnFocus callback executed for ScriptOut. Primitive to focus: *tview.TextView
-2025/05/20 22:34:20 [TUI_LOG] [DFOCUS] Screener ScriptOut delegated focus to *tview.TextView (0xc00030cd80)
-2025/05/20 22:34:20 [TUI_LOG] [DFOCUS] OnFocus call for new screener ScriptOut completed/returned.
-2025/05/20 22:34:20 [TUI_LOG] [DFOCUS] Attempting tvP.tviewApp.SetFocus on: *tview.TextView (0xc00030cd80)
-2025/05/20 22:34:20 [TUI_LOG] [DFOCUS] tvP.tviewApp.SetFocus completed.
-2025/05/20 22:34:20 [TUI_LOG] [DFOCUS_EXIT] dFocus exiting.
-2025/05/20 22:34:21 [TUI_LOG] [KEY_HANDLE] Ctrl+B pressed. Next screen left.
-2025/05/20 22:34:21 [TUI_LOG] [PAGE_CHANGE_ENTRY] onPanePageChange called. Pane Addr: 0xc0003d34a0, New Page Name: '1'
+2025/05/20 22:41:07 [TUI_LOG] [KEY_HANDLE] Ctrl+B pressed. Next screen left.
+2025/05/20 22:41:07 [TUI_LOG] [PAGE_CHANGE_ENTRY] onPanePageChange called. Pane Addr: 0xc000446810, New Page Name: '1'
 [STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() called.
-2025/05/20 22:34:21 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Primitive() called for AIWM.
-2025/05/20 22:34:21 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Table already exists, returning same instance.
+2025/05/20 22:41:07 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Primitive() called for AIWM.
+2025/05/20 22:41:07 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Table already exists, returning same instance.
 [STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() returning table.
-2025/05/20 22:34:21 [TUI_LOG] [PAGE_CHANGE] Active screener in Left pane: AIWM (Type: *neurogo.AIWMStatusScreen)
-2025/05/20 22:34:21 [TUI_LOG] [PAGE_CHANGE] Pane is focused, screener AIWM is focusable. Attempting to call OnFocus.
-[STDOUT_AIWM_ONFOCUS_0.1.2M] Entered OnFocus.
-2025/05/20 22:34:21 [TUI_LOG] [AIWM_ONFOCUS_0.1.2M] Entered OnFocus for AIWM.
-[STDOUT_AIWM_ONFOCUS_0.1.2M] Calling setFocus(s.table).
-2025/05/20 22:34:21 [TUI_LOG] [PAGE_CHANGE_ONFOCUS_CALLBACK] OnFocus callback executed for AIWM. Primitive to focus: *tview.Table
-2025/05/20 22:34:21 [TUI_LOG] [PAGE_CHANGE] OnFocus callback: Setting tviewApp focus to primitive from AIWM (*tview.Table)
-[STDOUT_AIWM_ONFOCUS_0.1.2M] setFocus(s.table) returned.
-[STDOUT_AIWM_ONFOCUS_0.1.2M] Selected row 1,0.
-2025/05/20 22:34:21 [TUI_LOG] [AIWM_ONFOCUS_0.1.2M] Completed OnFocus for AIWM.
-[STDOUT_AIWM_ONFOCUS_0.1.2M] Exiting OnFocus.
-2025/05/20 22:34:21 [TUI_LOG] [PAGE_CHANGE] OnFocus call for AIWM completed/returned.
-2025/05/20 22:34:21 [TUI_LOG] [PAGE_CHANGE_EXIT] onPanePageChange exiting for page '1'.
+2025/05/20 22:41:07 [TUI_LOG] [PAGE_CHANGE] Active screener in Left pane: AIWM (Type: *neurogo.AIWMStatusScreen)
+2025/05/20 22:41:07 [TUI_LOG] [PAGE_CHANGE] Pane changed (Left), but this pane is NOT the one currently designated for focus in the dFocus cycle.
+2025/05/20 22:41:07 [TUI_LOG] [PAGE_CHANGE_EXIT] onPanePageChange exiting for page '1'.
 [STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() called.
-2025/05/20 22:34:21 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Primitive() called for AIWM.
-2025/05/20 22:34:21 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Table already exists, returning same instance.
+2025/05/20 22:41:07 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Primitive() called for AIWM.
+2025/05/20 22:41:07 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Table already exists, returning same instance.
 [STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() returning table.
 [STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() called.
-2025/05/20 22:34:24 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Primitive() called for AIWM.
-2025/05/20 22:34:24 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Table already exists, returning same instance.
+2025/05/20 22:41:08 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Primitive() called for AIWM.
+2025/05/20 22:41:08 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Table already exists, returning same instance.
 [STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() returning table.
-2025/05/20 22:34:24 [TUI_LOG] [AIWM_INPUT_HANDLER] Passing key Down to table's internal handler.
-2025/05/20 22:34:24 [TUI_LOG] [AIWM_INPUT_HANDLER] Table processed key Down, consuming event.
+2025/05/20 22:41:08 [TUI_LOG] [AIWM_INPUT_HANDLER] Passing global navigation key Ctrl+B upwards.
+2025/05/20 22:41:08 [TUI_LOG] [KEY_HANDLE] Ctrl+B pressed. Next screen left.
 [STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() called.
-2025/05/20 22:34:24 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Primitive() called for AIWM.
-2025/05/20 22:34:24 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Table already exists, returning same instance.
-[STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() returning table.
-2025/05/20 22:34:24 [TUI_LOG] [AIWM_INPUT_HANDLER] Passing key Down to table's internal handler.
-2025/05/20 22:34:24 [TUI_LOG] [AIWM_INPUT_HANDLER] Table processed key Down, consuming event.
-[STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() called.
-2025/05/20 22:34:24 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Primitive() called for AIWM.
-2025/05/20 22:34:24 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Table already exists, returning same instance.
-[STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() returning table.
-2025/05/20 22:34:24 [TUI_LOG] [AIWM_INPUT_HANDLER] Passing key Down to table's internal handler.
-2025/05/20 22:34:24 [TUI_LOG] [AIWM_INPUT_HANDLER] Table processed key Down, consuming event.
-[STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() called.
-2025/05/20 22:34:24 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Primitive() called for AIWM.
-2025/05/20 22:34:24 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Table already exists, returning same instance.
-[STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() returning table.
-2025/05/20 22:34:24 [TUI_LOG] [AIWM_INPUT_HANDLER] Passing key Down to table's internal handler.
-2025/05/20 22:34:24 [TUI_LOG] [AIWM_INPUT_HANDLER] Table processed key Down, consuming event.
-[STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() called.
-2025/05/20 22:34:25 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Primitive() called for AIWM.
-2025/05/20 22:34:25 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Table already exists, returning same instance.
-[STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() returning table.
-2025/05/20 22:34:25 [TUI_LOG] [AIWM_INPUT_HANDLER] Passing key Up to table's internal handler.
-2025/05/20 22:34:25 [TUI_LOG] [AIWM_INPUT_HANDLER] Table processed key Up, consuming event.
-[STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() called.
-2025/05/20 22:34:25 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Primitive() called for AIWM.
-2025/05/20 22:34:25 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Table already exists, returning same instance.
-[STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() returning table.
-2025/05/20 22:34:25 [TUI_LOG] [AIWM_INPUT_HANDLER] Passing key Up to table's internal handler.
-2025/05/20 22:34:25 [TUI_LOG] [AIWM_INPUT_HANDLER] Table processed key Up, consuming event.
-[STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() called.
-2025/05/20 22:34:25 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Primitive() called for AIWM.
-2025/05/20 22:34:25 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Table already exists, returning same instance.
-[STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() returning table.
-2025/05/20 22:34:25 [TUI_LOG] [AIWM_INPUT_HANDLER] Passing key Up to table's internal handler.
-2025/05/20 22:34:25 [TUI_LOG] [AIWM_INPUT_HANDLER] Table processed key Up, consuming event.
-[STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() called.
-2025/05/20 22:34:27 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Primitive() called for AIWM.
-2025/05/20 22:34:27 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Table already exists, returning same instance.
-[STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() returning table.
-2025/05/20 22:34:27 [TUI_LOG] [AIWM_INPUT_HANDLER] Passing key Down to table's internal handler.
-2025/05/20 22:34:27 [TUI_LOG] [AIWM_INPUT_HANDLER] Table processed key Down, consuming event.
-[STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() called.
-2025/05/20 22:34:27 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Primitive() called for AIWM.
-2025/05/20 22:34:27 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Table already exists, returning same instance.
-[STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() returning table.
-2025/05/20 22:34:27 [TUI_LOG] [AIWM_INPUT_HANDLER] Passing key Down to table's internal handler.
-2025/05/20 22:34:27 [TUI_LOG] [AIWM_INPUT_HANDLER] Table processed key Down, consuming event.
-[STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() called.
-2025/05/20 22:34:27 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Primitive() called for AIWM.
-2025/05/20 22:34:27 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Table already exists, returning same instance.
-[STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() returning table.
-2025/05/20 22:34:27 [TUI_LOG] [AIWM_INPUT_HANDLER] Passing key Down to table's internal handler.
-2025/05/20 22:34:27 [TUI_LOG] [AIWM_INPUT_HANDLER] Table processed key Down, consuming event.
-[STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() called.
-2025/05/20 22:34:28 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Primitive() called for AIWM.
-2025/05/20 22:34:28 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Table already exists, returning same instance.
-[STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() returning table.
-2025/05/20 22:34:28 [TUI_LOG] [KEY_HANDLE] Ctrl+C pressed for copy.
-2025/05/20 22:34:28 [TUI_LOG] [KEY_HANDLE_COPY] Focused content in Pane A/B is not a TextView (type: *tview.Table). Cannot copy.
-[STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() called.
-2025/05/20 22:35:30 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Primitive() called for AIWM.
-2025/05/20 22:35:30 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Table already exists, returning same instance.
-[STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() returning table.
-2025/05/20 22:35:30 [TUI_LOG] [AIWM_INPUT_HANDLER] Passing global navigation key Tab upwards.
-2025/05/20 22:35:30 [TUI_LOG] [KEY_HANDLE] Tab pressed.
-2025/05/20 22:35:30 [TUI_LOG] [DFOCUS_ENTRY] dFocus called with df: 1
-[STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() called.
-2025/05/20 22:35:30 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Primitive() called for AIWM.
-2025/05/20 22:35:30 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Table already exists, returning same instance.
-[STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() returning table.
-2025/05/20 22:35:30 [TUI_LOG] [DFOCUS] Calling OnBlur for old focused pane screener: AIWM (type *neurogo.AIWMStatusScreen)
-[STDOUT_AIWM_ONBLUR_0.1.2M] Entered OnBlur.
-2025/05/20 22:35:30 [TUI_LOG] [AIWM_ONBLUR_0.1.2M] OnBlur called for AIWM.
-2025/05/20 22:35:30 [TUI_LOG] [DFOCUS] OnBlur for old screener AIWM completed.
-2025/05/20 22:35:30 [TUI_LOG] [DFOCUS] New focus target index: 0, type: *tview.TextArea
-2025/05/20 22:35:30 [TUI_LOG] [DFOCUS] Styling complete.
-2025/05/20 22:35:30 [TUI_LOG] [DFOCUS] Attempting tvP.tviewApp.SetFocus on: *tview.TextArea (0xc000347808)
-2025/05/20 22:35:30 [TUI_LOG] [DFOCUS] tvP.tviewApp.SetFocus completed.
-2025/05/20 22:35:30 [TUI_LOG] [DFOCUS_EXIT] dFocus exiting.
-[STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() called.
-2025/05/20 22:35:30 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Primitive() called for AIWM.
-2025/05/20 22:35:30 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Table already exists, returning same instance.
-[STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() returning table.
-2025/05/20 22:35:30 [TUI_LOG] [AIWM_INPUT_HANDLER] Passing global navigation key Tab upwards.
-2025/05/20 22:35:30 [TUI_LOG] [KEY_HANDLE] Tab pressed.
-2025/05/20 22:35:30 [TUI_LOG] [DFOCUS_ENTRY] dFocus called with df: 1
-2025/05/20 22:35:30 [TUI_LOG] [DFOCUS] New focus target index: 1, type: *tview.TextArea
-2025/05/20 22:35:30 [TUI_LOG] [DFOCUS] Styling complete.
-2025/05/20 22:35:30 [TUI_LOG] [DFOCUS] Attempting tvP.tviewApp.SetFocus on: *tview.TextArea (0xc000347b08)
-2025/05/20 22:35:30 [TUI_LOG] [DFOCUS] tvP.tviewApp.SetFocus completed.
-2025/05/20 22:35:30 [TUI_LOG] [DFOCUS_EXIT] dFocus exiting.
-2025/05/20 22:35:31 [TUI_LOG] [KEY_HANDLE] Tab pressed.
-2025/05/20 22:35:31 [TUI_LOG] [DFOCUS_ENTRY] dFocus called with df: 1
-2025/05/20 22:35:31 [TUI_LOG] [DFOCUS] New focus target index: 2, type: *tview.Pages
-2025/05/20 22:35:31 [TUI_LOG] [DFOCUS] Styling complete.
-2025/05/20 22:35:31 [TUI_LOG] [DFOCUS] New focus target is Pages. Current front page name: 0, content type: *tview.TextView
-2025/05/20 22:35:31 [TUI_LOG] [DFOCUS] New focus is pane Right (Page: 0, Screener: DebugLog). IsFocusable: true
-2025/05/20 22:35:31 [TUI_LOG] [DFOCUS] Attempting to call OnFocus for new screener: DebugLog (Page Name: 0, Screener Type: *neurogo.DynamicOutputScreen)
-2025/05/20 22:35:31 [TUI_LOG] [DFOCUS_ONFOCUS_CALLBACK] OnFocus callback executed for DebugLog. Primitive to focus: *tview.TextView
-2025/05/20 22:35:31 [TUI_LOG] [DFOCUS] Screener DebugLog delegated focus to *tview.TextView (0xc00030cc00)
-2025/05/20 22:35:31 [TUI_LOG] [DFOCUS] OnFocus call for new screener DebugLog completed/returned.
-2025/05/20 22:35:31 [TUI_LOG] [DFOCUS] Attempting tvP.tviewApp.SetFocus on: *tview.TextView (0xc00030cc00)
-2025/05/20 22:35:31 [TUI_LOG] [DFOCUS] tvP.tviewApp.SetFocus completed.
-2025/05/20 22:35:31 [TUI_LOG] [DFOCUS_EXIT] dFocus exiting.
-2025/05/20 22:35:34 [TUI_LOG] [KEY_HANDLE] Ctrl+N pressed. Next screen right.
-2025/05/20 22:35:34 [TUI_LOG] [PAGE_CHANGE_ENTRY] onPanePageChange called. Pane Addr: 0xc0003d34d0, New Page Name: '1'
-2025/05/20 22:35:34 [TUI_LOG] [PAGE_CHANGE] Active screener in Right pane: HelpRight (Type: *neurogo.StaticPrimitiveScreen)
-2025/05/20 22:35:34 [TUI_LOG] [PAGE_CHANGE] Pane is focused, screener HelpRight is focusable. Attempting to call OnFocus.
-2025/05/20 22:35:34 [TUI_LOG] [PAGE_CHANGE_ONFOCUS_CALLBACK] OnFocus callback executed for HelpRight. Primitive to focus: *tview.TextView
-2025/05/20 22:35:34 [TUI_LOG] [PAGE_CHANGE] OnFocus callback: Setting tviewApp focus to primitive from HelpRight (*tview.TextView)
-2025/05/20 22:35:34 [TUI_LOG] [PAGE_CHANGE] OnFocus call for HelpRight completed/returned.
-2025/05/20 22:35:34 [TUI_LOG] [PAGE_CHANGE_EXIT] onPanePageChange exiting for page '1'.
-2025/05/20 22:35:38 [TUI_LOG] [KEY_HANDLE] Ctrl+C pressed for copy.
-2025/05/20 22:35:38 [TUI_LOG] [KEY_HANDLE_COPY] Preparing to copy from TextView in Pane A/B. Length: 881
-2025/05/20 22:35:38 [TUI_LOG] [KEY_HANDLE_COPY] Text copied to clipboard successfully (881 chars).
-2025/05/20 22:35:40 [TUI_LOG] [KEY_HANDLE] Ctrl+C pressed for copy.
-2025/05/20 22:35:40 [TUI_LOG] [KEY_HANDLE_COPY] Preparing to copy from TextView in Pane A/B. Length: 881
-2025/05/20 22:35:40 [TUI_LOG] [KEY_HANDLE_COPY] Text copied to clipboard successfully (881 chars).
-2025/05/20 22:36:01 [TUI_LOG] [KEY_HANDLE] Ctrl+C pressed for copy.
-2025/05/20 22:36:01 [TUI_LOG] [KEY_HANDLE_COPY] Preparing to copy from TextView in Pane A/B. Length: 881
-2025/05/20 22:36:01 [TUI_LOG] [KEY_HANDLE_COPY] Text copied to clipboard successfully (881 chars).
-2025/05/20 22:36:17 [TUI_LOG] [KEY_HANDLE] Shift+Tab pressed.
-2025/05/20 22:36:17 [TUI_LOG] [DFOCUS_ENTRY] dFocus called with df: -1
-2025/05/20 22:36:17 [TUI_LOG] [DFOCUS] Calling OnBlur for old focused pane screener: HelpRight (type *neurogo.StaticPrimitiveScreen)
-2025/05/20 22:36:17 [TUI_LOG] [DFOCUS] OnBlur for old screener HelpRight completed.
-2025/05/20 22:36:17 [TUI_LOG] [DFOCUS] New focus target index: 1, type: *tview.TextArea
-2025/05/20 22:36:17 [TUI_LOG] [DFOCUS] Styling complete.
-2025/05/20 22:36:17 [TUI_LOG] [DFOCUS] Attempting tvP.tviewApp.SetFocus on: *tview.TextArea (0xc000347b08)
-2025/05/20 22:36:17 [TUI_LOG] [DFOCUS] tvP.tviewApp.SetFocus completed.
-2025/05/20 22:36:17 [TUI_LOG] [DFOCUS_EXIT] dFocus exiting.
-2025/05/20 22:36:17 [TUI_LOG] [KEY_HANDLE] Shift+Tab pressed.
-2025/05/20 22:36:17 [TUI_LOG] [DFOCUS_ENTRY] dFocus called with df: -1
-2025/05/20 22:36:17 [TUI_LOG] [DFOCUS] New focus target index: 0, type: *tview.TextArea
-2025/05/20 22:36:17 [TUI_LOG] [DFOCUS] Styling complete.
-2025/05/20 22:36:17 [TUI_LOG] [DFOCUS] Attempting tvP.tviewApp.SetFocus on: *tview.TextArea (0xc000347808)
-2025/05/20 22:36:17 [TUI_LOG] [DFOCUS] tvP.tviewApp.SetFocus completed.
-2025/05/20 22:36:17 [TUI_LOG] [DFOCUS_EXIT] dFocus exiting.
-[STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() called.
-2025/05/20 22:36:21 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Primitive() called for AIWM.
-2025/05/20 22:36:21 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Table already exists, returning same instance.
-[STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() returning table.
-2025/05/20 22:36:21 [TUI_LOG] [AIWM_INPUT_HANDLER] Passing global navigation key Ctrl+B upwards.
-2025/05/20 22:36:21 [TUI_LOG] [KEY_HANDLE] Ctrl+B pressed. Next screen left.
-[STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() called.
-2025/05/20 22:36:21 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Primitive() called for AIWM.
-2025/05/20 22:36:21 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Table already exists, returning same instance.
+2025/05/20 22:41:08 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Primitive() called for AIWM.
+2025/05/20 22:41:08 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Table already exists, returning same instance.
 [STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() returning table.
 [STDOUT_AIWM_ONBLUR_0.1.2M] Entered OnBlur.
-2025/05/20 22:36:21 [TUI_LOG] [AIWM_ONBLUR_0.1.2M] OnBlur called for AIWM.
-2025/05/20 22:36:21 [TUI_LOG] [PAGE_CHANGE_ENTRY] onPanePageChange called. Pane Addr: 0xc0003d34a0, New Page Name: '2'
+2025/05/20 22:41:08 [TUI_LOG] [AIWM_ONBLUR_0.1.2M] OnBlur called for AIWM.
+2025/05/20 22:41:08 [TUI_LOG] [PAGE_CHANGE_ENTRY] onPanePageChange called. Pane Addr: 0xc000446810, New Page Name: '2'
 [STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() called.
-2025/05/20 22:36:21 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Primitive() called for AIWM.
-2025/05/20 22:36:21 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Table already exists, returning same instance.
+2025/05/20 22:41:08 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Primitive() called for AIWM.
+2025/05/20 22:41:08 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Table already exists, returning same instance.
 [STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() returning table.
-2025/05/20 22:36:21 [TUI_LOG] [PAGE_CHANGE] Active screener in Left pane: Help (Type: *neurogo.StaticPrimitiveScreen)
-2025/05/20 22:36:21 [TUI_LOG] [PAGE_CHANGE] Pane changed (Left), but this pane is NOT the one currently designated for focus in the dFocus cycle.
-2025/05/20 22:36:21 [TUI_LOG] [PAGE_CHANGE_EXIT] onPanePageChange exiting for page '2'.
+2025/05/20 22:41:08 [TUI_LOG] [PAGE_CHANGE] Active screener in Left pane: Help (Type: *neurogo.StaticPrimitiveScreen)
+2025/05/20 22:41:08 [TUI_LOG] [PAGE_CHANGE] Pane changed (Left), but this pane is NOT the one currently designated for focus in the dFocus cycle.
+2025/05/20 22:41:08 [TUI_LOG] [PAGE_CHANGE_EXIT] onPanePageChange exiting for page '2'.
 [STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() called.
-2025/05/20 22:36:21 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Primitive() called for AIWM.
-2025/05/20 22:36:21 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Table already exists, returning same instance.
+2025/05/20 22:41:15 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Primitive() called for AIWM.
+2025/05/20 22:41:15 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Table already exists, returning same instance.
 [STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() returning table.
-2025/05/20 22:36:21 [TUI_LOG] [KEY_HANDLE] Ctrl+B pressed. Next screen left.
 [STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() called.
-2025/05/20 22:36:21 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Primitive() called for AIWM.
-2025/05/20 22:36:21 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Table already exists, returning same instance.
+2025/05/20 22:41:16 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Primitive() called for AIWM.
+2025/05/20 22:41:16 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Table already exists, returning same instance.
 [STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() returning table.
-2025/05/20 22:36:21 [TUI_LOG] [PAGE_CHANGE_ENTRY] onPanePageChange called. Pane Addr: 0xc0003d34a0, New Page Name: '0'
-2025/05/20 22:36:21 [TUI_LOG] [PAGE_CHANGE] Active screener in Left pane: ScriptOut (Type: *neurogo.DynamicOutputScreen)
-2025/05/20 22:36:21 [TUI_LOG] [PAGE_CHANGE] Pane changed (Left), but this pane is NOT the one currently designated for focus in the dFocus cycle.
-2025/05/20 22:36:21 [TUI_LOG] [PAGE_CHANGE] DynamicOutputScreen ScriptOut became visible. Content should be current via its Write method.
-2025/05/20 22:36:21 [TUI_LOG] [PAGE_CHANGE_EXIT] onPanePageChange exiting for page '0'.
-2025/05/20 22:36:27 [TUI_LOG] [KEY_HANDLE] Shift+Tab pressed.
-2025/05/20 22:36:27 [TUI_LOG] [DFOCUS_ENTRY] dFocus called with df: -1
-2025/05/20 22:36:27 [TUI_LOG] [DFOCUS] New focus target index: 3, type: *tview.Pages
-2025/05/20 22:36:27 [TUI_LOG] [DFOCUS] Styling complete.
-2025/05/20 22:36:27 [TUI_LOG] [DFOCUS] New focus target is Pages. Current front page name: 0, content type: *tview.TextView
-2025/05/20 22:36:27 [TUI_LOG] [DFOCUS] New focus is pane Left (Page: 0, Screener: ScriptOut). IsFocusable: true
-2025/05/20 22:36:27 [TUI_LOG] [DFOCUS] Attempting to call OnFocus for new screener: ScriptOut (Page Name: 0, Screener Type: *neurogo.DynamicOutputScreen)
-2025/05/20 22:36:27 [TUI_LOG] [DFOCUS_ONFOCUS_CALLBACK] OnFocus callback executed for ScriptOut. Primitive to focus: *tview.TextView
-2025/05/20 22:36:27 [TUI_LOG] [DFOCUS] Screener ScriptOut delegated focus to *tview.TextView (0xc00030cd80)
-2025/05/20 22:36:27 [TUI_LOG] [DFOCUS] OnFocus call for new screener ScriptOut completed/returned.
-2025/05/20 22:36:27 [TUI_LOG] [DFOCUS] Attempting tvP.tviewApp.SetFocus on: *tview.TextView (0xc00030cd80)
-2025/05/20 22:36:27 [TUI_LOG] [DFOCUS] tvP.tviewApp.SetFocus completed.
-2025/05/20 22:36:27 [TUI_LOG] [DFOCUS_EXIT] dFocus exiting.
-2025/05/20 22:36:28 [TUI_LOG] [KEY_HANDLE] Ctrl+C pressed for copy.
-2025/05/20 22:36:28 [TUI_LOG] [KEY_HANDLE_COPY] Preparing to copy from TextView in Pane A/B. Length: 741
-2025/05/20 22:36:28 [TUI_LOG] [KEY_HANDLE_COPY] Text copied to clipboard successfully (741 chars).
-2025/05/20 22:36:49 [TUI_LOG] [KEY_HANDLE] Tab pressed.
-2025/05/20 22:36:49 [TUI_LOG] [DFOCUS_ENTRY] dFocus called with df: 1
-2025/05/20 22:36:49 [TUI_LOG] [DFOCUS] Calling OnBlur for old focused pane screener: ScriptOut (type *neurogo.DynamicOutputScreen)
-2025/05/20 22:36:49 [TUI_LOG] [DFOCUS] OnBlur for old screener ScriptOut completed.
-2025/05/20 22:36:49 [TUI_LOG] [DFOCUS] New focus target index: 0, type: *tview.TextArea
-2025/05/20 22:36:49 [TUI_LOG] [DFOCUS] Styling complete.
-2025/05/20 22:36:49 [TUI_LOG] [DFOCUS] Attempting tvP.tviewApp.SetFocus on: *tview.TextArea (0xc000347808)
-2025/05/20 22:36:49 [TUI_LOG] [DFOCUS] tvP.tviewApp.SetFocus completed.
-2025/05/20 22:36:49 [TUI_LOG] [DFOCUS_EXIT] dFocus exiting.
-2025/05/20 22:36:49 [TUI_LOG] [KEY_HANDLE] Tab pressed.
-2025/05/20 22:36:49 [TUI_LOG] [DFOCUS_ENTRY] dFocus called with df: 1
-2025/05/20 22:36:49 [TUI_LOG] [DFOCUS] New focus target index: 1, type: *tview.TextArea
-2025/05/20 22:36:49 [TUI_LOG] [DFOCUS] Styling complete.
-2025/05/20 22:36:49 [TUI_LOG] [DFOCUS] Attempting tvP.tviewApp.SetFocus on: *tview.TextArea (0xc000347b08)
-2025/05/20 22:36:49 [TUI_LOG] [DFOCUS] tvP.tviewApp.SetFocus completed.
-2025/05/20 22:36:49 [TUI_LOG] [DFOCUS_EXIT] dFocus exiting.
-2025/05/20 22:36:49 [TUI_LOG] [KEY_HANDLE] Tab pressed.
-2025/05/20 22:36:49 [TUI_LOG] [DFOCUS_ENTRY] dFocus called with df: 1
-2025/05/20 22:36:49 [TUI_LOG] [DFOCUS] New focus target index: 2, type: *tview.Pages
-2025/05/20 22:36:49 [TUI_LOG] [DFOCUS] Styling complete.
-2025/05/20 22:36:49 [TUI_LOG] [DFOCUS] New focus target is Pages. Current front page name: 1, content type: *tview.TextView
-2025/05/20 22:36:49 [TUI_LOG] [DFOCUS] New focus is pane Right (Page: 1, Screener: HelpRight). IsFocusable: true
-2025/05/20 22:36:49 [TUI_LOG] [DFOCUS] Attempting to call OnFocus for new screener: HelpRight (Page Name: 1, Screener Type: *neurogo.StaticPrimitiveScreen)
-2025/05/20 22:36:49 [TUI_LOG] [DFOCUS_ONFOCUS_CALLBACK] OnFocus callback executed for HelpRight. Primitive to focus: *tview.TextView
-2025/05/20 22:36:49 [TUI_LOG] [DFOCUS] Screener HelpRight delegated focus to *tview.TextView (0xc00059e000)
-2025/05/20 22:36:49 [TUI_LOG] [DFOCUS] OnFocus call for new screener HelpRight completed/returned.
-2025/05/20 22:36:49 [TUI_LOG] [DFOCUS] Attempting tvP.tviewApp.SetFocus on: *tview.TextView (0xc00059e000)
-2025/05/20 22:36:49 [TUI_LOG] [DFOCUS] tvP.tviewApp.SetFocus completed.
-2025/05/20 22:36:49 [TUI_LOG] [DFOCUS_EXIT] dFocus exiting.
-2025/05/20 22:36:51 [TUI_LOG] [KEY_HANDLE] Tab pressed.
-2025/05/20 22:36:51 [TUI_LOG] [DFOCUS_ENTRY] dFocus called with df: 1
-2025/05/20 22:36:51 [TUI_LOG] [DFOCUS] Calling OnBlur for old focused pane screener: HelpRight (type *neurogo.StaticPrimitiveScreen)
-2025/05/20 22:36:51 [TUI_LOG] [DFOCUS] OnBlur for old screener HelpRight completed.
-2025/05/20 22:36:51 [TUI_LOG] [DFOCUS] New focus target index: 3, type: *tview.Pages
-2025/05/20 22:36:51 [TUI_LOG] [DFOCUS] Styling complete.
-2025/05/20 22:36:51 [TUI_LOG] [DFOCUS] New focus target is Pages. Current front page name: 0, content type: *tview.TextView
-2025/05/20 22:36:51 [TUI_LOG] [DFOCUS] New focus is pane Left (Page: 0, Screener: ScriptOut). IsFocusable: true
-2025/05/20 22:36:51 [TUI_LOG] [DFOCUS] Attempting to call OnFocus for new screener: ScriptOut (Page Name: 0, Screener Type: *neurogo.DynamicOutputScreen)
-2025/05/20 22:36:51 [TUI_LOG] [DFOCUS_ONFOCUS_CALLBACK] OnFocus callback executed for ScriptOut. Primitive to focus: *tview.TextView
-2025/05/20 22:36:51 [TUI_LOG] [DFOCUS] Screener ScriptOut delegated focus to *tview.TextView (0xc00030cd80)
-2025/05/20 22:36:51 [TUI_LOG] [DFOCUS] OnFocus call for new screener ScriptOut completed/returned.
-2025/05/20 22:36:51 [TUI_LOG] [DFOCUS] Attempting tvP.tviewApp.SetFocus on: *tview.TextView (0xc00030cd80)
-2025/05/20 22:36:51 [TUI_LOG] [DFOCUS] tvP.tviewApp.SetFocus completed.
-2025/05/20 22:36:51 [TUI_LOG] [DFOCUS_EXIT] dFocus exiting.
-2025/05/20 22:36:51 [TUI_LOG] [KEY_HANDLE] Tab pressed.
-2025/05/20 22:36:51 [TUI_LOG] [DFOCUS_ENTRY] dFocus called with df: 1
-2025/05/20 22:36:51 [TUI_LOG] [DFOCUS] Calling OnBlur for old focused pane screener: ScriptOut (type *neurogo.DynamicOutputScreen)
-2025/05/20 22:36:51 [TUI_LOG] [DFOCUS] OnBlur for old screener ScriptOut completed.
-2025/05/20 22:36:51 [TUI_LOG] [DFOCUS] New focus target index: 0, type: *tview.TextArea
-2025/05/20 22:36:51 [TUI_LOG] [DFOCUS] Styling complete.
-2025/05/20 22:36:51 [TUI_LOG] [DFOCUS] Attempting tvP.tviewApp.SetFocus on: *tview.TextArea (0xc000347808)
-2025/05/20 22:36:51 [TUI_LOG] [DFOCUS] tvP.tviewApp.SetFocus completed.
-2025/05/20 22:36:51 [TUI_LOG] [DFOCUS_EXIT] dFocus exiting.
-2025/05/20 22:36:51 [TUI_LOG] [KEY_HANDLE] Tab pressed.
-2025/05/20 22:36:51 [TUI_LOG] [DFOCUS_ENTRY] dFocus called with df: 1
-2025/05/20 22:36:51 [TUI_LOG] [DFOCUS] New focus target index: 1, type: *tview.TextArea
-2025/05/20 22:36:51 [TUI_LOG] [DFOCUS] Styling complete.
-2025/05/20 22:36:51 [TUI_LOG] [DFOCUS] Attempting tvP.tviewApp.SetFocus on: *tview.TextArea (0xc000347b08)
-2025/05/20 22:36:51 [TUI_LOG] [DFOCUS] tvP.tviewApp.SetFocus completed.
-2025/05/20 22:36:51 [TUI_LOG] [DFOCUS_EXIT] dFocus exiting.
-2025/05/20 22:36:51 [TUI_LOG] [KEY_HANDLE] Tab pressed.
-2025/05/20 22:36:51 [TUI_LOG] [DFOCUS_ENTRY] dFocus called with df: 1
-2025/05/20 22:36:51 [TUI_LOG] [DFOCUS] New focus target index: 2, type: *tview.Pages
-2025/05/20 22:36:51 [TUI_LOG] [DFOCUS] Styling complete.
-2025/05/20 22:36:51 [TUI_LOG] [DFOCUS] New focus target is Pages. Current front page name: 1, content type: *tview.TextView
-2025/05/20 22:36:51 [TUI_LOG] [DFOCUS] New focus is pane Right (Page: 1, Screener: HelpRight). IsFocusable: true
-2025/05/20 22:36:51 [TUI_LOG] [DFOCUS] Attempting to call OnFocus for new screener: HelpRight (Page Name: 1, Screener Type: *neurogo.StaticPrimitiveScreen)
-2025/05/20 22:36:51 [TUI_LOG] [DFOCUS_ONFOCUS_CALLBACK] OnFocus callback executed for HelpRight. Primitive to focus: *tview.TextView
-2025/05/20 22:36:51 [TUI_LOG] [DFOCUS] Screener HelpRight delegated focus to *tview.TextView (0xc00059e000)
-2025/05/20 22:36:51 [TUI_LOG] [DFOCUS] OnFocus call for new screener HelpRight completed/returned.
-2025/05/20 22:36:51 [TUI_LOG] [DFOCUS] Attempting tvP.tviewApp.SetFocus on: *tview.TextView (0xc00059e000)
-2025/05/20 22:36:51 [TUI_LOG] [DFOCUS] tvP.tviewApp.SetFocus completed.
-2025/05/20 22:36:51 [TUI_LOG] [DFOCUS_EXIT] dFocus exiting.
-2025/05/20 22:36:55 [TUI_LOG] [KEY_HANDLE] Tab pressed.
-2025/05/20 22:36:55 [TUI_LOG] [DFOCUS_ENTRY] dFocus called with df: 1
-2025/05/20 22:36:55 [TUI_LOG] [DFOCUS] Calling OnBlur for old focused pane screener: HelpRight (type *neurogo.StaticPrimitiveScreen)
-2025/05/20 22:36:55 [TUI_LOG] [DFOCUS] OnBlur for old screener HelpRight completed.
-2025/05/20 22:36:55 [TUI_LOG] [DFOCUS] New focus target index: 3, type: *tview.Pages
-2025/05/20 22:36:55 [TUI_LOG] [DFOCUS] Styling complete.
-2025/05/20 22:36:55 [TUI_LOG] [DFOCUS] New focus target is Pages. Current front page name: 0, content type: *tview.TextView
-2025/05/20 22:36:55 [TUI_LOG] [DFOCUS] New focus is pane Left (Page: 0, Screener: ScriptOut). IsFocusable: true
-2025/05/20 22:36:55 [TUI_LOG] [DFOCUS] Attempting to call OnFocus for new screener: ScriptOut (Page Name: 0, Screener Type: *neurogo.DynamicOutputScreen)
-2025/05/20 22:36:55 [TUI_LOG] [DFOCUS_ONFOCUS_CALLBACK] OnFocus callback executed for ScriptOut. Primitive to focus: *tview.TextView
-2025/05/20 22:36:55 [TUI_LOG] [DFOCUS] Screener ScriptOut delegated focus to *tview.TextView (0xc00030cd80)
-2025/05/20 22:36:55 [TUI_LOG] [DFOCUS] OnFocus call for new screener ScriptOut completed/returned.
-2025/05/20 22:36:55 [TUI_LOG] [DFOCUS] Attempting tvP.tviewApp.SetFocus on: *tview.TextView (0xc00030cd80)
-2025/05/20 22:36:55 [TUI_LOG] [DFOCUS] tvP.tviewApp.SetFocus completed.
-2025/05/20 22:36:55 [TUI_LOG] [DFOCUS_EXIT] dFocus exiting.
-2025/05/20 22:36:55 [TUI_LOG] [KEY_HANDLE] Tab pressed.
-2025/05/20 22:36:55 [TUI_LOG] [DFOCUS_ENTRY] dFocus called with df: 1
-2025/05/20 22:36:55 [TUI_LOG] [DFOCUS] Calling OnBlur for old focused pane screener: ScriptOut (type *neurogo.DynamicOutputScreen)
-2025/05/20 22:36:55 [TUI_LOG] [DFOCUS] OnBlur for old screener ScriptOut completed.
-2025/05/20 22:36:55 [TUI_LOG] [DFOCUS] New focus target index: 0, type: *tview.TextArea
-2025/05/20 22:36:55 [TUI_LOG] [DFOCUS] Styling complete.
-2025/05/20 22:36:55 [TUI_LOG] [DFOCUS] Attempting tvP.tviewApp.SetFocus on: *tview.TextArea (0xc000347808)
-2025/05/20 22:36:55 [TUI_LOG] [DFOCUS] tvP.tviewApp.SetFocus completed.
-2025/05/20 22:36:55 [TUI_LOG] [DFOCUS_EXIT] dFocus exiting.
-2025/05/20 22:36:55 [TUI_LOG] [KEY_HANDLE] Tab pressed.
-2025/05/20 22:36:55 [TUI_LOG] [DFOCUS_ENTRY] dFocus called with df: 1
-2025/05/20 22:36:55 [TUI_LOG] [DFOCUS] New focus target index: 1, type: *tview.TextArea
-2025/05/20 22:36:55 [TUI_LOG] [DFOCUS] Styling complete.
-2025/05/20 22:36:55 [TUI_LOG] [DFOCUS] Attempting tvP.tviewApp.SetFocus on: *tview.TextArea (0xc000347b08)
-2025/05/20 22:36:55 [TUI_LOG] [DFOCUS] tvP.tviewApp.SetFocus completed.
-2025/05/20 22:36:55 [TUI_LOG] [DFOCUS_EXIT] dFocus exiting.
-2025/05/20 22:36:57 [TUI_LOG] [KEY_HANDLE] Ctrl+C pressed for copy.
-2025/05/20 22:36:57 [TUI_LOG] [KEY_HANDLE_COPY] Preparing to copy from TextArea. Length: 0
-2025/05/20 22:36:57 [TUI_LOG] [KEY_HANDLE_COPY] Focused pane is empty. Nothing to copy.
-2025/05/20 22:37:00 [TUI_LOG] [KEY_HANDLE] Ctrl+Q pressed. Stopping app.
-time=2025-05-21T05:37:00.201Z level=INFO msg="tview.Application.Run() exited normally."
+[STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() called.
+2025/05/20 22:41:16 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Primitive() called for AIWM.
+2025/05/20 22:41:16 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Table already exists, returning same instance.
+[STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() returning table.
+[STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() called.
+2025/05/20 22:41:28 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Primitive() called for AIWM.
+2025/05/20 22:41:28 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Table already exists, returning same instance.
+[STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() returning table.
+2025/05/20 22:41:28 [TUI_LOG] [KEY_HANDLE] Ctrl+Q pressed. Stopping app.
+time=2025-05-21T05:41:28.099Z level=INFO msg="tview.Application.Run() exited normally."
