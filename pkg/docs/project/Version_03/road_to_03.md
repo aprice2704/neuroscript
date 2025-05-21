@@ -11,6 +11,15 @@
 
 Achieve an AI-driven development loop where a Supervising AI (SAI) interacts with NeuroScript (ng) and a File API to:
 - Apply a prompt to each file in a file tree 
+(We now have a basic human/ai chat facility in ng, which is great -- its been a long fight.
+
+I want to get the the point where we can deliver a tree of files to a set of AI workers, have them apply instructions to the files (code initially) then have the files updated on the local drive.
+
+For this, we need the ability to queue jobs to a work queue, then have the wm dispatch them to AIs, potentially allow the AIs to use local tools, and pass back the processed files write out to disk.
+
+I am thinking this should mostly be a ns that ng runs.)
+
+
 - Manage code in branches (Git).
 - Read, write, and understand code structure (FS.*, Go*, Tree tools, Indexing).
 - Run diagnostics and tests (GoCheck, GoVet?, GoTest).
