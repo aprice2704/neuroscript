@@ -78,18 +78,18 @@ func (m *AIWorkerManager) ExecuteStatelessTask(
 	}
 
 	tracker := m.getOrCreateRateTrackerUnsafe(def)
-	now := time.Now()
+	//	now := time.Now()
 	var rateLimitErr *RuntimeError
 
-	if def.RateLimits.MaxRequestsPerMinute > 0 {
-		if now.Sub(tracker.RequestsMinuteMarker).Minutes() >= 1 {
-			tracker.RequestsThisMinuteCount = 0
-			tracker.RequestsMinuteMarker = now
-		}
-		if tracker.RequestsThisMinuteCount >= def.RateLimits.MaxRequestsPerMinute {
-			rateLimitErr = NewRuntimeError(ErrorCodeRateLimited, fmt.Sprintf("requests_per_minute limit (%d) reached for definition '%s'", def.RateLimits.MaxRequestsPerMinute, definitionID), ErrRateLimited)
-		}
-	}
+	// if def.RateLimits.MaxRequestsPerMinute > 0 {
+	// 	if now.Sub(tracker.RequestsMinuteMarker).Minutes() >= 1 {
+	// 		tracker.RequestsThisMinuteCount = 0
+	// 		tracker.RequestsMinuteMarker = now
+	// 	}
+	// 	if tracker.RequestsThisMinuteCount >= def.RateLimits.MaxRequestsPerMinute {
+	// 		rateLimitErr = NewRuntimeError(ErrorCodeRateLimited, fmt.Sprintf("requests_per_minute limit (%d) reached for definition '%s'", def.RateLimits.MaxRequestsPerMinute, definitionID), ErrRateLimited)
+	// 	}
+	// }
 
 	if rateLimitErr != nil {
 		m.mu.Unlock()
@@ -187,11 +187,11 @@ func (m *AIWorkerManager) ExecuteStatelessTask(
 		tokensUsedForRateLimit = int64(len(prompt) / 4)
 	}
 
-	if now.Sub(tracker.RequestsMinuteMarker).Minutes() >= 1 {
-		tracker.RequestsThisMinuteCount = 0
-		tracker.RequestsMinuteMarker = now
-	}
-	tracker.RequestsThisMinuteCount++
+	// if now.Sub(tracker.RequestsMinuteMarker).Minutes() >= 1 {
+	// 	tracker.RequestsThisMinuteCount = 0
+	// 	tracker.RequestsMinuteMarker = now
+	// }
+	// tracker.RequestsThisMinuteCount++
 
 	m.updateTokenCountForRateLimitsUnsafe(tracker, tokensUsedForRateLimit)
 

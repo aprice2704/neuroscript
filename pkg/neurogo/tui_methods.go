@@ -154,12 +154,16 @@ func (tvP *tviewAppPointers) dFocus(df int) {
 
 // LogToDebugScreen appends a message to the debug screen and scrolls to the end.
 func (tvP *tviewAppPointers) LogToDebugScreen(format string, args ...interface{}) {
-	if tvP.debugScreen == nil { // tvP.debugScreen is *DynamicOutputScreen (which is a PrimitiveScreener)
-		log.Printf("DEBUG_SCREEN_NIL_FALLBACK: "+format, args...)
-		return
-	}
+
+	// if tvP.debugScreen == nil { // tvP.debugScreen is *DynamicOutputScreen (which is a PrimitiveScreener)
+	// 	log.Printf("DEBUG_SCREEN_NIL_FALLBACK: "+format, args...)
+	// 	return
+	// }
 
 	message := fmt.Sprintf(format+"\n", args...)
+	fmt.Printf("%s", message)
+
+	return
 
 	// Call Write directly on tvP.debugScreen (*DynamicOutputScreen)
 	// Assuming *DynamicOutputScreen has a Write method.

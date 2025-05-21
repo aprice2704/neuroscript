@@ -1,16 +1,15 @@
 // NeuroScript Version: 0.4.0
-// File version: 0.3.16 // Commented out Tab/Shift-Tab press logs in keyHandle.
-// Description: Main TUI entry point.
+// File version: 0.3.18
+// Description: Main TUI entry point. Ctrl+Q to quit. Compiler nits fixed.
 // filename: pkg/neurogo/tview_tui.go
 package neurogo
 
 import (
 	"context"
-	"fmt" // Keep for tvP.originalStdout
+	"fmt" // Keep for tvP.originalStdout and Printf debugging
 	"log"
+	"os" // For redirecting Println if chosen (though shell redirection is better)
 	"path/filepath"
-
-	// "strconv" // No longer directly used in this file
 	"strings" // Keep for strings.TrimSpace
 	"time"    // Keep for context.WithTimeout
 
@@ -18,9 +17,50 @@ import (
 	"github.com/rivo/tview"
 )
 
+// debugFile is a global variable to hold the debug log file.
+var debugFile *os.File
+
+// InitTUIDebugLog sets up a file for redirecting Println statements for debugging the TUI.
+func InitTUIDebugLog(filePath string) error {
+	var err error
+	debugFile, err = os.OpenFile(filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return fmt.Errorf("failed to open debug log file %s: %w", filePath, err)
+	}
+	return nil
+}
+
+// CloseTUIDebugLog closes the debug log file if it was opened.
+func CloseTUIDebugLog() {
+	if debugFile != nil {
+		fmt.Fprintln(debugFile, "Closing TUI debug log.")
+		debugFile.Close()
+		debugFile = nil
+	}
+}
+
+// TuiPrintf is a helper to print to the debugFile if it's open, otherwise to stdout.
+func TuiPrintf(format string, a ...interface{}) {
+	msg := fmt.Sprintf(format, a...)
+	if debugFile != nil {
+		// Ensure the message ends with a newline for file logging
+		if !strings.HasSuffix(msg, "\n") {
+			msg += "\n"
+		}
+		fmt.Fprint(debugFile, msg)
+	} else {
+		fmt.Println(msg) // Fallback to stdout if debugFile not initialized
+	}
+}
+
 // StartTviewTUI initializes and runs the tview-based Text User Interface.
-// tviewAppPointers struct and its methods are now in tui_types.go and tui_methods.go.
 func StartTviewTUI(mainApp *App, initialScriptPath string) error {
+	// Example: Initialize TUI debug log (uncomment to use)
+	// if err := InitTUIDebugLog("tui_debug.log"); err != nil {
+	// 	log.Printf("Warning: Could not initialize TUI debug log: %v", err)
+	// }
+	// defer CloseTUIDebugLog()
+
 	logInfo := func(msg string, keyvals ...interface{}) {
 		if mainApp != nil && mainApp.Log != nil {
 			mainApp.Log.Info(msg, keyvals...)
@@ -43,22 +83,15 @@ func StartTviewTUI(mainApp *App, initialScriptPath string) error {
 	}
 
 	tvApp := tview.NewApplication()
-	// tviewAppPointers is now defined in tui_types.go
 	tvP := &tviewAppPointers{
 		tviewApp:      tvApp,
 		app:           mainApp,
 		chatScreenMap: make(map[string]*ChatConversationScreen),
-		// Other fields will be initialized as components are created
 	}
-	if mainApp.tui == nil { // Assign our TUI controller to the main app
+	if mainApp.tui == nil {
 		mainApp.tui = tvP
 	}
 
-	// Create core UI components
-	// Methods on tvP will now be called (e.g., tvP.LogToDebugScreen)
-	// These methods are defined in tui_methods.go
-
-	// Pass tvP.tviewApp to NewDynamicOutputScreen as it's now required
 	tvP.debugScreen = NewDynamicOutputScreen("DebugLog", "Debug Log", tvP.tviewApp)
 	scriptOutputScreen := NewDynamicOutputScreen("ScriptOut", "Script Output", tvP.tviewApp)
 
@@ -66,7 +99,7 @@ func StartTviewTUI(mainApp *App, initialScriptPath string) error {
 	tvP.aiOutputView = tview.NewPages().SetChangedFunc(func() { tvP.onPanePageChange(tvP.aiOutputView) })
 
 	tvP.localInputArea = tview.NewTextArea().SetWrap(false).SetWordWrap(false)
-	tvP.localInputArea.SetBorder(false).SetTitle("C: Local Input") // It's useful to see titles for panes
+	tvP.localInputArea.SetBorder(false).SetTitle("C: Local Input")
 
 	tvP.aiInputArea = tview.NewTextArea().SetWrap(true).SetWordWrap(true)
 	tvP.aiInputArea.SetBorder(false).SetTitle("D: AI Input")
@@ -77,43 +110,43 @@ func StartTviewTUI(mainApp *App, initialScriptPath string) error {
 			if text != "" {
 				activeChatSession := tvP.app.GetActiveChatSession()
 				if activeChatSession == nil {
-					tvP.LogToDebugScreen("[AI_INPUT] Enter pressed. No active chat session. Text: %s", text)
+					TuiPrintf("[AI_INPUT] Enter pressed. No active chat session. Text: %s", text)
 					logError("Cannot send chat: No active chat session.", "text", text)
-					if tvP.tviewApp != nil && tvP.statusBar != nil { // Check tviewApp as well for QueueUpdateDraw
+					if tvP.tviewApp != nil && tvP.statusBar != nil {
 						tvP.tviewApp.QueueUpdateDraw(func() {
 							tvP.statusBar.SetText("[red]No active chat. Select worker from AIWM (Tab to Pane A, Enter or 'c') then type here.[-]")
 						})
 					}
 					return nil
 				}
-				tvP.LogToDebugScreen("[AI_INPUT] Enter pressed. Active session: %s. Sending: %s", activeChatSession.SessionID, text)
+				TuiPrintf("[AI_INPUT] Enter pressed. Active session: %s. Sending: %s", activeChatSession.SessionID, text)
 				logInfo("Sending chat message from AI Input", "text", text, "sessionID", activeChatSession.SessionID)
 
 				go func(msgToSend string, sessID string) {
 					ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 					defer cancel()
-					tvP.LogToDebugScreen("[AI_INPUT_GOROUTINE] Sending to session %s: %s", sessID, msgToSend)
-					_, err := tvP.app.SendChatMessageToActiveSession(ctx, msgToSend)
+					TuiPrintf("[AI_INPUT_GOROUTINE] Sending to session %s: %s", sessID, msgToSend)
+					_, err := tvP.app.SendChatMessageToActiveSession(ctx, msgToSend) //
 
-					if tvP.tviewApp != nil { // Check before QueueUpdateDraw
+					if tvP.tviewApp != nil {
 						tvP.tviewApp.QueueUpdateDraw(func() {
-							tvP.LogToDebugScreen("[AI_INPUT_UI_UPDATE] Updating screen for session %s after send.", sessID)
+							TuiPrintf("[AI_INPUT_UI_UPDATE] Updating screen for session %s after send.", sessID)
 							if screen, ok := tvP.chatScreenMap[sessID]; ok {
 								if err != nil {
 									errMsg := fmt.Sprintf("Error sending/processing chat: %v", err)
-									tvP.LogToDebugScreen("[AI_INPUT_UI_UPDATE] %s (Session: %s)", errMsg, sessID)
+									TuiPrintf("[AI_INPUT_UI_UPDATE] %s (Session: %s)", errMsg, sessID)
 									logError("Error sending/processing chat message", "sessionID", sessID, "error", err)
-									if screen.textView != nil { // Ensure textView exists
+									if screen.textView != nil {
 										fmt.Fprintln(screen.textView, "[red]"+EscapeTviewTags(errMsg)+"[-]")
 										screen.textView.ScrollToEnd()
 									}
 								}
-								screen.UpdateConversation() // This updates its internal state
+								screen.UpdateConversation()
 							} else {
-								tvP.LogToDebugScreen("[AI_INPUT_UI_UPDATE] Chat screen NOT FOUND in map for session ID: %s", sessID)
+								TuiPrintf("[AI_INPUT_UI_UPDATE] Chat screen NOT FOUND in map for session ID: %s", sessID)
 								logError("Chat screen not found in map for session ID", "sessionID", sessID)
 							}
-							tvP.updateStatusText() // Method on tvP from tui_methods.go
+							tvP.updateStatusText()
 						})
 					}
 				}(text, activeChatSession.SessionID)
@@ -130,10 +163,10 @@ func StartTviewTUI(mainApp *App, initialScriptPath string) error {
 	}
 	tvP.statusBar = tview.NewTextView().SetDynamicColors(true)
 
-	tvP.LogToDebugScreen("[TUI_INIT] UI Primitives (like debugScreen, statusbar) initialized.")
+	TuiPrintf("[TUI_INIT] UI Primitives (like debugScreen, statusbar) initialized.")
 
 	helpStaticScreen := NewStaticPrimitiveScreen("Help", "Help", helpText)
-	aiwmScreen := NewAIWMStatusScreen(tvP.app)
+	aiwmScreen := NewAIWMStatusScreen(tvP.app) //
 
 	tvP.addScreen(scriptOutputScreen, true)
 	tvP.addScreen(aiwmScreen, true)
@@ -141,7 +174,7 @@ func StartTviewTUI(mainApp *App, initialScriptPath string) error {
 	tvP.helpScreenIndex = 2
 
 	tvP.addScreen(tvP.debugScreen, false)
-	tvP.addScreen(helpStaticScreen, false)
+	tvP.addScreen(NewStaticPrimitiveScreen("HelpRight", "Help (Right)", helpText), false)
 
 	tvP.focusablePrimitives = []tview.Primitive{
 		tvP.localInputArea, tvP.aiInputArea, tvP.aiOutputView, tvP.localOutputView,
@@ -160,16 +193,16 @@ func StartTviewTUI(mainApp *App, initialScriptPath string) error {
 		tvP.setScreen(0, false)
 	}
 
-	if interp := mainApp.GetInterpreter(); interp != nil {
+	if interp := mainApp.GetInterpreter(); interp != nil { //
 		if tvP.originalStdout == nil {
 			tvP.originalStdout = interp.Stdout()
 		}
 		interp.SetStdout(scriptOutputScreen)
-		tvP.LogToDebugScreen("[TUI_INIT] Interpreter stdout redirected to ScriptOut screen.")
+		TuiPrintf("[TUI_INIT] Interpreter stdout redirected to ScriptOut screen.")
 	}
 
 	if initialScriptPath != "" {
-		tvP.LogToDebugScreen("[TUI_INIT] Executing initial TUI script: %s", initialScriptPath)
+		TuiPrintf("[TUI_INIT] Executing initial TUI script: %s", initialScriptPath)
 		originalActivityText := tvP.initialActivityText
 		tvP.initialActivityText = fmt.Sprintf("Running: %s...", filepath.Base(initialScriptPath))
 		tvP.updateStatusText()
@@ -177,14 +210,14 @@ func StartTviewTUI(mainApp *App, initialScriptPath string) error {
 
 		if err != nil {
 			errMsg := fmt.Sprintf("Initial script error: %s", err.Error())
-			tvP.LogToDebugScreen("[TUI_INIT] %s (%s)", errMsg, initialScriptPath)
+			TuiPrintf("[TUI_INIT] %s (%s)", errMsg, initialScriptPath)
 			logError("Initial script execution error", "script", initialScriptPath, "error", err)
 			if scriptOutputScreen != nil {
 				scriptOutputScreen.Write([]byte("[red]" + EscapeTviewTags(errMsg) + "[-]\n"))
 			}
 			tvP.initialActivityText = fmt.Sprintf("[red]Script Error: %s[-]", filepath.Base(initialScriptPath))
 		} else {
-			tvP.LogToDebugScreen("[TUI_INIT] Initial script completed: %s", initialScriptPath)
+			TuiPrintf("[TUI_INIT] Initial script completed: %s", initialScriptPath)
 			logInfo("Initial script completed.", "script", initialScriptPath)
 			if scriptOutputScreen != nil {
 				scriptOutputScreen.Write([]byte("[green]Initial script completed.[-]\n"))
@@ -201,153 +234,170 @@ func StartTviewTUI(mainApp *App, initialScriptPath string) error {
 		AddItem(tvP.localInputArea, 1, 0, 1, 1, 0, 100, true).
 		AddItem(tvP.aiInputArea, 1, 1, 1, 1, 0, 100, false).
 		AddItem(tvP.statusBar, 2, 0, 1, 2, 0, 0, false)
-	tvP.LogToDebugScreen("[TUI_INIT] Grid layout configured.")
+	TuiPrintf("[TUI_INIT] Grid layout configured.")
 
 	keyHandle := func(event *tcell.EventKey) *tcell.EventKey {
 		var activeScreener PrimitiveScreener
-		var targetPaneIsLeft bool
+		// var targetPaneIsLeft bool // Not strictly needed here anymore for general event dispatch
 		var paneToCheck *tview.Pages
 		var focusedComponent tview.Primitive
 
 		if tvP.currentFocusIndex < 0 || tvP.currentFocusIndex >= tvP.numFocusablePrimitives {
-			tvP.LogToDebugScreen("[KEY_HANDLE_ERROR] currentFocusIndex %d out of bounds [0-%d]. Resetting.", tvP.currentFocusIndex, tvP.numFocusablePrimitives-1)
+			TuiPrintf("[KEY_HANDLE_ERROR] currentFocusIndex %d out of bounds [0-%d]. Resetting.", tvP.currentFocusIndex, tvP.numFocusablePrimitives-1)
 			if tvP.numFocusablePrimitives > 0 {
-				tvP.currentFocusIndex = 0
+				tvP.currentFocusIndex = 0 // Default to first focusable item
 			} else {
-				return event
+				return event // No focusable items, let tview handle if it can
 			}
 		}
 		focusedComponent = tvP.focusablePrimitives[tvP.currentFocusIndex]
 
+		// Determine which pane (Pages primitive) is notionally active based on current focus
+		// This helps in finding the activeScreener
+		targetPaneIsLeftForScreenerLookup := false
 		if focusedComponent == tvP.localInputArea || focusedComponent == tvP.localOutputView {
 			paneToCheck = tvP.localOutputView
-			targetPaneIsLeft = true
+			targetPaneIsLeftForScreenerLookup = true
 		} else if focusedComponent == tvP.aiInputArea || focusedComponent == tvP.aiOutputView {
 			paneToCheck = tvP.aiOutputView
-			targetPaneIsLeft = false
+			targetPaneIsLeftForScreenerLookup = false
 		}
 
 		if paneToCheck != nil {
 			_, primOnPage := paneToCheck.GetFrontPage()
 			if primOnPage != nil {
-				activeScreener, _ = tvP.getScreenerFromPrimitive(primOnPage, targetPaneIsLeft)
+				activeScreener, _ = tvP.getScreenerFromPrimitive(primOnPage, targetPaneIsLeftForScreenerLookup)
 			}
 		}
 
-		shouldLogKeyEventToDebugScreen := true
-		if activeScreener == tvP.debugScreen {
-			shouldLogKeyEventToDebugScreen = false
+		shouldLogFullKeyEvent := true
+		switch event.Key() {
+		case tcell.KeyTab, tcell.KeyBacktab:
+			shouldLogFullKeyEvent = false
 		}
+		// if event.Key() == tcell.KeyRune { // Optionally suppress for all typed runes
+		// 	shouldLogFullKeyEvent = false
+		// }
 
-		// Conditional logging for general key events, excluding Tab/Backtab details if not needed
-		isTabEvent := event.Key() == tcell.KeyTab || event.Key() == tcell.KeyBacktab
-		if shouldLogKeyEventToDebugScreen && !isTabEvent { // Log if not debug screen AND not a tab event
+		if shouldLogFullKeyEvent {
 			activeScreenerName := "None"
 			if activeScreener != nil {
 				activeScreenerName = activeScreener.Name()
 			}
-			actualTviewFocus := "nil"
-			if tvP.tviewApp != nil && tvP.tviewApp.GetFocus() != nil {
-				actualTviewFocus = fmt.Sprintf("%T", tvP.tviewApp.GetFocus())
+			actualTviewFocusName := "nil"
+			if actualFocusPrim := tvP.tviewApp.GetFocus(); actualFocusPrim != nil {
+				actualTviewFocusName = fmt.Sprintf("%T", actualFocusPrim)
 			}
 			focusedCompName := "nil"
 			if focusedComponent != nil {
 				focusedCompName = fmt.Sprintf("%T", focusedComponent)
 			}
-			tvP.LogToDebugScreen("[KEY_HANDLE] Key: %s, Mod: %v (FocusIndex: %d [%s], ActiveScreener: %s, ActualTviewFocus: %s)",
-				FormatEventKeyForLogging(event),
-				event.Modifiers(),
-				tvP.currentFocusIndex,
-				focusedCompName,
-				activeScreenerName,
-				actualTviewFocus)
+			TuiPrintf("[KEY_HANDLE] Key: %s, Rune: %c, Mod: %v (FocusIndex: %d [%s], Screener: %s, TviewFocus: %s)",
+				event.Name(), event.Rune(), event.Modifiers(),
+				tvP.currentFocusIndex, focusedCompName, activeScreenerName, actualTviewFocusName)
+		}
+
+		if event.Key() == tcell.KeyCtrlQ {
+			TuiPrintf("[KEY_HANDLE] Ctrl+Q pressed. Stopping app.")
+			if tvP.tviewApp != nil {
+				tvP.tviewApp.Stop()
+			}
+			return nil
 		}
 
 		if activeScreener != nil {
 			if handler := activeScreener.InputHandler(); handler != nil {
-				// Log screener interaction only if general key logging is enabled for this event type
-				if shouldLogKeyEventToDebugScreen && !isTabEvent {
-					tvP.LogToDebugScreen("[KEY_HANDLE] Passing event to screener %s InputHandler", activeScreener.Name())
-				}
+				TuiPrintf("[KEY_HANDLE] Passing event to screener '%s' InputHandler", activeScreener.Name())
 				returnedEvent := handler(event, func(p tview.Primitive) {
-					if shouldLogKeyEventToDebugScreen && !isTabEvent { // Also respect tab event silence here
-						tvP.LogToDebugScreen("[KEY_HANDLE] Screener %s requests focus on %T", activeScreener.Name(), p)
-					}
+					TuiPrintf("[KEY_HANDLE] Screener '%s' requests focus on %T", activeScreener.Name(), p)
 					if tvP.tviewApp != nil {
 						tvP.tviewApp.SetFocus(p)
 					}
 				})
 				if returnedEvent == nil {
-					if shouldLogKeyEventToDebugScreen && !isTabEvent { // Also respect tab event silence here
-						tvP.LogToDebugScreen("[KEY_HANDLE] Event consumed by screener %s", activeScreener.Name())
-					}
+					TuiPrintf("[KEY_HANDLE] Event consumed by screener '%s'", activeScreener.Name())
 					return nil
 				}
 			}
 		}
 
 		switch event.Key() {
-		case tcell.KeyCtrlC:
-			if shouldLogKeyEventToDebugScreen {
-				tvP.LogToDebugScreen("[KEY_HANDLE] Ctrl+C pressed. Stopping app.")
-			}
-			if tvP.tviewApp != nil {
-				tvP.tviewApp.Stop()
-			}
-			return nil
 		case tcell.KeyTab:
-			// if shouldLogKeyEventToDebugScreen {tvP.LogToDebugScreen("[KEY_HANDLE] Tab pressed.")} // Commented out
+			// TuiPrintf("[KEY_HANDLE] Tab pressed.") // dFocus logs more details
 			tvP.dFocus(1)
 			return nil
 		case tcell.KeyBacktab:
-			// if shouldLogKeyEventToDebugScreen {tvP.LogToDebugScreen("[KEY_HANDLE] Shift+Tab pressed.")} // Commented out
+			// TuiPrintf("[KEY_HANDLE] Shift+Tab pressed.") // dFocus logs more details
 			tvP.dFocus(-1)
 			return nil
 		case tcell.KeyRune:
 			if event.Rune() == '?' {
-				if shouldLogKeyEventToDebugScreen {
-					tvP.LogToDebugScreen("[KEY_HANDLE] '?' pressed. Switching to help.")
+				isInputField := false
+				currentFocus := tvP.tviewApp.GetFocus()
+				if _, ok := currentFocus.(*tview.TextArea); ok {
+					isInputField = true
 				}
-				if tvP.leftScreens != nil && tvP.helpScreenIndex >= 0 && tvP.helpScreenIndex < len(tvP.leftScreens) {
-					tvP.setScreen(tvP.helpScreenIndex, true)
-				} else {
-					if shouldLogKeyEventToDebugScreen {
-						tvP.LogToDebugScreen("[KEY_HANDLE] Help screen index invalid or leftScreens nil for '?' key.")
+				if _, ok := currentFocus.(*tview.InputField); ok { // tview.InputField also exists
+					isInputField = true
+				}
+
+				if !isInputField || currentFocus == tvP.localOutputView || currentFocus == tvP.aiOutputView {
+					TuiPrintf("[KEY_HANDLE] '?' pressed (global). Switching to help on left.")
+					if tvP.leftScreens != nil && tvP.helpScreenIndex >= 0 && tvP.helpScreenIndex < len(tvP.leftScreens) {
+						tvP.setScreen(tvP.helpScreenIndex, true)
+						// Consider focusing the help screen if it's interactive, or Pane A (localOutputView)
+						if tvP.localOutputView != nil { // Ensure pane A (localOutputView) gets tview focus
+							tvP.currentFocusIndex = tvP.paneAIndex // Update internal focus tracking
+							tvP.tviewApp.SetFocus(tvP.localOutputView)
+						}
+					} else {
+						TuiPrintf("[KEY_HANDLE] Help screen index invalid or leftScreens nil for '?' key.")
 					}
+					return nil
 				}
-				return nil
 			}
 		case tcell.KeyCtrlB:
-			if shouldLogKeyEventToDebugScreen {
-				tvP.LogToDebugScreen("[KEY_HANDLE] Ctrl+B pressed.")
-			}
-			tvP.nextScreen(1, true)
+			TuiPrintf("[KEY_HANDLE] Ctrl+B pressed. Prev screen left.")
+			tvP.nextScreen(-1, true)
 			return nil
 		case tcell.KeyCtrlN:
-			if shouldLogKeyEventToDebugScreen {
-				tvP.LogToDebugScreen("[KEY_HANDLE] Ctrl+N pressed.")
-			}
+			TuiPrintf("[KEY_HANDLE] Ctrl+N pressed. Next screen left.")
+			tvP.nextScreen(1, true)
+			return nil
+		case tcell.KeyCtrlP:
+			TuiPrintf("[KEY_HANDLE] Ctrl+P pressed. Prev screen right.")
+			tvP.nextScreen(-1, false)
+			return nil
+		case tcell.KeyCtrlF:
+			TuiPrintf("[KEY_HANDLE] Ctrl+F pressed. Next screen right.")
 			tvP.nextScreen(1, false)
 			return nil
 		}
 
-		if shouldLogKeyEventToDebugScreen && !isTabEvent { // Log pass-through only if general logging for it is on
-			tvP.LogToDebugScreen("[KEY_HANDLE] Event not handled by main keymap, passing through (%s).", FormatEventKeyForLogging(event))
+		// The problematic block trying to use tview.MouseHandler has been removed.
+		// If the event reaches here, it means it was not consumed by a screener's InputHandler
+		// and was not a global hotkey. We return the event to allow tview
+		// to dispatch it to the InputHandler of the currently focused primitive.
+		// For example, a tview.TextArea will handle character input this way.
+
+		if shouldLogFullKeyEvent {
+			TuiPrintf("[KEY_HANDLE] Event not handled by custom logic, passing to tview for default dispatch (%s).", FormatEventKeyForLogging(event))
 		}
 		return event
 	}
+
 	if tvP.tviewApp != nil {
 		tvP.tviewApp.SetInputCapture(keyHandle)
 	}
-	tvP.LogToDebugScreen("[TUI_INIT] Global InputCapture function set.")
+	TuiPrintf("[TUI_INIT] Global InputCapture function set.")
 
 	tvP.dFocus(0)
-	tvP.LogToDebugScreen("[TUI_INIT] Initial dFocus(0) called.")
+	TuiPrintf("[TUI_INIT] Initial dFocus(0) called.")
 
-	tvP.LogToDebugScreen("[TUI_INIT] Starting tview event loop (app.Run())...")
+	TuiPrintf("[TUI_INIT] Starting tview event loop (app.Run())...")
 	var runErr error
 	if tvP.tviewApp != nil && tvP.grid != nil {
-		runErr = tvP.tviewApp.SetRoot(tvP.grid, true).Run()
+		runErr = tvP.tviewApp.SetRoot(tvP.grid, true).EnableMouse(true).Run()
 	} else {
 		runErr = fmt.Errorf("tviewApp or grid was nil before Run()")
 		logError("Cannot start TUI", "error", runErr.Error())
@@ -355,14 +405,15 @@ func StartTviewTUI(mainApp *App, initialScriptPath string) error {
 
 	if runErr != nil {
 		logError("tview.Application.Run() exited with error", "error", runErr)
-		if interp := mainApp.GetInterpreter(); interp != nil && tvP.originalStdout != nil {
+		fmt.Fprintf(os.Stderr, "tview.Application.Run() exited with error: %v\n", runErr)
+		if interp := mainApp.GetInterpreter(); interp != nil && tvP.originalStdout != nil { //
 			interp.SetStdout(tvP.originalStdout)
 		}
 		return fmt.Errorf("tview application run error: %w", runErr)
 	}
 
 	logInfo("tview.Application.Run() exited normally.")
-	if interp := mainApp.GetInterpreter(); interp != nil && tvP.originalStdout != nil {
+	if interp := mainApp.GetInterpreter(); interp != nil && tvP.originalStdout != nil { //
 		interp.SetStdout(tvP.originalStdout)
 	}
 	return nil

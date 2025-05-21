@@ -13,7 +13,6 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
-	"time"
 
 	"github.com/aprice2704/neuroscript/pkg/logging"
 	"github.com/google/uuid"
@@ -231,10 +230,10 @@ func (m *AIWorkerManager) initializeRateTrackersUnsafe() {
 			activeCount = def.AggregatePerformanceSummary.ActiveInstancesCount
 		}
 		newRateTrackers[defID] = &WorkerRateTracker{
-			DefinitionID:           defID,
-			RequestsMinuteMarker:   time.Now(),
-			TokensMinuteMarker:     time.Now(),
-			TokensDayMarker:        time.Now(),
+			DefinitionID: defID,
+			// RequestsMinuteMarker:   time.Now(),
+			// TokensMinuteMarker:     time.Now(),
+			// TokensDayMarker:        time.Now(),
 			CurrentActiveInstances: activeCount,
 		}
 		m.logger.Debugf("Initialized rate tracker for Def (Name: '%s', ID: %s), ActiveInstances: %d", def.Name, defID, activeCount)

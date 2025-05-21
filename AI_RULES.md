@@ -14,8 +14,9 @@ Follow these **RULES** **very strictly** for all Go code contributions to the Ne
  
  ## Code Output & Structure
  
- 4.  **Full & Functional Files:** Always provide complete Go files. **NEVER** generate code with function bodies "shorted out" or replaced by comments (e.g., `// ... implementation ...`); this wastes significant time if missed. Ensure all provided code is intended to be functional.
- 5.  **Single Update Block (Optional):** *Exception:* If modifying a large existing file with localized changes, you *may* provide just the single, contiguous changed block (e.g., a modified function) clearly marked for replacement, *instead* of the whole file. **Never provide more than one update block per file.** If in doubt, provide the full file.
+ 4.  **Full & Functional Files:** Always provide complete Go files. **NEVER** **NEVER** **NEVER** **NEVER** **NEVER** generate code with function bodies "shorted out" or replaced by comments (e.g., `// ... implementation ...`); this wastes significant time if missed. Ensure all provided code is intended to be functional.
+ 5.  **Single Update Block (Optional):** *Exception:* If modifying a large existing file with localized changes, you *may* provide just the single, simple, contiguous changed block (e.g., a modified function) clearly marked for replacement, *instead* of the whole file. **Never provide more than one update block per file.** If in doubt, provide the full file.
+ 5a. DO NOT PROVIDE MORE THAN ONE FILE PER TURN UNLESS WE AGREE ON THIS IN ADVANCE. If you give me several files that are large and head in the wrong direction it wastes a lot of time and patience.
  6.  **File Size:** YOU MUST Split Go files logically IMMEDIATELY if they exceed 200 lines. You don't have to ask first, just do it. **THIS IS VITAL** for development efficiency (moving text between you and I).
  7.  **Helpers:** Place reusable helpers in shared files (e.g., `utils.go`, `parsing_helpers.go`). Add new helpers cautiously; modify existing ones **rarely**.
  8.  **Package Comments:** Keep `// Package ...` comments accurate.
@@ -79,6 +80,7 @@ and bump the minor number in the file version each time. Please remove the last 
  
  25. **Explicit Functions:** Favor clear, single-purpose functions. Avoid "smart" functions that guess intent. If logic differs significantly based on input *interpretation*, create separate functions.
  26. **Export Sensibly:** Default to exporting types/functions unless they are purely internal implementation details or complex/unsafe for external use.
+ 26a. **BAIL OUT ON NIL** always aggressively test data structures for nil components and BAIL out of the program immediately if they are found. **DO NOT ATTEMPT TO LIMP ALONG**.
  
  ## Markdown & Specs
  
