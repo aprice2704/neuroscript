@@ -40,7 +40,15 @@ const (
 		"17. **'ask' Statement**: Use 'ask prompt_expr' or 'ask prompt_expr into variable'.\n" +
 		"18. **Available 'tool's:** (List may be incomplete, use available tools) tool.ReadFile, tool.WriteFile, tool.ListFiles, tool.ExecuteCommand, tool.GoBuild, tool.GoCheck, tool.GoFmt, tool.GitAdd, tool.GitCommit, tool.VectorIndex, tool.VectorSearch, tool.StrEndsWith, tool.StrContains, tool.StrReplaceAll, etc. Tool names can be qualified (e.g., tool.filesystem.ReadFile). Do NOT invent tools.\n" +
 		"19. **Comments**: Use '#' or '--' for single-line comments (skipped). Use '::' metadata for documentation.\n" +
-		"20. **Output Format**: Generate ONLY raw code. Start with optional ':: metadata' (file-level), then 'func'. End with 'endfunc' and a final newline. Do NOT include markdown fences or explanations."
+		"20. **Output Format**: Generate ONLY raw code. Start with optional ':: metadata' (file-level), then 'func'. End with 'endfunc' and a final newline. Do NOT include markdown fences or explanations." +
+		"21. **Tool Error Handling & Return Values:** When using a tool (e.g., in a 'set' or 'call' statement):\n" +
+		"    * **Primary Error Handling:** Exceptional failures during a tool's Go-level execution are caught by the NeuroScript interpreter. This typically triggers an 'on_error' block if present, or halts script execution. The direct result assigned to a variable in NeuroScript will likely be 'nil' in such cases.\n" +
+		"    * **Interpreting Successful Returns:** Consult the tool's specification (e.g., from 'tooldefs_*.go' files or documentation) for its 'ReturnType'.\n" +
+		"        * If a tool returns data (e.g., 'FS.Read'), assign its result to a variable. A 'nil' result might indicate an underlying error caught by the interpreter. Otherwise, the variable holds the data.\n" +
+		"        * Some tools with side-effects (e.g., 'FS.Write', 'Git.Commit') return a descriptive success message string as their result when the underlying Go function succeeds without error. The presence of a non-`nil` string result (without an 'on_error' trigger) implies success. Do not assume a specific string like \"OK\" unless explicitly documented for that tool.\n" +
+		"        * Some tools (e.g., 'AIWorker.ExecuteStatelessTask') return a map. If the tool call itself succeeds at the Go level (no interpreter error), inspect documented keys within this map for specific results or operational status details.\n" +
+		"        * If a tool's 'ReturnType' is 'nil' (or not a data/message type) and it's called for side-effects, successful execution is implied if no script error/halt occurs and no 'on_error' block is triggered.\n" +
+		"    * **Best Practices:** Prioritize 'on_error ... endon' blocks for robustly handling unexpected tool failures. Use 'must' statements to assert critical post-conditions after tool calls."
 
 	// PromptExecute provides guidance for an AI executing NeuroScript code based on NeuroScript.g4
 	PromptExecute = "You are executing the provided NeuroScript procedure step-by-step based on the NeuroScript.g4 grammar (v0.3.0). Track variable state precisely.\n" +

@@ -2,7 +2,7 @@
   "name": "vscode-neuroscript",
   "displayName": "NeuroScript Language Support",
   "description": "Syntax highlighting and basic language features for NeuroScript",
-  "version": "0.0.2",
+  "version": "0.3.0",
   "engines": {
     "vscode": "^1.80.0"
   },
@@ -29,7 +29,7 @@
       {
         "language": "neuroscript",
         "scopeName": "source.neuroscript",
-        "path": "./neuroscript.tmLanguage.json"
+        "path": "./syntaxes/neuroscript.tmLanguage.json"
       }
     ]
   }

@@ -1,102 +1,144 @@
- :: Name: Update NeuroScript Syntax
- :: Purpose: Recursively finds and refactors NeuroScript files (.ns) in a directory to conform to the current grammar using AI, then stages and commits changes via Git.
- :: Version: 0.3.0
- :: Author: Gemini
- :: requires_tool: tool.ListFiles, tool.ReadFile, tool.WriteFile, tool.GitAdd, tool.GitCommit, tool.StrEndsWith, tool.IsList
- :: requires_ai: true
- :: file_version: 30.2.0
+:: Name: Update NeuroScript Syntax (WM Version)
+:: Purpose: Recursively finds and refactors NeuroScript files (.ns) in a directory to conform to the current grammar using an AI Worker, then stages and commits changes via Git.
+:: Version: 0.3.1
+:: Author: Gemini (Updated by Gemini)
+:: requires_tool: tool.ListFiles, tool.ReadFile, tool.WriteFile, tool.GitAdd, tool.GitCommit, tool.StrEndsWith, tool.IsList, tool.AIWorkerExecuteStateless
+:: requires_ai: true
+:: file_version: 31.0.0
+:: Changes:
+:: - Integrated AI Worker Manager via tool.AIWorkerExecuteStateless.
+:: - Added 'worker_definition_name' parameter.
+:: - Corrected placeholder syntax from {{{...}}} to {{...}}.
+:: - Adjusted prompt construction and AI result handling.
+:: - Added more comments for clarity.
 
- func UpdateNsSyntax(needs directory_path returns status_message) means
-   emit "Processing directory: " + directory_path
-   set list_result = tool.ListFiles(directory_path)
-   must tool.IsList(list_result) # Halt if ListFiles failed
+# Assumption: NEUROSCRIPT_DEVELOP_PROMPT is a globally available string constant
+# containing general syntax rules or guidelines for the AI.
+# If it's an environment variable, it might need to be fetched via `tool.GetEnv("NEUROSCRIPT_DEVELOP_PROMPT")`.
+# For this script, we'll assume it's directly accessible.
 
-   set local_staged_files_csv = ""
+func UpdateNsSyntax(needs directory_path, worker_definition_name returns status_message) means
+  :: description: Recursively updates .ns files in a directory using an AI worker.
+  :: param:directory_path: The path to the directory to process.
+  :: param:worker_definition_name: The name of the AI Worker definition to use (e.g., "gemini-1.5-pro-chat").
+  :: return:0: A status message.
 
-   for each entry_map in list_result
-     set name = entry_map["name"]
-     set is_dir = entry_map["is_dir"]
-     set full_path = directory_path + "/" + name
+  emit "Processing directory: " + directory_path + " with AI Worker: " + worker_definition_name
+  set list_result = tool.ListFiles(directory_path)
 
-     # Handle directories (recursive call) or skip non .ns files
-     if is_dir == true
-       emit "Entering subdirectory: " + full_path
-       call UpdateNsSyntax(needs=full_path) # Ignore result, errors handled internally
-       continue # Skip to next entry
-     endif
-     if tool.StrEndsWith(name, ".ns") == false
-       continue # Skip non .ns files
-     endif
+  must list_result != nil # Halt if ListFiles itself failed critically
+  must tool.IsList(list_result) # Ensure it's a list as expected
 
-     # Skip self
-     if tool.StrEndsWith(full_path, "UpdateNsSyntax.ns") == true # Simple check
-       emit "Skipping self: " + full_path
-       continue
-     endif
+  set local_staged_files_csv = ""
+  set double_newline = ```
 
-     # Process .ns file
-     emit "Processing file: " + full_path
-     set original_code = tool.ReadFile(full_path)
-     if original_code == "" # Assumes empty string on read error or empty file
-         emit "[WARN] Failed to read or file empty: " + full_path
-         continue # Skip this file
-     endif
 
-     # Construct AI prompt (Assuming NEUROSCRIPT_DEVELOP_PROMPT has rules)
-     # Use {{{}}} substitution within the triple-backtick string
-     set task_prompt = ```Refactor the following NeuroScript code to strictly adhere to the latest syntax rules provided.
- Ensure the final output is ONLY the raw, refactored NeuroScript code, without any markdown fences or explanations.
- Original Code:
- {{{original_code}}}
- Refactored Code:
- ```
-     # Concatenate the standard prompt with the task-specific one
-     set full_prompt = NEUROSCRIPT_DEVELOP_PROMPT + "\n\n" + task_prompt
+  ``` # Define two newlines using a raw string
 
-     # Call AI
-     emit "Asking AI to refactor: " + full_path
-     ask full_prompt into refactored_code
+  for each entry_map in list_result
+    set name = entry_map["name"]
+    set is_dir = entry_map["is_dir"]
+    set current_file_path = directory_path + "/" + name # Basic path join
 
-     # Validate AI response and check for changes
-     if refactored_code == nil or refactored_code == ""
-       emit "[ERROR] AI returned empty or nil response for: " + full_path
-       continue # Skip this file
-     endif
-     if refactored_code == original_code
-       emit "No changes needed for file: " + full_path
-       continue # Skip this file
-     endif
+    if is_dir == true
+      emit "Entering subdirectory: " + current_file_path
+      call UpdateNsSyntax(needs=current_file_path, worker_definition_name=worker_definition_name)
+      continue
+    endif
 
-     # Write back changes
-     emit "Writing updated file: " + full_path
-     set write_status = tool.WriteFile(full_path, refactored_code)
-     if write_status != "OK"
-       emit "[WARN] Failed to write updated file: " + full_path + " - Error: " + write_status
-       continue # Skip staging
-     endif
+    if tool.StrEndsWith(name, ".ns") == false
+      continue
+    endif
 
-     # Stage successful changes
-     emit "Staging updated file: " + full_path
-     set add_status = tool.GitAdd(full_path)
-     if add_status != "OK"
-       emit "[WARN] Failed to stage file: " + full_path + " - Error: " + add_status
-       continue # Skip adding to commit list
-     endif
+    if tool.StrEndsWith(current_file_path, "UpdateNsSyntaxWM.ns") == true # Assuming this new filename
+      emit "Skipping self: " + current_file_path
+      continue
+    endif
 
-     # Add to list for commit
-     set local_staged_files_csv = local_staged_files_csv + full_path + ","
+    emit "Processing file: " + current_file_path
+    set original_code = tool.ReadFile(current_file_path)
 
-   endfor # End FOR EACH loop
+    if original_code == nil
+      emit "[WARN] Failed to read file (or file is nil): " + current_file_path
+      continue
+    endif
+    if original_code == ""
+      emit "[INFO] File is empty, skipping AI processing: " + current_file_path
+      continue
+    endif
 
-   # Commit changes for this directory level
-   if local_staged_files_csv != ""
-     emit "Committing updated files staged in " + directory_path + " ..."
-     set commit_message = "AUTO: Update NeuroScript syntax for " + directory_path
-     set commit_result = tool.GitCommit(commit_message)
-     emit "Commit Result: " + commit_result
-   endif
+    set base_instruction = "Refactor the provided NeuroScript code to strictly adhere to the latest NeuroScript syntax rules. Ensure your output is ONLY the raw, refactored NeuroScript code, without any markdown fences, explanations, or conversational filler."
+    set refactor_prompt = ""
+    if NEUROSCRIPT_DEVELOP_PROMPT != nil and NEUROSCRIPT_DEVELOP_PROMPT != ""
+        set refactor_prompt = NEUROSCRIPT_DEVELOP_PROMPT + double_newline + base_instruction
+    else
+        set refactor_prompt = base_instruction
+    endif
 
-   set status_message = "Syntax update attempt finished for directory: " + directory_path + ". Check log and git status."
-   return status_message
+    emit "Asking AI Worker '" + worker_definition_name + "' to refactor: " + current_file_path
+    set ai_result_map = tool.AIWorkerExecuteStateless(
+      definition_name_or_id = worker_definition_name,
+      prompt = refactor_prompt,
+      input_content = original_code,
+      params_json_or_map = {}
+    )
 
- endfunc
+    must ai_result_map != nil
+
+    set ai_error = ai_result_map["error"]
+    if ai_error != nil and ai_error != ""
+      emit "[ERROR] AI Worker (" + worker_definition_name + ") returned an error for " + current_file_path + ": " + ai_error
+      continue
+    endif
+
+    set refactored_code = ai_result_map["response_content"]
+    if refactored_code == nil or refactored_code == ""
+      emit "[WARN] AI Worker (" + worker_definition_name + ") returned empty or nil code for: " + current_file_path
+      continue
+    endif
+
+    if refactored_code == original_code
+      emit "No changes needed for file: " + current_file_path
+      continue
+    endif
+
+    emit "Writing updated file: " + current_file_path
+    set write_status = tool.WriteFile(current_file_path, refactored_code)
+    if write_status != "OK" # Adjust if your tool.WriteFile has different success/error reporting
+      emit "[WARN] Failed to write updated file: " + current_file_path + " - Status: " + write_status
+      continue
+    endif
+
+    emit "Staging updated file: " + current_file_path
+    set add_status = tool.GitAdd(current_file_path)
+    if add_status != "OK" # Adjust if your tool.GitAdd has different success/error reporting
+      emit "[WARN] Failed to stage file: " + current_file_path + " - Status: " + add_status
+      continue
+    endif
+
+    if local_staged_files_csv == ""
+      set local_staged_files_csv = current_file_path
+    else
+      set local_staged_files_csv = local_staged_files_csv + "," + current_file_path
+    endif
+  endfor
+
+  if local_staged_files_csv != ""
+    emit "Committing updated files staged in " + directory_path + ": " + local_staged_files_csv
+    set commit_message = "AUTO: Update .ns syntax via AI worker for files in " + directory_path
+    call tool.GitCommit(commit_message)
+    emit "Commit attempt for " + directory_path + " finished."
+  else
+    emit "No files staged for commit in " + directory_path
+  endif
+
+  set status_message = "Syntax update attempt finished for directory: " + directory_path + ". Worker: " + worker_definition_name + ". Check log and git status."
+  return status_message
+
+  on_error means
+    emit "[FATAL ERROR] An unhandled error occurred in UpdateNsSyntax for directory: " + directory_path
+    # 'system.error_message' is hypothetical from spec examples.
+    # If available, log it: emit "Error details: " + system.error_message
+    return "Failure during syntax update for " + directory_path + ". Check logs."
+  endon
+endfunc

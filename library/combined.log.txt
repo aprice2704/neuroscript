@@ -1,108 +1,35 @@
-time=2025-05-21T05:41:04.206Z level=INFO msg="Logger initialized" level=0 output_target=stderr
-time=2025-05-21T05:41:04.208Z level=INFO msg="LLM Client provided to NewApp and assigned."
-time=2025-05-21T05:41:04.209Z level=INFO msg="AIWorkerManager initialized. Loaded 4 definitions. Active instances: 0. Sandbox context: '/home/aprice/dev/neuroscript/library/.neuroscript_aiwm'"
-time=2025-05-21T05:41:04.209Z level=INFO msg="AI Worker Manager initialized and available."
-time=2025-05-21T05:41:04.209Z level=INFO msg="StartTviewTUI initializing..."
-[TUI_INIT] UI Primitives (like debugScreen, statusbar) initialized.
-2025/05/20 22:41:04 [TUI_LOG] [AIWM_NEW] NewAIWMStatusScreen created (v0.1.2M) for AIWM.
-2025/05/20 22:41:04 [TUI_LOG] [PAGE_CHANGE_ENTRY] onPanePageChange called. Pane Addr: 0xc000446810, New Page Name: ''
-2025/05/20 22:41:04 [TUI_LOG] [PAGE_CHANGE] Current primitive is nil for page ''.
-2025/05/20 22:41:04 [TUI_LOG] [PAGE_CHANGE_EXIT] Current primitive nil for page '', onPanePageChange exiting.
-[STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() called.
-2025/05/20 22:41:04 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Primitive() called for AIWM.
-[STDOUT_AIWM_PRIMITIVE_0.1.2M] Table is nil. Creating, fetching data, and populating.
-2025/05/20 22:41:04 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Table is nil, creating new table and populating ONCE.
-2025/05/20 22:41:04 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Data fetched. Error: <nil>. Info count: 4.
-2025/05/20 22:41:04 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Table created and populated ONCE.
-[STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() returning table.
-2025/05/20 22:41:04 [TUI_LOG] [PAGE_CHANGE_ENTRY] onPanePageChange called. Pane Addr: 0xc000446810, New Page Name: ''
-2025/05/20 22:41:04 [TUI_LOG] [PAGE_CHANGE] Current primitive is nil for page ''.
-2025/05/20 22:41:04 [TUI_LOG] [PAGE_CHANGE_EXIT] Current primitive nil for page '', onPanePageChange exiting.
-[STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() called.
-2025/05/20 22:41:04 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Primitive() called for AIWM.
-2025/05/20 22:41:04 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Table already exists, returning same instance.
-[STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() returning table.
-2025/05/20 22:41:04 [TUI_LOG] [PAGE_CHANGE_ENTRY] onPanePageChange called. Pane Addr: 0xc000446810, New Page Name: ''
-2025/05/20 22:41:04 [TUI_LOG] [PAGE_CHANGE] Current primitive is nil for page ''.
-2025/05/20 22:41:04 [TUI_LOG] [PAGE_CHANGE_EXIT] Current primitive nil for page '', onPanePageChange exiting.
-2025/05/20 22:41:04 [TUI_LOG] [PAGE_CHANGE_ENTRY] onPanePageChange called. Pane Addr: 0xc000446840, New Page Name: ''
-2025/05/20 22:41:04 [TUI_LOG] [PAGE_CHANGE] Current primitive is nil for page ''.
-2025/05/20 22:41:04 [TUI_LOG] [PAGE_CHANGE_EXIT] Current primitive nil for page '', onPanePageChange exiting.
-2025/05/20 22:41:04 [TUI_LOG] [PAGE_CHANGE_ENTRY] onPanePageChange called. Pane Addr: 0xc000446840, New Page Name: ''
-2025/05/20 22:41:04 [TUI_LOG] [PAGE_CHANGE] Current primitive is nil for page ''.
-2025/05/20 22:41:04 [TUI_LOG] [PAGE_CHANGE_EXIT] Current primitive nil for page '', onPanePageChange exiting.
-2025/05/20 22:41:04 [TUI_LOG] [PAGE_CHANGE_ENTRY] onPanePageChange called. Pane Addr: 0xc000446810, New Page Name: '0'
-2025/05/20 22:41:04 [TUI_LOG] [PAGE_CHANGE] Active screener in Left pane: ScriptOut (Type: *neurogo.DynamicOutputScreen)
-2025/05/20 22:41:04 [TUI_LOG] [PAGE_CHANGE] Pane changed (Left), but this pane is NOT the one currently designated for focus in the dFocus cycle.
-2025/05/20 22:41:04 [TUI_LOG] [PAGE_CHANGE] DynamicOutputScreen ScriptOut became visible. Content should be current via its Write method.
-2025/05/20 22:41:04 [TUI_LOG] [PAGE_CHANGE_EXIT] onPanePageChange exiting for page '0'.
-2025/05/20 22:41:04 [TUI_LOG] [PAGE_CHANGE_ENTRY] onPanePageChange called. Pane Addr: 0xc000446840, New Page Name: '0'
-2025/05/20 22:41:04 [TUI_LOG] [PAGE_CHANGE] Active screener in Right pane: DebugLog (Type: *neurogo.DynamicOutputScreen)
-2025/05/20 22:41:04 [TUI_LOG] [PAGE_CHANGE] Pane changed (Right), but this pane is NOT the one currently designated for focus in the dFocus cycle.
-2025/05/20 22:41:04 [TUI_LOG] [PAGE_CHANGE] DynamicOutputScreen DebugLog became visible. Content should be current via its Write method.
-2025/05/20 22:41:04 [TUI_LOG] [PAGE_CHANGE_EXIT] onPanePageChange exiting for page '0'.
-[TUI_INIT] Interpreter stdout redirected to ScriptOut screen.
-[TUI_INIT] Executing initial TUI script: list_files.ns.txt
-[TUI_INIT] Initial script completed: list_files.ns.txt
-time=2025-05-21T05:41:04.217Z level=INFO msg="Initial script completed." script=list_files.ns.txt
-[TUI_INIT] Grid layout configured.
-[TUI_INIT] Global InputCapture function set.
-2025/05/20 22:41:04 [TUI_LOG] [DFOCUS_ENTRY] dFocus called with df: 0
-2025/05/20 22:41:04 [TUI_LOG] [DFOCUS] New focus target index: 0, type: *tview.TextArea
-2025/05/20 22:41:04 [TUI_LOG] [DFOCUS] Styling complete.
-2025/05/20 22:41:04 [TUI_LOG] [DFOCUS] Attempting tvP.tviewApp.SetFocus on: *tview.TextArea (0xc000408308)
-2025/05/20 22:41:04 [TUI_LOG] [DFOCUS] tvP.tviewApp.SetFocus completed.
-2025/05/20 22:41:04 [TUI_LOG] [DFOCUS_EXIT] dFocus exiting.
-[TUI_INIT] Initial dFocus(0) called.
-[TUI_INIT] Starting tview event loop (app.Run())...
-2025/05/20 22:41:07 [TUI_LOG] [KEY_HANDLE] Ctrl+B pressed. Next screen left.
-2025/05/20 22:41:07 [TUI_LOG] [PAGE_CHANGE_ENTRY] onPanePageChange called. Pane Addr: 0xc000446810, New Page Name: '1'
-[STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() called.
-2025/05/20 22:41:07 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Primitive() called for AIWM.
-2025/05/20 22:41:07 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Table already exists, returning same instance.
-[STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() returning table.
-2025/05/20 22:41:07 [TUI_LOG] [PAGE_CHANGE] Active screener in Left pane: AIWM (Type: *neurogo.AIWMStatusScreen)
-2025/05/20 22:41:07 [TUI_LOG] [PAGE_CHANGE] Pane changed (Left), but this pane is NOT the one currently designated for focus in the dFocus cycle.
-2025/05/20 22:41:07 [TUI_LOG] [PAGE_CHANGE_EXIT] onPanePageChange exiting for page '1'.
-[STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() called.
-2025/05/20 22:41:07 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Primitive() called for AIWM.
-2025/05/20 22:41:07 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Table already exists, returning same instance.
-[STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() returning table.
-[STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() called.
-2025/05/20 22:41:08 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Primitive() called for AIWM.
-2025/05/20 22:41:08 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Table already exists, returning same instance.
-[STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() returning table.
-2025/05/20 22:41:08 [TUI_LOG] [AIWM_INPUT_HANDLER] Passing global navigation key Ctrl+B upwards.
-2025/05/20 22:41:08 [TUI_LOG] [KEY_HANDLE] Ctrl+B pressed. Next screen left.
-[STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() called.
-2025/05/20 22:41:08 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Primitive() called for AIWM.
-2025/05/20 22:41:08 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Table already exists, returning same instance.
-[STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() returning table.
-[STDOUT_AIWM_ONBLUR_0.1.2M] Entered OnBlur.
-2025/05/20 22:41:08 [TUI_LOG] [AIWM_ONBLUR_0.1.2M] OnBlur called for AIWM.
-2025/05/20 22:41:08 [TUI_LOG] [PAGE_CHANGE_ENTRY] onPanePageChange called. Pane Addr: 0xc000446810, New Page Name: '2'
-[STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() called.
-2025/05/20 22:41:08 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Primitive() called for AIWM.
-2025/05/20 22:41:08 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Table already exists, returning same instance.
-[STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() returning table.
-2025/05/20 22:41:08 [TUI_LOG] [PAGE_CHANGE] Active screener in Left pane: Help (Type: *neurogo.StaticPrimitiveScreen)
-2025/05/20 22:41:08 [TUI_LOG] [PAGE_CHANGE] Pane changed (Left), but this pane is NOT the one currently designated for focus in the dFocus cycle.
-2025/05/20 22:41:08 [TUI_LOG] [PAGE_CHANGE_EXIT] onPanePageChange exiting for page '2'.
-[STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() called.
-2025/05/20 22:41:15 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Primitive() called for AIWM.
-2025/05/20 22:41:15 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Table already exists, returning same instance.
-[STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() returning table.
-[STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() called.
-2025/05/20 22:41:16 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Primitive() called for AIWM.
-2025/05/20 22:41:16 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Table already exists, returning same instance.
-[STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() returning table.
-[STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() called.
-2025/05/20 22:41:16 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Primitive() called for AIWM.
-2025/05/20 22:41:16 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Table already exists, returning same instance.
-[STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() returning table.
-[STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() called.
-2025/05/20 22:41:28 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Primitive() called for AIWM.
-2025/05/20 22:41:28 [TUI_LOG] [AIWM_PRIMITIVE_0.1.2M] Table already exists, returning same instance.
-[STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() returning table.
-2025/05/20 22:41:28 [TUI_LOG] [KEY_HANDLE] Ctrl+Q pressed. Stopping app.
-time=2025-05-21T05:41:28.099Z level=INFO msg="tview.Application.Run() exited normally."
+time=2025-05-22T08:25:06.633Z level=INFO msg="Logger initialized" level=0 output_target=stderr
+time=2025-05-22T08:25:06.635Z level=INFO msg="LLM Client provided to NewApp and assigned."
+time=2025-05-22T08:25:06.637Z level=INFO msg="AIWorkerManager initialized. Loaded 4 definitions. Active instances: 0. Sandbox context: '/home/aprice/dev/neuroscript/library/.neuroscript_aiwm'"
+time=2025-05-22T08:25:06.637Z level=INFO msg="AI Worker Manager initialized and available."
+time=2025-05-22T08:25:06.639Z level=ERROR msg="Syntax Error Reported by Listener" line=46 column=26 message="mismatched input 'needs' expecting ')'" token="near token 'needs'"
+time=2025-05-22T08:25:06.640Z level=ERROR msg="Syntax Error Reported by Listener" line=86 column=59 message="token recognition error at: '\"\\n'" token=""
+time=2025-05-22T08:25:06.640Z level=ERROR msg="Syntax Error Reported by Listener" line=86 column=62 message="token recognition error at: '\\'" token=""
+time=2025-05-22T08:25:06.640Z level=ERROR msg="Syntax Error Reported by Listener" line=86 column=64 message="mismatched input '\" + base_instruction\\n    else\\n        set refactor_prompt = base_instruction\\n    endif\\n\\n    emit \"' expecting NEWLINE" token="near token '\" + base_instruction\n    else\n        set refactor_prompt = base_instruction\n    endif\n\n    emit \"'"
+time=2025-05-22T08:25:06.640Z level=ERROR msg="Syntax Error Reported by Listener" line=103 column=85 message="mismatched input '\" + current_file_path + \"' expecting 'each'" token="near token '\" + current_file_path + \"'"
+time=2025-05-22T08:25:06.640Z level=ERROR msg="Syntax Error Reported by Listener" line=109 column=92 message="mismatched input ':' expecting 'each'" token="near token ':'"
+time=2025-05-22T08:25:06.640Z level=ERROR msg="Syntax Error Reported by Listener" line=114 column=34 message="missing 'each' at 'file'" token="near token 'file'"
+time=2025-05-22T08:25:06.640Z level=ERROR msg="Syntax Error Reported by Listener" line=114 column=38 message="mismatched input ':' expecting 'in'" token="near token ':'"
+time=2025-05-22T08:25:06.641Z level=ERROR msg="Syntax Error Reported by Listener" line=146 column=68 message="missing 'each' at 'files'" token="near token 'files'"
+time=2025-05-22T08:25:06.641Z level=ERROR msg="Syntax Error Reported by Listener" line=152 column=12 message="mismatched input 'Commit' expecting NEWLINE" token="near token 'Commit'"
+time=2025-05-22T08:25:06.642Z level=ERROR msg="Syntax Error Reported by Listener" line=154 column=52 message="mismatched input '\" + directory_path + \"' expecting 'each'" token="near token '\" + directory_path + \"'"
+time=2025-05-22T08:25:06.643Z level=ERROR msg="Syntax Error Reported by Listener" line=156 column=29 message="mismatched input '\" + directory_path + \"' expecting 'each'" token="near token '\" + directory_path + \"'"
+time=2025-05-22T08:25:06.643Z level=ERROR msg="Syntax Error Reported by Listener" line=158 column=30 message="missing 'each' at 'commit'" token="near token 'commit'"
+time=2025-05-22T08:25:06.643Z level=ERROR msg="Syntax Error Reported by Listener" line=161 column=24 message="mismatched input 'Syntax' expecting NEWLINE" token="near token 'Syntax'"
+time=2025-05-22T08:25:06.643Z level=ERROR msg="Syntax Error Reported by Listener" line=161 column=59 message="missing 'each' at 'directory'" token="near token 'directory'"
+time=2025-05-22T08:25:06.643Z level=ERROR msg="Syntax Error Reported by Listener" line=161 column=68 message="mismatched input ':' expecting 'in'" token="near token ':'"
+time=2025-05-22T08:25:06.644Z level=ERROR msg="Syntax Error Reported by Listener" line=166 column=74 message="missing 'each' at 'directory'" token="near token 'directory'"
+time=2025-05-22T08:25:06.644Z level=ERROR msg="Syntax Error Reported by Listener" line=166 column=83 message="mismatched input ':' expecting 'in'" token="near token ':'"
+time=2025-05-22T08:25:06.644Z level=ERROR msg="Syntax Error Reported by Listener" line=170 column=45 message="mismatched input '\" + directory_path + \"' expecting 'each'" token="near token '\" + directory_path + \"'"
+time=2025-05-22T08:25:06.644Z level=ERROR msg="Syntax Error Reported by Listener" line=170 column=80 message="token recognition error at: '\"\n  endon\nendfunc\n\n# To run this script (example):\n# ng -script UpdateNsSyntaxWM.ns -target UpdateNsSyntax \\\n'" token=""
+time=2025-05-22T08:25:06.644Z level=ERROR msg="Syntax Error Reported by Listener" line=193 column=5 message="mismatched input '<EOF>' expecting {'else', 'endif'}" token="near token '<EOF>'"
+time=2025-05-22T08:25:06.644Z level=ERROR msg="Lexer Errors encountered." count=3
+time=2025-05-22T08:25:06.644Z level=ERROR msg="Parsing failed." path=UpdateNsSyntax.ns.txt error="lexer errors: line 86:60: token recognition error at: '\"\\n'; line 86:63: token recognition error at: '\\'; line 170:81: token recognition error at: '\"\n  endon\nendfunc\n\n# To run this script (example):\n# ng -script UpdateNsSyntaxWM.ns -target UpdateNsSyntax \\\n'"
+time=2025-05-22T08:25:06.644Z level=ERROR msg="Error executing script" script=UpdateNsSyntax.ns.txt error="failed to process script UpdateNsSyntax.ns.txt: parsing file UpdateNsSyntax.ns.txt failed: lexer errors: line 86:60: token recognition error at: '\"\\n'; line 86:63: token recognition error at: '\\'; line 170:81: token recognition error at: '\"\n  endon\nendfunc\n\n# To run this script (example):\n# ng -script UpdateNsSyntaxWM.ns -target UpdateNsSyntax \\\n'"
+Error executing script 'UpdateNsSyntax.ns.txt': failed to process script UpdateNsSyntax.ns.txt: parsing file UpdateNsSyntax.ns.txt failed: lexer errors: line 86:60: token recognition error at: '"\n'; line 86:63: token recognition error at: '\'; line 170:81: token recognition error at: '"
+  endon
+endfunc
+
+# To run this script (example):
+# ng -script UpdateNsSyntaxWM.ns -target UpdateNsSyntax \
+'
