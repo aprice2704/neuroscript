@@ -4134,7 +4134,7 @@
           ],
           "methods": [
             {
-              "Receiver": "*toolRegistryImpl",
+              "Receiver": "*ToolRegistryImpl",
               "Name": "RegisterTool",
               "calls": [
                 "r.mu.Lock(?)",
@@ -4147,7 +4147,7 @@
               ]
             },
             {
-              "Receiver": "*toolRegistryImpl",
+              "Receiver": "*ToolRegistryImpl",
               "Name": "GetTool",
               "calls": [
                 "r.mu.RLock(?)",
@@ -4155,7 +4155,7 @@
               ]
             },
             {
-              "Receiver": "*toolRegistryImpl",
+              "Receiver": "*ToolRegistryImpl",
               "Name": "ListTools",
               "calls": [
                 "r.mu.RLock(?)",

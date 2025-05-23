@@ -1,16 +1,17 @@
-// NeuroScript Version: 0.3.0
-// File version: 0.0.1 // Assuming this is the base version you have that should work
+// NeuroScript Version: 0.3.1
+// File version: 0.0.2 // Corrected method signatures to align with core.LLMClient interface.
 // Implements the core.LLMClient interface with no-operation methods.
 // filename: pkg/adapters/noop_llmclient.go
-// nlines: 55
+// nlines: 60 // Approximate
 // risk_rating: LOW
+
 package adapters
 
 import (
 	"context"
 
-	"github.com/aprice2704/neuroscript/pkg/core"
-	"github.com/google/generative-ai-go/genai" // For genai.Client return type
+	"github.com/aprice2704/neuroscript/pkg/core" // Correctly import core
+	"github.com/google/generative-ai-go/genai"   // For genai.Client return type
 )
 
 // NoOpLLMClient is an LLM client implementation that performs no actions
@@ -20,7 +21,6 @@ type NoOpLLMClient struct {
 }
 
 // NewNoOpLLMClient creates a new instance of NoOpLLMClient.
-// It does not require a logger as it performs no operations that would need logging.
 func NewNoOpLLMClient() *NoOpLLMClient {
 	return &NoOpLLMClient{}
 }
@@ -32,10 +32,9 @@ var _ core.LLMClient = (*NoOpLLMClient)(nil)
 // Returns a minimal valid ConversationTurn (RoleAssistant, empty content, zero TokenUsage) and nil error.
 func (c *NoOpLLMClient) Ask(ctx context.Context, turns []*core.ConversationTurn) (*core.ConversationTurn, error) {
 	return &core.ConversationTurn{
-		Role:       core.RoleAssistant,       // Use the defined constant for the role from core
-		Content:    "No-op Ask response.",    // Provide some minimal content
-		TokenUsage: core.TokenUsageMetrics{}, // Initialize with zero values
-		// ToolCalls and ToolResults will be nil by default for this struct literal
+		Role:       core.RoleAssistant,
+		Content:    "No-op Ask response.",
+		TokenUsage: core.TokenUsageMetrics{}, // Assuming TokenUsageMetrics is part of ConversationTurn or accessible
 	}, nil
 }
 
@@ -43,10 +42,10 @@ func (c *NoOpLLMClient) Ask(ctx context.Context, turns []*core.ConversationTurn)
 // Returns a minimal valid ConversationTurn, nil tool calls slice, and nil error.
 func (c *NoOpLLMClient) AskWithTools(ctx context.Context, turns []*core.ConversationTurn, tools []core.ToolDefinition) (*core.ConversationTurn, []*core.ToolCall, error) {
 	return &core.ConversationTurn{
-		Role:       core.RoleAssistant,             // Use the defined constant for the role from core
-		Content:    "No-op AskWithTools response.", // Provide some minimal content
-		TokenUsage: core.TokenUsageMetrics{},       // Initialize with zero values
-	}, nil, nil // Explicitly return nil for the []*core.ToolCall slice and nil error.
+		Role:       core.RoleAssistant,
+		Content:    "No-op AskWithTools response.",
+		TokenUsage: core.TokenUsageMetrics{},
+	}, nil, nil
 }
 
 // Embed performs no operation.
@@ -57,5 +56,5 @@ func (c *NoOpLLMClient) Embed(ctx context.Context, text string) ([]float32, erro
 
 // Client returns nil as there is no underlying genai.Client.
 func (c *NoOpLLMClient) Client() *genai.Client {
-	return nil // No underlying genai client
+	return nil
 }

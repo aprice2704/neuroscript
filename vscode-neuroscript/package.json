@@ -1,14 +1,17 @@
 {
   "name": "vscode-neuroscript",
   "displayName": "NeuroScript Language Support",
-  "description": "Syntax highlighting and basic language features for NeuroScript",
+  "description": "Syntax highlighting and language features for NeuroScript",
   "version": "0.3.0",
+  "publisher": "Andrew Price",
   "engines": {
     "vscode": "^1.80.0"
   },
   "categories": [
     "Programming Languages"
   ],
+  "activationEvents": [],
+  "main": "./out/extension.js",
   "contributes": {
     "languages": [
       {
@@ -32,5 +35,21 @@
         "path": "./syntaxes/neuroscript.tmLanguage.json"
       }
     ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Andrew Price & Gemini",
+  "license": "MIT",
+  "dependencies": {
+    "vscode-languageclient": "^7.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^18.19.103",
+    "@types/vscode": "^1.100.0",
+    "typescript": "^4.9.5"
   }
 }

@@ -70,6 +70,8 @@ require (
 	github.com/pmezard/go-difflib v1.0.0
 	github.com/rivo/tview v0.0.0-20250501113434-0c592cd31026
 	github.com/sergi/go-diff v1.3.1
+	github.com/sourcegraph/go-lsp v0.0.0-20240223163137-f80c5dd31dfd
+	github.com/sourcegraph/jsonrpc2 v0.2.1
 	golang.org/x/mod v0.24.0
 	golang.org/x/tools v0.32.0
 	google.golang.org/api v0.229.0

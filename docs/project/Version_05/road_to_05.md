@@ -246,6 +246,8 @@
  - [ ] Matrix tools @lang_features @unprioritized
  - [ ] Named arguments @lang_features @unprioritized
  - [ ] Default arguments @lang_features @unprioritized
+ - [ ] Line continuation etc. @lang_features @unprioritized
+
 
 
  :: title: NeuroScript Road to v0.5.0 Checklist

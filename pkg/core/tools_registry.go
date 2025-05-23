@@ -1,5 +1,5 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.0.6 // Rename ToolRegistry struct to toolRegistryImpl
+// File version: 0.0.6 // Rename ToolRegistry struct to ToolRegistryImpl
 // nlines: 96
 // risk_rating: MEDIUM
 // filename: pkg/core/tools_registry.go
@@ -25,18 +25,18 @@ func AddToolImplementations(impls ...ToolImplementation) {
 	globalToolImplementations = append(globalToolImplementations, impls...)
 }
 
-// toolRegistryImpl manages the available tools for an Interpreter instance.
+// ToolRegistryImpl manages the available tools for an Interpreter instance.
 // This is the concrete struct implementation. The ToolRegistry interface is in tools_types.go.
-type toolRegistryImpl struct {
+type ToolRegistryImpl struct {
 	tools       map[string]ToolImplementation
 	interpreter *Interpreter // Reference back to the interpreter
 	mu          sync.RWMutex
 }
 
-// NewToolRegistry creates a new registry (toolRegistryImpl instance) associated with an interpreter.
+// NewToolRegistry creates a new registry (ToolRegistryImpl instance) associated with an interpreter.
 // It processes the globalToolImplementations collected during init phases.
-func NewToolRegistry(interpreter *Interpreter) *toolRegistryImpl { // Returns the concrete type
-	r := &toolRegistryImpl{
+func NewToolRegistry(interpreter *Interpreter) *ToolRegistryImpl { // Returns the concrete type
+	r := &ToolRegistryImpl{
 		tools:       make(map[string]ToolImplementation),
 		interpreter: interpreter,
 	}
@@ -60,31 +60,31 @@ func NewToolRegistry(interpreter *Interpreter) *toolRegistryImpl { // Returns th
 }
 
 // RegisterTool adds or updates a tool in the registry.
-func (r *toolRegistryImpl) RegisterTool(impl ToolImplementation) error {
+func (r *ToolRegistryImpl) RegisterTool(impl ToolImplementation) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	if impl.Spec.Name == "" {
 		err := fmt.Errorf("attempted to register tool with empty name")
 		if r.interpreter != nil && r.interpreter.logger != nil {
-			r.interpreter.logger.Error("[toolRegistryImpl] Registration failed", "error", err.Error())
+			r.interpreter.logger.Error("[ToolRegistryImpl] Registration failed", "error", err.Error())
 		} else {
-			log.Printf("[ERROR] toolRegistryImpl: Registration failed: %v\n", err)
+			log.Printf("[ERROR] ToolRegistryImpl: Registration failed: %v\n", err)
 		}
 		return err
 	}
 	if impl.Func == nil {
 		err := fmt.Errorf("attempted to register tool '%s' with nil function", impl.Spec.Name)
 		if r.interpreter != nil && r.interpreter.logger != nil {
-			r.interpreter.logger.Error("[toolRegistryImpl] Registration failed", "tool_name", impl.Spec.Name, "error", err.Error())
+			r.interpreter.logger.Error("[ToolRegistryImpl] Registration failed", "tool_name", impl.Spec.Name, "error", err.Error())
 		} else {
-			log.Printf("[ERROR] toolRegistryImpl: Registration failed for tool '%s': %v\n", impl.Spec.Name, err)
+			log.Printf("[ERROR] ToolRegistryImpl: Registration failed for tool '%s': %v\n", impl.Spec.Name, err)
 		}
 		return err
 	}
 
 	if _, exists := r.tools[impl.Spec.Name]; exists {
-		logMsg := fmt.Sprintf("toolRegistryImpl: Attempted to re-register tool '%s'. First registration wins.", impl.Spec.Name)
+		logMsg := fmt.Sprintf("ToolRegistryImpl: Attempted to re-register tool '%s'. First registration wins.", impl.Spec.Name)
 		if r.interpreter != nil && r.interpreter.logger != nil {
 			r.interpreter.logger.Warn(logMsg)
 		} else {
@@ -98,7 +98,7 @@ func (r *toolRegistryImpl) RegisterTool(impl ToolImplementation) error {
 }
 
 // GetTool retrieves a tool implementation by name.
-func (r *toolRegistryImpl) GetTool(name string) (ToolImplementation, bool) {
+func (r *ToolRegistryImpl) GetTool(name string) (ToolImplementation, bool) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	tool, found := r.tools[name]
@@ -106,7 +106,7 @@ func (r *toolRegistryImpl) GetTool(name string) (ToolImplementation, bool) {
 }
 
 // ListTools returns a list of specifications for all registered tools.
-func (r *toolRegistryImpl) ListTools() []ToolSpec {
+func (r *ToolRegistryImpl) ListTools() []ToolSpec {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	list := make([]ToolSpec, 0, len(r.tools))

@@ -53,7 +53,7 @@ func RegisterCoreTools(registry ToolRegistry) error {
 	//     logger.Debug("RegisterCoreTools: Explicit core tool registration phase complete.")
 	// }
 	// For now, this specific logging is removed as the interface doesn't expose the logger directly.
-	// The creation of the toolRegistryImpl within NewInterpreter already logs.
+	// The creation of the ToolRegistryImpl within NewInterpreter already logs.
 
 	return nil
 }

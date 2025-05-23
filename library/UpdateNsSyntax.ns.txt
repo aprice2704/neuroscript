@@ -42,7 +42,7 @@ func UpdateNsSyntax(needs directory_path, worker_definition_name returns status_
 
     if is_dir == true
       emit "Entering subdirectory: " + current_file_path
-      call UpdateNsSyntax(needs=current_file_path, worker_definition_name=worker_definition_name)
+      call UpdateNsSyntax(current_file_path, worker_definition_name)
       continue
     endif
 
@@ -76,12 +76,7 @@ func UpdateNsSyntax(needs directory_path, worker_definition_name returns status_
     endif
 
     emit "Asking AI Worker '" + worker_definition_name + "' to refactor: " + current_file_path
-    set ai_result_map = tool.AIWorkerExecuteStateless(
-      definition_name_or_id = worker_definition_name,
-      prompt = refactor_prompt,
-      input_content = original_code,
-      params_json_or_map = {}
-    )
+    set ai_result_map = tool.AIWorkerExecuteStateless(worker_definition_name,refactor_prompt, original_code, {}  )
 
     must ai_result_map != nil
 

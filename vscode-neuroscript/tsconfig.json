@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "module": "commonjs", // Standard for VS Code extensions
+    "target": "ES2020",   // Or a more recent ECMAScript target if preferred
+    "outDir": "out",      // Where to put compiled JavaScript files
+    "rootDir": "src",     // Where your TypeScript source files are
+    "sourceMap": true,    // Generate source maps for easier debugging
+    "strict": true,       // Enable all strict type-checking options (recommended)
+    "lib": [ "ES2020" ],
+    "esModuleInterop": true,
+    "skipLibCheck": true, // Speeds up compilation by not type-checking all .d.ts files
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": [
+    "src/**/*.ts" // Only compile .ts files in the src directory
+  ],
+  "exclude": [
+    "node_modules",
+    ".vscode-test"
+  ]
+}

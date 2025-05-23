@@ -33,7 +33,7 @@ type Interpreter struct {
 	LibPaths        []string
 	stdout          io.Writer // For EMIT statements, defaults to os.Stdout
 
-	toolRegistry    *toolRegistryImpl
+	toolRegistry    *ToolRegistryImpl
 	logger          logging.Logger
 	objectCache     map[string]interface{}
 	llmClient       LLMClient
@@ -296,16 +296,16 @@ func (i *Interpreter) SetSandboxDir(newSandboxDir string) error {
 	return nil
 }
 
-func (i *Interpreter) SetInternalToolRegistry(registry *toolRegistryImpl) {
+func (i *Interpreter) SetInternalToolRegistry(registry *ToolRegistryImpl) {
 	if registry == nil {
-		i.logger.Error("Attempted to set a nil internal toolRegistryImpl. Ignoring.")
+		i.logger.Error("Attempted to set a nil internal ToolRegistryImpl. Ignoring.")
 		return
 	}
 	if registry.interpreter != i {
-		i.logger.Warn("Setting internal toolRegistryImpl that points to a different interpreter. Re-assigning its interpreter pointer.")
+		i.logger.Warn("Setting internal ToolRegistryImpl that points to a different interpreter. Re-assigning its interpreter pointer.")
 		registry.interpreter = i
 	}
-	i.logger.Debug("Replacing interpreter's internal toolRegistryImpl.")
+	i.logger.Debug("Replacing interpreter's internal ToolRegistryImpl.")
 	i.toolRegistry = registry
 }
 
@@ -331,9 +331,9 @@ func (i *Interpreter) GetVariable(name string) (interface{}, bool) {
 	return val, exists
 }
 
-func (i *Interpreter) InternalToolRegistry() *toolRegistryImpl {
+func (i *Interpreter) InternalToolRegistry() *ToolRegistryImpl {
 	if i.toolRegistry == nil {
-		i.Logger().Error("InternalToolRegistry (*toolRegistryImpl) accessed but is nil!")
+		i.Logger().Error("InternalToolRegistry (*ToolRegistryImpl) accessed but is nil!")
 		panic("FATAL: Interpreter's internal toolRegistry field is nil")
 	}
 	return i.toolRegistry
