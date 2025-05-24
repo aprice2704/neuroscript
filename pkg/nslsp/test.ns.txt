@@ -1,0 +1,8 @@
+func MyProcedure() means
+  set x = tool.ListFiles("/some/path") 
+  set y = AnotherTool()
+  set z = sin(1.0)
+  set path = tool.FSRootPath() 
+  set val = MyFunc()
+  set p = tool.ns.sub.FinalTool()
+endfunc

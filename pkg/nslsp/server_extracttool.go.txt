@@ -1,0 +1,39 @@
+// NeuroScript Version: 0.3.1
+// File version: 0.1.27 // Simplified positionVisitor; initial node finding now manual.
+// Purpose: Extracts a potential tool name from NeuroScript content at a given LSP position using AST analysis.
+// filename: pkg/nslsp/server_extracttool.go
+
+package nslsp
+
+import (
+	"log"
+
+	"github.com/antlr4-go/antlr/v4"
+	// gen "github.com/aprice2704/neuroscript/pkg/core/generated" // No longer needed for BaseNeuroScriptVisitor
+)
+
+const serverExtractToolFileVersion = "0.1.35" // Updated version
+
+type positionVisitor struct {
+	TargetLine    int
+	TargetChar    int
+	Logger        *log.Logger
+	FoundToolName string
+	foundNode     antlr.TerminalNode
+	isDebug       bool
+}
+
+func newPositionVisitor(line, char int, logger *log.Logger, isDebug bool) *positionVisitor {
+	return &positionVisitor{
+		TargetLine: line,
+		TargetChar: char,
+		Logger:     logger,
+		isDebug:    isDebug,
+	}
+}
+
+func (v *positionVisitor) debugf(format string, args ...interface{}) {
+	if v.isDebug && v.Logger != nil {
+		v.Logger.Printf(format, args...)
+	}
+}

@@ -27,3 +27,5 @@ cmd/neurogo/neurogo
 cmd/nspatch/nspatch
 cmd/block_printer/block_printer
 library/combined.log.txt
+cmd/nslsp/nslsp_executable
+vscode-neuroscript/server/nslsp_executable

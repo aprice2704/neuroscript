@@ -1,5 +1,5 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.2.5 // Corrected jsonrpc2.ID checks and LSP hover types to use MarkedString.
+// File version: 0.2.6 // Fixed undefined lsp.LanguageSpecificMarkedString by using lsp.MarkedString.
 // Purpose: Implements the main LSP server handler, routing requests, managing state,
 //          providing diagnostics, and initial tool signature hover support.
 // filename: pkg/nslsp/server.go
@@ -20,9 +20,6 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/logging"
 	lsp "github.com/sourcegraph/go-lsp"
 	"github.com/sourcegraph/jsonrpc2"
-
-	"github.com/antlr4-go/antlr/v4"
-	gen "github.com/aprice2704/neuroscript/pkg/core/generated"
 )
 
 type Server struct {
@@ -227,62 +224,12 @@ func (s *Server) handleTextDocumentHover(ctx context.Context, conn *jsonrpc2.Con
 	hoverContent.WriteString(fmt.Sprintf("\n**Returns:** `%s`\n", spec.ReturnType))
 
 	// Corrected Hover Contents for sourcegraph/go-lsp
-	// It expects []lsp.MarkedString where MarkedString can be a string or LanguageSpecificMarkedString
+	// It expects []lsp.MarkedString where MarkedString can be a string or an object {Language: string, Value: string}
 	return &lsp.Hover{ // Return a pointer to Hover
 		Contents: []lsp.MarkedString{
-			lsp.LanguageSpecificMarkedString{Language: "markdown", Value: hoverContent.String()},
+			{Language: "markdown", Value: hoverContent.String()}, // Corrected line
 		},
 	}, nil
-}
-
-// extractToolNameAtPosition is a placeholder.
-// Robust implementation requires parsing the content into an AST and finding the
-// specific AST node (e.g., a callable_expr that is a tool call) at the given position.
-func (s *Server) extractToolNameAtPosition(content string, position lsp.Position, sourceName string) string {
-	lines := strings.Split(content, "\n")
-	if position.Line < 0 || position.Line >= len(lines) {
-		return ""
-	}
-
-	tree, errors := s.coreParserAPI.ParseForLSP(sourceName, content)
-	if len(errors) > 0 && tree == nil {
-		s.logger.Printf("DEBUG: extractToolName: Could not parse content for hover/signature help due to %d errors", len(errors))
-		return ""
-	}
-	if tree == nil {
-		s.logger.Printf("DEBUG: extractToolName: AST is nil, cannot determine tool name.")
-		return ""
-	}
-
-	inputStream := antlr.NewInputStream(content)
-	lexer := gen.NewNeuroScriptLexer(inputStream)
-	tokenStream := antlr.NewCommonTokenStream(lexer, antlr.TokenDefaultChannel)
-	tokenStream.Fill()
-	tokens := tokenStream.GetAllTokens()
-
-	var targetToken antlr.Token
-	for _, t := range tokens {
-		tokenLine0Based := t.GetLine() - 1
-		tokenStartCol0Based := t.GetColumn()
-		tokenEndCol0Based := tokenStartCol0Based + len(t.GetText())
-
-		if tokenLine0Based == position.Line &&
-			position.Character >= tokenStartCol0Based &&
-			position.Character < tokenEndCol0Based {
-			targetToken = t
-			break
-		}
-	}
-
-	if targetToken == nil {
-		return ""
-	}
-
-	if targetToken.GetTokenType() == gen.NeuroScriptLexerIDENTIFIER {
-		s.logger.Printf("WARN: extractToolNameAtPosition is using simplified token analysis. AST traversal is needed for robust tool name identification for hover.")
-	}
-
-	return ""
 }
 
 func UnmarshalParams(rawParams *json.RawMessage, v interface{}) error {

@@ -1,0 +1,12 @@
+func main() means
+    set listResult = tool.Meta.ListTools()
+    emit "Compact Tool List:"
+    emit listResult
+    emit ```
+    --------------------
+    ```
+
+    set helpResult = tool.Meta.ToolsHelp()
+    emit "Detailed Tool Help (Markdown):"
+    emit helpResult
+endfunc
