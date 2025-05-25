@@ -1,7 +1,8 @@
-// NeuroScript Version: 0.3.0
-// File version: 0.1.0
+// NeuroScript Version: 0.3.1
+// File version: 0.1.1 // Populated Category, Example, ReturnHelp, ErrorConditions for ToolSpecs.
 // AI Worker Management: Performance and Logging Tools
 // filename: pkg/core/ai_wm_tools_performance.go
+// nlines: 130 // Approximate
 
 package core
 
@@ -12,16 +13,27 @@ import (
 )
 
 var specAIWorkerLogPerformance = ToolSpec{
-	Name: "AIWorker.LogPerformance", Description: "Logs a performance record for an AI Worker task.",
+	Name:        "AIWorker.LogPerformance",
+	Description: "Logs a performance record for an AI Worker task.",
+	Category:    "AI Worker Management",
 	Args: []ArgSpec{
-		{Name: "task_id", Type: ArgTypeString, Required: true}, {Name: "instance_id", Type: ArgTypeString, Required: true},
-		{Name: "definition_id", Type: ArgTypeString, Required: true}, {Name: "timestamp_start", Type: ArgTypeString, Required: true},
-		{Name: "timestamp_end", Type: ArgTypeString, Required: true}, {Name: "duration_ms", Type: ArgTypeInt, Required: true},
-		{Name: "success", Type: ArgTypeBool, Required: true}, {Name: "input_context", Type: ArgTypeMap, Required: false},
-		{Name: "llm_metrics", Type: ArgTypeMap, Required: false}, {Name: "cost_incurred", Type: ArgTypeFloat, Required: false},
-		{Name: "output_summary", Type: ArgTypeString, Required: false}, {Name: "error_details", Type: ArgTypeString, Required: false},
+		{Name: "task_id", Type: ArgTypeString, Required: true, Description: "Unique ID for the task."},
+		{Name: "instance_id", Type: ArgTypeString, Required: true, Description: "ID of the AIWorkerInstance used."},
+		{Name: "definition_id", Type: ArgTypeString, Required: true, Description: "ID of the AIWorkerDefinition used."},
+		{Name: "timestamp_start", Type: ArgTypeString, Required: true, Description: "Start timestamp (RFC3339Nano or RFC3339 format)."},
+		{Name: "timestamp_end", Type: ArgTypeString, Required: true, Description: "End timestamp (RFC3339Nano or RFC3339 format)."},
+		{Name: "duration_ms", Type: ArgTypeInt, Required: true, Description: "Task duration in milliseconds."},
+		{Name: "success", Type: ArgTypeBool, Required: true, Description: "Whether the task was successful."},
+		{Name: "input_context", Type: ArgTypeMap, Required: false, Description: "Optional map of input context details."},
+		{Name: "llm_metrics", Type: ArgTypeMap, Required: false, Description: "Optional map of LLM-specific metrics (e.g., token counts, finish reason)."},
+		{Name: "cost_incurred", Type: ArgTypeFloat, Required: false, Description: "Optional cost incurred for this task."},
+		{Name: "output_summary", Type: ArgTypeString, Required: false, Description: "Optional summary of the task output."},
+		{Name: "error_details", Type: ArgTypeString, Required: false, Description: "Optional error details if success is false."},
 	},
-	ReturnType: ArgTypeString, // Returns TaskID
+	ReturnType:      ArgTypeString,
+	ReturnHelp:      "Returns the TaskID string of the logged performance record.",
+	Example:         `TOOL.AIWorker.LogPerformance(task_id: "task_abc", instance_id: "inst_123", definition_id: "def_xyz", timestamp_start: "2023-10-27T10:00:00.000Z", timestamp_end: "2023-10-27T10:00:05.123Z", duration_ms: 5123, success: true, llm_metrics: {"input_tokens":10, "output_tokens":50})`,
+	ErrorConditions: "ErrAIWorkerManagerMissing; ErrInvalidArgument if required arguments are missing/invalid type (e.g., timestamp format, duration_ms not int); Errors from AIWorkerManager.logPerformanceRecordUnsafe or persistDefinitionsUnsafe (e.g., file I/O for persistence).",
 }
 
 var toolAIWorkerLogPerformance = ToolImplementation{
@@ -96,12 +108,17 @@ var toolAIWorkerLogPerformance = ToolImplementation{
 }
 
 var specAIWorkerGetPerformanceRecords = ToolSpec{
-	Name: "AIWorker.GetPerformanceRecords", Description: "Retrieves persisted performance records for a specific AI Worker Definition.",
+	Name:        "AIWorker.GetPerformanceRecords",
+	Description: "Retrieves persisted performance records for a specific AI Worker Definition.",
+	Category:    "AI Worker Management",
 	Args: []ArgSpec{
-		{Name: "definition_id", Type: ArgTypeString, Required: true},
-		{Name: "filters", Type: ArgTypeMap, Required: false},
+		{Name: "definition_id", Type: ArgTypeString, Required: true, Description: "ID of the AIWorkerDefinition for which to retrieve records."},
+		{Name: "filters", Type: ArgTypeMap, Required: false, Description: "Optional map of filters to apply to the records (e.g., {'success':true})."},
 	},
-	ReturnType: ArgTypeSliceMap,
+	ReturnType:      ArgTypeSliceMap,
+	ReturnHelp:      "Returns a slice of maps, where each map represents a PerformanceRecord. Returns an empty slice if no records match or exist.",
+	Example:         `TOOL.AIWorker.GetPerformanceRecords(definition_id: "google-gemini-1.5-pro", filters: {"success":true})`,
+	ErrorConditions: "ErrAIWorkerManagerMissing; ErrInvalidArgument for missing/invalid args; Errors from AIWorkerManager.GetPerformanceRecordsForDefinition (e.g., file I/O for persistence, JSON parsing errors).",
 }
 
 var toolAIWorkerGetPerformanceRecords = ToolImplementation{

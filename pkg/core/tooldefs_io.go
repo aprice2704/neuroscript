@@ -1,42 +1,52 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.0.1 // Defines IO tools registration variable.
-// nlines: 31
-// risk_rating: LOW
+// File version: 0.0.5 // Updated to reflect user-provided tools_io.go:
+//                      // - Kept Print tool, updated spec.
+//                      // - Mapped Prompt tool to toolInput, updated spec.
+//                      // - Removed Error and Log tools as implementations are not in provided tools_io.go.
+// Defines ToolImplementation structs for basic I/O tools.
 // filename: pkg/core/tooldefs_io.go
+// nlines: 70 // Approximate
+// risk_rating: LOW // Primarily deals with standard I/O.
 
 package core
 
-// ioToolsToRegister defines the ToolImplementation structs for core I/O tools.
-// This variable is used by zz_core_tools_registrar.go to register the tools.
+// ioToolsToRegister contains ToolImplementation definitions for basic I/O tools.
+// Based on the provided pkg/core/tools_io.go.
 var ioToolsToRegister = []ToolImplementation{
 	{
 		Spec: ToolSpec{
-			Name:        "Input",
-			Description: "Reads a single line of text from standard input.",
+			Name:        "Print",
+			Description: "Prints values to the standard output. If multiple values are passed in a list, they are printed space-separated.",
+			Category:    "Input/Output",
 			Args: []ArgSpec{
-				{
-					Name:        "prompt",
-					Type:        ArgTypeString,
-					Description: "Optional prompt message to display to the user.",
-					Required:    false,
-				},
+				// The toolPrint implementation takes a single arg, which can be a slice.
+				// The NeuroScript 'Print' tool can be variadic, and the interpreter
+				// would typically package these into a slice for the 'values' argument.
+				{Name: "values", Type: ArgTypeAny, Required: true, Description: "A single value or a list of values to print. List elements will be space-separated."},
 			},
-			ReturnType: ArgTypeString, // Returns the line read from input
+			ReturnType:      ArgTypeNil,
+			Variadic:        true, // NeuroScript engine should pack variadic arguments into the 'values' slice.
+			ReturnHelp:      "Returns nil. This tool is used for its side effect of printing to standard output.",
+			Example:         `TOOL.Print(value: "Hello World")\nTOOL.Print(values: ["Hello", 42, "World!"]) // Prints "Hello 42 World!"`,
+			ErrorConditions: "ErrArgumentMismatch if the internal 'values' argument is not provided as expected by the implementation.",
 		},
-		Func: toolInput, // Assumes toolInput is defined in tools_io.go
+		Func: toolPrint, //
 	},
 	{
 		Spec: ToolSpec{
-			Name:        "Print",
-			Description: "Prints the provided arguments to standard output, separated by spaces, followed by a newline.",
+			Name:        "Prompt", // Was "Prompt", now implemented by toolInput
+			Description: "Displays a message and waits for user input from standard input. Returns the input as a string.",
+			Category:    "Input/Output",
 			Args: []ArgSpec{
-				// Note: Uses VariadicArgs field in the underlying implementation if available,
-				// otherwise Args needs to handle different types or expect a list.
-				// Keeping Args simple here, toolPrint needs to handle variadic nature.
-				{Name: "values", Type: ArgTypeAny, Required: true, Description: "One or more values to print."},
+				{Name: "message", Type: ArgTypeString, Required: false, Description: "The message to display to the user before waiting for input. If null or empty, no prompt message is printed."},
 			},
-			ReturnType: ArgTypeNil, // Print has no return value
+			ReturnType:      ArgTypeString,
+			ReturnHelp:      "Returns the string entered by the user, with trailing newline characters trimmed. Returns an empty string and an error if reading input fails.",
+			Example:         `userName = TOOL.Prompt(message: "Enter your name: ")`,
+			ErrorConditions: "ErrorCodeType if the prompt message argument is provided but not a string; ErrorCodeIOFailed if reading from standard input fails (e.g., EOF).",
 		},
-		Func: toolPrint, // Assumes toolPrint is defined in tools_io.go
+		Func: toolInput, // Mapped to toolInput from user-provided tools_io.go
 	},
+	// Removed "Error" tool as toolPrintError is not in the provided tools_io.go
+	// Removed "Log" tool as toolLogMessage is not in the provided tools_io.go
 }

@@ -6,8 +6,11 @@
 package core
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"os"
+	"os/exec"
 	"strings"
 	// "os/exec" // toolExec likely handles this
 	// "bytes" // toolExec likely handles this
@@ -497,4 +500,69 @@ func toolGitDiff(interpreter *Interpreter, args []interface{}) (interface{}, err
 
 	interpreter.logger.Debug("[Tool: GitDiff] Success. Changes detected.")
 	return output, nil
+}
+
+// toolGitClone clones a Git repository into the specified relative path within the sandbox.
+func toolGitClone(interpreter *Interpreter, args []interface{}) (interface{}, error) {
+	if len(args) != 2 {
+		return nil, NewRuntimeError(ErrorCodeArgMismatch, "Git.Clone: expected 2 arguments (repository_url, relative_path)", ErrArgumentMismatch)
+	}
+
+	repositoryURL, okURL := args[0].(string)
+	if !okURL || repositoryURL == "" {
+		return nil, NewRuntimeError(ErrorCodeArgMismatch, "Git.Clone: repository_url (string) is required and cannot be empty", ErrInvalidArgument)
+	}
+
+	relativePath, okPath := args[1].(string)
+	if !okPath || relativePath == "" {
+		return nil, NewRuntimeError(ErrorCodeArgMismatch, "Git.Clone: relative_path (string) is required and cannot be empty", ErrInvalidArgument)
+	}
+
+	sandboxRoot := interpreter.SandboxDir()
+	if sandboxRoot == "" {
+		interpreter.Logger().Error("Tool: Git.Clone] Interpreter sandboxDir is empty, cannot proceed.")
+		return nil, NewRuntimeError(ErrorCodeConfiguration, "Git.Clone: interpreter sandbox directory is not set", ErrConfiguration)
+	}
+
+	// Secure the target path within the sandbox
+	absTargetPath, secErr := SecureFilePath(relativePath, sandboxRoot)
+	if secErr != nil {
+		interpreter.Logger().Warn("Tool: Git.Clone] Path validation failed for relative_path", "relative_path", relativePath, "error", secErr)
+		return nil, secErr // secErr is already a RuntimeError
+	}
+
+	// Check if the target path already exists
+	if _, err := os.Stat(absTargetPath); err == nil {
+		errMsg := fmt.Sprintf("Git.Clone: target path '%s' already exists", relativePath)
+		interpreter.Logger().Warn("Tool: Git.Clone]", "message", errMsg, "absolute_path", absTargetPath)
+		return nil, NewRuntimeError(ErrorCodePathExists, errMsg, ErrPathExists)
+	} else if !os.IsNotExist(err) {
+		// Some other error occurred trying to stat the path
+		errMsg := fmt.Sprintf("Git.Clone: error checking target path '%s'", relativePath)
+		interpreter.Logger().Error("Tool: Git.Clone]", "message", errMsg, "absolute_path", absTargetPath, "error", err)
+		return nil, NewRuntimeError(ErrorCodeIOFailed, errMsg, errors.Join(ErrIOFailed, err))
+	}
+
+	interpreter.Logger().Debug("Tool: Git.Clone] Attempting to clone", "url", repositoryURL, "target_path", absTargetPath)
+
+	cmd := exec.Command("git", "clone", repositoryURL, absTargetPath)
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+
+	err := cmd.Run()
+	if err != nil {
+		errMsg := fmt.Sprintf("Git.Clone: 'git clone' command failed for URL '%s' into '%s'", repositoryURL, relativePath)
+		stderrStr := stderr.String()
+		interpreter.Logger().Error("Tool: Git.Clone] Error executing git clone", "url", repositoryURL, "path", relativePath, "cmd_error", err, "stderr", stderrStr)
+		// Include stderr in the error message if it provides useful info
+		if stderrStr != "" {
+			errMsg = fmt.Sprintf("%s: %s", errMsg, strings.TrimSpace(stderrStr))
+		}
+		// Use existing generic tool execution error codes
+		return nil, NewRuntimeError(ErrorCodeToolExecutionFailed, errMsg, errors.Join(ErrToolExecutionFailed, err))
+	}
+
+	successMsg := fmt.Sprintf("Successfully cloned '%s' to '%s'", repositoryURL, relativePath)
+	interpreter.Logger().Debug("Tool: Git.Clone] Clone successful", "url", repositoryURL, "path", relativePath)
+	return successMsg, nil
 }

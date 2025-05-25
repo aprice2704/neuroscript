@@ -1,7 +1,8 @@
-// NeuroScript Version: 0.3.0
-// File version: 0.1.0
+// NeuroScript Version: 0.3.1
+// File version: 0.1.1 // Populated Category, Example, ReturnHelp, ErrorConditions for ToolSpecs.
 // AI Worker Management: Instance Management Tools
 // filename: pkg/core/ai_wm_tools_instances.go
+// nlines: 230 // Approximate
 
 package core
 
@@ -13,12 +14,18 @@ import (
 )
 
 var specAIWorkerInstanceSpawn = ToolSpec{
-	Name: "AIWorkerInstance.Spawn", Description: "Spawns a new AI Worker Instance and returns its details including a ConversationManager handle.",
+	Name:        "AIWorkerInstance.Spawn",
+	Description: "Spawns a new AI Worker Instance and returns its details including a ConversationManager handle.",
+	Category:    "AI Worker Management",
 	Args: []ArgSpec{
-		{Name: "definition_id", Type: ArgTypeString, Required: true},
-		{Name: "config_overrides", Type: ArgTypeMap, Required: false},
-		{Name: "file_contexts", Type: ArgTypeSliceString, Required: false},
-	}, ReturnType: ArgTypeMap,
+		{Name: "definition_id", Type: ArgTypeString, Required: true, Description: "ID of the AIWorkerDefinition to use for spawning."},
+		{Name: "config_overrides", Type: ArgTypeMap, Required: false, Description: "Optional map of configuration overrides for this instance."},
+		{Name: "file_contexts", Type: ArgTypeSliceString, Required: false, Description: "Optional list of file context URIs for this instance."},
+	},
+	ReturnType:      ArgTypeMap,
+	ReturnHelp:      "Returns a map representing the spawned AIWorkerInstance, including a 'conversation_manager_handle' string. Returns nil on error.",
+	Example:         `TOOL.AIWorkerInstance.Spawn(definition_id: "google-gemini-1.5-pro", config_overrides: {"temperature":0.8})`,
+	ErrorConditions: "ErrAIWorkerManagerMissing; ErrInvalidArgument if validation fails for definition_id, config_overrides, or file_contexts; Errors from AIWorkerManager.SpawnWorkerInstance (e.g., ErrDefinitionNotFound, rate limit errors); ErrInternal if SpawnWorkerInstance returns nil instance without error; Errors related to interpreter.RegisterHandle if ConversationManager handle registration fails.",
 }
 
 var toolAIWorkerInstanceSpawn = ToolImplementation{
@@ -72,10 +79,14 @@ var toolAIWorkerInstanceSpawn = ToolImplementation{
 }
 
 var specAIWorkerInstanceGet = ToolSpec{
-	Name:        "AIWorkerInstance.Get",
-	Description: "Retrieves an active AI Worker Instance's details by its ID.",
-	Args:        []ArgSpec{{Name: "instance_id", Type: ArgTypeString, Required: true}},
-	ReturnType:  ArgTypeMap,
+	Name:            "AIWorkerInstance.Get",
+	Description:     "Retrieves an active AI Worker Instance's details by its ID.",
+	Category:        "AI Worker Management",
+	Args:            []ArgSpec{{Name: "instance_id", Type: ArgTypeString, Required: true, Description: "The unique ID of the active instance to retrieve."}},
+	ReturnType:      ArgTypeMap,
+	ReturnHelp:      "Returns a map representing the AIWorkerInstance. Returns nil if not found or on error.",
+	Example:         `TOOL.AIWorkerInstance.Get(instance_id: "instance_uuid_123")`,
+	ErrorConditions: "ErrAIWorkerManagerMissing; ErrInvalidArgument if instance_id is missing or not a string; ErrInstanceNotFound if instance with ID does not exist or is not active.",
 }
 
 var toolAIWorkerInstanceGet = ToolImplementation{
@@ -100,10 +111,14 @@ var toolAIWorkerInstanceGet = ToolImplementation{
 }
 
 var specAIWorkerInstanceListActive = ToolSpec{
-	Name:        "AIWorkerInstance.ListActive",
-	Description: "Lists currently active AI Worker Instances, optionally filtered.",
-	Args:        []ArgSpec{{Name: "filters", Type: ArgTypeMap, Required: false}},
-	ReturnType:  ArgTypeSliceMap,
+	Name:            "AIWorkerInstance.ListActive",
+	Description:     "Lists currently active AI Worker Instances, optionally filtered.",
+	Category:        "AI Worker Management",
+	Args:            []ArgSpec{{Name: "filters", Type: ArgTypeMap, Required: false, Description: "Optional map of filters (e.g., {'definition_id':'google-gemini-1.5-pro'})."}},
+	ReturnType:      ArgTypeSliceMap,
+	ReturnHelp:      "Returns a slice of maps, where each map represents an active AIWorkerInstance. Returns empty slice if no active instances match.",
+	Example:         `TOOL.AIWorkerInstance.ListActive(filters: {"definition_id":"google-gemini-1.5-pro"})`,
+	ErrorConditions: "ErrAIWorkerManagerMissing; ErrInvalidArgument if filters is not a map.",
 }
 
 var toolAIWorkerInstanceListActive = ToolImplementation{
@@ -132,15 +147,19 @@ var toolAIWorkerInstanceListActive = ToolImplementation{
 var specAIWorkerInstanceRetire = ToolSpec{
 	Name:        "AIWorkerInstance.Retire",
 	Description: "Retires an active AI Worker Instance, persisting its final state and performance.",
+	Category:    "AI Worker Management",
 	Args: []ArgSpec{
-		{Name: "instance_id", Type: ArgTypeString, Required: true},
-		{Name: "conversation_manager_handle", Type: ArgTypeString, Required: true},
-		{Name: "reason", Type: ArgTypeString, Required: true},
-		{Name: "final_status", Type: ArgTypeString, Required: true},
-		{Name: "final_session_token_usage", Type: ArgTypeMap, Required: true},
-		{Name: "performance_records", Type: ArgTypeSliceMap, Required: false},
+		{Name: "instance_id", Type: ArgTypeString, Required: true, Description: "ID of the instance to retire."},
+		{Name: "conversation_manager_handle", Type: ArgTypeString, Required: true, Description: "Handle of the associated ConversationManager to be removed."},
+		{Name: "reason", Type: ArgTypeString, Required: true, Description: "Reason for retiring the instance."},
+		{Name: "final_status", Type: ArgTypeString, Required: true, Description: "Final status (e.g., 'completed', 'error', 'cancelled')."},
+		{Name: "final_session_token_usage", Type: ArgTypeMap, Required: true, Description: "Map of final token usage for the session (e.g., {'input_tokens':100, 'output_tokens':200})."},
+		{Name: "performance_records", Type: ArgTypeSliceMap, Required: false, Description: "Optional slice of performance record maps to log before retiring."},
 	},
-	ReturnType: ArgTypeNil,
+	ReturnType:      ArgTypeNil,
+	ReturnHelp:      "Returns nil on successful retirement.",
+	Example:         `TOOL.AIWorkerInstance.Retire(instance_id: "instance_uuid_123", conversation_manager_handle: "conv_handle_abc", reason: "Task completed", final_status: "completed", final_session_token_usage: {"input_tokens":500, "output_tokens":1500})`,
+	ErrorConditions: "ErrAIWorkerManagerMissing; ErrInvalidArgument if required arguments are missing or of incorrect type (e.g., final_session_token_usage not a map); Errors from AIWorkerManager.RetireWorkerInstance (e.g., ErrInstanceNotFound). Failure to remove handle is logged as a warning.",
 }
 
 var toolAIWorkerInstanceRetire = ToolImplementation{
@@ -232,12 +251,18 @@ var toolAIWorkerInstanceRetire = ToolImplementation{
 }
 
 var specAIWorkerInstanceUpdateStatus = ToolSpec{
-	Name: "AIWorkerInstance.UpdateStatus", Description: "Updates the status and optionally the last error of an active AI Worker Instance.",
+	Name:        "AIWorkerInstance.UpdateStatus",
+	Description: "Updates the status and optionally the last error of an active AI Worker Instance.",
+	Category:    "AI Worker Management",
 	Args: []ArgSpec{
-		{Name: "instance_id", Type: ArgTypeString, Required: true},
-		{Name: "status", Type: ArgTypeString, Required: true},
-		{Name: "last_error", Type: ArgTypeString, Required: false},
-	}, ReturnType: ArgTypeNil,
+		{Name: "instance_id", Type: ArgTypeString, Required: true, Description: "ID of the active instance to update."},
+		{Name: "status", Type: ArgTypeString, Required: true, Description: "New status for the instance (e.g., 'processing', 'idle', 'error')."},
+		{Name: "last_error", Type: ArgTypeString, Required: false, Description: "Optional error message if status is 'error'."},
+	},
+	ReturnType:      ArgTypeNil,
+	ReturnHelp:      "Returns nil on successful status update.",
+	Example:         `TOOL.AIWorkerInstance.UpdateStatus(instance_id: "instance_uuid_123", status: "processing")`,
+	ErrorConditions: "ErrAIWorkerManagerMissing; ErrInvalidArgument if required arguments are missing/invalid type; Errors from AIWorkerManager.UpdateInstanceStatus (e.g., ErrInstanceNotFound).",
 }
 
 var toolAIWorkerInstanceUpdateStatus = ToolImplementation{
@@ -266,12 +291,18 @@ var toolAIWorkerInstanceUpdateStatus = ToolImplementation{
 }
 
 var specAIWorkerInstanceUpdateTokenUsage = ToolSpec{
-	Name: "AIWorkerInstance.UpdateTokenUsage", Description: "Updates the session token usage for an active AI Worker Instance.",
+	Name:        "AIWorkerInstance.UpdateTokenUsage",
+	Description: "Updates the session token usage for an active AI Worker Instance.",
+	Category:    "AI Worker Management",
 	Args: []ArgSpec{
-		{Name: "instance_id", Type: ArgTypeString, Required: true},
-		{Name: "input_tokens", Type: ArgTypeInt, Required: true},
-		{Name: "output_tokens", Type: ArgTypeInt, Required: true},
-	}, ReturnType: ArgTypeNil,
+		{Name: "instance_id", Type: ArgTypeString, Required: true, Description: "ID of the active instance."},
+		{Name: "input_tokens", Type: ArgTypeInt, Required: true, Description: "Number of input tokens to add to the session total."},
+		{Name: "output_tokens", Type: ArgTypeInt, Required: true, Description: "Number of output tokens to add to the session total."},
+	},
+	ReturnType:      ArgTypeNil,
+	ReturnHelp:      "Returns nil on successful token usage update.",
+	Example:         `TOOL.AIWorkerInstance.UpdateTokenUsage(instance_id: "instance_uuid_123", input_tokens: 120, output_tokens: 350)`,
+	ErrorConditions: "ErrAIWorkerManagerMissing; ErrInvalidArgument if required arguments are missing/invalid type; Errors from AIWorkerManager.UpdateInstanceSessionTokenUsage (e.g., ErrInstanceNotFound).",
 }
 
 var toolAIWorkerInstanceUpdateTokenUsage = ToolImplementation{

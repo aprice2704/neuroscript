@@ -1,7 +1,8 @@
-// NeuroScript Version: 0.3.0
-// File version: 0.1.0
+// NeuroScript Version: 0.3.1
+// File version: 0.1.1 // Populated Category, Example, ReturnHelp, ErrorConditions for ToolSpecs.
 // AI Worker Management: Definition Management Tools
 // filename: pkg/core/ai_wm_tools_definitions.go
+// nlines: 250 // Approximate
 
 package core
 
@@ -14,16 +15,26 @@ import (
 var specAIWorkerDefinitionAdd = ToolSpec{
 	Name:        "AIWorkerDefinition.Add",
 	Description: "Adds a new AI Worker Definition. Maps (base_config, etc.) are optional.",
+	Category:    "AI Worker Management",
 	Args: []ArgSpec{
-		{Name: "definition_id", Type: ArgTypeString, Required: false}, {Name: "name", Type: ArgTypeString, Required: false},
-		{Name: "provider", Type: ArgTypeString, Required: true}, {Name: "model_name", Type: ArgTypeString, Required: true},
-		{Name: "auth", Type: ArgTypeMap, Required: true}, {Name: "interaction_models", Type: ArgTypeSliceString, Required: false},
-		{Name: "capabilities", Type: ArgTypeSliceString, Required: false}, {Name: "base_config", Type: ArgTypeMap, Required: false},
-		{Name: "cost_metrics", Type: ArgTypeMap, Required: false}, {Name: "rate_limits", Type: ArgTypeMap, Required: false},
-		{Name: "status", Type: ArgTypeString, Required: false}, {Name: "default_file_contexts", Type: ArgTypeSliceString, Required: false},
-		{Name: "metadata", Type: ArgTypeMap, Required: false},
+		{Name: "definition_id", Type: ArgTypeString, Required: false, Description: "Optional unique ID for the definition. Auto-generated if not provided."},
+		{Name: "name", Type: ArgTypeString, Required: false, Description: "Optional human-readable name for the definition."},
+		{Name: "provider", Type: ArgTypeString, Required: true, Description: "The AI provider (e.g., 'google', 'openai')."},
+		{Name: "model_name", Type: ArgTypeString, Required: true, Description: "The specific model name from the provider (e.g., 'gemini-1.5-pro-latest')."},
+		{Name: "auth", Type: ArgTypeMap, Required: true, Description: "Authentication details. Map e.g., {'method':'env', 'value':'GOOGLE_API_KEY'}."},
+		{Name: "interaction_models", Type: ArgTypeSliceString, Required: false, Description: "List of supported interaction models (e.g., 'chat', 'embedding')."},
+		{Name: "capabilities", Type: ArgTypeSliceString, Required: false, Description: "List of capabilities (e.g., 'tools', 'json_mode')."},
+		{Name: "base_config", Type: ArgTypeMap, Required: false, Description: "Base configuration for the model (e.g., temperature, top_p)."},
+		{Name: "cost_metrics", Type: ArgTypeMap, Required: false, Description: "Cost metrics (e.g., {'input_token_cost':0.0001, 'output_token_cost':0.0003})."},
+		{Name: "rate_limits", Type: ArgTypeMap, Required: false, Description: "Rate limit policy (e.g., {'max_requests_per_minute':60})."},
+		{Name: "status", Type: ArgTypeString, Required: false, Description: "Initial status (e.g., 'active', 'disabled'). Defaults to 'active'."},
+		{Name: "default_file_contexts", Type: ArgTypeSliceString, Required: false, Description: "List of default file context URIs."},
+		{Name: "metadata", Type: ArgTypeMap, Required: false, Description: "Arbitrary key-value metadata."},
 	},
-	ReturnType: ArgTypeString,
+	ReturnType:      ArgTypeString,
+	ReturnHelp:      "Returns the unique DefinitionID string of the newly added AI Worker Definition.",
+	Example:         `TOOL.AIWorkerDefinition.Add(provider: "google", model_name: "gemini-1.5-flash", auth: {"method":"env", "value":"MY_API_KEY"}, interaction_models: ["chat"])`,
+	ErrorConditions: "ErrAIWorkerManagerMissing if AI Worker Manager is not found in interpreter; ErrInvalidArgument if argument validation fails (e.g. missing required fields like provider, model_name, auth, or incorrect types); Errors from AIWorkerManager.AddWorkerDefinition (e.g., ErrDuplicateDefinitionID, ErrInvalidDefinition).",
 }
 
 var toolAIWorkerDefinitionAdd = ToolImplementation{
@@ -161,10 +172,14 @@ var toolAIWorkerDefinitionAdd = ToolImplementation{
 }
 
 var specAIWorkerDefinitionGet = ToolSpec{
-	Name:        "AIWorkerDefinition.Get",
-	Description: "Retrieves an AI Worker Definition by its ID.",
-	Args:        []ArgSpec{{Name: "definition_id", Type: ArgTypeString, Required: true}},
-	ReturnType:  ArgTypeMap,
+	Name:            "AIWorkerDefinition.Get",
+	Description:     "Retrieves an AI Worker Definition by its ID.",
+	Category:        "AI Worker Management",
+	Args:            []ArgSpec{{Name: "definition_id", Type: ArgTypeString, Required: true, Description: "The unique ID of the definition to retrieve."}},
+	ReturnType:      ArgTypeMap,
+	ReturnHelp:      "Returns a map representing the AIWorkerDefinition struct. Returns nil if not found or on error.",
+	Example:         `TOOL.AIWorkerDefinition.Get(definition_id: "google-gemini-1.5-pro")`,
+	ErrorConditions: "ErrAIWorkerManagerMissing; ErrInvalidArgument if definition_id is not provided or not a string; ErrDefinitionNotFound if definition with ID does not exist.",
 }
 var toolAIWorkerDefinitionGet = ToolImplementation{
 	Spec: specAIWorkerDefinitionGet,
@@ -189,10 +204,14 @@ var toolAIWorkerDefinitionGet = ToolImplementation{
 }
 
 var specAIWorkerDefinitionList = ToolSpec{
-	Name:        "AIWorkerDefinition.List",
-	Description: "Lists all AI Worker Definitions, optionally filtered.",
-	Args:        []ArgSpec{{Name: "filters", Type: ArgTypeMap, Required: false}},
-	ReturnType:  ArgTypeSliceMap,
+	Name:            "AIWorkerDefinition.List",
+	Description:     "Lists all AI Worker Definitions, optionally filtered.",
+	Category:        "AI Worker Management",
+	Args:            []ArgSpec{{Name: "filters", Type: ArgTypeMap, Required: false, Description: "Optional map of filters (e.g., {'provider':'google', 'status':'active'})."}},
+	ReturnType:      ArgTypeSliceMap,
+	ReturnHelp:      "Returns a slice of maps, where each map represents an AIWorkerDefinition. Returns an empty slice if no definitions match or exist.",
+	Example:         `TOOL.AIWorkerDefinition.List(filters: {"provider":"google"})`,
+	ErrorConditions: "ErrAIWorkerManagerMissing; ErrInvalidArgument if filters is not a map.",
 }
 var toolAIWorkerDefinitionList = ToolImplementation{
 	Spec: specAIWorkerDefinitionList,
@@ -220,11 +239,15 @@ var toolAIWorkerDefinitionList = ToolImplementation{
 var specAIWorkerDefinitionUpdate = ToolSpec{
 	Name:        "AIWorkerDefinition.Update",
 	Description: "Updates fields of an existing AI Worker Definition.",
+	Category:    "AI Worker Management",
 	Args: []ArgSpec{
-		{Name: "definition_id", Type: ArgTypeString, Required: true},
-		{Name: "updates", Type: ArgTypeMap, Required: true},
+		{Name: "definition_id", Type: ArgTypeString, Required: true, Description: "The unique ID of the definition to update."},
+		{Name: "updates", Type: ArgTypeMap, Required: true, Description: "A map of fields to update (e.g., {'status':'disabled', 'metadata':{'key':'new_value'}})."},
 	},
-	ReturnType: ArgTypeNil,
+	ReturnType:      ArgTypeNil,
+	ReturnHelp:      "Returns nil on successful update.",
+	Example:         `TOOL.AIWorkerDefinition.Update(definition_id: "google-gemini-1.5-pro", updates: {"status":"disabled", "cost_metrics":{"input_token_cost":0.00015}})`,
+	ErrorConditions: "ErrAIWorkerManagerMissing; ErrInvalidArgument if definition_id or updates are missing/invalid type; Errors from AIWorkerManager.UpdateWorkerDefinition (e.g., ErrDefinitionNotFound, ErrInvalidDefinitionField).",
 }
 var toolAIWorkerDefinitionUpdate = ToolImplementation{
 	Spec: specAIWorkerDefinitionUpdate,
@@ -250,10 +273,14 @@ var toolAIWorkerDefinitionUpdate = ToolImplementation{
 }
 
 var specAIWorkerDefinitionRemove = ToolSpec{
-	Name:        "AIWorkerDefinition.Remove",
-	Description: "Removes an AI Worker Definition if it has no active instances.",
-	Args:        []ArgSpec{{Name: "definition_id", Type: ArgTypeString, Required: true}},
-	ReturnType:  ArgTypeNil,
+	Name:            "AIWorkerDefinition.Remove",
+	Description:     "Removes an AI Worker Definition if it has no active instances.",
+	Category:        "AI Worker Management",
+	Args:            []ArgSpec{{Name: "definition_id", Type: ArgTypeString, Required: true, Description: "The unique ID of the definition to remove."}},
+	ReturnType:      ArgTypeNil,
+	ReturnHelp:      "Returns nil on successful removal.",
+	Example:         `TOOL.AIWorkerDefinition.Remove(definition_id: "old-unused-definition")`,
+	ErrorConditions: "ErrAIWorkerManagerMissing; ErrInvalidArgument if definition_id is missing or not a string; Errors from AIWorkerManager.RemoveWorkerDefinition (e.g., ErrDefinitionNotFound, ErrDefinitionInUse).",
 }
 var toolAIWorkerDefinitionRemove = ToolImplementation{
 	Spec: specAIWorkerDefinitionRemove,

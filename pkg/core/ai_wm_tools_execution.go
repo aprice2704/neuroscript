@@ -1,7 +1,8 @@
-// NeuroScript Version: 0.3.0
-// File version: 0.1.0
+// NeuroScript Version: 0.3.1
+// File version: 0.1.1 // Populated Category, Example, ReturnHelp, ErrorConditions for ToolSpec.
 // AI Worker Management: Stateless Execution Tool
 // filename: pkg/core/ai_wm_tools_execution.go
+// nlines: 60 // Approximate
 
 package core
 
@@ -12,13 +13,18 @@ import (
 )
 
 var specAIWorkerExecuteStateless = ToolSpec{
-	Name: "AIWorker.ExecuteStatelessTask", Description: "Executes a stateless task using an AI Worker Definition.",
+	Name:        "AIWorker.ExecuteStatelessTask",
+	Description: "Executes a stateless task using an AI Worker Definition.",
+	Category:    "AI Worker Management",
 	Args: []ArgSpec{
-		{Name: "definition_id", Type: ArgTypeString, Required: true},
-		{Name: "prompt", Type: ArgTypeString, Required: true},
-		{Name: "config_overrides", Type: ArgTypeMap, Required: false},
+		{Name: "definition_id", Type: ArgTypeString, Required: true, Description: "ID of the AIWorkerDefinition to use."},
+		{Name: "prompt", Type: ArgTypeString, Required: true, Description: "The prompt/input text for the LLM."},
+		{Name: "config_overrides", Type: ArgTypeMap, Required: false, Description: "Optional map of configuration overrides for this specific execution."},
 	},
-	ReturnType: ArgTypeMap, // Returns map: {"output": string, "taskId": string, "cost": float64}
+	ReturnType:      ArgTypeMap,
+	ReturnHelp:      "Returns a map: {'output': string (LLM response), 'taskId': string, 'cost': float64}. Returns nil on error.",
+	Example:         `TOOL.AIWorker.ExecuteStatelessTask(definition_id: "google-gemini-1.5-flash", prompt: "Translate 'hello' to French.")`,
+	ErrorConditions: "ErrAIWorkerManagerMissing; ErrInvalidArgument for missing/invalid args; ErrConfiguration if interpreter's LLMClient is nil; Errors from AIWorkerManager.ExecuteStatelessTask (e.g., ErrDefinitionNotFound, LLM communication errors, rate limits); ErrInternal if performance record is nil without error.",
 }
 
 var toolAIWorkerExecuteStateless = ToolImplementation{
