@@ -1,12 +1,13 @@
 // NeuroScript Version: 0.3.8
-// File version: 0.1.3 // Further refine nil argument handling for filter in toolToolsHelp
+// File version: 0.1.4 // Added toolGetToolSpecificationsJSON implementation
 // Filename: pkg/core/tools_meta.go
-// nlines: 145 // Approximate
+// nlines: 175 // Approximate
 // risk_rating: MEDIUM
 
 package core
 
 import (
+	"encoding/json" // Added for JSON marshalling
 	"fmt"
 	"sort"
 	"strings"
@@ -47,37 +48,25 @@ func toolListTools(interpreter *Interpreter, args []interface{}) (interface{}, e
 func toolToolsHelp(interpreter *Interpreter, args []interface{}) (interface{}, error) {
 	var filterValue string // Defaults to empty string, meaning "no filter"
 
-	// The 'args' slice is prepared by Interpreter.ExecuteTool based on the ToolSpec.
-	// For an optional argument like 'filter', if not provided in the NeuroScript call,
-	// Interpreter.ExecuteTool will place a `nil` at its position in `args`.
 	if len(args) > 1 {
 		return nil, NewRuntimeError(ErrorCodeArgMismatch, "Meta.ToolsHelp: expects at most 1 argument (filter)", ErrArgumentMismatch)
 	}
 
 	if len(args) == 1 {
-		// An argument was provided for the filter (it's the only argument).
-		// This could be an actual string, or it could be `nil` if the NeuroScript call
-		// was `tool.Meta.ToolsHelp()` and the interpreter inserted `nil` for the optional arg.
 		if args[0] == nil {
 			// Filter argument was explicitly nil (or an omitted optional arg became nil).
-			// Treat as no filter; filterValue remains "".
 		} else {
-			// Argument is not nil, so it must be a string.
 			strVal, ok := args[0].(string)
 			if !ok {
-				// This path is taken if args[0] is not nil AND not a string.
 				return nil, NewRuntimeError(ErrorCodeType,
 					fmt.Sprintf("Meta.ToolsHelp: 'filter' argument must be a string, got %T", args[0]), ErrInvalidArgument)
 			}
 			filterValue = strVal
 		}
 	}
-	// If len(args) == 0 (should not happen if ToolSpec has one optional arg,
-	// as ExecuteTool would likely create a slice of length 1 with nil),
-	// filterValue remains "", which is correct for "no filter".
 
-	displayFilter := filterValue                     // Store original casing for messages
-	normalizedFilter := strings.ToLower(filterValue) // Use for case-insensitive matching
+	displayFilter := filterValue
+	normalizedFilter := strings.ToLower(filterValue)
 
 	registry := interpreter.ToolRegistry()
 	if registry == nil {
@@ -112,20 +101,64 @@ func toolToolsHelp(interpreter *Interpreter, args []interface{}) (interface{}, e
 	for _, spec := range filteredSpecs {
 		mdBuilder.WriteString(fmt.Sprintf("## `tool.%s`\n", spec.Name))
 		mdBuilder.WriteString(fmt.Sprintf("**Description:** %s\n\n", spec.Description))
+		// --- START: Include new fields in ToolsHelp ---
+		if spec.Category != "" {
+			mdBuilder.WriteString(fmt.Sprintf("**Category:** %s\n\n", spec.Category))
+		}
 
 		mdBuilder.WriteString("**Parameters:**\n")
 		if len(spec.Args) > 0 {
-			mdBuilder.WriteString(formatParamsMarkdownForSpec(spec.Args))
+			mdBuilder.WriteString(formatParamsMarkdownForSpec(spec.Args)) // formatParamsMarkdownForSpec already handles DefaultValue if present
 		} else {
 			mdBuilder.WriteString("_None_\n")
 		}
 		mdBuilder.WriteString("\n")
 
-		mdBuilder.WriteString(fmt.Sprintf("**Returns:** (`%s`)\n", spec.ReturnType))
+		mdBuilder.WriteString(fmt.Sprintf("**Returns:** (`%s`) %s\n", spec.ReturnType, spec.ReturnHelp))
+		if spec.Variadic {
+			mdBuilder.WriteString("**Variadic:** Yes\n")
+		}
+		if spec.Example != "" {
+			mdBuilder.WriteString(fmt.Sprintf("\n**Example:**\n```neuroscript\n%s\n```\n", spec.Example))
+		}
+		if spec.ErrorConditions != "" {
+			mdBuilder.WriteString(fmt.Sprintf("\n**Error Conditions:** %s\n", spec.ErrorConditions))
+		}
+		// --- END: Include new fields in ToolsHelp ---
 		mdBuilder.WriteString("---\n\n")
 	}
 
 	return mdBuilder.String(), nil
+}
+
+// toolGetToolSpecificationsJSON provides a JSON string of all available tool specifications.
+// NeuroScript: call Meta.GetToolSpecificationsJSON() -> string
+func toolGetToolSpecificationsJSON(interpreter *Interpreter, args []interface{}) (interface{}, error) {
+	if len(args) != 0 {
+		return nil, NewRuntimeError(ErrorCodeArgMismatch, "Meta.GetToolSpecificationsJSON: expects no arguments", ErrArgumentMismatch)
+	}
+
+	registry := interpreter.ToolRegistry()
+	if registry == nil {
+		return nil, NewRuntimeError(ErrorCodeConfiguration, "Meta.GetToolSpecificationsJSON: ToolRegistry is not available", ErrConfiguration)
+	}
+
+	toolSpecs := registry.ListTools() // This returns []ToolSpec
+
+	// Sort toolSpecs by name for consistent output order in the JSON array.
+	sort.Slice(toolSpecs, func(i, j int) bool {
+		return toolSpecs[i].Name < toolSpecs[j].Name
+	})
+
+	jsonData, err := json.MarshalIndent(toolSpecs, "", "  ") // Using MarshalIndent for readability
+	if err != nil {
+		if interpreter.logger != nil {
+			interpreter.logger.Errorf("Meta.GetToolSpecificationsJSON: Failed to marshal tool specifications to JSON: %v", err)
+		}
+		return "", NewRuntimeError(ErrorCodeInternal, "failed to marshal tool specifications to JSON", err)
+	}
+
+	return string(jsonData), nil
 }
 
 // formatParamsSimpleForSpec formats ArgSpec for toolListTools
@@ -150,7 +183,16 @@ func formatParamsMarkdownForSpec(params []ArgSpec) string {
 	for _, p := range params {
 		requiredStr := ""
 		if !p.Required {
-			requiredStr = "(optional) "
+			requiredStr = "(optional"
+			if p.DefaultValue != nil {
+				// Check if default value is string and needs quoting
+				if _, ok := p.DefaultValue.(string); ok {
+					requiredStr += fmt.Sprintf(", default: \"%v\"", p.DefaultValue)
+				} else {
+					requiredStr += fmt.Sprintf(", default: %v", p.DefaultValue)
+				}
+			}
+			requiredStr += ") "
 		}
 		mdBuilder.WriteString(fmt.Sprintf("* `%s` (`%s`): %s%s\n", p.Name, p.Type, requiredStr, p.Description))
 	}

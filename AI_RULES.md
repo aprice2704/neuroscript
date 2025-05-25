@@ -6,7 +6,7 @@ Follow these **CORE RULES** **very strictly** for all Go code contributions to t
 
 1.  **Understand Context First:** Before coding, review project documentation (especially `.md` files) and existing code to grasp goals and architecture. Remember the `neuroscript` folder dependency.
 2.  **Use the Code Index:**
-    * You should have a `neuroscript_index.json` file. **If not, ask for it.**
+    * You should have a `codebase-indices` directory, full of indices into the code base. **If not, ask for it.**
     * Use this index to find things in the codebase. **DO NOT MAKE ASSUMPTIONS.**
 3.  **Full & Functional Files ALWAYS:**
     * Always provide complete Go files based on latest versions (we have had some issues with stale files)

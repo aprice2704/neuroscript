@@ -1,0 +1,59 @@
+{
+  "projectRootModulePath": "github.com/aprice2704/neuroscript",
+  "indexSchemaVersion": "project_index_v2.0.0",
+  "lastIndexedTimestamp": "2025-05-24T23:19:54-07:00",
+  "components": {
+    "adapters": {
+      "name": "adapters",
+      "path": "pkg/adapters",
+      "indexFile": "adapters_index.json"
+    },
+    "commands": {
+      "name": "commands",
+      "path": "cmd",
+      "indexFile": "commands_index.json"
+    },
+    "core": {
+      "name": "core",
+      "path": "pkg/core",
+      "indexFile": "core_index.json"
+    },
+    "goindex_types": {
+      "name": "goindex_types",
+      "path": "pkg/goindex",
+      "indexFile": "goindex_types_index.json"
+    },
+    "neurodata": {
+      "name": "neurodata",
+      "path": "pkg/neurodata",
+      "indexFile": "neurodata_index.json"
+    },
+    "neurogo": {
+      "name": "neurogo",
+      "path": "pkg/neurogo",
+      "indexFile": "neurogo_index.json"
+    },
+    "nslsp": {
+      "name": "nslsp",
+      "path": "pkg/nslsp",
+      "indexFile": "nslsp_index.json"
+    },
+    "nspatch_pkg": {
+      "name": "nspatch_pkg",
+      "path": "pkg/nspatch",
+      "indexFile": "nspatch_pkg_index.json"
+    },
+    "project_other": {
+      "name": "project_other",
+      "path": ".",
+      "indexFile": "project_other_index.json"
+    },
+    "toolsets": {
+      "name": "toolsets",
+      "path": "pkg/toolsets",
+      "indexFile": "toolsets_index.json"
+    }
+  },
+  "gitBranch": "unknown-branch",
+  "gitCommitHash": "unknown-commit"
+}

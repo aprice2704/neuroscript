@@ -1,0 +1,432 @@
+{
+  "componentName": "adapters",
+  "componentPath": "pkg/adapters",
+  "indexSchemaVersion": "component_index_v2.0.0",
+  "packages": {
+    "github.com/aprice2704/neuroscript/pkg/adapters": {
+      "packagePath": "github.com/aprice2704/neuroscript/pkg/adapters",
+      "packageName": "adapters",
+      "functions": [
+        {
+          "name": "github.com/aprice2704/neuroscript/pkg/adapters.NewNoOpLLMClient",
+          "sourceFile": "noop_llmclient.go",
+          "returns": [
+            "*NoOpLLMClient"
+          ]
+        },
+        {
+          "name": "github.com/aprice2704/neuroscript/pkg/adapters.NewNoOpLogger",
+          "sourceFile": "noop_logger.go",
+          "returns": [
+            "*NoOpLogger"
+          ]
+        },
+        {
+          "name": "github.com/aprice2704/neuroscript/pkg/adapters.NewSimpleSlogAdapter",
+          "sourceFile": "slogadapter.go",
+          "parameters": [
+            {
+              "name": "output",
+              "type": "io.Writer"
+            },
+            {
+              "name": "level",
+              "type": "logging.LogLevel"
+            }
+          ],
+          "returns": [
+            "logging.Logger",
+            "error"
+          ]
+        },
+        {
+          "name": "github.com/aprice2704/neuroscript/pkg/adapters.LogLevelFromString",
+          "sourceFile": "slogadapter.go",
+          "parameters": [
+            {
+              "name": "levelStr",
+              "type": "string"
+            }
+          ],
+          "returns": [
+            "logging.LogLevel",
+            "error"
+          ]
+        }
+      ],
+      "methods": [
+        {
+          "receiverName": "c",
+          "receiverType": "*NoOpLLMClient",
+          "name": "Ask",
+          "sourceFile": "noop_llmclient.go",
+          "parameters": [
+            {
+              "name": "ctx",
+              "type": "context.Context"
+            },
+            {
+              "name": "turns",
+              "type": "[]*core.ConversationTurn"
+            }
+          ],
+          "returns": [
+            "*core.ConversationTurn",
+            "error"
+          ]
+        },
+        {
+          "receiverName": "c",
+          "receiverType": "*NoOpLLMClient",
+          "name": "AskWithTools",
+          "sourceFile": "noop_llmclient.go",
+          "parameters": [
+            {
+              "name": "ctx",
+              "type": "context.Context"
+            },
+            {
+              "name": "turns",
+              "type": "[]*core.ConversationTurn"
+            },
+            {
+              "name": "tools",
+              "type": "[]core.ToolDefinition"
+            }
+          ],
+          "returns": [
+            "*core.ConversationTurn",
+            "[]*core.ToolCall",
+            "error"
+          ]
+        },
+        {
+          "receiverName": "c",
+          "receiverType": "*NoOpLLMClient",
+          "name": "Embed",
+          "sourceFile": "noop_llmclient.go",
+          "parameters": [
+            {
+              "name": "ctx",
+              "type": "context.Context"
+            },
+            {
+              "name": "text",
+              "type": "string"
+            }
+          ],
+          "returns": [
+            "[]float32",
+            "error"
+          ]
+        },
+        {
+          "receiverName": "c",
+          "receiverType": "*NoOpLLMClient",
+          "name": "Client",
+          "sourceFile": "noop_llmclient.go",
+          "returns": [
+            "*genai.Client"
+          ]
+        },
+        {
+          "receiverName": "l",
+          "receiverType": "*NoOpLogger",
+          "name": "Debug",
+          "sourceFile": "noop_logger.go",
+          "parameters": [
+            {
+              "name": "msg",
+              "type": "string"
+            },
+            {
+              "name": "args",
+              "type": "...any"
+            }
+          ]
+        },
+        {
+          "receiverName": "l",
+          "receiverType": "*NoOpLogger",
+          "name": "Info",
+          "sourceFile": "noop_logger.go",
+          "parameters": [
+            {
+              "name": "msg",
+              "type": "string"
+            },
+            {
+              "name": "args",
+              "type": "...any"
+            }
+          ]
+        },
+        {
+          "receiverName": "l",
+          "receiverType": "*NoOpLogger",
+          "name": "Warn",
+          "sourceFile": "noop_logger.go",
+          "parameters": [
+            {
+              "name": "msg",
+              "type": "string"
+            },
+            {
+              "name": "args",
+              "type": "...any"
+            }
+          ]
+        },
+        {
+          "receiverName": "l",
+          "receiverType": "*NoOpLogger",
+          "name": "Error",
+          "sourceFile": "noop_logger.go",
+          "parameters": [
+            {
+              "name": "msg",
+              "type": "string"
+            },
+            {
+              "name": "args",
+              "type": "...any"
+            }
+          ]
+        },
+        {
+          "receiverName": "l",
+          "receiverType": "*NoOpLogger",
+          "name": "Debugf",
+          "sourceFile": "noop_logger.go",
+          "parameters": [
+            {
+              "name": "format",
+              "type": "string"
+            },
+            {
+              "name": "args",
+              "type": "...any"
+            }
+          ]
+        },
+        {
+          "receiverName": "l",
+          "receiverType": "*NoOpLogger",
+          "name": "Infof",
+          "sourceFile": "noop_logger.go",
+          "parameters": [
+            {
+              "name": "format",
+              "type": "string"
+            },
+            {
+              "name": "args",
+              "type": "...any"
+            }
+          ]
+        },
+        {
+          "receiverName": "l",
+          "receiverType": "*NoOpLogger",
+          "name": "Warnf",
+          "sourceFile": "noop_logger.go",
+          "parameters": [
+            {
+              "name": "format",
+              "type": "string"
+            },
+            {
+              "name": "args",
+              "type": "...any"
+            }
+          ]
+        },
+        {
+          "receiverName": "l",
+          "receiverType": "*NoOpLogger",
+          "name": "Errorf",
+          "sourceFile": "noop_logger.go",
+          "parameters": [
+            {
+              "name": "format",
+              "type": "string"
+            },
+            {
+              "name": "args",
+              "type": "...any"
+            }
+          ]
+        },
+        {
+          "receiverName": "a",
+          "receiverType": "*NoOpLogger",
+          "name": "SetLevel",
+          "sourceFile": "noop_logger.go",
+          "parameters": [
+            {
+              "name": "level",
+              "type": "logging.LogLevel"
+            }
+          ]
+        },
+        {
+          "receiverName": "a",
+          "receiverType": "*SlogAdapter",
+          "name": "Debug",
+          "sourceFile": "slogadapter.go",
+          "parameters": [
+            {
+              "name": "msg",
+              "type": "string"
+            },
+            {
+              "name": "args",
+              "type": "...interface{}"
+            }
+          ]
+        },
+        {
+          "receiverName": "a",
+          "receiverType": "*SlogAdapter",
+          "name": "Info",
+          "sourceFile": "slogadapter.go",
+          "parameters": [
+            {
+              "name": "msg",
+              "type": "string"
+            },
+            {
+              "name": "args",
+              "type": "...interface{}"
+            }
+          ]
+        },
+        {
+          "receiverName": "a",
+          "receiverType": "*SlogAdapter",
+          "name": "Warn",
+          "sourceFile": "slogadapter.go",
+          "parameters": [
+            {
+              "name": "msg",
+              "type": "string"
+            },
+            {
+              "name": "args",
+              "type": "...interface{}"
+            }
+          ]
+        },
+        {
+          "receiverName": "a",
+          "receiverType": "*SlogAdapter",
+          "name": "Error",
+          "sourceFile": "slogadapter.go",
+          "parameters": [
+            {
+              "name": "msg",
+              "type": "string"
+            },
+            {
+              "name": "args",
+              "type": "...interface{}"
+            }
+          ]
+        },
+        {
+          "receiverName": "a",
+          "receiverType": "*SlogAdapter",
+          "name": "Debugf",
+          "sourceFile": "slogadapter.go",
+          "parameters": [
+            {
+              "name": "format",
+              "type": "string"
+            },
+            {
+              "name": "v",
+              "type": "...interface{}"
+            }
+          ]
+        },
+        {
+          "receiverName": "a",
+          "receiverType": "*SlogAdapter",
+          "name": "Infof",
+          "sourceFile": "slogadapter.go",
+          "parameters": [
+            {
+              "name": "format",
+              "type": "string"
+            },
+            {
+              "name": "v",
+              "type": "...interface{}"
+            }
+          ]
+        },
+        {
+          "receiverName": "a",
+          "receiverType": "*SlogAdapter",
+          "name": "Warnf",
+          "sourceFile": "slogadapter.go",
+          "parameters": [
+            {
+              "name": "format",
+              "type": "string"
+            },
+            {
+              "name": "v",
+              "type": "...interface{}"
+            }
+          ]
+        },
+        {
+          "receiverName": "a",
+          "receiverType": "*SlogAdapter",
+          "name": "Errorf",
+          "sourceFile": "slogadapter.go",
+          "parameters": [
+            {
+              "name": "format",
+              "type": "string"
+            },
+            {
+              "name": "v",
+              "type": "...interface{}"
+            }
+          ]
+        },
+        {
+          "receiverName": "a",
+          "receiverType": "*SlogAdapter",
+          "name": "SetLevel",
+          "sourceFile": "slogadapter.go",
+          "parameters": [
+            {
+              "name": "level",
+              "type": "logging.LogLevel"
+            }
+          ]
+        }
+      ],
+      "structs": [
+        {
+          "name": "NoOpLLMClient",
+          "sourceFile": "noop_llmclient.go"
+        },
+        {
+          "name": "NoOpLogger",
+          "sourceFile": "noop_logger.go"
+        },
+        {
+          "name": "SlogAdapter",
+          "sourceFile": "slogadapter.go"
+        }
+      ]
+    }
+  },
+  "lastIndexed": "2025-05-24T23:19:55-07:00",
+  "gitBranch": "unknown-branch",
+  "gitCommitHash": "unknown-commit"
+}

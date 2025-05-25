@@ -1,0 +1,67 @@
+{
+  "componentName": "toolsets",
+  "componentPath": "pkg/toolsets",
+  "indexSchemaVersion": "component_index_v2.0.0",
+  "packages": {
+    "github.com/aprice2704/neuroscript/pkg/toolsets": {
+      "packagePath": "github.com/aprice2704/neuroscript/pkg/toolsets",
+      "packageName": "toolsets",
+      "functions": [
+        {
+          "name": "github.com/aprice2704/neuroscript/pkg/toolsets.AddToolsetRegistration",
+          "sourceFile": "register.go",
+          "parameters": [
+            {
+              "name": "name",
+              "type": "string"
+            },
+            {
+              "name": "regFunc",
+              "type": "ToolRegisterFunc"
+            }
+          ]
+        },
+        {
+          "name": "github.com/aprice2704/neuroscript/pkg/toolsets.CreateRegistrationFunc",
+          "sourceFile": "register.go",
+          "parameters": [
+            {
+              "name": "toolsetName",
+              "type": "string"
+            },
+            {
+              "name": "tools",
+              "type": "[]core.ToolImplementation"
+            }
+          ],
+          "returns": [
+            "ToolRegisterFunc"
+          ]
+        },
+        {
+          "name": "github.com/aprice2704/neuroscript/pkg/toolsets.RegisterExtendedTools",
+          "sourceFile": "register.go",
+          "parameters": [
+            {
+              "name": "registry",
+              "type": "core.ToolRegistrar"
+            }
+          ],
+          "returns": [
+            "error"
+          ]
+        }
+      ],
+      "typeAliases": [
+        {
+          "name": "ToolRegisterFunc",
+          "underlyingType": "func(registry core.ToolRegistrar) error",
+          "sourceFile": "register.go"
+        }
+      ]
+    }
+  },
+  "lastIndexed": "2025-05-24T23:19:55-07:00",
+  "gitBranch": "unknown-branch",
+  "gitCommitHash": "unknown-commit"
+}

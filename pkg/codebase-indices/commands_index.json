@@ -1,0 +1,130 @@
+{
+  "componentName": "commands",
+  "componentPath": "cmd",
+  "indexSchemaVersion": "component_index_v2.0.0",
+  "packages": {
+    "github.com/aprice2704/neuroscript/cmd/goindexer": {
+      "packagePath": "github.com/aprice2704/neuroscript/cmd/goindexer",
+      "packageName": "main",
+      "structs": [
+        {
+          "name": "ComponentDefinition",
+          "sourceFile": "main.go",
+          "fields": [
+            {
+              "name": "Name",
+              "type": "string",
+              "exported": true
+            },
+            {
+              "name": "PathPrefixes",
+              "type": "[]string",
+              "exported": true
+            },
+            {
+              "name": "IndexFile",
+              "type": "string",
+              "exported": true
+            },
+            {
+              "name": "ComponentRelPath",
+              "type": "string",
+              "exported": true
+            }
+          ]
+        }
+      ]
+    },
+    "github.com/aprice2704/neuroscript/cmd/nsinput": {
+      "packagePath": "github.com/aprice2704/neuroscript/cmd/nsinput",
+      "packageName": "main",
+      "methods": [
+        {
+          "receiverName": "m",
+          "receiverType": "model",
+          "name": "Init",
+          "sourceFile": "input/main.go",
+          "returns": [
+            "tea.Cmd"
+          ]
+        },
+        {
+          "receiverName": "m",
+          "receiverType": "model",
+          "name": "Update",
+          "sourceFile": "input/main.go",
+          "parameters": [
+            {
+              "name": "msg",
+              "type": "tea.Msg"
+            }
+          ],
+          "returns": [
+            "tea.Model",
+            "tea.Cmd"
+          ]
+        },
+        {
+          "receiverName": "m",
+          "receiverType": "model",
+          "name": "View",
+          "sourceFile": "input/main.go",
+          "returns": [
+            "string"
+          ]
+        }
+      ]
+    },
+    "github.com/aprice2704/neuroscript/cmd/nslsp": {
+      "packagePath": "github.com/aprice2704/neuroscript/cmd/nslsp",
+      "packageName": "main",
+      "methods": [
+        {
+          "receiverType": "stdrwc",
+          "name": "Read",
+          "sourceFile": "lsp/main.go",
+          "parameters": [
+            {
+              "name": "p",
+              "type": "[]byte"
+            }
+          ],
+          "returns": [
+            "int",
+            "error"
+          ]
+        },
+        {
+          "receiverType": "stdrwc",
+          "name": "Write",
+          "sourceFile": "lsp/main.go",
+          "parameters": [
+            {
+              "name": "p",
+              "type": "[]byte"
+            }
+          ],
+          "returns": [
+            "int",
+            "error"
+          ]
+        },
+        {
+          "receiverType": "stdrwc",
+          "name": "Close",
+          "sourceFile": "lsp/main.go",
+          "returns": [
+            "error"
+          ]
+        }
+      ]
+    },
+    "github.com/aprice2704/neuroscript/cmd/nspatch": {
+      "packagePath": "github.com/aprice2704/neuroscript/cmd/nspatch",
+      "packageName": "main"
+    }
+  },
+  "lastIndexed": "2025-05-24T23:19:55-07:00",
+  "gitBranch": "unknown-branch",
+  "gitCommitHash": "unknown-commit"
+}

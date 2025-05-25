@@ -13,6 +13,10 @@ if [ -z "$source_dir" ] || [ -z "$dest_dir" ]; then
   exit 1
 fi
 
+# Build the index
+goindexer -root . -output pkg/codebase-indices
+
+
 # Remove and recreate the .txt version of the .g4 file
 # This part seems specific to your NeuroScript project, ensuring the .txt is an exact copy
 rm -f "$source_dir/pkg/core/NeuroScript.g4.txt" # Use -f to avoid error if file doesn't exist

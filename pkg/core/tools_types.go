@@ -1,7 +1,7 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.0.3 // Align ToolRegistry interface with ToolRegistry struct methods
-// nlines: 80
-// risk_rating: MEDIUM
+// File version: 0.0.5 // Added Category, Example, ReturnHelp, Variadic, ErrorConditions to ToolSpec. Added DefaultValue to ArgSpec.
+// nlines: 90 // Approximate, will increase
+// risk_rating: HIGH
 // filename: pkg/core/tools_types.go
 
 package core
@@ -59,7 +59,7 @@ func (at ArgType) ToGenaiType() (genai.Type, error) {
 	case ArgTypeSlice, ArgTypeSliceString, ArgTypeSliceInt, ArgTypeSliceFloat, ArgTypeSliceBool, ArgTypeSliceMap, ArgTypeSliceAny:
 		return genai.TypeArray, nil
 	case ArgTypeNil:
-		return genai.TypeUnspecified, fmt.Errorf("cannot convert ArgTypeNil to a genai.Type for LLM function declaration")
+		return genai.TypeUnspecified, fmt.Errorf("cannot convert ArgTypeNil to a genai.Type for LLM function declaration expecting a specific type")
 	default:
 		return genai.TypeUnspecified, fmt.Errorf("unsupported ArgType '%s' cannot be converted to genai.Type", at)
 	}
@@ -70,18 +70,24 @@ type ToolFunc func(interpreter *Interpreter, args []interface{}) (interface{}, e
 
 // ArgSpec defines the specification for a single tool argument.
 type ArgSpec struct {
-	Name        string
-	Type        ArgType
-	Description string
-	Required    bool
+	Name         string      `json:"name"`
+	Type         ArgType     `json:"type"`
+	Description  string      `json:"description"`
+	Required     bool        `json:"required"`
+	DefaultValue interface{} `json:"defaultValue,omitempty"` // Default value if not required and not provided.
 }
 
 // ToolSpec defines the specification for a tool.
 type ToolSpec struct {
-	Name        string
-	Description string
-	Args        []ArgSpec
-	ReturnType  ArgType
+	Name            string    `json:"name"`
+	Description     string    `json:"description"`
+	Category        string    `json:"category,omitempty"` // Tool category for grouping/filtering.
+	Args            []ArgSpec `json:"args,omitempty"`
+	ReturnType      ArgType   `json:"returnType"`
+	ReturnHelp      string    `json:"returnHelp,omitempty"`      // Detailed explanation of what is returned.
+	Variadic        bool      `json:"variadic,omitempty"`        // Does the tool accept variable args for the last parameter?
+	Example         string    `json:"example,omitempty"`         // A short NeuroScript example of how to call the tool.
+	ErrorConditions string    `json:"errorConditions,omitempty"` // Description of common error conditions or types.
 }
 
 // ToolImplementation combines the specification of a tool with its Go function.
