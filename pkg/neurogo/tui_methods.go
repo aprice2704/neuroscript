@@ -5,7 +5,7 @@
 package neurogo
 
 import (
-	"log" // Using standard log package
+	// Using standard log package
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -27,7 +27,7 @@ func setPrimitiveBackgroundColor(p tview.Primitive, color tcell.Color) {
 
 // dFocus handles cycling focus among major UI components and updating styles.
 func (tvP *tviewAppPointers) dFocus(df int) {
-	tvP.LogToDebugScreen("[DFOCUS_ENTRY] dFocus called with df: %d", df) // Now uses log.Printf
+	//tvP.LogToDebugScreen("[DFOCUS_ENTRY] dFocus called with df: %d", df) // Now uses log.Printf
 	if tvP.numFocusablePrimitives == 0 {
 		tvP.LogToDebugScreen("[DFOCUS] No focusable primitives.")
 		return
@@ -147,7 +147,7 @@ func (tvP *tviewAppPointers) dFocus(df int) {
 func (tvP *tviewAppPointers) LogToDebugScreen(format string, args ...interface{}) {
 	// Not attempting to write to the TUI debug widget itself to simplify diagnosing hangs
 	// and to respect user's preference for console-visible logs during such hangs.
-	log.Printf("[TUI_LOG] "+format, args...) // Prefixed to distinguish from other logs and indicates it's from LogToDebugScreen
+	//	log.Printf("[TUI_LOG] "+format, args...) // Prefixed to distinguish from other logs and indicates it's from LogToDebugScreen
 }
 
 // onPanePageChange is called when a tview.Pages view (a pane) switches its front page.

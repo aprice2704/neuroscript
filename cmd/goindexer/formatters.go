@@ -1,63 +1,117 @@
 // NeuroScript Go Indexer - Formatters
-// File version: 1.0.0
-// Purpose: Provides helper functions for formatting AST nodes into strings or structured data.
+// File version: 1.0.0 // Initial robust version using go/printer
+// Purpose: Provides functions to format AST nodes into strings, especially for types.
 // filename: cmd/goindexer/formatters.go
 package main
 
 import (
+	"bytes"
+	"fmt"
 	"go/ast"
 	"go/printer"
 	"go/token"
+	"log"
 	"strings"
 
-	"github.com/aprice2704/neuroscript/pkg/goindex" // Ensure this import path is correct for your project
+	"github.com/aprice2704/neuroscript/pkg/goindex" // For goindex.ParamDetail
 )
 
-// formatNode converts an AST node to its string representation.
+// formatNode converts an AST node (expected to be an expression, typically a type)
+// into its string representation using go/printer.
 func formatNode(fset *token.FileSet, node ast.Node) string {
 	if node == nil {
 		return ""
 	}
-	var buf strings.Builder
-	err := printer.Fprint(&buf, fset, node)
+	var buf bytes.Buffer
+	cfg := printer.Config{Mode: printer.UseSpaces, Tabwidth: 4}
+	err := cfg.Fprint(&buf, fset, node)
 	if err != nil {
-		// Consider logging this error if it occurs, though it's rare with valid AST.
-		return "error_formatting_node"
+		// Log the error and return a fallback representation
+		log.Printf("Error formatting node (%T): %v. Fallback string: %s", node, err, fmt.Sprintf("ERR_FORMATTING_NODE_%T", node))
+		return fmt.Sprintf("ERR_FORMATTING_NODE_%T", node)
 	}
 	return buf.String()
 }
 
-// formatFieldList converts an *ast.FieldList (used for parameters or results)
-// into a slice of goindex.ParamDetail.
+// formatFieldList converts an AST FieldList (like parameters or results) to a slice of ParamDetail.
 func formatFieldList(fset *token.FileSet, list *ast.FieldList) []goindex.ParamDetail {
-	var params []goindex.ParamDetail
+	var details []goindex.ParamDetail
 	if list == nil {
-		return params
+		return details
 	}
 	for _, field := range list.List {
 		typeName := formatNode(fset, field.Type)
-		if len(field.Names) > 0 {
-			// Named parameters/results
+		if len(field.Names) > 0 { // Named parameters/results
 			for _, name := range field.Names {
-				params = append(params, goindex.ParamDetail{Name: name.Name, Type: typeName})
+				if name.Name == "_" { // Skip blank identifiers as parameter names
+					details = append(details, goindex.ParamDetail{Type: typeName})
+				} else {
+					details = append(details, goindex.ParamDetail{Name: name.Name, Type: typeName})
+				}
 			}
-		} else {
-			// Unnamed parameter/result (e.g., func(int, string) or interface methods)
-			params = append(params, goindex.ParamDetail{Name: "", Type: typeName})
+		} else { // Unnamed parameter/result (e.g., return types, or params in interface methods)
+			details = append(details, goindex.ParamDetail{Type: typeName})
 		}
 	}
-	return params
+	return details
 }
 
-// formatReceiver extracts the receiver's variable name and type string.
-// It now takes an *ast.Field, which is how receivers are represented.
-func formatReceiver(fset *token.FileSet, field *ast.Field) (nameStr string, typeStr string) {
+// formatReceiver formats the receiver of a method.
+// Returns (receiverVarName string, receiverTypeString string) e.g. ("r", "*MyType") or ("", "MyType")
+func formatReceiver(fset *token.FileSet, field *ast.Field) (name string, typeString string) {
 	if field == nil {
 		return "", ""
 	}
-	typeStr = formatNode(fset, field.Type)
+	typeString = formatNode(fset, field.Type) // This should give "MyType" or "*MyType" etc.
 	if len(field.Names) > 0 && field.Names[0] != nil {
-		nameStr = field.Names[0].Name
+		name = field.Names[0].Name
 	}
-	return nameStr, typeStr
+	return name, typeString
+}
+
+// formatReceiverName extracts just the name (identifier) of the receiver variable.
+// This might be less used if formatReceiver provides both name and type.
+func formatReceiverName(field *ast.Field) string {
+	if field != nil && len(field.Names) > 0 && field.Names[0] != nil {
+		return field.Names[0].Name
+	}
+	return ""
+}
+
+// getBaseTypeName extracts the base type name from a potentially complex type string
+// (e.g., "*pkg.MyType" -> "MyType", "[]some.OtherType" -> "OtherType", "map[string]foo.Bar" -> "Bar").
+// This is a utility primarily for finding the "simple" name of a type, often used for embedded fields.
+func getBaseTypeName(typeString string) string {
+	name := typeString
+
+	// Remove common prefixes and suffixes that are not part of the core type name.
+	// Order can matter here.
+	name = strings.TrimPrefix(name, "*")
+	name = strings.TrimPrefix(name, "[]")
+	name = strings.TrimPrefix(name, "...") // Variadic
+
+	// For maps, try to get the value type's base name if complex
+	if strings.HasPrefix(name, "map[") && strings.Contains(name, "]") {
+		idx := strings.Index(name, "]")
+		if idx != -1 && idx+1 < len(name) {
+			name = name[idx+1:] // Get the part after "map[keyType]"
+			// Recursively clean this part too
+			name = getBaseTypeName(name)
+		}
+	}
+
+	// For channels
+	if strings.HasPrefix(name, "chan ") {
+		name = strings.TrimPrefix(name, "chan ")
+		name = getBaseTypeName(name)
+	} else if strings.HasPrefix(name, "<-chan ") {
+		name = strings.TrimPrefix(name, "<-chan ")
+		name = getBaseTypeName(name)
+	}
+
+	// After stripping common prefixes, get the last part of a qualified name.
+	if idx := strings.LastIndex(name, "."); idx != -1 {
+		name = name[idx+1:]
+	}
+	return name
 }

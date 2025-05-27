@@ -81,25 +81,26 @@
 
 * **P3.1: Enhance `core.ToolSpec` and Implement JSON Meta-Tool for Dynamic Access**
     * [X] Define `Category string` and `Example string` fields (also `ReturnHelp`, `Variadic`, `ErrorConditions`) in the `core.ToolSpec` struct (`pkg/core/tools_types.go`).
-    * [ ] Update existing `ToolSpec` definitions in *other* `tooldefs_*.go` files throughout the `pkg/core` and other relevant packages to populate these new `Category`, `Example`, `ReturnHelp`, `Variadic`, and `ErrorConditions` fields. (This is your pending task, "swarm of agents").
+    * [~] Update existing `ToolSpec` definitions in *other* `tooldefs_*.go` files throughout the `pkg/core` and other relevant packages to populate these new `Category`, `Example`, `ReturnHelp`, `Variadic`, and `ErrorConditions` fields. (This is your pending task, "swarm of agents" - User indicates this is now mostly done).
     * [X] Implement a new meta-tool in `pkg/core` (e.g., `Meta.GetToolSpecificationsJSON()`):
         * This tool, when called on a `core.Interpreter` instance, will retrieve all registered tools. (Done in `tooldefs_meta.go` and `tools_meta.go`)
         * It will collect their `ToolSpec` data (now including `Category`, `Example`, etc.). (Done)
         * It will serialize this list of `ToolSpec` objects into a single JSON string. (Done)
 * **P3.2: Link Tool Specs to Go Implementation Details via Dynamic Analysis by `goindexer`**
-    * [ ] `goindexer` will be enhanced to initialize a "no-op" `core.Interpreter` instance. This involves ensuring all necessary core and extended toolsets are registered with this interpreter.
-    * [ ] `goindexer` will call the new `Meta.GetToolSpecificationsJSON()` meta-tool (from P3.1) using this no-op interpreter to retrieve the `ToolSpec` data for all registered NeuroScript tools.
-    * [ ] For each `ToolSpec` obtained:
-        * `goindexer` will use `interpreter.GetTool(toolSpec.Name)` on its no-op interpreter to get the corresponding `core.ToolImplementation`.
-        * From the `ToolImplementation.Func` field (which is a `core.ToolFunc`), `goindexer` will use Go's runtime reflection (e.g., `runtime.FuncForPC(reflect.ValueOf(fn).Pointer()).Name()`) to determine the fully qualified Go function name of the tool's implementing function.
-    * [ ] `goindexer` will then use this fully qualified Go function name to look up its `FunctionDetail` from the data indexed in Phase 1. This `FunctionDetail` provides critical information like the Go function's `sourceFile` (relative to its component), its specific parameters, and its return types.
+    * [X] `goindexer` will be enhanced to initialize a "no-op" `core.Interpreter` instance. This involves ensuring all necessary core and extended toolsets are registered with this interpreter. (Done in `cmd/goindexer/main.go`)
+    * [X] `goindexer` will call the new `Meta.GetToolSpecificationsJSON()` meta-tool (from P3.1) using this no-op interpreter to retrieve the `ToolSpec` data for all registered NeuroScript tools. (Done via `indexReader.GenerateEnhancedToolDetails` in `cmd/goindexer/main.go`)
+    * [X] For each `ToolSpec` obtained:
+        * `goindexer` will use `interpreter.GetTool(toolSpec.Name)` on its no-op interpreter to get the corresponding `core.ToolImplementation`. (Done via `indexReader.GenerateEnhancedToolDetails`)
+        * From the `ToolImplementation.Func` field (which is a `core.ToolFunc`), `goindexer` will use Go's runtime reflection (e.g., `runtime.FuncForPC(reflect.ValueOf(fn).Pointer()).Name()`) to determine the fully qualified Go function name of the tool's implementing function. (Done via `indexReader.GenerateEnhancedToolDetails`)
+    * [X] `goindexer` will then use this fully qualified Go function name to look up its `FunctionDetail` from the data indexed in Phase 1. This `FunctionDetail` provides critical information like the Go function's `sourceFile` (relative to its component), its specific parameters, and its return types. (Done via `indexReader.GenerateEnhancedToolDetails`, results used in `cmd/goindexer/main.go`)
 * **P3.3: Integrate Tool Data into Component Index**
     * [X] Define a `neuroscriptTools` field (e.g., an array of structured tool information objects, `NeuroScriptToolDetail`) in the JSON schema for relevant component indexes (Completed in `pkg/goindex/types.go` within `ComponentIndex`).
-    * [ ] Populate this with:
+    * [X] Populate this with:
         * The `ToolSpec` data (`Name`, `Description`, `Args`, `ReturnType`, `Category`, `Example`, `ErrorConditions`) obtained from the JSON meta-tool (P3.1).
         * The `implementingGoFunctionFullName`: The fully qualified name of the Go function that implements the tool (obtained in P3.2).
         * The `implementingGoFunctionSourceFile`: The source file path (relative to its component) of the Go function (obtained from Phase 1 data via the lookup in P3.2).
         * A flag or field indicating Go-level error handling, e.g., `goImplementingFunctionReturnsError: true/false` (derived from the `returns` field of the `FunctionDetail` looked up in P3.2).
+        (Done in `cmd/goindexer/main.go` using data from `indexReader.GenerateEnhancedToolDetails`)
 
 ---
 ## Phase 4: Schema Definition & Finalization
