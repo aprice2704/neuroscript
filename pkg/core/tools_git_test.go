@@ -1,7 +1,7 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.1.2
+// File version: 0.1.4 // Adjust expectation for ArgTypeAny with mixed-type list in Git.Rm test.
 // Update Git.Rm validation test expectation for ArgTypeAny.
-// nlines: 165
+// nlines: 210 // Approximate
 // risk_rating: LOW
 // filename: pkg/core/tools_git_test.go
 package core
@@ -44,106 +44,126 @@ func runValidationTestCases(t *testing.T, toolName string, testCases []Validatio
 	}
 }
 
+const dummyRepoPath = "dummy/repo_path"
+
 // --- Git.Branch Validation Tests ---
-// Args: name (string, opt), checkout (bool, opt), list_remote (bool, opt), list_all (bool, opt)
+// Args: relative_path (string, req), name (string, opt), checkout (bool, opt), list_remote (bool, opt), list_all (bool, opt)
 func TestToolGitNewBranchValidation(t *testing.T) {
 	testCases := []ValidationTestCase{
-		{Name: "Correct_Args_(None)", InputArgs: MakeArgs(), ExpectedError: nil},
-		{Name: "Correct_Args_(Create)", InputArgs: MakeArgs("new-feature"), ExpectedError: nil},
-		{Name: "Correct_Args_(Create_and_Checkout)", InputArgs: MakeArgs("new-feature", true), ExpectedError: nil},
-		{Name: "Correct_Args_(List_Remote)", InputArgs: MakeArgs(nil, false, true), ExpectedError: nil},
-		{Name: "Correct_Args_(List_All)", InputArgs: MakeArgs(nil, false, false, true), ExpectedError: nil},
-		{Name: "Wrong_Arg_Count_(Too_Many)", InputArgs: MakeArgs("name", true, false, true, "extra"), ExpectedError: ErrValidationArgCount},
-		{Name: "Wrong_Arg_Type_(Name)", InputArgs: MakeArgs(123), ExpectedError: ErrValidationTypeMismatch},
-		{Name: "Wrong_Arg_Type_(Checkout)", InputArgs: MakeArgs("name", "not-a-bool"), ExpectedError: ErrValidationTypeMismatch},
-		{Name: "Wrong_Arg_Type_(List_Remote)", InputArgs: MakeArgs(nil, false, "not-a-bool"), ExpectedError: ErrValidationTypeMismatch},
-		{Name: "Wrong_Arg_Type_(List_All)", InputArgs: MakeArgs(nil, false, false, "not-a-bool"), ExpectedError: ErrValidationTypeMismatch},
+		{Name: "Correct_Args_(List_Local_Default)", InputArgs: MakeArgs(dummyRepoPath), ExpectedError: nil},
+		{Name: "Correct_Args_(Create)", InputArgs: MakeArgs(dummyRepoPath, "new-feature"), ExpectedError: nil},
+		{Name: "Correct_Args_(Create_and_Checkout)", InputArgs: MakeArgs(dummyRepoPath, "new-feature", true), ExpectedError: nil},
+		{Name: "Correct_Args_(List_Remote)", InputArgs: MakeArgs(dummyRepoPath, nil, false, true), ExpectedError: nil},
+		{Name: "Correct_Args_(List_All)", InputArgs: MakeArgs(dummyRepoPath, nil, false, false, true), ExpectedError: nil},
+		{Name: "Missing_Relative_Path", InputArgs: MakeArgs(), ExpectedError: ErrValidationRequiredArgMissing},
+		{Name: "Wrong_Arg_Count_(Too_Many)", InputArgs: MakeArgs(dummyRepoPath, "name", true, false, true, "extra"), ExpectedError: ErrValidationArgCount},
+		{Name: "Wrong_Arg_Type_(Relative_Path)", InputArgs: MakeArgs(123), ExpectedError: ErrValidationTypeMismatch},
+		{Name: "Wrong_Arg_Type_(Name)", InputArgs: MakeArgs(dummyRepoPath, 123), ExpectedError: ErrValidationTypeMismatch},
+		{Name: "Wrong_Arg_Type_(Checkout)", InputArgs: MakeArgs(dummyRepoPath, "name", "not-a-bool"), ExpectedError: ErrValidationTypeMismatch},
+		{Name: "Wrong_Arg_Type_(List_Remote)", InputArgs: MakeArgs(dummyRepoPath, nil, false, "not-a-bool"), ExpectedError: ErrValidationTypeMismatch},
+		{Name: "Wrong_Arg_Type_(List_All)", InputArgs: MakeArgs(dummyRepoPath, nil, false, false, "not-a-bool"), ExpectedError: ErrValidationTypeMismatch},
 	}
 	runValidationTestCases(t, "Git.Branch", testCases)
 }
 
 // --- Git.Checkout Validation Tests ---
-// Args: branch (string, req), create (bool, opt)
+// Args: relative_path (string, req), branch (string, req), create (bool, opt)
 func TestToolGitCheckoutValidation(t *testing.T) {
 	testCases := []ValidationTestCase{
-		{Name: "Wrong_Arg_Count_(None)", InputArgs: MakeArgs(), ExpectedError: ErrValidationRequiredArgMissing},
-		{Name: "Wrong_Arg_Count_(Too_Many)", InputArgs: MakeArgs("branch1", false, "extra"), ExpectedError: ErrValidationArgCount},
-		{Name: "Nil_Arg_(Required)", InputArgs: MakeArgs(nil), ExpectedError: ErrValidationRequiredArgNil},
-		{Name: "Wrong_Arg_Type_(Branch)", InputArgs: MakeArgs(123), ExpectedError: ErrValidationTypeMismatch},
-		{Name: "Wrong_Arg_Type_(Create)", InputArgs: MakeArgs("main", "not-a-bool"), ExpectedError: ErrValidationTypeMismatch},
-		{Name: "Correct_Args_(Checkout)", InputArgs: MakeArgs("main"), ExpectedError: nil},
-		{Name: "Correct_Args_(Create_and_Checkout)", InputArgs: MakeArgs("new-feature", true), ExpectedError: nil},
+		{Name: "Missing_Args", InputArgs: MakeArgs(), ExpectedError: ErrValidationRequiredArgMissing},                    // Missing relative_path
+		{Name: "Missing_Branch_Arg", InputArgs: MakeArgs(dummyRepoPath), ExpectedError: ErrValidationRequiredArgMissing}, // Missing branch
+		{Name: "Wrong_Arg_Count_(Too_Many)", InputArgs: MakeArgs(dummyRepoPath, "branch1", false, "extra"), ExpectedError: ErrValidationArgCount},
+		{Name: "Nil_Arg_(Relative_Path_Required)", InputArgs: MakeArgs(nil, "branch1"), ExpectedError: ErrValidationRequiredArgNil},
+		{Name: "Nil_Arg_(Branch_Required)", InputArgs: MakeArgs(dummyRepoPath, nil), ExpectedError: ErrValidationRequiredArgNil},
+		{Name: "Wrong_Arg_Type_(Relative_Path)", InputArgs: MakeArgs(123, "branch1"), ExpectedError: ErrValidationTypeMismatch},
+		{Name: "Wrong_Arg_Type_(Branch)", InputArgs: MakeArgs(dummyRepoPath, 123), ExpectedError: ErrValidationTypeMismatch},
+		{Name: "Wrong_Arg_Type_(Create)", InputArgs: MakeArgs(dummyRepoPath, "main", "not-a-bool"), ExpectedError: ErrValidationTypeMismatch},
+		{Name: "Correct_Args_(Checkout)", InputArgs: MakeArgs(dummyRepoPath, "main"), ExpectedError: nil},
+		{Name: "Correct_Args_(Create_and_Checkout)", InputArgs: MakeArgs(dummyRepoPath, "new-feature", true), ExpectedError: nil},
 	}
 	runValidationTestCases(t, "Git.Checkout", testCases)
 }
 
 // --- Git.Rm Validation Tests ---
-// Args: paths (any, req) - string or []string
+// Args: relative_path (string, req), paths (any, req) - string or []string
 func TestToolGitRmValidation(t *testing.T) {
 	testCases := []ValidationTestCase{
-		{Name: "Wrong_Arg_Count_(None)", InputArgs: MakeArgs(), ExpectedError: ErrValidationRequiredArgMissing},
-		{Name: "Wrong_Arg_Count_(Too_Many)", InputArgs: MakeArgs("file1", "file2"), ExpectedError: ErrValidationArgCount},
-		{Name: "Nil_Arg", InputArgs: MakeArgs(nil), ExpectedError: ErrValidationRequiredArgNil},
-		// Corrected: Expect nil error for now due to permissive ArgTypeAny validation
-		{Name: "Wrong_Arg_Type_(Maybe)", InputArgs: MakeArgs(123), ExpectedError: nil},
-		{Name: "Correct_Args_(Single)", InputArgs: MakeArgs("path/to/file.txt"), ExpectedError: nil},
-		{Name: "Correct_Args_(List)", InputArgs: MakeArgs([]string{"path/to/file1.txt", "file2.txt"}), ExpectedError: nil},
+		{Name: "Missing_Args", InputArgs: MakeArgs(), ExpectedError: ErrValidationRequiredArgMissing},                   // Missing relative_path
+		{Name: "Missing_Paths_Arg", InputArgs: MakeArgs(dummyRepoPath), ExpectedError: ErrValidationRequiredArgMissing}, // Missing paths
+		{Name: "Wrong_Arg_Count_(Too_Many)", InputArgs: MakeArgs(dummyRepoPath, "file1", "file2"), ExpectedError: ErrValidationArgCount},
+		{Name: "Nil_Arg_(Relative_Path)", InputArgs: MakeArgs(nil, "file1"), ExpectedError: ErrValidationRequiredArgNil},
+		{Name: "Nil_Arg_(Paths)", InputArgs: MakeArgs(dummyRepoPath, nil), ExpectedError: ErrValidationRequiredArgNil},
+		{Name: "Wrong_Arg_Type_(Relative_Path_is_int)", InputArgs: MakeArgs(123, "file1"), ExpectedError: ErrValidationTypeMismatch},
+		{Name: "Correct_Arg_Type_For_Paths_but_Wrong_Type_for_Relative_Path", InputArgs: MakeArgs(123, "path/to/file.txt"), ExpectedError: ErrValidationTypeMismatch},
+		{Name: "Correct_Args_(Single_Path_String)", InputArgs: MakeArgs(dummyRepoPath, "path/to/file.txt"), ExpectedError: nil},
+		{Name: "Correct_Args_(Path_List)", InputArgs: MakeArgs(dummyRepoPath, []string{"path/to/file1.txt", "file2.txt"}), ExpectedError: nil},
+		{Name: "Wrong_Path_Type_In_List_(Accepted_by_ArgTypeAny)", InputArgs: MakeArgs(dummyRepoPath, []interface{}{"file1.txt", 123}), ExpectedError: nil}, // ArgTypeAny accepts mixed list; tool impl must validate contents.
 	}
 	runValidationTestCases(t, "Git.Rm", testCases)
 }
 
 // --- Git.Merge Validation Tests ---
-// Args: branch (string, req)
+// Args: relative_path (string, req), branch (string, req)
 func TestToolGitMergeValidation(t *testing.T) {
 	testCases := []ValidationTestCase{
-		{Name: "Wrong_Arg_Count_(None)", InputArgs: MakeArgs(), ExpectedError: ErrValidationRequiredArgMissing},
-		{Name: "Wrong_Arg_Count_(Too_Many)", InputArgs: MakeArgs("branch1", "branch2"), ExpectedError: ErrValidationArgCount},
-		{Name: "Nil_Arg", InputArgs: MakeArgs(nil), ExpectedError: ErrValidationRequiredArgNil},
-		{Name: "Wrong_Arg_Type", InputArgs: MakeArgs(123), ExpectedError: ErrValidationTypeMismatch},
-		{Name: "Correct_Args", InputArgs: MakeArgs("develop"), ExpectedError: nil},
+		{Name: "Missing_Args", InputArgs: MakeArgs(), ExpectedError: ErrValidationRequiredArgMissing},                    // Missing relative_path
+		{Name: "Missing_Branch_Arg", InputArgs: MakeArgs(dummyRepoPath), ExpectedError: ErrValidationRequiredArgMissing}, // Missing branch
+		{Name: "Wrong_Arg_Count_(Too_Many)", InputArgs: MakeArgs(dummyRepoPath, "branch1", "branch2"), ExpectedError: ErrValidationArgCount},
+		{Name: "Nil_Arg_(Relative_Path)", InputArgs: MakeArgs(nil, "branch1"), ExpectedError: ErrValidationRequiredArgNil},
+		{Name: "Nil_Arg_(Branch)", InputArgs: MakeArgs(dummyRepoPath, nil), ExpectedError: ErrValidationRequiredArgNil},
+		{Name: "Wrong_Arg_Type_(Relative_Path)", InputArgs: MakeArgs(123, "branch1"), ExpectedError: ErrValidationTypeMismatch},
+		{Name: "Wrong_Arg_Type_(Branch)", InputArgs: MakeArgs(dummyRepoPath, 123), ExpectedError: ErrValidationTypeMismatch},
+		{Name: "Correct_Args", InputArgs: MakeArgs(dummyRepoPath, "develop"), ExpectedError: nil},
 	}
 	runValidationTestCases(t, "Git.Merge", testCases)
 }
 
 // --- Git.Pull Validation Tests ---
-// Args: None
+// Args: relative_path (string, req), remote_name (string, opt), branch_name (string, opt) - from tooldefs_git.go
 func TestToolGitPullValidation(t *testing.T) {
 	testCases := []ValidationTestCase{
-		{Name: "Correct_Arg_Count_(None)", InputArgs: MakeArgs(), ExpectedError: nil}, // Expects zero args
-		{Name: "Wrong_Arg_Count_(One)", InputArgs: MakeArgs("arg1"), ExpectedError: ErrValidationArgCount},
+		{Name: "Missing_Relative_Path", InputArgs: MakeArgs(), ExpectedError: ErrValidationRequiredArgMissing},
+		{Name: "Correct_Args_(Only_Relative_Path)", InputArgs: MakeArgs(dummyRepoPath), ExpectedError: nil},
+		{Name: "Correct_Args_(Path_Remote)", InputArgs: MakeArgs(dummyRepoPath, "origin"), ExpectedError: nil},
+		{Name: "Correct_Args_(Path_Remote_Branch)", InputArgs: MakeArgs(dummyRepoPath, "origin", "main"), ExpectedError: nil},
+		{Name: "Wrong_Arg_Count_(Too_Many)", InputArgs: MakeArgs(dummyRepoPath, "origin", "main", "extra"), ExpectedError: ErrValidationArgCount},
+		{Name: "Wrong_Arg_Type_(Remote_Name)", InputArgs: MakeArgs(dummyRepoPath, 123), ExpectedError: ErrValidationTypeMismatch},
+		{Name: "Wrong_Arg_Type_(Branch_Name)", InputArgs: MakeArgs(dummyRepoPath, "origin", 123), ExpectedError: ErrValidationTypeMismatch},
 	}
 	runValidationTestCases(t, "Git.Pull", testCases)
 }
 
 // --- Git.Push Validation Tests ---
-// Args: remote (string, opt), branch (string, opt), set_upstream (bool, opt)
+// Args: relative_path (string, req), remote_name (string, opt), branch_name (string, opt) - from tooldefs_git.go
 func TestToolGitPushValidation(t *testing.T) {
 	testCases := []ValidationTestCase{
-		{Name: "Correct_Args_(None)", InputArgs: MakeArgs(), ExpectedError: nil},
-		{Name: "Correct_Args_(Remote)", InputArgs: MakeArgs("upstream"), ExpectedError: nil},
-		{Name: "Correct_Args_(Remote_Branch)", InputArgs: MakeArgs("upstream", "main"), ExpectedError: nil},
-		{Name: "Correct_Args_(All)", InputArgs: MakeArgs("upstream", "main", true), ExpectedError: nil},
-		{Name: "Correct_Args_(Nil_Remote_Branch)", InputArgs: MakeArgs(nil, nil, true), ExpectedError: nil},
-		{Name: "Wrong_Arg_Count_(Too_Many)", InputArgs: MakeArgs("origin", "main", false, "extra"), ExpectedError: ErrValidationArgCount},
-		{Name: "Wrong_Arg_Type_(Remote)", InputArgs: MakeArgs(123), ExpectedError: ErrValidationTypeMismatch},
-		{Name: "Wrong_Arg_Type_(SetUpstream)", InputArgs: MakeArgs("origin", "main", "not-bool"), ExpectedError: ErrValidationTypeMismatch},
+		{Name: "Missing_Relative_Path", InputArgs: MakeArgs(), ExpectedError: ErrValidationRequiredArgMissing},
+		{Name: "Correct_Args_(Only_Relative_Path)", InputArgs: MakeArgs(dummyRepoPath), ExpectedError: nil},
+		{Name: "Correct_Args_(Path_Remote)", InputArgs: MakeArgs(dummyRepoPath, "upstream"), ExpectedError: nil},
+		{Name: "Correct_Args_(Path_Remote_Branch)", InputArgs: MakeArgs(dummyRepoPath, "upstream", "main"), ExpectedError: nil},
+		{Name: "Nil_Args_For_Optional_Params", InputArgs: MakeArgs(dummyRepoPath, nil, nil), ExpectedError: nil}, // Optional args can be nil
+		{Name: "Wrong_Arg_Count_(Too_Many)", InputArgs: MakeArgs(dummyRepoPath, "origin", "main", "extra_arg"), ExpectedError: ErrValidationArgCount},
+		{Name: "Wrong_Arg_Type_(Remote_Name)", InputArgs: MakeArgs(dummyRepoPath, 123), ExpectedError: ErrValidationTypeMismatch},
+		{Name: "Wrong_Arg_Type_(Branch_Name)", InputArgs: MakeArgs(dummyRepoPath, "origin", false), ExpectedError: ErrValidationTypeMismatch},
 	}
 	runValidationTestCases(t, "Git.Push", testCases)
 }
 
 // --- Git.Diff Validation Tests ---
-// Args: cached (bool, opt), commit1 (string, opt), commit2 (string, opt), path (string, opt)
+// Args: relative_path (string, req), cached (bool, opt), commit1 (string, opt), commit2 (string, opt), path (string, opt)
 func TestToolGitDiffValidation(t *testing.T) {
 	testCases := []ValidationTestCase{
-		{Name: "Correct_Args_(None)", InputArgs: MakeArgs(), ExpectedError: nil},
-		{Name: "Correct_Args_(Cached)", InputArgs: MakeArgs(true), ExpectedError: nil},
-		{Name: "Correct_Args_(Commit1)", InputArgs: MakeArgs(false, "HEAD~1"), ExpectedError: nil},
-		{Name: "Correct_Args_(Commit1_Commit2)", InputArgs: MakeArgs(false, "HEAD~1", "HEAD"), ExpectedError: nil},
-		{Name: "Correct_Args_(All)", InputArgs: MakeArgs(false, "HEAD~1", "HEAD", "path/to/file"), ExpectedError: nil},
-		{Name: "Correct_Args_(Nil_Strings)", InputArgs: MakeArgs(true, nil, nil, nil), ExpectedError: nil},
-		{Name: "Wrong_Arg_Count_(Too_Many)", InputArgs: MakeArgs(true, "c1", "c2", "path", "extra"), ExpectedError: ErrValidationArgCount},
-		{Name: "Wrong_Arg_Type_(Cached)", InputArgs: MakeArgs("not-bool"), ExpectedError: ErrValidationTypeMismatch},
-		{Name: "Wrong_Arg_Type_(Commit1)", InputArgs: MakeArgs(false, 123), ExpectedError: ErrValidationTypeMismatch},
+		{Name: "Missing_Relative_Path", InputArgs: MakeArgs(), ExpectedError: ErrValidationRequiredArgMissing},
+		{Name: "Correct_Args_(Only_Path)", InputArgs: MakeArgs(dummyRepoPath), ExpectedError: nil},
+		{Name: "Correct_Args_(Path_Cached)", InputArgs: MakeArgs(dummyRepoPath, true), ExpectedError: nil},
+		{Name: "Correct_Args_(Path_Commit1)", InputArgs: MakeArgs(dummyRepoPath, false, "HEAD~1"), ExpectedError: nil},
+		{Name: "Correct_Args_(Path_Commit1_Commit2)", InputArgs: MakeArgs(dummyRepoPath, false, "HEAD~1", "HEAD"), ExpectedError: nil},
+		{Name: "Correct_Args_(All_Args)", InputArgs: MakeArgs(dummyRepoPath, false, "HEAD~1", "HEAD", "path/to/file"), ExpectedError: nil},
+		{Name: "Correct_Args_(Nil_Optional_Strings)", InputArgs: MakeArgs(dummyRepoPath, true, nil, nil, nil), ExpectedError: nil},
+		{Name: "Wrong_Arg_Count_(Too_Many)", InputArgs: MakeArgs(dummyRepoPath, true, "c1", "c2", "path", "extra"), ExpectedError: ErrValidationArgCount},
+		{Name: "Wrong_Arg_Type_(Relative_Path)", InputArgs: MakeArgs(123, true), ExpectedError: ErrValidationTypeMismatch},
+		{Name: "Wrong_Arg_Type_(Cached)", InputArgs: MakeArgs(dummyRepoPath, "not-bool"), ExpectedError: ErrValidationTypeMismatch},
+		{Name: "Wrong_Arg_Type_(Commit1)", InputArgs: MakeArgs(dummyRepoPath, false, 123), ExpectedError: ErrValidationTypeMismatch},
 	}
 	runValidationTestCases(t, "Git.Diff", testCases)
 }

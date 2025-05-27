@@ -9,6 +9,7 @@ package adapters
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/aprice2704/neuroscript/pkg/core" // Correctly import core
 	"github.com/google/generative-ai-go/genai"   // For genai.Client return type
@@ -28,15 +29,23 @@ func NewNoOpLLMClient() *NoOpLLMClient {
 // Ensure NoOpLLMClient implements core.LLMClient at compile time.
 var _ core.LLMClient = (*NoOpLLMClient)(nil)
 
-// Ask performs no operation.
-// Returns a minimal valid ConversationTurn (RoleAssistant, empty content, zero TokenUsage) and nil error.
+// Ask implements the LLMClient interface by returning a predefined response or an error.
+// It now correctly accepts []*core.ConversationTurn and returns *core.ConversationTurn.
 func (c *NoOpLLMClient) Ask(ctx context.Context, turns []*core.ConversationTurn) (*core.ConversationTurn, error) {
-	return &core.ConversationTurn{
-		Role:       core.RoleAssistant,
-		Content:    "No-op Ask response.",
-		TokenUsage: core.TokenUsageMetrics{}, // Assuming TokenUsageMetrics is part of ConversationTurn or accessible
-	}, nil
+	// For a No-Op, we can return a minimal valid response or an error indicating it's a No-Op.
+	// Option 1: Return a simple "No-Op response"
+	// responseTurn := &core.ConversationTurn{
+	// 	Role:    core.RoleAssistant,
+	// 	Content: "NoOpLLMClient: No operation performed.",
+	// }
+	// return responseTurn, nil
+
+	// Option 2: Return nil and a specific error (might be more informative in tests)
+	return nil, fmt.Errorf("NoOpLLMClient: Ask method called, but no operation is performed")
 }
+
+// Ensure NoOpLLMClient implements the core.LLMClient interface.
+var _ core.LLMClient = (*NoOpLLMClient)(nil)
 
 // AskWithTools performs no operation.
 // Returns a minimal valid ConversationTurn, nil tool calls slice, and nil error.

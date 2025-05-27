@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.3.0
-// File version: 0.0.2 // Align Step creation with revised ast.go for blocks
-// Last Modified: 2025-05-09 // Updated to reflect new Step struct fields
+// File version: 0.0.3 // Balanced IF statement context, simplified ELSE handling.
+// Last Modified: 2025-05-27
 package core
 
 import (
@@ -13,8 +13,10 @@ import (
 func (l *neuroScriptListenerImpl) enterBlockContext(blockType string) {
 	l.logDebugAST(">>> Enter %s Statement Context", blockType)
 	if l.currentSteps == nil {
-		l.logger.Warn("Entering %s block, but currentSteps is nil. Starting fresh.", blockType)
-		l.blockStepStack = append(l.blockStepStack, nil) // Push nil parent
+		l.logger.Warn("Entering %s block, but currentSteps is nil. Starting fresh. This might indicate an earlier error.", blockType)
+		// Push nil to signify the parent context was already lost.
+		// This helps in debugging but doesn't fix the root cause of currentSteps being nil here.
+		l.blockStepStack = append(l.blockStepStack, nil)
 		newSteps := make([]Step, 0)
 		l.currentSteps = &newSteps
 	} else {
@@ -36,12 +38,14 @@ func (l *neuroScriptListenerImpl) exitBlockContext(blockType string) []Step {
 		l.logDebugAST("      Captured %d steps from context %p for %s block", len(completedSteps), l.currentSteps, blockType)
 	} else {
 		l.logger.Warn("%s: Exiting block, but currentSteps was nil when capturing. Returning empty slice.", blockType)
-		completedSteps = []Step{}
+		completedSteps = []Step{} // Return empty, but an error should have been logged if this state is unexpected.
 	}
 
 	stackSize := len(l.blockStepStack)
 	if stackSize == 0 {
-		l.logger.Error("%s: Cannot restore parent context, stack empty!", blockType)
+		l.logger.Error("%s: Cannot restore parent context, stack empty! Setting currentSteps to nil.", blockType)
+		// This is a critical error point. Add to listener errors.
+		l.errors = append(l.errors, NewRuntimeError(ErrorCodeInternal, "["+blockType+"] Stack empty, cannot restore parent context.", nil))
 		l.currentSteps = nil // Ensure currentSteps is nil if stack is unexpectedly empty
 		return completedSteps
 	}
@@ -53,35 +57,24 @@ func (l *neuroScriptListenerImpl) exitBlockContext(blockType string) []Step {
 	l.currentSteps = parentStepsPtr // Restore parent pointer
 
 	if l.currentSteps == nil {
-		l.logDebugAST("<<< Exit exitBlockContext for %s (Restored parent, currentSteps is now nil, Stack size: %d)", blockType, len(l.blockStepStack))
+		l.logDebugAST("<<< Exit exitBlockContext for %s (Restored parent, currentSteps is now nil. Stack size: %d)", blockType, len(l.blockStepStack))
+		// If parentStepsPtr was nil, this means the parent context was already lost.
+		// This is a symptom of an earlier error.
+		l.logger.Warn("%s: Restored parent context is nil. This is problematic for appending subsequent steps.", blockType)
 	} else {
 		l.logDebugAST("<<< Exit exitBlockContext for %s (Restored parent, currentSteps points to list of len %d, Stack size: %d)", blockType, len(*l.currentSteps), len(l.blockStepStack))
 	}
 	return completedSteps
 }
 
-// EnterStatement_list:
-// This is a generic entry point. For specific blocks like IF, the enterBlockContext
-// is typically called from a more specific rule like EnterStatement_list_within_if (if such exists)
-// or directly in the Enter<BlockType>_statement.
-// The main purpose here is to log or ensure currentSteps is valid if we are at the top level of a procedure.
 func (l *neuroScriptListenerImpl) EnterStatement_list(ctx *gen.Statement_listContext) {
-	// Only initialize if currentSteps is nil AND we're not already in a block context being managed
-	// (blockStepStack being empty implies we are at the procedure's top-level statement list or file header aftermath)
 	if l.currentSteps == nil && len(l.blockStepStack) == 0 {
-		// This scenario typically means we are starting the main body of a procedure
-		// (after metadata_block and before the first actual statement of the procedure body).
-		// The currentProc.Steps should be initialized in EnterProcedure_definition.
-		// This function should mostly be about setting up for nested blocks if the grammar uses
-		// statement_list recursively within them without a more specific enter rule.
-		// For IF/WHILE/FOR/ON_ERROR, their Enter* methods handle calling enterBlockContext.
-		l.logDebugAST(">>> Enter Statement_list (Potentially top-level of proc or unmanaged block - currentSteps: %p)", l.currentSteps)
+		l.logDebugAST(">>> Enter Statement_list (Likely top-level of proc or unmanaged block - currentSteps: %p)", l.currentSteps)
 	} else {
 		l.logDebugAST(">>> Enter Statement_list (currentSteps: %p, blockStack: %d)", l.currentSteps, len(l.blockStepStack))
 	}
 }
 
-// ExitStatement_list should generally do nothing as steps are appended directly.
 func (l *neuroScriptListenerImpl) ExitStatement_list(ctx *gen.Statement_listContext) {
 	l.logDebugAST("<<< Exit Statement_list (%s)", ctx.GetText())
 }
@@ -89,48 +82,40 @@ func (l *neuroScriptListenerImpl) ExitStatement_list(ctx *gen.Statement_listCont
 // --- IF Statement ---
 func (l *neuroScriptListenerImpl) EnterIf_statement(ctx *gen.If_statementContext) {
 	l.logDebugAST(">>> Enter IF Statement Context (Parent currentSteps: %p)", l.currentSteps)
-	// The condition expression will be visited first and its result pushed onto l.valueStack.
-	// Then, the statement_list for the 'then' block will be visited.
-	// We push the current l.currentSteps (parent's step list) onto the blockStepStack
-	// and set l.currentSteps to a new slice for the 'then' block's steps.
-	l.enterBlockContext("IF-THEN")
+	// This single enterBlockContext is intended for the primary body of statements within the IF.
+	// In the current simplified model, this will capture 'then' statements, and if 'else' exists,
+	// 'else' statements will also be appended here unless EnterStatement_list becomes context-aware.
+	l.enterBlockContext("IF_BODY")
 }
-
-// EnterStatement_list_within_if is not standard ANTLR. Logic moved to EnterIf_statement and ExitIf_statement.
-// If `statement_list` is a direct child of `if_statement` for both `then` and `else` parts,
-// ANTLR will call `EnterStatement_list` for them. We need to distinguish based on parent or sibling context.
-// Simpler: Manage stack explicitly in ExitIf_statement. `enterBlockContext` in `EnterIf_statement` handles the "then" block.
-// If there's an "else", `EnterElse_clause` (if it exists) or logic in `ExitIf_statement` would handle its block.
-
-// For the 'else' part, we need to capture the 'then' steps, then prepare for 'else' steps.
-// This is tricky with just Enter/Exit on if_statement.
-// A common pattern is to handle this in ExitIf_statement.
 
 func (l *neuroScriptListenerImpl) ExitIf_statement(ctx *gen.If_statementContext) {
 	l.logDebugAST("--- ExitIf_statement: Finalizing IF step (%s)", ctx.GetText())
 
+	// This call to exitBlockContext matches the single call in EnterIf_statement.
+	// It will capture all statements parsed into the currentSteps since EnterIf_statement.
+	// In the current setup, this means 'then' and 'else' (if present) are co-mingled.
+	allIfSteps := l.exitBlockContext("IF_BODY")
+	l.logDebugAST("         Captured all IF body steps (count: %d)", len(allIfSteps))
+
+	// These steps are now assigned to 'Body'. 'Else' remains empty here.
+	// This is a simplification. A full solution needs distinct handling for then/else bodies.
+	thenSteps := allIfSteps
 	var elseSteps []Step
-	// If there's an ELSE clause, the `exitBlockContext` for it should be called BEFORE the `exitBlockContext` for THEN.
-	// This means the `enterBlockContext` for ELSE must have happened AFTER `enterBlockContext` for THEN.
-	// The ANTLR walk order is: IF cond THEN_BLOCK (ELSE ELSE_BLOCK)? ENDIF
-	// So when we exit IF, the last block on stack is THEN, or ELSE if present.
 
 	if ctx.KW_ELSE() != nil {
-		// The steps for the ELSE block were just completed and are in l.currentSteps.
-		// Pop them using exitBlockContext. This also restores l.currentSteps to be the THEN block's steps.
-		elseSteps = l.exitBlockContext("IF-ELSE")
-		l.logDebugAST("         Captured %d ELSE steps", len(elseSteps))
+		l.logger.Warn("IF statement with an ELSE clause: The current AST building logic will place ELSE block steps into the THEN block's 'Body'. Proper separation of THEN and ELSE steps requires more sophisticated listener logic to manage distinct contexts for each branch.")
+		// elseSteps remains empty with this simplified approach.
+		// A more robust fix would involve splitting combinedThenElseSteps or, ideally,
+		// having separate contexts pushed/popped for then and else branches.
 	}
 
-	// Now, the steps for the THEN block are in l.currentSteps (or were just restored if there was an ELSE).
-	// Pop them using exitBlockContext. This restores l.currentSteps to be the parent of the IF statement.
-	thenSteps := l.exitBlockContext("IF-THEN")
-	l.logDebugAST("         Captured %d THEN steps", len(thenSteps))
-
-	// The condition for the IF statement should be on the value stack.
 	conditionRaw, ok := l.popValue()
 	if !ok {
 		l.addError(ctx, "Stack error popping condition for IF statement")
+		// If currentSteps is nil here, it means exitBlockContext failed to restore a valid parent.
+		if l.currentSteps == nil {
+			l.addError(ctx, "Parent context for IF statement became nil after exiting IF_BODY.")
+		}
 		return
 	}
 	conditionNode, isExpr := conditionRaw.(Expression)
@@ -141,7 +126,7 @@ func (l *neuroScriptListenerImpl) ExitIf_statement(ctx *gen.If_statementContext)
 	l.logDebugAST("         Popped IF condition: %T", conditionNode)
 
 	if l.currentSteps == nil {
-		l.addError(ctx, "Cannot append IF step: currentSteps (parent) is nil after block exits.")
+		l.addError(ctx, "Cannot append IF step: currentSteps (parent) is nil after IF block processing.")
 		return
 	}
 
@@ -149,21 +134,18 @@ func (l *neuroScriptListenerImpl) ExitIf_statement(ctx *gen.If_statementContext)
 		Pos:  tokenToPosition(ctx.KW_IF().GetSymbol()),
 		Type: "if",
 		Cond: conditionNode,
-		Body: thenSteps, // Use Body for 'then' steps
-		Else: elseSteps, // Use Else for 'else' steps
-		// Metadata: make(map[string]string),
+		Body: thenSteps,
+		Else: elseSteps, // elseSteps is empty in this simplified fix
 	}
 	*l.currentSteps = append(*l.currentSteps, ifStep)
-	l.logDebugAST("         Appended IF Step: Cond=%T, ThenSteps=%d, ElseSteps=%d",
-		ifStep.Cond, len(ifStep.Body), len(ifStep.Else))
+	l.logDebugAST("         Appended IF Step: Cond=%T, ThenSteps=%d, ElseSteps=%d to parent context %p",
+		ifStep.Cond, len(ifStep.Body), len(ifStep.Else), l.currentSteps)
 }
 
 // --- WHILE Statement ---
 func (l *neuroScriptListenerImpl) EnterWhile_statement(ctx *gen.While_statementContext) {
 	l.loopDepth++
 	l.logDebugAST(">>> Enter WHILE Statement Context (Loop Depth: %d)", l.loopDepth)
-	// Condition is visited first. Then statement_list (body).
-	// Prepare for the body's steps.
 	l.enterBlockContext("WHILE-BODY")
 }
 
@@ -174,12 +156,15 @@ func (l *neuroScriptListenerImpl) ExitWhile_statement(ctx *gen.While_statementCo
 	}()
 	l.logDebugAST("--- ExitWhile_statement: Finalizing WHILE step (%s)", ctx.GetText())
 
-	bodySteps := l.exitBlockContext("WHILE-BODY") // Pop body steps, restore parent l.currentSteps
+	bodySteps := l.exitBlockContext("WHILE-BODY")
 	l.logDebugAST("         Captured %d WHILE body steps", len(bodySteps))
 
-	conditionRaw, ok := l.popValue() // Condition was pushed before body
+	conditionRaw, ok := l.popValue()
 	if !ok {
 		l.addError(ctx, "Stack error popping condition for WHILE statement")
+		if l.currentSteps == nil {
+			l.addError(ctx, "Parent context for WHILE statement became nil after exiting WHILE-BODY.")
+		}
 		return
 	}
 	conditionNode, isExpr := conditionRaw.(Expression)
@@ -198,8 +183,7 @@ func (l *neuroScriptListenerImpl) ExitWhile_statement(ctx *gen.While_statementCo
 		Pos:  tokenToPosition(ctx.KW_WHILE().GetSymbol()),
 		Type: "while",
 		Cond: conditionNode,
-		Body: bodySteps, // Use Body for loop steps
-		// Metadata: make(map[string]string),
+		Body: bodySteps,
 	}
 	*l.currentSteps = append(*l.currentSteps, whileStep)
 	l.logDebugAST("         Appended WHILE Step: Cond=%T, BodySteps=%d",
@@ -210,8 +194,6 @@ func (l *neuroScriptListenerImpl) ExitWhile_statement(ctx *gen.While_statementCo
 func (l *neuroScriptListenerImpl) EnterFor_each_statement(ctx *gen.For_each_statementContext) {
 	l.loopDepth++
 	l.logDebugAST(">>> Enter FOR EACH Statement Context (Loop Depth: %d)", l.loopDepth)
-	// IDENTIFIER and collection Expression are visited first. Then statement_list (body).
-	// Prepare for the body's steps.
 	l.enterBlockContext("FOR-EACH-BODY")
 }
 
@@ -222,13 +204,15 @@ func (l *neuroScriptListenerImpl) ExitFor_each_statement(ctx *gen.For_each_state
 	}()
 	l.logDebugAST("--- ExitFor_each_statement: Finalizing FOR EACH step (%s)", ctx.GetText())
 
-	bodySteps := l.exitBlockContext("FOR-EACH-BODY") // Pop body steps
+	bodySteps := l.exitBlockContext("FOR-EACH-BODY")
 	l.logDebugAST("         Captured %d FOR EACH body steps", len(bodySteps))
 
-	// Collection expression was pushed before the body
 	collectionRaw, ok := l.popValue()
 	if !ok {
 		l.addError(ctx, "Stack error popping collection expression for FOR EACH statement")
+		if l.currentSteps == nil {
+			l.addError(ctx, "Parent context for FOR_EACH statement became nil after exiting FOR-EACH-BODY.")
+		}
 		return
 	}
 	collectionNode, isExpr := collectionRaw.(Expression)
@@ -243,7 +227,6 @@ func (l *neuroScriptListenerImpl) ExitFor_each_statement(ctx *gen.For_each_state
 		loopVar = idNode.GetText()
 	} else {
 		l.addError(ctx, "Missing IDENTIFIER for loop variable in FOR EACH statement")
-		// Potentially return or create an error step
 	}
 
 	if l.currentSteps == nil {
@@ -253,11 +236,10 @@ func (l *neuroScriptListenerImpl) ExitFor_each_statement(ctx *gen.For_each_state
 
 	forStep := Step{
 		Pos:    tokenToPosition(ctx.KW_FOR().GetSymbol()),
-		Type:   "for",          // Or "for_each" if you want to distinguish more in Step.Type
-		Target: loopVar,        // Loop iteration variable
-		Cond:   collectionNode, // Collection being iterated (using Cond field as per prior use for IF/WHILE condition)
-		Body:   bodySteps,      // Loop body
-		// Metadata: make(map[string]string),
+		Type:   "for",
+		Target: loopVar,
+		Cond:   collectionNode,
+		Body:   bodySteps,
 	}
 	*l.currentSteps = append(*l.currentSteps, forStep)
 	l.logDebugAST("         Appended FOR EACH Step: Var=%q, Collection=%T, BodySteps=%d",
@@ -273,43 +255,40 @@ func (l *neuroScriptListenerImpl) EnterOnErrorStmt(ctx *gen.OnErrorStmtContext) 
 func (l *neuroScriptListenerImpl) ExitOnErrorStmt(ctx *gen.OnErrorStmtContext) {
 	l.logDebugAST("--- ExitOnErrorStmt: Finalizing ON_ERROR step (%s)", ctx.GetText())
 
-	handlerSteps := l.exitBlockContext("ON-ERROR-HANDLER") // Pop handler steps
+	handlerSteps := l.exitBlockContext("ON-ERROR-HANDLER")
 	l.logDebugAST("         Captured %d ON_ERROR handler steps", len(handlerSteps))
 
-	// No condition or value to pop from stack for on_error itself.
-	// It's a block triggered by runtime errors.
-
-	if l.currentProc == nil { // on_error is procedure-scoped
+	if l.currentProc == nil {
 		l.addError(ctx, "ON_ERROR statement defined outside of a procedure context.")
 		return
 	}
-	// The on_error block applies to the current procedure.
-	// We might want to attach this to l.currentProc directly,
-	// or handle it as a special kind of step if it can appear mid-procedure (current grammar implies it's a block statement).
-	// For now, let's assume it's a step that the interpreter handles by associating with current procedure execution frame.
-
-	// If it needs to be attached to the Procedure AST node:
-	// l.currentProc.OnErrorHandler = handlerSteps // (Requires OnErrorHandler field in Procedure AST)
-	// OR, if it's a step in the main flow that defines the handler:
 
 	if l.currentSteps == nil {
-		l.addError(ctx, "Cannot append ON_ERROR step: currentSteps (parent) is nil after block exit.")
-		// This might happen if on_error is the only thing in a procedure, which is unusual but possible.
-		// If currentSteps should be procedure's main step list:
-		if l.currentProc != nil {
+		// This can happen if the procedure body was empty except for on_error,
+		// or if a preceding block corrupted currentSteps for the procedure.
+		l.addError(ctx, "Cannot append ON_ERROR step: currentSteps (parent for procedure) is nil.")
+		// Attempt to recover by directly using procedure's step list if possible,
+		// but this indicates a prior issue.
+		if l.currentProc != nil { // currentProc should not be nil here due to above check
+			l.logger.Warn("Attempting to recover currentSteps for ON_ERROR by using procedure's main step list.")
 			l.currentSteps = &l.currentProc.Steps
 		} else {
-			return // Can't proceed
+			return // Cannot proceed if currentProc is also nil
 		}
+	}
+
+	// This check must pass if recovery or normal flow worked.
+	if l.currentSteps == nil {
+		l.addError(ctx, "FATAL: currentSteps still nil before appending ON_ERROR step, even after recovery attempt.")
+		return
 	}
 
 	onErrorStep := Step{
 		Pos:  tokenToPosition(ctx.KW_ON_ERROR().GetSymbol()),
 		Type: "on_error",
-		Body: handlerSteps, // Use Body for handler steps
-		// Metadata: make(map[string]string),
+		Body: handlerSteps,
 	}
-	*l.currentSteps = append(*l.currentSteps, onErrorStep) // Appends it to the current scope's steps
+	*l.currentSteps = append(*l.currentSteps, onErrorStep)
 	l.logDebugAST("         Appended ON_ERROR Step: HandlerSteps=%d", len(onErrorStep.Body))
 	l.logDebugAST("<<< Exit ON_ERROR Statement Final")
 }

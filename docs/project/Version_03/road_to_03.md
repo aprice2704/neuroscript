@@ -3,7 +3,7 @@
 :: id: ns-roadmap-v0.3.0
 :: status: draft
 :: description: Prioritized tasks to implement NeuroScript v0.3.0 based on design discussions and Vision (May 7, 2025).
-:: updated: 2025-05-07
+:: updated: 2025-05-27
 
 # NeuroScript v0.3.0 Development Tasks
 
@@ -40,7 +40,7 @@ I am thinking this should mostly be a ns that ng runs.)
     - [ ] Investigate potential for parallel step execution? (Future/low priority)
     - [ ] Configuration: Mechanism for SAI to configure ng sandbox/tools?
     - [ ] Apply prompt to each file in a tree (file filter, sys prompt etc.)
-    - [ ] Update ng "modes" etc.
+    - [x] Update ng "modes" etc.
 
 - [x] 3. Core Go Tooling (Go-Specific)
     - [x] Go Module Awareness: GoGetModuleInfo, FindAndParseGoMod helper.

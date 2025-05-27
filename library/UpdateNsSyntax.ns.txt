@@ -5,14 +5,6 @@
 :: requires_tool: tool.FS.List, tool.FS.Read, tool.FS.Write, tool.Git.Add, tool.Git.Commit, tool.HasSuffix, tool.IsList, tool.AIWorker.ExecuteStatelessTask
 :: requires_ai: true
 :: file_version: 32.0.0
-:: Changes:
-:: - Updated tool names to reflect official ToolList-301.md (e.g., FS.List, HasSuffix, AIWorker.ExecuteStatelessTask).
-:: - Adjusted AIWorker.ExecuteStatelessTask call to include original_code within the prompt.
-:: - Integrated AI Worker Manager via tool.AIWorker.ExecuteStatelessTask.
-:: - Added 'worker_definition_name' parameter.
-:: - Corrected placeholder syntax from {{{...}}} to {{...}}.
-:: - Adjusted prompt construction and AI result handling.
-:: - Added more comments for clarity.
 
 # Assumption: NEUROSCRIPT_DEVELOP_PROMPT is a globally available string constant
 # containing general syntax rules or guidelines for the AI.
@@ -70,8 +62,7 @@ func UpdateNsSyntax(needs directory_path, worker_definition_name returns status_
       continue
     endif
 
-    set base_instruction = "Refactor the provided NeuroScript code to strictly adhere to the latest NeuroScript syntax rules.
-Ensure your output is ONLY the raw, refactored NeuroScript code, without any markdown fences, explanations, or conversational filler."
+    set base_instruction = "Refactor the provided NeuroScript code to strictly adhere to the latest NeuroScript syntax rules. Ensure your output is ONLY the raw, refactored NeuroScript code, without any markdown fences, explanations, or conversational filler."
     set temp_prompt_holder = "" # Used to build the full prompt
     if NEUROSCRIPT_DEVELOP_PROMPT != nil and NEUROSCRIPT_DEVELOP_PROMPT != ""
         set temp_prompt_holder = NEUROSCRIPT_DEVELOP_PROMPT + double_newline + base_instruction

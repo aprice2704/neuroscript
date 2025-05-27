@@ -1,7 +1,7 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.1.1 // Made RemoveNode Leaf and SetValue Valid Leaf tests robust to non-deterministic node IDs
+// File version: 0.1.2 // Adjust NewDefaultTestInterpreter error check to align with helpers.go
 // Tests for tree modification tools (SetValue, AddChildNode, RemoveNode).
-// nlines: ~130
+// nlines: ~128 // Approximate
 // risk_rating: MEDIUM
 // filename: pkg/core/tools_tree_modify_test.go
 
@@ -259,10 +259,10 @@ func TestTreeModificationTools(t *testing.T) {
 	for _, tc := range testCases {
 		// Using NewDefaultTestInterpreter for a fresh, isolated environment for each test case.
 		// This helper should handle logger, NoOpLLM, sandbox, and registering core tools (including tree tools).
-		currentInterp, err := NewDefaultTestInterpreter(t)
-		if err != "" {
-			t.Fatalf("Failed to create default test interpreter for test case '%s': %v", tc.name, err)
-		}
+		currentInterp, _ := NewDefaultTestInterpreter(t) // Second return value (sandboxDir string) is ignored.
+		// If NewDefaultTestInterpreter encountered a true error, it would have called t.Fatalf internally.
+		// So, if we reach here, currentInterp is valid.
+
 		// Ensure tree tools are registered if NewDefaultTestInterpreter doesn't do it.
 		// (Typically, a default test interpreter would register all core tools).
 		// For explicitness, or if NewDefaultTestInterpreter is minimal:

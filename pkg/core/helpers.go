@@ -2,7 +2,7 @@
 // File version: 0.0.5 // Fix NewInterpreter calls for procedurePaths arg.
 // filename: pkg/core/helpers.go
 // nlines: 198 // Corrected line count
-// risk_rating: MEDIUM
+// risk_rating: HIGH
 package core
 
 import (

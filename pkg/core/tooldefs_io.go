@@ -1,9 +1,6 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.0.5 // Updated to reflect user-provided tools_io.go:
-//                      // - Kept Print tool, updated spec.
-//                      // - Mapped Prompt tool to toolInput, updated spec.
-//                      // - Removed Error and Log tools as implementations are not in provided tools_io.go.
-// Defines ToolImplementation structs for basic I/O tools.
+// File version: 0.0.6 // Renamed 'Prompt' tool to 'Input' to match tests and implementation.
+// Purpose: Defines ToolImplementation structs for basic I/O tools.
 // filename: pkg/core/tooldefs_io.go
 // nlines: 70 // Approximate
 // risk_rating: LOW // Primarily deals with standard I/O.
@@ -34,7 +31,7 @@ var ioToolsToRegister = []ToolImplementation{
 	},
 	{
 		Spec: ToolSpec{
-			Name:        "Prompt", // Was "Prompt", now implemented by toolInput
+			Name:        "Input", // Changed from "Prompt" to "Input"
 			Description: "Displays a message and waits for user input from standard input. Returns the input as a string.",
 			Category:    "Input/Output",
 			Args: []ArgSpec{
@@ -42,10 +39,10 @@ var ioToolsToRegister = []ToolImplementation{
 			},
 			ReturnType:      ArgTypeString,
 			ReturnHelp:      "Returns the string entered by the user, with trailing newline characters trimmed. Returns an empty string and an error if reading input fails.",
-			Example:         `userName = TOOL.Prompt(message: "Enter your name: ")`,
+			Example:         `userName = TOOL.Input(message: "Enter your name: ")`, // Updated example to use TOOL.Input
 			ErrorConditions: "ErrorCodeType if the prompt message argument is provided but not a string; ErrorCodeIOFailed if reading from standard input fails (e.g., EOF).",
 		},
-		Func: toolInput, // Mapped to toolInput from user-provided tools_io.go
+		Func: toolInput, // Mapped to toolInput
 	},
 	// Removed "Error" tool as toolPrintError is not in the provided tools_io.go
 	// Removed "Log" tool as toolLogMessage is not in the provided tools_io.go

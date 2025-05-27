@@ -1,8 +1,9 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.0.3 // Populated Category, Example, ReturnHelp, ErrorConditions for ToolSpecs.
-// nlines: 130 // Approximate
-// risk_rating: MEDIUM // Interacts with Git, potentially modifying state or exposing info.
+// File version: 0.0.4 // Added missing Git tool definitions (Branch, Checkout, Rm, Merge, Diff)
+// Purpose: Defines ToolImplementation structs for Git tools.
 // filename: pkg/core/tooldefs_git.go
+// nlines: 260 // Approximate
+// risk_rating: MEDIUM // Interacts with Git, potentially modifying state or exposing info.
 
 package core
 
@@ -88,5 +89,93 @@ var gitToolsToRegister = []ToolImplementation{
 			ErrorConditions: "ErrConfiguration if sandbox directory is not set; ErrInvalidArgument if relative_path is missing/invalid type; ErrGitRepositoryNotFound if the specified relative_path is not a Git repository; ErrGitOperationFailed for errors during the 'git push' command (e.g., authentication failure, non-fast-forward, network issues); ErrSecurityPath for invalid relative_path.",
 		},
 		Func: toolGitPush, // from tools_git.go
+	},
+	// Added missing tools below:
+	{
+		Spec: ToolSpec{
+			Name:        "Git.Branch",
+			Description: "Manages branches: lists, creates, or creates and checks out branches in a Git repository.",
+			Category:    "Git",
+			Args: []ArgSpec{
+				{Name: "relative_path", Type: ArgTypeString, Required: true, Description: "Relative path to the repository within the sandbox."},
+				{Name: "name", Type: ArgTypeString, Required: false, Description: "Optional. The name of the branch to create. If omitted, and other list flags are false, lists local branches."},
+				{Name: "checkout", Type: ArgTypeBool, Required: false, Description: "Optional. If true and 'name' is provided, checks out the new branch after creation. Defaults to false."},
+				{Name: "list_remote", Type: ArgTypeBool, Required: false, Description: "Optional. If true, lists remote-tracking branches. Defaults to false."},
+				{Name: "list_all", Type: ArgTypeBool, Required: false, Description: "Optional. If true, lists all local and remote-tracking branches. Defaults to false."},
+			},
+			ReturnType:      ArgTypeString, // Could be map for lists, string for messages
+			ReturnHelp:      "Returns a success message (e.g., on creation) or a string listing branches. Behavior depends on arguments.",
+			Example:         `TOOL.Git.Branch(relative_path: "my_repo", name: "new-feature", checkout: true)\nTOOL.Git.Branch(relative_path: "my_repo", list_all: true)`,
+			ErrorConditions: "ErrConfiguration if sandbox not set; ErrInvalidArgument for bad args; ErrGitRepositoryNotFound; ErrGitOperationFailed for git command errors; ErrSecurityPath for invalid relative_path.",
+		},
+		Func: toolGitBranch, // Assumes a function like toolGitBranch exists in tools_git.go
+	},
+	{
+		Spec: ToolSpec{
+			Name:        "Git.Checkout",
+			Description: "Switches branches or restores working tree files in a Git repository.",
+			Category:    "Git",
+			Args: []ArgSpec{
+				{Name: "relative_path", Type: ArgTypeString, Required: true, Description: "Relative path to the repository within the sandbox."},
+				{Name: "branch", Type: ArgTypeString, Required: true, Description: "The name of the branch to checkout or the commit/pathspec to restore."},
+				{Name: "create", Type: ArgTypeBool, Required: false, Description: "Optional. If true, creates a new branch named by 'branch' and checks it out. Defaults to false."},
+			},
+			ReturnType:      ArgTypeString,
+			ReturnHelp:      "Returns a success message on successful checkout.",
+			Example:         `TOOL.Git.Checkout(relative_path: "my_repo", branch: "main")\nTOOL.Git.Checkout(relative_path: "my_repo", branch: "new-feature", create: true)`,
+			ErrorConditions: "ErrConfiguration if sandbox not set; ErrInvalidArgument for bad args; ErrGitRepositoryNotFound; ErrGitOperationFailed for git command errors (e.g. branch not found, uncommitted changes); ErrSecurityPath for invalid relative_path.",
+		},
+		Func: toolGitCheckout, // Assumes a function like toolGitCheckout exists in tools_git.go
+	},
+	{
+		Spec: ToolSpec{
+			Name:        "Git.Rm",
+			Description: "Removes files from the working tree and from the index in a Git repository.",
+			Category:    "Git",
+			Args: []ArgSpec{
+				{Name: "relative_path", Type: ArgTypeString, Required: true, Description: "Relative path to the repository within the sandbox."},
+				{Name: "paths", Type: ArgTypeAny, Required: true, Description: "A single file path (string) or a list of file paths ([]string) to remove relative to the repository root."},
+			},
+			ReturnType:      ArgTypeString,
+			ReturnHelp:      "Returns a success message on successful removal.",
+			Example:         `TOOL.Git.Rm(relative_path: "my_repo", paths: "old_file.txt")\nTOOL.Git.Rm(relative_path: "my_repo", paths: ["file1.txt", "dir/file2.txt"])`,
+			ErrorConditions: "ErrConfiguration if sandbox not set; ErrInvalidArgument for bad args; ErrGitRepositoryNotFound; ErrGitOperationFailed for git command errors; ErrSecurityPath for invalid relative_path.",
+		},
+		Func: toolGitRm, // Assumes a function like toolGitRm exists in tools_git.go
+	},
+	{
+		Spec: ToolSpec{
+			Name:        "Git.Merge",
+			Description: "Joins two or more development histories together in a Git repository.",
+			Category:    "Git",
+			Args: []ArgSpec{
+				{Name: "relative_path", Type: ArgTypeString, Required: true, Description: "Relative path to the repository within the sandbox."},
+				{Name: "branch", Type: ArgTypeString, Required: true, Description: "The name of the branch to merge into the current branch."},
+			},
+			ReturnType:      ArgTypeString,
+			ReturnHelp:      "Returns a success message or merge details on successful merge.",
+			Example:         `TOOL.Git.Merge(relative_path: "my_repo", branch: "feature-branch")`,
+			ErrorConditions: "ErrConfiguration if sandbox not set; ErrInvalidArgument for bad args; ErrGitRepositoryNotFound; ErrGitOperationFailed for git command errors (e.g. merge conflicts); ErrSecurityPath for invalid relative_path.",
+		},
+		Func: toolGitMerge, // Assumes a function like toolGitMerge exists in tools_git.go
+	},
+	{
+		Spec: ToolSpec{
+			Name:        "Git.Diff",
+			Description: "Shows changes between commits, commit and working tree, etc., in a Git repository.",
+			Category:    "Git",
+			Args: []ArgSpec{
+				{Name: "relative_path", Type: ArgTypeString, Required: true, Description: "Relative path to the repository within the sandbox."},
+				{Name: "cached", Type: ArgTypeBool, Required: false, Description: "Optional. Show staged changes (diff against HEAD). Defaults to false."},
+				{Name: "commit1", Type: ArgTypeString, Required: false, Description: "Optional. First commit or tree object for diff. Defaults to index if 'cached' is true, or HEAD otherwise."},
+				{Name: "commit2", Type: ArgTypeString, Required: false, Description: "Optional. Second commit or tree object for diff. Defaults to the working tree."},
+				{Name: "path", Type: ArgTypeString, Required: false, Description: "Optional. Limit the diff to the specified file or directory path within the repository."},
+			},
+			ReturnType:      ArgTypeString, // Raw diff output
+			ReturnHelp:      "Returns a string containing the diff output.",
+			Example:         `TOOL.Git.Diff(relative_path: "my_repo", cached: true)\nTOOL.Git.Diff(relative_path: "my_repo", commit1: "HEAD~1", commit2: "HEAD", path: "src/")`,
+			ErrorConditions: "ErrConfiguration if sandbox not set; ErrInvalidArgument for bad args; ErrGitRepositoryNotFound; ErrGitOperationFailed for git command errors; ErrSecurityPath for invalid relative_path.",
+		},
+		Func: toolGitDiff, // Assumes a function like toolGitDiff exists in tools_git.go
 	},
 }
