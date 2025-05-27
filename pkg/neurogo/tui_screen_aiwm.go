@@ -54,13 +54,13 @@ func (s *AIWMStatusScreen) Title() string {
 // Primitive creates and populates the table structure ONCE.
 // Subsequent calls return the existing table.
 func (s *AIWMStatusScreen) Primitive() tview.Primitive {
-	fmt.Println("[STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() called.")
+	//fmt.Println("[STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() called.")
 	if s.app != nil && s.app.tui != nil {
 		s.app.tui.LogToDebugScreen("[AIWM_PRIMITIVE_0.1.2M] Primitive() called for %s.", s.name)
 	}
 
 	if s.table == nil {
-		fmt.Println("[STDOUT_AIWM_PRIMITIVE_0.1.2M] Table is nil. Creating, fetching data, and populating.")
+		//	fmt.Println("[STDOUT_AIWM_PRIMITIVE_0.1.2M] Table is nil. Creating, fetching data, and populating.")
 		if s.app != nil && s.app.tui != nil {
 			s.app.tui.LogToDebugScreen("[AIWM_PRIMITIVE_0.1.2M] Table is nil, creating new table and populating ONCE.")
 		}
@@ -157,27 +157,27 @@ func (s *AIWMStatusScreen) Primitive() tview.Primitive {
 			s.app.tui.LogToDebugScreen("[AIWM_PRIMITIVE_0.1.2M] Table already exists, returning same instance.")
 		}
 	}
-	fmt.Println("[STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() returning table.")
+	//fmt.Println("[STDOUT_AIWM_PRIMITIVE_0.1.2M] Primitive() returning table.")
 	return s.table
 }
 
 // OnFocus is now minimal: ensures table exists, sets focus, and selects.
 // Data is loaded by Primitive() when the table is first created.
 func (s *AIWMStatusScreen) OnFocus(setFocus func(p tview.Primitive)) {
-	fmt.Println("[STDOUT_AIWM_ONFOCUS_0.1.2M] Entered OnFocus.")
+	//fmt.Println("[STDOUT_AIWM_ONFOCUS_0.1.2M] Entered OnFocus.")
 	if s.app.tui != nil {
 		s.app.tui.LogToDebugScreen("[AIWM_ONFOCUS_0.1.2M] Entered OnFocus for %s.", s.name)
 	}
 
 	if s.table == nil {
 		// This should ideally not happen if addScreen called Primitive correctly.
-		fmt.Println("[STDOUT_AIWM_ONFOCUS_0.1.2M] Table is nil! Calling Primitive() to ensure it exists.")
+		//fmt.Println("[STDOUT_AIWM_ONFOCUS_0.1.2M] Table is nil! Calling Primitive() to ensure it exists.")
 		if s.app.tui != nil {
 			s.app.tui.LogToDebugScreen("[AIWM_ONFOCUS_0.1.2M] Table is nil. This is unexpected. Calling Primitive() to create.")
 		}
 		s.Primitive() // Will create and populate if nil.
 		if s.table == nil {
-			fmt.Println("[STDOUT_AIWM_ONFOCUS_0.1.2M] Table STILL nil after defensive Primitive call. Aborting OnFocus.")
+			//fmt.Println("[STDOUT_AIWM_ONFOCUS_0.1.2M] Table STILL nil after defensive Primitive call. Aborting OnFocus.")
 			if s.app.tui != nil {
 				s.app.tui.LogToDebugScreen("[AIWM_ONFOCUS_0.1.2M] Table still nil after Primitive(). Cannot set focus.")
 			}
@@ -186,25 +186,25 @@ func (s *AIWMStatusScreen) OnFocus(setFocus func(p tview.Primitive)) {
 		}
 	}
 
-	fmt.Println("[STDOUT_AIWM_ONFOCUS_0.1.2M] Calling setFocus(s.table).")
+	//fmt.Println("[STDOUT_AIWM_ONFOCUS_0.1.2M] Calling setFocus(s.table).")
 	setFocus(s.table)
-	fmt.Println("[STDOUT_AIWM_ONFOCUS_0.1.2M] setFocus(s.table) returned.")
+	//fmt.Println("[STDOUT_AIWM_ONFOCUS_0.1.2M] setFocus(s.table) returned.")
 
 	if s.table.GetRowCount() > 1 { // If headers + data/message row(s)
 		s.table.Select(1, 0)
-		fmt.Println("[STDOUT_AIWM_ONFOCUS_0.1.2M] Selected row 1,0.")
+		//fmt.Println("[STDOUT_AIWM_ONFOCUS_0.1.2M] Selected row 1,0.")
 	} else if s.table.GetRowCount() == 1 { // Only header row
 		s.table.Select(0, 0)
-		fmt.Println("[STDOUT_AIWM_ONFOCUS_0.1.2M] Selected row 0,0 (header).")
+		//fmt.Println("[STDOUT_AIWM_ONFOCUS_0.1.2M] Selected row 0,0 (header).")
 	}
 	if s.app.tui != nil {
 		s.app.tui.LogToDebugScreen("[AIWM_ONFOCUS_0.1.2M] Completed OnFocus for %s.", s.name)
 	}
-	fmt.Println("[STDOUT_AIWM_ONFOCUS_0.1.2M] Exiting OnFocus.")
+	//fmt.Println("[STDOUT_AIWM_ONFOCUS_0.1.2M] Exiting OnFocus.")
 }
 
 func (s *AIWMStatusScreen) OnBlur() {
-	fmt.Println("[STDOUT_AIWM_ONBLUR_0.1.2M] Entered OnBlur.")
+	//fmt.Println("[STDOUT_AIWM_ONBLUR_0.1.2M] Entered OnBlur.")
 	if s.app.tui != nil {
 		s.app.tui.LogToDebugScreen("[AIWM_ONBLUR_0.1.2M] OnBlur called for %s.", s.name)
 	}

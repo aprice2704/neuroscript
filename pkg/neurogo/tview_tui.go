@@ -43,16 +43,16 @@ func CloseTUIDebugLog() {
 // TuiPrintf is a helper to print to the debugFile if it's open, otherwise to stdout.
 // (This will be redirected to the in-TUI debug pane by LogToDebugScreen if called from there)
 func TuiPrintf(format string, a ...interface{}) {
-	msg := fmt.Sprintf(format, a...)
-	if debugFile != nil {
-		// Ensure the message ends with a newline for file logging
-		if !strings.HasSuffix(msg, "\n") {
-			msg += "\n"
-		}
-		fmt.Fprint(debugFile, msg)
-	} else {
-		fmt.Println(msg) // Fallback to stdout if debugFile not initialized
-	}
+	// msg := fmt.Sprintf(format, a...)
+	// if debugFile != nil {
+	// 	// Ensure the message ends with a newline for file logging
+	// 	if !strings.HasSuffix(msg, "\n") {
+	// 		msg += "\n"
+	// 	}
+	// 	fmt.Fprint(debugFile, msg)
+	// } else {
+	// 	fmt.Println(msg) // Fallback to stdout if debugFile not initialized
+	// }
 }
 
 // StartTviewTUI initializes and runs the tview-based Text User Interface.
