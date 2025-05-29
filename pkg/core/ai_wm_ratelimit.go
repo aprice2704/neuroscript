@@ -11,6 +11,7 @@ package core
 import (
 	"fmt"
 	"log" // Standard log for critical panics if m.logger is nil
+	"time"
 	// "time" // time.Now() might still be useful if we re-introduce some fields
 	// "github.com/aprice2704/neuroscript/pkg/logging"
 )
@@ -20,12 +21,12 @@ type WorkerRateTracker struct {
 	DefinitionID           string
 	CurrentActiveInstances int // Retained for basic concurrency tracking, if still used.
 	// --- Fields STUBBED OUT for this debugging phase ---
-	// RequestsThisMinuteCount int
-	// RequestsMinuteMarker    time.Time
-	// TokensThisMinuteCount int64
-	// TokensMinuteMarker    time.Time
-	// TokensThisDayCount int64
-	// TokensDayMarker    time.Time // This field corresponded to addr=0x58 if tracker was nil
+	RequestsThisMinuteCount int
+	RequestsMinuteMarker    time.Time
+	TokensThisMinuteCount   int64
+	TokensMinuteMarker      time.Time
+	TokensThisDayCount      int64
+	TokensDayMarker         time.Time // This field corresponded to addr=0x58 if tracker was nil
 }
 
 // initializeRateTrackerForDefinitionUnsafe creates a new, simplified rate tracker.

@@ -1,8 +1,9 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.0.5 // Fix NewInterpreter calls for procedurePaths arg.
+// File version: 0.0.7
+// Purpose: Improved TestLogger to correctly handle structured logging key-value pairs.
 // filename: pkg/core/helpers.go
-// nlines: 198 // Corrected line count
-// risk_rating: HIGH
+// nlines: 255
+// risk_rating: LOW
 package core
 
 import (
@@ -21,18 +22,53 @@ type TestLogger struct{ t *testing.T }
 
 var _ logging.Logger = (*TestLogger)(nil)
 
-func (l *TestLogger) Debug(msg string, args ...any) { l.t.Logf("[DEBUG] "+msg, args...) }
-func (l *TestLogger) Info(msg string, args ...any)  { l.t.Logf("[INFO] "+msg, args...) }
-func (l *TestLogger) Warn(msg string, args ...any)  { l.t.Logf("[WARN] "+msg, args...) }
-func (l *TestLogger) Error(msg string, args ...any) { l.t.Logf("[ERROR] "+msg, args...) }
-
-func (l *TestLogger) SetLevel(level logging.LogLevel) {
-	// No-op for test logger, level is effectively always Debug
+// NewTestLogger creates a new logger that logs using the provided *testing.T.
+// This is useful for tests within the core package itself.
+func NewTestLogger(t *testing.T) logging.Logger {
+	return &TestLogger{t: t}
 }
-func (l *TestLogger) Debugf(format string, args ...any) { l.t.Logf("[DEBUG] "+format, args...) }
-func (l *TestLogger) Infof(format string, args ...any)  { l.t.Logf("[INFO] "+format, args...) }
-func (l *TestLogger) Warnf(format string, args ...any)  { l.t.Logf("[WARN] "+format, args...) }
-func (l *TestLogger) Errorf(format string, args ...any) { l.t.Logf("[ERROR] "+format, args...) }
+
+func (l TestLogger) logStructured(level string, msg string, args ...any) {
+	var sb strings.Builder
+	sb.WriteString(level)
+	sb.WriteString(" ")
+	sb.WriteString(msg)
+
+	if len(args) > 0 {
+		if len(args)%2 != 0 {
+			sb.WriteString(" (Logger Warning: odd number of key-value arguments provided)")
+			// Append remaining args as best-effort
+			for _, arg := range args {
+				sb.WriteString(fmt.Sprintf(" %v", arg))
+			}
+		} else {
+			for i := 0; i < len(args); i += 2 {
+				key, okKey := args[i].(string)
+				if !okKey {
+					sb.WriteString(fmt.Sprintf(" (Logger Warning: expected string key, got %T)", args[i]))
+					sb.WriteString(fmt.Sprintf(" %v=%v", args[i], args[i+1]))
+					continue
+				}
+				sb.WriteString(fmt.Sprintf(" %s=%v", key, args[i+1]))
+			}
+		}
+	}
+	l.t.Log(sb.String())
+}
+
+func (l TestLogger) Debug(msg string, args ...any) { l.logStructured("[DEBUG]", msg, args...) }
+func (l TestLogger) Info(msg string, args ...any)  { l.logStructured("[INFO]", msg, args...) }
+func (l TestLogger) Warn(msg string, args ...any)  { l.logStructured("[WARN]", msg, args...) }
+func (l TestLogger) Error(msg string, args ...any) { l.logStructured("[ERROR]", msg, args...) }
+
+func (l TestLogger) SetLevel(level logging.LogLevel) {
+	// No-op for test logger, level is effectively always Debug
+	// All messages are logged via t.Logf or t.Log
+}
+func (l TestLogger) Debugf(format string, args ...any) { l.t.Logf("[DEBUG] "+format, args...) }
+func (l TestLogger) Infof(format string, args ...any)  { l.t.Logf("[INFO] "+format, args...) }
+func (l TestLogger) Warnf(format string, args ...any)  { l.t.Logf("[WARN] "+format, args...) }
+func (l TestLogger) Errorf(format string, args ...any) { l.t.Logf("[ERROR] "+format, args...) }
 
 // --- End Internal Test Logger ---
 
@@ -168,7 +204,7 @@ func convertToSliceOfAny(rawValue interface{}) ([]interface{}, bool, error) {
 // It initializes with a NoOpLLMClient and a temporary sandbox directory.
 func NewTestInterpreter(t *testing.T, vars map[string]interface{}, lastResult interface{}) (*Interpreter, string) {
 	t.Helper()
-	testLogger := &TestLogger{t: t}
+	testLogger := NewTestLogger(t) // Use the new constructor
 
 	// Use core.NewLLMClient to get a NoOp client for testing.
 	noOpLLMClient := NewLLMClient("", "", "", testLogger, false)
@@ -180,25 +216,20 @@ func NewTestInterpreter(t *testing.T, vars map[string]interface{}, lastResult in
 		initialVars = make(map[string]interface{})
 	}
 
-	// Call NewInterpreter with all required arguments, passing nil for procedurePaths
-	interp, err := NewInterpreter(testLogger, noOpLLMClient, sandboxDir, initialVars, nil) // <<< FIXED: Added nil for procedurePaths
+	interp, err := NewInterpreter(testLogger, noOpLLMClient, sandboxDir, initialVars, nil)
 	if err != nil {
 		t.Fatalf("Failed to create test interpreter: %v", err)
 	}
 
-	// Set last result if provided
 	if lastResult != nil {
 		interp.lastCallResult = lastResult
 	}
 
-	// Register core tools (essential for most tests)
 	err = RegisterCoreTools(interp)
 	if err != nil {
 		t.Fatalf("Failed to register core tools for test interpreter: %v", err)
 	}
 
-	// Ensure sandbox dir is set correctly AFTER tools might be registered
-	// (though NewInterpreter should handle initial setting)
 	err = interp.SetSandboxDir(sandboxDir)
 	if err != nil {
 		t.Fatalf("Failed to set sandbox dir for test interpreter: %v", err)
@@ -210,6 +241,5 @@ func NewTestInterpreter(t *testing.T, vars map[string]interface{}, lastResult in
 // NewDefaultTestInterpreter provides a convenience wrapper around NewTestInterpreter.
 func NewDefaultTestInterpreter(t *testing.T) (*Interpreter, string) {
 	t.Helper()
-	// The call to NewTestInterpreter handles passing nil for procedurePaths internally now
 	return NewTestInterpreter(t, nil, nil)
 }

@@ -1,7 +1,9 @@
+// NeuroScript Version: 0.3.1
+// File version: 0.0.7
+// Purpose: Correct argument order in CallableExprNode to resolve script-to-script call issues.
 // filename: pkg/core/ast_builder_operators.go
-// NeuroScript Version: 0.3.1 (AST Builder component)
-// File version: 0.0.6 // Align with corrected ast.go, use ErrorNode, verified qualified_identifier access
-// Last Modified: 2025-05-09
+// nlines: 494
+// risk_rating: MEDIUM
 
 package core
 
@@ -478,10 +480,13 @@ func (l *neuroScriptListenerImpl) ExitCallable_expr(ctx *gen.Callable_exprContex
 		}
 		argExpressions = make([]Expression, numArgs)
 		for i := 0; i < numArgs; i++ {
-			argExpr, isExpr := argsRaw[numArgs-1-i].(Expression) // Corrected order for popNValues
+			// argsRaw from popNValues is in the order arguments were pushed to the stack (source order).
+			// We want CallableExprNode.Arguments to also be in source order for correct evaluation.
+			argExpr, isExpr := argsRaw[i].(Expression)
 			if !isExpr {
 				argSourceCtx := ctx.Expression_list_opt().Expression_list().Expression(i)
-				l.addError(argSourceCtx, "Argument %d for call %q is not an Expression (type %T)", i+1, ctx.GetText(), argsRaw[numArgs-1-i])
+				// Error message uses argsRaw[i] as well
+				l.addError(argSourceCtx, "Argument %d for call %q is not an Expression (type %T)", i+1, ctx.GetText(), argsRaw[i])
 				l.pushValue(&ErrorNode{Pos: tokenToPosition(argSourceCtx.GetStart()), Message: "Type error (call arg)"})
 				return
 			}

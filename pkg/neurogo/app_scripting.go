@@ -1,9 +1,9 @@
 // NeuroScript Version: 0.3.0
-// File version: 0.0.1
-// Moved script processing and execution logic from app.go
+// File version: 0.0.3
+// Purpose: Correctly pass -arg CLI arguments to NeuroScript procedures using interpreter.RunProcedure signature from core_index.json.
 // filename: pkg/neurogo/app_scripting.go
-// nlines: 162 // Based on original line counts of moved methods
-// risk_rating: LOW // Verbatim move of existing code
+// nlines: 166
+// risk_rating: MEDIUM
 package neurogo
 
 import (
@@ -21,7 +21,6 @@ import (
 
 // processNeuroScriptFile parses a .ns file and adds its procedures to the interpreter.
 // Returns the list of procedures defined in THIS file and the file's metadata.
-// Moved here from app_script.go
 func (a *App) processNeuroScriptFile(filePath string, interp *core.Interpreter) ([]*core.Procedure, map[string]string, error) {
 	if interp == nil {
 		return nil, nil, fmt.Errorf("cannot process script file '%s': interpreter is nil", filePath)
@@ -35,14 +34,9 @@ func (a *App) processNeuroScriptFile(filePath string, interp *core.Interpreter) 
 	content := string(contentBytes)
 
 	parser := core.NewParserAPI(a.Log)
-	parseResultTree, parseErr := parser.Parse(content) // Matched to the provided app.go
+	parseResultTree, parseErr := parser.Parse(content)
 	if parseErr != nil {
 		a.Log.Error("Parsing failed.", "path", filePath, "error", parseErr)
-		// The provided app.go returns a single error, so we adapt if parseErr is a slice
-		// For now, assuming parseErr is a single error object as per its usage here.
-		// If parser.Parse returns []*core.ErrorNode as per index, this part needs adjustment
-		// based on how app.go intends to handle it.
-		// Reverting to exactly match the provided app.go structure for parseErr:
 		return nil, nil, fmt.Errorf("parsing file %s failed: %w", filePath, parseErr)
 	}
 	if parseResultTree == nil {
@@ -51,8 +45,7 @@ func (a *App) processNeuroScriptFile(filePath string, interp *core.Interpreter) 
 	}
 	a.Log.Debug("Parsing successful.", "path", filePath)
 
-	astBuilder := core.NewASTBuilder(a.Log) // Matched to the provided app.go
-	// Matched to the provided app.go:
+	astBuilder := core.NewASTBuilder(a.Log)
 	programAST, fileMetadata, buildErr := astBuilder.Build(parseResultTree)
 	if buildErr != nil {
 		a.Log.Error("AST building failed.", "path", filePath, "error", buildErr)
@@ -74,10 +67,6 @@ func (a *App) processNeuroScriptFile(filePath string, interp *core.Interpreter) 
 				a.Log.Warn("Skipping nil procedure found in AST map.", "name", name, "path", filePath)
 				continue
 			}
-			// Matched to the provided app.go: if err := interp.AddProcedure(*proc); err != nil {
-			// This assumes AddProcedure takes a core.Procedure value.
-			// The index shows AddProcedure(name string, proc *Procedure) error.
-			// For strict adherence to *verbatim move*, I will keep what's in the uploaded app.go.
 			if err := interp.AddProcedure(*proc); err != nil {
 				a.Log.Error("Failed to add procedure to interpreter.", "procedure", name, "path", filePath, "error", err)
 				return definedProcs, fileMetadata, fmt.Errorf("failed to add procedure '%s' from '%s': %w", name, filePath, err)
@@ -91,7 +80,6 @@ func (a *App) processNeuroScriptFile(filePath string, interp *core.Interpreter) 
 }
 
 // loadLibraries processes all files specified in Config.LibPaths.
-// Moved here from app_script.go
 func (a *App) loadLibraries(interpreter *core.Interpreter) error {
 	if interpreter == nil {
 		return fmt.Errorf("cannot load libraries: interpreter is nil")
@@ -103,7 +91,7 @@ func (a *App) loadLibraries(interpreter *core.Interpreter) error {
 			a.Log.Warn("Could not get absolute path for library path, skipping.", "path", libPath, "error", err)
 			continue
 		}
-		a.Log.Debug("Processing library path.", "path", absPath) // Changed from Info
+		a.Log.Debug("Processing library path.", "path", absPath)
 
 		info, err := os.Stat(absPath)
 		if err != nil {
@@ -143,90 +131,67 @@ func (a *App) loadLibraries(interpreter *core.Interpreter) error {
 	return nil
 }
 
-// ExecuteScriptFile loads and runs the main procedure of a given script file.
-func (app *App) ExecuteScriptFile(ctx context.Context, scriptPath string) error {
+// ExecuteScriptFile loads and runs the target procedure of a given script file, passing arguments.
+func (app *App) ExecuteScriptFile(ctx context.Context, scriptPath string) error { // ctx is kept for potential future use, but not passed to RunProcedure
 	startTime := time.Now()
-	app.Log.Debug("--- Executing Script File ---", "path", scriptPath) // Changed from Info
+	app.Log.Debug("--- Executing Script File ---", "path", scriptPath, "target_flag", app.Config.TargetArg, "args_flag", app.Config.ProcArgs)
 
-	interpreter := app.GetInterpreter() // Use safe getter
+	interpreter := app.GetInterpreter()
 	if interpreter == nil {
 		app.Log.Error("Interpreter is not initialized.")
 		return fmt.Errorf("cannot execute script: interpreter is nil")
 	}
 
-	// Load libraries first (idempotent, but ensures they are loaded if not already)
 	if err := app.loadLibraries(interpreter); err != nil {
 		app.Log.Error("Failed to load libraries before executing script", "error", err)
-		// Decide whether to proceed or return error
 		return fmt.Errorf("error loading libraries for script %s: %w", scriptPath, err)
 	}
 
-	// Process the main script file
 	_, fileMeta, err := app.processNeuroScriptFile(scriptPath, interpreter)
 	if err != nil {
 		return fmt.Errorf("failed to process script %s: %w", scriptPath, err)
 	}
 	if fileMeta == nil {
 		fileMeta = make(map[string]string)
-		app.Log.Warn("No file metadata available from script file processing.", "path", scriptPath)
 	}
 
-	// Determine target procedure: flag -> metadata -> default 'main'
 	procedureToRun := app.Config.TargetArg
 	if procedureToRun == "" {
 		if metaTarget, ok := fileMeta["target"]; ok && metaTarget != "" {
 			procedureToRun = metaTarget
-			app.Log.Debug("Using target procedure from script metadata.", "procedure", procedureToRun) // Changed from Info
+			app.Log.Debug("Using target procedure from script metadata.", "procedure", procedureToRun)
 		} else {
 			procedureToRun = "main"
-			app.Log.Debug("No target specified via flag or metadata, defaulting to 'main'.") // Changed from Info
+			app.Log.Debug("No target specified via flag or metadata, defaulting to 'main'.")
 		}
 	} else {
-		app.Log.Debug("Using target procedure from -target flag.", "procedure", procedureToRun) // Changed from Info
+		app.Log.Debug("Using target procedure from -target flag.", "procedure", procedureToRun)
 	}
 
-	// Prepare arguments (simple map for now)
-	procArgsMap := make(map[string]interface{})
-	for i, arg := range app.Config.ProcArgs {
-		procArgsMap[fmt.Sprintf("arg%d", i+1)] = arg
-	}
-	if app.Config.TargetArg != "" && procedureToRun == app.Config.TargetArg {
-		// Avoid duplicating target arg if it was explicitly set
-	} else if app.Config.TargetArg != "" {
-		// If target was specified but we are running 'main', maybe pass it as 'target'?
-		procArgsMap["target"] = app.Config.TargetArg
+	scriptCLIArgs := app.Config.ProcArgs
+	interpreterArgs := make([]interface{}, len(scriptCLIArgs))
+	for i, argStr := range scriptCLIArgs {
+		interpreterArgs[i] = argStr
 	}
 
-	app.Log.Debug("Executing procedure.", "name", procedureToRun, "args_count", len(procArgsMap)) // Changed from Info
+	app.Log.Debug("Executing procedure.", "name", procedureToRun, "args_count", len(interpreterArgs), "args", interpreterArgs)
 	execStartTime := time.Now()
 
-	// --- RunProcedure Call ---
-	// Sticking with the temporary fix from provided app.go: Run without args from map for now.
-	// The provided app.go shows:
-	// results, runErr = interpreter.RunProcedure(procedureToRun) // No args passed
-	// The index for Interpreter.RunProcedure shows: (ctx context.Context, procName string, args ...interface{}) (interface{}, error)
-	// For strict verbatim move of the *logic block* from the user's app.go, I will replicate its way of calling RunProcedure,
-	// even if it means not passing ctx or the map args.
-	var runErr error
-	var results interface{}
-	if len(procArgsMap) > 0 {
-		app.Log.Warn("Procedure arguments provided via flags/map, but current RunProcedure call doesn't support passing them easily. Executing procedure without these arguments.", "procedure", procedureToRun)
-		results, runErr = interpreter.RunProcedure(procedureToRun) // No args passed, as in provided app.go
-	} else {
-		results, runErr = interpreter.RunProcedure(procedureToRun) // No args passed, as in provided app.go
-	}
-	// --- End RunProcedure Call ---
+	// According to core_index.json, Interpreter.RunProcedure signature is:
+	// RunProcedure(procName string, args ...interface{}) (interface{}, error)
+	// The context `ctx` is not passed here.
+	results, runErr := interpreter.RunProcedure(procedureToRun, interpreterArgs...) //
 
 	execEndTime := time.Now()
 	duration := execEndTime.Sub(execStartTime)
-	app.Log.Debug("Procedure execution finished.", "name", procedureToRun, "duration", duration) // Changed from Info
+	app.Log.Debug("Procedure execution finished.", "name", procedureToRun, "duration", duration)
 
 	if runErr != nil {
 		app.Log.Error("Script execution failed.", "procedure", procedureToRun, "error", runErr)
-		return fmt.Errorf("error executing procedure '%s': %w", procedureToRun, runErr)
+		return fmt.Errorf("error executing procedure '%s' in script '%s': %w", procedureToRun, scriptPath, runErr)
 	}
 
-	app.Log.Debug("Script executed successfully.", "procedure", procedureToRun) // Changed from Info
+	app.Log.Debug("Script executed successfully.", "procedure", procedureToRun)
 	if results != nil {
 		app.Log.Debug("Script Result Value", "result", fmt.Sprintf("%+v", results))
 	} else {
@@ -234,6 +199,6 @@ func (app *App) ExecuteScriptFile(ctx context.Context, scriptPath string) error 
 	}
 
 	totalDuration := time.Since(startTime)
-	app.Log.Debug("--- Script File Execution Finished ---", "path", scriptPath, "total_duration", totalDuration) // Changed from Info
+	app.Log.Debug("--- Script File Execution Finished ---", "path", scriptPath, "total_duration", totalDuration)
 	return nil
 }

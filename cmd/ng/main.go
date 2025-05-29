@@ -54,6 +54,7 @@ func main() {
 
 	targetArg := flag.String("target", "main", "Target procedure for the script")
 	procArgsConfig := neurogo.NewStringSliceFlag()
+
 	flag.Var(procArgsConfig, "arg", "Argument for the script process/procedure (can be specified multiple times)")
 
 	flag.Parse()

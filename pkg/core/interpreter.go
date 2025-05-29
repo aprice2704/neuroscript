@@ -1,23 +1,24 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.0.18 // Add Stdout() getter.
-// nlines: 456 // Approximate
-// risk_rating: HIGH
+// File version: 0.0.21
+// Purpose: Reverted argument to parameter mapping in RunProcedure to direct indexing (args[idx]).
 // filename: pkg/core/interpreter.go
+// nlines: 466
+// risk_rating: MEDIUM
 package core
 
 import (
 	"errors"
 	"fmt"
-	"io" // Imported for io.Writer
-	"os" // Imported for os.Stdout
+	"io"
+	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
-	"time" // Needed for ExecuteTool rate limiting
+	"time"
 
 	"github.com/aprice2704/neuroscript/pkg/core/prompts"
 	"github.com/aprice2704/neuroscript/pkg/logging"
-	"github.com/google/generative-ai-go/genai" // Used by GenAIClient() method
+	"github.com/google/generative-ai-go/genai"
 	"github.com/google/uuid"
 )
 
@@ -31,7 +32,7 @@ type Interpreter struct {
 	currentProcName string
 	sandboxDir      string
 	LibPaths        []string
-	stdout          io.Writer // For EMIT statements, defaults to os.Stdout
+	stdout          io.Writer
 
 	toolRegistry    *ToolRegistryImpl
 	logger          logging.Logger
@@ -50,7 +51,6 @@ const handleSeparator = "::"
 
 // --- Constructor ---
 
-// NewInterpreter creates a new interpreter instance.
 func NewInterpreter(logger logging.Logger, llmClient LLMClient, sandboxDir string, initialVars map[string]interface{}, libPaths []string) (*Interpreter, error) {
 	effectiveLogger := logger
 	if effectiveLogger == nil {
@@ -101,7 +101,7 @@ func NewInterpreter(logger logging.Logger, llmClient LLMClient, sandboxDir strin
 		currentProcName:    "",
 		sandboxDir:         cleanSandboxDir,
 		LibPaths:           effectiveLibPaths,
-		stdout:             os.Stdout, // Default EMIT output to os.Stdout
+		stdout:             os.Stdout,
 		toolRegistry:       nil,
 		logger:             effectiveLogger,
 		objectCache:        make(map[string]interface{}),
@@ -124,7 +124,6 @@ func NewInterpreter(logger logging.Logger, llmClient LLMClient, sandboxDir strin
 	return interp, nil
 }
 
-// SetStdout allows changing the output writer for EMIT statements.
 func (i *Interpreter) SetStdout(writer io.Writer) {
 	if writer == nil {
 		i.logger.Warn("Attempted to set nil stdout writer on interpreter, using os.Stdout as fallback.")
@@ -135,17 +134,13 @@ func (i *Interpreter) SetStdout(writer io.Writer) {
 	i.stdout = writer
 }
 
-// Stdout returns the current io.Writer used for EMIT statements.
 func (i *Interpreter) Stdout() io.Writer {
 	if i.stdout == nil {
-		// This should ideally not happen as it's initialized in NewInterpreter.
 		i.logger.Error("Interpreter stdout writer is nil! Defaulting to os.Stdout for this call.")
 		return os.Stdout
 	}
 	return i.stdout
 }
-
-// --- ToolRegistry Interface Compliance ---
 
 func (i *Interpreter) ToolRegistry() ToolRegistry {
 	return i
@@ -249,8 +244,6 @@ func (i *Interpreter) ExecuteTool(toolName string, args map[string]interface{}) 
 	return result, nil
 }
 
-// --- Getters / Setters (existing methods) ---
-
 func (i *Interpreter) SetAIWorkerManager(manager *AIWorkerManager) {
 	i.aiWorkerManager = manager
 }
@@ -333,7 +326,7 @@ func (i *Interpreter) GetVariable(name string) (interface{}, bool) {
 
 func (i *Interpreter) InternalToolRegistry() *ToolRegistryImpl {
 	if i.toolRegistry == nil {
-		i.Logger().Error("InternalToolRegistry (*ToolRegistryImpl) accessed but is nil!")
+		i.logger.Error("InternalToolRegistry (*ToolRegistryImpl) accessed but is nil!")
 		panic("FATAL: Interpreter's internal toolRegistry field is nil")
 	}
 	return i.toolRegistry
@@ -341,12 +334,12 @@ func (i *Interpreter) InternalToolRegistry() *ToolRegistryImpl {
 
 func (i *Interpreter) GenAIClient() *genai.Client {
 	if i.llmClient == nil {
-		i.Logger().Warn("GenAIClient() called but internal LLMClient is nil.")
+		i.logger.Warn("GenAIClient() called but internal LLMClient is nil.")
 		return nil
 	}
 	client := i.llmClient.Client()
 	if client == nil {
-		i.Logger().Debug("GenAIClient() called, but the configured LLMClient implementation does not provide a *genai.Client.")
+		i.logger.Debug("GenAIClient() called, but the configured LLMClient implementation does not provide a *genai.Client.")
 	}
 	return client
 }
@@ -385,8 +378,6 @@ func (i *Interpreter) GetVectorIndex() map[string][]float32 {
 }
 
 func (i *Interpreter) SetVectorIndex(vi map[string][]float32) { i.vectorIndex = vi }
-
-// --- Handle Management ---
 
 func (i *Interpreter) RegisterHandle(obj interface{}, typePrefix string) (string, error) {
 	if typePrefix == "" {
@@ -448,8 +439,6 @@ func (i *Interpreter) RemoveHandle(handle string) bool {
 	return found
 }
 
-// --- Main Execution Entry Point ---
-
 func (i *Interpreter) RunProcedure(procName string, args ...interface{}) (result interface{}, err error) {
 	originalProcName := i.currentProcName
 	i.Logger().Debug("Running procedure", "name", procName, "arg_count", len(args))
@@ -504,23 +493,33 @@ func (i *Interpreter) RunProcedure(procName string, args ...interface{}) (result
 		i.Logger().Debug("Restored parent variable scope.", "proc_name", procName)
 	}()
 
+	// Original, direct mapping for required parameters
 	for idx, paramName := range proc.RequiredParams {
-		if setErr := i.SetVariable(paramName, args[idx]); setErr != nil {
-			return nil, fmt.Errorf("failed to set required parameter '%s': %w", paramName, setErr)
+		if idx < len(args) { // Defensive check, though numProvided < numRequired is checked above
+			if setErr := i.SetVariable(paramName, args[idx]); setErr != nil {
+				return nil, fmt.Errorf("failed to set required parameter '%s': %w", paramName, setErr)
+			}
+		} else {
+			// This should not be reached if numProvided >= numRequired
+			return nil, fmt.Errorf("internal error: insufficient arguments for required parameter '%s'", paramName)
 		}
 	}
 
+	// Original, direct mapping for optional parameters
 	for idx, paramSpec := range proc.OptionalParams {
 		paramName := paramSpec.Name
 		valueToSet := paramSpec.DefaultValue
-		if (numRequired + idx) < numProvided {
-			valueToSet = args[numRequired+idx]
+
+		originalOptionalArgIndex := numRequired + idx
+		if originalOptionalArgIndex < numProvided { // Check if an argument was actually provided for this optional param
+			valueToSet = args[originalOptionalArgIndex]
 		}
 		if setErr := i.SetVariable(paramName, valueToSet); setErr != nil {
 			return nil, fmt.Errorf("failed to set optional parameter '%s': %w", paramName, setErr)
 		}
 	}
 
+	// Original, direct mapping for variadic parameters
 	if proc.Variadic && proc.VariadicParamName != "" && numProvided > numTotalParams {
 		variadicArgs := args[numTotalParams:]
 		if setErr := i.SetVariable(proc.VariadicParamName, variadicArgs); setErr != nil {
@@ -570,14 +569,8 @@ func (i *Interpreter) RunProcedure(procName string, args ...interface{}) (result
 	return finalResult, nil
 }
 
-// Compile-time check to ensure *Interpreter implements the ToolRegistry interface.
-// The ToolRegistry interface is defined in tools_types.go.
 var _ ToolRegistry = (*Interpreter)(nil)
 
-// AIWorkerManager returns the AIWorkerManager associated with the interpreter.
-// It might be nil if not set.
 func (i *Interpreter) AIWorkerManager() *AIWorkerManager {
-	// Add locking if aiWorkerManager can be set concurrently after interpreter creation.
-	// Assuming it's set once during setup or protected by external synchronization if modified later.
 	return i.aiWorkerManager
 }

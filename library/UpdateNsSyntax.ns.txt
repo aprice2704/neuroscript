@@ -1,37 +1,48 @@
 :: Name: Update NeuroScript Syntax (WM Version)
 :: Purpose: Recursively finds and refactors NeuroScript files (.ns) in a directory to conform to the current grammar using an AI Worker, then stages and commits changes via Git.
-:: Version: 0.3.2
+:: Version: 0.3.4
 :: Author: Gemini (Updated by Gemini)
-:: requires_tool: tool.FS.List, tool.FS.Read, tool.FS.Write, tool.Git.Add, tool.Git.Commit, tool.HasSuffix, tool.IsList, tool.AIWorker.ExecuteStatelessTask
+:: requires_tool: tool.FS.List, tool.FS.Read, tool.FS.Write, tool.Git.Add, tool.Git.Commit, tool.HasSuffix, tool.AIWorker.ExecuteStatelessTask
 :: requires_ai: true
-:: file_version: 32.0.0
-
-# Assumption: NEUROSCRIPT_DEVELOP_PROMPT is a globally available string constant
-# containing general syntax rules or guidelines for the AI.
-# If it's an environment variable, it might need to be fetched via a specific tool if available.
-# For this script, we'll assume it's directly accessible if defined.
+:: file_version: 34.0.0
 
 func UpdateNsSyntax(needs directory_path, worker_definition_name returns status_message) means
   :: description: Recursively updates .ns files in a directory using an AI worker.
   :: param:directory_path: The path to the directory to process.
-  :: param:worker_definition_name: The name of the AI Worker definition to use (e.g., "gemini-1.5-pro-chat").
+  :: param:worker_definition_name: The name of the AI Worker definition to use.
   :: return:0: A status message.
 
   emit "Processing directory: " + directory_path + " with AI Worker: " + worker_definition_name
-  set list_result = tool.FS.List(directory_path) # UPDATED tool name
+  
+  # Attempt to list directory.
+  # If tool.FS.List errors (e.g. path not found), the 'set' statement itself will propagate an error.
+  # This error should be caught by this procedure's 'on_error' block.
+  set list_result = tool.FS.List(directory_path)
 
-  must list_result != nil # Halt if FS.List itself failed critically
-  must tool.IsList(list_result) # Ensure it's a list as expected (tool.IsList left as is)
+  # If the tool call succeeded but returned nil (e.g., for an empty directory, or if that's its error signal),
+  # or if the tool call failed and 'set' resulted in list_result being nil.
+  if list_result == nil
+    emit "[INFO] No entries found or error listing directory (tool returned nil): " + directory_path
+    # If it was an error, it should have been caught by on_error.
+    # If it's just an empty dir, this is fine.
+    # To be safe, if it's nil, we assume it's either empty or an issue already logged by the tool.
+    set status_message = "No listable entries or error for directory: " + directory_path
+    return status_message
+  endif
+
+  # At this point, list_result is not nil.
+  # However, if tool.FS.List returned an error *object* instead of a list or nil,
+  # the 'for each' loop below will still fail. The on_error block is the catch-all.
 
   set local_staged_files_csv = ""
   set double_newline = ```
 
-  ``` # Define two newlines using a raw string
+  ```
 
-  for each entry_map in list_result
+  for each entry_map in list_result # This line will fail if list_result is not actually a list.
     set name = entry_map["name"]
-    set is_dir = entry_map["is_dir"]
-    set current_file_path = directory_path + "/" + name # Basic path join
+    set is_dir = entry_map["isDir"]
+    set current_file_path = directory_path + "/" + name
 
     if is_dir == true
       emit "Entering subdirectory: " + current_file_path
@@ -39,19 +50,18 @@ func UpdateNsSyntax(needs directory_path, worker_definition_name returns status_
       continue
     endif
 
-    if tool.HasSuffix(name, ".ns") == false # UPDATED tool name
+    if not tool.HasSuffix(name, ".ns") and not tool.HasSuffix(name, ".ns.txt")
       continue
     endif
 
-    # Assuming the script file itself might be named UpdateNsSyntax.ns.txt or similar
-    if tool.HasSuffix(name, "UpdateNsSyntax.ns.txt") == true or tool.HasSuffix(name, "UpdateNsSyntaxWM.ns") == true # UPDATED tool name & check
+    if tool.HasSuffix(name, "UpdateNsSyntax.ns.txt") == true or tool.HasSuffix(name, "UpdateNsSyntaxWM.ns") == true
       emit "Skipping self: " + current_file_path
       continue
     endif
 
     emit "Processing file: " + current_file_path
-   
-    set original_code = tool.FS.Read(current_file_path) # UPDATED tool name
+    
+    set original_code = tool.FS.Read(current_file_path)
 
     if original_code == nil
       emit "[WARN] Failed to read file (or file is nil): " + current_file_path
@@ -63,7 +73,7 @@ func UpdateNsSyntax(needs directory_path, worker_definition_name returns status_
     endif
 
     set base_instruction = "Refactor the provided NeuroScript code to strictly adhere to the latest NeuroScript syntax rules. Ensure your output is ONLY the raw, refactored NeuroScript code, without any markdown fences, explanations, or conversational filler."
-    set temp_prompt_holder = "" # Used to build the full prompt
+    set temp_prompt_holder = ""
     if NEUROSCRIPT_DEVELOP_PROMPT != nil and NEUROSCRIPT_DEVELOP_PROMPT != ""
         set temp_prompt_holder = NEUROSCRIPT_DEVELOP_PROMPT + double_newline + base_instruction
     else
@@ -72,22 +82,22 @@ func UpdateNsSyntax(needs directory_path, worker_definition_name returns status_
     
     set full_prompt_for_ai = temp_prompt_holder + double_newline + "### Code to Refactor:" + double_newline + "```neuroscript" + double_newline + original_code + double_newline + "```"
 
-
     emit "Asking AI Worker '" + worker_definition_name + "' to refactor: " + current_file_path
-    # UPDATED tool name and parameter structure
-    # Pass {} for config_overrides if none are specifically needed for this task definition
     set ai_result_map = tool.AIWorker.ExecuteStatelessTask(worker_definition_name, full_prompt_for_ai, {}) 
+    
+    if ai_result_map == nil 
+        emit "[ERROR] AI Worker (" + worker_definition_name + ") call failed fundamentally for " + current_file_path
+        continue
+    endif
 
-   
-    must ai_result_map != nil
+    set ai_error = ai_result_map["error"] 
+    set refactored_code = ai_result_map["response_content"]
 
-    set ai_error = ai_result_map["error"]
-    if ai_error != nil and ai_error != ""
-      emit "[ERROR] AI Worker (" + worker_definition_name + ") returned an error for " + current_file_path + ": " + ai_error
+    if ai_error != nil and ai_error != "" # Check if the map contains an error key
+      emit "[ERROR] AI Worker (" + worker_definition_name + ") task reported an error for " + current_file_path + ": " + ai_error
       continue
     endif
 
-    set refactored_code = ai_result_map["response_content"]
     if refactored_code == nil or refactored_code == ""
       emit "[WARN] AI Worker (" + worker_definition_name + ") returned empty or nil code for: " + current_file_path
       continue
@@ -99,17 +109,17 @@ func UpdateNsSyntax(needs directory_path, worker_definition_name returns status_
     endif
 
     emit "Writing updated file: " + current_file_path
-    set write_status = tool.FS.Write(current_file_path, refactored_code) # UPDATED tool name
-    if write_status != "OK" # Adjust if your tool.FS.Write has different success/error reporting
+    set write_status = tool.FS.Write(current_file_path, refactored_code)
+    # Assuming tool.FS.Write returns "OK" on success. Adjust if it returns nil or a map.
+    if write_status != "OK" 
       emit "[WARN] Failed to write updated file: " + current_file_path + " - Status: " + write_status
       continue
     endif
 
     emit "Staging updated file: " + current_file_path
-    set add_status = tool.Git.Add(current_file_path) # UPDATED tool name
-    # Assuming Git.Add might return more detailed status or just "OK" / error string
-    # For simplicity, checking if it's not nil and not empty for error, or adjust as needed
-    if add_status != nil and add_status != "OK" and add_status != "" # Adjust based on actual Git.Add return on success
+    set add_status = tool.Git.Add(current_file_path)
+    # Assuming tool.Git.Add returns "OK" on success or a specific success message.
+    if add_status != "OK" and add_status != "" and add_status != nil # Check for non-empty error string or non-OK status
       emit "[WARN] Failed to stage file: " + current_file_path + " - Status: " + add_status
       continue
     endif
@@ -124,7 +134,7 @@ func UpdateNsSyntax(needs directory_path, worker_definition_name returns status_
   if local_staged_files_csv != ""
     emit "Committing updated files staged in " + directory_path + ": " + local_staged_files_csv
     set commit_message = "AUTO: Update .ns syntax via AI worker for files in " + directory_path
-    call tool.Git.Commit(commit_message) # UPDATED tool name
+    call tool.Git.Commit(commit_message)
     emit "Commit attempt for " + directory_path + " finished."
   else
     emit "No files staged for commit in " + directory_path
@@ -135,8 +145,11 @@ func UpdateNsSyntax(needs directory_path, worker_definition_name returns status_
 
   on_error means
     emit "[FATAL ERROR] An unhandled error occurred in UpdateNsSyntax for directory: " + directory_path
-    # 'system.error_message' is hypothetical from spec examples.
-    # If available, log it: emit "Error details: " + system.error_message 
-    return "Failure during syntax update for " + directory_path + ". Check logs."
+    # If your interpreter makes error details available in a system variable, you could log it:
+    # if system.error_message != nil 
+    #   emit "Error details: " + system.error_message 
+    # endif
+    set status_message = "Failure during syntax update for " + directory_path + ". Check logs."
+    return status_message # Ensure the function returns the status_message
   endon
 endfunc
