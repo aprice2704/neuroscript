@@ -31,3 +31,4 @@ cmd/nslsp/nslsp_executable
 vscode-neuroscript/server/nslsp_executable
 pkg/codebase-indices/*.json
 
+cmd/nslsp/nslsp_executable

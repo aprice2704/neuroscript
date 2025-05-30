@@ -11,22 +11,38 @@ package core
 import (
 	"fmt"
 	"log" // Standard log for critical panics if m.logger is nil
+	"sync"
 	"time"
 	// "time" // time.Now() might still be useful if we re-introduce some fields
 	// "github.com/aprice2704/neuroscript/pkg/logging"
 )
 
 // WorkerRateTracker struct - Fields for detailed rate limiting are commented out.
+// type WorkerRateTracker struct {
+// 	DefinitionID           string
+// 	CurrentActiveInstances int // Retained for basic concurrency tracking, if still used.
+// 	// --- Fields STUBBED OUT for this debugging phase ---
+// 	RequestsThisMinuteCount int
+// 	RequestsMinuteMarker    time.Time
+// 	TokensThisMinuteCount   int64
+// 	TokensMinuteMarker      time.Time
+// 	TokensThisDayCount      int64
+// 	TokensDayMarker         time.Time // This field corresponded to addr=0x58 if tracker was nil
+// }
+
+// Assumed WorkerRateTracker structure (based on initializeRateTrackersUnsafe) for its Stringer methods.
+// These Stringer methods for WorkerRateTracker should ideally be in core/ai_wm_ratelimit.go if that's where it's defined.
+// For now, they are placed in core/ai_worker_stringers.go.
 type WorkerRateTracker struct {
 	DefinitionID           string
-	CurrentActiveInstances int // Retained for basic concurrency tracking, if still used.
-	// --- Fields STUBBED OUT for this debugging phase ---
-	RequestsThisMinuteCount int
-	RequestsMinuteMarker    time.Time
-	TokensThisMinuteCount   int64
-	TokensMinuteMarker      time.Time
-	TokensThisDayCount      int64
-	TokensDayMarker         time.Time // This field corresponded to addr=0x58 if tracker was nil
+	RequestsLastMinute     int
+	TokensLastMinute       int
+	TokensToday            int
+	RequestsMinuteMarker   time.Time
+	TokensMinuteMarker     time.Time
+	TokensDayMarker        time.Time
+	CurrentActiveInstances int
+	mu                     sync.Mutex // Added for completeness if it's indeed concurrent
 }
 
 // initializeRateTrackerForDefinitionUnsafe creates a new, simplified rate tracker.

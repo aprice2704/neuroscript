@@ -58,6 +58,7 @@ const (
 	ErrorCodeRateLimited         ErrorCode = 20
 	ErrorCodeToolExecutionFailed ErrorCode = 21 // Error code for general tool execution failures
 	ErrorCodeNotImplemented      ErrorCode = 30
+	ErrorCodeTimeout             ErrorCode = 31
 
 	// Filesystem Specific Error Codes (start from 22)
 	ErrorCodeFileNotFound     ErrorCode = 22

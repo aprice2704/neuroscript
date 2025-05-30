@@ -151,6 +151,9 @@ type NeuroScriptListener interface {
 	// EnterLiteral is called when entering the literal production.
 	EnterLiteral(c *LiteralContext)
 
+	// EnterNil_literal is called when entering the nil_literal production.
+	EnterNil_literal(c *Nil_literalContext)
+
 	// EnterBoolean_literal is called when entering the boolean_literal production.
 	EnterBoolean_literal(c *Boolean_literalContext)
 
@@ -318,6 +321,9 @@ type NeuroScriptListener interface {
 
 	// ExitLiteral is called when exiting the literal production.
 	ExitLiteral(c *LiteralContext)
+
+	// ExitNil_literal is called when exiting the nil_literal production.
+	ExitNil_literal(c *Nil_literalContext)
 
 	// ExitBoolean_literal is called when exiting the boolean_literal production.
 	ExitBoolean_literal(c *Boolean_literalContext)

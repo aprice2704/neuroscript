@@ -165,13 +165,15 @@ func StartTviewTUI(mainApp *App, initialScriptPath string) error {
 
 	helpStaticScreen := NewStaticPrimitiveScreen("Help", "Help", helpText)
 	aiwmScreen := NewAIWMStatusScreen(tvP.app)
+	aiwmStringScreen := NewAIWMStringScreen(tvP.app)
 
 	tvP.addScreen(scriptOutputScreen, true)
 	tvP.addScreen(aiwmScreen, true)
 	tvP.addScreen(helpStaticScreen, true)
 	tvP.helpScreenIndex = 2
 
-	tvP.addScreen(tvP.debugScreen, false) // DebugLog screen
+	tvP.addScreen(aiwmStringScreen, false) // Add the new AIWMStringScreen to the right pane
+	tvP.addScreen(tvP.debugScreen, false)  // DebugLog screen
 	tvP.addScreen(NewStaticPrimitiveScreen("HelpRight", "Help (Right)", helpText), false)
 
 	tvP.focusablePrimitives = []tview.Primitive{

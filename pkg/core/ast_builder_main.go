@@ -1,15 +1,16 @@
 // NeuroScript Version: 0.3.0
-// Last Modified: 2025-05-01 12:41:54 PDT
+// Last Modified: 2025-05-29 // Updated for string literal un-escaping and literal handling
 package core
 
 import (
 	"errors"
 	"fmt" // Ensure fmt is imported
+	// Added for number parsing
 	"strings"
 
-	"github.com/antlr4-go/antlr/v4"                            // Import antlr
+	"github.com/antlr4-go/antlr/v4"                            // Corrected ANTLR import
 	gen "github.com/aprice2704/neuroscript/pkg/core/generated" // Corrected path
-	"github.com/aprice2704/neuroscript/pkg/logging"            // Keep logging import for interface
+	"github.com/aprice2704/neuroscript/pkg/logging"
 )
 
 // --- Position Helper ---
@@ -34,6 +35,7 @@ func tokenToPosition(token antlr.Token) *Position {
 		Line:   token.GetLine(),
 		Column: token.GetColumn() + 1, // ANTLR columns are 0-based, prefer 1-based
 		File:   sourceName,
+		// Length: len(token.GetText()), // Add if needed by Position struct consumers
 	}
 }
 
@@ -152,7 +154,7 @@ func (b *ASTBuilder) Build(tree antlr.Tree) (*Program, map[string]string, error)
 	}
 
 	// If duplicates were found OR other errors exist, aggregate errors and return.
-	if duplicateProcs || len(listener.errors) > 0 {
+	if duplicateProcs || len(listener.errors) > 0 { // Check listener.errors again as we might have added new ones
 		errorMessages := make([]string, 0, len(listener.errors))
 		hasNonDuplicateError := false
 		uniqueErrors := make(map[string]struct{}) // Avoid adding same error msg multiple times
@@ -171,10 +173,20 @@ func (b *ASTBuilder) Build(tree antlr.Tree) (*Program, map[string]string, error)
 			}
 		}
 		errorPrefix := "AST build failed"
-		if duplicateProcs && !hasNonDuplicateError {
+		// Adjust error prefix logic based on whether there are any messages to join
+		if len(errorMessages) > 0 {
+			if duplicateProcs && !hasNonDuplicateError && strings.Contains(errorMessages[0], "duplicate procedure definition") {
+				// If the first (and possibly only) error is the duplicate one
+				errorPrefix = fmt.Sprintf("AST build failed due to duplicate procedure definition(s) (first: '%s')", firstDuplicateName)
+			} else if duplicateProcs {
+				errorPrefix = fmt.Sprintf("AST build failed due to duplicate procedure definition(s) (first: '%s') and other errors", firstDuplicateName)
+			}
+		} else if duplicateProcs { // Only duplicates, but errorMessages might be empty if they were all identical.
 			errorPrefix = fmt.Sprintf("AST build failed due to duplicate procedure definition(s) (first: '%s')", firstDuplicateName)
-		} else if duplicateProcs {
-			errorPrefix = fmt.Sprintf("AST build failed due to duplicate procedure definition(s) (first: '%s') and other errors", firstDuplicateName)
+			// Ensure there's at least one message if we indicate duplicates
+			if len(errorMessages) == 0 {
+				errorMessages = append(errorMessages, fmt.Sprintf("duplicate procedure: %s", firstDuplicateName))
+			}
 		}
 
 		combinedError := fmt.Errorf("%s: %s", errorPrefix, strings.Join(errorMessages, "; "))
@@ -190,17 +202,17 @@ func (b *ASTBuilder) Build(tree antlr.Tree) (*Program, map[string]string, error)
 type neuroScriptListenerImpl struct {
 	*gen.BaseNeuroScriptListener
 	program        *Program
-	fileMetadata   map[string]string
-	procedures     []*Procedure
+	fileMetadata   map[string]string // Points to program.Metadata
+	procedures     []*Procedure      // Temporary list of procedures built
 	currentProc    *Procedure
 	currentSteps   *[]Step
 	blockStepStack []*[]Step
-	valueStack     []interface{}
+	valueStack     []interface{} // Stack for AST nodes (Expression, Step, etc.)
 	currentMapKey  *StringLiteralNode
 	logger         logging.Logger
 	debugAST       bool
-	errors         []error
-	loopDepth      int // <<< ADDED: Track nesting level of loops
+	errors         []error // For collecting parse/build errors
+	loopDepth      int
 }
 
 // newNeuroScriptListener creates a new listener instance.
@@ -213,21 +225,27 @@ func newNeuroScriptListener(logger logging.Logger, debugAST bool) *neuroScriptLi
 	return &neuroScriptListenerImpl{
 		BaseNeuroScriptListener: &gen.BaseNeuroScriptListener{},
 		program:                 prog,
-		fileMetadata:            prog.Metadata,
+		fileMetadata:            prog.Metadata, // Directly use program's metadata map
 		procedures:              make([]*Procedure, 0, 10),
 		blockStepStack:          make([]*[]Step, 0, 5),
 		valueStack:              make([]interface{}, 0, 20),
 		logger:                  logger,
 		debugAST:                debugAST,
 		errors:                  make([]error, 0),
-		loopDepth:               0, // <<< ADDED: Initialize loop depth
+		loopDepth:               0,
 	}
 }
 
 // --- Listener Error Handling ---
 func (l *neuroScriptListenerImpl) addError(ctx antlr.ParserRuleContext, format string, args ...interface{}) {
-	pos := tokenToPosition(ctx.GetStart())
+	var startToken antlr.Token
+	if ctx != nil {
+		startToken = ctx.GetStart()
+	}
+	pos := tokenToPosition(startToken) // tokenToPosition handles nil token
 	errMsg := fmt.Sprintf(format, args...)
+	// Create a ParseError type if you have one, or just a standard error.
+	// Assuming ParseError is not the standard error type for listener.errors
 	err := fmt.Errorf("AST build error at %s: %s", pos.String(), errMsg)
 	isDuplicate := false
 	for _, existingErr := range l.errors {
@@ -244,7 +262,7 @@ func (l *neuroScriptListenerImpl) addError(ctx antlr.ParserRuleContext, format s
 	}
 }
 func (l *neuroScriptListenerImpl) addErrorf(token antlr.Token, format string, args ...interface{}) {
-	pos := tokenToPosition(token)
+	pos := tokenToPosition(token) // tokenToPosition handles nil token
 	errMsg := fmt.Sprintf(format, args...)
 	err := fmt.Errorf("AST build error near %s: %s", pos.String(), errMsg)
 	isDuplicate := false
@@ -267,34 +285,39 @@ func (l *neuroScriptListenerImpl) GetFileMetadata() map[string]string {
 	if l.program != nil && l.program.Metadata != nil {
 		return l.program.Metadata
 	}
-	if l.fileMetadata == nil {
-		l.logger.Warn("GetFileMetadata called when listener.fileMetadata is nil.")
-		l.fileMetadata = make(map[string]string)
-	}
-	return l.fileMetadata
+	// This should not be reached if program and its metadata are initialized in newNeuroScriptListener
+	l.logger.Warn("GetFileMetadata called when listener.program.Metadata is nil.")
+	return make(map[string]string) // Return empty map to avoid nil issues
 }
-func (l *neuroScriptListenerImpl) GetResult() []*Procedure {
-	l.logger.Warn("GetResult called on listener; this returns the temporary slice, not the final program map.")
+func (l *neuroScriptListenerImpl) GetResult() []*Procedure { // This seems to be for the Build method's final assembly
+	l.logger.Warn("GetResult called on listener; this returns the temporary slice for final assembly, not the final program map.")
 	return l.procedures
 }
 
 // --- Listener Stack Helpers ---
-func (l *neuroScriptListenerImpl) pushValue(v interface{}) {
+func (l *neuroScriptListenerImpl) pushValue(v interface{}) { // v should be an AST Node that implements GetPos()
 	if l.debugAST {
 		valueStr := fmt.Sprintf("%+v", v)
 		if len(valueStr) > 100 {
 			valueStr = valueStr[:100] + "..."
 		}
-		l.logger.Debug("[DEBUG-AST-STACK] --> PUSH", "value_type", fmt.Sprintf("%T", v), "value_preview", valueStr, "new_stack_size", len(l.valueStack)+1)
+		posStr := "<unknown_pos>"
+		if pnode, ok := v.(interface{ GetPos() *Position }); ok {
+			if p := pnode.GetPos(); p != nil {
+				posStr = p.String()
+			}
+		}
+		l.logger.Debug("[DEBUG-AST-STACK] --> PUSH", "value_type", fmt.Sprintf("%T", v), "pos", posStr, "value_preview", valueStr, "new_stack_size", len(l.valueStack)+1)
 	}
 	l.valueStack = append(l.valueStack, v)
 }
 
-func (l *neuroScriptListenerImpl) popValue() (interface{}, bool) {
+func (l *neuroScriptListenerImpl) popValue() (interface{}, bool) { // should return an AST Node
 	if len(l.valueStack) == 0 {
 		l.logger.Error("AST Builder: Pop from empty value stack!")
 		l.errors = append(l.errors, errors.New("AST builder internal error: attempted pop from empty value stack"))
-		return nil, false
+		// Return an ErrorNode or a distinctly identifiable error value instead of nil, if possible
+		return &ErrorNode{Pos: tokenToPosition(nil), Message: "Pop from empty stack"}, false
 	}
 	index := len(l.valueStack) - 1
 	value := l.valueStack[index]
@@ -304,12 +327,18 @@ func (l *neuroScriptListenerImpl) popValue() (interface{}, bool) {
 		if len(valueStr) > 100 {
 			valueStr = valueStr[:100] + "..."
 		}
-		l.logger.Debug("[DEBUG-AST-STACK] <-- POP", "value_type", fmt.Sprintf("%T", value), "value_preview", valueStr, "new_stack_size", len(l.valueStack))
+		posStr := "<unknown_pos>"
+		if pnode, ok := value.(interface{ GetPos() *Position }); ok {
+			if p := pnode.GetPos(); p != nil {
+				posStr = p.String()
+			}
+		}
+		l.logger.Debug("[DEBUG-AST-STACK] <-- POP", "value_type", fmt.Sprintf("%T", value), "pos", posStr, "value_preview", valueStr, "new_stack_size", len(l.valueStack))
 	}
 	return value, true
 }
 
-func (l *neuroScriptListenerImpl) popNValues(n int) ([]interface{}, bool) {
+func (l *neuroScriptListenerImpl) popNValues(n int) ([]interface{}, bool) { // Should return []ASTNode
 	if n < 0 {
 		l.logger.Error("AST Builder: popNValues called with negative count", "n", n)
 		l.errors = append(l.errors, fmt.Errorf("AST builder internal error: popNValues called with negative count %d", n))
@@ -321,8 +350,37 @@ func (l *neuroScriptListenerImpl) popNValues(n int) ([]interface{}, bool) {
 	if len(l.valueStack) < n {
 		l.logger.Error("AST Builder: Stack underflow", "needed", n, "available", len(l.valueStack))
 		l.errors = append(l.errors, fmt.Errorf("AST builder internal error: stack underflow, needed %d values, only have %d", n, len(l.valueStack)))
-		return nil, false
+		// To avoid panic, return what's available and indicate failure
+		actualN := len(l.valueStack)
+		values := make([]interface{}, actualN) // Allocate for actualN items initially
+		errorNodes := 0
+		if actualN > 0 {
+			copy(values, l.valueStack[len(l.valueStack)-actualN:])
+			l.valueStack = l.valueStack[:len(l.valueStack)-actualN]
+		}
+		// If more were requested than available, fill the rest with ErrorNode
+		if n > actualN {
+			// Ensure `values` slice has capacity for `n` items
+			if cap(values) < n {
+				newValues := make([]interface{}, n)
+				copy(newValues, values) // Copy existing valid values
+				values = newValues
+			} else {
+				values = values[:n] // Extend slice to n if capacity allows
+			}
+
+			for i := actualN; i < n; i++ {
+				values[i] = &ErrorNode{Pos: tokenToPosition(nil), Message: "Missing value due to stack underflow"}
+				errorNodes++
+			}
+		}
+
+		if l.debugAST {
+			l.logger.Debug("[DEBUG-AST-STACK] <-- POP N (underflow/adjusted)", "requested_n", n, "actual_n", actualN, "returned_len", len(values), "error_nodes_added", errorNodes, "new_stack_size", len(l.valueStack))
+		}
+		return values, false // Indicate failure because not all requested items were validly popped
 	}
+
 	startIndex := len(l.valueStack) - n
 	values := make([]interface{}, n)
 	copy(values, l.valueStack[startIndex:])
@@ -348,12 +406,18 @@ func (l *neuroScriptListenerImpl) isInsideLoop() bool {
 // --- Listener ANTLR Method Implementations ---
 func (l *neuroScriptListenerImpl) EnterProgram(ctx *gen.ProgramContext) {
 	l.logDebugAST(">>> Enter Program")
-	l.program = &Program{
-		Metadata:   make(map[string]string),
-		Procedures: make(map[string]*Procedure),
-		Pos:        tokenToPosition(ctx.GetStart()),
+	// Initialize ProgramNode or set its token
+	if l.program == nil { // Should be initialized by newNeuroScriptListener
+		l.program = &Program{
+			Metadata:   make(map[string]string),
+			Procedures: make(map[string]*Procedure),
+		}
+		l.logger.Warn("neuroScriptListenerImpl.program was nil in EnterProgram, re-initialized.")
 	}
-	l.fileMetadata = l.program.Metadata
+	l.program.Pos = tokenToPosition(ctx.GetStart())
+	l.fileMetadata = l.program.Metadata // Ensure fileMetadata points to the program's map
+
+	// Reset fields for potential re-use (though usually a new listener is made per build)
 	l.procedures = make([]*Procedure, 0, 10)
 	l.errors = make([]error, 0)
 	l.valueStack = make([]interface{}, 0, 20)
@@ -361,7 +425,7 @@ func (l *neuroScriptListenerImpl) EnterProgram(ctx *gen.ProgramContext) {
 	l.currentProc = nil
 	l.currentSteps = nil
 	l.currentMapKey = nil
-	l.loopDepth = 0 // Reset loop depth at program start
+	l.loopDepth = 0
 }
 
 func (l *neuroScriptListenerImpl) ExitProgram(ctx *gen.ProgramContext) {
@@ -381,6 +445,7 @@ func (l *neuroScriptListenerImpl) ExitProgram(ctx *gen.ProgramContext) {
 	}
 	l.logDebugAST("<<< Exit Program (Metadata Count: %d, Final Procedure Count: %d, Listener Errors: %d, Final Stack Size: %d)",
 		metaCount, finalProcCount, len(l.errors), len(l.valueStack))
+
 	if len(l.valueStack) != 0 {
 		errMsg := fmt.Sprintf("internal AST builder error: value stack size is %d at end of program", len(l.valueStack))
 		l.logger.Error("ExitProgram: Value stack not empty!", "size", len(l.valueStack), "top_value_type", fmt.Sprintf("%T", l.valueStack[len(l.valueStack)-1]))
@@ -396,35 +461,56 @@ func (l *neuroScriptListenerImpl) ExitProgram(ctx *gen.ProgramContext) {
 func (l *neuroScriptListenerImpl) EnterFile_header(ctx *gen.File_headerContext) {
 	l.logDebugAST("   >> Enter File Header")
 	if l.program == nil || l.program.Metadata == nil {
-		l.logger.Error("EnterFile_header called with nil program or metadata map!")
+		l.logger.Error("EnterFile_header called with nil program or metadata map! This should have been initialized.")
+		// Attempt to recover if program is nil, which is highly problematic
+		if l.program == nil {
+			l.program = &Program{Metadata: make(map[string]string), Procedures: make(map[string]*Procedure)}
+		} else if l.program.Metadata == nil { // If only metadata is nil
+			l.program.Metadata = make(map[string]string)
+		}
+		l.fileMetadata = l.program.Metadata // Re-assign
 		l.errors = append(l.errors, errors.New("internal AST builder error: program/metadata nil in EnterFile_header"))
-		return
+		// No return here, try to process metadata anyway
 	}
 	for _, metaLineNode := range ctx.AllMETADATA_LINE() {
 		lineText := metaLineNode.GetText()
 		token := metaLineNode.GetSymbol()
 		l.logDebugAST("   - Processing File Metadata Line: %s", lineText)
-		lineText = strings.TrimSpace(lineText)
-		if strings.HasPrefix(lineText, "::") {
-			trimmedLine := strings.TrimSpace(lineText[2:])
-			parts := strings.SplitN(trimmedLine, ":", 2)
-			if len(parts) == 2 {
-				key := strings.TrimSpace(parts[0])
-				value := strings.TrimSpace(parts[1])
-				if key != "" {
-					if _, exists := l.program.Metadata[key]; exists {
-						l.logDebugAST("     Overwriting File Metadata: '%s'", key)
-					}
-					l.program.Metadata[key] = value
-					l.logDebugAST("     Stored File Metadata: '%s' = '%s'", key, value)
-				} else {
-					l.addErrorf(token, "Ignoring file metadata line with empty key: '%s'", lineText)
+		// The lexer rule for METADATA_LINE: [\t ]* '::' [ \t]+ ~[\r\n]* ;
+		idx := strings.Index(lineText, "::")
+		if idx == -1 { // Should not happen if lexer rule is correct
+			l.addErrorf(token, "METADATA_LINE token did not contain '::' separator as expected: '%s'", lineText)
+			continue
+		}
+
+		contentAfterDoubleColon := lineText[idx+2:] // Content after "::"
+		trimmedContent := strings.TrimSpace(contentAfterDoubleColon)
+
+		parts := strings.SplitN(trimmedContent, ":", 2)
+		if len(parts) == 2 {
+			key := strings.TrimSpace(parts[0])
+			value := strings.TrimSpace(parts[1])
+			if key != "" {
+				if _, exists := l.program.Metadata[key]; exists {
+					l.logDebugAST("     Overwriting File Metadata: '%s'", key)
 				}
+				l.program.Metadata[key] = value
+				l.logDebugAST("     Stored File Metadata: '%s' = '%s'", key, value)
 			} else {
-				l.addErrorf(token, "Ignoring malformed file metadata line (missing ':' separator?): '%s'", lineText)
+				l.addErrorf(token, "Ignoring file metadata line with empty key: '%s'", lineText)
 			}
-		} else {
-			l.addErrorf(token, "Unexpected line format in file_header (expected '::' prefix): '%s'", lineText)
+		} else { // Only one part, means no ':' or key is empty if content was just ':'
+			keyOnly := strings.TrimSpace(parts[0])
+			if keyOnly != "" {
+				if _, exists := l.program.Metadata[keyOnly]; exists {
+					l.logDebugAST("     Overwriting File Metadata (key only): '%s' to empty value", keyOnly)
+				}
+				l.program.Metadata[keyOnly] = "" // Store key with empty value
+				l.logDebugAST("     Stored File Metadata (key only): '%s' = ''", keyOnly)
+
+			} else {
+				l.addErrorf(token, "Ignoring malformed file metadata line (empty key or content after '::'): '%s'", lineText)
+			}
 		}
 	}
 }
@@ -432,8 +518,6 @@ func (l *neuroScriptListenerImpl) EnterFile_header(ctx *gen.File_headerContext) 
 func (l *neuroScriptListenerImpl) ExitFile_header(ctx *gen.File_headerContext) {
 	l.logDebugAST("   << Exit File Header")
 }
-
-// --- END MODIFIED Methods ---
 
 func MapKeysListener(m map[string]string) []string { // Renamed to avoid conflict if core.MapKeys exists
 	if m == nil {
@@ -443,8 +527,10 @@ func MapKeysListener(m map[string]string) []string { // Renamed to avoid conflic
 	for k := range m {
 		keys = append(keys, k)
 	}
-	// sort.Strings(keys) // Optional sort
 	return keys
 }
 
-// Note: Implementations for other Enter/Exit methods are expected to be in other ast_builder_*.go files.
+// Note: Implementations for other Enter/Exit methods (e.g., for expressions, statements,
+// list_literal, map_literal, map_entry) are expected to be in this file or other ast_builder_*.go files.
+// They will need to correctly use l.pushValue and l.popValue (or l.popNValues)
+// to manage the AST node stack.

@@ -81,6 +81,19 @@ func NewInterpreter(logger logging.Logger, llmClient LLMClient, sandboxDir strin
 	vars := make(map[string]interface{})
 	vars["NEUROSCRIPT_DEVELOP_PROMPT"] = prompts.PromptDevelop
 	vars["NEUROSCRIPT_EXECUTE_PROMPT"] = prompts.PromptExecute
+
+	// Add TYPE_ constants to the global variables
+	vars["TYPE_STRING"] = string(TypeString)
+	vars["TYPE_NUMBER"] = string(TypeNumber)
+	vars["TYPE_BOOLEAN"] = string(TypeBoolean)
+	vars["TYPE_LIST"] = string(TypeList)
+	vars["TYPE_MAP"] = string(TypeMap)
+	vars["TYPE_NIL"] = string(TypeNil)
+	vars["TYPE_FUNCTION"] = string(TypeFunction)
+	vars["TYPE_TOOL"] = string(TypeTool)
+	vars["TYPE_ERROR"] = string(TypeError)
+	vars["TYPE_UNKNOWN"] = string(TypeUnknown)
+
 	if initialVars != nil {
 		for k, v := range initialVars {
 			vars[k] = v

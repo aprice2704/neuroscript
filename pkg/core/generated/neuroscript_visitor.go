@@ -151,6 +151,9 @@ type NeuroScriptVisitor interface {
 	// Visit a parse tree produced by NeuroScriptParser#literal.
 	VisitLiteral(ctx *LiteralContext) interface{}
 
+	// Visit a parse tree produced by NeuroScriptParser#nil_literal.
+	VisitNil_literal(ctx *Nil_literalContext) interface{}
+
 	// Visit a parse tree produced by NeuroScriptParser#boolean_literal.
 	VisitBoolean_literal(ctx *Boolean_literalContext) interface{}
 

@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.0.7
-// Purpose: Correct argument order in CallableExprNode to resolve script-to-script call issues.
+// File version: 0.0.12 // Changed TypeOfExpressionContext to Unary_exprContext due to undefined error.
+// Purpose: AST building logic for operators.
 // filename: pkg/core/ast_builder_operators.go
-// nlines: 494
+// nlines: 405
 // risk_rating: MEDIUM
 
 package core
@@ -11,34 +11,24 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/antlr4-go/antlr/v4"
+	"github.com/antlr4-go/antlr/v4" // Using user-specified ANTLR import path
 	gen "github.com/aprice2704/neuroscript/pkg/core/generated"
 )
 
 // --- Helper and Operator Exit methods ---
 
-// processBinaryOperators (existing helper - adapted for ErrorNode and clearer error pos)
+// processBinaryOperators (existing helper)
 func (l *neuroScriptListenerImpl) processBinaryOperators(ctx antlr.ParserRuleContext, numOperands int, opGetter func(i int) antlr.TerminalNode) {
 	if numOperands <= 1 {
-		// Single operand, already on stack, pass through.
 		return
 	}
 
 	numOperators := numOperands - 1
 	if numOperators < 1 {
 		l.addError(ctx, "Internal error: processBinaryOperators with numOperands=%d implies no operators.", numOperands)
-		// If numOperands was 1, it's handled. If >1 but numOperators < 1, it's an issue.
-		// We expect one value on stack from the single operand.
 		return
 	}
 
-	// Operands are pushed L, M, R. Stack top is R, then M, then L for L op M op R.
-	// We pop R, then M, then L.
-	// Build tree: ( (L op M) op R ) for left-associativity.
-	// Pop order: Rightmost operand first.
-
-	// Pop all operands. They will be in reverse parsed order.
-	// Example: L op1 M op2 R. Stack has [R_expr, M_expr, L_expr] (top is R_expr)
 	poppedOperands := make([]Expression, numOperands)
 	for i := 0; i < numOperands; i++ {
 		val, ok := l.popValue()
@@ -49,52 +39,17 @@ func (l *neuroScriptListenerImpl) processBinaryOperators(ctx antlr.ParserRuleCon
 		}
 		expr, isExpr := val.(Expression)
 		if !isExpr {
-
-			// Determine a relevant token for error position
-			var errPosToken antlr.Token
-			// Try to get the token from the specific child that was the operand, if possible
-			// This requires knowing which child index corresponds to the operand at (numOperands-1-i)
-			// For simplicity and robustness, using ctx.GetStart() is a safe fallback if specific token is hard to get.
-			// If you have a more direct way to get the context of the specific operand, use that.
-			// For now, let's use the start of the whole binary operation context as a general error position.
-			errPosToken = ctx.GetStart() // Use the start of the current binary expression context
-
-			// If you want to try to be more specific (this can be tricky depending on grammar structure):
-			// childIndex := numOperands - 1 - i // This is an attempt to map stack order to child order
-			// if childIndex < ctx.GetChildCount() {
-			// 	if operandCtx, ok := ctx.GetChild(childIndex).(antlr.ParserRuleContext); ok {
-			// 		errPosToken = operandCtx.GetStart()
-			// 	}
-			// }
-
+			errPosToken := ctx.GetStart()
 			l.addError(ctx, "Operand %d is not an Expression (type %T) for binary op: %s", numOperands-i, val, ctx.GetText())
 			l.pushValue(&ErrorNode{Pos: tokenToPosition(errPosToken), Message: fmt.Sprintf("Type error (binary op operand %d)", numOperands-i)})
 			return
-
-			// Determine a relevant token for error position
-			// var errPosToken antlr.Token
-			// if ruleCtx, ok := ctx.(antlr.RuleContext); ok && ruleCtx.GetChildCount() > (numOperands-1-i) { // Simplistic: try to get one of the operand rule contexts
-			// 	if termNode, ok := ruleCtx.GetChild(numOperands - 1 - i).(antlr.RuleContext); ok { // This index might not be right
-			// 		errPosToken = termNode.GetStart()
-			// 	} else {
-			// 		errPosToken = ctx.GetStart()
-			// 	}
-			// } else {
-			// 	errPosToken = ctx.GetStart()
-			// }
-			// l.addError(ctx, "Operand %d is not an Expression (type %T) for binary op: %s", numOperands-i, val, ctx.GetText())
-			// l.pushValue(&ErrorNode{Pos: tokenToPosition(errPosToken), Message: fmt.Sprintf("Type error (binary op operand %d)", numOperands-i)})
-			// return
 		}
-		poppedOperands[i] = expr // poppedOperands[0] is R, poppedOperands[1] is M, poppedOperands[numOperands-1] is L
+		poppedOperands[i] = expr
 	}
 
-	// Now build left-associative: ((L op M) op R)
-	// Leftmost actual operand is at poppedOperands[numOperands-1]
 	currentLHS := poppedOperands[numOperands-1]
 
 	for i := 0; i < numOperators; i++ {
-		// opSymbols from opGetter are typically in parsed order (0th op is leftmost)
 		opToken := opGetter(i)
 		if opToken == nil {
 			l.addError(ctx, "Could not find operator token for index %d in: %s", i, ctx.GetText())
@@ -103,8 +58,6 @@ func (l *neuroScriptListenerImpl) processBinaryOperators(ctx antlr.ParserRuleCon
 		}
 		opSymbol := opToken.GetSymbol()
 		opText := opSymbol.GetText()
-
-		// Next RHS operand is poppedOperands[numOperands-2-i]
 		currentRHS := poppedOperands[numOperands-2-i]
 
 		newNode := &BinaryOpNode{
@@ -248,9 +201,25 @@ func (l *neuroScriptListenerImpl) ExitMultiplicative_expr(ctx *gen.Multiplicativ
 	l.processBinaryOperators(ctx, numOperands, opGetter)
 }
 
-// ExitUnary_expr
+// ExitUnary_expr handles unary operators other than 'typeof'.
+// 'typeof' is handled by ExitTypeOfExpression due to its labeled alternative in the grammar.
 func (l *neuroScriptListenerImpl) ExitUnary_expr(ctx *gen.Unary_exprContext) {
-	l.logDebugAST("--- Exit Unary_expr: %q", ctx.GetText())
+	l.logDebugAST("--- ExitUnary_expr (General Handler): %q", ctx.GetText())
+
+	// If KW_TYPEOF is found here, it implies ExitTypeOfExpression was not called by ANTLR,
+	// which would be unexpected. The primary logic for typeof is in ExitTypeOfExpression.
+	if ctx.KW_TYPEOF() != nil {
+		// This condition specifically checks if the Unary_exprContext *itself* is the TypeOfExpression alternative.
+		// If ExitTypeOfExpression is correctly dispatched by ANTLR's walker, this block in ExitUnary_expr
+		// should ideally not be hit for 'typeof' cases *if* ExitTypeOfExpression handles it.
+		// However, ANTLR might call ExitUnary_expr for the overall unary_expr rule even if a labeled alternative like ExitTypeOfExpression was also called.
+		// If KW_TYPEOF() is non-nil, it means this specific unary_expr *is* a typeof.
+		// We rely on ExitTypeOfExpression to have handled pushing the TypeOfNode.
+		// So, if we are here and it's a typeof, we should just return to avoid double processing or interfering with stack.
+		l.logDebugAST("    Unary_expr is a 'typeof' expression; assuming ExitTypeOfExpression handled it.")
+		return
+	}
+
 	var opTokenNode antlr.TerminalNode
 	var opText string
 
@@ -272,10 +241,12 @@ func (l *neuroScriptListenerImpl) ExitUnary_expr(ctx *gen.Unary_exprContext) {
 	}
 
 	if opTokenNode == nil {
-		// Pass through from power_expr
+		// This means it's a pass-through from power_expr (or another non-operator alternative)
+		l.logDebugAST("    Unary_expr is pass-through (no specific operator token found).")
 		return
 	}
 
+	// If we have an opTokenNode (MINUS, NOT, etc.), pop its operand and build UnaryOpNode
 	operandRaw, ok := l.popValue()
 	if !ok {
 		l.addError(ctx, "Stack error popping operand for unary op %q", opText)
@@ -285,7 +256,7 @@ func (l *neuroScriptListenerImpl) ExitUnary_expr(ctx *gen.Unary_exprContext) {
 	operandExpr, isExpr := operandRaw.(Expression)
 	if !isExpr {
 		l.addError(ctx, "Operand for unary op %q is not an Expression (type %T)", opText, operandRaw)
-		l.pushValue(&ErrorNode{Pos: tokenToPosition(opTokenNode.GetSymbol()), Message: "Type error (unary op)"}) // Use operator pos
+		l.pushValue(&ErrorNode{Pos: tokenToPosition(opTokenNode.GetSymbol()), Message: "Type error (unary op)"})
 		return
 	}
 	node := &UnaryOpNode{
@@ -295,6 +266,58 @@ func (l *neuroScriptListenerImpl) ExitUnary_expr(ctx *gen.Unary_exprContext) {
 	}
 	l.pushValue(node)
 	l.logDebugAST("    Constructed UnaryOpNode: %s [%T]", opText, operandExpr)
+}
+
+// ExitTypeOfExpression is called when exiting the TypeOfExpression alternative of unary_expr
+// (grammar: unary_expr: ... | KW_TYPEOF unary_expr #TypeOfExpression)
+// Changed ctx type from *gen.TypeOfExpressionContext to *gen.Unary_exprContext
+func (l *neuroScriptListenerImpl) ExitTypeOfExpression(ctx *gen.Unary_exprContext) {
+	l.logDebugAST("--- ExitTypeOfExpression: %q", ctx.GetText())
+
+	kwTypeofToken := ctx.KW_TYPEOF() // Method on *gen.Unary_exprContext (should exist if this is a typeof alternative)
+	if kwTypeofToken == nil {
+		// This should ideally not happen if ANTLR dispatches to ExitTypeOfExpression only for the correct alternative.
+		l.addError(ctx, "Internal error: KW_TYPEOF token missing in ExitTypeOfExpression context (ctx is Unary_exprContext)")
+		l.pushValue(&ErrorNode{Pos: tokenToPosition(ctx.GetStart()), Message: "Missing KW_TYPEOF in TypeOfExpression"})
+		return
+	}
+
+	// The 'unary_expr' child (operand of typeof) would have been visited,
+	// and its AST node should be on top of the value stack.
+	operandRaw, ok := l.popValue()
+	if !ok {
+		l.addError(ctx, "Stack error popping operand for typeof operator")
+		l.pushValue(&ErrorNode{Pos: tokenToPosition(kwTypeofToken.GetSymbol()), Message: "Stack error (typeof operand)"})
+		return
+	}
+	operandExpr, isExpr := operandRaw.(Expression)
+	if !isExpr {
+		errPos := tokenToPosition(kwTypeofToken.GetSymbol()) // Default to typeof keyword position
+		// Attempt to get the specific child unary_expr context for better error positioning.
+		// Unary_exprContext should provide access to its children.
+		// For the alternative 'KW_TYPEOF unary_expr', the children are KW_TYPEOF and a unary_expr.
+		// Accessing the child unary_expr context can be done via ctx.Unary_expr(i) or ctx.AllUnary_expr().
+		// Assuming the operand unary_expr is the first (or only) such child in this alternative's view.
+		// This is heuristic; true child context requires knowing ANTLR's generated accessors for Unary_exprContext.
+		// For now, this part of error position refinement remains complex with a generic context.
+		// The primary source of position for a type error on the operand should ideally come from the operand itself if possible.
+		// The original code had: if childExprRuleCtx := ctx.Expression(); ... which was incorrect as child is unary_expr.
+		// If `ctx.Unary_expr(0)` (or similar) is available and refers to the operand:
+		// childUnaryExprCtx := ctx.Unary_expr(0) // This is an example, actual accessor may vary
+		// if childUnaryExprCtx != nil && childUnaryExprCtx.GetStart() != nil {
+		// 	errPos = tokenToPosition(childUnaryExprCtx.GetStart())
+		// }
+		l.addError(ctx, "Operand for typeof is not an Expression (type %T)", operandRaw)
+		l.pushValue(&ErrorNode{Pos: errPos, Message: "Type error (typeof operand)"})
+		return
+	}
+
+	node := &TypeOfNode{
+		Pos:      tokenToPosition(kwTypeofToken.GetSymbol()),
+		Argument: operandExpr,
+	}
+	l.pushValue(node)
+	l.logDebugAST("    Constructed TypeOfNode for argument: %T", operandExpr)
 }
 
 // ExitPower_expr
@@ -317,7 +340,7 @@ func (l *neuroScriptListenerImpl) ExitPower_expr(ctx *gen.Power_exprContext) {
 	exponentExpr, isExpr := exponentRaw.(Expression)
 	if !isExpr {
 		l.addError(ctx, "Exponent for POWER is not an Expression (type %T)", exponentRaw)
-		l.pushValue(&ErrorNode{Pos: tokenToPosition(opSymbol), Message: "Type error (power exponent)"}) // Use operator pos
+		l.pushValue(&ErrorNode{Pos: tokenToPosition(opSymbol), Message: "Type error (power exponent)"})
 		return
 	}
 	baseRaw, ok := l.popValue()
@@ -329,7 +352,7 @@ func (l *neuroScriptListenerImpl) ExitPower_expr(ctx *gen.Power_exprContext) {
 	baseExpr, isExpr := baseRaw.(Expression)
 	if !isExpr {
 		l.addError(ctx, "Base for POWER is not an Expression (type %T)", baseRaw)
-		l.pushValue(&ErrorNode{Pos: tokenToPosition(opSymbol), Message: "Type error (power base)"}) // Use operator pos
+		l.pushValue(&ErrorNode{Pos: tokenToPosition(opSymbol), Message: "Type error (power base)"})
 		return
 	}
 	node := &BinaryOpNode{
@@ -355,13 +378,21 @@ func (l *neuroScriptListenerImpl) ExitAccessor_expr(ctx *gen.Accessor_exprContex
 	for i := numAccessors - 1; i >= 0; i-- {
 		accessorRaw, ok := l.popValue()
 		if !ok {
-			l.addError(ctx.Expression(i), "Stack error popping accessor expression %d", i)
+			if i < len(ctx.AllExpression()) {
+				l.addError(ctx.Expression(i), "Stack error popping accessor expression %d", i)
+			} else {
+				l.addError(ctx, "Stack error popping accessor expression %d (index out of bounds)", i)
+			}
 			l.pushValue(&ErrorNode{Pos: tokenToPosition(ctx.LBRACK(i).GetSymbol()), Message: "Stack error (accessor expr)"})
 			return
 		}
 		accessorExpr, isExpr := accessorRaw.(Expression)
 		if !isExpr {
-			l.addError(ctx.Expression(i), "Accessor expression %d is not an Expression (type %T)", i, accessorRaw)
+			if i < len(ctx.AllExpression()) {
+				l.addError(ctx.Expression(i), "Accessor expression %d is not an Expression (type %T)", i, accessorRaw)
+			} else {
+				l.addError(ctx, "Accessor expression %d is not an Expression (type %T) (index out of bounds for error pos)", i, accessorRaw)
+			}
 			l.pushValue(&ErrorNode{Pos: tokenToPosition(ctx.LBRACK(i).GetSymbol()), Message: "Type error (accessor expr)"})
 			return
 		}
@@ -396,17 +427,14 @@ func (l *neuroScriptListenerImpl) ExitAccessor_expr(ctx *gen.Accessor_exprContex
 }
 
 // buildCallTargetFromContext constructs a CallTarget AST node from an ICall_targetContext.
-// This is the primary location for handling the new qualified_identifier rule.
 func (l *neuroScriptListenerImpl) buildCallTargetFromContext(ctx gen.ICall_targetContext) CallTarget {
 	l.logDebugAST("    -> buildCallTargetFromContext: %s", ctx.GetText())
 	target := CallTarget{}
 
 	if toolKeyword := ctx.KW_TOOL(); toolKeyword != nil {
 		target.IsTool = true
-		// Use the Qualified_identifier rule from the context.
-		// The actual method names (Qualified_identifier, AllIDENTIFIER) come from your *regenerated* parser.
-		if qiCtx := ctx.Qualified_identifier(); qiCtx != nil { // This is IQualified_identifierContext
-			idNodes := qiCtx.AllIDENTIFIER() // This returns []antlr.TerminalNode
+		if qiCtx := ctx.Qualified_identifier(); qiCtx != nil {
+			idNodes := qiCtx.AllIDENTIFIER()
 			var parts []string
 			for _, idNode := range idNodes {
 				parts = append(parts, idNode.GetText())
@@ -415,28 +443,17 @@ func (l *neuroScriptListenerImpl) buildCallTargetFromContext(ctx gen.ICall_targe
 
 			if len(idNodes) > 0 {
 				target.Pos = tokenToPosition(idNodes[0].GetSymbol())
-			} else { // Should be caught by grammar if qualified_identifier needs at least one ID
+			} else {
 				target.Pos = tokenToPosition(toolKeyword.GetSymbol())
 				l.addError(ctx, "Tool call has empty qualified_identifier: %s", ctx.GetText())
 			}
 		} else {
-			// This block might be hit if the grammar has an alternative path for `tool.IDENTIFIER`
-			// or if there's an issue with parser regeneration making Qualified_identifier optional.
-			// Assuming the new grammar `tool DOT qualified_identifier` is strict, this else
-			// indicates a problem or an unexpected parse path.
-			// The v0.3.7 parser file has `KW_TOOL DOT IDENTIFIER`. If you used *that* to regenerate,
-			// this path is expected. If you used the *new* grammar, qiCtx should not be nil.
-
-			// Let's assume the user *has* regenerated with `qualified_identifier`.
-			// So, `qiCtx` not being `nil` is the expected path.
-			// If `qiCtx` *is* nil here with the new grammar, it implies a parsing issue
-			// or that the grammar structure is different from `call_target: KW_TOOL DOT qualified_identifier;`
 			l.addError(ctx, "Tool call: Expected Qualified_identifier, but was not found: %s", ctx.GetText())
 			target.Name = "<ERROR_NO_QUALIFIED_ID_FOR_TOOL>"
 			target.Pos = tokenToPosition(toolKeyword.GetSymbol())
 		}
 		l.logDebugAST("       Tool call identified. Name: '%s', Pos: %s", target.Name, target.Pos.String())
-	} else if userFuncID := ctx.IDENTIFIER(); userFuncID != nil { // For user-defined functions
+	} else if userFuncID := ctx.IDENTIFIER(); userFuncID != nil {
 		target.IsTool = false
 		target.Name = userFuncID.GetText()
 		target.Pos = tokenToPosition(userFuncID.GetSymbol())
@@ -451,11 +468,10 @@ func (l *neuroScriptListenerImpl) buildCallTargetFromContext(ctx gen.ICall_targe
 }
 
 // ExitCall_target is called when exiting the call_target rule.
-// It constructs a *CallTarget and pushes it to the stack.
 func (l *neuroScriptListenerImpl) ExitCall_target(ctx *gen.Call_targetContext) {
 	l.logDebugAST("--- Exit Call_target: %q", ctx.GetText())
-	targetNode := l.buildCallTargetFromContext(ctx) // ctx is already *gen.Call_targetContext
-	l.pushValue(&targetNode)                        // Push a pointer
+	targetNode := l.buildCallTargetFromContext(ctx)
+	l.pushValue(&targetNode)
 	l.logDebugAST("    Pushed *CallTarget to stack: IsTool=%t, Name=%s", targetNode.IsTool, targetNode.Name)
 }
 
@@ -480,12 +496,9 @@ func (l *neuroScriptListenerImpl) ExitCallable_expr(ctx *gen.Callable_exprContex
 		}
 		argExpressions = make([]Expression, numArgs)
 		for i := 0; i < numArgs; i++ {
-			// argsRaw from popNValues is in the order arguments were pushed to the stack (source order).
-			// We want CallableExprNode.Arguments to also be in source order for correct evaluation.
 			argExpr, isExpr := argsRaw[i].(Expression)
 			if !isExpr {
 				argSourceCtx := ctx.Expression_list_opt().Expression_list().Expression(i)
-				// Error message uses argsRaw[i] as well
 				l.addError(argSourceCtx, "Argument %d for call %q is not an Expression (type %T)", i+1, ctx.GetText(), argsRaw[i])
 				l.pushValue(&ErrorNode{Pos: tokenToPosition(argSourceCtx.GetStart()), Message: "Type error (call arg)"})
 				return
@@ -507,7 +520,7 @@ func (l *neuroScriptListenerImpl) ExitCallable_expr(ctx *gen.Callable_exprContex
 		targetPtr, isPtr := targetVal.(*CallTarget)
 		if !isPtr {
 			l.addError(ctx, "Popped call target is not *CallTarget (type %T) for %q", targetVal, ctx.GetText())
-			l.pushValue(&ErrorNode{Pos: tokenToPosition(ctx.GetStart()), Message: "Type error (call target)"}) // Use general pos
+			l.pushValue(&ErrorNode{Pos: tokenToPosition(ctx.GetStart()), Message: "Type error (call target)"})
 			return
 		}
 		finalTargetNode = *targetPtr

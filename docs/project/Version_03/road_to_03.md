@@ -29,8 +29,12 @@ I am thinking this should mostly be a ns that ng runs.)
 
 ## Checklist
 
-- [x] 1. Language Features
+- [-] 1. Language Features
     - [x] break and continue flow control words
+    - [ ] ascii -> string function or \n and friends
+    - [ ] need nil and typeof (isnil?)
+    - [ ] allow // comments
+    - [ ] simplfy returned arg checking
 
 - [ ] 2. Core Interpreter / Runtime
     - [ ] Error Handling: Review on_error behavior, especially interaction with return.
@@ -145,3 +149,9 @@ I am thinking this should mostly be a ns that ng runs.)
 - [x] 8. Language / Interpreter Polish (Internal / Done)
     - [x] core.ToIntE undefined error fixed by adding core.ConvertToInt64E.
     - [x] Handle non-deterministic map iteration in tests.
+
+- [ ] 9. NS LSP
+    - [x] Basic syntax errors
+    - [x] Shows tools help
+    - [ ] BUG: split line in string not flagged
+    - [ ] Flag unknown tools

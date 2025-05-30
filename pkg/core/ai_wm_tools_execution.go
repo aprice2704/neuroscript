@@ -17,7 +17,7 @@ var specAIWorkerExecuteStateless = ToolSpec{
 	Description: "Executes a stateless task using an AI Worker Definition.",
 	Category:    "AI Worker Management",
 	Args: []ArgSpec{
-		{Name: "definition_id", Type: ArgTypeString, Required: true, Description: "ID of the AIWorkerDefinition to use."},
+		{Name: "name", Type: ArgTypeString, Required: true, Description: "name of the AIWorkerDefinition to use."},
 		{Name: "prompt", Type: ArgTypeString, Required: true, Description: "The prompt/input text for the LLM."},
 		{Name: "config_overrides", Type: ArgTypeMap, Required: false, Description: "Optional map of configuration overrides for this specific execution."},
 	},
@@ -39,7 +39,7 @@ var toolAIWorkerExecuteStateless = ToolImplementation{
 			return nil, NewRuntimeError(ErrorCodeArgMismatch, fmt.Sprintf("Validation failed for tool %s: %s", specAIWorkerExecuteStateless.Name, valErr.Error()), ErrInvalidArgument)
 		}
 		parsedArgs := mapValidatedArgsListToMapByName(specAIWorkerExecuteStateless.Args, validatedArgsList)
-		defID, _ := parsedArgs["definition_id"].(string)
+		defname, _ := parsedArgs["name"].(string)
 		prompt, _ := parsedArgs["prompt"].(string)
 		overrides, _ := parsedArgs["config_overrides"].(map[string]interface{})
 
@@ -47,7 +47,7 @@ var toolAIWorkerExecuteStateless = ToolImplementation{
 			return nil, NewRuntimeError(ErrorCodeConfiguration, "Interpreter's LLMClient is nil, cannot execute stateless task for tool "+specAIWorkerExecuteStateless.Name, ErrConfiguration)
 		}
 
-		output, perfRecord, execErr := m.ExecuteStatelessTask(defID, i.llmClient, prompt, overrides)
+		output, perfRecord, execErr := m.ExecuteStatelessTask(defname, i.llmClient, prompt, overrides)
 		if execErr != nil {
 			taskId := "unknown"
 			if perfRecord != nil {

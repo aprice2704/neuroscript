@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.3.0
-// File version: 0.1.1
-// AI Worker Management: Definition I/O Methods. Added LoadRetiredInstancePerformanceDataFromFile.
+// File version: 0.1.2
+// Purpose: AI Worker Management: Definition I/O. Definitions are read-only after load. Performance data I/O remains.
 // filename: pkg/core/ai_wm_definitions_io.go
-// nlines: 100 // Approximate
+// nlines: 70 // Approximate
 // risk_rating: MEDIUM
 package core
 
@@ -12,36 +12,10 @@ import (
 	"path/filepath"
 )
 
-// persistDefinitionsUnsafe prepares and writes the current definitions to their file.
-// Assumes caller holds the write lock.
-func (m *AIWorkerManager) persistDefinitionsUnsafe() error {
-	jsonString, err := m.prepareDefinitionsForSaving()
-	if err != nil {
-		return err // Should be a RuntimeError from prepareDefinitionsForSaving
-	}
-
-	defPath := m.FullPathForDefinitions()
-	if defPath == "" {
-		m.logger.Error("Cannot save definitions: file path is not configured in AIWorkerManager.")
-		return NewRuntimeError(ErrorCodeConfiguration, "definitions file path not configured for saving", ErrConfiguration)
-	}
-
-	dir := filepath.Dir(defPath)
-	if mkDirErr := os.MkdirAll(dir, 0755); mkDirErr != nil {
-		m.logger.Errorf("Failed to create directory '%s' for definitions file: %v", dir, mkDirErr)
-		return NewRuntimeError(ErrorCodeInternal, fmt.Sprintf("failed to create directory for definitions file '%s'", dir), mkDirErr)
-	}
-
-	if err := os.WriteFile(defPath, []byte(jsonString), 0644); err != nil {
-		m.logger.Errorf("Failed to write definitions to file '%s': %v", defPath, err)
-		return NewRuntimeError(ErrorCodeInternal, fmt.Sprintf("failed to write definitions to file '%s'", defPath), err)
-	}
-	m.logger.Debugf("Successfully saved definitions to %s", defPath)
-	return nil
-}
-
 // LoadWorkerDefinitionsFromFile is a public method for tools/external calls to reload definitions.
 // It replaces all current definitions and re-initializes rate trackers.
+// AIWorkerDefinitions are treated as immutable once loaded. This function provides the mechanism
+// to load or reload the entire set of definitions.
 func (m *AIWorkerManager) LoadWorkerDefinitionsFromFile() error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -52,16 +26,20 @@ func (m *AIWorkerManager) LoadWorkerDefinitionsFromFile() error {
 		// Reset state even if path is missing, to ensure consistency
 		m.definitions = make(map[string]*AIWorkerDefinition)
 		m.activeInstances = make(map[string]*AIWorkerInstance) // Clear active instances as their defs are gone
-		m.initializeRateTrackersUnsafe()
+		m.initializeRateTrackersUnsafe()                       // Initialize for an empty set
 		return NewRuntimeError(ErrorCodeConfiguration, "definitions file path not configured, cannot load", ErrConfiguration)
 	}
 
-	m.logger.Infof("AIWorkerManager: Public request to load worker definitions from %s", defPath)
+	m.logger.Infof("AIWorkerManager: Loading worker definitions from %s. Existing definitions will be replaced.", defPath)
 
 	// Clear existing definitions and active instances before loading new ones.
-	// This ensures that if loading fails, the manager is in a clean state.
 	m.definitions = make(map[string]*AIWorkerDefinition)
-	m.activeInstances = make(map[string]*AIWorkerInstance) // Instances depend on definitions
+	// Note: Active instances are not cleared here in the new model, as they might be running.
+	// However, if definitions they rely on are removed or changed, those instances might become invalid.
+	// For simplicity with immutable definitions, we assume a full reload implies a "fresh start"
+	// for definition-dependent components. A more sophisticated reload might involve reconciling active instances.
+	// For now, keep activeInstances clearing if a full definition reload occurs.
+	m.activeInstances = make(map[string]*AIWorkerInstance)
 
 	contentBytes, err := os.ReadFile(defPath)
 	if err != nil {
@@ -77,23 +55,16 @@ func (m *AIWorkerManager) LoadWorkerDefinitionsFromFile() error {
 
 	// loadWorkerDefinitionsFromContent will replace m.definitions
 	if loadErr := m.loadWorkerDefinitionsFromContent(contentBytes); loadErr != nil {
-		m.initializeRateTrackersUnsafe() // Ensure trackers are consistent even after failed load
-		return loadErr                   // loadErr should be a RuntimeError
+		// If loading fails, definitions map might be in an inconsistent state or empty.
+		// Ensure trackers are consistent with whatever state m.definitions is in.
+		m.initializeRateTrackersUnsafe()
+		return loadErr // loadErr should be a RuntimeError
 	}
 
 	m.initializeRateTrackersUnsafe() // Re-initialize based on newly loaded definitions
 
-	m.logger.Infof("AIWorkerManager: Public load definitions complete. %d definitions loaded from %s.", len(m.definitions), defPath)
+	m.logger.Infof("AIWorkerManager: Load definitions complete. %d definitions loaded from %s.", len(m.definitions), defPath)
 	return nil
-}
-
-// SaveWorkerDefinitionsToFile is a public method to persist the current state of definitions.
-func (m *AIWorkerManager) SaveWorkerDefinitionsToFile() error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	defPath := m.FullPathForDefinitions() // Get path for logging
-	m.logger.Infof("AIWorkerManager: Public request to save worker definitions to %s", defPath)
-	return m.persistDefinitionsUnsafe()
 }
 
 // LoadRetiredInstancePerformanceDataFromFile loads performance data from the configured file.

@@ -1,10 +1,10 @@
 :: Name: Update NeuroScript Syntax (WM Version)
 :: Purpose: Recursively finds and refactors NeuroScript files (.ns) in a directory to conform to the current grammar using an AI Worker, then stages and commits changes via Git.
-:: Version: 0.3.4
+:: Version: 0.3.8
 :: Author: Gemini (Updated by Gemini)
-:: requires_tool: tool.FS.List, tool.FS.Read, tool.FS.Write, tool.Git.Add, tool.Git.Commit, tool.HasSuffix, tool.AIWorker.ExecuteStatelessTask
+:: requires_tool: tool.FS.List, tool.FS.Read, tool.FS.Write, tool.Git.Add, tool.Git.Commit, tool.HasSuffix, tool.AIWorker.ExecuteStatelessTask, typeof, tool.Substring
 :: requires_ai: true
-:: file_version: 34.0.0
+:: file_version: 38.0.0
 
 func UpdateNsSyntax(needs directory_path, worker_definition_name returns status_message) means
   :: description: Recursively updates .ns files in a directory using an AI worker.
@@ -12,36 +12,80 @@ func UpdateNsSyntax(needs directory_path, worker_definition_name returns status_
   :: param:worker_definition_name: The name of the AI Worker definition to use.
   :: return:0: A status message.
 
+  on_error means
+    emit "[FATAL ERROR] An unhandled error occurred in UpdateNsSyntax for directory: " + directory_path
+    set status_message = "Failure during syntax update for " + directory_path + ". Check logs."
+    fail status_message # Changed from return to fail
+  endon
+
   emit "Processing directory: " + directory_path + " with AI Worker: " + worker_definition_name
   
-  # Attempt to list directory.
-  # If tool.FS.List errors (e.g. path not found), the 'set' statement itself will propagate an error.
-  # This error should be caught by this procedure's 'on_error' block.
-  set list_result = tool.FS.List(directory_path)
+  set fs_list_output = tool.FS.List(directory_path)
+  # set list_result = nil # REMOVED: Workaround for interpreter issue with 'set x = nil'
 
-  # If the tool call succeeded but returned nil (e.g., for an empty directory, or if that's its error signal),
-  # or if the tool call failed and 'set' resulted in list_result being nil.
-  if list_result == nil
-    emit "[INFO] No entries found or error listing directory (tool returned nil): " + directory_path
-    # If it was an error, it should have been caught by on_error.
-    # If it's just an empty dir, this is fine.
-    # To be safe, if it's nil, we assume it's either empty or an issue already logged by the tool.
-    set status_message = "No listable entries or error for directory: " + directory_path
-    return status_message
+  if fs_list_output == nil
+    emit "[ERROR] tool.FS.List returned nil for directory: " + directory_path
+    set status_message = "Error listing directory (tool returned nil): " + directory_path
+    fail status_message # Exit if FS.List itself fails critically
   endif
 
-  # At this point, list_result is not nil.
-  # However, if tool.FS.List returned an error *object* instead of a list or nil,
-  # the 'for each' loop below will still fail. The on_error block is the catch-all.
+  emit "DEBUG: Type of fs_list_output: " + typeof(fs_list_output)
+  emit "DEBUG: Value of fs_list_output: " + fs_list_output
+
+  set list_result = nil # Initialize here before the conditional logic that assigns it.
+                        # If 'set x = nil' is truly broken, this might still error.
+                        # Alternative: rely on default uninitialized nil and ensure all paths assign or fail.
+                        # For now, let's try re-initializing to nil here to see if context matters.
+                        # If this still errors, the line must be removed entirely.
+
+  if typeof(fs_list_output) == "map"
+    # Assume this is an error map from tool.FS.List
+    set list_error = fs_list_output["error"]
+    if list_error != nil and list_error != ""
+      emit "[ERROR] Error listing directory " + directory_path + ": " + list_error
+      set status_message = "Error listing directory: " + directory_path
+      fail status_message # Exit on explicit error from tool
+    else
+      # It's a map, but no "error" key or error is empty. This might mean an empty dir successfully listed.
+      emit "[INFO] Directory " + directory_path + " listed, but tool.FS.List returned a map with no error. Assuming empty or no accessible entries."
+      set list_result = [] # Treat as empty list
+    endif
+  else 
+    if typeof(fs_list_output) == "list" # Changed to else if for clarity from user's nested structure
+      # Assume this is the list of entries directly (successful case based on runtime error)
+      set list_result = fs_list_output
+    else
+      emit "[ERROR] tool.FS.List returned unexpected type: " + typeof(fs_list_output) + " for directory: " + directory_path
+      set status_message = "Unexpected result from FS.List for directory: " + directory_path
+      fail status_message # Exit on unexpected type
+    endif
+  endif
+
+  # Safeguard: if list_result is still nil here, it means fs_list_output was not a map with no error, nor a list.
+  # The 'else' branch of the above conditional should have caught unexpected types and failed.
+  # If it's a map with no error, list_result becomes []. If it's a list, list_result gets that list.
+  # So, list_result should ideally not be nil if execution reaches here without failing.
+  if list_result == nil 
+      emit "[CRITICAL INTERNAL LOGIC ERROR] list_result is nil after fs_list_output processing for: " + directory_path
+      set status_message = "Internal logic error processing FS.List output for directory: " + directory_path
+      fail status_message
+  endif
+
+  if typeof(list_result) != "list" # Double check it became a list
+      emit "[ERROR] list_result is not a list after processing fs_list_output. Type: " + typeof(list_result)
+      set status_message = "Internal error: list_result not a list."
+      fail status_message
+  endif
+
 
   set local_staged_files_csv = ""
   set double_newline = ```
 
   ```
 
-  for each entry_map in list_result # This line will fail if list_result is not actually a list.
+  for each entry_map in list_result
     set name = entry_map["name"]
-    set is_dir = entry_map["isDir"]
+    set is_dir = entry_map["isDir"] 
     set current_file_path = directory_path + "/" + name
 
     if is_dir == true
@@ -54,6 +98,7 @@ func UpdateNsSyntax(needs directory_path, worker_definition_name returns status_
       continue
     endif
 
+    # Skip self
     if tool.HasSuffix(name, "UpdateNsSyntax.ns.txt") == true or tool.HasSuffix(name, "UpdateNsSyntaxWM.ns") == true
       emit "Skipping self: " + current_file_path
       continue
@@ -61,10 +106,21 @@ func UpdateNsSyntax(needs directory_path, worker_definition_name returns status_
 
     emit "Processing file: " + current_file_path
     
-    set original_code = tool.FS.Read(current_file_path)
+    set read_result_map = tool.FS.Read(current_file_path)
+    set original_code = nil # Default initialize
+
+    if read_result_map == nil
+        emit "[WARN] tool.FS.Read returned nil for file: " + current_file_path
+        continue
+    endif
+    if read_result_map["error"] != nil and read_result_map["error"] != ""
+        emit "[WARN] Failed to read file " + current_file_path + ". Error: " + read_result_map["error"]
+        continue
+    endif
+    set original_code = read_result_map["content"]
 
     if original_code == nil
-      emit "[WARN] Failed to read file (or file is nil): " + current_file_path
+      emit "[WARN] File content is nil after read (should not happen if no error): " + current_file_path
       continue
     endif
     if original_code == ""
@@ -83,44 +139,87 @@ func UpdateNsSyntax(needs directory_path, worker_definition_name returns status_
     set full_prompt_for_ai = temp_prompt_holder + double_newline + "### Code to Refactor:" + double_newline + "```neuroscript" + double_newline + original_code + double_newline + "```"
 
     emit "Asking AI Worker '" + worker_definition_name + "' to refactor: " + current_file_path
-    set ai_result_map = tool.AIWorker.ExecuteStatelessTask(worker_definition_name, full_prompt_for_ai, {}) 
     
+    set default_timeout = 60 # seconds
+    set file_contexts_csv = "" # Pass empty string if no specific contexts
+
+    emit "DEBUG: About to call tool.AIWorker.ExecuteStatelessTask for " + current_file_path
+    set ai_result_map = tool.AIWorker.ExecuteStatelessTask(worker_definition_name, full_prompt_for_ai, file_contexts_csv, default_timeout) 
+    emit "DEBUG: tool.AIWorker.ExecuteStatelessTask call completed for " + current_file_path
+    
+    set ai_error_value = nil 
+    set refactored_code_value = nil 
+
     if ai_result_map == nil 
-        emit "[ERROR] AI Worker (" + worker_definition_name + ") call failed fundamentally for " + current_file_path
-        continue
-    endif
+        emit "[ERROR] AI Worker (" + worker_definition_name + ") call returned a nil map object for " + current_file_path
+        set ai_error_value = "AI tool returned nil map object" 
+    else
+        emit "DEBUG: Type of ai_result_map: " + typeof(ai_result_map)
+        emit "DEBUG: Raw ai_result_map: " + ai_result_map 
 
-    set ai_error = ai_result_map["error"] 
-    set refactored_code = ai_result_map["response_content"]
+        set temp_err_val = ai_result_map["error"] 
+        emit "DEBUG: Type of ai_result_map[\"error\"]: " + typeof(temp_err_val)
+        emit "DEBUG: Value of ai_result_map[\"error\"]: " + temp_err_val
+        if typeof(temp_err_val) == "string" and temp_err_val != ""
+            set ai_error_value = temp_err_val
+        else
+          if temp_err_val != nil and typeof(temp_err_val) != "string" 
+              emit "[WARN] ai_result_map[\"error\"] was not a string but was not nil. Type: " + typeof(temp_err_val) + ". Value: " + temp_err_val
+              set ai_error_value = "Unexpected type for error field: " + typeof(temp_err_val)
+          else
+              # It's nil (key missing or explicitly nil value) or an empty string
+              set ai_error_value = "" 
+          endif
+        endif
 
-    if ai_error != nil and ai_error != "" # Check if the map contains an error key
-      emit "[ERROR] AI Worker (" + worker_definition_name + ") task reported an error for " + current_file_path + ": " + ai_error
+        set temp_code_val = ai_result_map["text_output"] 
+        emit "DEBUG: Type of ai_result_map[\"text_output\"]: " + typeof(temp_code_val)
+        
+        if typeof(temp_code_val) == "string"
+            emit "DEBUG: Value of ai_result_map[\"text_output\"] (first 100 chars): " 
+            emit tool.Substring(temp_code_val, 0, 100) 
+            set refactored_code_value = temp_code_val
+        else
+            emit "DEBUG: Value of ai_result_map[\"text_output\"]: " + temp_code_val 
+            if temp_code_val != nil
+                emit "[WARN] ai_result_map[\"text_output\"] was not a string but was not nil. Type: " + typeof(temp_code_val)
+                set refactored_code_value = "" 
+                if ai_error_value == "" 
+                    set ai_error_value = "Expected string for text_output, got " + typeof(temp_code_val)
+                endif 
+            else
+                set refactored_code_value = "" 
+            endif 
+        endif 
+    endif 
+    
+    if ai_error_value != "" and ai_error_value != nil 
+      emit "[ERROR] AI Worker (" + worker_definition_name + ") task reported an error for " + current_file_path + ": " + ai_error_value
       continue
     endif
 
-    if refactored_code == nil or refactored_code == ""
+    if refactored_code_value == "" or refactored_code_value == nil
       emit "[WARN] AI Worker (" + worker_definition_name + ") returned empty or nil code for: " + current_file_path
       continue
     endif
 
-    if refactored_code == original_code
+    if refactored_code_value == original_code
       emit "No changes needed for file: " + current_file_path
       continue
     endif
 
     emit "Writing updated file: " + current_file_path
-    set write_status = tool.FS.Write(current_file_path, refactored_code)
-    # Assuming tool.FS.Write returns "OK" on success. Adjust if it returns nil or a map.
-    if write_status != "OK" 
-      emit "[WARN] Failed to write updated file: " + current_file_path + " - Status: " + write_status
+    set write_result_map = tool.FS.Write(current_file_path, refactored_code_value) 
+    if write_result_map == nil or write_result_map["status"] != "OK" 
+      emit "[WARN] Failed to write updated file: " + current_file_path + " - Status: " + write_result_map["status"] + " Error: " + write_result_map["error"]
       continue
     endif
 
     emit "Staging updated file: " + current_file_path
-    set add_status = tool.Git.Add(current_file_path)
-    # Assuming tool.Git.Add returns "OK" on success or a specific success message.
-    if add_status != "OK" and add_status != "" and add_status != nil # Check for non-empty error string or non-OK status
-      emit "[WARN] Failed to stage file: " + current_file_path + " - Status: " + add_status
+    set add_result_map = tool.Git.Add(current_file_path) 
+    
+    if add_result_map == nil or (add_result_map["status"] != "OK" and add_result_map["status"] != "" and add_result_map["status"] != nil)
+      emit "[WARN] Failed to stage file: " + current_file_path + " - Status: " + add_result_map["status"] + " Error: " + add_result_map["error"]
       continue
     endif
     
@@ -129,12 +228,12 @@ func UpdateNsSyntax(needs directory_path, worker_definition_name returns status_
     else
       set local_staged_files_csv = local_staged_files_csv + "," + current_file_path
     endif
-  endfor
+  endfor 
 
   if local_staged_files_csv != ""
     emit "Committing updated files staged in " + directory_path + ": " + local_staged_files_csv
     set commit_message = "AUTO: Update .ns syntax via AI worker for files in " + directory_path
-    call tool.Git.Commit(commit_message)
+    call tool.Git.Commit(commit_message) 
     emit "Commit attempt for " + directory_path + " finished."
   else
     emit "No files staged for commit in " + directory_path
@@ -143,13 +242,4 @@ func UpdateNsSyntax(needs directory_path, worker_definition_name returns status_
   set status_message = "Syntax update attempt finished for directory: " + directory_path + ". Worker: " + worker_definition_name + ". Check log and git status."
   return status_message
 
-  on_error means
-    emit "[FATAL ERROR] An unhandled error occurred in UpdateNsSyntax for directory: " + directory_path
-    # If your interpreter makes error details available in a system variable, you could log it:
-    # if system.error_message != nil 
-    #   emit "Error details: " + system.error_message 
-    # endif
-    set status_message = "Failure during syntax update for " + directory_path + ". Check logs."
-    return status_message # Ensure the function returns the status_message
-  endon
 endfunc

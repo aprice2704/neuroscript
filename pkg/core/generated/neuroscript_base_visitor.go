@@ -199,6 +199,10 @@ func (v *BaseNeuroScriptVisitor) VisitLiteral(ctx *LiteralContext) interface{} {
 	return v.VisitChildren(ctx)
 }
 
+func (v *BaseNeuroScriptVisitor) VisitNil_literal(ctx *Nil_literalContext) interface{} {
+	return v.VisitChildren(ctx)
+}
+
 func (v *BaseNeuroScriptVisitor) VisitBoolean_literal(ctx *Boolean_literalContext) interface{} {
 	return v.VisitChildren(ctx)
 }
