@@ -1,4 +1,4 @@
-// Code generated from NeuroScript.g4 by ANTLR 4.13.2. DO NOT EDIT.
+// Code generated from /home/aprice/dev/neuroscript/pkg/core/NeuroScript.g4 by ANTLR 4.13.2. DO NOT EDIT.
 
 package core // NeuroScript
 import "github.com/antlr4-go/antlr/v4"
@@ -63,11 +63,15 @@ func (v *BaseNeuroScriptVisitor) VisitBlock_statement(ctx *Block_statementContex
 	return v.VisitChildren(ctx)
 }
 
-func (v *BaseNeuroScriptVisitor) VisitExpressionStatement(ctx *ExpressionStatementContext) interface{} {
+func (v *BaseNeuroScriptVisitor) VisitLvalue(ctx *LvalueContext) interface{} {
 	return v.VisitChildren(ctx)
 }
 
 func (v *BaseNeuroScriptVisitor) VisitSet_statement(ctx *Set_statementContext) interface{} {
+	return v.VisitChildren(ctx)
+}
+
+func (v *BaseNeuroScriptVisitor) VisitExpressionStatement(ctx *ExpressionStatementContext) interface{} {
 	return v.VisitChildren(ctx)
 }
 

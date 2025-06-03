@@ -1,16 +1,15 @@
-DEFINE PROCEDURE TestElseBranch(condition_flag)
-COMMENT:
-    PURPOSE: Tests if the ELSE block executes when the IF condition is false.
-    INPUTS: - condition_flag: A string, expected "true" or "false".
-    OUTPUT: An emitted message indicating which branch ran.
-ENDCOMMENT
-IF condition_flag == "true" THEN
-    CALL EMIT("IF (THEN) Branch Executed.")
+:: lang_version: neuroscript@0.5.0
+:: file_version: 1.0
 
-ELSE
-    CALL EMIT("ELSE Branch Executed.")
-
-ENDBLOCK
-RETURN "Test Complete."
-
-END
+func TestElseBranch(needs condition_flag returns result) means
+  :: description: Tests if the ELSE block executes when the IF condition is false.
+  :: param:condition_flag: A string, expected "true" or "false".
+  :: return:result: A string indicating which branch ran.
+  if condition_flag == "true"
+    call emit("IF (THEN) Branch Executed.")
+  else
+    call emit("ELSE Branch Executed.")
+  endif
+  set result = "Test Complete."
+  return result
+endfunc

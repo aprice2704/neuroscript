@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -21,6 +22,12 @@ import (
 	"github.com/google/generative-ai-go/genai"
 	"github.com/google/uuid"
 )
+
+// Injected version of grammar we are using, from NeuroScript.g4
+var GrammarVersion string
+
+// Injected version of grammar we are using, from NeuroScript.g4
+var AppVersion string
 
 // Interpreter holds the state of a running NeuroScript program.
 type Interpreter struct {
@@ -44,6 +51,8 @@ type Interpreter struct {
 	toolCallTimestamps map[string][]time.Time
 	rateLimitCount     int
 	rateLimitDuration  time.Duration
+
+	maxLoopIterations int
 }
 
 // --- Constants ---
@@ -52,9 +61,26 @@ const handleSeparator = "::"
 // --- Constructor ---
 
 func NewInterpreter(logger logging.Logger, llmClient LLMClient, sandboxDir string, initialVars map[string]interface{}, libPaths []string) (*Interpreter, error) {
+
 	effectiveLogger := logger
+
 	if effectiveLogger == nil {
+		if IsRunningInTestMode() {
+			log.Fatalf("FATAL: Critical error: No logger is active, and we are not in test mode. Exiting.")
+		}
 		effectiveLogger = &coreNoOpLogger{}
+	}
+
+	if GrammarVersion != "" {
+		effectiveLogger.Infof("NeuroScript Grammar Version: %s", GrammarVersion)
+	} else {
+		effectiveLogger.Infof("NeuroScript Grammar Version not set")
+	}
+
+	if AppVersion != "" {
+		effectiveLogger.Infof("NeuroScript App Version: %s", AppVersion)
+	} else {
+		effectiveLogger.Infof("NeuroScript App Version not set")
 	}
 
 	effectiveLLMClient := llmClient
@@ -124,6 +150,7 @@ func NewInterpreter(logger logging.Logger, llmClient LLMClient, sandboxDir strin
 		toolCallTimestamps: make(map[string][]time.Time),
 		rateLimitCount:     10,
 		rateLimitDuration:  time.Minute,
+		maxLoopIterations:  1000000, // temp val for testing/dev
 	}
 
 	interp.toolRegistry = NewToolRegistry(interp)

@@ -1,4 +1,4 @@
-// Code generated from NeuroScript.g4 by ANTLR 4.13.2. DO NOT EDIT.
+// Code generated from /home/aprice/dev/neuroscript/pkg/core/NeuroScript.g4 by ANTLR 4.13.2. DO NOT EDIT.
 
 package core // NeuroScript
 import "github.com/antlr4-go/antlr/v4"
@@ -49,11 +49,14 @@ type NeuroScriptListener interface {
 	// EnterBlock_statement is called when entering the block_statement production.
 	EnterBlock_statement(c *Block_statementContext)
 
-	// EnterExpressionStatement is called when entering the expressionStatement production.
-	EnterExpressionStatement(c *ExpressionStatementContext)
+	// EnterLvalue is called when entering the lvalue production.
+	EnterLvalue(c *LvalueContext)
 
 	// EnterSet_statement is called when entering the set_statement production.
 	EnterSet_statement(c *Set_statementContext)
+
+	// EnterExpressionStatement is called when entering the expressionStatement production.
+	EnterExpressionStatement(c *ExpressionStatementContext)
 
 	// EnterCall_statement is called when entering the call_statement production.
 	EnterCall_statement(c *Call_statementContext)
@@ -220,11 +223,14 @@ type NeuroScriptListener interface {
 	// ExitBlock_statement is called when exiting the block_statement production.
 	ExitBlock_statement(c *Block_statementContext)
 
-	// ExitExpressionStatement is called when exiting the expressionStatement production.
-	ExitExpressionStatement(c *ExpressionStatementContext)
+	// ExitLvalue is called when exiting the lvalue production.
+	ExitLvalue(c *LvalueContext)
 
 	// ExitSet_statement is called when exiting the set_statement production.
 	ExitSet_statement(c *Set_statementContext)
+
+	// ExitExpressionStatement is called when exiting the expressionStatement production.
+	ExitExpressionStatement(c *ExpressionStatementContext)
 
 	// ExitCall_statement is called when exiting the call_statement production.
 	ExitCall_statement(c *Call_statementContext)

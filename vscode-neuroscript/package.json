@@ -4,6 +4,11 @@
   "description": "Syntax highlighting and language features for NeuroScript",
   "version": "0.3.0",
   "publisher": "Andrew Price",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aprice2704/neuroscript.git",
+    "directory": "vscode-neuroscript"
+  },
   "engines": {
     "vscode": "^1.80.0"
   },
@@ -11,7 +16,7 @@
     "Programming Languages"
   ],
   "activationEvents": [],
-  "main": "./out/extension.js",
+  "main": "./dist/extension.js",
   "contributes": {
     "languages": [
       {
@@ -38,8 +43,8 @@
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./",
+    "compile": "node ./esbuild.js",
+    "watch": "node ./esbuild.js --watch",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Andrew Price & Gemini",
@@ -50,6 +55,7 @@
   "devDependencies": {
     "@types/node": "^18.19.103",
     "@types/vscode": "^1.80.0",
+    "esbuild": "^0.25.5",
     "typescript": "^4.9.5"
   }
 }

@@ -1,52 +1,86 @@
-// NeuroScript Version: 0.3.0
-// File version: 0.0.2 // Align Step creation with revised ast.go
-// Last Modified: 2025-05-09 // Updated to reflect new Step struct
+// NeuroScript Version: 0.5.2
+// File version: 0.0.3 // Correct Step creation in ExitMust_statement and ExitAsk_stmt.
+// Last Modified: 2025-06-02
+// filename: pkg/core/ast_builder_statements.go
 package core
 
 import (
 	"fmt"
+	"strings"
 
 	gen "github.com/aprice2704/neuroscript/pkg/core/generated"
-	// Ensure antlr is imported for tokenToPosition usage with ctx.GetStart()
+	// Ensure antlr is imported if tokenToPosition or other antlr types are used directly here
+	// "github.com/antlr4-go/antlr/v4"
 )
+
+// Helper function (if not already in ast_builder_main.go or a shared util file)
+// For standalone use in this file if needed, or ensure it's accessible from where it's defined.
+/*
+func getRuleText(ctx antlr.RuleContext) string {
+	if parser, ok := ctx.GetParser().(antlr.Parser); ok {
+		return parser.GetTokenStream().GetTextFromRuleContext(ctx)
+	}
+	return ctx.GetText()
+}
+*/
 
 // --- Simple Statement Exit Handlers ---
 
+// ExitSet_statement was already updated in a previous step based on my snippets.
+// This version should reflect the use of l.popValue() for LValueNode and RHS Expression.
 func (l *neuroScriptListenerImpl) ExitSet_statement(ctx *gen.Set_statementContext) {
-	l.logDebugAST("<<< Exit Set_statement: %q", ctx.GetText())
-	valueRaw, ok := l.popValue()
-	if !ok {
-		l.addError(ctx, "Internal error: Failed to pop value for SET statement")
-		// Ensure a step is added, even if it's an error placeholder or this func returns.
-		// For now, addError is sufficient, and a step might not be added if it's a fatal stack issue.
+	l.logDebugAST("ExitSet_statement: %s", getRuleText(ctx))
+
+	rhsValueIntf, okRhs := l.popValue()
+	if !okRhs {
+		l.addErrorf(ctx.GetStart(), "AST Builder: Value stack error when expecting RHS expression for set statement.")
 		return
 	}
-	valueNode, isExpr := valueRaw.(Expression)
-	if !isExpr {
-		l.addError(ctx, "Internal error: Value for SET statement is not an Expression (got %T)", valueRaw)
-		// Attempt to push an ErrorNode onto the stack if this statement was part of a larger expression,
-		// though for a statement, just logging the error is primary.
+	rhsExpr, castOkRhs := rhsValueIntf.(Expression)
+	if !castOkRhs {
+		l.addErrorf(ctx.Expression().GetStart(), "AST Builder: Expected Expression for set statement value, got %T", rhsValueIntf)
+		l.pushValue(rhsValueIntf)
 		return
 	}
-	varName := ctx.IDENTIFIER().GetText()
-	if l.currentSteps == nil {
-		l.addError(ctx, "Internal error: Set_statement exited with nil currentSteps")
+
+	lvalueIntf, okLval := l.popValue()
+	if !okLval {
+		l.addErrorf(ctx.Lvalue().GetStart(), "AST Builder: Value stack error when expecting LValueNode for set statement.")
+		l.pushValue(rhsExpr)
 		return
 	}
-	step := Step{
-		Pos:    tokenToPosition(ctx.GetStart()),
+	lvalNode, castOkLval := lvalueIntf.(*LValueNode)
+	if !castOkLval {
+		l.addErrorf(ctx.Lvalue().GetStart(), "AST Builder: Expected *LValueNode on stack for set statement, got %T", lvalueIntf)
+		l.pushValue(lvalueIntf)
+		l.pushValue(rhsExpr)
+		return
+	}
+
+	setStep := Step{
+		Pos:    tokenToPosition(ctx.KW_SET().GetSymbol()),
 		Type:   "set",
-		Target: varName,
-		Value:  valueNode, // Value is Expression, this is correct
-		// Metadata: make(map[string]string), // Initialize if steps have metadata
+		LValue: lvalNode,
+		Value:  rhsExpr,
 	}
-	*l.currentSteps = append(*l.currentSteps, step)
-	l.logDebugAST("         Appended SET Step: Target=%s, Value=%T", varName, valueNode)
+
+	if l.currentSteps == nil {
+		l.addErrorf(ctx.GetStart(), "AST Builder: currentSteps is nil, cannot add set statement. Block context issue.")
+		var recoverySteps []Step
+		l.currentSteps = &recoverySteps
+		l.logger.Error("AST Builder: currentSteps was nil in ExitSet_statement. This is a critical issue.")
+	}
+	*l.currentSteps = append(*l.currentSteps, setStep)
+	if lvalNode != nil && rhsExpr != nil { // Added nil checks for logging
+		l.logDebugAST("         Appended SET Step: LValue=%s, Value=%s", lvalNode.String(), rhsExpr.String())
+	} else {
+		l.logDebugAST("         Appended SET Step with nil LValue or Value expression")
+	}
 }
 
 func (l *neuroScriptListenerImpl) ExitReturn_statement(ctx *gen.Return_statementContext) {
-	l.logDebugAST("<<< Exit Return_statement: %q", ctx.GetText())
-	var returnExprs []Expression // Use specific field Values []Expression
+	l.logDebugAST("<<< Exit Return_statement: %q", getRuleText(ctx))
+	var returnExprs []Expression
 
 	if exprListCtx := ctx.Expression_list(); exprListCtx != nil {
 		numExpr := len(exprListCtx.AllExpression())
@@ -56,19 +90,15 @@ func (l *neuroScriptListenerImpl) ExitReturn_statement(ctx *gen.Return_statement
 				l.addError(ctx, "Internal error: Failed to pop %d value(s) for RETURN statement", numExpr)
 				return
 			}
-			returnExprs = make([]Expression, numExpr) // Correctly initialize
+			returnExprs = make([]Expression, numExpr)
 			for i := 0; i < numExpr; i++ {
-				// popNValues returns in stack order (last pushed = first element). Reverse for parsed order.
-				//				nodeExpr, isExpr := nodesPoppedRaw[numExpr-1-i].(Expression)
 				idx := i
 				nodeExpr, isExpr := nodesPoppedRaw[idx].(Expression)
 				if !isExpr {
 					actualArgCtx := exprListCtx.Expression(i)
 					pos := tokenToPosition(actualArgCtx.GetStart())
 					l.addError(actualArgCtx, "RETURN argument %d is not an Expression (got %T)", i+1, nodesPoppedRaw[idx])
-					// Create an ErrorNode to put in the list if desired, or just error out
 					returnExprs[i] = &ErrorNode{Pos: pos, Message: fmt.Sprintf("Return arg %d invalid type %T", i+1, nodesPoppedRaw[idx])}
-					// Potentially return here or continue with error nodes in the list
 				} else {
 					returnExprs[i] = nodeExpr
 				}
@@ -76,31 +106,29 @@ func (l *neuroScriptListenerImpl) ExitReturn_statement(ctx *gen.Return_statement
 			l.logDebugAST("         Popped and asserted %d return nodes", len(returnExprs))
 		} else {
 			l.logDebugAST("         RETURN statement has empty Expression_list (value will be empty list).")
-			returnExprs = []Expression{} // Explicitly empty, not nil
+			returnExprs = []Expression{}
 		}
 	} else {
 		l.logDebugAST("         RETURN statement has no expression list (value will be nil slice of expressions).")
-		returnExprs = nil // Or []Expression{} depending on desired interpreter handling of `return;`
+		returnExprs = nil
 	}
 
 	if l.currentSteps == nil {
 		l.addError(ctx, "Internal error: Return_statement exited with nil currentSteps")
 		return
 	}
-	// Use Step.Values for return expressions
 	step := Step{
 		Pos:    tokenToPosition(ctx.GetStart()),
 		Type:   "return",
 		Values: returnExprs,
-		// Metadata: make(map[string]string),
 	}
 	*l.currentSteps = append(*l.currentSteps, step)
 	l.logDebugAST("         Appended RETURN Step")
 }
 
 func (l *neuroScriptListenerImpl) ExitEmit_statement(ctx *gen.Emit_statementContext) {
-	l.logDebugAST("<<< Exit Emit_statement: %q", ctx.GetText())
-	var valueNode Expression = nil // Value is Expression, this is correct
+	l.logDebugAST("<<< Exit Emit_statement: %q", getRuleText(ctx))
+	var valueNode Expression = nil
 
 	if ctx.Expression() != nil {
 		valueRaw, ok := l.popValue()
@@ -108,16 +136,17 @@ func (l *neuroScriptListenerImpl) ExitEmit_statement(ctx *gen.Emit_statementCont
 			l.addError(ctx, "Internal error: Failed to pop value for EMIT statement")
 			return
 		}
-		valueNode, ok = valueRaw.(Expression)
-		if !ok {
+		var castOk bool
+		valueNode, castOk = valueRaw.(Expression)
+		if !castOk {
 			l.addError(ctx, "Internal error: Value for EMIT statement is not an Expression (got %T)", valueRaw)
+			l.pushValue(valueRaw) // Push back if wrong type
 			return
 		}
-	} else { // emit without expression
+	} else {
 		l.addError(ctx, "EMIT statement requires an expression.")
-		// Create an error node or handle as appropriate. For now, valueNode remains nil.
-		// Potentially push an ErrorNode onto stack if EMIT was an expression itself (it's not).
-		// The step will be created with nil Value, interpreter should handle.
+		// Create an error node, valueNode will remain nil. Interpreter should handle nil Value for emit.
+		valueNode = &ErrorNode{Pos: tokenToPosition(ctx.GetStart()), Message: "EMIT statement missing expression"}
 	}
 
 	if l.currentSteps == nil {
@@ -127,17 +156,17 @@ func (l *neuroScriptListenerImpl) ExitEmit_statement(ctx *gen.Emit_statementCont
 	step := Step{
 		Pos:   tokenToPosition(ctx.GetStart()),
 		Type:  "emit",
-		Value: valueNode, // Correctly uses Value Expression
-		// Metadata: make(map[string]string),
+		Value: valueNode,
 	}
 	*l.currentSteps = append(*l.currentSteps, step)
 	l.logDebugAST("         Appended EMIT Step")
 }
 
+// MODIFIED ExitMust_statement
 func (l *neuroScriptListenerImpl) ExitMust_statement(ctx *gen.Must_statementContext) {
-	l.logDebugAST("<<< Exit Must_statement: %q", ctx.GetText())
-	var valueExpr Expression // For 'must condition' or 'mustbe callable_expr'
-	var targetName string    // For 'mustbe callableName'
+	l.logDebugAST("<<< Exit Must_statement: %q", getRuleText(ctx))
+	var valueForStep Expression
+	var callForStep *CallableExprNode
 	stepType := "must"
 
 	valueRaw, ok := l.popValue()
@@ -146,32 +175,29 @@ func (l *neuroScriptListenerImpl) ExitMust_statement(ctx *gen.Must_statementCont
 		return
 	}
 
-	if callableCtx := ctx.Callable_expr(); callableCtx != nil { // mustbe callable_expr
+	if ctx.Callable_expr() != nil { // This is 'mustbe callable_expr'
 		stepType = "mustbe"
 		callNode, isCallable := valueRaw.(*CallableExprNode)
 		if !isCallable {
 			l.addError(ctx, "Internal error: Expected CallableExprNode for MUSTBE, got %T", valueRaw)
+			l.pushValue(valueRaw) // Push back if wrong type
 			return
 		}
-		// For MUSTBE, the 'Value' field of Step will hold the CallableExprNode.
-		// The 'Target' field can hold the string name for easier interpreter access if needed,
-		// but the full callable is in Value.
-		valueExpr = callNode
-		targetName = callNode.Target.Name // Store the base name
-		if callNode.Target.IsTool {
-			targetName = "tool." + callNode.Target.Name // Prepend "tool." if it's a tool
-		}
-		l.logDebugAST("         Interpreting as MUSTBE, TargetName=%s, Value=%T", targetName, valueExpr)
-	} else if exprCtx := ctx.Expression(); exprCtx != nil { // must expression
+		callForStep = callNode
+		// For 'mustbe', the condition IS the callable expression itself.
+		// The interpreter will evaluate this CallableExprNode.
+		valueForStep = callNode
+		l.logDebugAST("         Interpreting as MUSTBE, Call=%s", callNode.String())
+	} else if ctx.Expression() != nil { // This is 'must expression'
 		stepType = "must"
 		exprNode, isExpr := valueRaw.(Expression)
 		if !isExpr {
-			l.addError(exprCtx, "Internal error: Condition for MUST is not an Expression (got %T)", valueRaw)
+			l.addError(ctx.Expression(), "Internal error: Condition for MUST is not an Expression (got %T)", valueRaw)
+			l.pushValue(valueRaw) // Push back if wrong type
 			return
 		}
-		valueExpr = exprNode
-		// Target is not used for 'must expression'
-		l.logDebugAST("         Interpreting as MUST, Value=%T", valueExpr)
+		valueForStep = exprNode
+		l.logDebugAST("         Interpreting as MUST, Value=%s", exprNode.String())
 	} else {
 		l.addError(ctx, "Internal error: Invalid structure for Must_statementContext")
 		return
@@ -181,20 +207,20 @@ func (l *neuroScriptListenerImpl) ExitMust_statement(ctx *gen.Must_statementCont
 		l.addError(ctx, "Internal error: Must_statement exited with nil currentSteps")
 		return
 	}
+
 	step := Step{
-		Pos:    tokenToPosition(ctx.GetStart()),
-		Type:   stepType,
-		Target: targetName, // Used for mustbe target name
-		Value:  valueExpr,  // Condition for must, or CallableExprNode for mustbe
-		// Metadata: make(map[string]string),
+		Pos:   tokenToPosition(ctx.GetStart()),
+		Type:  stepType,
+		Value: valueForStep, // For 'must', this is the condition. For 'mustbe', this is the CallableExprNode.
+		Call:  callForStep,  // Specifically for 'mustbe' to hold the CallableExprNode
 	}
 	*l.currentSteps = append(*l.currentSteps, step)
-	l.logDebugAST("         Appended %s Step", stepType)
+	l.logDebugAST("         Appended %s Step", strings.ToUpper(stepType))
 }
 
 func (l *neuroScriptListenerImpl) ExitFail_statement(ctx *gen.Fail_statementContext) {
-	l.logDebugAST("<<< Exit Fail_statement: %q", ctx.GetText())
-	var valueNode Expression = nil // Value is Expression, this is correct
+	l.logDebugAST("<<< Exit Fail_statement: %q", getRuleText(ctx))
+	var valueNode Expression = nil
 
 	if ctx.Expression() != nil {
 		valueRaw, ok := l.popValue()
@@ -202,12 +228,14 @@ func (l *neuroScriptListenerImpl) ExitFail_statement(ctx *gen.Fail_statementCont
 			l.addError(ctx, "Internal error: Failed to pop value for FAIL statement")
 			return
 		}
-		valueNode, ok = valueRaw.(Expression)
-		if !ok {
+		var castOk bool
+		valueNode, castOk = valueRaw.(Expression)
+		if !castOk {
 			l.addError(ctx, "Internal error: Value for FAIL statement is not an Expression (got %T)", valueRaw)
+			l.pushValue(valueRaw)
 			return
 		}
-	} // If no expression, valueNode remains nil, which is fine for `fail;`
+	}
 
 	if l.currentSteps == nil {
 		l.addError(ctx, "Internal error: Fail_statement exited with nil currentSteps")
@@ -216,15 +244,14 @@ func (l *neuroScriptListenerImpl) ExitFail_statement(ctx *gen.Fail_statementCont
 	step := Step{
 		Pos:   tokenToPosition(ctx.GetStart()),
 		Type:  "fail",
-		Value: valueNode, // Correctly uses Value Expression
-		// Metadata: make(map[string]string),
+		Value: valueNode,
 	}
 	*l.currentSteps = append(*l.currentSteps, step)
 	l.logDebugAST("         Appended FAIL Step")
 }
 
 func (l *neuroScriptListenerImpl) ExitClearErrorStmt(ctx *gen.ClearErrorStmtContext) {
-	l.logDebugAST("<<< Exit ClearErrorStmt: %q", ctx.GetText())
+	l.logDebugAST("<<< Exit ClearErrorStmt: %q", getRuleText(ctx))
 	if l.currentSteps == nil {
 		l.addError(ctx, "Internal error: ClearErrorStmt exited with nil currentSteps")
 		return
@@ -232,15 +259,15 @@ func (l *neuroScriptListenerImpl) ExitClearErrorStmt(ctx *gen.ClearErrorStmtCont
 	step := Step{
 		Pos:  tokenToPosition(ctx.GetStart()),
 		Type: "clear_error",
-		// Metadata: make(map[string]string),
 	}
 	*l.currentSteps = append(*l.currentSteps, step)
 	l.logDebugAST("         Appended CLEAR_ERROR Step")
 }
 
+// MODIFIED ExitAsk_stmt
 func (l *neuroScriptListenerImpl) ExitAsk_stmt(ctx *gen.Ask_stmtContext) {
-	l.logDebugAST("<<< Exit Ask_stmt: %q", ctx.GetText())
-	valueRaw, ok := l.popValue() // This is the prompt expression
+	l.logDebugAST("<<< Exit Ask_stmt: %q", getRuleText(ctx))
+	valueRaw, ok := l.popValue()
 	if !ok {
 		l.addError(ctx, "Internal error: Failed to pop prompt expression for ASK statement")
 		return
@@ -248,6 +275,7 @@ func (l *neuroScriptListenerImpl) ExitAsk_stmt(ctx *gen.Ask_stmtContext) {
 	promptExpr, isExpr := valueRaw.(Expression)
 	if !isExpr {
 		l.addError(ctx, "Internal error: Prompt for ASK statement is not an Expression (got %T)", valueRaw)
+		l.pushValue(valueRaw) // Push back if wrong type
 		return
 	}
 
@@ -255,25 +283,28 @@ func (l *neuroScriptListenerImpl) ExitAsk_stmt(ctx *gen.Ask_stmtContext) {
 		l.addError(ctx, "Internal error: Ask_stmt exited with nil currentSteps")
 		return
 	}
-	targetVar := ""
-	if ctx.IDENTIFIER() != nil { // This is the 'into targetVar' part
-		targetVar = ctx.IDENTIFIER().GetText()
-		l.logDebugAST("         Ask target variable: %s", targetVar)
+	targetVarName := ""
+	if identNode := ctx.IDENTIFIER(); identNode != nil {
+		targetVarName = identNode.GetText()
+		l.logDebugAST("         Ask target variable: %s", targetVarName)
 	}
+
 	step := Step{
-		Pos:    tokenToPosition(ctx.GetStart()),
-		Type:   "ask",
-		Target: targetVar,  // Stores the 'into' variable name
-		Value:  promptExpr, // Stores the prompt Expression
-		// Metadata: make(map[string]string),
+		Pos:        tokenToPosition(ctx.GetStart()),
+		Type:       "ask",
+		Value:      promptExpr,    // Stores the prompt Expression
+		AskIntoVar: targetVarName, // Use the specific field from ast.go's Step struct
 	}
 	*l.currentSteps = append(*l.currentSteps, step)
-	l.logDebugAST("         Appended ASK Step: Target=%s, Prompt=%T", targetVar, promptExpr)
+	if promptExpr != nil { // Added nil check for logging
+		l.logDebugAST("         Appended ASK Step: AskIntoVar=%s, Prompt=%s", targetVarName, promptExpr.String())
+	} else {
+		l.logDebugAST("         Appended ASK Step: AskIntoVar=%s, Prompt=<nil>", targetVarName)
+	}
 }
 
 func (l *neuroScriptListenerImpl) ExitCall_statement(ctx *gen.Call_statementContext) {
-	l.logDebugAST("<<< Exit Call_statement: %q", ctx.GetText())
-	// The CallableExprNode was pushed onto the stack by ExitCallable_expr
+	l.logDebugAST("<<< Exit Call_statement: %q", getRuleText(ctx))
 	valueRaw, ok := l.popValue()
 	if !ok {
 		l.addError(ctx, "Internal error: Failed to pop CallableExprNode for CALL statement")
@@ -282,6 +313,7 @@ func (l *neuroScriptListenerImpl) ExitCall_statement(ctx *gen.Call_statementCont
 	callableNode, isCallable := valueRaw.(*CallableExprNode)
 	if !isCallable {
 		l.addError(ctx, "Internal error: Value popped for CALL statement was not *CallableExprNode (got %T)", valueRaw)
+		l.pushValue(valueRaw) // Push back if wrong type
 		return
 	}
 
@@ -290,23 +322,23 @@ func (l *neuroScriptListenerImpl) ExitCall_statement(ctx *gen.Call_statementCont
 		return
 	}
 	step := Step{
-		Pos:  tokenToPosition(ctx.GetStart()), // Position of 'call' keyword
+		Pos:  tokenToPosition(ctx.GetStart()),
 		Type: "call",
-		Call: callableNode, // Use the specific 'Call' field
-		// Metadata: make(map[string]string),
+		Call: callableNode,
 	}
 	*l.currentSteps = append(*l.currentSteps, step)
-	l.logDebugAST("         Appended CALL Step: Target=%s", callableNode.Target.Name)
+	if callableNode != nil && callableNode.Target.Name != "" { // Added nil check for logging
+		l.logDebugAST("         Appended CALL Step: Target=%s", callableNode.Target.String())
+	} else {
+		l.logDebugAST("         Appended CALL Step with nil or unnamed callable")
+	}
 }
 
 // --- Break/Continue ---
 func (l *neuroScriptListenerImpl) ExitBreak_statement(ctx *gen.Break_statementContext) {
-	l.logDebugAST("<<< Exit Break_statement: %q", ctx.GetText())
+	l.logDebugAST("<<< Exit Break_statement: %q", getRuleText(ctx))
 	if !l.isInsideLoop() {
 		l.addError(ctx, "'break' statement is not allowed outside of a loop ('while' or 'for each')")
-		// Still create a step but interpreter might flag it or it might be benign if error collected.
-		// Or, simply return if errors should halt AST step addition for this path.
-		// For now, proceed to create the step; interpreter can validate loop context.
 	}
 	if l.currentSteps == nil {
 		l.addError(ctx, "Internal error: Break_statement exited with nil currentSteps")
@@ -315,17 +347,15 @@ func (l *neuroScriptListenerImpl) ExitBreak_statement(ctx *gen.Break_statementCo
 	step := Step{
 		Pos:  tokenToPosition(ctx.GetStart()),
 		Type: "break",
-		// Metadata: make(map[string]string),
 	}
 	*l.currentSteps = append(*l.currentSteps, step)
 	l.logDebugAST("         Appended BREAK Step")
 }
 
 func (l *neuroScriptListenerImpl) ExitContinue_statement(ctx *gen.Continue_statementContext) {
-	l.logDebugAST("<<< Exit Continue_statement: %q", ctx.GetText())
+	l.logDebugAST("<<< Exit Continue_statement: %q", getRuleText(ctx))
 	if !l.isInsideLoop() {
 		l.addError(ctx, "'continue' statement is not allowed outside of a loop ('while' or 'for each')")
-		// See comment in ExitBreak_statement
 	}
 	if l.currentSteps == nil {
 		l.addError(ctx, "Internal error: Continue_statement exited with nil currentSteps")
@@ -334,7 +364,6 @@ func (l *neuroScriptListenerImpl) ExitContinue_statement(ctx *gen.Continue_state
 	step := Step{
 		Pos:  tokenToPosition(ctx.GetStart()),
 		Type: "continue",
-		// Metadata: make(map[string]string),
 	}
 	*l.currentSteps = append(*l.currentSteps, step)
 	l.logDebugAST("         Appended CONTINUE Step")

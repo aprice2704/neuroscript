@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.4.0
-// File version: 0.1.2 // Corrected surrogate checks, fixed IsHigh/LowSurrogate usage.
+// File version: 0.1.3 // Added handling for line continuation '\' + newline/CR
 // Purpose: Provides string un-escaping for NeuroScript literals and common string escaping utilities.
 // filename: pkg/core/string_utils.go
-// nlines: 165 // Estimated
+// nlines: 171 // Estimated
 // risk_rating: MEDIUM
 
 package core
@@ -20,6 +20,7 @@ import (
 // UnescapeNeuroScriptString processes a raw string from a NeuroScript literal
 // (the content between the quotes) and resolves escape sequences.
 // It handles:
+// - Line continuations: '\' followed by an actual newline or carriage return.
 // - Standard escapes: \b, \t, \n, \f, \r, \v, \~, \`
 // - Quote escapes: \", \', \\
 // - Unicode escapes: \uXXXX
@@ -38,24 +39,36 @@ func UnescapeNeuroScriptString(rawString string) (string, error) {
 			continue
 		}
 
+		// At this point, 'char' is '\'. Read the next character.
 		if reader.Len() == 0 {
 			return "", fmt.Errorf("string ends with a bare backslash")
 		}
 		escChar, _, err := reader.ReadRune()
 		if err != nil {
-			return "", fmt.Errorf("error reading escape character: %w", err)
+			return "", fmt.Errorf("error reading character after backslash: %w", err)
 		}
 
+		// Handle actual newline or carriage return characters following a backslash,
+		// which signifies a line continuation from the lexer's CONTINUED_LINE fragment.
+		if escChar == '\n' || escChar == '\r' {
+			// This is a line continuation. The '\' and the newline/CR
+			// (which is escChar) have been consumed from the reader.
+			// We append nothing to the string builder, effectively joining the lines.
+			// The loop will then continue with the character that was after the newline/CR.
+			continue // Continue the "for reader.Len() > 0" loop
+		}
+
+		// If it wasn't a line continuation, process as a standard escape sequence:
 		switch escChar {
 		case 'b':
 			sb.WriteRune('\b')
 		case 't':
 			sb.WriteRune('\t')
-		case 'n':
+		case 'n': // This is for the escape sequence literal "\n"
 			sb.WriteRune('\n')
 		case 'f':
 			sb.WriteRune('\f')
-		case 'r':
+		case 'r': // This is for the escape sequence literal "\r"
 			sb.WriteRune('\r')
 		case 'v':
 			sb.WriteRune('\v')
@@ -125,10 +138,11 @@ func UnescapeNeuroScriptString(rawString string) (string, error) {
 						if isR2LowSurrogate { // r1 is already known to be a high surrogate here
 							combinedRune := utf16.DecodeRune(r1, r2)
 							sb.WriteRune(combinedRune)
-							continue
+							continue // Continue the main "for" loop
 						}
 					}
 				}
+				// If surrogate pair wasn't formed, roll back the peeked runes
 				if bytesReadForPeek > 0 {
 					_, seekErr := reader.Seek(-bytesReadForPeek, io.SeekCurrent)
 					if seekErr != nil {
@@ -136,7 +150,7 @@ func UnescapeNeuroScriptString(rawString string) (string, error) {
 					}
 				}
 			}
-			sb.WriteRune(r1)
+			sb.WriteRune(r1) // Write the original rune (high surrogate or regular BMP)
 		default:
 			return "", fmt.Errorf("unknown escape sequence: \\%c", escChar)
 		}
@@ -156,14 +170,19 @@ func SafeEscapeJavaScriptString(s string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal string for JavaScript escaping: %w", err)
 	}
+	// json.Marshal returns a JSON string, which is double-quoted.
+	// For direct embedding in JS code as a string literal, this is usually correct.
 	return string(marshaled), nil
 }
 
 // StripJSONStringQuotes removes the outer quotes from a JSON-encoded string literal
-// and unescapes its content.
+// and unescapes its content. This is useful if you have a string that is already
+// a valid JSON string literal (e.g., from `SafeEscapeJavaScriptString` or other JSON source)
+// and you want the raw Go string value.
 func StripJSONStringQuotes(jsonStr string) (string, error) {
 	if len(jsonStr) < 2 || jsonStr[0] != '"' || jsonStr[len(jsonStr)-1] != '"' {
 		return "", fmt.Errorf("string is not a valid JSON-encoded string literal: %s", jsonStr)
 	}
+	// strconv.Unquote handles JSON string unescaping.
 	return strconv.Unquote(jsonStr)
 }

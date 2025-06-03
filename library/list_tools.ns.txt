@@ -1,12 +1,16 @@
-func main() means
-    set listResult = tool.Meta.ListTools()
-    emit "Compact Tool List:"
-    emit listResult
-    emit ```
-    --------------------
-    ```
+:: lang_version: neuroscript@0.5.0
+:: file_version: 1.0
 
+func main means
+:: description: Lists available tools and their help information.
+:: purpose: Demonstrates tool usage and output handling.
+    set listResult = tool.Meta.ListTools()
+    call emit("Compact Tool List:")
+    call emit(listResult)
+    call emit(```
+    --------------------
+    ```)
     set helpResult = tool.Meta.ToolsHelp()
-    emit "Detailed Tool Help (Markdown):"
-    emit helpResult
+    call emit("Detailed Tool Help (Markdown):")
+    call emit(helpResult)
 endfunc

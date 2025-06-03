@@ -1,0 +1,1068 @@
+--- FAIL: TestIfThenElse_SimpleIfThen (0.00s)
+    ast_builder_if_else_test.go:63: parseStringToProcedureBodyNodes: AST building failed for procedure 'TestProc': AST build failed with 5 error(s): AST builder internal error: attempted pop from empty value stack; AST build error at Obtained from string:3:2: Stack error popping condition for IF statement; AST builder internal error: attempted pop from empty value stack; AST build error near Obtained from string:6:1: Stack error: expected procedure body steps for 'TestProc', but value stack was empty.; internal AST builder error: block step stack size is 1 at end of program
+--- FAIL: TestIfThenElse_SimpleIfThenElse (0.00s)
+    ast_builder_if_else_test.go:86: parseStringToProcedureBodyNodes: AST building failed for procedure 'TestProc': AST build failed with 5 error(s): AST builder internal error: attempted pop from empty value stack; AST build error at Obtained from string:3:2: Stack error popping then_steps for IF statement; AST builder internal error: attempted pop from empty value stack; AST build error near Obtained from string:8:1: Stack error: expected procedure body steps for 'TestProc', but value stack was empty.; internal AST builder error: block step stack size is 1 at end of program
+--- FAIL: TestIfThenElse_IfElseIfElse (0.00s)
+    ast_builder_if_else_test.go:122: parseStringToProcedureBodyNodes: AST building failed for procedure 'TestProc': AST build failed with 7 error(s): AST builder internal error: attempted pop from empty value stack; AST build error at Obtained from string:6:3: Stack error popping condition for IF statement; AST builder internal error: attempted pop from empty value stack; AST build error at Obtained from string:3:2: Stack error popping else_steps for IF statement; AST builder internal error: attempted pop from empty value stack; AST build error near Obtained from string:12:1: Stack error: expected procedure body steps for 'TestProc', but value stack was empty.; internal AST builder error: block step stack size is 2 at end of program
+--- FAIL: TestIfThenElse_IfElseIfOnly (0.00s)
+    ast_builder_if_else_test.go:175: parseStringToProcedureBodyNodes: AST building failed for procedure 'TestProc': AST build failed with 5 error(s): AST builder internal error: attempted pop from empty value stack; AST build error at Obtained from string:3:2: Stack error popping else_steps for IF statement; AST builder internal error: attempted pop from empty value stack; AST build error near Obtained from string:10:1: Stack error: expected procedure body steps for 'TestProc', but value stack was empty.; internal AST builder error: block step stack size is 2 at end of program
+--- FAIL: TestIfThenElse_MultipleElseIfs (0.00s)
+    ast_builder_if_else_test.go:230: parseStringToProcedureBodyNodes: AST building failed for procedure 'TestProc': AST build failed with 9 error(s): AST builder internal error: attempted pop from empty value stack; AST build error at Obtained from string:9:4: Stack error popping then_steps for IF statement; AST builder internal error: attempted pop from empty value stack; AST build error at Obtained from string:6:3: Stack error popping else_steps for IF statement; AST builder internal error: attempted pop from empty value stack; AST build error at Obtained from string:3:2: Stack error popping else_steps for IF statement; AST builder internal error: attempted pop from empty value stack; AST build error near Obtained from string:20:1: Stack error: expected procedure body steps for 'TestProc', but value stack was empty.; internal AST builder error: block step stack size is 4 at end of program
+--- FAIL: TestIfThenElse_NestedIfInThen (0.00s)
+    ast_builder_if_else_test.go:296: parseStringToProcedureBodyNodes: AST building failed for procedure 'TestProc': AST build failed with 7 error(s): AST builder internal error: attempted pop from empty value stack; AST build error at Obtained from string:5:3: Stack error popping condition for IF statement; AST builder internal error: attempted pop from empty value stack; AST build error at Obtained from string:3:2: Stack error popping else_steps for IF statement; AST builder internal error: attempted pop from empty value stack; AST build error near Obtained from string:14:1: Stack error: expected procedure body steps for 'TestProc', but value stack was empty.; internal AST builder error: block step stack size is 2 at end of program
+--- FAIL: TestIfThenElse_NestedIfInElse (0.00s)
+    ast_builder_if_else_test.go:343: parseStringToProcedureBodyNodes: AST building failed for procedure 'TestProc': AST build failed with 7 error(s): AST builder internal error: attempted pop from empty value stack; AST build error at Obtained from string:7:3: Stack error popping condition for IF statement; AST builder internal error: attempted pop from empty value stack; AST build error at Obtained from string:3:2: Stack error popping else_steps for IF statement; AST builder internal error: attempted pop from empty value stack; AST build error near Obtained from string:14:1: Stack error: expected procedure body steps for 'TestProc', but value stack was empty.; internal AST builder error: block step stack size is 2 at end of program
+--- FAIL: TestIfThenElse_EmptyThenBlock (0.00s)
+    ast_builder_if_else_test.go:385: parseStringToProcedureBodyNodes: AST building failed for procedure 'TestProc': AST build failed with 5 error(s): AST builder internal error: attempted pop from empty value stack; AST build error at Obtained from string:4:2: Stack error popping then_steps for IF statement; AST builder internal error: attempted pop from empty value stack; AST build error near Obtained from string:9:1: Stack error: expected procedure body steps for 'TestProc', but value stack was empty.; internal AST builder error: block step stack size is 1 at end of program
+--- FAIL: TestIfThenElse_EmptyElseBlock (0.00s)
+    ast_builder_if_else_test.go:408: parseStringToProcedureBodyNodes: AST building failed for procedure 'TestProc': AST build failed with 5 error(s): AST builder internal error: attempted pop from empty value stack; AST build error at Obtained from string:3:2: Stack error popping then_steps for IF statement; AST builder internal error: attempted pop from empty value stack; AST build error near Obtained from string:8:1: Stack error: expected procedure body steps for 'TestProc', but value stack was empty.; internal AST builder error: block step stack size is 1 at end of program
+--- FAIL: TestIfThenElse_EmptyThenAndElseBlocks (0.00s)
+    ast_builder_if_else_test.go:431: parseStringToProcedureBodyNodes: AST building failed for procedure 'TestProc': AST build failed with 5 error(s): AST builder internal error: attempted pop from empty value stack; AST build error at Obtained from string:3:2: Stack error popping then_steps for IF statement; AST builder internal error: attempted pop from empty value stack; AST build error near Obtained from string:8:1: Stack error: expected procedure body steps for 'TestProc', but value stack was empty.; internal AST builder error: block step stack size is 1 at end of program
+--- FAIL: TestIfThenElse_MultipleStatementsInBlocks (0.00s)
+    ast_builder_if_else_test.go:454: parseStringToProcedureBodyNodes: AST building failed for procedure 'TestProc': AST build failed with 5 error(s): AST builder internal error: attempted pop from empty value stack; AST build error at Obtained from string:3:2: Stack error popping then_steps for IF statement; AST builder internal error: attempted pop from empty value stack; AST build error near Obtained from string:11:1: Stack error: expected procedure body steps for 'TestProc', but value stack was empty.; internal AST builder error: block step stack size is 1 at end of program
+string
+number
+number
+boolean
+nil
+list
+map
+number
+string
+list
+100
+number
+--- FAIL: TestInterpreter_ParameterPassingFuzz (0.01s)
+    helpers.go:57: [DEBUG] Parsing source code (original Parse method) length=1454
+    helpers.go:57: [DEBUG] Using DefaultErrorStrategy for parsing.
+    helpers.go:57: [DEBUG] Parse attempt completed. lexerListenerErrors=0 parserListenerErrors=0
+    helpers.go:57: [DEBUG] Parsing successful (based on listener raw errors).
+    helpers.go:57: [DEBUG] AST Builder: Starting AST build process using Listener.
+    helpers.go:57: [DEBUG] AST Builder: Starting ANTLR walk...
+    helpers.go:57: [DEBUG] >>> Enter Program
+    helpers.go:57: [DEBUG]    >> Enter File Header
+    helpers.go:57: [DEBUG]    - Processing File Metadata Line: :: Name: Parameter Passing Test Script (Enhanced)
+    helpers.go:57: [DEBUG]      Stored File Metadata: 'Name' = 'Parameter Passing Test Script (Enhanced)'
+    helpers.go:57: [DEBUG]    - Processing File Metadata Line: :: Version: 1.2.0
+    helpers.go:57: [DEBUG]      Stored File Metadata: 'Version' = '1.2.0'
+    helpers.go:57: [DEBUG]    << Exit File Header
+    helpers.go:57: [DEBUG] >>> Enter Procedure_definition for mainEntry. Parent currentSteps: 0x0, Stack depth: 0
+    helpers.go:57: [DEBUG] >>> Enter Statement_list (for Procedure: mainEntry main body)
+    helpers.go:57: [DEBUG]  >> Exit Literal: "mainEntry_recvd:"
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.StringLiteralNode pos=Obtained from string:7:8 value_preview="mainEntry_recvd:" new_stack_size=1
+    helpers.go:57: [DEBUG]    << Exit Literal
+    helpers.go:57: [DEBUG] --- Exit Primary: "\"mainEntry_recvd:\""
+    helpers.go:57: [DEBUG]     Primary is Literal, Placeholder, Call, or Parenthesized (Pass through)
+    helpers.go:57: [DEBUG] --- Exit Accessor_expr: "\"mainEntry_recvd:\""
+    helpers.go:57: [DEBUG] --- Exit Power_expr: "\"mainEntry_recvd:\""
+    helpers.go:57: [DEBUG] --- ExitUnary_expr: "\"mainEntry_recvd:\""
+    helpers.go:57: [DEBUG]     Unary_expr is pass-through (no specific operator token found, or was typeof).
+    helpers.go:57: [DEBUG] --- Exit Multiplicative_expr: "\"mainEntry_recvd:\""
+    helpers.go:57: [DEBUG] --- Exit Primary: "strArg"
+    helpers.go:57: [DEBUG]     Constructed VariableNode: strArg
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.VariableNode pos=Obtained from string:7:29 value_preview=strArg new_stack_size=2
+    helpers.go:57: [DEBUG] --- Exit Accessor_expr: "strArg"
+    helpers.go:57: [DEBUG] --- Exit Power_expr: "strArg"
+    helpers.go:57: [DEBUG] --- ExitUnary_expr: "strArg"
+    helpers.go:57: [DEBUG]     Unary_expr is pass-through (no specific operator token found, or was typeof).
+    helpers.go:57: [DEBUG] --- Exit Multiplicative_expr: "strArg"
+    helpers.go:57: [DEBUG]  >> Exit Literal: ","
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.StringLiteralNode pos=Obtained from string:7:38 value_preview="," new_stack_size=3
+    helpers.go:57: [DEBUG]    << Exit Literal
+    helpers.go:57: [DEBUG] --- Exit Primary: "\",\""
+    helpers.go:57: [DEBUG]     Primary is Literal, Placeholder, Call, or Parenthesized (Pass through)
+    helpers.go:57: [DEBUG] --- Exit Accessor_expr: "\",\""
+    helpers.go:57: [DEBUG] --- Exit Power_expr: "\",\""
+    helpers.go:57: [DEBUG] --- ExitUnary_expr: "\",\""
+    helpers.go:57: [DEBUG]     Unary_expr is pass-through (no specific operator token found, or was typeof).
+    helpers.go:57: [DEBUG] --- Exit Multiplicative_expr: "\",\""
+    helpers.go:57: [DEBUG] --- Exit Primary: "intArg"
+    helpers.go:57: [DEBUG]     Constructed VariableNode: intArg
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.VariableNode pos=Obtained from string:7:44 value_preview=intArg new_stack_size=4
+    helpers.go:57: [DEBUG] --- Exit Accessor_expr: "intArg"
+    helpers.go:57: [DEBUG] --- Exit Power_expr: "intArg"
+    helpers.go:57: [DEBUG] --- ExitUnary_expr: "intArg"
+    helpers.go:57: [DEBUG]     Unary_expr is pass-through (no specific operator token found, or was typeof).
+    helpers.go:57: [DEBUG] --- Exit Multiplicative_expr: "intArg"
+    helpers.go:57: [DEBUG]  >> Exit Literal: ","
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.StringLiteralNode pos=Obtained from string:7:53 value_preview="," new_stack_size=5
+    helpers.go:57: [DEBUG]    << Exit Literal
+    helpers.go:57: [DEBUG] --- Exit Primary: "\",\""
+    helpers.go:57: [DEBUG]     Primary is Literal, Placeholder, Call, or Parenthesized (Pass through)
+    helpers.go:57: [DEBUG] --- Exit Accessor_expr: "\",\""
+    helpers.go:57: [DEBUG] --- Exit Power_expr: "\",\""
+    helpers.go:57: [DEBUG] --- ExitUnary_expr: "\",\""
+    helpers.go:57: [DEBUG]     Unary_expr is pass-through (no specific operator token found, or was typeof).
+    helpers.go:57: [DEBUG] --- Exit Multiplicative_expr: "\",\""
+    helpers.go:57: [DEBUG] --- Exit Primary: "boolArg"
+    helpers.go:57: [DEBUG]     Constructed VariableNode: boolArg
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.VariableNode pos=Obtained from string:7:59 value_preview=boolArg new_stack_size=6
+    helpers.go:57: [DEBUG] --- Exit Accessor_expr: "boolArg"
+    helpers.go:57: [DEBUG] --- Exit Power_expr: "boolArg"
+    helpers.go:57: [DEBUG] --- ExitUnary_expr: "boolArg"
+    helpers.go:57: [DEBUG]     Unary_expr is pass-through (no specific operator token found, or was typeof).
+    helpers.go:57: [DEBUG] --- Exit Multiplicative_expr: "boolArg"
+    helpers.go:57: [DEBUG]  >> Exit Literal: ","
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.StringLiteralNode pos=Obtained from string:7:69 value_preview="," new_stack_size=7
+    helpers.go:57: [DEBUG]    << Exit Literal
+    helpers.go:57: [DEBUG] --- Exit Primary: "\",\""
+    helpers.go:57: [DEBUG]     Primary is Literal, Placeholder, Call, or Parenthesized (Pass through)
+    helpers.go:57: [DEBUG] --- Exit Accessor_expr: "\",\""
+    helpers.go:57: [DEBUG] --- Exit Power_expr: "\",\""
+    helpers.go:57: [DEBUG] --- ExitUnary_expr: "\",\""
+    helpers.go:57: [DEBUG]     Unary_expr is pass-through (no specific operator token found, or was typeof).
+    helpers.go:57: [DEBUG] --- Exit Multiplicative_expr: "\",\""
+    helpers.go:57: [DEBUG] --- Exit Primary: "floatArg"
+    helpers.go:57: [DEBUG]     Constructed VariableNode: floatArg
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.VariableNode pos=Obtained from string:7:75 value_preview=floatArg new_stack_size=8
+    helpers.go:57: [DEBUG] --- Exit Accessor_expr: "floatArg"
+    helpers.go:57: [DEBUG] --- Exit Power_expr: "floatArg"
+    helpers.go:57: [DEBUG] --- ExitUnary_expr: "floatArg"
+    helpers.go:57: [DEBUG]     Unary_expr is pass-through (no specific operator token found, or was typeof).
+    helpers.go:57: [DEBUG] --- Exit Multiplicative_expr: "floatArg"
+    helpers.go:57: [DEBUG] --- Exit Additive_expr: "\"mainEntry_recvd:\"+strArg+\",\"+intArg+\",\"+boolArg+\",\"+floatArg"
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] <-- POP value_type=*core.VariableNode pos=Obtained from string:7:75 value_preview=floatArg new_stack_size=7
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] <-- POP value_type=*core.StringLiteralNode pos=Obtained from string:7:69 value_preview="," new_stack_size=6
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] <-- POP value_type=*core.VariableNode pos=Obtained from string:7:59 value_preview=boolArg new_stack_size=5
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] <-- POP value_type=*core.StringLiteralNode pos=Obtained from string:7:53 value_preview="," new_stack_size=4
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] <-- POP value_type=*core.VariableNode pos=Obtained from string:7:44 value_preview=intArg new_stack_size=3
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] <-- POP value_type=*core.StringLiteralNode pos=Obtained from string:7:38 value_preview="," new_stack_size=2
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] <-- POP value_type=*core.VariableNode pos=Obtained from string:7:29 value_preview=strArg new_stack_size=1
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] <-- POP value_type=*core.StringLiteralNode pos=Obtained from string:7:8 value_preview="mainEntry_recvd:" new_stack_size=0
+    helpers.go:57: [DEBUG]     Constructed BinaryOpNode: [*core.StringLiteralNode + *core.VariableNode]
+    helpers.go:57: [DEBUG]     Constructed BinaryOpNode: [*core.BinaryOpNode + *core.StringLiteralNode]
+    helpers.go:57: [DEBUG]     Constructed BinaryOpNode: [*core.BinaryOpNode + *core.VariableNode]
+    helpers.go:57: [DEBUG]     Constructed BinaryOpNode: [*core.BinaryOpNode + *core.StringLiteralNode]
+    helpers.go:57: [DEBUG]     Constructed BinaryOpNode: [*core.BinaryOpNode + *core.VariableNode]
+    helpers.go:57: [DEBUG]     Constructed BinaryOpNode: [*core.BinaryOpNode + *core.StringLiteralNode]
+    helpers.go:57: [DEBUG]     Constructed BinaryOpNode: [*core.BinaryOpNode + *core.VariableNode]
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.BinaryOpNode pos=Obtained from string:7:73 value_preview=((((((("mainEntry_recvd:" + strArg) + ",") + intArg) + ",") + boolArg) + ",") + floatArg) new_stack_size=1
+    helpers.go:57: [DEBUG] --- Exit Relational_expr: "\"mainEntry_recvd:\"+strArg+\",\"+intArg+\",\"+boolArg+\",\"+floatArg"
+    helpers.go:57: [DEBUG] --- Exit Equality_expr: "\"mainEntry_recvd:\"+strArg+\",\"+intArg+\",\"+boolArg+\",\"+floatArg"
+    helpers.go:57: [DEBUG] --- Exit Bitwise_and_expr: "\"mainEntry_recvd:\"+strArg+\",\"+intArg+\",\"+boolArg+\",\"+floatArg"
+    helpers.go:57: [DEBUG] --- Exit Bitwise_xor_expr: "\"mainEntry_recvd:\"+strArg+\",\"+intArg+\",\"+boolArg+\",\"+floatArg"
+    helpers.go:57: [DEBUG] --- Exit Bitwise_or_expr: "\"mainEntry_recvd:\"+strArg+\",\"+intArg+\",\"+boolArg+\",\"+floatArg"
+    helpers.go:57: [DEBUG] --- Exit Logical_and_expr: "\"mainEntry_recvd:\"+strArg+\",\"+intArg+\",\"+boolArg+\",\"+floatArg"
+    helpers.go:57: [DEBUG] --- Exit Logical_or_expr: "\"mainEntry_recvd:\"+strArg+\",\"+intArg+\",\"+boolArg+\",\"+floatArg"
+    helpers.go:57: [DEBUG] --- Exit Expression: "\"mainEntry_recvd:\"+strArg+\",\"+intArg+\",\"+boolArg+\",\"+floatArg" (Pass through)
+    helpers.go:57: [DEBUG] <<< Exit Emit_statement: "emit \"mainEntry_recvd:\" + strArg + \",\" + intArg + \",\" + boolArg + \",\" + floatArg"
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] <-- POP value_type=*core.BinaryOpNode pos=Obtained from string:7:73 value_preview=((((((("mainEntry_recvd:" + strArg) + ",") + intArg) + ",") + boolArg) + ",") + floatArg) new_stack_size=0
+    helpers.go:57: [DEBUG]          Appended EMIT Step
+    helpers.go:57: [DEBUG] --- Exit Call_target: "helperProc"
+    helpers.go:57: [DEBUG]     -> buildCallTargetFromContext: helperProc
+    helpers.go:57: [DEBUG]        User function call identified. Name: 'helperProc', Pos: Obtained from string:9:8
+    helpers.go:57: [DEBUG]     <- buildCallTargetFromContext (Name: helperProc, IsTool: false)
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.CallTarget pos=Obtained from string:9:8 value_preview=helperProc new_stack_size=1
+    helpers.go:57: [DEBUG]     Pushed *CallTarget to stack: IsTool=false, Name=helperProc
+    helpers.go:57: [DEBUG] --- Exit Primary: "strArg"
+    helpers.go:57: [DEBUG]     Constructed VariableNode: strArg
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.VariableNode pos=Obtained from string:9:19 value_preview=strArg new_stack_size=2
+    helpers.go:57: [DEBUG] --- Exit Accessor_expr: "strArg"
+    helpers.go:57: [DEBUG] --- Exit Power_expr: "strArg"
+    helpers.go:57: [DEBUG] --- ExitUnary_expr: "strArg"
+    helpers.go:57: [DEBUG]     Unary_expr is pass-through (no specific operator token found, or was typeof).
+    helpers.go:57: [DEBUG] --- Exit Multiplicative_expr: "strArg"
+    helpers.go:57: [DEBUG]  >> Exit Literal: "_to_helper"
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.StringLiteralNode pos=Obtained from string:9:28 value_preview="_to_helper" new_stack_size=3
+    helpers.go:57: [DEBUG]    << Exit Literal
+    helpers.go:57: [DEBUG] --- Exit Primary: "\"_to_helper\""
+    helpers.go:57: [DEBUG]     Primary is Literal, Placeholder, Call, or Parenthesized (Pass through)
+    helpers.go:57: [DEBUG] --- Exit Accessor_expr: "\"_to_helper\""
+    helpers.go:57: [DEBUG] --- Exit Power_expr: "\"_to_helper\""
+    helpers.go:57: [DEBUG] --- ExitUnary_expr: "\"_to_helper\""
+    helpers.go:57: [DEBUG]     Unary_expr is pass-through (no specific operator token found, or was typeof).
+    helpers.go:57: [DEBUG] --- Exit Multiplicative_expr: "\"_to_helper\""
+    helpers.go:57: [DEBUG] --- Exit Additive_expr: "strArg+\"_to_helper\""
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] <-- POP value_type=*core.StringLiteralNode pos=Obtained from string:9:28 value_preview="_to_helper" new_stack_size=2
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] <-- POP value_type=*core.VariableNode pos=Obtained from string:9:19 value_preview=strArg new_stack_size=1
+    helpers.go:57: [DEBUG]     Constructed BinaryOpNode: [*core.VariableNode + *core.StringLiteralNode]
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.BinaryOpNode pos=Obtained from string:9:26 value_preview=(strArg + "_to_helper") new_stack_size=2
+    helpers.go:57: [DEBUG] --- Exit Relational_expr: "strArg+\"_to_helper\""
+    helpers.go:57: [DEBUG] --- Exit Equality_expr: "strArg+\"_to_helper\""
+    helpers.go:57: [DEBUG] --- Exit Bitwise_and_expr: "strArg+\"_to_helper\""
+    helpers.go:57: [DEBUG] --- Exit Bitwise_xor_expr: "strArg+\"_to_helper\""
+    helpers.go:57: [DEBUG] --- Exit Bitwise_or_expr: "strArg+\"_to_helper\""
+    helpers.go:57: [DEBUG] --- Exit Logical_and_expr: "strArg+\"_to_helper\""
+    helpers.go:57: [DEBUG] --- Exit Logical_or_expr: "strArg+\"_to_helper\""
+    helpers.go:57: [DEBUG] --- Exit Expression: "strArg+\"_to_helper\"" (Pass through)
+    helpers.go:57: [DEBUG] --- Exit Primary: "intArg"
+    helpers.go:57: [DEBUG]     Constructed VariableNode: intArg
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.VariableNode pos=Obtained from string:9:42 value_preview=intArg new_stack_size=3
+    helpers.go:57: [DEBUG] --- Exit Accessor_expr: "intArg"
+    helpers.go:57: [DEBUG] --- Exit Power_expr: "intArg"
+    helpers.go:57: [DEBUG] --- ExitUnary_expr: "intArg"
+    helpers.go:57: [DEBUG]     Unary_expr is pass-through (no specific operator token found, or was typeof).
+    helpers.go:57: [DEBUG]  >> Exit Literal: 2
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.NumberLiteralNode pos=Obtained from string:9:51 value_preview=2 new_stack_size=4
+    helpers.go:57: [DEBUG]    << Exit Literal
+    helpers.go:57: [DEBUG] --- Exit Primary: "2"
+    helpers.go:57: [DEBUG]     Primary is Literal, Placeholder, Call, or Parenthesized (Pass through)
+    helpers.go:57: [DEBUG] --- Exit Accessor_expr: "2"
+    helpers.go:57: [DEBUG] --- Exit Power_expr: "2"
+    helpers.go:57: [DEBUG] --- ExitUnary_expr: "2"
+    helpers.go:57: [DEBUG]     Unary_expr is pass-through (no specific operator token found, or was typeof).
+    helpers.go:57: [DEBUG] --- Exit Multiplicative_expr: "intArg*2"
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] <-- POP value_type=*core.NumberLiteralNode pos=Obtained from string:9:51 value_preview=2 new_stack_size=3
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] <-- POP value_type=*core.VariableNode pos=Obtained from string:9:42 value_preview=intArg new_stack_size=2
+    helpers.go:57: [DEBUG]     Constructed BinaryOpNode: [*core.VariableNode * *core.NumberLiteralNode]
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.BinaryOpNode pos=Obtained from string:9:49 value_preview=(intArg * 2) new_stack_size=3
+    helpers.go:57: [DEBUG] --- Exit Additive_expr: "intArg*2"
+    helpers.go:57: [DEBUG] --- Exit Relational_expr: "intArg*2"
+    helpers.go:57: [DEBUG] --- Exit Equality_expr: "intArg*2"
+    helpers.go:57: [DEBUG] --- Exit Bitwise_and_expr: "intArg*2"
+    helpers.go:57: [DEBUG] --- Exit Bitwise_xor_expr: "intArg*2"
+    helpers.go:57: [DEBUG] --- Exit Bitwise_or_expr: "intArg*2"
+    helpers.go:57: [DEBUG] --- Exit Logical_and_expr: "intArg*2"
+    helpers.go:57: [DEBUG] --- Exit Logical_or_expr: "intArg*2"
+    helpers.go:57: [DEBUG] --- Exit Expression: "intArg*2" (Pass through)
+    helpers.go:57: [DEBUG] --- Exit Primary: "boolArg"
+    helpers.go:57: [DEBUG]     Constructed VariableNode: boolArg
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.VariableNode pos=Obtained from string:9:58 value_preview=boolArg new_stack_size=4
+    helpers.go:57: [DEBUG] --- Exit Accessor_expr: "boolArg"
+    helpers.go:57: [DEBUG] --- Exit Power_expr: "boolArg"
+    helpers.go:57: [DEBUG] --- ExitUnary_expr: "boolArg"
+    helpers.go:57: [DEBUG]     Unary_expr is pass-through (no specific operator token found, or was typeof).
+    helpers.go:57: [DEBUG] --- ExitUnary_expr: "notboolArg"
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] <-- POP value_type=*core.VariableNode pos=Obtained from string:9:58 value_preview=boolArg new_stack_size=3
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.UnaryOpNode pos=Obtained from string:9:54 value_preview=notboolArg new_stack_size=4
+    helpers.go:57: [DEBUG]     Constructed UnaryOpNode: not [*core.VariableNode]
+    helpers.go:57: [DEBUG] --- Exit Multiplicative_expr: "notboolArg"
+    helpers.go:57: [DEBUG] --- Exit Additive_expr: "notboolArg"
+    helpers.go:57: [DEBUG] --- Exit Relational_expr: "notboolArg"
+    helpers.go:57: [DEBUG] --- Exit Equality_expr: "notboolArg"
+    helpers.go:57: [DEBUG] --- Exit Bitwise_and_expr: "notboolArg"
+    helpers.go:57: [DEBUG] --- Exit Bitwise_xor_expr: "notboolArg"
+    helpers.go:57: [DEBUG] --- Exit Bitwise_or_expr: "notboolArg"
+    helpers.go:57: [DEBUG] --- Exit Logical_and_expr: "notboolArg"
+    helpers.go:57: [DEBUG] --- Exit Logical_or_expr: "notboolArg"
+    helpers.go:57: [DEBUG] --- Exit Expression: "notboolArg" (Pass through)
+    helpers.go:57: [DEBUG] --- Exit Primary: "floatArg"
+    helpers.go:57: [DEBUG]     Constructed VariableNode: floatArg
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.VariableNode pos=Obtained from string:9:67 value_preview=floatArg new_stack_size=5
+    helpers.go:57: [DEBUG] --- Exit Accessor_expr: "floatArg"
+    helpers.go:57: [DEBUG] --- Exit Power_expr: "floatArg"
+    helpers.go:57: [DEBUG] --- ExitUnary_expr: "floatArg"
+    helpers.go:57: [DEBUG]     Unary_expr is pass-through (no specific operator token found, or was typeof).
+    helpers.go:57: [DEBUG]  >> Exit Literal: 2.0
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.NumberLiteralNode pos=Obtained from string:9:78 value_preview=2 new_stack_size=6
+    helpers.go:57: [DEBUG]    << Exit Literal
+    helpers.go:57: [DEBUG] --- Exit Primary: "2.0"
+    helpers.go:57: [DEBUG]     Primary is Literal, Placeholder, Call, or Parenthesized (Pass through)
+    helpers.go:57: [DEBUG] --- Exit Accessor_expr: "2.0"
+    helpers.go:57: [DEBUG] --- Exit Power_expr: "2.0"
+    helpers.go:57: [DEBUG] --- ExitUnary_expr: "2.0"
+    helpers.go:57: [DEBUG]     Unary_expr is pass-through (no specific operator token found, or was typeof).
+    helpers.go:57: [DEBUG] --- Exit Multiplicative_expr: "floatArg/2.0"
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] <-- POP value_type=*core.NumberLiteralNode pos=Obtained from string:9:78 value_preview=2 new_stack_size=5
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] <-- POP value_type=*core.VariableNode pos=Obtained from string:9:67 value_preview=floatArg new_stack_size=4
+    helpers.go:57: [DEBUG]     Constructed BinaryOpNode: [*core.VariableNode / *core.NumberLiteralNode]
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.BinaryOpNode pos=Obtained from string:9:76 value_preview=(floatArg / 2) new_stack_size=5
+    helpers.go:57: [DEBUG] --- Exit Additive_expr: "floatArg/2.0"
+    helpers.go:57: [DEBUG] --- Exit Relational_expr: "floatArg/2.0"
+    helpers.go:57: [DEBUG] --- Exit Equality_expr: "floatArg/2.0"
+    helpers.go:57: [DEBUG] --- Exit Bitwise_and_expr: "floatArg/2.0"
+    helpers.go:57: [DEBUG] --- Exit Bitwise_xor_expr: "floatArg/2.0"
+    helpers.go:57: [DEBUG] --- Exit Bitwise_or_expr: "floatArg/2.0"
+    helpers.go:57: [DEBUG] --- Exit Logical_and_expr: "floatArg/2.0"
+    helpers.go:57: [DEBUG] --- Exit Logical_or_expr: "floatArg/2.0"
+    helpers.go:57: [DEBUG] --- Exit Expression: "floatArg/2.0" (Pass through)
+    helpers.go:57: [DEBUG] --- Exit Callable_expr: "helperProc(strArg+\"_to_helper\",intArg*2,notboolArg,floatArg/2.0)"
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] <-- POP N count=4 new_stack_size=1
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] <-- POP value_type=*core.CallTarget pos=Obtained from string:9:8 value_preview=helperProc new_stack_size=0
+    helpers.go:57: [DEBUG]     Popped *CallTarget from stack: IsTool=false, Name=helperProc
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.CallableExprNode pos=Obtained from string:9:8 value_preview=helperProc((strArg + "_to_helper"), (intArg * 2), notboolArg, (floatArg / 2)) new_stack_size=1
+    helpers.go:57: [DEBUG]     Constructed and Pushed CallableExprNode: Target=helperProc, Args=4
+    helpers.go:57: [DEBUG] <<< Exit Call_statement: "call helperProc(strArg + \"_to_helper\", intArg * 2, not boolArg, floatArg / 2.0)"
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] <-- POP value_type=*core.CallableExprNode pos=Obtained from string:9:8 value_preview=helperProc((strArg + "_to_helper"), (intArg * 2), notboolArg, (floatArg / 2)) new_stack_size=0
+    helpers.go:57: [DEBUG]          Appended CALL Step: Target=helperProc
+    helpers.go:57: [DEBUG] --- Exit Call_target: "recursiveProc"
+    helpers.go:57: [DEBUG]     -> buildCallTargetFromContext: recursiveProc
+    helpers.go:57: [DEBUG]        User function call identified. Name: 'recursiveProc', Pos: Obtained from string:11:8
+    helpers.go:57: [DEBUG]     <- buildCallTargetFromContext (Name: recursiveProc, IsTool: false)
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.CallTarget pos=Obtained from string:11:8 value_preview=recursiveProc new_stack_size=1
+    helpers.go:57: [DEBUG]     Pushed *CallTarget to stack: IsTool=false, Name=recursiveProc
+    helpers.go:57: [DEBUG] --- Exit Primary: "strArg"
+    helpers.go:57: [DEBUG]     Constructed VariableNode: strArg
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.VariableNode pos=Obtained from string:11:22 value_preview=strArg new_stack_size=2
+    helpers.go:57: [DEBUG] --- Exit Accessor_expr: "strArg"
+    helpers.go:57: [DEBUG] --- Exit Power_expr: "strArg"
+    helpers.go:57: [DEBUG] --- ExitUnary_expr: "strArg"
+    helpers.go:57: [DEBUG]     Unary_expr is pass-through (no specific operator token found, or was typeof).
+    helpers.go:57: [DEBUG] --- Exit Multiplicative_expr: "strArg"
+    helpers.go:57: [DEBUG] --- Exit Additive_expr: "strArg"
+    helpers.go:57: [DEBUG] --- Exit Relational_expr: "strArg"
+    helpers.go:57: [DEBUG] --- Exit Equality_expr: "strArg"
+    helpers.go:57: [DEBUG] --- Exit Bitwise_and_expr: "strArg"
+    helpers.go:57: [DEBUG] --- Exit Bitwise_xor_expr: "strArg"
+    helpers.go:57: [DEBUG] --- Exit Bitwise_or_expr: "strArg"
+    helpers.go:57: [DEBUG] --- Exit Logical_and_expr: "strArg"
+    helpers.go:57: [DEBUG] --- Exit Logical_or_expr: "strArg"
+    helpers.go:57: [DEBUG] --- Exit Expression: "strArg" (Pass through)
+    helpers.go:57: [DEBUG] --- Exit Primary: "intArg"
+    helpers.go:57: [DEBUG]     Constructed VariableNode: intArg
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.VariableNode pos=Obtained from string:11:30 value_preview=intArg new_stack_size=3
+    helpers.go:57: [DEBUG] --- Exit Accessor_expr: "intArg"
+    helpers.go:57: [DEBUG] --- Exit Power_expr: "intArg"
+    helpers.go:57: [DEBUG] --- ExitUnary_expr: "intArg"
+    helpers.go:57: [DEBUG]     Unary_expr is pass-through (no specific operator token found, or was typeof).
+    helpers.go:57: [DEBUG] --- Exit Multiplicative_expr: "intArg"
+    helpers.go:57: [DEBUG] --- Exit Additive_expr: "intArg"
+    helpers.go:57: [DEBUG] --- Exit Relational_expr: "intArg"
+    helpers.go:57: [DEBUG] --- Exit Equality_expr: "intArg"
+    helpers.go:57: [DEBUG] --- Exit Bitwise_and_expr: "intArg"
+    helpers.go:57: [DEBUG] --- Exit Bitwise_xor_expr: "intArg"
+    helpers.go:57: [DEBUG] --- Exit Bitwise_or_expr: "intArg"
+    helpers.go:57: [DEBUG] --- Exit Logical_and_expr: "intArg"
+    helpers.go:57: [DEBUG] --- Exit Logical_or_expr: "intArg"
+    helpers.go:57: [DEBUG] --- Exit Expression: "intArg" (Pass through)
+    helpers.go:57: [DEBUG] --- Exit Primary: "boolArg"
+    helpers.go:57: [DEBUG]     Constructed VariableNode: boolArg
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.VariableNode pos=Obtained from string:11:38 value_preview=boolArg new_stack_size=4
+    helpers.go:57: [DEBUG] --- Exit Accessor_expr: "boolArg"
+    helpers.go:57: [DEBUG] --- Exit Power_expr: "boolArg"
+    helpers.go:57: [DEBUG] --- ExitUnary_expr: "boolArg"
+    helpers.go:57: [DEBUG]     Unary_expr is pass-through (no specific operator token found, or was typeof).
+    helpers.go:57: [DEBUG] --- Exit Multiplicative_expr: "boolArg"
+    helpers.go:57: [DEBUG] --- Exit Additive_expr: "boolArg"
+    helpers.go:57: [DEBUG] --- Exit Relational_expr: "boolArg"
+    helpers.go:57: [DEBUG] --- Exit Equality_expr: "boolArg"
+    helpers.go:57: [DEBUG] --- Exit Bitwise_and_expr: "boolArg"
+    helpers.go:57: [DEBUG] --- Exit Bitwise_xor_expr: "boolArg"
+    helpers.go:57: [DEBUG] --- Exit Bitwise_or_expr: "boolArg"
+    helpers.go:57: [DEBUG] --- Exit Logical_and_expr: "boolArg"
+    helpers.go:57: [DEBUG] --- Exit Logical_or_expr: "boolArg"
+    helpers.go:57: [DEBUG] --- Exit Expression: "boolArg" (Pass through)
+    helpers.go:57: [DEBUG]  >> Exit Literal: 3
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.NumberLiteralNode pos=Obtained from string:11:47 value_preview=3 new_stack_size=5
+    helpers.go:57: [DEBUG]    << Exit Literal
+    helpers.go:57: [DEBUG] --- Exit Primary: "3"
+    helpers.go:57: [DEBUG]     Primary is Literal, Placeholder, Call, or Parenthesized (Pass through)
+    helpers.go:57: [DEBUG] --- Exit Accessor_expr: "3"
+    helpers.go:57: [DEBUG] --- Exit Power_expr: "3"
+    helpers.go:57: [DEBUG] --- ExitUnary_expr: "3"
+    helpers.go:57: [DEBUG]     Unary_expr is pass-through (no specific operator token found, or was typeof).
+    helpers.go:57: [DEBUG] --- Exit Multiplicative_expr: "3"
+    helpers.go:57: [DEBUG] --- Exit Additive_expr: "3"
+    helpers.go:57: [DEBUG] --- Exit Relational_expr: "3"
+    helpers.go:57: [DEBUG] --- Exit Equality_expr: "3"
+    helpers.go:57: [DEBUG] --- Exit Bitwise_and_expr: "3"
+    helpers.go:57: [DEBUG] --- Exit Bitwise_xor_expr: "3"
+    helpers.go:57: [DEBUG] --- Exit Bitwise_or_expr: "3"
+    helpers.go:57: [DEBUG] --- Exit Logical_and_expr: "3"
+    helpers.go:57: [DEBUG] --- Exit Logical_or_expr: "3"
+    helpers.go:57: [DEBUG] --- Exit Expression: "3" (Pass through)
+    helpers.go:57: [DEBUG] --- Exit Callable_expr: "recursiveProc(strArg,intArg,boolArg,3)"
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] <-- POP N count=4 new_stack_size=1
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] <-- POP value_type=*core.CallTarget pos=Obtained from string:11:8 value_preview=recursiveProc new_stack_size=0
+    helpers.go:57: [DEBUG]     Popped *CallTarget from stack: IsTool=false, Name=recursiveProc
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.CallableExprNode pos=Obtained from string:11:8 value_preview=recursiveProc(strArg, intArg, boolArg, 3) new_stack_size=1
+    helpers.go:57: [DEBUG]     Constructed and Pushed CallableExprNode: Target=recursiveProc, Args=4
+    helpers.go:57: [DEBUG] <<< Exit Call_statement: "call recursiveProc(strArg, intArg, boolArg, 3)"
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] <-- POP value_type=*core.CallableExprNode pos=Obtained from string:11:8 value_preview=recursiveProc(strArg, intArg, boolArg, 3) new_stack_size=0
+    helpers.go:57: [DEBUG]          Appended CALL Step: Target=recursiveProc
+    helpers.go:57: [DEBUG] ExitLvalue: result
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.LValueNode pos=Obtained from string:13:7 value_preview=result new_stack_size=1
+    helpers.go:57: [DEBUG]  >> Exit Literal: "mainEntry_completed_with_"
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.StringLiteralNode pos=Obtained from string:13:16 value_preview="mainEntry_completed_with_" new_stack_size=2
+    helpers.go:57: [DEBUG]    << Exit Literal
+    helpers.go:57: [DEBUG] --- Exit Primary: "\"mainEntry_completed_with_\""
+    helpers.go:57: [DEBUG]     Primary is Literal, Placeholder, Call, or Parenthesized (Pass through)
+    helpers.go:57: [DEBUG] --- Exit Accessor_expr: "\"mainEntry_completed_with_\""
+    helpers.go:57: [DEBUG] --- Exit Power_expr: "\"mainEntry_completed_with_\""
+    helpers.go:57: [DEBUG] --- ExitUnary_expr: "\"mainEntry_completed_with_\""
+    helpers.go:57: [DEBUG]     Unary_expr is pass-through (no specific operator token found, or was typeof).
+    helpers.go:57: [DEBUG] --- Exit Multiplicative_expr: "\"mainEntry_completed_with_\""
+    helpers.go:57: [DEBUG] --- Exit Primary: "strArg"
+    helpers.go:57: [DEBUG]     Constructed VariableNode: strArg
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.VariableNode pos=Obtained from string:13:46 value_preview=strArg new_stack_size=3
+    helpers.go:57: [DEBUG] --- Exit Accessor_expr: "strArg"
+    helpers.go:57: [DEBUG] --- Exit Power_expr: "strArg"
+    helpers.go:57: [DEBUG] --- ExitUnary_expr: "strArg"
+    helpers.go:57: [DEBUG]     Unary_expr is pass-through (no specific operator token found, or was typeof).
+    helpers.go:57: [DEBUG] --- Exit Multiplicative_expr: "strArg"
+    helpers.go:57: [DEBUG] --- Exit Additive_expr: "\"mainEntry_completed_with_\"+strArg"
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] <-- POP value_type=*core.VariableNode pos=Obtained from string:13:46 value_preview=strArg new_stack_size=2
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] <-- POP value_type=*core.StringLiteralNode pos=Obtained from string:13:16 value_preview="mainEntry_completed_with_" new_stack_size=1
+    helpers.go:57: [DEBUG]     Constructed BinaryOpNode: [*core.StringLiteralNode + *core.VariableNode]
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.BinaryOpNode pos=Obtained from string:13:44 value_preview=("mainEntry_completed_with_" + strArg) new_stack_size=2
+    helpers.go:57: [DEBUG] --- Exit Relational_expr: "\"mainEntry_completed_with_\"+strArg"
+    helpers.go:57: [DEBUG] --- Exit Equality_expr: "\"mainEntry_completed_with_\"+strArg"
+    helpers.go:57: [DEBUG] --- Exit Bitwise_and_expr: "\"mainEntry_completed_with_\"+strArg"
+    helpers.go:57: [DEBUG] --- Exit Bitwise_xor_expr: "\"mainEntry_completed_with_\"+strArg"
+    helpers.go:57: [DEBUG] --- Exit Bitwise_or_expr: "\"mainEntry_completed_with_\"+strArg"
+    helpers.go:57: [DEBUG] --- Exit Logical_and_expr: "\"mainEntry_completed_with_\"+strArg"
+    helpers.go:57: [DEBUG] --- Exit Logical_or_expr: "\"mainEntry_completed_with_\"+strArg"
+    helpers.go:57: [DEBUG] --- Exit Expression: "\"mainEntry_completed_with_\"+strArg" (Pass through)
+    helpers.go:57: [DEBUG] ExitSet_statement: set result = "mainEntry_completed_with_" + strArg
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] <-- POP value_type=*core.BinaryOpNode pos=Obtained from string:13:44 value_preview=("mainEntry_completed_with_" + strArg) new_stack_size=1
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] <-- POP value_type=*core.LValueNode pos=Obtained from string:13:7 value_preview=result new_stack_size=0
+    helpers.go:57: [DEBUG]          Appended SET Step: LValue=result, Value=("mainEntry_completed_with_" + strArg)
+    helpers.go:57: [DEBUG] --- Exit Primary: "result"
+    helpers.go:57: [DEBUG]     Constructed VariableNode: result
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.VariableNode pos=Obtained from string:14:10 value_preview=result new_stack_size=1
+    helpers.go:57: [DEBUG] --- Exit Accessor_expr: "result"
+    helpers.go:57: [DEBUG] --- Exit Power_expr: "result"
+    helpers.go:57: [DEBUG] --- ExitUnary_expr: "result"
+    helpers.go:57: [DEBUG]     Unary_expr is pass-through (no specific operator token found, or was typeof).
+    helpers.go:57: [DEBUG] --- Exit Multiplicative_expr: "result"
+    helpers.go:57: [DEBUG] --- Exit Additive_expr: "result"
+    helpers.go:57: [DEBUG] --- Exit Relational_expr: "result"
+    helpers.go:57: [DEBUG] --- Exit Equality_expr: "result"
+    helpers.go:57: [DEBUG] --- Exit Bitwise_and_expr: "result"
+    helpers.go:57: [DEBUG] --- Exit Bitwise_xor_expr: "result"
+    helpers.go:57: [DEBUG] --- Exit Bitwise_or_expr: "result"
+    helpers.go:57: [DEBUG] --- Exit Logical_and_expr: "result"
+    helpers.go:57: [DEBUG] --- Exit Logical_or_expr: "result"
+    helpers.go:57: [DEBUG] --- Exit Expression: "result" (Pass through)
+    helpers.go:57: [DEBUG] <<< Exit Return_statement: "return result"
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] <-- POP N count=1 new_stack_size=0
+    helpers.go:57: [DEBUG]          Popped and asserted 1 return nodes
+    helpers.go:57: [DEBUG]          Appended RETURN Step
+    helpers.go:57: [DEBUG] <<< Exit Statement_list (currentSteps has 5 items)
+    helpers.go:57: [DEBUG] --- ExitProcedure_definition for mainEntry. Value stack size before body pop: 0
+    helpers.go:57: [ERROR] AST Builder: Pop from empty value stack!
+    helpers.go:57: [ERROR] AST Build Error position=Obtained from string:15:1 message=Stack error: expected procedure body steps for 'mainEntry', but value stack was empty.
+    helpers.go:57: [DEBUG]    Added procedure mainEntry to list. Total procedures: 1
+    helpers.go:57: [DEBUG] >>> Enter Procedure_definition for helperProc. Parent currentSteps: 0x0, Stack depth: 0
+    helpers.go:57: [DEBUG] >>> Enter Statement_list (for Procedure: helperProc main body)
+    helpers.go:57: [DEBUG]  >> Exit Literal: "helperProc_recvd:"
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.StringLiteralNode pos=Obtained from string:19:8 value_preview="helperProc_recvd:" new_stack_size=1
+    helpers.go:57: [DEBUG]    << Exit Literal
+    helpers.go:57: [DEBUG] --- Exit Primary: "\"helperProc_recvd:\""
+    helpers.go:57: [DEBUG]     Primary is Literal, Placeholder, Call, or Parenthesized (Pass through)
+    helpers.go:57: [DEBUG] --- Exit Accessor_expr: "\"helperProc_recvd:\""
+    helpers.go:57: [DEBUG] --- Exit Power_expr: "\"helperProc_recvd:\""
+    helpers.go:57: [DEBUG] --- ExitUnary_expr: "\"helperProc_recvd:\""
+    helpers.go:57: [DEBUG]     Unary_expr is pass-through (no specific operator token found, or was typeof).
+    helpers.go:57: [DEBUG] --- Exit Multiplicative_expr: "\"helperProc_recvd:\""
+    helpers.go:57: [DEBUG] --- Exit Primary: "pStr"
+    helpers.go:57: [DEBUG]     Constructed VariableNode: pStr
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.VariableNode pos=Obtained from string:19:30 value_preview=pStr new_stack_size=2
+    helpers.go:57: [DEBUG] --- Exit Accessor_expr: "pStr"
+    helpers.go:57: [DEBUG] --- Exit Power_expr: "pStr"
+    helpers.go:57: [DEBUG] --- ExitUnary_expr: "pStr"
+    helpers.go:57: [DEBUG]     Unary_expr is pass-through (no specific operator token found, or was typeof).
+    helpers.go:57: [DEBUG] --- Exit Multiplicative_expr: "pStr"
+    helpers.go:57: [DEBUG]  >> Exit Literal: ","
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.StringLiteralNode pos=Obtained from string:19:37 value_preview="," new_stack_size=3
+    helpers.go:57: [DEBUG]    << Exit Literal
+    helpers.go:57: [DEBUG] --- Exit Primary: "\",\""
+    helpers.go:57: [DEBUG]     Primary is Literal, Placeholder, Call, or Parenthesized (Pass through)
+    helpers.go:57: [DEBUG] --- Exit Accessor_expr: "\",\""
+    helpers.go:57: [DEBUG] --- Exit Power_expr: "\",\""
+    helpers.go:57: [DEBUG] --- ExitUnary_expr: "\",\""
+    helpers.go:57: [DEBUG]     Unary_expr is pass-through (no specific operator token found, or was typeof).
+    helpers.go:57: [DEBUG] --- Exit Multiplicative_expr: "\",\""
+    helpers.go:57: [DEBUG] --- Exit Primary: "pInt"
+    helpers.go:57: [DEBUG]     Constructed VariableNode: pInt
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.VariableNode pos=Obtained from string:19:43 value_preview=pInt new_stack_size=4
+    helpers.go:57: [DEBUG] --- Exit Accessor_expr: "pInt"
+    helpers.go:57: [DEBUG] --- Exit Power_expr: "pInt"
+    helpers.go:57: [DEBUG] --- ExitUnary_expr: "pInt"
+    helpers.go:57: [DEBUG]     Unary_expr is pass-through (no specific operator token found, or was typeof).
+    helpers.go:57: [DEBUG] --- Exit Multiplicative_expr: "pInt"
+    helpers.go:57: [DEBUG]  >> Exit Literal: ","
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.StringLiteralNode pos=Obtained from string:19:50 value_preview="," new_stack_size=5
+    helpers.go:57: [DEBUG]    << Exit Literal
+    helpers.go:57: [DEBUG] --- Exit Primary: "\",\""
+    helpers.go:57: [DEBUG]     Primary is Literal, Placeholder, Call, or Parenthesized (Pass through)
+    helpers.go:57: [DEBUG] --- Exit Accessor_expr: "\",\""
+    helpers.go:57: [DEBUG] --- Exit Power_expr: "\",\""
+    helpers.go:57: [DEBUG] --- ExitUnary_expr: "\",\""
+    helpers.go:57: [DEBUG]     Unary_expr is pass-through (no specific operator token found, or was typeof).
+    helpers.go:57: [DEBUG] --- Exit Multiplicative_expr: "\",\""
+    helpers.go:57: [DEBUG] --- Exit Primary: "pBool"
+    helpers.go:57: [DEBUG]     Constructed VariableNode: pBool
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.VariableNode pos=Obtained from string:19:56 value_preview=pBool new_stack_size=6
+    helpers.go:57: [DEBUG] --- Exit Accessor_expr: "pBool"
+    helpers.go:57: [DEBUG] --- Exit Power_expr: "pBool"
+    helpers.go:57: [DEBUG] --- ExitUnary_expr: "pBool"
+    helpers.go:57: [DEBUG]     Unary_expr is pass-through (no specific operator token found, or was typeof).
+    helpers.go:57: [DEBUG] --- Exit Multiplicative_expr: "pBool"
+    helpers.go:57: [DEBUG]  >> Exit Literal: ","
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.StringLiteralNode pos=Obtained from string:19:64 value_preview="," new_stack_size=7
+    helpers.go:57: [DEBUG]    << Exit Literal
+    helpers.go:57: [DEBUG] --- Exit Primary: "\",\""
+    helpers.go:57: [DEBUG]     Primary is Literal, Placeholder, Call, or Parenthesized (Pass through)
+    helpers.go:57: [DEBUG] --- Exit Accessor_expr: "\",\""
+    helpers.go:57: [DEBUG] --- Exit Power_expr: "\",\""
+    helpers.go:57: [DEBUG] --- ExitUnary_expr: "\",\""
+    helpers.go:57: [DEBUG]     Unary_expr is pass-through (no specific operator token found, or was typeof).
+    helpers.go:57: [DEBUG] --- Exit Multiplicative_expr: "\",\""
+    helpers.go:57: [DEBUG] --- Exit Primary: "pFloat"
+    helpers.go:57: [DEBUG]     Constructed VariableNode: pFloat
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.VariableNode pos=Obtained from string:19:70 value_preview=pFloat new_stack_size=8
+    helpers.go:57: [DEBUG] --- Exit Accessor_expr: "pFloat"
+    helpers.go:57: [DEBUG] --- Exit Power_expr: "pFloat"
+    helpers.go:57: [DEBUG] --- ExitUnary_expr: "pFloat"
+    helpers.go:57: [DEBUG]     Unary_expr is pass-through (no specific operator token found, or was typeof).
+    helpers.go:57: [DEBUG] --- Exit Multiplicative_expr: "pFloat"
+    helpers.go:57: [DEBUG] --- Exit Additive_expr: "\"helperProc_recvd:\"+pStr+\",\"+pInt+\",\"+pBool+\",\"+pFloat"
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] <-- POP value_type=*core.VariableNode pos=Obtained from string:19:70 value_preview=pFloat new_stack_size=7
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] <-- POP value_type=*core.StringLiteralNode pos=Obtained from string:19:64 value_preview="," new_stack_size=6
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] <-- POP value_type=*core.VariableNode pos=Obtained from string:19:56 value_preview=pBool new_stack_size=5
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] <-- POP value_type=*core.StringLiteralNode pos=Obtained from string:19:50 value_preview="," new_stack_size=4
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] <-- POP value_type=*core.VariableNode pos=Obtained from string:19:43 value_preview=pInt new_stack_size=3
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] <-- POP value_type=*core.StringLiteralNode pos=Obtained from string:19:37 value_preview="," new_stack_size=2
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] <-- POP value_type=*core.VariableNode pos=Obtained from string:19:30 value_preview=pStr new_stack_size=1
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] <-- POP value_type=*core.StringLiteralNode pos=Obtained from string:19:8 value_preview="helperProc_recvd:" new_stack_size=0
+    helpers.go:57: [DEBUG]     Constructed BinaryOpNode: [*core.StringLiteralNode + *core.VariableNode]
+    helpers.go:57: [DEBUG]     Constructed BinaryOpNode: [*core.BinaryOpNode + *core.StringLiteralNode]
+    helpers.go:57: [DEBUG]     Constructed BinaryOpNode: [*core.BinaryOpNode + *core.VariableNode]
+    helpers.go:57: [DEBUG]     Constructed BinaryOpNode: [*core.BinaryOpNode + *core.StringLiteralNode]
+    helpers.go:57: [DEBUG]     Constructed BinaryOpNode: [*core.BinaryOpNode + *core.VariableNode]
+    helpers.go:57: [DEBUG]     Constructed BinaryOpNode: [*core.BinaryOpNode + *core.StringLiteralNode]
+    helpers.go:57: [DEBUG]     Constructed BinaryOpNode: [*core.BinaryOpNode + *core.VariableNode]
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.BinaryOpNode pos=Obtained from string:19:68 value_preview=((((((("helperProc_recvd:" + pStr) + ",") + pInt) + ",") + pBool) + ",") + pFloat) new_stack_size=1
+    helpers.go:57: [DEBUG] --- Exit Relational_expr: "\"helperProc_recvd:\"+pStr+\",\"+pInt+\",\"+pBool+\",\"+pFloat"
+    helpers.go:57: [DEBUG] --- Exit Equality_expr: "\"helperProc_recvd:\"+pStr+\",\"+pInt+\",\"+pBool+\",\"+pFloat"
+    helpers.go:57: [DEBUG] --- Exit Bitwise_and_expr: "\"helperProc_recvd:\"+pStr+\",\"+pInt+\",\"+pBool+\",\"+pFloat"
+    helpers.go:57: [DEBUG] --- Exit Bitwise_xor_expr: "\"helperProc_recvd:\"+pStr+\",\"+pInt+\",\"+pBool+\",\"+pFloat"
+    helpers.go:57: [DEBUG] --- Exit Bitwise_or_expr: "\"helperProc_recvd:\"+pStr+\",\"+pInt+\",\"+pBool+\",\"+pFloat"
+    helpers.go:57: [DEBUG] --- Exit Logical_and_expr: "\"helperProc_recvd:\"+pStr+\",\"+pInt+\",\"+pBool+\",\"+pFloat"
+    helpers.go:57: [DEBUG] --- Exit Logical_or_expr: "\"helperProc_recvd:\"+pStr+\",\"+pInt+\",\"+pBool+\",\"+pFloat"
+    helpers.go:57: [DEBUG] --- Exit Expression: "\"helperProc_recvd:\"+pStr+\",\"+pInt+\",\"+pBool+\",\"+pFloat" (Pass through)
+    helpers.go:57: [DEBUG] <<< Exit Emit_statement: "emit \"helperProc_recvd:\" + pStr + \",\" + pInt + \",\" + pBool + \",\" + pFloat"
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] <-- POP value_type=*core.BinaryOpNode pos=Obtained from string:19:68 value_preview=((((((("helperProc_recvd:" + pStr) + ",") + pInt) + ",") + pBool) + ",") + pFloat) new_stack_size=0
+    helpers.go:57: [DEBUG]          Appended EMIT Step
+    helpers.go:57: [DEBUG] ExitLvalue: result
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.LValueNode pos=Obtained from string:20:7 value_preview=result new_stack_size=1
+    helpers.go:57: [DEBUG]  >> Exit Literal: "helperProc_completed"
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.StringLiteralNode pos=Obtained from string:20:16 value_preview="helperProc_completed" new_stack_size=2
+    helpers.go:57: [DEBUG]    << Exit Literal
+    helpers.go:57: [DEBUG] --- Exit Primary: "\"helperProc_completed\""
+    helpers.go:57: [DEBUG]     Primary is Literal, Placeholder, Call, or Parenthesized (Pass through)
+    helpers.go:57: [DEBUG] --- Exit Accessor_expr: "\"helperProc_completed\""
+    helpers.go:57: [DEBUG] --- Exit Power_expr: "\"helperProc_completed\""
+    helpers.go:57: [DEBUG] --- ExitUnary_expr: "\"helperProc_completed\""
+    helpers.go:57: [DEBUG]     Unary_expr is pass-through (no specific operator token found, or was typeof).
+    helpers.go:57: [DEBUG] --- Exit Multiplicative_expr: "\"helperProc_completed\""
+    helpers.go:57: [DEBUG] --- Exit Additive_expr: "\"helperProc_completed\""
+    helpers.go:57: [DEBUG] --- Exit Relational_expr: "\"helperProc_completed\""
+    helpers.go:57: [DEBUG] --- Exit Equality_expr: "\"helperProc_completed\""
+    helpers.go:57: [DEBUG] --- Exit Bitwise_and_expr: "\"helperProc_completed\""
+    helpers.go:57: [DEBUG] --- Exit Bitwise_xor_expr: "\"helperProc_completed\""
+    helpers.go:57: [DEBUG] --- Exit Bitwise_or_expr: "\"helperProc_completed\""
+    helpers.go:57: [DEBUG] --- Exit Logical_and_expr: "\"helperProc_completed\""
+    helpers.go:57: [DEBUG] --- Exit Logical_or_expr: "\"helperProc_completed\""
+    helpers.go:57: [DEBUG] --- Exit Expression: "\"helperProc_completed\"" (Pass through)
+    helpers.go:57: [DEBUG] ExitSet_statement: set result = "helperProc_completed"
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] <-- POP value_type=*core.StringLiteralNode pos=Obtained from string:20:16 value_preview="helperProc_completed" new_stack_size=1
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] <-- POP value_type=*core.LValueNode pos=Obtained from string:20:7 value_preview=result new_stack_size=0
+    helpers.go:57: [DEBUG]          Appended SET Step: LValue=result, Value="helperProc_completed"
+    helpers.go:57: [DEBUG] --- Exit Primary: "result"
+    helpers.go:57: [DEBUG]     Constructed VariableNode: result
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.VariableNode pos=Obtained from string:21:10 value_preview=result new_stack_size=1
+    helpers.go:57: [DEBUG] --- Exit Accessor_expr: "result"
+    helpers.go:57: [DEBUG] --- Exit Power_expr: "result"
+    helpers.go:57: [DEBUG] --- ExitUnary_expr: "result"
+    helpers.go:57: [DEBUG]     Unary_expr is pass-through (no specific operator token found, or was typeof).
+    helpers.go:57: [DEBUG] --- Exit Multiplicative_expr: "result"
+    helpers.go:57: [DEBUG] --- Exit Additive_expr: "result"
+    helpers.go:57: [DEBUG] --- Exit Relational_expr: "result"
+    helpers.go:57: [DEBUG] --- Exit Equality_expr: "result"
+    helpers.go:57: [DEBUG] --- Exit Bitwise_and_expr: "result"
+    helpers.go:57: [DEBUG] --- Exit Bitwise_xor_expr: "result"
+    helpers.go:57: [DEBUG] --- Exit Bitwise_or_expr: "result"
+    helpers.go:57: [DEBUG] --- Exit Logical_and_expr: "result"
+    helpers.go:57: [DEBUG] --- Exit Logical_or_expr: "result"
+    helpers.go:57: [DEBUG] --- Exit Expression: "result" (Pass through)
+    helpers.go:57: [DEBUG] <<< Exit Return_statement: "return result"
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] <-- POP N count=1 new_stack_size=0
+    helpers.go:57: [DEBUG]          Popped and asserted 1 return nodes
+    helpers.go:57: [DEBUG]          Appended RETURN Step
+    helpers.go:57: [DEBUG] <<< Exit Statement_list (currentSteps has 3 items)
+    helpers.go:57: [DEBUG] --- ExitProcedure_definition for helperProc. Value stack size before body pop: 0
+    helpers.go:57: [ERROR] AST Builder: Pop from empty value stack!
+    helpers.go:57: [ERROR] AST Build Error position=Obtained from string:22:1 message=Stack error: expected procedure body steps for 'helperProc', but value stack was empty.
+    helpers.go:57: [DEBUG]    Added procedure helperProc to list. Total procedures: 2
+    helpers.go:57: [DEBUG] >>> Enter Procedure_definition for recursiveProc. Parent currentSteps: 0x0, Stack depth: 0
+    helpers.go:57: [DEBUG] >>> Enter Statement_list (for Procedure: recursiveProc main body)
+    helpers.go:57: [DEBUG]  >> Exit Literal: "recursiveProc_recvd:"
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.StringLiteralNode pos=Obtained from string:26:8 value_preview="recursiveProc_recvd:" new_stack_size=1
+    helpers.go:57: [DEBUG]    << Exit Literal
+    helpers.go:57: [DEBUG] --- Exit Primary: "\"recursiveProc_recvd:\""
+    helpers.go:57: [DEBUG]     Primary is Literal, Placeholder, Call, or Parenthesized (Pass through)
+    helpers.go:57: [DEBUG] --- Exit Accessor_expr: "\"recursiveProc_recvd:\""
+    helpers.go:57: [DEBUG] --- Exit Power_expr: "\"recursiveProc_recvd:\""
+    helpers.go:57: [DEBUG] --- ExitUnary_expr: "\"recursiveProc_recvd:\""
+    helpers.go:57: [DEBUG]     Unary_expr is pass-through (no specific operator token found, or was typeof).
+    helpers.go:57: [DEBUG] --- Exit Multiplicative_expr: "\"recursiveProc_recvd:\""
+    helpers.go:57: [DEBUG] --- Exit Primary: "rStrArg"
+    helpers.go:57: [DEBUG]     Constructed VariableNode: rStrArg
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.VariableNode pos=Obtained from string:26:33 value_preview=rStrArg new_stack_size=2
+    helpers.go:57: [DEBUG] --- Exit Accessor_expr: "rStrArg"
+    helpers.go:57: [DEBUG] --- Exit Power_expr: "rStrArg"
+    helpers.go:57: [DEBUG] --- ExitUnary_expr: "rStrArg"
+    helpers.go:57: [DEBUG]     Unary_expr is pass-through (no specific operator token found, or was typeof).
+    helpers.go:57: [DEBUG] --- Exit Multiplicative_expr: "rStrArg"
+    helpers.go:57: [DEBUG]  >> Exit Literal: ","
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.StringLiteralNode pos=Obtained from string:26:43 value_preview="," new_stack_size=3
+    helpers.go:57: [DEBUG]    << Exit Literal
+    helpers.go:57: [DEBUG] --- Exit Primary: "\",\""
+    helpers.go:57: [DEBUG]     Primary is Literal, Placeholder, Call, or Parenthesized (Pass through)
+    helpers.go:57: [DEBUG] --- Exit Accessor_expr: "\",\""
+    helpers.go:57: [DEBUG] --- Exit Power_expr: "\",\""
+    helpers.go:57: [DEBUG] --- ExitUnary_expr: "\",\""
+    helpers.go:57: [DEBUG]     Unary_expr is pass-through (no specific operator token found, or was typeof).
+    helpers.go:57: [DEBUG] --- Exit Multiplicative_expr: "\",\""
+    helpers.go:57: [DEBUG] --- Exit Primary: "rIntArg"
+    helpers.go:57: [DEBUG]     Constructed VariableNode: rIntArg
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.VariableNode pos=Obtained from string:26:49 value_preview=rIntArg new_stack_size=4
+    helpers.go:57: [DEBUG] --- Exit Accessor_expr: "rIntArg"
+    helpers.go:57: [DEBUG] --- Exit Power_expr: "rIntArg"
+    helpers.go:57: [DEBUG] --- ExitUnary_expr: "rIntArg"
+    helpers.go:57: [DEBUG]     Unary_expr is pass-through (no specific operator token found, or was typeof).
+    helpers.go:57: [DEBUG] --- Exit Multiplicative_expr: "rIntArg"
+    helpers.go:57: [DEBUG]  >> Exit Literal: ","
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.StringLiteralNode pos=Obtained from string:26:59 value_preview="," new_stack_size=5
+    helpers.go:57: [DEBUG]    << Exit Literal
+    helpers.go:57: [DEBUG] --- Exit Primary: "\",\""
+    helpers.go:57: [DEBUG]     Primary is Literal, Placeholder, Call, or Parenthesized (Pass through)
+    helpers.go:57: [DEBUG] --- Exit Accessor_expr: "\",\""
+    helpers.go:57: [DEBUG] --- Exit Power_expr: "\",\""
+    helpers.go:57: [DEBUG] --- ExitUnary_expr: "\",\""
+    helpers.go:57: [DEBUG]     Unary_expr is pass-through (no specific operator token found, or was typeof).
+    helpers.go:57: [DEBUG] --- Exit Multiplicative_expr: "\",\""
+    helpers.go:57: [DEBUG] --- Exit Primary: "rBoolArg"
+    helpers.go:57: [DEBUG]     Constructed VariableNode: rBoolArg
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.VariableNode pos=Obtained from string:26:65 value_preview=rBoolArg new_stack_size=6
+    helpers.go:57: [DEBUG] --- Exit Accessor_expr: "rBoolArg"
+    helpers.go:57: [DEBUG] --- Exit Power_expr: "rBoolArg"
+    helpers.go:57: [DEBUG] --- ExitUnary_expr: "rBoolArg"
+    helpers.go:57: [DEBUG]     Unary_expr is pass-through (no specific operator token found, or was typeof).
+    helpers.go:57: [DEBUG] --- Exit Multiplicative_expr: "rBoolArg"
+    helpers.go:57: [DEBUG]  >> Exit Literal: ","
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.StringLiteralNode pos=Obtained from string:26:76 value_preview="," new_stack_size=7
+    helpers.go:57: [DEBUG]    << Exit Literal
+    helpers.go:57: [DEBUG] --- Exit Primary: "\",\""
+    helpers.go:57: [DEBUG]     Primary is Literal, Placeholder, Call, or Parenthesized (Pass through)
+    helpers.go:57: [DEBUG] --- Exit Accessor_expr: "\",\""
+    helpers.go:57: [DEBUG] --- Exit Power_expr: "\",\""
+    helpers.go:57: [DEBUG] --- ExitUnary_expr: "\",\""
+    helpers.go:57: [DEBUG]     Unary_expr is pass-through (no specific operator token found, or was typeof).
+    helpers.go:57: [DEBUG] --- Exit Multiplicative_expr: "\",\""
+    helpers.go:57: [DEBUG] --- Exit Primary: "rDepth"
+    helpers.go:57: [DEBUG]     Constructed VariableNode: rDepth
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.VariableNode pos=Obtained from string:26:82 value_preview=rDepth new_stack_size=8
+    helpers.go:57: [DEBUG] --- Exit Accessor_expr: "rDepth"
+    helpers.go:57: [DEBUG] --- Exit Power_expr: "rDepth"
+    helpers.go:57: [DEBUG] --- ExitUnary_expr: "rDepth"
+    helpers.go:57: [DEBUG]     Unary_expr is pass-through (no specific operator token found, or was typeof).
+    helpers.go:57: [DEBUG] --- Exit Multiplicative_expr: "rDepth"
+    helpers.go:57: [DEBUG] --- Exit Additive_expr: "\"recursiveProc_recvd:\"+rStrArg+\",\"+rIntArg+\",\"+rBoolArg+\",\"+rDepth"
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] <-- POP value_type=*core.VariableNode pos=Obtained from string:26:82 value_preview=rDepth new_stack_size=7
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] <-- POP value_type=*core.StringLiteralNode pos=Obtained from string:26:76 value_preview="," new_stack_size=6
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] <-- POP value_type=*core.VariableNode pos=Obtained from string:26:65 value_preview=rBoolArg new_stack_size=5
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] <-- POP value_type=*core.StringLiteralNode pos=Obtained from string:26:59 value_preview="," new_stack_size=4
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] <-- POP value_type=*core.VariableNode pos=Obtained from string:26:49 value_preview=rIntArg new_stack_size=3
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] <-- POP value_type=*core.StringLiteralNode pos=Obtained from string:26:43 value_preview="," new_stack_size=2
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] <-- POP value_type=*core.VariableNode pos=Obtained from string:26:33 value_preview=rStrArg new_stack_size=1
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] <-- POP value_type=*core.StringLiteralNode pos=Obtained from string:26:8 value_preview="recursiveProc_recvd:" new_stack_size=0
+    helpers.go:57: [DEBUG]     Constructed BinaryOpNode: [*core.StringLiteralNode + *core.VariableNode]
+    helpers.go:57: [DEBUG]     Constructed BinaryOpNode: [*core.BinaryOpNode + *core.StringLiteralNode]
+    helpers.go:57: [DEBUG]     Constructed BinaryOpNode: [*core.BinaryOpNode + *core.VariableNode]
+    helpers.go:57: [DEBUG]     Constructed BinaryOpNode: [*core.BinaryOpNode + *core.StringLiteralNode]
+    helpers.go:57: [DEBUG]     Constructed BinaryOpNode: [*core.BinaryOpNode + *core.VariableNode]
+    helpers.go:57: [DEBUG]     Constructed BinaryOpNode: [*core.BinaryOpNode + *core.StringLiteralNode]
+    helpers.go:57: [DEBUG]     Constructed BinaryOpNode: [*core.BinaryOpNode + *core.VariableNode]
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.BinaryOpNode pos=Obtained from string:26:80 value_preview=((((((("recursiveProc_recvd:" + rStrArg) + ",") + rIntArg) + ",") + rBoolArg) + ",") + rDepth) new_stack_size=1
+    helpers.go:57: [DEBUG] --- Exit Relational_expr: "\"recursiveProc_recvd:\"+rStrArg+\",\"+rIntArg+\",\"+rBoolArg+\",\"+rDepth"
+    helpers.go:57: [DEBUG] --- Exit Equality_expr: "\"recursiveProc_recvd:\"+rStrArg+\",\"+rIntArg+\",\"+rBoolArg+\",\"+rDepth"
+    helpers.go:57: [DEBUG] --- Exit Bitwise_and_expr: "\"recursiveProc_recvd:\"+rStrArg+\",\"+rIntArg+\",\"+rBoolArg+\",\"+rDepth"
+    helpers.go:57: [DEBUG] --- Exit Bitwise_xor_expr: "\"recursiveProc_recvd:\"+rStrArg+\",\"+rIntArg+\",\"+rBoolArg+\",\"+rDepth"
+    helpers.go:57: [DEBUG] --- Exit Bitwise_or_expr: "\"recursiveProc_recvd:\"+rStrArg+\",\"+rIntArg+\",\"+rBoolArg+\",\"+rDepth"
+    helpers.go:57: [DEBUG] --- Exit Logical_and_expr: "\"recursiveProc_recvd:\"+rStrArg+\",\"+rIntArg+\",\"+rBoolArg+\",\"+rDepth"
+    helpers.go:57: [DEBUG] --- Exit Logical_or_expr: "\"recursiveProc_recvd:\"+rStrArg+\",\"+rIntArg+\",\"+rBoolArg+\",\"+rDepth"
+    helpers.go:57: [DEBUG] --- Exit Expression: "\"recursiveProc_recvd:\"+rStrArg+\",\"+rIntArg+\",\"+rBoolArg+\",\"+rDepth" (Pass through)
+    helpers.go:57: [DEBUG] <<< Exit Emit_statement: "emit \"recursiveProc_recvd:\" + rStrArg + \",\" + rIntArg + \",\" + rBoolArg + \",\" + rDepth"
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] <-- POP value_type=*core.BinaryOpNode pos=Obtained from string:26:80 value_preview=((((((("recursiveProc_recvd:" + rStrArg) + ",") + rIntArg) + ",") + rBoolArg) + ",") + rDepth) new_stack_size=0
+    helpers.go:57: [DEBUG]          Appended EMIT Step
+    helpers.go:57: [DEBUG] >>> Enter IF Statement Context
+    helpers.go:57: [DEBUG] >>> Enter IF_THEN Block Context (currentSteps before: 0xc000151b48, stack size: 0)
+    helpers.go:57: [DEBUG]      Pushed old currentSteps (0xc000151b48) to stack. New stack size: 1
+    helpers.go:57: [DEBUG]      New currentSteps initialized for IF_THEN: 0xc00016a678
+    helpers.go:57: [DEBUG] --- Exit Primary: "rDepth"
+    helpers.go:57: [DEBUG]     Constructed VariableNode: rDepth
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.VariableNode pos=Obtained from string:28:6 value_preview=rDepth new_stack_size=1
+    helpers.go:57: [DEBUG] --- Exit Accessor_expr: "rDepth"
+    helpers.go:57: [DEBUG] --- Exit Power_expr: "rDepth"
+    helpers.go:57: [DEBUG] --- ExitUnary_expr: "rDepth"
+    helpers.go:57: [DEBUG]     Unary_expr is pass-through (no specific operator token found, or was typeof).
+    helpers.go:57: [DEBUG] --- Exit Multiplicative_expr: "rDepth"
+    helpers.go:57: [DEBUG] --- Exit Additive_expr: "rDepth"
+    helpers.go:57: [DEBUG]  >> Exit Literal: 1
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.NumberLiteralNode pos=Obtained from string:28:15 value_preview=1 new_stack_size=2
+    helpers.go:57: [DEBUG]    << Exit Literal
+    helpers.go:57: [DEBUG] --- Exit Primary: "1"
+    helpers.go:57: [DEBUG]     Primary is Literal, Placeholder, Call, or Parenthesized (Pass through)
+    helpers.go:57: [DEBUG] --- Exit Accessor_expr: "1"
+    helpers.go:57: [DEBUG] --- Exit Power_expr: "1"
+    helpers.go:57: [DEBUG] --- ExitUnary_expr: "1"
+    helpers.go:57: [DEBUG]     Unary_expr is pass-through (no specific operator token found, or was typeof).
+    helpers.go:57: [DEBUG] --- Exit Multiplicative_expr: "1"
+    helpers.go:57: [DEBUG] --- Exit Additive_expr: "1"
+    helpers.go:57: [DEBUG] --- Exit Relational_expr: "rDepth>1"
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] <-- POP value_type=*core.NumberLiteralNode pos=Obtained from string:28:15 value_preview=1 new_stack_size=1
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] <-- POP value_type=*core.VariableNode pos=Obtained from string:28:6 value_preview=rDepth new_stack_size=0
+    helpers.go:57: [DEBUG]     Constructed BinaryOpNode: [*core.VariableNode > *core.NumberLiteralNode]
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.BinaryOpNode pos=Obtained from string:28:13 value_preview=(rDepth > 1) new_stack_size=1
+    helpers.go:57: [DEBUG] --- Exit Equality_expr: "rDepth>1"
+    helpers.go:57: [DEBUG] --- Exit Bitwise_and_expr: "rDepth>1"
+    helpers.go:57: [DEBUG] --- Exit Bitwise_xor_expr: "rDepth>1"
+    helpers.go:57: [DEBUG] --- Exit Bitwise_or_expr: "rDepth>1"
+    helpers.go:57: [DEBUG] --- Exit Logical_and_expr: "rDepth>1"
+    helpers.go:57: [DEBUG] --- Exit Logical_or_expr: "rDepth>1"
+    helpers.go:57: [DEBUG] --- Exit Expression: "rDepth>1" (Pass through)
+    helpers.go:57: [DEBUG] >>> Enter Statement_list (for IF-THEN body)
+    helpers.go:57: [DEBUG] ExitLvalue: newDepth
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.LValueNode pos=Obtained from string:29:9 value_preview=newDepth new_stack_size=2
+    helpers.go:57: [DEBUG] --- Exit Primary: "rDepth"
+    helpers.go:57: [DEBUG]     Constructed VariableNode: rDepth
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.VariableNode pos=Obtained from string:29:20 value_preview=rDepth new_stack_size=3
+    helpers.go:57: [DEBUG] --- Exit Accessor_expr: "rDepth"
+    helpers.go:57: [DEBUG] --- Exit Power_expr: "rDepth"
+    helpers.go:57: [DEBUG] --- ExitUnary_expr: "rDepth"
+    helpers.go:57: [DEBUG]     Unary_expr is pass-through (no specific operator token found, or was typeof).
+    helpers.go:57: [DEBUG] --- Exit Multiplicative_expr: "rDepth"
+    helpers.go:57: [DEBUG]  >> Exit Literal: 1
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.NumberLiteralNode pos=Obtained from string:29:29 value_preview=1 new_stack_size=4
+    helpers.go:57: [DEBUG]    << Exit Literal
+    helpers.go:57: [DEBUG] --- Exit Primary: "1"
+    helpers.go:57: [DEBUG]     Primary is Literal, Placeholder, Call, or Parenthesized (Pass through)
+    helpers.go:57: [DEBUG] --- Exit Accessor_expr: "1"
+    helpers.go:57: [DEBUG] --- Exit Power_expr: "1"
+    helpers.go:57: [DEBUG] --- ExitUnary_expr: "1"
+    helpers.go:57: [DEBUG]     Unary_expr is pass-through (no specific operator token found, or was typeof).
+    helpers.go:57: [DEBUG] --- Exit Multiplicative_expr: "1"
+    helpers.go:57: [DEBUG] --- Exit Additive_expr: "rDepth-1"
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] <-- POP value_type=*core.NumberLiteralNode pos=Obtained from string:29:29 value_preview=1 new_stack_size=3
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] <-- POP value_type=*core.VariableNode pos=Obtained from string:29:20 value_preview=rDepth new_stack_size=2
+    helpers.go:57: [DEBUG]     Constructed BinaryOpNode: [*core.VariableNode - *core.NumberLiteralNode]
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.BinaryOpNode pos=Obtained from string:29:27 value_preview=(rDepth - 1) new_stack_size=3
+    helpers.go:57: [DEBUG] --- Exit Relational_expr: "rDepth-1"
+    helpers.go:57: [DEBUG] --- Exit Equality_expr: "rDepth-1"
+    helpers.go:57: [DEBUG] --- Exit Bitwise_and_expr: "rDepth-1"
+    helpers.go:57: [DEBUG] --- Exit Bitwise_xor_expr: "rDepth-1"
+    helpers.go:57: [DEBUG] --- Exit Bitwise_or_expr: "rDepth-1"
+    helpers.go:57: [DEBUG] --- Exit Logical_and_expr: "rDepth-1"
+    helpers.go:57: [DEBUG] --- Exit Logical_or_expr: "rDepth-1"
+    helpers.go:57: [DEBUG] --- Exit Expression: "rDepth-1" (Pass through)
+    helpers.go:57: [DEBUG] ExitSet_statement: set newDepth = rDepth - 1
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] <-- POP value_type=*core.BinaryOpNode pos=Obtained from string:29:27 value_preview=(rDepth - 1) new_stack_size=2
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] <-- POP value_type=*core.LValueNode pos=Obtained from string:29:9 value_preview=newDepth new_stack_size=1
+    helpers.go:57: [DEBUG]          Appended SET Step: LValue=newDepth, Value=(rDepth - 1)
+    helpers.go:57: [DEBUG] --- Exit Call_target: "recursiveProc"
+    helpers.go:57: [DEBUG]     -> buildCallTargetFromContext: recursiveProc
+    helpers.go:57: [DEBUG]        User function call identified. Name: 'recursiveProc', Pos: Obtained from string:31:10
+    helpers.go:57: [DEBUG]     <- buildCallTargetFromContext (Name: recursiveProc, IsTool: false)
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.CallTarget pos=Obtained from string:31:10 value_preview=recursiveProc new_stack_size=2
+    helpers.go:57: [DEBUG]     Pushed *CallTarget to stack: IsTool=false, Name=recursiveProc
+    helpers.go:57: [DEBUG] --- Exit Primary: "rStrArg"
+    helpers.go:57: [DEBUG]     Constructed VariableNode: rStrArg
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.VariableNode pos=Obtained from string:31:24 value_preview=rStrArg new_stack_size=3
+    helpers.go:57: [DEBUG] --- Exit Accessor_expr: "rStrArg"
+    helpers.go:57: [DEBUG] --- Exit Power_expr: "rStrArg"
+    helpers.go:57: [DEBUG] --- ExitUnary_expr: "rStrArg"
+    helpers.go:57: [DEBUG]     Unary_expr is pass-through (no specific operator token found, or was typeof).
+    helpers.go:57: [DEBUG] --- Exit Multiplicative_expr: "rStrArg"
+    helpers.go:57: [DEBUG] --- Exit Additive_expr: "rStrArg"
+    helpers.go:57: [DEBUG] --- Exit Relational_expr: "rStrArg"
+    helpers.go:57: [DEBUG] --- Exit Equality_expr: "rStrArg"
+    helpers.go:57: [DEBUG] --- Exit Bitwise_and_expr: "rStrArg"
+    helpers.go:57: [DEBUG] --- Exit Bitwise_xor_expr: "rStrArg"
+    helpers.go:57: [DEBUG] --- Exit Bitwise_or_expr: "rStrArg"
+    helpers.go:57: [DEBUG] --- Exit Logical_and_expr: "rStrArg"
+    helpers.go:57: [DEBUG] --- Exit Logical_or_expr: "rStrArg"
+    helpers.go:57: [DEBUG] --- Exit Expression: "rStrArg" (Pass through)
+    helpers.go:57: [DEBUG] --- Exit Primary: "rIntArg"
+    helpers.go:57: [DEBUG]     Constructed VariableNode: rIntArg
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.VariableNode pos=Obtained from string:31:33 value_preview=rIntArg new_stack_size=4
+    helpers.go:57: [DEBUG] --- Exit Accessor_expr: "rIntArg"
+    helpers.go:57: [DEBUG] --- Exit Power_expr: "rIntArg"
+    helpers.go:57: [DEBUG] --- ExitUnary_expr: "rIntArg"
+    helpers.go:57: [DEBUG]     Unary_expr is pass-through (no specific operator token found, or was typeof).
+    helpers.go:57: [DEBUG] --- Exit Multiplicative_expr: "rIntArg"
+    helpers.go:57: [DEBUG] --- Exit Primary: "rDepth"
+    helpers.go:57: [DEBUG]     Constructed VariableNode: rDepth
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.VariableNode pos=Obtained from string:31:43 value_preview=rDepth new_stack_size=5
+    helpers.go:57: [DEBUG] --- Exit Accessor_expr: "rDepth"
+    helpers.go:57: [DEBUG] --- Exit Power_expr: "rDepth"
+    helpers.go:57: [DEBUG] --- ExitUnary_expr: "rDepth"
+    helpers.go:57: [DEBUG]     Unary_expr is pass-through (no specific operator token found, or was typeof).
+    helpers.go:57: [DEBUG] --- Exit Multiplicative_expr: "rDepth"
+    helpers.go:57: [DEBUG] --- Exit Additive_expr: "rIntArg+rDepth"
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] <-- POP value_type=*core.VariableNode pos=Obtained from string:31:43 value_preview=rDepth new_stack_size=4
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] <-- POP value_type=*core.VariableNode pos=Obtained from string:31:33 value_preview=rIntArg new_stack_size=3
+    helpers.go:57: [DEBUG]     Constructed BinaryOpNode: [*core.VariableNode + *core.VariableNode]
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.BinaryOpNode pos=Obtained from string:31:41 value_preview=(rIntArg + rDepth) new_stack_size=4
+    helpers.go:57: [DEBUG] --- Exit Relational_expr: "rIntArg+rDepth"
+    helpers.go:57: [DEBUG] --- Exit Equality_expr: "rIntArg+rDepth"
+    helpers.go:57: [DEBUG] --- Exit Bitwise_and_expr: "rIntArg+rDepth"
+    helpers.go:57: [DEBUG] --- Exit Bitwise_xor_expr: "rIntArg+rDepth"
+    helpers.go:57: [DEBUG] --- Exit Bitwise_or_expr: "rIntArg+rDepth"
+    helpers.go:57: [DEBUG] --- Exit Logical_and_expr: "rIntArg+rDepth"
+    helpers.go:57: [DEBUG] --- Exit Logical_or_expr: "rIntArg+rDepth"
+    helpers.go:57: [DEBUG] --- Exit Expression: "rIntArg+rDepth" (Pass through)
+    helpers.go:57: [DEBUG] --- Exit Primary: "rBoolArg"
+    helpers.go:57: [DEBUG]     Constructed VariableNode: rBoolArg
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.VariableNode pos=Obtained from string:31:55 value_preview=rBoolArg new_stack_size=5
+    helpers.go:57: [DEBUG] --- Exit Accessor_expr: "rBoolArg"
+    helpers.go:57: [DEBUG] --- Exit Power_expr: "rBoolArg"
+    helpers.go:57: [DEBUG] --- ExitUnary_expr: "rBoolArg"
+    helpers.go:57: [DEBUG]     Unary_expr is pass-through (no specific operator token found, or was typeof).
+    helpers.go:57: [DEBUG] --- ExitUnary_expr: "notrBoolArg"
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] <-- POP value_type=*core.VariableNode pos=Obtained from string:31:55 value_preview=rBoolArg new_stack_size=4
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.UnaryOpNode pos=Obtained from string:31:51 value_preview=notrBoolArg new_stack_size=5
+    helpers.go:57: [DEBUG]     Constructed UnaryOpNode: not [*core.VariableNode]
+    helpers.go:57: [DEBUG] --- Exit Multiplicative_expr: "notrBoolArg"
+    helpers.go:57: [DEBUG] --- Exit Additive_expr: "notrBoolArg"
+    helpers.go:57: [DEBUG] --- Exit Relational_expr: "notrBoolArg"
+    helpers.go:57: [DEBUG] --- Exit Equality_expr: "notrBoolArg"
+    helpers.go:57: [DEBUG] --- Exit Bitwise_and_expr: "notrBoolArg"
+    helpers.go:57: [DEBUG] --- Exit Bitwise_xor_expr: "notrBoolArg"
+    helpers.go:57: [DEBUG] --- Exit Bitwise_or_expr: "notrBoolArg"
+    helpers.go:57: [DEBUG] --- Exit Logical_and_expr: "notrBoolArg"
+    helpers.go:57: [DEBUG] --- Exit Logical_or_expr: "notrBoolArg"
+    helpers.go:57: [DEBUG] --- Exit Expression: "notrBoolArg" (Pass through)
+    helpers.go:57: [DEBUG] --- Exit Primary: "newDepth"
+    helpers.go:57: [DEBUG]     Constructed VariableNode: newDepth
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.VariableNode pos=Obtained from string:31:65 value_preview=newDepth new_stack_size=6
+    helpers.go:57: [DEBUG] --- Exit Accessor_expr: "newDepth"
+    helpers.go:57: [DEBUG] --- Exit Power_expr: "newDepth"
+    helpers.go:57: [DEBUG] --- ExitUnary_expr: "newDepth"
+    helpers.go:57: [DEBUG]     Unary_expr is pass-through (no specific operator token found, or was typeof).
+    helpers.go:57: [DEBUG] --- Exit Multiplicative_expr: "newDepth"
+    helpers.go:57: [DEBUG] --- Exit Additive_expr: "newDepth"
+    helpers.go:57: [DEBUG] --- Exit Relational_expr: "newDepth"
+    helpers.go:57: [DEBUG] --- Exit Equality_expr: "newDepth"
+    helpers.go:57: [DEBUG] --- Exit Bitwise_and_expr: "newDepth"
+    helpers.go:57: [DEBUG] --- Exit Bitwise_xor_expr: "newDepth"
+    helpers.go:57: [DEBUG] --- Exit Bitwise_or_expr: "newDepth"
+    helpers.go:57: [DEBUG] --- Exit Logical_and_expr: "newDepth"
+    helpers.go:57: [DEBUG] --- Exit Logical_or_expr: "newDepth"
+    helpers.go:57: [DEBUG] --- Exit Expression: "newDepth" (Pass through)
+    helpers.go:57: [DEBUG] --- Exit Callable_expr: "recursiveProc(rStrArg,rIntArg+rDepth,notrBoolArg,newDepth)"
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] <-- POP N count=4 new_stack_size=2
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] <-- POP value_type=*core.CallTarget pos=Obtained from string:31:10 value_preview=recursiveProc new_stack_size=1
+    helpers.go:57: [DEBUG]     Popped *CallTarget from stack: IsTool=false, Name=recursiveProc
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.CallableExprNode pos=Obtained from string:31:10 value_preview=recursiveProc(rStrArg, (rIntArg + rDepth), notrBoolArg, newDepth) new_stack_size=2
+    helpers.go:57: [DEBUG]     Constructed and Pushed CallableExprNode: Target=recursiveProc, Args=4
+    helpers.go:57: [DEBUG] <<< Exit Call_statement: "call recursiveProc(rStrArg, rIntArg + rDepth, not rBoolArg, newDepth)"
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] <-- POP value_type=*core.CallableExprNode pos=Obtained from string:31:10 value_preview=recursiveProc(rStrArg, (rIntArg + rDepth), notrBoolArg, newDepth) new_stack_size=1
+    helpers.go:57: [DEBUG]          Appended CALL Step: Target=recursiveProc
+    helpers.go:57: [DEBUG] <<< Exit Statement_list (currentSteps has 2 items)
+    helpers.go:57: [DEBUG] --- ExitIf_statement: Finalizing IF step (if rDepth > 1
+            set newDepth = rDepth - 1
+            # Pass arguments through, potentially modifying one for variation
+            call recursiveProc(rStrArg, rIntArg + rDepth, not rBoolArg, newDepth) # Corrected: not rBoolArg
+          endif)
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] <-- POP value_type=*core.BinaryOpNode pos=Obtained from string:28:13 value_preview=(rDepth > 1) new_stack_size=0
+    helpers.go:57: [DEBUG]          Popped IF then_steps: Count=0
+    helpers.go:57: [ERROR] AST Builder: Pop from empty value stack!
+    helpers.go:57: [ERROR] AST Build Error position=Obtained from string:28:3 message=Stack error popping condition for IF statement
+    helpers.go:57: [DEBUG] ExitLvalue: result
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.LValueNode pos=Obtained from string:34:7 value_preview=result new_stack_size=1
+    helpers.go:57: [DEBUG]  >> Exit Literal: "recursiveProc_completed_depth_"
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.StringLiteralNode pos=Obtained from string:34:16 value_preview="recursiveProc_completed_depth_" new_stack_size=2
+    helpers.go:57: [DEBUG]    << Exit Literal
+    helpers.go:57: [DEBUG] --- Exit Primary: "\"recursiveProc_completed_depth_\""
+    helpers.go:57: [DEBUG]     Primary is Literal, Placeholder, Call, or Parenthesized (Pass through)
+    helpers.go:57: [DEBUG] --- Exit Accessor_expr: "\"recursiveProc_completed_depth_\""
+    helpers.go:57: [DEBUG] --- Exit Power_expr: "\"recursiveProc_completed_depth_\""
+    helpers.go:57: [DEBUG] --- ExitUnary_expr: "\"recursiveProc_completed_depth_\""
+    helpers.go:57: [DEBUG]     Unary_expr is pass-through (no specific operator token found, or was typeof).
+    helpers.go:57: [DEBUG] --- Exit Multiplicative_expr: "\"recursiveProc_completed_depth_\""
+    helpers.go:57: [DEBUG] --- Exit Primary: "rDepth"
+    helpers.go:57: [DEBUG]     Constructed VariableNode: rDepth
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.VariableNode pos=Obtained from string:34:51 value_preview=rDepth new_stack_size=3
+    helpers.go:57: [DEBUG] --- Exit Accessor_expr: "rDepth"
+    helpers.go:57: [DEBUG] --- Exit Power_expr: "rDepth"
+    helpers.go:57: [DEBUG] --- ExitUnary_expr: "rDepth"
+    helpers.go:57: [DEBUG]     Unary_expr is pass-through (no specific operator token found, or was typeof).
+    helpers.go:57: [DEBUG] --- Exit Multiplicative_expr: "rDepth"
+    helpers.go:57: [DEBUG] --- Exit Additive_expr: "\"recursiveProc_completed_depth_\"+rDepth"
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] <-- POP value_type=*core.VariableNode pos=Obtained from string:34:51 value_preview=rDepth new_stack_size=2
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] <-- POP value_type=*core.StringLiteralNode pos=Obtained from string:34:16 value_preview="recursiveProc_completed_depth_" new_stack_size=1
+    helpers.go:57: [DEBUG]     Constructed BinaryOpNode: [*core.StringLiteralNode + *core.VariableNode]
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.BinaryOpNode pos=Obtained from string:34:49 value_preview=("recursiveProc_completed_depth_" + rDepth) new_stack_size=2
+    helpers.go:57: [DEBUG] --- Exit Relational_expr: "\"recursiveProc_completed_depth_\"+rDepth"
+    helpers.go:57: [DEBUG] --- Exit Equality_expr: "\"recursiveProc_completed_depth_\"+rDepth"
+    helpers.go:57: [DEBUG] --- Exit Bitwise_and_expr: "\"recursiveProc_completed_depth_\"+rDepth"
+    helpers.go:57: [DEBUG] --- Exit Bitwise_xor_expr: "\"recursiveProc_completed_depth_\"+rDepth"
+    helpers.go:57: [DEBUG] --- Exit Bitwise_or_expr: "\"recursiveProc_completed_depth_\"+rDepth"
+    helpers.go:57: [DEBUG] --- Exit Logical_and_expr: "\"recursiveProc_completed_depth_\"+rDepth"
+    helpers.go:57: [DEBUG] --- Exit Logical_or_expr: "\"recursiveProc_completed_depth_\"+rDepth"
+    helpers.go:57: [DEBUG] --- Exit Expression: "\"recursiveProc_completed_depth_\"+rDepth" (Pass through)
+    helpers.go:57: [DEBUG] ExitSet_statement: set result = "recursiveProc_completed_depth_" + rDepth
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] <-- POP value_type=*core.BinaryOpNode pos=Obtained from string:34:49 value_preview=("recursiveProc_completed_depth_" + rDepth) new_stack_size=1
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] <-- POP value_type=*core.LValueNode pos=Obtained from string:34:7 value_preview=result new_stack_size=0
+    helpers.go:57: [DEBUG]          Appended SET Step: LValue=result, Value=("recursiveProc_completed_depth_" + rDepth)
+    helpers.go:57: [DEBUG] --- Exit Primary: "result"
+    helpers.go:57: [DEBUG]     Constructed VariableNode: result
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] --> PUSH value_type=*core.VariableNode pos=Obtained from string:35:10 value_preview=result new_stack_size=1
+    helpers.go:57: [DEBUG] --- Exit Accessor_expr: "result"
+    helpers.go:57: [DEBUG] --- Exit Power_expr: "result"
+    helpers.go:57: [DEBUG] --- ExitUnary_expr: "result"
+    helpers.go:57: [DEBUG]     Unary_expr is pass-through (no specific operator token found, or was typeof).
+    helpers.go:57: [DEBUG] --- Exit Multiplicative_expr: "result"
+    helpers.go:57: [DEBUG] --- Exit Additive_expr: "result"
+    helpers.go:57: [DEBUG] --- Exit Relational_expr: "result"
+    helpers.go:57: [DEBUG] --- Exit Equality_expr: "result"
+    helpers.go:57: [DEBUG] --- Exit Bitwise_and_expr: "result"
+    helpers.go:57: [DEBUG] --- Exit Bitwise_xor_expr: "result"
+    helpers.go:57: [DEBUG] --- Exit Bitwise_or_expr: "result"
+    helpers.go:57: [DEBUG] --- Exit Logical_and_expr: "result"
+    helpers.go:57: [DEBUG] --- Exit Logical_or_expr: "result"
+    helpers.go:57: [DEBUG] --- Exit Expression: "result" (Pass through)
+    helpers.go:57: [DEBUG] <<< Exit Return_statement: "return result"
+    helpers.go:57: [DEBUG] [DEBUG-AST-STACK] <-- POP N count=1 new_stack_size=0
+    helpers.go:57: [DEBUG]          Popped and asserted 1 return nodes
+    helpers.go:57: [DEBUG]          Appended RETURN Step
+    helpers.go:57: [DEBUG] <<< Exit Statement_list (currentSteps has 4 items)
+    helpers.go:57: [DEBUG] --- ExitProcedure_definition for recursiveProc. Value stack size before body pop: 0
+    helpers.go:57: [ERROR] AST Builder: Pop from empty value stack!
+    helpers.go:57: [ERROR] AST Build Error position=Obtained from string:36:1 message=Stack error: expected procedure body steps for 'recursiveProc', but value stack was empty.
+    helpers.go:57: [DEBUG]    Added procedure recursiveProc to list. Total procedures: 3
+    helpers.go:57: [WARN] finalizeProcedure: blockStepStack is not empty (size %d). This may indicate an issue with block context management. (Logger Warning: odd number of key-value arguments provided) 1
+    helpers.go:57: [DEBUG] <<< Exit Program (Metadata Count: 2, Final Procedure Count: 0, Listener Errors: 8, Final Stack Size: 0)
+    helpers.go:57: [ERROR] ExitProgram: Block step stack not empty! size=1
+    helpers.go:57: [DEBUG] AST Builder: ANTLR walk finished.
+    helpers.go:57: [ERROR] AST Builder: Errors detected during ANTLR walk. error=AST build failed with 9 error(s): AST builder internal error: attempted pop from empty value stack; AST build error near Obtained from string:15:1: Stack error: expected procedure body steps for 'mainEntry', but value stack was empty.; AST builder internal error: attempted pop from empty value stack; AST build error near Obtained from string:22:1: Stack error: expected procedure body steps for 'helperProc', but value stack was empty.; AST builder internal error: attempted pop from empty value stack; AST build error at Obtained from string:28:3: Stack error popping condition for IF statement; AST builder internal error: attempted pop from empty value stack; AST build error near Obtained from string:36:1: Stack error: expected procedure body steps for 'recursiveProc', but value stack was empty.; internal AST builder error: block step stack size is 1 at end of program
+    interpreter_param_passing_test.go:133: Failed to build AST: AST build failed with 9 error(s): AST builder internal error: attempted pop from empty value stack; AST build error near Obtained from string:15:1: Stack error: expected procedure body steps for 'mainEntry', but value stack was empty.; AST builder internal error: attempted pop from empty value stack; AST build error near Obtained from string:22:1: Stack error: expected procedure body steps for 'helperProc', but value stack was empty.; AST builder internal error: attempted pop from empty value stack; AST build error at Obtained from string:28:3: Stack error popping condition for IF statement; AST builder internal error: attempted pop from empty value stack; AST build error near Obtained from string:36:1: Stack error: expected procedure body steps for 'recursiveProc', but value stack was empty.; internal AST builder error: block step stack size is 1 at end of program
+--- FAIL: TestExecuteStepsBlocksAndLoops (0.02s)
+    --- FAIL: TestExecuteStepsBlocksAndLoops/MUSTBE_unknown_function (0.00s)
+        helpers.go:57: [DEBUG] NewLLMClient: LLM client explicitly disabled. Using internal NoOpLLMClient.
+        helpers.go:57: [DEBUG] newCoreInternalNoOpLLMClient: Creating internal no-op client.
+        helpers.go:70: [INFO] NeuroScript Grammar Version not set
+        helpers.go:70: [INFO] NeuroScript App Version not set
+        helpers.go:69: [DEBUG] Interpreter sandbox directory set to: /tmp/TestExecuteStepsBlocksAndLoopsMUSTBE_unknown_function1773528622/001
+        helpers.go:57: [DEBUG] FileAPI initialized. sandbox_root=/tmp/TestExecuteStepsBlocksAndLoopsMUSTBE_unknown_function1773528622/001
+        helpers.go:57: [DEBUG] Core tools registered successfully.
+        helpers.go:69: [DEBUG] New sandbox directory:/tmp/TestExecuteStepsBlocksAndLoopsMUSTBE_unknown_function1773528622/001
+        helpers.go:57: [DEBUG] New sandbox directory is unchanged
+        helpers.go:57: [DEBUG] [DEBUG-INTERP] Executing steps count=1 mode=normal activeError=nil
+        helpers.go:57: [DEBUG] [DEBUG-INTERP]   Executing Step step_num=1 type=MUSTBE subject=mustbe is_banana pos=test:1:1
+        helpers.go:57: [DEBUG] [DEBUG-INTERP]   Executing MUST/MUSTBE type=MUSTBE pos=test:1:1
+        helpers.go:57: [DEBUG] [DEBUG-EVAL] Calling User Proc or Built-in from expression function_name=is_banana pos=[unknown_pos]
+        helpers.go:57: [DEBUG] Running procedure name=is_banana arg_count=1
+        helpers.go:57: [ERROR] Procedure definition not found name=is_banana
+        helpers.go:57: [DEBUG] Finished procedure. details=map[error:procedure not found: 'is_banana' proc_name:is_banana restored_proc_name: result_type:<nil>]
+        helpers.go:57: [DEBUG] Error occurred, no active ON_ERROR handler, propagating error=NeuroScript Error 2: error executing check function 'is_banana' for mustbe: procedure 'is_banana' not found at test:1:1 (wrapped: procedure not found) step_num=1
+        interpreter_test.go:203: Test "MUSTBE unknown function": Error mismatch.
+            Expected error wrapping: [must condition evaluated to false]
+            Got error:               [NeuroScript Error 2: error executing check function 'is_banana' for mustbe: procedure 'is_banana' not found at test:1:1 (wrapped: procedure not found)]
+    --- FAIL: TestExecuteStepsBlocksAndLoops/MUSTBE_wrong_arg_count (0.00s)
+        helpers.go:57: [DEBUG] NewLLMClient: LLM client explicitly disabled. Using internal NoOpLLMClient.
+        helpers.go:57: [DEBUG] newCoreInternalNoOpLLMClient: Creating internal no-op client.
+        helpers.go:70: [INFO] NeuroScript Grammar Version not set
+        helpers.go:70: [INFO] NeuroScript App Version not set
+        helpers.go:69: [DEBUG] Interpreter sandbox directory set to: /tmp/TestExecuteStepsBlocksAndLoopsMUSTBE_wrong_arg_count3802779630/001
+        helpers.go:57: [DEBUG] FileAPI initialized. sandbox_root=/tmp/TestExecuteStepsBlocksAndLoopsMUSTBE_wrong_arg_count3802779630/001
+        helpers.go:57: [DEBUG] Core tools registered successfully.
+        helpers.go:69: [DEBUG] New sandbox directory:/tmp/TestExecuteStepsBlocksAndLoopsMUSTBE_wrong_arg_count3802779630/001
+        helpers.go:57: [DEBUG] New sandbox directory is unchanged
+        helpers.go:57: [DEBUG] [DEBUG-INTERP] Executing steps count=1 mode=normal activeError=nil
+        helpers.go:57: [DEBUG] [DEBUG-INTERP]   Executing Step step_num=1 type=MUSTBE subject=mustbe is_string pos=test:1:1
+        helpers.go:57: [DEBUG] [DEBUG-INTERP]   Executing MUST/MUSTBE type=MUSTBE pos=test:1:1
+        helpers.go:57: [DEBUG] [DEBUG-EVAL] Calling User Proc or Built-in from expression function_name=is_string pos=[unknown_pos]
+        helpers.go:57: [DEBUG] Error occurred, no active ON_ERROR handler, propagating error=NeuroScript Error 0: error executing check function 'is_string' for mustbe: built-in function 'is_string' failed at test:1:1 (wrapped: incorrect function argument count: func is_string expects 1 arg(s), got 2) step_num=1
+        interpreter_test.go:203: Test "MUSTBE wrong arg count": Error mismatch.
+            Expected error wrapping: [must condition evaluated to false]
+            Got error:               [NeuroScript Error 0: error executing check function 'is_string' for mustbe: built-in function 'is_string' failed at test:1:1 (wrapped: incorrect function argument count: func is_string expects 1 arg(s), got 2)]
+    --- FAIL: TestExecuteStepsBlocksAndLoops/MUSTBE_argument_evaluation_error (0.00s)
+        helpers.go:57: [DEBUG] NewLLMClient: LLM client explicitly disabled. Using internal NoOpLLMClient.
+        helpers.go:57: [DEBUG] newCoreInternalNoOpLLMClient: Creating internal no-op client.
+        helpers.go:70: [INFO] NeuroScript Grammar Version not set
+        helpers.go:70: [INFO] NeuroScript App Version not set
+        helpers.go:69: [DEBUG] Interpreter sandbox directory set to: /tmp/TestExecuteStepsBlocksAndLoopsMUSTBE_argument_evaluation_error4069572926/001
+        helpers.go:57: [DEBUG] FileAPI initialized. sandbox_root=/tmp/TestExecuteStepsBlocksAndLoopsMUSTBE_argument_evaluation_error4069572926/001
+        helpers.go:57: [DEBUG] Core tools registered successfully.
+        helpers.go:69: [DEBUG] New sandbox directory:/tmp/TestExecuteStepsBlocksAndLoopsMUSTBE_argument_evaluation_error4069572926/001
+        helpers.go:57: [DEBUG] New sandbox directory is unchanged
+        helpers.go:57: [DEBUG] [DEBUG-INTERP] Executing steps count=1 mode=normal activeError=nil
+        helpers.go:57: [DEBUG] [DEBUG-INTERP]   Executing Step step_num=1 type=MUSTBE subject=mustbe is_string pos=test:1:1
+        helpers.go:57: [DEBUG] [DEBUG-INTERP]   Executing MUST/MUSTBE type=MUSTBE pos=test:1:1
+        helpers.go:57: [DEBUG] Error occurred, no active ON_ERROR handler, propagating error=NeuroScript Error 4: error executing check function 'is_string' for mustbe: evaluating arg 1 for call to 'is_string' at [unknown_pos] (arg at [unknown_arg_pos]) at test:1:1 (wrapped: NeuroScript Error 9: variable 'missing' not found at [unknown_pos] (wrapped: variable not found)) step_num=1
+        interpreter_test.go:203: Test "MUSTBE argument evaluation error": Error mismatch.
+            Expected error wrapping: [must condition evaluated to false]
+            Got error:               [NeuroScript Error 4: error executing check function 'is_string' for mustbe: evaluating arg 1 for call to 'is_string' at [unknown_pos] (arg at [unknown_arg_pos]) at test:1:1 (wrapped: NeuroScript Error 9: variable 'missing' not found at [unknown_pos] (wrapped: variable not found))]
+--- FAIL: TestAnalyzeNSSyntaxInternal (0.00s)
+    helpers.go:57: [DEBUG] NewLLMClient: LLM client explicitly disabled. Using internal NoOpLLMClient.
+    helpers.go:57: [DEBUG] newCoreInternalNoOpLLMClient: Creating internal no-op client.
+    helpers.go:70: [INFO] NeuroScript Grammar Version: test-grammar-v0.9.9
+    helpers.go:70: [INFO] NeuroScript App Version not set
+    helpers.go:69: [DEBUG] Interpreter sandbox directory set to: /tmp/TestAnalyzeNSSyntaxInternal2869320671/001
+    helpers.go:57: [DEBUG] FileAPI initialized. sandbox_root=/tmp/TestAnalyzeNSSyntaxInternal2869320671/001
+    helpers.go:57: [DEBUG] Core tools registered successfully.
+    helpers.go:69: [DEBUG] New sandbox directory:/tmp/TestAnalyzeNSSyntaxInternal2869320671/001
+    helpers.go:57: [DEBUG] New sandbox directory is unchanged
+    helpers.go:57: [DEBUG] Parsing for LSP sourceName=nsSyntaxAnalysisToolInput length=45
+    helpers.go:57: [DEBUG] LSP Parse successful (no syntax errors). sourceName=nsSyntaxAnalysisToolInput
+    helpers.go:57: [DEBUG] Parsing for LSP sourceName=nsSyntaxAnalysisToolInput length=34
+    helpers.go:57: [ERROR] Syntax Error Reported by Listener source=nsSyntaxAnalysisToolInput line=2 column=10 message=mismatched input '\n' expecting {'no', 'some', 'tool', 'last', 'eval', 'true', 'false', 'not', 'ln', 'log', 'sin', 'cos', 'tan', 'asin', 'acos', 'atan', 'nil', 'typeof', STRING_LIT, TRIPLE_BACKTICK_STRING, NUMBER_LIT, IDENTIFIER, '-', '~', '(', '[', '{', '{{'} token=
+    helpers.go:57: [DEBUG] Syntax errors found during LSP parse sourceName=nsSyntaxAnalysisToolInput count=1
+    helpers.go:57: [DEBUG] Parsing for LSP sourceName=nsSyntaxAnalysisToolInput length=42
+    helpers.go:57: [ERROR] Syntax Error Reported by Listener source=nsSyntaxAnalysisToolInput line=2 column=10 message=mismatched input '\n' expecting {'no', 'some', 'tool', 'last', 'eval', 'true', 'false', 'not', 'ln', 'log', 'sin', 'cos', 'tan', 'asin', 'acos', 'atan', 'nil', 'typeof', STRING_LIT, TRIPLE_BACKTICK_STRING, NUMBER_LIT, IDENTIFIER, '-', '~', '(', '[', '{', '{{'} token=
+    helpers.go:57: [ERROR] Syntax Error Reported by Listener source=nsSyntaxAnalysisToolInput line=3 column=7 message=mismatched input '\n' expecting {'tool', 'ln', 'log', 'sin', 'cos', 'tan', 'asin', 'acos', 'atan', IDENTIFIER} token=
+    helpers.go:57: [DEBUG] Syntax errors found during LSP parse sourceName=nsSyntaxAnalysisToolInput count=2
+    helpers.go:57: [DEBUG] Parsing for LSP sourceName=nsSyntaxAnalysisToolInput length=0
+    helpers.go:57: [DEBUG] LSP Parse successful (no syntax errors). sourceName=nsSyntaxAnalysisToolInput
+    helpers.go:57: [DEBUG] Parsing for LSP sourceName=nsSyntaxAnalysisToolInput length=225
+    helpers.go:57: [ERROR] Syntax Error Reported by Listener source=nsSyntaxAnalysisToolInput line=1 column=0 message=mismatched input 'set' expecting {<EOF>, 'func'} token=set
+    helpers.go:57: [DEBUG] Syntax errors found during LSP parse sourceName=nsSyntaxAnalysisToolInput count=1
+    helpers.go:57: [DEBUG] Parsing for LSP sourceName=nsSyntaxAnalysisToolInput length=37
+    helpers.go:57: [ERROR] Syntax Error Reported by Listener source=nsSyntaxAnalysisToolInput line=2 column=6 message=mismatched input 'if' expecting IDENTIFIER token=if
+    helpers.go:57: [DEBUG] Syntax errors found during LSP parse sourceName=nsSyntaxAnalysisToolInput count=1
+    --- FAIL: TestAnalyzeNSSyntaxInternal/invalid_keyword_as_variable_name (0.00s)
+        tool_syntax_analyzer_test.go:213: expected TotalErrorsFound 3, got 1
+        tool_syntax_analyzer_test.go:219: expected ReportedErrorsNum 3, got 1 (length of errorList)
+        tool_syntax_analyzer_test.go:227: expected at least 3 reported errors for detail checking, got 1
+    helpers.go:57: [DEBUG] Parsing for LSP sourceName=nsSyntaxAnalysisToolInput length=30
+    helpers.go:57: [ERROR] Syntax Error Reported by Listener source=nsSyntaxAnalysisToolInput line=2 column=6 message=mismatched input '\n' expecting {'tool', 'ln', 'log', 'sin', 'cos', 'tan', 'asin', 'acos', 'atan', IDENTIFIER} token=
+    helpers.go:57: [DEBUG] Syntax errors found during LSP parse sourceName=nsSyntaxAnalysisToolInput count=1
+    helpers.go:57: [DEBUG] Parsing for LSP sourceName=nsSyntaxAnalysisToolInput length=58
+    helpers.go:57: [ERROR] Syntax Error Reported by Listener source=nsSyntaxAnalysisToolInput line=4 column=2 message=mismatched input 'endwhile' expecting {'else', 'endif'} token=endwhile
+    helpers.go:57: [DEBUG] Syntax errors found during LSP parse sourceName=nsSyntaxAnalysisToolInput count=1
+    helpers.go:57: [DEBUG] Parsing for LSP sourceName=nsSyntaxAnalysisToolInput length=41
+    helpers.go:57: [ERROR] Syntax Error Reported by Listener source=nsSyntaxAnalysisToolInput line=1 column=21 message=missing 'means' at '\n' token=
+    helpers.go:57: [DEBUG] Syntax errors found during LSP parse sourceName=nsSyntaxAnalysisToolInput count=1
+    helpers.go:57: [DEBUG] Parsing for LSP sourceName=nsSyntaxAnalysisToolInput length=53
+    helpers.go:57: [ERROR] Syntax Error Reported by Listener source=nsSyntaxAnalysisToolInput line=2 column=17 message=token recognition error at: '"hello world
+        ' token=
+    helpers.go:57: [ERROR] Syntax Error Reported by Listener source=nsSyntaxAnalysisToolInput line=3 column=0 message=mismatched input 'endfunc' expecting {'no', 'some', 'tool', 'last', 'eval', 'true', 'false', 'not', 'ln', 'log', 'sin', 'cos', 'tan', 'asin', 'acos', 'atan', 'nil', 'typeof', STRING_LIT, TRIPLE_BACKTICK_STRING, NUMBER_LIT, IDENTIFIER, '-', '~', '(', '[', '{', '{{'} token=endfunc
+    helpers.go:57: [DEBUG] Syntax errors found during LSP parse sourceName=nsSyntaxAnalysisToolInput count=2
+    helpers.go:57: [DEBUG] Parsing for LSP sourceName=nsSyntaxAnalysisToolInput length=38
+    helpers.go:57: [ERROR] Syntax Error Reported by Listener source=nsSyntaxAnalysisToolInput line=2 column=14 message=mismatched input '\n' expecting {'no', 'some', 'tool', 'last', 'eval', 'true', 'false', 'not', 'ln', 'log', 'sin', 'cos', 'tan', 'asin', 'acos', 'atan', 'nil', 'typeof', STRING_LIT, TRIPLE_BACKTICK_STRING, NUMBER_LIT, IDENTIFIER, '-', '~', '(', '[', '{', '{{'} token=
+    helpers.go:57: [DEBUG] Syntax errors found during LSP parse sourceName=nsSyntaxAnalysisToolInput count=1
+    helpers.go:57: [DEBUG] Parsing for LSP sourceName=nsSyntaxAnalysisToolInput length=40
+    helpers.go:57: [ERROR] Syntax Error Reported by Listener source=nsSyntaxAnalysisToolInput line=2 column=16 message=missing '}}' at '\n' token=
+    helpers.go:57: [DEBUG] Syntax errors found during LSP parse sourceName=nsSyntaxAnalysisToolInput count=1
+[DEBUG removeChildFromParent] Deleted key 'value'. Parent 'node-1' attributes now: map[name:node-2]
+--- FAIL: TestASTBuilderScenarios (0.01s)
+    --- FAIL: TestASTBuilderScenarios/MinimalStackTestFromPrevious (0.00s)
+        ast_builder_stack_test.go:209: astBuilder.Build() returned an error for script 'MinimalStackTestFromPrevious.ns':
+            AST build failed with 9 error(s): AST builder internal error: attempted pop from empty value stack; AST build error at Obtained from string:5:3: Stack error popping body_steps for FOR_EACH statement; AST builder internal error: attempted pop from empty value stack; AST build error at Obtained from string:11:3: Stack error popping condition for IF statement; AST builder internal error: attempted pop from empty value stack; AST build error at Obtained from string:17:3: Stack error popping handler steps for ON_ERROR statement; AST builder internal error: attempted pop from empty value stack; AST build error near Obtained from string:21:1: Stack error: expected procedure body steps for 'MinimalStackTest', but value stack was empty.; internal AST builder error: block step stack size is 4 at end of program
+    --- FAIL: TestASTBuilderScenarios/DeeplyNestedBlocks (0.00s)
+        ast_builder_stack_test.go:209: astBuilder.Build() returned an error for script 'DeeplyNestedBlocks.ns':
+            AST build failed with 9 error(s): AST builder internal error: attempted pop from empty value stack; AST build error at Obtained from string:8:7: Stack error popping condition for IF statement; AST builder internal error: attempted pop from empty value stack; AST build error at Obtained from string:6:5: Stack error popping body_steps for FOR_EACH statement; AST builder internal error: attempted pop from empty value stack; AST build error at Obtained from string:4:3: Stack error popping else_steps for IF statement; AST builder internal error: attempted pop from empty value stack; AST build error near Obtained from string:26:1: Stack error: expected procedure body steps for 'DeepNesting', but value stack was empty.; internal AST builder error: block step stack size is 4 at end of program
+    --- FAIL: TestASTBuilderScenarios/EmptyAndMinimalBlocks (0.00s)
+        ast_builder_stack_test.go:209: astBuilder.Build() returned an error for script 'EmptyAndMinimalBlocks.ns':
+            AST build failed with 13 error(s): AST builder internal error: attempted pop from empty value stack; AST build error at Obtained from string:3:3: Stack error popping condition for IF statement; AST builder internal error: attempted pop from empty value stack; AST build error at Obtained from string:7:3: Stack error popping then_steps for IF statement; AST builder internal error: attempted pop from empty value stack; AST build error at Obtained from string:13:3: Stack error popping collection for FOR_EACH statement; AST builder internal error: attempted pop from empty value stack; AST build error at Obtained from string:18:3: Stack error popping condition for WHILE statement; AST builder internal error: attempted pop from empty value stack; AST build error at Obtained from string:22:3: Stack error popping handler steps for ON_ERROR statement; AST builder internal error: attempted pop from empty value stack; AST build error near Obtained from string:26:1: Stack error: expected procedure body steps for 'EmptyAndMinimalBlocksTest', but value stack was empty.; internal AST builder error: block step stack size is 5 at end of program
+    --- FAIL: TestASTBuilderScenarios/SequentialBlocksOfDifferentTypes (0.00s)
+        ast_builder_stack_test.go:209: astBuilder.Build() returned an error for script 'SequentialBlocksOfDifferentTypes.ns':
+            AST build failed with 11 error(s): AST builder internal error: attempted pop from empty value stack; AST build error at Obtained from string:4:3: Stack error popping condition for IF statement; AST builder internal error: attempted pop from empty value stack; AST build error at Obtained from string:9:3: Stack error popping collection for FOR_EACH statement; AST builder internal error: attempted pop from empty value stack; AST build error at Obtained from string:13:3: Stack error popping then_steps for IF statement; AST builder internal error: attempted pop from empty value stack; AST build error at Obtained from string:20:3: Stack error popping condition for WHILE statement; AST builder internal error: attempted pop from empty value stack; AST build error near Obtained from string:26:1: Stack error: expected procedure body steps for 'SequentialBlocksTest', but value stack was empty.; internal AST builder error: block step stack size is 4 at end of program
+    --- FAIL: TestASTBuilderScenarios/LoopControlsWithNesting (0.00s)
+        ast_builder_stack_test.go:209: astBuilder.Build() returned an error for script 'LoopControlsWithNesting.ns':
+            AST build failed with 9 error(s): AST builder internal error: attempted pop from empty value stack; AST build error at Obtained from string:13:5: Stack error popping body_steps for FOR_EACH statement; AST builder internal error: attempted pop from empty value stack; AST build error at Obtained from string:22:5: Stack error popping condition for IF statement; AST builder internal error: attempted pop from empty value stack; AST build error at Obtained from string:5:3: Stack error popping body_steps for FOR_EACH statement; AST builder internal error: attempted pop from empty value stack; AST build error near Obtained from string:29:1: Stack error: expected procedure body steps for 'LoopControlTest', but value stack was empty.; internal AST builder error: block step stack size is 5 at end of program
+    --- FAIL: TestASTBuilderScenarios/OnErrorAtVeryBeginning (0.00s)
+        ast_builder_stack_test.go:209: astBuilder.Build() returned an error for script 'OnErrorAtVeryBeginning.ns':
+            AST build failed with 5 error(s): AST builder internal error: attempted pop from empty value stack; AST build error at Obtained from string:3:3: Stack error popping handler steps for ON_ERROR statement; AST builder internal error: attempted pop from empty value stack; AST build error near Obtained from string:8:1: Stack error: expected procedure body steps for 'OnErrorFirstTest', but value stack was empty.; internal AST builder error: block step stack size is 1 at end of program
+FAIL
+FAIL	github.com/aprice2704/neuroscript/pkg/core	0.964s
+?   	github.com/aprice2704/neuroscript/pkg/core/generated	[no test files]
+?   	github.com/aprice2704/neuroscript/pkg/core/prompts	[no test files]
+?   	github.com/aprice2704/neuroscript/pkg/core/tools	[no test files]
+ok  	github.com/aprice2704/neuroscript/pkg/core/tools/goast	(cached)
+ok  	github.com/aprice2704/neuroscript/pkg/core/tools/gosemantic	(cached)
+FAIL

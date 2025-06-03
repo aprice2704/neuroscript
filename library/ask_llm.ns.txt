@@ -1,14 +1,14 @@
-DEFINE PROCEDURE AskCapitalCity()
-COMMENT:
-    PURPOSE: Asks the LLM for the capital of Canada.
-    INPUTS: 
-    OUTPUT: String containing the answer from the LLM.
-    ALGORITHM: Set question, call LLM, return response var.
-ENDCOMMENT
+:: lang_version: neuroscript@0.5.0
+:: file_version: 1.0
 
-SET question = "What is the capital of Canada?"
-CALL LLM(question)
-SET result = LAST
-RETURN result
-
-END
+func AskCapitalCity(needs question returns result) means
+  :: description: Asks the LLM for the capital of Canada.
+  :: purpose: Get the capital city of Canada from an LLM.
+  :: param:question: The question to ask the LLM.
+  :: return:result: The answer from the LLM.
+  :: algorithm: Set question, call LLM, return response var.
+  set question = "What is the capital of Canada?"
+  call tool.AIWorker.ExecuteStatelessTask("llm_worker", question, nil)
+  set result = last
+  return result
+endfunc

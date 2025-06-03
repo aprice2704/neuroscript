@@ -1,31 +1,19 @@
-:: lang_version: neuroscript@0.2.0
+:: lang_version: neuroscript@0.5.0
 :: file_version: 1.0.0-example
 :: author: Gemini
 :: description: A basic example NeuroScript file.
 
-# Simple NeuroScript Example Program
-
-func main() means
+func main means
   :: description: Demonstrates basic operations and text output.
-  :: lang_version: neuroscript@0.2.0
-  :: file_version: 1.0.0
-
-  # Set some variables
   set first_name = "Neuro"
   set last_name = "Script"
   set number_a = 10
   set number_b = 5
-
-  # Perform a simple calculation
   set sum_result = number_a + number_b
-
-  # Concatenate strings
   set full_name = first_name + " " + last_name
-
-  # Emit some output
-  emit "Starting simple demo..."
-  emit "Full Name: " + full_name
-  emit "Calculation: " + number_a + " + " + number_b + " = " + sum_result
-  emit "Demo finished."
-
+  call emit("Starting simple demo...")
+  call emit("Full Name: " + full_name)
+  call emit("Calculation: " + number_a + " + " + number_b + " = " + sum_result)
+  call emit("Demo finished.")
 endfunc
+

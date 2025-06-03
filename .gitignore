@@ -30,5 +30,6 @@ library/combined.log.txt
 cmd/nslsp/nslsp_executable
 vscode-neuroscript/server/nslsp_executable
 pkg/codebase-indices/*.json
+bin/
 
 cmd/nslsp/nslsp_executable

@@ -11,17 +11,6 @@ import (
 	// "github.com/aprice2704/neuroscript/pkg/logging" // Assuming logger is part of neuroScriptListenerImpl
 )
 
-// NilLiteralNode represents a nil literal.
-type NilLiteralNode struct {
-	Pos *Position
-}
-
-// GetPos returns the position of the node.
-func (n *NilLiteralNode) GetPos() *Position { return n.Pos }
-
-// expressionNode() is a marker method to satisfy the Expression interface.
-func (n *NilLiteralNode) expressionNode() {}
-
 // ================================================================================
 // START OF LITERAL HANDLING SECTION
 // ================================================================================

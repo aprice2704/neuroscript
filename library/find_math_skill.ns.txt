@@ -1,14 +1,14 @@
-DEFINE PROCEDURE FindAdderSkill()
-COMMENT:
-    PURPOSE: Searches for a skill related to addition.
-    INPUTS: 
-    OUTPUT: JSON string of search results.
-    ALGORITHM: Call SearchSkills with relevant query.
-ENDCOMMENT
+:: lang_version: neuroscript@0.5.0
+:: file_version: 1.0
 
-SET query = "add two numbers"
-CALL TOOL.SearchSkills(query)
-SET result = LAST
-RETURN result
+func FindAdderSkill returns result means
+:: description: Searches for a skill related to addition.
+:: purpose: Find skills related to addition.
+:: algorithm: Call SearchSkills with relevant query.
+:: return:result: JSON string of search results.
 
-END
+  set query = "add two numbers"
+  call tool.SearchSkills(query)
+  set result = last
+  return result
+endfunc

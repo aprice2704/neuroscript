@@ -1,30 +1,22 @@
-DEFINE PROCEDURE HandleSkillRequest(task_description)
-COMMENT:
-    PURPOSE: Attempts to fulfill a task by finding or creating a NeuroScript skill.
-    INPUTS: - task_description: Natural language description of the desired skill/task.
-    OUTPUT: Path to the relevant skill file, or status message.
-    ALGORITHM:
-        1. Call LLM to generate the NeuroScript code for the task.
-        2. Strip code fences from the result.
-        3. Sanitize task description for use as a filename base.
-        4. Save the code using WriteFile.
-        5. Index the new skill using VectorUpdate.
-        6. Add and commit the new file using GitAdd and GitCommit.
-        7. Return the path to the new skill file.
-ENDCOMMENT
+:: lang_version: neuroscript@0.5.0
+:: file_version: 1.0
 
-SET ns_syntax_rules = "NeuroScript Syntax Rules: " + "1. Start with 'DEFINE PROCEDURE Name(args)'. " + "2. Include a structured 'COMMENT:' block with PURPOSE:, INPUTS:, OUTPUT:, ALGORITHM: ended by 'ENDCOMMENT'. " + "3. Use 'SET var = expression' for ALL assignments. " + "4. Use 'CALL ProcName(args...)' for ALL procedure/tool calls. Capture results with 'SET result = CALL ...'. " + "5. Use 'ENDBLOCK' to end IF/WHILE/FOR blocks. " + "6. The ONLY loop is 'FOR EACH var IN collection DO ... ENDBLOCK'. No 'FOR i=...' loops. " + "7. NO built-in functions like LEN or SUBSTR. Use simple string concatenation '+' if possible. " + "8. Available tools: TOOL.ReadFile, TOOL.WriteFile, TOOL.SanitizeFilename, TOOL.VectorUpdate, TOOL.GitAdd, TOOL.GitCommit, TOOL.SearchSkills (and string tools). " + "9. End the procedure with 'END'."
-SET generation_prompt = "Generate ONLY the raw NeuroScript code (no markdown fences or explanations) that strictly follows these rules: " + ns_syntax_rules + " The procedure should perform the task: " + task_description + " Ensure the final line is exactly 'END'."
-CALL LLM(generation_prompt)
-SET generated_code = LAST
-CALL TOOL.SanitizeFilename(task_description)
-SET sanitized_base = LAST
-SET new_filepath = "skills/" + sanitized_base + ".ns.txt"
-CALL TOOL.WriteFile(new_filepath, generated_code)
-CALL TOOL.VectorUpdate(new_filepath)
-CALL TOOL.GitAdd(new_filepath)
-SET commit_msg = "AI: Add skill for task: " + task_description
-CALL TOOL.GitCommit(commit_msg)
-RETURN "Created new skill (MVP): " + new_filepath
+func HandleSkillRequest(needs task_description returns new_skill_path) means
+  :: description: Attempts to fulfill a task by finding or creating a NeuroScript skill.
+  :: param:task_description: Natural language description of the desired skill/task.
+  :: return:new_skill_path: Path to the relevant skill file, or status message.
+  :: algorithm: 1. Call LLM to generate the NeuroScript code for the task. 2. Strip code fences from the result. 3. Sanitize task description for use as a filename base. 4. Save the code using WriteFile. 5. Index the new skill using VectorUpdate. 6. Add and commit the new file using GitAdd and GitCommit. 7. Return the path to the new skill file.
+  set ns_syntax_rules = "NeuroScript Syntax Rules: " + "1. Start with 'DEFINE PROCEDURE Name(args)'. " + "2. Include a structured 'COMMENT:' block with PURPOSE:, INPUTS:, OUTPUT:, ALGORITHM: ended by 'ENDCOMMENT'. " + "3. Use 'SET var = expression' for ALL assignments. " + "4. Use 'CALL ProcName(args...)' for ALL procedure/tool calls. Capture results with 'SET result = CALL ...'. " + "5. Use 'ENDBLOCK' to end IF/WHILE/FOR blocks. " + "6. The ONLY loop is 'FOR EACH var IN collection DO ... ENDBLOCK'. No 'FOR i=...' loops. " + "7. NO built-in functions like LEN or SUBSTR. Use simple string concatenation '+' if possible. " + "8. Available tools: TOOL.ReadFile, TOOL.WriteFile, TOOL.SanitizeFilename, TOOL.VectorUpdate, TOOL.GitAdd, TOOL.GitCommit, TOOL.SearchSkills (and string tools). " + "9. End the procedure with 'END'."
+  set generation_prompt = "Generate ONLY the raw NeuroScript code (no markdown fences or explanations) that strictly follows these rules: " + ns_syntax_rules + " The procedure should perform the task: " + task_description + " Ensure the final line is exactly 'END'."
+  set generated_code = tool.LLM(generation_prompt)
+  set sanitized_base = tool.SanitizeFilename(task_description)
+  set new_filepath = "skills/" + sanitized_base + ".ns.txt"
+  call tool.WriteFile(new_filepath, generated_code)
+  call tool.VectorUpdate(new_filepath)
+  call tool.GitAdd(new_filepath)
+  set commit_msg = "AI: Add skill for task: " + task_description
+  call tool.GitCommit(commit_msg)
+  set new_skill_path = "Created new skill (MVP): " + new_filepath
+  return new_skill_path
+endfunc
 
-END

@@ -1,13 +1,12 @@
-DEFINE PROCEDURE FindSkills(query)
-COMMENT:
-    PURPOSE: Tests the skill search stub.
-    INPUTS: - query: String to search for.
-    OUTPUT: Result from search tool (stubbed).
-    ALGORITHM: Call TOOL.SearchSkills, return result.
-ENDCOMMENT
+:: lang_version: neuroscript@0.5.0
+:: file_version: 1.0
 
-CALL TOOL.SearchSkills(query)
-SET result = LAST
-RETURN result
-
-END
+func FindSkills(needs query returns result) means
+  :: description: Tests the skill search stub.
+  :: purpose: Find skills matching a query.
+  :: param:query: String to search for.
+  :: return:result: Result from search tool (stubbed).
+  :: algorithm: Call TOOL.SearchSkills, return result.
+  set result = tool.SearchSkills(query)
+  return result
+endfunc

@@ -1,5 +1,5 @@
 // NeuroScript Version: 0.3.5
-// File version: 0.0.4 // Corrected result checking in runExecuteStepsTest for non-return cases.
+// File version: 0.0.5 // Corrected Step struct initialization in createTestStep and createForStep.
 // filename: pkg/core/testing_helpers.go
 package core
 
@@ -9,11 +9,9 @@ import (
 	"math"
 	"reflect"
 	"sort"
-	"strings" // Required for tc.errContains
+	"strings"
 	"testing"
-	// Position is defined in ast.go
-	// Expression is defined in ast.go
-	// Step is defined in ast.go
+	// Position, Expression, Step, LValueNode, AccessorNode, CallableExprNode, CallTarget are defined in ast.go
 )
 
 // --- Shared Test Struct Definitions ---
@@ -21,12 +19,12 @@ import (
 // EvalTestCase defines the structure for testing evaluateExpression
 type EvalTestCase struct {
 	Name            string
-	InputNode       interface{} // AST node or raw value (asserted to Expression by helper if needed)
+	InputNode       interface{}
 	InitialVars     map[string]interface{}
-	LastResult      interface{} // Mocked result of previous step if needed
-	Expected        interface{} // Expected result of evaluation
+	LastResult      interface{}
+	Expected        interface{}
 	WantErr         bool
-	ExpectedErrorIs error // Use sentinel error or nil for errors.Is checks
+	ExpectedErrorIs error
 }
 
 // executeStepsTestCase defines the structure for testing interp.executeSteps
@@ -34,11 +32,11 @@ type executeStepsTestCase struct {
 	name            string
 	inputSteps      []Step
 	initialVars     map[string]interface{}
-	lastResult      interface{} // For LAST keyword testing in initial state for NewTestInterpreter
+	lastResult      interface{}
 	expectError     bool
-	ExpectedErrorIs error       // Specific sentinel error expected
-	errContains     string      // Substring to check in error message
-	expectedResult  interface{} // Expected final result (from RETURN or LAST if no RETURN)
+	ExpectedErrorIs error
+	errContains     string
+	expectedResult  interface{}
 	expectedVars    map[string]interface{}
 }
 
@@ -78,7 +76,7 @@ func deepEqualWithTolerance(a, b interface{}) bool {
 		}
 		return math.Abs(aF64-bF64) < defaultTolerance
 	}
-	aFloat, aIsNum := toFloat64(a)
+	aFloat, aIsNum := toFloat64(a) // toFloat64 is assumed to be defined elsewhere (e.g., evaluation_helpers.go)
 	bFloat, bIsNum := toFloat64(b)
 	if aIsNum && bIsNum {
 		return math.Abs(aFloat-bFloat) < defaultTolerance
@@ -106,7 +104,7 @@ func runEvalExpressionTest(t *testing.T, tc EvalTestCase) {
 		return
 	}
 	if tc.WantErr {
-		if err == nil { // Ensure an error was actually returned when one was expected
+		if err == nil {
 			t.Errorf("Test %q: Expected error, but got nil", tc.Name)
 			return
 		}
@@ -126,7 +124,6 @@ func runEvalExpressionTest(t *testing.T, tc EvalTestCase) {
 
 func runExecuteStepsTest(t *testing.T, tc executeStepsTestCase) {
 	t.Helper()
-	// Use tc.lastResult for initializing the interpreter's LAST state
 	interp, _ := NewTestInterpreter(t, tc.initialVars, tc.lastResult)
 
 	finalResultFromExec, wasReturn, _, err := interp.executeSteps(tc.inputSteps, false, nil)
@@ -147,7 +144,7 @@ func runExecuteStepsTest(t *testing.T, tc executeStepsTestCase) {
 			if !strings.Contains(err.Error(), tc.errContains) {
 				t.Errorf("Test %q: Error message mismatch.\nExpected to contain: %q\nGot:                 %v", tc.name, tc.errContains, err.Error())
 			}
-		} else if tc.ExpectedErrorIs == nil { // Only log if no specific error was expected, but an error occurred.
+		} else if tc.ExpectedErrorIs == nil {
 			t.Logf("Test %q: Got expected error (no specific sentinel/contains check): %v", tc.name, err)
 		}
 		return
@@ -164,16 +161,12 @@ func runExecuteStepsTest(t *testing.T, tc executeStepsTestCase) {
 	if wasReturn {
 		actualExecResult = finalResultFromExec
 		logMessageDetail = "(from RETURN)"
-		// Handle single-element slice unwrapping if expected is not a slice
 		if resultSlice, ok := actualExecResult.([]interface{}); ok && len(resultSlice) == 1 {
 			if _, expectedSlice := tc.expectedResult.([]interface{}); !expectedSlice {
 				actualExecResult = resultSlice[0]
 			}
 		}
 	} else {
-		// If no RETURN, the "result" of the script execution for testing purposes
-		// is considered to be the interpreter's lastCallResult.
-		// finalResultFromExec will be nil in this case.
 		actualExecResult = interp.lastCallResult
 		logMessageDetail = "(from LAST)"
 	}
@@ -218,23 +211,65 @@ func runExecuteStepsTest(t *testing.T, tc executeStepsTestCase) {
 	}
 }
 
-func createTestStep(stepType string, target string, valueOrValuesOrCall interface{}, _ignoredCallArg interface{}) Step {
-	s := Step{Pos: &Position{Line: 1, Column: 1, File: "test"}, Type: stepType, Target: target}
-	switch val := valueOrValuesOrCall.(type) {
-	case *CallableExprNode:
-		if stepType == "call" {
-			s.Call = val
-		} else {
-			s.Value = val
+// MODIFIED createTestStep
+func createTestStep(stepType string, targetOrLoopVarOrInto string, valueOrCollectionOrCall interface{}, _ignoredCallArg interface{}) Step {
+	s := Step{Pos: &Position{Line: 1, Column: 1, File: "test"}, Type: stepType}
+
+	switch strings.ToLower(stepType) {
+	case "set":
+		s.LValue = &LValueNode{Identifier: targetOrLoopVarOrInto, Pos: s.Pos} // Assuming simple LValue for tests
+		if expr, ok := valueOrCollectionOrCall.(Expression); ok {
+			s.Value = expr
+		} else if valueOrCollectionOrCall != nil {
+			// Handle cases where a raw value might be passed for testing simple literals
+			// This might need a helper to convert raw Go values to Expression nodes for tests
+			// For now, assume valueOrCollectionOrCall is already an Expression or nil
+			panic(fmt.Sprintf("createTestStep 'set': valueOrCollectionOrCall (%T) is not Expression", valueOrCollectionOrCall))
 		}
-	case []Expression:
-		s.Values = val
-	case Expression:
-		s.Value = val
-	case nil:
-		// Valid
+	case "call":
+		if callNode, ok := valueOrCollectionOrCall.(*CallableExprNode); ok {
+			s.Call = callNode
+		} else {
+			panic(fmt.Sprintf("createTestStep 'call': valueOrCollectionOrCall (%T) is not *CallableExprNode", valueOrCollectionOrCall))
+		}
+	case "ask":
+		s.AskIntoVar = targetOrLoopVarOrInto
+		if expr, ok := valueOrCollectionOrCall.(Expression); ok {
+			s.Value = expr // Prompt expression
+		} else {
+			panic(fmt.Sprintf("createTestStep 'ask': valueOrCollectionOrCall (%T) for prompt is not Expression", valueOrCollectionOrCall))
+		}
+	case "for", "for_each": // Assuming "for" is alias for "for_each" in tests
+		s.Type = "for_each" // Normalize
+		s.LoopVarName = targetOrLoopVarOrInto
+		if expr, ok := valueOrCollectionOrCall.(Expression); ok {
+			s.Collection = expr
+		} else {
+			panic(fmt.Sprintf("createTestStep 'for_each': valueOrCollectionOrCall (%T) for collection is not Expression", valueOrCollectionOrCall))
+		}
+	case "mustbe":
+		// For 'mustbe', the 'targetOrLoopVarOrInto' is the callable's name (often not directly used in Step if Call is set)
+		// 'valueOrCollectionOrCall' should be the CallableExprNode
+		if callNode, ok := valueOrCollectionOrCall.(*CallableExprNode); ok {
+			s.Call = callNode
+			s.Value = callNode // As per current AST builder logic for mustbe
+		} else {
+			panic(fmt.Sprintf("createTestStep 'mustbe': valueOrCollectionOrCall (%T) is not *CallableExprNode", valueOrCollectionOrCall))
+		}
+	// For 'return', 'emit', 'must', 'fail', they usually only use 'Value' or 'Values'
 	default:
-		// Potential unhandled type, might cause issues if not Expression or nil
+		if expr, ok := valueOrCollectionOrCall.(Expression); ok {
+			s.Value = expr
+		} else if exprs, ok := valueOrCollectionOrCall.([]Expression); ok {
+			s.Values = exprs
+		} else if valueOrCollectionOrCall != nil {
+			// This case might be problematic if the type doesn't fit Value or Values
+			// For simplicity in a test helper, this might be acceptable if tests pass appropriate types.
+			// Consider panicking for unhandled types if strictness is required.
+			// For now, if it's not an Expression or []Expression, it might be left nil or cause issues.
+		}
+		// If 'target' was used for other step types, that logic needs to be added here.
+		// e.g. if stepType == "someOtherTypeThatUsedTarget", s.SomeOtherField = targetOrLoopVarOrInto
 	}
 	return s
 }
@@ -264,16 +299,17 @@ func createWhileStep(pos *Position, condNode Expression, bodySteps []Step) Step 
 	}
 }
 
+// MODIFIED createForStep
 func createForStep(pos *Position, loopVar string, collectionNode Expression, bodySteps []Step) Step {
 	if collectionNode == nil {
 		panic("createForStep: test provided a nil collectionNode argument")
 	}
 	return Step{
-		Pos:    pos,
-		Type:   "for",
-		Target: loopVar,
-		Cond:   collectionNode,
-		Body:   bodySteps,
+		Pos:         pos,
+		Type:        "for_each", // Standardize to "for_each" as per AST builder
+		LoopVarName: loopVar,
+		Collection:  collectionNode,
+		Body:        bodySteps,
 	}
 }
 
@@ -292,6 +328,3 @@ func NewTestBooleanLiteral(val bool) *BooleanLiteralNode {
 func NewTestVariableNode(name string) *VariableNode {
 	return &VariableNode{Pos: &Position{Line: 1, Column: 1, File: "test"}, Name: name}
 }
-
-// nlines: 268
-// risk_rating: MEDIUM

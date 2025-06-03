@@ -1,4 +1,4 @@
-// Code generated from NeuroScript.g4 by ANTLR 4.13.2. DO NOT EDIT.
+// Code generated from /home/aprice/dev/neuroscript/pkg/core/NeuroScript.g4 by ANTLR 4.13.2. DO NOT EDIT.
 
 package core // NeuroScript
 import "github.com/antlr4-go/antlr/v4"
@@ -49,11 +49,14 @@ type NeuroScriptVisitor interface {
 	// Visit a parse tree produced by NeuroScriptParser#block_statement.
 	VisitBlock_statement(ctx *Block_statementContext) interface{}
 
-	// Visit a parse tree produced by NeuroScriptParser#expressionStatement.
-	VisitExpressionStatement(ctx *ExpressionStatementContext) interface{}
+	// Visit a parse tree produced by NeuroScriptParser#lvalue.
+	VisitLvalue(ctx *LvalueContext) interface{}
 
 	// Visit a parse tree produced by NeuroScriptParser#set_statement.
 	VisitSet_statement(ctx *Set_statementContext) interface{}
+
+	// Visit a parse tree produced by NeuroScriptParser#expressionStatement.
+	VisitExpressionStatement(ctx *ExpressionStatementContext) interface{}
 
 	// Visit a parse tree produced by NeuroScriptParser#call_statement.
 	VisitCall_statement(ctx *Call_statementContext) interface{}

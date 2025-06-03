@@ -1,0 +1,331 @@
+:: Name: Update NeuroScript Syntax (WM Version)
+:: Purpose: Recursively finds and refactors NeuroScript files (.ns) in a directory to conform to the current grammar using an AI Worker, after checking for existing syntax errors.
+:: Version: 0.3.19
+:: Author: Gemini (Updated by Gemini)
+:: requires_tool: tool.FS.List, tool.FS.Read, tool.FS.Write, tool.HasSuffix, tool.AIWorker.ExecuteStatelessTask, typeof, tool.Substring, tool.analyzeNSSyntax, tool.List.Length 
+:: requires_ai: true
+:: file_version: 49.0.0
+
+func _ProcessSingleNsFile(needs current_file_path, original_code, worker_definition_name returns processing_result_map) means
+  :: description: Processes a single .ns file: reads, syntax checks, optionally refactors with AI, and writes.
+  :: param:current_file_path: The full path to the file to process.
+  :: param:original_code: The string content of the file.
+  :: param:worker_definition_name: The AI worker definition name.
+  :: return:processing_result_map: A map indicating status.
+
+  set processing_result_map = {"path": current_file_path, "status": "unknown", "message": ""}
+  set double_newline = "\n\n"
+
+  # --- SYNTAX CHECK ---
+  emit "[INFO] Performing syntax check for: " + current_file_path
+  set syntax_error_list_result = tool.analyzeNSSyntax(original_code)
+  
+  set error_details_for_ai = ""
+  set num_syntax_errors = 0
+
+  if syntax_error_list_result == nil
+    emit "[WARN] tool.analyzeNSSyntax returned nil for " + current_file_path + ". Proceeding to AI refactoring without syntax pre-check."
+  else
+    if typeof(syntax_error_list_result) == "list"
+      set num_syntax_errors = tool.List.Length(syntax_error_list_result)
+      if num_syntax_errors == 0
+        emit "[INFO] No syntax errors found in: " + current_file_path + ". Skipping AI refactoring."
+        set processing_result_map["status"] = "skipped_no_errors"
+        return processing_result_map
+      else
+        emit "[INFO] Found " + num_syntax_errors + " syntax error(s) in: " + current_file_path + ". Including details in AI prompt."
+        set error_details_for_ai = "The following syntax errors were found in the code (up to 20 are shown). Please address these during refactoring:\n"
+        for each error_item in syntax_error_list_result
+          if typeof(error_item) == "map"
+            # Using parentheses around RHS for potentially problematic assignments
+            set err_line = (error_item["Line"])
+            set err_col = (error_item["Column"])
+            set err_msg = (error_item["Msg"])
+            set err_offender = (error_item["OffendingSymbol"])
+            
+            set err_line_str = "" + err_line
+            set err_col_str = "" + err_col
+            set err_msg_str = "" + err_msg
+            set err_offender_str = "" + err_offender
+            
+            set error_details_for_ai = error_details_for_ai + " - Line " + err_line_str + ", Col " + err_col_str + ": " + err_msg_str + " (near '" + err_offender_str + "')\n"
+          else
+            emit "[WARN] Item in syntax_error_list from tool.analyzeNSSyntax is not a map. Skipping item."
+          endif
+        endfor
+      endif
+    else 
+      # Corrected 'else if' to 'else \n if ... \n endif'
+      if typeof(syntax_error_list_result) == "map"
+        set tool_error = (syntax_error_list_result["error"]) # Parenthesized
+        if tool_error != nil
+          emit "[WARN] tool.analyzeNSSyntax may have returned an error map for " + current_file_path + ": " + tool_error + ". Proceeding without syntax pre-check."
+        else
+          emit "[WARN] tool.analyzeNSSyntax returned a map without an error field: " + syntax_error_list_result + ". Proceeding without syntax pre-check."
+        endif
+      else
+           emit "[WARN] tool.analyzeNSSyntax returned unexpected type: " + typeof(syntax_error_list_result) + " for " + current_file_path + ". Proceeding without syntax pre-check."
+      endif
+    endif
+  endif
+
+  # --- AI PROMPT & CALL ---
+  set base_instruction = "Refactor the provided NeuroScript code to strictly adhere to the latest NeuroScript syntax rules. Ensure your output is ONLY the raw, refactored NeuroScript code, without any markdown fences, explanations, or conversational filler."
+  set temp_prompt_holder = ""
+  if NEUROSCRIPT_DEVELOP_PROMPT != nil and NEUROSCRIPT_DEVELOP_PROMPT != "" 
+    set temp_prompt_holder = NEUROSCRIPT_DEVELOP_PROMPT + double_newline + base_instruction
+  else
+    set temp_prompt_holder = base_instruction
+  endif
+  
+  set prompt_prefix = temp_prompt_holder
+  if error_details_for_ai != ""
+    set prompt_prefix = prompt_prefix + double_newline + error_details_for_ai
+  endif
+
+  set full_prompt_for_ai = prompt_prefix + double_newline + "### Code to Refactor:" + double_newline + "```neuroscript" + double_newline + original_code + double_newline + "```"
+  
+  set config_overrides_map = nil 
+  set ai_result_map = tool.AIWorker.ExecuteStatelessTask(worker_definition_name, full_prompt_for_ai, config_overrides_map) 
+  
+  set ai_error_value = "" 
+  set refactored_code_value = "" 
+
+  if ai_result_map == nil 
+    emit "[ERROR] AI Worker (" + worker_definition_name + ") call returned a nil map object for " + current_file_path
+    set ai_error_value = "AI tool returned nil map object" 
+  else
+    if typeof(ai_result_map) != "map"
+      emit "[ERROR] AI Worker (" + worker_definition_name + ") call returned non-map type: " + typeof(ai_result_map) + " for " + current_file_path
+      set ai_error_value = "AI tool returned non-map type: " + typeof(ai_result_map)
+    else
+      set temp_code_val = (ai_result_map["output"]) # Parenthesized
+      set temp_code_val_type = typeof(temp_code_val)
+      
+      if temp_code_val_type == "string"
+        set refactored_code_value = temp_code_val
+      else
+        set temp_err_val = (ai_result_map["error"]) # Parenthesized
+        set temp_err_val_type = typeof(temp_err_val)
+
+        if temp_err_val_type == "string" and temp_err_val != ""
+          set ai_error_value = temp_err_val
+        else 
+          if temp_err_val != nil and temp_err_val_type != "string"
+            set ai_error_value = "AI result map had non-string error field (type: " + temp_err_val_type + ") and output was not a string."
+          else
+            set ai_error_value = "Expected string for 'output' from AI worker, got " + temp_code_val_type
+          endif
+        endif
+        if temp_code_val != nil and temp_code_val_type != "string"
+          emit "[WARN] ai_result_map[\"output\"] was not a string but was not nil. Type: " + temp_code_val_type
+        endif
+      endif 
+    endif
+  endif 
+  
+  if ai_error_value != "" 
+    emit "[ERROR] AI Worker (" + worker_definition_name + ") task reported an error for " + current_file_path + ": " + ai_error_value
+    set processing_result_map["status"] = "error_ai"
+    set processing_result_map["message"] = "AI Worker error: " + ai_error_value
+    return processing_result_map
+  endif
+
+  if refactored_code_value == ""
+    emit "[WARN] AI Worker (" + worker_definition_name + ") returned empty or non-string code for: " + current_file_path
+    set processing_result_map["status"] = "error_ai_empty_output"
+    set processing_result_map["message"] = "AI Worker returned empty output"
+    return processing_result_map
+  endif
+
+  if refactored_code_value == original_code
+    emit "No changes needed by AI for file: " + current_file_path
+    set processing_result_map["status"] = "skipped_ai_no_change"
+    return processing_result_map
+  endif
+
+  # --- WRITE FILE ---
+  emit "Writing updated file: " + current_file_path
+  set write_result_string = tool.FS.Write(current_file_path, refactored_code_value) 
+  
+  set write_status_ok = false
+  if typeof(write_result_string) == "string" and write_result_string != ""
+      set write_status_ok = true 
+      emit "[INFO] tool.FS.Write result: " + write_result_string 
+  endif
+
+  if not write_status_ok
+    set error_detail_for_write = "tool.FS.Write returned: "
+    if write_result_string == nil
+      set error_detail_for_write = error_detail_for_write + "nil"
+    else
+      set error_detail_for_write = error_detail_for_write + "'" + write_result_string + "' (type: " + typeof(write_result_string) + ")"
+    endif
+    emit "[WARN] Failed to write updated file: " + current_file_path + ". " + error_detail_for_write
+    set processing_result_map["status"] = "error_writing"
+    set processing_result_map["message"] = "Failed to write: " + error_detail_for_write
+    return processing_result_map
+  endif
+
+  set processing_result_map["status"] = "updated"
+  set processing_result_map["message"] = "File successfully refactored and updated."
+  return processing_result_map
+endfunc
+
+
+func UpdateNsSyntax(needs directory_path, worker_definition_name returns status_message) means
+  :: description: Recursively updates .ns files in a directory using an AI worker, checking syntax first.
+  :: param:directory_path: The path to the directory to process.
+  :: param:worker_definition_name: The name of the AI Worker definition to use.
+  :: return:0: A status message.
+
+  on_error means
+    emit "[FATAL ERROR] An unhandled error occurred in UpdateNsSyntax for directory: " + directory_path
+    set status_message = "Failure during syntax update for " + directory_path + ". Check logs."
+    fail status_message
+  endon
+
+  emit "Processing directory: " + directory_path + " with AI Worker: " + worker_definition_name
+  
+  set fs_list_output = tool.FS.List(directory_path)
+
+  if fs_list_output == nil
+    emit "[ERROR] tool.FS.List returned nil for directory: " + directory_path
+    set status_message = "Error listing directory (tool returned nil): " + directory_path
+    fail status_message
+  endif
+
+  set list_result = nil 
+
+  if typeof(fs_list_output) == "map"
+    set list_error = (fs_list_output["error"]) # Parenthesized
+    set list_error_type = typeof(list_error) 
+    if list_error_type == "string" and list_error != ""
+      emit "[ERROR] Error listing directory " + directory_path + ": " + list_error
+      set status_message = "Error listing directory: " + directory_path
+      fail status_message
+    else
+      if list_error != nil and list_error_type != "string"
+        emit "[WARN] tool.FS.List returned a map with a non-string 'error' field. Type: " + list_error_type + ". Value: " + list_error
+      endif
+      emit "[INFO] Directory " + directory_path + " listed, tool.FS.List returned a map, assuming empty or no accessible entries."
+      set list_result = [] 
+    endif
+  else 
+    if typeof(fs_list_output) == "list" 
+      set list_result = fs_list_output
+    else
+      emit "[ERROR] tool.FS.List returned unexpected type: " + typeof(fs_list_output) + " for directory: " + directory_path
+      set status_message = "Unexpected result from FS.List for directory: " + directory_path
+      fail status_message 
+    endif
+  endif
+
+  if list_result == nil 
+    emit "[CRITICAL INTERNAL LOGIC ERROR] list_result is nil after fs_list_output processing for: " + directory_path
+    set status_message = "Internal logic error processing FS.List output for directory: " + directory_path
+    fail status_message
+  endif
+
+  if typeof(list_result) != "list" 
+    emit "[ERROR] list_result is not a list after processing fs_list_output. Type: " + typeof(list_result)
+    set status_message = "Internal error: list_result not a list."
+    fail status_message
+  endif
+
+  for each entry_map in list_result
+    set name = (entry_map["name"]) # Parenthesized
+    set is_dir = (entry_map["isDir"]) # Parenthesized
+    set current_file_path = directory_path + "/" + name
+
+    if is_dir == true
+      if name == ".git" or name == ".neuroscript_aiwm" or name == "." or name == ".."
+          continue
+      endif
+      emit "Entering subdirectory: " + current_file_path
+      call UpdateNsSyntax(current_file_path, worker_definition_name) 
+      continue
+    endif
+
+    set has_ns_suffix = tool.HasSuffix(name, ".ns")
+    set has_nstxt_suffix = tool.HasSuffix(name, ".ns.txt")
+    if not has_ns_suffix and not has_nstxt_suffix
+      continue
+    endif
+
+    set is_self_script_ns_txt = tool.HasSuffix(name, "UpdateNsSyntax.ns.txt")
+    set is_self_script_wm_ns = tool.HasSuffix(name, "UpdateNsSyntaxWM.ns")
+    if is_self_script_ns_txt == true or is_self_script_wm_ns == true
+      emit "Skipping self: " + current_file_path
+      continue
+    endif
+    
+    emit "Reading file: " + current_file_path
+    set read_result = tool.FS.Read(current_file_path)
+    set original_code = nil 
+    set read_error_message = ""
+
+    if read_result == nil
+        set read_error_message = "tool.FS.Read returned nil"
+    else
+      set read_result_type = typeof(read_result)
+      if read_result_type == "map"
+        set read_status = (read_result["status"]) # Parenthesized
+        set read_content_from_map = (read_result["content"]) # Parenthesized
+        set read_err_from_map = (read_result["error"]) # Parenthesized
+        set read_err_from_map_type = typeof(read_err_from_map)
+
+        if read_status == "OK"
+          if typeof(read_content_from_map) == "string"
+            set original_code = read_content_from_map
+          else
+            set read_error_message = "tool.FS.Read returned map with OK status but content is not a string. Type: " + typeof(read_content_from_map)
+          endif
+        else # read_status is not "OK"
+          set read_error_message = "tool.FS.Read returned map with status: " + read_status
+          if read_err_from_map_type == "string" and read_err_from_map != ""
+            set read_error_message = read_error_message + ". Error: " + read_err_from_map
+          else 
+            # Corrected 'else if' to 'else \n if ... \n endif'
+            if read_err_from_map != nil and read_err_from_map_type != "string"
+              set read_error_message = read_error_message + ". Error field was non-nil but not a string (Type: " + read_err_from_map_type + ")"
+            endif
+          endif
+        endif
+      else # read_result_type is not "map"
+        # Corrected 'else if' to 'else \n if ... \n endif'
+        if read_result_type == "string" 
+          set original_code = read_result 
+        else
+          set read_error_message = "tool.FS.Read returned unexpected type: " + read_result_type
+        endif
+      endif
+    endif
+
+    if read_error_message != ""
+        emit "[WARN] Failed to read file " + current_file_path + ". Reason: " + read_error_message
+        continue
+    endif
+
+    if original_code == nil 
+        emit "[WARN] File content is nil after read for " + current_file_path + " (check read logic or file status)."
+        continue
+    endif
+    if typeof(original_code) != "string" 
+        emit "[WARN] File content is not a string after read. Type: " + typeof(original_code) + " for file: " + current_file_path
+        continue
+    endif
+    if original_code == ""
+      emit "[INFO] File is empty, skipping: " + current_file_path # Shortened message
+      continue
+    endif
+
+    call _ProcessSingleNsFile(current_file_path, original_code, worker_definition_name)
+    # Result of _ProcessSingleNsFile can be logged or aggregated if needed
+    # For now, _ProcessSingleNsFile handles its own logging/emit statements for success/failure.
+
+  endfor 
+
+  set status_message = "Syntax update attempt finished for directory: " + directory_path + ". Worker: " + worker_definition_name + ". Check log."
+  return status_message
+endfunc

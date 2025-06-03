@@ -1,4 +1,4 @@
-// Code generated from NeuroScript.g4 by ANTLR 4.13.2. DO NOT EDIT.
+// Code generated from /home/aprice/dev/neuroscript/pkg/core/NeuroScript.g4 by ANTLR 4.13.2. DO NOT EDIT.
 
 package core // NeuroScript
 import "github.com/antlr4-go/antlr/v4"
@@ -104,17 +104,23 @@ func (s *BaseNeuroScriptListener) EnterBlock_statement(ctx *Block_statementConte
 // ExitBlock_statement is called when production block_statement is exited.
 func (s *BaseNeuroScriptListener) ExitBlock_statement(ctx *Block_statementContext) {}
 
-// EnterExpressionStatement is called when production expressionStatement is entered.
-func (s *BaseNeuroScriptListener) EnterExpressionStatement(ctx *ExpressionStatementContext) {}
+// EnterLvalue is called when production lvalue is entered.
+func (s *BaseNeuroScriptListener) EnterLvalue(ctx *LvalueContext) {}
 
-// ExitExpressionStatement is called when production expressionStatement is exited.
-func (s *BaseNeuroScriptListener) ExitExpressionStatement(ctx *ExpressionStatementContext) {}
+// ExitLvalue is called when production lvalue is exited.
+func (s *BaseNeuroScriptListener) ExitLvalue(ctx *LvalueContext) {}
 
 // EnterSet_statement is called when production set_statement is entered.
 func (s *BaseNeuroScriptListener) EnterSet_statement(ctx *Set_statementContext) {}
 
 // ExitSet_statement is called when production set_statement is exited.
 func (s *BaseNeuroScriptListener) ExitSet_statement(ctx *Set_statementContext) {}
+
+// EnterExpressionStatement is called when production expressionStatement is entered.
+func (s *BaseNeuroScriptListener) EnterExpressionStatement(ctx *ExpressionStatementContext) {}
+
+// ExitExpressionStatement is called when production expressionStatement is exited.
+func (s *BaseNeuroScriptListener) ExitExpressionStatement(ctx *ExpressionStatementContext) {}
 
 // EnterCall_statement is called when production call_statement is entered.
 func (s *BaseNeuroScriptListener) EnterCall_statement(ctx *Call_statementContext) {}

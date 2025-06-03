@@ -1,4 +1,10 @@
+// NeuroScript Version: 0.3.1 // Assuming current project version
+// File version: 0.1.1 // Added TypeOf method for the 'typeof' operator.
+// Purpose: Defines evaluation logic for NeuroScript operations, built-in functions, and the typeof operator.
 // filename: pkg/core/evaluation_logic.go
+// nlines: 200 // Approximate
+// risk_rating: LOW
+
 package core
 
 import (
@@ -10,6 +16,63 @@ import (
 	// ErrIncorrectArgCount, ErrInvalidFunctionArgument, ErrUnknownFunction
 	// are defined in errors.go
 )
+
+// TypeOf determines the NeuroScript type string for a given Go value.
+// It aims to return one of the predefined NeuroScriptType constants from type_names.go.
+func (i *Interpreter) TypeOf(value interface{}) string {
+	if value == nil {
+		return string(TypeNil) // From core/type_names.go
+	}
+
+	// Handle specific NeuroScript constructs first
+	switch value.(type) {
+	case Procedure:
+		return string(TypeFunction)
+	case ToolImplementation:
+		return string(TypeTool)
+	}
+
+	val := reflect.ValueOf(value)
+	kind := val.Kind()
+
+	if kind == reflect.Interface {
+		if val.IsNil() {
+			return string(TypeNil)
+		}
+		val = val.Elem()
+		kind = val.Kind()
+	}
+
+	for kind == reflect.Ptr {
+		if val.IsNil() {
+			return string(TypeNil)
+		}
+		val = val.Elem()
+		kind = val.Kind()
+	}
+
+	switch kind {
+	case reflect.String:
+		return string(TypeString)
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr,
+		reflect.Float32, reflect.Float64:
+		return string(TypeNumber)
+	case reflect.Bool:
+		return string(TypeBoolean)
+	case reflect.Slice, reflect.Array:
+		return string(TypeList)
+	case reflect.Map:
+		return string(TypeMap)
+	case reflect.Func: // Raw Go funcs (after Procedure/ToolImplementation checks)
+		return string(TypeFunction)
+	default:
+		// Optional: Log unhandled kinds if necessary for debugging,
+		// but ensure logger is accessible (e.g., i.Logger().Debugf(...))
+		// For now, just return TypeUnknown as per previous design.
+		return string(TypeUnknown)
+	}
+}
 
 // --- Evaluation Logic for Operations ---
 

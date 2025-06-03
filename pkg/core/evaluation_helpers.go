@@ -111,59 +111,50 @@ func ToNumeric(val interface{}) (interface{}, bool) {
 	return nil, false
 }
 
-// isTruthy evaluates if a value is considered true in NeuroScript boolean contexts.
-// UPDATED: Non-empty strings (other than "false" or "0") are now truthy.
-// FIXED: Stricter string truthiness - only "true" and "1" are truthy. Others (even non-empty) are falsy.
-func isTruthy(val interface{}) bool {
-	if val == nil {
-		return false // Nil is falsy
+// In interpreter_simple_steps.go
+// isTruthy determines the truthiness of a NeuroScript value based on specific test expectations:
+// - booleans are themselves
+// - nil is false
+// - numbers: 0 is false, non-zero is true
+// - strings: "true" (case-insensitive) and "1" are true. Empty, "false" (case-insensitive), and all other strings are false.
+// - lists/maps: nil or empty is false, non-empty is true
+func isTruthy(value interface{}) bool {
+	if value == nil {
+		return false
 	}
-	switch v := val.(type) {
+	switch v := value.(type) {
 	case bool:
 		return v
-	case int64:
-		return v != 0
-	case float64:
-		return v != 0.0
-	case string:
-		// *** FIX: Only "true" (case-insensitive) and "1" are truthy ***
-		lowerV := strings.ToLower(v)
-		return lowerV == "true" || v == "1"
-	// Handle other Go numeric types
 	case int:
+		return v != 0
+	case int8:
+		return v != 0
+	case int16:
 		return v != 0
 	case int32:
 		return v != 0
+	case int64:
+		return v != 0
 	case float32:
-		return v != 0.0
-	// Collections (slices/maps) are considered falsey if empty, truthy otherwise
-	case []interface{}:
-		return len(v) > 0
-	case map[string]interface{}:
-		return len(v) > 0
-	case []string:
-		return len(v) > 0
-	default:
-		// Any other type is considered truthy if it's not its zero value
-		// Exception: Empty strings are handled above and are falsy.
-		// Use reflect to check if the value is the zero value for its type.
-		rv := reflect.ValueOf(v)
-		// Check if the type is valid and has a zero value concept before calling IsZero
-		if rv.IsValid() {
-			// Check specifically for pointers, interfaces, maps, slices, channels, funcs being nil
-			switch rv.Kind() {
-			case reflect.Ptr, reflect.Interface, reflect.Map, reflect.Slice, reflect.Chan, reflect.Func:
-				return !rv.IsNil()
-			}
-			// For other types, IsZero might be applicable, but defaulting to true is safer?
-			// Or consider if IsZero accurately reflects "truthiness" for structs etc.
-			// Let's default to TRUE for unrecognized non-zeroable types for now.
-			// This maintains previous behavior for things like structs.
-			// If a specific type needs falsiness check, it should be added explicitly.
-			// return !rv.IsZero() // This could be used, but let's be conservative.
+		return v != 0
+	case float64:
+		return v != 0
+	case string:
+		lowerV := strings.ToLower(v)
+		if lowerV == "true" || v == "1" { // "1" is typically case-sensitive
+			return true
 		}
-		// If reflect couldn't determine or type is invalid, default to truthy (as before)
-		return true
+		// All other strings (including empty, "false", "hello", etc.) are falsy.
+		return false
+	default:
+		val := reflect.ValueOf(value)
+		kind := val.Kind()
+		if kind == reflect.Slice || kind == reflect.Map {
+			// Nil or Empty list/map is falsy
+			return !val.IsNil() && val.Len() > 0
+		}
+		// Default for unhandled types in conditional context: false.
+		return false
 	}
 }
 

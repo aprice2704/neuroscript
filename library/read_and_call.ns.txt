@@ -1,16 +1,16 @@
-DEFINE PROCEDURE ProcessGreeting(read_path, write_path)
-COMMENT:
-    PURPOSE: Reads content, calls another skill to write it elsewhere.
-    INPUTS:
-        - read_path: File to read from.
-        - write_path: File to write to.
-    OUTPUT: The content that was read.
-    ALGORITHM: Call ReadFile, store result, construct greeting, Call WriteGreetingFile, return content.
-ENDCOMMENT
+:: lang_version: neuroscript@0.5.0
+:: file_version: 1.0
 
-CALL TOOL.ReadFile(read_path)
-SET content_read = LAST
-SET new_greeting = EVAL("Modified: " + content_read)
-CALL WriteGreetingFile(write_path, new_greeting)
-RETURN content_read
-END
+func ProcessGreeting(needs read_path, write_path returns content_read) means
+  :: description: Reads content, calls another skill to write it elsewhere.
+  :: purpose: Process and modify greeting content.
+  :: param:read_path: File to read from.
+  :: param:write_path: File to write to.
+  :: return:content_read: The content that was read.
+  :: algorithm: Call ReadFile, store result, construct greeting, Call WriteGreetingFile, return content.
+  set content_read = tool.ReadFile(read_path)
+  set new_greeting = eval("Modified: " + content_read)
+  call tool.WriteFile(write_path, new_greeting)
+  return content_read
+endfunc
+

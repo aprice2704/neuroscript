@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.3.5
-// File version: 0.1.0 // Added TypeOfNode and NilLiteralNode handling
-// Purpose: Main expression evaluation logic for the NeuroScript interpreter.
+// File version: 0.1.4 // Adjusted anonymous interface for Position() to resolve 'undefined: Pos'.
+// Purpose: Main expression evaluation logic for the NeuroScript interpreter, with robust 'typeof' and corrected call dispatch.
 // filename: pkg/core/evaluation_main.go
-// nlines: 280 // Approximate, adjust after pasting
+// nlines: 290 // Approximate, adjust after pasting
 // risk_rating: HIGH
 
 package core
@@ -10,8 +10,8 @@ package core
 import (
 	"errors"
 	"fmt"
-	// "math" // Not directly used in this snippet, keep if other parts of file need it
-	// "reflect" // Not directly used in this snippet, keep if other parts of file need it
+	// Ensure 'reflect' is imported for TypeOfNode
+	// "math"
 )
 
 // evaluateExpression evaluates an AST node representing an expression.
@@ -19,6 +19,22 @@ import (
 func (i *Interpreter) evaluateExpression(node interface{}) (interface{}, error) {
 	if node == nil {
 		return nil, NewRuntimeError(ErrorCodeInternal, "evaluateExpression received nil node", nil)
+	}
+
+	var currentPosStr string = "[unknown_pos]"
+	// Try to get position information.
+	// The anonymous interface now defines that Position() returns any type
+	// that has a String() string method. This avoids needing 'Pos' to be defined in this exact context
+	// if the compiler has issues resolving it from ast.go for the anonymous interface.
+	// Your actual ASTNode types (from ast.go) which implement Position() returning a 'Pos' type
+	// (where 'Pos' itself has String()) will satisfy this.
+	if posProvider, ok := node.(interface {
+		Position() interface{ String() string } // MODIFIED to address "undefined: Pos"
+	}); ok {
+		posResult := posProvider.Position()
+		if posResult != nil {
+			currentPosStr = posResult.String()
+		}
 	}
 
 	switch n := node.(type) {
@@ -30,7 +46,7 @@ func (i *Interpreter) evaluateExpression(node interface{}) (interface{}, error) 
 				if len(n.Value) < maxLength {
 					maxLength = len(n.Value)
 				}
-				return nil, NewRuntimeError(ErrorCodeEvaluation, fmt.Sprintf("evaluating raw string literal '%s...'", n.Value[:maxLength]), resolveErr)
+				return nil, NewRuntimeError(ErrorCodeEvaluation, fmt.Sprintf("evaluating raw string literal '%s...' at %s", n.Value[:maxLength], currentPosStr), resolveErr)
 			}
 			return resolvedStr, nil
 		}
@@ -39,36 +55,29 @@ func (i *Interpreter) evaluateExpression(node interface{}) (interface{}, error) 
 		return n.Value, nil
 	case *BooleanLiteralNode:
 		return n.Value, nil
-	case *NilLiteralNode: // Added case for NilLiteralNode
+	case *NilLiteralNode:
 		return nil, nil
 	case *VariableNode:
 		val, exists := i.variables[n.Name]
 		if !exists {
-			// Check if it's a predefined constant like a type name
-			// This is a preliminary step for making type constants available.
-			// This specific location might need refinement based on how globals/built-ins are structured.
 			if typeVal, typeExists := i.GetTypeConstant(n.Name); typeExists {
 				return typeVal, nil
 			}
-			return nil, NewRuntimeError(ErrorCodeKeyNotFound, fmt.Sprintf("variable '%s' not found", n.Name), ErrVariableNotFound)
+			return nil, NewRuntimeError(ErrorCodeKeyNotFound, fmt.Sprintf("variable '%s' not found at %s", n.Name, currentPosStr), ErrVariableNotFound)
 		}
 		return val, nil
 	case *PlaceholderNode:
 		var refValue interface{}
-		var varName string
 		var exists bool
 		if n.Name == "LAST" {
 			refValue = i.lastCallResult
-			varName = "LAST"
 			exists = true
 		} else {
 			refValue, exists = i.variables[n.Name]
-			varName = n.Name
 		}
 		if !exists {
-			return nil, NewRuntimeError(ErrorCodeKeyNotFound, fmt.Sprintf("variable '%s' not found", n.Name), ErrVariableNotFound)
+			return nil, NewRuntimeError(ErrorCodeKeyNotFound, fmt.Sprintf("variable '%s' not found at %s", n.Name, currentPosStr), ErrVariableNotFound)
 		}
-		_ = varName
 		return refValue, nil
 	case *LastNode:
 		return i.lastCallResult, nil
@@ -78,7 +87,7 @@ func (i *Interpreter) evaluateExpression(node interface{}) (interface{}, error) 
 		for idx, elemNode := range n.Elements {
 			evaluatedElements[idx], err = i.evaluateExpression(elemNode)
 			if err != nil {
-				return nil, NewRuntimeError(ErrorCodeEvaluation, fmt.Sprintf("evaluating list literal element %d", idx), err)
+				return nil, NewRuntimeError(ErrorCodeEvaluation, fmt.Sprintf("evaluating list literal element %d at %s", idx, currentPosStr), err)
 			}
 		}
 		return evaluatedElements, nil
@@ -86,17 +95,17 @@ func (i *Interpreter) evaluateExpression(node interface{}) (interface{}, error) 
 		evaluatedMap := make(map[string]interface{})
 		var err error
 		for _, entry := range n.Entries {
-			mapKey := entry.Key.Value
+			mapKey := entry.Key.Value // Assuming Key is a StringLiteralNode
 			evaluatedMap[mapKey], err = i.evaluateExpression(entry.Value)
 			if err != nil {
-				return nil, NewRuntimeError(ErrorCodeEvaluation, fmt.Sprintf("evaluating value for map key %q", mapKey), err)
+				return nil, NewRuntimeError(ErrorCodeEvaluation, fmt.Sprintf("evaluating value for map key %q at %s", mapKey, currentPosStr), err)
 			}
 		}
 		return evaluatedMap, nil
 	case *EvalNode:
 		argValueRaw, err := i.evaluateExpression(n.Argument)
 		if err != nil {
-			return nil, NewRuntimeError(ErrorCodeEvaluation, "evaluating argument for EVAL", err)
+			return nil, NewRuntimeError(ErrorCodeEvaluation, fmt.Sprintf("evaluating argument for EVAL at %s", currentPosStr), err)
 		}
 		argStr := ""
 		if argValueRaw != nil {
@@ -104,32 +113,32 @@ func (i *Interpreter) evaluateExpression(node interface{}) (interface{}, error) 
 		}
 		resolvedStr, resolveErr := i.resolvePlaceholdersWithError(argStr)
 		if resolveErr != nil {
-			return nil, NewRuntimeError(ErrorCodeEvaluation, "resolving placeholders during EVAL", resolveErr)
+			return nil, NewRuntimeError(ErrorCodeEvaluation, fmt.Sprintf("resolving placeholders during EVAL at %s", currentPosStr), resolveErr)
 		}
 		return resolvedStr, nil
 	case *UnaryOpNode:
 		operandVal, err := i.evaluateExpression(n.Operand)
 		if err != nil {
-			return nil, NewRuntimeError(ErrorCodeEvaluation, fmt.Sprintf("evaluating operand for unary operator '%s'", n.Operator), err)
+			return nil, NewRuntimeError(ErrorCodeEvaluation, fmt.Sprintf("evaluating operand for unary operator '%s' at %s", n.Operator, currentPosStr), err)
 		}
-		return evaluateUnaryOp(n.Operator, operandVal)
+		return evaluateUnaryOp(n.Operator, operandVal) // evaluateUnaryOp is in evaluation_logic.go
 	case *BinaryOpNode:
-		i.Logger().Debug("[DEBUG-EVAL-BINOP] Evaluating BinaryOpNode", "operator", n.Operator)
+		i.Logger().Debug("[DEBUG-EVAL-BINOP] Evaluating BinaryOpNode", "operator", n.Operator, "pos", currentPosStr)
 		leftVal, errL := i.evaluateExpression(n.Left)
 		if errL != nil {
 			if (n.Operator == "==" || n.Operator == "!=") && errors.Is(errL, ErrVariableNotFound) {
-				leftNodeStr := NodeToString(n.Left)
+				leftNodeStr := NodeToString(n.Left) // Assumes NodeToString helper exists
 				i.Logger().Debug("[DEBUG-EVAL-BINOP] Left operand not found, treating as nil for comparison", "operand_str", leftNodeStr)
 				leftVal = nil
 			} else {
 				i.Logger().Error("[DEBUG-EVAL-BINOP] Error evaluating left operand", "operator", n.Operator, "error", errL)
-				return nil, NewRuntimeError(ErrorCodeEvaluation, fmt.Sprintf("evaluating left operand for '%s'", n.Operator), errL)
+				return nil, NewRuntimeError(ErrorCodeEvaluation, fmt.Sprintf("evaluating left operand for '%s' at %s", n.Operator, currentPosStr), errL)
 			}
 		}
 		i.Logger().Debug("[DEBUG-EVAL-BINOP] Left operand evaluated", "value", leftVal, "type", fmt.Sprintf("%T", leftVal))
 
 		if n.Operator == "and" {
-			if !isTruthy(leftVal) {
+			if !isTruthy(leftVal) { // isTruthy is likely in evaluation_helpers.go or evaluation_logic.go
 				i.Logger().Debug("[DEBUG-EVAL-BINOP] Short-circuiting 'and' (left is falsey)")
 				return false, nil
 			}
@@ -148,15 +157,15 @@ func (i *Interpreter) evaluateExpression(node interface{}) (interface{}, error) 
 				rightVal = nil
 			} else {
 				i.Logger().Error("[DEBUG-EVAL-BINOP] Error evaluating right operand", "operator", n.Operator, "error", errR)
-				return nil, NewRuntimeError(ErrorCodeEvaluation, fmt.Sprintf("evaluating right operand for '%s'", n.Operator), errR)
+				return nil, NewRuntimeError(ErrorCodeEvaluation, fmt.Sprintf("evaluating right operand for '%s' at %s", n.Operator, currentPosStr), errR)
 			}
 		}
 		i.Logger().Debug("[DEBUG-EVAL-BINOP] Right operand evaluated", "value", rightVal, "type", fmt.Sprintf("%T", rightVal))
 		i.Logger().Debug("[DEBUG-EVAL-BINOP] Calling evaluateBinaryOp", "left_value", leftVal, "right_value", rightVal, "operator", n.Operator)
-		result, err := evaluateBinaryOp(leftVal, rightVal, n.Operator)
+		result, err := evaluateBinaryOp(leftVal, rightVal, n.Operator) // evaluateBinaryOp is in evaluation_logic.go
 		if err != nil {
-			if _, ok := err.(*RuntimeError); !ok {
-				err = NewRuntimeError(ErrorCodeEvaluation, fmt.Sprintf("operation '%s' failed", n.Operator), err)
+			if _, ok := err.(*RuntimeError); !ok { // Ensure it's a RuntimeError
+				err = NewRuntimeError(ErrorCodeEvaluation, fmt.Sprintf("operation '%s' failed at %s", n.Operator, currentPosStr), err)
 			}
 			i.Logger().Error("[DEBUG-EVAL-BINOP] Error from evaluateBinaryOp", "operator", n.Operator, "error", err)
 			return nil, err
@@ -164,98 +173,86 @@ func (i *Interpreter) evaluateExpression(node interface{}) (interface{}, error) 
 		i.Logger().Debug("[DEBUG-EVAL-BINOP] evaluateBinaryOp successful", "result", result, "type", fmt.Sprintf("%T", result))
 		return result, nil
 
-	case *TypeOfNode: // Added case for TypeOfNode
-		i.Logger().Debug("[DEBUG-EVAL] Evaluating TypeOfNode")
+		// In pkg/core/evaluation_main.go
+		// Inside func (i *Interpreter) evaluateExpression(node interface{}) (interface{}, error)
+		// ...
+	case *TypeOfNode:
+		i.Logger().Debug("[DEBUG-EVAL] Evaluating TypeOfNode", "pos", currentPosStr)
 		if n.Argument == nil {
-			i.Logger().Error("[DEBUG-EVAL] TypeOfNode has nil Argument")
-			return nil, NewRuntimeError(ErrorCodeInternal, "TypeOfNode has nil Argument", nil)
+			i.Logger().Error("[DEBUG-EVAL] TypeOfNode has nil Argument", "pos", currentPosStr)
+			return nil, NewRuntimeError(ErrorCodeInternal, fmt.Sprintf("TypeOfNode has nil Argument at %s", currentPosStr), nil)
 		}
 
 		argValue, err := i.evaluateExpression(n.Argument)
 		if err != nil {
-			// If the argument evaluation failed (e.g. variable not found),
-			// typeof should operate on the effective value, which would be nil in such cases.
-			// We only propagate the error if it's not ErrVariableNotFound.
-			if !errors.Is(err, ErrVariableNotFound) {
-				i.Logger().Error("[DEBUG-EVAL] Error evaluating argument for TypeOfNode", "error", err)
-				return nil, NewRuntimeError(ErrorCodeEvaluation, "evaluating argument for typeof", err)
+			if !errors.Is(err, ErrVariableNotFound) { // Keep this specific error handling for typeof argument
+				i.Logger().Error("[DEBUG-EVAL] Error evaluating argument for TypeOfNode", "error", err, "pos", currentPosStr)
+				return nil, NewRuntimeError(ErrorCodeEvaluation, fmt.Sprintf("evaluating argument for typeof at %s", currentPosStr), err)
 			}
-			argValue = nil // Treat as nil if variable not found for typeof's purpose
+			argValue = nil // Treat as nil if variable not found, typeof operates on this nil.
 		}
 
-		// Determine type and return the string name using constants from type_names.go
-		switch argValue.(type) {
-		case string:
-			return string(TypeString), nil
-		case int, int8, int16, int32, int64, float32, float64:
-			return string(TypeNumber), nil
-		case bool:
-			return string(TypeBoolean), nil
-		case []interface{}:
-			return string(TypeList), nil
-		case map[string]interface{}:
-			return string(TypeMap), nil
-		case nil:
-			return string(TypeNil), nil
-		// TODO: Add cases for *ProcedureDefinition and tool types if they are distinct types.
-		// For example:
-		// case *ProcedureDefinition:
-		//     return string(TypeFunction), nil
-		// Check if argValue could be a Tool structure or similar:
-		// case Tool: // Assuming 'Tool' is the struct type for registered tools
-		//     return string(TypeTool), nil
-		default:
-			i.Logger().Warn("[DEBUG-EVAL] TypeOfNode encountered an unhandled Go type for evaluated argument", "type", fmt.Sprintf("%T", argValue))
-			return string(TypeUnknown), nil
-		}
+		// Call the centralized TypeOf method from evaluation_logic.go
+		return i.TypeOf(argValue), nil // <<< THIS IS THE SIMPLIFIED CALL
 
 	case *CallableExprNode:
-		target := n.Target
+		target := n.Target // This is an *IdentifierNode
 		targetName := target.Name
+		callablePosStr := currentPosStr // Position of the callable expression itself
+
 		evaluatedArgs := make([]interface{}, len(n.Arguments))
 		var argErr error
 		for idx, argNode := range n.Arguments {
+			argPosStr := "[unknown_arg_pos]"
+			// Use the same modified position fetching logic for argNode
+			if pArgNode, ok := argNode.(interface {
+				Position() interface{ String() string } // <<< MODIFIED HERE
+			}); ok {
+				posResult := pArgNode.Position()
+				if posResult != nil {
+					argPosStr = posResult.String()
+				}
+			}
 			evaluatedArgs[idx], argErr = i.evaluateExpression(argNode)
 			if argErr != nil {
-				callDesc := targetName
-				if target.IsTool {
-					callDesc = "tool." + targetName
-				}
-				return nil, NewRuntimeError(ErrorCodeArgMismatch, fmt.Sprintf("evaluating arg %d for call to '%s'", idx+1, callDesc), argErr)
+				return nil, NewRuntimeError(ErrorCodeArgMismatch, fmt.Sprintf("evaluating arg %d for call to '%s' at %s (arg at %s)", idx+1, targetName, callablePosStr, argPosStr), argErr)
 			}
 		}
 
-		if target.IsTool {
-			i.Logger().Debug("[DEBUG-EVAL] Calling Tool from expression", "tool_name", targetName)
+		// Dispatch based on IdentifierNode.IsTool (from your original structure)
+		if target.IsTool { // Assumes IdentifierNode (n.Target) has IsTool field
+			i.Logger().Debug("[DEBUG-EVAL] Calling Tool from expression", "tool_name", targetName, "pos", callablePosStr)
 			toolImpl, found := i.ToolRegistry().GetTool(targetName)
 			if !found {
-				errMsg := fmt.Sprintf("tool '%s' not found", targetName)
-				return nil, NewRuntimeError(ErrorCodeToolNotFound, errMsg, ErrToolNotFound)
+				return nil, NewRuntimeError(ErrorCodeToolNotFound, fmt.Sprintf("tool '%s' not found at %s", targetName, callablePosStr), ErrToolNotFound)
 			}
+			// Assuming ValidateAndConvertArgs exists (e.g., in tools_validation.go)
 			validatedArgs, validationErr := ValidateAndConvertArgs(toolImpl.Spec, evaluatedArgs)
 			if validationErr != nil {
-				return nil, NewRuntimeError(ErrorCodeArgMismatch, fmt.Sprintf("args failed for tool '%s'", targetName), validationErr)
+				return nil, NewRuntimeError(ErrorCodeArgMismatch, fmt.Sprintf("argument validation failed for tool '%s' at %s: %v", targetName, callablePosStr, validationErr), validationErr)
 			}
-			toolResult, toolErr := toolImpl.Func(i, validatedArgs) // Pass interpreter 'i'
+			toolResult, toolErr := toolImpl.Func(i, validatedArgs)
 			if toolErr != nil {
-				if re, ok := toolErr.(*RuntimeError); ok {
+				if re, ok := toolErr.(*RuntimeError); ok { // Preserve existing RuntimeError
 					return nil, re
 				}
-				return nil, NewRuntimeError(ErrorCodeToolExecutionFailed, fmt.Sprintf("tool '%s' execution failed", targetName), toolErr)
+				// Wrap other errors as RuntimeError
+				return nil, NewRuntimeError(ErrorCodeToolExecutionFailed, fmt.Sprintf("tool '%s' execution failed at %s: %v", targetName, callablePosStr, toolErr), toolErr)
 			}
 			i.Logger().Debug("[DEBUG-EVAL] Tool call successful", "tool_name", targetName, "result_type", fmt.Sprintf("%T", toolResult))
-			i.lastCallResult = toolResult
+			i.lastCallResult = toolResult // As per your original logic
 			return toolResult, nil
 		} else {
-			i.Logger().Debug("[DEBUG-EVAL] Calling User Proc or Built-in from expression", "function_name", targetName)
+			// Not a tool, so it's a user-defined procedure or a built-in function
+			i.Logger().Debug("[DEBUG-EVAL] Calling User Proc or Built-in from expression", "function_name", targetName, "pos", callablePosStr)
+			// evaluateUserOrBuiltInFunction already handles error wrapping to RuntimeError
 			result, err := i.evaluateUserOrBuiltInFunction(targetName, evaluatedArgs)
-			if err != nil {
-				return nil, err
-			}
-			return result, nil
+			// No need to re-wrap 'err' here as evaluateUserOrBuiltInFunction ensures it's a RuntimeError or nil
+			return result, err
 		}
+
 	case *ElementAccessNode:
-		return i.evaluateElementAccess(n)
+		return i.evaluateElementAccess(n) // evaluateElementAccess is likely in evaluation_access.go
 	default:
 		// This default case handles values that might already be evaluated (e.g. primitives passed around)
 		// or truly unhandled AST node types.
@@ -263,17 +260,18 @@ func (i *Interpreter) evaluateExpression(node interface{}) (interface{}, error) 
 		case string, int64, float64, bool, nil, []interface{}, map[string]interface{}:
 			return node, nil
 		}
-		i.Logger().Error("[DEBUG-EVAL] Unhandled node type in evaluateExpression", "type", fmt.Sprintf("%T", node))
-		return nil, NewRuntimeError(ErrorCodeInternal, fmt.Sprintf("evaluateExpression unhandled node type: %T", node), nil)
+		i.Logger().Error("[DEBUG-EVAL] Unhandled node type in evaluateExpression", "type", fmt.Sprintf("%T", node), "pos", currentPosStr)
+		return nil, NewRuntimeError(ErrorCodeInternal, fmt.Sprintf("evaluateExpression unhandled node type: %T at %s", node, currentPosStr), nil)
 	}
 }
 
 // evaluateUserOrBuiltInFunction handles dispatching to built-ins or user procedures.
+// (This function should remain as it was in your provided file)
 func (i *Interpreter) evaluateUserOrBuiltInFunction(funcName string, args []interface{}) (interface{}, error) {
-	if isBuiltInFunction(funcName) {
-		result, err := evaluateBuiltInFunction(funcName, args)
+	if isBuiltInFunction(funcName) { // isBuiltInFunction is in evaluation_logic.go
+		result, err := evaluateBuiltInFunction(funcName, args) // evaluateBuiltInFunction is in evaluation_logic.go
 		if err != nil {
-			if _, ok := err.(*RuntimeError); !ok {
+			if _, ok := err.(*RuntimeError); !ok { // Ensure it's a RuntimeError
 				err = NewRuntimeError(ErrorCodeGeneric, fmt.Sprintf("built-in function '%s' failed", funcName), err)
 			}
 			return nil, err
@@ -281,34 +279,35 @@ func (i *Interpreter) evaluateUserOrBuiltInFunction(funcName string, args []inte
 		return result, nil
 	}
 
+	// Call user-defined procedure
 	procResult, procErr := i.RunProcedure(funcName, args...)
 	if procErr != nil {
+		// Ensure error is RuntimeError, adapting from your original logic
 		if _, ok := procErr.(*RuntimeError); !ok {
-			code := ErrorCodeGeneric
+			code := ErrorCodeGeneric // Default code
 			wrappedErr := procErr
-			errMsg := procErr.Error()
+			errMsg := procErr.Error() // Default message
+
 			if errors.Is(procErr, ErrProcedureNotFound) {
 				code = ErrorCodeProcNotFound
-				wrappedErr = ErrProcedureNotFound
+				wrappedErr = ErrProcedureNotFound // Preserve sentinel
 				errMsg = fmt.Sprintf("procedure '%s' not found", funcName)
 			} else if errors.Is(procErr, ErrArgumentMismatch) {
 				code = ErrorCodeArgMismatch
-				wrappedErr = ErrArgumentMismatch
+				wrappedErr = ErrArgumentMismatch // Preserve sentinel
 				errMsg = fmt.Sprintf("argument mismatch calling procedure '%s'", funcName)
 			}
 			procErr = NewRuntimeError(code, errMsg, wrappedErr)
 		}
 		return nil, procErr
 	}
-	i.lastCallResult = procResult
+	i.lastCallResult = procResult // Update last result for procedures as well
 	return procResult, nil
 }
 
 // GetTypeConstant checks if a name matches a predefined type constant.
-// This is a helper for making type constants accessible.
+// (This function should remain as it was in your provided file)
 func (i *Interpreter) GetTypeConstant(name string) (string, bool) {
-	// This assumes type constants are exposed as global variables with specific names.
-	// If they are namespaced like 'types.STRING', this logic would need to change.
 	switch name {
 	case "TYPE_STRING":
 		return string(TypeString), true

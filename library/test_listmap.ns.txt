@@ -1,106 +1,74 @@
-DEFINE PROCEDURE TestListAndMapAccess(prefix)
-COMMENT:
-    PURPOSE: Demonstrates creating, iterating, and ACCESSING elements
-             from list and map literals using the implemented syntax.
-    INPUTS:
-        - prefix: A string to prepend to outputs.
-    OUTPUT: A summary string of processed items.
-    ALGORITHM:
-        1. Define a list literal with mixed types, including a nested list.
-        2. Emit the list.
-        3. Access and emit specific list elements using `list[index]` syntax.
-        4. Iterate over the list using FOR EACH, emitting each item.
-        5. Define a map literal with mixed value types.
-        6. Emit the map.
-        7. Access and emit specific map values using `map["key"]` syntax.
-        8. Iterate over the map keys using FOR EACH, accessing and emitting the corresponding value using the implemented syntax.
-        9. Use TOOL.JoinStrings with a list literal.
-       10. Return a combined summary.
-    CAVEATS: Indexing starts at 0. Map keys must be strings.
-    EXAMPLES: CALL TestListAndMapAccess("Test:") => (Emits list/map details and returns summary)
-ENDCOMMENT
+:: lang_version: neuroscript@0.5.0
+:: file_version: 1.0.0
 
-EMIT "--- Testing Lists ---"
+func TestListAndMapAccess(needs prefix) means
+  :: description: Demonstrates creating, iterating, and accessing elements from list and map literals.
+  :: purpose: To showcase list and map literal handling and access within NeuroScript.
+  :: param:prefix: A string prefix for output items.
+  :: return:A summary string of processed items.
+  :: algorithm: Creates and manipulates list/map literals, iterates, accesses elements, and uses tool.JoinStrings.
+  :: caveats: Indexing is 0-based. Map keys must be strings.  Errors in tool calls may halt execution.
+  call emit("--- Testing Lists ---")
+  set my_list = [prefix + "Item1", 2, true, ["Inner", "List!"]]
+  call emit("List Value:")
+  call emit(my_list)
+  set idx_0 = 0
+  set idx_3 = 3
+  set idx = 1
+  call emit("Access List[0]:")
+  call emit(my_list[idx_0])
+  call emit("Access List[1]:")
+  call emit(my_list[1])
+  call emit("Access List[using variable idx=1]:")
+  call emit(my_list[idx])
+  call emit("Access List[3]:")
+  call emit(my_list[idx_3])
+  call emit("Access Nested List[3][0]:")
+  call emit(my_list[3][0])
+  set list_summary = ""
+  call emit("Iterating List:")
+  for each item in my_list
+    call emit("  List Item (from loop):")
+    call emit(item)
+    set list_summary = list_summary + item + " | "
+  endfor
+  call emit("List Loop Summary:")
+  call emit(list_summary)
+  call emit("--- Testing Maps ---")
+  set my_map = {"key_a": "Value A", "key_b": 123, "key_list": ["x", "y"]}
+  call emit("Map Value:")
+  call emit(my_map)
+  set map_key_var = "key_a"
+  call emit("Access Map[\"key_a\"]:")
+  call emit(my_map["key_a"])
+  call emit("Access Map[\"key_b\"]:")
+  call emit(my_map["key_b"])
+  call emit("Access Map[using variable key='key_a']:")
+  call emit(my_map[map_key_var])
+  call emit("Access Map[\"key_list\"]:")
+  call emit(my_map["key_list"])
+  call emit("Access Nested Map[\"key_list\"][0]:")
+  call emit(my_map["key_list"][0])
+  set map_summary = ""
+  call emit("Iterating Map (Keys assigned to map_key):")
+  for each map_key in my_map
+    call emit("  Map Key (from loop):")
+    call emit(map_key)
+    set current_value = my_map[map_key]
+    call emit("    Value:")
+    call emit(current_value)
+    set map_summary = map_summary + map_key + "=" + current_value + ", "
+  endfor
+  call emit("Map Loop Summary:")
+  call emit(map_summary)
+  call emit("--- Testing Tools ---")
+  call tool.JoinStrings(["A", "B", 3, true], "-")
+  set joined_list = last
+  call emit("Joined List Literal:")
+  call emit(joined_list)
+  set first_list_item = my_list[0]
+  set map_val_a = my_map["key_a"]
+  set final_summary = "Summary: ListFirst=" + first_list_item + " MapValA=" + map_val_a + " Joined=" + joined_list
+  return final_summary
+endfunc
 
-# 1. Define List
-SET my_list = [prefix + "Item1", 2, true, ["Inner", "List!"]]
-EMIT "List Value:"
-EMIT my_list
-
-# 2. Access List Elements Directly
-SET idx_0 = 0
-SET idx_3 = 3
-SET idx = 1
-EMIT "Access List[0]:"
-EMIT my_list[0]
-EMIT "Access List[1]:"
-EMIT my_list[1]
-EMIT "Access List[using variable idx=1]:"
-EMIT my_list[idx]
-EMIT "Access List[3]:"
-EMIT my_list[3]
-EMIT "Access Nested List[3][0]:"
-EMIT my_list[3][0]
-
-# 3. Iterate List
-SET list_summary = ""
-EMIT "Iterating List:"
-FOR EACH item IN my_list DO
-    EMIT "  List Item (from loop):"
-    EMIT item
-    SET list_summary = list_summary + item + " | "
-ENDBLOCK
-EMIT "List Loop Summary:"
-EMIT list_summary
-
-
-EMIT "--- Testing Maps ---"
-
-# 4. Define Map
-SET my_map = {"key_a": "Value A", "key_b": 123, "key_list": ["x", "y"]}
-EMIT "Map Value:"
-EMIT my_map
-
-# 5. Access Map Elements Directly
-SET map_key_var = "key_a"
-EMIT "Access Map[\"key_a\"]:"
-EMIT my_map["key_a"]
-EMIT "Access Map[\"key_b\"]:"
-EMIT my_map["key_b"]
-EMIT "Access Map[using variable key='key_a']:"
-EMIT my_map[map_key_var]
-EMIT "Access Map[\"key_list\"]:"
-EMIT my_map["key_list"]
-EMIT "Access Nested Map[\"key_list\"][0]:"
-EMIT my_map["key_list"][0]
-
-
-# 6. Iterate Map Keys and Access Values
-SET map_summary = ""
-EMIT "Iterating Map (Keys assigned to map_key):"
-FOR EACH map_key IN my_map DO
-    EMIT "  Map Key (from loop):"
-    EMIT map_key
-    SET current_value = my_map[map_key]
-    EMIT "    Value:"
-    EMIT current_value
-    SET map_summary = map_summary + map_key + "=" + current_value + ", "
-ENDBLOCK
-EMIT "Map Loop Summary:"
-EMIT map_summary
-
-EMIT "--- Testing Tools ---"
-
-# 7. Test JoinStrings with evaluated list literal elements
-CALL TOOL.JoinStrings(["A", "B", 3, true], "-")
-SET joined_list = LAST
-EMIT "Joined List Literal:"
-EMIT joined_list
-
-# 8. Combine summaries and return (using accessed values)
-SET first_list_item = my_list[0]
-SET map_val_a = my_map["key_a"]
-SET final_summary = "Summary: ListFirst=" + first_list_item + " MapValA=" + map_val_a + " Joined=" + joined_list
-RETURN final_summary
-
-END

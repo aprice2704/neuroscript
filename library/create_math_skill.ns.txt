@@ -1,27 +1,21 @@
-DEFINE PROCEDURE CreateAdderSkill()
-COMMENT:
-    PURPOSE: Creates skills/adder.ns.txt indexes, and commits it.
-    INPUTS: 
-    OUTPUT: Status message.
-    ALGORITHM: SPLAT script content, WriteFile, VectorUpdate, GitAdd, GitCommit.
-ENDCOMMENT
+:: lang_version: neuroscript@0.5.0
+:: file_version: 1.0
 
-SET adder_code = "DEFINE PROCEDURE Add(a, b)\nCOMMENT:\n PURPOSE: Adds two numbers.\n INPUTS:\n  - a: number\n  - b: number\n OUTPUT: The sum (a+b).\n ALGORITHM: Simple addition.\nEND\n\n SET result = a + b\n RETURN result\n\nEND\n"
-SET filepath = "skills/adder.ns"
+func CreateAdderSkill returns string means
+  :: description: Creates skills/adder.ns.txt, indexes it, and commits it.
+  :: algorithm: Writes the adder code to a file, updates the vector index, adds the file to Git, and commits the changes.
+  :: return:Status message indicating success or failure.
+  set adder_code = "DEFINE PROCEDURE Add(a, b)\nCOMMENT:\n PURPOSE: Adds two numbers.\n INPUTS:\n  - a: number\n  - b: number\n OUTPUT: The sum (a+b).\n ALGORITHM: Simple addition.\nEND\n\n SET result = a + b\n RETURN result\n\nEND\n"
+  set filepath = "skills/adder.ns"
+  call tool.WriteFile(filepath, adder_code)
+  set write_result = last
+  call tool.VectorUpdate(filepath)
+  set index_result = last
+  call tool.GitAdd(filepath)
+  set add_result = last
+  set commit_message = "Add adder.ns.txtskill"
+  call tool.GitCommit(commit_message)
+  set commit_result = last
+  return "Created, indexed, and committed skills/adder.ns"
+endfunc
 
-CALL TOOL.WriteFile(filepath, adder_code)
-SET write_result = LAST
-
-CALL TOOL.VectorUpdate(filepath)
-SET index_result = LAST
-
-CALL TOOL.GitAdd(filepath)
-SET add_result = LAST
-
-SET commit_message = "Add adder.ns.txtskill"
-CALL TOOL.GitCommit(commit_message)
-SET commit_result = LAST
-
-RETURN "Created, indexed, and committed skills/adder.ns"
-
-END

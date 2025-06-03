@@ -1,189 +1,171 @@
-DEFINE PROCEDURE TestAllOperatorsAndFunctions()
-COMMENT:
-    PURPOSE: Executes various arithmetic, logical, bitwise, comparison,
-             and built-in math function operations to test the interpreter's
-             expression evaluation capabilities. Uses EMIT to display results.
-    INPUTS: None
-    OUTPUT: Emits test results to the console. Returns a completion message.
-    LANG_VERSION: 1.1.0
-    ALGORITHM:
-        1. Define initial variables.
-        2. Test Arithmetic (+, -, *, /, %, **).
-        3. Test Unary Minus.
-        4. Test String Concatenation (+).
-        5. Test Comparisons (==, !=, >, <, >=, <=).
-        6. Test Logical Operators (AND, OR, NOT) and truthiness.
-        7. Test Bitwise Operators (&, |, ^).
-        8. Test Built-in Math Functions (LN, LOG, SIN, COS, TAN, ASIN, ACOS, ATAN).
-        9. Test Operator Precedence.
-       10. Test Error conditions (e.g., Div by zero).
-    CAVEATS: Output should be manually inspected to confirm correctness.
-             Relies on EMIT for verification.
-    EXAMPLES: CALL TestAllOperatorsAndFunctions()
-ENDCOMMENT
+:: lang_version: neuroscript@0.5.0
+:: file_version: 0.1.0
 
-CALL EMIT("--- Starting Expression Evaluation Tests ---")
+func TestAllOperatorsAndFunctions() means
+:: description: Executes various arithmetic, logical, bitwise, comparison, and built-in math function operations to test the interpreter's expression evaluation capabilities. Uses EMIT to display results.
+:: purpose: Test expression evaluation.
+:: algorithm: 
+  1. Define initial variables.
+  2. Test Arithmetic (+, -, *, /, %, **).
+  3. Test Unary Minus.
+  4. Test String Concatenation (+).
+  5. Test Comparisons (==, !=, >, <, >=, <=).
+  6. Test Logical Operators (AND, OR, NOT) and truthiness.
+  7. Test Bitwise Operators (&, |, ^).
+  8. Test Built-in Math Functions (LN, LOG, SIN, COS, TAN, ASIN, ACOS, ATAN).
+  9. Test Operator Precedence.
+  10. Test Error conditions (e.g., Div by zero).
+:: caveats: Output should be manually inspected to confirm correctness. Relies on EMIT for verification.
+:: examples: CALL TestAllOperatorsAndFunctions()
 
-# --- 1. Setup Variables ---
-SET intA = 10
-SET intB = 3
-SET intC = -5
-SET int0 = 0
-SET floatA = 10.0
-SET floatB = 3.0
-SET floatC = 0.5
-SET float0 = 0.0
-SET strA = "Hello"
-SET strB = "World"
-SET strNumA = "100"
-SET strNumB = "2.5"
-SET strNonNum = "abc"
-SET boolTrue = true
-SET boolFalse = false
-SET bit5 = 5 
-SET bit6 = 6 
-# Variables for math functions
-SET mathE = 2.71828
-SET mathPiHalf = 1.570796
-SET mathOne = 1
-SET mathZero = 0
-SET mathNegOne = -1
+  call emit("--- Starting Expression Evaluation Tests ---")
 
-CALL EMIT("Initial Vars: intA=10, intB=3, floatA=10.0, floatB=3.0, floatC=0.5, strA='Hello', strNumA='100', boolTrue=true, bit5=5, bit6=6")
+  set intA = 10
+  set intB = 3
+  set intC = -5
+  set int0 = 0
+  set floatA = 10.0
+  set floatB = 3.0
+  set floatC = 0.5
+  set float0 = 0.0
+  set strA = "Hello"
+  set strB = "World"
+  set strNumA = "100"
+  set strNumB = "2.5"
+  set strNonNum = "abc"
+  set boolTrue = true
+  set boolFalse = false
+  set bit5 = 5
+  set bit6 = 6
+  set mathE = 2.71828
+  set mathPiHalf = 1.570796
+  set mathOne = 1
+  set mathZero = 0
+  set mathNegOne = -1
 
-# --- 2. Arithmetic Tests ---
-CALL EMIT("\n--- Arithmetic Tests ---")
-SET res_add_ii = intA + intB             
-CALL EMIT("intA + intB (10+3) = " + res_add_ii + " (Expected: 13)")
-SET res_add_if = intA + floatB           
-CALL EMIT("intA + floatB (10+3.0) = " + res_add_if + " (Expected: 13.0)")
-SET res_add_fi = floatA + intB           
-CALL EMIT("floatA + intB (10.0+3) = " + res_add_fi + " (Expected: 13.0)")
-SET res_add_ff = floatA + floatB         
-CALL EMIT("floatA + floatB (10.0+3.0) = " + res_add_ff + " (Expected: 13.0)")
-SET res_add_is = intA + EVAL(strNumA)          
-CALL EMIT("intA + strNumA (10+'100') = " + res_add_is + " (Expected: 110)")
+  call emit("Initial Vars: intA=10, intB=3, floatA=10.0, floatB=3.0, floatC=0.5, strA='Hello', strNumA='100', boolTrue=true, bit5=5, bit6=6")
 
-SET res_sub_ii = intA - intB             
-CALL EMIT("intA - intB (10-3) = " + res_sub_ii + " (Expected: 7)")
-SET res_sub_if = intA - floatC           
-CALL EMIT("intA - floatC (10-0.5) = " + res_sub_if + " (Expected: 9.5)")
+  call emit("\n--- Arithmetic Tests ---")
+  set res_add_ii = intA + intB
+  call emit("intA + intB (10+3) = " + res_add_ii + " (Expected: 13)")
+  set res_add_if = intA + floatB
+  call emit("intA + floatB (10+3.0) = " + res_add_if + " (Expected: 13.0)")
+  set res_add_fi = floatA + intB
+  call emit("floatA + intB (10.0+3) = " + res_add_fi + " (Expected: 13.0)")
+  set res_add_ff = floatA + floatB
+  call emit("floatA + floatB (10.0+3.0) = " + res_add_ff + " (Expected: 13.0)")
+  set res_add_is = intA + eval(strNumA)
+  call emit("intA + strNumA (10+'100') = " + res_add_is + " (Expected: 110)")
 
-SET res_mul_ii = intA * intB             
-CALL EMIT("intA * intB (10*3) = " + res_mul_ii + " (Expected: 30)")
-SET res_mul_if = intB * floatC           
-CALL EMIT("intB * floatC (3*0.5) = " + res_mul_if + " (Expected: 1.5)")
+  set res_sub_ii = intA - intB
+  call emit("intA - intB (10-3) = " + res_sub_ii + " (Expected: 7)")
+  set res_sub_if = intA - floatC
+  call emit("intA - floatC (10-0.5) = " + res_sub_if + " (Expected: 9.5)")
 
-SET res_div_ii_e = intA / intB           
-CALL EMIT("intA / intB (10/3) = " + res_div_ii_e + " (Expected: 3.33...)")
-SET res_div_ii_i = 9 / intB              
-CALL EMIT("9 / intB (9/3) = " + res_div_ii_i + " (Expected: 3)")
-SET res_div_ff = floatA / floatB         
-CALL EMIT("floatA / floatB (10.0/3.0) = " + res_div_ff + " (Expected: 3.33...)")
+  set res_mul_ii = intA * intB
+  call emit("intA * intB (10*3) = " + res_mul_ii + " (Expected: 30)")
+  set res_mul_if = intB * floatC
+  call emit("intB * floatC (3*0.5) = " + res_mul_if + " (Expected: 1.5)")
 
-SET res_mod_ii = intA % intB             
-CALL EMIT("intA % intB (10%3) = " + res_mod_ii + " (Expected: 1)")
+  set res_div_ii_e = intA / intB
+  call emit("intA / intB (10/3) = " + res_div_ii_e + " (Expected: 3.33...)")
+  set res_div_ii_i = 9 / intB
+  call emit("9 / intB (9/3) = " + res_div_ii_i + " (Expected: 3)")
+  set res_div_ff = floatA / floatB
+  call emit("floatA / floatB (10.0/3.0) = " + res_div_ff + " (Expected: 3.33...)")
 
-SET res_pow_ii = intB ** intB            
-CALL EMIT("intB ** intB (3**3) = " + res_pow_ii + " (Expected: 27.0)")
-SET res_pow_if = intA ** floatC          
-CALL EMIT("intA ** floatC (10**0.5) = " + res_pow_if + " (Expected: ~3.162)")
+  set res_mod_ii = intA % intB
+  call emit("intA % intB (10%3) = " + res_mod_ii + " (Expected: 1)")
 
-# --- 3. Unary Minus ---
-CALL EMIT("\n--- Unary Minus ---")
-SET res_uneg_i = -intA                   
-CALL EMIT("-intA (-10) = " + res_uneg_i + " (Expected: -10)")
-SET res_uneg_f = -floatA                 
-CALL EMIT("-floatA (-10.0) = " + res_uneg_f + " (Expected: -10.0)")
-SET res_uneg_c = -intC                   
-CALL EMIT("-intC (-(-5)) = " + res_uneg_c + " (Expected: 5)")
+  set res_pow_ii = intB ** intB
+  call emit("intB ** intB (3**3) = " + res_pow_ii + " (Expected: 27.0)")
+  set res_pow_if = intA ** floatC
+  call emit("intA ** floatC (10**0.5) = " + res_pow_if + " (Expected: ~3.162)")
 
-# --- 4. String Concatenation ---
-CALL EMIT("\n--- String Concatenation ---")
-SET res_cat_ss = strA + " " + strB       
-CALL EMIT("strA + ' ' + strB = '" + res_cat_ss + "' (Expected: 'Hello World')")
-SET res_cat_si = strA + intA             
-CALL EMIT("strA + intA ('Hello'+10) = '" + res_cat_si + "' (Expected: 'Hello10')")
-SET res_cat_sf = strA + floatA           
-CALL EMIT("strA + floatA ('Hello'+10.0) = '" + res_cat_sf + "' (Expected: 'Hello10' or 'Hello10.0')")
-SET res_cat_sbool = strA + boolTrue      
-CALL EMIT("strA + boolTrue ('Hello'+true) = '" + res_cat_sbool + "' (Expected: 'Hellotrue')")
+  call emit("\n--- Unary Minus ---")
+  set res_uneg_i = -intA
+  call emit("-intA (-10) = " + res_uneg_i + " (Expected: -10)")
+  set res_uneg_f = -floatA
+  call emit("-floatA (-10.0) = " + res_uneg_f + " (Expected: -10.0)")
+  set res_uneg_c = -intC
+  call emit("-intC (-(-5)) = " + res_uneg_c + " (Expected: 5)")
 
-# --- 5. Comparisons ---
-CALL EMIT("\n--- Comparisons ---")
-CALL EMIT("intA == 10 : " + (intA == 10) + " (Expected: true)")
-CALL EMIT("intA == floatA : " + (intA == floatA) + " (Expected: true)") 
-CALL EMIT("intA == strNumA : " + (intA == EVAL(strNumA)) + " (Expected: false)") 
-CALL EMIT("10 == '10' : " + (10 == '10') + " (Expected: false)")
-CALL EMIT("strA == 'Hello' : " + (strA == 'Hello') + " (Expected: true)")
-CALL EMIT("intA != 3 : " + (intA != 3) + " (Expected: true)")
-CALL EMIT("intA > intB : " + (intA > intB) + " (Expected: true)")
-CALL EMIT("intB < floatA : " + (intB < floatA) + " (Expected: true)")
-CALL EMIT("intA >= 10 : " + (intA >= 10) + " (Expected: true)")
-CALL EMIT("intB <= floatC : " + (intB <= floatC) + " (Expected: false)")
+  call emit("\n--- String Concatenation ---")
+  set res_cat_ss = strA + " " + strB
+  call emit("strA + ' ' + strB = '" + res_cat_ss + "' (Expected: 'Hello World')")
+  set res_cat_si = strA + intA
+  call emit("strA + intA ('Hello'+10) = '" + res_cat_si + "' (Expected: 'Hello10')")
+  set res_cat_sf = strA + floatA
+  call emit("strA + floatA ('Hello'+10.0) = '" + res_cat_sf + "' (Expected: 'Hello10' or 'Hello10.0')")
+  set res_cat_sbool = strA + boolTrue
+  call emit("strA + boolTrue ('Hello'+true) = '" + res_cat_sbool + "' (Expected: 'Hellotrue')")
 
-# --- 6. Logical Operators & Truthiness ---
-CALL EMIT("\n--- Logical Operators ---")
-SET truthy1 = 1
-SET truthyStr = "true"
-SET falsey0 = 0
-SET falseyStr = "False"
-SET falseyOther = "hello"
-CALL EMIT("NOT boolTrue : " + (NOT boolTrue) + " (Expected: false)")
-CALL EMIT("NOT falsey0 : " + (NOT falsey0) + " (Expected: true)")
-CALL EMIT("NOT falseyOther : " + (NOT falseyOther) + " (Expected: true)")
-CALL EMIT("boolTrue AND truthy1 : " + (boolTrue AND truthy1) + " (Expected: true)")
-CALL EMIT("boolTrue AND falsey0 : " + (boolTrue AND falsey0) + " (Expected: false)")
-CALL EMIT("falsey0 AND boolTrue : " + (falsey0 AND boolTrue) + " (Expected: false)") 
-CALL EMIT("boolFalse OR boolTrue : " + (boolFalse OR boolTrue) + " (Expected: true)")
-CALL EMIT("boolTrue OR falsey0 : " + (boolTrue OR falsey0) + " (Expected: true)") 
-CALL EMIT("falsey0 OR falseyOther : " + (falsey0 OR falseyOther) + " (Expected: false)")
+  call emit("\n--- Comparisons ---")
+  call emit("intA == 10 : " + (intA == 10) + " (Expected: true)")
+  call emit("intA == floatA : " + (intA == floatA) + " (Expected: true)")
+  call emit("intA == strNumA : " + (intA == eval(strNumA)) + " (Expected: false)")
+  call emit("10 == '10' : " + (10 == '10') + " (Expected: false)")
+  call emit("strA == 'Hello' : " + (strA == 'Hello') + " (Expected: true)")
+  call emit("intA != 3 : " + (intA != 3) + " (Expected: true)")
+  call emit("intA > intB : " + (intA > intB) + " (Expected: true)")
+  call emit("intB < floatA : " + (intB < floatA) + " (Expected: true)")
+  call emit("intA >= 10 : " + (intA >= 10) + " (Expected: true)")
+  call emit("intB <= floatC : " + (intB <= floatC) + " (Expected: false)")
 
-# --- 7. Bitwise Operators ---
-CALL EMIT("\n--- Bitwise Operators ---")
-CALL EMIT("bit5 & bit6 (5&6) = " + (bit5 & bit6) + " (Expected: 4)")
-CALL EMIT("bit5 | bit6 (5|6) = " + (bit5 | bit6) + " (Expected: 7)")
-CALL EMIT("bit5 ^ bit6 (5^6) = " + (bit5 ^ bit6) + " (Expected: 3)")
+  call emit("\n--- Logical Operators ---")
+  set truthy1 = 1
+  set truthyStr = "true"
+  set falsey0 = 0
+  set falseyStr = "False"
+  set falseyOther = "hello"
+  call emit("NOT boolTrue : " + (not boolTrue) + " (Expected: false)")
+  call emit("NOT falsey0 : " + (not falsey0) + " (Expected: true)")
+  call emit("NOT falseyOther : " + (not falseyOther) + " (Expected: true)")
+  call emit("boolTrue AND truthy1 : " + (boolTrue and truthy1) + " (Expected: true)")
+  call emit("boolTrue AND falsey0 : " + (boolTrue and falsey0) + " (Expected: false)")
+  call emit("falsey0 AND boolTrue : " + (falsey0 and boolTrue) + " (Expected: false)")
+  call emit("boolFalse OR boolTrue : " + (boolFalse or boolTrue) + " (Expected: true)")
+  call emit("boolTrue OR falsey0 : " + (boolTrue or falsey0) + " (Expected: true)")
+  call emit("falsey0 OR falseyOther : " + (falsey0 or falseyOther) + " (Expected: false)")
 
-# --- 8. Built-in Math Functions ---
-CALL EMIT("\n--- Math Functions ---")
-CALL EMIT("LN(mathE) (LN(~2.718)) = " + LN(mathE) + " (Expected: ~1.0)")
-CALL EMIT("LOG(100) = " + LOG(100) + " (Expected: 2.0)")
-CALL EMIT("SIN(mathPiHalf) (SIN(Pi/2)) = " + SIN(mathPiHalf) + " (Expected: 1.0)")
-CALL EMIT("COS(mathZero) (COS(0)) = " + COS(mathZero) + " (Expected: 1.0)")
-CALL EMIT("TAN(mathZero) (TAN(0)) = " + TAN(mathZero) + " (Expected: 0.0)")
-CALL EMIT("ASIN(mathOne) (ASIN(1)) = " + ASIN(mathOne) + " (Expected: ~1.57)")
-CALL EMIT("ACOS(mathZero) (ACOS(0)) = " + ACOS(mathZero) + " (Expected: ~1.57)")
-CALL EMIT("ATAN(mathOne) (ATAN(1)) = " + ATAN(mathOne) + " (Expected: ~0.785)")
+  call emit("\n--- Bitwise Operators ---")
+  call emit("bit5 & bit6 (5&6) = " + (bit5 & bit6) + " (Expected: 4)")
+  call emit("bit5 | bit6 (5|6) = " + (bit5 | bit6) + " (Expected: 7)")
+  call emit("bit5 ^ bit6 (5^6) = " + (bit5 ^ bit6) + " (Expected: 3)")
 
-# --- 9. Operator Precedence ---
-CALL EMIT("\n--- Precedence ---")
-SET prec1 = 2 + 3 * 4           
-CALL EMIT("2 + 3 * 4 = " + prec1 + " (Expected: 14)")
-SET prec2 = (2 + 3) * 4         
-CALL EMIT("(2 + 3) * 4 = " + prec2 + " (Expected: 20)")
-SET prec3 = 10 / 2 * 5          
-CALL EMIT("10 / 2 * 5 = " + prec3 + " (Expected: 25)")
-SET prec4 = 2 ** 3 ** 2         
-CALL EMIT("2 ** 3 ** 2 = " + prec4 + " (Expected: 512.0)")
-SET prec5 = -5 + 2              
-CALL EMIT("-5 + 2 = " + prec5 + " (Expected: -3)")
-SET prec6 = (10 > 5) AND (3 < 4)    
-CALL EMIT("10 > 5 AND 3 < 4 = " + prec6 + " (Expected: true)")
+  call emit("\n--- Math Functions ---")
+  call emit("LN(mathE) (LN(~2.718)) = " + ln(mathE) + " (Expected: ~1.0)")
+  call emit("LOG(100) = " + log(100) + " (Expected: 2.0)")
+  call emit("SIN(mathPiHalf) (SIN(Pi/2)) = " + sin(mathPiHalf) + " (Expected: 1.0)")
+  call emit("COS(mathZero) (COS(0)) = " + cos(mathZero) + " (Expected: 1.0)")
+  call emit("TAN(mathZero) (TAN(0)) = " + tan(mathZero) + " (Expected: 0.0)")
+  call emit("ASIN(mathOne) (ASIN(1)) = " + asin(mathOne) + " (Expected: ~1.57)")
+  call emit("ACOS(mathZero) (ACOS(0)) = " + acos(mathZero) + " (Expected: ~1.57)")
+  call emit("ATAN(mathOne) (ATAN(1)) = " + atan(mathOne) + " (Expected: ~0.785)")
 
-# --- 10. Error Conditions (Use EMIT to show expected failure type) ---
-# Note: The interpreter will likely stop on the first error.
-# These are illustrative; proper TRY/CATCH needed for full testing in one run.
-CALL EMIT("\n--- Error Conditions (Expect failure on first) ---")
-CALL EMIT("Testing Division by Zero: 10 / 0")
-CALL EMIT("Testing Modulo by Zero: 10 % 0")
-CALL EMIT("Testing Modulo Float: 5.5 % 2")
-CALL EMIT("Testing Bitwise Float: 5 & 6.0")
-CALL EMIT("Testing LN(0): LN(0)")
-CALL EMIT("Testing ASIN(2): ASIN(2)")
+  call emit("\n--- Precedence ---")
+  set prec1 = 2 + 3 * 4
+  call emit("2 + 3 * 4 = " + prec1 + " (Expected: 14)")
+  set prec2 = (2 + 3) * 4
+  call emit("(2 + 3) * 4 = " + prec2 + " (Expected: 20)")
+  set prec3 = 10 / 2 * 5
+  call emit("10 / 2 * 5 = " + prec3 + " (Expected: 25)")
+  set prec4 = 2 ** 3 ** 2
+  call emit("2 ** 3 ** 2 = " + prec4 + " (Expected: 512.0)")
+  set prec5 = -5 + 2
+  call emit("-5 + 2 = " + prec5 + " (Expected: -3)")
+  set prec6 = (10 > 5) and (3 < 4)
+  call emit("10 > 5 AND 3 < 4 = " + prec6 + " (Expected: true)")
 
+  call emit("\n--- Error Conditions (Expect failure on first) ---")
+  call emit("Testing Division by Zero: 10 / 0")
+  call emit("Testing Modulo by Zero: 10 % 0")
+  call emit("Testing Modulo Float: 5.5 % 2")
+  call emit("Testing Bitwise Float: 5 & 6.0")
+  call emit("Testing LN(0): LN(0)")
+  call emit("Testing ASIN(2): ASIN(2)")
 
-CALL EMIT("\n--- Tests Complete ---")
-RETURN "Finished expression tests."
+  call emit("\n--- Tests Complete ---")
+  return "Finished expression tests."
+endfunc
 
-END

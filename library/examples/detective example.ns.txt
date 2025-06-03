@@ -1,96 +1,59 @@
-DEFINE PROCEDURE InvestigateMurderScene(CrimeSceneData)
-COMMENT:
-    PURPOSE: Orchestrate a murder investigation at a crime scene by coordinating sub-tasks 
-             like securing the scene, gathering evidence, interviewing witnesses, 
-             and generating a preliminary case report.
-    INPUTS: 
-        - CrimeSceneData: structured info about the scene (location, time, any known facts).
-    OUTPUT: 
-        CaseReport: a structured record of evidence, witness statements, possible motives, 
-                      and recommended next steps.
-    ALGORITHM:
-        1. Secure the crime scene to preserve evidence.
-        2. Gather and document physical evidence (photos, blood samples, weapons).
-        3. Identify and interview witnesses.
-        4. Analyze all collected data for leads or contradictions.
-        5. Compile a preliminary report (CaseReport) summarizing findings and suspects.
-    CAVEATS: 
-        - Each step should be handled by specialized sub-procedures for detail (e.g. “SecureScene”, “InterviewWitnesses”).
-        - Any suspicious or ambiguous findings might require extended LLM-based analysis or deeper forensic procedures.
-    EXAMPLES:
-        InvestigateMurderScene(LocationID=457) => returns a structured CaseReport summarizing 
-        evidence, suspect list, and recommended follow-up actions.
-ENDCOMMENT
-CALL SecureCrimeScene(CrimeSceneData)
-CALL GatherPhysicalEvidence(CrimeSceneData)
-CALL IdentifyWitnesses(CrimeSceneData)
-CALL InterviewWitnesses(CrimeSceneData)
-CALL AnalyzeEvidenceAndStatements(CrimeSceneData)
-SET analysisSummary = LAST
-CALL LLM("Based on these statements: " + EVAL("{{analysisSummary}}") + ", construct a possible timeline of events and highlight contradictions.")
-SET timelineInsights = LAST
-CALL CompileCaseReport(CrimeSceneData, analysisSummary, timelineInsights)
-SET CaseReport = LAST
-RETURN CaseReport
+:: lang_version: neuroscript@0.5.0
+:: file_version: 1.0
 
-DEFINE PROCEDURE SecureCrimeScene(CrimeSceneData)
-COMMENT:
-    PURPOSE: Ensure no further contamination or tampering occurs.
-    INPUTS: CrimeSceneData
-    OUTPUT: None
-    ALGORITHM:
-        1. Establish perimeter.
-        2. Restrict access only to authorized personnel.
-        3. Document initial scene conditions.
-ENDCOMMENT
+func InvestigateMurderScene(needs CrimeSceneData returns CaseReport) means
+  :: description: Orchestrate a murder investigation at a crime scene by coordinating sub-tasks like securing the scene, gathering evidence, interviewing witnesses, and generating a preliminary case report.
+  :: param:CrimeSceneData: structured info about the scene (location, time, any known facts).
+  :: return:CaseReport: a structured record of evidence, witness statements, possible motives, and recommended next steps.
+  :: algorithm: 1. Secure the crime scene to preserve evidence. 2. Gather and document physical evidence (photos, blood samples, weapons). 3. Identify and interview witnesses. 4. Analyze all collected data for leads or contradictions. 5. Compile a preliminary report (CaseReport) summarizing findings and suspects.
+  :: caveats: Each step should be handled by specialized sub-procedures for detail (e.g. “SecureScene”, “InterviewWitnesses”). Any suspicious or ambiguous findings might require extended LLM-based analysis or deeper forensic procedures.
+  call SecureCrimeScene(CrimeSceneData)
+  call GatherPhysicalEvidence(CrimeSceneData)
+  call IdentifyWitnesses(CrimeSceneData)
+  call InterviewWitnesses(CrimeSceneData)
+  call AnalyzeEvidenceAndStatements(CrimeSceneData)
+  set analysisSummary = last
+  call LLM("Based on these statements: " + eval("{{analysisSummary}}") + ", construct a possible timeline of events and highlight contradictions.")
+  set timelineInsights = last
+  call CompileCaseReport(CrimeSceneData, analysisSummary, timelineInsights)
+  set CaseReport = last
+  return CaseReport
+endfunc
 
-DEFINE PROCEDURE GatherPhysicalEvidence(CrimeSceneData)
-COMMENT:
-    PURPOSE: Collect and document tangible evidence (photos, footprints, potential weapon, etc.).
-    INPUTS: CrimeSceneData
-    OUTPUT: EvidencePackage: list of items, their locations, and relevant notes
-    ALGORITHM:
-        1. Photograph the entire scene thoroughly.
-        2. Mark and collect all visible evidence, label them with IDs.
-        3. Record location/time of collection in a log.
-    CAVEATS:
-        - Must be consistent with chain-of-custody procedures.
-ENDCOMMENT
+func SecureCrimeScene(needs CrimeSceneData) means
+  :: description: Ensure no further contamination or tampering occurs.
+  :: param:CrimeSceneData: Input data about the crime scene.
+  :: algorithm: 1. Establish perimeter. 2. Restrict access only to authorized personnel. 3. Document initial scene conditions.
+endfunc
 
-DEFINE PROCEDURE InterviewWitnesses(CrimeSceneData)
-COMMENT:
-    PURPOSE: Capture witness statements and initial impressions.
-    INPUTS: CrimeSceneData: which includes a list of identified witnesses
-    OUTPUT: WitnessStatements: collection of statements
-    ALGORITHM:
-        1. For each witness in CrimeSceneData.witnesses:
-            - Conduct a structured interview.
-            - Record essential answers in text form.
-        2. Store or append each statement to a master record.
-ENDCOMMENT
+func GatherPhysicalEvidence(needs CrimeSceneData returns EvidencePackage) means
+  :: description: Collect and document tangible evidence (photos, footprints, potential weapon, etc.).
+  :: param:CrimeSceneData: Input data about the crime scene.
+  :: return:EvidencePackage: list of items, their locations, and relevant notes.
+  :: algorithm: 1. Photograph the entire scene thoroughly. 2. Mark and collect all visible evidence, label them with IDs. 3. Record location/time of collection in a log.
+  :: caveats: Must be consistent with chain-of-custody procedures.
+endfunc
 
-DEFINE PROCEDURE AnalyzeEvidenceAndStatements(CrimeSceneData)
-COMMENT:
-    PURPOSE: Combine all gathered evidence, witness statements, and generate a summarized analysis.
-    INPUTS: CrimeSceneData: with appended witness statements + physical evidence data
-    OUTPUT: analysisSummary: structured data capturing key findings, timeline, leads
-    ALGORITHM:
-        - Cross-reference times, discovered objects, footprints, etc. 
-        - Flag contradictory or suspicious points.
-ENDCOMMENT
+func InterviewWitnesses(needs CrimeSceneData returns WitnessStatements) means
+  :: description: Capture witness statements and initial impressions.
+  :: param:CrimeSceneData: which includes a list of identified witnesses.
+  :: return:WitnessStatements: collection of statements.
+  :: algorithm: 1. For each witness in CrimeSceneData.witnesses: - Conduct a structured interview. - Record essential answers in text form. 2. Store or append each statement to a master record.
+endfunc
 
-DEFINE PROCEDURE CompileCaseReport(CrimeSceneData, analysisSummary, timelineInsights)
-COMMENT:
-    PURPOSE: Produce a preliminary "CaseReport" that investigators can use to guide next steps.
-    INPUTS:
-        - CrimeSceneData: 
-        - analysisSummary: findings from AnalyzeEvidenceAndStatements
-        - timelineInsights: optional deeper details from LLM calls
-    OUTPUT: CaseReport: structured summary (suspects, timeline, recommended next steps)
-    ALGORITHM:
-        1. Synthesize a timeline from timelineInsights if present.
-        2. List suspects, relevant evidence, open questions.
-        3. Provide recommended next steps (further interviews, lab tests, etc.).
-ENDCOMMENT
+func AnalyzeEvidenceAndStatements(needs CrimeSceneData returns analysisSummary) means
+  :: description: Combine all gathered evidence, witness statements, and generate a summarized analysis.
+  :: param:CrimeSceneData: with appended witness statements + physical evidence data.
+  :: return:analysisSummary: structured data capturing key findings, timeline, leads.
+  :: algorithm: - Cross-reference times, discovered objects, footprints, etc. - Flag contradictory or suspicious points.
+endfunc
 
-END
+func CompileCaseReport(needs CrimeSceneData, analysisSummary, timelineInsights returns CaseReport) means
+  :: description: Produce a preliminary "CaseReport" that investigators can use to guide next steps.
+  :: param:CrimeSceneData: Input crime scene data.
+  :: param:analysisSummary: findings from AnalyzeEvidenceAndStatements.
+  :: param:timelineInsights: optional deeper details from LLM calls.
+  :: return:CaseReport: structured summary (suspects, timeline, recommended next steps).
+  :: algorithm: 1. Synthesize a timeline from timelineInsights if present. 2. List suspects, relevant evidence, open questions. 3. Provide recommended next steps (further interviews, lab tests, etc.).
+endfunc
+

@@ -7,6 +7,7 @@
 package core
 
 import (
+	"flag"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -242,4 +243,8 @@ func NewTestInterpreter(t *testing.T, vars map[string]interface{}, lastResult in
 func NewDefaultTestInterpreter(t *testing.T) (*Interpreter, string) {
 	t.Helper()
 	return NewTestInterpreter(t, nil, nil)
+}
+
+func IsRunningInTestMode() bool {
+	return flag.Lookup("test.v") != nil
 }

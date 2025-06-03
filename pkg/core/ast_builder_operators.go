@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.0.12 // Changed TypeOfExpressionContext to Unary_exprContext due to undefined error.
+// File version: 0.0.13 // Corrected typeof handling within ExitUnary_expr, removed ExitTypeOfExpression, added isErrorNode.
 // Purpose: AST building logic for operators.
 // filename: pkg/core/ast_builder_operators.go
-// nlines: 405
+// nlines: 372
 // risk_rating: MEDIUM
 
 package core
@@ -14,6 +14,12 @@ import (
 	"github.com/antlr4-go/antlr/v4" // Using user-specified ANTLR import path
 	gen "github.com/aprice2704/neuroscript/pkg/core/generated"
 )
+
+// Helper function to check if a value is an ErrorNode
+func isErrorNode(val interface{}) bool {
+	_, ok := val.(*ErrorNode)
+	return ok
+}
 
 // --- Helper and Operator Exit methods ---
 
@@ -201,25 +207,39 @@ func (l *neuroScriptListenerImpl) ExitMultiplicative_expr(ctx *gen.Multiplicativ
 	l.processBinaryOperators(ctx, numOperands, opGetter)
 }
 
-// ExitUnary_expr handles unary operators other than 'typeof'.
-// 'typeof' is handled by ExitTypeOfExpression due to its labeled alternative in the grammar.
+// ExitUnary_expr handles all unary operators, including 'typeof'.
 func (l *neuroScriptListenerImpl) ExitUnary_expr(ctx *gen.Unary_exprContext) {
-	l.logDebugAST("--- ExitUnary_expr (General Handler): %q", ctx.GetText())
+	l.logDebugAST("--- ExitUnary_expr: %q", ctx.GetText())
 
-	// If KW_TYPEOF is found here, it implies ExitTypeOfExpression was not called by ANTLR,
-	// which would be unexpected. The primary logic for typeof is in ExitTypeOfExpression.
 	if ctx.KW_TYPEOF() != nil {
-		// This condition specifically checks if the Unary_exprContext *itself* is the TypeOfExpression alternative.
-		// If ExitTypeOfExpression is correctly dispatched by ANTLR's walker, this block in ExitUnary_expr
-		// should ideally not be hit for 'typeof' cases *if* ExitTypeOfExpression handles it.
-		// However, ANTLR might call ExitUnary_expr for the overall unary_expr rule even if a labeled alternative like ExitTypeOfExpression was also called.
-		// If KW_TYPEOF() is non-nil, it means this specific unary_expr *is* a typeof.
-		// We rely on ExitTypeOfExpression to have handled pushing the TypeOfNode.
-		// So, if we are here and it's a typeof, we should just return to avoid double processing or interfering with stack.
-		l.logDebugAST("    Unary_expr is a 'typeof' expression; assuming ExitTypeOfExpression handled it.")
-		return
+		// Handle 'typeof' operator
+		l.logDebugAST("    Unary_expr is a 'typeof' expression.")
+		operandVal, ok := l.popValue()
+		if !ok {
+			startPos := tokenToPosition(ctx.KW_TYPEOF().GetSymbol())
+			l.addError(ctx, "Stack error: Could not pop operand for typeof operator at %s", startPos.String())
+			l.pushValue(&ErrorNode{Pos: startPos, Message: "Missing operand for typeof"})
+			return
+		}
+
+		operandExpr, isExpr := operandVal.(Expression)
+		if !isExpr {
+			startPos := tokenToPosition(ctx.KW_TYPEOF().GetSymbol())
+			l.addError(ctx, "Internal AST build error: operand for typeof is not an Expression (got %T) at %s", operandVal, startPos.String())
+			l.pushValue(&ErrorNode{Pos: startPos, Message: fmt.Sprintf("typeof operand was %T, expected Expression", operandVal)})
+			return
+		}
+
+		node := &TypeOfNode{
+			Pos:      tokenToPosition(ctx.KW_TYPEOF().GetSymbol()),
+			Argument: operandExpr,
+		}
+		l.logDebugAST("    Constructed TypeOfNode with Argument Type: %T, Pos: %s", operandExpr, node.Pos.String())
+		l.pushValue(node)
+		return // Processed 'typeof', so return
 	}
 
+	// Handle other unary operators (MINUS, NOT, NO, SOME, TILDE)
 	var opTokenNode antlr.TerminalNode
 	var opText string
 
@@ -241,12 +261,11 @@ func (l *neuroScriptListenerImpl) ExitUnary_expr(ctx *gen.Unary_exprContext) {
 	}
 
 	if opTokenNode == nil {
-		// This means it's a pass-through from power_expr (or another non-operator alternative)
-		l.logDebugAST("    Unary_expr is pass-through (no specific operator token found).")
+		// This means it's a pass-through from power_expr (or another non-operator alternative within unary_expr's ANTLR rule)
+		l.logDebugAST("    Unary_expr is pass-through (no specific operator token found, or was typeof).")
 		return
 	}
 
-	// If we have an opTokenNode (MINUS, NOT, etc.), pop its operand and build UnaryOpNode
 	operandRaw, ok := l.popValue()
 	if !ok {
 		l.addError(ctx, "Stack error popping operand for unary op %q", opText)
@@ -266,58 +285,6 @@ func (l *neuroScriptListenerImpl) ExitUnary_expr(ctx *gen.Unary_exprContext) {
 	}
 	l.pushValue(node)
 	l.logDebugAST("    Constructed UnaryOpNode: %s [%T]", opText, operandExpr)
-}
-
-// ExitTypeOfExpression is called when exiting the TypeOfExpression alternative of unary_expr
-// (grammar: unary_expr: ... | KW_TYPEOF unary_expr #TypeOfExpression)
-// Changed ctx type from *gen.TypeOfExpressionContext to *gen.Unary_exprContext
-func (l *neuroScriptListenerImpl) ExitTypeOfExpression(ctx *gen.Unary_exprContext) {
-	l.logDebugAST("--- ExitTypeOfExpression: %q", ctx.GetText())
-
-	kwTypeofToken := ctx.KW_TYPEOF() // Method on *gen.Unary_exprContext (should exist if this is a typeof alternative)
-	if kwTypeofToken == nil {
-		// This should ideally not happen if ANTLR dispatches to ExitTypeOfExpression only for the correct alternative.
-		l.addError(ctx, "Internal error: KW_TYPEOF token missing in ExitTypeOfExpression context (ctx is Unary_exprContext)")
-		l.pushValue(&ErrorNode{Pos: tokenToPosition(ctx.GetStart()), Message: "Missing KW_TYPEOF in TypeOfExpression"})
-		return
-	}
-
-	// The 'unary_expr' child (operand of typeof) would have been visited,
-	// and its AST node should be on top of the value stack.
-	operandRaw, ok := l.popValue()
-	if !ok {
-		l.addError(ctx, "Stack error popping operand for typeof operator")
-		l.pushValue(&ErrorNode{Pos: tokenToPosition(kwTypeofToken.GetSymbol()), Message: "Stack error (typeof operand)"})
-		return
-	}
-	operandExpr, isExpr := operandRaw.(Expression)
-	if !isExpr {
-		errPos := tokenToPosition(kwTypeofToken.GetSymbol()) // Default to typeof keyword position
-		// Attempt to get the specific child unary_expr context for better error positioning.
-		// Unary_exprContext should provide access to its children.
-		// For the alternative 'KW_TYPEOF unary_expr', the children are KW_TYPEOF and a unary_expr.
-		// Accessing the child unary_expr context can be done via ctx.Unary_expr(i) or ctx.AllUnary_expr().
-		// Assuming the operand unary_expr is the first (or only) such child in this alternative's view.
-		// This is heuristic; true child context requires knowing ANTLR's generated accessors for Unary_exprContext.
-		// For now, this part of error position refinement remains complex with a generic context.
-		// The primary source of position for a type error on the operand should ideally come from the operand itself if possible.
-		// The original code had: if childExprRuleCtx := ctx.Expression(); ... which was incorrect as child is unary_expr.
-		// If `ctx.Unary_expr(0)` (or similar) is available and refers to the operand:
-		// childUnaryExprCtx := ctx.Unary_expr(0) // This is an example, actual accessor may vary
-		// if childUnaryExprCtx != nil && childUnaryExprCtx.GetStart() != nil {
-		// 	errPos = tokenToPosition(childUnaryExprCtx.GetStart())
-		// }
-		l.addError(ctx, "Operand for typeof is not an Expression (type %T)", operandRaw)
-		l.pushValue(&ErrorNode{Pos: errPos, Message: "Type error (typeof operand)"})
-		return
-	}
-
-	node := &TypeOfNode{
-		Pos:      tokenToPosition(kwTypeofToken.GetSymbol()),
-		Argument: operandExpr,
-	}
-	l.pushValue(node)
-	l.logDebugAST("    Constructed TypeOfNode for argument: %T", operandExpr)
 }
 
 // ExitPower_expr

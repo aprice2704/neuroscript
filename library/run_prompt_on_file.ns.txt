@@ -1,48 +1,33 @@
-:: lang_version: neuroscript@0.3.0
+:: lang_version: neuroscript@0.5.0
 :: file_version: 1.0.0
 :: description: Reads an input file, processes its content with a specified AI worker using a prompt from another file, and overwrites the input file with the result.
 :: author: Gemini
 :: created_date: 2025-05-21
 
-func ProcessFileWithAI (needs inputFilePath, promptFilePath, workerDefinitionName) returns status_message means
+func ProcessFileWithAI(needs inputFilePath, promptFilePath, workerDefinitionName returns status_message) means
   :: description: Reads a file, gets a prompt from another file, sends them to an AI worker, and writes the result back to the original file.
   :: param:inputFilePath: The full path to the file that will be read and then overwritten.
   :: param:promptFilePath: The full path to a file containing the prompt for the AI.
   :: param:workerDefinitionName: The name or ID of the AI Worker definition to use (e.g., "claude-3-opus-chat").
-  :: return:0: A status message indicating success or failure.
+  :: return:status_message: A status message indicating success or failure.
   :: risk_rating: MEDIUM # Overwrites a file, ensure correct parameters.
 
   emit "Starting AI file processing for: " + inputFilePath
   emit "Using prompt from: " + promptFilePath
   emit "AI Worker Definition: " + workerDefinitionName
 
-  # Read the content of the input file
-  set inputFileContent = tool.fs.ReadFile(inputFilePath)
-  must inputFileContent != nil # Ensure file content was read successfully
+  set inputFileContent = tool.FS.ReadFile(inputFilePath)
+  must inputFileContent != nil
 
-  # Read the content of the prompt file
-  set promptText = tool.fs.ReadFile(promptFilePath)
-  must promptText != nil # Ensure prompt content was read successfully
+  set promptText = tool.FS.ReadFile(promptFilePath)
+  must promptText != nil
 
   emit "Input file and prompt loaded. Invoking AI worker..."
 
-  # Execute the stateless AI worker
-  # Arguments for tool.AIWorkerExecuteStateless:
-  # - definition_name_or_id (string, required)
-  # - prompt (string, required)
-  # - input_content (string, optional)
-  # - params_json_or_map (map or JSON string, optional)
-  # Returns a map: {"response_content": string, "token_usage": map, "error": string, "instance_id": string}
-  set aiResult = tool.AIWorkerExecuteStateless(
-    definition_name_or_id = workerDefinitionName,
-    prompt = promptText,
-    input_content = inputFileContent,
-    params_json_or_map = {} # No additional parameters for this call
-  )
+  set aiResult = tool.AIWorker.ExecuteStatelessTask(workerDefinitionName, promptText, {"input_content": inputFileContent})
 
-  must aiResult != nil # Ensure the AI tool returned a result map
+  must aiResult != nil
 
-  # Check for errors returned by the AI tool itself
   set toolError = aiResult["error"]
   if toolError != nil and toolError != ""
     emit "Error from AI Worker: " + toolError
@@ -51,23 +36,16 @@ func ProcessFileWithAI (needs inputFilePath, promptFilePath, workerDefinitionNam
 
   emit "AI processing completed. Preparing to write output."
 
-  # Get the processed content from the AI's response
-  set processedContent = aiResult["response_content"]
-  must processedContent != nil # Ensure there's content to write
+  set processedContent = aiResult["output"]
+  must processedContent != nil
 
-  # Write the processed content back to the original input file
   emit "Writing processed content back to: " + inputFilePath
-  call tool.fs.WriteFile(inputFilePath, processedContent)
-  # tool.fs.WriteFile does not return a specific success value;
-  # an error during write should be caught by the on_error block or halt execution.
+  call tool.FS.WriteFile(inputFilePath, processedContent)
 
   emit "File successfully processed and overwritten: " + inputFilePath
   return "Success: File '" + inputFilePath + "' processed and updated."
 
   on_error means
-    # This block catches errors from `must` failures or tool execution errors not handled above.
-    # system.error_message is a hypothetical variable from the NeuroScript spec examples.
-    # If a specific error variable isn't available, this message might be generic.
     set errMsg = "An unhandled error occurred during processing."
     if system.error_message != nil and system.error_message != ""
         set errMsg = system.error_message
@@ -77,27 +55,3 @@ func ProcessFileWithAI (needs inputFilePath, promptFilePath, workerDefinitionNam
   endon
 endfunc
 
-# --- How to Run This Script ---
-# Save the content above as 'ai_process_file.ns' (or any name).
-#
-# Then, from your command line, run it using 'ng':
-#
-# ng -script ai_process_file.ns \
-#    -target ProcessFileWithAI \
-#    -arg "/path/to/your/datafile.txt" \
-#    -arg "/path/to/your/promptfile.txt" \
-#    -arg "YourAIWorkerDefinitionName"
-#
-# Replace:
-# - "/path/to/your/datafile.txt" with the actual path to the file you want to process.
-# - "/path/to/your/promptfile.txt" with the path to a file containing the prompt.
-# - "YourAIWorkerDefinitionName" with the name of a configured AI Worker definition
-#   (e.g., "gemini-pro-chat", "claude-3-haiku-chat", etc., depending on your AIWM setup).
-#
-# Example promptfile.txt content:
-# "Summarize the following text in three sentences."
-#
-# Example datafile.txt content:
-# "NeuroScript is a fascinating language designed for AI orchestration. It allows for procedural control flow and interaction with various tools and AI models. This example demonstrates its capability to read, process, and write files."
-#
-# After running the script, datafile.txt would be overwritten with the AI's summary.

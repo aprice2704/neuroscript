@@ -1,0 +1,51 @@
+# Output folder from TypeScript compiler if it's not what's directly packaged
+# or if you bundle from a different source directory. Adjust if 'out' is used.
+# out/
+
+# TypeScript source files if you are shipping compiled JavaScript.
+# If you bundle, your bundler will typically use these, but they don't need to be in the final .vsix
+# if you're distributing the bundle and its sourcemaps (optional).
+src/
+**/*.ts
+**/*.tsx
+
+# TypeScript configuration and build info
+tsconfig.json
+*.tsbuildinfo
+
+# Bundler configuration (if you add one later, e.g., esbuild)
+esbuild.js 
+webpack.config.js
+
+# Source maps (optional: remove this line if you want to ship sourcemaps for debugging)
+**/*.js.map 
+
+# Node modules (vsce is often smart, but being explicit can help.
+# If you bundle, dependencies are usually included in the bundle.)
+node_modules/
+.vscode-test/
+
+# Test files and folders
+**/test/**
+**/*.test.ts
+**/*.spec.ts
+**/__mocks__/**
+
+# Linting, formatting, and Git specific files
+.git*
+.eslintrc*
+.eslintignore
+.prettier*
+.prettierignore
+.editorconfig
+
+# OS-generated files
+.DS_Store
+Thumbs.db
+
+# Makefile specific stamp file (if you place it inside vscode-neuroscript)
+.vsix-built-stamp 
+
+# Other common exclusions
+*.log
+*.tgz

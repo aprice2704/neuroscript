@@ -1,18 +1,14 @@
-DEFINE PROCEDURE TestExecFail()
-COMMENT:
-    PURPOSE: Tests if TOOL.ExecuteCommand correctly captures exit code and stderr for a known failing command.
-    INPUTS: None
-    OUTPUT: The result map from TOOL.ExecuteCommand.
-    ALGORITHM: Call TOOL.ExecuteCommand with 'ls' on a non-existent file. Return the result map.
-ENDCOMMENT
+:: lang_version: neuroscript@0.5.0
+:: file_version: 1.0
 
-CALL TOOL.ExecuteCommand("ls", ["non_existent_file_asdfjkl"])
-SET exec_result = LAST
-
-CALL TOOL.WriteLine("--- Testing ExecuteCommand with guaranteed failure ---")
-CALL TOOL.WriteLine("--- ExecuteCommand Result Map ---")
-CALL TOOL.WriteLine(EVAL('"Result: " + LAST'))
-
-RETURN exec_result
-
-END
+func TestExecFail returns exec_result means
+  :: description: Tests if TOOL.ExecuteCommand correctly captures exit code and stderr for a known failing command.
+  :: purpose: Verify error handling of TOOL.ExecuteCommand.
+  :: return:exec_result: Result map from TOOL.ExecuteCommand.
+  :: algorithm: Call TOOL.ExecuteCommand with 'ls' on a non-existent file. Return the result map.
+  set exec_result = tool.ExecuteCommand("ls", ["non_existent_file_asdfjkl"])
+  call tool.WriteLine("--- Testing ExecuteCommand with guaranteed failure ---")
+  call tool.WriteLine("--- ExecuteCommand Result Map ---")
+  call tool.WriteLine(eval('"Result: " + exec_result))
+  return exec_result
+endfunc

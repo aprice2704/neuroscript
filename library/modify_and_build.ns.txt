@@ -1,135 +1,101 @@
-# NeuroScript Skill: Modify and Build Go Code
-# Version 10: Added line continuation for multi-line SET prompt.
-DEFINE PROCEDURE ModifyAndBuildGoFile(relative_filepath, task_description)
-COMMENT:
-    PURPOSE: Reads a Go file, asks an LLM to modify it, formats the code,
-             writes it back, checks validity using TOOL.GoCheck (go list),
-             and finally attempts to build using TOOL.GoBuild.
-    INPUTS:
-      - relative_filepath (string): Relative path to the Go file.
-      - task_description (string): Description of the modification.
-    OUTPUT:
-      - status_message (string): Success or failure message including check/build status.
-    ALGORITHM:
-        1. Read original content -> LAST. Assign to original_code. Handle errors.
-        2. Create LLM prompt using direct variables and line continuation.
-        3. Call LLM -> LAST. Assign to generated_code.
-        4. Call TOOL.GoFmt(generated_code) -> LAST. Assign map to fmt_result.
-        5. Check fmt_result["success"]. Decide code_to_write.
-        6. Call TOOL.WriteFile(relative_filepath, code_to_write) -> LAST. Assign status. Handle errors.
-        7. Call TOOL.GoCheck(relative_filepath) -> LAST. Assign map to check_result. Handle check errors.
-        8. If GoCheck succeeds, call TOOL.GoBuild(relative_filepath) -> LAST. Assign map to build_result.
-        9. Check build_result["success"] and return appropriate final status.
-    CAVEATS: Relies on LLM accuracy.
-             Uses direct variable access and LAST, assumes TOOLs return expected types/maps.
-    EXAMPLES: CALL ModifyAndBuildGoFile("test_files/simple_test.go", "...") -> ...
-ENDCOMMENT
+:: lang_version: neuroscript@0.5.0
+:: file_version: 1.0
 
-# 1. Read original file
-EMIT "--- Reading Original File ---"
-CALL TOOL.ReadFile(relative_filepath)
-SET read_result = LAST
-CALL TOOL.Contains(read_result, "ReadFile failed")
-IF LAST == true THEN
-    RETURN "Error reading file: " + read_result
-ENDBLOCK
-SET original_code = read_result
-EMIT "Read original code (first 100 chars):"
-CALL TOOL.Substring(original_code, 0, 100)
-EMIT LAST
-EMIT "..."
+func ModifyAndBuildGoFile(needs relative_filepath, task_description returns status_message) means
+  :: description: Reads a Go file, asks an LLM to modify it, formats the code, writes it back, checks validity using TOOL.GoCheck (go list), and finally attempts to build using TOOL.GoBuild.
+  :: param:relative_filepath: Relative path to the Go file.
+  :: param:task_description: Description of the modification.
+  :: return:status_message: Success or failure message including check/build status.
+  :: algorithm: 1. Read original content -> LAST. Assign to original_code. Handle errors. 2. Create LLM prompt using direct variables and line continuation. 3. Call LLM -> LAST. Assign to generated_code. 4. Call TOOL.GoFmt(generated_code) -> LAST. Assign map to fmt_result. 5. Check fmt_result["success"]. Decide code_to_write. 6. Call TOOL.WriteFile(relative_filepath, code_to_write) -> LAST. Assign status. Handle errors. 7. Call TOOL.GoCheck(relative_filepath) -> LAST. Assign map to check_result. Handle check errors. 8. If GoCheck succeeds, call TOOL.GoBuild(relative_filepath) -> LAST. Assign map to build_result. 9. Check build_result["success"] and return appropriate final status.
+  :: caveats: Relies on LLM accuracy. Uses direct variable access and LAST, assumes TOOLs return expected types/maps.
+  :: examples: CALL ModifyAndBuildGoFile("test_files/simple_test.go", "...") -> ...
 
+  call tool.LogMessage("--- Reading Original File ---")
+  call tool.ReadFile(relative_filepath)
+  set read_result = last
+  if tool.StrContains(read_result, "ReadFile failed") == true
+    return "Error reading file: " + read_result
+  endif
+  set original_code = read_result
+  call tool.LogMessage("Read original code (first 100 chars):")
+  call tool.Substring(original_code, 0, 100)
+  call tool.LogMessage(last)
+  call tool.LogMessage("...")
 
-# 2. Create LLM Prompt (using line continuation '\')
-SET prompt = "Task: " + task_description + "\n\n" + \
-             "Modify the following Go code file ('" + relative_filepath + "') to fulfill the task.\n" + \
-             "Respond ONLY with the complete, modified Go code for the file.\n" + \
-             "Do NOT include explanations or markdown fences (```).\n\n" + \
-             "Original Code:\n" + \
-             "```go\n" + \
-             original_code + "\n" + \
-             "```\n"  # <<< No backslash on the last line of the expression
-EMIT "--- Sending Prompt to LLM ---"
+  set prompt = "Task: " + task_description + "\n\n" + \
+               "Modify the following Go code file ('" + relative_filepath + "') to fulfill the task.\n" + \
+               "Respond ONLY with the complete, modified Go code for the file.\n" + \
+               "Do NOT include explanations or markdown fences (```).\n\n" + \
+               "Original Code:\n" + \
+               "```go\n" + \
+               original_code + "\n" + \
+               "```"
+  call tool.LogMessage("--- Sending Prompt to LLM ---")
 
-# 3. Call LLM
-CALL LLM(prompt)
-SET generated_code = LAST
-EMIT "--- Received Code from LLM (first 100 chars) ---"
-CALL TOOL.Substring(generated_code, 0, 100)
-EMIT LAST
-EMIT "..."
+  call LLM(prompt)
+  set generated_code = last
+  call tool.LogMessage("--- Received Code from LLM (first 100 chars) ---")
+  call tool.Substring(generated_code, 0, 100)
+  call tool.LogMessage(last)
+  call tool.LogMessage("...")
 
+  call tool.LogMessage("--- Formatting Code ---")
+  call tool.GoFmt(generated_code)
+  set fmt_result = last
 
-# 4. Format the generated code
-EMIT "--- Formatting Code ---"
-CALL TOOL.GoFmt(generated_code)
-SET fmt_result = LAST
+  set fmt_success = fmt_result["success"]
+  set code_to_write = ""
+  if fmt_success == true
+    call tool.LogMessage("Formatting successful.")
+    set code_to_write = fmt_result["formatted_content"]
+  else
+    call tool.LogMessage("[WARN] GoFmt failed:")
+    call tool.LogMessage(fmt_result["error"])
+    call tool.LogMessage("[WARN] Using UNFORMATTED generated code for writing.")
+    set code_to_write = generated_code
+  endif
 
+  call tool.LogMessage("--- Writing Code to File ---")
+  call tool.WriteFile(relative_filepath, code_to_write)
+  set write_status = last
+  if write_status != "OK"
+    set write_error_prefix = ""
+    if fmt_success == true
+      set write_error_prefix = "Error: Failed to write FORMATTED code"
+    else
+      set write_error_prefix = "Error: Failed to write UNFORMATTED code"
+    endif
+    return write_error_prefix + " to " + relative_filepath + ": " + write_status
+  endif
 
-# 5. Decide which code to write
-SET fmt_success = fmt_result["success"]
-SET code_to_write = "" # Initialize variable
-IF fmt_success == true THEN
-    EMIT "Formatting successful."
-    SET code_to_write = fmt_result["formatted_content"]
-ELSE
-    EMIT "[WARN] GoFmt failed:"
-    EMIT fmt_result["error"]
-    EMIT "[WARN] Using UNFORMATTED generated code for writing."
-    SET code_to_write = generated_code
-ENDBLOCK # End IF/ELSE for formatting
+  call tool.LogMessage("--- Checking Code Validity (GoCheck) ---")
+  call tool.GoCheck(relative_filepath)
+  set check_result = last
+  set check_success = check_result["check_success"]
+  set check_details = check_result["error_details"]
 
+  if check_success == false
+    return "Code Check FAILED after applying modification. Details:\n" + check_details
+  endif
 
-# 6. Perform the WriteFile call
-EMIT "--- Writing Code to File ---"
-CALL TOOL.WriteFile(relative_filepath, code_to_write)
-SET write_status = LAST
-IF write_status != "OK" THEN
-    SET write_error_prefix = ""
-    IF fmt_success == true THEN
-         SET write_error_prefix = "Error: Failed to write FORMATTED code"
-    ELSE
-         SET write_error_prefix = "Error: Failed to write UNFORMATTED code"
-    ENDBLOCK # End inner IF/ELSE for error prefix
-    RETURN write_error_prefix + " to " + relative_filepath + ": " + write_status
-ENDBLOCK # End outer IF for write status
+  call tool.LogMessage("--- Code Check Successful. Building Project Target ---")
+  call tool.GoBuild(relative_filepath)
+  set build_result = last
+  set build_success = build_result["success"]
+  set build_stderr = build_result["stderr"]
 
+  if build_success == true
+    set final_status = ""
+    if fmt_success == true
+      set final_status = "Formatting, Check, and Build successful after applying modification."
+    else
+      set final_status = "Check and Build successful (but formatting failed) after applying modification."
+    endif
+    return final_status
+  else
+    return "Code Check passed but Build FAILED after applying modification. Stderr:\n" + build_stderr
+  endif
 
-# 7. Check validity using GoCheck
-EMIT "--- Checking Code Validity (GoCheck) ---"
-CALL TOOL.GoCheck(relative_filepath)
-SET check_result = LAST
-SET check_success = check_result["check_success"]
-SET check_details = check_result["error_details"]
+  return "Build status uncertain after modification."
+endfunc
 
-IF check_success == false THEN
-    RETURN "Code Check FAILED after applying modification. Details:\n" + check_details
-ENDBLOCK # End IF for check failure
-
-
-# 8. If Check passed, attempt Build
-EMIT "--- Code Check Successful. Building Project Target ---"
-CALL TOOL.GoBuild(relative_filepath)
-SET build_result = LAST
-SET build_success = build_result["success"]
-SET build_stderr = build_result["stderr"]
-
-
-# 9. Return final status based on build result
-IF build_success == true THEN
-    SET final_status = ""
-    IF fmt_success == true THEN
-        SET final_status = "Formatting, Check, and Build successful after applying modification."
-    ELSE
-         SET final_status = "Check and Build successful (but formatting failed) after applying modification."
-    ENDBLOCK # End inner IF/ELSE for final status
-    RETURN final_status
-ELSE
-    # Build failed even after GoCheck passed
-    RETURN "Code Check passed but Build FAILED after applying modification. Stderr:\n" + build_stderr
-ENDBLOCK # End outer IF/ELSE for build success
-
-
-RETURN "Build status uncertain after modification." # Fallback
-
-END # Final END for DEFINE PROCEDURE

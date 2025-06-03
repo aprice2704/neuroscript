@@ -1,0 +1,63 @@
+:: file_version: 1.1.3
+:: purpose: Test line continuation feature ('\') in various contexts. Rearranged.
+:: feature: LineContinuation
+:: author: Gemini and AJP
+:: grammar_version_dependency: NeuroScript G4 v0.4.5+ (or later with fixes)
+
+func TestLineContinuations() means
+
+  emit "\n--- Test: Set Statement with Continued Expression ---"
+  set result = 10 + \
+               20 + \
+               30 - \
+               5
+  emit "Continued Expression (10+20+30-5) result: " + result 
+
+  emit "\n--- Test: Continued If Condition ---"
+  set a = true
+  set b = true
+  set c = true
+  if a and \
+     b and \
+     c
+    emit "Continued IF condition was true."
+  else
+    emit "Continued IF condition was false." 
+  endif
+
+  emit "--- Test: Basic String Continuation ---"
+  emit "This is a single logical string \
+    that spans across two physical lines \
+    and even a third one." 
+  # Expected output: "This is a single logical string that spans across two physical lines and even a third one."
+
+  emit "\n--- Test: Set Statement with Continued String Value ---"
+  set long_string = "Part one of a long string, \
+    part two on another line, \
+    and finally part three."
+  emit long_string
+  # Expected output: "Part one of a long string, part two on another line, and finally part three."
+
+  emit "\n--- Test: String literal with explicit concatenation vs. line continuation ---"
+  set s1 = "Explicit " + "concatenation."
+  set s2 = "Implicit \
+continuation."
+  emit s1 
+  emit s2 
+  
+  emit "\n--- Test: String Continuation - Whitespace and Joins (Now with explicit concatenation) ---"
+  set str_cont_A = "LineA" + "LineB"
+  set str_cont_B = "Line X" + " Line Y"
+  set str_cont_C = "NoSpaceBefore" + "Continuation"
+
+  emit "StringCont_A: [" + str_cont_A + "]"
+  emit "StringCont_B: [" + str_cont_B + "]"
+  emit "StringCont_C: [" + str_cont_C + "]"
+  
+  emit "\n--- Test: Continuation with Comments ---"
+  set comment_test_val = 10 + \
+                     20   # Comment on the continued line itself
+  emit "Comment test result (10+20): " + comment_test_val 
+  
+  emit "\n--- Line continuation tests complete. ---"
+endfunc

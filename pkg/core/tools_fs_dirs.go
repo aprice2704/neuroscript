@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.1.0 // Add explicit logging for secErr value immediately after call.
-// nlines: 157 // Approximate
+// File version: 0.1.1 // Removed redundant fmt.Printf in toolMkdir.
+// nlines: 156 // Approximate
 // risk_rating: MEDIUM
 // filename: pkg/core/tools_fs_dirs.go
 package core
@@ -178,8 +178,6 @@ func toolMkdir(interpreter *Interpreter, args []interface{}) (interface{}, error
 	// Resolve and secure the path
 	interpreter.Logger().Debugf("Tool: Mkdir] PRE ResolveAndSecurePath for %q", relPath)
 	absPathToCreate, secErr := ResolveAndSecurePath(relPath, sandboxRoot)
-	// *** ADDED Explicit Logging of returned error value and type ***
-	fmt.Printf("[DEBUG toolMkdir] POST ResolveAndSecurePath for %q -> err: <%v> (type: %T)\n", relPath, secErr, secErr)
 	interpreter.Logger().Debugf("Tool: Mkdir] POST ResolveAndSecurePath for %q -> err: <%v> (type: %T)", relPath, secErr, secErr)
 
 	if secErr != nil {

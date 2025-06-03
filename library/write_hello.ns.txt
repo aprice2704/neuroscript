@@ -1,12 +1,11 @@
-DEFINE PROCEDURE WriteGreetingFile(filename, greeting)
-COMMENT:
-    PURPOSE: Writes a greeting to a file.
-    INPUTS:
-        - filename: Path to the file.
-        - greeting: The text to write.
-    OUTPUT: None (implicitly via side effect).
-    ALGORITHM: Use WriteFile tool.
-ENDCOMMENT
+:: lang_version: neuroscript@0.5.0
+:: file_version: 1.0
 
-CALL TOOL.WriteFile(filename, greeting)
-END
+func WriteGreetingFile(needs filename, greeting) means
+  :: description: Writes a greeting to a file.
+  :: purpose: Write a greeting message to a specified file.
+  :: param:filename: Path to the output file.
+  :: param:greeting: The greeting message to be written.
+  :: algorithm: Uses the tool.WriteFile tool.
+  call tool.FS.Write(filename, greeting)
+endfunc

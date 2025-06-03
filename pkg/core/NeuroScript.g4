@@ -1,126 +1,24 @@
-// File:       NeuroScript.g4
-// Grammar:    NeuroScript
-// Version:    0.4.0 (Added nil, typeof, // comments, C-style string escapes)
-// Date:       2025-05-29
+// File:        NeuroScript.g4
+// Grammar:     NeuroScript
+// Version:     0.5.2 // Updated for LValue assignment
+// Ver_Comment: Hybrid line continuation: LINE_ESCAPE_GLOBAL for expressions/statements,
+//              CONTINUED_LINE fragment for multi-line strings/metadata.
+//              Added lvalue support for set_statement.
+// Date:        2025-06-01 // Updated Date
 // NOTES:
-// - Added KW_NIL, nil_literal, and integrated into 'literal'.
-// - Added KW_TYPEOF and integrated into 'unary_expr'.
-// - Modified LINE_COMMENT to include '//'.
-// - Modified STRING_LIT to correctly use EscapeSequence for C-style escapes.
-// - Based on original v0.3.0 with qualified tool names.
+// - Line continuation '\' + newline BETWEEN tokens is handled by LINE_ESCAPE_GLOBAL (hidden).
+// - Line continuation '\' + newline WITHIN String literals and Metadata lines is handled
+//   by the CONTINUED_LINE fragment and becomes part of the token's text.
+//   The AST builder (Go code) may need to post-process this token text.
 
 grammar NeuroScript;
 
-// --- PARSER RULES ---
-program: file_header (procedure_definition NEWLINE*)* EOF;
+// --- LEXER RULES (Order matters!) ---
 
-file_header: (METADATA_LINE | NEWLINE)*;
+// Global line continuation: Highest precedence to consume '\' + newline between tokens.
+LINE_ESCAPE_GLOBAL : '\\' ('\r'? '\n' | '\r') -> channel(HIDDEN);
 
-procedure_definition: KW_FUNC IDENTIFIER signature_part KW_MEANS NEWLINE metadata_block? statement_list KW_ENDFUNC;
-
-signature_part: LPAREN needs_clause? optional_clause? returns_clause? RPAREN | needs_clause optional_clause? returns_clause? | optional_clause returns_clause? | returns_clause | ;
-
-needs_clause: KW_NEEDS param_list;
-optional_clause: KW_OPTIONAL param_list;
-returns_clause: KW_RETURNS param_list;
-param_list: IDENTIFIER (COMMA IDENTIFIER)*;
-
-metadata_block: (METADATA_LINE NEWLINE)*;
-
-statement_list: body_line*;
-body_line: statement NEWLINE | NEWLINE;
-
-// --- STATEMENTS (MODIFIED from v0.3.0 base) ---
-statement:
-      simple_statement
-    | block_statement
-    ;
-
-simple_statement:
-    set_statement
-    | call_statement
-    | return_statement
-    | emit_statement
-    | must_statement
-    | fail_statement
-    | clearErrorStmt
-    | ask_stmt
-    | break_statement
-    | continue_statement
-    ;
-
-block_statement: if_statement | while_statement | for_each_statement | onErrorStmt;
-
-// expressionStatement rule still exists but isn't directly used by 'statement'
-expressionStatement: expression ;
-
-// --- Simple Statements Details (MODIFIED from v0.3.0 base) ---
-set_statement: KW_SET IDENTIFIER ASSIGN expression;
-call_statement: KW_CALL callable_expr;
-return_statement: KW_RETURN expression_list?;
-emit_statement: KW_EMIT expression;
-must_statement: KW_MUST expression | KW_MUSTBE callable_expr;
-fail_statement: KW_FAIL expression?;
-clearErrorStmt: KW_CLEAR_ERROR;
-ask_stmt: KW_ASK expression (KW_INTO IDENTIFIER)? ;
-break_statement: KW_BREAK;
-continue_statement: KW_CONTINUE;
-
-// (Rest of parser rules unchanged from v0.3.0 base, adapted for context)
-if_statement: KW_IF expression NEWLINE statement_list (KW_ELSE NEWLINE statement_list)? KW_ENDIF;
-while_statement: KW_WHILE expression NEWLINE statement_list KW_ENDWHILE;
-for_each_statement: KW_FOR KW_EACH IDENTIFIER KW_IN expression NEWLINE statement_list KW_ENDFOR;
-onErrorStmt: KW_ON_ERROR KW_MEANS NEWLINE statement_list KW_ENDON;
-
-// --- MODIFIED FOR QUALIFIED TOOL NAMES (from v0.3.0 base) ---
-qualified_identifier: IDENTIFIER (DOT IDENTIFIER)*;
-
-call_target: IDENTIFIER // For user-defined functions
-           | KW_TOOL DOT qualified_identifier // For tools, now using qualified_identifier
-           ;
-// --- END MODIFICATION for qualified tool names ---
-
-expression: logical_or_expr;
-logical_or_expr: logical_and_expr (KW_OR logical_and_expr)*;
-logical_and_expr: bitwise_or_expr (KW_AND bitwise_or_expr)*;
-bitwise_or_expr: bitwise_xor_expr (PIPE bitwise_xor_expr)*;
-bitwise_xor_expr: bitwise_and_expr (CARET bitwise_and_expr)*;
-bitwise_and_expr: equality_expr (AMPERSAND equality_expr)*;
-equality_expr: relational_expr ((EQ | NEQ) relational_expr)*;
-relational_expr: additive_expr ((GT | LT | GTE | LTE) additive_expr)*;
-additive_expr: multiplicative_expr ((PLUS | MINUS) multiplicative_expr)*;
-multiplicative_expr: unary_expr ((STAR | SLASH | PERCENT) unary_expr)*;
-
-// MODIFIED unary_expr to include KW_TYPEOF
-unary_expr:
-    (MINUS | KW_NOT | KW_NO | KW_SOME | TILDE) unary_expr
-    | KW_TYPEOF unary_expr // <<< ADDED typeof operator
-    | power_expr
-    ;
-
-power_expr: accessor_expr (STAR_STAR power_expr)?;
-accessor_expr: primary ( LBRACK expression RBRACK )* ;
-
-primary: literal | placeholder | IDENTIFIER | KW_LAST | callable_expr | KW_EVAL LPAREN expression RPAREN | LPAREN expression RPAREN;
-
-callable_expr: ( call_target | KW_LN | KW_LOG | KW_SIN | KW_COS | KW_TAN | KW_ASIN | KW_ACOS | KW_ATAN ) LPAREN expression_list_opt RPAREN;
-placeholder: PLACEHOLDER_START (IDENTIFIER | KW_LAST) PLACEHOLDER_END;
-
-// MODIFIED literal to include nil_literal
-literal: STRING_LIT | TRIPLE_BACKTICK_STRING | NUMBER_LIT | list_literal | map_literal | boolean_literal | nil_literal;
-
-nil_literal: KW_NIL; // <<< ADDED nil literal rule
-
-boolean_literal: KW_TRUE | KW_FALSE;
-list_literal: LBRACK expression_list_opt RBRACK;
-map_literal: LBRACE map_entry_list_opt RBRACE;
-expression_list_opt: expression_list?;
-expression_list: expression (COMMA expression)*;
-map_entry_list_opt: map_entry_list?;
-map_entry_list: map_entry (COMMA map_entry)*;
-map_entry: STRING_LIT COLON expression;
-
-// --- LEXER RULES ---
+// Keywords
 KW_CALL       : 'call';
 KW_FUNC       : 'func';
 KW_NEEDS      : 'needs';
@@ -168,18 +66,28 @@ KW_ASK        : 'ask';
 KW_INTO       : 'into';
 KW_BREAK      : 'break';
 KW_CONTINUE   : 'continue';
-KW_NIL        : 'nil';    // <<< ADDED KEYWORD
-KW_TYPEOF     : 'typeof'; // <<< ADDED KEYWORD
+KW_NIL        : 'nil';
+KW_TYPEOF     : 'typeof';
 
-NUMBER_LIT: [0-9]+ ('.' [0-9]+)?;
+// Re-instated for multi-line capability within strings/metadata
+fragment CONTINUED_LINE: '\\' ('\r'? '\n' | '\r') ;
+fragment STRING_DQ_ATOM : EscapeSequence | CONTINUED_LINE | ~["\\\r\n] ;
+fragment STRING_SQ_ATOM : EscapeSequence | CONTINUED_LINE | ~['\\\r\n] ;
 
-// MODIFIED STRING_LIT to use EscapeSequence for C-style escapes
 STRING_LIT:
-    '"' ( EscapeSequence | ~["\\\r\n] )*? '"'
-    | '\'' ( EscapeSequence | ~['\\\r\n] )*? '\''
+    '"' (STRING_DQ_ATOM)*? '"'
+    | '\'' (STRING_SQ_ATOM)*? '\''
     ;
 
-TRIPLE_BACKTICK_STRING: '```' .*? '```'; // Raw string, escapes not processed here
+TRIPLE_BACKTICK_STRING: '```' .*? '```'; 
+
+fragment METADATA_CONTENT_ATOM: EscapeSequence | CONTINUED_LINE | ~[\\\r\n] ;
+METADATA_LINE: 
+    [\t ]* '::' [ \t]+ 
+    (METADATA_CONTENT_ATOM)* ; 
+
+NUMBER_LIT: [0-9]+ ('.' [0-9]+)?;
+IDENTIFIER: [a-zA-Z_] [a-zA-Z0-9_]*;
 
 ASSIGN: '=';
 PLUS: '+';
@@ -192,19 +100,17 @@ AMPERSAND: '&';
 PIPE: '|';
 CARET: '^';
 TILDE: '~';
-
 LPAREN: '(';
 RPAREN: ')';
 COMMA: ',';
-LBRACK: '[';
-RBRACK: ']';
+LBRACK: '['; // Left square bracket
+RBRACK: ']'; // Right square bracket
 LBRACE: '{';
 RBRACE: '}';
 COLON: ':';
 DOT: '.';
 PLACEHOLDER_START: '{{';
 PLACEHOLDER_END: '}}';
-
 EQ: '==';
 NEQ: '!=';
 GT: '>';
@@ -212,27 +118,169 @@ LT: '<';
 GTE: '>=';
 LTE: '<=';
 
-IDENTIFIER: [a-zA-Z_] [a-zA-Z0-9_]*;
-METADATA_LINE: [\t ]* '::' [ \t]+ ~[\r\n]* ;
-
-// MODIFIED LINE_COMMENT to include '//'
 LINE_COMMENT: ('#' | '--' | '//') ~[\r\n]* -> channel(HIDDEN);
-NEWLINE: ('\r'? '\n' | '\r');
+NEWLINE: ('\r'? '\n' | '\r'); 
 WS: [ \t]+ -> channel(HIDDEN);
 
-// EscapeSequence fragment: Used by STRING_LIT
-// Supports: \", \', \\, \n, \r, \t, \~, \` and \uXXXX
-// Note: \b, \f, \v, octal, and other hex escapes are not currently included.
 fragment EscapeSequence: '\\' ( UNICODE_ESC | HEX_ESC | OCTAL_ESC | CHAR_ESC );
-
-fragment CHAR_ESC: ["'\\btnfrv~`]; // Common character escapes including backslash itself
-
-// Standard UNICODE_ESC as before
+fragment CHAR_ESC: ["'\\btnfrv~`]; // Note: Added ~ and ` as escapable characters based on some contexts
 fragment UNICODE_ESC: 'u' HEX_DIGIT HEX_DIGIT HEX_DIGIT HEX_DIGIT;
-
-// Optional: Add Hex and Octal escapes if desired, for now keeping it simpler.
-// Example for basic hex (like \xHH), not fully implemented here to keep it concise.
-fragment HEX_ESC: 'x' HEX_DIGIT HEX_DIGIT; // Example, adjust as needed
-fragment OCTAL_ESC: [0-3]? [0-7] [0-7];   // Example, adjust as needed
-
+fragment HEX_ESC: 'x' HEX_DIGIT HEX_DIGIT; 
+fragment OCTAL_ESC: [0-3]? [0-7] [0-7]; // Allows up to 377 octal
 fragment HEX_DIGIT: [0-9a-fA-F];
+
+// --- PARSER RULES --- 
+program: file_header (procedure_definition NEWLINE*)* EOF;
+
+file_header: (METADATA_LINE | NEWLINE)*; // Optional metadata lines at the start
+
+procedure_definition: 
+    KW_FUNC IDENTIFIER signature_part KW_MEANS NEWLINE 
+    metadata_block? 
+    statement_list 
+    KW_ENDFUNC;
+
+signature_part: 
+    LPAREN needs_clause? optional_clause? returns_clause? RPAREN 
+    | needs_clause optional_clause? returns_clause? 
+    | optional_clause returns_clause? 
+    | returns_clause 
+    | /* empty */ ; // Allows func foo means ...
+
+needs_clause: KW_NEEDS param_list;
+optional_clause: KW_OPTIONAL param_list;
+returns_clause: KW_RETURNS param_list;
+param_list: IDENTIFIER (COMMA IDENTIFIER)*;
+
+metadata_block: (METADATA_LINE NEWLINE)*; // Metadata specific to a function
+
+statement_list: body_line*;
+body_line: statement NEWLINE | NEWLINE; 
+
+statement: simple_statement | block_statement ;
+
+simple_statement: 
+    set_statement 
+    | call_statement 
+    | return_statement 
+    | emit_statement 
+    | must_statement 
+    | fail_statement 
+    | clearErrorStmt
+    | ask_stmt
+    | break_statement
+    | continue_statement
+    ;
+
+block_statement: 
+    if_statement 
+    | while_statement 
+    | for_each_statement
+    | onErrorStmt
+    ;
+
+// --- MODIFIED RULE for set_statement and NEW lvalue rule ---
+lvalue: IDENTIFIER ( LBRACK expression RBRACK | DOT IDENTIFIER )* ;
+
+set_statement: KW_SET lvalue ASSIGN expression; 
+// --- END OF MODIFIED RULES ---
+
+expressionStatement: expression ; // For potential future use or expression-only lines if allowed
+
+call_statement: KW_CALL callable_expr;
+
+return_statement: KW_RETURN expression_list?;
+
+emit_statement: KW_EMIT expression;
+
+must_statement: KW_MUST expression | KW_MUSTBE callable_expr;
+
+fail_statement: KW_FAIL expression?;
+
+clearErrorStmt: KW_CLEAR_ERROR;
+
+ask_stmt: KW_ASK expression (KW_INTO IDENTIFIER)? ;
+
+break_statement: KW_BREAK;
+continue_statement: KW_CONTINUE;
+
+if_statement: 
+    KW_IF expression NEWLINE 
+    statement_list 
+    (KW_ELSE NEWLINE statement_list)? 
+    KW_ENDIF;
+
+while_statement: 
+    KW_WHILE expression NEWLINE 
+    statement_list 
+    KW_ENDWHILE;
+
+for_each_statement: 
+    KW_FOR KW_EACH IDENTIFIER KW_IN expression NEWLINE 
+    statement_list 
+    KW_ENDFOR;
+
+onErrorStmt:
+    KW_ON_ERROR KW_MEANS NEWLINE
+    statement_list
+    KW_ENDON;
+
+qualified_identifier: IDENTIFIER (DOT IDENTIFIER)*;
+
+call_target: IDENTIFIER | KW_TOOL DOT qualified_identifier ;
+
+expression: logical_or_expr; // Precedence: OR is lowest for binary logical
+logical_or_expr: logical_and_expr (KW_OR logical_and_expr)*;
+logical_and_expr: bitwise_or_expr (KW_AND bitwise_or_expr)*;
+bitwise_or_expr: bitwise_xor_expr (PIPE bitwise_xor_expr)*;
+bitwise_xor_expr: bitwise_and_expr (CARET bitwise_and_expr)*;
+bitwise_and_expr: equality_expr (AMPERSAND equality_expr)*;
+equality_expr: relational_expr ((EQ | NEQ) relational_expr)*;
+relational_expr: additive_expr ((GT | LT | GTE | LTE) additive_expr)*;
+additive_expr: multiplicative_expr ((PLUS | MINUS) multiplicative_expr)*;
+multiplicative_expr: unary_expr ((STAR | SLASH | PERCENT) unary_expr)*;
+unary_expr: 
+    (MINUS | KW_NOT | KW_NO | KW_SOME | TILDE) unary_expr 
+    | KW_TYPEOF unary_expr
+    | power_expr 
+    ;
+power_expr: accessor_expr (STAR_STAR power_expr)?; // Right-associative for power
+accessor_expr: primary ( LBRACK expression RBRACK )* ; // Handles x[y][z] type access
+primary: 
+    literal 
+    | placeholder
+    | IDENTIFIER 
+    | KW_LAST 
+    | callable_expr
+    | KW_EVAL LPAREN expression RPAREN
+    | LPAREN expression RPAREN
+    ;
+
+callable_expr: 
+    ( call_target | KW_LN | KW_LOG | KW_SIN | KW_COS | KW_TAN | KW_ASIN | KW_ACOS | KW_ATAN ) 
+    LPAREN expression_list_opt RPAREN;
+
+placeholder: PLACEHOLDER_START (IDENTIFIER | KW_LAST) PLACEHOLDER_END;
+
+literal: 
+    STRING_LIT 
+    | TRIPLE_BACKTICK_STRING
+    | NUMBER_LIT 
+    | list_literal 
+    | map_literal 
+    | boolean_literal 
+    | nil_literal
+    ;
+
+nil_literal: KW_NIL; 
+boolean_literal: KW_TRUE | KW_FALSE;
+
+list_literal: LBRACK expression_list_opt RBRACK;
+map_literal: LBRACE map_entry_list_opt RBRACE;
+
+expression_list_opt: expression_list?;
+expression_list: expression (COMMA expression)*;
+
+map_entry_list_opt: map_entry_list?;
+map_entry_list: map_entry (COMMA map_entry)*;
+map_entry: STRING_LIT COLON expression;

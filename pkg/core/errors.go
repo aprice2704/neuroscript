@@ -1,34 +1,77 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.2.0 // Added ErrToolExecutionFailed
-// nlines: 192
-// risk_rating: HIGH
+// File version: 0.2.1 // Added Position to RuntimeError, WithPosition method, and wrapErrorWithPosition helper.
+// nlines: 208 // Approximate new line count after additions
+// risk_rating: MEDIUM // Modifying core error handling
 // filename: pkg/core/errors.go
 package core
 
 import (
 	"errors"
 	"fmt"
+	"strings"
 )
 
 // --- ErrorCode Type ---
 type ErrorCode int
 
 // --- RuntimeError ---
+// MODIFIED: Added Position field
 type RuntimeError struct {
-	Code    ErrorCode
-	Message string
-	Wrapped error
+	Code     ErrorCode
+	Message  string
+	Wrapped  error
+	Position *Position // ADDED: To store position information
 }
 
+// MODIFIED: Updated Error() method to include position
 func (e *RuntimeError) Error() string {
-	if e.Wrapped != nil {
-		return fmt.Sprintf("NeuroScript Error %d: %s (wrapped: %v)", e.Code, e.Message, e.Wrapped)
+	msg := fmt.Sprintf("NeuroScript Error %d: %s", e.Code, e.Message)
+	if e.Position != nil {
+		msg = fmt.Sprintf("%s at %s", msg, e.Position.String())
 	}
-	return fmt.Sprintf("NeuroScript Error %d: %s", e.Code, e.Message)
+	if e.Wrapped != nil {
+		msg = fmt.Sprintf("%s (wrapped: %v)", msg, e.Wrapped)
+	}
+	return msg
 }
 func (e *RuntimeError) Unwrap() error { return e.Wrapped }
+
+// MODIFIED: Initialize Position to nil
 func NewRuntimeError(code ErrorCode, message string, wrapped error) *RuntimeError {
-	return &RuntimeError{Code: code, Message: message, Wrapped: wrapped}
+	return &RuntimeError{Code: code, Message: message, Wrapped: wrapped, Position: nil}
+}
+
+// ADDED: WithPosition method for RuntimeError
+func (e *RuntimeError) WithPosition(pos *Position) *RuntimeError {
+	if e != nil {
+		e.Position = pos
+	}
+	return e
+}
+
+// ADDED: wrapErrorWithPosition helper function
+func WrapErrorWithPosition(err error, pos *Position, contextMsg string) error {
+	if err == nil {
+		return nil
+	}
+	var re *RuntimeError
+	if errors.As(err, &re) {
+		if re.Position == nil && pos != nil { // Add position if not already set
+			re.Position = pos
+		}
+		// Prepend context message if it's not already part of the error.
+		if contextMsg != "" && !strings.HasPrefix(re.Message, contextMsg) { // Avoid double-prefixing
+			re.Message = fmt.Sprintf("%s: %s", contextMsg, re.Message)
+		}
+		return re
+	}
+	// If it's not already a RuntimeError, create a new one.
+	fullMessage := contextMsg
+	if err.Error() != "" { // Avoid "context: " if original error is empty
+		fullMessage = fmt.Sprintf("%s: %s", contextMsg, err.Error())
+	}
+	// Use ErrorCodeEvaluation as a generic code for wrapped errors if not specified.
+	return NewRuntimeError(ErrorCodeEvaluation, fullMessage, err).WithPosition(pos)
 }
 
 // --- Basic Runtime Error Codes ---
@@ -71,6 +114,8 @@ const (
 	ErrorCodeTreeConstraintViolation ErrorCode = 27 // e.g., cannot set value on object, cannot remove root, ID exists
 	ErrorCodeNodeWrongType           ErrorCode = 28 // e.g., expected object, got value
 	ErrorCodeAttributeNotFound       ErrorCode = 29 // For metadata access
+	ErrorCodeUnknownKeyword          ErrorCode = 30
+	ErrorCodeTypeAssertionFailed     ErrorCode = 31 // ADD THIS LINE (ensure 10 is unique)
 
 	ErrorCodeToolSpecific ErrorCode = 1000 // Base for tool-specific error codes (non-FS/Tree or highly unique cases)
 )
@@ -111,18 +156,18 @@ var (
 // --- Core Handle Errors ---
 var (
 	ErrHandleInvalid   = errors.New("handle is invalid or refers to invalid data")
-	ErrHandleNotFound  = errors.New("handle not found")
+	ErrHandleNotFound  = errors.New("handle not found in cache")
 	ErrHandleWrongType = errors.New("handle has wrong type")
 )
 
 // --- Core Tool Execution Errors (including Filesystem and Tree sentinels) ---
 var (
 	// General Tool Errors
-	ErrInternalTool        = errors.New("internal tool error")
-	ErrNotFound            = errors.New("item not found") // Generic not found by a tool
-	ErrFailedPrecondition  = errors.New("operation failed due to a precondition not being met")
-	ErrRateLimited         = errors.New("operation failed due to rate limiting")
-	ErrNotImplemented      = errors.New("feature or tool not implemented")
+	ErrInternalTool       = errors.New("internal tool error")
+	ErrNotFound           = errors.New("item not found") // Generic not found by a tool
+	ErrFailedPrecondition = errors.New("operation failed due to a precondition not being met")
+	// ErrRateLimited is defined above
+	// ErrNotImplemented is defined above
 	ErrToolExecutionFailed = errors.New("tool execution failed") // Sentinel for ErrorCodeToolExecutionFailed
 
 	// Filesystem Errors
@@ -141,10 +186,10 @@ var (
 	ErrNodeWrongType           = errors.New("incorrect node type for operation")              // For ErrorCodeNodeWrongType
 	ErrAttributeNotFound       = errors.New("attribute not found on node")                    // For ErrorCodeAttributeNotFound
 	ErrTreeJSONUnmarshal       = errors.New("failed to unmarshal JSON input")                 // Use with ErrorCodeSyntax
-	ErrTreeJSONMarshal         = errors.New("failed to marshal tree data to JSON")            // Use with ErrorCodeInternal
+	ErrTreeJSONMarshal         = errors.New("failed to marshal tree structure to JSON")       // Use with ErrorCodeInternal
 	ErrTreeInvalidQuery        = errors.New("invalid query map structure or values")          // Use with ErrorCodeArgMismatch
 	ErrCannotSetValueOnType    = errors.New("cannot set Value on node types object or array") // Use with ErrorCodeTreeConstraintViolation
-	ErrTreeNodeNotObject       = errors.New("target node is not type object")                 // Use with ErrorCodeNodeWrongType
+	ErrTreeNodeNotObject       = errors.New("expected tree node to be an object type")        // Use with ErrorCodeNodeWrongType
 	ErrNodeIDExists            = errors.New("node ID already exists in tree")                 // Use with ErrorCodeTreeConstraintViolation
 	ErrCannotRemoveRoot        = errors.New("cannot remove the root node")                    // Use with ErrorCodeTreeConstraintViolation
 	// ErrTreeBuildFailed - Recommend using ErrInternal
@@ -160,7 +205,7 @@ var (
 	ErrCollectionIsNil          = errors.New("collection evaluated to nil")
 	ErrAccessorIsNil            = errors.New("accessor evaluated to nil")
 
-	// Go Tool Errors
+	// Go Tool specific errors (from goast, gosemantic etc.)
 	ErrGoParseFailed                 = errors.New("failed to parse Go source")
 	ErrGoModifyFailed                = errors.New("failed to modify Go AST")
 	ErrGoFormatFailed                = errors.New("failed to format Go AST")
@@ -187,7 +232,7 @@ var (
 	ErrUnsupportedOperator       = errors.New("unsupported operator")
 	ErrNilOperand                = errors.New("operation received nil operand")
 	ErrUnknownFunction           = errors.New("unknown function called")
-	ErrTypeAssertionFailed       = errors.New("type assertion failed")
+	// ErrTypeAssertionFailed is defined above
 )
 
 // --- Core Interpreter Errors ---
@@ -197,24 +242,30 @@ var (
 	ErrReturnMismatch       = errors.New("procedure return count mismatch")
 	ErrProcedureExists      = errors.New("procedure already defined")
 	ErrMaxCallDepthExceeded = errors.New("maximum call depth exceeded")
-	ErrUnknownKeyword       = errors.New("unknown keyword")
-	ErrUnhandledException   = errors.New("unhandled exception during execution")
-	ErrFailStatement        = errors.New("execution halted by FAIL statement")                           // For ErrorCodeFailStatement
-	ErrInternal             = errors.New("internal interpreter error")                                   // For ErrorCodeInternal
-	ErrReadOnlyViolation    = errors.New("attempt to modify read-only variable")                         // For ErrorCodeReadOnly
-	ErrUnsupportedSyntax    = errors.New("unsupported syntax")                                           // For ErrorCodeSyntax
-	ErrClearViolation       = errors.New("clear_error used outside on_error block")                      // For ErrorCodeClearViolation
-	ErrReturnViolation      = errors.New("'return' statement is not permitted inside an on_error block") // For ErrorCodeReturnViolation
-	ErrToolNotFound         = errors.New("tool or tool function not found")                              // For ErrorCodeToolNotFound
-	ErrLLMError             = errors.New("LLM interaction failed")                                       // For ErrorCodeLLMError
-	ErrLLMNotConfigured     = errors.New("LLM client not configured in interpreter")
-	ErrDivisionByZero       = errors.New("division by zero")                  // For ErrorCodeDivisionByZero
-	ErrMustConditionFailed  = errors.New("must condition evaluated to false") // For ErrorCodeMustFailed
+	// ErrUnknownKeyword is defined above
+	// ErrUnhandledException is defined above
+	ErrFailStatement     = errors.New("execution halted by FAIL statement")                           // For ErrorCodeFailStatement
+	ErrInternal          = errors.New("internal interpreter error")                                   // For ErrorCodeInternal
+	ErrReadOnlyViolation = errors.New("attempt to modify read-only variable")                         // For ErrorCodeReadOnly
+	ErrUnsupportedSyntax = errors.New("unsupported syntax")                                           // For ErrorCodeSyntax
+	ErrClearViolation    = errors.New("clear_error used outside on_error block")                      // For ErrorCodeClearViolation
+	ErrReturnViolation   = errors.New("'return' statement is not permitted inside an on_error block") // For ErrorCodeReturnViolation
+	// ErrToolNotFound is defined above
+	ErrLLMError            = errors.New("LLM interaction failed") // For ErrorCodeLLMError
+	ErrLLMNotConfigured    = errors.New("LLM client not configured in interpreter")
+	ErrDivisionByZero      = errors.New("division by zero")                  // For ErrorCodeDivisionByZero
+	ErrMustConditionFailed = errors.New("must condition evaluated to false") // For ErrorCodeMustFailed
 
 	// AI WM Errors
 	ErrAuthDetailsMissing    = errors.New("authentication details are missing")
 	ErrAPIKeyNotFound        = errors.New("API key not found though configuration implies one should exist")
 	ErrFeatureNotImplemented = errors.New("feature not implemented")
+
+	ErrRateLimited         = errors.New("operation failed due to rate limiting")
+	ErrToolNotFound        = errors.New("tool or tool function not found")
+	ErrUnknownKeyword      = errors.New("unknown keyword encountered")
+	ErrTypeAssertionFailed = errors.New("type assertion failed")
+	ErrNotImplemented      = errors.New("feature or tool not implemented")
 )
 
 // --- Control Flow Sentinel Errors ---

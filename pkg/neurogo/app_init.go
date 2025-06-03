@@ -27,6 +27,8 @@ func NewApp(config *Config, logger logging.Logger, llmclient core.LLMClient) (*A
 		logger.Warn("No logger provided to NewApp, using NoOpLogger.")
 	}
 
+	logger.Infof("NeuroScript grammar %s", core.GrammarVersion)
+
 	appCtx, cancelFunc := context.WithCancel(context.Background())
 
 	a := &App{
