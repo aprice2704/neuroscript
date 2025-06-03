@@ -6,7 +6,6 @@ func FindAdderSkill returns result means
 :: purpose: Find skills related to addition.
 :: algorithm: Call SearchSkills with relevant query.
 :: return:result: JSON string of search results.
-
   set query = "add two numbers"
   call tool.SearchSkills(query)
   set result = last

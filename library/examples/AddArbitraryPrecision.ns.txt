@@ -2,9 +2,10 @@
 :: file_version: 1.0
 
 func MyProcedure(needs param1, param2 returns result) means
-:: description: This is a sample procedure.
-:: param:param1: The first parameter.
-:: param:param2: The second parameter.
-:: return:result: The result of the procedure.
+  :: description: This is a sample procedure.
+  :: param:param1: The first parameter.
+  :: param:param2: The second parameter.
+  :: return:result: The result of the procedure.
   set result = param1 + param2
 endfunc
+

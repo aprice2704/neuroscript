@@ -18,3 +18,4 @@ func main() means
   endfor
   emit "Directory scan complete."
 endfunc
+

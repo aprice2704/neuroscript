@@ -1,5 +1,5 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.0.3 // Corrected test setup, added local helpers, and clarified dependency on Interpreter.ExecuteScriptString.
+// File version: 0.0.4 // Adjusted multi-statement tests for correct parsing.
 // Purpose: Tests for interpreter's auto-creation of maps/lists during 'set' assignments.
 // filename: pkg/core/interpreter_assignment_autocreate_test.go
 // nlines: 320 // Approximate
@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"reflect" // Required for reflect.TypeOf and reflect.DeepEqual
 	"testing"
-	// Added for testLoggerAdapter
 )
 
 // testLoggerAdapter provides a logging.Logger that writes to t.Logf.
@@ -75,17 +74,12 @@ func checkVariableStateAfterSet(t *testing.T, script string, varName string, exp
 	t.Helper()
 	interpreter, _ := NewDefaultTestInterpreter(t)
 
-	// NOTE: The Interpreter.ExecuteScriptString method is assumed to exist.
-	// It should be implemented in pkg/core/interpreter.go.
-	// Expected signature:
-	//   ExecuteScriptString(scriptName, scriptContent string, args map[string]interface{}) (interface{}, *RuntimeError)
-	// This method would typically:
-	//   1. Parse scriptContent (e.g., using core.ParseScriptString) into an AST.
-	//   2. Execute the AST using the interpreter's internal mechanisms (like i.executeSteps).
-	//   3. Return the result and any runtime error.
+	// This method is now assumed to exist in pkg/core/interpreter_scriptexec.go
 	_, execErr := interpreter.ExecuteScriptString(fmt.Sprintf("test_autocreate_%s", varName), script, nil)
 
-	if execErr != nil { // execErr is *RuntimeError, comparing with nil is correct
+	if execErr != nil {
+		// If the test *expects* an error for a specific setup, this check needs adjustment.
+		// For auto-creation success tests, no execution error is expected.
 		t.Fatalf("Script execution failed for '%s':\nScript:\n%s\nError: %s (Code: %d, Pos: %s, Wrapped: %v)",
 			varName, script, execErr.Message, execErr.Code, execErr.Position, execErr.Wrapped)
 		return
@@ -217,14 +211,14 @@ func TestLValueAutoCreation(t *testing.T) {
 		},
 		{
 			name:          "overwrite existing string with map on complex assignment",
-			script:        `set k = "i am a string"; set k["newKey"] = "now a map"`,
+			script:        "set k = \"i am a string\"\nset k[\"newKey\"] = \"now a map\"",
 			checkVarName:  "k",
 			expectedValue: map[string]interface{}{"newKey": "now a map"},
 			expectedType:  expectedMapType,
 		},
 		{
 			name:          "overwrite existing number with list on complex assignment",
-			script:        `set l = 123; set l[0] = "now a list"`,
+			script:        "set l = 123\nset l[0] = \"now a list\"",
 			checkVarName:  "l",
 			expectedValue: []interface{}{"now a list"},
 			expectedType:  expectedSliceType,

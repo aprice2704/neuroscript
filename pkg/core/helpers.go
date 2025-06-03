@@ -54,7 +54,7 @@ func (l TestLogger) logStructured(level string, msg string, args ...any) {
 			}
 		}
 	}
-	l.t.Log(sb.String())
+	//l.t.Log(sb.String())
 }
 
 func (l TestLogger) Debug(msg string, args ...any) { l.logStructured("[DEBUG]", msg, args...) }

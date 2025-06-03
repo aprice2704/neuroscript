@@ -13,4 +13,3 @@ func ProcessGreeting(needs read_path, write_path returns content_read) means
   call tool.WriteFile(write_path, new_greeting)
   return content_read
 endfunc
-

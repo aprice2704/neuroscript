@@ -6,10 +6,6 @@ func ModifyAndBuildGoFile(needs relative_filepath, task_description returns stat
   :: param:relative_filepath: Relative path to the Go file.
   :: param:task_description: Description of the modification.
   :: return:status_message: Success or failure message including check/build status.
-  :: algorithm: 1. Read original content -> LAST. Assign to original_code. Handle errors. 2. Create LLM prompt using direct variables and line continuation. 3. Call LLM -> LAST. Assign to generated_code. 4. Call TOOL.GoFmt(generated_code) -> LAST. Assign map to fmt_result. 5. Check fmt_result["success"]. Decide code_to_write. 6. Call TOOL.WriteFile(relative_filepath, code_to_write) -> LAST. Assign status. Handle errors. 7. Call TOOL.GoCheck(relative_filepath) -> LAST. Assign map to check_result. Handle check errors. 8. If GoCheck succeeds, call TOOL.GoBuild(relative_filepath) -> LAST. Assign map to build_result. 9. Check build_result["success"] and return appropriate final status.
-  :: caveats: Relies on LLM accuracy. Uses direct variable access and LAST, assumes TOOLs return expected types/maps.
-  :: examples: CALL ModifyAndBuildGoFile("test_files/simple_test.go", "...") -> ...
-
   call tool.LogMessage("--- Reading Original File ---")
   call tool.ReadFile(relative_filepath)
   set read_result = last
@@ -21,7 +17,6 @@ func ModifyAndBuildGoFile(needs relative_filepath, task_description returns stat
   call tool.Substring(original_code, 0, 100)
   call tool.LogMessage(last)
   call tool.LogMessage("...")
-
   set prompt = "Task: " + task_description + "\n\n" + \
                "Modify the following Go code file ('" + relative_filepath + "') to fulfill the task.\n" + \
                "Respond ONLY with the complete, modified Go code for the file.\n" + \
@@ -31,18 +26,15 @@ func ModifyAndBuildGoFile(needs relative_filepath, task_description returns stat
                original_code + "\n" + \
                "```"
   call tool.LogMessage("--- Sending Prompt to LLM ---")
-
   call LLM(prompt)
   set generated_code = last
   call tool.LogMessage("--- Received Code from LLM (first 100 chars) ---")
   call tool.Substring(generated_code, 0, 100)
   call tool.LogMessage(last)
   call tool.LogMessage("...")
-
   call tool.LogMessage("--- Formatting Code ---")
   call tool.GoFmt(generated_code)
   set fmt_result = last
-
   set fmt_success = fmt_result["success"]
   set code_to_write = ""
   if fmt_success == true
@@ -54,7 +46,6 @@ func ModifyAndBuildGoFile(needs relative_filepath, task_description returns stat
     call tool.LogMessage("[WARN] Using UNFORMATTED generated code for writing.")
     set code_to_write = generated_code
   endif
-
   call tool.LogMessage("--- Writing Code to File ---")
   call tool.WriteFile(relative_filepath, code_to_write)
   set write_status = last
@@ -67,23 +58,19 @@ func ModifyAndBuildGoFile(needs relative_filepath, task_description returns stat
     endif
     return write_error_prefix + " to " + relative_filepath + ": " + write_status
   endif
-
   call tool.LogMessage("--- Checking Code Validity (GoCheck) ---")
   call tool.GoCheck(relative_filepath)
   set check_result = last
   set check_success = check_result["check_success"]
   set check_details = check_result["error_details"]
-
   if check_success == false
     return "Code Check FAILED after applying modification. Details:\n" + check_details
   endif
-
   call tool.LogMessage("--- Code Check Successful. Building Project Target ---")
   call tool.GoBuild(relative_filepath)
   set build_result = last
   set build_success = build_result["success"]
   set build_stderr = build_result["stderr"]
-
   if build_success == true
     set final_status = ""
     if fmt_success == true
@@ -95,7 +82,6 @@ func ModifyAndBuildGoFile(needs relative_filepath, task_description returns stat
   else
     return "Code Check passed but Build FAILED after applying modification. Stderr:\n" + build_stderr
   endif
-
   return "Build status uncertain after modification."
 endfunc
 

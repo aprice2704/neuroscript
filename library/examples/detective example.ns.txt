@@ -6,7 +6,6 @@ func InvestigateMurderScene(needs CrimeSceneData returns CaseReport) means
   :: param:CrimeSceneData: structured info about the scene (location, time, any known facts).
   :: return:CaseReport: a structured record of evidence, witness statements, possible motives, and recommended next steps.
   :: algorithm: 1. Secure the crime scene to preserve evidence. 2. Gather and document physical evidence (photos, blood samples, weapons). 3. Identify and interview witnesses. 4. Analyze all collected data for leads or contradictions. 5. Compile a preliminary report (CaseReport) summarizing findings and suspects.
-  :: caveats: Each step should be handled by specialized sub-procedures for detail (e.g. “SecureScene”, “InterviewWitnesses”). Any suspicious or ambiguous findings might require extended LLM-based analysis or deeper forensic procedures.
   call SecureCrimeScene(CrimeSceneData)
   call GatherPhysicalEvidence(CrimeSceneData)
   call IdentifyWitnesses(CrimeSceneData)

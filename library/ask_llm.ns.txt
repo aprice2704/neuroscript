@@ -8,7 +8,6 @@ func AskCapitalCity(needs question returns result) means
   :: return:result: The answer from the LLM.
   :: algorithm: Set question, call LLM, return response var.
   set question = "What is the capital of Canada?"
-  call tool.AIWorker.ExecuteStatelessTask("llm_worker", question, nil)
-  set result = last
+  set result = tool.AIWorker.ExecuteStatelessTask("llm_worker", question, nil)
   return result
 endfunc

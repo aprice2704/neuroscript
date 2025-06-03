@@ -16,4 +16,3 @@ func main means
   call emit("Calculation: " + number_a + " + " + number_b + " = " + sum_result)
   call emit("Demo finished.")
 endfunc
-

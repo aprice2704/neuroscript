@@ -2,24 +2,24 @@
 :: file_version: 1.0
 
 func TestLastKeyword returns "Finished" means
-:: description: Tests if the LAST keyword correctly captures and allows retrieval of the result from a preceding successful TOOL call.
-:: purpose: Verify LAST keyword functionality.
-:: algorithm: 1. Define a simple string variable. 2. Call TOOL.StringLength on the variable (should succeed and return a number). 3. Immediately assign LAST to a new variable. 4. Emit the new variable to see if it captured the length correctly. 5. Call another tool (e.g., TOOL.ToUpper). 6. Assign LAST to another variable. 7. Emit the second variable.
-:: return:Finished
-set my_string = "Test"
-call tool.emit("--- Starting LAST Keyword Test ---")
-call tool.emit("Set my_string = " + my_string)
-call tool.emit("Calling tool.StringLength(my_string)...")
-set length_from_last = tool.StringLength(my_string)
-call tool.emit("Value of length_from_last:")
-call tool.emit(length_from_last)
-call tool.emit("--- Calling second tool ---")
-set upper_string_raw = "make upper"
-call tool.emit("Calling tool.ToUpper(upper_string_raw)...")
-set upper_from_last = tool.ToUpper(upper_string_raw)
-call tool.emit("Value of upper_from_last:")
-call tool.emit(upper_from_last)
-call tool.emit("--- Test Complete ---")
-return "Finished"
+  :: description: Tests if the LAST keyword correctly captures and allows retrieval of the result from a preceding successful TOOL call.
+  :: purpose: Verify LAST keyword functionality.
+  :: algorithm: 1. Define a simple string variable. 2. Call TOOL.StringLength on the variable (should succeed and return a number). 3. Immediately assign LAST to a new variable. 4. Emit the new variable to see if it captured the length correctly. 5. Call another tool (e.g., TOOL.ToUpper). 6. Assign LAST to another variable. 7. Emit the second variable.
+  :: return:Finished
+  set my_string = "Test"
+  call tool.emit("--- Starting LAST Keyword Test ---")
+  call tool.emit("Set my_string = " + my_string)
+  call tool.emit("Calling tool.StringLength(my_string)...")
+  set length_from_last = tool.StringLength(my_string)
+  call tool.emit("Value of length_from_last:")
+  call tool.emit(length_from_last)
+  call tool.emit("--- Calling second tool ---")
+  set upper_string_raw = "make upper"
+  call tool.emit("Calling tool.ToUpper(upper_string_raw)...")
+  set upper_from_last = tool.ToUpper(upper_string_raw)
+  call tool.emit("Value of upper_from_last:")
+  call tool.emit(upper_from_last)
+  call tool.emit("--- Test Complete ---")
+  return "Finished"
 endfunc
 

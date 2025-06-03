@@ -115,7 +115,8 @@ const (
 	ErrorCodeNodeWrongType           ErrorCode = 28 // e.g., expected object, got value
 	ErrorCodeAttributeNotFound       ErrorCode = 29 // For metadata access
 	ErrorCodeUnknownKeyword          ErrorCode = 30
-	ErrorCodeTypeAssertionFailed     ErrorCode = 31 // ADD THIS LINE (ensure 10 is unique)
+	ErrorCodeTypeAssertionFailed     ErrorCode = 31
+	ErrorCodeExecutionFailed         ErrorCode = 32
 
 	ErrorCodeToolSpecific ErrorCode = 1000 // Base for tool-specific error codes (non-FS/Tree or highly unique cases)
 )
