@@ -1,5 +1,0 @@
-for file in *; do [ -f "$file" ] && echo "==> $file <==" && cat "$file" && echo; done
-
-md link -> go import
-^(\s*)\["([^"]+)"\]\(https://[^)]+\)
-$1"$2"
