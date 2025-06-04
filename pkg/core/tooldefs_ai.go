@@ -34,5 +34,5 @@ var aiWmToolsToRegister = []ToolImplementation{ //
 	// Performance Tools (from ai_wm_tools_performance.go)
 	// Ensure these variables are defined, likely in ai_wm_tools_performance.go
 	toolAIWorkerGetPerformanceRecords, // This should now be defined
-	// toolAIWorkerLogPerformance, // If this is not an actual tool exposed to NeuroScript, remove it from this list.
+	toolAIWorkerLogPerformance,
 }

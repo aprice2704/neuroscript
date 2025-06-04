@@ -14,11 +14,11 @@ import (
 	// by the interpreter/tool infra.
 )
 
-var specAIWorkerLogPerformance = ToolSpec{ //
-	Name:        "AIWorker.LogPerformance",                          //
-	Description: "Logs a performance record for an AI Worker task.", //
-	Category:    "AI Worker Management",                             //
-	Args: []ArgSpec{ //
+var specAIWorkerLogPerformance = ToolSpec{
+	Name:        "AIWorker.LogPerformance",
+	Description: "Logs a performance record for an AI Worker task.",
+	Category:    "AI Worker Management",
+	Args: []ArgSpec{
 		{Name: "task_id", Type: ArgTypeString, Required: true, Description: "Unique ID for the task."},                                                     //
 		{Name: "instance_id", Type: ArgTypeString, Required: true, Description: "ID of the AIWorkerInstance used."},                                        //
 		{Name: "definition_id", Type: ArgTypeString, Required: true, Description: "ID of the AIWorkerDefinition used."},                                    //
@@ -32,8 +32,8 @@ var specAIWorkerLogPerformance = ToolSpec{ //
 		{Name: "output_summary", Type: ArgTypeString, Required: false, Description: "Optional summary of the task output."},                                //
 		{Name: "error_details", Type: ArgTypeString, Required: false, Description: "Optional error details if success is false."},                          //
 	},
-	ReturnType:      ArgTypeString,                                                                                                                                                                                                                                                                                              //
-	ReturnHelp:      "Returns the TaskID string of the logged performance record.",                                                                                                                                                                                                                                              //
+	ReturnType:      ArgTypeString,
+	ReturnHelp:      "Returns the TaskID string of the logged performance record.",
 	Example:         `TOOL.AIWorker.LogPerformance(task_id: "task_abc", instance_id: "inst_123", definition_id: "def_xyz", timestamp_start: "2023-10-27T10:00:00.000Z", timestamp_end: "2023-10-27T10:00:05.123Z", duration_ms: 5123, success: true, llm_metrics: {"input_tokens":10, "output_tokens":50})`,                     //
 	ErrorConditions: "ErrAIWorkerManagerMissing; ErrInvalidArgument if required arguments are missing/invalid type (e.g., timestamp format, duration_ms not int); Errors from AIWorkerManager.logPerformanceRecordUnsafe (e.g., definition not found). Persisting definitions error is now only a warning if it were to occur.", // Updated error conditions
 }
