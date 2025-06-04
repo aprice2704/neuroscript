@@ -1,0 +1,26 @@
+# ────────────────────────────────────────────────────────────
+# _config.yml  (put this at the root of your repo)
+# ────────────────────────────────────────────────────────────
+
+# Exclude any folder or file you don’t want Jekyll to touch.
+exclude:
+  - docs/NeuroData
+  - docs/project/Version_02
+  - docs/ns_script_spec.md
+  - docs/NeuroData/templates.md
+  - docs/NeuroData/form.md
+  - docs/NeuroData/ns_script_spec.md
+
+# (you can add other paths here as needed):
+#  - docs/some-other‐folder
+#  - docs/some_file.md
+#  - another_folder_you_don't_want_to_build/
+
+# Optionally, if you only want Jekyll to build the contents of /site (your MkDocs build),
+# you can force Jekyll’s “source:” to be /site instead of the repo root. For that:
+# (uncomment the next two lines)
+#
+# source: site
+# destination: ./_site_jekyll   # (or wherever you want Jekyll’s output; GitHub Pages action will use this)
+#
+# ────────────────────────────────────────────────────────────
