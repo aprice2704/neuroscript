@@ -67,7 +67,7 @@ endfunc
 * **Core Architecture:** Understand the main [components (script, data, go)](docs/front/architecture.md).
 * **Key Concepts & Features:** Explore the underlying [principles and features](docs/front/concepts.md).
 * **Language & Data Specs:**
-    * **For Senior Tech Staff / Architects:** Review the [NeuroScript Language Specification](docs/script%20spec.md), the [Formal Grammar Ideas](docs/formal%20script%20spec.md), the [NeuroData Overview](docs/neurodata_and_composite_file_spec.md), and the [Agent Facilities Design](docs/llm_agent_facilities.md).
+    * **For Senior Tech Staff / Architects:** Review the [NeuroScript Language Specification](docs/ns_script_spec.md), the [Formal Grammar Ideas](docs/ns_script_spec_formal.md), the [NeuroData Overview](docs/neurodata_and_composite_file_spec.md), and the [Agent Facilities Design](docs/llm_agent_facilities.md).
     * **For All:** Browse the specific [NeuroData format specifications](docs/NeuroData/).
 * **Using `neurogo`:** See the [Installation & Setup guide](docs/front/installation.md).
 * **Code & Examples:**

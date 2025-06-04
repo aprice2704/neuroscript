@@ -1,225 +1,156 @@
-# AI Worker Management (ai_wm_*) System Design
+:: title: AI Worker Management (AIWM) System Design
+:: version: 0.2.0
+:: status: draft
+:: description: Design for the AI Worker Management system, including Work Queues, Worker Instances, Definitions, and interaction patterns.
+:: updated: 2025-06-03
+
+# AI Worker Management (AIWM) System Design
 
 ## 1. Overview
 
-The AI Worker Management system (ai_wm_*) within the pkg/core package of NeuroScript provides a comprehensive framework for defining, managing, executing, and monitoring AI-powered workers. These workers typically represent Large Language Models (LLMs) or other model-based agents. The system is designed to support both stateful, instance-based interactions and stateless, one-shot task executions, potentially managed through worker pools and work queues.
+The AI Worker Management (AIWM) system is responsible for defining, instantiating, managing, and monitoring AI Worker Instances. It provides a framework for executing tasks using these workers, including managing prompts, inputs, outputs, and performance logging. A key component of this system for v0.4.0 will be the introduction of **Work Queues** to manage and dispatch jobs to workers.
 
-**Key Change (May 2025)**: `AIWorkerDefinition`s are now treated as **immutable after initial load**. They are loaded once (e.g., at startup or via a specific "reload all definitions" command) from a configuration source (like `ai_worker_definitions.json`) and are not subsequently modified, added to, or removed from memory by runtime operations, nor are they saved back. This simplifies state management significantly.
+## 2. Core Components
 
-Core features include:
--   Loading worker definitions;
--   Flexible and shared data source configurations with controlled external file access capabilities;
--   Definitions for templatizing work items (`WorkItemDefinition`);
--   API key management;
--   Worker-specific tool allow/deny lists;
--   Configurable rate limiting;
--   Detailed performance tracking;
--   Provisions for Supervisory AI (SAI) attachment for monitoring and feedback;
--   **(NEW/Future Focus)** A mechanism for accumulating, distilling, and utilizing shared operational knowledge and lessons learned to improve ongoing operations.
+### 2.1. AI Worker Definition (`AIWorkerDefinition`)
+(As per existing document - content largely preserved)
+* **Source:** Loaded from `.aiwd.json` files or potentially other sources.
+* **Contents:**
+    * `id`: Unique identifier (e.g., "google-gemini-1.5-pro-code-refactor-v1").
+    * `description`: Human-readable description.
+    * `model_details`: Information about the underlying LLM (vendor, model name, API version).
+    * `system_prompt`: The base system prompt defining the worker's persona/task.
+    * `default_config`: Default LLM parameters (temperature, max tokens, etc.).
+    * `input_schema`: (Future) Defines expected input structure.
+    * `output_schema`: (Future) Defines expected output structure.
+    * `tool_permissions`: List of NeuroScript tools the worker is allowed to request/use (if any).
+    * `metadata`: Version, author, tags, etc.
+* **Management:** CRUD tools for definitions (e.g., `tool.AIWorkerDefinition.Load`, `tool.AIWorkerDefinition.Save`, `tool.AIWorkerDefinition.List`, `tool.AIWorkerDefinition.Get`).
 
-The system exposes its functionalities to NeuroScript via a dedicated toolset.
+### 2.2. AI Worker Instance (`AIWorkerInstance`)
+(As per existing document - content largely preserved, with notes on relation to queues)
+* Represents a running, stateful instance of an `AIWorkerDefinition`.
+* Can handle multiple tasks sequentially or maintain a conversational context.
+* May be explicitly created by a script/SAI or managed by a Work Queue's worker pool.
+* **Attributes:**
+    * `instance_id`: Unique ID for the running instance.
+    * `definition_id`: The definition it's based on.
+    * `status`: (e.g., idle, busy, error, retired).
+    * `current_task_id`: If busy.
+    * `llm_client_instance`: The actual client to interact with the LLM.
+    * `performance_summary`: Aggregate performance data for tasks it has run.
+    * `token_usage`: Aggregate token counts.
+* **Management:** Tools for spawning, retiring, listing, and getting status. Workers might be tied to specific Work Queues.
 
-## 2. Core Components and Concepts
+### 2.3. Work Queues (New Detailed Section for v0.4.0)
 
-### 2.1. AIWorkerManager (ai_wm.go)
+Work Queues are central to managing collections of jobs and distributing them to available AI Worker Instances. For v0.4.0, queues will be in-memory.
 
-**Role**: This is the central orchestrator and entry point for the entire AI Worker Management system. It is responsible for the lifecycle management of:
--   `AIWorkerDefinition`s (blueprints for workers, **loaded and treated as immutable**).
--   `GlobalDataSourceDefinition`s: Centrally defined data sources.
--   `AIWorkerPoolDefinition`s and active `AIWorkerPool`s: For managing groups of worker instances.
--   `WorkQueueDefinition`s and active `WorkQueue`s: For managing task submission and dispatch.
--   `WorkItemDefinition`s: For templatizing tasks.
--   Active `AIWorkerInstance`s (live, stateful worker sessions, potentially managed by pools).
--   **(NEW/Future)** `KnowledgeBaseManager` for storing and managing `DistilledLesson`s.
+* **Purpose:**
+    * Decouple job submission from immediate execution.
+    * Enable batch processing and parallel execution of tasks by multiple workers.
+    * Provide a central point for accumulating statistics and "lessons learned" from job processing.
+    * Allow for management (pause/resume) of job flows.
 
-It handles persistence of configurations (excluding `AIWorkerDefinition`s post-initial load), performance data, enforces rate limits, resolves API keys, and dispatches tasks from queues to pools.
+* **Attributes & Functionality:**
+    * **Identity:** Each queue will have a unique name or ID.
+    * **Job Storage (In-Memory for v0.4.0):**
+        * A mechanism to hold submitted `Job` objects/payloads.
+        * Jobs will have priorities (basic implementation for v0.4.0, e.g., FIFO with simple priority tiers).
+    * **Worker Association:**
+        * Workers (AIWorkerInstances) can be explicitly assigned to a queue.
+        * **Default Worker Pool:** A queue can be configured with:
+            * A default `AIWorkerDefinitionID`.
+            * A desired number of worker instances (e.g., min/max or target active).
+            * The AIWM will be responsible for automatically instantiating and managing these default workers, scaling them based on queue load (rudimentary scaling for v0.4.0).
+    * **State Management:**
+        * Queues can be `Started` (actively dispatching jobs) or `Paused` (jobs are accepted but not dispatched).
+    * **Statistics & Lessons Learned (In-Memory for v0.4.0):**
+        * **Stats:** The queue will accumulate operational statistics:
+            * Number of jobs submitted, pending, active, completed, failed.
+            * Success/failure rates.
+            * Average processing time per job (approximate).
+            * Aggregate costs (if LLM provides cost per call and jobs record it).
+        * **"Lessons Learned" Records:** For each job processed, a detailed record (map/struct) will be generated and stored by the queue (in memory for this version). This record will include:
+            * Job ID, submitted payload (prompt, inputs).
+            * Worker Definition ID, Worker Instance ID used.
+            * Timestamp of start/end.
+            * Raw output from the AI worker.
+            * Any errors reported by the worker or during processing.
+            * Status of the job (e.g., `success_refactored`, `fail_ai_errors_persisted`, `fail_tool_error` as discussed for the file refactoring script).
+            * For tasks like code refactoring: initial errors, post-refactor errors (if applicable).
+            * (Persistence of these detailed lessons to a file or database is a future enhancement beyond v0.4.0).
+    * **TUI Visibility:** Queue status (length, active workers, key stats, paused/running state) should be displayable in a dedicated AIWM panel in the NeuroScript TUI.
 
-**Configuration**:
--   The `AIWorkerManager` itself will have configurable behaviors, potentially set during initialization or via specific NeuroScript tools:
-    -   **`ConfigLoadPolicy` (enum, e.g., `FailFastOnError`, `LoadValidAndReportErrors`)**: Determines how the `LoadConfigBundleFromString` tool behaves.
-        -   `FailFastOnError`: If any definition in a bundle fails validation, the entire bundle loading operation is aborted, and no changes are activated.
-        -   `LoadValidAndReportErrors`: Activates all valid definitions from the bundle and reports errors for those that failed validation. This is generally more user-friendly for iterative setup.
-    -   Whitelist of allowed base paths for `GlobalDataSourceDefinition.LocalPath` when `AllowExternalReadAccess` is true. This is a critical security setting configured at the system/deployment level, not typically via dynamic NeuroScript calls.
+* **Management & Interaction (for SAI, Human via TUI/CLI, and Scripts):**
+    * **NeuroScript Tools for Queue Management:**
+        * `tool.AIWM.CreateQueue(queue_name, optional_default_worker_config_map)`
+        * `tool.AIWM.DeleteQueue(queue_name)`
+        * `tool.AIWM.PauseQueue(queue_name)`
+        * `tool.AIWM.ResumeQueue(queue_name)`
+        * `tool.AIWM.StartQueue(queue_name)` (if queues can be created in a non-started state)
+    * **NeuroScript Tools for Job Submission & Querying:**
+        * `tool.AIWM.AddJobToQueue(queue_name, job_payload_map)`: Submits a new job. `job_payload_map` would include target worker definition, prompt, input data, priority, etc.
+        * `tool.AIWM.ListQueues()`: Returns a list of available queue names/IDs.
+        * `tool.AIWM.GetQueueStatus(queue_name)`: Returns a map with current statistics (length, workers, state, error rates, etc.).
+        * `tool.AIWM.ListJobs(queue_name, filters_map)`: Returns a list of job summaries (ID, status, priority, submission time) for a queue, with optional filters (e.g., by status: "pending", "failed").
+        * `tool.AIWM.GetJobResult(job_id)`: Returns the detailed "lesson record" for a specific completed or failed job.
+        * `tool.AIWM.CancelJob(job_id)` (if job is cancellable, e.g. still pending).
+    * **Script Interaction for "Events" (Blocking Calls for v0.4.0):**
+        * Full asynchronous event handling is postponed.
+        * For v0.4.0, provide blocking tools that allow scripts to wait for specific outcomes:
+            * `tool.AIWM.WaitForJobCompletion(job_id, timeout_ms)`: Blocks until the specified job completes (success or failure) or timeout. Returns job result/lesson.
+            * `tool.AIWM.WaitForNextJobCompletion(queue_name, timeout_ms)`: Blocks until *any* job in the specified queue completes. Returns job result/lesson.
+            * These tools will throw errors on timeout or if the queue/job cannot be monitored.
 
-**State**: The manager maintains in-memory collections of:
--   `AIWorkerDefinition`s (**immutable after load**).
--   Active `AIWorkerInstance`s.
--   `WorkerRateTracker`s (runtime counters for rate limiting per definition).
--   `GlobalDataSourceDefinition`s.
--   `AIWorkerPoolDefinition`s and runtime `AIWorkerPool` states.
--   `WorkQueueDefinition`s and runtime `WorkQueue` states (including `WorkItem`s if queues are in-memory).
--   `WorkItemDefinition`s.
--   **(NEW/Future)** `DistilledLesson`s managed by the `KnowledgeBaseManager`.
--   **(Future)** References to active Supervisory AI (SAI) instances or configurations.
+### 2.4. Job/Task Structure
+(This section might need expansion or merging with Work Queue details)
+* A `Job` (or `TaskPayload`) needs to be clearly defined. It will encapsulate:
+    * `JobID`: Unique identifier.
+    * `TargetWorkerDefinitionID`: Which type of worker should process this.
+    * `SpecificWorkerInstanceID` (optional): Request a particular instance if applicable and available.
+    * `Prompt`: The main instruction or question.
+    * `InputData`: A map or structured data for the worker.
+    * `ConfigOverrides`: Map of LLM parameters to override defaults for this job.
+    * `Priority`: Integer or enum.
+    * `Metadata`: Submission time, submitter ID, tags, etc.
+    * `Status`: Pending, Active, CompletedSuccess, CompletedFailure, Cancelled.
+    * `Result`: The output from the worker, or error details. (This would be part of the "lesson record").
 
-**Concurrency**: It utilizes a `sync.RWMutex`. Locks are primarily for mutable collections like `activeInstances`, `rateTrackers`, and dynamically loaded/managed configurations (Pools, Queues, etc.). Access to `AIWorkerDefinition`s, once loaded, is read-only and inherently thread-safe.
+### 2.5. Stateless Task Execution
+(As per existing document - `tool.AIWorker.ExecuteStatelessTask` - this will likely remain as a direct way to use workers, bypassing queues for simple, immediate tasks. Queues are for managing multiple, potentially longer-running, or deferrable jobs.)
 
-**Persistence**:
-The manager is responsible for loading `AIWorkerDefinition`s from `ai_worker_definitions.json` at startup or on explicit reload. **It does not save `AIWorkerDefinition`s back.**
-It handles loading and saving for:
--   Performance data of retired instances to/from `ai_worker_performance_data.json`.
--   Global Data Source definitions to/from `ai_global_data_source_definitions.json`.
--   `AIWorkerPoolDefinition`s to/from `ai_worker_pool_definitions.json`.
--   `WorkQueueDefinition`s to/from `ai_work_queue_definitions.json`.
--   `WorkItemDefinition`s to/from `ai_work_item_definitions.json`.
--   **(NEW/Future)** `DistilledLesson`s to/from `ai_knowledge_base.json` (or a more structured store).
--   **(Future)** `WorkItem`s if queue persistence is enabled (e.g., to `ai_work_items.db`).
-These files are stored within a specified sandbox directory.
+## 3. Interaction Patterns & Workflows
 
-**Initialization**:
-The `NewAIWorkerManager` constructor initializes the manager, loads its own operational configuration (like `ConfigLoadPolicy`), attempts to load all defined configurations (worker definitions, data sources, work item definitions, pools, queues, **distilled lessons (Future)**) and historical performance data from the sandbox, and sets up initial rate trackers for each loaded worker definition. `AIWorkerDefinition`s are loaded at this stage.
+### 3.1. Batch Processing via Work Queue (e.g., Refactoring Script)
+1.  A NeuroScript (e.g., the "UpdateNsSyntaxWM.ns" script) identifies multiple items to process (e.g., files needing refactoring).
+2.  For each item, it constructs a `job_payload_map` (containing file content, specific instructions, target worker definition like "ns-refactor-v1").
+3.  It submits each job to a designated `WorkQueue` using `tool.AIWM.AddJobToQueue`.
+4.  The AIWM, observing the queue, dispatches these jobs to available `AIWorkerInstance`s (either dedicated or from the queue's default pool).
+5.  As jobs complete, the `WorkQueue` collects their results and detailed "lesson records".
+6.  The originating script (or an SAI) can:
+    * Poll the queue status using `tool.AIWM.GetQueueStatus`.
+    * Use `tool.AIWM.WaitForNextJobCompletion` or `tool.AIWM.WaitForJobCompletion` to process results as they come in or wait for all.
+    * Retrieve detailed outcomes using `tool.AIWM.GetJobResult` for each completed job.
+    * This data forms the basis for the SAI loop (analyze lessons, update prompts/definitions, etc.).
 
----
-### 2.2. Global Data Source Management (ai_wm_datasources.go - *new conceptual file*)
+### 3.2. SAI-Managed Operations
+* An SAI (which could be another NeuroScript) monitors queue statistics and lesson records.
+* If a queue shows high failure rates for a particular type of job or with a specific worker definition, the SAI could:
+    * Pause the queue.
+    * Alert a human.
+    * Attempt to modify the default worker definition's system prompt.
+    * Re-queue failed jobs with modified parameters or to a different queue/worker type.
+    * Adjust the number of active workers for a queue based on load or cost considerations.
 
-This component, managed by the `AIWorkerManager`, handles the definition and persistence of shared data sources that AI Workers can reference. (Management and persistence of these definitions remain as previously designed).
+## 4. Future Considerations (Beyond v0.4.0)
+* **Persistence:** Persistent storage for Work Queues (job state) and "Lessons Learned" database.
+* **Advanced Scheduling:** More sophisticated job prioritization, scheduling strategies (e.g., round-robin, load balancing).
+* **Asynchronous Event System:** Full event-driven model for scripts to react to queue/job events without polling/blocking.
+* **Distributed Workers:** Support for worker instances running on different machines.
+* **Input/Output Schemas:** Enforcing schemas for job inputs and worker outputs for better reliability.
 
-**GlobalDataSourceDefinition (`ai_worker_types.go`)**:
-(Structure remains as previously defined)
--   **`Name`** (string): A unique, human-readable name/ID for this data source.
--   **`Type`** (DataSourceType): Indicates the nature of the data source.
--   ... (other fields as previously defined) ...
--   **`CreatedTimestamp`** (time.Time, omitempty): Set by manager on creation.
--   **`ModifiedTimestamp`** (time.Time, omitempty): Set by manager on update.
-
-**Management**: The `AIWorkerManager` will provide CRUD operations for `GlobalDataSourceDefinition`s. All changes will be persisted to `ai_global_data_source_definitions.json`.
-
-**Security**: Validation of `LocalPath` for `AllowExternalReadAccess` remains critical.
----
-
-### 2.3. AIWorkerDefinition (ai_worker_types.go, ai_wm_definitions_*.go)
-**Role**: Serves as a static blueprint or template that defines all configurable aspects of a particular type of AI worker. **`AIWorkerDefinition`s are loaded at manager initialization (or via a full reload command) and are treated as immutable thereafter. They are not added, updated, or removed individually during runtime, nor are they saved back by the manager.**
-
-**Key Attributes**:
-(Attributes remain as previously defined. The `AggregatePerformanceSummary` within a definition is updated by the system with operational metrics but the definition's core configuration is immutable.)
--   **`DefinitionID`** (string): System-generated UUID, primary key.
--   **`Name`** (string): User-provided, unique, human-readable name.
--   ... (Provider, ModelName, Auth, InteractionModels, Capabilities, BaseConfig, CostMetrics, RateLimits, Status, DefaultFileContexts, DataSourceRefs, ToolAllowlist, ToolDenylist, DefaultSupervisoryAIRef) ...
--   **`AggregatePerformanceSummary`** (*AIWorkerPerformanceSummary, omitempty): Aggregated performance metrics, managed by the system. This part of the structure *is* updated in memory.
--   **`Metadata`** (map[string]interface{}, omitempty): Flexible key-value store for additional custom information.
--   **`CreatedTimestamp`** (time.Time, omitempty): Reflects load time or original definition time.
--   **`ModifiedTimestamp`** (time.Time, omitempty): Reflects load time or original definition time.
-
-**Management**:
--   `AIWorkerDefinition`s are loaded by the `AIWorkerManager` from `ai_worker_definitions.json` (or a string bundle).
--   **No runtime CRUD operations (add, update, remove individual definitions) are supported.** To change definitions, the entire set is reloaded.
--   Access to definitions is read-only. Functions like `GetWorkerDefinition` and `ListWorkerDefinitions` provide access to the loaded (immutable) definition data. Copies might be returned to ensure callers don't accidentally attempt to modify the manager's internal state, especially for the mutable `AggregatePerformanceSummary` part.
-
----
-### 2.4. AIWorkerPools (ai_wm_pools.go - *new conceptual file*)
-(Management and persistence of `AIWorkerPoolDefinition`s remain as previously designed.)
----
-### 2.5. WorkItemDefinition (ai_worker_types.go - new type)
-(Management and persistence of `WorkItemDefinition`s remain as previously designed.)
----
-### 2.6. WorkQueues & WorkItems (ai_wm_queues.go - *new conceptual file*)
-(Management and persistence of `WorkQueueDefinition`s and `WorkItem`s remain as previously designed.)
----
-### 2.7. AIWorkerInstance (ai_worker_types.go, ai_wm_instances.go)
-(Structure and management remain as previously designed. Instances are dynamic and stateful.)
----
-### 2.8. Task Execution & Dispatching
-(Process remains largely the same. Context resolution will use the immutably loaded `AIWorkerDefinition`s.)
----
-### 2.9. Performance Tracking (ai_worker_types.go, ai_wm_performance.go)
-(Remains as previously designed. `PerformanceRecord`s update the `AggregatePerformanceSummary` in the in-memory `AIWorkerDefinition`.)
----
-### 2.10. Rate Limiting (ai_worker_types.go, ai_wm_ratelimit.go)
-(Remains as previously designed, based on the loaded `AIWorkerDefinition.RateLimits`.)
----
-### 2.11. API Key Management (ai_worker_types.go, ai_wm.go)
-(Remains as previously designed, based on the loaded `AIWorkerDefinition.Auth`.)
----
-### 2.12. Knowledge Base & Lessons Learned (Future Focus)
-(Remains as previously designed.)
----
-## 3. Data Structures and Types (Key Types from `ai_worker_types.go`)
-(No changes to the list of types themselves, but the handling of `AIWorkerDefinition` is different.)
----
-## 4. Persistence Strategy
-
-**Format**: JSON for definitions. (Future: consider embedded DB for `WorkItem`s if `PersistTasks` is true and volume is high, and for `DistilledLesson`s).
-
-**Files** (in `sandboxDir`):
--   `ai_worker_definitions.json` (**Read-only by the application after initial load/reload**).
--   `ai_worker_performance_data.json` (Written to by the application).
--   `ai_global_data_source_definitions.json` (Written to).
--   `ai_worker_pool_definitions.json` (Written to).
--   `ai_work_queue_definitions.json` (Written to).
--   `ai_work_item_definitions.json` (Written to).
--   **(Future)** `ai_knowledge_base.json` (or DB) for storing `DistilledLesson`s (Written to).
-
-**Loading/Saving**:
--   `AIWorkerDefinition`s are loaded by `AIWorkerManager` at startup or via a full reload mechanism (e.g., `aiWorkerDefinition.loadFromFile()` or from a bundle). **They are NOT saved back.**
--   Other definition types (DataSources, Pools, Queues, WorkItemDefinitions) are loaded and saved by `AIWorkerManager`, respecting its `ConfigLoadPolicy`. Individual `add/update/remove` operations for these types trigger their respective persistence.
-
----
-## 5. NeuroScript Tool Integration (ai_wm_tools.go)
-
-**Tool Categories & Key Tools**:
--   **AIWorkerDefinition Management**:
-    -   `aiWorkerDefinition.loadFromFile()`: Reloads all definitions from the `ai_worker_definitions.json` file. This is the primary mechanism for updating definitions.
-    -   `aiWorkerDefinition.loadFromString(jsonString string) (error string)`: Similar to `loadFromFile`, but takes a JSON string containing an array of definitions. Replaces all existing definitions.
-    -   `aiWorkerDefinition.get(definitionNameOrID string) (definition map, error string)`: Retrieves a specific loaded definition.
-    -   `aiWorkerDefinition.list(filterJSON? string) (definitionsList []map, error string)`: Lists loaded definitions.
-    -   **REMOVED**: Tools for adding, updating, removing, or saving individual `AIWorkerDefinition`s.
--   **Global Data Source Management**: (CRUD tools remain, as these are mutable and persisted)
-    -   `aiWorkerGlobalDataSource.loadFromString(jsonString string) (name string, error string)` (and other CRUD)
--   **Work Item Definition Management**: (CRUD tools remain)
-    -   `aiWorkerWorkItemDefinition.loadFromString(jsonString string) (id string, error string)` (and other CRUD)
--   **Worker Pool Management**: (CRUD tools remain)
-    -   `aiWorkerPoolDefinition.loadFromString(jsonString string) (id string, error string)` (and other CRUD including `isMissionCritical` params)
-    -   `aiWorkerPool.getInstanceStatus(poolName string) (statusMap map, error string)`
--   **Work Queue Management**: (CRUD tools remain)
-    -   `aiWorkerWorkQueueDefinition.loadFromString(jsonString string) (id string, error string)` (and other CRUD including `isMissionCritical` params)
-    -   `aiWorkerWorkQueue.getStatus(queueName string) (statusMap map, error string)`
--   **Task Management**: (Tools remain)
-    -   `aiWorkerWorkQueue.submitTask(queueName string, workItemDefinitionName? string, payloadOverrideJSON? string, ...)`
-    -   `aiWorkerWorkQueue.getTaskInfo(taskID string) (taskInfoMap map, error string)`
--   **Instance Management (Standalone/Direct)**: (Tools remain)
--   **File Sync Tools**: (Tools remain)
--   **Performance & Logging**: (Tools remain)
--   **AIWorkerManager Configuration Tools**: (Tools remain)
--   **Omni-Loader Tool**:
-    -   `aiWorkerManager.loadConfigBundleFromString(jsonBundleString string, loadPolicyOverride? string)`: This tool will still load various definition types. For `AIWorkerDefinition`s within the bundle, it will replace the current set of worker definitions.
--   **(NEW/Future) Worker Self-Reflection/Logging Tools**: (Tools remain)
--   **(NEW/Future) Knowledge Base Tools**: (Tools remain)
-
----
-## 6. Error Handling
-(Remains as previously designed.)
----
-## 7. Key Design Principles and Considerations
--   **Modularity & Separation of Concerns**
--   **State Management & Persistence** (`AIWorkerDefinition`s are now immutable in memory after load, simplifying this aspect for them).
--   **Extensibility**
--   **Resource Pooling**
--   **Asynchronous Task Processing**
--   **Task Templating** (`WorkItemDefinition`)
--   **Context Layering** (for DataSources, SAI)
--   **Defensive Loading** (`ConfigLoadPolicy`, Load & Activate principle)
--   **Monitoring & Control** (Performance, Rate Limits, Permissions, Criticality flags)
--   **Adaptive Learning & Knowledge Sharing (NEW/Future)**: Via worker summaries, SAI condensation, and knowledge base.
--   **Integration with NeuroScript**
--   **Concurrency Safety** (Simplified for `AIWorkerDefinition` access, still relevant for other mutable state).
----
-## 8. Security Considerations for DataSources and Tool Permissions
-(Remains as previously designed.)
----
-## 9. Context Resolution (DataSources and Supervisory AI)
-(Remains as previously designed.)
----
-## 10. Document Metadata
-:: version: 0.4.3
-:: type: NSproject
-:: subtype: design_document
-:: project: NeuroScript
-:: purpose: Describes the design for the AI Worker Management (ai_wm_*) subsystem. Key change: AIWorkerDefinitions are immutable after load.
-:: status: under_review
-:: author: AJP (Primary), Gemini (Contributor)
-:: created: 2025-05-09
-:: modified: 2025-05-29
-:: dependsOn: pkg/core/ai_worker_types.go, pkg/core/ai_wm.go, (conceptual: pkg/core/ai_wm_datasources.go, pkg/core/ai_wm_pools.go, pkg/core/ai_wm_queues.go, pkg/core/ai_wm_item_defs.go, pkg/core/ai_wm_knowledgebase.go)
-:: reviewCycle: 5
-:: nextReviewDate: 2025-06-05
----
+## 5. Open Questions / Design Decisions Pending
+* Detailed error handling and retry mechanisms for jobs within the queue.
+* Specific structure and content of the "lesson record" beyond the initial sketch.
+* Mechanism for workers to report fine-grained progress on long tasks.
