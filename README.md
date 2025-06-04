@@ -19,18 +19,31 @@ Instead of relying on hidden 'chain-of-thought' or ad-hoc prompts, NeuroScript a
 **NeuroScript (`.ns.txt` - Defining a simple action):**
 
 ```neuroscript
--- Defines a reusable "skill"
-DEFINE PROCEDURE GreetUser(user_name)
-COMMENT:
-    PURPOSE: Greets the user.
-    INPUTS: - user_name (string).
-    OUTPUT: None.
-ENDCOMMENT
-  -- Basic variable assignment and string operation
-  SET message = "Hello, " + user_name + "!"
-  -- Output the result
-  EMIT message
-END
+:: language: neuroscript
+:: lang_version: 0.3.0
+:: file_version: 1
+
+func main() means
+  :: purpose: Main entry point for the script. Walks the current directory and prints file paths.
+  :: caveats: This version assumes tool.FS.Walk returns a list of maps on success and relies on on_error for tool call failures.
+
+  on_error means
+    emit "An error occurred during script execution."
+    fail
+  endon
+
+  set allEntries = tool.FS.Walk(".")
+  must typeof(allEntries) == TYPE_LIST
+
+  emit "Files found:"
+  for each entry in allEntries
+    if entry["isDir"] == false
+      emit "- " + entry["pathRelative"]
+    endif
+  endfor
+  emit "Directory scan complete."
+
+endfunc
 ```
 
 **NeuroData Checklist (`.ndcl` - Tracking tasks):**

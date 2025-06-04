@@ -1,15 +1,19 @@
-:: lang_version: neuroscript@0.5.0
-:: file_version: 1.0
+:: language: neuroscript
+:: lang_version: 0.3.0
+:: file_version: 1
 
 func main() means
   :: purpose: Main entry point for the script. Walks the current directory and prints file paths.
   :: caveats: This version assumes tool.FS.Walk returns a list of maps on success and relies on on_error for tool call failures.
+
   on_error means
     emit "An error occurred during script execution."
     fail
   endon
+
   set allEntries = tool.FS.Walk(".")
   must typeof(allEntries) == TYPE_LIST
+
   emit "Files found:"
   for each entry in allEntries
     if entry["isDir"] == false
@@ -17,5 +21,6 @@ func main() means
     endif
   endfor
   emit "Directory scan complete."
+
 endfunc
 

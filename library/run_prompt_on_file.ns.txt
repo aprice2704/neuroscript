@@ -47,8 +47,8 @@ func ProcessFileWithAI(needs inputFilePath, promptFilePath, workerDefinitionName
 
   on_error means
     set errMsg = "An unhandled error occurred during processing."
-    if system.error_message != nil and system.error_message != ""
-      set errMsg = system.error_message
+    if error_message != nil and error_message != ""
+      set errMsg = error_message
     endif
     emit "Error in ProcessFileWithAI: " + errMsg
     return "Failure: " + errMsg
