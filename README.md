@@ -72,6 +72,10 @@ endfunc
 * **Using `neurogo`:** See the [Installation & Setup guide](docs/front/installation.md).
 * **Code & Examples:**
     * **For Developers:** Browse the available [Built-in Tools source](pkg/core/tools_register.go), look at the [examples in the library](library/), and dive into the main [Go source code](pkg/).
+
+    * A more complete example of working code: [Update NS syntax](library/UpdateNsSyntax-2.ns.txt)
+
+
 * **Project Status & Roadmap:** Check the [Development Checklist](docs/development%20checklist.md) and the high-level [Roadmap](docs/RoadMap.md).
 * **Frequently Asked Questions:** See the [FAQ](docs/front/faq.md).
 * **Contributing:** Read the [contribution guidelines](docs/front/contributing.md).
