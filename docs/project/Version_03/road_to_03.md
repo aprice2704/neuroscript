@@ -31,9 +31,9 @@ I am thinking this should mostly be a ns that ng runs.)
 
 - [-] 1. Language Features
     - [x] break and continue flow control words
-    - [ ] ascii -> string function or \n and friends
-    - [ ] need nil and typeof (isnil?)
-    - [ ] allow // comments
+    - [x] ascii -> string function or \n and friends
+    - [x] need nil and typeof (isnil?)
+    - [x] allow // comments
     - [ ] simplfy returned arg checking
 
 - [ ] 2. Core Interpreter / Runtime
@@ -43,7 +43,7 @@ I am thinking this should mostly be a ns that ng runs.)
     - [x] Review error variable definitions (errors.go) for consistency/completeness. (Implicitly improved through recent work)
     - [ ] Investigate potential for parallel step execution? (Future/low priority)
     - [ ] Configuration: Mechanism for SAI to configure ng sandbox/tools?
-    - [ ] Apply prompt to each file in a tree (file filter, sys prompt etc.)
+    - [x] Apply prompt to each file in a tree (file filter, sys prompt etc.)
     - [x] Update ng "modes" etc.
 
 - [x] 3. Core Go Tooling (Go-Specific)
@@ -150,8 +150,8 @@ I am thinking this should mostly be a ns that ng runs.)
     - [x] core.ToIntE undefined error fixed by adding core.ConvertToInt64E.
     - [x] Handle non-deterministic map iteration in tests.
 
-- [ ] 9. NS LSP
+- [-] 9. NS LSP
     - [x] Basic syntax errors
     - [x] Shows tools help
-    - [ ] BUG: split line in string not flagged
+    - [x] BUG: split line in string not flagged
     - [ ] Flag unknown tools
