@@ -1,0 +1,10 @@
+# .jekyllignore
+
+# Ignore the entire NeuroData subfolder
+docs/NeuroData/
+
+# Ignore specific Markdown files that are tripping Liquid
+docs/ns_script_spec.md
+docs/project/Version_02/design_map.md
+
+# (Add any other paths/patterns here that you do NOT want Jekyll to process.)
