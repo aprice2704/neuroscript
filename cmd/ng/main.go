@@ -5,7 +5,7 @@
 // risk_rating: HIGH
 // Changes:
 // - Corrected app.InitLLMClient to app.CreateLLMClient.
-// - Fixed LLMClient argument for initializeCoreComponents (using app.InitLLMClient).
+// - Fixed LLMClient argument for InitializeCoreComponents (using app.InitLLMClient).
 // - TUI flag defaults to false.
 // - TUI only starts if -tui is explicitly true.
 // - If -script and -tui, script path is passed to TUI for delayed execution.
@@ -144,12 +144,12 @@ func main() {
 	logger.Debug("NeuroGo App instance created.")
 
 	// --- Initialize Core Components (Interpreter, AIWM) ---
-	// The 'llmClient' passed to initializeCoreComponents is the one already created and given to NewApp.
-	// initializeCoreComponents will then use this to set up Interpreter and AIWM.
+	// The 'llmClient' passed to InitializeCoreComponents is the one already created and given to NewApp.
+	// InitializeCoreComponents will then use this to set up Interpreter and AIWM.
 	var interpreter *core.Interpreter // Keep var declarations if they are used later for tool registration
 	var aiWm *core.AIWorkerManager    // Keep var declarations
 
-	interpreter, aiWm, err = initializeCoreComponents(app, logger, llmClient) // llmClient here is the one created above
+	interpreter, aiWm, err = InitializeCoreComponents(app, logger, llmClient) // llmClient here is the one created above
 	if err != nil {
 		logger.Error("Failed to initialize core components", "error", err)
 		fmt.Fprintf(os.Stderr, "Initialization error: %v\n", err)

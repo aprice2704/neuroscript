@@ -8,10 +8,10 @@ import (
 	"os"
 	"path/filepath"
 
-	// Keep for initializeCoreComponents
+	// Keep for InitializeCoreComponents
 	// "strings" // Not directly used in this corrected function
 
-	"github.com/aprice2704/neuroscript/pkg/adapters" // Keep for initializeCoreComponents
+	"github.com/aprice2704/neuroscript/pkg/adapters" // Keep for InitializeCoreComponents
 	"github.com/aprice2704/neuroscript/pkg/core"
 	"github.com/aprice2704/neuroscript/pkg/logging"
 	"github.com/aprice2704/neuroscript/pkg/neurogo"
@@ -77,16 +77,16 @@ func ifElse(condition bool, trueVal, falseVal interface{}) interface{} {
 	return falseVal
 }
 
-func initializeCoreComponents(app *neurogo.App, logger logging.Logger, llmClient core.LLMClient) (*core.Interpreter, *core.AIWorkerManager, error) {
+func InitializeCoreComponents(app *neurogo.App, logger logging.Logger, llmClient core.LLMClient) (*core.Interpreter, *core.AIWorkerManager, error) {
 	// LLM Client is now passed in as an argument and should already be set on the App instance by NewApp.
 	// No need to create or set it here.
 	if llmClient == nil {
 		// This should ideally be caught earlier in main.go after app.CreateLLMClient()
-		err := fmt.Errorf("initializeCoreComponents received a nil LLM client")
+		err := fmt.Errorf("InitializeCoreComponents received a nil LLM client")
 		logger.Error(err.Error())
 		return nil, nil, err
 	}
-	logger.Debug("initializeCoreComponents received LLMClient.")
+	logger.Debug("InitializeCoreComponents received LLMClient.")
 
 	// Interpreter setup
 	if app.Config.SandboxDir == "" {

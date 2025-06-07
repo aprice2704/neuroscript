@@ -415,3 +415,81 @@
  * **Next Steps:** Implement real Vector DB/Git integration tools; Add more built-in functions/tools (HTTP, JSON, etc.); Refine AI integration (agent routing, context passing, configuration); Consider LSP server implementation.
  
  ---
+ ## 9. Fuzzy Logic Support 🧠 Fuzzy Logic Extension Specification for NeuroScript
+
+To be added for 0.4.0
+
+ #### §F.1 – Type: `fuzzy`
+ - A `fuzzy` value is a real number in the closed interval `[0.0, 1.0]`.
+ - Semantically represents degrees of truth, confidence, similarity, or match strength.
+ - Values outside `[0.0, 1.0]` MUST raise a runtime or validation error.
+
+ #### §F.2 – Fuzzy Value Literals
+ - `true` and `false` may be implicitly coerced to `1.0` and `0.0` respectively in fuzzy expressions.
+ - Readability aliases MAY be defined:
+
+ | Alias       | Value |
+ |-------------|-------|
+ | `definitely`| `1.0` |
+ | `likely`    | `0.75`|
+ | `maybe`     | `0.5` |
+ | `unlikely`  | `0.25`|
+ | `never`     | `0.0` |
+
+ #### §F.3 – Fuzzy Logical Operators
+ Let `a` and `b` be values of type `fuzzy`.
+
+ | Operator | Description             | Semantics               |
+ |----------|-------------------------|--------------------------|
+ | `!a`     | NOT                     | `1 - a`                  |
+ | `a & b`  | AND                     | `min(a, b)`              |
+ | `a | b`  | OR                      | `max(a, b)`              |
+ | `a ⇒ b`  | Implication             | `max(1 - a, b)` (Gödel)  |
+ | `a ↔ b`  | Biconditional (IFF)     | `1 - abs(a - b)`         |
+
+ > Implementations MAY allow ASCII alternatives: `->` for `⇒`, `<->` or `<=>` for `↔`.
+
+ #### §F.4 – Comparison & Coercion Rules
+ - Comparisons (e.g. `a > 0.6`, `a == b`) between `fuzzy` values yield a `bool`.
+ - Fuzzy values MAY be explicitly coerced to `bool` via thresholding:
+
+ ```neuroscript
+ if confidence > 0.8:
+   take_action()
+ endif
+ ```
+
+ - Expressions used in control flow statements (`if`, `while`, `until`) MUST evaluate to `bool`.
+
+ #### §F.5 – Fuzzy-Aware Expressions
+ - Arithmetic on `fuzzy` values (e.g. `a + b`, `a / 2.0`) is permitted and returns a `fuzzy`.
+ - Division by zero MUST be an error, even in fuzzy contexts.
+
+ #### §F.6 – Fuzzy Value Semantics in Context
+ Fuzzy values MAY be used to express:
+
+ | Use Case                  | Example                        |
+ |---------------------------|--------------------------------|
+ | Confidence from LLM       | `similarity = 0.76`            |
+ | Partial checklist         | `step.completion = 0.4`        |
+ | Graded rule match         | `if pattern_score > 0.65:`     |
+ | Agent belief state        | `belief = rule_a ⇒ rule_b`     |
+
+ #### §F.7 – Fuzzy Aggregation Patterns
+ NS scripts MAY implement aggregate fuzzy logic using idioms such as:
+
+ ```neuroscript
+ total = 0.0
+ for s in checklist:
+   total += s.completion
+ endfor
+ average = total / checklist.length
+ if average > 0.75:
+   emit "Checklist likely complete"
+ endif
+ ```
+
+ #### §F.8 – Implementation Notes
+ - Fuzzy and `bool` types MUST NOT be implicitly interchangeable.
+ - Runtime environments MAY use single-precision floats for storage; however, all comparisons MUST be numerically stable across `[0.0, 1.0]`.
+ - Scripts relying on fuzzy logic SHOULD explicitly threshold values before using them in control branches.

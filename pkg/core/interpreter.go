@@ -41,6 +41,7 @@ type Interpreter struct {
 	LibPaths        []string
 	stdout          io.Writer
 
+	externalHandler ToolHandler // <-- ADD THIS LINE
 	toolRegistry    *ToolRegistryImpl
 	logger          logging.Logger
 	objectCache     map[string]interface{}
@@ -53,6 +54,15 @@ type Interpreter struct {
 	rateLimitDuration  time.Duration
 
 	maxLoopIterations int
+}
+
+type ToolHandler interface {
+	CallTool(toolName string, methodName string, args map[string]any) (any, error)
+}
+
+// In pkg/core/interpreter.go
+func (i *Interpreter) SetExternalToolHandler(handler ToolHandler) {
+	i.externalHandler = handler
 }
 
 // --- Constants ---
@@ -210,9 +220,58 @@ func (i *Interpreter) ListTools() []ToolSpec {
 	return i.toolRegistry.ListTools()
 }
 
+// In pkg/core/interpreter.go
+
+// executeInternalTool handles the logic for running a tool found in the interpreter's own registry.
+// This function contains the logic that was previously in ExecuteTool.
+func (i *Interpreter) executeInternalTool(impl ToolImplementation, args map[string]interface{}) (interface{}, error) {
+	validatedArgs := make([]interface{}, len(impl.Spec.Args))
+	providedArgsSet := make(map[string]bool)
+	for k := range args {
+		providedArgsSet[k] = true
+	}
+
+	for idx, argSpec := range impl.Spec.Args {
+		value, provided := args[argSpec.Name]
+		if !provided {
+			if argSpec.Required {
+				i.logger.Error("Required argument missing for tool", "tool_name", impl.Spec.Name, "arg_name", argSpec.Name)
+				return nil, NewRuntimeError(ErrorCodeArgMismatch, fmt.Sprintf("tool '%s': missing required argument '%s'", impl.Spec.Name, argSpec.Name), ErrArgumentMismatch)
+			}
+			validatedArgs[idx] = nil // Use default value for optional arg
+		} else {
+			validatedArgs[idx] = value
+			delete(providedArgsSet, argSpec.Name)
+		}
+	}
+
+	if len(providedArgsSet) > 0 {
+		extraArgs := []string{}
+		for name := range providedArgsSet {
+			extraArgs = append(extraArgs, name)
+		}
+		i.logger.Warn("Extraneous arguments provided to tool", "tool_name", impl.Spec.Name, "extra_args", strings.Join(extraArgs, ", "))
+	}
+
+	i.logger.Debug("Executing internal tool function", "tool_name", impl.Spec.Name)
+	result, err := impl.Func(i, validatedArgs)
+	if err != nil {
+		if _, ok := err.(*RuntimeError); !ok {
+			i.logger.Error("Tool execution failed with non-runtime error", "tool_name", impl.Spec.Name, "error", err)
+			return nil, NewRuntimeError(ErrorCodeToolExecutionFailed, fmt.Sprintf("tool '%s' execution failed: %v", impl.Spec.Name, err), err)
+		}
+		i.logger.Error("Tool execution failed", "tool_name", impl.Spec.Name, "error", err)
+		return nil, err
+	}
+	return result, nil
+}
+
+// ExecuteTool attempts to run a tool, checking the internal registry first,
+// then delegating to an external tool handler if one is set.
 func (i *Interpreter) ExecuteTool(toolName string, args map[string]interface{}) (interface{}, error) {
 	i.logger.Debug("Attempting to execute tool", "tool_name", toolName, "args_count", len(args))
 
+	// Rate limiting logic remains the same
 	now := time.Now()
 	if i.rateLimitCount > 0 && i.rateLimitDuration > 0 {
 		timestamps := i.toolCallTimestamps[toolName]
@@ -234,54 +293,36 @@ func (i *Interpreter) ExecuteTool(toolName string, args map[string]interface{}) 
 		i.toolCallTimestamps[toolName] = validTimestamps
 	}
 
+	// 1. Try internal registry first.
 	impl, found := i.GetTool(toolName)
-	if !found {
-		i.logger.Error("Tool not found during execution attempt", "tool_name", toolName)
-		return nil, NewRuntimeError(ErrorCodeToolNotFound, fmt.Sprintf("tool '%s' not found", toolName), ErrToolNotFound)
+	if found {
+		return i.executeInternalTool(impl, args)
 	}
 
-	validatedArgs := make([]interface{}, len(impl.Spec.Args))
-	providedArgsSet := make(map[string]bool)
-	for k := range args {
-		providedArgsSet[k] = true
-	}
+	// 2. If not found, try the external handler (our FDM bridge).
+	if i.externalHandler != nil {
+		i.logger.Debug("Tool not found in internal registry, delegating to external handler", "tool_name", toolName)
 
-	for idx, argSpec := range impl.Spec.Args {
-		value, provided := args[argSpec.Name]
-		if !provided {
-			if argSpec.Required {
-				i.logger.Error("Required argument missing for tool", "tool_name", toolName, "arg_name", argSpec.Name)
-				return nil, NewRuntimeError(ErrorCodeArgMismatch, fmt.Sprintf("tool '%s': missing required argument '%s'", toolName, argSpec.Name), ErrArgumentMismatch)
-			}
-			validatedArgs[idx] = nil
-			i.logger.Debug("Optional argument not provided, using default (nil)", "tool_name", toolName, "arg_name", argSpec.Name)
-		} else {
-			validatedArgs[idx] = value
-			delete(providedArgsSet, argSpec.Name)
+		// For the FDM bridge, we expect a 'method' argument to specify the sub-command (e.g., "get_node").
+		methodName, ok := args["method"].(string)
+		if !ok {
+			return nil, NewRuntimeError(ErrorCodeArgMismatch, fmt.Sprintf("external tool call to '%s' requires a 'method' argument of type string", toolName), ErrArgumentMismatch)
 		}
-	}
 
-	if len(providedArgsSet) > 0 {
-		extraArgs := []string{}
-		for name := range providedArgsSet {
-			extraArgs = append(extraArgs, name)
+		result, err := i.externalHandler.CallTool(toolName, methodName, args)
+		if err != nil {
+			i.logger.Error("External tool handler failed", "tool_name", toolName, "method", methodName, "error", err)
+			// It's good practice to wrap the error for context.
+			return nil, NewRuntimeError(ErrorCodeToolExecutionFailed, fmt.Sprintf("external tool '%s' (method: %s) failed: %v", toolName, methodName, err), err)
 		}
-		i.logger.Warn("Extraneous arguments provided to tool", "tool_name", toolName, "extra_args", strings.Join(extraArgs, ", "))
+
+		i.logger.Debug("External tool handler executed successfully", "tool_name", toolName, "method", methodName)
+		return result, nil
 	}
 
-	i.logger.Debug("Executing tool function", "tool_name", toolName)
-	result, err := impl.Func(i, validatedArgs)
-	if err != nil {
-		if _, ok := err.(*RuntimeError); !ok {
-			i.logger.Error("Tool execution failed with non-runtime error", "tool_name", toolName, "error", err)
-			return nil, NewRuntimeError(ErrorCodeToolExecutionFailed, fmt.Sprintf("tool '%s' execution failed: %v", toolName, err), err)
-		}
-		i.logger.Error("Tool execution failed", "tool_name", toolName, "error", err)
-		return nil, err
-	}
-
-	i.logger.Debug("Tool execution successful", "tool_name", toolName, "result_type", fmt.Sprintf("%T", result))
-	return result, nil
+	// 3. If not found anywhere, return an error.
+	i.logger.Error("Tool not found in internal registry or external handler", "tool_name", toolName)
+	return nil, NewRuntimeError(ErrorCodeToolNotFound, fmt.Sprintf("tool '%s' not found", toolName), ErrToolNotFound)
 }
 
 func (i *Interpreter) SetAIWorkerManager(manager *AIWorkerManager) {

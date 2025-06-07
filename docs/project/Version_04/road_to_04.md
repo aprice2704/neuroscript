@@ -44,6 +44,9 @@
          - [ ] Ensure `on_error` blocks correctly catch panics triggered by all forms of `must`.
          - [ ] Provide a built-in `IsError(value)` helper function/tool to check if a value is a standard `error` map.
      - [-] ~~simplify returned arg checking~~ (Superseded by "Standardize Tool Error Returns & Enhance `must` Keyword" above)
+     - [ ] error type
+     - [ ] timedate type
+     - [ ] Add fuzzy logic support into ns
  
  - [ ] 2. WM (Worker Management) System
      - [X] **Define Core Work Queue Abstraction (v0.4.0 Scope - In-Memory):**

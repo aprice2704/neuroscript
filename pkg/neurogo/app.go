@@ -44,6 +44,12 @@ type App struct {
 	// --- End Chat Session Management Fields ---
 }
 
+// In pkg/neurogo/app.go
+
+func (a *App) Interpreter() *core.Interpreter { // Use the correct type for your interpreter
+	return a.interpreter
+}
+
 // SetInterpreter allows setting the interpreter after App creation.
 func (a *App) SetInterpreter(interp *core.Interpreter) {
 	a.mu.Lock()
@@ -66,7 +72,7 @@ func (a *App) SetAIWorkerManager(wm *core.AIWorkerManager) {
 func (a *App) Run() error {
 	a.Log.Info("NeuroScript application starting...", "version", "0.4.0") // Version can be updated
 
-	if err := a.initializeCoreComponents(); err != nil {
+	if err := a.InitializeCoreComponents(); err != nil {
 		a.Log.Error("Failed to initialize core components", "error", err)
 		return fmt.Errorf("core component initialization failed: %w", err)
 	}
@@ -139,7 +145,7 @@ func (a *App) Context() context.Context {
 	return a.appCtx
 }
 
-func (a *App) initializeCoreComponents() error {
+func (a *App) InitializeCoreComponents() error {
 	a.Log.Debug("Initializing core components...")
 	a.mu.Lock() // Lock for setting llmClient and interpreter
 	defer a.mu.Unlock()
@@ -151,7 +157,7 @@ func (a *App) initializeCoreComponents() error {
 		// For now, let's assume a.Config.APIKey and a.Config.Provider are used.
 		// This is a placeholder for actual LLM client creation logic.
 		// The actual creation is in app_init.go's CreateLLMClient method which NewApp calls.
-		// This path in initializeCoreComponents might be for a scenario where it wasn't pre-created.
+		// This path in InitializeCoreComponents might be for a scenario where it wasn't pre-created.
 		// For now, ensure it gets a client if nil.
 		if a.Config != nil { // Check if config exists to create a client
 			createdClient, err := a.CreateLLMClient() // CreateLLMClient is on *App
@@ -289,7 +295,7 @@ func (a *App) ExecuteScriptLine(ctx context.Context, line string) {
 	a.Log.Info("Script line received by App (from TUI)", "line", line)
 }
 
-// CreateLLMClient function (as it appeared in app_init.go, now part of app.go for self-containment, can be called by NewApp or initializeCoreComponents)
+// CreateLLMClient function (as it appeared in app_init.go, now part of app.go for self-containment, can be called by NewApp or InitializeCoreComponents)
 // This function creates an LLM client based on application configuration.
 func (app *App) CreateLLMClient() (core.LLMClient, error) {
 	if app.Config == nil {

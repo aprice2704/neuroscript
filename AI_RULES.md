@@ -21,7 +21,7 @@ Follow these **CORE RULES** **very strictly** for all Go code contributions to t
     * At the top of **every Go file you modify**, include the following, bumping the `File version` minor number:
         ```go
         // NeuroScript Version: 0.3.0 // (Or current project version)
-        // File version: 0.1.X // (X is bumped)
+        // File version: X // (X is an integer bumped, if it starts as semantic convert to just the last number so 0.1.7 -> 8)
         // Purpose: Brief description of file's role or recent change
         // filename: path/to/your/file.go
         // nlines: YYY (actual number of lines in this file)

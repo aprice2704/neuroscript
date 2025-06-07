@@ -36,20 +36,20 @@ func NewApp(config *Config, logger logging.Logger, llmclient core.LLMClient) (*A
 		Log:        logger,
 		appCtx:     appCtx,
 		cancelFunc: cancelFunc,
-		// chatSessions map is initialized in initializeCoreComponents
+		// chatSessions map is initialized in InitializeCoreComponents
 	}
 
 	// If an LLM client is passed in (e.g., from tests or specific setup), use it.
-	// Otherwise, initializeCoreComponents will create one.
+	// Otherwise, InitializeCoreComponents will create one.
 	if llmclient != nil {
 		a.llmClient = llmclient
 		a.Log.Info("LLM Client provided to NewApp and assigned.")
 	} else {
-		// llmClient will be created in initializeCoreComponents
+		// llmClient will be created in InitializeCoreComponents
 		a.Log.Debug("No LLM client provided to NewApp; will be created during core component initialization.")
 	}
 
-	a.Log.Debug("Basic App struct initialized. Core components (including LLMClient if not provided) will be initialized by Run->initializeCoreComponents.")
+	a.Log.Debug("Basic App struct initialized. Core components (including LLMClient if not provided) will be initialized by Run->InitializeCoreComponents.")
 	return a, nil
 }
 
