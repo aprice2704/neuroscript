@@ -55,7 +55,6 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250414145226-207652e42e2e // indirect
 	google.golang.org/grpc v1.71.1 // indirect
 	google.golang.org/protobuf v1.36.6 // indirect
-	moul.io/txtar v0.0.0-20250124080229-fca4e103cafd // indirect
 )
 
 require (

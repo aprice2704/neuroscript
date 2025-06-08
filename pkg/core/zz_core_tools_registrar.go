@@ -42,6 +42,8 @@ func registerCoreToolBundle() {
 	toolsToRegister = append(toolsToRegister, fileApiToolsToRegister...)
 	toolsToRegister = append(toolsToRegister, metaToolsToRegister...)
 	toolsToRegister = append(toolsToRegister, syntaxToolsToRegister...)
+	toolsToRegister = append(toolsToRegister, timeToolsToRegister...)
+	toolsToRegister = append(toolsToRegister, errorToolsToRegister...)
 
 	if len(toolsToRegister) > 0 {
 		AddToolImplementations(toolsToRegister...)

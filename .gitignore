@@ -41,3 +41,4 @@ pkg/codebase-indices/*.json
 bin/
 
 cmd/nslsp/nslsp_executable
+vscode-neuroscript/vscode-neuroscript-0.3.0.vsix
