@@ -7,6 +7,7 @@
 *.dll
 *.so
 *.dylib
+*.zip
 
 # Test binary, built with `go test -c`
 *.test
@@ -25,9 +26,16 @@ go.work.sum
 .env
 cmd/neurogo/neurogo
 cmd/nspatch/nspatch
+cmd/nspatch/cfiles
+cmd/nspatch/gensync
 cmd/block_printer/block_printer
-library/combined.log.txt
 cmd/nslsp/nslsp_executable
+cmd/goindexer
+cmd/ng/ng
+cmd/nsinput/nsinput
+cmd/nssync/nssync
+
+library/combined.log.txt
 vscode-neuroscript/server/nslsp_executable
 pkg/codebase-indices/*.json
 bin/
