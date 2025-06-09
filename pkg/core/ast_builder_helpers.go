@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+
+	"github.com/antlr4-go/antlr/v4"
 	// Import other necessary core types if needed by helpers
 )
 
@@ -164,4 +166,30 @@ func unescapeString(quotedStr string) (string, error) {
 		return "", fmt.Errorf("invalid string literal %q: %w", quotedStr, err)
 	}
 	return unquoted, nil
+}
+
+// --- Position Helper ---
+
+// tokenToPosition converts an ANTLR token to a core.Position.
+// It sets the exported fields Line, Column, and File.
+func tokenToPosition(token antlr.Token) *Position {
+	if token == nil {
+		// *** CORRECTED LINE BELOW: Removed unexported 'token' field ***
+		return &Position{Line: 0, Column: 0, File: "<nil token>"} // Return a default invalid position
+	}
+	// Handle potential nil InputStream or SourceName gracefully
+	sourceName := "<unknown>"
+	if token.GetInputStream() != nil {
+		sourceName = token.GetInputStream().GetSourceName()
+		if sourceName == "<INVALID>" { // Use a more descriptive name if ANTLR provides one
+			sourceName = "<input stream>"
+		}
+	}
+	// *** CORRECTED LINE BELOW: Removed unexported 'token' field ***
+	return &Position{
+		Line:   token.GetLine(),
+		Column: token.GetColumn() + 1, // ANTLR columns are 0-based, prefer 1-based
+		File:   sourceName,
+		// Length: len(token.GetText()), // Add if needed by Position struct consumers
+	}
 }

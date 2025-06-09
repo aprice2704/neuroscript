@@ -71,10 +71,6 @@ func (v *BaseNeuroScriptVisitor) VisitSet_statement(ctx *Set_statementContext) i
 	return v.VisitChildren(ctx)
 }
 
-func (v *BaseNeuroScriptVisitor) VisitExpressionStatement(ctx *ExpressionStatementContext) interface{} {
-	return v.VisitChildren(ctx)
-}
-
 func (v *BaseNeuroScriptVisitor) VisitCall_statement(ctx *Call_statementContext) interface{} {
 	return v.VisitChildren(ctx)
 }
@@ -124,6 +120,10 @@ func (v *BaseNeuroScriptVisitor) VisitFor_each_statement(ctx *For_each_statement
 }
 
 func (v *BaseNeuroScriptVisitor) VisitOnErrorStmt(ctx *OnErrorStmtContext) interface{} {
+	return v.VisitChildren(ctx)
+}
+
+func (v *BaseNeuroScriptVisitor) VisitOnEventStmt(ctx *OnEventStmtContext) interface{} {
 	return v.VisitChildren(ctx)
 }
 

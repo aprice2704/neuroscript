@@ -55,9 +55,6 @@ type NeuroScriptListener interface {
 	// EnterSet_statement is called when entering the set_statement production.
 	EnterSet_statement(c *Set_statementContext)
 
-	// EnterExpressionStatement is called when entering the expressionStatement production.
-	EnterExpressionStatement(c *ExpressionStatementContext)
-
 	// EnterCall_statement is called when entering the call_statement production.
 	EnterCall_statement(c *Call_statementContext)
 
@@ -96,6 +93,9 @@ type NeuroScriptListener interface {
 
 	// EnterOnErrorStmt is called when entering the onErrorStmt production.
 	EnterOnErrorStmt(c *OnErrorStmtContext)
+
+	// EnterOnEventStmt is called when entering the onEventStmt production.
+	EnterOnEventStmt(c *OnEventStmtContext)
 
 	// EnterQualified_identifier is called when entering the qualified_identifier production.
 	EnterQualified_identifier(c *Qualified_identifierContext)
@@ -229,9 +229,6 @@ type NeuroScriptListener interface {
 	// ExitSet_statement is called when exiting the set_statement production.
 	ExitSet_statement(c *Set_statementContext)
 
-	// ExitExpressionStatement is called when exiting the expressionStatement production.
-	ExitExpressionStatement(c *ExpressionStatementContext)
-
 	// ExitCall_statement is called when exiting the call_statement production.
 	ExitCall_statement(c *Call_statementContext)
 
@@ -270,6 +267,9 @@ type NeuroScriptListener interface {
 
 	// ExitOnErrorStmt is called when exiting the onErrorStmt production.
 	ExitOnErrorStmt(c *OnErrorStmtContext)
+
+	// ExitOnEventStmt is called when exiting the onEventStmt production.
+	ExitOnEventStmt(c *OnEventStmtContext)
 
 	// ExitQualified_identifier is called when exiting the qualified_identifier production.
 	ExitQualified_identifier(c *Qualified_identifierContext)

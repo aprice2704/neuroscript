@@ -55,9 +55,6 @@ type NeuroScriptVisitor interface {
 	// Visit a parse tree produced by NeuroScriptParser#set_statement.
 	VisitSet_statement(ctx *Set_statementContext) interface{}
 
-	// Visit a parse tree produced by NeuroScriptParser#expressionStatement.
-	VisitExpressionStatement(ctx *ExpressionStatementContext) interface{}
-
 	// Visit a parse tree produced by NeuroScriptParser#call_statement.
 	VisitCall_statement(ctx *Call_statementContext) interface{}
 
@@ -96,6 +93,9 @@ type NeuroScriptVisitor interface {
 
 	// Visit a parse tree produced by NeuroScriptParser#onErrorStmt.
 	VisitOnErrorStmt(ctx *OnErrorStmtContext) interface{}
+
+	// Visit a parse tree produced by NeuroScriptParser#onEventStmt.
+	VisitOnEventStmt(ctx *OnEventStmtContext) interface{}
 
 	// Visit a parse tree produced by NeuroScriptParser#qualified_identifier.
 	VisitQualified_identifier(ctx *Qualified_identifierContext) interface{}

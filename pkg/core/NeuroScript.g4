@@ -1,10 +1,9 @@
 // File:        NeuroScript.g4
 // Grammar:     NeuroScript
-// Version:     0.4.1
-// File version: 61
-// Ver_Comment: Added new built-in type keywords (error, event, timedate, fuzzy).
+// Version:     0.4.2
+// File version: 63
+// Ver_Comment: Corrected syntax error in WHILE keyword definition.
 // Date:        2025-06-08
-// NOTES:
 
 grammar NeuroScript;
 
@@ -16,6 +15,7 @@ LINE_ESCAPE_GLOBAL : '\\' ('\r'? '\n' | '\r') -> channel(HIDDEN);
 // Keywords
 KW_ACOS       : 'acos';
 KW_AND        : 'and';
+KW_AS         : 'as';
 KW_ASIN       : 'asin';
 KW_ASK        : 'ask';
 KW_ATAN       : 'atan';
@@ -27,6 +27,7 @@ KW_COS        : 'cos';
 KW_EACH       : 'each';
 KW_ELSE       : 'else';
 KW_EMIT       : 'emit';
+KW_ENDEVENT   : 'endevent';
 KW_ENDFOR     : 'endfor';
 KW_ENDFUNC    : 'endfunc';
 KW_ENDIF      : 'endif';
@@ -53,6 +54,7 @@ KW_NEEDS      : 'needs';
 KW_NIL        : 'nil';
 KW_NO         : 'no';
 KW_NOT        : 'not';
+KW_ON         : 'on';
 KW_ON_ERROR   : 'on_error';
 KW_OPTIONAL   : 'optional';
 KW_OR         : 'or';
@@ -123,16 +125,16 @@ NEWLINE: ('\r'? '\n' | '\r');
 WS: [ \t]+ -> channel(HIDDEN);
 
 fragment EscapeSequence: '\\' ( UNICODE_ESC | HEX_ESC | OCTAL_ESC | CHAR_ESC );
-fragment CHAR_ESC: ["'\\btnfrv~`]; // Note: Added ~ and ` as escapable characters based on some contexts
+fragment CHAR_ESC: ["'\\btnfrv~`];
 fragment UNICODE_ESC: 'u' HEX_DIGIT HEX_DIGIT HEX_DIGIT HEX_DIGIT;
 fragment HEX_ESC: 'x' HEX_DIGIT HEX_DIGIT;
-fragment OCTAL_ESC: [0-3]? [0-7] [0-7]; // Allows up to 377 octal
+fragment OCTAL_ESC: [0-3]? [0-7] [0-7];
 fragment HEX_DIGIT: [0-9a-fA-F];
 
 // --- PARSER RULES ---
-program: file_header (procedure_definition NEWLINE*)* EOF;
+program: file_header ( (procedure_definition | onEventStmt) NEWLINE* )* EOF;
 
-file_header: (METADATA_LINE | NEWLINE)*; // Optional metadata lines at the start
+file_header: (METADATA_LINE | NEWLINE)*;
 
 procedure_definition:
     KW_FUNC IDENTIFIER signature_part KW_MEANS NEWLINE
@@ -145,14 +147,14 @@ signature_part:
     | needs_clause optional_clause? returns_clause?
     | optional_clause returns_clause?
     | returns_clause
-    | /* empty */ ; // Allows func foo means ...
+    | /* empty */ ;
 
 needs_clause: KW_NEEDS param_list;
 optional_clause: KW_OPTIONAL param_list;
 returns_clause: KW_RETURNS param_list;
 param_list: IDENTIFIER (COMMA IDENTIFIER)*;
 
-metadata_block: (METADATA_LINE NEWLINE)*; // Metadata specific to a function
+metadata_block: (METADATA_LINE NEWLINE)*;
 
 statement_list: body_line*;
 body_line: statement NEWLINE | NEWLINE;
@@ -179,13 +181,9 @@ block_statement:
     | onErrorStmt
     ;
 
-// --- MODIFIED RULE for set_statement and NEW lvalue rule ---
 lvalue: IDENTIFIER ( LBRACK expression RBRACK | DOT IDENTIFIER )* ;
 
 set_statement: KW_SET lvalue ASSIGN expression;
-// --- END OF MODIFIED RULES ---
-
-expressionStatement: expression ; // For potential future use or expression-only lines if allowed
 
 call_statement: KW_CALL callable_expr;
 
@@ -225,11 +223,17 @@ onErrorStmt:
     statement_list
     KW_ENDON;
 
+// New rule for 'on event' blocks
+onEventStmt:
+    KW_ON KW_EVENT expression (KW_AS IDENTIFIER)? NEWLINE
+    statement_list
+    KW_ENDEVENT;
+
 qualified_identifier: IDENTIFIER (DOT IDENTIFIER)*;
 
 call_target: IDENTIFIER | KW_TOOL DOT qualified_identifier ;
 
-expression: logical_or_expr; // Precedence: OR is lowest for binary logical
+expression: logical_or_expr;
 logical_or_expr: logical_and_expr (KW_OR logical_and_expr)*;
 logical_and_expr: bitwise_or_expr (KW_AND bitwise_or_expr)*;
 bitwise_or_expr: bitwise_xor_expr (PIPE bitwise_xor_expr)*;
@@ -244,8 +248,8 @@ unary_expr:
     | KW_TYPEOF unary_expr
     | power_expr
     ;
-power_expr: accessor_expr (STAR_STAR power_expr)?; // Right-associative for power
-accessor_expr: primary ( LBRACK expression RBRACK )* ; // Handles x[y][z] type access
+power_expr: accessor_expr (STAR_STAR power_expr)?;
+accessor_expr: primary ( LBRACK expression RBRACK )* ;
 primary:
     literal
     | placeholder

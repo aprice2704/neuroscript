@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.4.1
-// File version: 2
-// Purpose: Defines the core Value interface and structs, including primitive wrappers.
-// filename: core/values.go
-// nlines: 115
+// File version: 3
+// Purpose: Added ListValue and MapValue types for complex data structures.
+// filename: pkg/core/values.go
+// nlines: 155 // Approximate
 // risk_rating: MEDIUM
 
 package core
@@ -10,6 +10,7 @@ package core
 import (
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -51,6 +52,36 @@ func (v NilValue) String() string        { return "nil" }
 func (v NilValue) IsTruthy() bool        { return false }
 
 // --- Complex Value Types ---
+
+// ListValue wraps a slice of Value.
+type ListValue struct {
+	Value []Value
+}
+
+func (v ListValue) Type() NeuroScriptType { return TypeList }
+func (v ListValue) String() string {
+	items := make([]string, len(v.Value))
+	for i, item := range v.Value {
+		items[i] = item.String()
+	}
+	return fmt.Sprintf("[%s]", strings.Join(items, ", "))
+}
+func (v ListValue) IsTruthy() bool { return len(v.Value) > 0 }
+
+// MapValue wraps a map of string to Value.
+type MapValue struct {
+	Value map[string]Value
+}
+
+func (v MapValue) Type() NeuroScriptType { return TypeMap }
+func (v MapValue) String() string {
+	items := make([]string, 0, len(v.Value))
+	for k, val := range v.Value {
+		items = append(items, fmt.Sprintf("%q: %s", k, val.String()))
+	}
+	return fmt.Sprintf("{%s}", strings.Join(items, ", "))
+}
+func (v MapValue) IsTruthy() bool { return len(v.Value) > 0 }
 
 // ErrorValue represents a structured error, conforming to the standardized error map.
 type ErrorValue struct {
@@ -109,3 +140,21 @@ func NewFuzzyValue(val float64) FuzzyValue {
 func (v FuzzyValue) Type() NeuroScriptType { return TypeFuzzy }
 func (v FuzzyValue) String() string        { return strconv.FormatFloat(v.μ, 'f', -1, 64) }
 func (v FuzzyValue) IsTruthy() bool        { return v.μ > 0.5 }
+
+// --- Constructors for Complex Types ---
+
+// NewListValue is a helper to create a ListValue, ensuring the slice is initialized.
+func NewListValue(val []Value) ListValue {
+	if val == nil {
+		val = []Value{}
+	}
+	return ListValue{Value: val}
+}
+
+// NewMapValue is a helper to create a MapValue, ensuring the map is initialized.
+func NewMapValue(val map[string]Value) MapValue {
+	if val == nil {
+		val = make(map[string]Value)
+	}
+	return MapValue{Value: val}
+}

@@ -116,12 +116,6 @@ func (s *BaseNeuroScriptListener) EnterSet_statement(ctx *Set_statementContext) 
 // ExitSet_statement is called when production set_statement is exited.
 func (s *BaseNeuroScriptListener) ExitSet_statement(ctx *Set_statementContext) {}
 
-// EnterExpressionStatement is called when production expressionStatement is entered.
-func (s *BaseNeuroScriptListener) EnterExpressionStatement(ctx *ExpressionStatementContext) {}
-
-// ExitExpressionStatement is called when production expressionStatement is exited.
-func (s *BaseNeuroScriptListener) ExitExpressionStatement(ctx *ExpressionStatementContext) {}
-
 // EnterCall_statement is called when production call_statement is entered.
 func (s *BaseNeuroScriptListener) EnterCall_statement(ctx *Call_statementContext) {}
 
@@ -199,6 +193,12 @@ func (s *BaseNeuroScriptListener) EnterOnErrorStmt(ctx *OnErrorStmtContext) {}
 
 // ExitOnErrorStmt is called when production onErrorStmt is exited.
 func (s *BaseNeuroScriptListener) ExitOnErrorStmt(ctx *OnErrorStmtContext) {}
+
+// EnterOnEventStmt is called when production onEventStmt is entered.
+func (s *BaseNeuroScriptListener) EnterOnEventStmt(ctx *OnEventStmtContext) {}
+
+// ExitOnEventStmt is called when production onEventStmt is exited.
+func (s *BaseNeuroScriptListener) ExitOnEventStmt(ctx *OnEventStmtContext) {}
 
 // EnterQualified_identifier is called when production qualified_identifier is entered.
 func (s *BaseNeuroScriptListener) EnterQualified_identifier(ctx *Qualified_identifierContext) {}

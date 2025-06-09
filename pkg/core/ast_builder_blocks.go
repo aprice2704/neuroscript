@@ -1,9 +1,8 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.0.7 // AST Block context and procedure body step handling refinement
-// Last Modified: 2025-06-02
-// Purpose: Refines AST block context management for procedures, if/else, loops, and on_error handlers to ensure correct valueStack operations.
+// File version: 0.0.8
+// Purpose: Made statement list aware of 'on event' blocks to correctly manage contexts.
 // filename: pkg/core/ast_builder_blocks.go
-// nlines: 290
+// nlines: 304
 // risk_rating: HIGH
 package core
 
@@ -91,6 +90,9 @@ func (l *neuroScriptListenerImpl) EnterStatement_list(ctx *gen.Statement_listCon
 			l.logDebugAST("     Statement_list is for IF-ELSE body")
 			l.enterBlockContext("IF_ELSE_BODY")
 		}
+	} else if _, ok := parentRuleContext.(*gen.OnEventStmtContext); ok {
+		l.logDebugAST("     Statement_list is for ON_EVENT body")
+		l.enterBlockContext("ON_EVENT_BODY")
 	}
 	// For WHILE, FOR_EACH, ON_ERROR, their respective Enter<Block>_statement methods
 	// are responsible for calling enterBlockContext.
@@ -123,6 +125,9 @@ func (l *neuroScriptListenerImpl) ExitStatement_list(ctx *gen.Statement_listCont
 			l.logDebugAST("     Exiting Statement_list for IF-ELSE body, calling exitBlockContext.")
 			l.exitBlockContext("IF_ELSE_BODY") // This pushes the else-steps to valueStack
 		}
+	} else if _, ok := parentRuleContext.(*gen.OnEventStmtContext); ok {
+		l.logDebugAST("     Exiting Statement_list for ON_EVENT body, calling exitBlockContext.")
+		l.exitBlockContext("ON_EVENT_BODY")
 	}
 	// For WHILE, FOR_EACH, ON_ERROR, their respective Exit<Block>_statement methods
 	// will call exitBlockContext to push their steps.
