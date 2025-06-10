@@ -12,16 +12,16 @@ import (
 	"os"
 
 	"github.com/aprice2704/neuroscript/pkg/core" // ChatSession is in core or neurogo? Assuming neurogo for now.
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	// If ChatSession is in neurogo package itself, core import might not be needed for it.
 	// Let's assume ChatSession is defined in the neurogo package (e.g. chat_session.go)
-	"github.com/aprice2704/neuroscript/pkg/logging"
 )
 
 // WMStatusViewDataProvider defines the methods required by the WMStatusScreen
 // (or its Formatter) to fetch the data it needs to display.
 // The main App struct will implement this interface.
 type WMStatusViewDataProvider interface {
-	GetLogger() logging.Logger
+	GetLogger() interfaces.Logger
 	GetAIWorkerManager() *core.AIWorkerManager
 }
 

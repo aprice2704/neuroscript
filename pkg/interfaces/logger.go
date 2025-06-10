@@ -1,5 +1,5 @@
-// filename: pkg/logging/logger.go
-package logging
+// filename: pkg/interfaces/logger.go
+package interfaces
 
 import "log/slog" // Import slog for level constants mapping
 

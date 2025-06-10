@@ -8,7 +8,8 @@ import (
 	"strings"
 
 	// Import time for placeholder type
-	"github.com/aprice2704/neuroscript/pkg/core"
+
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/google/generative-ai-go/genai"
 )
 
@@ -16,7 +17,7 @@ import (
 func updateAccumulatedURIs(
 	ctx context.Context,
 	a *App,
-	llmClient core.LLMClient,
+	llmClient interfaces.LLMClient,
 	absSyncedDir string,
 	accumulatedContextURIs *[]string,
 ) {

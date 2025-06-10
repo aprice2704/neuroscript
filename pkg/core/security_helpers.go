@@ -12,8 +12,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/aprice2704/neuroscript/pkg/logging" // Needed for logger in CreateSuccess
-	"github.com/google/generative-ai-go/genai"      // Needed for genai types
+	// Needed for logger in CreateSuccess
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
+	"github.com/google/generative-ai-go/genai" // Needed for genai types
 )
 
 // --- CreateErrorFunctionResultPart unchanged ---
@@ -31,7 +32,7 @@ func CreateErrorFunctionResultPart(qualifiedToolName string, execErr error) gena
 }
 
 // --- CreateSuccessFunctionResultPart unchanged ---
-func CreateSuccessFunctionResultPart(qualifiedToolName string, resultValue interface{}, logger logging.Logger) genai.Part {
+func CreateSuccessFunctionResultPart(qualifiedToolName string, resultValue interface{}, logger interfaces.Logger) genai.Part {
 	responseMap := make(map[string]interface{})
 	switch v := resultValue.(type) {
 	case map[string]interface{}:

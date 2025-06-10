@@ -8,7 +8,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/aprice2704/neuroscript/pkg/logging"
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/neurodata/metadata"
 )
 
@@ -38,7 +38,7 @@ var (
 )
 
 // ParseChecklist scans content line by line using string manipulation.
-func ParseChecklist(content string, logger logging.Logger) (*ParsedChecklist, error) {
+func ParseChecklist(content string, logger interfaces.Logger) (*ParsedChecklist, error) {
 	logger.Debug("[DEBUG ChecklistParser V12] Starting ParseChecklist (String Manipulation)") // Version bump
 
 	meta, metaErr := metadata.Extract(content)

@@ -17,7 +17,7 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/adapters"
 	"github.com/aprice2704/neuroscript/pkg/core"
-	"github.com/aprice2704/neuroscript/pkg/logging"
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/toolsets" // Required for extended toolset registration
 )
 
@@ -124,7 +124,7 @@ func sortAndFilterRenamePatches(results []interface{}, t *testing.T) ([]map[stri
 // --- Test Cases ---
 func TestGoRenameSymbol(t *testing.T) {
 	// --- Test Setup ---
-	logger, _ := adapters.NewSimpleSlogAdapter(os.Stderr, logging.LogLevelDebug)
+	logger, _ := adapters.NewSimpleSlogAdapter(os.Stderr, interfaces.LogLevelDebug)
 	logger.Debug("Test logger initialized")
 	llmClient := adapters.NewNoOpLLMClient()
 	sandboxDir := t.TempDir()

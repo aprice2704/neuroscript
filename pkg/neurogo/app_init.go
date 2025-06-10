@@ -14,11 +14,11 @@ import (
 	// "path/filepath" // No longer needed here directly
 	"github.com/aprice2704/neuroscript/pkg/adapters"
 	"github.com/aprice2704/neuroscript/pkg/core"
-	"github.com/aprice2704/neuroscript/pkg/logging"
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 )
 
 // NewApp creates and initializes a new App instance.
-func NewApp(config *Config, logger logging.Logger, llmclient core.LLMClient) (*App, error) {
+func NewApp(config *Config, logger interfaces.Logger, llmclient interfaces.LLMClient) (*App, error) {
 	if config == nil {
 		return nil, fmt.Errorf("config cannot be nil")
 	}
@@ -54,4 +54,4 @@ func NewApp(config *Config, logger logging.Logger, llmclient core.LLMClient) (*A
 }
 
 // CreateLLMClient method REMOVED from here, as it's now in app.go
-// func (app *App) CreateLLMClient() (core.LLMClient, error) { ... }
+// func (app *App) CreateLLMClient() (interfaces.LLMClient, error) { ... }

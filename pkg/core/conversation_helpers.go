@@ -11,73 +11,74 @@ import (
 	"strings"
 
 	// Keep for potential future use of timestamps
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/google/generative-ai-go/genai"
 	"github.com/google/uuid" // For placeholder ID generation
 )
 
 // ConvertGenaiContentsToConversationTurns converts a slice of *genai.Content
-// (used by ConversationManager) to a slice of *ConversationTurn (used by LLMClient.Ask).
-func ConvertGenaiContentsToConversationTurns(genaiHistory []*genai.Content) []*ConversationTurn {
+// (used by ConversationManager) to a slice of *interfaces.ConversationTurn (used by LLMClient.Ask).
+func ConvertGenaiContentsToConversationTurns(genaiHistory []*genai.Content) []*interfaces.ConversationTurn {
 	if genaiHistory == nil {
 		return nil
 	}
-	coreTurns := make([]*ConversationTurn, 0, len(genaiHistory))
+	coreTurns := make([]*interfaces.ConversationTurn, 0, len(genaiHistory))
 	for _, genaiContent := range genaiHistory {
 		if genaiContent == nil {
 			continue
 		}
 
-		var coreRole Role
+		var coreRole interfaces.Role
 		switch strings.ToLower(genaiContent.Role) {
 		case "user":
-			coreRole = RoleUser
+			coreRole = interfaces.RoleUser
 		case "model", "assistant":
-			coreRole = RoleAssistant
+			coreRole = interfaces.RoleAssistant
 		case "function":
-			coreRole = RoleTool // genai "function" role contains FunctionResponse parts for us
+			coreRole = interfaces.RoleTool // genai "function" role contains FunctionResponse parts for us
 		case "system":
-			coreRole = RoleSystem
+			coreRole = interfaces.RoleSystem
 		default:
-			coreRole = Role(genaiContent.Role) // Fallback, might need validation if strict roles are enforced
+			coreRole = interfaces.Role(genaiContent.Role) // Fallback, might need validation if strict roles are enforced
 		}
 
-		turn := &ConversationTurn{
+		turn := &interfaces.ConversationTurn{
 			Role: coreRole,
-			// core.ConversationTurn (from your llm_types.go) has:
+			// interfaces.ConversationTurn (from your llm_types.go) has:
 			// Content     string
-			// ToolCalls   []*ToolCall
-			// ToolResults []*ToolResult
+			// interfaces.ToolCalls   []*interfaces.ToolCall
+			// ToolResults []*interfaces.ToolResult
 			// TokenUsage  TokenUsageMetrics
 			// It does not have a direct Timestamp field in the provided definition.
 		}
 
 		var textContentParts []string
-		currentToolCalls := []*ToolCall{}
-		currentToolResults := []*ToolResult{}
+		currentToolCalls := []*interfaces.ToolCall{}
+		currentToolResults := []*interfaces.ToolResult{}
 
 		for _, genaiPart := range genaiContent.Parts {
 			switch p := genaiPart.(type) {
 			case genai.Text:
 				textContentParts = append(textContentParts, string(p))
 			case genai.FunctionCall:
-				// core.ToolCall has ID, Name, Arguments. genai.FunctionCall has Name, Args.
-				// We need to generate an ID for the core.ToolCall.
+				// interfaces.ToolCall has ID, Name, Arguments. genai.FunctionCall has Name, Args.
+				// We need to generate an ID for the interfaces.ToolCall.
 				callID := uuid.NewString() // Generate a unique ID for this tool call
-				currentToolCalls = append(currentToolCalls, &ToolCall{
+				currentToolCalls = append(currentToolCalls, &interfaces.ToolCall{
 					ID:        callID,
 					Name:      p.Name,
 					Arguments: p.Args,
 				})
 			case genai.FunctionResponse:
-				// This part populates core.ToolResult.
+				// This part populates interfaces.ToolResult.
 				// The genai.FunctionResponse.Name is the function name.
-				// We need to associate this with a ToolCall ID. This mapping is tricky here
+				// We need to associate this with a interfaces.ToolCall ID. This mapping is tricky here
 				// as genai.FunctionResponse doesn't carry the original call ID.
 				// For now, we'll assume the Name can be used to correlate, or that this conversion
 				// happens in a context where such correlation is possible.
 				// If genaiContent.Role was "function", this part is the primary data.
-				currentToolResults = append(currentToolResults, &ToolResult{
-					ID:     p.Name, // Placeholder: Ideally this should be the ID of the ToolCall it's responding to.
+				currentToolResults = append(currentToolResults, &interfaces.ToolResult{
+					ID:     p.Name, // Placeholder: Ideally this should be the ID of the interfaces.ToolCall it's responding to.
 					Result: p.Response,
 					// Error field is not directly in genai.FunctionResponse; errors are usually part of the Response map.
 				})
@@ -89,7 +90,7 @@ func ConvertGenaiContentsToConversationTurns(genaiHistory []*genai.Content) []*C
 		turn.ToolCalls = currentToolCalls
 		// Only assign ToolResults if the role is specifically for tool responses.
 		// genai.Content with Role "function" contains genai.FunctionResponse parts.
-		if coreRole == RoleTool {
+		if coreRole == interfaces.RoleTool {
 			turn.ToolResults = currentToolResults
 		}
 
@@ -98,9 +99,9 @@ func ConvertGenaiContentsToConversationTurns(genaiHistory []*genai.Content) []*C
 	return coreTurns
 }
 
-// ConvertCoreTurnsToGenaiContents converts a slice of *ConversationTurn
+// ConvertCoreTurnsToGenaiContents converts a slice of *interfaces.ConversationTurn
 // back to a slice of *genai.Content.
-func ConvertCoreTurnsToGenaiContents(coreTurns []*ConversationTurn) []*genai.Content {
+func ConvertCoreTurnsToGenaiContents(coreTurns []*interfaces.ConversationTurn) []*genai.Content {
 	if coreTurns == nil {
 		return nil
 	}
@@ -111,9 +112,9 @@ func ConvertCoreTurnsToGenaiContents(coreTurns []*ConversationTurn) []*genai.Con
 		}
 
 		genaiRole := string(turn.Role)
-		if turn.Role == RoleAssistant {
+		if turn.Role == interfaces.RoleAssistant {
 			genaiRole = "model" // Google's genai library uses "model" for assistant role
-		} else if turn.Role == RoleTool {
+		} else if turn.Role == interfaces.RoleTool {
 			genaiRole = "function" // Google's genai library uses "function" for tool responses
 		}
 
@@ -133,13 +134,13 @@ func ConvertCoreTurnsToGenaiContents(coreTurns []*ConversationTurn) []*genai.Con
 		}
 
 		// This part handles core.ToolResults and converts them to genai.FunctionResponse parts.
-		// This is typically when the coreTurn.Role is RoleTool.
-		if turn.Role == RoleTool {
+		// This is typically when the coreTurn.Role is interfaces.RoleTool.
+		if turn.Role == interfaces.RoleTool {
 			for _, tr := range turn.ToolResults {
 				if tr != nil {
 					var responseMap map[string]any
 					if tr.Error != "" {
-						// If there's an error in ToolResult, represent it in the map
+						// If there's an error in interfaces.ToolResult, represent it in the map
 						responseMap = map[string]any{"error": tr.Error}
 					} else {
 						// If tr.Result is already a map[string]any, use it directly.
@@ -152,7 +153,7 @@ func ConvertCoreTurnsToGenaiContents(coreTurns []*ConversationTurn) []*genai.Con
 						}
 					}
 					// The genai.FunctionResponse.Name should be the name of the function that was called.
-					// core.ToolResult.ID should correspond to the ID of the ToolCall.
+					// interfaces.ToolResult.ID should correspond to the ID of the interfaces.ToolCall.
 					// Assuming tr.ID here refers to the function name for this conversion context.
 					// This might need a lookup if tr.ID is a call ID and function name is stored elsewhere.
 					responsePart := genai.FunctionResponse{

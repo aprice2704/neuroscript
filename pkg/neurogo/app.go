@@ -16,15 +16,15 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/adapters"
 	"github.com/aprice2704/neuroscript/pkg/core"
-	"github.com/aprice2704/neuroscript/pkg/logging"
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 )
 
 // App orchestrates the main application logic.
 type App struct {
 	Config       *Config
-	Log          logging.Logger
+	Log          interfaces.Logger
 	interpreter  *core.Interpreter
-	llmClient    core.LLMClient
+	llmClient    interfaces.LLMClient
 	agentCtx     *AgentContext
 	patchHandler *PatchHandler
 	mu           sync.RWMutex // General mutex for app-level fields like interpreter, llmClient
@@ -127,7 +127,7 @@ func (a *App) runTuiMode(ctx context.Context) error {
 	return nil
 }
 
-func (a *App) GetLogger() logging.Logger {
+func (a *App) GetLogger() interfaces.Logger {
 	if a.Log == nil {
 		// This should ideally not happen if NewApp ensures logger is set.
 		return adapters.NewNoOpLogger()
@@ -135,7 +135,7 @@ func (a *App) GetLogger() logging.Logger {
 	return a.Log
 }
 
-func (a *App) GetLLMClient() core.LLMClient {
+func (a *App) GetLLMClient() interfaces.LLMClient {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 	return a.llmClient
@@ -297,7 +297,7 @@ func (a *App) ExecuteScriptLine(ctx context.Context, line string) {
 
 // CreateLLMClient function (as it appeared in app_init.go, now part of app.go for self-containment, can be called by NewApp or InitializeCoreComponents)
 // This function creates an LLM client based on application configuration.
-func (app *App) CreateLLMClient() (core.LLMClient, error) {
+func (app *App) CreateLLMClient() (interfaces.LLMClient, error) {
 	if app.Config == nil {
 		return nil, fmt.Errorf("cannot create LLM client: app config is nil")
 	}
@@ -331,7 +331,7 @@ func (app *App) CreateLLMClient() (core.LLMClient, error) {
 		loggerToUse = adapters.NewNoOpLogger() // Safety fallback
 	}
 
-	llmClient := core.NewLLMClient(apiKey, apiHost, modelName, loggerToUse, !app.Config.Insecure)
+	llmClient, _ := core.NewLLMClient(apiKey, modelName, loggerToUse)
 
 	if llmClient == nil {
 		if app.Log != nil {

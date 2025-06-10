@@ -12,7 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/aprice2704/neuroscript/pkg/logging"
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 )
 
 // FileAPI handles sandboxed file system access for the interpreter.
@@ -20,13 +20,13 @@ import (
 // within a designated root directory (sandbox).
 type FileAPI struct {
 	sandboxRoot string // The absolute, cleaned path to the sandbox directory.
-	logger      logging.Logger
+	logger      interfaces.Logger
 }
 
 // NewFileAPI creates a new FileAPI instance.
 // It resolves the provided sandboxDir to an absolute path and ensures it exists.
 // If sandboxDir is empty or ".", it defaults to the current working directory.
-func NewFileAPI(sandboxDir string, logger logging.Logger) *FileAPI {
+func NewFileAPI(sandboxDir string, logger interfaces.Logger) *FileAPI {
 	if logger == nil {
 		// Fallback to a basic logger if none provided, although Interpreter should always provide one.
 		logger = &coreNoOpLogger{}

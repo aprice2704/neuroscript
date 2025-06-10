@@ -12,8 +12,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/aprice2704/neuroscript/pkg/core"    // Import core
-	"github.com/aprice2704/neuroscript/pkg/logging" // Import logging
+	"github.com/aprice2704/neuroscript/pkg/core" // Import core
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
+	// Import logging
 	// Import packages
 )
 
@@ -196,7 +197,7 @@ func parseSemanticQuery(query string) (map[string]string, error) {
 }
 
 // findObjectInIndex performs the actual lookup in the SemanticIndex.
-func findObjectInIndex(index *SemanticIndex, pq map[string]string, logger logging.Logger) (types.Object, error) {
+func findObjectInIndex(index *SemanticIndex, pq map[string]string, logger interfaces.Logger) (types.Object, error) {
 	logger.Debug("[FINDOBJ] Starting lookup", "query", pq)
 	pkgPath := pq["package"]
 	var targetPkgInfo *PackageInfo
@@ -373,7 +374,7 @@ func isKind(obj types.Object, kind interface{}) bool {
 }
 
 // findFieldInType looks for a field within a given type object.
-func findFieldInType(typeObj types.Object, fieldName string, logger logging.Logger) (types.Object, error) {
+func findFieldInType(typeObj types.Object, fieldName string, logger interfaces.Logger) (types.Object, error) {
 	tn, ok := typeObj.(*types.TypeName)
 	if !ok {
 		return nil, fmt.Errorf("%w: expected type object for field lookup, got %T", ErrWrongKind, typeObj)
@@ -409,7 +410,7 @@ func findFieldInType(typeObj types.Object, fieldName string, logger logging.Logg
 }
 
 // findMethodOnType looks for a method on a given type object (struct or interface).
-func findMethodOnType(pkg *types.Package, typeObj types.Object, methodName string, receiverConstraint string, logger logging.Logger) (types.Object, error) {
+func findMethodOnType(pkg *types.Package, typeObj types.Object, methodName string, receiverConstraint string, logger interfaces.Logger) (types.Object, error) {
 	tn, ok := typeObj.(*types.TypeName)
 	if !ok {
 		return nil, fmt.Errorf("%w: expected type object for method lookup, got %T", ErrWrongKind, typeObj)
@@ -478,7 +479,7 @@ func findMethodOnType(pkg *types.Package, typeObj types.Object, methodName strin
 // lookupMethodWithReceiver is a helper for findMethodOnType.
 // It looks for a method with a specific name on a specific receiver type (value or pointer).
 // If receiverConstraint is non-empty, it additionally validates the receiver matches.
-func lookupMethodWithReceiver(pkg *types.Package, receiverType types.Type, methodName string, receiverConstraint string, logger logging.Logger) types.Object {
+func lookupMethodWithReceiver(pkg *types.Package, receiverType types.Type, methodName string, receiverConstraint string, logger interfaces.Logger) types.Object {
 	mset := types.NewMethodSet(receiverType)
 	sel := mset.Lookup(pkg, methodName)
 

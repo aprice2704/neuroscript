@@ -14,14 +14,14 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/adapters"
 	"github.com/aprice2704/neuroscript/pkg/core"
-	"github.com/aprice2704/neuroscript/pkg/logging"
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/toolsets"
 )
 
 func newTestInterpreterWithAllTools(t *testing.T) (*core.Interpreter, core.ToolRegistry) {
 	t.Helper()
 	tempDir := t.TempDir()
-	logger, errLog := adapters.NewSimpleSlogAdapter(os.Stderr, logging.LogLevelDebug)
+	logger, errLog := adapters.NewSimpleSlogAdapter(os.Stderr, interfaces.LogLevelDebug)
 	assertNoErrorSetup(t, errLog, "Failed to create logger")
 	if logger == nil {
 		t.Fatalf("Setup Error: Failed to create logger using SimpleTestLogger, returned nil unexpectedly")

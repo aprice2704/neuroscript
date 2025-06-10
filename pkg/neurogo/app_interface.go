@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.3.0
 // File version: 0.0.4
-// Ensured GetAIWorkerManager and GetLogger (as logging.Logger) are in AppAccess.
+// Ensured GetAIWorkerManager and GetLogger (as interfaces.Logger) are in AppAccess.
 // This is the primary AppAccess interface for the application.
 // filename: pkg/neurogo/app_interface.go
 // nlines: 28
@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/aprice2704/neuroscript/pkg/core"
-	"github.com/aprice2704/neuroscript/pkg/logging"
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/google/generative-ai-go/genai"
 )
 
@@ -24,8 +24,8 @@ type AppAccess interface {
 	GetSandboxDir() string
 	GetSyncFilter() string
 	GetSyncIgnoreGitignore() bool
-	GetLogger() logging.Logger // Must return logging.Logger
-	GetLLMClient() core.LLMClient
+	GetLogger() interfaces.Logger // Must return interfaces.Logger
+	GetLLMClient() interfaces.LLMClient
 	GetInterpreter() *core.Interpreter
 	GetAIWorkerManager() *core.AIWorkerManager // Must have this method
 	Context() context.Context

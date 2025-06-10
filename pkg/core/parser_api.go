@@ -14,14 +14,15 @@ import (
 
 	"github.com/antlr4-go/antlr/v4"
 	gen "github.com/aprice2704/neuroscript/pkg/core/generated"
-	"github.com/aprice2704/neuroscript/pkg/logging" // Standard logging interface
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
+	// Standard logging interface
 )
 
 // Note: Assumes coreNoOpLogger struct is defined in another file within this 'core' package (e.g., utils.go)
-// and implements the logging.Logger interface. Example:
+// and implements the interfaces.Logger interface. Example:
 // type coreNoOpLogger struct{}
 // func (l *coreNoOpLogger) Debug(msg string, args ...any) {}
-// ... etc. for all logging.Logger methods ...
+// ... etc. for all interfaces.Logger methods ...
 
 // StructuredSyntaxError holds detailed information about a single syntax error.
 // This structure is primarily for LSP and detailed diagnostic consumers.
@@ -35,11 +36,11 @@ type StructuredSyntaxError struct {
 
 // ParserAPI provides a simplified interface to the ANTLR parser.
 type ParserAPI struct {
-	logger logging.Logger
+	logger interfaces.Logger
 }
 
 // NewParserAPI creates a new ParserAPI instance.
-func NewParserAPI(logger logging.Logger) *ParserAPI {
+func NewParserAPI(logger interfaces.Logger) *ParserAPI {
 	if logger == nil {
 		logger = &coreNoOpLogger{} // Use coreNoOpLogger from within the core package
 	}
@@ -52,24 +53,24 @@ type ErrorListener struct {
 	*antlr.DefaultErrorListener
 	RawErrors        []string // Stores formatted error strings for general use
 	StructuredErrors []StructuredSyntaxError
-	logger           logging.Logger
+	logger           interfaces.Logger
 	sourceName       string // Optional: for context in structured errors, set by specific constructors
 }
 
 // NewErrorListener creates a new ErrorListener instance, primarily for raw error string collection.
 // This constructor is kept for compatibility with the existing Parse method.
-func NewErrorListener(logger logging.Logger) *ErrorListener {
+func NewErrorListener(logger interfaces.Logger) *ErrorListener {
 	return newErrorListenerWithSource("", logger) // Call common constructor with no sourceName
 }
 
 // NewLSPErrorListener creates a new ErrorListener with a sourceName, suitable for LSP.
 // This is a new routine.
-func NewLSPErrorListener(sourceName string, logger logging.Logger) *ErrorListener {
+func NewLSPErrorListener(sourceName string, logger interfaces.Logger) *ErrorListener {
 	return newErrorListenerWithSource(sourceName, logger)
 }
 
 // common constructor for ErrorListener
-func newErrorListenerWithSource(sourceName string, logger logging.Logger) *ErrorListener {
+func newErrorListenerWithSource(sourceName string, logger interfaces.Logger) *ErrorListener {
 	if logger == nil {
 		logger = &coreNoOpLogger{} // Use coreNoOpLogger from within the core package
 	}

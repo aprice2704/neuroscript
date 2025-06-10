@@ -17,7 +17,7 @@ import (
 	"strings"
 
 	"github.com/aprice2704/neuroscript/pkg/core"
-	"github.com/aprice2704/neuroscript/pkg/logging"
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	lsp "github.com/sourcegraph/go-lsp"
 	"github.com/sourcegraph/jsonrpc2"
 )
@@ -31,7 +31,7 @@ type Server struct {
 }
 
 func NewServer(logger *log.Logger) *Server {
-	apiLoggerForCoreParser := logging.Logger(nil)
+	apiLoggerForCoreParser := interfaces.Logger(nil)
 
 	registry := core.NewToolRegistry(nil)
 	if registry == nil {

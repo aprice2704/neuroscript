@@ -23,7 +23,7 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/adapters"
 	"github.com/aprice2704/neuroscript/pkg/core"
 	"github.com/aprice2704/neuroscript/pkg/goindex"
-	"github.com/aprice2704/neuroscript/pkg/logging"
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	// You might need to import your toolsets package if there's a central registration function like:
 	// "github.com/aprice2704/neuroscript/pkg/toolsets"
 )
@@ -177,7 +177,7 @@ func main() {
 	// --- Generate and Link NeuroScript Tool Details (In-Memory) ---
 	log.Println("Generating and linking NeuroScript tool details...")
 
-	var indexerLogger logging.Logger
+	var indexerLogger interfaces.Logger
 	indexerLogger = adapters.NewNoOpLogger() // Use NoOp for indexer's internal interpreter
 
 	interpreterSandboxDir, err := os.MkdirTemp("", "goindexer_interpreter_")

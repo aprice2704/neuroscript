@@ -12,10 +12,10 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/adapters"
 	"github.com/aprice2704/neuroscript/pkg/core"
-	"github.com/aprice2704/neuroscript/pkg/logging"
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 )
 
-var logger logging.Logger
+var logger interfaces.Logger
 
 func init() {
 	logger = adapters.NewNoOpLogger()

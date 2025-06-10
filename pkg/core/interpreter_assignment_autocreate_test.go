@@ -13,7 +13,7 @@ import (
 	"testing"
 )
 
-// testLoggerAdapter provides a logging.Logger that writes to t.Logf.
+// testLoggerAdapter provides a interfaces.Logger that writes to t.Logf.
 type testLoggerAdapter struct {
 	t *testing.T
 }

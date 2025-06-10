@@ -13,16 +13,16 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/adapters" // Keep for InitializeCoreComponents
 	"github.com/aprice2704/neuroscript/pkg/core"
-	"github.com/aprice2704/neuroscript/pkg/logging"
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/neurogo"
 )
 
 // initializeLogger sets up the application's logger based on configuration.
-func initializeLogger(levelStr string, filePath string) (logging.Logger, error) {
+func initializeLogger(levelStr string, filePath string) (interfaces.Logger, error) {
 	parsedLevel, parseErr := adapters.LogLevelFromString(levelStr)
 	if parseErr != nil {
 		fmt.Fprintf(os.Stderr, "[NEUROGO_LoggerInit_DIAG] Error parsing log level string '%s': %v. Using default log level INFO for diagnostics.\n", levelStr, parseErr)
-		parsedLevel = logging.LogLevelInfo // Use a default for the diagnostic logger to function
+		parsedLevel = interfaces.LogLevelInfo // Use a default for the diagnostic logger to function
 	}
 
 	var writer io.Writer = os.Stderr
@@ -36,14 +36,14 @@ func initializeLogger(levelStr string, filePath string) (logging.Logger, error) 
 		}
 	}
 
-	// adapters.NewSimpleSlogAdapter returns logging.Logger (and no error)
+	// adapters.NewSimpleSlogAdapter returns interfaces.Logger (and no error)
 	diagLogger, _ := adapters.NewSimpleSlogAdapter(writer, parsedLevel)
 	// For logging the level, pass 'parsedLevel' directly. slog handles its Level types.
 	// If a string is explicitly needed elsewhere: slog.Level(parsedLevel).String()
 	diagLogger.Debug("[NEUROGO_LoggerInit_DIAG] Diagnostic logger created. Attempting to initialize main logger.", "configured_level_str", levelStr, "parsed_level_for_diag", parsedLevel, "output_file_target", filePath)
 
 	// adapters.NewSlogAdapter returns (*SlogAdapter, error)
-	// *SlogAdapter implements logging.Logger
+	// *SlogAdapter implements interfaces.Logger
 	appLogger, appLoggerErr := adapters.NewSimpleSlogAdapter(writer, parsedLevel)
 	if appLoggerErr != nil {
 		errMsg := fmt.Sprintf("Failed to create main application SlogAdapter: %v", appLoggerErr)
@@ -77,7 +77,7 @@ func ifElse(condition bool, trueVal, falseVal interface{}) interface{} {
 	return falseVal
 }
 
-func InitializeCoreComponents(app *neurogo.App, logger logging.Logger, llmClient core.LLMClient) (*core.Interpreter, *core.AIWorkerManager, error) {
+func InitializeCoreComponents(app *neurogo.App, logger interfaces.Logger, llmClient interfaces.LLMClient) (*core.Interpreter, *core.AIWorkerManager, error) {
 	// LLM Client is now passed in as an argument and should already be set on the App instance by NewApp.
 	// No need to create or set it here.
 	if llmClient == nil {

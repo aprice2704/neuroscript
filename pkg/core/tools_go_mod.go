@@ -11,7 +11,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/aprice2704/neuroscript/pkg/logging" // Assumed import from original file
+	// Assumed import from original file
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"golang.org/x/mod/modfile"
 )
 
@@ -20,7 +21,7 @@ import (
 // FindAndParseGoMod searches upwards from startDir for go.mod, parses it, and returns the parsed file,
 // the directory it was found in (module root), and any error.
 // If the file is not found, it returns a specific error wrapping os.ErrNotExist.
-func FindAndParseGoMod(startDir string, log logging.Logger) (*modfile.File, string, error) {
+func FindAndParseGoMod(startDir string, log interfaces.Logger) (*modfile.File, string, error) {
 	if startDir == "" {
 		return nil, "", fmt.Errorf("start directory cannot be empty")
 	}

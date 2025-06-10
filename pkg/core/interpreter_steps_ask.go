@@ -7,8 +7,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	// Added for tool name prefix handling
-	// Ensure necessary types like Expression, ConversationTurn, ToolCall, etc. are accessible
+	// Ensure necessary types like Expression, interfaces.ConversationTurn, interfaces.ToolCall, etc. are accessible
 )
 
 // executeAskAI handles the 'ask ai' step.
@@ -44,8 +46,8 @@ func (i *Interpreter) executeAskAI(step Step) error {
 	// 2. Get Available Tools
 	availableTools := i.getAvailableToolsForAsk(step) // Pass step for context
 
-	var responseTurn *ConversationTurn
-	var toolCalls []*ToolCall // Ensure this is the core.ToolCall type
+	var responseTurn *interfaces.ConversationTurn
+	var ToolCalls []*interfaces.ToolCall // Ensure this is the interfaces.ToolCall type
 
 	// 3. Call LLMClient using the interface methods
 	if i.llmClient == nil {
@@ -55,7 +57,7 @@ func (i *Interpreter) executeAskAI(step Step) error {
 
 	if len(availableTools) > 0 {
 		i.logger.Debug("Calling LLM with tools", "turn_count", len(conversationTurns), "tool_count", len(availableTools))
-		responseTurn, toolCalls, err = i.llmClient.AskWithTools(context.Background(), conversationTurns, availableTools)
+		responseTurn, ToolCalls, err = i.llmClient.AskWithTools(context.Background(), conversationTurns, availableTools)
 	} else {
 		i.logger.Debug("Calling LLM without tools", "turn_count", len(conversationTurns))
 		responseTurn, err = i.llmClient.Ask(context.Background(), conversationTurns)
@@ -71,17 +73,17 @@ func (i *Interpreter) executeAskAI(step Step) error {
 		return NewRuntimeError(ErrorCodeLLMError, errMsg, nil) // Use ErrorCode constant
 	}
 
-	i.logger.Debug("LLM response received", "role", responseTurn.Role, "content_length", len(responseTurn.Content), "tool_calls", len(toolCalls))
+	i.logger.Debug("LLM response received", "role", responseTurn.Role, "content_length", len(responseTurn.Content), "tool_calls", len(ToolCalls))
 
 	// 4. Process Response
 	//    Update conversation history (placeholder)
 	i.addResponseToConversation(responseTurn)
 
 	// Handle Tool Calls if any were returned
-	if len(toolCalls) > 0 {
-		err = i.handleToolCalls(toolCalls, step.Pos) // Execute tools and update history, pass position
+	if len(ToolCalls) > 0 {
+		err = i.handleToolCalls(ToolCalls, step.Pos) // Execute tools and update history, pass position
 		if err != nil {
-			// If handleToolCalls returns an error, wrap it appropriately.
+			// If handleinterfaces.ToolCalls returns an error, wrap it appropriately.
 			// Add position info if not already present
 			var runtimeErr *RuntimeError
 			if errors.As(err, &runtimeErr) {
@@ -108,7 +110,7 @@ func (i *Interpreter) executeAskAI(step Step) error {
 // --- Helper methods ---
 
 // prepareConversationForAsk evaluates the prompt and constructs the turn list for the LLM.
-func (i *Interpreter) prepareConversationForAsk(promptExpr Expression) ([]*ConversationTurn, error) {
+func (i *Interpreter) prepareConversationForAsk(promptExpr Expression) ([]*interfaces.ConversationTurn, error) {
 	promptVal, err := i.evaluateExpression(promptExpr) // Assumes evaluateExpression exists
 	if err != nil {
 		// Wrap evaluation error, preserving original if it's a RuntimeError
@@ -129,23 +131,23 @@ func (i *Interpreter) prepareConversationForAsk(promptExpr Expression) ([]*Conve
 	}
 
 	// Placeholder: Get actual conversation history if managed by Interpreter
-	currentHistory := []*ConversationTurn{} // Assuming empty for now
+	currentHistory := []*interfaces.ConversationTurn{} // Assuming empty for now
 
 	// Construct the turns to send
-	finalHistory := append(currentHistory, &ConversationTurn{Role: RoleUser, Content: promptStr})
+	finalHistory := append(currentHistory, &interfaces.ConversationTurn{Role: interfaces.RoleUser, Content: promptStr})
 
 	return finalHistory, nil
 }
 
 // getAvailableToolsForAsk determines which tools (as ToolDefinition for the LLM) to offer.
-func (i *Interpreter) getAvailableToolsForAsk(step Step) []ToolDefinition {
+func (i *Interpreter) getAvailableToolsForAsk(step Step) []interfaces.ToolDefinition {
 	if i.toolRegistry == nil {
 		i.logger.Warn("getAvailableToolsForAsk called but toolRegistry is nil", "pos", step.Pos.String())
 		return nil
 	}
 	// *** FIXED: Use ListTools() which returns []ToolSpec ***
 	allToolSpecs := i.toolRegistry.ListTools()
-	definitions := make([]ToolDefinition, 0, len(allToolSpecs)) // Use core.ToolDefinition
+	definitions := make([]interfaces.ToolDefinition, 0, len(allToolSpecs)) // Use core.ToolDefinition
 
 	for _, spec := range allToolSpecs {
 		// Convert ToolSpec.Args ( []ArgSpec ) to ToolDefinition.InputSchema ( any / JSON schema map )
@@ -160,7 +162,7 @@ func (i *Interpreter) getAvailableToolsForAsk(step Step) []ToolDefinition {
 			continue // Skip this tool
 		}
 
-		definitions = append(definitions, ToolDefinition{ // Construct core.ToolDefinition
+		definitions = append(definitions, interfaces.ToolDefinition{ // Construct core.ToolDefinition
 			Name:        spec.Name, // Use name from ToolSpec
 			Description: spec.Description,
 			InputSchema: inputSchema,
@@ -170,13 +172,13 @@ func (i *Interpreter) getAvailableToolsForAsk(step Step) []ToolDefinition {
 }
 
 // addResponseToConversation updates the managed conversation history.
-func (i *Interpreter) addResponseToConversation(turn *ConversationTurn) {
+func (i *Interpreter) addResponseToConversation(turn *interfaces.ConversationTurn) {
 	// TODO: Implement conversation history management logic if needed
 	i.logger.Debug("Adding LLM response to conversation history (Not Implemented)", "role", turn.Role)
 }
 
-// handleToolCalls executes requested tool calls and adds results to the conversation.
-func (i *Interpreter) handleToolCalls(calls []*ToolCall, pos *Position) error { // Accept position for error context
+// handleinterfaces.ToolCalls executes requested tool calls and adds results to the conversation.
+func (i *Interpreter) handleToolCalls(calls []*interfaces.ToolCall, pos *Position) error { // Accept position for error context
 	i.logger.Debug("Handling tool calls requested by LLM", "count", len(calls), "pos", pos.String())
 	if len(calls) == 0 {
 		return nil
@@ -187,11 +189,11 @@ func (i *Interpreter) handleToolCalls(calls []*ToolCall, pos *Position) error { 
 		return NewRuntimeError(ErrorCodeConfiguration, errMsg, nil)
 	}
 
-	results := make([]*ToolResult, len(calls)) // Ensure this is core.ToolResult
+	results := make([]*interfaces.ToolResult, len(calls)) // Ensure this is interfaces.ToolResult
 
 	for idx, call := range calls {
 		// Initialize result structure for this call
-		results[idx] = &ToolResult{ID: call.ID}
+		results[idx] = &interfaces.ToolResult{ID: call.ID}
 
 		i.logger.Debug("Processing tool call", "id", call.ID, "name", call.Name, "args", call.Arguments, "pos", pos.String())
 
@@ -270,7 +272,7 @@ func (i *Interpreter) handleToolCalls(calls []*ToolCall, pos *Position) error { 
 }
 
 // addToolResultsToConversation updates the managed conversation history with tool results.
-func (i *Interpreter) addToolResultsToConversation(results []*ToolResult) {
+func (i *Interpreter) addToolResultsToConversation(results []*interfaces.ToolResult) {
 	// TODO: Implement conversation history management logic for tool results
 	i.logger.Debug("Adding tool results to conversation history (Not Implemented)", "count", len(results))
 }

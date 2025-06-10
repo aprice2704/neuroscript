@@ -15,7 +15,7 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/adapters"
 	"github.com/aprice2704/neuroscript/pkg/core"
-	"github.com/aprice2704/neuroscript/pkg/logging"
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/toolsets" // Required for extended toolset registration
 )
 
@@ -80,7 +80,7 @@ func main() {
 // --- Test Cases ---
 func TestGoGetDeclarationOfSymbol(t *testing.T) {
 	// --- Test Setup ---
-	logger, _ := adapters.NewSimpleSlogAdapter(os.Stderr, logging.LogLevelDebug)
+	logger, _ := adapters.NewSimpleSlogAdapter(os.Stderr, interfaces.LogLevelDebug)
 	logger.Debug("Test logger initialized")
 
 	llmClient := adapters.NewNoOpLLMClient()

@@ -17,7 +17,7 @@ import (
 	"time"
 
 	"github.com/aprice2704/neuroscript/pkg/core/prompts"
-	"github.com/aprice2704/neuroscript/pkg/logging"
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/google/generative-ai-go/genai"
 )
 
@@ -40,12 +40,12 @@ type Interpreter struct {
 	stdout             io.Writer
 	externalHandler    ToolHandler
 	toolRegistry       *ToolRegistryImpl
-	logger             logging.Logger
+	logger             interfaces.Logger
 	objectCache        map[string]interface{}
-	llmClient          LLMClient
+	llmClient          interfaces.LLMClient
 	fileAPI            *FileAPI
 	aiWorkerManager    *AIWorkerManager
-	toolCallTimestamps map[string][]time.Time
+	ToolCallTimestamps map[string][]time.Time
 	rateLimitCount     int
 	rateLimitDuration  time.Duration
 	maxLoopIterations  int
@@ -90,7 +90,7 @@ const handleSeparator = "::"
 
 // --- Constructor ---
 
-func NewInterpreter(logger logging.Logger, llmClient LLMClient, sandboxDir string, initialVars map[string]interface{}, libPaths []string) (*Interpreter, error) {
+func NewInterpreter(logger interfaces.Logger, llmClient interfaces.LLMClient, sandboxDir string, initialVars map[string]interface{}, libPaths []string) (*Interpreter, error) {
 
 	effectiveLogger := logger
 
@@ -111,7 +111,7 @@ func NewInterpreter(logger logging.Logger, llmClient LLMClient, sandboxDir strin
 	effectiveLLMClient := llmClient
 	if effectiveLLMClient == nil {
 		effectiveLogger.Warn("NewInterpreter: nil LLMClient provided. Initializing with a NoOp LLMClient.")
-		effectiveLLMClient = NewLLMClient("", "", "", effectiveLogger, false)
+		effectiveLLMClient, _ = NewLLMClient("", "", effectiveLogger)
 	}
 
 	cleanSandboxDir := "."
@@ -162,7 +162,7 @@ func NewInterpreter(logger logging.Logger, llmClient LLMClient, sandboxDir strin
 		llmClient:          effectiveLLMClient,
 		fileAPI:            fileAPI,
 		aiWorkerManager:    nil,
-		toolCallTimestamps: make(map[string][]time.Time),
+		ToolCallTimestamps: make(map[string][]time.Time),
 		rateLimitCount:     10,
 		rateLimitDuration:  time.Minute,
 		maxLoopIterations:  1000000,
@@ -204,7 +204,7 @@ func (i *Interpreter) AIWorkerManager() *AIWorkerManager {
 
 func (i *Interpreter) SandboxDir() string { return i.sandboxDir }
 
-func (i *Interpreter) Logger() logging.Logger {
+func (i *Interpreter) Logger() interfaces.Logger {
 	if i.logger == nil {
 		panic("FATAL: Interpreter logger is nil")
 	}

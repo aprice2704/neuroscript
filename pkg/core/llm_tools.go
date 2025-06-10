@@ -10,15 +10,16 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/google/generative-ai-go/genai" // Keep for genai.Part potentially
 )
 
 // callLLM is a helper function used by tools to interact with the LLM.
-func callLLM(ctx context.Context, llmClient LLMClient, prompt string) (string, error) {
+func callLLM(ctx context.Context, llmClient interfaces.LLMClient, prompt string) (string, error) {
 	if llmClient == nil {
 		return "", ErrLLMNotConfigured // Return specific error
 	}
-	turns := []*ConversationTurn{{Role: RoleUser, Content: prompt}}
+	turns := []*interfaces.ConversationTurn{{Role: interfaces.RoleUser, Content: prompt}}
 	responseTurn, err := llmClient.Ask(ctx, turns)
 	if err != nil {
 		return "", fmt.Errorf("%w: %w", ErrLLMError, err)
@@ -33,7 +34,7 @@ func callLLM(ctx context.Context, llmClient LLMClient, prompt string) (string, e
 // Note: This function's current implementation converts all parts to text,
 // which might not be suitable for true multimodal inputs.
 // The standard LLMClient interface might need extension for direct multimodal support.
-func callLLMWithParts(ctx context.Context, llmClient LLMClient, parts []genai.Part) (string, error) {
+func callLLMWithParts(ctx context.Context, llmClient interfaces.LLMClient, parts []genai.Part) (string, error) {
 	if llmClient == nil {
 		return "", ErrLLMNotConfigured // Return specific error
 	}
@@ -54,7 +55,7 @@ func callLLMWithParts(ctx context.Context, llmClient LLMClient, parts []genai.Pa
 		contentBuilder.WriteString("\n") // Add a newline between parts for readability
 	}
 
-	turns := []*ConversationTurn{{Role: RoleUser, Content: strings.TrimSpace(contentBuilder.String())}}
+	turns := []*interfaces.ConversationTurn{{Role: interfaces.RoleUser, Content: strings.TrimSpace(contentBuilder.String())}}
 	responseTurn, err := llmClient.Ask(ctx, turns)
 	if err != nil {
 		return "", fmt.Errorf("%w: LLM Ask failed while simulating parts: %w", ErrLLMError, err)

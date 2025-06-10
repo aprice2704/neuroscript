@@ -11,7 +11,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/aprice2704/neuroscript/pkg/logging"
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/google/generative-ai-go/genai"
 )
 
@@ -35,7 +35,7 @@ func HelperUploadAndPollFile(
 	localPath string, // Absolute path to local file *resolved by caller*
 	displayName string, // Desired display name (relative path) in API
 	client *genai.Client,
-	logger logging.Logger,
+	logger interfaces.Logger,
 ) (*genai.File, error) {
 
 	if client == nil {

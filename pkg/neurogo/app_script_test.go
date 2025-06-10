@@ -12,7 +12,7 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/adapters"
 	"github.com/aprice2704/neuroscript/pkg/core"
-	"github.com/aprice2704/neuroscript/pkg/logging"
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/toolsets"
 )
 
@@ -28,7 +28,7 @@ func TestApp_RunScriptMode_MultiReturn(t *testing.T) {
 	// cfg.LogLevel = "debug"
 
 	// 2. Initialize Logger
-	logger, err := adapters.NewSimpleSlogAdapter(os.Stderr, logging.LogLevelDebug)
+	logger, err := adapters.NewSimpleSlogAdapter(os.Stderr, interfaces.LogLevelDebug)
 	if err != nil {
 		t.Fatalf("%s: Failed to create logger: %v", testName, err)
 	}

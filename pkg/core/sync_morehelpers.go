@@ -11,17 +11,17 @@ import (
 
 	// Required imports for genai and gitignore
 
-	"github.com/aprice2704/neuroscript/pkg/logging"
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/google/generative-ai-go/genai"
 	gitignore "github.com/sabhiram/go-gitignore"
 	"google.golang.org/api/iterator"
 )
 
 // initializeSyncState sets up default loggers and the statistics map.
-func initializeSyncState(logger logging.Logger) (
+func initializeSyncState(logger interfaces.Logger) (
 	stats map[string]interface{},
 	incrementStat func(string),
-	ilogger logging.Logger, // Return modified loggers
+	ilogger interfaces.Logger, // Return modified loggers
 ) {
 
 	stats = map[string]interface{}{

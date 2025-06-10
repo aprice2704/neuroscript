@@ -8,7 +8,7 @@ import (
 	"sort" // Import sort for stable metadata output
 	"strings"
 
-	"github.com/aprice2704/neuroscript/pkg/logging"
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	// No need for core package import here unless tools need more than logger
 )
 
@@ -34,7 +34,7 @@ var (
 
 // ExtractAll scans through the input string (file content) line by line
 // and extracts blocks based on the specified fence and metadata logic.
-func ExtractAll(content string, logger logging.Logger) ([]FencedBlock, error) {
+func ExtractAll(content string, logger interfaces.Logger) ([]FencedBlock, error) {
 	logger.Debug("[DEBUG BLOCKS Extractor - Line Scanner v4] Starting ExtractAll") // Version bump for clarity
 
 	var blocks []FencedBlock

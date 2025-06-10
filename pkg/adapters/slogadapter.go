@@ -14,14 +14,14 @@ import (
 	"os"
 	"strings"
 
-	"github.com/aprice2704/neuroscript/pkg/logging"
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 )
 
-// SlogAdapter wraps slog.Logger to implement the logging.Logger interface.
+// SlogAdapter wraps slog.Logger to implement the interfaces.Logger interface.
 type SlogAdapter struct {
 	logger *stdslog.Logger         // Changed to stdslog.Logger
 	opts   *stdslog.HandlerOptions // Changed to stdslog.HandlerOptions
-	level  logging.LogLevel
+	level  interfaces.LogLevel
 }
 
 // checkInternalState ensures the SlogAdapter's internal logger is not nil.
@@ -38,21 +38,21 @@ func (a *SlogAdapter) checkInternalState() {
 }
 
 // NewSimpleSlogAdapter creates a new SlogAdapter.
-// The return type is logging.Logger as per your original code.
-func NewSimpleSlogAdapter(output io.Writer, level logging.LogLevel) (logging.Logger, error) {
+// The return type is interfaces.Logger as per your original code.
+func NewSimpleSlogAdapter(output io.Writer, level interfaces.LogLevel) (interfaces.Logger, error) {
 	if output == nil {
 		output = os.Stderr
 	}
 
 	var slogLevel stdslog.Level // Changed to stdslog.Level
 	switch level {
-	case logging.LogLevelDebug:
+	case interfaces.LogLevelDebug:
 		slogLevel = stdslog.LevelDebug
-	case logging.LogLevelInfo:
+	case interfaces.LogLevelInfo:
 		slogLevel = stdslog.LevelInfo
-	case logging.LogLevelWarn:
+	case interfaces.LogLevelWarn:
 		slogLevel = stdslog.LevelWarn
-	case logging.LogLevelError:
+	case interfaces.LogLevelError:
 		slogLevel = stdslog.LevelError
 	default:
 		slogLevel = stdslog.LevelInfo // Default to Info
@@ -131,18 +131,18 @@ func (a *SlogAdapter) Errorf(format string, v ...interface{}) {
 }
 
 // SetLevel changes the logger's level.
-func (a *SlogAdapter) SetLevel(level logging.LogLevel) {
+func (a *SlogAdapter) SetLevel(level interfaces.LogLevel) {
 	a.checkInternalState() // Also check here in case SetLevel is called on a faulty adapter
 	a.level = level
 	var slogLevel stdslog.Level // Changed to stdslog.Level
 	switch level {
-	case logging.LogLevelDebug:
+	case interfaces.LogLevelDebug:
 		slogLevel = stdslog.LevelDebug
-	case logging.LogLevelInfo:
+	case interfaces.LogLevelInfo:
 		slogLevel = stdslog.LevelInfo
-	case logging.LogLevelWarn:
+	case interfaces.LogLevelWarn:
 		slogLevel = stdslog.LevelWarn
-	case logging.LogLevelError:
+	case interfaces.LogLevelError:
 		slogLevel = stdslog.LevelError
 	default:
 		slogLevel = stdslog.LevelInfo
@@ -170,22 +170,22 @@ func (a *SlogAdapter) SetLevel(level logging.LogLevel) {
 	}
 }
 
-// LogLevelFromString converts a string to a logging.LogLevel.
+// LogLevelFromString converts a string to a interfaces.LogLevel.
 // This function was already present in your provided code and is kept.
-// It uses your `logging.LogLevel` constants.
-func LogLevelFromString(levelStr string) (logging.LogLevel, error) {
+// It uses your `interfaces.LogLevel` constants.
+func LogLevelFromString(levelStr string) (interfaces.LogLevel, error) {
 	switch strings.ToLower(levelStr) {
-	// Assuming your logging package defines these constants:
-	// logging.LogLevelDebug, logging.LogLevelInfo, logging.LogLevelWarn, logging.LogLevelError
+	// Assuming your interfaces package defines these constants:
+	// interfaces.LogLevelDebug, interfaces.LogLevelInfo, interfaces.LogLevelWarn, interfaces.LogLevelError
 	case "debug":
-		return logging.LogLevelDebug, nil
+		return interfaces.LogLevelDebug, nil
 	case "info":
-		return logging.LogLevelInfo, nil
+		return interfaces.LogLevelInfo, nil
 	case "warn", "warning":
-		return logging.LogLevelWarn, nil
+		return interfaces.LogLevelWarn, nil
 	case "error", "err":
-		return logging.LogLevelError, nil
+		return interfaces.LogLevelError, nil
 	default:
-		return logging.LogLevelInfo, fmt.Errorf("unknown log level: %s", levelStr)
+		return interfaces.LogLevelInfo, fmt.Errorf("unknown log level: %s", levelStr)
 	}
 }

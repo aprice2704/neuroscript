@@ -16,7 +16,7 @@ import (
 	"strings"
 
 	"github.com/aprice2704/neuroscript/pkg/core"
-	"github.com/aprice2704/neuroscript/pkg/logging"
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 )
 
 // --- Tool Definition: GoRenameSymbol ---
@@ -245,7 +245,7 @@ func isValidGoIdentifier(name string) bool {
 }
 
 // filterAndRelativizePath checks if absPath is within loadDir and returns the relative path or ""
-func filterAndRelativizePath(absPath, loadDir string, logger logging.Logger, logPrefix string) (string, error) {
+func filterAndRelativizePath(absPath, loadDir string, logger interfaces.Logger, logPrefix string) (string, error) {
 	relPathCheck, errCheck := filepath.Rel(loadDir, absPath)
 	if errCheck != nil {
 		logger.Warn(logPrefix+" Path relativization error", "absPath", absPath, "loadDir", loadDir, "error", errCheck)

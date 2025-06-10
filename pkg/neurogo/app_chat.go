@@ -10,6 +10,7 @@ import (
 
 	// Added for RWMutex
 	"github.com/aprice2704/neuroscript/pkg/core"
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 )
 
 // App struct (definition in app.go or app_types.go) should have:
@@ -18,7 +19,7 @@ import (
 // activeChatSessionID  string
 // nextChatIDSuffix     int
 // tui                  TUIController // Assuming TUIController is defined in interfaces.go
-// Log                  logging.Logger
+// Log                  interfaces.Logger
 // interpreter          *core.Interpreter
 
 // --- Multi-Chat Session Management Methods ---
@@ -152,7 +153,7 @@ func (a *App) GetChatSession(sessionID string) *ChatSession {
 }
 
 // SendChatMessageToActiveSession sends a message to the currently active chat session.
-func (a *App) SendChatMessageToActiveSession(ctx context.Context, message string) (*core.ConversationTurn, error) {
+func (a *App) SendChatMessageToActiveSession(ctx context.Context, message string) (*interfaces.ConversationTurn, error) {
 	// GetActiveChatSession uses RLock internally, which is fine.
 	activeSession := a.GetActiveChatSession()
 	if activeSession == nil {
@@ -167,8 +168,8 @@ func (a *App) SendChatMessageToActiveSession(ctx context.Context, message string
 		"definitionID", activeSession.DefinitionID,
 		"instanceID", activeSession.WorkerInstance.InstanceID)
 
-	userTurn := &core.ConversationTurn{
-		Role:    core.RoleUser,
+	userTurn := &interfaces.ConversationTurn{
+		Role:    interfaces.RoleUser,
 		Content: message,
 	}
 	activeSession.AddTurn(userTurn) // ChatSession.AddTurn has its own internal mutex
@@ -179,8 +180,8 @@ func (a *App) SendChatMessageToActiveSession(ctx context.Context, message string
 			"sessionID", activeSession.SessionID,
 			"instanceID", activeSession.WorkerInstance.InstanceID,
 			"error", err)
-		errorTurn := &core.ConversationTurn{
-			Role:    core.RoleSystem,
+		errorTurn := &interfaces.ConversationTurn{
+			Role:    interfaces.RoleSystem,
 			Content: fmt.Sprintf("Error processing message: %v", err),
 		}
 		activeSession.AddTurn(errorTurn)
@@ -198,10 +199,10 @@ func (a *App) SendChatMessageToActiveSession(ctx context.Context, message string
 }
 
 // GetActiveChatHistory returns a copy of the conversation history of the active chat session.
-func (a *App) GetActiveChatHistory() []*core.ConversationTurn {
+func (a *App) GetActiveChatHistory() []*interfaces.ConversationTurn {
 	activeSession := a.GetActiveChatSession() // Uses RLock internally
 	if activeSession == nil {
-		return []*core.ConversationTurn{}
+		return []*interfaces.ConversationTurn{}
 	}
 	return activeSession.GetConversationHistory() // ChatSession.GetConversationHistory uses its own mutex
 }

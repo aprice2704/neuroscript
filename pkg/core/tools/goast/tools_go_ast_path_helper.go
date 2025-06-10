@@ -8,13 +8,13 @@ import (
 	"path/filepath" // Use filepath for OS-specific operations
 	"strings"
 
-	"github.com/aprice2704/neuroscript/pkg/logging"
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 )
 
 // debugCalculateCanonicalPath tries various methods to calculate the Go import path
 // for a directory and logs the results for debugging.
 // It returns the result of the refined conditional logic (Take 7 - Final).
-func debugCalculateCanonicalPath(modulePath, moduleRootDir, dirPath string, logger logging.Logger) (string, error) {
+func debugCalculateCanonicalPath(modulePath, moduleRootDir, dirPath string, logger interfaces.Logger) (string, error) {
 	logPrefix := "[DEBUG PATH CALC]"
 	if logger == nil {
 		panic("Path calc needs a valid logger")

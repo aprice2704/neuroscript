@@ -11,7 +11,7 @@ import (
 	"fmt"
 
 	"github.com/aprice2704/neuroscript/pkg/core"
-	"github.com/aprice2704/neuroscript/pkg/logging"
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 )
 
 // toolChecklistFormatTree formats the checklist tree back into a string.
@@ -158,7 +158,7 @@ func toolChecklistUpdateStatus(interpreter *core.Interpreter, args []interface{}
 }
 
 // updateChecklistTreeStatus initiates the recursive update from the root's children.
-func updateChecklistTreeStatus(tree *core.GenericTree, logger logging.Logger) error {
+func updateChecklistTreeStatus(tree *core.GenericTree, logger interfaces.Logger) error {
 	rootNode, exists := tree.NodeMap[tree.RootID]
 	if !exists || rootNode == nil {
 		return fmt.Errorf("%w: root node %q not found in provided tree", ErrInvalidChecklistTree, tree.RootID)
@@ -180,7 +180,7 @@ func updateChecklistTreeStatus(tree *core.GenericTree, logger logging.Logger) er
 // updateAutomaticNodeStatus recursively traverses the tree, calculates and updates the status
 // of automatic nodes based on their children's *final* statuses from the recursive calls.
 // It now correctly recurses through non-automatic nodes as well and checks for Type "checklist_item".
-func updateAutomaticNodeStatus(tree *core.GenericTree, nodeID string, logger logging.Logger) (string, error) {
+func updateAutomaticNodeStatus(tree *core.GenericTree, nodeID string, logger interfaces.Logger) (string, error) {
 	node, exists := tree.NodeMap[nodeID]
 	if !exists || node == nil {
 		logger.Error("Node referenced in tree not found during update", "nodeId", nodeID)

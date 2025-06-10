@@ -12,19 +12,19 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/generative-ai-go/genai" //
-	"github.com/google/uuid"                   //
-	// "github.com/aprice2704/neuroscript/pkg/logging"
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
+	"github.com/google/generative-ai-go/genai"
+	"github.com/google/uuid"
 )
 
-// Helper function to convert []*genai.Content to []*ConversationTurn
+// Helper function to convert []*genai.Content to []*interfaces.ConversationTurn
 // (Copied from your provided v0.1.9)
-func convertGenaiContentsToConversationTurns(genaiContents []*genai.Content) []*ConversationTurn { //
+func convertGenaiContentsToConversationTurns(genaiContents []*genai.Content) []*interfaces.ConversationTurn { //
 	if genaiContents == nil { //
 		return nil
 	}
-	turns := make([]*ConversationTurn, 0, len(genaiContents)) //
-	for _, gc := range genaiContents {                        //
+	turns := make([]*interfaces.ConversationTurn, 0, len(genaiContents)) //
+	for _, gc := range genaiContents {                                   //
 		if gc == nil { //
 			continue
 		}
@@ -34,9 +34,9 @@ func convertGenaiContentsToConversationTurns(genaiContents []*genai.Content) []*
 				contentBuilder.WriteString(string(textPart)) //
 			}
 		}
-		turns = append(turns, &ConversationTurn{ //
-			Role:    Role(gc.Role),           //
-			Content: contentBuilder.String(), //
+		turns = append(turns, &interfaces.ConversationTurn{ //
+			Role:    interfaces.Role(gc.Role), //
+			Content: contentBuilder.String(),  //
 		})
 	}
 	return turns //
@@ -48,7 +48,7 @@ func convertGenaiContentsToConversationTurns(genaiContents []*genai.Content) []*
 // The llmClient is passed in, typically from the Interpreter.
 func (m *AIWorkerManager) ExecuteStatelessTask( //
 	definitionNameIn string, // Changed from 'name' to avoid conflict if 'name' is used locally
-	llmClient LLMClient, //
+	llmClient interfaces.LLMClient, //
 	prompt string, //
 	configOverrides map[string]interface{}, //
 ) (string /* modelOutput */, *PerformanceRecord, error) { //
@@ -172,7 +172,7 @@ func (m *AIWorkerManager) ExecuteStatelessTask( //
 		ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 		defer cancel()
 
-		var llmResponseTurn *ConversationTurn
+		var llmResponseTurn *interfaces.ConversationTurn
 		llmResponseTurn, callErr = llmClient.Ask(ctx, turnsForLLM)
 
 		m.logger.Infof("ExecuteStatelessTask: llmClient.Ask call completed for DefID %s. Error returned: %v", originalDefinitionID, callErr)
@@ -199,25 +199,25 @@ func (m *AIWorkerManager) ExecuteStatelessTask( //
 		}
 
 		// Populate llmCallMetrics based on llmResponseTurn
-		if llmResponseTurn != nil {
-			if llmResponseTurn.TokenUsage.TotalTokens > 0 || llmResponseTurn.TokenUsage.InputTokens > 0 || llmResponseTurn.TokenUsage.OutputTokens > 0 {
-				llmCallMetrics.InputTokens = llmResponseTurn.TokenUsage.InputTokens
-				llmCallMetrics.OutputTokens = llmResponseTurn.TokenUsage.OutputTokens
-				llmCallMetrics.TotalTokens = llmResponseTurn.TokenUsage.TotalTokens
-				llmCallMetrics.ModelUsed = defModelNameCopy // Using copied ModelName
-			} else { // Fallback to estimates if not available from llmResponseTurn
-				llmCallMetrics = LLMCallMetrics{
-					InputTokens:  int64(len(prompt) / 4),
-					OutputTokens: int64(len(responseContent) / 4),
-					FinishReason: "stop",           // Or from llmResponseTurn if available
-					ModelUsed:    defModelNameCopy, // Using copied ModelName
-				}
-				llmCallMetrics.TotalTokens = llmCallMetrics.InputTokens + llmCallMetrics.OutputTokens
-			}
-		} else if callErr != nil { // If callErr happened and llmResponseTurn is nil
-			llmCallMetrics.InputTokens = int64(len(prompt) / 4) // Estimate input tokens
-			llmCallMetrics.ModelUsed = defModelNameCopy
-		}
+		// 	if llmResponseTurn != nil {
+		// 		if llmResponseTurn.TokenUsage.TotalTokens > 0 || llmResponseTurn.TokenUsage.InputTokens > 0 || llmResponseTurn.TokenUsage.OutputTokens > 0 {
+		// 			llmCallMetrics.InputTokens = llmResponseTurn.TokenUsage.InputTokens
+		// 			llmCallMetrics.OutputTokens = llmResponseTurn.TokenUsage.OutputTokens
+		// 			llmCallMetrics.TotalTokens = llmResponseTurn.TokenUsage.TotalTokens
+		// 			llmCallMetrics.ModelUsed = defModelNameCopy // Using copied ModelName
+		// 		} else { // Fallback to estimates if not available from llmResponseTurn
+		// 			llmCallMetrics = LLMCallMetrics{
+		// 				InputTokens:  int64(len(prompt) / 4),
+		// 				OutputTokens: int64(len(responseContent) / 4),
+		// 				FinishReason: "stop",           // Or from llmResponseTurn if available
+		// 				ModelUsed:    defModelNameCopy, // Using copied ModelName
+		// 			}
+		// 			llmCallMetrics.TotalTokens = llmCallMetrics.InputTokens + llmCallMetrics.OutputTokens
+		// 		}
+		// 	} else if callErr != nil { // If callErr happened and llmResponseTurn is nil
+		// 		llmCallMetrics.InputTokens = int64(len(prompt) / 4) // Estimate input tokens
+		// 		llmCallMetrics.ModelUsed = defModelNameCopy
+		// 	}
 	}
 
 	taskEndTime := time.Now()
@@ -298,11 +298,3 @@ func (m *AIWorkerManager) ExecuteStatelessTask( //
 
 	return responseContent, perfRecord, nil //
 }
-
-// Ensure smartTrim and ifErrorToString are available in the 'core' package
-// (e.g., from ai_wm.go or a utils.go file).
-// type APIKeySource struct { ... } // Should be defined in ai_worker_types.go
-// type DefinitionStatus string // Should be defined in ai_worker_types.go
-// type RateLimitConfig struct { ... } // Should be defined in ai_worker_types.go
-// const DefinitionStatusActive DefinitionStatus = "active" // Should be defined in ai_worker_types.go
-// var ErrorCodeTimeout ErrorCode = ... // Should be defined in errors.go

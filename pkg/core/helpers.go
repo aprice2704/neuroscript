@@ -16,7 +16,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/aprice2704/neuroscript/pkg/logging"
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	// No need to import adapters for the NoOp client if core.NewLLMClient handles it
 )
 
@@ -26,11 +26,11 @@ type TestLogger struct {
 	out io.Writer
 }
 
-var _ logging.Logger = (*TestLogger)(nil)
+var _ interfaces.Logger = (*TestLogger)(nil)
 
 // NewTestLogger creates a new logger that logs using the provided *testing.T.
 // This is useful for tests within the core package itself.
-func NewTestLogger(t *testing.T) logging.Logger {
+func NewTestLogger(t *testing.T) interfaces.Logger {
 	// If -nslog is NOT set, return a no-op logger that implements the interface
 	if !*TestVerbose {
 		return &coreNoOpLogger{} // tiny helper you already ship
@@ -72,7 +72,7 @@ func (l TestLogger) Info(msg string, args ...any)  { l.logStructured("[INFO]", m
 func (l TestLogger) Warn(msg string, args ...any)  { l.logStructured("[WARN]", msg, args...) }
 func (l TestLogger) Error(msg string, args ...any) { l.logStructured("[ERROR]", msg, args...) }
 
-func (l TestLogger) SetLevel(level logging.LogLevel) {
+func (l TestLogger) SetLevel(level interfaces.LogLevel) {
 	// No-op for test logger, level is effectively always Debug
 	// All messages are logged via t.Logf or t.Log
 }
@@ -218,7 +218,7 @@ func NewTestInterpreter(t *testing.T, vars map[string]interface{}, lastResult in
 	testLogger := NewTestLogger(t) // Use the new constructor
 
 	// Use core.NewLLMClient to get a NoOp client for testing.
-	noOpLLMClient := NewLLMClient("", "", "", testLogger, false)
+	noOpLLMClient, _ := NewLLMClient("", "", testLogger)
 
 	sandboxDir := t.TempDir()
 

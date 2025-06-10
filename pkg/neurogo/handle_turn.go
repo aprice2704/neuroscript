@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/aprice2704/neuroscript/pkg/core"
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/google/generative-ai-go/genai"
 )
 
@@ -20,13 +21,13 @@ const (
 )
 
 type llmRequestContext struct {
-	History  []*core.ConversationTurn
+	History  []*interfaces.ConversationTurn
 	FileURIs []string
 }
 
 func (a *App) handleAgentTurn(
 	ctx context.Context,
-	llmClient core.LLMClient,
+	llmClient interfaces.LLMClient,
 	convoManager *core.ConversationManager,
 	agentInterpreter *core.Interpreter,
 	securityLayer *core.SecurityLayer,
@@ -46,30 +47,30 @@ func (a *App) handleAgentTurn(
 		logger.Info("--- Agent Inner Loop Cycle ---", "cycle", cycle+1)
 
 		genaiHistory := convoManager.GetHistory()
-		coreHistory := make([]*core.ConversationTurn, 0, len(genaiHistory))
+		coreHistory := make([]*interfaces.ConversationTurn, 0, len(genaiHistory))
 		for _, content := range genaiHistory {
 			if content == nil {
 				logger.Warn("[CONVO] Skipping nil content during history conversion.")
 				continue
 			}
-			turn := &core.ConversationTurn{Role: core.Role(content.Role)}
+			turn := &interfaces.ConversationTurn{Role: interfaces.Role(content.Role)}
 			var textContent strings.Builder
-			var toolCalls []*core.ToolCall
+			var ToolCalls []*interfaces.ToolCall
 			for _, part := range content.Parts {
 				switch v := part.(type) {
 				case genai.Text:
 					textContent.WriteString(string(v))
 				case genai.FunctionCall:
-					toolCalls = append(toolCalls, &core.ToolCall{Name: v.Name, Arguments: v.Args})
-					logger.Warn("[CONVO] Converting genai.FunctionCall found in history part to core.ToolCall (ID missing).")
+					ToolCalls = append(ToolCalls, &interfaces.ToolCall{Name: v.Name, Arguments: v.Args})
+					logger.Warn("[CONVO] Converting genai.FunctionCall found in history part to ToolCall (ID missing).")
 				case genai.FunctionResponse:
-					logger.Warn("[CONVO] genai.FunctionResponse found in history part, conversion to core.ToolResult not implemented.")
+					logger.Warn("[CONVO] genai.FunctionResponse found in history part, conversion to ToolResult not implemented.")
 				default:
 					logger.Warn("[CONVO] Unknown part type in history during conversion.", "type", fmt.Sprintf("%T", v))
 				}
 			}
 			turn.Content = textContent.String()
-			turn.ToolCalls = toolCalls
+			turn.ToolCalls = ToolCalls
 			coreHistory = append(coreHistory, turn)
 		}
 
@@ -83,11 +84,11 @@ func (a *App) handleAgentTurn(
 			return errors.New("cannot call LLM with empty history")
 		}
 
-		coreToolDefs := make([]core.ToolDefinition, 0, len(toolDeclarations))
+		coreToolDefs := make([]interfaces.ToolDefinition, 0, len(toolDeclarations))
 		for _, genaiTool := range toolDeclarations {
 			if len(genaiTool.FunctionDeclarations) > 0 {
 				decl := genaiTool.FunctionDeclarations[0]
-				coreToolDefs = append(coreToolDefs, core.ToolDefinition{
+				coreToolDefs = append(coreToolDefs, interfaces.ToolDefinition{
 					Name:        decl.Name,
 					Description: decl.Description,
 					InputSchema: decl.Parameters,
@@ -106,7 +107,7 @@ func (a *App) handleAgentTurn(
 
 		if llmResponseTurn != nil {
 			logger.Info("[CONVO] Received Model Turn:", "role", llmResponseTurn.Role, "content_snippet", snippet(llmResponseTurn.Content, 50), "tool_calls_in_turn", len(llmResponseTurn.ToolCalls))
-			logger.Warn("Need to update ConversationManager to handle core.ConversationTurn or convert turn back to genai.Content")
+			logger.Warn("Need to update ConversationManager to handle ConversationTurn or convert turn back to genai.Content")
 		} else if len(returnedToolCalls) > 0 {
 			logger.Info("[CONVO] LLMClient returned Tool Calls but nil ConversationTurn.")
 		} else {
@@ -114,7 +115,7 @@ func (a *App) handleAgentTurn(
 		}
 
 		foundFunctionCall := false
-		var firstToolCallToExecute *core.ToolCall
+		var firstToolCallToExecute *interfaces.ToolCall
 		var accumulatedText strings.Builder
 
 		if len(returnedToolCalls) > 0 {
@@ -133,10 +134,10 @@ func (a *App) handleAgentTurn(
 		}
 
 		if foundFunctionCall && firstToolCallToExecute != nil {
-			toolCall := *firstToolCallToExecute
+			ToolCall := *firstToolCallToExecute
 			genaiFC := genai.FunctionCall{
-				Name: toolCall.Name,
-				Args: toolCall.Arguments,
+				Name: ToolCall.Name,
+				Args: ToolCall.Arguments,
 			}
 			logger.Info("Executing tool call.", "tool_name", genaiFC.Name)
 			funcResultPart, execErr := securityLayer.ExecuteToolCall(agentInterpreter, genaiFC)
@@ -152,7 +153,7 @@ func (a *App) handleAgentTurn(
 				logger.Error("Failed to add function result to conversation history.", "tool_name", genaiFC.Name, "error", err)
 				return fmt.Errorf("failed to record function result for %s: %w", genaiFC.Name, err)
 			}
-			logger.Warn("Need to update ConversationManager to handle core.ToolResult or convert result back to genai.Part")
+			logger.Warn("Need to update ConversationManager to handle ToolResult or convert result back to genai.Part")
 			logger.Debug("Function call result added to history. Continuing agent cycle.")
 			accumulatedText.Reset()
 			continue

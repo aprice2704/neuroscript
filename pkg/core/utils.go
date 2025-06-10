@@ -9,25 +9,25 @@ import (
 	"reflect"
 	"strings"
 
-	// Import the logging interface definition
-	"github.com/aprice2704/neuroscript/pkg/logging"
+	// Import the interfaces. interface definition
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 )
 
 // --- Internal No-Op Logger ---
 // --- (coreNoOpLogger struct and methods remain unchanged) ---
 type coreNoOpLogger struct{}
 
-var _ logging.Logger = (*coreNoOpLogger)(nil)
+var _ interfaces.Logger = (*coreNoOpLogger)(nil)
 
-func (l *coreNoOpLogger) Debug(msg string, args ...any)     {}
-func (l *coreNoOpLogger) Info(msg string, args ...any)      {}
-func (l *coreNoOpLogger) Warn(msg string, args ...any)      {}
-func (l *coreNoOpLogger) Error(msg string, args ...any)     {}
-func (l *coreNoOpLogger) Debugf(format string, args ...any) {}
-func (l *coreNoOpLogger) Infof(format string, args ...any)  {}
-func (l *coreNoOpLogger) Warnf(format string, args ...any)  {}
-func (l *coreNoOpLogger) Errorf(format string, args ...any) {}
-func (l *coreNoOpLogger) SetLevel(level logging.LogLevel)   {}
+func (l *coreNoOpLogger) Debug(msg string, args ...any)      {}
+func (l *coreNoOpLogger) Info(msg string, args ...any)       {}
+func (l *coreNoOpLogger) Warn(msg string, args ...any)       {}
+func (l *coreNoOpLogger) Error(msg string, args ...any)      {}
+func (l *coreNoOpLogger) Debugf(format string, args ...any)  {}
+func (l *coreNoOpLogger) Infof(format string, args ...any)   {}
+func (l *coreNoOpLogger) Warnf(format string, args ...any)   {}
+func (l *coreNoOpLogger) Errorf(format string, args ...any)  {}
+func (l *coreNoOpLogger) SetLevel(level interfaces.LogLevel) {}
 
 // --- Type Conversion / Checking Utilities ---
 

@@ -18,7 +18,7 @@ import (
 	// Import packages necessary for setup and testing
 	"github.com/aprice2704/neuroscript/pkg/adapters"
 	"github.com/aprice2704/neuroscript/pkg/core"
-	"github.com/aprice2704/neuroscript/pkg/logging"
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	nspatch "github.com/aprice2704/neuroscript/pkg/nspatch" // Import the package under test
 	// Need toolsets for registration if using init
 	// _ "github.com/aprice2704/neuroscript/pkg/toolsets"
@@ -68,7 +68,7 @@ func sortPatchMaps(results []interface{}) {
 func TestGeneratePatch(t *testing.T) {
 	// --- Test Setup ---
 	// Use SimpleSlogAdapter as confirmed available
-	logger, err := adapters.NewSimpleSlogAdapter(TestingTBLogWriter(t), logging.LogLevelDebug) // Use test helper for output
+	logger, err := adapters.NewSimpleSlogAdapter(TestingTBLogWriter(t), interfaces.LogLevelDebug) // Use test helper for output
 	if err != nil {
 		t.Fatalf("Failed to create logger: %v", err)
 	}

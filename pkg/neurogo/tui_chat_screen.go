@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/aprice2704/neuroscript/pkg/core"
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
@@ -164,7 +165,7 @@ func (cs *ChatConversationScreen) UpdateConversation() {
 		return
 	}
 
-	var history []*core.ConversationTurn
+	var history []*interfaces.ConversationTurn
 	if cs.sessionID != "" {
 		session := cs.app.GetChatSession(cs.sessionID)
 		if session != nil {
@@ -178,7 +179,7 @@ func (cs *ChatConversationScreen) UpdateConversation() {
 		// as chat screens should be tied to a session.
 		cs.app.Log.Warn("ChatConversationScreen.UpdateConversation called for a screen with no sessionID.", "screenName", cs.name)
 		cs.textView.SetText(fmt.Sprintf("[red]Error: Screen %s has no associated chat session ID.[-]", EscapeTviewTags(cs.name)))
-		history = []*core.ConversationTurn{} // Show empty
+		history = []*interfaces.ConversationTurn{} // Show empty
 	}
 
 	cs.textView.Clear()
@@ -188,13 +189,13 @@ func (cs *ChatConversationScreen) UpdateConversation() {
 		roleColor := "white"
 
 		switch turn.Role {
-		case core.RoleUser:
+		case interfaces.RoleUser:
 			roleLabel = "You"
 			roleColor = "blue"
-		case core.RoleAssistant, "model":
+		case interfaces.RoleAssistant, "model":
 			roleLabel = "AI"
 			roleColor = "green"
-		case core.RoleTool, "function":
+		case interfaces.RoleTool, "function":
 			roleLabel = "Tool"
 			roleColor = "yellow"
 		default:
@@ -213,7 +214,7 @@ func (cs *ChatConversationScreen) UpdateConversation() {
 			var trContent strings.Builder
 			trContent.WriteString("provides Tool Result(s):")
 			for _, tr := range turn.ToolResults {
-				// Use tr.ID directly as per core.ToolResult definition
+				// Use tr.ID directly as per interfaces.ToolResult definition
 				trContent.WriteString(fmt.Sprintf("\n  - ID %s: %s (Error: %s)",
 					EscapeTviewTags(tr.ID), // Corrected to use tr.ID
 					EscapeTviewTags(fmt.Sprintf("%v", tr.Result)),

@@ -12,6 +12,8 @@ import (
 
 	// "strings" // No longer needed here if all String methods are moved
 	"time"
+
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 )
 
 // --- Enums and Basic Types ---
@@ -187,26 +189,26 @@ type AIWorkerDefinition struct {
 
 // --- AIWorkerInstance ---
 type AIWorkerInstance struct {
-	InstanceID            string                 `json:"instance_id"`
-	DefinitionID          string                 `json:"definition_id"`
-	Status                AIWorkerInstanceStatus `json:"status"`
-	ConversationHistory   []*ConversationTurn    `json:"-"`
-	CreationTimestamp     time.Time              `json:"creation_timestamp"`
-	LastActivityTimestamp time.Time              `json:"last_activity_timestamp"`
-	SessionTokenUsage     TokenUsageMetrics      `json:"session_token_usage"`
-	CurrentConfig         map[string]interface{} `json:"current_config,omitempty"`
-	ActiveFileContexts    []string               `json:"-"`
-	LastError             string                 `json:"last_error,omitempty"`
-	RetirementReason      string                 `json:"retirement_reason,omitempty"`
-	PoolID                string                 `json:"pool_id,omitempty"`
-	CurrentTaskID         string                 `json:"current_task_id,omitempty"`
-	DataSourceRefs        []string               `json:"data_source_refs,omitempty"`
-	SupervisoryAIRef      string                 `json:"supervisory_ai_ref,omitempty"`
-	llmClient             LLMClient              `json:"-"`
+	InstanceID            string                         `json:"instance_id"`
+	DefinitionID          string                         `json:"definition_id"`
+	Status                AIWorkerInstanceStatus         `json:"status"`
+	ConversationHistory   []*interfaces.ConversationTurn `json:"-"`
+	CreationTimestamp     time.Time                      `json:"creation_timestamp"`
+	LastActivityTimestamp time.Time                      `json:"last_activity_timestamp"`
+	SessionTokenUsage     TokenUsageMetrics              `json:"session_token_usage"`
+	CurrentConfig         map[string]interface{}         `json:"current_config,omitempty"`
+	ActiveFileContexts    []string                       `json:"-"`
+	LastError             string                         `json:"last_error,omitempty"`
+	RetirementReason      string                         `json:"retirement_reason,omitempty"`
+	PoolID                string                         `json:"pool_id,omitempty"`
+	CurrentTaskID         string                         `json:"current_task_id,omitempty"`
+	DataSourceRefs        []string                       `json:"data_source_refs,omitempty"`
+	SupervisoryAIRef      string                         `json:"supervisory_ai_ref,omitempty"`
+	llmClient             interfaces.LLMClient           `json:"-"`
 }
 
 // ProcessChatMessage method remains here as it's operational logic.
-func (instance *AIWorkerInstance) ProcessChatMessage(ctx context.Context, userMessageText string) (*ConversationTurn, error) {
+func (instance *AIWorkerInstance) ProcessChatMessage(ctx context.Context, userMessageText string) (*interfaces.ConversationTurn, error) {
 	if instance.llmClient == nil {
 		return nil, NewRuntimeError(ErrorCodePreconditionFailed, "LLM client not set for instance", nil)
 	}
@@ -217,8 +219,8 @@ func (instance *AIWorkerInstance) ProcessChatMessage(ctx context.Context, userMe
 		return nil, NewRuntimeError(ErrorCodePreconditionFailed, fmt.Sprintf("instance %s is currently busy", instance.InstanceID), nil)
 	}
 
-	userTurn := &ConversationTurn{
-		Role:    RoleUser,
+	userTurn := &interfaces.ConversationTurn{
+		Role:    interfaces.RoleUser,
 		Content: userMessageText,
 	}
 	instance.ConversationHistory = append(instance.ConversationHistory, userTurn)
@@ -237,12 +239,12 @@ func (instance *AIWorkerInstance) ProcessChatMessage(ctx context.Context, userMe
 		return nil, NewRuntimeError(ErrorCodeLLMError, fmt.Sprintf("LLM Ask failed for instance %s: %v", instance.InstanceID, err), err)
 	}
 
-	if modelResponseTurn != nil {
-		instance.ConversationHistory = append(instance.ConversationHistory, modelResponseTurn)
-		instance.SessionTokenUsage.InputTokens += modelResponseTurn.TokenUsage.InputTokens
-		instance.SessionTokenUsage.OutputTokens += modelResponseTurn.TokenUsage.OutputTokens
-		instance.SessionTokenUsage.TotalTokens = instance.SessionTokenUsage.InputTokens + instance.SessionTokenUsage.OutputTokens
-	}
+	// if modelResponseTurn != nil {
+	// 	instance.ConversationHistory = append(instance.ConversationHistory, modelResponseTurn)
+	// 	instance.SessionTokenUsage.InputTokens += modelResponseTurn.TokenUsage.InputTokens
+	// 	instance.SessionTokenUsage.OutputTokens += modelResponseTurn.TokenUsage.OutputTokens
+	// 	instance.SessionTokenUsage.TotalTokens = instance.SessionTokenUsage.InputTokens + instance.SessionTokenUsage.OutputTokens
+	// }
 
 	instance.LastActivityTimestamp = time.Now()
 	if previousStatus == InstanceStatusBusy || previousStatus == InstanceStatusInitializing {

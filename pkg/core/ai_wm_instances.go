@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/google/uuid"
 	// "github.com/aprice2704/neuroscript/pkg/logging"
 )
@@ -139,7 +140,7 @@ func (m *AIWorkerManager) SpawnWorkerInstance(
 		InstanceID:            instanceID,
 		DefinitionID:          definitionID,
 		Status:                InstanceStatusIdle,
-		ConversationHistory:   make([]*ConversationTurn, 0),
+		ConversationHistory:   make([]*interfaces.ConversationTurn, 0),
 		CreationTimestamp:     now,
 		LastActivityTimestamp: now,
 		SessionTokenUsage:     TokenUsageMetrics{},

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/aprice2704/neuroscript/pkg/logging"
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/google/generative-ai-go/genai" // For File API types if needed
 )
 
@@ -32,11 +32,11 @@ type AgentContext struct {
 	pinnedFileURIs    map[string]string // Populated by TOOL.AgentPinFile, always included
 	tempRequestedURIs map[string]string // Populated by TOOL.RequestFileContext, cleared after use
 
-	Logger logging.Logger // Logger for internal operations
+	Logger interfaces.Logger // Logger for internal operations
 }
 
 // NewAgentContext creates a new, initialized AgentContext.
-func NewAgentContext(logger logging.Logger) *AgentContext {
+func NewAgentContext(logger interfaces.Logger) *AgentContext {
 
 	return &AgentContext{
 		syncedFileURIs:    make(map[string]string),

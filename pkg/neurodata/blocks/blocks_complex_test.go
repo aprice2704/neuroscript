@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/adapters"
-	"github.com/aprice2704/neuroscript/pkg/logging"
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 )
 
 // Assume fixtureDir is defined in blocks_helpers.go
@@ -19,7 +19,7 @@ import (
 var logger *adapters.SlogAdapter
 
 func init() {
-	l, _ := adapters.NewSimpleSlogAdapter(os.Stderr, logging.LogLevelDebug)
+	l, _ := adapters.NewSimpleSlogAdapter(os.Stderr, interfaces.LogLevelDebug)
 	logger = l.(*adapters.SlogAdapter)
 }
 

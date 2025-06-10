@@ -206,15 +206,15 @@ func (i *Interpreter) evaluateExpression(node interface{}) (interface{}, error) 
 			if validationErr != nil {
 				return nil, NewRuntimeError(ErrorCodeArgMismatch, fmt.Sprintf("argument validation failed for tool '%s' at %s: %v", targetName, callablePosStr, validationErr), validationErr)
 			}
-			toolResult, toolErr := toolImpl.Func(i, validatedArgs)
+			ToolResult, toolErr := toolImpl.Func(i, validatedArgs)
 			if toolErr != nil {
 				if re, ok := toolErr.(*RuntimeError); ok {
 					return nil, re
 				}
 				return nil, NewRuntimeError(ErrorCodeToolExecutionFailed, fmt.Sprintf("tool '%s' execution failed at %s: %v", targetName, callablePosStr, toolErr), toolErr)
 			}
-			i.lastCallResult = toolResult
-			return toolResult, nil
+			i.lastCallResult = ToolResult
+			return ToolResult, nil
 		} else {
 			result, err := i.evaluateUserOrBuiltInFunction(targetName, evaluatedArgs)
 			return result, err

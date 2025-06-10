@@ -10,7 +10,7 @@ package core
 import (
 	"testing"
 
-	"github.com/aprice2704/neuroscript/pkg/logging" // Assuming this is the correct path for your logging package
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 )
 
 // parseStringToProcedureBodyNodes parses a string containing NeuroScript code,
@@ -33,9 +33,9 @@ func parseStringToProcedureBodyNodes(t *testing.T, scriptContent string, procNam
 
 	// Use a no-op logger for parsing and AST building within this test helper.
 	// If more detailed logging is needed during tests, NewTestLogger(t) could be used
-	// if it's adapted or if the TestLogger type is directly available and implements logging.Logger.
+	// if it's adapted or if the TestLogger type is directly available and implements interfaces.Logger.
 	// For now, coreNoOpLogger is suitable as per parser_api.go usage for non-LSP parsing.
-	var noOpLogger logging.Logger = &coreNoOpLogger{} // Assumes coreNoOpLogger is defined in utils.go
+	var noOpLogger interfaces.Logger = &coreNoOpLogger{} // Assumes coreNoOpLogger is defined in utils.go
 
 	parserAPI := NewParserAPI(noOpLogger) //
 	if parserAPI == nil {

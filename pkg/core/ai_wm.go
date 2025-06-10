@@ -18,7 +18,7 @@ import (
 	"sync"
 	"time" // Kept for initializeRateTrackersUnsafe and other operational timestamps
 
-	"github.com/aprice2704/neuroscript/pkg/logging"
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/google/uuid"
 )
 
@@ -39,16 +39,16 @@ type AIWorkerManager struct {
 	sandboxDir                  string
 
 	mu        sync.RWMutex
-	logger    logging.Logger
-	llmClient LLMClient
+	logger    interfaces.Logger
+	llmClient interfaces.LLMClient
 }
 
 // String() method is in core/ai_worker_stringers.go
 
 func NewAIWorkerManager(
-	logger logging.Logger,
+	logger interfaces.Logger,
 	sandboxDir string,
-	llmClient LLMClient,
+	llmClient interfaces.LLMClient,
 	initialDefinitionsContent string, // Content for ai_worker_definitions.json
 	initialPerformanceContent string, // Content for ai_worker_performance_data.json
 ) (*AIWorkerManager, error) {

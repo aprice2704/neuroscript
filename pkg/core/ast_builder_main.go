@@ -13,19 +13,19 @@ import (
 	"strings"
 
 	"github.com/antlr4-go/antlr/v4"
-	"github.com/aprice2704/neuroscript/pkg/logging"
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 )
 
 // --- ASTBuilder (Exported Constructor and Build Method) ---
 
 // ASTBuilder encapsulates the logic for building the NeuroScript AST using a listener.
 type ASTBuilder struct {
-	logger   logging.Logger
+	logger   interfaces.Logger
 	debugAST bool // Option to enable detailed AST construction logging
 }
 
 // NewASTBuilder creates a new ASTBuilder instance.
-func NewASTBuilder(logger logging.Logger) *ASTBuilder {
+func NewASTBuilder(logger interfaces.Logger) *ASTBuilder {
 	if logger == nil {
 		logger = &coreNoOpLogger{}
 	}

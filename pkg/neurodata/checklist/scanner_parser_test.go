@@ -9,13 +9,13 @@ import (
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/adapters"
-	"github.com/aprice2704/neuroscript/pkg/logging"
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 )
 
 var testLogger *adapters.SlogAdapter
 
 func init() {
-	l, _ := adapters.NewSimpleSlogAdapter(os.Stderr, logging.LogLevelDebug)
+	l, _ := adapters.NewSimpleSlogAdapter(os.Stderr, interfaces.LogLevelDebug)
 	testLogger = l.(*adapters.SlogAdapter)
 }
 

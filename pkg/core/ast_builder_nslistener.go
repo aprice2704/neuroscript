@@ -18,7 +18,7 @@
 // files.
 //
 // All code below is private to the builder package; the public entry point is
-// `Build(programText []byte, logger logging.Logger)` in ast_builder_main.go.
+// `Build(programText []byte, logger interfaces.Logger)` in ast_builder_main.go.
 package core
 
 import (
@@ -26,7 +26,7 @@ import (
 
 	"github.com/antlr4-go/antlr/v4"
 	gen "github.com/aprice2704/neuroscript/pkg/core/generated"
-	"github.com/aprice2704/neuroscript/pkg/logging"
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 )
 
 // neuroScriptListenerImpl implements the ANTLR listener and incrementally builds
@@ -42,7 +42,7 @@ type neuroScriptListenerImpl struct {
 	blockStepStack       []*[]Step     // LIFO of step slices for nested blocks
 	valueStack           []interface{} // LIFO of AST fragments
 	currentMapKey        *StringLiteralNode
-	logger               logging.Logger
+	logger               interfaces.Logger
 	debugAST             bool
 	errors               []error
 	loopDepth            int
@@ -50,7 +50,7 @@ type neuroScriptListenerImpl struct {
 }
 
 // newNeuroScriptListener constructs a fresh builder listener.
-func newNeuroScriptListener(logger logging.Logger, debugAST bool) *neuroScriptListenerImpl {
+func newNeuroScriptListener(logger interfaces.Logger, debugAST bool) *neuroScriptListenerImpl {
 	prog := &Program{
 		Metadata:   make(map[string]string),
 		Procedures: make(map[string]*Procedure),

@@ -48,7 +48,7 @@ func (i *Interpreter) executeInternalTool(impl ToolImplementation, args map[stri
 func (i *Interpreter) ExecuteTool(toolName string, args map[string]interface{}) (interface{}, error) {
 	now := time.Now()
 	if i.rateLimitCount > 0 && i.rateLimitDuration > 0 {
-		timestamps := i.toolCallTimestamps[toolName]
+		timestamps := i.ToolCallTimestamps[toolName]
 		validTimestamps := []time.Time{}
 		cutoff := now.Add(-i.rateLimitDuration)
 		for _, ts := range timestamps {
@@ -60,7 +60,7 @@ func (i *Interpreter) ExecuteTool(toolName string, args map[string]interface{}) 
 			return nil, NewRuntimeError(ErrorCodeRateLimited, fmt.Sprintf("tool '%s' rate limit exceeded", toolName), ErrRateLimited)
 		}
 		validTimestamps = append(validTimestamps, now)
-		i.toolCallTimestamps[toolName] = validTimestamps
+		i.ToolCallTimestamps[toolName] = validTimestamps
 	}
 
 	impl, found := i.GetTool(toolName)
