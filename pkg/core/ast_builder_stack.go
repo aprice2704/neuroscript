@@ -1,10 +1,27 @@
-// NeuroScript Version: 0.3.1
-// File version: 1
-// Purpose: Contains the value stack manipulation methods for the AST builder listener.
-// filename: pkg/core/ast_builder_stack.go
-// nlines: 75
-// risk_rating: MEDIUM
-
+// ast_builder_stack.go - Stack manipulation helpers for the AST builder.
+//
+// These functions operate on the two runtime stacks maintained by
+// neuroScriptListenerImpl while the ANTLR listener walks the parse tree:
+//
+//   - valueStack         – []interface{} acting as a LIFO for every
+//     value‑producing grammar construct
+//     (expressions, []Step blocks, literals, etc.).
+//
+//   - blockStepStack     – []*[]Step used to collect the Steps belonging to the
+//     body of each nested block (func, on event, if, loop…).
+//
+// Invariants enforced (see ast.go for full specification):
+//
+//  1. Every pushValue must eventually be matched by a popValue (or
+//     equivalent popNValues) before the listener returns to the top level.
+//  2. popNValues(n) removes exactly n elements or records an internal error
+//     if the stack has fewer than n entries.
+//  3. These helpers never touch blockStepStack — block entry/exit helpers
+//     manage it separately.
+//
+// Not safe for concurrent use; the AST builder is single‑threaded.
+//
+// file version: 1
 package core
 
 import (
@@ -12,7 +29,7 @@ import (
 	"fmt"
 )
 
-// pushValue pushes a value onto the listener's value stack.
+// pushValue appends v to the valueStack.
 func (l *neuroScriptListenerImpl) pushValue(v interface{}) {
 	if l.debugAST {
 		l.logger.Debug("[DEBUG-AST-STACK] --> PUSH", "value_type", fmt.Sprintf("%T", v), "new_stack_size", len(l.valueStack)+1)
@@ -20,7 +37,7 @@ func (l *neuroScriptListenerImpl) pushValue(v interface{}) {
 	l.valueStack = append(l.valueStack, v)
 }
 
-// popValue pops a single value from the listener's value stack.
+// popValue pops and returns the top element of valueStack.
 func (l *neuroScriptListenerImpl) popValue() (interface{}, bool) {
 	if len(l.valueStack) == 0 {
 		l.logger.Error("AST Builder: Pop from empty value stack!")
@@ -36,7 +53,7 @@ func (l *neuroScriptListenerImpl) popValue() (interface{}, bool) {
 	return value, true
 }
 
-// popNValues pops N values from the listener's value stack.
+// popNValues pops n elements and returns them in the same order they were on the stack.
 func (l *neuroScriptListenerImpl) popNValues(n int) ([]interface{}, bool) {
 	if n < 0 {
 		l.addError(nil, "internal AST builder error: popNValues called with negative count %d", n)

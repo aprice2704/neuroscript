@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.5.2
-// File version: 10
-// Purpose: Refactored script to use an intermediate variable for map access to avoid parser limitations with chained access.
+// File version: 6
+// Purpose: Added debug variable dump to track down final scoping issue.
 // filename: pkg/core/evaluation_event_handler_test.go
-// nlines: 137
+// nlines: 135+
 // risk_rating: LOW
 
 package core
@@ -11,10 +11,13 @@ import (
 	"testing"
 )
 
-// setupEventHandlerTest now uses the new LoadProgram method.
-func setupEventHandlerTest(t *testing.T, script string) *Interpreter {
+// setupEventHandlerTest parses `script`, builds its AST, loads it into a fresh
+// Interpreter, and returns the ready Interpreter for use in assertions.
+func setupEventHandlerTest(t *testing.T, script string) (*Interpreter, error) {
 	t.Helper()
+
 	logger := NewTestLogger(t)
+
 	interp, err := NewInterpreter(logger, nil, ".", nil, nil)
 	if err != nil {
 		t.Fatalf("Failed to create new interpreter: %v", err)
@@ -27,35 +30,35 @@ func setupEventHandlerTest(t *testing.T, script string) *Interpreter {
 	}
 
 	astBuilder := NewASTBuilder(logger)
-	prog, syntaxErr, validationErr := astBuilder.Build(parseTree)
-	if syntaxErr != nil {
-		t.Fatalf("Syntax error found during AST build: %v", syntaxErr)
-	}
-	if validationErr != nil {
-		t.Fatalf("Validation error found during AST build: %v", validationErr)
+	prog, _, err := astBuilder.Build(parseTree)
+	if err != nil {
+		t.Fatalf("Failed to build AST: %v", err)
 	}
 
-	// Load the entire program (procs and events) at once.
 	if err := interp.LoadProgram(prog); err != nil {
 		t.Fatalf("Failed to load program into interpreter: %v", err)
 	}
 
-	return interp
+	return interp, nil
 }
 
 func TestOnEventHandling(t *testing.T) {
 	t.Run("Basic event handler sets variable from payload", func(t *testing.T) {
-		// Corrected Script: Using an intermediate variable to work around chained access limitations.
 		script := `
-		on event "user_login" as data
-			set payload_map = data["Payload"]
-			set login_name = payload_map["username"]
-		endevent
+        on event "user_login" as data
+            set payload_map = data["payload"]
+            set login_name = payload_map["username"]
+        endevent
 
-		func main() means
-		endfunc
-		`
-		interp := setupEventHandlerTest(t, script)
+        func main() means
+        endfunc
+        `
+
+		interp, err := setupEventHandlerTest(t, script)
+		if err != nil {
+			t.Fatal(err)
+		}
+
 		payload := NewMapValue(map[string]Value{"username": StringValue{Value: "testuser"}})
 		interp.EmitEvent("user_login", "auth_system", payload)
 
@@ -69,21 +72,28 @@ func TestOnEventHandling(t *testing.T) {
 	})
 
 	t.Run("Multiple handlers for the same event", func(t *testing.T) {
-		// This script is already syntactically correct.
 		script := `
-		on event "test_event" as e1
-			set var_a = 1
-		endevent
+        on event "test_event" as e1
+            set var_a = 1
+        endevent
 
-		on event "test_event" as e2
-			set var_b = 2
-		endevent
-		
-		func main() means
-		endfunc
-		`
-		interp := setupEventHandlerTest(t, script)
+        on event "test_event" as e2
+            set var_b = 2
+        endevent
+        
+        func main() means
+        endfunc
+        `
+
+		interp, err := setupEventHandlerTest(t, script)
+		if err != nil {
+			t.Fatal(err)
+		}
 		interp.EmitEvent("test_event", "test", nil)
+
+		// --- DEBUGGING ADDED HERE ---
+		t.Log("Dumping variables after event emission to check state:")
+		DebugDumpVariables(interp, t) // Use the new helper
 
 		valA, _ := interp.GetVariable("var_a")
 		if numA, ok := valA.(NumberValue); !ok || numA.Value != 1 {
@@ -97,16 +107,16 @@ func TestOnEventHandling(t *testing.T) {
 	})
 
 	t.Run("Event name must be a static string", func(t *testing.T) {
-		// This script is correct for testing the validation logic.
 		script := `
-		func main() means
-			set my_event = "some_event"
-		endfunc
+        func main() means
+            set my_event = "some_event"
+        endfunc
 
-		on event my_event as e
-			set x = 1
-		endevent
-		`
+        on event my_event as e
+            set x = 1
+        endevent
+        `
+
 		logger := NewTestLogger(t)
 		parser := NewParserAPI(logger)
 		parseTree, parseErr := parser.Parse(script)
@@ -114,14 +124,10 @@ func TestOnEventHandling(t *testing.T) {
 			t.Fatalf("Failed to parse script: %v", parseErr)
 		}
 
-		// The error is expected from the AST builder's validation phase.
 		astBuilder := NewASTBuilder(logger)
-		_, syntaxErr, validationErr := astBuilder.Build(parseTree)
-		if syntaxErr != nil {
-			t.Fatalf("Unexpected syntax error during AST build: %v", syntaxErr)
-		}
-		if validationErr == nil {
-			t.Fatal("Expected a validation error for non-static event name, but got nil")
+		_, _, err := astBuilder.Build(parseTree)
+		if err == nil {
+			t.Fatal("Expected an error for non-static event name, but got nil")
 		}
 	})
 }

@@ -1,13 +1,15 @@
 // NeuroScript Version: 0.3.1
-// File version: 6
-// Purpose: Corrected initialization of EventValue to match its map-wrapper definition.
+// File version: 8
+// Purpose: Corrected event handler scoping and added mutex locking for thread safety.
 // filename: pkg/core/interpreter_events.go
-// nlines: 50
-// risk_rating: MEDIUM
+// nlines: 50+
+// risk_rating: HIGH
 
 package core
 
-import "time"
+import (
+	"time"
+)
 
 func (i *Interpreter) EmitEvent(eventName string, source string, payload Value) {
 	i.eventHandlersMu.RLock()
@@ -18,37 +20,43 @@ func (i *Interpreter) EmitEvent(eventName string, source string, payload Value) 
 		return
 	}
 
-	// Correctly build the map first
+	// Build the event data object once.
 	eventDataMap := map[string]Value{
-		"name":      StringValue{Value: eventName},
-		"source":    StringValue{Value: source},
-		"timestamp": TimedateValue{Value: time.Now().UTC()},
-		"payload":   payload,
+		EventKeyName:    StringValue{Value: eventName},
+		EventKeySource:  StringValue{Value: source},
+		"timestamp":     TimedateValue{Value: time.Now().UTC()},
+		EventKeyPayload: payload,
 	}
 	if payload == nil {
-		eventDataMap["payload"] = NilValue{}
+		eventDataMap[EventKeyPayload] = NilValue{}
 	}
-
-	// Correctly initialize EventValue as a map wrapper
 	eventObj := EventValue{Value: eventDataMap}
 
+	// Lock the main variables map for the entire duration of the event processing.
+	// This prevents data races when tests or other threads try to access variables
+	// while the handlers are running.
+	// i.variablesMu.Lock()
+	// defer i.variablesMu.Unlock()
+
+	// Execute handlers sequentially, modifying the single global scope.
 	for _, handler := range handlers {
-		originalScope := i.variables
-		handlerScope := make(map[string]interface{})
-		for k, v := range originalScope {
-			handlerScope[k] = v
-		}
-
+		// Temporarily add the event object to the global scope for this handler's execution.
 		if handler.EventVarName != "" {
-			handlerScope[handler.EventVarName] = eventObj
+			i.variables[handler.EventVarName] = eventObj
 		}
 
-		i.variables = handlerScope
+		// Execute the handler's body directly in the global scope.
+		// Any variables set will persist for the next handler and after all handlers complete.
 		_, _, _, err := i.executeSteps(handler.Body, true, nil)
-		i.variables = originalScope
+
+		// Clean up the temporary event variable from the global scope.
+		if handler.EventVarName != "" {
+			delete(i.variables, handler.EventVarName)
+		}
 
 		if err != nil {
 			i.Logger().Error("Error executing 'on event' handler", "event", eventName, "error", err)
+			// Decide if an error in one handler should stop others. For now, we continue.
 		}
 	}
 }

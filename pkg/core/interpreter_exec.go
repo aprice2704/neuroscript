@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.0.6 // Modified logging in executeSteps to use getStepSubjectForLogging instead of step.Target.
+// File version: 0.0.7 // Restored executeBlock and added 'assign' case to executeSteps.
 // filename: pkg/core/interpreter_exec.go
-// nlines: 265 // Approximate
-// risk_rating: MEDIUM
+// nlines: 290+
+// risk_rating: HIGH
 package core
 
 import (
@@ -14,7 +14,7 @@ import (
 // getStepSubjectForLogging creates a descriptive string for a step's main subject for logging.
 func getStepSubjectForLogging(step Step) string {
 	switch strings.ToLower(step.Type) {
-	case "set":
+	case "set", "assign":
 		if step.LValue != nil {
 			return step.LValue.String()
 		}
@@ -30,7 +30,7 @@ func getStepSubjectForLogging(step Step) string {
 			return fmt.Sprintf("prompt: %s", step.Value.String())
 		}
 		return "ask"
-	case "for_each", "for": // Assuming "for" might be an alias
+	case "for_each", "for":
 		return fmt.Sprintf("loopVar: %s, collection: %s", step.LoopVarName, step.Collection.String())
 	case "must", "mustbe":
 		if strings.ToLower(step.Type) == "mustbe" && step.Call != nil {
@@ -53,10 +53,8 @@ func getStepSubjectForLogging(step Step) string {
 			return step.Value.String()
 		}
 		return "emit (empty)"
-		// Add other cases for if, while, etc. if a "subject" is relevant for their top-level log
-		// For now, they mostly log their conditions internally or are block structures.
 	}
-	return "<no specific subject>" // Default for steps like on_error, clear_error, break, continue
+	return "<no specific subject>"
 }
 
 // executeSteps iterates through and executes steps, handling control flow and errors.
@@ -79,7 +77,6 @@ func (i *Interpreter) executeSteps(steps []Step, isInHandler bool, activeError *
 
 		stepTypeLower := strings.ToLower(step.Type)
 		stepTypeStr := strings.ToUpper(stepTypeLower)
-		// MODIFIED: Use helper function for step subject logging
 		stepSubjectStr := getStepSubjectForLogging(step)
 		logPos := "<unknown_pos>"
 		if step.Pos != nil {
@@ -90,6 +87,8 @@ func (i *Interpreter) executeSteps(steps []Step, isInHandler bool, activeError *
 		switch stepTypeLower {
 		case "set":
 			stepResult, stepErr = i.executeSet(step, stepNum, isInHandler, activeError)
+		case "assign":
+			stepResult, stepErr = i.executeSet(step, stepNum, isInHandler, activeError)
 		case "call":
 			if step.Call != nil {
 				var callRes interface{}
@@ -99,7 +98,7 @@ func (i *Interpreter) executeSteps(steps []Step, isInHandler bool, activeError *
 				}
 			} else {
 				errMsg := fmt.Sprintf("step %d: 'call' step type without Call details", stepNum+1)
-				stepErr = NewRuntimeError(ErrorCodeInternal, errMsg, errors.New(errMsg)).WithPosition(step.Pos) // Use a base error for Wrapped
+				stepErr = NewRuntimeError(ErrorCodeInternal, errMsg, errors.New(errMsg)).WithPosition(step.Pos)
 			}
 		case "return":
 			if isInHandler {
@@ -120,7 +119,7 @@ func (i *Interpreter) executeSteps(steps []Step, isInHandler bool, activeError *
 			var ifBlockResult interface{}
 			ifBlockResult, ifReturned, ifCleared, stepErr = i.executeIf(step, stepNum, isInHandler, activeError)
 			if errors.Is(stepErr, ErrBreak) || errors.Is(stepErr, ErrContinue) {
-				return nil, false, wasCleared, stepErr // Propagate wasCleared if break/continue happened after a clear
+				return nil, false, wasCleared, stepErr
 			}
 			if stepErr == nil {
 				stepResult = ifBlockResult
@@ -136,15 +135,12 @@ func (i *Interpreter) executeSteps(steps []Step, isInHandler bool, activeError *
 			var whileReturned, whileCleared bool
 			var whileBlockResult interface{}
 			whileBlockResult, whileReturned, whileCleared, stepErr = i.executeWhile(step, stepNum, isInHandler, activeError)
-			// Do NOT propagate ErrBreak from executeWhile if it completed normally (break was handled internally)
-			// Only propagate if it's an actual error OR if the loop was exited by break and executeWhile returns ErrBreak
 			if errors.Is(stepErr, ErrBreak) {
 				i.Logger().Debug("[DEBUG-INTERP] WHILE loop broken", "step_num", stepNum+1)
-				stepErr = nil // Consume ErrBreak if loop structure handles it
+				stepErr = nil
 			} else if errors.Is(stepErr, ErrContinue) {
-				// Should not happen, continue is handled within the loop. If it propagates, it's an issue.
 				i.Logger().Warn("[DEBUG-INTERP] CONTINUE propagated out of WHILE loop unexpectedly", "step_num", stepNum+1)
-			} else if stepErr == nil { // Normal completion or successful break
+			} else if stepErr == nil {
 				stepResult = whileBlockResult
 				if whileReturned {
 					i.lastCallResult = stepResult
@@ -154,13 +150,13 @@ func (i *Interpreter) executeSteps(steps []Step, isInHandler bool, activeError *
 					wasCleared = true
 				}
 			}
-		case "for", "for_each": // Allow "for" as an alias
+		case "for", "for_each":
 			var forReturned, forCleared bool
 			var forBlockResult interface{}
 			forBlockResult, forReturned, forCleared, stepErr = i.executeFor(step, stepNum, isInHandler, activeError)
 			if errors.Is(stepErr, ErrBreak) {
 				i.Logger().Debug("[DEBUG-INTERP] FOR loop broken", "step_num", stepNum+1)
-				stepErr = nil // Consume ErrBreak
+				stepErr = nil
 			} else if errors.Is(stepErr, ErrContinue) {
 				i.Logger().Warn("[DEBUG-INTERP] CONTINUE propagated out of FOR loop unexpectedly", "step_num", stepNum+1)
 			} else if stepErr == nil {
@@ -190,7 +186,7 @@ func (i *Interpreter) executeSteps(steps []Step, isInHandler bool, activeError *
 			clearedNow, stepErr = i.executeClearError(step, stepNum, isInHandler, activeError)
 			if stepErr == nil && clearedNow {
 				wasCleared = true
-				activeError = nil // Explicitly clear the active error for subsequent steps in this block
+				activeError = nil
 				i.Logger().Debug("Active error cleared by CLEAR_ERROR step", "step_num", stepNum+1)
 			}
 			stepResult = nil
@@ -202,23 +198,21 @@ func (i *Interpreter) executeSteps(steps []Step, isInHandler bool, activeError *
 			stepResult, stepErr = i.executeContinue(step, stepNum, isInHandler, activeError)
 		default:
 			errMsg := fmt.Sprintf("step %d: unknown step type '%s'", stepNum+1, step.Type)
-			stepErr = NewRuntimeError(ErrorCodeUnknownKeyword, errMsg, ErrUnknownKeyword).WithPosition(step.Pos) // Use specific error
+			stepErr = NewRuntimeError(ErrorCodeUnknownKeyword, errMsg, ErrUnknownKeyword).WithPosition(step.Pos)
 			stepResult = nil
 		}
 
 		if stepErr != nil {
-			// Handle control flow signals (break/continue)
 			if errors.Is(stepErr, ErrBreak) || errors.Is(stepErr, ErrContinue) {
 				i.Logger().Debug("[DEBUG-INTERP] Propagating control flow signal", "signal", stepErr.Error(), "step_num", stepNum+1)
-				return nil, false, wasCleared, stepErr // Propagate to be handled by loop structures
+				return nil, false, wasCleared, stepErr
 			}
 
-			// Convert to RuntimeError if it isn't already
 			rtErr, isRuntimeErr := stepErr.(*RuntimeError)
 			if !isRuntimeErr {
 				i.Logger().Warn("Wrapping non-RuntimeError from step execution", "original_error", stepErr, "step_num", stepNum+1)
 				rtErr = NewRuntimeError(ErrorCodeInternal, fmt.Sprintf("internal error during step %d (%s)", stepNum+1, stepTypeStr), stepErr).WithPosition(step.Pos)
-			} else if rtErr.Position == nil && step.Pos != nil { // Ensure position is set
+			} else if rtErr.Position == nil && step.Pos != nil {
 				rtErr = rtErr.WithPosition(step.Pos)
 			}
 
@@ -226,13 +220,11 @@ func (i *Interpreter) executeSteps(steps []Step, isInHandler bool, activeError *
 				i.Logger().Debug("Error occurred, executing active ON_ERROR handler", "original_error", rtErr.Error(), "step_num", stepNum+1)
 				handlerSteps := currentErrorHandler.Body
 
-				// Temporarily disable this handler to prevent recursion on error within handler
 				tempHandlerForRecursion := currentErrorHandler
 				currentErrorHandler = nil
 
 				_, handlerReturned, handlerCleared, handlerErr := i.executeSteps(handlerSteps, true, rtErr)
 
-				// Restore handler only if the handler itself didn't error out or return (or clear).
 				if handlerErr == nil && !handlerReturned && !handlerCleared {
 					currentErrorHandler = tempHandlerForRecursion
 				} else {
@@ -241,42 +233,37 @@ func (i *Interpreter) executeSteps(steps []Step, isInHandler bool, activeError *
 
 				if handlerErr != nil {
 					i.Logger().Warn("Error occurred inside ON_ERROR handler, propagating handler error", "handler_error", handlerErr.Error(), "original_error", rtErr.Error())
-					// Ensure handlerErr is RuntimeError with position
 					if _, ok := handlerErr.(*RuntimeError); !ok {
 						errMsg := fmt.Sprintf("internal error processing on_error handler at %s", tempHandlerForRecursion.Pos.String())
 						handlerErr = NewRuntimeError(ErrorCodeInternal, errMsg, handlerErr).WithPosition(tempHandlerForRecursion.Pos)
 					}
-					return nil, false, false, handlerErr // Propagate handler's error
+					return nil, false, false, handlerErr
 				}
-				if handlerReturned { // A 'return' inside on_error should ideally not occur or be handled very carefully.
+				if handlerReturned {
 					errMsg := "execution flow error: 'return' from 'on_error' handler is not standard behavior and implies termination of procedure"
 					finalError = NewRuntimeError(ErrorCodeReturnViolation, errMsg, ErrReturnViolation).WithPosition(tempHandlerForRecursion.Pos)
 					i.Logger().Error("Return from on_error handler", "error", finalError.Error())
-					// This return effectively ends the current procedure if not caught.
-					return nil, true, false, finalError // Signal return from the original executeSteps call
+					return nil, true, false, finalError
 				}
 				if handlerCleared {
 					i.Logger().Debug("ON_ERROR handler executed and cleared the error", "cleared_error", rtErr.Error())
-					stepErr = nil     // Original error is cleared
-					wasCleared = true // Signal that an error was cleared
-					activeError = nil // Clear the active error for this scope
-					// Continue to the next step in the current block
+					stepErr = nil
+					wasCleared = true
+					activeError = nil
 				} else {
 					i.Logger().Debug("ON_ERROR handler executed but did not clear error, propagating original error", "original_error", rtErr.Error())
-					// Original error rtErr should be propagated
 					return nil, false, false, rtErr
 				}
-			} else { // No error handler active
+			} else {
 				i.Logger().Debug("Error occurred, no active ON_ERROR handler, propagating", "error", rtErr.Error(), "step_num", stepNum+1)
-				return nil, false, false, rtErr // Propagate the original (or wrapped) RuntimeError
+				return nil, false, false, rtErr
 			}
-		} // end if stepErr != nil
+		}
 
-		// If stepErr was cleared by a handler, continue to next step.
 		if stepErr == nil {
 			shouldUpdateLast := false
 			switch stepTypeLower {
-			case "set", "emit", "must", "mustbe", "ask", "call":
+			case "set", "assign", "emit", "must", "mustbe", "ask", "call":
 				shouldUpdateLast = true
 			}
 
@@ -287,13 +274,13 @@ func (i *Interpreter) executeSteps(steps []Step, isInHandler bool, activeError *
 				i.Logger().Debug("[DEBUG-INTERP]     Step successful", "step_num", stepNum+1, "type", stepTypeStr, "info", "does not update LAST directly")
 			}
 		}
-	} // end for loop over steps
+	}
 
 	i.Logger().Debug("[DEBUG-INTERP] Finished executing steps block normally", "mode", modeStr, "final_wasCleared", wasCleared)
-	return nil, false, wasCleared, nil // Normal completion of the block
+	return nil, false, wasCleared, nil
 }
 
-// executeBlock remains unchanged from your provided file.
+// executeBlock is a wrapper around executeSteps that handles casting and logging for block-based statements like if/for.
 func (i *Interpreter) executeBlock(blockValue interface{}, parentStepNum int, blockType string, isInHandler bool, activeError *RuntimeError) (result interface{}, wasReturn bool, wasCleared bool, err error) {
 	steps, ok := blockValue.([]Step)
 	if !ok {
@@ -304,9 +291,8 @@ func (i *Interpreter) executeBlock(blockValue interface{}, parentStepNum int, bl
 			i.Logger().Debug("Entering block execution for nil/empty block", "block_type", blockType, "parent_step", parentStepNum+1)
 			return nil, false, false, nil
 		}
-		// Use existing NewRuntimeError and WithPosition
 		newErr := NewRuntimeError(ErrorCodeInternal, errMsg, ErrInternal)
-		if len(steps) > 0 && steps[0].Pos != nil { // Try to get a position if possible
+		if len(steps) > 0 && steps[0].Pos != nil {
 			newErr = newErr.WithPosition(steps[0].Pos)
 		}
 		i.Logger().Error("Invalid block format", "error", newErr.Error())

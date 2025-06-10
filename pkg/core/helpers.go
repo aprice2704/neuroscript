@@ -9,6 +9,8 @@ package core
 import (
 	"flag"
 	"fmt"
+	"io"
+	"os"
 	"reflect"
 	"strconv"
 	"strings"
@@ -19,14 +21,22 @@ import (
 )
 
 // --- Internal Test Logger ---
-type TestLogger struct{ t *testing.T }
+type TestLogger struct {
+	t   *testing.T
+	out io.Writer
+}
 
 var _ logging.Logger = (*TestLogger)(nil)
 
 // NewTestLogger creates a new logger that logs using the provided *testing.T.
 // This is useful for tests within the core package itself.
 func NewTestLogger(t *testing.T) logging.Logger {
-	return &TestLogger{t: t}
+	// If -nslog is NOT set, return a no-op logger that implements the interface
+	if !*TestVerbose {
+		return &coreNoOpLogger{} // tiny helper you already ship
+	}
+	// Otherwise return the full tracing logger
+	return &TestLogger{t: t, out: os.Stderr}
 }
 
 func (l TestLogger) logStructured(level string, msg string, args ...any) {
@@ -54,7 +64,7 @@ func (l TestLogger) logStructured(level string, msg string, args ...any) {
 			}
 		}
 	}
-	//l.t.Log(sb.String())
+	l.t.Log(sb.String())
 }
 
 func (l TestLogger) Debug(msg string, args ...any) { l.logStructured("[DEBUG]", msg, args...) }

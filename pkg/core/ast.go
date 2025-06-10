@@ -1,9 +1,46 @@
 // NeuroScript Version: 0.5.2
-// File version: 2
-// Purpose: Added 'Events' field to Program struct to support top-level event handlers.
+// File version: 3
+// Purpose: Consolidated event handler representation to use a single 'Events' slice of OnEventDecl.
 // filename: pkg/core/ast.go
-// nlines: 50
+// nlines: 48
 // risk_rating: HIGH
+
+// Package core ast*.go defines the abstract syntax tree (AST) for NeuroScript programs.
+//
+// Stack invariants used by the AST builder
+// ---------------------------------------
+// The builder maintains two slices that act as stacks while walking the ANTLR
+// parse tree:
+//
+//   • valueStack []interface{}
+//       Holds every “value‑producing” construct (expressions, []Step blocks,
+//       literals, etc.) in last‑in‑first‑out order.
+//
+//   • blockStepStack [][]Step
+//       Mirrors nested statement_list contexts so the builder can switch the
+//       receiver slice for step‑building.
+//
+// The rules for interacting with these stacks are:
+//
+//   1. enterBlockContext(label) MUST be paired with exactly one
+//      exitBlockContext() on every code path.  The helper pushes the current
+//      *[]Step on blockStepStack, sets currentSteps = new([]Step), and exit…
+//      pops and restores.
+//
+//   2. Top‑level constructs that own a statement_list (`func`, `on event`,
+//      `loop`, etc.) NEVER push/pop directly; they rely entirely on the
+//      Statement_list enter/exit callbacks.
+//
+//   3. Helpers (pushValue/popValue/popNValues) always leave valueStack
+//      balanced.  After a successful Build() run, len(valueStack) == 0 and
+//      len(blockStepStack) == 0.
+//
+//   4. When building nodes that consume N operands, push them first then pop
+//      in reverse order (LIFO).  Violating this order manifests as “value
+//      stack size is X at end of program” errors.
+//
+// Keep these invariants in mind before changing stack‑related code; most hard‑
+// to‑trace bugs stem from breaking one of them.
 
 package core
 
@@ -15,16 +52,12 @@ import (
 type Position struct {
 	Line   int
 	Column int
-	File   string // Optional: filename or source identifier
+	File   string
 }
 
-func (p *Position) GetPos() *Position { return p }
 func (p *Position) String() string {
 	if p == nil {
-		return "(unknown pos)"
-	}
-	if p.File != "" {
-		return fmt.Sprintf("%s:%d:%d", p.File, p.Line, p.Column)
+		return "<nil position>"
 	}
 	return fmt.Sprintf("line %d, col %d", p.Line, p.Column)
 }
@@ -38,16 +71,15 @@ type Expression interface {
 
 // Program represents the entire parsed NeuroScript program.
 type Program struct {
-	Pos           *Position
-	Metadata      map[string]string
-	Procedures    map[string]*Procedure
-	Events        []*OnEventDecl
-	EventHandlers []*OnEventNode `json:"event_handlers"`
+	Pos        *Position
+	Metadata   map[string]string
+	Procedures map[string]*Procedure
+	Events     []*OnEventDecl // This is the single, correct field for event handlers.
 }
 
 func (p *Program) GetPos() *Position { return p.Pos }
 
-// ErrorNode represents a parsing or semantic error encountered during AST construction.
+// ErrorNode captures a parsing or semantic error encountered during AST construction.
 type ErrorNode struct {
 	Pos     *Position
 	Message string
@@ -55,9 +87,14 @@ type ErrorNode struct {
 
 func (n *ErrorNode) GetPos() *Position { return n.Pos }
 func (n *ErrorNode) expressionNode()   {}
-func (n *ErrorNode) String() string    { return fmt.Sprintf("Error(%s): %s", n.Pos, n.Message) }
+func (n *ErrorNode) String() string {
+	if n == nil {
+		return "<nil error node>"
+	}
+	return fmt.Sprintf("Error at %s: %s", n.Pos, n.Message)
+}
 
-// --- Helper for getting position from any node that implements Expression or Step ---
+// --- Helper for getting position from nodes that implement Expression or Step ---
 func getExpressionPosition(val interface{}) *Position {
 	if expr, ok := val.(Expression); ok {
 		return expr.GetPos()
@@ -67,16 +104,3 @@ func getExpressionPosition(val interface{}) *Position {
 	}
 	return nil
 }
-
-// OnEventNode represents an 'on event' block, a top-level construct.
-type OnEventNode struct {
-	Pos             *Position
-	EventNameExpr   Expression
-	PayloadVariable string
-	Steps           []Step
-}
-
-func (n *OnEventNode) GetPos() *Position { return n.Pos }
-func (n *OnEventNode) GetSteps() []Step  { return n.Steps } // Implement StepContainer
-func (n *OnEventNode) node()             {}
-func (n *OnEventNode) String() string    { return "OnEventNode" }

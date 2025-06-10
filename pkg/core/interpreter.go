@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.3.1
-// File version: 2
-// Purpose: Core interpreter struct definition, constructor, and basic state management.
+// File version: 3
+// Purpose: Core interpreter struct definition, constructor, and basic state management. Added mutex for variable safety.
 // filename: pkg/core/interpreter.go
-// nlines: 135
+// nlines: 140+
 // risk_rating: HIGH
 package core
 
@@ -29,6 +29,7 @@ var AppVersion string
 
 type Interpreter struct {
 	variables          map[string]interface{}
+	variablesMu        sync.RWMutex // Mutex to protect concurrent access to the variables map.
 	knownProcedures    map[string]*Procedure
 	lastCallResult     interface{}
 	vectorIndex        map[string][]float32
@@ -48,7 +49,7 @@ type Interpreter struct {
 	rateLimitCount     int
 	rateLimitDuration  time.Duration
 	maxLoopIterations  int
-	eventHandlers      map[string][]*OnEventDecl // Changed from []*Step
+	eventHandlers      map[string][]*OnEventDecl
 	eventHandlersMu    sync.RWMutex
 }
 
@@ -146,6 +147,7 @@ func NewInterpreter(logger logging.Logger, llmClient LLMClient, sandboxDir strin
 
 	interp := &Interpreter{
 		variables:          vars,
+		variablesMu:        sync.RWMutex{},
 		knownProcedures:    make(map[string]*Procedure),
 		lastCallResult:     nil,
 		vectorIndex:        make(map[string][]float32),
@@ -235,6 +237,8 @@ func (i *Interpreter) SetSandboxDir(newSandboxDir string) error {
 }
 
 func (i *Interpreter) SetVariable(name string, value interface{}) error {
+	i.variablesMu.Lock()
+	defer i.variablesMu.Unlock()
 	if i.variables == nil {
 		i.variables = make(map[string]interface{})
 	}
@@ -246,6 +250,8 @@ func (i *Interpreter) SetVariable(name string, value interface{}) error {
 }
 
 func (i *Interpreter) GetVariable(name string) (interface{}, bool) {
+	i.variablesMu.RLock()
+	defer i.variablesMu.RUnlock()
 	if i.variables == nil {
 		return nil, false
 	}

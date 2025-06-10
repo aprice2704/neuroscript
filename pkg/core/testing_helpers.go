@@ -328,3 +328,23 @@ func NewTestBooleanLiteral(val bool) *BooleanLiteralNode {
 func NewTestVariableNode(name string) *VariableNode {
 	return &VariableNode{Pos: &Position{Line: 1, Column: 1, File: "test"}, Name: name}
 }
+
+// --- Debugging Helpers ---
+
+// DebugDumpVariables prints the current state of all global variables to the test log.
+// It safely locks the interpreter's variable map for reading.
+func DebugDumpVariables(i *Interpreter, t *testing.T) {
+	i.variablesMu.RLock()
+	defer i.variablesMu.RUnlock()
+
+	t.Log("--- INTERPRETER VARIABLE DUMP ---")
+	if len(i.variables) == 0 {
+		t.Log("  (no variables set)")
+		t.Log("--- END VARIABLE DUMP ---")
+		return
+	}
+	for key, value := range i.variables {
+		t.Logf("  - %s (%T) = %v", key, value, value)
+	}
+	t.Log("--- END VARIABLE DUMP ---")
+}

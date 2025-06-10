@@ -154,3 +154,37 @@ Work Queues are central to managing collections of jobs and distributing them to
 * Detailed error handling and retry mechanisms for jobs within the queue.
 * Specific structure and content of the "lesson record" beyond the initial sketch.
 * Mechanism for workers to report fine-grained progress on long tasks.
+
+# AI-WM High-Level Design
+
+This document outlines the high-level architecture and design principles for the AI Worker Manager (AI-WM) subsystem in NeuroScript.
+
+## Core Concepts
+
+* **Stateless Workers**: Workers are designed to be stateless. They receive a task, execute it, and return a result without retaining memory of past interactions.
+* **Centralized State**: All state is managed by the core `Interpreter`. This includes variables, procedure definitions, and tool registrations.
+* **Tool-Based Interaction**: Workers interact with the external world and the core interpreter's state through a well-defined `Tool` interface.
+
+## State Management
+
+The `Interpreter` is the single source of truth for all state. This simplifies the overall architecture by avoiding distributed state and complex synchronization mechanisms.
+
+## Event Handler Scoping
+
+A key design decision in the NeuroScript runtime is how `on event` handlers interact with the program's state.
+
+* **Global Scope Execution**: Event handlers execute directly within the program's global scope. They do not have their own separate, isolated scope.
+* **Rationale**: This provides a simple and powerful model for a scripting language. It allows handlers to easily read and modify global variables, which is a primary use case for reacting to events and changing the application's state. This model avoids the complexity of nested scopes or the need for explicit `global` or `nonlocal` keywords found in other languages.
+* **Example**:
+    ```neuroscript
+    set counter = 0
+
+    on event "button_click"
+        set counter = counter + 1 // Modifies the global 'counter'
+    endevent
+
+    func main() means
+        // ... after a button_click event is emitted ...
+        // The value of 'counter' will be 1
+    endfunc
+    ```
