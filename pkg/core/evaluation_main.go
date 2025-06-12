@@ -1,9 +1,7 @@
 // NeuroScript Version: 0.3.5
-// File version: 6
-// Purpose: Corrected literal evaluation to return wrapped Value types instead of raw Go types.
+// File version: 7
+// Purpose: Corrected literal evaluation to handle both int and float64 numeric literals.
 // filename: pkg/core/evaluation_main.go
-// nlines: 288
-// risk_rating: HIGH
 
 package core
 
@@ -43,7 +41,18 @@ func (i *Interpreter) evaluateExpression(node interface{}) (interface{}, error) 
 		}
 		return StringValue{Value: n.Value}, nil
 	case *NumberLiteralNode:
-		return NumberValue{Value: n.Value.(float64)}, nil
+		// MINIMAL CHANGE: Handle different incoming numeric types from the parser
+		// and normalize them to float64 for our internal NumberValue representation.
+		switch v := n.Value.(type) {
+		case float64:
+			return NumberValue{Value: v}, nil
+		case int:
+			return NumberValue{Value: float64(v)}, nil
+		case int64:
+			return NumberValue{Value: float64(v)}, nil
+		default:
+			return nil, NewRuntimeError(ErrorCodeInternal, fmt.Sprintf("unhandled number literal type %T", n.Value), nil)
+		}
 	case *BooleanLiteralNode:
 		return BoolValue{Value: n.Value}, nil
 	case *NilLiteralNode:

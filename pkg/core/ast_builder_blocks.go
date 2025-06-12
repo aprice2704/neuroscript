@@ -1,5 +1,5 @@
 // ast_builder_blocks.go – Block-context helpers and Statement_list handling
-// file version: 5
+// file version: 7
 //
 // This file centralises the mechanics of entering and exiting nested statement
 // blocks while walking the ANTLR parse tree.  It guarantees the two stack
@@ -76,9 +76,11 @@ func (l *neuroScriptListenerImpl) exitBlockContext(kind string) []Step {
 		l.currentSteps = nil
 	}
 
-	// 3. flush surplus operands ABOVE (marker + 2)
+	// 3. flush surplus operands ABOVE (marker + 1)
 	markerIdx := l.blockValueDepthStack[len(l.blockValueDepthStack)-1]
-	allowedDepth := markerIdx + 2 // ← was +1
+	// CORRECTED: A block should leave exactly ONE item on the stack (its body).
+	// The allowed depth is the original marker index plus this one item.
+	allowedDepth := markerIdx + 1
 
 	for len(l.valueStack) > allowedDepth {
 		v, _ := l.popValue()
@@ -115,6 +117,12 @@ func (l *neuroScriptListenerImpl) EnterStatement_list(ctx *gen.Statement_listCon
 			l.enterBlockContext("IF_ELSE_BODY")
 		}
 
+	// Loop bodies
+	case *gen.For_each_statementContext:
+		l.enterBlockContext("FOR_EACH_BODY")
+	case *gen.While_statementContext:
+		l.enterBlockContext("WHILE_BODY")
+
 	// ON_EVENT handler body
 	case *gen.OnEventStmtContext:
 		l.enterBlockContext("ON_EVENT_BODY")
@@ -135,6 +143,12 @@ func (l *neuroScriptListenerImpl) ExitStatement_list(ctx *gen.Statement_listCont
 		} else if len(parent.AllStatement_list()) > 1 && parent.Statement_list(1) == ctx {
 			l.exitBlockContext("IF_ELSE_BODY")
 		}
+
+	// Loop bodies
+	case *gen.For_each_statementContext:
+		l.exitBlockContext("FOR_EACH_BODY")
+	case *gen.While_statementContext:
+		l.exitBlockContext("WHILE_BODY")
 
 	// ON_EVENT handler body
 	case *gen.OnEventStmtContext:

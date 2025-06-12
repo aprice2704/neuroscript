@@ -1,9 +1,7 @@
-// NeuroScript Version: 0.4.1
-// File version: 2
-// Purpose: Defines operator evaluation logic, including comparisons and arithmetic.
-// filename: core/evaluation_operators.go
-// nlines: 200
-// risk_rating: MEDIUM
+// NeuroScript Version: 0.4.2
+// File version: 4
+// Purpose: Corrected operator evaluation logic to be aware of wrapped Value types.
+// filename: pkg/core/evaluation_operators.go
 
 package core
 
@@ -31,67 +29,51 @@ func typeErrorForOp(op string, left, right interface{}) error {
 }
 
 func performArithmetic(left, right interface{}, op string) (interface{}, error) {
+	// Reject non-numeric Value types.
 	switch left.(type) {
-	case TimedateValue, ErrorValue, EventValue:
+	case TimedateValue, ErrorValue, EventValue, FuzzyValue, StringValue, BoolValue, ListValue, MapValue, NilValue:
 		return nil, typeErrorForOp(op, left, right)
-	case FuzzyValue:
-		return nil, fmt.Errorf("cannot apply arithmetic operator '%s' to fuzzy values", op)
 	}
 	switch right.(type) {
-	case TimedateValue, ErrorValue, EventValue, FuzzyValue:
+	case TimedateValue, ErrorValue, EventValue, FuzzyValue, StringValue, BoolValue, ListValue, MapValue, NilValue:
 		return nil, typeErrorForOp(op, left, right)
 	}
-	if left == nil || right == nil {
-		return nil, fmt.Errorf("%w: op '%s' requires non-nil", ErrNilOperand, op)
-	}
-	if op == "%" {
-		if !isIntegerType(left) || !isIntegerType(right) {
-			return nil, fmt.Errorf("op '%%' needs integers: %w", ErrInvalidOperandTypeInteger)
-		}
-		leftI, _ := toInt64(left)
-		rightI, _ := toInt64(right)
-		if rightI == 0 {
-			return nil, fmt.Errorf("modulo by zero: %w", ErrDivisionByZero)
-		}
-		return leftI % rightI, nil
-	}
-	_, leftIsNum := ToNumeric(left)
-	_, rightIsNum := ToNumeric(right)
-	if !leftIsNum || !rightIsNum {
+
+	// FIX: Directly check for NumberValue instead of relying on fragile helpers.
+	leftNum, isLeftNum := left.(NumberValue)
+	rightNum, isRightNum := right.(NumberValue)
+
+	if !isLeftNum || !isRightNum {
 		return nil, fmt.Errorf("op '%s' needs numerics: %w", op, ErrInvalidOperandTypeNumeric)
 	}
-	leftF, lfo := toFloat64(left)
-	rightF, rfo := toFloat64(right)
-	leftI, lio := toInt64(left)
-	rightI, rio := toInt64(right)
-	useFloat := !lio || !rio
+
+	leftF := leftNum.Value
+	rightF := rightNum.Value
+
+	if op == "%" {
+		// Modulo requires integer semantics. Check if the floats are whole numbers.
+		if leftF != math.Trunc(leftF) || rightF != math.Trunc(rightF) {
+			return nil, fmt.Errorf("op '%%' needs integers: %w", ErrInvalidOperandTypeInteger)
+		}
+		if rightF == 0 {
+			return nil, fmt.Errorf("modulo by zero: %w", ErrDivisionByZero)
+		}
+		// Perform modulo on the integer parts.
+		return NumberValue{Value: float64(int64(leftF) % int64(rightF))}, nil
+	}
+
 	switch op {
 	case "-":
-		if useFloat {
-			return leftF - rightF, nil
-		}
-		return leftI - rightI, nil
+		return NumberValue{Value: leftF - rightF}, nil
 	case "*":
-		if useFloat {
-			return leftF * rightF, nil
-		}
-		return leftI * rightI, nil
+		return NumberValue{Value: leftF * rightF}, nil
 	case "/":
-		if rfo && rightF == 0.0 {
+		if rightF == 0.0 {
 			return nil, fmt.Errorf("division by zero: %w", ErrDivisionByZero)
 		}
-		if useFloat || (rio && leftI%rightI != 0) {
-			if !lfo {
-				return nil, fmt.Errorf("internal float conversion error")
-			}
-			return leftF / rightF, nil
-		}
-		return leftI / rightI, nil
+		return NumberValue{Value: leftF / rightF}, nil
 	case "**":
-		if !lfo || !rfo {
-			return nil, fmt.Errorf("op '**' needs floats: %w", ErrInvalidOperandTypeNumeric)
-		}
-		return math.Pow(leftF, rightF), nil
+		return NumberValue{Value: math.Pow(leftF, rightF)}, nil
 	}
 	return nil, fmt.Errorf("unknown arithmetic op '%s': %w", op, ErrUnsupportedOperator)
 }
@@ -103,101 +85,104 @@ func performStringConcatOrNumericAdd(left, right interface{}) (interface{}, erro
 	if _, ok := right.(FuzzyValue); ok {
 		return nil, fmt.Errorf("cannot apply op '+' to fuzzy values")
 	}
-	_, leftIsNum := ToNumeric(left)
-	_, rightIsNum := ToNumeric(right)
-	if leftIsNum && rightIsNum {
-		leftF, _ := toFloat64(left)
-		rightF, _ := toFloat64(right)
-		leftI, lio := toInt64(left)
-		rightI, rio := toInt64(right)
-		if lio && rio {
-			return leftI + rightI, nil
-		}
-		return leftF + rightF, nil
+
+	leftNum, isLeftNum := left.(NumberValue)
+	rightNum, isRightNum := right.(NumberValue)
+
+	// FIX: Prioritize numeric addition by directly checking for NumberValue types.
+	if isLeftNum && isRightNum {
+		return NumberValue{Value: leftNum.Value + rightNum.Value}, nil
 	}
-	leftStr, _ := toString(left)
-	rightStr, _ := toString(right)
-	return leftStr + rightStr, nil
+
+	// Fallback to string concatenation. Assumes all Value types have a .String() method.
+	leftStr, lOk := toString(left)
+	rightStr, rOk := toString(right)
+
+	if !lOk || !rOk {
+		return nil, fmt.Errorf("could not convert operands to string for concatenation: %T and %T", left, right)
+	}
+
+	return StringValue{Value: leftStr + rightStr}, nil
 }
 
-func performComparison(left, right interface{}, op string) (bool, error) {
+func performComparison(left, right interface{}, op string) (interface{}, error) {
 	if op == "==" || op == "!=" {
 		isEqual := reflect.DeepEqual(left, right)
 		if op == "==" {
-			return isEqual, nil
+			return BoolValue{Value: isEqual}, nil
 		}
-		return !isEqual, nil
+		return BoolValue{Value: !isEqual}, nil
 	}
 	switch lVal := left.(type) {
 	case TimedateValue:
 		rVal, ok := right.(TimedateValue)
 		if !ok {
-			return false, typeErrorForOp(op, left, right)
+			return nil, typeErrorForOp(op, left, right)
 		}
 		switch op {
 		case "<":
-			return lVal.Value.Before(rVal.Value), nil
+			return BoolValue{Value: lVal.Value.Before(rVal.Value)}, nil
 		case ">":
-			return lVal.Value.After(rVal.Value), nil
+			return BoolValue{Value: lVal.Value.After(rVal.Value)}, nil
 		case "<=":
-			return !lVal.Value.After(rVal.Value), nil
+			return BoolValue{Value: !lVal.Value.After(rVal.Value)}, nil
 		case ">=":
-			return !lVal.Value.Before(rVal.Value), nil
+			return BoolValue{Value: !lVal.Value.Before(rVal.Value)}, nil
 		}
 	case FuzzyValue:
 		rVal, ok := toFloat64(right)
 		if !ok {
-			return false, typeErrorForOp(op, left, right)
+			return nil, typeErrorForOp(op, left, right)
 		}
 		switch op {
 		case "<":
-			return lVal.μ < rVal, nil
+			return BoolValue{Value: lVal.μ < rVal}, nil
 		case ">":
-			return lVal.μ > rVal, nil
+			return BoolValue{Value: lVal.μ > rVal}, nil
 		case "<=":
-			return lVal.μ <= rVal, nil
+			return BoolValue{Value: lVal.μ <= rVal}, nil
 		case ">=":
-			return lVal.μ >= rVal, nil
+			return BoolValue{Value: lVal.μ >= rVal}, nil
 		}
 	case ErrorValue, EventValue:
-		return false, fmt.Errorf("inequality op (%s) not supported for %T", op, left)
+		return nil, fmt.Errorf("inequality op (%s) not supported for %T", op, left)
 	}
 	leftF, leftOk := toFloat64(left)
 	rightF, rightOk := toFloat64(right)
 	if !leftOk || !rightOk {
-		return false, fmt.Errorf("comparison op '%s' needs comparable types, got %T and %T", op, left, right)
+		return nil, fmt.Errorf("comparison op '%s' needs comparable types, got %T and %T", op, left, right)
 	}
 	switch op {
 	case "<":
-		return leftF < rightF, nil
+		return BoolValue{Value: leftF < rightF}, nil
 	case ">":
-		return leftF > rightF, nil
+		return BoolValue{Value: leftF > rightF}, nil
 	case "<=":
-		return leftF <= rightF, nil
+		return BoolValue{Value: leftF <= rightF}, nil
 	case ">=":
-		return leftF >= rightF, nil
+		return BoolValue{Value: leftF >= rightF}, nil
 	}
-	return false, fmt.Errorf("unknown comparison op '%s'", op)
+	return nil, fmt.Errorf("unknown comparison op '%s'", op)
 }
 
-func performBitwise(left, right interface{}, op string) (int64, error) {
+func performBitwise(left, right interface{}, op string) (interface{}, error) {
 	if left == nil || right == nil {
-		return 0, fmt.Errorf("bitwise op '%s' needs non-nil: %w", op, ErrNilOperand)
+		return nil, fmt.Errorf("bitwise op '%s' needs non-nil: %w", op, ErrNilOperand)
 	}
-	if !isIntegerType(left) || !isIntegerType(right) {
-		return 0, fmt.Errorf("bitwise op '%s' needs integers: %w", op, ErrInvalidOperandTypeInteger)
+	leftI, lOk := toInt64(left)
+	rightI, rOk := toInt64(right)
+	if !lOk || !rOk {
+		return nil, fmt.Errorf("bitwise op '%s' needs integers: %w", op, ErrInvalidOperandTypeInteger)
 	}
-	leftI, _ := toInt64(left)
-	rightI, _ := toInt64(right)
 	switch op {
 	case "&":
-		return leftI & rightI, nil
+		return NumberValue{Value: float64(leftI & rightI)}, nil
 	case "|":
-		return leftI | rightI, nil
+		return NumberValue{Value: float64(leftI | rightI)}, nil
 	case "^":
-		return leftI ^ rightI, nil
+		return NumberValue{Value: float64(leftI ^ rightI)}, nil
 	}
-	return 0, fmt.Errorf("unknown bitwise op '%s'", op)
+	return nil, fmt.Errorf("unknown bitwise op '%s'", op)
 }
 
 // isZeroValue is a helper function that should be available to this package.

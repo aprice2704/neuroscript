@@ -1,0 +1,1274 @@
+--- AST Builder: Build Start ---
+AST Builder DEBUG: Starting ANTLR walk...
+AST Builder DEBUG: ANTLR walk finished.
+AST Builder DEBUG: Metadata collected from listener: map[string]string{}
+AST Builder DEBUG: Assembling 1 procedures found by listener into the program's map.
+AST Builder DEBUG: Processing procedure #1 from listener list.
+AST Builder DEBUG: Proc #1 is named 'TestProc' at position line 2, col 1.
+AST Builder DEBUG: Successfully added procedure 'TestProc' to program AST.
+--- AST Builder: Build process completed successfully. ---
+--- AST Builder: Build Start ---
+AST Builder DEBUG: Starting ANTLR walk...
+AST Builder DEBUG: ANTLR walk finished.
+AST Builder DEBUG: Metadata collected from listener: map[string]string{}
+AST Builder DEBUG: Assembling 1 procedures found by listener into the program's map.
+AST Builder DEBUG: Processing procedure #1 from listener list.
+AST Builder DEBUG: Proc #1 is named 'TestProc' at position line 2, col 1.
+AST Builder DEBUG: Successfully added procedure 'TestProc' to program AST.
+--- AST Builder: Build process completed successfully. ---
+--- AST Builder: Build Start ---
+AST Builder DEBUG: Starting ANTLR walk...
+AST Builder DEBUG: ANTLR walk finished.
+AST Builder DEBUG: Metadata collected from listener: map[string]string{}
+AST Builder DEBUG: Assembling 1 procedures found by listener into the program's map.
+AST Builder DEBUG: Processing procedure #1 from listener list.
+AST Builder DEBUG: Proc #1 is named 'TestProc' at position line 2, col 1.
+AST Builder DEBUG: Successfully added procedure 'TestProc' to program AST.
+--- AST Builder: Build process completed successfully. ---
+--- AST Builder: Build Start ---
+AST Builder DEBUG: Starting ANTLR walk...
+AST Builder DEBUG: ANTLR walk finished.
+AST Builder DEBUG: Metadata collected from listener: map[string]string{}
+AST Builder DEBUG: Assembling 1 procedures found by listener into the program's map.
+AST Builder DEBUG: Processing procedure #1 from listener list.
+AST Builder DEBUG: Proc #1 is named 'TestProc' at position line 2, col 1.
+AST Builder DEBUG: Successfully added procedure 'TestProc' to program AST.
+--- AST Builder: Build process completed successfully. ---
+--- AST Builder: Build Start ---
+AST Builder DEBUG: Starting ANTLR walk...
+AST Builder DEBUG: ANTLR walk finished.
+AST Builder DEBUG: Metadata collected from listener: map[string]string{}
+AST Builder DEBUG: Assembling 1 procedures found by listener into the program's map.
+AST Builder DEBUG: Processing procedure #1 from listener list.
+AST Builder DEBUG: Proc #1 is named 'TestProc' at position line 2, col 1.
+AST Builder DEBUG: Successfully added procedure 'TestProc' to program AST.
+--- AST Builder: Build process completed successfully. ---
+--- AST Builder: Build Start ---
+AST Builder DEBUG: Starting ANTLR walk...
+AST Builder DEBUG: ANTLR walk finished.
+AST Builder DEBUG: Metadata collected from listener: map[string]string{}
+AST Builder DEBUG: Assembling 1 procedures found by listener into the program's map.
+AST Builder DEBUG: Processing procedure #1 from listener list.
+AST Builder DEBUG: Proc #1 is named 'TestProc' at position line 2, col 1.
+AST Builder DEBUG: Successfully added procedure 'TestProc' to program AST.
+--- AST Builder: Build process completed successfully. ---
+--- AST Builder: Build Start ---
+AST Builder DEBUG: Starting ANTLR walk...
+AST Builder DEBUG: ANTLR walk finished.
+AST Builder DEBUG: Metadata collected from listener: map[string]string{}
+AST Builder DEBUG: Assembling 1 procedures found by listener into the program's map.
+AST Builder DEBUG: Processing procedure #1 from listener list.
+AST Builder DEBUG: Proc #1 is named 'TestProc' at position line 2, col 1.
+AST Builder DEBUG: Successfully added procedure 'TestProc' to program AST.
+--- AST Builder: Build process completed successfully. ---
+--- AST Builder: Build Start ---
+AST Builder DEBUG: Starting ANTLR walk...
+AST Builder DEBUG: ANTLR walk finished.
+AST Builder DEBUG: Metadata collected from listener: map[string]string{}
+AST Builder DEBUG: Assembling 1 procedures found by listener into the program's map.
+AST Builder DEBUG: Processing procedure #1 from listener list.
+AST Builder DEBUG: Proc #1 is named 'TestProc' at position line 3, col 1.
+AST Builder DEBUG: Successfully added procedure 'TestProc' to program AST.
+--- AST Builder: Build process completed successfully. ---
+--- AST Builder: Build Start ---
+AST Builder DEBUG: Starting ANTLR walk...
+AST Builder DEBUG: ANTLR walk finished.
+AST Builder DEBUG: Metadata collected from listener: map[string]string{}
+AST Builder DEBUG: Assembling 1 procedures found by listener into the program's map.
+AST Builder DEBUG: Processing procedure #1 from listener list.
+AST Builder DEBUG: Proc #1 is named 'TestProc' at position line 2, col 1.
+AST Builder DEBUG: Successfully added procedure 'TestProc' to program AST.
+--- AST Builder: Build process completed successfully. ---
+--- AST Builder: Build Start ---
+AST Builder DEBUG: Starting ANTLR walk...
+AST Builder DEBUG: ANTLR walk finished.
+AST Builder DEBUG: Metadata collected from listener: map[string]string{}
+AST Builder DEBUG: Assembling 1 procedures found by listener into the program's map.
+AST Builder DEBUG: Processing procedure #1 from listener list.
+AST Builder DEBUG: Proc #1 is named 'TestProc' at position line 2, col 1.
+AST Builder DEBUG: Successfully added procedure 'TestProc' to program AST.
+--- AST Builder: Build process completed successfully. ---
+--- AST Builder: Build Start ---
+AST Builder DEBUG: Starting ANTLR walk...
+AST Builder DEBUG: ANTLR walk finished.
+AST Builder DEBUG: Metadata collected from listener: map[string]string{}
+AST Builder DEBUG: Assembling 1 procedures found by listener into the program's map.
+AST Builder DEBUG: Processing procedure #1 from listener list.
+AST Builder DEBUG: Proc #1 is named 'TestProc' at position line 2, col 1.
+AST Builder DEBUG: Successfully added procedure 'TestProc' to program AST.
+--- AST Builder: Build process completed successfully. ---
+--- AST Builder: Build Start ---
+AST Builder DEBUG: Starting ANTLR walk...
+AST Builder DEBUG: ANTLR walk finished.
+AST Builder DEBUG: Metadata collected from listener: map[string]string{}
+AST Builder DEBUG: Assembling 1 procedures found by listener into the program's map.
+AST Builder DEBUG: Processing procedure #1 from listener list.
+AST Builder DEBUG: Proc #1 is named 't' at position line 1, col 1.
+AST Builder DEBUG: Successfully added procedure 't' to program AST.
+--- AST Builder: Build process completed successfully. ---
+--- AST Builder: Build Start ---
+AST Builder DEBUG: Starting ANTLR walk...
+AST Builder DEBUG: ANTLR walk finished.
+AST Builder DEBUG: Metadata collected from listener: map[string]string{}
+AST Builder DEBUG: Assembling 1 procedures found by listener into the program's map.
+AST Builder DEBUG: Processing procedure #1 from listener list.
+AST Builder DEBUG: Proc #1 is named 't' at position line 1, col 1.
+AST Builder DEBUG: Successfully added procedure 't' to program AST.
+--- AST Builder: Build process completed successfully. ---
+--- AST Builder: Build Start ---
+AST Builder DEBUG: Starting ANTLR walk...
+AST Builder DEBUG: ANTLR walk finished.
+AST Builder DEBUG: Metadata collected from listener: map[string]string{}
+AST Builder DEBUG: Assembling 1 procedures found by listener into the program's map.
+AST Builder DEBUG: Processing procedure #1 from listener list.
+AST Builder DEBUG: Proc #1 is named 't' at position line 1, col 1.
+AST Builder DEBUG: Successfully added procedure 't' to program AST.
+--- AST Builder: Build process completed successfully. ---
+--- AST Builder: Build Start ---
+AST Builder DEBUG: Starting ANTLR walk...
+AST Builder DEBUG: ANTLR walk finished.
+AST Builder DEBUG: Metadata collected from listener: map[string]string{}
+AST Builder DEBUG: Assembling 1 procedures found by listener into the program's map.
+AST Builder DEBUG: Processing procedure #1 from listener list.
+AST Builder DEBUG: Proc #1 is named 't' at position line 1, col 1.
+AST Builder DEBUG: Successfully added procedure 't' to program AST.
+--- AST Builder: Build process completed successfully. ---
+--- AST Builder: Build Start ---
+AST Builder DEBUG: Starting ANTLR walk...
+AST Builder DEBUG: ANTLR walk finished.
+AST Builder DEBUG: Metadata collected from listener: map[string]string{}
+AST Builder DEBUG: Assembling 1 procedures found by listener into the program's map.
+AST Builder DEBUG: Processing procedure #1 from listener list.
+AST Builder DEBUG: Proc #1 is named 't' at position line 1, col 1.
+AST Builder DEBUG: Successfully added procedure 't' to program AST.
+--- AST Builder: Build process completed successfully. ---
+--- AST Builder: Build Start ---
+AST Builder DEBUG: Starting ANTLR walk...
+AST Builder DEBUG: ANTLR walk finished.
+AST Builder DEBUG: Metadata collected from listener: map[string]string{}
+AST Builder DEBUG: Assembling 1 procedures found by listener into the program's map.
+AST Builder DEBUG: Processing procedure #1 from listener list.
+AST Builder DEBUG: Proc #1 is named 't' at position line 1, col 1.
+AST Builder DEBUG: Successfully added procedure 't' to program AST.
+--- AST Builder: Build process completed successfully. ---
+--- AST Builder: Build Start ---
+AST Builder DEBUG: Starting ANTLR walk...
+AST Builder DEBUG: ANTLR walk finished.
+AST Builder DEBUG: Metadata collected from listener: map[string]string{}
+AST Builder DEBUG: Assembling 1 procedures found by listener into the program's map.
+AST Builder DEBUG: Processing procedure #1 from listener list.
+AST Builder DEBUG: Proc #1 is named 't' at position line 1, col 1.
+AST Builder DEBUG: Successfully added procedure 't' to program AST.
+--- AST Builder: Build process completed successfully. ---
+--- AST Builder: Build Start ---
+AST Builder DEBUG: Starting ANTLR walk...
+AST Builder DEBUG: ANTLR walk finished.
+AST Builder DEBUG: Metadata collected from listener: map[string]string{}
+AST Builder DEBUG: Assembling 1 procedures found by listener into the program's map.
+AST Builder DEBUG: Processing procedure #1 from listener list.
+AST Builder DEBUG: Proc #1 is named 't' at position line 1, col 1.
+AST Builder DEBUG: Successfully added procedure 't' to program AST.
+--- AST Builder: Build process completed successfully. ---
+--- AST Builder: Build Start ---
+AST Builder DEBUG: Starting ANTLR walk...
+AST Builder DEBUG: ANTLR walk finished.
+AST Builder DEBUG: Metadata collected from listener: map[string]string{}
+AST Builder DEBUG: Assembling 1 procedures found by listener into the program's map.
+AST Builder DEBUG: Processing procedure #1 from listener list.
+AST Builder DEBUG: Proc #1 is named 't' at position line 1, col 1.
+AST Builder DEBUG: Successfully added procedure 't' to program AST.
+--- AST Builder: Build process completed successfully. ---
+--- AST Builder: Build Start ---
+AST Builder DEBUG: Starting ANTLR walk...
+AST Builder DEBUG: ANTLR walk finished.
+AST Builder DEBUG: Metadata collected from listener: map[string]string{}
+AST Builder DEBUG: Assembling 1 procedures found by listener into the program's map.
+AST Builder DEBUG: Processing procedure #1 from listener list.
+AST Builder DEBUG: Proc #1 is named 't' at position line 1, col 1.
+AST Builder DEBUG: Successfully added procedure 't' to program AST.
+--- AST Builder: Build process completed successfully. ---
+string
+number
+number
+boolean
+nil
+list
+map
+number
+string
+list
+100
+number
+--- FAIL: TestEvaluateElementAccess (0.01s)
+    --- FAIL: TestEvaluateElementAccess/List_Access_Valid_Index_0 (0.00s)
+        evaluation_access_test.go:116: TestEvaluateElementAccess(List Access Valid Index 0) error = NeuroScript Error 7: cannot perform element access using [...] on type []interface {} (wrapped: cannot perform element access on type), wantErr false
+    --- FAIL: TestEvaluateElementAccess/List_Access_Valid_Index_1_(Num) (0.00s)
+        evaluation_access_test.go:116: TestEvaluateElementAccess(List Access Valid Index 1 (Num)) error = NeuroScript Error 7: cannot perform element access using [...] on type []interface {} (wrapped: cannot perform element access on type), wantErr false
+    --- FAIL: TestEvaluateElementAccess/List_Access_Valid_Index_Var (0.00s)
+        evaluation_access_test.go:116: TestEvaluateElementAccess(List Access Valid Index Var) error = NeuroScript Error 7: cannot perform element access using [...] on type []interface {} (wrapped: cannot perform element access on type), wantErr false
+    --- FAIL: TestEvaluateElementAccess/List_Access_Index_Out_of_Bounds_(High) (0.00s)
+        evaluation_access_test.go:123: TestEvaluateElementAccess(List Access Index Out of Bounds (High)) expected error type [list index out of bounds], but got [NeuroScript Error 7: cannot perform element access using [...] on type []interface {} (wrapped: cannot perform element access on type)] (type *core.RuntimeError)
+    --- FAIL: TestEvaluateElementAccess/List_Access_Index_Out_of_Bounds_(Neg) (0.00s)
+        evaluation_access_test.go:123: TestEvaluateElementAccess(List Access Index Out of Bounds (Neg)) expected error type [list index out of bounds], but got [NeuroScript Error 7: cannot perform element access using [...] on type []interface {} (wrapped: cannot perform element access on type)] (type *core.RuntimeError)
+    --- FAIL: TestEvaluateElementAccess/List_Access_Invalid_Index_Type_(String) (0.00s)
+        evaluation_access_test.go:123: TestEvaluateElementAccess(List Access Invalid Index Type (String)) expected error type [list index must be an integer], but got [NeuroScript Error 7: cannot perform element access using [...] on type []interface {} (wrapped: cannot perform element access on type)] (type *core.RuntimeError)
+    --- FAIL: TestEvaluateElementAccess/List_Access_Invalid_Index_Type_(Var) (0.00s)
+        evaluation_access_test.go:123: TestEvaluateElementAccess(List Access Invalid Index Type (Var)) expected error type [list index must be an integer], but got [NeuroScript Error 7: cannot perform element access using [...] on type []interface {} (wrapped: cannot perform element access on type)] (type *core.RuntimeError)
+    --- FAIL: TestEvaluateElementAccess/List_Access_Returns_List (0.00s)
+        evaluation_access_test.go:116: TestEvaluateElementAccess(List Access Returns List) error = NeuroScript Error 7: cannot perform element access using [...] on type []interface {} (wrapped: cannot perform element access on type), wantErr false
+    --- FAIL: TestEvaluateElementAccess/List_Literal_Access (0.00s)
+        evaluation_access_test.go:116: TestEvaluateElementAccess(List Literal Access) error = NeuroScript Error 7: list index must be an integer, but got core.NumberValue (wrapped: list index must be an integer), wantErr false
+    --- FAIL: TestEvaluateElementAccess/Map_Access_Valid_Key (0.00s)
+        evaluation_access_test.go:116: TestEvaluateElementAccess(Map Access Valid Key) error = NeuroScript Error 7: cannot perform element access using [...] on type map[string]interface {} (wrapped: cannot perform element access on type), wantErr false
+    --- FAIL: TestEvaluateElementAccess/Map_Access_Valid_Key_Num (0.00s)
+        evaluation_access_test.go:116: TestEvaluateElementAccess(Map Access Valid Key Num) error = NeuroScript Error 7: cannot perform element access using [...] on type map[string]interface {} (wrapped: cannot perform element access on type), wantErr false
+    --- FAIL: TestEvaluateElementAccess/Map_Access_Valid_Key_Var (0.00s)
+        evaluation_access_test.go:116: TestEvaluateElementAccess(Map Access Valid Key Var) error = NeuroScript Error 7: cannot perform element access using [...] on type map[string]interface {} (wrapped: cannot perform element access on type), wantErr false
+    --- FAIL: TestEvaluateElementAccess/Map_Access_Key_Not_Found (0.00s)
+        evaluation_access_test.go:123: TestEvaluateElementAccess(Map Access Key Not Found) expected error type [key not found in map], but got [NeuroScript Error 7: cannot perform element access using [...] on type map[string]interface {} (wrapped: cannot perform element access on type)] (type *core.RuntimeError)
+    --- FAIL: TestEvaluateElementAccess/Map_Access_Invalid_Key_Type_(Converted_to_string) (0.00s)
+        evaluation_access_test.go:123: TestEvaluateElementAccess(Map Access Invalid Key Type (Converted to string)) expected error type [key not found in map], but got [NeuroScript Error 7: cannot perform element access using [...] on type map[string]interface {} (wrapped: cannot perform element access on type)] (type *core.RuntimeError)
+    --- FAIL: TestEvaluateElementAccess/Map_Access_Returns_List (0.00s)
+        evaluation_access_test.go:116: TestEvaluateElementAccess(Map Access Returns List) error = NeuroScript Error 7: cannot perform element access using [...] on type map[string]interface {} (wrapped: cannot perform element access on type), wantErr false
+    --- FAIL: TestEvaluateElementAccess/Map_Literal_Access (0.00s)
+        evaluation_access_test.go:138: TestEvaluateElementAccess(Map Literal Access)
+            Input Node: {"k": "v"}["k"]
+            Expected:   "v" (string)
+            Got:        core.StringValue{Value:"v"} (core.StringValue)
+    --- FAIL: TestEvaluateElementAccess/Nested_List_Access_[3][0] (0.00s)
+        evaluation_access_test.go:116: TestEvaluateElementAccess(Nested List Access [3][0]) error = evaluating collection for element access: NeuroScript Error 7: cannot perform element access using [...] on type []interface {} (wrapped: cannot perform element access on type), wantErr false
+    --- FAIL: TestEvaluateElementAccess/Nested_Map_List_Access_["mList"][0] (0.00s)
+        evaluation_access_test.go:116: TestEvaluateElementAccess(Nested Map List Access ["mList"][0]) error = evaluating collection for element access: NeuroScript Error 7: cannot perform element access using [...] on type map[string]interface {} (wrapped: cannot perform element access on type), wantErr false
+    --- FAIL: TestEvaluateElementAccess/Nested_Access_Error_Outer_List (0.00s)
+        evaluation_access_test.go:123: TestEvaluateElementAccess(Nested Access Error Outer List) expected error type [list index out of bounds], but got [evaluating collection for element access: NeuroScript Error 7: cannot perform element access using [...] on type []interface {} (wrapped: cannot perform element access on type)] (type *fmt.wrapError)
+    --- FAIL: TestEvaluateElementAccess/Nested_Access_Error_Inner_List (0.00s)
+        evaluation_access_test.go:123: TestEvaluateElementAccess(Nested Access Error Inner List) expected error type [list index out of bounds], but got [evaluating collection for element access: NeuroScript Error 7: cannot perform element access using [...] on type []interface {} (wrapped: cannot perform element access on type)] (type *fmt.wrapError)
+    --- FAIL: TestEvaluateElementAccess/Nested_Access_Error_Outer_Map_Key (0.00s)
+        evaluation_access_test.go:123: TestEvaluateElementAccess(Nested Access Error Outer Map Key) expected error type [key not found in map], but got [evaluating collection for element access: NeuroScript Error 7: cannot perform element access using [...] on type map[string]interface {} (wrapped: cannot perform element access on type)] (type *fmt.wrapError)
+--- FAIL: TestArithmeticOps (0.00s)
+    --- FAIL: TestArithmeticOps/Div_By_Float_Zero (0.00s)
+        evaluation_arithmetic_test.go:97: Test "Div By Float Zero": Expected error wrapping [division by zero], but got [op '/' needs numerics: requires numeric operand(s)]
+    --- FAIL: TestArithmeticOps/Add_Int+Int (0.00s)
+        evaluation_arithmetic_test.go:97: Test "Add Int+Int": Error expectation mismatch. got err = could not convert operands to string for concatenation: int64 and int64, wantErr false
+        evaluation_arithmetic_test.go:97: Input: &core.BinaryOpNode{Pos:(*core.Position)(0xc00057e6c0), Left:(*core.VariableNode)(0xc0000101c8), Operator:"+", Right:(*core.VariableNode)(0xc0000101f8)}, Vars: map[string]interface {}{"float0":0, "float1_5":1.5, "float2_5":2.5, "int0":0, "int3":3, "int5":5, "str10":"10", "strABC":"ABC"}, Last: <nil>
+    --- FAIL: TestArithmeticOps/Mul_Int*Int (0.00s)
+        evaluation_arithmetic_test.go:97: Test "Mul Int*Int": Error expectation mismatch. got err = op '*' needs numerics: requires numeric operand(s), wantErr false
+        evaluation_arithmetic_test.go:97: Input: &core.BinaryOpNode{Pos:(*core.Position)(0xc00057e6c0), Left:(*core.VariableNode)(0xc000010978), Operator:"*", Right:(*core.VariableNode)(0xc000010990)}, Vars: map[string]interface {}{"float0":0, "float1_5":1.5, "float2_5":2.5, "int0":0, "int3":3, "int5":5, "str10":"10", "strABC":"ABC"}, Last: <nil>
+    --- FAIL: TestArithmeticOps/Prec_Pow_Right_Assoc:_2_**_3_**_2 (0.00s)
+        evaluation_arithmetic_test.go:97: Test "Prec Pow Right Assoc: 2 ** 3 ** 2": Result mismatch.
+            Input:    &core.BinaryOpNode{Pos:(*core.Position)(0xc00057e6c0), Left:(*core.NumberLiteralNode)(0xc000010e70), Operator:"**", Right:(*core.BinaryOpNode)(0xc000620a40)}
+            Vars:     map[string]interface {}{"float0":0, "float1_5":1.5, "float2_5":2.5, "int0":0, "int3":3, "int5":5, "str10":"10", "strABC":"ABC"}
+            Last:     <nil>
+            Expected: 512 (float64)
+            Got:      512 (core.NumberValue)
+    --- FAIL: TestArithmeticOps/Div_Int/Int_Inexact (0.00s)
+        evaluation_arithmetic_test.go:97: Test "Div Int/Int Inexact": Result mismatch.
+            Input:    &core.BinaryOpNode{Pos:(*core.Position)(0xc00057e6c0), Left:(*core.NumberLiteralNode)(0xc000010a68), Operator:"/", Right:(*core.NumberLiteralNode)(0xc000010a80)}
+            Vars:     map[string]interface {}{"float0":0, "float1_5":1.5, "float2_5":2.5, "int0":0, "int3":3, "int5":5, "str10":"10", "strABC":"ABC"}
+            Last:     <nil>
+            Expected: 2.3333333333333335 (float64)
+            Got:      2.3333333333333335 (core.NumberValue)
+    --- FAIL: TestArithmeticOps/Div_Int/Float (0.00s)
+        evaluation_arithmetic_test.go:97: Test "Div Int/Float": Result mismatch.
+            Input:    &core.BinaryOpNode{Pos:(*core.Position)(0xc00057e6c0), Left:(*core.NumberLiteralNode)(0xc000010ac8), Operator:"/", Right:(*core.NumberLiteralNode)(0xc000010ae0)}
+            Vars:     map[string]interface {}{"float0":0, "float1_5":1.5, "float2_5":2.5, "int0":0, "int3":3, "int5":5, "str10":"10", "strABC":"ABC"}
+            Last:     <nil>
+            Expected: 4 (float64)
+            Got:      4 (core.NumberValue)
+    --- FAIL: TestArithmeticOps/Div_Float/Int (0.00s)
+        evaluation_arithmetic_test.go:97: Test "Div Float/Int": Result mismatch.
+            Input:    &core.BinaryOpNode{Pos:(*core.Position)(0xc00057e6c0), Left:(*core.NumberLiteralNode)(0xc000010a98), Operator:"/", Right:(*core.NumberLiteralNode)(0xc000010ab0)}
+            Vars:     map[string]interface {}{"float0":0, "float1_5":1.5, "float2_5":2.5, "int0":0, "int3":3, "int5":5, "str10":"10", "strABC":"ABC"}
+            Last:     <nil>
+            Expected: 2.5 (float64)
+            Got:      2.5 (core.NumberValue)
+    --- FAIL: TestArithmeticOps/Prec_Mul_Add:_2_*_3_+_4 (0.00s)
+        evaluation_arithmetic_test.go:97: Test "Prec Mul Add: 2 * 3 + 4": Result mismatch.
+            Input:    &core.BinaryOpNode{Pos:(*core.Position)(0xc00057e6c0), Left:(*core.BinaryOpNode)(0xc000620940), Operator:"+", Right:(*core.NumberLiteralNode)(0xc000010df8)}
+            Vars:     map[string]interface {}{"float0":0, "float1_5":1.5, "float2_5":2.5, "int0":0, "int3":3, "int5":5, "str10":"10", "strABC":"ABC"}
+            Last:     <nil>
+            Expected: 10 (int64)
+            Got:      10 (core.NumberValue)
+    --- FAIL: TestArithmeticOps/Mod_By_Int_Zero (0.00s)
+        evaluation_arithmetic_test.go:97: Test "Mod By Int Zero": Expected error wrapping [division by zero], but got [op '%' needs numerics: requires numeric operand(s)]
+    --- FAIL: TestArithmeticOps/Pow_Float**Int (0.00s)
+        evaluation_arithmetic_test.go:97: Test "Pow Float**Int": Result mismatch.
+            Input:    &core.BinaryOpNode{Pos:(*core.Position)(0xc00057e6c0), Left:(*core.NumberLiteralNode)(0xc000010cd8), Operator:"**", Right:(*core.NumberLiteralNode)(0xc000010cf0)}
+            Vars:     map[string]interface {}{"float0":0, "float1_5":1.5, "float2_5":2.5, "int0":0, "int3":3, "int5":5, "str10":"10", "strABC":"ABC"}
+            Last:     <nil>
+            Expected: 6.25 (float64)
+            Got:      6.25 (core.NumberValue)
+    --- FAIL: TestArithmeticOps/Unary_Minus_Float (0.00s)
+        evaluation_arithmetic_test.go:97: Test "Unary Minus Float": Error expectation mismatch. got err = requires numeric operand(s): unary operator '-' needs number, got core.NumberValue, wantErr false
+        evaluation_arithmetic_test.go:97: Input: &core.UnaryOpNode{Pos:(*core.Position)(0xc00057e6c0), Operator:"-", Operand:(*core.NumberLiteralNode)(0xc000010d50)}, Vars: map[string]interface {}{"float0":0, "float1_5":1.5, "float2_5":2.5, "int0":0, "int3":3, "int5":5, "str10":"10", "strABC":"ABC"}, Last: <nil>
+    --- FAIL: TestArithmeticOps/Prec_Add_Mul:_2_+_3_*_4 (0.00s)
+        evaluation_arithmetic_test.go:97: Test "Prec Add Mul: 2 + 3 * 4": Result mismatch.
+            Input:    &core.BinaryOpNode{Pos:(*core.Position)(0xc00057e6c0), Left:(*core.NumberLiteralNode)(0xc000010d80), Operator:"+", Right:(*core.BinaryOpNode)(0xc0006208c0)}
+            Vars:     map[string]interface {}{"float0":0, "float1_5":1.5, "float2_5":2.5, "int0":0, "int3":3, "int5":5, "str10":"10", "strABC":"ABC"}
+            Last:     <nil>
+            Expected: 14 (int64)
+            Got:      14 (core.NumberValue)
+    --- FAIL: TestArithmeticOps/Prec_Parens:_(2_+_3)_*_4 (0.00s)
+        evaluation_arithmetic_test.go:97: Test "Prec Parens: (2 + 3) * 4": Result mismatch.
+            Input:    &core.BinaryOpNode{Pos:(*core.Position)(0xc00057e6c0), Left:(*core.BinaryOpNode)(0xc0006209c0), Operator:"*", Right:(*core.NumberLiteralNode)(0xc000010e58)}
+            Vars:     map[string]interface {}{"float0":0, "float1_5":1.5, "float2_5":2.5, "int0":0, "int3":3, "int5":5, "str10":"10", "strABC":"ABC"}
+            Last:     <nil>
+            Expected: 20 (int64)
+            Got:      20 (core.NumberValue)
+    --- FAIL: TestArithmeticOps/Div_By_Int_Zero (0.00s)
+        evaluation_arithmetic_test.go:97: Test "Div By Int Zero": Expected error wrapping [division by zero], but got [op '/' needs numerics: requires numeric operand(s)]
+    --- FAIL: TestArithmeticOps/Pow_Int**Int (0.00s)
+        evaluation_arithmetic_test.go:97: Test "Pow Int**Int": Result mismatch.
+            Input:    &core.BinaryOpNode{Pos:(*core.Position)(0xc00057e6c0), Left:(*core.NumberLiteralNode)(0xc000010c78), Operator:"**", Right:(*core.NumberLiteralNode)(0xc000010c90)}
+            Vars:     map[string]interface {}{"float0":0, "float1_5":1.5, "float2_5":2.5, "int0":0, "int3":3, "int5":5, "str10":"10", "strABC":"ABC"}
+            Last:     <nil>
+            Expected: 8 (float64)
+            Got:      8 (core.NumberValue)
+    --- FAIL: TestArithmeticOps/Prec_Unary_Minus_High:_-2_+_3 (0.00s)
+        evaluation_arithmetic_test.go:97: Test "Prec Unary Minus High: -2 + 3": Error expectation mismatch. got err = NeuroScript Error 17: evaluating left operand for '+' at line 1, col 1 (wrapped: requires numeric operand(s): unary operator '-' needs number, got core.NumberValue), wantErr false
+        evaluation_arithmetic_test.go:97: Input: &core.BinaryOpNode{Pos:(*core.Position)(0xc00057e6c0), Left:(*core.UnaryOpNode)(0xc00046c360), Operator:"+", Right:(*core.NumberLiteralNode)(0xc000010ed0)}, Vars: map[string]interface {}{"float0":0, "float1_5":1.5, "float2_5":2.5, "int0":0, "int3":3, "int5":5, "str10":"10", "strABC":"ABC"}, Last: <nil>
+    --- FAIL: TestArithmeticOps/Pow_Int**Float (0.00s)
+        evaluation_arithmetic_test.go:97: Test "Pow Int**Float": Result mismatch.
+            Input:    &core.BinaryOpNode{Pos:(*core.Position)(0xc00057e6c0), Left:(*core.NumberLiteralNode)(0xc000010ca8), Operator:"**", Right:(*core.NumberLiteralNode)(0xc000010cc0)}
+            Vars:     map[string]interface {}{"float0":0, "float1_5":1.5, "float2_5":2.5, "int0":0, "int3":3, "int5":5, "str10":"10", "strABC":"ABC"}
+            Last:     <nil>
+            Expected: 2 (float64)
+            Got:      2 (core.NumberValue)
+    --- FAIL: TestArithmeticOps/Mod_Negative (0.00s)
+        evaluation_arithmetic_test.go:97: Test "Mod Negative": Result mismatch.
+            Input:    &core.BinaryOpNode{Pos:(*core.Position)(0xc00057e6c0), Left:(*core.NumberLiteralNode)(0xc000010be8), Operator:"%", Right:(*core.NumberLiteralNode)(0xc000010c00)}
+            Vars:     map[string]interface {}{"float0":0, "float1_5":1.5, "float2_5":2.5, "int0":0, "int3":3, "int5":5, "str10":"10", "strABC":"ABC"}
+            Last:     <nil>
+            Expected: -1 (int64)
+            Got:      -1 (core.NumberValue)
+    --- FAIL: TestArithmeticOps/Mod_Int%Int (0.00s)
+        evaluation_arithmetic_test.go:97: Test "Mod Int%Int": Result mismatch.
+            Input:    &core.BinaryOpNode{Pos:(*core.Position)(0xc00057e6c0), Left:(*core.NumberLiteralNode)(0xc000010bb8), Operator:"%", Right:(*core.NumberLiteralNode)(0xc000010bd0)}
+            Vars:     map[string]interface {}{"float0":0, "float1_5":1.5, "float2_5":2.5, "int0":0, "int3":3, "int5":5, "str10":"10", "strABC":"ABC"}
+            Last:     <nil>
+            Expected: 1 (int64)
+            Got:      1 (core.NumberValue)
+    --- FAIL: TestArithmeticOps/Mul_Int*Float (0.00s)
+        evaluation_arithmetic_test.go:97: Test "Mul Int*Float": Error expectation mismatch. got err = op '*' needs numerics: requires numeric operand(s), wantErr false
+        evaluation_arithmetic_test.go:97: Input: &core.BinaryOpNode{Pos:(*core.Position)(0xc00057e6c0), Left:(*core.VariableNode)(0xc0000109d8), Operator:"*", Right:(*core.VariableNode)(0xc0000109f0)}, Vars: map[string]interface {}{"float0":0, "float1_5":1.5, "float2_5":2.5, "int0":0, "int3":3, "int5":5, "str10":"10", "strABC":"ABC"}, Last: <nil>
+    --- FAIL: TestArithmeticOps/Mul_Float*Float (0.00s)
+        evaluation_arithmetic_test.go:97: Test "Mul Float*Float": Error expectation mismatch. got err = op '*' needs numerics: requires numeric operand(s), wantErr false
+        evaluation_arithmetic_test.go:97: Input: &core.BinaryOpNode{Pos:(*core.Position)(0xc00057e6c0), Left:(*core.VariableNode)(0xc0000109a8), Operator:"*", Right:(*core.VariableNode)(0xc0000109c0)}, Vars: map[string]interface {}{"float0":0, "float1_5":1.5, "float2_5":2.5, "int0":0, "int3":3, "int5":5, "str10":"10", "strABC":"ABC"}, Last: <nil>
+    --- FAIL: TestArithmeticOps/Unary_Minus_Int (0.00s)
+        evaluation_arithmetic_test.go:97: Test "Unary Minus Int": Error expectation mismatch. got err = requires numeric operand(s): unary operator '-' needs number, got core.NumberValue, wantErr false
+        evaluation_arithmetic_test.go:97: Input: &core.UnaryOpNode{Pos:(*core.Position)(0xc00057e6c0), Operator:"-", Operand:(*core.NumberLiteralNode)(0xc000010d38)}, Vars: map[string]interface {}{"float0":0, "float1_5":1.5, "float2_5":2.5, "int0":0, "int3":3, "int5":5, "str10":"10", "strABC":"ABC"}, Last: <nil>
+    --- FAIL: TestArithmeticOps/Sub_Int-Int (0.00s)
+        evaluation_arithmetic_test.go:97: Test "Sub Int-Int": Error expectation mismatch. got err = op '-' needs numerics: requires numeric operand(s), wantErr false
+        evaluation_arithmetic_test.go:97: Input: &core.BinaryOpNode{Pos:(*core.Position)(0xc00057e6c0), Left:(*core.VariableNode)(0xc000010888), Operator:"-", Right:(*core.VariableNode)(0xc0000108a0)}, Vars: map[string]interface {}{"float0":0, "float1_5":1.5, "float2_5":2.5, "int0":0, "int3":3, "int5":5, "str10":"10", "strABC":"ABC"}, Last: <nil>
+    --- FAIL: TestArithmeticOps/Sub_Int-Float (0.00s)
+        evaluation_arithmetic_test.go:97: Test "Sub Int-Float": Error expectation mismatch. got err = op '-' needs numerics: requires numeric operand(s), wantErr false
+        evaluation_arithmetic_test.go:97: Input: &core.BinaryOpNode{Pos:(*core.Position)(0xc00057e6c0), Left:(*core.VariableNode)(0xc0000108e8), Operator:"-", Right:(*core.VariableNode)(0xc000010900)}, Vars: map[string]interface {}{"float0":0, "float1_5":1.5, "float2_5":2.5, "int0":0, "int3":3, "int5":5, "str10":"10", "strABC":"ABC"}, Last: <nil>
+    --- FAIL: TestArithmeticOps/Div_Int/Int_Exact (0.00s)
+        evaluation_arithmetic_test.go:97: Test "Div Int/Int Exact": Result mismatch.
+            Input:    &core.BinaryOpNode{Pos:(*core.Position)(0xc00057e6c0), Left:(*core.NumberLiteralNode)(0xc000010a38), Operator:"/", Right:(*core.NumberLiteralNode)(0xc000010a50)}
+            Vars:     map[string]interface {}{"float0":0, "float1_5":1.5, "float2_5":2.5, "int0":0, "int3":3, "int5":5, "str10":"10", "strABC":"ABC"}
+            Last:     <nil>
+            Expected: 2 (int64)
+            Got:      2 (core.NumberValue)
+    --- FAIL: TestArithmeticOps/Sub_Float-Int (0.00s)
+        evaluation_arithmetic_test.go:97: Test "Sub Float-Int": Error expectation mismatch. got err = op '-' needs numerics: requires numeric operand(s), wantErr false
+        evaluation_arithmetic_test.go:97: Input: &core.BinaryOpNode{Pos:(*core.Position)(0xc00057e6c0), Left:(*core.VariableNode)(0xc000010918), Operator:"-", Right:(*core.VariableNode)(0xc000010930)}, Vars: map[string]interface {}{"float0":0, "float1_5":1.5, "float2_5":2.5, "int0":0, "int3":3, "int5":5, "str10":"10", "strABC":"ABC"}, Last: <nil>
+    --- FAIL: TestArithmeticOps/Sub_Float-Float (0.00s)
+        evaluation_arithmetic_test.go:97: Test "Sub Float-Float": Error expectation mismatch. got err = op '-' needs numerics: requires numeric operand(s), wantErr false
+        evaluation_arithmetic_test.go:97: Input: &core.BinaryOpNode{Pos:(*core.Position)(0xc00057e6c0), Left:(*core.VariableNode)(0xc0000108b8), Operator:"-", Right:(*core.VariableNode)(0xc0000108d0)}, Vars: map[string]interface {}{"float0":0, "float1_5":1.5, "float2_5":2.5, "int0":0, "int3":3, "int5":5, "str10":"10", "strABC":"ABC"}, Last: <nil>
+    --- FAIL: TestArithmeticOps/Add_Float+Int (0.00s)
+        evaluation_arithmetic_test.go:97: Test "Add Float+Int": Error expectation mismatch. got err = could not convert operands to string for concatenation: float64 and int64, wantErr false
+        evaluation_arithmetic_test.go:97: Input: &core.BinaryOpNode{Pos:(*core.Position)(0xc00057e6c0), Left:(*core.VariableNode)(0xc000010828), Operator:"+", Right:(*core.VariableNode)(0xc000010840)}, Vars: map[string]interface {}{"float0":0, "float1_5":1.5, "float2_5":2.5, "int0":0, "int3":3, "int5":5, "str10":"10", "strABC":"ABC"}, Last: <nil>
+    --- FAIL: TestArithmeticOps/Add_Int+Float (0.00s)
+        evaluation_arithmetic_test.go:97: Test "Add Int+Float": Error expectation mismatch. got err = could not convert operands to string for concatenation: int64 and float64, wantErr false
+        evaluation_arithmetic_test.go:97: Input: &core.BinaryOpNode{Pos:(*core.Position)(0xc00057e6c0), Left:(*core.VariableNode)(0xc0000107f8), Operator:"+", Right:(*core.VariableNode)(0xc000010810)}, Vars: map[string]interface {}{"float0":0, "float1_5":1.5, "float2_5":2.5, "int0":0, "int3":3, "int5":5, "str10":"10", "strABC":"ABC"}, Last: <nil>
+    --- FAIL: TestArithmeticOps/Add_Float+Float (0.00s)
+        evaluation_arithmetic_test.go:97: Test "Add Float+Float": Error expectation mismatch. got err = could not convert operands to string for concatenation: float64 and float64, wantErr false
+        evaluation_arithmetic_test.go:97: Input: &core.BinaryOpNode{Pos:(*core.Position)(0xc00057e6c0), Left:(*core.VariableNode)(0xc0000107c8), Operator:"+", Right:(*core.VariableNode)(0xc0000107e0)}, Vars: map[string]interface {}{"float0":0, "float1_5":1.5, "float2_5":2.5, "int0":0, "int3":3, "int5":5, "str10":"10", "strABC":"ABC"}, Last: <nil>
+    --- FAIL: TestArithmeticOps/Add_Int+StrABC (0.00s)
+        evaluation_arithmetic_test.go:97: Test "Add Int+StrABC": Error expectation mismatch. got err = could not convert operands to string for concatenation: int64 and string, wantErr false
+        evaluation_arithmetic_test.go:97: Input: &core.BinaryOpNode{Pos:(*core.Position)(0xc00057e6c0), Left:(*core.VariableNode)(0xc000010858), Operator:"+", Right:(*core.VariableNode)(0xc000010870)}, Vars: map[string]interface {}{"float0":0, "float1_5":1.5, "float2_5":2.5, "int0":0, "int3":3, "int5":5, "str10":"10", "strABC":"ABC"}, Last: <nil>
+--- FAIL: TestEvaluateCondition (0.01s)
+    --- FAIL: TestEvaluateCondition/Bool_Literal_True (0.00s)
+        evaluation_comparison_test.go:145: evaluateCondition(Bool Literal True)
+            Node:       true
+            Got bool:   false
+            Want bool:  true
+    --- FAIL: TestEvaluateCondition/String_Literal_True (0.00s)
+        evaluation_comparison_test.go:145: evaluateCondition(String Literal True)
+            Node:       "true"
+            Got bool:   false
+            Want bool:  true
+    --- FAIL: TestEvaluateCondition/String_Literal_One (0.00s)
+        evaluation_comparison_test.go:145: evaluateCondition(String Literal One)
+            Node:       "1"
+            Got bool:   false
+            Want bool:  true
+    --- FAIL: TestEvaluateCondition/Number_Literal_NonZero (0.00s)
+        evaluation_comparison_test.go:145: evaluateCondition(Number Literal NonZero)
+            Node:       1
+            Got bool:   false
+            Want bool:  true
+    --- FAIL: TestEvaluateCondition/Comp_EQ_String_True (0.00s)
+        evaluation_comparison_test.go:145: evaluateCondition(Comp EQ String True)
+            Node:       (x == y)
+            Got bool:   false
+            Want bool:  true
+    --- FAIL: TestEvaluateCondition/Comp_EQ_Var(raw_placeholder)_vs_String (0.00s)
+        evaluation_comparison_test.go:145: evaluateCondition(Comp EQ Var(raw placeholder) vs String)
+            Node:       (phVar == "{{inner}}")
+            Got bool:   false
+            Want bool:  true
+    --- FAIL: TestEvaluateCondition/Comp_EQ_LAST(raw)_vs_String (0.00s)
+        evaluation_comparison_test.go:145: evaluateCondition(Comp EQ LAST(raw) vs String)
+            Node:       (last == "true")
+            Got bool:   false
+            Want bool:  true
+    --- FAIL: TestEvaluateCondition/Comp_NEQ_String_True (0.00s)
+        evaluation_comparison_test.go:145: evaluateCondition(Comp NEQ String True)
+            Node:       (x != z)
+            Got bool:   false
+            Want bool:  true
+    --- FAIL: TestEvaluateCondition/Comp_NEQ_Num_True (0.00s)
+        evaluation_comparison_test.go:145: evaluateCondition(Comp NEQ Num True)
+            Node:       (n1 != n2)
+            Got bool:   false
+            Want bool:  true
+    --- FAIL: TestEvaluateCondition/Comp_GT_True (0.00s)
+        evaluation_comparison_test.go:145: evaluateCondition(Comp GT True)
+            Node:       (n1 > n2)
+            Got bool:   false
+            Want bool:  true
+    --- FAIL: TestEvaluateCondition/Comp_LT_True (0.00s)
+        evaluation_comparison_test.go:145: evaluateCondition(Comp LT True)
+            Node:       (n2 < n1)
+            Got bool:   false
+            Want bool:  true
+    --- FAIL: TestEvaluateCondition/Comp_GTE_Equal (0.00s)
+        evaluation_comparison_test.go:145: evaluateCondition(Comp GTE Equal)
+            Node:       (n1 >= n3)
+            Got bool:   false
+            Want bool:  true
+    --- FAIL: TestEvaluateCondition/Comp_LTE_Equal (0.00s)
+        evaluation_comparison_test.go:145: evaluateCondition(Comp LTE Equal)
+            Node:       (n1 <= n3)
+            Got bool:   false
+            Want bool:  true
+    --- FAIL: TestEvaluateCondition/Comp_Numeric_Error_Types (0.00s)
+        evaluation_comparison_test.go:131: evaluateCondition(Comp Numeric Error Types): Expected error to wrap [requires numeric operand(s)], but got [evaluating condition expression: comparison op '>' needs comparable types, got string and int64]
+        evaluation_comparison_test.go:139: evaluateCondition(Comp Numeric Error Types): Got expected error: evaluating condition expression: comparison op '>' needs comparable types, got string and int64
+    --- FAIL: TestEvaluateCondition/Comp_Numeric_Error_String_Lit (0.00s)
+        evaluation_comparison_test.go:131: evaluateCondition(Comp Numeric Error String Lit): Expected error to wrap [requires numeric operand(s)], but got [evaluating condition expression: comparison op '<' needs comparable types, got core.StringValue and core.StringValue]
+        evaluation_comparison_test.go:139: evaluateCondition(Comp Numeric Error String Lit): Got expected error: evaluating condition expression: comparison op '<' needs comparable types, got core.StringValue and core.StringValue
+    --- FAIL: TestEvaluateCondition/Comp_String_Num_vs_Num_EQ (0.00s)
+        evaluation_comparison_test.go:145: evaluateCondition(Comp String Num vs Num EQ)
+            Node:       (strNum10 == n1)
+            Got bool:   false
+            Want bool:  true
+    --- FAIL: TestEvaluateCondition/Comp_String_Num_vs_Num_GT (0.00s)
+        evaluation_comparison_test.go:145: evaluateCondition(Comp String Num vs Num GT)
+            Node:       (strNum10 > n2)
+            Got bool:   false
+            Want bool:  true
+    --- FAIL: TestEvaluateCondition/Comp_EQ_Nil_vs_Nil (0.00s)
+        evaluation_comparison_test.go:145: evaluateCondition(Comp EQ Nil vs Nil)
+            Node:       (nilVar == nilVar)
+            Got bool:   false
+            Want bool:  true
+    --- FAIL: TestEvaluateCondition/Comp_NEQ_Nil_vs_String (0.00s)
+        evaluation_comparison_test.go:145: evaluateCondition(Comp NEQ Nil vs String)
+            Node:       (nilVar != "A")
+            Got bool:   false
+            Want bool:  true
+    --- FAIL: TestEvaluateCondition/Comp_GT_Nil_vs_Num (0.00s)
+        evaluation_comparison_test.go:131: evaluateCondition(Comp GT Nil vs Num): Expected error to wrap [operation received nil operand], but got [evaluating condition expression: comparison op '>' needs comparable types, got <nil> and core.NumberValue]
+        evaluation_comparison_test.go:139: evaluateCondition(Comp GT Nil vs Num): Got expected error: evaluating condition expression: comparison op '>' needs comparable types, got <nil> and core.NumberValue
+    --- FAIL: TestEvaluateCondition/Comp_Var_Not_Found_vs_Nil_EQ (0.00s)
+        evaluation_comparison_test.go:145: evaluateCondition(Comp Var Not Found vs Nil EQ)
+            Node:       (not_found == nilVar)
+            Got bool:   false
+            Want bool:  true
+    --- FAIL: TestEvaluateCondition/Comp_Var_Not_Found_vs_Var_Not_Found_EQ (0.00s)
+        evaluation_comparison_test.go:145: evaluateCondition(Comp Var Not Found vs Var Not Found EQ)
+            Node:       (not_found1 == not_found2)
+            Got bool:   false
+            Want bool:  true
+    --- FAIL: TestEvaluateCondition/Comp_Var_Not_Found_vs_String_NEQ (0.00s)
+        evaluation_comparison_test.go:145: evaluateCondition(Comp Var Not Found vs String NEQ)
+            Node:       (not_found != "A")
+            Got bool:   false
+            Want bool:  true
+--- AST Builder: Build Start ---
+AST Builder DEBUG: Starting ANTLR walk...
+AST Builder DEBUG: ANTLR walk finished.
+AST Builder DEBUG: Metadata collected from listener: map[string]string{}
+AST Builder DEBUG: Assembling 1 procedures found by listener into the program's map.
+AST Builder DEBUG: Processing procedure #1 from listener list.
+AST Builder DEBUG: Proc #1 is named 'main' at position line 7, col 9.
+AST Builder DEBUG: Successfully added procedure 'main' to program AST.
+--- AST Builder: Build process completed successfully. ---
+--- AST Builder: Build Start ---
+AST Builder DEBUG: Starting ANTLR walk...
+AST Builder DEBUG: ANTLR walk finished.
+AST Builder DEBUG: Metadata collected from listener: map[string]string{}
+AST Builder DEBUG: Assembling 1 procedures found by listener into the program's map.
+AST Builder DEBUG: Processing procedure #1 from listener list.
+AST Builder DEBUG: Proc #1 is named 'main' at position line 10, col 9.
+AST Builder DEBUG: Successfully added procedure 'main' to program AST.
+--- AST Builder: Build process completed successfully. ---
+--- AST Builder: Build Start ---
+AST Builder DEBUG: Starting ANTLR walk...
+AST Builder DEBUG: ANTLR walk finished.
+AST Builder DEBUG: Metadata collected from listener: map[string]string{}
+AST Builder ERROR: 1 error(s) detected immediately after ANTLR walk.
+AST Builder DEBUG: Recorded error #1: AST build error near line 6, col 18: Event name must be a static string literal, not a variable (my_event)
+AST Builder ERROR: Failing build due to errors during walk: AST build failed with 1 error(s) during parse walk: AST build error near line 6, col 18: Event name must be a static string literal, not a variable (my_event)
+--- FAIL: TestLogicalBitwiseOps (0.03s)
+    --- FAIL: TestLogicalBitwiseOps/NOT_True_Literal (0.00s)
+        evaluation_logical_bitwise_test.go:146: Test "NOT True Literal": Result mismatch.
+            Input:    &core.UnaryOpNode{Pos:(*core.Position)(0xc00048a460), Operator:"NOT", Operand:(*core.BooleanLiteralNode)(0xc0003ea930)}
+            Vars:     map[string]interface {}{"emptyListVar":[]interface {}{}, "emptyMapVar":map[string]interface {}{}, "falseVar":false, "floatNonInt":3.14, "floatOne":1, "floatZero":0, "listVar":[]interface {}{1, "a"}, "mapVar":map[string]interface {}{"key":"val"}, "nilVar":interface {}(nil), "num3":3, "num5":5, "numOne":1, "numZero":0, "strEmpty":"", "strFalse":"false", "strOne":"1", "strOther":"hello", "strTrue":"true", "trueVar":true}
+            Last:     "LastResult"
+            Expected: false (bool)
+            Got:      true (bool)
+    --- FAIL: TestLogicalBitwiseOps/AND_True_True (0.00s)
+        evaluation_logical_bitwise_test.go:146: Test "AND True True": Error expectation mismatch. got err = operator 'AND' cannot be applied to types bool and core.BoolValue: invalid operand type, wantErr false
+        evaluation_logical_bitwise_test.go:146: Input: &core.BinaryOpNode{Pos:(*core.Position)(0xc00048a460), Left:(*core.VariableNode)(0xc000380210), Operator:"AND", Right:(*core.BooleanLiteralNode)(0xc0003ea950)}, Vars: map[string]interface {}{"emptyListVar":[]interface {}{}, "emptyMapVar":map[string]interface {}{}, "falseVar":false, "floatNonInt":3.14, "floatOne":1, "floatZero":0, "listVar":[]interface {}{1, "a"}, "mapVar":map[string]interface {}{"key":"val"}, "nilVar":interface {}(nil), "num3":3, "num5":5, "numOne":1, "numZero":0, "strEmpty":"", "strFalse":"false", "strOne":"1", "strOther":"hello", "strTrue":"true", "trueVar":true}, Last: "LastResult"
+    --- FAIL: TestLogicalBitwiseOps/AND_True_False (0.00s)
+        evaluation_logical_bitwise_test.go:146: Test "AND True False": Result mismatch.
+            Input:    &core.BinaryOpNode{Pos:(*core.Position)(0xc00048a460), Left:(*core.VariableNode)(0xc000380228), Operator:"AND", Right:(*core.VariableNode)(0xc000380240)}
+            Vars:     map[string]interface {}{"emptyListVar":[]interface {}{}, "emptyMapVar":map[string]interface {}{}, "falseVar":false, "floatNonInt":3.14, "floatOne":1, "floatZero":0, "listVar":[]interface {}{1, "a"}, "mapVar":map[string]interface {}{"key":"val"}, "nilVar":interface {}(nil), "num3":3, "num5":5, "numOne":1, "numZero":0, "strEmpty":"", "strFalse":"false", "strOne":"1", "strOther":"hello", "strTrue":"true", "trueVar":true}
+            Last:     "LastResult"
+            Expected: false (bool)
+            Got:      0 (core.FuzzyValue)
+    --- FAIL: TestLogicalBitwiseOps/AND_False_True (0.00s)
+        evaluation_logical_bitwise_test.go:146: Test "AND False True": Result mismatch.
+            Input:    &core.BinaryOpNode{Pos:(*core.Position)(0xc00048a460), Left:(*core.VariableNode)(0xc000380258), Operator:"AND", Right:(*core.VariableNode)(0xc000380270)}
+            Vars:     map[string]interface {}{"emptyListVar":[]interface {}{}, "emptyMapVar":map[string]interface {}{}, "falseVar":false, "floatNonInt":3.14, "floatOne":1, "floatZero":0, "listVar":[]interface {}{1, "a"}, "mapVar":map[string]interface {}{"key":"val"}, "nilVar":interface {}(nil), "num3":3, "num5":5, "numOne":1, "numZero":0, "strEmpty":"", "strFalse":"false", "strOne":"1", "strOther":"hello", "strTrue":"true", "trueVar":true}
+            Last:     "LastResult"
+            Expected: false (bool)
+            Got:      0 (core.FuzzyValue)
+    --- FAIL: TestLogicalBitwiseOps/AND_False_False (0.00s)
+        evaluation_logical_bitwise_test.go:146: Test "AND False False": Result mismatch.
+            Input:    &core.BinaryOpNode{Pos:(*core.Position)(0xc00048a460), Left:(*core.VariableNode)(0xc000380288), Operator:"AND", Right:(*core.VariableNode)(0xc0003802a0)}
+            Vars:     map[string]interface {}{"emptyListVar":[]interface {}{}, "emptyMapVar":map[string]interface {}{}, "falseVar":false, "floatNonInt":3.14, "floatOne":1, "floatZero":0, "listVar":[]interface {}{1, "a"}, "mapVar":map[string]interface {}{"key":"val"}, "nilVar":interface {}(nil), "num3":3, "num5":5, "numOne":1, "numZero":0, "strEmpty":"", "strFalse":"false", "strOne":"1", "strOther":"hello", "strTrue":"true", "trueVar":true}
+            Last:     "LastResult"
+            Expected: false (bool)
+            Got:      0 (core.FuzzyValue)
+    --- FAIL: TestLogicalBitwiseOps/AND_Num1_StrTrue (0.00s)
+        evaluation_logical_bitwise_test.go:146: Test "AND Num1 StrTrue": Error expectation mismatch. got err = operator 'AND' cannot be applied to types int64 and string: invalid operand type, wantErr false
+        evaluation_logical_bitwise_test.go:146: Input: &core.BinaryOpNode{Pos:(*core.Position)(0xc00048a460), Left:(*core.VariableNode)(0xc0003802b8), Operator:"AND", Right:(*core.VariableNode)(0xc0003802d0)}, Vars: map[string]interface {}{"emptyListVar":[]interface {}{}, "emptyMapVar":map[string]interface {}{}, "falseVar":false, "floatNonInt":3.14, "floatOne":1, "floatZero":0, "listVar":[]interface {}{1, "a"}, "mapVar":map[string]interface {}{"key":"val"}, "nilVar":interface {}(nil), "num3":3, "num5":5, "numOne":1, "numZero":0, "strEmpty":"", "strFalse":"false", "strOne":"1", "strOther":"hello", "strTrue":"true", "trueVar":true}, Last: "LastResult"
+    --- FAIL: TestLogicalBitwiseOps/AND_Num0_StrTrue (0.00s)
+        evaluation_logical_bitwise_test.go:146: Test "AND Num0 StrTrue": Error expectation mismatch. got err = operator 'AND' cannot be applied to types int64 and string: invalid operand type, wantErr false
+        evaluation_logical_bitwise_test.go:146: Input: &core.BinaryOpNode{Pos:(*core.Position)(0xc00048a460), Left:(*core.VariableNode)(0xc0003802e8), Operator:"AND", Right:(*core.VariableNode)(0xc000380300)}, Vars: map[string]interface {}{"emptyListVar":[]interface {}{}, "emptyMapVar":map[string]interface {}{}, "falseVar":false, "floatNonInt":3.14, "floatOne":1, "floatZero":0, "listVar":[]interface {}{1, "a"}, "mapVar":map[string]interface {}{"key":"val"}, "nilVar":interface {}(nil), "num3":3, "num5":5, "numOne":1, "numZero":0, "strEmpty":"", "strFalse":"false", "strOne":"1", "strOther":"hello", "strTrue":"true", "trueVar":true}, Last: "LastResult"
+    --- FAIL: TestLogicalBitwiseOps/AND_Nil_True (0.00s)
+        evaluation_logical_bitwise_test.go:146: Test "AND Nil True": Error expectation mismatch. got err = operator 'AND' cannot be applied to types <nil> and bool: invalid operand type, wantErr false
+        evaluation_logical_bitwise_test.go:146: Input: &core.BinaryOpNode{Pos:(*core.Position)(0xc00048a460), Left:(*core.VariableNode)(0xc000380318), Operator:"AND", Right:(*core.VariableNode)(0xc000380330)}, Vars: map[string]interface {}{"emptyListVar":[]interface {}{}, "emptyMapVar":map[string]interface {}{}, "falseVar":false, "floatNonInt":3.14, "floatOne":1, "floatZero":0, "listVar":[]interface {}{1, "a"}, "mapVar":map[string]interface {}{"key":"val"}, "nilVar":interface {}(nil), "num3":3, "num5":5, "numOne":1, "numZero":0, "strEmpty":"", "strFalse":"false", "strOne":"1", "strOther":"hello", "strTrue":"true", "trueVar":true}, Last: "LastResult"
+    --- FAIL: TestLogicalBitwiseOps/AND_True_Nil (0.00s)
+        evaluation_logical_bitwise_test.go:146: Test "AND True Nil": Error expectation mismatch. got err = operator 'AND' cannot be applied to types bool and <nil>: invalid operand type, wantErr false
+        evaluation_logical_bitwise_test.go:146: Input: &core.BinaryOpNode{Pos:(*core.Position)(0xc00048a460), Left:(*core.VariableNode)(0xc000380348), Operator:"AND", Right:(*core.VariableNode)(0xc000380360)}, Vars: map[string]interface {}{"emptyListVar":[]interface {}{}, "emptyMapVar":map[string]interface {}{}, "falseVar":false, "floatNonInt":3.14, "floatOne":1, "floatZero":0, "listVar":[]interface {}{1, "a"}, "mapVar":map[string]interface {}{"key":"val"}, "nilVar":interface {}(nil), "num3":3, "num5":5, "numOne":1, "numZero":0, "strEmpty":"", "strFalse":"false", "strOne":"1", "strOther":"hello", "strTrue":"true", "trueVar":true}, Last: "LastResult"
+    --- FAIL: TestLogicalBitwiseOps/OR_True_True (0.00s)
+        evaluation_logical_bitwise_test.go:146: Test "OR True True": Error expectation mismatch. got err = operator 'OR' cannot be applied to types bool and core.BoolValue: invalid operand type, wantErr false
+        evaluation_logical_bitwise_test.go:146: Input: &core.BinaryOpNode{Pos:(*core.Position)(0xc00048a460), Left:(*core.VariableNode)(0xc0003803a8), Operator:"OR", Right:(*core.BooleanLiteralNode)(0xc0003ea960)}, Vars: map[string]interface {}{"emptyListVar":[]interface {}{}, "emptyMapVar":map[string]interface {}{}, "falseVar":false, "floatNonInt":3.14, "floatOne":1, "floatZero":0, "listVar":[]interface {}{1, "a"}, "mapVar":map[string]interface {}{"key":"val"}, "nilVar":interface {}(nil), "num3":3, "num5":5, "numOne":1, "numZero":0, "strEmpty":"", "strFalse":"false", "strOne":"1", "strOther":"hello", "strTrue":"true", "trueVar":true}, Last: "LastResult"
+    --- FAIL: TestLogicalBitwiseOps/OR_True_False (0.00s)
+        evaluation_logical_bitwise_test.go:146: Test "OR True False": Result mismatch.
+            Input:    &core.BinaryOpNode{Pos:(*core.Position)(0xc00048a460), Left:(*core.VariableNode)(0xc0003803c0), Operator:"OR", Right:(*core.VariableNode)(0xc0003803d8)}
+            Vars:     map[string]interface {}{"emptyListVar":[]interface {}{}, "emptyMapVar":map[string]interface {}{}, "falseVar":false, "floatNonInt":3.14, "floatOne":1, "floatZero":0, "listVar":[]interface {}{1, "a"}, "mapVar":map[string]interface {}{"key":"val"}, "nilVar":interface {}(nil), "num3":3, "num5":5, "numOne":1, "numZero":0, "strEmpty":"", "strFalse":"false", "strOne":"1", "strOther":"hello", "strTrue":"true", "trueVar":true}
+            Last:     "LastResult"
+            Expected: true (bool)
+            Got:      1 (core.FuzzyValue)
+    --- FAIL: TestLogicalBitwiseOps/OR_False_True (0.00s)
+        evaluation_logical_bitwise_test.go:146: Test "OR False True": Result mismatch.
+            Input:    &core.BinaryOpNode{Pos:(*core.Position)(0xc00048a460), Left:(*core.VariableNode)(0xc0003803f0), Operator:"OR", Right:(*core.VariableNode)(0xc000380408)}
+            Vars:     map[string]interface {}{"emptyListVar":[]interface {}{}, "emptyMapVar":map[string]interface {}{}, "falseVar":false, "floatNonInt":3.14, "floatOne":1, "floatZero":0, "listVar":[]interface {}{1, "a"}, "mapVar":map[string]interface {}{"key":"val"}, "nilVar":interface {}(nil), "num3":3, "num5":5, "numOne":1, "numZero":0, "strEmpty":"", "strFalse":"false", "strOne":"1", "strOther":"hello", "strTrue":"true", "trueVar":true}
+            Last:     "LastResult"
+            Expected: true (bool)
+            Got:      1 (core.FuzzyValue)
+    --- FAIL: TestLogicalBitwiseOps/OR_False_False (0.00s)
+        evaluation_logical_bitwise_test.go:146: Test "OR False False": Result mismatch.
+            Input:    &core.BinaryOpNode{Pos:(*core.Position)(0xc00048a460), Left:(*core.VariableNode)(0xc000380420), Operator:"OR", Right:(*core.VariableNode)(0xc000380438)}
+            Vars:     map[string]interface {}{"emptyListVar":[]interface {}{}, "emptyMapVar":map[string]interface {}{}, "falseVar":false, "floatNonInt":3.14, "floatOne":1, "floatZero":0, "listVar":[]interface {}{1, "a"}, "mapVar":map[string]interface {}{"key":"val"}, "nilVar":interface {}(nil), "num3":3, "num5":5, "numOne":1, "numZero":0, "strEmpty":"", "strFalse":"false", "strOne":"1", "strOther":"hello", "strTrue":"true", "trueVar":true}
+            Last:     "LastResult"
+            Expected: false (bool)
+            Got:      0 (core.FuzzyValue)
+    --- FAIL: TestLogicalBitwiseOps/OR_Num0_StrFalse (0.00s)
+        evaluation_logical_bitwise_test.go:146: Test "OR Num0 StrFalse": Error expectation mismatch. got err = operator 'OR' cannot be applied to types int64 and string: invalid operand type, wantErr false
+        evaluation_logical_bitwise_test.go:146: Input: &core.BinaryOpNode{Pos:(*core.Position)(0xc00048a460), Left:(*core.VariableNode)(0xc000380450), Operator:"OR", Right:(*core.VariableNode)(0xc000380468)}, Vars: map[string]interface {}{"emptyListVar":[]interface {}{}, "emptyMapVar":map[string]interface {}{}, "falseVar":false, "floatNonInt":3.14, "floatOne":1, "floatZero":0, "listVar":[]interface {}{1, "a"}, "mapVar":map[string]interface {}{"key":"val"}, "nilVar":interface {}(nil), "num3":3, "num5":5, "numOne":1, "numZero":0, "strEmpty":"", "strFalse":"false", "strOne":"1", "strOther":"hello", "strTrue":"true", "trueVar":true}, Last: "LastResult"
+    --- FAIL: TestLogicalBitwiseOps/OR_Num1_StrFalse (0.00s)
+        evaluation_logical_bitwise_test.go:146: Test "OR Num1 StrFalse": Error expectation mismatch. got err = operator 'OR' cannot be applied to types int64 and string: invalid operand type, wantErr false
+        evaluation_logical_bitwise_test.go:146: Input: &core.BinaryOpNode{Pos:(*core.Position)(0xc00048a460), Left:(*core.VariableNode)(0xc000380480), Operator:"OR", Right:(*core.VariableNode)(0xc000380498)}, Vars: map[string]interface {}{"emptyListVar":[]interface {}{}, "emptyMapVar":map[string]interface {}{}, "falseVar":false, "floatNonInt":3.14, "floatOne":1, "floatZero":0, "listVar":[]interface {}{1, "a"}, "mapVar":map[string]interface {}{"key":"val"}, "nilVar":interface {}(nil), "num3":3, "num5":5, "numOne":1, "numZero":0, "strEmpty":"", "strFalse":"false", "strOne":"1", "strOther":"hello", "strTrue":"true", "trueVar":true}, Last: "LastResult"
+    --- FAIL: TestLogicalBitwiseOps/OR_StrOther_Nil (0.00s)
+        evaluation_logical_bitwise_test.go:146: Test "OR StrOther Nil": Error expectation mismatch. got err = operator 'OR' cannot be applied to types string and <nil>: invalid operand type, wantErr false
+        evaluation_logical_bitwise_test.go:146: Input: &core.BinaryOpNode{Pos:(*core.Position)(0xc00048a460), Left:(*core.VariableNode)(0xc0003804b0), Operator:"OR", Right:(*core.VariableNode)(0xc0003804c8)}, Vars: map[string]interface {}{"emptyListVar":[]interface {}{}, "emptyMapVar":map[string]interface {}{}, "falseVar":false, "floatNonInt":3.14, "floatOne":1, "floatZero":0, "listVar":[]interface {}{1, "a"}, "mapVar":map[string]interface {}{"key":"val"}, "nilVar":interface {}(nil), "num3":3, "num5":5, "numOne":1, "numZero":0, "strEmpty":"", "strFalse":"false", "strOne":"1", "strOther":"hello", "strTrue":"true", "trueVar":true}, Last: "LastResult"
+    --- FAIL: TestLogicalBitwiseOps/OR_Nil_False (0.00s)
+        evaluation_logical_bitwise_test.go:146: Test "OR Nil False": Error expectation mismatch. got err = operator 'OR' cannot be applied to types <nil> and bool: invalid operand type, wantErr false
+        evaluation_logical_bitwise_test.go:146: Input: &core.BinaryOpNode{Pos:(*core.Position)(0xc00048a460), Left:(*core.VariableNode)(0xc0003804e0), Operator:"OR", Right:(*core.VariableNode)(0xc0003804f8)}, Vars: map[string]interface {}{"emptyListVar":[]interface {}{}, "emptyMapVar":map[string]interface {}{}, "falseVar":false, "floatNonInt":3.14, "floatOne":1, "floatZero":0, "listVar":[]interface {}{1, "a"}, "mapVar":map[string]interface {}{"key":"val"}, "nilVar":interface {}(nil), "num3":3, "num5":5, "numOne":1, "numZero":0, "strEmpty":"", "strFalse":"false", "strOne":"1", "strOther":"hello", "strTrue":"true", "trueVar":true}, Last: "LastResult"
+    --- FAIL: TestLogicalBitwiseOps/Bitwise_AND_5&3 (0.00s)
+        evaluation_logical_bitwise_test.go:146: Test "Bitwise AND 5&3": Result mismatch.
+            Input:    &core.BinaryOpNode{Pos:(*core.Position)(0xc00048a460), Left:(*core.VariableNode)(0xc000380540), Operator:"&", Right:(*core.VariableNode)(0xc000380558)}
+            Vars:     map[string]interface {}{"emptyListVar":[]interface {}{}, "emptyMapVar":map[string]interface {}{}, "falseVar":false, "floatNonInt":3.14, "floatOne":1, "floatZero":0, "listVar":[]interface {}{1, "a"}, "mapVar":map[string]interface {}{"key":"val"}, "nilVar":interface {}(nil), "num3":3, "num5":5, "numOne":1, "numZero":0, "strEmpty":"", "strFalse":"false", "strOne":"1", "strOther":"hello", "strTrue":"true", "trueVar":true}
+            Last:     "LastResult"
+            Expected: 1 (int64)
+            Got:      1 (core.NumberValue)
+    --- FAIL: TestLogicalBitwiseOps/Bitwise_AND_5&0 (0.00s)
+        evaluation_logical_bitwise_test.go:146: Test "Bitwise AND 5&0": Result mismatch.
+            Input:    &core.BinaryOpNode{Pos:(*core.Position)(0xc00048a460), Left:(*core.VariableNode)(0xc000380570), Operator:"&", Right:(*core.VariableNode)(0xc000380588)}
+            Vars:     map[string]interface {}{"emptyListVar":[]interface {}{}, "emptyMapVar":map[string]interface {}{}, "falseVar":false, "floatNonInt":3.14, "floatOne":1, "floatZero":0, "listVar":[]interface {}{1, "a"}, "mapVar":map[string]interface {}{"key":"val"}, "nilVar":interface {}(nil), "num3":3, "num5":5, "numOne":1, "numZero":0, "strEmpty":"", "strFalse":"false", "strOne":"1", "strOther":"hello", "strTrue":"true", "trueVar":true}
+            Last:     "LastResult"
+            Expected: 0 (int64)
+            Got:      0 (core.NumberValue)
+    --- FAIL: TestLogicalBitwiseOps/Bitwise_AND_Error_Float (0.00s)
+        evaluation_logical_bitwise_test.go:146: Test "Bitwise AND Error Float": Error expectation mismatch. got err = <nil>, wantErr true
+    --- FAIL: TestLogicalBitwiseOps/Bitwise_AND_Error_String (0.00s)
+        evaluation_logical_bitwise_test.go:146: Test "Bitwise AND Error String": Error expectation mismatch. got err = <nil>, wantErr true
+    --- FAIL: TestLogicalBitwiseOps/Bitwise_OR_5|3 (0.00s)
+        evaluation_logical_bitwise_test.go:146: Test "Bitwise OR 5|3": Result mismatch.
+            Input:    &core.BinaryOpNode{Pos:(*core.Position)(0xc00048a460), Left:(*core.VariableNode)(0xc000380630), Operator:"|", Right:(*core.VariableNode)(0xc000380648)}
+            Vars:     map[string]interface {}{"emptyListVar":[]interface {}{}, "emptyMapVar":map[string]interface {}{}, "falseVar":false, "floatNonInt":3.14, "floatOne":1, "floatZero":0, "listVar":[]interface {}{1, "a"}, "mapVar":map[string]interface {}{"key":"val"}, "nilVar":interface {}(nil), "num3":3, "num5":5, "numOne":1, "numZero":0, "strEmpty":"", "strFalse":"false", "strOne":"1", "strOther":"hello", "strTrue":"true", "trueVar":true}
+            Last:     "LastResult"
+            Expected: 7 (int64)
+            Got:      7 (core.NumberValue)
+    --- FAIL: TestLogicalBitwiseOps/Bitwise_OR_5|0 (0.00s)
+        evaluation_logical_bitwise_test.go:146: Test "Bitwise OR 5|0": Result mismatch.
+            Input:    &core.BinaryOpNode{Pos:(*core.Position)(0xc00048a460), Left:(*core.VariableNode)(0xc000380660), Operator:"|", Right:(*core.VariableNode)(0xc000380678)}
+            Vars:     map[string]interface {}{"emptyListVar":[]interface {}{}, "emptyMapVar":map[string]interface {}{}, "falseVar":false, "floatNonInt":3.14, "floatOne":1, "floatZero":0, "listVar":[]interface {}{1, "a"}, "mapVar":map[string]interface {}{"key":"val"}, "nilVar":interface {}(nil), "num3":3, "num5":5, "numOne":1, "numZero":0, "strEmpty":"", "strFalse":"false", "strOne":"1", "strOther":"hello", "strTrue":"true", "trueVar":true}
+            Last:     "LastResult"
+            Expected: 5 (int64)
+            Got:      5 (core.NumberValue)
+    --- FAIL: TestLogicalBitwiseOps/Bitwise_OR_Error_Float (0.00s)
+        evaluation_logical_bitwise_test.go:146: Test "Bitwise OR Error Float": Error expectation mismatch. got err = <nil>, wantErr true
+    --- FAIL: TestLogicalBitwiseOps/Bitwise_OR_Error_String (0.00s)
+        evaluation_logical_bitwise_test.go:146: Test "Bitwise OR Error String": Error expectation mismatch. got err = <nil>, wantErr true
+    --- FAIL: TestLogicalBitwiseOps/Bitwise_XOR_5^3 (0.00s)
+        evaluation_logical_bitwise_test.go:146: Test "Bitwise XOR 5^3": Result mismatch.
+            Input:    &core.BinaryOpNode{Pos:(*core.Position)(0xc00048a460), Left:(*core.VariableNode)(0xc000380720), Operator:"^", Right:(*core.VariableNode)(0xc000380738)}
+            Vars:     map[string]interface {}{"emptyListVar":[]interface {}{}, "emptyMapVar":map[string]interface {}{}, "falseVar":false, "floatNonInt":3.14, "floatOne":1, "floatZero":0, "listVar":[]interface {}{1, "a"}, "mapVar":map[string]interface {}{"key":"val"}, "nilVar":interface {}(nil), "num3":3, "num5":5, "numOne":1, "numZero":0, "strEmpty":"", "strFalse":"false", "strOne":"1", "strOther":"hello", "strTrue":"true", "trueVar":true}
+            Last:     "LastResult"
+            Expected: 6 (int64)
+            Got:      6 (core.NumberValue)
+    --- FAIL: TestLogicalBitwiseOps/Bitwise_XOR_5^5 (0.00s)
+        evaluation_logical_bitwise_test.go:146: Test "Bitwise XOR 5^5": Result mismatch.
+            Input:    &core.BinaryOpNode{Pos:(*core.Position)(0xc00048a460), Left:(*core.VariableNode)(0xc000380750), Operator:"^", Right:(*core.VariableNode)(0xc000380768)}
+            Vars:     map[string]interface {}{"emptyListVar":[]interface {}{}, "emptyMapVar":map[string]interface {}{}, "falseVar":false, "floatNonInt":3.14, "floatOne":1, "floatZero":0, "listVar":[]interface {}{1, "a"}, "mapVar":map[string]interface {}{"key":"val"}, "nilVar":interface {}(nil), "num3":3, "num5":5, "numOne":1, "numZero":0, "strEmpty":"", "strFalse":"false", "strOne":"1", "strOther":"hello", "strTrue":"true", "trueVar":true}
+            Last:     "LastResult"
+            Expected: 0 (int64)
+            Got:      0 (core.NumberValue)
+    --- FAIL: TestLogicalBitwiseOps/Bitwise_XOR_Error_Float (0.00s)
+        evaluation_logical_bitwise_test.go:146: Test "Bitwise XOR Error Float": Error expectation mismatch. got err = <nil>, wantErr true
+    --- FAIL: TestLogicalBitwiseOps/Bitwise_XOR_Error_String (0.00s)
+        evaluation_logical_bitwise_test.go:146: Test "Bitwise XOR Error String": Error expectation mismatch. got err = <nil>, wantErr true
+--- AST Builder: Build Start ---
+AST Builder DEBUG: Starting ANTLR walk...
+AST Builder DEBUG: ANTLR walk finished.
+AST Builder DEBUG: Metadata collected from listener: map[string]string{}
+AST Builder ERROR: 1 error(s) detected immediately after ANTLR walk.
+AST Builder DEBUG: Recorded error #1: internal AST builder error: value stack size is 1 at end of program
+AST Builder ERROR: Failing build due to errors during walk: AST build failed with 1 error(s) during parse walk: internal AST builder error: value stack size is 1 at end of program
+--- AST Builder: Build Start ---
+AST Builder DEBUG: Starting ANTLR walk...
+AST Builder DEBUG: ANTLR walk finished.
+AST Builder DEBUG: Metadata collected from listener: map[string]string{}
+AST Builder ERROR: 1 error(s) detected immediately after ANTLR walk.
+AST Builder DEBUG: Recorded error #1: internal AST builder error: value stack size is 1 at end of program
+AST Builder ERROR: Failing build due to errors during walk: AST build failed with 1 error(s) during parse walk: internal AST builder error: value stack size is 1 at end of program
+--- AST Builder: Build Start ---
+AST Builder DEBUG: Starting ANTLR walk...
+AST Builder DEBUG: ANTLR walk finished.
+AST Builder DEBUG: Metadata collected from listener: map[string]string{}
+AST Builder ERROR: 1 error(s) detected immediately after ANTLR walk.
+AST Builder DEBUG: Recorded error #1: internal AST builder error: value stack size is 3 at end of program
+AST Builder ERROR: Failing build due to errors during walk: AST build failed with 1 error(s) during parse walk: internal AST builder error: value stack size is 3 at end of program
+--- AST Builder: Build Start ---
+AST Builder DEBUG: Starting ANTLR walk...
+AST Builder DEBUG: ANTLR walk finished.
+AST Builder DEBUG: Metadata collected from listener: map[string]string{}
+AST Builder ERROR: 1 error(s) detected immediately after ANTLR walk.
+AST Builder DEBUG: Recorded error #1: internal AST builder error: value stack size is 2 at end of program
+AST Builder ERROR: Failing build due to errors during walk: AST build failed with 1 error(s) during parse walk: internal AST builder error: value stack size is 2 at end of program
+--- FAIL: TestNewTypesIntegration (0.01s)
+    --- FAIL: TestNewTypesIntegration/TypeOf_New_Types (0.00s)
+        evaluation_new_types_test.go:55: script execution failed: NeuroScript Error 15: building AST for script 'TestNewTypesIntegration_TypeOf_New_Types' failed: AST build failed with 1 error(s) during parse walk: internal AST builder error: value stack size is 1 at end of program (wrapped: AST build failed with 1 error(s) during parse walk: internal AST builder error: value stack size is 1 at end of program)
+    --- FAIL: TestNewTypesIntegration/Timedate_Comparison (0.00s)
+        evaluation_new_types_test.go:79: script execution failed: NeuroScript Error 15: building AST for script 'TestNewTypesIntegration_Timedate_Comparison' failed: AST build failed with 1 error(s) during parse walk: internal AST builder error: value stack size is 1 at end of program (wrapped: AST build failed with 1 error(s) during parse walk: internal AST builder error: value stack size is 1 at end of program)
+    --- FAIL: TestNewTypesIntegration/Fuzzy_Logic_Operators (0.00s)
+        evaluation_new_types_test.go:108: script execution failed: NeuroScript Error 15: building AST for script 'TestNewTypesIntegration_Fuzzy_Logic_Operators' failed: AST build failed with 1 error(s) during parse walk: internal AST builder error: value stack size is 3 at end of program (wrapped: AST build failed with 1 error(s) during parse walk: internal AST builder error: value stack size is 3 at end of program)
+    --- FAIL: TestNewTypesIntegration/Error_Tool_and_is-error_built-in (0.00s)
+        evaluation_new_types_test.go:142: script execution failed: NeuroScript Error 15: building AST for script 'TestNewTypesIntegration_Error_Tool_and_is_error_built_in' failed: AST build failed with 1 error(s) during parse walk: internal AST builder error: value stack size is 2 at end of program (wrapped: AST build failed with 1 error(s) during parse walk: internal AST builder error: value stack size is 2 at end of program)
+--- FAIL: TestEvaluateExpressionASTGeneral (0.01s)
+    --- FAIL: TestEvaluateExpressionASTGeneral/String_Literal_(Raw) (0.00s)
+        evaluation_test.go:75: Test "String Literal (Raw)": Result mismatch.
+            Input:    &core.StringLiteralNode{Pos:(*core.Position)(0xc000596d40), Value:"Hello {{name}}", IsRaw:false}
+            Vars:     map[string]interface {}{"boolProp":true, "greeting":"Hello {{name}}", "listVar":[]interface {}{"x", 99, "{{name}}"}, "mapVar":map[string]interface {}{"mKey":"mVal {{name}}", "mNum":1}, "name":"World", "nilVar":interface {}(nil), "numStr":"456", "numVar":123}
+            Last:     "LastCallResult {{name}}"
+            Expected: Hello {{name}} (string)
+            Got:      Hello {{name}} (core.StringValue)
+    --- FAIL: TestEvaluateExpressionASTGeneral/Concat_Lit(raw)_+_Var(raw) (0.00s)
+        evaluation_test.go:75: Test "Concat Lit(raw) + Var(raw)": Error expectation mismatch. got err = could not convert operands to string for concatenation: core.StringValue and string, wantErr false
+        evaluation_test.go:75: Input: &core.BinaryOpNode{Pos:(*core.Position)(0xc000596d40), Left:(*core.StringLiteralNode)(0xc000596d80), Operator:"+", Right:(*core.VariableNode)(0xc0003804b0)}, Vars: map[string]interface {}{"boolProp":true, "greeting":"Hello {{name}}", "listVar":[]interface {}{"x", 99, "{{name}}"}, "mapVar":map[string]interface {}{"mKey":"mVal {{name}}", "mNum":1}, "name":"World", "nilVar":interface {}(nil), "numStr":"456", "numVar":123}, Last: "LastCallResult {{name}}"
+    --- FAIL: TestEvaluateExpressionASTGeneral/Concat_Var(raw)_+_Lit(raw) (0.00s)
+        evaluation_test.go:75: Test "Concat Var(raw) + Lit(raw)": Error expectation mismatch. got err = could not convert operands to string for concatenation: string and core.StringValue, wantErr false
+        evaluation_test.go:75: Input: &core.BinaryOpNode{Pos:(*core.Position)(0xc000596d40), Left:(*core.VariableNode)(0xc0003804c8), Operator:"+", Right:(*core.StringLiteralNode)(0xc000596da0)}, Vars: map[string]interface {}{"boolProp":true, "greeting":"Hello {{name}}", "listVar":[]interface {}{"x", 99, "{{name}}"}, "mapVar":map[string]interface {}{"mKey":"mVal {{name}}", "mNum":1}, "name":"World", "nilVar":interface {}(nil), "numStr":"456", "numVar":123}, Last: "LastCallResult {{name}}"
+    --- FAIL: TestEvaluateExpressionASTGeneral/Concat_Var(raw)_+_Var(raw) (0.00s)
+        evaluation_test.go:75: Test "Concat Var(raw) + Var(raw)": Result mismatch.
+            Input:    &core.BinaryOpNode{Pos:(*core.Position)(0xc000596d40), Left:(*core.VariableNode)(0xc0003804e0), Operator:"+", Right:(*core.VariableNode)(0xc0003804f8)}
+            Vars:     map[string]interface {}{"boolProp":true, "greeting":"Hello {{name}}", "listVar":[]interface {}{"x", 99, "{{name}}"}, "mapVar":map[string]interface {}{"mKey":"mVal {{name}}", "mNum":1}, "name":"World", "nilVar":interface {}(nil), "numStr":"456", "numVar":123}
+            Last:     "LastCallResult {{name}}"
+            Expected: Hello {{name}}World (string)
+            Got:      Hello {{name}}World (core.StringValue)
+    --- FAIL: TestEvaluateExpressionASTGeneral/Concat_with_Number (0.00s)
+        evaluation_test.go:75: Test "Concat with Number": Error expectation mismatch. got err = could not convert operands to string for concatenation: core.StringValue and int64, wantErr false
+        evaluation_test.go:75: Input: &core.BinaryOpNode{Pos:(*core.Position)(0xc000596d40), Left:(*core.StringLiteralNode)(0xc000596dc0), Operator:"+", Right:(*core.VariableNode)(0xc000380510)}, Vars: map[string]interface {}{"boolProp":true, "greeting":"Hello {{name}}", "listVar":[]interface {}{"x", 99, "{{name}}"}, "mapVar":map[string]interface {}{"mKey":"mVal {{name}}", "mNum":1}, "name":"World", "nilVar":interface {}(nil), "numStr":"456", "numVar":123}, Last: "LastCallResult {{name}}"
+    --- FAIL: TestEvaluateExpressionASTGeneral/Concat_Eval_+_StringLit(Raw) (0.00s)
+        evaluation_test.go:75: Test "Concat Eval + StringLit(Raw)": Error expectation mismatch. got err = could not convert operands to string for concatenation: core.StringValue and core.StringValue, wantErr false
+        evaluation_test.go:75: Input: &core.BinaryOpNode{Pos:(*core.Position)(0xc000596d40), Left:(*core.EvalNode)(0xc000380540), Operator:"+", Right:(*core.StringLiteralNode)(0xc000596de0)}, Vars: map[string]interface {}{"boolProp":true, "greeting":"Hello {{name}}", "listVar":[]interface {}{"x", 99, "{{name}}"}, "mapVar":map[string]interface {}{"mKey":"mVal {{name}}", "mNum":1}, "name":"World", "nilVar":interface {}(nil), "numStr":"456", "numVar":123}, Last: "LastCallResult {{name}}"
+    --- FAIL: TestEvaluateExpressionASTGeneral/Concat_Nil_Operand (0.00s)
+        evaluation_test.go:75: Test "Concat Nil Operand": Error expectation mismatch. got err = NeuroScript Error 17: evaluating left operand for '+' at line 1, col 1 (wrapped: could not convert operands to string for concatenation: core.StringValue and <nil>), wantErr false
+        evaluation_test.go:75: Input: &core.BinaryOpNode{Pos:(*core.Position)(0xc000596d40), Left:(*core.BinaryOpNode)(0xc00003ea00), Operator:"+", Right:(*core.StringLiteralNode)(0xc000596e40)}, Vars: map[string]interface {}{"boolProp":true, "greeting":"Hello {{name}}", "listVar":[]interface {}{"x", 99, "{{name}}"}, "mapVar":map[string]interface {}{"mKey":"mVal {{name}}", "mNum":1}, "name":"World", "nilVar":interface {}(nil), "numStr":"456", "numVar":123}, Last: "LastCallResult {{name}}"
+    --- FAIL: TestEvaluateExpressionASTGeneral/Add_Numbers (0.00s)
+        evaluation_test.go:75: Test "Add Numbers": Result mismatch.
+            Input:    &core.BinaryOpNode{Pos:(*core.Position)(0xc000596d40), Left:(*core.NumberLiteralNode)(0xc000380588), Operator:"+", Right:(*core.NumberLiteralNode)(0xc0003805a0)}
+            Vars:     map[string]interface {}{"boolProp":true, "greeting":"Hello {{name}}", "listVar":[]interface {}{"x", 99, "{{name}}"}, "mapVar":map[string]interface {}{"mKey":"mVal {{name}}", "mNum":1}, "name":"World", "nilVar":interface {}(nil), "numStr":"456", "numVar":123}
+            Last:     "LastCallResult {{name}}"
+            Expected: 8 (int64)
+            Got:      8 (core.NumberValue)
+    --- FAIL: TestEvaluateExpressionASTGeneral/Add_Num_+_NumStr (0.00s)
+        evaluation_test.go:75: Test "Add Num + NumStr": Error expectation mismatch. got err = could not convert operands to string for concatenation: int64 and string, wantErr false
+        evaluation_test.go:75: Input: &core.BinaryOpNode{Pos:(*core.Position)(0xc000596d40), Left:(*core.VariableNode)(0xc0003805b8), Operator:"+", Right:(*core.VariableNode)(0xc0003805d0)}, Vars: map[string]interface {}{"boolProp":true, "greeting":"Hello {{name}}", "listVar":[]interface {}{"x", 99, "{{name}}"}, "mapVar":map[string]interface {}{"mKey":"mVal {{name}}", "mNum":1}, "name":"World", "nilVar":interface {}(nil), "numStr":"456", "numVar":123}, Last: "LastCallResult {{name}}"
+    --- FAIL: TestEvaluateExpressionASTGeneral/Subtract_Numbers (0.00s)
+        evaluation_test.go:75: Test "Subtract Numbers": Result mismatch.
+            Input:    &core.BinaryOpNode{Pos:(*core.Position)(0xc000596d40), Left:(*core.NumberLiteralNode)(0xc0003805e8), Operator:"-", Right:(*core.NumberLiteralNode)(0xc000380600)}
+            Vars:     map[string]interface {}{"boolProp":true, "greeting":"Hello {{name}}", "listVar":[]interface {}{"x", 99, "{{name}}"}, "mapVar":map[string]interface {}{"mKey":"mVal {{name}}", "mNum":1}, "name":"World", "nilVar":interface {}(nil), "numStr":"456", "numVar":123}
+            Last:     "LastCallResult {{name}}"
+            Expected: 2 (int64)
+            Got:      2 (core.NumberValue)
+    --- FAIL: TestEvaluateExpressionASTGeneral/Multiply_Numbers (0.00s)
+        evaluation_test.go:75: Test "Multiply Numbers": Result mismatch.
+            Input:    &core.BinaryOpNode{Pos:(*core.Position)(0xc000596d40), Left:(*core.NumberLiteralNode)(0xc000380618), Operator:"*", Right:(*core.NumberLiteralNode)(0xc000380630)}
+            Vars:     map[string]interface {}{"boolProp":true, "greeting":"Hello {{name}}", "listVar":[]interface {}{"x", 99, "{{name}}"}, "mapVar":map[string]interface {}{"mKey":"mVal {{name}}", "mNum":1}, "name":"World", "nilVar":interface {}(nil), "numStr":"456", "numVar":123}
+            Last:     "LastCallResult {{name}}"
+            Expected: 15 (int64)
+            Got:      15 (core.NumberValue)
+    --- FAIL: TestEvaluateExpressionASTGeneral/Divide_Numbers_(Int) (0.00s)
+        evaluation_test.go:75: Test "Divide Numbers (Int)": Result mismatch.
+            Input:    &core.BinaryOpNode{Pos:(*core.Position)(0xc000596d40), Left:(*core.NumberLiteralNode)(0xc000380648), Operator:"/", Right:(*core.NumberLiteralNode)(0xc000380660)}
+            Vars:     map[string]interface {}{"boolProp":true, "greeting":"Hello {{name}}", "listVar":[]interface {}{"x", 99, "{{name}}"}, "mapVar":map[string]interface {}{"mKey":"mVal {{name}}", "mNum":1}, "name":"World", "nilVar":interface {}(nil), "numStr":"456", "numVar":123}
+            Last:     "LastCallResult {{name}}"
+            Expected: 2 (int64)
+            Got:      2 (core.NumberValue)
+    --- FAIL: TestEvaluateExpressionASTGeneral/Divide_Numbers_(Float) (0.00s)
+        evaluation_test.go:75: Test "Divide Numbers (Float)": Result mismatch.
+            Input:    &core.BinaryOpNode{Pos:(*core.Position)(0xc000596d40), Left:(*core.NumberLiteralNode)(0xc000380678), Operator:"/", Right:(*core.NumberLiteralNode)(0xc000380690)}
+            Vars:     map[string]interface {}{"boolProp":true, "greeting":"Hello {{name}}", "listVar":[]interface {}{"x", 99, "{{name}}"}, "mapVar":map[string]interface {}{"mKey":"mVal {{name}}", "mNum":1}, "name":"World", "nilVar":interface {}(nil), "numStr":"456", "numVar":123}
+            Last:     "LastCallResult {{name}}"
+            Expected: 3.5 (float64)
+            Got:      3.5 (core.NumberValue)
+    --- FAIL: TestEvaluateExpressionASTGeneral/Modulo_Numbers (0.00s)
+        evaluation_test.go:75: Test "Modulo Numbers": Result mismatch.
+            Input:    &core.BinaryOpNode{Pos:(*core.Position)(0xc000596d40), Left:(*core.NumberLiteralNode)(0xc0003806a8), Operator:"%", Right:(*core.NumberLiteralNode)(0xc0003806c0)}
+            Vars:     map[string]interface {}{"boolProp":true, "greeting":"Hello {{name}}", "listVar":[]interface {}{"x", 99, "{{name}}"}, "mapVar":map[string]interface {}{"mKey":"mVal {{name}}", "mNum":1}, "name":"World", "nilVar":interface {}(nil), "numStr":"456", "numVar":123}
+            Last:     "LastCallResult {{name}}"
+            Expected: 1 (int64)
+            Got:      1 (core.NumberValue)
+    --- FAIL: TestEvaluateExpressionASTGeneral/Power_Numbers (0.00s)
+        evaluation_test.go:75: Test "Power Numbers": Result mismatch.
+            Input:    &core.BinaryOpNode{Pos:(*core.Position)(0xc000596d40), Left:(*core.NumberLiteralNode)(0xc0003806d8), Operator:"**", Right:(*core.NumberLiteralNode)(0xc0003806f0)}
+            Vars:     map[string]interface {}{"boolProp":true, "greeting":"Hello {{name}}", "listVar":[]interface {}{"x", 99, "{{name}}"}, "mapVar":map[string]interface {}{"mKey":"mVal {{name}}", "mNum":1}, "name":"World", "nilVar":interface {}(nil), "numStr":"456", "numVar":123}
+            Last:     "LastCallResult {{name}}"
+            Expected: 8 (float64)
+            Got:      8 (core.NumberValue)
+    --- FAIL: TestEvaluateExpressionASTGeneral/Simple_List_(Raw) (0.00s)
+        evaluation_test.go:75: Test "Simple List (Raw)": Error expectation mismatch. got err = NeuroScript Error 6: list element expression evaluated to a non-Value type: bool, wantErr false
+        evaluation_test.go:75: Input: &core.ListLiteralNode{Pos:(*core.Position)(0xc000596d40), Elements:[]core.Expression{(*core.NumberLiteralNode)(0xc000380708), (*core.StringLiteralNode)(0xc000596e60), (*core.VariableNode)(0xc000380720)}}, Vars: map[string]interface {}{"boolProp":true, "greeting":"Hello {{name}}", "listVar":[]interface {}{"x", 99, "{{name}}"}, "mapVar":map[string]interface {}{"mKey":"mVal {{name}}", "mNum":1}, "name":"World", "nilVar":interface {}(nil), "numStr":"456", "numVar":123}, Last: "LastCallResult {{name}}"
+    --- FAIL: TestEvaluateExpressionASTGeneral/Simple_Map_(Raw) (0.00s)
+        evaluation_test.go:75: Test "Simple Map (Raw)": Result mismatch.
+            Input:    &core.MapLiteralNode{Pos:(*core.Position)(0xc000596d40), Entries:[]*core.MapEntryNode{(*core.MapEntryNode)(0xc000596ee0)}}
+            Vars:     map[string]interface {}{"boolProp":true, "greeting":"Hello {{name}}", "listVar":[]interface {}{"x", 99, "{{name}}"}, "mapVar":map[string]interface {}{"mKey":"mVal {{name}}", "mNum":1}, "name":"World", "nilVar":interface {}(nil), "numStr":"456", "numVar":123}
+            Last:     "LastCallResult {{name}}"
+            Expected: map[k1:{{name}}] (map[string]interface {})
+            Got:      {"k1": {{name}}} (core.MapValue)
+--- AST Builder: Build Start ---
+AST Builder DEBUG: Starting ANTLR walk...
+AST Builder DEBUG: ANTLR walk finished.
+AST Builder DEBUG: Metadata collected from listener: map[string]string{}
+AST Builder DEBUG: Assembling 1 procedures found by listener into the program's map.
+AST Builder DEBUG: Processing procedure #1 from listener list.
+AST Builder DEBUG: Proc #1 is named 'test_autocreate_a' at position line 1, col 1.
+AST Builder DEBUG: Successfully added procedure 'test_autocreate_a' to program AST.
+--- AST Builder: Build process completed successfully. ---
+--- AST Builder: Build Start ---
+AST Builder DEBUG: Starting ANTLR walk...
+AST Builder DEBUG: ANTLR walk finished.
+AST Builder DEBUG: Metadata collected from listener: map[string]string{}
+AST Builder DEBUG: Assembling 1 procedures found by listener into the program's map.
+AST Builder DEBUG: Processing procedure #1 from listener list.
+AST Builder DEBUG: Proc #1 is named 'test_autocreate_b' at position line 1, col 1.
+AST Builder DEBUG: Successfully added procedure 'test_autocreate_b' to program AST.
+--- AST Builder: Build process completed successfully. ---
+--- AST Builder: Build Start ---
+AST Builder DEBUG: Starting ANTLR walk...
+AST Builder DEBUG: ANTLR walk finished.
+AST Builder DEBUG: Metadata collected from listener: map[string]string{}
+AST Builder DEBUG: Assembling 1 procedures found by listener into the program's map.
+AST Builder DEBUG: Processing procedure #1 from listener list.
+AST Builder DEBUG: Proc #1 is named 'test_autocreate_c' at position line 1, col 1.
+AST Builder DEBUG: Successfully added procedure 'test_autocreate_c' to program AST.
+--- AST Builder: Build process completed successfully. ---
+--- AST Builder: Build Start ---
+AST Builder DEBUG: Starting ANTLR walk...
+AST Builder DEBUG: ANTLR walk finished.
+AST Builder DEBUG: Metadata collected from listener: map[string]string{}
+AST Builder DEBUG: Assembling 1 procedures found by listener into the program's map.
+AST Builder DEBUG: Processing procedure #1 from listener list.
+AST Builder DEBUG: Proc #1 is named 'test_autocreate_d' at position line 1, col 1.
+AST Builder DEBUG: Successfully added procedure 'test_autocreate_d' to program AST.
+--- AST Builder: Build process completed successfully. ---
+--- AST Builder: Build Start ---
+AST Builder DEBUG: Starting ANTLR walk...
+AST Builder DEBUG: ANTLR walk finished.
+AST Builder DEBUG: Metadata collected from listener: map[string]string{}
+AST Builder DEBUG: Assembling 1 procedures found by listener into the program's map.
+AST Builder DEBUG: Processing procedure #1 from listener list.
+AST Builder DEBUG: Proc #1 is named 'test_autocreate_e' at position line 1, col 1.
+AST Builder DEBUG: Successfully added procedure 'test_autocreate_e' to program AST.
+--- AST Builder: Build process completed successfully. ---
+--- AST Builder: Build Start ---
+AST Builder DEBUG: Starting ANTLR walk...
+AST Builder DEBUG: ANTLR walk finished.
+AST Builder DEBUG: Metadata collected from listener: map[string]string{}
+AST Builder DEBUG: Assembling 1 procedures found by listener into the program's map.
+AST Builder DEBUG: Processing procedure #1 from listener list.
+AST Builder DEBUG: Proc #1 is named 'test_autocreate_f' at position line 1, col 1.
+AST Builder DEBUG: Successfully added procedure 'test_autocreate_f' to program AST.
+--- AST Builder: Build process completed successfully. ---
+--- AST Builder: Build Start ---
+AST Builder DEBUG: Starting ANTLR walk...
+AST Builder DEBUG: ANTLR walk finished.
+AST Builder DEBUG: Metadata collected from listener: map[string]string{}
+AST Builder DEBUG: Assembling 1 procedures found by listener into the program's map.
+AST Builder DEBUG: Processing procedure #1 from listener list.
+AST Builder DEBUG: Proc #1 is named 'test_autocreate_g' at position line 1, col 1.
+AST Builder DEBUG: Successfully added procedure 'test_autocreate_g' to program AST.
+--- AST Builder: Build process completed successfully. ---
+--- AST Builder: Build Start ---
+AST Builder DEBUG: Starting ANTLR walk...
+AST Builder DEBUG: ANTLR walk finished.
+AST Builder DEBUG: Metadata collected from listener: map[string]string{}
+AST Builder DEBUG: Assembling 1 procedures found by listener into the program's map.
+AST Builder DEBUG: Processing procedure #1 from listener list.
+AST Builder DEBUG: Proc #1 is named 'test_autocreate_h' at position line 1, col 1.
+AST Builder DEBUG: Successfully added procedure 'test_autocreate_h' to program AST.
+--- AST Builder: Build process completed successfully. ---
+--- AST Builder: Build Start ---
+AST Builder DEBUG: Starting ANTLR walk...
+AST Builder DEBUG: ANTLR walk finished.
+AST Builder DEBUG: Metadata collected from listener: map[string]string{}
+AST Builder DEBUG: Assembling 1 procedures found by listener into the program's map.
+AST Builder DEBUG: Processing procedure #1 from listener list.
+AST Builder DEBUG: Proc #1 is named 'test_autocreate_k' at position line 1, col 1.
+AST Builder DEBUG: Successfully added procedure 'test_autocreate_k' to program AST.
+--- AST Builder: Build process completed successfully. ---
+--- AST Builder: Build Start ---
+AST Builder DEBUG: Starting ANTLR walk...
+AST Builder DEBUG: ANTLR walk finished.
+AST Builder DEBUG: Metadata collected from listener: map[string]string{}
+AST Builder DEBUG: Assembling 1 procedures found by listener into the program's map.
+AST Builder DEBUG: Processing procedure #1 from listener list.
+AST Builder DEBUG: Proc #1 is named 'test_autocreate_l' at position line 1, col 1.
+AST Builder DEBUG: Successfully added procedure 'test_autocreate_l' to program AST.
+--- AST Builder: Build process completed successfully. ---
+--- AST Builder: Build Start ---
+AST Builder DEBUG: Starting ANTLR walk...
+AST Builder DEBUG: ANTLR walk finished.
+AST Builder DEBUG: Metadata collected from listener: map[string]string{}
+AST Builder DEBUG: Assembling 1 procedures found by listener into the program's map.
+AST Builder DEBUG: Processing procedure #1 from listener list.
+AST Builder DEBUG: Proc #1 is named 'test_autocreate_m' at position line 1, col 1.
+AST Builder DEBUG: Successfully added procedure 'test_autocreate_m' to program AST.
+--- AST Builder: Build process completed successfully. ---
+--- AST Builder: Build Start ---
+AST Builder DEBUG: Starting ANTLR walk...
+AST Builder DEBUG: ANTLR walk finished.
+AST Builder DEBUG: Metadata collected from listener: map[string]string{}
+AST Builder DEBUG: Assembling 1 procedures found by listener into the program's map.
+AST Builder DEBUG: Processing procedure #1 from listener list.
+AST Builder DEBUG: Proc #1 is named 'test_autocreate_n' at position line 1, col 1.
+AST Builder DEBUG: Successfully added procedure 'test_autocreate_n' to program AST.
+--- AST Builder: Build process completed successfully. ---
+--- AST Builder: Build Start ---
+AST Builder DEBUG: Starting ANTLR walk...
+AST Builder DEBUG: ANTLR walk finished.
+AST Builder DEBUG: Metadata collected from listener: map[string]string{}
+AST Builder DEBUG: Assembling 1 procedures found by listener into the program's map.
+AST Builder DEBUG: Processing procedure #1 from listener list.
+AST Builder DEBUG: Proc #1 is named 'test_autocreate_p' at position line 1, col 1.
+AST Builder DEBUG: Successfully added procedure 'test_autocreate_p' to program AST.
+--- AST Builder: Build process completed successfully. ---
+--- FAIL: TestLValueAutoCreation (0.01s)
+    --- FAIL: TestLValueAutoCreation/base_map_auto-creation_with_string_key (0.00s)
+        interpreter_assignment_autocreate_test.go:263: Script execution failed for 'a':
+            Script:
+            set a["key1"] = "value1"
+            Error: map key string, got core.StringValue (Code: 7, Pos: line 2, col 6, Wrapped: key not found in map)
+    --- FAIL: TestLValueAutoCreation/base_list_auto-creation_with_numeric_index_0 (0.00s)
+        interpreter_assignment_autocreate_test.go:263: Script execution failed for 'b':
+            Script:
+            set b[0] = "value0"
+            Error: map key string, got core.NumberValue (Code: 7, Pos: line 2, col 6, Wrapped: key not found in map)
+    --- FAIL: TestLValueAutoCreation/base_list_auto-creation_with_numeric_index_2_(pads_with_nil) (0.00s)
+        interpreter_assignment_autocreate_test.go:263: Script execution failed for 'c':
+            Script:
+            set c[2] = "value2"
+            Error: map key string, got core.NumberValue (Code: 7, Pos: line 2, col 6, Wrapped: key not found in map)
+    --- FAIL: TestLValueAutoCreation/nested_map_auto-creation_via_dot_access (0.00s)
+        interpreter_assignment_autocreate_test.go:263: Variable 'd': expected map value map[string]interface {}{"level1":map[string]interface {}{"level2":"valueD"}}, got map[string]interface {}{"level1":map[string]interface {}{"level2":core.StringValue{Value:"valueD"}}}.
+            Script:
+            set d.level1.level2 = "valueD"
+    --- FAIL: TestLValueAutoCreation/nested_map_auto-creation_via_bracket_access (0.00s)
+        interpreter_assignment_autocreate_test.go:263: Script execution failed for 'e':
+            Script:
+            set e["level1"]["level2"] = "valueE"
+            Error: map key string, got core.StringValue (Code: 7, Pos: line 2, col 6, Wrapped: key not found in map)
+    --- FAIL: TestLValueAutoCreation/nested_list_in_map_auto-creation (0.00s)
+        interpreter_assignment_autocreate_test.go:263: Script execution failed for 'f':
+            Script:
+            set f.listKey[1] = "item1"
+            Error: map key string, got core.NumberValue (Code: 7, Pos: line 2, col 14, Wrapped: key not found in map)
+    --- FAIL: TestLValueAutoCreation/nested_map_in_list_auto-creation (0.00s)
+        interpreter_assignment_autocreate_test.go:263: Script execution failed for 'g':
+            Script:
+            set g[0].mapKey = "itemG"
+            Error: map key string, got core.NumberValue (Code: 7, Pos: line 2, col 6, Wrapped: key not found in map)
+    --- FAIL: TestLValueAutoCreation/deeply_nested_auto-creation_map-list-map-list (0.00s)
+        interpreter_assignment_autocreate_test.go:263: Script execution failed for 'h':
+            Script:
+            set h.maps[0].anotherMap["deepKey"][1] = "finalValue"
+            Error: map key string, got core.NumberValue (Code: 7, Pos: line 2, col 11, Wrapped: key not found in map)
+    --- FAIL: TestLValueAutoCreation/overwrite_existing_string_with_map_on_complex_assignment (0.00s)
+        interpreter_assignment_autocreate_test.go:263: Script execution failed for 'k':
+            Script:
+            set k = "i am a string"
+            set k["newKey"] = "now a map"
+            Error: map key string, got core.StringValue (Code: 7, Pos: line 3, col 6, Wrapped: key not found in map)
+    --- FAIL: TestLValueAutoCreation/overwrite_existing_number_with_list_on_complex_assignment (0.00s)
+        interpreter_assignment_autocreate_test.go:263: Script execution failed for 'l':
+            Script:
+            set l = 123
+            set l[0] = "now a list"
+            Error: map key string, got core.NumberValue (Code: 7, Pos: line 3, col 6, Wrapped: key not found in map)
+    --- FAIL: TestLValueAutoCreation/dot_access_creates_map_then_bracket_access_on_it (0.00s)
+        interpreter_assignment_autocreate_test.go:263: Script execution failed for 'm':
+            Script:
+            set m.firstMap["secondKey"] = "valM"
+            Error: map key string, got core.StringValue (Code: 7, Pos: line 2, col 15, Wrapped: key not found in map)
+    --- FAIL: TestLValueAutoCreation/bracket_access_creates_map_then_dot_access_on_it (0.00s)
+        interpreter_assignment_autocreate_test.go:263: Script execution failed for 'n':
+            Script:
+            set n["firstMap"].secondKey = "valN"
+            Error: map key string, got core.StringValue (Code: 7, Pos: line 2, col 6, Wrapped: key not found in map)
+    --- FAIL: TestLValueAutoCreation/list_auto-creation_within_auto-created_map_within_auto-created_list (0.00s)
+        interpreter_assignment_autocreate_test.go:263: Script execution failed for 'p':
+            Script:
+            set p[0]["listInMap"][1] = "complexP"
+            Error: map key string, got core.NumberValue (Code: 7, Pos: line 2, col 6, Wrapped: key not found in map)
+--- AST Builder: Build Start ---
+AST Builder DEBUG: Starting ANTLR walk...
+AST Builder DEBUG: ANTLR walk finished.
+AST Builder DEBUG: Metadata collected from listener: map[string]string{"Name":"Parameter Passing Test Script (Enhanced)", "Version":"1.2.0"}
+AST Builder DEBUG: Assembling 3 procedures found by listener into the program's map.
+AST Builder DEBUG: Processing procedure #1 from listener list.
+AST Builder DEBUG: Proc #1 is named 'mainEntry' at position line 5, col 1.
+AST Builder DEBUG: Successfully added procedure 'mainEntry' to program AST.
+AST Builder DEBUG: Processing procedure #2 from listener list.
+AST Builder DEBUG: Proc #2 is named 'helperProc' at position line 17, col 1.
+AST Builder DEBUG: Successfully added procedure 'helperProc' to program AST.
+AST Builder DEBUG: Processing procedure #3 from listener list.
+AST Builder DEBUG: Proc #3 is named 'recursiveProc' at position line 24, col 1.
+AST Builder DEBUG: Successfully added procedure 'recursiveProc' to program AST.
+--- AST Builder: Build process completed successfully. ---
+--- FAIL: TestInterpreter_ParameterPassingFuzz (0.00s)
+    --- FAIL: TestInterpreter_ParameterPassingFuzz/Iteration0 (0.00s)
+        interpreter_param_passing_test.go:177: Iteration 0: Error executing procedure 'mainEntry': NeuroScript Error 17: evaluating value for EMIT at line 7, col 3: evaluating left operand for '+' at line 7, col 73 at line 7, col 73 (wrapped: NeuroScript Error 17: evaluating left operand for '+' at line 7, col 67 (wrapped: NeuroScript Error 17: evaluating left operand for '+' at line 7, col 57 (wrapped: NeuroScript Error 17: evaluating left operand for '+' at line 7, col 51 (wrapped: NeuroScript Error 17: evaluating left operand for '+' at line 7, col 42 (wrapped: NeuroScript Error 17: evaluating left operand for '+' at line 7, col 36 (wrapped: could not convert operands to string for concatenation: core.StringValue and string)))))). Output so far: 
+    --- FAIL: TestInterpreter_ParameterPassingFuzz/Iteration5 (0.00s)
+        interpreter_param_passing_test.go:177: Iteration 5: Error executing procedure 'mainEntry': NeuroScript Error 17: evaluating value for EMIT at line 7, col 3: evaluating left operand for '+' at line 7, col 73 at line 7, col 73 (wrapped: NeuroScript Error 17: evaluating left operand for '+' at line 7, col 67 (wrapped: NeuroScript Error 17: evaluating left operand for '+' at line 7, col 57 (wrapped: NeuroScript Error 17: evaluating left operand for '+' at line 7, col 51 (wrapped: NeuroScript Error 17: evaluating left operand for '+' at line 7, col 42 (wrapped: NeuroScript Error 17: evaluating left operand for '+' at line 7, col 36 (wrapped: could not convert operands to string for concatenation: core.StringValue and string)))))). Output so far: 
+    --- FAIL: TestInterpreter_ParameterPassingFuzz/Iteration2 (0.00s)
+        interpreter_param_passing_test.go:177: Iteration 2: Error executing procedure 'mainEntry': NeuroScript Error 17: evaluating value for EMIT at line 7, col 3: evaluating left operand for '+' at line 7, col 73 at line 7, col 73 (wrapped: NeuroScript Error 17: evaluating left operand for '+' at line 7, col 67 (wrapped: NeuroScript Error 17: evaluating left operand for '+' at line 7, col 57 (wrapped: NeuroScript Error 17: evaluating left operand for '+' at line 7, col 51 (wrapped: NeuroScript Error 17: evaluating left operand for '+' at line 7, col 42 (wrapped: NeuroScript Error 17: evaluating left operand for '+' at line 7, col 36 (wrapped: could not convert operands to string for concatenation: core.StringValue and string)))))). Output so far: 
+    --- FAIL: TestInterpreter_ParameterPassingFuzz/Iteration3 (0.00s)
+        interpreter_param_passing_test.go:177: Iteration 3: Error executing procedure 'mainEntry': NeuroScript Error 17: evaluating value for EMIT at line 7, col 3: evaluating left operand for '+' at line 7, col 73 at line 7, col 73 (wrapped: NeuroScript Error 17: evaluating left operand for '+' at line 7, col 67 (wrapped: NeuroScript Error 17: evaluating left operand for '+' at line 7, col 57 (wrapped: NeuroScript Error 17: evaluating left operand for '+' at line 7, col 51 (wrapped: NeuroScript Error 17: evaluating left operand for '+' at line 7, col 42 (wrapped: NeuroScript Error 17: evaluating left operand for '+' at line 7, col 36 (wrapped: could not convert operands to string for concatenation: core.StringValue and string)))))). Output so far: 
+    --- FAIL: TestInterpreter_ParameterPassingFuzz/Iteration9 (0.00s)
+        interpreter_param_passing_test.go:177: Iteration 9: Error executing procedure 'mainEntry': NeuroScript Error 17: evaluating value for EMIT at line 7, col 3: evaluating left operand for '+' at line 7, col 73 at line 7, col 73 (wrapped: NeuroScript Error 17: evaluating left operand for '+' at line 7, col 67 (wrapped: NeuroScript Error 17: evaluating left operand for '+' at line 7, col 57 (wrapped: NeuroScript Error 17: evaluating left operand for '+' at line 7, col 51 (wrapped: NeuroScript Error 17: evaluating left operand for '+' at line 7, col 42 (wrapped: NeuroScript Error 17: evaluating left operand for '+' at line 7, col 36 (wrapped: could not convert operands to string for concatenation: core.StringValue and string)))))). Output so far: 
+    --- FAIL: TestInterpreter_ParameterPassingFuzz/Iteration7 (0.00s)
+        interpreter_param_passing_test.go:177: Iteration 7: Error executing procedure 'mainEntry': NeuroScript Error 17: evaluating value for EMIT at line 7, col 3: evaluating left operand for '+' at line 7, col 73 at line 7, col 73 (wrapped: NeuroScript Error 17: evaluating left operand for '+' at line 7, col 67 (wrapped: NeuroScript Error 17: evaluating left operand for '+' at line 7, col 57 (wrapped: NeuroScript Error 17: evaluating left operand for '+' at line 7, col 51 (wrapped: NeuroScript Error 17: evaluating left operand for '+' at line 7, col 42 (wrapped: NeuroScript Error 17: evaluating left operand for '+' at line 7, col 36 (wrapped: could not convert operands to string for concatenation: core.StringValue and string)))))). Output so far: 
+    --- FAIL: TestInterpreter_ParameterPassingFuzz/Iteration1 (0.00s)
+        interpreter_param_passing_test.go:177: Iteration 1: Error executing procedure 'mainEntry': NeuroScript Error 17: evaluating value for EMIT at line 7, col 3: evaluating left operand for '+' at line 7, col 73 at line 7, col 73 (wrapped: NeuroScript Error 17: evaluating left operand for '+' at line 7, col 67 (wrapped: NeuroScript Error 17: evaluating left operand for '+' at line 7, col 57 (wrapped: NeuroScript Error 17: evaluating left operand for '+' at line 7, col 51 (wrapped: NeuroScript Error 17: evaluating left operand for '+' at line 7, col 42 (wrapped: NeuroScript Error 17: evaluating left operand for '+' at line 7, col 36 (wrapped: could not convert operands to string for concatenation: core.StringValue and string)))))). Output so far: 
+    --- FAIL: TestInterpreter_ParameterPassingFuzz/Iteration4 (0.00s)
+        interpreter_param_passing_test.go:177: Iteration 4: Error executing procedure 'mainEntry': NeuroScript Error 17: evaluating value for EMIT at line 7, col 3: evaluating left operand for '+' at line 7, col 73 at line 7, col 73 (wrapped: NeuroScript Error 17: evaluating left operand for '+' at line 7, col 67 (wrapped: NeuroScript Error 17: evaluating left operand for '+' at line 7, col 57 (wrapped: NeuroScript Error 17: evaluating left operand for '+' at line 7, col 51 (wrapped: NeuroScript Error 17: evaluating left operand for '+' at line 7, col 42 (wrapped: NeuroScript Error 17: evaluating left operand for '+' at line 7, col 36 (wrapped: could not convert operands to string for concatenation: core.StringValue and string)))))). Output so far: 
+    --- FAIL: TestInterpreter_ParameterPassingFuzz/Iteration6 (0.00s)
+        interpreter_param_passing_test.go:177: Iteration 6: Error executing procedure 'mainEntry': NeuroScript Error 17: evaluating value for EMIT at line 7, col 3: evaluating left operand for '+' at line 7, col 73 at line 7, col 73 (wrapped: NeuroScript Error 17: evaluating left operand for '+' at line 7, col 67 (wrapped: NeuroScript Error 17: evaluating left operand for '+' at line 7, col 57 (wrapped: NeuroScript Error 17: evaluating left operand for '+' at line 7, col 51 (wrapped: NeuroScript Error 17: evaluating left operand for '+' at line 7, col 42 (wrapped: NeuroScript Error 17: evaluating left operand for '+' at line 7, col 36 (wrapped: could not convert operands to string for concatenation: core.StringValue and string)))))). Output so far: 
+    --- FAIL: TestInterpreter_ParameterPassingFuzz/Iteration8 (0.00s)
+        interpreter_param_passing_test.go:177: Iteration 8: Error executing procedure 'mainEntry': NeuroScript Error 17: evaluating value for EMIT at line 7, col 3: evaluating left operand for '+' at line 7, col 73 at line 7, col 73 (wrapped: NeuroScript Error 17: evaluating left operand for '+' at line 7, col 67 (wrapped: NeuroScript Error 17: evaluating left operand for '+' at line 7, col 57 (wrapped: NeuroScript Error 17: evaluating left operand for '+' at line 7, col 51 (wrapped: NeuroScript Error 17: evaluating left operand for '+' at line 7, col 42 (wrapped: NeuroScript Error 17: evaluating left operand for '+' at line 7, col 36 (wrapped: could not convert operands to string for concatenation: core.StringValue and string)))))). Output so far: 
+--- FAIL: TestInterpretStringEscaping (0.01s)
+    --- FAIL: TestInterpretStringEscaping/Interpret_Backspace (0.00s)
+        interpreter_string_escaping_test.go:174: Test "Interpret Backspace": Final execution result (from LAST) mismatch:
+            Expected: textback (string)
+            Got:      textback (core.StringValue)
+        interpreter_string_escaping_test.go:174: Test "Interpret Backspace": Variable 'val' mismatch:
+            Expected: textback (string)
+            Got:      textback (core.StringValue)
+    --- FAIL: TestInterpretStringEscaping/Interpret_Tab (0.00s)
+        interpreter_string_escaping_test.go:174: Test "Interpret Tab": Final execution result (from LAST) mismatch:
+            Expected: col1	col2 (string)
+            Got:      col1	col2 (core.StringValue)
+        interpreter_string_escaping_test.go:174: Test "Interpret Tab": Variable 'val' mismatch:
+            Expected: col1	col2 (string)
+            Got:      col1	col2 (core.StringValue)
+    --- FAIL: TestInterpretStringEscaping/Interpret_Newline (0.00s)
+        interpreter_string_escaping_test.go:174: Test "Interpret Newline": Final execution result (from LAST) mismatch:
+            Expected: first
+            second (string)
+            Got:      first
+            second (core.StringValue)
+        interpreter_string_escaping_test.go:174: Test "Interpret Newline": Variable 'val' mismatch:
+            Expected: first
+            second (string)
+            Got:      first
+            second (core.StringValue)
+    --- FAIL: TestInterpretStringEscaping/Interpret_Formfeed (0.00s)
+        interpreter_string_escaping_test.go:174: Test "Interpret Formfeed": Final execution result (from LAST) mismatch:
+            Expected: page1page2 (string)
+            Got:      page1page2 (core.StringValue)
+        interpreter_string_escaping_test.go:174: Test "Interpret Formfeed": Variable 'val' mismatch:
+            Expected: page1page2 (string)
+            Got:      page1page2 (core.StringValue)
+    --- FAIL: TestInterpretStringEscaping/Interpret_Carriage_Return (0.00s)
+        interpreter_string_escaping_test.go:174: Test "Interpret Carriage Return": Final execution result (from LAST) mismatch:
+            Expected: overwrite (string)
+            Got:      overwrite (core.StringValue)
+        interpreter_string_escaping_test.go:174: Test "Interpret Carriage Return": Variable 'val' mismatch:
+            Expected: overwrite (string)
+            Got:      overwrite (core.StringValue)
+    --- FAIL: TestInterpretStringEscaping/Interpret_Vertical_Tab (0.00s)
+        interpreter_string_escaping_test.go:174: Test "Interpret Vertical Tab": Final execution result (from LAST) mismatch:
+            Expected: vtab (string)
+            Got:      vtab (core.StringValue)
+        interpreter_string_escaping_test.go:174: Test "Interpret Vertical Tab": Variable 'val' mismatch:
+            Expected: vtab (string)
+            Got:      vtab (core.StringValue)
+    --- FAIL: TestInterpretStringEscaping/Interpret_Tilde (0.00s)
+        interpreter_string_escaping_test.go:174: Test "Interpret Tilde": Final execution result (from LAST) mismatch:
+            Expected: approx~equal (string)
+            Got:      approx~equal (core.StringValue)
+        interpreter_string_escaping_test.go:174: Test "Interpret Tilde": Variable 'val' mismatch:
+            Expected: approx~equal (string)
+            Got:      approx~equal (core.StringValue)
+    --- FAIL: TestInterpretStringEscaping/Interpret_Backtick (0.00s)
+        interpreter_string_escaping_test.go:174: Test "Interpret Backtick": Final execution result (from LAST) mismatch:
+            Expected: code `block` (string)
+            Got:      code `block` (core.StringValue)
+        interpreter_string_escaping_test.go:174: Test "Interpret Backtick": Variable 'val' mismatch:
+            Expected: code `block` (string)
+            Got:      code `block` (core.StringValue)
+    --- FAIL: TestInterpretStringEscaping/Interpret_Double_Quote (0.00s)
+        interpreter_string_escaping_test.go:174: Test "Interpret Double Quote": Final execution result (from LAST) mismatch:
+            Expected: a "quoted" string (string)
+            Got:      a "quoted" string (core.StringValue)
+        interpreter_string_escaping_test.go:174: Test "Interpret Double Quote": Variable 'val' mismatch:
+            Expected: a "quoted" string (string)
+            Got:      a "quoted" string (core.StringValue)
+    --- FAIL: TestInterpretStringEscaping/Interpret_Single_Quote (0.00s)
+        interpreter_string_escaping_test.go:174: Test "Interpret Single Quote": Final execution result (from LAST) mismatch:
+            Expected: it's great (string)
+            Got:      it's great (core.StringValue)
+        interpreter_string_escaping_test.go:174: Test "Interpret Single Quote": Variable 'val' mismatch:
+            Expected: it's great (string)
+            Got:      it's great (core.StringValue)
+    --- FAIL: TestInterpretStringEscaping/Interpret_Backslash (0.00s)
+        interpreter_string_escaping_test.go:174: Test "Interpret Backslash": Final execution result (from LAST) mismatch:
+            Expected: a path C:\folder (string)
+            Got:      a path C:\folder (core.StringValue)
+        interpreter_string_escaping_test.go:174: Test "Interpret Backslash": Variable 'val' mismatch:
+            Expected: a path C:\folder (string)
+            Got:      a path C:\folder (core.StringValue)
+    --- FAIL: TestInterpretStringEscaping/Interpret_Unicode_BMP (0.00s)
+        interpreter_string_escaping_test.go:174: Test "Interpret Unicode BMP": Final execution result (from LAST) mismatch:
+            Expected: currency: € (string)
+            Got:      currency: € (core.StringValue)
+        interpreter_string_escaping_test.go:174: Test "Interpret Unicode BMP": Variable 'val' mismatch:
+            Expected: currency: € (string)
+            Got:      currency: € (core.StringValue)
+    --- FAIL: TestInterpretStringEscaping/Interpret_Unicode_Surrogate_Pair (0.00s)
+        interpreter_string_escaping_test.go:174: Test "Interpret Unicode Surrogate Pair": Final execution result (from LAST) mismatch:
+            Expected: face: 😀 (string)
+            Got:      face: 😀 (core.StringValue)
+        interpreter_string_escaping_test.go:174: Test "Interpret Unicode Surrogate Pair": Variable 'val' mismatch:
+            Expected: face: 😀 (string)
+            Got:      face: 😀 (core.StringValue)
+    --- FAIL: TestInterpretStringEscaping/Interpret_Unicode_Unpaired_High_Surrogate (0.00s)
+        interpreter_string_escaping_test.go:174: Test "Interpret Unicode Unpaired High Surrogate": Final execution result (from LAST) mismatch:
+            Expected: unpaired: � after (string)
+            Got:      unpaired: � after (core.StringValue)
+        interpreter_string_escaping_test.go:174: Test "Interpret Unicode Unpaired High Surrogate": Variable 'val' mismatch:
+            Expected: unpaired: � after (string)
+            Got:      unpaired: � after (core.StringValue)
+    --- FAIL: TestInterpretStringEscaping/Interpret_Unicode_High_Surrogate_at_EOS (0.00s)
+        interpreter_string_escaping_test.go:174: Test "Interpret Unicode High Surrogate at EOS": Final execution result (from LAST) mismatch:
+            Expected: eos: � (string)
+            Got:      eos: � (core.StringValue)
+        interpreter_string_escaping_test.go:174: Test "Interpret Unicode High Surrogate at EOS": Variable 'val' mismatch:
+            Expected: eos: � (string)
+            Got:      eos: � (core.StringValue)
+    --- FAIL: TestInterpretStringEscaping/Interpret_Unicode_High_Surrogate_followed_by_non-low_surrogate_unicode (0.00s)
+        interpreter_string_escaping_test.go:174: Test "Interpret Unicode High Surrogate followed by non-low surrogate unicode": Final execution result (from LAST) mismatch:
+            Expected: �A (string)
+            Got:      �A (core.StringValue)
+        interpreter_string_escaping_test.go:174: Test "Interpret Unicode High Surrogate followed by non-low surrogate unicode": Variable 'val' mismatch:
+            Expected: �A (string)
+            Got:      �A (core.StringValue)
+    --- FAIL: TestInterpretStringEscaping/Interpret_Unicode_High_Surrogate_followed_by_non-unicode_escape (0.00s)
+        interpreter_string_escaping_test.go:174: Test "Interpret Unicode High Surrogate followed by non-unicode escape": Final execution result (from LAST) mismatch:
+            Expected: �
+             (string)
+            Got:      �
+             (core.StringValue)
+        interpreter_string_escaping_test.go:174: Test "Interpret Unicode High Surrogate followed by non-unicode escape": Variable 'val' mismatch:
+            Expected: �
+             (string)
+            Got:      �
+             (core.StringValue)
+--- FAIL: TestExecuteStepsBlocksAndLoops (0.01s)
+    --- FAIL: TestExecuteStepsBlocksAndLoops/IF_true_literal (0.00s)
+        interpreter_test.go:203: Test "IF true literal": Final execution result (from LAST) mismatch:
+            Expected: Inside (string)
+            Got:      <nil> (<nil>)
+        interpreter_test.go:203: Test "IF true literal": Expected variable 'x' not found in final state
+    --- FAIL: TestExecuteStepsBlocksAndLoops/IF_block_with_RETURN (0.00s)
+        interpreter_test.go:203: Test "IF block with RETURN": Final execution result (from LAST) mismatch:
+            Expected: ReturnedFromIf (string)
+            Got:      Finished (core.StringValue)
+        interpreter_test.go:203: Test "IF block with RETURN": Variable 'status' mismatch:
+            Expected: Started (string)
+            Got:      Finished (core.StringValue)
+        interpreter_test.go:203: Test "IF block with RETURN": Expected variable 'x' not found in final state
+    --- FAIL: TestExecuteStepsBlocksAndLoops/RETURN_single_value (0.00s)
+        interpreter_test.go:203: Test "RETURN single value": Final execution result (from RETURN) mismatch:
+            Expected: 42 (int64)
+            Got:      42 (core.NumberValue)
+    --- FAIL: TestExecuteStepsBlocksAndLoops/RETURN_multiple_values (0.00s)
+        interpreter_test.go:203: Test "RETURN multiple values": Final execution result (from RETURN) mismatch:
+            Expected: [hello 10 true] ([]interface {})
+            Got:      [hello 10 true] ([]interface {})
+    --- FAIL: TestExecuteStepsBlocksAndLoops/RETURN_value_from_variable (0.00s)
+        interpreter_test.go:203: Test "RETURN value from variable": Final execution result (from RETURN) mismatch:
+            Expected: data (string)
+            Got:      data (core.StringValue)
+        interpreter_test.go:203: Test "RETURN value from variable": Variable 'myVar' mismatch:
+            Expected: data (string)
+            Got:      data (core.StringValue)
+    --- FAIL: TestExecuteStepsBlocksAndLoops/RETURN_multiple_values_including_variable (0.00s)
+        interpreter_test.go:203: Test "RETURN multiple values including variable": Final execution result (from RETURN) mismatch:
+            Expected: [1 false 3.14] ([]interface {})
+            Got:      [1 false 3.14] ([]interface {})
+        interpreter_test.go:203: Test "RETURN multiple values including variable": Variable 'myVar' mismatch:
+            Expected: false (bool)
+            Got:      false (core.BoolValue)
+    --- FAIL: TestExecuteStepsBlocksAndLoops/MUST_true_literal (0.00s)
+        interpreter_test.go:203: Test "MUST true literal": Unexpected error: NeuroScript Error 5: must condition evaluated to false at line 1, col 1 (wrapped: must condition evaluated to false)
+    --- FAIL: TestExecuteStepsBlocksAndLoops/MUST_non-zero_number (0.00s)
+        interpreter_test.go:203: Test "MUST non-zero number": Unexpected error: NeuroScript Error 5: must condition evaluated to false at line 1, col 1 (wrapped: must condition evaluated to false)
+    --- FAIL: TestExecuteStepsBlocksAndLoops/MUST_non-empty_string_('true') (0.00s)
+        interpreter_test.go:203: Test "MUST non-empty string ('true')": Unexpected error: NeuroScript Error 5: must condition evaluated to false at line 1, col 1 (wrapped: must condition evaluated to false)
+    --- FAIL: TestExecuteStepsBlocksAndLoops/MUST_non-empty_string_('1') (0.00s)
+        interpreter_test.go:203: Test "MUST non-empty string ('1')": Unexpected error: NeuroScript Error 5: must condition evaluated to false at line 1, col 1 (wrapped: must condition evaluated to false)
+    --- FAIL: TestExecuteStepsBlocksAndLoops/MUST_last_result_(true) (0.00s)
+        interpreter_test.go:203: Test "MUST last result (true)": Unexpected error: NeuroScript Error 5: must condition evaluated to false at line 1, col 1 (wrapped: must condition evaluated to false)
+    --- FAIL: TestExecuteStepsBlocksAndLoops/MUST_expression_(1_>_0) (0.00s)
+        interpreter_test.go:203: Test "MUST expression (1 > 0)": Unexpected error: NeuroScript Error 17: evaluating condition for must: comparison op '>' needs comparable types, got core.NumberValue and core.NumberValue at line 1, col 1 (wrapped: comparison op '>' needs comparable types, got core.NumberValue and core.NumberValue)
+    --- FAIL: TestExecuteStepsBlocksAndLoops/MUST_expression_(1_<_0) (0.00s)
+        interpreter_test.go:203: Test "MUST expression (1 < 0)": Error mismatch.
+            Expected error wrapping: [must condition evaluated to false]
+            Got error:               [NeuroScript Error 17: evaluating condition for must: comparison op '<' needs comparable types, got core.NumberValue and core.NumberValue at line 1, col 1 (wrapped: comparison op '<' needs comparable types, got core.NumberValue and core.NumberValue)]
+    --- FAIL: TestExecuteStepsBlocksAndLoops/MUST_evaluation_error (0.00s)
+        interpreter_test.go:203: Test "MUST evaluation error": Error mismatch.
+            Expected error wrapping: [must condition evaluated to false]
+            Got error:               [NeuroScript Error 17: evaluating condition for must: could not convert operands to string for concatenation: core.NumberValue and core.StringValue at line 1, col 1 (wrapped: could not convert operands to string for concatenation: core.NumberValue and core.StringValue)]
+    --- FAIL: TestExecuteStepsBlocksAndLoops/Tool_Call_List.Append (0.00s)
+        interpreter_test.go:203: Test "Tool Call List.Append": Final execution result (from LAST) mismatch:
+            Expected: [item1 2 true newItem] ([]interface {})
+            Got:      [item1 2 true newItem] ([]interface {})
+        interpreter_test.go:203: Test "Tool Call List.Append": Variable 'appendedList' mismatch:
+            Expected: [item1 2 true newItem] ([]interface {})
+            Got:      [item1 2 true newItem] ([]interface {})
+    --- FAIL: TestExecuteStepsBlocksAndLoops/Tool_Call_List.Get_valid_index (0.00s)
+        interpreter_test.go:203: Test "Tool Call List.Get valid index": Unexpected error: NeuroScript Error 4: evaluating value for SET gotItem: argument validation failed for tool 'List.Get' at line 1, col 1: argument type mismatch: argument 'index' of tool 'List.Get': value 1 (core.NumberValue) cannot be converted to int (int64) at line 1, col 1 (wrapped: argument type mismatch: argument 'index' of tool 'List.Get': value 1 (core.NumberValue) cannot be converted to int (int64))
+    --- FAIL: TestExecuteStepsBlocksAndLoops/Tool_Call_List.Get_out-of-bounds_with_default (0.00s)
+        interpreter_test.go:203: Test "Tool Call List.Get out-of-bounds with default": Unexpected error: NeuroScript Error 4: evaluating value for SET gotItemOrDefault: argument validation failed for tool 'List.Get' at line 1, col 1: argument type mismatch: argument 'index' of tool 'List.Get': value 10 (core.NumberValue) cannot be converted to int (int64) at line 1, col 1 (wrapped: argument type mismatch: argument 'index' of tool 'List.Get': value 10 (core.NumberValue) cannot be converted to int (int64))
+--- FAIL: TestAnalyzeNSSyntaxInternal (0.00s)
+    --- FAIL: TestAnalyzeNSSyntaxInternal/more_than_max_errors_-_input_yields_1_parser_error_for_standalone_set (0.00s)
+        tools_syntax_analyzer_test.go:311: error 0: expected Msg to contain "mismatched input 'set' expecting {<EOF>, 'func'}", got "mismatched input 'set' expecting {<EOF>, 'func', 'on'}"
+[DEBUG removeChildFromParent] Deleted key 'value'. Parent 'node-1' attributes now: map[name:node-2]
+--- AST Builder: Build Start ---
+AST Builder DEBUG: Starting ANTLR walk...
+AST Builder DEBUG: ANTLR walk finished.
+AST Builder DEBUG: Metadata collected from listener: map[string]string{}
+AST Builder ERROR: 1 error(s) detected immediately after ANTLR walk.
+AST Builder DEBUG: Recorded error #1: internal AST builder error: value stack size is 1 at end of program
+AST Builder ERROR: Failing build due to errors during walk: AST build failed with 1 error(s) during parse walk: internal AST builder error: value stack size is 1 at end of program
+--- AST Builder: Build Start ---
+AST Builder DEBUG: Starting ANTLR walk...
+AST Builder DEBUG: ANTLR walk finished.
+AST Builder DEBUG: Metadata collected from listener: map[string]string{}
+AST Builder DEBUG: Assembling 1 procedures found by listener into the program's map.
+AST Builder DEBUG: Processing procedure #1 from listener list.
+AST Builder DEBUG: Proc #1 is named 'DeepNesting' at position line 2, col 1.
+AST Builder DEBUG: Successfully added procedure 'DeepNesting' to program AST.
+--- AST Builder: Build process completed successfully. ---
+--- AST Builder: Build Start ---
+AST Builder DEBUG: Starting ANTLR walk...
+AST Builder DEBUG: ANTLR walk finished.
+AST Builder DEBUG: Metadata collected from listener: map[string]string{}
+AST Builder ERROR: 1 error(s) detected immediately after ANTLR walk.
+AST Builder DEBUG: Recorded error #1: internal AST builder error: value stack size is 1 at end of program
+AST Builder ERROR: Failing build due to errors during walk: AST build failed with 1 error(s) during parse walk: internal AST builder error: value stack size is 1 at end of program
+--- AST Builder: Build Start ---
+AST Builder DEBUG: Starting ANTLR walk...
+AST Builder DEBUG: ANTLR walk finished.
+AST Builder DEBUG: Metadata collected from listener: map[string]string{}
+AST Builder DEBUG: Assembling 1 procedures found by listener into the program's map.
+AST Builder DEBUG: Processing procedure #1 from listener list.
+AST Builder DEBUG: Proc #1 is named 'SequentialBlocksTest' at position line 2, col 1.
+AST Builder DEBUG: Successfully added procedure 'SequentialBlocksTest' to program AST.
+--- AST Builder: Build process completed successfully. ---
+--- AST Builder: Build Start ---
+AST Builder DEBUG: Starting ANTLR walk...
+AST Builder DEBUG: ANTLR walk finished.
+AST Builder DEBUG: Metadata collected from listener: map[string]string{}
+AST Builder DEBUG: Assembling 1 procedures found by listener into the program's map.
+AST Builder DEBUG: Processing procedure #1 from listener list.
+AST Builder DEBUG: Proc #1 is named 'LoopControlTest' at position line 2, col 1.
+AST Builder DEBUG: Successfully added procedure 'LoopControlTest' to program AST.
+--- AST Builder: Build process completed successfully. ---
+--- AST Builder: Build Start ---
+AST Builder DEBUG: Starting ANTLR walk...
+AST Builder DEBUG: ANTLR walk finished.
+AST Builder DEBUG: Metadata collected from listener: map[string]string{"Key":"Value", "Name":"Only Metadata", "Version":"1.0"}
+AST Builder DEBUG: Assembling 0 procedures found by listener into the program's map.
+--- AST Builder: Build process completed successfully. ---
+--- AST Builder: Build Start ---
+AST Builder DEBUG: Starting ANTLR walk...
+AST Builder DEBUG: ANTLR walk finished.
+AST Builder DEBUG: Metadata collected from listener: map[string]string{}
+AST Builder ERROR: 1 error(s) detected immediately after ANTLR walk.
+AST Builder DEBUG: Recorded error #1: internal AST builder error: value stack size is 1 at end of program
+AST Builder ERROR: Failing build due to errors during walk: AST build failed with 1 error(s) during parse walk: internal AST builder error: value stack size is 1 at end of program
+--- FAIL: TestASTBuilderScenarios (0.00s)
+    --- FAIL: TestASTBuilderScenarios/MinimalStackTestFromPrevious (0.00s)
+        ast_builder_stack_test.go:209: astBuilder.Build() returned an error for script 'MinimalStackTestFromPrevious.ns':
+            AST build failed with 1 error(s) during parse walk: internal AST builder error: value stack size is 1 at end of program
+    --- FAIL: TestASTBuilderScenarios/EmptyAndMinimalBlocks (0.00s)
+        ast_builder_stack_test.go:209: astBuilder.Build() returned an error for script 'EmptyAndMinimalBlocks.ns':
+            AST build failed with 1 error(s) during parse walk: internal AST builder error: value stack size is 1 at end of program
+    --- FAIL: TestASTBuilderScenarios/OnErrorAtVeryBeginning (0.00s)
+        ast_builder_stack_test.go:209: astBuilder.Build() returned an error for script 'OnErrorAtVeryBeginning.ns':
+            AST build failed with 1 error(s) during parse walk: internal AST builder error: value stack size is 1 at end of program
+FAIL
+FAIL	github.com/aprice2704/neuroscript/pkg/core	0.820s
+FAIL

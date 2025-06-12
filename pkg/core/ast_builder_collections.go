@@ -163,3 +163,7 @@ func (l *neuroScriptListenerImpl) ExitMap_literal(ctx *gen.Map_literalContext) {
 	l.pushValue(mapNode)
 	l.logDebugAST("    Constructed MapLiteralNode with %d entries", len(entriesNode))
 }
+
+// ExitExpression_list implements core.NeuroScriptListener.
+func (l *neuroScriptListenerImpl) ExitExpression_list(c *gen.Expression_listContext) {
+}

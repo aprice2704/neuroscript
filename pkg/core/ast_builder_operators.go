@@ -1,9 +1,7 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.0.13 // Corrected typeof handling within ExitUnary_expr, removed ExitTypeOfExpression, added isErrorNode.
+// File version: 0.0.15 // Added missing EnterAdditive_expr to satisfy listener interface.
 // Purpose: AST building logic for operators.
 // filename: pkg/core/ast_builder_operators.go
-// nlines: 372
-// risk_rating: MEDIUM
 
 package core
 
@@ -72,7 +70,7 @@ func (l *neuroScriptListenerImpl) processBinaryOperators(ctx antlr.ParserRuleCon
 			Operator: opText,
 			Right:    currentRHS,
 		}
-		l.logDebugAST("    Constructed BinaryOpNode: [%T %s %T]", currentLHS, opText, currentRHS)
+		l.logDebugAST("      Constructed BinaryOpNode: [%T %s %T]", currentLHS, opText, currentRHS)
 		currentLHS = newNode
 	}
 	l.pushValue(currentLHS)
@@ -163,6 +161,12 @@ func (l *neuroScriptListenerImpl) ExitRelational_expr(ctx *gen.Relational_exprCo
 	l.processBinaryOperators(ctx, numOperands, opGetter)
 }
 
+// EnterAdditive_expr is required to satisfy the listener interface. It does
+// not need to perform any logic.
+func (l *neuroScriptListenerImpl) EnterAdditive_expr(ctx *gen.Additive_exprContext) {
+	l.logDebugAST("--- Enter Additive_expr: %q", ctx.GetText())
+}
+
 // ExitAdditive_expr
 func (l *neuroScriptListenerImpl) ExitAdditive_expr(ctx *gen.Additive_exprContext) {
 	l.logDebugAST("--- Exit Additive_expr: %q", ctx.GetText())
@@ -213,7 +217,7 @@ func (l *neuroScriptListenerImpl) ExitUnary_expr(ctx *gen.Unary_exprContext) {
 
 	if ctx.KW_TYPEOF() != nil {
 		// Handle 'typeof' operator
-		l.logDebugAST("    Unary_expr is a 'typeof' expression.")
+		l.logDebugAST("      Unary_expr is a 'typeof' expression.")
 		operandVal, ok := l.popValue()
 		if !ok {
 			startPos := tokenToPosition(ctx.KW_TYPEOF().GetSymbol())
@@ -234,7 +238,7 @@ func (l *neuroScriptListenerImpl) ExitUnary_expr(ctx *gen.Unary_exprContext) {
 			Pos:      tokenToPosition(ctx.KW_TYPEOF().GetSymbol()),
 			Argument: operandExpr,
 		}
-		l.logDebugAST("    Constructed TypeOfNode with Argument Type: %T, Pos: %s", operandExpr, node.Pos.String())
+		l.logDebugAST("      Constructed TypeOfNode with Argument Type: %T, Pos: %s", operandExpr, node.Pos.String())
 		l.pushValue(node)
 		return // Processed 'typeof', so return
 	}
@@ -262,7 +266,7 @@ func (l *neuroScriptListenerImpl) ExitUnary_expr(ctx *gen.Unary_exprContext) {
 
 	if opTokenNode == nil {
 		// This means it's a pass-through from power_expr (or another non-operator alternative within unary_expr's ANTLR rule)
-		l.logDebugAST("    Unary_expr is pass-through (no specific operator token found, or was typeof).")
+		l.logDebugAST("      Unary_expr is pass-through (no specific operator token found, or was typeof).")
 		return
 	}
 
@@ -284,7 +288,7 @@ func (l *neuroScriptListenerImpl) ExitUnary_expr(ctx *gen.Unary_exprContext) {
 		Operand:  operandExpr,
 	}
 	l.pushValue(node)
-	l.logDebugAST("    Constructed UnaryOpNode: %s [%T]", opText, operandExpr)
+	l.logDebugAST("      Constructed UnaryOpNode: %s [%T]", opText, operandExpr)
 }
 
 // ExitPower_expr
@@ -329,7 +333,14 @@ func (l *neuroScriptListenerImpl) ExitPower_expr(ctx *gen.Power_exprContext) {
 		Right:    exponentExpr,
 	}
 	l.pushValue(node)
-	l.logDebugAST("    Constructed BinaryOpNode (Power): [%T %s %T]", baseExpr, opText, exponentExpr)
+	l.logDebugAST("      Constructed BinaryOpNode (Power): [%T %s %T]", baseExpr, opText, exponentExpr)
+}
+
+// EnterAccessor_expr is required to satisfy the listener interface now that the
+// base listener is not embedded. It doesn't need to do anything; the child rules
+// will handle pushing their values onto the stack.
+func (l *neuroScriptListenerImpl) EnterAccessor_expr(ctx *gen.Accessor_exprContext) {
+	l.logDebugAST("--- Enter Accessor_expr: %q", ctx.GetText())
 }
 
 // ExitAccessor_expr
@@ -386,16 +397,16 @@ func (l *neuroScriptListenerImpl) ExitAccessor_expr(ctx *gen.Accessor_exprContex
 			Collection: currentCollectionResult,
 			Accessor:   accessorExprs[i],
 		}
-		l.logDebugAST("    Constructed ElementAccessNode: [Coll: %T Acc: %T]", newNode.Collection, newNode.Accessor)
+		l.logDebugAST("      Constructed ElementAccessNode: [Coll: %T Acc: %T]", newNode.Collection, newNode.Accessor)
 		currentCollectionResult = newNode
 	}
 	l.pushValue(currentCollectionResult)
-	l.logDebugAST("    Final Accessor_expr result pushed: %T", currentCollectionResult)
+	l.logDebugAST("      Final Accessor_expr result pushed: %T", currentCollectionResult)
 }
 
 // buildCallTargetFromContext constructs a CallTarget AST node from an ICall_targetContext.
 func (l *neuroScriptListenerImpl) buildCallTargetFromContext(ctx gen.ICall_targetContext) CallTarget {
-	l.logDebugAST("    -> buildCallTargetFromContext: %s", ctx.GetText())
+	l.logDebugAST("      -> buildCallTargetFromContext: %s", ctx.GetText())
 	target := CallTarget{}
 
 	if toolKeyword := ctx.KW_TOOL(); toolKeyword != nil {
@@ -419,18 +430,18 @@ func (l *neuroScriptListenerImpl) buildCallTargetFromContext(ctx gen.ICall_targe
 			target.Name = "<ERROR_NO_QUALIFIED_ID_FOR_TOOL>"
 			target.Pos = tokenToPosition(toolKeyword.GetSymbol())
 		}
-		l.logDebugAST("       Tool call identified. Name: '%s', Pos: %s", target.Name, target.Pos.String())
+		l.logDebugAST("         Tool call identified. Name: '%s', Pos: %s", target.Name, target.Pos.String())
 	} else if userFuncID := ctx.IDENTIFIER(); userFuncID != nil {
 		target.IsTool = false
 		target.Name = userFuncID.GetText()
 		target.Pos = tokenToPosition(userFuncID.GetSymbol())
-		l.logDebugAST("       User function call identified. Name: '%s', Pos: %s", target.Name, target.Pos.String())
+		l.logDebugAST("         User function call identified. Name: '%s', Pos: %s", target.Name, target.Pos.String())
 	} else {
 		l.addError(ctx, "Unrecognized call_target structure: %s", ctx.GetText())
 		target.Name = "<ERROR_INVALID_CALL_TARGET>"
 		target.Pos = tokenToPosition(ctx.GetStart())
 	}
-	l.logDebugAST("    <- buildCallTargetFromContext (Name: %s, IsTool: %v)", target.Name, target.IsTool)
+	l.logDebugAST("      <- buildCallTargetFromContext (Name: %s, IsTool: %v)", target.Name, target.IsTool)
 	return target
 }
 
@@ -439,7 +450,7 @@ func (l *neuroScriptListenerImpl) ExitCall_target(ctx *gen.Call_targetContext) {
 	l.logDebugAST("--- Exit Call_target: %q", ctx.GetText())
 	targetNode := l.buildCallTargetFromContext(ctx)
 	l.pushValue(&targetNode)
-	l.logDebugAST("    Pushed *CallTarget to stack: IsTool=%t, Name=%s", targetNode.IsTool, targetNode.Name)
+	l.logDebugAST("      Pushed *CallTarget to stack: IsTool=%t, Name=%s", targetNode.IsTool, targetNode.Name)
 }
 
 // ExitCallable_expr
@@ -492,7 +503,7 @@ func (l *neuroScriptListenerImpl) ExitCallable_expr(ctx *gen.Callable_exprContex
 		}
 		finalTargetNode = *targetPtr
 		callExprPos = finalTargetNode.Pos
-		l.logDebugAST("    Popped *CallTarget from stack: IsTool=%t, Name=%s", finalTargetNode.IsTool, finalTargetNode.Name)
+		l.logDebugAST("      Popped *CallTarget from stack: IsTool=%t, Name=%s", finalTargetNode.IsTool, finalTargetNode.Name)
 	} else {
 		finalTargetNode.IsTool = false
 		var keywordToken antlr.TerminalNode
@@ -528,7 +539,7 @@ func (l *neuroScriptListenerImpl) ExitCallable_expr(ctx *gen.Callable_exprContex
 		}
 		callExprPos = tokenToPosition(keywordToken.GetSymbol())
 		finalTargetNode.Pos = callExprPos
-		l.logDebugAST("    Identified Built-in function call target: %s", finalTargetNode.Name)
+		l.logDebugAST("      Identified Built-in function call target: %s", finalTargetNode.Name)
 	}
 
 	node := &CallableExprNode{
@@ -537,5 +548,5 @@ func (l *neuroScriptListenerImpl) ExitCallable_expr(ctx *gen.Callable_exprContex
 		Arguments: argExpressions,
 	}
 	l.pushValue(node)
-	l.logDebugAST("    Constructed and Pushed CallableExprNode: Target=%s, Args=%d", node.Target.Name, len(node.Arguments))
+	l.logDebugAST("      Constructed and Pushed CallableExprNode: Target=%s, Args=%d", node.Target.Name, len(node.Arguments))
 }

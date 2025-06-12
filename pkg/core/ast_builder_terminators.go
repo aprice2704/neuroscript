@@ -8,6 +8,12 @@ import (
 // --- Exit methods for Primary Expressions, Literals, Placeholders ---
 // *** MODIFIED: Create specific AST nodes, set Pos, push nodes, add error handling ***
 
+// EnterExpression is required to satisfy the listener interface.
+// It does not need to perform any action as the child rules handle all the logic.
+func (l *neuroScriptListenerImpl) EnterExpression(ctx *gen.ExpressionContext) {
+	l.logDebugAST("--- Enter Expression: %q (Pass through)", ctx.GetText())
+}
+
 // ExitExpression is just a pass-through in the listener for the top-level expression rule.
 // The actual Expression node will be pushed by one of its children (e.g., ExitLogical_or_expr).
 func (l *neuroScriptListenerImpl) ExitExpression(ctx *gen.ExpressionContext) {

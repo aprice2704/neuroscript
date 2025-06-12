@@ -1,9 +1,7 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.1.6 // Fixed TestTypeOfOperator_Function setup.
+// File version: 0.1.7 // Updated tests to expect wrapped Value types.
 // Purpose: Tests for the 'typeof' operator evaluation.
 // filename: pkg/core/eval_typeof_test.go
-// nlines: 230 // Approximate, please adjust after pasting
-// risk_rating: MEDIUM
 
 package core
 
@@ -47,42 +45,42 @@ func TestTypeOfOperator_LiteralsAndVariables(t *testing.T) {
 			inputSteps: []Step{
 				createTestStep("emit", "", &TypeOfNode{Pos: testPos, Argument: NewTestStringLiteral("hello")}, nil),
 			},
-			expectedResult: string(TypeString),
+			expectedResult: StringValue{Value: string(TypeString)},
 		},
 		{
 			name: "typeof number literal (int)",
 			inputSteps: []Step{
 				createTestStep("emit", "", &TypeOfNode{Pos: testPos, Argument: NewTestNumberLiteral(123)}, nil),
 			},
-			expectedResult: string(TypeNumber),
+			expectedResult: StringValue{Value: string(TypeNumber)},
 		},
 		{
 			name: "typeof number literal (float)",
 			inputSteps: []Step{
 				createTestStep("emit", "", &TypeOfNode{Pos: testPos, Argument: NewTestNumberLiteral(123.45)}, nil),
 			},
-			expectedResult: string(TypeNumber),
+			expectedResult: StringValue{Value: string(TypeNumber)},
 		},
 		{
 			name: "typeof boolean literal (true)",
 			inputSteps: []Step{
 				createTestStep("emit", "", &TypeOfNode{Pos: testPos, Argument: NewTestBooleanLiteral(true)}, nil),
 			},
-			expectedResult: string(TypeBoolean),
+			expectedResult: StringValue{Value: string(TypeBoolean)},
 		},
 		{
 			name: "typeof nil literal",
 			inputSteps: []Step{
 				createTestStep("emit", "", &TypeOfNode{Pos: testPos, Argument: &NilLiteralNode{Pos: testPos}}, nil),
 			},
-			expectedResult: string(TypeNil),
+			expectedResult: StringValue{Value: string(TypeNil)},
 		},
 		{
 			name: "typeof list literal",
 			inputSteps: []Step{
 				createTestStep("emit", "", &TypeOfNode{Pos: testPos, Argument: &ListLiteralNode{Pos: testPos, Elements: []Expression{NewTestNumberLiteral(1), NewTestStringLiteral("a")}}}, nil),
 			},
-			expectedResult: string(TypeList),
+			expectedResult: StringValue{Value: string(TypeList)},
 		},
 		{
 			name: "typeof map literal",
@@ -92,7 +90,7 @@ func TestTypeOfOperator_LiteralsAndVariables(t *testing.T) {
 					{Pos: testPos, Key: NewTestStringLiteral("num"), Value: NewTestNumberLiteral(1)},
 				}}}, nil),
 			},
-			expectedResult: string(TypeMap),
+			expectedResult: StringValue{Value: string(TypeMap)},
 		},
 		{
 			name: "typeof arithmetic expression",
@@ -104,7 +102,7 @@ func TestTypeOfOperator_LiteralsAndVariables(t *testing.T) {
 					Right:    NewTestNumberLiteral(2),
 				}}, nil),
 			},
-			expectedResult: string(TypeNumber),
+			expectedResult: StringValue{Value: string(TypeNumber)},
 		},
 		{
 			name: "typeof variable (string)",
@@ -112,17 +110,17 @@ func TestTypeOfOperator_LiteralsAndVariables(t *testing.T) {
 				createTestStep("set", "myVar", NewTestStringLiteral("test"), nil),
 				createTestStep("emit", "", &TypeOfNode{Pos: testPos, Argument: NewTestVariableNode("myVar")}, nil),
 			},
-			expectedResult: string(TypeString),
-			expectedVars:   map[string]interface{}{"myVar": "test"},
+			expectedResult: StringValue{Value: string(TypeString)},
+			expectedVars:   map[string]interface{}{"myVar": StringValue{Value: "test"}},
 		},
 		{
 			name: "typeof variable (list)",
 			inputSteps: []Step{
-				createTestStep("set", "myList", &ListLiteralNode{Pos: testPos, Elements: []Expression{NewTestNumberLiteral(int64(1))}}, nil), // <<< MODIFIED HERE: Use explicit int64(1)
+				createTestStep("set", "myList", &ListLiteralNode{Pos: testPos, Elements: []Expression{NewTestNumberLiteral(int64(1))}}, nil),
 				createTestStep("emit", "", &TypeOfNode{Pos: testPos, Argument: NewTestVariableNode("myList")}, nil),
 			},
-			expectedResult: string(TypeList),
-			expectedVars:   map[string]interface{}{"myList": []interface{}{int64(1)}}, // Expected type is still int64
+			expectedResult: StringValue{Value: string(TypeList)},
+			expectedVars:   map[string]interface{}{"myList": NewListValue([]Value{NumberValue{Value: 1}})},
 		},
 		{
 			name: "typeof last expression (number)",
@@ -130,7 +128,7 @@ func TestTypeOfOperator_LiteralsAndVariables(t *testing.T) {
 				createTestStep("emit", "", NewTestNumberLiteral(100), nil),
 				createTestStep("emit", "", &TypeOfNode{Pos: testPos, Argument: &LastNode{Pos: testPos}}, nil),
 			},
-			expectedResult: string(TypeNumber),
+			expectedResult: StringValue{Value: string(TypeNumber)},
 		},
 	}
 
@@ -164,7 +162,7 @@ func TestTypeOfOperator_Function(t *testing.T) {
 		t.Fatalf("evaluateExpression failed: %v", evalErr)
 	}
 
-	expected := string(TypeFunction)
+	expected := StringValue{Value: string(TypeFunction)}
 	if result != expected {
 		t.Errorf("Expected typeof(function) to be '%s', got '%s'", expected, result)
 	}
@@ -195,7 +193,7 @@ func TestTypeOfOperator_Tool(t *testing.T) {
 		t.Fatalf("evaluateExpression failed: %v", evalErr)
 	}
 
-	expected := string(TypeTool)
+	expected := StringValue{Value: string(TypeTool)}
 	if result != expected {
 		t.Errorf("Expected typeof(tool) to be '%s', got '%s'", expected, result)
 	}
