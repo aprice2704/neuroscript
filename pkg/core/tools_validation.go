@@ -1,17 +1,16 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.1.2
-// Add handling for ArgTypeMap in validation.
-// nlines: 170
+// File version: 0.1.3
+// Purpose: Unwraps Value types before validation to handle interpreter-native values.
+// nlines: 175
 // risk_rating: HIGH
 // filename: pkg/core/tools_validation.go
+
 package core
 
 import (
-	// Import errors package
 	"fmt"
 	"io"
 	"log"
-	// "strings"
 )
 
 // ValidateAndConvertArgs checks arguments and returns defined errors on failure.
@@ -28,82 +27,70 @@ func ValidateAndConvertArgs(spec ToolSpec, rawArgs []interface{}) ([]interface{}
 	maxExpectedArgs := len(spec.Args)
 	numRawArgs := len(rawArgs)
 
-	// Create slice based on the number of args expected by the spec
 	convertedArgs := make([]interface{}, len(spec.Args))
-	var firstValidationError error // Keep track of the first specific validation error
+	var firstValidationError error
 
-	for i := 0; i < len(spec.Args); i++ { // Iterate based on spec length
+	for i := 0; i < len(spec.Args); i++ {
 		argSpec := spec.Args[i]
-		var argValue interface{}
-		var currentArgValidationError error // Error specific to the current argument iteration
+		var rawValue interface{} // This is the value from the interpreter, possibly a Value type
+		var currentArgValidationError error
 
-		if i < len(rawArgs) { // Check if a raw arg exists for this spec index
-			argValue = rawArgs[i]
-			logger.Printf("Processing Arg %d ('%s'): Value=%#v (%T), SpecType=%s, Required=%t", i, argSpec.Name, argValue, argValue, argSpec.Type, argSpec.Required)
+		if i < len(rawArgs) {
+			rawValue = rawArgs[i]
 
-			// Handle nil for REQUIRED arguments explicitly first
-			if argValue == nil {
+			// FIX: Unwrap the Value type to its native Go equivalent before validation.
+			unwrappedValue := unwrapValue(rawValue)
+
+			logger.Printf("Processing Arg %d ('%s'): RawValue=%#v (%T), UnwrappedValue=%#v (%T), SpecType=%s, Required=%t",
+				i, argSpec.Name, rawValue, rawValue, unwrappedValue, unwrappedValue, argSpec.Type, argSpec.Required)
+
+			if unwrappedValue == nil {
 				if argSpec.Required {
-					// Use the more specific ErrValidationRequiredArgNil
 					currentArgValidationError = fmt.Errorf("%w: argument '%s' (index %d) for tool '%s'", ErrValidationRequiredArgNil, argSpec.Name, i, spec.Name)
 					logger.Printf("Required arg is nil: %v", currentArgValidationError)
 				} else {
 					logger.Printf("Optional arg '%s' is nil, accepting.", argSpec.Name)
-					convertedArgs[i] = nil // Explicitly set nil for optional nil arg
-					continue               // Skip further validation/coercion for nil optional arg
+					convertedArgs[i] = nil
+					continue
+				}
+			} else {
+				// If we have a non-nil value, proceed with type validation/coercion.
+				coercedValue, coerceErr := validateAndCoerceType(unwrappedValue, argSpec.Type, spec.Name, argSpec.Name)
+				if coerceErr != nil {
+					currentArgValidationError = coerceErr
+					logger.Printf("Type Coercion Failed for arg '%s': %v", argSpec.Name, currentArgValidationError)
+				} else {
+					convertedArgs[i] = coercedValue
+					logger.Printf("Type Coercion OK for arg '%s': Value=%#v (%T)", argSpec.Name, convertedArgs[i], convertedArgs[i])
 				}
 			}
 		} else {
 			// Argument is missing in the call
 			if argSpec.Required {
-				// Use the specific ErrValidationRequiredArgMissing
 				currentArgValidationError = fmt.Errorf("%w: argument '%s' (index %d) for tool '%s' is required but was not provided", ErrValidationRequiredArgMissing, argSpec.Name, i, spec.Name)
 				logger.Printf("Required arg missing: %v", currentArgValidationError)
 			} else {
-				// Optional argument is missing, set to nil and continue
 				logger.Printf("Optional arg '%s' missing, setting to nil.", argSpec.Name)
 				convertedArgs[i] = nil
 				continue
 			}
 		}
 
-		// If an error occurred finding/checking the required/nil status, record it and potentially stop
 		if currentArgValidationError != nil {
 			if firstValidationError == nil {
 				firstValidationError = currentArgValidationError
 			}
-			convertedArgs[i] = nil // Ensure slot is nil if error occurred before coercion
+			convertedArgs[i] = nil
 			continue
 		}
-
-		// If we get here, argValue is not nil and was provided. Proceed with type validation/coercion.
-		coercedValue, coerceErr := validateAndCoerceType(argValue, argSpec.Type, spec.Name, argSpec.Name)
-		if coerceErr != nil {
-			currentArgValidationError = coerceErr // validateAndCoerceType already wraps ErrValidationTypeMismatch
-			logger.Printf("Type Coercion Failed for arg '%s': %v", argSpec.Name, currentArgValidationError)
-		} else {
-			convertedArgs[i] = coercedValue // Assign coerced value
-			logger.Printf("Type Coercion OK for arg '%s': Value=%#v (%T)", argSpec.Name, convertedArgs[i], convertedArgs[i])
-		}
-
-		// Handle final error check for this argument *before assigning*
-		if currentArgValidationError != nil {
-			if firstValidationError == nil {
-				firstValidationError = currentArgValidationError
-			}
-		}
-
 	} // End loop over spec args
 
-	// If a specific validation error occurred during the loop, return it now.
 	if firstValidationError != nil {
 		logger.Printf("Returning first validation error encountered: %v", firstValidationError)
 		return nil, firstValidationError
 	}
 
-	// --- Argument count check *after* specific checks ---
-	// Only perform count check if no specific errors were found above.
-	if numRawArgs < minRequiredArgs || numRawArgs > maxExpectedArgs {
+	if numRawArgs < minRequiredArgs || (!spec.Variadic && numRawArgs > maxExpectedArgs) {
 		expectedArgsStr := ""
 		if minRequiredArgs == maxExpectedArgs {
 			expectedArgsStr = fmt.Sprintf("exactly %d", minRequiredArgs)
@@ -114,7 +101,6 @@ func ValidateAndConvertArgs(spec ToolSpec, rawArgs []interface{}) ([]interface{}
 		}
 		err := fmt.Errorf("tool '%s' expected %s arguments, but received %d", spec.Name, expectedArgsStr, numRawArgs)
 		logger.Printf("Arg count error: %v", err)
-		// Use ErrValidationArgCount sentinel error
 		return nil, fmt.Errorf("%w: %w", ErrValidationArgCount, err)
 	}
 
@@ -122,88 +108,80 @@ func ValidateAndConvertArgs(spec ToolSpec, rawArgs []interface{}) ([]interface{}
 	return convertedArgs, nil
 }
 
-// validateAndCoerceType - Helper within this file. Returns defined errors on failure.
-// Ensures that ErrValidationTypeMismatch is wrapped correctly.
-func validateAndCoerceType(rawValue interface{}, expectedType ArgType, toolName, argName string) (interface{}, error) {
-	if rawValue == nil {
-		return nil, nil
+// validateAndCoerceType works with native Go types because the calling function now unwraps Values.
+func validateAndCoerceType(nativeValue interface{}, expectedType ArgType, toolName, argName string) (interface{}, error) {
+	if nativeValue == nil {
+		return nil, nil // Should have been handled by the required/optional logic already.
 	}
 
 	var finalValue interface{}
 	var err error
-	ok := true // Assume ok unless conversion fails
+	ok := true
 
 	switch expectedType {
 	case ArgTypeString:
-		finalValue, ok = rawValue.(string)
+		finalValue, ok = nativeValue.(string)
 		if !ok {
-			err = fmt.Errorf("expected string, got %T", rawValue)
+			err = fmt.Errorf("expected string, got %T", nativeValue)
 		}
 	case ArgTypeInt:
 		var intVal int64
-		intVal, ok = toInt64(rawValue)
+		intVal, ok = toInt64(nativeValue)
 		if ok {
 			finalValue = intVal
 		} else {
-			err = fmt.Errorf("value %v (%T) cannot be converted to int (int64)", rawValue, rawValue)
+			err = fmt.Errorf("value %v (%T) cannot be converted to int (int64)", nativeValue, nativeValue)
 		}
 	case ArgTypeFloat:
 		var floatVal float64
-		floatVal, ok = toFloat64(rawValue)
+		floatVal, ok = toFloat64(nativeValue)
 		if ok {
 			finalValue = floatVal
 		} else {
-			err = fmt.Errorf("value %v (%T) cannot be converted to float (float64)", rawValue, rawValue)
+			err = fmt.Errorf("value %v (%T) cannot be converted to float (float64)", nativeValue, nativeValue)
 		}
 	case ArgTypeBool:
 		var boolVal bool
-		boolVal, ok = ConvertToBool(rawValue)
+		boolVal, ok = ConvertToBool(nativeValue)
 		if ok {
 			finalValue = boolVal
 		} else {
-			err = fmt.Errorf("value %v (%T) cannot be converted to bool", rawValue, rawValue)
+			err = fmt.Errorf("value %v (%T) cannot be converted to bool", nativeValue, nativeValue)
 		}
 	case ArgTypeSliceString:
 		var sliceVal []string
-		sliceVal, ok, err = ConvertToSliceOfString(rawValue)
+		sliceVal, ok, err = ConvertToSliceOfString(nativeValue)
 		if ok {
 			finalValue = sliceVal
 		} else if err == nil {
-			err = fmt.Errorf("expected slice of strings, got %T", rawValue)
+			err = fmt.Errorf("expected slice of strings, got %T", nativeValue)
 		}
 	case ArgTypeSliceAny:
 		var sliceVal []interface{}
-		sliceVal, ok, err = convertToSliceOfAny(rawValue)
+		sliceVal, ok, err = convertToSliceOfAny(nativeValue)
 		if ok {
 			finalValue = sliceVal
 		} else if err == nil {
-			err = fmt.Errorf("expected a slice (list), got %T", rawValue)
+			err = fmt.Errorf("expected a slice (list), got %T", nativeValue)
 		}
-	// --- ADDED Case for ArgTypeMap ---
 	case ArgTypeMap:
-		finalValue, ok = rawValue.(map[string]interface{})
+		finalValue, ok = nativeValue.(map[string]interface{})
 		if !ok {
-			err = fmt.Errorf("expected map[string]interface{}, got %T", rawValue)
+			err = fmt.Errorf("expected map[string]interface{}, got %T", nativeValue)
 		}
-	// --- END ADD ---
 	case ArgTypeAny:
-		finalValue, ok = rawValue, true
+		finalValue, ok = nativeValue, true
 	default:
 		err = fmt.Errorf("%w: unknown expected type '%s' for tool '%s' arg '%s'", ErrInternalTool, expectedType, toolName, argName)
 		ok = false
 	}
 
-	// Check for errors from conversion helpers or failed assertions
 	if err != nil || !ok {
 		finalErrMsg := fmt.Sprintf("argument '%s' of tool '%s'", argName, toolName)
-		// Ensure ErrValidationTypeMismatch is wrapped consistently
 		if err != nil {
-			// If an error was returned by a conversion helper, wrap it
 			return nil, fmt.Errorf("%w: %s: %w", ErrValidationTypeMismatch, finalErrMsg, err)
-		} else {
-			// If only 'ok' is false, create the standard mismatch message
-			return nil, fmt.Errorf("%w: %s: expected %s, got %T", ErrValidationTypeMismatch, finalErrMsg, expectedType, rawValue)
 		}
+		return nil, fmt.Errorf("%w: %s: expected %s, got %T", ErrValidationTypeMismatch, finalErrMsg, expectedType, nativeValue)
 	}
 
 	return finalValue, nil

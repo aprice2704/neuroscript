@@ -1,7 +1,9 @@
 // NeuroScript Version: 0.4.2
-// File version: 4
+// File version: 5
 // Purpose: Corrected operator evaluation logic to be aware of wrapped Value types.
 // filename: pkg/core/evaluation_operators.go
+// nlines: 201
+// risk_rating: HIGH
 
 package core
 
@@ -11,40 +13,19 @@ import (
 	"reflect"
 )
 
-const (
-	// fuzzyEpsilon is used for float equality checks with FuzzyValue.
-	fuzzyEpsilon = 1e-9
-)
-
-func isIntegerType(v interface{}) bool {
-	if v == nil {
-		return false
-	}
-	k := reflect.TypeOf(v).Kind()
-	return k >= reflect.Int && k <= reflect.Uint64
-}
-
+// typeErrorForOp creates a standardized error for invalid operations.
 func typeErrorForOp(op string, left, right interface{}) error {
-	return fmt.Errorf("operator '%s' cannot be applied to types %T and %T: %w", op, left, right, ErrInvalidOperandType)
+	return fmt.Errorf("operator '%s' cannot be applied to types %s and %s: %w", op, TypeOf(left), TypeOf(right), ErrInvalidOperandType)
 }
 
-func performArithmetic(left, right interface{}, op string) (interface{}, error) {
-	// Reject non-numeric Value types.
-	switch left.(type) {
-	case TimedateValue, ErrorValue, EventValue, FuzzyValue, StringValue, BoolValue, ListValue, MapValue, NilValue:
-		return nil, typeErrorForOp(op, left, right)
-	}
-	switch right.(type) {
-	case TimedateValue, ErrorValue, EventValue, FuzzyValue, StringValue, BoolValue, ListValue, MapValue, NilValue:
-		return nil, typeErrorForOp(op, left, right)
-	}
+// performArithmetic handles operators: -, *, /, %, **
+func performArithmetic(left, right interface{}, op string) (Value, error) {
+	// Use the helper to get NumberValues; it will fail for non-numeric types.
+	leftNum, leftOk := ToNumeric(left)
+	rightNum, rightOk := ToNumeric(right)
 
-	// FIX: Directly check for NumberValue instead of relying on fragile helpers.
-	leftNum, isLeftNum := left.(NumberValue)
-	rightNum, isRightNum := right.(NumberValue)
-
-	if !isLeftNum || !isRightNum {
-		return nil, fmt.Errorf("op '%s' needs numerics: %w", op, ErrInvalidOperandTypeNumeric)
+	if !leftOk || !rightOk {
+		return nil, fmt.Errorf("op '%s' needs numerics, but got %s and %s: %w", op, TypeOf(left), TypeOf(right), ErrInvalidOperandTypeNumeric)
 	}
 
 	leftF := leftNum.Value
@@ -53,12 +34,11 @@ func performArithmetic(left, right interface{}, op string) (interface{}, error) 
 	if op == "%" {
 		// Modulo requires integer semantics. Check if the floats are whole numbers.
 		if leftF != math.Trunc(leftF) || rightF != math.Trunc(rightF) {
-			return nil, fmt.Errorf("op '%%' needs integers: %w", ErrInvalidOperandTypeInteger)
+			return nil, fmt.Errorf("op '%%' needs integers, but got %s and %s: %w", TypeOf(left), TypeOf(right), ErrInvalidOperandTypeInteger)
 		}
 		if rightF == 0 {
 			return nil, fmt.Errorf("modulo by zero: %w", ErrDivisionByZero)
 		}
-		// Perform modulo on the integer parts.
 		return NumberValue{Value: float64(int64(leftF) % int64(rightF))}, nil
 	}
 
@@ -75,63 +55,82 @@ func performArithmetic(left, right interface{}, op string) (interface{}, error) 
 	case "**":
 		return NumberValue{Value: math.Pow(leftF, rightF)}, nil
 	}
+
+	// This path should ideally not be reached if called from evaluateBinaryOp
 	return nil, fmt.Errorf("unknown arithmetic op '%s': %w", op, ErrUnsupportedOperator)
 }
 
-func performStringConcatOrNumericAdd(left, right interface{}) (interface{}, error) {
-	if _, ok := left.(FuzzyValue); ok {
-		return nil, fmt.Errorf("cannot apply op '+' to fuzzy values")
-	}
-	if _, ok := right.(FuzzyValue); ok {
-		return nil, fmt.Errorf("cannot apply op '+' to fuzzy values")
-	}
-
-	leftNum, isLeftNum := left.(NumberValue)
-	rightNum, isRightNum := right.(NumberValue)
-
-	// FIX: Prioritize numeric addition by directly checking for NumberValue types.
+// performStringConcatOrNumericAdd handles the '+' operator.
+func performStringConcatOrNumericAdd(left, right interface{}) (Value, error) {
+	// Highest precedence: Numeric addition.
+	// If both can be converted to numbers, perform addition.
+	leftNum, isLeftNum := ToNumeric(left)
+	rightNum, isRightNum := ToNumeric(right)
 	if isLeftNum && isRightNum {
 		return NumberValue{Value: leftNum.Value + rightNum.Value}, nil
 	}
 
-	// Fallback to string concatenation. Assumes all Value types have a .String() method.
-	leftStr, lOk := toString(left)
-	rightStr, rOk := toString(right)
-
-	if !lOk || !rOk {
-		return nil, fmt.Errorf("could not convert operands to string for concatenation: %T and %T", left, right)
-	}
+	// Fallback: String concatenation.
+	// The toString helper is now robust enough to handle any Value type.
+	leftStr, _ := toString(left)
+	rightStr, _ := toString(right)
 
 	return StringValue{Value: leftStr + rightStr}, nil
 }
 
-func performComparison(left, right interface{}, op string) (interface{}, error) {
-	if op == "==" || op == "!=" {
-		isEqual := reflect.DeepEqual(left, right)
-		if op == "==" {
-			return BoolValue{Value: isEqual}, nil
-		}
-		return BoolValue{Value: !isEqual}, nil
+// areValuesEqual performs a robust equality check between any two values (raw or wrapped).
+func areValuesEqual(left, right interface{}) bool {
+	// Unwrap values to their native Go representation first.
+	// This allows comparing, for example, a NumberValue with a raw int.
+	leftNative := unwrapValue(left)
+	rightNative := unwrapValue(right)
+
+	if leftNative == nil || rightNative == nil {
+		return leftNative == rightNative
 	}
-	switch lVal := left.(type) {
-	case TimedateValue:
-		rVal, ok := right.(TimedateValue)
-		if !ok {
-			return nil, typeErrorForOp(op, left, right)
+
+	// Attempt numeric comparison first
+	leftF, lOk := toFloat64(leftNative)
+	rightF, rOk := toFloat64(rightNative)
+	if lOk && rOk {
+		return leftF == rightF
+	}
+
+	// Use reflection for a deep comparison as a fallback.
+	// This correctly handles lists, maps, etc.
+	return reflect.DeepEqual(leftNative, rightNative)
+}
+
+// performComparison handles operators: ==, !=, <, >, <=, >=
+func performComparison(left, right interface{}, op string) (Value, error) {
+	if op == "==" {
+		return BoolValue{Value: areValuesEqual(left, right)}, nil
+	}
+	if op == "!=" {
+		return BoolValue{Value: !areValuesEqual(left, right)}, nil
+	}
+
+	// Handle Timedate comparisons
+	if lVal, ok := left.(TimedateValue); ok {
+		if rVal, rOk := right.(TimedateValue); rOk {
+			switch op {
+			case "<":
+				return BoolValue{Value: lVal.Value.Before(rVal.Value)}, nil
+			case ">":
+				return BoolValue{Value: lVal.Value.After(rVal.Value)}, nil
+			case "<=":
+				return BoolValue{Value: !lVal.Value.After(rVal.Value)}, nil
+			case ">=":
+				return BoolValue{Value: !lVal.Value.Before(rVal.Value)}, nil
+			}
 		}
-		switch op {
-		case "<":
-			return BoolValue{Value: lVal.Value.Before(rVal.Value)}, nil
-		case ">":
-			return BoolValue{Value: lVal.Value.After(rVal.Value)}, nil
-		case "<=":
-			return BoolValue{Value: !lVal.Value.After(rVal.Value)}, nil
-		case ">=":
-			return BoolValue{Value: !lVal.Value.Before(rVal.Value)}, nil
-		}
-	case FuzzyValue:
-		rVal, ok := toFloat64(right)
-		if !ok {
+		return nil, typeErrorForOp(op, left, right)
+	}
+
+	// Handle comparisons against FuzzyValue (always on the left)
+	if lVal, ok := left.(FuzzyValue); ok {
+		rVal, rOk := toFloat64(right) // Compare fuzzy's μ against a float
+		if !rOk {
 			return nil, typeErrorForOp(op, left, right)
 		}
 		switch op {
@@ -144,14 +143,15 @@ func performComparison(left, right interface{}, op string) (interface{}, error) 
 		case ">=":
 			return BoolValue{Value: lVal.μ >= rVal}, nil
 		}
-	case ErrorValue, EventValue:
-		return nil, fmt.Errorf("inequality op (%s) not supported for %T", op, left)
 	}
+
+	// Default to numeric comparison for everything else
 	leftF, leftOk := toFloat64(left)
 	rightF, rightOk := toFloat64(right)
 	if !leftOk || !rightOk {
-		return nil, fmt.Errorf("comparison op '%s' needs comparable types, got %T and %T", op, left, right)
+		return nil, fmt.Errorf("comparison op '%s' needs comparable types, got %s and %s", op, TypeOf(left), TypeOf(right))
 	}
+
 	switch op {
 	case "<":
 		return BoolValue{Value: leftF < rightF}, nil
@@ -162,18 +162,23 @@ func performComparison(left, right interface{}, op string) (interface{}, error) 
 	case ">=":
 		return BoolValue{Value: leftF >= rightF}, nil
 	}
+
 	return nil, fmt.Errorf("unknown comparison op '%s'", op)
 }
 
-func performBitwise(left, right interface{}, op string) (interface{}, error) {
+// performBitwise handles operators: &, |, ^
+func performBitwise(left, right interface{}, op string) (Value, error) {
 	if left == nil || right == nil {
-		return nil, fmt.Errorf("bitwise op '%s' needs non-nil: %w", op, ErrNilOperand)
+		return nil, fmt.Errorf("bitwise op '%s' needs non-nil operands: %w", op, ErrNilOperand)
 	}
+
+	// Use the robust helper which can handle NumberValue
 	leftI, lOk := toInt64(left)
 	rightI, rOk := toInt64(right)
 	if !lOk || !rOk {
-		return nil, fmt.Errorf("bitwise op '%s' needs integers: %w", op, ErrInvalidOperandTypeInteger)
+		return nil, fmt.Errorf("bitwise op '%s' needs integers, but got %s and %s: %w", op, TypeOf(left), TypeOf(right), ErrInvalidOperandTypeInteger)
 	}
+
 	switch op {
 	case "&":
 		return NumberValue{Value: float64(leftI & rightI)}, nil
@@ -182,32 +187,6 @@ func performBitwise(left, right interface{}, op string) (interface{}, error) {
 	case "^":
 		return NumberValue{Value: float64(leftI ^ rightI)}, nil
 	}
-	return nil, fmt.Errorf("unknown bitwise op '%s'", op)
-}
 
-// isZeroValue is a helper function that should be available to this package.
-func isZeroValue(val interface{}) bool {
-	if val == nil {
-		return true
-	}
-	v := reflect.ValueOf(val)
-	if !v.IsValid() {
-		return true
-	}
-	switch v.Kind() {
-	case reflect.Slice, reflect.Map, reflect.String, reflect.Array:
-		return v.Len() == 0
-	case reflect.Bool:
-		return !v.Bool()
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		return v.Int() == 0
-	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-		return v.Uint() == 0
-	case reflect.Float32, reflect.Float64:
-		return v.Float() == 0
-	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Ptr, reflect.UnsafePointer:
-		return v.IsNil()
-	default:
-		return v.IsZero()
-	}
+	return nil, fmt.Errorf("unknown bitwise op '%s'", op)
 }

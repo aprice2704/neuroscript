@@ -1,9 +1,9 @@
 // NeuroScript Version: 0.3.1
-// File version: 6
-// Purpose: Removed obsolete event logic and fixed KnownProcedures function signature.
+// File version: 10
+// Purpose: Corrected variable shadowing bug in the Wrap method.
 // filename: pkg/core/interpreter_procedures.go
-// nlines: 90
-// risk_rating: MEDIUM
+// nlines: 160
+// risk_rating: HIGH
 
 package core
 
@@ -13,8 +13,46 @@ import (
 	"reflect"
 )
 
+// Wrap converts a native Go type into its corresponding NeuroScript Value type.
+// If the input is already a Value type, it is returned unchanged.
+func (i *Interpreter) Wrap(v interface{}) Value {
+	if val, ok := v.(Value); ok {
+		return val // It's already a Value, do nothing.
+	}
+	switch val := v.(type) {
+	case string:
+		return StringValue{Value: val}
+	case int:
+		return NumberValue{Value: float64(val)}
+	case int64:
+		return NumberValue{Value: float64(val)}
+	case float64:
+		return NumberValue{Value: val}
+	case bool:
+		return BoolValue{Value: val}
+	case nil:
+		return NilValue{}
+	case []interface{}:
+		list := make([]Value, len(val))
+		// FIX: Use 'idx' to avoid shadowing the interpreter 'i'.
+		for idx, item := range val {
+			list[idx] = i.Wrap(item)
+		}
+		return NewListValue(list)
+	case map[string]interface{}:
+		newMap := make(map[string]Value)
+		// FIX: Use a different variable name for the value to avoid confusion.
+		for k, item := range val {
+			newMap[k] = i.Wrap(item)
+		}
+		return NewMapValue(newMap)
+	default:
+		i.Logger().Warn("Attempted to wrap an unhandled native type; returning NilValue.", "type", fmt.Sprintf("%T", v))
+		return NilValue{}
+	}
+}
+
 // AddProcedure programmatically adds a single procedure to the interpreter's registry.
-// Note: For loading full scripts, use interpreter.LoadProgram(...)
 func (i *Interpreter) AddProcedure(proc Procedure) error {
 	if i.knownProcedures == nil {
 		i.knownProcedures = make(map[string]*Procedure)
@@ -40,22 +78,17 @@ func (i *Interpreter) KnownProcedures() map[string]*Procedure {
 
 func (i *Interpreter) RunProcedure(procName string, args ...interface{}) (result interface{}, err error) {
 	originalProcName := i.currentProcName
-	i.Logger().Debug("Running procedure", "name", procName, "arg_count", len(args))
-	i.currentProcName = procName
+	i.Logger().Debug("Running procedure", "name", procName, "caller", originalProcName)
 	defer func() {
-		if r := recover(); r != nil {
-			err = NewRuntimeError(ErrorCodeInternal, fmt.Sprintf("panic occurred during procedure '%s': %v", procName, r), errors.New("panic"))
-			i.Logger().Error("Panic recovered during procedure execution", "proc_name", procName, "panic_value", r, "error", err)
-			result = nil
-		}
 		i.currentProcName = originalProcName
+		i.Logger().Debug("Finished procedure", "name", procName, "caller", originalProcName)
 	}()
+
+	i.currentProcName = procName
 
 	proc, exists := i.knownProcedures[procName]
 	if !exists {
-		err = fmt.Errorf("%w: '%s'", ErrProcedureNotFound, procName)
-		i.Logger().Error("Procedure definition not found", "name", procName)
-		return nil, err
+		return nil, fmt.Errorf("%w: '%s'", ErrProcedureNotFound, procName)
 	}
 
 	numRequired := len(proc.RequiredParams)
@@ -64,57 +97,58 @@ func (i *Interpreter) RunProcedure(procName string, args ...interface{}) (result
 	numProvided := len(args)
 
 	if numProvided < numRequired {
-		err = fmt.Errorf("%w: procedure '%s' requires %d arguments, but received %d", ErrArgumentMismatch, procName, numRequired, numProvided)
-		i.Logger().Error("Argument count mismatch (too few)", "proc_name", procName, "required", numRequired, "provided", numProvided)
-		return nil, err
+		return nil, fmt.Errorf("%w: procedure '%s' requires %d args, got %d", ErrArgumentMismatch, procName, numRequired, numProvided)
 	}
-	if numProvided > numTotalParams && !proc.Variadic {
-		i.Logger().Warn("Procedure called with extra arguments.", "proc_name", procName, "provided", numProvided, "defined_max", numTotalParams)
+	if !proc.Variadic && numProvided > numTotalParams {
+		return nil, fmt.Errorf("%w: procedure '%s' expects max %d args, got %d", ErrArgumentMismatch, procName, numTotalParams, numProvided)
 	}
 
-	procScope := make(map[string]interface{})
-	if i.variables != nil {
-		for k, v := range i.variables {
-			procScope[k] = v
+	procInterpreter := &Interpreter{
+		variables:       make(map[string]interface{}),
+		knownProcedures: i.knownProcedures,
+		stdout:          i.stdout,
+		logger:          i.logger,
+		toolRegistry:    i.toolRegistry,
+		llmClient:       i.llmClient,
+		fileAPI:         i.fileAPI,
+	}
+
+	for k, v := range i.variables {
+		procInterpreter.variables[k] = v
+	}
+
+	for idx := 0; idx < numRequired; idx++ {
+		paramName := proc.RequiredParams[idx]
+		wrappedArg := i.Wrap(args[idx])
+		if setErr := procInterpreter.SetVariable(paramName, wrappedArg); setErr != nil {
+			return nil, fmt.Errorf("failed to set required parameter '%s': %w", paramName, setErr)
 		}
 	}
-	originalScope := i.variables
-	i.variables = procScope
-	defer func() {
-		i.variables = originalScope
-		i.Logger().Debug("Restored parent variable scope.", "proc_name", procName)
-	}()
 
-	for idx, paramName := range proc.RequiredParams {
-		if idx < len(args) {
-			if setErr := i.SetVariable(paramName, args[idx]); setErr != nil {
-				return nil, fmt.Errorf("failed to set required parameter '%s': %w", paramName, setErr)
+	if numProvided > numRequired {
+		for idx := 0; idx < numOptional && (numRequired+idx) < numProvided; idx++ {
+			paramSpec := proc.OptionalParams[idx]
+			paramName := paramSpec.Name
+			wrappedArg := i.Wrap(args[numRequired+idx])
+			if setErr := procInterpreter.SetVariable(paramName, wrappedArg); setErr != nil {
+				return nil, fmt.Errorf("failed to set optional parameter '%s': %w", paramName, setErr)
 			}
-		} else {
-			return nil, fmt.Errorf("internal error: insufficient arguments for required parameter '%s'", paramName)
-		}
-	}
-
-	for idx, paramSpec := range proc.OptionalParams {
-		paramName := paramSpec.Name
-		valueToSet := paramSpec.DefaultValue
-		originalOptionalArgIndex := numRequired + idx
-		if originalOptionalArgIndex < numProvided {
-			valueToSet = args[originalOptionalArgIndex]
-		}
-		if setErr := i.SetVariable(paramName, valueToSet); setErr != nil {
-			return nil, fmt.Errorf("failed to set optional parameter '%s': %w", paramName, setErr)
 		}
 	}
 
 	if proc.Variadic && proc.VariadicParamName != "" && numProvided > numTotalParams {
-		variadicArgs := args[numTotalParams:]
-		if setErr := i.SetVariable(proc.VariadicParamName, variadicArgs); setErr != nil {
+		variadicArgsRaw := args[numTotalParams:]
+		variadicArgsValue := make([]Value, len(variadicArgsRaw))
+		// FIX: Use 'idx' to avoid shadowing the interpreter 'i'.
+		for idx, arg := range variadicArgsRaw {
+			variadicArgsValue[idx] = i.Wrap(arg)
+		}
+		if setErr := procInterpreter.SetVariable(proc.VariadicParamName, NewListValue(variadicArgsValue)); setErr != nil {
 			return nil, fmt.Errorf("failed to set variadic parameter '%s': %w", proc.VariadicParamName, setErr)
 		}
 	}
 
-	result, _, _, err = i.executeSteps(proc.Steps, false, nil)
+	result, _, _, err = procInterpreter.executeSteps(proc.Steps, false, nil)
 	if err != nil {
 		if _, ok := err.(*RuntimeError); !ok {
 			err = fmt.Errorf("error executing steps for procedure '%s': %w", procName, err)
@@ -123,35 +157,25 @@ func (i *Interpreter) RunProcedure(procName string, args ...interface{}) (result
 	}
 
 	expectedReturnCount := len(proc.ReturnVarNames)
-	actualReturnCount := 0
+	if expectedReturnCount == 0 {
+		return NilValue{}, nil
+	}
+
 	var finalResult interface{}
-
-	if result != nil {
-		resultValue := reflect.ValueOf(result)
-		kind := resultValue.Kind()
-		if kind == reflect.Ptr || kind == reflect.Interface {
-			if !resultValue.IsNil() {
-				resultValue = resultValue.Elem()
-				kind = resultValue.Kind()
-			} else {
-				kind = reflect.Invalid
-			}
+	if list, ok := result.(ListValue); ok && expectedReturnCount > 1 {
+		if len(list.Value) != expectedReturnCount {
+			return nil, fmt.Errorf("%w: procedure '%s' expected %d return values, but returned %d", ErrReturnMismatch, procName, expectedReturnCount, len(list.Value))
 		}
-		if kind == reflect.Slice {
-			actualReturnCount = resultValue.Len()
-			finalResult = result
-		} else if resultValue.IsValid() {
-			actualReturnCount = 1
-			finalResult = result
+		finalResult = list
+	} else if expectedReturnCount == 1 {
+		finalResult = result
+	} else if result == nil || (reflect.ValueOf(result).IsValid() && reflect.ValueOf(result).IsNil()) {
+		if expectedReturnCount > 0 {
+			return nil, fmt.Errorf("%w: procedure '%s' expected %d return values, but returned nil", ErrReturnMismatch, procName, expectedReturnCount)
 		}
+	} else {
+		return nil, fmt.Errorf("%w: procedure '%s' expected %d return values, but returned a single value of type %s", ErrReturnMismatch, procName, expectedReturnCount, TypeOf(result))
 	}
 
-	if actualReturnCount != expectedReturnCount {
-		if !(expectedReturnCount == 0 && actualReturnCount == 0) {
-			err = fmt.Errorf("%w: procedure '%s' expected %d return values, but yielded %d", ErrReturnMismatch, procName, expectedReturnCount, actualReturnCount)
-			return nil, err
-		}
-	}
-	i.lastCallResult = finalResult
 	return finalResult, nil
 }

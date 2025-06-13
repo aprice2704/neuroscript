@@ -1,110 +1,56 @@
 // NeuroScript Version: 0.4.1
-// File version: 10
-// Purpose: Final correction to evaluateBinaryOp to remove boolean fallback for and/or.
-// filename: core/evaluation_logic.go
-// nlines: 125
-// risk_rating: MEDIUM
+// File version: 11
+// Purpose: Implements short-circuiting for boolean AND/OR and delegates other ops.
+// filename: pkg/core/evaluation_logic.go
+// nlines: 130
+// risk_rating: HIGH
 
 package core
 
 import (
 	"fmt"
 	"math"
-	"reflect"
 	"strings"
 )
 
-// ... (TypeOf, evaluateUnaryOp, toFuzzy functions are unchanged) ...
-func (i *Interpreter) TypeOf(value interface{}) string {
-	if value == nil {
-		return string(TypeNil)
-	}
-	if v, ok := value.(Value); ok {
-		return string(v.Type())
-	}
-	switch value.(type) {
-	case Procedure:
-		return string(TypeFunction)
-	case ToolImplementation:
-		return string(TypeTool)
-	}
-	val := reflect.ValueOf(value)
-	kind := val.Kind()
-	if kind == reflect.Interface {
-		if val.IsNil() {
-			return string(TypeNil)
-		}
-		val = val.Elem()
-		kind = val.Kind()
-	}
-	for kind == reflect.Ptr {
-		if val.IsNil() {
-			return string(TypeNil)
-		}
-		val = val.Elem()
-		kind = val.Kind()
-	}
-	switch kind {
-	case reflect.String:
-		return string(TypeString)
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
-		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr,
-		reflect.Float32, reflect.Float64:
-		return string(TypeNumber)
-	case reflect.Bool:
-		return string(TypeBoolean)
-	case reflect.Slice, reflect.Array:
-		return string(TypeList)
-	case reflect.Map:
-		return string(TypeMap)
-	case reflect.Func:
-		return string(TypeFunction)
-	default:
-		return string(TypeUnknown)
-	}
-}
-
-func evaluateUnaryOp(op string, operand interface{}) (interface{}, error) {
+// evaluateUnaryOp handles unary operations like NOT, -, and ~.
+func (i *Interpreter) evaluateUnaryOp(op string, operand interface{}) (Value, error) {
 	if operand == nil && (op == "-" || op == "~") {
 		return nil, fmt.Errorf("%w: unary operator '%s'", ErrNilOperand, op)
 	}
 	switch strings.ToLower(op) {
 	case "not":
-		if f, ok := operand.(FuzzyValue); ok {
-			return NewFuzzyValue(1.0 - f.μ), nil
-		}
-		return !isTruthy(operand), nil
+		// 'not' inverts the truthiness of its operand.
+		return BoolValue{Value: !isTruthy(operand)}, nil
 	case "-":
-		iVal, isInt := toInt64(operand)
-		if isInt {
-			return -iVal, nil
+		num, ok := ToNumeric(operand)
+		if !ok {
+			return nil, fmt.Errorf("%w: unary operator '-' needs number, got %s", ErrInvalidOperandTypeNumeric, TypeOf(operand))
 		}
-		fVal, isFloat := toFloat64(operand)
-		if isFloat {
-			return -fVal, nil
-		}
-		return nil, fmt.Errorf("%w: unary operator '-' needs number, got %T", ErrInvalidOperandTypeNumeric, operand)
+		return NumberValue{Value: -num.Value}, nil
 	case "~":
 		iVal, isInt := toInt64(operand)
-		if isInt {
-			return ^iVal, nil
+		if !isInt {
+			return nil, fmt.Errorf("%w: unary operator '~' needs integer, got %s", ErrInvalidOperandTypeInteger, TypeOf(operand))
 		}
-		return nil, fmt.Errorf("%w: unary operator '~' needs integer, got %T", ErrInvalidOperandTypeInteger, operand)
+		return NumberValue{Value: float64(^iVal)}, nil
 	case "no":
-		return isZeroValue(operand), nil
+		return BoolValue{Value: isZeroValue(operand)}, nil
 	case "some":
-		return !isZeroValue(operand), nil
+		return BoolValue{Value: !isZeroValue(operand)}, nil
 	default:
 		return nil, fmt.Errorf("%w: '%s'", ErrUnsupportedOperator, op)
 	}
 }
 
+// toFuzzy attempts to coerce a value to a FuzzyValue.
+// It succeeds for existing FuzzyValues and booleans.
 func toFuzzy(v interface{}) (FuzzyValue, bool) {
 	if f, ok := v.(FuzzyValue); ok {
 		return f, true
 	}
-	if b, ok := v.(bool); ok {
-		if b {
+	if b, ok := v.(BoolValue); ok {
+		if b.Value {
 			return NewFuzzyValue(1.0), true
 		}
 		return NewFuzzyValue(0.0), true
@@ -113,37 +59,58 @@ func toFuzzy(v interface{}) (FuzzyValue, bool) {
 }
 
 // evaluateBinaryOp performs infix binary operations.
-func evaluateBinaryOp(left, right interface{}, op string) (interface{}, error) {
+// It now handles boolean short-circuiting for 'and'/'or' before delegating.
+func (i *Interpreter) evaluateBinaryOp(left, right interface{}, op string) (Value, error) {
 	opLower := strings.ToLower(op)
 
-	// The boolean short-circuit for `and` and `or` is handled in `evaluateExpression`.
-	// If this function is called with `and` or `or`, it MUST be a fuzzy logic operation.
-	if opLower == "and" || opLower == "or" {
-		leftF, leftIsFuzzyCoercible := toFuzzy(left)
-		rightF, rightIsFuzzyCoercible := toFuzzy(right)
+	// --- SHORT-CIRCUITING LOGIC ---
+	// The evaluator calls this function for all binary ops. We must handle
+	// boolean short-circuiting here before attempting other logic.
+	switch opLower {
+	case "and":
+		if !isTruthy(left) {
+			return BoolValue{Value: false}, nil
+		}
+		// If left is truthy, the result is the truthiness of the right side.
+		return BoolValue{Value: isTruthy(right)}, nil
+	case "or":
+		if isTruthy(left) {
+			return BoolValue{Value: true}, nil
+		}
+		// If left is falsy, the result is the truthiness of the right side.
+		return BoolValue{Value: isTruthy(right)}, nil
+	}
 
-		// If both can be treated as fuzzy, perform the operation.
-		if leftIsFuzzyCoercible && rightIsFuzzyCoercible {
+	// --- FUZZY LOGIC (for AND/OR if not short-circuited by boolean logic) ---
+	// This part is now less likely to be hit for standard booleans but remains for FuzzyValue types.
+	if opLower == "and" || opLower == "or" {
+		leftF, leftIsFuzzy := toFuzzy(left)
+		rightF, rightIsFuzzy := toFuzzy(right)
+
+		if leftIsFuzzy && rightIsFuzzy {
 			if opLower == "and" {
 				return NewFuzzyValue(math.Min(leftF.μ, rightF.μ)), nil
 			}
 			return NewFuzzyValue(math.Max(leftF.μ, rightF.μ)), nil
 		}
-		// If we are here for an 'and'/'or' but it's not a valid fuzzy op, it's a type error.
-		return nil, typeErrorForOp(op, left, right)
 	}
 
-	// Handle all other non-and/or operators.
+	// --- STANDARD OPERATOR DELEGATION ---
 	switch opLower {
 	case "==", "!=", "<", ">", "<=", ">=":
+		// performComparison now returns a Value
 		return performComparison(left, right, op)
 	case "+":
+		// performStringConcatOrNumericAdd now returns a Value
 		return performStringConcatOrNumericAdd(left, right)
 	case "-", "*", "/", "%", "**":
+		// performArithmetic now returns a Value
 		return performArithmetic(left, right, op)
 	case "&", "|", "^":
+		// performBitwise now returns a Value
 		return performBitwise(left, right, op)
 	default:
+		// This should not be reached if the parser is correct.
 		return nil, fmt.Errorf("%w: '%s'", ErrUnsupportedOperator, op)
 	}
 }

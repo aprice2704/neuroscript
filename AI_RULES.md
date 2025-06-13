@@ -10,7 +10,7 @@ Follow these **CORE RULES** **very strictly** for all Go code contributions to t
     * Use this index to find things in the codebase. **DO NOT MAKE ASSUMPTIONS.**
 3.  **Full & Functional Files ALWAYS:**
     * Always provide complete Go files based on latest versions (we have had some issues with stale files)
-    * **NEVER EVER** generate code with function bodies "shorted out" or replaced by comments (e.g., `// ... implementation ...`). This wastes significant time and has lead to us wasting several hours of effort on at least two occasions.
+    * **NEVER EVER** generate code with function bodies "shorted out" or replaced by comments (e.g., `// ... implementation ...`). This wastes significant time and has lead to us wasting several hours of effort on at least two occasions. NEVER. **EVER**.
 4.  **One Main File Per Turn:**
     * Provide only **one primary code file** per response, unless we explicitly agree otherwise (e.g., when splitting a file).
     * Delivering multiple, potentially misdirected large files is very inefficient.
@@ -41,7 +41,7 @@ Follow these **CORE RULES** **very strictly** for all Go code contributions to t
     * **Avoid** using nil detection on returned values -- return an error instead of a nil.
 10. **Request Missing Information:**
     * If you need files (e.g., `.g4`, fixtures, other source code) or clarification that you don't have, **ask for them immediately.** Do not guess contents or specifications.
-
+11. **Export by Default** go's namespacing is good. Just use IsZeroValue not isZeroValue. Unconventional I know, I don't care -- it'll save effort in the end.
 ---
 
 ## OTHER KEY GUIDELINES

@@ -1,8 +1,10 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.0.7 // Restored executeBlock and added 'assign' case to executeSteps.
+// File version: 0.0.8
+// Purpose: Corrected all execute... calls to use simplified signatures.
 // filename: pkg/core/interpreter_exec.go
-// nlines: 290+
+// nlines: 288
 // risk_rating: HIGH
+
 package core
 
 import (
@@ -85,10 +87,8 @@ func (i *Interpreter) executeSteps(steps []Step, isInHandler bool, activeError *
 		i.Logger().Debug("[DEBUG-INTERP]   Executing Step", "step_num", stepNum+1, "type", stepTypeStr, "subject", stepSubjectStr, "pos", logPos)
 
 		switch stepTypeLower {
-		case "set":
-			stepResult, stepErr = i.executeSet(step, stepNum, isInHandler, activeError)
-		case "assign":
-			stepResult, stepErr = i.executeSet(step, stepNum, isInHandler, activeError)
+		case "set", "assign":
+			stepResult, stepErr = i.executeSet(step)
 		case "call":
 			if step.Call != nil {
 				var callRes interface{}
@@ -106,18 +106,18 @@ func (i *Interpreter) executeSteps(steps []Step, isInHandler bool, activeError *
 				stepErr = NewRuntimeError(ErrorCodeReturnViolation, errMsg, ErrReturnViolation).WithPosition(step.Pos)
 			} else {
 				var returnValue interface{}
-				returnValue, wasReturn, stepErr = i.executeReturn(step, stepNum, isInHandler, activeError)
+				returnValue, wasReturn, stepErr = i.executeReturn(step)
 				if stepErr == nil && wasReturn {
 					i.lastCallResult = returnValue
 					return returnValue, true, false, nil
 				}
 			}
 		case "emit":
-			stepResult, stepErr = i.executeEmit(step, stepNum, isInHandler, activeError)
+			stepResult, stepErr = i.executeEmit(step)
 		case "if":
 			var ifReturned, ifCleared bool
 			var ifBlockResult interface{}
-			ifBlockResult, ifReturned, ifCleared, stepErr = i.executeIf(step, stepNum, isInHandler, activeError)
+			ifBlockResult, ifReturned, ifCleared, stepErr = i.executeIf(step, isInHandler, activeError)
 			if errors.Is(stepErr, ErrBreak) || errors.Is(stepErr, ErrContinue) {
 				return nil, false, wasCleared, stepErr
 			}
@@ -134,7 +134,7 @@ func (i *Interpreter) executeSteps(steps []Step, isInHandler bool, activeError *
 		case "while":
 			var whileReturned, whileCleared bool
 			var whileBlockResult interface{}
-			whileBlockResult, whileReturned, whileCleared, stepErr = i.executeWhile(step, stepNum, isInHandler, activeError)
+			whileBlockResult, whileReturned, whileCleared, stepErr = i.executeWhile(step, isInHandler, activeError)
 			if errors.Is(stepErr, ErrBreak) {
 				i.Logger().Debug("[DEBUG-INTERP] WHILE loop broken", "step_num", stepNum+1)
 				stepErr = nil
@@ -153,7 +153,7 @@ func (i *Interpreter) executeSteps(steps []Step, isInHandler bool, activeError *
 		case "for", "for_each":
 			var forReturned, forCleared bool
 			var forBlockResult interface{}
-			forBlockResult, forReturned, forCleared, stepErr = i.executeFor(step, stepNum, isInHandler, activeError)
+			forBlockResult, forReturned, forCleared, stepErr = i.executeFor(step, isInHandler, activeError)
 			if errors.Is(stepErr, ErrBreak) {
 				i.Logger().Debug("[DEBUG-INTERP] FOR loop broken", "step_num", stepNum+1)
 				stepErr = nil
@@ -170,20 +170,20 @@ func (i *Interpreter) executeSteps(steps []Step, isInHandler bool, activeError *
 				}
 			}
 		case "must", "mustbe":
-			stepResult, stepErr = i.executeMust(step, stepNum, isInHandler, activeError)
+			stepResult, stepErr = i.executeMust(step)
 		case "fail":
-			stepErr = i.executeFail(step, stepNum, isInHandler, activeError)
+			stepErr = i.executeFail(step)
 			stepResult = nil
 		case "on_error":
 			var handlerStep *Step
-			handlerStep, stepErr = i.executeOnError(step, stepNum, isInHandler, activeError)
+			handlerStep, stepErr = i.executeOnError(step)
 			if stepErr == nil {
 				currentErrorHandler = handlerStep
 			}
 			stepResult = nil
 		case "clear_error":
 			var clearedNow bool
-			clearedNow, stepErr = i.executeClearError(step, stepNum, isInHandler, activeError)
+			clearedNow, stepErr = i.executeClearError(step, isInHandler)
 			if stepErr == nil && clearedNow {
 				wasCleared = true
 				activeError = nil
@@ -191,11 +191,11 @@ func (i *Interpreter) executeSteps(steps []Step, isInHandler bool, activeError *
 			}
 			stepResult = nil
 		case "ask":
-			stepResult, stepErr = i.executeAsk(step, stepNum, isInHandler, activeError)
+			stepResult, stepErr = i.executeAsk(step)
 		case "break":
-			stepResult, stepErr = i.executeBreak(step, stepNum, isInHandler, activeError)
+			stepErr = i.executeBreak(step)
 		case "continue":
-			stepResult, stepErr = i.executeContinue(step, stepNum, isInHandler, activeError)
+			stepErr = i.executeContinue(step)
 		default:
 			errMsg := fmt.Sprintf("step %d: unknown step type '%s'", stepNum+1, step.Type)
 			stepErr = NewRuntimeError(ErrorCodeUnknownKeyword, errMsg, ErrUnknownKeyword).WithPosition(step.Pos)
@@ -281,26 +281,23 @@ func (i *Interpreter) executeSteps(steps []Step, isInHandler bool, activeError *
 }
 
 // executeBlock is a wrapper around executeSteps that handles casting and logging for block-based statements like if/for.
-func (i *Interpreter) executeBlock(blockValue interface{}, parentStepNum int, blockType string, isInHandler bool, activeError *RuntimeError) (result interface{}, wasReturn bool, wasCleared bool, err error) {
+func (i *Interpreter) executeBlock(blockValue interface{}, parentPos *Position, blockType string, isInHandler bool, activeError *RuntimeError) (result interface{}, wasReturn bool, wasCleared bool, err error) {
 	steps, ok := blockValue.([]Step)
 	if !ok {
-		errMsg := fmt.Sprintf("step %d (%s): invalid block format - expected []Step", parentStepNum+1, blockType)
+		errMsg := fmt.Sprintf("invalid block format for %s - expected []Step", blockType)
 		if blockValue != nil {
 			errMsg = fmt.Sprintf("%s, got %T", errMsg, blockValue)
 		} else {
-			i.Logger().Debug("Entering block execution for nil/empty block", "block_type", blockType, "parent_step", parentStepNum+1)
+			i.Logger().Debug("Entering block execution for nil/empty block", "block_type", blockType, "parent_pos", parentPos.String())
 			return nil, false, false, nil
 		}
-		newErr := NewRuntimeError(ErrorCodeInternal, errMsg, ErrInternal)
-		if len(steps) > 0 && steps[0].Pos != nil {
-			newErr = newErr.WithPosition(steps[0].Pos)
-		}
+		newErr := NewRuntimeError(ErrorCodeInternal, errMsg, ErrInternal).WithPosition(parentPos)
 		i.Logger().Error("Invalid block format", "error", newErr.Error())
 		return nil, false, false, newErr
 	}
 
 	if len(steps) == 0 {
-		i.Logger().Debug("Entering empty block execution", "block_type", blockType, "parent_step", parentStepNum+1)
+		i.Logger().Debug("Entering empty block execution", "block_type", blockType, "parent_pos", parentPos.String())
 		return nil, false, false, nil
 	}
 
@@ -313,7 +310,7 @@ func (i *Interpreter) executeBlock(blockValue interface{}, parentStepNum int, bl
 	i.Logger().Debug(">> Entering block execution",
 		"block_type", blockType,
 		"handler_mode", isInHandler,
-		"parent_step", parentStepNum+1,
+		"parent_pos", parentPos.String(),
 		"step_count", len(steps),
 		"active_error_code", activeErrorStr)
 
@@ -321,7 +318,7 @@ func (i *Interpreter) executeBlock(blockValue interface{}, parentStepNum int, bl
 
 	logFields := []interface{}{
 		"block_type", blockType,
-		"parent_step", parentStepNum + 1,
+		"parent_pos", parentPos.String(),
 		"result_from_block_return", result,
 		"was_return", wasReturn,
 		"was_cleared", wasCleared,

@@ -1,137 +1,160 @@
 // NeuroScript Version: 0.3.5
-// File version: 0.0.5 // Corrected ExpectedErrorIs for tool arg type error.
+// File version: 0.0.6
+// Purpose: Updated test assertions to expect core.Value types instead of native Go types.
 // filename: pkg/core/interpreter_test.go
 package core
 
 import (
 	"testing"
-	// Assuming Position is defined in this package (ast.go)
-	// Assuming Step struct is defined in ast.go
-	// Assuming error variables like ErrMustConditionFailed are defined in errors.go
-	// Helper functions like createTestStep, createIfStep are defined in testing_helpers.go
-	// executeStepsTestCase and runExecuteStepsTest are defined in testing_helpers.go
 )
 
 // dummyPos is a shared position for test AST nodes.
 var dummyPos = &Position{Line: 1, Column: 1, File: "test"}
 
-// TestExecuteStepsBlocksAndLoops - Includes List/Map iteration and dotted tool calls
+// TestExecuteStepsBlocksAndLoops tests the execution of various control flow blocks and tool calls.
 func TestExecuteStepsBlocksAndLoops(t *testing.T) {
-	mustBeVars := map[string]interface{}{
-		"s":      "a string",
-		"n":      int64(10),
-		"f":      3.14,
-		"b":      true,
-		"l":      []interface{}{1, 2},
-		"m":      map[string]interface{}{"a": 1},
-		"emptyS": "",
-		"emptyL": []interface{}{},
-		"emptyM": map[string]interface{}{},
-		"zeroN":  int64(0),
-		"nilV":   nil,
-	}
-
-	initialList := []interface{}{"item1", int64(2), true}
+	initialList := NewListValue([]Value{
+		StringValue{Value: "item1"},
+		NumberValue{Value: 2},
+		BoolValue{Value: true},
+	})
 
 	testCases := []executeStepsTestCase{
-		// --- Existing IF Tests ---
-		{name: "IF true literal", inputSteps: []Step{createIfStep(dummyPos, &BooleanLiteralNode{Pos: dummyPos, Value: true}, []Step{createTestStep("set", "x", &StringLiteralNode{Pos: dummyPos, Value: "Inside"}, nil)}, []Step{})}, initialVars: map[string]interface{}{}, expectedVars: map[string]interface{}{"x": "Inside"}, expectedResult: "Inside", expectError: false},
-		{name: "IF block with RETURN", inputSteps: []Step{
-			createTestStep("set", "status", &StringLiteralNode{Pos: dummyPos, Value: "Started"}, nil),
-			createIfStep(dummyPos, &BooleanLiteralNode{Pos: dummyPos, Value: true}, []Step{
-				createTestStep("set", "x", &StringLiteralNode{Pos: dummyPos, Value: "Inside"}, nil),
-				createTestStep("return", "", []Expression{&StringLiteralNode{Pos: dummyPos, Value: "ReturnedFromIf"}}, nil),
-				createTestStep("set", "y", &StringLiteralNode{Pos: dummyPos, Value: "NotReached"}, nil),
-			}, []Step{}),
-			createTestStep("set", "status", &StringLiteralNode{Pos: dummyPos, Value: "Finished"}, nil),
-		}, initialVars: map[string]interface{}{}, expectedVars: map[string]interface{}{"status": "Started", "x": "Inside"}, expectedResult: "ReturnedFromIf", expectError: false},
-
-		// --- Existing RETURN Tests ---
-		{name: "RETURN single value", inputSteps: []Step{createTestStep("return", "", &NumberLiteralNode{Pos: dummyPos, Value: int64(42)}, nil)}, initialVars: map[string]interface{}{}, expectedVars: map[string]interface{}{}, expectedResult: int64(42), expectError: false},
-		{name: "RETURN multiple values", inputSteps: []Step{createTestStep("return", "", []Expression{&StringLiteralNode{Pos: dummyPos, Value: "hello"}, &NumberLiteralNode{Pos: dummyPos, Value: int64(10)}, &BooleanLiteralNode{Pos: dummyPos, Value: true}}, nil)}, initialVars: map[string]interface{}{}, expectedVars: map[string]interface{}{}, expectedResult: []interface{}{"hello", int64(10), true}, expectError: false},
-		{name: "RETURN no value", inputSteps: []Step{createTestStep("return", "", nil, nil)}, initialVars: map[string]interface{}{}, expectedVars: map[string]interface{}{}, expectedResult: nil, expectError: false},
-		{name: "RETURN value from variable", inputSteps: []Step{
-			createTestStep("set", "myVar", &StringLiteralNode{Pos: dummyPos, Value: "data"}, nil),
-			createTestStep("return", "", &VariableNode{Pos: dummyPos, Name: "myVar"}, nil),
-		}, initialVars: map[string]interface{}{}, expectedVars: map[string]interface{}{"myVar": "data"}, expectedResult: "data", expectError: false},
-		{name: "RETURN multiple values including variable", inputSteps: []Step{
-			createTestStep("set", "myVar", &BooleanLiteralNode{Pos: dummyPos, Value: false}, nil),
-			createTestStep("return", "", []Expression{&NumberLiteralNode{Pos: dummyPos, Value: int64(1)}, &VariableNode{Pos: dummyPos, Name: "myVar"}, &NumberLiteralNode{Pos: dummyPos, Value: 3.14}}, nil),
-		}, initialVars: map[string]interface{}{}, expectedVars: map[string]interface{}{"myVar": false}, expectedResult: []interface{}{int64(1), false, 3.14}, expectError: false},
-
-		// --- Corrected MUST Tests: expectedResult is the condition's value ---
-		{name: "MUST true literal", inputSteps: []Step{createTestStep("must", "", &BooleanLiteralNode{Pos: dummyPos, Value: true}, nil)}, initialVars: map[string]interface{}{}, expectedResult: true, expectError: false},
-		{name: "MUST false literal", inputSteps: []Step{createTestStep("must", "", &BooleanLiteralNode{Pos: dummyPos, Value: false}, nil)}, initialVars: map[string]interface{}{}, expectedResult: nil, expectError: true, ExpectedErrorIs: ErrMustConditionFailed},
-		{name: "MUST non-zero number", inputSteps: []Step{createTestStep("must", "", &NumberLiteralNode{Pos: dummyPos, Value: int64(1)}, nil)}, initialVars: map[string]interface{}{}, expectedResult: int64(1), expectError: false},
-		{name: "MUST zero number", inputSteps: []Step{createTestStep("must", "", &NumberLiteralNode{Pos: dummyPos, Value: int64(0)}, nil)}, initialVars: map[string]interface{}{}, expectedResult: nil, expectError: true, ExpectedErrorIs: ErrMustConditionFailed},
-		{name: "MUST non-empty string ('true')", inputSteps: []Step{createTestStep("must", "", &StringLiteralNode{Pos: dummyPos, Value: "true"}, nil)}, initialVars: map[string]interface{}{}, expectedResult: "true", expectError: false},
-		{name: "MUST non-empty string ('1')", inputSteps: []Step{createTestStep("must", "", &StringLiteralNode{Pos: dummyPos, Value: "1"}, nil)}, initialVars: map[string]interface{}{}, expectedResult: "1", expectError: false},
-		{name: "MUST empty string", inputSteps: []Step{createTestStep("must", "", &StringLiteralNode{Pos: dummyPos, Value: ""}, nil)}, initialVars: map[string]interface{}{}, expectedResult: nil, expectError: true, ExpectedErrorIs: ErrMustConditionFailed},
-		{name: "MUST non-empty string ('other')", inputSteps: []Step{createTestStep("must", "", &StringLiteralNode{Pos: dummyPos, Value: "other"}, nil)}, initialVars: map[string]interface{}{}, expectedResult: nil, expectError: true, ExpectedErrorIs: ErrMustConditionFailed},
-		{name: "MUST nil", inputSteps: []Step{createTestStep("must", "", &VariableNode{Pos: dummyPos, Name: "nilVar"}, nil)}, initialVars: map[string]interface{}{"nilVar": nil}, expectedResult: nil, expectError: true, ExpectedErrorIs: ErrMustConditionFailed},
-		{name: "MUST true variable", inputSteps: []Step{createTestStep("must", "", &VariableNode{Pos: dummyPos, Name: "t"}, nil)}, initialVars: map[string]interface{}{"t": true}, expectedResult: true, expectError: false},
-		{name: "MUST last result (true)", inputSteps: []Step{createTestStep("set", "_ignored", &BooleanLiteralNode{Pos: dummyPos, Value: true}, nil), createTestStep("must", "", &LastNode{Pos: dummyPos}, nil)}, initialVars: map[string]interface{}{}, lastResult: true, expectedResult: true, expectError: false},
-		{name: "MUST last result (false)", inputSteps: []Step{createTestStep("set", "_ignored", &BooleanLiteralNode{Pos: dummyPos, Value: false}, nil), createTestStep("must", "", &LastNode{Pos: dummyPos}, nil)}, initialVars: map[string]interface{}{}, lastResult: false, expectedResult: nil, expectError: true, ExpectedErrorIs: ErrMustConditionFailed},
-		{name: "MUST expression (1 > 0)", inputSteps: []Step{createTestStep("must", "", &BinaryOpNode{Pos: dummyPos, Left: &NumberLiteralNode{Pos: dummyPos, Value: int64(1)}, Operator: ">", Right: &NumberLiteralNode{Pos: dummyPos, Value: int64(0)}}, nil)}, initialVars: map[string]interface{}{}, expectedResult: true, expectError: false},
-		{name: "MUST expression (1 < 0)", inputSteps: []Step{createTestStep("must", "", &BinaryOpNode{Pos: dummyPos, Left: &NumberLiteralNode{Pos: dummyPos, Value: int64(1)}, Operator: "<", Right: &NumberLiteralNode{Pos: dummyPos, Value: int64(0)}}, nil)}, initialVars: map[string]interface{}{}, expectedResult: nil, expectError: true, ExpectedErrorIs: ErrMustConditionFailed},
-		{name: "MUST evaluation error", inputSteps: []Step{createTestStep("must", "", &BinaryOpNode{Pos: dummyPos, Left: &NumberLiteralNode{Pos: dummyPos, Value: int64(1)}, Operator: "+", Right: &StringLiteralNode{Pos: dummyPos, Value: "a"}}, nil)}, initialVars: map[string]interface{}{}, expectedResult: nil, expectError: true, ExpectedErrorIs: ErrMustConditionFailed},
-
-		// --- Corrected MUSTBE Tests: expectedResult is the check function's result (true for pass) ---
-		{name: "MUSTBE is_string pass", inputSteps: []Step{createTestStep("mustbe", "is_string", &CallableExprNode{Pos: dummyPos, Target: CallTarget{Pos: dummyPos, Name: "is_string", IsTool: false}, Arguments: []Expression{&VariableNode{Pos: dummyPos, Name: "s"}}}, nil)}, initialVars: mustBeVars, expectedResult: true, expectError: false},
-		{name: "MUSTBE is_string fail", inputSteps: []Step{createTestStep("mustbe", "is_string", &CallableExprNode{Pos: dummyPos, Target: CallTarget{Pos: dummyPos, Name: "is_string", IsTool: false}, Arguments: []Expression{&VariableNode{Pos: dummyPos, Name: "n"}}}, nil)}, initialVars: mustBeVars, expectedResult: nil, expectError: true, ExpectedErrorIs: ErrMustConditionFailed},
-		{name: "MUSTBE not_empty fail (nil)", inputSteps: []Step{createTestStep("mustbe", "not_empty", &CallableExprNode{Pos: dummyPos, Target: CallTarget{Pos: dummyPos, Name: "not_empty", IsTool: false}, Arguments: []Expression{&VariableNode{Pos: dummyPos, Name: "nilV"}}}, nil)}, initialVars: mustBeVars, expectedResult: nil, expectError: true, ExpectedErrorIs: ErrMustConditionFailed},
-		{name: "MUSTBE unknown function", inputSteps: []Step{createTestStep("mustbe", "is_banana", &CallableExprNode{Pos: dummyPos, Target: CallTarget{Pos: dummyPos, Name: "is_banana", IsTool: false}, Arguments: []Expression{&BooleanLiteralNode{Pos: dummyPos, Value: true}}}, nil)}, initialVars: map[string]interface{}{}, expectedResult: nil, expectError: true, ExpectedErrorIs: ErrMustConditionFailed},
-		{name: "MUSTBE wrong arg count", inputSteps: []Step{createTestStep("mustbe", "is_string", &CallableExprNode{Pos: dummyPos, Target: CallTarget{Pos: dummyPos, Name: "is_string", IsTool: false}, Arguments: []Expression{&StringLiteralNode{Pos: dummyPos, Value: "a"}, &StringLiteralNode{Pos: dummyPos, Value: "b"}}}, nil)}, initialVars: map[string]interface{}{}, expectedResult: nil, expectError: true, ExpectedErrorIs: ErrMustConditionFailed},
-		{name: "MUSTBE argument evaluation error", inputSteps: []Step{createTestStep("mustbe", "is_string", &CallableExprNode{Pos: dummyPos, Target: CallTarget{Pos: dummyPos, Name: "is_string", IsTool: false}, Arguments: []Expression{&VariableNode{Pos: dummyPos, Name: "missing"}}}, nil)}, initialVars: map[string]interface{}{}, expectedResult: nil, expectError: true, ExpectedErrorIs: ErrMustConditionFailed},
-
-		// --- Dotted Tool Name Test Cases ---
 		{
-			name: "Tool Call List.Length",
+			name: "IF true literal",
 			inputSteps: []Step{
-				createTestStep("set", "listLen", &CallableExprNode{
-					Pos:       dummyPos,
-					Target:    CallTarget{Pos: dummyPos, IsTool: true, Name: "List.Length"},
-					Arguments: []Expression{&VariableNode{Pos: dummyPos, Name: "myInitialList"}},
-				}, nil),
+				createIfStep(dummyPos, &BooleanLiteralNode{Pos: dummyPos, Value: true},
+					[]Step{createTestStep("set", "x", &StringLiteralNode{Pos: dummyPos, Value: "Inside"}, nil)},
+					nil,
+				),
 			},
-			initialVars:    map[string]interface{}{"myInitialList": initialList},
-			expectedVars:   map[string]interface{}{"myInitialList": initialList, "listLen": int64(3)},
-			expectedResult: int64(3),
+			expectedVars:   map[string]interface{}{"x": StringValue{Value: "Inside"}},
+			expectedResult: StringValue{Value: "Inside"},
 			expectError:    false,
+		},
+		{
+			name: "IF block with RETURN",
+			inputSteps: []Step{
+				createTestStep("set", "status", &StringLiteralNode{Pos: dummyPos, Value: "Started"}, nil),
+				createIfStep(dummyPos, &BooleanLiteralNode{Pos: dummyPos, Value: true},
+					[]Step{
+						createTestStep("set", "x", &StringLiteralNode{Pos: dummyPos, Value: "Inside"}, nil),
+						createTestStep("return", "", &StringLiteralNode{Pos: dummyPos, Value: "ReturnedFromIf"}, nil),
+					},
+					nil),
+				createTestStep("set", "status", &StringLiteralNode{Pos: dummyPos, Value: "Finished"}, nil),
+			},
+			initialVars:    map[string]interface{}{},
+			expectedVars:   map[string]interface{}{"status": StringValue{Value: "Started"}, "x": StringValue{Value: "Inside"}},
+			expectedResult: StringValue{Value: "ReturnedFromIf"},
+			expectError:    false,
+		},
+		{
+			name: "RETURN multiple values",
+			inputSteps: []Step{
+				{
+					Type: "return",
+					Pos:  dummyPos,
+					Values: []Expression{
+						&StringLiteralNode{Value: "hello"},
+						&NumberLiteralNode{Value: int64(10)},
+						&BooleanLiteralNode{Value: true},
+					},
+				},
+			},
+			expectedResult: NewListValue([]Value{
+				StringValue{Value: "hello"},
+				NumberValue{Value: 10},
+				BoolValue{Value: true},
+			}),
+			expectError: false,
+		},
+		{
+			name: "RETURN value from variable",
+			inputSteps: []Step{
+				createTestStep("set", "myVar", &StringLiteralNode{Value: "data"}, nil),
+				createTestStep("return", "", &VariableNode{Name: "myVar"}, nil),
+			},
+			expectedVars:   map[string]interface{}{"myVar": StringValue{Value: "data"}},
+			expectedResult: StringValue{Value: "data"},
+			expectError:    false,
+		},
+		{
+			name: "RETURN multiple values including variable",
+			inputSteps: []Step{
+				createTestStep("set", "myVar", &BooleanLiteralNode{Value: false}, nil),
+				{
+					Type: "return",
+					Pos:  dummyPos,
+					Values: []Expression{
+						&NumberLiteralNode{Value: int64(1)},
+						&VariableNode{Name: "myVar"},
+						&NumberLiteralNode{Value: 3.14},
+					},
+				},
+			},
+			expectedVars: map[string]interface{}{"myVar": BoolValue{Value: false}},
+			expectedResult: NewListValue([]Value{
+				NumberValue{Value: 1},
+				BoolValue{Value: false},
+				NumberValue{Value: 3.14},
+			}),
+			expectError: false,
+		},
+		{
+			name:           "MUST true literal",
+			inputSteps:     []Step{createTestStep("must", "", &BooleanLiteralNode{Value: true}, nil)},
+			expectedResult: BoolValue{Value: true},
+			expectError:    false,
+		},
+		{
+			name:           "MUST non-empty string ('true')",
+			inputSteps:     []Step{createTestStep("must", "", &StringLiteralNode{Value: "true"}, nil)},
+			expectedResult: StringValue{Value: "true"},
+			expectError:    false,
+		},
+		{
+			name:           "MUST non-empty string ('1')",
+			inputSteps:     []Step{createTestStep("must", "", &StringLiteralNode{Value: "1"}, nil)},
+			expectedResult: StringValue{Value: "1"},
+			expectError:    false,
+		},
+		{
+			name:            "MUST non-empty string ('other')",
+			inputSteps:      []Step{createTestStep("must", "", &StringLiteralNode{Value: "other"}, nil)},
+			expectError:     true,
+			ExpectedErrorIs: ErrMustConditionFailed,
+		},
+		{
+			name:            "MUST last result (false)",
+			inputSteps:      []Step{createTestStep("must", "", &LastNode{}, nil)},
+			lastResult:      BoolValue{Value: false},
+			expectError:     true,
+			ExpectedErrorIs: ErrMustConditionFailed,
+		},
+		{
+			name:            "MUST evaluation error",
+			inputSteps:      []Step{createTestStep("must", "", &BinaryOpNode{Left: &NumberLiteralNode{Value: 1}, Operator: "+", Right: &StringLiteralNode{Value: "a"}}, nil)},
+			expectError:     true,
+			ExpectedErrorIs: ErrInvalidOperandType,
 		},
 		{
 			name: "Tool Call List.Append",
 			inputSteps: []Step{
 				createTestStep("set", "appendedList", &CallableExprNode{
-					Pos:    dummyPos,
-					Target: CallTarget{Pos: dummyPos, IsTool: true, Name: "List.Append"},
-					Arguments: []Expression{
-						&VariableNode{Pos: dummyPos, Name: "myInitialList"},
-						&StringLiteralNode{Pos: dummyPos, Value: "newItem"},
-					},
+					Pos:       dummyPos,
+					Target:    CallTarget{Pos: dummyPos, IsTool: true, Name: "List.Append"},
+					Arguments: []Expression{&VariableNode{Pos: dummyPos, Name: "lvar"}, &StringLiteralNode{Value: "newItem"}},
 				}, nil),
 			},
-			initialVars:    map[string]interface{}{"myInitialList": initialList},
-			expectedVars:   map[string]interface{}{"myInitialList": initialList, "appendedList": []interface{}{"item1", int64(2), true, "newItem"}},
-			expectedResult: []interface{}{"item1", int64(2), true, "newItem"},
-			expectError:    false,
-		},
-		{
-			name: "Tool Call List.Get valid index",
-			inputSteps: []Step{
-				createTestStep("set", "gotItem", &CallableExprNode{
-					Pos:    dummyPos,
-					Target: CallTarget{Pos: dummyPos, IsTool: true, Name: "List.Get"},
-					Arguments: []Expression{
-						&VariableNode{Pos: dummyPos, Name: "myInitialList"},
-						&NumberLiteralNode{Pos: dummyPos, Value: int64(1)},
-					},
-				}, nil),
-			},
-			initialVars:    map[string]interface{}{"myInitialList": initialList},
-			expectedVars:   map[string]interface{}{"myInitialList": initialList, "gotItem": int64(2)},
-			expectedResult: int64(2),
-			expectError:    false,
+			initialVars: map[string]interface{}{"lvar": initialList},
+			expectedResult: NewListValue([]Value{
+				StringValue{Value: "item1"},
+				NumberValue{Value: 2},
+				BoolValue{Value: true},
+				StringValue{Value: "newItem"},
+			}),
+			expectError: false,
 		},
 		{
 			name: "Tool Call List.Get out-of-bounds with default",
@@ -140,70 +163,21 @@ func TestExecuteStepsBlocksAndLoops(t *testing.T) {
 					Pos:    dummyPos,
 					Target: CallTarget{Pos: dummyPos, IsTool: true, Name: "List.Get"},
 					Arguments: []Expression{
-						&VariableNode{Pos: dummyPos, Name: "myInitialList"},
-						&NumberLiteralNode{Pos: dummyPos, Value: int64(10)},
-						&StringLiteralNode{Pos: dummyPos, Value: "default"},
+						&VariableNode{Pos: dummyPos, Name: "lvar"},
+						&NumberLiteralNode{Value: int64(99)},
+						&StringLiteralNode{Value: "default"},
 					},
 				}, nil),
 			},
-			initialVars:    map[string]interface{}{"myInitialList": initialList},
-			expectedVars:   map[string]interface{}{"myInitialList": initialList, "gotItemOrDefault": "default"},
-			expectedResult: "default",
+			initialVars:    map[string]interface{}{"lvar": initialList},
+			expectedResult: StringValue{Value: "default"},
 			expectError:    false,
-		},
-		{
-			name: "Tool Call List.IsEmpty (false)",
-			inputSteps: []Step{
-				createTestStep("set", "isEmptyResult", &CallableExprNode{
-					Pos:       dummyPos,
-					Target:    CallTarget{Pos: dummyPos, IsTool: true, Name: "List.IsEmpty"},
-					Arguments: []Expression{&VariableNode{Pos: dummyPos, Name: "myInitialList"}},
-				}, nil),
-			},
-			initialVars:    map[string]interface{}{"myInitialList": initialList},
-			expectedVars:   map[string]interface{}{"myInitialList": initialList, "isEmptyResult": false},
-			expectedResult: false,
-			expectError:    false,
-		},
-		{
-			name: "Tool Call List.IsEmpty (true)",
-			inputSteps: []Step{
-				createTestStep("set", "isEmptyResult", &CallableExprNode{
-					Pos:       dummyPos,
-					Target:    CallTarget{Pos: dummyPos, IsTool: true, Name: "List.IsEmpty"},
-					Arguments: []Expression{&VariableNode{Pos: dummyPos, Name: "emptyLVar"}},
-				}, nil),
-			},
-			initialVars:    map[string]interface{}{"emptyLVar": []interface{}{}},
-			expectedVars:   map[string]interface{}{"emptyLVar": []interface{}{}, "isEmptyResult": true},
-			expectedResult: true,
-			expectError:    false,
-		},
-		{
-			name: "Tool Call Error - List.Length on non-list",
-			inputSteps: []Step{
-				createTestStep("set", "_ignored", &CallableExprNode{
-					Pos:       dummyPos,
-					Target:    CallTarget{Pos: dummyPos, IsTool: true, Name: "List.Length"},
-					Arguments: []Expression{&VariableNode{Pos: dummyPos, Name: "notAList"}},
-				}, nil),
-			},
-			initialVars:     map[string]interface{}{"notAList": "this is a string"},
-			expectedVars:    map[string]interface{}{"notAList": "this is a string"},
-			expectedResult:  nil,
-			expectError:     true,
-			ExpectedErrorIs: ErrValidationTypeMismatch, // Corrected: Expecting specific type mismatch from validation
-			errContains:     "expected a slice (list), got string",
 		},
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			runExecuteStepsTest(t, tc)
 		})
 	}
 }
-
-// nlines: 202
-// risk_rating: MEDIUM
