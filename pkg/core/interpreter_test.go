@@ -1,5 +1,5 @@
 // NeuroScript Version: 0.3.5
-// File version: 0.0.6
+// File version: 0.0.7
 // Purpose: Updated test assertions to expect core.Value types instead of native Go types.
 // filename: pkg/core/interpreter_test.go
 package core
@@ -8,9 +8,6 @@ import (
 	"testing"
 )
 
-// dummyPos is a shared position for test AST nodes.
-var dummyPos = &Position{Line: 1, Column: 1, File: "test"}
-
 // TestExecuteStepsBlocksAndLoops tests the execution of various control flow blocks and tool calls.
 func TestExecuteStepsBlocksAndLoops(t *testing.T) {
 	initialList := NewListValue([]Value{
@@ -18,6 +15,20 @@ func TestExecuteStepsBlocksAndLoops(t *testing.T) {
 		NumberValue{Value: 2},
 		BoolValue{Value: true},
 	})
+
+	mustBeVars := map[string]interface{}{
+		"s":      StringValue{Value: "a string"},
+		"n":      NumberValue{Value: 10},
+		"f":      NumberValue{Value: 3.14},
+		"b":      BoolValue{Value: true},
+		"l":      NewListValue([]Value{NumberValue{Value: 1}, NumberValue{Value: 2}}),
+		"m":      NewMapValue(map[string]Value{"a": NumberValue{Value: 1}}),
+		"emptyS": StringValue{Value: ""},
+		"emptyL": NewListValue(nil),
+		"emptyM": NewMapValue(nil),
+		"zeroN":  NumberValue{Value: 0},
+		"nilV":   NilValue{},
+	}
 
 	testCases := []executeStepsTestCase{
 		{
@@ -122,6 +133,7 @@ func TestExecuteStepsBlocksAndLoops(t *testing.T) {
 		{
 			name:            "MUST non-empty string ('other')",
 			inputSteps:      []Step{createTestStep("must", "", &StringLiteralNode{Value: "other"}, nil)},
+			initialVars:     mustBeVars,
 			expectError:     true,
 			ExpectedErrorIs: ErrMustConditionFailed,
 		},

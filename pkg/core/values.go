@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.4.1
-// File version: 3
-// Purpose: Added ListValue and MapValue types for complex data structures.
+// File version: 4
+// Purpose: Added FunctionValue and ToolValue to support typeof operations on them.
 // filename: pkg/core/values.go
-// nlines: 155 // Approximate
+// nlines: 181
 // risk_rating: MEDIUM
 
 package core
@@ -43,6 +43,13 @@ type BoolValue struct{ Value bool }
 func (v BoolValue) Type() NeuroScriptType { return TypeBoolean }
 func (v BoolValue) String() string        { return strconv.FormatBool(v.Value) }
 func (v BoolValue) IsTruthy() bool        { return v.Value }
+
+// BytesValue wraps arbitrary binary data.
+type BytesValue struct{ Value []byte }
+
+func (v BytesValue) Type() NeuroScriptType { return TypeBytes } // <-- add TypeBytes to your enum
+func (v BytesValue) String() string        { return fmt.Sprintf("bytes(%d)", len(v.Value)) }
+func (v BytesValue) IsTruthy() bool        { return len(v.Value) > 0 }
 
 // NilValue represents the nil value.
 type NilValue struct{}
@@ -140,6 +147,20 @@ func NewFuzzyValue(val float64) FuzzyValue {
 func (v FuzzyValue) Type() NeuroScriptType { return TypeFuzzy }
 func (v FuzzyValue) String() string        { return strconv.FormatFloat(v.μ, 'f', -1, 64) }
 func (v FuzzyValue) IsTruthy() bool        { return v.μ > 0.5 }
+
+// FunctionValue wraps a Procedure.
+type FunctionValue struct{ Value Procedure }
+
+func (v FunctionValue) Type() NeuroScriptType { return TypeFunction }
+func (v FunctionValue) String() string        { return fmt.Sprintf("<function %s>", v.Value.Name) }
+func (v FunctionValue) IsTruthy() bool        { return true }
+
+// ToolValue wraps a ToolImplementation.
+type ToolValue struct{ Value ToolImplementation }
+
+func (v ToolValue) Type() NeuroScriptType { return TypeTool }
+func (v ToolValue) String() string        { return fmt.Sprintf("<tool %s>", v.Value.Spec.Name) }
+func (v ToolValue) IsTruthy() bool        { return true }
 
 // --- Constructors for Complex Types ---
 

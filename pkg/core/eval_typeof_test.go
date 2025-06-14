@@ -1,15 +1,14 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.1.7 // Updated tests to expect wrapped Value types.
-// Purpose: Tests for the 'typeof' operator evaluation.
+// File version: 2
+// Purpose: Wraps procedure and tool structs in FunctionValue/ToolValue to align with the type system.
 // filename: pkg/core/eval_typeof_test.go
+// nlines: 201
+// risk_rating: LOW
 
 package core
 
 import (
 	"testing"
-	// core/testing_helpers.go for NewTestInterpreter, createTestStep, NewTestXXXLiteral/Node, etc.
-	// core/type_names.go for TypeString, TypeNumber etc.
-	// ast.go definitions (Position, TypeOfNode, various LiteralNodes, VariableNode, LastNode, Expression interface, Procedure, ToolImplementation, ArgSpec) are assumed
 )
 
 // common position for test AST nodes
@@ -147,14 +146,14 @@ func TestTypeOfOperator_Function(t *testing.T) {
 		t.Fatalf("Failed to add dummy procedure: %v", err)
 	}
 
-	// Store the Procedure object itself in a variable to test typeof(Procedure object)
-	err = i.SetVariable(testDummyProcedure.Name, testDummyProcedure)
+	// FIX: Wrap the raw Procedure struct in a FunctionValue before setting the variable.
+	err = i.SetVariable(testDummyProcedure.Name, FunctionValue{Value: testDummyProcedure})
 	if err != nil {
 		t.Fatalf("Failed to set variable '%s' to procedure object: %v", testDummyProcedure.Name, err)
 	}
 
 	// Create AST node for: typeof(myTestFuncForTypeOf)
-	argVarNode := NewTestVariableNode(testDummyProcedure.Name) // Variable now holds the Procedure struct
+	argVarNode := NewTestVariableNode(testDummyProcedure.Name)
 	typeOfExpr := &TypeOfNode{Pos: testPos, Argument: argVarNode}
 
 	result, evalErr := i.evaluateExpression(typeOfExpr)
@@ -179,7 +178,9 @@ func TestTypeOfOperator_Tool(t *testing.T) {
 	if !found {
 		t.Fatalf("Failed to retrieve registered tool MyTestToolForTypeOf")
 	}
-	err = i.SetVariable("myActualTestToolVar", toolVal) // Variable holds the ToolImplementation struct
+
+	// FIX: Wrap the raw ToolImplementation struct in a ToolValue before setting the variable.
+	err = i.SetVariable("myActualTestToolVar", ToolValue{Value: toolVal})
 	if err != nil {
 		t.Fatalf("Failed to set variable for tool value: %v", err)
 	}

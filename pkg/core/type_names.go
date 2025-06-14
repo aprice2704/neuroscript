@@ -14,6 +14,7 @@ const (
 	TypeString   NeuroScriptType = "string"
 	TypeNumber   NeuroScriptType = "number" // TypeNumber represents the 'number' type (for both integers and floats).
 	TypeBoolean  NeuroScriptType = "boolean"
+	TypeBytes    NeuroScriptType = "bytes"
 	TypeList     NeuroScriptType = "list"
 	TypeMap      NeuroScriptType = "map"
 	TypeNil      NeuroScriptType = "nil"

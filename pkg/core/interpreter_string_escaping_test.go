@@ -1,7 +1,10 @@
 // NeuroScript Version: 0.4.0
-// File version: 0.1.3
+// File version: 0.1.4
 // Purpose: Updated string escaping tests to expect core.Value types.
 // filename: pkg/core/interpreter_string_escaping_test.go
+// nlines: 175
+// risk_rating: LOW
+
 package core
 
 import (
@@ -14,7 +17,6 @@ func TestInterpretStringEscaping(t *testing.T) {
 	pos := &Position{Line: 1, Column: 1, File: "escape_integration_test"}
 
 	testCases := []executeStepsTestCase{
-		// Basic Escapes (Value field contains the Go string after unescaping)
 		{
 			name: "Interpret Backspace",
 			inputSteps: []Step{
@@ -82,10 +84,10 @@ func TestInterpretStringEscaping(t *testing.T) {
 		{
 			name: "Interpret Double Quote",
 			inputSteps: []Step{
-				createTestStep("set", "val", &StringLiteralNode{Pos: pos, Value: "a \"quoted\" string"}, nil),
+				createTestStep("set", "val", &StringLiteralNode{Pos: pos, Value: `a "quoted" string`}, nil),
 			},
-			expectedVars:   map[string]interface{}{"val": StringValue{Value: "a \"quoted\" string"}},
-			expectedResult: StringValue{Value: "a \"quoted\" string"},
+			expectedVars:   map[string]interface{}{"val": StringValue{Value: `a "quoted" string`}},
+			expectedResult: StringValue{Value: `a "quoted" string`},
 		},
 		{
 			name: "Interpret Single Quote",
@@ -98,12 +100,11 @@ func TestInterpretStringEscaping(t *testing.T) {
 		{
 			name: "Interpret Backslash",
 			inputSteps: []Step{
-				createTestStep("set", "val", &StringLiteralNode{Pos: pos, Value: "a path C:\\folder"}, nil),
+				createTestStep("set", "val", &StringLiteralNode{Pos: pos, Value: `a path C:\folder`}, nil),
 			},
-			expectedVars:   map[string]interface{}{"val": StringValue{Value: "a path C:\\folder"}},
-			expectedResult: StringValue{Value: "a path C:\\folder"},
+			expectedVars:   map[string]interface{}{"val": StringValue{Value: `a path C:\folder`}},
+			expectedResult: StringValue{Value: `a path C:\folder`},
 		},
-		// Unicode cases
 		{
 			name: "Interpret Unicode BMP",
 			inputSteps: []Step{
@@ -139,7 +140,7 @@ func TestInterpretStringEscaping(t *testing.T) {
 		{
 			name: "Interpret Unicode High Surrogate followed by non-low surrogate unicode",
 			inputSteps: []Step{
-				createTestStep("set", "val", &StringLiteralNode{Pos: pos, Value: string(rune(0xFFFD)) + "A"}, nil), // High surrogate followed by 'A'
+				createTestStep("set", "val", &StringLiteralNode{Pos: pos, Value: string(rune(0xFFFD)) + "A"}, nil),
 			},
 			expectedVars:   map[string]interface{}{"val": StringValue{Value: string(rune(0xFFFD)) + "A"}},
 			expectedResult: StringValue{Value: string(rune(0xFFFD)) + "A"},
@@ -147,7 +148,7 @@ func TestInterpretStringEscaping(t *testing.T) {
 		{
 			name: "Interpret Unicode High Surrogate followed by non-unicode escape",
 			inputSteps: []Step{
-				createTestStep("set", "val", &StringLiteralNode{Pos: pos, Value: string(rune(0xFFFD)) + "\n"}, nil), // High surrogate followed by newline
+				createTestStep("set", "val", &StringLiteralNode{Pos: pos, Value: string(rune(0xFFFD)) + "\n"}, nil),
 			},
 			expectedVars:   map[string]interface{}{"val": StringValue{Value: string(rune(0xFFFD)) + "\n"}},
 			expectedResult: StringValue{Value: string(rune(0xFFFD)) + "\n"},
@@ -155,8 +156,6 @@ func TestInterpretStringEscaping(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		// The helper `runExecuteStepsTest` is assumed to be in testing_helpers.go
-		// and correctly handles the execution and comparison.
 		runExecuteStepsTest(t, tc)
 	}
 }

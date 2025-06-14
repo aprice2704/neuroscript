@@ -1,6 +1,10 @@
+// NeuroScript Version: 0.3.0
+// File version: 7
+// Purpose: Fix nil pointer dereference in ExitOnErrorStmt by correctly setting up the block context in EnterOnErrorStmt.
 // filename: pkg/core/ast_builder_loops.go
-// version: 1.3.0
-// purpose: Implements listener methods for loop constructs, using correct Step slice type.
+// nlines: 207
+// risk_rating: LOW
+
 package core
 
 import (
@@ -11,13 +15,15 @@ import (
 
 func (l *neuroScriptListenerImpl) EnterWhile_statement(ctx *gen.While_statementContext) {
 	l.logDebugAST(">>> EnterWhile_statement")
-	// Block context is now handled by EnterStatement_list
+	l.loopDepth++
 }
 
 func (l *neuroScriptListenerImpl) ExitWhile_statement(ctx *gen.While_statementContext) {
 	l.logDebugAST("<<< ExitWhile_statement")
+	l.loopDepth--
+
 	bodyVal := l.pop()
-	body, ok := bodyVal.([]Step) // MINIMAL CHANGE: Expect []Step, not *[]Step.
+	body, ok := bodyVal.([]Step)
 	if !ok {
 		l.addError(ctx, "while statement expected a valid body on the stack, got %T", bodyVal)
 		return
@@ -40,13 +46,15 @@ func (l *neuroScriptListenerImpl) ExitWhile_statement(ctx *gen.While_statementCo
 
 func (l *neuroScriptListenerImpl) EnterFor_each_statement(ctx *gen.For_each_statementContext) {
 	l.logDebugAST(">>> EnterFor_each_statement")
-	// Block context is now handled by EnterStatement_list
+	l.loopDepth++
 }
 
 func (l *neuroScriptListenerImpl) ExitFor_each_statement(ctx *gen.For_each_statementContext) {
 	l.logDebugAST("<<< ExitFor_each_statement")
+	l.loopDepth--
+
 	bodyVal := l.pop()
-	body, ok := bodyVal.([]Step) // MINIMAL CHANGE: Expect []Step, not *[]Step.
+	body, ok := bodyVal.([]Step)
 	if !ok {
 		l.addError(ctx, "for..each statement expected a valid body on the stack, got %T", bodyVal)
 		return
@@ -130,8 +138,17 @@ func (l *neuroScriptListenerImpl) EnterIf_statement(c *gen.If_statementContext) 
 func (l *neuroScriptListenerImpl) EnterOnErrorStmt(c *gen.OnErrorStmtContext) {
 	l.enterBlockContext("on_error")
 }
+
 func (l *neuroScriptListenerImpl) ExitOnErrorStmt(c *gen.OnErrorStmtContext) {
-	body := l.exitBlockContext("on_error")
+	l.exitBlockContext("on_error") // This pushes the body to the value stack
+
+	bodyVal := l.pop()
+	body, ok := bodyVal.([]Step)
+	if !ok {
+		l.addError(c, "on_error statement expected a valid body from the stack, but got %T", bodyVal)
+		return
+	}
+
 	stmt := Step{
 		Pos:  tokenToPosition(c.GetStart()),
 		Type: "on_error",

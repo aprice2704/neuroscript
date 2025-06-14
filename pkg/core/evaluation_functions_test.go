@@ -3,6 +3,7 @@ package core
 
 import (
 	// Needed for errors.Is checks if done directly here (helper handles it now)
+	"fmt"
 	"math"
 	"testing"
 	// Assuming Position is defined in this package (ast.go)
@@ -14,7 +15,12 @@ import (
 // Assumes NewDefaultTestInterpreter is defined in helpers.go
 
 func TestMathFunctions(t *testing.T) {
-	vars := map[string]interface{}{
+	/* ------------------------------------------------------------------
+	   1. Define raw primitives that are convenient to read in the test.
+	   2. Immediately wrap them into core.Value so the interpreter never
+	      sees naked primitives – keeps the wrapper ↔ primitive contract.
+	   ------------------------------------------------------------------ */
+	rawVars := map[string]interface{}{
 		"e":       float64(math.E), // Ensure float64
 		"ten":     int64(10),
 		"pi_o_2":  float64(math.Pi / 2.0), // Ensure float64
@@ -26,6 +32,16 @@ func TestMathFunctions(t *testing.T) {
 		"str_abc": "abc",
 	}
 
+	// Wrap test vars into core.Value so interpreter never sees primitives.
+	vars := make(map[string]Value, len(rawVars))
+	for k, v := range rawVars {
+		w, err := Wrap(v)
+		if err != nil {
+			panic(fmt.Sprintf("test setup: cannot wrap %q: %v", k, err))
+		}
+		vars[k] = w
+	}
+
 	// Define dummyPos using local Position type pointer
 	dummyPos := &Position{Line: 1, Column: 1}
 
@@ -33,44 +49,44 @@ func TestMathFunctions(t *testing.T) {
 	testCases := []EvalTestCase{
 		// LN
 		// *** CORRECTED: Use & for nodes assigned to Expression fields/slices ***
-		{Name: "LN(e)", InputNode: &CallableExprNode{Pos: dummyPos, Target: CallTarget{Pos: dummyPos, Name: "ln"}, Arguments: []Expression{&VariableNode{Pos: dummyPos, Name: "e"}}}, InitialVars: vars, Expected: float64(1.0), WantErr: false},
-		{Name: "LN(1)", InputNode: &CallableExprNode{Pos: dummyPos, Target: CallTarget{Pos: dummyPos, Name: "ln"}, Arguments: []Expression{&VariableNode{Pos: dummyPos, Name: "one"}}}, InitialVars: vars, Expected: float64(0.0), WantErr: false},
-		{Name: "LN(0)", InputNode: &CallableExprNode{Pos: dummyPos, Target: CallTarget{Pos: dummyPos, Name: "ln"}, Arguments: []Expression{&VariableNode{Pos: dummyPos, Name: "zero"}}}, InitialVars: vars, WantErr: true, ExpectedErrorIs: ErrInvalidFunctionArgument},
-		{Name: "LN(-1)", InputNode: &CallableExprNode{Pos: dummyPos, Target: CallTarget{Pos: dummyPos, Name: "ln"}, Arguments: []Expression{&VariableNode{Pos: dummyPos, Name: "neg_one"}}}, InitialVars: vars, WantErr: true, ExpectedErrorIs: ErrInvalidFunctionArgument},
-		{Name: "LN Type Error", InputNode: &CallableExprNode{Pos: dummyPos, Target: CallTarget{Pos: dummyPos, Name: "ln"}, Arguments: []Expression{&VariableNode{Pos: dummyPos, Name: "str_abc"}}}, InitialVars: vars, WantErr: true, ExpectedErrorIs: ErrInvalidFunctionArgument},
-		{Name: "LN Arg Count Error", InputNode: &CallableExprNode{Pos: dummyPos, Target: CallTarget{Pos: dummyPos, Name: "ln"}, Arguments: []Expression{&VariableNode{Pos: dummyPos, Name: "one"}, &VariableNode{Pos: dummyPos, Name: "two"}}}, InitialVars: vars, WantErr: true, ExpectedErrorIs: ErrIncorrectArgCount},
+		{Name: "LN(e)", InputNode: &CallableExprNode{Pos: dummyPos, Target: CallTarget{Pos: dummyPos, Name: "ln"}, Arguments: []Expression{&VariableNode{Pos: dummyPos, Name: "e"}}}, InitVarsVal: vars, Expected: float64(1.0), WantErr: false},
+		{Name: "LN(1)", InputNode: &CallableExprNode{Pos: dummyPos, Target: CallTarget{Pos: dummyPos, Name: "ln"}, Arguments: []Expression{&VariableNode{Pos: dummyPos, Name: "one"}}}, InitVarsVal: vars, Expected: float64(0.0), WantErr: false},
+		{Name: "LN(0)", InputNode: &CallableExprNode{Pos: dummyPos, Target: CallTarget{Pos: dummyPos, Name: "ln"}, Arguments: []Expression{&VariableNode{Pos: dummyPos, Name: "zero"}}}, InitVarsVal: vars, WantErr: true, ExpectedErrorIs: ErrInvalidFunctionArgument},
+		{Name: "LN(-1)", InputNode: &CallableExprNode{Pos: dummyPos, Target: CallTarget{Pos: dummyPos, Name: "ln"}, Arguments: []Expression{&VariableNode{Pos: dummyPos, Name: "neg_one"}}}, InitVarsVal: vars, WantErr: true, ExpectedErrorIs: ErrInvalidFunctionArgument},
+		{Name: "LN Type Error", InputNode: &CallableExprNode{Pos: dummyPos, Target: CallTarget{Pos: dummyPos, Name: "ln"}, Arguments: []Expression{&VariableNode{Pos: dummyPos, Name: "str_abc"}}}, InitVarsVal: vars, WantErr: true, ExpectedErrorIs: ErrInvalidFunctionArgument},
+		{Name: "LN Arg Count Error", InputNode: &CallableExprNode{Pos: dummyPos, Target: CallTarget{Pos: dummyPos, Name: "ln"}, Arguments: []Expression{&VariableNode{Pos: dummyPos, Name: "one"}, &VariableNode{Pos: dummyPos, Name: "two"}}}, InitVarsVal: vars, WantErr: true, ExpectedErrorIs: ErrIncorrectArgCount},
 
 		// LOG (Base 10)
-		{Name: "LOG(10)", InputNode: &CallableExprNode{Pos: dummyPos, Target: CallTarget{Pos: dummyPos, Name: "log"}, Arguments: []Expression{&VariableNode{Pos: dummyPos, Name: "ten"}}}, InitialVars: vars, Expected: float64(1.0), WantErr: false},
-		{Name: "LOG(1)", InputNode: &CallableExprNode{Pos: dummyPos, Target: CallTarget{Pos: dummyPos, Name: "log"}, Arguments: []Expression{&VariableNode{Pos: dummyPos, Name: "one"}}}, InitialVars: vars, Expected: float64(0.0), WantErr: false},
-		{Name: "LOG(0)", InputNode: &CallableExprNode{Pos: dummyPos, Target: CallTarget{Pos: dummyPos, Name: "log"}, Arguments: []Expression{&VariableNode{Pos: dummyPos, Name: "zero"}}}, InitialVars: vars, WantErr: true, ExpectedErrorIs: ErrInvalidFunctionArgument},
-		{Name: "LOG Type Error", InputNode: &CallableExprNode{Pos: dummyPos, Target: CallTarget{Pos: dummyPos, Name: "log"}, Arguments: []Expression{&VariableNode{Pos: dummyPos, Name: "str_abc"}}}, InitialVars: vars, WantErr: true, ExpectedErrorIs: ErrInvalidFunctionArgument},
+		{Name: "LOG(10)", InputNode: &CallableExprNode{Pos: dummyPos, Target: CallTarget{Pos: dummyPos, Name: "log"}, Arguments: []Expression{&VariableNode{Pos: dummyPos, Name: "ten"}}}, InitVarsVal: vars, Expected: float64(1.0), WantErr: false},
+		{Name: "LOG(1)", InputNode: &CallableExprNode{Pos: dummyPos, Target: CallTarget{Pos: dummyPos, Name: "log"}, Arguments: []Expression{&VariableNode{Pos: dummyPos, Name: "one"}}}, InitVarsVal: vars, Expected: float64(0.0), WantErr: false},
+		{Name: "LOG(0)", InputNode: &CallableExprNode{Pos: dummyPos, Target: CallTarget{Pos: dummyPos, Name: "log"}, Arguments: []Expression{&VariableNode{Pos: dummyPos, Name: "zero"}}}, InitVarsVal: vars, WantErr: true, ExpectedErrorIs: ErrInvalidFunctionArgument},
+		{Name: "LOG Type Error", InputNode: &CallableExprNode{Pos: dummyPos, Target: CallTarget{Pos: dummyPos, Name: "log"}, Arguments: []Expression{&VariableNode{Pos: dummyPos, Name: "str_abc"}}}, InitVarsVal: vars, WantErr: true, ExpectedErrorIs: ErrInvalidFunctionArgument},
 
 		// SIN / COS / TAN (using Pi/2 for known values)
-		{Name: "SIN(Pi/2)", InputNode: &CallableExprNode{Pos: dummyPos, Target: CallTarget{Pos: dummyPos, Name: "sin"}, Arguments: []Expression{&VariableNode{Pos: dummyPos, Name: "pi_o_2"}}}, InitialVars: vars, Expected: float64(1.0), WantErr: false},
-		{Name: "SIN(0)", InputNode: &CallableExprNode{Pos: dummyPos, Target: CallTarget{Pos: dummyPos, Name: "sin"}, Arguments: []Expression{&VariableNode{Pos: dummyPos, Name: "zero"}}}, InitialVars: vars, Expected: float64(0.0), WantErr: false},
-		{Name: "COS(Pi/2)", InputNode: &CallableExprNode{Pos: dummyPos, Target: CallTarget{Pos: dummyPos, Name: "cos"}, Arguments: []Expression{&VariableNode{Pos: dummyPos, Name: "pi_o_2"}}}, InitialVars: vars, Expected: math.Cos(math.Pi / 2.0), WantErr: false}, // Expect near-zero float
-		{Name: "COS(0)", InputNode: &CallableExprNode{Pos: dummyPos, Target: CallTarget{Pos: dummyPos, Name: "cos"}, Arguments: []Expression{&VariableNode{Pos: dummyPos, Name: "zero"}}}, InitialVars: vars, Expected: float64(1.0), WantErr: false},
-		{Name: "TAN(0)", InputNode: &CallableExprNode{Pos: dummyPos, Target: CallTarget{Pos: dummyPos, Name: "tan"}, Arguments: []Expression{&VariableNode{Pos: dummyPos, Name: "zero"}}}, InitialVars: vars, Expected: float64(0.0), WantErr: false},
-		{Name: "SIN Type Error", InputNode: &CallableExprNode{Pos: dummyPos, Target: CallTarget{Pos: dummyPos, Name: "sin"}, Arguments: []Expression{&VariableNode{Pos: dummyPos, Name: "str_abc"}}}, InitialVars: vars, WantErr: true, ExpectedErrorIs: ErrInvalidFunctionArgument},
+		{Name: "SIN(Pi/2)", InputNode: &CallableExprNode{Pos: dummyPos, Target: CallTarget{Pos: dummyPos, Name: "sin"}, Arguments: []Expression{&VariableNode{Pos: dummyPos, Name: "pi_o_2"}}}, InitVarsVal: vars, Expected: float64(1.0), WantErr: false},
+		{Name: "SIN(0)", InputNode: &CallableExprNode{Pos: dummyPos, Target: CallTarget{Pos: dummyPos, Name: "sin"}, Arguments: []Expression{&VariableNode{Pos: dummyPos, Name: "zero"}}}, InitVarsVal: vars, Expected: float64(0.0), WantErr: false},
+		{Name: "COS(Pi/2)", InputNode: &CallableExprNode{Pos: dummyPos, Target: CallTarget{Pos: dummyPos, Name: "cos"}, Arguments: []Expression{&VariableNode{Pos: dummyPos, Name: "pi_o_2"}}}, InitVarsVal: vars, Expected: math.Cos(math.Pi / 2.0), WantErr: false}, // Expect near-zero float
+		{Name: "COS(0)", InputNode: &CallableExprNode{Pos: dummyPos, Target: CallTarget{Pos: dummyPos, Name: "cos"}, Arguments: []Expression{&VariableNode{Pos: dummyPos, Name: "zero"}}}, InitVarsVal: vars, Expected: float64(1.0), WantErr: false},
+		{Name: "TAN(0)", InputNode: &CallableExprNode{Pos: dummyPos, Target: CallTarget{Pos: dummyPos, Name: "tan"}, Arguments: []Expression{&VariableNode{Pos: dummyPos, Name: "zero"}}}, InitVarsVal: vars, Expected: float64(0.0), WantErr: false},
+		{Name: "SIN Type Error", InputNode: &CallableExprNode{Pos: dummyPos, Target: CallTarget{Pos: dummyPos, Name: "sin"}, Arguments: []Expression{&VariableNode{Pos: dummyPos, Name: "str_abc"}}}, InitVarsVal: vars, WantErr: true, ExpectedErrorIs: ErrInvalidFunctionArgument},
 
 		// ASIN / ACOS
-		{Name: "ASIN(1)", InputNode: &CallableExprNode{Pos: dummyPos, Target: CallTarget{Pos: dummyPos, Name: "asin"}, Arguments: []Expression{&VariableNode{Pos: dummyPos, Name: "one"}}}, InitialVars: vars, Expected: math.Asin(1.0), WantErr: false},
-		{Name: "ASIN(0)", InputNode: &CallableExprNode{Pos: dummyPos, Target: CallTarget{Pos: dummyPos, Name: "asin"}, Arguments: []Expression{&VariableNode{Pos: dummyPos, Name: "zero"}}}, InitialVars: vars, Expected: float64(0.0), WantErr: false},
-		{Name: "ASIN(2)", InputNode: &CallableExprNode{Pos: dummyPos, Target: CallTarget{Pos: dummyPos, Name: "asin"}, Arguments: []Expression{&VariableNode{Pos: dummyPos, Name: "two"}}}, InitialVars: vars, WantErr: true, ExpectedErrorIs: ErrInvalidFunctionArgument}, // Domain error
-		{Name: "ACOS(1)", InputNode: &CallableExprNode{Pos: dummyPos, Target: CallTarget{Pos: dummyPos, Name: "acos"}, Arguments: []Expression{&VariableNode{Pos: dummyPos, Name: "one"}}}, InitialVars: vars, Expected: float64(0.0), WantErr: false},
-		{Name: "ACOS(0)", InputNode: &CallableExprNode{Pos: dummyPos, Target: CallTarget{Pos: dummyPos, Name: "acos"}, Arguments: []Expression{&VariableNode{Pos: dummyPos, Name: "zero"}}}, InitialVars: vars, Expected: math.Acos(0.0), WantErr: false},
-		{Name: "ACOS(-1)", InputNode: &CallableExprNode{Pos: dummyPos, Target: CallTarget{Pos: dummyPos, Name: "acos"}, Arguments: []Expression{&VariableNode{Pos: dummyPos, Name: "neg_one"}}}, InitialVars: vars, Expected: math.Acos(-1.0), WantErr: false},
-		{Name: "ACOS(2)", InputNode: &CallableExprNode{Pos: dummyPos, Target: CallTarget{Pos: dummyPos, Name: "acos"}, Arguments: []Expression{&VariableNode{Pos: dummyPos, Name: "two"}}}, InitialVars: vars, WantErr: true, ExpectedErrorIs: ErrInvalidFunctionArgument}, // Domain error
-		{Name: "ASIN Type Error", InputNode: &CallableExprNode{Pos: dummyPos, Target: CallTarget{Pos: dummyPos, Name: "asin"}, Arguments: []Expression{&VariableNode{Pos: dummyPos, Name: "str_abc"}}}, InitialVars: vars, WantErr: true, ExpectedErrorIs: ErrInvalidFunctionArgument},
+		{Name: "ASIN(1)", InputNode: &CallableExprNode{Pos: dummyPos, Target: CallTarget{Pos: dummyPos, Name: "asin"}, Arguments: []Expression{&VariableNode{Pos: dummyPos, Name: "one"}}}, InitVarsVal: vars, Expected: math.Asin(1.0), WantErr: false},
+		{Name: "ASIN(0)", InputNode: &CallableExprNode{Pos: dummyPos, Target: CallTarget{Pos: dummyPos, Name: "asin"}, Arguments: []Expression{&VariableNode{Pos: dummyPos, Name: "zero"}}}, InitVarsVal: vars, Expected: float64(0.0), WantErr: false},
+		{Name: "ASIN(2)", InputNode: &CallableExprNode{Pos: dummyPos, Target: CallTarget{Pos: dummyPos, Name: "asin"}, Arguments: []Expression{&VariableNode{Pos: dummyPos, Name: "two"}}}, InitVarsVal: vars, WantErr: true, ExpectedErrorIs: ErrInvalidFunctionArgument}, // Domain error
+		{Name: "ACOS(1)", InputNode: &CallableExprNode{Pos: dummyPos, Target: CallTarget{Pos: dummyPos, Name: "acos"}, Arguments: []Expression{&VariableNode{Pos: dummyPos, Name: "one"}}}, InitVarsVal: vars, Expected: float64(0.0), WantErr: false},
+		{Name: "ACOS(0)", InputNode: &CallableExprNode{Pos: dummyPos, Target: CallTarget{Pos: dummyPos, Name: "acos"}, Arguments: []Expression{&VariableNode{Pos: dummyPos, Name: "zero"}}}, InitVarsVal: vars, Expected: math.Acos(0.0), WantErr: false},
+		{Name: "ACOS(-1)", InputNode: &CallableExprNode{Pos: dummyPos, Target: CallTarget{Pos: dummyPos, Name: "acos"}, Arguments: []Expression{&VariableNode{Pos: dummyPos, Name: "neg_one"}}}, InitVarsVal: vars, Expected: math.Acos(-1.0), WantErr: false},
+		{Name: "ACOS(2)", InputNode: &CallableExprNode{Pos: dummyPos, Target: CallTarget{Pos: dummyPos, Name: "acos"}, Arguments: []Expression{&VariableNode{Pos: dummyPos, Name: "two"}}}, InitVarsVal: vars, WantErr: true, ExpectedErrorIs: ErrInvalidFunctionArgument}, // Domain error
+		{Name: "ASIN Type Error", InputNode: &CallableExprNode{Pos: dummyPos, Target: CallTarget{Pos: dummyPos, Name: "asin"}, Arguments: []Expression{&VariableNode{Pos: dummyPos, Name: "str_abc"}}}, InitVarsVal: vars, WantErr: true, ExpectedErrorIs: ErrInvalidFunctionArgument},
 
 		// ATAN
-		{Name: "ATAN(0)", InputNode: &CallableExprNode{Pos: dummyPos, Target: CallTarget{Pos: dummyPos, Name: "atan"}, Arguments: []Expression{&VariableNode{Pos: dummyPos, Name: "zero"}}}, InitialVars: vars, Expected: float64(0.0), WantErr: false},
-		{Name: "ATAN(1)", InputNode: &CallableExprNode{Pos: dummyPos, Target: CallTarget{Pos: dummyPos, Name: "atan"}, Arguments: []Expression{&VariableNode{Pos: dummyPos, Name: "one"}}}, InitialVars: vars, Expected: math.Atan(1.0), WantErr: false},
-		{Name: "ATAN Type Error", InputNode: &CallableExprNode{Pos: dummyPos, Target: CallTarget{Pos: dummyPos, Name: "atan"}, Arguments: []Expression{&VariableNode{Pos: dummyPos, Name: "str_abc"}}}, InitialVars: vars, WantErr: true, ExpectedErrorIs: ErrInvalidFunctionArgument},
+		{Name: "ATAN(0)", InputNode: &CallableExprNode{Pos: dummyPos, Target: CallTarget{Pos: dummyPos, Name: "atan"}, Arguments: []Expression{&VariableNode{Pos: dummyPos, Name: "zero"}}}, InitVarsVal: vars, Expected: float64(0.0), WantErr: false},
+		{Name: "ATAN(1)", InputNode: &CallableExprNode{Pos: dummyPos, Target: CallTarget{Pos: dummyPos, Name: "atan"}, Arguments: []Expression{&VariableNode{Pos: dummyPos, Name: "one"}}}, InitVarsVal: vars, Expected: math.Atan(1.0), WantErr: false},
+		{Name: "ATAN Type Error", InputNode: &CallableExprNode{Pos: dummyPos, Target: CallTarget{Pos: dummyPos, Name: "atan"}, Arguments: []Expression{&VariableNode{Pos: dummyPos, Name: "str_abc"}}}, InitVarsVal: vars, WantErr: true, ExpectedErrorIs: ErrInvalidFunctionArgument},
 
 		// Unknown function
-		{Name: "Unknown Func", InputNode: &CallableExprNode{Pos: dummyPos, Target: CallTarget{Pos: dummyPos, Name: "SQRT"}, Arguments: []Expression{&NumberLiteralNode{Pos: dummyPos, Value: int64(4)}}}, InitialVars: vars, WantErr: true, ExpectedErrorIs: ErrProcedureNotFound}, // Assuming proc/func not found error
+		{Name: "Unknown Func", InputNode: &CallableExprNode{Pos: dummyPos, Target: CallTarget{Pos: dummyPos, Name: "SQRT"}, Arguments: []Expression{&NumberLiteralNode{Pos: dummyPos, Value: int64(4)}}}, InitVarsVal: vars, WantErr: true, ExpectedErrorIs: ErrProcedureNotFound}, // Assuming proc/func not found error
 		// *** END CORRECTIONS ***
 	}
 

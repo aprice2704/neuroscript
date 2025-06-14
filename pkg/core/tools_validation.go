@@ -1,7 +1,7 @@
-// NeuroScript Version: 0.3.1
-// File version: 0.1.3
-// Purpose: Unwraps Value types before validation to handle interpreter-native values.
-// nlines: 175
+// NeuroScript Version: 0.4.1
+// File version: 10
+// Purpose: Refactored to expect primitives, per the value-wrapping contract. Replaced generic validator with specific funcs.
+// nlines: 71
 // risk_rating: HIGH
 // filename: pkg/core/tools_validation.go
 
@@ -9,180 +9,62 @@ package core
 
 import (
 	"fmt"
-	"io"
-	"log"
 )
 
-// ValidateAndConvertArgs checks arguments and returns defined errors on failure.
-func ValidateAndConvertArgs(spec ToolSpec, rawArgs []interface{}) ([]interface{}, error) {
-	logger := log.New(io.Discard, "[VALIDATE DEBUG] ", log.Ltime|log.Lshortfile)
-	// logger = log.New(os.Stderr, "[VALIDATE DEBUG] ", log.Ltime|log.Lshortfile) // Uncomment for debugging
+// --- Tool Argument Convention (NEW) ---
+//
+// As per the value-wrapping contract, all validation functions operate on raw
+// Go primitives (e.g., []any, string, float64). They are the boundary between
+// the adapter/bridge layer and the tool implementation. They should NEVER import
+// the 'core' package or handle 'core.Value' wrapper types.
 
-	minRequiredArgs := 0
-	for _, argSpec := range spec.Args {
-		if argSpec.Required {
-			minRequiredArgs++
-		}
+// validateListLength checks if args are valid for the 'List.Length' tool.
+// It expects: [ list ]
+func validateListLength(args []any) error {
+	if len(args) != 1 {
+		return fmt.Errorf("%w: tool 'List.Length' expected 1 argument, got %d", ErrValidationArgCount, len(args))
 	}
-	maxExpectedArgs := len(spec.Args)
-	numRawArgs := len(rawArgs)
-
-	convertedArgs := make([]interface{}, len(spec.Args))
-	var firstValidationError error
-
-	for i := 0; i < len(spec.Args); i++ {
-		argSpec := spec.Args[i]
-		var rawValue interface{} // This is the value from the interpreter, possibly a Value type
-		var currentArgValidationError error
-
-		if i < len(rawArgs) {
-			rawValue = rawArgs[i]
-
-			// FIX: Unwrap the Value type to its native Go equivalent before validation.
-			unwrappedValue := unwrapValue(rawValue)
-
-			logger.Printf("Processing Arg %d ('%s'): RawValue=%#v (%T), UnwrappedValue=%#v (%T), SpecType=%s, Required=%t",
-				i, argSpec.Name, rawValue, rawValue, unwrappedValue, unwrappedValue, argSpec.Type, argSpec.Required)
-
-			if unwrappedValue == nil {
-				if argSpec.Required {
-					currentArgValidationError = fmt.Errorf("%w: argument '%s' (index %d) for tool '%s'", ErrValidationRequiredArgNil, argSpec.Name, i, spec.Name)
-					logger.Printf("Required arg is nil: %v", currentArgValidationError)
-				} else {
-					logger.Printf("Optional arg '%s' is nil, accepting.", argSpec.Name)
-					convertedArgs[i] = nil
-					continue
-				}
-			} else {
-				// If we have a non-nil value, proceed with type validation/coercion.
-				coercedValue, coerceErr := validateAndCoerceType(unwrappedValue, argSpec.Type, spec.Name, argSpec.Name)
-				if coerceErr != nil {
-					currentArgValidationError = coerceErr
-					logger.Printf("Type Coercion Failed for arg '%s': %v", argSpec.Name, currentArgValidationError)
-				} else {
-					convertedArgs[i] = coercedValue
-					logger.Printf("Type Coercion OK for arg '%s': Value=%#v (%T)", argSpec.Name, convertedArgs[i], convertedArgs[i])
-				}
-			}
-		} else {
-			// Argument is missing in the call
-			if argSpec.Required {
-				currentArgValidationError = fmt.Errorf("%w: argument '%s' (index %d) for tool '%s' is required but was not provided", ErrValidationRequiredArgMissing, argSpec.Name, i, spec.Name)
-				logger.Printf("Required arg missing: %v", currentArgValidationError)
-			} else {
-				logger.Printf("Optional arg '%s' missing, setting to nil.", argSpec.Name)
-				convertedArgs[i] = nil
-				continue
-			}
-		}
-
-		if currentArgValidationError != nil {
-			if firstValidationError == nil {
-				firstValidationError = currentArgValidationError
-			}
-			convertedArgs[i] = nil
-			continue
-		}
-	} // End loop over spec args
-
-	if firstValidationError != nil {
-		logger.Printf("Returning first validation error encountered: %v", firstValidationError)
-		return nil, firstValidationError
+	if args[0] == nil {
+		return fmt.Errorf("%w: argument 'list' cannot be nil", ErrValidationRequiredArgNil)
 	}
-
-	if numRawArgs < minRequiredArgs || (!spec.Variadic && numRawArgs > maxExpectedArgs) {
-		expectedArgsStr := ""
-		if minRequiredArgs == maxExpectedArgs {
-			expectedArgsStr = fmt.Sprintf("exactly %d", minRequiredArgs)
-		} else if maxExpectedArgs > 0 {
-			expectedArgsStr = fmt.Sprintf("between %d and %d", minRequiredArgs, maxExpectedArgs)
-		} else {
-			expectedArgsStr = "exactly 0"
-		}
-		err := fmt.Errorf("tool '%s' expected %s arguments, but received %d", spec.Name, expectedArgsStr, numRawArgs)
-		logger.Printf("Arg count error: %v", err)
-		return nil, fmt.Errorf("%w: %w", ErrValidationArgCount, err)
+	if _, ok := args[0].([]any); !ok {
+		return fmt.Errorf("%w: expected argument 'list' to be a list, but got %T", ErrValidationTypeMismatch, args[0])
 	}
-
-	logger.Printf("Validation successful for all args. Returning: %#v", convertedArgs)
-	return convertedArgs, nil
+	return nil
 }
 
-// validateAndCoerceType works with native Go types because the calling function now unwraps Values.
-func validateAndCoerceType(nativeValue interface{}, expectedType ArgType, toolName, argName string) (interface{}, error) {
-	if nativeValue == nil {
-		return nil, nil // Should have been handled by the required/optional logic already.
+// validateListAppend checks if args are valid for the 'List.Append' tool.
+// It expects: [ list, element ]
+func validateListAppend(args []any) error {
+	if len(args) != 2 {
+		return fmt.Errorf("%w: tool 'List.Append' expected 2 arguments, got %d", ErrValidationArgCount, len(args))
 	}
-
-	var finalValue interface{}
-	var err error
-	ok := true
-
-	switch expectedType {
-	case ArgTypeString:
-		finalValue, ok = nativeValue.(string)
-		if !ok {
-			err = fmt.Errorf("expected string, got %T", nativeValue)
-		}
-	case ArgTypeInt:
-		var intVal int64
-		intVal, ok = toInt64(nativeValue)
-		if ok {
-			finalValue = intVal
-		} else {
-			err = fmt.Errorf("value %v (%T) cannot be converted to int (int64)", nativeValue, nativeValue)
-		}
-	case ArgTypeFloat:
-		var floatVal float64
-		floatVal, ok = toFloat64(nativeValue)
-		if ok {
-			finalValue = floatVal
-		} else {
-			err = fmt.Errorf("value %v (%T) cannot be converted to float (float64)", nativeValue, nativeValue)
-		}
-	case ArgTypeBool:
-		var boolVal bool
-		boolVal, ok = ConvertToBool(nativeValue)
-		if ok {
-			finalValue = boolVal
-		} else {
-			err = fmt.Errorf("value %v (%T) cannot be converted to bool", nativeValue, nativeValue)
-		}
-	case ArgTypeSliceString:
-		var sliceVal []string
-		sliceVal, ok, err = ConvertToSliceOfString(nativeValue)
-		if ok {
-			finalValue = sliceVal
-		} else if err == nil {
-			err = fmt.Errorf("expected slice of strings, got %T", nativeValue)
-		}
-	case ArgTypeSliceAny:
-		var sliceVal []interface{}
-		sliceVal, ok, err = convertToSliceOfAny(nativeValue)
-		if ok {
-			finalValue = sliceVal
-		} else if err == nil {
-			err = fmt.Errorf("expected a slice (list), got %T", nativeValue)
-		}
-	case ArgTypeMap:
-		finalValue, ok = nativeValue.(map[string]interface{})
-		if !ok {
-			err = fmt.Errorf("expected map[string]interface{}, got %T", nativeValue)
-		}
-	case ArgTypeAny:
-		finalValue, ok = nativeValue, true
-	default:
-		err = fmt.Errorf("%w: unknown expected type '%s' for tool '%s' arg '%s'", ErrInternalTool, expectedType, toolName, argName)
-		ok = false
+	if args[0] == nil {
+		return fmt.Errorf("%w: argument 'list' cannot be nil", ErrValidationRequiredArgNil)
 	}
-
-	if err != nil || !ok {
-		finalErrMsg := fmt.Sprintf("argument '%s' of tool '%s'", argName, toolName)
-		if err != nil {
-			return nil, fmt.Errorf("%w: %s: %w", ErrValidationTypeMismatch, finalErrMsg, err)
-		}
-		return nil, fmt.Errorf("%w: %s: expected %s, got %T", ErrValidationTypeMismatch, finalErrMsg, expectedType, nativeValue)
+	if _, ok := args[0].([]any); !ok {
+		return fmt.Errorf("%w: expected argument 'list' to be a list, but got %T", ErrValidationTypeMismatch, args[0])
 	}
+	// The element to append (args[1]) can be any type, so no further validation is needed here.
+	return nil
+}
 
-	return finalValue, nil
+// validateListGet checks if args are valid for the 'List.Get' tool.
+// It expects: [ list, index, (optional) default ]
+func validateListGet(args []any) error {
+	if len(args) < 2 || len(args) > 3 {
+		return fmt.Errorf("%w: tool 'List.Get' expected 2 or 3 arguments, got %d", ErrValidationArgCount, len(args))
+	}
+	if args[0] == nil {
+		return fmt.Errorf("%w: argument 'list' cannot be nil", ErrValidationRequiredArgNil)
+	}
+	if _, ok := args[0].([]any); !ok {
+		return fmt.Errorf("%w: expected argument 'list' to be a list, but got %T", ErrValidationTypeMismatch, args[0])
+	}
+	if args[1] == nil {
+		return fmt.Errorf("%w: argument 'index' cannot be nil", ErrValidationRequiredArgNil)
+	}
+	// We could check if index is a number, but coercion can handle that.
+	// This layer is for basic shape validation.
+	return nil
 }

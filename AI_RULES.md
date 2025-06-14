@@ -5,6 +5,7 @@ Follow these **CORE RULES** **very strictly** for all Go code contributions to t
 ## TOP 10 CRITICAL RULES - ALWAYS FOLLOW:
 
 1.  **Understand Context First:** Before coding, review project documentation (especially `.md` files) and existing code to grasp goals and architecture. Remember the `neuroscript` folder dependency.
+1a. **MINIMAL CHANGES** unless otherwise told, when fixing compiler bugs or test fails, PERFORM THE MINIMUM changes required. Don't do a bunch of "tidying".
 2.  **Use the Code Index:**
     * You should have a `codebase-indices` directory, full of indices into the code base. **If not, ask for it.**
     * Use this index to find things in the codebase. **DO NOT MAKE ASSUMPTIONS.**

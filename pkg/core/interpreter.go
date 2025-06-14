@@ -1,9 +1,9 @@
 // NeuroScript Version: 0.3.1
-// File version: 3
-// Purpose: Core interpreter struct definition, constructor, and basic state management. Added mutex for variable safety.
+// File version: 7
+// Purpose: Fixes copylock warning by safely cloning the interpreter struct.
 // filename: pkg/core/interpreter.go
-// nlines: 140+
-// risk_rating: HIGH
+// nlines: 250+
+// risk_rating: MEDIUM
 package core
 
 import (
@@ -54,7 +54,6 @@ type Interpreter struct {
 }
 
 // LoadProgram registers all procedures and event handlers from a parsed Program AST.
-// This is the new primary method for loading a script into the interpreter.
 func (i *Interpreter) LoadProgram(prog *Program) error {
 	// Register Procedures
 	if i.knownProcedures == nil {
@@ -95,7 +94,7 @@ func NewInterpreter(logger interfaces.Logger, llmClient interfaces.LLMClient, sa
 	effectiveLogger := logger
 
 	if effectiveLogger == nil {
-		if IsRunningInTestMode() {
+		if !IsRunningInTestMode() {
 			log.Fatalf("FATAL: Critical error: No logger is active, and we are not in test mode. Exiting.")
 		}
 		effectiveLogger = &coreNoOpLogger{}
@@ -176,6 +175,55 @@ func NewInterpreter(logger interfaces.Logger, llmClient interfaces.LLMClient, sa
 	}
 
 	return interp, nil
+}
+
+// CloneWithNewVariables creates a shallow copy of the interpreter and its variable scope.
+// This is the core mechanism for providing safe, isolated scopes for procedure calls.
+func (i *Interpreter) CloneWithNewVariables() *Interpreter {
+	i.variablesMu.RLock()
+	newVars := make(map[string]interface{}, len(i.variables))
+	for k, v := range i.variables {
+		newVars[k] = v
+	}
+	i.variablesMu.RUnlock()
+
+	i.eventHandlersMu.RLock()
+	newHandlers := make(map[string][]*OnEventDecl, len(i.eventHandlers))
+	for k, v := range i.eventHandlers {
+		newHandlers[k] = v // Slices are copied by reference, which is acceptable here.
+	}
+	i.eventHandlersMu.RUnlock()
+
+	// Manually construct the new interpreter to avoid copying the mutex.
+	// Fields are shallow-copied, preserving the original behavior.
+	clone := &Interpreter{
+		knownProcedures:    i.knownProcedures,
+		lastCallResult:     i.lastCallResult,
+		vectorIndex:        i.vectorIndex,
+		embeddingDim:       i.embeddingDim,
+		sandboxDir:         i.sandboxDir,
+		LibPaths:           i.LibPaths,
+		stdout:             i.stdout,
+		externalHandler:    i.externalHandler,
+		toolRegistry:       i.toolRegistry,
+		logger:             i.logger,
+		objectCache:        i.objectCache,
+		llmClient:          i.llmClient,
+		fileAPI:            i.fileAPI,
+		aiWorkerManager:    i.aiWorkerManager,
+		ToolCallTimestamps: i.ToolCallTimestamps,
+		rateLimitCount:     i.rateLimitCount,
+		rateLimitDuration:  i.rateLimitDuration,
+		maxLoopIterations:  i.maxLoopIterations,
+
+		// Give the clone its own new maps and mutexes
+		variables:       newVars,
+		variablesMu:     sync.RWMutex{},
+		eventHandlers:   newHandlers,
+		eventHandlersMu: sync.RWMutex{},
+	}
+
+	return clone
 }
 
 func (i *Interpreter) SetStdout(writer io.Writer) {

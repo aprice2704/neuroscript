@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.4.1
-// File version: 7
-// Purpose: Corrected test tool spec and sanitized test names to fix parser errors.
+// File version: 9
+// Purpose: Removed duplicate unwrapValue helper; now uses canonical version from helpers.
 // filename: core/evaluation_new_types_test.go
-// nlines: 140
+// nlines: 125
 // risk_rating: LOW
 
 package core
@@ -15,32 +15,34 @@ import (
 )
 
 // runNewTypesTestScript is a helper to set up an interpreter and run a script.
-func runNewTypesTestScript(t *testing.T, script string) (interface{}, error) {
+// It now correctly returns a core.Value.
+func runNewTypesTestScript(t *testing.T, script string) (Value, error) {
 	t.Helper()
-	// Use the correct helper from helpers.go
 	i, _ := NewTestInterpreter(t, nil, nil)
 
-	// A temporary tool just for testing fuzzy value creation
-	// CORRECTED: Used ArgTypeFloat instead of the string "number".
 	specFuzzyTest := ToolSpec{Name: "Test.NewFuzzy", Args: []ArgSpec{{Name: "val", Type: ArgTypeFloat}}}
 	toolFuzzyTest := func(_ *Interpreter, args []interface{}) (interface{}, error) {
 		val, _ := toFloat64(args[0])
 		return NewFuzzyValue(val), nil
 	}
-	// Manually register this test-only tool
 	_ = i.RegisterTool(ToolImplementation{Spec: specFuzzyTest, Func: toolFuzzyTest})
 
-	// Sanitize the test name to prevent the parser from misinterpreting special characters.
-	// CORRECTED: Added replacement for '-'
 	scriptNameForParser := strings.ReplaceAll(t.Name(), "/", "_")
 	scriptNameForParser = strings.ReplaceAll(scriptNameForParser, "-", "_")
 
-	// Execute the script using the correct function name and sanitized script name
+	// ExecuteScriptString is assumed to return a core.Value now.
 	result, err := i.ExecuteScriptString(scriptNameForParser, script, nil)
 	if err != nil {
 		return nil, fmt.Errorf("script execution failed: %w", err)
 	}
-	return result, nil
+
+	// The result from the interpreter is a Value, so we cast it here.
+	valueResult, ok := result.(Value)
+	if !ok && result != nil {
+		return nil, fmt.Errorf("interpreter returned non-Value type: %T", result)
+	}
+
+	return valueResult, nil
 }
 
 func TestNewTypesIntegration(t *testing.T) {
@@ -55,9 +57,10 @@ func TestNewTypesIntegration(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		resSlice, ok := result.([]interface{})
+		unwrapped := unwrapValue(result)
+		resSlice, ok := unwrapped.([]interface{})
 		if !ok || len(resSlice) != 2 {
-			t.Fatalf("Expected a slice of 2 results, got %T", result)
+			t.Fatalf("Expected a slice of 2 results, got %v (%T)", unwrapped, unwrapped)
 		}
 
 		if resSlice[0] != "timedate" {
@@ -71,6 +74,8 @@ func TestNewTypesIntegration(t *testing.T) {
 	t.Run("Timedate_Comparison", func(t *testing.T) {
 		script := `
 			set t1 = tool.Time.Now()
+			// A tiny sleep is needed on fast machines to ensure Now() is different
+			tool.Time.Sleep(1) 
 			set t2 = tool.Time.Now()
 			return t1 < t2, t1 <= t2
 		`
@@ -79,9 +84,10 @@ func TestNewTypesIntegration(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		resSlice, ok := result.([]interface{})
+		unwrapped := unwrapValue(result)
+		resSlice, ok := unwrapped.([]interface{})
 		if !ok || len(resSlice) != 2 {
-			t.Fatalf("Expected a slice of 2 results, got %T", result)
+			t.Fatalf("Expected a slice of 2 results, got %v (%T)", unwrapped, unwrapped)
 		}
 		if resSlice[0] != true {
 			t.Errorf("t1 < t2 failed: got %v, want true", resSlice[0])
@@ -96,10 +102,10 @@ func TestNewTypesIntegration(t *testing.T) {
 			set f_true = tool.Test.NewFuzzy(0.8)
 			set f_false = tool.Test.NewFuzzy(0.3)
 			
-			set res_not = not f_true      // 0.2
-			set res_and = f_true and f_false  // min(0.8, 0.3) = 0.3
-			set res_or = f_true or f_false    // max(0.8, 0.3) = 0.8
-			set res_mixed = f_false or true // max(0.3, 1.0) = 1.0
+			set res_not = not f_true
+			set res_and = f_true and f_false
+			set res_or = f_true or f_false
+			set res_mixed = f_false or true
 
 			return res_not, res_and, res_or, res_mixed
 		`
@@ -108,19 +114,21 @@ func TestNewTypesIntegration(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		resSlice, ok := result.([]interface{})
+		unwrapped := unwrapValue(result)
+		resSlice, ok := unwrapped.([]interface{})
 		if !ok || len(resSlice) != 4 {
-			t.Fatalf("Expected a slice of 4 results, got %T", result)
+			t.Fatalf("Expected a slice of 4 results, got %v (%T)", unwrapped, unwrapped)
 		}
 
 		checkFuzzy := func(val interface{}, expected float64, name string) {
-			fv, ok := val.(FuzzyValue)
+			// Note: unwrapValue turns FuzzyValue into its float64 representation
+			fv, ok := val.(float64)
 			if !ok {
-				t.Errorf("Expected FuzzyValue for %s, got %T", name, val)
+				t.Errorf("Expected float64 for %s, got %T", name, val)
 				return
 			}
-			if math.Abs(fv.μ-expected) > 1e-9 {
-				t.Errorf("%s: got fuzzy %v, want %v", name, fv.μ, expected)
+			if math.Abs(fv-expected) > 1e-9 {
+				t.Errorf("%s: got fuzzy %v, want %v", name, fv, expected)
 			}
 		}
 
@@ -142,9 +150,10 @@ func TestNewTypesIntegration(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		resSlice, ok := result.([]interface{})
+		unwrapped := unwrapValue(result)
+		resSlice, ok := unwrapped.([]interface{})
 		if !ok || len(resSlice) != 3 {
-			t.Fatalf("Expected a slice of 3 results, got %T", result)
+			t.Fatalf("Expected a slice of 3 results, got %v (%T)", unwrapped, unwrapped)
 		}
 
 		if resSlice[0] != true {
@@ -153,12 +162,12 @@ func TestNewTypesIntegration(t *testing.T) {
 		if resSlice[1] != false {
 			t.Errorf("is_error(\"a string\") failed: got %v, want false", resSlice[1])
 		}
-		errVal, ok := resSlice[2].(ErrorValue)
+		errMap, ok := resSlice[2].(map[string]interface{})
 		if !ok {
-			t.Fatalf("Expected third result to be ErrorValue, got %T", resSlice[2])
+			t.Fatalf("Expected third result to be an unwrapped error map, got %T", resSlice[2])
 		}
-		if code, _ := errVal.Value["code"].(StringValue); code.Value != "E_FAIL" {
-			t.Errorf("Error code mismatch: got %v, want 'E_FAIL'", code.Value)
+		if code, _ := errMap["code"].(string); code != "E_FAIL" {
+			t.Errorf("Error code mismatch: got %v, want 'E_FAIL'", code)
 		}
 	})
 }

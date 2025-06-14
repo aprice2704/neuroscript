@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.4.1
-// File version: 6
-// Purpose: Corrected truthiness logic for strings and added nil check to isZeroValue.
+// File version: 9
+// Purpose: Updated unwrapValue to handle FunctionValue and ToolValue.
 // filename: pkg/core/evaluation_helpers.go
-// nlines: 228
+// nlines: 234
 // risk_rating: LOW
 
 package core
@@ -36,6 +36,10 @@ func unwrapValue(v interface{}) interface{} {
 	case FuzzyValue:
 		// Fuzzy doesn't have a direct native equivalent, return its float value
 		return val.μ
+	case FunctionValue:
+		return val.Value // Unwrap to Procedure struct
+	case ToolValue:
+		return val.Value // Unwrap to ToolImplementation struct
 	case ErrorValue:
 		// Unwrap the inner map
 		unwrappedMap := make(map[string]interface{})
@@ -69,12 +73,8 @@ func TypeOf(value interface{}) NeuroScriptType {
 		return TypeNil
 	}
 
-	// Prioritize our custom Value types
-	if v, ok := value.(Value); ok {
-		return v.Type()
-	}
-
-	// Fallback for native Go types (often used in tests or tool args)
+	// FIX: Check for concrete complex types like Procedure and ToolImplementation first,
+	// as they do not implement the Value interface and would be missed by later checks.
 	switch value.(type) {
 	case Procedure, *Procedure:
 		return TypeFunction
@@ -82,6 +82,12 @@ func TypeOf(value interface{}) NeuroScriptType {
 		return TypeTool
 	}
 
+	// Then, check for our custom Value wrapper types.
+	if v, ok := value.(Value); ok {
+		return v.Type()
+	}
+
+	// Fallback for native Go types (often used in tests or tool args)
 	val := reflect.ValueOf(value)
 	kind := val.Kind()
 
@@ -168,13 +174,16 @@ func toInt64(val interface{}) (int64, bool) {
 // was naturally a string.
 func toString(val interface{}) (string, bool) {
 	if val == nil {
-		return "nil", false
+		return "", false // FIX: Return empty string for nil to correct concatenation behavior.
 	}
 	if s, ok := val.(string); ok {
 		return s, true
 	}
 	if v, ok := val.(Value); ok {
 		// Use the value's own String() method
+		if _, isNil := v.(NilValue); isNil {
+			return "", false // FIX: Also handle the NilValue type explicitly.
+		}
 		_, isStr := v.(StringValue)
 		return v.String(), isStr
 	}

@@ -1,16 +1,19 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.1.0
-// Purpose: Updated ALL function signatures for simplicity and consistency.
+// File version: 0.2.1
+// Purpose: Corrects call to the standalone Wrap function to handle two return values.
 // filename: pkg/core/interpreter_steps_simple.go
-// nlines: 235
-// risk_rating: LOW
+// nlines: 236
+// risk_rating: MEDIUM
 
 package core
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
+
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 )
 
 // executeReturn handles the "return" step.
@@ -18,46 +21,32 @@ func (i *Interpreter) executeReturn(step Step) (interface{}, bool, error) {
 	posStr := step.Pos.String()
 	i.Logger().Debug("[DEBUG-INTERP] Executing RETURN", "pos", posStr)
 
-	if len(step.Values) > 0 {
+	if len(step.Values) > 1 {
 		i.Logger().Debug("[DEBUG-INTERP] Return has multiple expressions", "count", len(step.Values), "pos", posStr)
-		results := make([]interface{}, len(step.Values))
+		results := make([]Value, len(step.Values))
 		for idx, exprNode := range step.Values {
 			evaluatedValue, err := i.evaluateExpression(exprNode)
 			if err != nil {
-				exprPosStr := "<unknown>"
-				if exprNode != nil {
-					nodePos := exprNode.GetPos()
-					if nodePos != nil {
-						exprPosStr = nodePos.String()
-					}
-				}
-				errMsg := fmt.Sprintf("evaluating return expression %d at %s", idx+1, exprPosStr)
+				errMsg := fmt.Sprintf("evaluating return expression %d", idx+1)
 				return nil, true, WrapErrorWithPosition(err, exprNode.GetPos(), errMsg)
 			}
 			results[idx] = evaluatedValue
 		}
-		return results, true, nil
+		return NewListValue(results), true, nil
 	}
 
 	if step.Value != nil {
 		i.Logger().Debug("[DEBUG-INTERP] Return has a single expression", "pos", posStr)
 		evaluatedValue, err := i.evaluateExpression(step.Value)
 		if err != nil {
-			exprPosStr := "<unknown>"
-			if step.Value != nil {
-				nodePos := step.Value.GetPos()
-				if nodePos != nil {
-					exprPosStr = nodePos.String()
-				}
-			}
-			errMsg := fmt.Sprintf("evaluating return expression at %s", exprPosStr)
+			errMsg := "evaluating return expression"
 			return nil, true, WrapErrorWithPosition(err, step.Value.GetPos(), errMsg)
 		}
 		return evaluatedValue, true, nil
 	}
 
 	i.Logger().Debug("[DEBUG-INTERP] Return has no value (implicit nil)", "pos", posStr)
-	return nil, true, nil
+	return NilValue{}, true, nil
 }
 
 // executeEmit handles the "emit" step.
@@ -100,7 +89,7 @@ func (i *Interpreter) executeMust(step Step) (interface{}, error) {
 	i.Logger().Debug("[DEBUG-INTERP] Executing MUST/MUSTBE", "type", strings.ToUpper(stepType), "pos", posStr)
 
 	var conditionMet bool
-	var valueEvaluated interface{}
+	var valueEvaluated Value
 	var evalErr error
 	var errorNodePos *Position = step.Pos
 
@@ -151,11 +140,8 @@ func (i *Interpreter) executeMust(step Step) (interface{}, error) {
 		if evalErr != nil {
 			if _, ok := evalErr.(*RuntimeError); ok {
 				if errors.Is(evalErr, ErrMustConditionFailed) {
-					if evalErr == ErrMustConditionFailed {
-						detailMsg := fmt.Sprintf("must condition evaluated to false (value was %T: %v)", valueEvaluated, valueEvaluated)
-						return nil, NewRuntimeError(ErrorCodeMustFailed, detailMsg, ErrMustConditionFailed).WithPosition(errorNodePos)
-					}
-					return nil, NewRuntimeError(ErrorCodeMustFailed, evalErr.Error(), evalErr).WithPosition(errorNodePos)
+					detailMsg := fmt.Sprintf("must condition evaluated to false (value was %s: %v)", valueEvaluated.Type(), valueEvaluated)
+					return nil, NewRuntimeError(ErrorCodeMustFailed, detailMsg, ErrMustConditionFailed).WithPosition(errorNodePos)
 				}
 				return nil, evalErr
 			}
@@ -208,7 +194,7 @@ func (i *Interpreter) executeClearError(step Step, isInHandler bool) (bool, erro
 	return true, nil
 }
 
-// executeAsk handles the "ask" step.
+// executeAsk handles the "ask" step with a direct call to the LLM.
 func (i *Interpreter) executeAsk(step Step) (interface{}, error) {
 	posStr := step.Pos.String()
 	targetVar := step.AskIntoVar
@@ -230,21 +216,31 @@ func (i *Interpreter) executeAsk(step Step) (interface{}, error) {
 		return nil, NewRuntimeError(ErrorCodeLLMError, "LLM client not configured", ErrLLMNotConfigured).WithPosition(step.Pos)
 	}
 
-	llmResult := fmt.Sprintf("LLM Response placeholder for: %s", promptStr)
-	var llmErr error = nil
+	conversation := []*interfaces.ConversationTurn{
+		{Role: interfaces.RoleUser, Content: promptStr},
+	}
+	responseTurn, llmErr := i.llmClient.Ask(context.Background(), conversation)
 
 	if llmErr != nil {
 		errMsg := fmt.Sprintf("LLM interaction failed for ASK: %s", llmErr.Error())
 		return nil, NewRuntimeError(ErrorCodeLLMError, errMsg, llmErr).WithPosition(step.Pos)
 	}
+	if responseTurn == nil {
+		errMsg := "LLM returned a nil response without an error"
+		return nil, NewRuntimeError(ErrorCodeLLMError, errMsg, nil).WithPosition(step.Pos)
+	}
+
+	llmResult := responseTurn.Content
 
 	if targetVar != "" {
-		if setErr := i.SetVariable(targetVar, StringValue{Value: llmResult}); setErr != nil {
+		// FIX: Use the standalone Wrap function and handle the error.
+		wrappedResult, wrapErr := Wrap(llmResult)
+		if wrapErr != nil {
+			return nil, NewRuntimeError(ErrorCodeInternal, "failed to wrap ASK result", wrapErr).WithPosition(step.Pos)
+		}
+		if setErr := i.SetVariable(targetVar, wrappedResult); setErr != nil {
 			errMsg := fmt.Sprintf("setting variable '%s' for ASK result", targetVar)
-			if _, isRE := setErr.(*RuntimeError); !isRE {
-				setErr = NewRuntimeError(ErrorCodeInternal, errMsg, setErr)
-			}
-			return nil, WrapErrorWithPosition(setErr, step.Pos, "")
+			return nil, WrapErrorWithPosition(setErr, step.Pos, errMsg)
 		}
 		i.Logger().Debug("[DEBUG-INTERP] Stored ASK result in variable", "variable", targetVar)
 	}

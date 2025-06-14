@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.4.2
-// File version: 1.0.0
-// Purpose: Defines interpreter execution for assignment ("set") steps, now fully Value-aware.
+// File version: 8.0.0
+// Purpose: Implements a fully robust recursive 'set' execution with correct auto-vivification logic.
 // filename: pkg/core/interpreter_assignment.go
-// nlines: 215
+// nlines: 195
 // risk_rating: HIGH
 
 package core
@@ -11,196 +11,185 @@ import (
 	"fmt"
 )
 
-// executeSet handles the "set" step. It is now fully aware of Value types for both
-// the collections being modified and the accessors being used.
+// executeSet handles the "set" step, including complex assignments with auto-creation
+// of nested lists and maps (auto-vivification).
 func (i *Interpreter) executeSet(step Step) (interface{}, error) {
 	if step.LValue == nil {
 		return nil, NewRuntimeError(ErrorCodeInternal, "SetStep LValue is nil", nil).WithPosition(step.Pos)
 	}
 
-	baseVarName := step.LValue.Identifier
 	rhsValueRaw, evalErr := i.evaluateExpression(step.Value)
 	if evalErr != nil {
-		return nil, WrapErrorWithPosition(evalErr, step.Value.GetPos(), fmt.Sprintf("evaluating value for SET %s", baseVarName))
+		return nil, WrapErrorWithPosition(evalErr, step.Value.GetPos(), fmt.Sprintf("evaluating value for SET %s", step.LValue.Identifier))
 	}
 
-	// Ensure the RHS is a proper Value type.
 	rhsValue, ok := rhsValueRaw.(Value)
 	if !ok {
-		return nil, NewRuntimeError(ErrorCodeInternal, fmt.Sprintf("RHS of assignment to '%s' did not evaluate to a Value type, got %T", baseVarName, rhsValueRaw), nil).WithPosition(step.Value.GetPos())
+		return nil, NewRuntimeError(ErrorCodeInternal, fmt.Sprintf("RHS of assignment to '%s' did not evaluate to a Value type, got %T", step.LValue.Identifier, rhsValueRaw), nil).WithPosition(step.Value.GetPos())
 	}
 
 	// Simple assignment: set x = ...
 	if len(step.LValue.Accessors) == 0 {
-		if err := i.SetVariable(baseVarName, rhsValue); err != nil {
-			return nil, WrapErrorWithPosition(err, step.Pos, fmt.Sprintf("setting var '%s'", baseVarName))
-		}
-		return rhsValue, nil
+		return rhsValue, i.SetVariable(step.LValue.Identifier, rhsValue)
 	}
 
-	// --- Complex Assignment: set x[0].key = ... ---
+	// Complex Assignment: set x[0].key = ...
+	baseVarName := step.LValue.Identifier
 
-	// Get the base variable, which might not exist yet.
-	currentVal, varExists := i.GetVariable(baseVarName)
-	if !varExists {
-		// Determine if the base should be a list or map based on the first accessor.
-		firstAccessor := step.LValue.Accessors[0]
-		if firstAccessor.Type == BracketAccess {
-			accVal, err := i.evaluateExpression(firstAccessor.IndexOrKey)
+	// 1. Get the root container, creating it if it doesn't exist.
+	root, err := i.getOrCreateRootContainer(baseVarName, step.LValue.Accessors[0])
+	if err != nil {
+		return nil, err
+	}
+
+	// 2. Recursively traverse the path, modifying the data structure.
+	modifiedRoot, err := i.vivifyAndSet(root, step.LValue.Accessors, rhsValue)
+	if err != nil {
+		return nil, err
+	}
+
+	// 3. Commit the modified root back to the variable scope.
+	if err := i.SetVariable(baseVarName, modifiedRoot); err != nil {
+		return nil, err
+	}
+
+	return rhsValue, nil
+}
+
+// getOrCreateRootContainer retrieves the top-level variable for a complex assignment,
+// creating it if it doesn't exist based on the first accessor.
+func (i *Interpreter) getOrCreateRootContainer(name string, firstAccessor AccessorNode) (Value, error) {
+	rawVal, varExists := i.GetVariable(name)
+	if varExists {
+		if container, ok := rawVal.(Value); ok && (isMap(container) || isList(container)) {
+			return container, nil
+		}
+	}
+	return i.determineInitialContainer(firstAccessor)
+}
+
+// vivifyAndSet recursively traverses the accessor path, creating nested containers
+// as needed, and returns the (potentially modified) container.
+func (i *Interpreter) vivifyAndSet(current Value, accessors []AccessorNode, rhsValue Value) (Value, error) {
+	accessor := accessors[0]
+	isFinal := len(accessors) == 1
+
+	// --- Handle Map ---
+	if m, ok := current.(MapValue); ok {
+		key, err := i.evaluateAccessorKey(accessor)
+		if err != nil {
+			return nil, err
+		}
+
+		if isFinal {
+			m.Value[key] = rhsValue
+			return m, nil
+		}
+
+		child, exists := m.Value[key]
+		if !exists || (!isMap(child) && !isList(child)) {
+			child, err = i.determineInitialContainer(accessors[1])
 			if err != nil {
-				return nil, WrapErrorWithPosition(err, firstAccessor.Pos, "evaluating first accessor")
+				return nil, err
 			}
-			if _, isInt := toInt64(accVal); isInt {
-				currentVal = NewListValue(nil) // It's a list access, so create a ListValue
-			} else {
-				currentVal = NewMapValue(nil) // Otherwise, it's a map access
-			}
-		} else { // Dot access implies the base must be a map.
-			currentVal = NewMapValue(nil)
 		}
-		i.SetVariable(baseVarName, currentVal)
+
+		modifiedChild, err := i.vivifyAndSet(child, accessors[1:], rhsValue)
+		if err != nil {
+			return nil, err
+		}
+		m.Value[key] = modifiedChild // Update the child reference
+		return m, nil
 	}
 
-	var parentVal Value
-	var lastKey string
-	var lastIndex int64
+	// --- Handle List ---
+	if l, ok := current.(ListValue); ok {
+		index, err := i.evaluateAccessorIndex(accessor)
+		if err != nil {
+			return nil, err
+		}
 
-	// Traverse the accessor chain up to the second-to-last one.
-	for accessorIdx, accessor := range step.LValue.Accessors {
-		isFinalAccessor := accessorIdx == len(step.LValue.Accessors)-1
+		l.Value = padList(l.Value, index)
 
-		if cv, ok := currentVal.(MapValue); ok {
-			// --- Current level is a MAP ---
-			var key string
-			if accessor.Type == DotAccess {
-				key = accessor.FieldName
-			} else { // Bracket access on a map
-				keyVal, err := i.evaluateExpression(accessor.IndexOrKey)
-				if err != nil {
-					return nil, WrapErrorWithPosition(err, accessor.Pos, "evaluating map key")
-				}
-				key, _ = toString(keyVal)
-			}
+		if isFinal {
+			l.Value[index] = rhsValue
+			return l, nil
+		}
 
-			if isFinalAccessor {
-				cv.Value[key] = rhsValue
-				return rhsValue, nil
-			}
-
-			parentVal = cv
-			lastKey = key
-			nextVal, found := cv.Value[key]
-			if !found || (!isList(nextVal) && !isMap(nextVal)) {
-				// Auto-create next level if it doesn't exist or is not a collection.
-				createNextAsList := !isFinalAccessor && step.LValue.Accessors[accessorIdx+1].Type == BracketAccess
-				if _, isInt := toInt64(step.LValue.Accessors[accessorIdx+1].IndexOrKey); isInt {
-					createNextAsList = true
-				}
-
-				if createNextAsList {
-					nextVal = NewListValue(nil)
-				} else {
-					nextVal = NewMapValue(nil)
-				}
-				cv.Value[key] = nextVal
-			}
-			currentVal = nextVal
-
-		} else if cv, ok := currentVal.(ListValue); ok {
-			// --- Current level is a LIST ---
-			if accessor.Type == DotAccess {
-				return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("cannot use dot notation on a list for '%s'", baseVarName), ErrCannotAccessType).WithPosition(accessor.Pos)
-			}
-			indexVal, err := i.evaluateExpression(accessor.IndexOrKey)
+		child := l.Value[index]
+		if !isMap(child) && !isList(child) {
+			child, err = i.determineInitialContainer(accessors[1])
 			if err != nil {
-				return nil, WrapErrorWithPosition(err, accessor.Pos, "evaluating list index")
+				return nil, err
 			}
-			index, isInt := toInt64(indexVal)
-			if !isInt {
-				return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("list index must be an integer, got %s", TypeOf(indexVal)), ErrListInvalidIndexType).WithPosition(accessor.Pos)
-			}
-			if index < 0 {
-				return nil, NewRuntimeError(ErrorCodeBounds, fmt.Sprintf("list index cannot be negative, got %d", index), ErrListIndexOutOfBounds).WithPosition(accessor.Pos)
-			}
-
-			// Pad list with NilValue if index is out of bounds
-			for int64(len(cv.Value)) <= index {
-				cv.Value = append(cv.Value, NilValue{})
-				// If the list itself was grown, we need to update its reference in the parent
-				if pmap, ok := parentVal.(MapValue); ok {
-					pmap.Value[lastKey] = cv
-				} else if plist, ok := parentVal.(ListValue); ok {
-					plist.Value[lastIndex] = cv
-				}
-			}
-
-			if isFinalAccessor {
-				cv.Value[index] = rhsValue
-				return rhsValue, nil
-			}
-
-			parentVal = cv
-			lastIndex = index
-			nextVal := cv.Value[index]
-
-			if !isList(nextVal) && !isMap(nextVal) {
-				// Auto-create next level if it doesn't exist or is not a collection.
-				createNextAsList := !isFinalAccessor && step.LValue.Accessors[accessorIdx+1].Type == BracketAccess
-				if _, isInt := toInt64(step.LValue.Accessors[accessorIdx+1].IndexOrKey); isInt {
-					createNextAsList = true
-				}
-
-				if createNextAsList {
-					nextVal = NewListValue(nil)
-				} else {
-					nextVal = NewMapValue(nil)
-				}
-				cv.Value[index] = nextVal
-			}
-			currentVal = nextVal
-
-		} else {
-			// Current value is not a collection, but we need to descend further.
-			// This implies we need to overwrite it.
-			var newColl Value
-			createNextAsList := !isFinalAccessor && step.LValue.Accessors[accessorIdx+1].Type == BracketAccess
-			if _, isInt := toInt64(step.LValue.Accessors[accessorIdx+1].IndexOrKey); isInt {
-				createNextAsList = true
-			}
-
-			if createNextAsList {
-				newColl = NewListValue(nil)
-			} else {
-				newColl = NewMapValue(nil)
-			}
-
-			// Update the parent to point to this new collection
-			if pmap, ok := parentVal.(MapValue); ok {
-				pmap.Value[lastKey] = newColl
-			} else if plist, ok := parentVal.(ListValue); ok {
-				plist.Value[lastIndex] = newColl
-			}
-
-			currentVal = newColl
-			// Retry the current accessor with the newly created collection (this is complex, for now we will fail)
-			// A simpler model is to assume the script creates structures correctly.
-			// For now, we will error if we hit a non-collection mid-path.
-			return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("attempted to access through a non-collection type (%s) during assignment", TypeOf(currentVal)), ErrCannotAccessType).WithPosition(accessor.Pos)
-
 		}
+
+		modifiedChild, err := i.vivifyAndSet(child, accessors[1:], rhsValue)
+		if err != nil {
+			return nil, err
+		}
+		l.Value[index] = modifiedChild // Update the child reference
+		return l, nil
 	}
 
-	return nil, NewRuntimeError(ErrorCodeInternal, fmt.Sprintf("assignment did not complete for '%s'", step.LValue.String()), ErrInternal).WithPosition(step.Pos)
+	// --- Handle Primitive ---
+	// If it's a primitive, it must be overwritten by a new container.
+	newContainer, err := i.determineInitialContainer(accessor)
+	if err != nil {
+		return nil, err
+	}
+	return i.vivifyAndSet(newContainer, accessors, rhsValue)
 }
 
-// isList checks if an interface is a ListValue.
-func isList(v interface{}) bool {
-	_, ok := v.(ListValue)
-	return ok
+// Helper functions for evaluation and type checking.
+
+func (i *Interpreter) determineInitialContainer(accessor AccessorNode) (Value, error) {
+	if accessor.Type == DotAccess {
+		return NewMapValue(nil), nil
+	}
+	key, err := i.evaluateExpression(accessor.IndexOrKey)
+	if err != nil {
+		return nil, WrapErrorWithPosition(err, accessor.Pos, "evaluating accessor key")
+	}
+	if _, isInt := toInt64(key); isInt {
+		return NewListValue(nil), nil
+	}
+	return NewMapValue(nil), nil
 }
 
-// isMap checks if an interface is a MapValue.
-func isMap(v interface{}) bool {
-	_, ok := v.(MapValue)
-	return ok
+func (i *Interpreter) evaluateAccessorKey(accessor AccessorNode) (string, error) {
+	if accessor.Type == DotAccess {
+		return accessor.FieldName, nil
+	}
+	keyVal, err := i.evaluateExpression(accessor.IndexOrKey)
+	if err != nil {
+		return "", WrapErrorWithPosition(err, accessor.Pos, "evaluating map key")
+	}
+	key, _ := toString(keyVal)
+	return key, nil
 }
+
+func (i *Interpreter) evaluateAccessorIndex(accessor AccessorNode) (int64, error) {
+	indexVal, err := i.evaluateExpression(accessor.IndexOrKey)
+	if err != nil {
+		return 0, WrapErrorWithPosition(err, accessor.Pos, "evaluating list index")
+	}
+	index, isInt := toInt64(indexVal)
+	if !isInt {
+		return 0, NewRuntimeError(ErrorCodeType, fmt.Sprintf("list index must be an integer, got %s", TypeOf(indexVal)), ErrListInvalidIndexType).WithPosition(accessor.Pos)
+	}
+	if index < 0 {
+		return 0, NewRuntimeError(ErrorCodeBounds, fmt.Sprintf("list index cannot be negative, got %d", index), ErrListIndexOutOfBounds).WithPosition(accessor.Pos)
+	}
+	return index, nil
+}
+
+func padList(list []Value, requiredIndex int64) []Value {
+	for int64(len(list)) <= requiredIndex {
+		list = append(list, NilValue{})
+	}
+	return list
+}
+
+func isList(v Value) bool { _, ok := v.(ListValue); return ok }
+func isMap(v Value) bool  { _, ok := v.(MapValue); return ok }

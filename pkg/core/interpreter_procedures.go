@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.3.1
-// File version: 10
-// Purpose: Corrected variable shadowing bug in the Wrap method.
+// File version: 12
+// Purpose: Corrects all calls to the new standalone Wrap function to handle two return values.
 // filename: pkg/core/interpreter_procedures.go
-// nlines: 160
+// nlines: 168
 // risk_rating: HIGH
 
 package core
@@ -12,45 +12,6 @@ import (
 	"fmt"
 	"reflect"
 )
-
-// Wrap converts a native Go type into its corresponding NeuroScript Value type.
-// If the input is already a Value type, it is returned unchanged.
-func (i *Interpreter) Wrap(v interface{}) Value {
-	if val, ok := v.(Value); ok {
-		return val // It's already a Value, do nothing.
-	}
-	switch val := v.(type) {
-	case string:
-		return StringValue{Value: val}
-	case int:
-		return NumberValue{Value: float64(val)}
-	case int64:
-		return NumberValue{Value: float64(val)}
-	case float64:
-		return NumberValue{Value: val}
-	case bool:
-		return BoolValue{Value: val}
-	case nil:
-		return NilValue{}
-	case []interface{}:
-		list := make([]Value, len(val))
-		// FIX: Use 'idx' to avoid shadowing the interpreter 'i'.
-		for idx, item := range val {
-			list[idx] = i.Wrap(item)
-		}
-		return NewListValue(list)
-	case map[string]interface{}:
-		newMap := make(map[string]Value)
-		// FIX: Use a different variable name for the value to avoid confusion.
-		for k, item := range val {
-			newMap[k] = i.Wrap(item)
-		}
-		return NewMapValue(newMap)
-	default:
-		i.Logger().Warn("Attempted to wrap an unhandled native type; returning NilValue.", "type", fmt.Sprintf("%T", v))
-		return NilValue{}
-	}
-}
 
 // AddProcedure programmatically adds a single procedure to the interpreter's registry.
 func (i *Interpreter) AddProcedure(proc Procedure) error {
@@ -76,7 +37,7 @@ func (i *Interpreter) KnownProcedures() map[string]*Procedure {
 	return i.knownProcedures
 }
 
-func (i *Interpreter) RunProcedure(procName string, args ...interface{}) (result interface{}, err error) {
+func (i *Interpreter) RunProcedure(procName string, args ...interface{}) (interface{}, error) {
 	originalProcName := i.currentProcName
 	i.Logger().Debug("Running procedure", "name", procName, "caller", originalProcName)
 	defer func() {
@@ -103,23 +64,14 @@ func (i *Interpreter) RunProcedure(procName string, args ...interface{}) (result
 		return nil, fmt.Errorf("%w: procedure '%s' expects max %d args, got %d", ErrArgumentMismatch, procName, numTotalParams, numProvided)
 	}
 
-	procInterpreter := &Interpreter{
-		variables:       make(map[string]interface{}),
-		knownProcedures: i.knownProcedures,
-		stdout:          i.stdout,
-		logger:          i.logger,
-		toolRegistry:    i.toolRegistry,
-		llmClient:       i.llmClient,
-		fileAPI:         i.fileAPI,
-	}
-
-	for k, v := range i.variables {
-		procInterpreter.variables[k] = v
-	}
+	procInterpreter := i.CloneWithNewVariables()
 
 	for idx := 0; idx < numRequired; idx++ {
 		paramName := proc.RequiredParams[idx]
-		wrappedArg := i.Wrap(args[idx])
+		wrappedArg, err := Wrap(args[idx])
+		if err != nil {
+			return nil, fmt.Errorf("failed to wrap required parameter '%s': %w", paramName, err)
+		}
 		if setErr := procInterpreter.SetVariable(paramName, wrappedArg); setErr != nil {
 			return nil, fmt.Errorf("failed to set required parameter '%s': %w", paramName, setErr)
 		}
@@ -129,7 +81,10 @@ func (i *Interpreter) RunProcedure(procName string, args ...interface{}) (result
 		for idx := 0; idx < numOptional && (numRequired+idx) < numProvided; idx++ {
 			paramSpec := proc.OptionalParams[idx]
 			paramName := paramSpec.Name
-			wrappedArg := i.Wrap(args[numRequired+idx])
+			wrappedArg, err := Wrap(args[numRequired+idx])
+			if err != nil {
+				return nil, fmt.Errorf("failed to wrap optional parameter '%s': %w", paramName, err)
+			}
 			if setErr := procInterpreter.SetVariable(paramName, wrappedArg); setErr != nil {
 				return nil, fmt.Errorf("failed to set optional parameter '%s': %w", paramName, setErr)
 			}
@@ -139,16 +94,19 @@ func (i *Interpreter) RunProcedure(procName string, args ...interface{}) (result
 	if proc.Variadic && proc.VariadicParamName != "" && numProvided > numTotalParams {
 		variadicArgsRaw := args[numTotalParams:]
 		variadicArgsValue := make([]Value, len(variadicArgsRaw))
-		// FIX: Use 'idx' to avoid shadowing the interpreter 'i'.
 		for idx, arg := range variadicArgsRaw {
-			variadicArgsValue[idx] = i.Wrap(arg)
+			var err error
+			variadicArgsValue[idx], err = Wrap(arg)
+			if err != nil {
+				return nil, fmt.Errorf("failed to wrap variadic parameter #%d: %w", idx+1, err)
+			}
 		}
 		if setErr := procInterpreter.SetVariable(proc.VariadicParamName, NewListValue(variadicArgsValue)); setErr != nil {
 			return nil, fmt.Errorf("failed to set variadic parameter '%s': %w", proc.VariadicParamName, setErr)
 		}
 	}
 
-	result, _, _, err = procInterpreter.executeSteps(proc.Steps, false, nil)
+	result, _, _, err := procInterpreter.executeSteps(proc.Steps, false, nil)
 	if err != nil {
 		if _, ok := err.(*RuntimeError); !ok {
 			err = fmt.Errorf("error executing steps for procedure '%s': %w", procName, err)
