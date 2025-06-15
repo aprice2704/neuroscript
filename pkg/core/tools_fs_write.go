@@ -1,7 +1,8 @@
-// NeuroScript Version: 0.3.1
-// File version: 0.0.4 // Return detailed success message string on success.
-// nlines: 80 // Approximate
-// risk_rating: HIGH // Writes files
+// NeuroScript Version: 0.4.0
+// File version: 6
+// Purpose: Added toolAppendFile and a shared writeFileHelper to implement FS.Append functionality.
+// nlines: 105
+// risk_rating: MEDIUM
 // filename: pkg/core/tools_fs_write.go
 package core
 
@@ -12,74 +13,67 @@ import (
 	"path/filepath"
 )
 
-// toolWriteFile implements TOOL.WriteFile.
-// It creates parent directories if they don't exist.
-func toolWriteFile(interpreter *Interpreter, args []interface{}) (interface{}, error) {
+// writeFileHelper is a private helper that handles the common logic for both writing and appending files.
+func writeFileHelper(interpreter *Interpreter, args []interface{}, append bool) (interface{}, error) {
 	if len(args) != 2 {
-		return nil, NewRuntimeError(ErrorCodeArgMismatch, fmt.Sprintf("WriteFile: expected 2 arguments (filepath, content), got %d", len(args)), ErrArgumentMismatch)
+		return nil, NewRuntimeError(ErrorCodeArgMismatch, fmt.Sprintf("expected 2 arguments (filepath, content), got %d", len(args)), ErrArgumentMismatch)
 	}
 
 	relPath, ok := args[0].(string)
 	if !ok {
-		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("WriteFile: filepath argument must be a string, got %T", args[0]), ErrInvalidArgument)
+		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("filepath argument must be a string, got %T", args[0]), ErrInvalidArgument)
 	}
-	contentArg := args[1] // Handle nil explicitly below
-	content := ""         // Default to empty string
-
-	// Allow nil content, treat as empty string
-	if contentArg == nil {
-		content = ""
-	} else if contentStr, okStr := contentArg.(string); okStr {
-		content = contentStr
-	} else {
-		// If not nil and not string, it's an error
-		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("WriteFile: content argument must be a string or nil, got %T", args[1]), ErrInvalidArgument)
+	content, ok := args[1].(string)
+	if !ok {
+		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("content argument must be a string, got %T", args[1]), ErrInvalidArgument)
 	}
 
 	if relPath == "" {
-		return nil, NewRuntimeError(ErrorCodeArgMismatch, "WriteFile: filepath argument cannot be empty", ErrInvalidArgument)
+		return nil, NewRuntimeError(ErrorCodeArgMismatch, "filepath argument cannot be empty", ErrInvalidArgument)
 	}
 
-	sandboxRoot := interpreter.SandboxDir()
-	if sandboxRoot == "" {
-		interpreter.Logger().Error("Tool: WriteFile] Interpreter sandboxDir is empty, cannot proceed.")
-		return nil, NewRuntimeError(ErrorCodeConfiguration, "WriteFile: interpreter sandbox directory is not set", ErrConfiguration)
-	}
-
-	absPath, secErr := ResolveAndSecurePath(relPath, sandboxRoot)
+	absPath, secErr := ResolveAndSecurePath(relPath, interpreter.SandboxDir())
 	if secErr != nil {
-		interpreter.Logger().Warn("Tool: WriteFile path validation failed", "relative_path", relPath, "sandbox_root", sandboxRoot, "error", secErr)
-		return "", secErr
+		return nil, secErr
 	}
 
-	interpreter.Logger().Debug("Tool: WriteFile attempting to write", "validated_path", absPath, "original_relative_path", relPath, "sandbox_root", sandboxRoot)
 	parentDir := filepath.Dir(absPath)
 	if err := os.MkdirAll(parentDir, 0755); err != nil {
-		errMsg := fmt.Sprintf("WriteFile: failed to create parent directory for '%s'", relPath)
-		interpreter.Logger().Error(errMsg, "error", err)
-		return "", NewRuntimeError(ErrorCodeIOFailed, errMsg, errors.Join(ErrCannotCreateDir, err))
+		return nil, NewRuntimeError(ErrorCodeIOFailed, fmt.Sprintf("failed to create parent directory for '%s'", relPath), errors.Join(ErrCannotCreateDir, err))
 	}
 
-	err := os.WriteFile(absPath, []byte(content), 0644)
+	var file *os.File
+	var err error
+
+	openFlags := os.O_WRONLY | os.O_CREATE
+	if append {
+		openFlags |= os.O_APPEND
+	} else {
+		openFlags |= os.O_TRUNC // Truncate the file if we are overwriting
+	}
+
+	file, err = os.OpenFile(absPath, openFlags, 0644)
 	if err != nil {
-		errMsg := fmt.Sprintf("WriteFile: failed to write file '%s'", relPath)
-		interpreter.Logger().Error(errMsg, "error", err)
-		if errors.Is(err, os.ErrPermission) {
-			return "", NewRuntimeError(ErrorCodePermissionDenied, errMsg, ErrPermissionDenied)
-		}
-		info, statErr := os.Stat(absPath)
-		if statErr == nil && info.IsDir() {
-			errMsg = fmt.Sprintf("WriteFile: path '%s' exists and is a directory", relPath)
-			interpreter.Logger().Debug(errMsg)
-			return "", NewRuntimeError(ErrorCodePathTypeMismatch, errMsg, ErrPathNotFile)
-		}
-		return "", NewRuntimeError(ErrorCodeIOFailed, errMsg, errors.Join(ErrIOFailed, err))
+		return nil, NewRuntimeError(ErrorCodeIOFailed, fmt.Sprintf("failed to open file '%s'", relPath), errors.Join(ErrIOFailed, err))
+	}
+	defer file.Close()
+
+	_, err = file.WriteString(content)
+	if err != nil {
+		return nil, NewRuntimeError(ErrorCodeIOFailed, fmt.Sprintf("failed to write to file '%s'", relPath), errors.Join(ErrIOFailed, err))
 	}
 
-	// Success
-	bytesWritten := len([]byte(content))
-	// *** ENSURE detailed success message is returned ***
-	successMsg := fmt.Sprintf("Successfully wrote %d bytes to %s", bytesWritten, relPath)
-	interpreter.Logger().Debug("Tool: WriteFile successful", "file_path", relPath, "bytes_written", bytesWritten)
-	return successMsg, nil // Return the formatted string
+	return "OK", nil
+}
+
+// toolWriteFile implements FS.Write.
+// It creates parent directories if they don't exist and overwrites existing files.
+func toolWriteFile(interpreter *Interpreter, args []interface{}) (interface{}, error) {
+	return writeFileHelper(interpreter, args, false)
+}
+
+// toolAppendFile implements FS.Append.
+// It creates parent directories and the file if they don't exist, and appends to existing files.
+func toolAppendFile(interpreter *Interpreter, args []interface{}) (interface{}, error) {
+	return writeFileHelper(interpreter, args, true)
 }

@@ -1,5 +1,6 @@
 // NeuroScript Version: 0.3.0
-// File version: 0.1.3 // Modified getTreeFromHandle to wrap ErrNotFound when ErrHandleNotFound occurs.
+// File version: 4
+// Purpose: Corrected compiler errors by adding type assertions when reading from the Attributes map in `removeChildFromParent` and `removeNodeRecursive`.
 // filename: pkg/core/tree_helpers.go
 
 package core
@@ -104,8 +105,9 @@ func removeChildFromParent(parent *GenericTreeNode, childID string) bool {
 
 	// Attempt removal from Attributes (for objects)
 	if parent.Type == "object" && parent.Attributes != nil {
-		for key, valID := range parent.Attributes {
-			if valID == childID {
+		for key, valIDUntyped := range parent.Attributes {
+			// Safely check if the attribute value is the string ID we are looking for.
+			if valIDStr, ok := valIDUntyped.(string); ok && valIDStr == childID {
 				delete(parent.Attributes, key)
 				fmt.Printf("[DEBUG removeChildFromParent] Deleted key '%s'. Parent '%s' attributes now: %v\n", key, parent.ID, parent.Attributes)
 				return true // Found and removed from Attributes
@@ -135,8 +137,11 @@ func removeNodeRecursive(tree *GenericTree, nodeID string, visited map[string]st
 		descendantIDs = append(descendantIDs, node.ChildIDs...)
 	}
 	if node.Attributes != nil {
-		for _, childNodeID := range node.Attributes {
-			descendantIDs = append(descendantIDs, childNodeID)
+		for _, childNodeIDUntyped := range node.Attributes {
+			// An attribute's value is only a descendant link if it's a string.
+			if childNodeIDStr, ok := childNodeIDUntyped.(string); ok {
+				descendantIDs = append(descendantIDs, childNodeIDStr)
+			}
 		}
 	}
 

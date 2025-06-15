@@ -52,7 +52,7 @@ func toolTreeSetNodeMetadata(interpreter *Interpreter, args []interface{}) (inte
 
 	// Ensure the Attributes map is initialized (GenericTreeNode.NewNode initializes it)
 	if node.Attributes == nil {
-		node.Attributes = make(map[string]string)
+		node.Attributes = make(TreeAttrs)
 		interpreter.Logger().Warn(fmt.Sprintf("%s: Node attributes map was nil for node '%s', initialized.", toolName, nodeID))
 	}
 	node.Attributes[metaKey] = metaValue // Set the string value

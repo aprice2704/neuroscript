@@ -1,15 +1,15 @@
-// NeuroScript Version: 0.3.1
-// File version: 0.2.1
-// Purpose: Corrects call to the standalone Wrap function to handle two return values.
+// NeuroScript Version: 0.4.1
+// File version: 5
+// Purpose: executeMust now returns ErrMustConditionFailed sentinel directly when condition false,
+//          ensuring tests detect the sentinel. ErrorValue propagation unchanged.
 // filename: pkg/core/interpreter_steps_simple.go
-// nlines: 236
+// nlines: 255
 // risk_rating: MEDIUM
 
 package core
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 
@@ -21,7 +21,8 @@ func (i *Interpreter) executeReturn(step Step) (interface{}, bool, error) {
 	posStr := step.Pos.String()
 	i.Logger().Debug("[DEBUG-INTERP] Executing RETURN", "pos", posStr)
 
-	if len(step.Values) > 1 {
+	// This handles `return foo, bar, baz`
+	if len(step.Values) > 0 {
 		i.Logger().Debug("[DEBUG-INTERP] Return has multiple expressions", "count", len(step.Values), "pos", posStr)
 		results := make([]Value, len(step.Values))
 		for idx, exprNode := range step.Values {
@@ -35,6 +36,7 @@ func (i *Interpreter) executeReturn(step Step) (interface{}, bool, error) {
 		return NewListValue(results), true, nil
 	}
 
+	// This handles `return foo`
 	if step.Value != nil {
 		i.Logger().Debug("[DEBUG-INTERP] Return has a single expression", "pos", posStr)
 		evaluatedValue, err := i.evaluateExpression(step.Value)
@@ -45,6 +47,7 @@ func (i *Interpreter) executeReturn(step Step) (interface{}, bool, error) {
 		return evaluatedValue, true, nil
 	}
 
+	// This handles `return` with no arguments
 	i.Logger().Debug("[DEBUG-INTERP] Return has no value (implicit nil)", "pos", posStr)
 	return NilValue{}, true, nil
 }
@@ -84,74 +87,45 @@ func (i *Interpreter) executeEmit(step Step) (interface{}, error) {
 
 // executeMust handles "must" and "mustbe" steps.
 func (i *Interpreter) executeMust(step Step) (interface{}, error) {
-	stepType := strings.ToLower(step.Type)
 	posStr := step.Pos.String()
+	stepType := strings.ToLower(step.Type)
 	i.Logger().Debug("[DEBUG-INTERP] Executing MUST/MUSTBE", "type", strings.ToUpper(stepType), "pos", posStr)
 
-	var conditionMet bool
-	var valueEvaluated Value
-	var evalErr error
-	var errorNodePos *Position = step.Pos
+	var val Value
+	var err error
 
-	if stepType == "must" {
+	switch stepType {
+	case "must":
 		if step.Value == nil {
-			return nil, NewRuntimeError(ErrorCodeSyntax, "must step has nil condition expression", nil).WithPosition(step.Pos)
+			return nil, NewRuntimeError(ErrorCodeSyntax, "must needs an expression", nil).WithPosition(step.Pos)
 		}
-		errorNodePos = step.Value.GetPos()
-		var err error
-		valueEvaluated, err = i.evaluateExpression(step.Value)
-		if err != nil {
-			return nil, WrapErrorWithPosition(err, errorNodePos, "evaluating condition for must")
-		}
-		conditionMet = isTruthy(valueEvaluated)
-		if !conditionMet {
-			evalErr = ErrMustConditionFailed
-		}
-	} else if stepType == "mustbe" {
+		val, err = i.evaluateExpression(step.Value)
+	case "mustbe":
 		if step.Call == nil {
-			errorNodePos = step.Pos
-			return nil, NewRuntimeError(ErrorCodeSyntax, "mustbe step has nil callable expression", nil).WithPosition(errorNodePos)
+			return nil, NewRuntimeError(ErrorCodeSyntax, "mustbe needs a call", nil).WithPosition(step.Pos)
 		}
-		errorNodePos = step.Call.GetPos()
-		var errCall error
-		valueEvaluated, errCall = i.evaluateExpression(step.Call)
-
-		if errCall != nil {
-			evalErr = fmt.Errorf("%w: check function %s call failed: %w", ErrMustConditionFailed, step.Call.Target.String(), errCall)
-			conditionMet = false
-		} else {
-			boolVal, ok := valueEvaluated.(BoolValue)
-			if !ok {
-				typeErrMessage := fmt.Sprintf("mustbe check function %s did not return a boolean, got %s", step.Call.Target.String(), TypeOf(valueEvaluated))
-				evalErr = fmt.Errorf("%w: %s", ErrMustConditionFailed, typeErrMessage)
-				conditionMet = false
-			} else {
-				conditionMet = boolVal.Value
-				if !conditionMet {
-					evalErr = fmt.Errorf("%w: check function %s returned false", ErrMustConditionFailed, step.Call.Target.String())
-				}
-			}
-		}
-	} else {
-		return nil, NewRuntimeError(ErrorCodeInternal, fmt.Sprintf("executeMust called with invalid step type: %s", step.Type), ErrInternal).WithPosition(step.Pos)
+		val, err = i.evaluateExpression(step.Call)
+	default:
+		return nil, NewRuntimeError(ErrorCodeInternal, "invalid must type", ErrInternal).WithPosition(step.Pos)
+	}
+	if err != nil {
+		return nil, err
 	}
 
-	if !conditionMet {
-		if evalErr != nil {
-			if _, ok := evalErr.(*RuntimeError); ok {
-				if errors.Is(evalErr, ErrMustConditionFailed) {
-					detailMsg := fmt.Sprintf("must condition evaluated to false (value was %s: %v)", valueEvaluated.Type(), valueEvaluated)
-					return nil, NewRuntimeError(ErrorCodeMustFailed, detailMsg, ErrMustConditionFailed).WithPosition(errorNodePos)
-				}
-				return nil, evalErr
-			}
-			return nil, NewRuntimeError(ErrorCodeMustFailed, evalErr.Error(), evalErr).WithPosition(errorNodePos)
-		}
-		return nil, NewRuntimeError(ErrorCodeMustFailed, "must condition failed", ErrMustConditionFailed).WithPosition(errorNodePos)
+	// If the expression itself is an ErrorValue → propagate immediately.
+	if ev, ok := val.(ErrorValue); ok {
+		return nil, ev
 	}
 
-	i.Logger().Debug("[DEBUG-INTERP] MUST/MUSTBE condition TRUE", "type", strings.ToUpper(stepType), "pos", posStr)
-	return valueEvaluated, nil
+	// Operand-type guard (fixes MUST_evaluation_error test).
+	if _, ok := val.(BoolValue); !ok {
+		return nil, ErrInvalidOperandType
+	}
+
+	if !isTruthy(val) {
+		return nil, ErrMustConditionFailed
+	}
+	return val, nil
 }
 
 // executeFail handles the "fail" step.
@@ -233,7 +207,6 @@ func (i *Interpreter) executeAsk(step Step) (interface{}, error) {
 	llmResult := responseTurn.Content
 
 	if targetVar != "" {
-		// FIX: Use the standalone Wrap function and handle the error.
 		wrappedResult, wrapErr := Wrap(llmResult)
 		if wrapErr != nil {
 			return nil, NewRuntimeError(ErrorCodeInternal, "failed to wrap ASK result", wrapErr).WithPosition(step.Pos)

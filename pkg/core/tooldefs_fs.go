@@ -1,6 +1,7 @@
-// NeuroScript Version: 0.3.1
-// File version: 0.0.5 // Populated Category, Example, ReturnHelp, ErrorConditions fields.
-// nlines: 250 // Approximate
+// NeuroScript Version: 0.4.0
+// File version: 6
+// Purpose: Added the tool definition for FS.Append to register the new tool.
+// nlines: 275 // Approximate
 // risk_rating: MEDIUM
 // filename: pkg/core/tooldefs_fs.go
 package core
@@ -74,18 +75,34 @@ var fsToolsToRegister = []ToolImplementation{
 	{
 		Spec: ToolSpec{
 			Name:        "FS.Write",
-			Description: "Writes content to a specific file. Creates parent directories if needed. Returns 'OK' on success.",
+			Description: "Writes content to a specific file, overwriting it if it exists. Creates parent directories if needed. Returns 'OK' on success.",
 			Category:    "Filesystem",
 			Args: []ArgSpec{
 				{Name: "filepath", Type: ArgTypeString, Required: true, Description: "Relative path to the file."},
 				{Name: "content", Type: ArgTypeString, Required: true, Description: "The content to write."},
 			},
-			ReturnType:      ArgTypeString, // Returns "Successfully wrote X bytes to Y"
-			ReturnHelp:      "Returns a success message string like 'Successfully wrote X bytes to Y' on success. Returns an empty string on error.",
-			Example:         `TOOL.FS.Write(filepath: "output/data.json", content: "{\"key\":\"value\"}") // Returns "Successfully wrote 15 bytes to output/data.json"`,
-			ErrorConditions: "ErrArgumentMismatch if filepath is empty or content is not string/nil; ErrConfiguration if sandbox is not set; ErrSecurityPath (from ResolveAndSecurePath) for invalid paths; ErrCannotCreateDir if parent directories cannot be created; ErrPermissionDenied if writing is not allowed; ErrPathNotFile if path exists and is a directory; ErrIOFailed for other I/O errors.",
+			ReturnType:      ArgTypeString,
+			ReturnHelp:      "Returns 'OK' on success. Returns nil on error.",
+			Example:         `TOOL.FS.Write(filepath: "output/data.json", content: "{\"key\":\"value\"}")`,
+			ErrorConditions: "ErrArgumentMismatch if arguments are invalid; ErrConfiguration if sandbox is not set; ErrSecurityPath for invalid paths; ErrCannotCreateDir if parent directories cannot be created; ErrPermissionDenied if writing is not allowed; ErrPathNotFile if path exists and is a directory; ErrIOFailed for other I/O errors.",
 		},
 		Func: toolWriteFile, // from tools_fs_write.go
+	},
+	{
+		Spec: ToolSpec{
+			Name:        "FS.Append",
+			Description: "Appends content to a specific file. Creates the file and parent directories if needed. Returns 'OK' on success.",
+			Category:    "Filesystem",
+			Args: []ArgSpec{
+				{Name: "filepath", Type: ArgTypeString, Required: true, Description: "Relative path to the file."},
+				{Name: "content", Type: ArgTypeString, Required: true, Description: "The content to append."},
+			},
+			ReturnType:      ArgTypeString,
+			ReturnHelp:      "Returns 'OK' on success. Returns nil on error.",
+			Example:         `TOOL.FS.Append(filepath: "logs/activity.log", content: "User logged in.\n")`,
+			ErrorConditions: "ErrArgumentMismatch if arguments are invalid; ErrConfiguration if sandbox is not set; ErrSecurityPath for invalid paths; ErrCannotCreateDir if parent directories cannot be created; ErrPermissionDenied if writing is not allowed; ErrPathNotFile if path exists and is a directory; ErrIOFailed for other I/O errors.",
+		},
+		Func: toolAppendFile, // from tools_fs_write.go
 	},
 	{
 		Spec: ToolSpec{

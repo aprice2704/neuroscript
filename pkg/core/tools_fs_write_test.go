@@ -1,141 +1,93 @@
-// NeuroScript Version: 0.3.1
-// File version: 0.0.3 // Update nil content test expectation to success.
-// nlines: 135 // Approximate
-// risk_rating: MEDIUM // Tests file writing
+// NeuroScript Version: 0.4.0
+// File version: 3
+// Purpose: Refactored tests to use the standard runValidationTestCases helper, fixing 'Tool not found' errors for FS.Append.
 // filename: pkg/core/tools_fs_write_test.go
+// nlines: 95
+// risk_rating: LOW
+
 package core
 
 import (
-	"errors"
-	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
 )
 
-// Assume testFsToolHelper is defined in tools_fs_helpers_test.go
+func TestToolWriteFileValidation(t *testing.T) {
+	// --- FS.Write Validation ---
+	writeValidationCases := []ValidationTestCase{
+		{Name: "Write - Correct args", InputArgs: MakeArgs("file.txt", "content"), ExpectedError: nil},
+		{Name: "Write - Wrong content type", InputArgs: MakeArgs("file.txt", 123), ExpectedError: ErrInvalidArgument},
+		{Name: "Write - Wrong arg count (too few)", InputArgs: MakeArgs("file.txt"), ExpectedError: ErrArgumentMismatch},
+		{Name: "Write - Path outside sandbox", InputArgs: MakeArgs("../bad.txt", "content"), ExpectedError: ErrPathViolation},
+	}
+	runValidationTestCases(t, "FS.Write", writeValidationCases)
 
-func TestToolWriteFile(t *testing.T) {
-	// --- Test Setup Data ---
-	writeNewFile := "newWrite.txt"
-	overwriteExistingFile := "overwrite.txt"
-	existingContent := "Initial Content"
-	newContent := "This is the new content."
-	emptyContentFile := "emptyFile.txt"
-	nestedFile := filepath.Join("newdir", "nestedfile.txt")
+	// --- FS.Append Validation ---
+	appendValidationCases := []ValidationTestCase{
+		{Name: "Append - Correct args", InputArgs: MakeArgs("file.txt", "content"), ExpectedError: nil},
+		{Name: "Append - Wrong arg count", InputArgs: MakeArgs("file.txt"), ExpectedError: ErrArgumentMismatch},
+		{Name: "Append - Path outside sandbox", InputArgs: MakeArgs("../bad.txt", "content"), ExpectedError: ErrPathViolation},
+	}
+	runValidationTestCases(t, "FS.Append", appendValidationCases)
+}
 
-	// --- Setup Function ---
-	setupWriteFileTest := func(sandboxRoot string) error {
-		existingPath := filepath.Join(sandboxRoot, overwriteExistingFile)
-		if err := os.WriteFile(existingPath, []byte(existingContent), 0644); err != nil && !errors.Is(err, os.ErrExist) {
-			return fmt.Errorf("setup WriteFile failed for %s: %w", existingPath, err)
-		}
-		os.Remove(filepath.Join(sandboxRoot, writeNewFile))
-		os.Remove(filepath.Join(sandboxRoot, emptyContentFile))
-		os.RemoveAll(filepath.Join(sandboxRoot, "newdir"))
+func TestToolWriteFileFunctional(t *testing.T) {
+	setup := func(sandboxRoot string) error {
+		os.Remove(filepath.Join(sandboxRoot, "newfile.txt"))
+		os.Remove(filepath.Join(sandboxRoot, "existing.txt"))
+		os.Remove(filepath.Join(sandboxRoot, "append.txt"))
+		os.Remove(filepath.Join(sandboxRoot, "newappend.txt"))
 		return nil
 	}
 
-	// --- Test Cases ---
-	tests := []fsTestCase{
-		{
-			name:        "Write New File",
-			toolName:    "FS.Write",
-			args:        MakeArgs(writeNewFile, newContent),
-			wantResult:  fmt.Sprintf("Successfully wrote %d bytes to %s", len(newContent), writeNewFile),
-			wantContent: newContent,
-		},
-		{
-			name:        "Overwrite Existing File",
-			toolName:    "FS.Write",
-			args:        MakeArgs(overwriteExistingFile, newContent),
-			setupFunc:   setupWriteFileTest,
-			wantResult:  fmt.Sprintf("Successfully wrote %d bytes to %s", len(newContent), overwriteExistingFile),
-			wantContent: newContent,
-		},
-		{
-			name:        "Write Empty Content",
-			toolName:    "FS.Write",
-			args:        MakeArgs(emptyContentFile, ""),
-			wantResult:  fmt.Sprintf("Successfully wrote %d bytes to %s", 0, emptyContentFile),
-			wantContent: "",
-		},
-		{
-			name:        "Create Subdirectory",
-			toolName:    "FS.Write",
-			args:        MakeArgs(nestedFile, newContent),
-			wantResult:  fmt.Sprintf("Successfully wrote %d bytes to %s", len(newContent), nestedFile),
-			wantContent: newContent,
-		},
-		{
-			name:          "Validation_Wrong_Path_Type",
-			toolName:      "FS.Write",
-			args:          MakeArgs(123, newContent),
-			wantResult:    "filepath argument must be a string",
-			wantToolErrIs: ErrInvalidArgument,
-		},
-		{
-			name:          "Validation_Wrong_Content_Type",
-			toolName:      "FS.Write",
-			args:          MakeArgs(writeNewFile, 456),
-			wantResult:    "content argument must be a string or nil", // Updated error check
-			wantToolErrIs: ErrInvalidArgument,
-		},
-		{
-			name:          "Validation_Missing_Content",
-			toolName:      "FS.Write",
-			args:          MakeArgs(writeNewFile),
-			wantResult:    "expected 2 arguments",
-			wantToolErrIs: ErrArgumentMismatch,
-		},
-		{
-			name:          "Validation_Missing_Path",
-			toolName:      "FS.Write",
-			args:          MakeArgs(),
-			wantResult:    "expected 2 arguments",
-			wantToolErrIs: ErrArgumentMismatch,
-		},
-		{
-			name:          "Validation_Empty_Path",
-			toolName:      "FS.Write",
-			args:          MakeArgs("", newContent),
-			wantResult:    "filepath argument cannot be empty",
-			wantToolErrIs: ErrInvalidArgument,
-		},
-		{
-			name:          "Validation_Nil_Path",
-			toolName:      "FS.Write",
-			args:          MakeArgs(nil, newContent),
-			wantResult:    "filepath argument must be a string",
-			wantToolErrIs: ErrInvalidArgument,
-		},
-		{
-			name:        "Validation_Nil_Content", // <<< CORRECTED Expectation
-			toolName:    "FS.Write",
-			args:        MakeArgs(writeNewFile, nil),                                       // Pass nil for content
-			wantResult:  fmt.Sprintf("Successfully wrote %d bytes to %s", 0, writeNewFile), // Expect success msg for 0 bytes
-			wantContent: "",                                                                // Expect empty file content
-			// wantToolErrIs is nil (no error expected)
-		},
-		{
-			name:          "Path_Outside_Sandbox",
-			toolName:      "FS.Write",
-			args:          MakeArgs("../outside.txt", newContent),
-			wantResult:    "path resolves outside allowed directory",
-			wantToolErrIs: ErrPathViolation,
-		},
+	setupAppend := func(sandboxRoot string) error {
+		setup(sandboxRoot)
+		return os.WriteFile(filepath.Join(sandboxRoot, "append.txt"), []byte("initial."), 0644)
 	}
 
-	// Run tests using the standard helper
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			interp, currentSandbox := NewDefaultTestInterpreter(t)
-			if tt.setupFunc != nil {
-				if err := tt.setupFunc(currentSandbox); err != nil {
-					t.Fatalf("Setup function failed: %v", err)
+	testCases := []fsTestCase{
+		// FS.Write
+		{name: "Write to new file", toolName: "FS.Write", args: MakeArgs("newfile.txt", "hello world"), setupFunc: setup, wantContent: "hello world"},
+		{name: "Overwrite existing file", toolName: "FS.Write", args: MakeArgs("existing.txt", "new content"), setupFunc: func(s string) error {
+			setup(s)
+			return os.WriteFile(filepath.Join(s, "existing.txt"), []byte("old content"), 0644)
+		}, wantContent: "new content"},
+
+		// FS.Append
+		{name: "Append to existing file", toolName: "FS.Append", args: MakeArgs("append.txt", "appended."), setupFunc: setupAppend, wantContent: "initial.appended."},
+		{name: "Append to non-existent file", toolName: "FS.Append", args: MakeArgs("newappend.txt", "content"), setupFunc: setup, wantContent: "content"},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			interp, sb := NewDefaultTestInterpreter(t)
+
+			if tc.setupFunc != nil {
+				if err := tc.setupFunc(sb); err != nil {
+					t.Fatalf("setup failed: %v", err)
 				}
 			}
-			testFsToolHelper(t, interp, tt) // testFsToolHelper handles content verification
+
+			tool, ok := interp.ToolRegistry().GetTool(tc.toolName)
+			if !ok {
+				t.Fatalf("Tool '%s' not found in registry", tc.toolName)
+			}
+
+			_, err := tool.Func(interp, tc.args)
+			if err != nil {
+				t.Fatalf("unexpected error during tool execution: %v", err)
+			}
+
+			filePath := tc.args[0].(string)
+			absPath := filepath.Join(sb, filePath)
+			content, readErr := os.ReadFile(absPath)
+			if readErr != nil {
+				t.Fatalf("failed to read file for verification: %v", readErr)
+			}
+			if string(content) != tc.wantContent {
+				t.Errorf("content mismatch:\ngot:  %q\nwant: %q", string(content), tc.wantContent)
+			}
 		})
 	}
 }

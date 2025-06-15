@@ -224,13 +224,11 @@ func (m *AIWorkerManager) ExecuteStatelessTask( //
 	durationMs := taskEndTime.Sub(taskStartTime).Milliseconds()
 
 	cost := 0.0
-	if defCostMetricsCopy != nil { // Using copied CostMetrics
-		if perTokenCostIn, okIn := defCostMetricsCopy["input_cost_per_token"]; okIn {
-			cost += float64(llmCallMetrics.InputTokens) * perTokenCostIn
-		}
-		if perTokenCostOut, okOut := defCostMetricsCopy["output_cost_per_token"]; okOut {
-			cost += float64(llmCallMetrics.OutputTokens) * perTokenCostOut
-		}
+	if perTokenCostIn, okIn := defCostMetricsCopy["input_cost_per_token"]; okIn {
+		cost += float64(llmCallMetrics.InputTokens) * perTokenCostIn
+	}
+	if perTokenCostOut, okOut := defCostMetricsCopy["output_cost_per_token"]; okOut {
+		cost += float64(llmCallMetrics.OutputTokens) * perTokenCostOut
 	}
 
 	perfRecord := &PerformanceRecord{ //

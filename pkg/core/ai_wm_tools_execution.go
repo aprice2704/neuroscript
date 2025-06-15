@@ -1,53 +1,43 @@
-// NeuroScript Version: 0.3.1
-// File version: 0.1.1 // Populated Category, Example, ReturnHelp, ErrorConditions for ToolSpec.
+// NeuroScript Version: 0.4.1
+// File version: 1
+// Purpose: Refactored tool func to remove validation call and use direct args from bridge.
 // AI Worker Management: Stateless Execution Tool
 // filename: pkg/core/ai_wm_tools_execution.go
-// nlines: 60 // Approximate
+// nlines: 48
 
 package core
 
-import (
-	"fmt"
-	// "time" // Not directly needed here
-	// "github.com/google/uuid" // Not directly needed here
-)
-
 var specAIWorkerExecuteStateless = ToolSpec{
-	Name:        "AIWorker.ExecuteStatelessTask",
-	Description: "Executes a stateless task using an AI Worker Definition.",
-	Category:    "AI Worker Management",
+	Name:     "AIWorker.ExecuteStatelessTask",
+	Category: "AI Worker Management",
 	Args: []ArgSpec{
-		{Name: "name", Type: ArgTypeString, Required: true, Description: "name of the AIWorkerDefinition to use."},
-		{Name: "prompt", Type: ArgTypeString, Required: true, Description: "The prompt/input text for the LLM."},
-		{Name: "config_overrides", Type: ArgTypeMap, Required: false, Description: "Optional map of configuration overrides for this specific execution."},
+		{Name: "name", Type: ArgTypeString, Required: true},
+		{Name: "prompt", Type: ArgTypeString, Required: true},
+		{Name: "config_overrides", Type: ArgTypeMap, Required: false},
 	},
-	ReturnType:      ArgTypeMap,
-	ReturnHelp:      "Returns a map: {'output': string (LLM response), 'taskId': string, 'cost': float64}. Returns nil on error.",
-	Example:         `TOOL.AIWorker.ExecuteStatelessTask(definition_id: "google-gemini-1.5-flash", prompt: "Translate 'hello' to French.")`,
-	ErrorConditions: "ErrAIWorkerManagerMissing; ErrInvalidArgument for missing/invalid args; ErrConfiguration if interpreter's LLMClient is nil; Errors from AIWorkerManager.ExecuteStatelessTask (e.g., ErrDefinitionNotFound, LLM communication errors, rate limits); ErrInternal if performance record is nil without error.",
+	ReturnType: "map",
 }
 
 var toolAIWorkerExecuteStateless = ToolImplementation{
 	Spec: specAIWorkerExecuteStateless,
-	Func: func(i *Interpreter, argsGiven []interface{}) (interface{}, error) {
+	Func: func(i *Interpreter, args []interface{}) (interface{}, error) {
 		m, err := getAIWorkerManager(i)
 		if err != nil {
 			return nil, err
 		}
-		validatedArgsList, valErr := ValidateAndConvertArgs(specAIWorkerExecuteStateless, argsGiven)
-		if valErr != nil {
-			return nil, NewRuntimeError(ErrorCodeArgMismatch, fmt.Sprintf("Validation failed for tool %s: %s", specAIWorkerExecuteStateless.Name, valErr.Error()), ErrInvalidArgument)
+		// Arguments are positional, validation is handled by the bridge
+		defName, _ := args[0].(string)
+		prompt, _ := args[1].(string)
+		var overrides map[string]interface{}
+		if args[2] != nil {
+			overrides, _ = args[2].(map[string]interface{})
 		}
-		parsedArgs := mapValidatedArgsListToMapByName(specAIWorkerExecuteStateless.Args, validatedArgsList)
-		defname, _ := parsedArgs["name"].(string)
-		prompt, _ := parsedArgs["prompt"].(string)
-		overrides, _ := parsedArgs["config_overrides"].(map[string]interface{})
 
 		if i.llmClient == nil {
-			return nil, NewRuntimeError(ErrorCodeConfiguration, "Interpreter's LLMClient is nil, cannot execute stateless task for tool "+specAIWorkerExecuteStateless.Name, ErrConfiguration)
+			return nil, NewRuntimeError(ErrorCodeConfiguration, "Interpreter's LLMClient is nil", ErrConfiguration)
 		}
 
-		output, perfRecord, execErr := m.ExecuteStatelessTask(defname, i.llmClient, prompt, overrides)
+		output, perfRecord, execErr := m.ExecuteStatelessTask(defName, i.llmClient, prompt, overrides)
 		if execErr != nil {
 			taskId := "unknown"
 			if perfRecord != nil {
@@ -57,7 +47,7 @@ var toolAIWorkerExecuteStateless = ToolImplementation{
 			return nil, execErr
 		}
 		if perfRecord == nil {
-			return nil, NewRuntimeError(ErrorCodeInternal, "ExecuteStatelessTask returned nil performance record without error for tool "+specAIWorkerExecuteStateless.Name, ErrInternal)
+			return nil, NewRuntimeError(ErrorCodeInternal, "ExecuteStatelessTask returned nil performance record without error", ErrInternal)
 		}
 		return map[string]interface{}{"output": output, "taskId": perfRecord.TaskID, "cost": perfRecord.CostIncurred}, nil
 	},

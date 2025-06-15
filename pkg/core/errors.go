@@ -1,7 +1,8 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.2.1 // Added Position to RuntimeError, WithPosition method, and wrapErrorWithPosition helper.
-// nlines: 208 // Approximate new line count after additions
-// risk_rating: MEDIUM // Modifying core error handling
+// File version: 0.2.2
+// Purpose: Added ErrTreeIntegrity for clearer error reporting on structural issues, as suggested.
+// nlines: 211
+// risk_rating: LOW
 // filename: pkg/core/errors.go
 package core
 
@@ -117,6 +118,9 @@ const (
 	ErrorCodeUnknownKeyword          ErrorCode = 30
 	ErrorCodeTypeAssertionFailed     ErrorCode = 31
 	ErrorCodeExecutionFailed         ErrorCode = 32
+	ErrorCodeTreeIntegrity           ErrorCode = 33 // ADDED: e.g., child ID exists but node is missing from map
+	ErrorCodePathViolation           ErrorCode = 34
+	ErrorCodeFeatureNotImplemented   ErrorCode = 35
 
 	ErrorCodeToolSpecific ErrorCode = 1000 // Base for tool-specific error codes (non-FS/Tree or highly unique cases)
 )
@@ -193,8 +197,7 @@ var (
 	ErrTreeNodeNotObject       = errors.New("expected tree node to be an object type")        // Use with ErrorCodeNodeWrongType
 	ErrNodeIDExists            = errors.New("node ID already exists in tree")                 // Use with ErrorCodeTreeConstraintViolation
 	ErrCannotRemoveRoot        = errors.New("cannot remove the root node")                    // Use with ErrorCodeTreeConstraintViolation
-	// ErrTreeBuildFailed - Recommend using ErrInternal
-	// ErrTreeFormatFailed - Recommend using ErrInternal
+	ErrTreeIntegrity           = errors.New("tree integrity violation")                       // ADDED: For ErrorCodeTreeIntegrity
 
 	// List/Map/Collection Errors
 	ErrListIndexOutOfBounds     = errors.New("list index out of bounds") // Use with ErrorCodeBounds

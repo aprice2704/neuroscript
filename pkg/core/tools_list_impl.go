@@ -1,9 +1,9 @@
 // NeuroScript Version: 0.4.0
-// File version: 4.0.0
-// Purpose: Rewrites all list tools to work with native Go types, per the bridge contract.
+// File version: 6
+// Purpose: Refine List.Sort to only normalize numbers to float64 for numeric lists, preserving string types.
 // filename: pkg/core/tools_list_impl.go
-// nlines: 215
-// risk_rating: MEDIUM
+// nlines: 234
+// risk_rating: LOW
 
 package core
 
@@ -20,7 +20,7 @@ import (
 func toolListLength(_ *Interpreter, args []interface{}) (interface{}, error) {
 	list, ok := args[0].([]interface{})
 	if !ok {
-		return nil, NewRuntimeError(ErrorCodeArgMismatch, "len expects a list", nil)
+		return nil, NewRuntimeError(ErrorCodeArgMismatch, "len expects a list", ErrArgumentMismatch)
 	}
 	return float64(len(list)), nil
 }
@@ -28,7 +28,7 @@ func toolListLength(_ *Interpreter, args []interface{}) (interface{}, error) {
 func toolListAppend(_ *Interpreter, args []interface{}) (interface{}, error) {
 	list, ok := args[0].([]interface{})
 	if !ok {
-		return nil, NewRuntimeError(ErrorCodeArgMismatch, "append expects a list for the first argument", nil)
+		return nil, NewRuntimeError(ErrorCodeArgMismatch, "append expects a list for the first argument", ErrArgumentMismatch)
 	}
 	element := args[1]
 	return append(list, element), nil
@@ -37,7 +37,7 @@ func toolListAppend(_ *Interpreter, args []interface{}) (interface{}, error) {
 func toolListPrepend(_ *Interpreter, args []interface{}) (interface{}, error) {
 	list, ok := args[0].([]interface{})
 	if !ok {
-		return nil, NewRuntimeError(ErrorCodeArgMismatch, "prepend expects a list for the first argument", nil)
+		return nil, NewRuntimeError(ErrorCodeArgMismatch, "prepend expects a list for the first argument", ErrArgumentMismatch)
 	}
 	element := args[1]
 	return append([]interface{}{element}, list...), nil
@@ -46,11 +46,11 @@ func toolListPrepend(_ *Interpreter, args []interface{}) (interface{}, error) {
 func toolListGet(_ *Interpreter, args []interface{}) (interface{}, error) {
 	list, ok := args[0].([]interface{})
 	if !ok {
-		return nil, NewRuntimeError(ErrorCodeArgMismatch, "get expects a list", nil)
+		return nil, NewRuntimeError(ErrorCodeArgMismatch, "get expects a list", ErrArgumentMismatch)
 	}
 	index, ok := args[1].(int64)
 	if !ok {
-		return nil, NewRuntimeError(ErrorCodeArgMismatch, "get expects an integer for index", nil)
+		return nil, NewRuntimeError(ErrorCodeArgMismatch, "get expects an integer for index", ErrArgumentMismatch)
 	}
 
 	var defaultValue interface{} = nil
@@ -67,15 +67,15 @@ func toolListGet(_ *Interpreter, args []interface{}) (interface{}, error) {
 func toolListSlice(_ *Interpreter, args []interface{}) (interface{}, error) {
 	list, ok := args[0].([]interface{})
 	if !ok {
-		return nil, NewRuntimeError(ErrorCodeArgMismatch, "slice expects a list", nil)
+		return nil, NewRuntimeError(ErrorCodeArgMismatch, "slice expects a list", ErrArgumentMismatch)
 	}
 	start, ok := args[1].(int64)
 	if !ok {
-		return nil, NewRuntimeError(ErrorCodeArgMismatch, "slice expects an integer for start index", nil)
+		return nil, NewRuntimeError(ErrorCodeArgMismatch, "slice expects an integer for start index", ErrArgumentMismatch)
 	}
 	end, ok := args[2].(int64)
 	if !ok {
-		return nil, NewRuntimeError(ErrorCodeArgMismatch, "slice expects an integer for end index", nil)
+		return nil, NewRuntimeError(ErrorCodeArgMismatch, "slice expects an integer for end index", ErrArgumentMismatch)
 	}
 
 	listLen := len(list)
@@ -98,7 +98,7 @@ func toolListSlice(_ *Interpreter, args []interface{}) (interface{}, error) {
 func toolListContains(_ *Interpreter, args []interface{}) (interface{}, error) {
 	list, ok := args[0].([]interface{})
 	if !ok {
-		return nil, NewRuntimeError(ErrorCodeArgMismatch, "contains expects a list", nil)
+		return nil, NewRuntimeError(ErrorCodeArgMismatch, "contains expects a list", ErrArgumentMismatch)
 	}
 	element := args[1]
 	for _, item := range list {
@@ -112,7 +112,7 @@ func toolListContains(_ *Interpreter, args []interface{}) (interface{}, error) {
 func toolListReverse(_ *Interpreter, args []interface{}) (interface{}, error) {
 	list, ok := args[0].([]interface{})
 	if !ok {
-		return nil, NewRuntimeError(ErrorCodeArgMismatch, "reverse expects a list", nil)
+		return nil, NewRuntimeError(ErrorCodeArgMismatch, "reverse expects a list", ErrArgumentMismatch)
 	}
 	listLen := len(list)
 	newList := make([]interface{}, listLen)
@@ -125,11 +125,13 @@ func toolListReverse(_ *Interpreter, args []interface{}) (interface{}, error) {
 func toolListSort(_ *Interpreter, args []interface{}) (interface{}, error) {
 	list, ok := args[0].([]interface{})
 	if !ok {
-		return nil, NewRuntimeError(ErrorCodeArgMismatch, "sort expects a list", nil)
+		return nil, NewRuntimeError(ErrorCodeArgMismatch, "sort expects a list", ErrArgumentMismatch)
 	}
 	if len(list) == 0 {
 		return []interface{}{}, nil
 	}
+
+	/* ---------- stable sort ---------- */
 
 	newList := make([]interface{}, len(list))
 	copy(newList, list)
@@ -137,34 +139,56 @@ func toolListSort(_ *Interpreter, args []interface{}) (interface{}, error) {
 	var sortErr error
 	sort.SliceStable(newList, func(i, j int) bool {
 		a, b := newList[i], newList[j]
-		if numA, okA := toFloat64(a); okA {
-			if numB, okB := toFloat64(b); okB {
-				return numA < numB
-			}
-			sortErr = fmt.Errorf("cannot sort mixed types: number and %T", b)
-			return false
+
+		// both strings → lexicographic
+		sa, saOK := a.(string)
+		sb, sbOK := b.(string)
+		if saOK && sbOK {
+			return sa < sb
 		}
-		if strA, okA := a.(string); okA {
-			if strB, okB := b.(string); okB {
-				return strA < strB
-			}
-			sortErr = fmt.Errorf("cannot sort mixed types: string and %T", b)
-			return false
+
+		// both numeric → numeric order
+		na, naOK := toFloat64(a)
+		nb, nbOK := toFloat64(b)
+		if naOK && nbOK {
+			return na < nb
 		}
-		sortErr = fmt.Errorf("list contains non-sortable types (%T)", a)
+
+		sortErr = fmt.Errorf("cannot sort mixed types: %T and %T", a, b)
 		return false
 	})
-
 	if sortErr != nil {
 		return nil, NewRuntimeError(ErrorCodeType, sortErr.Error(), ErrListCannotSortMixedTypes)
 	}
+
+	/* ---------- decide whether to coerce numbers ---------- */
+
+	allNumeric := true
+	for _, v := range newList {
+		switch v.(type) {
+		case int, int64, float64:
+			// ok
+		default:
+			allNumeric = false
+			break
+		}
+	}
+
+	if allNumeric {
+		for i, v := range newList {
+			if num, ok := toFloat64(v); ok {
+				newList[i] = num
+			}
+		}
+	}
+
 	return newList, nil
 }
 
 func toolListHead(_ *Interpreter, args []interface{}) (interface{}, error) {
 	list, ok := args[0].([]interface{})
 	if !ok {
-		return nil, NewRuntimeError(ErrorCodeArgMismatch, "head expects a list", nil)
+		return nil, NewRuntimeError(ErrorCodeArgMismatch, "head expects a list", ErrArgumentMismatch)
 	}
 	if len(list) == 0 {
 		return nil, nil
@@ -175,7 +199,7 @@ func toolListHead(_ *Interpreter, args []interface{}) (interface{}, error) {
 func toolListRest(_ *Interpreter, args []interface{}) (interface{}, error) {
 	list, ok := args[0].([]interface{})
 	if !ok {
-		return nil, NewRuntimeError(ErrorCodeArgMismatch, "rest expects a list", nil)
+		return nil, NewRuntimeError(ErrorCodeArgMismatch, "rest expects a list", ErrArgumentMismatch)
 	}
 	if len(list) <= 1 {
 		return []interface{}{}, nil
@@ -186,11 +210,11 @@ func toolListRest(_ *Interpreter, args []interface{}) (interface{}, error) {
 func toolListTail(_ *Interpreter, args []interface{}) (interface{}, error) {
 	list, ok := args[0].([]interface{})
 	if !ok {
-		return nil, NewRuntimeError(ErrorCodeArgMismatch, "tail expects a list", nil)
+		return nil, NewRuntimeError(ErrorCodeArgMismatch, "tail expects a list", ErrArgumentMismatch)
 	}
 	count, ok := args[1].(int64)
 	if !ok {
-		return nil, NewRuntimeError(ErrorCodeArgMismatch, "tail expects an integer for count", nil)
+		return nil, NewRuntimeError(ErrorCodeArgMismatch, "tail expects an integer for count", ErrArgumentMismatch)
 	}
 
 	listLen := len(list)
@@ -208,7 +232,7 @@ func toolListTail(_ *Interpreter, args []interface{}) (interface{}, error) {
 func toolListIsEmpty(_ *Interpreter, args []interface{}) (interface{}, error) {
 	list, ok := args[0].([]interface{})
 	if !ok {
-		return nil, NewRuntimeError(ErrorCodeArgMismatch, "isEmpty expects a list", nil)
+		return nil, NewRuntimeError(ErrorCodeArgMismatch, "isEmpty expects a list", ErrArgumentMismatch)
 	}
 	return len(list) == 0, nil
 }

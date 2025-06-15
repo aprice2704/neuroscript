@@ -82,7 +82,7 @@ func toolTreeLoadJSON(interpreter *Interpreter, args []interface{}) (interface{}
 		switch v := value.(type) {
 		case map[string]interface{}:
 			// node.Type is "object", node is already created and ParentAttributeKey potentially set
-			node.Attributes = make(map[string]string)
+			node.Attributes = make(TreeAttrs)
 			for k, val := range v { // k is the attribute key within this new object node
 				childID, errBuild := buildNode(node.ID, k, val) // Pass k as keyForParentAttribute for children of this object
 				if errBuild != nil {

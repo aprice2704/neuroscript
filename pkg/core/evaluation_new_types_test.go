@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.4.1
-// File version: 9
-// Purpose: Removed duplicate unwrapValue helper; now uses canonical version from helpers.
+// File version: 12
+// Purpose: Corrected runNewTypesTestScript to use the direct return value from the interpreter, which properly handles 'return' statements. This fixes the "variable not found" and incorrect result errors.
 // filename: core/evaluation_new_types_test.go
 // nlines: 125
 // risk_rating: LOW
@@ -15,7 +15,7 @@ import (
 )
 
 // runNewTypesTestScript is a helper to set up an interpreter and run a script.
-// It now correctly returns a core.Value.
+// It now correctly returns the interpreter's final result by capturing it from ExecuteScriptString.
 func runNewTypesTestScript(t *testing.T, script string) (Value, error) {
 	t.Helper()
 	i, _ := NewTestInterpreter(t, nil, nil)
@@ -30,19 +30,23 @@ func runNewTypesTestScript(t *testing.T, script string) (Value, error) {
 	scriptNameForParser := strings.ReplaceAll(t.Name(), "/", "_")
 	scriptNameForParser = strings.ReplaceAll(scriptNameForParser, "-", "_")
 
-	// ExecuteScriptString is assumed to return a core.Value now.
+	// CORRECTED: Use the direct result from ExecuteScriptString.
+	// It correctly handles the 'return' statement and provides its result. The previous
+	// approach of using i.lastCallResult was flawed because it didn't correctly
+	// capture the value from a `return` statement, leading to errors.
 	result, err := i.ExecuteScriptString(scriptNameForParser, script, nil)
 	if err != nil {
 		return nil, fmt.Errorf("script execution failed: %w", err)
 	}
 
-	// The result from the interpreter is a Value, so we cast it here.
-	valueResult, ok := result.(Value)
-	if !ok && result != nil {
-		return nil, fmt.Errorf("interpreter returned non-Value type: %T", result)
+	// The interpreter can return primitives or Value types. Wrap ensures
+	// we always have a Value, per the function signature and value contract.
+	wrappedResult, wrapErr := Wrap(result)
+	if wrapErr != nil {
+		return nil, fmt.Errorf("failed to wrap interpreter result: %w", wrapErr)
 	}
 
-	return valueResult, nil
+	return wrappedResult, nil
 }
 
 func TestNewTypesIntegration(t *testing.T) {
@@ -57,7 +61,7 @@ func TestNewTypesIntegration(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		unwrapped := unwrapValue(result)
+		unwrapped := Unwrap(result)
 		resSlice, ok := unwrapped.([]interface{})
 		if !ok || len(resSlice) != 2 {
 			t.Fatalf("Expected a slice of 2 results, got %v (%T)", unwrapped, unwrapped)
@@ -75,7 +79,7 @@ func TestNewTypesIntegration(t *testing.T) {
 		script := `
 			set t1 = tool.Time.Now()
 			// A tiny sleep is needed on fast machines to ensure Now() is different
-			tool.Time.Sleep(1) 
+			call tool.Time.Sleep(1) 
 			set t2 = tool.Time.Now()
 			return t1 < t2, t1 <= t2
 		`
@@ -84,7 +88,7 @@ func TestNewTypesIntegration(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		unwrapped := unwrapValue(result)
+		unwrapped := Unwrap(result)
 		resSlice, ok := unwrapped.([]interface{})
 		if !ok || len(resSlice) != 2 {
 			t.Fatalf("Expected a slice of 2 results, got %v (%T)", unwrapped, unwrapped)
@@ -114,7 +118,7 @@ func TestNewTypesIntegration(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		unwrapped := unwrapValue(result)
+		unwrapped := Unwrap(result)
 		resSlice, ok := unwrapped.([]interface{})
 		if !ok || len(resSlice) != 4 {
 			t.Fatalf("Expected a slice of 4 results, got %v (%T)", unwrapped, unwrapped)
@@ -150,7 +154,7 @@ func TestNewTypesIntegration(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		unwrapped := unwrapValue(result)
+		unwrapped := Unwrap(result)
 		resSlice, ok := unwrapped.([]interface{})
 		if !ok || len(resSlice) != 3 {
 			t.Fatalf("Expected a slice of 3 results, got %v (%T)", unwrapped, unwrapped)

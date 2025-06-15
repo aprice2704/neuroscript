@@ -1,5 +1,6 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.1.0 // Removed local ToolImplementations and registration func, standardized error handling.
+// File version: 2
+// Purpose: Corrected compiler errors by adding type assertions when accessing child node IDs from the Attributes map.
 // nlines: 130 // Approximate
 // risk_rating: LOW
 // filename: pkg/core/tools_tree_render.go
@@ -58,7 +59,15 @@ func toolTreeFormatJSON(interpreter *Interpreter, args []interface{}) (interface
 			}
 			sort.Strings(keys) // For deterministic output
 			for _, key := range keys {
-				childID := node.Attributes[key]
+				childIDUntyped := node.Attributes[key]
+				childID, ok := childIDUntyped.(string)
+				if !ok {
+					return nil, NewRuntimeError(ErrorCodeInternal,
+						fmt.Sprintf("%s: attribute '%s' has non-string value (%T) in node '%s', cannot serialize object", toolName, key, childIDUntyped, node.ID),
+						ErrTreeIntegrity,
+					)
+				}
+
 				childNode, ok := tree.NodeMap[childID]
 				if !ok {
 					return nil, NewRuntimeError(ErrorCodeInternal, // Child ID in attributes but not in NodeMap
@@ -184,9 +193,15 @@ func toolTreeRenderText(interpreter *Interpreter, args []interface{}) (interface
 			sort.Strings(keys)
 			keyIndent := strings.Repeat(defaultIndent, indentLevel+1)
 			for _, key := range keys {
-				childID := node.Attributes[key]
-				childNode, childExists := tree.NodeMap[childID]
+				childIDUntyped := node.Attributes[key]
+				childID, ok := childIDUntyped.(string)
 				builder.WriteString(fmt.Sprintf("%s* Key: %q\n", keyIndent, key))
+				if !ok {
+					builder.WriteString(fmt.Sprintf("%s<ERROR: attribute value is not a string node ID, but %T>\n", strings.Repeat(defaultIndent, indentLevel+2), childIDUntyped))
+					continue
+				}
+
+				childNode, childExists := tree.NodeMap[childID]
 				if !childExists {
 					builder.WriteString(fmt.Sprintf("%s<ERROR: missing node '%s'>\n", strings.Repeat(defaultIndent, indentLevel+2), childID))
 					continue // Log or handle as critical error? For rendering, showing error might be best.

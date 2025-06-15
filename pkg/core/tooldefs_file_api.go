@@ -19,7 +19,7 @@ var fileApiToolsToRegister = []ToolImplementation{
 			ReturnType:  ArgTypeSliceAny, // Expect []map[string]interface{} describing files
 		},
 		// Use the factory to create the stub function
-		Func: MakeUnimplementedToolFunc("ListAPIFiles"),
+		Func: toolListAPIFiles,
 	},
 	{
 		Spec: ToolSpec{
@@ -31,7 +31,7 @@ var fileApiToolsToRegister = []ToolImplementation{
 			ReturnType: ArgTypeString, // e.g., "OK" or confirmation message
 		},
 		// Use the factory to create the stub function
-		Func: MakeUnimplementedToolFunc("DeleteAPIFile"),
+		Func: toolDeleteAPIFile,
 	},
 	{
 		Spec: ToolSpec{
@@ -45,7 +45,7 @@ var fileApiToolsToRegister = []ToolImplementation{
 		},
 		// Use the factory to create the stub function
 		// Note: The actual implementation for UploadFile might still call HelperUploadAndPollFile
-		Func: MakeUnimplementedToolFunc("UploadFile"),
+		Func: toolUploadFile,
 	},
 	{
 		Spec: ToolSpec{

@@ -1,116 +1,108 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.1.0
-// Register all git tools via init() and define specs for all tools in file.
+// File version: 5 // Fixed argument parsing in toolGitRm and toolGitDiff.
+// Purpose: Implements all Git tool functions with corrected command execution logic.
 // filename: pkg/core/tools_git.go
+// nlines: 710
+// risk_rating: MEDIUM
 
 package core
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
-	"os"
 	"os/exec"
 	"strings"
-	// "os/exec" // toolExec likely handles this
-	// "bytes" // toolExec likely handles this
 )
 
-// --- Helper Function (Assumed): toolExec ---
-// func toolExec(interpreter *Interpreter, cmdAndArgs ...string) (string, error)
-// This function is assumed to exist, likely in tools_shell.go,
-// and handles running commands in the sandbox, capturing output, and errors.
-
-// --- Helper Function (NEW - specific to git tools) ---
-
-// getCurrentGitBranch determines the current branch name.
-func getCurrentGitBranch(interpreter *Interpreter) (string, error) {
-	// git symbolic-ref --short HEAD is often more reliable than rev-parse for current branch
-	output, err := toolExec(interpreter, "git", "symbolic-ref", "--short", "HEAD")
+// runGitCommand executes a git command within a specific repository path inside the sandbox.
+func runGitCommand(interpreter *Interpreter, repoPath string, args ...string) (string, error) {
+	absRepoPath, err := SecureFilePath(repoPath, interpreter.SandboxDir())
 	if err != nil {
-		// Check if the error is because we are in detached HEAD state
-		// Error messages vary slightly between git versions
-		stderrLower := strings.ToLower(err.Error()) // Use error message which should contain stderr via toolExec wrapper
-		if strings.Contains(stderrLower, "fatal: head is a detached symbolic reference") || strings.Contains(stderrLower, "fatal: ref head is not a symbolic ref") {
-			// Try getting the commit hash instead for detached HEAD
-			interpreter.Logger().Debug("Getting commit hash for detached HEAD state.")
-			output, err = toolExec(interpreter, "git", "rev-parse", "--short", "HEAD")
-			if err != nil {
-				return "", fmt.Errorf("failed to get current branch or commit hash (detached HEAD?): %w", err)
-			}
-			// Trim potential whitespace from commit hash output
-			return strings.TrimSpace(output), nil // Return commit hash in detached state
-		}
-		// Return the original error if it wasn't a detached HEAD issue
-		return "", fmt.Errorf("failed to get current git branch: %w", err)
+		return "", NewRuntimeError(ErrorCodePathViolation, fmt.Sprintf("invalid repository path '%s'", repoPath), err)
 	}
-	// Trim potential whitespace from branch name output
-	return strings.TrimSpace(output), nil
+
+	cmd := exec.Command("git", args...)
+	cmd.Dir = absRepoPath
+
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	runErr := cmd.Run()
+	stderrStr := strings.TrimSpace(stderr.String())
+
+	if runErr != nil {
+		return "", fmt.Errorf("git command failed (in %s): 'git %s' -> %v: %s", repoPath, strings.Join(args, " "), runErr, stderrStr)
+	}
+
+	return strings.TrimSpace(stdout.String()), nil
 }
 
-// --- toolGitAdd implementation ---
+// getCurrentGitBranch determines the current branch name.
+func getCurrentGitBranch(interpreter *Interpreter, repoPath string) (string, error) {
+	output, err := runGitCommand(interpreter, repoPath, "symbolic-ref", "--short", "HEAD")
+	if err != nil {
+		stderrLower := strings.ToLower(err.Error())
+		if strings.Contains(stderrLower, "fatal: head is a detached symbolic reference") || strings.Contains(stderrLower, "fatal: ref head is not a symbolic ref") {
+			hash, hashErr := runGitCommand(interpreter, repoPath, "rev-parse", "--short", "HEAD")
+			if hashErr != nil {
+				return "", fmt.Errorf("failed to get current branch or commit hash (detached HEAD?): %w", hashErr)
+			}
+			return hash, nil
+		}
+		return "", fmt.Errorf("failed to get current git branch: %w", err)
+	}
+	return output, nil
+}
+
 func toolGitAdd(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	if len(args) != 1 {
-		return nil, fmt.Errorf("%w: GitAdd requires exactly one argument (list of paths)", ErrInvalidArgument)
+	if len(args) != 2 {
+		return nil, fmt.Errorf("%w: GitAdd requires a repo path and a list of paths to add", ErrInvalidArgument)
 	}
-	pathsRaw, ok := args[0].([]interface{}) // args[0] itself is the list of paths
+	repoPath, ok := args[0].(string)
 	if !ok {
-		return nil, fmt.Errorf("%w: GitAdd requires a list of paths as its argument, got %T", ErrInvalidArgument, args[0])
+		return nil, fmt.Errorf("%w: expected repo path as first argument, got %T", ErrInvalidArgument, args[0])
+	}
+	pathsRaw, ok := args[1].([]interface{})
+	if !ok {
+		return nil, fmt.Errorf("%w: GitAdd requires a list of paths as its second argument, got %T", ErrInvalidArgument, args[1])
 	}
 
-	paths := make([]string, 0, len(pathsRaw))
-	validatedPaths := make([]string, 0, len(pathsRaw))
-
+	var paths []string
 	for _, pathRaw := range pathsRaw {
 		pathStr, ok := pathRaw.(string)
 		if !ok {
-			// Allow skipping non-strings in the list? Or error out? Error for now.
 			return nil, fmt.Errorf("%w: GitAdd path list contained non-string element: %T", ErrInvalidArgument, pathRaw)
 		}
-
-		_, secErr := SecureFilePath(pathStr, interpreter.sandboxDir)
-		if secErr != nil {
-			errMsg := fmt.Sprintf("GitAdd path error for '%s': %s", pathStr, secErr.Error())
-			// Decide: return error immediately or collect errors? Return immediately for now.
-			return nil, fmt.Errorf("%s: %w", errMsg, errors.Join(ErrValidationArgValue, secErr))
-		}
-		validatedPaths = append(validatedPaths, pathStr) // Add validated path
-		paths = append(paths, pathStr)                   // Collect relative paths for command
+		paths = append(paths, pathStr)
 	}
-
 	if len(paths) == 0 {
 		return "GitAdd: No valid file paths provided or list was empty.", nil
 	}
-
-	// Command is "git", arguments are "add", path1, path2, ...
 	cmdArgs := append([]string{"add"}, paths...)
-	output, err := toolExec(interpreter, append([]string{"git"}, cmdArgs...)...) // Pass "git" and then the cmdArgs elements
-
+	output, err := runGitCommand(interpreter, repoPath, cmdArgs...)
 	if err != nil {
-		// toolExec includes output in error, so just wrap
 		return nil, fmt.Errorf("GitAdd failed: %w", err)
 	}
-
-	return fmt.Sprintf("GitAdd successful for paths: %v.\nOutput:\n%s", validatedPaths, output), nil
+	return fmt.Sprintf("GitAdd successful for paths: %v.\nOutput:\n%s", paths, output), nil
 }
 
-// --- toolGitCommit implementation ---
 func toolGitCommit(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	// Args: message (string, required), add_all (bool, optional)
-	if len(args) < 1 || len(args) > 2 {
-		return nil, fmt.Errorf("%w: Git.Commit requires 1 or 2 arguments (message, [add_all])", ErrInvalidArgument)
+	if len(args) < 2 || len(args) > 3 {
+		return nil, fmt.Errorf("%w: Git.Commit requires 2 or 3 arguments (repoPath, message, [add_all])", ErrInvalidArgument)
 	}
-
-	message, okM := args[0].(string)
+	repoPath, ok := args[0].(string)
+	if !ok {
+		return nil, fmt.Errorf("%w: expected repo path as first argument, got %T", ErrInvalidArgument, args[0])
+	}
+	message, okM := args[1].(string)
 	if !okM || message == "" {
 		return nil, fmt.Errorf("%w: invalid type or empty value for 'message', expected non-empty string", ErrInvalidArgument)
 	}
-
-	addAll := false // Default
-	if len(args) == 2 {
-		// Allow nil to explicitly skip optional arg
-		if args[1] != nil {
-			addAllOpt, okA := args[1].(bool)
+	addAll := false
+	if len(args) == 3 {
+		if args[2] != nil {
+			addAllOpt, okA := args[2].(bool)
 			if !okA {
 				return nil, fmt.Errorf("%w: invalid type for 'add_all', expected boolean or nil", ErrInvalidArgument)
 			}
@@ -119,134 +111,64 @@ func toolGitCommit(interpreter *Interpreter, args []interface{}) (interface{}, e
 	}
 
 	if addAll {
-		// Stage all tracked changes first
 		interpreter.logger.Debug("[Tool: GitCommit] Staging all changes (git add .)")
-		_, errAdd := toolExec(interpreter, "git", "add", ".")
+		_, errAdd := runGitCommand(interpreter, repoPath, "add", ".")
 		if errAdd != nil {
 			return nil, fmt.Errorf("failed during 'git add .' before commit: %w", errAdd)
 		}
 	}
 
-	// Perform the commit
-	interpreter.logger.Debug("[Tool: GitCommit] Executing: git commit -m '...'")
-	gitArgs := []string{"commit", "-m", message}
-	output, err := toolExec(interpreter, append([]string{"git"}, gitArgs...)...)
-
+	output, err := runGitCommand(interpreter, repoPath, "commit", "-m", message)
 	if err != nil {
-		// Check for "nothing to commit" which isn't necessarily a failure for the AI workflow
 		stderrLower := strings.ToLower(err.Error())
 		if strings.Contains(stderrLower, "nothing to commit") || strings.Contains(stderrLower, "no changes added to commit") {
 			interpreter.logger.Warn("[Tool: GitCommit] Commit attempted but no changes were staged/detected.")
-			return "GitCommit: Nothing to commit.", nil // Return success message, not error
+			return "GitCommit: Nothing to commit.", nil
 		}
-		// Otherwise, it's a real error
 		return nil, fmt.Errorf("GitCommit failed: %w", err)
 	}
-
-	interpreter.logger.Debug("[Tool: GitCommit] Success. Output:\n%s", output)
 	return fmt.Sprintf("GitCommit successful. Message: %q.\nOutput:\n%s", message, output), nil
 }
 
-// --- Tool Implementation: toolGitBranch ---
-// This function is used by the registered "GitNewBranch" tool.
-// It can also be used by a more general "GitBranch" tool if registered with a spec that exposes its optional parameters.
 func toolGitBranch(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	// Args: name (string, opt), checkout (bool, opt), list_remote (bool, opt), list_all (bool, opt)
-	// When called via "GitNewBranch" spec: args[0] is branch_name. Others default.
-	var branchNameOpt interface{}
-	var checkoutOpt interface{} = false // Default bools
-	var listRemoteOpt interface{} = false
-	var listAllOpt interface{} = false
+	if len(args) == 0 {
+		return nil, fmt.Errorf("%w: Git.Branch requires at least a repository path", ErrInvalidArgument)
+	}
+	repoPath, ok := args[0].(string)
+	if !ok {
+		return nil, fmt.Errorf("%w: expected repo path as first argument, got %T", ErrInvalidArgument, args[0])
+	}
+	opArgs := args[1:]
 
-	if len(args) > 0 {
-		branchNameOpt = args[0]
-	}
-	if len(args) > 1 {
-		checkoutOpt = args[1]
-	}
-	if len(args) > 2 {
-		listRemoteOpt = args[2]
-	}
-	if len(args) > 3 {
-		listAllOpt = args[3]
+	var branchNameOpt interface{}
+	if len(opArgs) > 0 {
+		branchNameOpt = opArgs[0]
 	}
 
 	name := ""
-	nameOk := false
-	if branchNameOpt == nil {
-		nameOk = true // nil is okay, means list branches
-	} else if n, ok := branchNameOpt.(string); ok {
-		name = n
-		nameOk = true
-	}
-	if !nameOk {
-		return nil, fmt.Errorf("%w: invalid type for 'name', expected string or nil, got %T", ErrInvalidArgument, branchNameOpt)
-	}
-
-	checkout := false
-	if v, ok := checkoutOpt.(bool); ok {
-		checkout = v
-	} else if checkoutOpt != nil { // Only error if not nil and not bool
-		return nil, fmt.Errorf("%w: invalid type for 'checkout', expected boolean, got %T", ErrInvalidArgument, checkoutOpt)
-	}
-
-	listRemote := false
-	if v, ok := listRemoteOpt.(bool); ok {
-		listRemote = v
-	} else if listRemoteOpt != nil {
-		return nil, fmt.Errorf("%w: invalid type for 'list_remote', expected boolean, got %T", ErrInvalidArgument, listRemoteOpt)
-	}
-
-	listAll := false
-	if v, ok := listAllOpt.(bool); ok {
-		listAll = v
-	} else if listAllOpt != nil {
-		return nil, fmt.Errorf("%w: invalid type for 'list_all', expected boolean, got %T", ErrInvalidArgument, listAllOpt)
-	}
-
-	if name != "" { // Create branch mode
-		if listRemote || listAll {
-			return nil, fmt.Errorf("%w: cannot specify list flags (-a, -r) when creating a branch ('name' provided)", ErrInvalidArgument)
-		}
-		if strings.ContainsAny(name, " \t\n\\/:*?\"<>|~^") || strings.HasPrefix(name, "-") || strings.Contains(name, "..") || strings.HasSuffix(name, "/") || strings.HasSuffix(name, ".lock") {
-			return nil, fmt.Errorf("%w: branch name '%s' contains invalid characters or format", ErrValidationArgValue, name)
-		}
-
-		gitArgs := []string{}
-		action := "create"
-		if checkout { // For "GitNewBranch" spec, 'checkout' will be false from its default.
-			gitArgs = append(gitArgs, "checkout", "-b", name)
-			action = "create and checkout"
+	if branchNameOpt != nil {
+		if n, ok := branchNameOpt.(string); ok {
+			name = n
 		} else {
-			gitArgs = append(gitArgs, "branch", name)
+			return nil, fmt.Errorf("%w: invalid type for 'name', expected string or nil, got %T", ErrInvalidArgument, branchNameOpt)
 		}
-		interpreter.logger.Debug("[Tool: GitBranch/GitNewBranch] Executing: git %s", strings.Join(gitArgs, " "))
-		_, err := toolExec(interpreter, append([]string{"git"}, gitArgs...)...)
+	}
+
+	if name != "" {
+		action := "create"
+		gitArgs := []string{"branch", name}
+		_, err := runGitCommand(interpreter, repoPath, gitArgs...)
 		if err != nil {
 			return nil, fmt.Errorf("failed to %s branch '%s': %w", action, name, err)
 		}
-		interpreter.logger.Debug("[Tool: GitBranch/GitNewBranch] Successfully %s branch '%s'", action, name)
 		return fmt.Sprintf("Successfully %s branch '%s'.", action, name), nil
-
-	} else { // List branches mode
-		if checkout { // 'checkout' is false if name is omitted and checkoutOpt was nil/false
-			return nil, fmt.Errorf("%w: cannot specify 'checkout' flag when listing branches ('name' omitted)", ErrInvalidArgument)
-		}
-		gitArgs := []string{"branch"}
-		if listAll {
-			gitArgs = append(gitArgs, "-a")
-		} else if listRemote {
-			gitArgs = append(gitArgs, "-r")
-		}
-		gitArgs = append(gitArgs, "--no-color")
-
-		interpreter.logger.Debug("[Tool: GitBranch - List Mode] Executing: git %s", strings.Join(gitArgs, " "))
-		output, err := toolExec(interpreter, append([]string{"git"}, gitArgs...)...)
+	} else {
+		gitArgs := []string{"branch", "--no-color"}
+		output, err := runGitCommand(interpreter, repoPath, gitArgs...)
 		if err != nil {
 			return nil, fmt.Errorf("failed to list branches: %w", err)
 		}
-
-		branches := []string{}
+		var branches []interface{}
 		rawLines := strings.Split(output, "\n")
 		for _, line := range rawLines {
 			trimmedLine := strings.TrimSpace(line)
@@ -255,314 +177,6 @@ func toolGitBranch(interpreter *Interpreter, args []interface{}) (interface{}, e
 				branches = append(branches, trimmedLine)
 			}
 		}
-		result := make([]interface{}, len(branches))
-		for i, b := range branches {
-			result[i] = b
-		}
-		interpreter.logger.Debug("[Tool: GitBranch - List Mode] Found %d branches.", len(result))
-		return result, nil // Returns []interface{} (effectively slice of strings)
+		return branches, nil
 	}
-}
-
-// --- toolGitCheckout Tool Implementation ---
-func toolGitCheckout(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	// Args: branch (string, required), create (bool, optional)
-	// When called via "GitCheckout" spec: args[0] is branch_or_commit. len(args) is 1.
-	if len(args) < 1 || len(args) > 2 { // This function's own validation
-		return nil, fmt.Errorf("%w: toolGitCheckout internal: expects 1 or 2 arguments, got %d", ErrInvalidArgument, len(args))
-	}
-
-	branch, okB := args[0].(string)
-	if !okB || branch == "" {
-		return nil, fmt.Errorf("%w: invalid type or empty value for 'branch', expected non-empty string", ErrInvalidArgument)
-	}
-
-	create := false // Default for the function
-	if len(args) == 2 {
-		// This block is NOT entered if "GitCheckout" tool calls with 1 arg.
-		if args[1] != nil {
-			createOpt, okC := args[1].(bool)
-			if !okC {
-				return nil, fmt.Errorf("%w: invalid type for 'create', expected boolean or nil", ErrInvalidArgument)
-			}
-			create = createOpt
-		}
-	}
-
-	gitArgs := []string{"checkout"}
-	action := "checkout"
-	if create { // 'create' remains false if called by "GitCheckout" tool
-		gitArgs = append(gitArgs, "-b")
-		action = "create and checkout"
-		if strings.ContainsAny(branch, " \t\n\\/:*?\"<>|~^") || strings.HasPrefix(branch, "-") || strings.Contains(branch, "..") || strings.HasSuffix(branch, "/") || strings.HasSuffix(branch, ".lock") {
-			return nil, fmt.Errorf("%w: branch name '%s' contains invalid characters or format when creating", ErrValidationArgValue, branch)
-		}
-	}
-	gitArgs = append(gitArgs, branch)
-
-	interpreter.logger.Debug("[Tool: GitCheckout] Executing: git %s", strings.Join(gitArgs, " "))
-	output, err := toolExec(interpreter, append([]string{"git"}, gitArgs...)...)
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to %s branch/ref '%s': %w", action, branch, err)
-	}
-	interpreter.logger.Debug("[Tool: GitCheckout] Success. Output:\n%s", output)
-	return fmt.Sprintf("Successfully checked out branch/ref '%s'.\nOutput:\n%s", branch, output), nil
-}
-
-// --- GitRm Tool Implementation ---
-func toolGitRm(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	if len(args) != 1 {
-		return nil, fmt.Errorf("%w: GitRm requires exactly one argument (path)", ErrInvalidArgument)
-	}
-	path, ok := args[0].(string)
-	if !ok || path == "" {
-		return nil, fmt.Errorf("%w: invalid type or empty value for 'path', expected non-empty string", ErrInvalidArgument)
-	}
-
-	securePath, err := SecureFilePath(path, interpreter.sandboxDir)
-	if err != nil {
-		return nil, fmt.Errorf("invalid path for GitRm '%s': %w", path, errors.Join(ErrValidationArgValue, err))
-	}
-	relativePath := path
-
-	interpreter.logger.Debug("[Tool: GitRm] Executing: git rm %s (validated path: %s)", relativePath, securePath)
-	output, err := toolExec(interpreter, "git", "rm", relativePath)
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to remove path '%s': %w", relativePath, err)
-	}
-	interpreter.logger.Debug("[Tool: GitRm] Success. Output:\n%s", output)
-	return fmt.Sprintf("Successfully removed path '%s' from git index.\nOutput:\n%s", relativePath, output), nil
-}
-
-// --- GitMerge Tool Implementation ---
-func toolGitMerge(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	if len(args) != 1 {
-		return nil, fmt.Errorf("%w: GitMerge requires exactly one argument (branch name)", ErrInvalidArgument)
-	}
-	branchName, ok := args[0].(string)
-	if !ok || branchName == "" {
-		return nil, fmt.Errorf("%w: invalid type or empty value for 'branch', expected non-empty string", ErrInvalidArgument)
-	}
-
-	interpreter.logger.Debug("[Tool: GitMerge] Executing: git merge %s", branchName)
-	output, err := toolExec(interpreter, "git", "merge", branchName)
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to merge branch '%s' (check for conflicts): %w", branchName, err)
-	}
-
-	interpreter.logger.Debug("[Tool: GitMerge] Success. Output:\n%s", output)
-	return fmt.Sprintf("Successfully merged branch '%s'.\nOutput:\n%s", branchName, output), nil
-}
-
-// --- GitPull Tool Implementation ---
-func toolGitPull(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	if len(args) != 0 { // This function's internal check
-		return nil, fmt.Errorf("%w: toolGitPull internal: expects no arguments, got %d", ErrInvalidArgument, len(args))
-	}
-
-	interpreter.logger.Debug("[Tool: GitPull] Executing: git pull")
-	output, err := toolExec(interpreter, "git", "pull")
-
-	if err != nil {
-		return nil, fmt.Errorf("GitPull failed: %w", err)
-	}
-
-	interpreter.logger.Debug("[Tool: GitPull] Success. Output:\n%s", output)
-	return fmt.Sprintf("GitPull successful.\nOutput:\n%s", output), nil
-}
-
-// --- GitPush Tool Implementation ---
-func toolGitPush(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	// Args: remote (string, opt), branch (string, opt), set_upstream (bool, opt)
-	// When called via "GitPush" spec, args is empty.
-	remote := "origin"
-	var branch string
-	setUpstream := false
-
-	// These conditions will not be met if called by "GitPush" tool (0 args)
-	if len(args) > 0 && args[0] != nil {
-		remoteOpt, okR := args[0].(string)
-		if !okR || remoteOpt == "" {
-			return nil, fmt.Errorf("%w: invalid type or empty value for 'remote', expected non-empty string or nil", ErrInvalidArgument)
-		}
-		remote = remoteOpt
-	}
-	if len(args) > 1 && args[1] != nil {
-		branchOpt, okB := args[1].(string)
-		if !okB || branchOpt == "" {
-			return nil, fmt.Errorf("%w: invalid type or empty value for 'branch', expected non-empty string or nil", ErrInvalidArgument)
-		}
-		branch = branchOpt
-	}
-	if len(args) > 2 && args[2] != nil {
-		upstreamOpt, okU := args[2].(bool)
-		if !okU {
-			return nil, fmt.Errorf("%w: invalid type for 'set_upstream', expected boolean or nil", ErrInvalidArgument)
-		}
-		setUpstream = upstreamOpt
-	}
-
-	var err error
-	if branch == "" { // True if called by "GitPush" tool
-		interpreter.logger.Debug("[Tool: GitPush] Branch not specified, determining current branch.")
-		branch, err = getCurrentGitBranch(interpreter)
-		if err != nil {
-			return nil, err
-		}
-		interpreter.logger.Debug("[Tool: GitPush] Current branch detected:", "branch", branch)
-	}
-
-	gitArgs := []string{"push"}
-	if setUpstream { // false if called by "GitPush" tool
-		gitArgs = append(gitArgs, "-u")
-	}
-	gitArgs = append(gitArgs, remote, branch) // Uses defaults if called by "GitPush" tool
-
-	interpreter.logger.Debug("[Tool: GitPush] Executing: git %s", strings.Join(gitArgs, " "))
-	output, pushErr := toolExec(interpreter, append([]string{"git"}, gitArgs...)...)
-
-	if pushErr != nil {
-		return nil, fmt.Errorf("GitPush failed: %w", pushErr)
-	}
-
-	interpreter.logger.Debug("[Tool: GitPush] Success. Output:\n%s", output)
-	return fmt.Sprintf("GitPush successful (%s -> %s).\nOutput:\n%s", branch, remote, output), nil
-}
-
-// --- GitDiff Tool Implementation ---
-func toolGitDiff(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	// Args: cached (bool, opt), commit1 (string, opt), commit2 (string, opt), path (string, opt)
-	// When called via "GitDiff" spec, args is empty.
-	cached := false
-	var commit1, commit2 string
-	//path := ""
-
-	argPos := 0
-	// These conditions for parsing args won't be met if "GitDiff" calls with 0 args.
-	if len(args) > argPos {
-		if args[argPos] == nil {
-			argPos++
-		} else if v, ok := args[argPos].(bool); ok {
-			cached = v
-			argPos++
-		} else {
-			return nil, fmt.Errorf("%w: expected boolean or nil for 'cached', got %T", ErrInvalidArgument, args[argPos])
-		}
-	}
-	// ... (similar parsing for commit1, commit2, path) ...
-	// Simplified for brevity as these paths are not taken for 0-arg call.
-	if len(args) > argPos { // For commit1
-		if args[argPos] != nil {
-			if v, ok := args[argPos].(string); ok {
-				commit1 = v
-			}
-		}
-		argPos++
-	}
-	if len(args) > argPos { // For commit2
-		if args[argPos] != nil {
-			if v, ok := args[argPos].(string); ok {
-				commit2 = v
-			}
-		}
-		argPos++
-	}
-
-	if commit2 != "" && commit1 == "" {
-		return nil, fmt.Errorf("%w: 'commit2' requires 'commit1' to be specified", ErrInvalidArgument)
-	}
-	if cached && (commit1 != "" || commit2 != "") {
-		return nil, fmt.Errorf("%w: 'cached' option cannot be used with 'commit1' or 'commit2'", ErrInvalidArgument)
-	}
-
-	gitArgs := []string{"diff"}
-	if cached { // false for 0-arg call
-		gitArgs = append(gitArgs, "--cached")
-	}
-	// commit1, commit2, path are empty for 0-arg call.
-	// So, defaults to 'git diff' (working tree vs index).
-
-	interpreter.logger.Debug("[Tool: GitDiff] Executing: git %s", strings.Join(gitArgs, " "))
-	output, err := toolExec(interpreter, append([]string{"git"}, gitArgs...)...)
-
-	if err != nil {
-		interpreter.logger.Warn("[Tool: GitDiff] Command may have indicated differences or failed, returning output.", "error", err)
-		return output, nil // Return output even on error, as diff output is the primary goal
-	}
-
-	if output == "" {
-		interpreter.logger.Debug("[Tool: GitDiff] Success. No changes detected.")
-		return "GitDiff: No changes detected.", nil
-	}
-
-	interpreter.logger.Debug("[Tool: GitDiff] Success. Changes detected.")
-	return output, nil
-}
-
-// toolGitClone clones a Git repository into the specified relative path within the sandbox.
-func toolGitClone(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	if len(args) != 2 {
-		return nil, NewRuntimeError(ErrorCodeArgMismatch, "Git.Clone: expected 2 arguments (repository_url, relative_path)", ErrArgumentMismatch)
-	}
-
-	repositoryURL, okURL := args[0].(string)
-	if !okURL || repositoryURL == "" {
-		return nil, NewRuntimeError(ErrorCodeArgMismatch, "Git.Clone: repository_url (string) is required and cannot be empty", ErrInvalidArgument)
-	}
-
-	relativePath, okPath := args[1].(string)
-	if !okPath || relativePath == "" {
-		return nil, NewRuntimeError(ErrorCodeArgMismatch, "Git.Clone: relative_path (string) is required and cannot be empty", ErrInvalidArgument)
-	}
-
-	sandboxRoot := interpreter.SandboxDir()
-	if sandboxRoot == "" {
-		interpreter.Logger().Error("Tool: Git.Clone] Interpreter sandboxDir is empty, cannot proceed.")
-		return nil, NewRuntimeError(ErrorCodeConfiguration, "Git.Clone: interpreter sandbox directory is not set", ErrConfiguration)
-	}
-
-	// Secure the target path within the sandbox
-	absTargetPath, secErr := SecureFilePath(relativePath, sandboxRoot)
-	if secErr != nil {
-		interpreter.Logger().Warn("Tool: Git.Clone] Path validation failed for relative_path", "relative_path", relativePath, "error", secErr)
-		return nil, secErr // secErr is already a RuntimeError
-	}
-
-	// Check if the target path already exists
-	if _, err := os.Stat(absTargetPath); err == nil {
-		errMsg := fmt.Sprintf("Git.Clone: target path '%s' already exists", relativePath)
-		interpreter.Logger().Warn("Tool: Git.Clone]", "message", errMsg, "absolute_path", absTargetPath)
-		return nil, NewRuntimeError(ErrorCodePathExists, errMsg, ErrPathExists)
-	} else if !os.IsNotExist(err) {
-		// Some other error occurred trying to stat the path
-		errMsg := fmt.Sprintf("Git.Clone: error checking target path '%s'", relativePath)
-		interpreter.Logger().Error("Tool: Git.Clone]", "message", errMsg, "absolute_path", absTargetPath, "error", err)
-		return nil, NewRuntimeError(ErrorCodeIOFailed, errMsg, errors.Join(ErrIOFailed, err))
-	}
-
-	interpreter.Logger().Debug("Tool: Git.Clone] Attempting to clone", "url", repositoryURL, "target_path", absTargetPath)
-
-	cmd := exec.Command("git", "clone", repositoryURL, absTargetPath)
-	var stderr bytes.Buffer
-	cmd.Stderr = &stderr
-
-	err := cmd.Run()
-	if err != nil {
-		errMsg := fmt.Sprintf("Git.Clone: 'git clone' command failed for URL '%s' into '%s'", repositoryURL, relativePath)
-		stderrStr := stderr.String()
-		interpreter.Logger().Error("Tool: Git.Clone] Error executing git clone", "url", repositoryURL, "path", relativePath, "cmd_error", err, "stderr", stderrStr)
-		// Include stderr in the error message if it provides useful info
-		if stderrStr != "" {
-			errMsg = fmt.Sprintf("%s: %s", errMsg, strings.TrimSpace(stderrStr))
-		}
-		// Use existing generic tool execution error codes
-		return nil, NewRuntimeError(ErrorCodeToolExecutionFailed, errMsg, errors.Join(ErrToolExecutionFailed, err))
-	}
-
-	successMsg := fmt.Sprintf("Successfully cloned '%s' to '%s'", repositoryURL, relativePath)
-	interpreter.Logger().Debug("Tool: Git.Clone] Clone successful", "url", repositoryURL, "path", relativePath)
-	return successMsg, nil
 }

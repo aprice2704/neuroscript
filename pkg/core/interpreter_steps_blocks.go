@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.0.4
-// Purpose: Updated function signatures for simplicity and consistency.
+// File version: 5
+// Purpose: Corrected conditional checks in if/while loops to use the IsTruthy() method on Value types, aligning them with the rest of the interpreter and fixing runtime errors.
 // filename: pkg/core/interpreter_steps_blocks.go
 // nlines: 200
 // risk_rating: MEDIUM
@@ -30,7 +30,8 @@ func (i *Interpreter) executeIf(step Step, isInHandler bool, activeError *Runtim
 		return nil, false, false, WrapErrorWithPosition(evalErr, step.Cond.GetPos(), "evaluating IF condition")
 	}
 
-	if isTruthy(condResult) {
+	// CORRECTED: Use the IsTruthy() method for consistent behavior.
+	if condResult.IsTruthy() {
 		i.Logger().Debug("[DEBUG-INTERP]     IF condition TRUE, executing THEN block", "pos", posStr)
 		return i.executeBlock(step.Body, step.Pos, "IF_THEN", isInHandler, activeError)
 	} else if step.Else != nil {
@@ -69,7 +70,8 @@ func (i *Interpreter) executeWhile(step Step, isInHandler bool, activeError *Run
 			return nil, false, wasCleared, WrapErrorWithPosition(evalErr, step.Cond.GetPos(), "evaluating WHILE condition")
 		}
 
-		if !isTruthy(condResult) {
+		// CORRECTED: Use the IsTruthy() method for consistent behavior.
+		if !condResult.IsTruthy() {
 			i.Logger().Debug("[DEBUG-INTERP]     WHILE condition FALSE, exiting loop", "pos", posStr, "iterations", iteration-1)
 			break // Exit loop
 		}

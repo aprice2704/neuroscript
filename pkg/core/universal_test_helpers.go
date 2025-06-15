@@ -4,8 +4,6 @@ package core
 import (
 	"bufio"
 	"fmt"
-	"os"
-	"path/filepath"
 	"regexp"
 	"strings"
 	"testing"
@@ -387,16 +385,16 @@ func AssertEqualStrings(t *testing.T, expected, actual string, msgAndArgs ...int
 
 // writeFileHelper writes content to a file, creating directories if needed.
 // Added from tools_go_ast_symbol_helpers_test.go.txt
-func writeFileHelper(t *testing.T, path string, content string) {
-	t.Helper()
-	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		t.Fatalf("writeFileHelper: failed to create directory %s: %v", dir, err)
-	}
-	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
-		t.Fatalf("writeFileHelper: failed to write file %s: %v", path, err)
-	}
-}
+// func writeFileHelper(t *testing.T, path string, content string) {
+// 	t.Helper()
+// 	dir := filepath.Dir(path)
+// 	if err := os.MkdirAll(dir, 0755); err != nil {
+// 		t.Fatalf("writeFileHelper: failed to create directory %s: %v", dir, err)
+// 	}
+// 	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+// 		t.Fatalf("writeFileHelper: failed to write file %s: %v", path, err)
+// 	}
+// }
 
 // max helper function
 func max(a, b int) int {

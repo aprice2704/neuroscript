@@ -15,26 +15,6 @@ func MakeArgs(vals ...interface{}) []interface{} {
 	return vals
 }
 
-// runGitCommand executes a git command with the given arguments.
-func runGitCommand(args ...string) error {
-	cmd := exec.Command("git", args...)
-	var stderr bytes.Buffer
-	cmd.Stderr = &stderr
-	err := cmd.Run()
-	if err != nil {
-		quotedArgs := make([]string, len(args))
-		for i, arg := range args {
-			if strings.Contains(arg, " ") {
-				quotedArgs[i] = fmt.Sprintf("%q", arg)
-			} else {
-				quotedArgs[i] = arg
-			}
-		}
-		return fmt.Errorf("git command 'git %s' failed: %v\nStderr: %s", strings.Join(quotedArgs, " "), err, stderr.String())
-	}
-	return nil
-}
-
 // *** ADDED toolExec function definition ***
 // toolExec executes an external command and returns combined stdout/stderr as a string,
 // or an error if the command fails to run or exits non-zero.

@@ -44,6 +44,35 @@ type executeStepsTestCase struct {
 	expectedVars    map[string]interface{}
 }
 
+// ValidationTestCase is for testing input validation of tool functions.
+type ValidationTestCase struct {
+	Name          string
+	InputArgs     []interface{}
+	ExpectedError error
+}
+
+// runValidationTestCases runs a set of validation test cases for a given tool.
+// It is defined here to be accessible by all test files in the package.
+func runValidationTestCases(t *testing.T, toolName string, testCases []ValidationTestCase) {
+	t.Helper()
+	interp, _ := NewDefaultTestInterpreter(t) // A dummy interpreter is fine for validation
+	tool, ok := interp.ToolRegistry().GetTool(toolName)
+	if !ok {
+		t.Fatalf("Tool %s not found in registry", toolName)
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.Name, func(t *testing.T) {
+			// The validation logic is now part of the tool function itself.
+			// We call the tool's Func to test validation.
+			_, err := tool.Func(interp, tc.InputArgs)
+			if !errors.Is(err, tc.ExpectedError) {
+				t.Errorf("Expected error [%v], but got [%v]", tc.ExpectedError, err)
+			}
+		})
+	}
+}
+
 // AssertNoError fails the test if err is not nil.
 func AssertNoError(t *testing.T, err error, msgAndArgs ...interface{}) {
 	t.Helper()

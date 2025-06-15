@@ -1,10 +1,3 @@
-// NeuroScript Version: 0.3.0
-// File version: (ai_wm_instances.go - v with extensive debug & AggPerfSummary commented)
-// - Added extensive fmt.Println debugging around the call to getOrCreateRateTrackerUnsafe.
-// - Stricter panic if tracker is nil after call.
-// - Commented out tracker.CurrentActiveInstances++ and related decrement in RetireWorkerInstance.
-// - Commented out AggregatePerformanceSummary to resolve immediate compiler error.
-// filename: pkg/core/ai_wm_instances.go
 package core
 
 import (
@@ -76,9 +69,6 @@ func (m *AIWorkerManager) SpawnWorkerInstance(
 	m.logger.Debugf("DEBUG_INSTANCE (v0.1.10+fix2): Current m.logger Addr: %p", m.logger)
 	m.logger.Debugf("DEBUG_INSTANCE (v0.1.10+fix2): Current m.rateTrackers map Addr: %p, Len: %d", m.rateTrackers, len(m.rateTrackers))
 	m.logger.Debugf("DEBUG_INSTANCE (v0.1.10+fix2): Current AIWorkerDefinition (def) Addr: %p", def)
-	if def != nil {
-		m.logger.Debugf("DEBUG_INSTANCE (v0.1.10+fix2): Current def.DefinitionID: %s", def.DefinitionID)
-	}
 
 	tracker := m.getOrCreateRateTrackerUnsafe(def)
 
@@ -92,19 +82,17 @@ func (m *AIWorkerManager) SpawnWorkerInstance(
 	}
 
 	m.logger.Debugf("DEBUG_INSTANCE (v0.1.10+fix2): About to check concurrency. Tracker Addr: %p. Def Addr: %p", tracker, def)
-	if def != nil && tracker != nil {
-		if def.RateLimits.MaxConcurrentActiveInstances > 0 && tracker.CurrentActiveInstances >= def.RateLimits.MaxConcurrentActiveInstances {
-			m.logger.Debugf("DEBUG_INSTANCE (v0.1.10+fix2): Max concurrent instances (%d) reached for DefID '%s'. Current: %d", def.RateLimits.MaxConcurrentActiveInstances, definitionID, tracker.CurrentActiveInstances)
-			m.logger.Warnf("SpawnWorkerInstance: Max concurrent instances (%d) reached for definition '%s'", def.RateLimits.MaxConcurrentActiveInstances, definitionID)
-			return nil, NewRuntimeError(ErrorCodeRateLimited, fmt.Sprintf("max concurrent instances (%d) reached for definition '%s'", def.RateLimits.MaxConcurrentActiveInstances, definitionID), ErrRateLimited)
-		}
-	} else {
-		m.logger.Debugf("DEBUG_INSTANCE (v0.1.10+fix2): Skipped concurrency check because def (%p) or tracker (%p) is nil.", def, tracker)
+	// The linter correctly identifies that `def != nil && tracker != nil` is always true here.
+	if def.RateLimits.MaxConcurrentActiveInstances > 0 && tracker.CurrentActiveInstances >= def.RateLimits.MaxConcurrentActiveInstances {
+		m.logger.Debugf("DEBUG_INSTANCE (v0.1.10+fix2): Max concurrent instances (%d) reached for DefID '%s'. Current: %d", def.RateLimits.MaxConcurrentActiveInstances, definitionID, tracker.CurrentActiveInstances)
+		m.logger.Warnf("SpawnWorkerInstance: Max concurrent instances (%d) reached for definition '%s'", def.RateLimits.MaxConcurrentActiveInstances, definitionID)
+		return nil, NewRuntimeError(ErrorCodeRateLimited, fmt.Sprintf("max concurrent instances (%d) reached for definition '%s'", def.RateLimits.MaxConcurrentActiveInstances, definitionID), ErrRateLimited)
 	}
 
 	instanceID := uuid.NewString()
 	effectiveConfig := make(map[string]interface{})
-	if def != nil && def.BaseConfig != nil {
+	// The linter correctly identifies `def != nil` is always true here.
+	if def.BaseConfig != nil {
 		for k, v := range def.BaseConfig {
 			effectiveConfig[k] = v
 		}
@@ -114,9 +102,9 @@ func (m *AIWorkerManager) SpawnWorkerInstance(
 	}
 
 	var effectiveFileContexts []string
-	if def != nil {
-		effectiveFileContexts = def.DefaultFileContexts
-	}
+	// The linter correctly identifies `def != nil` is always true here.
+	effectiveFileContexts = def.DefaultFileContexts
+
 	if len(initialFileContexts) > 0 {
 		effectiveFileContexts = initialFileContexts
 	}
@@ -162,11 +150,8 @@ func (m *AIWorkerManager) SpawnWorkerInstance(
 	// AggregatePerformanceSummary logic commented out by user in uploaded file
 	m.logger.Debugf("DEBUG_INSTANCE (v0.1.10+fix2): AggregatePerformanceSummary update skipped/commented due to prior compiler error.")
 
-	if tracker != nil {
-		m.logger.Infof("AIWorkerManager: Spawned AIWorkerInstance ID=%s from DefinitionID=%s. Active instances for def (if tracked by stub): %d", instanceID, definitionID, tracker.CurrentActiveInstances)
-	} else {
-		m.logger.Infof("AIWorkerManager: Spawned AIWorkerInstance ID=%s from DefinitionID=%s. Tracker is nil, cannot log active instances for def.", instanceID, definitionID)
-	}
+	// The linter correctly identifies that tracker is never nil here.
+	m.logger.Infof("AIWorkerManager: Spawned AIWorkerInstance ID=%s from DefinitionID=%s. Active instances for def (if tracked by stub): %d", instanceID, definitionID, tracker.CurrentActiveInstances)
 
 	m.logger.Debugf("DEBUG_INSTANCE (v0.1.10+fix2): EXIT SpawnWorkerInstance for DefID '%s', returning instance Addr: %p", definitionID, instance)
 	return instance, nil
@@ -210,9 +195,8 @@ func (m *AIWorkerManager) ListActiveWorkerInstances(filters map[string]interface
 	for id, instance := range m.activeInstances {
 		if instance == nil {
 			fmt.Printf("WARN_INSTANCE (v0.1.10): ListActiveWorkerInstances: Found a nil instance in activeInstances map with ID '%s'. Skipping.\n", id)
-			if m.logger != nil {
-				m.logger.Warnf("ListActiveWorkerInstances: Found a nil instance in activeInstances map with ID '%s'. Skipping.", id)
-			}
+			// Linter correctly identifies m.logger is not nil here
+			m.logger.Warnf("ListActiveWorkerInstances: Found a nil instance in activeInstances map with ID '%s'. Skipping.", id)
 			continue
 		}
 		if m.matchesInstanceFilters(instance, filters) {
@@ -294,7 +278,7 @@ func (m *AIWorkerManager) RetireWorkerInstance(
 	// if defToUpdateExists && defToUpdate != nil {
 	// 	tracker := m.getOrCreateRateTrackerUnsafe(defToUpdate)
 	// 	if tracker != nil {
-	// 	    // tracker.CurrentActiveInstances-- // STUBBED OUT
+	// 		// tracker.CurrentActiveInstances-- // STUBBED OUT
 	// 	}
 	// }
 	fmt.Printf("DEBUG_INSTANCE (v0.1.10): CurrentActiveInstances decrement commented out for DefID '%s' in RetireWorkerInstance.\n", instance.DefinitionID)
@@ -346,9 +330,8 @@ func (m *AIWorkerManager) matchesInstanceFilters(instance *AIWorkerInstance, fil
 		return true
 	}
 	if instance == nil { // Should be checked by caller ListActiveWorkerInstances
-		if m.logger != nil {
-			m.logger.Warnf("matchesInstanceFilters called with nil instance.")
-		}
+		// Linter correctly identifies m.logger is not nil here
+		m.logger.Warnf("matchesInstanceFilters called with nil instance.")
 		return false
 	}
 
@@ -370,9 +353,8 @@ func (m *AIWorkerManager) matchesInstanceFilters(instance *AIWorkerInstance, fil
 				match = true
 			}
 		default:
-			if m.logger != nil {
-				m.logger.Debugf("AIWorkerManager.matchesInstanceFilters: Unknown filter key '%s'", filterKey)
-			}
+			// Linter correctly identifies m.logger is not nil here
+			m.logger.Debugf("AIWorkerManager.matchesInstanceFilters: Unknown filter key '%s'", filterKey)
 		}
 
 		if !match {

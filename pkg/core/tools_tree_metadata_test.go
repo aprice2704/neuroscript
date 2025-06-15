@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.1.0
-// Tests for tree metadata tools (SetNodeMetadata, RemoveNodeMetadata).
+// File version: 3
+// Purpose: Corrected type assertions to use the specific `TreeAttrs` type instead of a generic map.
 // nlines: 60
 // risk_rating: MEDIUM
 // filename: pkg/core/tools_tree_metadata_test.go
@@ -27,16 +27,16 @@ func TestTreeMetadataTools(t *testing.T) {
 				handle := ctx.(string)
 				nodeMap, _ := callGetNode(t, interp, handle, "node-1")
 				// Metadata is stored in node.Attributes for GenericTree
-				attrs, ok := nodeMap["attributes"].(map[string]string)
+				attrs, ok := nodeMap["attributes"].(TreeAttrs)
 				if !ok {
-					t.Fatalf("Node attributes are not map[string]string, got %T", nodeMap["attributes"])
+					t.Fatalf("Node attributes are not TreeAttrs, got %T", nodeMap["attributes"])
 				}
-				if attrs["metaKey1"] != "metaValue1" {
+				if val, vOK := attrs["metaKey1"].(string); !vOK || val != "metaValue1" {
 					t.Errorf("Metadata not set correctly. Got: %v, expected 'metaValue1'", attrs["metaKey1"])
 				}
 			}},
-		{name: "SetNodeMetadata Empty Key", toolName: "Tree.SetNodeMetadata", setupFunc: setupMetaTree, args: MakeArgs("SETUP_HANDLE:mTree", "node-1", "", "val"), wantToolErrIs: ErrInvalidArgument}, // Empty key for metadata
-		{name: "SetNodeMetadata NonExistent Node", toolName: "Tree.SetNodeMetadata", setupFunc: setupMetaTree, args: MakeArgs("SETUP_HANDLE:mTree", "node-999", "key", "val"), wantToolErrIs: ErrNotFound},
+		{name: "SetNodeMetadata Empty Key", toolName: "Tree.SetNodeMetadata", setupFunc: setupMetaTree, args: MakeArgs("SETUP_HANDLE:mTree", "node-1", "", "val"), wantErr: ErrInvalidArgument}, // Empty key for metadata
+		{name: "SetNodeMetadata NonExistent Node", toolName: "Tree.SetNodeMetadata", setupFunc: setupMetaTree, args: MakeArgs("SETUP_HANDLE:mTree", "node-999", "key", "val"), wantErr: ErrNotFound},
 
 		// Tree.RemoveNodeMetadata
 		{name: "RemoveNodeMetadata Existing Key", toolName: "Tree.RemoveNodeMetadata",
@@ -56,16 +56,16 @@ func TestTreeMetadataTools(t *testing.T) {
 				}
 				handle := ctx.(string)
 				nodeMap, _ := callGetNode(t, interp, handle, "node-1")
-				attrs, ok := nodeMap["attributes"].(map[string]string)
+				attrs, ok := nodeMap["attributes"].(TreeAttrs)
 				if !ok {
-					t.Fatalf("Node attributes are not map[string]string, got %T", nodeMap["attributes"])
+					t.Fatalf("Node attributes are not TreeAttrs, got %T", nodeMap["attributes"])
 				}
 				if _, exists := attrs["toRemove"]; exists {
 					t.Errorf("Metadata key 'toRemove' still exists after removal.")
 				}
 			}},
-		{name: "RemoveNodeMetadata NonExistent Key", toolName: "Tree.RemoveNodeMetadata", setupFunc: setupMetaTree, args: MakeArgs("SETUP_HANDLE:mTree", "node-1", "nonKey"), wantToolErrIs: ErrAttributeNotFound}, // Metadata key not found
-		{name: "RemoveNodeMetadata NonExistent Node", toolName: "Tree.RemoveNodeMetadata", setupFunc: setupMetaTree, args: MakeArgs("SETUP_HANDLE:mTree", "node-999", "key"), wantToolErrIs: ErrNotFound},
+		{name: "RemoveNodeMetadata NonExistent Key", toolName: "Tree.RemoveNodeMetadata", setupFunc: setupMetaTree, args: MakeArgs("SETUP_HANDLE:mTree", "node-1", "nonKey"), wantErr: ErrAttributeNotFound}, // Metadata key not found
+		{name: "RemoveNodeMetadata NonExistent Node", toolName: "Tree.RemoveNodeMetadata", setupFunc: setupMetaTree, args: MakeArgs("SETUP_HANDLE:mTree", "node-999", "key"), wantErr: ErrNotFound},
 	}
 	for _, tc := range testCases {
 		currentInterp, _ := NewDefaultTestInterpreter(t)

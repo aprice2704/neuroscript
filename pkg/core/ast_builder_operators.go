@@ -210,85 +210,72 @@ func (l *neuroScriptListenerImpl) ExitMultiplicative_expr(ctx *gen.Multiplicativ
 	}
 	l.processBinaryOperators(ctx, numOperands, opGetter)
 }
-
-// ExitUnary_expr handles all unary operators, including 'typeof'.
 func (l *neuroScriptListenerImpl) ExitUnary_expr(ctx *gen.Unary_exprContext) {
 	l.logDebugAST("--- ExitUnary_expr: %q", ctx.GetText())
 
+	/* ---------- typeof ---------- */
+
 	if ctx.KW_TYPEOF() != nil {
-		// Handle 'typeof' operator
-		l.logDebugAST("      Unary_expr is a 'typeof' expression.")
 		operandVal, ok := l.popValue()
 		if !ok {
 			startPos := tokenToPosition(ctx.KW_TYPEOF().GetSymbol())
-			l.addError(ctx, "Stack error: Could not pop operand for typeof operator at %s", startPos.String())
-			l.pushValue(&ErrorNode{Pos: startPos, Message: "Missing operand for typeof"})
+			l.addError(ctx, "Stack error: missing operand for typeof at %s", startPos.String())
+			l.pushValue(&ErrorNode{Pos: startPos, Message: "missing operand for typeof"})
 			return
 		}
-
-		operandExpr, isExpr := operandVal.(Expression)
-		if !isExpr {
+		operandExpr, ok := operandVal.(Expression)
+		if !ok {
 			startPos := tokenToPosition(ctx.KW_TYPEOF().GetSymbol())
-			l.addError(ctx, "Internal AST build error: operand for typeof is not an Expression (got %T) at %s", operandVal, startPos.String())
-			l.pushValue(&ErrorNode{Pos: startPos, Message: fmt.Sprintf("typeof operand was %T, expected Expression", operandVal)})
+			l.addError(ctx, "typeof operand is not Expression (got %T) at %s", operandVal, startPos.String())
+			l.pushValue(&ErrorNode{Pos: startPos, Message: fmt.Sprintf("typeof operand was %T", operandVal)})
 			return
 		}
-
-		node := &TypeOfNode{
+		l.pushValue(&TypeOfNode{
 			Pos:      tokenToPosition(ctx.KW_TYPEOF().GetSymbol()),
 			Argument: operandExpr,
-		}
-		l.logDebugAST("      Constructed TypeOfNode with Argument Type: %T, Pos: %s", operandExpr, node.Pos.String())
-		l.pushValue(node)
-		return // Processed 'typeof', so return
+		})
+		return
 	}
 
-	// Handle other unary operators (MINUS, NOT, NO, SOME, TILDE)
-	var opTokenNode antlr.TerminalNode
-	var opText string
+	/* ---------- other unary ops ---------- */
 
-	if ctx.MINUS() != nil {
-		opTokenNode = ctx.MINUS()
-		opText = "-"
-	} else if ctx.KW_NOT() != nil {
-		opTokenNode = ctx.KW_NOT()
-		opText = "not"
-	} else if ctx.KW_NO() != nil {
-		opTokenNode = ctx.KW_NO()
-		opText = "no"
-	} else if ctx.KW_SOME() != nil {
-		opTokenNode = ctx.KW_SOME()
-		opText = "some"
-	} else if ctx.TILDE() != nil {
-		opTokenNode = ctx.TILDE()
-		opText = "~"
-	}
+	var tok antlr.TerminalNode
+	var op string
 
-	if opTokenNode == nil {
-		// This means it's a pass-through from power_expr (or another non-operator alternative within unary_expr's ANTLR rule)
-		l.logDebugAST("      Unary_expr is pass-through (no specific operator token found, or was typeof).")
+	switch {
+	case ctx.MINUS() != nil:
+		tok, op = ctx.MINUS(), "-"
+	case ctx.KW_NOT() != nil:
+		tok, op = ctx.KW_NOT(), "not"
+	case ctx.KW_NO() != nil:
+		tok, op = ctx.KW_NO(), "no"
+	case ctx.KW_SOME() != nil:
+		tok, op = ctx.KW_SOME(), "some"
+	case ctx.TILDE() != nil:
+		tok, op = ctx.TILDE(), "~"
+	default:
+		// pass-through (e.g. power_expr)
 		return
 	}
 
 	operandRaw, ok := l.popValue()
 	if !ok {
-		l.addError(ctx, "Stack error popping operand for unary op %q", opText)
-		l.pushValue(&ErrorNode{Pos: tokenToPosition(opTokenNode.GetSymbol()), Message: "Stack error (unary op)"})
+		l.addError(ctx, "Stack error: missing operand for unary %q", op)
+		l.pushValue(&ErrorNode{Pos: tokenToPosition(tok.GetSymbol()), Message: "stack underflow (unary)"})
 		return
 	}
-	operandExpr, isExpr := operandRaw.(Expression)
-	if !isExpr {
-		l.addError(ctx, "Operand for unary op %q is not an Expression (type %T)", opText, operandRaw)
-		l.pushValue(&ErrorNode{Pos: tokenToPosition(opTokenNode.GetSymbol()), Message: "Type error (unary op)"})
+	operandExpr, ok := operandRaw.(Expression)
+	if !ok {
+		l.addError(ctx, "Operand for unary %q is not Expression (got %T)", op, operandRaw)
+		l.pushValue(&ErrorNode{Pos: tokenToPosition(tok.GetSymbol()), Message: "type error (unary)"})
 		return
 	}
-	node := &UnaryOpNode{
-		Pos:      tokenToPosition(opTokenNode.GetSymbol()),
-		Operator: opText,
+	l.pushValue(&UnaryOpNode{
+		Pos:      tokenToPosition(tok.GetSymbol()),
+		Operator: op,
 		Operand:  operandExpr,
-	}
-	l.pushValue(node)
-	l.logDebugAST("      Constructed UnaryOpNode: %s [%T]", opText, operandExpr)
+	})
+	l.logDebugAST("      Constructed UnaryOpNode: %s [%T]", op, operandExpr)
 }
 
 // ExitPower_expr

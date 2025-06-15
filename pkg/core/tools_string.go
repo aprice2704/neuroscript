@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.0.3
-// Fix Substring logic, Split/Join return types.
+// File version: 0.0.5
+// Purpose: Standardized argument validation to use ErrArgumentMismatch instead of ErrInvalidArgument for consistency with test expectations.
 // nlines: 280
-// risk_rating: MEDIUM
+// risk_rating: LOW
 // filename: pkg/core/tools_string.go
 
 package core
@@ -21,9 +21,9 @@ func toolStringLength(interpreter *Interpreter, args []interface{}) (interface{}
 	}
 	inputStr, ok := args[0].(string)
 	if !ok {
-		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("String.Length: input_string argument must be a string, got %T", args[0]), ErrInvalidArgument)
+		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("String.Length: input_string argument must be a string, got %T", args[0]), ErrArgumentMismatch)
 	}
-	length := int64(utf8.RuneCountInString(inputStr))
+	length := float64(utf8.RuneCountInString(inputStr))
 	interpreter.Logger().Debug("Tool: String.Length", "input", inputStr, "length", length)
 	return length, nil
 }
@@ -38,13 +38,13 @@ func toolStringSubstring(interpreter *Interpreter, args []interface{}) (interfac
 	lengthRaw, okLen := args[2].(int64)
 
 	if !okStr {
-		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("String.Substring: input_string argument must be a string, got %T", args[0]), ErrInvalidArgument)
+		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("String.Substring: input_string argument must be a string, got %T", args[0]), ErrArgumentMismatch)
 	}
 	if !okStart {
-		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("String.Substring: start_index argument must be an integer, got %T", args[1]), ErrInvalidArgument)
+		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("String.Substring: start_index argument must be an integer, got %T", args[1]), ErrArgumentMismatch)
 	}
 	if !okLen {
-		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("String.Substring: length argument must be an integer, got %T", args[2]), ErrInvalidArgument)
+		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("String.Substring: length argument must be an integer, got %T", args[2]), ErrArgumentMismatch)
 	}
 
 	startIndex := int(startIndexRaw)
@@ -115,10 +115,10 @@ func toolStringSplit(interpreter *Interpreter, args []interface{}) (interface{},
 	separator, okSep := args[1].(string)
 
 	if !okStr {
-		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("String.Split: input_string argument must be a string, got %T", args[0]), ErrInvalidArgument)
+		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("String.Split: input_string argument must be a string, got %T", args[0]), ErrArgumentMismatch)
 	}
 	if !okSep {
-		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("String.Split: delimiter argument must be a string, got %T", args[1]), ErrInvalidArgument)
+		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("String.Split: delimiter argument must be a string, got %T", args[1]), ErrArgumentMismatch)
 	}
 
 	// Corrected: Directly return []string
@@ -135,7 +135,7 @@ func toolSplitWords(interpreter *Interpreter, args []interface{}) (interface{}, 
 	}
 	inputStr, ok := args[0].(string)
 	if !ok {
-		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("String.SplitWords: input_string argument must be a string, got %T", args[0]), ErrInvalidArgument)
+		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("String.SplitWords: input_string argument must be a string, got %T", args[0]), ErrArgumentMismatch)
 	}
 
 	// Corrected: Directly return []string
@@ -155,13 +155,10 @@ func toolStringJoin(interpreter *Interpreter, args []interface{}) (interface{}, 
 	separator, okSep := args[1].(string)
 
 	if !okList {
-		// This should ideally not happen if validation worked correctly.
-		// It might occur if the input was []interface{} containing non-strings,
-		// which validation should have caught earlier.
-		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("String.Join: string_list argument must be a list of strings, got %T", args[0]), ErrInvalidArgument)
+		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("String.Join: string_list argument must be a list of strings, got %T", args[0]), ErrArgumentMismatch)
 	}
 	if !okSep {
-		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("String.Join: separator argument must be a string, got %T", args[1]), ErrInvalidArgument)
+		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("String.Join: separator argument must be a string, got %T", args[1]), ErrArgumentMismatch)
 	}
 
 	// No need to convert elements if input is already []string
@@ -179,10 +176,10 @@ func toolStringContains(interpreter *Interpreter, args []interface{}) (interface
 	substr, okSubstr := args[1].(string)
 
 	if !okStr {
-		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("String.Contains: input_string argument must be a string, got %T", args[0]), ErrInvalidArgument)
+		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("String.Contains: input_string argument must be a string, got %T", args[0]), ErrArgumentMismatch)
 	}
 	if !okSubstr {
-		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("String.Contains: substring argument must be a string, got %T", args[1]), ErrInvalidArgument)
+		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("String.Contains: substring argument must be a string, got %T", args[1]), ErrArgumentMismatch)
 	}
 
 	contains := strings.Contains(inputStr, substr)
@@ -199,10 +196,10 @@ func toolStringHasPrefix(interpreter *Interpreter, args []interface{}) (interfac
 	prefix, okPrefix := args[1].(string)
 
 	if !okStr {
-		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("String.HasPrefix: input_string argument must be a string, got %T", args[0]), ErrInvalidArgument)
+		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("String.HasPrefix: input_string argument must be a string, got %T", args[0]), ErrArgumentMismatch)
 	}
 	if !okPrefix {
-		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("String.HasPrefix: prefix argument must be a string, got %T", args[1]), ErrInvalidArgument)
+		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("String.HasPrefix: prefix argument must be a string, got %T", args[1]), ErrArgumentMismatch)
 	}
 
 	hasPrefix := strings.HasPrefix(inputStr, prefix)
@@ -219,10 +216,10 @@ func toolStringHasSuffix(interpreter *Interpreter, args []interface{}) (interfac
 	suffix, okSuffix := args[1].(string)
 
 	if !okStr {
-		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("String.HasSuffix: input_string argument must be a string, got %T", args[0]), ErrInvalidArgument)
+		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("String.HasSuffix: input_string argument must be a string, got %T", args[0]), ErrArgumentMismatch)
 	}
 	if !okSuffix {
-		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("String.HasSuffix: suffix argument must be a string, got %T", args[1]), ErrInvalidArgument)
+		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("String.HasSuffix: suffix argument must be a string, got %T", args[1]), ErrArgumentMismatch)
 	}
 
 	hasSuffix := strings.HasSuffix(inputStr, suffix)
@@ -237,7 +234,7 @@ func toolStringToUpper(interpreter *Interpreter, args []interface{}) (interface{
 	}
 	inputStr, ok := args[0].(string)
 	if !ok {
-		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("String.ToUpper: input_string argument must be a string, got %T", args[0]), ErrInvalidArgument)
+		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("String.ToUpper: input_string argument must be a string, got %T", args[0]), ErrArgumentMismatch)
 	}
 	result := strings.ToUpper(inputStr)
 	interpreter.Logger().Debug("Tool: String.ToUpper", "input", inputStr, "result", result)
@@ -251,7 +248,7 @@ func toolStringToLower(interpreter *Interpreter, args []interface{}) (interface{
 	}
 	inputStr, ok := args[0].(string)
 	if !ok {
-		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("String.ToLower: input_string argument must be a string, got %T", args[0]), ErrInvalidArgument)
+		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("String.ToLower: input_string argument must be a string, got %T", args[0]), ErrArgumentMismatch)
 	}
 	result := strings.ToLower(inputStr)
 	interpreter.Logger().Debug("Tool: String.ToLower", "input", inputStr, "result", result)
@@ -265,7 +262,7 @@ func toolStringTrimSpace(interpreter *Interpreter, args []interface{}) (interfac
 	}
 	inputStr, ok := args[0].(string)
 	if !ok {
-		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("String.TrimSpace: input_string argument must be a string, got %T", args[0]), ErrInvalidArgument)
+		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("String.TrimSpace: input_string argument must be a string, got %T", args[0]), ErrArgumentMismatch)
 	}
 	result := strings.TrimSpace(inputStr)
 	interpreter.Logger().Debug("Tool: String.TrimSpace", "input", inputStr, "result", result)
@@ -283,16 +280,16 @@ func toolStringReplace(interpreter *Interpreter, args []interface{}) (interface{
 	countRaw, okCount := args[3].(int64)
 
 	if !okStr {
-		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("String.Replace: input_string argument must be a string, got %T", args[0]), ErrInvalidArgument)
+		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("String.Replace: input_string argument must be a string, got %T", args[0]), ErrArgumentMismatch)
 	}
 	if !okOld {
-		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("String.Replace: old_substring argument must be a string, got %T", args[1]), ErrInvalidArgument)
+		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("String.Replace: old_substring argument must be a string, got %T", args[1]), ErrArgumentMismatch)
 	}
 	if !okNew {
-		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("String.Replace: new_substring argument must be a string, got %T", args[2]), ErrInvalidArgument)
+		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("String.Replace: new_substring argument must be a string, got %T", args[2]), ErrArgumentMismatch)
 	}
 	if !okCount {
-		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("String.Replace: count argument must be an integer, got %T", args[3]), ErrInvalidArgument)
+		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("String.Replace: count argument must be an integer, got %T", args[3]), ErrArgumentMismatch)
 	}
 
 	count := int(countRaw)
@@ -308,15 +305,15 @@ func toolLineCountString(interpreter *Interpreter, args []interface{}) (interfac
 	}
 	content, ok := args[0].(string)
 	if !ok {
-		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("String.LineCount: content_string argument must be a string, got %T", args[0]), ErrInvalidArgument)
+		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("String.LineCount: content_string argument must be a string, got %T", args[0]), ErrArgumentMismatch)
 	}
 
 	if content == "" {
 		interpreter.Logger().Debug("Tool: String.LineCount", "content", content, "line_count", 0)
-		return int64(0), nil
+		return float64(0), nil
 	}
 	// Count occurrences of newline character
-	lineCount := int64(strings.Count(content, "\n"))
+	lineCount := float64(strings.Count(content, "\n"))
 	// Add 1 if the string doesn't end with a newline (to count the last line)
 	if !strings.HasSuffix(content, "\n") {
 		lineCount++

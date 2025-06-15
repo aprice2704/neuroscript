@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.1.5
-// CRITICAL FIX: Changed "child_ids" key to "children" in GetNode result to match spec.
+// File version: 0.1.6
+// CRITICAL FIX: Changed "children" in GetNode result to be []interface{} to align with NeuroScript list type conventions.
 // nlines: 82 // Approximate
 // risk_rating: MEDIUM // Critical for correct tool behavior
 // filename: pkg/core/tools_tree_nav.go
@@ -27,12 +27,15 @@ func toolTreeGetNode(interpreter *Interpreter, args []interface{}) (interface{},
 		return nil, err
 	}
 
-	var childrenSlice []string
+	// NeuroScript lists are []interface{}, so we must return that type.
+	var childrenSlice []interface{}
 	if node.ChildIDs != nil {
-		childrenSlice = make([]string, len(node.ChildIDs))
-		copy(childrenSlice, node.ChildIDs)
+		childrenSlice = make([]interface{}, len(node.ChildIDs))
+		for i, id := range node.ChildIDs {
+			childrenSlice[i] = id
+		}
 	} else {
-		childrenSlice = []string{}
+		childrenSlice = []interface{}{}
 	}
 
 	nodeMap := map[string]interface{}{
@@ -40,7 +43,7 @@ func toolTreeGetNode(interpreter *Interpreter, args []interface{}) (interface{},
 		"type":                 node.Type,
 		"value":                node.Value,
 		"attributes":           node.Attributes,
-		"children":             childrenSlice, // CORRECTED KEY
+		"children":             childrenSlice, // CORRECTED TYPE
 		"parent_id":            node.ParentID,
 		"parent_attribute_key": node.ParentAttributeKey,
 	}

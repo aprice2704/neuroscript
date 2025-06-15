@@ -1,9 +1,7 @@
 // NeuroScript Version: 0.4.1
 // File version: 9
 // Purpose: Updated unwrapValue to handle FunctionValue and ToolValue.
-// filename: pkg/core/evaluation_helpers.go
-// nlines: 234
-// risk_rating: LOW
+// Filename: pkg/core/type_utils.go
 
 package core
 
@@ -14,6 +12,67 @@ import (
 	"strings"
 	"time"
 )
+
+// TypeOf returns the NeuroScriptType name for any given value, whether wrapped or raw.
+func TypeOf(value interface{}) NeuroScriptType {
+	if value == nil {
+		return TypeNil
+	}
+
+	/* ---------- concrete non-Value types that appear unwrapped ---------- */
+
+	switch value.(type) {
+	case Procedure, *Procedure:
+		return TypeFunction
+	case ToolImplementation, *ToolImplementation:
+		return TypeTool
+	case time.Time, *time.Time: // native Go time value
+		return TypeTimedate
+	case []byte: // raw byte slice
+		return TypeBytes
+	case error: // plain Go error
+		return TypeError
+	}
+
+	/* ---------- custom wrapper types that implement the Value interface ---------- */
+
+	if v, ok := value.(Value); ok {
+		return v.Type()
+	}
+
+	/* ---------- fallback for ordinary Go types (common in tests / tool args) ---------- */
+
+	val := reflect.ValueOf(value)
+	kind := val.Kind()
+
+	// Dereference pointers / interfaces to see what's underneath.
+	if kind == reflect.Interface || kind == reflect.Ptr {
+		if val.IsNil() {
+			return TypeNil
+		}
+		val = val.Elem()
+		kind = val.Kind()
+	}
+
+	switch kind {
+	case reflect.String:
+		return TypeString
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr,
+		reflect.Float32, reflect.Float64:
+		return TypeNumber
+	case reflect.Bool:
+		return TypeBoolean
+	case reflect.Slice, reflect.Array:
+		return TypeList
+	case reflect.Map:
+		return TypeMap
+	case reflect.Func:
+		return TypeFunction
+	default:
+		return TypeUnknown
+	}
+}
 
 // unwrapValue recursively unwraps a Value type to its underlying native Go type.
 // If the input is not a Value type, it's returned as is.
@@ -64,59 +123,6 @@ func unwrapValue(v interface{}) interface{} {
 	default:
 		// It's already a native Go type or another complex type like Procedure
 		return v
-	}
-}
-
-// TypeOf returns the NeuroScriptType name for any given value, whether wrapped or raw.
-func TypeOf(value interface{}) NeuroScriptType {
-	if value == nil {
-		return TypeNil
-	}
-
-	// FIX: Check for concrete complex types like Procedure and ToolImplementation first,
-	// as they do not implement the Value interface and would be missed by later checks.
-	switch value.(type) {
-	case Procedure, *Procedure:
-		return TypeFunction
-	case ToolImplementation, *ToolImplementation:
-		return TypeTool
-	}
-
-	// Then, check for our custom Value wrapper types.
-	if v, ok := value.(Value); ok {
-		return v.Type()
-	}
-
-	// Fallback for native Go types (often used in tests or tool args)
-	val := reflect.ValueOf(value)
-	kind := val.Kind()
-
-	// Dereference pointers and interfaces to get the underlying kind
-	if kind == reflect.Interface || kind == reflect.Ptr {
-		if val.IsNil() {
-			return TypeNil
-		}
-		val = val.Elem()
-		kind = val.Kind()
-	}
-
-	switch kind {
-	case reflect.String:
-		return TypeString
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
-		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr,
-		reflect.Float32, reflect.Float64:
-		return TypeNumber
-	case reflect.Bool:
-		return TypeBoolean
-	case reflect.Slice, reflect.Array:
-		return TypeList
-	case reflect.Map:
-		return TypeMap
-	case reflect.Func:
-		return TypeFunction
-	default:
-		return TypeUnknown
 	}
 }
 

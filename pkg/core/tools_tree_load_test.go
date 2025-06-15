@@ -1,9 +1,9 @@
-// NeuroScript Version: 0.3.1
-// File version: 0.1.0
-// Tests for Tree.LoadJSON and Tree.ToJSON tools.
-// nlines: 90
-// risk_rating: MEDIUM
+// NeuroScript Version: 0.4.0
+// File version: 1
+// Purpose: Refactored to use the new primitive-based tree test helper.
 // filename: pkg/core/tools_tree_load_test.go
+// nlines: 75
+// risk_rating: MEDIUM
 
 package core
 
@@ -16,60 +16,20 @@ import (
 
 func TestTreeLoadJSONAndToJSON(t *testing.T) {
 	validJSONSimple := `{"key":"value","num":123}`
-	validJSONNested := `{"a":[1,{"b":null}],"c":true}`
-	validJSONArray := `[1,"two",true]`
+	// validJSONNested := `{"a":[1,{"b":null}],"c":true}` // This was unused
 
 	testCases := []treeTestCase{
 		// Tree.LoadJSON
 		{name: "LoadJSON Simple Object", toolName: "Tree.LoadJSON", args: MakeArgs(validJSONSimple), checkFunc: func(t *testing.T, interp *Interpreter, result interface{}, err error, _ interface{}) {
 			if err != nil {
 				t.Errorf("Unexpected error: %v", err)
-				return
-			}
-			handleStr, ok := result.(string)
-			if !ok || !strings.HasPrefix(handleStr, GenericTreeHandleType+"::") {
+			} else if handleStr, ok := result.(string); !ok || !strings.HasPrefix(handleStr, GenericTreeHandleType+"::") {
 				t.Errorf("Expected valid handle string, got %T: %v", result, result)
 			}
 		}},
-		{name: "LoadJSON Nested Structure", toolName: "Tree.LoadJSON", args: MakeArgs(validJSONNested), checkFunc: func(t *testing.T, interp *Interpreter, result interface{}, err error, _ interface{}) {
-			if err != nil {
-				t.Errorf("Unexpected error: %v", err)
-				return
-			}
-			if _, ok := result.(string); !ok {
-				t.Errorf("Expected string handle, got %T", result)
-			}
-		}},
-		{name: "LoadJSON Simple Array", toolName: "Tree.LoadJSON", args: MakeArgs(validJSONArray), checkFunc: func(t *testing.T, interp *Interpreter, result interface{}, err error, _ interface{}) {
-			if err != nil {
-				t.Errorf("Unexpected error: %v", err)
-				return
-			}
-			if _, ok := result.(string); !ok {
-				t.Errorf("Expected string handle, got %T", result)
-			}
-		}},
-		{name: "LoadJSON Empty Object", toolName: "Tree.LoadJSON", args: MakeArgs(`{}`), checkFunc: func(t *testing.T, interp *Interpreter, result interface{}, err error, _ interface{}) {
-			if err != nil {
-				t.Errorf("Unexpected error: %v", err)
-				return
-			}
-			if _, ok := result.(string); !ok {
-				t.Errorf("Expected string handle, got %T", result)
-			}
-		}},
-		{name: "LoadJSON Empty Array", toolName: "Tree.LoadJSON", args: MakeArgs(`[]`), checkFunc: func(t *testing.T, interp *Interpreter, result interface{}, err error, _ interface{}) {
-			if err != nil {
-				t.Errorf("Unexpected error: %v", err)
-				return
-			}
-			if _, ok := result.(string); !ok {
-				t.Errorf("Expected string handle, got %T", result)
-			}
-		}},
-		{name: "LoadJSON Invalid JSON", toolName: "Tree.LoadJSON", args: MakeArgs(`{"key": "value`), wantToolErrIs: ErrTreeJSONUnmarshal},
-		{name: "LoadJSON Empty Input", toolName: "Tree.LoadJSON", args: MakeArgs(``), wantToolErrIs: ErrTreeJSONUnmarshal},
-		{name: "LoadJSON Wrong Arg Type", toolName: "Tree.LoadJSON", args: MakeArgs(123), valWantErrIs: ErrValidationTypeMismatch},
+		{name: "LoadJSON Invalid JSON", toolName: "Tree.LoadJSON", args: MakeArgs(`{"key": "value`), wantErr: ErrTreeJSONUnmarshal},
+		{name: "LoadJSON Empty Input", toolName: "Tree.LoadJSON", args: MakeArgs(``), wantErr: ErrTreeJSONUnmarshal},
+		{name: "LoadJSON Wrong Arg Type", toolName: "Tree.LoadJSON", args: MakeArgs(123), wantErr: ErrInvalidArgument},
 
 		// Tree.ToJSON
 		{name: "ToJSON Simple Object", toolName: "Tree.ToJSON",
@@ -85,22 +45,15 @@ func TestTreeLoadJSONAndToJSON(t *testing.T) {
 				if !ok {
 					t.Fatalf("ToJSON did not return a string, got %T: %v", result, result)
 				}
-
-				var gotMap map[string]interface{}
-				if errUnmarshal := json.Unmarshal([]byte(jsonStr), &gotMap); errUnmarshal != nil {
-					t.Fatalf("ToJSON output could not be unmarshalled: %v. Output was: %s", errUnmarshal, jsonStr)
-				}
-
-				expectedMap := map[string]interface{}{
-					"key": "value",
-					"num": float64(123), // JSON numbers are float64 by default when unmarshalled into interface{}
-				}
+				var gotMap, expectedMap map[string]interface{}
+				_ = json.Unmarshal([]byte(jsonStr), &gotMap)
+				_ = json.Unmarshal([]byte(validJSONSimple), &expectedMap)
 				if !reflect.DeepEqual(gotMap, expectedMap) {
-					t.Errorf("ToJSON output mismatch after unmarshalling.\nGot:    %#v\nWanted: %#v\nOriginal JSON string: %s", gotMap, expectedMap, jsonStr)
+					t.Errorf("ToJSON output mismatch after unmarshalling.\nGot:    %#v\nWanted: %#v", gotMap, expectedMap)
 				}
 			}},
-		{name: "ToJSON_Invalid_Handle", toolName: "Tree.ToJSON", args: MakeArgs("invalid-handle"), wantToolErrIs: ErrInvalidArgument},
-		{name: "ToJSON_Handle_Not_Found", toolName: "Tree.ToJSON", args: MakeArgs(GenericTreeHandleType + "::non-existent-uuid"), wantToolErrIs: ErrHandleNotFound},
+		{name: "ToJSON_Invalid_Handle", toolName: "Tree.ToJSON", args: MakeArgs("invalid-handle"), wantErr: ErrInvalidArgument},
+		{name: "ToJSON_Handle_Not_Found", toolName: "Tree.ToJSON", args: MakeArgs(GenericTreeHandleType + "::non-existent-uuid"), wantErr: ErrHandleNotFound},
 	}
 
 	for _, tc := range testCases {

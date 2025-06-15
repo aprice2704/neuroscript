@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.1.1
-// Modified toolTreeAddNode to allow adding children to 'checklist_root' and 'checklist_item' parent types.
+// File version: 2
+// Purpose: Corrected initialization of node Attributes to use the new TreeAttrs type instead of map[string]string.
 // nlines: 335 // Approximate
-// risk_rating: MEDIUM
+// risk_rating: LOW
 // filename: pkg/core/tools_tree_modify.go
 
 package core
@@ -102,7 +102,7 @@ func toolTreeSetAttribute(interpreter *Interpreter, args []interface{}) (interfa
 	}
 
 	if objectNode.Attributes == nil {
-		objectNode.Attributes = make(map[string]string)
+		objectNode.Attributes = make(TreeAttrs)
 		interpreter.Logger().Warn(fmt.Sprintf("%s: Node attributes map was nil for node '%s', initialized.", toolName, objectNodeID))
 	}
 	objectNode.Attributes[attrKey] = childNodeID
@@ -252,7 +252,7 @@ func toolTreeAddNode(interpreter *Interpreter, args []interface{}) (interface{},
 		ID:         newNodeID,
 		Type:       nodeType,
 		Value:      nodeValue,
-		Attributes: make(map[string]string),
+		Attributes: make(TreeAttrs),
 		ChildIDs:   make([]string, 0),
 		ParentID:   parentID,
 		Tree:       tree,
@@ -268,7 +268,7 @@ func toolTreeAddNode(interpreter *Interpreter, args []interface{}) (interface{},
 			)
 		}
 		if parentNode.Attributes == nil {
-			parentNode.Attributes = make(map[string]string)
+			parentNode.Attributes = make(TreeAttrs)
 		}
 		parentNode.Attributes[keyForObjectParent] = newNodeID
 	} else if parentNode.Type == "array" || parentNode.Type == "checklist_root" || parentNode.Type == "checklist_item" { // MODIFIED HERE

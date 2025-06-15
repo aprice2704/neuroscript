@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.4.1
-// File version: 4
-// Purpose: Added FunctionValue and ToolValue to support typeof operations on them.
+// File version: 5
+// Purpose: Implemented error interface for ErrorValue to allow proper error propagation.
 // filename: pkg/core/values.go
-// nlines: 181
+// nlines: 185
 // risk_rating: MEDIUM
 
 package core
@@ -103,6 +103,7 @@ func (v ErrorValue) String() string {
 	return "error: (unspecified)"
 }
 func (v ErrorValue) IsTruthy() bool { return false }
+func (v ErrorValue) Error() string  { return v.String() }
 
 // EventValue represents a structured event, holding its name, source, and payload.
 type EventValue struct {

@@ -203,3 +203,8 @@ func waitForUploadResultsAndPrintProgress(sc *syncContext, wg *sync.WaitGroup, r
 	sc.logger.Debug("[DEBUG Progress] Received waitDoneChan.")
 	return firstError
 }
+
+// SyncFiles is not implemented yet → always return the sentinel the tests expect.
+func (api *FileAPI) SyncFiles(ctx context.Context, dir string, patterns ...string) error {
+	return ErrFeatureNotImplemented
+}

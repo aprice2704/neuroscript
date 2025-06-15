@@ -1,8 +1,9 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.1.7 // Add specific handling for "attributes" key in nodeMatchesQuery.
-// nlines: 245 // Approximate
-// risk_rating: HIGH
+// File version: 8
+// Purpose: Corrected compiler errors by adding type assertions and replacing the flawed `compareAttributeValue` with a robust `deepCompareValues` function.
 // filename: pkg/core/tools_tree_find.go
+// nlines: 247
+// risk_rating: MEDIUM
 
 package core
 
@@ -75,7 +76,7 @@ func toolTreeFindNodes(interpreter *Interpreter, args []interface{}) (interface{
 		}
 		visited[currentNode.ID] = true
 
-		matches, matchErr := nodeMatchesQuery(currentNode, queryMap, tree, toolName) // Pass tree for potential lookups
+		matches, matchErr := nodeMatchesQuery(currentNode, queryMap, toolName)
 		if matchErr != nil {
 			return matchErr
 		}
@@ -108,7 +109,13 @@ func toolTreeFindNodes(interpreter *Interpreter, args []interface{}) (interface{
 
 		// Recurse through children referenced by Attributes (objects)
 		if currentNode.Type == "object" && currentNode.Attributes != nil {
-			for _, childNodeID := range currentNode.Attributes {
+			for _, childNodeIDUntyped := range currentNode.Attributes {
+				childNodeID, ok := childNodeIDUntyped.(string)
+				if !ok {
+					// This attribute's value is not a node ID string.
+					// In the context of finding children, we can safely skip it.
+					continue
+				}
 				childNode, exists := tree.NodeMap[childNodeID]
 				if exists {
 					if err := findRecursive(childNode, currentDepth+1); err != nil {
@@ -137,8 +144,7 @@ func toolTreeFindNodes(interpreter *Interpreter, args []interface{}) (interface{
 }
 
 // nodeMatchesQuery checks if a single node matches the provided query map.
-// It now takes the tree to allow dereferencing attribute node IDs if necessary for complex attribute queries.
-func nodeMatchesQuery(node *GenericTreeNode, queryMap map[string]interface{}, tree *GenericTree, toolName string) (bool, error) {
+func nodeMatchesQuery(node *GenericTreeNode, queryMap map[string]interface{}, toolName string) (bool, error) {
 	if node == nil {
 		return false, nil
 	}
@@ -162,64 +168,49 @@ func nodeMatchesQuery(node *GenericTreeNode, queryMap map[string]interface{}, tr
 				return false, nil
 			}
 		case "value":
-			if !reflect.DeepEqual(node.Value, expectedQueryValue) {
-				// Special handling for numbers that might be int64 in query but float64 in node or vice-versa
-				nodeNum, nodeIsNum := ConvertToFloat64(node.Value)
-				queryNum, queryIsNum := ConvertToFloat64(expectedQueryValue)
-				if !(nodeIsNum && queryIsNum && nodeNum == queryNum) {
-					return false, nil
-				}
+			if !deepCompareValues(node.Value, expectedQueryValue) {
+				return false, nil
 			}
-		case "attributes": // Handles queries like {"attributes": {"attrName": "expectedNodeIDValue"}}
+		case "attributes":
 			attrQueryMap, ok := expectedQueryValue.(map[string]interface{})
 			if !ok {
 				return false, NewRuntimeError(ErrorCodeArgMismatch, fmt.Sprintf("%s: 'attributes' value in query_map must be a map, got %T", toolName, expectedQueryValue), ErrTreeInvalidQuery)
 			}
-
 			if node.Attributes == nil && len(attrQueryMap) > 0 {
 				return false, nil
-			} // Node has no attributes to match against
-
+			}
 			for queryAttrKey, queryAttrExpectedValue := range attrQueryMap {
-				actualNodeAttrValue, exists := node.Attributes[queryAttrKey] // actualNodeAttrValue is a string (node ID)
+				actualNodeAttrValue, exists := node.Attributes[queryAttrKey]
 				if !exists {
 					return false, nil
-				} // The queried attribute key does not exist on the node
-
-				// The value of an attribute in node.Attributes is the ID of another node.
-				// queryAttrExpectedValue is the expected ID string for that attribute's target node.
-				if !compareAttributeValue(actualNodeAttrValue, queryAttrExpectedValue) {
-					// This compares if actualNodeAttrValue (string) matches queryAttrExpectedValue (interface{}, likely string)
+				}
+				if !deepCompareValues(actualNodeAttrValue, queryAttrExpectedValue) {
 					return false, nil
 				}
 			}
-			// If we loop through all queryAttrKey and all match, this "attributes" part of the query is satisfied.
-		case "metadata": // Handles queries like {"metadata": {"metaKey": "metaValueString"}}
-			// Assuming metadata is stored in node.Attributes and values are strings (potentially IDs)
+		case "metadata":
 			metadataQuery, ok := expectedQueryValue.(map[string]interface{})
 			if !ok {
 				return false, NewRuntimeError(ErrorCodeArgMismatch, fmt.Sprintf("%s: 'metadata' in query_map must be a map, got %T", toolName, expectedQueryValue), ErrTreeInvalidQuery)
 			}
-
 			if node.Attributes == nil && len(metadataQuery) > 0 {
 				return false, nil
 			}
-
 			for metaKey, expectedMetaQueryValue := range metadataQuery {
 				actualNodeMetaValue, exists := node.Attributes[metaKey]
 				if !exists {
 					return false, nil
 				}
-				if !compareAttributeValue(actualNodeMetaValue, expectedMetaQueryValue) {
+				if !deepCompareValues(actualNodeMetaValue, expectedMetaQueryValue) {
 					return false, nil
 				}
 			}
-		default: // This case handles direct attribute name queries like {"myCustomAttribute": "expectedNodeID"}
+		default: // This case handles direct attribute name queries like {"myCustomAttribute": "expectedValue"}
 			actualNodeAttrValue, exists := node.Attributes[key] // key is the attribute name
 			if !exists {
 				return false, nil
 			}
-			if !compareAttributeValue(actualNodeAttrValue, expectedQueryValue) {
+			if !deepCompareValues(actualNodeAttrValue, expectedQueryValue) {
 				return false, nil
 			}
 		}
@@ -227,30 +218,22 @@ func nodeMatchesQuery(node *GenericTreeNode, queryMap map[string]interface{}, tr
 	return true, nil // All conditions in queryMap matched
 }
 
-// compareAttributeValue compares an actual string value from node.Attributes
-// with an expected value (interface{}) from the query.
-func compareAttributeValue(actualStringValue string, expectedQueryValue interface{}) bool {
-	switch expected := expectedQueryValue.(type) {
-	case string:
-		return actualStringValue == expected
-	case float64:
-		parsedActual, err := strconv.ParseFloat(actualStringValue, 64)
-		return err == nil && parsedActual == expected
-	case int64:
-		parsedActual, err := strconv.ParseInt(actualStringValue, 10, 64)
-		return err == nil && parsedActual == expected
-	case int:
-		parsedActual, err := strconv.ParseInt(actualStringValue, 10, 64)
-		return err == nil && parsedActual == int64(expected)
-	case bool:
-		parsedActual, err := strconv.ParseBool(actualStringValue)
-		return err == nil && parsedActual == expected
-	default:
-		// Fallback for other types might be too broad or error-prone.
-		// Consider if specific comparisons are needed for other expected types.
-		// For now, strict direct comparison or recognized types.
-		return false // If expectedQueryValue is not one of the handled types, assume mismatch
+// deepCompareValues compares two interface{} values, with special handling for numeric types.
+func deepCompareValues(actualValue, expectedValue interface{}) bool {
+	// First, try a simple deep equal. This covers string, bool, nil, and matching number types.
+	if reflect.DeepEqual(actualValue, expectedValue) {
+		return true
 	}
+
+	// Special handling for numbers of different types (e.g., int64 vs float64).
+	actualNum, actualIsNum := ConvertToFloat64(actualValue)
+	expectedNum, expectedIsNum := ConvertToFloat64(expectedValue)
+
+	if actualIsNum && expectedIsNum && actualNum == expectedNum {
+		return true
+	}
+
+	return false
 }
 
 // ConvertToFloat64 is a helper to handle potential int64/float64 from map[string]interface{}
@@ -262,7 +245,6 @@ func ConvertToFloat64(val interface{}) (float64, bool) {
 		return float64(v), true
 	case int:
 		return float64(v), true
-	// Potentially add string conversion if numbers can be stored as strings in node.Value
 	case string:
 		fVal, err := strconv.ParseFloat(v, 64)
 		if err == nil {

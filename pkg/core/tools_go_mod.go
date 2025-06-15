@@ -1,7 +1,9 @@
-// NeuroScript Version: 0.3.1
-// File version: 0.1.0
-// Register GoGetModuleInfo tool via init().
+// NeuroScript Version: 0.4.0
+// File version: 1
+// Purpose: Fix nil return type in toolGoGetModuleInfo for 'not found' case to match test expectations.
 // filename: pkg/core/tools_go_mod.go
+// nlines: 128
+// risk_rating: LOW
 
 package core
 
@@ -108,7 +110,8 @@ func toolGoGetModuleInfo(interpreter *Interpreter, args []interface{}) (interfac
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			logger.Warn("%s No go.mod found starting from %q.", logPrefix, startDirRel)
-			return nil, nil // Return nil result and no Go error for NeuroScript
+			// Return a typed nil map to match the test expectation and function's successful return type.
+			return (map[string]interface{})(nil), nil
 		}
 		logger.Error("%s Failed to find or parse go.mod starting from %q: %v", logPrefix, startDirRel, err)
 		return nil, fmt.Errorf("%w: %w", ErrInternalTool, err)

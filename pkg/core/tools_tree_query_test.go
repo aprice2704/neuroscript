@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.1.0
-// Tests for tree query tools (FindNodes, RenderText).
+// File version: 0.1.1
+// Purpose: Corrected type assertion to use TreeAttrs, completing the tree refactor in the test suite.
 // nlines: 160
 // risk_rating: MEDIUM
 // filename: pkg/core/tools_tree_query_test.go
@@ -77,8 +77,6 @@ func TestTreeFindAndRenderTools(t *testing.T) {
 
 					if !parentOK || !keyOK || parentAttrKey != "type" {
 						t.Errorf("String node %s (value 'file') is not a 'type' attribute as expected. ParentID: %v, ParentAttrKey: %v", idStr, parentNodeID, parentAttrKey)
-						// Continue to check other found nodes, but this specific path failed.
-						// This is where the current test fails, indicating parentAttrKey might be empty or not "type".
 						continue
 					}
 
@@ -156,11 +154,11 @@ func TestTreeFindAndRenderTools(t *testing.T) {
 				file2ObjNodeID = nameStrNode["parent_id"].(string)
 
 				file2ObjNode, _ := callGetNode(t, interp, handle, file2ObjNodeID)
-				attrsFile2Obj, ok := file2ObjNode["attributes"].(map[string]string)
+				attrsFile2Obj, ok := file2ObjNode["attributes"].(TreeAttrs)
 				if !ok {
-					t.Fatalf("Attributes of node %s not map[string]string", file2ObjNodeID)
+					t.Fatalf("Attributes of node %s not TreeAttrs, got %T", file2ObjNodeID, file2ObjNode["attributes"])
 				}
-				actualMetaDeepTargetNodeID, ok = attrsFile2Obj["meta_deep"]
+				actualMetaDeepTargetNodeID, ok = attrsFile2Obj["meta_deep"].(string)
 				if !ok {
 					t.Fatalf("'meta_deep' attribute not found on node %s", file2ObjNodeID)
 				}
@@ -183,10 +181,10 @@ func TestTreeFindAndRenderTools(t *testing.T) {
 				}
 
 				if !reflect.DeepEqual(foundIDsStr, expectedToFind) {
-					t.Errorf("FindNodes_By_Metadata_Deep mismatch.\n  Query was: %#v\n  Got:       %#v\n  Wanted:    %#v", dynamicQuery, foundIDsStr, expectedToFind)
+					t.Errorf("FindNodes_By_Metadata_Deep mismatch.\n   Query was: %#v\n   Got:       %#v\n   Wanted:    %#v", dynamicQuery, foundIDsStr, expectedToFind)
 				}
 			}},
-		{name: "FindNodes_Invalid_Query_Type", toolName: "Tree.FindNodes", setupFunc: setupFindRenderTree, args: MakeArgs("SETUP_HANDLE:frTree", "node-1", "not-a-map", int64(-1), int64(-1)), valWantErrIs: ErrValidationTypeMismatch},
+		{name: "FindNodes_Invalid_Query_Type", toolName: "Tree.FindNodes", setupFunc: setupFindRenderTree, args: MakeArgs("SETUP_HANDLE:frTree", "node-1", "not-a-map", int64(-1), int64(-1)), wantErr: ErrInvalidArgument},
 
 		// Tree.RenderText
 		{name: "RenderText Basic", toolName: "Tree.RenderText",
@@ -210,7 +208,7 @@ func TestTreeFindAndRenderTools(t *testing.T) {
 					t.Errorf("RenderText output missing '(string): \"b\"'. Got:\n%s", s)
 				}
 			}},
-		{name: "RenderText Invalid Handle", toolName: "Tree.RenderText", args: MakeArgs("bad-handle"), wantToolErrIs: ErrInvalidArgument},
+		{name: "RenderText Invalid Handle", toolName: "Tree.RenderText", args: MakeArgs("bad-handle"), wantErr: ErrInvalidArgument},
 	}
 
 	for _, tc := range testCases {
