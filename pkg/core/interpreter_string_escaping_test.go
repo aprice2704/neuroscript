@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.4.0
-// File version: 0.1.4
-// Purpose: Updated string escaping tests to expect core.Value types.
+// File version: 0.2.0
+// Purpose: Corrected expectedVars map literals to use map[string]Value, ensuring type safety in tests.
 // filename: pkg/core/interpreter_string_escaping_test.go
 // nlines: 175
 // risk_rating: LOW
@@ -22,7 +22,7 @@ func TestInterpretStringEscaping(t *testing.T) {
 			inputSteps: []Step{
 				createTestStep("set", "val", &StringLiteralNode{Pos: pos, Value: "text\bback"}, nil),
 			},
-			expectedVars:   map[string]interface{}{"val": StringValue{Value: "text\bback"}},
+			expectedVars:   map[string]Value{"val": StringValue{Value: "text\bback"}},
 			expectedResult: StringValue{Value: "text\bback"},
 		},
 		{
@@ -30,7 +30,7 @@ func TestInterpretStringEscaping(t *testing.T) {
 			inputSteps: []Step{
 				createTestStep("set", "val", &StringLiteralNode{Pos: pos, Value: "col1\tcol2"}, nil),
 			},
-			expectedVars:   map[string]interface{}{"val": StringValue{Value: "col1\tcol2"}},
+			expectedVars:   map[string]Value{"val": StringValue{Value: "col1\tcol2"}},
 			expectedResult: StringValue{Value: "col1\tcol2"},
 		},
 		{
@@ -38,7 +38,7 @@ func TestInterpretStringEscaping(t *testing.T) {
 			inputSteps: []Step{
 				createTestStep("set", "val", &StringLiteralNode{Pos: pos, Value: "first\nsecond"}, nil),
 			},
-			expectedVars:   map[string]interface{}{"val": StringValue{Value: "first\nsecond"}},
+			expectedVars:   map[string]Value{"val": StringValue{Value: "first\nsecond"}},
 			expectedResult: StringValue{Value: "first\nsecond"},
 		},
 		{
@@ -46,7 +46,7 @@ func TestInterpretStringEscaping(t *testing.T) {
 			inputSteps: []Step{
 				createTestStep("set", "val", &StringLiteralNode{Pos: pos, Value: "page1\fpage2"}, nil),
 			},
-			expectedVars:   map[string]interface{}{"val": StringValue{Value: "page1\fpage2"}},
+			expectedVars:   map[string]Value{"val": StringValue{Value: "page1\fpage2"}},
 			expectedResult: StringValue{Value: "page1\fpage2"},
 		},
 		{
@@ -54,7 +54,7 @@ func TestInterpretStringEscaping(t *testing.T) {
 			inputSteps: []Step{
 				createTestStep("set", "val", &StringLiteralNode{Pos: pos, Value: "over\rwrite"}, nil),
 			},
-			expectedVars:   map[string]interface{}{"val": StringValue{Value: "over\rwrite"}},
+			expectedVars:   map[string]Value{"val": StringValue{Value: "over\rwrite"}},
 			expectedResult: StringValue{Value: "over\rwrite"},
 		},
 		{
@@ -62,7 +62,7 @@ func TestInterpretStringEscaping(t *testing.T) {
 			inputSteps: []Step{
 				createTestStep("set", "val", &StringLiteralNode{Pos: pos, Value: "v\vtab"}, nil),
 			},
-			expectedVars:   map[string]interface{}{"val": StringValue{Value: "v\vtab"}},
+			expectedVars:   map[string]Value{"val": StringValue{Value: "v\vtab"}},
 			expectedResult: StringValue{Value: "v\vtab"},
 		},
 		{
@@ -70,7 +70,7 @@ func TestInterpretStringEscaping(t *testing.T) {
 			inputSteps: []Step{
 				createTestStep("set", "val", &StringLiteralNode{Pos: pos, Value: "approx~equal"}, nil),
 			},
-			expectedVars:   map[string]interface{}{"val": StringValue{Value: "approx~equal"}},
+			expectedVars:   map[string]Value{"val": StringValue{Value: "approx~equal"}},
 			expectedResult: StringValue{Value: "approx~equal"},
 		},
 		{
@@ -78,7 +78,7 @@ func TestInterpretStringEscaping(t *testing.T) {
 			inputSteps: []Step{
 				createTestStep("set", "val", &StringLiteralNode{Pos: pos, Value: "code `block`"}, nil),
 			},
-			expectedVars:   map[string]interface{}{"val": StringValue{Value: "code `block`"}},
+			expectedVars:   map[string]Value{"val": StringValue{Value: "code `block`"}},
 			expectedResult: StringValue{Value: "code `block`"},
 		},
 		{
@@ -86,7 +86,7 @@ func TestInterpretStringEscaping(t *testing.T) {
 			inputSteps: []Step{
 				createTestStep("set", "val", &StringLiteralNode{Pos: pos, Value: `a "quoted" string`}, nil),
 			},
-			expectedVars:   map[string]interface{}{"val": StringValue{Value: `a "quoted" string`}},
+			expectedVars:   map[string]Value{"val": StringValue{Value: `a "quoted" string`}},
 			expectedResult: StringValue{Value: `a "quoted" string`},
 		},
 		{
@@ -94,7 +94,7 @@ func TestInterpretStringEscaping(t *testing.T) {
 			inputSteps: []Step{
 				createTestStep("set", "val", &StringLiteralNode{Pos: pos, Value: "it's great"}, nil),
 			},
-			expectedVars:   map[string]interface{}{"val": StringValue{Value: "it's great"}},
+			expectedVars:   map[string]Value{"val": StringValue{Value: "it's great"}},
 			expectedResult: StringValue{Value: "it's great"},
 		},
 		{
@@ -102,7 +102,7 @@ func TestInterpretStringEscaping(t *testing.T) {
 			inputSteps: []Step{
 				createTestStep("set", "val", &StringLiteralNode{Pos: pos, Value: `a path C:\folder`}, nil),
 			},
-			expectedVars:   map[string]interface{}{"val": StringValue{Value: `a path C:\folder`}},
+			expectedVars:   map[string]Value{"val": StringValue{Value: `a path C:\folder`}},
 			expectedResult: StringValue{Value: `a path C:\folder`},
 		},
 		{
@@ -110,7 +110,7 @@ func TestInterpretStringEscaping(t *testing.T) {
 			inputSteps: []Step{
 				createTestStep("set", "val", &StringLiteralNode{Pos: pos, Value: "currency: €"}, nil),
 			},
-			expectedVars:   map[string]interface{}{"val": StringValue{Value: "currency: €"}},
+			expectedVars:   map[string]Value{"val": StringValue{Value: "currency: €"}},
 			expectedResult: StringValue{Value: "currency: €"},
 		},
 		{
@@ -118,7 +118,7 @@ func TestInterpretStringEscaping(t *testing.T) {
 			inputSteps: []Step{
 				createTestStep("set", "val", &StringLiteralNode{Pos: pos, Value: "face: 😀"}, nil),
 			},
-			expectedVars:   map[string]interface{}{"val": StringValue{Value: "face: 😀"}},
+			expectedVars:   map[string]Value{"val": StringValue{Value: "face: 😀"}},
 			expectedResult: StringValue{Value: "face: 😀"},
 		},
 		{
@@ -126,7 +126,7 @@ func TestInterpretStringEscaping(t *testing.T) {
 			inputSteps: []Step{
 				createTestStep("set", "val", &StringLiteralNode{Pos: pos, Value: "unpaired: " + string(rune(0xFFFD)) + " after"}, nil),
 			},
-			expectedVars:   map[string]interface{}{"val": StringValue{Value: "unpaired: " + string(rune(0xFFFD)) + " after"}},
+			expectedVars:   map[string]Value{"val": StringValue{Value: "unpaired: " + string(rune(0xFFFD)) + " after"}},
 			expectedResult: StringValue{Value: "unpaired: " + string(rune(0xFFFD)) + " after"},
 		},
 		{
@@ -134,7 +134,7 @@ func TestInterpretStringEscaping(t *testing.T) {
 			inputSteps: []Step{
 				createTestStep("set", "val", &StringLiteralNode{Pos: pos, Value: "eos: " + string(rune(0xFFFD))}, nil),
 			},
-			expectedVars:   map[string]interface{}{"val": StringValue{Value: "eos: " + string(rune(0xFFFD))}},
+			expectedVars:   map[string]Value{"val": StringValue{Value: "eos: " + string(rune(0xFFFD))}},
 			expectedResult: StringValue{Value: "eos: " + string(rune(0xFFFD))},
 		},
 		{
@@ -142,7 +142,7 @@ func TestInterpretStringEscaping(t *testing.T) {
 			inputSteps: []Step{
 				createTestStep("set", "val", &StringLiteralNode{Pos: pos, Value: string(rune(0xFFFD)) + "A"}, nil),
 			},
-			expectedVars:   map[string]interface{}{"val": StringValue{Value: string(rune(0xFFFD)) + "A"}},
+			expectedVars:   map[string]Value{"val": StringValue{Value: string(rune(0xFFFD)) + "A"}},
 			expectedResult: StringValue{Value: string(rune(0xFFFD)) + "A"},
 		},
 		{
@@ -150,7 +150,7 @@ func TestInterpretStringEscaping(t *testing.T) {
 			inputSteps: []Step{
 				createTestStep("set", "val", &StringLiteralNode{Pos: pos, Value: string(rune(0xFFFD)) + "\n"}, nil),
 			},
-			expectedVars:   map[string]interface{}{"val": StringValue{Value: string(rune(0xFFFD)) + "\n"}},
+			expectedVars:   map[string]Value{"val": StringValue{Value: string(rune(0xFFFD)) + "\n"}},
 			expectedResult: StringValue{Value: string(rune(0xFFFD)) + "\n"},
 		},
 	}

@@ -1,47 +1,76 @@
 // filename: pkg/core/ast_builder_statements.go
-// version: 3
-// purpose: Implements listener methods for simple statements using the correct Step struct fields.
+// version: 7
+// purpose: Corrects ExitEmit_statement to handle an optional expression, fixing failures with empty emit statements and aligning with the Step struct.
 package core
 
 import (
 	gen "github.com/aprice2704/neuroscript/pkg/core/generated"
 )
 
-// ExitEmit_statement handles the 'emit' statement.
+// ExitEmit_statement handles the 'emit' statement, which can have an optional expression.
 func (l *neuroScriptListenerImpl) ExitEmit_statement(c *gen.Emit_statementContext) {
 	l.logDebugAST("<<< ExitEmit_statement")
-	val, ok := l.pop().(Expression)
-	if !ok {
-		l.addError(c, "emit statement requires a valid expression")
-		return
-	}
+	var values []Expression
 
-	// For emit, the single expression is stored in the 'Value' field.
+	// The grammar allows 'emit' to have an optional expression.
+	// We check if the expression context exists before trying to pop from the stack.
+	if c.Expression() != nil {
+		rawExpr, ok := l.popValue()
+		if !ok {
+			l.addError(c, "stack underflow: could not pop expression for emit statement")
+			return
+		}
+
+		expr, castOk := rawExpr.(Expression)
+		if !castOk {
+			l.addError(c, "internal error: value on stack for emit was not an Expression, but %T", rawExpr)
+			l.pushValue(rawExpr) // Push back to avoid corrupting stack.
+			return
+		}
+		values = []Expression{expr}
+	}
+	// If c.Expression() is nil, 'values' remains an empty slice, which is correct for `emit` with no arguments.
+
 	stmt := Step{
-		Pos:   tokenToPosition(c.GetStart()),
-		Type:  "emit",
-		Value: val,
+		Pos:  tokenToPosition(c.GetStart()),
+		Type: "emit",
+		// 'emit' uses the 'Values' field to hold its expression(s).
+		Values: values,
 	}
 	*l.currentSteps = append(*l.currentSteps, stmt)
 }
 
-// ExitReturn_statement handles the 'return' statement.
+// ExitReturn_statement handles the 'return' statement, correctly packaging single or multiple return values.
 func (l *neuroScriptListenerImpl) ExitReturn_statement(c *gen.Return_statementContext) {
 	l.logDebugAST("<<< ExitReturn_statement")
 	var values []Expression
 
-	if c.Expression_list() != nil {
-		val := l.pop()
-		if exprs, ok := val.([]Expression); ok {
-			values = exprs
-		} else if expr, ok := val.(Expression); ok {
-			values = []Expression{expr}
-		} else {
-			l.addError(c, "return statement has invalid expression list value on stack: %T", val)
-			return
+	// Check if the return statement includes an expression list.
+	if exprListCtx := c.Expression_list(); exprListCtx != nil {
+		// Determine the number of expressions to correctly pop them from the stack.
+		numExprs := len(exprListCtx.AllExpression())
+		if numExprs > 0 {
+			rawExprs, ok := l.popNValues(numExprs)
+			if !ok {
+				l.addError(c, "stack underflow: could not pop %d expressions for return statement", numExprs)
+				return
+			}
+
+			// The popped values must be cast to Expression.
+			values = make([]Expression, numExprs)
+			for i, rawExpr := range rawExprs {
+				expr, castOk := rawExpr.(Expression)
+				if !castOk {
+					l.addError(c, "internal error: value on stack for return statement was not an Expression, but %T", rawExpr)
+					l.pushValue(rawExpr)
+					return
+				}
+				values[i] = expr
+			}
 		}
 	}
 
+	// Create the Step AST node for the return statement.
 	stmt := Step{
 		Pos:    tokenToPosition(c.GetStart()),
 		Type:   "return",
@@ -70,28 +99,28 @@ func (l *neuroScriptListenerImpl) ExitContinue_statement(c *gen.Continue_stateme
 	*l.currentSteps = append(*l.currentSteps, stmt)
 }
 
-// ExitFail_statement handles the 'fail' statement.
+// ExitFail_statement handles the 'fail' statement, which halts execution with an error.
 func (l *neuroScriptListenerImpl) ExitFail_statement(c *gen.Fail_statementContext) {
 	l.logDebugAST("<<< ExitFail_statement")
-	var msg Expression
+	var values []Expression
 	if c.Expression() != nil {
 		val, ok := l.pop().(Expression)
 		if !ok {
 			l.addError(c, "fail statement has invalid expression: %T", val)
 		} else {
-			msg = val
+			values = []Expression{val}
 		}
 	}
-	// 'fail' uses the single 'Value' field for its optional message.
+
 	stmt := Step{
-		Pos:   tokenToPosition(c.GetStart()),
-		Type:  "fail",
-		Value: msg,
+		Pos:    tokenToPosition(c.GetStart()),
+		Type:   "fail",
+		Values: values,
 	}
 	*l.currentSteps = append(*l.currentSteps, stmt)
 }
 
-// ExitMust_statement handles the 'must' and 'mustbe' statements.
+// ExitMust_statement handles the 'must' and 'mustbe' statements, which assert a condition.
 func (l *neuroScriptListenerImpl) ExitMust_statement(c *gen.Must_statementContext) {
 	l.logDebugAST("<<< ExitMust_statement")
 	val, ok := l.pop().(Expression)
@@ -99,7 +128,7 @@ func (l *neuroScriptListenerImpl) ExitMust_statement(c *gen.Must_statementContex
 		l.addError(c, "must statement requires a valid expression")
 		return
 	}
-	// 'must' uses the 'Cond' field for its condition.
+
 	stmt := Step{
 		Pos:  tokenToPosition(c.GetStart()),
 		Type: "must",
@@ -108,7 +137,7 @@ func (l *neuroScriptListenerImpl) ExitMust_statement(c *gen.Must_statementContex
 	*l.currentSteps = append(*l.currentSteps, stmt)
 }
 
-// ExitCall_statement handles the 'call' statement.
+// ExitCall_statement handles a standalone 'call' statement for executing a procedure or tool for its side effects.
 func (l *neuroScriptListenerImpl) ExitCall_statement(c *gen.Call_statementContext) {
 	l.logDebugAST("<<< ExitCall_statement")
 	val, ok := l.pop().(Expression)
@@ -131,7 +160,7 @@ func (l *neuroScriptListenerImpl) ExitCall_statement(c *gen.Call_statementContex
 	*l.currentSteps = append(*l.currentSteps, stmt)
 }
 
-// ExitClearErrorStmt handles the 'clear_error' statement.
+// ExitClearErrorStmt handles the 'clear_error' statement within an on_error block.
 func (l *neuroScriptListenerImpl) ExitClearErrorStmt(c *gen.ClearErrorStmtContext) {
 	l.logDebugAST("<<< ExitClearErrorStmt")
 	stmt := Step{
@@ -141,7 +170,7 @@ func (l *neuroScriptListenerImpl) ExitClearErrorStmt(c *gen.ClearErrorStmtContex
 	*l.currentSteps = append(*l.currentSteps, stmt)
 }
 
-// ExitAsk_stmt handles the 'ask' statement.
+// ExitAsk_stmt handles the 'ask' statement for interacting with an AI.
 func (l *neuroScriptListenerImpl) ExitAsk_stmt(c *gen.Ask_stmtContext) {
 	l.logDebugAST("<<< ExitAsk_stmt")
 	var target string
@@ -155,7 +184,6 @@ func (l *neuroScriptListenerImpl) ExitAsk_stmt(c *gen.Ask_stmtContext) {
 		return
 	}
 
-	// MINIMAL CHANGE: Using the correct field names from the Step struct definition.
 	stmt := Step{
 		Pos:        tokenToPosition(c.GetStart()),
 		Type:       "ask",

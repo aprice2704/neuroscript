@@ -11,7 +11,6 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
-	"strconv"
 )
 
 // toolTreeFindNodes implements the Tree.FindNodes tool.
@@ -234,22 +233,4 @@ func deepCompareValues(actualValue, expectedValue interface{}) bool {
 	}
 
 	return false
-}
-
-// ConvertToFloat64 is a helper to handle potential int64/float64 from map[string]interface{}
-func ConvertToFloat64(val interface{}) (float64, bool) {
-	switch v := val.(type) {
-	case float64:
-		return v, true
-	case int64:
-		return float64(v), true
-	case int:
-		return float64(v), true
-	case string:
-		fVal, err := strconv.ParseFloat(v, 64)
-		if err == nil {
-			return fVal, true
-		}
-	}
-	return 0, false
 }

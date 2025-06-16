@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.3.2
-// File version: 8
-// Purpose: Reverted tests to expect native Go types.
+// File version: 9
+// Purpose: Updated tests to expect core.Value types, aligning with new compliant testing helpers.
 // filename: pkg/core/evaluation_arithmetic_test.go
 
 package core
@@ -10,7 +10,7 @@ import (
 )
 
 func TestArithmeticOps(t *testing.T) {
-	vars := map[string]interface{}{
+	vars := map[string]Value{
 		"int5":     NumberValue{Value: 5},
 		"int3":     NumberValue{Value: 3},
 		"float2_5": NumberValue{Value: 2.5},
@@ -23,19 +23,19 @@ func TestArithmeticOps(t *testing.T) {
 			Name:        "Add Int+Int",
 			InputNode:   &BinaryOpNode{Left: &VariableNode{Name: "int5"}, Operator: "+", Right: &VariableNode{Name: "int3"}},
 			InitialVars: vars,
-			Expected:    float64(8),
+			Expected:    NumberValue{Value: 8},
 		},
 		{
 			Name:        "Add Int+Float",
 			InputNode:   &BinaryOpNode{Left: &VariableNode{Name: "int5"}, Operator: "+", Right: &VariableNode{Name: "float2_5"}},
 			InitialVars: vars,
-			Expected:    float64(7.5),
+			Expected:    NumberValue{Value: 7.5},
 		},
 		{
 			Name:        "Add Int+StrABC",
 			InputNode:   &BinaryOpNode{Left: &VariableNode{Name: "int5"}, Operator: "+", Right: &VariableNode{Name: "strABC"}},
 			InitialVars: vars,
-			Expected:    "5ABC",
+			Expected:    StringValue{Value: "5ABC"},
 		},
 		{
 			Name:            "Div By Int Zero",

@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.3.1
-// File version: 2
-// Purpose: Wraps procedure and tool structs in FunctionValue/ToolValue to align with the type system.
+// File version: 3
+// Purpose: Aligns tests with compliant helpers, fixes compiler error by using float64 in NewTestNumberLiteral.
 // filename: pkg/core/eval_typeof_test.go
 // nlines: 201
 // risk_rating: LOW
@@ -49,7 +49,7 @@ func TestTypeOfOperator_LiteralsAndVariables(t *testing.T) {
 		{
 			name: "typeof number literal (int)",
 			inputSteps: []Step{
-				createTestStep("emit", "", &TypeOfNode{Pos: testPos, Argument: NewTestNumberLiteral(123)}, nil),
+				createTestStep("emit", "", &TypeOfNode{Pos: testPos, Argument: NewTestNumberLiteral(123.0)}, nil),
 			},
 			expectedResult: StringValue{Value: string(TypeNumber)},
 		},
@@ -77,7 +77,7 @@ func TestTypeOfOperator_LiteralsAndVariables(t *testing.T) {
 		{
 			name: "typeof list literal",
 			inputSteps: []Step{
-				createTestStep("emit", "", &TypeOfNode{Pos: testPos, Argument: &ListLiteralNode{Pos: testPos, Elements: []Expression{NewTestNumberLiteral(1), NewTestStringLiteral("a")}}}, nil),
+				createTestStep("emit", "", &TypeOfNode{Pos: testPos, Argument: &ListLiteralNode{Pos: testPos, Elements: []Expression{NewTestNumberLiteral(1.0), NewTestStringLiteral("a")}}}, nil),
 			},
 			expectedResult: StringValue{Value: string(TypeList)},
 		},
@@ -86,7 +86,7 @@ func TestTypeOfOperator_LiteralsAndVariables(t *testing.T) {
 			inputSteps: []Step{
 				createTestStep("emit", "", &TypeOfNode{Pos: testPos, Argument: &MapLiteralNode{Pos: testPos, Entries: []*MapEntryNode{
 					{Pos: testPos, Key: NewTestStringLiteral("key"), Value: NewTestStringLiteral("value")},
-					{Pos: testPos, Key: NewTestStringLiteral("num"), Value: NewTestNumberLiteral(1)},
+					{Pos: testPos, Key: NewTestStringLiteral("num"), Value: NewTestNumberLiteral(1.0)},
 				}}}, nil),
 			},
 			expectedResult: StringValue{Value: string(TypeMap)},
@@ -96,9 +96,9 @@ func TestTypeOfOperator_LiteralsAndVariables(t *testing.T) {
 			inputSteps: []Step{
 				createTestStep("emit", "", &TypeOfNode{Pos: testPos, Argument: &BinaryOpNode{
 					Pos:      testPos,
-					Left:     NewTestNumberLiteral(1),
+					Left:     NewTestNumberLiteral(1.0),
 					Operator: "+",
-					Right:    NewTestNumberLiteral(2),
+					Right:    NewTestNumberLiteral(2.0),
 				}}, nil),
 			},
 			expectedResult: StringValue{Value: string(TypeNumber)},
@@ -110,21 +110,21 @@ func TestTypeOfOperator_LiteralsAndVariables(t *testing.T) {
 				createTestStep("emit", "", &TypeOfNode{Pos: testPos, Argument: NewTestVariableNode("myVar")}, nil),
 			},
 			expectedResult: StringValue{Value: string(TypeString)},
-			expectedVars:   map[string]interface{}{"myVar": StringValue{Value: "test"}},
+			expectedVars:   map[string]Value{"myVar": StringValue{Value: "test"}},
 		},
 		{
 			name: "typeof variable (list)",
 			inputSteps: []Step{
-				createTestStep("set", "myList", &ListLiteralNode{Pos: testPos, Elements: []Expression{NewTestNumberLiteral(int64(1))}}, nil),
+				createTestStep("set", "myList", &ListLiteralNode{Pos: testPos, Elements: []Expression{NewTestNumberLiteral(1.0)}}, nil),
 				createTestStep("emit", "", &TypeOfNode{Pos: testPos, Argument: NewTestVariableNode("myList")}, nil),
 			},
 			expectedResult: StringValue{Value: string(TypeList)},
-			expectedVars:   map[string]interface{}{"myList": NewListValue([]Value{NumberValue{Value: 1}})},
+			expectedVars:   map[string]Value{"myList": NewListValue([]Value{NumberValue{Value: 1}})},
 		},
 		{
 			name: "typeof last expression (number)",
 			inputSteps: []Step{
-				createTestStep("emit", "", NewTestNumberLiteral(100), nil),
+				createTestStep("emit", "", NewTestNumberLiteral(100.0), nil),
 				createTestStep("emit", "", &TypeOfNode{Pos: testPos, Argument: &LastNode{Pos: testPos}}, nil),
 			},
 			expectedResult: StringValue{Value: string(TypeNumber)},
@@ -140,19 +140,17 @@ func TestTypeOfOperator_LiteralsAndVariables(t *testing.T) {
 }
 
 func TestTypeOfOperator_Function(t *testing.T) {
-	i, _ := NewTestInterpreter(t, map[string]interface{}{}, nil)
-	err := i.AddProcedure(testDummyProcedure) // Procedure is known to the interpreter
+	i, _ := NewInterpreter(NewTestLogger(t), nil, ".", nil, nil)
+	err := i.AddProcedure(testDummyProcedure)
 	if err != nil {
 		t.Fatalf("Failed to add dummy procedure: %v", err)
 	}
 
-	// FIX: Wrap the raw Procedure struct in a FunctionValue before setting the variable.
 	err = i.SetVariable(testDummyProcedure.Name, FunctionValue{Value: testDummyProcedure})
 	if err != nil {
 		t.Fatalf("Failed to set variable '%s' to procedure object: %v", testDummyProcedure.Name, err)
 	}
 
-	// Create AST node for: typeof(myTestFuncForTypeOf)
 	argVarNode := NewTestVariableNode(testDummyProcedure.Name)
 	typeOfExpr := &TypeOfNode{Pos: testPos, Argument: argVarNode}
 
@@ -168,7 +166,7 @@ func TestTypeOfOperator_Function(t *testing.T) {
 }
 
 func TestTypeOfOperator_Tool(t *testing.T) {
-	i, _ := NewTestInterpreter(t, map[string]interface{}{}, nil)
+	i, _ := NewInterpreter(NewTestLogger(t), nil, ".", nil, nil)
 	err := i.RegisterTool(testDummyTool)
 	if err != nil {
 		t.Fatalf("Failed to register dummy tool: %v", err)
@@ -179,13 +177,11 @@ func TestTypeOfOperator_Tool(t *testing.T) {
 		t.Fatalf("Failed to retrieve registered tool MyTestToolForTypeOf")
 	}
 
-	// FIX: Wrap the raw ToolImplementation struct in a ToolValue before setting the variable.
 	err = i.SetVariable("myActualTestToolVar", ToolValue{Value: toolVal})
 	if err != nil {
 		t.Fatalf("Failed to set variable for tool value: %v", err)
 	}
 
-	// Create AST node for: typeof(myActualTestToolVar)
 	argVarNode := NewTestVariableNode("myActualTestToolVar")
 	typeOfExpr := &TypeOfNode{Pos: testPos, Argument: argVarNode}
 

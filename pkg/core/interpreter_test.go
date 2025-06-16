@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.3.5
-// File version: 0.0.7
-// Purpose: Updated test assertions to expect core.Value types instead of native Go types.
+// File version: 1.0.0
+// Purpose: Updated all test case initialVars and expectedVars to use map[string]Value, aligning with compliant testing helpers.
 // filename: pkg/core/interpreter_test.go
 package core
 
@@ -16,7 +16,7 @@ func TestExecuteStepsBlocksAndLoops(t *testing.T) {
 		BoolValue{Value: true},
 	})
 
-	mustBeVars := map[string]interface{}{
+	mustBeVars := map[string]Value{
 		"s":      StringValue{Value: "a string"},
 		"n":      NumberValue{Value: 10},
 		"f":      NumberValue{Value: 3.14},
@@ -39,7 +39,7 @@ func TestExecuteStepsBlocksAndLoops(t *testing.T) {
 					nil,
 				),
 			},
-			expectedVars:   map[string]interface{}{"x": StringValue{Value: "Inside"}},
+			expectedVars:   map[string]Value{"x": StringValue{Value: "Inside"}},
 			expectedResult: StringValue{Value: "Inside"},
 			expectError:    false,
 		},
@@ -55,8 +55,8 @@ func TestExecuteStepsBlocksAndLoops(t *testing.T) {
 					nil),
 				createTestStep("set", "status", &StringLiteralNode{Pos: dummyPos, Value: "Finished"}, nil),
 			},
-			initialVars:    map[string]interface{}{},
-			expectedVars:   map[string]interface{}{"status": StringValue{Value: "Started"}, "x": StringValue{Value: "Inside"}},
+			initialVars:    map[string]Value{},
+			expectedVars:   map[string]Value{"status": StringValue{Value: "Started"}, "x": StringValue{Value: "Inside"}},
 			expectedResult: StringValue{Value: "ReturnedFromIf"},
 			expectError:    false,
 		},
@@ -86,7 +86,7 @@ func TestExecuteStepsBlocksAndLoops(t *testing.T) {
 				createTestStep("set", "myVar", &StringLiteralNode{Value: "data"}, nil),
 				createTestStep("return", "", &VariableNode{Name: "myVar"}, nil),
 			},
-			expectedVars:   map[string]interface{}{"myVar": StringValue{Value: "data"}},
+			expectedVars:   map[string]Value{"myVar": StringValue{Value: "data"}},
 			expectedResult: StringValue{Value: "data"},
 			expectError:    false,
 		},
@@ -104,7 +104,7 @@ func TestExecuteStepsBlocksAndLoops(t *testing.T) {
 					},
 				},
 			},
-			expectedVars: map[string]interface{}{"myVar": BoolValue{Value: false}},
+			expectedVars: map[string]Value{"myVar": BoolValue{Value: false}},
 			expectedResult: NewListValue([]Value{
 				NumberValue{Value: 1},
 				BoolValue{Value: false},
@@ -159,7 +159,7 @@ func TestExecuteStepsBlocksAndLoops(t *testing.T) {
 					Arguments: []Expression{&VariableNode{Pos: dummyPos, Name: "lvar"}, &StringLiteralNode{Value: "newItem"}},
 				}, nil),
 			},
-			initialVars: map[string]interface{}{"lvar": initialList},
+			initialVars: map[string]Value{"lvar": initialList},
 			expectedResult: NewListValue([]Value{
 				StringValue{Value: "item1"},
 				NumberValue{Value: 2},
@@ -181,7 +181,7 @@ func TestExecuteStepsBlocksAndLoops(t *testing.T) {
 					},
 				}, nil),
 			},
-			initialVars:    map[string]interface{}{"lvar": initialList},
+			initialVars:    map[string]Value{"lvar": initialList},
 			expectedResult: StringValue{Value: "default"},
 			expectError:    false,
 		},

@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.4.0
-// File version: 1
-// Purpose: Refactored to test the primitive-based GoGetModuleInfo tool implementation directly.
+// File version: 2
+// Purpose: Fixed variable shadowing bug by correctly handling the error return from NewDefaultTestInterpreter.
 // filename: pkg/core/tools_go_test.go
 // nlines: 119
 // risk_rating: MEDIUM
@@ -26,7 +26,14 @@ func testGoGetModuleInfoHelper(t *testing.T, tc struct {
 }) {
 	t.Helper()
 	t.Run(tc.name, func(t *testing.T) {
-		interp, sandboxRoot := NewDefaultTestInterpreter(t)
+		// FIX: Correctly handle the (*Interpreter, error) return values.
+		interp, err := NewDefaultTestInterpreter(t)
+		if err != nil {
+			t.Fatalf("NewDefaultTestInterpreter() failed: %v", err)
+		}
+		// FIX: Get the sandbox directory from the interpreter instance.
+		sandboxRoot := interp.SandboxDir()
+
 		toolImpl, _ := interp.ToolRegistry().GetTool("Go.GetModuleInfo")
 
 		// Per-test setup

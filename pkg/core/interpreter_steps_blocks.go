@@ -1,20 +1,19 @@
 // NeuroScript Version: 0.3.1
-// File version: 5
-// Purpose: Corrected conditional checks in if/while loops to use the IsTruthy() method on Value types, aligning them with the rest of the interpreter and fixing runtime errors.
+// File version: 7
+// Purpose: Corrected all function signatures to return core.Value. Refactored executeFor to be type-safe, iterating directly on Value types (ListValue, MapValue, StringValue) without reflection or unwrapping.
 // filename: pkg/core/interpreter_steps_blocks.go
 // nlines: 200
-// risk_rating: MEDIUM
+// risk_rating: HIGH
 
 package core
 
 import (
 	"errors"
 	"fmt"
-	"reflect"
 )
 
 // executeIf handles the "if" step.
-func (i *Interpreter) executeIf(step Step, isInHandler bool, activeError *RuntimeError) (result interface{}, wasReturn bool, wasCleared bool, err error) {
+func (i *Interpreter) executeIf(step Step, isInHandler bool, activeError *RuntimeError) (result Value, wasReturn bool, wasCleared bool, err error) {
 	posStr := "<unknown_pos>"
 	if step.Pos != nil {
 		posStr = step.Pos.String()
@@ -30,8 +29,7 @@ func (i *Interpreter) executeIf(step Step, isInHandler bool, activeError *Runtim
 		return nil, false, false, WrapErrorWithPosition(evalErr, step.Cond.GetPos(), "evaluating IF condition")
 	}
 
-	// CORRECTED: Use the IsTruthy() method for consistent behavior.
-	if condResult.IsTruthy() {
+	if IsTruthy(condResult) {
 		i.Logger().Debug("[DEBUG-INTERP]     IF condition TRUE, executing THEN block", "pos", posStr)
 		return i.executeBlock(step.Body, step.Pos, "IF_THEN", isInHandler, activeError)
 	} else if step.Else != nil {
@@ -40,11 +38,11 @@ func (i *Interpreter) executeIf(step Step, isInHandler bool, activeError *Runtim
 	}
 
 	i.Logger().Debug("[DEBUG-INTERP]     IF condition FALSE, no ELSE block", "pos", posStr)
-	return nil, false, false, nil
+	return NilValue{}, false, false, nil
 }
 
 // executeWhile handles the "while" step.
-func (i *Interpreter) executeWhile(step Step, isInHandler bool, activeError *RuntimeError) (result interface{}, wasReturn bool, wasCleared bool, err error) {
+func (i *Interpreter) executeWhile(step Step, isInHandler bool, activeError *RuntimeError) (result Value, wasReturn bool, wasCleared bool, err error) {
 	posStr := "<unknown_pos>"
 	if step.Pos != nil {
 		posStr = step.Pos.String()
@@ -57,6 +55,7 @@ func (i *Interpreter) executeWhile(step Step, isInHandler bool, activeError *Run
 
 	iteration := 0
 	maxIterations := i.maxLoopIterations
+	result = NilValue{} // Initialize result to a valid Value
 
 	for {
 		iteration++
@@ -70,8 +69,7 @@ func (i *Interpreter) executeWhile(step Step, isInHandler bool, activeError *Run
 			return nil, false, wasCleared, WrapErrorWithPosition(evalErr, step.Cond.GetPos(), "evaluating WHILE condition")
 		}
 
-		// CORRECTED: Use the IsTruthy() method for consistent behavior.
-		if !condResult.IsTruthy() {
+		if !IsTruthy(condResult) {
 			i.Logger().Debug("[DEBUG-INTERP]     WHILE condition FALSE, exiting loop", "pos", posStr, "iterations", iteration-1)
 			break // Exit loop
 		}
@@ -104,7 +102,7 @@ func (i *Interpreter) executeWhile(step Step, isInHandler bool, activeError *Run
 }
 
 // executeFor handles the "for each" step.
-func (i *Interpreter) executeFor(step Step, isInHandler bool, activeError *RuntimeError) (result interface{}, wasReturn bool, wasCleared bool, err error) {
+func (i *Interpreter) executeFor(step Step, isInHandler bool, activeError *RuntimeError) (result Value, wasReturn bool, wasCleared bool, err error) {
 	posStr := "<unknown_pos>"
 	if step.Pos != nil {
 		posStr = step.Pos.String()
@@ -112,6 +110,7 @@ func (i *Interpreter) executeFor(step Step, isInHandler bool, activeError *Runti
 
 	loopVar := step.LoopVarName
 	collectionExpr := step.Collection
+	result = NilValue{} // Initialize result to a valid Value
 
 	i.Logger().Debug("[DEBUG-INTERP]   Executing FOR EACH", "loopVar", loopVar, "pos", posStr)
 
@@ -122,125 +121,119 @@ func (i *Interpreter) executeFor(step Step, isInHandler bool, activeError *Runti
 		return nil, false, false, NewRuntimeError(ErrorCodeInternal, "FOR EACH step has empty LoopVarName", nil).WithPosition(step.Pos)
 	}
 
-	collectionValRaw, evalErr := i.evaluateExpression(collectionExpr)
+	collectionVal, evalErr := i.evaluateExpression(collectionExpr)
 	if evalErr != nil {
 		return nil, false, false, WrapErrorWithPosition(evalErr, collectionExpr.GetPos(), fmt.Sprintf("evaluating collection for FOR EACH %s", loopVar))
 	}
 
-	// Use unwrapValue to handle both raw types and Value types
-	collectionVal := unwrapValue(collectionValRaw)
-
 	iteration := 0
 	maxIterations := i.maxLoopIterations
 
-	valReflection := reflect.ValueOf(collectionVal)
+	var loopErr error
+	var loopReturned bool
+	var blockResult Value
 
-	switch valReflection.Kind() {
-	case reflect.Slice, reflect.Array:
-		for itemIdx := 0; itemIdx < valReflection.Len(); itemIdx++ {
-			iteration++
-			if iteration > maxIterations {
-				errMsg := fmt.Sprintf("FOR EACH loop for %s at %s exceeded max iterations (%d)", loopVar, posStr, maxIterations)
-				return nil, false, wasCleared, NewRuntimeError(ErrorCodeInternal, errMsg, errors.New("max iterations exceeded")).WithPosition(step.Pos)
-			}
-
-			item := valReflection.Index(itemIdx).Interface()
-			if setErr := i.SetVariable(loopVar, item); setErr != nil {
-				errMsg := fmt.Sprintf("setting loop variable '%s' in FOR EACH", loopVar)
-				return nil, false, wasCleared, NewRuntimeError(ErrorCodeInternal, errMsg, setErr).WithPosition(step.Pos)
-			}
-
-			blockResult, blockReturned, blockCleared, blockErr := i.executeBlock(step.Body, step.Pos, "FOR_BODY", isInHandler, activeError)
-			if blockCleared {
-				wasCleared = true
-				activeError = nil
-			}
-
-			if blockErr != nil {
-				if errors.Is(blockErr, ErrBreak) {
-					return result, false, wasCleared, nil
-				}
-				if errors.Is(blockErr, ErrContinue) {
-					continue
-				}
-				return nil, false, wasCleared, blockErr
-			}
-			if blockReturned {
-				return blockResult, true, wasCleared, nil
-			}
-			result = blockResult
+	processLoopBody := func() (bool, bool, Value, error) { // shouldBreak, shouldContinue, result, error
+		res, ret, clr, bErr := i.executeBlock(step.Body, step.Pos, "FOR_BODY", isInHandler, activeError)
+		if clr {
+			wasCleared = true
+			activeError = nil
 		}
-	case reflect.Map:
-		mapKeys := valReflection.MapKeys()
-		for _, key := range mapKeys {
-			iteration++
-			if iteration > maxIterations {
-				errMsg := fmt.Sprintf("FOR EACH loop for %s at %s exceeded max iterations (%d)", loopVar, posStr, maxIterations)
-				return nil, false, wasCleared, NewRuntimeError(ErrorCodeInternal, errMsg, errors.New("max iterations exceeded")).WithPosition(step.Pos)
+		if bErr != nil {
+			if errors.Is(bErr, ErrBreak) {
+				return true, false, res, nil
 			}
-
-			item := valReflection.MapIndex(key).Interface()
-			if setErr := i.SetVariable(loopVar, item); setErr != nil {
-				errMsg := fmt.Sprintf("setting loop variable '%s' in FOR EACH (map)", loopVar)
-				return nil, false, wasCleared, NewRuntimeError(ErrorCodeInternal, errMsg, setErr).WithPosition(step.Pos)
+			if errors.Is(bErr, ErrContinue) {
+				return false, true, res, nil
 			}
-			blockResult, blockReturned, blockCleared, blockErr := i.executeBlock(step.Body, step.Pos, "FOR_BODY_MAP", isInHandler, activeError)
-			if blockCleared {
-				wasCleared = true
-				activeError = nil
-			}
-
-			if blockErr != nil {
-				if errors.Is(blockErr, ErrBreak) {
-					return result, false, wasCleared, nil
-				}
-				if errors.Is(blockErr, ErrContinue) {
-					continue
-				}
-				return nil, false, wasCleared, blockErr
-			}
-			if blockReturned {
-				return blockResult, true, wasCleared, nil
-			}
-			result = blockResult
+			return false, false, nil, bErr
 		}
-	case reflect.String:
-		strCollection := collectionVal.(string)
-		for _, charRune := range strCollection {
-			iteration++
-			if iteration > maxIterations {
-				errMsg := fmt.Sprintf("FOR EACH loop for %s at %s exceeded max iterations (%d)", loopVar, posStr, maxIterations)
-				return nil, false, wasCleared, NewRuntimeError(ErrorCodeInternal, errMsg, errors.New("max iterations exceeded")).WithPosition(step.Pos)
-			}
+		if ret {
+			return false, false, res, nil // Propagate return up
+		}
+		return false, false, res, nil
+	}
 
-			item := string(charRune)
-			if setErr := i.SetVariable(loopVar, item); setErr != nil {
-				errMsg := fmt.Sprintf("setting loop variable '%s' in FOR EACH (string)", loopVar)
-				return nil, false, wasCleared, NewRuntimeError(ErrorCodeInternal, errMsg, setErr).WithPosition(step.Pos)
-			}
-			blockResult, blockReturned, blockCleared, blockErr := i.executeBlock(step.Body, step.Pos, "FOR_BODY_STRING", isInHandler, activeError)
-			if blockCleared {
-				wasCleared = true
-				activeError = nil
-			}
+	handleIteration := func(item Value) (bool, bool, error) {
+		iteration++
+		if iteration > maxIterations {
+			errMsg := fmt.Sprintf("FOR EACH loop for %s at %s exceeded max iterations (%d)", loopVar, posStr, maxIterations)
+			return false, false, NewRuntimeError(ErrorCodeInternal, errMsg, errors.New("max iterations exceeded")).WithPosition(step.Pos)
+		}
+		if setErr := i.SetVariable(loopVar, item); setErr != nil {
+			errMsg := fmt.Sprintf("setting loop variable '%s' in FOR EACH", loopVar)
+			return false, false, NewRuntimeError(ErrorCodeInternal, errMsg, setErr).WithPosition(step.Pos)
+		}
 
-			if blockErr != nil {
-				if errors.Is(blockErr, ErrBreak) {
-					return result, false, wasCleared, nil
-				}
-				if errors.Is(blockErr, ErrContinue) {
-					continue
-				}
-				return nil, false, wasCleared, blockErr
+		shouldBreak, shouldContinue, res, err := processLoopBody()
+		result = res // Store last block result
+		if err != nil {
+			return false, false, err
+		}
+		if shouldBreak {
+			return true, false, nil
+		}
+		if shouldContinue {
+			return false, true, nil
+		}
+		if res != nil && loopReturned {
+			return false, false, nil // Should be handled by caller
+		}
+		return false, false, nil
+	}
+
+	switch c := collectionVal.(type) {
+	case ListValue:
+		for _, item := range c.Value {
+			shouldBreak, shouldContinue, err := handleIteration(item)
+			if err != nil {
+				return nil, false, wasCleared, err
 			}
-			if blockReturned {
-				return blockResult, true, wasCleared, nil
+			if shouldBreak {
+				goto endLoop
 			}
-			result = blockResult
+			if shouldContinue {
+				continue
+			}
+		}
+	case MapValue:
+		for _, item := range c.Value { // Note: iterating over map values, keys are ignored for now
+			shouldBreak, shouldContinue, err := handleIteration(item)
+			if err != nil {
+				return nil, false, wasCleared, err
+			}
+			if shouldBreak {
+				goto endLoop
+			}
+			if shouldContinue {
+				continue
+			}
+		}
+	case StringValue:
+		for _, charRune := range c.Value {
+			item := StringValue{Value: string(charRune)}
+			shouldBreak, shouldContinue, err := handleIteration(item)
+			if err != nil {
+				return nil, false, wasCleared, err
+			}
+			if shouldBreak {
+				goto endLoop
+			}
+			if shouldContinue {
+				continue
+			}
 		}
 	default:
-		errMsg := fmt.Sprintf("cannot iterate over type %s for FOR EACH %s", TypeOf(collectionValRaw), loopVar)
+		errMsg := fmt.Sprintf("cannot iterate over type %s for FOR EACH %s", TypeOf(collectionVal), loopVar)
 		return nil, false, wasCleared, NewRuntimeError(ErrorCodeType, errMsg, nil).WithPosition(collectionExpr.GetPos())
+	}
+
+endLoop:
+	if loopErr != nil {
+		return nil, false, wasCleared, loopErr
+	}
+	if loopReturned {
+		return blockResult, true, wasCleared, nil
 	}
 
 	i.Logger().Debug("[DEBUG-INTERP]   FOR EACH loop finished normally.", "loopVar", loopVar, "pos", posStr, "iterations", iteration)

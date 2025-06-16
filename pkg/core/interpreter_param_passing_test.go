@@ -1,16 +1,16 @@
 // NeuroScript Version: 0.3.0
-// File version: 0.1.6
-// Purpose: Generalized numeric float comparison for mainEntry_recvd and helperProc_recvd outputs.
+// File version: 1.0.0
+// Purpose: Aligns test with new RunProcedure signature by wrapping primitive arguments into core.Value types before execution.
 // filename: pkg/core/interpreter_param_passing_test.go
-// nlines: 257
+// nlines: 275+
 // risk_rating: MEDIUM
 package core
 
 import (
 	"bytes"
 	"fmt"
-	"math"    // Added for float comparison
-	"strconv" // Added for float parsing
+	"math"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -150,7 +150,6 @@ func TestInterpreter_ParameterPassingFuzz(t *testing.T) {
 			}
 			interp.SetStdout(&capturedOutput)
 
-			// Add procedures to the interpreter instance for this test run
 			for name, procDef := range program.Procedures {
 				procCopy := *procDef
 				if errP := interp.AddProcedure(procCopy); errP != nil {
@@ -170,9 +169,19 @@ func TestInterpreter_ParameterPassingFuzz(t *testing.T) {
 				floatVal,
 			}
 
+			// Wrap primitive arguments into core.Value types before calling RunProcedure.
+			wrappedArgs := make([]Value, len(simulatedCLIArgs))
+			for i, arg := range simulatedCLIArgs {
+				wrapped, err := Wrap(arg)
+				if err != nil {
+					t.Fatalf("Iteration %d: Failed to wrap argument #%d (%v): %v", iteration, i, arg, err)
+				}
+				wrappedArgs[i] = wrapped
+			}
+
 			targetProcName := "mainEntry"
 
-			_, runErr := interp.RunProcedure(targetProcName, simulatedCLIArgs...)
+			_, runErr := interp.RunProcedure(targetProcName, wrappedArgs...)
 			if runErr != nil {
 				t.Errorf("Iteration %d: Error executing procedure '%s': %v. Output so far: %s", iteration, targetProcName, runErr, capturedOutput.String())
 				return
@@ -181,9 +190,6 @@ func TestInterpreter_ParameterPassingFuzz(t *testing.T) {
 			outputStr := capturedOutput.String()
 			outputLines := strings.Split(strings.TrimSpace(outputStr), "\n")
 
-			// Expected output lines construction
-			// For `mainEntry_recvd`, the floatVal is formatted with %.1f in the Sprintf expectation.
-			// For `helperProc_recvd`, floatVal/2.0 is formatted with %.2f.
 			expectedEmits := []string{
 				fmt.Sprintf("mainEntry_recvd:%s,%d,%t,%.1f", strVal, intVal, boolVal, floatVal),
 				fmt.Sprintf("helperProc_recvd:%s_to_helper,%d,%t,%.2f", strVal, intVal*2, !boolVal, floatVal/2.0),
@@ -207,8 +213,6 @@ func TestInterpreter_ParameterPassingFuzz(t *testing.T) {
 
 			for j, expected := range expectedEmits {
 				if j >= len(outputLines) {
-					// This case should ideally be caught by the length check above,
-					// but kept for safety in loop bounds.
 					t.Errorf("Iteration %d: Missing expected output line %d: %s", iteration, j, expected)
 					continue
 				}

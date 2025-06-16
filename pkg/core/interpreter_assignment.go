@@ -1,9 +1,7 @@
 // NeuroScript Version: 0.4.2
-// File version: 8.0.0
-// Purpose: Implements a fully robust recursive 'set' execution with correct auto-vivification logic.
+// File version: 10.0.0
+// Purpose: Simplifies a type check in getOrCreateRootContainer, which is now redundant due to the type-safe GetVariable method.
 // filename: pkg/core/interpreter_assignment.go
-// nlines: 195
-// risk_rating: HIGH
 
 package core
 
@@ -13,19 +11,14 @@ import (
 
 // executeSet handles the "set" step, including complex assignments with auto-creation
 // of nested lists and maps (auto-vivification).
-func (i *Interpreter) executeSet(step Step) (interface{}, error) {
+func (i *Interpreter) executeSet(step Step) (Value, error) {
 	if step.LValue == nil {
 		return nil, NewRuntimeError(ErrorCodeInternal, "SetStep LValue is nil", nil).WithPosition(step.Pos)
 	}
 
-	rhsValueRaw, evalErr := i.evaluateExpression(step.Value)
+	rhsValue, evalErr := i.evaluateExpression(step.Value)
 	if evalErr != nil {
 		return nil, WrapErrorWithPosition(evalErr, step.Value.GetPos(), fmt.Sprintf("evaluating value for SET %s", step.LValue.Identifier))
-	}
-
-	rhsValue, ok := rhsValueRaw.(Value)
-	if !ok {
-		return nil, NewRuntimeError(ErrorCodeInternal, fmt.Sprintf("RHS of assignment to '%s' did not evaluate to a Value type, got %T", step.LValue.Identifier, rhsValueRaw), nil).WithPosition(step.Value.GetPos())
 	}
 
 	// Simple assignment: set x = ...
@@ -59,18 +52,24 @@ func (i *Interpreter) executeSet(step Step) (interface{}, error) {
 // getOrCreateRootContainer retrieves the top-level variable for a complex assignment,
 // creating it if it doesn't exist based on the first accessor.
 func (i *Interpreter) getOrCreateRootContainer(name string, firstAccessor AccessorNode) (Value, error) {
-	rawVal, varExists := i.GetVariable(name)
+	container, varExists := i.GetVariable(name)
 	if varExists {
-		if container, ok := rawVal.(Value); ok && (isMap(container) || isList(container)) {
+		// If the variable exists and is a container, use it. Otherwise, it will be overwritten.
+		if isMap(container) || isList(container) {
 			return container, nil
 		}
 	}
+	// If the variable doesn't exist or isn't a container, create a new one.
 	return i.determineInitialContainer(firstAccessor)
 }
 
 // vivifyAndSet recursively traverses the accessor path, creating nested containers
 // as needed, and returns the (potentially modified) container.
 func (i *Interpreter) vivifyAndSet(current Value, accessors []AccessorNode, rhsValue Value) (Value, error) {
+	if len(accessors) == 0 {
+		return rhsValue, nil // End of the path, return the value to be set.
+	}
+
 	accessor := accessors[0]
 	isFinal := len(accessors) == 1
 
@@ -98,7 +97,7 @@ func (i *Interpreter) vivifyAndSet(current Value, accessors []AccessorNode, rhsV
 		if err != nil {
 			return nil, err
 		}
-		m.Value[key] = modifiedChild // Update the child reference
+		m.Value[key] = modifiedChild
 		return m, nil
 	}
 
@@ -117,7 +116,7 @@ func (i *Interpreter) vivifyAndSet(current Value, accessors []AccessorNode, rhsV
 		}
 
 		child := l.Value[index]
-		if !isMap(child) && !isList(child) {
+		if child == nil || (!isMap(child) && !isList(child)) {
 			child, err = i.determineInitialContainer(accessors[1])
 			if err != nil {
 				return nil, err
@@ -128,12 +127,11 @@ func (i *Interpreter) vivifyAndSet(current Value, accessors []AccessorNode, rhsV
 		if err != nil {
 			return nil, err
 		}
-		l.Value[index] = modifiedChild // Update the child reference
+		l.Value[index] = modifiedChild
 		return l, nil
 	}
 
-	// --- Handle Primitive ---
-	// If it's a primitive, it must be overwritten by a new container.
+	// If the current value is not a map or list, it must be overwritten.
 	newContainer, err := i.determineInitialContainer(accessor)
 	if err != nil {
 		return nil, err

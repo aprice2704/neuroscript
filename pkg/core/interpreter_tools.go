@@ -1,9 +1,9 @@
 // NeuroScript Version: 0.3.1
-// File version: 2
-// Purpose: Methods for tool registration and execution in the interpreter.
+// File version: 3
+// Purpose: Implements the Generic Adapter pattern. executeInternalTool now handles unwrapping Value args and wrapping primitive results, per the contract.
 // filename: pkg/core/interpreter_tools.go
-// nlines: 110
-// risk_rating: MEDIUM
+// nlines: 115
+// risk_rating: HIGH
 
 package core
 
@@ -21,7 +21,11 @@ func (i *Interpreter) SetExternalToolHandler(handler ToolHandler) {
 	i.externalHandler = handler
 }
 
-func (i *Interpreter) executeInternalTool(impl ToolImplementation, args map[string]interface{}) (interface{}, error) {
+// executeInternalTool is the Generic Adapter Bridge for all internal tools.
+// It accepts wrapped Values, unwraps them into primitives for the tool's Go
+// function, then wraps the primitive result back into a Value.
+func (i *Interpreter) executeInternalTool(impl ToolImplementation, args map[string]Value) (Value, error) {
+	// UNWRAP arguments from Value -> interface{}
 	validatedArgs := make([]interface{}, len(impl.Spec.Args))
 	for idx, argSpec := range impl.Spec.Args {
 		value, provided := args[argSpec.Name]
@@ -29,12 +33,15 @@ func (i *Interpreter) executeInternalTool(impl ToolImplementation, args map[stri
 			if argSpec.Required {
 				return nil, NewRuntimeError(ErrorCodeArgMismatch, fmt.Sprintf("tool '%s': missing required argument '%s'", impl.Spec.Name, argSpec.Name), ErrArgumentMismatch)
 			}
-			validatedArgs[idx] = nil
+			validatedArgs[idx] = nil // Use nil for optional, unprovided args
 		} else {
-			validatedArgs[idx] = value
+			// This is the UNWRAP step
+			unwrappedValue := Unwrap(value)
+			validatedArgs[idx] = unwrappedValue
 		}
 	}
 
+	// CALL the primitive-based Go function
 	result, err := impl.Func(i, validatedArgs)
 	if err != nil {
 		if _, ok := err.(*RuntimeError); !ok {
@@ -42,10 +49,14 @@ func (i *Interpreter) executeInternalTool(impl ToolImplementation, args map[stri
 		}
 		return nil, err
 	}
-	return result, nil
+
+	// WRAP the result from interface{} -> Value
+	return Wrap(result)
 }
 
-func (i *Interpreter) ExecuteTool(toolName string, args map[string]interface{}) (interface{}, error) {
+// ExecuteTool is called by the interpreter's evaluation logic.
+// It accepts a map of argument names to Values.
+func (i *Interpreter) ExecuteTool(toolName string, args map[string]Value) (Value, error) {
 	now := time.Now()
 	if i.rateLimitCount > 0 && i.rateLimitDuration > 0 {
 		timestamps := i.ToolCallTimestamps[toolName]
@@ -69,15 +80,22 @@ func (i *Interpreter) ExecuteTool(toolName string, args map[string]interface{}) 
 	}
 
 	if i.externalHandler != nil {
-		methodName, ok := args["method"].(string)
+		// Note: External tool handling would also need a similar unwrap/wrap bridge
+		// if it were to be fully integrated with the Value system. This part remains
+		// primitive-based for now.
+		unwrappedArgs := make(map[string]any, len(args))
+		for k, v := range args {
+			unwrappedArgs[k] = Unwrap(v) // Ignoring error for simplicity here
+		}
+		methodName, ok := unwrappedArgs["method"].(string)
 		if !ok {
 			return nil, NewRuntimeError(ErrorCodeArgMismatch, fmt.Sprintf("external tool call to '%s' requires a 'method' argument", toolName), ErrArgumentMismatch)
 		}
-		result, err := i.externalHandler.CallTool(toolName, methodName, args)
+		result, err := i.externalHandler.CallTool(toolName, methodName, unwrappedArgs)
 		if err != nil {
 			return nil, NewRuntimeError(ErrorCodeToolExecutionFailed, fmt.Sprintf("external tool '%s' failed: %v", toolName, err), err)
 		}
-		return result, nil
+		return Wrap(result)
 	}
 
 	return nil, NewRuntimeError(ErrorCodeToolNotFound, fmt.Sprintf("tool '%s' not found", toolName), ErrToolNotFound)

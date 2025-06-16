@@ -164,7 +164,7 @@ func (sl *SecurityLayer) validateAndCoerceType(rawValue interface{}, expectedTyp
 		}
 	case ArgTypeSliceAny:
 		var convertErr error
-		validatedValue, ok, convertErr = convertToSliceOfAny(rawValue)
+		validatedValue, ok, convertErr = ConvertToSliceOfAny(rawValue)
 		if convertErr != nil {
 			// *** FIXED: Use specific sentinel error ***
 			return nil, fmt.Errorf("failed converting to slice: %w", convertErr)

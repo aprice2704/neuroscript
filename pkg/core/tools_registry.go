@@ -159,7 +159,7 @@ func coerceArg(x interface{}, t ArgType) (interface{}, error) {
 		}
 		return b, nil
 	case ArgTypeSliceAny:
-		s, ok, _ := convertToSliceOfAny(x)
+		s, ok, _ := ConvertToSliceOfAny(x)
 		if !ok {
 			return nil, fmt.Errorf("expected list, got %T", x)
 		}

@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -206,45 +205,37 @@ func ToNumeric(val interface{}) (NumberValue, bool) {
 	return NumberValue{}, false
 }
 
-// isTruthy determines the truthiness of a NeuroScript value.
-func isTruthy(value interface{}) bool {
-	if value == nil {
+// IsTruthy determines the truthiness of a Value according to NeuroScript rules.
+// This function centralizes the logic for how different types are evaluated
+// in boolean contexts like 'if', 'while', and 'must' statements.
+func IsTruthy(v Value) bool {
+	if v == nil {
 		return false
 	}
-
-	// Prioritize our custom Value types, which have a defined IsTruthy method.
-	if v, ok := value.(Value); ok {
-		// FIX: String truthiness is specific, delegate to specialized logic.
-		if sv, isString := v.(StringValue); isString {
-			lowerV := strings.ToLower(sv.Value)
-			return lowerV == "true" || lowerV == "1"
-		}
-		return v.IsTruthy()
-	}
-
-	// Fallback for raw Go types, mirroring the logic in the Value types.
-	switch v := value.(type) {
-	case bool:
-		return v
-	case int, int8, int16, int32, int64:
-		return reflect.ValueOf(v).Int() != 0
-	case uint, uint8, uint16, uint32, uint64:
-		return reflect.ValueOf(v).Uint() != 0
-	case float32, float64:
-		return reflect.ValueOf(v).Float() != 0
-	case string:
-		// FIX: Raw strings also follow specific truthiness rules.
-		lowerV := strings.ToLower(v)
-		return lowerV == "true" || lowerV == "1"
-	case time.Time:
-		return !v.IsZero()
+	switch val := v.(type) {
+	case BoolValue:
+		return val.Value
+	case StringValue:
+		// Per the spec, only specific string values are truthy.
+		return val.Value == "true" || val.Value == "1"
+	case NumberValue:
+		// Any non-zero number is truthy.
+		return val.Value != 0
+	case ListValue:
+		// A list is truthy if it is not empty.
+		return len(val.Value) > 0
+	case MapValue:
+		// A map is truthy if it is not empty.
+		return len(val.Value) > 0
+	case NilValue:
+		// Nil is always falsy.
+		return false
+	case ErrorValue, TimedateValue, FuzzyValue, EventValue:
+		// Complex types are considered "truthy" if they exist,
+		// similar to how objects are treated in other languages.
+		return true
 	default:
-		// For other complex types like slices or maps, check if they are non-nil and have length > 0
-		valOf := reflect.ValueOf(value)
-		if valOf.Kind() == reflect.Slice || valOf.Kind() == reflect.Map {
-			return !valOf.IsNil() && valOf.Len() > 0
-		}
-		// All other unhandled types are considered false.
+		// Any other unknown or unhandled type is considered falsy by default.
 		return false
 	}
 }

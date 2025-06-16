@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.4.1
-// File version: 1
-// Purpose: Refactored to use the central fs test helper.
+// File version: 2
+// Purpose: Fixed variable shadowing bug by correctly handling the error return from NewDefaultTestInterpreter.
 // filename: pkg/core/tools_fs_read_test.go
 // nlines: 65
 // risk_rating: LOW
@@ -30,7 +30,12 @@ func TestToolReadFile(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			interp, currentSandbox := NewDefaultTestInterpreter(t)
+			interp, err := NewDefaultTestInterpreter(t)
+			if err != nil {
+				t.Fatalf("NewDefaultTestInterpreter failed: %v", err)
+			}
+			currentSandbox := interp.SandboxDir()
+
 			if tt.setupFunc != nil {
 				if err := tt.setupFunc(currentSandbox); err != nil {
 					t.Fatalf("Setup function failed: %v", err)

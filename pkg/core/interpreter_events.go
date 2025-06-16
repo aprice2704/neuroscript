@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.3.1
-// File version: 8
-// Purpose: Corrected event handler scoping and added mutex locking for thread safety.
+// File version: 9
+// Purpose: Restored mutex locking for the event handler loop to ensure thread-safe access to the shared variable scope.
 // filename: pkg/core/interpreter_events.go
 // nlines: 50+
 // risk_rating: HIGH
@@ -35,8 +35,8 @@ func (i *Interpreter) EmitEvent(eventName string, source string, payload Value) 
 	// Lock the main variables map for the entire duration of the event processing.
 	// This prevents data races when tests or other threads try to access variables
 	// while the handlers are running.
-	// i.variablesMu.Lock()
-	// defer i.variablesMu.Unlock()
+	i.variablesMu.Lock()
+	defer i.variablesMu.Unlock()
 
 	// Execute handlers sequentially, modifying the single global scope.
 	for _, handler := range handlers {

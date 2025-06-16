@@ -1,9 +1,6 @@
-// NeuroScript Version: 0.4.1
-// File version: 1
-// Purpose: Defines the ToolImplementation slice for the core Time tool.
-// filename: core/tooldefs_time.go
-// nlines: 20
-// risk_rating: LOW
+// filename: pkg/core/tooldefs_time.go
+// version: 6
+// purpose: Corrected function signatures to match the ToolFunc type, resolving compiler errors. The adapters now correctly handle raw interface{} types.
 
 package core
 
@@ -17,8 +14,22 @@ var timeToolsToRegister = []ToolImplementation{
 			Args:        []ArgSpec{},
 			ReturnType:  "timedate",
 			ReturnHelp:  "A 'timedate' value representing the moment the tool was called.",
-			Example:     `set right_now = must tool.Time.Now()`,
+			Example:     "`set right_now = tool.Time.Now()`",
 		},
-		Func: toolTimeNow,
+		Func: adaptToolTimeNow,
+	},
+	{
+		Spec: ToolSpec{
+			Name:        "Time.Sleep",
+			Description: "Pauses the script execution for a specified duration.",
+			Category:    "Time",
+			Args: []ArgSpec{
+				{Name: "duration_seconds", Type: "number", Description: "The number of seconds to sleep (can be a fraction)."},
+			},
+			ReturnType: "boolean",
+			ReturnHelp: "Returns true on successful completion of the sleep duration.",
+			Example:    "`call tool.Time.Sleep(1.5)`",
+		},
+		Func: adaptToolTimeSleep,
 	},
 }

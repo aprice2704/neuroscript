@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.1.1 // Corrected parser and error code usage based on core_index.json
-// Purpose: Provides the ExecuteScriptString method for the Interpreter.
+// File version: 1.0.0
+// Purpose: Aligns ExecuteScriptString with the value contract by returning a core.Value instead of interface{}.
 // filename: pkg/core/interpreter_scriptexec.go
 // nlines: 80 // Approximate
 // risk_rating: MEDIUM
@@ -15,8 +15,8 @@ import (
 // scriptName is used for context in error messages or debugging.
 // scriptContent is the actual NeuroScript code to execute.
 // args is a map of arguments that could be made available to the script (currently not implemented for direct injection).
-// It returns the result of the script execution (if any) and a *RuntimeError if an error occurs.
-func (i *Interpreter) ExecuteScriptString(scriptName, scriptContent string, args map[string]interface{}) (result interface{}, rErr *RuntimeError) {
+// It returns the result of the script execution as a core.Value and a *RuntimeError if an error occurs.
+func (i *Interpreter) ExecuteScriptString(scriptName, scriptContent string, args map[string]interface{}) (result Value, rErr *RuntimeError) {
 	if i == nil {
 		return nil, NewRuntimeError(ErrorCodeInternal, "interpreter instance is nil", nil)
 	}
@@ -47,26 +47,24 @@ func (i *Interpreter) ExecuteScriptString(scriptName, scriptContent string, args
 	}()
 
 	// 1. Parsing phase
-	parserAPI := NewParserAPI(logger) // NewParserAPI is in core_index.json
-	// Wrap the script content in a dummy function to make it parsable as a full program unit
-	// This assumes ParseScriptString is for executing arbitrary statements, not defining new funcs.
+	parserAPI := NewParserAPI(logger)
 	wrappedScriptContent := fmt.Sprintf("func %s means\n%s\nendfunc", scriptName, scriptContent)
 
-	antlrTree, antlrParseErr := parserAPI.Parse(wrappedScriptContent) // ParserAPI.Parse returns (antlr.Tree, error)
+	antlrTree, antlrParseErr := parserAPI.Parse(wrappedScriptContent)
 	if antlrParseErr != nil {
 		logger.Errorf("Failed to parse wrapped script '%s': %v", scriptName, antlrParseErr.Error())
-		return nil, NewRuntimeError(ErrorCodeSyntax, fmt.Sprintf("parsing script '%s' failed: %s", scriptName, antlrParseErr.Error()), antlrParseErr) // Use ErrorCodeSyntax
+		return nil, NewRuntimeError(ErrorCodeSyntax, fmt.Sprintf("parsing script '%s' failed: %s", scriptName, antlrParseErr.Error()), antlrParseErr)
 	}
 	if antlrTree == nil {
 		logger.Error("ParserAPI.Parse returned nil ANTLR tree without error for script", "script_name", scriptName)
 		return nil, NewRuntimeError(ErrorCodeInternal, fmt.Sprintf("internal error: parser returned nil ANTLR tree for script '%s'", scriptName), nil)
 	}
 
-	astBuilder := NewASTBuilder(logger)                    // NewASTBuilder is in core_index.json
-	programAST, _, buildErr := astBuilder.Build(antlrTree) // ASTBuilder.Build returns (*Program, map[string]string, error)
+	astBuilder := NewASTBuilder(logger)
+	programAST, _, buildErr := astBuilder.Build(antlrTree)
 	if buildErr != nil {
 		logger.Errorf("Failed to build AST from parsed script '%s': %v", scriptName, buildErr.Error())
-		return nil, NewRuntimeError(ErrorCodeSyntax, fmt.Sprintf("building AST for script '%s' failed: %s", scriptName, buildErr.Error()), buildErr) // Use ErrorCodeSyntax
+		return nil, NewRuntimeError(ErrorCodeSyntax, fmt.Sprintf("building AST for script '%s' failed: %s", scriptName, buildErr.Error()), buildErr)
 	}
 
 	if programAST == nil || programAST.Procedures == nil {
@@ -82,10 +80,10 @@ func (i *Interpreter) ExecuteScriptString(scriptName, scriptContent string, args
 	stepsToExecute := scriptProcedure.Steps
 
 	// Note: The 'args map[string]interface{}' parameter is present for future extension.
+	// If implemented, values from args would need to be wrapped into core.Value types.
 
 	// 2. Execution phase
 	var execErr error
-	// Assuming i.executeSteps is the method that runs []Step (from interpreter_exec.go)
 	result, _, _, execErr = i.executeSteps(stepsToExecute, false, nil)
 
 	if execErr != nil {
@@ -93,7 +91,7 @@ func (i *Interpreter) ExecuteScriptString(scriptName, scriptContent string, args
 		if re, ok := execErr.(*RuntimeError); ok {
 			return result, re
 		}
-		return result, NewRuntimeError(ErrorCodeExecutionFailed, fmt.Sprintf("execution of script '%s' failed: %v", scriptName, execErr), execErr) // ErrorCodeExecutionFailed is in core_index.json
+		return result, NewRuntimeError(ErrorCodeExecutionFailed, fmt.Sprintf("execution of script '%s' failed: %v", scriptName, execErr), execErr)
 	}
 
 	i.lastCallResult = result

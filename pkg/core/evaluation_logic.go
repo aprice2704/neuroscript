@@ -1,9 +1,7 @@
 // NeuroScript Version: 0.4.1
-// File version: 11
-// Purpose: Implements short-circuiting for boolean AND/OR and delegates other ops.
+// File version: 13
+// Purpose: Corrected binary 'and'/'or' operators to properly handle mixed FuzzyValue and BoolValue operands, preventing incorrect boolean short-circuiting.
 // filename: pkg/core/evaluation_logic.go
-// nlines: 130
-// risk_rating: HIGH
 
 package core
 
@@ -14,26 +12,36 @@ import (
 )
 
 // evaluateUnaryOp handles unary operations like NOT, -, and ~.
-func (i *Interpreter) evaluateUnaryOp(op string, operand interface{}) (Value, error) {
+// It now correctly handles the 'not' operator for FuzzyValue types.
+func (i *Interpreter) evaluateUnaryOp(op string, operand Value) (Value, error) {
 	if operand == nil && (op == "-" || op == "~") {
 		return nil, fmt.Errorf("%w: unary operator '%s'", ErrNilOperand, op)
 	}
+
 	switch strings.ToLower(op) {
 	case "not":
-		// 'not' inverts the truthiness of its operand.
-		return BoolValue{Value: !isTruthy(operand)}, nil
+		// The 'not' operator has special behavior for FuzzyValue.
+		if fv, ok := operand.(FuzzyValue); ok {
+			// The logical NOT of a fuzzy value is 1 minus its membership degree.
+			return NewFuzzyValue(1.0 - fv.μ), nil
+		}
+		// For all other types, 'not' inverts their standard truthiness.
+		return BoolValue{Value: !IsTruthy(operand)}, nil
+
 	case "-":
 		num, ok := ToNumeric(operand)
 		if !ok {
 			return nil, fmt.Errorf("%w: unary operator '-' needs number, got %s", ErrInvalidOperandTypeNumeric, TypeOf(operand))
 		}
 		return NumberValue{Value: -num.Value}, nil
+
 	case "~":
 		iVal, isInt := toInt64(operand)
 		if !isInt {
 			return nil, fmt.Errorf("%w: unary operator '~' needs integer, got %s", ErrInvalidOperandTypeInteger, TypeOf(operand))
 		}
 		return NumberValue{Value: float64(^iVal)}, nil
+
 	case "no":
 		return BoolValue{Value: isZeroValue(operand)}, nil
 	case "some":
@@ -44,8 +52,7 @@ func (i *Interpreter) evaluateUnaryOp(op string, operand interface{}) (Value, er
 }
 
 // toFuzzy attempts to coerce a value to a FuzzyValue.
-// It succeeds for existing FuzzyValues and booleans.
-func toFuzzy(v interface{}) (FuzzyValue, bool) {
+func toFuzzy(v Value) (FuzzyValue, bool) {
 	if f, ok := v.(FuzzyValue); ok {
 		return f, true
 	}
@@ -59,58 +66,55 @@ func toFuzzy(v interface{}) (FuzzyValue, bool) {
 }
 
 // evaluateBinaryOp performs infix binary operations.
-// It now handles boolean short-circuiting for 'and'/'or' before delegating.
-func (i *Interpreter) evaluateBinaryOp(left, right interface{}, op string) (Value, error) {
+func (i *Interpreter) evaluateBinaryOp(left, right Value, op string) (Value, error) {
 	opLower := strings.ToLower(op)
 
-	// --- SHORT-CIRCUITING LOGIC ---
-	// The evaluator calls this function for all binary ops. We must handle
-	// boolean short-circuiting here before attempting other logic.
-	switch opLower {
-	case "and":
-		if !isTruthy(left) {
-			return BoolValue{Value: false}, nil
-		}
-		// If left is truthy, the result is the truthiness of the right side.
-		return BoolValue{Value: isTruthy(right)}, nil
-	case "or":
-		if isTruthy(left) {
-			return BoolValue{Value: true}, nil
-		}
-		// If left is falsy, the result is the truthiness of the right side.
-		return BoolValue{Value: isTruthy(right)}, nil
-	}
+	// --- FUZZY LOGIC PRIORITY CHECK ---
+	// If either operand is a FuzzyValue and the operator is 'and' or 'or',
+	// we must use fuzzy logic, not boolean short-circuiting.
+	_, leftIsFuzzy := left.(FuzzyValue)
+	_, rightIsFuzzy := right.(FuzzyValue)
 
-	// --- FUZZY LOGIC (for AND/OR if not short-circuited by boolean logic) ---
-	// This part is now less likely to be hit for standard booleans but remains for FuzzyValue types.
-	if opLower == "and" || opLower == "or" {
-		leftF, leftIsFuzzy := toFuzzy(left)
-		rightF, rightIsFuzzy := toFuzzy(right)
+	if (opLower == "and" || opLower == "or") && (leftIsFuzzy || rightIsFuzzy) {
+		leftF, canConvertToFuzzyLeft := toFuzzy(left)
+		rightF, canConvertToFuzzyRight := toFuzzy(right)
 
-		if leftIsFuzzy && rightIsFuzzy {
+		if canConvertToFuzzyLeft && canConvertToFuzzyRight {
 			if opLower == "and" {
+				// Fuzzy AND is the minimum of the two values.
 				return NewFuzzyValue(math.Min(leftF.μ, rightF.μ)), nil
 			}
+			// Fuzzy OR is the maximum of the two values.
 			return NewFuzzyValue(math.Max(leftF.μ, rightF.μ)), nil
 		}
+	}
+
+	// --- BOOLEAN SHORT-CIRCUITING LOGIC ---
+	// This will now only be reached for 'and'/'or' if neither operand is fuzzy.
+	switch opLower {
+	case "and":
+		if !IsTruthy(left) {
+			return BoolValue{Value: false}, nil
+		}
+		return BoolValue{Value: IsTruthy(right)}, nil
+	case "or":
+		if IsTruthy(left) {
+			return BoolValue{Value: true}, nil
+		}
+		return BoolValue{Value: IsTruthy(right)}, nil
 	}
 
 	// --- STANDARD OPERATOR DELEGATION ---
 	switch opLower {
 	case "==", "!=", "<", ">", "<=", ">=":
-		// performComparison now returns a Value
 		return performComparison(left, right, op)
 	case "+":
-		// performStringConcatOrNumericAdd now returns a Value
 		return performStringConcatOrNumericAdd(left, right)
 	case "-", "*", "/", "%", "**":
-		// performArithmetic now returns a Value
 		return performArithmetic(left, right, op)
 	case "&", "|", "^":
-		// performBitwise now returns a Value
 		return performBitwise(left, right, op)
 	default:
-		// This should not be reached if the parser is correct.
 		return nil, fmt.Errorf("%w: '%s'", ErrUnsupportedOperator, op)
 	}
 }

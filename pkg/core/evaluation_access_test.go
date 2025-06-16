@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.3.5
-// File version: 11
-// Purpose: Reverted tests to expect native Go types, as comparison is handled by the test runner.
+// File version: 12
+// Purpose: Aligned tests with compliant helpers by expecting core.Value types instead of raw primitives.
 // filename: pkg/core/evaluation_access_test.go
 
 package core
@@ -10,7 +10,7 @@ import (
 )
 
 func TestEvaluateElementAccess(t *testing.T) {
-	initialVars := map[string]interface{}{
+	initialVars := map[string]Value{
 		"myList": NewListValue([]Value{
 			StringValue{Value: "apple"},
 			NumberValue{Value: 42},
@@ -26,13 +26,13 @@ func TestEvaluateElementAccess(t *testing.T) {
 			Name:        "List Access Valid Index 0",
 			InputNode:   &ElementAccessNode{Collection: &VariableNode{Name: "myList"}, Accessor: &NumberLiteralNode{Value: int64(0)}},
 			InitialVars: initialVars,
-			Expected:    "apple",
+			Expected:    StringValue{Value: "apple"},
 		},
 		{
 			Name:        "List Access Valid Index Var",
 			InputNode:   &ElementAccessNode{Collection: &VariableNode{Name: "myList"}, Accessor: &VariableNode{Name: "idx"}},
 			InitialVars: initialVars,
-			Expected:    float64(42),
+			Expected:    NumberValue{Value: 42},
 		},
 		{
 			Name:            "List Access Index Out of Bounds (High)",
@@ -45,7 +45,7 @@ func TestEvaluateElementAccess(t *testing.T) {
 			Name:        "Map Access Valid Key",
 			InputNode:   &ElementAccessNode{Collection: &VariableNode{Name: "myMap"}, Accessor: &StringLiteralNode{Value: "key1"}},
 			InitialVars: initialVars,
-			Expected:    "value1",
+			Expected:    StringValue{Value: "value1"},
 		},
 	}
 

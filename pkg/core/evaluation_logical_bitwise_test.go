@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.3.5
-// File version: 10
-// Purpose: Reverted tests to expect native Go types.
+// File version: 11
+// Purpose: Updated tests to expect core.Value types, aligning with new compliant testing helpers.
 // filename: pkg/core/evaluation_logical_bitwise_test.go
 
 package core
@@ -10,7 +10,7 @@ import (
 )
 
 func TestLogicalBitwiseOps(t *testing.T) {
-	vars := map[string]interface{}{
+	vars := map[string]Value{
 		"trueVar":  BoolValue{Value: true},
 		"falseVar": BoolValue{Value: false},
 		"num3":     NumberValue{Value: 3}, // 011
@@ -22,13 +22,13 @@ func TestLogicalBitwiseOps(t *testing.T) {
 			Name:        "NOT True",
 			InputNode:   &UnaryOpNode{Operator: "NOT", Operand: &VariableNode{Name: "trueVar"}},
 			InitialVars: vars,
-			Expected:    false,
+			Expected:    BoolValue{Value: false},
 		},
 		{
 			Name:        "Bitwise AND",
 			InputNode:   &BinaryOpNode{Left: &VariableNode{Name: "num5"}, Operator: "&", Right: &VariableNode{Name: "num3"}},
 			InitialVars: vars,
-			Expected:    float64(1), // 101 & 011 = 001
+			Expected:    NumberValue{Value: 1}, // 101 & 011 = 001
 		},
 		{
 			Name:            "Bitwise AND Error Float",

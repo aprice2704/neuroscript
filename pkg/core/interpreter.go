@@ -1,9 +1,9 @@
 // NeuroScript Version: 0.3.1
-// File version: 7
-// Purpose: Fixes copylock warning by safely cloning the interpreter struct.
+// File version: 8
+// Purpose: Aligns variable storage (variables, objectCache) and accessors (Set/GetVariable) with the value wrapping contract, ensuring only core.Value is stored and handled within the interpreter.
 // filename: pkg/core/interpreter.go
-// nlines: 250+
-// risk_rating: MEDIUM
+// nlines: 275+
+// risk_rating: HIGH
 package core
 
 import (
@@ -28,10 +28,10 @@ var GrammarVersion string
 var AppVersion string
 
 type Interpreter struct {
-	variables          map[string]interface{}
-	variablesMu        sync.RWMutex // Mutex to protect concurrent access to the variables map.
+	variables          map[string]Value // Corrected to store Value types per contract.
+	variablesMu        sync.RWMutex     // Mutex to protect concurrent access to the variables map.
 	knownProcedures    map[string]*Procedure
-	lastCallResult     interface{}
+	lastCallResult     Value // <- must be Value according to contract.
 	vectorIndex        map[string][]float32
 	embeddingDim       int
 	currentProcName    string
@@ -41,7 +41,7 @@ type Interpreter struct {
 	externalHandler    ToolHandler
 	toolRegistry       *ToolRegistryImpl
 	logger             interfaces.Logger
-	objectCache        map[string]interface{}
+	objectCache        map[string]interface{} // Exception to normal Value requirement
 	llmClient          interfaces.LLMClient
 	fileAPI            *FileAPI
 	aiWorkerManager    *AIWorkerManager
@@ -124,23 +124,36 @@ func NewInterpreter(logger interfaces.Logger, llmClient interfaces.LLMClient, sa
 
 	fileAPI := NewFileAPI(cleanSandboxDir, effectiveLogger)
 
-	vars := make(map[string]interface{})
-	vars["NEUROSCRIPT_DEVELOP_PROMPT"] = prompts.PromptDevelop
-	vars["NEUROSCRIPT_EXECUTE_PROMPT"] = prompts.PromptExecute
-	vars["TYPE_STRING"] = string(TypeString)
-	vars["TYPE_NUMBER"] = string(TypeNumber)
-	vars["TYPE_BOOLEAN"] = string(TypeBoolean)
-	vars["TYPE_LIST"] = string(TypeList)
-	vars["TYPE_MAP"] = string(TypeMap)
-	vars["TYPE_NIL"] = string(TypeNil)
-	vars["TYPE_FUNCTION"] = string(TypeFunction)
-	vars["TYPE_TOOL"] = string(TypeTool)
-	vars["TYPE_ERROR"] = string(TypeError)
-	vars["TYPE_UNKNOWN"] = string(TypeUnknown)
+	vars := make(map[string]Value)
+	// Helper to wrap and set a variable, panicking on failure since these are developer-defined constants.
+	mustWrapAndSet := func(k string, v interface{}) {
+		wrapped, err := Wrap(v)
+		if err != nil {
+			panic(fmt.Sprintf("FATAL: could not wrap internal variable %s: %v", k, err))
+		}
+		vars[k] = wrapped
+	}
+
+	mustWrapAndSet("NEUROSCRIPT_DEVELOP_PROMPT", prompts.PromptDevelop)
+	mustWrapAndSet("NEUROSCRIPT_EXECUTE_PROMPT", prompts.PromptExecute)
+	mustWrapAndSet("TYPE_STRING", string(TypeString))
+	mustWrapAndSet("TYPE_NUMBER", string(TypeNumber))
+	mustWrapAndSet("TYPE_BOOLEAN", string(TypeBoolean))
+	mustWrapAndSet("TYPE_LIST", string(TypeList))
+	mustWrapAndSet("TYPE_MAP", string(TypeMap))
+	mustWrapAndSet("TYPE_NIL", string(TypeNil))
+	mustWrapAndSet("TYPE_FUNCTION", string(TypeFunction))
+	mustWrapAndSet("TYPE_TOOL", string(TypeTool))
+	mustWrapAndSet("TYPE_ERROR", string(TypeError))
+	mustWrapAndSet("TYPE_UNKNOWN", string(TypeUnknown))
 
 	if initialVars != nil {
 		for k, v := range initialVars {
-			vars[k] = v
+			wrappedVal, err := Wrap(v) // Wrap primitive before it enters the interpreter state.
+			if err != nil {
+				return nil, fmt.Errorf("failed to wrap initial variable '%s': %w", k, err)
+			}
+			vars[k] = wrappedVal
 		}
 	}
 
@@ -148,7 +161,7 @@ func NewInterpreter(logger interfaces.Logger, llmClient interfaces.LLMClient, sa
 		variables:          vars,
 		variablesMu:        sync.RWMutex{},
 		knownProcedures:    make(map[string]*Procedure),
-		lastCallResult:     nil,
+		lastCallResult:     NilValue{},
 		vectorIndex:        make(map[string][]float32),
 		embeddingDim:       16,
 		currentProcName:    "",
@@ -181,7 +194,7 @@ func NewInterpreter(logger interfaces.Logger, llmClient interfaces.LLMClient, sa
 // This is the core mechanism for providing safe, isolated scopes for procedure calls.
 func (i *Interpreter) CloneWithNewVariables() *Interpreter {
 	i.variablesMu.RLock()
-	newVars := make(map[string]interface{}, len(i.variables))
+	newVars := make(map[string]Value, len(i.variables))
 	for k, v := range i.variables {
 		newVars[k] = v
 	}
@@ -284,11 +297,13 @@ func (i *Interpreter) SetSandboxDir(newSandboxDir string) error {
 	return nil
 }
 
-func (i *Interpreter) SetVariable(name string, value interface{}) error {
+// SetVariable sets a variable in the interpreter's current scope.
+// It accepts a core.Value, enforcing the value wrapping contract.
+func (i *Interpreter) SetVariable(name string, value Value) error {
 	i.variablesMu.Lock()
 	defer i.variablesMu.Unlock()
 	if i.variables == nil {
-		i.variables = make(map[string]interface{})
+		i.variables = make(map[string]Value)
 	}
 	if name == "" {
 		return errors.New("variable name cannot be empty")
@@ -297,7 +312,9 @@ func (i *Interpreter) SetVariable(name string, value interface{}) error {
 	return nil
 }
 
-func (i *Interpreter) GetVariable(name string) (interface{}, bool) {
+// GetVariable retrieves a variable from the interpreter's current scope.
+// It returns a core.Value, enforcing the value wrapping contract.
+func (i *Interpreter) GetVariable(name string) (Value, bool) {
 	i.variablesMu.RLock()
 	defer i.variablesMu.RUnlock()
 	if i.variables == nil {

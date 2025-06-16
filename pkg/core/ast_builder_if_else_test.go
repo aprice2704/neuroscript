@@ -1,9 +1,7 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.1.4 // Corrected NeuroScript syntax in test cases to match grammar.
-// Purpose: Provides extensive tests for IF/THEN/ELSE AST construction.
+// File version: 0.1.5
+// Purpose: Updated the expectEmitStepWithString helper to check the 'Values' slice instead of the outdated 'Value' field, resolving test failures.
 // filename: pkg/core/ast_builder_if_else_test.go
-// nlines: 450 // Approximate
-// risk_rating: LOW // Test file
 
 package core
 
@@ -26,7 +24,8 @@ func getIfStepFromTestProc(t *testing.T, scriptContent string) *Step {
 	return ifStep
 }
 
-// Helper to check for a specific Emit step with string content at a given index in a step slice.
+// expectEmitStepWithString checks for a specific Emit step with string content.
+// It now correctly checks the 'Values' slice of the Step struct.
 func expectEmitStepWithString(t *testing.T, stmts []Step, index int, expectedContent string, blockName string) {
 	t.Helper()
 	if index >= len(stmts) {
@@ -38,13 +37,20 @@ func expectEmitStepWithString(t *testing.T, stmts []Step, index int, expectedCon
 		t.Errorf("[%s] Expected step at index %d to be of type 'emit', got '%s'", blockName, index, emitStep.Type)
 		return
 	}
-	if emitStep.Value == nil {
-		t.Errorf("[%s] Emit step at index %d has nil Value", blockName, index)
+
+	// Correctly check the Values slice, not the old Value field.
+	if emitStep.Values == nil || len(emitStep.Values) == 0 {
+		t.Errorf("[%s] Emit step at index %d has nil or empty Values slice", blockName, index)
 		return
 	}
-	strLit, ok := emitStep.Value.(*StringLiteralNode)
+	if emitStep.Values[0] == nil {
+		t.Errorf("[%s] Emit step at index %d has a nil expression in its Values slice", blockName, index)
+		return
+	}
+
+	strLit, ok := emitStep.Values[0].(*StringLiteralNode)
 	if !ok {
-		t.Errorf("[%s] Expected Emit step's Value to be *StringLiteralNode, got %T", blockName, emitStep.Value)
+		t.Errorf("[%s] Expected Emit step's expression to be *StringLiteralNode, got %T", blockName, emitStep.Values[0])
 		return
 	}
 	if strLit.Value != expectedContent {
@@ -90,10 +96,13 @@ endfunc
 	} else {
 		expectEmitStepWithString(t, ifStep.Body, 0, "In THEN block", "Body")
 	}
-	for i, stmt := range ifStep.Body {
+	for _, stmt := range ifStep.Body {
 		if stmt.Type == "emit" {
-			if strLit, okStr := stmt.Value.(*StringLiteralNode); okStr && strLit.Value == "In ELSE block" {
-				t.Errorf("SimpleIfThenElse (BUG CHECK): ELSE statement (emit \"In ELSE block\") found in Body at index %d", i)
+			// Check the values slice now
+			if len(stmt.Values) > 0 {
+				if strLit, okStr := stmt.Values[0].(*StringLiteralNode); okStr && strLit.Value == "In ELSE block" {
+					t.Errorf("SimpleIfThenElse (BUG CHECK): ELSE statement (emit \"In ELSE block\") found in Body")
+				}
 			}
 		}
 	}
@@ -126,14 +135,16 @@ endfunc
 	} else {
 		expectEmitStepWithString(t, ifStep.Body, 0, "In initial THEN", "Body")
 	}
-	for i, stmt := range ifStep.Body {
+	for _, stmt := range ifStep.Body {
 		if stmt.Type == "emit" {
-			if strLit, okStr := stmt.Value.(*StringLiteralNode); okStr {
-				if strLit.Value == "In ELSEIF block" {
-					t.Errorf("IfElseIfElse (BUG CHECK): ELSEIF statement found in Body at index %d", i)
-				}
-				if strLit.Value == "In final ELSE block" {
-					t.Errorf("IfElseIfElse (BUG CHECK): Final ELSE statement found in Body at index %d", i)
+			if len(stmt.Values) > 0 {
+				if strLit, okStr := stmt.Values[0].(*StringLiteralNode); okStr {
+					if strLit.Value == "In ELSEIF block" {
+						t.Errorf("IfElseIfElse (BUG CHECK): ELSEIF statement found in Body")
+					}
+					if strLit.Value == "In final ELSE block" {
+						t.Errorf("IfElseIfElse (BUG CHECK): Final ELSE statement found in Body")
+					}
 				}
 			}
 		}
@@ -179,10 +190,12 @@ endfunc
 	} else {
 		expectEmitStepWithString(t, ifStep.Body, 0, "First THEN", "Body")
 	}
-	for i, stmt := range ifStep.Body {
+	for _, stmt := range ifStep.Body {
 		if stmt.Type == "emit" {
-			if strLit, okStr := stmt.Value.(*StringLiteralNode); okStr && strLit.Value == "The ELSEIF" {
-				t.Errorf("IfElseIfOnly (BUG CHECK): ELSEIF statement found in Body at index %d", i)
+			if len(stmt.Values) > 0 {
+				if strLit, okStr := stmt.Values[0].(*StringLiteralNode); okStr && strLit.Value == "The ELSEIF" {
+					t.Errorf("IfElseIfOnly (BUG CHECK): ELSEIF statement found in Body")
+				}
 			}
 		}
 	}
@@ -465,9 +478,11 @@ endfunc
 	}
 	for _, stmt := range ifStep.Body {
 		if stmt.Type == "emit" {
-			if strLit, okStr := stmt.Value.(*StringLiteralNode); okStr && strLit.Value == "Else Line 1" {
-				t.Errorf("MultipleStatements (BUG CHECK): 'Else Line 1' found in Body")
-				break
+			if len(stmt.Values) > 0 {
+				if strLit, okStr := stmt.Values[0].(*StringLiteralNode); okStr && strLit.Value == "Else Line 1" {
+					t.Errorf("MultipleStatements (BUG CHECK): 'Else Line 1' found in Body")
+					break
+				}
 			}
 		}
 	}
