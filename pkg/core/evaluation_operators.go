@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.4.2
-// File version: 7
-// Purpose: Corrects error wrapping in performComparison to use the required sentinel error.
+// File version: 12
+// Purpose: Reverted '+' operator to be lenient, performing string coercion for mixed types as required by the test suite.
 // filename: pkg/core/evaluation_operators.go
 // nlines: 201
 // risk_rating: MEDIUM
@@ -59,12 +59,15 @@ func performArithmetic(left, right interface{}, op string) (Value, error) {
 
 // performStringConcatOrNumericAdd handles the '+' operator.
 func performStringConcatOrNumericAdd(left, right interface{}) (Value, error) {
+	// FINAL, LENIENT LOGIC: The desired behavior is to add if both
+	// operands are numeric, and otherwise coerce to string and concatenate.
 	leftNum, isLeftNum := ToNumeric(left)
 	rightNum, isRightNum := ToNumeric(right)
 	if isLeftNum && isRightNum {
 		return NumberValue{Value: leftNum.Value + rightNum.Value}, nil
 	}
 
+	// If not both numbers, perform string concatenation.
 	leftStr, _ := toString(left)
 	rightStr, _ := toString(right)
 
@@ -134,7 +137,6 @@ func performComparison(left, right interface{}, op string) (Value, error) {
 	leftF, leftOk := toFloat64(left)
 	rightF, rightOk := toFloat64(right)
 	if !leftOk || !rightOk {
-		// FIX: Use the existing helper to correctly wrap the sentinel error.
 		return nil, typeErrorForOp(op, left, right)
 	}
 

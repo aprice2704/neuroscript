@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.4.0
-// File version: 6
-// Purpose: Refine List.Sort to only normalize numbers to float64 for numeric lists, preserving string types.
+// File version: 7
+// Purpose: Corrected toolListGet to handle float64 and other numeric types for the index argument.
 // filename: pkg/core/tools_list_impl.go
-// nlines: 234
+// nlines: 237
 // risk_rating: LOW
 
 package core
@@ -48,8 +48,17 @@ func toolListGet(_ *Interpreter, args []interface{}) (interface{}, error) {
 	if !ok {
 		return nil, NewRuntimeError(ErrorCodeArgMismatch, "get expects a list", ErrArgumentMismatch)
 	}
-	index, ok := args[1].(int64)
-	if !ok {
+
+	// FIX: Handle multiple numeric types for the index, as the interpreter unwraps to float64.
+	var index int
+	switch v := args[1].(type) {
+	case float64:
+		index = int(v)
+	case int:
+		index = v
+	case int64:
+		index = int(v)
+	default:
 		return nil, NewRuntimeError(ErrorCodeArgMismatch, "get expects an integer for index", ErrArgumentMismatch)
 	}
 
@@ -58,10 +67,10 @@ func toolListGet(_ *Interpreter, args []interface{}) (interface{}, error) {
 		defaultValue = args[2]
 	}
 
-	if index < 0 || int(index) >= len(list) {
+	if index < 0 || index >= len(list) {
 		return defaultValue, nil
 	}
-	return list[int(index)], nil
+	return list[index], nil
 }
 
 func toolListSlice(_ *Interpreter, args []interface{}) (interface{}, error) {

@@ -1,88 +1,96 @@
- # Value–Wrapping Contract for NeuroScript / FDM ( “One wrapper to rule them all” )
+# Value–Wrapping Contract for NeuroScript / FDM
+“One wrapper to rule them all”
 
- ## 0️⃣ TL;DR
- Inside the interpreter every datum is a core.Value. Outside—validator & tool code—everything is plain Go primitives.
- The only code that unwraps ↔ wraps lives in a thin Adapter/Bridge layer auto-generated (or hand-written for now).
+## 0️⃣ TL;DR
+Inside the interpreter every datum is a core.Value. The only exceptions are the implementations of built-in functions, which – just like external tools – consume and return raw Go primitives.
+A single adapter (evaluateUserOrBuiltInFunction) unwraps []core.Value → []any, calls the built-in, and re-wraps the result.
 
- ---
+---
 
- ## 1️⃣ Layer Map & Allowed Types
+## 1️⃣ Layer Map & Allowed Types
 
- | Layer | Accepts | Returns | Notes |
- |-------|-------------|-------------|-------|
- | Interpreter Core (AST exec, env, stack) | core.Value wrappers only | core.Value | Tagged-union; future-proof for Money, Duration, etc. |
- | Adapter / Bridge (one per tool) | []core.Value | core.Value | Sole place that unwraps args → calls validation/tool → wraps result. |
- | Validation (tools_validation.go) | Raw primitives (string, int64, []any, …) | same / error | Pure business rules; never handles wrappers. |
- | Tool Implementation (tools_*.go) | Raw primitives | Raw primitives / error | Third-party authors can write idiomatic Go. |
- | Tests | • Integration path: wrappers via interpreter<br>• Unit path: primitives directly | Mirrors real runtime | See § 4 for examples. |
+| Layer | Accepts | Returns | Notes |
+|-------|---------|---------|-------|
+| Interpreter Core (AST exec, env, stack) | core.Value | core.Value | Pure wrapper world; keeps equality, GC, and future types simple. |
+| Built-in Adapter (evaluateUserOrBuiltInFunction) | []core.Value | core.Value | Unwrap → call built-in → wrap back. |
+| Built-in Implementation (builtin_*.go) | primitives | primitives | Behaves exactly like a tool impl; zero wrapper noise. |
+| Tool Adapter (one per tool) | []core.Value | core.Value | Same pattern as built-in adapter. |
+| Validation Layer (tools_validation.go) | primitives | primitives / error | Business rules; never import core. |
+| Tool Implementation (tools_*.go) | primitives | primitives / error | Third-party authors write idiomatic Go. |
+| Tests | Integration: wrappers · Unit: primitives | mirrors runtime | See § 4 for patterns. |
 
- Interpreter (wrappers) ──► Adapter (unwrap) ──► Validator & Tool (primitives)
- ◄────────────────────── wraps result ◄──────────────
+Visual flow:
 
- ---
+Interpreter (wrappers) │ ▼ Adapter ──► Built-in ▸ primitives │ └──► Validator / Tool ▸ primitives ◄──────────────────────────── wraps result 
 
- ## 1️⃣ Layer Accepts & Returns (non-table)
+---
 
- Interpreter Core (AST exec, env, stack)
- • Accepts: core.Value wrappers only
- • Returns: core.Value
- • Why: Single tagged-union keeps equality, GC, and future extensions (Money, Duration…) simple.
+### 1️⃣ bis — Layer Details (text)
 
- Adapter / Bridge (one stub per tool)
- • Accepts: slice of wrappers []core.Value from the interpreter
- • Returns: a single wrapped result core.Value back to the interpreter
- • Why: Sole choke-point that unwraps args → calls validator/tool → wraps output.
+* Interpreter Core
+* Accepts/Returns: core.Value only
+* Rationale: single tagged-union future-proofs Money, Duration, etc.
 
- Validation Layer (tools_validation.go)
- • Accepts: raw Go primitives (string, int64, []any, …)
- • Returns: raw primitives (possibly coerced) or error
- • Why: Keeps business rules free of wrapper boilerplate.
+* Built-in Adapter
+* Accepts: []core.Value from the stack
+* Action: core.UnwrapSlice, call built-in, core.Wrap result
+* Lives in evaluation_main.go.
 
- Tool Implementation (tools_*.go)
- • Accepts: raw primitives (exact types that make sense to tool author)
- • Returns: raw primitives or error
- • Why: Enables idiomatic Go; third-party authors need not import core.
+* Built-in Implementation
+* Accepts/Returns: raw primitives (float64, string, …)
+* Imports math, time, etc. freely; no wrapper boiler-plate.
 
- Tests
- • Integration tests: call the interpreter → supply / assert on wrappers.
- • Unit tests: call validators or tools directly → use primitives.
- • Why: Mirrors real runtime boundaries without extra wrapping noise.
+* Tool Adapter / Validation / Tool Impl / Tests – unchanged from v1.0.
 
- ## 2️⃣ Hard Rules (enforced via review & lint)
- 1. No wrapper leaves the interpreter except through Adapter.
- 2. No primitive enters the interpreter except through Adapter.
- 3. Validators must never import core/value.go.
- 4. Any new ValueKind must implement Wrap / Unwrap helpers.
- 5. Unit tests targeting tools/validators use primitives only; integration tests that run scripts assert on core.Value.
+---
 
- ---
+## 2️⃣ Hard Rules
 
- ## 3️⃣ Reference Helpers
+1. No wrapper leaves the interpreter except through an adapter.
+2. No primitive enters the interpreter except through an adapter.
+3. Validators must never import core/value.go.
+4. Any new ValueKind must implement Wrap/Unwrap helpers.
+5. Unit tests that hit validators/tools use primitives; integration tests assert on core.Value.
+6. Built-in implementations must not accept or return core.Value; the adapter handles conversion.
 
- go  // core/value.go  func Wrap(x any) (core.Value, error) // primitives -> wrapper  func Unwrap(v core.Value) (any, error) // wrapper -> primitives   // convenience  func UnwrapSlice(vs []core.Value) ([]any, error) 
+---
 
- go  // auto-generated adapter skeleton  func CallListTool(args []core.Value) (core.Value, error) {  raw, err := core.UnwrapSlice(args) // []any  if err != nil { return nil, err }   if err := validateList(raw); err != nil {  return nil, err  }  out := listToolImpl(raw) // primitives  return core.Wrap(out)  } 
+## 3️⃣ Reference Helpers
 
- ---
+go // core/value.go func Wrap(x any) (core.Value, error) // primitives → wrapper func Unwrap(v core.Value) (any, error) // wrapper → primitives func UnwrapSlice(vs []core.Value) ([]any, error) 
 
- ## 4️⃣ Testing Patterns
+go // auto-generated adapter skeleton func CallSin(args []core.Value) (core.Value, error) { raw, err := core.UnwrapSlice(args) // []any if err != nil { return nil, err } out := builtinSin(raw) // primitives return core.Wrap(out) // back to wrappers } 
 
- go  // integration (through interpreter)  res, err := interp.Eval(`list(["a","b"])`) // res is core.Value  want, _ := core.Wrap([]any{"a","b"})  assert.Equal(t, want, res)   // validator unit test (primitive)  err := validateList([]any{"x", 1})  require.NoError(t, err) 
+---
 
- ---
+## 4️⃣ Testing Patterns
 
- ## 5️⃣ FAQ
+go // integration (through interpreter) res, err := interp.Eval(`sin(0.5)`) // res is core.Value want, _ := core.Wrap(0.4794255386) assert.InDelta(t, want.Float(), res.Float(), 1e-9) // validator unit test (primitive) err := validateList([]any{"x", 1}) require.NoError(t, err) 
 
- | Question | Answer |
- |----------|--------|
- | Can validators return wrappers for efficiency? | No. They return primitives; wrapping is Adapter’s job. |
- | Can tools access core.Value to inspect metadata? | Write a helper inside the adapter, not in the tool. |
- | What if I need streaming outputs? | Stream primitives (e.g. chan any); Adapter converts each item. |
+---
 
- ---
+## 5️⃣ FAQ
 
- ### Commit message template when touching this contract
+| Question | Answer |
+|----------|--------|
+| Why do built-ins live on the primitive side? | Consistency with tools, reuse of math/stdlib without wrapper noise, and a single conversion choke-point in the adapter. |
+| Can validators return wrappers for efficiency? | No. They return primitives; wrapping is the adapter’s job. |
+| Can tools inspect core.Value metadata? | Provide a helper inside the adapter, not inside the tool. |
+| What if I need streaming outputs? | Stream primitives (e.g. chan any); adapter wraps each item. |
 
- text  core/value: maintain wrapper ↔ primitive boundary   * No wrappers in validator/tool packages  * Added Wrap/Unwrap helpers for <NewKind>  * Updated <adapter> to enforce contract 
+---
 
- > Merge without this template = code review block 🔒
+### Commit-message template when touching this contract
+
+core/value: maintain wrapper ↔ primitive boundary * No wrappers in validator/tool or built-in impl packages * Added Wrap/Unwrap helpers for <NewKind> * Updated adapters to enforce contract 
+
+> Merge without this template = code-review block 🔒
+
+
+
+
+
+
+
+
+

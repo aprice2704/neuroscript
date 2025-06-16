@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.3.0
-// File version: 1.0.0
-// Purpose: Aligns test with new RunProcedure signature by wrapping primitive arguments into core.Value types before execution.
+// File version: 1.0.2
+// Purpose: Reverted test script to use the '+' operator for concatenation, aligning with the non-strict (lenient) operator model.
 // filename: pkg/core/interpreter_param_passing_test.go
 // nlines: 275+
 // risk_rating: MEDIUM
@@ -15,7 +15,8 @@ import (
 	"testing"
 )
 
-// Updated NeuroScript with 'not' for boolean negation
+// The script is reverted to its original form, using '+' for concatenation.
+// This is now valid because the operator is non-strict.
 const paramPassingTestScriptEnhanced = `
 :: Name: Parameter Passing Test Script (Enhanced)
 :: Version: 1.2.0
@@ -24,9 +25,9 @@ func mainEntry(needs strArg, intArg, boolArg, floatArg returns result) means
   :: description: Simulates entry point receiving CLI-like arguments with varied types.
   emit "mainEntry_recvd:" + strArg + "," + intArg + "," + boolArg + "," + floatArg
   
-  call helperProc(strArg + "_to_helper", intArg * 2, not boolArg, floatArg / 2.0) # Corrected: not boolArg
+  call helperProc(strArg + "_to_helper", intArg * 2, not boolArg, floatArg / 2.0)
   
-  call recursiveProc(strArg, intArg, boolArg, 3) # Start recursion with depth 3
+  call recursiveProc(strArg, intArg, boolArg, 3)
   
   set result = "mainEntry_completed_with_" + strArg
   return result
@@ -45,8 +46,7 @@ func recursiveProc(needs rStrArg, rIntArg, rBoolArg, rDepth returns result) mean
   
   if rDepth > 1
     set newDepth = rDepth - 1
-    # Pass arguments through, potentially modifying one for variation
-    call recursiveProc(rStrArg, rIntArg + rDepth, not rBoolArg, newDepth) # Corrected: not rBoolArg
+    call recursiveProc(rStrArg, rIntArg + rDepth, not rBoolArg, newDepth)
   endif
   
   set result = "recursiveProc_completed_depth_" + rDepth
@@ -70,9 +70,7 @@ func compareOutputLineWithSpecialFloatHandling(t *testing.T, iteration, lineInde
 		partsExpected := strings.Split(expectedLine, ",")
 		partsActual := strings.Split(actualLine, ",")
 
-		// Both mainEntry_recvd and helperProc_recvd lines have 4 comma-separated parts, with float being the last.
 		if len(partsExpected) == 4 && len(partsActual) == 4 {
-			// Compare first 3 parts as strings (prefix+str, int, bool)
 			for k := 0; k < 3; k++ {
 				if strings.TrimSpace(partsActual[k]) != strings.TrimSpace(partsExpected[k]) {
 					t.Errorf("Iteration %d: Output line %d, part %d string mismatch.\nGot:      '%s'\nExpected: '%s'",
@@ -81,7 +79,6 @@ func compareOutputLineWithSpecialFloatHandling(t *testing.T, iteration, lineInde
 				}
 			}
 
-			// Compare the 4th part (float) numerically
 			expectedFloatStr := strings.TrimSpace(partsExpected[3])
 			actualFloatStr := strings.TrimSpace(partsActual[3])
 
@@ -103,12 +100,10 @@ func compareOutputLineWithSpecialFloatHandling(t *testing.T, iteration, lineInde
 				t.Errorf("Iteration %d: Output line %d float part numeric mismatch.\nGot:      '%s' (parsed: %f)\nExpected: '%s' (parsed: %f)",
 					iteration, lineIndex, actualLine, actualFloat, expectedLine, expectedFloat)
 			}
-			return // Comparison handled
+			return
 		}
-		// Fallthrough to normalized string comparison if parts count is unexpected for special handling
 	}
 
-	// Default comparison for other lines or if special handling structure doesn't match
 	normalizedGot := strings.Join(strings.Fields(actualLine), "")
 	normalizedExpected := strings.Join(strings.Fields(expectedLine), "")
 	if normalizedGot != normalizedExpected {
@@ -139,10 +134,10 @@ func TestInterpreter_ParameterPassingFuzz(t *testing.T) {
 	for i := 0; i < numTestIterations; i++ {
 		iteration := i
 		t.Run(fmt.Sprintf("Iteration%d", iteration), func(t *testing.T) {
-			t.Parallel() // Allow parallel execution of iterations
+			t.Parallel()
 
 			var capturedOutput bytes.Buffer
-			iterLogger := NewTestLogger(t) // Logger for this specific test iteration
+			iterLogger := NewTestLogger(t)
 
 			interp, err := NewInterpreter(iterLogger, nil, ".", nil, nil)
 			if err != nil {
@@ -169,7 +164,6 @@ func TestInterpreter_ParameterPassingFuzz(t *testing.T) {
 				floatVal,
 			}
 
-			// Wrap primitive arguments into core.Value types before calling RunProcedure.
 			wrappedArgs := make([]Value, len(simulatedCLIArgs))
 			for i, arg := range simulatedCLIArgs {
 				wrapped, err := Wrap(arg)

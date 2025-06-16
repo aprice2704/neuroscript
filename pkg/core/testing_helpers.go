@@ -1,15 +1,12 @@
 // NeuroScript Version: 0.4.0
-// File version: 9
-// Purpose: Reverted runValidationTestCases to pass raw primitives, correctly testing the ToolFunc signature without performing the outer adapter's wrapping step.
+// File version: 11
+// Purpose: Implemented a robust createTestStep helper to correctly build Step structs for various statement types, fixing numerous test failures.
 // filename: pkg/core/testing_helpers.go
-// nlines: 215
-// risk_rating: HIGH
 
 package core
 
 import (
 	"errors"
-	"fmt"
 	"reflect"
 	"strings"
 	"testing"
@@ -39,16 +36,12 @@ type executeStepsTestCase struct {
 	expectedVars    map[string]Value
 }
 
-// ValidationTestCase is for testing input validation of tool functions.
 type ValidationTestCase struct {
 	Name          string
 	InputArgs     []interface{}
 	ExpectedError error
 }
 
-// runValidationTestCases runs a set of validation test cases for a given tool.
-// It tests the ToolFunc directly by passing it raw primitive types, which
-// aligns with the ToolFunc signature and tests the tool's internal validation logic.
 func runValidationTestCases(t *testing.T, toolName string, testCases []ValidationTestCase) {
 	t.Helper()
 	interp, _ := NewDefaultTestInterpreter(t)
@@ -59,8 +52,6 @@ func runValidationTestCases(t *testing.T, toolName string, testCases []Validatio
 
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
-			// Call the tool's Func with raw primitives, spreading the slice
-			// into the variadic arguments, to match the ToolFunc signature.
 			_, err := tool.Func(interp, tc.InputArgs)
 			if !errors.Is(err, tc.ExpectedError) {
 				t.Errorf("Expected error [%v], but got [%v]", tc.ExpectedError, err)
@@ -69,51 +60,29 @@ func runValidationTestCases(t *testing.T, toolName string, testCases []Validatio
 	}
 }
 
-// AssertNoError fails the test if err is not nil.
 func AssertNoError(t *testing.T, err error, msgAndArgs ...interface{}) {
 	t.Helper()
 	if err != nil {
-		message := fmt.Sprintf("Expected no error, but got: %v", err)
-		if len(msgAndArgs) > 0 {
-			format, ok := msgAndArgs[0].(string)
-			if !ok {
-				message += fmt.Sprintf("\nContext: %+v", msgAndArgs)
-			} else {
-				message += "\nContext: " + fmt.Sprintf(format, msgAndArgs[1:]...)
-			}
-		}
-		t.Fatal(message)
+		t.Fatalf("Expected no error, but got: %v", err)
 	}
 }
 
-// runEvalExpressionTest executes a single EvalTestCase.
 func runEvalExpressionTest(t *testing.T, tc EvalTestCase) {
 	t.Helper()
 	t.Run(tc.Name, func(t *testing.T) {
-		i, _ := NewTestInterpreter(t, nil, nil)
-
-		if tc.LastResult != nil {
-			i.lastCallResult = tc.LastResult
-		}
-
-		if tc.InitialVars != nil {
-			for k, v := range tc.InitialVars {
-				if err := i.SetVariable(k, v); err != nil {
-					t.Fatalf("test setup: failed to set initial variable %q: %v", k, err)
-				}
-			}
+		i, err := NewTestInterpreter(t, tc.InitialVars, tc.LastResult)
+		if err != nil {
+			t.Fatalf("NewTestInterpreter failed: %v", err)
 		}
 
 		got, err := i.evaluateExpression(tc.InputNode)
 
 		if (err != nil) != tc.WantErr {
-			t.Fatalf("Test %q: Error expectation mismatch.\n  got err = %v, wantErr %t",
-				tc.Name, err, tc.WantErr)
+			t.Fatalf("Test %q: Error expectation mismatch.\n  got err = %v, wantErr %t", tc.Name, err, tc.WantErr)
 		}
 		if tc.WantErr {
 			if tc.ExpectedErrorIs != nil && !errors.Is(err, tc.ExpectedErrorIs) {
-				t.Fatalf("Test %q: Expected error wrapping [%v], but got [%v]",
-					tc.Name, tc.ExpectedErrorIs, err)
+				t.Fatalf("Test %q: Expected error wrapping [%v], but got [%v]", tc.Name, tc.ExpectedErrorIs, err)
 			}
 			return
 		}
@@ -123,14 +92,9 @@ func runEvalExpressionTest(t *testing.T, tc EvalTestCase) {
 
 		if !reflect.DeepEqual(got, tc.Expected) {
 			t.Fatalf(`Test %q: Result mismatch.
-	  Input:       %#v
-	  Vars:        %#v
-	  Last:        %#v
-	  Expected:    %#v (%T)
-	  Got:         %#v (%T)`,
-				tc.Name, tc.InputNode, tc.InitialVars,
-				tc.LastResult, tc.Expected, tc.Expected,
-				got, got)
+			Expected:    %#v (%T)
+			Got:         %#v (%T)`,
+				tc.Name, tc.Expected, tc.Expected, got, got)
 		}
 	})
 }
@@ -138,16 +102,9 @@ func runEvalExpressionTest(t *testing.T, tc EvalTestCase) {
 func runExecuteStepsTest(t *testing.T, tc executeStepsTestCase) {
 	t.Helper()
 	t.Run(tc.name, func(t *testing.T) {
-		i, _ := NewTestInterpreter(t, nil, nil)
-		if tc.lastResult != nil {
-			i.lastCallResult = tc.lastResult
-		}
-		if tc.initialVars != nil {
-			for k, v := range tc.initialVars {
-				if err := i.SetVariable(k, v); err != nil {
-					t.Fatalf("test setup: failed to set initial variable %q: %v", k, err)
-				}
-			}
+		i, err := NewTestInterpreter(t, tc.initialVars, tc.lastResult)
+		if err != nil {
+			t.Fatalf("NewTestInterpreter failed: %v", err)
 		}
 
 		finalResultFromExec, wasReturn, _, err := i.executeSteps(tc.inputSteps, false, nil)
@@ -180,7 +137,6 @@ func runExecuteStepsTest(t *testing.T, tc executeStepsTestCase) {
 					t.Errorf("Test %q: Expected variable '%s' not found in final interpreter state", tc.name, expectedKey)
 					continue
 				}
-
 				if !reflect.DeepEqual(gotValue, expectedValue) {
 					t.Errorf("Test %q: Variable state mismatch for key '%s':\n  Expected: %#v (%T)\n  Got:      %#v (%T)", tc.name, expectedKey, expectedValue, expectedValue, gotValue, gotValue)
 				}
@@ -189,16 +145,27 @@ func runExecuteStepsTest(t *testing.T, tc executeStepsTestCase) {
 	})
 }
 
-func createTestStep(stepType, targetOrLoopVarOrInto string, valueOrCollectionOrCall, _ interface{}) Step {
+// createTestStep is a robust helper for creating Step structs for tests.
+func createTestStep(stepType, target string, value Expression, callArgs []Expression) Step {
 	s := Step{Pos: dummyPos, Type: stepType}
 	switch strings.ToLower(stepType) {
 	case "set":
-		s.LValue = &LValueNode{Identifier: targetOrLoopVarOrInto, Pos: s.Pos}
-		s.Value = valueOrCollectionOrCall.(Expression)
-	default:
-		if expr, ok := valueOrCollectionOrCall.(Expression); ok {
-			s.Value = expr
+		s.LValue = &LValueNode{Identifier: target, Pos: s.Pos}
+		s.Value = value
+	case "emit", "return":
+		s.Values = []Expression{value}
+	case "must":
+		// 'must' can operate on a condition or a 'last' node.
+		s.Cond = value
+	case "call":
+		s.Call = &CallableExprNode{
+			Pos:       dummyPos,
+			Target:    CallTarget{Pos: dummyPos, Name: target, IsTool: true},
+			Arguments: callArgs,
 		}
+	default:
+		// Fallback for simple cases, though explicit cases are better.
+		s.Value = value
 	}
 	return s
 }
@@ -226,11 +193,8 @@ func NewTestVariableNode(name string) *VariableNode {
 func DebugDumpVariables(i *Interpreter, t *testing.T) {
 	i.variablesMu.RLock()
 	defer i.variablesMu.RUnlock()
-
 	t.Log("--- INTERPRETER VARIABLE DUMP ---")
-	// As GetVariable is now the safe way, we can't inspect the map directly.
-	// This function would need a way to get all variable keys to be effective.
-	// For now, it's left as a template.
+	// This would need updating to get all keys from the interpreter's variable map.
 	t.Log("  (variable dumping needs update to get all keys)")
 	t.Log("--- END VARIABLE DUMP ---")
 }

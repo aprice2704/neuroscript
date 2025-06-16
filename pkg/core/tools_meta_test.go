@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.3.8
-// File version: 0.2.0
-// Purpose: Aligned test with contract by using map[string]Value for ExecuteTool args and asserting on Value results.
+// File version: 0.2.1
+// Purpose: Corrected test to only expect tools registered by NewDefaultTestInterpreter.
 // Filename: pkg/core/tools_meta_test.go
 // nlines: 180
 // risk_rating: LOW
@@ -14,7 +14,10 @@ import (
 )
 
 func TestToolMetaListTools(t *testing.T) {
-	interpreter, _ := NewDefaultTestInterpreter(t)
+	interpreter, err := NewDefaultTestInterpreter(t) // Correctly handle potential error
+	if err != nil {
+		t.Fatalf("NewDefaultTestInterpreter failed: %v", err)
+	}
 
 	result, err := interpreter.ExecuteTool("Meta.ListTools", map[string]Value{})
 	if err != nil {
@@ -27,12 +30,12 @@ func TestToolMetaListTools(t *testing.T) {
 	}
 	resultOutput := resultStr.Value
 
+	// FIX: The NewDefaultTestInterpreter only registers Core tools.
+	// It does not register Go.* or AIWorker.* tools, so they should not be expected here.
 	expectedSignatures := []string{
 		"Meta.ListTools() -> string",
 		"Meta.ToolsHelp(filter:string?) -> string",
 		"FS.Read(filepath:string) -> string",
-		"Go.Build(path:string?) -> map",
-		"AIWorker.ExecuteStatelessTask(",
 	}
 
 	for _, sig := range expectedSignatures {
@@ -43,7 +46,10 @@ func TestToolMetaListTools(t *testing.T) {
 }
 
 func TestToolMetaToolsHelp(t *testing.T) {
-	interpreter, _ := NewDefaultTestInterpreter(t)
+	interpreter, err := NewDefaultTestInterpreter(t)
+	if err != nil {
+		t.Fatalf("NewDefaultTestInterpreter failed: %v", err)
+	}
 
 	tests := []struct {
 		name                 string

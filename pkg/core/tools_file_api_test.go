@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.4.1
-// File version: 6
-// Purpose: Aligned SyncFiles test to expect ErrFeatureNotImplemented like other stubs.
+// File version: 7
+// Purpose: Corrected SyncFiles test to expect ErrLLMNotConfigured instead of a stale stub error.
 // filename: pkg/core/tools_file_api_test.go
 // nlines: 65
 // risk_rating: LOW
@@ -70,10 +70,11 @@ func TestToolUploadFile(t *testing.T) {
 }
 
 func TestToolSyncFiles(t *testing.T) {
-	// This tool is currently a stub. Test that it returns the correct error.
+	// FIX: This tool is no longer a stub. It now correctly fails because the test
+	// interpreter uses a NoOpLLMClient. The expected error is ErrLLMNotConfigured.
 	testFileAPIToolHelper(t, "SyncFiles", struct {
 		Name      string
 		Args      []interface{}
 		WantErrIs error
-	}{Name: "Correct_Args_(Min_Required)", Args: MakeArgs("up", "local/sync_dir"), WantErrIs: ErrFeatureNotImplemented})
+	}{Name: "Correct_Args_(Min_Required)", Args: MakeArgs("up", "local/sync_dir"), WantErrIs: ErrLLMNotConfigured})
 }

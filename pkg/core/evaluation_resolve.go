@@ -3,7 +3,6 @@ package core
 
 import (
 	"fmt"
-	"regexp" // Import regexp for placeholder parsing
 	// Assuming errors like ErrVariableNotFound are defined in errors.go
 	// Assuming AST node types like VariableNode, PlaceholderNode, StringLiteralNode etc. are defined in ast.go
 )
@@ -100,58 +99,3 @@ func (i *Interpreter) resolveValue(node interface{}) (interface{}, error) {
 		// return nil, fmt.Errorf("internal error: resolveValue received unexpected node type %T", node)
 	}
 }
-
-// --- Helper Function for Placeholder Substitution ---
-
-// placeholderRegex finds {{variable_name}} occurrences. It captures the variable_name.
-// Using \s* to allow optional whitespace inside the braces, e.g., {{ my_var }}
-var placeholderRegex = regexp.MustCompile(`\{\{\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\}\}`)
-
-// FIX: Renamed function to match calls in evaluation_main.go
-// resolvePlaceholdersWithError processes a raw string, finding and replacing {{placeholders}}.
-func (i *Interpreter) resolvePlaceholdersWithError(rawString string) (string, error) {
-	var firstError error
-	processedString := placeholderRegex.ReplaceAllStringFunc(rawString, func(match string) string {
-		// If an error has already occurred, skip further processing for this string
-		if firstError != nil {
-			return match // Return the original placeholder text
-		}
-
-		// Extract variable name from the match (group 1)
-		groups := placeholderRegex.FindStringSubmatch(match)
-		if len(groups) < 2 {
-			// This should not happen with the defined regex, but handle defensively
-			i.Logger().Error("[ERROR EVAL] Regex match '%s' failed to capture group", match)
-			firstError = fmt.Errorf("internal regex error processing placeholder '%s'", match)
-			return match // Return original on internal error
-		}
-		varName := groups[1]
-
-		// Look up the variable
-		value, found := i.GetVariable(varName)
-		if !found {
-			errMsg := fmt.Sprintf("variable '%s' referenced in placeholder not found", varName)
-			firstError = fmt.Errorf("%s: %w", errMsg, ErrVariableNotFound)
-			return match // Return original if variable not found
-		}
-
-		// Convert the found value to string
-		// Use fmt.Sprintf("%v") for general compatibility. Adjust if specific formatting is needed.
-		strValue := fmt.Sprintf("%v", value)
-		i.Logger().Debug("[DEBUG EVAL]     Substituting placeholder match '%s' with value: %q", match, strValue)
-
-		return strValue // Return the substituted value
-	})
-
-	if firstError != nil {
-		return "", firstError // Return only the first error encountered
-	}
-
-	return processedString, nil
-}
-
-// --- Placeholder Implementations (ensure these exist elsewhere) ---
-// func (i *Interpreter) GetVariable(name string) (interface{}, bool)
-// func (i *Interpreter) Logger() interfaces.Logger { ... }
-// var ErrVariableNotFound = errors.New(...) // Assumed defined in errors.go
-// AST Node definitions (VariableNode, StringLiteralNode, etc.) assumed in ast.go

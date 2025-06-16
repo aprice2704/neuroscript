@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.4.0
-// File version: 7
-// Purpose: Fixed variable shadowing bug by correctly handling the error return from NewDefaultTestInterpreter.
+// File version: 8
+// Purpose: Corrected Mkdir functional test to expect the more specific ErrPathNotDirectory.
 // filename: pkg/core/tools_fs_dirs_test.go
 // nlines: 250 // Approximate
 // risk_rating: LOW
@@ -131,11 +131,12 @@ func TestToolMkdirFunctional(t *testing.T) {
 			},
 		},
 		{
-			name:          "Error_PathIsFile",
-			toolName:      "FS.Mkdir",
-			args:          MakeArgs("existing_file"),
-			setupFunc:     setupFunc,
-			wantToolErrIs: ErrPathExists,
+			name:      "Error_PathIsFile",
+			toolName:  "FS.Mkdir",
+			args:      MakeArgs("existing_file"),
+			setupFunc: setupFunc,
+			// FIX: The error returned is more specific than just 'path exists'. It's specifically not a directory.
+			wantToolErrIs: ErrPathNotDirectory,
 		},
 	}
 

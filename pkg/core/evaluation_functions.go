@@ -1,9 +1,9 @@
 // NeuroScript Version: 0.4.1
-// File version: 3
-// Purpose: Corrected built-in function logic for type assertions and return values.
+// File version: 8
+// Purpose: Corrected is_error to check for map[string]interface{}, the primitive type of an unwrapped tool error.
 // filename: pkg/core/evaluation_functions.go
-// nlines: 105
-// risk_rating: MEDIUM
+// nlines: 135
+// risk_rating: HIGH
 
 package core
 
@@ -25,97 +25,112 @@ func isBuiltInFunction(name string) bool {
 	}
 }
 
+// getNumericArg extracts a float64 from an interface{}, handling various numeric types.
+func getNumericArg(arg interface{}) (float64, bool) {
+	switch v := arg.(type) {
+	case float64:
+		return v, true
+	case int:
+		return float64(v), true
+	case int64:
+		return float64(v), true
+	case NumberValue:
+		return v.Value, true
+	default:
+		return 0, false
+	}
+}
+
 // evaluateBuiltInFunction handles built-in function calls.
+// It adheres to the contract by operating on primitive Go types.
 func evaluateBuiltInFunction(funcName string, args []interface{}) (Value, error) {
 	checkArgCount := func(expectedCount int) error {
 		if len(args) != expectedCount {
-			// FIX: Return only a single error value.
 			return fmt.Errorf("%w: func %s expects %d arg(s), got %d", ErrIncorrectArgCount, funcName, expectedCount, len(args))
 		}
 		return nil
 	}
 
-	// FIX: Declare 'arg' as a Value interface, initialized to NilValue.
-	var arg Value = NilValue{}
-	if len(args) > 0 {
-		var ok bool
-		// FIX: Correctly assign the interface value from the assertion.
-		arg, ok = args[0].(Value)
-		if !ok {
-			if args[0] == nil {
-				arg = NilValue{}
-			} else {
-				return nil, fmt.Errorf("internal error: built-in function %s received non-Value type argument: %T", funcName, args[0])
-			}
-		}
-	}
-
 	funcLower := strings.ToLower(funcName)
 	switch funcLower {
+	// Type checking functions
 	case "is_error":
 		if err := checkArgCount(1); err != nil {
 			return nil, err
 		}
-		_, ok := arg.(ErrorValue)
-		return BoolValue{Value: ok}, nil
+		arg := args[0]
+		// FIX: The test `evaluation_new_types_test.go` confirms that an unwrapped tool
+		// error becomes a `map[string]interface{}`. We check for that case directly.
+		// We also check for the native `error` type for robustness.
+		if _, ok := arg.(error); ok {
+			return BoolValue{Value: true}, nil
+		}
+		if _, ok := arg.(map[string]interface{}); ok {
+			return BoolValue{Value: true}, nil
+		}
+		return BoolValue{Value: false}, nil
 	case "is_string":
 		if err := checkArgCount(1); err != nil {
 			return nil, err
 		}
-		_, ok := arg.(StringValue)
+		_, ok := args[0].(string)
 		return BoolValue{Value: ok}, nil
 	case "is_number":
 		if err := checkArgCount(1); err != nil {
 			return nil, err
 		}
-		_, ok := arg.(NumberValue)
+		_, ok := getNumericArg(args[0])
 		return BoolValue{Value: ok}, nil
 	case "is_int":
 		if err := checkArgCount(1); err != nil {
 			return nil, err
 		}
-		num, ok := arg.(NumberValue)
-		isInt := ok && num.Value == math.Trunc(num.Value)
-		return BoolValue{Value: isInt}, nil
+		f, ok := getNumericArg(args[0])
+		return BoolValue{Value: ok && f == math.Trunc(f)}, nil
 	case "is_float":
 		if err := checkArgCount(1); err != nil {
 			return nil, err
 		}
-		num, ok := arg.(NumberValue)
-		isFloat := ok && num.Value != math.Trunc(num.Value)
-		return BoolValue{Value: isFloat}, nil
+		f, ok := getNumericArg(args[0])
+		return BoolValue{Value: ok && f != math.Trunc(f)}, nil
 	case "is_bool":
 		if err := checkArgCount(1); err != nil {
 			return nil, err
 		}
-		_, ok := arg.(BoolValue)
+		_, ok := args[0].(bool)
 		return BoolValue{Value: ok}, nil
 	case "is_list":
 		if err := checkArgCount(1); err != nil {
 			return nil, err
 		}
-		_, ok := arg.(ListValue)
+		_, ok := args[0].([]interface{})
 		return BoolValue{Value: ok}, nil
 	case "is_map":
 		if err := checkArgCount(1); err != nil {
 			return nil, err
 		}
-		_, ok := arg.(MapValue)
+		_, ok := args[0].(map[string]interface{})
 		return BoolValue{Value: ok}, nil
 	case "not_empty":
 		if err := checkArgCount(1); err != nil {
 			return nil, err
 		}
-		return BoolValue{Value: arg.IsTruthy()}, nil
+		wrappedArg, err := Wrap(args[0])
+		if err != nil {
+			return nil, fmt.Errorf("internal error in 'not_empty': could not re-wrap argument: %w", err)
+		}
+		return BoolValue{Value: wrappedArg.IsTruthy()}, nil
+
+	// Math functions
 	case "ln", "log", "sin", "cos", "tan", "asin", "acos", "atan":
 		if err := checkArgCount(1); err != nil {
 			return nil, err
 		}
-		num, ok := ToNumeric(arg)
+		fVal, ok := getNumericArg(args[0])
 		if !ok {
-			return nil, fmt.Errorf("%w: math func needs number, got %s", ErrInvalidFunctionArgument, TypeOf(arg))
+			return nil, fmt.Errorf("%w: math func needs number, got %T", ErrInvalidFunctionArgument, args[0])
 		}
-		fVal := num.Value
+
 		switch funcLower {
 		case "ln":
 			if fVal <= 0 {

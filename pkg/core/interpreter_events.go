@@ -1,9 +1,7 @@
 // NeuroScript Version: 0.3.1
-// File version: 9
-// Purpose: Restored mutex locking for the event handler loop to ensure thread-safe access to the shared variable scope.
+// File version: 10
+// Purpose: Corrects a deadlock by making mutex locking in EmitEvent more fine-grained.
 // filename: pkg/core/interpreter_events.go
-// nlines: 50+
-// risk_rating: HIGH
 
 package core
 
@@ -20,7 +18,6 @@ func (i *Interpreter) EmitEvent(eventName string, source string, payload Value) 
 		return
 	}
 
-	// Build the event data object once.
 	eventDataMap := map[string]Value{
 		EventKeyName:    StringValue{Value: eventName},
 		EventKeySource:  StringValue{Value: source},
@@ -32,31 +29,30 @@ func (i *Interpreter) EmitEvent(eventName string, source string, payload Value) 
 	}
 	eventObj := EventValue{Value: eventDataMap}
 
-	// Lock the main variables map for the entire duration of the event processing.
-	// This prevents data races when tests or other threads try to access variables
-	// while the handlers are running.
-	i.variablesMu.Lock()
-	defer i.variablesMu.Unlock()
-
-	// Execute handlers sequentially, modifying the single global scope.
 	for _, handler := range handlers {
-		// Temporarily add the event object to the global scope for this handler's execution.
+		// Add the temporary event object to the scope in a thread-safe manner.
 		if handler.EventVarName != "" {
+			// Lock, modify, and immediately unlock.
+			i.variablesMu.Lock()
 			i.variables[handler.EventVarName] = eventObj
+			i.variablesMu.Unlock()
 		}
 
-		// Execute the handler's body directly in the global scope.
-		// Any variables set will persist for the next handler and after all handlers complete.
+		// Execute the handler's body. This function and its children will
+		// acquire locks as needed, but since the parent lock is released,
+		// there will be no deadlock.
 		_, _, _, err := i.executeSteps(handler.Body, true, nil)
 
-		// Clean up the temporary event variable from the global scope.
+		// Clean up the temporary event variable in a thread-safe manner.
 		if handler.EventVarName != "" {
+			// Lock, modify, and immediately unlock.
+			i.variablesMu.Lock()
 			delete(i.variables, handler.EventVarName)
+			i.variablesMu.Unlock()
 		}
 
 		if err != nil {
 			i.Logger().Error("Error executing 'on event' handler", "event", eventName, "error", err)
-			// Decide if an error in one handler should stop others. For now, we continue.
 		}
 	}
 }

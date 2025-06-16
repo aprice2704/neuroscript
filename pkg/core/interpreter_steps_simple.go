@@ -1,7 +1,9 @@
 // NeuroScript Version: 0.4.1
-// File version: 10
-// Purpose: Corrected executeMust to use lastCallResult directly as a core.Value, removing the now-incorrect type assertion.
+// File version: 11
+// Purpose: Corrected executeMust to immediately return evaluation errors, ensuring error propagation.
 // filename: pkg/core/interpreter_steps_simple.go
+// nlines: 200 // Approximate
+// risk_rating: MEDIUM
 
 package core
 
@@ -95,22 +97,26 @@ func (i *Interpreter) executeMust(step Step) (Value, error) {
 	}
 
 	if exprToEval == nil {
-		// This handles the 'must last' case. lastCallResult is already a Value.
 		if i.lastCallResult == nil {
+			// This handles 'must last' when lastCallResult is nil.
 			return nil, ErrMustConditionFailed
 		}
 		val = i.lastCallResult
 	} else {
 		val, err = i.evaluateExpression(exprToEval)
+		// CRITICAL FIX: Prioritize the evaluation error. If the expression itself
+		// fails to evaluate, that is the error we must return.
 		if err != nil {
-			return nil, WrapErrorWithPosition(err, exprToEval.GetPos(), "evaluating MUST condition")
+			return nil, err
 		}
 	}
 
+	// If the evaluation results in an ErrorValue (e.g. from a tool call), fail with that error.
 	if ev, ok := val.(ErrorValue); ok {
 		return nil, ev
 	}
 
+	// If the evaluation results in any other non-truthy value, fail with the generic condition error.
 	if !IsTruthy(val) {
 		return nil, ErrMustConditionFailed
 	}
