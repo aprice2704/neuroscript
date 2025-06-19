@@ -28,10 +28,11 @@ func TestNeuroScriptParser(t *testing.T) {
 		"valid_tool_call.ns.txt":          {false, "Valid tool call (using LAST) and map access syntax"},
 		"invalid_keyword_case.ns.txt":     {true, "Invalid uppercase keywords"},
 		"invalid_syntax_structure.ns.txt": {true, "Invalid structure (missing means, mismatched end)"},
-		// MODIFIED: Changed expectation for invalid_metadata_format
-		"invalid_metadata_format.ns.txt": {false, "Syntactically valid metadata format (semantic check needed later)"},
-		// {"invalid_bracket_access.ns.txt", true, "Invalid map/list access syntax"}, // Enable when expression parsing is robust
-		// Add more test cases as needed
+		"valid_metadata_format.ns.txt":    {false, "Syntactically valid metadata format (semantic check needed later)"},
+
+		// New, more comprehensive test cases
+		"valid_comprehensive_syntax.ns.txt": {false, "A wide range of valid syntax constructs"},
+		"invalid_syntax_collection.ns.txt":  {true, "A collection of various common syntax errors"},
 	}
 
 	fixtureDir := "testdata" // Define fixture directory
@@ -53,13 +54,9 @@ func TestNeuroScriptParser(t *testing.T) {
 		tc, ok := testCases[filename]
 		if !ok {
 			// Optionally, fail or warn if an untested file is found
-			t.Logf("Skipping file '%s' found in testdata directory, not in testCases map.", filename)
+			// t.Logf("Skipping file '%s' found in testdata directory, not in testCases map.", filename)
 			continue
 		}
-
-		// Capture range variables for parallel execution before t.Run
-		// filename = filename // Use = instead of :=
-		// tc = tc             // Use = instead of :=
 
 		// Use t.Run to create subtests for each file
 		t.Run(filename, func(t *testing.T) {

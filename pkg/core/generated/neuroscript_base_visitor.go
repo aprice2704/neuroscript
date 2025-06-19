@@ -15,6 +15,10 @@ func (v *BaseNeuroScriptVisitor) VisitFile_header(ctx *File_headerContext) inter
 	return v.VisitChildren(ctx)
 }
 
+func (v *BaseNeuroScriptVisitor) VisitCode_block(ctx *Code_blockContext) interface{} {
+	return v.VisitChildren(ctx)
+}
+
 func (v *BaseNeuroScriptVisitor) VisitProcedure_definition(ctx *Procedure_definitionContext) interface{} {
 	return v.VisitChildren(ctx)
 }
@@ -63,7 +67,27 @@ func (v *BaseNeuroScriptVisitor) VisitBlock_statement(ctx *Block_statementContex
 	return v.VisitChildren(ctx)
 }
 
+func (v *BaseNeuroScriptVisitor) VisitOn_stmt(ctx *On_stmtContext) interface{} {
+	return v.VisitChildren(ctx)
+}
+
+func (v *BaseNeuroScriptVisitor) VisitError_handler(ctx *Error_handlerContext) interface{} {
+	return v.VisitChildren(ctx)
+}
+
+func (v *BaseNeuroScriptVisitor) VisitEvent_handler(ctx *Event_handlerContext) interface{} {
+	return v.VisitChildren(ctx)
+}
+
+func (v *BaseNeuroScriptVisitor) VisitClearEventStmt(ctx *ClearEventStmtContext) interface{} {
+	return v.VisitChildren(ctx)
+}
+
 func (v *BaseNeuroScriptVisitor) VisitLvalue(ctx *LvalueContext) interface{} {
+	return v.VisitChildren(ctx)
+}
+
+func (v *BaseNeuroScriptVisitor) VisitLvalue_list(ctx *Lvalue_listContext) interface{} {
 	return v.VisitChildren(ctx)
 }
 
@@ -116,14 +140,6 @@ func (v *BaseNeuroScriptVisitor) VisitWhile_statement(ctx *While_statementContex
 }
 
 func (v *BaseNeuroScriptVisitor) VisitFor_each_statement(ctx *For_each_statementContext) interface{} {
-	return v.VisitChildren(ctx)
-}
-
-func (v *BaseNeuroScriptVisitor) VisitOnErrorStmt(ctx *OnErrorStmtContext) interface{} {
-	return v.VisitChildren(ctx)
-}
-
-func (v *BaseNeuroScriptVisitor) VisitOnEventStmt(ctx *OnEventStmtContext) interface{} {
 	return v.VisitChildren(ctx)
 }
 

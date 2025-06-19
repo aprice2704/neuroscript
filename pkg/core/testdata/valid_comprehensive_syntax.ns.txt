@@ -1,0 +1,61 @@
+:: lang_version: neuroscript@0.5.0
+:: purpose: Comprehensive syntax validation for the NeuroScript parser.
+# This is a full-line comment
+-- This is also a full-line comment
+
+func ComprehensiveTest(needs a, b optional c returns d) means
+  :: description: Tests a wide range of syntax.
+  :: param:a: The first parameter.
+  :: return:d: A result map.
+  -- Assignment from literals and expressions
+  set my_string = "hello world"
+  set my_raw_string = ```This is a raw string with {{placeholders}}```
+  set my_number = -10.5 * (a + b)
+  set my_bool = true and not false
+  set my_list = [1, "two", last, my_bool, []]
+  set my_map = {"key1": "value1", "key2": my_list}
+  set my_fuzzy = some tool.FuzzyCheck()
+
+  -- Must statement
+  must my_number > 0
+  
+  -- Corrected single-line assignments as per the grammar
+  set x = must tool.MustSucceed()
+  set y = my_map["key1"]
+
+  -- Control flow
+  if a > b
+    emit "A is greater"
+  else
+    emit "B is greater or equal"
+  endif
+
+  -- Loops
+  for each item in my_list
+    call tool.Process(item)
+    continue
+  endfor
+
+  while my_bool
+    set my_bool = false
+    break
+  endwhile
+
+  -- Error handling using the new 'on error do' syntax
+  on error do
+    emit "An error occurred"
+    fail "testing failure"
+  endon
+
+  return my_map
+endfunc
+
+-- A second function to ensure the parser handles multiple definitions
+func AnotherFunc means
+  return nil
+endfunc
+
+-- 'on event' block is now at the top level and uses the new 'do' and 'endon' syntax.
+on event tool.FS.FileChanged() do
+  emit "File changed!"
+endon

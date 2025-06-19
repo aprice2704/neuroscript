@@ -1,7 +1,7 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.2.2
-// Purpose: Added ErrTreeIntegrity for clearer error reporting on structural issues, as suggested.
-// nlines: 211
+// File version: 0.2.4
+// Purpose: Re-instated removed error codes and added new ones for multi-assignment.
+// nlines: 215
 // risk_rating: LOW
 // filename: pkg/core/errors.go
 package core
@@ -16,15 +16,13 @@ import (
 type ErrorCode int
 
 // --- RuntimeError ---
-// MODIFIED: Added Position field
 type RuntimeError struct {
 	Code     ErrorCode
 	Message  string
 	Wrapped  error
-	Position *Position // ADDED: To store position information
+	Position *Position
 }
 
-// MODIFIED: Updated Error() method to include position
 func (e *RuntimeError) Error() string {
 	msg := fmt.Sprintf("NeuroScript Error %d: %s", e.Code, e.Message)
 	if e.Position != nil {
@@ -37,12 +35,10 @@ func (e *RuntimeError) Error() string {
 }
 func (e *RuntimeError) Unwrap() error { return e.Wrapped }
 
-// MODIFIED: Initialize Position to nil
 func NewRuntimeError(code ErrorCode, message string, wrapped error) *RuntimeError {
 	return &RuntimeError{Code: code, Message: message, Wrapped: wrapped, Position: nil}
 }
 
-// ADDED: WithPosition method for RuntimeError
 func (e *RuntimeError) WithPosition(pos *Position) *RuntimeError {
 	if e != nil {
 		e.Position = pos
@@ -50,34 +46,28 @@ func (e *RuntimeError) WithPosition(pos *Position) *RuntimeError {
 	return e
 }
 
-// ADDED: wrapErrorWithPosition helper function
 func WrapErrorWithPosition(err error, pos *Position, contextMsg string) error {
 	if err == nil {
 		return nil
 	}
 	var re *RuntimeError
 	if errors.As(err, &re) {
-		if re.Position == nil && pos != nil { // Add position if not already set
+		if re.Position == nil && pos != nil {
 			re.Position = pos
 		}
-		// Prepend context message if it's not already part of the error.
-		if contextMsg != "" && !strings.HasPrefix(re.Message, contextMsg) { // Avoid double-prefixing
+		if contextMsg != "" && !strings.HasPrefix(re.Message, contextMsg) {
 			re.Message = fmt.Sprintf("%s: %s", contextMsg, re.Message)
 		}
 		return re
 	}
-	// If it's not already a RuntimeError, create a new one.
 	fullMessage := contextMsg
-	if err.Error() != "" { // Avoid "context: " if original error is empty
+	if err.Error() != "" {
 		fullMessage = fmt.Sprintf("%s: %s", contextMsg, err.Error())
 	}
-	// Use ErrorCodeEvaluation as a generic code for wrapped errors if not specified.
 	return NewRuntimeError(ErrorCodeEvaluation, fullMessage, err).WithPosition(pos)
 }
 
 // --- Basic Runtime Error Codes ---
-// These are general categories for runtime errors.
-// Corresponding sentinel errors (ErrXyz) should be defined below.
 const (
 	ErrorCodeGeneric             ErrorCode = 0
 	ErrorCodeFailStatement       ErrorCode = 1
@@ -88,21 +78,21 @@ const (
 	ErrorCodeInternal            ErrorCode = 6
 	ErrorCodeType                ErrorCode = 7
 	ErrorCodeBounds              ErrorCode = 8
-	ErrorCodeKeyNotFound         ErrorCode = 9 // General key not found (e.g. map key)
+	ErrorCodeKeyNotFound         ErrorCode = 9
 	ErrorCodeSecurity            ErrorCode = 10
 	ErrorCodeReadOnly            ErrorCode = 11
 	ErrorCodeReturnViolation     ErrorCode = 12
 	ErrorCodeClearViolation      ErrorCode = 13
 	ErrorCodeDivisionByZero      ErrorCode = 14
-	ErrorCodeSyntax              ErrorCode = 15 // Includes parsing errors like JSON, NeuroScript syntax
+	ErrorCodeSyntax              ErrorCode = 15
 	ErrorCodeLLMError            ErrorCode = 16
 	ErrorCodeEvaluation          ErrorCode = 17
 	ErrorCodeConfiguration       ErrorCode = 18
 	ErrorCodePreconditionFailed  ErrorCode = 19
 	ErrorCodeRateLimited         ErrorCode = 20
-	ErrorCodeToolExecutionFailed ErrorCode = 21 // Error code for general tool execution failures
-	ErrorCodeNotImplemented      ErrorCode = 30
-	ErrorCodeTimeout             ErrorCode = 31
+	ErrorCodeToolExecutionFailed ErrorCode = 21
+	ErrorCodeNotImplemented      ErrorCode = 30 // Preserved
+	ErrorCodeTimeout             ErrorCode = 31 // Preserved
 
 	// Filesystem Specific Error Codes (start from 22)
 	ErrorCodeFileNotFound     ErrorCode = 22
@@ -112,24 +102,23 @@ const (
 	ErrorCodeIOFailed         ErrorCode = 26
 
 	// Tree Specific Error Codes (start from 27)
-	ErrorCodeTreeConstraintViolation ErrorCode = 27 // e.g., cannot set value on object, cannot remove root, ID exists
-	ErrorCodeNodeWrongType           ErrorCode = 28 // e.g., expected object, got value
-	ErrorCodeAttributeNotFound       ErrorCode = 29 // For metadata access
+	ErrorCodeTreeConstraintViolation ErrorCode = 27
+	ErrorCodeNodeWrongType           ErrorCode = 28
+	ErrorCodeAttributeNotFound       ErrorCode = 29
 	ErrorCodeUnknownKeyword          ErrorCode = 30
 	ErrorCodeTypeAssertionFailed     ErrorCode = 31
 	ErrorCodeExecutionFailed         ErrorCode = 32
-	ErrorCodeTreeIntegrity           ErrorCode = 33 // ADDED: e.g., child ID exists but node is missing from map
+	ErrorCodeTreeIntegrity           ErrorCode = 33
 	ErrorCodePathViolation           ErrorCode = 34
 	ErrorCodeFeatureNotImplemented   ErrorCode = 35
+	ErrorCodeCountMismatch           ErrorCode = 36 // ADDED
 
-	ErrorCodeToolSpecific ErrorCode = 1000 // Base for tool-specific error codes (non-FS/Tree or highly unique cases)
+	ErrorCodeToolSpecific ErrorCode = 1000
 )
 
 // --- Basic Runtime Sentinel Errors ---
 var (
-	ErrConfiguration = errors.New("invalid configuration") // For ErrorCodeConfiguration
-	// Define other basic sentinels here if needed, e.g.:
-	// ErrType = errors.New("type error") // For ErrorCodeType if a general one is useful
+	ErrConfiguration = errors.New("invalid configuration")
 )
 
 // --- Core Validation Errors ---
@@ -139,12 +128,12 @@ var (
 	ErrValidationTypeMismatch       = errors.New("argument type mismatch")
 	ErrValidationArgCount           = errors.New("incorrect argument count")
 	ErrValidationArgValue           = errors.New("invalid argument value")
-	ErrMissingArgument              = errors.New("required argument missing") // Consider consolidating with ErrValidationRequiredArgMissing
+	ErrMissingArgument              = errors.New("required argument missing")
 	ErrInvalidArgument              = errors.New("invalid argument")
 	ErrInvalidInput                 = errors.New("invalid input")
 	ErrNullByteInArgument           = errors.New("argument contains null byte")
-	ErrIncorrectArgCount            = errors.New("incorrect function argument count")           // Consider consolidating with ErrValidationArgCount
-	ErrValidationRequired           = errors.New("validation error: missing required argument") // Consider consolidating with ErrValidationRequiredArgMissing
+	ErrIncorrectArgCount            = errors.New("incorrect function argument count")
+	ErrValidationRequired           = errors.New("validation error: missing required argument")
 )
 
 // --- Core Security Errors ---
@@ -167,49 +156,42 @@ var (
 
 // --- Core Tool Execution Errors (including Filesystem and Tree sentinels) ---
 var (
-	// General Tool Errors
-	ErrInternalTool       = errors.New("internal tool error")
-	ErrNotFound           = errors.New("item not found") // Generic not found by a tool
-	ErrFailedPrecondition = errors.New("operation failed due to a precondition not being met")
-	// ErrRateLimited is defined above
-	// ErrNotImplemented is defined above
-	ErrToolExecutionFailed = errors.New("tool execution failed") // Sentinel for ErrorCodeToolExecutionFailed
+	ErrInternalTool        = errors.New("internal tool error")
+	ErrNotFound            = errors.New("item not found")
+	ErrFailedPrecondition  = errors.New("operation failed due to a precondition not being met")
+	ErrToolExecutionFailed = errors.New("tool execution failed")
 
-	// Filesystem Errors
-	ErrFileNotFound      = errors.New("file not found")                  // For ErrorCodeFileNotFound
-	ErrPathNotFile       = errors.New("path is not a file")              // For ErrorCodePathTypeMismatch
-	ErrPathNotDirectory  = errors.New("path is not a directory")         // For ErrorCodePathTypeMismatch
-	ErrPathExists        = errors.New("path already exists")             // For ErrorCodePathExists
-	ErrPermissionDenied  = errors.New("permission denied")               // For ErrorCodePermissionDenied
-	ErrIOFailed          = errors.New("i/o operation failed")            // For ErrorCodeIOFailed
-	ErrCannotCreateDir   = errors.New("cannot create directory")         // Use with ErrorCodePathExists or ErrorCodeIOFailed
-	ErrCannotDelete      = errors.New("cannot delete file or directory") // Use with ErrorCodePreconditionFailed (dir not empty) or ErrorCodeIOFailed
-	ErrSkippedBinaryFile = errors.New("skipped potentially binary file") // Specific FS case
+	ErrFileNotFound      = errors.New("file not found")
+	ErrPathNotFile       = errors.New("path is not a file")
+	ErrPathNotDirectory  = errors.New("path is not a directory")
+	ErrPathExists        = errors.New("path already exists")
+	ErrPermissionDenied  = errors.New("permission denied")
+	ErrIOFailed          = errors.New("i/o operation failed")
+	ErrCannotCreateDir   = errors.New("cannot create directory")
+	ErrCannotDelete      = errors.New("cannot delete file or directory")
+	ErrSkippedBinaryFile = errors.New("skipped potentially binary file")
 
-	// Tree Errors
-	ErrTreeConstraintViolation = errors.New("tree constraint violation")                      // For ErrorCodeTreeConstraintViolation
-	ErrNodeWrongType           = errors.New("incorrect node type for operation")              // For ErrorCodeNodeWrongType
-	ErrAttributeNotFound       = errors.New("attribute not found on node")                    // For ErrorCodeAttributeNotFound
-	ErrTreeJSONUnmarshal       = errors.New("failed to unmarshal JSON input")                 // Use with ErrorCodeSyntax
-	ErrTreeJSONMarshal         = errors.New("failed to marshal tree structure to JSON")       // Use with ErrorCodeInternal
-	ErrTreeInvalidQuery        = errors.New("invalid query map structure or values")          // Use with ErrorCodeArgMismatch
-	ErrCannotSetValueOnType    = errors.New("cannot set Value on node types object or array") // Use with ErrorCodeTreeConstraintViolation
-	ErrTreeNodeNotObject       = errors.New("expected tree node to be an object type")        // Use with ErrorCodeNodeWrongType
-	ErrNodeIDExists            = errors.New("node ID already exists in tree")                 // Use with ErrorCodeTreeConstraintViolation
-	ErrCannotRemoveRoot        = errors.New("cannot remove the root node")                    // Use with ErrorCodeTreeConstraintViolation
-	ErrTreeIntegrity           = errors.New("tree integrity violation")                       // ADDED: For ErrorCodeTreeIntegrity
+	ErrTreeConstraintViolation = errors.New("tree constraint violation")
+	ErrNodeWrongType           = errors.New("incorrect node type for operation")
+	ErrAttributeNotFound       = errors.New("attribute not found on node")
+	ErrTreeJSONUnmarshal       = errors.New("failed to unmarshal JSON input")
+	ErrTreeJSONMarshal         = errors.New("failed to marshal tree structure to JSON")
+	ErrTreeInvalidQuery        = errors.New("invalid query map structure or values")
+	ErrCannotSetValueOnType    = errors.New("cannot set Value on node types object or array")
+	ErrTreeNodeNotObject       = errors.New("expected tree node to be an object type")
+	ErrNodeIDExists            = errors.New("node ID already exists in tree")
+	ErrCannotRemoveRoot        = errors.New("cannot remove the root node")
+	ErrTreeIntegrity           = errors.New("tree integrity violation")
 
-	// List/Map/Collection Errors
-	ErrListIndexOutOfBounds     = errors.New("list index out of bounds") // Use with ErrorCodeBounds
+	ErrListIndexOutOfBounds     = errors.New("list index out of bounds")
 	ErrListCannotSortMixedTypes = errors.New("cannot sort list with mixed or non-sortable types")
 	ErrListInvalidIndexType     = errors.New("list index must be an integer")
 	ErrListInvalidAccessorType  = errors.New("invalid accessor type for collection")
-	ErrMapKeyNotFound           = errors.New("key not found in map") // Use with ErrorCodeKeyNotFound
+	ErrMapKeyNotFound           = errors.New("key not found in map")
 	ErrCannotAccessType         = errors.New("cannot perform element access on type")
 	ErrCollectionIsNil          = errors.New("collection evaluated to nil")
 	ErrAccessorIsNil            = errors.New("accessor evaluated to nil")
 
-	// Go Tool specific errors (from goast, gosemantic etc.)
 	ErrGoParseFailed                 = errors.New("failed to parse Go source")
 	ErrGoModifyFailed                = errors.New("failed to modify Go AST")
 	ErrGoFormatFailed                = errors.New("failed to format Go AST")
@@ -222,7 +204,6 @@ var (
 	ErrSymbolMappingFailed           = errors.New("failed to build symbol map from refactored packages")
 	ErrAmbiguousSymbol               = errors.New("ambiguous exported symbol")
 
-	// Other Tool Errors
 	ErrInvalidHashAlgorithm      = errors.New("invalid or unsupported hash algorithm")
 	ErrCacheObjectNotFound       = errors.New("object not found in cache")
 	ErrCacheObjectWrongType      = errors.New("cached object has wrong type")
@@ -236,29 +217,27 @@ var (
 	ErrUnsupportedOperator       = errors.New("unsupported operator")
 	ErrNilOperand                = errors.New("operation received nil operand")
 	ErrUnknownFunction           = errors.New("unknown function called")
-	// ErrTypeAssertionFailed is defined above
 )
 
 // --- Core Interpreter Errors ---
 var (
-	ErrProcedureNotFound    = errors.New("procedure not found") // For ErrorCodeProcNotFound
-	ErrArgumentMismatch     = errors.New("argument mismatch")   // For ErrorCodeArgMismatch
+	ErrProcedureNotFound    = errors.New("procedure not found")
+	ErrArgumentMismatch     = errors.New("argument mismatch")
 	ErrReturnMismatch       = errors.New("procedure return count mismatch")
 	ErrProcedureExists      = errors.New("procedure already defined")
 	ErrMaxCallDepthExceeded = errors.New("maximum call depth exceeded")
-	// ErrUnknownKeyword is defined above
-	// ErrUnhandledException is defined above
-	ErrFailStatement     = errors.New("execution halted by FAIL statement")                           // For ErrorCodeFailStatement
-	ErrInternal          = errors.New("internal interpreter error")                                   // For ErrorCodeInternal
-	ErrReadOnlyViolation = errors.New("attempt to modify read-only variable")                         // For ErrorCodeReadOnly
-	ErrUnsupportedSyntax = errors.New("unsupported syntax")                                           // For ErrorCodeSyntax
-	ErrClearViolation    = errors.New("clear_error used outside on_error block")                      // For ErrorCodeClearViolation
-	ErrReturnViolation   = errors.New("'return' statement is not permitted inside an on_error block") // For ErrorCodeReturnViolation
-	// ErrToolNotFound is defined above
-	ErrLLMError            = errors.New("LLM interaction failed") // For ErrorCodeLLMError
-	ErrLLMNotConfigured    = errors.New("LLM client not configured in interpreter")
-	ErrDivisionByZero      = errors.New("division by zero")                  // For ErrorCodeDivisionByZero
-	ErrMustConditionFailed = errors.New("must condition evaluated to false") // For ErrorCodeMustFailed
+	ErrFailStatement        = errors.New("execution halted by FAIL statement")
+	ErrInternal             = errors.New("internal interpreter error")
+	ErrReadOnlyViolation    = errors.New("attempt to modify read-only variable")
+	ErrUnsupportedSyntax    = errors.New("unsupported syntax")
+	ErrClearViolation       = errors.New("clear_error used outside on_error block")
+	ErrReturnViolation      = errors.New("'return' statement is not permitted inside an on_error block")
+	ErrLLMError             = errors.New("LLM interaction failed")
+	ErrLLMNotConfigured     = errors.New("LLM client not configured in interpreter")
+	ErrDivisionByZero       = errors.New("division by zero")
+	ErrMustConditionFailed  = errors.New("must condition evaluated to false")
+	ErrAssignCountMismatch  = errors.New("assignment count mismatch")                                        // ADDED
+	ErrMultiAssignNonList   = errors.New("multiple assignment requires a list value on the right-hand side") // ADDED
 
 	// AI WM Errors
 	ErrAuthDetailsMissing    = errors.New("authentication details are missing")

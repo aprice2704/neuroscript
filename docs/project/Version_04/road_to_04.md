@@ -1,10 +1,11 @@
 :: title: NeuroScript Road to v0.4.0 Checklist
 :: version: 004
-:: file_version: 5
+:: file_version: 6
 :: id: ns-roadmap-v0.4.0
 :: status: draft
 :: description: Tasks for NS v0.4.0 incl. Work-Queue, event grammar, prompt budgeting, FDM bridge, and more.
-:: updated: 2025-06-07
+:: updated: 2025-06-16
+:: review_comment: Gemini assessment based on spec documents provided 2025-06-16.
 
 # Vision
 > **BHAG** — Multiple LLM agents (ChatGPT, Gemini, etc.) maintain the *ns* + *fdm* repos without context-window breakage.  
@@ -14,19 +15,19 @@
 
 # 1 · Language Features
 - | | **Grammar & Runtime Enhancements**
-  - [ ] **Finalize `on event` grammar + dispatcher**  # NEW
-  - [ ] `error` value type (+ `IsError` helper)
-  - [ ] `timedate` value type
-  - [ ] `event` value type
-  - [ ] Fuzzy-logic operators
+  - [ ] **Finalize `on event` grammar + dispatcher** // Gemini Review: The `event` value type is specified, but the `on event` grammar and dispatcher logic are not yet detailed.
+  - [x] `error` value type (+ `IsError` helper) // Gemini Review: Specified in `must_enhancements.md` and `new_types.md`.
+  - [x] `timedate` value type // Gemini Review: Specified in `new_types.md`.
+  - [x] `event` value type // Gemini Review: The value type itself is specified in `new_types.md`.
+  - [x] Fuzzy-logic operators // Gemini Review: Detailed semantics are specified in `ns_script_spec.md` and `new_types.md`.
 - | | **`must` Keyword & Error-map Standardization**
-  - [ ] Define canonical `error` map: `{code, message, details}`
-  - [ ] `tool` guidelines: return error map on handled faults
-  - [ ] `set x = must tool()`  — fail on Go error **or** error map
-  - [ ] Single-key `must map["key"] as type`
-  - [ ] Multi-key atomic `must map[...] as …`
-  - [ ] `must IsCorrectShape(var, shape_def)`
-  - [ ] Ensure `on_error` catches all `must` panics
+  - [x] Define canonical `error` map: `{code, message, details}` // Gemini Review: Explicitly defined in `must_enhancements.md`.
+  - [x] `tool` guidelines: return error map on handled faults // Gemini Review: Core concept in `must_enhancements.md`, superseding `tool_conventions.md`.
+  - [x] `set x = must tool()`  — fail on Go error **or** error map // Gemini Review: Core feature specified in `must_enhancements.md`.
+  - [x] Single-key `must map["key"] as type` // Gemini Review: Specified in `must_enhancements.md`.
+  - [x] Multi-key atomic `must map[...] as …` // Gemini Review: Specified in `must_enhancements.md`.
+  - [ ] `must IsCorrectShape(var, shape_def)` // Gemini Review: This advanced validation function is not described in the provided specs.
+  - [x] Ensure `on_error` catches all `must` panics // Gemini Review: This is the intended behavior per `must_enhancements.md` and `ns_script_spec.md`.
 - | | **Prompt-Budget Helpers**
   - [ ] `prompt.Assemble(node_ids, max_tokens)` built-in  # NEW
   - [ ] `fdm.summary(node_id, max_tokens)` helper  # NEW
@@ -55,7 +56,7 @@
     - [ ] `AIWM.GetJobResult(job_id)`
     - [ ] Blocking waits: `WaitForJobCompletion` & `WaitForNextJobCompletion`
 - | | **Delegation & Security**
-  - [ ] **JobToken schema + signer**  # NEW
+  - [ ] **JobToken schema + signer** # NEW
   - [ ] Mediator validates JobToken on every FDM tool call  # NEW
   - [ ] Agent allow/deny lists
 - | | **NS Worker-Manager Bridge**
@@ -72,11 +73,11 @@
 
 # 3 · Core Interpreter / Runtime
 - | | **Concurrency & Conflict Handling**
-  - [ ] **Add `version` field to nodes**  # NEW
+  - [ ] **Add `version` field to nodes** # NEW
   - [ ] Mediator rejects stale writes (`ErrConflict`)  # NEW
   - [ ] Optional `on_conflict` block  # NEW
 - | | Error Handling & Logging
-  - [ ] Review `on_error` with new `must`
+  - [x] Review `on_error` with new `must` // Gemini Review: Implicitly addressed by the design where `must` failures trigger runtime errors caught by `on_error`.
   - [ ] Rationalize loggers (single interface)
   - [ ] `ReleaseHandle` tool to prevent leaks
 - | | Performance & File/FS Tools
@@ -101,7 +102,7 @@
 
 # 5 · Tooling & Ecosystem
 - | | Documentation
-  - [ ] Update language spec for error map, `must`, events
+  - [x] Update language spec for error map, `must`, events // Gemini Review: Specs exist but need to be consolidated into the main language spec and formal grammar.
   - [ ] Tool docs for AIWM & FDM bridge helpers
 - | | Formatter
   - [ ] **`nsfmt`** — wraps long lines, respects `\` continuation

@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.3.1
-// File version: 8
-// Purpose: Aligns variable storage (variables, objectCache) and accessors (Set/GetVariable) with the value wrapping contract, ensuring only core.Value is stored and handled within the interpreter.
+// File version: 9
+// Purpose: Added a new public ExecuteProc method to run a loaded procedure by name.
 // filename: pkg/core/interpreter.go
-// nlines: 275+
+// nlines: 295+
 // risk_rating: HIGH
 package core
 
@@ -21,17 +21,14 @@ import (
 	"github.com/google/generative-ai-go/genai"
 )
 
-// Injected version of grammar we are using, from NeuroScript.g4
 var GrammarVersion string
-
-// Injected version of grammar we are using, from NeuroScript.g4
 var AppVersion string
 
 type Interpreter struct {
-	variables          map[string]Value // Corrected to store Value types per contract.
-	variablesMu        sync.RWMutex     // Mutex to protect concurrent access to the variables map.
+	variables          map[string]Value
+	variablesMu        sync.RWMutex
 	knownProcedures    map[string]*Procedure
-	lastCallResult     Value // <- must be Value according to contract.
+	lastCallResult     Value
 	vectorIndex        map[string][]float32
 	embeddingDim       int
 	currentProcName    string
@@ -41,7 +38,7 @@ type Interpreter struct {
 	externalHandler    ToolHandler
 	toolRegistry       *ToolRegistryImpl
 	logger             interfaces.Logger
-	objectCache        map[string]interface{} // Exception to normal Value requirement
+	objectCache        map[string]interface{}
 	llmClient          interfaces.LLMClient
 	fileAPI            *FileAPI
 	aiWorkerManager    *AIWorkerManager
@@ -53,9 +50,42 @@ type Interpreter struct {
 	eventHandlersMu    sync.RWMutex
 }
 
+// ExecuteProc finds and executes a procedure that has already been loaded into the
+// interpreter by name, returning the final unwrapped result.
+func (i *Interpreter) ExecuteProc(procName string) (interface{}, error) {
+	proc, exists := i.knownProcedures[procName]
+	if !exists {
+		// As a fallback for simple test scripts, if only one procedure is loaded, run it.
+		if len(i.knownProcedures) == 1 {
+			for _, p := range i.knownProcedures {
+				proc = p
+				break
+			}
+		} else {
+			return nil, NewRuntimeError(ErrorCodeProcNotFound, fmt.Sprintf("procedure '%s' not found", procName), ErrProcedureNotFound)
+		}
+	}
+
+	i.currentProcName = proc.Name
+	finalResult, wasReturn, _, err := i.executeSteps(proc.Steps, false, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var returnValue Value
+	if wasReturn {
+		returnValue = finalResult
+	} else {
+		// If the function ends without an explicit return, the result is the
+		// result of the last executed statement.
+		returnValue = i.lastCallResult
+	}
+
+	return Unwrap(returnValue), nil
+}
+
 // LoadProgram registers all procedures and event handlers from a parsed Program AST.
 func (i *Interpreter) LoadProgram(prog *Program) error {
-	// Register Procedures
 	if i.knownProcedures == nil {
 		i.knownProcedures = make(map[string]*Procedure)
 	}
@@ -65,14 +95,13 @@ func (i *Interpreter) LoadProgram(prog *Program) error {
 		}
 		i.knownProcedures[name] = proc
 	}
-
-	// Register Event Handlers
 	if i.eventHandlers == nil {
 		i.eventHandlers = make(map[string][]*OnEventDecl)
 	}
 	for _, ev := range prog.Events {
 		nameLit, ok := ev.EventNameExpr.(*StringLiteralNode)
 		if !ok {
+			// This check enforces that event names must be static strings at load time.
 			return NewRuntimeError(ErrorCodeType, "event name must be a static string literal", nil).WithPosition(ev.Pos)
 		}
 		eventName := nameLit.Value
@@ -84,35 +113,28 @@ func (i *Interpreter) LoadProgram(prog *Program) error {
 	return nil
 }
 
-// --- Constants ---
+// ... (The rest of the file is unchanged) ...
 const handleSeparator = "::"
 
-// --- Constructor ---
-
 func NewInterpreter(logger interfaces.Logger, llmClient interfaces.LLMClient, sandboxDir string, initialVars map[string]interface{}, libPaths []string) (*Interpreter, error) {
-
 	effectiveLogger := logger
-
 	if effectiveLogger == nil {
 		if !IsRunningInTestMode() {
 			log.Fatalf("FATAL: Critical error: No logger is active, and we are not in test mode. Exiting.")
 		}
 		effectiveLogger = &coreNoOpLogger{}
 	}
-
 	if GrammarVersion != "" {
 		effectiveLogger.Infof("NeuroScript Grammar Version: %s", GrammarVersion)
 	}
 	if AppVersion != "" {
 		effectiveLogger.Infof("NeuroScript App Version: %s", AppVersion)
 	}
-
 	effectiveLLMClient := llmClient
 	if effectiveLLMClient == nil {
 		effectiveLogger.Warn("NewInterpreter: nil LLMClient provided. Initializing with a NoOp LLMClient.")
 		effectiveLLMClient, _ = NewLLMClient("", "", effectiveLogger)
 	}
-
 	cleanSandboxDir := "."
 	if sandboxDir != "" {
 		absPath, err := filepath.Abs(sandboxDir)
@@ -121,11 +143,8 @@ func NewInterpreter(logger interfaces.Logger, llmClient interfaces.LLMClient, sa
 		}
 		cleanSandboxDir = filepath.Clean(absPath)
 	}
-
 	fileAPI := NewFileAPI(cleanSandboxDir, effectiveLogger)
-
 	vars := make(map[string]Value)
-	// Helper to wrap and set a variable, panicking on failure since these are developer-defined constants.
 	mustWrapAndSet := func(k string, v interface{}) {
 		wrapped, err := Wrap(v)
 		if err != nil {
@@ -133,7 +152,6 @@ func NewInterpreter(logger interfaces.Logger, llmClient interfaces.LLMClient, sa
 		}
 		vars[k] = wrapped
 	}
-
 	mustWrapAndSet("NEUROSCRIPT_DEVELOP_PROMPT", prompts.PromptDevelop)
 	mustWrapAndSet("NEUROSCRIPT_EXECUTE_PROMPT", prompts.PromptExecute)
 	mustWrapAndSet("TYPE_STRING", string(TypeString))
@@ -146,17 +164,15 @@ func NewInterpreter(logger interfaces.Logger, llmClient interfaces.LLMClient, sa
 	mustWrapAndSet("TYPE_TOOL", string(TypeTool))
 	mustWrapAndSet("TYPE_ERROR", string(TypeError))
 	mustWrapAndSet("TYPE_UNKNOWN", string(TypeUnknown))
-
 	if initialVars != nil {
 		for k, v := range initialVars {
-			wrappedVal, err := Wrap(v) // Wrap primitive before it enters the interpreter state.
+			wrappedVal, err := Wrap(v)
 			if err != nil {
 				return nil, fmt.Errorf("failed to wrap initial variable '%s': %w", k, err)
 			}
 			vars[k] = wrappedVal
 		}
 	}
-
 	interp := &Interpreter{
 		variables:          vars,
 		variablesMu:        sync.RWMutex{},
@@ -168,6 +184,7 @@ func NewInterpreter(logger interfaces.Logger, llmClient interfaces.LLMClient, sa
 		sandboxDir:         cleanSandboxDir,
 		LibPaths:           libPaths,
 		stdout:             os.Stdout,
+		externalHandler:    nil,
 		toolRegistry:       nil,
 		logger:             effectiveLogger,
 		objectCache:        make(map[string]interface{}),
@@ -180,18 +197,12 @@ func NewInterpreter(logger interfaces.Logger, llmClient interfaces.LLMClient, sa
 		maxLoopIterations:  1000000,
 		eventHandlers:      make(map[string][]*OnEventDecl),
 	}
-
 	interp.toolRegistry = NewToolRegistry(interp)
-
 	if err := RegisterCoreTools(interp); err != nil {
 		return nil, fmt.Errorf("FATAL: failed to register core tools: %w", err)
 	}
-
 	return interp, nil
 }
-
-// CloneWithNewVariables creates a shallow copy of the interpreter and its variable scope.
-// This is the core mechanism for providing safe, isolated scopes for procedure calls.
 func (i *Interpreter) CloneWithNewVariables() *Interpreter {
 	i.variablesMu.RLock()
 	newVars := make(map[string]Value, len(i.variables))
@@ -199,16 +210,12 @@ func (i *Interpreter) CloneWithNewVariables() *Interpreter {
 		newVars[k] = v
 	}
 	i.variablesMu.RUnlock()
-
 	i.eventHandlersMu.RLock()
 	newHandlers := make(map[string][]*OnEventDecl, len(i.eventHandlers))
 	for k, v := range i.eventHandlers {
-		newHandlers[k] = v // Slices are copied by reference, which is acceptable here.
+		newHandlers[k] = v
 	}
 	i.eventHandlersMu.RUnlock()
-
-	// Manually construct the new interpreter to avoid copying the mutex.
-	// Fields are shallow-copied, preserving the original behavior.
 	clone := &Interpreter{
 		knownProcedures:    i.knownProcedures,
 		lastCallResult:     i.lastCallResult,
@@ -228,17 +235,13 @@ func (i *Interpreter) CloneWithNewVariables() *Interpreter {
 		rateLimitCount:     i.rateLimitCount,
 		rateLimitDuration:  i.rateLimitDuration,
 		maxLoopIterations:  i.maxLoopIterations,
-
-		// Give the clone its own new maps and mutexes
-		variables:       newVars,
-		variablesMu:     sync.RWMutex{},
-		eventHandlers:   newHandlers,
-		eventHandlersMu: sync.RWMutex{},
+		variables:          newVars,
+		variablesMu:        sync.RWMutex{},
+		eventHandlers:      newHandlers,
+		eventHandlersMu:    sync.RWMutex{},
 	}
-
 	return clone
 }
-
 func (i *Interpreter) SetStdout(writer io.Writer) {
 	if writer == nil {
 		i.logger.Warn("Attempted to set nil stdout writer on interpreter, using os.Stdout as fallback.")
@@ -247,38 +250,31 @@ func (i *Interpreter) SetStdout(writer io.Writer) {
 	}
 	i.stdout = writer
 }
-
 func (i *Interpreter) Stdout() io.Writer {
 	if i.stdout == nil {
 		return os.Stdout
 	}
 	return i.stdout
 }
-
 func (i *Interpreter) SetAIWorkerManager(manager *AIWorkerManager) {
 	i.aiWorkerManager = manager
 }
-
 func (i *Interpreter) AIWorkerManager() *AIWorkerManager {
 	return i.aiWorkerManager
 }
-
 func (i *Interpreter) SandboxDir() string { return i.sandboxDir }
-
 func (i *Interpreter) Logger() interfaces.Logger {
 	if i.logger == nil {
 		panic("FATAL: Interpreter logger is nil")
 	}
 	return i.logger
 }
-
 func (i *Interpreter) FileAPI() *FileAPI {
 	if i.fileAPI == nil {
 		panic("FATAL: Interpreter fileAPI not initialized")
 	}
 	return i.fileAPI
 }
-
 func (i *Interpreter) SetSandboxDir(newSandboxDir string) error {
 	var cleanNewSandboxDir string
 	if newSandboxDir == "" {
@@ -296,9 +292,6 @@ func (i *Interpreter) SetSandboxDir(newSandboxDir string) error {
 	}
 	return nil
 }
-
-// SetVariable sets a variable in the interpreter's current scope.
-// It accepts a core.Value, enforcing the value wrapping contract.
 func (i *Interpreter) SetVariable(name string, value Value) error {
 	i.variablesMu.Lock()
 	defer i.variablesMu.Unlock()
@@ -311,9 +304,6 @@ func (i *Interpreter) SetVariable(name string, value Value) error {
 	i.variables[name] = value
 	return nil
 }
-
-// GetVariable retrieves a variable from the interpreter's current scope.
-// It returns a core.Value, enforcing the value wrapping contract.
 func (i *Interpreter) GetVariable(name string) (Value, bool) {
 	i.variablesMu.RLock()
 	defer i.variablesMu.RUnlock()
@@ -323,21 +313,18 @@ func (i *Interpreter) GetVariable(name string) (Value, bool) {
 	val, exists := i.variables[name]
 	return val, exists
 }
-
 func (i *Interpreter) GenAIClient() *genai.Client {
 	if i.llmClient == nil {
 		return nil
 	}
 	return i.llmClient.Client()
 }
-
 func (i *Interpreter) GetVectorIndex() map[string][]float32 {
 	if i.vectorIndex == nil {
 		i.vectorIndex = make(map[string][]float32)
 	}
 	return i.vectorIndex
 }
-
 func (i *Interpreter) SetVectorIndex(vi map[string][]float32) { i.vectorIndex = vi }
 
 var _ ToolRegistry = (*Interpreter)(nil)

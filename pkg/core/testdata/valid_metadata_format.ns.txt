@@ -1,0 +1,11 @@
+:: title Valid Title
+:: version: 0.2.0
+:: malformed line no colon
+:: : Value with no key
+:: key: value : extra colon
+
+func main() means
+    :: proc meta ok
+    :: bad proc meta
+    set x = 1
+endfunc

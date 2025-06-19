@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.5.2
-// File version: 1
-// Purpose: Contains AST nodes for statements, procedures, and l-values.
+// File version: 2
+// Purpose: Updated AST nodes to support multiple assignment targets and treat LValues as Expressions.
 // filename: pkg/core/ast_statements.go
-// nlines: 100
+// nlines: 104
 // risk_rating: HIGH
 
 package core
@@ -52,6 +52,9 @@ func (n *LValueNode) String() string {
 	return sb.String()
 }
 
+// ADDED: This marker method makes LValueNode satisfy the Expression interface.
+func (n *LValueNode) expressionNode() {}
+
 // ParamSpec defines a parameter in a procedure signature.
 type ParamSpec struct {
 	Name         string
@@ -80,8 +83,9 @@ type Step struct {
 	Type string // e.g., "set", "call", "if", "return", "emit", "must", "fail", "clear_error", "ask", "on_error", "on_event"
 
 	// For "set":
-	LValue *LValueNode // Target of the assignment, can be complex (e.g., var[index].field)
-	Value  Expression  // RHS expression for set
+	// MODIFIED: Changed LValue *LValueNode to LValues []Expression to support multiple assignments.
+	LValues []Expression // Target(s) of the assignment, can be complex (e.g., var[index].field)
+	Value   Expression   // RHS expression for set
 
 	// For "call":
 	Call *CallableExprNode // Details of the function/tool call
@@ -96,7 +100,7 @@ type Step struct {
 	Else []Step // Else block for if statements
 
 	// For "for each":
-	LoopVarName string     // Variable for each item in the loop (e.g., 'item' in 'for each item in myList')
+	LoopVarName string     // Variable for each item in the loop (e.g., 'item' in 'for each myList')
 	Collection  Expression // The collection expression to iterate over
 
 	// For "ask", "on_event":

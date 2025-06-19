@@ -39,6 +39,7 @@ library/combined.log.txt
 vscode-neuroscript/server/nslsp_executable
 pkg/codebase-indices/*.json
 bin/
+tmp/
 
 cmd/nslsp/nslsp_executable
 vscode-neuroscript/vscode-neuroscript-0.3.0.vsix

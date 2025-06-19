@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.3.0
-// File version: 0.1.4 // Incremented file version
-// Purpose: Test for AST builder stack corruption with various nested and complex block structures.
+// File version: 0.1.5
+// Purpose: Updated test scripts to use the new 'on error do' syntax.
 // filename: pkg/core/ast_builder_stack_test.go
-// nlines: 179 // Line count remains the same as only comments changed
+// nlines: 179
 // risk_rating: LOW
 
 package core_test
@@ -43,7 +43,7 @@ func MinimalStackTest(returns result) means
   endif
   set final_val = counter
   return final_val
-  on_error means
+  on error do
     emit "error_occurred_in_MinimalStackTest"
     return "ERROR_STATE"
   endon
@@ -105,7 +105,7 @@ func EmptyAndMinimalBlocksTest() means
     # Empty while loop
   endwhile
 
-  on_error means
+  on error do
     # Empty on_error handler
   endon
   return "done_empty_blocks"
@@ -194,7 +194,7 @@ endfunc
 			expectProc: true,
 			scriptContent: `
 func OnErrorFirstTest() means
-  on_error means
+  on error do
     emit "handled_early"
   endon
   set a = 1 / 0 # This should trigger on_error

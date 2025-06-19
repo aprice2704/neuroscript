@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.3.5
-// File version: 1.0.2
-// Purpose: Corrected two MUST test cases to align with the interpreter's actual truthiness rules and specific error types.
+// File version: 1.1.0
+// Purpose: Added test cases for 'while' and 'for each' loops to improve block statement coverage.
 // filename: pkg/core/interpreter_test.go
 package core
 
@@ -58,6 +58,60 @@ func TestExecuteStepsBlocksAndLoops(t *testing.T) {
 			initialVars:    map[string]Value{},
 			expectedVars:   map[string]Value{"status": StringValue{Value: "Started"}, "x": StringValue{Value: "Inside"}},
 			expectedResult: StringValue{Value: "ReturnedFromIf"},
+			expectError:    false,
+		},
+		// ADDED: Test case for a basic 'while' loop.
+		{
+			name: "WHILE loop basic",
+			inputSteps: []Step{
+				createTestStep("set", "i", &NumberLiteralNode{Value: 0}, nil),
+				createWhileStep(dummyPos,
+					&BinaryOpNode{ // Condition: i < 3
+						Left:     &VariableNode{Name: "i"},
+						Operator: "<",
+						Right:    &NumberLiteralNode{Value: 3},
+					},
+					[]Step{ // Body: set i = i + 1
+						createTestStep("set", "i", &BinaryOpNode{
+							Left:     &VariableNode{Name: "i"},
+							Operator: "+",
+							Right:    &NumberLiteralNode{Value: 1},
+						}, nil),
+					},
+				),
+			},
+			expectedVars:   map[string]Value{"i": NumberValue{Value: 3}},
+			expectedResult: NumberValue{Value: 3}, // The result of the last set statement in the loop
+			expectError:    false,
+		},
+		// ADDED: Test case for a 'for each' loop.
+		{
+			name: "FOR EACH loop",
+			inputSteps: []Step{
+				createTestStep("set", "l", &ListLiteralNode{
+					Elements: []Expression{
+						&NumberLiteralNode{Value: 10},
+						&NumberLiteralNode{Value: 20},
+						&NumberLiteralNode{Value: 30},
+					},
+				}, nil),
+				createTestStep("set", "sum", &NumberLiteralNode{Value: 0}, nil),
+				createForStep(dummyPos, "item", &VariableNode{Name: "l"},
+					[]Step{ // Body: set sum = sum + item
+						createTestStep("set", "sum", &BinaryOpNode{
+							Left:     &VariableNode{Name: "sum"},
+							Operator: "+",
+							Right:    &VariableNode{Name: "item"},
+						}, nil),
+					},
+				),
+			},
+			expectedVars: map[string]Value{
+				"l":    NewListValue([]Value{NumberValue{Value: 10}, NumberValue{Value: 20}, NumberValue{Value: 30}}),
+				"sum":  NumberValue{Value: 60},
+				"item": NumberValue{Value: 30}, // Loop variable holds the last value after the loop
+			},
+			expectedResult: NumberValue{Value: 60}, // Result of the last set statement
 			expectError:    false,
 		},
 		{
@@ -131,9 +185,6 @@ func TestExecuteStepsBlocksAndLoops(t *testing.T) {
 			expectError:    false,
 		},
 		{
-			// FIX: The interpreter's IsTruthy logic for strings is stricter than just non-empty.
-			// The string "other" is not considered truthy, so `must "other"` correctly fails.
-			// This test is now corrected to expect that failure.
 			name:            "MUST non-empty string ('other')",
 			inputSteps:      []Step{createTestStep("must", "", &StringLiteralNode{Value: "other"}, nil)},
 			initialVars:     mustBeVars,
@@ -154,8 +205,7 @@ func TestExecuteStepsBlocksAndLoops(t *testing.T) {
 				Operator: "-",
 				Right:    &StringLiteralNode{Value: "a"},
 			}, nil)},
-			expectError: true,
-			// FIX: The code correctly returns a more specific error. The test should check for it.
+			expectError:     true,
 			ExpectedErrorIs: ErrInvalidOperandTypeNumeric,
 		},
 		{

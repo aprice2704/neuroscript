@@ -1,6 +1,6 @@
-// NeuroScript Version: 0.4.0
-// File version: 11
-// Purpose: Implemented a robust createTestStep helper to correctly build Step structs for various statement types, fixing numerous test failures.
+// NeuroScript Version: 0.4.1
+// File version: 13
+// Purpose: Updated createTestStep helper to use the new LValues field.
 // filename: pkg/core/testing_helpers.go
 
 package core
@@ -13,6 +13,8 @@ import (
 )
 
 var dummyPos = &Position{Line: 1, Column: 1, File: "test"}
+
+// ... (struct definitions and other functions are unchanged) ...
 
 type EvalTestCase struct {
 	Name            string
@@ -78,7 +80,7 @@ func runEvalExpressionTest(t *testing.T, tc EvalTestCase) {
 		got, err := i.evaluateExpression(tc.InputNode)
 
 		if (err != nil) != tc.WantErr {
-			t.Fatalf("Test %q: Error expectation mismatch.\n  got err = %v, wantErr %t", tc.Name, err, tc.WantErr)
+			t.Fatalf("Test %q: Error expectation mismatch.\n got err = %v, wantErr %t", tc.Name, err, tc.WantErr)
 		}
 		if tc.WantErr {
 			if tc.ExpectedErrorIs != nil && !errors.Is(err, tc.ExpectedErrorIs) {
@@ -92,8 +94,8 @@ func runEvalExpressionTest(t *testing.T, tc EvalTestCase) {
 
 		if !reflect.DeepEqual(got, tc.Expected) {
 			t.Fatalf(`Test %q: Result mismatch.
-			Expected:    %#v (%T)
-			Got:         %#v (%T)`,
+		   Expected: 	%#v (%T)
+		   Got: 	 	%#v (%T)`,
 				tc.Name, tc.Expected, tc.Expected, got, got)
 		}
 	})
@@ -127,7 +129,7 @@ func runExecuteStepsTest(t *testing.T, tc executeStepsTestCase) {
 		}
 
 		if !reflect.DeepEqual(actualResult, tc.expectedResult) {
-			t.Errorf("Test %q: Final execution result mismatch:\n  Expected: %#v (%T)\n  Got:      %#v (%T)", tc.name, tc.expectedResult, tc.expectedResult, actualResult, actualResult)
+			t.Errorf("Test %q: Final execution result mismatch:\n Expected: %#v (%T)\n Got: 	  %#v (%T)", tc.name, tc.expectedResult, tc.expectedResult, actualResult, actualResult)
 		}
 
 		if tc.expectedVars != nil {
@@ -138,7 +140,7 @@ func runExecuteStepsTest(t *testing.T, tc executeStepsTestCase) {
 					continue
 				}
 				if !reflect.DeepEqual(gotValue, expectedValue) {
-					t.Errorf("Test %q: Variable state mismatch for key '%s':\n  Expected: %#v (%T)\n  Got:      %#v (%T)", tc.name, expectedKey, expectedValue, expectedValue, gotValue, gotValue)
+					t.Errorf("Test %q: Variable state mismatch for key '%s':\n Expected: %#v (%T)\n Got: 	  %#v (%T)", tc.name, expectedKey, expectedValue, expectedValue, gotValue, gotValue)
 				}
 			}
 		}
@@ -150,12 +152,13 @@ func createTestStep(stepType, target string, value Expression, callArgs []Expres
 	s := Step{Pos: dummyPos, Type: stepType}
 	switch strings.ToLower(stepType) {
 	case "set":
-		s.LValue = &LValueNode{Identifier: target, Pos: s.Pos}
+		// MODIFIED: Use the new LValues field.
+		lval := &LValueNode{Identifier: target, Pos: s.Pos}
+		s.LValues = []Expression{lval}
 		s.Value = value
 	case "emit", "return":
 		s.Values = []Expression{value}
 	case "must":
-		// 'must' can operate on a condition or a 'last' node.
 		s.Cond = value
 	case "call":
 		s.Call = &CallableExprNode{
@@ -164,14 +167,33 @@ func createTestStep(stepType, target string, value Expression, callArgs []Expres
 			Arguments: callArgs,
 		}
 	default:
-		// Fallback for simple cases, though explicit cases are better.
-		s.Value = value
+		// This default case might be problematic if 'value' is an LValue, but for now, we leave it.
+		// It seems designed for simple expression assignments to 'Value' which is not always correct.
 	}
 	return s
 }
 
 func createIfStep(pos *Position, condNode Expression, thenSteps, elseSteps []Step) Step {
 	return Step{Pos: pos, Type: "if", Cond: condNode, Body: thenSteps, Else: elseSteps}
+}
+
+func createWhileStep(pos *Position, condNode Expression, bodySteps []Step) Step {
+	return Step{
+		Pos:  pos,
+		Type: "while",
+		Cond: condNode,
+		Body: bodySteps,
+	}
+}
+
+func createForStep(pos *Position, loopVarName string, collectionExpr Expression, bodySteps []Step) Step {
+	return Step{
+		Pos:         pos,
+		Type:        "for",
+		LoopVarName: loopVarName,
+		Collection:  collectionExpr,
+		Body:        bodySteps,
+	}
 }
 
 func NewTestStringLiteral(val string) *StringLiteralNode {
@@ -194,7 +216,6 @@ func DebugDumpVariables(i *Interpreter, t *testing.T) {
 	i.variablesMu.RLock()
 	defer i.variablesMu.RUnlock()
 	t.Log("--- INTERPRETER VARIABLE DUMP ---")
-	// This would need updating to get all keys from the interpreter's variable map.
 	t.Log("  (variable dumping needs update to get all keys)")
 	t.Log("--- END VARIABLE DUMP ---")
 }

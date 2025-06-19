@@ -1,9 +1,8 @@
-// NeuroScript Version: 0.3.0
-// File version: 0.1.2
-// Corrected core tool lookup to Tree.SetValue and its argument structure.
+// NeuroScript Version: 0.3.1
+// File version: 0.2.0
+// Purpose: Updated to use safe type assertions for attributes from core.TreeAttrs (map[string]interface{}).
 // filename: pkg/neurodata/checklist/checklist_tool2.go
-// nlines: 290 // Approximate
-// risk_rating: MEDIUM
+
 package checklist
 
 import (
@@ -54,7 +53,6 @@ func toolChecklistSetItemText(interpreter *core.Interpreter, args []interface{})
 	toolName := "ChecklistSetItemText"
 	logger := interpreter.Logger()
 
-	// 1. Validate Arguments
 	if len(args) != 3 {
 		return nil, fmt.Errorf("%w: %s expected 3 arguments (handle, nodeId, newText), got %d", core.ErrValidationArgCount, toolName, len(args))
 	}
@@ -74,7 +72,6 @@ func toolChecklistSetItemText(interpreter *core.Interpreter, args []interface{})
 		return nil, fmt.Errorf("%w: %s expected string arg[2] 'newText', got %T", core.ErrValidationTypeMismatch, toolName, args[2])
 	}
 
-	// 2. Get Target Node and Validate Type *before* calling core tool
 	treeObj, getHandleErr := interpreter.GetHandleValue(handleID, core.GenericTreeHandleType)
 	if getHandleErr != nil {
 		return nil, fmt.Errorf("%s failed getting handle %q: %w", toolName, handleID, getHandleErr)
@@ -93,11 +90,9 @@ func toolChecklistSetItemText(interpreter *core.Interpreter, args []interface{})
 			core.ErrInvalidArgument, toolName, nodeID, targetNode.Type)
 	}
 
-	// 3. Prepare arguments for Tree.SetValue
-	coreArgs := core.MakeArgs(handleID, nodeID, newText) // MODIFIED HERE
+	coreArgs := core.MakeArgs(handleID, nodeID, newText)
 
-	// 4. Get and call the core Tree.SetValue tool
-	modifyToolImpl, found := interpreter.ToolRegistry().GetTool("Tree.SetValue") // MODIFIED HERE
+	modifyToolImpl, found := interpreter.ToolRegistry().GetTool("Tree.SetValue")
 	if !found || modifyToolImpl.Func == nil {
 		logger.Error("Core tool 'Tree.SetValue' not found in registry", "tool", toolName)
 		return nil, fmt.Errorf("%w: %s requires core tool 'Tree.SetValue' which was not found", core.ErrInternal, toolName)
@@ -106,7 +101,6 @@ func toolChecklistSetItemText(interpreter *core.Interpreter, args []interface{})
 	logger.Debug("Calling core Tree.SetValue tool", "tool", toolName, "handle", handleID, "nodeId", nodeID, "newText", newText)
 	result, err := modifyToolImpl.Func(interpreter, coreArgs)
 
-	// 5. Handle result/error from Tree.SetValue
 	if err != nil {
 		logger.Error("Core Tree.SetValue tool failed", "tool", toolName, "error", err)
 		if errors.Is(err, core.ErrNotFound) || errors.Is(err, core.ErrInvalidArgument) || errors.Is(err, core.ErrCannotSetValueOnType) {
@@ -177,9 +171,6 @@ func updateChecklistTreeStatus(tree *core.GenericTree, logger interfaces.Logger)
 	return nil
 }
 
-// updateAutomaticNodeStatus recursively traverses the tree, calculates and updates the status
-// of automatic nodes based on their children's *final* statuses from the recursive calls.
-// It now correctly recurses through non-automatic nodes as well and checks for Type "checklist_item".
 func updateAutomaticNodeStatus(tree *core.GenericTree, nodeID string, logger interfaces.Logger) (string, error) {
 	node, exists := tree.NodeMap[nodeID]
 	if !exists || node == nil {
@@ -189,26 +180,37 @@ func updateAutomaticNodeStatus(tree *core.GenericTree, nodeID string, logger int
 
 	if node.Type != "checklist_item" {
 		logger.Warn("Skipping status update for non-checklist item node", "nodeId", nodeID, "type", node.Type)
-		currentStatus := "open" // Default
+		// FIX: Safely assert status to a string, provide a default if it doesn't exist or is the wrong type.
+		var currentStatus string
 		if node.Attributes != nil {
-			if status, ok := node.Attributes["status"]; ok {
+			if status, ok := node.Attributes["status"].(string); ok {
 				currentStatus = status
 			}
+		}
+		if currentStatus == "" {
+			currentStatus = "open"
 		}
 		return currentStatus, nil
 	}
 
 	if node.Attributes == nil {
-		node.Attributes = make(map[string]string)
+		// FIX: Align with the new core.TreeAttrs type (map[string]interface{})
+		node.Attributes = make(core.TreeAttrs)
 	}
 
-	isAutomatic := node.Attributes["is_automatic"] == "true"
-	currentStatus, statusExists := node.Attributes["status"]
-	if !statusExists {
-		logger.Warn("Checklist item node missing 'status' attribute, defaulting to 'open'", "nodeId", nodeID)
+	// FIX: Safely assert status to a string, providing a default.
+	var currentStatus string
+	if statusVal, ok := node.Attributes["status"]; ok {
+		currentStatus, _ = statusVal.(string) // Use blank identifier, default to "" if not a string
+	}
+	if currentStatus == "" {
 		node.Attributes["status"] = "open"
 		currentStatus = "open"
+		logger.Warn("Checklist item node missing 'status' attribute, defaulting to 'open'", "nodeId", nodeID)
 	}
+
+	// FIX: Safely assert is_automatic to a bool.
+	isAutomatic, _ := node.Attributes["is_automatic"].(bool)
 
 	logger.Debug("Entering updateAutomaticNodeStatus", "nodeId", nodeID, "isAutomatic", isAutomatic, "currentStatus", currentStatus)
 
@@ -229,12 +231,13 @@ func updateAutomaticNodeStatus(tree *core.GenericTree, nodeID string, logger int
 					return "", fmt.Errorf("%w: child node %q (of %q) disappeared during update", core.ErrInternal, childID, nodeID)
 				}
 				if childNode.Type == "checklist_item" && childNode.Attributes != nil {
-					sym, ok := childNode.Attributes["special_symbol"]
-					if !ok || sym == "" {
-						logger.Warn("Special child node missing final symbol attribute, using '?'", "parentNodeId", nodeID, "childNodeId", childID)
-						sym = "?"
+					// FIX: Safely assert special_symbol to a string.
+					if symStr, ok := childNode.Attributes["special_symbol"].(string); ok && symStr != "" {
+						childSymbols[idx] = symStr
+					} else {
+						logger.Warn("Special child node missing symbol attribute, using '?'", "parentNodeId", nodeID, "childNodeId", childID)
+						childSymbols[idx] = "?"
 					}
-					childSymbols[idx] = sym
 				} else {
 					logger.Warn("Child node encountered during symbol collection was not a checklist item or lacked attributes", "parentNodeId", nodeID, "childNodeId", childID, "childNodeType", childNode.Type)
 				}
@@ -259,7 +262,8 @@ func updateAutomaticNodeStatus(tree *core.GenericTree, nodeID string, logger int
 			finalStatus = calculatedStatus
 			logger.Debug("Calculated automatic status", "nodeId", nodeID, "calculatedStatus", finalStatus, "calculatedSymbol", calculatedSymbol)
 
-			currentSymbol, _ := node.Attributes["special_symbol"]
+			// FIX: Safely assert current symbol to a string.
+			currentSymbol, _ := node.Attributes["special_symbol"].(string)
 			statusChanged := currentStatus != finalStatus
 			symbolChanged := false
 
@@ -289,6 +293,7 @@ func updateAutomaticNodeStatus(tree *core.GenericTree, nodeID string, logger int
 			}
 		}
 	} else {
+		// FIX: Ensure finalStatus is the string from the attribute map.
 		finalStatus = currentStatus
 
 		if finalStatus != "special" {

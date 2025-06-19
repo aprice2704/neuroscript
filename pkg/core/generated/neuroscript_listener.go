@@ -13,6 +13,9 @@ type NeuroScriptListener interface {
 	// EnterFile_header is called when entering the file_header production.
 	EnterFile_header(c *File_headerContext)
 
+	// EnterCode_block is called when entering the code_block production.
+	EnterCode_block(c *Code_blockContext)
+
 	// EnterProcedure_definition is called when entering the procedure_definition production.
 	EnterProcedure_definition(c *Procedure_definitionContext)
 
@@ -49,8 +52,23 @@ type NeuroScriptListener interface {
 	// EnterBlock_statement is called when entering the block_statement production.
 	EnterBlock_statement(c *Block_statementContext)
 
+	// EnterOn_stmt is called when entering the on_stmt production.
+	EnterOn_stmt(c *On_stmtContext)
+
+	// EnterError_handler is called when entering the error_handler production.
+	EnterError_handler(c *Error_handlerContext)
+
+	// EnterEvent_handler is called when entering the event_handler production.
+	EnterEvent_handler(c *Event_handlerContext)
+
+	// EnterClearEventStmt is called when entering the clearEventStmt production.
+	EnterClearEventStmt(c *ClearEventStmtContext)
+
 	// EnterLvalue is called when entering the lvalue production.
 	EnterLvalue(c *LvalueContext)
+
+	// EnterLvalue_list is called when entering the lvalue_list production.
+	EnterLvalue_list(c *Lvalue_listContext)
 
 	// EnterSet_statement is called when entering the set_statement production.
 	EnterSet_statement(c *Set_statementContext)
@@ -90,12 +108,6 @@ type NeuroScriptListener interface {
 
 	// EnterFor_each_statement is called when entering the for_each_statement production.
 	EnterFor_each_statement(c *For_each_statementContext)
-
-	// EnterOnErrorStmt is called when entering the onErrorStmt production.
-	EnterOnErrorStmt(c *OnErrorStmtContext)
-
-	// EnterOnEventStmt is called when entering the onEventStmt production.
-	EnterOnEventStmt(c *OnEventStmtContext)
 
 	// EnterQualified_identifier is called when entering the qualified_identifier production.
 	EnterQualified_identifier(c *Qualified_identifierContext)
@@ -187,6 +199,9 @@ type NeuroScriptListener interface {
 	// ExitFile_header is called when exiting the file_header production.
 	ExitFile_header(c *File_headerContext)
 
+	// ExitCode_block is called when exiting the code_block production.
+	ExitCode_block(c *Code_blockContext)
+
 	// ExitProcedure_definition is called when exiting the procedure_definition production.
 	ExitProcedure_definition(c *Procedure_definitionContext)
 
@@ -223,8 +238,23 @@ type NeuroScriptListener interface {
 	// ExitBlock_statement is called when exiting the block_statement production.
 	ExitBlock_statement(c *Block_statementContext)
 
+	// ExitOn_stmt is called when exiting the on_stmt production.
+	ExitOn_stmt(c *On_stmtContext)
+
+	// ExitError_handler is called when exiting the error_handler production.
+	ExitError_handler(c *Error_handlerContext)
+
+	// ExitEvent_handler is called when exiting the event_handler production.
+	ExitEvent_handler(c *Event_handlerContext)
+
+	// ExitClearEventStmt is called when exiting the clearEventStmt production.
+	ExitClearEventStmt(c *ClearEventStmtContext)
+
 	// ExitLvalue is called when exiting the lvalue production.
 	ExitLvalue(c *LvalueContext)
+
+	// ExitLvalue_list is called when exiting the lvalue_list production.
+	ExitLvalue_list(c *Lvalue_listContext)
 
 	// ExitSet_statement is called when exiting the set_statement production.
 	ExitSet_statement(c *Set_statementContext)
@@ -264,12 +294,6 @@ type NeuroScriptListener interface {
 
 	// ExitFor_each_statement is called when exiting the for_each_statement production.
 	ExitFor_each_statement(c *For_each_statementContext)
-
-	// ExitOnErrorStmt is called when exiting the onErrorStmt production.
-	ExitOnErrorStmt(c *OnErrorStmtContext)
-
-	// ExitOnEventStmt is called when exiting the onEventStmt production.
-	ExitOnEventStmt(c *OnEventStmtContext)
 
 	// ExitQualified_identifier is called when exiting the qualified_identifier production.
 	ExitQualified_identifier(c *Qualified_identifierContext)

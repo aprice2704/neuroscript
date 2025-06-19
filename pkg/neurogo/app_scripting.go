@@ -1,6 +1,6 @@
-// NeuroScript Version: 0.3.0
-// File version: 0.0.4 (Refactored to separate content processing from file I/O)
-// Purpose: Provide helpers for loading and processing NeuroScript files and strings.
+// NeuroScript Version: 0.3.1
+// File version: 0.1.0
+// Purpose: Aligned with core contracts by wrapping primitive args/vars into core.Value types before passing to the interpreter.
 // filename: pkg/neurogo/app_scripting.go
 
 package neurogo
@@ -17,7 +17,6 @@ import (
 )
 
 // processNeuroScriptContent is the core logic for parsing a script string and loading it.
-// The sourceName is used for logging and error reporting (e.g., a file path or "<string>").
 func (a *App) processNeuroScriptContent(content, sourceName string, interp *core.Interpreter) ([]*core.Procedure, map[string]string, error) {
 	if interp == nil {
 		return nil, nil, fmt.Errorf("cannot process script from '%s': interpreter is nil", sourceName)
@@ -81,7 +80,7 @@ func (a *App) processNeuroScriptFile(filePath string, interp *core.Interpreter) 
 	return a.processNeuroScriptContent(string(contentBytes), filePath, interp)
 }
 
-// loadLibraries processes all files specified in Config.LibPaths. (This function remains unchanged)
+// loadLibraries processes all files specified in Config.LibPaths.
 func (a *App) loadLibraries(interpreter *core.Interpreter) error {
 	if interpreter == nil {
 		return fmt.Errorf("cannot load libraries: interpreter is nil")
@@ -147,7 +146,6 @@ func (app *App) ExecuteScriptFile(ctx context.Context, scriptPath string) error 
 		return fmt.Errorf("error loading libraries for script %s: %w", scriptPath, err)
 	}
 
-	// This function now correctly calls the refactored core logic.
 	_, fileMeta, err := app.processNeuroScriptFile(scriptPath, interpreter)
 	if err != nil {
 		return fmt.Errorf("failed to process script %s: %w", scriptPath, err)
@@ -156,7 +154,6 @@ func (app *App) ExecuteScriptFile(ctx context.Context, scriptPath string) error 
 		fileMeta = make(map[string]string)
 	}
 
-	// Determine procedure to run
 	procedureToRun := app.Config.TargetArg
 	if procedureToRun == "" {
 		if metaTarget, ok := fileMeta["target"]; ok && metaTarget != "" {
@@ -166,16 +163,20 @@ func (app *App) ExecuteScriptFile(ctx context.Context, scriptPath string) error 
 		}
 	}
 
-	// Prepare arguments
 	scriptCLIArgs := app.Config.ProcArgs
-	interpreterArgs := make([]interface{}, len(scriptCLIArgs))
+
+	// FIX: Wrap primitive arguments into core.Value types before calling RunProcedure.
+	wrappedArgs := make([]core.Value, len(scriptCLIArgs))
 	for i, argStr := range scriptCLIArgs {
-		interpreterArgs[i] = argStr
+		wrapped, err := core.Wrap(argStr)
+		if err != nil {
+			return fmt.Errorf("failed to wrap script argument '%s': %w", argStr, err)
+		}
+		wrappedArgs[i] = wrapped
 	}
 
-	// Execute the procedure
 	app.Log.Debug("Executing procedure.", "name", procedureToRun)
-	_, runErr := interpreter.RunProcedure(procedureToRun, interpreterArgs...)
+	_, runErr := interpreter.RunProcedure(procedureToRun, wrappedArgs...)
 	if runErr != nil {
 		return fmt.Errorf("error executing procedure '%s' in script '%s': %w", procedureToRun, scriptPath, runErr)
 	}
@@ -184,8 +185,6 @@ func (app *App) ExecuteScriptFile(ctx context.Context, scriptPath string) error 
 	app.Log.Debug("--- Script File Execution Finished ---", "path", scriptPath, "total_duration", totalDuration)
 	return nil
 }
-
-// In pkg/neurogo/app.go or app_script.go
 
 // ExecuteScriptString parses and runs the target procedure of a given script string.
 func (app *App) ExecuteScriptString(ctx context.Context, scriptName, scriptContent string, initialVars map[string]interface{}) (any, error) {
@@ -201,10 +200,9 @@ func (app *App) ExecuteScriptString(ctx context.Context, scriptName, scriptConte
 		return nil, fmt.Errorf("error loading libraries for script '%s': %w", scriptName, err)
 	}
 
-	// CORRECTED LINE: Handle all 3 return values from the content processor.
 	_, fileMeta, err := app.processNeuroScriptContent(scriptContent, scriptName, interpreter)
 	if err != nil {
-		return nil, err // The error from processNeuroScriptContent is already descriptive
+		return nil, err
 	}
 	if fileMeta == nil {
 		fileMeta = make(map[string]string)
@@ -212,7 +210,14 @@ func (app *App) ExecuteScriptString(ctx context.Context, scriptName, scriptConte
 
 	if initialVars != nil {
 		for key, value := range initialVars {
-			interpreter.SetVariable(key, value)
+			// FIX: Wrap primitive interface{} value into a core.Value before setting.
+			wrappedValue, err := core.Wrap(value)
+			if err != nil {
+				return nil, fmt.Errorf("failed to wrap initial variable '%s': %w", key, err)
+			}
+			if err := interpreter.SetVariable(key, wrappedValue); err != nil {
+				return nil, fmt.Errorf("failed to set initial variable '%s': %w", key, err)
+			}
 		}
 	}
 
@@ -225,12 +230,18 @@ func (app *App) ExecuteScriptString(ctx context.Context, scriptName, scriptConte
 		}
 	}
 
-	interpreterArgs := make([]interface{}, len(app.Config.ProcArgs))
-	for i, argStr := range app.Config.ProcArgs {
-		interpreterArgs[i] = argStr
+	interpreterArgs := app.Config.ProcArgs
+	// FIX: Wrap primitive arguments into core.Value types before calling RunProcedure.
+	wrappedArgs := make([]core.Value, len(interpreterArgs))
+	for i, argStr := range interpreterArgs {
+		wrapped, err := core.Wrap(argStr)
+		if err != nil {
+			return nil, fmt.Errorf("failed to wrap script argument '%s': %w", argStr, err)
+		}
+		wrappedArgs[i] = wrapped
 	}
 
-	results, runErr := interpreter.RunProcedure(procedureToRun, interpreterArgs...)
+	results, runErr := interpreter.RunProcedure(procedureToRun, wrappedArgs...)
 	if runErr != nil {
 		return nil, fmt.Errorf("error executing procedure '%s' from script '%s': %w", procedureToRun, scriptName, runErr)
 	}

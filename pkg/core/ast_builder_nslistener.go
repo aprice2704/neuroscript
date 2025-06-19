@@ -1,9 +1,9 @@
 // NeuroScript Version: 0.3.0
-// File version: 4
-// Purpose: Re-instates the sentinel var to ensure full interface implementation.
+// File version: 10
+// Purpose: Corrected ANTLR method call in VisitTerminal from GetType to GetTokenType.
 // filename: pkg/core/ast_builder_nslistener.go
-// nlines: 95
-// risk_rating: LOW
+// nlines: 174
+// risk_rating: HIGH
 
 package core
 
@@ -16,6 +16,7 @@ import (
 )
 
 type neuroScriptListenerImpl struct {
+	*gen.BaseNeuroScriptListener
 	program              *Program
 	fileMetadata         map[string]string
 	procedures           []*Procedure
@@ -32,20 +33,16 @@ type neuroScriptListenerImpl struct {
 	blockValueDepthStack []int
 }
 
-// EnterEveryRule implements core.NeuroScriptListener.
-func (l *neuroScriptListenerImpl) EnterEveryRule(ctx antlr.ParserRuleContext) {
-}
+func (l *neuroScriptListenerImpl) EnterEveryRule(ctx antlr.ParserRuleContext) {}
+func (l *neuroScriptListenerImpl) ExitEveryRule(ctx antlr.ParserRuleContext)  {}
+func (l *neuroScriptListenerImpl) VisitErrorNode(node antlr.ErrorNode)        {}
 
-// ExitEveryRule implements core.NeuroScriptListener.
-func (l *neuroScriptListenerImpl) ExitEveryRule(ctx antlr.ParserRuleContext) {
-}
-
-// VisitErrorNode implements core.NeuroScriptListener.
-func (l *neuroScriptListenerImpl) VisitErrorNode(node antlr.ErrorNode) {
-}
-
-// VisitTerminal implements core.NeuroScriptListener.
+// VisitTerminal is called for every terminal node (token) in the parse tree.
 func (l *neuroScriptListenerImpl) VisitTerminal(node antlr.TerminalNode) {
+	// MODIFIED: Changed GetType() to the correct ANTLR method, GetTokenType().
+	if node.GetSymbol().GetTokenType() == gen.NeuroScriptParserMETADATA_LINE && l.currentProc == nil {
+		l.processMetadataLine(l.fileMetadata, node.GetSymbol())
+	}
 }
 
 // Sentinel variable to ensure neuroScriptListenerImpl implements the full interface.
@@ -53,14 +50,15 @@ var _ gen.NeuroScriptListener = (*neuroScriptListenerImpl)(nil)
 
 func newNeuroScriptListener(logger interfaces.Logger, debugAST bool) *neuroScriptListenerImpl {
 	return &neuroScriptListenerImpl{
-		program:        &Program{Procedures: make(map[string]*Procedure), Events: make([]*OnEventDecl, 0)},
-		fileMetadata:   make(map[string]string),
-		procedures:     make([]*Procedure, 0),
-		events:         make([]*OnEventDecl, 0),
-		valueStack:     make([]interface{}, 0),
-		blockStepStack: make([]*[]Step, 0),
-		logger:         logger,
-		debugAST:       debugAST,
+		BaseNeuroScriptListener: &gen.BaseNeuroScriptListener{},
+		program:                 &Program{Procedures: make(map[string]*Procedure), Events: make([]*OnEventDecl, 0)},
+		fileMetadata:            make(map[string]string),
+		procedures:              make([]*Procedure, 0),
+		events:                  make([]*OnEventDecl, 0),
+		valueStack:              make([]interface{}, 0),
+		blockStepStack:          make([]*[]Step, 0),
+		logger:                  logger,
+		debugAST:                debugAST,
 	}
 }
 
@@ -113,4 +111,69 @@ func (l *neuroScriptListenerImpl) ExitProgram(c *gen.ProgramContext) {
 		l.addErrorf(c.GetStart(), "internal AST builder error: block step stack size is %d at end of program", len(l.blockStepStack))
 		l.logger.Error("ExitProgram: blockStepStack not empty", "size", len(l.blockStepStack))
 	}
+}
+
+func (l *neuroScriptListenerImpl) EnterLvalue_list(ctx *gen.Lvalue_listContext) {
+	l.logDebugAST("EnterLvalue_list")
+}
+
+func (l *neuroScriptListenerImpl) ExitLvalue_list(ctx *gen.Lvalue_listContext) {
+	l.logDebugAST("ExitLvalue_list: Collecting assignable targets.")
+	numLvalues := len(ctx.AllLvalue())
+	if numLvalues == 0 {
+		l.addError(ctx, "lvalue_list is empty, which should not be possible based on grammar")
+		l.pushValue([]Expression{})
+		return
+	}
+	lvalues := make([]Expression, numLvalues)
+	for i := numLvalues - 1; i >= 0; i-- {
+		value, popok := l.popValue()
+		if !popok {
+			l.addError(ctx, "internal AST builder error: failed to pop value for lvalue from stack; stack is likely empty")
+			l.pushValue([]Expression{})
+			return
+		}
+		expr, ok := value.(Expression)
+		if !ok {
+			l.addError(ctx, "internal AST builder error: value for lvalue is not an Expression node, got %T", value)
+			l.pushValue([]Expression{})
+			return
+		}
+		lvalues[i] = expr
+	}
+	l.pushValue(lvalues)
+}
+
+func (l *neuroScriptListenerImpl) ExitSet_statement(ctx *gen.Set_statementContext) {
+	l.logDebugAST("ExitSet_statement: Building set step.")
+
+	rhsVal, ok := l.popValue()
+	if !ok {
+		l.addError(ctx, "internal error in set_statement: could not pop RHS expression from stack")
+		return
+	}
+	rhsExpr, ok := rhsVal.(Expression)
+	if !ok {
+		l.addError(ctx, "internal error in set_statement: RHS value is not an Expression, but %T", rhsVal)
+		return
+	}
+
+	lhsVal, ok := l.popValue()
+	if !ok {
+		l.addError(ctx, "internal error in set_statement: could not pop LHS expressions from stack")
+		return
+	}
+	lhsExprs, ok := lhsVal.([]Expression)
+	if !ok {
+		l.addError(ctx, "internal error in set_statement: LHS value is not []Expression, but %T", lhsVal)
+		return
+	}
+
+	step := Step{
+		Pos:     tokenToPosition(ctx.GetStart()),
+		Type:    "set",
+		LValues: lhsExprs,
+		Value:   rhsExpr,
+	}
+	*l.currentSteps = append(*l.currentSteps, step)
 }

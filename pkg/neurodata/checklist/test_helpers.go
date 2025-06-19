@@ -1,9 +1,8 @@
-// NeuroScript Version: 0.3.0
-// File version: 0.1.4
-// Corrected type assertion in getNodeAttributesMap to expect map[string]string.
+// NeuroScript Version: 0.3.1
+// File version: 0.2.0
+// Purpose: Updated test helpers to return map[string]interface{} for attributes, aligning with core.TreeAttrs.
 // filename: pkg/neurodata/checklist/test_helpers.go
-// nlines: 150 // Approximate
-// risk_rating: MEDIUM
+
 package checklist
 
 import (
@@ -48,7 +47,6 @@ func getNodeViaTool(t *testing.T, interp *core.Interpreter, handleID string, nod
 	}
 	nodeDataIntf, err := impl.Func(interp, core.MakeArgs(handleID, nodeID))
 	if err != nil {
-		// It's okay for this helper to return nil if the node is not found, as tests might expect this.
 		if errors.Is(err, core.ErrNotFound) || errors.Is(err, core.ErrInvalidArgument) || errors.Is(err, core.ErrHandleWrongType) || errors.Is(err, core.ErrHandleNotFound) || errors.Is(err, core.ErrHandleInvalid) {
 			t.Logf("getNodeViaTool: Got expected error getting node %q: %v", nodeID, err)
 			return nil
@@ -78,40 +76,26 @@ func getNodeValue(t *testing.T, nodeData map[string]interface{}) interface{} {
 	return val
 }
 
-func getNodeAttributesMap(t *testing.T, nodeData map[string]interface{}) map[string]string {
+// FIX: Changed return type and logic to correctly handle map[string]interface{}.
+func getNodeAttributesMap(t *testing.T, nodeData map[string]interface{}) map[string]interface{} {
 	t.Helper()
 	if nodeData == nil {
 		t.Fatalf("getNodeAttributesMap: called with nil nodeData")
 	}
 	attrsVal, exists := nodeData["attributes"]
 	if !exists || attrsVal == nil {
-		return make(map[string]string) // Return empty map if attributes are nil or not present
+		return make(map[string]interface{}) // Return empty map
 	}
 
-	// MODIFIED: Expect map[string]string directly, as this is what GenericTreeNode.Attributes is
-	// and what toolTreeGetNode should be placing in the map.
-	attrsMap, ok := attrsVal.(map[string]string)
+	attrsMap, ok := attrsVal.(map[string]interface{})
 	if !ok {
-		// Fallback to check if it was map[string]interface{} and convert, though this shouldn't be the primary path.
-		rawAttrsMap, rawOk := attrsVal.(map[string]interface{})
-		if !rawOk {
-			t.Fatalf("getNodeAttributesMap: 'attributes' field is not map[string]string or map[string]interface{}, got %T. Value: %#v", attrsVal, attrsVal)
-		}
-		t.Logf("getNodeAttributesMap: Warning - 'attributes' field was map[string]interface{}, converting. Should ideally be map[string]string from Tree.GetNode. Value: %#v", attrsVal)
-		attrsMap = make(map[string]string)
-		for k, v := range rawAttrsMap {
-			if vStr, okStr := v.(string); okStr {
-				attrsMap[k] = vStr
-			} else {
-				attrsMap[k] = fmt.Sprintf("%v", v) // Convert non-strings
-			}
-		}
-		return attrsMap
+		t.Fatalf("getNodeAttributesMap: 'attributes' field is not map[string]interface{}, got %T. Value: %#v", attrsVal, attrsVal)
 	}
 	return attrsMap
 }
 
-func getNodeAttributesDirectly(t *testing.T, interp *core.Interpreter, handleID string, nodeID string) (map[string]string, error) {
+// FIX: Changed return type to map[string]interface{} to match core.TreeAttrs.
+func getNodeAttributesDirectly(t *testing.T, interp *core.Interpreter, handleID string, nodeID string) (map[string]interface{}, error) {
 	t.Helper()
 	treeObj, err := interp.GetHandleValue(handleID, core.GenericTreeHandleType)
 	if err != nil {
@@ -129,9 +113,10 @@ func getNodeAttributesDirectly(t *testing.T, interp *core.Interpreter, handleID 
 		return nil, fmt.Errorf("getNodeAttributesDirectly: node %q exists in map but is nil", nodeID)
 	}
 	if node.Attributes == nil {
-		return make(map[string]string), nil
+		return make(map[string]interface{}), nil
 	}
-	attrsCopy := make(map[string]string, len(node.Attributes))
+	// FIX: Create a copy of the correct map type.
+	attrsCopy := make(map[string]interface{}, len(node.Attributes))
 	for k, v := range node.Attributes {
 		attrsCopy[k] = v
 	}

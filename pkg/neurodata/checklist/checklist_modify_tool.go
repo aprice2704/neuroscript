@@ -1,9 +1,7 @@
-// NeuroScript Version: 0.3.0
-// File version: 0.1.2
-// Corrected core tool lookups for Tree.SetNodeMetadata and Tree.RemoveNodeMetadata.
+// NeuroScript Version: 0.3.1
+// File version: 0.2.0
+// Purpose: Aligned with core.TreeAttrs by updating map initialization and adding safe type assertions for attribute access.
 // filename: pkg/neurodata/checklist/checklist_modify_tool.go
-// nlines: 190 // Approximate
-// risk_rating: LOW
 package checklist
 
 import (
@@ -78,7 +76,7 @@ func toolChecklistSetItemStatus(interpreter *core.Interpreter, args []interface{
 	if newStatus == "special" && specialSymbol == "" {
 		return nil, fmt.Errorf("%w: %s 'special_symbol' argument is required when 'newStatus' is 'special'", core.ErrValidationRequiredArgNil, toolName)
 	}
-	if newStatus == "special" && len(specialSymbol) != 1 { // Assuming UTF-8 length check might be better if symbols can be multi-byte
+	if newStatus == "special" && len(specialSymbol) != 1 {
 		return nil, fmt.Errorf("%w: %s 'special_symbol' must be a single character, got %q", core.ErrInvalidArgument, toolName, specialSymbol)
 	}
 	if newStatus != "special" && specialSymbol != "" {
@@ -104,19 +102,30 @@ func toolChecklistSetItemStatus(interpreter *core.Interpreter, args []interface{
 	}
 
 	if node.Attributes == nil {
-		node.Attributes = make(map[string]string)
+		// FIX: Use correct type for attribute map initialization.
+		node.Attributes = make(core.TreeAttrs)
 		logger.Warn("Node attributes map was nil on read, initialized.", "tool", toolName, "nodeId", nodeID)
 	}
 
-	if node.Attributes["is_automatic"] == "true" {
+	// FIX: Safely check the 'is_automatic' attribute, which is now interface{}.
+	var isAutomatic bool
+	if autoVal, ok := node.Attributes["is_automatic"]; ok {
+		if autoBool, isBool := autoVal.(bool); isBool {
+			isAutomatic = autoBool
+		} else if autoStr, isStr := autoVal.(string); isStr {
+			isAutomatic = (autoStr == "true")
+		}
+	}
+
+	if isAutomatic {
 		return nil, fmt.Errorf("%w: %s cannot manually set status on automatic node %q", core.ErrInvalidArgument, toolName, nodeID)
 	}
 
-	setMetaToolImpl, foundSet := interpreter.ToolRegistry().GetTool("Tree.SetNodeMetadata") // MODIFIED
+	setMetaToolImpl, foundSet := interpreter.ToolRegistry().GetTool("Tree.SetNodeMetadata")
 	if !foundSet || setMetaToolImpl.Func == nil {
 		return nil, fmt.Errorf("%w: %s requires core tool 'Tree.SetNodeMetadata' which was not found", core.ErrInternal, toolName)
 	}
-	removeMetaToolImpl, foundRemove := interpreter.ToolRegistry().GetTool("Tree.RemoveNodeMetadata") // MODIFIED
+	removeMetaToolImpl, foundRemove := interpreter.ToolRegistry().GetTool("Tree.RemoveNodeMetadata")
 	if !foundRemove || removeMetaToolImpl.Func == nil {
 		return nil, fmt.Errorf("%w: %s requires core tool 'Tree.RemoveNodeMetadata' which was not found", core.ErrInternal, toolName)
 	}
@@ -144,21 +153,19 @@ func toolChecklistSetItemStatus(interpreter *core.Interpreter, args []interface{
 			return nil, fmt.Errorf("%w: %s internal error setting special_symbol: %w", core.ErrInternal, toolName, err)
 		}
 	} else {
-		// Only attempt to remove if it might exist (i.e., node.Attributes["special_symbol"] was there)
-		// However, TreeRemoveNodeMetadata handles ErrAttributeNotFound gracefully.
 		logger.Debug("Calling Tree.RemoveNodeMetadata for special_symbol if it exists", "tool", toolName, "nodeId", nodeID)
 		removeSymbolArgs := core.MakeArgs(handleID, nodeID, "special_symbol")
 		_, err = removeMetaToolImpl.Func(interpreter, removeSymbolArgs)
-		if err != nil && !errors.Is(err, core.ErrAttributeNotFound) { // Ignore ErrAttributeNotFound
+		if err != nil && !errors.Is(err, core.ErrAttributeNotFound) {
 			logger.Error("Tree.RemoveNodeMetadata failed for special_symbol", "tool", toolName, "nodeId", nodeID, "error", err)
 			if errors.Is(err, core.ErrNotFound) || errors.Is(err, core.ErrInvalidArgument) || errors.Is(err, core.ErrHandleInvalid) {
 				return nil, fmt.Errorf("%w: %s removing special_symbol failed: %w", core.ErrInvalidArgument, toolName, err)
 			}
 			return nil, fmt.Errorf("%w: %s internal error removing special_symbol: %w", core.ErrInternal, toolName, err)
 		}
-		if err == nil { // Means attribute was found and removed
+		if err == nil {
 			logger.Debug("Removed existing special_symbol attribute", "tool", toolName, "nodeId", nodeID)
-		} else { // Means attribute was not found
+		} else {
 			logger.Debug("No special_symbol attribute existed to remove or TreeRemoveNodeMetadata call failed gracefully.", "tool", toolName, "nodeId", nodeID)
 		}
 	}

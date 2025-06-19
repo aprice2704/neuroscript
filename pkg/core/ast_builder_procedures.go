@@ -1,9 +1,9 @@
 // NeuroScript Version: 0.3.1
-// File version: 2
-// Purpose: Correctly handles procedure bodies that are single expressions by creating an implicit return.
+// File version: 4
+// Purpose: Correctly iterate through all signature clauses regardless of order.
 // filename: pkg/core/ast_builder_procedures.go
-// nlines: 140
-// risk_rating: MEDIUM
+// nlines: 150
+// risk_rating: LOW
 
 package core
 
@@ -24,17 +24,26 @@ func (l *neuroScriptListenerImpl) EnterProcedure_definition(ctx *gen.Procedure_d
 
 	if sigCtx := ctx.Signature_part(); sigCtx != nil {
 		l.currentProc.OriginalSignature = getRuleText(sigCtx)
-		if needs := sigCtx.Needs_clause(); needs != nil && needs.Param_list() != nil {
-			l.currentProc.RequiredParams = l.extractParamNamesList(needs.Param_list())
-		}
-		if optional := sigCtx.Optional_clause(); optional != nil && optional.Param_list() != nil {
-			paramNames := l.extractParamNamesList(optional.Param_list())
-			for _, name := range paramNames {
-				l.currentProc.OptionalParams = append(l.currentProc.OptionalParams, ParamSpec{Name: name})
+
+		// Corrected: Iterate through all children of the signature to handle clauses in any order.
+		for _, child := range sigCtx.GetChildren() {
+			switch c := child.(type) {
+			case *gen.Needs_clauseContext:
+				if c.Param_list() != nil {
+					l.currentProc.RequiredParams = append(l.currentProc.RequiredParams, l.extractParamNamesList(c.Param_list())...)
+				}
+			case *gen.Optional_clauseContext:
+				if c.Param_list() != nil {
+					paramNames := l.extractParamNamesList(c.Param_list())
+					for _, name := range paramNames {
+						l.currentProc.OptionalParams = append(l.currentProc.OptionalParams, ParamSpec{Name: name})
+					}
+				}
+			case *gen.Returns_clauseContext:
+				if c.Param_list() != nil {
+					l.currentProc.ReturnVarNames = append(l.currentProc.ReturnVarNames, l.extractParamNamesList(c.Param_list())...)
+				}
 			}
-		}
-		if returns := sigCtx.Returns_clause(); returns != nil && returns.Param_list() != nil {
-			l.currentProc.ReturnVarNames = l.extractParamNamesList(returns.Param_list())
 		}
 	}
 

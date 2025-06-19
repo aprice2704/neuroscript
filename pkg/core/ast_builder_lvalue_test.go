@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.0.2 // Corrected test case expectations for complex_nested_access and script for bracket_access_with_simple_expression.
-// Purpose: Tests for L-value parsing in set statements.
+// File version: 0.0.3
+// Purpose: Updated test helper to use the new `LValues` field on the Step struct.
 // filename: pkg/core/ast_builder_lvalue_test.go
-// nlines: 250 // Approximate
+// nlines: 253
 // risk_rating: MEDIUM
 
 package core
@@ -11,8 +11,7 @@ import (
 	"testing"
 
 	"github.com/antlr4-go/antlr/v4"
-	gen "github.com/aprice2704/neuroscript/pkg/core/generated" // Assuming this path
-	// Assuming this path for logger
+	gen "github.com/aprice2704/neuroscript/pkg/core/generated"
 )
 
 // parseScriptToLValueNode is a helper function to parse a script snippet
@@ -37,13 +36,7 @@ func parseScriptToLValueNode(t *testing.T, scriptContent string) *LValueNode {
 	}
 
 	nopLogger := &coreNoOpLogger{}
-	// Check if a test-specific logger is available from a helper like NewDefaultTestInterpreter
-	// This part depends on how your test setup provides loggers.
-	// For simplicity, using coreNoOpLogger directly. If your NewASTBuilder panics with it,
-	// you might need to pass a logger from testInterp.Logger() if testInterp is available here.
-	// However, for AST building, a no-op logger is often fine if not debugging the builder itself.
-
-	astBuilder := NewASTBuilder(nopLogger) // Ensure NewASTBuilder can handle coreNoOpLogger
+	astBuilder := NewASTBuilder(nopLogger)
 	programAST, _, err := astBuilder.Build(tree)
 	if err != nil {
 		t.Fatalf("AST build failed for script:\n%s\nError: %v", scriptContent, err)
@@ -56,13 +49,19 @@ func parseScriptToLValueNode(t *testing.T, scriptContent string) *LValueNode {
 
 	for _, proc := range programAST.Procedures {
 		for _, step := range proc.Steps {
-			if step.Type == "set" && step.LValue != nil {
-				return step.LValue
+			// MODIFIED: Check the new LValues slice instead of the old LValue field.
+			if step.Type == "set" && len(step.LValues) > 0 {
+				// For this test, we assume the first l-value is what we want to inspect.
+				lval, ok := step.LValues[0].(*LValueNode)
+				if !ok {
+					t.Fatalf("Expected first LValue in 'set' statement to be *LValueNode, but got %T", step.LValues[0])
+				}
+				return lval
 			}
 		}
 	}
 
-	t.Fatalf("No 'set' statement with LValue found in script:\n%s", scriptContent)
+	t.Fatalf("No 'set' statement with LValues found in script:\n%s", scriptContent)
 	return nil
 }
 
@@ -122,12 +121,11 @@ func TestLValueParsing(t *testing.T) {
 			skipDetailedAccessorCheck: true,
 		},
 		{
-			name:                  "mixed dot and bracket",
-			script:                "func t means\nset data.items[0].name = 1\nendfunc",
-			expectedIdentifier:    "data",
-			expectedAccessorCount: 3,
-			expectedAccessors:     []AccessorNode{{Type: DotAccess, FieldName: "items"}, {Type: BracketAccess}, {Type: DotAccess, FieldName: "name"}},
-			// Setting skipDetailedAccessorCheck to true as specific IndexOrKey values are not asserted.
+			name:                      "mixed dot and bracket",
+			script:                    "func t means\nset data.items[0].name = 1\nendfunc",
+			expectedIdentifier:        "data",
+			expectedAccessorCount:     3,
+			expectedAccessors:         []AccessorNode{{Type: DotAccess, FieldName: "items"}, {Type: BracketAccess}, {Type: DotAccess, FieldName: "name"}},
 			skipDetailedAccessorCheck: true,
 		},
 		{
@@ -142,25 +140,23 @@ func TestLValueParsing(t *testing.T) {
 			name:                  "complex nested access",
 			script:                "func t means\nset obj.array[1][\"inner\"].field.anotherArray[0] = 1\nendfunc",
 			expectedIdentifier:    "obj",
-			expectedAccessorCount: 6, // Corrected from 5
+			expectedAccessorCount: 6,
 			expectedAccessors: []AccessorNode{
 				{Type: DotAccess, FieldName: "array"},
-				{Type: BracketAccess}, // [1]
-				{Type: BracketAccess}, // ["inner"]
+				{Type: BracketAccess},
+				{Type: BracketAccess},
 				{Type: DotAccess, FieldName: "field"},
-				{Type: DotAccess, FieldName: "anotherArray"}, // Corrected
-				{Type: BracketAccess},                        // [0]
+				{Type: DotAccess, FieldName: "anotherArray"},
+				{Type: BracketAccess},
 			},
 			skipDetailedAccessorCheck: true,
 		},
 		{
-			name: "bracket access with simple expression (variable)",
-			// Script modified so "myList[x]" is the LValue from the first 'set' statement.
-			// Assumes 'x' is a variable; its prior definition isn't needed for LValue parsing structure test.
+			name:                      "bracket access with simple expression (variable)",
 			script:                    "func t means\nset myList[x] = 1\nendfunc",
 			expectedIdentifier:        "myList",
 			expectedAccessorCount:     1,
-			expectedAccessors:         []AccessorNode{{Type: BracketAccess}}, // IndexOrKey will be a VariableNode "x"
+			expectedAccessors:         []AccessorNode{{Type: BracketAccess}},
 			skipDetailedAccessorCheck: true,
 		},
 	}
@@ -169,7 +165,7 @@ func TestLValueParsing(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			lvalNode := parseScriptToLValueNode(t, tc.script)
 			if lvalNode == nil {
-				return // Helper already called t.Fatalf
+				return
 			}
 
 			if lvalNode.Identifier != tc.expectedIdentifier {
@@ -179,15 +175,13 @@ func TestLValueParsing(t *testing.T) {
 			if len(lvalNode.Accessors) != tc.expectedAccessorCount {
 				t.Errorf("Expected %d accessors, got %d. Actual Accessors:", tc.expectedAccessorCount, len(lvalNode.Accessors))
 				for i, acc := range lvalNode.Accessors {
-					// Log details of actual accessors if count mismatches
 					t.Logf("  Accessor %d: Type=%v, FieldName=%q, IndexOrKey=%T (%#v)", i, acc.Type, acc.FieldName, acc.IndexOrKey, acc.IndexOrKey)
 				}
 			}
 
-			// Only do detailed checks if counts match and not skipped
 			if !tc.skipDetailedAccessorCheck && len(lvalNode.Accessors) == tc.expectedAccessorCount && tc.expectedAccessorCount > 0 {
 				for i, expectedAcc := range tc.expectedAccessors {
-					if i >= len(lvalNode.Accessors) { // Should not happen if counts match
+					if i >= len(lvalNode.Accessors) {
 						t.Fatalf("Error in test logic: trying to access index %d when only %d accessors exist", i, len(lvalNode.Accessors))
 						break
 					}
@@ -198,13 +192,6 @@ func TestLValueParsing(t *testing.T) {
 					if expectedAcc.Type == DotAccess && actualAcc.FieldName != expectedAcc.FieldName {
 						t.Errorf("Accessor %d: Expected FieldName %q, got %q", i, expectedAcc.FieldName, actualAcc.FieldName)
 					}
-					// Further checks for IndexOrKey can be added here if needed, e.g., checking type or simple literal values.
-					// For example, to check if accessor 1 for "complex_nested_access" (obj.array[1]...) has a NumberLiteralNode:
-					// if tc.name == "complex_nested_access" && i == 1 { // Accessor for [1]
-					// 	if _, ok := actualAcc.IndexOrKey.(*NumberLiteralNode); !ok {
-					// 		t.Errorf("Accessor %d: Expected IndexOrKey to be *NumberLiteralNode, got %T", i, actualAcc.IndexOrKey)
-					// 	}
-					// }
 				}
 			}
 		})

@@ -17,8 +17,9 @@
  
  ### 1. File-Level Scope 
  
- * `:: lang_version:` *String*. **(Renamed)** The minimum language/interpreter version required (e.g., `:: lang_version: neuroscript@0.2.0`). Helps ensure compatibility.
- * `:: file_version:` *String*. **(New)** The semantic version of this specific file (e.g., `:: file_version: 1.0.0`). Distinct from `lang_version`.
+ * `:: language:` *String*. The principal specific technical language, e.g. markdown, ndcl
+ * `:: lang_version:` *String*. **(Renamed)** The minimum language/interpreter semantic version required or to which it pertains (e.g., `:: lang_version: 0.2.0`). Helps ensure compatibility.
+ * `:: file_version:` *Int*. The known iteration of the file as a member of a sequence of updates, e.g. 42. Used for deconfliction.
  * `:: description:` *String*. A brief description of the file's overall purpose.
  * `:: author:` *String*. The name or handle of the file's author(s).
  * `:: license:` *String*. An SPDX license identifier (e.g., `:: license: MIT`, `:: license: Apache-2.0`) or "Proprietary".
@@ -123,9 +124,11 @@
  
  ```
 
- :: version: 0.5.1  
+ :: ns_version: 0.4.0
+ :: file_version: 10  
  :: type: NSproject  
  :: subtype: spec  
+ :: language: md
  :: created: 2025-04-30   
  :: modified: 2025-04-30   
  :: dependsOn: docs/neuroscript_overview.md, docs/neurodata_and_composite_file_spec.md, pkg/neurodata/metadata/metadata.go, pkg/core/NeuroScript.g4, pkg/core/ast.go  

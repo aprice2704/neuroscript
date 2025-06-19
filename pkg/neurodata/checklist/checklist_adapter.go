@@ -1,5 +1,6 @@
-// NeuroScript Version: 0.3.0
-// Last Modified: 2025-05-03 18:49:55 PM PDT // Ensure Type is checklist_item
+// NeuroScript Version: 0.3.1
+// File version: 2.0.0
+// Purpose: Updated to align with core.TreeAttrs (map[string]interface{}) and added safe type assertions.
 // filename: pkg/neurodata/checklist/checklist_adapter.go
 
 package checklist
@@ -19,7 +20,6 @@ var (
 	ErrMissingStatusAttribute = errors.New("checklist item node missing 'status' attribute")
 	ErrUnknownStatus          = errors.New("unknown status value in checklist item node")
 	ErrMissingSpecialSymbol   = errors.New("checklist item node with status 'special' missing 'special_symbol' attribute")
-	// Removed ErrMissingSubtypeAttribute
 )
 
 // ChecklistToTree converts parsed checklist items and metadata into a GenericTree structure.
@@ -32,7 +32,8 @@ func ChecklistToTree(items []ChecklistItem, metadata map[string]string) (*core.G
 	tree.RootID = rootNode.ID
 	rootNode.Value = nil
 	if rootNode.Attributes == nil {
-		rootNode.Attributes = make(map[string]string)
+		// FIX: Align with the new core.TreeAttrs type (map[string]interface{})
+		rootNode.Attributes = make(core.TreeAttrs)
 	}
 	for k, v := range metadata {
 		rootNode.Attributes[k] = v
@@ -59,13 +60,13 @@ func ChecklistToTree(items []ChecklistItem, metadata map[string]string) (*core.G
 			}
 		}
 
-		// Create node with Type: "checklist_item"
-		newNode := tree.NewNode(parentID, "checklist_item") // *** CORRECT TYPE ***
+		newNode := tree.NewNode(parentID, "checklist_item")
 
 		newNode.Value = item.Text // Store text in Value
 
 		if newNode.Attributes == nil {
-			newNode.Attributes = make(map[string]string)
+			// FIX: Align with the new core.TreeAttrs type (map[string]interface{})
+			newNode.Attributes = make(core.TreeAttrs)
 		}
 
 		// Map status and handle special symbol
@@ -73,7 +74,8 @@ func ChecklistToTree(items []ChecklistItem, metadata map[string]string) (*core.G
 		newNode.Attributes["status"] = statusStr
 
 		if item.IsAutomatic {
-			newNode.Attributes["is_automatic"] = "true"
+			// Storing a boolean directly is now possible and preferred.
+			newNode.Attributes["is_automatic"] = true
 		}
 
 		if statusStr == "special" {
@@ -152,7 +154,8 @@ func TreeToChecklistString(tree *core.GenericTree) (string, error) {
 			builder.WriteString(":: ")
 			builder.WriteString(k)
 			builder.WriteString(": ")
-			builder.WriteString(rootNode.Attributes[k])
+			// FIX: Safely convert attribute value to string for display.
+			builder.WriteString(fmt.Sprintf("%v", rootNode.Attributes[k]))
 			builder.WriteString("\n")
 		}
 		if len(rootNode.ChildIDs) > 0 {
@@ -178,27 +181,36 @@ func formatChecklistNodeRecursive(builder *strings.Builder, tree *core.GenericTr
 		return fmt.Errorf("%w: child node %q not found in tree map", ErrInvalidChecklistTree, nodeID)
 	}
 
-	// Check Type is "checklist_item"
-	if node.Type != "checklist_item" { // *** CORRECT TYPE CHECK ***
+	if node.Type != "checklist_item" {
 		return fmt.Errorf("%w: node %q has unexpected type %q during formatting", ErrInvalidChecklistTree, nodeID, node.Type)
 	}
 
 	if node.Attributes == nil {
-		node.Attributes = make(map[string]string) // Should not happen if created by ChecklistToTree
+		// FIX: Align with the new core.TreeAttrs type (map[string]interface{})
+		node.Attributes = make(core.TreeAttrs)
 	}
 
 	// 1. Calculate Indentation
 	indent := strings.Repeat("  ", depth)
 
 	// 2. Determine Item Prefix from Attributes
-	status, ok := node.Attributes["status"]
+	statusVal, ok := node.Attributes["status"]
 	if !ok {
 		return fmt.Errorf("%w: node %q", ErrMissingStatusAttribute, nodeID)
 	}
-	isAutomatic := node.Attributes["is_automatic"] == "true"
-	specialSymbol := node.Attributes["special_symbol"]
+	// FIX: Safely assert status to a string.
+	statusStr, ok := statusVal.(string)
+	if !ok {
+		return fmt.Errorf("node %q: status attribute is not a string (type: %T)", nodeID, statusVal)
+	}
 
-	prefix, err := mapTreeStatusToMarkdown(status, specialSymbol, isAutomatic)
+	// FIX: Safely assert is_automatic to a bool.
+	isAutomatic, _ := node.Attributes["is_automatic"].(bool)
+
+	// FIX: Safely assert special_symbol to a string.
+	specialSymbolVal, _ := node.Attributes["special_symbol"].(string)
+
+	prefix, err := mapTreeStatusToMarkdown(statusStr, specialSymbolVal, isAutomatic)
 	if err != nil {
 		return fmt.Errorf("node %q: %w", nodeID, err)
 	}

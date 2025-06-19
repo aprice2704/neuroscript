@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.4.2
-// File version: 10.0.0
-// Purpose: Simplifies a type check in getOrCreateRootContainer, which is now redundant due to the type-safe GetVariable method.
+// File version: 11.0.0
+// Purpose: Refactored set execution to support multiple assignment targets.
 // filename: pkg/core/interpreter_assignment.go
 
 package core
@@ -9,44 +9,72 @@ import (
 	"fmt"
 )
 
-// executeSet handles the "set" step, including complex assignments with auto-creation
-// of nested lists and maps (auto-vivification).
+// executeSet handles the "set" step. It now dispatches to a helper for each LValue.
 func (i *Interpreter) executeSet(step Step) (Value, error) {
-	if step.LValue == nil {
-		return nil, NewRuntimeError(ErrorCodeInternal, "SetStep LValue is nil", nil).WithPosition(step.Pos)
+	if len(step.LValues) == 0 {
+		return nil, NewRuntimeError(ErrorCodeInternal, "SetStep LValues is empty", nil).WithPosition(step.Pos)
 	}
 
 	rhsValue, evalErr := i.evaluateExpression(step.Value)
 	if evalErr != nil {
-		return nil, WrapErrorWithPosition(evalErr, step.Value.GetPos(), fmt.Sprintf("evaluating value for SET %s", step.LValue.Identifier))
+		// Use the position of the first LValue for more accurate error reporting
+		return nil, WrapErrorWithPosition(evalErr, step.LValues[0].GetPos(), "evaluating value for SET statement")
+	}
+
+	// Case 1: Multiple assignment (e.g., set a, b = myList)
+	if len(step.LValues) > 1 {
+		list, ok := rhsValue.(ListValue)
+		if !ok {
+			return nil, NewRuntimeError(ErrorCodeType, "multiple assignment requires a list on the right-hand side", ErrMultiAssignNonList).WithPosition(step.Value.GetPos())
+		}
+		if len(step.LValues) != len(list.Value) {
+			return nil, NewRuntimeError(ErrorCodeCountMismatch, fmt.Sprintf("assignment mismatch: %d variables but %d values", len(step.LValues), len(list.Value)), ErrAssignCountMismatch).WithPosition(step.Pos)
+		}
+		for idx, lval := range step.LValues {
+			if err := i.setSingleLValue(lval, list.Value[idx]); err != nil {
+				return nil, err
+			}
+		}
+		return list, nil // Return the original list for multiple assignments
+	}
+
+	// Case 2: Single assignment (e.g., set a = 1 or set a.b[0] = 1)
+	if err := i.setSingleLValue(step.LValues[0], rhsValue); err != nil {
+		return nil, err
+	}
+	return rhsValue, nil
+}
+
+// setSingleLValue handles the logic for assigning a value to a single, potentially complex LValue.
+// This includes auto-vivification of maps and lists.
+func (i *Interpreter) setSingleLValue(lvalueExpr Expression, rhsValue Value) error {
+	lval, ok := lvalueExpr.(*LValueNode)
+	if !ok {
+		return NewRuntimeError(ErrorCodeInternal, "LValue expression is not an LValueNode", nil).WithPosition(lvalueExpr.GetPos())
 	}
 
 	// Simple assignment: set x = ...
-	if len(step.LValue.Accessors) == 0 {
-		return rhsValue, i.SetVariable(step.LValue.Identifier, rhsValue)
+	if len(lval.Accessors) == 0 {
+		return i.SetVariable(lval.Identifier, rhsValue)
 	}
 
 	// Complex Assignment: set x[0].key = ...
-	baseVarName := step.LValue.Identifier
+	baseVarName := lval.Identifier
 
 	// 1. Get the root container, creating it if it doesn't exist.
-	root, err := i.getOrCreateRootContainer(baseVarName, step.LValue.Accessors[0])
+	root, err := i.getOrCreateRootContainer(baseVarName, lval.Accessors[0])
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// 2. Recursively traverse the path, modifying the data structure.
-	modifiedRoot, err := i.vivifyAndSet(root, step.LValue.Accessors, rhsValue)
+	modifiedRoot, err := i.vivifyAndSet(root, lval.Accessors, rhsValue)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// 3. Commit the modified root back to the variable scope.
-	if err := i.SetVariable(baseVarName, modifiedRoot); err != nil {
-		return nil, err
-	}
-
-	return rhsValue, nil
+	return i.SetVariable(baseVarName, modifiedRoot)
 }
 
 // getOrCreateRootContainer retrieves the top-level variable for a complex assignment,
@@ -54,12 +82,10 @@ func (i *Interpreter) executeSet(step Step) (Value, error) {
 func (i *Interpreter) getOrCreateRootContainer(name string, firstAccessor AccessorNode) (Value, error) {
 	container, varExists := i.GetVariable(name)
 	if varExists {
-		// If the variable exists and is a container, use it. Otherwise, it will be overwritten.
 		if isMap(container) || isList(container) {
 			return container, nil
 		}
 	}
-	// If the variable doesn't exist or isn't a container, create a new one.
 	return i.determineInitialContainer(firstAccessor)
 }
 
@@ -67,24 +93,21 @@ func (i *Interpreter) getOrCreateRootContainer(name string, firstAccessor Access
 // as needed, and returns the (potentially modified) container.
 func (i *Interpreter) vivifyAndSet(current Value, accessors []AccessorNode, rhsValue Value) (Value, error) {
 	if len(accessors) == 0 {
-		return rhsValue, nil // End of the path, return the value to be set.
+		return rhsValue, nil
 	}
 
 	accessor := accessors[0]
 	isFinal := len(accessors) == 1
 
-	// --- Handle Map ---
 	if m, ok := current.(MapValue); ok {
 		key, err := i.evaluateAccessorKey(accessor)
 		if err != nil {
 			return nil, err
 		}
-
 		if isFinal {
 			m.Value[key] = rhsValue
 			return m, nil
 		}
-
 		child, exists := m.Value[key]
 		if !exists || (!isMap(child) && !isList(child)) {
 			child, err = i.determineInitialContainer(accessors[1])
@@ -92,7 +115,6 @@ func (i *Interpreter) vivifyAndSet(current Value, accessors []AccessorNode, rhsV
 				return nil, err
 			}
 		}
-
 		modifiedChild, err := i.vivifyAndSet(child, accessors[1:], rhsValue)
 		if err != nil {
 			return nil, err
@@ -101,20 +123,16 @@ func (i *Interpreter) vivifyAndSet(current Value, accessors []AccessorNode, rhsV
 		return m, nil
 	}
 
-	// --- Handle List ---
 	if l, ok := current.(ListValue); ok {
 		index, err := i.evaluateAccessorIndex(accessor)
 		if err != nil {
 			return nil, err
 		}
-
 		l.Value = padList(l.Value, index)
-
 		if isFinal {
 			l.Value[index] = rhsValue
 			return l, nil
 		}
-
 		child := l.Value[index]
 		if child == nil || (!isMap(child) && !isList(child)) {
 			child, err = i.determineInitialContainer(accessors[1])
@@ -122,7 +140,6 @@ func (i *Interpreter) vivifyAndSet(current Value, accessors []AccessorNode, rhsV
 				return nil, err
 			}
 		}
-
 		modifiedChild, err := i.vivifyAndSet(child, accessors[1:], rhsValue)
 		if err != nil {
 			return nil, err
@@ -131,7 +148,6 @@ func (i *Interpreter) vivifyAndSet(current Value, accessors []AccessorNode, rhsV
 		return l, nil
 	}
 
-	// If the current value is not a map or list, it must be overwritten.
 	newContainer, err := i.determineInitialContainer(accessor)
 	if err != nil {
 		return nil, err
@@ -139,8 +155,7 @@ func (i *Interpreter) vivifyAndSet(current Value, accessors []AccessorNode, rhsV
 	return i.vivifyAndSet(newContainer, accessors, rhsValue)
 }
 
-// Helper functions for evaluation and type checking.
-
+// ... (rest of the helper functions: determineInitialContainer, evaluateAccessorKey, etc. are unchanged) ...
 func (i *Interpreter) determineInitialContainer(accessor AccessorNode) (Value, error) {
 	if accessor.Type == DotAccess {
 		return NewMapValue(nil), nil

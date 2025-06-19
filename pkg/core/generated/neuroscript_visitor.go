@@ -13,6 +13,9 @@ type NeuroScriptVisitor interface {
 	// Visit a parse tree produced by NeuroScriptParser#file_header.
 	VisitFile_header(ctx *File_headerContext) interface{}
 
+	// Visit a parse tree produced by NeuroScriptParser#code_block.
+	VisitCode_block(ctx *Code_blockContext) interface{}
+
 	// Visit a parse tree produced by NeuroScriptParser#procedure_definition.
 	VisitProcedure_definition(ctx *Procedure_definitionContext) interface{}
 
@@ -49,8 +52,23 @@ type NeuroScriptVisitor interface {
 	// Visit a parse tree produced by NeuroScriptParser#block_statement.
 	VisitBlock_statement(ctx *Block_statementContext) interface{}
 
+	// Visit a parse tree produced by NeuroScriptParser#on_stmt.
+	VisitOn_stmt(ctx *On_stmtContext) interface{}
+
+	// Visit a parse tree produced by NeuroScriptParser#error_handler.
+	VisitError_handler(ctx *Error_handlerContext) interface{}
+
+	// Visit a parse tree produced by NeuroScriptParser#event_handler.
+	VisitEvent_handler(ctx *Event_handlerContext) interface{}
+
+	// Visit a parse tree produced by NeuroScriptParser#clearEventStmt.
+	VisitClearEventStmt(ctx *ClearEventStmtContext) interface{}
+
 	// Visit a parse tree produced by NeuroScriptParser#lvalue.
 	VisitLvalue(ctx *LvalueContext) interface{}
+
+	// Visit a parse tree produced by NeuroScriptParser#lvalue_list.
+	VisitLvalue_list(ctx *Lvalue_listContext) interface{}
 
 	// Visit a parse tree produced by NeuroScriptParser#set_statement.
 	VisitSet_statement(ctx *Set_statementContext) interface{}
@@ -90,12 +108,6 @@ type NeuroScriptVisitor interface {
 
 	// Visit a parse tree produced by NeuroScriptParser#for_each_statement.
 	VisitFor_each_statement(ctx *For_each_statementContext) interface{}
-
-	// Visit a parse tree produced by NeuroScriptParser#onErrorStmt.
-	VisitOnErrorStmt(ctx *OnErrorStmtContext) interface{}
-
-	// Visit a parse tree produced by NeuroScriptParser#onEventStmt.
-	VisitOnEventStmt(ctx *OnEventStmtContext) interface{}
 
 	// Visit a parse tree produced by NeuroScriptParser#qualified_identifier.
 	VisitQualified_identifier(ctx *Qualified_identifierContext) interface{}

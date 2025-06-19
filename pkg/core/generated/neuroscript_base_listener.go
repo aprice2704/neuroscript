@@ -32,6 +32,12 @@ func (s *BaseNeuroScriptListener) EnterFile_header(ctx *File_headerContext) {}
 // ExitFile_header is called when production file_header is exited.
 func (s *BaseNeuroScriptListener) ExitFile_header(ctx *File_headerContext) {}
 
+// EnterCode_block is called when production code_block is entered.
+func (s *BaseNeuroScriptListener) EnterCode_block(ctx *Code_blockContext) {}
+
+// ExitCode_block is called when production code_block is exited.
+func (s *BaseNeuroScriptListener) ExitCode_block(ctx *Code_blockContext) {}
+
 // EnterProcedure_definition is called when production procedure_definition is entered.
 func (s *BaseNeuroScriptListener) EnterProcedure_definition(ctx *Procedure_definitionContext) {}
 
@@ -104,11 +110,41 @@ func (s *BaseNeuroScriptListener) EnterBlock_statement(ctx *Block_statementConte
 // ExitBlock_statement is called when production block_statement is exited.
 func (s *BaseNeuroScriptListener) ExitBlock_statement(ctx *Block_statementContext) {}
 
+// EnterOn_stmt is called when production on_stmt is entered.
+func (s *BaseNeuroScriptListener) EnterOn_stmt(ctx *On_stmtContext) {}
+
+// ExitOn_stmt is called when production on_stmt is exited.
+func (s *BaseNeuroScriptListener) ExitOn_stmt(ctx *On_stmtContext) {}
+
+// EnterError_handler is called when production error_handler is entered.
+func (s *BaseNeuroScriptListener) EnterError_handler(ctx *Error_handlerContext) {}
+
+// ExitError_handler is called when production error_handler is exited.
+func (s *BaseNeuroScriptListener) ExitError_handler(ctx *Error_handlerContext) {}
+
+// EnterEvent_handler is called when production event_handler is entered.
+func (s *BaseNeuroScriptListener) EnterEvent_handler(ctx *Event_handlerContext) {}
+
+// ExitEvent_handler is called when production event_handler is exited.
+func (s *BaseNeuroScriptListener) ExitEvent_handler(ctx *Event_handlerContext) {}
+
+// EnterClearEventStmt is called when production clearEventStmt is entered.
+func (s *BaseNeuroScriptListener) EnterClearEventStmt(ctx *ClearEventStmtContext) {}
+
+// ExitClearEventStmt is called when production clearEventStmt is exited.
+func (s *BaseNeuroScriptListener) ExitClearEventStmt(ctx *ClearEventStmtContext) {}
+
 // EnterLvalue is called when production lvalue is entered.
 func (s *BaseNeuroScriptListener) EnterLvalue(ctx *LvalueContext) {}
 
 // ExitLvalue is called when production lvalue is exited.
 func (s *BaseNeuroScriptListener) ExitLvalue(ctx *LvalueContext) {}
+
+// EnterLvalue_list is called when production lvalue_list is entered.
+func (s *BaseNeuroScriptListener) EnterLvalue_list(ctx *Lvalue_listContext) {}
+
+// ExitLvalue_list is called when production lvalue_list is exited.
+func (s *BaseNeuroScriptListener) ExitLvalue_list(ctx *Lvalue_listContext) {}
 
 // EnterSet_statement is called when production set_statement is entered.
 func (s *BaseNeuroScriptListener) EnterSet_statement(ctx *Set_statementContext) {}
@@ -187,18 +223,6 @@ func (s *BaseNeuroScriptListener) EnterFor_each_statement(ctx *For_each_statemen
 
 // ExitFor_each_statement is called when production for_each_statement is exited.
 func (s *BaseNeuroScriptListener) ExitFor_each_statement(ctx *For_each_statementContext) {}
-
-// EnterOnErrorStmt is called when production onErrorStmt is entered.
-func (s *BaseNeuroScriptListener) EnterOnErrorStmt(ctx *OnErrorStmtContext) {}
-
-// ExitOnErrorStmt is called when production onErrorStmt is exited.
-func (s *BaseNeuroScriptListener) ExitOnErrorStmt(ctx *OnErrorStmtContext) {}
-
-// EnterOnEventStmt is called when production onEventStmt is entered.
-func (s *BaseNeuroScriptListener) EnterOnEventStmt(ctx *OnEventStmtContext) {}
-
-// ExitOnEventStmt is called when production onEventStmt is exited.
-func (s *BaseNeuroScriptListener) ExitOnEventStmt(ctx *OnEventStmtContext) {}
 
 // EnterQualified_identifier is called when production qualified_identifier is entered.
 func (s *BaseNeuroScriptListener) EnterQualified_identifier(ctx *Qualified_identifierContext) {}

@@ -1,6 +1,6 @@
-// NeuroScript Version: 0.4.1
-// File version: 13
-// Purpose: Reviewed for compliance with value-wrapping contract; no changes required. Fully type-safe.
+// NeuroScript Version: 0.4.2
+// File version: 15
+// Purpose: Updated logging helper to correctly stringify the new LValues slice.
 // filename: pkg/core/interpreter_exec.go
 
 package core
@@ -15,8 +15,15 @@ import (
 func getStepSubjectForLogging(step Step) string {
 	switch strings.ToLower(step.Type) {
 	case "set", "assign":
-		if step.LValue != nil {
-			return step.LValue.String()
+		// MODIFIED: Handle the new LValues slice for logging.
+		if len(step.LValues) > 0 {
+			var parts []string
+			for _, lval := range step.LValues {
+				if lval != nil {
+					parts = append(parts, lval.String())
+				}
+			}
+			return strings.Join(parts, ", ")
 		}
 	case "call":
 		if step.Call != nil {
@@ -68,6 +75,7 @@ func getStepSubjectForLogging(step Step) string {
 	return "<no specific subject>"
 }
 
+// ... (rest of interpreter_exec.go is unchanged) ...
 // executeSteps iterates through and executes steps, handling control flow and errors.
 func (i *Interpreter) executeSteps(steps []Step, isInHandler bool, activeError *RuntimeError) (finalResult Value, wasReturn bool, wasCleared bool, finalError error) {
 	modeStr := "normal"
@@ -77,6 +85,7 @@ func (i *Interpreter) executeSteps(steps []Step, isInHandler bool, activeError *
 	i.Logger().Debug("[DEBUG-INTERP] Executing steps", "count", len(steps), "mode", modeStr)
 
 	var currentErrorHandler *Step = nil
+	finalResult = NilValue{} // Ensure finalResult is never nil
 
 	for stepNum, step := range steps {
 		var stepResult Value
@@ -125,6 +134,25 @@ func (i *Interpreter) executeSteps(steps []Step, isInHandler bool, activeError *
 					return stepResult, true, false, nil
 				}
 				if ifCleared {
+					wasCleared = true
+				}
+			}
+		case "while":
+			var whileReturned, whileCleared bool
+			var whileBlockResult Value
+			whileBlockResult, whileReturned, whileCleared, stepErr = i.executeWhile(step, isInHandler, activeError)
+			if errors.Is(stepErr, ErrBreak) {
+				stepErr = nil
+			} else if errors.Is(stepErr, ErrContinue) {
+				i.Logger().Warn("[DEBUG-INTERP] CONTINUE propagated out of WHILE loop unexpectedly", "step_num", stepNum+1)
+				stepErr = nil
+			} else if stepErr == nil {
+				stepResult = whileBlockResult
+				if whileReturned {
+					i.lastCallResult = stepResult
+					return stepResult, true, wasCleared, nil
+				}
+				if whileCleared {
 					wasCleared = true
 				}
 			}
@@ -197,16 +225,16 @@ func (i *Interpreter) executeSteps(steps []Step, isInHandler bool, activeError *
 
 		if stepErr == nil {
 			if shouldUpdateLastResult(stepTypeLower) {
+				finalResult = stepResult
 				i.lastCallResult = stepResult
 			}
 		}
 	}
 
 	i.Logger().Debug("[DEBUG-INTERP] Finished executing steps block normally")
-	return i.lastCallResult, false, wasCleared, nil
+	return finalResult, false, wasCleared, nil
 }
 
-// executeBlock is a wrapper around executeSteps that handles casting and logging for block-based statements like if/for.
 func (i *Interpreter) executeBlock(blockValue interface{}, parentPos *Position, blockType string, isInHandler bool, activeError *RuntimeError) (result Value, wasReturn bool, wasCleared bool, err error) {
 	steps, ok := blockValue.([]Step)
 	if !ok {
@@ -216,11 +244,9 @@ func (i *Interpreter) executeBlock(blockValue interface{}, parentPos *Position, 
 		errMsg := fmt.Sprintf("internal error: invalid block format for %s - expected []Step, got %T", blockType, blockValue)
 		return nil, false, false, NewRuntimeError(ErrorCodeInternal, errMsg, ErrInternal).WithPosition(parentPos)
 	}
-
 	return i.executeSteps(steps, isInHandler, activeError)
 }
 
-// shouldUpdateLastResult determines if a step type should modify the interpreter's `lastCallResult`.
 func shouldUpdateLastResult(stepTypeLower string) bool {
 	switch stepTypeLower {
 	case "set", "assign", "emit", "must", "mustbe", "ask", "call":
@@ -230,7 +256,6 @@ func shouldUpdateLastResult(stepTypeLower string) bool {
 	}
 }
 
-// ensureRuntimeError wraps a generic error in a RuntimeError if it isn't one already.
 func ensureRuntimeError(err error, pos *Position, context string) *RuntimeError {
 	if rtErr, ok := err.(*RuntimeError); ok {
 		if rtErr.Position == nil && pos != nil {

@@ -9,11 +9,12 @@ package core
 
 // OnEventDecl represents a top-level 'on event ...' declaration,
 // as specified in the o3-1 plan.
+// This is a hypothetical example of the change needed
 type OnEventDecl struct {
 	Pos           *Position
 	EventNameExpr Expression
+	HandlerName   string // <--- ADD THIS FIELD
 	EventVarName  string
-	Metadata      []*MetadataLine
 	Body          []Step
 }
 

@@ -7,6 +7,6 @@ func main() means
   # Line 5 Comment
   set x = 1   # Line 6 Statement
               # Line 7 Blank Line
-  dummy()     # Line 8 Statement (Call via expressionStatement)
+  call dummy()     # Line 8 Statement (Call via expressionStatement)
   set y = 2   # Line 9 Statement
 endfunc

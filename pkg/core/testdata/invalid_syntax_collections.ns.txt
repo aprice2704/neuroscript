@@ -1,0 +1,36 @@
+:: lang_version: neuroscript@0.4.0
+:: purpose: A collection of syntax errors to test parser error detection.
+
+func MissingMeans
+  -- This function is missing the 'means' keyword.
+  set x = 1
+endfunc
+
+func MismatchedEnd() means
+  emit "This function has the wrong 'end' keyword."
+endwhile -- ERROR: should be 'endfunc'
+
+func BadAssignment means
+  -- An expression on its own is not a valid statement.
+  tool.MyTool()
+endfunc
+
+func BadIf means
+  if x > 1 -- ERROR: 'if' requires a newline after the condition
+    emit "x is big"
+  endif
+endfunc
+
+func BadMapKey means
+  set my_map = {my_variable: "value"} -- ERROR: Map keys must be string literals
+endfunc
+
+func BadEventHandler means
+  on event tool.Something -- ERROR: missing 'means'
+    emit "event happened"
+  onev
+endfunc
+
+func MissingEndIf means
+  if true
+    emit "This if block is never closed."

@@ -43,6 +43,7 @@ Follow these **CORE RULES** **very strictly** for all Go code contributions to t
 10. **Request Missing Information:**
     * If you need files (e.g., `.g4`, fixtures, other source code) or clarification that you don't have, **ask for them immediately.** Do not guess contents or specifications.
 11. **Export by Default** go's namespacing is good. Just use IsZeroValue not isZeroValue. Unconventional I know, I don't care -- it'll save effort in the end.
+12. **Beware stubbing** The go compiler is a great resource, preventing one from making a half program; stubbing neutralizes this advantage. Use stubbing sparingly.
 ---
 
 ## OTHER KEY GUIDELINES
