@@ -1,8 +1,7 @@
 #! /bin/bash
 
 cloc \
--exclude-ext=html,js \
+-exclude-ext=html,js,class,java \
 -exclude-lang=JSON \
--exclude-dir=site  \
--exclude-dir=vscode-neuroscript \
+-exclude-dir=site,tmp,vscode-neuroscript,vim-neuroscript \
 *

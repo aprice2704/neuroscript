@@ -21,7 +21,6 @@ import (
 	"github.com/google/generative-ai-go/genai"
 )
 
-var GrammarVersion string
 var AppVersion string
 
 type Interpreter struct {
