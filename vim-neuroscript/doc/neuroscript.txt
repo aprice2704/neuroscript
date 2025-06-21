@@ -1,0 +1,54 @@
+*neuroscript.txt*	Syntax and LSP support for NeuroScript
+
+==============================================================================
+CONTENTS                                                *neuroscript-contents*
+
+  1. Introduction....................*neuroscript-introduction*
+  2. Installation....................*neuroscript-installation*
+  3. Requirements....................*neuroscript-requirements*
+
+==============================================================================
+INTRODUCTION                                        *neuroscript-introduction*
+
+This plugin provides syntax highlighting and Language Server Protocol (LSP)
+support for NeuroScript files (`*.ns`, `*.ns.txt`).
+
+It uses the official `nslsp` language server for features like real-time
+error checking.
+
+==============================================================================
+INSTALLATION                                        *neuroscript-installation*
+
+This plugin is designed to be installed with any modern Vim plugin manager.
+It is located in the `vim-neuroscript/` subdirectory of the main NeuroScript
+repository.
+
+You must tell your plugin manager to use this subdirectory as the runtime path.
+
+Example with |vim-plug|:
+>
+  Plug 'aprice2704/neuroscript', {'rtp': 'vim-neuroscript'}
+<
+Example with |packer.nvim|:
+>
+  use { 'aprice2704/neuroscript', rtp = 'vim-neuroscript' }
+<
+Example with native packages (|packages|):
+>
+  git clone https://github.com/aprice2704/neuroscript.git ~/.vim/pack/vendor/start/neuroscript
+<
+
+==============================================================================
+REQUIREMENTS                                        *neuroscript-requirements*
+
+1.  `nslsp` executable:
+    This language server must be installed and available in your system's PATH.
+    You can install it from the root of the neuroscript project with:
+>
+      make install
+<
+2.  An LSP Client Plugin:
+    This plugin configures an LSP client, but does not provide one. You will
+    need a client like |nvim-lspconfig| (for Neovim) or |vim-lsp|.
+
+vim:tw=78:ts=8:ft=help:norl:
