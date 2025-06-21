@@ -1,5 +1,10 @@
-// File: NeuroScript.g4 Grammar: NeuroScript Version: 0.8.0 File version: 67 Ver_Comment: Final
-// version with rigid program structure to avoid ANTLR Go codegen bug.
+// Grammar: NeuroScript Version: 0.4.2
+
+// File: NeuroScript.g4 
+
+// File version: 68 Ver_Comment: Added
+
+// len() built-in function.
 
 grammar NeuroScript;
 
@@ -41,6 +46,7 @@ KW_IF: 'if';
 KW_IN: 'in';
 KW_INTO: 'into';
 KW_LAST: 'last';
+KW_LEN: 'len';
 KW_LN: 'ln';
 KW_LOG: 'log';
 KW_MEANS: 'means';
@@ -235,6 +241,7 @@ callable_expr: (
 		| KW_ASIN
 		| KW_ACOS
 		| KW_ATAN
+		| KW_LEN
 	) LPAREN expression_list_opt RPAREN;
 placeholder:
 	PLACEHOLDER_START (IDENTIFIER | KW_LAST) PLACEHOLDER_END;

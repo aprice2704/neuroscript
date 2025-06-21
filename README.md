@@ -6,7 +6,7 @@ The world utterly depends on collaboration between humans, AI agents, and tradit
 
 Instead of relying on hidden 'chain-of-thought' or ad-hoc prompts, NeuroScript aims to:
 
-* Provide a **shared 'language'** – a toolkit of simple, readable, and executable scripts and data formats.
+* Provide a **shared 'language'** – a toolkit of simple, readable, and executable scripts and data formats obeying the "Principle of Least Astonishment".
 * Capture **procedures and information clearly**, making complex workflows explicit and repeatable.
 * Foster **reliable collaboration** between all participants (human, AI, or computer).
 * Uplift **lesser AI models** allowing them to do the work of greater ones.

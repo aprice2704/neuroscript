@@ -1,7 +1,9 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.0.15 // Added missing EnterAdditive_expr to satisfy listener interface.
-// Purpose: AST building logic for operators.
+// File version: 16
+// Purpose: Added len() to list of built-in callables.
 // filename: pkg/core/ast_builder_operators.go
+// nlines: 606
+// risk_rating: MEDIUM
 
 package core
 
@@ -519,6 +521,9 @@ func (l *neuroScriptListenerImpl) ExitCallable_expr(ctx *gen.Callable_exprContex
 		case ctx.KW_ATAN() != nil:
 			keywordToken = ctx.KW_ATAN()
 			finalTargetNode.Name = "atan"
+		case ctx.KW_LEN() != nil:
+			keywordToken = ctx.KW_LEN()
+			finalTargetNode.Name = "len"
 		default:
 			l.addError(ctx, "Unhandled built-in or target type in Callable_expr: %q", ctx.GetText())
 			l.pushValue(&ErrorNode{Pos: tokenToPosition(ctx.GetStart()), Message: "Unknown callable target"})

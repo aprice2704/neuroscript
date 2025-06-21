@@ -54,7 +54,7 @@ all: build
 
 # --- Main Build Target ---
 build: syntax-check install always-build-index $(G4_TXT_FILE) $(VSCODE_BUILD_STAMP)
-	$(eval CURRENT_ANTLR_GRAMMAR_VERSION := $(shell grep '// Version:' $(G4_FILE) | awk '{print $$NF}'))
+	$(eval CURRENT_ANTLR_GRAMMAR_VERSION := $(shell grep '// Grammar: NeuroScript Version:' $(G4_FILE) | awk '{print $$NF}'))
 	@echo ""
 	@echo "NeuroScript Build Complete!"
 	@echo "--------------------------------------------------"
@@ -71,7 +71,7 @@ install: $(CMD_BINS)
 # MODIFIED: The dependency list now correctly includes the specific source files
 # for the command being built from the ./cmd directory.
 $(BIN_INSTALL_DIR)/%: $(shell find $(CMDS_DIR)/$* -name '*.go') $(ALL_PKG_GO_FILES) $(PROJECT_GO_MOD) $(PROJECT_GO_SUM) $(ANTLR_STAMP_FILE)
-	$(eval CURRENT_ANTLR_GRAMMAR_VERSION := $(shell if [ -f "$(G4_FILE)" ]; then grep '// Version:' $(G4_FILE) | awk '{print $$NF}'; else echo "g4_not_found"; fi))
+	$(eval CURRENT_ANTLR_GRAMMAR_VERSION := $(shell if [ -f "$(G4_FILE)" ]; then grep '// Grammar: NeuroScript Version:' $(G4_FILE) | awk '{print $$NF}'; else echo "g4_not_found"; fi))
 	$(eval CURRENT_LDFLAGS := -ldflags="$(LDFLAGS_BASE)$(CURRENT_ANTLR_GRAMMAR_VERSION)")
 	@echo "Installing command '$*' to $(BIN_INSTALL_DIR)..."
 	$(GO) install $(GOFLAGS) $(CURRENT_LDFLAGS) $(CMDS_DIR)/$*
@@ -110,8 +110,9 @@ $(VSCODE_SERVER_DIR)/nslsp_executable: $(BIN_INSTALL_DIR)/nslsp
 $(VSCODE_BUILD_STAMP): $(VSCODE_SERVER_DIR)/nslsp_executable \
 						$(shell find $(VSCODE_EXT_DIR) -maxdepth 1 -name 'package.json') \
 						$(shell find $(VSCODE_EXT_DIR) \( -name '*.json' -o -name '*.js' -o -name '*.ts' -o -name '*.tsx' -o -name '*.md' \) -type f ! -path '$(VSCODE_EXT_DIR)/server/*' ! -path '$(VSCODE_EXT_DIR)/node_modules/*')
-	@echo "Packaging VSCode extension in $(VSCODE_EXT_DIR)..."
-	cd $(VSCODE_EXT_DIR) && $(VSCE) package
+	$(eval CURRENT_GRAMMAR_VERSION := $(shell grep '// Grammar: NeuroScript Version:' $(G4_FILE) | awk '{print $$NF}'))
+	@echo "Packaging VSCode extension version $(CURRENT_GRAMMAR_VERSION) in $(VSCODE_EXT_DIR)..."
+	cd $(VSCODE_EXT_DIR) && $(VSCE) package $(CURRENT_GRAMMAR_VERSION)
 	@touch $@
 
 # --- Test Target ---
@@ -149,3 +150,4 @@ help:
 	@echo "  generate-antlr      - Force generation of ANTLR parser files."
 	@echo "  always-build-index  - Force regeneration of the codebase index."
 	@echo "  $(VSCODE_BUILD_STAMP) - Package the VSCode extension."
+

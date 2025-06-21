@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.4.1
-// File version: 8
-// Purpose: Corrected is_error to check for map[string]interface{}, the primitive type of an unwrapped tool error.
+// File version: 9
+// Purpose: Added len() built-in function.
 // filename: pkg/core/evaluation_functions.go
-// nlines: 135
+// nlines: 154
 // risk_rating: HIGH
 
 package core
@@ -11,12 +11,13 @@ import (
 	"fmt"
 	"math"
 	"strings"
+	"unicode/utf8"
 )
 
 // isBuiltInFunction checks if a name corresponds to a known built-in function.
 func isBuiltInFunction(name string) bool {
 	switch strings.ToLower(name) {
-	case "ln", "log", "sin", "cos", "tan", "asin", "acos", "atan",
+	case "len", "ln", "log", "sin", "cos", "tan", "asin", "acos", "atan",
 		"is_string", "is_number", "is_int", "is_float", "is_bool", "is_list", "is_map", "not_empty",
 		"is_error":
 		return true
@@ -53,7 +54,28 @@ func evaluateBuiltInFunction(funcName string, args []interface{}) (Value, error)
 
 	funcLower := strings.ToLower(funcName)
 	switch funcLower {
-	// Type checking functions
+	case "len":
+		if err := checkArgCount(1); err != nil {
+			return nil, err
+		}
+		arg := args[0]
+		var length int
+		switch v := arg.(type) {
+		case nil:
+			length = 0
+		case string:
+			length = utf8.RuneCountInString(v)
+		case []interface{}:
+			length = len(v)
+		case map[string]interface{}:
+			length = len(v)
+		default:
+			// For any other type (Number, Bool, Error, etc.), the length is 1
+			// as it represents a single, indivisible value.
+			length = 1
+		}
+		return NumberValue{Value: float64(length)}, nil
+		// Type checking functions
 	case "is_error":
 		if err := checkArgCount(1); err != nil {
 			return nil, err
