@@ -5,12 +5,12 @@ func main means
 :: description: Lists available tools and their help information.
 :: purpose: Demonstrates tool usage and output handling.
     set listResult = tool.Meta.ListTools()
-    call emit("Compact Tool List:")
-    call emit(listResult)
-    call emit(```
+    emit "Compact Tool List:"
+    emit listResult
+    emit ```
     --------------------
-    ```)
+    ```
     set helpResult = tool.Meta.ToolsHelp()
-    call emit("Detailed Tool Help (Markdown):")
-    call emit(helpResult)
+    emit "Detailed Tool Help (Markdown):"
+    emit helpResult
 endfunc
