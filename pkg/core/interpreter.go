@@ -1,9 +1,8 @@
-// NeuroScript Version: 0.3.1
-// File version: 9
-// Purpose: Added a new public ExecuteProc method to run a loaded procedure by name.
+// NeuroScript Version: 0.4.2
+// File version: 10
+// Purpose: Implemented function-scoped error handling via an error handler stack.
 // filename: pkg/core/interpreter.go
-// nlines: 295+
-// risk_rating: HIGH
+
 package core
 
 import (
@@ -47,6 +46,9 @@ type Interpreter struct {
 	maxLoopIterations  int
 	eventHandlers      map[string][]*OnEventDecl
 	eventHandlersMu    sync.RWMutex
+
+	// NEW: A stack to hold lists of error handlers for each active procedure call.
+	errorHandlerStack [][]*Step
 }
 
 // ExecuteProc finds and executes a procedure that has already been loaded into the
@@ -64,6 +66,17 @@ func (i *Interpreter) ExecuteProc(procName string) (interface{}, error) {
 			return nil, NewRuntimeError(ErrorCodeProcNotFound, fmt.Sprintf("procedure '%s' not found", procName), ErrProcedureNotFound)
 		}
 	}
+
+	// --- NEW: Register handlers for this procedure call and defer their cleanup ---
+	i.errorHandlerStack = append(i.errorHandlerStack, proc.ErrorHandlers)
+	defer func() {
+		// This cleanup will run when ExecuteProc returns, for any reason (success, error, panic),
+		// guaranteeing that handlers for this scope are removed and do not leak.
+		if len(i.errorHandlerStack) > 0 {
+			i.errorHandlerStack = i.errorHandlerStack[:len(i.errorHandlerStack)-1]
+		}
+	}()
+	// --- END NEW ---
 
 	i.currentProcName = proc.Name
 	finalResult, wasReturn, _, err := i.executeSteps(proc.Steps, false, nil)
@@ -163,14 +176,12 @@ func NewInterpreter(logger interfaces.Logger, llmClient interfaces.LLMClient, sa
 	mustWrapAndSet("TYPE_TOOL", string(TypeTool))
 	mustWrapAndSet("TYPE_ERROR", string(TypeError))
 	mustWrapAndSet("TYPE_UNKNOWN", string(TypeUnknown))
-	if initialVars != nil {
-		for k, v := range initialVars {
-			wrappedVal, err := Wrap(v)
-			if err != nil {
-				return nil, fmt.Errorf("failed to wrap initial variable '%s': %w", k, err)
-			}
-			vars[k] = wrappedVal
+	for k, v := range initialVars {
+		wrappedVal, err := Wrap(v)
+		if err != nil {
+			return nil, fmt.Errorf("failed to wrap initial variable '%s': %w", k, err)
 		}
+		vars[k] = wrappedVal
 	}
 	interp := &Interpreter{
 		variables:          vars,
@@ -195,6 +206,7 @@ func NewInterpreter(logger interfaces.Logger, llmClient interfaces.LLMClient, sa
 		rateLimitDuration:  time.Minute,
 		maxLoopIterations:  1000000,
 		eventHandlers:      make(map[string][]*OnEventDecl),
+		errorHandlerStack:  make([][]*Step, 0), // Initialize the new field
 	}
 	interp.toolRegistry = NewToolRegistry(interp)
 	if err := RegisterCoreTools(interp); err != nil {
@@ -202,6 +214,7 @@ func NewInterpreter(logger interfaces.Logger, llmClient interfaces.LLMClient, sa
 	}
 	return interp, nil
 }
+
 func (i *Interpreter) CloneWithNewVariables() *Interpreter {
 	i.variablesMu.RLock()
 	newVars := make(map[string]Value, len(i.variables))
@@ -238,9 +251,11 @@ func (i *Interpreter) CloneWithNewVariables() *Interpreter {
 		variablesMu:        sync.RWMutex{},
 		eventHandlers:      newHandlers,
 		eventHandlersMu:    sync.RWMutex{},
+		errorHandlerStack:  make([][]*Step, 0), // Initialize on clone
 	}
 	return clone
 }
+
 func (i *Interpreter) SetStdout(writer io.Writer) {
 	if writer == nil {
 		i.logger.Warn("Attempted to set nil stdout writer on interpreter, using os.Stdout as fallback.")
@@ -249,31 +264,38 @@ func (i *Interpreter) SetStdout(writer io.Writer) {
 	}
 	i.stdout = writer
 }
+
 func (i *Interpreter) Stdout() io.Writer {
 	if i.stdout == nil {
 		return os.Stdout
 	}
 	return i.stdout
 }
+
 func (i *Interpreter) SetAIWorkerManager(manager *AIWorkerManager) {
 	i.aiWorkerManager = manager
 }
+
 func (i *Interpreter) AIWorkerManager() *AIWorkerManager {
 	return i.aiWorkerManager
 }
+
 func (i *Interpreter) SandboxDir() string { return i.sandboxDir }
+
 func (i *Interpreter) Logger() interfaces.Logger {
 	if i.logger == nil {
 		panic("FATAL: Interpreter logger is nil")
 	}
 	return i.logger
 }
+
 func (i *Interpreter) FileAPI() *FileAPI {
 	if i.fileAPI == nil {
 		panic("FATAL: Interpreter fileAPI not initialized")
 	}
 	return i.fileAPI
 }
+
 func (i *Interpreter) SetSandboxDir(newSandboxDir string) error {
 	var cleanNewSandboxDir string
 	if newSandboxDir == "" {
@@ -291,6 +313,7 @@ func (i *Interpreter) SetSandboxDir(newSandboxDir string) error {
 	}
 	return nil
 }
+
 func (i *Interpreter) SetVariable(name string, value Value) error {
 	i.variablesMu.Lock()
 	defer i.variablesMu.Unlock()
@@ -303,6 +326,7 @@ func (i *Interpreter) SetVariable(name string, value Value) error {
 	i.variables[name] = value
 	return nil
 }
+
 func (i *Interpreter) GetVariable(name string) (Value, bool) {
 	i.variablesMu.RLock()
 	defer i.variablesMu.RUnlock()
@@ -312,18 +336,21 @@ func (i *Interpreter) GetVariable(name string) (Value, bool) {
 	val, exists := i.variables[name]
 	return val, exists
 }
+
 func (i *Interpreter) GenAIClient() *genai.Client {
 	if i.llmClient == nil {
 		return nil
 	}
 	return i.llmClient.Client()
 }
+
 func (i *Interpreter) GetVectorIndex() map[string][]float32 {
 	if i.vectorIndex == nil {
 		i.vectorIndex = make(map[string][]float32)
 	}
 	return i.vectorIndex
 }
+
 func (i *Interpreter) SetVectorIndex(vi map[string][]float32) { i.vectorIndex = vi }
 
 var _ ToolRegistry = (*Interpreter)(nil)

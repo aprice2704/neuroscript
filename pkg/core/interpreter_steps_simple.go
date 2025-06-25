@@ -150,7 +150,7 @@ func (i *Interpreter) executeFail(step Step) error {
 	return NewRuntimeError(errCode, errMsg, wrappedErr).WithPosition(finalPos)
 }
 
-// executeOnError handles the "on_error" step setup.
+// executeOnError handles the "on error" step setup.
 func (i *Interpreter) executeOnError(step Step) (*Step, error) {
 	posStr := step.Pos.String()
 	i.Logger().Debug("[DEBUG-INTERP] Executing ON_ERROR - Handler now active.", "pos", posStr)

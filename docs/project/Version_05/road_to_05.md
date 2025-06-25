@@ -5,6 +5,15 @@
  - Worker Management System able to perform symphonic tasks, with robust configuration, operational controls, and foundational learning capabilities.
  - gopls integration allows fast, efficient, and reliable AI-driven Go code development.
 
+## Language
+
+- [ ] Fix persisting fns
+- [ ] add final and friends (persisting_fns.md)
+- [ ] add keep_calm_carry_on as alias for clear_error
+- [ ] add proc as alias for func, endproc for endfunc
+- [ ] remove need for line continuation if easy (check at least)
+- [ ] fn built in type?
+ 
  ## Worker Management System
 
  - See design document: [docs/core/ai_wm_design.md]

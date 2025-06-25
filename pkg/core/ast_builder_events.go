@@ -1,10 +1,12 @@
-// ast_builder_events.go – Listener callbacks for `on event` declarations
-// file version: 13
-// Purpose: Corrected stack popping logic in ExitEvent_handler to be more robust.
+// ast_builder_events.go – Listener callbacks for `on event` and `on error`
+// file version: 18
+// Purpose: Replaced logging with fmt.Printf for forced debugging to identify AST node type.
 
 package core
 
 import (
+	"fmt" // Ensure fmt is imported
+
 	gen "github.com/aprice2704/neuroscript/pkg/core/generated"
 )
 
@@ -26,7 +28,7 @@ func (l *neuroScriptListenerImpl) EnterEvent_handler(ctx *gen.Event_handlerConte
 func (l *neuroScriptListenerImpl) ExitEvent_handler(ctx *gen.Event_handlerContext) {
 	l.logDebugAST("<<< ExitEvent_handler")
 
-	// Pop the body, which was pushed by ExitStatement_list
+	// Pop all potential values from the stack first
 	bodyVal, ok := l.popValue()
 	if !ok || bodyVal == nil {
 		l.addError(ctx, "internal error: stack underflow trying to pop event handler body")
@@ -38,23 +40,14 @@ func (l *neuroScriptListenerImpl) ExitEvent_handler(ctx *gen.Event_handlerContex
 		return
 	}
 
-	// Pop the handler name if it exists
 	var handlerName string
 	if ctx.KW_NAMED() != nil {
-		nameVal, ok := l.popValue()
-		if !ok {
-			l.addError(ctx, "internal error: stack underflow trying to pop handler name")
-			return
+		nameVal, _ := l.popValue()
+		if nameNode, ok := nameVal.(*StringLiteralNode); ok {
+			handlerName = nameNode.Value
 		}
-		nameNode, ok := nameVal.(*StringLiteralNode)
-		if !ok {
-			l.addError(ctx, "internal error: expected StringLiteralNode for handler name, got %T", nameVal)
-			return
-		}
-		handlerName = nameNode.Value
 	}
 
-	// Pop the event name expression
 	eventExprVal, ok := l.popValue()
 	if !ok {
 		l.addError(ctx, "internal error: stack underflow trying to pop event name expression")
@@ -66,7 +59,36 @@ func (l *neuroScriptListenerImpl) ExitEvent_handler(ctx *gen.Event_handlerContex
 		return
 	}
 
-	// Pop the sentinel marker
+	// --- FORCED DEBUGGING VIA PRINTF ---
+	fmt.Printf("\n>>>> DEBUG | Event Expr Type: [%T] | Value: [%s] <<<<\n\n", eventExpr, eventExpr.String())
+	// --- END DEBUGGING ---
+
+	isErrorHandler := false
+	if str, ok := eventExpr.(*StringLiteralNode); ok && str.Value == "error" {
+		isErrorHandler = true
+	}
+
+	if isErrorHandler && l.currentProc != nil {
+		l.logDebugAST("     SUCCESS: Identified as function-scoped 'on error' handler for procedure '%s'", l.currentProc.Name)
+		marker, _ := l.popValue()
+		if marker != onEventMarker {
+			l.addError(ctx, "internal error: stack corruption, missing on_stmt marker for error handler")
+		}
+		handlerStep := &Step{
+			Pos:  tokenToPosition(ctx.GetStart()),
+			Type: "on_error_handler",
+			Body: bodySteps,
+		}
+		l.currentProc.ErrorHandlers = append(l.currentProc.ErrorHandlers, handlerStep)
+		return
+	}
+
+	// --- FORCED DEBUGGING VIA PRINTF ---
+	if l.currentProc != nil && !isErrorHandler {
+		fmt.Printf("\n>>>> DEBUG | Handler for event '%s' not identified as 'on error', treating as global <<<<\n\n", eventExpr.String())
+	}
+	// --- END DEBUGGING ---
+
 	marker, ok := l.popValue()
 	if !ok || marker != onEventMarker {
 		l.addError(ctx, "internal error: stack corruption, missing on_stmt marker")
@@ -89,5 +111,5 @@ func (l *neuroScriptListenerImpl) ExitEvent_handler(ctx *gen.Event_handlerContex
 	}
 
 	l.events = append(l.events, decl)
-	l.logDebugAST("     Added on event declaration (event: %q, name: %q)", eventExpr.String(), handlerName)
+	l.logDebugAST("     Added global 'on event' declaration (event: %q, name: %q)", eventExpr.String(), handlerName)
 }

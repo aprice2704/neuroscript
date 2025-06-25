@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.4.2
-// File version: 15
-// Purpose: Updated logging helper to correctly stringify the new LValues slice.
+// File version: 23
+// Purpose: Implemented the final hierarchical error handling logic with minimal changes to the last known good file.
 // filename: pkg/core/interpreter_exec.go
 
 package core
@@ -75,7 +75,6 @@ func getStepSubjectForLogging(step Step) string {
 	return "<no specific subject>"
 }
 
-// ... (rest of interpreter_exec.go is unchanged) ...
 // executeSteps iterates through and executes steps, handling control flow and errors.
 func (i *Interpreter) executeSteps(steps []Step, isInHandler bool, activeError *RuntimeError) (finalResult Value, wasReturn bool, wasCleared bool, finalError error) {
 	modeStr := "normal"
@@ -198,30 +197,56 @@ func (i *Interpreter) executeSteps(steps []Step, isInHandler bool, activeError *
 			stepErr = NewRuntimeError(ErrorCodeUnknownKeyword, errMsg, ErrUnknownKeyword).WithPosition(step.Pos)
 		}
 
+		// --- MINIMAL CHANGE AREA: This block is updated ---
 		if stepErr != nil {
 			if errors.Is(stepErr, ErrBreak) || errors.Is(stepErr, ErrContinue) {
 				return nil, false, wasCleared, stepErr
 			}
 			rtErr := ensureRuntimeError(stepErr, step.Pos, stepTypeLower)
+
+			var handlerToExecute *Step = nil
+
+			// 1. Prioritize a handler defined in the immediate local block (for nesting).
 			if currentErrorHandler != nil {
-				_, handlerReturned, handlerCleared, handlerErr := i.executeSteps(currentErrorHandler.Body, true, rtErr)
+				handlerToExecute = currentErrorHandler
+			} else if !isInHandler {
+				// 2. No local handler, and we're not already in a handler.
+				//    Check for a procedure-level handler from the stack.
+				if len(i.errorHandlerStack) > 0 {
+					procHandlers := i.errorHandlerStack[len(i.errorHandlerStack)-1]
+					if len(procHandlers) > 0 {
+						handlerToExecute = procHandlers[0] // Using the first handler found
+					}
+				}
+			}
+
+			if handlerToExecute != nil {
+				// We found a handler to run.
+				var handlerCleared bool
+				var handlerErr error
+				// The 'true' for isInHandler prevents infinite recursion if the handler itself fails
+				// without its own nested handler.
+				_, _, handlerCleared, handlerErr = i.executeSteps(handlerToExecute.Body, true, rtErr)
+
 				if handlerErr != nil {
-					return nil, false, false, ensureRuntimeError(handlerErr, currentErrorHandler.Pos, "ON_ERROR_HANDLER")
+					// The handler itself failed. Propagate this new, more critical error.
+					return nil, false, false, ensureRuntimeError(handlerErr, handlerToExecute.Pos, "ON_ERROR_HANDLER")
 				}
-				if handlerReturned {
-					return nil, true, false, NewRuntimeError(ErrorCodeReturnViolation, "return from on_error handler is not permitted", ErrReturnViolation).WithPosition(currentErrorHandler.Pos)
-				}
+
 				if handlerCleared {
 					wasCleared = true
 					activeError = nil
-					stepErr = nil
+					stepErr = nil // The error is resolved.
 				} else {
+					// The handler ran but did not clear the error. Propagate the original error.
 					return nil, false, false, rtErr
 				}
 			} else {
+				// No handler found. Propagate the original error.
 				return nil, false, false, rtErr
 			}
 		}
+		// --- END MINIMAL CHANGE AREA ---
 
 		if stepErr == nil {
 			if shouldUpdateLastResult(stepTypeLower) {

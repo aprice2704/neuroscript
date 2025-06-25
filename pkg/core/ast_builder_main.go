@@ -1,9 +1,9 @@
 // NeuroScript Version: 0.5.2
-// File version: 33
-// Purpose: Corrects listener initialization and error handling to fix critical AST build failures.
+// File version: 35
+// Purpose: Corrected a compiler error by using the .Pos field instead of a non-existent .Position() method.
 // filename: pkg/core/ast_builder_main.go
-// nlines: 121
-// risk_rating: MEDIUM
+// nlines: 141
+// risk_rating: LOW
 
 package core
 
@@ -42,7 +42,6 @@ func (b *ASTBuilder) Build(tree antlr.Tree) (*Program, map[string]string, error)
 	b.logger.Debug("--- AST Builder: Build Start ---")
 
 	// 1. Create and fully initialize the listener and its components.
-	// This is the critical fix: The program and metadata are now prepared *before* the walk.
 	listener := newNeuroScriptListener(b.logger, b.debugAST)
 	if listener.program == nil {
 		listener.program = &Program{Procedures: make(map[string]*Procedure)}
@@ -57,13 +56,10 @@ func (b *ASTBuilder) Build(tree antlr.Tree) (*Program, map[string]string, error)
 	walker.Walk(listener, tree)
 	b.logger.Debug("AST Builder: ANTLR walk finished.")
 
-	// The listener now manages its own program and metadata.
-	// We retrieve the final products after the walk.
 	programAST := listener.program
 	fileMetadata := listener.GetFileMetadata()
 
 	// 3. Consolidate procedures from the temporary slice into the final map.
-	// The listener appends procedures to a slice during the walk.
 	if programAST.Procedures == nil {
 		programAST.Procedures = make(map[string]*Procedure)
 	}
@@ -79,9 +75,24 @@ func (b *ASTBuilder) Build(tree antlr.Tree) (*Program, map[string]string, error)
 		}
 		programAST.Procedures[proc.Name] = proc
 	}
-	programAST.Events = listener.events
 
-	// 4. Check for and aggregate any errors collected during the walk.
+	// 4. Validate and consolidate event handlers.
+	validEvents := make([]*OnEventDecl, 0, len(listener.events))
+	for _, ev := range listener.events {
+		nameLit, isString := ev.EventNameExpr.(*StringLiteralNode)
+		if isString && nameLit.Value == "error" {
+			// This is a top-level 'on error' handler. This is a semantic error
+			// as 'on error' is only permitted inside a procedure.
+			pos := ev.Pos // CORRECTED: Use the .Pos field.
+			errMsg := fmt.Sprintf("misplaced 'on error' handler at line %d; 'on error' is only allowed inside a 'proc' block", pos.Line)
+			listener.errors = append(listener.errors, fmt.Errorf("%s", errMsg))
+			continue // Discard the invalid handler.
+		}
+		validEvents = append(validEvents, ev)
+	}
+	programAST.Events = validEvents
+
+	// 5. Check for and aggregate any errors collected during the walk and validation.
 	if len(listener.errors) > 0 {
 		errorMessages := make([]string, 0, len(listener.errors))
 		uniqueErrors := make(map[string]bool)
@@ -96,7 +107,6 @@ func (b *ASTBuilder) Build(tree antlr.Tree) (*Program, map[string]string, error)
 		}
 		combinedError := fmt.Errorf("AST build failed with %d error(s): %s", len(errorMessages), strings.Join(errorMessages, "; "))
 		b.logger.Error("AST Builder: Failing build", "error", combinedError)
-		// Return the partially built program for debugging, along with the error.
 		return programAST, fileMetadata, combinedError
 	}
 

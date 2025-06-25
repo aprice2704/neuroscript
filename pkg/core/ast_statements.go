@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.5.2
-// File version: 2
-// Purpose: Updated AST nodes to support multiple assignment targets and treat LValues as Expressions.
+// File version: 3
+// Purpose: Added proc level err handlers. Updated AST nodes to support multiple assignment targets and treat LValues as Expressions.
 // filename: pkg/core/ast_statements.go
 // nlines: 104
 // risk_rating: HIGH
@@ -73,6 +73,7 @@ type Procedure struct {
 	Steps             []Step
 	OriginalSignature string            // For debugging/LSP
 	Metadata          map[string]string // Procedure-level metadata
+	ErrorHandlers     []*Step           // NEW: A dedicated slice for 'on error' handlers.
 }
 
 func (p *Procedure) GetPos() *Position { return p.Pos }

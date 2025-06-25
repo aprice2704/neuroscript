@@ -1,9 +1,7 @@
-// NeuroScript Version: 0.3.1
-// File version: 14
-// Purpose: Reviewed for compliance with value-wrapping contract; file remains compliant with no changes needed.
+// NeuroScript Version: 0.4.2
+// File version: 15
+// Purpose: Added error handler stack management to RunProcedure to support scoped error handling in nested calls.
 // filename: pkg/core/interpreter_procedures.go
-// nlines: 154
-// risk_rating: HIGH
 
 package core
 
@@ -96,6 +94,16 @@ func (i *Interpreter) RunProcedure(procName string, args ...Value) (Value, error
 			return nil, fmt.Errorf("failed to set variadic parameter '%s': %w", proc.VariadicParamName, setErr)
 		}
 	}
+
+	// --- NEW: Register handlers for this procedure call and defer their cleanup ---
+	// This logic must be applied to the cloned interpreter that will actually execute the steps.
+	procInterpreter.errorHandlerStack = append(procInterpreter.errorHandlerStack, proc.ErrorHandlers)
+	defer func() {
+		if len(procInterpreter.errorHandlerStack) > 0 {
+			procInterpreter.errorHandlerStack = procInterpreter.errorHandlerStack[:len(procInterpreter.errorHandlerStack)-1]
+		}
+	}()
+	// --- END NEW ---
 
 	result, _, _, err := procInterpreter.executeSteps(proc.Steps, false, nil)
 	if err != nil {
