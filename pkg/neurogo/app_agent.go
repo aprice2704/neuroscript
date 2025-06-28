@@ -1,19 +1,18 @@
-// NeuroScript Version: 0.3.0
-// File version: 0.1.4
-// Correct ToolRegistry type in getAvailableTools
+// NeuroScript Version: 0.3.1
+// File version: 0.2.1
+// Purpose: Corrected the error code constant used for checking if a procedure was not found, resolving a compiler error.
 // filename: pkg/neurogo/app_agent.go
-// nlines: 285
-// risk_rating: MEDIUM
+// nlines: 285 // Approximate
+// risk_rating: LOW
 package neurogo
 
 import (
 	"bufio"
-	"context" // Keep context for other parts of the file
+	"context"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
-
-	// "time" // No longer needed directly in this file
 
 	"github.com/aprice2704/neuroscript/pkg/core"
 	"github.com/google/generative-ai-go/genai"
@@ -57,7 +56,6 @@ func (app *App) runAgentMode(ctx context.Context) error {
 	if app.Config.StartupScript != "" {
 		app.Log.Info("Executing startup script.", "path", app.Config.StartupScript)
 		if app.interpreter != nil {
-			// Pass ctx here for potential future use, even if RunProcedure doesn't take it now
 			err := app.executeStartupScript(ctx, app.Config.StartupScript, agentCtx)
 			if err != nil {
 				app.Log.Error("Failed to execute startup script.", "path", app.Config.StartupScript, "error", err)
@@ -143,13 +141,11 @@ func (app *App) registerAgentTools(agentCtx *AgentContext) error {
 	if app.interpreter == nil {
 		return fmt.Errorf("cannot register agent tools: interpreter is nil")
 	}
-	// app.interpreter.ToolRegistry() returns core.ToolRegistry (interface type)
 	registry := app.interpreter.ToolRegistry()
 	if registry == nil {
 		return fmt.Errorf("interpreter tool registry is nil")
 	}
 
-	// This call is now correct as RegisterAgentTools expects core.ToolRegistry
 	err := RegisterAgentTools(registry)
 	if err != nil {
 		return fmt.Errorf("failed during agent tool registration: %w", err)
@@ -173,7 +169,6 @@ func (app *App) handleTurn(ctx context.Context, convoManager *core.ConversationM
 		return fmt.Errorf("cannot handle turn: LLM client is nil")
 	}
 
-	// app.interpreter.ToolRegistry() returns core.ToolRegistry (interface type)
 	registry := app.interpreter.ToolRegistry()
 	if registry == nil {
 		app.Log.Error("Interpreter's ToolRegistry is nil.")
@@ -187,14 +182,13 @@ func (app *App) handleTurn(ctx context.Context, convoManager *core.ConversationM
 		allowedTools,
 		allowedPaths,
 		sandboxDir,
-		registry, // registry is core.ToolRegistry, which is expected by NewSecurityLayer if it takes the interface
+		registry,
 		app.Log,
 	)
 	if securityLayer == nil {
 		return fmt.Errorf("failed to create security layer")
 	}
 
-	// This call is now correct as getAvailableTools expects core.ToolRegistry
 	availableTools := getAvailableTools(agentCtx, registry)
 
 	fileInfoList := agentCtx.GetURIsForNextContext()
@@ -206,10 +200,8 @@ func (app *App) handleTurn(ctx context.Context, convoManager *core.ConversationM
 	}
 	accumulatedContextURIsForCall := stringURIs
 
-	// Call handleAgentTurn, passing app.interpreter
-	// Note: handleAgentTurn might need context passed if *it* calls context-aware funcs
 	err := app.handleAgentTurn(
-		ctx, // Pass context along
+		ctx,
 		llmClient,
 		convoManager,
 		app.interpreter,
@@ -226,69 +218,64 @@ func (app *App) handleTurn(ctx context.Context, convoManager *core.ConversationM
 	return nil
 }
 
-// executeStartupScript handles running the initial agent configuration script.
+// executeStartupScript handles running the initial agent configuration script according to the new protocol.
 func (app *App) executeStartupScript(ctx context.Context, scriptPath string, agentCtx *AgentContext) error {
 	app.Log.Info("Executing startup script.", "path", scriptPath)
-
 	if app.interpreter == nil {
-		app.Log.Error("Interpreter is nil before executing startup script.")
 		return fmt.Errorf("cannot execute startup script: interpreter is nil")
 	}
 
-	procDefs, fileMeta, err := app.processNeuroScriptFile(scriptPath, app.interpreter)
+	// 1. Read file content using the interpreter's tool.
+	filepathArg, err := core.Wrap(scriptPath)
 	if err != nil {
-		return fmt.Errorf("failed to process startup script %s: %w", scriptPath, err)
+		return fmt.Errorf("internal error wrapping script path '%s': %w", scriptPath, err)
 	}
-	app.Log.Debug("Startup script processed.", "path", scriptPath, "procedures_found", len(procDefs), "metadata", fileMeta)
+	toolArgs := map[string]core.Value{"filepath": filepathArg}
+	contentValue, err := app.interpreter.ExecuteTool("TOOL.ReadFile", toolArgs)
+	if err != nil {
+		return fmt.Errorf("failed to read startup script file '%s': %w", scriptPath, err)
+	}
+	scriptContent, ok := core.Unwrap(contentValue).(string)
+	if !ok {
+		return fmt.Errorf("internal error: TOOL.ReadFile did not return a string for '%s'", scriptPath)
+	}
 
+	// 2. Load script definitions from the content.
+	if _, err := app.LoadScriptString(ctx, scriptContent); err != nil {
+		return fmt.Errorf("failed to load startup script %s: %w", scriptPath, err)
+	}
+	app.Log.Debug("Startup script processed and loaded.", "path", scriptPath)
+
+	// 3. Run the 'main' procedure.
 	startupProcName := "main"
-	found := false
-	for _, proc := range procDefs {
-		if proc != nil && proc.Name == startupProcName {
-			found = true
-			break
-		}
-	}
-
-	if !found {
-		app.Log.Warn("No 'main' procedure found in startup script, nothing to execute.", "path", scriptPath)
-		return nil
-	}
-
 	app.Log.Info("Running startup procedure.", "name", startupProcName, "script", scriptPath)
-
-	var results interface{}
-	procName := startupProcName
-	// arguments map is nil, so we pass no variadic args
-
-	// <<< FIX: Call RunProcedure matching gopls signature (procName string, args ...interface{}) >>>
-	results, runErr := app.interpreter.RunProcedure(procName) // Pass only procName
+	_, runErr := app.RunProcedure(ctx, startupProcName, nil) // Pass nil for args
 
 	if runErr != nil {
-		// Don't need the specific context error check anymore
+		// If the procedure simply doesn't exist, it's not a fatal error for a startup script.
+		var rErr *core.RuntimeError
+		if errors.As(runErr, &rErr) && rErr.Code == core.ErrorCodeProcNotFound {
+			app.Log.Warn("No 'main' procedure found in startup script, nothing to execute.", "path", scriptPath)
+			return nil
+		}
+		// Any other error during execution is a real problem.
 		app.Log.Error("Error running startup procedure.", "proc", startupProcName, "error", runErr)
 		return fmt.Errorf("error running startup procedure '%s' from %s: %w", startupProcName, scriptPath, runErr)
 	}
 
-	app.Log.Info("Startup procedure finished.", "name", startupProcName, "result_type", fmt.Sprintf("%T", results))
+	app.Log.Info("Startup procedure finished successfully.", "name", startupProcName)
 	return nil
 }
 
 // getAvailableTools prepares the list of genai.Tools for the LLM call.
-// CORRECTED: Changed registry type from *core.ToolRegistry to core.ToolRegistry
 func getAvailableTools(agentCtx *AgentContext, registry core.ToolRegistry) []*genai.Tool {
-	// ... (unchanged) ...
 	if registry == nil {
 		fmt.Println("[AGENT] Warning: Tool registry is nil in getAvailableTools.")
 		return []*genai.Tool{}
 	}
-
-	// This call is now correct because 'registry' is core.ToolRegistry (interface)
-	// and 'ListTools' is a method on that interface.
 	allTools := registry.ListTools()
 	genaiTools := make([]*genai.Tool, 0, len(allTools))
 	for _, toolImpl := range allTools {
-		// Use qualified name for declaration if tools are registered/called that way
 		qualifiedName := "TOOL." + toolImpl.Name // Assuming tools need TOOL. prefix for LLM
 		genaiFunc := &genai.FunctionDeclaration{
 			Name:        qualifiedName,
@@ -303,7 +290,6 @@ func getAvailableTools(agentCtx *AgentContext, registry core.ToolRegistry) []*ge
 
 // snippet returns the first n characters of a string.
 func snippet(s string, n int) string {
-	// ... (unchanged) ...
 	if len(s) <= n {
 		return s
 	}

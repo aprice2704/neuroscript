@@ -20,30 +20,6 @@
 
  ### From version 0.3.0 Review
 
-   - |x| AI Worker Management System (Core v0.3 Functionality)
-     - [x] Core AI Worker Manager (Initialization, basic structure)
-     - |x| AI Worker Definition Tools
-       - [x] AIWorkerDefinition.Add
-       - [x] AIWorkerDefinition.Get
-       - [x] AIWorkerDefinition.List
-       - [x] AIWorkerDefinition.Update
-       - [x] AIWorkerDefinition.Remove
-       - [x] AIWorkerDefinition.LoadAll
-       - [x] AIWorkerDefinition.SaveAll
-     - |x| AI Worker Instance Tools
-       - [x] AIWorkerInstance.Spawn
-       - [x] AIWorkerInstance.Get
-       - [x] AIWorkerInstance.ListActive
-       - [x] AIWorkerInstance.Retire
-       - [x] AIWorkerInstance.UpdateStatus
-       - [x] AIWorkerInstance.UpdateTokenUsage
-     - |x| AI Worker Execution Tools
-       - [x] AIWorker.ExecuteStatelessTask
-     - |x| AI Worker Performance Tools
-       - [x] AIWorker.SavePerformanceData
-       - [x] AIWorker.LoadPerformanceData
-       - [x] AIWorker.LogPerformance
-       - [x] AIWorker.GetPerformanceRecords
    - [-] Design for stateful worker interaction and task lifecycle. @ai_wm
      :: note: Superseded and expanded by v0.5 worker pool and queue design. Stateful interaction will leverage these new components.
    - [-] Tooling for SAI to assign/monitor tasks on workers. @ai_wm @sai
@@ -250,12 +226,57 @@
          - [ ] F.2e. `Gopls.ListSymbolsInFile` and `Gopls.FindWorkspaceSymbols`.
      - [ ] F.3. Test error handling for gopls communication.
 
+────────────────────────────────────────────────────────────
+
+# 2 · Worker-Management System (WM)
+- | | **Core Work-Queue Abstraction (in-memory v0.4)**
+  - [ ] *Job structure* design
+  - [ ] `tool.WM.AddJobToQueue(queue, job_payload)`
+  - [ ] **Queue start/pause** (`PauseQueue`, `ResumeQueue`)
+  - | | Worker Assignment
+    - [ ] Manual / scripted worker-to-queue mapping
+    - [ ] Queue config: default worker def ID, pool size
+    - [ ] Auto-instantiate default workers per load
+  - | | Job Lifecycle
+    - [ ] States: `pending, active, completed, failed`
+    - [ ] Track timestamps & retries
+  - | | Result Accumulation (“Lessons Learned”)
+    - [ ] Per job: store prompt, output, errors, status
+    - [ ] Aggregate queue stats in memory
+  - | | **Queue Management Tools**
+    - [ ] `WM.ListQueues`
+    - [ ] `WM.GetQueueStatus(queue)`
+    - [ ] `WM.ListJobs(queue, filters)`
+    - [ ] `WM.GetJobResult(job_id)`
+    - [ ] Blocking waits: `WaitForJobCompletion` & `WaitForNextJobCompletion`
+- | | **Delegation & Security**
+  - [ ] **JobToken schema + signer**
+  - [ ] Mediator validates JobToken on every FDM tool call
+  - [ ] Agent allow/deny lists
+- | | **NS Worker-Manager Bridge**
+  - [ ] `fdm.enqueue_task` (wrap AddJob)
+  - [ ] `fdm.wait_job(job_id)`
+- | | **End-to-End Test**
+  - [ ] Script: split 5 Go files → queue refactors
+  - [ ] Worker processes, mediator applies edits
+  - [ ] Verify edits & lessons learned stored
+- | | **TUI Panel**
+  - [ ] Display queue length, active workers, paused/running
+
+────────────────────────────────────────────────────────────
+
+
+
  ## Other bits
 
  - [ ] Matrix tools @lang_features @unprioritized
  - [ ] Named arguments @lang_features @unprioritized
  - [ ] Default arguments @lang_features @unprioritized
  - [ ] Line continuation etc. @lang_features @unprioritized
+
+# 6 · Example App — Language Flashcards
+- | | Core features: add card, review, save/load
+- | | Simple TUI or script
 
 
 

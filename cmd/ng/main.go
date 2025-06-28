@@ -1,18 +1,9 @@
-// NeuroScript Version: 0.3.0
-// File version: 0.1.15
+// NeuroScript Version: 0.3.1
+// File version: 0.2.0
+// Purpose: Updated to use the new load/run protocol, replacing ExecuteScriptFile with tool-based file reads and explicit procedure execution.
 // filename: cmd/ng/main.go
-// nlines: 229
+// nlines: 250
 // risk_rating: HIGH
-// Changes:
-// - Added a --version flag to print application and grammar versions in JSON format.
-// - Declared main.AppVersion to be injected via ldflags.
-// - Added logic to handle the --version flag immediately after parsing.
-// - Added "encoding/json" to imports.
-// - Corrected app.InitLLMClient to app.CreateLLMClient.
-// - Fixed LLMClient argument for InitializeCoreComponents (using app.InitLLMClient).
-// - TUI flag defaults to false.
-// - TUI only starts if -tui is explicitly true.
-// - If -script and -tui, script path is passed to TUI for delayed execution.
 package main
 
 import (
@@ -30,7 +21,6 @@ import (
 )
 
 // Version information, injected at build time via -ldflags.
-// Example: go build -ldflags="-X main.AppVersion=1.2.3"
 var (
 	AppVersion string
 )
@@ -51,7 +41,6 @@ func main() {
 	modelName := flag.String("model", neurogo.DefaultModelName, "Default generative model name for LLM interactions")
 	startupScriptPath := flag.String("script", "", "Path to a NeuroScript (.ns) file to execute")
 
-	// TUI flag now defaults to false
 	tuiMode := flag.Bool("tui", false, "Enable Terminal User Interface (TUI) mode")
 	replMode := flag.Bool("repl", false, "Enable basic REPL mode (if TUI is false and no script is run)")
 
@@ -72,9 +61,7 @@ func main() {
 	flag.Parse()
 
 	// --- Handle Version Flag ---
-	// If the --version flag is provided, print version info and exit immediately.
 	if *versionFlag {
-		// Provide default values if not injected during build.
 		appVersion := AppVersion
 		if appVersion == "" {
 			appVersion = "dev"
@@ -94,7 +81,6 @@ func main() {
 
 		jsonOutput, err := json.MarshalIndent(versionInfo, "", "  ")
 		if err != nil {
-			// Logger is not initialized yet, so print directly to stderr.
 			fmt.Fprintf(os.Stderr, "Error creating version JSON: %v\n", err)
 			os.Exit(1)
 		}
@@ -141,27 +127,9 @@ func main() {
 		LibPaths:      libPathsConfig.Value,
 		TargetArg:     *targetArg,
 		ProcArgs:      procArgsConfig.Value,
-		// Note: SyncDir, SyncFilter, SyncIgnoreGitignore, AllowlistFile, SchemaPath are not set here from flags
-		// They might be intended to be set by scripts or TUI later if needed, or flags are missing.
 	}
 
-	// Create a temporary App shell or pass nil if CreateLLMClient doesn't strictly need a full App instance,
-	// OR, if CreateLLMClient is a static/package-level function.
-	// HOWEVER, app.CreateLLMClient() is a METHOD on *App.
-	// This implies App needs to exist at least partially to call CreateLLMClient.
-	// But NewApp needs the llmClient. This is the chicken/egg.
-
-	// Let's look at what App.CreateLLMClient() *actually* needs from `app`:
-	// It needs `app.Config` and `app.Log`.
-	// It does NOT set `app.llmClient`.
-
-	// Solution:
-	// 1. Create a preliminary App instance just for its Config and Log, to call CreateLLMClient.
-	// 2. Create the LLM Client using this preliminary app instance.
-	// 3. Create the *final* App instance by passing this LLM client to NewApp.
-
 	logger.Debug("Preparing to create LLM client...")
-	// Temporary app instance to facilitate CreateLLMClient call, as it needs app.Config and app.Log
 	tempAppForLLMCreation := &neurogo.App{Config: appConfig, Log: logger}
 	llmClient, err := tempAppForLLMCreation.CreateLLMClient()
 	if err != nil {
@@ -169,7 +137,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "LLM client creation error: %v\n", err)
 		os.Exit(1)
 	}
-	if llmClient == nil { // Should be caught by CreateLLMClient's internal error handling, but good to check.
+	if llmClient == nil {
 		logger.Error("LLM client is nil after creation without error.")
 		fmt.Fprintf(os.Stderr, "LLM client is nil after creation.\n")
 		os.Exit(1)
@@ -177,32 +145,25 @@ func main() {
 	logger.Debug("LLM client created successfully.")
 
 	// --- NeuroGo App Initialization (with LLM Client) ---
-	app, err := neurogo.NewApp(appConfig, logger, llmClient) // Now passing llmClient
-	if err != nil {                                          // NewApp now returns an error
+	app, err := neurogo.NewApp(appConfig, logger, llmClient)
+	if err != nil {
 		logger.Error("Failed to create NeuroGo App", "error", err)
 		fmt.Fprintf(os.Stderr, "NeuroGo App creation error: %v\n", err)
 		os.Exit(1)
 	}
-	// app.Config = appConfig; // This line is redundant if NewApp assigns cfg to app.Config, which it does.
-
 	logger.Debug("NeuroGo App instance created.")
 
 	// --- Initialize Core Components (Interpreter, AIWM) ---
-	// The 'llmClient' passed to InitializeCoreComponents is the one already created and given to NewApp.
-	// InitializeCoreComponents will then use this to set up Interpreter and AIWM.
-	var interpreter *core.Interpreter // Keep var declarations if they are used later for tool registration
-	var aiWm *core.AIWorkerManager    // Keep var declarations
-
-	interpreter, aiWm, err = InitializeCoreComponents(app, logger, llmClient) // llmClient here is the one created above
-	if err != nil {
+	if err := app.InitializeCoreComponents(); err != nil {
 		logger.Error("Failed to initialize core components", "error", err)
 		fmt.Fprintf(os.Stderr, "Initialization error: %v\n", err)
 		os.Exit(1)
 	}
 	logger.Debug("Core components (Interpreter, AIWM) initialized successfully.")
+
 	// --- Register Tools ---
-	if aiWm != nil {
-		if err := core.RegisterAIWorkerTools(interpreter); err != nil {
+	if app.Interpreter().AIWorkerManager() != nil {
+		if err := core.RegisterAIWorkerTools(app.Interpreter()); err != nil {
 			logger.Error("Failed to register AI Worker tools", "error", err)
 			fmt.Fprintf(os.Stderr, "Warning: Failed to register AI Worker tools: %v\n", err)
 		} else {
@@ -232,23 +193,54 @@ func main() {
 		scriptExecutedInNonTUI := false
 		if scriptToRunNonTUI != "" {
 			logger.Debug("Executing script (non-TUI mode)", "script", scriptToRunNonTUI)
-			originalConfigScript := app.Config.StartupScript
-			if app.Config.StartupScript != scriptToRunNonTUI && scriptToRunNonTUI == flag.Arg(0) && flag.NArg() > 0 {
-				app.Config.StartupScript = scriptToRunNonTUI
-			}
 
-			if err := app.ExecuteScriptFile(ctx, app.Config.StartupScript); err != nil {
-				logger.Error("Error executing script", "script", app.Config.StartupScript, "error", err)
-				fmt.Fprintf(os.Stderr, "Error executing script '%s': %v\n", app.Config.StartupScript, err)
-				if app.Config.StartupScript != originalConfigScript {
-					app.Config.StartupScript = originalConfigScript
-				}
+			// --- NEW PROTOCOL IMPLEMENTATION ---
+			interpreter := app.Interpreter()
+
+			// 1. Read file content via interpreter tool
+			filepathArg, wrapErr := core.Wrap(scriptToRunNonTUI)
+			if wrapErr != nil {
+				err := fmt.Errorf("internal error wrapping script path: %w", wrapErr)
+				logger.Error(err.Error())
+				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+				os.Exit(1)
+			}
+			toolArgs := map[string]core.Value{"filepath": filepathArg}
+			contentValue, toolErr := interpreter.ExecuteTool("TOOL.ReadFile", toolArgs)
+			if toolErr != nil {
+				err := fmt.Errorf("error reading script '%s': %w", scriptToRunNonTUI, toolErr)
+				logger.Error(err.Error())
+				fmt.Fprintf(os.Stderr, "%v\n", err)
+				os.Exit(1)
+			}
+			scriptContent, ok := core.Unwrap(contentValue).(string)
+			if !ok {
+				err := fmt.Errorf("internal error: TOOL.ReadFile did not return a string")
+				logger.Error(err.Error())
+				fmt.Fprintf(os.Stderr, "%v\n", err)
 				os.Exit(1)
 			}
 
-			if app.Config.StartupScript != originalConfigScript {
-				app.Config.StartupScript = originalConfigScript
+			// 2. Load the script from its content string
+			if _, loadErr := app.LoadScriptString(ctx, scriptContent); loadErr != nil {
+				err := fmt.Errorf("error loading script '%s': %w", scriptToRunNonTUI, loadErr)
+				logger.Error(err.Error())
+				fmt.Fprintf(os.Stderr, "%v\n", err)
+				os.Exit(1)
 			}
+
+			// 3. Run the entrypoint (TargetArg)
+			if app.Config.TargetArg != "" {
+				logger.Info("Executing entrypoint.", "procedure", app.Config.TargetArg, "args", app.Config.ProcArgs)
+				if _, runErr := app.RunProcedure(ctx, app.Config.TargetArg, app.Config.ProcArgs); runErr != nil {
+					err := fmt.Errorf("error executing entrypoint '%s': %w", app.Config.TargetArg, runErr)
+					logger.Error(err.Error())
+					fmt.Fprintf(os.Stderr, "%v\n", err)
+					os.Exit(1)
+				}
+			}
+			// --- END NEW PROTOCOL IMPLEMENTATION ---
+
 			logger.Debug("Script finished successfully (non-TUI mode).")
 			scriptExecutedInNonTUI = true
 		}

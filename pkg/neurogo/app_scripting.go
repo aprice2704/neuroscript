@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.1.0
-// Purpose: Aligned with core contracts by wrapping primitive args/vars into core.Value types before passing to the interpreter.
+// File version: 0.4.2
+// Purpose: Fixes incorrect return value counts in error paths within processNeuroScriptContent.
 // filename: pkg/neurogo/app_scripting.go
 
 package neurogo
@@ -8,18 +8,15 @@ package neurogo
 import (
 	"context"
 	"fmt"
-	"os"
-	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/aprice2704/neuroscript/pkg/core"
 )
 
-// processNeuroScriptContent is the core logic for parsing a script string and loading it.
-func (a *App) processNeuroScriptContent(content, sourceName string, interp *core.Interpreter) ([]*core.Procedure, map[string]string, error) {
+// processNeuroScriptContent is the core logic for parsing a script string and loading its definitions.
+func (a *App) processNeuroScriptContent(content, sourceName string, interp *core.Interpreter) (map[string]string, error) {
 	if interp == nil {
-		return nil, nil, fmt.Errorf("cannot process script from '%s': interpreter is nil", sourceName)
+		return nil, fmt.Errorf("cannot process script from '%s': interpreter is nil", sourceName)
 	}
 	a.Log.Debug("Processing NeuroScript content.", "source", sourceName)
 
@@ -27,11 +24,11 @@ func (a *App) processNeuroScriptContent(content, sourceName string, interp *core
 	parseResultTree, parseErr := parser.Parse(content)
 	if parseErr != nil {
 		a.Log.Error("Parsing failed.", "source", sourceName, "error", parseErr)
-		return nil, nil, fmt.Errorf("parsing from %s failed: %w", sourceName, parseErr)
+		return nil, fmt.Errorf("parsing from %s failed: %w", sourceName, parseErr)
 	}
 	if parseResultTree == nil {
 		a.Log.Error("Parsing returned nil result without errors.", "source", sourceName)
-		return nil, nil, fmt.Errorf("internal parsing error: nil result for %s", sourceName)
+		return nil, fmt.Errorf("internal parsing error: nil result for %s", sourceName)
 	}
 	a.Log.Debug("Parsing successful.", "source", sourceName)
 
@@ -39,18 +36,17 @@ func (a *App) processNeuroScriptContent(content, sourceName string, interp *core
 	programAST, fileMetadata, buildErr := astBuilder.Build(parseResultTree)
 	if buildErr != nil {
 		a.Log.Error("AST building failed.", "source", sourceName, "error", buildErr)
-		return nil, fileMetadata, fmt.Errorf("AST building for %s failed: %w", sourceName, buildErr)
+		return fileMetadata, fmt.Errorf("AST building for %s failed: %w", sourceName, buildErr)
 	}
 	if programAST == nil {
 		a.Log.Error("AST building returned nil program without errors.", "source", sourceName)
-		return nil, fileMetadata, fmt.Errorf("internal AST building error: nil program for %s", sourceName)
+		return fileMetadata, fmt.Errorf("internal AST building error: nil program for %s", sourceName)
 	}
 	if fileMetadata == nil {
 		fileMetadata = make(map[string]string)
 	}
 	a.Log.Debug("AST building successful.", "source", sourceName, "procedures", len(programAST.Procedures))
 
-	definedProcs := []*core.Procedure{}
 	if programAST.Procedures != nil {
 		for name, proc := range programAST.Procedures {
 			if proc == nil {
@@ -59,181 +55,49 @@ func (a *App) processNeuroScriptContent(content, sourceName string, interp *core
 			}
 			if err := interp.AddProcedure(*proc); err != nil {
 				a.Log.Error("Failed to add procedure to interpreter.", "procedure", name, "source", sourceName, "error", err)
-				return definedProcs, fileMetadata, fmt.Errorf("failed to add procedure '%s' from '%s': %w", name, sourceName, err)
+				return fileMetadata, fmt.Errorf("failed to add procedure '%s' from '%s': %w", name, sourceName, err)
 			}
 			a.Log.Debug("Added procedure to interpreter.", "procedure", name, "source", sourceName)
-			definedProcs = append(definedProcs, proc)
 		}
 	}
-	a.Log.Debug("Finished processing content.", "source", sourceName, "procedures_added", len(definedProcs))
-	return definedProcs, fileMetadata, nil
+	a.Log.Debug("Finished processing content.", "source", sourceName, "procedures_added", len(programAST.Procedures))
+	return fileMetadata, nil
 }
 
-// processNeuroScriptFile is now a thin wrapper that reads a file and calls processNeuroScriptContent.
-func (a *App) processNeuroScriptFile(filePath string, interp *core.Interpreter) ([]*core.Procedure, map[string]string, error) {
-	a.Log.Debug("Reading NeuroScript file.", "path", filePath)
-	contentBytes, err := os.ReadFile(filePath)
-	if err != nil {
-		a.Log.Error("Failed to read script file.", "path", filePath, "error", err)
-		return nil, nil, fmt.Errorf("failed to read file %s: %w", filePath, err)
-	}
-	return a.processNeuroScriptContent(string(contentBytes), filePath, interp)
-}
-
-// loadLibraries processes all files specified in Config.LibPaths.
-func (a *App) loadLibraries(interpreter *core.Interpreter) error {
-	if interpreter == nil {
-		return fmt.Errorf("cannot load libraries: interpreter is nil")
-	}
-	a.Log.Debug("Loading libraries from paths.", "paths", a.Config.LibPaths)
-	for _, libPath := range a.Config.LibPaths {
-		absPath, err := filepath.Abs(libPath)
-		if err != nil {
-			a.Log.Warn("Could not get absolute path for library path, skipping.", "path", libPath, "error", err)
-			continue
-		}
-		a.Log.Debug("Processing library path.", "path", absPath)
-
-		info, err := os.Stat(absPath)
-		if err != nil {
-			a.Log.Warn("Could not stat library path, skipping.", "path", absPath, "error", err)
-			continue
-		}
-
-		if info.IsDir() {
-			err := filepath.WalkDir(absPath, func(path string, d os.DirEntry, walkErr error) error {
-				if walkErr != nil {
-					a.Log.Warn("Error accessing path during library walk, skipping.", "path", path, "error", walkErr)
-					return nil
-				}
-				if !d.IsDir() && strings.HasSuffix(d.Name(), ".ns") {
-					a.Log.Debug("Processing library file.", "file", path)
-					_, _, procErr := a.processNeuroScriptFile(path, interpreter)
-					if procErr != nil {
-						a.Log.Error("Failed to process library file, continuing...", "file", path, "error", procErr)
-					}
-				}
-				return nil
-			})
-			if err != nil {
-				a.Log.Error("Error walking library directory.", "path", absPath, "error", err)
-			}
-		} else if strings.HasSuffix(info.Name(), ".ns") {
-			a.Log.Debug("Processing library file.", "file", absPath)
-			_, _, procErr := a.processNeuroScriptFile(absPath, interpreter)
-			if procErr != nil {
-				a.Log.Error("Failed to process library file.", "file", absPath, "error", procErr)
-			}
-		} else {
-			a.Log.Warn("Library path is not a directory or .ns file, skipping.", "path", absPath)
-		}
-	}
-	a.Log.Debug("Finished loading libraries.")
-	return nil
-}
-
-// ExecuteScriptFile loads and runs the target procedure of a given script file.
-func (app *App) ExecuteScriptFile(ctx context.Context, scriptPath string) error {
-	startTime := time.Now()
-	app.Log.Debug("--- Executing Script File ---", "path", scriptPath)
+// LoadScriptString parses a script from a string and loads its function definitions
+// into the interpreter without executing any top-level code. It is agnostic of the script's origin.
+func (app *App) LoadScriptString(ctx context.Context, scriptContent string) (map[string]string, error) {
+	app.Log.Debug("--- Loading Script String ---")
 
 	interpreter := app.GetInterpreter()
 	if interpreter == nil {
-		return fmt.Errorf("cannot execute script: interpreter is nil")
+		return nil, fmt.Errorf("cannot load script: interpreter is nil")
 	}
 
-	if err := app.loadLibraries(interpreter); err != nil {
-		return fmt.Errorf("error loading libraries for script %s: %w", scriptPath, err)
-	}
-
-	_, fileMeta, err := app.processNeuroScriptFile(scriptPath, interpreter)
-	if err != nil {
-		return fmt.Errorf("failed to process script %s: %w", scriptPath, err)
-	}
-	if fileMeta == nil {
-		fileMeta = make(map[string]string)
-	}
-
-	procedureToRun := app.Config.TargetArg
-	if procedureToRun == "" {
-		if metaTarget, ok := fileMeta["target"]; ok && metaTarget != "" {
-			procedureToRun = metaTarget
-		} else {
-			procedureToRun = "main"
-		}
-	}
-
-	scriptCLIArgs := app.Config.ProcArgs
-
-	// FIX: Wrap primitive arguments into core.Value types before calling RunProcedure.
-	wrappedArgs := make([]core.Value, len(scriptCLIArgs))
-	for i, argStr := range scriptCLIArgs {
-		wrapped, err := core.Wrap(argStr)
-		if err != nil {
-			return fmt.Errorf("failed to wrap script argument '%s': %w", argStr, err)
-		}
-		wrappedArgs[i] = wrapped
-	}
-
-	app.Log.Debug("Executing procedure.", "name", procedureToRun)
-	_, runErr := interpreter.RunProcedure(procedureToRun, wrappedArgs...)
-	if runErr != nil {
-		return fmt.Errorf("error executing procedure '%s' in script '%s': %w", procedureToRun, scriptPath, runErr)
-	}
-
-	totalDuration := time.Since(startTime)
-	app.Log.Debug("--- Script File Execution Finished ---", "path", scriptPath, "total_duration", totalDuration)
-	return nil
-}
-
-// ExecuteScriptString parses and runs the target procedure of a given script string.
-func (app *App) ExecuteScriptString(ctx context.Context, scriptName, scriptContent string, initialVars map[string]interface{}) (any, error) {
-	startTime := time.Now()
-	app.Log.Debug("--- Executing Script String ---", "name", scriptName)
-
-	interpreter := app.GetInterpreter()
-	if interpreter == nil {
-		return nil, fmt.Errorf("cannot execute script: interpreter is nil")
-	}
-
-	if err := app.loadLibraries(interpreter); err != nil {
-		return nil, fmt.Errorf("error loading libraries for script '%s': %w", scriptName, err)
-	}
-
-	_, fileMeta, err := app.processNeuroScriptContent(scriptContent, scriptName, interpreter)
+	// Use a generic source name as this function only deals with content.
+	fileMeta, err := app.processNeuroScriptContent(scriptContent, "<string>", interpreter)
 	if err != nil {
 		return nil, err
 	}
-	if fileMeta == nil {
-		fileMeta = make(map[string]string)
+
+	app.Log.Debug("Script loaded successfully. No execution.")
+	return fileMeta, nil
+}
+
+// RunProcedure explicitly executes a procedure that has been loaded into the interpreter.
+func (app *App) RunProcedure(ctx context.Context, procedureToRun string, scriptArgs []string) (any, error) {
+	startTime := time.Now()
+	interpreter := app.GetInterpreter()
+	if interpreter == nil {
+		return nil, fmt.Errorf("cannot run procedure: interpreter is nil")
 	}
 
-	if initialVars != nil {
-		for key, value := range initialVars {
-			// FIX: Wrap primitive interface{} value into a core.Value before setting.
-			wrappedValue, err := core.Wrap(value)
-			if err != nil {
-				return nil, fmt.Errorf("failed to wrap initial variable '%s': %w", key, err)
-			}
-			if err := interpreter.SetVariable(key, wrappedValue); err != nil {
-				return nil, fmt.Errorf("failed to set initial variable '%s': %w", key, err)
-			}
-		}
-	}
-
-	procedureToRun := app.Config.TargetArg
 	if procedureToRun == "" {
-		if metaTarget, ok := fileMeta["target"]; ok && metaTarget != "" {
-			procedureToRun = metaTarget
-		} else {
-			procedureToRun = "main"
-		}
+		return nil, fmt.Errorf("cannot run procedure: procedure name is empty")
 	}
 
-	interpreterArgs := app.Config.ProcArgs
-	// FIX: Wrap primitive arguments into core.Value types before calling RunProcedure.
-	wrappedArgs := make([]core.Value, len(interpreterArgs))
-	for i, argStr := range interpreterArgs {
+	wrappedArgs := make([]core.Value, len(scriptArgs))
+	for i, argStr := range scriptArgs {
 		wrapped, err := core.Wrap(argStr)
 		if err != nil {
 			return nil, fmt.Errorf("failed to wrap script argument '%s': %w", argStr, err)
@@ -241,11 +105,12 @@ func (app *App) ExecuteScriptString(ctx context.Context, scriptName, scriptConte
 		wrappedArgs[i] = wrapped
 	}
 
+	app.Log.Debug("Executing procedure.", "name", procedureToRun)
 	results, runErr := interpreter.RunProcedure(procedureToRun, wrappedArgs...)
 	if runErr != nil {
-		return nil, fmt.Errorf("error executing procedure '%s' from script '%s': %w", procedureToRun, scriptName, runErr)
+		return nil, fmt.Errorf("error executing procedure '%s': %w", procedureToRun, runErr)
 	}
 
-	app.Log.Info("Script executed successfully.", "script_name", scriptName, "procedure", procedureToRun, "duration", time.Since(startTime))
+	app.Log.Info("Procedure executed successfully.", "procedure", procedureToRun, "duration", time.Since(startTime))
 	return results, nil
 }

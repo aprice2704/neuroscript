@@ -1,19 +1,21 @@
 // NeuroScript Version: 0.4.0
-// File version: 0.3.18 (with Ctrl+C copy, Ctrl+N fix, and reduced TuiPrintf logging)
-// Description: Main TUI entry point. Ctrl+Q to quit. Ctrl+C to copy.
+// File version: 0.4.0
+// Description: Updated to use the new load/run protocol for initial script execution.
 // filename: pkg/neurogo/tview_tui.go
 package neurogo
 
 import (
 	"context"
-	"fmt" // Keep for tvP.originalStdout and Printf debugging
+	"errors"
+	"fmt"
 	"log"
-	"os" // For redirecting Println if chosen (though shell redirection is better)
+	"os"
 	"path/filepath"
-	"strings" // Keep for strings.TrimSpace
-	"time"    // Keep for context.WithTimeout
+	"strings"
+	"time"
 
-	"github.com/atotto/clipboard" // For Ctrl+C copy functionality
+	"github.com/aprice2704/neuroscript/pkg/core"
+	"github.com/atotto/clipboard"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
@@ -41,18 +43,9 @@ func CloseTUIDebugLog() {
 }
 
 // TuiPrintf is a helper to print to the debugFile if it's open, otherwise to stdout.
-// (This will be redirected to the in-TUI debug pane by LogToDebugScreen if called from there)
 func TuiPrintf(format string, a ...interface{}) {
-	// msg := fmt.Sprintf(format, a...)
-	// if debugFile != nil {
-	// 	// Ensure the message ends with a newline for file logging
-	// 	if !strings.HasSuffix(msg, "\n") {
-	// 		msg += "\n"
-	// 	}
-	// 	fmt.Fprint(debugFile, msg)
-	// } else {
-	// 	fmt.Println(msg) // Fallback to stdout if debugFile not initialized
-	// }
+	// Logging via this function has been commented out to reduce noise.
+	// Use mainApp.Log for structured logging instead.
 }
 
 // StartTviewTUI initializes and runs the tview-based Text User Interface.
@@ -107,32 +100,21 @@ func StartTviewTUI(mainApp *App, initialScriptPath string) error {
 			if text != "" {
 				activeChatSession := tvP.app.GetActiveChatSession()
 				if activeChatSession == nil {
-					TuiPrintf("[AI_INPUT] Enter pressed. No active chat session. Text: %s", text) // Goes to debug file or stdout
 					logError("Cannot send chat: No active chat session.", "text", text)
-					// Status bar not primary, so removing this visual error, rely on logs.
-					// if tvP.tviewApp != nil && tvP.statusBar != nil {
-					// 	tvP.tviewApp.QueueUpdateDraw(func() {
-					// 		tvP.statusBar.SetText("[red]No active chat. Select worker from AIWM (Tab to Pane A, Enter or 'c') then type here.[-]")
-					// 	})
-					// }
 					return nil
 				}
-				TuiPrintf("[AI_INPUT] Enter pressed. Active session: %s. Sending: %s", activeChatSession.SessionID, text) // Debug file/stdout
 				logInfo("Sending chat message from AI Input", "text", text, "sessionID", activeChatSession.SessionID)
 
 				go func(msgToSend string, sessID string) {
 					ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 					defer cancel()
-					TuiPrintf("[AI_INPUT_GOROUTINE] Sending to session %s: %s", sessID, msgToSend) // Debug file/stdout
 					_, err := tvP.app.SendChatMessageToActiveSession(ctx, msgToSend)
 
 					if tvP.tviewApp != nil {
 						tvP.tviewApp.QueueUpdateDraw(func() {
-							TuiPrintf("[AI_INPUT_UI_UPDATE] Updating screen for session %s after send.", sessID) // Debug file/stdout
 							if screen, ok := tvP.chatScreenMap[sessID]; ok {
 								if err != nil {
 									errMsg := fmt.Sprintf("Error sending/processing chat: %v", err)
-									TuiPrintf("[AI_INPUT_UI_UPDATE] %s (Session: %s)", errMsg, sessID) // Debug file/stdout
 									logError("Error sending/processing chat message", "sessionID", sessID, "error", err)
 									if screen.textView != nil {
 										fmt.Fprintln(screen.textView, "[red]"+EscapeTviewTags(errMsg)+"[-]")
@@ -141,10 +123,9 @@ func StartTviewTUI(mainApp *App, initialScriptPath string) error {
 								}
 								screen.UpdateConversation()
 							} else {
-								TuiPrintf("[AI_INPUT_UI_UPDATE] Chat screen NOT FOUND in map for session ID: %s", sessID) // Debug file/stdout
 								logError("Chat screen not found in map for session ID", "sessionID", sessID)
 							}
-							tvP.updateStatusText() // Update status bar with screen names
+							tvP.updateStatusText()
 						})
 					}
 				}(text, activeChatSession.SessionID)
@@ -159,9 +140,7 @@ func StartTviewTUI(mainApp *App, initialScriptPath string) error {
 	if initialScriptPath != "" {
 		tvP.initialActivityText = fmt.Sprintf("Script: %s | Ready", filepath.Base(initialScriptPath))
 	}
-	tvP.statusBar = tview.NewTextView().SetDynamicColors(true) // Status bar still used for screen names
-
-	TuiPrintf("[TUI_INIT] UI Primitives (like debugScreen, statusbar) initialized.") // Debug file/stdout
+	tvP.statusBar = tview.NewTextView().SetDynamicColors(true)
 
 	helpStaticScreen := NewStaticPrimitiveScreen("Help", "Help", helpText)
 	aiwmScreen := NewAIWMStatusScreen(tvP.app)
@@ -172,19 +151,19 @@ func StartTviewTUI(mainApp *App, initialScriptPath string) error {
 	tvP.addScreen(helpStaticScreen, true)
 	tvP.helpScreenIndex = 2
 
-	tvP.addScreen(aiwmStringScreen, false) // Add the new AIWMStringScreen to the right pane
-	tvP.addScreen(tvP.debugScreen, false)  // DebugLog screen
+	tvP.addScreen(aiwmStringScreen, false)
+	tvP.addScreen(tvP.debugScreen, false)
 	tvP.addScreen(NewStaticPrimitiveScreen("HelpRight", "Help (Right)", helpText), false)
 
 	tvP.focusablePrimitives = []tview.Primitive{
 		tvP.localInputArea, tvP.aiInputArea, tvP.aiOutputView, tvP.localOutputView,
 	}
 	tvP.numFocusablePrimitives = len(tvP.focusablePrimitives)
-	tvP.paneCIndex = 0                     // localInputArea
-	tvP.paneDIndex = 1                     // aiInputArea
-	tvP.paneBIndex = 2                     // aiOutputView
-	tvP.paneAIndex = 3                     // localOutputView
-	tvP.currentFocusIndex = tvP.paneCIndex // Default focus to Local Input
+	tvP.paneCIndex = 0 // localInputArea
+	tvP.paneDIndex = 1 // aiInputArea
+	tvP.paneBIndex = 2 // aiOutputView
+	tvP.paneAIndex = 3 // localOutputView
+	tvP.currentFocusIndex = tvP.paneCIndex
 
 	if len(tvP.leftScreens) > 0 {
 		tvP.setScreen(0, true)
@@ -198,26 +177,62 @@ func StartTviewTUI(mainApp *App, initialScriptPath string) error {
 			tvP.originalStdout = interp.Stdout()
 		}
 		interp.SetStdout(scriptOutputScreen)
-		TuiPrintf("[TUI_INIT] Interpreter stdout redirected to ScriptOut screen.") // Debug file/stdout
 	}
 
 	if initialScriptPath != "" {
-		TuiPrintf("[TUI_INIT] Executing initial TUI script: %s", initialScriptPath) // Debug file/stdout
 		originalActivityText := tvP.initialActivityText
 		tvP.initialActivityText = fmt.Sprintf("Running: %s...", filepath.Base(initialScriptPath))
 		tvP.updateStatusText()
-		err := mainApp.ExecuteScriptFile(context.Background(), initialScriptPath)
 
-		if err != nil {
-			errMsg := fmt.Sprintf("Initial script error: %s", err.Error())
-			TuiPrintf("[TUI_INIT] %s (%s)", errMsg, initialScriptPath) // Debug file/stdout
-			logError("Initial script execution error", "script", initialScriptPath, "error", err)
+		// NEW PROTOCOL: Read file via tool, load content, run main procedure.
+		var execErr error
+		func() { // Use anonymous function to handle errors cleanly with a single 'err' var
+			interpreter := mainApp.Interpreter()
+			if interpreter == nil {
+				execErr = fmt.Errorf("interpreter is nil")
+				return
+			}
+			// 1. Read file
+			filepathArg, err := core.Wrap(initialScriptPath)
+			if err != nil {
+				execErr = fmt.Errorf("internal error wrapping script path: %w", err)
+				return
+			}
+			toolArgs := map[string]core.Value{"filepath": filepathArg}
+			contentValue, err := interpreter.ExecuteTool("TOOL.ReadFile", toolArgs)
+			if err != nil {
+				execErr = fmt.Errorf("failed to read initial script '%s': %w", initialScriptPath, err)
+				return
+			}
+			scriptContent, ok := core.Unwrap(contentValue).(string)
+			if !ok {
+				execErr = fmt.Errorf("TOOL.ReadFile did not return a string")
+				return
+			}
+			// 2. Load script
+			if _, err := mainApp.LoadScriptString(context.Background(), scriptContent); err != nil {
+				execErr = fmt.Errorf("failed to load initial script: %w", err)
+				return
+			}
+			// 3. Run 'main' procedure
+			if _, err := mainApp.RunProcedure(context.Background(), "main", nil); err != nil {
+				var rErr *core.RuntimeError
+				if errors.As(err, &rErr) && rErr.Code == core.ErrorCodeProcNotFound {
+					logInfo("Initial script loaded. No 'main' procedure found to execute.", "script", initialScriptPath)
+				} else {
+					execErr = fmt.Errorf("error running main from initial script: %w", err)
+				}
+			}
+		}()
+
+		if execErr != nil {
+			errMsg := fmt.Sprintf("Initial script error: %s", execErr.Error())
+			logError("Initial script execution error", "script", initialScriptPath, "error", execErr)
 			if scriptOutputScreen != nil {
 				scriptOutputScreen.Write([]byte("[red]" + EscapeTviewTags(errMsg) + "[-]\n"))
 			}
 			tvP.initialActivityText = fmt.Sprintf("[red]Script Error: %s[-]", filepath.Base(initialScriptPath))
 		} else {
-			TuiPrintf("[TUI_INIT] Initial script completed: %s", initialScriptPath) // Debug file/stdout
 			logInfo("Initial script completed.", "script", initialScriptPath)
 			if scriptOutputScreen != nil {
 				scriptOutputScreen.Write([]byte("[green]Initial script completed.[-]\n"))
@@ -231,10 +246,9 @@ func StartTviewTUI(mainApp *App, initialScriptPath string) error {
 		SetRows(0, 5, 1).SetColumns(0, 0).SetBorders(false).SetGap(0, 0).
 		AddItem(tvP.localOutputView, 0, 0, 1, 1, 0, 0, false).
 		AddItem(tvP.aiOutputView, 0, 1, 1, 1, 0, 0, false).
-		AddItem(tvP.localInputArea, 1, 0, 1, 1, 0, 100, true). // Initially focus localInputArea
+		AddItem(tvP.localInputArea, 1, 0, 1, 1, 0, 100, true).
 		AddItem(tvP.aiInputArea, 1, 1, 1, 1, 0, 100, false).
 		AddItem(tvP.statusBar, 2, 0, 1, 2, 0, 0, false)
-	TuiPrintf("[TUI_INIT] Grid layout configured.") // Debug file/stdout
 
 	keyHandle := func(event *tcell.EventKey) *tcell.EventKey {
 		var activeScreener PrimitiveScreener
@@ -266,9 +280,7 @@ func StartTviewTUI(mainApp *App, initialScriptPath string) error {
 			}
 		}
 
-		// --- Ctrl+C for Copy ---
 		if event.Key() == tcell.KeyCtrlC {
-			// LogToDebugScreen goes to the TUI debug pane
 			tvP.LogToDebugScreen("[KEY_HANDLE] Ctrl+C pressed for copy.")
 			var textToCopy string
 			var copyErrorEncountered bool = false
@@ -312,12 +324,11 @@ func StartTviewTUI(mainApp *App, initialScriptPath string) error {
 					tvP.LogToDebugScreen("[KEY_HANDLE_COPY] Focused pane is empty. Nothing to copy.")
 				}
 			}
-			return nil // Consume Ctrl+C event
+			return nil
 		}
-		// --- END: Ctrl+C for Copy ---
 
 		if event.Key() == tcell.KeyCtrlQ {
-			tvP.LogToDebugScreen("[KEY_HANDLE] Ctrl+Q pressed. Stopping app.") // LogToDebugScreen now goes to TUI debug pane
+			tvP.LogToDebugScreen("[KEY_HANDLE] Ctrl+Q pressed. Stopping app.")
 			if tvP.tviewApp != nil {
 				tvP.tviewApp.Stop()
 			}
@@ -339,11 +350,11 @@ func StartTviewTUI(mainApp *App, initialScriptPath string) error {
 
 		switch event.Key() {
 		case tcell.KeyTab:
-			tvP.LogToDebugScreen("[KEY_HANDLE] Tab pressed.") // Goes to TUI debug pane
+			tvP.LogToDebugScreen("[KEY_HANDLE] Tab pressed.")
 			tvP.dFocus(1)
 			return nil
 		case tcell.KeyBacktab:
-			tvP.LogToDebugScreen("[KEY_HANDLE] Shift+Tab pressed.") // Goes to TUI debug pane
+			tvP.LogToDebugScreen("[KEY_HANDLE] Shift+Tab pressed.")
 			tvP.dFocus(-1)
 			return nil
 		case tcell.KeyRune:
@@ -357,7 +368,7 @@ func StartTviewTUI(mainApp *App, initialScriptPath string) error {
 					isInputField = true
 				}
 				if !isInputField || currentFocus == tvP.localOutputView || currentFocus == tvP.aiOutputView {
-					tvP.LogToDebugScreen("[KEY_HANDLE] '?' pressed (global). Switching to help on left.") // Goes to TUI debug pane
+					tvP.LogToDebugScreen("[KEY_HANDLE] '?' pressed (global). Switching to help on left.")
 					if tvP.leftScreens != nil && tvP.helpScreenIndex >= 0 && tvP.helpScreenIndex < len(tvP.leftScreens) {
 						tvP.setScreen(tvP.helpScreenIndex, true)
 						if tvP.localOutputView != nil {
@@ -365,43 +376,38 @@ func StartTviewTUI(mainApp *App, initialScriptPath string) error {
 							tvP.tviewApp.SetFocus(tvP.localOutputView)
 						}
 					} else {
-						tvP.LogToDebugScreen("[KEY_HANDLE] Help screen index invalid or leftScreens nil for '?' key.") // Goes to TUI debug pane
+						tvP.LogToDebugScreen("[KEY_HANDLE] Help screen index invalid or leftScreens nil for '?' key.")
 					}
 					return nil
 				}
 			}
-		case tcell.KeyCtrlB: // Next screen left (as per your current 0.3.18 code, design doc might differ for direction)
-			tvP.LogToDebugScreen("[KEY_HANDLE] Ctrl+B pressed. Next screen left.") // Goes to TUI debug pane
-			tvP.nextScreen(1, true)                                                // Note: Your file had (1, true), design doc implied cycling. Keep as per your latest code.
+		case tcell.KeyCtrlB:
+			tvP.LogToDebugScreen("[KEY_HANDLE] Ctrl+B pressed. Next screen left.")
+			tvP.nextScreen(1, true)
 			return nil
-		case tcell.KeyCtrlN: // Next screen right (corrected behavior)
-			tvP.LogToDebugScreen("[KEY_HANDLE] Ctrl+N pressed. Next screen right.") // Goes to TUI debug pane
+		case tcell.KeyCtrlN:
+			tvP.LogToDebugScreen("[KEY_HANDLE] Ctrl+N pressed. Next screen right.")
 			tvP.nextScreen(1, false)
 			return nil
-		case tcell.KeyCtrlP: // Added from my previous suggestion for completeness, if you want Prev Right
-			tvP.LogToDebugScreen("[KEY_HANDLE] Ctrl+P pressed. Prev screen right.") // Goes to TUI debug pane
+		case tcell.KeyCtrlP:
+			tvP.LogToDebugScreen("[KEY_HANDLE] Ctrl+P pressed. Prev screen right.")
 			tvP.nextScreen(-1, false)
 			return nil
-		case tcell.KeyCtrlF: // Added from my previous suggestion for completeness, if you want Next Right (or if Ctrl+N was meant for something else)
-			tvP.LogToDebugScreen("[KEY_HANDLE] Ctrl+F pressed. Next screen right.") // Goes to TUI debug pane
-			tvP.nextScreen(1, false)                                                // This is same as Ctrl+N now, adjust if needed
+		case tcell.KeyCtrlF:
+			tvP.LogToDebugScreen("[KEY_HANDLE] Ctrl+F pressed. Next screen right.")
+			tvP.nextScreen(1, false)
 			return nil
 		}
 
-		// Minimal logging for unhandled keys by global logic if desired
-		// tvP.LogToDebugScreen("[KEY_HANDLE] Event not handled by custom global logic, passing to tview: %s", event.Name())
 		return event
 	}
 
 	if tvP.tviewApp != nil {
 		tvP.tviewApp.SetInputCapture(keyHandle)
 	}
-	TuiPrintf("[TUI_INIT] Global InputCapture function set.") // Debug file/stdout
 
-	tvP.dFocus(0)                                     // Set initial focus
-	TuiPrintf("[TUI_INIT] Initial dFocus(0) called.") // Debug file/stdout
+	tvP.dFocus(0)
 
-	TuiPrintf("[TUI_INIT] Starting tview event loop (app.Run())...") // Debug file/stdout
 	var runErr error
 	if tvP.tviewApp != nil && tvP.grid != nil {
 		runErr = tvP.tviewApp.SetRoot(tvP.grid, true).EnableMouse(true).Run()
@@ -425,21 +431,3 @@ func StartTviewTUI(mainApp *App, initialScriptPath string) error {
 	}
 	return nil
 }
-
-// Ensure EscapeTviewTags is available if used by any TUI components.
-// If it's in tui_utils.go, it would be imported or part of the same package.
-// For this complete file, if it's not imported, you might need it:
-/*
-func EscapeTviewTags(s string) string {
-	s = strings.ReplaceAll(s, "[", "[[")
-	return s
-}
-*/
-
-// Ensure helpText is defined if NewStaticPrimitiveScreen("Help", "Help", helpText) is used.
-// It might be in tui_screens.go. For a self-contained example, it could be here:
-/*
-var helpText = `[green]Navigation:[white]
-... (your help text content) ...
-`
-*/

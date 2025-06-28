@@ -13,18 +13,27 @@ All metadata is expressed as a simple key-value pair on a single line, intended 
 -   Prefix: Each metadata line must begin with the :: sigil.
 -   Key:
     -   Must be camelCase. Parsers must treat keys as case-insensitive.
-    -   Must match the character set [a-zA-Z0-9_.-]+.
--   Separator: A single colon (:) must follow the key.
+    -   Must match the character set [a-zA-Z0-9_.-]+.-   Separator: A single colon (:) must follow the key.
 -   Value: The value is the remainder of the line. Parsers must trim leading and trailing whitespace from the value.
 
-###  1.1 Canonical Go Regex
+### 1.1 Key Matching
+
+Matching: for the purposes of **matching** a key (i.e. finding it in a list of them) the *case of the letters, and the characters underscore, dot and dash* (`_.-`) are **ignored**. Both linters and parsers must report collisions. Thus a hypothetical function MetaKeyMatch(a,b) would return:
+
+| a | b | match? |
+| snakeMeta | SNAKEMETA | true |
+| snake.scope | snake_scope | true |
+| snakescope | snake____scope | true |
+| SNAKE_SCOPE | SNAKE#SCOPE | error |
+| SNAKE1SCOPE | SNAKE0SCOPE | false |
+
+### 1.2 Canonical Go Regex
 
 The following Go-compatible regular expression captures the key and value from a valid metadata line. Tooling should use this or an equivalent parser.
 
 go // Regex to capture the key (group 1) and value (group 2) from a metadata line. var metaRegex = regexp.MustCompile(`^::\s*([a-zA-Z0-9_.-]+):\s*(.*)$`) 
 
-
-##  3. Placement
+## 3. Placement
 
 The placement of metadata blocks is mandatory and not a guideline. This ensures that automated tools can locate metadata without ambiguity.
 

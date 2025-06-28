@@ -1,9 +1,9 @@
-// NeuroScript Version: 0.3.0
-// File version: 0.1.13 // Modified App struct for multiple chat sessions
-// Added chat session management methods and fields to App struct.
+// NeuroScript Version: 0.3.1
+// File version: 0.2.1
+// Purpose: Corrected hardcoded tool name from 'TOOL.ReadFile' to 'FS.Read' to align with the actual filesystem toolset.
 // filename: pkg/neurogo/app.go
-// nlines: 350 // Approximate
-// risk_rating: MEDIUM
+// nlines: 360 // Approximate
+// risk_rating: LOW
 package neurogo
 
 import (
@@ -37,7 +37,6 @@ type App struct {
 	// --- End tview specific fields ---
 
 	// --- Chat Session Management Fields ---
-	//chatMu              sync.RWMutex            // Mutex specifically for chat-related fields below
 	chatSessions        map[string]*ChatSession // Stores all active chat sessions, keyed by a unique session ID
 	activeChatSessionID string                  // ID of the currently focused chat session in the TUI
 	nextChatIDSuffix    int                     // Counter to help generate unique display names or IDs
@@ -81,13 +80,45 @@ func (a *App) Run() error {
 		a.Log.Info("Sync mode selected.", "sync_dir", a.Config.SyncDir)
 		return a.runSyncMode(a.appCtx)
 	}
-	if a.Config.StartupScript != "" && !a.Config.TuiMode { // Ensure TUI mode doesn't run script then TUI
+	if a.Config.StartupScript != "" && !a.Config.TuiMode {
 		a.Log.Info("Script execution mode selected.", "script", a.Config.StartupScript)
-		err := a.ExecuteScriptFile(a.appCtx, a.Config.StartupScript)
-		if err != nil {
-			a.Log.Error("Script execution failed", "script", a.Config.StartupScript, "error", err)
+
+		// --- NEW PROTOCOL IMPLEMENTATION ---
+		// 1. Read file content via interpreter tool
+		filepathArg, wrapErr := core.Wrap(a.Config.StartupScript)
+		if wrapErr != nil {
+			return fmt.Errorf("internal error wrapping startup script path: %w", wrapErr)
 		}
-		return err // Exit after script if not also in TUI mode
+		toolArgs := map[string]core.Value{"filepath": filepathArg}
+		contentValue, toolErr := a.interpreter.ExecuteTool("FS.Read", toolArgs) // CORRECTED
+		if toolErr != nil {
+			a.Log.Error("Failed to read startup script", "script", a.Config.StartupScript, "error", toolErr)
+			return fmt.Errorf("failed to read startup script '%s': %w", a.Config.StartupScript, toolErr)
+		}
+		scriptContent, ok := core.Unwrap(contentValue).(string)
+		if !ok {
+			return fmt.Errorf("internal error: FS.Read did not return a string for startup script") // CORRECTED
+		}
+
+		// 2. Load the script from its content string
+		if _, loadErr := a.LoadScriptString(a.appCtx, scriptContent); loadErr != nil {
+			a.Log.Error("Failed to load startup script", "script", a.Config.StartupScript, "error", loadErr)
+			return fmt.Errorf("failed to load startup script '%s': %w", a.Config.StartupScript, loadErr)
+		}
+		a.Log.Info("Startup script loaded successfully", "script", a.Config.StartupScript)
+
+		// 3. Run entrypoint if specified in config
+		if a.Config.TargetArg != "" {
+			a.Log.Info("Executing entrypoint from config.", "procedure", a.Config.TargetArg, "args", a.Config.ProcArgs)
+			_, runErr := a.RunProcedure(a.appCtx, a.Config.TargetArg, a.Config.ProcArgs)
+			if runErr != nil {
+				a.Log.Error("Entrypoint execution failed", "procedure", a.Config.TargetArg, "error", runErr)
+				return fmt.Errorf("entrypoint '%s' failed: %w", a.Config.TargetArg, runErr)
+			}
+			a.Log.Info("Entrypoint executed successfully.", "procedure", a.Config.TargetArg)
+		}
+
+		return nil // Exit after script if not also in TUI mode
 	}
 
 	// If TuiMode is true, or no other mode is specified, default to TUI.
@@ -152,13 +183,6 @@ func (a *App) InitializeCoreComponents() error {
 
 	if a.llmClient == nil {
 		var errLLM error
-		// Assuming CreateLLMClient is a method on App or a helper that uses App.Config
-		// This part needs to be defined or use a.Config directly.
-		// For now, let's assume a.Config.APIKey and a.Config.Provider are used.
-		// This is a placeholder for actual LLM client creation logic.
-		// The actual creation is in app_init.go's CreateLLMClient method which NewApp calls.
-		// This path in InitializeCoreComponents might be for a scenario where it wasn't pre-created.
-		// For now, ensure it gets a client if nil.
 		if a.Config != nil { // Check if config exists to create a client
 			createdClient, err := a.CreateLLMClient() // CreateLLMClient is on *App
 			if err != nil {
@@ -202,19 +226,13 @@ func (a *App) InitializeCoreComponents() error {
 		a.Log.Info("Using existing sandbox directory", "path", sandboxDir)
 	}
 
-	// Ensure patchHandler is initialized if needed by other components
-	// a.patchHandler = NewPatchHandler(a.Log) // Example initialization
-
 	interpLLMClient := a.llmClient
 	if interpLLMClient == nil {
 		a.Log.Warn("LLMClient is nil for interpreter, using NoOpLLMClient for interpreter.")
 		interpLLMClient = adapters.NewNoOpLLMClient()
 	}
 
-	// Ensure initialDefinitionsContent and initialPerformanceContent are handled correctly
-	// For now, assuming nil/empty strings as per NewAIWorkerManager signature for file-based loading.
 	var errInterp error
-	// Initialize interpreter with nil for libPaths initially, can be set from config later if needed
 	a.interpreter, errInterp = core.NewInterpreter(a.Log, interpLLMClient, sandboxDir, nil, a.Config.LibPaths)
 
 	if errInterp != nil {
@@ -229,14 +247,9 @@ func (a *App) InitializeCoreComponents() error {
 	a.agentCtx = NewAgentContext(a.Log)
 	if a.agentCtx != nil {
 		a.agentCtx.SetSandboxDir(sandboxDir)
-		// These might come from config or defaults
-		// a.agentCtx.SetAllowlistPath(a.Config.AllowlistFile)
-		// a.agentCtx.SetModelName(a.Config.ModelName)
 	}
 
-	// Set sandbox directory on interpreter after it's created
 	if errSetSandbox := a.interpreter.SetSandboxDir(sandboxDir); errSetSandbox != nil {
-		// This might be a more critical error if sandbox is essential
 		a.Log.Error("Failed to set sandbox dir on interpreter post init", "error", errSetSandbox)
 	}
 
@@ -245,17 +258,13 @@ func (a *App) InitializeCoreComponents() error {
 		aiWmLLMClient = adapters.NewNoOpLLMClient() // Fallback for AIWM
 	}
 
-	// Let NewAIWorkerManager handle loading from default paths or content
 	aiWm, errManager := core.NewAIWorkerManager(a.Log, sandboxDir, aiWmLLMClient, "", "") // Empty strings for initial content
 	if errManager != nil {
 		a.Log.Error("Failed to initialize AIWorkerManager", "error", errManager)
-		// Depending on requirements, this could be a fatal error.
 	} else {
-		// Attempt to load definitions from the default file path after manager creation
 		if errLoadDefs := aiWm.LoadWorkerDefinitionsFromFile(); errLoadDefs != nil {
 			a.Log.Warn("Could not load AI worker definitions from file", "path", aiWm.FullPathForDefinitions(), "error", errLoadDefs)
 		}
-		// Attempt to load performance data from the default file path
 		if errLoadPerf := aiWm.LoadRetiredInstancePerformanceDataFromFile(); errLoadPerf != nil {
 			a.Log.Warn("Could not load AI worker performance data from file", "path", aiWm.FullPathForPerformanceData(), "error", errLoadPerf)
 		}
@@ -276,8 +285,6 @@ func (a *App) InitializeCoreComponents() error {
 
 // HandleSystemCommand (existing method, ensure no conflicts)
 func (a *App) HandleSystemCommand(command string) {
-	// ... (existing implementation)
-	// Consider if system commands should interact with chat (e.g., //endchat)
 	if a.Log == nil {
 		fmt.Printf("App.Log is nil, cannot log system command: %s\n", command)
 		return
@@ -287,7 +294,6 @@ func (a *App) HandleSystemCommand(command string) {
 
 // ExecuteScriptLine (existing method, ensure no conflicts)
 func (a *App) ExecuteScriptLine(ctx context.Context, line string) {
-	// ... (existing implementation)
 	if a.Log == nil {
 		fmt.Printf("App.Log is nil, cannot log script line: %s\n", line)
 		return
