@@ -1,0 +1,13 @@
+:: title: Test LoadScript and ListFunctions
+:: version: 1.0
+
+func main() means
+    :: description: Loads a simple script and lists the functions.
+    set script_to_load = "func helper() means\n emit 'I am a helper!'\nendfunc"
+
+    call tool.LoadScript(script_to_load)
+
+    // After loading, list all functions.
+    // The list should contain 'main' and 'helper'.
+    return tool.Script.ListFunctions()
+endfunc

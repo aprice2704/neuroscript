@@ -1,0 +1,11 @@
+:: title: Test error on loading script with bad syntax
+:: version: 1.0
+
+func main() means
+    :: description: Tries to load a script with a syntax error.
+    // The keywords are intentionally capitalized to cause a parse error.
+    set bad_script = "FUNC helper() means\n SET x = 1\nENDFUNC"
+
+    // This call should fail with a syntax error.
+    call tool.LoadScript(bad_script)
+endfunc

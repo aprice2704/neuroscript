@@ -1,0 +1,14 @@
+:: title: Test error on duplicate function load
+:: version: 1.0
+
+func duplicate_me() means
+    return "original"
+endfunc
+
+func main() means
+    :: description: Tries to load a function that already exists.
+    set script_to_load = "func duplicate_me() means\n return 'new'\nendfunc"
+
+    // This call should fail.
+    call tool.LoadScript(script_to_load)
+endfunc

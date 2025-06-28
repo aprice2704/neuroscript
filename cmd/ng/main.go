@@ -1,9 +1,13 @@
 // NeuroScript Version: 0.3.0
-// File version: 0.1.14
+// File version: 0.1.15
 // filename: cmd/ng/main.go
-// nlines: 202
+// nlines: 229
 // risk_rating: HIGH
 // Changes:
+// - Added a --version flag to print application and grammar versions in JSON format.
+// - Declared main.AppVersion to be injected via ldflags.
+// - Added logic to handle the --version flag immediately after parsing.
+// - Added "encoding/json" to imports.
 // - Corrected app.InitLLMClient to app.CreateLLMClient.
 // - Fixed LLMClient argument for InitializeCoreComponents (using app.InitLLMClient).
 // - TUI flag defaults to false.
@@ -13,6 +17,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
@@ -24,8 +29,15 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/neurogo"
 )
 
+// Version information, injected at build time via -ldflags.
+// Example: go build -ldflags="-X main.AppVersion=1.2.3"
+var (
+	AppVersion string
+)
+
 func main() {
 	// --- Configuration Setup (Flag Definitions) ---
+	versionFlag := flag.Bool("version", false, "Print version information in JSON format and exit")
 	logFile := flag.String("log-file", "", "Path to log file (optional, defaults to stderr)")
 	logLevel := flag.String("log-level", "info", "Log level (debug, info, warn, error)")
 	sandboxDir := flag.String("sandbox", ".", "Root directory for secure file operations and ai_wm persistence")
@@ -58,6 +70,38 @@ func main() {
 	flag.Var(procArgsConfig, "arg", "Argument for the script process/procedure (can be specified multiple times)")
 
 	flag.Parse()
+
+	// --- Handle Version Flag ---
+	// If the --version flag is provided, print version info and exit immediately.
+	if *versionFlag {
+		// Provide default values if not injected during build.
+		appVersion := AppVersion
+		if appVersion == "" {
+			appVersion = "dev"
+		}
+		grammarVersion := core.GrammarVersion
+		if grammarVersion == "" {
+			grammarVersion = "unknown"
+		}
+
+		versionInfo := struct {
+			AppVersion     string `json:"app_version"`
+			GrammarVersion string `json:"grammar_version"`
+		}{
+			AppVersion:     appVersion,
+			GrammarVersion: grammarVersion,
+		}
+
+		jsonOutput, err := json.MarshalIndent(versionInfo, "", "  ")
+		if err != nil {
+			// Logger is not initialized yet, so print directly to stderr.
+			fmt.Fprintf(os.Stderr, "Error creating version JSON: %v\n", err)
+			os.Exit(1)
+		}
+
+		fmt.Println(string(jsonOutput))
+		os.Exit(0)
+	}
 
 	// --- Logger Initialization ---
 	logger, err := initializeLogger(*logLevel, *logFile)

@@ -1,135 +1,239 @@
-  # MetaData in NeuroScript Objects (Revised 2025-04-30)
- 
- ## Metadata Standard (`:: key: value`)
- 
- All project files (NeuroScript `.ns`, Go `.go`, Markdown `.md`, NeuroData `.nd*`, etc.) and embedded code/data blocks should use the following metadata format where applicable for file-level, procedure-level, step-level, or block-level information.
- 
- * **Prefix:** Metadata lines must start with `::` (colon, colon) followed by at least one space. Optional leading whitespace before `::` is allowed.
- * **Structure:** `:: key: value`.
- * **Key:** Immediately follows `:: ` and precedes the first `:`. Valid characters are letters, numbers, underscore, period, hyphen (`[a-zA-Z0-9_.-]+`). Whitespace around the key (after `:: `) is tolerated.
- * **Separator:** A single colon `:` separates the key and value. Whitespace around the colon is tolerated.
- * **Value:** The rest of the line after the first colon (`:`), stripped of leading/trailing whitespace. It can contain any characters.
- * **Storage:** Metadata is typically stored as a `map[string]string` associated with the relevant program element (file, procedure, step, block).
- 
- ## Standard Metadata Vocabulary
- 
- While any valid key can be used, the following keys are recommended for standardization and potential use by tooling or the interpreter.
- 
- ### 1. File-Level Scope 
- 
- * `:: language:` *String*. The principal specific technical language, e.g. markdown, ndcl
- * `:: lang_version:` *String*. **(Renamed)** The minimum language/interpreter semantic version required or to which it pertains (e.g., `:: lang_version: 0.2.0`). Helps ensure compatibility.
- * `:: file_version:` *Int*. The known iteration of the file as a member of a sequence of updates, e.g. 42. Used for deconfliction.
- * `:: description:` *String*. A brief description of the file's overall purpose.
- * `:: author:` *String*. The name or handle of the file's author(s).
- * `:: license:` *String*. An SPDX license identifier (e.g., `:: license: MIT`, `:: license: Apache-2.0`) or "Proprietary".
- * `:: created:` *String (ISO 8601 Date)*. The date the file was initially created (e.g., `:: created: 2025-04-30`).
- * `:: modified:` *String (ISO 8601 Date)*. The date the file was last significantly modified (e.g., `:: modified: 2025-04-30`).
- * `:: tags:` *String (Comma-separated)*. Keywords describing the file's domain or function (e.g., `:: tags: fileio, text-processing, refactoring`).
- * `:: source:` *String (URI/Path)*. If the file is derived or copied, the original source location.
- * `:: type:` *String*. For NeuroData or composite files, indicates the primary data type (e.g., `:: type: Checklist`, `:: type: NSproject`).
- * `:: subtype:` *String*. Further classification (e.g., `:: subtype: spec`, `:: subtype: example`).
- * `:: grammar:` *String*. For embedded blocks, specifies the grammar required (e.g., `:: grammar: neuroscript@1.1.0`). *(Note: Less common at file level, more for blocks).*
- * `:: dependsOn:` *String (Comma-separated URI/Path)*. Lists files this file depends on conceptually.
- * `:: howToUpdate:` *String*. Instructions on how to keep this specification file current.
- 
- ### 2. Procedure-Level Scope (Inside `func`/`endfunc`)
- 
- * `:: description:` *String*. A brief summary of what the procedure does.
- * `:: purpose:` *String (Multiline)*. A more detailed explanation of the procedure's goal and rationale.
- * `:: param:<param_name>:` *String*. Describes a specific required or optional parameter (e.g., `:: param:input_path: Path to the file that needs processing.`). Use one line per parameter. *Preferred way to document parameters.*
- * `:: return:<index_or_name>:` *String*. Describes a specific return value by its 0-based index or, if named in the `returns` clause, by its name (e.g., `:: return:0: The number of lines processed.`). Use one line per return value. *Preferred way to document return values.*
- * `:: algorithm:` *String (Multiline)*. Describes the high-level steps, logic, or approach used within the procedure.
- * `:: example_usage:` *String*. A short example showing how to call the procedure (e.g., `:: example_usage: processFile(needs="input.txt", optional=true)`).
- * `:: caveats:` *String (Multiline)*. Lists potential issues, limitations, assumptions, or non-obvious behaviors.
- * `:: requires_tool:` *String (Comma-separated)*. Lists specific tools (`tool.<name>`) used by this procedure (e.g., `:: requires_tool: tool.ReadFile, tool.WriteFile`). Aids dependency checking.
- * `:: requires_llm:` *Boolean (`true`/`false`)*. Indicates if the procedure uses the `ask` statement (e.g., `:: requires_llm: true`).
- * `:: timeout:` *String (Duration)*. Suggests a maximum execution time for this procedure (e.g., `:: timeout: 30s`, `:: timeout: 1m`). *(Interpreter support needed)*.
- * `:: pure:` *Boolean (`true`/`false`)*. Indicates if the function is pure (output depends only on input, no side effects). Default is `false`. *(Interpreter/Tooling support needed)*.
- * *(Note: Informal keys like `:: inputs:` or `:: output:` might be seen, reflecting older styles, but prefer `:: param:<name>:` and `:: return:<index_or_name>:` for structured documentation).*
- 
- ### 3. Step-Level Scope (Immediately preceding the step)
- 
- *Use sparingly for clarity on specific lines.*
- 
- * `:: reason:` *String*. Explains *why* a particular step is necessary or done in a specific way.
- * `:: todo:` *String*. A reminder for future improvement related to this step (e.g., `:: todo: Extract this logic into a helper procedure.`).
- * `:: fixme:` *String*. Indicates a known issue or bug related to this step that needs fixing.
- * `:: security_note:` *String*. Highlights a security consideration for this step (e.g., `:: security_note: Ensure input is sanitized before passing to shell command.`).
- * `:: performance_note:` *String*. Comments on the performance implications of this step.
- 
- ### 4. Embedded Block Scope (Inside fenced code blocks ```)
- 
- * `:: id:` *String*. A unique identifier for the block within its container file (e.g., `:: id: proc-example-1`).
- * `:: version:` *String*. Version of the content within the block. *(Consider using `:: file_version:` for consistency if the block represents a whole logical file).*
- * `:: type:` *String*. Specifies the type of content if not clear from the fence (e.g., `:: type: Checklist`, `:: type: NeuroScript`).
- * `:: grammar:` *String*. Specifies the exact grammar and version required to parse the block content (e.g., `:: grammar: neuroscript@1.1.0`, `:: grammar: neurodata-checklist@0.9.0`). *(May overlap with `:: lang_version:`)*.
- 
- ## Metadata Placement Guidelines
- 
- The general principle is to place metadata as close as possible to the element it describes.
- 
- * **NeuroScript Files (`.ns`):**
-     * **File-Level:** Place all file-level `::` metadata lines **at the start of the file (SOF)**. The parser is designed to find this metadata regardless of its position.
-     * **Procedure-Level:** Place procedure-level `::` metadata *inside* the `func`/`endfunc` block, immediately after the `func ... means` line and before the first executable step.
-     * **Step-Level:** Place step-level `::` metadata on the line(s) *immediately preceding* the step it refers to.
-     * *(AST Mapping: File-level -> `Program.Metadata`, Procedure-level -> `Procedure.Metadata`, Step-level -> `Step.Metadata`)*
- * **Go Files (`.go`):**
-     * File-level metadata (like build tags `//go:build ...` or license headers) conventionally appears at the **start of the file (SOF)**. Use standard Go comments for this unless a specific `::` key is needed for NeuroScript tooling.
- * **NeuroData Files (`.nd*`):**
-     * File-level metadata should generally appear at the **start of the file (SOF)**.
- * **Markdown & Specification Files (`.md`, etc.):**
-     * File-level metadata (`:: key: value`) should appear at the **end of the file (EOF)**. Each metadata line should end in double space to be rendered on separate lines.
- * **Embedded Blocks (in Markdown, etc.):**
-     * Block-level metadata (`:: key: value`) should be placed immediately *inside* the block, after the opening fence (e.g., ```neuroscript) and before the block's main content. Include relevant tags like `:: id:`, `:: version:` (or `:: file_version:`), `:: type:`, `:: grammar:` (or `:: lang_version:`).
- 
- ## Example (NeuroScript `.ns` File)
- 
- ```neuroscript
- :: lang_version: neuroscript@0.2.0
- :: file_version: 1.1.0 
- :: author: Alice Price
- :: created: 2025-04-30
- :: license: MIT
- :: description: Example script demonstrating metadata placement.
- :: tags: example, metadata
+# Unified Metadata Specification for NeuroScript Projects
 
- func ProcessData(needs inputData, optional threshold returns processedCount, errorMsg) means
-   :: purpose: Processes input data according to a threshold.
-   :: param:inputData: The raw data list to process.
-   :: param:threshold: Optional numeric threshold for filtering.
-   :: return:processedCount: Number of items successfully processed.
-   :: return:errorMsg: Any error message encountered, or "" on success.
-   :: algorithm: 
-   ::   1. Initialize counters.
-   ::   2. Iterate through inputData.
-   ::   3. Apply threshold filter if provided.
-   ::   4. Increment counter.
-   ::   5. Return count and empty error string.
-   :: caveats: Does not handle non-numeric data gracefully yet.
-   :: requires_llm: false
- 
-   set count = 0
-   set err = "" 
-   
-   # Iterate and process
-   for each item in inputData
-     :: reason: This is the main processing loop.
-     # ... processing logic using item and threshold ...
-     set count = count + 1 
-   endfor
-   
-   return count, err
- endfunc
- 
- ```
+> Status: DRAFT
+> Version: 2.0.0 (2025-06-27)
 
- :: ns_version: 0.4.0
- :: file_version: 10  
- :: type: NSproject  
- :: subtype: spec  
- :: language: md
- :: created: 2025-04-30   
- :: modified: 2025-04-30   
- :: dependsOn: docs/neuroscript_overview.md, docs/neurodata_and_composite_file_spec.md, pkg/neurodata/metadata/metadata.go, pkg/core/NeuroScript.g4, pkg/core/ast.go  
- :: howToUpdate: Review the referenced documents/code and ensure this file accurately reflects the current metadata standards (format, standard keys, placement), parser behavior, and AST storage.  
+Abstract: This document defines a single, mandatory, and enforceable standard for metadata across all source files within the NeuroScript ecosystem. Its primary purpose is to ensure that metadata is unambiguously and reliably processable by computers, tooling, and automated agents. Adherence to these rules is not optional; they are a core part of the file format specifications. This standard applies to all related project files, including NeuroScript (.ns), Go (.go), NDCL (.nd*), Markdown (.md), and others.
+
+## 1. Metadata Line Format 
+
+All metadata is expressed as a simple key-value pair on a single line, intended for trivial parsing.
+
+-   Structure: ::key: value
+-   Prefix: Each metadata line must begin with the :: sigil.
+-   Key:
+    -   Must be camelCase. Parsers must treat keys as case-insensitive.
+    -   Must match the character set [a-zA-Z0-9_.-]+.
+-   Separator: A single colon (:) must follow the key.
+-   Value: The value is the remainder of the line. Parsers must trim leading and trailing whitespace from the value.
+
+###  1.1 Canonical Go Regex
+
+The following Go-compatible regular expression captures the key and value from a valid metadata line. Tooling should use this or an equivalent parser.
+
+go // Regex to capture the key (group 1) and value (group 2) from a metadata line. var metaRegex = regexp.MustCompile(`^::\s*([a-zA-Z0-9_.-]+):\s*(.*)$`) 
+
+
+##  3. Placement
+
+The placement of metadata blocks is mandatory and not a guideline. This ensures that automated tools can locate metadata without ambiguity.
+
+1. **Default**: absolute start of file, or before the block.
+2. Exception: **ns functions**: within the function
+3. Exception: **Markdown** (.md): File Footer: At the absolute end of the file (EOF). This prevents metadata from cluttering the rendered view of the document on platforms like GitHub, prioritizing human readability for prose-heavy files.
+
+##  4. Identity Keys: schema & serialization
+
+Every file within the ecosystem must contain ::schema: and ::serialization: keys. These two keys form the fundamental identity of a file, telling any tool how to interpret its logical structure and its physical format.
+
+- **::schema:**: Defines the logical grammar and vocabulary of the file's contents (e.g., neuroscript, ndcl, sdi-go, spec). 
+- **::serialization:**: Defines the physical file format that wraps the content (e.g., go, md, ns, txt). 
+
+For example, a Go source file that contains special SDI directives has a logical schema of sdi-go but a physical serializationof go. A specification document like this one has a schema of spec and a serialization of md. 
+
+##  5.  Standard Vocabulary
+
+To ensure consistency, all metadata **must** use keys from the standard vocabulary defined below. keys should be camelCase.  
+
+###  5.1. File Scope
+
+*Placed in the file header or footer as per placement rules.* 
+
+| Key           | Purpose & Rules                                                                                     |
+| ------------- | --------------------------------------------------------------------------------------------------- |
+| schema        | **Mandatory.** Logical format (ndcl, spec, neuroscript, sdi-go).                                    |
+| serialization | **Mandatory.** Physical file format (md, txt, go, ns).                                              |
+| langVersion   | The version of the interpreter or grammar required (e.g.,neuroscript@0.4.1).                        |
+| fileVersion   | A version for the file itself. **Must** be a monotonic integer.|
+| description   | A concise, one-line summary of the file's purpose.                                                  |
+| author        | The name of the human or agent responsible for the content.                                         |
+| license       | An SPDX license identifier (e.g.,MIT, Apache-2.0) or the string "Proprietary".                      |
+| created       | The creation date of the file in **ISO 8601 format** (e.g.,2025-06-27 or 2025-06-27T15:58:00Z).       |
+| modified      | The last modification date of the file in **ISO 8601 format**.                                      |
+| tags          | Comma-separated words for indexing and search (e.g.,dataProcessing,io,experimental).     |
+| type, subtype | Domain-specific classification for categorization.                                                  |
+| dependsOn     | A comma-separated list of upstream source files this file logically depends on.                     |
+| howToUpdate   | Brief, essential instructions for future developers on maintaining this file.                       |
+
+###  5.2. Block, Procedure, Section, Chapter scope 
+
+*Placed inside a function, method, or procedure block.* 
+
+| Key          | Purpose & Rules                                                                       |
+| ------------ | ------------------------------------------------------------------------------------- |
+| description  | One-line summary of the procedure's function.                                         |
+| purpose      | Multi-line explanation of the rationale behind the procedure.                         |
+| param:<name> | Description of a specific parameter.                                                  |
+| return:<nameIDX> | Description of a specific return value, identified by name or zero-based index. |
+| algorithm    | A multi-line, high-level description of the steps the procedure follows.              |
+| exampleUsage | A concrete code snippet demonstrating how to call the procedure.                      |
+| caveats      | Important limitations, edge cases, or "gotchas" to be aware of.                       |
+| requiresTool | A comma-separated list of required external tools (e.g.,tool.compiler,tool.database). |
+| requiresLlm  | Boolean (true/false) indicating if the procedure depends on an LLM.                   |
+| timeout      | A duration string (e.g.,30s, 5m) specifying the expected execution timeout.           |
+| pure         | Boolean (true/false) indicating if the function is pure (no side effects).            |
+
+###  5.3. Inline Scope 
+
+*Placed inline, immediately preceding a specific line or block of code.* 
+| Key             | Purpose & Rules                                                 |
+| --------------- | --------------------------------------------------------------- |
+| reason          | Explains *why* this specific step or line of code exists.       |
+| todo            | Note for a future improvement or feature to be added.           |
+| fixme           | Acknowledges a known bug or issue that needs to be fixed.       |
+| securityNote    | Highlights a potential security vulnerability or consideration. |
+| performanceNote | Comments on the performance implications of the code.           |
+
+###  5.4. NeuroData Block Scope 
+
+*Placed inside a fenced code or data block, right after the opening fence.* 
+
+| Key     | Purpose & Rules                                                             |
+| ------- | --------------------------------------------------------------------------- |
+| id      | A unique identifier for this specific block within the file or system.      |
+| version | A version string for the content of the block.                              |
+| type    | Explicitly declares the content type of the block (e.g.,json, sql, prompt). |
+| grammar | Specifies the grammar and version required to parse the block's content.    |
+
+### 5.5 Standard-Defining Files
+
+A file which **defines** a standard **must** contain at least the keys in this example (this file, in fact):
+
+:: name: NeuroData MetaData Standard
+:: standardID: ndinmeta
+:: standardName: NeuroData In-Situ Metadata
+:: standardVersion: 2.0.0
+:: canonicalFileLocation: github.com/aprice2704/fdm/code/docs/metadata.md
+:: fileName: metadata.md
+:: schema: spec
+:: serialization: md
+:: fileVersion: 2
+:: author: Andrew Price
+:: modified: 2025-06-27
+:: howToUpdate: Update vocab or placement rules first, then bump file_version.
+:: dependsOn: none
+
+### SDI
+
+SDI keys may be added to any meta block
+
+`:: sdiSpec: <specID>` in the file header, declares that this file is associated with a named specification
+`:: sdiDesign <designElementID,...>` Documents the parts of the Design this scope is part of
+`:: sdiImpl <implElementID,...>` Documents the parts of the implementation plan this scope is part of
+
+##  5.6. Go Source File Scope with SDI
+
+For Go files with a ::schema: sdi-go, special sdi:prefixed comments are used to declare architectural design and implementation details. 
+
+`// :: sdiSpec: <specID>` in the file header, declares that this file is associated with a named specification
+`// :: sdiDesign <designElementID,...>` Above a type or func documents the parts of the Design this function is part of
+
+##  7. Examples
+
+###  7.1. NeuroScript Example
+
+```neuroscript 
+::schema: neuroscript 
+::serialization: ns 
+::langVersion: neuroscript@0.2.0 
+::fileVersion: 1.1.0 
+::author: Alice Price 
+::created: 2025-04-30 
+::license: MIT 
+::description: Example script demonstrating metadata placement. 
+::tags: example,metadata 
+func ProcessData(needs inputData, optional threshold returns processedCount, errorMsg) means 
+  ::purpose: Processes input data according to a threshold. This is a multi-line field to explain the rationale in depth. 
+  ::param:inputData: The raw data list to process. 
+  ::param:threshold: Optional numeric threshold for filtering. 
+  ::return:processedCount: Number of items successfully processed. 
+  ::return:errorMsg: Any error message encountered, or "" on success. 
+  ::algorithm: 
+  ::  1. Initialize counters. 
+  ::  2. Iterate through inputData. 
+  ::  3. Apply threshold filter if provided. 
+  ::  4. Increment counter. 
+  ::  5. Return count and empty error string. 
+  ::caveats: Does not handle non-numeric data gracefully yet. 
+  ::requiresLlm: false 
+  set count = 0 
+  set err = "" 
+  # Iterate and process 
+  for each item in inputData 
+    ::reason: This is the main processing loop for the function. 
+    # ... processing logic ... 
+    set count = count + 1 
+  endfor 
+  return count, err 
+endfunc 
+``` 
+
+###  7.2. <a name='GoSDIExample'></a>Go + SDI Example
+
+```go 
+// Package memorystore persists fractal detail memories. 
+// 
+// ::schema: sdi-go 
+// ::serialization: go 
+// ::fileVersion: 0.3.0 
+// ::langVersion: neuroscript@0.4.1 
+// ::description: Core snapshot store with time-travel telemetry. 
+// ::author: Andrew Price 
+// ::license: MIT 
+// ::sdi_spec: memoryStore 
+// ::contract: valueWrapping 
+// sdi:design The store uses an immutable, content-addressed blob+tree model. 
+package memorystore 
+import "crypto/sha256" 
+// Store is the main object for memory persistence. 
+type Store struct { 
+  // ... fields 
+} 
+
+// sdi:impl memoryStore 
+// sdi:design Each write creates a new root commit pointing to a tree of content-addressed chunks. 
+func (s *Store) Put(data []byte) ([32]byte, error) { 
+    // ::performanceNote: SHA256 was chosen over faster hashes for content integrity. 
+    h := sha256.Sum256(data) 
+    // ... implementation logic ... 
+    return h, nil 
+} 
+``` 
+--- 
+
+##  8. <a name='ToolingCIEnforcement'></a>7. Tooling & CI Enforcement
+
+Adherence to this specification **must** be enforced via automated tooling and Continuous Integration (CI) checks. Linters and pre-commit hooks should be configured to perform the following validations: 
+
+-   **Presence Check:** Fail if any file is missing the mandatory::schema: or ::serialization:keys. 
+-   **Format Check:** Fail if any metadata line does not conform to the::key: valueformat and regex. 
+-   **Placement Check:** Fail if file-level metadata is not in the correct location (header/footer) for itsserializationtype. 
+-   **Vocabulary Check:** Warn on any metadata keys that are not part of the standard vocabulary. -   **Date Format Check:** Fail if::created:or::modified:values are not valid ISO 8601 dates.
+-   **Version Check:** Fail a build if a::fileVersion:is not greater than the version in the main branch (to prevent regressions). 
+-   **SDI Link Check (for Go):** Fail if a file contains// sdi:impl `specID` but no corresponding::sdi_spec: 
+
+---------------
+
+:: name: NeuroData MetaData Standard
+:: standardID: ndinmeta
+:: standardName: NeuroData In-Situ Metadata
+:: standardVersion: 2.0.0
+:: canonicalFileLocation: github.com/aprice2704/fdm/code/docs/metadata.md
+:: fileName: metadata.md
+:: schema: spec
+:: serialization: md
+:: fileVersion: 2
+:: author: Andrew Price
+:: modified: 2025-06-27
+:: howToUpdate: Update vocab or placement rules first, then bump file_version.
+:: dependsOn: none

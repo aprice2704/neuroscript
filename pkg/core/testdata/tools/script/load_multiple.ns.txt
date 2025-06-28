@@ -1,0 +1,24 @@
+:: title: Test loading a script with multiple definitions
+:: version: 1.1
+
+func main() means
+    :: description: Checks the return value of LoadScript.
+    set script_to_load = ```
+        :: title: A library file
+        func first_func() means
+            return 1
+        endfunc
+
+        func second_func() means
+            return 2
+        endfunc
+
+        # Event name must be a static string literal.
+        on event "fs.file.changed" do
+            emit "lib file changed"
+        endon
+    ```
+
+    // The return value of LoadScript is what we want to test.
+    return tool.LoadScript(script_to_load)
+endfunc
