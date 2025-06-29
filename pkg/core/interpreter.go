@@ -1,12 +1,12 @@
 // NeuroScript Version: 0.4.2
-// File version: 10
-// Purpose: Implemented function-scoped error handling via an error handler stack.
+// File version: 14
+// Purpose: Contains the core Interpreter struct definition and its constructor/cloner. Refactored from a larger file.
 // filename: pkg/core/interpreter.go
-
+// nlines: 149
+// risk_rating: LOW
 package core
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -17,7 +17,6 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/core/prompts"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
-	"github.com/google/generative-ai-go/genai"
 )
 
 var AppVersion string
@@ -33,6 +32,8 @@ type Interpreter struct {
 	sandboxDir         string
 	LibPaths           []string
 	stdout             io.Writer
+	stderr             io.Writer
+	stdin              io.Reader
 	externalHandler    ToolHandler
 	toolRegistry       *ToolRegistryImpl
 	logger             interfaces.Logger
@@ -47,85 +48,10 @@ type Interpreter struct {
 	eventHandlers      map[string][]*OnEventDecl
 	eventHandlersMu    sync.RWMutex
 
-	// NEW: A stack to hold lists of error handlers for each active procedure call.
+	// A stack to hold lists of error handlers for each active procedure call.
 	errorHandlerStack [][]*Step
 }
 
-// ExecuteProc finds and executes a procedure that has already been loaded into the
-// interpreter by name, returning the final unwrapped result.
-func (i *Interpreter) ExecuteProc(procName string) (interface{}, error) {
-	proc, exists := i.knownProcedures[procName]
-	if !exists {
-		// As a fallback for simple test scripts, if only one procedure is loaded, run it.
-		if len(i.knownProcedures) == 1 {
-			for _, p := range i.knownProcedures {
-				proc = p
-				break
-			}
-		} else {
-			return nil, NewRuntimeError(ErrorCodeProcNotFound, fmt.Sprintf("procedure '%s' not found", procName), ErrProcedureNotFound)
-		}
-	}
-
-	// --- NEW: Register handlers for this procedure call and defer their cleanup ---
-	i.errorHandlerStack = append(i.errorHandlerStack, proc.ErrorHandlers)
-	defer func() {
-		// This cleanup will run when ExecuteProc returns, for any reason (success, error, panic),
-		// guaranteeing that handlers for this scope are removed and do not leak.
-		if len(i.errorHandlerStack) > 0 {
-			i.errorHandlerStack = i.errorHandlerStack[:len(i.errorHandlerStack)-1]
-		}
-	}()
-	// --- END NEW ---
-
-	i.currentProcName = proc.Name
-	finalResult, wasReturn, _, err := i.executeSteps(proc.Steps, false, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	var returnValue Value
-	if wasReturn {
-		returnValue = finalResult
-	} else {
-		// If the function ends without an explicit return, the result is the
-		// result of the last executed statement.
-		returnValue = i.lastCallResult
-	}
-
-	return Unwrap(returnValue), nil
-}
-
-// LoadProgram registers all procedures and event handlers from a parsed Program AST.
-func (i *Interpreter) LoadProgram(prog *Program) error {
-	if i.knownProcedures == nil {
-		i.knownProcedures = make(map[string]*Procedure)
-	}
-	for name, proc := range prog.Procedures {
-		if _, exists := i.knownProcedures[name]; exists {
-			return fmt.Errorf("procedure '%s' already exists", name)
-		}
-		i.knownProcedures[name] = proc
-	}
-	if i.eventHandlers == nil {
-		i.eventHandlers = make(map[string][]*OnEventDecl)
-	}
-	for _, ev := range prog.Events {
-		nameLit, ok := ev.EventNameExpr.(*StringLiteralNode)
-		if !ok {
-			// This check enforces that event names must be static strings at load time.
-			return NewRuntimeError(ErrorCodeType, "event name must be a static string literal", nil).WithPosition(ev.Pos)
-		}
-		eventName := nameLit.Value
-
-		i.eventHandlersMu.Lock()
-		i.eventHandlers[eventName] = append(i.eventHandlers[eventName], ev)
-		i.eventHandlersMu.Unlock()
-	}
-	return nil
-}
-
-// ... (The rest of the file is unchanged) ...
 const handleSeparator = "::"
 
 func NewInterpreter(logger interfaces.Logger, llmClient interfaces.LLMClient, sandboxDir string, initialVars map[string]interface{}, libPaths []string) (*Interpreter, error) {
@@ -194,6 +120,8 @@ func NewInterpreter(logger interfaces.Logger, llmClient interfaces.LLMClient, sa
 		sandboxDir:         cleanSandboxDir,
 		LibPaths:           libPaths,
 		stdout:             os.Stdout,
+		stderr:             os.Stderr,
+		stdin:              os.Stdin,
 		externalHandler:    nil,
 		toolRegistry:       nil,
 		logger:             effectiveLogger,
@@ -206,7 +134,7 @@ func NewInterpreter(logger interfaces.Logger, llmClient interfaces.LLMClient, sa
 		rateLimitDuration:  time.Minute,
 		maxLoopIterations:  1000000,
 		eventHandlers:      make(map[string][]*OnEventDecl),
-		errorHandlerStack:  make([][]*Step, 0), // Initialize the new field
+		errorHandlerStack:  make([][]*Step, 0),
 	}
 	interp.toolRegistry = NewToolRegistry(interp)
 	if err := RegisterCoreTools(interp); err != nil {
@@ -236,6 +164,8 @@ func (i *Interpreter) CloneWithNewVariables() *Interpreter {
 		sandboxDir:         i.sandboxDir,
 		LibPaths:           i.LibPaths,
 		stdout:             i.stdout,
+		stderr:             i.stderr,
+		stdin:              i.stdin,
 		externalHandler:    i.externalHandler,
 		toolRegistry:       i.toolRegistry,
 		logger:             i.logger,
@@ -251,106 +181,9 @@ func (i *Interpreter) CloneWithNewVariables() *Interpreter {
 		variablesMu:        sync.RWMutex{},
 		eventHandlers:      newHandlers,
 		eventHandlersMu:    sync.RWMutex{},
-		errorHandlerStack:  make([][]*Step, 0), // Initialize on clone
+		errorHandlerStack:  make([][]*Step, 0),
 	}
 	return clone
 }
-
-func (i *Interpreter) SetStdout(writer io.Writer) {
-	if writer == nil {
-		i.logger.Warn("Attempted to set nil stdout writer on interpreter, using os.Stdout as fallback.")
-		i.stdout = os.Stdout
-		return
-	}
-	i.stdout = writer
-}
-
-func (i *Interpreter) Stdout() io.Writer {
-	if i.stdout == nil {
-		return os.Stdout
-	}
-	return i.stdout
-}
-
-func (i *Interpreter) SetAIWorkerManager(manager *AIWorkerManager) {
-	i.aiWorkerManager = manager
-}
-
-func (i *Interpreter) AIWorkerManager() *AIWorkerManager {
-	return i.aiWorkerManager
-}
-
-func (i *Interpreter) SandboxDir() string { return i.sandboxDir }
-
-func (i *Interpreter) Logger() interfaces.Logger {
-	if i.logger == nil {
-		panic("FATAL: Interpreter logger is nil")
-	}
-	return i.logger
-}
-
-func (i *Interpreter) FileAPI() *FileAPI {
-	if i.fileAPI == nil {
-		panic("FATAL: Interpreter fileAPI not initialized")
-	}
-	return i.fileAPI
-}
-
-func (i *Interpreter) SetSandboxDir(newSandboxDir string) error {
-	var cleanNewSandboxDir string
-	if newSandboxDir == "" {
-		cleanNewSandboxDir = "."
-	} else {
-		absPath, err := filepath.Abs(newSandboxDir)
-		if err != nil {
-			return fmt.Errorf("invalid sandbox directory '%s': %w", newSandboxDir, err)
-		}
-		cleanNewSandboxDir = filepath.Clean(absPath)
-	}
-	if i.sandboxDir != cleanNewSandboxDir {
-		i.sandboxDir = cleanNewSandboxDir
-		i.fileAPI = NewFileAPI(i.sandboxDir, i.logger)
-	}
-	return nil
-}
-
-func (i *Interpreter) SetVariable(name string, value Value) error {
-	i.variablesMu.Lock()
-	defer i.variablesMu.Unlock()
-	if i.variables == nil {
-		i.variables = make(map[string]Value)
-	}
-	if name == "" {
-		return errors.New("variable name cannot be empty")
-	}
-	i.variables[name] = value
-	return nil
-}
-
-func (i *Interpreter) GetVariable(name string) (Value, bool) {
-	i.variablesMu.RLock()
-	defer i.variablesMu.RUnlock()
-	if i.variables == nil {
-		return nil, false
-	}
-	val, exists := i.variables[name]
-	return val, exists
-}
-
-func (i *Interpreter) GenAIClient() *genai.Client {
-	if i.llmClient == nil {
-		return nil
-	}
-	return i.llmClient.Client()
-}
-
-func (i *Interpreter) GetVectorIndex() map[string][]float32 {
-	if i.vectorIndex == nil {
-		i.vectorIndex = make(map[string][]float32)
-	}
-	return i.vectorIndex
-}
-
-func (i *Interpreter) SetVectorIndex(vi map[string][]float32) { i.vectorIndex = vi }
 
 var _ ToolRegistry = (*Interpreter)(nil)

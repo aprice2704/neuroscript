@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.2.1
-// Purpose: Corrected hardcoded tool name from 'TOOL.ReadFile' to 'FS.Read' to align with the actual filesystem toolset.
+// File version: 0.2.2
+// Purpose: Added I/O methods (Stdout, Stderr, Stdin) to App, delegating to the core interpreter.
 // filename: pkg/neurogo/app.go
-// nlines: 360 // Approximate
+// nlines: 408 // Approximate
 // risk_rating: LOW
 package neurogo
 
@@ -55,6 +55,76 @@ func (a *App) SetInterpreter(interp *core.Interpreter) {
 	defer a.mu.Unlock()
 	a.interpreter = interp
 }
+
+// --- I/O Method Delegation ---
+
+// SetStdout sets the standard output writer for the underlying interpreter.
+func (a *App) SetStdout(writer io.Writer) {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	if a.interpreter != nil {
+		a.interpreter.SetStdout(writer)
+	} else {
+		a.Log.Warn("Attempted to set stdout, but interpreter is nil.")
+	}
+}
+
+// Stdout gets the standard output writer from the underlying interpreter.
+func (a *App) Stdout() io.Writer {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	if a.interpreter != nil {
+		return a.interpreter.Stdout()
+	}
+	a.Log.Warn("Attempted to get stdout, but interpreter is nil. Returning os.Stdout.")
+	return os.Stdout
+}
+
+// SetStderr sets the standard error writer for the underlying interpreter.
+func (a *App) SetStderr(writer io.Writer) {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	if a.interpreter != nil {
+		a.interpreter.SetStderr(writer)
+	} else {
+		a.Log.Warn("Attempted to set stderr, but interpreter is nil.")
+	}
+}
+
+// Stderr gets the standard error writer from the underlying interpreter.
+func (a *App) Stderr() io.Writer {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	if a.interpreter != nil {
+		return a.interpreter.Stderr()
+	}
+	a.Log.Warn("Attempted to get stderr, but interpreter is nil. Returning os.Stderr.")
+	return os.Stderr
+}
+
+// SetStdin sets the standard input reader for the underlying interpreter.
+func (a *App) SetStdin(reader io.Reader) {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	if a.interpreter != nil {
+		a.interpreter.SetStdin(reader)
+	} else {
+		a.Log.Warn("Attempted to set stdin, but interpreter is nil.")
+	}
+}
+
+// Stdin gets the standard input reader from the underlying interpreter.
+func (a *App) Stdin() io.Reader {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	if a.interpreter != nil {
+		return a.interpreter.Stdin()
+	}
+	a.Log.Warn("Attempted to get stdin, but interpreter is nil. Returning os.Stdin.")
+	return os.Stdin
+}
+
+// --- End I/O Method Delegation ---
 
 // SetAIWorkerManager sets the AI Worker Manager on the interpreter.
 func (a *App) SetAIWorkerManager(wm *core.AIWorkerManager) {
@@ -137,17 +207,18 @@ func (a *App) runTuiMode(ctx context.Context) error {
 		a.Log.Info("TUI mode will execute initial script", "script", initialTuiScript)
 	}
 
-	if interpreter := a.GetInterpreter(); interpreter != nil {
-		a.originalStdout = interpreter.Stdout()
-	} else {
-		a.Log.Warn("Interpreter is nil before starting TUI mode, cannot save original stdout.")
+	// Save original stdout before the TUI potentially hijacks it.
+	a.originalStdout = a.Stdout()
+	if a.originalStdout == nil {
+		a.Log.Warn("Original stdout is nil before starting TUI mode.")
 	}
 
 	err := StartTviewTUI(a, initialTuiScript) // StartTviewTUI handles App's tui field
 
-	if interpreter := a.GetInterpreter(); interpreter != nil && a.originalStdout != nil {
-		interpreter.SetStdout(a.originalStdout)
-		a.Log.Info("Restored interpreter's original stdout after TUI exit.")
+	// Restore original stdout after the TUI exits.
+	if a.originalStdout != nil {
+		a.SetStdout(a.originalStdout)
+		a.Log.Info("Restored original stdout after TUI exit.")
 	}
 
 	if err != nil {
