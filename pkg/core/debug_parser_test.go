@@ -1,3 +1,7 @@
+// filename: pkg/core/debug_parser_test.go
+// NeuroScript Version: 0.5.2
+// File version: 2
+// Purpose: Updated the test script to be syntactically valid by adding a statement to the function body.
 package core
 
 import (
@@ -8,7 +12,7 @@ import (
 )
 
 func TestScorchedEarthParser(t *testing.T) {
-	script := "func a means\nendfunc"
+	script := "func a means\nset _ = nil\nendfunc"
 	input := antlr.NewInputStream(script)
 	lexer := gen.NewNeuroScriptLexer(input)
 	stream := antlr.NewCommonTokenStream(lexer, antlr.TokenDefaultChannel)

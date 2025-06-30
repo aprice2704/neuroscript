@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.5.2
-// File version: 3
-// Purpose: Added proc level err handlers. Updated AST nodes to support multiple assignment targets and treat LValues as Expressions.
 // filename: pkg/core/ast_statements.go
-// nlines: 104
+// NeuroScript Version: 0.5.2
+// File version: 4
+// Purpose: Added the 'Commands' field to the Program struct to support command blocks.
+// nlines: 107
 // risk_rating: HIGH
 
 package core
@@ -52,7 +52,6 @@ func (n *LValueNode) String() string {
 	return sb.String()
 }
 
-// ADDED: This marker method makes LValueNode satisfy the Expression interface.
 func (n *LValueNode) expressionNode() {}
 
 // ParamSpec defines a parameter in a procedure signature.
@@ -73,7 +72,7 @@ type Procedure struct {
 	Steps             []Step
 	OriginalSignature string            // For debugging/LSP
 	Metadata          map[string]string // Procedure-level metadata
-	ErrorHandlers     []*Step           // NEW: A dedicated slice for 'on error' handlers.
+	ErrorHandlers     []*Step
 }
 
 func (p *Procedure) GetPos() *Position { return p.Pos }
@@ -81,35 +80,26 @@ func (p *Procedure) GetPos() *Position { return p.Pos }
 // Step represents a single statement or control flow structure in a procedure.
 type Step struct {
 	Pos  *Position
-	Type string // e.g., "set", "call", "if", "return", "emit", "must", "fail", "clear_error", "ask", "on_error", "on_event"
+	Type string
 
-	// For "set":
-	// MODIFIED: Changed LValue *LValueNode to LValues []Expression to support multiple assignments.
-	LValues []Expression // Target(s) of the assignment, can be complex (e.g., var[index].field)
-	Value   Expression   // RHS expression for set
+	LValues []Expression
+	Value   Expression
 
-	// For "call":
-	Call *CallableExprNode // Details of the function/tool call
+	Call *CallableExprNode
 
-	// For "if", "while", "must" (conditional variant):
-	Cond Expression // Condition expression
+	Cond Expression
 
-	// For "if", "while", "for", "on_error", "on_event":
-	Body []Step // Block of steps
+	Body []Step
 
-	// For "if":
-	Else []Step // Else block for if statements
+	Else []Step
 
-	// For "for each":
-	LoopVarName string     // Variable for each item in the loop (e.g., 'item' in 'for each myList')
-	Collection  Expression // The collection expression to iterate over
+	LoopVarName string
+	Collection  Expression
 
-	// For "ask", "on_event":
-	PromptExpr Expression // The prompt expression for 'ask', or the event name expression for 'on_event'
-	AskIntoVar string     // Optional variable to store the result of 'ask' or the event payload
+	PromptExpr Expression
+	AskIntoVar string
 
-	// For "return", "emit", "fail", "must" (unconditional variant):
-	Values []Expression // For return statements that might return multiple values
+	Values []Expression
 }
 
 func (s *Step) GetPos() *Position { return s.Pos }

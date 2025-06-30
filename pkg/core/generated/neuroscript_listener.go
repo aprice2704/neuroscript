@@ -13,8 +13,32 @@ type NeuroScriptListener interface {
 	// EnterFile_header is called when entering the file_header production.
 	EnterFile_header(c *File_headerContext)
 
-	// EnterCode_block is called when entering the code_block production.
-	EnterCode_block(c *Code_blockContext)
+	// EnterLibrary_script is called when entering the library_script production.
+	EnterLibrary_script(c *Library_scriptContext)
+
+	// EnterCommand_script is called when entering the command_script production.
+	EnterCommand_script(c *Command_scriptContext)
+
+	// EnterLibrary_block is called when entering the library_block production.
+	EnterLibrary_block(c *Library_blockContext)
+
+	// EnterCommand_block is called when entering the command_block production.
+	EnterCommand_block(c *Command_blockContext)
+
+	// EnterCommand_statement_list is called when entering the command_statement_list production.
+	EnterCommand_statement_list(c *Command_statement_listContext)
+
+	// EnterCommand_body_line is called when entering the command_body_line production.
+	EnterCommand_body_line(c *Command_body_lineContext)
+
+	// EnterCommand_statement is called when entering the command_statement production.
+	EnterCommand_statement(c *Command_statementContext)
+
+	// EnterOn_error_only_stmt is called when entering the on_error_only_stmt production.
+	EnterOn_error_only_stmt(c *On_error_only_stmtContext)
+
+	// EnterSimple_command_statement is called when entering the simple_command_statement production.
+	EnterSimple_command_statement(c *Simple_command_statementContext)
 
 	// EnterProcedure_definition is called when entering the procedure_definition production.
 	EnterProcedure_definition(c *Procedure_definitionContext)
@@ -36,6 +60,9 @@ type NeuroScriptListener interface {
 
 	// EnterMetadata_block is called when entering the metadata_block production.
 	EnterMetadata_block(c *Metadata_blockContext)
+
+	// EnterNon_empty_statement_list is called when entering the non_empty_statement_list production.
+	EnterNon_empty_statement_list(c *Non_empty_statement_listContext)
 
 	// EnterStatement_list is called when entering the statement_list production.
 	EnterStatement_list(c *Statement_listContext)
@@ -199,8 +226,32 @@ type NeuroScriptListener interface {
 	// ExitFile_header is called when exiting the file_header production.
 	ExitFile_header(c *File_headerContext)
 
-	// ExitCode_block is called when exiting the code_block production.
-	ExitCode_block(c *Code_blockContext)
+	// ExitLibrary_script is called when exiting the library_script production.
+	ExitLibrary_script(c *Library_scriptContext)
+
+	// ExitCommand_script is called when exiting the command_script production.
+	ExitCommand_script(c *Command_scriptContext)
+
+	// ExitLibrary_block is called when exiting the library_block production.
+	ExitLibrary_block(c *Library_blockContext)
+
+	// ExitCommand_block is called when exiting the command_block production.
+	ExitCommand_block(c *Command_blockContext)
+
+	// ExitCommand_statement_list is called when exiting the command_statement_list production.
+	ExitCommand_statement_list(c *Command_statement_listContext)
+
+	// ExitCommand_body_line is called when exiting the command_body_line production.
+	ExitCommand_body_line(c *Command_body_lineContext)
+
+	// ExitCommand_statement is called when exiting the command_statement production.
+	ExitCommand_statement(c *Command_statementContext)
+
+	// ExitOn_error_only_stmt is called when exiting the on_error_only_stmt production.
+	ExitOn_error_only_stmt(c *On_error_only_stmtContext)
+
+	// ExitSimple_command_statement is called when exiting the simple_command_statement production.
+	ExitSimple_command_statement(c *Simple_command_statementContext)
 
 	// ExitProcedure_definition is called when exiting the procedure_definition production.
 	ExitProcedure_definition(c *Procedure_definitionContext)
@@ -222,6 +273,9 @@ type NeuroScriptListener interface {
 
 	// ExitMetadata_block is called when exiting the metadata_block production.
 	ExitMetadata_block(c *Metadata_blockContext)
+
+	// ExitNon_empty_statement_list is called when exiting the non_empty_statement_list production.
+	ExitNon_empty_statement_list(c *Non_empty_statement_listContext)
 
 	// ExitStatement_list is called when exiting the statement_list production.
 	ExitStatement_list(c *Statement_listContext)

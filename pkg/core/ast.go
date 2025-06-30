@@ -38,7 +38,8 @@ type Program struct {
 	Metadata    map[string]string
 	Procedures  map[string]*Procedure
 	Events      []*OnEventDecl
-	Expressions []Expression // FIX: Added to hold top-level expressions
+	Expressions []Expression   // FIX: Added to hold top-level expressions
+	Commands    []*CommandNode // ADDED
 }
 
 func (p *Program) GetPos() *Position { return p.Pos }

@@ -1,9 +1,7 @@
-// NeuroScript Version: 0.4.2
-// File version: 14
-// Purpose: Contains the core Interpreter struct definition and its constructor/cloner. Refactored from a larger file.
 // filename: pkg/core/interpreter.go
-// nlines: 149
-// risk_rating: LOW
+// NeuroScript Version: 0.5.2
+// File version: 17
+// Purpose: Corrected ExecuteProc to properly manage the errorHandlerStack, resolving the final compiler error.
 package core
 
 import (
@@ -25,6 +23,7 @@ type Interpreter struct {
 	variables          map[string]Value
 	variablesMu        sync.RWMutex
 	knownProcedures    map[string]*Procedure
+	commands           []*CommandNode
 	lastCallResult     Value
 	vectorIndex        map[string][]float32
 	embeddingDim       int
@@ -47,12 +46,73 @@ type Interpreter struct {
 	maxLoopIterations  int
 	eventHandlers      map[string][]*OnEventDecl
 	eventHandlersMu    sync.RWMutex
-
-	// A stack to hold lists of error handlers for each active procedure call.
-	errorHandlerStack [][]*Step
+	errorHandlerStack  [][]*Step
 }
 
 const handleSeparator = "::"
+
+// LoadProgram loads a parsed and built Program AST into the interpreter.
+func (i *Interpreter) LoadProgram(p *Program) error {
+	i.logger.Debug("Loading program into interpreter...")
+	for name, proc := range p.Procedures {
+		if _, exists := i.knownProcedures[name]; exists {
+			i.logger.Warn("Procedure redefinition warning", "proc", name)
+		}
+		i.knownProcedures[name] = proc
+	}
+	i.commands = p.Commands
+	for _, eventDecl := range p.Events {
+		eventName, isStatic := eventDecl.EventNameExpr.(*StringLiteralNode)
+		if !isStatic {
+			i.logger.Warn("Ignoring non-static event name in global event handler", "expr", eventDecl.EventNameExpr.String())
+			continue
+		}
+		i.eventHandlers[eventName.Value] = append(i.eventHandlers[eventName.Value], eventDecl)
+	}
+	return nil
+}
+
+// Execute runs the command blocks loaded into the interpreter.
+func (i *Interpreter) Execute() (Value, error) {
+	var lastVal Value = NilValue{}
+	var err error
+	if i.commands == nil || len(i.commands) == 0 {
+		return NilValue{}, nil
+	}
+	for _, cmd := range i.commands {
+		i.currentProcName = "command"
+		i.errorHandlerStack = append(i.errorHandlerStack, cmd.ErrorHandlers)
+		val, _, _, stepErr := i.executeSteps(cmd.Body, false, nil)
+		i.errorHandlerStack = i.errorHandlerStack[:len(i.errorHandlerStack)-1]
+		if stepErr != nil {
+			err = stepErr
+		}
+		if val != nil {
+			lastVal = val
+		}
+	}
+	i.currentProcName = ""
+	return lastVal, err
+}
+
+// ExecuteProc finds a procedure by name and executes it with the given arguments.
+func (i *Interpreter) ExecuteProc(name string, args ...Value) (Value, error) {
+	proc, ok := i.knownProcedures[name]
+	if !ok {
+		return nil, NewRuntimeError(ErrorCodeProcNotFound, fmt.Sprintf("procedure '%s' not found", name), nil)
+	}
+
+	// CORRECTED: Push this procedure's error handlers onto the stack.
+	i.errorHandlerStack = append(i.errorHandlerStack, proc.ErrorHandlers)
+
+	// The third argument to executeSteps is for a pre-existing error, not handlers.
+	val, _, _, err := i.executeSteps(proc.Steps, true, nil)
+
+	// Pop this procedure's handlers from the stack to restore the previous state.
+	i.errorHandlerStack = i.errorHandlerStack[:len(i.errorHandlerStack)-1]
+
+	return val, err
+}
 
 func NewInterpreter(logger interfaces.Logger, llmClient interfaces.LLMClient, sandboxDir string, initialVars map[string]interface{}, libPaths []string) (*Interpreter, error) {
 	effectiveLogger := logger
@@ -113,6 +173,7 @@ func NewInterpreter(logger interfaces.Logger, llmClient interfaces.LLMClient, sa
 		variables:          vars,
 		variablesMu:        sync.RWMutex{},
 		knownProcedures:    make(map[string]*Procedure),
+		commands:           make([]*CommandNode, 0),
 		lastCallResult:     NilValue{},
 		vectorIndex:        make(map[string][]float32),
 		embeddingDim:       16,
@@ -158,6 +219,7 @@ func (i *Interpreter) CloneWithNewVariables() *Interpreter {
 	i.eventHandlersMu.RUnlock()
 	clone := &Interpreter{
 		knownProcedures:    i.knownProcedures,
+		commands:           i.commands,
 		lastCallResult:     i.lastCallResult,
 		vectorIndex:        i.vectorIndex,
 		embeddingDim:       i.embeddingDim,

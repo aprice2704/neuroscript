@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.5.2
-// File version: 35
-// Purpose: Corrected a compiler error by using the .Pos field instead of a non-existent .Position() method.
 // filename: pkg/core/ast_builder_main.go
-// nlines: 141
+// NeuroScript Version: 0.5.2
+// File version: 36
+// Purpose: Integrated command block consolidation into the AST build process.
+// nlines: 147
 // risk_rating: LOW
 
 package core
@@ -81,10 +81,8 @@ func (b *ASTBuilder) Build(tree antlr.Tree) (*Program, map[string]string, error)
 	for _, ev := range listener.events {
 		nameLit, isString := ev.EventNameExpr.(*StringLiteralNode)
 		if isString && nameLit.Value == "error" {
-			// This is a top-level 'on error' handler. This is a semantic error
-			// as 'on error' is only permitted inside a procedure.
-			pos := ev.Pos // CORRECTED: Use the .Pos field.
-			errMsg := fmt.Sprintf("misplaced 'on error' handler at line %d; 'on error' is only allowed inside a 'proc' block", pos.Line)
+			pos := ev.Pos
+			errMsg := fmt.Sprintf("misplaced 'on error' handler at line %d; 'on error' is only allowed inside a 'proc' or 'command' block", pos.Line)
 			listener.errors = append(listener.errors, fmt.Errorf("%s", errMsg))
 			continue // Discard the invalid handler.
 		}
@@ -92,7 +90,10 @@ func (b *ASTBuilder) Build(tree antlr.Tree) (*Program, map[string]string, error)
 	}
 	programAST.Events = validEvents
 
-	// 5. Check for and aggregate any errors collected during the walk and validation.
+	// 5. Consolidate command blocks into the final program AST.
+	programAST.Commands = listener.commands
+
+	// 6. Check for and aggregate any errors collected during the walk and validation.
 	if len(listener.errors) > 0 {
 		errorMessages := make([]string, 0, len(listener.errors))
 		uniqueErrors := make(map[string]bool)

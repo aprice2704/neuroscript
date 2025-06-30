@@ -1,6 +1,6 @@
 // filename: pkg/core/ast_builder_statements.go
-// version: 7
-// purpose: Corrects ExitEmit_statement to handle an optional expression, fixing failures with empty emit statements and aligning with the Step struct.
+// version: 9
+// purpose: Removed duplicate on_stmt listener logic, which is now centralized in ast_builder_events.go.
 package core
 
 import (
@@ -12,8 +12,6 @@ func (l *neuroScriptListenerImpl) ExitEmit_statement(c *gen.Emit_statementContex
 	l.logDebugAST("<<< ExitEmit_statement")
 	var values []Expression
 
-	// The grammar allows 'emit' to have an optional expression.
-	// We check if the expression context exists before trying to pop from the stack.
 	if c.Expression() != nil {
 		rawExpr, ok := l.popValue()
 		if !ok {
@@ -24,17 +22,15 @@ func (l *neuroScriptListenerImpl) ExitEmit_statement(c *gen.Emit_statementContex
 		expr, castOk := rawExpr.(Expression)
 		if !castOk {
 			l.addError(c, "internal error: value on stack for emit was not an Expression, but %T", rawExpr)
-			l.pushValue(rawExpr) // Push back to avoid corrupting stack.
+			l.pushValue(rawExpr)
 			return
 		}
 		values = []Expression{expr}
 	}
-	// If c.Expression() is nil, 'values' remains an empty slice, which is correct for `emit` with no arguments.
 
 	stmt := Step{
-		Pos:  tokenToPosition(c.GetStart()),
-		Type: "emit",
-		// 'emit' uses the 'Values' field to hold its expression(s).
+		Pos:    tokenToPosition(c.GetStart()),
+		Type:   "emit",
 		Values: values,
 	}
 	*l.currentSteps = append(*l.currentSteps, stmt)
@@ -45,9 +41,7 @@ func (l *neuroScriptListenerImpl) ExitReturn_statement(c *gen.Return_statementCo
 	l.logDebugAST("<<< ExitReturn_statement")
 	var values []Expression
 
-	// Check if the return statement includes an expression list.
 	if exprListCtx := c.Expression_list(); exprListCtx != nil {
-		// Determine the number of expressions to correctly pop them from the stack.
 		numExprs := len(exprListCtx.AllExpression())
 		if numExprs > 0 {
 			rawExprs, ok := l.popNValues(numExprs)
@@ -56,7 +50,6 @@ func (l *neuroScriptListenerImpl) ExitReturn_statement(c *gen.Return_statementCo
 				return
 			}
 
-			// The popped values must be cast to Expression.
 			values = make([]Expression, numExprs)
 			for i, rawExpr := range rawExprs {
 				expr, castOk := rawExpr.(Expression)
@@ -70,7 +63,6 @@ func (l *neuroScriptListenerImpl) ExitReturn_statement(c *gen.Return_statementCo
 		}
 	}
 
-	// Create the Step AST node for the return statement.
 	stmt := Step{
 		Pos:    tokenToPosition(c.GetStart()),
 		Type:   "return",

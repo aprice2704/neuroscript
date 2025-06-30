@@ -1,11 +1,12 @@
-# ------------------------------------------------------------------
-# Test: Built-in `len()` function
-#
-# Purpose: Verifies the behavior of the `len()` function across all
-# applicable NeuroScript data types.
-#
-# - Gemini, AI Ass't to AJP, June 2025
-# ------------------------------------------------------------------
+// filename: testdata/interpreter/len_function_test.ns.txt
+// ------------------------------------------------------------------
+// Test: Built-in `len()` function
+//
+// Purpose: Verifies the behavior of the `len()` function across all
+// applicable NeuroScript data types.
+//
+// - Gemini, AI Asst to AJP, June 2025
+// ------------------------------------------------------------------
 
 func TestLenFunction(returns result) means
   set result = "all tests passed"
@@ -34,5 +35,6 @@ func TestLenFunction(returns result) means
     must len(item["value"]) == item["expected"]
   endfor
 
+  # The final value of 'result' is returned here.
   return result
 endfunc

@@ -1,10 +1,7 @@
-// NeuroScript Version: 0.3.1
-// File version: 3
-// Purpose: Repurposed to handle procedure-level metadata via the 'metadata_block' rule.
 // filename: pkg/core/ast_builder_metadata.go
-// nlines: 48
-// risk_rating: LOW
-
+// NeuroScript Version: 0.5.2
+// File version: 4
+// Purpose: Made ExitMetadata_block context-aware to handle metadata for both procedures and commands.
 package core
 
 import (
@@ -19,15 +16,14 @@ func (l *neuroScriptListenerImpl) processMetadataLine(targetMap map[string]strin
 	lineText := token.GetText()
 	l.logDebugAST("   - Processing Metadata Line: %s", lineText)
 
+	// This logic correctly parses ":: key: value"
 	idx := strings.Index(lineText, "::")
 	if idx == -1 {
 		l.addErrorf(token, "METADATA_LINE token did not contain '::' separator: '%s'", lineText)
 		return
 	}
-
 	contentAfterDoubleColon := lineText[idx+2:]
 	trimmedContent := strings.TrimSpace(contentAfterDoubleColon)
-
 	parts := strings.SplitN(trimmedContent, ":", 2)
 	key := strings.TrimSpace(parts[0])
 	var value string
@@ -36,9 +32,6 @@ func (l *neuroScriptListenerImpl) processMetadataLine(targetMap map[string]strin
 	}
 
 	if key != "" {
-		if _, exists := targetMap[key]; exists {
-			l.logDebugAST("     Overwriting Metadata: '%s'", key)
-		}
 		targetMap[key] = value
 		l.logDebugAST("     Stored Metadata: '%s' = '%s'", key, value)
 	} else {
@@ -46,19 +39,28 @@ func (l *neuroScriptListenerImpl) processMetadataLine(targetMap map[string]strin
 	}
 }
 
-// ExitMetadata_block handles the metadata block within a procedure.
+// ExitMetadata_block handles metadata within a procedure or command block.
 func (l *neuroScriptListenerImpl) ExitMetadata_block(ctx *gen.Metadata_blockContext) {
 	l.logDebugAST("  << Exit Metadata_block")
-	if l.currentProc == nil {
-		l.addError(ctx, "metadata_block found outside of a procedure context")
+	var targetMap map[string]string
+
+	// MODIFIED: Determine the context (procedure or command) and select the correct map.
+	if l.currentProc != nil {
+		if l.currentProc.Metadata == nil {
+			l.currentProc.Metadata = make(map[string]string)
+		}
+		targetMap = l.currentProc.Metadata
+	} else if l.currentCommand != nil {
+		if l.currentCommand.Metadata == nil {
+			l.currentCommand.Metadata = make(map[string]string)
+		}
+		targetMap = l.currentCommand.Metadata
+	} else {
+		l.addError(ctx, "metadata_block found outside of a procedure or command context")
 		return
-	}
-	// Ensure the procedure's metadata map is initialized
-	if l.currentProc.Metadata == nil {
-		l.currentProc.Metadata = make(map[string]string)
 	}
 
 	for _, metaLineNode := range ctx.AllMETADATA_LINE() {
-		l.processMetadataLine(l.currentProc.Metadata, metaLineNode.GetSymbol())
+		l.processMetadataLine(targetMap, metaLineNode.GetSymbol())
 	}
 }

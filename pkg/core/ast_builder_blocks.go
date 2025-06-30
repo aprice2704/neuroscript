@@ -1,10 +1,7 @@
-// NeuroScript Version: 0.3.0
-// File version: 10
-// Purpose: Updated block context switch to use new event/error handler context types.
 // filename: pkg/core/ast_builder_blocks.go
-// nlines: 110
-// risk_rating: MEDIUM
-
+// NeuroScript Version: 0.5.2
+// File version: 12
+// Purpose: Wired the command_statement_list rule to the block context handlers to fix final command block parsing bugs.
 package core
 
 import (
@@ -46,14 +43,16 @@ func (l *neuroScriptListenerImpl) exitBlockContext(kind string) {
 		l.currentSteps = nil
 	}
 
-	markerIdx := l.blockValueDepthStack[len(l.blockValueDepthStack)-1]
-	allowedDepth := markerIdx + 1
+	if len(l.blockValueDepthStack) > 0 {
+		markerIdx := l.blockValueDepthStack[len(l.blockValueDepthStack)-1]
+		allowedDepth := markerIdx + 1
 
-	for len(l.valueStack) > allowedDepth {
-		v := l.pop()
-		l.logger.Warn("[AST] stray value purged during %s exit: %T", kind, v)
+		for len(l.valueStack) > allowedDepth {
+			v, _ := l.popValue()
+			l.logger.Warn("[AST] stray value purged during %s exit: %T", kind, v)
+		}
+		l.blockValueDepthStack = l.blockValueDepthStack[:len(l.blockValueDepthStack)-1]
 	}
-	l.blockValueDepthStack = l.blockValueDepthStack[:len(l.blockValueDepthStack)-1]
 }
 
 // --- Statement_list listener wiring ---
@@ -69,7 +68,6 @@ func (l *neuroScriptListenerImpl) EnterStatement_list(ctx *gen.Statement_listCon
 		kind = "FOR_EACH_BODY"
 	case *gen.While_statementContext:
 		kind = "WHILE_BODY"
-	// MODIFIED: Use the new handler context types from the refactored grammar.
 	case *gen.Event_handlerContext:
 		kind = "ON_EVENT_BODY"
 	case *gen.Error_handlerContext:
@@ -92,7 +90,6 @@ func (l *neuroScriptListenerImpl) ExitStatement_list(ctx *gen.Statement_listCont
 		kind = "FOR_EACH_BODY"
 	case *gen.While_statementContext:
 		kind = "WHILE_BODY"
-	// MODIFIED: Use the new handler context types from the refactored grammar.
 	case *gen.Event_handlerContext:
 		kind = "ON_EVENT_BODY"
 	case *gen.Error_handlerContext:
@@ -101,4 +98,59 @@ func (l *neuroScriptListenerImpl) ExitStatement_list(ctx *gen.Statement_listCont
 		kind = "UNKNOWN_BLOCK"
 	}
 	l.exitBlockContext(kind)
+}
+
+// --- Wiring for the non_empty_statement_list used by the grammar ---
+
+func (l *neuroScriptListenerImpl) EnterNon_empty_statement_list(ctx *gen.Non_empty_statement_listContext) {
+	var kind string
+	switch ctx.GetParent().(type) {
+	case *gen.Procedure_definitionContext:
+		kind = "PROC_BODY"
+	case *gen.If_statementContext:
+		kind = "IF_ELSE_BODY"
+	case *gen.For_each_statementContext:
+		kind = "FOR_EACH_BODY"
+	case *gen.While_statementContext:
+		kind = "WHILE_BODY"
+	case *gen.Event_handlerContext:
+		kind = "ON_EVENT_BODY"
+	case *gen.Error_handlerContext:
+		kind = "ON_ERROR_BODY"
+	default:
+		kind = "UNKNOWN_BLOCK"
+		l.addError(ctx, "non_empty_statement_list found inside unknown parent type: %T", ctx.GetParent())
+	}
+	l.enterBlockContext(kind)
+}
+
+func (l *neuroScriptListenerImpl) ExitNon_empty_statement_list(ctx *gen.Non_empty_statement_listContext) {
+	var kind string
+	switch ctx.GetParent().(type) {
+	case *gen.Procedure_definitionContext:
+		kind = "PROC_BODY"
+	case *gen.If_statementContext:
+		kind = "IF_ELSE_BODY"
+	case *gen.For_each_statementContext:
+		kind = "FOR_EACH_BODY"
+	case *gen.While_statementContext:
+		kind = "WHILE_BODY"
+	case *gen.Event_handlerContext:
+		kind = "ON_EVENT_BODY"
+	case *gen.Error_handlerContext:
+		kind = "ON_ERROR_BODY"
+	default:
+		kind = "UNKNOWN_BLOCK"
+	}
+	l.exitBlockContext(kind)
+}
+
+// --- ADDED: Wiring for the command_statement_list used by command blocks ---
+
+func (l *neuroScriptListenerImpl) EnterCommand_statement_list(ctx *gen.Command_statement_listContext) {
+	l.enterBlockContext("COMMAND_BODY")
+}
+
+func (l *neuroScriptListenerImpl) ExitCommand_statement_list(ctx *gen.Command_statement_listContext) {
+	l.exitBlockContext("COMMAND_BODY")
 }

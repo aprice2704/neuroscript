@@ -13,8 +13,32 @@ type NeuroScriptVisitor interface {
 	// Visit a parse tree produced by NeuroScriptParser#file_header.
 	VisitFile_header(ctx *File_headerContext) interface{}
 
-	// Visit a parse tree produced by NeuroScriptParser#code_block.
-	VisitCode_block(ctx *Code_blockContext) interface{}
+	// Visit a parse tree produced by NeuroScriptParser#library_script.
+	VisitLibrary_script(ctx *Library_scriptContext) interface{}
+
+	// Visit a parse tree produced by NeuroScriptParser#command_script.
+	VisitCommand_script(ctx *Command_scriptContext) interface{}
+
+	// Visit a parse tree produced by NeuroScriptParser#library_block.
+	VisitLibrary_block(ctx *Library_blockContext) interface{}
+
+	// Visit a parse tree produced by NeuroScriptParser#command_block.
+	VisitCommand_block(ctx *Command_blockContext) interface{}
+
+	// Visit a parse tree produced by NeuroScriptParser#command_statement_list.
+	VisitCommand_statement_list(ctx *Command_statement_listContext) interface{}
+
+	// Visit a parse tree produced by NeuroScriptParser#command_body_line.
+	VisitCommand_body_line(ctx *Command_body_lineContext) interface{}
+
+	// Visit a parse tree produced by NeuroScriptParser#command_statement.
+	VisitCommand_statement(ctx *Command_statementContext) interface{}
+
+	// Visit a parse tree produced by NeuroScriptParser#on_error_only_stmt.
+	VisitOn_error_only_stmt(ctx *On_error_only_stmtContext) interface{}
+
+	// Visit a parse tree produced by NeuroScriptParser#simple_command_statement.
+	VisitSimple_command_statement(ctx *Simple_command_statementContext) interface{}
 
 	// Visit a parse tree produced by NeuroScriptParser#procedure_definition.
 	VisitProcedure_definition(ctx *Procedure_definitionContext) interface{}
@@ -36,6 +60,9 @@ type NeuroScriptVisitor interface {
 
 	// Visit a parse tree produced by NeuroScriptParser#metadata_block.
 	VisitMetadata_block(ctx *Metadata_blockContext) interface{}
+
+	// Visit a parse tree produced by NeuroScriptParser#non_empty_statement_list.
+	VisitNon_empty_statement_list(ctx *Non_empty_statement_listContext) interface{}
 
 	// Visit a parse tree produced by NeuroScriptParser#statement_list.
 	VisitStatement_list(ctx *Statement_listContext) interface{}

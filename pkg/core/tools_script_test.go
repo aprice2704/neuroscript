@@ -1,4 +1,9 @@
+// NeuroScript Version: 0.5.2
+// File version: 2
+// Purpose: Corrected test harness to properly unwrap result values before comparison.
 // filename: pkg/core/tools_script_test.go
+// nlines: 161
+// risk_rating: LOW
 package core
 
 import (
@@ -55,8 +60,8 @@ func TestScriptTools(t *testing.T) {
 			parserAPI := NewParserAPI(logger)
 			parseTree, parseErr := parserAPI.Parse(script)
 
+			// This branch is for tests that are expected to fail.
 			if _, statErr := os.Stat(errPath); statErr == nil {
-				// This branch is for tests that are expected to fail.
 				var combinedErr error
 				if parseErr != nil {
 					combinedErr = parseErr
@@ -67,16 +72,19 @@ func TestScriptTools(t *testing.T) {
 						combinedErr = buildErr
 					} else {
 						interp, _ := NewTestInterpreter(t, nil, nil)
+						// We deliberately don't load the program here for error tests
+						// that might involve the interpreter state before loading.
+						procToRun := "main"
+						if _, ok := programAST.Procedures[procToRun]; !ok {
+							for procName := range programAST.Procedures {
+								procToRun = procName
+								break
+							}
+						}
+						// Now load and execute in one go to catch load-time errors.
 						if err := interp.LoadProgram(programAST); err != nil {
 							combinedErr = err
 						} else {
-							procToRun := "main"
-							if _, ok := programAST.Procedures[procToRun]; !ok {
-								for procName := range programAST.Procedures {
-									procToRun = procName
-									break
-								}
-							}
 							_, combinedErr = interp.ExecuteProc(procToRun)
 						}
 					}
@@ -103,7 +111,8 @@ func TestScriptTools(t *testing.T) {
 							expectedCode, runtimeErr.Code, runtimeErr.Message)
 					}
 				} else {
-					t.Logf("Warning: received a non-RuntimeError: %T, %v", combinedErr, combinedErr)
+					// Fallback for non-RuntimeError types if needed
+					t.Logf("Warning: received a non-RuntimeError, checking string contains: %T, %v", combinedErr, combinedErr)
 				}
 				return
 			}
@@ -127,7 +136,7 @@ func TestScriptTools(t *testing.T) {
 				t.Fatalf("test script '%s' must contain a 'main' procedure for execution testing", name)
 			}
 
-			gotVal, execErr := interp.ExecuteProc(procToRun)
+			rawResult, execErr := interp.ExecuteProc(procToRun)
 			if execErr != nil {
 				t.Fatalf("unexpected RUNTIME error: %v", execErr)
 			}
@@ -143,8 +152,13 @@ func TestScriptTools(t *testing.T) {
 			if err := json.Unmarshal(wantJSONBytes, &wantMap); err != nil {
 				t.Fatalf("failed to unmarshal golden file %s into map[string]any: %v", goldenPath, err)
 			}
-			gotMap := map[string]any{"return": gotVal}
+
+			// CORRECTED: Unwrap the raw Value to get a native Go type for comparison.
+			nativeGotVal := Unwrap(rawResult)
+			gotMap := map[string]any{"return": nativeGotVal}
+
 			if diff := cmp.Diff(wantMap, gotMap); diff != "" {
+				// Use a more readable JSON output for the got payload in case of error.
 				gotJSONBytes, _ := json.MarshalIndent(gotMap, "", "  ")
 				t.Fatalf("result mismatch (-want +got):\n%s\n\nGot payload:\n%s", diff, gotJSONBytes)
 			}

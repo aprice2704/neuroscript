@@ -90,14 +90,14 @@ $(G4_TXT_FILE): $(G4_FILE)
 
 $(ANTLR_STAMP_FILE): $(G4_FILE) $(ANTLR_JAR)
 	@echo "Updating version.go from $(G4_FILE)..."
-	@{ \
+	@( \
 		VERSION=$$(grep '// Grammar: NeuroScript Version:' $(G4_FILE) | awk '{print $$NF}'); \
 		echo "// NeuroScript Version: 0.4.2" > $(VERSION_GO_FILE); \
 		echo "// File version: 1" >> $(VERSION_GO_FILE); \
 		echo "// Purpose: Holds the grammar version, auto-updated by the Makefile." >> $(VERSION_GO_FILE); \
 		echo "// filename: pkg/core/version.go" >> $(VERSION_GO_FILE); \
 		echo "// nlines: 13" >> $(VERSION_GO_FILE); \
-		echo "// risk_rating: LOW" >> $(VERSION_GO_FILE; \
+		echo "// risk_rating: LOW" >> $(VERSION_GO_FILE); \
 		echo "package core" >> $(VERSION_GO_FILE); \
 		echo "" >> $(VERSION_GO_FILE); \
 		echo "var (" >> $(VERSION_GO_FILE); \
@@ -105,7 +105,7 @@ $(ANTLR_STAMP_FILE): $(G4_FILE) $(ANTLR_JAR)
 		echo "	// It is updated automatically by the Makefile from NeuroScript.g4." >> $(VERSION_GO_FILE); \
 		echo "	GrammarVersion = \"$${VERSION}\"" >> $(VERSION_GO_FILE); \
 		echo ")" >> $(VERSION_GO_FILE); \
-	}
+	)
 	@echo "Generating ANTLR parser files from $(G4_FILE)..."
 	@mkdir -p $(ANTLR_OUTPUT_DIR)
 	java -jar $(ANTLR_JAR) -Dlanguage=Go -o $(ANTLR_OUTPUT_DIR) -visitor -listener -package core $(G4_FILE)
@@ -188,16 +188,16 @@ help:
 	@echo "Usage: make [target]"
 	@echo ""
 	@echo "Core Targets:"
-	@echo "  all          - Checks syntax, then builds and installs all components (default)."
-	@echo "  build        - Alias for 'all'."
-	@echo "  install      - Compiles and installs Go commands to '$(BIN_INSTALL_DIR)'."
-	@echo "  test         - Regenerates parser if needed, then runs Go tests."
-	@echo "  clean        - Remove all build artifacts and installed commands."
-	@echo "  syntax-check - Checks all .ns files in testdata for syntax errors."
+	@echo "  all              - Checks syntax, then builds and installs all components (default)."
+	@echo "  build            - Alias for 'all'."
+	@echo "  install          - Compiles and installs Go commands to '$(BIN_INSTALL_DIR)'."
+	@echo "  test             - Regenerates parser if needed, then runs Go tests."
+	@echo "  clean            - Remove all build artifacts and installed commands."
+	@echo "  syntax-check     - Checks all .ns files in testdata for syntax errors."
 	@echo ""
 	@echo "Component & Setup Targets:"
-	@echo "  generate-antlr      - Force generation of ANTLR parser files and update version.go."
-	@echo "  always-build-index  - Force regeneration of the codebase index."
-	@echo "  setup-nvim          - Link the vim plugin for local Neovim development."
-	@echo "  setup-goland        - Display instructions for setting up GoLand."
+	@echo "  generate-antlr     - Force generation of ANTLR parser files and update version.go."
+	@echo "  always-build-index - Force regeneration of the codebase index."
+	@echo "  setup-nvim         - Link the vim plugin for local Neovim development."
+	@echo "  setup-goland       - Display instructions for setting up GoLand."
 	@echo "  $(VSCODE_BUILD_STAMP) - Package the VSCode extension."

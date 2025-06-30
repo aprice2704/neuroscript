@@ -1,0 +1,2886 @@
+{
+  "aa_test.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "TestParseFutureSyntax"
+    ]
+  },
+  "ai_wm.go": {
+    "constants": [
+      "defaultDefinitionsFile",
+      "defaultPerformanceDataFile",
+      "statelessInstanceIDPrefix"
+    ],
+    "variables": [],
+    "types": [
+      "AIWorkerManager"
+    ],
+    "functions": [
+      "NewAIWorkerManager",
+      "FullPathForDefinitions",
+      "FullPathForPerformanceData",
+      "loadWorkerDefinitionsFromContent",
+      "resolveAPIKey",
+      "initializeRateTrackersUnsafe",
+      "loadRetiredInstancePerformanceDataFromContent",
+      "prepareRetiredInstanceForAppending",
+      "GetSandboxDir",
+      "ListWorkerDefinitionsForDisplay",
+      "smartTrim",
+      "ifErrorToString"
+    ]
+  },
+  "ai_wm_default_wdefs.go": {
+    "constants": [
+      "AIWorkerDefinitions_Default"
+    ],
+    "variables": [],
+    "types": [],
+    "functions": []
+  },
+  "ai_wm_definitions_crud.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "GetWorkerDefinition",
+      "ListWorkerDefinitions",
+      "matchesDefinitionFilters"
+    ]
+  },
+  "ai_wm_definitions_io.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "LoadWorkerDefinitionsFromFile",
+      "LoadRetiredInstancePerformanceDataFromFile",
+      "appendRetiredInstanceToFileUnsafe"
+    ]
+  },
+  "ai_wm_helpers.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "GetDefinitionIDByName",
+      "GetDefinition"
+    ]
+  },
+  "ai_wm_instances.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "SpawnWorkerInstance",
+      "GetWorkerInstance",
+      "ListActiveWorkerInstances",
+      "RetireWorkerInstance",
+      "UpdateInstanceStatus",
+      "matchesInstanceFilters",
+      "UpdateInstanceSessionTokenUsage"
+    ]
+  },
+  "ai_wm_performance.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "logPerformanceRecordUnsafe",
+      "GetPerformanceRecordsForDefinition",
+      "loadAllRetiredInstanceDataUnsafe",
+      "matchesPerformanceRecordFilters"
+    ]
+  },
+  "ai_wm_ratelimit.go": {
+    "constants": [],
+    "variables": [],
+    "types": [
+      "WorkerRateTracker"
+    ],
+    "functions": [
+      "initializeRateTrackerForDefinitionUnsafe",
+      "getOrCreateRateTrackerUnsafe",
+      "checkAndRecordUsageUnsafe",
+      "recordUsageUnsafe",
+      "updateTokenCountForRateLimitsUnsafe"
+    ]
+  },
+  "ai_wm_stateless.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "convertGenaiContentsToConversationTurns",
+      "ExecuteStatelessTask"
+    ]
+  },
+  "ai_wm_tools_admin.go": {
+    "constants": [],
+    "variables": [
+      "specAIWorkerDefinitionLoadAll",
+      "toolAIWorkerDefinitionLoadAll",
+      "specAIWorkerDefinitionSaveAll",
+      "specAIWorkerSavePerformanceData",
+      "specAIWorkerLoadPerformanceData",
+      "toolAIWorkerLoadPerformanceData"
+    ],
+    "types": [],
+    "functions": []
+  },
+  "ai_wm_tools_definitions.go": {
+    "constants": [],
+    "variables": [
+      "specAIWorkerDefinitionGet",
+      "toolAIWorkerDefinitionGet",
+      "specAIWorkerDefinitionList",
+      "toolAIWorkerDefinitionList"
+    ],
+    "types": [],
+    "functions": []
+  },
+  "ai_wm_tools_execution.go": {
+    "constants": [],
+    "variables": [
+      "specAIWorkerExecuteStateless",
+      "toolAIWorkerExecuteStateless"
+    ],
+    "types": [],
+    "functions": []
+  },
+  "ai_wm_tools_helpers.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "getAIWorkerManager",
+      "mapValidatedArgsListToMapByName",
+      "convertAIWorkerDefinitionToMap",
+      "convertAIWorkerInstanceToMap",
+      "convertPerformanceRecordToMap",
+      "convertPerformanceSummaryToMap",
+      "convertRateLimitPolicyToMap",
+      "convertTokenUsageMetricsToMap"
+    ]
+  },
+  "ai_wm_tools_instances.go": {
+    "constants": [],
+    "variables": [
+      "specAIWorkerInstanceSpawn",
+      "toolAIWorkerInstanceSpawn",
+      "specAIWorkerInstanceGet",
+      "toolAIWorkerInstanceGet",
+      "specAIWorkerInstanceListActive",
+      "toolAIWorkerInstanceListActive",
+      "specAIWorkerInstanceRetire",
+      "toolAIWorkerInstanceRetire",
+      "specAIWorkerInstanceUpdateStatus",
+      "toolAIWorkerInstanceUpdateStatus",
+      "specAIWorkerInstanceUpdateTokenUsage",
+      "toolAIWorkerInstanceUpdateTokenUsage"
+    ],
+    "types": [],
+    "functions": []
+  },
+  "ai_wm_tools_performance.go": {
+    "constants": [],
+    "variables": [
+      "specAIWorkerLogPerformance",
+      "toolAIWorkerLogPerformance",
+      "specAIWorkerGetPerformanceRecords",
+      "toolAIWorkerGetPerformanceRecords"
+    ],
+    "types": [],
+    "functions": []
+  },
+  "ai_wm_tools_register.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "RegisterAIWorkerTools"
+    ]
+  },
+  "ai_worker_stringers.go": {
+    "constants": [
+      "colLabel",
+      "colValue",
+      "colID",
+      "colName",
+      "colStatusOk",
+      "colStatusErr",
+      "colStatusWarn",
+      "colStatusNeut",
+      "colCount",
+      "colBool",
+      "colTime",
+      "colReset"
+    ],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "String",
+      "ColourString",
+      "String",
+      "ColourString",
+      "String",
+      "ColourString",
+      "String",
+      "ColourString",
+      "String",
+      "ColourString",
+      "String",
+      "ColourString",
+      "String",
+      "ColourString",
+      "String",
+      "ColourString",
+      "String",
+      "ColourString",
+      "String",
+      "ColourString",
+      "String",
+      "ColourString",
+      "String",
+      "ColourString",
+      "String",
+      "ColourString",
+      "String",
+      "ColourString",
+      "String",
+      "ColourString",
+      "String",
+      "ColourString",
+      "String",
+      "ColourString",
+      "String",
+      "ColourString",
+      "String",
+      "ColourString",
+      "String",
+      "ColourString"
+    ]
+  },
+  "ai_worker_types.go": {
+    "constants": [
+      "InteractionModelConversational",
+      "InteractionModelStateless",
+      "InteractionModelBoth",
+      "APIKeyMethodEnvVar",
+      "APIKeyMethodInline",
+      "APIKeyMethodConfigPath",
+      "APIKeyMethodVault",
+      "APIKeyMethodNone",
+      "ProviderGoogle",
+      "ProviderOpenAI",
+      "ProviderAnthropic",
+      "ProviderOllama",
+      "ProviderLocal",
+      "ProviderCustom",
+      "DefinitionStatusActive",
+      "DefinitionStatusDisabled",
+      "DefinitionStatusArchived",
+      "InstanceStatusInitializing",
+      "InstanceStatusIdle",
+      "InstanceStatusBusy",
+      "InstanceStatusContextFull",
+      "InstanceStatusRateLimited",
+      "InstanceStatusTokenLimitReached",
+      "InstanceStatusRetiredCompleted",
+      "InstanceStatusRetiredExhausted",
+      "InstanceStatusRetiredError",
+      "InstanceStatusError",
+      "APIKeyStatusUnknown",
+      "APIKeyStatusFound",
+      "APIKeyStatusNotFound",
+      "APIKeyStatusNotConfigured",
+      "APIKeyStatusError",
+      "DataSourceTypeLocalDirectory",
+      "DataSourceTypeFileAPI",
+      "WorkItemStatusPending",
+      "WorkItemStatusProcessing",
+      "WorkItemStatusCompleted",
+      "WorkItemStatusFailed",
+      "WorkItemStatusRetrying",
+      "WorkItemStatusCancelled"
+    ],
+    "variables": [],
+    "types": [
+      "InteractionModelType",
+      "APIKeySourceMethod",
+      "AIWorkerProvider",
+      "AIWorkerDefinitionStatus",
+      "AIWorkerInstanceStatus",
+      "APIKeyStatus",
+      "AIWorkerDefinitionDisplayInfo",
+      "APIKeySource",
+      "RateLimitPolicy",
+      "TokenUsageMetrics",
+      "SupervisorFeedback",
+      "AIWorkerPerformanceSummary",
+      "DataSourceType",
+      "GlobalDataSourceDefinition",
+      "AIWorkerDefinition",
+      "AIWorkerInstance",
+      "PerformanceRecord",
+      "RetiredInstanceInfo",
+      "InstanceRetirementPolicy",
+      "AIWorkerPoolDefinition",
+      "RetryPolicy",
+      "WorkQueueDefinition",
+      "WorkItemDefinition",
+      "WorkItemStatus",
+      "WorkItem",
+      "LLMCallMetrics"
+    ],
+    "functions": [
+      "ProcessChatMessage"
+    ]
+  },
+  "ast.go": {
+    "constants": [],
+    "variables": [],
+    "types": [
+      "Position",
+      "Expression",
+      "Program",
+      "ErrorNode"
+    ],
+    "functions": [
+      "String",
+      "GetPos",
+      "GetPos",
+      "expressionNode",
+      "String",
+      "getExpressionPosition"
+    ]
+  },
+  "ast_builder_blocks.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "enterBlockContext",
+      "exitBlockContext",
+      "EnterStatement_list",
+      "ExitStatement_list",
+      "EnterNon_empty_statement_list",
+      "ExitNon_empty_statement_list",
+      "EnterCommand_statement_list",
+      "ExitCommand_statement_list"
+    ]
+  },
+  "ast_builder_collections.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "ExitList_literal",
+      "ExitMap_entry",
+      "ExitMap_literal",
+      "ExitExpression_list"
+    ]
+  },
+  "ast_builder_command_test.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "testParseAndBuild",
+      "testForParserError",
+      "TestCommandBlockParsing"
+    ]
+  },
+  "ast_builder_commands.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "EnterCommand_block",
+      "ExitCommand_block"
+    ]
+  },
+  "ast_builder_events.go": {
+    "constants": [],
+    "variables": [],
+    "types": [
+      "onEventStackMarker"
+    ],
+    "functions": [
+      "EnterOn_stmt",
+      "ExitOn_stmt",
+      "EnterError_handler",
+      "ExitError_handler",
+      "EnterEvent_handler",
+      "ExitEvent_handler"
+    ]
+  },
+  "ast_builder_helpers.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "ParseMetadataLine",
+      "ConvertInputSchemaToArgSpec",
+      "parseNumber",
+      "unescapeString",
+      "tokenToPosition"
+    ]
+  },
+  "ast_builder_if_else.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "ExitIf_statement"
+    ]
+  },
+  "ast_builder_if_else_test.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "getIfStepFromTestProc",
+      "expectEmitStepWithString",
+      "TestIfThenElse_SimpleIfThen",
+      "TestIfThenElse_SimpleIfThenElse",
+      "TestIfThenElse_IfElseIfElse",
+      "TestIfThenElse_IfElseIfOnly",
+      "TestIfThenElse_MultipleElseIfs",
+      "TestIfThenElse_NestedIfInThen",
+      "TestIfThenElse_NestedIfInElse",
+      "TestIfThenElse_EmptyThenBlock",
+      "TestIfThenElse_EmptyElseBlock",
+      "TestIfThenElse_EmptyThenAndElseBlocks",
+      "TestIfThenElse_MultipleStatementsInBlocks"
+    ]
+  },
+  "ast_builder_loops.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "EnterWhile_statement",
+      "ExitWhile_statement",
+      "EnterFor_each_statement",
+      "ExitFor_each_statement",
+      "EnterSignature_part",
+      "ExitSignature_part",
+      "EnterNeeds_clause",
+      "ExitNeeds_clause",
+      "EnterOptional_clause",
+      "ExitOptional_clause",
+      "EnterReturns_clause",
+      "ExitReturns_clause",
+      "EnterParam_list",
+      "ExitParam_list",
+      "EnterMetadata_block",
+      "EnterBody_line",
+      "ExitBody_line",
+      "EnterStatement",
+      "ExitStatement",
+      "EnterSimple_statement",
+      "ExitSimple_statement",
+      "EnterBlock_statement",
+      "ExitBlock_statement",
+      "EnterLvalue",
+      "EnterIf_statement"
+    ]
+  },
+  "ast_builder_lvalue_test.go": {
+    "constants": [],
+    "variables": [],
+    "types": [
+      "SyntaxErrorListener"
+    ],
+    "functions": [
+      "parseScriptToLValueNode",
+      "TestLValueParsing",
+      "NewSyntaxErrorListener",
+      "SyntaxError",
+      "GetErrors"
+    ]
+  },
+  "ast_builder_main.go": {
+    "constants": [],
+    "variables": [],
+    "types": [
+      "ASTBuilder"
+    ],
+    "functions": [
+      "NewASTBuilder",
+      "Build",
+      "MapKeysListener"
+    ]
+  },
+  "ast_builder_main_exitlvalue.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "ExitLvalue"
+    ]
+  },
+  "ast_builder_metadata.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "processMetadataLine",
+      "ExitMetadata_block"
+    ]
+  },
+  "ast_builder_nslistener.go": {
+    "constants": [],
+    "variables": [
+      "_"
+    ],
+    "types": [
+      "neuroScriptListenerImpl"
+    ],
+    "functions": [
+      "pushNewStepBlock",
+      "popCurrentStepBlock",
+      "EnterEveryRule",
+      "ExitEveryRule",
+      "VisitErrorNode",
+      "VisitTerminal",
+      "newNeuroScriptListener",
+      "GetFileMetadata",
+      "GetResult",
+      "addError",
+      "addErrorf",
+      "logDebugAST",
+      "isInsideLoop",
+      "EnterProgram",
+      "ExitProgram",
+      "EnterLvalue_list",
+      "ExitLvalue_list",
+      "ExitSet_statement"
+    ]
+  },
+  "ast_builder_operators.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "isErrorNode",
+      "processBinaryOperators",
+      "ExitLogical_or_expr",
+      "ExitLogical_and_expr",
+      "ExitBitwise_or_expr",
+      "ExitBitwise_xor_expr",
+      "ExitBitwise_and_expr",
+      "ExitEquality_expr",
+      "ExitRelational_expr",
+      "EnterAdditive_expr",
+      "ExitAdditive_expr",
+      "ExitMultiplicative_expr",
+      "ExitUnary_expr",
+      "ExitPower_expr",
+      "EnterAccessor_expr",
+      "ExitAccessor_expr",
+      "buildCallTargetFromContext",
+      "ExitCall_target",
+      "ExitCallable_expr"
+    ]
+  },
+  "ast_builder_procedures.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "EnterProcedure_definition",
+      "extractParamNamesList",
+      "ExitProcedure_definition",
+      "getRuleText",
+      "finalizeProcedure"
+    ]
+  },
+  "ast_builder_stack.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "pushValue",
+      "popValue",
+      "popNValues",
+      "push",
+      "pop",
+      "popN"
+    ]
+  },
+  "ast_builder_stack_test.go": {
+    "constants": [],
+    "variables": [],
+    "types": [
+      "astTestCase"
+    ],
+    "functions": [
+      "TestASTBuilderScenarios",
+      "getProcNames"
+    ]
+  },
+  "ast_builder_statements.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "ExitEmit_statement",
+      "ExitReturn_statement",
+      "ExitBreak_statement",
+      "ExitContinue_statement",
+      "ExitFail_statement",
+      "ExitMust_statement",
+      "ExitCall_statement",
+      "ExitClearErrorStmt",
+      "ExitAsk_stmt"
+    ]
+  },
+  "ast_builder_terminators.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "EnterExpression",
+      "ExitExpression",
+      "ExitPrimary",
+      "ExitPlaceholder"
+    ]
+  },
+  "ast_builder_test_helpers.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "parseStringToProcedureBodyNodes"
+    ]
+  },
+  "ast_commands.go": {
+    "constants": [],
+    "variables": [],
+    "types": [
+      "CommandNode"
+    ],
+    "functions": [
+      "isNode",
+      "isStatement",
+      "String"
+    ]
+  },
+  "ast_declarations.go": {
+    "constants": [],
+    "variables": [],
+    "types": [
+      "OnEventDecl",
+      "MetadataLine"
+    ],
+    "functions": []
+  },
+  "ast_exit_literals.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "ExitLiteral",
+      "ExitBoolean_literal",
+      "ExitNil_literal"
+    ]
+  },
+  "ast_expressions.go": {
+    "constants": [],
+    "variables": [],
+    "types": [
+      "CallTarget",
+      "CallableExprNode",
+      "VariableNode",
+      "PlaceholderNode",
+      "LastNode",
+      "EvalNode",
+      "StringLiteralNode",
+      "NumberLiteralNode",
+      "BooleanLiteralNode",
+      "ListLiteralNode",
+      "MapEntryNode",
+      "MapLiteralNode",
+      "ElementAccessNode",
+      "UnaryOpNode",
+      "BinaryOpNode",
+      "TypeOfNode",
+      "NilLiteralNode"
+    ],
+    "functions": [
+      "GetPos",
+      "String",
+      "GetPos",
+      "expressionNode",
+      "String",
+      "GetPos",
+      "expressionNode",
+      "String",
+      "GetPos",
+      "expressionNode",
+      "String",
+      "GetPos",
+      "expressionNode",
+      "String",
+      "GetPos",
+      "expressionNode",
+      "String",
+      "GetPos",
+      "expressionNode",
+      "String",
+      "GetPos",
+      "expressionNode",
+      "String",
+      "GetPos",
+      "expressionNode",
+      "String",
+      "GetPos",
+      "expressionNode",
+      "String",
+      "GetPos",
+      "String",
+      "GetPos",
+      "expressionNode",
+      "String",
+      "GetPos",
+      "expressionNode",
+      "String",
+      "GetPos",
+      "expressionNode",
+      "String",
+      "GetPos",
+      "expressionNode",
+      "String",
+      "GetPos",
+      "expressionNode",
+      "String",
+      "GetPos",
+      "expressionNode",
+      "String"
+    ]
+  },
+  "ast_statements.go": {
+    "constants": [
+      "BracketAccess",
+      "DotAccess"
+    ],
+    "variables": [],
+    "types": [
+      "AccessorType",
+      "AccessorNode",
+      "LValueNode",
+      "ParamSpec",
+      "Procedure",
+      "Step"
+    ],
+    "functions": [
+      "String",
+      "GetPos",
+      "String",
+      "expressionNode",
+      "GetPos",
+      "GetPos"
+    ]
+  },
+  "constants.go": {
+    "constants": [
+      "EventKeyName",
+      "EventKeySource",
+      "EventKeyPayload",
+      "ErrorKeyMessage",
+      "ErrorKeyCode",
+      "ErrorKeyDetails"
+    ],
+    "variables": [],
+    "types": [],
+    "functions": []
+  },
+  "conversation.go": {
+    "constants": [],
+    "variables": [],
+    "types": [
+      "ConversationManager"
+    ],
+    "functions": [
+      "NewConversationManager",
+      "AddUserMessage",
+      "AddModelMessage",
+      "AddModelResponse",
+      "AddFunctionCallMessage",
+      "AddFunctionResultMessage",
+      "GetHistory",
+      "ClearHistory",
+      "parseSafetySettings"
+    ]
+  },
+  "conversation_helpers.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "ConvertGenaiContentsToConversationTurns",
+      "ConvertCoreTurnsToGenaiContents"
+    ]
+  },
+  "debug_parser_test.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "TestScorchedEarthParser"
+    ]
+  },
+  "embeddings.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "GenerateEmbedding",
+      "cosineSimilarity"
+    ]
+  },
+  "errors.go": {
+    "constants": [
+      "ErrorCodeGeneric",
+      "ErrorCodeFailStatement",
+      "ErrorCodeProcNotFound",
+      "ErrorCodeToolNotFound",
+      "ErrorCodeArgMismatch",
+      "ErrorCodeMustFailed",
+      "ErrorCodeInternal",
+      "ErrorCodeType",
+      "ErrorCodeBounds",
+      "ErrorCodeKeyNotFound",
+      "ErrorCodeSecurity",
+      "ErrorCodeReadOnly",
+      "ErrorCodeReturnViolation",
+      "ErrorCodeClearViolation",
+      "ErrorCodeDivisionByZero",
+      "ErrorCodeSyntax",
+      "ErrorCodeLLMError",
+      "ErrorCodeEvaluation",
+      "ErrorCodeConfiguration",
+      "ErrorCodePreconditionFailed",
+      "ErrorCodeRateLimited",
+      "ErrorCodeToolExecutionFailed",
+      "ErrorCodeNotImplemented",
+      "ErrorCodeTimeout",
+      "ErrorCodeFileNotFound",
+      "ErrorCodePathTypeMismatch",
+      "ErrorCodePathExists",
+      "ErrorCodePermissionDenied",
+      "ErrorCodeIOFailed",
+      "ErrorCodeTreeConstraintViolation",
+      "ErrorCodeNodeWrongType",
+      "ErrorCodeAttributeNotFound",
+      "ErrorCodeUnknownKeyword",
+      "ErrorCodeTypeAssertionFailed",
+      "ErrorCodeExecutionFailed",
+      "ErrorCodeTreeIntegrity",
+      "ErrorCodePathViolation",
+      "ErrorCodeFeatureNotImplemented",
+      "ErrorCodeCountMismatch",
+      "ErrorCodeToolSpecific"
+    ],
+    "variables": [
+      "ErrConfiguration",
+      "ErrValidationRequiredArgNil",
+      "ErrValidationRequiredArgMissing",
+      "ErrValidationTypeMismatch",
+      "ErrValidationArgCount",
+      "ErrValidationArgValue",
+      "ErrMissingArgument",
+      "ErrInvalidArgument",
+      "ErrInvalidInput",
+      "ErrNullByteInArgument",
+      "ErrIncorrectArgCount",
+      "ErrValidationRequired",
+      "ErrToolDenied",
+      "ErrToolNotAllowed",
+      "ErrToolBlocked",
+      "ErrSecurityViolation",
+      "ErrPathViolation",
+      "ErrInternalSecurity",
+      "ErrInvalidPath",
+      "ErrHandleInvalid",
+      "ErrHandleNotFound",
+      "ErrHandleWrongType",
+      "ErrInternalTool",
+      "ErrNotFound",
+      "ErrFailedPrecondition",
+      "ErrToolExecutionFailed",
+      "ErrFileNotFound",
+      "ErrPathNotFile",
+      "ErrPathNotDirectory",
+      "ErrPathExists",
+      "ErrPermissionDenied",
+      "ErrIOFailed",
+      "ErrCannotCreateDir",
+      "ErrCannotDelete",
+      "ErrSkippedBinaryFile",
+      "ErrTreeConstraintViolation",
+      "ErrNodeWrongType",
+      "ErrAttributeNotFound",
+      "ErrTreeJSONUnmarshal",
+      "ErrTreeJSONMarshal",
+      "ErrTreeInvalidQuery",
+      "ErrCannotSetValueOnType",
+      "ErrTreeNodeNotObject",
+      "ErrNodeIDExists",
+      "ErrCannotRemoveRoot",
+      "ErrTreeIntegrity",
+      "ErrListIndexOutOfBounds",
+      "ErrListCannotSortMixedTypes",
+      "ErrListInvalidIndexType",
+      "ErrListInvalidAccessorType",
+      "ErrMapKeyNotFound",
+      "ErrCannotAccessType",
+      "ErrCollectionIsNil",
+      "ErrAccessorIsNil",
+      "ErrGoParseFailed",
+      "ErrGoModifyFailed",
+      "ErrGoFormatFailed",
+      "ErrGoModifyInvalidDirectiveValue",
+      "ErrGoModifyMissingMapKey",
+      "ErrGoModifyEmptyMap",
+      "ErrGoModifyUnknownDirective",
+      "ErrGoInvalidIdentifierFormat",
+      "ErrRefactoredPathNotFound",
+      "ErrSymbolMappingFailed",
+      "ErrAmbiguousSymbol",
+      "ErrInvalidHashAlgorithm",
+      "ErrCacheObjectNotFound",
+      "ErrCacheObjectWrongType",
+      "ErrInvalidOperandType",
+      "ErrInvalidOperandTypeNumeric",
+      "ErrInvalidOperandTypeInteger",
+      "ErrInvalidOperandTypeString",
+      "ErrInvalidOperandTypeBool",
+      "ErrInvalidFunctionArgument",
+      "ErrVariableNotFound",
+      "ErrUnsupportedOperator",
+      "ErrNilOperand",
+      "ErrUnknownFunction",
+      "ErrProcedureNotFound",
+      "ErrArgumentMismatch",
+      "ErrReturnMismatch",
+      "ErrProcedureExists",
+      "ErrMaxCallDepthExceeded",
+      "ErrFailStatement",
+      "ErrInternal",
+      "ErrReadOnlyViolation",
+      "ErrUnsupportedSyntax",
+      "ErrClearViolation",
+      "ErrReturnViolation",
+      "ErrLLMError",
+      "ErrLLMNotConfigured",
+      "ErrDivisionByZero",
+      "ErrMustConditionFailed",
+      "ErrAssignCountMismatch",
+      "ErrMultiAssignNonList",
+      "ErrAuthDetailsMissing",
+      "ErrAPIKeyNotFound",
+      "ErrFeatureNotImplemented",
+      "ErrRateLimited",
+      "ErrToolNotFound",
+      "ErrUnknownKeyword",
+      "ErrTypeAssertionFailed",
+      "ErrNotImplemented",
+      "ErrBreak",
+      "ErrContinue"
+    ],
+    "types": [
+      "ErrorCode",
+      "RuntimeError"
+    ],
+    "functions": [
+      "Error",
+      "Unwrap",
+      "NewRuntimeError",
+      "WithPosition",
+      "WrapErrorWithPosition"
+    ]
+  },
+  "eval_typeof_test.go": {
+    "constants": [],
+    "variables": [
+      "testPos",
+      "testDummyProcedure",
+      "testDummyTool"
+    ],
+    "types": [],
+    "functions": [
+      "TestTypeOfOperator_LiteralsAndVariables",
+      "TestTypeOfOperator_Function",
+      "TestTypeOfOperator_Tool"
+    ]
+  },
+  "evaluation_access.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "evaluateElementAccess"
+    ]
+  },
+  "evaluation_access_test.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "TestEvaluateElementAccess"
+    ]
+  },
+  "evaluation_arithmetic_test.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "TestArithmeticOps"
+    ]
+  },
+  "evaluation_comparison.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "evaluateComparison",
+      "isTruthy"
+    ]
+  },
+  "evaluation_comparison_test.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "TestEvaluateComparison"
+    ]
+  },
+  "evaluation_event_handler_test.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "setupEventHandlerTest",
+      "TestOnEventHandling"
+    ]
+  },
+  "evaluation_functions.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "isBuiltInFunction",
+      "getNumericArg",
+      "evaluateBuiltInFunction"
+    ]
+  },
+  "evaluation_functions_test.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "TestMathFunctions",
+      "TestEvaluateBuiltInFunction_Len"
+    ]
+  },
+  "evaluation_logic.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "evaluateUnaryOp",
+      "toFuzzy",
+      "evaluateBinaryOp"
+    ]
+  },
+  "evaluation_logical_bitwise_test.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "TestLogicalBitwiseOps"
+    ]
+  },
+  "evaluation_main.go": {
+    "constants": [],
+    "variables": [
+      "placeholderRegex"
+    ],
+    "types": [],
+    "functions": [
+      "evaluateExpression",
+      "evaluateStringLiteral",
+      "resolveVariable",
+      "resolvePlaceholder",
+      "evaluateListLiteral",
+      "evaluateMapLiteral",
+      "evaluateEvalNode",
+      "evaluateTypeOf",
+      "evaluateCall",
+      "evaluateUserOrBuiltInFunction",
+      "resolvePlaceholdersWithError",
+      "GetTypeConstant"
+    ]
+  },
+  "evaluation_new_types_test.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "runNewTypesTestScript",
+      "TestNewTypesIntegration"
+    ]
+  },
+  "evaluation_operators.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "typeErrorForOp",
+      "performArithmetic",
+      "performStringConcatOrNumericAdd",
+      "areValuesEqual",
+      "performComparison",
+      "performBitwise"
+    ]
+  },
+  "evaluation_resolve.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "resolveValue"
+    ]
+  },
+  "evaluation_test.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "TestEvaluateExpressionASTGeneral"
+    ]
+  },
+  "helpers.go": {
+    "constants": [],
+    "variables": [
+      "_"
+    ],
+    "types": [
+      "TestLogger"
+    ],
+    "functions": [
+      "NewTestLogger",
+      "logStructured",
+      "Debug",
+      "Info",
+      "Warn",
+      "Error",
+      "SetLevel",
+      "Debugf",
+      "Infof",
+      "Warnf",
+      "Errorf",
+      "With",
+      "NewTestInterpreter",
+      "NewDefaultTestInterpreter",
+      "IsRunningInTestMode"
+    ]
+  },
+  "interpreter.go": {
+    "constants": [
+      "handleSeparator"
+    ],
+    "variables": [
+      "AppVersion",
+      "_"
+    ],
+    "types": [
+      "Interpreter"
+    ],
+    "functions": [
+      "LoadProgram",
+      "Execute",
+      "ExecuteProc",
+      "NewInterpreter",
+      "CloneWithNewVariables"
+    ]
+  },
+  "interpreter_assignment.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "executeSet",
+      "setSingleLValue",
+      "getOrCreateRootContainer",
+      "vivifyAndSet",
+      "determineInitialContainer",
+      "evaluateAccessorKey",
+      "evaluateAccessorIndex",
+      "padList",
+      "isList",
+      "isMap"
+    ]
+  },
+  "interpreter_assignment_autocreate_test.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "checkVariableStateAfterSet",
+      "TestLValueAutoCreation"
+    ]
+  },
+  "interpreter_commands.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": []
+  },
+  "interpreter_events.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "EmitEvent"
+    ]
+  },
+  "interpreter_exec.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "getStepSubjectForLogging",
+      "executeSteps",
+      "executeBlock",
+      "shouldUpdateLastResult",
+      "ensureRuntimeError"
+    ]
+  },
+  "interpreter_handles.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "RegisterHandle",
+      "GetHandleValue",
+      "RemoveHandle"
+    ]
+  },
+  "interpreter_io.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "SetStdout",
+      "Stdout",
+      "SetStderr",
+      "Stderr",
+      "SetStdin",
+      "Stdin"
+    ]
+  },
+  "interpreter_isolated_parser_test.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "TestIsolatedParser"
+    ]
+  },
+  "interpreter_load.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": []
+  },
+  "interpreter_param_passing_test.go": {
+    "constants": [
+      "paramPassingTestScriptEnhanced"
+    ],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "compareOutputLineWithSpecialFloatHandling",
+      "TestInterpreter_ParameterPassingFuzz"
+    ]
+  },
+  "interpreter_procedures.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "AddProcedure",
+      "KnownProcedures",
+      "RunProcedure"
+    ]
+  },
+  "interpreter_program.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": []
+  },
+  "interpreter_scoping_test.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "TestErrorScoping_HandlersDoNotLeak",
+      "TestErrorScoping_SimulatedLeakageFailure"
+    ]
+  },
+  "interpreter_script_test.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "TestInterpreterFixtures"
+    ]
+  },
+  "interpreter_scriptexec.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "ExecuteScriptString"
+    ]
+  },
+  "interpreter_state.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "SetAIWorkerManager",
+      "AIWorkerManager",
+      "SandboxDir",
+      "Logger",
+      "FileAPI",
+      "SetSandboxDir",
+      "SetVariable",
+      "GetVariable",
+      "GenAIClient",
+      "GetVectorIndex",
+      "SetVectorIndex"
+    ]
+  },
+  "interpreter_steps_ask.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "executeAsk",
+      "executeAskAI",
+      "prepareConversationForAsk",
+      "getAvailableToolsForAsk",
+      "addResponseToConversation",
+      "handleToolCalls",
+      "addToolResultsToConversation",
+      "ConvertToolSpecArgsToInputSchema"
+    ]
+  },
+  "interpreter_steps_blocks.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "executeIf",
+      "executeWhile",
+      "executeFor"
+    ]
+  },
+  "interpreter_steps_simple.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "executeReturn",
+      "executeEmit",
+      "executeMust",
+      "executeFail",
+      "executeOnError",
+      "executeClearError",
+      "executeBreak",
+      "executeContinue"
+    ]
+  },
+  "interpreter_string_escaping_test.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "TestInterpretStringEscaping"
+    ]
+  },
+  "interpreter_test.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "TestExecuteStepsBlocksAndLoops"
+    ]
+  },
+  "interpreter_tools.go": {
+    "constants": [],
+    "variables": [],
+    "types": [
+      "ToolHandler"
+    ],
+    "functions": [
+      "SetExternalToolHandler",
+      "executeInternalTool",
+      "ExecuteTool",
+      "ToolRegistry",
+      "RegisterTool",
+      "GetTool",
+      "ListTools",
+      "SetInternalToolRegistry",
+      "InternalToolRegistry"
+    ]
+  },
+  "llm.go": {
+    "constants": [],
+    "variables": [
+      "_"
+    ],
+    "types": [
+      "concreteLLMClient",
+      "coreInternalNoOpLLMClient"
+    ],
+    "functions": [
+      "NewLLMClient",
+      "Client",
+      "Ask",
+      "AskWithTools",
+      "Embed",
+      "newCoreInternalNoOpLLMClient",
+      "Ask",
+      "AskWithTools",
+      "Embed",
+      "Client",
+      "convertTurnsToGenaiContents",
+      "genaiContentToTurn",
+      "convertToolsToGenai"
+    ]
+  },
+  "llm_tools.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "callLLM",
+      "callLLMWithParts",
+      "toolLLMAsk",
+      "toolLLMAskWithParts",
+      "RegisterLLMTools"
+    ]
+  },
+  "llm_types.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "String"
+    ]
+  },
+  "logging_flags.go": {
+    "constants": [],
+    "variables": [
+      "TestVerbose"
+    ],
+    "types": [],
+    "functions": []
+  },
+  "parser_api.go": {
+    "constants": [],
+    "variables": [],
+    "types": [
+      "StructuredSyntaxError",
+      "ParserAPI",
+      "ErrorListener"
+    ],
+    "functions": [
+      "NewParserAPI",
+      "NewErrorListener",
+      "NewLSPErrorListener",
+      "newErrorListenerWithSource",
+      "SyntaxError",
+      "GetStructuredErrors",
+      "GetRawErrors",
+      "Parse",
+      "ParseForLSP"
+    ]
+  },
+  "parser_minimal_test.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "TestParseMinimalNewline"
+    ]
+  },
+  "parser_test.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "TestNeuroScriptParser"
+    ]
+  },
+  "security.go": {
+    "constants": [],
+    "variables": [],
+    "types": [
+      "SecurityLayer"
+    ],
+    "functions": [
+      "NewSecurityLayer",
+      "SandboxRoot",
+      "GetToolDeclarations",
+      "ExecuteToolCall",
+      "ValidateToolCall",
+      "SanitizeFilename"
+    ]
+  },
+  "security_helpers.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "CreateErrorFunctionResultPart",
+      "CreateSuccessFunctionResultPart",
+      "GetSandboxPath",
+      "IsPathInSandbox",
+      "ResolveAndSecurePath",
+      "SecureFilePath"
+    ]
+  },
+  "security_helpers_test.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "TestResolveAndSecurePath",
+      "TestIsPathInSandbox"
+    ]
+  },
+  "security_validation.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "validateArgumentsAgainstSpec",
+      "validateAndCoerceType"
+    ]
+  },
+  "string_utils.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "UnescapeNeuroScriptString",
+      "SafeEscapeHTML",
+      "SafeEscapeJavaScriptString",
+      "StripJSONStringQuotes"
+    ]
+  },
+  "string_utils_test.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "TestUnescapeNeuroScriptString",
+      "TestSafeEscapeHTML",
+      "TestSafeEscapeJavaScriptString",
+      "TestStripJSONStringQuotes"
+    ]
+  },
+  "sync_helpers.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "checkGenAIClient",
+      "HelperUploadAndPollFile",
+      "calculateFileHash"
+    ]
+  },
+  "sync_logic.go": {
+    "constants": [],
+    "variables": [],
+    "types": [
+      "gitIgnorer",
+      "dummyIgnorer"
+    ],
+    "functions": [
+      "MatchesPath",
+      "gatherLocalFiles",
+      "computeSyncActions",
+      "toolSyncFiles"
+    ]
+  },
+  "sync_morehelpers.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "initializeSyncState",
+      "listExistingAPIFiles",
+      "initializeGitignore"
+    ]
+  },
+  "sync_types.go": {
+    "constants": [],
+    "variables": [],
+    "types": [
+      "syncContext",
+      "LocalFileInfo",
+      "uploadJob",
+      "uploadResult",
+      "SyncActions"
+    ],
+    "functions": []
+  },
+  "sync_workers.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "startUploadWorkers",
+      "processUploadJob",
+      "startDeleteWorkers"
+    ]
+  },
+  "testing_helpers.go": {
+    "constants": [],
+    "variables": [
+      "dummyPos"
+    ],
+    "types": [
+      "EvalTestCase",
+      "executeStepsTestCase",
+      "ValidationTestCase"
+    ],
+    "functions": [
+      "runValidationTestCases",
+      "AssertNoError",
+      "runEvalExpressionTest",
+      "runExecuteStepsTest",
+      "createTestStep",
+      "createIfStep",
+      "createWhileStep",
+      "createForStep",
+      "NewTestStringLiteral",
+      "NewTestNumberLiteral",
+      "NewTestBooleanLiteral",
+      "NewTestVariableNode",
+      "DebugDumpVariables"
+    ]
+  },
+  "testing_helpers_test.go": {
+    "constants": [],
+    "variables": [
+      "_",
+      "_",
+      "_",
+      "_",
+      "_"
+    ],
+    "types": [],
+    "functions": []
+  },
+  "tool_go_diagnostics.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "toolGoVet",
+      "toolStaticcheck",
+      "toolGoImports"
+    ]
+  },
+  "tooldefs_ai.go": {
+    "constants": [],
+    "variables": [
+      "aiWmToolsToRegister"
+    ],
+    "types": [],
+    "functions": []
+  },
+  "tooldefs_error.go": {
+    "constants": [],
+    "variables": [
+      "errorToolsToRegister"
+    ],
+    "types": [],
+    "functions": []
+  },
+  "tooldefs_file_api.go": {
+    "constants": [],
+    "variables": [
+      "fileApiToolsToRegister",
+      "_"
+    ],
+    "types": [],
+    "functions": []
+  },
+  "tooldefs_fs.go": {
+    "constants": [],
+    "variables": [
+      "fsToolsToRegister"
+    ],
+    "types": [],
+    "functions": []
+  },
+  "tooldefs_git.go": {
+    "constants": [],
+    "variables": [
+      "gitToolsToRegister"
+    ],
+    "types": [],
+    "functions": []
+  },
+  "tooldefs_go.go": {
+    "constants": [],
+    "variables": [
+      "goToolsToRegister"
+    ],
+    "types": [],
+    "functions": []
+  },
+  "tooldefs_io.go": {
+    "constants": [],
+    "variables": [
+      "ioToolsToRegister"
+    ],
+    "types": [],
+    "functions": []
+  },
+  "tooldefs_list.go": {
+    "constants": [],
+    "variables": [
+      "listToolsToRegister"
+    ],
+    "types": [],
+    "functions": []
+  },
+  "tooldefs_math.go": {
+    "constants": [],
+    "variables": [
+      "mathToolsToRegister"
+    ],
+    "types": [],
+    "functions": []
+  },
+  "tooldefs_meta.go": {
+    "constants": [],
+    "variables": [
+      "metaToolsToRegister"
+    ],
+    "types": [],
+    "functions": []
+  },
+  "tooldefs_script.go": {
+    "constants": [],
+    "variables": [
+      "scriptToolsToRegister"
+    ],
+    "types": [],
+    "functions": []
+  },
+  "tooldefs_shell.go": {
+    "constants": [],
+    "variables": [
+      "shellToolsToRegister"
+    ],
+    "types": [],
+    "functions": []
+  },
+  "tooldefs_string.go": {
+    "constants": [],
+    "variables": [
+      "stringToolsToRegister"
+    ],
+    "types": [],
+    "functions": []
+  },
+  "tooldefs_syntax.go": {
+    "constants": [],
+    "variables": [
+      "analyzeSyntax",
+      "syntaxToolsToRegister"
+    ],
+    "types": [],
+    "functions": []
+  },
+  "tooldefs_time.go": {
+    "constants": [],
+    "variables": [
+      "timeToolsToRegister"
+    ],
+    "types": [],
+    "functions": []
+  },
+  "tooldefs_tree.go": {
+    "constants": [],
+    "variables": [
+      "treeToolsToRegister"
+    ],
+    "types": [],
+    "functions": []
+  },
+  "tools_error.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "toolErrorNew"
+    ]
+  },
+  "tools_file_api.go": {
+    "constants": [],
+    "variables": [],
+    "types": [
+      "FileAPI"
+    ],
+    "functions": [
+      "NewFileAPI",
+      "ResolvePath"
+    ]
+  },
+  "tools_file_api_impl.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "toolListAPIFiles",
+      "toolDeleteAPIFile",
+      "toolUploadFile"
+    ]
+  },
+  "tools_file_api_sync.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "SyncDirectoryUpHelper",
+      "waitForUploadResultsAndPrintProgress",
+      "SyncFiles"
+    ]
+  },
+  "tools_file_api_test.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "testFileAPIToolHelper",
+      "TestToolListAPIFiles",
+      "TestToolDeleteAPIFile",
+      "TestToolUploadFile",
+      "TestToolSyncFiles"
+    ]
+  },
+  "tools_file_helpers.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "readFileContent",
+      "writeFileContent",
+      "embedFileContent",
+      "findFiles",
+      "scanFileLines"
+    ]
+  },
+  "tools_fs_delete.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "toolDeleteFile"
+    ]
+  },
+  "tools_fs_delete_test.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "TestToolDeleteFile"
+    ]
+  },
+  "tools_fs_dirs.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "toolListDirectory",
+      "toolMkdir"
+    ]
+  },
+  "tools_fs_dirs_test.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "TestToolListDirectoryValidation",
+      "TestToolListDirectoryFunctional",
+      "TestToolMkdirValidation",
+      "TestToolMkdirFunctional"
+    ]
+  },
+  "tools_fs_hash.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "toolFileHash"
+    ]
+  },
+  "tools_fs_helpers_test.go": {
+    "constants": [],
+    "variables": [],
+    "types": [
+      "fsTestCase"
+    ],
+    "functions": [
+      "testFsToolHelper",
+      "testFsToolHelperWithCompare",
+      "mustMkdir",
+      "mustWriteFile",
+      "NewTestInterpreterWithSandbox"
+    ]
+  },
+  "tools_fs_move.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "toolMoveFile"
+    ]
+  },
+  "tools_fs_move_test.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "TestToolMoveFileValidation",
+      "TestToolMoveFileFunctional"
+    ]
+  },
+  "tools_fs_read.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "toolReadFile"
+    ]
+  },
+  "tools_fs_read_test.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "TestToolReadFile"
+    ]
+  },
+  "tools_fs_stat.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "toolStat"
+    ]
+  },
+  "tools_fs_stat_test.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "compareStatResults",
+      "TestToolStat"
+    ]
+  },
+  "tools_fs_utils.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "toolLineCountFile",
+      "toolSanitizeFilename"
+    ]
+  },
+  "tools_fs_walk.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "toolWalkDir"
+    ]
+  },
+  "tools_fs_walk_test.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "makeWalkResultChecker",
+      "TestToolWalkDir"
+    ]
+  },
+  "tools_fs_write.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "writeFileHelper",
+      "toolWriteFile",
+      "toolAppendFile"
+    ]
+  },
+  "tools_fs_write_test.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "TestToolWriteFileValidation",
+      "TestToolWriteFileFunctional"
+    ]
+  },
+  "tools_git.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "runGitCommand",
+      "getCurrentGitBranch",
+      "toolGitAdd",
+      "toolGitCommit",
+      "toolGitBranch"
+    ]
+  },
+  "tools_git_b.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "toolGitCheckout",
+      "toolGitRm",
+      "toolGitMerge",
+      "toolGitPull",
+      "toolGitPush",
+      "toolGitDiff",
+      "toolGitClone"
+    ]
+  },
+  "tools_git_status.go": {
+    "constants": [],
+    "variables": [
+      "aheadRegex",
+      "behindRegex"
+    ],
+    "types": [],
+    "functions": [
+      "toolGitStatus",
+      "parseGitStatusOutput"
+    ]
+  },
+  "tools_git_status_test.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "TestParseGitStatusOutput",
+      "compareFileMaps"
+    ]
+  },
+  "tools_git_test.go": {
+    "constants": [
+      "dummyRepoPath"
+    ],
+    "variables": [],
+    "types": [
+      "gitTestCase"
+    ],
+    "functions": [
+      "initGitRepoForTest",
+      "testGitToolHelper",
+      "TestToolGitBranchValidation",
+      "TestToolGitCheckoutValidation",
+      "TestToolGitRmValidation",
+      "TestToolGitMergeValidation",
+      "TestToolGitPullValidation",
+      "TestToolGitPushValidation",
+      "TestToolGitDiffValidation"
+    ]
+  },
+  "tools_go.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "registerGoTools"
+    ]
+  },
+  "tools_go_diagnostics_test.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "TestGoDiagnosticTools"
+    ]
+  },
+  "tools_go_execution.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "toolGoBuild",
+      "toolGoCheck",
+      "toolGoTest",
+      "toolGoModTidy",
+      "toolGoListPackages",
+      "executeGoCommandHelper"
+    ]
+  },
+  "tools_go_mod.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "FindAndParseGoMod",
+      "toolGoGetModuleInfo"
+    ]
+  },
+  "tools_go_test.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "testGoGetModuleInfoHelper",
+      "TestToolGoGetModuleInfo"
+    ]
+  },
+  "tools_gofmt.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "toolGoFmt"
+    ]
+  },
+  "tools_gofmt_test.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "testGoFormatToolHelper",
+      "TestToolGoFmt",
+      "TestToolGoImports"
+    ]
+  },
+  "tools_helpers.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "MakeArgs",
+      "toolExec",
+      "getStringArg",
+      "makeArgMap"
+    ]
+  },
+  "tools_io.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "toolInput",
+      "toolPrint"
+    ]
+  },
+  "tools_io_test.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "TestToolIOInputValidation"
+    ]
+  },
+  "tools_list_bridge.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "CallListReverse",
+      "validateListReverse",
+      "listReverseImpl"
+    ]
+  },
+  "tools_list_impl.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "toolListLength",
+      "toolListAppend",
+      "toolListPrepend",
+      "toolListGet",
+      "toolListSlice",
+      "toolListContains",
+      "toolListReverse",
+      "toolListSort",
+      "toolListHead",
+      "toolListRest",
+      "toolListTail",
+      "toolListIsEmpty"
+    ]
+  },
+  "tools_list_test.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "testListToolHelper",
+      "TestToolListLength",
+      "TestToolListAppendPrepend",
+      "TestToolListGet",
+      "TestToolListSlice",
+      "TestToolListContains",
+      "TestToolListReverse",
+      "TestToolListSort",
+      "TestToolListIsEmpty",
+      "TestToolListHead",
+      "TestToolListRest",
+      "TestToolListTail"
+    ]
+  },
+  "tools_math.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "toolAdd",
+      "toolSubtract",
+      "toolMultiply",
+      "toolDivide",
+      "toolModulo"
+    ]
+  },
+  "tools_math_test.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "testMathToolHelper",
+      "TestToolAdd",
+      "TestToolSubtract",
+      "TestToolDivide",
+      "TestToolModulo"
+    ]
+  },
+  "tools_meta.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "toolListTools",
+      "toolToolsHelp",
+      "toolGetToolSpecificationsJSON",
+      "formatParamsSimpleForSpec",
+      "formatParamsMarkdownForSpec"
+    ]
+  },
+  "tools_meta_test.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "TestToolMetaListTools",
+      "TestToolMetaToolsHelp"
+    ]
+  },
+  "tools_metadata.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "toolExtractMetadataFromString"
+    ]
+  },
+  "tools_register.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "registerCoreToolsInternal",
+      "RegisterCoreTools"
+    ]
+  },
+  "tools_registry.go": {
+    "constants": [],
+    "variables": [
+      "globalToolImplementations",
+      "globalRegMutex"
+    ],
+    "types": [
+      "ToolRegistryImpl"
+    ],
+    "functions": [
+      "AddToolImplementations",
+      "NewToolRegistry",
+      "RegisterTool",
+      "GetTool",
+      "ListTools",
+      "CallFromInterpreter",
+      "coerceArg"
+    ]
+  },
+  "tools_script.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "toolLoadScript",
+      "toolScriptListFunctions"
+    ]
+  },
+  "tools_script_test.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "TestScriptTools"
+    ]
+  },
+  "tools_shell.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "toolExecuteCommand",
+      "IsValidCommandPath"
+    ]
+  },
+  "tools_shell_test.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "testShellToolHelper",
+      "TestToolExecuteCommand"
+    ]
+  },
+  "tools_string.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "toolStringLength",
+      "toolStringSubstring",
+      "toolStringConcat",
+      "toolStringSplit",
+      "toolSplitWords",
+      "toolStringJoin",
+      "toolStringContains",
+      "toolStringHasPrefix",
+      "toolStringHasSuffix",
+      "toolStringToUpper",
+      "toolStringToLower",
+      "toolStringTrimSpace",
+      "toolStringReplace",
+      "toolLineCountString"
+    ]
+  },
+  "tools_string_basic_test.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "testStringToolHelper",
+      "TestToolStringLength",
+      "TestToolSubstring",
+      "TestToolToUpperLower",
+      "TestToolTrimSpace",
+      "TestToolReplaceAll"
+    ]
+  },
+  "tools_string_predicates_test.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "testStringPredicateToolHelper",
+      "TestToolContainsPrefixSuffix"
+    ]
+  },
+  "tools_string_split_join_test.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "testStringSplitJoinToolHelper",
+      "TestToolSplitString",
+      "TestToolSplitWords",
+      "TestToolJoinStrings"
+    ]
+  },
+  "tools_string_utils_test.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "testStringUtilToolHelper",
+      "TestToolLineCountString"
+    ]
+  },
+  "tools_syntax_analyzer.go": {
+    "constants": [
+      "analyzerMaxErrorsToReportInternal",
+      "analyzerSourceNameInternal"
+    ],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "AnalyzeNSSyntaxInternal"
+    ]
+  },
+  "tools_syntax_analyzer_test.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "TestAnalyzeNSSyntaxInternal"
+    ]
+  },
+  "tools_time.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "adaptToolTimeNow",
+      "adaptToolTimeSleep",
+      "validateTimeNow",
+      "validateTimeSleep",
+      "implTimeNow",
+      "implTimeSleep"
+    ]
+  },
+  "tools_tree_find.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "toolTreeFindNodes",
+      "nodeMatchesQuery",
+      "deepCompareValues"
+    ]
+  },
+  "tools_tree_load.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "toolTreeLoadJSON"
+    ]
+  },
+  "tools_tree_load_test.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "TestTreeLoadJSONAndToJSON"
+    ]
+  },
+  "tools_tree_metadata.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "toolTreeSetNodeMetadata",
+      "toolTreeRemoveNodeMetadata"
+    ]
+  },
+  "tools_tree_metadata_test.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "TestTreeMetadataTools"
+    ]
+  },
+  "tools_tree_modify.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "toolTreeModifyNode",
+      "toolTreeSetAttribute",
+      "toolTreeRemoveAttribute",
+      "toolTreeAddNode",
+      "toolTreeRemoveNode"
+    ]
+  },
+  "tools_tree_modify_test.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "findNodeIDByRootAttribute",
+      "TestTreeModificationTools"
+    ]
+  },
+  "tools_tree_nav.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "toolTreeGetNode",
+      "toolTreeGetChildren",
+      "toolTreeGetParent"
+    ]
+  },
+  "tools_tree_nav_test.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "TestTreeNavigationTools"
+    ]
+  },
+  "tools_tree_query_test.go": {
+    "constants": [
+      "treeJSONForFindRenderNested"
+    ],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "TestTreeFindAndRenderTools"
+    ]
+  },
+  "tools_tree_render.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "toolTreeFormatJSON",
+      "toolTreeRenderText"
+    ]
+  },
+  "tools_tree_test_helpers.go": {
+    "constants": [],
+    "variables": [],
+    "types": [
+      "treeTestCase"
+    ],
+    "functions": [
+      "testTreeToolHelper",
+      "setupTreeWithJSON",
+      "callGetNode",
+      "callSetMetadata",
+      "callGetChildren"
+    ]
+  },
+  "tools_types.go": {
+    "constants": [
+      "ArgTypeAny",
+      "ArgTypeString",
+      "ArgTypeInt",
+      "ArgTypeFloat",
+      "ArgTypeBool",
+      "ArgTypeMap",
+      "ArgTypeSlice",
+      "ArgTypeSliceString",
+      "ArgTypeSliceInt",
+      "ArgTypeSliceFloat",
+      "ArgTypeSliceBool",
+      "ArgTypeSliceMap",
+      "ArgTypeSliceAny",
+      "ArgTypeNil",
+      "ToolPrefix"
+    ],
+    "variables": [
+      "ArgTypeList"
+    ],
+    "types": [
+      "ArgType",
+      "ToolFunc",
+      "ArgSpec",
+      "ToolSpec",
+      "ToolImplementation",
+      "ToolRegistrar",
+      "ToolRegistry"
+    ],
+    "functions": [
+      "ToGenaiType"
+    ]
+  },
+  "tools_vector.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "toolSearchSkills",
+      "toolVectorUpdate"
+    ]
+  },
+  "tree_helpers.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "getTreeFromHandle",
+      "getNodeFromHandle",
+      "removeChildFromParent",
+      "removeNodeRecursive"
+    ]
+  },
+  "tree_types.go": {
+    "constants": [
+      "GenericTreeHandleType",
+      "defaultIndent"
+    ],
+    "variables": [],
+    "types": [
+      "TreeAttrs",
+      "GenericTreeNode",
+      "GenericTree"
+    ],
+    "functions": [
+      "NewGenericTree",
+      "NewNode"
+    ]
+  },
+  "type_names.go": {
+    "constants": [
+      "TypeString",
+      "TypeNumber",
+      "TypeBoolean",
+      "TypeBytes",
+      "TypeList",
+      "TypeMap",
+      "TypeNil",
+      "TypeFunction",
+      "TypeTool",
+      "TypeError",
+      "TypeEvent",
+      "TypeTimedate",
+      "TypeFuzzy",
+      "TypeUnknown"
+    ],
+    "variables": [],
+    "types": [
+      "NeuroScriptType"
+    ],
+    "functions": []
+  },
+  "type_utils.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "TypeOf",
+      "unwrapValue",
+      "toFloat64",
+      "toInt64",
+      "toString",
+      "ToNumeric",
+      "IsTruthy",
+      "isZeroValue"
+    ]
+  },
+  "universal_test_helpers.go": {
+    "constants": [
+      "NormTrimSpace",
+      "NormCompressSpace",
+      "NormRemoveGoComments",
+      "NormRemoveNSComments",
+      "NormRemoveBlankLines",
+      "NormSpaceAroundTokens",
+      "NormDefault",
+      "DefaultNormalization",
+      "DiffShowFull",
+      "DiffAnsiColor",
+      "DiffNoContext",
+      "DiffVisibleSpace",
+      "DefaultDiff",
+      "colorReset",
+      "colorRed",
+      "colorGreen",
+      "colorGray",
+      "colorVisibleWs",
+      "spaceSym",
+      "tabSym",
+      "crSym",
+      "nlSym"
+    ],
+    "variables": [
+      "goCommentRegex",
+      "nsCommentRegex",
+      "multiSpaceRegex",
+      "onlyWhitespaceRegex",
+      "visibleWsReplacer"
+    ],
+    "types": [
+      "testWriter",
+      "NormalizationFlags",
+      "DiffFlags"
+    ],
+    "functions": [
+      "Write",
+      "LogTest",
+      "NormalizeString",
+      "DiffStrings",
+      "AssertEqualStrings",
+      "max"
+    ]
+  },
+  "universal_test_helpers_test.go": {
+    "constants": [],
+    "variables": [],
+    "types": [
+      "mockTB"
+    ],
+    "functions": [
+      "TestNormalizeString",
+      "newMockTB",
+      "Logf",
+      "Errorf",
+      "FailNow",
+      "Fail",
+      "Failed",
+      "Helper",
+      "TestDiffStrings"
+    ]
+  },
+  "utils.go": {
+    "constants": [],
+    "variables": [
+      "_"
+    ],
+    "types": [
+      "coreNoOpLogger"
+    ],
+    "functions": [
+      "Debug",
+      "Info",
+      "Warn",
+      "Error",
+      "SetLevel",
+      "Debugf",
+      "Infof",
+      "Warnf",
+      "Errorf",
+      "With",
+      "ConvertToBool",
+      "ConvertToSliceOfAny",
+      "ConvertToFloat64",
+      "ConvertToInt64E",
+      "ConvertToSliceOfString"
+    ]
+  },
+  "value_helpers.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "Wrap",
+      "Unwrap",
+      "UnwrapSlice"
+    ]
+  },
+  "values.go": {
+    "constants": [],
+    "variables": [],
+    "types": [
+      "Value",
+      "StringValue",
+      "NumberValue",
+      "BoolValue",
+      "BytesValue",
+      "NilValue",
+      "ListValue",
+      "MapValue",
+      "ErrorValue",
+      "EventValue",
+      "TimedateValue",
+      "FuzzyValue",
+      "FunctionValue",
+      "ToolValue"
+    ],
+    "functions": [
+      "Type",
+      "String",
+      "IsTruthy",
+      "Type",
+      "String",
+      "IsTruthy",
+      "Type",
+      "String",
+      "IsTruthy",
+      "Type",
+      "String",
+      "IsTruthy",
+      "Type",
+      "String",
+      "IsTruthy",
+      "Type",
+      "String",
+      "IsTruthy",
+      "Type",
+      "String",
+      "IsTruthy",
+      "Type",
+      "String",
+      "IsTruthy",
+      "Error",
+      "Type",
+      "String",
+      "IsTruthy",
+      "Type",
+      "String",
+      "IsTruthy",
+      "NewFuzzyValue",
+      "Type",
+      "String",
+      "IsTruthy",
+      "Type",
+      "String",
+      "IsTruthy",
+      "Type",
+      "String",
+      "IsTruthy",
+      "NewListValue",
+      "NewMapValue"
+    ]
+  },
+  "values_test.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "TestValueTypes"
+    ]
+  },
+  "version.go": {
+    "constants": [],
+    "variables": [
+      "GrammarVersion"
+    ],
+    "types": [],
+    "functions": []
+  },
+  "zz_core_tools_registrar.go": {
+    "constants": [],
+    "variables": [],
+    "types": [],
+    "functions": [
+      "init",
+      "MakeUnimplementedToolFunc",
+      "registerCoreToolBundle"
+    ]
+  }
+}

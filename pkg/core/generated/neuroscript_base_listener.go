@@ -32,11 +32,61 @@ func (s *BaseNeuroScriptListener) EnterFile_header(ctx *File_headerContext) {}
 // ExitFile_header is called when production file_header is exited.
 func (s *BaseNeuroScriptListener) ExitFile_header(ctx *File_headerContext) {}
 
-// EnterCode_block is called when production code_block is entered.
-func (s *BaseNeuroScriptListener) EnterCode_block(ctx *Code_blockContext) {}
+// EnterLibrary_script is called when production library_script is entered.
+func (s *BaseNeuroScriptListener) EnterLibrary_script(ctx *Library_scriptContext) {}
 
-// ExitCode_block is called when production code_block is exited.
-func (s *BaseNeuroScriptListener) ExitCode_block(ctx *Code_blockContext) {}
+// ExitLibrary_script is called when production library_script is exited.
+func (s *BaseNeuroScriptListener) ExitLibrary_script(ctx *Library_scriptContext) {}
+
+// EnterCommand_script is called when production command_script is entered.
+func (s *BaseNeuroScriptListener) EnterCommand_script(ctx *Command_scriptContext) {}
+
+// ExitCommand_script is called when production command_script is exited.
+func (s *BaseNeuroScriptListener) ExitCommand_script(ctx *Command_scriptContext) {}
+
+// EnterLibrary_block is called when production library_block is entered.
+func (s *BaseNeuroScriptListener) EnterLibrary_block(ctx *Library_blockContext) {}
+
+// ExitLibrary_block is called when production library_block is exited.
+func (s *BaseNeuroScriptListener) ExitLibrary_block(ctx *Library_blockContext) {}
+
+// EnterCommand_block is called when production command_block is entered.
+func (s *BaseNeuroScriptListener) EnterCommand_block(ctx *Command_blockContext) {}
+
+// ExitCommand_block is called when production command_block is exited.
+func (s *BaseNeuroScriptListener) ExitCommand_block(ctx *Command_blockContext) {}
+
+// EnterCommand_statement_list is called when production command_statement_list is entered.
+func (s *BaseNeuroScriptListener) EnterCommand_statement_list(ctx *Command_statement_listContext) {}
+
+// ExitCommand_statement_list is called when production command_statement_list is exited.
+func (s *BaseNeuroScriptListener) ExitCommand_statement_list(ctx *Command_statement_listContext) {}
+
+// EnterCommand_body_line is called when production command_body_line is entered.
+func (s *BaseNeuroScriptListener) EnterCommand_body_line(ctx *Command_body_lineContext) {}
+
+// ExitCommand_body_line is called when production command_body_line is exited.
+func (s *BaseNeuroScriptListener) ExitCommand_body_line(ctx *Command_body_lineContext) {}
+
+// EnterCommand_statement is called when production command_statement is entered.
+func (s *BaseNeuroScriptListener) EnterCommand_statement(ctx *Command_statementContext) {}
+
+// ExitCommand_statement is called when production command_statement is exited.
+func (s *BaseNeuroScriptListener) ExitCommand_statement(ctx *Command_statementContext) {}
+
+// EnterOn_error_only_stmt is called when production on_error_only_stmt is entered.
+func (s *BaseNeuroScriptListener) EnterOn_error_only_stmt(ctx *On_error_only_stmtContext) {}
+
+// ExitOn_error_only_stmt is called when production on_error_only_stmt is exited.
+func (s *BaseNeuroScriptListener) ExitOn_error_only_stmt(ctx *On_error_only_stmtContext) {}
+
+// EnterSimple_command_statement is called when production simple_command_statement is entered.
+func (s *BaseNeuroScriptListener) EnterSimple_command_statement(ctx *Simple_command_statementContext) {
+}
+
+// ExitSimple_command_statement is called when production simple_command_statement is exited.
+func (s *BaseNeuroScriptListener) ExitSimple_command_statement(ctx *Simple_command_statementContext) {
+}
 
 // EnterProcedure_definition is called when production procedure_definition is entered.
 func (s *BaseNeuroScriptListener) EnterProcedure_definition(ctx *Procedure_definitionContext) {}
@@ -79,6 +129,14 @@ func (s *BaseNeuroScriptListener) EnterMetadata_block(ctx *Metadata_blockContext
 
 // ExitMetadata_block is called when production metadata_block is exited.
 func (s *BaseNeuroScriptListener) ExitMetadata_block(ctx *Metadata_blockContext) {}
+
+// EnterNon_empty_statement_list is called when production non_empty_statement_list is entered.
+func (s *BaseNeuroScriptListener) EnterNon_empty_statement_list(ctx *Non_empty_statement_listContext) {
+}
+
+// ExitNon_empty_statement_list is called when production non_empty_statement_list is exited.
+func (s *BaseNeuroScriptListener) ExitNon_empty_statement_list(ctx *Non_empty_statement_listContext) {
+}
 
 // EnterStatement_list is called when production statement_list is entered.
 func (s *BaseNeuroScriptListener) EnterStatement_list(ctx *Statement_listContext) {}

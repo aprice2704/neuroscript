@@ -15,7 +15,39 @@ func (v *BaseNeuroScriptVisitor) VisitFile_header(ctx *File_headerContext) inter
 	return v.VisitChildren(ctx)
 }
 
-func (v *BaseNeuroScriptVisitor) VisitCode_block(ctx *Code_blockContext) interface{} {
+func (v *BaseNeuroScriptVisitor) VisitLibrary_script(ctx *Library_scriptContext) interface{} {
+	return v.VisitChildren(ctx)
+}
+
+func (v *BaseNeuroScriptVisitor) VisitCommand_script(ctx *Command_scriptContext) interface{} {
+	return v.VisitChildren(ctx)
+}
+
+func (v *BaseNeuroScriptVisitor) VisitLibrary_block(ctx *Library_blockContext) interface{} {
+	return v.VisitChildren(ctx)
+}
+
+func (v *BaseNeuroScriptVisitor) VisitCommand_block(ctx *Command_blockContext) interface{} {
+	return v.VisitChildren(ctx)
+}
+
+func (v *BaseNeuroScriptVisitor) VisitCommand_statement_list(ctx *Command_statement_listContext) interface{} {
+	return v.VisitChildren(ctx)
+}
+
+func (v *BaseNeuroScriptVisitor) VisitCommand_body_line(ctx *Command_body_lineContext) interface{} {
+	return v.VisitChildren(ctx)
+}
+
+func (v *BaseNeuroScriptVisitor) VisitCommand_statement(ctx *Command_statementContext) interface{} {
+	return v.VisitChildren(ctx)
+}
+
+func (v *BaseNeuroScriptVisitor) VisitOn_error_only_stmt(ctx *On_error_only_stmtContext) interface{} {
+	return v.VisitChildren(ctx)
+}
+
+func (v *BaseNeuroScriptVisitor) VisitSimple_command_statement(ctx *Simple_command_statementContext) interface{} {
 	return v.VisitChildren(ctx)
 }
 
@@ -44,6 +76,10 @@ func (v *BaseNeuroScriptVisitor) VisitParam_list(ctx *Param_listContext) interfa
 }
 
 func (v *BaseNeuroScriptVisitor) VisitMetadata_block(ctx *Metadata_blockContext) interface{} {
+	return v.VisitChildren(ctx)
+}
+
+func (v *BaseNeuroScriptVisitor) VisitNon_empty_statement_list(ctx *Non_empty_statement_listContext) interface{} {
 	return v.VisitChildren(ctx)
 }
 

@@ -1,9 +1,7 @@
-// NeuroScript Version: 0.3.0
-// File version: 0.1.5
-// Purpose: Updated test scripts to use the new 'on error do' syntax.
 // filename: pkg/core/ast_builder_stack_test.go
-// nlines: 179
-// risk_rating: LOW
+// NeuroScript Version: 0.5.2
+// File version: 0.1.6
+// Purpose: Updated the 'EmptyAndMinimalBlocks' test case to be syntactically valid.
 
 package core_test
 
@@ -87,26 +85,26 @@ endfunc
 			scriptContent: `
 func EmptyAndMinimalBlocksTest() means
   if true
-    # Empty then-branch
+    set _ = nil
   endif
 
   if false
-    # This won't run
+    set _ = nil
   else
-    # Empty else-branch
+    set _ = nil
   endif
 
   for each item in []
-    # Empty for-each loop
+    set _ = nil
   endfor
 
   set y = 0
   while y > 10 # Condition initially false
-    # Empty while loop
+    set _ = nil
   endwhile
 
   on error do
-    # Empty on_error handler
+    set _ = nil
   endon
   return "done_empty_blocks"
 endfunc

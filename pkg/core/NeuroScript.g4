@@ -1,11 +1,5 @@
-// Grammar: NeuroScript Version: 0.4.2
-
-// File: NeuroScript.g4 
-
-// File version: 68 Ver_Comment: Added
-
-// len() built-in function.
-
+// Grammar: NeuroScript Version: 0.4.2 
+// File version: 71
 grammar NeuroScript;
 
 // --- LEXER RULES ---
@@ -23,12 +17,14 @@ KW_BREAK: 'break';
 KW_CALL: 'call';
 KW_CLEAR: 'clear';
 KW_CLEAR_ERROR: 'clear_error';
+KW_COMMAND: 'command'; // New
 KW_CONTINUE: 'continue';
 KW_COS: 'cos';
 KW_DO: 'do';
 KW_EACH: 'each';
 KW_ELSE: 'else';
 KW_EMIT: 'emit';
+KW_ENDCOMMAND: 'endcommand'; // New
 KW_ENDFOR: 'endfor';
 KW_ENDFUNC: 'endfunc';
 KW_ENDIF: 'endif';
@@ -135,15 +131,57 @@ fragment HEX_DIGIT: [0-9a-fA-F];
 
 // --- PARSER RULES ---
 
-// WORKAROUND: Using a more rigid structure to avoid an ANTLR Go codegen bug.
-program: file_header code_block* EOF;
+// Top-level rule enforces that a script is EITHER for libraries OR for commands.
+program: file_header (library_script | command_script)? EOF;
 
 file_header: (METADATA_LINE | NEWLINE)*;
 
-code_block: (procedure_definition | on_stmt) NEWLINE*;
+// Script types
+library_script: library_block+;
+command_script: command_block+;
 
+library_block: (procedure_definition | on_stmt) NEWLINE*;
+
+// --- Command Block Definition ---
+command_block:
+	KW_COMMAND NEWLINE metadata_block // '?' removed to fix ANTLR warning
+	command_statement_list KW_ENDCOMMAND NEWLINE*;
+
+// A list that must contain at least one command_statement.
+command_statement_list:
+	(NEWLINE)* // Optional leading newlines
+	command_statement NEWLINE // At least one statement is required
+	(command_body_line)*; // Followed by zero or more other lines
+
+command_body_line: command_statement NEWLINE | NEWLINE;
+
+// Defines the restricted set of statements allowed inside a 'command' block.
+command_statement:
+	simple_command_statement // A version of simple_statement without 'return'.
+	| block_statement // if/while/for are permitted.
+	| on_error_only_stmt; // Only 'on error' is permitted, not 'on event'.
+
+// A restricted 'on' statement that only permits the error handler clause.
+on_error_only_stmt: KW_ON error_handler;
+
+// A restricted simple_statement that disallows 'return'.
+simple_command_statement:
+	set_statement
+	| call_statement
+	// | return_statement <-- Disallowed in command blocks
+	| emit_statement
+	| must_statement
+	| fail_statement
+	| clearErrorStmt
+	| clearEventStmt
+	| ask_stmt
+	| break_statement
+	| continue_statement;
+
+// --- Library (Function) Definitions ---
 procedure_definition:
-	KW_FUNC IDENTIFIER signature_part KW_MEANS NEWLINE metadata_block statement_list KW_ENDFUNC;
+	KW_FUNC IDENTIFIER signature_part KW_MEANS NEWLINE metadata_block non_empty_statement_list
+		KW_ENDFUNC;
 
 signature_part:
 	LPAREN (needs_clause | optional_clause | returns_clause)* RPAREN
@@ -155,7 +193,15 @@ optional_clause: KW_OPTIONAL param_list;
 returns_clause: KW_RETURNS param_list;
 param_list: IDENTIFIER (COMMA IDENTIFIER)*;
 metadata_block: (METADATA_LINE NEWLINE)*;
+
+// --- General Statements & Lists ---
+
+// A list that must contain at least one statement. For funcs and handlers.
+non_empty_statement_list:
+	(NEWLINE)* statement NEWLINE (body_line)*;
+
 statement_list: body_line*;
+// Kept for legacy compatibility if needed, but new blocks use non_empty_statement_list
 body_line: statement NEWLINE | NEWLINE;
 statement: simple_statement | block_statement | on_stmt;
 simple_statement:
@@ -175,10 +221,11 @@ block_statement:
 	| while_statement
 	| for_each_statement;
 on_stmt: KW_ON ( error_handler | event_handler);
-error_handler: KW_ERROR KW_DO NEWLINE statement_list KW_ENDON;
+error_handler:
+	KW_ERROR KW_DO NEWLINE non_empty_statement_list KW_ENDON;
 event_handler:
-	KW_EVENT expression (KW_NAMED STRING_LIT)? (KW_AS IDENTIFIER)? KW_DO NEWLINE statement_list
-		KW_ENDON;
+	KW_EVENT expression (KW_NAMED STRING_LIT)? (KW_AS IDENTIFIER)? KW_DO NEWLINE
+		non_empty_statement_list KW_ENDON;
 clearEventStmt:
 	KW_CLEAR KW_EVENT (expression | KW_NAMED STRING_LIT);
 lvalue: IDENTIFIER ( LBRACK expression RBRACK | DOT IDENTIFIER)*;
@@ -194,15 +241,17 @@ ask_stmt: KW_ASK expression (KW_INTO IDENTIFIER)?;
 break_statement: KW_BREAK;
 continue_statement: KW_CONTINUE;
 if_statement:
-	KW_IF expression NEWLINE statement_list (
-		KW_ELSE NEWLINE statement_list
+	KW_IF expression NEWLINE non_empty_statement_list (
+		// Now requires non-empty body
+		KW_ELSE NEWLINE non_empty_statement_list // Now requires non-empty body
 	)? KW_ENDIF;
 while_statement:
-	KW_WHILE expression NEWLINE statement_list KW_ENDWHILE;
+	KW_WHILE expression NEWLINE non_empty_statement_list KW_ENDWHILE; // Now requires non-empty body
 for_each_statement:
-	KW_FOR KW_EACH IDENTIFIER KW_IN expression NEWLINE statement_list KW_ENDFOR;
+	KW_FOR KW_EACH IDENTIFIER KW_IN expression NEWLINE non_empty_statement_list KW_ENDFOR;
+// Now requires non-empty body
 
-// Expression rules
+// --- Expression Rules ---
 qualified_identifier: IDENTIFIER (DOT IDENTIFIER)*;
 call_target: IDENTIFIER | KW_TOOL DOT qualified_identifier;
 expression: logical_or_expr;

@@ -1,7 +1,7 @@
-// NeuroScript Version: 0.3.1
-// File version: 0.1.5
-// Purpose: Updated the expectEmitStepWithString helper to check the 'Values' slice instead of the outdated 'Value' field, resolving test failures.
 // filename: pkg/core/ast_builder_if_else_test.go
+// NeuroScript Version: 0.5.2
+// File version: 0.1.6
+// Purpose: Updated empty block tests to be syntactically valid by adding a neutral statement.
 
 package core
 
@@ -25,7 +25,6 @@ func getIfStepFromTestProc(t *testing.T, scriptContent string) *Step {
 }
 
 // expectEmitStepWithString checks for a specific Emit step with string content.
-// It now correctly checks the 'Values' slice of the Step struct.
 func expectEmitStepWithString(t *testing.T, stmts []Step, index int, expectedContent string, blockName string) {
 	t.Helper()
 	if index >= len(stmts) {
@@ -38,7 +37,6 @@ func expectEmitStepWithString(t *testing.T, stmts []Step, index int, expectedCon
 		return
 	}
 
-	// Correctly check the Values slice, not the old Value field.
 	if emitStep.Values == nil || len(emitStep.Values) == 0 {
 		t.Errorf("[%s] Emit step at index %d has nil or empty Values slice", blockName, index)
 		return
@@ -98,7 +96,6 @@ endfunc
 	}
 	for _, stmt := range ifStep.Body {
 		if stmt.Type == "emit" {
-			// Check the values slice now
 			if len(stmt.Values) > 0 {
 				if strLit, okStr := stmt.Values[0].(*StringLiteralNode); okStr && strLit.Value == "In ELSE block" {
 					t.Errorf("SimpleIfThenElse (BUG CHECK): ELSE statement (emit \"In ELSE block\") found in Body")
@@ -248,7 +245,6 @@ endfunc
 		expectEmitStepWithString(t, ifStep.Body, 0, "Then", "Body")
 	}
 
-	// ElseIf 1
 	ifOuterElse := ifStep.Else
 	if ifOuterElse == nil || len(ifOuterElse) != 1 {
 		t.Fatalf("MultipleElseIfs: Expected outer else for first elseif, got %v", ifOuterElse)
@@ -259,7 +255,6 @@ endfunc
 	}
 	expectEmitStepWithString(t, firstElseIfStep.Body, 0, "ElseIf 1", "ElseIfs[0].Body")
 
-	// ElseIf 2
 	ifFirstElseIfElse := firstElseIfStep.Else
 	if ifFirstElseIfElse == nil || len(ifFirstElseIfElse) != 1 {
 		t.Fatalf("MultipleElseIfs: Expected else for second elseif, got %v", ifFirstElseIfElse)
@@ -270,7 +265,6 @@ endfunc
 	}
 	expectEmitStepWithString(t, secondElseIfStep.Body, 0, "ElseIf 2 (executes)", "ElseIfs[1].Body")
 
-	// ElseIf 3
 	ifSecondElseIfElse := secondElseIfStep.Else
 	if ifSecondElseIfElse == nil || len(ifSecondElseIfElse) != 1 {
 		t.Fatalf("MultipleElseIfs: Expected else for third elseif, got %v", ifSecondElseIfElse)
@@ -281,7 +275,6 @@ endfunc
 	}
 	expectEmitStepWithString(t, thirdElseIfStep.Body, 0, "ElseIf 3", "ElseIfs[2].Body")
 
-	// Final Else
 	finalElseSteps := thirdElseIfStep.Else
 	if finalElseSteps == nil || len(finalElseSteps) != 1 {
 		t.Errorf("MultipleElseIfs (final ELSE/Else): Expected 1, got %v (or nil)", finalElseSteps)
@@ -389,7 +382,7 @@ func TestIfThenElse_EmptyThenBlock(t *testing.T) {
 # Procedure definition
 func TestProc() means
 	if true
-		# This is an empty THEN block
+		set _ = nil
 	else
 		emit "In ELSE"
 	endif
@@ -397,8 +390,8 @@ endfunc
 `
 	ifStep := getIfStepFromTestProc(t, script)
 
-	if len(ifStep.Body) != 0 {
-		t.Errorf("EmptyThenBlock: Expected 0 statements in Body, got %d.", len(ifStep.Body))
+	if len(ifStep.Body) == 0 {
+		t.Errorf("EmptyThenBlock: Expected at least 1 statement in Body, got 0.")
 	}
 
 	if ifStep.Else == nil || len(ifStep.Else) != 1 {
@@ -414,7 +407,7 @@ func TestProc() means
 	if false
 		emit "In THEN"
 	else
-		# This is an empty ELSE block
+		set _ = nil
 	endif
 endfunc
 `
@@ -426,8 +419,8 @@ endfunc
 		expectEmitStepWithString(t, ifStep.Body, 0, "In THEN", "Body")
 	}
 
-	if !(ifStep.Else == nil || len(ifStep.Else) == 0) {
-		t.Errorf("EmptyElseBlock: Expected 0 Else steps or nil, got %d", len(ifStep.Else))
+	if ifStep.Else == nil || len(ifStep.Else) == 0 {
+		t.Errorf("EmptyElseBlock: Expected at least 1 Else step, got 0 or nil")
 	}
 }
 
@@ -435,19 +428,19 @@ func TestIfThenElse_EmptyThenAndElseBlocks(t *testing.T) {
 	script := `
 func TestProc() means
 	if some_condition == true
-		# Empty THEN
+		set _ = nil
 	else
-		# Empty ELSE
+		set _ = nil
 	endif
 endfunc
 `
 	ifStep := getIfStepFromTestProc(t, script)
 
-	if len(ifStep.Body) != 0 {
-		t.Errorf("EmptyThenAndElseBlocks (THEN/Body): Expected 0 statements, got %d", len(ifStep.Body))
+	if len(ifStep.Body) == 0 {
+		t.Errorf("EmptyThenAndElseBlocks (THEN/Body): Expected at least 1 statement, got %d", len(ifStep.Body))
 	}
-	if !(ifStep.Else == nil || len(ifStep.Else) == 0) {
-		t.Errorf("EmptyThenAndElseBlocks (ELSE/Else): Expected 0 ElseSteps or nil, got %d", len(ifStep.Else))
+	if ifStep.Else == nil || len(ifStep.Else) == 0 {
+		t.Errorf("EmptyThenAndElseBlocks (ELSE/Else): Expected at least 1 Else step, got 0 or nil")
 	}
 }
 

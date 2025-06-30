@@ -1,7 +1,7 @@
-// NeuroScript Version: 0.5.2
-// File version: 8
-// Purpose: Corrected logic for the 'non-static event name' test to expect success at the AST build stage.
 // filename: pkg/core/evaluation_event_handler_test.go
+// NeuroScript Version: 0.5.2
+// File version: 9
+// Purpose: Updated empty function blocks in tests to be syntactically valid.
 // nlines: 135+
 // risk_rating: LOW
 
@@ -51,6 +51,7 @@ func TestOnEventHandling(t *testing.T) {
 			endon
 
 			func main() means
+				set _ = nil
 			endfunc
 			`
 
@@ -82,6 +83,7 @@ func TestOnEventHandling(t *testing.T) {
 			endon
 			
 			func main() means
+				set _ = nil
 			endfunc
 			`
 
@@ -126,9 +128,6 @@ func TestOnEventHandling(t *testing.T) {
 		astBuilder := NewASTBuilder(logger)
 		_, _, err := astBuilder.Build(parseTree)
 
-		// MODIFIED: The new grammar correctly parses a variable as an event name.
-		// The check for whether this is allowed should happen at runtime, not during
-		// parsing or AST building. Therefore, we now expect NO error here.
 		if err != nil {
 			t.Fatalf("Expected AST build to succeed for dynamic event name, but it failed: %v", err)
 		}

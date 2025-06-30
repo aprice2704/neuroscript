@@ -1,7 +1,7 @@
 :: title: Test loading a script with multiple definitions
 :: version: 1.1
 
-func main() means
+func main(returns result) means
     :: description: Checks the return value of LoadScript.
     set script_to_load = ```
         :: title: A library file
@@ -18,7 +18,12 @@ func main() means
             emit "lib file changed"
         endon
     ```
-
+    set result = "failed"
+    on error do
+        set result = "error loading script"
+        clear_error
+    endon
     // The return value of LoadScript is what we want to test.
-    return tool.LoadScript(script_to_load)
+    set result = tool.LoadScript(script_to_load)
+    return result
 endfunc

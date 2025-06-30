@@ -1,7 +1,7 @@
-// Neuroscript version: 0.4.0
-// File version: 9
-// Filename: interpreter_script_test.go
-// Purpose: Correctly finds and passes the procedure name to ExecuteProc.
+// filename: pkg/core/interpreter_script_test.go
+// Neuroscript version: 0.5.2
+// File version: 13
+// Purpose: Corrected compiler errors by fixing the call to ExecuteProc.
 
 package core
 
@@ -53,7 +53,6 @@ func TestInterpreterFixtures(t *testing.T) {
 			}
 			script := string(scriptBytes)
 
-			// --- STAGE 1: PARSE AND BUILD AST ---
 			logger := NewTestLogger(t)
 			parserAPI := NewParserAPI(logger)
 			parseTree, parseErr := parserAPI.Parse(script)
@@ -82,35 +81,51 @@ func TestInterpreterFixtures(t *testing.T) {
 				t.Fatalf("unexpected AST BUILD error: %v", buildErr)
 			}
 
-			// --- STAGE 2: EXECUTE THE PRE-BUILT AST ---
 			interp, _ := NewTestInterpreter(t, nil, nil)
 			if err := interp.LoadProgram(programAST); err != nil {
 				t.Fatalf("failed to load program into interpreter: %v", err)
 			}
 
-			// Find the single procedure defined in the test script to run.
-			var procToRun string
-			if len(programAST.Procedures) != 1 {
-				// This test runner design requires exactly one function per file for execution tests.
-				// Files with only event handlers won't have a golden file and should be skipped here.
+			var gotVal Value
+			var execErr error
+
+			if len(programAST.Commands) > 0 {
+				if len(programAST.Procedures) > 0 {
+					t.Fatalf("test script '%s' cannot contain both commands and procedures", name)
+				}
+				gotVal, execErr = interp.Execute()
+			} else if len(programAST.Procedures) == 1 {
+				var procToRun string
+				for procName := range programAST.Procedures {
+					procToRun = procName
+					break
+				}
+				var rawResult interface{}
+				// CORRECTED: Removed the invalid '...' from the function call.
+				rawResult, execErr = interp.ExecuteProc(procToRun)
+				if execErr == nil {
+					var ok bool
+					gotVal, ok = rawResult.(Value)
+					if !ok {
+						if rawResult == nil {
+							gotVal = NilValue{}
+						} else {
+							t.Fatalf("ExecuteProc returned an unexpected type: %T", rawResult)
+						}
+					}
+				}
+			} else {
 				if _, statErr := os.Stat(goldenPath); os.IsNotExist(statErr) {
-					t.Log("No golden file found, skipping execution for event-handler-only script.")
+					t.Log("No golden file found, skipping execution for script with no commands or single function.")
 					return
 				}
-				t.Fatalf("test script '%s' must contain exactly one procedure for execution testing, but found %d", name, len(programAST.Procedures))
-			}
-			for procName := range programAST.Procedures {
-				procToRun = procName // Grab the name of the single procedure
-				break
+				t.Fatalf("test script '%s' must contain either commands or exactly one procedure for execution testing, but found %d procedures", name, len(programAST.Procedures))
 			}
 
-			// Execute the specific procedure by name.
-			gotVal, execErr := interp.ExecuteProc(procToRun)
 			if execErr != nil {
 				t.Fatalf("unexpected RUNTIME error: %v", execErr)
 			}
 
-			// --- STAGE 3: COMPARE RESULTS ---
 			wantJSONBytes, err := os.ReadFile(goldenPath)
 			if err != nil {
 				if os.IsNotExist(err) {
@@ -122,7 +137,10 @@ func TestInterpreterFixtures(t *testing.T) {
 			if err := json.Unmarshal(wantJSONBytes, &wantMap); err != nil {
 				t.Fatalf("failed to unmarshal golden file %s into map[string]any: %v", goldenPath, err)
 			}
-			gotMap := map[string]any{"return": gotVal}
+
+			nativeGotVal := Unwrap(gotVal)
+			gotMap := map[string]any{"return": nativeGotVal}
+
 			if diff := cmp.Diff(wantMap, gotMap); diff != "" {
 				gotJSONBytes, _ := json.MarshalIndent(gotMap, "", "  ")
 				t.Fatalf("result mismatch (-want +got):\n%s\n\nGot payload:\n%s", diff, gotJSONBytes)
