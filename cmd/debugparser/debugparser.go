@@ -5,7 +5,8 @@ import (
 	"strings"
 
 	"github.com/antlr4-go/antlr/v4"
-	gen "github.com/aprice2704/neuroscript/pkg/core/generated"
+	"github.com/aprice2704/neuroscript/pkg/ast"
+	gen "github.com/aprice2704/neuroscript/pkg/parser/generated"
 )
 
 // A simple, self-contained error listener to capture syntax errors.
@@ -54,7 +55,7 @@ endfunc
 	parser.AddErrorListener(errorListener)
 
 	// Run the parser
-	parser.Program()
+	ast.Program()
 
 	// Report the results
 	if len(errorListener.Errors) > 0 {

@@ -375,7 +375,7 @@ func calculateErrorPosition(data []byte, offset int64) (line, char int) {
 			line++
 			char = 1
 		} else {
-			// Assuming UTF-8, multi-byte characters still advance char position by 1 visually
+			// Assuming UTF-8, multi-byte characters still advance char lang.Position by 1 visually
 			// This might not be perfect for complex scripts but works for basic JSON/text
 			char++
 		}
@@ -384,9 +384,9 @@ func calculateErrorPosition(data []byte, offset int64) (line, char int) {
 	// Handle case where error is exactly at the end of file or line
 	if offset > 0 && offset == currentOffset {
 		// If the character *at* the offset (which caused the error) is a newline,
-		// the error is arguably on the *next* line, position 1.
+		// the error is arguably on the *next* line, lang.Position 1.
 		// However, syntax errors often point *after* the problematic token.
-		// Sticking to the position *before* the newline seems more common for JSON errors.
+		// Sticking to the lang.Position *before* the newline seems more common for JSON errors.
 	}
 
 	return line, char

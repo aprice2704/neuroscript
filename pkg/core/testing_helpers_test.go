@@ -7,7 +7,7 @@ package core
 // Keep for deepEqual comparison
 
 // Logger/Adapter imports likely not needed if setup moved to helpers.go
-// "github.com/aprice2704/neuroscript/pkg/core/token" // Ensure token is imported if Position needed directly - Assuming it's available via core package implicitly or defined in helpers.go context
+// "github.com/aprice2704/neuroscript/pkg/core/token" // Ensure token is imported if lang.Position needed directly - Assuming it's available via core package implicitly or defined in helpers.go context
 
 // --- Placeholders for other helpers potentially defined in original ---
 // func runValidationTestCases(...) { ... }

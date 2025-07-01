@@ -158,7 +158,7 @@ func toolChecklistAddItem(interpreter *core.Interpreter, args []interface{}) (in
 				parentNode.ChildIDs = []string{} // Should not happen if Tree.AddChildNode succeeded
 			}
 
-			// Find and remove the newNodeID from its current position
+			// Find and remove the newNodeID from its current lang.Position
 			foundAtIndex := -1
 			for i, childNodeID := range parentNode.ChildIDs {
 				if childNodeID == newNodeID {

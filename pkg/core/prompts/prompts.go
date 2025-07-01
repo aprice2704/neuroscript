@@ -39,13 +39,13 @@ const (
 	RuleSignaturePart = "3.  **Signature Part:** After 'ProcedureName', optionally include clauses 'needs param1, param2', 'optional opt1', 'returns ret1, ret2'. If you use parentheses '()', they MUST enclose the *entire* signature part (all needs, optional, and returns clauses), and the closing parenthesis ')' MUST come immediately before the 'means' keyword. If no signature clauses exist, nothing is needed between the procedure name and 'means'.\n"
 
 	// RuleMetadata defines usage and placement of metadata.
-	RuleMetadata = "4.  **Metadata ('::')**: Procedure-level metadata (e.g., ':: description:', ':: param:<name>:', ':: return:<name>:') MUST be immediately after 'func ... means NEWLINE' and before the first statement. Step-level metadata immediately precedes the step. Use ':: key: value' format. Values can span lines using '\\' at line end. See docs/metadata.md for standard keys.\n"
+	RuleMetadata = "4.  **Metadata ('::')**: Procedure-level metadata (e.g., ':: description:', ':: param:<name>:', ':: return:<name>:') MUST be immediately after 'func ... means NEWLINE' and before the first statement. ast.Step-level metadata immediately precedes the step. Use ':: key: value' format. Values can span lines using '\\' at line end. See docs/metadata.md for standard keys.\n"
 
 	// RuleSetStatement describes variable assignment.
 	RuleSetStatement = "5.  **Assignment ('set')**: Use 'set variable = expression'. Variable must be a valid identifier. For mandatory assignments that must succeed, see the `must` keyword rules.\n"
 
-	// RuleCallStatementAndExpressions describes how procedures and tools are invoked.
-	RuleCallStatementAndExpressions = "6.  **Calls**: Procedure and tool calls are expressions. Use in assignments: 'set result = MyProcedure(arg)', 'set data = tool.ReadFile(\"path\")'. To call for side effects without assigning, MUST use the 'call' statement: 'call tool.LogMessage(\"Done\")'. An expression like 'MyProcedure()' on its own line is NOT valid.\n"
+	// RuleCallStatementAnd.Expressions describes how procedures and tools are invoked.
+	RuleCallStatementAnd.Expressions = "6.  **Calls**: Procedure and tool calls are expressions. Use in assignments: 'set result = MyProcedure(arg)', 'set data = tool.ReadFile(\"path\")'. To call for side effects without assigning, MUST use the 'call' statement: 'call tool.LogMessage(\"Done\")'. An expression like 'MyProcedure()' on its own line is NOT valid.\n"
 
 	// RuleMustStatement describes the enhanced 'must' keyword for assertions.
 	RuleMustStatement = "7. **'must' Keyword for Assertions & Assignments**: `must` is the primary tool for defensive programming. It halts execution with a runtime error if its condition fails, which can be caught by an `on_error` block.\n" +
@@ -130,7 +130,7 @@ const (
 const (
 	ExecIntro            = "**Execution Semantics (Key Points):**\n"
 	ExecSetStatement     = "* **'set var = expr'**: Evaluate 'expr'. If `expr` begins with `must`, perform success/validation checks first. If checks pass, assign the resulting value. Otherwise, halt with a runtime error. Placeholders '{{...}}' in standard strings remain literal unless 'eval()'. Raw strings ('```...```') with '{{...}}' ARE evaluated on use/assignment.\n"
-	ExecCalls            = "* **Calls (Expressions & 'call' statement)**: Evaluate args (raw), execute Procedure/TOOL.Function. Return value (raw) available for expression, also stored in 'last'. A standard `error` map return value is a valid return, not a script-halting error.\n"
+	ExecCalls            = "* **Calls (ast.Expressions & 'call' statement)**: Evaluate args (raw), execute Procedure/TOOL.Function. Return value (raw) available for expression, also stored in 'last'. A standard `error` map return value is a valid return, not a script-halting error.\n"
 	ExecLastKeyword      = "* **'last'**: Keyword evaluates to raw value from most recent successful call (procedure/tool) or 'call' statement.\n"
 	ExecEvalFunction     = "* **'eval(expr)'**: Evaluate 'expr' (must be string). Recursively resolve '{{placeholder}}' within that string using current var/'last' values. Returns final resolved string.\n"
 	ExecPlaceholders     = "* **Placeholders ('{{...}}')**: Resolved via 'eval()' or implicitly in raw strings. Otherwise, likely literal.\n"
@@ -263,7 +263,7 @@ const (
 		RuleSignaturePart +
 		RuleMetadata +
 		RuleSetStatement +
-		RuleCallStatementAndExpressions +
+		RuleCallStatementAnd.Expressions +
 		RuleMustStatement +
 		RuleToolErrorHandlingAndReturnValues +
 		RuleLastKeyword +

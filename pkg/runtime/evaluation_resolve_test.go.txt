@@ -1,0 +1,92 @@
+// filename: pkg/core/evaluation_resolve_test.go
+package runtime
+
+import (
+	"errors"
+	"reflect"
+	"testing"
+)
+
+// ResolveValueTestCase focuses on resolveValue results.
+type ResolveValueTestCase struct {
+	Name            string
+	InputNode       Expression
+	InitialVars     map[string]Value // Use Value for setup
+	ExpectedValue   interface{}      // Expect primitives back from this specific function
+	WantErr         bool
+	ExpectedErrorIs error
+}
+
+// runResolveValueTest is a helper for calling resolveValue.
+func runResolveValueTest(t *testing.T, tt ResolveValueTestCase) {
+	t.Helper()
+
+	interp, _ := NewDefaultTestInterpreter(t)
+	if tt.InitialVars != nil {
+		for k, v := range tt.InitialVars {
+			if err := interp.SetVariable(k, v); err != nil {
+				t.Fatalf("[%s] Failed to set initial variable '%s': %v", tt.Name, k, err)
+			}
+		}
+	}
+
+	// This function is assumed to be a special case that returns primitives.
+	gotValue, err := interp.resolveValue(tt.InputNode)
+
+	if tt.WantErr {
+		if err == nil {
+			t.Errorf("[%s] Expected an error, but got nil", tt.Name)
+			return
+		}
+		if tt.ExpectedErrorIs != nil && !errors.Is(err, tt.ExpectedErrorIs) {
+			t.Errorf("[%s] Error mismatch.\nExpected error wrapping: [%v]\nGot: [%v]", tt.Name, tt.ExpectedErrorIs, err)
+		}
+	} else {
+		if err != nil {
+			t.Errorf("[%s] Unexpected error: %v", tt.Name, err)
+		} else if !reflect.DeepEqual(gotValue, tt.ExpectedValue) {
+			t.Errorf("[%s] Result value mismatch.\nInput Node: %+v\nExpected: %v (%T)\nGot: %v (%T)",
+				tt.Name, tt.InputNode, tt.ExpectedValue, tt.ExpectedValue, gotValue, gotValue)
+		}
+	}
+}
+
+func TestResolveValuePlaceholders(t *testing.T) {
+	vars := map[string]Value{
+		"name":      StringValue{Value: "World"},
+		"greeting":  StringValue{Value: "Hello"},
+		"subject":   StringValue{Value: "there"},
+		"num":       NumberValue{Value: 42},
+		"boolVal":   BoolValue{Value: true},
+		"nilVal":    NilValue{},
+		"spacedVar": StringValue{Value: "Spaced Value"},
+	}
+
+	testCases := []ResolveValueTestCase{
+		{
+			Name:          "Raw string basic substitution",
+			InputNode:     &StringLiteralNode{Value: "Test {{name}}!", IsRaw: true},
+			InitialVars:   vars,
+			ExpectedValue: "Test World!",
+		},
+		{
+			Name:          "Raw string multiple substitutions",
+			InputNode:     &StringLiteralNode{Value: "{{greeting}} {{subject}} - Status {{boolVal}}", IsRaw: true},
+			InitialVars:   vars,
+			ExpectedValue: "Hello there - Status true",
+		},
+		{
+			Name:            "Raw string missing variable",
+			InputNode:       &StringLiteralNode{Value: "Hello {{missing_var}}!", IsRaw: true},
+			InitialVars:     vars,
+			WantErr:         true,
+			ExpectedErrorIs: ErrVariableNotFound,
+		},
+	}
+
+	for _, tt := range testCases {
+		t.Run(tt.Name, func(t *testing.T) {
+			runResolveValueTest(t, tt)
+		})
+	}
+}

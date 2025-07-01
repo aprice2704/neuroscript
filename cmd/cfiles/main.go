@@ -94,7 +94,7 @@ func main() {
 	} else {
 		fmt.Printf("\nFound %d file(s).\n", fileCount)
 	}
-	log.Println("DEBUG: Program finished.") // DEBUG
+	log.Println("DEBUG: ast.Program finished.") // DEBUG
 }
 
 // Helper functions for showing API key prefix safely

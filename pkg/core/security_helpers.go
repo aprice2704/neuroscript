@@ -14,6 +14,7 @@ import (
 
 	// Needed for logger in CreateSuccess
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
+	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/google/generative-ai-go/genai" // Needed for genai types
 )
 
@@ -92,20 +93,20 @@ func IsPathInSandbox(sandboxRoot, inputPath string) (bool, error) {
 func ResolveAndSecurePath(inputPath, allowedRoot string) (string, error) {
 	// --- Input Validation ---
 	if inputPath == "" {
-		return "", NewRuntimeError(ErrorCodeArgMismatch, "input path cannot be empty", ErrInvalidArgument)
+		return "", lang.NewRuntimeError(ErrorCodeArgMismatch, "input path cannot be empty", ErrInvalidArgument)
 	}
 	if strings.Contains(inputPath, "\x00") {
-		return "", NewRuntimeError(ErrorCodeSecurity, "input path contains null byte", ErrNullByteInArgument)
+		return "", lang.NewRuntimeError(ErrorCodeSecurity, "input path contains null byte", ErrNullByteInArgument)
 	}
 	if filepath.IsAbs(inputPath) {
 		errMsg := fmt.Sprintf("input file path %q must be relative, not absolute", inputPath)
-		return "", NewRuntimeError(ErrorCodeSecurity, errMsg, ErrPathViolation)
+		return "", lang.NewRuntimeError(ErrorCodeSecurity, errMsg, ErrPathViolation)
 	}
 
 	// --- Resolve Paths ---
 	absAllowedRoot, err := filepath.Abs(allowedRoot)
 	if err != nil {
-		return "", NewRuntimeError(ErrorCodeConfiguration, fmt.Sprintf("could not get absolute path for allowed root %q: %v", allowedRoot, err), errors.Join(ErrConfiguration, err))
+		return "", lang.NewRuntimeError(ErrorCodeConfiguration, fmt.Sprintf("could not get absolute path for allowed root %q: %v", allowedRoot, err), errors.Join(ErrConfiguration, err))
 	}
 	absAllowedRoot = filepath.Clean(absAllowedRoot)
 
@@ -117,7 +118,7 @@ func ResolveAndSecurePath(inputPath, allowedRoot string) (string, error) {
 	if err != nil {
 		// This error might occur if paths are on different volumes on Windows, etc.
 		details := fmt.Sprintf("internal error checking path relationship between %q and %q", absAllowedRoot, resolvedPath)
-		return "", NewRuntimeError(ErrorCodeInternal, details, errors.Join(ErrInternalSecurity, err))
+		return "", lang.NewRuntimeError(ErrorCodeInternal, details, errors.Join(ErrInternalSecurity, err))
 	}
 
 	// --- IsOutside Check using path components ---
@@ -139,7 +140,7 @@ func ResolveAndSecurePath(inputPath, allowedRoot string) (string, error) {
 
 	if isOutside {
 		details := fmt.Sprintf("relative path %q resolves to %q which is outside the allowed directory %q", inputPath, resolvedPath, absAllowedRoot)
-		return "", NewRuntimeError(ErrorCodeSecurity, details, ErrPathViolation)
+		return "", lang.NewRuntimeError(ErrorCodeSecurity, details, ErrPathViolation)
 	}
 
 	return resolvedPath, nil

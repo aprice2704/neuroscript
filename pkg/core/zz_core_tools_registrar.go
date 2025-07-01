@@ -7,6 +7,8 @@ package core
 
 import (
 	"log" // Standard Go logging package
+
+	"github.com/aprice2704/neuroscript/pkg/lang"
 )
 
 // init calls the main registration function for the tool bundle.
@@ -20,7 +22,7 @@ func MakeUnimplementedToolFunc(toolName string) ToolFunc {
 	return func(interpreter *Interpreter, args []interface{}) (interface{}, error) {
 		errMsg := "TOOL " + toolName + " NOT IMPLEMENTED"
 		log.Printf("[ERROR] %s\n", errMsg) // Standard log for critical missing piece
-		return nil, NewRuntimeError(ErrorCodeNotImplemented, errMsg, ErrNotImplemented)
+		return nil, lang.NewRuntimeError(ErrorCodeNotImplemented, errMsg, ErrNotImplemented)
 	}
 }
 

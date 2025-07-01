@@ -10,6 +10,8 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/aprice2704/neuroscript/pkg/lang"
 )
 
 var dummyPos = &Position{Line: 1, Column: 1, File: "test"}
@@ -18,7 +20,7 @@ var dummyPos = &Position{Line: 1, Column: 1, File: "test"}
 
 type EvalTestCase struct {
 	Name            string
-	InputNode       Expression
+	InputNode       ast.Expression
 	InitialVars     map[string]Value
 	LastResult      Value
 	Expected        Value
@@ -69,7 +71,7 @@ func AssertNoError(t *testing.T, err error, msgAndArgs ...interface{}) {
 	}
 }
 
-func runEvalExpressionTest(t *testing.T, tc EvalTestCase) {
+func runEval.ExpressionTest(t *testing.T, tc EvalTestCase) {
 	t.Helper()
 	t.Run(tc.Name, func(t *testing.T) {
 		i, err := NewTestInterpreter(t, tc.InitialVars, tc.LastResult)
@@ -77,7 +79,7 @@ func runEvalExpressionTest(t *testing.T, tc EvalTestCase) {
 			t.Fatalf("NewTestInterpreter failed: %v", err)
 		}
 
-		got, err := i.evaluateExpression(tc.InputNode)
+		got, err := i.evaluate.Expression(tc.InputNode)
 
 		if (err != nil) != tc.WantErr {
 			t.Fatalf("Test %q: Error expectation mismatch.\n got err = %v, wantErr %t", tc.Name, err, tc.WantErr)
@@ -147,23 +149,23 @@ func runExecuteStepsTest(t *testing.T, tc executeStepsTestCase) {
 	})
 }
 
-// createTestStep is a robust helper for creating Step structs for tests.
-func createTestStep(stepType, target string, value Expression, callArgs []Expression) Step {
-	s := Step{Pos: dummyPos, Type: stepType}
+// createTestStep is a robust helper for creating ast.Step structs for tests.
+func createTestStep(stepType, target string, value ast.Expression, callArgs []ast.Expression) ast.Step {
+	s := ast.Step{Position: dummyPos, Type: stepType}
 	switch strings.ToLower(stepType) {
 	case "set":
 		// MODIFIED: Use the new LValues field.
-		lval := &LValueNode{Identifier: target, Pos: s.Pos}
-		s.LValues = []Expression{lval}
+		lval := &ast.LValueNode{Identifier: target, Position: s.Pos}
+		s.LValues = []ast.Expression{lval}
 		s.Value = value
 	case "emit", "return":
-		s.Values = []Expression{value}
+		s.Values = []ast.Expression{value}
 	case "must":
 		s.Cond = value
 	case "call":
-		s.Call = &CallableExprNode{
-			Pos:       dummyPos,
-			Target:    CallTarget{Pos: dummyPos, Name: target, IsTool: true},
+		s.Call = &ast.CallableExprNode{
+			Position:       dummyPos,
+			Target:    ast.CallTarget{Position: dummyPos, Name: target, IsTool: true},
 			Arguments: callArgs,
 		}
 	default:
@@ -173,22 +175,22 @@ func createTestStep(stepType, target string, value Expression, callArgs []Expres
 	return s
 }
 
-func createIfStep(pos *Position, condNode Expression, thenSteps, elseSteps []Step) Step {
-	return Step{Pos: pos, Type: "if", Cond: condNode, Body: thenSteps, Else: elseSteps}
+func createIfStep(pos *lang.Position, condNode ast.Expression, thenSteps, elseSteps []Step) ast.Step {
+	return ast.Step{Position: pos, Type: "if", Cond: condNode, Body: thenSteps, Else: elseSteps}
 }
 
-func createWhileStep(pos *Position, condNode Expression, bodySteps []Step) Step {
-	return Step{
-		Pos:  pos,
+func createWhileStep(pos *lang.Position, condNode ast.Expression, bodySteps []Step) ast.Step {
+	return ast.Step{
+		Position:  pos,
 		Type: "while",
 		Cond: condNode,
 		Body: bodySteps,
 	}
 }
 
-func createForStep(pos *Position, loopVarName string, collectionExpr Expression, bodySteps []Step) Step {
-	return Step{
-		Pos:         pos,
+func createForStep(pos *lang.Position, loopVarName string, collectionExpr ast.Expression, bodySteps []Step) ast.Step {
+	return ast.Step{
+		Position:         pos,
 		Type:        "for",
 		LoopVarName: loopVarName,
 		Collection:  collectionExpr,
@@ -196,20 +198,20 @@ func createForStep(pos *Position, loopVarName string, collectionExpr Expression,
 	}
 }
 
-func NewTestStringLiteral(val string) *StringLiteralNode {
-	return &StringLiteralNode{Pos: dummyPos, Value: val}
+func NewTestStringLiteral(val string) *ast.StringLiteralNode {
+	return &ast.StringLiteralNode{Position: dummyPos, Value: val}
 }
 
-func NewTestNumberLiteral(val float64) *NumberLiteralNode {
-	return &NumberLiteralNode{Pos: dummyPos, Value: val}
+func NewTestNumberLiteral(val float64) *ast.NumberLiteralNode {
+	return &ast.NumberLiteralNode{Position: dummyPos, Value: val}
 }
 
-func NewTestBooleanLiteral(val bool) *BooleanLiteralNode {
-	return &BooleanLiteralNode{Pos: dummyPos, Value: val}
+func NewTestBooleanLiteral(val bool) *ast.BooleanLiteralNode {
+	return &ast.BooleanLiteralNode{Position: dummyPos, Value: val}
 }
 
-func NewTestVariableNode(name string) *VariableNode {
-	return &VariableNode{Pos: dummyPos, Name: name}
+func NewTestast.VariableNode(name string) *ast.VariableNode {
+	return &ast.VariableNode{Position: dummyPos, Name: name}
 }
 
 func DebugDumpVariables(i *Interpreter, t *testing.T) {

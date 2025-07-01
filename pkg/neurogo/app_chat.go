@@ -34,16 +34,16 @@ func (a *App) CreateNewChatSession(definitionID string) (*ChatSession, error) {
 
 	aiWM := a.GetAIWorkerManager()
 	if aiWM == nil {
-		return nil, core.NewRuntimeError(core.ErrorCodePreconditionFailed, "AIWorkerManager not available in App", nil)
+		return nil, core.lang.NewRuntimeError(core.ErrorCodePreconditionFailed, "AIWorkerManager not available in App", nil)
 	}
 
 	workerDef, err := aiWM.GetWorkerDefinition(definitionID)
 	if err != nil {
 		a.Log.Error("Failed to get worker definition for new chat session", "definitionID", definitionID, "error", err)
-		return nil, core.NewRuntimeError(core.ErrorCodeKeyNotFound, fmt.Sprintf("worker definition '%s' not found", definitionID), err)
+		return nil, core.lang.NewRuntimeError(core.ErrorCodeKeyNotFound, fmt.Sprintf("worker definition '%s' not found", definitionID), err)
 	}
 	if workerDef == nil {
-		return nil, core.NewRuntimeError(core.ErrorCodeKeyNotFound, fmt.Sprintf("worker definition '%s' is nil (unexpected)", definitionID), nil)
+		return nil, core.lang.NewRuntimeError(core.ErrorCodeKeyNotFound, fmt.Sprintf("worker definition '%s' is nil (unexpected)", definitionID), nil)
 	}
 
 	newInstance, err := aiWM.SpawnWorkerInstance(definitionID, nil, nil)
@@ -104,7 +104,7 @@ func (a *App) SetActiveChatSession(sessionID string) error {
 	// defer a.chatMu.Unlock()
 
 	if _, exists := a.chatSessions[sessionID]; !exists {
-		return core.NewRuntimeError(core.ErrorCodeKeyNotFound, fmt.Sprintf("chat session with ID '%s' not found", sessionID), nil)
+		return core.lang.NewRuntimeError(core.ErrorCodeKeyNotFound, fmt.Sprintf("chat session with ID '%s' not found", sessionID), nil)
 	}
 	a.activeChatSessionID = sessionID
 	a.Log.Info("Active chat session set", "sessionID", sessionID)
@@ -157,10 +157,10 @@ func (a *App) SendChatMessageToActiveSession(ctx context.Context, message string
 	// GetActiveChatSession uses RLock internally, which is fine.
 	activeSession := a.GetActiveChatSession()
 	if activeSession == nil {
-		return nil, core.NewRuntimeError(core.ErrorCodePreconditionFailed, "no active chat session to send message to", nil)
+		return nil, core.lang.NewRuntimeError(core.ErrorCodePreconditionFailed, "no active chat session to send message to", nil)
 	}
 	if activeSession.WorkerInstance == nil {
-		return nil, core.NewRuntimeError(core.ErrorCodeInternal, fmt.Sprintf("active session '%s' has a nil WorkerInstance", activeSession.SessionID), nil)
+		return nil, core.lang.NewRuntimeError(core.ErrorCodeInternal, fmt.Sprintf("active session '%s' has a nil WorkerInstance", activeSession.SessionID), nil)
 	}
 
 	a.Log.Info("Sending message to active chat session",
@@ -228,7 +228,7 @@ func (a *App) CloseChatSession(sessionID string) error {
 
 	sessionToClose, exists := a.chatSessions[sessionID]
 	if !exists {
-		return core.NewRuntimeError(core.ErrorCodeKeyNotFound, fmt.Sprintf("chat session with ID '%s' not found for closing", sessionID), nil)
+		return core.lang.NewRuntimeError(core.ErrorCodeKeyNotFound, fmt.Sprintf("chat session with ID '%s' not found for closing", sessionID), nil)
 	}
 	// ... (rest of the logic for retiring worker instance) ...
 	// Ensure any logging here doesn't cause issues if called under lock.

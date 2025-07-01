@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.3.1
 // File version: 0.1.44 // Added more forceful stderr logging for tool extraction debug.
-// Purpose: Extracts a potential tool name from NeuroScript content at a given LSP position using AST analysis.
+// Purpose: Extracts a potential tool name from NeuroScript content at a given LSP lang.Position using AST analysis.
 // filename: pkg/nslsp/server_extracttool_b.go
 // nlines: 280
 // risk_rating: MEDIUM
@@ -14,7 +14,7 @@ import (
 	"strings"
 
 	"github.com/antlr4-go/antlr/v4"
-	gen "github.com/aprice2704/neuroscript/pkg/core/generated"
+	gen "github.com/aprice2704/neuroscript/pkg/parser/generated"
 	lsp "github.com/sourcegraph/go-lsp"
 )
 
@@ -269,10 +269,10 @@ func (s *Server) extractToolNameFromIdentifierRule(foundTokenNode antlr.Terminal
 		return ""
 	}
 
-	firstChildOfCallTarget := p2RuleCtx.GetChild(0)
-	ftTerm, okFt := firstChildOfCallTarget.(antlr.TerminalNode)
+	firstChildOfast.CallTarget := p2RuleCtx.GetChild(0)
+	ftTerm, okFt := firstChildOfast.CallTarget.(antlr.TerminalNode)
 	if !okFt || ftTerm.GetSymbol().GetTokenType() != gen.NeuroScriptLexerKW_TOOL {
-		forceDebugf(debugHover, "extractToolNameFromIdentifierRule: call_target does not start with KW_TOOL. First child: %s ('%s')", getRuleNameSafe(firstChildOfCallTarget, gen.NeuroScriptParserStaticData.RuleNames), truncateStringForLog(getTreeTextSafe(firstChildOfCallTarget), 20))
+		forceDebugf(debugHover, "extractToolNameFromIdentifierRule: call_target does not start with KW_TOOL. First child: %s ('%s')", getRuleNameSafe(firstChildOfast.CallTarget, gen.NeuroScriptParserStaticData.RuleNames), truncateStringForLog(getTreeTextSafe(firstChildOfast.CallTarget), 20))
 		return ""
 	}
 
@@ -280,17 +280,17 @@ func (s *Server) extractToolNameFromIdentifierRule(foundTokenNode antlr.Terminal
 	return s.extractAndValidateFullToolName(qiNode, debugHover)
 }
 
-func (s *Server) extractToolNameAtPosition(content string, position lsp.Position, sourceName string) string {
+func (s *Server) extractToolNameAtPosition(content string, lang.Position lsp.Position, sourceName string) string {
 	if s.logger == nil {
 		s.logger = log.New(os.Stderr, "[LSP_SERVER_FALLBACK_LOGGER] ", log.LstdFlags|log.Lmicroseconds|log.Lshortfile)
 	}
 
 	s.logger.Printf("INFO: extractToolNameAtPosition called. FileVersion: %s. Source: %s L%dC%d",
-		serverExtractToolFileVersion, sourceName, position.Line+1, position.Character+1)
+		serverExtractToolFileVersion, sourceName, lang.Position.Line+1, lang.Position.Character+1)
 
 	debugHover := os.Getenv("NSLSP_DEBUG_HOVER") != "" || os.Getenv("DEBUG_LSP_HOVER_TEST") != ""
 	if debugHover { // Initial indication that debug mode is active for this function call
-		forceDebugf(true, "extractToolNameAtPosition: Debug mode ENABLED. Source: %s L%dC%d", sourceName, position.Line+1, position.Character+1)
+		forceDebugf(true, "extractToolNameAtPosition: Debug mode ENABLED. Source: %s L%dC%d", sourceName, lang.Position.Line+1, lang.Position.Character+1)
 	}
 
 	if s.coreParserAPI == nil {
@@ -317,13 +317,13 @@ func (s *Server) extractToolNameAtPosition(content string, position lsp.Position
 	}
 
 	forceDebugf(debugHover, "extractToolNameAtPosition: AST for '%s' obtained. Root type: %s", sourceName, getRuleNameSafe(parseTreeRoot, gen.NeuroScriptParserStaticData.RuleNames))
-	forceDebugf(debugHover, "extractToolNameAtPosition: Calling findInitialNodeManually for '%s'. Target: L%dC%d.", sourceName, position.Line, position.Character)
-	foundTokenNode := findInitialNodeManually(parseTreeRoot, position.Line, position.Character, debugHover)
+	forceDebugf(debugHover, "extractToolNameAtPosition: Calling findInitialNodeManually for '%s'. Target: L%dC%d.", sourceName, lang.Position.Line, lang.Position.Character)
+	foundTokenNode := findInitialNodeManually(parseTreeRoot, lang.Position.Line, lang.Position.Character, debugHover)
 	determinedToolName := ""
 
 	if foundTokenNode == nil {
-		forceDebugf(debugHover, "extractToolNameAtPosition: findInitialNodeManually returned nil for '%s'. No token at cursor L%dC%d.", sourceName, position.Line, position.Character)
-		s.logger.Printf("INFO: extractToolName: No token at cursor L%dC%d for '%s'. Token: <foundNode_is_nil>", position.Line+1, position.Character+1, sourceName)
+		forceDebugf(debugHover, "extractToolNameAtPosition: findInitialNodeManually returned nil for '%s'. No token at cursor L%dC%d.", sourceName, lang.Position.Line, lang.Position.Character)
+		s.logger.Printf("INFO: extractToolName: No token at cursor L%dC%d for '%s'. Token: <foundNode_is_nil>", lang.Position.Line+1, lang.Position.Character+1, sourceName)
 		return ""
 	}
 
@@ -358,7 +358,7 @@ func (s *Server) extractToolNameAtPosition(content string, position lsp.Position
 			if initialTokenTypeAtCursor == gen.NeuroScriptLexerTRIPLE_BACKTICK_STRING {
 				quoteLen = 3
 			}
-			if tokenTextLen > (2*quoteLen-1) && position.Character > tokenStartCol+(quoteLen-1) && position.Character < (tokenStartCol+tokenTextLen-quoteLen) {
+			if tokenTextLen > (2*quoteLen-1) && lang.Position.Character > tokenStartCol+(quoteLen-1) && lang.Position.Character < (tokenStartCol+tokenTextLen-quoteLen) {
 				isCursorInsideStringContent = true
 			}
 		}
@@ -371,10 +371,10 @@ func (s *Server) extractToolNameAtPosition(content string, position lsp.Position
 	finalFoundNodeText := "'" + foundTokenNode.GetText() + "'"
 	if determinedToolName != "" {
 		s.logger.Printf("INFO: extractToolName: Tool name '%s' extracted and validated for '%s' L%dC%d. Token: %s",
-			determinedToolName, sourceName, position.Line+1, position.Character+1, finalFoundNodeText)
+			determinedToolName, sourceName, lang.Position.Line+1, lang.Position.Character+1, finalFoundNodeText)
 	} else {
 		s.logger.Printf("INFO: extractToolName: No registered 'tool.X' style tool name identified for '%s' L%dC%d. Token: %s",
-			sourceName, position.Line+1, position.Character+1, finalFoundNodeText)
+			sourceName, lang.Position.Line+1, lang.Position.Character+1, finalFoundNodeText)
 	}
 	return determinedToolName
 }

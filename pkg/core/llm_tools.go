@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
+	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/google/generative-ai-go/genai" // Keep for genai.Part potentially
 )
 
@@ -71,11 +72,11 @@ func callLLMWithParts(ctx context.Context, llmClient interfaces.LLMClient, parts
 // TOOL.LLM.Ask
 func toolLLMAsk(interpreter *Interpreter, args []interface{}) (interface{}, error) {
 	if len(args) < 1 {
-		return nil, NewRuntimeError(ErrorCodeArgMismatch, "LLM.Ask: expected 1 argument (prompt)", ErrArgumentMismatch)
+		return nil, lang.NewRuntimeError(ErrorCodeArgMismatch, "LLM.Ask: expected 1 argument (prompt)", ErrArgumentMismatch)
 	}
 	prompt, ok := args[0].(string)
 	if !ok {
-		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("LLM.Ask: argument 'prompt' must be a string, got %T", args[0]), ErrInvalidArgument)
+		return nil, lang.NewRuntimeError(ErrorCodeType, fmt.Sprintf("LLM.Ask: argument 'prompt' must be a string, got %T", args[0]), ErrInvalidArgument)
 	}
 
 	if interpreter.llmClient == nil {
@@ -93,7 +94,7 @@ func toolLLMAsk(interpreter *Interpreter, args []interface{}) (interface{}, erro
 // TOOL.LLM.AskWithParts
 func toolLLMAskWithParts(interpreter *Interpreter, args []interface{}) (interface{}, error) {
 	if len(args) < 1 {
-		return nil, NewRuntimeError(ErrorCodeArgMismatch, "LLM.AskWithParts: expected 1 argument (parts)", ErrArgumentMismatch)
+		return nil, lang.NewRuntimeError(ErrorCodeArgMismatch, "LLM.AskWithParts: expected 1 argument (parts)", ErrArgumentMismatch)
 	}
 	partsArg := args[0]
 
@@ -111,13 +112,13 @@ func toolLLMAskWithParts(interpreter *Interpreter, args []interface{}) (interfac
 				// else if part, ok := p.(genai.Part); ok {
 				// genaiParts = append(genaiParts, part)
 				// }
-				return nil, NewRuntimeError(ErrorCodeType,
+				return nil, lang.NewRuntimeError(ErrorCodeType,
 					fmt.Sprintf("LLM.AskWithParts: 'parts' element at index %d (type %T) must be a string for current implementation", idx, p),
 					ErrInvalidArgument)
 			}
 		}
 	} else {
-		return nil, NewRuntimeError(ErrorCodeType, fmt.Sprintf("LLM.AskWithParts: invalid argument type for 'parts': expected a list, got %T", partsArg), ErrInvalidArgument)
+		return nil, lang.NewRuntimeError(ErrorCodeType, fmt.Sprintf("LLM.AskWithParts: invalid argument type for 'parts': expected a list, got %T", partsArg), ErrInvalidArgument)
 	}
 
 	if interpreter.llmClient == nil {
