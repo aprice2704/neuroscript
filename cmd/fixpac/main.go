@@ -59,26 +59,150 @@ func main() {
 	}
 	log.Printf("Successfully loaded and indexed %d unique symbols.", len(symbolToFileMap))
 
-	allErrors, err := checkAllFilesOneByOne()
+	goFiles, err := findGoFiles(".")
 	if err != nil {
-		log.Fatalf("Failed during file checking: %v", err)
+		log.Fatalf("Failed to find Go files: %v", err)
+	}
+	log.Printf("Found %d Go files to check.", len(goFiles))
+	fmt.Println()
+
+	totalErrorsFound := 0
+
+	// ### MAIN PROCESSING LOOP ###
+	// Process each file completely before moving to the next.
+	for i, file := range goFiles {
+		log.Printf("Processing file (%d/%d): %s", i+1, len(goFiles), file)
+
+		// Run gopls check on the single file
+		cmd := exec.Command("gopls", "check", file)
+		output, _ := cmd.CombinedOutput()
+		errorsForThisFile := parseGoplsErrors(output)
+
+		if len(errorsForThisFile) == 0 {
+			continue // No errors, move to the next file
+		}
+
+		totalErrorsFound += len(errorsForThisFile)
+		fmt.Printf("--- Found %d issue(s) in %s ---\n", len(errorsForThisFile), file)
+
+		if err := processFile(file, errorsForThisFile, symbolToFileMap, *dryRun); err != nil {
+			log.Printf("ERROR: Could not process file %s: %v", file, err)
+		}
+		fmt.Println() // Blank line for readability
 	}
 
-	if len(allErrors) == 0 {
-		fmt.Println("\nNo 'undefined' symbol errors found in any files.")
+	log.Printf("Processing complete. Found a total of %d undefined symbols.", totalErrorsFound)
+	if *dryRun {
+		log.Println("Dry run finished. No files were modified.")
+	} else {
+		log.Println("Fixes applied.")
+	}
+}
+
+// processFile handles all suggestions or modifications for a single file.
+func processFile(file string, errors []VetError, symbolMap map[string]string, dryRun bool) error {
+	content, err := os.ReadFile(file)
+	if err != nil {
+		return err
+	}
+	lines := strings.Split(string(content), "\n")
+
+	currentPkg, err := getFilePackageName(file)
+	if err != nil {
+		return err
+	}
+
+	if dryRun {
+		// In dry-run mode, just print suggestions for the file's errors.
+		for _, vetErr := range errors {
+			printSuggestion(lines, vetErr, symbolMap, currentPkg)
+		}
+		return nil
+	}
+
+	// In write mode, apply all fixes and then save the file.
+	modifiedLines := make([]string, len(lines))
+	copy(modifiedLines, lines)
+	modificationsMade := 0
+
+	for _, vetErr := range errors {
+		defFile, ok := symbolMap[vetErr.Symbol]
+		if !ok {
+			continue
+		}
+		symbolPkg := getPackageFromPath(defFile)
+
+		if currentPkg != symbolPkg {
+			lineIndex := vetErr.LineNumber - 1
+			originalLine := modifiedLines[lineIndex]
+			fixedLine := applyFix(originalLine, vetErr.Symbol, symbolPkg, "")
+			if fixedLine != originalLine {
+				modifiedLines[lineIndex] = fixedLine
+				modificationsMade++
+			}
+		}
+	}
+
+	if modificationsMade > 0 {
+		output := strings.Join(modifiedLines, "\n")
+		if err := os.WriteFile(file, []byte(output), 0644); err != nil {
+			return fmt.Errorf("failed to write changes: %w", err)
+		}
+		log.Printf("Modified %s to fix %d undefined symbols.", file, modificationsMade)
+
+		cmd := exec.Command("gopls", "imports", "-w", file)
+		if err := cmd.Run(); err != nil {
+			log.Printf("Warning: 'gopls imports -w %s' failed: %v", file, err)
+		} else {
+			log.Printf("Updated imports for %s.", file)
+		}
+	}
+
+	return nil
+}
+
+// printSuggestion calculates and prints a single colored suggestion for dry-run mode.
+func printSuggestion(lines []string, vetErr VetError, symbolMap map[string]string, currentPkg string) {
+	defFile, ok := symbolMap[vetErr.Symbol]
+	if !ok {
 		return
 	}
-	fmt.Printf("\nFound %d 'undefined' symbol error(s) across all files.\n\n", len(allErrors))
+	symbolPkg := getPackageFromPath(defFile)
 
-	if err := suggestAndFix(allErrors, symbolToFileMap, *dryRun); err != nil {
-		log.Fatalf("Error suggesting or applying fixes: %v", err)
-	}
+	if currentPkg != symbolPkg && vetErr.LineNumber > 0 && vetErr.LineNumber <= len(lines) {
+		originalLine := lines[vetErr.LineNumber-1]
+		displayLine := applyFix(originalLine, vetErr.Symbol, symbolPkg, colorGreen)
 
-	if *dryRun {
-		fmt.Println("Dry run complete. No files were modified.")
-	} else {
-		fmt.Println("Fixes applied successfully.")
+		if displayLine != originalLine {
+			fmt.Printf("L%d: Missing import for symbol '%s' (package: %s)\n", vetErr.LineNumber, vetErr.Symbol, symbolPkg)
+			fmt.Printf("  Original: %s\n", strings.TrimSpace(originalLine))
+			fmt.Printf("  Proposed: %s\n", strings.TrimSpace(displayLine))
+		}
 	}
+}
+
+// applyFix intelligently replaces a symbol on a line, skipping struct fields.
+func applyFix(line, symbol, pkg, color string) string {
+	re := regexp.MustCompile(`\b` + regexp.QuoteMeta(symbol) + `\b`)
+	matches := re.FindAllStringIndex(line, -1)
+
+	for i := len(matches) - 1; i >= 0; i-- {
+		match := matches[i]
+		start, end := match[0], match[1]
+
+		if end < len(line) && line[end] == ':' {
+			continue
+		}
+
+		var replacement string
+		if color != "" {
+			replacement = color + pkg + colorReset + "." + symbol
+		} else {
+			replacement = pkg + "." + symbol
+		}
+		line = line[:start] + replacement + line[end:]
+	}
+	return line
 }
 
 // findGoFiles recursively finds all Go files from a root directory.
@@ -96,40 +220,26 @@ func findGoFiles(root string) ([]string, error) {
 	return files, err
 }
 
-// checkAllFilesOneByOne finds all Go files and runs `gopls check` on each one.
-func checkAllFilesOneByOne() ([]VetError, error) {
-	goFiles, err := findGoFiles(".")
-	if err != nil {
-		return nil, fmt.Errorf("error finding go files: %w", err)
-	}
-
-	log.Printf("Found %d Go files to check.", len(goFiles))
-	var allErrors []VetError
-
-	for i, file := range goFiles {
-		log.Printf("Checking file (%d/%d): %s", i+1, len(goFiles), file)
-		cmd := exec.Command("gopls", "check", file)
-		output, _ := cmd.CombinedOutput()
-
-		for _, line := range strings.Split(string(output), "\n") {
-			matches := goplsRe.FindStringSubmatch(line)
-			if len(matches) == 4 {
-				absPath := matches[1]
-				relPath, err := filepath.Rel(".", absPath)
-				if err != nil {
-					relPath = absPath
-				}
-
-				lineNum, _ := strconv.Atoi(matches[2])
-				allErrors = append(allErrors, VetError{
-					File:       relPath,
-					LineNumber: lineNum,
-					Symbol:     strings.TrimSpace(matches[3]),
-				})
+// parseGoplsErrors parses the text output from a `gopls check` command.
+func parseGoplsErrors(goplsOutput []byte) []VetError {
+	var errors []VetError
+	for _, line := range strings.Split(string(goplsOutput), "\n") {
+		matches := goplsRe.FindStringSubmatch(line)
+		if len(matches) == 4 {
+			absPath := matches[1]
+			relPath, err := filepath.Rel(".", absPath)
+			if err != nil {
+				relPath = absPath
 			}
+			lineNum, _ := strconv.Atoi(matches[2])
+			errors = append(errors, VetError{
+				File:       relPath,
+				LineNumber: lineNum,
+				Symbol:     strings.TrimSpace(matches[3]),
+			})
 		}
 	}
-	return allErrors, nil
+	return errors
 }
 
 // readAndFlattenSymbolIndex reads the pkg_idx.json file and creates a unified map of symbols.
@@ -156,121 +266,6 @@ func readAndFlattenSymbolIndex(path string) (map[string]string, error) {
 		}
 	}
 	return flatIndex, nil
-}
-
-// applyFix intelligently replaces a symbol on a line, skipping struct fields.
-func applyFix(line, symbol, pkg, color string) string {
-	re := regexp.MustCompile(`\b` + regexp.QuoteMeta(symbol) + `\b`)
-	matches := re.FindAllStringIndex(line, -1)
-
-	// Iterate backwards to avoid messing up indices of subsequent replacements on the same line.
-	for i := len(matches) - 1; i >= 0; i-- {
-		match := matches[i]
-		start, end := match[0], match[1]
-
-		// Heuristic: If the symbol is followed by a colon, it's a struct field key. Skip it.
-		if end < len(line) && line[end] == ':' {
-			continue
-		}
-
-		var replacement string
-		if color != "" {
-			replacement = color + pkg + colorReset + "." + symbol
-		} else {
-			replacement = pkg + "." + symbol
-		}
-
-		line = line[:start] + replacement + line[end:]
-	}
-	return line
-}
-
-// suggestAndFix iterates through errors, then either prints suggestions or applies fixes.
-func suggestAndFix(errors []VetError, symbolToFileMap map[string]string, dryRun bool) error {
-	errorsByFile := make(map[string][]VetError)
-	for _, err := range errors {
-		errorsByFile[err.File] = append(errorsByFile[err.File], err)
-	}
-
-	for file, errs := range errorsByFile {
-		fmt.Printf("--- Processing: %s ---\n", file)
-		fileContent, err := os.ReadFile(file)
-		if err != nil {
-			log.Printf("Warning: Could not read file %s: %v", file, err)
-			continue
-		}
-		lines := strings.Split(string(fileContent), "\n")
-		modifiedLines := make([]string, len(lines))
-		copy(modifiedLines, lines)
-		modificationsMade := 0
-
-		currentPkg, err := getFilePackageName(file)
-		if err != nil {
-			log.Printf("Warning: Could not determine package for %s: %v", file, err)
-			continue
-		}
-
-		// In write mode, we apply all fixes to the in-memory copy of the file first.
-		if !dryRun {
-			for _, vetErr := range errs {
-				defFile, ok := symbolToFileMap[vetErr.Symbol]
-				if !ok {
-					continue
-				}
-				symbolPkg := getPackageFromPath(defFile)
-
-				if currentPkg != symbolPkg {
-					lineIndex := vetErr.LineNumber - 1
-					originalLine := modifiedLines[lineIndex]
-					fixedLine := applyFix(originalLine, vetErr.Symbol, symbolPkg, "")
-					if fixedLine != originalLine {
-						modifiedLines[lineIndex] = fixedLine
-						modificationsMade++
-					}
-				}
-			}
-		}
-
-		// Now, either write the changes or print the dry-run suggestions.
-		if !dryRun && modificationsMade > 0 {
-			output := strings.Join(modifiedLines, "\n")
-			if err := os.WriteFile(file, []byte(output), 0644); err != nil {
-				log.Printf("ERROR: Failed to write changes to %s: %v", file, err)
-				continue
-			}
-			log.Printf("Modified %s to fix %d undefined symbols.", file, modificationsMade)
-
-			cmd := exec.Command("gopls", "imports", "-w", file)
-			if err := cmd.Run(); err != nil {
-				log.Printf("Warning: 'gopls imports -w %s' failed: %v", file, err)
-			} else {
-				log.Printf("Updated imports for %s.", file)
-			}
-		} else if dryRun {
-			// In dry-run mode, we calculate suggestions based on the original lines.
-			for _, vetErr := range errs {
-				defFile, ok := symbolToFileMap[vetErr.Symbol]
-				if !ok {
-					continue
-				}
-				symbolPkg := getPackageFromPath(defFile)
-
-				if currentPkg != symbolPkg {
-					lineIndex := vetErr.LineNumber - 1
-					originalLine := lines[lineIndex]
-					displayLine := applyFix(originalLine, vetErr.Symbol, symbolPkg, colorGreen)
-
-					if displayLine != originalLine {
-						fmt.Printf("L%d: Missing import for symbol '%s' (package: %s)\n", vetErr.LineNumber, vetErr.Symbol, symbolPkg)
-						fmt.Printf("  Original: %s\n", strings.TrimSpace(originalLine))
-						fmt.Printf("  Proposed: %s\n", strings.TrimSpace(displayLine))
-					}
-				}
-			}
-		}
-		fmt.Println()
-	}
-	return nil
 }
 
 // getFilePackageName reads a Go file to find its package declaration.
