@@ -98,16 +98,16 @@ func TestGenerateEnhancedToolDetails_WithSelectedRealTools(t *testing.T) {
 	var configMap map[string]interface{}
 	var bootstrapScripts []string
 
-	interpreter, err := core.NewInterpreter(
+	interpreter, err :=  NewInterpreter(
 		logger, llmClient, workspacePath, configMap, bootstrapScripts,
 	)
 	if err != nil {
-		t.Fatalf("core.NewInterpreter failed: %v", err)
+		t.Fatalf(" nterpreter failed: %v", err)
 	}
 
 	numInterpreterTools := len(interpreter.ListTools())
 	if numInterpreterTools == 0 {
-		t.Fatalf("Interpreter has no tools listed. Check tool registration in core.")
+		t.Fatalf("Interpreter has no tools listed. Check tool registration in  
 	}
 	t.Logf("Interpreter has %d tools listed. Processing details...", numInterpreterTools)
 
@@ -134,7 +134,7 @@ func TestGenerateEnhancedToolDetails_WithSelectedRealTools(t *testing.T) {
 	checks := []toolCheck{
 		{
 			specName:                               "Concat",
-			expectedRuntimeFQN:                     "github.com/aprice2704/neuroscript/pkg/core.toolStringConcat",
+			expectedRuntimeFQN:                     "github.com/aprice2704/neuroscript/pkg/ StringConcat",
 			isUnstableFQN:                          false,
 			expectedSourceFileNotEmpty:             true,
 			expectedComponentPath:                  "pkg/core",
@@ -142,7 +142,7 @@ func TestGenerateEnhancedToolDetails_WithSelectedRealTools(t *testing.T) {
 		},
 		{
 			specName:                               "Meta.ListTools",
-			expectedRuntimeFQN:                     "github.com/aprice2704/neuroscript/pkg/core.toolListTools",
+			expectedRuntimeFQN:                     "github.com/aprice2704/neuroscript/pkg/ ListTools",
 			expectedPackagePathForUnstableFQN:      "github.com/aprice2704/neuroscript/pkg/core",
 			isUnstableFQN:                          true,
 			expectedSourceFileNotEmpty:             false, // Assume not reliably found by indexer
@@ -151,7 +151,7 @@ func TestGenerateEnhancedToolDetails_WithSelectedRealTools(t *testing.T) {
 		},
 		{
 			specName:                               "AIWorkerDefinition.Get",
-			expectedRuntimeFQN:                     "github.com/aprice2704/neuroscript/pkg/core.init.func3", // Use the one observed in logs
+			expectedRuntimeFQN:                     "github.com/aprice2704/neuroscript/pkg/ .func3", // Use the one observed in logs
 			expectedPackagePathForUnstableFQN:      "github.com/aprice2704/neuroscript/pkg/core",
 			isUnstableFQN:                          true,
 			expectedSourceFileNotEmpty:             false, // Expect not found by current indexer

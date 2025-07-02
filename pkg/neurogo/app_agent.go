@@ -14,7 +14,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/aprice2704/neuroscript/pkg/core"
 	"github.com/google/generative-ai-go/genai"
 )
 
@@ -29,7 +28,7 @@ func (app *App) runAgentMode(ctx context.Context) error {
 		return fmt.Errorf("cannot run agent mode: Interpreter is nil")
 	}
 
-	convoManager := core.NewConversationManager(app.Log)
+	convoManager := llm.NewConversationManager(app.Log)
 	if convoManager == nil {
 		return fmt.Errorf("failed to create conversation manager")
 	}
@@ -156,7 +155,7 @@ func (app *App) registerAgentTools(agentCtx *AgentContext) error {
 }
 
 // handleTurn processes a single turn of the conversation.
-func (app *App) handleTurn(ctx context.Context, convoManager *core.ConversationManager, agentCtx *AgentContext) error {
+func (app *App) handleTurn(ctx context.Context, convoManager *ersationManager, agentCtx *AgentContext) error {
 	// ... (setup unchanged) ...
 	app.Log.Debug("Handling agent turn...")
 
@@ -178,7 +177,7 @@ func (app *App) handleTurn(ctx context.Context, convoManager *core.ConversationM
 	var allowedTools []string = nil
 	var allowedPaths map[string]bool = nil
 	sandboxDir := app.interpreter.SandboxDir()
-	securityLayer := core.NewSecurityLayer(
+	securityLayer := ecurityLayer(
 		allowedTools,
 		allowedPaths,
 		sandboxDir,
@@ -226,16 +225,16 @@ func (app *App) executeStartupScript(ctx context.Context, scriptPath string, age
 	}
 
 	// 1. Read file content using the interpreter's tool.
-	filepathArg, err := core.Wrap(scriptPath)
+	filepathArg, err := (scriptPath)
 	if err != nil {
 		return fmt.Errorf("internal error wrapping script path '%s': %w", scriptPath, err)
 	}
-	toolArgs := map[string]core.Value{"filepath": filepathArg}
+	toolArgs := map[string]e{"filepath": filepathArg}
 	contentValue, err := app.interpreter.ExecuteTool("TOOL.ReadFile", toolArgs)
 	if err != nil {
 		return fmt.Errorf("failed to read startup script file '%s': %w", scriptPath, err)
 	}
-	scriptContent, ok := core.Unwrap(contentValue).(string)
+	scriptContent, ok := ap(contentValue).(string)
 	if !ok {
 		return fmt.Errorf("internal error: TOOL.ReadFile did not return a string for '%s'", scriptPath)
 	}
@@ -253,8 +252,8 @@ func (app *App) executeStartupScript(ctx context.Context, scriptPath string, age
 
 	if runErr != nil {
 		// If the procedure simply doesn't exist, it's not a fatal error for a startup script.
-		var rErr *core.RuntimeError
-		if errors.As(runErr, &rErr) && rErr.Code == core.ErrorCodeProcNotFound {
+		var rErr *imeError
+		if errors.As(runErr, &rErr) && rErr.Code == rCodeProcNotFound {
 			app.Log.Warn("No 'main' procedure found in startup script, nothing to execute.", "path", scriptPath)
 			return nil
 		}
@@ -268,7 +267,7 @@ func (app *App) executeStartupScript(ctx context.Context, scriptPath string, age
 }
 
 // getAvailableTools prepares the list of genai.Tools for the LLM call.
-func getAvailableTools(agentCtx *AgentContext, registry core.ToolRegistry) []*genai.Tool {
+func getAvailableTools(agentCtx *AgentContext, registry Registry) []*genai.Tool {
 	if registry == nil {
 		fmt.Println("[AGENT] Warning: Tool registry is nil in getAvailableTools.")
 		return []*genai.Tool{}

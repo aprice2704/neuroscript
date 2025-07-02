@@ -28,7 +28,7 @@ func TestFindFunction(t *testing.T) {
 	if fn == nil {
 		t.Fatalf("FindFunction returned nil function detail for %s.%s", packageName, funcName)
 	}
-	expectedFQN := "example.com/testproj/pkg/core.PublicFunction"
+	expectedFQN := "example.com/testproj/pkg/ PublicFunction"
 	if fn.Name != expectedFQN {
 		t.Errorf("Expected function FQN '%s', got '%s'", expectedFQN, fn.Name)
 	}
@@ -62,7 +62,7 @@ func TestFindStruct(t *testing.T) {
 	if strct.Name != coreStructName {
 		t.Errorf("Expected struct name '%s', got '%s'", coreStructName, strct.Name)
 	}
-	expectedFQN := "example.com/testproj/pkg/core.CoreStruct"
+	expectedFQN := "example.com/testproj/pkg/ Struct"
 	if strct.FQN != expectedFQN {
 		t.Errorf("Expected struct FQN '%s', got '%s'", expectedFQN, strct.FQN)
 	}
@@ -118,7 +118,7 @@ func TestFindMethod(t *testing.T) {
 			name:                 "Pointer receiver method in core",
 			componentName:        "core",
 			packagePath:          "example.com/testproj/pkg/core",
-			methodFQNToSearch:    "example.com/testproj/pkg/core.(*CoreStruct).GetValue",
+			methodFQNToSearch:    "example.com/testproj/pkg/ reStruct).GetValue",
 			expectedMethodName:   "GetValue",
 			expectedReceiverType: "*CoreStruct",
 			expectedSourceFile:   "structs.go",
@@ -128,7 +128,7 @@ func TestFindMethod(t *testing.T) {
 			name:                 "Value receiver method in core",
 			componentName:        "core",
 			packagePath:          "example.com/testproj/pkg/core",
-			methodFQNToSearch:    "example.com/testproj/pkg/core.(CoreStruct).SetValue",
+			methodFQNToSearch:    "example.com/testproj/pkg/ eStruct).SetValue",
 			expectedMethodName:   "SetValue",
 			expectedReceiverType: "CoreStruct",
 			expectedSourceFile:   "structs.go",
@@ -148,7 +148,7 @@ func TestFindMethod(t *testing.T) {
 			name:              "Non-existent method FQN in core",
 			componentName:     "core",
 			packagePath:       "example.com/testproj/pkg/core",
-			methodFQNToSearch: "example.com/testproj/pkg/core.(*CoreStruct).NonExistentMethod",
+			methodFQNToSearch: "example.com/testproj/pkg/ reStruct).NonExistentMethod",
 			expectFound:       false,
 		},
 	}

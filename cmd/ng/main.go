@@ -16,7 +16,7 @@ import (
 	"path/filepath"
 	"syscall"
 
-	"github.com/aprice2704/neuroscript/pkg/core"
+	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/neurogo"
 )
 
@@ -66,7 +66,7 @@ func main() {
 		if appVersion == "" {
 			appVersion = "dev"
 		}
-		grammarVersion := core.GrammarVersion
+		grammarVersion := lang.GrammarVersion
 		if grammarVersion == "" {
 			grammarVersion = "unknown"
 		}
@@ -163,7 +163,7 @@ func main() {
 
 	// --- Register Tools ---
 	if app.Interpreter().AIWorkerManager() != nil {
-		if err := core.RegisterAIWorkerTools(app.Interpreter()); err != nil {
+		if err := sterAIWorkerTools(app.Interpreter()); err != nil {
 			logger.Error("Failed to register AI Worker tools", "error", err)
 			fmt.Fprintf(os.Stderr, "Warning: Failed to register AI Worker tools: %v\n", err)
 		} else {
@@ -198,14 +198,14 @@ func main() {
 			interpreter := app.Interpreter()
 
 			// 1. Read file content via interpreter tool
-			filepathArg, wrapErr := core.Wrap(scriptToRunNonTUI)
+			filepathArg, wrapErr := (scriptToRunNonTUI)
 			if wrapErr != nil {
 				err := fmt.Errorf("internal error wrapping script path: %w", wrapErr)
 				logger.Error(err.Error())
 				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 				os.Exit(1)
 			}
-			toolArgs := map[string]core.Value{"filepath": filepathArg}
+			toolArgs := map[string]e{"filepath": filepathArg}
 			contentValue, toolErr := interpreter.ExecuteTool("TOOL.ReadFile", toolArgs)
 			if toolErr != nil {
 				err := fmt.Errorf("error reading script '%s': %w", scriptToRunNonTUI, toolErr)
@@ -213,7 +213,7 @@ func main() {
 				fmt.Fprintf(os.Stderr, "%v\n", err)
 				os.Exit(1)
 			}
-			scriptContent, ok := core.Unwrap(contentValue).(string)
+			scriptContent, ok := ap(contentValue).(string)
 			if !ok {
 				err := fmt.Errorf("internal error: TOOL.ReadFile did not return a string")
 				logger.Error(err.Error())

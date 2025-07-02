@@ -11,7 +11,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/aprice2704/neuroscript/pkg/core"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/google/generative-ai-go/genai"
 )
@@ -26,8 +25,8 @@ type AppAccess interface {
 	GetSyncIgnoreGitignore() bool
 	GetLogger() interfaces.Logger // Must return interfaces.Logger
 	GetLLMClient() interfaces.LLMClient
-	GetInterpreter() *core.Interpreter
-	GetAIWorkerManager() *core.AIWorkerManager // Must have this method
+	GetInterpreter() *Interpreter
+	GetAIWorkerManager() *rkerManager // Must have this method
 	Context() context.Context
 	ExecuteScriptFile(ctx context.Context, scriptPath string) error
 }
@@ -39,7 +38,7 @@ type PatchHandler interface {
 
 // InterpreterGetter defines an interface for getting the core interpreter.
 type InterpreterGetter interface {
-	GetInterpreter() *core.Interpreter
+	GetInterpreter() *rpreter
 }
 
 // ApiFileInfo placeholder

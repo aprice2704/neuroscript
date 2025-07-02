@@ -7,19 +7,19 @@
 
 package core
 
-var specAIWorkerDefinitionGet = ToolSpec{
+var specAIWorkerDefinitionGet = tool.ToolSpec{
 	Name:            "AIWorkerDefinition.Get",
 	Description:     "Retrieves an AI Worker Definition by its ID.",
 	Category:        "AI Worker Management",
-	Args:            []ArgSpec{{Name: "definition_id", Type: ArgTypeString, Required: true, Description: "The unique ID of the definition to retrieve."}},
+	Args:            []tool.ArgSpec{{Name: "definition_id", Type: tool.ArgTypeString, Required: true, Description: "The unique ID of the definition to retrieve."}},
 	ReturnType:      "map",
 	ReturnHelp:      "Returns a map representing the AIWorkerDefinition struct. Returns nil if not found or on error.",
 	Example:         `TOOL.AIWorkerDefinition.Get(definition_id: "google-gemini-1.5-pro")`,
 	ErrorConditions: "ErrAIWorkerManagerMissing; ErrInvalidArgument if definition_id is not provided or not a string; ErrDefinitionNotFound if definition with ID does not exist.",
 }
-var toolAIWorkerDefinitionGet = ToolImplementation{
+var toolAIWorkerDefinitionGet = tool.ToolImplementation{
 	Spec: specAIWorkerDefinitionGet,
-	Func: func(i *Interpreter, args []interface{}) (interface{}, error) {
+	Func: func(i *neurogo.Interpreter, args []interface{}) (interface{}, error) {
 		m, err := getAIWorkerManager(i)
 		if err != nil {
 			return nil, err
@@ -34,19 +34,19 @@ var toolAIWorkerDefinitionGet = ToolImplementation{
 	},
 }
 
-var specAIWorkerDefinitionList = ToolSpec{
+var specAIWorkerDefinitionList = tool.ToolSpec{
 	Name:            "AIWorkerDefinition.List",
 	Description:     "Lists all AI Worker Definitions, optionally filtered.",
 	Category:        "AI Worker Management",
-	Args:            []ArgSpec{{Name: "filters", Type: ArgTypeMap, Required: false, Description: "Optional map of filters (e.g., {'provider':'google', 'status':'active'})."}},
+	Args:            []tool.ArgSpec{{Name: "filters", Type: tool.ArgTypeMap, Required: false, Description: "Optional map of filters (e.g., {'provider':'google', 'status':'active'})."}},
 	ReturnType:      "slice",
 	ReturnHelp:      "Returns a slice of maps, where each map represents an AIWorkerDefinition. Returns an empty slice if no definitions match or exist.",
 	Example:         `TOOL.AIWorkerDefinition.List(filters: {"provider":"google"})`,
 	ErrorConditions: "ErrAIWorkerManagerMissing; ErrInvalidArgument if filters is not a map.",
 }
-var toolAIWorkerDefinitionList = ToolImplementation{
+var toolAIWorkerDefinitionList = tool.ToolImplementation{
 	Spec: specAIWorkerDefinitionList,
-	Func: func(i *Interpreter, args []interface{}) (interface{}, error) {
+	Func: func(i *neurogo.Interpreter, args []interface{}) (interface{}, error) {
 		m, err := getAIWorkerManager(i)
 		if err != nil {
 			return nil, err

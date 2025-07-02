@@ -21,10 +21,10 @@ import (
 // This method assumes the caller holds the necessary locks (typically Write Lock).
 func (m *AIWorkerManager) logPerformanceRecordUnsafe(record *PerformanceRecord) error {
 	if record == nil {
-		return lang.NewRuntimeError(ErrorCodeArgMismatch, "cannot log a nil performance record", ErrInvalidArgument)
+		return lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "cannot log a nil performance record", lang.ErrInvalidArgument)
 	}
 	if record.DefinitionID == "" {
-		return lang.NewRuntimeError(ErrorCodeArgMismatch, "performance record is missing DefinitionID", ErrInvalidArgument)
+		return lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "performance record is missing DefinitionID", lang.ErrInvalidArgument)
 	}
 
 	if record.TaskID == "" {
@@ -36,7 +36,7 @@ func (m *AIWorkerManager) logPerformanceRecordUnsafe(record *PerformanceRecord) 
 	def, defExists := m.definitions[record.DefinitionID]
 	if !defExists {
 		m.logger.Warnf("Definition ID '%s' not found when trying to log performance record (TaskID: %s). Summary will not be updated.", record.DefinitionID, record.TaskID)
-		return lang.NewRuntimeError(ErrorCodeKeyNotFound, fmt.Sprintf("definition ID '%s' not found when logging performance record (TaskID: %s)", record.DefinitionID, record.TaskID), ErrNotFound)
+		return lang.NewRuntimeError(lang.ErrorCodeKeyNotFound, fmt.Sprintf("definition ID '%s' not found when logging performance record (TaskID: %s)", record.DefinitionID, record.TaskID), lang.ErrNotFound)
 	}
 
 	summary := def.AggregatePerformanceSummary // summary is *AIWorkerPerformanceSummary
@@ -55,7 +55,7 @@ func (m *AIWorkerManager) logPerformanceRecordUnsafe(record *PerformanceRecord) 
 
 	if record.LLMMetrics != nil {
 		if tokens, ok := record.LLMMetrics["input_tokens"]; ok {
-			val, converted := toInt64(tokens) // Using existing helper
+			val, converted := lang.toInt64(tokens) // Using existing helper
 			if converted {
 				summary.TotalTokensProcessed += val
 			} else {
@@ -63,7 +63,7 @@ func (m *AIWorkerManager) logPerformanceRecordUnsafe(record *PerformanceRecord) 
 			}
 		}
 		if tokens, ok := record.LLMMetrics["output_tokens"]; ok {
-			val, converted := toInt64(tokens) // Using existing helper
+			val, converted := lang.toInt64(tokens) // Using existing helper
 			if converted {
 				summary.TotalTokensProcessed += val
 			} else {
@@ -104,7 +104,7 @@ func (m *AIWorkerManager) GetPerformanceRecordsForDefinition(definitionID string
 	defer m.mu.RUnlock()
 
 	if _, exists := m.definitions[definitionID]; !exists {
-		return nil, lang.NewRuntimeError(ErrorCodeKeyNotFound, fmt.Sprintf("worker definition with ID '%s' not found when getting performance records", definitionID), ErrNotFound)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeKeyNotFound, fmt.Sprintf("worker definition with ID '%s' not found when getting performance records", definitionID), lang.ErrNotFound)
 	}
 
 	allRetiredData, err := m.loadAllRetiredInstanceDataUnsafe() // This now correctly calls the refactored path logic
@@ -140,7 +140,7 @@ func (m *AIWorkerManager) loadAllRetiredInstanceDataUnsafe() ([]RetiredInstanceI
 	perfPath := m.FullPathForPerformanceData()
 	if perfPath == "" {
 		m.logger.Error("Cannot load performance data: file path is not configured in AIWorkerManager.")
-		return nil, lang.NewRuntimeError(ErrorCodeConfiguration, "performance data file path not configured", ErrConfiguration)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeConfiguration, "performance data file path not configured", lang.ErrConfiguration)
 	}
 
 	data, err := os.ReadFile(perfPath)
@@ -150,7 +150,7 @@ func (m *AIWorkerManager) loadAllRetiredInstanceDataUnsafe() ([]RetiredInstanceI
 			return []RetiredInstanceInfo{}, nil // Return nil error as per previous logic for os.IsNotExist
 		}
 		m.logger.Errorf("Error reading performance data file '%s': %v", perfPath, err)
-		return nil, lang.NewRuntimeError(ErrorCodeInternal, fmt.Sprintf("error reading performance data file '%s'", perfPath), err)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, fmt.Sprintf("error reading performance data file '%s'", perfPath), err)
 	}
 	if len(data) == 0 {
 		m.logger.Debugf("Performance data file '%s' is empty.", perfPath)
@@ -160,7 +160,7 @@ func (m *AIWorkerManager) loadAllRetiredInstanceDataUnsafe() ([]RetiredInstanceI
 	var allInfo []RetiredInstanceInfo
 	if err := json.Unmarshal(data, &allInfo); err != nil {
 		m.logger.Errorf("Failed to unmarshal performance data from '%s': %v", perfPath, err)
-		return nil, lang.NewRuntimeError(ErrorCodeInternal, fmt.Sprintf("failed to unmarshal performance data from '%s'", perfPath), err)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, fmt.Sprintf("failed to unmarshal performance data from '%s'", perfPath), err)
 	}
 	m.logger.Debugf("Successfully loaded %d RetiredInstanceInfo records from %s", len(allInfo), perfPath)
 	return allInfo, nil
@@ -201,19 +201,19 @@ func (m *AIWorkerManager) matchesPerformanceRecordFilters(record *PerformanceRec
 				match = true
 			}
 		case "durationms_gt", "duration_ms_gt":
-			if durVal, ok := toInt64(expectedValue); ok && record.DurationMs > durVal {
+			if durVal, ok := lang.toInt64(expectedValue); ok && record.DurationMs > durVal {
 				match = true
 			}
 		case "durationms_lt", "duration_ms_lt":
-			if durVal, ok := toInt64(expectedValue); ok && record.DurationMs < durVal {
+			if durVal, ok := lang.toInt64(expectedValue); ok && record.DurationMs < durVal {
 				match = true
 			}
 		case "costincurred_gt", "cost_incurred_gt":
-			if costVal, ok := toFloat64(expectedValue); ok && record.CostIncurred > costVal {
+			if costVal, ok := lang.toFloat64(expectedValue); ok && record.CostIncurred > costVal {
 				match = true
 			}
 		case "costincurred_lt", "cost_incurred_lt":
-			if costVal, ok := toFloat64(expectedValue); ok && record.CostIncurred < costVal {
+			if costVal, ok := lang.toFloat64(expectedValue); ok && record.CostIncurred < costVal {
 				match = true
 			}
 		default:

@@ -11,30 +11,30 @@ import "github.com/aprice2704/neuroscript/pkg/tool"
 var aiWmToolsToRegister = []tool.ToolImplementation{	//
 	// Definition Tools (from ai_wm_tools_definitions.go)
 	//	toolAIWorkerDefinitionAdd,  //
-	toolAIWorkerDefinitionGet,	//
-	toolAIWorkerDefinitionList,	//
+	wm.toolAIWorkerDefinitionGet,	//
+	wm.toolAIWorkerDefinitionList,	//
 	// toolAIWorkerDefinitionUpdate, //
 	// toolAIWorkerDefinitionRemove, //
 
 	// Admin/Load-Save Tools (from ai_wm_tools_admin.go)
-	toolAIWorkerDefinitionLoadAll,	//
+	wm.toolAIWorkerDefinitionLoadAll,	//
 	// toolAIWorkerDefinitionSaveAll,   //
 	// toolAIWorkerSavePerformanceData, //
-	toolAIWorkerLoadPerformanceData,	//
+	wm.toolAIWorkerLoadPerformanceData,	//
 
 	// Instance Tools (from ai_wm_tools_instances.go)
-	toolAIWorkerInstanceSpawn,		//
-	toolAIWorkerInstanceGet,		//
-	toolAIWorkerInstanceListActive,		//
-	toolAIWorkerInstanceRetire,		//
-	toolAIWorkerInstanceUpdateStatus,	//
-	toolAIWorkerInstanceUpdateTokenUsage,	//
+	wm.toolAIWorkerInstanceSpawn,		//
+	wm.toolAIWorkerInstanceGet,		//
+	wm.toolAIWorkerInstanceListActive,		//
+	wm.toolAIWorkerInstanceRetire,		//
+	wm.toolAIWorkerInstanceUpdateStatus,	//
+	wm.toolAIWorkerInstanceUpdateTokenUsage,	//
 
 	// Execution Tools (from ai_wm_tools_execution.go)
-	toolAIWorkerExecuteStateless,	//
+	wm.toolAIWorkerExecuteStateless,	//
 
 	// Performance Tools (from ai_wm_tools_performance.go)
 	// Ensure these variables are defined, likely in ai_wm_tools_performance.go
-	toolAIWorkerGetPerformanceRecords,	// This should now be defined
-	toolAIWorkerLogPerformance,
+	wm.toolAIWorkerGetPerformanceRecords,	// This should now be defined
+	wm.toolAIWorkerLogPerformance,
 }

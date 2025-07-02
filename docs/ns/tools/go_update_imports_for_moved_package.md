@@ -25,11 +25,11 @@
     5.  For each relevant `.go` file found:
         * Attempt to parse the file (`go/parser`). Record error in `failed_files` on failure.
         * Analyze the AST for import declarations matching `refactored_package_path` (potentially with aliases). If none found, record in `skipped_files`.
-        * Identify all qualified identifiers used that originate from the `refactored_package_path` import (e.g., `core.ReadFile`, `alias.SomeType`).
+        * Identify all qualified identifiers used that originate from the `refactored_package_path` import (e.g., ` ReadFile`, `alias.SomeType`).
         * For each used identifier's symbol (e.g., `ReadFile`), look up its new package path from the internal symbol map (Step 3). Record error in `failed_files` if a used symbol cannot be mapped.
         * Determine the set of *new* distinct import paths required based on the successfully mapped symbols.
         * Modify the AST's import block: Remove the original import spec for `refactored_package_path`. Add new import specs for the required new paths (using `astutil.AddImport` or similar). Handle potential naming collisions if aliases were not used originally.
-        * **Note:** This version (v0.1) focuses *only* on correcting the `import` statements. It does **not** attempt to automatically update the qualifiers in the code (e.g., changing `core.ReadFile` to `fs.ReadFile`). This would require more complex analysis and transformation, potentially as a separate tool or later version. The resulting code might require manual qualifier updates or fail to compile until qualifiers are fixed.
+        * **Note:** This version (v0.1) focuses *only* on correcting the `import` statements. It does **not** attempt to automatically update the qualifiers in the code (e.g., changing ` ReadFile` to `fs.ReadFile`). This would require more complex analysis and transformation, potentially as a separate tool or later version. The resulting code might require manual qualifier updates or fail to compile until qualifiers are fixed.
         * Format the potentially modified AST (`go/format`).
         * Write the formatted code back to the original file path. Record error in `failed_files` on failure.
         * If modification and write were successful, add the file path to `modified_files`. If parsing occurred but no relevant imports/symbols were found or mapping failed, ensure it's in `skipped_files` or `failed_files` respectively.

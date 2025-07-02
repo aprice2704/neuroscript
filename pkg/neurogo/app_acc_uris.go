@@ -72,9 +72,9 @@ func updateAccumulatedURIs(
 	}
 
 	// TODO: Find or implement HelperListApiFiles in pkg/core or use genaiClient directly
-	// apiFiles, listErr := core.HelperListApiFiles(ctx, genaiClient, logger)
+	// apiFiles, listErr :=  HelperListApiFiles(ctx, genaiClient, logger)
 	apiFiles := []*ApiFileInfo{} // Use placeholder type defined in app_interface.go
-	listErr := fmt.Errorf("core.HelperListApiFiles is undefined - URI update needs implementation")
+	listErr := fmt.Errorf(" erListApiFiles is undefined - URI update needs implementation")
 
 	if listErr != nil {
 		logger.Error("Failed list API files.", "error", listErr)

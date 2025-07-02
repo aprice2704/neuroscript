@@ -18,7 +18,7 @@ func init() {
 }
 
 // MakeUnimplementedToolFunc remains the same.
-func MakeUnimplementedToolFunc(toolName string) tool.ToolFunc {
+func MakeUnimplementedToolFunc(toolName string) runtime.tool.ToolFunc {
 	return func(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
 		errMsg := "TOOL " + toolName + " NOT IMPLEMENTED"
 		log.Printf("[ERROR] %s\n", errMsg) // Standard log for critical missing piece
@@ -28,7 +28,7 @@ func MakeUnimplementedToolFunc(toolName string) tool.ToolFunc {
 
 // registerCoreToolBundle defines and registers a collection of core tools.
 func registerCoreToolBundle() {
-	var toolsToRegister []tool.ToolImplementation
+	var toolsToRegister []runtime.tool.ToolImplementation
 
 	// Append existing tool groups
 	toolsToRegister = append(toolsToRegister, gotools.goToolsToRegister...)
@@ -49,7 +49,7 @@ func registerCoreToolBundle() {
 	toolsToRegister = append(toolsToRegister, script.scriptToolsToRegister...)
 
 	if len(toolsToRegister) > 0 {
-		tool.AddToolImplementations(toolsToRegister...)
+		runtime.tool.AddToolImplementations(toolsToRegister...)
 		// REMOVED: log.Printf("[INFO] zz_core_tools_registrar: Added %d tools to the global registration list via bundle.\n", len(toolsToRegister))
 	} else {
 		// REMOVED: log.Printf("[INFO] zz_core_tools_registrar: No tools were specified in the bundle to register.\n")

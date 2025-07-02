@@ -7,22 +7,25 @@
 
 package core
 
-import "github.com/aprice2704/neuroscript/pkg/lang"
+import (
+	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/sideline/nspatch"
+)
 
-var specAIWorkerExecuteStateless = ToolSpec{
+var specAIWorkerExecuteStateless = tool.ToolSpec{
 	Name:     "AIWorker.ExecuteStatelessTask",
 	Category: "AI Worker Management",
-	Args: []ArgSpec{
-		{Name: "name", Type: ArgTypeString, Required: true},
-		{Name: "prompt", Type: ArgTypeString, Required: true},
-		{Name: "config_overrides", Type: ArgTypeMap, Required: false},
+	Args: []tool.ArgSpec{
+		{Name: "name", Type: tool.ArgTypeString, Required: true},
+		{Name: "prompt", Type: tool.ArgTypeString, Required: true},
+		{Name: "config_overrides", Type: tool.ArgTypeMap, Required: false},
 	},
 	ReturnType: "map",
 }
 
-var toolAIWorkerExecuteStateless = ToolImplementation{
+var toolAIWorkerExecuteStateless = tool.ToolImplementation{
 	Spec: specAIWorkerExecuteStateless,
-	Func: func(i *Interpreter, args []interface{}) (interface{}, error) {
+	Func: func(i *neurogo.Interpreter, args []interface{}) (interface{}, error) {
 		m, err := getAIWorkerManager(i)
 		if err != nil {
 			return nil, err
@@ -36,7 +39,7 @@ var toolAIWorkerExecuteStateless = ToolImplementation{
 		}
 
 		if i.llmClient == nil {
-			return nil, lang.NewRuntimeError(ErrorCodeConfiguration, "Interpreter's LLMClient is nil", ErrConfiguration)
+			return nil, lang.NewRuntimeError(lang.ErrorCodeConfiguration, "Interpreter's LLMClient is nil", lang.ErrConfiguration)
 		}
 
 		output, perfRecord, execErr := m.ExecuteStatelessTask(defName, i.llmClient, prompt, overrides)
@@ -49,7 +52,7 @@ var toolAIWorkerExecuteStateless = ToolImplementation{
 			return nil, execErr
 		}
 		if perfRecord == nil {
-			return nil, lang.NewRuntimeError(ErrorCodeInternal, "ExecuteStatelessTask returned nil performance record without error", ErrInternal)
+			return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, "ExecuteStatelessTask returned nil performance record without error", nspatch.ErrInternal)
 		}
 		return map[string]interface{}{"output": output, "taskId": perfRecord.TaskID, "cost": perfRecord.CostIncurred}, nil
 	},

@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aprice2704/neuroscript/pkg/core"
+	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/atotto/clipboard"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -193,18 +193,18 @@ func StartTviewTUI(mainApp *App, initialScriptPath string) error {
 				return
 			}
 			// 1. Read file
-			filepathArg, err := core.Wrap(initialScriptPath)
+			filepathArg, err := lang.Wrap(initialScriptPath)
 			if err != nil {
 				execErr = fmt.Errorf("internal error wrapping script path: %w", err)
 				return
 			}
-			toolArgs := map[string]core.Value{"filepath": filepathArg}
+			toolArgs := map[string]e{"filepath": filepathArg}
 			contentValue, err := interpreter.ExecuteTool("TOOL.ReadFile", toolArgs)
 			if err != nil {
 				execErr = fmt.Errorf("failed to read initial script '%s': %w", initialScriptPath, err)
 				return
 			}
-			scriptContent, ok := core.Unwrap(contentValue).(string)
+			scriptContent, ok := ap(contentValue).(string)
 			if !ok {
 				execErr = fmt.Errorf("TOOL.ReadFile did not return a string")
 				return
@@ -216,8 +216,8 @@ func StartTviewTUI(mainApp *App, initialScriptPath string) error {
 			}
 			// 3. Run 'main' procedure
 			if _, err := mainApp.RunProcedure(context.Background(), "main", nil); err != nil {
-				var rErr *core.RuntimeError
-				if errors.As(err, &rErr) && rErr.Code == core.ErrorCodeProcNotFound {
+				var rErr *imeError
+				if errors.As(err, &rErr) && rErr.Code == rCodeProcNotFound {
 					logInfo("Initial script loaded. No 'main' procedure found to execute.", "script", initialScriptPath)
 				} else {
 					execErr = fmt.Errorf("error running main from initial script: %w", err)

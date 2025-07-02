@@ -19,17 +19,17 @@ import (
 // --- Agent Configuration Tools ---
 
 // (toolAgentSetSandbox, toolAgentSetModel, toolAgentSetAllowlist unchanged)
-func toolAgentSetSandbox(interpreter *core.Interpreter, args []interface{}) (interface{}, error) {
+func toolAgentSetSandbox(interpreter * Interpreter, args []interface{}) (interface{}, error) {
 	if len(args) != 2 {
-		return nil, fmt.Errorf("%w: expected 2 arguments (handle, path), got %d", core.ErrValidationArgCount, len(args))
+		return nil, fmt.Errorf("%w: expected 2 arguments (handle, path), got %d",  alidationArgCount, len(args))
 	}
 	handle, okH := args[0].(string)
 	path, okP := args[1].(string)
 	if !okH || !okP {
-		return nil, fmt.Errorf("%w: expected string arguments for handle and path", core.ErrValidationTypeMismatch)
+		return nil, fmt.Errorf("%w: expected string arguments for handle and path",  alidationTypeMismatch)
 	}
 	if handle == "" || path == "" {
-		return nil, fmt.Errorf("%w: handle and path cannot be empty", core.ErrValidationRequiredArgNil)
+		return nil, fmt.Errorf("%w: handle and path cannot be empty",  alidationRequiredArgNil)
 	}
 	obj, err := interpreter.GetHandleValue(handle, HandlePrefixAgentContext)
 	if err != nil {
@@ -37,24 +37,24 @@ func toolAgentSetSandbox(interpreter *core.Interpreter, args []interface{}) (int
 	}
 	agentCtx, ok := obj.(*AgentContext)
 	if !ok {
-		return nil, fmt.Errorf("TOOL.AgentSetSandbox: %w: handle '%s' did not contain expected *neurogo.AgentContext", core.ErrInternalTool, handle)
+		return nil, fmt.Errorf("TOOL.AgentSetSandbox: %w: handle '%s' did not contain expected *neurogo.AgentContext",  nternalTool, handle)
 	}
 	cleanedPath := filepath.Clean(path)
 	agentCtx.SetSandboxDir(cleanedPath)
 	interpreter.Logger().Debug("[TOOL AgentSetSandbox] Set sandbox directory to '%s' for handle '%s'", cleanedPath, handle)
 	return nil, nil
 }
-func toolAgentSetModel(interpreter *core.Interpreter, args []interface{}) (interface{}, error) {
+func toolAgentSetModel(interpreter * rpreter, args []interface{}) (interface{}, error) {
 	if len(args) != 2 {
-		return nil, fmt.Errorf("%w: expected 2 arguments (handle, name), got %d", core.ErrValidationArgCount, len(args))
+		return nil, fmt.Errorf("%w: expected 2 arguments (handle, name), got %d",  alidationArgCount, len(args))
 	}
 	handle, okH := args[0].(string)
 	name, okN := args[1].(string)
 	if !okH || !okN {
-		return nil, fmt.Errorf("%w: expected string arguments for handle and name", core.ErrValidationTypeMismatch)
+		return nil, fmt.Errorf("%w: expected string arguments for handle and name",  alidationTypeMismatch)
 	}
 	if handle == "" || name == "" {
-		return nil, fmt.Errorf("%w: handle and name cannot be empty", core.ErrValidationRequiredArgNil)
+		return nil, fmt.Errorf("%w: handle and name cannot be empty",  alidationRequiredArgNil)
 	}
 	obj, err := interpreter.GetHandleValue(handle, HandlePrefixAgentContext)
 	if err != nil {
@@ -62,23 +62,23 @@ func toolAgentSetModel(interpreter *core.Interpreter, args []interface{}) (inter
 	}
 	agentCtx, ok := obj.(*AgentContext)
 	if !ok {
-		return nil, fmt.Errorf("TOOL.AgentSetModel: %w: handle '%s' did not contain expected *neurogo.AgentContext", core.ErrInternalTool, handle)
+		return nil, fmt.Errorf("TOOL.AgentSetModel: %w: handle '%s' did not contain expected *neurogo.AgentContext",  nternalTool, handle)
 	}
 	agentCtx.SetModelName(name)
 	interpreter.Logger().Debug("[TOOL AgentSetModel] Set model name to '%s' for handle '%s'", name, handle)
 	return nil, nil
 }
-func toolAgentSetAllowlist(interpreter *core.Interpreter, args []interface{}) (interface{}, error) {
+func toolAgentSetAllowlist(interpreter * rpreter, args []interface{}) (interface{}, error) {
 	if len(args) != 2 {
-		return nil, fmt.Errorf("%w: expected 2 arguments (handle, path), got %d", core.ErrValidationArgCount, len(args))
+		return nil, fmt.Errorf("%w: expected 2 arguments (handle, path), got %d",  alidationArgCount, len(args))
 	}
 	handle, okH := args[0].(string)
 	path, okP := args[1].(string)
 	if !okH || !okP {
-		return nil, fmt.Errorf("%w: expected string arguments for handle and path", core.ErrValidationTypeMismatch)
+		return nil, fmt.Errorf("%w: expected string arguments for handle and path",  alidationTypeMismatch)
 	}
 	if handle == "" {
-		return nil, fmt.Errorf("%w: handle cannot be empty", core.ErrValidationRequiredArgNil)
+		return nil, fmt.Errorf("%w: handle cannot be empty",  alidationRequiredArgNil)
 	}
 	cleanedPath := ""
 	if path != "" {
@@ -92,7 +92,7 @@ func toolAgentSetAllowlist(interpreter *core.Interpreter, args []interface{}) (i
 	}
 	agentCtx, ok := obj.(*AgentContext)
 	if !ok {
-		return nil, fmt.Errorf("TOOL.AgentSetAllowlist: %w: handle '%s' did not contain expected *neurogo.AgentContext", core.ErrInternalTool, handle)
+		return nil, fmt.Errorf("TOOL.AgentSetAllowlist: %w: handle '%s' did not contain expected *neurogo.AgentContext",  nternalTool, handle)
 	}
 	agentCtx.SetAllowlistPath(cleanedPath)
 	interpreter.Logger().Debug("[TOOL AgentSetAllowlist] Set allowlist path to '%s' for handle '%s'", cleanedPath, handle)
@@ -103,21 +103,21 @@ func toolAgentSetAllowlist(interpreter *core.Interpreter, args []interface{}) (i
 
 // --- NEW: TOOL.AgentPin ---
 // toolAgentPin takes a map (from UpsertAs) and adds the file info to the pinned list.
-func toolAgentPin(interpreter *core.Interpreter, args []interface{}) (interface{}, error) {
+func toolAgentPin(interpreter * rpreter, args []interface{}) (interface{}, error) {
 	// Args: handle (string), fileInfoMap (map)
 	if len(args) != 2 {
-		return nil, fmt.Errorf("%w: expected 2 arguments (handle, fileInfoMap), got %d", core.ErrValidationArgCount, len(args))
+		return nil, fmt.Errorf("%w: expected 2 arguments (handle, fileInfoMap), got %d",  alidationArgCount, len(args))
 	}
 	handle, okH := args[0].(string)
 	fileInfoMap, okM := args[1].(map[string]interface{}) // Expect map[string]interface{}
 	if !okH {
-		return nil, fmt.Errorf("%w: expected string handle argument", core.ErrValidationTypeMismatch)
+		return nil, fmt.Errorf("%w: expected string handle argument",  alidationTypeMismatch)
 	}
 	if !okM {
-		return nil, fmt.Errorf("%w: expected map fileInfoMap argument, got %T", core.ErrValidationTypeMismatch, args[1])
+		return nil, fmt.Errorf("%w: expected map fileInfoMap argument, got %T",  alidationTypeMismatch, args[1])
 	}
 	if handle == "" {
-		return nil, fmt.Errorf("%w: handle cannot be empty", core.ErrValidationRequiredArgNil)
+		return nil, fmt.Errorf("%w: handle cannot be empty",  alidationRequiredArgNil)
 	}
 
 	logger := interpreter.Logger()
@@ -129,7 +129,7 @@ func toolAgentPin(interpreter *core.Interpreter, args []interface{}) (interface{
 	}
 	agentCtx, ok := obj.(*AgentContext)
 	if !ok {
-		return nil, fmt.Errorf("TOOL.AgentPin: %w: handle '%s' did not contain expected *neurogo.AgentContext", core.ErrInternalTool, handle)
+		return nil, fmt.Errorf("TOOL.AgentPin: %w: handle '%s' did not contain expected *neurogo.AgentContext",  nternalTool, handle)
 	}
 
 	// 2. Extract info from map
@@ -137,16 +137,16 @@ func toolAgentPin(interpreter *core.Interpreter, args []interface{}) (interface{
 	displayNameVal, okDN := fileInfoMap["displayName"]
 	uriVal, okURI := fileInfoMap["uri"]
 	if !okDN || !okURI {
-		return nil, fmt.Errorf("TOOL.AgentPin: %w: fileInfoMap missing 'displayName' or 'uri' keys", core.ErrValidationArgValue)
+		return nil, fmt.Errorf("TOOL.AgentPin: %w: fileInfoMap missing 'displayName' or 'uri' keys",  alidationArgValue)
 	}
 
 	displayName, okDNStr := displayNameVal.(string)
 	uri, okURIStr := uriVal.(string)
 	if !okDNStr || !okURIStr {
-		return nil, fmt.Errorf("TOOL.AgentPin: %w: fileInfoMap 'displayName' (%T) or 'uri' (%T) not strings", core.ErrValidationArgValue, displayNameVal, uriVal)
+		return nil, fmt.Errorf("TOOL.AgentPin: %w: fileInfoMap 'displayName' (%T) or 'uri' (%T) not strings",  alidationArgValue, displayNameVal, uriVal)
 	}
 	if displayName == "" || uri == "" {
-		return nil, fmt.Errorf("TOOL.AgentPin: %w: fileInfoMap 'displayName' or 'uri' cannot be empty", core.ErrValidationArgValue)
+		return nil, fmt.Errorf("TOOL.AgentPin: %w: fileInfoMap 'displayName' or 'uri' cannot be empty",  alidationArgValue)
 	}
 	// Use displayName as the key for pinning, as relativePath isn't available from UpsertAs(contents, name)
 	keyPath := displayName
@@ -168,22 +168,22 @@ func toolAgentPin(interpreter *core.Interpreter, args []interface{}) (interface{
 
 // RegisterAgentTools registers all tools specific to agent configuration with the provided registry.
 // UPDATED: Add AgentPin registration
-// CORRECTED: Changed registry type from *core.ToolRegistry to core.ToolRegistry
-func RegisterAgentTools(registry core.ToolRegistry) error {
-	tools := []core.ToolImplementation{
+// CORRECTED: Changed registry type from * Registry to  Too stry
+func RegisterAgentTools(registry  Registry) error {
+	tools := [] Implementation{
 		// Existing tools...
-		{Spec: core.ToolSpec{Name: "AgentSetSandbox", Description: "Sets the agent's sandbox directory.", Args: []core.ArgSpec{{Name: "agentCtxHandle", Type: core.ArgTypeString, Required: true}, {Name: "path", Type: core.ArgTypeString, Required: true}}, ReturnType: core.ArgTypeAny}, Func: toolAgentSetSandbox},
-		{Spec: core.ToolSpec{Name: "AgentSetModel", Description: "Sets the AI model name for the agent.", Args: []core.ArgSpec{{Name: "agentCtxHandle", Type: core.ArgTypeString, Required: true}, {Name: "name", Type: core.ArgTypeString, Required: true}}, ReturnType: core.ArgTypeAny}, Func: toolAgentSetModel},
-		{Spec: core.ToolSpec{Name: "AgentSetAllowlist", Description: "Sets the path to the tool allowlist file for the agent.", Args: []core.ArgSpec{{Name: "agentCtxHandle", Type: core.ArgTypeString, Required: true}, {Name: "path", Type: core.ArgTypeString, Required: true}}, ReturnType: core.ArgTypeAny}, Func: toolAgentSetAllowlist},
+		{Spec:  Spec{Name: "AgentSetSandbox", Description: "Sets the agent's sandbox directory.", Args: [] Arg {Name: "agentCtxHandle", Type:  ArgType g, Required: true}, {Name: "path", Type:  ArgTypeStri equired: true}}, ReturnType:  ArgTypeAny}, Fu oolAgentSetSandbox},
+		{Spec:  Spec{Name: "AgentSetModel", Description: "Sets the AI model name for the agent.", Args: [] Arg {Name: "agentCtxHandle", Type:  ArgType g, Required: true}, {Name: "name", Type:  ArgTypeStri equired: true}}, ReturnType:  ArgTypeAny}, Fu oolAgentSetModel},
+		{Spec:  Spec{Name: "AgentSetAllowlist", Description: "Sets the path to the tool allowlist file for the agent.", Args: [] Arg {Name: "agentCtxHandle", Type:  ArgType g, Required: true}, {Name: "path", Type:  ArgTypeStri equired: true}}, ReturnType:  ArgTypeAny}, Fu oolAgentSetAllowlist},
 		// --- REMOVED AgentPinFile Registration ---
 		// --- NEW Tool Registration ---
 		{
-			Spec: core.ToolSpec{
+			Spec:  Spec{
 				Name: "AgentPin", Description: "Adds a file (identified by map from UpsertAs) to the agent's persistent context.",
-				Args: []core.ArgSpec{
-					{Name: "agentCtxHandle", Type: core.ArgTypeString, Required: true, Description: "Handle to the agent context object."},
-					{Name: "fileInfoMap", Type: core.ArgTypeMap, Required: true, Description: "Map containing 'displayName' and 'uri' from TOOL.UpsertAs."},
-				}, ReturnType: core.ArgTypeAny, // No return value
+				Args: [] pec{
+					{Name: "agentCtxHandle", Type:  ypeString, Required: true, Description: "Handle to the agent context object."},
+					{Name: "fileInfoMap", Type:  ypeMap, Required: true, Description: "Map containing 'displayName' and 'uri' from TOOL.UpsertAs."},
+				}, ReturnType:  ypeAny, // No return value
 			}, Func: toolAgentPin,
 		},
 		// Add TOOL.AgentSyncDirectory spec here
@@ -191,7 +191,7 @@ func RegisterAgentTools(registry core.ToolRegistry) error {
 
 	var errs []error
 	for _, tool := range tools {
-		// This call is now correct because 'registry' is core.ToolRegistry (interface)
+		// This call is now correct because 'registry' is  Registry (interface)
 		// and 'RegisterTool' is a method on that interface.
 		if err := registry.RegisterTool(tool); err != nil {
 			errs = append(errs, fmt.Errorf("failed to register agent tool %s: %w", tool.Spec.Name, err))

@@ -16,8 +16,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
-
-	"github.com/aprice2704/neuroscript/pkg/core" // Assuming this is needed for NeuroScriptToolDetail's Args mapping
+	// Assuming this is needed for NeuroScriptToolDetail's Args mapping
 )
 
 // IndexReader provides thread-safe access to the loaded code indexes.
@@ -231,9 +230,9 @@ func (ir *IndexReader) GetAllNeuroScriptToolDetails() ([]NeuroScriptToolDetail, 
 // ... (GenerateEnhancedToolDetails, findCallableByQualifiedNameInternal, FindFunction, FindStruct, FindMethod, GetNeuroScriptTool, etc., remain the same) ...
 // ... make sure mapCoreArgSpecsToNeuroScriptArgDetails is also present or moved to types.go and imported ...
 
-// mapCoreArgSpecsToNeuroScriptArgDetails converts core.ArgSpec to the index's NeuroScriptArgDetail.
+// mapCoreArgSpecsToNeuroScriptArgDetails converts  ArgSpec to the index's NeuroScriptArgDetail.
 // TODO: This helper is also in cmd/goindexer/main.go. Consider moving to a shared location (e.g., this package).
-func mapCoreArgSpecsToNeuroScriptArgDetails(coreArgs []core.ArgSpec) []NeuroScriptArgDetail {
+func mapCoreArgSpecsToNeuroScriptArgDetails(coreArgs []pec) []NeuroScriptArgDetail {
 	if coreArgs == nil {
 		return nil
 	}
@@ -241,7 +240,7 @@ func mapCoreArgSpecsToNeuroScriptArgDetails(coreArgs []core.ArgSpec) []NeuroScri
 	for i, ca := range coreArgs {
 		nsArgs[i] = NeuroScriptArgDetail{
 			Name:         ca.Name,
-			Type:         string(ca.Type), // Assumes core.ArgType is string-convertible
+			Type:         string(ca.Type), // Assumes  ype is string-convertible
 			Description:  ca.Description,
 			Required:     ca.Required,
 			DefaultValue: ca.DefaultValue,
@@ -253,7 +252,7 @@ func mapCoreArgSpecsToNeuroScriptArgDetails(coreArgs []core.ArgSpec) []NeuroScri
 // GenerateEnhancedToolDetails dynamically links ToolSpecs from an interpreter
 // with their Go implementation details using a loaded code index.
 func (ir *IndexReader) GenerateEnhancedToolDetails(
-	interpreter *core.Interpreter,
+	interpreter *rpreter,
 ) ([]NeuroScriptToolDetail, error) {
 	if interpreter == nil {
 		return nil, fmt.Errorf("interpreter cannot be nil for generating enhanced tool details")

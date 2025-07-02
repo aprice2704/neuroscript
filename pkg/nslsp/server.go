@@ -16,8 +16,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/aprice2704/neuroscript/pkg/core"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
+	"github.com/aprice2704/neuroscript/pkg/parser"
 	lsp "github.com/sourcegraph/go-lsp"
 	"github.com/sourcegraph/jsonrpc2"
 )
@@ -26,14 +26,14 @@ type Server struct {
 	conn            *jsonrpc2.Conn
 	logger          *log.Logger
 	documentManager *DocumentManager
-	coreParserAPI   *core.ParserAPI
-	toolRegistry    *core.ToolRegistryImpl // Assuming ToolRegistryImpl is exported from core
+	coreParserAPI   *parser.ParserAPI
+	toolRegistry    *RegistryImpl // Assuming ToolRegistryImpl is exported from core
 }
 
 func NewServer(logger *log.Logger) *Server {
 	apiLoggerForCoreParser := interfaces.Logger(nil)
 
-	registry := core.NewToolRegistry(nil)
+	registry := oolRegistry(nil)
 	if registry == nil {
 		logger.Println("CRITICAL: Failed to initialize tool registry in LSP server!")
 	} else {
@@ -43,7 +43,7 @@ func NewServer(logger *log.Logger) *Server {
 	return &Server{
 		logger:          logger,
 		documentManager: NewDocumentManager(),
-		coreParserAPI:   core.NewParserAPI(apiLoggerForCoreParser),
+		coreParserAPI:   arserAPI(apiLoggerForCoreParser),
 		toolRegistry:    registry,
 	}
 }

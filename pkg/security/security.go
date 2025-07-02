@@ -21,13 +21,13 @@ type SecurityLayer struct {
 	allowlist    map[string]bool // Stores qualified tool names (TOOL.xxx)
 	denylist     map[string]bool // Stores qualified tool names (TOOL.xxx)
 	sandboxRoot  string          // Unexported field storing the validated path
-	toolRegistry tool.ToolRegistry    // <<< CHANGED: Use the interface type directly
+	toolRegistry runtime.tool.ToolRegistry    // <<< CHANGED: Use the interface type directly
 	logger       interfaces.Logger
 }
 
 // NewSecurityLayer creates a new security layer instance.
 // <<< CHANGED: registry parameter is now ToolRegistry (interface type)
-func NewSecurityLayer(allowlistTools []string, denylistSet map[string]bool, sandboxRoot string, registry tool.ToolRegistry, logger interfaces.Logger) *SecurityLayer {
+func NewSecurityLayer(allowlistTools []string, denylistSet map[string]bool, sandboxRoot string, registry runtime.tool.ToolRegistry, logger interfaces.Logger) *SecurityLayer {
 	if logger == nil {
 		// This should ideally return an error or use a default logger,
 		// but panicking ensures it's caught during development.

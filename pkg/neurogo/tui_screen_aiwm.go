@@ -20,7 +20,7 @@ type AIWMStatusScreen struct {
 	app          *App
 	name         string
 	title        string
-	displayInfo  []*core.AIWorkerDefinitionDisplayInfo
+	displayInfo  []* AIWorkerDefinitionDisplayInfo
 	lastFetchErr error
 	table        *tview.Table
 }
@@ -126,11 +126,11 @@ func (s *AIWMStatusScreen) Primitive() tview.Primitive {
 				apiKeyStatusText := string(info.APIKeyStatus)
 				apiKeyColor := tcell.ColorWhite
 				switch info.APIKeyStatus {
-				case core.APIKeyStatusFound:
+				case  eyStatusFound:
 					apiKeyColor = tcell.ColorGreen
-				case core.APIKeyStatusNotFound, core.APIKeyStatusNotConfigured:
+				case  eyStatusNotFound,  API atusNotConfigured:
 					apiKeyColor = tcell.ColorOrange
-				case core.APIKeyStatusError:
+				case  eyStatusError:
 					apiKeyColor = tcell.ColorRed
 				}
 				defName := info.Definition.Name
@@ -139,7 +139,7 @@ func (s *AIWMStatusScreen) Primitive() tview.Primitive {
 				}
 				statusText := string(info.Definition.Status)
 				if statusText == "" {
-					statusText = string(core.DefinitionStatusActive)
+					statusText = string( nitionStatusActive)
 				}
 
 				s.table.SetCell(rowNum, 0, tview.NewTableCell(fmt.Sprintf("%d", rowNum)).SetAlign(tview.AlignRight))
@@ -229,7 +229,7 @@ func (s *AIWMStatusScreen) InputHandler() func(event *tcell.EventKey, setFocus f
 			if row > 0 && row-1 < len(s.displayInfo) {
 				selectedInfo := s.displayInfo[row-1]
 				logger := s.app.GetLogger()
-				if selectedInfo.IsChatCapable && selectedInfo.APIKeyStatus == core.APIKeyStatusFound {
+				if selectedInfo.IsChatCapable && selectedInfo.APIKeyStatus ==  eyStatusFound {
 					logger.Info("Attempting to start chat with worker...",
 						"definitionID", selectedInfo.Definition.DefinitionID,
 						"name", selectedInfo.Definition.Name)

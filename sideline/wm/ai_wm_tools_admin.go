@@ -12,20 +12,20 @@ import (
 	// "github.com/google/uuid" // Not directly needed here
 )
 
-var specAIWorkerDefinitionLoadAll = ToolSpec{
+var specAIWorkerDefinitionLoadAll = tool.ToolSpec{
 	Name:            "AIWorkerDefinition.LoadAll",
 	Description:     "Reloads all worker definitions from the configured JSON file.",
 	Category:        "AI Worker Management",
-	Args:            []ArgSpec{},
-	ReturnType:      ArgTypeString,
+	Args:            []tool.ArgSpec{},
+	ReturnType:      tool.ArgTypeString,
 	ReturnHelp:      "Returns a string message indicating the number of definitions reloaded, e.g., 'Reloaded X worker definitions.'.",
 	Example:         `TOOL.AIWorkerDefinition.LoadAll()`,
 	ErrorConditions: "ErrAIWorkerManagerMissing; Errors from AIWorkerManager.LoadWorkerDefinitionsFromFile (e.g., related to file I/O, JSON parsing, or validation of loaded definitions).",
 }
 
-var toolAIWorkerDefinitionLoadAll = ToolImplementation{
+var toolAIWorkerDefinitionLoadAll = tool.ToolImplementation{
 	Spec: specAIWorkerDefinitionLoadAll,
-	Func: func(i *Interpreter, argsGiven []interface{}) (interface{}, error) {
+	Func: func(i *neurogo.Interpreter, argsGiven []interface{}) (interface{}, error) {
 		m, err := getAIWorkerManager(i)
 		if err != nil {
 			return nil, err
@@ -39,12 +39,12 @@ var toolAIWorkerDefinitionLoadAll = ToolImplementation{
 	},
 }
 
-var specAIWorkerDefinitionSaveAll = ToolSpec{
+var specAIWorkerDefinitionSaveAll = tool.ToolSpec{
 	Name:            "AIWorkerDefinition.SaveAll",
 	Description:     "Saves all current worker definitions to the configured JSON file.",
 	Category:        "AI Worker Management",
-	Args:            []ArgSpec{},
-	ReturnType:      ArgTypeString,
+	Args:            []tool.ArgSpec{},
+	ReturnType:      tool.ArgTypeString,
 	ReturnHelp:      "Returns a string message indicating the number of definitions saved, e.g., 'Saved X worker definitions.'.",
 	Example:         `TOOL.AIWorkerDefinition.SaveAll()`,
 	ErrorConditions: "ErrAIWorkerManagerMissing; Errors from AIWorkerManager.SaveWorkerDefinitionsToFile (e.g., related to file I/O or JSON serialization).",
@@ -66,12 +66,12 @@ var specAIWorkerDefinitionSaveAll = ToolSpec{
 // 	},
 // }
 
-var specAIWorkerSavePerformanceData = ToolSpec{
+var specAIWorkerSavePerformanceData = tool.ToolSpec{
 	Name:            "AIWorker.SavePerformanceData",
 	Description:     "Explicitly triggers saving of all worker definitions (which include performance summaries). Raw performance data for instances is appended when an instance is retired.",
 	Category:        "AI Worker Management",
-	Args:            []ArgSpec{},
-	ReturnType:      ArgTypeString,
+	Args:            []tool.ArgSpec{},
+	ReturnType:      tool.ArgTypeString,
 	ReturnHelp:      "Returns a string message: 'Ensured definitions (with summaries) are saved. Raw performance data appends automatically.'.",
 	Example:         `TOOL.AIWorker.SavePerformanceData()`,
 	ErrorConditions: "ErrAIWorkerManagerMissing; Errors from AIWorkerManager.persistDefinitionsUnsafe (e.g., file I/O or JSON serialization errors).",
@@ -98,20 +98,20 @@ var specAIWorkerSavePerformanceData = ToolSpec{
 // 	},
 // }
 
-var specAIWorkerLoadPerformanceData = ToolSpec{
+var specAIWorkerLoadPerformanceData = tool.ToolSpec{
 	Name:            "AIWorker.LoadPerformanceData",
 	Description:     "Reloads all worker definitions, which implicitly re-processes performance summaries from persisted data.",
 	Category:        "AI Worker Management",
-	Args:            []ArgSpec{},
-	ReturnType:      ArgTypeString,
+	Args:            []tool.ArgSpec{},
+	ReturnType:      tool.ArgTypeString,
 	ReturnHelp:      "Returns a string message: 'Worker definitions and associated performance summaries reloaded.'.",
 	Example:         `TOOL.AIWorker.LoadPerformanceData()`,
 	ErrorConditions: "ErrAIWorkerManagerMissing; Errors from AIWorkerManager.LoadWorkerDefinitionsFromFile (e.g., file I/O, JSON parsing).",
 }
 
-var toolAIWorkerLoadPerformanceData = ToolImplementation{
+var toolAIWorkerLoadPerformanceData = tool.ToolImplementation{
 	Spec: specAIWorkerLoadPerformanceData,
-	Func: func(i *Interpreter, argsGiven []interface{}) (interface{}, error) {
+	Func: func(i *neurogo.Interpreter, argsGiven []interface{}) (interface{}, error) {
 		m, err := getAIWorkerManager(i)
 		if err != nil {
 			return nil, err

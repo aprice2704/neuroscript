@@ -9,14 +9,15 @@ import (
 	"time"
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/sideline/nspatch"
 )
 
 // getAIWorkerManager retrieves the AIWorkerManager from the interpreter.
 // It returns an error if the manager is not initialized.
-func getAIWorkerManager(i *Interpreter) (*AIWorkerManager, error) {
+func getAIWorkerManager(i *neurogo.Interpreter) (*AIWorkerManager, error) {
 	if i.aiWorkerManager == nil {
 		i.Logger().Error("AIWorkerManager not initialized in Interpreter context!")
-		return nil, lang.NewRuntimeError(ErrorCodeInternal, "AIWorkerManager not available in Interpreter", ErrInternal)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, "AIWorkerManager not available in Interpreter", nspatch.ErrInternal)
 	}
 	return i.aiWorkerManager, nil
 }
@@ -24,7 +25,7 @@ func getAIWorkerManager(i *Interpreter) (*AIWorkerManager, error) {
 // mapValidatedArgsListToMapByName converts the list of validated arguments
 // (from ValidateAndConvertArgs) into a map where keys are argument names,
 // for easier access within tool functions.
-func mapValidatedArgsListToMapByName(specArgs []ArgSpec, validatedArgsList []interface{}) map[string]interface{} {
+func mapValidatedArgsListToMapByName(specArgs []tool.ArgSpec, validatedArgsList []interface{}) map[string]interface{} {
 	argsMap := make(map[string]interface{})
 	for idx, argSpec := range specArgs {
 		if idx < len(validatedArgsList) {

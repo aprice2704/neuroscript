@@ -20,16 +20,16 @@ func init() {
 
 // RegisterBlockTools adds the updated block extraction tool.
 // This function is now called via the init() mechanism.
-func RegisterBlockTools(registry tool.ToolRegistrar) error { // Use interface
+func RegisterBlockTools(registry runtime.tool.ToolRegistrar) error { // Use interface
 	// --- TOOL.BlocksExtractAll registration ---
-	err := registry.RegisterTool(tool.ToolImplementation{
-		Spec: tool.ToolSpec{
+	err := registry.RegisterTool(runtime.tool.ToolImplementation{
+		Spec: runtime.tool.ToolSpec{
 			Name: "BlocksExtractAll",
 			Description: "Extracts all fenced code blocks (handling nesting) from input content using ANTLR Listener. " +
 				"Recognizes ':: key: value' metadata lines immediately preceding the opening fence. " +
 				"Returns a list of maps, where each map represents a block and contains keys: " +
 				"'language_id' (string), 'raw_content' (string), 'start_line' (int), 'end_line' (int), 'metadata' (map[string]string). Silently ignores unclosed blocks.",
-			Args: []tool.ArgSpec{
+			Args: []runtime.tool.ArgSpec{
 				{Name: "content", Type: parser.ArgTypeString, Required: true, Description: "The string content to search within."},
 			},
 			ReturnType: parser.ArgTypeSliceAny, // Returns slice of maps

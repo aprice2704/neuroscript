@@ -23,7 +23,7 @@ import (
 // Assuming 'm' is a pointer to AIWorkerManager and relevant fields (definitions, logger, mu) are accessible.
 func (m *AIWorkerManager) GetDefinitionIDByName(name string) (string, error) {
 	if name == "" {
-		return "", lang.NewRuntimeError(ErrorCodeArgMismatch, "worker definition name cannot be empty", ErrInvalidArgument)
+		return "", lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "worker definition name cannot be empty", lang.ErrInvalidArgument)
 	}
 
 	m.mu.RLock()
@@ -42,7 +42,7 @@ func (m *AIWorkerManager) GetDefinitionIDByName(name string) (string, error) {
 		m.logger.Warnf("GetDefinitionIDByName: Worker definition with name '%s' not found.", name)
 	}
 	// Corrected: ErrorCodeItemNotFound -> ErrorCodeKeyNotFound, ErrItemNotFound -> ErrNotFound
-	return "", lang.NewRuntimeError(ErrorCodeKeyNotFound, fmt.Sprintf("worker definition name '%s' not found", name), ErrNotFound)
+	return "", lang.NewRuntimeError(lang.ErrorCodeKeyNotFound, fmt.Sprintf("worker definition name '%s' not found", name), lang.ErrNotFound)
 }
 
 // GetDefinition retrieves an active AIWorkerDefinition by its ID.
@@ -50,7 +50,7 @@ func (m *AIWorkerManager) GetDefinitionIDByName(name string) (string, error) {
 // Assuming 'm' is a pointer to AIWorkerManager.
 func (m *AIWorkerManager) GetDefinition(definitionID string) (*AIWorkerDefinition, error) {
 	if definitionID == "" {
-		return nil, lang.NewRuntimeError(ErrorCodeArgMismatch, "worker definition ID cannot be empty", ErrInvalidArgument)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "worker definition ID cannot be empty", lang.ErrInvalidArgument)
 	}
 
 	m.mu.RLock()
@@ -59,12 +59,12 @@ func (m *AIWorkerManager) GetDefinition(definitionID string) (*AIWorkerDefinitio
 	def, exists := m.definitions[definitionID]
 	if !exists || def == nil {
 		// Corrected: ErrorCodeItemNotFound -> ErrorCodeKeyNotFound, ErrItemNotFound -> ErrNotFound
-		return nil, lang.NewRuntimeError(ErrorCodeKeyNotFound, fmt.Sprintf("worker definition ID '%s' not found", definitionID), ErrNotFound)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeKeyNotFound, fmt.Sprintf("worker definition ID '%s' not found", definitionID), lang.ErrNotFound)
 	}
 
 	if def.Status != DefinitionStatusActive {
 		// Corrected: ErrItemNotFound -> ErrConfiguration (to match ErrorCodeConfiguration)
-		return nil, lang.NewRuntimeError(ErrorCodeConfiguration, fmt.Sprintf("worker definition '%s' (ID: %s) is not active (status: %s)", def.Name, def.DefinitionID, def.Status), ErrConfiguration)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeConfiguration, fmt.Sprintf("worker definition '%s' (ID: %s) is not active (status: %s)", def.Name, def.DefinitionID, def.Status), lang.ErrConfiguration)
 	}
 	return def, nil
 }

@@ -11,7 +11,6 @@ import (
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/adapters"
-	"github.com/aprice2704/neuroscript/pkg/core"
 	"github.com/aprice2704/neuroscript/pkg/toolsets"
 )
 
@@ -50,15 +49,15 @@ func TestApp_RunScriptMode_BreakContinue(t *testing.T) {
 		t.Fatalf("Failed to write script to sandbox: %v", err)
 	}
 
-	interpreter, err := core.NewInterpreter(logger, llmClient, cfg.SandboxDir, nil, cfg.LibPaths)
+	interpreter, err := NewInterpreter(logger, llmClient, cfg.SandboxDir, nil, cfg.LibPaths)
 	if err != nil {
-		t.Fatalf("%s: Failed to create core.Interpreter: %v", testName, err)
+		t.Fatalf("%s: Failed to create  rpreter: %v", testName, err)
 	}
 	app.SetInterpreter(interpreter)
 	if err := toolsets.RegisterExtendedTools(interpreter); err != nil {
 		t.Fatalf("%s: Failed to register extended tools: %v", testName, err)
 	}
-	aiWm, aiWmErr := core.NewAIWorkerManager(logger, app.Config.SandboxDir, llmClient, "", "")
+	aiWm, aiWmErr := IWorkerManager(logger, app.Config.SandboxDir, llmClient, "", "")
 	if aiWmErr != nil {
 		t.Logf("%s: Warning - Failed to create AI Worker Manager: %v", testName, aiWmErr)
 	} else {
@@ -71,18 +70,18 @@ func TestApp_RunScriptMode_BreakContinue(t *testing.T) {
 	// 3a. Read the script file content using the interpreter's tool.
 	// The path must be relative to the sandbox root.
 	scriptPathForTool := filepath.Join("testdata", scriptName)
-	filepathArg, err := core.Wrap(scriptPathForTool)
+	filepathArg, err := (scriptPathForTool)
 	if err != nil {
 		t.Fatalf("Failed to wrap script path argument: %v", err)
 	}
-	toolArgs := map[string]core.Value{"filepath": filepathArg}
+	toolArgs := map[string]e{"filepath": filepathArg}
 	contentValue, err := app.Interpreter().ExecuteTool("FS.Read", toolArgs)
 	if err != nil {
 		t.Fatalf("Executing FS.Read tool failed: %v", err)
 	}
-	scriptContent, ok := core.Unwrap(contentValue).(string)
+	scriptContent, ok := ap(contentValue).(string)
 	if !ok {
-		t.Fatalf("FS.Read did not return a string, got %T", core.Unwrap(contentValue))
+		t.Fatalf("FS.Read did not return a string, got %T", ap(contentValue))
 	}
 
 	// 3b. Load the script definitions from the content string.

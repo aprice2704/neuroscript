@@ -20,7 +20,7 @@ import (
 // nextChatIDSuffix     int
 // tui                  TUIController // Assuming TUIController is defined in interfaces.go
 // Log                  interfaces.Logger
-// interpreter          *core.Interpreter
+// interpreter          * Interpreter
 
 // --- Multi-Chat Session Management Methods ---
 
@@ -34,16 +34,16 @@ func (a *App) CreateNewChatSession(definitionID string) (*ChatSession, error) {
 
 	aiWM := a.GetAIWorkerManager()
 	if aiWM == nil {
-		return nil, core.lang.NewRuntimeError(core.ErrorCodePreconditionFailed, "AIWorkerManager not available in App", nil)
+		return nil,  .NewRuntimeError( Err ePreconditionFailed, "AIWorkerManager not available in App", nil)
 	}
 
 	workerDef, err := aiWM.GetWorkerDefinition(definitionID)
 	if err != nil {
 		a.Log.Error("Failed to get worker definition for new chat session", "definitionID", definitionID, "error", err)
-		return nil, core.lang.NewRuntimeError(core.ErrorCodeKeyNotFound, fmt.Sprintf("worker definition '%s' not found", definitionID), err)
+		return nil,  .NewRuntimeError( Err eKeyNotFound, fmt.Sprintf("worker definition '%s' not found", definitionID), err)
 	}
 	if workerDef == nil {
-		return nil, core.lang.NewRuntimeError(core.ErrorCodeKeyNotFound, fmt.Sprintf("worker definition '%s' is nil (unexpected)", definitionID), nil)
+		return nil,  .NewRuntimeError( Err eKeyNotFound, fmt.Sprintf("worker definition '%s' is nil (unexpected)", definitionID), nil)
 	}
 
 	newInstance, err := aiWM.SpawnWorkerInstance(definitionID, nil, nil)
@@ -104,7 +104,7 @@ func (a *App) SetActiveChatSession(sessionID string) error {
 	// defer a.chatMu.Unlock()
 
 	if _, exists := a.chatSessions[sessionID]; !exists {
-		return core.lang.NewRuntimeError(core.ErrorCodeKeyNotFound, fmt.Sprintf("chat session with ID '%s' not found", sessionID), nil)
+		return  .NewRuntimeError( Err eKeyNotFound, fmt.Sprintf("chat session with ID '%s' not found", sessionID), nil)
 	}
 	a.activeChatSessionID = sessionID
 	a.Log.Info("Active chat session set", "sessionID", sessionID)
@@ -157,10 +157,10 @@ func (a *App) SendChatMessageToActiveSession(ctx context.Context, message string
 	// GetActiveChatSession uses RLock internally, which is fine.
 	activeSession := a.GetActiveChatSession()
 	if activeSession == nil {
-		return nil, core.lang.NewRuntimeError(core.ErrorCodePreconditionFailed, "no active chat session to send message to", nil)
+		return nil,  .NewRuntimeError( Err ePreconditionFailed, "no active chat session to send message to", nil)
 	}
 	if activeSession.WorkerInstance == nil {
-		return nil, core.lang.NewRuntimeError(core.ErrorCodeInternal, fmt.Sprintf("active session '%s' has a nil WorkerInstance", activeSession.SessionID), nil)
+		return nil,  .NewRuntimeError( Err eInternal, fmt.Sprintf("active session '%s' has a nil WorkerInstance", activeSession.SessionID), nil)
 	}
 
 	a.Log.Info("Sending message to active chat session",
@@ -208,7 +208,7 @@ func (a *App) GetActiveChatHistory() []*interfaces.ConversationTurn {
 }
 
 // GetActiveChatDetails returns details about the currently active chat session.
-func (a *App) GetActiveChatDetails() (sessionID string, displayName string, definitionID string, instanceStatus core.AIWorkerInstanceStatus, isActive bool) {
+func (a *App) GetActiveChatDetails() (sessionID string, displayName string, definitionID string, instanceStatus  rkerInstanceStatus, isActive bool) {
 	activeSession := a.GetActiveChatSession() // Uses RLock internally
 	if activeSession != nil && activeSession.WorkerInstance != nil {
 		return activeSession.SessionID,
@@ -228,7 +228,7 @@ func (a *App) CloseChatSession(sessionID string) error {
 
 	sessionToClose, exists := a.chatSessions[sessionID]
 	if !exists {
-		return core.lang.NewRuntimeError(core.ErrorCodeKeyNotFound, fmt.Sprintf("chat session with ID '%s' not found for closing", sessionID), nil)
+		return  .NewRuntimeError( Err eKeyNotFound, fmt.Sprintf("chat session with ID '%s' not found for closing", sessionID), nil)
 	}
 	// ... (rest of the logic for retiring worker instance) ...
 	// Ensure any logging here doesn't cause issues if called under lock.
@@ -267,7 +267,7 @@ func (a *App) ListChatSessions() []*ChatSession {
 // --- Accessor Methods (Example, ensure these also respect locking if accessing shared state) ---
 
 // GetInterpreter safely retrieves the interpreter.
-func (a *App) GetInterpreter() *core.Interpreter {
+func (a *App) GetInterpreter() * rpreter {
 	// Assuming a.interpreter is set at init and doesn't change, or uses its own separate lock if it does.
 	// If a.mu protects a.interpreter:
 	// a.mu.RLock()
@@ -276,7 +276,7 @@ func (a *App) GetInterpreter() *core.Interpreter {
 }
 
 // GetAIWorkerManager safely retrieves the AIWorkerManager from the interpreter.
-func (a *App) GetAIWorkerManager() *core.AIWorkerManager {
+func (a *App) GetAIWorkerManager() * rkerManager {
 	// As above, depends on how a.interpreter is managed.
 	// a.mu.RLock()
 	interpreter := a.interpreter

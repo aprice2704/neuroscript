@@ -70,7 +70,7 @@ func TestOnEventHandling(t *testing.T) {
 		if !exists {
 			t.Fatal("Variable 'login_name' was not set by the event handler")
 		}
-		if strVal, ok := val.(StringValue); !ok || strVal.Value != "testuser" {
+		if strVal, ok := val.(lang.StringValue); !ok || strVal.Value != "testuser" {
 			t.Errorf("Expected login_name to be 'testuser', got %v", val)
 		}
 	})
@@ -100,12 +100,12 @@ func TestOnEventHandling(t *testing.T) {
 		testutil.DebugDumpVariables(interp, t)
 
 		valA, _ := interp.GetVariable("var_a")
-		if numA, ok := valA.(NumberValue); !ok || numA.Value != 1 {
+		if numA, ok := valA.(lang.NumberValue); !ok || numA.Value != 1 {
 			t.Errorf("Expected var_a to be 1, got %v", valA)
 		}
 
 		valB, _ := interp.GetVariable("var_b")
-		if numB, ok := valB.(NumberValue); !ok || numB.Value != 2 {
+		if numB, ok := valB.(lang.NumberValue); !ok || numB.Value != 2 {
 			t.Errorf("Expected var_b to be 2, got %v", valB)
 		}
 	})

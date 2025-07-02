@@ -12,20 +12,18 @@ import (
 	"fmt"
 	"log" // Using standard log package for bootstrap messages
 	"sync"
-
-	"github.com/aprice2704/neuroscript/pkg/core"
 )
 
 const bootstrapLogPrefix = "[TOOLSET_REGISTRY] "
 
 // ToolRegisterFunc defines the function signature expected for registering a toolset.
-type ToolRegisterFunc func(registry core.ToolRegistrar) error
+type ToolRegisterFunc func(registry ToolRegistrar) error
 
 // --- Registry for Toolset Registration Functions ---
 
 var (
-	registrationMu		sync.RWMutex
-	toolsetRegistrations	= make(map[string]ToolRegisterFunc)
+	registrationMu       sync.RWMutex
+	toolsetRegistrations = make(map[string]ToolRegisterFunc)
 )
 
 // AddToolsetRegistration is called by tool packages (typically in their init() function)
@@ -46,11 +44,11 @@ func AddToolsetRegistration(name string, regFunc ToolRegisterFunc) {
 
 // CreateRegistrationFunc is a helper that takes a toolset name and a slice of ToolImplementations
 // and returns a ToolRegisterFunc. This simplifies the registration logic within each toolset package.
-func CreateRegistrationFunc(toolsetName string, tools []core.ToolImplementation) ToolRegisterFunc {
-	return func(registry core.ToolRegistrar) error {
+func CreateRegistrationFunc(toolsetName string, tools []Implementation) ToolRegisterFunc {
+	return func(registry Registrar) error {
 		if registry == nil {
 			err := fmt.Errorf("CreateRegistrationFunc for %s: registry is nil", toolsetName)
-			log.Printf(bootstrapLogPrefix+"ERROR: %v", err)	// Log error before returning
+			log.Printf(bootstrapLogPrefix+"ERROR: %v", err) // Log error before returning
 			return err
 		}
 		var errs []error
@@ -70,9 +68,9 @@ func CreateRegistrationFunc(toolsetName string, tools []core.ToolImplementation)
 }
 
 // RegisterExtendedTools registers all non-core toolsets that have added themselves
-// via AddToolsetRegistration. It uses the provided core.ToolRegistrar (which should be
+// via AddToolsetRegistration. It uses the provided  Registrar (which should be
 // the interpreter's tool registry).
-func RegisterExtendedTools(registry core.ToolRegistrar) error {
+func RegisterExtendedTools(registry Registrar) error {
 	registrationMu.RLock()
 	defer registrationMu.RUnlock()
 

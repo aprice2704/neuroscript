@@ -15,7 +15,7 @@ import (
 // RegisterAIWorkerTools ensures the AIWorkerManager is initialized on the interpreter.
 // If AI Worker tools were to be registered by this specific function (distinct from tooldefs_ai_wm.go),
 // that logic would also go here. Currently, its main role is AIWM setup.
-func RegisterAIWorkerTools(i *Interpreter) error {
+func RegisterAIWorkerTools(i *neurogo.Interpreter) error {
 	if i == nil {
 		return fmt.Errorf("interpreter cannot be nil for RegisterAIWorkerTools")
 	}
@@ -30,19 +30,19 @@ func RegisterAIWorkerTools(i *Interpreter) error {
 		i.Logger().Debugf("AIWorkerManager not yet initialized on Interpreter, attempting to create now for AI Worker tools.") // Changed from Infof
 		sandboxDir := i.SandboxDir()
 		if sandboxDir == "" {
-			return lang.NewRuntimeError(ErrorCodeConfiguration, "cannot initialize AIWorkerManager: Interpreter's sandbox directory is empty", ErrConfiguration)
+			return lang.NewRuntimeError(lang.ErrorCodeConfiguration, "cannot initialize AIWorkerManager: Interpreter's sandbox directory is empty", lang.ErrConfiguration)
 		}
 		if i.llmClient == nil {
 			i.Logger().Error("AIWorkerManager initialization failed: Interpreter's LLMClient is nil.")
-			return lang.NewRuntimeError(ErrorCodeConfiguration, "cannot initialize AIWorkerManager: Interpreter's LLMClient is nil", ErrConfiguration)
+			return lang.NewRuntimeError(lang.ErrorCodeConfiguration, "cannot initialize AIWorkerManager: Interpreter's LLMClient is nil", lang.ErrConfiguration)
 		}
 
 		// Corrected call to NewAIWorkerManager with all required arguments
 		// Pass empty strings for initial content, so it defaults to loading from files if they exist, or starts empty.
 		manager, managerErr := NewAIWorkerManager(i.Logger(), sandboxDir, i.llmClient, "", "")
 		if managerErr != nil {
-			if _, ok := managerErr.(*RuntimeError); !ok { // Ensure it's a RuntimeError
-				managerErr = lang.NewRuntimeError(ErrorCodeInternal, "failed to initialize AIWorkerManager for tools", managerErr)
+			if _, ok := managerErr.(*lang.RuntimeError); !ok { // Ensure it's a lang.RuntimeError
+				managerErr = lang.NewRuntimeError(lang.ErrorCodeInternal, "failed to initialize AIWorkerManager for tools", managerErr)
 			}
 			return managerErr
 		}

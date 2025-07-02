@@ -11,7 +11,7 @@ import (
 )
 
 // validateArgumentsAgainstSpec performs detailed validation of raw arguments against the tool's spec.
-func (sl *SecurityLayer) validateArgumentsAgainstSpec(toolSpec tool.ToolSpec, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (sl *SecurityLayer) validateArgumentsAgainstSpec(toolSpec runtime.tool.ToolSpec, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	validatedArgs := make(map[string]interface{})
 
 	for _, specArg := range toolSpec.Args {

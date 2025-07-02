@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/aprice2704/neuroscript/pkg/core"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/google/generative-ai-go/genai"
 )
@@ -28,9 +27,9 @@ type llmRequestContext struct {
 func (a *App) handleAgentTurn(
 	ctx context.Context,
 	llmClient interfaces.LLMClient,
-	convoManager *core.ConversationManager,
-	agentInterpreter *core.Interpreter,
-	securityLayer *core.SecurityLayer,
+	convoManager *llm.ConversationManager,
+	agentInterpreter *rpreter,
+	securityLayer *rityLayer,
 	toolDeclarations []*genai.Tool,
 	initialAttachmentURIs []string,
 ) error {
@@ -144,7 +143,7 @@ func (a *App) handleAgentTurn(
 
 			if execErr != nil {
 				logger.Error("Tool execution failed.", "tool_name", genaiFC.Name, "error", execErr)
-				funcResultPart = core.CreateErrorFunctionResultPart(genaiFC.Name, execErr)
+				funcResultPart = teErrorFunctionResultPart(genaiFC.Name, execErr)
 			} else {
 				logger.Info("Tool execution successful.", "tool_name", genaiFC.Name)
 			}

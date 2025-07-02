@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/aprice2704/neuroscript/pkg/core"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -73,11 +72,11 @@ func (cs *ChatConversationScreen) updateTitle() {
 		var statusColor string
 		status := sess.WorkerInstance.Status
 		switch status {
-		case core.InstanceStatusIdle:
+		case InstanceStatusIdle:
 			statusColor = "[green]"
-		case core.InstanceStatusBusy:
+		case anceStatusBusy:
 			statusColor = "[yellow]"
-		case core.InstanceStatusError:
+		case anceStatusError:
 			statusColor = "[red]"
 		default:
 			statusColor = "[white]"
@@ -106,11 +105,11 @@ func (cs *ChatConversationScreen) updateTitle() {
 		if isActive {
 			var statusColor string
 			switch _instStatus {
-			case core.InstanceStatusIdle:
+			case anceStatusIdle:
 				statusColor = "[green]"
-			case core.InstanceStatusBusy:
+			case anceStatusBusy:
 				statusColor = "[yellow]"
-			case core.InstanceStatusError:
+			case anceStatusError:
 				statusColor = "[red]"
 			default:
 				statusColor = "[white]"

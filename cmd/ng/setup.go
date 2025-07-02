@@ -12,7 +12,6 @@ import (
 	// "strings" // Not directly used in this corrected function
 
 	"github.com/aprice2704/neuroscript/pkg/adapters" // Keep for InitializeCoreComponents
-	"github.com/aprice2704/neuroscript/pkg/core"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/neurogo"
 )
@@ -77,7 +76,7 @@ func ifElse(condition bool, trueVal, falseVal interface{}) interface{} {
 	return falseVal
 }
 
-func InitializeCoreComponents(app *neurogo.App, logger interfaces.Logger, llmClient interfaces.LLMClient) (*core.Interpreter, *core.AIWorkerManager, error) {
+func InitializeCoreComponents(app *neurogo.App, logger interfaces.Logger, llmClient interfaces.LLMClient) (*neurogo.Interpreter, *runtime.AIWorkerManager, error) {
 	// LLM Client is now passed in as an argument and should already be set on the App instance by NewApp.
 	// No need to create or set it here.
 	if llmClient == nil {
@@ -98,9 +97,9 @@ func InitializeCoreComponents(app *neurogo.App, logger interfaces.Logger, llmCli
 	initialGlobals := make(map[string]interface{})
 	initialIncludes := make([]string, 0)
 
-	interpreter, err := core.NewInterpreter(logger, llmClient, app.Config.SandboxDir, initialGlobals, initialIncludes)
+	interpreter, err := nterpreter(logger, llmClient, app.Config.SandboxDir, initialGlobals, initialIncludes)
 	if err != nil {
-		logger.Error("Failed to create core.Interpreter", "error", err)
+		logger.Error("Failed to create  rpreter", "error", err)
 		return nil, nil, fmt.Errorf("failed to create interpreter: %w", err)
 	}
 	app.SetInterpreter(interpreter)
@@ -115,11 +114,11 @@ func InitializeCoreComponents(app *neurogo.App, logger interfaces.Logger, llmCli
 	logger.Debug("AIWorkerManager sandbox directory ensured", "path", aiWmSandboxDir)
 
 	defaultDefsContent := ""
-	if core.AIWorkerDefinitions_Default != "" {
-		defaultDefsContent = core.AIWorkerDefinitions_Default
+	if rkerDefinitions_Default != "" {
+		defaultDefsContent = rkerDefinitions_Default
 	}
 
-	aiWm, errManager := core.NewAIWorkerManager(logger, aiWmSandboxDir, llmClient, defaultDefsContent, "")
+	aiWm, errManager := IWorkerManager(logger, aiWmSandboxDir, llmClient, defaultDefsContent, "")
 	if errManager != nil {
 		logger.Error("Failed to create AI Worker Manager", "error", errManager)
 		// Interpreter was created, but AIWM failed.

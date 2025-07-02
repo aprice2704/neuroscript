@@ -9,14 +9,14 @@ func TestConvertInputSchemaToArgSpec_SuccessScenarios(t *testing.T) {
 	testCases := []struct {
 		name           string
 		schema         map[string]interface{}
-		expectedArgs   []tool.ArgSpec
+		expectedArgs   []runtime.tool.ArgSpec
 		expectError    bool
 		expectedErrMsg string
 	}{
 		{
 			name:         "schema with no properties",
 			schema:       map[string]interface{}{"type": "object"},
-			expectedArgs: []tool.ArgSpec{},
+			expectedArgs: []runtime.tool.ArgSpec{},
 			expectError:  false,
 		},
 		{
@@ -27,7 +27,7 @@ func TestConvertInputSchemaToArgSpec_SuccessScenarios(t *testing.T) {
 					"param1": map[string]interface{}{"type": "string"},
 				},
 			},
-			expectedArgs: []tool.ArgSpec{
+			expectedArgs: []runtime.tool.ArgSpec{
 				{Name: "param1", Type: ArgTypeString, Required: false},
 			},
 			expectError: false,
@@ -41,7 +41,7 @@ func TestConvertInputSchemaToArgSpec_SuccessScenarios(t *testing.T) {
 				},
 				"required": []string{},
 			},
-			expectedArgs: []tool.ArgSpec{
+			expectedArgs: []runtime.tool.ArgSpec{
 				{Name: "param1", Type: ArgTypeInt, Required: false},
 			},
 			expectError: false,

@@ -34,7 +34,7 @@ func (m *AIWorkerManager) SpawnWorkerInstance(
 	def, exists := m.definitions[definitionID]
 	if !exists {
 		m.logger.Debugf("DEBUG_INSTANCE (v0.1.10+fix2): Definition ID '%s' not found in m.definitions.", definitionID)
-		return nil, lang.NewRuntimeError(ErrorCodeKeyNotFound, fmt.Sprintf("worker definition ID '%s' not found for spawning instance", definitionID), ErrNotFound)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeKeyNotFound, fmt.Sprintf("worker definition ID '%s' not found for spawning instance", definitionID), lang.ErrNotFound)
 	}
 	if def == nil {
 		errMsg := fmt.Sprintf("CRITICAL PANIC (SpawnWorkerInstance): Definition '%s' found in map but pointer is nil.", definitionID)
@@ -45,7 +45,7 @@ func (m *AIWorkerManager) SpawnWorkerInstance(
 
 	if def.Status != DefinitionStatusActive {
 		m.logger.Debugf("DEBUG_INSTANCE (v0.1.10+fix2): DefID '%s' is not active (Status: %s).", definitionID, def.Status)
-		return nil, lang.NewRuntimeError(ErrorCodePreconditionFailed, fmt.Sprintf("worker definition '%s' is not active (status: %s), cannot spawn instance", definitionID, def.Status), ErrFailedPrecondition)
+		return nil, lang.NewRuntimeError(lang.ErrorCodePreconditionFailed, fmt.Sprintf("worker definition '%s' is not active (status: %s), cannot spawn instance", definitionID, def.Status), lang.ErrFailedPrecondition)
 	}
 
 	supportsConversational := false
@@ -62,7 +62,7 @@ func (m *AIWorkerManager) SpawnWorkerInstance(
 
 	if !supportsConversational {
 		m.logger.Debugf("DEBUG_INSTANCE (v0.1.10+fix2): DefID '%s' does not support conversational interaction.", definitionID)
-		return nil, lang.NewRuntimeError(ErrorCodePreconditionFailed, fmt.Sprintf("worker definition '%s' does not support conversational interaction, cannot spawn instance", definitionID), ErrFailedPrecondition)
+		return nil, lang.NewRuntimeError(lang.ErrorCodePreconditionFailed, fmt.Sprintf("worker definition '%s' does not support conversational interaction, cannot spawn instance", definitionID), lang.ErrFailedPrecondition)
 	}
 
 	m.logger.Debugf("DEBUG_INSTANCE (v0.1.10+fix2): ---- Immediately BEFORE CALL to m.getOrCreateRateTrackerUnsafe ----")
@@ -87,7 +87,7 @@ func (m *AIWorkerManager) SpawnWorkerInstance(
 	if def.RateLimits.MaxConcurrentActiveInstances > 0 && tracker.CurrentActiveInstances >= def.RateLimits.MaxConcurrentActiveInstances {
 		m.logger.Debugf("DEBUG_INSTANCE (v0.1.10+fix2): Max concurrent instances (%d) reached for DefID '%s'. Current: %d", def.RateLimits.MaxConcurrentActiveInstances, definitionID, tracker.CurrentActiveInstances)
 		m.logger.Warnf("SpawnWorkerInstance: Max concurrent instances (%d) reached for definition '%s'", def.RateLimits.MaxConcurrentActiveInstances, definitionID)
-		return nil, lang.NewRuntimeError(ErrorCodeRateLimited, fmt.Sprintf("max concurrent instances (%d) reached for definition '%s'", def.RateLimits.MaxConcurrentActiveInstances, definitionID), ErrRateLimited)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeRateLimited, fmt.Sprintf("max concurrent instances (%d) reached for definition '%s'", def.RateLimits.MaxConcurrentActiveInstances, definitionID), lang.ErrRateLimited)
 	}
 
 	instanceID := uuid.NewString()
@@ -120,7 +120,7 @@ func (m *AIWorkerManager) SpawnWorkerInstance(
 		// Use a generic error code if ErrorCodeLLMClientNotSet is not defined,
 		// or use the numeric code if that's how your errors are structured.
 		// For now, using ErrorCodeInternal as a placeholder for "Error 19".
-		return nil, lang.NewRuntimeError(ErrorCodeInternal, errMsg, nil) // Adjusted Error Code
+		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, errMsg, nil) // Adjusted Error Code
 	}
 	// *** END OF THE PRIMARY FIX (Part 1: Getting and checking manager's client) ***
 
@@ -171,7 +171,7 @@ func (m *AIWorkerManager) GetWorkerInstance(instanceID string) (*AIWorkerInstanc
 
 	instance, exists := m.activeInstances[instanceID]
 	if !exists {
-		return nil, lang.NewRuntimeError(ErrorCodeKeyNotFound, fmt.Sprintf("active AI worker instance with ID '%s' not found", instanceID), ErrNotFound)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeKeyNotFound, fmt.Sprintf("active AI worker instance with ID '%s' not found", instanceID), lang.ErrNotFound)
 	}
 	if instance == nil {
 		errMsg := fmt.Sprintf("CRITICAL PANIC (GetWorkerInstance): Instance '%s' found in map but is nil.", instanceID)
@@ -229,7 +229,7 @@ func (m *AIWorkerManager) RetireWorkerInstance(
 	instance, exists := m.activeInstances[instanceID]
 	if !exists {
 		m.logger.Warnf("RetireWorkerInstance: Active instance ID '%s' not found for retirement.", instanceID)
-		return lang.NewRuntimeError(ErrorCodeKeyNotFound, fmt.Sprintf("active AI worker instance ID '%s' not found for retirement", instanceID), ErrNotFound)
+		return lang.NewRuntimeError(lang.ErrorCodeKeyNotFound, fmt.Sprintf("active AI worker instance ID '%s' not found for retirement", instanceID), lang.ErrNotFound)
 	}
 	if instance == nil {
 		errMsg := fmt.Sprintf("CRITICAL PANIC (RetireWorkerInstance): Instance '%s' found in map but is nil.", instanceID)
@@ -266,10 +266,10 @@ func (m *AIWorkerManager) RetireWorkerInstance(
 
 	if err := m.appendRetiredInstanceToFileUnsafe(retiredInfo); err != nil {
 		m.logger.Errorf("AIWorkerManager: Failed to persist retired instance info for %s: %v. Instance will still be removed from active list.", instanceID, err)
-		if _, ok := err.(*RuntimeError); ok {
+		if _, ok := err.(*lang.RuntimeError); ok {
 			return err
 		}
-		return lang.NewRuntimeError(ErrorCodeInternal, fmt.Sprintf("failed to persist retired instance info for %s", instanceID), err)
+		return lang.NewRuntimeError(lang.ErrorCodeInternal, fmt.Sprintf("failed to persist retired instance info for %s", instanceID), err)
 	}
 
 	delete(m.activeInstances, instanceID)
@@ -301,7 +301,7 @@ func (m *AIWorkerManager) UpdateInstanceStatus(instanceID string, newStatus AIWo
 
 	instance, exists := m.activeInstances[instanceID]
 	if !exists {
-		return lang.NewRuntimeError(ErrorCodeKeyNotFound, fmt.Sprintf("active AI worker instance ID '%s' not found for status update", instanceID), ErrNotFound)
+		return lang.NewRuntimeError(lang.ErrorCodeKeyNotFound, fmt.Sprintf("active AI worker instance ID '%s' not found for status update", instanceID), lang.ErrNotFound)
 	}
 	if instance == nil {
 		errMsg := fmt.Sprintf("CRITICAL PANIC (UpdateInstanceStatus): Instance '%s' found in map but is nil.", instanceID)
@@ -378,7 +378,7 @@ func (m *AIWorkerManager) UpdateInstanceSessionTokenUsage(instanceID string, inp
 
 	instance, exists := m.activeInstances[instanceID]
 	if !exists {
-		return lang.NewRuntimeError(ErrorCodeKeyNotFound, fmt.Sprintf("active AI worker instance ID '%s' not found for token usage update", instanceID), ErrNotFound)
+		return lang.NewRuntimeError(lang.ErrorCodeKeyNotFound, fmt.Sprintf("active AI worker instance ID '%s' not found for token usage update", instanceID), lang.ErrNotFound)
 	}
 	if instance == nil {
 		errMsg := fmt.Sprintf("CRITICAL PANIC (UpdateInstanceSessionTokenUsage): Instance '%s' found in map but is nil.", instanceID)

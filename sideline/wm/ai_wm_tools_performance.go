@@ -14,30 +14,30 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/lang"
 )
 
-var specAIWorkerLogPerformance = ToolSpec{
+var specAIWorkerLogPerformance = tool.ToolSpec{
 	Name:        "AIWorker.LogPerformance",
 	Description: "Logs a performance record for an AI Worker task.",
 	Category:    "AI Worker Management",
-	Args: []ArgSpec{
-		{Name: "task_id", Type: ArgTypeString, Required: true},
-		{Name: "instance_id", Type: ArgTypeString, Required: true},
-		{Name: "definition_id", Type: ArgTypeString, Required: true},
-		{Name: "timestamp_start", Type: ArgTypeString, Required: true},
-		{Name: "timestamp_end", Type: ArgTypeString, Required: true},
-		{Name: "duration_ms", Type: ArgTypeInt, Required: true},
-		{Name: "success", Type: ArgTypeBool, Required: true},
-		{Name: "input_context", Type: ArgTypeMap, Required: false},
-		{Name: "llm_metrics", Type: ArgTypeMap, Required: false},
-		{Name: "cost_incurred", Type: ArgTypeFloat, Required: false},
-		{Name: "output_summary", Type: ArgTypeString, Required: false},
-		{Name: "error_details", Type: ArgTypeString, Required: false},
+	Args: []tool.ArgSpec{
+		{Name: "task_id", Type: tool.ArgTypeString, Required: true},
+		{Name: "instance_id", Type: tool.ArgTypeString, Required: true},
+		{Name: "definition_id", Type: tool.ArgTypeString, Required: true},
+		{Name: "timestamp_start", Type: tool.ArgTypeString, Required: true},
+		{Name: "timestamp_end", Type: tool.ArgTypeString, Required: true},
+		{Name: "duration_ms", Type: tool.ArgTypeInt, Required: true},
+		{Name: "success", Type: tool.ArgTypeBool, Required: true},
+		{Name: "input_context", Type: tool.ArgTypeMap, Required: false},
+		{Name: "llm_metrics", Type: tool.ArgTypeMap, Required: false},
+		{Name: "cost_incurred", Type: tool.ArgTypeFloat, Required: false},
+		{Name: "output_summary", Type: tool.ArgTypeString, Required: false},
+		{Name: "error_details", Type: tool.ArgTypeString, Required: false},
 	},
 	ReturnType: "string",
 }
 
-var toolAIWorkerLogPerformance = ToolImplementation{
+var toolAIWorkerLogPerformance = tool.ToolImplementation{
 	Spec: specAIWorkerLogPerformance,
-	Func: func(i *Interpreter, args []interface{}) (interface{}, error) {
+	Func: func(i *neurogo.Interpreter, args []interface{}) (interface{}, error) {
 		m, err := getAIWorkerManager(i)
 		if err != nil {
 			return nil, err
@@ -50,7 +50,7 @@ var toolAIWorkerLogPerformance = ToolImplementation{
 		record.DefinitionID, _ = args[2].(string)
 		tsStartStr, _ := args[3].(string)
 		tsEndStr, _ := args[4].(string)
-		record.DurationMs, _ = toInt64(args[5])
+		record.DurationMs, _ = lang.toInt64(args[5])
 		record.Success, _ = args[6].(bool)
 
 		if args[7] != nil {
@@ -74,14 +74,14 @@ var toolAIWorkerLogPerformance = ToolImplementation{
 		if err != nil {
 			record.TimestampStart, err = time.Parse(time.RFC3339, tsStartStr)
 			if err != nil {
-				return nil, lang.NewRuntimeError(ErrorCodeArgMismatch, fmt.Sprintf("invalid timestamp_start format '%s'", tsStartStr), err)
+				return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("invalid timestamp_start format '%s'", tsStartStr), err)
 			}
 		}
 		record.TimestampEnd, err = time.Parse(time.RFC3339Nano, tsEndStr)
 		if err != nil {
 			record.TimestampEnd, err = time.Parse(time.RFC3339, tsEndStr)
 			if err != nil {
-				return nil, lang.NewRuntimeError(ErrorCodeArgMismatch, fmt.Sprintf("invalid timestamp_end format '%s'", tsEndStr), err)
+				return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("invalid timestamp_end format '%s'", tsEndStr), err)
 			}
 		}
 
@@ -95,20 +95,20 @@ var toolAIWorkerLogPerformance = ToolImplementation{
 	},
 }
 
-var specAIWorkerGetPerformanceRecords = ToolSpec{
+var specAIWorkerGetPerformanceRecords = tool.ToolSpec{
 	Name:        "AIWorker.GetPerformanceRecords",
 	Description: "Retrieves performance records for an AI Worker Definition.",
 	Category:    "AI Worker Management",
-	Args: []ArgSpec{
-		{Name: "definition_id", Type: ArgTypeString, Required: true},
-		{Name: "filters", Type: ArgTypeMap, Required: false},
+	Args: []tool.ArgSpec{
+		{Name: "definition_id", Type: tool.ArgTypeString, Required: true},
+		{Name: "filters", Type: tool.ArgTypeMap, Required: false},
 	},
 	ReturnType: "slice",
 }
 
-var toolAIWorkerGetPerformanceRecords = ToolImplementation{
+var toolAIWorkerGetPerformanceRecords = tool.ToolImplementation{
 	Spec: specAIWorkerGetPerformanceRecords,
-	Func: func(i *Interpreter, args []interface{}) (interface{}, error) {
+	Func: func(i *neurogo.Interpreter, args []interface{}) (interface{}, error) {
 		m, err := getAIWorkerManager(i)
 		if err != nil {
 			return nil, err

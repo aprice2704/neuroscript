@@ -9,24 +9,23 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/aprice2704/neuroscript/pkg/core"
 	diffmatchpatch "github.com/sergi/go-diff/diffmatchpatch"
 )
 
 // --- Tool Definition: GeneratePatch ---
 
-var toolGeneratePatchImpl = core.ToolImplementation{
-	Spec: core.ToolSpec{
+var toolGeneratePatchImpl = tool.ToolImplementation{
+	Spec: Spec{
 		Name: "GeneratePatch",
 		Description: "Compares original_content and modified_content line by line and generates a list of patch operations " +
 			"(compatible with ApplyPatch) required to transform the original into the modified.",
-		Args: []core.ArgSpec{
-			{Name: "original_content", Type: core.ArgTypeString, Required: true, Description: "The original text content."},
-			{Name: "modified_content", Type: core.ArgTypeString, Required: true, Description: "The modified text content."},
-			{Name: "path", Type: core.ArgTypeString, Required: false, Description: "(Optional) The file path this patch pertains to. If provided, it will be added to each operation."},
+		Args: []pec{
+			{Name: "original_content", Type: ypeString, Required: true, Description: "The original text content."},
+			{Name: "modified_content", Type: ypeString, Required: true, Description: "The modified text content."},
+			{Name: "path", Type: ypeString, Required: false, Description: "(Optional) The file path this patch pertains to. If provided, it will be added to each operation."},
 		},
 		// Returns a list of maps, each representing a PatchChange struct
-		ReturnType: core.ArgTypeSliceMap,
+		ReturnType: ypeSliceMap,
 	},
 	Func: toolGeneratePatch,
 }
@@ -61,12 +60,12 @@ func splitLines(text string) []string {
 }
 
 // toolGeneratePatch implements the GeneratePatch tool.
-func toolGeneratePatch(interpreter *core.Interpreter, args []interface{}) (interface{}, error) {
+func toolGeneratePatch(interpreter *rpreter, args []interface{}) (interface{}, error) {
 	logger := interpreter.Logger()
 
 	// --- Argument Parsing ---
 	if len(args) != 3 {
-		return nil, fmt.Errorf("%w: GeneratePatch requires 3 arguments (original_content, modified_content, path)", core.ErrInvalidArgument)
+		return nil, fmt.Errorf("%w: GeneratePatch requires 3 arguments (original_content, modified_content, path)", nvalidArgument)
 	}
 	originalContent, okO := args[0].(string)
 	modifiedContent, okM := args[1].(string)
@@ -74,13 +73,13 @@ func toolGeneratePatch(interpreter *core.Interpreter, args []interface{}) (inter
 	if args[2] != nil {
 		pathArg, okP := args[2].(string)
 		if !okP {
-			return nil, fmt.Errorf("%w: GeneratePatch invalid type for path argument, expected string, got %T", core.ErrInvalidArgument, args[2])
+			return nil, fmt.Errorf("%w: GeneratePatch invalid type for path argument, expected string, got %T", nvalidArgument, args[2])
 		}
 		filePath = pathArg
 	}
 
 	if !okO || !okM {
-		return nil, fmt.Errorf("%w: GeneratePatch invalid argument types (expected string, string, string|nil)", core.ErrInvalidArgument)
+		return nil, fmt.Errorf("%w: GeneratePatch invalid argument types (expected string, string, string|nil)", nvalidArgument)
 	}
 
 	logger.Debug("[TOOL-GENERATEPATCH] Request", "originalLen", len(originalContent), "modifiedLen", len(modifiedContent), "path", filePath)

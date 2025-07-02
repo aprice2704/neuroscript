@@ -15,7 +15,6 @@ import (
 	"sync"
 
 	"github.com/aprice2704/neuroscript/pkg/adapters"
-	"github.com/aprice2704/neuroscript/pkg/core"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 )
 
@@ -23,7 +22,7 @@ import (
 type App struct {
 	Config       *Config
 	Log          interfaces.Logger
-	interpreter  *core.Interpreter
+	interpreter  *Interpreter
 	llmClient    interfaces.LLMClient
 	agentCtx     *AgentContext
 	patchHandler *PatchHandler
@@ -45,12 +44,12 @@ type App struct {
 
 // In pkg/neurogo/app.go
 
-func (a *App) Interpreter() *core.Interpreter { // Use the correct type for your interpreter
+func (a *App) Interpreter() *rpreter { // Use the correct type for your interpreter
 	return a.interpreter
 }
 
 // SetInterpreter allows setting the interpreter after App creation.
-func (a *App) SetInterpreter(interp *core.Interpreter) {
+func (a *App) SetInterpreter(interp *rpreter) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	a.interpreter = interp
@@ -127,7 +126,7 @@ func (a *App) Stdin() io.Reader {
 // --- End I/O Method Delegation ---
 
 // SetAIWorkerManager sets the AI Worker Manager on the interpreter.
-func (a *App) SetAIWorkerManager(wm *core.AIWorkerManager) {
+func (a *App) SetAIWorkerManager(wm *rkerManager) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	if a.interpreter != nil {
@@ -155,17 +154,17 @@ func (a *App) Run() error {
 
 		// --- NEW PROTOCOL IMPLEMENTATION ---
 		// 1. Read file content via interpreter tool
-		filepathArg, wrapErr := core.Wrap(a.Config.StartupScript)
+		filepathArg, wrapErr := (a.Config.StartupScript)
 		if wrapErr != nil {
 			return fmt.Errorf("internal error wrapping startup script path: %w", wrapErr)
 		}
-		toolArgs := map[string]core.Value{"filepath": filepathArg}
+		toolArgs := map[string]e{"filepath": filepathArg}
 		contentValue, toolErr := a.interpreter.ExecuteTool("FS.Read", toolArgs) // CORRECTED
 		if toolErr != nil {
 			a.Log.Error("Failed to read startup script", "script", a.Config.StartupScript, "error", toolErr)
 			return fmt.Errorf("failed to read startup script '%s': %w", a.Config.StartupScript, toolErr)
 		}
-		scriptContent, ok := core.Unwrap(contentValue).(string)
+		scriptContent, ok := ap(contentValue).(string)
 		if !ok {
 			return fmt.Errorf("internal error: FS.Read did not return a string for startup script") // CORRECTED
 		}
@@ -304,12 +303,12 @@ func (a *App) InitializeCoreComponents() error {
 	}
 
 	var errInterp error
-	a.interpreter, errInterp = core.NewInterpreter(a.Log, interpLLMClient, sandboxDir, nil, a.Config.LibPaths)
+	a.interpreter, errInterp = nterpreter(a.Log, interpLLMClient, sandboxDir, nil, a.Config.LibPaths)
 
 	if errInterp != nil {
 		return fmt.Errorf("failed to create interpreter: %w", errInterp)
 	}
-	if errRegister := core.RegisterCoreTools(a.interpreter); errRegister != nil {
+	if errRegister := sterCoreTools(a.interpreter); errRegister != nil {
 		// Log as warning, not fatal error, to allow basic operation
 		a.Log.Warn("Failed to register all core tools", "error", errRegister)
 	}
@@ -329,7 +328,7 @@ func (a *App) InitializeCoreComponents() error {
 		aiWmLLMClient = adapters.NewNoOpLLMClient() // Fallback for AIWM
 	}
 
-	aiWm, errManager := core.NewAIWorkerManager(a.Log, sandboxDir, aiWmLLMClient, "", "") // Empty strings for initial content
+	aiWm, errManager := IWorkerManager(a.Log, sandboxDir, aiWmLLMClient, "", "") // Empty strings for initial content
 	if errManager != nil {
 		a.Log.Error("Failed to initialize AIWorkerManager", "error", errManager)
 	} else {
@@ -408,13 +407,13 @@ func (app *App) CreateLLMClient() (interfaces.LLMClient, error) {
 		loggerToUse = adapters.NewNoOpLogger() // Safety fallback
 	}
 
-	llmClient, _ := core.NewLLMClient(apiKey, modelName, loggerToUse)
+	llmClient, _ := LMClient(apiKey, modelName, loggerToUse)
 
 	if llmClient == nil {
 		if app.Log != nil {
-			app.Log.Error("core.NewLLMClient returned nil unexpectedly. This indicates a critical LLM client creation failure.")
+			app.Log.Error(" LMClient returned nil unexpectedly. This indicates a critical LLM client creation failure.")
 		}
-		return adapters.NewNoOpLLMClient(), fmt.Errorf("core.NewLLMClient returned nil for real client creation")
+		return adapters.NewNoOpLLMClient(), fmt.Errorf(" LMClient returned nil for real client creation")
 	}
 	if app.Log != nil {
 		app.Log.Debug("Real LLMClient created.", "host", apiHost, "model", modelName)

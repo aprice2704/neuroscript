@@ -25,7 +25,7 @@ func (m *AIWorkerManager) GetWorkerDefinition(definitionID string) (*AIWorkerDef
 
 	def, exists := m.definitions[definitionID]
 	if !exists {
-		return nil, lang.NewRuntimeError(ErrorCodeKeyNotFound, fmt.Sprintf("worker definition with ID '%s' not found", definitionID), ErrNotFound)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeKeyNotFound, fmt.Sprintf("worker definition with ID '%s' not found", definitionID), lang.ErrNotFound)
 	}
 
 	// Return a copy, primarily to snapshot AggregatePerformanceSummary which can be updated.

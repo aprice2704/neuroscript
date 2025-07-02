@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.3.1
 // File version: 1.0.0
-// Purpose: Aligns ExecuteScriptString with the value contract by returning a core.Value instead of interface{}.
+// Purpose: Aligns ExecuteScriptString with the value contract by returning a  Value instead of interface{}.
 // filename: pkg/runtime/interpreter_scriptexec.go
 // nlines: 80 // Approximate
 // risk_rating: MEDIUM
@@ -18,7 +18,7 @@ import (
 // scriptName is used for context in error messages or debugging.
 // scriptContent is the actual NeuroScript code to execute.
 // args is a map of arguments that could be made available to the script (currently not implemented for direct injection).
-// It returns the result of the script execution as a core.Value and a *RuntimeError if an error occurs.
+// It returns the result of the script execution as a  e and a *RuntimeError if an error occurs.
 func (i *Interpreter) ExecuteScriptString(scriptName, scriptContent string, args map[string]interface{}) (result lang.Value, rErr *lang.RuntimeError) {
 	if i == nil {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, "interpreter instance is nil", nil)
@@ -83,7 +83,7 @@ func (i *Interpreter) ExecuteScriptString(scriptName, scriptContent string, args
 	stepsToExecute := scriptProcedure.Steps
 
 	// Note: The 'args map[string]interface{}' parameter is present for future extension.
-	// If implemented, values from args would need to be wrapped into core.Value types.
+	// If implemented, values from args would need to be wrapped into  e types.
 
 	// 2. Execution phase
 	var execErr error

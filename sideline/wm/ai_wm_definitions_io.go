@@ -29,7 +29,7 @@ func (m *AIWorkerManager) LoadWorkerDefinitionsFromFile() error {
 		m.definitions = make(map[string]*AIWorkerDefinition)
 		m.activeInstances = make(map[string]*AIWorkerInstance) // Clear active instances as their defs are gone
 		m.initializeRateTrackersUnsafe()                       // Initialize for an empty set
-		return lang.NewRuntimeError(ErrorCodeConfiguration, "definitions file path not configured, cannot load", ErrConfiguration)
+		return lang.NewRuntimeError(lang.ErrorCodeConfiguration, "definitions file path not configured, cannot load", lang.ErrConfiguration)
 	}
 
 	m.logger.Infof("AIWorkerManager: Loading worker definitions from %s. Existing definitions will be replaced.", defPath)
@@ -52,7 +52,7 @@ func (m *AIWorkerManager) LoadWorkerDefinitionsFromFile() error {
 		}
 		m.logger.Errorf("AIWorkerManager: Error reading definitions file '%s': %v", defPath, err)
 		m.initializeRateTrackersUnsafe() // Initialize for safety
-		return lang.NewRuntimeError(ErrorCodeInternal, fmt.Sprintf("failed to read definitions file '%s'", defPath), err)
+		return lang.NewRuntimeError(lang.ErrorCodeInternal, fmt.Sprintf("failed to read definitions file '%s'", defPath), err)
 	}
 
 	// loadWorkerDefinitionsFromContent will replace m.definitions
@@ -93,7 +93,7 @@ func (m *AIWorkerManager) LoadRetiredInstancePerformanceDataFromFile() error {
 			return nil // Not an error if the file simply doesn't exist
 		}
 		m.logger.Errorf("AIWorkerManager: Error reading performance data file '%s': %v", perfDataPath, err)
-		return lang.NewRuntimeError(ErrorCodeInternal, fmt.Sprintf("failed to read performance data file '%s'", perfDataPath), err)
+		return lang.NewRuntimeError(lang.ErrorCodeInternal, fmt.Sprintf("failed to read performance data file '%s'", perfDataPath), err)
 	}
 
 	if loadErr := m.loadRetiredInstancePerformanceDataFromContent(contentBytes); loadErr != nil {
@@ -113,7 +113,7 @@ func (m *AIWorkerManager) appendRetiredInstanceToFileUnsafe(info RetiredInstance
 	filePath := m.FullPathForPerformanceData()
 	if filePath == "" {
 		m.logger.Error("Cannot append retired instance: performance data file path not configured.")
-		return lang.NewRuntimeError(ErrorCodeConfiguration, "performance data file path not configured", ErrConfiguration)
+		return lang.NewRuntimeError(lang.ErrorCodeConfiguration, "performance data file path not configured", lang.ErrConfiguration)
 	}
 
 	var existingContentBytes []byte
@@ -146,12 +146,12 @@ func (m *AIWorkerManager) appendRetiredInstanceToFileUnsafe(info RetiredInstance
 	dir := filepath.Dir(filePath)
 	if mkDirErr := os.MkdirAll(dir, 0755); mkDirErr != nil {
 		m.logger.Errorf("Failed to create directory '%s' for performance data file: %v", dir, mkDirErr)
-		return lang.NewRuntimeError(ErrorCodeInternal, fmt.Sprintf("failed to create directory for performance data file '%s'", dir), mkDirErr)
+		return lang.NewRuntimeError(lang.ErrorCodeInternal, fmt.Sprintf("failed to create directory for performance data file '%s'", dir), mkDirErr)
 	}
 
 	if err := os.WriteFile(filePath, []byte(updatedJSONString), 0644); err != nil {
 		m.logger.Errorf("Failed to write updated performance data to file '%s': %v", filePath, err)
-		return lang.NewRuntimeError(ErrorCodeInternal, fmt.Sprintf("failed to write performance data to file '%s'", filePath), err)
+		return lang.NewRuntimeError(lang.ErrorCodeInternal, fmt.Sprintf("failed to write performance data to file '%s'", filePath), err)
 	}
 
 	m.logger.Debugf("Successfully appended retired instance %s to %s", info.InstanceID, filePath)

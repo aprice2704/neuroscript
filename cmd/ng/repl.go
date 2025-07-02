@@ -21,7 +21,7 @@ import (
 // runRepl starts the basic Read-Eval-Print Loop for interactive NeuroScript commands.
 func runRepl(ctx context.Context, app *neurogo.App) {
 	reader := bufio.NewReader(os.Stdin)
-	interpreter := app.GetInterpreter() // Assumes app.GetInterpreter() returns *core.Interpreter
+	interpreter := app.GetInterpreter() // Assumes app.GetInterpreter() returns * Interpreter
 	logger := app.GetLogger()
 
 	if interpreter == nil {
@@ -71,7 +71,7 @@ func runRepl(ctx context.Context, app *neurogo.App) {
 
 			logger.Debug("REPL executing", "input", input)
 			// TODO: Implement proper REPL execution.
-			// core.Interpreter does not have a RunStatement method.
+			//  rpreter does not have a RunStatement method.
 			// This requires parsing the input into statements/expressions
 			// and then executing them, or calling procedures by name.
 			// For now, we'll just acknowledge the input.

@@ -87,7 +87,7 @@ func (m *AIWorkerManager) ExecuteStatelessTask( //
 		m.logger.Errorf("ExecuteStatelessTask: Definition name '%s' not found in m.definitions.", definitionNameIn)
 		m.mu.RUnlock()
 		m.logger.Infof("ExecuteStatelessTask: RUnlock after definition name '%s' not found.", definitionNameIn)
-		return "", nil, lang.NewRuntimeError(ErrorCodeKeyNotFound, fmt.Sprintf("worker name '%s' not found for stateless task", definitionNameIn), ErrNotFound)
+		return "", nil, lang.NewRuntimeError(lang.ErrorCodeKeyNotFound, fmt.Sprintf("worker name '%s' not found for stateless task", definitionNameIn), lang.ErrNotFound)
 	}
 	m.logger.Infof("ExecuteStatelessTask: Found definition for ID: '%s' (Name: '%s')", originalDefinitionID, definitionNameIn)
 
@@ -125,7 +125,7 @@ func (m *AIWorkerManager) ExecuteStatelessTask( //
 	}
 	if !supportsStateless {
 		m.logger.Warnf("ExecuteStatelessTask: Definition '%s' does not support stateless interaction", definitionNameIn) // Name is from input, reliable
-		return "", nil, lang.NewRuntimeError(ErrorCodePreconditionFailed, fmt.Sprintf("worker definition '%s' does not support stateless interaction", definitionNameIn), ErrFailedPrecondition)
+		return "", nil, lang.NewRuntimeError(lang.ErrorCodePreconditionFailed, fmt.Sprintf("worker definition '%s' does not support stateless interaction", definitionNameIn), lang.ErrFailedPrecondition)
 	}
 
 	m.logger.Infof("ExecuteStatelessTask: About to resolve API key for Definition ID: '%s'", originalDefinitionID)
@@ -133,10 +133,10 @@ func (m *AIWorkerManager) ExecuteStatelessTask( //
 	resolvedAPIKey, keyErr := m.resolveAPIKey(defAuthCopy) // Using copied Auth
 	if keyErr != nil {
 		m.logger.Errorf("ExecuteStatelessTask: API key resolution failed for DefID '%s': %v", originalDefinitionID, keyErr)
-		if re, ok := keyErr.(*RuntimeError); ok {
+		if re, ok := keyErr.(*lang.RuntimeError); ok {
 			return "", nil, re
 		}
-		return "", nil, lang.NewRuntimeError(ErrorCodeConfiguration, fmt.Sprintf("failed to resolve API key for definition '%s' (stateless task)", originalDefinitionID), keyErr)
+		return "", nil, lang.NewRuntimeError(lang.ErrorCodeConfiguration, fmt.Sprintf("failed to resolve API key for definition '%s' (stateless task)", originalDefinitionID), keyErr)
 	}
 	m.logger.Infof("ExecuteStatelessTask: API key resolution successful for DefID '%s'. Key presence: %t", originalDefinitionID, resolvedAPIKey != "")
 
@@ -164,7 +164,7 @@ func (m *AIWorkerManager) ExecuteStatelessTask( //
 		}
 		llmCallMetrics.TotalTokens = llmCallMetrics.InputTokens + llmCallMetrics.OutputTokens
 	} else {
-		tempConvoMgr := NewConversationManager(m.logger)
+		tempConvoMgr := llm.NewConversationManager(m.logger)
 		tempConvoMgr.AddUserMessage(prompt)
 		turnsForLLM := convertGenaiContentsToConversationTurns(tempConvoMgr.GetHistory())
 
@@ -181,16 +181,16 @@ func (m *AIWorkerManager) ExecuteStatelessTask( //
 		if callErr != nil {
 			if errors.Is(callErr, context.DeadlineExceeded) {
 				m.logger.Errorf("ExecuteStatelessTask: llmClient.Ask timed out for DefID %s: %v", originalDefinitionID, callErr)
-				callErr = lang.NewRuntimeError(ErrorCodeTimeout, fmt.Sprintf("LLM Ask timed out for stateless task (DefID: %s)", originalDefinitionID), callErr) // Ensure ErrorCodeTimeout exists
+				callErr = lang.NewRuntimeError(lang.ErrorCodeTimeout, fmt.Sprintf("LLM Ask timed out for stateless task (DefID: %s)", originalDefinitionID), callErr) // Ensure lang.ErrorCodeTimeout exists
 			} else {
 				m.logger.Errorf("ExecuteStatelessTask: llmClient.Ask reported an error for DefID %s: %v", originalDefinitionID, callErr)
-				if _, ok := callErr.(*RuntimeError); !ok {
-					callErr = lang.NewRuntimeError(ErrorCodeLLMError, fmt.Sprintf("LLM Ask failed for stateless task (DefID: %s)", originalDefinitionID), callErr)
+				if _, ok := callErr.(*lang.RuntimeError); !ok {
+					callErr = lang.NewRuntimeError(lang.ErrorCodeLLMError, fmt.Sprintf("LLM Ask failed for stateless task (DefID: %s)", originalDefinitionID), callErr)
 				}
 			}
 		} else if llmResponseTurn == nil {
 			m.logger.Errorf("ExecuteStatelessTask: llmClient.Ask returned a nil llmResponseTurn for DefID %s", originalDefinitionID)
-			callErr = lang.NewRuntimeError(ErrorCodeLLMError, fmt.Sprintf("LLM response turn was nil for stateless task (DefID: %s)", originalDefinitionID), ErrLLMError)
+			callErr = lang.NewRuntimeError(lang.ErrorCodeLLMError, fmt.Sprintf("LLM response turn was nil for stateless task (DefID: %s)", originalDefinitionID), lang.ErrLLMError)
 		} else if llmResponseTurn.Content == "" {
 			responseContent = "" // Allow empty content if no error
 			m.logger.Warnf("ExecuteStatelessTask: llmClient.Ask returned empty content for DefID %s", originalDefinitionID)
@@ -289,8 +289,8 @@ func (m *AIWorkerManager) ExecuteStatelessTask( //
 	// Since "forget performance logging etc." was mentioned, this is deferred.
 
 	if callErr != nil { //
-		if _, ok := callErr.(*RuntimeError); !ok { //
-			callErr = lang.NewRuntimeError(ErrorCodeLLMError, "stateless LLM task failed", callErr) // Using ErrorCodeLLMError for wrapping
+		if _, ok := callErr.(*lang.RuntimeError); !ok { //
+			callErr = lang.NewRuntimeError(lang.ErrorCodeLLMError, "stateless LLM task failed", callErr) // Using lang.ErrorCodeLLMError for wrapping
 		}
 		return "", perfRecord, callErr //
 	}

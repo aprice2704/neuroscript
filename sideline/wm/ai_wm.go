@@ -150,7 +150,7 @@ func (m *AIWorkerManager) loadWorkerDefinitionsFromContent(jsonBytes []byte) err
 	if err := json.Unmarshal(jsonBytes, &defs); err != nil {
 		m.logger.Errorf("loadWorkerDefinitionsFromContent: Failed to unmarshal definitions JSON: %v", err)
 		m.definitions = make(map[string]*AIWorkerDefinition) // Ensure map is clean on error
-		return lang.NewRuntimeError(ErrorCodeInternal, "failed to unmarshal definitions data from content", err)
+		return lang.NewRuntimeError(lang.ErrorCodeInternal, "failed to unmarshal definitions data from content", err)
 	}
 
 	newDefinitions := make(map[string]*AIWorkerDefinition)
@@ -206,13 +206,13 @@ func (m *AIWorkerManager) resolveAPIKey(auth APIKeySource) (string, error) {
 	switch auth.Method {
 	case APIKeyMethodEnvVar:
 		if auth.Value == "" {
-			err := lang.NewRuntimeError(ErrorCodeArgMismatch, "API key method 'env_var' but no env var name specified", ErrInvalidArgument)
+			err := lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "API key method 'env_var' but no env var name specified", lang.ErrInvalidArgument)
 			m.logger.Warnf("resolveAPIKey: %s", err.Message)
 			return "", err
 		}
 		key := os.Getenv(auth.Value)
 		if key == "" {
-			err := lang.NewRuntimeError(ErrorCodeConfiguration, fmt.Sprintf("env var '%s' for API key not found or empty", auth.Value), ErrAPIKeyNotFound)
+			err := lang.NewRuntimeError(lang.ErrorCodeConfiguration, fmt.Sprintf("env var '%s' for API key not found or empty", auth.Value), lang.ErrAPIKeyNotFound)
 			m.logger.Warnf("resolveAPIKey: Env var '%s' not found or empty.", auth.Value)
 			return "", err
 		}
@@ -230,12 +230,12 @@ func (m *AIWorkerManager) resolveAPIKey(auth APIKeySource) (string, error) {
 		return "", nil
 	case APIKeyMethodConfigPath, APIKeyMethodVault:
 		errMessage := fmt.Sprintf("API key method '%s' not yet implemented", auth.Method)
-		err := lang.NewRuntimeError(ErrorCodeNotImplemented, errMessage, ErrFeatureNotImplemented)
+		err := lang.NewRuntimeError(lang.ErrorCodeNotImplemented, errMessage, lang.ErrFeatureNotImplemented)
 		m.logger.Errorf("resolveAPIKey: %s", errMessage)
 		return "", err
 	default:
 		errMessage := fmt.Sprintf("unknown API key source method: '%s'", auth.Method)
-		err := lang.NewRuntimeError(ErrorCodeArgMismatch, errMessage, ErrInvalidArgument)
+		err := lang.NewRuntimeError(lang.ErrorCodeArgMismatch, errMessage, lang.ErrInvalidArgument)
 		m.logger.Errorf("resolveAPIKey: %s", errMessage)
 		return "", err
 	}
@@ -290,7 +290,7 @@ func (m *AIWorkerManager) loadRetiredInstancePerformanceDataFromContent(jsonByte
 	var retiredInfos []*RetiredInstanceInfo
 	if err := json.Unmarshal(jsonBytes, &retiredInfos); err != nil {
 		m.logger.Errorf("loadRetiredInstancePerformanceDataFromContent: Failed to unmarshal performance data: %v", err)
-		return lang.NewRuntimeError(ErrorCodeInternal, "failed to unmarshal performance data from content", err)
+		return lang.NewRuntimeError(lang.ErrorCodeInternal, "failed to unmarshal performance data from content", err)
 	}
 
 	// Future: Could iterate through retiredInfos and update AggregatePerformanceSummary
@@ -305,7 +305,7 @@ func (m *AIWorkerManager) loadRetiredInstancePerformanceDataFromContent(jsonByte
 // Does not modify manager state directly.
 func (m *AIWorkerManager) prepareRetiredInstanceForAppending(existingJsonContent string, instanceInfoToAdd *RetiredInstanceInfo) (string, error) {
 	if instanceInfoToAdd == nil {
-		return existingJsonContent, lang.NewRuntimeError(ErrorCodeArgMismatch, "instanceInfoToAdd cannot be nil", ErrInvalidArgument)
+		return existingJsonContent, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "instanceInfoToAdd cannot be nil", lang.ErrInvalidArgument)
 	}
 	var allInfos []*RetiredInstanceInfo
 	if existingJsonContent != "" && existingJsonContent != "null" { // "null" can be valid JSON for an empty array/object
@@ -324,7 +324,7 @@ func (m *AIWorkerManager) prepareRetiredInstanceForAppending(existingJsonContent
 	newData, err := json.MarshalIndent(allInfos, "", "  ")
 	if err != nil {
 		m.logger.Errorf("prepareRetiredInstanceForAppending: Failed to marshal updated perf data: %v", err)
-		return "", lang.NewRuntimeError(ErrorCodeInternal, "failed to marshal updated performance data", err)
+		return "", lang.NewRuntimeError(lang.ErrorCodeInternal, "failed to marshal updated performance data", err)
 	}
 	m.logger.Debugf("Prepared performance data for appending. Total records: %d.", len(allInfos))
 	return string(newData), nil
@@ -406,11 +406,11 @@ func (m *AIWorkerManager) ListWorkerDefinitionsForDisplay() ([]*AIWorkerDefiniti
 		} else {
 			resolvedKey, errResolve = m.resolveAPIKey(defCopy.Auth)
 			if errResolve != nil {
-				if errors.Is(errResolve, ErrAPIKeyNotFound) {
+				if errors.Is(errResolve, lang.ErrAPIKeyNotFound) {
 					apiKeyStatus = APIKeyStatusNotFound
-				} else if runErr, ok := errResolve.(*RuntimeError); ok {
+				} else if runErr, ok := errResolve.(*lang.RuntimeError); ok {
 					switch runErr.Code {
-					case ErrorCodeConfiguration, ErrorCodeArgMismatch:
+					case lang.ErrorCodeConfiguration, ErrorCodeArgMismatch:
 						apiKeyStatus = APIKeyStatusNotConfigured
 					case ErrorCodeNotImplemented:
 						apiKeyStatus = APIKeyStatusError // Method known but not usable

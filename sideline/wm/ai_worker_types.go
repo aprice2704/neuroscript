@@ -211,13 +211,13 @@ type AIWorkerInstance struct {
 // ProcessChatMessage method remains here as it's operational logic.
 func (instance *AIWorkerInstance) ProcessChatMessage(ctx context.Context, userMessageText string) (*interfaces.ConversationTurn, error) {
 	if instance.llmClient == nil {
-		return nil, lang.NewRuntimeError(ErrorCodePreconditionFailed, "LLM client not set for instance", nil)
+		return nil, lang.NewRuntimeError(lang.ErrorCodePreconditionFailed, "LLM client not set for instance", nil)
 	}
 	if instance.Status == InstanceStatusRetiredCompleted || instance.Status == InstanceStatusRetiredError || instance.Status == InstanceStatusRetiredExhausted {
-		return nil, lang.NewRuntimeError(ErrorCodePreconditionFailed, fmt.Sprintf("instance %s is retired and cannot process messages", instance.InstanceID), nil)
+		return nil, lang.NewRuntimeError(lang.ErrorCodePreconditionFailed, fmt.Sprintf("instance %s is retired and cannot process messages", instance.InstanceID), nil)
 	}
 	if instance.Status == InstanceStatusBusy {
-		return nil, lang.NewRuntimeError(ErrorCodePreconditionFailed, fmt.Sprintf("instance %s is currently busy", instance.InstanceID), nil)
+		return nil, lang.NewRuntimeError(lang.ErrorCodePreconditionFailed, fmt.Sprintf("instance %s is currently busy", instance.InstanceID), nil)
 	}
 
 	userTurn := &interfaces.ConversationTurn{
@@ -234,10 +234,10 @@ func (instance *AIWorkerInstance) ProcessChatMessage(ctx context.Context, userMe
 	if err != nil {
 		instance.Status = InstanceStatusError
 		instance.LastError = err.Error()
-		if rtErr, ok := err.(*RuntimeError); ok {
+		if rtErr, ok := err.(*lang.RuntimeError); ok {
 			return nil, rtErr
 		}
-		return nil, lang.NewRuntimeError(ErrorCodeLLMError, fmt.Sprintf("LLM Ask failed for instance %s: %v", instance.InstanceID, err), err)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeLLMError, fmt.Sprintf("LLM Ask failed for instance %s: %v", instance.InstanceID, err), err)
 	}
 
 	// if modelResponseTurn != nil {

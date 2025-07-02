@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/aprice2704/neuroscript/pkg/core" // For AIWorkerInstance, interfaces.ConversationTurn
+	// For AIWorkerInstance, interfaces.ConversationTurn
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	// If you decide to use UUIDs for SessionID:
 	// "github.com/google/uuid"
@@ -18,7 +18,7 @@ type ChatSession struct {
 	DisplayName  string // User-facing name, e.g., "C(AgentName)-1"
 	DefinitionID string // ID of the AIWorkerDefinition used for this session
 
-	WorkerInstance *core.AIWorkerInstance         // The AI instance handling this chat
+	WorkerInstance *wm.AIWorkerInstance              // The AI instance handling this chat
 	Conversation   []*interfaces.ConversationTurn // The history of this specific chat session
 
 	CreatedAt      time.Time // Timestamp of when the session was created
@@ -29,7 +29,7 @@ type ChatSession struct {
 
 // NewChatSession creates and initializes a new chat session.
 // The AIWorkerInstance should already be obtained/created by the AIWorkerManager.
-func NewChatSession(sessionID, displayName, definitionID string, instance *core.AIWorkerInstance) *ChatSession {
+func NewChatSession(sessionID, displayName, definitionID string, instance *rkerInstance) *ChatSession {
 	if instance == nil {
 		// This is a programming error; a session cannot exist without an instance.
 		panic(fmt.Sprintf("cannot create ChatSession '%s' (DisplayName: '%s') for DefinitionID '%s': AIWorkerInstance is nil",

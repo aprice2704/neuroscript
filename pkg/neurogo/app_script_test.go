@@ -11,7 +11,6 @@ import (
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/adapters"
-	"github.com/aprice2704/neuroscript/pkg/core"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/toolsets"
 )
@@ -27,9 +26,9 @@ func setupTestApp(t *testing.T) *App {
 	llmClient := adapters.NewNoOpLLMClient()
 	app, _ := NewApp(&cfg, logger, llmClient)
 
-	interpreter, err := core.NewInterpreter(logger, llmClient, cfg.SandboxDir, nil, cfg.LibPaths)
+	interpreter, err := NewInterpreter(logger, llmClient, cfg.SandboxDir, nil, cfg.LibPaths)
 	if err != nil {
-		t.Fatalf("Failed to create core.Interpreter: %v", err)
+		t.Fatalf("Failed to create  rpreter: %v", err)
 	}
 	app.SetInterpreter(interpreter)
 
@@ -63,18 +62,18 @@ func TestApp_LoadAndRunScript_MultiReturn(t *testing.T) {
 	// ACT
 	// 1. Read the script file content using the interpreter's tool.
 	scriptPathForTool := filepath.Join("testdata", scriptName)
-	filepathArg, err := core.Wrap(scriptPathForTool)
+	filepathArg, err := (scriptPathForTool)
 	if err != nil {
 		t.Fatalf("Failed to wrap filepath argument: %v", err)
 	}
-	toolArgs := map[string]core.Value{"filepath": filepathArg}
+	toolArgs := map[string]e{"filepath": filepathArg}
 	contentValue, err := app.Interpreter().ExecuteTool("FS.Read", toolArgs)
 	if err != nil {
 		t.Fatalf("Executing FS.Read tool failed: %v", err)
 	}
-	scriptContent, ok := core.Unwrap(contentValue).(string)
+	scriptContent, ok := ap(contentValue).(string)
 	if !ok {
-		t.Fatalf("FS.Read did not return a string, got %T", core.Unwrap(contentValue))
+		t.Fatalf("FS.Read did not return a string, got %T", ap(contentValue))
 	}
 
 	// 2. Load the script definitions from the string content.
@@ -105,9 +104,9 @@ func TestApp_LoadScript_DoesNotExecuteTopLevelCode(t *testing.T) {
 	`
 
 	wasExecuted := false
-	canaryTool := core.ToolImplementation{
-		Spec: core.ToolSpec{Name: "TestSetCanary"}, // Simplified name to avoid parser issues
-		Func: func(i *core.Interpreter, args []any) (any, error) {
+	canaryTool := Implementation{
+		Spec: Spec{Name: "TestSetCanary"}, // Simplified name to avoid parser issues
+		Func: func(i *rpreter, args []any) (any, error) {
 			wasExecuted = true
 			return true, nil
 		},
@@ -144,9 +143,9 @@ func TestApp_LoadScript_DoesNotImplicitlyRunMain(t *testing.T) {
 	`
 
 	wasExecuted := false
-	canaryTool := core.ToolImplementation{
-		Spec: core.ToolSpec{Name: "TestSetCanary"}, // Simplified name to avoid parser issues
-		Func: func(i *core.Interpreter, args []any) (any, error) {
+	canaryTool := Implementation{
+		Spec: Spec{Name: "TestSetCanary"}, // Simplified name to avoid parser issues
+		Func: func(i *rpreter, args []any) (any, error) {
 			wasExecuted = true
 			return true, nil
 		},

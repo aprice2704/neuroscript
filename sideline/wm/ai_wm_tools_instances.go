@@ -11,24 +11,25 @@ import (
 	"time"
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/sideline/nspatch"
 	"github.com/google/uuid"
 )
 
-var specAIWorkerInstanceSpawn = ToolSpec{
+var specAIWorkerInstanceSpawn = tool.ToolSpec{
 	Name:        "AIWorkerInstance.Spawn",
 	Description: "Spawns a new AI Worker Instance and returns its details including a ConversationManager handle.",
 	Category:    "AI Worker Management",
-	Args: []ArgSpec{
-		{Name: "definition_id", Type: ArgTypeString, Required: true, Description: "ID of the AIWorkerDefinition to use for spawning."},
-		{Name: "config_overrides", Type: ArgTypeMap, Required: false, Description: "Optional map of configuration overrides for this instance."},
-		{Name: "file_contexts", Type: ArgTypeSliceString, Required: false, Description: "Optional list of file context URIs for this instance."},
+	Args: []tool.ArgSpec{
+		{Name: "definition_id", Type: tool.ArgTypeString, Required: true, Description: "ID of the AIWorkerDefinition to use for spawning."},
+		{Name: "config_overrides", Type: tool.ArgTypeMap, Required: false, Description: "Optional map of configuration overrides for this instance."},
+		{Name: "file_contexts", Type: tool.ArgTypeSliceString, Required: false, Description: "Optional list of file context URIs for this instance."},
 	},
 	ReturnType: "map",
 }
 
-var toolAIWorkerInstanceSpawn = ToolImplementation{
+var toolAIWorkerInstanceSpawn = tool.ToolImplementation{
 	Spec: specAIWorkerInstanceSpawn,
-	Func: func(i *Interpreter, args []interface{}) (interface{}, error) {
+	Func: func(i *neurogo.Interpreter, args []interface{}) (interface{}, error) {
 		m, err := getAIWorkerManager(i)
 		if err != nil {
 			return nil, err
@@ -51,15 +52,15 @@ var toolAIWorkerInstanceSpawn = ToolImplementation{
 			return nil, spawnErr
 		}
 		if instance == nil {
-			return nil, lang.NewRuntimeError(ErrorCodeInternal, "SpawnWorkerInstance returned nil instance without error", ErrInternal)
+			return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, "SpawnWorkerInstance returned nil instance without error", nspatch.ErrInternal)
 		}
 
-		convoManager := NewConversationManager(i.Logger())
+		convoManager := llm.NewConversationManager(i.Logger())
 		handleID, handleErr := i.RegisterHandle(convoManager, "ConversationManager-"+uuid.NewString())
 		if handleErr != nil {
 			m.logger.Errorf("Failed to register ConversationManager handle for instance %s: %v. Retiring instance.", instance.InstanceID, handleErr)
 			_ = m.RetireWorkerInstance(instance.InstanceID, "Failed to register handle", AIWorkerInstanceStatus("error"), TokenUsageMetrics{}, nil)
-			return nil, lang.NewRuntimeError(ErrorCodeInternal, "failed to register ConversationManager handle", handleErr)
+			return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, "failed to register ConversationManager handle", handleErr)
 		}
 
 		instanceMap := convertAIWorkerInstanceToMap(instance)
@@ -69,17 +70,17 @@ var toolAIWorkerInstanceSpawn = ToolImplementation{
 	},
 }
 
-var specAIWorkerInstanceGet = ToolSpec{
+var specAIWorkerInstanceGet = tool.ToolSpec{
 	Name:        "AIWorkerInstance.Get",
 	Description: "Retrieves an active AI Worker Instance's details by its ID.",
 	Category:    "AI Worker Management",
-	Args:        []ArgSpec{{Name: "instance_id", Type: ArgTypeString, Required: true, Description: "The unique ID of the active instance to retrieve."}},
+	Args:        []tool.ArgSpec{{Name: "instance_id", Type: tool.ArgTypeString, Required: true, Description: "The unique ID of the active instance to retrieve."}},
 	ReturnType:  "map",
 }
 
-var toolAIWorkerInstanceGet = ToolImplementation{
+var toolAIWorkerInstanceGet = tool.ToolImplementation{
 	Spec: specAIWorkerInstanceGet,
-	Func: func(i *Interpreter, args []interface{}) (interface{}, error) {
+	Func: func(i *neurogo.Interpreter, args []interface{}) (interface{}, error) {
 		m, err := getAIWorkerManager(i)
 		if err != nil {
 			return nil, err
@@ -93,17 +94,17 @@ var toolAIWorkerInstanceGet = ToolImplementation{
 	},
 }
 
-var specAIWorkerInstanceListActive = ToolSpec{
+var specAIWorkerInstanceListActive = tool.ToolSpec{
 	Name:        "AIWorkerInstance.ListActive",
 	Description: "Lists currently active AI Worker Instances, optionally filtered.",
 	Category:    "AI Worker Management",
-	Args:        []ArgSpec{{Name: "filters", Type: ArgTypeMap, Required: false, Description: "Optional map of filters."}},
+	Args:        []tool.ArgSpec{{Name: "filters", Type: tool.ArgTypeMap, Required: false, Description: "Optional map of filters."}},
 	ReturnType:  "slice",
 }
 
-var toolAIWorkerInstanceListActive = ToolImplementation{
+var toolAIWorkerInstanceListActive = tool.ToolImplementation{
 	Spec: specAIWorkerInstanceListActive,
-	Func: func(i *Interpreter, args []interface{}) (interface{}, error) {
+	Func: func(i *neurogo.Interpreter, args []interface{}) (interface{}, error) {
 		m, err := getAIWorkerManager(i)
 		if err != nil {
 			return nil, err
@@ -121,24 +122,24 @@ var toolAIWorkerInstanceListActive = ToolImplementation{
 	},
 }
 
-var specAIWorkerInstanceRetire = ToolSpec{
+var specAIWorkerInstanceRetire = tool.ToolSpec{
 	Name:        "AIWorkerInstance.Retire",
 	Description: "Retires an active AI Worker Instance.",
 	Category:    "AI Worker Management",
-	Args: []ArgSpec{
-		{Name: "instance_id", Type: ArgTypeString, Required: true},
-		{Name: "conversation_manager_handle", Type: ArgTypeString, Required: true},
-		{Name: "reason", Type: ArgTypeString, Required: true},
-		{Name: "final_status", Type: ArgTypeString, Required: true},
-		{Name: "final_session_token_usage", Type: ArgTypeMap, Required: true},
-		{Name: "performance_records", Type: ArgTypeSliceMap, Required: false},
+	Args: []tool.ArgSpec{
+		{Name: "instance_id", Type: tool.ArgTypeString, Required: true},
+		{Name: "conversation_manager_handle", Type: tool.ArgTypeString, Required: true},
+		{Name: "reason", Type: tool.ArgTypeString, Required: true},
+		{Name: "final_status", Type: tool.ArgTypeString, Required: true},
+		{Name: "final_session_token_usage", Type: tool.ArgTypeMap, Required: true},
+		{Name: "performance_records", Type: tool.ArgTypeSliceMap, Required: false},
 	},
 	ReturnType: "nil",
 }
 
-var toolAIWorkerInstanceRetire = ToolImplementation{
+var toolAIWorkerInstanceRetire = tool.ToolImplementation{
 	Spec: specAIWorkerInstanceRetire,
-	Func: func(i *Interpreter, args []interface{}) (interface{}, error) {
+	Func: func(i *neurogo.Interpreter, args []interface{}) (interface{}, error) {
 		m, err := getAIWorkerManager(i)
 		if err != nil {
 			return nil, err
@@ -150,10 +151,10 @@ var toolAIWorkerInstanceRetire = ToolImplementation{
 		usageMap, _ := args[4].(map[string]interface{})
 
 		finalUsage := TokenUsageMetrics{}
-		if v, ok := toInt64(usageMap["input_tokens"]); ok {
+		if v, ok := lang.toInt64(usageMap["input_tokens"]); ok {
 			finalUsage.InputTokens = v
 		}
-		if v, ok := toInt64(usageMap["output_tokens"]); ok {
+		if v, ok := lang.toInt64(usageMap["output_tokens"]); ok {
 			finalUsage.OutputTokens = v
 		}
 		finalUsage.TotalTokens = finalUsage.InputTokens + finalUsage.OutputTokens
@@ -188,21 +189,21 @@ var toolAIWorkerInstanceRetire = ToolImplementation{
 	},
 }
 
-var specAIWorkerInstanceUpdateStatus = ToolSpec{
+var specAIWorkerInstanceUpdateStatus = tool.ToolSpec{
 	Name:        "AIWorkerInstance.UpdateStatus",
 	Description: "Updates the status of an active AI Worker Instance.",
 	Category:    "AI Worker Management",
-	Args: []ArgSpec{
-		{Name: "instance_id", Type: ArgTypeString, Required: true},
-		{Name: "status", Type: ArgTypeString, Required: true},
-		{Name: "last_error", Type: ArgTypeString, Required: false},
+	Args: []tool.ArgSpec{
+		{Name: "instance_id", Type: tool.ArgTypeString, Required: true},
+		{Name: "status", Type: tool.ArgTypeString, Required: true},
+		{Name: "last_error", Type: tool.ArgTypeString, Required: false},
 	},
 	ReturnType: "nil",
 }
 
-var toolAIWorkerInstanceUpdateStatus = ToolImplementation{
+var toolAIWorkerInstanceUpdateStatus = tool.ToolImplementation{
 	Spec: specAIWorkerInstanceUpdateStatus,
-	Func: func(i *Interpreter, args []interface{}) (interface{}, error) {
+	Func: func(i *neurogo.Interpreter, args []interface{}) (interface{}, error) {
 		m, err := getAIWorkerManager(i)
 		if err != nil {
 			return nil, err
@@ -217,28 +218,28 @@ var toolAIWorkerInstanceUpdateStatus = ToolImplementation{
 	},
 }
 
-var specAIWorkerInstanceUpdateTokenUsage = ToolSpec{
+var specAIWorkerInstanceUpdateTokenUsage = tool.ToolSpec{
 	Name:        "AIWorkerInstance.UpdateTokenUsage",
 	Description: "Updates the session token usage for an active AI Worker Instance.",
 	Category:    "AI Worker Management",
-	Args: []ArgSpec{
-		{Name: "instance_id", Type: ArgTypeString, Required: true},
-		{Name: "input_tokens", Type: ArgTypeInt, Required: true},
-		{Name: "output_tokens", Type: ArgTypeInt, Required: true},
+	Args: []tool.ArgSpec{
+		{Name: "instance_id", Type: tool.ArgTypeString, Required: true},
+		{Name: "input_tokens", Type: tool.ArgTypeInt, Required: true},
+		{Name: "output_tokens", Type: tool.ArgTypeInt, Required: true},
 	},
 	ReturnType: "nil",
 }
 
-var toolAIWorkerInstanceUpdateTokenUsage = ToolImplementation{
+var toolAIWorkerInstanceUpdateTokenUsage = tool.ToolImplementation{
 	Spec: specAIWorkerInstanceUpdateTokenUsage,
-	Func: func(i *Interpreter, args []interface{}) (interface{}, error) {
+	Func: func(i *neurogo.Interpreter, args []interface{}) (interface{}, error) {
 		m, err := getAIWorkerManager(i)
 		if err != nil {
 			return nil, err
 		}
 		instanceID, _ := args[0].(string)
-		inputTokens, _ := toInt64(args[1])
-		outputTokens, _ := toInt64(args[2])
+		inputTokens, _ := lang.toInt64(args[1])
+		outputTokens, _ := lang.toInt64(args[2])
 		return nil, m.UpdateInstanceSessionTokenUsage(instanceID, inputTokens, outputTokens)
 	},
 }

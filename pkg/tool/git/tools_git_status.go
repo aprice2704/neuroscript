@@ -21,7 +21,7 @@ func toolGitStatus(interpreter *neurogo.Interpreter, args []interface{}) (interf
 	interpreter.logger.Debug("GitStatus] Executing: git status --porcelain -b --untracked-files=all")
 
 	// Execute using toolExec which handles sandboxing and returns output/error string
-	output, err := tool.toolExec(interpreter, "git", "status", "--porcelain", "-b", "--untracked-files=all")
+	output, err := runtime.tool.toolExec(interpreter, "git", "status", "--porcelain", "-b", "--untracked-files=all")
 
 	// Check if toolExec itself returned an error (command failed, stderr etc.)
 	if err != nil {

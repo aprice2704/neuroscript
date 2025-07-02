@@ -17,7 +17,6 @@ import (
 
 	// Import packages necessary for setup and testing
 	"github.com/aprice2704/neuroscript/pkg/adapters"
-	"github.com/aprice2704/neuroscript/pkg/core"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	nspatch "github.com/aprice2704/neuroscript/pkg/nspatch" // Import the package under test
 	// Need toolsets for registration if using init
@@ -77,7 +76,7 @@ func TestGeneratePatch(t *testing.T) {
 	llmClient := adapters.NewNoOpLLMClient() // Pass logger if constructor accepts it
 	// Sandbox directory is irrelevant for this tool
 	// CORRECTED: Added nil for libPaths argument
-	interpreter, err := core.NewInterpreter(logger, llmClient, ".", nil, nil) // Use "." as dummy sandbox, nil for initialVars and libPaths
+	interpreter, err := NewInterpreter(logger, llmClient, ".", nil, nil) // Use "." as dummy sandbox, nil for initialVars and libPaths
 	if err != nil {
 		t.Fatalf("Failed to create interpreter: %v", err)
 	}
@@ -260,11 +259,11 @@ func TestGeneratePatch(t *testing.T) {
 					t.Errorf("Expected error %v, but got nil", tc.wantErr)
 				} else {
 					// Check if the specific error is wrapped or is the direct cause
-					// For tool execution, often check for core.ErrInvalidArgument or specific tool errors
+					// For tool execution, often check for  nvalidArgument or specific tool errors
 					underlyingErr := tc.wantErr
 					if !errors.Is(runErr, underlyingErr) {
 						// Allow checking for specific argument errors wrapped by ErrInvalidArgument
-						if !(errors.Is(runErr, core.ErrInvalidArgument) && strings.Contains(runErr.Error(), underlyingErr.Error())) {
+						if !(errors.Is(runErr, nvalidArgument) && strings.Contains(runErr.Error(), underlyingErr.Error())) {
 							t.Errorf("Expected error wrapping %q, but got %q", underlyingErr, runErr)
 						}
 					}

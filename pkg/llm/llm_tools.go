@@ -134,7 +134,7 @@ func toolLLMAskWithParts(interpreter *neurogo.Interpreter, args []interface{}) (
 
 // RegisterLLMTools registers the LLM interaction tools.
 // <<< CHANGED: registry parameter is now ToolRegistry (interface type)
-func RegisterLLMTools(registry tool.ToolRegistry) error {
+func RegisterLLMTools(registry runtime.tool.ToolRegistry) error {
 	if registry == nil {
 		return fmt.Errorf("cannot register LLM tools: provided ToolRegistry is nil")
 	}
@@ -152,8 +152,8 @@ func RegisterLLMTools(registry tool.ToolRegistry) error {
 		return fmt.Errorf("failed to convert args for LLM.Ask: %w", argsErr)
 	}
 
-	err = registry.RegisterTool(tool.ToolImplementation{
-		Spec: tool.ToolSpec{
+	err = registry.RegisterTool(runtime.tool.ToolImplementation{
+		Spec: runtime.tool.ToolSpec{
 			Name:        "LLM.Ask",
 			Description: "Sends a text prompt to the configured LLM and returns the text response.",
 			Args:        llmAskArgs,
@@ -181,8 +181,8 @@ func RegisterLLMTools(registry tool.ToolRegistry) error {
 		return fmt.Errorf("failed to convert args for LLM.AskWithParts: %w", argsErr)
 	}
 
-	err = registry.RegisterTool(tool.ToolImplementation{
-		Spec: tool.ToolSpec{
+	err = registry.RegisterTool(runtime.tool.ToolImplementation{
+		Spec: runtime.tool.ToolSpec{
 			Name:        "LLM.AskWithParts",
 			Description: "Sends a list of parts (currently treated as text strings) as a prompt to the LLM.",
 			Args:        llmAskPartsArgs,

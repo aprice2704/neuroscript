@@ -17,7 +17,7 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/toolsets"
 )
 
-func newTestInterpreterWithAllTools(t *testing.T) (*neurogo.Interpreter, tool.ToolRegistry) {
+func newTestInterpreterWithAllTools(t *testing.T) (*neurogo.Interpreter, runtime.tool.ToolRegistry) {
 	t.Helper()
 	tempDir := t.TempDir()
 	logger, errLog := adapters.NewSimpleSlogAdapter(os.Stderr, interfaces.LogLevelDebug)
@@ -45,7 +45,7 @@ func getNodeViaTool(t *testing.T, interp *neurogo.Interpreter, handleID string, 
 	if impl.Func == nil {
 		t.Fatalf("getNodeViaTool: Tool 'Tree.GetNode' has nil function.")
 	}
-	nodeDataIntf, err := impl.Func(interp, tool.MakeArgs(handleID, nodeID))
+	nodeDataIntf, err := impl.Func(interp, runtime.tool.MakeArgs(handleID, nodeID))
 	if err != nil {
 		if errors.Is(err, lang.ErrNotFound) || errors.Is(err, lang.ErrInvalidArgument) || errors.Is(err, lang.ErrHandleWrongType) || errors.Is(err, lang.ErrHandleNotFound) || errors.Is(err, lang.ErrHandleInvalid) {
 			t.Logf("getNodeViaTool: Got expected error getting node %q: %v", nodeID, err)

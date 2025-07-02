@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/aprice2704/neuroscript/pkg/core" // For core types like Interpreter, SecurityLayer & SecureFilePath func
+	// For core types like Interpreter, SecurityLayer & SecureFilePath func
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/nspatch" // For patch types and application logic
 )
@@ -57,7 +57,7 @@ func writeLines(filePath string, lines []string) error {
 
 // handleReceivedPatch processes a JSON patch string, prompts for confirmation, and applies it.
 // It requires the interpreter, security layer, and sandbox root for context and validation.
-func handleReceivedPatch(patchJSON string, interp *core.Interpreter, securityLayer *core.SecurityLayer, sandboxRoot string, logger interfaces.Logger) error {
+func handleReceivedPatch(patchJSON string, interp *Interpreter, securityLayer *security.SecurityLayer, sandboxRoot string, logger interfaces.Logger) error {
 	logger.Info("[PATCH] Received patch request.")
 
 	// 1. Unmarshal JSON
@@ -79,7 +79,7 @@ func handleReceivedPatch(patchJSON string, interp *core.Interpreter, securityLay
 	for _, change := range changes {
 		if filepath.IsAbs(change.File) || strings.Contains(change.File, "..") {
 			logger.Error("[PATCH] Security violation: Patch contains non-relative or invalid path element '..': %q", change.File)
-			return fmt.Errorf("invalid path in patch for file %q: %w", change.File, core.ErrPathViolation)
+			return fmt.Errorf("invalid path in patch for file %q: %w", change.File, athViolation)
 		}
 		if _, exists := changesByFile[change.File]; !exists {
 			changesByFile[change.File] = []nspatch.PatchChange{}
@@ -120,8 +120,8 @@ func handleReceivedPatch(patchJSON string, interp *core.Interpreter, securityLay
 		logger.Info("[PATCH] Processing %d changes for file: %s", len(fileSpecificChanges), fileRelPath)
 
 		// a. Security Check (Get validated absolute path using the correct function call)
-		// *** CORRECTED CALL: Use core.SecureFilePath ***
-		absPath, err := core.SecureFilePath(fileRelPath, sandboxRoot)
+		// *** CORRECTED CALL: Use  reFilePath ***
+		absPath, err := reFilePath(fileRelPath, sandboxRoot)
 		if err != nil {
 			logger.Error("[PATCH] Security violation for file %q: %v", fileRelPath, err)
 			// Ensure the error is wrapped or identifiable as a security path error

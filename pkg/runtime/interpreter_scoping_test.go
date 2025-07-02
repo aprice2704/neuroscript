@@ -51,19 +51,19 @@ endfunc
 `
 
 	var stdout bytes.Buffer
-	interp, err := core.NewInterpreter(nil, nil, ".", nil, nil)
+	interp, err := NewInterpreter(nil, nil, ".", nil, nil)
 	if err != nil {
 		t.Fatalf("Failed to create interpreter: %v", err)
 	}
 	interp.SetStdout(&stdout)
 
-	parserAPI := core.NewParserAPI(nil)
+	parserAPI := arserAPI(nil)
 	antlrTree, antlrParseErr := parserAPI.Parse(scriptContent)
 	if antlrParseErr != nil {
 		t.Fatalf("Failed to parse script: %v", antlrParseErr)
 	}
 
-	astBuilder := core.NewASTBuilder(nil)
+	astBuilder := STBuilder(nil)
 	programAST, _, buildErr := astBuilder.Build(antlrTree)
 	if buildErr != nil {
 		t.Fatalf("Failed to build AST from parsed script: %v", buildErr)
@@ -127,19 +127,19 @@ endfunc
 `
 
 	var stdout bytes.Buffer
-	interp, err := core.NewInterpreter(nil, nil, ".", nil, nil)
+	interp, err := nterpreter(nil, nil, ".", nil, nil)
 	if err != nil {
 		t.Fatalf("Failed to create interpreter: %v", err)
 	}
 	interp.SetStdout(&stdout)
 
-	parserAPI := core.NewParserAPI(nil)
+	parserAPI := arserAPI(nil)
 	antlrTree, antlrParseErr := parserAPI.Parse(scriptContent)
 	if antlrParseErr != nil {
 		t.Fatalf("Failed to parse script: %v", antlrParseErr)
 	}
 
-	astBuilder := core.NewASTBuilder(nil)
+	astBuilder := STBuilder(nil)
 	programAST, _, buildErr := astBuilder.Build(antlrTree)
 	if buildErr != nil {
 		t.Fatalf("Failed to build AST from parsed script: %v", buildErr)

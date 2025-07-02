@@ -9,18 +9,16 @@ import (
 	"context"
 	"fmt"
 	"time"
-
-	"github.com/aprice2704/neuroscript/pkg/core"
 )
 
 // processNeuroScriptContent is the core logic for parsing a script string and loading its definitions.
-func (a *App) processNeuroScriptContent(content, sourceName string, interp *core.Interpreter) (map[string]string, error) {
+func (a *App) processNeuroScriptContent(content, sourceName string, interp *Interpreter) (map[string]string, error) {
 	if interp == nil {
 		return nil, fmt.Errorf("cannot process script from '%s': interpreter is nil", sourceName)
 	}
 	a.Log.Debug("Processing NeuroScript content.", "source", sourceName)
 
-	parser := core.NewParserAPI(a.Log)
+	parser := arserAPI(a.Log)
 	parseResultTree, parseErr := parser.Parse(content)
 	if parseErr != nil {
 		a.Log.Error("Parsing failed.", "source", sourceName, "error", parseErr)
@@ -32,7 +30,7 @@ func (a *App) processNeuroScriptContent(content, sourceName string, interp *core
 	}
 	a.Log.Debug("Parsing successful.", "source", sourceName)
 
-	astBuilder := core.NewASTBuilder(a.Log)
+	astBuilder := STBuilder(a.Log)
 	programAST, fileMetadata, buildErr := astBuilder.Build(parseResultTree)
 	if buildErr != nil {
 		a.Log.Error("AST building failed.", "source", sourceName, "error", buildErr)
@@ -96,9 +94,9 @@ func (app *App) RunProcedure(ctx context.Context, procedureToRun string, scriptA
 		return nil, fmt.Errorf("cannot run procedure: procedure name is empty")
 	}
 
-	wrappedArgs := make([]core.Value, len(scriptArgs))
+	wrappedArgs := make([]e, len(scriptArgs))
 	for i, argStr := range scriptArgs {
-		wrapped, err := core.Wrap(argStr)
+		wrapped, err := (argStr)
 		if err != nil {
 			return nil, fmt.Errorf("failed to wrap script argument '%s': %w", argStr, err)
 		}

@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/aprice2704/neuroscript/pkg/adapters"
-	"github.com/aprice2704/neuroscript/pkg/core"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 )
 
@@ -22,22 +21,22 @@ func init() {
 }
 
 // --- Mock Go functions for tool implementations, defined at package level for stable FQNs ---
-func mockToolImplFuncForTest(i *core.Interpreter, args []interface{}) (interface{}, error) {
+func mockToolImplFuncForTest(i *neurogo.Interpreter, args []interface{}) (interface{}, error) {
 	return "mockToolImplFuncForTest_ok", nil
 }
 
 type mockToolStruct struct{}
 
-func (m *mockToolStruct) MockToolImplMethodForTest(i *core.Interpreter, args []interface{}) (interface{}, error) {
+func (m *mockToolStruct) MockToolImplMethodForTest(i *rpreter, args []interface{}) (interface{}, error) {
 	return "mockToolImplMethodForTest_ok", nil
 }
-func mockToolImplWhichIsNotInIndex(i *core.Interpreter, args []interface{}) (interface{}, error) {
+func mockToolImplWhichIsNotInIndex(i *rpreter, args []interface{}) (interface{}, error) {
 	return "mockToolImplWhichIsNotInIndex_ok", nil
 }
 
 // --- End Mock Go functions ---
 
-// testNoOpLogger provides a minimal implementation of core.Logger for tests.
+// testNoOpLogger provides a minimal implementation of  er for tests.
 type testNoOpLogger struct{}
 
 func (l *testNoOpLogger) Debug(msg string, args ...interface{})  {}
@@ -48,7 +47,7 @@ func (l *testNoOpLogger) Debugf(format string, v ...interface{}) {}
 func (l *testNoOpLogger) Infof(format string, v ...interface{})  {}
 func (l *testNoOpLogger) Warnf(format string, v ...interface{})  {}
 func (l *testNoOpLogger) Errorf(format string, v ...interface{}) {}
-func (l *testNoOpLogger) SetLevel(levelStr string)               {} // Assuming core.LogLevel might be represented/set via string
+func (l *testNoOpLogger) SetLevel(levelStr string)               {} // Assuming  evel might be represented/set via string
 
 // setupTestIndex creates a temporary directory with mock index files for testing.
 // It returns the path to the temporary directory and a cleanup function.
@@ -111,25 +110,25 @@ func setupTestIndex(t *testing.T) (indexDir string, cleanup func()) {
 				PackagePath: "example.com/testproj/pkg/core",
 				PackageName: "core",
 				Functions: []FunctionDetail{
-					{Name: "example.com/testproj/pkg/core.PublicFunction", SourceFile: "public.go", Parameters: []ParamDetail{{Name: "input", Type: "string"}}, Returns: []string{"string", "error"}, IsExported: true},
-					{Name: "example.com/testproj/pkg/core.tool1ImplFunc", SourceFile: "tools_impl.go", Returns: []string{"string", "error"}, IsExported: true},
+					{Name: "example.com/testproj/pkg/ icFunction", SourceFile: "public.go", Parameters: []ParamDetail{{Name: "input", Type: "string"}}, Returns: []string{"string", "error"}, IsExported: true},
+					{Name: "example.com/testproj/pkg/ 1ImplFunc", SourceFile: "tools_impl.go", Returns: []string{"string", "error"}, IsExported: true},
 					{Name: runtimeFQNToolFunc, SourceFile: "test_tool_funcs.go", Returns: []string{"string", "error"}, IsExported: true},
 				},
 				Structs: []StructDetail{
-					{Name: "CoreStruct", FQN: "example.com/testproj/pkg/core.CoreStruct", SourceFile: "structs.go", Fields: []FieldDetail{{Name: "ID", Type: "int", Exported: true, Tags: `json:"id"`}}},
+					{Name: "CoreStruct", FQN: "example.com/testproj/pkg/ Struct", SourceFile: "structs.go", Fields: []FieldDetail{{Name: "ID", Type: "int", Exported: true, Tags: `json:"id"`}}},
 				},
 				Methods: []MethodDetail{
-					{ReceiverName: "s", ReceiverType: "*CoreStruct", Name: "GetValue", FQN: "example.com/testproj/pkg/core.(*CoreStruct).GetValue", SourceFile: "structs.go", Parameters: []ParamDetail{}, Returns: []string{"int"}, IsExported: true},
-					{ReceiverName: "s", ReceiverType: "CoreStruct", Name: "SetValue", FQN: "example.com/testproj/pkg/core.(CoreStruct).SetValue", SourceFile: "structs.go", Parameters: []ParamDetail{{Name: "id", Type: "int"}}, Returns: []string{}, IsExported: true},
+					{ReceiverName: "s", ReceiverType: "*CoreStruct", Name: "GetValue", FQN: "example.com/testproj/pkg/ reStruct).GetValue", SourceFile: "structs.go", Parameters: []ParamDetail{}, Returns: []string{"int"}, IsExported: true},
+					{ReceiverName: "s", ReceiverType: "CoreStruct", Name: "SetValue", FQN: "example.com/testproj/pkg/ eStruct).SetValue", SourceFile: "structs.go", Parameters: []ParamDetail{{Name: "id", Type: "int"}}, Returns: []string{}, IsExported: true},
 					{ReceiverName: "m", ReceiverType: "*mockToolStruct", Name: "MockToolImplMethodForTest", FQN: runtimeFQNToolMethodCanonical, SourceFile: "test_tool_funcs.go", Returns: []string{"string", "error"}, IsExported: true},
 				},
 				TypeAliases: []TypeAliasDetail{
-					{Name: "CoreID", FQN: "example.com/testproj/pkg/core.CoreID", UnderlyingType: "int", SourceFile: "aliases.go"},
+					{Name: "CoreID", FQN: "example.com/testproj/pkg/ ID", UnderlyingType: "int", SourceFile: "aliases.go"},
 				},
 			},
 		},
 		NeuroScriptTools: []NeuroScriptToolDetail{
-			{Name: "Core.ToolFromIndexDirectly", Description: "A core tool from index", ImplementingGoFunctionFullName: "example.com/testproj/pkg/core.tool1ImplFunc", ComponentPath: "pkg/core"},
+			{Name: "Core.ToolFromIndexDirectly", Description: "A core tool from index", ImplementingGoFunctionFullName: "example.com/testproj/pkg/ 1ImplFunc", ComponentPath: "pkg/core"},
 		},
 	}
 	coreComponentData, _ := json.MarshalIndent(coreComponentIdx, "", "  ")

@@ -36,8 +36,8 @@ func (i *Interpreter) KnownProcedures() map[string]*ast.Procedure {
 
 // RunProcedure executes a defined procedure with the given arguments.
 // In accordance with the value wrapping contract, this core interpreter function
-// accepts and returns only core.Value types. The caller is responsible for wrapping
-// any primitive Go types into core.Value before calling this function.
+// accepts and returns only  Value types. The caller is responsible for wrapping
+// any primitive Go types into  e before calling this function.
 func (i *Interpreter) RunProcedure(procName string, args ...lang.lang.Value) (lang.lang.Value, error) {
 	originalProcName := i.currentProcName
 	i.Logger().Debug("Running procedure", "name", procName, "caller", originalProcName)
@@ -67,7 +67,7 @@ func (i *Interpreter) RunProcedure(procName string, args ...lang.lang.Value) (la
 
 	procInterpreter := i.CloneWithNewVariables()
 
-	// Assign required parameters. Arguments are already core.Value.
+	// Assign required parameters. Arguments are already  e.
 	for idx := 0; idx < numRequired; idx++ {
 		paramName := proc.RequiredParams[idx]
 		if setErr := procInterpreter.SetVariable(paramName, args[idx]); setErr != nil {
