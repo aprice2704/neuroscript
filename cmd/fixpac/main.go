@@ -20,6 +20,9 @@ const (
 	colorReset = "\033[0m"
 )
 
+// goplsRe parses the standard `gopls check` output.
+var goplsRe = regexp.MustCompile(`^([^:]+):(\d+):\d+-\d+:\s+undefined:\s+(.*)$`)
+
 // --- Data Structures for the Symbol Index ---
 
 type PackageIndex struct {
@@ -102,7 +105,6 @@ func checkAllFilesOneByOne() ([]VetError, error) {
 
 	log.Printf("Found %d Go files to check.", len(goFiles))
 	var allErrors []VetError
-	re := regexp.MustCompile(`^([^:]+):(\d+):\d+-\d+:\s+undefined:\s+(.*)$`)
 
 	for i, file := range goFiles {
 		log.Printf("Checking file (%d/%d): %s", i+1, len(goFiles), file)
@@ -110,7 +112,7 @@ func checkAllFilesOneByOne() ([]VetError, error) {
 		output, _ := cmd.CombinedOutput()
 
 		for _, line := range strings.Split(string(output), "\n") {
-			matches := re.FindStringSubmatch(line)
+			matches := goplsRe.FindStringSubmatch(line)
 			if len(matches) == 4 {
 				absPath := matches[1]
 				relPath, err := filepath.Rel(".", absPath)
@@ -156,6 +158,33 @@ func readAndFlattenSymbolIndex(path string) (map[string]string, error) {
 	return flatIndex, nil
 }
 
+// applyFix intelligently replaces a symbol on a line, skipping struct fields.
+func applyFix(line, symbol, pkg, color string) string {
+	re := regexp.MustCompile(`\b` + regexp.QuoteMeta(symbol) + `\b`)
+	matches := re.FindAllStringIndex(line, -1)
+
+	// Iterate backwards to avoid messing up indices of subsequent replacements on the same line.
+	for i := len(matches) - 1; i >= 0; i-- {
+		match := matches[i]
+		start, end := match[0], match[1]
+
+		// Heuristic: If the symbol is followed by a colon, it's a struct field key. Skip it.
+		if end < len(line) && line[end] == ':' {
+			continue
+		}
+
+		var replacement string
+		if color != "" {
+			replacement = color + pkg + colorReset + "." + symbol
+		} else {
+			replacement = pkg + "." + symbol
+		}
+
+		line = line[:start] + replacement + line[end:]
+	}
+	return line
+}
+
 // suggestAndFix iterates through errors, then either prints suggestions or applies fixes.
 func suggestAndFix(errors []VetError, symbolToFileMap map[string]string, dryRun bool) error {
 	errorsByFile := make(map[string][]VetError)
@@ -165,13 +194,6 @@ func suggestAndFix(errors []VetError, symbolToFileMap map[string]string, dryRun 
 
 	for file, errs := range errorsByFile {
 		fmt.Printf("--- Processing: %s ---\n", file)
-
-		currentPkg, err := getFilePackageName(file)
-		if err != nil {
-			log.Printf("Warning: Could not determine package for %s: %v", file, err)
-			continue
-		}
-
 		fileContent, err := os.ReadFile(file)
 		if err != nil {
 			log.Printf("Warning: Could not read file %s: %v", file, err)
@@ -182,32 +204,34 @@ func suggestAndFix(errors []VetError, symbolToFileMap map[string]string, dryRun 
 		copy(modifiedLines, lines)
 		modificationsMade := 0
 
-		for _, vetErr := range errs {
-			defFile, ok := symbolToFileMap[vetErr.Symbol]
-			if !ok {
-				log.Printf("Warning: Symbol '%s' from L%d not found in the index.", vetErr.Symbol, vetErr.LineNumber)
-				continue
-			}
-			symbolPkg := getPackageFromPath(defFile)
+		currentPkg, err := getFilePackageName(file)
+		if err != nil {
+			log.Printf("Warning: Could not determine package for %s: %v", file, err)
+			continue
+		}
 
-			if currentPkg != symbolPkg && vetErr.LineNumber > 0 && vetErr.LineNumber <= len(lines) {
-				originalLine := modifiedLines[vetErr.LineNumber-1] // Use potentially modified line for subsequent fixes
-				re := regexp.MustCompile(`\b` + regexp.QuoteMeta(vetErr.Symbol) + `\b`)
+		// In write mode, we apply all fixes to the in-memory copy of the file first.
+		if !dryRun {
+			for _, vetErr := range errs {
+				defFile, ok := symbolToFileMap[vetErr.Symbol]
+				if !ok {
+					continue
+				}
+				symbolPkg := getPackageFromPath(defFile)
 
-				if dryRun {
-					coloredReplacement := colorGreen + symbolPkg + colorReset + "." + vetErr.Symbol
-					displayLine := re.ReplaceAllString(originalLine, coloredReplacement)
-					fmt.Printf("L%d: Missing import for symbol '%s' (package: %s)\n", vetErr.LineNumber, vetErr.Symbol, symbolPkg)
-					fmt.Printf("  Original: %s\n", strings.TrimSpace(originalLine))
-					fmt.Printf("  Proposed: %s\n", strings.TrimSpace(displayLine))
-				} else {
-					fixedLine := re.ReplaceAllString(originalLine, symbolPkg+"."+vetErr.Symbol)
-					modifiedLines[vetErr.LineNumber-1] = fixedLine
-					modificationsMade++
+				if currentPkg != symbolPkg {
+					lineIndex := vetErr.LineNumber - 1
+					originalLine := modifiedLines[lineIndex]
+					fixedLine := applyFix(originalLine, vetErr.Symbol, symbolPkg, "")
+					if fixedLine != originalLine {
+						modifiedLines[lineIndex] = fixedLine
+						modificationsMade++
+					}
 				}
 			}
 		}
 
+		// Now, either write the changes or print the dry-run suggestions.
 		if !dryRun && modificationsMade > 0 {
 			output := strings.Join(modifiedLines, "\n")
 			if err := os.WriteFile(file, []byte(output), 0644); err != nil {
@@ -222,8 +246,29 @@ func suggestAndFix(errors []VetError, symbolToFileMap map[string]string, dryRun 
 			} else {
 				log.Printf("Updated imports for %s.", file)
 			}
+		} else if dryRun {
+			// In dry-run mode, we calculate suggestions based on the original lines.
+			for _, vetErr := range errs {
+				defFile, ok := symbolToFileMap[vetErr.Symbol]
+				if !ok {
+					continue
+				}
+				symbolPkg := getPackageFromPath(defFile)
+
+				if currentPkg != symbolPkg {
+					lineIndex := vetErr.LineNumber - 1
+					originalLine := lines[lineIndex]
+					displayLine := applyFix(originalLine, vetErr.Symbol, symbolPkg, colorGreen)
+
+					if displayLine != originalLine {
+						fmt.Printf("L%d: Missing import for symbol '%s' (package: %s)\n", vetErr.LineNumber, vetErr.Symbol, symbolPkg)
+						fmt.Printf("  Original: %s\n", strings.TrimSpace(originalLine))
+						fmt.Printf("  Proposed: %s\n", strings.TrimSpace(displayLine))
+					}
+				}
+			}
 		}
-		fmt.Println() // Add a blank line for readability
+		fmt.Println()
 	}
 	return nil
 }
