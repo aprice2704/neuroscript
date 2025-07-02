@@ -2,8 +2,8 @@
 // File version: 0.0.7 // Correct ToolRegistry interface usage.
 // nlines: 273
 // risk_rating: HIGH
-// filename: pkg/core/security.go
-package core
+// filename: pkg/security/security.go
+package security
 
 import (
 	"fmt"
@@ -18,11 +18,11 @@ import (
 
 // SecurityLayer enforces security policies for LLM-initiated tool calls.
 type SecurityLayer struct {
-	allowlist    map[string]bool // Stores qualified tool names (TOOL.xxx)
-	denylist     map[string]bool // Stores qualified tool names (TOOL.xxx)
-	sandboxRoot  string          // Unexported field storing the validated path
-	toolRegistry runtime.tool.ToolRegistry    // <<< CHANGED: Use the interface type directly
-	logger       interfaces.Logger
+	allowlist	map[string]bool		// Stores qualified tool names (TOOL.xxx)
+	denylist	map[string]bool		// Stores qualified tool names (TOOL.xxx)
+	sandboxRoot	string			// Unexported field storing the validated path
+	toolRegistry	runtime.ToolRegistry	// <<< CHANGED: Use the interface type directly
+	logger		interfaces.Logger
 }
 
 // NewSecurityLayer creates a new security layer instance.
@@ -53,7 +53,7 @@ func NewSecurityLayer(allowlistTools []string, denylistSet map[string]bool, sand
 		}
 		normalizedDenylist[qualifiedName] = denied
 	}
-	cleanSandboxRoot := "/" // Default to a restrictive root if issues occur
+	cleanSandboxRoot := "/"	// Default to a restrictive root if issues occur
 	if sandboxRoot == "" {
 		logger.Warn("[SEC] Sandbox root not provided, using '/' as a fallback. This is highly restrictive.", "provided_root", sandboxRoot)
 	} else {
@@ -66,11 +66,11 @@ func NewSecurityLayer(allowlistTools []string, denylistSet map[string]bool, sand
 	}
 
 	sl := &SecurityLayer{
-		allowlist:    allowlistMap,
-		denylist:     normalizedDenylist,
-		sandboxRoot:  cleanSandboxRoot,
-		toolRegistry: registry, // <<< CHANGED: Direct assignment of the interface
-		logger:       logger,
+		allowlist:	allowlistMap,
+		denylist:	normalizedDenylist,
+		sandboxRoot:	cleanSandboxRoot,
+		toolRegistry:	registry,	// <<< CHANGED: Direct assignment of the interface
+		logger:		logger,
 	}
 
 	logger.Debug("[SEC] Initialized Security Layer.")
@@ -87,14 +87,14 @@ func NewSecurityLayer(allowlistTools []string, denylistSet map[string]bool, sand
 	logger.Debug("[SEC] Denied tools (normalized)", "tools", strings.Join(deniedNamesNormalized, ", "))
 	logger.Debug("[SEC] Sandbox Root Set To", "path", sl.sandboxRoot)
 
-	if sl.toolRegistry == nil { // Check if the provided interface is nil
+	if sl.toolRegistry == nil {	// Check if the provided interface is nil
 		logger.Warn("[SEC] SecurityLayer initialized with nil ToolRegistry. Tool validation/execution will likely fail.")
 	}
 	return sl
 }
 
 // SandboxRoot returns the configured root directory for sandboxing file operations.
-func (sl *SecurityLayer) SandboxRoot() string { return sl.sandboxRoot }
+func (sl *SecurityLayer) SandboxRoot() string	{ return sl.sandboxRoot }
 
 // GetToolDeclarations generates the list of genai.Tool objects for allowlisted tools.
 func (sl *SecurityLayer) GetToolDeclarations() ([]*genai.Tool, error) {
@@ -108,8 +108,8 @@ func (sl *SecurityLayer) GetToolDeclarations() ([]*genai.Tool, error) {
 	sl.logger.Debug("[SEC] Generating declarations from registered tool specs", "count", len(allToolSpecs))
 
 	for _, spec := range allToolSpecs {
-		baseName := spec.Name               // e.g., "ReadFile"
-		qualifiedName := "TOOL." + baseName // e.g., "TOOL.ReadFile"
+		baseName := spec.Name			// e.g., "ReadFile"
+		qualifiedName := "TOOL." + baseName	// e.g., "TOOL.ReadFile"
 
 		// Check allowlist and denylist using the qualified name
 		isAllowed := sl.allowlist[qualifiedName]
@@ -118,10 +118,10 @@ func (sl *SecurityLayer) GetToolDeclarations() ([]*genai.Tool, error) {
 		if isAllowed && !isDenied {
 			sl.logger.Debug("[SEC] Generating declaration for allowlisted/not-denied tool", "qualified_name", qualifiedName)
 			schema := &genai.Schema{
-				Type:        genai.TypeObject,
-				Properties:  map[string]*genai.Schema{},
-				Required:    []string{},
-				Description: spec.Description,
+				Type:		genai.TypeObject,
+				Properties:	map[string]*genai.Schema{},
+				Required:	[]string{},
+				Description:	spec.Description,
 			}
 			validSchema := true
 			for _, argSpec := range spec.Args {
@@ -129,7 +129,7 @@ func (sl *SecurityLayer) GetToolDeclarations() ([]*genai.Tool, error) {
 				if typeErr != nil {
 					sl.logger.Error("[SEC] Failed to convert arg type for tool declaration", "arg_name", argSpec.Name, "arg_type", argSpec.Type, "tool_name", qualifiedName, "error", typeErr)
 					validSchema = false
-					break // Stop processing args for this tool if one is bad
+					break	// Stop processing args for this tool if one is bad
 				}
 				schema.Properties[argSpec.Name] = &genai.Schema{Type: genaiType, Description: argSpec.Description}
 				if argSpec.Required {
@@ -141,9 +141,9 @@ func (sl *SecurityLayer) GetToolDeclarations() ([]*genai.Tool, error) {
 				declarations = append(declarations, &genai.Tool{
 					FunctionDeclarations: []*genai.FunctionDeclaration{
 						{
-							Name:        qualifiedName,
-							Description: spec.Description,
-							Parameters:  schema,
+							Name:		qualifiedName,
+							Description:	spec.Description,
+							Parameters:	schema,
 						},
 					},
 				})
@@ -201,10 +201,10 @@ func (sl *SecurityLayer) ExecuteToolCall(interpreter *neurogo.Interpreter, fc ge
 				// This should also be caught by Validateinterfaces.ToolCall, but as a safeguard:
 				err := fmt.Errorf("%w: required arg '%s' missing post-validation for tool '%s'", lang.ErrInternalSecurity, argSpec.Name, qualifiedToolName)
 				sl.logger.Error("[SEC Executeinterfaces.ToolCall] Critical internal error: missing required arg", "error", err)
-				conversionOk = false // Mark as failed
+				conversionOk = false	// Mark as failed
 				break
 			}
-			orderedArgs[i] = nil // Optional arg not provided
+			orderedArgs[i] = nil	// Optional arg not provided
 		} else {
 			orderedArgs[i] = val
 		}
@@ -243,7 +243,7 @@ func (sl *SecurityLayer) ValidateToolCall(qualifiedToolName string, rawArgs map[
 	}
 
 	// Example of a hardcoded policy, can be expanded
-	if qualifiedToolName == "TOOL.ExecuteCommand" { // Assuming ExecuteCommand is the qualified name
+	if qualifiedToolName == "TOOL.ExecuteCommand" {	// Assuming ExecuteCommand is the qualified name
 		sl.logger.Warn("[SEC Validateinterfaces.ToolCall] DENIED (Blocked by Policy)", "tool_name", qualifiedToolName, "reason", "ExecuteCommand is disabled")
 		return nil, fmt.Errorf("tool %q blocked by security policy: %w", qualifiedToolName, lang.ErrToolBlocked)
 	}
@@ -268,7 +268,7 @@ func (sl *SecurityLayer) ValidateToolCall(qualifiedToolName string, rawArgs map[
 	validatedArgs, validationErr := sl.validateArgumentsAgainstSpec(toolSpec, rawArgs)
 	if validationErr != nil {
 		sl.logger.Warn("[SEC Validateinterfaces.ToolCall] DENIED (Argument Validation Failed)", "tool_name", qualifiedToolName, "error", validationErr)
-		return nil, validationErr // Return the specific validation error
+		return nil, validationErr	// Return the specific validation error
 	}
 
 	sl.logger.Debug("[SEC Validateinterfaces.ToolCall] Arguments validated successfully.", "tool_name", qualifiedToolName)
@@ -280,46 +280,46 @@ func SanitizeFilename(name string) string {
 	if name == "" {
 		return "default_sanitized_name"
 	}
-	if strings.Contains(name, "\x00") { // Check for null bytes
-		return "invalid_null_byte_name" // Or handle error appropriately
+	if strings.Contains(name, "\x00") {	// Check for null bytes
+		return "invalid_null_byte_name"	// Or handle error appropriately
 	}
-	name = strings.ReplaceAll(name, " ", "_") // Replace spaces with underscores
-	replacer := strings.NewReplacer(          // Define characters to be replaced
+	name = strings.ReplaceAll(name, " ", "_")	// Replace spaces with underscores
+	replacer := strings.NewReplacer(		// Define characters to be replaced
 		"/", "_", "\\", "_", ":", "_", "*", "_", "?", "_", "\"", "_", "<", "_", ">", "_", "|", "_",
 	)
 	name = replacer.Replace(name)
-	removeChars := regexp.MustCompile(`[^a-zA-Z0-9._-]`) // Allow alphanumeric, dot, underscore, hyphen
+	removeChars := regexp.MustCompile(`[^a-zA-Z0-9._-]`)	// Allow alphanumeric, dot, underscore, hyphen
 	name = removeChars.ReplaceAllString(name, "")
-	name = regexp.MustCompile(`_{2,}`).ReplaceAllString(name, "_") // Replace multiple underscores with one
-	name = regexp.MustCompile(`-{2,}`).ReplaceAllString(name, "-") // Replace multiple hyphens with one
-	name = strings.Trim(name, "._-")                               // Trim leading/trailing unsafe chars
-	for strings.Contains(name, "..") {                             // Avoid ".." for path traversal
-		name = strings.ReplaceAll(name, "..", "_") // Replace with underscore
+	name = regexp.MustCompile(`_{2,}`).ReplaceAllString(name, "_")	// Replace multiple underscores with one
+	name = regexp.MustCompile(`-{2,}`).ReplaceAllString(name, "-")	// Replace multiple hyphens with one
+	name = strings.Trim(name, "._-")				// Trim leading/trailing unsafe chars
+	for strings.Contains(name, "..") {				// Avoid ".." for path traversal
+		name = strings.ReplaceAll(name, "..", "_")	// Replace with underscore
 	}
-	name = strings.Trim(name, "._-")                               // Trim again after ".." replacement
-	name = regexp.MustCompile(`_{2,}`).ReplaceAllString(name, "_") // Consolidate again
-	name = regexp.MustCompile(`-{2,}`).ReplaceAllString(name, "-") // Consolidate again
-	const maxLength = 100                                          // Max filename length
+	name = strings.Trim(name, "._-")				// Trim again after ".." replacement
+	name = regexp.MustCompile(`_{2,}`).ReplaceAllString(name, "_")	// Consolidate again
+	name = regexp.MustCompile(`-{2,}`).ReplaceAllString(name, "-")	// Consolidate again
+	const maxLength = 100						// Max filename length
 	if len(name) > maxLength {
 		name = name[:maxLength]
-		name = strings.TrimRight(name, "._-") // Ensure it doesn't end with unsafe char after truncation
+		name = strings.TrimRight(name, "._-")	// Ensure it doesn't end with unsafe char after truncation
 	}
-	if name == "" { // If everything was stripped
+	if name == "" {	// If everything was stripped
 		name = "default_sanitized_name"
 	}
-	reserved := []string{ // Common reserved names (Windows)
+	reserved := []string{	// Common reserved names (Windows)
 		"CON", "PRN", "AUX", "NUL",
 		"COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9",
 		"LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
 	}
 	upperName := strings.ToUpper(name)
 	baseName := upperName
-	if dotIndex := strings.LastIndex(upperName, "."); dotIndex != -1 { // Check basename without extension
+	if dotIndex := strings.LastIndex(upperName, "."); dotIndex != -1 {	// Check basename without extension
 		baseName = upperName[:dotIndex]
 	}
 	for _, r := range reserved {
 		if upperName == r || baseName == r {
-			name = name + "_" // Append underscore if it's a reserved name
+			name = name + "_"	// Append underscore if it's a reserved name
 			break
 		}
 	}

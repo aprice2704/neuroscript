@@ -202,7 +202,7 @@ func updateAutomaticNodeStatus(tree *utils.GenericTree, nodeID string, logger in
 	// FIX: Safely assert status to a string, providing a default.
 	var currentStatus string
 	if statusVal, ok := node.Attributes["status"]; ok {
-		currentStatus, _ = statusVal.(string) // Use blank identifier, default to "" if not a string
+		currentStatus, _ = statusVal.(string)	// Use blank identifier, default to "" if not a string
 	}
 	if currentStatus == "" {
 		node.Attributes["status"] = "open"

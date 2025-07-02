@@ -14,7 +14,7 @@ import (
 // is handled by the caller (`updateAutomaticNodeStatus`).
 // Returns the calculated status string and the special symbol string (if applicable).
 func calculateAutomaticStatus(childStatuses []string, childSymbols map[int]string) (string, string, error) {
-	calculatedStatus := "open" // Default status (Rule 4 / fallback)
+	calculatedStatus := "open"	// Default status (Rule 4 / fallback)
 	calculatedSymbol := ""
 
 	if len(childStatuses) == 0 {
@@ -27,7 +27,7 @@ func calculateAutomaticStatus(childStatuses []string, childSymbols map[int]strin
 	hasQuestion := false
 	hasInProgress := false
 	hasSpecial := false
-	var firstSpecialSymbol string = "?" // Default symbol if lookup fails
+	var firstSpecialSymbol string = "?"	// Default symbol if lookup fails
 
 	// Determine highest priority status present among children
 	for idx, status := range childStatuses {
@@ -39,7 +39,7 @@ func calculateAutomaticStatus(childStatuses []string, childSymbols map[int]strin
 		case "inprogress":
 			hasInProgress = true
 		case "special":
-			if !hasSpecial { // Only capture the *first* special status encountered
+			if !hasSpecial {	// Only capture the *first* special status encountered
 				hasSpecial = true
 				sym, ok := childSymbols[idx]
 				if ok && sym != "" {
@@ -87,7 +87,7 @@ func calculateAutomaticStatus(childStatuses []string, childSymbols map[int]strin
 			case "partial":
 				partialCount++
 			default:
-				otherCount++ // Includes potential invalid/unknown statuses from children
+				otherCount++	// Includes potential invalid/unknown statuses from children
 			}
 		}
 
@@ -97,16 +97,16 @@ func calculateAutomaticStatus(childStatuses []string, childSymbols map[int]strin
 		}
 
 		// Apply rules based on counts, respecting precedence: Rule 3 -> Rule 2 -> Rule 4
-		if doneCount == totalChildren && totalChildren > 0 { // Rule 3: All children are 'done' (and there's at least one child)
+		if doneCount == totalChildren && totalChildren > 0 {	// Rule 3: All children are 'done' (and there's at least one child)
 			calculatedStatus = "done"
-		} else if doneCount > 0 || skippedCount > 0 || partialCount > 0 { // Rule 2: Any done/skipped/partial trigger (and not all were 'done')
+		} else if doneCount > 0 || skippedCount > 0 || partialCount > 0 {	// Rule 2: Any done/skipped/partial trigger (and not all were 'done')
 			calculatedStatus = "partial"
 			// } else if openCount == totalChildren && totalChildren > 0 { // Rule 4: All children are 'open' (explicit check might be redundant due to default)
 			// 	calculatedStatus = "open"
 		} else if otherCount > 0 {
 			// If there are unknown statuses and no other rules apply, what should happen?
 			// Let's default to 'open' but maybe log this condition in the calling function.
-			calculatedStatus = "open" // Fallback, potentially log warning in caller
+			calculatedStatus = "open"	// Fallback, potentially log warning in caller
 		}
 		// If none of the above, the default "open" remains (covers Rule 4 implicitly and mixed 'open'/'other')
 	}

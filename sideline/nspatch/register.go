@@ -8,7 +8,6 @@ package nspatch
 import (
 	"fmt"
 
-	"github.com/aprice2704/neuroscript/pkg/core"
 	"github.com/aprice2704/neuroscript/pkg/toolsets"
 )
 
@@ -18,7 +17,7 @@ func init() {
 }
 
 // RegisterNsPatchTools registers the tools in this package.
-func RegisterNsPatchTools(registry core.ToolRegistrar) error {
+func RegisterNsPatchTools(registry ToolRegistrar) error {
 	var registrationErrors []error
 	// Add toolGeneratePatchImpl
 	if err := registry.RegisterTool(toolGeneratePatchImpl); err != nil {

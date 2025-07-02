@@ -10,14 +10,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aprice2704/neuroscript/pkg/adapters"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 )
 
 var logger interfaces.Logger
 
 func init() {
-	logger = adapters.NewNoOpLogger()
+	logger = logging.NewNoLogger()
 }
 
 // --- Mock Go functions for tool implementations, defined at package level for stable FQNs ---

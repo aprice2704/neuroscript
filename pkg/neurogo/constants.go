@@ -6,7 +6,7 @@ package neurogo
 
 // DefaultModelName specifies the default LLM model to be used by the application
 // if not overridden by specific configurations (e.g., AIWorkerDefinition).
-const DefaultModelName = "gemini-1.5-flash-latest" // Or your preferred default
+const DefaultModelName = "gemini-1.5-flash-latest"	// Or your preferred default
 
 // DefaultDefinitionsFilename is the standard filename for storing AIWorkerDefinition JSON data
 // within the sandbox directory.

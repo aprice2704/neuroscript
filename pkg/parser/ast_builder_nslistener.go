@@ -1,3 +1,4 @@
+// filename: pkg/parser/ast_builder_nslistener.go
 package parser
 
 import (
@@ -11,27 +12,27 @@ import (
 
 type neuroScriptListenerImpl struct {
 	*gen.BaseNeuroScriptListener
-	program         *ast.Program
-	fileMetadata    map[string]string
-	procedures      []*ast.Procedure
-	events          []*ast.OnEventDecl
-	commands        []*ast.CommandNode
-	currentProc     *ast.Procedure
-	currentCommand  *ast.CommandNode
-	ValueStack      []interface{}
-	blockStack      []*blockContext
-	logger          interfaces.Logger
-	debugAST        bool
-	errors          []error
-	loopDepth       int
-	blockValueDepth []int
+	program		*ast.Program
+	fileMetadata	map[string]string
+	procedures	[]*ast.Procedure
+	events		[]*ast.OnEventDecl
+	commands	[]*ast.CommandNode
+	currentProc	*ast.Procedure
+	currentCommand	*ast.CommandNode
+	ValueStack	[]interface{}
+	blockStack	[]*blockContext
+	logger		interfaces.Logger
+	debugAST	bool
+	errors		[]error
+	loopDepth	int
+	blockValueDepth	[]int
 }
 
 // --- Standard Listener Implementation ---
 
-func (l *neuroScriptListenerImpl) EnterEveryRule(ctx antlr.ParserRuleContext) {}
-func (l *neuroScriptListenerImpl) ExitEveryRule(ctx antlr.ParserRuleContext)  {}
-func (l *neuroScriptListenerImpl) VisitErrorNode(node antlr.ErrorNode)        {}
+func (l *neuroScriptListenerImpl) EnterEveryRule(ctx antlr.ParserRuleContext)	{}
+func (l *neuroScriptListenerImpl) ExitEveryRule(ctx antlr.ParserRuleContext)	{}
+func (l *neuroScriptListenerImpl) VisitErrorNode(node antlr.ErrorNode)		{}
 
 func (l *neuroScriptListenerImpl) VisitTerminal(node antlr.TerminalNode) {
 	if node.GetSymbol().GetTokenType() == gen.NeuroScriptLexerMETADATA_LINE && l.currentProc == nil {
@@ -43,16 +44,16 @@ var _ gen.NeuroScriptListener = (*neuroScriptListenerImpl)(nil)
 
 func newNeuroScriptListener(logger interfaces.Logger, debugAST bool) *neuroScriptListenerImpl {
 	return &neuroScriptListenerImpl{
-		BaseNeuroScriptListener: &gen.BaseNeuroScriptListener{},
-		program:                 &ast.Program{Procedures: make(map[string]*ast.Procedure), Events: make([]*ast.OnEventDecl, 0)},
-		fileMetadata:            make(map[string]string),
-		procedures:              make([]*ast.Procedure, 0),
-		events:                  make([]*ast.OnEventDecl, 0),
-		commands:                make([]*ast.CommandNode, 0),
-		ValueStack:              make([]interface{}, 0),
-		blockStack:              make([]*blockContext, 0),
-		logger:                  logger,
-		debugAST:                debugAST,
+		BaseNeuroScriptListener:	&gen.BaseNeuroScriptListener{},
+		program:			&ast.Program{Procedures: make(map[string]*ast.Procedure), Events: make([]*ast.OnEventDecl, 0)},
+		fileMetadata:			make(map[string]string),
+		procedures:			make([]*ast.Procedure, 0),
+		events:				make([]*ast.OnEventDecl, 0),
+		commands:			make([]*ast.CommandNode, 0),
+		ValueStack:			make([]interface{}, 0),
+		blockStack:			make([]*blockContext, 0),
+		logger:				logger,
+		debugAST:			debugAST,
 	}
 }
 
@@ -155,10 +156,10 @@ func (l *neuroScriptListenerImpl) ExitSet_statement(ctx *gen.Set_statementContex
 	}
 
 	step := ast.Step{
-		Position: tokenToPosition(ctx.GetStart()),
-		Type:     "set",
-		LValues:  lhsExprs,
-		Values:   []ast.Expression{rhsExpr},
+		Position:	tokenToPosition(ctx.GetStart()),
+		Type:		"set",
+		LValues:	lhsExprs,
+		Values:		[]ast.Expression{rhsExpr},
 	}
 
 	if len(l.blockStack) > 0 {

@@ -1,9 +1,10 @@
+// filename: pkg/neurodata/blocks/blocks_simple_test.go
 // pkg/neurodata/blocks/blocks_simple_test.go
 package blocks
 
 import (
 	"os"
-	"path/filepath" // Keep reflect for the remaining test
+	"path/filepath"	// Keep reflect for the remaining test
 	"testing"
 )
 
@@ -21,29 +22,29 @@ func TestExtractAllAndMetadataSimple(t *testing.T) {
 
 	// --- Expected Results based on simple_blocks.md structure ---
 	wantBlocks := []FencedBlock{
-		{ // Block 0: neuroscript
-			LanguageID: "neuroscript",
-			RawContent: "DEFINE PROCEDURE Simple()\n  EMIT \"Hello from simple NS\"\nEND",
-			StartLine:  7, EndLine: 11, // Lines based on fixture
-			Metadata: map[string]string{"id": "simple-ns-block", "version": "1.0"},
+		{	// Block 0: neuroscript
+			LanguageID:	"neuroscript",
+			RawContent:	"DEFINE PROCEDURE Simple()\n  EMIT \"Hello from simple NS\"\nEND",
+			StartLine:	7, EndLine: 11,	// Lines based on fixture
+			Metadata:	map[string]string{"id": "simple-ns-block", "version": "1.0"},
 		},
-		{ // Block 1: python
-			LanguageID: "python",
-			RawContent: "print(\"Hello from simple Python\")",
-			StartLine:  17, EndLine: 19, // Lines based on fixture
-			Metadata: map[string]string{"id": "simple-py-block", "version": "0.1"},
+		{	// Block 1: python
+			LanguageID:	"python",
+			RawContent:	"print(\"Hello from simple Python\")",
+			StartLine:	17, EndLine: 19,	// Lines based on fixture
+			Metadata:	map[string]string{"id": "simple-py-block", "version": "0.1"},
 		},
-		{ // Block 2: empty text
-			LanguageID: "text",
-			RawContent: "",
-			StartLine:  22, EndLine: 23, // Lines based on fixture
-			Metadata: map[string]string{"id": "simple-empty-block"},
+		{	// Block 2: empty text
+			LanguageID:	"text",
+			RawContent:	"",
+			StartLine:	22, EndLine: 23,	// Lines based on fixture
+			Metadata:	map[string]string{"id": "simple-empty-block"},
 		},
-		{ // Block 3: text with comments
-			LanguageID: "text",
-			RawContent: "# This is a comment inside.\n-- So is this.\n\n# Even with a blank line.",
-			StartLine:  26, EndLine: 31, // Lines based on fixture
-			Metadata: map[string]string{"id": "simple-comment-block"},
+		{	// Block 3: text with comments
+			LanguageID:	"text",
+			RawContent:	"# This is a comment inside.\n-- So is this.\n\n# Even with a blank line.",
+			StartLine:	26, EndLine: 31,	// Lines based on fixture
+			Metadata:	map[string]string{"id": "simple-comment-block"},
 		},
 	}
 	// --- END Expected Results ---
@@ -67,8 +68,8 @@ func TestExtractAllAndMetadataSimple(t *testing.T) {
 		} else {
 			t.Logf("ExtractAll successful and block comparison passed for simple fixture.")
 		}
-	}) // End t.Run Simple Fixture
+	})	// End t.Run Simple Fixture
 
 	// --- REMOVED t.Run("MetadataSyntaxInsideBlock", ...) ---
 
-} // End TestExtractAllAndMetadataSimple
+}	// End TestExtractAllAndMetadataSimple

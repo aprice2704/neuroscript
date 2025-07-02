@@ -8,7 +8,7 @@ import (
 	"sync"
 
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
-	"github.com/google/generative-ai-go/genai" // For File API types if needed
+	"github.com/google/generative-ai-go/genai"	// For File API types if needed
 )
 
 // HandlePrefixAgentContext defines the prefix for AgentContext handles.
@@ -18,31 +18,31 @@ const HandlePrefixAgentContext = "agentctx"
 // neurogo agent mode. It is managed by the App and accessed by tools
 // via a handle.
 type AgentContext struct {
-	mu sync.RWMutex // Protects access to all fields
+	mu	sync.RWMutex	// Protects access to all fields
 
 	// Configuration (set via startup script tools)
-	sandboxDir    string
-	allowlistPath string
-	modelName     string // Added from meltdown.md proposal
+	sandboxDir	string
+	allowlistPath	string
+	modelName	string	// Added from meltdown.md proposal
 
 	// File Context State
 	// Map key is the relative path within the sandboxDir/project
 	// Map value is the File API URI (e.g., "files/...")
-	syncedFileURIs    map[string]string // Populated by TOOL.SyncDirectory or similar
-	pinnedFileURIs    map[string]string // Populated by TOOL.AgentPinFile, always included
-	tempRequestedURIs map[string]string // Populated by TOOL.RequestFileContext, cleared after use
+	syncedFileURIs		map[string]string	// Populated by TOOL.SyncDirectory or similar
+	pinnedFileURIs		map[string]string	// Populated by TOOL.AgentPinFile, always included
+	tempRequestedURIs	map[string]string	// Populated by TOOL.RequestFileContext, cleared after use
 
-	Logger interfaces.Logger // Logger for internal operations
+	Logger	interfaces.Logger	// Logger for internal operations
 }
 
 // NewAgentContext creates a new, initialized AgentContext.
 func NewAgentContext(logger interfaces.Logger) *AgentContext {
 
 	return &AgentContext{
-		syncedFileURIs:    make(map[string]string),
-		pinnedFileURIs:    make(map[string]string),
-		tempRequestedURIs: make(map[string]string),
-		Logger:            logger,
+		syncedFileURIs:		make(map[string]string),
+		pinnedFileURIs:		make(map[string]string),
+		tempRequestedURIs:	make(map[string]string),
+		Logger:			logger,
 		// Initialize defaults for config? Or rely solely on startup script?
 		// For now, leave them zero/empty. Startup script MUST set them.
 	}
@@ -106,7 +106,7 @@ func (ac *AgentContext) GetModelName() string {
 func (ac *AgentContext) UpdateSyncedURIs(syncedURIs map[string]string) {
 	ac.mu.Lock()
 	defer ac.mu.Unlock()
-	ac.syncedFileURIs = make(map[string]string, len(syncedURIs)) // Create a new map
+	ac.syncedFileURIs = make(map[string]string, len(syncedURIs))	// Create a new map
 	for relPath, uri := range syncedURIs {
 		ac.syncedFileURIs[relPath] = uri
 	}
@@ -152,7 +152,7 @@ func (ac *AgentContext) UnpinAllFiles() int {
 	defer ac.mu.Unlock()
 	count := len(ac.pinnedFileURIs)
 	if count > 0 {
-		ac.pinnedFileURIs = make(map[string]string) // Reset the map
+		ac.pinnedFileURIs = make(map[string]string)	// Reset the map
 		ac.Logger.Info("Unpinned all %d files", count)
 	} else {
 		ac.Logger.Info("Attempted to unpin all files, but none were pinned.")
@@ -182,10 +182,10 @@ func (ac *AgentContext) AddTemporaryURI(relativePath string, uri string) error {
 // for the next LLM API call and clears the temporary list.
 // This is called by the agent's turn handler (handle_turn.go).
 func (ac *AgentContext) GetURIsForNextContext() []*genai.File {
-	ac.mu.Lock() // Full lock needed to read pinned/temp and clear temp atomically
+	ac.mu.Lock()	// Full lock needed to read pinned/temp and clear temp atomically
 	defer ac.mu.Unlock()
 
-	combinedURIs := make(map[string]struct{}) // Use map for deduplication
+	combinedURIs := make(map[string]struct{})	// Use map for deduplication
 	uriList := make([]*genai.File, 0, len(ac.pinnedFileURIs)+len(ac.tempRequestedURIs))
 
 	// Add pinned files
@@ -193,10 +193,10 @@ func (ac *AgentContext) GetURIsForNextContext() []*genai.File {
 		if _, exists := combinedURIs[uri]; !exists {
 			combinedURIs[uri] = struct{}{}
 			// Extract just the filename part for genai.File
-			fileName := filepath.Base(relPath) // Or should we keep the full relative path? Check API needs.
+			fileName := filepath.Base(relPath)	// Or should we keep the full relative path? Check API needs.
 			uriList = append(uriList, &genai.File{
-				Name:        uri,      // API expects the "files/..." URI here
-				DisplayName: fileName, // A user-friendly name
+				Name:		uri,		// API expects the "files/..." URI here
+				DisplayName:	fileName,	// A user-friendly name
 			})
 			// ac.Logger.Info("Adding pinned URI to context: %s (Display: %s)", uri, fileName) // Too verbose?
 		} else {
@@ -210,8 +210,8 @@ func (ac *AgentContext) GetURIsForNextContext() []*genai.File {
 			combinedURIs[uri] = struct{}{}
 			fileName := filepath.Base(relPath)
 			uriList = append(uriList, &genai.File{
-				Name:        uri,
-				DisplayName: fileName,
+				Name:		uri,
+				DisplayName:	fileName,
 			})
 			// ac.Logger.Info("Adding temporary URI to context: %s (Display: %s)", uri, fileName) // Too verbose?
 		} else {
@@ -288,5 +288,5 @@ func (ac *AgentContext) getRelativePath(filePath string) (string, error) {
 		// This should ideally not happen if the prefix check passed
 		return "", fmt.Errorf("failed to get relative path for '%s' within sandbox '%s': %w", filePath, sandbox, err)
 	}
-	return filepath.ToSlash(relPath), nil // Use forward slashes for consistency
+	return filepath.ToSlash(relPath), nil	// Use forward slashes for consistency
 }

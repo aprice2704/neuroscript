@@ -1,3 +1,4 @@
+// filename: pkg/parser/ast_builder_collections.go
 package parser
 
 import (
@@ -10,8 +11,8 @@ func (l *neuroScriptListenerImpl) ExitList_literal(c *gen.List_literalContext) {
 	pos := tokenToPosition(c.GetStart())
 	if c.Expression_list_opt() == nil || c.Expression_list_opt().Expression_list() == nil {
 		l.push(&ast.ListLiteralNode{
-			Pos:      &pos,
-			Elements: []ast.Expression{},
+			Pos:		&pos,
+			Elements:	[]ast.Expression{},
 		})
 		return
 	}
@@ -34,8 +35,8 @@ func (l *neuroScriptListenerImpl) ExitList_literal(c *gen.List_literalContext) {
 	}
 
 	l.push(&ast.ListLiteralNode{
-		Pos:      &pos,
-		Elements: exprs,
+		Pos:		&pos,
+		Elements:	exprs,
 	})
 }
 
@@ -44,8 +45,8 @@ func (l *neuroScriptListenerImpl) ExitMap_literal(c *gen.Map_literalContext) {
 	pos := tokenToPosition(c.GetStart())
 	if c.Map_entry_list_opt() == nil || c.Map_entry_list_opt().Map_entry_list() == nil {
 		l.push(&ast.MapLiteralNode{
-			Pos:     &pos,
-			Entries: []*ast.MapEntryNode{},
+			Pos:		&pos,
+			Entries:	[]*ast.MapEntryNode{},
 		})
 		return
 	}
@@ -69,8 +70,8 @@ func (l *neuroScriptListenerImpl) ExitMap_literal(c *gen.Map_literalContext) {
 	}
 
 	l.push(&ast.MapLiteralNode{
-		Pos:     &pos,
-		Entries: entries,
+		Pos:		&pos,
+		Entries:	entries,
 	})
 }
 
@@ -100,8 +101,8 @@ func (l *neuroScriptListenerImpl) ExitMap_entry(c *gen.Map_entryContext) {
 
 	pos := tokenToPosition(c.GetStart())
 	l.push(&ast.MapEntryNode{
-		Pos:   &pos,
-		Key:   keyExpr,
-		Value: valueExpr,
+		Pos:	&pos,
+		Key:	keyExpr,
+		Value:	valueExpr,
 	})
 }

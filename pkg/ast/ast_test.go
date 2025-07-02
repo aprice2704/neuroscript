@@ -1,3 +1,4 @@
+// filename: pkg/ast/ast_test.go
 package ast
 
 import (
@@ -11,8 +12,8 @@ func TestErrorNode_String(t *testing.T) {
 	t.Run("regular error node", func(t *testing.T) {
 		pos := &lang.Position{Line: 10, Column: 5, File: "test.ns"}
 		node := &ErrorNode{
-			Pos:     pos,
-			Message: "something went wrong",
+			Pos:		pos,
+			Message:	"something went wrong",
 		}
 		expected := fmt.Sprintf("Error at %s: %s", pos, node.Message)
 		if node.String() != expected {

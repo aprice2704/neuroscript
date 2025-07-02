@@ -1,11 +1,11 @@
 // NeuroScript Version: 0.4.0
 // File version: 0.1.3 // Added handling for line continuation '\' + newline/CR
 // Purpose: Provides string un-escaping for NeuroScript literals and common string escaping utilities.
-// filename: pkg/core/string_utils.go
+// filename: pkg/utils/string_utils.go
 // nlines: 171 // Estimated
 // risk_rating: MEDIUM
 
-package core
+package utils
 
 import (
 	"encoding/json"
@@ -55,7 +55,7 @@ func UnescapeNeuroScriptString(rawString string) (string, error) {
 			// (which is escChar) have been consumed from the reader.
 			// We append nothing to the string builder, effectively joining the lines.
 			// The loop will then continue with the character that was after the newline/CR.
-			continue // Continue the "for reader.Len() > 0" loop
+			continue	// Continue the "for reader.Len() > 0" loop
 		}
 
 		// If it wasn't a line continuation, process as a standard escape sequence:
@@ -64,11 +64,11 @@ func UnescapeNeuroScriptString(rawString string) (string, error) {
 			sb.WriteRune('\b')
 		case 't':
 			sb.WriteRune('\t')
-		case 'n': // This is for the escape sequence literal "\n"
+		case 'n':	// This is for the escape sequence literal "\n"
 			sb.WriteRune('\n')
 		case 'f':
 			sb.WriteRune('\f')
-		case 'r': // This is for the escape sequence literal "\r"
+		case 'r':	// This is for the escape sequence literal "\r"
 			sb.WriteRune('\r')
 		case 'v':
 			sb.WriteRune('\v')
@@ -135,10 +135,10 @@ func UnescapeNeuroScriptString(rawString string) (string, error) {
 					if err2 == nil {
 						r2 := rune(val2)
 						isR2LowSurrogate := (r2 >= 0xDC00 && r2 <= 0xDFFF)
-						if isR2LowSurrogate { // r1 is already known to be a high surrogate here
+						if isR2LowSurrogate {	// r1 is already known to be a high surrogate here
 							combinedRune := utf16.DecodeRune(r1, r2)
 							sb.WriteRune(combinedRune)
-							continue // Continue the main "for" loop
+							continue	// Continue the main "for" loop
 						}
 					}
 				}
@@ -150,7 +150,7 @@ func UnescapeNeuroScriptString(rawString string) (string, error) {
 					}
 				}
 			}
-			sb.WriteRune(r1) // Write the original rune (high surrogate or regular BMP)
+			sb.WriteRune(r1)	// Write the original rune (high surrogate or regular BMP)
 		default:
 			return "", fmt.Errorf("unknown escape sequence: \\%c", escChar)
 		}

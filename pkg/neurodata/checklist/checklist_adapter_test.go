@@ -11,8 +11,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/aprice2704/neuroscript/pkg/adapters" // For NoOpLogger
-	"github.com/google/go-cmp/cmp"                   // For better diffs
+	// For NoOpLogger
+	"github.com/aprice2704/neuroscript/pkg/utils"
+	"github.com/google/go-cmp/cmp" // For better diffs
 )
 
 // Helper to verify node properties in the tree
@@ -158,7 +159,7 @@ func TestChecklistToTree(t *testing.T) {
 }
 
 func TestTreeToChecklistString(t *testing.T) {
-	noopLogger := adapters.NewNoOpLogger()
+	noopLogger := logging.NewNoLogger()
 
 	testCases := []struct {
 		name              string

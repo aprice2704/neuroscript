@@ -1,16 +1,16 @@
 // NeuroScript Version: 0.3.0
 // File version: 0.1.5
 // Minimal nil check for internal s.logger on each log call.
-// filename: pkg/adapters/slogadapter.go
+// filename: pkg/logging/slogadapter.go
 // nlines: 90 // Approximate
 // risk_rating: MEDIUM
-package adapters
+package logging
 
 import (
 	"fmt"
 	"io"
-	stdlog "log"       // Standard log package for critical panics
-	stdslog "log/slog" // Aliased to stdslog to avoid conflict with standard log package if used
+	stdlog "log"		// Standard log package for critical panics
+	stdslog "log/slog"	// Aliased to stdslog to avoid conflict with standard log package if used
 	"os"
 	"strings"
 
@@ -19,9 +19,9 @@ import (
 
 // SlogAdapter wraps slog.Logger to implement the interfaces.Logger interface.
 type SlogAdapter struct {
-	logger *stdslog.Logger         // Changed to stdslog.Logger
-	opts   *stdslog.HandlerOptions // Changed to stdslog.HandlerOptions
-	level  interfaces.LogLevel
+	logger	*stdslog.Logger		// Changed to stdslog.Logger
+	opts	*stdslog.HandlerOptions	// Changed to stdslog.HandlerOptions
+	level	interfaces.LogLevel
 }
 
 // checkInternalState ensures the SlogAdapter's internal logger is not nil.
@@ -44,7 +44,7 @@ func NewSimpleSlogAdapter(output io.Writer, level interfaces.LogLevel) (interfac
 		output = os.Stderr
 	}
 
-	var slogLevel stdslog.Level // Changed to stdslog.Level
+	var slogLevel stdslog.Level	// Changed to stdslog.Level
 	switch level {
 	case interfaces.LogLevelDebug:
 		slogLevel = stdslog.LevelDebug
@@ -55,86 +55,86 @@ func NewSimpleSlogAdapter(output io.Writer, level interfaces.LogLevel) (interfac
 	case interfaces.LogLevelError:
 		slogLevel = stdslog.LevelError
 	default:
-		slogLevel = stdslog.LevelInfo // Default to Info
+		slogLevel = stdslog.LevelInfo	// Default to Info
 	}
 
-	levelVar := new(stdslog.LevelVar) // Changed to stdslog.LevelVar
+	levelVar := new(stdslog.LevelVar)	// Changed to stdslog.LevelVar
 	levelVar.Set(slogLevel)
 
-	opts := &stdslog.HandlerOptions{ // Changed to stdslog.HandlerOptions
-		Level: levelVar,
-		ReplaceAttr: func(groups []string, a stdslog.Attr) stdslog.Attr { // Changed to stdslog.Attr
-			if a.Key == stdslog.TimeKey { // Changed to stdslog.TimeKey
+	opts := &stdslog.HandlerOptions{	// Changed to stdslog.HandlerOptions
+		Level:	levelVar,
+		ReplaceAttr: func(groups []string, a stdslog.Attr) stdslog.Attr {	// Changed to stdslog.Attr
+			if a.Key == stdslog.TimeKey {	// Changed to stdslog.TimeKey
 				// Using a.Value.Time().UTC().Round(0) to ensure a Time object and normalize.
 				// The Round(0) truncates to the second, removing monotonic clock readings if present,
 				// which can simplify time comparison and display if sub-second precision isn't critical here.
 				// If you need nanoseconds, you might format it differently or not round.
-				return stdslog.Time(stdslog.TimeKey, a.Value.Time().UTC()) // Keep UTC, remove Round(0) if full precision is needed
+				return stdslog.Time(stdslog.TimeKey, a.Value.Time().UTC())	// Keep UTC, remove Round(0) if full precision is needed
 			}
 			return a
 		},
 	}
 
 	return &SlogAdapter{
-		logger: stdslog.New(stdslog.NewTextHandler(output, opts)), // Changed to stdslog
-		opts:   opts,
-		level:  level,
+		logger:	stdslog.New(stdslog.NewTextHandler(output, opts)),	// Changed to stdslog
+		opts:	opts,
+		level:	level,
 	}, nil
 }
 
 // Debug logs a message at DebugLevel.
 func (a *SlogAdapter) Debug(msg string, args ...interface{}) {
-	a.checkInternalState() // PANIC if a.logger is nil
+	a.checkInternalState()	// PANIC if a.logger is nil
 	a.logger.Debug(msg, args...)
 }
 
 // Info logs a message at InfoLevel.
 func (a *SlogAdapter) Info(msg string, args ...interface{}) {
-	a.checkInternalState() // PANIC if a.logger is nil
+	a.checkInternalState()	// PANIC if a.logger is nil
 	a.logger.Info(msg, args...)
 }
 
 // Warn logs a message at WarnLevel.
 func (a *SlogAdapter) Warn(msg string, args ...interface{}) {
-	a.checkInternalState() // PANIC if a.logger is nil
+	a.checkInternalState()	// PANIC if a.logger is nil
 	a.logger.Warn(msg, args...)
 }
 
 // Error logs a message at ErrorLevel.
 func (a *SlogAdapter) Error(msg string, args ...interface{}) {
-	a.checkInternalState() // PANIC if a.logger is nil
+	a.checkInternalState()	// PANIC if a.logger is nil
 	a.logger.Error(msg, args...)
 }
 
 // Debugf logs a formatted message at DebugLevel.
 func (a *SlogAdapter) Debugf(format string, v ...interface{}) {
-	a.checkInternalState() // PANIC if a.logger is nil
+	a.checkInternalState()	// PANIC if a.logger is nil
 	a.logger.Debug(fmt.Sprintf(format, v...))
 }
 
 // Infof logs a formatted message at InfoLevel.
 func (a *SlogAdapter) Infof(format string, v ...interface{}) {
-	a.checkInternalState() // PANIC if a.logger is nil
+	a.checkInternalState()	// PANIC if a.logger is nil
 	a.logger.Info(fmt.Sprintf(format, v...))
 }
 
 // Warnf logs a formatted message at WarnLevel.
 func (a *SlogAdapter) Warnf(format string, v ...interface{}) {
-	a.checkInternalState() // PANIC if a.logger is nil
+	a.checkInternalState()	// PANIC if a.logger is nil
 	a.logger.Warn(fmt.Sprintf(format, v...))
 }
 
 // Errorf logs a formatted message at ErrorLevel.
 func (a *SlogAdapter) Errorf(format string, v ...interface{}) {
-	a.checkInternalState() // PANIC if a.logger is nil
+	a.checkInternalState()	// PANIC if a.logger is nil
 	a.logger.Error(fmt.Sprintf(format, v...))
 }
 
 // SetLevel changes the logger's level.
 func (a *SlogAdapter) SetLevel(level interfaces.LogLevel) {
-	a.checkInternalState() // Also check here in case SetLevel is called on a faulty adapter
+	a.checkInternalState()	// Also check here in case SetLevel is called on a faulty adapter
 	a.level = level
-	var slogLevel stdslog.Level // Changed to stdslog.Level
+	var slogLevel stdslog.Level	// Changed to stdslog.Level
 	switch level {
 	case interfaces.LogLevelDebug:
 		slogLevel = stdslog.LevelDebug
@@ -154,8 +154,8 @@ func (a *SlogAdapter) SetLevel(level interfaces.LogLevel) {
 		return
 	}
 
-	if lv, ok := a.opts.Level.(*stdslog.LevelVar); ok { // Changed to stdslog.LevelVar
-		if lv == nil { // Additional check if the LevelVar itself is nil
+	if lv, ok := a.opts.Level.(*stdslog.LevelVar); ok {	// Changed to stdslog.LevelVar
+		if lv == nil {	// Additional check if the LevelVar itself is nil
 			fmt.Fprintf(os.Stderr, "[SLOG_ADAPTER_ERROR] SetLevel: opts.Level is a *slog.LevelVar but the pointer is nil.\n")
 			// Optionally re-initialize it, or log error. For now, log and return.
 			// Re-initializing here might hide a deeper issue.

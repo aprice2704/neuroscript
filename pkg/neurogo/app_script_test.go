@@ -105,7 +105,7 @@ func TestApp_LoadScript_DoesNotExecuteTopLevelCode(t *testing.T) {
 
 	wasExecuted := false
 	canaryTool := Implementation{
-		Spec: Spec{Name: "TestSetCanary"}, // Simplified name to avoid parser issues
+		Spec:	Spec{Name: "TestSetCanary"},	// Simplified name to avoid parser issues
 		Func: func(i *rpreter, args []any) (any, error) {
 			wasExecuted = true
 			return true, nil
@@ -144,7 +144,7 @@ func TestApp_LoadScript_DoesNotImplicitlyRunMain(t *testing.T) {
 
 	wasExecuted := false
 	canaryTool := Implementation{
-		Spec: Spec{Name: "TestSetCanary"}, // Simplified name to avoid parser issues
+		Spec:	Spec{Name: "TestSetCanary"},	// Simplified name to avoid parser issues
 		Func: func(i *rpreter, args []any) (any, error) {
 			wasExecuted = true
 			return true, nil

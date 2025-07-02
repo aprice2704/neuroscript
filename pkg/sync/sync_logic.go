@@ -1,11 +1,11 @@
 // NeuroScript Version: 0.3.1
 // File version: 3
 // Purpose: Corrected toolSyncFiles to wrap the error from its helper, ensuring errors.Is works. Includes full stubs for compilation.
-// filename: pkg/core/sync_logic.go
+// filename: pkg/sync/sync_logic.go
 // nlines: 265
 // risk_rating: MEDIUM
 
-package core
+package sync
 
 import (
 	"context"
@@ -35,7 +35,7 @@ type gitIgnorer interface {
 
 type dummyIgnorer struct{}
 
-func (d dummyIgnorer) MatchesPath(path string) bool { return false }
+func (d dummyIgnorer) MatchesPath(path string) bool	{ return false }
 
 // --- END STUBS ---
 
@@ -121,9 +121,9 @@ func gatherLocalFiles(sc *syncContext) (map[string]LocalFileInfo, error) {
 		}
 
 		localFiles[relPath] = LocalFileInfo{
-			RelPath: relPath,
-			AbsPath: currentPath,
-			Hash:    localHash,
+			RelPath:	relPath,
+			AbsPath:	currentPath,
+			Hash:		localHash,
 		}
 		hashPrefix := localHash
 		if len(hashPrefix) > 8 {
@@ -165,10 +165,10 @@ func computeSyncActions(sc *syncContext, localFiles map[string]LocalFileInfo, re
 					relPath, localInfo.Hash, apiHashStr,
 				)
 				actions.FilesToUpdate = append(actions.FilesToUpdate, uploadJob{
-					localAbsPath:    localInfo.AbsPath,
-					relPath:         localInfo.RelPath,
-					localHash:       localInfo.Hash,
-					existingApiFile: apiFileInfo,
+					localAbsPath:		localInfo.AbsPath,
+					relPath:		localInfo.RelPath,
+					localHash:		localInfo.Hash,
+					existingApiFile:	apiFileInfo,
 				})
 			} else {
 				sc.incrementStat("files_up_to_date")

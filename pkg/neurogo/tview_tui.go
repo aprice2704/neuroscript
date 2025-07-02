@@ -74,9 +74,9 @@ func StartTviewTUI(mainApp *App, initialScriptPath string) error {
 
 	tvApp := tview.NewApplication()
 	tvP := &tviewAppPointers{
-		tviewApp:      tvApp,
-		app:           mainApp,
-		chatScreenMap: make(map[string]*ChatConversationScreen),
+		tviewApp:	tvApp,
+		app:		mainApp,
+		chatScreenMap:	make(map[string]*ChatConversationScreen),
 	}
 	if mainApp.tui == nil {
 		mainApp.tui = tvP
@@ -159,10 +159,10 @@ func StartTviewTUI(mainApp *App, initialScriptPath string) error {
 		tvP.localInputArea, tvP.aiInputArea, tvP.aiOutputView, tvP.localOutputView,
 	}
 	tvP.numFocusablePrimitives = len(tvP.focusablePrimitives)
-	tvP.paneCIndex = 0 // localInputArea
-	tvP.paneDIndex = 1 // aiInputArea
-	tvP.paneBIndex = 2 // aiOutputView
-	tvP.paneAIndex = 3 // localOutputView
+	tvP.paneCIndex = 0	// localInputArea
+	tvP.paneDIndex = 1	// aiInputArea
+	tvP.paneBIndex = 2	// aiOutputView
+	tvP.paneAIndex = 3	// localOutputView
 	tvP.currentFocusIndex = tvP.paneCIndex
 
 	if len(tvP.leftScreens) > 0 {
@@ -186,7 +186,7 @@ func StartTviewTUI(mainApp *App, initialScriptPath string) error {
 
 		// NEW PROTOCOL: Read file via tool, load content, run main procedure.
 		var execErr error
-		func() { // Use anonymous function to handle errors cleanly with a single 'err' var
+		func() {	// Use anonymous function to handle errors cleanly with a single 'err' var
 			interpreter := mainApp.Interpreter()
 			if interpreter == nil {
 				execErr = fmt.Errorf("interpreter is nil")
@@ -300,7 +300,7 @@ func StartTviewTUI(mainApp *App, initialScriptPath string) error {
 						textToCopy = textView.GetText(false)
 						tvP.LogToDebugScreen("[KEY_HANDLE_COPY] Preparing to copy from TextView in Pane A/B. Length: %d", len(textToCopy))
 					} else {
-						paneName := "A/B" // Simplified
+						paneName := "A/B"	// Simplified
 						errMsg := fmt.Sprintf("Focused content in Pane %s is not a TextView (type: %T). Cannot copy.", paneName, pagePrimitive)
 						tvP.LogToDebugScreen("[KEY_HANDLE_COPY] %s", errMsg)
 						copyErrorEncountered = true

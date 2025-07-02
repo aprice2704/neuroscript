@@ -1,5 +1,5 @@
-// filename: pkg/core/universal_test_helpers.go
-package core
+// filename: pkg/testutil/universal_test_helpers.go
+package testutil
 
 import (
 	"bufio"
@@ -23,7 +23,7 @@ type testWriter struct {
 func (tw testWriter) Write(p []byte) (n int, err error) {
 	// Trim trailing newline added by log package if present, t.Logf adds its own.
 	trimmed := strings.TrimSuffix(string(p), "\n")
-	tw.t.Logf("%s", trimmed) // Use t.Logf to print the log message
+	tw.t.Logf("%s", trimmed)	// Use t.Logf to print the log message
 	return len(p), nil
 }
 
@@ -42,23 +42,23 @@ type DiffFlags uint32
 // (Normalization flags and functions remain unchanged)
 // Normalization flags
 const (
-	NormTrimSpace         NormalizationFlags = 1 << 0 // Trim leading/trailing space characters (ASCII 32) from each line.
-	NormCompressSpace     NormalizationFlags = 1 << 1 // Replace multiple consecutive whitespace chars with a single space (implies NormTrimSpace).
-	NormRemoveGoComments  NormalizationFlags = 1 << 2 // Remove // comments.
-	NormRemoveNSComments  NormalizationFlags = 1 << 3 // Remove # comments (assuming # for NeuroScript).
-	NormRemoveBlankLines  NormalizationFlags = 1 << 4 // Remove lines containing only whitespace after comment removal.
-	NormSpaceAroundTokens NormalizationFlags = 1 << 5 // Ensure single space around common tokens like {}, (), [], =, ==, etc. (More advanced, NYI).
+	NormTrimSpace		NormalizationFlags	= 1 << 0	// Trim leading/trailing space characters (ASCII 32) from each line.
+	NormCompressSpace	NormalizationFlags	= 1 << 1	// Replace multiple consecutive whitespace chars with a single space (implies NormTrimSpace).
+	NormRemoveGoComments	NormalizationFlags	= 1 << 2	// Remove // comments.
+	NormRemoveNSComments	NormalizationFlags	= 1 << 3	// Remove # comments (assuming # for NeuroScript).
+	NormRemoveBlankLines	NormalizationFlags	= 1 << 4	// Remove lines containing only whitespace after comment removal.
+	NormSpaceAroundTokens	NormalizationFlags	= 1 << 5	// Ensure single space around common tokens like {}, (), [], =, ==, etc. (More advanced, NYI).
 
 	// NormDefault combines common normalization options.
-	NormDefault          NormalizationFlags = NormTrimSpace | NormCompressSpace | NormRemoveGoComments | NormRemoveNSComments | NormRemoveBlankLines
-	DefaultNormalization                    = NormDefault
+	NormDefault		NormalizationFlags	= NormTrimSpace | NormCompressSpace | NormRemoveGoComments | NormRemoveNSComments | NormRemoveBlankLines
+	DefaultNormalization				= NormDefault
 )
 
 var (
-	goCommentRegex      = regexp.MustCompile(`//.*`)
-	nsCommentRegex      = regexp.MustCompile(`#.*`)
-	multiSpaceRegex     = regexp.MustCompile(`\s+`)
-	onlyWhitespaceRegex = regexp.MustCompile(`^\s*$`) // Regex to check for lines containing only whitespace
+	goCommentRegex		= regexp.MustCompile(`//.*`)
+	nsCommentRegex		= regexp.MustCompile(`#.*`)
+	multiSpaceRegex		= regexp.MustCompile(`\s+`)
+	onlyWhitespaceRegex	= regexp.MustCompile(`^\s*$`)	// Regex to check for lines containing only whitespace
 )
 
 // NormalizeString applies various normalization options to a string.
@@ -85,7 +85,7 @@ func NormalizeString(content string, flags NormalizationFlags) string {
 	scanner := bufio.NewScanner(strings.NewReader(content))
 
 	for scanner.Scan() {
-		line := scanner.Text() // Original line for this iteration
+		line := scanner.Text()	// Original line for this iteration
 
 		// 1. Remove Comments
 		lineAfterComments := line
@@ -98,17 +98,17 @@ func NormalizeString(content string, flags NormalizationFlags) string {
 
 		// 2. Determine if the line *is* effectively blank (contains only whitespace chars)
 		isEffectivelyBlank := false
-		if shouldRemoveBlankLines { // Check only if flag is set
+		if shouldRemoveBlankLines {	// Check only if flag is set
 			isEffectivelyBlank = onlyWhitespaceRegex.MatchString(lineAfterComments)
 		}
 
 		// 3. Skip blank lines if requested AND the line is effectively blank
 		if shouldRemoveBlankLines && isEffectivelyBlank {
-			continue // Skip this line entirely
+			continue	// Skip this line entirely
 		}
 
 		// 4. Process the non-blank line for spacing using the *effective* trim status for output
-		lineForOutput := lineAfterComments // Start with comment-removed version
+		lineForOutput := lineAfterComments	// Start with comment-removed version
 
 		// Apply compression first if needed, as it implies trimming logic.
 		if shouldCompress {
@@ -129,7 +129,7 @@ func NormalizeString(content string, flags NormalizationFlags) string {
 		finalBlankCheckNeeded := shouldRemoveBlankLines
 		if finalBlankCheckNeeded {
 			if onlyWhitespaceRegex.MatchString(lineForOutput) {
-				continue // Skip lines that *become* blank after processing
+				continue	// Skip lines that *become* blank after processing
 			}
 		}
 
@@ -147,23 +147,23 @@ func NormalizeString(content string, flags NormalizationFlags) string {
 // (Diff flags and functions remain unchanged)
 // Diff display flags
 const (
-	DiffShowFull     DiffFlags = 1 << 0 // Show full expected and actual strings before the diff
-	DiffAnsiColor    DiffFlags = 1 << 1 // Add ANSI color codes
-	DiffNoContext    DiffFlags = 1 << 2 // Use difflib context=0 for minimal diff (N/A for custom diff)
-	DiffVisibleSpace DiffFlags = 1 << 3 // Replace spaces/tabs/CR/NL with visible symbols (requires DiffAnsiColor)
-	DefaultDiff                = DiffShowFull | DiffAnsiColor | DiffVisibleSpace
+	DiffShowFull		DiffFlags	= 1 << 0	// Show full expected and actual strings before the diff
+	DiffAnsiColor		DiffFlags	= 1 << 1	// Add ANSI color codes
+	DiffNoContext		DiffFlags	= 1 << 2	// Use difflib context=0 for minimal diff (N/A for custom diff)
+	DiffVisibleSpace	DiffFlags	= 1 << 3	// Replace spaces/tabs/CR/NL with visible symbols (requires DiffAnsiColor)
+	DefaultDiff				= DiffShowFull | DiffAnsiColor | DiffVisibleSpace
 )
 
 const (
-	colorReset     = "\x1b[0m"
-	colorRed       = "\x1b[31m" // Deletions
-	colorGreen     = "\x1b[32m" // Additions
-	colorGray      = "\x1b[90m" // Context / Equal lines
-	colorVisibleWs = "\x1b[95m" // Bright Magenta/Pink for whitespace symbols
-	spaceSym       = "␣"        // U+2423 OPEN BOX symbol for space
-	tabSym         = "␉"        // U+2409 SYMBOL FOR HORIZONTAL TABULATION
-	crSym          = "␍"        // U+240D SYMBOL FOR CARRIAGE RETURN (Unlikely after Norm)
-	nlSym          = "␤"        // U+2424 SYMBOL FOR NEWLINE
+	colorReset	= "\x1b[0m"
+	colorRed	= "\x1b[31m"	// Deletions
+	colorGreen	= "\x1b[32m"	// Additions
+	colorGray	= "\x1b[90m"	// Context / Equal lines
+	colorVisibleWs	= "\x1b[95m"	// Bright Magenta/Pink for whitespace symbols
+	spaceSym	= "␣"		// U+2423 OPEN BOX symbol for space
+	tabSym		= "␉"		// U+2409 SYMBOL FOR HORIZONTAL TABULATION
+	crSym		= "␍"		// U+240D SYMBOL FOR CARRIAGE RETURN (Unlikely after Norm)
+	nlSym		= "␤"		// U+2424 SYMBOL FOR NEWLINE
 )
 
 // Package-level initialized replacer for visible whitespace symbols
@@ -171,7 +171,7 @@ var visibleWsReplacer = strings.NewReplacer(
 	// Order matters: handle \n before space if space symbol includes space itself.
 	// Color reset is crucial after each symbol.
 	"\n", colorVisibleWs+nlSym+colorReset,
-	"\r", colorVisibleWs+crSym+colorReset, // Should be removed by NormalizeString
+	"\r", colorVisibleWs+crSym+colorReset,	// Should be removed by NormalizeString
 	"\t", colorVisibleWs+tabSym+colorReset,
 	" ", colorVisibleWs+spaceSym+colorReset,
 )
@@ -185,7 +185,7 @@ func DiffStrings(t testing.TB, expected, actual string, normFlags NormalizationF
 
 	normExpected := expected
 	normActual := actual
-	if normFlags != 0 { // Only normalize if flags are provided
+	if normFlags != 0 {	// Only normalize if flags are provided
 		normExpected = NormalizeString(expected, normFlags)
 		normActual = NormalizeString(actual, normFlags)
 	}
@@ -195,7 +195,7 @@ func DiffStrings(t testing.TB, expected, actual string, normFlags NormalizationF
 	}
 
 	// Use constant format string for Errorf
-	t.Errorf("Content mismatch after normalization (norm flags: %d, diff flags: %d):", normFlags, diffFlags) // Mark test as failed
+	t.Errorf("Content mismatch after normalization (norm flags: %d, diff flags: %d):", normFlags, diffFlags)	// Mark test as failed
 
 	// Use Logf for supplementary info, Errorf already marked the failure.
 	if diffFlags&DiffShowFull != 0 {
@@ -209,7 +209,7 @@ func DiffStrings(t testing.TB, expected, actual string, normFlags NormalizationF
 
 	var diffBuilder strings.Builder
 	separator := strings.Repeat("-", 60)
-	diffBuilder.WriteString("\n" + separator + "\n") // Add newline before diff for clarity
+	diffBuilder.WriteString("\n" + separator + "\n")	// Add newline before diff for clarity
 	diffBuilder.WriteString(fmt.Sprintf("%-4s %-4s | Content\n", "EXP", "ACT"))
 	diffBuilder.WriteString(separator + "\n")
 
@@ -281,17 +281,17 @@ func DiffStrings(t testing.TB, expected, actual string, normFlags NormalizationF
 		tag, i1, i2, j1, j2 := opcode.Tag, opcode.I1, opcode.I2, opcode.J1, opcode.J2
 
 		switch tag {
-		case 'e': // Equal lines
+		case 'e':	// Equal lines
 			for i := i1; i < i2; i++ {
 				// Display equal lines without color/prefix for clarity
-				lineContent := strings.TrimSuffix(aLines[i], "\n") // Display without newline char
+				lineContent := strings.TrimSuffix(aLines[i], "\n")	// Display without newline char
 				// Optionally format equal lines for visible WS
-				prefix := " " // Default prefix for equal lines
+				prefix := " "	// Default prefix for equal lines
 				formattedLine := lineContent
 				if showVisible {
-					prefix = ""                                             // formatDiffLine will handle spacing/symbols
-					formattedLine = formatDiffLine(aLines[i], colorGray)    // Use gray for context
-					formattedLine = strings.TrimSuffix(formattedLine, "\n") // Remove extra newline from helper
+					prefix = ""						// formatDiffLine will handle spacing/symbols
+					formattedLine = formatDiffLine(aLines[i], colorGray)	// Use gray for context
+					formattedLine = strings.TrimSuffix(formattedLine, "\n")	// Remove extra newline from helper
 				} else if useColor {
 					formattedLine = colorGray + lineContent + colorReset
 				}
@@ -300,7 +300,7 @@ func DiffStrings(t testing.TB, expected, actual string, normFlags NormalizationF
 				lineNumA++
 				lineNumB++
 			}
-		case 'd': // Delete lines (only in A/Expected)
+		case 'd':	// Delete lines (only in A/Expected)
 			for i := i1; i < i2; i++ {
 				formattedLine := formatDiffLine(aLines[i], colorRed)
 				diffBuilder.WriteString(fmt.Sprintf("%-4d %-4s |-%s", lineNumA, "", strings.TrimSuffix(formattedLine, "\n")))
@@ -309,7 +309,7 @@ func DiffStrings(t testing.TB, expected, actual string, normFlags NormalizationF
 				}
 				lineNumA++
 			}
-		case 'i': // Insert lines (only in B/Actual)
+		case 'i':	// Insert lines (only in B/Actual)
 			for j := j1; j < j2; j++ {
 				formattedLine := formatDiffLine(bLines[j], colorGreen)
 				diffBuilder.WriteString(fmt.Sprintf("%-4s %-4d |+%s", "", lineNumB, strings.TrimSuffix(formattedLine, "\n")))
@@ -318,7 +318,7 @@ func DiffStrings(t testing.TB, expected, actual string, normFlags NormalizationF
 				}
 				lineNumB++
 			}
-		case 'r': // Replace lines (differs between A and B)
+		case 'r':	// Replace lines (differs between A and B)
 			// Simpler 'r' handling: Show deletes then inserts
 			for i := i1; i < i2; i++ {
 				formattedLineA := formatDiffLine(aLines[i], colorRed)
@@ -343,7 +343,7 @@ func DiffStrings(t testing.TB, expected, actual string, normFlags NormalizationF
 	// Log the final diff string using Logf as it's supplementary info
 	t.Logf("--- Diff ---\n%s", diffBuilder.String())
 
-	return false // Indicate that strings were different
+	return false	// Indicate that strings were different
 }
 
 // AssertEqualStrings is a convenience helper that uses DiffStrings with default flags

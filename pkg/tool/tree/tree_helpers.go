@@ -6,7 +6,7 @@
 package tree
 
 import (
-	"errors" // Added for errors.Is and errors.Join
+	"errors"	// Added for errors.Is and errors.Join
 	"fmt"
 
 	"github.com/aprice2704/neuroscript/pkg/lang"

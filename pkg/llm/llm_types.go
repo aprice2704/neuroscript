@@ -1,5 +1,5 @@
-// filename: pkg/core/llm_types.go
-package core
+// filename: pkg/llm/llm_types.go
+package llm
 
 import (
 	"fmt"

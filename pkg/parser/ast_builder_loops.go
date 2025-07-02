@@ -1,3 +1,4 @@
+// filename: pkg/parser/ast_builder_loops.go
 package parser
 
 import (
@@ -39,10 +40,10 @@ func (l *neuroScriptListenerImpl) ExitWhile_statement(ctx *gen.While_statementCo
 	}
 
 	l.addStep(ast.Step{
-		Position: tokenToPosition(ctx.GetStart()),
-		Type:     "while",
-		Cond:     cond,
-		Body:     body,
+		Position:	tokenToPosition(ctx.GetStart()),
+		Type:		"while",
+		Cond:		cond,
+		Body:		body,
 	})
 }
 
@@ -78,10 +79,10 @@ func (l *neuroScriptListenerImpl) ExitFor_each_statement(ctx *gen.For_each_state
 	}
 
 	l.addStep(ast.Step{
-		Position:    tokenToPosition(ctx.GetStart()),
-		Type:        "for",
-		LoopVarName: ctx.IDENTIFIER().GetText(),
-		Collection:  collection,
-		Body:        body,
+		Position:	tokenToPosition(ctx.GetStart()),
+		Type:		"for",
+		LoopVarName:	ctx.IDENTIFIER().GetText(),
+		Collection:	collection,
+		Body:		body,
 	})
 }

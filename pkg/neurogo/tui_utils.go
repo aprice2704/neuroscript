@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/gdamore/tcell/v2" // Added for tcell.KeyNames and tcell.EventKey
+	"github.com/gdamore/tcell/v2"	// Added for tcell.KeyNames and tcell.EventKey
 	"github.com/rivo/tview"
 )
 
@@ -46,19 +46,19 @@ func FormatEventKeyForLogging(event *tcell.EventKey) string {
 		if name, ok := tcell.KeyNames[key]; ok {
 			return name
 		}
-		return fmt.Sprintf("Key[%d]", key) // Fallback for other special keys without a common name
+		return fmt.Sprintf("Key[%d]", key)	// Fallback for other special keys without a common name
 	}
 	// For standard keys that have names
 	if name, ok := tcell.KeyNames[key]; ok {
 		return name
 	}
-	return fmt.Sprintf("Key[%d]", key) // Fallback if no name found
+	return fmt.Sprintf("Key[%d]", key)	// Fallback if no name found
 }
 
 // tviewWriter is an io.Writer that writes to a tview.TextView and queues an update.
 type tviewWriter struct {
-	app      *tview.Application
-	textView *tview.TextView
+	app		*tview.Application
+	textView	*tview.TextView
 }
 
 // NewTviewWriter creates a new tviewWriter.
@@ -73,7 +73,7 @@ func (tw *tviewWriter) Write(p []byte) (n int, err error) {
 	}
 	n, err = tw.textView.Write(p)
 	if tw.app != nil {
-		tw.app.QueueUpdateDraw(func() {}) // Trigger redraw
+		tw.app.QueueUpdateDraw(func() {})	// Trigger redraw
 	}
 	return
 }

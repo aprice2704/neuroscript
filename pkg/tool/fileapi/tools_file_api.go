@@ -12,7 +12,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/aprice2704/neuroscript/pkg/adapters"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 )
@@ -21,8 +20,8 @@ import (
 // It ensures that all file operations requested by the script remain
 // within a designated root directory (sandbox).
 type FileAPI struct {
-	sandboxRoot	string	// The absolute, cleaned path to the sandbox directory.
-	logger		interfaces.Logger
+	sandboxRoot string // The absolute, cleaned path to the sandbox directory.
+	logger      interfaces.Logger
 }
 
 // NewFileAPI creates a new FileAPI instance.
@@ -31,7 +30,7 @@ type FileAPI struct {
 func NewFileAPI(sandboxDir string, logger interfaces.Logger) *FileAPI {
 	if logger == nil {
 		// Fallback to a basic logger if none provided, although Interpreter should always provide one.
-		logger = &adapters.NewNoOpLogger{}
+		logger = &logging.NewNoLogger{}
 		logger.Warn("NewFileAPI created with nil logger, using internal NoOpLogger.")
 	}
 
@@ -43,7 +42,7 @@ func NewFileAPI(sandboxDir string, logger interfaces.Logger) *FileAPI {
 			panic(fmt.Sprintf("Failed to get current working directory for default sandbox: %v", err))
 		}
 		effectiveSandboxDir = cwd
-		logger.Debug("Using current working directory as sandbox root.", "path", effectiveSandboxDir)	// Changed from Info
+		logger.Debug("Using current working directory as sandbox root.", "path", effectiveSandboxDir) // Changed from Info
 	}
 
 	// Clean and ensure the sandbox path is absolute.
@@ -59,11 +58,11 @@ func NewFileAPI(sandboxDir string, logger interfaces.Logger) *FileAPI {
 	if err != nil {
 		if os.IsNotExist(err) {
 			// Attempt to create the sandbox directory
-			logger.Debug("Sandbox directory does not exist, attempting to create.", "path", absSandbox)	// Changed from Info
+			logger.Debug("Sandbox directory does not exist, attempting to create.", "path", absSandbox) // Changed from Info
 			if mkErr := os.MkdirAll(absSandbox, 0750); mkErr != nil {
 				panic(fmt.Sprintf("Failed to create sandbox directory '%s': %v", absSandbox, mkErr))
 			}
-			logger.Debug("Sandbox directory created successfully.", "path", absSandbox)	// Changed from Info
+			logger.Debug("Sandbox directory created successfully.", "path", absSandbox) // Changed from Info
 		} else {
 			// Other error (e.g., permission denied)
 			panic(fmt.Sprintf("Failed to stat sandbox directory '%s': %v", absSandbox, err))
@@ -72,11 +71,11 @@ func NewFileAPI(sandboxDir string, logger interfaces.Logger) *FileAPI {
 		panic(fmt.Sprintf("Sandbox path '%s' exists but is not a directory", absSandbox))
 	}
 
-	logger.Debug("FileAPI initialized.", "sandbox_root", absSandbox)	// Changed from Info
+	logger.Debug("FileAPI initialized.", "sandbox_root", absSandbox) // Changed from Info
 
 	return &FileAPI{
-		sandboxRoot:	absSandbox,
-		logger:		logger,
+		sandboxRoot: absSandbox,
+		logger:      logger,
 	}
 }
 
@@ -87,7 +86,7 @@ func NewFileAPI(sandboxDir string, logger interfaces.Logger) *FileAPI {
 // (specifically ErrPathViolation if the path tries to escape the sandbox).
 func (f *FileAPI) ResolvePath(relPath string) (string, error) {
 	if f == nil {
-		return "", errors.New("FileAPI receiver is nil")	// Should not happen
+		return "", errors.New("FileAPI receiver is nil") // Should not happen
 	}
 	if f.sandboxRoot == "" {
 		f.logger.Error("ResolvePath called but sandboxRoot is empty!")

@@ -8,7 +8,7 @@ package fs
 import (
 	"errors"
 	"fmt"
-	"io/fs" // Use io/fs for WalkDir and DirEntry
+	"io/fs"	// Use io/fs for WalkDir and DirEntry
 	"os"
 	"path/filepath"
 	"time"

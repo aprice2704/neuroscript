@@ -153,7 +153,7 @@ func (tvP *tviewAppPointers) LogToDebugScreen(format string, args ...interface{}
 // onPanePageChange is called when a tview.Pages view (a pane) switches its front page.
 func (tvP *tviewAppPointers) onPanePageChange(pane *tview.Pages) {
 	pageName, currentPrimitive := pane.GetFrontPage()
-	tvP.LogToDebugScreen("[PAGE_CHANGE_ENTRY] onPanePageChange called. Pane Addr: %p, New Page Name: '%s'", pane, pageName) // Now uses log.Printf
+	tvP.LogToDebugScreen("[PAGE_CHANGE_ENTRY] onPanePageChange called. Pane Addr: %p, New Page Name: '%s'", pane, pageName)	// Now uses log.Printf
 
 	if currentPrimitive == nil {
 		tvP.LogToDebugScreen("[PAGE_CHANGE] Current primitive is nil for page '%s'.", pageName)

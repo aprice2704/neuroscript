@@ -51,9 +51,9 @@ func initializeLogger(levelStr string, filePath string) (interfaces.Logger, erro
 		// Return the most relevant error.
 		if parseErr != nil {
 			// Return a NoOpLogger if main logger creation failed, to satisfy the interface.
-			return adapters.NewNoOpLogger(), fmt.Errorf("log level parsing error ('%s'): %w (and main logger creation also failed: %v)", levelStr, parseErr, appLoggerErr)
+			return logging.NewNoLogger(), fmt.Errorf("log level parsing error ('%s'): %w (and main logger creation also failed: %v)", levelStr, parseErr, appLoggerErr)
 		}
-		return adapters.NewNoOpLogger(), appLoggerErr
+		return logging.NewNoLogger(), appLoggerErr
 	}
 
 	// Log successful initialization. Pass 'parsedLevel' directly.

@@ -1,4 +1,5 @@
-package core
+// filename: pkg/llm/embeddings.go
+package llm
 
 import (
 	"fmt"
@@ -20,14 +21,14 @@ func (i *neurogo.Interpreter) GenerateEmbedding(text string) ([]float32, error) 
 	var seed int64
 	for _, r := range text {
 		// Simple hash combining character codes
-		seed = (seed*31 + int64(r)) & 0xFFFFFFFF // Use bitwise AND for potential overflow safety
+		seed = (seed*31 + int64(r)) & 0xFFFFFFFF	// Use bitwise AND for potential overflow safety
 	}
 	// Ensure seed is non-negative if needed by rand.NewSource
 	if seed < 0 {
 		seed = -seed
 	}
 
-	rng := rand.New(rand.NewSource(seed)) // Use the derived seed
+	rng := rand.New(rand.NewSource(seed))	// Use the derived seed
 
 	norm := float32(0.0)
 	for d := 0; d < i.embeddingDim; d++ {

@@ -47,9 +47,9 @@ func (l *neuroScriptListenerImpl) ExitEvent_handler(c *gen.Event_handlerContext)
 	pos := tokenToPosition(c.GetStart())
 	// Create the OnEventDecl node.
 	onEvent := &ast.OnEventDecl{
-		Pos:           &pos,
-		EventNameExpr: eventName,
-		Body:          body,
+		Pos:		&pos,
+		EventNameExpr:	eventName,
+		Body:		body,
 	}
 
 	if c.STRING_LIT() != nil {
@@ -85,8 +85,8 @@ func (l *neuroScriptListenerImpl) ExitError_handler(c *gen.Error_handlerContext)
 	// Add the 'on_error' step to the parent context (proc or command).
 	pos := tokenToPosition(c.GetStart())
 	l.addStep(ast.Step{
-		Position: pos,
-		Type:     "on_error",
-		Body:     body,
+		Position:	pos,
+		Type:		"on_error",
+		Body:		body,
 	})
 }

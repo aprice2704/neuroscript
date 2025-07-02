@@ -3,6 +3,8 @@ package list
 
 import (
 	"fmt"
+
+	"github.com/aprice2704/neuroscript/pkg/lang"
 )
 
 // -----------------------------------------------------------------------------
@@ -12,7 +14,7 @@ import (
 
 // CallListReverse is registered with the interpreter’s tool registry.
 // Signature: wrappers in  -> wrapper out.
-func CallListReverse(args []lang.lang.Value) (lang.lang.Value, error) {
+func CallListReverse(args []Value) (Value, error) {
 	// 1. Unwrap interpreter args (they arrive as wrappers).
 	rawArgs, err := lang.UnwrapSlice(args)
 	if err != nil {

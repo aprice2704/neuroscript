@@ -1,12 +1,12 @@
 // NeuroScript Version: 0.3.1
 // File version: 0.0.2 // Remove duplicate CreateErrorFunctionResultPart.
-// filename: pkg/core/conversation.go
-package core
+// filename: pkg/llm/conversation.go
+package llm
 
 import (
 	"fmt"
 	"log"
-	"strings" // Added for text formatting
+	"strings"	// Added for text formatting
 
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/google/generative-ai-go/genai"
@@ -14,8 +14,8 @@ import (
 
 // ConversationManager holds the state of an interaction with the LLM agent.
 type ConversationManager struct {
-	History []*genai.Content // Stores the conversation turns
-	logger  interfaces.Logger
+	History	[]*genai.Content	// Stores the conversation turns
+	logger	interfaces.Logger
 }
 
 // NewConversationManager creates a new manager.
@@ -25,16 +25,16 @@ func NewConversationManager(logger interfaces.Logger) *ConversationManager {
 		panic("ConversationManager requires a valid logger")
 	}
 	return &ConversationManager{
-		History: make([]*genai.Content, 0),
-		logger:  effectiveLogger,
+		History:	make([]*genai.Content, 0),
+		logger:		effectiveLogger,
 	}
 }
 
 // AddUserMessage appends a user message to the history.
 func (cm *ConversationManager) AddUserMessage(text string) {
 	cm.History = append(cm.History, &genai.Content{
-		Role:  "user",
-		Parts: []genai.Part{genai.Text(text)},
+		Role:	"user",
+		Parts:	[]genai.Part{genai.Text(text)},
 	})
 	cm.logger.Debug("[CONVO] Added User: %q", text)
 }
@@ -42,8 +42,8 @@ func (cm *ConversationManager) AddUserMessage(text string) {
 // AddModelMessage adds a pure text response from the model to the history.
 func (cm *ConversationManager) AddModelMessage(text string) {
 	cm.History = append(cm.History, &genai.Content{
-		Role:  "model",
-		Parts: []genai.Part{genai.Text(text)},
+		Role:	"model",
+		Parts:	[]genai.Part{genai.Text(text)},
 	})
 	logSnippet := text
 	maxLogLen := 80
@@ -95,8 +95,8 @@ func (cm *ConversationManager) AddModelResponse(candidate *genai.Candidate) erro
 // AddFunctionCallMessage adds a function call request from the model to the history.
 func (cm *ConversationManager) AddFunctionCallMessage(fc genai.FunctionCall) {
 	cm.History = append(cm.History, &genai.Content{
-		Role:  "model", // The FunctionCall is part of the *model's* turn
-		Parts: []genai.Part{fc},
+		Role:	"model",	// The FunctionCall is part of the *model's* turn
+		Parts:	[]genai.Part{fc},
 	})
 	cm.logger.Debug("[CONVO] Added Model FunctionCall request: %s", fc.Name)
 }
@@ -110,15 +110,15 @@ func (cm *ConversationManager) AddFunctionResultMessage(part genai.Part) error {
 		return err
 	}
 	cm.History = append(cm.History, &genai.Content{
-		Role:  "function", // Role is 'function' for results
-		Parts: []genai.Part{fr},
+		Role:	"function",	// Role is 'function' for results
+		Parts:	[]genai.Part{fr},
 	})
 	cm.logger.Debug("[CONVO] Added FunctionResponse result for: %s", fr.Name)
 	return nil
 }
 
 // GetHistory returns the current conversation history.
-func (cm *ConversationManager) GetHistory() []*genai.Content { return cm.History }
+func (cm *ConversationManager) GetHistory() []*genai.Content	{ return cm.History }
 
 // ClearHistory resets the conversation.
 func (cm *ConversationManager) ClearHistory() {

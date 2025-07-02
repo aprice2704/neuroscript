@@ -1,3 +1,4 @@
+// filename: pkg/neurodata/blocks/blocks_helpers.go
 package blocks
 
 import (
@@ -20,7 +21,7 @@ func compareBlockSlices(t *testing.T, got, want []FencedBlock, sourceName string
 	t.Helper()
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("Mismatch in extracted blocks from %s", sourceName)
-		maxLen := minInt(len(got), len(want)) // Use minInt helper
+		maxLen := minInt(len(got), len(want))	// Use minInt helper
 		for i := 0; i < maxLen; i++ {
 			if !reflect.DeepEqual(got[i], want[i]) {
 				t.Errorf("--- Block %d Mismatch ---", i)
@@ -43,7 +44,7 @@ func compareBlockSlices(t *testing.T, got, want []FencedBlock, sourceName string
 		// Use Logf instead of Errorf for the full dump
 		t.Logf("\nFull Got Blocks:\n%#v\n", got)
 		t.Logf("\nFull Want Blocks:\n%#v\n", want)
-		t.Errorf("Block comparison failed (details above).") // Ensure test fails
+		t.Errorf("Block comparison failed (details above).")	// Ensure test fails
 	} else {
 		t.Logf("Blocks extracted from %s match expected blocks.", sourceName)
 	}

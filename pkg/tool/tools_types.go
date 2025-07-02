@@ -104,10 +104,10 @@ type ToolRegistrar interface {
 
 // ToolRegistry defines the interface for a complete tool registry.
 // *Interpreter is expected to implement this interface.
-// The methods here should align with what *core.ToolRegistry (struct in tools_registry.go) provides.
+// The methods here should align with what * ToolRegistry (struct in tools_registry.go) provides.
 type ToolRegistry interface {
 	ToolRegistrar								// Embeds RegisterTool(impl ToolImplementation) error
 	GetTool(name string) (ToolImplementation, bool)				// Returns the full implementation
 	ListTools() []ToolSpec							// Returns a list of specs
-	ExecuteTool(toolName string, args map[string]lang.lang.Value) (lang.lang.Value, error)	// <- must use value here
+	ExecuteTool(toolName string, args map[string]Value) (Value, error)	// <- must use value here
 }

@@ -8,7 +8,6 @@ package parser
 import (
 	"testing"
 
-	"github.com/aprice2704/neuroscript/pkg/adapters"
 	"github.com/aprice2704/neuroscript/pkg/ast"
 )
 
@@ -19,7 +18,7 @@ type astTestCase struct {
 }
 
 func TestASTBuilderScenarios(t *testing.T) {
-	logger := adapters.NewNoOpLogger()
+	logger := logging.NewNoLogger()
 
 	testCases := []astTestCase{
 		{

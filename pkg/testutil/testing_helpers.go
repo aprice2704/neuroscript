@@ -1,9 +1,9 @@
 // NeuroScript Version: 0.4.1
 // File version: 13
 // Purpose: Updated createTestStep helper to use the new LValues field.
-// filename: pkg/core/testing_helpers.go
+// filename: pkg/testutil/testing_helpers.go
 
-package core
+package testutil
 
 import (
 	"errors"
@@ -11,44 +11,45 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 )
 
-var dummyPos = &Position{Line: 1, Column: 1, File: "test"}
+var dummyPos = &lang.Position{Line: 1, Column: 1, File: "test"}
 
 // ... (struct definitions and other functions are unchanged) ...
 
 type EvalTestCase struct {
-	Name            string
-	InputNode       ast.Expression
-	InitialVars     map[string]Value
-	LastResult      Value
-	Expected        Value
-	WantErr         bool
-	ExpectedErrorIs error
+	Name		string
+	InputNode	ast.Expression
+	InitialVars	map[string]lang.Value
+	LastResult	lang.Value
+	Expected	lang.Value
+	WantErr		bool
+	ExpectedErrorIs	error
 }
 
 type executeStepsTestCase struct {
-	name            string
-	inputSteps      []Step
-	initialVars     map[string]Value
-	lastResult      Value
-	expectError     bool
-	ExpectedErrorIs error
-	errContains     string
-	expectedResult  Value
-	expectedVars    map[string]Value
+	name		string
+	inputSteps	[]ast.Step
+	initialVars	map[string]lang.Value
+	lastResult	lang.Value
+	expectError	bool
+	ExpectedErrorIs	error
+	errContains	string
+	expectedResult	lang.Value
+	expectedVars	map[string]lang.Value
 }
 
 type ValidationTestCase struct {
-	Name          string
-	InputArgs     []interface{}
-	ExpectedError error
+	Name		string
+	InputArgs	[]interface{}
+	ExpectedError	error
 }
 
 func runValidationTestCases(t *testing.T, toolName string, testCases []ValidationTestCase) {
 	t.Helper()
-	interp, _ := NewDefaultTestInterpreter(t)
+	interp, _ := llm.NewDefaultTestInterpreter(t)
 	tool, ok := interp.ToolRegistry().GetTool(toolName)
 	if !ok {
 		t.Fatalf("Tool %s not found in registry", toolName)
@@ -71,10 +72,10 @@ func AssertNoError(t *testing.T, err error, msgAndArgs ...interface{}) {
 	}
 }
 
-func runEval.ExpressionTest(t *testing.T, tc EvalTestCase) {
+func ExpressionTest(t *testing.T, tc EvalTestCase) {
 	t.Helper()
 	t.Run(tc.Name, func(t *testing.T) {
-		i, err := NewTestInterpreter(t, tc.InitialVars, tc.LastResult)
+		i, err := llm.NewTestInterpreter(t, tc.InitialVars, tc.LastResult)
 		if err != nil {
 			t.Fatalf("NewTestInterpreter failed: %v", err)
 		}
@@ -106,7 +107,7 @@ func runEval.ExpressionTest(t *testing.T, tc EvalTestCase) {
 func runExecuteStepsTest(t *testing.T, tc executeStepsTestCase) {
 	t.Helper()
 	t.Run(tc.name, func(t *testing.T) {
-		i, err := NewTestInterpreter(t, tc.initialVars, tc.lastResult)
+		i, err := llm.NewTestInterpreter(t, tc.initialVars, tc.lastResult)
 		if err != nil {
 			t.Fatalf("NewTestInterpreter failed: %v", err)
 		}
@@ -123,7 +124,7 @@ func runExecuteStepsTest(t *testing.T, tc executeStepsTestCase) {
 			return
 		}
 
-		var actualResult Value
+		var actualResult lang.Value
 		if wasReturn {
 			actualResult = finalResultFromExec
 		} else {
@@ -164,9 +165,9 @@ func createTestStep(stepType, target string, value ast.Expression, callArgs []as
 		s.Cond = value
 	case "call":
 		s.Call = &ast.CallableExprNode{
-			Position:       dummyPos,
-			Target:    ast.CallTarget{Position: dummyPos, Name: target, IsTool: true},
-			Arguments: callArgs,
+			Position:	dummyPos,
+			Target:		ast.CallTarget{Position: dummyPos, Name: target, IsTool: true},
+			Arguments:	callArgs,
 		}
 	default:
 		// This default case might be problematic if 'value' is an LValue, but for now, we leave it.
@@ -175,26 +176,26 @@ func createTestStep(stepType, target string, value ast.Expression, callArgs []as
 	return s
 }
 
-func createIfStep(pos *lang.Position, condNode ast.Expression, thenSteps, elseSteps []Step) ast.Step {
+func createIfStep(pos *lang.Position, condNode ast.Expression, thenSteps, elseSteps []ast.Step) ast.Step {
 	return ast.Step{Position: pos, Type: "if", Cond: condNode, Body: thenSteps, Else: elseSteps}
 }
 
-func createWhileStep(pos *lang.Position, condNode ast.Expression, bodySteps []Step) ast.Step {
+func createWhileStep(pos *lang.Position, condNode ast.Expression, bodySteps []ast.Step) ast.Step {
 	return ast.Step{
-		Position:  pos,
-		Type: "while",
-		Cond: condNode,
-		Body: bodySteps,
+		Position:	pos,
+		Type:		"while",
+		Cond:		condNode,
+		Body:		bodySteps,
 	}
 }
 
-func createForStep(pos *lang.Position, loopVarName string, collectionExpr ast.Expression, bodySteps []Step) ast.Step {
+func createForStep(pos *lang.Position, loopVarName string, collectionExpr ast.Expression, bodySteps []ast.Step) ast.Step {
 	return ast.Step{
-		Position:         pos,
-		Type:        "for",
-		LoopVarName: loopVarName,
-		Collection:  collectionExpr,
-		Body:        bodySteps,
+		Position:	pos,
+		Type:		"for",
+		LoopVarName:	loopVarName,
+		Collection:	collectionExpr,
+		Body:		bodySteps,
 	}
 }
 
@@ -210,11 +211,11 @@ func NewTestBooleanLiteral(val bool) *ast.BooleanLiteralNode {
 	return &ast.BooleanLiteralNode{Position: dummyPos, Value: val}
 }
 
-func NewTestast.VariableNode(name string) *ast.VariableNode {
+func NewVariableNode(name string) *ast.VariableNode {
 	return &ast.VariableNode{Position: dummyPos, Name: name}
 }
 
-func DebugDumpVariables(i *Interpreter, t *testing.T) {
+func DebugDumpVariables(i *neurogo.Interpreter, t *testing.T) {
 	i.variablesMu.RLock()
 	defer i.variablesMu.RUnlock()
 	t.Log("--- INTERPRETER VARIABLE DUMP ---")

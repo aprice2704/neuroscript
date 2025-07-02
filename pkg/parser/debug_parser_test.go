@@ -6,13 +6,11 @@ package parser
 
 import (
 	"testing"
-
-	"github.com/aprice2704/neuroscript/pkg/adapters"
 )
 
 func TestScorchedEarthParser(t *testing.T) {
 	script := "func a() means\nset _ = nil\nendfunc"
-	logger := adapters.NewNoOpLogger()
+	logger := logging.NewNoLogger()
 	parserAPI := NewParserAPI(logger)
 
 	// Attempt to parse the script

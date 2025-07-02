@@ -105,7 +105,7 @@ func base36ToIndex(s string) (int, error) {
 // Helper to convert 0-indexed integer to base36 string (0-z, then 10, 11, ...)
 func indexToBase36(idx int) string {
 	if idx < 0 {
-		return "?" // Or handle error
+		return "?"	// Or handle error
 	}
 	if idx < 10 {
 		return strconv.Itoa(idx)

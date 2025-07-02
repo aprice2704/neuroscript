@@ -7,8 +7,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/aprice2704/neuroscript/pkg/adapters"
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/utils"
 )
 
 // Implementation for ChecklistLoadTree
@@ -29,7 +29,7 @@ func toolChecklistLoadTree(interpreter *neurogo.Interpreter, args []interface{})
 	logger.Debug("Parsing checklist content", "tool", toolName)
 	parserLogger := logger
 	if parserLogger == nil {
-		parserLogger = adapters.NewNoOpLogger()
+		parserLogger = logging.NewNoLogger()
 	}
 	parsedData, parseErr := ParseChecklist(checklistString, parserLogger)
 	if parseErr != nil {

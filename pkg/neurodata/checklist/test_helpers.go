@@ -15,9 +15,10 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/toolsets"
+	"github.com/aprice2704/neuroscript/pkg/utils"
 )
 
-func newTestInterpreterWithAllTools(t *testing.T) (*neurogo.Interpreter, runtime.tool.ToolRegistry) {
+func newTestInterpreterWithAllTools(t *testing.T) (*neurogo.Interpreter, ToolRegistry) {
 	t.Helper()
 	tempDir := t.TempDir()
 	logger, errLog := adapters.NewSimpleSlogAdapter(os.Stderr, interfaces.LogLevelDebug)
@@ -45,7 +46,7 @@ func getNodeViaTool(t *testing.T, interp *neurogo.Interpreter, handleID string, 
 	if impl.Func == nil {
 		t.Fatalf("getNodeViaTool: Tool 'Tree.GetNode' has nil function.")
 	}
-	nodeDataIntf, err := impl.Func(interp, runtime.tool.MakeArgs(handleID, nodeID))
+	nodeDataIntf, err := impl.Func(interp, MakeArgs(handleID, nodeID))
 	if err != nil {
 		if errors.Is(err, lang.ErrNotFound) || errors.Is(err, lang.ErrInvalidArgument) || errors.Is(err, lang.ErrHandleWrongType) || errors.Is(err, lang.ErrHandleNotFound) || errors.Is(err, lang.ErrHandleInvalid) {
 			t.Logf("getNodeViaTool: Got expected error getting node %q: %v", nodeID, err)
@@ -84,7 +85,7 @@ func getNodeAttributesMap(t *testing.T, nodeData map[string]interface{}) map[str
 	}
 	attrsVal, exists := nodeData["attributes"]
 	if !exists || attrsVal == nil {
-		return make(map[string]interface{}) // Return empty map
+		return make(map[string]interface{})	// Return empty map
 	}
 
 	attrsMap, ok := attrsVal.(map[string]interface{})
@@ -138,6 +139,6 @@ func assertToolFound(t *testing.T, found bool, toolName string) {
 	}
 }
 
-func pstr(s string) *string { return &s }
-func pbool(b bool) *bool    { return &b }
-func pint(i int) *int       { return &i }
+func pstr(s string) *string	{ return &s }
+func pbool(b bool) *bool	{ return &b }
+func pint(i int) *int		{ return &i }

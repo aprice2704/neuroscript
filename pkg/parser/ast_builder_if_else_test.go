@@ -15,7 +15,7 @@ import (
 // Assumes the IF statement is the first statement in the procedure.
 func getIfStepFromTestProc(t *testing.T, scriptContent string) *ast.Step {
 	t.Helper()
-	bodyNodes := parseStringToProcedureBodyNodes(t, scriptContent, "TestProc") // Returns []ast.Step
+	bodyNodes := parseStringToProcedureBodyNodes(t, scriptContent, "TestProc")	// Returns []ast.Step
 	if len(bodyNodes) == 0 {
 		t.Fatalf("TestProc body is empty, expected an IF step")
 	}

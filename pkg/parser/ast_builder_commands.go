@@ -16,10 +16,10 @@ func (l *neuroScriptListenerImpl) EnterCommand_block(c *gen.Command_blockContext
 	l.logDebugAST(">>> EnterCommand_block")
 	pos := tokenToPosition(c.GetStart())
 	l.currentCommand = &ast.CommandNode{
-		Pos:           &pos,
-		Metadata:      make(map[string]string),
-		Body:          make([]ast.Step, 0),
-		ErrorHandlers: make([]*ast.Step, 0),
+		Pos:		&pos,
+		Metadata:	make(map[string]string),
+		Body:		make([]ast.Step, 0),
+		ErrorHandlers:	make([]*ast.Step, 0),
 	}
 	// DO NOT create a block here. The command_statement_list rule handles the block context.
 }
@@ -46,7 +46,7 @@ func (l *neuroScriptListenerImpl) ExitCommand_block(c *gen.Command_blockContext)
 	// Separate 'on error' handlers from the main body of steps.
 	var regularSteps []ast.Step
 	for i := range bodySteps {
-		step := bodySteps[i] // Create a copy of the step
+		step := bodySteps[i]	// Create a copy of the step
 		if step.Type == "on_error" {
 			l.currentCommand.ErrorHandlers = append(l.currentCommand.ErrorHandlers, &step)
 		} else {

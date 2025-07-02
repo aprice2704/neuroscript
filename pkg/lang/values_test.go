@@ -1,7 +1,7 @@
 // NeuroScript Version: 0.4.1
 // File version: 1
 // Purpose: Unit tests for the new core Value types.
-// filename: core/values_test.go
+// filename: pkg/lang/values_test.go
 // nlines: 100
 // risk_rating: LOW
 

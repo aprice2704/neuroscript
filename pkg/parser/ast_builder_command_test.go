@@ -9,14 +9,14 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/aprice2704/neuroscript/pkg/adapters"
 	"github.com/aprice2704/neuroscript/pkg/ast"
+	"github.com/aprice2704/neuroscript/pkg/logging"
 )
 
 // testParseAndBuild is a helper that runs the full parsing and AST build pipeline.
 func testParseAndBuild(t *testing.T, script string) *ast.Program {
 	t.Helper()
-	logger := adapters.NewNoOpLogger()
+	logger := logging.NewNoOpLogger()
 	parserAPI := NewParserAPI(logger)
 	tree, err := parserAPI.Parse(script)
 	if err != nil {
@@ -33,7 +33,7 @@ func testParseAndBuild(t *testing.T, script string) *ast.Program {
 // testForParserError is a helper that asserts a script fails at the parsing stage.
 func testForParserError(t *testing.T, script string, expectedError string) {
 	t.Helper()
-	logger := adapters.NewNoOpLogger()
+	logger := logging.NewNoOpLogger()
 	parserAPI := NewParserAPI(logger)
 	_, err := parserAPI.Parse(script)
 	if err == nil {

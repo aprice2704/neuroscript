@@ -12,7 +12,7 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/parser"
 	"github.com/aprice2704/neuroscript/pkg/tool"
-) // Required for time format constants used in some tool descriptions
+)	// Required for time format constants used in some tool descriptions
 
 var fsToolsToRegister = []tool.ToolImplementation{
 	{

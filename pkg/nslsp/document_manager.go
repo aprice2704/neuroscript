@@ -14,8 +14,8 @@ import (
 )
 
 type DocumentManager struct {
-	mu        sync.RWMutex
-	documents map[lsp.DocumentURI]string
+	mu		sync.RWMutex
+	documents	map[lsp.DocumentURI]string
 }
 
 func NewDocumentManager() *DocumentManager {

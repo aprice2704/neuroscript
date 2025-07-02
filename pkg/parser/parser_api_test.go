@@ -1,14 +1,13 @@
+// filename: pkg/parser/parser_api_test.go
 package parser
 
 import (
 	"strings"
 	"testing"
-
-	"github.com/aprice2704/neuroscript/pkg/adapters"
 )
 
 func TestParserAPI_ErrorHandling(t *testing.T) {
-	logger := adapters.NewNoOpLogger()
+	logger := logging.NewNoLogger()
 	parserAPI := NewParserAPI(logger)
 
 	t.Run("lexer error", func(t *testing.T) {
@@ -37,7 +36,7 @@ func TestParserAPI_ErrorHandling(t *testing.T) {
 }
 
 func TestParserAPI_ParseForLSP(t *testing.T) {
-	logger := adapters.NewNoOpLogger()
+	logger := logging.NewNoLogger()
 	parserAPI := NewParserAPI(logger)
 
 	t.Run("successful parse", func(t *testing.T) {

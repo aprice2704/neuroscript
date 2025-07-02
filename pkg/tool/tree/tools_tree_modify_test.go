@@ -8,7 +8,7 @@
 package tree
 
 import (
-	"errors" // Added for robust SetValue test logging
+	"errors"	// Added for robust SetValue test logging
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/lang"

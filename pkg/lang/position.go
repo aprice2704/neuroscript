@@ -1,12 +1,13 @@
+// filename: pkg/lang/position.go
 package lang
 
 import "fmt"
 
 // Position represents a location in the source code.
 type Position struct {
-	Line   int
-	Column int
-	File   string
+	Line	int
+	Column	int
+	File	string
 }
 
 func (p *Position) String() string {

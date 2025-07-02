@@ -191,8 +191,10 @@ func TestTreeFindAndRenderTools(t *testing.T) {
 
 		// Tree.RenderText
 		{name: "RenderText Basic", toolName: "Tree.RenderText",
-			setupFunc:	func(t *testing.T, interp *neurogo.Interpreter) interface{} { return setupTreeWithJSON(t, interp, `{"a":"b"}`) },
-			args:		tool.MakeArgs("SETUP_HANDLE:renderTree"),
+			setupFunc: func(t *testing.T, interp *neurogo.Interpreter) interface{} {
+				return setupTreeWithJSON(t, interp, `{"a":"b"}`)
+			},
+			args:	tool.MakeArgs("SETUP_HANDLE:renderTree"),
 			checkFunc: func(t *testing.T, interp *neurogo.Interpreter, result interface{}, err error, ctx interface{}) {
 				if err != nil {
 					t.Fatalf("RenderText failed: %v", err)

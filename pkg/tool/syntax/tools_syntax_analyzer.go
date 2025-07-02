@@ -10,7 +10,6 @@ package syntax
 import (
 	"fmt"
 
-	"github.com/aprice2704/neuroscript/pkg/adapters"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/parser"
 	// "encoding/json" // No longer needed as we return a map/slice directly
@@ -21,8 +20,8 @@ import (
 // var GrammarVersion string // This is defined elsewhere in package core
 
 const (
-	analyzerMaxErrorsToReportInternal	= 20
-	analyzerSourceNameInternal		= "nsSyntaxAnalysisToolInput"
+	analyzerMaxErrorsToReportInternal = 20
+	analyzerSourceNameInternal        = "nsSyntaxAnalysisToolInput"
 )
 
 // SyntaxAnalysisReport struct is removed as the tool now returns a []map[string]interface{} directly.
@@ -33,19 +32,19 @@ const (
 // or an empty slice if no errors. The error return is for unexpected internal issues.
 func AnalyzeNSSyntaxInternal(interpreter *neurogo.Interpreter, nsScriptContent string) (interface{}, error) {
 	if interpreter == nil {
-		return nil, fmt.Errorf("interpreter cannot be nil: %w", lang.ErrInvalidArgument)	//
+		return nil, fmt.Errorf("interpreter cannot be nil: %w", lang.ErrInvalidArgument) //
 	}
 	logger := interpreter.Logger()
 	if logger == nil {
-		logger = &adapters.NewNoOpLogger{}	//
+		logger = &logging.NewNoLogger{} //
 	}
 
-	parserAPI := parser.NewParserAPI(logger)	//
+	parserAPI := parser.NewParserAPI(logger) //
 	// ParseForLSP returns all structured errors found.
 	_, structuredErrors := parserAPI.ParseForLSP(analyzerSourceNameInternal, nsScriptContent)
 
 	if len(structuredErrors) == 0 {
-		return []map[string]interface{}{}, nil	// Return empty list for no errors
+		return []map[string]interface{}{}, nil // Return empty list for no errors
 	}
 
 	// Determine how many errors to report (cap at maxErrorsToReportInternal)
@@ -59,11 +58,11 @@ func AnalyzeNSSyntaxInternal(interpreter *neurogo.Interpreter, nsScriptContent s
 	for i := 0; i < numToReport; i++ {
 		sErr := structuredErrors[i]
 		errorList[i] = map[string]interface{}{
-			"Line":			sErr.Line,
-			"Column":		sErr.Column,
-			"Msg":			sErr.Msg,
-			"OffendingSymbol":	sErr.OffendingSymbol,
-			"SourceName":		sErr.SourceName,	// This will be analyzerSourceNameInternal
+			"Line":            sErr.Line,
+			"Column":          sErr.Column,
+			"Msg":             sErr.Msg,
+			"OffendingSymbol": sErr.OffendingSymbol,
+			"SourceName":      sErr.SourceName, // This will be analyzerSourceNameInternal
 		}
 	}
 

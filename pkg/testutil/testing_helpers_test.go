@@ -1,5 +1,5 @@
-// filename: pkg/core/testing_helpers_test.go
-package core
+// filename: pkg/testutil/testing_helpers_test.go
+package testutil
 
 import "github.com/aprice2704/neuroscript/pkg/lang"
 
@@ -16,12 +16,12 @@ import "github.com/aprice2704/neuroscript/pkg/lang"
 
 // Ensure core errors are accessible if needed by helpers here
 var (
-	_ = lang.ErrValidationArgCount
-	_ = lang.ErrValidationRequiredArgNil
-	_ = lang.ErrValidationTypeMismatch
+	_	= lang.ErrValidationArgCount
+	_	= lang.ErrValidationRequiredArgNil
+	_	= lang.ErrValidationTypeMismatch
 	// Add other error variables used here if needed
-	_ = lang.ErrMustConditionFailed
-	_ = lang.ErrTypeAssertionFailed // Example if used internally
+	_	= lang.ErrMustConditionFailed
+	_	= lang.ErrTypeAssertionFailed	// Example if used internally
 )
 
 // --- END FILE ---

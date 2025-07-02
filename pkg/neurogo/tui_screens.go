@@ -21,17 +21,17 @@ type Screener interface {
 
 // StaticScreen (remains the same)
 type StaticScreen struct {
-	name     string
-	title    string
-	contents string
+	name		string
+	title		string
+	contents	string
 }
 
 func NewStaticScreen(name, title, contents string) *StaticScreen {
 	return &StaticScreen{name: name, title: title, contents: contents}
 }
-func (ss *StaticScreen) Name() string     { return ss.name }
-func (ss *StaticScreen) Title() string    { return ss.title }
-func (ss *StaticScreen) Contents() string { return ss.contents }
+func (ss *StaticScreen) Name() string		{ return ss.name }
+func (ss *StaticScreen) Title() string		{ return ss.title }
+func (ss *StaticScreen) Contents() string	{ return ss.contents }
 
 var _ Screener = (*StaticScreen)(nil)
 
@@ -48,10 +48,10 @@ type PrimitiveScreener interface {
 
 // StaticPrimitiveScreen
 type StaticPrimitiveScreen struct {
-	name     string
-	title    string
-	contents string // Kept for Contents() method if Screener interface is also implemented
-	textView *tview.TextView
+	name		string
+	title		string
+	contents	string	// Kept for Contents() method if Screener interface is also implemented
+	textView	*tview.TextView
 }
 
 func NewStaticPrimitiveScreen(name, title, contents string) *StaticPrimitiveScreen {
@@ -62,17 +62,17 @@ func NewStaticPrimitiveScreen(name, title, contents string) *StaticPrimitiveScre
 		SetRegions(true).
 		SetDynamicColors(true)
 	return &StaticPrimitiveScreen{
-		name:     name,
-		title:    title,
-		contents: contents,
-		textView: tv,
+		name:		name,
+		title:		title,
+		contents:	contents,
+		textView:	tv,
 	}
 }
-func (sps *StaticPrimitiveScreen) Name() string                             { return sps.name }
-func (sps *StaticPrimitiveScreen) Title() string                            { return sps.title }
-func (sps *StaticPrimitiveScreen) Primitive() tview.Primitive               { return sps.textView }
-func (sps *StaticPrimitiveScreen) OnFocus(setFocus func(p tview.Primitive)) { setFocus(sps.textView) }
-func (sps *StaticPrimitiveScreen) OnBlur()                                  {}
+func (sps *StaticPrimitiveScreen) Name() string					{ return sps.name }
+func (sps *StaticPrimitiveScreen) Title() string				{ return sps.title }
+func (sps *StaticPrimitiveScreen) Primitive() tview.Primitive			{ return sps.textView }
+func (sps *StaticPrimitiveScreen) OnFocus(setFocus func(p tview.Primitive))	{ setFocus(sps.textView) }
+func (sps *StaticPrimitiveScreen) OnBlur()					{}
 
 // InputHandler for StaticPrimitiveScreen
 func (sps *StaticPrimitiveScreen) InputHandler() func(event *tcell.EventKey, setFocus func(p tview.Primitive)) *tcell.EventKey {
@@ -90,19 +90,19 @@ func (sps *StaticPrimitiveScreen) InputHandler() func(event *tcell.EventKey, set
 		return event
 	}
 }
-func (sps *StaticPrimitiveScreen) IsFocusable() bool { return true }
-func (sps *StaticPrimitiveScreen) Contents() string  { return sps.contents }
+func (sps *StaticPrimitiveScreen) IsFocusable() bool	{ return true }
+func (sps *StaticPrimitiveScreen) Contents() string	{ return sps.contents }
 
 var _ PrimitiveScreener = (*StaticPrimitiveScreen)(nil)
-var _ Screener = (*StaticPrimitiveScreen)(nil) // If it also implements the simpler Screener
+var _ Screener = (*StaticPrimitiveScreen)(nil)	// If it also implements the simpler Screener
 
 // DynamicOutputScreen
 type DynamicOutputScreen struct {
-	mu       sync.Mutex
-	name     string
-	title    string
-	textView *tview.TextView
-	app      *tview.Application
+	mu		sync.Mutex
+	name		string
+	title		string
+	textView	*tview.TextView
+	app		*tview.Application
 }
 
 func NewDynamicOutputScreen(name, title string, app *tview.Application) *DynamicOutputScreen {
@@ -112,10 +112,10 @@ func NewDynamicOutputScreen(name, title string, app *tview.Application) *Dynamic
 		SetRegions(true).
 		SetWordWrap(true)
 	return &DynamicOutputScreen{
-		name:     name,
-		title:    title,
-		textView: tv,
-		app:      app,
+		name:		name,
+		title:		title,
+		textView:	tv,
+		app:		app,
 	}
 }
 
@@ -137,7 +137,7 @@ func (s *DynamicOutputScreen) Write(p []byte) (n int, err error) {
 		return len(p), nil
 		// return 0, fmt.Errorf("DynamicOutputScreen.app is nil, cannot reliably Write to TextView")
 	}
-	return s.textView.Write(p) // This uses tview's app.QueueUpdateDraw internally
+	return s.textView.Write(p)	// This uses tview's app.QueueUpdateDraw internally
 }
 
 func (s *DynamicOutputScreen) FlushBufferToTextView() {
@@ -146,7 +146,7 @@ func (s *DynamicOutputScreen) FlushBufferToTextView() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.textView != nil {
-		s.textView.ScrollToEnd() // Ensure it's scrolled to end after any potential batch update
+		s.textView.ScrollToEnd()	// Ensure it's scrolled to end after any potential batch update
 		if s.app != nil {
 			s.app.QueueUpdateDraw(func() {})
 		}
@@ -161,8 +161,8 @@ func (s *DynamicOutputScreen) SetTitle(t string) *DynamicOutputScreen {
 	s.title = t
 	return s
 }
-func (s *DynamicOutputScreen) Name() string  { return s.name }
-func (s *DynamicOutputScreen) Title() string { return s.title }
+func (s *DynamicOutputScreen) Name() string	{ return s.name }
+func (s *DynamicOutputScreen) Title() string	{ return s.title }
 
 func (s *DynamicOutputScreen) Contents() string {
 	s.mu.Lock()
@@ -181,9 +181,9 @@ func (s *DynamicOutputScreen) Clear() {
 	}
 }
 
-func (s *DynamicOutputScreen) Primitive() tview.Primitive               { return s.textView }
-func (s *DynamicOutputScreen) OnFocus(setFocus func(p tview.Primitive)) { setFocus(s.textView) }
-func (s *DynamicOutputScreen) OnBlur()                                  {}
+func (s *DynamicOutputScreen) Primitive() tview.Primitive		{ return s.textView }
+func (s *DynamicOutputScreen) OnFocus(setFocus func(p tview.Primitive))	{ setFocus(s.textView) }
+func (s *DynamicOutputScreen) OnBlur()					{}
 
 // InputHandler for DynamicOutputScreen
 func (s *DynamicOutputScreen) InputHandler() func(event *tcell.EventKey, setFocus func(p tview.Primitive)) *tcell.EventKey {
@@ -198,7 +198,7 @@ func (s *DynamicOutputScreen) InputHandler() func(event *tcell.EventKey, setFocu
 		return event
 	}
 }
-func (s *DynamicOutputScreen) IsFocusable() bool { return true }
+func (s *DynamicOutputScreen) IsFocusable() bool	{ return true }
 
 var _ Screener = (*DynamicOutputScreen)(nil)
 var _ io.Writer = (*DynamicOutputScreen)(nil)

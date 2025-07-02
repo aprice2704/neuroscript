@@ -13,7 +13,7 @@ import (
 
 	// Correctly import core
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
-	"github.com/google/generative-ai-go/genai" // For genai.Client return type
+	"github.com/google/generative-ai-go/genai"	// For genai.Client return type
 )
 
 // NoOpLLMClient is an LLM client implementation that performs no actions
@@ -52,8 +52,8 @@ var _ interfaces.LLMClient = (*NoOpLLMClient)(nil)
 // Returns a minimal valid interfaces.ConversationTurn, nil tool calls slice, and nil error.
 func (c *NoOpLLMClient) AskWithTools(ctx context.Context, turns []*interfaces.ConversationTurn, tools []interfaces.ToolDefinition) (*interfaces.ConversationTurn, []*interfaces.ToolCall, error) {
 	return &interfaces.ConversationTurn{
-		Role:    interfaces.RoleAssistant,
-		Content: "No-op AskWithTools response.",
+		Role:		interfaces.RoleAssistant,
+		Content:	"No-op AskWithTools response.",
 		//	TokenUsage: core.TokenUsageMetrics{},
 	}, nil, nil
 }

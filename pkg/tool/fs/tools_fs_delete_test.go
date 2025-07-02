@@ -6,10 +6,10 @@
 package fs
 
 import (
-	"errors"        // Keep errors
-	"fmt"           // Keep fmt
-	"os"            // Keep os
-	"path/filepath" // Keep filepath
+	"errors"	// Keep errors
+	"fmt"		// Keep fmt
+	"os"		// Keep os
+	"path/filepath"	// Keep filepath
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/lang"

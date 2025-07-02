@@ -1,3 +1,4 @@
+// filename: pkg/ast/as_expressions_test.go
 package ast
 
 import (
@@ -24,7 +25,7 @@ func TestExpressionStringers(t *testing.T) {
 
 	t.Run("CallableExprNode", func(t *testing.T) {
 		node := &CallableExprNode{
-			Target: CallTarget{Name: "myFunc"},
+			Target:	CallTarget{Name: "myFunc"},
 			Arguments: []Expression{
 				&NumberLiteralNode{Value: 123},
 				&StringLiteralNode{Value: "hello"},
@@ -110,7 +111,7 @@ func TestExpressionStringers(t *testing.T) {
 		node := &ListLiteralNode{
 			Elements: []Expression{
 				&NumberLiteralNode{Value: 1},
-				nil, // Test nil element
+				nil,	// Test nil element
 			},
 		}
 		expected := "[1, <nil_expr>]"
@@ -121,13 +122,13 @@ func TestExpressionStringers(t *testing.T) {
 
 	t.Run("MapLiteralNode", func(t *testing.T) {
 		node := &MapLiteralNode{
-			Pos: pos,
+			Pos:	pos,
 			Entries: []*MapEntryNode{
 				{
-					Key:   &StringLiteralNode{Value: "a"},
-					Value: &NumberLiteralNode{Value: 1},
+					Key:	&StringLiteralNode{Value: "a"},
+					Value:	&NumberLiteralNode{Value: 1},
 				},
-				nil, // Test nil entry
+				nil,	// Test nil entry
 			},
 		}
 		expected := "{\"a\": 1, <nil_entry>}"
@@ -138,8 +139,8 @@ func TestExpressionStringers(t *testing.T) {
 
 	t.Run("ElementAccessNode", func(t *testing.T) {
 		node := &ElementAccessNode{
-			Collection: &VariableNode{Name: "myList"},
-			Accessor:   &NumberLiteralNode{Value: 0},
+			Collection:	&VariableNode{Name: "myList"},
+			Accessor:	&NumberLiteralNode{Value: 0},
 		}
 		expected := "myList[0]"
 		if node.String() != expected {
@@ -149,8 +150,8 @@ func TestExpressionStringers(t *testing.T) {
 
 	t.Run("UnaryOpNode", func(t *testing.T) {
 		node := &UnaryOpNode{
-			Operator: "-",
-			Operand:  &VariableNode{Name: "x"},
+			Operator:	"-",
+			Operand:	&VariableNode{Name: "x"},
 		}
 		expected := "-x"
 		if node.String() != expected {
@@ -160,9 +161,9 @@ func TestExpressionStringers(t *testing.T) {
 
 	t.Run("BinaryOpNode", func(t *testing.T) {
 		node := &BinaryOpNode{
-			Left:     &VariableNode{Name: "a"},
-			Operator: "+",
-			Right:    &VariableNode{Name: "b"},
+			Left:		&VariableNode{Name: "a"},
+			Operator:	"+",
+			Right:		&VariableNode{Name: "b"},
 		}
 		expected := "(a + b)"
 		if node.String() != expected {

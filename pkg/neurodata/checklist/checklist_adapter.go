@@ -14,10 +14,10 @@ import (
 
 // Ensure errors are correctly defined for this state
 var (
-	ErrInvalidChecklistTree   = errors.New("invalid generic tree structure for checklist formatting")
-	ErrMissingStatusAttribute = errors.New("checklist item node missing 'status' attribute")
-	ErrUnknownStatus          = errors.New("unknown status value in checklist item node")
-	ErrMissingSpecialSymbol   = errors.New("checklist item node with status 'special' missing 'special_symbol' attribute")
+	ErrInvalidChecklistTree		= errors.New("invalid generic tree structure for checklist formatting")
+	ErrMissingStatusAttribute	= errors.New("checklist item node missing 'status' attribute")
+	ErrUnknownStatus		= errors.New("unknown status value in checklist item node")
+	ErrMissingSpecialSymbol		= errors.New("checklist item node with status 'special' missing 'special_symbol' attribute")
 )
 
 // ChecklistToTree converts parsed checklist items and metadata into a GenericTree structure.
@@ -60,7 +60,7 @@ func ChecklistToTree(items []ChecklistItem, metadata map[string]string) (*utils.
 
 		newNode := tree.NewNode(parentID, "checklist_item")
 
-		newNode.Value = item.Text // Store text in Value
+		newNode.Value = item.Text	// Store text in Value
 
 		if newNode.Attributes == nil {
 			// FIX: Align with the new  TreeAttrs type (map[string]interface{})

@@ -47,19 +47,19 @@ func PublishDiagnostics(ctx context.Context, conn *jsonrpc2.Conn, logger *log.Lo
 
 		diagnostics[i] = lsp.Diagnostic{
 			Range: lsp.Range{
-				Start: lsp.Position{Line: lspLine, Character: lspChar},
-				End:   lsp.Position{Line: lspLine, Character: endChar},
+				Start:	lsp.Position{Line: lspLine, Character: lspChar},
+				End:	lsp.Position{Line: lspLine, Character: endChar},
 			},
-			Severity: lsp.Error,
-			Source:   "nslsp", // Or "NeuroScript Language Server"
-			Message:  err.Msg,
+			Severity:	lsp.Error,
+			Source:		"nslsp",	// Or "NeuroScript Language Server"
+			Message:	err.Msg,
 		}
 		logger.Printf("LSP Diagnostic: %s L%d:%d - %s", uri, err.Line, err.Column, err.Msg)
 	}
 
 	rpcErr := conn.Notify(ctx, "textDocument/publishDiagnostics", lsp.PublishDiagnosticsParams{
-		URI:         uri,
-		Diagnostics: diagnostics,
+		URI:		uri,
+		Diagnostics:	diagnostics,
 	})
 	if rpcErr != nil {
 		logger.Printf("Error publishing diagnostics: %v", rpcErr)

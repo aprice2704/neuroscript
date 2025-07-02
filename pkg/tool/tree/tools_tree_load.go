@@ -8,7 +8,7 @@ package tree
 
 import (
 	"encoding/json"
-	"errors" // Required for errors.Is
+	"errors"	// Required for errors.Is
 	"fmt"
 	"strconv"
 

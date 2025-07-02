@@ -10,7 +10,7 @@ package tool
 import (
 	"errors"
 	"fmt"
-	"log" // Using standard log package for bootstrap messages
+	"log"	// Using standard log package for bootstrap messages
 	"sync"
 )
 
@@ -22,8 +22,8 @@ type ToolRegisterFunc func(registry ToolRegistrar) error
 // --- Registry for Toolset Registration Functions ---
 
 var (
-	registrationMu       sync.RWMutex
-	toolsetRegistrations = make(map[string]ToolRegisterFunc)
+	registrationMu		sync.RWMutex
+	toolsetRegistrations	= make(map[string]ToolRegisterFunc)
 )
 
 // AddToolsetRegistration is called by tool packages (typically in their init() function)
@@ -48,7 +48,7 @@ func CreateRegistrationFunc(toolsetName string, tools []Implementation) ToolRegi
 	return func(registry Registrar) error {
 		if registry == nil {
 			err := fmt.Errorf("CreateRegistrationFunc for %s: registry is nil", toolsetName)
-			log.Printf(bootstrapLogPrefix+"ERROR: %v", err) // Log error before returning
+			log.Printf(bootstrapLogPrefix+"ERROR: %v", err)	// Log error before returning
 			return err
 		}
 		var errs []error

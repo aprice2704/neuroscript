@@ -2,8 +2,8 @@
 // File version: 0.0.3 // Adjust expectation for Mkdir traversal test based on Clean behavior.
 // nlines: 130 // Approximate
 // risk_rating: MEDIUM // Tests security-critical functions
-// filename: pkg/core/security_helpers_test.go
-package core
+// filename: pkg/security/security_helpers_test.go
+package security
 
 import (
 	"errors"
@@ -33,101 +33,101 @@ func TestResolveAndSecurePath(t *testing.T) {
 
 	// Define test cases
 	testCases := []struct {
-		name                 string
-		inputPath            string // Path relative to allowedRoot
-		wantAbsPathSuffix    string // Expected *suffix* of the absolute path if successful
-		wantErrIs            error  // Expected sentinel error (nil for success)
-		wantErrorMsgContains string // Substring expected in error message
+		name			string
+		inputPath		string	// Path relative to allowedRoot
+		wantAbsPathSuffix	string	// Expected *suffix* of the absolute path if successful
+		wantErrIs		error	// Expected sentinel error (nil for success)
+		wantErrorMsgContains	string	// Substring expected in error message
 	}{
 		// --- Valid Cases ---
 		{
-			name:              "Valid Simple Path",
-			inputPath:         "file.txt",
-			wantAbsPathSuffix: filepath.Join("allowed", "file.txt"),
-			wantErrIs:         nil,
+			name:			"Valid Simple Path",
+			inputPath:		"file.txt",
+			wantAbsPathSuffix:	filepath.Join("allowed", "file.txt"),
+			wantErrIs:		nil,
 		},
 		{
-			name:              "Valid Subdir Path",
-			inputPath:         filepath.Join("subdir", "file.txt"),
-			wantAbsPathSuffix: filepath.Join("allowed", "subdir", "file.txt"),
-			wantErrIs:         nil,
+			name:			"Valid Subdir Path",
+			inputPath:		filepath.Join("subdir", "file.txt"),
+			wantAbsPathSuffix:	filepath.Join("allowed", "subdir", "file.txt"),
+			wantErrIs:		nil,
 		},
 		{
-			name:              "Valid Path With Dot",
-			inputPath:         filepath.Join("subdir", ".", "file.txt"),
-			wantAbsPathSuffix: filepath.Join("allowed", "subdir", "file.txt"),
-			wantErrIs:         nil,
+			name:			"Valid Path With Dot",
+			inputPath:		filepath.Join("subdir", ".", "file.txt"),
+			wantAbsPathSuffix:	filepath.Join("allowed", "subdir", "file.txt"),
+			wantErrIs:		nil,
 		},
 		{
-			name:              "Valid Path With Internal Dot Dot",
-			inputPath:         filepath.Join("subdir", "nested", "..", "file.txt"),
-			wantAbsPathSuffix: filepath.Join("allowed", "subdir", "file.txt"),
-			wantErrIs:         nil,
+			name:			"Valid Path With Internal Dot Dot",
+			inputPath:		filepath.Join("subdir", "nested", "..", "file.txt"),
+			wantAbsPathSuffix:	filepath.Join("allowed", "subdir", "file.txt"),
+			wantErrIs:		nil,
 		},
 		{
-			name:              "Valid Path Resolving To Root",
-			inputPath:         filepath.Join("subdir", ".."),
-			wantAbsPathSuffix: filepath.Join("allowed"),
-			wantErrIs:         nil,
+			name:			"Valid Path Resolving To Root",
+			inputPath:		filepath.Join("subdir", ".."),
+			wantAbsPathSuffix:	filepath.Join("allowed"),
+			wantErrIs:		nil,
 		},
 		{
-			name:              "Valid Path Using Dot",
-			inputPath:         ".",
-			wantAbsPathSuffix: filepath.Join("allowed"),
-			wantErrIs:         nil,
+			name:			"Valid Path Using Dot",
+			inputPath:		".",
+			wantAbsPathSuffix:	filepath.Join("allowed"),
+			wantErrIs:		nil,
 		},
 		// --- Traversal that cleans to *inside* allowedRoot ---
 		// This case is considered valid by the current Rel-based check, as Clean resolves
 		// allowed/some/dir/../../outside to allowed/outside.
 		{
-			name:              "Valid Complex Traversal (Cleans to Inside Sibling)",
-			inputPath:         "some/dir/../../outside", // Cleans to "outside" relative to allowedRoot
-			wantAbsPathSuffix: filepath.Join("allowed", "outside"),
-			wantErrIs:         nil, // No error expected as Rel("allowed", "allowed/outside") is "outside"
+			name:			"Valid Complex Traversal (Cleans to Inside Sibling)",
+			inputPath:		"some/dir/../../outside",	// Cleans to "outside" relative to allowedRoot
+			wantAbsPathSuffix:	filepath.Join("allowed", "outside"),
+			wantErrIs:		nil,	// No error expected as Rel("allowed", "allowed/outside") is "outside"
 		},
 		// --- Invalid Cases ---
 		{
-			name:                 "Invalid Empty Path",
-			inputPath:            "",
-			wantErrIs:            lang.ErrInvalidArgument,
-			wantErrorMsgContains: "input path cannot be empty",
+			name:			"Invalid Empty Path",
+			inputPath:		"",
+			wantErrIs:		lang.ErrInvalidArgument,
+			wantErrorMsgContains:	"input path cannot be empty",
 		},
 		{
-			name:                 "Invalid Null Byte",
-			inputPath:            "file\x00.txt",
-			wantErrIs:            lang.ErrNullByteInArgument,
-			wantErrorMsgContains: "input path contains null byte",
+			name:			"Invalid Null Byte",
+			inputPath:		"file\x00.txt",
+			wantErrIs:		lang.ErrNullByteInArgument,
+			wantErrorMsgContains:	"input path contains null byte",
 		},
 		{
-			name:                 "Invalid Absolute Path",
-			inputPath:            filepath.Join(allowedRoot, "abs.txt"),
-			wantErrIs:            lang.ErrPathViolation,
-			wantErrorMsgContains: "must be relative, not absolute",
+			name:			"Invalid Absolute Path",
+			inputPath:		filepath.Join(allowedRoot, "abs.txt"),
+			wantErrIs:		lang.ErrPathViolation,
+			wantErrorMsgContains:	"must be relative, not absolute",
 		},
 		{
-			name:                 "Invalid Simple Traversal Up",
-			inputPath:            "..",
-			wantErrIs:            lang.ErrPathViolation,
-			wantErrorMsgContains: "resolves to", // Expect message about resolving outside
+			name:			"Invalid Simple Traversal Up",
+			inputPath:		"..",
+			wantErrIs:		lang.ErrPathViolation,
+			wantErrorMsgContains:	"resolves to",	// Expect message about resolving outside
 		},
 		{
-			name:                 "Invalid Simple Traversal File",
-			inputPath:            filepath.Join("..", "file.txt"),
-			wantErrIs:            lang.ErrPathViolation,
-			wantErrorMsgContains: "resolves to", // Expect message about resolving outside
+			name:			"Invalid Simple Traversal File",
+			inputPath:		filepath.Join("..", "file.txt"),
+			wantErrIs:		lang.ErrPathViolation,
+			wantErrorMsgContains:	"resolves to",	// Expect message about resolving outside
 		},
 		// This case correctly cleans to parent/outside/file.txt, triggering Rel starting with ..
 		{
-			name:                 "Invalid Complex Traversal (Cleans to Parent Sibling)",
-			inputPath:            filepath.Join("subdir", "..", "..", "outside", "file.txt"),
-			wantErrIs:            lang.ErrPathViolation,
-			wantErrorMsgContains: "resolves to", // Expect message about resolving outside
+			name:			"Invalid Complex Traversal (Cleans to Parent Sibling)",
+			inputPath:		filepath.Join("subdir", "..", "..", "outside", "file.txt"),
+			wantErrIs:		lang.ErrPathViolation,
+			wantErrorMsgContains:	"resolves to",	// Expect message about resolving outside
 		},
 		{
-			name:                 "Invalid Traversal Leading To Sibling Dir",
-			inputPath:            filepath.Join("..", "outside"),
-			wantErrIs:            lang.ErrPathViolation,
-			wantErrorMsgContains: "resolves to", // Expect message about resolving outside
+			name:			"Invalid Traversal Leading To Sibling Dir",
+			inputPath:		filepath.Join("..", "outside"),
+			wantErrIs:		lang.ErrPathViolation,
+			wantErrorMsgContains:	"resolves to",	// Expect message about resolving outside
 		},
 	}
 
@@ -149,13 +149,13 @@ func TestResolveAndSecurePath(t *testing.T) {
 				if gotAbsPath != "" {
 					t.Errorf("Expected empty path on error, but got %q", gotAbsPath)
 				}
-			} else { // Expected success
+			} else {	// Expected success
 				if gotErr != nil {
 					t.Errorf("Expected no error, but got: %v", gotErr)
 				}
 				expectedFullPath := filepath.Join(tempRoot, tc.wantAbsPathSuffix)
-				expectedFullPath = filepath.Clean(expectedFullPath) // Ensure expected path is clean
-				cleanedGotPath := filepath.Clean(gotAbsPath)        // Ensure actual path is clean for comparison
+				expectedFullPath = filepath.Clean(expectedFullPath)	// Ensure expected path is clean
+				cleanedGotPath := filepath.Clean(gotAbsPath)		// Ensure actual path is clean for comparison
 
 				if cleanedGotPath != expectedFullPath {
 					t.Errorf("Path mismatch:\n  Got (Cleaned):  %q\n  Want (Cleaned): %q\n  (Original Got: %q)", cleanedGotPath, expectedFullPath, gotAbsPath)
@@ -178,22 +178,22 @@ func TestIsPathInSandbox(t *testing.T) {
 	}
 
 	testCases := []struct {
-		name      string
-		inputPath string
-		wantIn    bool
-		wantErr   bool // Expect errors other than PathViolation
+		name		string
+		inputPath	string
+		wantIn		bool
+		wantErr		bool	// Expect errors other than PathViolation
 	}{
 		{"Valid Simple", "file.txt", true, false},
 		{"Valid Subdir", "subdir/file.txt", true, false},
 		{"Valid Root", ".", true, false},
 		{"Valid Internal ..", "a/../b.txt", true, false},
-		{"Valid Complex Internal ..", "a/b/../../c.txt", true, false},             // Resolves to allowed/c.txt
-		{"Invalid Simple ..", "..", false, false},                                 // Resolves outside, wantIn=false, no other error
-		{"Invalid Traversal", "../outside", false, false},                         // Resolves outside, wantIn=false, no other error
-		{"Invalid Complex Traversal", "a/../../outside", false, false},            // Resolves outside, wantIn=false, no other error
-		{"Invalid Absolute", filepath.Join(allowedRoot, "abs.txt"), false, false}, // Absolute path violation, wantIn=false, no other error
-		{"Invalid Empty", "", false, true},                                        // Other error expected
-		{"Invalid Null Byte", "a\x00b", false, true},                              // Other error expected
+		{"Valid Complex Internal ..", "a/b/../../c.txt", true, false},			// Resolves to allowed/c.txt
+		{"Invalid Simple ..", "..", false, false},					// Resolves outside, wantIn=false, no other error
+		{"Invalid Traversal", "../outside", false, false},				// Resolves outside, wantIn=false, no other error
+		{"Invalid Complex Traversal", "a/../../outside", false, false},			// Resolves outside, wantIn=false, no other error
+		{"Invalid Absolute", filepath.Join(allowedRoot, "abs.txt"), false, false},	// Absolute path violation, wantIn=false, no other error
+		{"Invalid Empty", "", false, true},						// Other error expected
+		{"Invalid Null Byte", "a\x00b", false, true},					// Other error expected
 	}
 
 	for _, tc := range testCases {
@@ -205,14 +205,14 @@ func TestIsPathInSandbox(t *testing.T) {
 				}
 				// Check if it's the expected non-PathViolation error if needed
 				// For now, just checking if *any* error occurred is sufficient
-			} else { // wantErr is false
+			} else {	// wantErr is false
 				if gotErr != nil {
 					// Allow ErrPathViolation if wantIn is false, otherwise fail
 					isPathViolation := false
 					if re, ok := gotErr.(*lang.RuntimeError); ok && errors.Is(re.Wrapped, lang.ErrPathViolation) {
 						isPathViolation = true
 					}
-					if !(!tc.wantIn && isPathViolation) { // Error is only OK if wantIn=false AND it's ErrPathViolation
+					if !(!tc.wantIn && isPathViolation) {	// Error is only OK if wantIn=false AND it's ErrPathViolation
 						t.Errorf("Expected no error (or only PathViolation if wantIn=false), but got: %v (type %T)", gotErr, gotErr)
 					}
 				}

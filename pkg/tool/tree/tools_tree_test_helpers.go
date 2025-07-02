@@ -21,7 +21,7 @@ type treeTestCase struct {
 	args		[]interface{}
 	setupFunc	func(t *testing.T, interp *neurogo.Interpreter) interface{}						// Returns a context, like a handle string
 	checkFunc	func(t *testing.T, interp *neurogo.Interpreter, result interface{}, err error, setupCtx interface{})	// Custom check logic
-	wantErr		error												// For simple error checks
+	wantErr		error													// For simple error checks
 }
 
 // testTreeToolHelper runs a single tree tool test case.

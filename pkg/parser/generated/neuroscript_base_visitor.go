@@ -1,6 +1,7 @@
+// filename: pkg/parser/generated/neuroscript_base_visitor.go
 // Code generated from NeuroScript.g4 by ANTLR 4.13.2. DO NOT EDIT.
 
-package core // NeuroScript
+package generated	// NeuroScript
 import "github.com/antlr4-go/antlr/v4"
 
 type BaseNeuroScriptVisitor struct {

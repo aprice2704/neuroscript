@@ -1,15 +1,14 @@
+// filename: pkg/parser/ast_builder_main_test.go
 package parser
 
 import (
 	"reflect"
 	"sort"
 	"testing"
-
-	"github.com/aprice2704/neuroscript/pkg/adapters"
 )
 
 func TestASTBuilder_Build_NilTree(t *testing.T) {
-	logger := adapters.NewNoOpLogger()
+	logger := logging.NewNoLogger()
 	astBuilder := NewASTBuilder(logger)
 
 	_, _, err := astBuilder.Build(nil)

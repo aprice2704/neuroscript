@@ -1,6 +1,7 @@
+// filename: pkg/parser/generated/neuroscript_parser.go
 // Code generated from NeuroScript.g4 by ANTLR 4.13.2. DO NOT EDIT.
 
-package core // NeuroScript
+package generated	// NeuroScript
 import (
 	"fmt"
 	"strconv"
@@ -19,14 +20,14 @@ type NeuroScriptParser struct {
 }
 
 var NeuroScriptParserStaticData struct {
-	once                   sync.Once
-	serializedATN          []int32
-	LiteralNames           []string
-	SymbolicNames          []string
-	RuleNames              []string
-	PredictionContextCache *antlr.PredictionContextCache
-	atn                    *antlr.ATN
-	decisionToDFA          []*antlr.DFA
+	once			sync.Once
+	serializedATN		[]int32
+	LiteralNames		[]string
+	SymbolicNames		[]string
+	RuleNames		[]string
+	PredictionContextCache	*antlr.PredictionContextCache
+	atn			*antlr.ATN
+	decisionToDFA		[]*antlr.DFA
 }
 
 func neuroscriptParserInit() {
@@ -406,179 +407,179 @@ func NewNeuroScriptParser(input antlr.TokenStream) *NeuroScriptParser {
 
 // NeuroScriptParser tokens.
 const (
-	NeuroScriptParserEOF                    = antlr.TokenEOF
-	NeuroScriptParserLINE_ESCAPE_GLOBAL     = 1
-	NeuroScriptParserKW_ACOS                = 2
-	NeuroScriptParserKW_AND                 = 3
-	NeuroScriptParserKW_AS                  = 4
-	NeuroScriptParserKW_ASIN                = 5
-	NeuroScriptParserKW_ASK                 = 6
-	NeuroScriptParserKW_ATAN                = 7
-	NeuroScriptParserKW_BREAK               = 8
-	NeuroScriptParserKW_CALL                = 9
-	NeuroScriptParserKW_CLEAR               = 10
-	NeuroScriptParserKW_CLEAR_ERROR         = 11
-	NeuroScriptParserKW_COMMAND             = 12
-	NeuroScriptParserKW_CONTINUE            = 13
-	NeuroScriptParserKW_COS                 = 14
-	NeuroScriptParserKW_DO                  = 15
-	NeuroScriptParserKW_EACH                = 16
-	NeuroScriptParserKW_ELSE                = 17
-	NeuroScriptParserKW_EMIT                = 18
-	NeuroScriptParserKW_ENDCOMMAND          = 19
-	NeuroScriptParserKW_ENDFOR              = 20
-	NeuroScriptParserKW_ENDFUNC             = 21
-	NeuroScriptParserKW_ENDIF               = 22
-	NeuroScriptParserKW_ENDON               = 23
-	NeuroScriptParserKW_ENDWHILE            = 24
-	NeuroScriptParserKW_ERROR               = 25
-	NeuroScriptParserKW_EVAL                = 26
-	NeuroScriptParserKW_EVENT               = 27
-	NeuroScriptParserKW_FAIL                = 28
-	NeuroScriptParserKW_FALSE               = 29
-	NeuroScriptParserKW_FOR                 = 30
-	NeuroScriptParserKW_FUNC                = 31
-	NeuroScriptParserKW_FUZZY               = 32
-	NeuroScriptParserKW_IF                  = 33
-	NeuroScriptParserKW_IN                  = 34
-	NeuroScriptParserKW_INTO                = 35
-	NeuroScriptParserKW_LAST                = 36
-	NeuroScriptParserKW_LEN                 = 37
-	NeuroScriptParserKW_LN                  = 38
-	NeuroScriptParserKW_LOG                 = 39
-	NeuroScriptParserKW_MEANS               = 40
-	NeuroScriptParserKW_MUST                = 41
-	NeuroScriptParserKW_MUSTBE              = 42
-	NeuroScriptParserKW_NAMED               = 43
-	NeuroScriptParserKW_NEEDS               = 44
-	NeuroScriptParserKW_NIL                 = 45
-	NeuroScriptParserKW_NO                  = 46
-	NeuroScriptParserKW_NOT                 = 47
-	NeuroScriptParserKW_ON                  = 48
-	NeuroScriptParserKW_OPTIONAL            = 49
-	NeuroScriptParserKW_OR                  = 50
-	NeuroScriptParserKW_RETURN              = 51
-	NeuroScriptParserKW_RETURNS             = 52
-	NeuroScriptParserKW_SET                 = 53
-	NeuroScriptParserKW_SIN                 = 54
-	NeuroScriptParserKW_SOME                = 55
-	NeuroScriptParserKW_TAN                 = 56
-	NeuroScriptParserKW_TIMEDATE            = 57
-	NeuroScriptParserKW_TOOL                = 58
-	NeuroScriptParserKW_TRUE                = 59
-	NeuroScriptParserKW_TYPEOF              = 60
-	NeuroScriptParserKW_WHILE               = 61
-	NeuroScriptParserSTRING_LIT             = 62
-	NeuroScriptParserTRIPLE_BACKTICK_STRING = 63
-	NeuroScriptParserMETADATA_LINE          = 64
-	NeuroScriptParserNUMBER_LIT             = 65
-	NeuroScriptParserIDENTIFIER             = 66
-	NeuroScriptParserASSIGN                 = 67
-	NeuroScriptParserPLUS                   = 68
-	NeuroScriptParserMINUS                  = 69
-	NeuroScriptParserSTAR                   = 70
-	NeuroScriptParserSLASH                  = 71
-	NeuroScriptParserPERCENT                = 72
-	NeuroScriptParserSTAR_STAR              = 73
-	NeuroScriptParserAMPERSAND              = 74
-	NeuroScriptParserPIPE                   = 75
-	NeuroScriptParserCARET                  = 76
-	NeuroScriptParserTILDE                  = 77
-	NeuroScriptParserLPAREN                 = 78
-	NeuroScriptParserRPAREN                 = 79
-	NeuroScriptParserCOMMA                  = 80
-	NeuroScriptParserLBRACK                 = 81
-	NeuroScriptParserRBRACK                 = 82
-	NeuroScriptParserLBRACE                 = 83
-	NeuroScriptParserRBRACE                 = 84
-	NeuroScriptParserCOLON                  = 85
-	NeuroScriptParserDOT                    = 86
-	NeuroScriptParserPLACEHOLDER_START      = 87
-	NeuroScriptParserPLACEHOLDER_END        = 88
-	NeuroScriptParserEQ                     = 89
-	NeuroScriptParserNEQ                    = 90
-	NeuroScriptParserGT                     = 91
-	NeuroScriptParserLT                     = 92
-	NeuroScriptParserGTE                    = 93
-	NeuroScriptParserLTE                    = 94
-	NeuroScriptParserLINE_COMMENT           = 95
-	NeuroScriptParserNEWLINE                = 96
-	NeuroScriptParserWS                     = 97
+	NeuroScriptParserEOF			= antlr.TokenEOF
+	NeuroScriptParserLINE_ESCAPE_GLOBAL	= 1
+	NeuroScriptParserKW_ACOS		= 2
+	NeuroScriptParserKW_AND			= 3
+	NeuroScriptParserKW_AS			= 4
+	NeuroScriptParserKW_ASIN		= 5
+	NeuroScriptParserKW_ASK			= 6
+	NeuroScriptParserKW_ATAN		= 7
+	NeuroScriptParserKW_BREAK		= 8
+	NeuroScriptParserKW_CALL		= 9
+	NeuroScriptParserKW_CLEAR		= 10
+	NeuroScriptParserKW_CLEAR_ERROR		= 11
+	NeuroScriptParserKW_COMMAND		= 12
+	NeuroScriptParserKW_CONTINUE		= 13
+	NeuroScriptParserKW_COS			= 14
+	NeuroScriptParserKW_DO			= 15
+	NeuroScriptParserKW_EACH		= 16
+	NeuroScriptParserKW_ELSE		= 17
+	NeuroScriptParserKW_EMIT		= 18
+	NeuroScriptParserKW_ENDCOMMAND		= 19
+	NeuroScriptParserKW_ENDFOR		= 20
+	NeuroScriptParserKW_ENDFUNC		= 21
+	NeuroScriptParserKW_ENDIF		= 22
+	NeuroScriptParserKW_ENDON		= 23
+	NeuroScriptParserKW_ENDWHILE		= 24
+	NeuroScriptParserKW_ERROR		= 25
+	NeuroScriptParserKW_EVAL		= 26
+	NeuroScriptParserKW_EVENT		= 27
+	NeuroScriptParserKW_FAIL		= 28
+	NeuroScriptParserKW_FALSE		= 29
+	NeuroScriptParserKW_FOR			= 30
+	NeuroScriptParserKW_FUNC		= 31
+	NeuroScriptParserKW_FUZZY		= 32
+	NeuroScriptParserKW_IF			= 33
+	NeuroScriptParserKW_IN			= 34
+	NeuroScriptParserKW_INTO		= 35
+	NeuroScriptParserKW_LAST		= 36
+	NeuroScriptParserKW_LEN			= 37
+	NeuroScriptParserKW_LN			= 38
+	NeuroScriptParserKW_LOG			= 39
+	NeuroScriptParserKW_MEANS		= 40
+	NeuroScriptParserKW_MUST		= 41
+	NeuroScriptParserKW_MUSTBE		= 42
+	NeuroScriptParserKW_NAMED		= 43
+	NeuroScriptParserKW_NEEDS		= 44
+	NeuroScriptParserKW_NIL			= 45
+	NeuroScriptParserKW_NO			= 46
+	NeuroScriptParserKW_NOT			= 47
+	NeuroScriptParserKW_ON			= 48
+	NeuroScriptParserKW_OPTIONAL		= 49
+	NeuroScriptParserKW_OR			= 50
+	NeuroScriptParserKW_RETURN		= 51
+	NeuroScriptParserKW_RETURNS		= 52
+	NeuroScriptParserKW_SET			= 53
+	NeuroScriptParserKW_SIN			= 54
+	NeuroScriptParserKW_SOME		= 55
+	NeuroScriptParserKW_TAN			= 56
+	NeuroScriptParserKW_TIMEDATE		= 57
+	NeuroScriptParserKW_TOOL		= 58
+	NeuroScriptParserKW_TRUE		= 59
+	NeuroScriptParserKW_TYPEOF		= 60
+	NeuroScriptParserKW_WHILE		= 61
+	NeuroScriptParserSTRING_LIT		= 62
+	NeuroScriptParserTRIPLE_BACKTICK_STRING	= 63
+	NeuroScriptParserMETADATA_LINE		= 64
+	NeuroScriptParserNUMBER_LIT		= 65
+	NeuroScriptParserIDENTIFIER		= 66
+	NeuroScriptParserASSIGN			= 67
+	NeuroScriptParserPLUS			= 68
+	NeuroScriptParserMINUS			= 69
+	NeuroScriptParserSTAR			= 70
+	NeuroScriptParserSLASH			= 71
+	NeuroScriptParserPERCENT		= 72
+	NeuroScriptParserSTAR_STAR		= 73
+	NeuroScriptParserAMPERSAND		= 74
+	NeuroScriptParserPIPE			= 75
+	NeuroScriptParserCARET			= 76
+	NeuroScriptParserTILDE			= 77
+	NeuroScriptParserLPAREN			= 78
+	NeuroScriptParserRPAREN			= 79
+	NeuroScriptParserCOMMA			= 80
+	NeuroScriptParserLBRACK			= 81
+	NeuroScriptParserRBRACK			= 82
+	NeuroScriptParserLBRACE			= 83
+	NeuroScriptParserRBRACE			= 84
+	NeuroScriptParserCOLON			= 85
+	NeuroScriptParserDOT			= 86
+	NeuroScriptParserPLACEHOLDER_START	= 87
+	NeuroScriptParserPLACEHOLDER_END	= 88
+	NeuroScriptParserEQ			= 89
+	NeuroScriptParserNEQ			= 90
+	NeuroScriptParserGT			= 91
+	NeuroScriptParserLT			= 92
+	NeuroScriptParserGTE			= 93
+	NeuroScriptParserLTE			= 94
+	NeuroScriptParserLINE_COMMENT		= 95
+	NeuroScriptParserNEWLINE		= 96
+	NeuroScriptParserWS			= 97
 )
 
 // NeuroScriptParser rules.
 const (
-	NeuroScriptParserRULE_program                  = 0
-	NeuroScriptParserRULE_file_header              = 1
-	NeuroScriptParserRULE_library_script           = 2
-	NeuroScriptParserRULE_command_script           = 3
-	NeuroScriptParserRULE_library_block            = 4
-	NeuroScriptParserRULE_command_block            = 5
-	NeuroScriptParserRULE_command_statement_list   = 6
-	NeuroScriptParserRULE_command_body_line        = 7
-	NeuroScriptParserRULE_command_statement        = 8
-	NeuroScriptParserRULE_on_error_only_stmt       = 9
-	NeuroScriptParserRULE_simple_command_statement = 10
-	NeuroScriptParserRULE_procedure_definition     = 11
-	NeuroScriptParserRULE_signature_part           = 12
-	NeuroScriptParserRULE_needs_clause             = 13
-	NeuroScriptParserRULE_optional_clause          = 14
-	NeuroScriptParserRULE_returns_clause           = 15
-	NeuroScriptParserRULE_param_list               = 16
-	NeuroScriptParserRULE_metadata_block           = 17
-	NeuroScriptParserRULE_non_empty_statement_list = 18
-	NeuroScriptParserRULE_statement_list           = 19
-	NeuroScriptParserRULE_body_line                = 20
-	NeuroScriptParserRULE_statement                = 21
-	NeuroScriptParserRULE_simple_statement         = 22
-	NeuroScriptParserRULE_block_statement          = 23
-	NeuroScriptParserRULE_on_stmt                  = 24
-	NeuroScriptParserRULE_error_handler            = 25
-	NeuroScriptParserRULE_event_handler            = 26
-	NeuroScriptParserRULE_clearEventStmt           = 27
-	NeuroScriptParserRULE_lvalue                   = 28
-	NeuroScriptParserRULE_lvalue_list              = 29
-	NeuroScriptParserRULE_set_statement            = 30
-	NeuroScriptParserRULE_call_statement           = 31
-	NeuroScriptParserRULE_return_statement         = 32
-	NeuroScriptParserRULE_emit_statement           = 33
-	NeuroScriptParserRULE_must_statement           = 34
-	NeuroScriptParserRULE_fail_statement           = 35
-	NeuroScriptParserRULE_clearErrorStmt           = 36
-	NeuroScriptParserRULE_ask_stmt                 = 37
-	NeuroScriptParserRULE_break_statement          = 38
-	NeuroScriptParserRULE_continue_statement       = 39
-	NeuroScriptParserRULE_if_statement             = 40
-	NeuroScriptParserRULE_while_statement          = 41
-	NeuroScriptParserRULE_for_each_statement       = 42
-	NeuroScriptParserRULE_qualified_identifier     = 43
-	NeuroScriptParserRULE_call_target              = 44
-	NeuroScriptParserRULE_expression               = 45
-	NeuroScriptParserRULE_logical_or_expr          = 46
-	NeuroScriptParserRULE_logical_and_expr         = 47
-	NeuroScriptParserRULE_bitwise_or_expr          = 48
-	NeuroScriptParserRULE_bitwise_xor_expr         = 49
-	NeuroScriptParserRULE_bitwise_and_expr         = 50
-	NeuroScriptParserRULE_equality_expr            = 51
-	NeuroScriptParserRULE_relational_expr          = 52
-	NeuroScriptParserRULE_additive_expr            = 53
-	NeuroScriptParserRULE_multiplicative_expr      = 54
-	NeuroScriptParserRULE_unary_expr               = 55
-	NeuroScriptParserRULE_power_expr               = 56
-	NeuroScriptParserRULE_accessor_expr            = 57
-	NeuroScriptParserRULE_primary                  = 58
-	NeuroScriptParserRULE_callable_expr            = 59
-	NeuroScriptParserRULE_placeholder              = 60
-	NeuroScriptParserRULE_literal                  = 61
-	NeuroScriptParserRULE_nil_literal              = 62
-	NeuroScriptParserRULE_boolean_literal          = 63
-	NeuroScriptParserRULE_list_literal             = 64
-	NeuroScriptParserRULE_map_literal              = 65
-	NeuroScriptParserRULE_expression_list_opt      = 66
-	NeuroScriptParserRULE_expression_list          = 67
-	NeuroScriptParserRULE_map_entry_list_opt       = 68
-	NeuroScriptParserRULE_map_entry_list           = 69
-	NeuroScriptParserRULE_map_entry                = 70
+	NeuroScriptParserRULE_program			= 0
+	NeuroScriptParserRULE_file_header		= 1
+	NeuroScriptParserRULE_library_script		= 2
+	NeuroScriptParserRULE_command_script		= 3
+	NeuroScriptParserRULE_library_block		= 4
+	NeuroScriptParserRULE_command_block		= 5
+	NeuroScriptParserRULE_command_statement_list	= 6
+	NeuroScriptParserRULE_command_body_line		= 7
+	NeuroScriptParserRULE_command_statement		= 8
+	NeuroScriptParserRULE_on_error_only_stmt	= 9
+	NeuroScriptParserRULE_simple_command_statement	= 10
+	NeuroScriptParserRULE_procedure_definition	= 11
+	NeuroScriptParserRULE_signature_part		= 12
+	NeuroScriptParserRULE_needs_clause		= 13
+	NeuroScriptParserRULE_optional_clause		= 14
+	NeuroScriptParserRULE_returns_clause		= 15
+	NeuroScriptParserRULE_param_list		= 16
+	NeuroScriptParserRULE_metadata_block		= 17
+	NeuroScriptParserRULE_non_empty_statement_list	= 18
+	NeuroScriptParserRULE_statement_list		= 19
+	NeuroScriptParserRULE_body_line			= 20
+	NeuroScriptParserRULE_statement			= 21
+	NeuroScriptParserRULE_simple_statement		= 22
+	NeuroScriptParserRULE_block_statement		= 23
+	NeuroScriptParserRULE_on_stmt			= 24
+	NeuroScriptParserRULE_error_handler		= 25
+	NeuroScriptParserRULE_event_handler		= 26
+	NeuroScriptParserRULE_clearEventStmt		= 27
+	NeuroScriptParserRULE_lvalue			= 28
+	NeuroScriptParserRULE_lvalue_list		= 29
+	NeuroScriptParserRULE_set_statement		= 30
+	NeuroScriptParserRULE_call_statement		= 31
+	NeuroScriptParserRULE_return_statement		= 32
+	NeuroScriptParserRULE_emit_statement		= 33
+	NeuroScriptParserRULE_must_statement		= 34
+	NeuroScriptParserRULE_fail_statement		= 35
+	NeuroScriptParserRULE_clearErrorStmt		= 36
+	NeuroScriptParserRULE_ask_stmt			= 37
+	NeuroScriptParserRULE_break_statement		= 38
+	NeuroScriptParserRULE_continue_statement	= 39
+	NeuroScriptParserRULE_if_statement		= 40
+	NeuroScriptParserRULE_while_statement		= 41
+	NeuroScriptParserRULE_for_each_statement	= 42
+	NeuroScriptParserRULE_qualified_identifier	= 43
+	NeuroScriptParserRULE_call_target		= 44
+	NeuroScriptParserRULE_expression		= 45
+	NeuroScriptParserRULE_logical_or_expr		= 46
+	NeuroScriptParserRULE_logical_and_expr		= 47
+	NeuroScriptParserRULE_bitwise_or_expr		= 48
+	NeuroScriptParserRULE_bitwise_xor_expr		= 49
+	NeuroScriptParserRULE_bitwise_and_expr		= 50
+	NeuroScriptParserRULE_equality_expr		= 51
+	NeuroScriptParserRULE_relational_expr		= 52
+	NeuroScriptParserRULE_additive_expr		= 53
+	NeuroScriptParserRULE_multiplicative_expr	= 54
+	NeuroScriptParserRULE_unary_expr		= 55
+	NeuroScriptParserRULE_power_expr		= 56
+	NeuroScriptParserRULE_accessor_expr		= 57
+	NeuroScriptParserRULE_primary			= 58
+	NeuroScriptParserRULE_callable_expr		= 59
+	NeuroScriptParserRULE_placeholder		= 60
+	NeuroScriptParserRULE_literal			= 61
+	NeuroScriptParserRULE_nil_literal		= 62
+	NeuroScriptParserRULE_boolean_literal		= 63
+	NeuroScriptParserRULE_list_literal		= 64
+	NeuroScriptParserRULE_map_literal		= 65
+	NeuroScriptParserRULE_expression_list_opt	= 66
+	NeuroScriptParserRULE_expression_list		= 67
+	NeuroScriptParserRULE_map_entry_list_opt	= 68
+	NeuroScriptParserRULE_map_entry_list		= 69
+	NeuroScriptParserRULE_map_entry			= 70
 )
 
 // IProgramContext is an interface to support dynamic dispatch.
@@ -600,7 +601,7 @@ type IProgramContext interface {
 
 type ProgramContext struct {
 	antlr.BaseParserRuleContext
-	parser antlr.Parser
+	parser	antlr.Parser
 }
 
 func NewEmptyProgramContext() *ProgramContext {
@@ -615,7 +616,7 @@ func InitEmptyProgramContext(p *ProgramContext) {
 	p.RuleIndex = NeuroScriptParserRULE_program
 }
 
-func (*ProgramContext) IsProgramContext() {}
+func (*ProgramContext) IsProgramContext()	{}
 
 func NewProgramContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *ProgramContext {
 	var p = new(ProgramContext)
@@ -628,7 +629,7 @@ func NewProgramContext(parser antlr.Parser, parent antlr.ParserRuleContext, invo
 	return p
 }
 
-func (s *ProgramContext) GetParser() antlr.Parser { return s.parser }
+func (s *ProgramContext) GetParser() antlr.Parser	{ return s.parser }
 
 func (s *ProgramContext) File_header() IFile_headerContext {
 	var t antlr.RuleContext
@@ -761,7 +762,7 @@ errorExit:
 	}
 	p.ExitRule()
 	return localctx
-	goto errorExit // Trick to prevent compiler error if the label is not used
+	goto errorExit	// Trick to prevent compiler error if the label is not used
 }
 
 // IFile_headerContext is an interface to support dynamic dispatch.
@@ -783,7 +784,7 @@ type IFile_headerContext interface {
 
 type File_headerContext struct {
 	antlr.BaseParserRuleContext
-	parser antlr.Parser
+	parser	antlr.Parser
 }
 
 func NewEmptyFile_headerContext() *File_headerContext {
@@ -798,7 +799,7 @@ func InitEmptyFile_headerContext(p *File_headerContext) {
 	p.RuleIndex = NeuroScriptParserRULE_file_header
 }
 
-func (*File_headerContext) IsFile_headerContext() {}
+func (*File_headerContext) IsFile_headerContext()	{}
 
 func NewFile_headerContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *File_headerContext {
 	var p = new(File_headerContext)
@@ -811,7 +812,7 @@ func NewFile_headerContext(parser antlr.Parser, parent antlr.ParserRuleContext, 
 	return p
 }
 
-func (s *File_headerContext) GetParser() antlr.Parser { return s.parser }
+func (s *File_headerContext) GetParser() antlr.Parser	{ return s.parser }
 
 func (s *File_headerContext) AllMETADATA_LINE() []antlr.TerminalNode {
 	return s.GetTokens(NeuroScriptParserMETADATA_LINE)
@@ -903,7 +904,7 @@ errorExit:
 	}
 	p.ExitRule()
 	return localctx
-	goto errorExit // Trick to prevent compiler error if the label is not used
+	goto errorExit	// Trick to prevent compiler error if the label is not used
 }
 
 // ILibrary_scriptContext is an interface to support dynamic dispatch.
@@ -923,7 +924,7 @@ type ILibrary_scriptContext interface {
 
 type Library_scriptContext struct {
 	antlr.BaseParserRuleContext
-	parser antlr.Parser
+	parser	antlr.Parser
 }
 
 func NewEmptyLibrary_scriptContext() *Library_scriptContext {
@@ -938,7 +939,7 @@ func InitEmptyLibrary_scriptContext(p *Library_scriptContext) {
 	p.RuleIndex = NeuroScriptParserRULE_library_script
 }
 
-func (*Library_scriptContext) IsLibrary_scriptContext() {}
+func (*Library_scriptContext) IsLibrary_scriptContext()	{}
 
 func NewLibrary_scriptContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *Library_scriptContext {
 	var p = new(Library_scriptContext)
@@ -951,7 +952,7 @@ func NewLibrary_scriptContext(parser antlr.Parser, parent antlr.ParserRuleContex
 	return p
 }
 
-func (s *Library_scriptContext) GetParser() antlr.Parser { return s.parser }
+func (s *Library_scriptContext) GetParser() antlr.Parser	{ return s.parser }
 
 func (s *Library_scriptContext) AllLibrary_block() []ILibrary_blockContext {
 	children := s.GetChildren()
@@ -1061,7 +1062,7 @@ errorExit:
 	}
 	p.ExitRule()
 	return localctx
-	goto errorExit // Trick to prevent compiler error if the label is not used
+	goto errorExit	// Trick to prevent compiler error if the label is not used
 }
 
 // ICommand_scriptContext is an interface to support dynamic dispatch.
@@ -1081,7 +1082,7 @@ type ICommand_scriptContext interface {
 
 type Command_scriptContext struct {
 	antlr.BaseParserRuleContext
-	parser antlr.Parser
+	parser	antlr.Parser
 }
 
 func NewEmptyCommand_scriptContext() *Command_scriptContext {
@@ -1096,7 +1097,7 @@ func InitEmptyCommand_scriptContext(p *Command_scriptContext) {
 	p.RuleIndex = NeuroScriptParserRULE_command_script
 }
 
-func (*Command_scriptContext) IsCommand_scriptContext() {}
+func (*Command_scriptContext) IsCommand_scriptContext()	{}
 
 func NewCommand_scriptContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *Command_scriptContext {
 	var p = new(Command_scriptContext)
@@ -1109,7 +1110,7 @@ func NewCommand_scriptContext(parser antlr.Parser, parent antlr.ParserRuleContex
 	return p
 }
 
-func (s *Command_scriptContext) GetParser() antlr.Parser { return s.parser }
+func (s *Command_scriptContext) GetParser() antlr.Parser	{ return s.parser }
 
 func (s *Command_scriptContext) AllCommand_block() []ICommand_blockContext {
 	children := s.GetChildren()
@@ -1219,7 +1220,7 @@ errorExit:
 	}
 	p.ExitRule()
 	return localctx
-	goto errorExit // Trick to prevent compiler error if the label is not used
+	goto errorExit	// Trick to prevent compiler error if the label is not used
 }
 
 // ILibrary_blockContext is an interface to support dynamic dispatch.
@@ -1241,7 +1242,7 @@ type ILibrary_blockContext interface {
 
 type Library_blockContext struct {
 	antlr.BaseParserRuleContext
-	parser antlr.Parser
+	parser	antlr.Parser
 }
 
 func NewEmptyLibrary_blockContext() *Library_blockContext {
@@ -1256,7 +1257,7 @@ func InitEmptyLibrary_blockContext(p *Library_blockContext) {
 	p.RuleIndex = NeuroScriptParserRULE_library_block
 }
 
-func (*Library_blockContext) IsLibrary_blockContext() {}
+func (*Library_blockContext) IsLibrary_blockContext()	{}
 
 func NewLibrary_blockContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *Library_blockContext {
 	var p = new(Library_blockContext)
@@ -1269,7 +1270,7 @@ func NewLibrary_blockContext(parser antlr.Parser, parent antlr.ParserRuleContext
 	return p
 }
 
-func (s *Library_blockContext) GetParser() antlr.Parser { return s.parser }
+func (s *Library_blockContext) GetParser() antlr.Parser	{ return s.parser }
 
 func (s *Library_blockContext) Procedure_definition() IProcedure_definitionContext {
 	var t antlr.RuleContext
@@ -1405,7 +1406,7 @@ errorExit:
 	}
 	p.ExitRule()
 	return localctx
-	goto errorExit // Trick to prevent compiler error if the label is not used
+	goto errorExit	// Trick to prevent compiler error if the label is not used
 }
 
 // ICommand_blockContext is an interface to support dynamic dispatch.
@@ -1429,7 +1430,7 @@ type ICommand_blockContext interface {
 
 type Command_blockContext struct {
 	antlr.BaseParserRuleContext
-	parser antlr.Parser
+	parser	antlr.Parser
 }
 
 func NewEmptyCommand_blockContext() *Command_blockContext {
@@ -1444,7 +1445,7 @@ func InitEmptyCommand_blockContext(p *Command_blockContext) {
 	p.RuleIndex = NeuroScriptParserRULE_command_block
 }
 
-func (*Command_blockContext) IsCommand_blockContext() {}
+func (*Command_blockContext) IsCommand_blockContext()	{}
 
 func NewCommand_blockContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *Command_blockContext {
 	var p = new(Command_blockContext)
@@ -1457,7 +1458,7 @@ func NewCommand_blockContext(parser antlr.Parser, parent antlr.ParserRuleContext
 	return p
 }
 
-func (s *Command_blockContext) GetParser() antlr.Parser { return s.parser }
+func (s *Command_blockContext) GetParser() antlr.Parser	{ return s.parser }
 
 func (s *Command_blockContext) KW_COMMAND() antlr.TerminalNode {
 	return s.GetToken(NeuroScriptParserKW_COMMAND, 0)
@@ -1610,7 +1611,7 @@ errorExit:
 	}
 	p.ExitRule()
 	return localctx
-	goto errorExit // Trick to prevent compiler error if the label is not used
+	goto errorExit	// Trick to prevent compiler error if the label is not used
 }
 
 // ICommand_statement_listContext is an interface to support dynamic dispatch.
@@ -1633,7 +1634,7 @@ type ICommand_statement_listContext interface {
 
 type Command_statement_listContext struct {
 	antlr.BaseParserRuleContext
-	parser antlr.Parser
+	parser	antlr.Parser
 }
 
 func NewEmptyCommand_statement_listContext() *Command_statement_listContext {
@@ -1648,7 +1649,7 @@ func InitEmptyCommand_statement_listContext(p *Command_statement_listContext) {
 	p.RuleIndex = NeuroScriptParserRULE_command_statement_list
 }
 
-func (*Command_statement_listContext) IsCommand_statement_listContext() {}
+func (*Command_statement_listContext) IsCommand_statement_listContext()	{}
 
 func NewCommand_statement_listContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *Command_statement_listContext {
 	var p = new(Command_statement_listContext)
@@ -1661,7 +1662,7 @@ func NewCommand_statement_listContext(parser antlr.Parser, parent antlr.ParserRu
 	return p
 }
 
-func (s *Command_statement_listContext) GetParser() antlr.Parser { return s.parser }
+func (s *Command_statement_listContext) GetParser() antlr.Parser	{ return s.parser }
 
 func (s *Command_statement_listContext) Command_statement() ICommand_statementContext {
 	var t antlr.RuleContext
@@ -1831,7 +1832,7 @@ errorExit:
 	}
 	p.ExitRule()
 	return localctx
-	goto errorExit // Trick to prevent compiler error if the label is not used
+	goto errorExit	// Trick to prevent compiler error if the label is not used
 }
 
 // ICommand_body_lineContext is an interface to support dynamic dispatch.
@@ -1851,7 +1852,7 @@ type ICommand_body_lineContext interface {
 
 type Command_body_lineContext struct {
 	antlr.BaseParserRuleContext
-	parser antlr.Parser
+	parser	antlr.Parser
 }
 
 func NewEmptyCommand_body_lineContext() *Command_body_lineContext {
@@ -1866,7 +1867,7 @@ func InitEmptyCommand_body_lineContext(p *Command_body_lineContext) {
 	p.RuleIndex = NeuroScriptParserRULE_command_body_line
 }
 
-func (*Command_body_lineContext) IsCommand_body_lineContext() {}
+func (*Command_body_lineContext) IsCommand_body_lineContext()	{}
 
 func NewCommand_body_lineContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *Command_body_lineContext {
 	var p = new(Command_body_lineContext)
@@ -1879,7 +1880,7 @@ func NewCommand_body_lineContext(parser antlr.Parser, parent antlr.ParserRuleCon
 	return p
 }
 
-func (s *Command_body_lineContext) GetParser() antlr.Parser { return s.parser }
+func (s *Command_body_lineContext) GetParser() antlr.Parser	{ return s.parser }
 
 func (s *Command_body_lineContext) Command_statement() ICommand_statementContext {
 	var t antlr.RuleContext
@@ -1982,7 +1983,7 @@ errorExit:
 	}
 	p.ExitRule()
 	return localctx
-	goto errorExit // Trick to prevent compiler error if the label is not used
+	goto errorExit	// Trick to prevent compiler error if the label is not used
 }
 
 // ICommand_statementContext is an interface to support dynamic dispatch.
@@ -2003,7 +2004,7 @@ type ICommand_statementContext interface {
 
 type Command_statementContext struct {
 	antlr.BaseParserRuleContext
-	parser antlr.Parser
+	parser	antlr.Parser
 }
 
 func NewEmptyCommand_statementContext() *Command_statementContext {
@@ -2018,7 +2019,7 @@ func InitEmptyCommand_statementContext(p *Command_statementContext) {
 	p.RuleIndex = NeuroScriptParserRULE_command_statement
 }
 
-func (*Command_statementContext) IsCommand_statementContext() {}
+func (*Command_statementContext) IsCommand_statementContext()	{}
 
 func NewCommand_statementContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *Command_statementContext {
 	var p = new(Command_statementContext)
@@ -2031,7 +2032,7 @@ func NewCommand_statementContext(parser antlr.Parser, parent antlr.ParserRuleCon
 	return p
 }
 
-func (s *Command_statementContext) GetParser() antlr.Parser { return s.parser }
+func (s *Command_statementContext) GetParser() antlr.Parser	{ return s.parser }
 
 func (s *Command_statementContext) Simple_command_statement() ISimple_command_statementContext {
 	var t antlr.RuleContext
@@ -2157,7 +2158,7 @@ errorExit:
 	}
 	p.ExitRule()
 	return localctx
-	goto errorExit // Trick to prevent compiler error if the label is not used
+	goto errorExit	// Trick to prevent compiler error if the label is not used
 }
 
 // IOn_error_only_stmtContext is an interface to support dynamic dispatch.
@@ -2177,7 +2178,7 @@ type IOn_error_only_stmtContext interface {
 
 type On_error_only_stmtContext struct {
 	antlr.BaseParserRuleContext
-	parser antlr.Parser
+	parser	antlr.Parser
 }
 
 func NewEmptyOn_error_only_stmtContext() *On_error_only_stmtContext {
@@ -2192,7 +2193,7 @@ func InitEmptyOn_error_only_stmtContext(p *On_error_only_stmtContext) {
 	p.RuleIndex = NeuroScriptParserRULE_on_error_only_stmt
 }
 
-func (*On_error_only_stmtContext) IsOn_error_only_stmtContext() {}
+func (*On_error_only_stmtContext) IsOn_error_only_stmtContext()	{}
 
 func NewOn_error_only_stmtContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *On_error_only_stmtContext {
 	var p = new(On_error_only_stmtContext)
@@ -2205,7 +2206,7 @@ func NewOn_error_only_stmtContext(parser antlr.Parser, parent antlr.ParserRuleCo
 	return p
 }
 
-func (s *On_error_only_stmtContext) GetParser() antlr.Parser { return s.parser }
+func (s *On_error_only_stmtContext) GetParser() antlr.Parser	{ return s.parser }
 
 func (s *On_error_only_stmtContext) KW_ON() antlr.TerminalNode {
 	return s.GetToken(NeuroScriptParserKW_ON, 0)
@@ -2284,7 +2285,7 @@ errorExit:
 	}
 	p.ExitRule()
 	return localctx
-	goto errorExit // Trick to prevent compiler error if the label is not used
+	goto errorExit	// Trick to prevent compiler error if the label is not used
 }
 
 // ISimple_command_statementContext is an interface to support dynamic dispatch.
@@ -2312,7 +2313,7 @@ type ISimple_command_statementContext interface {
 
 type Simple_command_statementContext struct {
 	antlr.BaseParserRuleContext
-	parser antlr.Parser
+	parser	antlr.Parser
 }
 
 func NewEmptySimple_command_statementContext() *Simple_command_statementContext {
@@ -2327,7 +2328,7 @@ func InitEmptySimple_command_statementContext(p *Simple_command_statementContext
 	p.RuleIndex = NeuroScriptParserRULE_simple_command_statement
 }
 
-func (*Simple_command_statementContext) IsSimple_command_statementContext() {}
+func (*Simple_command_statementContext) IsSimple_command_statementContext()	{}
 
 func NewSimple_command_statementContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *Simple_command_statementContext {
 	var p = new(Simple_command_statementContext)
@@ -2340,7 +2341,7 @@ func NewSimple_command_statementContext(parser antlr.Parser, parent antlr.Parser
 	return p
 }
 
-func (s *Simple_command_statementContext) GetParser() antlr.Parser { return s.parser }
+func (s *Simple_command_statementContext) GetParser() antlr.Parser	{ return s.parser }
 
 func (s *Simple_command_statementContext) Set_statement() ISet_statementContext {
 	var t antlr.RuleContext
@@ -2627,7 +2628,7 @@ errorExit:
 	}
 	p.ExitRule()
 	return localctx
-	goto errorExit // Trick to prevent compiler error if the label is not used
+	goto errorExit	// Trick to prevent compiler error if the label is not used
 }
 
 // IProcedure_definitionContext is an interface to support dynamic dispatch.
@@ -2653,7 +2654,7 @@ type IProcedure_definitionContext interface {
 
 type Procedure_definitionContext struct {
 	antlr.BaseParserRuleContext
-	parser antlr.Parser
+	parser	antlr.Parser
 }
 
 func NewEmptyProcedure_definitionContext() *Procedure_definitionContext {
@@ -2668,7 +2669,7 @@ func InitEmptyProcedure_definitionContext(p *Procedure_definitionContext) {
 	p.RuleIndex = NeuroScriptParserRULE_procedure_definition
 }
 
-func (*Procedure_definitionContext) IsProcedure_definitionContext() {}
+func (*Procedure_definitionContext) IsProcedure_definitionContext()	{}
 
 func NewProcedure_definitionContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *Procedure_definitionContext {
 	var p = new(Procedure_definitionContext)
@@ -2681,7 +2682,7 @@ func NewProcedure_definitionContext(parser antlr.Parser, parent antlr.ParserRule
 	return p
 }
 
-func (s *Procedure_definitionContext) GetParser() antlr.Parser { return s.parser }
+func (s *Procedure_definitionContext) GetParser() antlr.Parser	{ return s.parser }
 
 func (s *Procedure_definitionContext) KW_FUNC() antlr.TerminalNode {
 	return s.GetToken(NeuroScriptParserKW_FUNC, 0)
@@ -2848,7 +2849,7 @@ errorExit:
 	}
 	p.ExitRule()
 	return localctx
-	goto errorExit // Trick to prevent compiler error if the label is not used
+	goto errorExit	// Trick to prevent compiler error if the label is not used
 }
 
 // ISignature_partContext is an interface to support dynamic dispatch.
@@ -2874,7 +2875,7 @@ type ISignature_partContext interface {
 
 type Signature_partContext struct {
 	antlr.BaseParserRuleContext
-	parser antlr.Parser
+	parser	antlr.Parser
 }
 
 func NewEmptySignature_partContext() *Signature_partContext {
@@ -2889,7 +2890,7 @@ func InitEmptySignature_partContext(p *Signature_partContext) {
 	p.RuleIndex = NeuroScriptParserRULE_signature_part
 }
 
-func (*Signature_partContext) IsSignature_partContext() {}
+func (*Signature_partContext) IsSignature_partContext()	{}
 
 func NewSignature_partContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *Signature_partContext {
 	var p = new(Signature_partContext)
@@ -2902,7 +2903,7 @@ func NewSignature_partContext(parser antlr.Parser, parent antlr.ParserRuleContex
 	return p
 }
 
-func (s *Signature_partContext) GetParser() antlr.Parser { return s.parser }
+func (s *Signature_partContext) GetParser() antlr.Parser	{ return s.parser }
 
 func (s *Signature_partContext) LPAREN() antlr.TerminalNode {
 	return s.GetToken(NeuroScriptParserLPAREN, 0)
@@ -3207,7 +3208,7 @@ errorExit:
 	}
 	p.ExitRule()
 	return localctx
-	goto errorExit // Trick to prevent compiler error if the label is not used
+	goto errorExit	// Trick to prevent compiler error if the label is not used
 }
 
 // INeeds_clauseContext is an interface to support dynamic dispatch.
@@ -3227,7 +3228,7 @@ type INeeds_clauseContext interface {
 
 type Needs_clauseContext struct {
 	antlr.BaseParserRuleContext
-	parser antlr.Parser
+	parser	antlr.Parser
 }
 
 func NewEmptyNeeds_clauseContext() *Needs_clauseContext {
@@ -3242,7 +3243,7 @@ func InitEmptyNeeds_clauseContext(p *Needs_clauseContext) {
 	p.RuleIndex = NeuroScriptParserRULE_needs_clause
 }
 
-func (*Needs_clauseContext) IsNeeds_clauseContext() {}
+func (*Needs_clauseContext) IsNeeds_clauseContext()	{}
 
 func NewNeeds_clauseContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *Needs_clauseContext {
 	var p = new(Needs_clauseContext)
@@ -3255,7 +3256,7 @@ func NewNeeds_clauseContext(parser antlr.Parser, parent antlr.ParserRuleContext,
 	return p
 }
 
-func (s *Needs_clauseContext) GetParser() antlr.Parser { return s.parser }
+func (s *Needs_clauseContext) GetParser() antlr.Parser	{ return s.parser }
 
 func (s *Needs_clauseContext) KW_NEEDS() antlr.TerminalNode {
 	return s.GetToken(NeuroScriptParserKW_NEEDS, 0)
@@ -3334,7 +3335,7 @@ errorExit:
 	}
 	p.ExitRule()
 	return localctx
-	goto errorExit // Trick to prevent compiler error if the label is not used
+	goto errorExit	// Trick to prevent compiler error if the label is not used
 }
 
 // IOptional_clauseContext is an interface to support dynamic dispatch.
@@ -3354,7 +3355,7 @@ type IOptional_clauseContext interface {
 
 type Optional_clauseContext struct {
 	antlr.BaseParserRuleContext
-	parser antlr.Parser
+	parser	antlr.Parser
 }
 
 func NewEmptyOptional_clauseContext() *Optional_clauseContext {
@@ -3369,7 +3370,7 @@ func InitEmptyOptional_clauseContext(p *Optional_clauseContext) {
 	p.RuleIndex = NeuroScriptParserRULE_optional_clause
 }
 
-func (*Optional_clauseContext) IsOptional_clauseContext() {}
+func (*Optional_clauseContext) IsOptional_clauseContext()	{}
 
 func NewOptional_clauseContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *Optional_clauseContext {
 	var p = new(Optional_clauseContext)
@@ -3382,7 +3383,7 @@ func NewOptional_clauseContext(parser antlr.Parser, parent antlr.ParserRuleConte
 	return p
 }
 
-func (s *Optional_clauseContext) GetParser() antlr.Parser { return s.parser }
+func (s *Optional_clauseContext) GetParser() antlr.Parser	{ return s.parser }
 
 func (s *Optional_clauseContext) KW_OPTIONAL() antlr.TerminalNode {
 	return s.GetToken(NeuroScriptParserKW_OPTIONAL, 0)
@@ -3461,7 +3462,7 @@ errorExit:
 	}
 	p.ExitRule()
 	return localctx
-	goto errorExit // Trick to prevent compiler error if the label is not used
+	goto errorExit	// Trick to prevent compiler error if the label is not used
 }
 
 // IReturns_clauseContext is an interface to support dynamic dispatch.
@@ -3481,7 +3482,7 @@ type IReturns_clauseContext interface {
 
 type Returns_clauseContext struct {
 	antlr.BaseParserRuleContext
-	parser antlr.Parser
+	parser	antlr.Parser
 }
 
 func NewEmptyReturns_clauseContext() *Returns_clauseContext {
@@ -3496,7 +3497,7 @@ func InitEmptyReturns_clauseContext(p *Returns_clauseContext) {
 	p.RuleIndex = NeuroScriptParserRULE_returns_clause
 }
 
-func (*Returns_clauseContext) IsReturns_clauseContext() {}
+func (*Returns_clauseContext) IsReturns_clauseContext()	{}
 
 func NewReturns_clauseContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *Returns_clauseContext {
 	var p = new(Returns_clauseContext)
@@ -3509,7 +3510,7 @@ func NewReturns_clauseContext(parser antlr.Parser, parent antlr.ParserRuleContex
 	return p
 }
 
-func (s *Returns_clauseContext) GetParser() antlr.Parser { return s.parser }
+func (s *Returns_clauseContext) GetParser() antlr.Parser	{ return s.parser }
 
 func (s *Returns_clauseContext) KW_RETURNS() antlr.TerminalNode {
 	return s.GetToken(NeuroScriptParserKW_RETURNS, 0)
@@ -3588,7 +3589,7 @@ errorExit:
 	}
 	p.ExitRule()
 	return localctx
-	goto errorExit // Trick to prevent compiler error if the label is not used
+	goto errorExit	// Trick to prevent compiler error if the label is not used
 }
 
 // IParam_listContext is an interface to support dynamic dispatch.
@@ -3610,7 +3611,7 @@ type IParam_listContext interface {
 
 type Param_listContext struct {
 	antlr.BaseParserRuleContext
-	parser antlr.Parser
+	parser	antlr.Parser
 }
 
 func NewEmptyParam_listContext() *Param_listContext {
@@ -3625,7 +3626,7 @@ func InitEmptyParam_listContext(p *Param_listContext) {
 	p.RuleIndex = NeuroScriptParserRULE_param_list
 }
 
-func (*Param_listContext) IsParam_listContext() {}
+func (*Param_listContext) IsParam_listContext()	{}
 
 func NewParam_listContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *Param_listContext {
 	var p = new(Param_listContext)
@@ -3638,7 +3639,7 @@ func NewParam_listContext(parser antlr.Parser, parent antlr.ParserRuleContext, i
 	return p
 }
 
-func (s *Param_listContext) GetParser() antlr.Parser { return s.parser }
+func (s *Param_listContext) GetParser() antlr.Parser	{ return s.parser }
 
 func (s *Param_listContext) AllIDENTIFIER() []antlr.TerminalNode {
 	return s.GetTokens(NeuroScriptParserIDENTIFIER)
@@ -3743,7 +3744,7 @@ errorExit:
 	}
 	p.ExitRule()
 	return localctx
-	goto errorExit // Trick to prevent compiler error if the label is not used
+	goto errorExit	// Trick to prevent compiler error if the label is not used
 }
 
 // IMetadata_blockContext is an interface to support dynamic dispatch.
@@ -3765,7 +3766,7 @@ type IMetadata_blockContext interface {
 
 type Metadata_blockContext struct {
 	antlr.BaseParserRuleContext
-	parser antlr.Parser
+	parser	antlr.Parser
 }
 
 func NewEmptyMetadata_blockContext() *Metadata_blockContext {
@@ -3780,7 +3781,7 @@ func InitEmptyMetadata_blockContext(p *Metadata_blockContext) {
 	p.RuleIndex = NeuroScriptParserRULE_metadata_block
 }
 
-func (*Metadata_blockContext) IsMetadata_blockContext() {}
+func (*Metadata_blockContext) IsMetadata_blockContext()	{}
 
 func NewMetadata_blockContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *Metadata_blockContext {
 	var p = new(Metadata_blockContext)
@@ -3793,7 +3794,7 @@ func NewMetadata_blockContext(parser antlr.Parser, parent antlr.ParserRuleContex
 	return p
 }
 
-func (s *Metadata_blockContext) GetParser() antlr.Parser { return s.parser }
+func (s *Metadata_blockContext) GetParser() antlr.Parser	{ return s.parser }
 
 func (s *Metadata_blockContext) AllMETADATA_LINE() []antlr.TerminalNode {
 	return s.GetTokens(NeuroScriptParserMETADATA_LINE)
@@ -3890,7 +3891,7 @@ errorExit:
 	}
 	p.ExitRule()
 	return localctx
-	goto errorExit // Trick to prevent compiler error if the label is not used
+	goto errorExit	// Trick to prevent compiler error if the label is not used
 }
 
 // INon_empty_statement_listContext is an interface to support dynamic dispatch.
@@ -3913,7 +3914,7 @@ type INon_empty_statement_listContext interface {
 
 type Non_empty_statement_listContext struct {
 	antlr.BaseParserRuleContext
-	parser antlr.Parser
+	parser	antlr.Parser
 }
 
 func NewEmptyNon_empty_statement_listContext() *Non_empty_statement_listContext {
@@ -3928,7 +3929,7 @@ func InitEmptyNon_empty_statement_listContext(p *Non_empty_statement_listContext
 	p.RuleIndex = NeuroScriptParserRULE_non_empty_statement_list
 }
 
-func (*Non_empty_statement_listContext) IsNon_empty_statement_listContext() {}
+func (*Non_empty_statement_listContext) IsNon_empty_statement_listContext()	{}
 
 func NewNon_empty_statement_listContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *Non_empty_statement_listContext {
 	var p = new(Non_empty_statement_listContext)
@@ -3941,7 +3942,7 @@ func NewNon_empty_statement_listContext(parser antlr.Parser, parent antlr.Parser
 	return p
 }
 
-func (s *Non_empty_statement_listContext) GetParser() antlr.Parser { return s.parser }
+func (s *Non_empty_statement_listContext) GetParser() antlr.Parser	{ return s.parser }
 
 func (s *Non_empty_statement_listContext) Statement() IStatementContext {
 	var t antlr.RuleContext
@@ -4111,7 +4112,7 @@ errorExit:
 	}
 	p.ExitRule()
 	return localctx
-	goto errorExit // Trick to prevent compiler error if the label is not used
+	goto errorExit	// Trick to prevent compiler error if the label is not used
 }
 
 // IStatement_listContext is an interface to support dynamic dispatch.
@@ -4131,7 +4132,7 @@ type IStatement_listContext interface {
 
 type Statement_listContext struct {
 	antlr.BaseParserRuleContext
-	parser antlr.Parser
+	parser	antlr.Parser
 }
 
 func NewEmptyStatement_listContext() *Statement_listContext {
@@ -4146,7 +4147,7 @@ func InitEmptyStatement_listContext(p *Statement_listContext) {
 	p.RuleIndex = NeuroScriptParserRULE_statement_list
 }
 
-func (*Statement_listContext) IsStatement_listContext() {}
+func (*Statement_listContext) IsStatement_listContext()	{}
 
 func NewStatement_listContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *Statement_listContext {
 	var p = new(Statement_listContext)
@@ -4159,7 +4160,7 @@ func NewStatement_listContext(parser antlr.Parser, parent antlr.ParserRuleContex
 	return p
 }
 
-func (s *Statement_listContext) GetParser() antlr.Parser { return s.parser }
+func (s *Statement_listContext) GetParser() antlr.Parser	{ return s.parser }
 
 func (s *Statement_listContext) AllBody_line() []IBody_lineContext {
 	children := s.GetChildren()
@@ -4269,7 +4270,7 @@ errorExit:
 	}
 	p.ExitRule()
 	return localctx
-	goto errorExit // Trick to prevent compiler error if the label is not used
+	goto errorExit	// Trick to prevent compiler error if the label is not used
 }
 
 // IBody_lineContext is an interface to support dynamic dispatch.
@@ -4289,7 +4290,7 @@ type IBody_lineContext interface {
 
 type Body_lineContext struct {
 	antlr.BaseParserRuleContext
-	parser antlr.Parser
+	parser	antlr.Parser
 }
 
 func NewEmptyBody_lineContext() *Body_lineContext {
@@ -4304,7 +4305,7 @@ func InitEmptyBody_lineContext(p *Body_lineContext) {
 	p.RuleIndex = NeuroScriptParserRULE_body_line
 }
 
-func (*Body_lineContext) IsBody_lineContext() {}
+func (*Body_lineContext) IsBody_lineContext()	{}
 
 func NewBody_lineContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *Body_lineContext {
 	var p = new(Body_lineContext)
@@ -4317,7 +4318,7 @@ func NewBody_lineContext(parser antlr.Parser, parent antlr.ParserRuleContext, in
 	return p
 }
 
-func (s *Body_lineContext) GetParser() antlr.Parser { return s.parser }
+func (s *Body_lineContext) GetParser() antlr.Parser	{ return s.parser }
 
 func (s *Body_lineContext) Statement() IStatementContext {
 	var t antlr.RuleContext
@@ -4420,7 +4421,7 @@ errorExit:
 	}
 	p.ExitRule()
 	return localctx
-	goto errorExit // Trick to prevent compiler error if the label is not used
+	goto errorExit	// Trick to prevent compiler error if the label is not used
 }
 
 // IStatementContext is an interface to support dynamic dispatch.
@@ -4441,7 +4442,7 @@ type IStatementContext interface {
 
 type StatementContext struct {
 	antlr.BaseParserRuleContext
-	parser antlr.Parser
+	parser	antlr.Parser
 }
 
 func NewEmptyStatementContext() *StatementContext {
@@ -4456,7 +4457,7 @@ func InitEmptyStatementContext(p *StatementContext) {
 	p.RuleIndex = NeuroScriptParserRULE_statement
 }
 
-func (*StatementContext) IsStatementContext() {}
+func (*StatementContext) IsStatementContext()	{}
 
 func NewStatementContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *StatementContext {
 	var p = new(StatementContext)
@@ -4469,7 +4470,7 @@ func NewStatementContext(parser antlr.Parser, parent antlr.ParserRuleContext, in
 	return p
 }
 
-func (s *StatementContext) GetParser() antlr.Parser { return s.parser }
+func (s *StatementContext) GetParser() antlr.Parser	{ return s.parser }
 
 func (s *StatementContext) Simple_statement() ISimple_statementContext {
 	var t antlr.RuleContext
@@ -4595,7 +4596,7 @@ errorExit:
 	}
 	p.ExitRule()
 	return localctx
-	goto errorExit // Trick to prevent compiler error if the label is not used
+	goto errorExit	// Trick to prevent compiler error if the label is not used
 }
 
 // ISimple_statementContext is an interface to support dynamic dispatch.
@@ -4624,7 +4625,7 @@ type ISimple_statementContext interface {
 
 type Simple_statementContext struct {
 	antlr.BaseParserRuleContext
-	parser antlr.Parser
+	parser	antlr.Parser
 }
 
 func NewEmptySimple_statementContext() *Simple_statementContext {
@@ -4639,7 +4640,7 @@ func InitEmptySimple_statementContext(p *Simple_statementContext) {
 	p.RuleIndex = NeuroScriptParserRULE_simple_statement
 }
 
-func (*Simple_statementContext) IsSimple_statementContext() {}
+func (*Simple_statementContext) IsSimple_statementContext()	{}
 
 func NewSimple_statementContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *Simple_statementContext {
 	var p = new(Simple_statementContext)
@@ -4652,7 +4653,7 @@ func NewSimple_statementContext(parser antlr.Parser, parent antlr.ParserRuleCont
 	return p
 }
 
-func (s *Simple_statementContext) GetParser() antlr.Parser { return s.parser }
+func (s *Simple_statementContext) GetParser() antlr.Parser	{ return s.parser }
 
 func (s *Simple_statementContext) Set_statement() ISet_statementContext {
 	var t antlr.RuleContext
@@ -4962,7 +4963,7 @@ errorExit:
 	}
 	p.ExitRule()
 	return localctx
-	goto errorExit // Trick to prevent compiler error if the label is not used
+	goto errorExit	// Trick to prevent compiler error if the label is not used
 }
 
 // IBlock_statementContext is an interface to support dynamic dispatch.
@@ -4983,7 +4984,7 @@ type IBlock_statementContext interface {
 
 type Block_statementContext struct {
 	antlr.BaseParserRuleContext
-	parser antlr.Parser
+	parser	antlr.Parser
 }
 
 func NewEmptyBlock_statementContext() *Block_statementContext {
@@ -4998,7 +4999,7 @@ func InitEmptyBlock_statementContext(p *Block_statementContext) {
 	p.RuleIndex = NeuroScriptParserRULE_block_statement
 }
 
-func (*Block_statementContext) IsBlock_statementContext() {}
+func (*Block_statementContext) IsBlock_statementContext()	{}
 
 func NewBlock_statementContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *Block_statementContext {
 	var p = new(Block_statementContext)
@@ -5011,7 +5012,7 @@ func NewBlock_statementContext(parser antlr.Parser, parent antlr.ParserRuleConte
 	return p
 }
 
-func (s *Block_statementContext) GetParser() antlr.Parser { return s.parser }
+func (s *Block_statementContext) GetParser() antlr.Parser	{ return s.parser }
 
 func (s *Block_statementContext) If_statement() IIf_statementContext {
 	var t antlr.RuleContext
@@ -5137,7 +5138,7 @@ errorExit:
 	}
 	p.ExitRule()
 	return localctx
-	goto errorExit // Trick to prevent compiler error if the label is not used
+	goto errorExit	// Trick to prevent compiler error if the label is not used
 }
 
 // IOn_stmtContext is an interface to support dynamic dispatch.
@@ -5158,7 +5159,7 @@ type IOn_stmtContext interface {
 
 type On_stmtContext struct {
 	antlr.BaseParserRuleContext
-	parser antlr.Parser
+	parser	antlr.Parser
 }
 
 func NewEmptyOn_stmtContext() *On_stmtContext {
@@ -5173,7 +5174,7 @@ func InitEmptyOn_stmtContext(p *On_stmtContext) {
 	p.RuleIndex = NeuroScriptParserRULE_on_stmt
 }
 
-func (*On_stmtContext) IsOn_stmtContext() {}
+func (*On_stmtContext) IsOn_stmtContext()	{}
 
 func NewOn_stmtContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *On_stmtContext {
 	var p = new(On_stmtContext)
@@ -5186,7 +5187,7 @@ func NewOn_stmtContext(parser antlr.Parser, parent antlr.ParserRuleContext, invo
 	return p
 }
 
-func (s *On_stmtContext) GetParser() antlr.Parser { return s.parser }
+func (s *On_stmtContext) GetParser() antlr.Parser	{ return s.parser }
 
 func (s *On_stmtContext) KW_ON() antlr.TerminalNode {
 	return s.GetToken(NeuroScriptParserKW_ON, 0)
@@ -5300,7 +5301,7 @@ errorExit:
 	}
 	p.ExitRule()
 	return localctx
-	goto errorExit // Trick to prevent compiler error if the label is not used
+	goto errorExit	// Trick to prevent compiler error if the label is not used
 }
 
 // IError_handlerContext is an interface to support dynamic dispatch.
@@ -5323,7 +5324,7 @@ type IError_handlerContext interface {
 
 type Error_handlerContext struct {
 	antlr.BaseParserRuleContext
-	parser antlr.Parser
+	parser	antlr.Parser
 }
 
 func NewEmptyError_handlerContext() *Error_handlerContext {
@@ -5338,7 +5339,7 @@ func InitEmptyError_handlerContext(p *Error_handlerContext) {
 	p.RuleIndex = NeuroScriptParserRULE_error_handler
 }
 
-func (*Error_handlerContext) IsError_handlerContext() {}
+func (*Error_handlerContext) IsError_handlerContext()	{}
 
 func NewError_handlerContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *Error_handlerContext {
 	var p = new(Error_handlerContext)
@@ -5351,7 +5352,7 @@ func NewError_handlerContext(parser antlr.Parser, parent antlr.ParserRuleContext
 	return p
 }
 
-func (s *Error_handlerContext) GetParser() antlr.Parser { return s.parser }
+func (s *Error_handlerContext) GetParser() antlr.Parser	{ return s.parser }
 
 func (s *Error_handlerContext) KW_ERROR() antlr.TerminalNode {
 	return s.GetToken(NeuroScriptParserKW_ERROR, 0)
@@ -5466,7 +5467,7 @@ errorExit:
 	}
 	p.ExitRule()
 	return localctx
-	goto errorExit // Trick to prevent compiler error if the label is not used
+	goto errorExit	// Trick to prevent compiler error if the label is not used
 }
 
 // IEvent_handlerContext is an interface to support dynamic dispatch.
@@ -5494,7 +5495,7 @@ type IEvent_handlerContext interface {
 
 type Event_handlerContext struct {
 	antlr.BaseParserRuleContext
-	parser antlr.Parser
+	parser	antlr.Parser
 }
 
 func NewEmptyEvent_handlerContext() *Event_handlerContext {
@@ -5509,7 +5510,7 @@ func InitEmptyEvent_handlerContext(p *Event_handlerContext) {
 	p.RuleIndex = NeuroScriptParserRULE_event_handler
 }
 
-func (*Event_handlerContext) IsEvent_handlerContext() {}
+func (*Event_handlerContext) IsEvent_handlerContext()	{}
 
 func NewEvent_handlerContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *Event_handlerContext {
 	var p = new(Event_handlerContext)
@@ -5522,7 +5523,7 @@ func NewEvent_handlerContext(parser antlr.Parser, parent antlr.ParserRuleContext
 	return p
 }
 
-func (s *Event_handlerContext) GetParser() antlr.Parser { return s.parser }
+func (s *Event_handlerContext) GetParser() antlr.Parser	{ return s.parser }
 
 func (s *Event_handlerContext) KW_EVENT() antlr.TerminalNode {
 	return s.GetToken(NeuroScriptParserKW_EVENT, 0)
@@ -5727,7 +5728,7 @@ errorExit:
 	}
 	p.ExitRule()
 	return localctx
-	goto errorExit // Trick to prevent compiler error if the label is not used
+	goto errorExit	// Trick to prevent compiler error if the label is not used
 }
 
 // IClearEventStmtContext is an interface to support dynamic dispatch.
@@ -5750,7 +5751,7 @@ type IClearEventStmtContext interface {
 
 type ClearEventStmtContext struct {
 	antlr.BaseParserRuleContext
-	parser antlr.Parser
+	parser	antlr.Parser
 }
 
 func NewEmptyClearEventStmtContext() *ClearEventStmtContext {
@@ -5765,7 +5766,7 @@ func InitEmptyClearEventStmtContext(p *ClearEventStmtContext) {
 	p.RuleIndex = NeuroScriptParserRULE_clearEventStmt
 }
 
-func (*ClearEventStmtContext) IsClearEventStmtContext() {}
+func (*ClearEventStmtContext) IsClearEventStmtContext()	{}
 
 func NewClearEventStmtContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *ClearEventStmtContext {
 	var p = new(ClearEventStmtContext)
@@ -5778,7 +5779,7 @@ func NewClearEventStmtContext(parser antlr.Parser, parent antlr.ParserRuleContex
 	return p
 }
 
-func (s *ClearEventStmtContext) GetParser() antlr.Parser { return s.parser }
+func (s *ClearEventStmtContext) GetParser() antlr.Parser	{ return s.parser }
 
 func (s *ClearEventStmtContext) KW_CLEAR() antlr.TerminalNode {
 	return s.GetToken(NeuroScriptParserKW_CLEAR, 0)
@@ -5908,7 +5909,7 @@ errorExit:
 	}
 	p.ExitRule()
 	return localctx
-	goto errorExit // Trick to prevent compiler error if the label is not used
+	goto errorExit	// Trick to prevent compiler error if the label is not used
 }
 
 // ILvalueContext is an interface to support dynamic dispatch.
@@ -5936,7 +5937,7 @@ type ILvalueContext interface {
 
 type LvalueContext struct {
 	antlr.BaseParserRuleContext
-	parser antlr.Parser
+	parser	antlr.Parser
 }
 
 func NewEmptyLvalueContext() *LvalueContext {
@@ -5951,7 +5952,7 @@ func InitEmptyLvalueContext(p *LvalueContext) {
 	p.RuleIndex = NeuroScriptParserRULE_lvalue
 }
 
-func (*LvalueContext) IsLvalueContext() {}
+func (*LvalueContext) IsLvalueContext()	{}
 
 func NewLvalueContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *LvalueContext {
 	var p = new(LvalueContext)
@@ -5964,7 +5965,7 @@ func NewLvalueContext(parser antlr.Parser, parent antlr.ParserRuleContext, invok
 	return p
 }
 
-func (s *LvalueContext) GetParser() antlr.Parser { return s.parser }
+func (s *LvalueContext) GetParser() antlr.Parser	{ return s.parser }
 
 func (s *LvalueContext) AllIDENTIFIER() []antlr.TerminalNode {
 	return s.GetTokens(NeuroScriptParserIDENTIFIER)
@@ -6161,7 +6162,7 @@ errorExit:
 	}
 	p.ExitRule()
 	return localctx
-	goto errorExit // Trick to prevent compiler error if the label is not used
+	goto errorExit	// Trick to prevent compiler error if the label is not used
 }
 
 // ILvalue_listContext is an interface to support dynamic dispatch.
@@ -6183,7 +6184,7 @@ type ILvalue_listContext interface {
 
 type Lvalue_listContext struct {
 	antlr.BaseParserRuleContext
-	parser antlr.Parser
+	parser	antlr.Parser
 }
 
 func NewEmptyLvalue_listContext() *Lvalue_listContext {
@@ -6198,7 +6199,7 @@ func InitEmptyLvalue_listContext(p *Lvalue_listContext) {
 	p.RuleIndex = NeuroScriptParserRULE_lvalue_list
 }
 
-func (*Lvalue_listContext) IsLvalue_listContext() {}
+func (*Lvalue_listContext) IsLvalue_listContext()	{}
 
 func NewLvalue_listContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *Lvalue_listContext {
 	var p = new(Lvalue_listContext)
@@ -6211,7 +6212,7 @@ func NewLvalue_listContext(parser antlr.Parser, parent antlr.ParserRuleContext, 
 	return p
 }
 
-func (s *Lvalue_listContext) GetParser() antlr.Parser { return s.parser }
+func (s *Lvalue_listContext) GetParser() antlr.Parser	{ return s.parser }
 
 func (s *Lvalue_listContext) AllLvalue() []ILvalueContext {
 	children := s.GetChildren()
@@ -6341,7 +6342,7 @@ errorExit:
 	}
 	p.ExitRule()
 	return localctx
-	goto errorExit // Trick to prevent compiler error if the label is not used
+	goto errorExit	// Trick to prevent compiler error if the label is not used
 }
 
 // ISet_statementContext is an interface to support dynamic dispatch.
@@ -6363,7 +6364,7 @@ type ISet_statementContext interface {
 
 type Set_statementContext struct {
 	antlr.BaseParserRuleContext
-	parser antlr.Parser
+	parser	antlr.Parser
 }
 
 func NewEmptySet_statementContext() *Set_statementContext {
@@ -6378,7 +6379,7 @@ func InitEmptySet_statementContext(p *Set_statementContext) {
 	p.RuleIndex = NeuroScriptParserRULE_set_statement
 }
 
-func (*Set_statementContext) IsSet_statementContext() {}
+func (*Set_statementContext) IsSet_statementContext()	{}
 
 func NewSet_statementContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *Set_statementContext {
 	var p = new(Set_statementContext)
@@ -6391,7 +6392,7 @@ func NewSet_statementContext(parser antlr.Parser, parent antlr.ParserRuleContext
 	return p
 }
 
-func (s *Set_statementContext) GetParser() antlr.Parser { return s.parser }
+func (s *Set_statementContext) GetParser() antlr.Parser	{ return s.parser }
 
 func (s *Set_statementContext) KW_SET() antlr.TerminalNode {
 	return s.GetToken(NeuroScriptParserKW_SET, 0)
@@ -6502,7 +6503,7 @@ errorExit:
 	}
 	p.ExitRule()
 	return localctx
-	goto errorExit // Trick to prevent compiler error if the label is not used
+	goto errorExit	// Trick to prevent compiler error if the label is not used
 }
 
 // ICall_statementContext is an interface to support dynamic dispatch.
@@ -6522,7 +6523,7 @@ type ICall_statementContext interface {
 
 type Call_statementContext struct {
 	antlr.BaseParserRuleContext
-	parser antlr.Parser
+	parser	antlr.Parser
 }
 
 func NewEmptyCall_statementContext() *Call_statementContext {
@@ -6537,7 +6538,7 @@ func InitEmptyCall_statementContext(p *Call_statementContext) {
 	p.RuleIndex = NeuroScriptParserRULE_call_statement
 }
 
-func (*Call_statementContext) IsCall_statementContext() {}
+func (*Call_statementContext) IsCall_statementContext()	{}
 
 func NewCall_statementContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *Call_statementContext {
 	var p = new(Call_statementContext)
@@ -6550,7 +6551,7 @@ func NewCall_statementContext(parser antlr.Parser, parent antlr.ParserRuleContex
 	return p
 }
 
-func (s *Call_statementContext) GetParser() antlr.Parser { return s.parser }
+func (s *Call_statementContext) GetParser() antlr.Parser	{ return s.parser }
 
 func (s *Call_statementContext) KW_CALL() antlr.TerminalNode {
 	return s.GetToken(NeuroScriptParserKW_CALL, 0)
@@ -6629,7 +6630,7 @@ errorExit:
 	}
 	p.ExitRule()
 	return localctx
-	goto errorExit // Trick to prevent compiler error if the label is not used
+	goto errorExit	// Trick to prevent compiler error if the label is not used
 }
 
 // IReturn_statementContext is an interface to support dynamic dispatch.
@@ -6649,7 +6650,7 @@ type IReturn_statementContext interface {
 
 type Return_statementContext struct {
 	antlr.BaseParserRuleContext
-	parser antlr.Parser
+	parser	antlr.Parser
 }
 
 func NewEmptyReturn_statementContext() *Return_statementContext {
@@ -6664,7 +6665,7 @@ func InitEmptyReturn_statementContext(p *Return_statementContext) {
 	p.RuleIndex = NeuroScriptParserRULE_return_statement
 }
 
-func (*Return_statementContext) IsReturn_statementContext() {}
+func (*Return_statementContext) IsReturn_statementContext()	{}
 
 func NewReturn_statementContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *Return_statementContext {
 	var p = new(Return_statementContext)
@@ -6677,7 +6678,7 @@ func NewReturn_statementContext(parser antlr.Parser, parent antlr.ParserRuleCont
 	return p
 }
 
-func (s *Return_statementContext) GetParser() antlr.Parser { return s.parser }
+func (s *Return_statementContext) GetParser() antlr.Parser	{ return s.parser }
 
 func (s *Return_statementContext) KW_RETURN() antlr.TerminalNode {
 	return s.GetToken(NeuroScriptParserKW_RETURN, 0)
@@ -6768,7 +6769,7 @@ errorExit:
 	}
 	p.ExitRule()
 	return localctx
-	goto errorExit // Trick to prevent compiler error if the label is not used
+	goto errorExit	// Trick to prevent compiler error if the label is not used
 }
 
 // IEmit_statementContext is an interface to support dynamic dispatch.
@@ -6788,7 +6789,7 @@ type IEmit_statementContext interface {
 
 type Emit_statementContext struct {
 	antlr.BaseParserRuleContext
-	parser antlr.Parser
+	parser	antlr.Parser
 }
 
 func NewEmptyEmit_statementContext() *Emit_statementContext {
@@ -6803,7 +6804,7 @@ func InitEmptyEmit_statementContext(p *Emit_statementContext) {
 	p.RuleIndex = NeuroScriptParserRULE_emit_statement
 }
 
-func (*Emit_statementContext) IsEmit_statementContext() {}
+func (*Emit_statementContext) IsEmit_statementContext()	{}
 
 func NewEmit_statementContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *Emit_statementContext {
 	var p = new(Emit_statementContext)
@@ -6816,7 +6817,7 @@ func NewEmit_statementContext(parser antlr.Parser, parent antlr.ParserRuleContex
 	return p
 }
 
-func (s *Emit_statementContext) GetParser() antlr.Parser { return s.parser }
+func (s *Emit_statementContext) GetParser() antlr.Parser	{ return s.parser }
 
 func (s *Emit_statementContext) KW_EMIT() antlr.TerminalNode {
 	return s.GetToken(NeuroScriptParserKW_EMIT, 0)
@@ -6895,7 +6896,7 @@ errorExit:
 	}
 	p.ExitRule()
 	return localctx
-	goto errorExit // Trick to prevent compiler error if the label is not used
+	goto errorExit	// Trick to prevent compiler error if the label is not used
 }
 
 // IMust_statementContext is an interface to support dynamic dispatch.
@@ -6917,7 +6918,7 @@ type IMust_statementContext interface {
 
 type Must_statementContext struct {
 	antlr.BaseParserRuleContext
-	parser antlr.Parser
+	parser	antlr.Parser
 }
 
 func NewEmptyMust_statementContext() *Must_statementContext {
@@ -6932,7 +6933,7 @@ func InitEmptyMust_statementContext(p *Must_statementContext) {
 	p.RuleIndex = NeuroScriptParserRULE_must_statement
 }
 
-func (*Must_statementContext) IsMust_statementContext() {}
+func (*Must_statementContext) IsMust_statementContext()	{}
 
 func NewMust_statementContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *Must_statementContext {
 	var p = new(Must_statementContext)
@@ -6945,7 +6946,7 @@ func NewMust_statementContext(parser antlr.Parser, parent antlr.ParserRuleContex
 	return p
 }
 
-func (s *Must_statementContext) GetParser() antlr.Parser { return s.parser }
+func (s *Must_statementContext) GetParser() antlr.Parser	{ return s.parser }
 
 func (s *Must_statementContext) KW_MUST() antlr.TerminalNode {
 	return s.GetToken(NeuroScriptParserKW_MUST, 0)
@@ -7072,7 +7073,7 @@ errorExit:
 	}
 	p.ExitRule()
 	return localctx
-	goto errorExit // Trick to prevent compiler error if the label is not used
+	goto errorExit	// Trick to prevent compiler error if the label is not used
 }
 
 // IFail_statementContext is an interface to support dynamic dispatch.
@@ -7092,7 +7093,7 @@ type IFail_statementContext interface {
 
 type Fail_statementContext struct {
 	antlr.BaseParserRuleContext
-	parser antlr.Parser
+	parser	antlr.Parser
 }
 
 func NewEmptyFail_statementContext() *Fail_statementContext {
@@ -7107,7 +7108,7 @@ func InitEmptyFail_statementContext(p *Fail_statementContext) {
 	p.RuleIndex = NeuroScriptParserRULE_fail_statement
 }
 
-func (*Fail_statementContext) IsFail_statementContext() {}
+func (*Fail_statementContext) IsFail_statementContext()	{}
 
 func NewFail_statementContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *Fail_statementContext {
 	var p = new(Fail_statementContext)
@@ -7120,7 +7121,7 @@ func NewFail_statementContext(parser antlr.Parser, parent antlr.ParserRuleContex
 	return p
 }
 
-func (s *Fail_statementContext) GetParser() antlr.Parser { return s.parser }
+func (s *Fail_statementContext) GetParser() antlr.Parser	{ return s.parser }
 
 func (s *Fail_statementContext) KW_FAIL() antlr.TerminalNode {
 	return s.GetToken(NeuroScriptParserKW_FAIL, 0)
@@ -7211,7 +7212,7 @@ errorExit:
 	}
 	p.ExitRule()
 	return localctx
-	goto errorExit // Trick to prevent compiler error if the label is not used
+	goto errorExit	// Trick to prevent compiler error if the label is not used
 }
 
 // IClearErrorStmtContext is an interface to support dynamic dispatch.
@@ -7230,7 +7231,7 @@ type IClearErrorStmtContext interface {
 
 type ClearErrorStmtContext struct {
 	antlr.BaseParserRuleContext
-	parser antlr.Parser
+	parser	antlr.Parser
 }
 
 func NewEmptyClearErrorStmtContext() *ClearErrorStmtContext {
@@ -7245,7 +7246,7 @@ func InitEmptyClearErrorStmtContext(p *ClearErrorStmtContext) {
 	p.RuleIndex = NeuroScriptParserRULE_clearErrorStmt
 }
 
-func (*ClearErrorStmtContext) IsClearErrorStmtContext() {}
+func (*ClearErrorStmtContext) IsClearErrorStmtContext()	{}
 
 func NewClearErrorStmtContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *ClearErrorStmtContext {
 	var p = new(ClearErrorStmtContext)
@@ -7258,7 +7259,7 @@ func NewClearErrorStmtContext(parser antlr.Parser, parent antlr.ParserRuleContex
 	return p
 }
 
-func (s *ClearErrorStmtContext) GetParser() antlr.Parser { return s.parser }
+func (s *ClearErrorStmtContext) GetParser() antlr.Parser	{ return s.parser }
 
 func (s *ClearErrorStmtContext) KW_CLEAR_ERROR() antlr.TerminalNode {
 	return s.GetToken(NeuroScriptParserKW_CLEAR_ERROR, 0)
@@ -7317,7 +7318,7 @@ errorExit:
 	}
 	p.ExitRule()
 	return localctx
-	goto errorExit // Trick to prevent compiler error if the label is not used
+	goto errorExit	// Trick to prevent compiler error if the label is not used
 }
 
 // IAsk_stmtContext is an interface to support dynamic dispatch.
@@ -7339,7 +7340,7 @@ type IAsk_stmtContext interface {
 
 type Ask_stmtContext struct {
 	antlr.BaseParserRuleContext
-	parser antlr.Parser
+	parser	antlr.Parser
 }
 
 func NewEmptyAsk_stmtContext() *Ask_stmtContext {
@@ -7354,7 +7355,7 @@ func InitEmptyAsk_stmtContext(p *Ask_stmtContext) {
 	p.RuleIndex = NeuroScriptParserRULE_ask_stmt
 }
 
-func (*Ask_stmtContext) IsAsk_stmtContext() {}
+func (*Ask_stmtContext) IsAsk_stmtContext()	{}
 
 func NewAsk_stmtContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *Ask_stmtContext {
 	var p = new(Ask_stmtContext)
@@ -7367,7 +7368,7 @@ func NewAsk_stmtContext(parser antlr.Parser, parent antlr.ParserRuleContext, inv
 	return p
 }
 
-func (s *Ask_stmtContext) GetParser() antlr.Parser { return s.parser }
+func (s *Ask_stmtContext) GetParser() antlr.Parser	{ return s.parser }
 
 func (s *Ask_stmtContext) KW_ASK() antlr.TerminalNode {
 	return s.GetToken(NeuroScriptParserKW_ASK, 0)
@@ -7482,7 +7483,7 @@ errorExit:
 	}
 	p.ExitRule()
 	return localctx
-	goto errorExit // Trick to prevent compiler error if the label is not used
+	goto errorExit	// Trick to prevent compiler error if the label is not used
 }
 
 // IBreak_statementContext is an interface to support dynamic dispatch.
@@ -7501,7 +7502,7 @@ type IBreak_statementContext interface {
 
 type Break_statementContext struct {
 	antlr.BaseParserRuleContext
-	parser antlr.Parser
+	parser	antlr.Parser
 }
 
 func NewEmptyBreak_statementContext() *Break_statementContext {
@@ -7516,7 +7517,7 @@ func InitEmptyBreak_statementContext(p *Break_statementContext) {
 	p.RuleIndex = NeuroScriptParserRULE_break_statement
 }
 
-func (*Break_statementContext) IsBreak_statementContext() {}
+func (*Break_statementContext) IsBreak_statementContext()	{}
 
 func NewBreak_statementContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *Break_statementContext {
 	var p = new(Break_statementContext)
@@ -7529,7 +7530,7 @@ func NewBreak_statementContext(parser antlr.Parser, parent antlr.ParserRuleConte
 	return p
 }
 
-func (s *Break_statementContext) GetParser() antlr.Parser { return s.parser }
+func (s *Break_statementContext) GetParser() antlr.Parser	{ return s.parser }
 
 func (s *Break_statementContext) KW_BREAK() antlr.TerminalNode {
 	return s.GetToken(NeuroScriptParserKW_BREAK, 0)
@@ -7588,7 +7589,7 @@ errorExit:
 	}
 	p.ExitRule()
 	return localctx
-	goto errorExit // Trick to prevent compiler error if the label is not used
+	goto errorExit	// Trick to prevent compiler error if the label is not used
 }
 
 // IContinue_statementContext is an interface to support dynamic dispatch.
@@ -7607,7 +7608,7 @@ type IContinue_statementContext interface {
 
 type Continue_statementContext struct {
 	antlr.BaseParserRuleContext
-	parser antlr.Parser
+	parser	antlr.Parser
 }
 
 func NewEmptyContinue_statementContext() *Continue_statementContext {
@@ -7622,7 +7623,7 @@ func InitEmptyContinue_statementContext(p *Continue_statementContext) {
 	p.RuleIndex = NeuroScriptParserRULE_continue_statement
 }
 
-func (*Continue_statementContext) IsContinue_statementContext() {}
+func (*Continue_statementContext) IsContinue_statementContext()	{}
 
 func NewContinue_statementContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *Continue_statementContext {
 	var p = new(Continue_statementContext)
@@ -7635,7 +7636,7 @@ func NewContinue_statementContext(parser antlr.Parser, parent antlr.ParserRuleCo
 	return p
 }
 
-func (s *Continue_statementContext) GetParser() antlr.Parser { return s.parser }
+func (s *Continue_statementContext) GetParser() antlr.Parser	{ return s.parser }
 
 func (s *Continue_statementContext) KW_CONTINUE() antlr.TerminalNode {
 	return s.GetToken(NeuroScriptParserKW_CONTINUE, 0)
@@ -7694,7 +7695,7 @@ errorExit:
 	}
 	p.ExitRule()
 	return localctx
-	goto errorExit // Trick to prevent compiler error if the label is not used
+	goto errorExit	// Trick to prevent compiler error if the label is not used
 }
 
 // IIf_statementContext is an interface to support dynamic dispatch.
@@ -7720,7 +7721,7 @@ type IIf_statementContext interface {
 
 type If_statementContext struct {
 	antlr.BaseParserRuleContext
-	parser antlr.Parser
+	parser	antlr.Parser
 }
 
 func NewEmptyIf_statementContext() *If_statementContext {
@@ -7735,7 +7736,7 @@ func InitEmptyIf_statementContext(p *If_statementContext) {
 	p.RuleIndex = NeuroScriptParserRULE_if_statement
 }
 
-func (*If_statementContext) IsIf_statementContext() {}
+func (*If_statementContext) IsIf_statementContext()	{}
 
 func NewIf_statementContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *If_statementContext {
 	var p = new(If_statementContext)
@@ -7748,7 +7749,7 @@ func NewIf_statementContext(parser antlr.Parser, parent antlr.ParserRuleContext,
 	return p
 }
 
-func (s *If_statementContext) GetParser() antlr.Parser { return s.parser }
+func (s *If_statementContext) GetParser() antlr.Parser	{ return s.parser }
 
 func (s *If_statementContext) KW_IF() antlr.TerminalNode {
 	return s.GetToken(NeuroScriptParserKW_IF, 0)
@@ -7936,7 +7937,7 @@ errorExit:
 	}
 	p.ExitRule()
 	return localctx
-	goto errorExit // Trick to prevent compiler error if the label is not used
+	goto errorExit	// Trick to prevent compiler error if the label is not used
 }
 
 // IWhile_statementContext is an interface to support dynamic dispatch.
@@ -7959,7 +7960,7 @@ type IWhile_statementContext interface {
 
 type While_statementContext struct {
 	antlr.BaseParserRuleContext
-	parser antlr.Parser
+	parser	antlr.Parser
 }
 
 func NewEmptyWhile_statementContext() *While_statementContext {
@@ -7974,7 +7975,7 @@ func InitEmptyWhile_statementContext(p *While_statementContext) {
 	p.RuleIndex = NeuroScriptParserRULE_while_statement
 }
 
-func (*While_statementContext) IsWhile_statementContext() {}
+func (*While_statementContext) IsWhile_statementContext()	{}
 
 func NewWhile_statementContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *While_statementContext {
 	var p = new(While_statementContext)
@@ -7987,7 +7988,7 @@ func NewWhile_statementContext(parser antlr.Parser, parent antlr.ParserRuleConte
 	return p
 }
 
-func (s *While_statementContext) GetParser() antlr.Parser { return s.parser }
+func (s *While_statementContext) GetParser() antlr.Parser	{ return s.parser }
 
 func (s *While_statementContext) KW_WHILE() antlr.TerminalNode {
 	return s.GetToken(NeuroScriptParserKW_WHILE, 0)
@@ -8110,7 +8111,7 @@ errorExit:
 	}
 	p.ExitRule()
 	return localctx
-	goto errorExit // Trick to prevent compiler error if the label is not used
+	goto errorExit	// Trick to prevent compiler error if the label is not used
 }
 
 // IFor_each_statementContext is an interface to support dynamic dispatch.
@@ -8136,7 +8137,7 @@ type IFor_each_statementContext interface {
 
 type For_each_statementContext struct {
 	antlr.BaseParserRuleContext
-	parser antlr.Parser
+	parser	antlr.Parser
 }
 
 func NewEmptyFor_each_statementContext() *For_each_statementContext {
@@ -8151,7 +8152,7 @@ func InitEmptyFor_each_statementContext(p *For_each_statementContext) {
 	p.RuleIndex = NeuroScriptParserRULE_for_each_statement
 }
 
-func (*For_each_statementContext) IsFor_each_statementContext() {}
+func (*For_each_statementContext) IsFor_each_statementContext()	{}
 
 func NewFor_each_statementContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *For_each_statementContext {
 	var p = new(For_each_statementContext)
@@ -8164,7 +8165,7 @@ func NewFor_each_statementContext(parser antlr.Parser, parent antlr.ParserRuleCo
 	return p
 }
 
-func (s *For_each_statementContext) GetParser() antlr.Parser { return s.parser }
+func (s *For_each_statementContext) GetParser() antlr.Parser	{ return s.parser }
 
 func (s *For_each_statementContext) KW_FOR() antlr.TerminalNode {
 	return s.GetToken(NeuroScriptParserKW_FOR, 0)
@@ -8323,7 +8324,7 @@ errorExit:
 	}
 	p.ExitRule()
 	return localctx
-	goto errorExit // Trick to prevent compiler error if the label is not used
+	goto errorExit	// Trick to prevent compiler error if the label is not used
 }
 
 // IQualified_identifierContext is an interface to support dynamic dispatch.
@@ -8345,7 +8346,7 @@ type IQualified_identifierContext interface {
 
 type Qualified_identifierContext struct {
 	antlr.BaseParserRuleContext
-	parser antlr.Parser
+	parser	antlr.Parser
 }
 
 func NewEmptyQualified_identifierContext() *Qualified_identifierContext {
@@ -8360,7 +8361,7 @@ func InitEmptyQualified_identifierContext(p *Qualified_identifierContext) {
 	p.RuleIndex = NeuroScriptParserRULE_qualified_identifier
 }
 
-func (*Qualified_identifierContext) IsQualified_identifierContext() {}
+func (*Qualified_identifierContext) IsQualified_identifierContext()	{}
 
 func NewQualified_identifierContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *Qualified_identifierContext {
 	var p = new(Qualified_identifierContext)
@@ -8373,7 +8374,7 @@ func NewQualified_identifierContext(parser antlr.Parser, parent antlr.ParserRule
 	return p
 }
 
-func (s *Qualified_identifierContext) GetParser() antlr.Parser { return s.parser }
+func (s *Qualified_identifierContext) GetParser() antlr.Parser	{ return s.parser }
 
 func (s *Qualified_identifierContext) AllIDENTIFIER() []antlr.TerminalNode {
 	return s.GetTokens(NeuroScriptParserIDENTIFIER)
@@ -8478,7 +8479,7 @@ errorExit:
 	}
 	p.ExitRule()
 	return localctx
-	goto errorExit // Trick to prevent compiler error if the label is not used
+	goto errorExit	// Trick to prevent compiler error if the label is not used
 }
 
 // ICall_targetContext is an interface to support dynamic dispatch.
@@ -8500,7 +8501,7 @@ type ICall_targetContext interface {
 
 type Call_targetContext struct {
 	antlr.BaseParserRuleContext
-	parser antlr.Parser
+	parser	antlr.Parser
 }
 
 func NewEmptyCall_targetContext() *Call_targetContext {
@@ -8515,7 +8516,7 @@ func InitEmptyCall_targetContext(p *Call_targetContext) {
 	p.RuleIndex = NeuroScriptParserRULE_call_target
 }
 
-func (*Call_targetContext) IsCall_targetContext() {}
+func (*Call_targetContext) IsCall_targetContext()	{}
 
 func NewCall_targetContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *Call_targetContext {
 	var p = new(Call_targetContext)
@@ -8528,7 +8529,7 @@ func NewCall_targetContext(parser antlr.Parser, parent antlr.ParserRuleContext, 
 	return p
 }
 
-func (s *Call_targetContext) GetParser() antlr.Parser { return s.parser }
+func (s *Call_targetContext) GetParser() antlr.Parser	{ return s.parser }
 
 func (s *Call_targetContext) IDENTIFIER() antlr.TerminalNode {
 	return s.GetToken(NeuroScriptParserIDENTIFIER, 0)
@@ -8647,7 +8648,7 @@ errorExit:
 	}
 	p.ExitRule()
 	return localctx
-	goto errorExit // Trick to prevent compiler error if the label is not used
+	goto errorExit	// Trick to prevent compiler error if the label is not used
 }
 
 // IExpressionContext is an interface to support dynamic dispatch.
@@ -8666,7 +8667,7 @@ type IExpressionContext interface {
 
 type ExpressionContext struct {
 	antlr.BaseParserRuleContext
-	parser antlr.Parser
+	parser	antlr.Parser
 }
 
 func NewEmptyExpressionContext() *ExpressionContext {
@@ -8681,7 +8682,7 @@ func InitEmptyExpressionContext(p *ExpressionContext) {
 	p.RuleIndex = NeuroScriptParserRULE_expression
 }
 
-func (*ExpressionContext) IsExpressionContext() {}
+func (*ExpressionContext) IsExpressionContext()	{}
 
 func NewExpressionContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *ExpressionContext {
 	var p = new(ExpressionContext)
@@ -8694,7 +8695,7 @@ func NewExpressionContext(parser antlr.Parser, parent antlr.ParserRuleContext, i
 	return p
 }
 
-func (s *ExpressionContext) GetParser() antlr.Parser { return s.parser }
+func (s *ExpressionContext) GetParser() antlr.Parser	{ return s.parser }
 
 func (s *ExpressionContext) Logical_or_expr() ILogical_or_exprContext {
 	var t antlr.RuleContext
@@ -8761,7 +8762,7 @@ errorExit:
 	}
 	p.ExitRule()
 	return localctx
-	goto errorExit // Trick to prevent compiler error if the label is not used
+	goto errorExit	// Trick to prevent compiler error if the label is not used
 }
 
 // ILogical_or_exprContext is an interface to support dynamic dispatch.
@@ -8783,7 +8784,7 @@ type ILogical_or_exprContext interface {
 
 type Logical_or_exprContext struct {
 	antlr.BaseParserRuleContext
-	parser antlr.Parser
+	parser	antlr.Parser
 }
 
 func NewEmptyLogical_or_exprContext() *Logical_or_exprContext {
@@ -8798,7 +8799,7 @@ func InitEmptyLogical_or_exprContext(p *Logical_or_exprContext) {
 	p.RuleIndex = NeuroScriptParserRULE_logical_or_expr
 }
 
-func (*Logical_or_exprContext) IsLogical_or_exprContext() {}
+func (*Logical_or_exprContext) IsLogical_or_exprContext()	{}
 
 func NewLogical_or_exprContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *Logical_or_exprContext {
 	var p = new(Logical_or_exprContext)
@@ -8811,7 +8812,7 @@ func NewLogical_or_exprContext(parser antlr.Parser, parent antlr.ParserRuleConte
 	return p
 }
 
-func (s *Logical_or_exprContext) GetParser() antlr.Parser { return s.parser }
+func (s *Logical_or_exprContext) GetParser() antlr.Parser	{ return s.parser }
 
 func (s *Logical_or_exprContext) AllLogical_and_expr() []ILogical_and_exprContext {
 	children := s.GetChildren()
@@ -8941,7 +8942,7 @@ errorExit:
 	}
 	p.ExitRule()
 	return localctx
-	goto errorExit // Trick to prevent compiler error if the label is not used
+	goto errorExit	// Trick to prevent compiler error if the label is not used
 }
 
 // ILogical_and_exprContext is an interface to support dynamic dispatch.
@@ -8963,7 +8964,7 @@ type ILogical_and_exprContext interface {
 
 type Logical_and_exprContext struct {
 	antlr.BaseParserRuleContext
-	parser antlr.Parser
+	parser	antlr.Parser
 }
 
 func NewEmptyLogical_and_exprContext() *Logical_and_exprContext {
@@ -8978,7 +8979,7 @@ func InitEmptyLogical_and_exprContext(p *Logical_and_exprContext) {
 	p.RuleIndex = NeuroScriptParserRULE_logical_and_expr
 }
 
-func (*Logical_and_exprContext) IsLogical_and_exprContext() {}
+func (*Logical_and_exprContext) IsLogical_and_exprContext()	{}
 
 func NewLogical_and_exprContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *Logical_and_exprContext {
 	var p = new(Logical_and_exprContext)
@@ -8991,7 +8992,7 @@ func NewLogical_and_exprContext(parser antlr.Parser, parent antlr.ParserRuleCont
 	return p
 }
 
-func (s *Logical_and_exprContext) GetParser() antlr.Parser { return s.parser }
+func (s *Logical_and_exprContext) GetParser() antlr.Parser	{ return s.parser }
 
 func (s *Logical_and_exprContext) AllBitwise_or_expr() []IBitwise_or_exprContext {
 	children := s.GetChildren()
@@ -9121,7 +9122,7 @@ errorExit:
 	}
 	p.ExitRule()
 	return localctx
-	goto errorExit // Trick to prevent compiler error if the label is not used
+	goto errorExit	// Trick to prevent compiler error if the label is not used
 }
 
 // IBitwise_or_exprContext is an interface to support dynamic dispatch.
@@ -9143,7 +9144,7 @@ type IBitwise_or_exprContext interface {
 
 type Bitwise_or_exprContext struct {
 	antlr.BaseParserRuleContext
-	parser antlr.Parser
+	parser	antlr.Parser
 }
 
 func NewEmptyBitwise_or_exprContext() *Bitwise_or_exprContext {
@@ -9158,7 +9159,7 @@ func InitEmptyBitwise_or_exprContext(p *Bitwise_or_exprContext) {
 	p.RuleIndex = NeuroScriptParserRULE_bitwise_or_expr
 }
 
-func (*Bitwise_or_exprContext) IsBitwise_or_exprContext() {}
+func (*Bitwise_or_exprContext) IsBitwise_or_exprContext()	{}
 
 func NewBitwise_or_exprContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *Bitwise_or_exprContext {
 	var p = new(Bitwise_or_exprContext)
@@ -9171,7 +9172,7 @@ func NewBitwise_or_exprContext(parser antlr.Parser, parent antlr.ParserRuleConte
 	return p
 }
 
-func (s *Bitwise_or_exprContext) GetParser() antlr.Parser { return s.parser }
+func (s *Bitwise_or_exprContext) GetParser() antlr.Parser	{ return s.parser }
 
 func (s *Bitwise_or_exprContext) AllBitwise_xor_expr() []IBitwise_xor_exprContext {
 	children := s.GetChildren()
@@ -9301,7 +9302,7 @@ errorExit:
 	}
 	p.ExitRule()
 	return localctx
-	goto errorExit // Trick to prevent compiler error if the label is not used
+	goto errorExit	// Trick to prevent compiler error if the label is not used
 }
 
 // IBitwise_xor_exprContext is an interface to support dynamic dispatch.
@@ -9323,7 +9324,7 @@ type IBitwise_xor_exprContext interface {
 
 type Bitwise_xor_exprContext struct {
 	antlr.BaseParserRuleContext
-	parser antlr.Parser
+	parser	antlr.Parser
 }
 
 func NewEmptyBitwise_xor_exprContext() *Bitwise_xor_exprContext {
@@ -9338,7 +9339,7 @@ func InitEmptyBitwise_xor_exprContext(p *Bitwise_xor_exprContext) {
 	p.RuleIndex = NeuroScriptParserRULE_bitwise_xor_expr
 }
 
-func (*Bitwise_xor_exprContext) IsBitwise_xor_exprContext() {}
+func (*Bitwise_xor_exprContext) IsBitwise_xor_exprContext()	{}
 
 func NewBitwise_xor_exprContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *Bitwise_xor_exprContext {
 	var p = new(Bitwise_xor_exprContext)
@@ -9351,7 +9352,7 @@ func NewBitwise_xor_exprContext(parser antlr.Parser, parent antlr.ParserRuleCont
 	return p
 }
 
-func (s *Bitwise_xor_exprContext) GetParser() antlr.Parser { return s.parser }
+func (s *Bitwise_xor_exprContext) GetParser() antlr.Parser	{ return s.parser }
 
 func (s *Bitwise_xor_exprContext) AllBitwise_and_expr() []IBitwise_and_exprContext {
 	children := s.GetChildren()
@@ -9481,7 +9482,7 @@ errorExit:
 	}
 	p.ExitRule()
 	return localctx
-	goto errorExit // Trick to prevent compiler error if the label is not used
+	goto errorExit	// Trick to prevent compiler error if the label is not used
 }
 
 // IBitwise_and_exprContext is an interface to support dynamic dispatch.
@@ -9503,7 +9504,7 @@ type IBitwise_and_exprContext interface {
 
 type Bitwise_and_exprContext struct {
 	antlr.BaseParserRuleContext
-	parser antlr.Parser
+	parser	antlr.Parser
 }
 
 func NewEmptyBitwise_and_exprContext() *Bitwise_and_exprContext {
@@ -9518,7 +9519,7 @@ func InitEmptyBitwise_and_exprContext(p *Bitwise_and_exprContext) {
 	p.RuleIndex = NeuroScriptParserRULE_bitwise_and_expr
 }
 
-func (*Bitwise_and_exprContext) IsBitwise_and_exprContext() {}
+func (*Bitwise_and_exprContext) IsBitwise_and_exprContext()	{}
 
 func NewBitwise_and_exprContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *Bitwise_and_exprContext {
 	var p = new(Bitwise_and_exprContext)
@@ -9531,7 +9532,7 @@ func NewBitwise_and_exprContext(parser antlr.Parser, parent antlr.ParserRuleCont
 	return p
 }
 
-func (s *Bitwise_and_exprContext) GetParser() antlr.Parser { return s.parser }
+func (s *Bitwise_and_exprContext) GetParser() antlr.Parser	{ return s.parser }
 
 func (s *Bitwise_and_exprContext) AllEquality_expr() []IEquality_exprContext {
 	children := s.GetChildren()
@@ -9661,7 +9662,7 @@ errorExit:
 	}
 	p.ExitRule()
 	return localctx
-	goto errorExit // Trick to prevent compiler error if the label is not used
+	goto errorExit	// Trick to prevent compiler error if the label is not used
 }
 
 // IEquality_exprContext is an interface to support dynamic dispatch.
@@ -9685,7 +9686,7 @@ type IEquality_exprContext interface {
 
 type Equality_exprContext struct {
 	antlr.BaseParserRuleContext
-	parser antlr.Parser
+	parser	antlr.Parser
 }
 
 func NewEmptyEquality_exprContext() *Equality_exprContext {
@@ -9700,7 +9701,7 @@ func InitEmptyEquality_exprContext(p *Equality_exprContext) {
 	p.RuleIndex = NeuroScriptParserRULE_equality_expr
 }
 
-func (*Equality_exprContext) IsEquality_exprContext() {}
+func (*Equality_exprContext) IsEquality_exprContext()	{}
 
 func NewEquality_exprContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *Equality_exprContext {
 	var p = new(Equality_exprContext)
@@ -9713,7 +9714,7 @@ func NewEquality_exprContext(parser antlr.Parser, parent antlr.ParserRuleContext
 	return p
 }
 
-func (s *Equality_exprContext) GetParser() antlr.Parser { return s.parser }
+func (s *Equality_exprContext) GetParser() antlr.Parser	{ return s.parser }
 
 func (s *Equality_exprContext) AllRelational_expr() []IRelational_exprContext {
 	children := s.GetChildren()
@@ -9854,7 +9855,7 @@ errorExit:
 	}
 	p.ExitRule()
 	return localctx
-	goto errorExit // Trick to prevent compiler error if the label is not used
+	goto errorExit	// Trick to prevent compiler error if the label is not used
 }
 
 // IRelational_exprContext is an interface to support dynamic dispatch.
@@ -9882,7 +9883,7 @@ type IRelational_exprContext interface {
 
 type Relational_exprContext struct {
 	antlr.BaseParserRuleContext
-	parser antlr.Parser
+	parser	antlr.Parser
 }
 
 func NewEmptyRelational_exprContext() *Relational_exprContext {
@@ -9897,7 +9898,7 @@ func InitEmptyRelational_exprContext(p *Relational_exprContext) {
 	p.RuleIndex = NeuroScriptParserRULE_relational_expr
 }
 
-func (*Relational_exprContext) IsRelational_exprContext() {}
+func (*Relational_exprContext) IsRelational_exprContext()	{}
 
 func NewRelational_exprContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *Relational_exprContext {
 	var p = new(Relational_exprContext)
@@ -9910,7 +9911,7 @@ func NewRelational_exprContext(parser antlr.Parser, parent antlr.ParserRuleConte
 	return p
 }
 
-func (s *Relational_exprContext) GetParser() antlr.Parser { return s.parser }
+func (s *Relational_exprContext) GetParser() antlr.Parser	{ return s.parser }
 
 func (s *Relational_exprContext) AllAdditive_expr() []IAdditive_exprContext {
 	children := s.GetChildren()
@@ -10067,7 +10068,7 @@ errorExit:
 	}
 	p.ExitRule()
 	return localctx
-	goto errorExit // Trick to prevent compiler error if the label is not used
+	goto errorExit	// Trick to prevent compiler error if the label is not used
 }
 
 // IAdditive_exprContext is an interface to support dynamic dispatch.
@@ -10091,7 +10092,7 @@ type IAdditive_exprContext interface {
 
 type Additive_exprContext struct {
 	antlr.BaseParserRuleContext
-	parser antlr.Parser
+	parser	antlr.Parser
 }
 
 func NewEmptyAdditive_exprContext() *Additive_exprContext {
@@ -10106,7 +10107,7 @@ func InitEmptyAdditive_exprContext(p *Additive_exprContext) {
 	p.RuleIndex = NeuroScriptParserRULE_additive_expr
 }
 
-func (*Additive_exprContext) IsAdditive_exprContext() {}
+func (*Additive_exprContext) IsAdditive_exprContext()	{}
 
 func NewAdditive_exprContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *Additive_exprContext {
 	var p = new(Additive_exprContext)
@@ -10119,7 +10120,7 @@ func NewAdditive_exprContext(parser antlr.Parser, parent antlr.ParserRuleContext
 	return p
 }
 
-func (s *Additive_exprContext) GetParser() antlr.Parser { return s.parser }
+func (s *Additive_exprContext) GetParser() antlr.Parser	{ return s.parser }
 
 func (s *Additive_exprContext) AllMultiplicative_expr() []IMultiplicative_exprContext {
 	children := s.GetChildren()
@@ -10260,7 +10261,7 @@ errorExit:
 	}
 	p.ExitRule()
 	return localctx
-	goto errorExit // Trick to prevent compiler error if the label is not used
+	goto errorExit	// Trick to prevent compiler error if the label is not used
 }
 
 // IMultiplicative_exprContext is an interface to support dynamic dispatch.
@@ -10286,7 +10287,7 @@ type IMultiplicative_exprContext interface {
 
 type Multiplicative_exprContext struct {
 	antlr.BaseParserRuleContext
-	parser antlr.Parser
+	parser	antlr.Parser
 }
 
 func NewEmptyMultiplicative_exprContext() *Multiplicative_exprContext {
@@ -10301,7 +10302,7 @@ func InitEmptyMultiplicative_exprContext(p *Multiplicative_exprContext) {
 	p.RuleIndex = NeuroScriptParserRULE_multiplicative_expr
 }
 
-func (*Multiplicative_exprContext) IsMultiplicative_exprContext() {}
+func (*Multiplicative_exprContext) IsMultiplicative_exprContext()	{}
 
 func NewMultiplicative_exprContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *Multiplicative_exprContext {
 	var p = new(Multiplicative_exprContext)
@@ -10314,7 +10315,7 @@ func NewMultiplicative_exprContext(parser antlr.Parser, parent antlr.ParserRuleC
 	return p
 }
 
-func (s *Multiplicative_exprContext) GetParser() antlr.Parser { return s.parser }
+func (s *Multiplicative_exprContext) GetParser() antlr.Parser	{ return s.parser }
 
 func (s *Multiplicative_exprContext) AllUnary_expr() []IUnary_exprContext {
 	children := s.GetChildren()
@@ -10463,7 +10464,7 @@ errorExit:
 	}
 	p.ExitRule()
 	return localctx
-	goto errorExit // Trick to prevent compiler error if the label is not used
+	goto errorExit	// Trick to prevent compiler error if the label is not used
 }
 
 // IUnary_exprContext is an interface to support dynamic dispatch.
@@ -10490,7 +10491,7 @@ type IUnary_exprContext interface {
 
 type Unary_exprContext struct {
 	antlr.BaseParserRuleContext
-	parser antlr.Parser
+	parser	antlr.Parser
 }
 
 func NewEmptyUnary_exprContext() *Unary_exprContext {
@@ -10505,7 +10506,7 @@ func InitEmptyUnary_exprContext(p *Unary_exprContext) {
 	p.RuleIndex = NeuroScriptParserRULE_unary_expr
 }
 
-func (*Unary_exprContext) IsUnary_exprContext() {}
+func (*Unary_exprContext) IsUnary_exprContext()	{}
 
 func NewUnary_exprContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *Unary_exprContext {
 	var p = new(Unary_exprContext)
@@ -10518,7 +10519,7 @@ func NewUnary_exprContext(parser antlr.Parser, parent antlr.ParserRuleContext, i
 	return p
 }
 
-func (s *Unary_exprContext) GetParser() antlr.Parser { return s.parser }
+func (s *Unary_exprContext) GetParser() antlr.Parser	{ return s.parser }
 
 func (s *Unary_exprContext) Unary_expr() IUnary_exprContext {
 	var t antlr.RuleContext
@@ -10677,7 +10678,7 @@ errorExit:
 	}
 	p.ExitRule()
 	return localctx
-	goto errorExit // Trick to prevent compiler error if the label is not used
+	goto errorExit	// Trick to prevent compiler error if the label is not used
 }
 
 // IPower_exprContext is an interface to support dynamic dispatch.
@@ -10698,7 +10699,7 @@ type IPower_exprContext interface {
 
 type Power_exprContext struct {
 	antlr.BaseParserRuleContext
-	parser antlr.Parser
+	parser	antlr.Parser
 }
 
 func NewEmptyPower_exprContext() *Power_exprContext {
@@ -10713,7 +10714,7 @@ func InitEmptyPower_exprContext(p *Power_exprContext) {
 	p.RuleIndex = NeuroScriptParserRULE_power_expr
 }
 
-func (*Power_exprContext) IsPower_exprContext() {}
+func (*Power_exprContext) IsPower_exprContext()	{}
 
 func NewPower_exprContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *Power_exprContext {
 	var p = new(Power_exprContext)
@@ -10726,7 +10727,7 @@ func NewPower_exprContext(parser antlr.Parser, parent antlr.ParserRuleContext, i
 	return p
 }
 
-func (s *Power_exprContext) GetParser() antlr.Parser { return s.parser }
+func (s *Power_exprContext) GetParser() antlr.Parser	{ return s.parser }
 
 func (s *Power_exprContext) Accessor_expr() IAccessor_exprContext {
 	var t antlr.RuleContext
@@ -10837,7 +10838,7 @@ errorExit:
 	}
 	p.ExitRule()
 	return localctx
-	goto errorExit // Trick to prevent compiler error if the label is not used
+	goto errorExit	// Trick to prevent compiler error if the label is not used
 }
 
 // IAccessor_exprContext is an interface to support dynamic dispatch.
@@ -10862,7 +10863,7 @@ type IAccessor_exprContext interface {
 
 type Accessor_exprContext struct {
 	antlr.BaseParserRuleContext
-	parser antlr.Parser
+	parser	antlr.Parser
 }
 
 func NewEmptyAccessor_exprContext() *Accessor_exprContext {
@@ -10877,7 +10878,7 @@ func InitEmptyAccessor_exprContext(p *Accessor_exprContext) {
 	p.RuleIndex = NeuroScriptParserRULE_accessor_expr
 }
 
-func (*Accessor_exprContext) IsAccessor_exprContext() {}
+func (*Accessor_exprContext) IsAccessor_exprContext()	{}
 
 func NewAccessor_exprContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *Accessor_exprContext {
 	var p = new(Accessor_exprContext)
@@ -10890,7 +10891,7 @@ func NewAccessor_exprContext(parser antlr.Parser, parent antlr.ParserRuleContext
 	return p
 }
 
-func (s *Accessor_exprContext) GetParser() antlr.Parser { return s.parser }
+func (s *Accessor_exprContext) GetParser() antlr.Parser	{ return s.parser }
 
 func (s *Accessor_exprContext) Primary() IPrimaryContext {
 	var t antlr.RuleContext
@@ -11052,7 +11053,7 @@ errorExit:
 	}
 	p.ExitRule()
 	return localctx
-	goto errorExit // Trick to prevent compiler error if the label is not used
+	goto errorExit	// Trick to prevent compiler error if the label is not used
 }
 
 // IPrimaryContext is an interface to support dynamic dispatch.
@@ -11079,7 +11080,7 @@ type IPrimaryContext interface {
 
 type PrimaryContext struct {
 	antlr.BaseParserRuleContext
-	parser antlr.Parser
+	parser	antlr.Parser
 }
 
 func NewEmptyPrimaryContext() *PrimaryContext {
@@ -11094,7 +11095,7 @@ func InitEmptyPrimaryContext(p *PrimaryContext) {
 	p.RuleIndex = NeuroScriptParserRULE_primary
 }
 
-func (*PrimaryContext) IsPrimaryContext() {}
+func (*PrimaryContext) IsPrimaryContext()	{}
 
 func NewPrimaryContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *PrimaryContext {
 	var p = new(PrimaryContext)
@@ -11107,7 +11108,7 @@ func NewPrimaryContext(parser antlr.Parser, parent antlr.ParserRuleContext, invo
 	return p
 }
 
-func (s *PrimaryContext) GetParser() antlr.Parser { return s.parser }
+func (s *PrimaryContext) GetParser() antlr.Parser	{ return s.parser }
 
 func (s *PrimaryContext) Literal() ILiteralContext {
 	var t antlr.RuleContext
@@ -11344,7 +11345,7 @@ errorExit:
 	}
 	p.ExitRule()
 	return localctx
-	goto errorExit // Trick to prevent compiler error if the label is not used
+	goto errorExit	// Trick to prevent compiler error if the label is not used
 }
 
 // ICallable_exprContext is an interface to support dynamic dispatch.
@@ -11375,7 +11376,7 @@ type ICallable_exprContext interface {
 
 type Callable_exprContext struct {
 	antlr.BaseParserRuleContext
-	parser antlr.Parser
+	parser	antlr.Parser
 }
 
 func NewEmptyCallable_exprContext() *Callable_exprContext {
@@ -11390,7 +11391,7 @@ func InitEmptyCallable_exprContext(p *Callable_exprContext) {
 	p.RuleIndex = NeuroScriptParserRULE_callable_expr
 }
 
-func (*Callable_exprContext) IsCallable_exprContext() {}
+func (*Callable_exprContext) IsCallable_exprContext()	{}
 
 func NewCallable_exprContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *Callable_exprContext {
 	var p = new(Callable_exprContext)
@@ -11403,7 +11404,7 @@ func NewCallable_exprContext(parser antlr.Parser, parent antlr.ParserRuleContext
 	return p
 }
 
-func (s *Callable_exprContext) GetParser() antlr.Parser { return s.parser }
+func (s *Callable_exprContext) GetParser() antlr.Parser	{ return s.parser }
 
 func (s *Callable_exprContext) LPAREN() antlr.TerminalNode {
 	return s.GetToken(NeuroScriptParserLPAREN, 0)
@@ -11653,7 +11654,7 @@ errorExit:
 	}
 	p.ExitRule()
 	return localctx
-	goto errorExit // Trick to prevent compiler error if the label is not used
+	goto errorExit	// Trick to prevent compiler error if the label is not used
 }
 
 // IPlaceholderContext is an interface to support dynamic dispatch.
@@ -11675,7 +11676,7 @@ type IPlaceholderContext interface {
 
 type PlaceholderContext struct {
 	antlr.BaseParserRuleContext
-	parser antlr.Parser
+	parser	antlr.Parser
 }
 
 func NewEmptyPlaceholderContext() *PlaceholderContext {
@@ -11690,7 +11691,7 @@ func InitEmptyPlaceholderContext(p *PlaceholderContext) {
 	p.RuleIndex = NeuroScriptParserRULE_placeholder
 }
 
-func (*PlaceholderContext) IsPlaceholderContext() {}
+func (*PlaceholderContext) IsPlaceholderContext()	{}
 
 func NewPlaceholderContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *PlaceholderContext {
 	var p = new(PlaceholderContext)
@@ -11703,7 +11704,7 @@ func NewPlaceholderContext(parser antlr.Parser, parent antlr.ParserRuleContext, 
 	return p
 }
 
-func (s *PlaceholderContext) GetParser() antlr.Parser { return s.parser }
+func (s *PlaceholderContext) GetParser() antlr.Parser	{ return s.parser }
 
 func (s *PlaceholderContext) PLACEHOLDER_START() antlr.TerminalNode {
 	return s.GetToken(NeuroScriptParserPLACEHOLDER_START, 0)
@@ -11795,7 +11796,7 @@ errorExit:
 	}
 	p.ExitRule()
 	return localctx
-	goto errorExit // Trick to prevent compiler error if the label is not used
+	goto errorExit	// Trick to prevent compiler error if the label is not used
 }
 
 // ILiteralContext is an interface to support dynamic dispatch.
@@ -11820,7 +11821,7 @@ type ILiteralContext interface {
 
 type LiteralContext struct {
 	antlr.BaseParserRuleContext
-	parser antlr.Parser
+	parser	antlr.Parser
 }
 
 func NewEmptyLiteralContext() *LiteralContext {
@@ -11835,7 +11836,7 @@ func InitEmptyLiteralContext(p *LiteralContext) {
 	p.RuleIndex = NeuroScriptParserRULE_literal
 }
 
-func (*LiteralContext) IsLiteralContext() {}
+func (*LiteralContext) IsLiteralContext()	{}
 
 func NewLiteralContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *LiteralContext {
 	var p = new(LiteralContext)
@@ -11848,7 +11849,7 @@ func NewLiteralContext(parser antlr.Parser, parent antlr.ParserRuleContext, invo
 	return p
 }
 
-func (s *LiteralContext) GetParser() antlr.Parser { return s.parser }
+func (s *LiteralContext) GetParser() antlr.Parser	{ return s.parser }
 
 func (s *LiteralContext) STRING_LIT() antlr.TerminalNode {
 	return s.GetToken(NeuroScriptParserSTRING_LIT, 0)
@@ -12042,7 +12043,7 @@ errorExit:
 	}
 	p.ExitRule()
 	return localctx
-	goto errorExit // Trick to prevent compiler error if the label is not used
+	goto errorExit	// Trick to prevent compiler error if the label is not used
 }
 
 // INil_literalContext is an interface to support dynamic dispatch.
@@ -12061,7 +12062,7 @@ type INil_literalContext interface {
 
 type Nil_literalContext struct {
 	antlr.BaseParserRuleContext
-	parser antlr.Parser
+	parser	antlr.Parser
 }
 
 func NewEmptyNil_literalContext() *Nil_literalContext {
@@ -12076,7 +12077,7 @@ func InitEmptyNil_literalContext(p *Nil_literalContext) {
 	p.RuleIndex = NeuroScriptParserRULE_nil_literal
 }
 
-func (*Nil_literalContext) IsNil_literalContext() {}
+func (*Nil_literalContext) IsNil_literalContext()	{}
 
 func NewNil_literalContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *Nil_literalContext {
 	var p = new(Nil_literalContext)
@@ -12089,7 +12090,7 @@ func NewNil_literalContext(parser antlr.Parser, parent antlr.ParserRuleContext, 
 	return p
 }
 
-func (s *Nil_literalContext) GetParser() antlr.Parser { return s.parser }
+func (s *Nil_literalContext) GetParser() antlr.Parser	{ return s.parser }
 
 func (s *Nil_literalContext) KW_NIL() antlr.TerminalNode {
 	return s.GetToken(NeuroScriptParserKW_NIL, 0)
@@ -12148,7 +12149,7 @@ errorExit:
 	}
 	p.ExitRule()
 	return localctx
-	goto errorExit // Trick to prevent compiler error if the label is not used
+	goto errorExit	// Trick to prevent compiler error if the label is not used
 }
 
 // IBoolean_literalContext is an interface to support dynamic dispatch.
@@ -12168,7 +12169,7 @@ type IBoolean_literalContext interface {
 
 type Boolean_literalContext struct {
 	antlr.BaseParserRuleContext
-	parser antlr.Parser
+	parser	antlr.Parser
 }
 
 func NewEmptyBoolean_literalContext() *Boolean_literalContext {
@@ -12183,7 +12184,7 @@ func InitEmptyBoolean_literalContext(p *Boolean_literalContext) {
 	p.RuleIndex = NeuroScriptParserRULE_boolean_literal
 }
 
-func (*Boolean_literalContext) IsBoolean_literalContext() {}
+func (*Boolean_literalContext) IsBoolean_literalContext()	{}
 
 func NewBoolean_literalContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *Boolean_literalContext {
 	var p = new(Boolean_literalContext)
@@ -12196,7 +12197,7 @@ func NewBoolean_literalContext(parser antlr.Parser, parent antlr.ParserRuleConte
 	return p
 }
 
-func (s *Boolean_literalContext) GetParser() antlr.Parser { return s.parser }
+func (s *Boolean_literalContext) GetParser() antlr.Parser	{ return s.parser }
 
 func (s *Boolean_literalContext) KW_TRUE() antlr.TerminalNode {
 	return s.GetToken(NeuroScriptParserKW_TRUE, 0)
@@ -12264,7 +12265,7 @@ errorExit:
 	}
 	p.ExitRule()
 	return localctx
-	goto errorExit // Trick to prevent compiler error if the label is not used
+	goto errorExit	// Trick to prevent compiler error if the label is not used
 }
 
 // IList_literalContext is an interface to support dynamic dispatch.
@@ -12285,7 +12286,7 @@ type IList_literalContext interface {
 
 type List_literalContext struct {
 	antlr.BaseParserRuleContext
-	parser antlr.Parser
+	parser	antlr.Parser
 }
 
 func NewEmptyList_literalContext() *List_literalContext {
@@ -12300,7 +12301,7 @@ func InitEmptyList_literalContext(p *List_literalContext) {
 	p.RuleIndex = NeuroScriptParserRULE_list_literal
 }
 
-func (*List_literalContext) IsList_literalContext() {}
+func (*List_literalContext) IsList_literalContext()	{}
 
 func NewList_literalContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *List_literalContext {
 	var p = new(List_literalContext)
@@ -12313,7 +12314,7 @@ func NewList_literalContext(parser antlr.Parser, parent antlr.ParserRuleContext,
 	return p
 }
 
-func (s *List_literalContext) GetParser() antlr.Parser { return s.parser }
+func (s *List_literalContext) GetParser() antlr.Parser	{ return s.parser }
 
 func (s *List_literalContext) LBRACK() antlr.TerminalNode {
 	return s.GetToken(NeuroScriptParserLBRACK, 0)
@@ -12404,7 +12405,7 @@ errorExit:
 	}
 	p.ExitRule()
 	return localctx
-	goto errorExit // Trick to prevent compiler error if the label is not used
+	goto errorExit	// Trick to prevent compiler error if the label is not used
 }
 
 // IMap_literalContext is an interface to support dynamic dispatch.
@@ -12425,7 +12426,7 @@ type IMap_literalContext interface {
 
 type Map_literalContext struct {
 	antlr.BaseParserRuleContext
-	parser antlr.Parser
+	parser	antlr.Parser
 }
 
 func NewEmptyMap_literalContext() *Map_literalContext {
@@ -12440,7 +12441,7 @@ func InitEmptyMap_literalContext(p *Map_literalContext) {
 	p.RuleIndex = NeuroScriptParserRULE_map_literal
 }
 
-func (*Map_literalContext) IsMap_literalContext() {}
+func (*Map_literalContext) IsMap_literalContext()	{}
 
 func NewMap_literalContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *Map_literalContext {
 	var p = new(Map_literalContext)
@@ -12453,7 +12454,7 @@ func NewMap_literalContext(parser antlr.Parser, parent antlr.ParserRuleContext, 
 	return p
 }
 
-func (s *Map_literalContext) GetParser() antlr.Parser { return s.parser }
+func (s *Map_literalContext) GetParser() antlr.Parser	{ return s.parser }
 
 func (s *Map_literalContext) LBRACE() antlr.TerminalNode {
 	return s.GetToken(NeuroScriptParserLBRACE, 0)
@@ -12544,7 +12545,7 @@ errorExit:
 	}
 	p.ExitRule()
 	return localctx
-	goto errorExit // Trick to prevent compiler error if the label is not used
+	goto errorExit	// Trick to prevent compiler error if the label is not used
 }
 
 // IExpression_list_optContext is an interface to support dynamic dispatch.
@@ -12563,7 +12564,7 @@ type IExpression_list_optContext interface {
 
 type Expression_list_optContext struct {
 	antlr.BaseParserRuleContext
-	parser antlr.Parser
+	parser	antlr.Parser
 }
 
 func NewEmptyExpression_list_optContext() *Expression_list_optContext {
@@ -12578,7 +12579,7 @@ func InitEmptyExpression_list_optContext(p *Expression_list_optContext) {
 	p.RuleIndex = NeuroScriptParserRULE_expression_list_opt
 }
 
-func (*Expression_list_optContext) IsExpression_list_optContext() {}
+func (*Expression_list_optContext) IsExpression_list_optContext()	{}
 
 func NewExpression_list_optContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *Expression_list_optContext {
 	var p = new(Expression_list_optContext)
@@ -12591,7 +12592,7 @@ func NewExpression_list_optContext(parser antlr.Parser, parent antlr.ParserRuleC
 	return p
 }
 
-func (s *Expression_list_optContext) GetParser() antlr.Parser { return s.parser }
+func (s *Expression_list_optContext) GetParser() antlr.Parser	{ return s.parser }
 
 func (s *Expression_list_optContext) Expression_list() IExpression_listContext {
 	var t antlr.RuleContext
@@ -12670,7 +12671,7 @@ errorExit:
 	}
 	p.ExitRule()
 	return localctx
-	goto errorExit // Trick to prevent compiler error if the label is not used
+	goto errorExit	// Trick to prevent compiler error if the label is not used
 }
 
 // IExpression_listContext is an interface to support dynamic dispatch.
@@ -12692,7 +12693,7 @@ type IExpression_listContext interface {
 
 type Expression_listContext struct {
 	antlr.BaseParserRuleContext
-	parser antlr.Parser
+	parser	antlr.Parser
 }
 
 func NewEmptyExpression_listContext() *Expression_listContext {
@@ -12707,7 +12708,7 @@ func InitEmptyExpression_listContext(p *Expression_listContext) {
 	p.RuleIndex = NeuroScriptParserRULE_expression_list
 }
 
-func (*Expression_listContext) IsExpression_listContext() {}
+func (*Expression_listContext) IsExpression_listContext()	{}
 
 func NewExpression_listContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *Expression_listContext {
 	var p = new(Expression_listContext)
@@ -12720,7 +12721,7 @@ func NewExpression_listContext(parser antlr.Parser, parent antlr.ParserRuleConte
 	return p
 }
 
-func (s *Expression_listContext) GetParser() antlr.Parser { return s.parser }
+func (s *Expression_listContext) GetParser() antlr.Parser	{ return s.parser }
 
 func (s *Expression_listContext) AllExpression() []IExpressionContext {
 	children := s.GetChildren()
@@ -12850,7 +12851,7 @@ errorExit:
 	}
 	p.ExitRule()
 	return localctx
-	goto errorExit // Trick to prevent compiler error if the label is not used
+	goto errorExit	// Trick to prevent compiler error if the label is not used
 }
 
 // IMap_entry_list_optContext is an interface to support dynamic dispatch.
@@ -12869,7 +12870,7 @@ type IMap_entry_list_optContext interface {
 
 type Map_entry_list_optContext struct {
 	antlr.BaseParserRuleContext
-	parser antlr.Parser
+	parser	antlr.Parser
 }
 
 func NewEmptyMap_entry_list_optContext() *Map_entry_list_optContext {
@@ -12884,7 +12885,7 @@ func InitEmptyMap_entry_list_optContext(p *Map_entry_list_optContext) {
 	p.RuleIndex = NeuroScriptParserRULE_map_entry_list_opt
 }
 
-func (*Map_entry_list_optContext) IsMap_entry_list_optContext() {}
+func (*Map_entry_list_optContext) IsMap_entry_list_optContext()	{}
 
 func NewMap_entry_list_optContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *Map_entry_list_optContext {
 	var p = new(Map_entry_list_optContext)
@@ -12897,7 +12898,7 @@ func NewMap_entry_list_optContext(parser antlr.Parser, parent antlr.ParserRuleCo
 	return p
 }
 
-func (s *Map_entry_list_optContext) GetParser() antlr.Parser { return s.parser }
+func (s *Map_entry_list_optContext) GetParser() antlr.Parser	{ return s.parser }
 
 func (s *Map_entry_list_optContext) Map_entry_list() IMap_entry_listContext {
 	var t antlr.RuleContext
@@ -12976,7 +12977,7 @@ errorExit:
 	}
 	p.ExitRule()
 	return localctx
-	goto errorExit // Trick to prevent compiler error if the label is not used
+	goto errorExit	// Trick to prevent compiler error if the label is not used
 }
 
 // IMap_entry_listContext is an interface to support dynamic dispatch.
@@ -12998,7 +12999,7 @@ type IMap_entry_listContext interface {
 
 type Map_entry_listContext struct {
 	antlr.BaseParserRuleContext
-	parser antlr.Parser
+	parser	antlr.Parser
 }
 
 func NewEmptyMap_entry_listContext() *Map_entry_listContext {
@@ -13013,7 +13014,7 @@ func InitEmptyMap_entry_listContext(p *Map_entry_listContext) {
 	p.RuleIndex = NeuroScriptParserRULE_map_entry_list
 }
 
-func (*Map_entry_listContext) IsMap_entry_listContext() {}
+func (*Map_entry_listContext) IsMap_entry_listContext()	{}
 
 func NewMap_entry_listContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *Map_entry_listContext {
 	var p = new(Map_entry_listContext)
@@ -13026,7 +13027,7 @@ func NewMap_entry_listContext(parser antlr.Parser, parent antlr.ParserRuleContex
 	return p
 }
 
-func (s *Map_entry_listContext) GetParser() antlr.Parser { return s.parser }
+func (s *Map_entry_listContext) GetParser() antlr.Parser	{ return s.parser }
 
 func (s *Map_entry_listContext) AllMap_entry() []IMap_entryContext {
 	children := s.GetChildren()
@@ -13156,7 +13157,7 @@ errorExit:
 	}
 	p.ExitRule()
 	return localctx
-	goto errorExit // Trick to prevent compiler error if the label is not used
+	goto errorExit	// Trick to prevent compiler error if the label is not used
 }
 
 // IMap_entryContext is an interface to support dynamic dispatch.
@@ -13177,7 +13178,7 @@ type IMap_entryContext interface {
 
 type Map_entryContext struct {
 	antlr.BaseParserRuleContext
-	parser antlr.Parser
+	parser	antlr.Parser
 }
 
 func NewEmptyMap_entryContext() *Map_entryContext {
@@ -13192,7 +13193,7 @@ func InitEmptyMap_entryContext(p *Map_entryContext) {
 	p.RuleIndex = NeuroScriptParserRULE_map_entry
 }
 
-func (*Map_entryContext) IsMap_entryContext() {}
+func (*Map_entryContext) IsMap_entryContext()	{}
 
 func NewMap_entryContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *Map_entryContext {
 	var p = new(Map_entryContext)
@@ -13205,7 +13206,7 @@ func NewMap_entryContext(parser antlr.Parser, parent antlr.ParserRuleContext, in
 	return p
 }
 
-func (s *Map_entryContext) GetParser() antlr.Parser { return s.parser }
+func (s *Map_entryContext) GetParser() antlr.Parser	{ return s.parser }
 
 func (s *Map_entryContext) STRING_LIT() antlr.TerminalNode {
 	return s.GetToken(NeuroScriptParserSTRING_LIT, 0)
@@ -13296,5 +13297,5 @@ errorExit:
 	}
 	p.ExitRule()
 	return localctx
-	goto errorExit // Trick to prevent compiler error if the label is not used
+	goto errorExit	// Trick to prevent compiler error if the label is not used
 }

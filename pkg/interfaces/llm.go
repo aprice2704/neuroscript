@@ -18,21 +18,21 @@ import (
 type Role string
 
 const (
-	RoleSystem    Role = "system"
-	RoleUser      Role = "user"
-	RoleAssistant Role = "assistant"
-	RoleTool      Role = "tool"
+	RoleSystem	Role	= "system"
+	RoleUser	Role	= "user"
+	RoleAssistant	Role	= "assistant"
+	RoleTool	Role	= "tool"
 )
 
 // FileMetadata holds structured information about a file stored with the LLM provider.
 type FileMetadata struct {
-	FileID      string
-	FileName    string
-	DisplayName string
-	SizeBytes   int64
-	CreateTime  time.Time
-	State       string
-	MimeType    string
+	FileID		string
+	FileName	string
+	DisplayName	string
+	SizeBytes	int64
+	CreateTime	time.Time
+	State		string
+	MimeType	string
 }
 
 // FileStorageClient defines the interface for interacting with an LLM's file storage.
@@ -63,29 +63,29 @@ type LLMClient interface {
 
 // ConversationTurn represents a single turn in a conversation with the LLM.
 type ConversationTurn struct {
-	Role        Role          `json:"role"`
-	Content     string        `json:"content"`
-	ToolCalls   []*ToolCall   `json:"tool_calls,omitempty"`
-	ToolResults []*ToolResult `json:"tool_results,omitempty"`
+	Role		Role		`json:"role"`
+	Content		string		`json:"content"`
+	ToolCalls	[]*ToolCall	`json:"tool_calls,omitempty"`
+	ToolResults	[]*ToolResult	`json:"tool_results,omitempty"`
 }
 
 // ToolCall represents a request from the LLM to call a specific tool.
 type ToolCall struct {
-	ID        string         `json:"id"`
-	Name      string         `json:"name"`
-	Arguments map[string]any `json:"arguments"`
+	ID		string		`json:"id"`
+	Name		string		`json:"name"`
+	Arguments	map[string]any	`json:"arguments"`
 }
 
 // ToolResult represents the result of executing a tool call.
 type ToolResult struct {
-	ID     string `json:"id"`
-	Result any    `json:"result"`
-	Error  string `json:"error,omitempty"`
+	ID	string	`json:"id"`
+	Result	any	`json:"result"`
+	Error	string	`json:"error,omitempty"`
 }
 
 // ToolDefinition describes a tool that can be made available to the LLM.
 type ToolDefinition struct {
-	Name        string `json:"name"`
-	Description string `json:"description,omitempty"`
-	InputSchema any    `json:"input_schema"`
+	Name		string	`json:"name"`
+	Description	string	`json:"description,omitempty"`
+	InputSchema	any	`json:"input_schema"`
 }

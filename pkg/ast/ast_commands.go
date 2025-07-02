@@ -12,14 +12,14 @@ import "github.com/aprice2704/neuroscript/pkg/lang"
 // CommandNode represents a single 'command ... endcommand' block.
 // It is a top-level declaration, similar to a Procedure.
 type CommandNode struct {
-	Pos           *lang.Position
-	Metadata      map[string]string
-	Body          []Step
-	ErrorHandlers []*Step
+	Pos		*lang.Position
+	Metadata	map[string]string
+	Body		[]Step
+	ErrorHandlers	[]*Step
 }
 
-func (n *CommandNode) isNode()      {}
-func (n *CommandNode) isStatement() {}
+func (n *CommandNode) isNode()		{}
+func (n *CommandNode) isStatement()	{}
 func (n *CommandNode) String() string {
 	return "command ... endcommand"
 }

@@ -10,35 +10,36 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/parser"
+	"github.com/aprice2704/neuroscript/pkg/utils"
 )
 
 // Define valid manual status transitions/values here or import if defined centrally
 var validManualStatuses = map[string]struct{}{
-	"open":       {},
-	"done":       {},
-	"skipped":    {},
-	"inprogress": {},
-	"blocked":    {},
-	"question":   {},
-	"special":    {},
+	"open":		{},
+	"done":		{},
+	"skipped":	{},
+	"inprogress":	{},
+	"blocked":	{},
+	"question":	{},
+	"special":	{},
 }
 
-var toolChecklistSetItemStatusImpl = runtime.tool.ToolImplementation{
-	Spec: runtime.tool.ToolSpec{
-		Name: "ChecklistSetItemStatus",
+var toolChecklistSetItemStatusImpl = ToolImplementation{
+	Spec: ToolSpec{
+		Name:	"ChecklistSetItemStatus",
 		Description: "Manually sets the status of a non-automatic checklist item. " +
 			"Requires a special symbol if status is 'special'. " +
 			"Automatically removes the special symbol if status is not 'special'. " +
 			"Returns nil on success.",
-		Args: []runtime.tool.ArgSpec{
+		Args: []ArgSpec{
 			{Name: "tree_handle", Type: parser.ArgTypeString, Required: true, Description: "Handle for the checklist tree."},
 			{Name: "node_id", Type: parser.ArgTypeString, Required: true, Description: "ID of the checklist item node."},
 			{Name: "new_status", Type: parser.ArgTypeString, Required: true, Description: "The new status string (e.g., 'open', 'done', 'skipped', 'inprogress', 'blocked', 'question', 'special')."},
 			{Name: "special_symbol", Type: parser.ArgTypeString, Required: false, Description: "Required only if new_status is 'special'. The single character symbol."},
 		},
-		ReturnType: runtime.tool.ArgTypeNil,
+		ReturnType:	ArgTypeNil,
 	},
-	Func: toolChecklistSetItemStatus,
+	Func:	toolChecklistSetItemStatus,
 }
 
 func toolChecklistSetItemStatus(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
@@ -132,7 +133,7 @@ func toolChecklistSetItemStatus(interpreter *neurogo.Interpreter, args []interfa
 	}
 
 	logger.Debug("Calling Tree.SetNodeMetadata for status", "tool", toolName, "nodeId", nodeID, "status", newStatus)
-	setStatusArgs := runtime.tool.MakeArgs(handleID, nodeID, "status", newStatus)
+	setStatusArgs := MakeArgs(handleID, nodeID, "status", newStatus)
 	_, err := setMetaToolImpl.Func(interpreter, setStatusArgs)
 	if err != nil {
 		logger.Error("Tree.SetNodeMetadata failed for status", "tool", toolName, "nodeId", nodeID, "error", err)
@@ -144,7 +145,7 @@ func toolChecklistSetItemStatus(interpreter *neurogo.Interpreter, args []interfa
 
 	if newStatus == "special" {
 		logger.Debug("Calling Tree.SetNodeMetadata for special_symbol", "tool", toolName, "nodeId", nodeID, "symbol", specialSymbol)
-		setSymbolArgs := runtime.tool.MakeArgs(handleID, nodeID, "special_symbol", specialSymbol)
+		setSymbolArgs := MakeArgs(handleID, nodeID, "special_symbol", specialSymbol)
 		_, err = setMetaToolImpl.Func(interpreter, setSymbolArgs)
 		if err != nil {
 			logger.Error("Tree.SetNodeMetadata failed for special_symbol", "tool", toolName, "nodeId", nodeID, "error", err)
@@ -155,7 +156,7 @@ func toolChecklistSetItemStatus(interpreter *neurogo.Interpreter, args []interfa
 		}
 	} else {
 		logger.Debug("Calling Tree.RemoveNodeMetadata for special_symbol if it exists", "tool", toolName, "nodeId", nodeID)
-		removeSymbolArgs := runtime.tool.MakeArgs(handleID, nodeID, "special_symbol")
+		removeSymbolArgs := MakeArgs(handleID, nodeID, "special_symbol")
 		_, err = removeMetaToolImpl.Func(interpreter, removeSymbolArgs)
 		if err != nil && !errors.Is(err, lang.ErrAttributeNotFound) {
 			logger.Error("Tree.RemoveNodeMetadata failed for special_symbol", "tool", toolName, "nodeId", nodeID, "error", err)
@@ -175,7 +176,7 @@ func toolChecklistSetItemStatus(interpreter *neurogo.Interpreter, args []interfa
 	return nil, nil
 }
 
-func registerChecklistModifyTools(registry runtime.tool.ToolRegistry) error {
+func registerChecklistModifyTools(registry ToolRegistry) error {
 	if registry == nil {
 		return errors.New("registry cannot be nil for registerChecklistModifyTools")
 	}

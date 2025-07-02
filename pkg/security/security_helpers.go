@@ -2,30 +2,30 @@
 // File version: 0.0.9 // Remove debug Printf statements.
 // nlines: 105 // Approximate
 // risk_rating: HIGH // Security-critical path validation
-// filename: pkg/core/security_helpers.go
-package core
+// filename: pkg/security/security_helpers.go
+package security
 
 import (
 	"errors"
 	"fmt"
-	"os" // Import os for PathSeparator
+	"os"	// Import os for PathSeparator
 	"path/filepath"
 	"strings"
 
 	// Needed for logger in CreateSuccess
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
-	"github.com/google/generative-ai-go/genai" // Needed for genai types
+	"github.com/google/generative-ai-go/genai"	// Needed for genai types
 )
 
 // --- CreateErrorFunctionResultPart unchanged ---
 func CreateErrorFunctionResultPart(qualifiedToolName string, execErr error) genai.Part {
 	errMsg := "unknown execution error"
 	if execErr != nil {
-		errMsg = execErr.Error() // Use the error's message
+		errMsg = execErr.Error()	// Use the error's message
 	}
 	return genai.FunctionResponse{
-		Name: qualifiedToolName,
+		Name:	qualifiedToolName,
 		Response: map[string]interface{}{
 			"error": fmt.Sprintf("Tool execution failed: %s", errMsg),
 		},
@@ -80,11 +80,11 @@ func IsPathInSandbox(sandboxRoot, inputPath string) (bool, error) {
 	_, err := ResolveAndSecurePath(inputPath, sandboxRoot)
 	if err != nil {
 		if re, ok := err.(*lang.RuntimeError); ok && errors.Is(re.Wrapped, lang.ErrPathViolation) {
-			return false, nil // Specific path violation is not an error for the check, just means "false"
+			return false, nil	// Specific path violation is not an error for the check, just means "false"
 		}
-		return false, err // Other errors during resolution are returned
+		return false, err	// Other errors during resolution are returned
 	}
-	return true, nil // No error means path is inside
+	return true, nil	// No error means path is inside
 }
 
 // ResolveAndSecurePath resolves an input path (expected to be relative to allowedRoot)
@@ -111,7 +111,7 @@ func ResolveAndSecurePath(inputPath, allowedRoot string) (string, error) {
 	absAllowedRoot = filepath.Clean(absAllowedRoot)
 
 	resolvedPath := filepath.Join(absAllowedRoot, inputPath)
-	resolvedPath = filepath.Clean(resolvedPath) // Critical: Simplifies ../ etc.
+	resolvedPath = filepath.Clean(resolvedPath)	// Critical: Simplifies ../ etc.
 
 	// --- Robust Check: Use filepath.Rel ---
 	rel, err := filepath.Rel(absAllowedRoot, resolvedPath)

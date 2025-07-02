@@ -1,3 +1,4 @@
+// filename: pkg/neurogo/chat_session.go
 // pkg/neurogo/chat_session.go
 package neurogo
 
@@ -14,17 +15,17 @@ import (
 
 // ChatSession represents an active, independent conversation with a specific AIWorkerInstance.
 type ChatSession struct {
-	SessionID    string // Unique identifier for this session (e.g., defID-timestamp or UUID)
-	DisplayName  string // User-facing name, e.g., "C(AgentName)-1"
-	DefinitionID string // ID of the AIWorkerDefinition used for this session
+	SessionID	string	// Unique identifier for this session (e.g., defID-timestamp or UUID)
+	DisplayName	string	// User-facing name, e.g., "C(AgentName)-1"
+	DefinitionID	string	// ID of the AIWorkerDefinition used for this session
 
-	WorkerInstance *wm.AIWorkerInstance              // The AI instance handling this chat
-	Conversation   []*interfaces.ConversationTurn // The history of this specific chat session
+	WorkerInstance	*wm.AIWorkerInstance		// The AI instance handling this chat
+	Conversation	[]*interfaces.ConversationTurn	// The history of this specific chat session
 
-	CreatedAt      time.Time // Timestamp of when the session was created
-	LastActivityAt time.Time // Timestamp of the last message or significant activity
+	CreatedAt	time.Time	// Timestamp of when the session was created
+	LastActivityAt	time.Time	// Timestamp of the last message or significant activity
 
-	mu sync.RWMutex // Protects concurrent access to the Conversation slice
+	mu	sync.RWMutex	// Protects concurrent access to the Conversation slice
 }
 
 // NewChatSession creates and initializes a new chat session.
@@ -36,13 +37,13 @@ func NewChatSession(sessionID, displayName, definitionID string, instance *rkerI
 			sessionID, displayName, definitionID))
 	}
 	return &ChatSession{
-		SessionID:      sessionID,
-		DisplayName:    displayName,
-		DefinitionID:   definitionID,
-		WorkerInstance: instance,
-		Conversation:   make([]*interfaces.ConversationTurn, 0), // Initialize with an empty history
-		CreatedAt:      time.Now(),
-		LastActivityAt: time.Now(),
+		SessionID:	sessionID,
+		DisplayName:	displayName,
+		DefinitionID:	definitionID,
+		WorkerInstance:	instance,
+		Conversation:	make([]*interfaces.ConversationTurn, 0),	// Initialize with an empty history
+		CreatedAt:	time.Now(),
+		LastActivityAt:	time.Now(),
 	}
 }
 
@@ -66,7 +67,7 @@ func (cs *ChatSession) AddTurn(turn *interfaces.ConversationTurn) {
 // for safe, concurrent-read access. The turns themselves are not deep-copied.
 func (cs *ChatSession) GetConversationHistory() []*interfaces.ConversationTurn {
 	if cs == nil {
-		return []*interfaces.ConversationTurn{} // Return an empty slice if cs is nil
+		return []*interfaces.ConversationTurn{}	// Return an empty slice if cs is nil
 	}
 	cs.mu.RLock()
 	defer cs.mu.RUnlock()
@@ -85,6 +86,6 @@ func (cs *ChatSession) ClearConversation() {
 	}
 	cs.mu.Lock()
 	defer cs.mu.Unlock()
-	cs.Conversation = make([]*interfaces.ConversationTurn, 0) // Replace with a new empty slice
+	cs.Conversation = make([]*interfaces.ConversationTurn, 0)	// Replace with a new empty slice
 	cs.LastActivityAt = time.Now()
 }

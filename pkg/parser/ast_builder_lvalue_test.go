@@ -1,7 +1,7 @@
 // NeuroScript Version: 0.3.1
 // File version: 0.0.3
 // Purpose: Updated test helper to use the new `LValues` field on the ast.Step struct.
-// filename: pkg/parser/ast_builder_lValue_test.go
+// filename: pkg/parser/ast_builder_lvalue_test.go
 // nlines: 253
 // risk_rating: MEDIUM
 
@@ -12,7 +12,6 @@ import (
 	"testing"
 
 	"github.com/antlr4-go/antlr/v4"
-	"github.com/aprice2704/neuroscript/pkg/adapters"
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	gen "github.com/aprice2704/neuroscript/pkg/parser/generated"
 )
@@ -38,7 +37,7 @@ func parseScriptToLValueNode(t *testing.T, scriptContent string) *ast.LValueNode
 		return nil
 	}
 
-	nopLogger := adapters.NewNoOpLogger()
+	nopLogger := logging.NewNoLogger()
 	astBuilder := NewASTBuilder(nopLogger)
 	programAST, _, err := astBuilder.Build(tree)
 	if err != nil {
@@ -209,7 +208,7 @@ func TestLValueParsing(t *testing.T) {
 func TestExitLvalue_ErrorScenarios(t *testing.T) {
 	t.Run("stack underflow", func(t *testing.T) {
 		// This test simulates a scenario where the stack is empty when ExitLvalue is called.
-		listener := newNeuroScriptListener(adapters.NewNoOpLogger(), false)
+		listener := newNeuroScriptListener(logging.NewNoLogger(), false)
 		ctx := &gen.LvalueContext{
 			BaseParserRuleContext: *antlr.NewBaseParserRuleContext(nil, -1),
 		}

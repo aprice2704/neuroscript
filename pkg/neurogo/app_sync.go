@@ -5,9 +5,9 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"path/filepath" // Import filepath
+	"path/filepath"	// Import filepath
 
-	"github.com/aprice2704/neuroscript/pkg/core" // For core helpers like SecureFilePath and file API helpers
+	"github.com/aprice2704/neuroscript/pkg/core"	// For core helpers like SecureFilePath and file API helpers
 	// Assuming file_api_helpers exist after refactoring tools_file_api.go
 )
 
@@ -36,7 +36,7 @@ func (a *App) runSyncMode(ctx context.Context) error {
 		a.Log.Error("Failed to get absolute path for sync directory", "path", a.Config.SyncDir, "error", err)
 		return fmt.Errorf("failed to resolve absolute path for sync dir '%s': %w", a.Config.SyncDir, err)
 	}
-	absSyncDir = filepath.Clean(absSyncDir) // Clean the absolute path
+	absSyncDir = filepath.Clean(absSyncDir)	// Clean the absolute path
 
 	// TODO: Security Check - Ensure absSyncDir is within an allowed base path if necessary.
 	// The original SecureFilePath call here might have been intended differently,
@@ -77,10 +77,10 @@ func (a *App) runSyncMode(ctx context.Context) error {
 	// Signature: (ctx context.Context, absLocalDir string, filterPattern string, ignoreGitignore bool, interp *Interpreter) (map[string]interface{}, error)
 	stats, syncErr := core.SyncDirectoryUpHelper(
 		ctx,
-		absSyncDir,                   // Correctly passed abs path
-		a.Config.SyncFilter,          // Pass filter pattern
-		a.Config.SyncIgnoreGitignore, // Pass ignore flag
-		a.interpreter,                // Pass the Interpreter
+		absSyncDir,			// Correctly passed abs path
+		a.Config.SyncFilter,		// Pass filter pattern
+		a.Config.SyncIgnoreGitignore,	// Pass ignore flag
+		a.interpreter,			// Pass the Interpreter
 	)
 
 	// 4. Log Summary Stats
@@ -105,36 +105,36 @@ func (a *App) runSyncMode(ctx context.Context) error {
 		case bool:
 			if v {
 				logVal = true
-			} // Log if true
+			}	// Log if true
 		case nil:
 			// don't log nil
 		default:
-			logVal = true // Log unknown types
+			logVal = true	// Log unknown types
 		}
 		if logVal {
-			a.Log.Info(fmt.Sprintf("  %-25s: %v", key, value)) // Use fmt.Sprintf with logger
+			a.Log.Info(fmt.Sprintf("  %-25s: %v", key, value))	// Use fmt.Sprintf with logger
 		}
 	}
 
 	logStat("Directory Synced", absSyncDir)
-	if stats != nil { // Check if stats map was returned
+	if stats != nil {	// Check if stats map was returned
 		// Access stats using map keys, as per user's code and function signature
 		logStat("Files Scanned", stats["files_scanned"])
 		logStat("Files Ignored", stats["files_ignored"])
 		logStat("Files Up-to-date", stats["files_up_to_date"])
-		logStat("Files To Upload", stats["files_to_upload"])       // Key from sync_logic.go
-		logStat("Files To Update (API)", stats["files_to_update"]) // Key from sync_logic.go
-		logStat("Files To Delete (API)", stats["files_to_delete"]) // Key from sync_logic.go
-		logStat("Uploads Attempted", stats["uploads_attempted"])   // Key from sync_workers.go via context
-		logStat("Uploads Succeeded", stats["uploads_succeeded"])   // Key from sync_workers.go via context
-		logStat("Upload Errors", stats["upload_errors"])           // Key from sync_workers.go via context
-		logStat("Deletes Attempted", stats["deletes_attempted"])   // Key from sync_workers.go via context
-		logStat("Deletes Succeeded", stats["deletes_succeeded"])   // Key from sync_workers.go via context
-		logStat("Delete Errors", stats["delete_errors"])           // Key from sync_workers.go via context
-		logStat("Walk Errors", stats["walk_errors"])               // Key from sync_logic.go
-		logStat("Hash Errors", stats["hash_errors"])               // Key from sync_logic.go
-		logStat("List API Errors", stats["list_api_errors"])       // Key from sync_morehelpers.go via context
-		logStat("Workers Used", stats["workers_used"])             // Added in previous helper version
+		logStat("Files To Upload", stats["files_to_upload"])		// Key from sync_logic.go
+		logStat("Files To Update (API)", stats["files_to_update"])	// Key from sync_logic.go
+		logStat("Files To Delete (API)", stats["files_to_delete"])	// Key from sync_logic.go
+		logStat("Uploads Attempted", stats["uploads_attempted"])	// Key from sync_workers.go via context
+		logStat("Uploads Succeeded", stats["uploads_succeeded"])	// Key from sync_workers.go via context
+		logStat("Upload Errors", stats["upload_errors"])		// Key from sync_workers.go via context
+		logStat("Deletes Attempted", stats["deletes_attempted"])	// Key from sync_workers.go via context
+		logStat("Deletes Succeeded", stats["deletes_succeeded"])	// Key from sync_workers.go via context
+		logStat("Delete Errors", stats["delete_errors"])		// Key from sync_workers.go via context
+		logStat("Walk Errors", stats["walk_errors"])			// Key from sync_logic.go
+		logStat("Hash Errors", stats["hash_errors"])			// Key from sync_logic.go
+		logStat("List API Errors", stats["list_api_errors"])		// Key from sync_morehelpers.go via context
+		logStat("Workers Used", stats["workers_used"])			// Added in previous helper version
 
 	} else {
 		a.Log.Info("  (Sync statistics map not available)")
@@ -177,5 +177,5 @@ func (a *App) runSyncMode(ctx context.Context) error {
 	}
 
 	a.Log.Info("Sync completed successfully.")
-	return nil // Success
+	return nil	// Success
 }

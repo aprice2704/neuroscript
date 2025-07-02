@@ -1,7 +1,7 @@
 // NeuroScript Version: 0.4.1
 // File version: 2
 // Purpose: Defines string constants for NeuroScript type names, including new error, event, timedate, and fuzzy types.
-// filename: core/type_names.go
+// filename: pkg/lang/type_names.go
 // nlines: 27
 // risk_rating: LOW
 

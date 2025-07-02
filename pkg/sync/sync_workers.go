@@ -1,5 +1,5 @@
-// filename: pkg/core/sync_workers.go
-package core
+// filename: pkg/sync/sync_workers.go
+package sync
 
 import (
 	"context"
@@ -33,7 +33,7 @@ func startUploadWorkers(sc *syncContext, wg *sync.WaitGroup, actions SyncActions
 			sc.logger.Debug("HELPER Sync Worker %d] Started.", workerID)
 			for job := range jobsChan {
 				sc.logger.Debug("HELPER Sync Worker %d] STARTING job for: %s (Update: %t)", workerID, job.relPath, job.existingApiFile != nil)
-				apiFile, uploadErr := processUploadJob(sc, job, workerID) // Pass workerID
+				apiFile, uploadErr := processUploadJob(sc, job, workerID)	// Pass workerID
 				sc.logger.Debug("HELPER Sync Worker %d] processUploadJob finished for: %s (Error: %v)", workerID, job.relPath, uploadErr)
 				sc.logger.Debug("HELPER Sync Worker %d] Sending result to resultsChan for: %s", workerID, job.relPath)
 				resultsChan <- uploadResult{job: job, apiFile: apiFile, err: uploadErr}
@@ -63,7 +63,7 @@ func processUploadJob(sc *syncContext, job uploadJob, workerID int) (*genai.File
 	var uploadErr error
 	var apiFile *genai.File
 
-	if job.existingApiFile != nil { // Pre-delete logic
+	if job.existingApiFile != nil {	// Pre-delete logic
 		sc.logger.Debug("HELPER Sync Worker %d] Deleting existing %s for update: %s", workerID, job.existingApiFile.Name, job.relPath)
 		delCtx, cancelDel := context.WithTimeout(context.Background(), 30*time.Second)
 		deleteErr := sc.client.DeleteFile(delCtx, job.existingApiFile.Name)
@@ -80,7 +80,7 @@ func processUploadJob(sc *syncContext, job uploadJob, workerID int) (*genai.File
 	if job.existingApiFile != nil {
 		operation = "Updating"
 	}
-	sc.logger.Debug("[API Worker %d] %s: %s...", workerID, operation, job.relPath) // Log start of operation
+	sc.logger.Debug("[API Worker %d] %s: %s...", workerID, operation, job.relPath)	// Log start of operation
 
 	sc.logger.Debug("processUploadJob %d] Calling HelperUploadAndPollFile: %s", workerID, job.relPath)
 	uploadCtx, cancelUpload := context.WithTimeout(context.Background(), 5*time.Minute)

@@ -4,8 +4,7 @@ package parser
 import (
 	"strings"
 	"testing"
-
-	"github.com/aprice2704/neuroscript/pkg/adapters" // For NoOpLogger adapter
+	// For NoOpLogger adapter
 )
 
 // TestParseMinimalNewline attempts to parse a minimal script that mimics
@@ -13,7 +12,7 @@ import (
 // It specifically checks for the 'missing NEWLINE' error and reports
 // the details provided by the enhanced error listener.
 func TestParseMinimalNewline(t *testing.T) {
-	logger := adapters.NewNoOpLogger() // Use a logger adapter
+	logger := logging.NewNoLogger() // Use a logger adapter
 	parserAPI := NewParserAPI(logger)
 	scriptContent := `:: Test: Minimal newline issue
 func dummy() means

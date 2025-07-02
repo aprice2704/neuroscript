@@ -1,12 +1,13 @@
+// filename: pkg/neurodata/blocks/blocks_complex_test.go
 // pkg/neurodata/blocks/blocks_complex_test.go
 package blocks
 
 import (
-	"errors" // Keep for error check
+	"errors"	// Keep for error check
 	"io"
 	"os"
 	"path/filepath"
-	"strings" // Keep for error check
+	"strings"	// Keep for error check
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/adapters"
@@ -34,53 +35,53 @@ func TestExtractAllAndMetadataComplex(t *testing.T) {
 
 	// --- UPDATED Expected Results based on user request ---
 	wantBlocks := []FencedBlock{
-		{ // Block 1 (User Index)
-			LanguageID: "neuroscript",
-			RawContent: "CALL TOOL.DoSomething()", // Content as extracted between fences
-			StartLine:  5,                         // Line of opening ```neuroscript
-			EndLine:    7,                         // Line of closing ```
-			Metadata:   map[string]string{"id": "complex-ns-1"},
+		{	// Block 1 (User Index)
+			LanguageID:	"neuroscript",
+			RawContent:	"CALL TOOL.DoSomething()",	// Content as extracted between fences
+			StartLine:	5,				// Line of opening ```neuroscript
+			EndLine:	7,				// Line of closing ```
+			Metadata:	map[string]string{"id": "complex-ns-1"},
 		},
-		{ // Block 2 (User Index)
-			LanguageID: "python",
-			RawContent: "import os",
-			StartLine:  9,  // Line of opening ```python
-			EndLine:    11, // Line of closing ```
-			Metadata:   map[string]string{"id": "complex-py-adjacent"},
+		{	// Block 2 (User Index)
+			LanguageID:	"python",
+			RawContent:	"import os",
+			StartLine:	9,	// Line of opening ```python
+			EndLine:	11,	// Line of closing ```
+			Metadata:	map[string]string{"id": "complex-py-adjacent"},
 		},
-		{ // Block 3 (User Index)
-			LanguageID: "text",
-			RawContent: "", // Empty content
-			StartLine:  16, // Line of opening ```text
-			EndLine:    17, // Line of closing ```
-			Metadata:   map[string]string{"id": "metadata-only-block", "version": "1.1"},
+		{	// Block 3 (User Index)
+			LanguageID:	"text",
+			RawContent:	"",	// Empty content
+			StartLine:	16,	// Line of opening ```text
+			EndLine:	17,	// Line of closing ```
+			Metadata:	map[string]string{"id": "metadata-only-block", "version": "1.1"},
 		},
-		{ // Block 4 (User Index)
-			LanguageID: "javascript",
-			RawContent: "console.log(\"No ID here\");",
-			StartLine:  20,                  // Line of opening ```javascript
-			EndLine:    22,                  // Line of closing ```
-			Metadata:   map[string]string{}, // Expecting empty map for "None"
+		{	// Block 4 (User Index)
+			LanguageID:	"javascript",
+			RawContent:	"console.log(\"No ID here\");",
+			StartLine:	20,			// Line of opening ```javascript
+			EndLine:	22,			// Line of closing ```
+			Metadata:	map[string]string{},	// Expecting empty map for "None"
 		},
-		{ // Block 5 (User Index)
-			LanguageID: "go",
-			RawContent: "package main\nimport \"fmt\"\nfunc main(){ fmt.Println(\"Go!\") }", // Joined lines
-			StartLine:  28,                                                                  // Line of opening ```go
-			EndLine:    32,                                                                  // Line of closing ```
-			Metadata:   map[string]string{"version": "0.2", "id": "go-block-late-id"},
+		{	// Block 5 (User Index)
+			LanguageID:	"go",
+			RawContent:	"package main\nimport \"fmt\"\nfunc main(){ fmt.Println(\"Go!\") }",	// Joined lines
+			StartLine:	28,									// Line of opening ```go
+			EndLine:	32,									// Line of closing ```
+			Metadata:	map[string]string{"version": "0.2", "id": "go-block-late-id"},
 		},
-		{ // Block 6 (User Index)
-			LanguageID: "neurodata-checklist",
-			RawContent: "- [x] Item A\n- [ ] Item B", // Joined lines, no trailing newline from joiner
-			StartLine:  37,                           // Line of opening ```neurodata-checklist
-			EndLine:    40,                           // Line of closing ```
-			Metadata:   map[string]string{},          // Expecting empty map for "None"
+		{	// Block 6 (User Index)
+			LanguageID:	"neurodata-checklist",
+			RawContent:	"- [x] Item A\n- [ ] Item B",	// Joined lines, no trailing newline from joiner
+			StartLine:	37,				// Line of opening ```neurodata-checklist
+			EndLine:	40,				// Line of closing ```
+			Metadata:	map[string]string{},		// Expecting empty map for "None"
 		},
 		// Unclosed block is omitted
 	}
 	// --- END UPDATED Expected Results ---
 
-	expectError := false // No error expected for extraction itself
+	expectError := false	// No error expected for extraction itself
 	errorContains := ""
 
 	t.Run("Complex Fixture Extraction (Ignore Unclosed)", func(t *testing.T) {
@@ -100,10 +101,10 @@ func TestExtractAllAndMetadataComplex(t *testing.T) {
 			// Expect NO error from ExtractAll itself (warning for unclosed is logged, not returned)
 			if err != nil {
 				// Allow specific non-fatal errors if necessary, otherwise fail
-				if !errors.Is(err, io.EOF) { // Example: Allow io.EOF if scanner has issues at end
+				if !errors.Is(err, io.EOF) {	// Example: Allow io.EOF if scanner has issues at end
 					t.Fatalf("ExtractAll failed unexpectedly: %v\nGot blocks: %#v", err, gotBlocks)
 				} else {
-					t.Logf("ExtractAll returned non-fatal error: %v", err) // Log allowed errors
+					t.Logf("ExtractAll returned non-fatal error: %v", err)	// Log allowed errors
 				}
 			} else {
 				t.Logf("ExtractAll successful (returned nil error). Found %d blocks.", len(gotBlocks))
@@ -119,5 +120,5 @@ func TestExtractAllAndMetadataComplex(t *testing.T) {
 			t.Logf("Block comparison successful.")
 		}
 
-	}) // End t.Run
+	})	// End t.Run
 }

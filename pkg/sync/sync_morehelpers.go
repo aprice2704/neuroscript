@@ -1,5 +1,5 @@
-// filename: pkg/core/sync_morehelpers.go
-package core
+// filename: pkg/sync/sync_morehelpers.go
+package sync
 
 import (
 	"context"
@@ -21,15 +21,15 @@ import (
 func initializeSyncState(logger interfaces.Logger) (
 	stats map[string]interface{},
 	incrementStat func(string),
-	ilogger interfaces.Logger, // Return modified loggers
+	ilogger interfaces.Logger,	// Return modified loggers
 ) {
 
 	stats = map[string]interface{}{
-		"files_scanned": int64(0), "files_ignored": int64(0), "files_filtered": int64(0),
-		"files_uploaded": int64(0), "files_updated_api": int64(0), "files_deleted_api": int64(0),
-		"files_up_to_date": int64(0), "upload_errors": int64(0), "delete_errors": int64(0),
-		"list_api_errors": int64(0), "walk_errors": int64(0), "hash_errors": int64(0),
-		"files_processed": int64(0), "files_deleted_locally": int64(0),
+		"files_scanned":	int64(0), "files_ignored": int64(0), "files_filtered": int64(0),
+		"files_uploaded":	int64(0), "files_updated_api": int64(0), "files_deleted_api": int64(0),
+		"files_up_to_date":	int64(0), "upload_errors": int64(0), "delete_errors": int64(0),
+		"list_api_errors":	int64(0), "walk_errors": int64(0), "hash_errors": int64(0),
+		"files_processed":	int64(0), "files_deleted_locally": int64(0),
 	}
 	// Use the potentially defaulted logger in the closure
 	incrementStat = func(key string) {
@@ -37,7 +37,7 @@ func initializeSyncState(logger interfaces.Logger) (
 			stats[key] = v + 1
 		} else {
 			logger.Error("[CRITICAL SYNC HELPER] Invalid stat key %s", key)
-		} // Use logger here
+		}	// Use logger here
 	}
 	// Return the (potentially defaulted) loggers along with stats and function
 	return stats, incrementStat, logger
@@ -56,7 +56,7 @@ func listExistingAPIFiles(sc *syncContext) (map[string]*genai.File, error) {
 	}
 
 	sc.logger.Debug("[API HELPER Sync] Listing current API files...")
-	sc.logger.Debug("[API HELPER List] Fetching file list from API...") // Use context's infoLog
+	sc.logger.Debug("[API HELPER List] Fetching file list from API...")	// Use context's infoLog
 	if sc.ctx == nil {
 		sc.ctx = context.Background()
 	}
@@ -71,13 +71,13 @@ func listExistingAPIFiles(sc *syncContext) (map[string]*genai.File, error) {
 		}
 		if err != nil {
 			errMsg := fmt.Sprintf("Error fetching file list page: %v", err)
-			sc.logger.Error("[API HELPER List] %s", errMsg) // Use context's errorLog
+			sc.logger.Error("[API HELPER List] %s", errMsg)	// Use context's errorLog
 			fetchErrors++
 			continue
 		}
 		results = append(results, file)
 	}
-	sc.logger.Debug("[API HELPER List] Found %d files. Encountered %d errors during fetch.", len(results), fetchErrors) // Use infoLog
+	sc.logger.Debug("[API HELPER List] Found %d files. Encountered %d errors during fetch.", len(results), fetchErrors)	// Use infoLog
 
 	apiFilesMap := make(map[string]*genai.File)
 	for _, file := range results {
@@ -88,18 +88,18 @@ func listExistingAPIFiles(sc *syncContext) (map[string]*genai.File, error) {
 				// Assumes min is accessible globally or via import from helpers.go
 				hashPrefix = hex.EncodeToString(file.Sha256Hash)[:min(len(hex.EncodeToString(file.Sha256Hash)), 8)]
 			}
-			sc.logger.Debug("API HELPER Sync] API File Found: Name=%s, DisplayName=%s, SHA=%s...", file.Name, file.DisplayName, hashPrefix) // Use debugLog
+			sc.logger.Debug("API HELPER Sync] API File Found: Name=%s, DisplayName=%s, SHA=%s...", file.Name, file.DisplayName, hashPrefix)	// Use debugLog
 		} else {
-			sc.logger.Warn("[WARN API HELPER Sync] API File Found empty DisplayName: %s", file.Name) // Use debugLog
+			sc.logger.Warn("[WARN API HELPER Sync] API File Found empty DisplayName: %s", file.Name)	// Use debugLog
 		}
 	}
-	sc.logger.Debug("[API HELPER Sync] Found %d API files.", len(apiFilesMap)) // Use infoLog
+	sc.logger.Debug("[API HELPER Sync] Found %d API files.", len(apiFilesMap))	// Use infoLog
 
 	var returnErr error
 	if fetchErrors > 0 {
-		sc.incrementStat("list_api_errors") // Use incrementStat from context
+		sc.incrementStat("list_api_errors")	// Use incrementStat from context
 		returnErr = fmt.Errorf("encountered %d errors fetching file list", fetchErrors)
-		sc.logger.Error("[ERROR API HELPER Sync] List API files finished with errors: %v", returnErr) // Use errorLog
+		sc.logger.Error("[ERROR API HELPER Sync] List API files finished with errors: %v", returnErr)	// Use errorLog
 	}
 	return apiFilesMap, returnErr
 }
@@ -110,7 +110,7 @@ func initializeGitignore(sc *syncContext, ignoreGitignore bool) *gitignore.GitIg
 	// Ensure loggers in context are valid
 	if sc.logger == nil {
 		sc.logger.Error("ERROR: initializeGitignore called with nil loggers in syncContext!")
-		return nil // Cannot proceed safely
+		return nil	// Cannot proceed safely
 	}
 	if ignoreGitignore {
 		sc.logger.Debug("[API HELPER Sync] Ignoring .gitignore")

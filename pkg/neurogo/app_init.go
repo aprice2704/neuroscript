@@ -12,7 +12,7 @@ import (
 
 	// For robust path joining
 	// "path/filepath" // No longer needed here directly
-	"github.com/aprice2704/neuroscript/pkg/adapters"
+
 	"github.com/aprice2704/neuroscript/pkg/core"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 )
@@ -23,7 +23,7 @@ func NewApp(config *Config, logger interfaces.Logger, llmclient interfaces.LLMCl
 		return nil, fmt.Errorf("config cannot be nil")
 	}
 	if logger == nil {
-		logger = adapters.NewNoOpLogger()
+		logger = logging.NewNoLogger()
 		logger.Warn("No logger provided to NewApp, using NoOpLogger.")
 	}
 

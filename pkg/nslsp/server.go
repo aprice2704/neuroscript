@@ -23,11 +23,11 @@ import (
 )
 
 type Server struct {
-	conn            *jsonrpc2.Conn
-	logger          *log.Logger
-	documentManager *DocumentManager
-	coreParserAPI   *parser.ParserAPI
-	toolRegistry    *RegistryImpl // Assuming ToolRegistryImpl is exported from core
+	conn		*jsonrpc2.Conn
+	logger		*log.Logger
+	documentManager	*DocumentManager
+	coreParserAPI	*parser.ParserAPI
+	toolRegistry	*RegistryImpl	// Assuming ToolRegistryImpl is exported from core
 }
 
 func NewServer(logger *log.Logger) *Server {
@@ -41,10 +41,10 @@ func NewServer(logger *log.Logger) *Server {
 	}
 
 	return &Server{
-		logger:          logger,
-		documentManager: NewDocumentManager(),
-		coreParserAPI:   arserAPI(apiLoggerForCoreParser),
-		toolRegistry:    registry,
+		logger:			logger,
+		documentManager:	NewDocumentManager(),
+		coreParserAPI:		arserAPI(apiLoggerForCoreParser),
+		toolRegistry:		registry,
 	}
 }
 
@@ -83,7 +83,7 @@ func (s *Server) Handle(ctx context.Context, conn *jsonrpc2.Conn, req *jsonrpc2.
 		return s.handleTextDocumentHover(ctx, conn, req)
 	default:
 		s.logger.Printf("Received unhandled method: %s", req.Method)
-		if isNotification(req.ID) { // Use corrected isNotification
+		if isNotification(req.ID) {	// Use corrected isNotification
 			return nil, nil
 		}
 		return nil, &jsonrpc2.Error{Code: jsonrpc2.CodeMethodNotFound, Message: fmt.Sprintf("method not supported: %s", req.Method)}
@@ -97,12 +97,12 @@ func (s *Server) handleInitialize(ctx context.Context, conn *jsonrpc2.Conn, req 
 		Capabilities: lsp.ServerCapabilities{
 			TextDocumentSync: &lsp.TextDocumentSyncOptionsOrKind{
 				Options: &lsp.TextDocumentSyncOptions{
-					OpenClose: true,
-					Change:    lsp.TDSKFull,
-					Save:      &lsp.SaveOptions{IncludeText: false},
+					OpenClose:	true,
+					Change:		lsp.TDSKFull,
+					Save:		&lsp.SaveOptions{IncludeText: false},
 				},
 			},
-			HoverProvider: true,
+			HoverProvider:	true,
 		},
 	}, nil
 }
@@ -225,9 +225,9 @@ func (s *Server) handleTextDocumentHover(ctx context.Context, conn *jsonrpc2.Con
 
 	// Corrected Hover Contents for sourcegraph/go-lsp
 	// It expects []lsp.MarkedString where MarkedString can be a string or an object {Language: string, Value: string}
-	return &lsp.Hover{ // Return a pointer to Hover
+	return &lsp.Hover{	// Return a pointer to Hover
 		Contents: []lsp.MarkedString{
-			{Language: "markdown", Value: hoverContent.String()}, // Corrected line
+			{Language: "markdown", Value: hoverContent.String()},	// Corrected line
 		},
 	}, nil
 }

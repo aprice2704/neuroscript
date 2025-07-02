@@ -1,3 +1,4 @@
+// filename: pkg/neurodata/metadata/metadata.go
 // Package metadata provides functions for extracting structured metadata
 // (formatted as ':: key: value') from the beginning of text content,
 // typically used for files or embedded code/data blocks.
@@ -20,10 +21,10 @@ var (
 // Unexported regex patterns
 var (
 	// Stricter pattern for extracting key/value, requiring space after ::
-	metadataPattern       = regexp.MustCompile(`^\s*::\s+([a-zA-Z0-9_.-]+)\s*:\s*(.*)`)
-	commentOrBlankPattern = regexp.MustCompile(`^\s*($|#|--)`)
+	metadataPattern		= regexp.MustCompile(`^\s*::\s+([a-zA-Z0-9_.-]+)\s*:\s*(.*)`)
+	commentOrBlankPattern	= regexp.MustCompile(`^\s*($|#|--)`)
 	// More lenient pattern just to check if a line *might* be metadata
-	startsWithMetadataPrefix = regexp.MustCompile(`^\s*::`)
+	startsWithMetadataPrefix	= regexp.MustCompile(`^\s*::`)
 )
 
 // --- Exported Helper Functions ---
@@ -44,7 +45,7 @@ func IsCommentOrBlank(line string) bool {
 // ExtractKeyValue attempts to parse a line as a ':: key: value' entry using the strict pattern.
 // Returns the key, value, and true if successful, otherwise empty strings and false.
 func ExtractKeyValue(line string) (key, value string, ok bool) {
-	matches := metadataPattern.FindStringSubmatch(line) // Uses the strict regex
+	matches := metadataPattern.FindStringSubmatch(line)	// Uses the strict regex
 	if len(matches) == 3 {
 		key = strings.TrimSpace(matches[1])
 		value = strings.TrimSpace(matches[2])
@@ -69,7 +70,7 @@ func Extract(content string) (map[string]string, error) {
 		line := scanner.Text()
 
 		// Use the updated, less strict IsMetadataLine to identify potential metadata lines
-		if IsMetadataLine(line) { // Check for "::" prefix only
+		if IsMetadataLine(line) {	// Check for "::" prefix only
 			// Now try to extract key/value using the strict pattern
 			key, value, ok := ExtractKeyValue(line)
 			if ok {
@@ -77,17 +78,17 @@ func Extract(content string) (map[string]string, error) {
 				if _, exists := metadata[key]; !exists {
 					metadata[key] = value
 				}
-				continue // Successfully processed valid metadata line
+				continue	// Successfully processed valid metadata line
 			} else {
 				// Line started "::" but did not match ":: key: value". Return ERROR.
 				err := fmt.Errorf("%w: detected on line %d: %s", ErrMalformedMetadata, lineNumber, line)
-				return metadata, err // Return partially collected metadata AND the error
+				return metadata, err	// Return partially collected metadata AND the error
 			}
 		}
 
 		// If not potentially metadata, check if it's a comment or blank line
 		if IsCommentOrBlank(line) {
-			continue // Skip comments and blank lines within the metadata section
+			continue	// Skip comments and blank lines within the metadata section
 		}
 
 		// If it's not potentially metadata, not comment, not blank, then metadata section ends normally.

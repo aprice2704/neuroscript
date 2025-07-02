@@ -59,58 +59,58 @@ func TestChecklistSetItemStatusTool(t *testing.T) {
   - [?] L1 Manual Question   # node-7
 `
 	testCases := []struct {
-		name                     string
-		targetNodeID             string
-		newStatus                string
-		specialSymbol            *string
-		expectError              bool
-		expectedErrorIs          error
-		expectedTargetAttrs      utils.TreeAttrs // FIX: Use  utils.TreeAttrs
-		expectedParentAttrs      utils.TreeAttrs // FIX: Use  utils.TreeAttrs
-		expectedGrandparentAttrs utils.TreeAttrs // FIX: Use  utils.TreeAttrs
-		skipTest                 bool
-		skipReason               string
+		name				string
+		targetNodeID			string
+		newStatus			string
+		specialSymbol			*string
+		expectError			bool
+		expectedErrorIs			error
+		expectedTargetAttrs		utils.TreeAttrs	// FIX: Use  utils.TreeAttrs
+		expectedParentAttrs		utils.TreeAttrs	// FIX: Use  utils.TreeAttrs
+		expectedGrandparentAttrs	utils.TreeAttrs	// FIX: Use  utils.TreeAttrs
+		skipTest			bool
+		skipReason			string
 	}{
 		// FIX: All expected attribute maps updated to  TreeAttrs and use bool(true).
 		{name: "Set Manual Open -> Done", targetNodeID: "node-3", newStatus: "done",
-			expectedTargetAttrs: utils.TreeAttrs{"status": "done"},
-			expectedParentAttrs: utils.TreeAttrs{"status": "question", "is_automatic": true},
+			expectedTargetAttrs:	utils.TreeAttrs{"status": "done"},
+			expectedParentAttrs:	utils.TreeAttrs{"status": "question", "is_automatic": true},
 		},
 		{name: "Set Manual Done -> Skipped", targetNodeID: "node-6", newStatus: "skipped",
-			expectedTargetAttrs:      utils.TreeAttrs{"status": "skipped"},
-			expectedParentAttrs:      utils.TreeAttrs{"status": "partial", "is_automatic": true},
-			expectedGrandparentAttrs: utils.TreeAttrs{"status": "question", "is_automatic": true},
+			expectedTargetAttrs:		utils.TreeAttrs{"status": "skipped"},
+			expectedParentAttrs:		utils.TreeAttrs{"status": "partial", "is_automatic": true},
+			expectedGrandparentAttrs:	utils.TreeAttrs{"status": "question", "is_automatic": true},
 		},
 		{name: "Rollup: Set last L2 Open -> Done => L1A becomes Done", targetNodeID: "node-5", newStatus: "done",
-			expectedTargetAttrs:      utils.TreeAttrs{"status": "done"},
-			expectedParentAttrs:      utils.TreeAttrs{"status": "done", "is_automatic": true},
-			expectedGrandparentAttrs: utils.TreeAttrs{"status": "question", "is_automatic": true},
+			expectedTargetAttrs:		utils.TreeAttrs{"status": "done"},
+			expectedParentAttrs:		utils.TreeAttrs{"status": "done", "is_automatic": true},
+			expectedGrandparentAttrs:	utils.TreeAttrs{"status": "question", "is_automatic": true},
 		},
 		{name: "Rollup: Set L1 Question -> Done => L0 becomes Partial", targetNodeID: "node-7", newStatus: "done",
-			expectedTargetAttrs: utils.TreeAttrs{"status": "done"},
-			expectedParentAttrs: utils.TreeAttrs{"status": "partial", "is_automatic": true},
+			expectedTargetAttrs:	utils.TreeAttrs{"status": "done"},
+			expectedParentAttrs:	utils.TreeAttrs{"status": "partial", "is_automatic": true},
 		},
 		{name: "Rollup: Set L1 Manual Open -> Blocked => L0 becomes Blocked", targetNodeID: "node-3", newStatus: "blocked",
-			expectedTargetAttrs: utils.TreeAttrs{"status": "blocked"},
-			expectedParentAttrs: utils.TreeAttrs{"status": "blocked", "is_automatic": true},
+			expectedTargetAttrs:	utils.TreeAttrs{"status": "blocked"},
+			expectedParentAttrs:	utils.TreeAttrs{"status": "blocked", "is_automatic": true},
 		},
 		{name: "Rollup: Set L2 Manual Done -> Special * => L1A Special*, L0 Question", targetNodeID: "node-6", newStatus: "special", specialSymbol: pstr("*"),
-			expectedTargetAttrs:      utils.TreeAttrs{"status": "special", "special_symbol": "*"},
-			expectedParentAttrs:      utils.TreeAttrs{"status": "special", "is_automatic": true, "special_symbol": "*"},
-			expectedGrandparentAttrs: utils.TreeAttrs{"status": "question", "is_automatic": true},
+			expectedTargetAttrs:		utils.TreeAttrs{"status": "special", "special_symbol": "*"},
+			expectedParentAttrs:		utils.TreeAttrs{"status": "special", "is_automatic": true, "special_symbol": "*"},
+			expectedGrandparentAttrs:	utils.TreeAttrs{"status": "question", "is_automatic": true},
 		},
 		{name: "Rollup: Set L1 Question -> Special * => L0 becomes Special *", targetNodeID: "node-7", newStatus: "special", specialSymbol: pstr("*"),
-			expectedTargetAttrs: utils.TreeAttrs{"status": "special", "special_symbol": "*"},
-			expectedParentAttrs: utils.TreeAttrs{"status": "special", "is_automatic": true, "special_symbol": "*"},
+			expectedTargetAttrs:	utils.TreeAttrs{"status": "special", "special_symbol": "*"},
+			expectedParentAttrs:	utils.TreeAttrs{"status": "special", "is_automatic": true, "special_symbol": "*"},
 		},
 		{name: "Error: Invalid Node ID", targetNodeID: "node-99", newStatus: "done", expectError: true, expectedErrorIs: lang.ErrNotFound},
 		{name: "Error: Invalid Status", targetNodeID: "node-3", newStatus: "invalid-status", expectError: true, expectedErrorIs: lang.ErrInvalidArgument},
 		{
-			name:            "Error: Special Status, Missing Symbol",
-			targetNodeID:    "node-3",
-			newStatus:       "special",
-			expectError:     true,
-			expectedErrorIs: lang.ErrValidationRequiredArgNil,
+			name:			"Error: Special Status, Missing Symbol",
+			targetNodeID:		"node-3",
+			newStatus:		"special",
+			expectError:		true,
+			expectedErrorIs:	lang.ErrValidationRequiredArgNil,
 		},
 		{name: "Error: Special Status, Invalid Symbol", targetNodeID: "node-3", newStatus: "special", specialSymbol: pstr("xx"), expectError: true, expectedErrorIs: lang.ErrInvalidArgument},
 	}

@@ -6,15 +6,12 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-
-	"github.com/aprice2704/neuroscript/pkg/adapters"
-	"github.com/aprice2704/neuroscript/pkg/core"
 )
 
 func main() {
 	fmt.Println("--- Running Syntax Smoke Test ---")
-	logger := adapters.NewNoOpLogger()
-	parserAPI := core.NewParserAPI(logger)
+	logger := logging.NewNoLogger()
+	parserAPI := NewParserAPI(logger)
 
 	var unexpectedFailures []string
 	var unexpectedSuccesses []string

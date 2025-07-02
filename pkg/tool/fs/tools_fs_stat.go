@@ -6,7 +6,7 @@
 package fs
 
 import (
-	"errors" // Required for errors.Is
+	"errors"	// Required for errors.Is
 	"fmt"
 	"os"
 	"path/filepath"

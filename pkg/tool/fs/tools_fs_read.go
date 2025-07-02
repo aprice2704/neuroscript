@@ -9,7 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"strings" // For checking "is a directory" error string
+	"strings"	// For checking "is a directory" error string
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
 )

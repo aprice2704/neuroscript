@@ -29,60 +29,60 @@ func TestChecklistSetItemTextTool(t *testing.T) {
 	// Node IDs: root=node-1, L0=node-2, L1M=node-3, L1A=node-4, L2M1=node-5, L2M2=node-6, L1Q=node-7
 
 	testCases := []struct {
-		name            string
-		targetNodeID    string
-		newText         string // Value to set
-		expectError     bool
-		expectedErrorIs error
-		initialStatus   string // EXPECTED STATUS AFTER ChecklistToTree (based on its *own* line, not rollup)
+		name		string
+		targetNodeID	string
+		newText		string	// Value to set
+		expectError	bool
+		expectedErrorIs	error
+		initialStatus	string	// EXPECTED STATUS AFTER ChecklistToTree (based on its *own* line, not rollup)
 	}{
 		{
-			name:          "Set text on leaf node",
-			targetNodeID:  "node-3", // L1 Manual Open ([ ])
-			newText:       "L1 Manual Open - Updated",
-			expectError:   false,
-			initialStatus: "open", // Status from [ ]
+			name:		"Set text on leaf node",
+			targetNodeID:	"node-3",	// L1 Manual Open ([ ])
+			newText:	"L1 Manual Open - Updated",
+			expectError:	false,
+			initialStatus:	"open",	// Status from [ ]
 		},
 		{
-			name:          "Set text on node with children",
-			targetNodeID:  "node-4", // L1 Auto Child (| |)
-			newText:       "L1 Auto Child - Renamed",
-			expectError:   false,
-			initialStatus: "open", // Status from | | is open initially
+			name:		"Set text on node with children",
+			targetNodeID:	"node-4",	// L1 Auto Child (| |)
+			newText:	"L1 Auto Child - Renamed",
+			expectError:	false,
+			initialStatus:	"open",	// Status from | | is open initially
 		},
 		{
-			name:          "Set text to empty string",
-			targetNodeID:  "node-5", // L2 Manual Open 1 ([ ])
-			newText:       "",
-			expectError:   false,
-			initialStatus: "open", // Status from [ ]
+			name:		"Set text to empty string",
+			targetNodeID:	"node-5",	// L2 Manual Open 1 ([ ])
+			newText:	"",
+			expectError:	false,
+			initialStatus:	"open",	// Status from [ ]
 		},
 		{
-			name:            "Error: Invalid Handle",
-			targetNodeID:    "node-3",
-			newText:         "Fail",
-			expectError:     true,
-			expectedErrorIs: lang.ErrInvalidArgument, // Invalid handle format
+			name:			"Error: Invalid Handle",
+			targetNodeID:		"node-3",
+			newText:		"Fail",
+			expectError:		true,
+			expectedErrorIs:	lang.ErrInvalidArgument,	// Invalid handle format
 		},
 		{
-			name:            "Error: Invalid Node ID",
-			targetNodeID:    "node-99",
-			newText:         "Fail",
-			expectError:     true,
-			expectedErrorIs: lang.ErrNotFound,
+			name:			"Error: Invalid Node ID",
+			targetNodeID:		"node-99",
+			newText:		"Fail",
+			expectError:		true,
+			expectedErrorIs:	lang.ErrNotFound,
 		},
 		{
-			name:            "Error: Target is not checklist_item (Root)",
-			targetNodeID:    "node-1", // Root node
-			newText:         "Fail",
-			expectError:     true,
-			expectedErrorIs: lang.ErrInvalidArgument, // Should fail because node type is wrong
+			name:			"Error: Target is not checklist_item (Root)",
+			targetNodeID:		"node-1",	// Root node
+			newText:		"Fail",
+			expectError:		true,
+			expectedErrorIs:	lang.ErrInvalidArgument,	// Should fail because node type is wrong
 		},
 	}
 
 	// Get tool implementation directly (assuming it's registered)
 	// No need to call newTestInterpreterWithAllTools just to get the func if static
-	toolImpl := toolChecklistSetItemTextImpl // Assuming this var is accessible or defined globally/package-level
+	toolImpl := toolChecklistSetItemTextImpl	// Assuming this var is accessible or defined globally/package-level
 	toolFunc := toolImpl.Func
 	if toolFunc == nil {
 		t.Fatal("toolChecklistSetItemTextImpl.Func is nil")
@@ -91,7 +91,7 @@ func TestChecklistSetItemTextTool(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// Need interpreter for handle management and potential tool calls inside tested func
-			interp, _ := newTestInterpreterWithAllTools(t) // Use helper for consistent setup
+			interp, _ := newTestInterpreterWithAllTools(t)	// Use helper for consistent setup
 
 			// Setup: Load the fixture using the specific load tool
 			loadToolImpl, foundLoad := interp.ToolRegistry().GetTool("ChecklistLoadTree")
@@ -136,7 +136,7 @@ func TestChecklistSetItemTextTool(t *testing.T) {
 				if nodeData == nil {
 					t.Fatalf("Node %s not found after presumably successful update", tc.targetNodeID)
 				}
-				actualValue := getNodeValue(t, nodeData) // Assumes helper exists
+				actualValue := getNodeValue(t, nodeData)	// Assumes helper exists
 
 				if !reflect.DeepEqual(tc.newText, actualValue) {
 					t.Errorf("Node text mismatch. got = %v (%T), want = %v (%T)", actualValue, actualValue, tc.newText, tc.newText)

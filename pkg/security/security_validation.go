@@ -1,5 +1,5 @@
-// filename: neuroscript/pkg/core/security_validation.go
-package core
+// filename: pkg/security/security_validation.go
+package security
 
 import (
 	// Import errors package
@@ -8,6 +8,7 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/parser"
+	"github.com/aprice2704/neuroscript/pkg/utils"
 )
 
 // validateArgumentsAgainstSpec performs detailed validation of raw arguments against the tool's spec.
@@ -32,7 +33,7 @@ func (sl *SecurityLayer) validateArgumentsAgainstSpec(toolSpec runtime.tool.Tool
 		}
 
 		var validatedValue interface{}
-		var validationError error // Holds sentinel errors primarily
+		var validationError error	// Holds sentinel errors primarily
 
 		// a) Basic Content Checks (e.g., null bytes)
 		if strVal, ok := rawValue.(string); ok {
@@ -64,7 +65,7 @@ func (sl *SecurityLayer) validateArgumentsAgainstSpec(toolSpec runtime.tool.Tool
 		if toolSpec.Name == "TOOL.Add" && (argName == "num1" || argName == "num2") {
 			if _, isNum := lang.ToNumeric(validatedValue); !isNum {
 				// *** FIXED: Use Sentinel Error ***
-				validationError = lang.ErrValidationArgValue // Or a more specific one if needed
+				validationError = lang.ErrValidationArgValue	// Or a more specific one if needed
 			}
 		}
 		// Add other tool-specific checks here, assigning sentinel errors
@@ -105,7 +106,7 @@ func (sl *SecurityLayer) validateArgumentsAgainstSpec(toolSpec runtime.tool.Tool
 		validatedArgs[argName] = validatedValue
 		sl.logger.Debug("VALIDATE] Arg '%s' validated successfully. Value: %v (%T)", argName, validatedValue, validatedValue)
 
-	} // End loop through spec args
+	}	// End loop through spec args
 
 	// Check for unexpected arguments
 	for rawArgName := range rawArgs {
@@ -131,7 +132,7 @@ func (sl *SecurityLayer) validateArgumentsAgainstSpec(toolSpec runtime.tool.Tool
 func (sl *SecurityLayer) validateAndCoerceType(rawValue interface{}, expectedType parser.ArgType, toolName, argName string) (interface{}, error) {
 	var validatedValue interface{}
 	var ok bool
-	var typeErr error // Holds the specific sentinel error for type mismatch
+	var typeErr error	// Holds the specific sentinel error for type mismatch
 
 	switch expectedType {
 	case ArgTypeString:
@@ -162,7 +163,7 @@ func (sl *SecurityLayer) validateAndCoerceType(rawValue interface{}, expectedTyp
 			// *** FIXED: Use specific sentinel error ***
 			return nil, fmt.Errorf("failed converting to slice of strings: %w", convertErr)
 		}
-		if !ok { // If conversion didn't error but still failed type check
+		if !ok {	// If conversion didn't error but still failed type check
 			typeErr = lang.ErrValidationTypeMismatch
 		}
 	case ArgTypeSliceAny:
@@ -176,10 +177,10 @@ func (sl *SecurityLayer) validateAndCoerceType(rawValue interface{}, expectedTyp
 			typeErr = lang.ErrValidationTypeMismatch
 		}
 	case ArgTypeAny:
-		validatedValue, ok = rawValue, true // Accept any type
+		validatedValue, ok = rawValue, true	// Accept any type
 	default:
 		// Use internal error for unknown expected type
-		typeErr = lang.ErrInternalTool // Or maybe ErrInvalidArgument? Let's stick with InternalTool for now.
+		typeErr = lang.ErrInternalTool	// Or maybe ErrInvalidArgument? Let's stick with InternalTool for now.
 		ok = false
 	}
 

@@ -231,7 +231,7 @@ func (a *App) runTuiMode(ctx context.Context) error {
 func (a *App) GetLogger() interfaces.Logger {
 	if a.Log == nil {
 		// This should ideally not happen if NewApp ensures logger is set.
-		return adapters.NewNoOpLogger()
+		return logging.NewNoLogger()
 	}
 	return a.Log
 }
@@ -404,7 +404,7 @@ func (app *App) CreateLLMClient() (interfaces.LLMClient, error) {
 
 	loggerToUse := app.Log
 	if loggerToUse == nil { // Should be set by NewApp
-		loggerToUse = adapters.NewNoOpLogger() // Safety fallback
+		loggerToUse = logging.NewNoLogger() // Safety fallback
 	}
 
 	llmClient, _ := LMClient(apiKey, modelName, loggerToUse)

@@ -127,7 +127,7 @@ func (app *App) runAgentMode(ctx context.Context) error {
 		}
 		fmt.Println()
 
-	} // End input loop
+	}	// End input loop
 
 	fmt.Println("Agent mode finished.")
 	return nil
@@ -248,7 +248,7 @@ func (app *App) executeStartupScript(ctx context.Context, scriptPath string, age
 	// 3. Run the 'main' procedure.
 	startupProcName := "main"
 	app.Log.Info("Running startup procedure.", "name", startupProcName, "script", scriptPath)
-	_, runErr := app.RunProcedure(ctx, startupProcName, nil) // Pass nil for args
+	_, runErr := app.RunProcedure(ctx, startupProcName, nil)	// Pass nil for args
 
 	if runErr != nil {
 		// If the procedure simply doesn't exist, it's not a fatal error for a startup script.
@@ -275,10 +275,10 @@ func getAvailableTools(agentCtx *AgentContext, registry Registry) []*genai.Tool 
 	allTools := registry.ListTools()
 	genaiTools := make([]*genai.Tool, 0, len(allTools))
 	for _, toolImpl := range allTools {
-		qualifiedName := "TOOL." + toolImpl.Name // Assuming tools need TOOL. prefix for LLM
+		qualifiedName := "TOOL." + toolImpl.Name	// Assuming tools need TOOL. prefix for LLM
 		genaiFunc := &genai.FunctionDeclaration{
-			Name:        qualifiedName,
-			Description: toolImpl.Description,
+			Name:		qualifiedName,
+			Description:	toolImpl.Description,
 		}
 		genaiTools = append(genaiTools, &genai.Tool{
 			FunctionDeclarations: []*genai.FunctionDeclaration{genaiFunc},

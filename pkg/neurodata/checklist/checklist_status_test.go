@@ -10,12 +10,12 @@ import (
 
 func TestCalculateAutomaticStatus(t *testing.T) {
 	testCases := []struct {
-		name           string
-		childStatuses  []string
-		childSymbols   map[int]string // Only needed for 'special' cases
-		expectedStatus string
-		expectedSymbol string
-		expectError    bool
+		name		string
+		childStatuses	[]string
+		childSymbols	map[int]string	// Only needed for 'special' cases
+		expectedStatus	string
+		expectedSymbol	string
+		expectError	bool
 	}{
 		// Rule 5 (Handled by caller, but test edge case)
 		{name: "No children", childStatuses: []string{}, expectedStatus: "open", expectedSymbol: ""},
@@ -25,7 +25,7 @@ func TestCalculateAutomaticStatus(t *testing.T) {
 		{name: "All Open (3)", childStatuses: []string{"open", "open", "open"}, expectedStatus: "open", expectedSymbol: ""},
 
 		// Rule 3: All Done
-		{name: "All Done (1)", childStatuses: []string{"done"}, expectedStatus: "done", expectedSymbol: ""}, // Rule 3 takes precedence over Rule 2 here
+		{name: "All Done (1)", childStatuses: []string{"done"}, expectedStatus: "done", expectedSymbol: ""},	// Rule 3 takes precedence over Rule 2 here
 		{name: "All Done (3)", childStatuses: []string{"done", "done", "done"}, expectedStatus: "done", expectedSymbol: ""},
 
 		// Rule 2: Partial Triggers
@@ -69,7 +69,7 @@ func TestCalculateAutomaticStatus(t *testing.T) {
 				} else {
 					t.Logf("Got expected error: %v", err)
 				}
-				return // Don't check status/symbol if error was expected
+				return	// Don't check status/symbol if error was expected
 			}
 
 			if err != nil {

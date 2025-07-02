@@ -26,16 +26,16 @@ func TestChecklistRemoveItemTool(t *testing.T) {
 ` // Node IDs added
 
 	testCases := []struct {
-		name            string
-		nodeToRemove    string
-		expectError     bool
-		expectedErrorIs error
-		verifyFunc      func(t *testing.T, interp *neurogo.Interpreter, handleID string)
+		name		string
+		nodeToRemove	string
+		expectError	bool
+		expectedErrorIs	error
+		verifyFunc	func(t *testing.T, interp *neurogo.Interpreter, handleID string)
 	}{
 		{
-			name:         "Remove Leaf Node (Child 1.1)",
-			nodeToRemove: "node-3",
-			expectError:  false,
+			name:		"Remove Leaf Node (Child 1.1)",
+			nodeToRemove:	"node-3",
+			expectError:	false,
 			verifyFunc: func(t *testing.T, interp *neurogo.Interpreter, handleID string) {
 				// Verify node-3 is gone
 				nodeData := getNodeViaTool(t, interp, handleID, "node-3")
@@ -47,7 +47,7 @@ func TestChecklistRemoveItemTool(t *testing.T) {
 				if parentData == nil {
 					t.Fatalf("Parent node %q not found after child removal", "node-2")
 				}
-				children := getNodeChildrenIDs(t, parentData) // Assumes helper from add_test exists & is fixed
+				children := getNodeChildrenIDs(t, parentData)	// Assumes helper from add_test exists & is fixed
 				found := false
 				for _, id := range children {
 					if id == "node-3" {
@@ -61,9 +61,9 @@ func TestChecklistRemoveItemTool(t *testing.T) {
 			},
 		},
 		{
-			name:         "Remove Node with Children (Child 2.2 Auto)",
-			nodeToRemove: "node-6",
-			expectError:  false,
+			name:		"Remove Node with Children (Child 2.2 Auto)",
+			nodeToRemove:	"node-6",
+			expectError:	false,
 			verifyFunc: func(t *testing.T, interp *neurogo.Interpreter, handleID string) {
 				// Verify node-6 is gone
 				nodeData6 := getNodeViaTool(t, interp, handleID, "node-6")
@@ -102,29 +102,29 @@ func TestChecklistRemoveItemTool(t *testing.T) {
 			},
 		},
 		{
-			name:            "Error: Remove Root Node",
-			nodeToRemove:    "node-1", // Assuming root is node-1
-			expectError:     true,
-			expectedErrorIs: lang.ErrInvalidArgument, // Tool should return InvalidArgument for trying to remove root
+			name:			"Error: Remove Root Node",
+			nodeToRemove:		"node-1",	// Assuming root is node-1
+			expectError:		true,
+			expectedErrorIs:	lang.ErrInvalidArgument,	// Tool should return InvalidArgument for trying to remove root
 		},
 		{
-			name:            "Error: Remove Non-existent Node",
-			nodeToRemove:    "node-99",
-			expectError:     true,
-			expectedErrorIs: lang.ErrNotFound,
+			name:			"Error: Remove Non-existent Node",
+			nodeToRemove:		"node-99",
+			expectError:		true,
+			expectedErrorIs:	lang.ErrNotFound,
 		},
 		{
-			name:            "Error: Invalid Handle",
-			nodeToRemove:    "node-3", // Node ID doesn't matter here
-			expectError:     true,
-			expectedErrorIs: lang.ErrInvalidArgument, // Expect InvalidArgument from GetHandleValue via tool
+			name:			"Error: Invalid Handle",
+			nodeToRemove:		"node-3",	// Node ID doesn't matter here
+			expectError:		true,
+			expectedErrorIs:	lang.ErrInvalidArgument,	// Expect InvalidArgument from GetHandleValue via tool
 		},
 	}
 
 	for _, tc := range testCases {
-		tc := tc // Capture range variable
+		tc := tc	// Capture range variable
 		t.Run(tc.name, func(t *testing.T) {
-			interp, registry := newTestInterpreterWithAllTools(t) // Fresh interpreter
+			interp, registry := newTestInterpreterWithAllTools(t)	// Fresh interpreter
 
 			// Get Tool Funcs
 			toolRemoveItemImpl, foundRemove := registry.GetTool("ChecklistRemoveItem")
@@ -155,7 +155,7 @@ func TestChecklistRemoveItemTool(t *testing.T) {
 			// --- Call ChecklistRemoveItem ---
 			testHandleID := handleID
 			if tc.name == "Error: Invalid Handle" {
-				testHandleID = "bad-handle-format" // Use an invalid format
+				testHandleID = "bad-handle-format"	// Use an invalid format
 			}
 			_, err := toolFunc(interp, tool.MakeArgs(testHandleID, tc.nodeToRemove))
 
@@ -173,7 +173,7 @@ func TestChecklistRemoveItemTool(t *testing.T) {
 				} else {
 					t.Logf("Got expected error: %v", err)
 				}
-			} else { // Expect success
+			} else {	// Expect success
 				if err != nil {
 					t.Errorf("Unexpected error from ChecklistRemoveItem: %v", err)
 					// Optionally dump tree state on unexpected error

@@ -12,7 +12,6 @@ import (
 	"strings"
 
 	"github.com/antlr4-go/antlr/v4"
-	"github.com/aprice2704/neuroscript/pkg/adapters"
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 )
@@ -26,7 +25,7 @@ type ASTBuilder struct {
 // NewASTBuilder creates a new ASTBuilder instance.
 func NewASTBuilder(logger interfaces.Logger) *ASTBuilder {
 	if logger == nil {
-		logger = adapters.NewNoOpLogger() // Use the logger from the adapters package
+		logger = logging.NewNoLogger() // Use the logger from the adapters package
 	}
 	return &ASTBuilder{
 		logger:   logger,

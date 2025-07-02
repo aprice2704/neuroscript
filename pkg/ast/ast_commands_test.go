@@ -1,3 +1,4 @@
+// filename: pkg/ast/ast_commands_test.go
 package ast
 
 import "testing"

@@ -1,3 +1,4 @@
+// filename: pkg/parser/ast_builder_operators_test.go
 package parser
 
 import (

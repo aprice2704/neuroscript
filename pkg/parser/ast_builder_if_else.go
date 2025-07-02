@@ -1,3 +1,4 @@
+// filename: pkg/parser/ast_builder_if_else.go
 package parser
 
 import (
@@ -47,10 +48,10 @@ func (l *neuroScriptListenerImpl) ExitIf_statement(c *gen.If_statementContext) {
 
 	// Create and add the 'if' step.
 	l.addStep(ast.Step{
-		Position: tokenToPosition(c.GetStart()),
-		Type:     "if",
-		Cond:     cond,
-		Body:     ifBody,
-		ElseBody: elseBody,
+		Position:	tokenToPosition(c.GetStart()),
+		Type:		"if",
+		Cond:		cond,
+		Body:		ifBody,
+		ElseBody:	elseBody,
 	})
 }

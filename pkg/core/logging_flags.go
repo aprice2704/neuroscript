@@ -1,3 +1,4 @@
+// filename: pkg/core/logging_flags.go
 // pkg/core/logging_flags.go
 // file version: 1
 package core

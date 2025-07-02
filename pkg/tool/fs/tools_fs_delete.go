@@ -9,7 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"strings" // Keep for "directory not empty" check if needed, though errors.Is might be better if a specific error exists.
+	"strings"	// Keep for "directory not empty" check if needed, though errors.Is might be better if a specific error exists.
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
 )

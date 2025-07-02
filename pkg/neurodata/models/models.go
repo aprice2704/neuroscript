@@ -5,20 +5,20 @@ package models
 // This serves as a root type for different kinds of schemas you might define.
 // Replace or extend this with the actual structures needed by your application.
 type Schema struct {
-	Name        string           `json:"name"`
-	Version     string           `json:"version"`
-	Description string           `json:"description,omitempty"`
-	Fields      map[string]Field `json:"fields"`
+	Name		string			`json:"name"`
+	Version		string			`json:"version"`
+	Description	string			`json:"description,omitempty"`
+	Fields		map[string]Field	`json:"fields"`
 	// Consider adding a 'Kind' field if you have multiple types of schemas (e.g., "data", "tool_input", "config")
-	Kind string `json:"kind,omitempty"`
+	Kind	string	`json:"kind,omitempty"`
 }
 
 // Field represents a single field definition within a schema.
 type Field struct {
-	Type        string      `json:"type"` // e.g., "string", "number", "boolean", "list", "map", or a custom type name
-	Required    bool        `json:"required,omitempty"`
-	Description string      `json:"description,omitempty"`
-	Default     interface{} `json:"default,omitempty"` // Default value if applicable
+	Type		string		`json:"type"`	// e.g., "string", "number", "boolean", "list", "map", or a custom type name
+	Required	bool		`json:"required,omitempty"`
+	Description	string		`json:"description,omitempty"`
+	Default		interface{}	`json:"default,omitempty"`	// Default value if applicable
 	// Add constraints, nested schemas, enum values etc. if needed
 	// Example: Constraints map[string]interface{} `json:"constraints,omitempty"`
 }

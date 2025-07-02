@@ -56,7 +56,7 @@ func (l *neuroScriptListenerImpl) ExitLiteral(ctx *gen.LiteralContext) {
 		token := tripleStrNode.GetSymbol()
 		pos := tokenToPosition(token)
 		tokenText := token.GetText()
-		if len(tokenText) < 6 { // ```...```
+		if len(tokenText) < 6 {	// ```...```
 			l.addErrorf(token, "malformed triple-backtick string literal token (too short): %s", tokenText)
 			nodeToPush = &ast.ErrorNode{Pos: &pos, Message: "malformed raw string"}
 		} else {

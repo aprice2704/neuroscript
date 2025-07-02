@@ -9,7 +9,7 @@ package tree
 
 import (
 	"encoding/json"
-	"errors" // Required for errors.Is/Join
+	"errors"	// Required for errors.Is/Join
 	"fmt"
 	"sort"
 	"strings"

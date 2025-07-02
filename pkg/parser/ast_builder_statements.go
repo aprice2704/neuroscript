@@ -38,9 +38,9 @@ func (l *neuroScriptListenerImpl) ExitEmit_statement(c *gen.Emit_statementContex
 	}
 	pos := tokenToPosition(c.GetStart())
 	l.addStep(ast.Step{
-		Position: pos,
-		Type:     "emit",
-		Values:   []ast.Expression{expr},
+		Position:	pos,
+		Type:		"emit",
+		Values:		[]ast.Expression{expr},
 	})
 }
 
@@ -65,9 +65,9 @@ func (l *neuroScriptListenerImpl) ExitReturn_statement(c *gen.Return_statementCo
 	}
 	pos := tokenToPosition(c.GetStart())
 	l.addStep(ast.Step{
-		Position: pos,
-		Type:     "return",
-		Values:   returnValues,
+		Position:	pos,
+		Type:		"return",
+		Values:		returnValues,
 	})
 }
 
@@ -84,9 +84,9 @@ func (l *neuroScriptListenerImpl) ExitCall_statement(c *gen.Call_statementContex
 	}
 	pos := tokenToPosition(c.GetStart())
 	l.addStep(ast.Step{
-		Position: pos,
-		Type:     "call",
-		Call:     callExpr,
+		Position:	pos,
+		Type:		"call",
+		Call:		callExpr,
 	})
 }
 
@@ -103,9 +103,9 @@ func (l *neuroScriptListenerImpl) ExitFail_statement(c *gen.Fail_statementContex
 	}
 	pos := tokenToPosition(c.GetStart())
 	l.addStep(ast.Step{
-		Position: pos,
-		Type:     "fail",
-		Values:   []ast.Expression{expr},
+		Position:	pos,
+		Type:		"fail",
+		Values:		[]ast.Expression{expr},
 	})
 }
 
@@ -122,10 +122,10 @@ func (l *neuroScriptListenerImpl) ExitAsk_stmt(c *gen.Ask_stmtContext) {
 	}
 	pos := tokenToPosition(c.GetStart())
 	l.addStep(ast.Step{
-		Position:   pos,
-		Type:       "ask",
-		Values:     []ast.Expression{expr},
-		AskIntoVar: c.IDENTIFIER().GetText(),
+		Position:	pos,
+		Type:		"ask",
+		Values:		[]ast.Expression{expr},
+		AskIntoVar:	c.IDENTIFIER().GetText(),
 	})
 }
 
@@ -135,8 +135,8 @@ func (l *neuroScriptListenerImpl) ExitContinue_statement(c *gen.Continue_stateme
 	}
 	pos := tokenToPosition(c.GetStart())
 	l.addStep(ast.Step{
-		Position: pos,
-		Type:     "continue",
+		Position:	pos,
+		Type:		"continue",
 	})
 }
 
@@ -146,7 +146,7 @@ func (l *neuroScriptListenerImpl) ExitBreak_statement(c *gen.Break_statementCont
 	}
 	pos := tokenToPosition(c.GetStart())
 	l.addStep(ast.Step{
-		Position: pos,
-		Type:     "break",
+		Position:	pos,
+		Type:		"break",
 	})
 }

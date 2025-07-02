@@ -23,11 +23,11 @@ var aiWmToolsToRegister = []tool.ToolImplementation{	//
 	wm.toolAIWorkerLoadPerformanceData,	//
 
 	// Instance Tools (from ai_wm_tools_instances.go)
-	wm.toolAIWorkerInstanceSpawn,		//
-	wm.toolAIWorkerInstanceGet,		//
+	wm.toolAIWorkerInstanceSpawn,			//
+	wm.toolAIWorkerInstanceGet,			//
 	wm.toolAIWorkerInstanceListActive,		//
-	wm.toolAIWorkerInstanceRetire,		//
-	wm.toolAIWorkerInstanceUpdateStatus,	//
+	wm.toolAIWorkerInstanceRetire,			//
+	wm.toolAIWorkerInstanceUpdateStatus,		//
 	wm.toolAIWorkerInstanceUpdateTokenUsage,	//
 
 	// Execution Tools (from ai_wm_tools_execution.go)

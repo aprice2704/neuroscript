@@ -1,11 +1,12 @@
+// filename: pkg/neurodata/blocks/blocks_extractor.go
 // pkg/neurodata/blocks/blocks_extractor.go
 package blocks
 
 import (
-	"bufio" // Keep errors import
+	"bufio"	// Keep errors import
 	"fmt"
 	"regexp"
-	"sort" // Import sort for stable metadata output
+	"sort"	// Import sort for stable metadata output
 	"strings"
 
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
@@ -14,35 +15,35 @@ import (
 
 // FencedBlock structure - Matches the structure expected by existing tests.
 type FencedBlock struct {
-	LanguageID string            // Language identifier from the opening fence (e.g., "go", "python")
-	RawContent string            // The raw content within the fences
-	StartLine  int               // Line number of the opening ```
-	EndLine    int               // Line number of the closing ```
-	Metadata   map[string]string // Metadata accumulated before the block (:: key: value)
+	LanguageID	string			// Language identifier from the opening fence (e.g., "go", "python")
+	RawContent	string			// The raw content within the fences
+	StartLine	int			// Line number of the opening ```
+	EndLine		int			// Line number of the closing ```
+	Metadata	map[string]string	// Metadata accumulated before the block (:: key: value)
 }
 
 var (
 	// --- UPDATED Regex ---
 	// Regex to capture the language ID (any non-whitespace characters) from an opening fence.
 	// Allows empty language ID (just ```).
-	openingFenceRegex = regexp.MustCompile("^```(\\S*)$")
+	openingFenceRegex	= regexp.MustCompile("^```(\\S*)$")
 	// --- END UPDATED Regex ---
 
 	// Regex for metadata lines (local copy for simplicity, or import your metadata package)
-	metadataRegex = regexp.MustCompile(`^\s*::\s+([a-zA-Z0-9_.-]+)\s*:\s*(.*)`)
+	metadataRegex	= regexp.MustCompile(`^\s*::\s+([a-zA-Z0-9_.-]+)\s*:\s*(.*)`)
 )
 
 // ExtractAll scans through the input string (file content) line by line
 // and extracts blocks based on the specified fence and metadata logic.
 func ExtractAll(content string, logger interfaces.Logger) ([]FencedBlock, error) {
-	logger.Debug("[DEBUG BLOCKS Extractor - Line Scanner v4] Starting ExtractAll") // Version bump for clarity
+	logger.Debug("[DEBUG BLOCKS Extractor - Line Scanner v4] Starting ExtractAll")	// Version bump for clarity
 
 	var blocks []FencedBlock
 	var metadataAccumulator = make(map[string]string)
 	var blockAccumulator []string
 	fenceLevel := 0
-	currentLangID := ""   // Store language ID when fence level becomes 1
-	currentStartLine := 0 // Store line number of opening fence
+	currentLangID := ""	// Store language ID when fence level becomes 1
+	currentStartLine := 0	// Store line number of opening fence
 
 	scanner := bufio.NewScanner(strings.NewReader(content))
 	lineNumber := 0
@@ -50,7 +51,7 @@ func ExtractAll(content string, logger interfaces.Logger) ([]FencedBlock, error)
 	for scanner.Scan() {
 		lineNumber++
 		line := scanner.Text()
-		trimmedLine := strings.TrimSpace(line) // Trim whitespace for fence checks
+		trimmedLine := strings.TrimSpace(line)	// Trim whitespace for fence checks
 
 		// logger.Debug("[LINE SCAN DEBUG] L%d | Level: %d | Line: %q", lineNumber, fenceLevel, line)
 
@@ -65,14 +66,14 @@ func ExtractAll(content string, logger interfaces.Logger) ([]FencedBlock, error)
 				if _, exists := metadataAccumulator[key]; !exists {
 					metadataAccumulator[key] = value
 				}
-				continue // Metadata line processed
+				continue	// Metadata line processed
 			}
 
 			// Check for Opening Fence (```<token> or ```) - Use trimmed line and NEW REGEX
 			if openingMatch := openingFenceRegex.FindStringSubmatch(trimmedLine); openingMatch != nil && strings.HasPrefix(trimmedLine, "```") {
 				langID := ""
 				if len(openingMatch) > 1 {
-					langID = openingMatch[1] // Group 1 contains the language ID (or is empty)
+					langID = openingMatch[1]	// Group 1 contains the language ID (or is empty)
 				}
 				// logger.Debug("[LINE SCAN DEBUG] L%d | Level: %d | Action: Found Opening Fence (Lang: %q)", lineNumber, fenceLevel, langID)
 				fenceLevel++
@@ -88,7 +89,7 @@ func ExtractAll(content string, logger interfaces.Logger) ([]FencedBlock, error)
 						blockAccumulator = append(blockAccumulator, line)
 					}
 				}
-				continue // Opening fence processed
+				continue	// Opening fence processed
 			}
 
 			// Check for *exact* Closing Fence (```) - Error if encountered at level 0
@@ -126,11 +127,11 @@ func ExtractAll(content string, logger interfaces.Logger) ([]FencedBlock, error)
 						finalMetadata[k] = v
 					}
 					newBlock := FencedBlock{
-						LanguageID: currentLangID,
-						Metadata:   finalMetadata,
-						RawContent: strings.Join(blockAccumulator, "\n"),
-						StartLine:  currentStartLine,
-						EndLine:    currentEndLine,
+						LanguageID:	currentLangID,
+						Metadata:	finalMetadata,
+						RawContent:	strings.Join(blockAccumulator, "\n"),
+						StartLine:	currentStartLine,
+						EndLine:	currentEndLine,
 					}
 					blocks = append(blocks, newBlock)
 					// logger.Debug("[LINE SCAN DEBUG] L%d | Level: %d | Action: <--- Exiting Level 1 Block (Emit)", lineNumber, fenceLevel)
@@ -147,7 +148,7 @@ func ExtractAll(content string, logger interfaces.Logger) ([]FencedBlock, error)
 						blockAccumulator = append(blockAccumulator, line)
 					}
 				}
-				continue // Closing fence processed
+				continue	// Closing fence processed
 			}
 
 			// Check for Opening Fence (```<token> or ```) - handles nested fences (using NEW REGEX)
@@ -158,7 +159,7 @@ func ExtractAll(content string, logger interfaces.Logger) ([]FencedBlock, error)
 				if blockAccumulator != nil {
 					blockAccumulator = append(blockAccumulator, line)
 				}
-				continue // Nested opening fence processed
+				continue	// Nested opening fence processed
 			}
 
 			// If still inside a fence (level > 0), add the line to the current block accumulator.
@@ -171,7 +172,7 @@ func ExtractAll(content string, logger interfaces.Logger) ([]FencedBlock, error)
 				return blocks, err
 			}
 		}
-	} // End scanner loop
+	}	// End scanner loop
 
 	// Check for scanner errors
 	if err := scanner.Err(); err != nil {
@@ -186,7 +187,7 @@ func ExtractAll(content string, logger interfaces.Logger) ([]FencedBlock, error)
 		logger.Debug("[DEBUG BLOCKS Extractor] Finished ExtractAll successfully. Found %d blocks.", len(blocks))
 	}
 
-	return blocks, nil // Success or partial success with warning logged
+	return blocks, nil	// Success or partial success with warning logged
 }
 
 // --- Formatting Function (As provided by user) ---
@@ -195,7 +196,7 @@ func ExtractAll(content string, logger interfaces.Logger) ([]FencedBlock, error)
 // human-readable string representation.
 func FormatBlocks(blocks []FencedBlock) string {
 	var builder strings.Builder
-	separator := "\n" // strings.Repeat("-", 30) + "\n" // Consistent separator
+	separator := "\n"	// strings.Repeat("-", 30) + "\n" // Consistent separator
 
 	if len(blocks) == 0 {
 		builder.WriteString("No blocks found.\n")

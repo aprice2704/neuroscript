@@ -12,7 +12,7 @@ import (
 
 	// For core types like Interpreter, SecurityLayer & SecureFilePath func
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
-	"github.com/aprice2704/neuroscript/pkg/nspatch" // For patch types and application logic
+	"github.com/aprice2704/neuroscript/pkg/nspatch"	// For patch types and application logic
 )
 
 // ErrPatchAbortedByUser indicates the user cancelled the patch operation.
@@ -157,8 +157,8 @@ func handleReceivedPatch(patchJSON string, interp *Interpreter, securityLayer *s
 			return fmt.Errorf("failed to write modified file %q: %w", fileRelPath, err)
 		}
 		logger.Info("[PATCH] Successfully wrote modified content to %q", fileRelPath)
-	} // End loop through files
+	}	// End loop through files
 
 	logger.Info("[PATCH] All files processed successfully.")
-	return nil // Success
+	return nil	// Success
 }

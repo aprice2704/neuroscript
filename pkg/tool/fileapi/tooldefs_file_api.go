@@ -20,7 +20,7 @@ var fileApiToolsToRegister = []tool.ToolImplementation{
 		Spec: tool.ToolSpec{
 			Name:		"ListAPIFiles",
 			Description:	"Lists files currently available via the platform's File API.",
-			Args:		[]tool.ArgSpec{},		// No arguments expected
+			Args:		[]tool.ArgSpec{},	// No arguments expected
 			ReturnType:	parser.ArgTypeSliceAny,	// Expect []map[string]interface{} describing files
 		},
 		// Use the factory to create the stub function

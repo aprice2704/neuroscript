@@ -1,27 +1,27 @@
 // NeuroScript Version: 0.4.0
 // File version: 0.1.4 // Updated error check to use errors.Is with strconv.ErrSyntax
 // Purpose: Tests for string utility functions in string_utils.go.
-// filename: pkg/core/string_utils_test.go
+// filename: pkg/utils/string_utils_test.go
 // nlines: 223 // Approximate
 // risk_rating: LOW
 
-package core
+package utils
 
 import (
-	"errors" // For errors.Is
+	"errors"	// For errors.Is
 	// For t.Errorf
-	"strconv" // For strconv.ErrSyntax
-	"strings" // For strings.Contains
-	"testing" // For testing framework
+	"strconv"	// For strconv.ErrSyntax
+	"strings"	// For strings.Contains
+	"testing"	// For testing framework
 )
 
 func TestUnescapeNeuroScriptString(t *testing.T) {
 	tests := []struct {
-		name        string
-		input       string
-		want        string
-		wantErr     bool
-		errContains string
+		name		string
+		input		string
+		want		string
+		wantErr		bool
+		errContains	string
 	}{
 		// Basic escapes
 		{"empty string", "", "", false, ""},
@@ -44,8 +44,8 @@ func TestUnescapeNeuroScriptString(t *testing.T) {
 		{"unicode Omega", "\\u03A9", "Ω", false, ""},
 		{"unicode Heart", "\\u2764", "❤", false, ""},
 		{"unicode mixed", "Value: \\u0041-\\u03A9", "Value: A-Ω", false, ""},
-		{"unicode emoji grinning face", "\\uD83D\\uDE00", "😀", false, ""}, // U+1F600
-		{"unicode emoji laughing face", "\\uD83D\\uDE04", "😄", false, ""}, // U+1F604
+		{"unicode emoji grinning face", "\\uD83D\\uDE00", "😀", false, ""},	// U+1F600
+		{"unicode emoji laughing face", "\\uD83D\\uDE04", "😄", false, ""},	// U+1F604
 		{"unicode high surrogate only", "\\uD83D", string(rune(0xD83D)), false, ""},
 		{"unicode high surrogate then text", "\\uD83Dhello", string(rune(0xD83D)) + "hello", false, ""},
 		{"unicode high surrogate then incomplete low surrogate 1", "\\uD83D\\u", string(rune(0xD83D)) + "\\u", true, "incomplete unicode"},
@@ -80,7 +80,7 @@ func TestUnescapeNeuroScriptString(t *testing.T) {
 				return
 			}
 			if tt.wantErr {
-				if err == nil { // Should not happen if wantErr is true and previous check passed
+				if err == nil {	// Should not happen if wantErr is true and previous check passed
 					t.Errorf("UnescapeNeuroScriptString(%q) expected error but got nil (errContains: %q)", tt.input, tt.errContains)
 				} else if tt.errContains != "" && !strings.Contains(err.Error(), tt.errContains) {
 					t.Errorf("UnescapeNeuroScriptString(%q) error = %q, want err containing %q", tt.input, err.Error(), tt.errContains)
@@ -98,9 +98,9 @@ func TestUnescapeNeuroScriptString(t *testing.T) {
 
 func TestSafeEscapeHTML(t *testing.T) {
 	tests := []struct {
-		name  string
-		input string
-		want  string
+		name	string
+		input	string
+		want	string
 	}{
 		{"empty", "", ""},
 		{"no special chars", "hello world", "hello world"},
@@ -119,10 +119,10 @@ func TestSafeEscapeHTML(t *testing.T) {
 
 func TestSafeEscapeJavaScriptString(t *testing.T) {
 	tests := []struct {
-		name    string
-		input   string
-		want    string
-		wantErr bool
+		name	string
+		input	string
+		want	string
+		wantErr	bool
 	}{
 		{"empty", "", "\"\"", false},
 		{"simple string", "hello", "\"hello\"", false},
@@ -147,11 +147,11 @@ func TestSafeEscapeJavaScriptString(t *testing.T) {
 
 func TestStripJSONStringQuotes(t *testing.T) {
 	tests := []struct {
-		name        string
-		input       string
-		want        string
-		wantErr     bool
-		errContains string // Used for message check, especially if not checking a specific sentinel
+		name		string
+		input		string
+		want		string
+		wantErr		bool
+		errContains	string	// Used for message check, especially if not checking a specific sentinel
 	}{
 		{"valid simple", "\"hello\"", "hello", false, ""},
 		{"valid with newline", "\"hello\\nworld\"", "hello\nworld", false, ""},
@@ -176,7 +176,7 @@ func TestStripJSONStringQuotes(t *testing.T) {
 			}
 
 			if tt.wantErr {
-				if err == nil { // Should be caught by the check above
+				if err == nil {	// Should be caught by the check above
 					t.Errorf("StripJSONStringQuotes(%q): expected error but got nil", tt.input)
 				} else {
 					// Specific check for the "error invalid internal escape" test case using errors.Is
@@ -191,7 +191,7 @@ func TestStripJSONStringQuotes(t *testing.T) {
 							t.Errorf("StripJSONStringQuotes(%q): for strconv.ErrSyntax, error message %q does not contain %q",
 								tt.input, err.Error(), tt.errContains)
 						}
-					} else if tt.errContains != "" { // Fallback for other expected error cases (check message substring)
+					} else if tt.errContains != "" {	// Fallback for other expected error cases (check message substring)
 						if !strings.Contains(err.Error(), tt.errContains) {
 							t.Errorf("StripJSONStringQuotes(%q): error message %q does not contain %q",
 								tt.input, err.Error(), tt.errContains)
@@ -200,7 +200,7 @@ func TestStripJSONStringQuotes(t *testing.T) {
 					// If tt.errContains is empty and not the special "error invalid internal escape" case,
 					// any error is acceptable, and we've already confirmed err != nil.
 				}
-				return // Done with error case
+				return	// Done with error case
 			}
 
 			// If no error was wanted (tt.wantErr is false)

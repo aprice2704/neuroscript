@@ -1,3 +1,4 @@
+// filename: pkg/neurodata/checklist/scanner_parser.go
 // pkg/neurodata/checklist/scanner_parser.go
 package checklist
 
@@ -14,32 +15,32 @@ import (
 
 // ChecklistItem definition... (no changes)
 type ChecklistItem struct {
-	Text        string
-	Status      string
-	Symbol      rune
-	Indent      int
-	LineNumber  int
-	IsAutomatic bool
+	Text		string
+	Status		string
+	Symbol		rune
+	Indent		int
+	LineNumber	int
+	IsAutomatic	bool
 }
 
 // ParsedChecklist definition... (no changes)
 type ParsedChecklist struct {
-	Items    []ChecklistItem
-	Metadata map[string]string
+	Items		[]ChecklistItem
+	Metadata	map[string]string
 }
 
 var (
 	// Regexes for skipping lines (unchanged)
-	manualItemRegex = regexp.MustCompile(`^\s*-\s\[(.*?)\](?:\s+(.*))?$`)
-	autoItemRegex   = regexp.MustCompile(`^\s*-\s\|(.*?)\|(?:\s+(.*))?$`)
-	headingRegex    = regexp.MustCompile(`^\s*#+\s+.*`)
-	commentRegex    = regexp.MustCompile(`^\s*(#|--).*`)
-	blankLineRegex  = regexp.MustCompile(`^\s*$`)
+	manualItemRegex	= regexp.MustCompile(`^\s*-\s\[(.*?)\](?:\s+(.*))?$`)
+	autoItemRegex	= regexp.MustCompile(`^\s*-\s\|(.*?)\|(?:\s+(.*))?$`)
+	headingRegex	= regexp.MustCompile(`^\s*#+\s+.*`)
+	commentRegex	= regexp.MustCompile(`^\s*(#|--).*`)
+	blankLineRegex	= regexp.MustCompile(`^\s*$`)
 )
 
 // ParseChecklist scans content line by line using string manipulation.
 func ParseChecklist(content string, logger interfaces.Logger) (*ParsedChecklist, error) {
-	logger.Debug("[DEBUG ChecklistParser V12] Starting ParseChecklist (String Manipulation)") // Version bump
+	logger.Debug("[DEBUG ChecklistParser V12] Starting ParseChecklist (String Manipulation)")	// Version bump
 
 	meta, metaErr := metadata.Extract(content)
 	if metaErr != nil {
@@ -53,7 +54,7 @@ func ParseChecklist(content string, logger interfaces.Logger) (*ParsedChecklist,
 	scanner := bufio.NewScanner(strings.NewReader(content))
 	lineNumber := 0
 	itemsSeen := false
-	contentFound := false // Track if we found *any* non-skippable line
+	contentFound := false	// Track if we found *any* non-skippable line
 
 	for scanner.Scan() {
 		lineNumber++
@@ -75,7 +76,7 @@ func ParseChecklist(content string, logger interfaces.Logger) (*ParsedChecklist,
 			continue
 		}
 
-		contentFound = true // Found a line that wasn't skipped initially
+		contentFound = true	// Found a line that wasn't skipped initially
 		logger.Debug("[DEBUG ChecklistParser V12] L%d: Processing line: %q", lineNumber, line)
 
 		// --- V11 String Manipulation Logic ---
@@ -138,10 +139,10 @@ func ParseChecklist(content string, logger interfaces.Logger) (*ParsedChecklist,
 		// logger.Debug("[DEBUG ChecklistParser V12] L%d: Calculated Indent: %d", lineNumber, indentationLevel)
 
 		item := ChecklistItem{
-			Text:        description,
-			Indent:      indentationLevel,
-			LineNumber:  lineNumber,
-			IsAutomatic: isAutomatic,
+			Text:		description,
+			Indent:		indentationLevel,
+			LineNumber:	lineNumber,
+			IsAutomatic:	isAutomatic,
 		}
 
 		// Determine Status/Symbol
@@ -167,7 +168,7 @@ func ParseChecklist(content string, logger interfaces.Logger) (*ParsedChecklist,
 		// logger.Debug("[DEBUG ChecklistParser V12] L%d: Parsed Item Status: %q, Symbol: '%c', Auto: %t", lineNumber, item.Status, item.Symbol, item.IsAutomatic)
 		items = append(items, item)
 
-	} // End scanner loop
+	}	// End scanner loop
 
 	if err := scanner.Err(); err != nil {
 		logger.Debug("[ERROR ChecklistParser V12] Scanner error: %v", err)
@@ -177,13 +178,13 @@ func ParseChecklist(content string, logger interfaces.Logger) (*ParsedChecklist,
 	// --- V12 Add check for no content ---
 	if !contentFound && len(items) == 0 && len(meta) == 0 {
 		logger.Debug("[DEBUG ChecklistParser V12] Finished ParseChecklist. Input had no metadata or items.")
-		return nil, ErrNoContent // Return specific error for no content
+		return nil, ErrNoContent	// Return specific error for no content
 	}
 	// --- End V12 check ---
 
 	logger.Debug("[DEBUG ChecklistParser V12] Finished ParseChecklist. Found %d items.", len(items))
 	return &ParsedChecklist{
-		Items:    items,
-		Metadata: meta,
+		Items:		items,
+		Metadata:	meta,
 	}, nil
 }

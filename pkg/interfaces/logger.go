@@ -1,17 +1,17 @@
 // filename: pkg/interfaces/logger.go
 package interfaces
 
-import "log/slog" // Import slog for level constants mapping
+import "log/slog"	// Import slog for level constants mapping
 
 // LogLevel defines the severity level for logging.
 // Uses standard slog levels for compatibility.
 type LogLevel int
 
 const (
-	LogLevelDebug LogLevel = LogLevel(slog.LevelDebug) // Debug level (-4)
-	LogLevelInfo  LogLevel = LogLevel(slog.LevelInfo)  // Info level (0)
-	LogLevelWarn  LogLevel = LogLevel(slog.LevelWarn)  // Warn level (4)
-	LogLevelError LogLevel = LogLevel(slog.LevelError) // Error level (8)
+	LogLevelDebug	LogLevel	= LogLevel(slog.LevelDebug)	// Debug level (-4)
+	LogLevelInfo	LogLevel	= LogLevel(slog.LevelInfo)	// Info level (0)
+	LogLevelWarn	LogLevel	= LogLevel(slog.LevelWarn)	// Warn level (4)
+	LogLevelError	LogLevel	= LogLevel(slog.LevelError)	// Error level (8)
 )
 
 // Logger defines a standard interface for logging operations,

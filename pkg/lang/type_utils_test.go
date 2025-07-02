@@ -1,3 +1,4 @@
+// filename: pkg/lang/type_utils_test.go
 package lang
 
 import (
@@ -8,9 +9,9 @@ import (
 
 func TestTypeOf(t *testing.T) {
 	testCases := []struct {
-		name     string
-		input    any
-		expected NeuroScriptType
+		name		string
+		input		any
+		expected	NeuroScriptType
 	}{
 		{"nil", nil, TypeNil},
 		{"*string", new(string), TypeString},
@@ -52,9 +53,9 @@ func TestTypeOf(t *testing.T) {
 
 func TestIsTruthy(t *testing.T) {
 	testCases := []struct {
-		name     string
-		input    Value
-		expected bool
+		name		string
+		input		Value
+		expected	bool
 	}{
 		{"true", BoolValue{true}, true},
 		{"false", BoolValue{false}, false},
@@ -84,9 +85,9 @@ func TestIsTruthy(t *testing.T) {
 
 func TestIsZeroValue(t *testing.T) {
 	testCases := []struct {
-		name     string
-		input    any
-		expected bool
+		name		string
+		input		any
+		expected	bool
 	}{
 		{"nil", nil, true},
 		{"empty string", "", true},

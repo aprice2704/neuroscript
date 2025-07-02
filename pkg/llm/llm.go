@@ -1,11 +1,11 @@
 // NeuroScript Version: 0.5.2
 // File version: 15
 // Purpose: Fixed minor compiler errors related to genai API usage and struct fields.
-// filename: pkg/core/llm.go
+// filename: pkg/llm/llm.go
 // nlines: 222
 // risk_rating: MEDIUM
 
-package core
+package llm
 
 import (
 	"context"
@@ -20,9 +20,9 @@ import (
 // concreteLLMClient is the internal implementation that talks to the Google Gemini API.
 // It implements the interfaces.LLMClient interface.
 type concreteLLMClient struct {
-	genaiClient *genai.Client
-	model       *genai.GenerativeModel
-	logger      interfaces.Logger
+	genaiClient	*genai.Client
+	model		*genai.GenerativeModel
+	logger		interfaces.Logger
 }
 
 // Statically assert that our concrete implementation satisfies the new interface.
@@ -48,9 +48,9 @@ func NewLLMClient(apiKey string, modelName string, logger interfaces.Logger) (in
 	model := client.GenerativeModel(modelName)
 
 	return &concreteLLMClient{
-		genaiClient: client,
-		model:       model,
-		logger:      logger,
+		genaiClient:	client,
+		model:		model,
+		logger:		logger,
 	}, nil
 }
 
@@ -100,8 +100,8 @@ func (c *concreteLLMClient) AskWithTools(ctx context.Context, turns []*interface
 		if fc, ok := resp.Candidates[0].Content.Parts[0].(genai.FunctionCall); ok {
 			toolCalls := []*interfaces.ToolCall{
 				{
-					Name:      fc.Name,
-					Arguments: fc.Args,
+					Name:		fc.Name,
+					Arguments:	fc.Args,
 				},
 			}
 			return nil, toolCalls, nil
@@ -228,9 +228,9 @@ func convertToolsToGenai(tools []interfaces.ToolDefinition) ([]*genai.Tool, erro
 		}
 
 		genaiFuncs[i] = &genai.FunctionDeclaration{
-			Name:        tool.Name,
-			Description: tool.Description,
-			Parameters:  genaiSchema,
+			Name:		tool.Name,
+			Description:	tool.Description,
+			Parameters:	genaiSchema,
 		}
 	}
 

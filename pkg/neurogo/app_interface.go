@@ -23,10 +23,10 @@ type AppAccess interface {
 	GetSandboxDir() string
 	GetSyncFilter() string
 	GetSyncIgnoreGitignore() bool
-	GetLogger() interfaces.Logger // Must return interfaces.Logger
+	GetLogger() interfaces.Logger	// Must return interfaces.Logger
 	GetLLMClient() interfaces.LLMClient
 	GetInterpreter() *Interpreter
-	GetAIWorkerManager() *rkerManager // Must have this method
+	GetAIWorkerManager() *rkerManager	// Must have this method
 	Context() context.Context
 	ExecuteScriptFile(ctx context.Context, scriptPath string) error
 }
@@ -43,11 +43,11 @@ type InterpreterGetter interface {
 
 // ApiFileInfo placeholder
 type ApiFileInfo struct {
-	Name        string
-	DisplayName string
-	URI         string
-	State       genai.FileState
-	SizeBytes   int64
-	CreateTime  time.Time
-	UpdateTime  time.Time
+	Name		string
+	DisplayName	string
+	URI		string
+	State		genai.FileState
+	SizeBytes	int64
+	CreateTime	time.Time
+	UpdateTime	time.Time
 }

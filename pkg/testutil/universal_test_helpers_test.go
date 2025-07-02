@@ -1,5 +1,5 @@
-// filename: pkg/core/universal_test_helpers_test.go
-package core
+// filename: pkg/testutil/universal_test_helpers_test.go
+package testutil
 
 import (
 	// Needed for scanner in DiffStrings test
@@ -12,72 +12,72 @@ import (
 
 func TestNormalizeString(t *testing.T) {
 	testCases := []struct {
-		name     string
-		input    string
-		flags    NormalizationFlags
-		expected string
+		name		string
+		input		string
+		flags		NormalizationFlags
+		expected	string
 	}{
 		{
-			name: "No flags (expect default)",
+			name:	"No flags (expect default)",
 			input: ` line 1 // go comment
 			  line 2 # ns comment
 
 			line 4   with   spaces `,
-			flags: 0, // Uses NormDefault
+			flags:	0,	// Uses NormDefault
 			expected: `line 1
 line 2
 line 4 with spaces`,
 		},
 		{
-			name: "TrimSpace only",
+			name:	"TrimSpace only",
 			input: `  line 1  // comment stays
 			line 2 # comment stays
 
 			  line 4   `,
-			flags: NormTrimSpace,
+			flags:	NormTrimSpace,
 			expected: `line 1  // comment stays
 line 2 # comment stays
 
 line 4`,
 		},
 		{
-			name: "CompressSpace only",
+			name:	"CompressSpace only",
 			input: ` line   1 // comment   stays
 			  line 2    # comment stays
 
 			line 4   with   spaces `,
-			flags: NormCompressSpace, // Implies NormTrimSpace
+			flags:	NormCompressSpace,	// Implies NormTrimSpace
 			expected: `line 1 // comment stays
 line 2 # comment stays
 
 line 4 with spaces`, // Blank line stays as NormRemoveBlankLines not set
 		},
 		{
-			name: "RemoveGoComments only",
+			name:	"RemoveGoComments only",
 			input: ` line 1 // go comment
 			  line 2 # ns comment stays
 
 			line 4   `,
-			flags: NormRemoveGoComments,
+			flags:	NormRemoveGoComments,
 			expected: ` line 1 
 			  line 2 # ns comment stays
 
 			line 4   `,
 		},
 		{
-			name: "RemoveNSComments only",
+			name:	"RemoveNSComments only",
 			input: ` line 1 // go comment stays
 			  line 2 # ns comment
 
 			line 4   `,
-			flags: NormRemoveNSComments,
+			flags:	NormRemoveNSComments,
 			expected: ` line 1 // go comment stays
 			  line 2 
 
 			line 4   `,
 		},
 		{
-			name: "RemoveBlankLines only",
+			name:	"RemoveBlankLines only",
 			// NOTE: Input line 5 uses a *literal* tab here
 			input: `line 1
 
@@ -86,7 +86,7 @@ line 4 with spaces`, // Blank line stays as NormRemoveBlankLines not set
 			# ns comment line only (whitespace)
 			  	  
 			line 7`,
-			flags: NormRemoveBlankLines,
+			flags:	NormRemoveBlankLines,
 			// FIX V11: Correct expectation - blank lines (incl. tab-only) are removed. Others keep leading ws.
 			expected: `line 1
 			line 3
@@ -95,7 +95,7 @@ line 4 with spaces`, // Blank line stays as NormRemoveBlankLines not set
 			line 7`,
 		},
 		{
-			name: "Remove Comments and Blank Lines",
+			name:	"Remove Comments and Blank Lines",
 			// NOTE: Input line 4 uses a *literal* tab here
 			input: `line 1 // go comment
 			# ns comment line (becomes blank)
@@ -104,14 +104,14 @@ line 4 with spaces`, // Blank line stays as NormRemoveBlankLines not set
 			  	  // Line with only whitespace (Keep if Trim OFF)
 
 			line 7`,
-			flags: NormRemoveGoComments | NormRemoveNSComments | NormRemoveBlankLines, // No TrimSpace
+			flags:	NormRemoveGoComments | NormRemoveNSComments | NormRemoveBlankLines,	// No TrimSpace
 			// FIX V14: Remove leading space from line 1, keep trailing space. Preserve leading tabs.
 			expected: `line 1 
 			line 3
 			line 7`,
 		},
 		{
-			name: "Remove Comments, Blank Lines, AND Trim", // More common combo
+			name:	"Remove Comments, Blank Lines, AND Trim",	// More common combo
 			// NOTE: Input line 4 uses a *literal* tab here
 			input: `line 1 // go comment
 			# ns comment line
@@ -120,14 +120,14 @@ line 4 with spaces`, // Blank line stays as NormRemoveBlankLines not set
 			  	  // Line with only whitespace
 
 			line 7`,
-			flags: NormRemoveGoComments | NormRemoveNSComments | NormRemoveBlankLines | NormTrimSpace,
+			flags:	NormRemoveGoComments | NormRemoveNSComments | NormRemoveBlankLines | NormTrimSpace,
 			// FIX V11: Confirmed expectation - blank lines removed, others trimmed.
 			expected: `line 1
 line 3
 line 7`,
 		},
 		{
-			name: "All flags (NormDefault)",
+			name:	"All flags (NormDefault)",
 			input: `
 			  first line   // go comment here
 			second  line # ns comment here
@@ -136,63 +136,63 @@ line 7`,
 
 
 			fourth line ends.  `,
-			flags: NormDefault,
+			flags:	NormDefault,
 			expected: `first line
 second line
 third line with extra spaces
 fourth line ends.`,
 		},
 		{
-			name:     "Empty Input",
-			input:    "",
-			flags:    NormDefault,
-			expected: "",
+			name:		"Empty Input",
+			input:		"",
+			flags:		NormDefault,
+			expected:	"",
 		},
 		{
-			name:     "Whitespace only input",
-			input:    " \n \t \n ", // Uses actual tab
-			flags:    NormDefault,
-			expected: "", // Default includes Trim and RemoveBlanks - regex matches this as blank
+			name:		"Whitespace only input",
+			input:		" \n \t \n ",	// Uses actual tab
+			flags:		NormDefault,
+			expected:	"",	// Default includes Trim and RemoveBlanks - regex matches this as blank
 		},
 		{
-			name:     "Input with only comments",
-			input:    "// line 1\n# line 2\n  // line 3",
-			flags:    NormDefault,
-			expected: "", // Default includes comment removal, trim, blank removal
+			name:		"Input with only comments",
+			input:		"// line 1\n# line 2\n  // line 3",
+			flags:		NormDefault,
+			expected:	"",	// Default includes comment removal, trim, blank removal
 		},
 		{
-			name:  "No normalization needed",
-			input: "line 1\nline 2",
-			flags: NormDefault,
+			name:	"No normalization needed",
+			input:	"line 1\nline 2",
+			flags:	NormDefault,
 			expected: `line 1
 line 2`,
 		},
 		{
-			name:  "Windows Line Endings",
-			input: "line 1\r\nline 2\r\n",
-			flags: NormDefault,
+			name:	"Windows Line Endings",
+			input:	"line 1\r\nline 2\r\n",
+			flags:	NormDefault,
 			expected: `line 1
 line 2`,
 		},
 		{
-			name:  "Mixed Line Endings with Space",
-			input: "line 1 \r\n  line 2 \n line 3 \r\n",
-			flags: NormDefault,
+			name:	"Mixed Line Endings with Space",
+			input:	"line 1 \r\n  line 2 \n line 3 \r\n",
+			flags:	NormDefault,
 			expected: `line 1
 line 2
 line 3`,
 		},
 		{
-			name:     "Tab handling",
-			input:    "line\t1\nline\t\t2",             // Input with tabs
-			flags:    NormDefault &^ NormCompressSpace, // Keep tabs, but trim/etc
-			expected: "line\t1\nline\t\t2",             // Expect tabs to be preserved
+			name:		"Tab handling",
+			input:		"line\t1\nline\t\t2",			// Input with tabs
+			flags:		NormDefault &^ NormCompressSpace,	// Keep tabs, but trim/etc
+			expected:	"line\t1\nline\t\t2",			// Expect tabs to be preserved
 		},
 		{
-			name:     "Tab handling with compression",
-			input:    "line\t1\nline\t\t2", // Input with tabs
-			flags:    NormDefault,          // Compress implies Trim
-			expected: "line 1\nline 2",     // Expect tabs to be compressed like spaces
+			name:		"Tab handling with compression",
+			input:		"line\t1\nline\t\t2",	// Input with tabs
+			flags:		NormDefault,		// Compress implies Trim
+			expected:	"line 1\nline 2",	// Expect tabs to be compressed like spaces
 		},
 	}
 
@@ -215,12 +215,12 @@ line 3`,
 // mockTB (remains the same)
 type mockTB struct {
 	testing.TB
-	logs   []string
-	errors []string
-	failed bool
+	logs	[]string
+	errors	[]string
+	failed	bool
 }
 
-func newMockTB(t *testing.T) *mockTB { return &mockTB{TB: t} }
+func newMockTB(t *testing.T) *mockTB	{ return &mockTB{TB: t} }
 func (m *mockTB) Logf(format string, args ...interface{}) {
 	s := fmt.Sprintf(format, args...)
 	m.logs = append(m.logs, s)
@@ -230,10 +230,10 @@ func (m *mockTB) Errorf(format string, args ...interface{}) {
 	m.errors = append(m.errors, s)
 	m.failed = true
 }
-func (m *mockTB) FailNow()     { m.failed = true; panic("mockTB FailNow") } // Panic to stop test
-func (m *mockTB) Fail()        { m.failed = true }
-func (m *mockTB) Failed() bool { return m.failed }
-func (m *mockTB) Helper()      {}
+func (m *mockTB) FailNow()	{ m.failed = true; panic("mockTB FailNow") }	// Panic to stop test
+func (m *mockTB) Fail()		{ m.failed = true }
+func (m *mockTB) Failed() bool	{ return m.failed }
+func (m *mockTB) Helper()	{}
 
 func TestDiffStrings(t *testing.T) {
 	t.Run("Equal strings after normalization", func(t *testing.T) {
@@ -266,13 +266,13 @@ func TestDiffStrings(t *testing.T) {
 
 		hasDiffLog := false
 		hasErrorMsg := false
-		for _, log := range mockT.logs { // Check logs for the diff block
+		for _, log := range mockT.logs {	// Check logs for the diff block
 			if strings.Contains(log, "--- Diff ---") {
 				hasDiffLog = true
 				break
 			}
 		}
-		for _, err := range mockT.errors { // Check errors for the mismatch message
+		for _, err := range mockT.errors {	// Check errors for the mismatch message
 			if strings.Contains(err, "Content mismatch") {
 				hasErrorMsg = true
 				break
@@ -337,8 +337,8 @@ func TestDiffStrings(t *testing.T) {
 			t.Errorf("FAIL: Expected test to be marked as failed")
 		}
 		hasAnsi := false
-		for _, log := range mockT.logs { // Diff is logged via t.Logf
-			if strings.Contains(log, "\x1b[") { // Check for ANSI escape code
+		for _, log := range mockT.logs {	// Diff is logged via t.Logf
+			if strings.Contains(log, "\x1b[") {	// Check for ANSI escape code
 				hasAnsi = true
 				break
 			}
@@ -351,8 +351,8 @@ func TestDiffStrings(t *testing.T) {
 	t.Run("DiffVisibleSpace flag shows space tab nl", func(t *testing.T) {
 		mockT := newMockTB(t)
 		// Input strings designed to show different whitespace chars after normalization
-		expected := "line with space\t and cr\r\nnext line" // \r\n becomes \n
-		actual := "line with  extra   space\t\nnext line"   // \n ok, extra spaces
+		expected := "line with space\t and cr\r\nnext line"	// \r\n becomes \n
+		actual := "line with  extra   space\t\nnext line"	// \n ok, extra spaces
 		// Use flags that keep internal spacing variations but remove comments/blanks for clearer diff
 		normFlags := NormDefault &^ NormCompressSpace
 
@@ -368,10 +368,10 @@ func TestDiffStrings(t *testing.T) {
 
 		diffLogged := false
 		logFound := ""
-		for _, log := range mockT.logs { // Diff is logged via t.Logf
+		for _, log := range mockT.logs {	// Diff is logged via t.Logf
 			if strings.Contains(log, "--- Diff ---") {
 				diffLogged = true
-				logFound = log // Capture the whole diff block log entry
+				logFound = log	// Capture the whole diff block log entry
 				break
 			}
 		}
@@ -379,7 +379,7 @@ func TestDiffStrings(t *testing.T) {
 		if !diffLogged {
 			t.Errorf("FAIL: DiffStrings did not log a diff block.")
 		} else {
-			symbolsExpected := []string{spaceSym, tabSym, nlSym} // Check for ␣, ␉, ␤
+			symbolsExpected := []string{spaceSym, tabSym, nlSym}	// Check for ␣, ␉, ␤
 			allFound := true
 			symbolsMissing := []string{}
 			for _, sym := range symbolsExpected {
@@ -398,7 +398,7 @@ func TestDiffStrings(t *testing.T) {
 			if !allFound {
 				t.Errorf("FAIL: Expected DiffStrings with DiffVisibleSpace to show symbols ('%s'), but missing: %v.",
 					strings.Join(symbolsExpected, "', '"), strings.Join(symbolsMissing, ", "))
-				t.Logf("Relevant Log Chunk:\n%s", logFound) // Log the diff block where symbols were checked
+				t.Logf("Relevant Log Chunk:\n%s", logFound)	// Log the diff block where symbols were checked
 			}
 		}
 	})

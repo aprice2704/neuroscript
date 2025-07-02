@@ -13,16 +13,16 @@ import "github.com/aprice2704/neuroscript/pkg/lang"
 // as specified in the o3-1 plan.
 // This is a hypothetical example of the change needed
 type OnEventDecl struct {
-	Pos           *lang.Position
-	EventNameExpr Expression
-	HandlerName   string // <--- ADD THIS FIELD
-	EventVarName  string
-	Body          []Step
+	Pos		*lang.Position
+	EventNameExpr	Expression
+	HandlerName	string	// <--- ADD THIS FIELD
+	EventVarName	string
+	Body		[]Step
 }
 
 // MetadataLine represents a single `:: key: value` line associated with a declaration.
 type MetadataLine struct {
-	Pos   *lang.Position
-	Key   string
-	Value string
+	Pos	*lang.Position
+	Key	string
+	Value	string
 }

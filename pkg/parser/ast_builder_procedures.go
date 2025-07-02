@@ -19,8 +19,8 @@ func (l *neuroScriptListenerImpl) EnterProcedure_definition(ctx *gen.Procedure_d
 
 	pos := tokenToPosition(ctx.KW_FUNC().GetSymbol())
 	l.currentProc = &ast.Procedure{
-		Position: pos,
-		Metadata: make(map[string]string),
+		Position:	pos,
+		Metadata:	make(map[string]string),
 	}
 	l.currentProc.SetName(procName)
 
@@ -47,7 +47,7 @@ func (l *neuroScriptListenerImpl) ExitProcedure_definition(ctx *gen.Procedure_de
 			l.currentProc.Steps = regularSteps
 		} else {
 			l.addErrorf(ctx.KW_ENDFUNC().GetSymbol(), "Type error: procedure body for '%s' is not []ast.Step (got %T).", procName, bodyRaw)
-			l.push(bodyRaw) // Push back the wrong type
+			l.push(bodyRaw)	// Push back the wrong type
 		}
 	} else {
 		l.addError(ctx, "stack underflow: could not pop procedure body for '%s'", procName)

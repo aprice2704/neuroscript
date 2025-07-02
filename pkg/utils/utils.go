@@ -1,9 +1,9 @@
 // NeuroScript Version: 0.3.1
 // File version: 1.1.0
 // Purpose: Consolidated all ConvertTo... helper functions into this single utility file for package-wide use.
-// filename: pkg/core/utils.go
+// filename: pkg/utils/utils.go
 
-package core
+package utils
 
 import (
 	"fmt"
@@ -20,16 +20,16 @@ type coreNoOpLogger struct{}
 
 var _ interfaces.Logger = (*coreNoOpLogger)(nil)
 
-func (l *coreNoOpLogger) Debug(msg string, args ...any)      {}
-func (l *coreNoOpLogger) Info(msg string, args ...any)       {}
-func (l *coreNoOpLogger) Warn(msg string, args ...any)       {}
-func (l *coreNoOpLogger) Error(msg string, args ...any)      {}
-func (l *coreNoOpLogger) SetLevel(level interfaces.LogLevel) {}
-func (l *coreNoOpLogger) Debugf(format string, args ...any)  {}
-func (l *coreNoOpLogger) Infof(format string, args ...any)   {}
-func (l *coreNoOpLogger) Warnf(format string, args ...any)   {}
-func (l *coreNoOpLogger) Errorf(format string, args ...any)  {}
-func (l *coreNoOpLogger) With(args ...any) interfaces.Logger { return l }
+func (l *coreNoOpLogger) Debug(msg string, args ...any)		{}
+func (l *coreNoOpLogger) Info(msg string, args ...any)		{}
+func (l *coreNoOpLogger) Warn(msg string, args ...any)		{}
+func (l *coreNoOpLogger) Error(msg string, args ...any)		{}
+func (l *coreNoOpLogger) SetLevel(level interfaces.LogLevel)	{}
+func (l *coreNoOpLogger) Debugf(format string, args ...any)	{}
+func (l *coreNoOpLogger) Infof(format string, args ...any)	{}
+func (l *coreNoOpLogger) Warnf(format string, args ...any)	{}
+func (l *coreNoOpLogger) Errorf(format string, args ...any)	{}
+func (l *coreNoOpLogger) With(args ...any) interfaces.Logger	{ return l }
 
 // ConvertToBool implements NeuroScript truthiness. Exported for package use.
 func ConvertToBool(val interface{}) (bool, bool) {

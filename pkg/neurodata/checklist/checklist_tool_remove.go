@@ -54,9 +54,9 @@ func toolChecklistRemoveItem(interpreter *neurogo.Interpreter, args []interface{
 		return nil, fmt.Errorf("%w: %s node %q has type %q, expected 'checklist_item'", lang.ErrInvalidArgument, toolName, nodeID, targetNode.Type)
 	}
 
-	removeToolImpl, found := interpreter.ToolRegistry().GetTool("Tree.RemoveNode") // MODIFIED
+	removeToolImpl, found := interpreter.ToolRegistry().GetTool("Tree.RemoveNode")	// MODIFIED
 	if !found || removeToolImpl.Func == nil {
-		logger.Error("Core tool 'Tree.RemoveNode' not found in registry", "tool", toolName) // MODIFIED
+		logger.Error("Core tool 'Tree.RemoveNode' not found in registry", "tool", toolName)	// MODIFIED
 		return nil, fmt.Errorf("%w: %s requires core tool 'Tree.RemoveNode' which was not found", lang.ErrInternal, toolName)
 	}
 
@@ -71,7 +71,7 @@ func toolChecklistRemoveItem(interpreter *neurogo.Interpreter, args []interface{
 		if errors.Is(removeErr, lang.ErrCannotRemoveRoot) {
 			return nil, fmt.Errorf("%w: %s cannot remove root node (reported by Tree.RemoveNode)", lang.ErrInvalidArgument, toolName)
 		}
-		if errors.Is(removeErr, lang.ErrInternalTool) { // Assuming lang.ErrInternalTool is a valid sentinel in your core package
+		if errors.Is(removeErr, lang.ErrInternalTool) {	// Assuming lang.ErrInternalTool is a valid sentinel in your core package
 			return nil, fmt.Errorf("%w: %s internal error removing node %q: %w", lang.ErrInternal, toolName, nodeID, removeErr)
 		}
 		return nil, fmt.Errorf("%w: %s failed to remove node %q: %w", lang.ErrInvalidArgument, toolName, nodeID, removeErr)

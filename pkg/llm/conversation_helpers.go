@@ -1,10 +1,10 @@
 // NeuroScript Version: 0.3.0
 // File version: 0.0.3
 // Corrected genai.FunctionResponse.Response type handling.
-// filename: pkg/core/conversation_helpers.go
+// filename: pkg/llm/conversation_helpers.go
 // nlines: 125 // Approximate
 // risk_rating: MEDIUM
-package core
+package llm
 
 import (
 	"fmt"
@@ -13,7 +13,7 @@ import (
 	// Keep for potential future use of timestamps
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/google/generative-ai-go/genai"
-	"github.com/google/uuid" // For placeholder ID generation
+	"github.com/google/uuid"	// For placeholder ID generation
 )
 
 // ConvertGenaiContentsToConversationTurns converts a slice of *genai.Content
@@ -35,11 +35,11 @@ func ConvertGenaiContentsToConversationTurns(genaiHistory []*genai.Content) []*i
 		case "model", "assistant":
 			coreRole = interfaces.RoleAssistant
 		case "function":
-			coreRole = interfaces.RoleTool // genai "function" role contains FunctionResponse parts for us
+			coreRole = interfaces.RoleTool	// genai "function" role contains FunctionResponse parts for us
 		case "system":
 			coreRole = interfaces.RoleSystem
 		default:
-			coreRole = interfaces.Role(genaiContent.Role) // Fallback, might need validation if strict roles are enforced
+			coreRole = interfaces.Role(genaiContent.Role)	// Fallback, might need validation if strict roles are enforced
 		}
 
 		turn := &interfaces.ConversationTurn{
@@ -63,11 +63,11 @@ func ConvertGenaiContentsToConversationTurns(genaiHistory []*genai.Content) []*i
 			case genai.FunctionCall:
 				// interfaces.ToolCall has ID, Name, Arguments. genai.FunctionCall has Name, Args.
 				// We need to generate an ID for the interfaces.ToolCall.
-				callID := uuid.NewString() // Generate a unique ID for this tool call
+				callID := uuid.NewString()	// Generate a unique ID for this tool call
 				currentToolCalls = append(currentToolCalls, &interfaces.ToolCall{
-					ID:        callID,
-					Name:      p.Name,
-					Arguments: p.Args,
+					ID:		callID,
+					Name:		p.Name,
+					Arguments:	p.Args,
 				})
 			case genai.FunctionResponse:
 				// This part populates interfaces.ToolResult.
@@ -78,8 +78,8 @@ func ConvertGenaiContentsToConversationTurns(genaiHistory []*genai.Content) []*i
 				// happens in a context where such correlation is possible.
 				// If genaiContent.Role was "function", this part is the primary data.
 				currentToolResults = append(currentToolResults, &interfaces.ToolResult{
-					ID:     p.Name, // Placeholder: Ideally this should be the ID of the interfaces.ToolCall it's responding to.
-					Result: p.Response,
+					ID:	p.Name,	// Placeholder: Ideally this should be the ID of the interfaces.ToolCall it's responding to.
+					Result:	p.Response,
 					// Error field is not directly in genai.FunctionResponse; errors are usually part of the Response map.
 				})
 			default:
@@ -113,14 +113,14 @@ func ConvertCoreTurnsToGenaiContents(coreTurns []*interfaces.ConversationTurn) [
 
 		genaiRole := string(turn.Role)
 		if turn.Role == interfaces.RoleAssistant {
-			genaiRole = "model" // Google's genai library uses "model" for assistant role
+			genaiRole = "model"	// Google's genai library uses "model" for assistant role
 		} else if turn.Role == interfaces.RoleTool {
-			genaiRole = "function" // Google's genai library uses "function" for tool responses
+			genaiRole = "function"	// Google's genai library uses "function" for tool responses
 		}
 
 		content := &genai.Content{
-			Role:  genaiRole,
-			Parts: make([]genai.Part, 0),
+			Role:	genaiRole,
+			Parts:	make([]genai.Part, 0),
 		}
 
 		if turn.Content != "" {
@@ -157,8 +157,8 @@ func ConvertCoreTurnsToGenaiContents(coreTurns []*interfaces.ConversationTurn) [
 					// Assuming tr.ID here refers to the function name for this conversion context.
 					// This might need a lookup if tr.ID is a call ID and function name is stored elsewhere.
 					responsePart := genai.FunctionResponse{
-						Name:     tr.ID, // Assuming tr.ID holds the function name here. This is a common ambiguity.
-						Response: responseMap,
+						Name:		tr.ID,	// Assuming tr.ID holds the function name here. This is a common ambiguity.
+						Response:	responseMap,
 					}
 					content.Parts = append(content.Parts, responsePart)
 				}

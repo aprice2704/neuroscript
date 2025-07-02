@@ -100,7 +100,7 @@ func TestToolGoImports(t *testing.T) {
 		{name: "Add missing import", toolName: "Go.Imports", args: tool.MakeArgs(needsImport), wantResult: wantsImport},
 		{name: "Remove unused import", toolName: "Go.Imports", args: tool.MakeArgs(hasUnusedImport), wantResult: wantsUnusedRemoved},
 		{name: "Invalid source", toolName: "Go.Imports", args: tool.MakeArgs("package main func {"), wantErrIs: lang.ErrToolExecutionFailed},	// CORRECTED
-		{name: "Wrong arg type", toolName: "Go.Imports", args: tool.MakeArgs(12345), wantErrIs: lang.ErrInvalidArgument},				// CORRECTED
+		{name: "Wrong arg type", toolName: "Go.Imports", args: tool.MakeArgs(12345), wantErrIs: lang.ErrInvalidArgument},			// CORRECTED
 	}
 
 	for _, tt := range tests {

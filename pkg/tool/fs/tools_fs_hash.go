@@ -7,7 +7,7 @@ package fs
 
 import (
 	"crypto/sha256"
-	"errors" // Required for errors.Is, errors.Join
+	"errors"	// Required for errors.Is, errors.Join
 	"fmt"
 	"io"
 	"os"

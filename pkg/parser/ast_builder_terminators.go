@@ -35,14 +35,14 @@ func (l *neuroScriptListenerImpl) ExitPrimary(ctx *gen.PrimaryContext) {
 		return
 	}
 
-	var nodeToPush ast.Expression // Node to push if handled directly here
+	var nodeToPush ast.Expression	// Node to push if handled directly here
 
 	if ctx.IDENTIFIER() != nil {
 		token := ctx.IDENTIFIER().GetSymbol()
 		pos := tokenToPosition(token)
 		node := &ast.VariableNode{
-			Pos:  &pos,
-			Name: token.GetText(),
+			Pos:	&pos,
+			Name:	token.GetText(),
 		}
 		nodeToPush = node
 		l.logDebugAST("    Constructed ast.VariableNode: %s", node.Name)
@@ -57,24 +57,24 @@ func (l *neuroScriptListenerImpl) ExitPrimary(ctx *gen.PrimaryContext) {
 		l.logDebugAST("    Constructed ast.LastNode")
 
 	} else if ctx.KW_EVAL() != nil {
-		token := ctx.KW_EVAL().GetSymbol() // Position of 'eval' keyword
+		token := ctx.KW_EVAL().GetSymbol()	// Position of 'eval' keyword
 		pos := tokenToPosition(token)
 		// Pop the argument expression pushed by visiting ctx.Expression()
 		argRaw, ok := l.pop()
 		if !ok {
 			l.addError(ctx, "Internal error: Failed to pop argument for EVAL")
-			l.push(nil) // Push error marker
+			l.push(nil)	// Push error marker
 			return
 		}
 		argExpr, ok := argRaw.(ast.Expression)
 		if !ok {
 			l.addError(ctx, "Internal error: Argument for EVAL is not an ast.Expression (got %T)", argRaw)
-			l.push(nil) // Push error marker
+			l.push(nil)	// Push error marker
 			return
 		}
 		node := &ast.EvalNode{
-			Pos:      &pos,
-			Argument: argExpr,
+			Pos:		&pos,
+			Argument:	argExpr,
 		}
 		nodeToPush = node
 		l.logDebugAST("    Constructed EvalNode")
@@ -82,7 +82,7 @@ func (l *neuroScriptListenerImpl) ExitPrimary(ctx *gen.PrimaryContext) {
 	} else {
 		// Should not happen if grammar is correct
 		l.addError(ctx, "Internal error: ExitPrimary reached unexpected state for text: %q", ctx.GetText())
-		l.push(nil) // Push error marker
+		l.push(nil)	// Push error marker
 		return
 	}
 
@@ -94,23 +94,23 @@ func (l *neuroScriptListenerImpl) ExitPrimary(ctx *gen.PrimaryContext) {
 func (l *neuroScriptListenerImpl) ExitPlaceholder(ctx *gen.PlaceholderContext) {
 	l.logDebugAST("--- Exit Placeholder: %q", ctx.GetText())
 	name := ""
-	token := ctx.GetStart() // Position of '{{'
+	token := ctx.GetStart()	// Position of '{{'
 	pos := tokenToPosition(token)
 
 	if ctx.IDENTIFIER() != nil {
 		name = ctx.IDENTIFIER().GetText()
 	} else if ctx.KW_LAST() != nil {
-		name = "LAST" // Use canonical name
+		name = "LAST"	// Use canonical name
 	} else {
 		// Should not happen based on grammar rule
 		l.addErrorf(token, "Internal error: ExitPlaceholder found unexpected content: %q", ctx.GetText())
-		l.push(nil) // Push error marker
+		l.push(nil)	// Push error marker
 		return
 	}
 
 	node := &ast.PlaceholderNode{
-		Pos:  &pos,
-		Name: name,
+		Pos:	&pos,
+		Name:	name,
 	}
 	l.push(node)
 	l.logDebugAST("    Constructed ast.PlaceholderNode: Name=%s", node.Name)

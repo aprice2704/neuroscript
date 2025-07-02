@@ -17,7 +17,7 @@ import (
 func TestApp_RunScriptMode_BreakContinue(t *testing.T) {
 	testName := "TestApp_RunScriptMode_BreakContinue"
 	scriptName := "valid_break_continue.ns.txt"
-	sourceScriptPath := filepath.Join("testdata", scriptName) // Path to the source file in the project
+	sourceScriptPath := filepath.Join("testdata", scriptName)	// Path to the source file in the project
 
 	// 1. Create Config & App
 	cfg := Config{}

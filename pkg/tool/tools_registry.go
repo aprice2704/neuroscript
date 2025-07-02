@@ -13,6 +13,7 @@ import (
 	"sync"
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/utils"
 )
 
 // globalToolImplementations holds tools registered via init() functions.
@@ -87,7 +88,7 @@ func (r *ToolRegistryImpl) ListTools() []ToolSpec {
 // --- BRIDGE IMPLEMENTATION ---
 
 // CallFromInterpreter is the single bridge between the Value-based interpreter and primitive-based tools.
-func (r *ToolRegistryImpl) CallFromInterpreter(interp *neurogo.Interpreter, toolName string, args []lang.lang.Value) (lang.lang.Value, error) {
+func (r *ToolRegistryImpl) CallFromInterpreter(interp *neurogo.Interpreter, toolName string, args []Value) (Value, error) {
 	impl, ok := r.GetTool(toolName)
 	if !ok {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeToolNotFound, fmt.Sprintf("tool '%s' not found", toolName), lang.ErrToolNotFound)

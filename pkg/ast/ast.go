@@ -16,41 +16,41 @@ import (
 // Expression is an interface for all expression AST nodes.
 type Expression interface {
 	GetPos() *lang.Position
-	expressionNode() // Marker method
+	expressionNode()	// Marker method
 	String() string
 }
 
 // Program represents the entire parsed NeuroScript program.
 type Program struct {
-	Pos         *lang.Position
-	Metadata    map[string]string
-	Procedures  map[string]*Procedure
-	Events      []*OnEventDecl
-	Expressions []Expression   // FIX: Added to hold top-level expressions
-	Commands    []*CommandNode // ADDED
+	Pos		*lang.Position
+	Metadata	map[string]string
+	Procedures	map[string]*Procedure
+	Events		[]*OnEventDecl
+	Expressions	[]Expression	// FIX: Added to hold top-level expressions
+	Commands	[]*CommandNode	// ADDED
 }
 
 // NewProgram creates and initializes a new Program node.
 func NewProgram() *Program {
 	return &Program{
-		Metadata:    make(map[string]string),
-		Procedures:  make(map[string]*Procedure),
-		Events:      make([]*OnEventDecl, 0),
-		Commands:    make([]*CommandNode, 0),
-		Expressions: make([]Expression, 0),
+		Metadata:	make(map[string]string),
+		Procedures:	make(map[string]*Procedure),
+		Events:		make([]*OnEventDecl, 0),
+		Commands:	make([]*CommandNode, 0),
+		Expressions:	make([]Expression, 0),
 	}
 }
 
-func (p *Program) GetPos() *lang.Position { return p.Pos }
+func (p *Program) GetPos() *lang.Position	{ return p.Pos }
 
 // ErrorNode captures a parsing or semantic error encountered during AST construction.
 type ErrorNode struct {
-	Pos     *lang.Position
-	Message string
+	Pos	*lang.Position
+	Message	string
 }
 
-func (n *ErrorNode) GetPos() *lang.Position { return n.Pos }
-func (n *ErrorNode) expressionNode()        {}
+func (n *ErrorNode) GetPos() *lang.Position	{ return n.Pos }
+func (n *ErrorNode) expressionNode()		{}
 func (n *ErrorNode) String() string {
 	if n == nil {
 		return "<nil error node>"

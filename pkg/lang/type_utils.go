@@ -1,7 +1,7 @@
+// filename: pkg/lang/type_utils.go
 // NeuroScript Version: 0.4.1
 // File version: 9
 // Purpose: Updated unwrapValue to handle FunctionValue and ToolValue.
-// Filename: pkg/lang/type_utils.go
 
 package lang
 
@@ -25,11 +25,11 @@ func TypeOf(value interface{}) NeuroScriptType {
 		return TypeFunction
 	case Tool, *Tool:
 		return TypeTool
-	case time.Time, *time.Time: // native Go time value
+	case time.Time, *time.Time:	// native Go time value
 		return TypeTimedate
-	case []byte: // raw byte slice
+	case []byte:	// raw byte slice
 		return TypeBytes
-	case error: // plain Go error
+	case error:	// plain Go error
 		return TypeError
 	}
 
@@ -95,9 +95,9 @@ func unwrapValue(v interface{}) interface{} {
 		// Fuzzy doesn't have a direct native equivalent, return its float value
 		return val.μ
 	case FunctionValue:
-		return val.Value // Unwrap to Procedure struct
+		return val.Value	// Unwrap to Procedure struct
 	case ToolValue:
-		return val.Value // Unwrap to ToolImplementation struct
+		return val.Value	// Unwrap to ToolImplementation struct
 	case ErrorValue:
 		// Unwrap the inner map
 		unwrappedMap := make(map[string]interface{})
@@ -179,7 +179,7 @@ func toInt64(val interface{}) (int64, bool) {
 // was naturally a string.
 func toString(val interface{}) (string, bool) {
 	if val == nil {
-		return "", false // FIX: Return empty string for nil to correct concatenation behavior.
+		return "", false	// FIX: Return empty string for nil to correct concatenation behavior.
 	}
 	if s, ok := val.(string); ok {
 		return s, true
@@ -187,7 +187,7 @@ func toString(val interface{}) (string, bool) {
 	if v, ok := val.(Value); ok {
 		// Use the value's own String() method
 		if _, isNil := v.(NilValue); isNil {
-			return "", false // FIX: Also handle the NilValue type explicitly.
+			return "", false	// FIX: Also handle the NilValue type explicitly.
 		}
 		_, isStr := v.(StringValue)
 		return v.String(), isStr

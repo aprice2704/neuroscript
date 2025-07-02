@@ -1,3 +1,4 @@
+// filename: pkg/parser/ast_builder_main_exitlvalue.go
 package parser
 
 import (
@@ -11,7 +12,7 @@ import (
 func (l *neuroScriptListenerImpl) ExitLvalue(ctx *gen.LvalueContext) {
 	l.logDebugAST("ExitLvalue: %s", ctx.GetText())
 
-	baseIdentifierToken := ctx.IDENTIFIER(0) // Rule: IDENTIFIER ( LBRACK ... | DOT IDENTIFIER )*
+	baseIdentifierToken := ctx.IDENTIFIER(0)	// Rule: IDENTIFIER ( LBRACK ... | DOT IDENTIFIER )*
 	if baseIdentifierToken == nil {
 		pos := tokenToPosition(ctx.GetStart())
 		l.addErrorf(ctx.GetStart(), "AST Builder: Malformed lvalue, missing base identifier.")
@@ -22,9 +23,9 @@ func (l *neuroScriptListenerImpl) ExitLvalue(ctx *gen.LvalueContext) {
 	basePos := tokenToPosition(baseIdentifierToken.GetSymbol())
 
 	lValueNode := &ast.LValueNode{
-		Position:   basePos,
-		Identifier: baseIdentifierName,
-		Accessors:  make([]*ast.AccessorNode, 0),
+		Position:	basePos,
+		Identifier:	baseIdentifierName,
+		Accessors:	make([]*ast.AccessorNode, 0),
 	}
 
 	// Expressions for bracket accessors are pushed onto the ValueStack by their Exit rules.
@@ -50,12 +51,12 @@ func (l *neuroScriptListenerImpl) ExitLvalue(ctx *gen.LvalueContext) {
 				l.push(&ast.ErrorNode{Pos: &basePos, Message: "Lvalue stack error: invalid bracket expression type from popN"})
 				return
 			}
-			bracketExprAsts[i] = expr // Stored in source order
+			bracketExprAsts[i] = expr	// Stored in source order
 		}
 	}
 
 	// Iterate through the grammar elements that form accessors.
-	accessorChildren := ctx.GetChildren()[1:] // Skip the base IDENTIFIER
+	accessorChildren := ctx.GetChildren()[1:]	// Skip the base IDENTIFIER
 
 	bracketExprUsed := 0
 	currentChildPtr := 0
@@ -73,7 +74,7 @@ func (l *neuroScriptListenerImpl) ExitLvalue(ctx *gen.LvalueContext) {
 					accessor.Key = bracketExprAsts[bracketExprUsed]
 					bracketExprUsed++
 					lValueNode.Accessors = append(lValueNode.Accessors, accessor)
-					currentChildPtr += 3 // Skip LBRACK, expression, RBRACK
+					currentChildPtr += 3	// Skip LBRACK, expression, RBRACK
 				} else {
 					l.addErrorf(term.GetSymbol(), "AST Builder: Mismatch: Found LBRACK but no corresponding expression for lvalue '%s'", baseIdentifierName)
 					l.push(&ast.ErrorNode{Pos: &pos, Message: "Lvalue error: LBRACK without expression"})
@@ -81,14 +82,14 @@ func (l *neuroScriptListenerImpl) ExitLvalue(ctx *gen.LvalueContext) {
 				}
 			} else if tokenType == gen.NeuroScriptLexerDOT {
 				accessor.Type = ast.DotAccess
-				currentChildPtr++ // Move past DOT to the IDENTIFIER
+				currentChildPtr++	// Move past DOT to the IDENTIFIER
 				if currentChildPtr < len(accessorChildren) {
 					fieldIdentTerm, identOk := accessorChildren[currentChildPtr].(antlr.TerminalNode)
 					if identOk && fieldIdentTerm.GetSymbol().GetTokenType() == gen.NeuroScriptLexerIDENTIFIER {
 						keyPos := tokenToPosition(fieldIdentTerm.GetSymbol())
 						accessor.Key = &ast.StringLiteralNode{Pos: &keyPos, Value: fieldIdentTerm.GetText()}
 						lValueNode.Accessors = append(lValueNode.Accessors, accessor)
-						currentChildPtr++ // Skip IDENTIFIER
+						currentChildPtr++	// Skip IDENTIFIER
 					} else {
 						l.addErrorf(term.GetSymbol(), "AST Builder: Expected IDENTIFIER after DOT in lvalue for '%s'", baseIdentifierName)
 						l.push(&ast.ErrorNode{Pos: &pos, Message: "Lvalue error: DOT not followed by IDENTIFIER"})
