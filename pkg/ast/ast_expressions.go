@@ -1,7 +1,7 @@
 // NeuroScript Version: 0.5.2
 // File version: 1
 // Purpose: Contains all AST nodes that implement the Expression interface.
-// filename: pkg/core/ast_expressions.go
+// filename: pkg/ast/ast_expressions.go
 // nlines: 195
 // risk_rating: MEDIUM
 

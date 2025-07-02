@@ -1,4 +1,4 @@
-// filename: pkg/core/parser_test.go
+// filename: pkg/parser/parser_test.go
 package parser
 
 import (
@@ -15,7 +15,7 @@ import (
 
 func TestNeuroScriptParser(t *testing.T) {
 	// Use NoOpLogger struct literal directly
-	logger := &adapters.NewNoOpLogger{}
+	logger := adapters.NewNoOpLogger()
 	parserAPI := NewParserAPI(logger)
 
 	// Use a map for easier management if test cases grow numerous

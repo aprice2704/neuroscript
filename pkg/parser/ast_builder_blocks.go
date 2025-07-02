@@ -1,7 +1,9 @@
-// filename: pkg/parser/ast_builder_blocks.go
 // NeuroScript Version: 0.5.2
-// File version: 15
-// Purpose: Corrected field and method names (e.g., ValueStack, blockStepStack, pushValue) to match the listener implementation.
+// File version: 2
+// Purpose: Implemented statement list handlers to correctly manage block contexts and the value stack.
+// filename: pkg/parser/ast_builder_blocks.go
+// nlines: 65
+// risk_rating: HIGH
 
 package parser
 
@@ -12,104 +14,53 @@ import (
 
 // blockContext is a helper struct to manage nested lists of steps during AST construction.
 type blockContext struct {
-	parentSteps *[]ast.Step
+	steps []ast.Step
 }
 
-// enterBlockContext sets up a new []ast.Step slice for a new block.
-func (l *neuroScriptListenerImpl) enterBlockContext(kind string) {
-	l.logDebugAST(">>> Enter %s Block (valDepth: %d)", kind, len(l.ValueStack))
-	l.blockStepStack = append(l.blockStepStack, &blockContext{
-		parentSteps: l.currentSteps,
-	})
-	fresh := make([]ast.Step, 0)
-	l.currentSteps = &fresh
+// enterBlock sets up a new context for a new block of statements.
+func (l *neuroScriptListenerImpl) enterBlock() {
+	l.logDebugAST(">>> enterBlock (new context)")
+	newCtx := &blockContext{
+		steps: make([]ast.Step, 0),
+	}
+	l.blockStack = append(l.blockStack, newCtx)
 }
 
-// exitBlockContext finalizes the current block's step collection.
-func (l *neuroScriptListenerImpl) exitBlockContext(kind string) {
-	if l.currentSteps == nil {
-		l.logger.Error("AST Builder FATAL: exitBlockContext called with nil currentSteps", "kind", kind)
-		l.push([]ast.Step{}) // Corrected from pushValue
+// exitBlock finalizes the current block's step collection and pushes it to the value stack.
+func (l *neuroScriptListenerImpl) exitBlock() {
+	if len(l.blockStack) == 0 {
+		l.logger.Error("AST Builder FATAL: exitBlock called with empty block stack")
 		return
 	}
 
-	completedChildSteps := *l.currentSteps
-	l.logDebugAST("<<< Exit %s Block (items: %d, valDepth: %d)", kind, len(completedChildSteps), len(l.ValueStack))
-	l.push(completedChildSteps) // Corrected from pushValue
+	// Pop the current context.
+	lastIndex := len(l.blockStack) - 1
+	currentCtx := l.blockStack[lastIndex]
+	l.blockStack = l.blockStack[:lastIndex]
 
-	if len(l.blockStepStack) > 0 {
-		// Restore the parent's step collector
-		parentContext := l.blockStepStack[len(l.blockStepStack)-1]
-		l.currentSteps = parentContext.parentSteps
-		l.blockStepStack = l.blockStepStack[:len(l.blockStepStack)-1]
-	} else {
-		l.currentSteps = nil
-	}
+	l.logDebugAST("<<< exitBlock (pushing %d steps to value stack)", len(currentCtx.steps))
+	// Push the completed slice of steps onto the main value stack for the parent rule to consume.
+	l.push(currentCtx.steps)
 }
 
-// --- Statement_list listener wiring ---
+// --- Statement List Handlers ---
 
-func (l *neuroScriptListenerImpl) EnterStatement_list(ctx *gen.Statement_listContext) {
-	// This rule is now deprecated in favor of non_empty_statement_list, but we keep the wiring for safety.
+// EnterNon_empty_statement_list is called when entering a block that must contain statements.
+func (l *neuroScriptListenerImpl) EnterNon_empty_statement_list(c *gen.Non_empty_statement_listContext) {
+	l.enterBlock()
 }
 
-func (l *neuroScriptListenerImpl) ExitStatement_list(ctx *gen.Statement_listContext) {
-	// This rule is now deprecated in favor of non_empty_statement_list, but we keep the wiring for safety.
+// ExitNon_empty_statement_list is called when exiting the block.
+func (l *neuroScriptListenerImpl) ExitNon_empty_statement_list(c *gen.Non_empty_statement_listContext) {
+	l.exitBlock()
 }
 
-func (l *neuroScriptListenerImpl) EnterNon_empty_statement_list(ctx *gen.Non_empty_statement_listContext) {
-	var kind string
-	switch ctx.GetParent().(type) {
-	case *gen.Procedure_definitionContext:
-		kind = "PROC_BODY"
-	case *gen.If_statementContext:
-		kind = "IF_ELSE_BODY"
-	case *gen.For_each_statementContext:
-		kind = "FOR_EACH_BODY"
-	case *gen.While_statementContext:
-		kind = "WHILE_BODY"
-	case *gen.Event_handlerContext:
-		kind = "ON_EVENT_BODY"
-	case *gen.Error_handlerContext:
-		kind = "ON_ERROR_BODY"
-	case *gen.Command_blockContext: // Added for command block support
-		kind = "COMMAND_BODY"
-	default:
-		kind = "UNKNOWN_BLOCK"
-		l.addError(ctx, "non_empty_statement_list found inside unknown parent type: %T", ctx.GetParent())
-	}
-	l.enterBlockContext(kind)
+// EnterCommand_statement_list is the equivalent for command blocks.
+func (l *neuroScriptListenerImpl) EnterCommand_statement_list(c *gen.Command_statement_listContext) {
+	l.enterBlock()
 }
 
-func (l *neuroScriptListenerImpl) ExitNon_empty_statement_list(ctx *gen.Non_empty_statement_listContext) {
-	var kind string
-	switch ctx.GetParent().(type) {
-	case *gen.Procedure_definitionContext:
-		kind = "PROC_BODY"
-	case *gen.If_statementContext:
-		kind = "IF_ELSE_BODY"
-	case *gen.For_each_statementContext:
-		kind = "FOR_EACH_BODY"
-	case *gen.While_statementContext:
-		kind = "WHILE_BODY"
-	case *gen.Event_handlerContext:
-		kind = "ON_EVENT_BODY"
-	case *gen.Error_handlerContext:
-		kind = "ON_ERROR_BODY"
-	case *gen.Command_blockContext: // Added for command block support
-		kind = "COMMAND_BODY"
-	default:
-		kind = "UNKNOWN_BLOCK"
-	}
-	l.exitBlockContext(kind)
-}
-
-// --- ADDED: Wiring for the command_statement_list used by command blocks ---
-
-func (l *neuroScriptListenerImpl) EnterCommand_statement_list(ctx *gen.Command_statement_listContext) {
-	l.enterBlockContext("COMMAND_BODY")
-}
-
-func (l *neuroScriptListenerImpl) ExitCommand_statement_list(ctx *gen.Command_statement_listContext) {
-	l.exitBlockContext("COMMAND_BODY")
+// ExitCommand_statement_list is called when exiting a command block's statements.
+func (l *neuroScriptListenerImpl) ExitCommand_statement_list(c *gen.Command_statement_listContext) {
+	l.exitBlock()
 }

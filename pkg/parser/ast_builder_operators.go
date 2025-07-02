@@ -1,7 +1,7 @@
 // NeuroScript Version: 0.3.1
 // File version: 16
 // Purpose: Added len() to list of built-in callables.
-// filename: pkg/core/ast_builder_operators.go
+// filename: pkg/parser/ast_builder_operators.go
 // nlines: 606
 // risk_rating: MEDIUM
 
@@ -12,12 +12,13 @@ import (
 	"strings"
 
 	"github.com/antlr4-go/antlr/v4" // Using user-specified ANTLR import path
+	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	gen "github.com/aprice2704/neuroscript/pkg/parser/generated"
 )
 
 // Helper function to check if a lang.Value is an ast.ast.ErrorNode
-func isast.ErrorNode(val interface{}) bool {
+func isErrorNode(val interface{}) bool {
 	_, ok := val.(*ast.ErrorNode)
 	return ok
 }
@@ -38,17 +39,19 @@ func (l *neuroScriptListenerImpl) processBinaryOperators(ctx antlr.ParserRuleCon
 
 	poppedOperands := make([]ast.Expression, numOperands)
 	for i := 0; i < numOperands; i++ {
-		val, ok := l.poplang.Value()
+		val, ok := l.pop()
 		if !ok {
+			pos := tokenToPosition(ctx.GetStart())
 			l.addError(ctx, "Stack error popping operand %d for binary op: %s", numOperands-i, ctx.GetText())
-			l.pushlang.Value(&ast.ErrorNode{Position: tokenTolang.Position(ctx.GetStart()), Message: fmt.Sprintf("Stack error (binary op operand %d)", numOperands-i)})
+			l.push(&ast.ErrorNode{Pos: &pos, Message: fmt.Sprintf("Stack error (binary op operand %d)", numOperands-i)})
 			return
 		}
 		expr, isExpr := val.(ast.Expression)
 		if !isExpr {
 			errPosToken := ctx.GetStart()
+			pos := tokenToPosition(errPosToken)
 			l.addError(ctx, "Operand %d is not an ast.Expression (type %T) for binary op: %s", numOperands-i, val, ctx.GetText())
-			l.pushlang.Value(&ast.ErrorNode{Position: tokenTolang.Position(errPosToken), Message: fmt.Sprintf("Type error (binary op operand %d)", numOperands-i)})
+			l.push(&ast.ErrorNode{Pos: &pos, Message: fmt.Sprintf("Type error (binary op operand %d)", numOperands-i)})
 			return
 		}
 		poppedOperands[i] = expr
@@ -59,16 +62,17 @@ func (l *neuroScriptListenerImpl) processBinaryOperators(ctx antlr.ParserRuleCon
 	for i := 0; i < numOperators; i++ {
 		opToken := opGetter(i)
 		if opToken == nil {
+			pos := tokenToPosition(ctx.GetStart())
 			l.addError(ctx, "Could not find operator token for index %d in: %s", i, ctx.GetText())
-			l.pushlang.Value(&ast.ErrorNode{Position: tokenTolang.Position(ctx.GetStart()), Message: "Missing operator token"})
+			l.push(&ast.ErrorNode{Pos: &pos, Message: "Missing operator token"})
 			return
 		}
 		opSymbol := opToken.GetSymbol()
 		opText := opSymbol.GetText()
 		currentRHS := poppedOperands[numOperands-2-i]
-
+		pos := tokenToPosition(opSymbol)
 		newNode := &ast.BinaryOpNode{
-			Position:      tokenTolang.Position(opSymbol),
+			Pos:      &pos,
 			Left:     currentLHS,
 			Operator: opText,
 			Right:    currentRHS,
@@ -76,7 +80,7 @@ func (l *neuroScriptListenerImpl) processBinaryOperators(ctx antlr.ParserRuleCon
 		l.logDebugAST("      Constructed ast.BinaryOpNode: [%T %s %T]", currentLHS, opText, currentRHS)
 		currentLHS = newNode
 	}
-	l.pushlang.Value(currentLHS)
+	l.push(currentLHS)
 }
 
 // ExitLogical_or_expr
@@ -219,22 +223,23 @@ func (l *neuroScriptListenerImpl) ExitUnary_expr(ctx *gen.Unary_exprContext) {
 	/* ---------- typeof ---------- */
 
 	if ctx.KW_TYPEOF() != nil {
-		operandVal, ok := l.poplang.Value()
+		operandVal, ok := l.pop()
 		if !ok {
-			startPos := tokenTolang.Position(ctx.KW_TYPEOF().GetSymbol())
+			startPos := tokenToPosition(ctx.KW_TYPEOF().GetSymbol())
 			l.addError(ctx, "Stack error: missing operand for typeof at %s", startPos.String())
-			l.pushlang.Value(&ast.ErrorNode{Position: startPos, Message: "missing operand for typeof"})
+			l.push(&ast.ErrorNode{Pos: &startPos, Message: "missing operand for typeof"})
 			return
 		}
 		operandExpr, ok := operandVal.(ast.Expression)
 		if !ok {
-			startPos := tokenTolang.Position(ctx.KW_TYPEOF().GetSymbol())
+			startPos := tokenToPosition(ctx.KW_TYPEOF().GetSymbol())
 			l.addError(ctx, "typeof operand is not ast.Expression (got %T) at %s", operandVal, startPos.String())
-			l.pushlang.Value(&ast.ErrorNode{Position: startPos, Message: fmt.Sprintf("typeof operand was %T", operandVal)})
+			l.push(&ast.ErrorNode{Pos: &startPos, Message: fmt.Sprintf("typeof operand was %T", operandVal)})
 			return
 		}
-		l.pushlang.Value(&ast.TypeOfNode{
-			Position:      tokenTolang.Position(ctx.KW_TYPEOF().GetSymbol()),
+		pos := tokenToPosition(ctx.KW_TYPEOF().GetSymbol())
+		l.push(&ast.TypeOfNode{
+			Pos:      &pos,
 			Argument: operandExpr,
 		})
 		return
@@ -261,20 +266,23 @@ func (l *neuroScriptListenerImpl) ExitUnary_expr(ctx *gen.Unary_exprContext) {
 		return
 	}
 
-	operandRaw, ok := l.poplang.Value()
+	operandRaw, ok := l.pop()
 	if !ok {
+		pos := tokenToPosition(tok.GetSymbol())
 		l.addError(ctx, "Stack error: missing operand for unary %q", op)
-		l.pushlang.Value(&ast.ErrorNode{Position: tokenTolang.Position(tok.GetSymbol()), Message: "stack underflow (unary)"})
+		l.push(&ast.ErrorNode{Pos: &pos, Message: "stack underflow (unary)"})
 		return
 	}
 	operandExpr, ok := operandRaw.(ast.Expression)
 	if !ok {
+		pos := tokenToPosition(tok.GetSymbol())
 		l.addError(ctx, "Operand for unary %q is not ast.Expression (got %T)", op, operandRaw)
-		l.pushlang.Value(&ast.ErrorNode{Position: tokenTolang.Position(tok.GetSymbol()), Message: "type error (unary)"})
+		l.push(&ast.ErrorNode{Pos: &pos, Message: "type error (unary)"})
 		return
 	}
-	l.pushlang.Value(&ast.UnaryOpNode{
-		Position:      tokenTolang.Position(tok.GetSymbol()),
+	pos := tokenToPosition(tok.GetSymbol())
+	l.push(&ast.UnaryOpNode{
+		Pos:      &pos,
 		Operator: op,
 		Operand:  operandExpr,
 	})
@@ -292,37 +300,42 @@ func (l *neuroScriptListenerImpl) ExitPower_expr(ctx *gen.Power_exprContext) {
 	opSymbol := opTokenNode.GetSymbol()
 	opText := opSymbol.GetText()
 
-	exponentRaw, ok := l.poplang.Value()
+	exponentRaw, ok := l.pop()
 	if !ok {
+		pos := tokenToPosition(opSymbol)
 		l.addError(ctx, "Stack error popping exponent for POWER")
-		l.pushlang.Value(&ast.ErrorNode{Position: tokenTolang.Position(opSymbol), Message: "Stack error (power exponent)"})
+		l.push(&ast.ErrorNode{Pos: &pos, Message: "Stack error (power exponent)"})
 		return
 	}
 	exponentExpr, isExpr := exponentRaw.(ast.Expression)
 	if !isExpr {
+		pos := tokenToPosition(opSymbol)
 		l.addError(ctx, "Exponent for POWER is not an ast.Expression (type %T)", exponentRaw)
-		l.pushlang.Value(&ast.ErrorNode{Position: tokenTolang.Position(opSymbol), Message: "Type error (power exponent)"})
+		l.push(&ast.ErrorNode{Pos: &pos, Message: "Type error (power exponent)"})
 		return
 	}
-	baseRaw, ok := l.poplang.Value()
+	baseRaw, ok := l.pop()
 	if !ok {
+		pos := tokenToPosition(opSymbol)
 		l.addError(ctx, "Stack error popping base for POWER")
-		l.pushlang.Value(&ast.ErrorNode{Position: tokenTolang.Position(opSymbol), Message: "Stack error (power base)"})
+		l.push(&ast.ErrorNode{Pos: &pos, Message: "Stack error (power base)"})
 		return
 	}
 	baseExpr, isExpr := baseRaw.(ast.Expression)
 	if !isExpr {
+		pos := tokenToPosition(opSymbol)
 		l.addError(ctx, "Base for POWER is not an ast.Expression (type %T)", baseRaw)
-		l.pushlang.Value(&ast.ErrorNode{Position: tokenTolang.Position(opSymbol), Message: "Type error (power base)"})
+		l.push(&ast.ErrorNode{Pos: &pos, Message: "Type error (power base)"})
 		return
 	}
+	pos := tokenToPosition(opSymbol)
 	node := &ast.BinaryOpNode{
-		Position:      tokenTolang.Position(opSymbol),
+		Pos:      &pos,
 		Left:     baseExpr,
 		Operator: opText,
 		Right:    exponentExpr,
 	}
-	l.pushlang.Value(node)
+	l.push(node)
 	l.logDebugAST("      Constructed ast.BinaryOpNode (Power): [%T %s %T]", baseExpr, opText, exponentExpr)
 }
 
@@ -344,59 +357,64 @@ func (l *neuroScriptListenerImpl) ExitAccessor_expr(ctx *gen.Accessor_exprContex
 
 	accessorExprs := make([]ast.Expression, numAccessors)
 	for i := numAccessors - 1; i >= 0; i-- {
-		accessorRaw, ok := l.poplang.Value()
+		accessorRaw, ok := l.pop()
 		if !ok {
-			if i < len(ctx.All.Expression()) {
-				l.addError(ctx.ast.Expression(i), "Stack error popping accessor expression %d", i)
+			if i < len(ctx.AllExpression()) {
+				l.addError(ctx.Expression(i), "Stack error popping accessor expression %d", i)
 			} else {
 				l.addError(ctx, "Stack error popping accessor expression %d (index out of bounds)", i)
 			}
-			l.pushlang.Value(&ast.ErrorNode{Position: tokenTolang.Position(ctx.LBRACK(i).GetSymbol()), Message: "Stack error (accessor expr)"})
+			pos := tokenToPosition(ctx.LBRACK(i).GetSymbol())
+			l.push(&ast.ErrorNode{Pos: &pos, Message: "Stack error (accessor expr)"})
 			return
 		}
 		accessorExpr, isExpr := accessorRaw.(ast.Expression)
 		if !isExpr {
-			if i < len(ctx.All.Expression()) {
-				l.addError(ctx.ast.Expression(i), "Accessor expression %d is not an ast.Expression (type %T)", i, accessorRaw)
+			if i < len(ctx.AllExpression()) {
+				l.addError(ctx.Expression(i), "Accessor expression %d is not an ast.Expression (type %T)", i, accessorRaw)
 			} else {
 				l.addError(ctx, "Accessor expression %d is not an ast.Expression (type %T) (index out of bounds for error pos)", i, accessorRaw)
 			}
-			l.pushlang.Value(&ast.ErrorNode{Position: tokenTolang.Position(ctx.LBRACK(i).GetSymbol()), Message: "Type error (accessor expr)"})
+			pos := tokenToPosition(ctx.LBRACK(i).GetSymbol())
+			l.push(&ast.ErrorNode{Pos: &pos, Message: "Type error (accessor expr)"})
 			return
 		}
 		accessorExprs[i] = accessorExpr
 	}
 
-	collectionRaw, ok := l.poplang.Value()
+	collectionRaw, ok := l.pop()
 	if !ok {
+		pos := tokenToPosition(ctx.Primary().GetStart())
 		l.addError(ctx.Primary(), "Stack error popping primary collection")
-		l.pushlang.Value(&ast.ErrorNode{Position: tokenTolang.Position(ctx.Primary().GetStart()), Message: "Stack error (accessor collection)"})
+		l.push(&ast.ErrorNode{Pos: &pos, Message: "Stack error (accessor collection)"})
 		return
 	}
 	collectionExpr, isExpr := collectionRaw.(ast.Expression)
 	if !isExpr {
+		pos := tokenToPosition(ctx.Primary().GetStart())
 		l.addError(ctx.Primary(), "Primary collection is not an ast.Expression (type %T)", collectionRaw)
-		l.pushlang.Value(&ast.ErrorNode{Position: tokenTolang.Position(ctx.Primary().GetStart()), Message: "Type error (accessor collection)"})
+		l.push(&ast.ErrorNode{Pos: &pos, Message: "Type error (accessor collection)"})
 		return
 	}
 
 	currentCollectionResult := collectionExpr
 	for i := 0; i < numAccessors; i++ {
+		pos := tokenToPosition(ctx.LBRACK(i).GetSymbol())
 		newNode := &ast.ElementAccessNode{
-			Position:        tokenTolang.Position(ctx.LBRACK(i).GetSymbol()),
+			Pos:        &pos,
 			Collection: currentCollectionResult,
 			Accessor:   accessorExprs[i],
 		}
 		l.logDebugAST("      Constructed ast.ElementAccessNode: [Coll: %T Acc: %T]", newNode.Collection, newNode.Accessor)
 		currentCollectionResult = newNode
 	}
-	l.pushlang.Value(currentCollectionResult)
+	l.push(currentCollectionResult)
 	l.logDebugAST("      Final Accessor_expr result pushed: %T", currentCollectionResult)
 }
 
-// buildast.CallTargetFromContext constructs a ast.CallTarget AST node from an ICall_targetContext.
-func (l *neuroScriptListenerImpl) buildast.CallTargetFromContext(ctx gen.ICall_targetContext) ast.CallTarget {
-	l.logDebugAST("      -> buildast.CallTargetFromContext: %s", ctx.GetText())
+// buildCallTargetFromContext constructs a ast.CallTarget AST node from an ICall_targetContext.
+func (l *neuroScriptListenerImpl) buildCallTargetFromContext(ctx gen.ICall_targetContext) ast.CallTarget {
+	l.logDebugAST("      -> buildCallTargetFromContext: %s", ctx.GetText())
 	target := ast.CallTarget{}
 
 	if toolKeyword := ctx.KW_TOOL(); toolKeyword != nil {
@@ -410,36 +428,41 @@ func (l *neuroScriptListenerImpl) buildast.CallTargetFromContext(ctx gen.ICall_t
 			target.Name = strings.Join(parts, ".")
 
 			if len(idNodes) > 0 {
-				target.Pos = tokenTolang.Position(idNodes[0].GetSymbol())
+				pos := tokenToPosition(idNodes[0].GetSymbol())
+				target.Pos = &pos
 			} else {
-				target.Pos = tokenTolang.Position(toolKeyword.GetSymbol())
+				pos := tokenToPosition(toolKeyword.GetSymbol())
+				target.Pos = &pos
 				l.addError(ctx, "Tool call has empty qualified_identifier: %s", ctx.GetText())
 			}
 		} else {
 			l.addError(ctx, "Tool call: Expected Qualified_identifier, but was not found: %s", ctx.GetText())
 			target.Name = "<ERROR_NO_QUALIFIED_ID_FOR_TOOL>"
-			target.Pos = tokenTolang.Position(toolKeyword.GetSymbol())
+			pos := tokenToPosition(toolKeyword.GetSymbol())
+			target.Pos = &pos
 		}
 		l.logDebugAST("         Tool call identified. Name: '%s', Position: %s", target.Name, target.Pos.String())
 	} else if userFuncID := ctx.IDENTIFIER(); userFuncID != nil {
 		target.IsTool = false
 		target.Name = userFuncID.GetText()
-		target.Pos = tokenTolang.Position(userFuncID.GetSymbol())
+		pos := tokenToPosition(userFuncID.GetSymbol())
+		target.Pos = &pos
 		l.logDebugAST("         User function call identified. Name: '%s', Position: %s", target.Name, target.Pos.String())
 	} else {
 		l.addError(ctx, "Unrecognized call_target structure: %s", ctx.GetText())
 		target.Name = "<ERROR_INVALID_CALL_TARGET>"
-		target.Pos = tokenTolang.Position(ctx.GetStart())
+		pos := tokenToPosition(ctx.GetStart())
+		target.Pos = &pos
 	}
-	l.logDebugAST("      <- buildast.CallTargetFromContext (Name: %s, IsTool: %v)", target.Name, target.IsTool)
+	l.logDebugAST("      <- buildCallTargetFromContext (Name: %s, IsTool: %v)", target.Name, target.IsTool)
 	return target
 }
 
 // ExitCall_target is called when exiting the call_target rule.
 func (l *neuroScriptListenerImpl) ExitCall_target(ctx *gen.Call_targetContext) {
 	l.logDebugAST("--- Exit Call_target: %q", ctx.GetText())
-	targetNode := l.buildast.CallTargetFromContext(ctx)
-	l.pushlang.Value(&targetNode)
+	targetNode := l.buildCallTargetFromContext(ctx)
+	l.push(&targetNode)
 	l.logDebugAST("      Pushed *ast.CallTarget to stack: IsTool=%t, Name=%s", targetNode.IsTool, targetNode.Name)
 }
 
@@ -447,31 +470,31 @@ func (l *neuroScriptListenerImpl) ExitCall_target(ctx *gen.Call_targetContext) {
 func (l *neuroScriptListenerImpl) ExitCallable_expr(ctx *gen.Callable_exprContext) {
 	l.logDebugAST("--- Exit Callable_expr: %q", ctx.GetText())
 
-	numArgs := 0
-	arg.Expressions := []ast.Expression{}
-	if exprListOptCtx := ctx.ast.Expression_list_opt(); exprListOptCtx != nil {
-		if exprListCtx := exprListOptCtx.ast.Expression_list(); exprListCtx != nil {
-			numArgs = len(exprListCtx.All.Expression())
-		}
-	}
-
-	if numArgs > 0 {
-		argsRaw, ok := l.popNValues(numArgs)
-		if !ok {
-			l.addError(ctx, "Stack error popping arguments for call %q", ctx.GetText())
-			l.pushlang.Value(&ast.ErrorNode{Position: tokenTolang.Position(ctx.GetStart()), Message: "Stack error (call args)"})
-			return
-		}
-		arg.Expressions = make([]ast.Expression, numArgs)
-		for i := 0; i < numArgs; i++ {
-			argExpr, isExpr := argsRaw[i].(ast.Expression)
-			if !isExpr {
-				argSourceCtx := ctx.ast.Expression_list_opt().ast.Expression_list().ast.Expression(i)
-				l.addError(argSourceCtx, "Argument %d for call %q is not an ast.Expression (type %T)", i+1, ctx.GetText(), argsRaw[i])
-				l.pushlang.Value(&ast.ErrorNode{Position: tokenTolang.Position(argSourceCtx.GetStart()), Message: "Type error (call arg)"})
-				return
+	var args []ast.Expression
+	if exprListOptCtx := ctx.Expression_list_opt(); exprListOptCtx != nil {
+		if exprListCtx := exprListOptCtx.Expression_list(); exprListCtx != nil {
+			numArgs := len(exprListCtx.AllExpression())
+			if numArgs > 0 {
+				argsRaw, ok := l.popN(numArgs)
+				if !ok {
+					pos := tokenToPosition(ctx.GetStart())
+					l.addError(ctx, "Stack error popping arguments for call %q", ctx.GetText())
+					l.push(&ast.ErrorNode{Pos: &pos, Message: "Stack error (call args)"})
+					return
+				}
+				args = make([]ast.Expression, numArgs)
+				for i := 0; i < numArgs; i++ {
+					argExpr, isExpr := argsRaw[i].(ast.Expression)
+					if !isExpr {
+						argSourceCtx := ctx.Expression_list_opt().Expression_list().Expression(i)
+						pos := tokenToPosition(argSourceCtx.GetStart())
+						l.addError(argSourceCtx, "Argument %d for call %q is not an ast.Expression (type %T)", i+1, ctx.GetText(), argsRaw[i])
+						l.push(&ast.ErrorNode{Pos: &pos, Message: "Type error (call arg)"})
+						return
+					}
+					args[i] = argExpr
+				}
 			}
-			arg.Expressions[i] = argExpr
 		}
 	}
 
@@ -479,16 +502,18 @@ func (l *neuroScriptListenerImpl) ExitCallable_expr(ctx *gen.Callable_exprContex
 	var callExprPos *lang.Position
 
 	if targetRuleCtx := ctx.Call_target(); targetRuleCtx != nil {
-		targetVal, ok := l.poplang.Value()
+		targetVal, ok := l.pop()
 		if !ok {
+			pos := tokenToPosition(ctx.GetStart())
 			l.addError(ctx, "Stack error popping call target for %q", ctx.GetText())
-			l.pushlang.Value(&ast.ErrorNode{Position: tokenTolang.Position(ctx.GetStart()), Message: "Stack error (call target)"})
+			l.push(&ast.ErrorNode{Pos: &pos, Message: "Stack error (call target)"})
 			return
 		}
 		targetPtr, isPtr := targetVal.(*ast.CallTarget)
 		if !isPtr {
+			pos := tokenToPosition(ctx.GetStart())
 			l.addError(ctx, "Popped call target is not *ast.CallTarget (type %T) for %q", targetVal, ctx.GetText())
-			l.pushlang.Value(&ast.ErrorNode{Position: tokenTolang.Position(ctx.GetStart()), Message: "Type error (call target)"})
+			l.push(&ast.ErrorNode{Pos: &pos, Message: "Type error (call target)"})
 			return
 		}
 		finalTargetNode = *targetPtr
@@ -526,20 +551,22 @@ func (l *neuroScriptListenerImpl) ExitCallable_expr(ctx *gen.Callable_exprContex
 			keywordToken = ctx.KW_LEN()
 			finalTargetNode.Name = "len"
 		default:
+			pos := tokenToPosition(ctx.GetStart())
 			l.addError(ctx, "Unhandled built-in or target type in Callable_expr: %q", ctx.GetText())
-			l.pushlang.Value(&ast.ErrorNode{Position: tokenTolang.Position(ctx.GetStart()), Message: "Unknown callable target"})
+			l.push(&ast.ErrorNode{Pos: &pos, Message: "Unknown callable target"})
 			return
 		}
-		callExprPos = tokenTolang.Position(keywordToken.GetSymbol())
+		pos := tokenToPosition(keywordToken.GetSymbol())
+		callExprPos = &pos
 		finalTargetNode.Pos = callExprPos
 		l.logDebugAST("      Identified Built-in function call target: %s", finalTargetNode.Name)
 	}
 
 	node := &ast.CallableExprNode{
-		Position:       callExprPos,
+		Pos:       callExprPos,
 		Target:    finalTargetNode,
-		Arguments: arg.Expressions,
+		Arguments: args,
 	}
-	l.pushlang.Value(node)
+	l.push(node)
 	l.logDebugAST("      Constructed and Pushed ast.CallableExprNode: Target=%s, Args=%d", node.Target.Name, len(node.Arguments))
 }

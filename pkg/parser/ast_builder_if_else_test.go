@@ -1,4 +1,4 @@
-// filename: pkg/core/ast_builder_if_else_test.go
+// filename: pkg/parser/ast_builder_if_else_test.go
 // NeuroScript Version: 0.5.2
 // File version: 0.1.6
 // Purpose: Updated empty block tests to be syntactically valid by adding a neutral statement.

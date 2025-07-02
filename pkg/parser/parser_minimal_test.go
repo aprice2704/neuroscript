@@ -1,12 +1,11 @@
-// filename: pkg/core/parser_minimal_test.go
+// filename: pkg/parser/parser_minimal_test.go
 package parser
 
 import (
 	"strings"
 	"testing"
 
-	"github.com/aprice2704/neuroscript/pkg/adapters"	// For NoOpLogger adapter
-	"github.com/aprice2704/neuroscript/pkg/core"		// Import the core package
+	"github.com/aprice2704/neuroscript/pkg/adapters" // For NoOpLogger adapter
 )
 
 // TestParseMinimalNewline attempts to parse a minimal script that mimics
@@ -14,8 +13,8 @@ import (
 // It specifically checks for the 'missing NEWLINE' error and reports
 // the details provided by the enhanced error listener.
 func TestParseMinimalNewline(t *testing.T) {
-	logger := adapters.NewNoOpLogger()	// Use a logger adapter
-	parserAPI := core.NewParserAPI(logger)
+	logger := adapters.NewNoOpLogger() // Use a logger adapter
+	parserAPI := NewParserAPI(logger)
 	scriptContent := `:: Test: Minimal newline issue
 func dummy() means
   emit "dummy func"
@@ -36,7 +35,7 @@ endfunc
 		// Check if the error is the specific 'missing NEWLINE' error
 		// The enhanced error message includes "near token '...'"
 		// Example check (adapt based on exact expected error string):
-		expectedErrorSubstring := "missing NEWLINE near token 'set'"	// Expecting error before 'set y = 2'
+		expectedErrorSubstring := "missing NEWLINE near token 'set'" // Expecting error before 'set y = 2'
 		if !strings.Contains(err.Error(), expectedErrorSubstring) {
 			t.Errorf("Parse failed, but not with the expected 'missing NEWLINE near token set' error. Got: %v", err)
 		} else {

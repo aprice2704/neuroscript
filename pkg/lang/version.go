@@ -1,7 +1,7 @@
 // NeuroScript Version: 0.4.2
 // File version: 1
 // Purpose: Holds the grammar version, auto-updated by the Makefile.
-// filename: pkg/core/version.go
+// filename: pkg/lang/version.go
 // nlines: 13
 // risk_rating: LOW
 package lang

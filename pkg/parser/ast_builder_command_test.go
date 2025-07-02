@@ -1,4 +1,4 @@
-// filename: pkg/core/ast_builder_command_test.go
+// filename: pkg/parser/ast_builder_command_test.go
 // NeuroScript Version: 0.5.2
 // File version: 3
 // Purpose: Corrected expected parser error messages to match actual output.

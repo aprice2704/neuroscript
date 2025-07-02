@@ -1,7 +1,7 @@
 // NeuroScript Version: 0.5.2
 // File version: 1
 // Purpose: Defines top-level declaration nodes for the AST, such as OnEventDecl.
-// filename: pkg/core/ast_declarations.go
+// filename: pkg/ast/ast_declarations.go
 // nlines: 18
 // risk_rating: MEDIUM
 

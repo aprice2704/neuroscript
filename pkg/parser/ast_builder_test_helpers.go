@@ -1,7 +1,7 @@
 // NeuroScript Version: 0.3.1 // Assuming current project version
 // File version: 0.1.0 // Initial version
 // Purpose: Provides helper functions for testing NeuroScript parsing and AST construction.
-// filename: pkg/core/ast_builder_test_helpers.go
+// filename: pkg/parser/ast_builder_test_helpers.go
 // nlines: 70
 // risk_rating: LOW // Test helper file
 
@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/adapters"
+	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 )
 
@@ -29,14 +30,14 @@ import (
 //	A slice of ast.Step structs representing the body of the specified procedure.
 //	The test is halted via t.Fatalf if any parsing, AST building, or
 //	procedure lookup error occurs.
-func parseStringToProcedureBodyNodes(t *testing.T, scriptContent string, procName string) []Step {
+func parseStringToProcedureBodyNodes(t *testing.T, scriptContent string, procName string) []ast.Step {
 	t.Helper()
 
 	// Use a no-op logger for parsing and AST building within this test helper.
 	// If more detailed logging is needed during tests, NewTestLogger(t) could be used
 	// if it's adapted or if the TestLogger type is directly available and implements interfaces.Logger.
 	// For now, adapters.NewNoOpLogger is suitable as per parser_api.go usage for non-LSP parsing.
-	var noOpLogger interfaces.Logger = &adapters.NewNoOpLogger{} // Assumes adapters.NewNoOpLogger is defined in utils.go
+	var noOpLogger interfaces.Logger = adapters.NewNoOpLogger() // Assumes adapters.NewNoOpLogger is defined in utils.go
 
 	parserAPI := NewParserAPI(noOpLogger) //
 	if parserAPI == nil {

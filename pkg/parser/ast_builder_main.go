@@ -1,7 +1,7 @@
-// filename: pkg/core/ast_builder_main.go
+// filename: pkg/parser/ast_builder_main.go
 // NeuroScript Version: 0.5.2
-// File version: 36
-// Purpose: Integrated command block consolidation into the AST build process.
+// File version: 39
+// Purpose: Ensured a completely new listener is used for each build to guarantee a clean state.
 // nlines: 147
 // risk_rating: LOW
 
@@ -43,14 +43,8 @@ func (b *ASTBuilder) Build(tree antlr.Tree) (*ast.Program, map[string]string, er
 	}
 	b.logger.Debug("--- AST Builder: Build Start ---")
 
-	// 1. Create and fully initialize the listener and its components.
+	// 1. Create a completely new listener for each build to ensure a clean state.
 	listener := newNeuroScriptListener(b.logger, b.debugAST)
-	if listener.program == nil {
-		listener.program = &ast.Program{Procedures: make(map[string]*ast.Procedure)}
-	}
-	if listener.fileMetadata == nil {
-		listener.fileMetadata = make(map[string]string)
-	}
 
 	// 2. Walk the parse tree.
 	b.logger.Debug("AST Builder: Starting ANTLR walk...")
@@ -61,41 +55,11 @@ func (b *ASTBuilder) Build(tree antlr.Tree) (*ast.Program, map[string]string, er
 	programAST := listener.program
 	fileMetadata := listener.GetFileMetadata()
 
-	// 3. Consolidate procedures from the temporary slice into the final map.
-	if programAST.Procedures == nil {
-		programAST.Procedures = make(map[string]*ast.Procedure)
-	}
-	for _, proc := range listener.procedures {
-		if proc == nil {
-			listener.errors = append(listener.errors, fmt.Errorf("internal AST builder error: found nil procedure in list"))
-			continue
-		}
-		if _, exists := programAST.Procedures[proc.Name()]; exists {
-			errMsg := fmt.Sprintf("duplicate procedure definition: '%s'", proc.Name())
-			listener.errors = append(listener.errors, fmt.Errorf("%s", errMsg))
-			continue
-		}
-		programAST.Procedures[proc.Name()] = proc
-	}
+	// 3. Final consolidation of top-level declarations is now handled directly by the listener's exit methods.
+	// The listener.procedures and listener.commands slices are no longer needed here as they
+	// are added directly to the programAST during the walk.
 
-	// 4. Validate and consolidate event handlers.
-	validEvents := make([]*ast.OnEventDecl, 0, len(listener.events))
-	for _, ev := range listener.events {
-		nameLit, isString := ev.EventNameExpr.(*ast.StringLiteralNode)
-		if isString && nameLit.Value == "error" {
-			pos := ev.Pos
-			errMsg := fmt.Sprintf("misplaced 'on error' handler at line %d; 'on error' is only allowed inside a 'proc' or 'command' block", pos.Line)
-			listener.errors = append(listener.errors, fmt.Errorf("%s", errMsg))
-			continue // Discard the invalid handler.
-		}
-		validEvents = append(validEvents, ev)
-	}
-	programAST.Events = validEvents
-
-	// 5. Consolidate command blocks into the final program AST.
-	programAST.Commands = listener.commands
-
-	// 6. Check for and aggregate any errors collected during the walk and validation.
+	// 4. Check for and aggregate any errors collected during the walk.
 	if len(listener.errors) > 0 {
 		errorMessages := make([]string, 0, len(listener.errors))
 		uniqueErrors := make(map[string]bool)
@@ -108,9 +72,11 @@ func (b *ASTBuilder) Build(tree antlr.Tree) (*ast.Program, map[string]string, er
 				}
 			}
 		}
-		combinedError := fmt.Errorf("AST build failed with %d error(s): %s", len(errorMessages), strings.Join(errorMessages, "; "))
-		b.logger.Error("AST Builder: Failing build", "error", combinedError)
-		return programAST, fileMetadata, combinedError
+		if len(errorMessages) > 0 {
+			combinedError := fmt.Errorf("AST build failed with %d error(s): %s", len(errorMessages), strings.Join(errorMessages, "; "))
+			b.logger.Error("AST Builder: Failing build", "error", combinedError)
+			return programAST, fileMetadata, combinedError
+		}
 	}
 
 	b.logger.Debug("--- AST Builder: Build process completed successfully. ---")

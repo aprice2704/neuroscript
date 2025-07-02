@@ -1,4 +1,4 @@
-// filename: pkg/core/ast_commands.go
+// filename: pkg/ast/ast_commands.go
 // NeuroScript Version: 0.5.2
 // File version: 4
 // Purpose: Defines the AST node for a single command block.

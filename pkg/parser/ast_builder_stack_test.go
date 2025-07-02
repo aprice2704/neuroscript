@@ -1,4 +1,4 @@
-// filename: pkg/core/ast_builder_stack_test.go
+// filename: pkg/parser/ast_builder_stack_test.go
 // NeuroScript Version: 0.5.2
 // File version: 0.1.6
 // Purpose: Updated the 'EmptyAndMinimalBlocks' test case to be syntactically valid.
@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/adapters"
-	"github.com/aprice2704/neuroscript/pkg/core"
+	"github.com/aprice2704/neuroscript/pkg/ast"
 )
 
 type astTestCase struct {
@@ -33,7 +33,7 @@ func MinimalStackTest(returns result) means
     if i == 1
       set counter = counter + 1
     endif
-    emit "in_loop" 
+    emit "in_loop"
   endfor
   if counter > 0
     set counter = counter + 10
@@ -119,7 +119,7 @@ func SequentialBlocksTest() means
   if true
     emit "first_if"
   endif
-  
+
   set x = 0
   for each i in [1,2]
     set x = x + i
@@ -130,7 +130,7 @@ func SequentialBlocksTest() means
   else
     emit "error_in_logic_sequential"
   endif
-  
+
   set z = 5
   while z > 4 # Condition for loop
     emit "in_while_block"
@@ -154,7 +154,7 @@ func LoopControlTest() means
       emit "outer_continue_for_x_1"
       continue # Skip to next x
     endif
-    
+
     set inner_tracker = ""
     for each y in ["a", "b", "c"]
       set inner_tracker = inner_tracker + "i" + y
@@ -164,7 +164,7 @@ func LoopControlTest() means
       endif
       set counter = counter + 1 # Increments for (x=2,y=a), (x=3,y=a)
     endfor
-    
+
     if x == 3
       emit "outer_break_for_x_3"
       break # Break outer loop
@@ -184,7 +184,7 @@ endfunc
 # This is a comment.
 # Another comment.
 
-:: Key: lang.Value
+:: Key: value
 `,
 		},
 		{
@@ -206,7 +206,7 @@ endfunc
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Helper()
-			parserAPI := core.NewParserAPI(logger)
+			parserAPI := NewParserAPI(logger)
 			scriptNameForTest := tc.name + ".ns"
 
 			antlrTree, antlrErr := parserAPI.Parse(tc.scriptContent)
@@ -217,20 +217,20 @@ endfunc
 				t.Fatalf("parserAPI.Parse() returned a nil ANTLR tree without error for '%s'", scriptNameForTest)
 			}
 
-			astBuilder := core.NewASTBuilder(logger)
+			astBuilder := NewASTBuilder(logger)
 			programAst, fileMetadata, buildErr := astBuilder.Build(antlrTree)
 
 			if buildErr != nil {
 				t.Errorf("astBuilder.Build() returned an error for script '%s':\n%v", scriptNameForTest, buildErr)
 			}
 			if programAst == nil && buildErr == nil {
-				t.Errorf("astBuilder.Build() returned a nil ast.Program AST without errors for script '%s'", scriptNameForTest)
+				t.Errorf("astBuilder.Build() returned a nil Program AST without errors for script '%s'", scriptNameForTest)
 			}
 
 			if buildErr == nil && programAst != nil {
 				if tc.expectProc {
 					if len(programAst.Procedures) != 1 {
-						t.Errorf("Expected 1 procedure in ast.Program AST for script '%s', got %d. FileMetadata: %v. Procedures found: %v",
+						t.Errorf("Expected 1 procedure in Program AST for script '%s', got %d. FileMetadata: %v. Procedures found: %v",
 							scriptNameForTest, len(programAst.Procedures), fileMetadata, getProcNames(programAst.Procedures))
 					}
 				} else {
@@ -244,7 +244,7 @@ endfunc
 	}
 }
 
-func getProcNames(procs map[string]*core.Procedure) []string {
+func getProcNames(procs map[string]*ast.Procedure) []string {
 	names := make([]string, 0, len(procs))
 	for name := range procs {
 		names = append(names, name)

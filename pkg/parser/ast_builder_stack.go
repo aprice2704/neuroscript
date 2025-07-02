@@ -1,7 +1,7 @@
 // NeuroScript Version: 0.3.0
 // File version: 2
 // Purpose: Fixes a compiler error by aligning legacy pop/popN wrappers to a single return value.
-// filename: pkg/core/ast_builder_stack.go
+// filename: pkg/parser/ast_builder_stack.go
 // nlines: 55
 // risk_rating: LOW
 

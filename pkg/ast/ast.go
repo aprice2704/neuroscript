@@ -1,7 +1,7 @@
 // NeuroScript Version: 0.5.2
 // File version: 4
 // Purpose: Added an Expressions slice to the Program struct to handle top-level expressions.
-// filename: pkg/core/ast.go
+// filename: pkg/ast/ast.go
 // nlines: 50
 // risk_rating: HIGH
 

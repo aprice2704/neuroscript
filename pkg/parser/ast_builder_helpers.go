@@ -1,4 +1,4 @@
-// filename: pkg/core/ast_builder_helpers.go
+// filename: pkg/parser/ast_builder_helpers.go
 
 package parser
 
@@ -12,10 +12,31 @@ import (
 	// Import other necessary core types if needed by helpers
 )
 
-// ParseMetadataLine attempts to parse a line potentially containing metadata (e.g., ":: key: lang.Value").
-// It returns the extracted key, lang.Value, and a boolean indicating if the line was a valid metadata line.
-// Key and lang.Value are trimmed of whitespace.
-func ParseMetadataLine(line string) (key string, lang.Value string, ok bool) {
+// ArgType defines the type of an argument.
+type ArgType int
+
+const (
+	ArgTypeAny ArgType = iota
+	ArgTypeString
+	ArgTypeInt
+	ArgTypeFloat
+	ArgTypeBool
+	ArgTypeSliceAny
+	ArgTypeMap
+)
+
+// ArgSpec defines the specification for a tool or function argument.
+type ArgSpec struct {
+	Name        string
+	Type        ArgType
+	Description string
+	Required    bool
+}
+
+// ParseMetadataLine attempts to parse a line potentially containing metadata (e.g., ":: key: value").
+// It returns the extracted key, value, and a boolean indicating if the line was a valid metadata line.
+// Key and value are trimmed of whitespace.
+func ParseMetadataLine(line string) (key string, value string, ok bool) {
 	trimmedLine := strings.TrimSpace(line)
 	if !strings.HasPrefix(trimmedLine, "::") {
 		return "", "", false // Not a metadata line
@@ -27,27 +48,27 @@ func ParseMetadataLine(line string) (key string, lang.Value string, ok bool) {
 	// Find the first colon
 	colonIndex := strings.Index(content, ":")
 	if colonIndex == -1 {
-		// Treat as a key-only metadata line (lang.Value is empty)
+		// Treat as a key-only metadata line (value is empty)
 		key = strings.TrimSpace(content)
-		lang.Value = ""
+		value = ""
 		// Basic validation: key cannot be empty
 		if key == "" {
 			return "", "", false
 		}
-		return key, lang.Value, true
+		return key, value, true
 		// Alternatively, consider this invalid: return "", "", false
 	}
 
-	// Extract key and lang.Value based on the first colon
+	// Extract key and value based on the first colon
 	key = strings.TrimSpace(content[:colonIndex])
-	lang.Value = strings.TrimSpace(content[colonIndex+1:])
+	value = strings.TrimSpace(content[colonIndex+1:])
 
 	// Basic validation: key cannot be empty
 	if key == "" {
 		return "", "", false
 	}
 
-	return key, lang.Value, true
+	return key, value, true
 }
 
 // --- Added Helper Function for Schema Conversion ---
@@ -172,12 +193,11 @@ func unescapeString(quotedStr string) (string, error) {
 
 // --- lang.Position Helper ---
 
-// tokenTolang.Position converts an ANTLR token to a core.Position.
+// tokenToPosition converts an ANTLR token to a lang.Position.
 // It sets the exported fields Line, Column, and File.
-func tokenTolang.Position(token antlr.Token) *lang.Position {
+func tokenToPosition(token antlr.Token) lang.Position {
 	if token == nil {
-		// *** CORRECTED LINE BELOW: Removed unexported 'token' field ***
-		return &lang.Position{Line: 0, Column: 0, File: "<nil token>"} // Return a default invalid lang.Position
+		return lang.Position{Line: 0, Column: 0, File: "<nil token>"} // Return a default invalid lang.Position
 	}
 	// Handle potential nil InputStream or SourceName gracefully
 	sourceName := "<unknown>"
@@ -187,8 +207,7 @@ func tokenTolang.Position(token antlr.Token) *lang.Position {
 			sourceName = "<input stream>"
 		}
 	}
-	// *** CORRECTED LINE BELOW: Removed unexported 'token' field ***
-	return &lang.Position{
+	return lang.Position{
 		Line:   token.GetLine(),
 		Column: token.GetColumn() + 1, // ANTLR columns are 0-based, prefer 1-based
 		File:   sourceName,

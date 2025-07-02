@@ -1,7 +1,7 @@
 // NeuroScript Version: 0.4.1
 // File version: 9
 // Purpose: Updated unwrapValue to handle FunctionValue and ToolValue.
-// Filename: pkg/core/type_utils.go
+// Filename: pkg/lang/type_utils.go
 
 package lang
 
@@ -152,7 +152,7 @@ func toFloat64(val interface{}) (float64, bool) {
 		switch rv.Kind() {
 		case reflect.Int8, reflect.Int16, reflect.Int32:
 			return float64(rv.Int()), true
-		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
 			return float64(rv.Uint()), true
 		case reflect.Float32:
 			return rv.Float(), true
@@ -212,32 +212,7 @@ func IsTruthy(v Value) bool {
 	if v == nil {
 		return false
 	}
-	switch val := v.(type) {
-	case BoolValue:
-		return val.Value
-	case StringValue:
-		// Per the spec, only specific string values are truthy.
-		return val.Value == "true" || val.Value == "1"
-	case NumberValue:
-		// Any non-zero number is truthy.
-		return val.Value != 0
-	case ListValue:
-		// A list is truthy if it is not empty.
-		return len(val.Value) > 0
-	case MapValue:
-		// A map is truthy if it is not empty.
-		return len(val.Value) > 0
-	case NilValue:
-		// Nil is always falsy.
-		return false
-	case ErrorValue, TimedateValue, FuzzyValue, EventValue:
-		// Complex types are considered "truthy" if they exist,
-		// similar to how objects are treated in other languages.
-		return true
-	default:
-		// Any other unknown or unhandled type is considered falsy by default.
-		return false
-	}
+	return v.IsTruthy()
 }
 
 // isZeroValue checks if a value is its "zero" or "empty" equivalent.

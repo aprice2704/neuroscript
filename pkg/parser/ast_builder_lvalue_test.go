@@ -1,13 +1,14 @@
 // NeuroScript Version: 0.3.1
 // File version: 0.0.3
 // Purpose: Updated test helper to use the new `LValues` field on the ast.Step struct.
-// filename: pkg/core/ast_builder_lValue_test.go
+// filename: pkg/parser/ast_builder_lValue_test.go
 // nlines: 253
 // risk_rating: MEDIUM
 
 package parser
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/antlr4-go/antlr/v4"
@@ -203,4 +204,23 @@ func TestLValueParsing(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestExitLvalue_ErrorScenarios(t *testing.T) {
+	t.Run("stack underflow", func(t *testing.T) {
+		// This test simulates a scenario where the stack is empty when ExitLvalue is called.
+		listener := newNeuroScriptListener(adapters.NewNoOpLogger(), false)
+		ctx := &gen.LvalueContext{
+			BaseParserRuleContext: *antlr.NewBaseParserRuleContext(nil, -1),
+		}
+
+		listener.ExitLvalue(ctx)
+
+		if len(listener.errors) == 0 {
+			t.Fatal("Expected an error, but none was logged")
+		}
+		if !strings.Contains(listener.errors[0].Error(), "missing base identifier") {
+			t.Errorf("Expected 'missing base identifier' error, but got: %v", listener.errors[0])
+		}
+	})
 }

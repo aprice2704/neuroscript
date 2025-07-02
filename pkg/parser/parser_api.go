@@ -2,7 +2,7 @@
 // File version: 0.1.2 // Utilized existing NoOpLogger from pkg/adapters.
 // Purpose: Provides a simplified interface to the ANTLR parser for NeuroScript,
 //          including capabilities for structured error reporting for LSP.
-// filename: pkg/core/parser_api.go
+// filename: pkg/parser/parser_api.go
 // nlines: 185 // Approximate
 // risk_rating: MEDIUM // Parser interactions are core to functionality.
 

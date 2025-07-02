@@ -3,7 +3,7 @@
 // Purpose: Re-instated removed error codes and added new ones for multi-assignment.
 // nlines: 215
 // risk_rating: LOW
-// filename: pkg/core/errors.go
+// filename: pkg/lang/errors.go
 package lang
 
 import (

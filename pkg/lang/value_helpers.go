@@ -1,7 +1,7 @@
 // NeuroScript Version: 0.4.1
 // File version: 1
 // Purpose: Implements the core Value wrapping/unwrapping contract.
-// filename: pkg/core/value_helpers.go
+// filename: pkg/lang/value_helpers.go
 // nlines: 151
 // risk_rating: MEDIUM
 
@@ -23,7 +23,7 @@ func Wrap(x any) (Value, error) {
 	case nil:
 		return NilValue{}, nil
 
-	case Value:	// already wrapped
+	case Value: // already wrapped
 		return v, nil
 
 	case string:
@@ -90,9 +90,9 @@ func Unwrap(v Value) any {
 	case FuzzyValue:
 		return t.μ
 	case FunctionValue:
-		return t.Value	// Returns the raw Procedure struct
+		return t.Value // Returns the raw Procedure struct
 	case ToolValue:
-		return t.Value	// Returns the raw ToolImplementation struct
+		return t.Value // Returns the raw ToolImplementation struct
 
 	case ListValue:
 		out := make([]any, len(t.Value))
@@ -108,14 +108,14 @@ func Unwrap(v Value) any {
 		}
 		return out
 
-	case ErrorValue:	// Errors are just maps
+	case ErrorValue: // Errors are just maps
 		out := make(map[string]any)
 		for k, e := range t.Value {
 			out[k] = Unwrap(e)
 		}
 		return out
 
-	case EventValue:	// Events are just maps
+	case EventValue: // Events are just maps
 		out := make(map[string]any)
 		for k, e := range t.Value {
 			out[k] = Unwrap(e)

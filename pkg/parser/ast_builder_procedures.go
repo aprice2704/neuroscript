@@ -1,9 +1,9 @@
-// NeuroScript Version: 0.3.1
+// NeuroScript Version: 0.5.2
 // File version: 4
-// Purpose: Correctly iterate through all signature clauses regardless of order.
-// filename: pkg/core/ast_builder_procedures.go
-// nlines: 150
-// risk_rating: LOW
+// Purpose: Removed redundant block context creation to fix stack imbalance.
+// filename: pkg/parser/ast_builder_procedures.go
+// nlines: 70
+// risk_rating: MEDIUM
 
 package parser
 
@@ -15,99 +15,60 @@ import (
 
 func (l *neuroScriptListenerImpl) EnterProcedure_definition(ctx *gen.Procedure_definitionContext) {
 	procName := ctx.IDENTIFIER().GetText()
-	l.logDebugAST(">>> Enter Procedure_definition for %s. Parent currentSteps: %p, Stack depth: %d", procName, l.currentSteps, len(l.blockStepStack))
+	l.logDebugAST(">>> Enter Procedure_definition for %s", procName)
 
+	pos := tokenToPosition(ctx.KW_FUNC().GetSymbol())
 	l.currentProc = &ast.Procedure{
-		Position: tokenTolang.Position(ctx.KW_FUNC().GetSymbol()),
-		// The 'name' field is unexported and set directly below
+		Position: pos,
+		Metadata: make(map[string]string),
 	}
 	l.currentProc.SetName(procName)
 
-	if sigCtx := ctx.Signature_part(); sigCtx != nil {
-		// The OriginalSignature field has been removed from the ast.Procedure struct.
-
-		// Corrected: Iterate through all children of the signature to handle clauses in any order.
-		for _, child := range sigCtx.GetChildren() {
-			switch c := child.(type) {
-			case *gen.Needs_clauseContext:
-				if c.Param_list() != nil {
-					l.currentProc.RequiredParams = append(l.currentProc.RequiredParams, l.extractParamNamesList(c.Param_list())...)
-				}
-			case *gen.Optional_clauseContext:
-				if c.Param_list() != nil {
-					paramNames := l.extractParamNamesList(c.Param_list())
-					for _, name := range paramNames {
-						l.currentProc.OptionalParams = append(l.currentProc.OptionalParams, &ast.ParamSpec{Name: name})
-					}
-				}
-			case *gen.Returns_clauseContext:
-				if c.Param_list() != nil {
-					l.currentProc.ReturnVarNames = append(l.currentProc.ReturnVarNames, l.extractParamNamesList(c.Param_list())...)
-				}
-			}
-		}
-	}
-
-	if metaBlockCtx := ctx.Metadata_block(); metaBlockCtx != nil {
-		for _, metaLineToken := range metaBlockCtx.AllMETADATA_LINE() {
-			line := metaLineToken.GetText()
-			_, _, ok := ParseMetadataLine(line)
-			if !ok {
-				l.addErrorf(metaLineToken.GetSymbol(), "Malformed metadata line in procedure: %s", line)
-			}
-		}
-	}
-}
-
-func (l *neuroScriptListenerImpl) extractParamNamesList(paramListCtx gen.IParam_listContext) []string {
-	var names []string
-	if paramListCtx == nil {
-		return names
-	}
-	for _, idToken := range paramListCtx.AllIDENTIFIER() {
-		names = append(names, idToken.GetText())
-	}
-	return names
+	// DO NOT create a block here. The non_empty_statement_list rule handles the block context.
 }
 
 func (l *neuroScriptListenerImpl) ExitProcedure_definition(ctx *gen.Procedure_definitionContext) {
-	procName := ctx.IDENTIFIER().GetText()
-	l.logDebugAST("--- ExitProcedure_definition for %s. value stack size before body pop: %d", procName, len(l.ValueStack))
+	procName := l.currentProc.Name()
+	l.logDebugAST("<<< Exit Procedure_definition for %s", procName)
 
-	if l.currentProc == nil {
-		l.addError(ctx, "Exiting procedure definition '%s' but no current procedure context (l.currentProc is nil).", procName)
-		return
-	}
-
-	bodyRaw, ok := l.poplang.Value()
-	if !ok {
-		l.addErrorf(ctx.KW_ENDFUNC().GetSymbol(), "Stack error: expected procedure body for '%s', but value stack was empty.", l.currentProc.Name())
-		l.finalizeProcedure()
-		return
-	}
-
-	// BUG FIX: Handle cases where the procedure body is a single expression, not a block.
-	if expr, isExpr := bodyRaw.(ast.Expression); isExpr {
-		// This is a "bodiless" function that is just an expression.
-		// We create an implicit return step for it.
-		returnStep := ast.Step{
-			Position: expr.GetPos(),
-			Type:     "return",
-			Values:   []ast.Expression{expr},
+	// The procedure body is the slice of steps now on top of the value stack.
+	if bodyRaw, ok := l.pop(); ok {
+		if bodySteps, isSteps := bodyRaw.([]ast.Step); isSteps {
+			// Separate 'on error' handlers from the main body.
+			var regularSteps []ast.Step
+			for i := range bodySteps {
+				step := bodySteps[i]
+				if step.Type == "on_error" {
+					l.currentProc.ErrorHandlers = append(l.currentProc.ErrorHandlers, &step)
+				} else {
+					regularSteps = append(regularSteps, step)
+				}
+			}
+			l.currentProc.Steps = regularSteps
+		} else {
+			l.addErrorf(ctx.KW_ENDFUNC().GetSymbol(), "Type error: procedure body for '%s' is not []ast.Step (got %T).", procName, bodyRaw)
+			l.push(bodyRaw) // Push back the wrong type
 		}
-		l.currentProc.Steps = []ast.Step{returnStep}
-	} else if bodySteps, isSteps := bodyRaw.([]ast.Step); isSteps {
-		// This is the normal case with a block of statements.
-		l.currentProc.Steps = bodySteps
 	} else {
-		l.addErrorf(ctx.KW_ENDFUNC().GetSymbol(), "Type error: procedure body for '%s' is not []ast.Step or ast.Expression (got %T).", l.currentProc.Name(), bodyRaw)
-		l.push(bodyRaw) // Push back the wrong type
+		l.addError(ctx, "stack underflow: could not pop procedure body for '%s'", procName)
 	}
 
-	l.finalizeProcedure()
-	l.logDebugAST("<<< Exited Procedure_definition for %s", procName)
+	l.finalizeProcedure(ctx)
 }
 
+func (l *neuroScriptListenerImpl) finalizeProcedure(ctx antlr.ParserRuleContext) {
+	if l.currentProc != nil {
+		// Directly add the completed procedure to the program's map.
+		if _, exists := l.program.Procedures[l.currentProc.Name()]; exists {
+			l.addError(ctx, "duplicate procedure definition: '%s'", l.currentProc.Name())
+		} else {
+			l.program.Procedures[l.currentProc.Name()] = l.currentProc
+		}
+		l.currentProc = nil
+	}
+}
+
+// getRuleText is a helper function to get the full text of a parser rule context.
 func getRuleText(ctx antlr.ParserRuleContext) string {
 	if ctx == nil || ctx.GetStart() == nil || ctx.GetStop() == nil {
 		return ""
@@ -128,15 +89,4 @@ func getRuleText(ctx antlr.ParserRuleContext) string {
 	}
 
 	return inputStream.GetText(startIndex, stopIndex)
-}
-
-func (l *neuroScriptListenerImpl) finalizeProcedure() {
-	if l.currentProc == nil {
-		l.logger.Error("finalizeProcedure called but l.currentProc is nil. This is unexpected.")
-		return
-	}
-
-	l.procedures = append(l.procedures, l.currentProc)
-	l.logDebugAST("   Added procedure %s to list. Total procedures: %d", l.currentProc.Name(), len(l.procedures))
-	l.currentProc = nil
 }

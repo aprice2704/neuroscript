@@ -1,10 +1,3 @@
-// filename: pkg/core/ast_builder_nslistener.go
-// NeuroScript Version: 0.5.2
-// File version: 15
-// Purpose: Bugfix: Corrected the type of the 'commands' slice to []*CommandNode.
-// nlines: 194
-// risk_rating: HIGH
-
 package parser
 
 import (
@@ -18,46 +11,20 @@ import (
 
 type neuroScriptListenerImpl struct {
 	*gen.BaseNeuroScriptListener
-	program              *ast.Program
-	fileMetadata         map[string]string
-	procedures           []*ast.Procedure
-	events               []*ast.OnEventDecl
-	commands             []*ast.CommandNode // CORRECTED
-	currentProc          *ast.Procedure
-	currentCommand       *ast.CommandNode
-	currentSteps         *[]ast.Step
-	blockStepStack       []*[]ast.Step
-	ValueStack           []interface{}
-	currentMapKey        *ast.StringLiteralNode
-	logger               interfaces.Logger
-	debugAST             bool
-	errors               []error
-	loopDepth            int
-	blockValueDepthStack []int
-}
-
-// --- Block Management Helpers ---
-
-// pushNewStepBlock saves the current step context and creates a new one.
-func (l *neuroScriptListenerImpl) pushNewStepBlock() {
-	if l.currentSteps != nil {
-		l.blockStepStack = append(l.blockStepStack, l.currentSteps)
-	}
-	newSteps := make([]ast.Step, 0)
-	l.currentSteps = &newSteps
-}
-
-// popCurrentStepBlock finalizes the current step block and restores the parent context.
-func (l *neuroScriptListenerImpl) popCurrentStepBlock() []ast.Step {
-	completedSteps := *l.currentSteps
-	stackSize := len(l.blockStepStack)
-	if stackSize == 0 {
-		l.currentSteps = nil
-	} else {
-		l.currentSteps = l.blockStepStack[stackSize-1]
-		l.blockStepStack = l.blockStepStack[:stackSize-1]
-	}
-	return completedSteps
+	program         *ast.Program
+	fileMetadata    map[string]string
+	procedures      []*ast.Procedure
+	events          []*ast.OnEventDecl
+	commands        []*ast.CommandNode
+	currentProc     *ast.Procedure
+	currentCommand  *ast.CommandNode
+	ValueStack      []interface{}
+	blockStack      []*blockContext
+	logger          interfaces.Logger
+	debugAST        bool
+	errors          []error
+	loopDepth       int
+	blockValueDepth []int
 }
 
 // --- Standard Listener Implementation ---
@@ -68,25 +35,22 @@ func (l *neuroScriptListenerImpl) VisitErrorNode(node antlr.ErrorNode)        {}
 
 func (l *neuroScriptListenerImpl) VisitTerminal(node antlr.TerminalNode) {
 	if node.GetSymbol().GetTokenType() == gen.NeuroScriptLexerMETADATA_LINE && l.currentProc == nil {
-		l.processMetadataLine(l.fileMetadata, node.GetSymbol())
+		// l.processMetadataLine(l.fileMetadata, node.GetSymbol())
 	}
 }
 
 var _ gen.NeuroScriptListener = (*neuroScriptListenerImpl)(nil)
 
 func newNeuroScriptListener(logger interfaces.Logger, debugAST bool) *neuroScriptListenerImpl {
-	initialSteps := make([]ast.Step, 0)
-
 	return &neuroScriptListenerImpl{
 		BaseNeuroScriptListener: &gen.BaseNeuroScriptListener{},
 		program:                 &ast.Program{Procedures: make(map[string]*ast.Procedure), Events: make([]*ast.OnEventDecl, 0)},
 		fileMetadata:            make(map[string]string),
 		procedures:              make([]*ast.Procedure, 0),
 		events:                  make([]*ast.OnEventDecl, 0),
-		commands:                make([]*ast.CommandNode, 0), // CORRECTED
-		currentSteps:            &initialSteps,
+		commands:                make([]*ast.CommandNode, 0),
 		ValueStack:              make([]interface{}, 0),
-		blockStepStack:          make([]*[]ast.Step, 0),
+		blockStack:              make([]*blockContext, 0),
 		logger:                  logger,
 		debugAST:                debugAST,
 	}
@@ -107,7 +71,7 @@ func (l *neuroScriptListenerImpl) addError(ctx antlr.ParserRuleContext, format s
 
 func (l *neuroScriptListenerImpl) addErrorf(token antlr.Token, format string, args ...interface{}) {
 	msg := fmt.Sprintf(format, args...)
-	pos := tokenTolang.Position(token)
+	pos := tokenToPosition(token)
 	l.errors = append(l.errors, fmt.Errorf("AST build error near %s: %s", pos.String(), msg))
 	l.logger.Error("AST Builder Error", "pos", pos.String(), "message", msg)
 }
@@ -131,8 +95,8 @@ func (l *neuroScriptListenerImpl) ExitProgram(c *gen.ProgramContext) {
 	if len(l.ValueStack) > 0 {
 		l.addErrorf(c.GetStart(), "internal AST builder error: value stack size is %d at end of program", len(l.ValueStack))
 	}
-	if len(l.blockStepStack) != 0 {
-		l.addErrorf(c.GetStart(), "internal AST builder error: block step stack size is %d at end of program", len(l.blockStepStack))
+	if len(l.blockStack) != 0 {
+		l.addErrorf(c.GetStart(), "internal AST builder error: block stack size is %d at end of program", len(l.blockStack))
 	}
 }
 
@@ -147,17 +111,18 @@ func (l *neuroScriptListenerImpl) ExitLvalue_list(ctx *gen.Lvalue_listContext) {
 		l.push([]*ast.LValueNode{})
 		return
 	}
+	values, ok := l.popN(numLValues)
+	if !ok {
+		l.addError(ctx, "internal error: failed to pop values for lvalue_list")
+		l.push([]*ast.LValueNode{})
+		return
+	}
+
 	lValues := make([]*ast.LValueNode, numLValues)
-	for i := numLValues - 1; i >= 0; i-- {
-		value, popok := l.poplang.Value()
-		if !popok {
-			l.addError(ctx, "internal error: failed to pop value for lvalue")
-			l.push([]*ast.LValueNode{})
-			return
-		}
-		expr, ok := value.(*ast.LValueNode)
+	for i, v := range values {
+		expr, ok := v.(*ast.LValueNode)
 		if !ok {
-			l.addError(ctx, "internal error: value for lvalue is not an ast.LValueNode, got %T", value)
+			l.addError(ctx, "internal error: value for lvalue is not an ast.LValueNode, got %T", v)
 			l.push([]*ast.LValueNode{})
 			return
 		}
@@ -168,7 +133,7 @@ func (l *neuroScriptListenerImpl) ExitLvalue_list(ctx *gen.Lvalue_listContext) {
 
 func (l *neuroScriptListenerImpl) ExitSet_statement(ctx *gen.Set_statementContext) {
 	l.logDebugAST("ExitSet_statement: Building set step.")
-	rhsVal, ok := l.poplang.Value()
+	rhsVal, ok := l.pop()
 	if !ok {
 		l.addError(ctx, "internal error in set_statement: could not pop RHS")
 		return
@@ -178,7 +143,7 @@ func (l *neuroScriptListenerImpl) ExitSet_statement(ctx *gen.Set_statementContex
 		l.addError(ctx, "internal error in set_statement: RHS value is not an ast.Expression, but %T", rhsVal)
 		return
 	}
-	lhsVal, ok := l.poplang.Value()
+	lhsVal, ok := l.pop()
 	if !ok {
 		l.addError(ctx, "internal error in set_statement: could not pop LHS")
 		return
@@ -188,11 +153,22 @@ func (l *neuroScriptListenerImpl) ExitSet_statement(ctx *gen.Set_statementContex
 		l.addError(ctx, "internal error in set_statement: LHS value is not []*ast.LValueNode, but %T", lhsVal)
 		return
 	}
+
 	step := ast.Step{
-		Position: tokenTolang.Position(ctx.GetStart()),
+		Position: tokenToPosition(ctx.GetStart()),
 		Type:     "set",
 		LValues:  lhsExprs,
 		Values:   []ast.Expression{rhsExpr},
 	}
-	*l.currentSteps = append(*l.currentSteps, step)
+
+	if len(l.blockStack) > 0 {
+		currentBlock := l.blockStack[len(l.blockStack)-1]
+		currentBlock.steps = append(currentBlock.steps, step)
+	} else if l.currentProc != nil {
+		l.currentProc.Steps = append(l.currentProc.Steps, step)
+	} else if l.currentCommand != nil {
+		l.currentCommand.Body = append(l.currentCommand.Body, step)
+	} else {
+		l.addError(ctx, "set statement found outside of any block, procedure or command")
+	}
 }

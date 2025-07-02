@@ -1,10 +1,3 @@
-// filename: pkg/parser/ast_builder_if_else.go
-// NeuroScript Version: 0.5.2
-// File version: 2
-// Purpose: Implements the listener method for building 'if-then-else' statements, relying on the new block context handlers.
-// nlines: 51
-// risk_rating: HIGH
-
 package parser
 
 import (
@@ -12,60 +5,52 @@ import (
 	gen "github.com/aprice2704/neuroscript/pkg/parser/generated"
 )
 
-// ExitIf_statement is called when exiting an if_statement rule in the grammar.
-// It assembles the condition, then-block, and optional else-block into a single ast.Step.
-// It relies on ExitStatement_list (via exitBlockContext) having already pushed the []ast.Step blocks
-// for 'then' and 'else' onto the value stack.
 func (l *neuroScriptListenerImpl) ExitIf_statement(c *gen.If_statementContext) {
-	l.logDebugAST("<<< ExitIf_statement")
-
-	var elseSteps []ast.Step
-
-	// The 'else' block is optional. If it exists, its []ast.Step slice is on top of the stack.
+	// Pop the 'else' block if it exists.
+	var elseBody []ast.Step
 	if c.KW_ELSE() != nil {
-		rawElse, ok := l.poplang.Value()
+		val, ok := l.pop()
 		if !ok {
-			l.addError(c, "stack underflow: could not pop else block for if statement")
+			l.addError(c, "internal error in if_statement: could not pop else body")
 			return
 		}
-		elseSteps, ok = rawElse.([]ast.Step)
+		elseBody, ok = val.([]ast.Step)
 		if !ok {
-			l.addError(c, "internal ast error: expected else block to be []ast.Step, but got %T", rawElse)
+			l.addError(c, "internal error in if_statement: else body is not a []ast.Step, but %T", val)
 			return
 		}
 	}
 
-	// The 'then' block's []ast.Step slice was pushed before the else block.
-	rawThen, ok := l.poplang.Value()
+	// Pop the 'if' block.
+	val, ok := l.pop()
 	if !ok {
-		l.addError(c, "stack underflow: could not pop then block for if statement")
+		l.addError(c, "internal error in if_statement: could not pop if body")
 		return
 	}
-	thenSteps, ok := rawThen.([]ast.Step)
+	ifBody, ok := val.([]ast.Step)
 	if !ok {
-		l.addError(c, "internal ast error: expected then block to be []ast.Step, but got %T", rawThen)
-		return
-	}
-
-	// The condition expression was pushed onto the stack first.
-	rawCond, ok := l.poplang.Value()
-	if !ok {
-		l.addError(c, "stack underflow: could not pop condition for if statement")
-		return
-	}
-	cond, ok := rawCond.(ast.Expression)
-	if !ok {
-		l.addError(c, "internal ast error: expected condition to be ast.Expression, but got %T", rawCond)
+		l.addError(c, "internal error in if_statement: if body is not a []ast.Step, but %T", val)
 		return
 	}
 
-	stmt := ast.Step{
-		Position: tokenTolang.Position(c.GetStart()),
+	// Pop the condition.
+	condVal, ok := l.pop()
+	if !ok {
+		l.addError(c, "internal error in if_statement: could not pop condition")
+		return
+	}
+	cond, ok := condVal.(ast.Expression)
+	if !ok {
+		l.addError(c, "internal error in if_statement: condition is not an ast.Expression, but %T", condVal)
+		return
+	}
+
+	// Create and add the 'if' step.
+	l.addStep(ast.Step{
+		Position: tokenToPosition(c.GetStart()),
 		Type:     "if",
 		Cond:     cond,
-		Body:     thenSteps,
-		ElseBody: elseSteps,
-	}
-
-	*l.currentSteps = append(*l.currentSteps, stmt)
+		Body:     ifBody,
+		ElseBody: elseBody,
+	})
 }
