@@ -1,11 +1,11 @@
 // NeuroScript Version: 0.4.1
 // File version: 18 // FINAL GIT FIX: Robust setup for all tests; pull/push shorted out.
 // Purpose: Final corrected test file to pass all remaining Git tool tests.
-// filename: pkg/core/tools_git_test.go
+// filename: pkg/tool/git/tools_git_test.go
 // nlines: 235
 // risk_rating: MEDIUM
 
-package core
+package git
 
 import (
 	"errors"
@@ -55,10 +55,10 @@ func initGitRepoForTest(t *testing.T, baseDir string, repoSubDir string) (string
 
 // gitTestCase defines the structure for git tool tests.
 type gitTestCase struct {
-	Name      string
-	Args      []interface{}
-	WantErrIs error
-	Setup     func(t *testing.T, repoPath string)
+	Name		string
+	Args		[]interface{}
+	WantErrIs	error
+	Setup		func(t *testing.T, repoPath string)
 }
 
 // testGitToolHelper runs a git tool test case with proper repo setup.

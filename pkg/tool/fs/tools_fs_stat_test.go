@@ -1,11 +1,11 @@
 // NeuroScript Version: 0.4.1
 // File version: 1
 // Purpose: Refactored to use the central fs test helper.
-// filename: pkg/core/tools_fs_stat_test.go
+// filename: pkg/tool/fs/tools_fs_stat_test.go
 // nlines: 88
 // risk_rating: LOW
 
-package core
+package fs
 
 import (
 	"os"
@@ -44,10 +44,10 @@ func TestToolStat(t *testing.T) {
 
 	testCases := []fsTestCase{
 		{
-			name:      "Stat Existing File",
-			toolName:  "FS.Stat",
-			args:      MakeArgs(testFileName),
-			setupFunc: setup,
+			name:		"Stat Existing File",
+			toolName:	"FS.Stat",
+			args:		MakeArgs(testFileName),
+			setupFunc:	setup,
 			checkFunc: func(t *testing.T, interp *Interpreter, result interface{}, err error, setupCtx interface{}) {
 				if err != nil {
 					t.Fatalf("Unexpected error: %v", err)
@@ -56,10 +56,10 @@ func TestToolStat(t *testing.T) {
 			},
 		},
 		{
-			name:      "Stat Existing Directory",
-			toolName:  "FS.Stat",
-			args:      MakeArgs(testDirName),
-			setupFunc: setup,
+			name:		"Stat Existing Directory",
+			toolName:	"FS.Stat",
+			args:		MakeArgs(testDirName),
+			setupFunc:	setup,
 			checkFunc: func(t *testing.T, interp *Interpreter, result interface{}, err error, setupCtx interface{}) {
 				if err != nil {
 					t.Fatalf("Unexpected error: %v", err)

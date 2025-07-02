@@ -1,11 +1,11 @@
 // NeuroScript Version: 0.4.0
 // File version: 2
 // Purpose: Corrected toolName to "LineCount" to match registry and updated result types to float64.
-// filename: pkg/core/tools_string_utils_test.go
+// filename: pkg/tool/strtools/tools_string_utils_test.go
 // nlines: 60
 // risk_rating: LOW
 
-package core
+package strtools
 
 import (
 	"errors"
@@ -15,11 +15,11 @@ import (
 
 // testStringUtilToolHelper tests a string utility tool implementation directly with primitives.
 func testStringUtilToolHelper(t *testing.T, interp *Interpreter, tc struct {
-	name       string
-	toolName   string
-	args       []interface{}
-	wantResult interface{}
-	wantErrIs  error
+	name		string
+	toolName	string
+	args		[]interface{}
+	wantResult	interface{}
+	wantErrIs	error
 }) {
 	t.Helper()
 	t.Run(tc.name, func(t *testing.T) {
@@ -51,11 +51,11 @@ func testStringUtilToolHelper(t *testing.T, interp *Interpreter, tc struct {
 func TestToolLineCountString(t *testing.T) {
 	interp, _ := NewDefaultTestInterpreter(t)
 	tests := []struct {
-		name       string
-		toolName   string
-		args       []interface{}
-		wantResult interface{}
-		wantErrIs  error
+		name		string
+		toolName	string
+		args		[]interface{}
+		wantResult	interface{}
+		wantErrIs	error
 	}{
 		{name: "Empty String", toolName: "LineCount", args: MakeArgs(""), wantResult: float64(0)},
 		{name: "Single Line No NL", toolName: "LineCount", args: MakeArgs("hello"), wantResult: float64(1)},

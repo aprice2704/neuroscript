@@ -1,17 +1,23 @@
 // cmd/repac/main.go
 //
-// Usage:
+// repac rewrites the leading “// filename:” header and the package clause
+// of every .go file in the current directory (and, optionally, its
+// sub-directories).
+//
+// Usage
 //   repac [-recurse] <path-from-project-root-to-dot>
 //
-// Example (run inside neuroscript/pkg/tool/fs):
-//   repac -recurse pkg/tool/fs
+// Example (run from neuroscript/pkg/tool):
+//   repac -recurse pkg/tool
 //
-// ──> every .go file under . is rewritten to
-//     package fs
-//     // filename: pkg/tool/fs/<subpath>/<file.go>
+// A file located at pkg/tool/errtools/tools_error.go becomes:
+//
+//   // filename: pkg/tool/errtools/tools_error.go
+//   package errtools
+//
+// The tool skips “.git/” and “vendor/” trees and preserves gofmt spacing.
 
-// filename: cmd/repac
-package repac
+package main
 
 import (
 	"bufio"
@@ -30,9 +36,7 @@ import (
 	"strings"
 )
 
-var (
-	recurse = flag.Bool("recurse", false, "recurse into sub-directories")
-)
+var recurse = flag.Bool("recurse", false, "recurse into sub-directories")
 
 func main() {
 	flag.Usage = func() {
@@ -47,11 +51,8 @@ func main() {
 		os.Exit(2)
 	}
 
-	rootToDot := filepath.Clean(flag.Arg(0))
-	pkgName := filepath.Base(rootToDot)
-
-	// absolute path of the starting directory (“.”)
-	startDir, err := os.Getwd()
+	rootToDot := filepath.Clean(flag.Arg(0)) // e.g. pkg/tool
+	startDir, err := os.Getwd()              // absolute path to "."
 	must(err)
 
 	var goFiles []string
@@ -83,41 +84,51 @@ func main() {
 		}
 	}
 
-	for _, file := range goFiles {
-		processFile(file, startDir, rootToDot, pkgName)
+	for _, rel := range goFiles {
+		abs, err := filepath.Abs(rel) // absolute path for stable processing
+		must(err)
+		processFile(abs, startDir, rootToDot)
 	}
 }
 
-// ────────────────────────────────────────────────────────────────────────────────
+// ───────────────────────────────────────────────────────────────────────────────
+// processFile rewrites one file’s header and package clause.
 
-func processFile(path, startDir, rootToDot, pkgName string) {
+func processFile(absPath, startDir, rootToDot string) {
 	fset := token.NewFileSet()
-	astFile, err := parser.ParseFile(fset, path, nil, parser.ParseComments)
+	astFile, err := parser.ParseFile(fset, absPath, nil, parser.ParseComments)
 	if err != nil {
-		log.Printf("skip %s (cannot parse): %v", path, err)
+		log.Printf("skip %s (cannot parse): %v", absPath, err)
 		return
 	}
 
-	// 1️⃣ package name
-	if astFile.Name.Name != pkgName {
-		astFile.Name = &ast.Ident{Name: pkgName}
+	// derive package name from the file’s own directory
+	dirName := filepath.Base(filepath.Dir(absPath))
+	if astFile.Name.Name != dirName {
+		astFile.Name = &ast.Ident{Name: dirName}
 	}
 
-	// 2️⃣ re-print source (keeps formatting)
+	// re-print the AST back to source (preserves formatting)
 	var buf bytes.Buffer
 	must(printer.Fprint(&buf, fset, astFile))
 
-	// 3️⃣ adjust // filename: comment
-	newSrc := fixHeader(buf.Bytes(), path, startDir, rootToDot)
+	// fix or insert the // filename: header
+	newSrc := fixHeader(buf.Bytes(), absPath, startDir, rootToDot)
 
-	// 4️⃣ write back preserving perms
-	info, err := os.Stat(path)
+	// write back, preserving file permissions
+	info, err := os.Stat(absPath)
 	must(err)
-	must(os.WriteFile(path, newSrc, info.Mode()))
-	fmt.Printf("updated %s\n", path)
+	must(os.WriteFile(absPath, newSrc, info.Mode()))
+	fmt.Printf("updated %s\n", absPath)
 }
 
-// rewrite/insert the “// filename:” line
+// ───────────────────────────────────────────────────────────────────────────────
+// fixHeader ensures the first header line reads:
+//
+//   // filename: <rootToDot>/<relPathFromDotToFile>
+//
+// It removes any legacy “// Filename:” header.
+
 func fixHeader(src []byte, absPath, startDir, rootToDot string) []byte {
 	relBelowStart, _ := filepath.Rel(startDir, absPath)
 	headerPath := filepath.ToSlash(filepath.Join(rootToDot, relBelowStart))
@@ -128,25 +139,34 @@ func fixHeader(src []byte, absPath, startDir, rootToDot string) []byte {
 
 	var outLines []string
 	inserted := false
-	re := regexp.MustCompile(`^//\s*filename:`)
+	legacyHdr := regexp.MustCompile(`^//\s*Filename:`) // strip these
+	curHdr := regexp.MustCompile(`^//\s*filename:`)    // replace these
 
 	for sc.Scan() {
 		line := sc.Text()
-		if !inserted {
-			if re.MatchString(line) {
-				line = want	// replace
-				inserted = true
-			} else if strings.TrimSpace(line) == "" {
-				// keep empty line before header
-			} else if !strings.HasPrefix(line, "//") {
-				// first real code line & no header seen – insert now
-				outLines = append(outLines, want)
-				inserted = true
-			}
+
+		// drop legacy header entirely
+		if legacyHdr.MatchString(line) {
+			continue
 		}
+
+		// replace existing lowercase header
+		if !inserted && curHdr.MatchString(line) {
+			line = want
+			inserted = true
+		}
+
 		outLines = append(outLines, line)
+
+		// insert header before first non-comment if needed
+		if !inserted && strings.TrimSpace(line) == "" {
+			// allow blank line before header
+		} else if !inserted && !strings.HasPrefix(line, "//") {
+			outLines = append([]string{want}, outLines...)
+			inserted = true
+		}
 	}
-	if !inserted {	// file had no lines (unlikely) or ended before header inserted
+	if !inserted { // empty file edge-case
 		outLines = append([]string{want}, outLines...)
 	}
 	return []byte(strings.Join(outLines, "\n"))

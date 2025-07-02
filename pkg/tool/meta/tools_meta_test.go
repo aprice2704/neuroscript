@@ -1,25 +1,27 @@
 // NeuroScript Version: 0.3.8
 // File version: 0.2.1
 // Purpose: Corrected test to only expect tools registered by NewDefaultTestInterpreter.
-// Filename: pkg/core/tools_meta_test.go
 // nlines: 180
 // risk_rating: LOW
 
-package core
+// filename: pkg/tool/meta/tools_meta_test.go
+package meta
 
 import (
 	"fmt"
 	"strings"
 	"testing"
+
+	"github.com/aprice2704/neuroscript/pkg/lang"
 )
 
 func TestToolMetaListTools(t *testing.T) {
-	interpreter, err := NewDefaultTestInterpreter(t) // Correctly handle potential error
+	interpreter, err := llm.NewDefaultTestInterpreter(t) // Correctly handle potential error
 	if err != nil {
 		t.Fatalf("NewDefaultTestInterpreter failed: %v", err)
 	}
 
-	result, err := interpreter.ExecuteTool("Meta.ListTools", map[string]Value{})
+	result, err := interpreter.ExecuteTool("Meta.ListTools", map[string]lang.Value{})
 	if err != nil {
 		t.Fatalf("Meta.ListTools execution failed: %v", err)
 	}
@@ -46,14 +48,14 @@ func TestToolMetaListTools(t *testing.T) {
 }
 
 func TestToolMetaToolsHelp(t *testing.T) {
-	interpreter, err := NewDefaultTestInterpreter(t)
+	interpreter, err := llm.NewDefaultTestInterpreter(t)
 	if err != nil {
 		t.Fatalf("NewDefaultTestInterpreter failed: %v", err)
 	}
 
 	tests := []struct {
 		name                 string
-		filterArg            map[string]Value
+		filterArg            map[string]lang.Value
 		expectedToContain    []string
 		expectedToNotContain []string
 		checkNoToolsMsg      bool
@@ -61,7 +63,7 @@ func TestToolMetaToolsHelp(t *testing.T) {
 	}{
 		{
 			name:      "No filter (all tools)",
-			filterArg: map[string]Value{},
+			filterArg: map[string]lang.Value{},
 			expectedToContain: []string{
 				"## `tool.Meta.ListTools`",
 				"## `tool.FS.Read`",
@@ -70,7 +72,7 @@ func TestToolMetaToolsHelp(t *testing.T) {
 		},
 		{
 			name:      "Filter for Meta tools",
-			filterArg: map[string]Value{"filter": StringValue{Value: "Meta."}},
+			filterArg: map[string]lang.Value{"filter": lang.StringValue{Value: "Meta."}},
 			expectedToContain: []string{
 				"## `tool.Meta.ListTools`",
 				"## `tool.Meta.ToolsHelp`",
@@ -80,7 +82,7 @@ func TestToolMetaToolsHelp(t *testing.T) {
 		},
 		{
 			name:            "Filter with no results",
-			filterArg:       map[string]Value{"filter": StringValue{Value: "NoSucchToolExistsFilter123"}},
+			filterArg:       map[string]lang.Value{"filter": lang.StringValue{lang.Value: "NoSucchToolExistsFilter123"}},
 			checkNoToolsMsg: true,
 			noToolsFilter:   "NoSucchToolExistsFilter123",
 		},

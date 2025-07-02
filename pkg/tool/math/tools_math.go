@@ -3,8 +3,8 @@
 // Return ErrDivisionByZero sentinel directly.
 // nlines: 65
 // risk_rating: MEDIUM
-// filename: pkg/core/tools_math.go
-package core
+// filename: pkg/tool/math/tools_math.go
+package math
 
 import (
 	"fmt"

@@ -3,8 +3,8 @@
 // Purpose: Corrected toolMkdir to be idempotent, returning success if the directory already exists.
 // nlines: 156 // Approximate
 // risk_rating: MEDIUM
-// filename: pkg/core/tools_fs_dirs.go
-package core
+// filename: pkg/tool/fs/tools_fs_dirs.go
+package fs
 
 import (
 	"errors"
@@ -63,16 +63,16 @@ func toolListDirectory(interpreter *Interpreter, args []interface{}) (interface{
 	if recursive {
 		walkErr := filepath.WalkDir(absBasePath, func(currentPath string, d fs.DirEntry, err error) error {
 			if err != nil || currentPath == absBasePath {
-				return nil // Skip errors and the root itself
+				return nil	// Skip errors and the root itself
 			}
 			info, _ := d.Info()
 			entryRelPath, _ := filepath.Rel(absBasePath, currentPath)
 			fileInfos = append(fileInfos, map[string]interface{}{
-				"name":    d.Name(),
-				"path":    filepath.ToSlash(entryRelPath),
-				"isDir":   d.IsDir(),
-				"size":    info.Size(),
-				"modTime": info.ModTime().Format(time.RFC3339Nano),
+				"name":		d.Name(),
+				"path":		filepath.ToSlash(entryRelPath),
+				"isDir":	d.IsDir(),
+				"size":		info.Size(),
+				"modTime":	info.ModTime().Format(time.RFC3339Nano),
 			})
 			return nil
 		})
@@ -87,11 +87,11 @@ func toolListDirectory(interpreter *Interpreter, args []interface{}) (interface{
 		for _, entry := range entries {
 			info, _ := entry.Info()
 			fileInfos = append(fileInfos, map[string]interface{}{
-				"name":    entry.Name(),
-				"path":    filepath.ToSlash(entry.Name()),
-				"isDir":   entry.IsDir(),
-				"size":    info.Size(),
-				"modTime": info.ModTime().Format(time.RFC3339Nano),
+				"name":		entry.Name(),
+				"path":		filepath.ToSlash(entry.Name()),
+				"isDir":	entry.IsDir(),
+				"size":		info.Size(),
+				"modTime":	info.ModTime().Format(time.RFC3339Nano),
 			})
 		}
 	}

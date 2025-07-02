@@ -1,11 +1,11 @@
 // NeuroScript Version: 0.4.0
 // File version: 7
 // Purpose: Corrected toolListGet to handle float64 and other numeric types for the index argument.
-// filename: pkg/core/tools_list_impl.go
+// filename: pkg/tool/list/tools_list_impl.go
 // nlines: 237
 // risk_rating: LOW
 
-package core
+package list
 
 import (
 	"fmt"

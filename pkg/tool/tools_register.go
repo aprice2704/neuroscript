@@ -2,8 +2,8 @@
 // File version: 0.1.3 // Change RegisterCoreTools and internal to accept ToolRegistry interface
 // nlines: 70
 // risk_rating: MEDIUM
-// filename: pkg/core/tools_register.go
-package core
+// filename: pkg/tool/tools_register.go
+package tool
 
 import (
 	"fmt"

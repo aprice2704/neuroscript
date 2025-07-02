@@ -1,16 +1,16 @@
 // NeuroScript Version: 0.3.1
 // File version: 0.1.3 // Remove bootstrap log.Printf INFO messages.
-// filename: pkg/toolsets/register.go
+// filename: pkg/tool/register.go
 
 // Package toolsets provides central registration for extended NeuroScript toolsets.
 // It decouples core interpreter initialization from specific non-core tool implementations
 // by allowing tool packages to register themselves via init().
-package toolsets
+package tool
 
 import (
 	"errors"
 	"fmt"
-	"log" // Using standard log package for bootstrap messages
+	"log"	// Using standard log package for bootstrap messages
 	"sync"
 
 	"github.com/aprice2704/neuroscript/pkg/core"
@@ -24,8 +24,8 @@ type ToolRegisterFunc func(registry core.ToolRegistrar) error
 // --- Registry for Toolset Registration Functions ---
 
 var (
-	registrationMu       sync.RWMutex
-	toolsetRegistrations = make(map[string]ToolRegisterFunc)
+	registrationMu		sync.RWMutex
+	toolsetRegistrations	= make(map[string]ToolRegisterFunc)
 )
 
 // AddToolsetRegistration is called by tool packages (typically in their init() function)
@@ -50,7 +50,7 @@ func CreateRegistrationFunc(toolsetName string, tools []core.ToolImplementation)
 	return func(registry core.ToolRegistrar) error {
 		if registry == nil {
 			err := fmt.Errorf("CreateRegistrationFunc for %s: registry is nil", toolsetName)
-			log.Printf(bootstrapLogPrefix+"ERROR: %v", err) // Log error before returning
+			log.Printf(bootstrapLogPrefix+"ERROR: %v", err)	// Log error before returning
 			return err
 		}
 		var errs []error

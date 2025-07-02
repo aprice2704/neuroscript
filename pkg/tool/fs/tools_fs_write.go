@@ -3,8 +3,8 @@
 // Purpose: Added toolAppendFile and a shared writeFileHelper to implement FS.Append functionality.
 // nlines: 105
 // risk_rating: MEDIUM
-// filename: pkg/core/tools_fs_write.go
-package core
+// filename: pkg/tool/fs/tools_fs_write.go
+package fs
 
 import (
 	"errors"
@@ -51,7 +51,7 @@ func writeFileHelper(interpreter *Interpreter, args []interface{}, append bool) 
 	if append {
 		openFlags |= os.O_APPEND
 	} else {
-		openFlags |= os.O_TRUNC // Truncate the file if we are overwriting
+		openFlags |= os.O_TRUNC	// Truncate the file if we are overwriting
 	}
 
 	file, err = os.OpenFile(absPath, openFlags, 0644)

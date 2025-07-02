@@ -1,11 +1,11 @@
 // NeuroScript Version: 0.3.1
 // File version: 8 // Fixed validation and error handling in toolGitDiff.
 // Purpose: Implements the second half of the Git tool functions.
-// filename: pkg/core/tools_git_b.go
+// filename: pkg/tool/git/tools_git_b.go
 // nlines: 243
 // risk_rating: MEDIUM
 
-package core
+package git
 
 import (
 	"bytes"

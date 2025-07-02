@@ -3,9 +3,9 @@
 // Purpose: Corrected type assertion to use TreeAttrs, completing the tree refactor in the test suite.
 // nlines: 160
 // risk_rating: MEDIUM
-// filename: pkg/core/tools_tree_query_test.go
+// filename: pkg/tool/tree/tools_tree_query_test.go
 
-package core
+package tree
 
 import (
 	"reflect"
@@ -33,8 +33,8 @@ func TestTreeFindAndRenderTools(t *testing.T) {
 	testCases := []treeTestCase{
 		// Tree.FindNodes
 		{name: "FindNodes_By_Type_'file'", toolName: "Tree.FindNodes",
-			setupFunc: setupFindRenderTree,
-			args:      MakeArgs("SETUP_HANDLE:frTree", "node-1", map[string]interface{}{"value": "file"}, int64(-1), int64(-1)), // Query for string nodes with value "file"
+			setupFunc:	setupFindRenderTree,
+			args:		MakeArgs("SETUP_HANDLE:frTree", "node-1", map[string]interface{}{"value": "file"}, int64(-1), int64(-1)),	// Query for string nodes with value "file"
 			checkFunc: func(t *testing.T, interp *Interpreter, result interface{}, err error, ctx interface{}) {
 				if err != nil {
 					t.Fatalf("FindNodes by value 'file' failed: %v", err)
@@ -47,7 +47,7 @@ func TestTreeFindAndRenderTools(t *testing.T) {
 				handle := ctx.(string)
 				var actualFileObjectNodeIDs []string
 
-				if len(ids) != 2 { // Should find two string nodes with value "file"
+				if len(ids) != 2 {	// Should find two string nodes with value "file"
 					t.Errorf("Expected 2 string nodes with value 'file', got %d: %v", len(ids), ids)
 				}
 
@@ -127,9 +127,9 @@ func TestTreeFindAndRenderTools(t *testing.T) {
 				}
 			}},
 		{name: "FindNodes_By_Metadata_Deep", toolName: "Tree.FindNodes",
-			setupFunc: setupFindRenderTree,
-			args:      MakeArgs("SETUP_HANDLE:frTree", "node-1", map[string]interface{}{"comment": "query_is_dynamic_in_checkfunc"}, int64(-1), int64(-1)),
-			checkFunc: func(t *testing.T, interp *Interpreter, _ interface{}, _ error, ctx interface{}) { // Ignored result from static args
+			setupFunc:	setupFindRenderTree,
+			args:		MakeArgs("SETUP_HANDLE:frTree", "node-1", map[string]interface{}{"comment": "query_is_dynamic_in_checkfunc"}, int64(-1), int64(-1)),
+			checkFunc: func(t *testing.T, interp *Interpreter, _ interface{}, _ error, ctx interface{}) {	// Ignored result from static args
 				handle := ctx.(string)
 				findNodesTool, toolFound := interp.ToolRegistry().GetTool("Tree.FindNodes")
 				if !toolFound {
@@ -174,7 +174,7 @@ func TestTreeFindAndRenderTools(t *testing.T) {
 					t.Fatalf("Tree.FindNodes dynamic query not slice: %T", dynamicallyFoundResult)
 				}
 
-				expectedToFind := []string{file2ObjNodeID} // Expect to find the file2.txt object node itself
+				expectedToFind := []string{file2ObjNodeID}	// Expect to find the file2.txt object node itself
 				var foundIDsStr []string
 				for _, id := range dynamicallyFoundIDs {
 					foundIDsStr = append(foundIDsStr, id.(string))
@@ -188,8 +188,8 @@ func TestTreeFindAndRenderTools(t *testing.T) {
 
 		// Tree.RenderText
 		{name: "RenderText Basic", toolName: "Tree.RenderText",
-			setupFunc: func(t *testing.T, interp *Interpreter) interface{} { return setupTreeWithJSON(t, interp, `{"a":"b"}`) },
-			args:      MakeArgs("SETUP_HANDLE:renderTree"),
+			setupFunc:	func(t *testing.T, interp *Interpreter) interface{} { return setupTreeWithJSON(t, interp, `{"a":"b"}`) },
+			args:		MakeArgs("SETUP_HANDLE:renderTree"),
 			checkFunc: func(t *testing.T, interp *Interpreter, result interface{}, err error, ctx interface{}) {
 				if err != nil {
 					t.Fatalf("RenderText failed: %v", err)

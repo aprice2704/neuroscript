@@ -1,11 +1,11 @@
 // NeuroScript Version: 0.4.0
 // File version: 1
 // Purpose: Refactored to a single, table-driven test using the new primitive-aware helper.
-// filename: pkg/core/tools_string_predicates_test.go
+// filename: pkg/tool/strtools/tools_string_predicates_test.go
 // nlines: 66
 // risk_rating: LOW
 
-package core
+package strtools
 
 import (
 	"errors"
@@ -15,11 +15,11 @@ import (
 
 // testStringPredicateToolHelper tests a tool implementation directly with primitives.
 func testStringPredicateToolHelper(t *testing.T, interp *Interpreter, tc struct {
-	name       string
-	toolName   string
-	args       []interface{}
-	wantResult interface{}
-	wantErrIs  error
+	name		string
+	toolName	string
+	args		[]interface{}
+	wantResult	interface{}
+	wantErrIs	error
 }) {
 	t.Helper()
 	t.Run(tc.name, func(t *testing.T) {
@@ -51,11 +51,11 @@ func testStringPredicateToolHelper(t *testing.T, interp *Interpreter, tc struct 
 func TestToolContainsPrefixSuffix(t *testing.T) {
 	interp, _ := NewDefaultTestInterpreter(t)
 	tests := []struct {
-		name       string
-		toolName   string
-		args       []interface{}
-		wantResult interface{}
-		wantErrIs  error
+		name		string
+		toolName	string
+		args		[]interface{}
+		wantResult	interface{}
+		wantErrIs	error
 	}{
 		{name: "Contains True", toolName: "Contains", args: MakeArgs("hello world", "world"), wantResult: true},
 		{name: "Contains False", toolName: "Contains", args: MakeArgs("hello world", "bye"), wantResult: false},

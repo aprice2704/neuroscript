@@ -3,16 +3,16 @@
 // Purpose: Corrected type assertions to use the specific `TreeAttrs` type instead of a generic map.
 // nlines: 60
 // risk_rating: MEDIUM
-// filename: pkg/core/tools_tree_metadata_test.go
+// filename: pkg/tool/tree/tools_tree_metadata_test.go
 
-package core
+package tree
 
 import (
 	"testing"
 )
 
 func TestTreeMetadataTools(t *testing.T) {
-	jsonSimple := `{"key":"value"}` // Root node (node-1) type: object, attributes: {"key": "node-2"}, node-2 type: string, value: "value"
+	jsonSimple := `{"key":"value"}`	// Root node (node-1) type: object, attributes: {"key": "node-2"}, node-2 type: string, value: "value"
 	setupMetaTree := func(t *testing.T, interp *Interpreter) interface{} {
 		return setupTreeWithJSON(t, interp, jsonSimple)
 	}
@@ -35,7 +35,7 @@ func TestTreeMetadataTools(t *testing.T) {
 					t.Errorf("Metadata not set correctly. Got: %v, expected 'metaValue1'", attrs["metaKey1"])
 				}
 			}},
-		{name: "SetNodeMetadata Empty Key", toolName: "Tree.SetNodeMetadata", setupFunc: setupMetaTree, args: MakeArgs("SETUP_HANDLE:mTree", "node-1", "", "val"), wantErr: ErrInvalidArgument}, // Empty key for metadata
+		{name: "SetNodeMetadata Empty Key", toolName: "Tree.SetNodeMetadata", setupFunc: setupMetaTree, args: MakeArgs("SETUP_HANDLE:mTree", "node-1", "", "val"), wantErr: ErrInvalidArgument},	// Empty key for metadata
 		{name: "SetNodeMetadata NonExistent Node", toolName: "Tree.SetNodeMetadata", setupFunc: setupMetaTree, args: MakeArgs("SETUP_HANDLE:mTree", "node-999", "key", "val"), wantErr: ErrNotFound},
 
 		// Tree.RemoveNodeMetadata
@@ -49,7 +49,7 @@ func TestTreeMetadataTools(t *testing.T) {
 				}
 				return handle
 			},
-			args: MakeArgs("SETUP_HANDLE:mTree", "node-1", "toRemove"),
+			args:	MakeArgs("SETUP_HANDLE:mTree", "node-1", "toRemove"),
 			checkFunc: func(t *testing.T, interp *Interpreter, result interface{}, err error, ctx interface{}) {
 				if err != nil {
 					t.Fatalf("RemoveNodeMetadata failed: %v", err)
@@ -64,7 +64,7 @@ func TestTreeMetadataTools(t *testing.T) {
 					t.Errorf("Metadata key 'toRemove' still exists after removal.")
 				}
 			}},
-		{name: "RemoveNodeMetadata NonExistent Key", toolName: "Tree.RemoveNodeMetadata", setupFunc: setupMetaTree, args: MakeArgs("SETUP_HANDLE:mTree", "node-1", "nonKey"), wantErr: ErrAttributeNotFound}, // Metadata key not found
+		{name: "RemoveNodeMetadata NonExistent Key", toolName: "Tree.RemoveNodeMetadata", setupFunc: setupMetaTree, args: MakeArgs("SETUP_HANDLE:mTree", "node-1", "nonKey"), wantErr: ErrAttributeNotFound},	// Metadata key not found
 		{name: "RemoveNodeMetadata NonExistent Node", toolName: "Tree.RemoveNodeMetadata", setupFunc: setupMetaTree, args: MakeArgs("SETUP_HANDLE:mTree", "node-999", "key"), wantErr: ErrNotFound},
 	}
 	for _, tc := range testCases {

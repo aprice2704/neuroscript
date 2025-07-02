@@ -3,9 +3,9 @@
 // Purpose: Corrected initialization of node Attributes to use the new TreeAttrs type instead of map[string]string.
 // nlines: 335 // Approximate
 // risk_rating: LOW
-// filename: pkg/core/tools_tree_modify.go
+// filename: pkg/tool/tree/tools_tree_modify.go
 
-package core
+package tree
 
 import (
 	"errors"
@@ -251,13 +251,13 @@ func toolTreeAddNode(interpreter *Interpreter, args []interface{}) (interface{},
 	}
 
 	newNode := &GenericTreeNode{
-		ID:         newNodeID,
-		Type:       nodeType,
-		Value:      nodeValue,
-		Attributes: make(TreeAttrs),
-		ChildIDs:   make([]string, 0),
-		ParentID:   parentID,
-		Tree:       tree,
+		ID:		newNodeID,
+		Type:		nodeType,
+		Value:		nodeValue,
+		Attributes:	make(TreeAttrs),
+		ChildIDs:	make([]string, 0),
+		ParentID:	parentID,
+		Tree:		tree,
 	}
 	tree.NodeMap[newNodeID] = newNode
 
@@ -273,7 +273,7 @@ func toolTreeAddNode(interpreter *Interpreter, args []interface{}) (interface{},
 			parentNode.Attributes = make(TreeAttrs)
 		}
 		parentNode.Attributes[keyForObjectParent] = newNodeID
-	} else if parentNode.Type == "array" || parentNode.Type == "checklist_root" || parentNode.Type == "checklist_item" { // MODIFIED HERE
+	} else if parentNode.Type == "array" || parentNode.Type == "checklist_root" || parentNode.Type == "checklist_item" {	// MODIFIED HERE
 		// keyForObjectParent (args[5]) should be nil if not an object parent, as handled by ChecklistAddItem.
 		// Log a warning if it was somehow provided for these types.
 		if keyForObjectParent != "" {

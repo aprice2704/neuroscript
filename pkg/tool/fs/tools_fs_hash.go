@@ -2,12 +2,12 @@
 // File version: 0.0.4 // Corrected lang.NewRuntimeError calls with standard ErrorCodes/Sentinels.
 // nlines: 89
 // risk_rating: LOW
-// filename: pkg/core/tools_fs_hash.go
-package core
+// filename: pkg/tool/fs/tools_fs_hash.go
+package fs
 
 import (
 	"crypto/sha256"
-	"errors" // Required for errors.Is, errors.Join
+	"errors"	// Required for errors.Is, errors.Join
 	"fmt"
 	"io"
 	"os"
@@ -68,7 +68,7 @@ func toolFileHash(interpreter *Interpreter, args []interface{}) (interface{}, er
 		interpreter.Logger().Error("Tool: FileHash] %s: %v", errMsg, openErr)
 		return "", lang.NewRuntimeError(ErrorCodeIOFailed, errMsg, errors.Join(ErrIOFailed, openErr))
 	}
-	defer file.Close() // Ensure file is closed
+	defer file.Close()	// Ensure file is closed
 
 	// Check if it's a directory
 	stat, statErr := file.Stat()

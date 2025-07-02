@@ -1,11 +1,11 @@
 // NeuroScript Version: 0.3.1
 // File version: 4
 // Purpose: Fixed variable shadowing bug by correctly handling the error return from NewDefaultTestInterpreter.
-// filename: pkg/core/tools_fs_walk_test.go
+// filename: pkg/tool/fs/tools_fs_walk_test.go
 // nlines: 105 // Approximate
 // risk_rating: LOW
 
-package core
+package fs
 
 import (
 	"os"
@@ -64,10 +64,10 @@ func TestToolWalkDir(t *testing.T) {
 
 	tests := []fsTestCase{
 		{
-			name:      "Walk_from_root",
-			toolName:  "FS.Walk",
-			args:      MakeArgs("."),
-			setupFunc: setupFunc,
+			name:		"Walk_from_root",
+			toolName:	"FS.Walk",
+			args:		MakeArgs("."),
+			setupFunc:	setupFunc,
 			checkFunc: makeWalkResultChecker([]map[string]interface{}{
 				{"path_relative": "dir1", "is_dir": true},
 				{"path_relative": filepath.Join("dir1", "file1.txt"), "is_dir": false},

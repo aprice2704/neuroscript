@@ -2,9 +2,9 @@
 // File version: 0.1.0 // Removed local ToolImplementations and registration func, standardized error handling.
 // nlines: 100 // Approximate
 // risk_rating: LOW
-// filename: pkg/core/tools_tree_metadata.go
+// filename: pkg/tool/tree/tools_tree_metadata.go
 
-package core
+package tree
 
 import (
 	"fmt"
@@ -49,7 +49,7 @@ func toolTreeSetNodeMetadata(interpreter *Interpreter, args []interface{}) (inte
 
 	_, node, err := getNodeFromHandle(interpreter, handleID, nodeID, toolName)
 	if err != nil {
-		return nil, err // getNodeFromHandle returns RuntimeError
+		return nil, err	// getNodeFromHandle returns RuntimeError
 	}
 
 	// Ensure the Attributes map is initialized (GenericTreeNode.NewNode initializes it)
@@ -57,7 +57,7 @@ func toolTreeSetNodeMetadata(interpreter *Interpreter, args []interface{}) (inte
 		node.Attributes = make(TreeAttrs)
 		interpreter.Logger().Warn(fmt.Sprintf("%s: Node attributes map was nil for node '%s', initialized.", toolName, nodeID))
 	}
-	node.Attributes[metaKey] = metaValue // Set the string value
+	node.Attributes[metaKey] = metaValue	// Set the string value
 
 	interpreter.Logger().Debug(fmt.Sprintf("%s: Set node metadata attribute", toolName), "handle", handleID, "nodeId", nodeID, "key", metaKey, "value", metaValue)
 	return nil, nil
@@ -95,7 +95,7 @@ func toolTreeRemoveNodeMetadata(interpreter *Interpreter, args []interface{}) (i
 
 	_, node, err := getNodeFromHandle(interpreter, handleID, nodeID, toolName)
 	if err != nil {
-		return nil, err // getNodeFromHandle returns RuntimeError
+		return nil, err	// getNodeFromHandle returns RuntimeError
 	}
 
 	if node.Attributes == nil {

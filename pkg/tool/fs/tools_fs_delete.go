@@ -2,14 +2,14 @@
 // File version: 0.0.2 // Corrected lang.NewRuntimeError calls with standard ErrorCodes/Sentinels.
 // nlines: 62
 // risk_rating: HIGH
-// filename: pkg/core/tools_fs_delete.go
-package core
+// filename: pkg/tool/fs/tools_fs_delete.go
+package fs
 
 import (
 	"errors"
 	"fmt"
 	"os"
-	"strings" // Keep for "directory not empty" check if needed, though errors.Is might be better if a specific error exists.
+	"strings"	// Keep for "directory not empty" check if needed, though errors.Is might be better if a specific error exists.
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
 )
@@ -37,7 +37,7 @@ func toolDeleteFile(interpreter *Interpreter, args []interface{}) (interface{}, 
 	absPath, secErr := SecureFilePath(relPath, sandboxRoot)
 	if secErr != nil {
 		interpreter.Logger().Infof("Tool: DeleteFile] Path security error for %q: %v (Sandbox Root: %s)", relPath, secErr, sandboxRoot)
-		return nil, secErr // SecureFilePath returns RuntimeError
+		return nil, secErr	// SecureFilePath returns RuntimeError
 	}
 
 	interpreter.Logger().Infof("Tool: DeleteFile] Validated path: %s. Attempting deletion.", absPath)
@@ -50,7 +50,7 @@ func toolDeleteFile(interpreter *Interpreter, args []interface{}) (interface{}, 
 		if errors.Is(err, os.ErrNotExist) {
 			errMsg := fmt.Sprintf("Path not found, nothing to delete: %s", relPath)
 			interpreter.Logger().Infof("Tool: DeleteFile] Info: %s", errMsg)
-			return "OK", nil // Return "OK" as per spec
+			return "OK", nil	// Return "OK" as per spec
 		}
 
 		// Check if it's a "directory not empty" error
@@ -60,7 +60,7 @@ func toolDeleteFile(interpreter *Interpreter, args []interface{}) (interface{}, 
 		if err != nil {
 			errMsgTextLower = strings.ToLower(err.Error())
 		}
-		isDirNotEmptyErr := strings.Contains(errMsgTextLower, "directory not empty") || strings.Contains(errMsgTextLower, "not empty") // Common variations
+		isDirNotEmptyErr := strings.Contains(errMsgTextLower, "directory not empty") || strings.Contains(errMsgTextLower, "not empty")	// Common variations
 
 		errMsg := fmt.Sprintf("Failed to delete '%s'", relPath)
 		interpreter.Logger().Errorf("Tool: DeleteFile] Error: %s: %v", errMsg, err)

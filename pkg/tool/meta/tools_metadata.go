@@ -2,9 +2,9 @@
 // File version: 0.1.1 // Removed local registerMetadataTools function.
 // nlines: 45 // Approximate
 // risk_rating: LOW
-// filename: pkg/core/tools_metadata.go
+// filename: pkg/tool/meta/tools_metadata.go
 
-package core
+package meta
 
 import (
 	"fmt"
@@ -17,16 +17,16 @@ import (
 
 // toolExtractMetadataFromString extracts metadata from a string.
 // Corresponds to ToolSpec "ExtractMetadata".
-func toolExtractMetadataFromString(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	toolName := "ExtractMetadata" // Assuming this is the public name
+func toolExtractMetadataFromString(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+	toolName := "ExtractMetadata"	// Assuming this is the public name
 
 	// Argument validation (Count=1, Type=string) expected from validation layer
 	if len(args) != 1 {
-		return nil, lang.NewRuntimeError(ErrorCodeArgMismatch, fmt.Sprintf("%s: expected 1 argument (content), got %d", toolName, len(args)), ErrArgumentMismatch)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("%s: expected 1 argument (content), got %d", toolName, len(args)), lang.ErrArgumentMismatch)
 	}
 	content, ok := args[0].(string)
 	if !ok {
-		return nil, lang.NewRuntimeError(ErrorCodeType, fmt.Sprintf("%s: content argument must be a string, got %T", toolName, args[0]), ErrInvalidArgument)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeType, fmt.Sprintf("%s: content argument must be a string, got %T", toolName, args[0]), lang.ErrInvalidArgument)
 	}
 
 	// Log snippet before extraction
@@ -44,7 +44,7 @@ func toolExtractMetadataFromString(interpreter *Interpreter, args []interface{})
 		// If it could fail (e.g., malformed input?), use appropriate ErrorCode/Sentinel.
 		interpreter.Logger().Error(fmt.Sprintf("%s: Error from metadata.Extract", toolName), "error", err)
 		// Depending on the error type, choose ErrorCode. Using ErrorCodeInternal as placeholder.
-		return nil, lang.NewRuntimeError(ErrorCodeInternal, fmt.Sprintf("%s: failed during metadata extraction: %v", toolName, err), err)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, fmt.Sprintf("%s: failed during metadata extraction: %v", toolName, err), err)
 	}
 
 	// Convert map[string]string to map[string]interface{} for NeuroScript compatibility

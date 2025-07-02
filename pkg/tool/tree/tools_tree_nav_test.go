@@ -1,11 +1,11 @@
 // NeuroScript Version: 0.3.1
 // File version: 3
 // Purpose: Corrected type assertions to use the specific `TreeAttrs` type instead of a generic map, resolving the test panic.
-// filename: pkg/core/tools_tree_nav_test.go
+// filename: pkg/tool/tree/tools_tree_nav_test.go
 // nlines: 118
 // risk_rating: MEDIUM
 
-package core
+package tree
 
 import (
 	"errors"

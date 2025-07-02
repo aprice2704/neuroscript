@@ -1,11 +1,11 @@
 // NeuroScript Version: 0.4.0
 // File version: 1
 // Purpose: Refactored to test primitive-based tool implementations directly.
-// filename: pkg/core/tools_string_split_join_test.go
+// filename: pkg/tool/strtools/tools_string_split_join_test.go
 // nlines: 107
 // risk_rating: MEDIUM
 
-package core
+package strtools
 
 import (
 	"errors"
@@ -15,11 +15,11 @@ import (
 
 // testStringSplitJoinToolHelper tests a tool implementation directly with primitives.
 func testStringSplitJoinToolHelper(t *testing.T, interp *Interpreter, tc struct {
-	name       string
-	toolName   string
-	args       []interface{}
-	wantResult interface{}
-	wantErrIs  error
+	name		string
+	toolName	string
+	args		[]interface{}
+	wantResult	interface{}
+	wantErrIs	error
 }) {
 	t.Helper()
 	t.Run(tc.name, func(t *testing.T) {
@@ -51,11 +51,11 @@ func testStringSplitJoinToolHelper(t *testing.T, interp *Interpreter, tc struct 
 func TestToolSplitString(t *testing.T) {
 	interp, _ := NewDefaultTestInterpreter(t)
 	tests := []struct {
-		name       string
-		toolName   string
-		args       []interface{}
-		wantResult interface{}
-		wantErrIs  error
+		name		string
+		toolName	string
+		args		[]interface{}
+		wantResult	interface{}
+		wantErrIs	error
 	}{
 		{name: "Simple_Split", toolName: "Split", args: MakeArgs("a,b,c", ","), wantResult: []string{"a", "b", "c"}},
 		{name: "Empty_Delimiter", toolName: "Split", args: MakeArgs("abc", ""), wantResult: []string{"a", "b", "c"}},
@@ -70,11 +70,11 @@ func TestToolSplitString(t *testing.T) {
 func TestToolSplitWords(t *testing.T) {
 	interp, _ := NewDefaultTestInterpreter(t)
 	tests := []struct {
-		name       string
-		toolName   string
-		args       []interface{}
-		wantResult interface{}
-		wantErrIs  error
+		name		string
+		toolName	string
+		args		[]interface{}
+		wantResult	interface{}
+		wantErrIs	error
 	}{
 		{name: "Simple_Words", toolName: "SplitWords", args: MakeArgs("hello world"), wantResult: []string{"hello", "world"}},
 		{name: "Multiple_Spaces", toolName: "SplitWords", args: MakeArgs("  hello \t world  \n next"), wantResult: []string{"hello", "world", "next"}},
@@ -89,11 +89,11 @@ func TestToolSplitWords(t *testing.T) {
 func TestToolJoinStrings(t *testing.T) {
 	interp, _ := NewDefaultTestInterpreter(t)
 	tests := []struct {
-		name       string
-		toolName   string
-		args       []interface{}
-		wantResult interface{}
-		wantErrIs  error
+		name		string
+		toolName	string
+		args		[]interface{}
+		wantResult	interface{}
+		wantErrIs	error
 	}{
 		{name: "Join_Simple", toolName: "Join", args: MakeArgs([]string{"a", "b", "c"}, ","), wantResult: "a,b,c"},
 		{name: "Join_Empty_Slice", toolName: "Join", args: MakeArgs([]string{}, ","), wantResult: ""},

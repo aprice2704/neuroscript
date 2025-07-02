@@ -1,11 +1,11 @@
 // NeuroScript Version: 0.4.1
 // File version: 2
 // Purpose: Made helper functions more robust by adding proper checking for type assertions.
-// filename: pkg/core/tools_tree_test_helpers.go
+// filename: pkg/tool/tree/tools_tree_test_helpers.go
 // nlines: 80
 // risk_rating: MEDIUM
 
-package core
+package tree
 
 import (
 	"errors"
@@ -16,12 +16,12 @@ import (
 
 // treeTestCase defines the structure for a single tree tool test case.
 type treeTestCase struct {
-	name      string
-	toolName  string
-	args      []interface{}
-	setupFunc func(t *testing.T, interp *Interpreter) interface{}                                          // Returns a context, like a handle string
-	checkFunc func(t *testing.T, interp *Interpreter, result interface{}, err error, setupCtx interface{}) // Custom check logic
-	wantErr   error                                                                                        // For simple error checks
+	name		string
+	toolName	string
+	args		[]interface{}
+	setupFunc	func(t *testing.T, interp *Interpreter) interface{}						// Returns a context, like a handle string
+	checkFunc	func(t *testing.T, interp *Interpreter, result interface{}, err error, setupCtx interface{})	// Custom check logic
+	wantErr		error												// For simple error checks
 }
 
 // testTreeToolHelper runs a single tree tool test case.

@@ -2,14 +2,14 @@
 // File version: 0.0.3 // Add explicit empty path check. Handle "is a directory" error.
 // nlines: 70 // Approximate
 // risk_rating: MEDIUM
-// filename: pkg/core/tools_fs_read.go
-package core
+// filename: pkg/tool/fs/tools_fs_read.go
+package fs
 
 import (
 	"errors"
 	"fmt"
 	"os"
-	"strings" // For checking "is a directory" error string
+	"strings"	// For checking "is a directory" error string
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
 )
@@ -40,7 +40,7 @@ func toolReadFile(interpreter *Interpreter, args []interface{}) (interface{}, er
 	absPath, secErr := ResolveAndSecurePath(relPath, sandboxRoot)
 	if secErr != nil {
 		interpreter.Logger().Warn("Tool: ReadFile path validation failed", "relative_path", relPath, "sandbox_root", sandboxRoot, "error", secErr)
-		return "", secErr // Return empty string and the error
+		return "", secErr	// Return empty string and the error
 	}
 
 	interpreter.Logger().Debug("Tool: ReadFile attempting to read", "validated_path", absPath, "original_relative_path", relPath, "sandbox_root", sandboxRoot)
@@ -52,12 +52,12 @@ func toolReadFile(interpreter *Interpreter, args []interface{}) (interface{}, er
 		if errors.Is(err, os.ErrNotExist) {
 			errMsg := fmt.Sprintf("ReadFile: file not found '%s'", relPath)
 			interpreter.Logger().Debug(errMsg)
-			return "", lang.NewRuntimeError(ErrorCodeFileNotFound, errMsg, ErrFileNotFound) // Return empty string and error
+			return "", lang.NewRuntimeError(ErrorCodeFileNotFound, errMsg, ErrFileNotFound)	// Return empty string and error
 		}
 		if errors.Is(err, os.ErrPermission) {
 			errMsg := fmt.Sprintf("ReadFile: permission denied for '%s'", relPath)
 			interpreter.Logger().Warn(errMsg)
-			return "", lang.NewRuntimeError(ErrorCodePermissionDenied, errMsg, ErrPermissionDenied) // Return empty string and error
+			return "", lang.NewRuntimeError(ErrorCodePermissionDenied, errMsg, ErrPermissionDenied)	// Return empty string and error
 		}
 
 		// *** ADDED: Check for "is a directory" error ***
@@ -67,13 +67,13 @@ func toolReadFile(interpreter *Interpreter, args []interface{}) (interface{}, er
 			errMsg := fmt.Sprintf("ReadFile: path '%s' is a directory, not a file", relPath)
 			interpreter.Logger().Debug(errMsg)
 			// Use ErrPathNotFile sentinel error
-			return "", lang.NewRuntimeError(ErrorCodePathTypeMismatch, errMsg, ErrPathNotFile) // Return empty string and error
+			return "", lang.NewRuntimeError(ErrorCodePathTypeMismatch, errMsg, ErrPathNotFile)	// Return empty string and error
 		}
 
 		// Handle other potential I/O errors
 		errMsg := fmt.Sprintf("ReadFile: failed to read file '%s'", relPath)
 		interpreter.Logger().Error(errMsg, "error", err)
-		return "", lang.NewRuntimeError(ErrorCodeIOFailed, errMsg, errors.Join(ErrIOFailed, err)) // Return empty string and error
+		return "", lang.NewRuntimeError(ErrorCodeIOFailed, errMsg, errors.Join(ErrIOFailed, err))	// Return empty string and error
 	}
 
 	// Success

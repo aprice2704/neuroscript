@@ -3,9 +3,9 @@
 // CRITICAL FIX: Changed "children" in GetNode result to be []interface{} to align with NeuroScript list type conventions.
 // nlines: 82 // Approximate
 // risk_rating: MEDIUM // Critical for correct tool behavior
-// filename: pkg/core/tools_tree_nav.go
+// filename: pkg/tool/tree/tools_tree_nav.go
 
-package core
+package tree
 
 import (
 	"fmt"
@@ -43,13 +43,13 @@ func toolTreeGetNode(interpreter *Interpreter, args []interface{}) (interface{},
 	}
 
 	nodeMap := map[string]interface{}{
-		"id":                   node.ID,
-		"type":                 node.Type,
-		"value":                node.Value,
-		"attributes":           node.Attributes,
-		"children":             childrenSlice, // CORRECTED TYPE
-		"parent_id":            node.ParentID,
-		"parent_attribute_key": node.ParentAttributeKey,
+		"id":			node.ID,
+		"type":			node.Type,
+		"value":		node.Value,
+		"attributes":		node.Attributes,
+		"children":		childrenSlice,	// CORRECTED TYPE
+		"parent_id":		node.ParentID,
+		"parent_attribute_key":	node.ParentAttributeKey,
 	}
 
 	interpreter.Logger().Debug(fmt.Sprintf("%s: Retrieved node information", toolName),
@@ -76,7 +76,7 @@ func toolTreeGetChildren(interpreter *Interpreter, args []interface{}) (interfac
 		return nil, err
 	}
 
-	if node.Type != "array" { // This tool is specific to "array" type nodes
+	if node.Type != "array" {	// This tool is specific to "array" type nodes
 		return nil, lang.NewRuntimeError(ErrorCodeNodeWrongType,
 			fmt.Sprintf("%s: cannot get children of node type '%s' (expected 'array')", toolName, node.Type),
 			ErrNodeWrongType)

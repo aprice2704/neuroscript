@@ -1,4 +1,5 @@
-package core
+// filename: pkg/tool/list/tools_list_bridge.go
+package list
 
 import (
 	"fmt"

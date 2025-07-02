@@ -2,11 +2,11 @@
 // File version: 0.0.4 // Add explicit empty path check.
 // nlines: 77
 // risk_rating: LOW
-// filename: pkg/core/tools_fs_stat.go
-package core
+// filename: pkg/tool/fs/tools_fs_stat.go
+package fs
 
 import (
-	"errors" // Required for errors.Is
+	"errors"	// Required for errors.Is
 	"fmt"
 	"os"
 	"path/filepath"
@@ -42,7 +42,7 @@ func toolStat(interpreter *Interpreter, args []interface{}) (interface{}, error)
 	absPathToStat, secErr := ResolveAndSecurePath(relPath, sandboxRoot)
 	if secErr != nil {
 		interpreter.Logger().Debug("Tool: StatPath] Path validation failed", "error", secErr.Error(), "path", relPath)
-		return nil, secErr // Return the *RuntimeError directly
+		return nil, secErr	// Return the *RuntimeError directly
 	}
 
 	interpreter.Logger().Debug("Tool: StatPath attempting to stat validated path", "validated_path", absPathToStat, "original_path", relPath)
@@ -67,14 +67,14 @@ func toolStat(interpreter *Interpreter, args []interface{}) (interface{}, error)
 
 	// --- Success: Construct Result Map ---
 	resultMap := map[string]interface{}{
-		"name":             info.Name(),
-		"path":             filepath.ToSlash(relPath),
-		"size_bytes":       info.Size(), // Use size_bytes key
-		"is_dir":           info.IsDir(),
-		"modified_unix":    info.ModTime().Unix(),
-		"modified_rfc3339": info.ModTime().Format(time.RFC3339Nano),
-		"mode_string":      info.Mode().String(),
-		"mode_perm":        fmt.Sprintf("%04o", info.Mode().Perm()),
+		"name":			info.Name(),
+		"path":			filepath.ToSlash(relPath),
+		"size_bytes":		info.Size(),	// Use size_bytes key
+		"is_dir":		info.IsDir(),
+		"modified_unix":	info.ModTime().Unix(),
+		"modified_rfc3339":	info.ModTime().Format(time.RFC3339Nano),
+		"mode_string":		info.Mode().String(),
+		"mode_perm":		fmt.Sprintf("%04o", info.Mode().Perm()),
 	}
 
 	interpreter.Logger().Debug("Tool: StatPath] Stat successful", "path", relPath)

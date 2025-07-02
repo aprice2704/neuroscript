@@ -1,11 +1,11 @@
 // NeuroScript Version: 0.4.0
 // File version: 4
 // Purpose: Fixed variable shadowing bug by correctly handling the error return from NewDefaultTestInterpreter.
-// filename: pkg/core/tools_fs_write_test.go
+// filename: pkg/tool/fs/tools_fs_write_test.go
 // nlines: 95
 // risk_rating: LOW
 
-package core
+package fs
 
 import (
 	"os"

@@ -1,11 +1,11 @@
 // NeuroScript Version: 0.4.1
 // File version: 1
 // Purpose: Implements the Go function for the 'Error.New' tool.
-// filename: core/tools_error.go
+// filename: pkg/tool/errtools/tools_error.go
 // nlines: 30
 // risk_rating: LOW
 
-package core
+package errtools
 
 import "fmt"
 
@@ -31,8 +31,8 @@ func toolErrorNew(i *Interpreter, args []interface{}) (interface{}, error) {
 	}
 
 	errorMap := map[string]Value{
-		"code":    codeValue,
-		"message": StringValue{Value: messageArg},
+		"code":		codeValue,
+		"message":	StringValue{Value: messageArg},
 	}
 
 	return ErrorValue{Value: errorMap}, nil

@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.3.0
 // Last Modified: 2025-05-01 20:56:53 PDT // Split file: Go command execution tools
-// filename: pkg/core/tools_go_execution.go
+// filename: pkg/tool/gotools/tools_go_execution.go
 
-package core
+package gotools
 
 import (
 	"bytes"
@@ -18,8 +18,8 @@ import (
 
 // toolGoBuild implementation
 func toolGoBuild(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	buildTarget := "./..." // Default target
-	targetArg := ""        // Variable to hold the user-provided target
+	buildTarget := "./..."	// Default target
+	targetArg := ""		// Variable to hold the user-provided target
 
 	// Argument parsing (optional target)
 	if len(args) > 0 && args[0] != nil {
@@ -89,18 +89,18 @@ func toolGoCheck(interpreter *Interpreter, args []interface{}) (interface{}, err
 				checkSuccess = false
 				firstErrorMsg = fmt.Sprintf("Error decoding JSON from 'go list' output: %v. Output: %s", err, execStdout)
 				foundError = true
-				break // Stop on first decode error
+				break	// Stop on first decode error
 			}
 			// Check the "Error" field within the JSON object for this package
 			if errField, ok := pkgInfo["Error"]; ok && errField != nil {
 				foundError = true
 				if errMap, okMap := errField.(map[string]interface{}); okMap {
 					if errMsg, okStr := errMap["Err"].(string); okStr && errMsg != "" {
-						firstErrorMsg = errMsg // Store the specific error message
+						firstErrorMsg = errMsg	// Store the specific error message
 						if importPath, okPath := pkgInfo["ImportPath"].(string); okPath {
 							firstErrorPkg = importPath
 						}
-						break // Stop on first reported error
+						break	// Stop on first reported error
 					}
 				}
 				// Fallback if Error field structure is unexpected
@@ -108,7 +108,7 @@ func toolGoCheck(interpreter *Interpreter, args []interface{}) (interface{}, err
 				if importPath, okPath := pkgInfo["ImportPath"].(string); okPath {
 					firstErrorPkg = importPath
 				}
-				break // Stop on first reported error
+				break	// Stop on first reported error
 			}
 		}
 
@@ -141,16 +141,16 @@ func toolGoCheck(interpreter *Interpreter, args []interface{}) (interface{}, err
 	}
 
 	checkResultMap := map[string]interface{}{
-		"check_success": checkSuccess,
-		"error_details": errorDetails,
+		"check_success":	checkSuccess,
+		"error_details":	errorDetails,
 	}
 	return checkResultMap, nil
 }
 
 // toolGoTest implementation
 func toolGoTest(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	testTarget := "./..." // Default target
-	targetArg := ""       // Variable to hold the user-provided target
+	testTarget := "./..."	// Default target
+	targetArg := ""		// Variable to hold the user-provided target
 
 	// Argument parsing (optional target)
 	if len(args) > 0 && args[0] != nil {
@@ -163,7 +163,7 @@ func toolGoTest(interpreter *Interpreter, args []interface{}) (interface{}, erro
 		}
 	}
 	if targetArg != "" {
-		testTarget = targetArg // Use provided target
+		testTarget = targetArg	// Use provided target
 	}
 
 	cmd := "go"
@@ -188,8 +188,8 @@ func toolGoModTidy(interpreter *Interpreter, args []interface{}) (interface{}, e
 
 // toolGoListPackages implementation
 func toolGoListPackages(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	var targetDirRel string = "."             // Default relative dir
-	var patterns []string = []string{"./..."} // Default pattern
+	var targetDirRel string = "."			// Default relative dir
+	var patterns []string = []string{"./..."}	// Default pattern
 
 	// Argument Parsing (using type assertions validated by interpreter)
 	if len(args) > 0 && args[0] != nil {
@@ -270,7 +270,7 @@ func toolGoListPackages(interpreter *Interpreter, args []interface{}) (interface
 	}
 
 	interpreter.Logger().Debug("[TOOL-GOLIST] Successfully executed and parsed", "package_count", len(results))
-	return results, nil // Return the list of parsed package maps
+	return results, nil	// Return the list of parsed package maps
 }
 
 // --- Internal Helper for executing Go commands within Sandbox ---
@@ -301,14 +301,14 @@ func executeGoCommandHelper(interpreter *Interpreter, targetDirRel string, goArg
 	}
 	// --- End Security ---
 
-	cmd := "go"                               // Assuming 'go' is in PATH
-	fullArgs := append([]string{}, goArgs...) // Copy args
+	cmd := "go"					// Assuming 'go' is in PATH
+	fullArgs := append([]string{}, goArgs...)	// Copy args
 
 	logger.Debug("[GO-HELPER] Executing command", "command", cmd, "args", fullArgs, "directory", absValidatedDir)
 
 	// Prepare command execution
 	cmdExec := exec.Command(cmd, fullArgs...)
-	cmdExec.Dir = absValidatedDir // *** Run in the validated absolute directory ***
+	cmdExec.Dir = absValidatedDir	// *** Run in the validated absolute directory ***
 	var stdout, stderr bytes.Buffer
 	cmdExec.Stdout = &stdout
 	cmdExec.Stderr = &stderr
@@ -328,7 +328,7 @@ func executeGoCommandHelper(interpreter *Interpreter, targetDirRel string, goArg
 			if status, ok := exitError.Sys().(syscall.WaitStatus); ok {
 				exitCode = status.ExitStatus()
 			} else {
-				exitCode = -1 // Unable to get specific exit code
+				exitCode = -1	// Unable to get specific exit code
 				stderrStr += fmt.Sprintf("\n(Failed to get exit status: %v)", exitError.Sys())
 			}
 		} else {
@@ -347,10 +347,10 @@ func executeGoCommandHelper(interpreter *Interpreter, targetDirRel string, goArg
 
 	// Return results in a map
 	resultMap := map[string]interface{}{
-		"stdout":    stdoutStr,
-		"stderr":    stderrStr,
-		"exit_code": int64(exitCode),
-		"success":   success,
+		"stdout":	stdoutStr,
+		"stderr":	stderrStr,
+		"exit_code":	int64(exitCode),
+		"success":	success,
 	}
 	// Return map, nil Go-level error (execution outcome is within the map)
 	return resultMap, nil

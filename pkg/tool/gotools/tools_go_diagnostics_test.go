@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.3.0
 // Last Modified: 2025-05-03 21:14:56 PDT // Correct handling of NewDefaultTestInterpreter return path
-// filename: pkg/core/tools_go_diagnostics_test.go
+// filename: pkg/tool/gotools/tools_go_diagnostics_test.go
 
-package core
+package gotools
 
 import (
 	"testing"
@@ -34,18 +34,18 @@ func TestGoDiagnosticTools(t *testing.T) {
 		// *** Fix: Correctly handle (*Interpreter, string) return (string is sandbox path) ***
 		interpreter, sandboxAbsPath := NewDefaultTestInterpreter(t)
 		// No need to check sandboxAbsPath - NewDefaultTestInterpreter uses t.Fatalf on internal error
-		t.Logf("Test interpreter created with sandbox: %s", sandboxAbsPath) // Log path (optional)
+		t.Logf("Test interpreter created with sandbox: %s", sandboxAbsPath)	// Log path (optional)
 		// The interpreter already has the sandbox set by NewDefaultTestInterpreter internally
 
 		// Args for the tool (using default target "./...")
-		args := []interface{}{} // No target specified, should default
+		args := []interface{}{}	// No target specified, should default
 
 		// Call the tool function
-		resultMap, toolErr := toolGoVet(interpreter, args) // toolErr is type error
+		resultMap, toolErr := toolGoVet(interpreter, args)	// toolErr is type error
 
 		// --- Assertions ---
 		// 1. Check for Go-level errors from the tool function itself (toolErr)
-		AssertNoError(t, toolErr) // This checks the 'error' from toolGoVet
+		AssertNoError(t, toolErr)	// This checks the 'error' from toolGoVet
 
 		// 2. Check if the result is a map with the expected keys
 		checkResultMapKeys(t, resultMap, "GoVet")
@@ -59,18 +59,18 @@ func TestGoDiagnosticTools(t *testing.T) {
 		// *** Fix: Correctly handle (*Interpreter, string) return (string is sandbox path) ***
 		interpreter, sandboxAbsPath := NewDefaultTestInterpreter(t)
 		// No need to check sandboxAbsPath - NewDefaultTestInterpreter uses t.Fatalf on internal error
-		t.Logf("Test interpreter created with sandbox: %s", sandboxAbsPath) // Log path (optional)
+		t.Logf("Test interpreter created with sandbox: %s", sandboxAbsPath)	// Log path (optional)
 		// The interpreter already has the sandbox set by NewDefaultTestInterpreter internally
 
 		// Args for the tool (using default target "./...")
-		args := []interface{}{} // No target specified, should default
+		args := []interface{}{}	// No target specified, should default
 
 		// Call the tool function
-		resultMap, toolErr := toolStaticcheck(interpreter, args) // toolErr is type error
+		resultMap, toolErr := toolStaticcheck(interpreter, args)	// toolErr is type error
 
 		// --- Assertions ---
 		// 1. Check for Go-level errors from the tool function itself (toolErr)
-		AssertNoError(t, toolErr) // This checks the 'error' from toolStaticcheck
+		AssertNoError(t, toolErr)	// This checks the 'error' from toolStaticcheck
 
 		// 2. Check if the result is a map with the expected keys
 		checkResultMapKeys(t, resultMap, "Staticcheck")

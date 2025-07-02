@@ -1,11 +1,11 @@
 // NeuroScript Version: 0.4.1
 // File version: 2
 // Purpose: Implements the Go function for the 'Time.Now' tool.
-// filename: core/tools_time.go
+// filename: pkg/tool/time/tools_time.go
 // nlines: 15
 // risk_rating: LOW
 
-package core
+package time
 
 import (
 	"fmt"

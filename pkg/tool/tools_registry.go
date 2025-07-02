@@ -1,11 +1,11 @@
 // NeuroScript Version: 0.4.0
 // File version: 1.0.0
 // Purpose: Implements the 'Bridge' pattern via a CallFromInterpreter method.
-// filename: pkg/core/tools_registry.go
+// filename: pkg/tool/tools_registry.go
 // nlines: 165
 // risk_rating: HIGH
 
-package core
+package tool
 
 import (
 	"fmt"
@@ -17,8 +17,8 @@ import (
 
 // globalToolImplementations holds tools registered via init() functions.
 var (
-	globalToolImplementations []ToolImplementation
-	globalRegMutex            sync.Mutex
+	globalToolImplementations	[]ToolImplementation
+	globalRegMutex			sync.Mutex
 )
 
 // AddToolImplementations allows tool packages to register their ToolImplementation specs.
@@ -30,16 +30,16 @@ func AddToolImplementations(impls ...ToolImplementation) {
 
 // ToolRegistryImpl manages the available tools for an Interpreter instance.
 type ToolRegistryImpl struct {
-	tools       map[string]ToolImplementation
-	interpreter *Interpreter
-	mu          sync.RWMutex
+	tools		map[string]ToolImplementation
+	interpreter	*Interpreter
+	mu		sync.RWMutex
 }
 
 // NewToolRegistry creates a new registry instance.
 func NewToolRegistry(interpreter *Interpreter) *ToolRegistryImpl {
 	r := &ToolRegistryImpl{
-		tools:       make(map[string]ToolImplementation),
-		interpreter: interpreter,
+		tools:		make(map[string]ToolImplementation),
+		interpreter:	interpreter,
 	}
 	globalRegMutex.Lock()
 	defer globalRegMutex.Unlock()
@@ -122,7 +122,7 @@ func (r *ToolRegistryImpl) CallFromInterpreter(interp *Interpreter, toolName str
 	// 3. Call the tool's implementation function with primitives
 	out, err := impl.Func(interp, coercedArgs)
 	if err != nil {
-		return nil, err // Assume tool returns a compliant RuntimeError
+		return nil, err	// Assume tool returns a compliant RuntimeError
 	}
 
 	// 4. Wrap the primitive result back into a Value
@@ -132,7 +132,7 @@ func (r *ToolRegistryImpl) CallFromInterpreter(interp *Interpreter, toolName str
 // coerceArg attempts to convert a primitive value `x` to the specified ArgType.
 func coerceArg(x interface{}, t ArgType) (interface{}, error) {
 	if x == nil {
-		return nil, nil // Let the tool handle nil for optional args.
+		return nil, nil	// Let the tool handle nil for optional args.
 	}
 
 	switch t {

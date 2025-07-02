@@ -2,11 +2,11 @@
 // File version: 0.0.4 // Corrected lang.NewRuntimeError calls with standard ErrorCodes/Sentinels.
 // nlines: 77
 // risk_rating: LOW
-// filename: pkg/core/tools_fs_utils.go
-package core
+// filename: pkg/tool/fs/tools_fs_utils.go
+package fs
 
 import (
-	"errors" // Required for errors.Is
+	"errors"	// Required for errors.Is
 	"fmt"
 	"os"
 	"strings"

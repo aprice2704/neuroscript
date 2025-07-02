@@ -2,13 +2,13 @@
 // File version: 0.1.2 // Set ParentAttributeKey for nodes created as object attributes.
 // nlines: 95 // Approximate
 // risk_rating: MEDIUM
-// filename: pkg/core/tools_tree_load.go
+// filename: pkg/tool/tree/tools_tree_load.go
 
-package core
+package tree
 
 import (
 	"encoding/json"
-	"errors" // Required for errors.Is
+	"errors"	// Required for errors.Is
 	"fmt"
 	"strconv"
 
@@ -17,7 +17,7 @@ import (
 
 // toolTreeLoadJSON parses a JSON string and returns a handle to the generic tree.
 func toolTreeLoadJSON(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	toolName := "Tree.LoadJSON" // User-facing tool name for error messages
+	toolName := "Tree.LoadJSON"	// User-facing tool name for error messages
 
 	if len(args) != 1 {
 		return nil, lang.NewRuntimeError(ErrorCodeArgMismatch,
@@ -43,7 +43,7 @@ func toolTreeLoadJSON(interpreter *Interpreter, args []interface{}) (interface{}
 		)
 	}
 
-	tree := NewGenericTree() // Initializes NodeMap and nextID
+	tree := NewGenericTree()	// Initializes NodeMap and nextID
 
 	var buildNode func(parentID string, keyForParentAttribute string, value interface{}) (string, error)
 	buildNode = func(parentID string, keyForParentAttribute string, value interface{}) (string, error) {
@@ -71,7 +71,7 @@ func toolTreeLoadJSON(interpreter *Interpreter, args []interface{}) (interface{}
 			)
 		}
 
-		node = tree.NewNode(parentID, nodeType) // NewNode sets ParentID
+		node = tree.NewNode(parentID, nodeType)	// NewNode sets ParentID
 
 		// Set ParentAttributeKey if this node is an attribute of an object parent
 		if parentNode, parentExists := tree.NodeMap[parentID]; parentExists && parentNode.Type == "object" {
@@ -85,8 +85,8 @@ func toolTreeLoadJSON(interpreter *Interpreter, args []interface{}) (interface{}
 		case map[string]interface{}:
 			// node.Type is "object", node is already created and ParentAttributeKey potentially set
 			node.Attributes = make(TreeAttrs)
-			for k, val := range v { // k is the attribute key within this new object node
-				childID, errBuild := buildNode(node.ID, k, val) // Pass k as keyForParentAttribute for children of this object
+			for k, val := range v {	// k is the attribute key within this new object node
+				childID, errBuild := buildNode(node.ID, k, val)	// Pass k as keyForParentAttribute for children of this object
 				if errBuild != nil {
 					return "", errBuild
 				}
@@ -113,13 +113,13 @@ func toolTreeLoadJSON(interpreter *Interpreter, args []interface{}) (interface{}
 			node.Value = nil
 		}
 
-		if parentID == "" { // This is the root node of the entire JSON structure
+		if parentID == "" {	// This is the root node of the entire JSON structure
 			tree.RootID = node.ID
 		}
 		return node.ID, nil
 	}
 
-	_, err = buildNode("", "", data) // Root node has no parentID and no keyForParentAttribute from a JSON perspective
+	_, err = buildNode("", "", data)	// Root node has no parentID and no keyForParentAttribute from a JSON perspective
 	if err != nil {
 		var rtErr *RuntimeError
 		if errors.As(err, &rtErr) {

@@ -2,8 +2,8 @@
 // File version: 0.0.2 // Corrected lang.NewRuntimeError calls with standard ErrorCodes/Sentinels. Corrected error return values.
 // nlines: 88
 // risk_rating: HIGH
-// filename: pkg/core/tools_fs_move.go
-package core
+// filename: pkg/tool/fs/tools_fs_move.go
+package fs
 
 import (
 	"errors"
@@ -77,7 +77,7 @@ func toolMoveFile(interpreter *Interpreter, args []interface{}) (interface{}, er
 			rtErr = lang.NewRuntimeError(ErrorCodeIOFailed, errMsg, errors.Join(ErrIOFailed, srcStatErr))
 		}
 		interpreter.Logger().Warnf("Tool: MoveFile] Source check failed: %s: %v", errMsg, srcStatErr)
-		return nil, rtErr // Return nil value and the runtime error
+		return nil, rtErr	// Return nil value and the runtime error
 	}
 
 	// Check if destination *already exists*

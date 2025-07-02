@@ -1,10 +1,10 @@
 // NeuroScript Version: 0.3.8
 // File version: 0.1.4 // Added toolGetToolSpecificationsJSON implementation
-// Filename: pkg/core/tools_meta.go
 // nlines: 175 // Approximate
 // risk_rating: MEDIUM
 
-package core
+// filename: pkg/tool/meta/tools_meta.go
+package meta
 
 import (
 	"encoding/json" // Added for JSON marshalling
@@ -13,18 +13,20 @@ import (
 	"strings"
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/parser"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
 // toolListTools provides a compact list of available tools.
 // NeuroScript: call Meta.ListTools() -> string
-func toolListTools(interpreter *Interpreter, args []interface{}) (interface{}, error) {
+func toolListTools(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
 	if len(args) != 0 {
-		return nil, lang.NewRuntimeError(ErrorCodeArgMismatch, "Meta.ListTools: expects no arguments", ErrArgumentMismatch)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "Meta.ListTools: expects no arguments", lang.ErrArgumentMismatch)
 	}
 
 	registry := interpreter.ToolRegistry()
 	if registry == nil {
-		return nil, lang.NewRuntimeError(ErrorCodeConfiguration, "Meta.ListTools: ToolRegistry is not available", ErrConfiguration)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeConfiguration, "Meta.ListTools: ToolRegistry is not available", lang.ErrConfiguration)
 	}
 
 	toolSpecs := registry.ListTools()
@@ -47,11 +49,11 @@ func toolListTools(interpreter *Interpreter, args []interface{}) (interface{}, e
 
 // toolToolsHelp provides detailed help for available tools in Markdown format.
 // NeuroScript: call Meta.ToolsHelp(filter?:string) -> string
-func toolToolsHelp(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	var filterValue string // Defaults to empty string, meaning "no filter"
+func toolToolsHelp(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+	var filterValue string	// Defaults to empty string, meaning "no filter"
 
 	if len(args) > 1 {
-		return nil, lang.NewRuntimeError(ErrorCodeArgMismatch, "Meta.ToolsHelp: expects at most 1 argument (filter)", ErrArgumentMismatch)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "Meta.ToolsHelp: expects at most 1 argument (filter)", lang.ErrArgumentMismatch)
 	}
 
 	if len(args) == 1 {
@@ -60,8 +62,8 @@ func toolToolsHelp(interpreter *Interpreter, args []interface{}) (interface{}, e
 		} else {
 			strVal, ok := args[0].(string)
 			if !ok {
-				return nil, lang.NewRuntimeError(ErrorCodeType,
-					fmt.Sprintf("Meta.ToolsHelp: 'filter' argument must be a string, got %T", args[0]), ErrInvalidArgument)
+				return nil, lang.NewRuntimeError(lang.ErrorCodeType,
+					fmt.Sprintf("Meta.ToolsHelp: 'filter' argument must be a string, got %T", args[0]), lang.ErrInvalidArgument)
 			}
 			filterValue = strVal
 		}
@@ -72,11 +74,11 @@ func toolToolsHelp(interpreter *Interpreter, args []interface{}) (interface{}, e
 
 	registry := interpreter.ToolRegistry()
 	if registry == nil {
-		return nil, lang.NewRuntimeError(ErrorCodeConfiguration, "Meta.ToolsHelp: ToolRegistry is not available", ErrConfiguration)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeConfiguration, "Meta.ToolsHelp: ToolRegistry is not available", lang.ErrConfiguration)
 	}
 
 	allToolSpecs := registry.ListTools()
-	var filteredSpecs []ToolSpec
+	var filteredSpecs []tool.ToolSpec
 	for _, spec := range allToolSpecs {
 		if normalizedFilter == "" || strings.Contains(strings.ToLower(spec.Name), normalizedFilter) {
 			filteredSpecs = append(filteredSpecs, spec)
@@ -110,7 +112,7 @@ func toolToolsHelp(interpreter *Interpreter, args []interface{}) (interface{}, e
 
 		mdBuilder.WriteString("**Parameters:**\n")
 		if len(spec.Args) > 0 {
-			mdBuilder.WriteString(formatParamsMarkdownForSpec(spec.Args)) // formatParamsMarkdownForSpec already handles DefaultValue if present
+			mdBuilder.WriteString(formatParamsMarkdownForSpec(spec.Args))	// formatParamsMarkdownForSpec already handles DefaultValue if present
 		} else {
 			mdBuilder.WriteString("_None_\n")
 		}
@@ -135,36 +137,36 @@ func toolToolsHelp(interpreter *Interpreter, args []interface{}) (interface{}, e
 
 // toolGetToolSpecificationsJSON provides a JSON string of all available tool specifications.
 // NeuroScript: call Meta.GetToolSpecificationsJSON() -> string
-func toolGetToolSpecificationsJSON(interpreter *Interpreter, args []interface{}) (interface{}, error) {
+func toolGetToolSpecificationsJSON(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
 	if len(args) != 0 {
-		return nil, lang.NewRuntimeError(ErrorCodeArgMismatch, "Meta.GetToolSpecificationsJSON: expects no arguments", ErrArgumentMismatch)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "Meta.GetToolSpecificationsJSON: expects no arguments", lang.ErrArgumentMismatch)
 	}
 
 	registry := interpreter.ToolRegistry()
 	if registry == nil {
-		return nil, lang.NewRuntimeError(ErrorCodeConfiguration, "Meta.GetToolSpecificationsJSON: ToolRegistry is not available", ErrConfiguration)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeConfiguration, "Meta.GetToolSpecificationsJSON: ToolRegistry is not available", lang.ErrConfiguration)
 	}
 
-	toolSpecs := registry.ListTools() // This returns []ToolSpec
+	toolSpecs := registry.ListTools()	// This returns []ToolSpec
 
 	// Sort toolSpecs by name for consistent output order in the JSON array.
 	sort.Slice(toolSpecs, func(i, j int) bool {
 		return toolSpecs[i].Name < toolSpecs[j].Name
 	})
 
-	jsonData, err := json.MarshalIndent(toolSpecs, "", "  ") // Using MarshalIndent for readability
+	jsonData, err := json.MarshalIndent(toolSpecs, "", "  ")	// Using MarshalIndent for readability
 	if err != nil {
 		if interpreter.logger != nil {
 			interpreter.logger.Errorf("Meta.GetToolSpecificationsJSON: Failed to marshal tool specifications to JSON: %v", err)
 		}
-		return "", lang.NewRuntimeError(ErrorCodeInternal, "failed to marshal tool specifications to JSON", err)
+		return "", lang.NewRuntimeError(lang.ErrorCodeInternal, "failed to marshal tool specifications to JSON", err)
 	}
 
 	return string(jsonData), nil
 }
 
 // formatParamsSimpleForSpec formats ArgSpec for toolListTools
-func formatParamsSimpleForSpec(params []ArgSpec) string {
+func formatParamsSimpleForSpec(params []parser.ArgSpec) string {
 	var parts []string
 	for _, p := range params {
 		part := fmt.Sprintf("%s:%s", p.Name, p.Type)
@@ -177,7 +179,7 @@ func formatParamsSimpleForSpec(params []ArgSpec) string {
 }
 
 // formatParamsMarkdownForSpec formats ArgSpec for toolToolsHelp
-func formatParamsMarkdownForSpec(params []ArgSpec) string {
+func formatParamsMarkdownForSpec(params []parser.ArgSpec) string {
 	if len(params) == 0 {
 		return "_None_"
 	}

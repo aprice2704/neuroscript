@@ -1,11 +1,11 @@
 // NeuroScript Version: 0.4.0
 // File version: 1
 // Purpose: Refactored to test the primitive-based Input tool implementation directly.
-// filename: pkg/core/tools_io_test.go
+// filename: pkg/tool/io/tools_io_test.go
 // nlines: 48
 // risk_rating: LOW
 
-package core
+package io
 
 import (
 	"errors"
@@ -17,9 +17,9 @@ func TestToolIOInputValidation(t *testing.T) {
 	toolImpl, _ := interp.ToolRegistry().GetTool("Input")
 
 	testCases := []struct {
-		name      string
-		args      []interface{}
-		wantErrIs error
+		name		string
+		args		[]interface{}
+		wantErrIs	error
 	}{
 		{name: "Valid prompt (string)", args: MakeArgs("Enter name: "), wantErrIs: nil},
 		{name: "No arguments (optional prompt)", args: MakeArgs(), wantErrIs: nil},

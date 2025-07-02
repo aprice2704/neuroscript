@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.4.2
 // File version: 1.2.2
 // Purpose: Implements script-loading tools. Corrects return type of ListFunctions to []interface{}.
-// filename: pkg/core/tools_script.go
-package core
+// filename: pkg/tool/script/tools_script.go
+package script
 
 import (
 	"fmt"
@@ -59,9 +59,9 @@ func toolLoadScript(interpreter *Interpreter, args []interface{}) (interface{}, 
 
 	// Stage 4: Return result, now including the compatible metadata map.
 	resultMap := map[string]interface{}{
-		"functions_loaded":      len(programAST.Procedures),
-		"event_handlers_loaded": len(programAST.Events),
-		"metadata":              metadataInterface,
+		"functions_loaded":		len(programAST.Procedures),
+		"event_handlers_loaded":	len(programAST.Events),
+		"metadata":			metadataInterface,
 	}
 
 	return resultMap, nil

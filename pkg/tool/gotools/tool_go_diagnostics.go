@@ -1,11 +1,11 @@
 // NeuroScript Version: 0.4.0
 // File version: 4
 // Purpose: Re-implemented toolGoImports here with a robust, self-contained implementation to fix build errors.
-// filename: pkg/core/tools_go_diagnostics.go
+// filename: pkg/tool/gotools/tool_go_diagnostics.go
 // nlines: 105
 // risk_rating: MEDIUM
 
-package core
+package gotools
 
 import (
 	"fmt"
@@ -18,7 +18,7 @@ import (
 
 // toolGoVet implementation
 func toolGoVet(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	vetTarget := "./..." // Default target
+	vetTarget := "./..."	// Default target
 	if len(args) > 0 {
 		if targetArg, ok := args[0].(string); ok && targetArg != "" {
 			vetTarget = targetArg
@@ -31,7 +31,7 @@ func toolGoVet(interpreter *Interpreter, args []interface{}) (interface{}, error
 // toolStaticcheck implementation
 // NOTE: Assumes 'staticcheck' executable is available in the PATH.
 func toolStaticcheck(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	checkTarget := "./..." // Default target
+	checkTarget := "./..."	// Default target
 	if len(args) > 0 {
 		if targetArg, ok := args[0].(string); ok && targetArg != "" {
 			checkTarget = targetArg
@@ -59,7 +59,7 @@ func toolGoImports(i *Interpreter, args []interface{}) (interface{}, error) {
 	}
 
 	if source == "" {
-		return "", nil // Nothing to format, success.
+		return "", nil	// Nothing to format, success.
 	}
 
 	// Process imports and format the source code.

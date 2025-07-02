@@ -1,11 +1,11 @@
-// filename: pkg/core/tool_file_api_sync.go
-package core
+// filename: pkg/tool/fileapi/tools_file_api_sync.go
+package fileapi
 
 import (
 	"context"
 	"errors"
 	"fmt"
-	"os" // Added for direct output in progress printer
+	"os"	// Added for direct output in progress printer
 	"sync"
 	// Assumes sync_types.go, sync_morehelpers.go, sync_logic.go, sync_workers.go
 	// and their necessary imports (like path/filepath, io, etc.) exist
@@ -19,7 +19,7 @@ func SyncDirectoryUpHelper(
 	absLocalDir string,
 	filterPattern string,
 	ignoreGitignore bool,
-	interp *Interpreter, // Pass Interpreter
+	interp *Interpreter,	// Pass Interpreter
 ) (map[string]interface{}, error) {
 
 	// --- Get Logger and Client from Interpreter ---
@@ -37,14 +37,14 @@ func SyncDirectoryUpHelper(
 	stats, incrementStat, effectiveLogger := initializeSyncState(logger)
 
 	syncCtx := &syncContext{
-		ctx:           ctx,
-		absLocalDir:   absLocalDir,
-		filterPattern: filterPattern,
-		client:        client,
-		logger:        effectiveLogger,
-		stats:         stats,
-		incrementStat: incrementStat,
-		interp:        interp,
+		ctx:		ctx,
+		absLocalDir:	absLocalDir,
+		filterPattern:	filterPattern,
+		client:		client,
+		logger:		effectiveLogger,
+		stats:		stats,
+		incrementStat:	incrementStat,
+		interp:		interp,
 	}
 
 	syncCtx.logger.Debug("[API HELPER Sync] Starting sync 'up' for directory:", syncCtx.absLocalDir)

@@ -1,11 +1,11 @@
 // NeuroScript Version: 0.3.1
 // File version: 5 // Fixed argument parsing in toolGitRm and toolGitDiff.
 // Purpose: Implements all Git tool functions with corrected command execution logic.
-// filename: pkg/core/tools_git.go
+// filename: pkg/tool/git/tools_git.go
 // nlines: 710
 // risk_rating: MEDIUM
 
-package core
+package git
 
 import (
 	"bytes"

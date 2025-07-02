@@ -3,9 +3,9 @@
 // Purpose: Standardized argument validation to use ErrArgumentMismatch instead of ErrInvalidArgument for consistency with test expectations.
 // nlines: 280
 // risk_rating: LOW
-// filename: pkg/core/tools_string.go
+// filename: pkg/tool/strtools/tools_string.go
 
-package core
+package strtools
 
 import (
 	"fmt"
@@ -64,7 +64,7 @@ func toolStringSubstring(interpreter *Interpreter, args []interface{}) (interfac
 
 	// Clamp start index
 	if startIndex > runeCount {
-		startIndex = runeCount // Clamp to end (allows empty string result)
+		startIndex = runeCount	// Clamp to end (allows empty string result)
 	}
 
 	// Calculate end index based on clamped start and requested length
@@ -127,7 +127,7 @@ func toolStringSplit(interpreter *Interpreter, args []interface{}) (interface{},
 	parts := strings.Split(inputStr, separator)
 
 	interpreter.Logger().Debug("Tool: String.Split", "input_length", len(inputStr), "separator", separator, "parts_count", len(parts))
-	return parts, nil // Return []string directly
+	return parts, nil	// Return []string directly
 }
 
 func toolSplitWords(interpreter *Interpreter, args []interface{}) (interface{}, error) {
@@ -144,7 +144,7 @@ func toolSplitWords(interpreter *Interpreter, args []interface{}) (interface{}, 
 	parts := strings.Fields(inputStr)
 
 	interpreter.Logger().Debug("Tool: String.SplitWords", "input_length", len(inputStr), "parts_count", len(parts))
-	return parts, nil // Return []string directly
+	return parts, nil	// Return []string directly
 }
 
 func toolStringJoin(interpreter *Interpreter, args []interface{}) (interface{}, error) {

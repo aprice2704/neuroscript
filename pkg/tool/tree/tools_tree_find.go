@@ -1,11 +1,11 @@
 // NeuroScript Version: 0.3.1
 // File version: 8
 // Purpose: Corrected compiler errors by adding type assertions and replacing the flawed `compareAttributeValue` with a robust `deepCompareValues` function.
-// filename: pkg/core/tools_tree_find.go
+// filename: pkg/tool/tree/tools_tree_find.go
 // nlines: 247
 // risk_rating: MEDIUM
 
-package core
+package tree
 
 import (
 	"errors"
@@ -206,8 +206,8 @@ func nodeMatchesQuery(node *GenericTreeNode, queryMap map[string]interface{}, to
 					return false, nil
 				}
 			}
-		default: // This case handles direct attribute name queries like {"myCustomAttribute": "expectedValue"}
-			actualNodeAttrValue, exists := node.Attributes[key] // key is the attribute name
+		default:	// This case handles direct attribute name queries like {"myCustomAttribute": "expectedValue"}
+			actualNodeAttrValue, exists := node.Attributes[key]	// key is the attribute name
 			if !exists {
 				return false, nil
 			}
@@ -216,7 +216,7 @@ func nodeMatchesQuery(node *GenericTreeNode, queryMap map[string]interface{}, to
 			}
 		}
 	}
-	return true, nil // All conditions in queryMap matched
+	return true, nil	// All conditions in queryMap matched
 }
 
 // deepCompareValues compares two interface{} values, with special handling for numeric types.

@@ -1,10 +1,10 @@
 // NeuroScript Version: 0.5.2
 // File version: 2
 // Purpose: Corrected test harness to properly unwrap result values before comparison.
-// filename: pkg/core/tools_script_test.go
+// filename: pkg/tool/script/tools_script_test.go
 // nlines: 161
 // risk_rating: LOW
-package core
+package script
 
 import (
 	"encoding/json"

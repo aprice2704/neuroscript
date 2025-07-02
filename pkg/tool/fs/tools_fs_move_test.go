@@ -3,8 +3,8 @@
 // Purpose: Moved 'Correct_Args' test to functional tests with proper setup to fix validation failure.
 // nlines: 180
 // risk_rating: LOW
-// filename: pkg/core/tools_fs_move_test.go
-package core
+// filename: pkg/tool/fs/tools_fs_move_test.go
+package fs
 
 import (
 	"errors"
@@ -51,21 +51,21 @@ func TestToolMoveFileFunctional(t *testing.T) {
 
 	// --- Test Cases ---
 	testCases := []struct {
-		name       string
-		sourcePath string
-		destPath   string
-		setupFunc  func()
-		wantErrIs  error
-		checkFunc  func(t *testing.T)
+		name		string
+		sourcePath	string
+		destPath	string
+		setupFunc	func()
+		wantErrIs	error
+		checkFunc	func(t *testing.T)
 	}{
 		{
-			name: "Success: Correct Args (from validation)",
+			name:	"Success: Correct Args (from validation)",
 			setupFunc: func() {
 				createTestFile("source.txt", "content")
 			},
-			sourcePath: "source.txt",
-			destPath:   "destination.txt",
-			wantErrIs:  nil,
+			sourcePath:	"source.txt",
+			destPath:	"destination.txt",
+			wantErrIs:	nil,
 			checkFunc: func(t *testing.T) {
 				if _, err := os.Stat(filepath.Join(sandboxDir, "source.txt")); !errors.Is(err, os.ErrNotExist) {
 					t.Errorf("Source file 'source.txt' should not exist after move")
@@ -76,9 +76,9 @@ func TestToolMoveFileFunctional(t *testing.T) {
 			},
 		},
 		{
-			name:       "Success: Rename file",
-			sourcePath: createTestFile("old.txt", "content1"),
-			destPath:   "new.txt",
+			name:		"Success: Rename file",
+			sourcePath:	createTestFile("old.txt", "content1"),
+			destPath:	"new.txt",
 			checkFunc: func(t *testing.T) {
 				if _, err := os.Stat(filepath.Join(sandboxDir, "old.txt")); !errors.Is(err, os.ErrNotExist) {
 					t.Errorf("Source file old.txt still exists after successful move")
@@ -89,13 +89,13 @@ func TestToolMoveFileFunctional(t *testing.T) {
 			},
 		},
 		{
-			name: "Success: Move file into existing subdir",
+			name:	"Success: Move file into existing subdir",
 			setupFunc: func() {
 				createTestFile("move_me.txt", "content2")
 				os.Mkdir(filepath.Join(sandboxDir, "subdir"), 0755)
 			},
-			sourcePath: "move_me.txt",
-			destPath:   "subdir/moved.txt",
+			sourcePath:	"move_me.txt",
+			destPath:	"subdir/moved.txt",
 			checkFunc: func(t *testing.T) {
 				if _, err := os.Stat(filepath.Join(sandboxDir, "move_me.txt")); !errors.Is(err, os.ErrNotExist) {
 					t.Errorf("Source file move_me.txt still exists after successful move")
@@ -106,10 +106,10 @@ func TestToolMoveFileFunctional(t *testing.T) {
 			},
 		},
 		{
-			name:       "Fail: Source does not exist",
-			sourcePath: "nonexistent_source.txt",
-			destPath:   "any_dest.txt",
-			wantErrIs:  ErrFileNotFound,
+			name:		"Fail: Source does not exist",
+			sourcePath:	"nonexistent_source.txt",
+			destPath:	"any_dest.txt",
+			wantErrIs:	ErrFileNotFound,
 			checkFunc: func(t *testing.T) {
 				if _, err := os.Stat(filepath.Join(sandboxDir, "any_dest.txt")); !errors.Is(err, os.ErrNotExist) {
 					t.Errorf("Destination file should not exist when source is missing")
@@ -117,14 +117,14 @@ func TestToolMoveFileFunctional(t *testing.T) {
 			},
 		},
 		{
-			name: "Fail: Destination exists",
+			name:	"Fail: Destination exists",
 			setupFunc: func() {
 				createTestFile("src_exists.txt", "content3")
 				createTestFile("dest_exists.txt", "content4")
 			},
-			sourcePath: "src_exists.txt",
-			destPath:   "dest_exists.txt",
-			wantErrIs:  ErrPathExists,
+			sourcePath:	"src_exists.txt",
+			destPath:	"dest_exists.txt",
+			wantErrIs:	ErrPathExists,
 			checkFunc: func(t *testing.T) {
 				if _, err := os.Stat(filepath.Join(sandboxDir, "src_exists.txt")); err != nil {
 					t.Errorf("Source file should still exist when destination exists")
@@ -132,16 +132,16 @@ func TestToolMoveFileFunctional(t *testing.T) {
 			},
 		},
 		{
-			name:       "Fail: Path outside sandbox (Source)",
-			sourcePath: "../outside_src.txt",
-			destPath:   "dest.txt",
-			wantErrIs:  ErrPathViolation,
+			name:		"Fail: Path outside sandbox (Source)",
+			sourcePath:	"../outside_src.txt",
+			destPath:	"dest.txt",
+			wantErrIs:	ErrPathViolation,
 		},
 		{
-			name:       "Fail: Path outside sandbox (Destination)",
-			sourcePath: createTestFile("valid_src.txt", "content5"),
-			destPath:   "../outside_dest.txt",
-			wantErrIs:  ErrPathViolation,
+			name:		"Fail: Path outside sandbox (Destination)",
+			sourcePath:	createTestFile("valid_src.txt", "content5"),
+			destPath:	"../outside_dest.txt",
+			wantErrIs:	ErrPathViolation,
 			checkFunc: func(t *testing.T) {
 				if _, err := os.Stat(filepath.Join(sandboxDir, "valid_src.txt")); err != nil {
 					t.Errorf("Source file should still exist when destination is invalid")
@@ -149,16 +149,16 @@ func TestToolMoveFileFunctional(t *testing.T) {
 			},
 		},
 		{
-			name:       "Fail: Empty Source Path",
-			sourcePath: "",
-			destPath:   "some_dest.txt",
-			wantErrIs:  ErrInvalidArgument,
+			name:		"Fail: Empty Source Path",
+			sourcePath:	"",
+			destPath:	"some_dest.txt",
+			wantErrIs:	ErrInvalidArgument,
 		},
 		{
-			name:       "Fail: Empty Destination Path",
-			sourcePath: createTestFile("another_valid_src.txt", "content6"),
-			destPath:   "",
-			wantErrIs:  ErrInvalidArgument,
+			name:		"Fail: Empty Destination Path",
+			sourcePath:	createTestFile("another_valid_src.txt", "content6"),
+			destPath:	"",
+			wantErrIs:	ErrInvalidArgument,
 		},
 	}
 

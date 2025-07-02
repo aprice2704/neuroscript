@@ -3,12 +3,12 @@
 // Purpose: Corrected type assertions to use TreeAttrs instead of a generic map, resolving test failures.
 // nlines: ~128
 // risk_rating: MEDIUM
-// filename: pkg/core/tools_tree_modify_test.go
+// filename: pkg/tool/tree/tools_tree_modify_test.go
 
-package core
+package tree
 
 import (
-	"errors" // Added for robust SetValue test logging
+	"errors"	// Added for robust SetValue test logging
 	"testing"
 )
 
@@ -53,10 +53,10 @@ func TestTreeModificationTools(t *testing.T) {
 
 	testCases := []treeTestCase{
 		{
-			name:      "SetValue Valid Leaf (string node) (Robust)",
-			toolName:  "Tree.GetNode",
-			args:      MakeArgs("SETUP_HANDLE:tree1", "node-1"),
-			setupFunc: setupInitialTree,
+			name:		"SetValue Valid Leaf (string node) (Robust)",
+			toolName:	"Tree.GetNode",
+			args:		MakeArgs("SETUP_HANDLE:tree1", "node-1"),
+			setupFunc:	setupInitialTree,
 			checkFunc: func(t *testing.T, interp *Interpreter, initialToolResult interface{}, initialToolErr error, ctx interface{}) {
 				handle := ctx.(string)
 				newValueToSet := "new_name_value"
@@ -89,24 +89,24 @@ func TestTreeModificationTools(t *testing.T) {
 			},
 		},
 		{
-			name:      "SetValue On Object Node",
-			toolName:  "Tree.SetValue",
-			setupFunc: setupInitialTree,
-			args:      MakeArgs("SETUP_HANDLE:tree1", "node-1", "should_fail"),
-			wantErr:   ErrCannotSetValueOnType,
+			name:		"SetValue On Object Node",
+			toolName:	"Tree.SetValue",
+			setupFunc:	setupInitialTree,
+			args:		MakeArgs("SETUP_HANDLE:tree1", "node-1", "should_fail"),
+			wantErr:	ErrCannotSetValueOnType,
 		},
 		{
-			name:      "SetValue NonExistent Node",
-			toolName:  "Tree.SetValue",
-			setupFunc: setupInitialTree,
-			args:      MakeArgs("SETUP_HANDLE:tree1", "node-999", "val"),
-			wantErr:   ErrNotFound,
+			name:		"SetValue NonExistent Node",
+			toolName:	"Tree.SetValue",
+			setupFunc:	setupInitialTree,
+			args:		MakeArgs("SETUP_HANDLE:tree1", "node-999", "val"),
+			wantErr:	ErrNotFound,
 		},
 		{
-			name:      "AddChildNode To Root Object",
-			toolName:  "Tree.AddChildNode",
-			setupFunc: setupInitialTree,
-			args:      MakeArgs("SETUP_HANDLE:tree1", "node-1", "newChild1", "string", "hello", "newKeyInRoot"),
+			name:		"AddChildNode To Root Object",
+			toolName:	"Tree.AddChildNode",
+			setupFunc:	setupInitialTree,
+			args:		MakeArgs("SETUP_HANDLE:tree1", "node-1", "newChild1", "string", "hello", "newKeyInRoot"),
 			checkFunc: func(t *testing.T, interp *Interpreter, result interface{}, err error, ctx interface{}) {
 				if err != nil {
 					t.Fatalf("AddChildNode failed: %v", err)
@@ -128,17 +128,17 @@ func TestTreeModificationTools(t *testing.T) {
 			},
 		},
 		{
-			name:      "AddChildNode ID Exists",
-			toolName:  "Tree.AddChildNode",
-			setupFunc: setupInitialTree,
-			args:      MakeArgs("SETUP_HANDLE:tree1", "node-1", "node-2", "string", "fail", "anotherKey"),
-			wantErr:   ErrNodeIDExists,
+			name:		"AddChildNode ID Exists",
+			toolName:	"Tree.AddChildNode",
+			setupFunc:	setupInitialTree,
+			args:		MakeArgs("SETUP_HANDLE:tree1", "node-1", "node-2", "string", "fail", "anotherKey"),
+			wantErr:	ErrNodeIDExists,
 		},
 		{
-			name:      "AddChildNode To Leaf Node (Robust)",
-			toolName:  "Tree.GetNode",
-			args:      MakeArgs("SETUP_HANDLE:tree1", "node-1"),
-			setupFunc: setupInitialTree,
+			name:		"AddChildNode To Leaf Node (Robust)",
+			toolName:	"Tree.GetNode",
+			args:		MakeArgs("SETUP_HANDLE:tree1", "node-1"),
+			setupFunc:	setupInitialTree,
 			checkFunc: func(t *testing.T, interp *Interpreter, initialToolResult interface{}, initialToolErr error, ctx interface{}) {
 				handle := ctx.(string)
 				leafNodeID, found := findNodeIDByRootAttribute(t, interp, handle, "node-1", "name")
@@ -155,10 +155,10 @@ func TestTreeModificationTools(t *testing.T) {
 			},
 		},
 		{
-			name:      "RemoveNode Leaf (Robust)",
-			toolName:  "Tree.GetNode",
-			args:      MakeArgs("SETUP_HANDLE:tree1", "node-1"),
-			setupFunc: setupInitialTree,
+			name:		"RemoveNode Leaf (Robust)",
+			toolName:	"Tree.GetNode",
+			args:		MakeArgs("SETUP_HANDLE:tree1", "node-1"),
+			setupFunc:	setupInitialTree,
 			checkFunc: func(t *testing.T, interp *Interpreter, initialGetNodeResult interface{}, initialGetNodeErr error, ctx interface{}) {
 				handle := ctx.(string)
 
@@ -215,18 +215,18 @@ func TestTreeModificationTools(t *testing.T) {
 			},
 		},
 		{
-			name:      "RemoveNode Root",
-			toolName:  "Tree.RemoveNode",
-			setupFunc: setupInitialTree,
-			args:      MakeArgs("SETUP_HANDLE:tree1", "node-1"),
-			wantErr:   ErrCannotRemoveRoot,
+			name:		"RemoveNode Root",
+			toolName:	"Tree.RemoveNode",
+			setupFunc:	setupInitialTree,
+			args:		MakeArgs("SETUP_HANDLE:tree1", "node-1"),
+			wantErr:	ErrCannotRemoveRoot,
 		},
 		{
-			name:      "RemoveNode NonExistent",
-			toolName:  "Tree.RemoveNode",
-			setupFunc: setupInitialTree,
-			args:      MakeArgs("SETUP_HANDLE:tree1", "node-999"),
-			wantErr:   ErrNotFound,
+			name:		"RemoveNode NonExistent",
+			toolName:	"Tree.RemoveNode",
+			setupFunc:	setupInitialTree,
+			args:		MakeArgs("SETUP_HANDLE:tree1", "node-999"),
+			wantErr:	ErrNotFound,
 		},
 	}
 

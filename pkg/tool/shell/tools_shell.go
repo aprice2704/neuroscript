@@ -2,9 +2,9 @@
 // File version: 0.1.1 // Use FileAPI.ResolvePath, add os.Stat check for directory.
 // nlines: 115 // Approximate
 // risk_rating: HIGH // Due to shell execution capabilities
-// filename: pkg/core/tools_shell.go
+// filename: pkg/tool/shell/tools_shell.go
 
-package core
+package shell
 
 import (
 	"bytes"
@@ -34,7 +34,7 @@ func toolExecuteCommand(interpreter *Interpreter, args []interface{}) (interface
 	}
 
 	var commandArgs []string
-	var targetDirRel string = "." // Default directory relative to sandbox
+	var targetDirRel string = "."	// Default directory relative to sandbox
 
 	// Parse args_list (optional, index 1)
 	if len(args) > 1 && args[1] != nil {
@@ -95,7 +95,7 @@ func toolExecuteCommand(interpreter *Interpreter, args []interface{}) (interface
 		ec := ErrorCodeIOFailed
 		if os.IsNotExist(statErr) {
 			sentinel = ErrNotFound
-			ec = ErrorCodeFileNotFound // Use specific code for not found
+			ec = ErrorCodeFileNotFound	// Use specific code for not found
 		} else if os.IsPermission(statErr) {
 			sentinel = ErrPermissionDenied
 			ec = ErrorCodePermissionDenied
@@ -107,7 +107,7 @@ func toolExecuteCommand(interpreter *Interpreter, args []interface{}) (interface
 	if !dirInfo.IsDir() {
 		errMsg := fmt.Sprintf("%s: execution path %q is not a directory", toolName, targetDirRel)
 		interpreter.Logger().Error(errMsg, "absolute_path", absValidatedDir)
-		return nil, lang.NewRuntimeError(ErrorCodePathTypeMismatch, errMsg, ErrPathNotDirectory) // Use specific sentinel
+		return nil, lang.NewRuntimeError(ErrorCodePathTypeMismatch, errMsg, ErrPathNotDirectory)	// Use specific sentinel
 	}
 
 	interpreter.Logger().Debug(fmt.Sprintf("[%s] Preparing command", toolName), "command", commandPath, "args", commandArgs, "directory", absValidatedDir)
@@ -145,10 +145,10 @@ func toolExecuteCommand(interpreter *Interpreter, args []interface{}) (interface
 	}
 
 	resultMap := map[string]interface{}{
-		"stdout":    stdoutStr,
-		"stderr":    stderrStr,
-		"exit_code": int64(exitCode),
-		"success":   success,
+		"stdout":	stdoutStr,
+		"stderr":	stderrStr,
+		"exit_code":	int64(exitCode),
+		"success":	success,
 	}
 	return resultMap, nil
 }

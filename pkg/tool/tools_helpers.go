@@ -1,10 +1,10 @@
-// filename: pkg/core/tools_helpers.go
-package core
+// filename: pkg/tool/tools_helpers.go
+package tool
 
 import (
 	"bytes"
 	"fmt"
-	"os/exec" // Added regexp
+	"os/exec"	// Added regexp
 	"strings"
 )
 
@@ -40,7 +40,7 @@ func toolExec(interpreter *Interpreter, cmdAndArgs ...string) (string, error) {
 		logArgs := make([]string, len(commandArgs))
 		for i, arg := range commandArgs {
 			if strings.Contains(arg, " ") {
-				logArgs[i] = fmt.Sprintf("%q", arg) // Quote args with spaces
+				logArgs[i] = fmt.Sprintf("%q", arg)	// Quote args with spaces
 			} else {
 				logArgs[i] = arg
 			}
@@ -57,7 +57,7 @@ func toolExec(interpreter *Interpreter, cmdAndArgs ...string) (string, error) {
 
 	stdoutStr := stdout.String()
 	stderrStr := stderr.String()
-	combinedOutput := stdoutStr + stderrStr // Combine outputs
+	combinedOutput := stdoutStr + stderrStr	// Combine outputs
 
 	if execErr != nil {
 		// Command failed (non-zero exit or execution error)

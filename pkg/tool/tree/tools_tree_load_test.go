@@ -1,11 +1,11 @@
 // NeuroScript Version: 0.4.0
 // File version: 1
 // Purpose: Refactored to use the new primitive-based tree test helper.
-// filename: pkg/core/tools_tree_load_test.go
+// filename: pkg/tool/tree/tools_tree_load_test.go
 // nlines: 75
 // risk_rating: MEDIUM
 
-package core
+package tree
 
 import (
 	"encoding/json"
@@ -36,7 +36,7 @@ func TestTreeLoadJSONAndToJSON(t *testing.T) {
 			setupFunc: func(t *testing.T, interp *Interpreter) interface{} {
 				return setupTreeWithJSON(t, interp, validJSONSimple)
 			},
-			args: MakeArgs("SETUP_HANDLE:tree1"), // Placeholder replaced by setupFunc result
+			args:	MakeArgs("SETUP_HANDLE:tree1"),	// Placeholder replaced by setupFunc result
 			checkFunc: func(t *testing.T, interp *Interpreter, result interface{}, err error, _ interface{}) {
 				if err != nil {
 					t.Fatalf("ToJSON failed: %v", err)

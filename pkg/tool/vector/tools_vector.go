@@ -2,15 +2,15 @@
 // File version: 0.1.2 // Correctly use FileAPI.ResolvePath and os.ReadFile.
 // nlines: 123 // Approximate
 // risk_rating: LOW // Mock implementation
-// filename: pkg/core/tools_vector.go
+// filename: pkg/tool/vector/tools_vector.go
 
-package core
+package vector
 
 import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os" // Import os package for ReadFile
+	"os"	// Import os package for ReadFile
 	"path/filepath"
 	"sort"
 
@@ -45,8 +45,8 @@ func toolSearchSkills(interpreter *Interpreter, args []interface{}) (interface{}
 	}
 
 	type SearchResult struct {
-		Path  string  `json:"path"`
-		Score float64 `json:"score"`
+		Path	string	`json:"path"`
+		Score	float64	`json:"score"`
 	}
 	results := []SearchResult{}
 	threshold := 0.5
@@ -137,7 +137,7 @@ func toolVectorUpdate(interpreter *Interpreter, args []interface{}) (interface{}
 	if interpreter.vectorIndex == nil {
 		interpreter.vectorIndex = make(map[string][]float32)
 	}
-	interpreter.vectorIndex[absPath] = embedding // Store with absolute path key
+	interpreter.vectorIndex[absPath] = embedding	// Store with absolute path key
 
 	interpreter.Logger().Debug(fmt.Sprintf("[%s] Update successful", toolName), "relative_path", filePathRel, "absolute_path", absPath)
 	return "OK", nil

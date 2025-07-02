@@ -1,10 +1,10 @@
 // NeuroScript Version: 0.4.0
 // File version: 5
 // Purpose: Corrected toolGoFmt to return the expected map structure on error, fixing test failures.
-// filename: pkg/core/tools_gofmt.go
+// filename: pkg/tool/gotools/tools_gofmt.go
 // nlines: 40
 // risk_rating: MEDIUM
-package core
+package gotools
 
 import (
 	"fmt"
@@ -31,7 +31,7 @@ func toolGoFmt(i *Interpreter, args []interface{}) (interface{}, error) {
 	}
 
 	if source == "" {
-		return "", nil // Nothing to format, success.
+		return "", nil	// Nothing to format, success.
 	}
 
 	// Format the source code

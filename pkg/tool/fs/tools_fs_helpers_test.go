@@ -1,4 +1,5 @@
-package core
+// filename: pkg/tool/fs/tools_fs_helpers_test.go
+package fs
 
 import (
 	"errors"
@@ -11,14 +12,14 @@ import (
 
 // fsTestCase defines the structure for a single filesystem tool test case.
 type fsTestCase struct {
-	name          string
-	toolName      string
-	args          []interface{}
-	setupFunc     func(sandboxRoot string) error
-	checkFunc     func(t *testing.T, interp *Interpreter, result interface{}, err error, setupCtx interface{})
-	wantResult    interface{}
-	wantContent   string // New field to check file content
-	wantToolErrIs error
+	name		string
+	toolName	string
+	args		[]interface{}
+	setupFunc	func(sandboxRoot string) error
+	checkFunc	func(t *testing.T, interp *Interpreter, result interface{}, err error, setupCtx interface{})
+	wantResult	interface{}
+	wantContent	string	// New field to check file content
+	wantToolErrIs	error
 }
 
 // testFsToolHelper runs a single filesystem tool test case.

@@ -3,13 +3,13 @@
 // Purpose: Corrected compiler errors by adding type assertions when accessing child node IDs from the Attributes map.
 // nlines: 130 // Approximate
 // risk_rating: LOW
-// filename: pkg/core/tools_tree_render.go
+// filename: pkg/tool/tree/tools_tree_render.go
 
-package core
+package tree
 
 import (
 	"encoding/json"
-	"errors" // Required for errors.Is/Join
+	"errors"	// Required for errors.Is/Join
 	"fmt"
 	"sort"
 	"strings"
@@ -20,7 +20,7 @@ import (
 // toolTreeFormatJSON serializes the tree structure associated with a handle back into a formatted JSON string.
 // Corresponds to ToolSpec "Tree.ToJSON".
 func toolTreeFormatJSON(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	toolName := "Tree.ToJSON" // User-facing tool name
+	toolName := "Tree.ToJSON"	// User-facing tool name
 
 	if len(args) != 1 {
 		return nil, lang.NewRuntimeError(ErrorCodeArgMismatch,
@@ -35,14 +35,14 @@ func toolTreeFormatJSON(interpreter *Interpreter, args []interface{}) (interface
 
 	tree, err := getTreeFromHandle(interpreter, handleID, toolName)
 	if err != nil {
-		return nil, err // getTreeFromHandle returns RuntimeError
+		return nil, err	// getTreeFromHandle returns RuntimeError
 	}
 
 	rootNode, exists := tree.NodeMap[tree.RootID]
 	if !exists {
-		return nil, lang.NewRuntimeError(ErrorCodeInternal, // Root node missing in a valid tree is an internal inconsistency
+		return nil, lang.NewRuntimeError(ErrorCodeInternal,	// Root node missing in a valid tree is an internal inconsistency
 			fmt.Sprintf("%s: cannot find root node ID '%s' in tree handle '%s'", toolName, tree.RootID, handleID),
-			ErrInternal, // Or a more specific ErrTreeIntegrity sentinel
+			ErrInternal,	// Or a more specific ErrTreeIntegrity sentinel
 		)
 	}
 
@@ -59,7 +59,7 @@ func toolTreeFormatJSON(interpreter *Interpreter, args []interface{}) (interface
 			for k := range node.Attributes {
 				keys = append(keys, k)
 			}
-			sort.Strings(keys) // For deterministic output
+			sort.Strings(keys)	// For deterministic output
 			for _, key := range keys {
 				childIDUntyped := node.Attributes[key]
 				childID, ok := childIDUntyped.(string)
@@ -72,14 +72,14 @@ func toolTreeFormatJSON(interpreter *Interpreter, args []interface{}) (interface
 
 				childNode, ok := tree.NodeMap[childID]
 				if !ok {
-					return nil, lang.NewRuntimeError(ErrorCodeInternal, // Child ID in attributes but not in NodeMap
+					return nil, lang.NewRuntimeError(ErrorCodeInternal,	// Child ID in attributes but not in NodeMap
 						fmt.Sprintf("%s: child node ID '%s' (key '%s') not found in tree map", toolName, childID, key),
-						ErrInternal, // Or ErrTreeIntegrity
+						ErrInternal,	// Or ErrTreeIntegrity
 					)
 				}
 				childValue, buildErr := buildOutput(childNode)
 				if buildErr != nil {
-					return nil, buildErr // Propagate RuntimeError
+					return nil, buildErr	// Propagate RuntimeError
 				}
 				objMap[key] = childValue
 			}
@@ -89,14 +89,14 @@ func toolTreeFormatJSON(interpreter *Interpreter, args []interface{}) (interface
 			for i, childID := range node.ChildIDs {
 				childNode, ok := tree.NodeMap[childID]
 				if !ok {
-					return nil, lang.NewRuntimeError(ErrorCodeInternal, // Child ID in ChildIDs but not in NodeMap
+					return nil, lang.NewRuntimeError(ErrorCodeInternal,	// Child ID in ChildIDs but not in NodeMap
 						fmt.Sprintf("%s: child node ID '%s' (index %d) not found in tree map", toolName, childID, i),
-						ErrInternal, // Or ErrTreeIntegrity
+						ErrInternal,	// Or ErrTreeIntegrity
 					)
 				}
 				childValue, buildErr := buildOutput(childNode)
 				if buildErr != nil {
-					return nil, buildErr // Propagate RuntimeError
+					return nil, buildErr	// Propagate RuntimeError
 				}
 				arrSlice[i] = childValue
 			}
@@ -104,9 +104,9 @@ func toolTreeFormatJSON(interpreter *Interpreter, args []interface{}) (interface
 		case "string", "number", "boolean", "null":
 			return node.Value, nil
 		default:
-			return nil, lang.NewRuntimeError(ErrorCodeInternal, // Unknown node type implies data corruption or bad node creation
+			return nil, lang.NewRuntimeError(ErrorCodeInternal,	// Unknown node type implies data corruption or bad node creation
 				fmt.Sprintf("%s: unknown node type '%s' encountered during JSON serialization", toolName, node.Type),
-				ErrInternal, // Or ErrNodeWrongType with a different connotation
+				ErrInternal,	// Or ErrNodeWrongType with a different connotation
 			)
 		}
 	}
@@ -121,11 +121,11 @@ func toolTreeFormatJSON(interpreter *Interpreter, args []interface{}) (interface
 		return nil, lang.NewRuntimeError(ErrorCodeInternal, fmt.Sprintf("%s: failed to build data for JSON serialization: %v", toolName, err), ErrInternal)
 	}
 
-	jsonBytes, marshalErr := json.MarshalIndent(outputData, "", "  ") // Default indent from original code
+	jsonBytes, marshalErr := json.MarshalIndent(outputData, "", "  ")	// Default indent from original code
 	if marshalErr != nil {
-		return nil, lang.NewRuntimeError(ErrorCodeInternal, // JSON marshalling is an internal operation failure
+		return nil, lang.NewRuntimeError(ErrorCodeInternal,	// JSON marshalling is an internal operation failure
 			fmt.Sprintf("%s: failed to marshal tree data to JSON: %v", toolName, marshalErr),
-			errors.Join(ErrTreeJSONMarshal, marshalErr), // Use specific sentinel
+			errors.Join(ErrTreeJSONMarshal, marshalErr),	// Use specific sentinel
 		)
 	}
 	interpreter.Logger().Debug(fmt.Sprintf("%s: Successfully formatted tree to JSON", toolName), "handle", handleID)
@@ -150,7 +150,7 @@ func toolTreeRenderText(interpreter *Interpreter, args []interface{}) (interface
 
 	tree, err := getTreeFromHandle(interpreter, handleID, toolName)
 	if err != nil {
-		return nil, err // getTreeFromHandle returns RuntimeError
+		return nil, err	// getTreeFromHandle returns RuntimeError
 	}
 
 	rootNode, exists := tree.NodeMap[tree.RootID]
@@ -206,7 +206,7 @@ func toolTreeRenderText(interpreter *Interpreter, args []interface{}) (interface
 				childNode, childExists := tree.NodeMap[childID]
 				if !childExists {
 					builder.WriteString(fmt.Sprintf("%s<ERROR: missing node '%s'>\n", strings.Repeat(defaultIndent, indentLevel+2), childID))
-					continue // Log or handle as critical error? For rendering, showing error might be best.
+					continue	// Log or handle as critical error? For rendering, showing error might be best.
 				}
 				if errRender := renderNodeRec(childNode, indentLevel+2); errRender != nil {
 					return errRender
@@ -230,13 +230,13 @@ func toolTreeRenderText(interpreter *Interpreter, args []interface{}) (interface
 
 	if err := renderNodeRec(rootNode, 0); err != nil {
 		var rtErr *RuntimeError
-		if errors.As(err, &rtErr) { // If it's already a RuntimeError, pass it through
+		if errors.As(err, &rtErr) {	// If it's already a RuntimeError, pass it through
 			return nil, rtErr
 		}
 		// Wrap other internal find errors
 		return nil, lang.NewRuntimeError(ErrorCodeInternal,
 			fmt.Sprintf("%s: failed during text rendering: %v", toolName, err),
-			errors.Join(ErrInternal, err), // Or ErrTreeFormatFailed
+			errors.Join(ErrInternal, err),	// Or ErrTreeFormatFailed
 		)
 	}
 	interpreter.Logger().Debug(fmt.Sprintf("%s: Successfully rendered tree to text", toolName), "handle", handleID)

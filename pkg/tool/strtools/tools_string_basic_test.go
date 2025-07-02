@@ -1,11 +1,11 @@
 // NeuroScript Version: 0.4.0
 // File version: 1
 // Purpose: Refactored to test primitive-based tool implementations directly.
-// filename: pkg/core/tools_string_basic_test.go
+// filename: pkg/tool/strtools/tools_string_basic_test.go
 // nlines: 161
 // risk_rating: LOW
 
-package core
+package strtools
 
 import (
 	"errors"
@@ -15,11 +15,11 @@ import (
 
 // testStringToolHelper tests a tool implementation directly with primitives.
 func testStringToolHelper(t *testing.T, interp *Interpreter, tc struct {
-	name       string
-	toolName   string
-	args       []interface{}
-	wantResult interface{}
-	wantErrIs  error
+	name		string
+	toolName	string
+	args		[]interface{}
+	wantResult	interface{}
+	wantErrIs	error
 }) {
 	t.Helper()
 	t.Run(tc.name, func(t *testing.T) {
@@ -51,11 +51,11 @@ func testStringToolHelper(t *testing.T, interp *Interpreter, tc struct {
 func TestToolStringLength(t *testing.T) {
 	interp, _ := NewDefaultTestInterpreter(t)
 	tests := []struct {
-		name       string
-		toolName   string
-		args       []interface{}
-		wantResult interface{}
-		wantErrIs  error
+		name		string
+		toolName	string
+		args		[]interface{}
+		wantResult	interface{}
+		wantErrIs	error
 	}{
 		{name: "Simple", toolName: "Length", args: MakeArgs("hello"), wantResult: float64(5)},
 		{name: "Empty", toolName: "Length", args: MakeArgs(""), wantResult: float64(0)},
@@ -70,11 +70,11 @@ func TestToolStringLength(t *testing.T) {
 func TestToolSubstring(t *testing.T) {
 	interp, _ := NewDefaultTestInterpreter(t)
 	tests := []struct {
-		name       string
-		toolName   string
-		args       []interface{}
-		wantResult interface{}
-		wantErrIs  error
+		name		string
+		toolName	string
+		args		[]interface{}
+		wantResult	interface{}
+		wantErrIs	error
 	}{
 		{name: "Simple_Substring", toolName: "Substring", args: MakeArgs("abcdef", int64(1), int64(3)), wantResult: "bcd"},
 		{name: "Substring_To_End", toolName: "Substring", args: MakeArgs("abcdef", int64(3), int64(3)), wantResult: "def"},
@@ -92,11 +92,11 @@ func TestToolSubstring(t *testing.T) {
 func TestToolToUpperLower(t *testing.T) {
 	interp, _ := NewDefaultTestInterpreter(t)
 	tests := []struct {
-		name       string
-		toolName   string
-		args       []interface{}
-		wantResult interface{}
-		wantErrIs  error
+		name		string
+		toolName	string
+		args		[]interface{}
+		wantResult	interface{}
+		wantErrIs	error
 	}{
 		{name: "ToUpper Simple", toolName: "ToUpper", args: MakeArgs("hello"), wantResult: "HELLO"},
 		{name: "ToUpper Empty", toolName: "ToUpper", args: MakeArgs(""), wantResult: ""},
@@ -112,11 +112,11 @@ func TestToolToUpperLower(t *testing.T) {
 func TestToolTrimSpace(t *testing.T) {
 	interp, _ := NewDefaultTestInterpreter(t)
 	tests := []struct {
-		name       string
-		toolName   string
-		args       []interface{}
-		wantResult interface{}
-		wantErrIs  error
+		name		string
+		toolName	string
+		args		[]interface{}
+		wantResult	interface{}
+		wantErrIs	error
 	}{
 		{name: "Trim Both", toolName: "TrimSpace", args: MakeArgs("  hello  "), wantResult: "hello"},
 		{name: "Trim Internal Space", toolName: "TrimSpace", args: MakeArgs(" hello world "), wantResult: "hello world"},
@@ -130,11 +130,11 @@ func TestToolTrimSpace(t *testing.T) {
 func TestToolReplaceAll(t *testing.T) {
 	interp, _ := NewDefaultTestInterpreter(t)
 	tests := []struct {
-		name       string
-		toolName   string
-		args       []interface{}
-		wantResult interface{}
-		wantErrIs  error
+		name		string
+		toolName	string
+		args		[]interface{}
+		wantResult	interface{}
+		wantErrIs	error
 	}{
 		{name: "Simple_Replace", toolName: "Replace", args: MakeArgs("hello world", "l", "X", int64(-1)), wantResult: "heXXo worXd"},
 		{name: "Replace_With_Count_1", toolName: "Replace", args: MakeArgs("hello world", "l", "X", int64(1)), wantResult: "heXlo world"},

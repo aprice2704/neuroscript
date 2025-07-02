@@ -1,11 +1,11 @@
 // NeuroScript Version: 0.4.0
 // File version: 3
 // Purpose: Corrected expected errors in Go.Imports tests to match specific implementation errors.
-// filename: pkg/core/tools_gofmt_test.go
+// filename: pkg/tool/gotools/tools_gofmt_test.go
 // nlines: 115
 // risk_rating: LOW
 
-package core
+package gotools
 
 import (
 	"errors"
@@ -15,11 +15,11 @@ import (
 
 // testGoFormatToolHelper tests a go formatter tool implementation directly.
 func testGoFormatToolHelper(t *testing.T, interp *Interpreter, tc struct {
-	name       string
-	toolName   string
-	args       []interface{}
-	wantResult interface{}
-	wantErrIs  error
+	name		string
+	toolName	string
+	args		[]interface{}
+	wantResult	interface{}
+	wantErrIs	error
 }) {
 	t.Helper()
 	t.Run(tc.name, func(t *testing.T) {
@@ -63,11 +63,11 @@ func TestToolGoFmt(t *testing.T) {
 	invalid := "package main func main() {"
 
 	tests := []struct {
-		name       string
-		toolName   string
-		args       []interface{}
-		wantResult interface{}
-		wantErrIs  error
+		name		string
+		toolName	string
+		args		[]interface{}
+		wantResult	interface{}
+		wantErrIs	error
 	}{
 		{name: "Format valid code", toolName: "Go.Fmt", args: MakeArgs(unformatted), wantResult: formatted},
 		{name: "Format already formatted code", toolName: "Go.Fmt", args: MakeArgs(formatted), wantResult: formatted},
@@ -88,16 +88,16 @@ func TestToolGoImports(t *testing.T) {
 	wantsUnusedRemoved := "package main\n\nfunc main() {}\n"
 
 	tests := []struct {
-		name       string
-		toolName   string
-		args       []interface{}
-		wantResult interface{}
-		wantErrIs  error
+		name		string
+		toolName	string
+		args		[]interface{}
+		wantResult	interface{}
+		wantErrIs	error
 	}{
 		{name: "Add missing import", toolName: "Go.Imports", args: MakeArgs(needsImport), wantResult: wantsImport},
 		{name: "Remove unused import", toolName: "Go.Imports", args: MakeArgs(hasUnusedImport), wantResult: wantsUnusedRemoved},
-		{name: "Invalid source", toolName: "Go.Imports", args: MakeArgs("package main func {"), wantErrIs: ErrToolExecutionFailed}, // CORRECTED
-		{name: "Wrong arg type", toolName: "Go.Imports", args: MakeArgs(12345), wantErrIs: ErrInvalidArgument},                     // CORRECTED
+		{name: "Invalid source", toolName: "Go.Imports", args: MakeArgs("package main func {"), wantErrIs: ErrToolExecutionFailed},	// CORRECTED
+		{name: "Wrong arg type", toolName: "Go.Imports", args: MakeArgs(12345), wantErrIs: ErrInvalidArgument},				// CORRECTED
 	}
 
 	for _, tt := range tests {

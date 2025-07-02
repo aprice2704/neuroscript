@@ -2,21 +2,21 @@
 // File version: 0.0.5 // Correct t.Errorf usage from %w to %v
 // nlines: 145 // Approximate
 // risk_rating: MEDIUM // Test file for a destructive operation
-// filename: pkg/core/tools_fs_delete_test.go
-package core
+// filename: pkg/tool/fs/tools_fs_delete_test.go
+package fs
 
 import (
-	"errors"        // Keep errors
-	"fmt"           // Keep fmt
-	"os"            // Keep os
-	"path/filepath" // Keep filepath
+	"errors"	// Keep errors
+	"fmt"		// Keep fmt
+	"os"		// Keep os
+	"path/filepath"	// Keep filepath
 	"testing"
 )
 
 func TestToolDeleteFile(t *testing.T) {
 	// --- Test Setup Data (relative paths) ---
 	fileToDeleteRel := "deleteMe.txt"
-	dirToDeleteRel := "deleteMeDir" // Should be empty
+	dirToDeleteRel := "deleteMeDir"	// Should be empty
 	nonEmptyDirRel := "dontDeleteMeDir"
 	nonEmptyFileRel := filepath.Join(nonEmptyDirRel, "keepMe.txt")
 	fileToDeleteContent := "some content"
@@ -62,7 +62,7 @@ func TestToolDeleteFile(t *testing.T) {
 				// Corrected: Use %v for printing errors in t.Errorf
 				t.Errorf("verify failed: expected '%s' (abs: %s) to exist, but got error: %v", pathRel, pathAbs, err)
 			}
-		} else { // Should NOT exist
+		} else {	// Should NOT exist
 			if err == nil {
 				t.Errorf("verify failed: expected '%s' (abs: %s) to be deleted, but it still exists", pathRel, pathAbs)
 			} else if !errors.Is(err, os.ErrNotExist) {
@@ -75,10 +75,10 @@ func TestToolDeleteFile(t *testing.T) {
 	// --- Test Cases ---
 	tests := []fsTestCase{
 		{
-			name:      "Delete Existing File",
-			toolName:  "FS.Delete",
-			args:      MakeArgs(fileToDeleteRel),
-			setupFunc: setupDeleteFileTest,
+			name:		"Delete Existing File",
+			toolName:	"FS.Delete",
+			args:		MakeArgs(fileToDeleteRel),
+			setupFunc:	setupDeleteFileTest,
 			checkFunc: func(t *testing.T, interp *Interpreter, result interface{}, err error, setupCtx interface{}) {
 				if err != nil {
 					t.Fatalf("Unexpected error: %v", err)
@@ -90,10 +90,10 @@ func TestToolDeleteFile(t *testing.T) {
 			},
 		},
 		{
-			name:      "Delete Empty Directory",
-			toolName:  "FS.Delete",
-			args:      MakeArgs(dirToDeleteRel),
-			setupFunc: setupDeleteFileTest,
+			name:		"Delete Empty Directory",
+			toolName:	"FS.Delete",
+			args:		MakeArgs(dirToDeleteRel),
+			setupFunc:	setupDeleteFileTest,
 			checkFunc: func(t *testing.T, interp *Interpreter, result interface{}, err error, setupCtx interface{}) {
 				if err != nil {
 					t.Fatalf("Unexpected error: %v", err)
@@ -105,59 +105,59 @@ func TestToolDeleteFile(t *testing.T) {
 			},
 		},
 		{
-			name:       "Delete Non-Existent File",
-			toolName:   "FS.Delete",
-			args:       MakeArgs("noSuchFile.txt"),
-			setupFunc:  setupDeleteFileTest,
-			wantResult: "OK",
+			name:		"Delete Non-Existent File",
+			toolName:	"FS.Delete",
+			args:		MakeArgs("noSuchFile.txt"),
+			setupFunc:	setupDeleteFileTest,
+			wantResult:	"OK",
 		},
 		{
-			name:          "Delete Non-Empty Directory",
-			toolName:      "FS.Delete",
-			args:          MakeArgs(nonEmptyDirRel),
-			setupFunc:     setupDeleteFileTest,
-			wantToolErrIs: ErrCannotDelete,
+			name:		"Delete Non-Empty Directory",
+			toolName:	"FS.Delete",
+			args:		MakeArgs(nonEmptyDirRel),
+			setupFunc:	setupDeleteFileTest,
+			wantToolErrIs:	ErrCannotDelete,
 			checkFunc: func(t *testing.T, interp *Interpreter, result interface{}, err error, setupCtx interface{}) {
 				if !errors.Is(err, ErrCannotDelete) {
 					t.Fatalf("Expected error ErrCannotDelete, got %v", err)
 				}
-				verifyDeletion(t, interp.SandboxDir(), nonEmptyDirRel, true) // Verify it still exists
+				verifyDeletion(t, interp.SandboxDir(), nonEmptyDirRel, true)	// Verify it still exists
 			},
 		},
 		{
-			name:          "Validation_Wrong_Arg_Type",
-			toolName:      "FS.Delete",
-			args:          MakeArgs(12345),
-			setupFunc:     setupDeleteFileTest,
-			wantToolErrIs: ErrInvalidArgument,
+			name:		"Validation_Wrong_Arg_Type",
+			toolName:	"FS.Delete",
+			args:		MakeArgs(12345),
+			setupFunc:	setupDeleteFileTest,
+			wantToolErrIs:	ErrInvalidArgument,
 		},
 		{
-			name:          "Path_Outside_Sandbox",
-			toolName:      "FS.Delete",
-			args:          MakeArgs("../someFile"),
-			setupFunc:     setupDeleteFileTest,
-			wantToolErrIs: ErrPathViolation,
+			name:		"Path_Outside_Sandbox",
+			toolName:	"FS.Delete",
+			args:		MakeArgs("../someFile"),
+			setupFunc:	setupDeleteFileTest,
+			wantToolErrIs:	ErrPathViolation,
 		},
 		{
-			name:          "Validation_Missing_Arg",
-			toolName:      "FS.Delete",
-			args:          MakeArgs(),
-			setupFunc:     setupDeleteFileTest,
-			wantToolErrIs: ErrArgumentMismatch,
+			name:		"Validation_Missing_Arg",
+			toolName:	"FS.Delete",
+			args:		MakeArgs(),
+			setupFunc:	setupDeleteFileTest,
+			wantToolErrIs:	ErrArgumentMismatch,
 		},
 		{
-			name:          "Validation_Nil_Arg",
-			toolName:      "FS.Delete",
-			args:          MakeArgs(nil),
-			setupFunc:     setupDeleteFileTest,
-			wantToolErrIs: ErrInvalidArgument,
+			name:		"Validation_Nil_Arg",
+			toolName:	"FS.Delete",
+			args:		MakeArgs(nil),
+			setupFunc:	setupDeleteFileTest,
+			wantToolErrIs:	ErrInvalidArgument,
 		},
 		{
-			name:          "Validation_Empty_String_Arg",
-			toolName:      "FS.Delete",
-			args:          MakeArgs(""),
-			setupFunc:     setupDeleteFileTest,
-			wantToolErrIs: ErrInvalidArgument,
+			name:		"Validation_Empty_String_Arg",
+			toolName:	"FS.Delete",
+			args:		MakeArgs(""),
+			setupFunc:	setupDeleteFileTest,
+			wantToolErrIs:	ErrInvalidArgument,
 		},
 	}
 

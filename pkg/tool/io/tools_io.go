@@ -2,9 +2,9 @@
 // File version: 0.0.1 // Removed init() function; registration handled by tooldefs_io/zz_registrar.
 // nlines: 44 // Approximate
 // risk_rating: LOW
-// filename: pkg/core/tools_io.go
+// filename: pkg/tool/io/tools_io.go
 
-package core
+package io
 
 import (
 	"bufio"
@@ -31,7 +31,7 @@ func toolInput(interpreter *Interpreter, args []interface{}) (interface{}, error
 
 	// Print prompt directly to stdout if provided
 	if prompt != "" {
-		fmt.Print(prompt) // Use Print, not Println, so input is on the same line
+		fmt.Print(prompt)	// Use Print, not Println, so input is on the same line
 	}
 
 	// Read input from standard input
@@ -49,7 +49,7 @@ func toolInput(interpreter *Interpreter, args []interface{}) (interface{}, error
 	// Trim trailing newline characters (\n or \r\n)
 	line = strings.TrimRight(line, "\r\n")
 
-	interpreter.Logger().Debug("Tool: Input read line successfully") // Avoid logging the actual input content
+	interpreter.Logger().Debug("Tool: Input read line successfully")	// Avoid logging the actual input content
 	return line, nil
 }
 

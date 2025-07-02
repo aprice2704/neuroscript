@@ -1,11 +1,11 @@
 // NeuroScript Version: 0.4.1
 // File version: 1
 // Purpose: Provide stub implementations for File API tools to return ErrFeatureNotImplemented.
-// filename: pkg/core/tools_file_api_impl.go
+// filename: pkg/tool/fileapi/tools_file_api_impl.go
 // nlines: 32
 // risk_rating: LOW
 
-package core
+package fileapi
 
 import "github.com/aprice2704/neuroscript/pkg/lang"
 

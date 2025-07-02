@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.3.0
 // File version: 0.0.1 // Register GoFindUsages tool
-// filename: pkg/core/tools_go.go
+// filename: pkg/tool/gotools/tools_go.go
 
-package core
+package gotools
 
 import (
 	"fmt"
@@ -11,7 +11,7 @@ import (
 
 // registerGoTools adds Go toolchain interaction tools to the registry.
 // Includes build, format, test, diagnostics, and semantic indexing tools.
-func registerGoTools(registry ToolRegistrar) error { // Changed signature to accept ToolRegistrar interface
+func registerGoTools(registry ToolRegistrar) error {	// Changed signature to accept ToolRegistrar interface
 	// Note: ToolImplementation structs defined inline here for tools whose impl funcs
 	// are in separate files but don't have their own *_impl.go variable defined.
 	// Consider defining impl variables in respective files (e.g., toolGoBuildImpl) for consistency later.
@@ -40,7 +40,7 @@ func registerGoTools(registry ToolRegistrar) error { // Changed signature to acc
 	// Example: err := registerGoAstTools(registry)
 	// if err != nil { return fmt.Errorf("failed to register Go AST tools: %w", err) }
 
-	return nil // Success
+	return nil	// Success
 }
 
 // Define other tool implementation functions (toolGoBuild, toolGoCheck, etc.) here or in separate files...

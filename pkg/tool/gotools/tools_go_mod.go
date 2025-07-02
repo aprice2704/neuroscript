@@ -1,11 +1,11 @@
 // NeuroScript Version: 0.4.0
 // File version: 1
 // Purpose: Fix nil return type in toolGoGetModuleInfo for 'not found' case to match test expectations.
-// filename: pkg/core/tools_go_mod.go
+// filename: pkg/tool/gotools/tools_go_mod.go
 // nlines: 128
 // risk_rating: LOW
 
-package core
+package gotools
 
 import (
 	"errors"
@@ -135,9 +135,9 @@ func toolGoGetModuleInfo(interpreter *Interpreter, args []interface{}) (interfac
 	if modF.Require != nil {
 		for _, req := range modF.Require {
 			reqMap := map[string]interface{}{
-				"path":     req.Mod.Path,
-				"version":  req.Mod.Version,
-				"indirect": req.Indirect,
+				"path":		req.Mod.Path,
+				"version":	req.Mod.Version,
+				"indirect":	req.Indirect,
 			}
 			reqList = append(reqList, reqMap)
 		}
@@ -148,10 +148,10 @@ func toolGoGetModuleInfo(interpreter *Interpreter, args []interface{}) (interfac
 	if modF.Replace != nil {
 		for _, rep := range modF.Replace {
 			repMap := map[string]interface{}{
-				"oldPath":    rep.Old.Path,
-				"oldVersion": rep.Old.Version,
-				"newPath":    rep.New.Path,
-				"newVersion": rep.New.Version,
+				"oldPath":	rep.Old.Path,
+				"oldVersion":	rep.Old.Version,
+				"newPath":	rep.New.Path,
+				"newVersion":	rep.New.Version,
 			}
 			repList = append(repList, repMap)
 		}

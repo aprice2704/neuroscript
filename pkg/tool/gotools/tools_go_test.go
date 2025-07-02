@@ -1,11 +1,11 @@
 // NeuroScript Version: 0.4.0
 // File version: 2
 // Purpose: Fixed variable shadowing bug by correctly handling the error return from NewDefaultTestInterpreter.
-// filename: pkg/core/tools_go_test.go
+// filename: pkg/tool/gotools/tools_go_test.go
 // nlines: 119
 // risk_rating: MEDIUM
 
-package core
+package gotools
 
 import (
 	"errors"
@@ -18,11 +18,11 @@ import (
 
 // testGoGetModuleInfoHelper tests the toolGoGetModuleInfo implementation directly.
 func testGoGetModuleInfoHelper(t *testing.T, tc struct {
-	name       string
-	dirArg     interface{}
-	setupFunc  func(t *testing.T, sandboxRoot string)
-	wantResult map[string]interface{}
-	wantErrIs  error
+	name		string
+	dirArg		interface{}
+	setupFunc	func(t *testing.T, sandboxRoot string)
+	wantResult	map[string]interface{}
+	wantErrIs	error
 }) {
 	t.Helper()
 	t.Run(tc.name, func(t *testing.T) {
@@ -82,56 +82,56 @@ func TestToolGoGetModuleInfo(t *testing.T) {
 	}
 
 	tests := []struct {
-		name       string
-		dirArg     interface{}
-		setupFunc  func(t *testing.T, sandboxRoot string)
-		wantResult map[string]interface{}
-		wantErrIs  error
+		name		string
+		dirArg		interface{}
+		setupFunc	func(t *testing.T, sandboxRoot string)
+		wantResult	map[string]interface{}
+		wantErrIs	error
 	}{
 		{
-			name:      "From root dir (.)",
-			dirArg:    ".",
-			setupFunc: setupFunc,
+			name:		"From root dir (.)",
+			dirArg:		".",
+			setupFunc:	setupFunc,
 			wantResult: map[string]interface{}{
-				"modulePath": moduleName,
-				"goVersion":  goVersion,
-				"rootDir":    "", // This will be replaced by the helper
-				"requires":   []map[string]interface{}{},
-				"replaces":   []map[string]interface{}{},
+				"modulePath":	moduleName,
+				"goVersion":	goVersion,
+				"rootDir":	"",	// This will be replaced by the helper
+				"requires":	[]map[string]interface{}{},
+				"replaces":	[]map[string]interface{}{},
 			},
 		},
 		{
-			name:      "From subdir",
-			dirArg:    "subdir",
-			setupFunc: setupFunc,
+			name:		"From subdir",
+			dirArg:		"subdir",
+			setupFunc:	setupFunc,
 			wantResult: map[string]interface{}{
-				"modulePath": moduleName,
-				"goVersion":  goVersion,
-				"rootDir":    "", // This will be replaced by the helper
-				"requires":   []map[string]interface{}{},
-				"replaces":   []map[string]interface{}{},
+				"modulePath":	moduleName,
+				"goVersion":	goVersion,
+				"rootDir":	"",	// This will be replaced by the helper
+				"requires":	[]map[string]interface{}{},
+				"replaces":	[]map[string]interface{}{},
 			},
 		},
 		{
-			name:      "Directory outside sandbox",
-			dirArg:    "../outside",
-			setupFunc: setupFunc,
-			wantErrIs: ErrPathViolation,
+			name:		"Directory outside sandbox",
+			dirArg:		"../outside",
+			setupFunc:	setupFunc,
+			wantErrIs:	ErrPathViolation,
 		},
 		{
-			name: "Go.mod not found",
+			name:	"Go.mod not found",
 			setupFunc: func(t *testing.T, sandboxRoot string) {
 				// No go.mod is created for this test
 			},
-			dirArg:     ".",
-			wantResult: nil, // Expect nil result and nil error
-			wantErrIs:  nil,
+			dirArg:		".",
+			wantResult:	nil,	// Expect nil result and nil error
+			wantErrIs:	nil,
 		},
 		{
-			name:      "Wrong arg type",
-			dirArg:    123,
-			setupFunc: setupFunc,
-			wantErrIs: ErrValidationTypeMismatch,
+			name:		"Wrong arg type",
+			dirArg:		123,
+			setupFunc:	setupFunc,
+			wantErrIs:	ErrValidationTypeMismatch,
 		},
 	}
 
