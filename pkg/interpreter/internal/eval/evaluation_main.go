@@ -26,7 +26,7 @@ func (i *Interpreter) evaluate.Expression(node ast.Expression) (Value, error) {
 	case *ast.StringLiteralNode:
 		return i.evaluateStringLiteral(n)
 	case *ast.NumberLiteralNode:
-		val, _ := toFloat64(n.Value)
+		val, _ := lang.ToFloat64(n.Value)
 		return NumberValue{Value: val}, nil
 	case *ast.BooleanLiteralNode:
 		return BoolValue{Value: n.Value}, nil

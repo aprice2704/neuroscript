@@ -19,6 +19,8 @@ import (
 	"strings"
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/security"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 	"github.com/aprice2704/neuroscript/pkg/tool/fileapi"
 	"github.com/google/generative-ai-go/genai"
 	// This file assumes a sync_types.go, interfaces.go and other helpers exist in the package.
@@ -35,7 +37,7 @@ type gitIgnorer interface {
 
 type dummyIgnorer struct{}
 
-func (d dummyIgnorer) MatchesPath(path string) bool	{ return false }
+func (d dummyIgnorer) MatchesPath(path string) bool { return false }
 
 // --- END STUBS ---
 
@@ -121,9 +123,9 @@ func gatherLocalFiles(sc *syncContext) (map[string]LocalFileInfo, error) {
 		}
 
 		localFiles[relPath] = LocalFileInfo{
-			RelPath:	relPath,
-			AbsPath:	currentPath,
-			Hash:		localHash,
+			RelPath: relPath,
+			AbsPath: currentPath,
+			Hash:    localHash,
 		}
 		hashPrefix := localHash
 		if len(hashPrefix) > 8 {
@@ -165,10 +167,10 @@ func computeSyncActions(sc *syncContext, localFiles map[string]LocalFileInfo, re
 					relPath, localInfo.Hash, apiHashStr,
 				)
 				actions.FilesToUpdate = append(actions.FilesToUpdate, uploadJob{
-					localAbsPath:		localInfo.AbsPath,
-					relPath:		localInfo.RelPath,
-					localHash:		localInfo.Hash,
-					existingApiFile:	apiFileInfo,
+					localAbsPath:    localInfo.AbsPath,
+					relPath:         localInfo.RelPath,
+					localHash:       localInfo.Hash,
+					existingApiFile: apiFileInfo,
 				})
 			} else {
 				sc.incrementStat("files_up_to_date")
@@ -204,7 +206,7 @@ func computeSyncActions(sc *syncContext, localFiles map[string]LocalFileInfo, re
 }
 
 // --- Tool: SyncFiles (Wrapper) ---
-func toolSyncFiles(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolSyncFiles(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	_, clientErr := checkGenAIClient(interpreter)
 	if clientErr != nil {
 		// FIX: Wrap the unwrapped error from the helper with the correct sentinel error.

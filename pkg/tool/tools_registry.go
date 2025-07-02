@@ -18,8 +18,8 @@ import (
 
 // globalToolImplementations holds tools registered via init() functions.
 var (
-	globalToolImplementations	[]ToolImplementation
-	globalRegMutex			sync.Mutex
+	globalToolImplementations []ToolImplementation
+	globalRegMutex            sync.Mutex
 )
 
 // AddToolImplementations allows tool packages to register their ToolImplementation specs.
@@ -31,16 +31,16 @@ func AddToolImplementations(impls ...ToolImplementation) {
 
 // ToolRegistryImpl manages the available tools for an Interpreter instance.
 type ToolRegistryImpl struct {
-	tools		map[string]ToolImplementation
-	interpreter	*neurogo.Interpreter
-	mu		sync.RWMutex
+	tools       map[string]ToolImplementation
+	interpreter RunTime
+	mu          sync.RWMutex
 }
 
 // NewToolRegistry creates a new registry instance.
-func NewToolRegistry(interpreter *neurogo.Interpreter) *ToolRegistryImpl {
+func NewToolRegistry(interpreter RunTime) *ToolRegistryImpl {
 	r := &ToolRegistryImpl{
-		tools:		make(map[string]ToolImplementation),
-		interpreter:	interpreter,
+		tools:       make(map[string]ToolImplementation),
+		interpreter: interpreter,
 	}
 	globalRegMutex.Lock()
 	defer globalRegMutex.Unlock()
@@ -88,7 +88,7 @@ func (r *ToolRegistryImpl) ListTools() []ToolSpec {
 // --- BRIDGE IMPLEMENTATION ---
 
 // CallFromInterpreter is the single bridge between the Value-based interpreter and primitive-based tools.
-func (r *ToolRegistryImpl) CallFromInterpreter(interp *neurogo.Interpreter, toolName string, args []Value) (Value, error) {
+func (r *ToolRegistryImpl) CallFromInterpreter(interp RunTime, toolName string, args []lang.Value) (lang.Value, error) {
 	impl, ok := r.GetTool(toolName)
 	if !ok {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeToolNotFound, fmt.Sprintf("tool '%s' not found", toolName), lang.ErrToolNotFound)
@@ -97,7 +97,7 @@ func (r *ToolRegistryImpl) CallFromInterpreter(interp *neurogo.Interpreter, tool
 	// 1. Unwrap all arguments from Value to primitives
 	rawArgs := make([]interface{}, len(args))
 	for i, arg := range args {
-		rawArgs[i] = lang.unwrapValue(arg)
+		rawArgs[i] = lang.UnwrapValue(arg)
 	}
 
 	// 2. Validate and coerce the primitive arguments
@@ -123,7 +123,7 @@ func (r *ToolRegistryImpl) CallFromInterpreter(interp *neurogo.Interpreter, tool
 	// 3. Call the tool's implementation function with primitives
 	out, err := impl.Func(interp, coercedArgs)
 	if err != nil {
-		return nil, err	// Assume tool returns a compliant RuntimeError
+		return nil, err // Assume tool returns a compliant RuntimeError
 	}
 
 	// 4. Wrap the primitive result back into a Value
@@ -133,7 +133,7 @@ func (r *ToolRegistryImpl) CallFromInterpreter(interp *neurogo.Interpreter, tool
 // coerceArg attempts to convert a primitive value `x` to the specified ArgType.
 func coerceArg(x interface{}, t ArgType) (interface{}, error) {
 	if x == nil {
-		return nil, nil	// Let the tool handle nil for optional args.
+		return nil, nil // Let the tool handle nil for optional args.
 	}
 
 	switch t {
@@ -144,13 +144,13 @@ func coerceArg(x interface{}, t ArgType) (interface{}, error) {
 		}
 		return s, nil
 	case ArgTypeInt:
-		i, ok := lang.toInt64(x)
+		i, ok := lang.ToInt64(x)
 		if !ok {
 			return nil, fmt.Errorf("expected integer, got %T", x)
 		}
 		return i, nil
 	case ArgTypeFloat:
-		f, ok := lang.toFloat64(x)
+		f, ok := lang.ToFloat64(x)
 		if !ok {
 			return nil, fmt.Errorf("expected float, got %T", x)
 		}

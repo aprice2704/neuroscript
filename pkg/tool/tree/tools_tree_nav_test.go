@@ -13,6 +13,7 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/tool"
+	"github.com/aprice2704/neuroscript/pkg/utils"
 )
 
 func TestTreeNavigationTools(t *testing.T) {
@@ -32,7 +33,7 @@ func TestTreeNavigationTools(t *testing.T) {
 	rootNodeID := "node-1"
 
 	testCases := []treeTestCase{
-		{name: "GetNode Root", toolName: "Tree.GetNode", args: tool.MakeArgs(rootHandle, rootNodeID), checkFunc: func(t *testing.T, interp *neurogo.Interpreter, result interface{}, err error, ctx interface{}) {
+		{name: "GetNode Root", toolName: "Tree.GetNode", args: tool.MakeArgs(rootHandle, rootNodeID), checkFunc: func(t *testing.T, interp tool.RunTime, result interface{}, err error, ctx interface{}) {
 			if err != nil {
 				t.Fatalf("GetNode Root failed: %v", err)
 			}
@@ -48,7 +49,7 @@ func TestTreeNavigationTools(t *testing.T) {
 			}
 		}},
 		{name: "GetNode Nested (file1 name)", toolName: "Tree.GetNode", args: tool.MakeArgs(rootHandle, ""),
-			checkFunc: func(t *testing.T, interp *neurogo.Interpreter, result interface{}, err error, ctx interface{}) {
+			checkFunc: func(t *testing.T, interp tool.RunTime, result interface{}, err error, ctx interface{}) {
 				rootMap, _ := callGetNode(t, interp, rootHandle, rootNodeID)
 				childrenArrNodeID := rootMap["attributes"].(utils.TreeAttrs)["children"].(string)
 				childrenArrMap, _ := callGetNode(t, interp, rootHandle, childrenArrNodeID)
@@ -91,7 +92,7 @@ func TestTreeNavigationTools(t *testing.T) {
 		{name: "GetNode Invalid Handle", toolName: "Tree.GetNode", args: tool.MakeArgs("bad-handle", "node-1"), wantErr: lang.ErrInvalidArgument},
 
 		{name: "GetChildren of Array Node", toolName: "Tree.GetChildren", args: tool.MakeArgs(rootHandle, ""),
-			checkFunc: func(t *testing.T, interp *neurogo.Interpreter, result interface{}, err error, ctx interface{}) {
+			checkFunc: func(t *testing.T, interp tool.RunTime, result interface{}, err error, ctx interface{}) {
 				rootMap, _ := callGetNode(t, interp, rootHandle, rootNodeID)
 				childrenArrNodeID := rootMap["attributes"].(utils.TreeAttrs)["children"].(string)
 				childrenIDs, errGet := callGetChildren(t, interp, rootHandle, childrenArrNodeID)
@@ -104,7 +105,7 @@ func TestTreeNavigationTools(t *testing.T) {
 			}},
 		{name: "GetChildren of Object Node", toolName: "Tree.GetChildren", args: tool.MakeArgs(rootHandle, rootNodeID), wantErr: lang.ErrNodeWrongType},
 		{name: "GetChildren of Leaf Node", toolName: "Tree.GetChildren", args: tool.MakeArgs(rootHandle, ""),
-			checkFunc: func(t *testing.T, interp *neurogo.Interpreter, result interface{}, err error, ctx interface{}) {
+			checkFunc: func(t *testing.T, interp tool.RunTime, result interface{}, err error, ctx interface{}) {
 				rootMap, _ := callGetNode(t, interp, rootHandle, rootNodeID)
 				childrenArrNodeID := rootMap["attributes"].(utils.TreeAttrs)["children"].(string)
 				childrenArrMap, _ := callGetNode(t, interp, rootHandle, childrenArrNodeID)
@@ -136,7 +137,7 @@ func TestTreeNavigationTools(t *testing.T) {
 				}
 			}},
 
-		{name: "GetParent of Root", toolName: "Tree.GetParent", args: tool.MakeArgs(rootHandle, rootNodeID), checkFunc: func(t *testing.T, interp *neurogo.Interpreter, result interface{}, err error, setupCtx interface{}) {
+		{name: "GetParent of Root", toolName: "Tree.GetParent", args: tool.MakeArgs(rootHandle, rootNodeID), checkFunc: func(t *testing.T, interp tool.RunTime, result interface{}, err error, setupCtx interface{}) {
 			if err != nil {
 				t.Fatalf("Unexpected error: %v", err)
 			}
@@ -145,7 +146,7 @@ func TestTreeNavigationTools(t *testing.T) {
 			}
 		}},
 		{name: "GetParent of Child", toolName: "Tree.GetParent", args: tool.MakeArgs(rootHandle, ""),
-			checkFunc: func(t *testing.T, interp *neurogo.Interpreter, result interface{}, err error, ctx interface{}) {
+			checkFunc: func(t *testing.T, interp tool.RunTime, result interface{}, err error, ctx interface{}) {
 				rootMap, _ := callGetNode(t, interp, rootHandle, rootNodeID)
 				childrenArrNodeID := rootMap["attributes"].(utils.TreeAttrs)["children"].(string)
 

@@ -14,12 +14,14 @@ import (
 	"strconv"
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/tool"
+	"github.com/aprice2704/neuroscript/pkg/utils"
 )
 
 // --- Tree.SetValue (was toolTreeModifyNode) ---
 // Sets the value of an existing leaf node.
 // Corresponds to ToolSpec "Tree.SetValue".
-func toolTreeModifyNode(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolTreeModifyNode(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	toolName := "Tree.SetValue"
 
 	if len(args) != 3 {
@@ -62,7 +64,7 @@ func toolTreeModifyNode(interpreter *neurogo.Interpreter, args []interface{}) (i
 // --- Tree.SetObjectAttribute (was toolTreeSetAttribute) ---
 // Sets or updates an attribute on an object node, mapping the attribute key to a child node ID.
 // Corresponds to ToolSpec "Tree.SetObjectAttribute".
-func toolTreeSetAttribute(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolTreeSetAttribute(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	toolName := "Tree.SetObjectAttribute"
 
 	if len(args) != 4 {
@@ -116,7 +118,7 @@ func toolTreeSetAttribute(interpreter *neurogo.Interpreter, args []interface{}) 
 // --- Tree.RemoveObjectAttribute (was toolTreeRemoveAttribute) ---
 // Removes an attribute from an object node.
 // Corresponds to ToolSpec "Tree.RemoveObjectAttribute".
-func toolTreeRemoveAttribute(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolTreeRemoveAttribute(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	toolName := "Tree.RemoveObjectAttribute"
 
 	if len(args) != 3 {
@@ -168,7 +170,7 @@ func toolTreeRemoveAttribute(interpreter *neurogo.Interpreter, args []interface{
 // --- Tree.AddChildNode (was toolTreeAddNode) ---
 // Adds a new child node to an existing parent node.
 // Corresponds to ToolSpec "Tree.AddChildNode".
-func toolTreeAddNode(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolTreeAddNode(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	toolName := "Tree.AddChildNode"
 
 	if len(args) < 4 || len(args) > 6 {
@@ -251,13 +253,13 @@ func toolTreeAddNode(interpreter *neurogo.Interpreter, args []interface{}) (inte
 	}
 
 	newNode := &utils.GenericTreeNode{
-		ID:		newNodeID,
-		Type:		nodeType,
-		Value:		nodeValue,
-		Attributes:	make(utils.TreeAttrs),
-		ChildIDs:	make([]string, 0),
-		ParentID:	parentID,
-		Tree:		tree,
+		ID:         newNodeID,
+		Type:       nodeType,
+		Value:      nodeValue,
+		Attributes: make(utils.TreeAttrs),
+		ChildIDs:   make([]string, 0),
+		ParentID:   parentID,
+		Tree:       tree,
 	}
 	tree.NodeMap[newNodeID] = newNode
 
@@ -273,7 +275,7 @@ func toolTreeAddNode(interpreter *neurogo.Interpreter, args []interface{}) (inte
 			parentNode.Attributes = make(utils.TreeAttrs)
 		}
 		parentNode.Attributes[keyForObjectParent] = newNodeID
-	} else if parentNode.Type == "array" || parentNode.Type == "checklist_root" || parentNode.Type == "checklist_item" {	// MODIFIED HERE
+	} else if parentNode.Type == "array" || parentNode.Type == "checklist_root" || parentNode.Type == "checklist_item" { // MODIFIED HERE
 		// keyForObjectParent (args[5]) should be nil if not an object parent, as handled by ChecklistAddItem.
 		// Log a warning if it was somehow provided for these types.
 		if keyForObjectParent != "" {
@@ -297,7 +299,7 @@ func toolTreeAddNode(interpreter *neurogo.Interpreter, args []interface{}) (inte
 // --- Tree.RemoveNode (was toolTreeRemoveNode) ---
 // Removes a node and all its descendants from the tree.
 // Corresponds to ToolSpec "Tree.RemoveNode".
-func toolTreeRemoveNode(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolTreeRemoveNode(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	toolName := "Tree.RemoveNode"
 
 	if len(args) != 2 {

@@ -11,10 +11,11 @@ import (
 	"go/format"
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
 // toolGoFmt formats a Go source string using go/format.
-func toolGoFmt(i *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolGoFmt(i tool.RunTime, args []interface{}) (interface{}, error) {
 	errorResult := func(errMsg string) map[string]interface{} {
 		return map[string]interface{}{"success": false, "error": errMsg}
 	}
@@ -31,7 +32,7 @@ func toolGoFmt(i *neurogo.Interpreter, args []interface{}) (interface{}, error) 
 	}
 
 	if source == "" {
-		return "", nil	// Nothing to format, success.
+		return "", nil // Nothing to format, success.
 	}
 
 	// Format the source code

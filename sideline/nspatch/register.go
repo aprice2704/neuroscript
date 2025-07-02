@@ -8,12 +8,12 @@ package nspatch
 import (
 	"fmt"
 
-	"github.com/aprice2704/neuroscript/pkg/toolsets"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
 // init registers the nspatch toolset.
 func init() {
-	toolsets.AddToolsetRegistration("nspatch", RegisterNsPatchTools)
+	tool.AddToolsetRegistration("nspatch", RegisterNsPatchTools)
 }
 
 // RegisterNsPatchTools registers the tools in this package.

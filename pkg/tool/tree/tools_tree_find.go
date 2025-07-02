@@ -13,10 +13,12 @@ import (
 	"reflect"
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/tool"
+	"github.com/aprice2704/neuroscript/pkg/utils"
 )
 
 // toolTreeFindNodes implements the Tree.FindNodes tool.
-func toolTreeFindNodes(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolTreeFindNodes(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	toolName := "Tree.FindNodes"
 
 	if len(args) < 3 || len(args) > 5 {
@@ -206,8 +208,8 @@ func nodeMatchesQuery(node *utils.GenericTreeNode, queryMap map[string]interface
 					return false, nil
 				}
 			}
-		default:	// This case handles direct attribute name queries like {"myCustomAttribute": "expectedValue"}
-			actualNodeAttrValue, exists := node.Attributes[key]	// key is the attribute name
+		default: // This case handles direct attribute name queries like {"myCustomAttribute": "expectedValue"}
+			actualNodeAttrValue, exists := node.Attributes[key] // key is the attribute name
 			if !exists {
 				return false, nil
 			}
@@ -216,7 +218,7 @@ func nodeMatchesQuery(node *utils.GenericTreeNode, queryMap map[string]interface
 			}
 		}
 	}
-	return true, nil	// All conditions in queryMap matched
+	return true, nil // All conditions in queryMap matched
 }
 
 // deepCompareValues compares two interface{} values, with special handling for numeric types.

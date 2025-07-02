@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/testutil"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
@@ -21,14 +22,14 @@ import (
 func TestToolListDirectoryValidation(t *testing.T) {
 	testCases := []testutil.ValidationTestCase{
 		{
-			Name:		"Correct_Args_(Path_Only)",
-			InputArgs:	tool.MakeArgs("some/dir"),
-			ExpectedError:	lang.ErrFileNotFound,
+			Name:          "Correct_Args_(Path_Only)",
+			InputArgs:     tool.MakeArgs("some/dir"),
+			ExpectedError: lang.ErrFileNotFound,
 		},
 		{
-			Name:		"Wrong_Arg_Count",
-			InputArgs:	tool.MakeArgs("some/dir", true, "extra"),
-			ExpectedError:	lang.ErrArgumentMismatch,
+			Name:          "Wrong_Arg_Count",
+			InputArgs:     tool.MakeArgs("some/dir", true, "extra"),
+			ExpectedError: lang.ErrArgumentMismatch,
 		},
 	}
 
@@ -54,27 +55,27 @@ func TestToolListDirectoryFunctional(t *testing.T) {
 
 	tests := []fsTestCase{
 		{
-			name:		"List_Root_NonRecursive",
-			toolName:	"FS.List",
-			args:		tool.MakeArgs("."),
-			setupFunc:	setupFunc,
-			checkFunc: func(t *testing.T, interp *neurogo.Interpreter, result interface{}, err error, ctx interface{}) {
+			name:      "List_Root_NonRecursive",
+			toolName:  "FS.List",
+			args:      tool.MakeArgs("."),
+			setupFunc: setupFunc,
+			checkFunc: func(t *testing.T, interp tool.RunTime, result interface{}, err error, ctx interface{}) {
 				testutil.AssertNoError(t, err)
 				res, ok := result.([]map[string]interface{})
 				if !ok {
 					t.Fatalf("Expected []map[string]interface{}, got %T", result)
 				}
-				if len(res) != 3 {	// dir1, empty_dir, file1.txt
+				if len(res) != 3 { // dir1, empty_dir, file1.txt
 					t.Errorf("Expected 3 entries in root, got %d. Result: %v", len(res), res)
 				}
 			},
 		},
 		{
-			name:		"Error_PathIsFile",
-			toolName:	"FS.List",
-			args:		tool.MakeArgs("file1.txt"),
-			setupFunc:	setupFunc,
-			wantToolErrIs:	lang.ErrPathNotDirectory,
+			name:          "Error_PathIsFile",
+			toolName:      "FS.List",
+			args:          tool.MakeArgs("file1.txt"),
+			setupFunc:     setupFunc,
+			wantToolErrIs: lang.ErrPathNotDirectory,
 		},
 	}
 
@@ -122,11 +123,11 @@ func TestToolMkdirFunctional(t *testing.T) {
 
 	tests := []fsTestCase{
 		{
-			name:		"Create_Single_Dir",
-			toolName:	"FS.Mkdir",
-			args:		tool.MakeArgs("new_dir_1"),
-			setupFunc:	setupFunc,
-			checkFunc: func(t *testing.T, interp *neurogo.Interpreter, result interface{}, err error, ctx interface{}) {
+			name:      "Create_Single_Dir",
+			toolName:  "FS.Mkdir",
+			args:      tool.MakeArgs("new_dir_1"),
+			setupFunc: setupFunc,
+			checkFunc: func(t *testing.T, interp tool.RunTime, result interface{}, err error, ctx interface{}) {
 				testutil.AssertNoError(t, err)
 				if _, statErr := os.Stat(filepath.Join(interp.SandboxDir(), "new_dir_1")); os.IsNotExist(statErr) {
 					t.Error("Mkdir did not create the directory 'new_dir_1'")
@@ -134,12 +135,12 @@ func TestToolMkdirFunctional(t *testing.T) {
 			},
 		},
 		{
-			name:		"Error_PathIsFile",
-			toolName:	"FS.Mkdir",
-			args:		tool.MakeArgs("existing_file"),
-			setupFunc:	setupFunc,
+			name:      "Error_PathIsFile",
+			toolName:  "FS.Mkdir",
+			args:      tool.MakeArgs("existing_file"),
+			setupFunc: setupFunc,
 			// FIX: The error returned is more specific than just 'path exists'. It's specifically not a directory.
-			wantToolErrIs:	lang.ErrPathNotDirectory,
+			wantToolErrIs: lang.ErrPathNotDirectory,
 		},
 	}
 

@@ -1,11 +1,11 @@
 // NeuroScript Version: 0.4.0
 // File version: 0.1.1
 // Purpose: Corrected Sprintf formatting errors in ColourString methods.
-// filename: pkg/core/ai_worker_stringers.go
+// filename: pkg/wm/ai_worker_stringers.go
 // nlines: 850
 // risk_rating: LOW
 
-package core
+package wm
 
 import (
 	"fmt"
@@ -16,18 +16,18 @@ import (
 
 // --- Stringer Color Constants ---
 const (
-	colLabel      = "[blue::b]"
-	colValue      = "[white]"
-	colID         = "[yellow]"
-	colName       = "[gold]"
-	colStatusOk   = "[green]"
-	colStatusErr  = "[red]"
-	colStatusWarn = "[orange]"
-	colStatusNeut = "[aqua]"
-	colCount      = "[purple]"
-	colBool       = "[cyan]"
-	colTime       = "[grey]"
-	colReset      = "[-]"
+	colLabel	= "[blue::b]"
+	colValue	= "[white]"
+	colID		= "[yellow]"
+	colName		= "[gold]"
+	colStatusOk	= "[green]"
+	colStatusErr	= "[red]"
+	colStatusWarn	= "[orange]"
+	colStatusNeut	= "[aqua]"
+	colCount	= "[purple]"
+	colBool		= "[cyan]"
+	colTime		= "[grey]"
+	colReset	= "[-]"
 )
 
 // --- AIWorkerDefinitionDisplayInfo ---
@@ -172,15 +172,15 @@ func (ps *AIWorkerPerformanceSummary) ColourString() string {
 	// Corrected: This Sprintf was complex and a likely candidate for arg count mismatches if not careful.
 	// Breaking it down or ensuring exact counts. Counted 45 specifiers and 45 args.
 	return fmt.Sprintf("%sTasks:%s %s%d%s (%sS:%s%s%d%s, %sF:%s%s%d%s), %sSuccessRate:%s %s%.2f%%%s, %sAvgDur:%s %s%.0fms%s, %sTokens:%s %s%d%s, %sCost:%s %s$%.4f%s, %sActiveInst(Live):%s %s%d%s, %sLastActivity:%s %s%s%s",
-		colLabel, colReset, colCount, ps.TotalTasksAttempted, colReset, // 5
-		colLabel, colReset, colStatusOk, ps.SuccessfulTasks, colReset, // 5
-		colLabel, colReset, colStatusErr, ps.FailedTasks, colReset, // 5
-		colLabel, colReset, colValue, ps.AverageSuccessRate*100, colReset, // 5 (%.2f%% counts as one float specifier)
-		colLabel, colReset, colValue, ps.AverageDurationMs, colReset, // 5
-		colLabel, colReset, colCount, ps.TotalTokensProcessed, colReset, // 5
-		colLabel, colReset, colValue, ps.TotalCostIncurred, colReset, // 5
-		colLabel, colReset, colCount, ps.ActiveInstancesCount, colReset, // 5
-		colLabel, colReset, colTime, ps.LastActivityTimestamp.Format(time.RFC3339), colReset) // 5
+		colLabel, colReset, colCount, ps.TotalTasksAttempted, colReset,	// 5
+		colLabel, colReset, colStatusOk, ps.SuccessfulTasks, colReset,	// 5
+		colLabel, colReset, colStatusErr, ps.FailedTasks, colReset,	// 5
+		colLabel, colReset, colValue, ps.AverageSuccessRate*100, colReset,	// 5 (%.2f%% counts as one float specifier)
+		colLabel, colReset, colValue, ps.AverageDurationMs, colReset,	// 5
+		colLabel, colReset, colCount, ps.TotalTokensProcessed, colReset,	// 5
+		colLabel, colReset, colValue, ps.TotalCostIncurred, colReset,	// 5
+		colLabel, colReset, colCount, ps.ActiveInstancesCount, colReset,	// 5
+		colLabel, colReset, colTime, ps.LastActivityTimestamp.Format(time.RFC3339), colReset)	// 5
 }
 
 // --- GlobalDataSourceDefinition ---
@@ -225,7 +225,7 @@ func (wd *AIWorkerDefinition) String() string {
 	// DefinitionID removed as per request
 	sb.WriteString(fmt.Sprintf("Name: %s\n", wd.Name))
 	sb.WriteString(fmt.Sprintf("  Provider: %s, Model: %s, Status: %s\n", wd.Provider, wd.ModelName, wd.Status))
-	sb.WriteString(fmt.Sprintf("  Auth: %s\n", wd.Auth.String())) // Assumes APIKeySource.String() exists
+	sb.WriteString(fmt.Sprintf("  Auth: %s\n", wd.Auth.String()))	// Assumes APIKeySource.String() exists
 
 	imModelsStr := "None"
 	if len(wd.InteractionModels) > 0 {
@@ -304,7 +304,7 @@ func (wd *AIWorkerDefinition) ColourString() string {
 		colLabel, colReset, colValue, wd.Provider, colReset,
 		colLabel, colReset, colValue, wd.ModelName, colReset,
 		colLabel, colReset, statusCol, wd.Status, colReset))
-	sb.WriteString(fmt.Sprintf("  %sAuth:%s %s\n", colLabel, colReset, wd.Auth.ColourString())) // Assumes APIKeySource.ColourString()
+	sb.WriteString(fmt.Sprintf("  %sAuth:%s %s\n", colLabel, colReset, wd.Auth.ColourString()))	// Assumes APIKeySource.ColourString()
 
 	imModelsStr := colValue + "None" + colReset
 	if len(wd.InteractionModels) > 0 {
@@ -326,7 +326,7 @@ func (wd *AIWorkerDefinition) ColourString() string {
 	sb.WriteString(fmt.Sprintf("  %sCostMetrics Keys:%s %s%d%s\n", colLabel, colReset, colCount, len(wd.CostMetrics), colReset))
 
 	if wd.RateLimits.MaxRequestsPerMinute > 0 || wd.RateLimits.MaxTokensPerMinute > 0 || wd.RateLimits.MaxTokensPerDay > 0 || wd.RateLimits.MaxConcurrentActiveInstances > 0 {
-		sb.WriteString(fmt.Sprintf("  %sRateLimits:%s %s\n", colLabel, colReset, wd.RateLimits.ColourString())) // Assumes RateLimitPolicy.ColourString()
+		sb.WriteString(fmt.Sprintf("  %sRateLimits:%s %s\n", colLabel, colReset, wd.RateLimits.ColourString()))	// Assumes RateLimitPolicy.ColourString()
 	}
 
 	defFileCtxStr := colValue + "None" + colReset
@@ -358,7 +358,7 @@ func (wd *AIWorkerDefinition) ColourString() string {
 	}
 
 	if wd.AggregatePerformanceSummary != nil {
-		sb.WriteString(fmt.Sprintf("  %sPerformance:%s %s\n", colLabel, colReset, wd.AggregatePerformanceSummary.ColourString())) // Assumes AIWorkerPerformanceSummary.ColourString()
+		sb.WriteString(fmt.Sprintf("  %sPerformance:%s %s\n", colLabel, colReset, wd.AggregatePerformanceSummary.ColourString()))	// Assumes AIWorkerPerformanceSummary.ColourString()
 	} else {
 		sb.WriteString(fmt.Sprintf("  %sPerformance:%s %s<nil>%s\n", colLabel, colReset, colStatusWarn, colReset))
 	}
@@ -721,7 +721,7 @@ func (m *AIWorkerManager) String() string {
 
 func (m *AIWorkerManager) ColourString() string {
 	if m == nil {
-		return colStatusErr + "<nil AIWorkerManager>" + colReset // Ensure colStatusErr and colReset are defined
+		return colStatusErr + "<nil AIWorkerManager>" + colReset	// Ensure colStatusErr and colReset are defined
 	}
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -736,7 +736,7 @@ func (m *AIWorkerManager) ColourString() string {
 	sb.WriteString(fmt.Sprintf("%sTotal Rate Trackers:%s %s%d%s\n", colLabel, colReset, colCount, len(m.rateTrackers), colReset))
 
 	if len(m.definitions) > 0 {
-		sb.WriteString(fmt.Sprintf("\n%s[::b]--- Worker Definitions ---%s\n", colLabel, colReset)) // Changed from "Summary"
+		sb.WriteString(fmt.Sprintf("\n%s[::b]--- Worker Definitions ---%s\n", colLabel, colReset))	// Changed from "Summary"
 		defs := make([]*AIWorkerDefinition, 0, len(m.definitions))
 		for _, def := range m.definitions {
 			if def != nil {
@@ -754,7 +754,7 @@ func (m *AIWorkerManager) ColourString() string {
 			// AIWorkerDefinition.ColourString() should end its output with a newline.
 			// Add an additional newline for spacing between definitions if desired.
 			if i < len(defs)-1 {
-				sb.WriteString("\n") // Extra spacing between definition blocks
+				sb.WriteString("\n")	// Extra spacing between definition blocks
 			}
 		}
 	}
@@ -771,7 +771,7 @@ func (m *AIWorkerManager) ColourString() string {
 			if instance == nil {
 				continue
 			}
-			statusColInst := colValue // Default color
+			statusColInst := colValue	// Default color
 			switch instance.Status {
 			case InstanceStatusIdle, InstanceStatusRetiredCompleted:
 				statusColInst = colStatusOk
@@ -820,10 +820,10 @@ func (rt *WorkerRateTracker) ColourString() string {
 	// defer rt.mu.Unlock()
 	// Corrected Sprintf: ensuring each %d gets an int, and counts match
 	return fmt.Sprintf("%sTracker (DefID:%s %s%s%s): %sActiveInst:%s %s%d%s, %sReq/Min:%s %s%d%s, %sTok/Min:%s %s%d%s, %sTok/Day:%s %s%d%s, %sReqMarker:%s %s%s%s",
-		colLabel, colReset, colID, rt.DefinitionID, colReset, // 5 args for %s...(DefID:%s %s%s%s):
-		colLabel, colReset, colCount, rt.CurrentActiveInstances, colReset, // 5 args for %sActiveInst:%s %s%d%s,
-		colLabel, colReset, colCount, rt.RequestsLastMinute, colReset, // 5 args for %sReq/Min:%s %s%d%s,
-		colLabel, colReset, colCount, rt.TokensLastMinute, colReset, // 5 args for %sTok/Min:%s %s%d%s,
-		colLabel, colReset, colCount, rt.TokensToday, colReset, // 5 args for %sTok/Day:%s %s%d%s,
-		colLabel, colReset, colTime, rt.RequestsMinuteMarker.Format(time.Kitchen), colReset) // 5 args for %sReqMarker:%s %s%s%s
+		colLabel, colReset, colID, rt.DefinitionID, colReset,	// 5 args for %s...(DefID:%s %s%s%s):
+		colLabel, colReset, colCount, rt.CurrentActiveInstances, colReset,	// 5 args for %sActiveInst:%s %s%d%s,
+		colLabel, colReset, colCount, rt.RequestsLastMinute, colReset,	// 5 args for %sReq/Min:%s %s%d%s,
+		colLabel, colReset, colCount, rt.TokensLastMinute, colReset,	// 5 args for %sTok/Min:%s %s%d%s,
+		colLabel, colReset, colCount, rt.TokensToday, colReset,	// 5 args for %sTok/Day:%s %s%d%s,
+		colLabel, colReset, colTime, rt.RequestsMinuteMarker.Format(time.Kitchen), colReset)	// 5 args for %sReqMarker:%s %s%s%s
 }

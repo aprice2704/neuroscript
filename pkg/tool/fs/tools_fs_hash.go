@@ -7,18 +7,20 @@ package fs
 
 import (
 	"crypto/sha256"
-	"errors"	// Required for errors.Is, errors.Join
+	"errors" // Required for errors.Is, errors.Join
 	"fmt"
 	"io"
 	"os"
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/security"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
 // toolFileHash calculates the SHA256 hash of a specified file within the sandbox.
 // Returns the hex-encoded hash string on success, or an empty string and error on failure.
 // Implements the FileHash tool.
-func toolFileHash(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolFileHash(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	// --- Argument Validation ---
 	if len(args) != 1 {
 		return "", lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("FileHash: expected 1 argument (filepath), got %d", len(args)), lang.ErrArgumentMismatch)
@@ -68,7 +70,7 @@ func toolFileHash(interpreter *neurogo.Interpreter, args []interface{}) (interfa
 		interpreter.Logger().Error("Tool: FileHash] %s: %v", errMsg, openErr)
 		return "", lang.NewRuntimeError(lang.ErrorCodeIOFailed, errMsg, errors.Join(lang.ErrIOFailed, openErr))
 	}
-	defer file.Close()	// Ensure file is closed
+	defer file.Close() // Ensure file is closed
 
 	// Check if it's a directory
 	stat, statErr := file.Stat()

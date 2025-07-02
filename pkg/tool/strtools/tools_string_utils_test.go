@@ -17,12 +17,12 @@ import (
 )
 
 // testStringUtilToolHelper tests a string utility tool implementation directly with primitives.
-func testStringUtilToolHelper(t *testing.T, interp *neurogo.Interpreter, tc struct {
-	name		string
-	toolName	string
-	args		[]interface{}
-	wantResult	interface{}
-	wantErrIs	error
+func testStringUtilToolHelper(t *testing.T, interp tool.RunTime, tc struct {
+	name       string
+	toolName   string
+	args       []interface{}
+	wantResult interface{}
+	wantErrIs  error
 }) {
 	t.Helper()
 	t.Run(tc.name, func(t *testing.T) {
@@ -54,11 +54,11 @@ func testStringUtilToolHelper(t *testing.T, interp *neurogo.Interpreter, tc stru
 func TestToolLineCountString(t *testing.T) {
 	interp, _ := llm.NewDefaultTestInterpreter(t)
 	tests := []struct {
-		name		string
-		toolName	string
-		args		[]interface{}
-		wantResult	interface{}
-		wantErrIs	error
+		name       string
+		toolName   string
+		args       []interface{}
+		wantResult interface{}
+		wantErrIs  error
 	}{
 		{name: "Empty String", toolName: "LineCount", args: tool.MakeArgs(""), wantResult: float64(0)},
 		{name: "Single Line No NL", toolName: "LineCount", args: tool.MakeArgs("hello"), wantResult: float64(1)},

@@ -1,8 +1,9 @@
-package core
+// filename: pkg/wm/ai_wm_instances.go
+package wm
 
 import (
 	"fmt"
-	"log" // Standard log for critical panics
+	"log"	// Standard log for critical panics
 	"strings"
 	"time"
 
@@ -112,7 +113,7 @@ func (m *AIWorkerManager) SpawnWorkerInstance(
 
 	// *** START OF THE PRIMARY FIX ***
 	// Ensure the manager's LLM client is available and assign it.
-	instanceLLMClient := m.llmClient // Get the manager's LLM client from AIWorkerManager struct
+	instanceLLMClient := m.llmClient	// Get the manager's LLM client from AIWorkerManager struct
 	if instanceLLMClient == nil {
 		// This indicates a problem with AIWorkerManager initialization.
 		errMsg := fmt.Sprintf("CRITICAL: AIWorkerManager's default LLM client (m.llmClient) is nil. Cannot spawn instance %s for DefID %s. This is likely NeuroScript Error 19.", instanceID, definitionID)
@@ -120,23 +121,23 @@ func (m *AIWorkerManager) SpawnWorkerInstance(
 		// Use a generic error code if ErrorCodeLLMClientNotSet is not defined,
 		// or use the numeric code if that's how your errors are structured.
 		// For now, using ErrorCodeInternal as a placeholder for "Error 19".
-		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, errMsg, nil) // Adjusted Error Code
+		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, errMsg, nil)	// Adjusted Error Code
 	}
 	// *** END OF THE PRIMARY FIX (Part 1: Getting and checking manager's client) ***
 
 	now := time.Now()
 	instance := &AIWorkerInstance{
-		InstanceID:            instanceID,
-		DefinitionID:          definitionID,
-		Status:                InstanceStatusIdle,
-		ConversationHistory:   make([]*interfaces.ConversationTurn, 0),
-		CreationTimestamp:     now,
-		LastActivityTimestamp: now,
-		SessionTokenUsage:     TokenUsageMetrics{},
-		CurrentConfig:         effectiveConfig,
-		ActiveFileContexts:    effectiveFileContexts,
+		InstanceID:		instanceID,
+		DefinitionID:		definitionID,
+		Status:			InstanceStatusIdle,
+		ConversationHistory:	make([]*interfaces.ConversationTurn, 0),
+		CreationTimestamp:	now,
+		LastActivityTimestamp:	now,
+		SessionTokenUsage:	TokenUsageMetrics{},
+		CurrentConfig:		effectiveConfig,
+		ActiveFileContexts:	effectiveFileContexts,
 		// *** START OF THE PRIMARY FIX (Part 2: Assigning to instance fields) ***
-		llmClient: instanceLLMClient, // Assign the LLM client to the instance
+		llmClient:	instanceLLMClient,	// Assign the LLM client to the instance
 		// Logger field removed as it's not in AIWorkerInstance struct
 		// *** END OF THE PRIMARY FIX (Part 2) ***
 	}
@@ -253,15 +254,15 @@ func (m *AIWorkerManager) RetireWorkerInstance(
 	instance.SessionTokenUsage = finalSessionUsage
 
 	retiredInfo := RetiredInstanceInfo{
-		InstanceID:          instance.InstanceID,
-		DefinitionID:        instance.DefinitionID,
-		CreationTimestamp:   instance.CreationTimestamp,
-		RetirementTimestamp: instance.LastActivityTimestamp,
-		FinalStatus:         instance.Status,
-		RetirementReason:    instance.RetirementReason,
-		SessionTokenUsage:   instance.SessionTokenUsage,
-		InitialFileContexts: instance.ActiveFileContexts,
-		PerformanceRecords:  instancePerformanceRecords,
+		InstanceID:		instance.InstanceID,
+		DefinitionID:		instance.DefinitionID,
+		CreationTimestamp:	instance.CreationTimestamp,
+		RetirementTimestamp:	instance.LastActivityTimestamp,
+		FinalStatus:		instance.Status,
+		RetirementReason:	instance.RetirementReason,
+		SessionTokenUsage:	instance.SessionTokenUsage,
+		InitialFileContexts:	instance.ActiveFileContexts,
+		PerformanceRecords:	instancePerformanceRecords,
 	}
 
 	if err := m.appendRetiredInstanceToFileUnsafe(retiredInfo); err != nil {
@@ -330,7 +331,7 @@ func (m *AIWorkerManager) matchesInstanceFilters(instance *AIWorkerInstance, fil
 	if len(filters) == 0 {
 		return true
 	}
-	if instance == nil { // Should be checked by caller ListActiveWorkerInstances
+	if instance == nil {	// Should be checked by caller ListActiveWorkerInstances
 		// Linter correctly identifies m.logger is not nil here
 		m.logger.Warnf("matchesInstanceFilters called with nil instance.")
 		return false

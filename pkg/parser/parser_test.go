@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings" // Import strings package
 	"testing"
+
+	"github.com/aprice2704/neuroscript/pkg/logging"
 	// Import necessary packages
 	// "github.com/antlr4-go/antlr/v4" // No longer needed directly here
 	// For logger interface/struct
@@ -13,7 +15,7 @@ import (
 
 func TestNeuroScriptParser(t *testing.T) {
 	// Use NoOpLogger struct literal directly
-	logger := logging.NewNoLogger()
+	logger := logging.NewNoOpLogger()
 	parserAPI := NewParserAPI(logger)
 
 	// Use a map for easier management if test cases grow numerous

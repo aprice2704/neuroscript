@@ -2,16 +2,17 @@
 // File version: 1
 // Purpose: Refactored tool funcs to remove ValidateAndConvertArgs and use direct args from bridge.
 // AI Worker Management: Performance and Logging Tools
-// filename: pkg/core/ai_wm_tools_performance.go
+// filename: pkg/wm/ai_wm_tools_performance.go
 // nlines: 121
 
-package core
+package wm
 
 import (
 	"fmt"
 	"time"
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
 var specAIWorkerLogPerformance = tool.ToolSpec{
@@ -19,25 +20,25 @@ var specAIWorkerLogPerformance = tool.ToolSpec{
 	Description: "Logs a performance record for an AI Worker task.",
 	Category:    "AI Worker Management",
 	Args: []tool.ArgSpec{
-		{Name: "task_id", Type: tool.ArgTypeString, Required: true},
-		{Name: "instance_id", Type: tool.ArgTypeString, Required: true},
-		{Name: "definition_id", Type: tool.ArgTypeString, Required: true},
-		{Name: "timestamp_start", Type: tool.ArgTypeString, Required: true},
-		{Name: "timestamp_end", Type: tool.ArgTypeString, Required: true},
-		{Name: "duration_ms", Type: tool.ArgTypeInt, Required: true},
-		{Name: "success", Type: tool.ArgTypeBool, Required: true},
-		{Name: "input_context", Type: tool.ArgTypeMap, Required: false},
-		{Name: "llm_metrics", Type: tool.ArgTypeMap, Required: false},
-		{Name: "cost_incurred", Type: tool.ArgTypeFloat, Required: false},
-		{Name: "output_summary", Type: tool.ArgTypeString, Required: false},
-		{Name: "error_details", Type: tool.ArgTypeString, Required: false},
+		{Name: "task_id", Type: tool.tool.ArgTypeString, Required: true},
+		{Name: "instance_id", Type: tool.tool.ArgTypeString, Required: true},
+		{Name: "definition_id", Type: tool.tool.ArgTypeString, Required: true},
+		{Name: "timestamp_start", Type: tool.tool.ArgTypeString, Required: true},
+		{Name: "timestamp_end", Type: tool.tool.ArgTypeString, Required: true},
+		{Name: "duration_ms", Type: tool.tool.ArgTypeInt, Required: true},
+		{Name: "success", Type: tool.tool.ArgTypeBool, Required: true},
+		{Name: "input_context", Type: tool.tool.ArgTypeMap, Required: false},
+		{Name: "llm_metrics", Type: tool.tool.ArgTypeMap, Required: false},
+		{Name: "cost_incurred", Type: tool.tool.ArgTypeFloat, Required: false},
+		{Name: "output_summary", Type: tool.tool.ArgTypeString, Required: false},
+		{Name: "error_details", Type: tool.tool.ArgTypeString, Required: false},
 	},
 	ReturnType: "string",
 }
 
 var toolAIWorkerLogPerformance = tool.ToolImplementation{
 	Spec: specAIWorkerLogPerformance,
-	Func: func(i *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+	Func: func(i tool.RunTime, args []interface{}) (interface{}, error) {
 		m, err := getAIWorkerManager(i)
 		if err != nil {
 			return nil, err
@@ -100,15 +101,15 @@ var specAIWorkerGetPerformanceRecords = tool.ToolSpec{
 	Description: "Retrieves performance records for an AI Worker Definition.",
 	Category:    "AI Worker Management",
 	Args: []tool.ArgSpec{
-		{Name: "definition_id", Type: tool.ArgTypeString, Required: true},
-		{Name: "filters", Type: tool.ArgTypeMap, Required: false},
+		{Name: "definition_id", Type: tool.tool.ArgTypeString, Required: true},
+		{Name: "filters", Type: tool.tool.ArgTypeMap, Required: false},
 	},
 	ReturnType: "slice",
 }
 
 var toolAIWorkerGetPerformanceRecords = tool.ToolImplementation{
 	Spec: specAIWorkerGetPerformanceRecords,
-	Func: func(i *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+	Func: func(i tool.RunTime, args []interface{}) (interface{}, error) {
 		m, err := getAIWorkerManager(i)
 		if err != nil {
 			return nil, err

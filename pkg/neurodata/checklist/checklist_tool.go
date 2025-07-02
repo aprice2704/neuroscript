@@ -7,20 +7,19 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/aprice2704/neuroscript/pkg/parser"
-	"github.com/aprice2704/neuroscript/pkg/toolsets"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
 // --- Allowed Statuses ---
 var allowedStatuses = map[string]bool{
-	"open":		true,
-	"done":		true,
-	"skipped":	true,
-	"partial":	true,	// Note: Usually calculated, but allowed for direct setting
-	"inprogress":	true,
-	"question":	true,
-	"blocked":	true,
-	"special":	true,
+	"open":       true,
+	"done":       true,
+	"skipped":    true,
+	"partial":    true, // Note: Usually calculated, but allowed for direct setting
+	"inprogress": true,
+	"question":   true,
+	"blocked":    true,
+	"special":    true,
 }
 
 // --- Tool Implementation Struct Definitions ---
@@ -28,71 +27,71 @@ var allowedStatuses = map[string]bool{
 
 var toolChecklistLoadTreeImpl = ToolImplementation{
 	Spec: ToolSpec{Name: "ChecklistLoadTree",
-		Description:	"Parses a checklist string (in Markdown format with :: metadata) and loads it into a GenericTree handle. Returns the handle ID string.",
-		Args:		[]ArgSpec{{Name: "checklist_string", Type: parser.ArgTypeString, Required: true, Description: "The checklist content as a string."}},
-		ReturnType:	parser.ArgTypeString,
+		Description: "Parses a checklist string (in Markdown format with :: metadata) and loads it into a GenericTree handle. Returns the handle ID string.",
+		Args:        []ArgSpec{{Name: "checklist_string", Type: tool.tool.ArgTypeString, Required: true, Description: "The checklist content as a string."}},
+		ReturnType:  tool.tool.ArgTypeString,
 	},
-	Func:	toolChecklistLoadTree,
+	Func: toolChecklistLoadTree,
 }
 
 var toolChecklistFormatTreeImpl = ToolImplementation{
 	Spec: ToolSpec{Name: "ChecklistFormatTree",
-		Description:	"Formats a checklist GenericTree handle back into its Markdown string representation.",
-		Args:		[]ArgSpec{{Name: "handle", Type: parser.ArgTypeString, Required: true, Description: "The GenericTree handle ID for the checklist."}},
-		ReturnType:	parser.ArgTypeString,
+		Description: "Formats a checklist GenericTree handle back into its Markdown string representation.",
+		Args:        []ArgSpec{{Name: "handle", Type: tool.tool.ArgTypeString, Required: true, Description: "The GenericTree handle ID for the checklist."}},
+		ReturnType:  tool.tool.ArgTypeString,
 	},
-	Func:	toolChecklistFormatTree,
+	Func: toolChecklistFormatTree,
 }
 
 var toolChecklistSetItemTextImpl = ToolImplementation{
 	Spec: ToolSpec{Name: "ChecklistSetItemText",
-		Description:	"Sets the text (Value) of a specific checklist item node using TreeModifyNode. Returns nil on success.",
+		Description: "Sets the text (Value) of a specific checklist item node using TreeModifyNode. Returns nil on success.",
 		Args: []ArgSpec{
-			{Name: "handle", Type: parser.ArgTypeString, Required: true, Description: "The GenericTree handle ID for the checklist."},
-			{Name: "node_id", Type: parser.ArgTypeString, Required: true, Description: "The unique ID of the checklist item node."},
-			{Name: "new_text", Type: parser.ArgTypeString, Required: true, Description: "The new text content for the item."},
+			{Name: "handle", Type: tool.tool.ArgTypeString, Required: true, Description: "The GenericTree handle ID for the checklist."},
+			{Name: "node_id", Type: tool.tool.ArgTypeString, Required: true, Description: "The unique ID of the checklist item node."},
+			{Name: "new_text", Type: tool.tool.ArgTypeString, Required: true, Description: "The new text content for the item."},
 		},
-		ReturnType:	ArgTypeNil,
+		ReturnType: tool.ArgTypeNil,
 	},
-	Func:	toolChecklistSetItemText,
+	Func: toolChecklistSetItemText,
 }
 
 var toolChecklistAddItemImpl = ToolImplementation{
 	Spec: ToolSpec{Name: "ChecklistAddItem",
-		Description:	"Adds a new checklist item node as a child of the specified parent node ID using TreeAddNode and TreeSetNodeMetadata. Does NOT automatically update parent statuses; call Checklist.UpdateStatus explicitly afterwards. Returns the new node's ID string.",	// Updated description
+		Description: "Adds a new checklist item node as a child of the specified parent node ID using TreeAddNode and TreeSetNodeMetadata. Does NOT automatically update parent statuses; call Checklist.UpdateStatus explicitly afterwards. Returns the new node's ID string.", // Updated description
 		Args: []ArgSpec{
-			{Name: "handle", Type: parser.ArgTypeString, Required: true, Description: "The GenericTree handle ID."},
-			{Name: "parent_id", Type: parser.ArgTypeString, Required: true, Description: "ID of the parent node (can be root or another item)."},
-			{Name: "new_item_text", Type: parser.ArgTypeString, Required: true, Description: "Text content for the new item."},
-			{Name: "new_item_status", Type: parser.ArgTypeString, Required: false, Description: "Initial status (default 'open'). Use allowed leaf statuses only."},
-			{Name: "is_automatic", Type: parser.ArgTypeBool, Required: false, Description: "Whether the new item is automatic (default false)."},
-			{Name: "special_symbol", Type: parser.ArgTypeString, Required: false, Description: "Required if status is 'special'."},
-			{Name: "index", Type: parser.ArgTypeInt, Required: false, Description: "Insertion index in parent's children (-1 or omitted to append)."},
+			{Name: "handle", Type: tool.tool.ArgTypeString, Required: true, Description: "The GenericTree handle ID."},
+			{Name: "parent_id", Type: tool.tool.ArgTypeString, Required: true, Description: "ID of the parent node (can be root or another item)."},
+			{Name: "new_item_text", Type: tool.tool.ArgTypeString, Required: true, Description: "Text content for the new item."},
+			{Name: "new_item_status", Type: tool.tool.ArgTypeString, Required: false, Description: "Initial status (default 'open'). Use allowed leaf statuses only."},
+			{Name: "is_automatic", Type: parser.tool.ArgTypeBool, Required: false, Description: "Whether the new item is automatic (default false)."},
+			{Name: "special_symbol", Type: tool.tool.ArgTypeString, Required: false, Description: "Required if status is 'special'."},
+			{Name: "index", Type: parser.tool.ArgTypeInt, Required: false, Description: "Insertion index in parent's children (-1 or omitted to append)."},
 		},
-		ReturnType:	parser.ArgTypeString,
+		ReturnType: tool.tool.ArgTypeString,
 	},
-	Func:	toolChecklistAddItem,	// Refactored function in checklist_tool_add.go
+	Func: toolChecklistAddItem, // Refactored function in checklist_tool_add.go
 }
 
 var toolChecklistRemoveItemImpl = ToolImplementation{
 	Spec: ToolSpec{Name: "ChecklistRemoveItem",
-		Description:	"Removes a checklist item node (and all its descendants) from the tree using TreeRemoveNode. Does NOT automatically update parent statuses; call Checklist.UpdateStatus explicitly afterwards. Returns nil on success.",
+		Description: "Removes a checklist item node (and all its descendants) from the tree using TreeRemoveNode. Does NOT automatically update parent statuses; call Checklist.UpdateStatus explicitly afterwards. Returns nil on success.",
 		Args: []ArgSpec{
-			{Name: "handle", Type: parser.ArgTypeString, Required: true, Description: "The GenericTree handle ID for the checklist."},
-			{Name: "node_id", Type: parser.ArgTypeString, Required: true, Description: "The unique ID of the checklist item node to remove. Cannot be the root node."},
+			{Name: "handle", Type: tool.tool.ArgTypeString, Required: true, Description: "The GenericTree handle ID for the checklist."},
+			{Name: "node_id", Type: tool.tool.ArgTypeString, Required: true, Description: "The unique ID of the checklist item node to remove. Cannot be the root node."},
 		},
-		ReturnType:	ArgTypeNil,
+		ReturnType: tool.ArgTypeNil,
 	},
-	Func:	toolChecklistRemoveItem,
+	Func: toolChecklistRemoveItem,
 }
 
 var toolChecklistUpdateStatusImpl = ToolImplementation{
 	Spec: ToolSpec{Name: "Checklist.UpdateStatus",
-		Description:	"Recursively updates the status of all automatic checklist items based on their children's current statuses.",
-		Args:		[]ArgSpec{{Name: "handle", Type: parser.ArgTypeString, Required: true, Description: "The GenericTree handle ID for the checklist."}},
-		ReturnType:	ArgTypeNil,
+		Description: "Recursively updates the status of all automatic checklist items based on their children's current statuses.",
+		Args:        []ArgSpec{{Name: "handle", Type: tool.tool.ArgTypeString, Required: true, Description: "The GenericTree handle ID for the checklist."}},
+		ReturnType:  tool.ArgTypeNil,
 	},
-	Func:	toolChecklistUpdateStatus,
+	Func: toolChecklistUpdateStatus,
 }
 
 // --- Registration ---
@@ -100,13 +99,13 @@ var toolChecklistUpdateStatusImpl = ToolImplementation{
 const ToolsetName = "Checklist"
 
 func init() {
-	toolsets.AddToolsetRegistration(ToolsetName, RegisterChecklistTools)
-	fmt.Println("Checklist package init() running...")	// Simple log to confirm init
+	tool.AddToolsetRegistration(ToolsetName, RegisterChecklistTools)
+	fmt.Println("Checklist package init() running...") // Simple log to confirm init
 }
 
 // RegisterChecklistTools registers all tools in this package with the interpreter.
 func RegisterChecklistTools(registry ToolRegistrar) error {
-	fmt.Println("Checklist tools registered via RegisterChecklistTools.")	// Simple log
+	fmt.Println("Checklist tools registered via RegisterChecklistTools.") // Simple log
 	if registry == nil {
 		return errors.New("registry cannot be nil for RegisterChecklistTools")
 	}
@@ -114,7 +113,7 @@ func RegisterChecklistTools(registry ToolRegistrar) error {
 	tools := []ToolImplementation{
 		toolChecklistLoadTreeImpl,
 		toolChecklistFormatTreeImpl,
-		toolChecklistSetItemStatusImpl,	// Uses refactored func below
+		toolChecklistSetItemStatusImpl, // Uses refactored func below
 		toolChecklistSetItemTextImpl,
 		toolChecklistAddItemImpl,
 		toolChecklistRemoveItemImpl,

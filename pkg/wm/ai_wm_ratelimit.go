@@ -4,13 +4,13 @@
 // - WorkerRateTracker struct fields for detailed rate limiting are now fully commented out.
 // - Functions are stubbed to not use these fields.
 // - Retained aggressive panic checks and verbose fmt.Println debugging for initialization.
-// filename: pkg/core/ai_wm_ratelimit.go
+// filename: pkg/wm/ai_wm_ratelimit.go
 
-package core
+package wm
 
 import (
 	"fmt"
-	"log" // Standard log for critical panics if m.logger is nil
+	"log"	// Standard log for critical panics if m.logger is nil
 	"sync"
 	"time"
 	// "time" // time.Now() might still be useful if we re-introduce some fields
@@ -34,15 +34,15 @@ import (
 // These Stringer methods for WorkerRateTracker should ideally be in core/ai_wm_ratelimit.go if that's where it's defined.
 // For now, they are placed in core/ai_worker_stringers.go.
 type WorkerRateTracker struct {
-	DefinitionID           string
-	RequestsLastMinute     int
-	TokensLastMinute       int
-	TokensToday            int
-	RequestsMinuteMarker   time.Time
-	TokensMinuteMarker     time.Time
-	TokensDayMarker        time.Time
-	CurrentActiveInstances int
-	mu                     sync.Mutex // Added for completeness if it's indeed concurrent
+	DefinitionID		string
+	RequestsLastMinute	int
+	TokensLastMinute	int
+	TokensToday		int
+	RequestsMinuteMarker	time.Time
+	TokensMinuteMarker	time.Time
+	TokensDayMarker		time.Time
+	CurrentActiveInstances	int
+	mu			sync.Mutex	// Added for completeness if it's indeed concurrent
 }
 
 // initializeRateTrackerForDefinitionUnsafe creates a new, simplified rate tracker.
@@ -59,8 +59,8 @@ func (m *AIWorkerManager) initializeRateTrackerForDefinitionUnsafe(def *AIWorker
 	if !exists {
 		fmt.Printf("DEBUG_RATELIMIT (STUBBED_INIT v0.1.7): Tracker for DefID '%s' does NOT exist. Creating new STUB tracker.\n", def.DefinitionID)
 		newTracker := &WorkerRateTracker{
-			DefinitionID:           def.DefinitionID,
-			CurrentActiveInstances: 0, // Only initialize essential fields
+			DefinitionID:		def.DefinitionID,
+			CurrentActiveInstances:	0,	// Only initialize essential fields
 		}
 		fmt.Printf("DEBUG_RATELIMIT (STUBBED_INIT v0.1.7): Created newTracker for DefID '%s', Addr: %p. Storing in m.rateTrackers[%s]\n", def.DefinitionID, newTracker, def.DefinitionID)
 		m.rateTrackers[def.DefinitionID] = newTracker
@@ -146,12 +146,12 @@ func (m *AIWorkerManager) checkAndRecordUsageUnsafe(
 		m.logger.Errorf("CRITICAL PANIC (checkAndRecordUsageUnsafe - STUBBED v0.1.7): Called with nil AIWorkerDefinition.")
 		panic("nil def")
 	}
-	if tracker == nil { // This check is important.
+	if tracker == nil {	// This check is important.
 		m.logger.Errorf("CRITICAL PANIC (checkAndRecordUsageUnsafe - STUBBED v0.1.7): Called with nil WorkerRateTracker for DefID '%s'.", def.DefinitionID)
 		panic(fmt.Sprintf("nil tracker for %s in checkAndRecordUsageUnsafe - STUBBED v0.1.7", def.DefinitionID))
 	}
 	// fmt.Printf("DEBUG_RATELIMIT (STUBBED v0.1.7): checkAndRecordUsageUnsafe called for DefID %s. Rate limiting bypassed.\n", def.DefinitionID)
-	return nil // Always allow, rate limiting logic removed
+	return nil	// Always allow, rate limiting logic removed
 }
 
 func (m *AIWorkerManager) recordUsageUnsafe(tracker *WorkerRateTracker, tokensUsed int64, isNewRequest bool) {

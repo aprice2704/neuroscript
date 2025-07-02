@@ -14,6 +14,7 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/tool"
+	"github.com/aprice2704/neuroscript/pkg/utils"
 )
 
 const treeJSONForFindRenderNested = `{
@@ -29,16 +30,16 @@ const treeJSONForFindRenderNested = `{
 }`
 
 func TestTreeFindAndRenderTools(t *testing.T) {
-	setupFindRenderTree := func(t *testing.T, interp *neurogo.Interpreter) interface{} {
+	setupFindRenderTree := func(t *testing.T, interp tool.RunTime) interface{} {
 		return setupTreeWithJSON(t, interp, treeJSONForFindRenderNested)
 	}
 
 	testCases := []treeTestCase{
 		// Tree.FindNodes
 		{name: "FindNodes_By_Type_'file'", toolName: "Tree.FindNodes",
-			setupFunc:	setupFindRenderTree,
-			args:		tool.MakeArgs("SETUP_HANDLE:frTree", "node-1", map[string]interface{}{"value": "file"}, int64(-1), int64(-1)),	// Query for string nodes with value "file"
-			checkFunc: func(t *testing.T, interp *neurogo.Interpreter, result interface{}, err error, ctx interface{}) {
+			setupFunc: setupFindRenderTree,
+			args:      tool.MakeArgs("SETUP_HANDLE:frTree", "node-1", map[string]interface{}{"value": "file"}, int64(-1), int64(-1)), // Query for string nodes with value "file"
+			checkFunc: func(t *testing.T, interp tool.RunTime, result interface{}, err error, ctx interface{}) {
 				if err != nil {
 					t.Fatalf("FindNodes by value 'file' failed: %v", err)
 				}
@@ -50,7 +51,7 @@ func TestTreeFindAndRenderTools(t *testing.T) {
 				handle := ctx.(string)
 				var actualFileObjectNodeIDs []string
 
-				if len(ids) != 2 {	// Should find two string nodes with value "file"
+				if len(ids) != 2 { // Should find two string nodes with value "file"
 					t.Errorf("Expected 2 string nodes with value 'file', got %d: %v", len(ids), ids)
 				}
 
@@ -110,7 +111,7 @@ func TestTreeFindAndRenderTools(t *testing.T) {
 				}
 			}},
 		{name: "FindNodes_By_Value_of_Name_Attribute", toolName: "Tree.FindNodes", setupFunc: setupFindRenderTree, args: tool.MakeArgs("SETUP_HANDLE:frTree", "node-1", map[string]interface{}{"value": "file1.txt"}, int64(-1), int64(-1)),
-			checkFunc: func(t *testing.T, interp *neurogo.Interpreter, result interface{}, err error, ctx interface{}) {
+			checkFunc: func(t *testing.T, interp tool.RunTime, result interface{}, err error, ctx interface{}) {
 				if err != nil {
 					t.Fatalf("FindNodes by value failed: %v", err)
 				}
@@ -130,9 +131,9 @@ func TestTreeFindAndRenderTools(t *testing.T) {
 				}
 			}},
 		{name: "FindNodes_By_Metadata_Deep", toolName: "Tree.FindNodes",
-			setupFunc:	setupFindRenderTree,
-			args:		tool.MakeArgs("SETUP_HANDLE:frTree", "node-1", map[string]interface{}{"comment": "query_is_dynamic_in_checkfunc"}, int64(-1), int64(-1)),
-			checkFunc: func(t *testing.T, interp *neurogo.Interpreter, _ interface{}, _ error, ctx interface{}) {	// Ignored result from static args
+			setupFunc: setupFindRenderTree,
+			args:      tool.MakeArgs("SETUP_HANDLE:frTree", "node-1", map[string]interface{}{"comment": "query_is_dynamic_in_checkfunc"}, int64(-1), int64(-1)),
+			checkFunc: func(t *testing.T, interp tool.RunTime, _ interface{}, _ error, ctx interface{}) { // Ignored result from static args
 				handle := ctx.(string)
 				findNodesTool, toolFound := interp.ToolRegistry().GetTool("Tree.FindNodes")
 				if !toolFound {
@@ -177,7 +178,7 @@ func TestTreeFindAndRenderTools(t *testing.T) {
 					t.Fatalf("Tree.FindNodes dynamic query not slice: %T", dynamicallyFoundResult)
 				}
 
-				expectedToFind := []string{file2ObjNodeID}	// Expect to find the file2.txt object node itself
+				expectedToFind := []string{file2ObjNodeID} // Expect to find the file2.txt object node itself
 				var foundIDsStr []string
 				for _, id := range dynamicallyFoundIDs {
 					foundIDsStr = append(foundIDsStr, id.(string))
@@ -191,11 +192,11 @@ func TestTreeFindAndRenderTools(t *testing.T) {
 
 		// Tree.RenderText
 		{name: "RenderText Basic", toolName: "Tree.RenderText",
-			setupFunc: func(t *testing.T, interp *neurogo.Interpreter) interface{} {
+			setupFunc: func(t *testing.T, interp tool.RunTime) interface{} {
 				return setupTreeWithJSON(t, interp, `{"a":"b"}`)
 			},
-			args:	tool.MakeArgs("SETUP_HANDLE:renderTree"),
-			checkFunc: func(t *testing.T, interp *neurogo.Interpreter, result interface{}, err error, ctx interface{}) {
+			args: tool.MakeArgs("SETUP_HANDLE:renderTree"),
+			checkFunc: func(t *testing.T, interp tool.RunTime, result interface{}, err error, ctx interface{}) {
 				if err != nil {
 					t.Fatalf("RenderText failed: %v", err)
 				}

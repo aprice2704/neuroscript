@@ -5,13 +5,15 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
+
+	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
 // --- Mock Embeddings ---
 
 // GenerateEmbedding creates a mock deterministic embedding.
 // Moved from interpreter_c.go
-func (i *neurogo.Interpreter) GenerateEmbedding(text string) ([]float32, error) {
+func (i tool.RunTime) GenerateEmbedding(text string) ([]float32, error) {
 	// Ensure embeddingDim is valid
 	if i.embeddingDim <= 0 {
 		return nil, fmt.Errorf("embedding dimension must be positive (is %d)", i.embeddingDim)
@@ -21,14 +23,14 @@ func (i *neurogo.Interpreter) GenerateEmbedding(text string) ([]float32, error) 
 	var seed int64
 	for _, r := range text {
 		// Simple hash combining character codes
-		seed = (seed*31 + int64(r)) & 0xFFFFFFFF	// Use bitwise AND for potential overflow safety
+		seed = (seed*31 + int64(r)) & 0xFFFFFFFF // Use bitwise AND for potential overflow safety
 	}
 	// Ensure seed is non-negative if needed by rand.NewSource
 	if seed < 0 {
 		seed = -seed
 	}
 
-	rng := rand.New(rand.NewSource(seed))	// Use the derived seed
+	rng := rand.New(rand.NewSource(seed)) // Use the derived seed
 
 	norm := float32(0.0)
 	for d := 0; d < i.embeddingDim; d++ {

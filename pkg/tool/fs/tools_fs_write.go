@@ -13,10 +13,12 @@ import (
 	"path/filepath"
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/security"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
 // writeFileHelper is a private helper that handles the common logic for both writing and appending files.
-func writeFileHelper(interpreter *neurogo.Interpreter, args []interface{}, append bool) (interface{}, error) {
+func writeFileHelper(interpreter tool.RunTime, args []interface{}, append bool) (interface{}, error) {
 	if len(args) != 2 {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("expected 2 arguments (filepath, content), got %d", len(args)), lang.ErrArgumentMismatch)
 	}
@@ -51,7 +53,7 @@ func writeFileHelper(interpreter *neurogo.Interpreter, args []interface{}, appen
 	if append {
 		openFlags |= os.O_APPEND
 	} else {
-		openFlags |= os.O_TRUNC	// Truncate the file if we are overwriting
+		openFlags |= os.O_TRUNC // Truncate the file if we are overwriting
 	}
 
 	file, err = os.OpenFile(absPath, openFlags, 0644)
@@ -70,12 +72,12 @@ func writeFileHelper(interpreter *neurogo.Interpreter, args []interface{}, appen
 
 // toolWriteFile implements FS.Write.
 // It creates parent directories if they don't exist and overwrites existing files.
-func toolWriteFile(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+var toolWriteFile tool.ToolFunc = func(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	return writeFileHelper(interpreter, args, false)
 }
 
 // toolAppendFile implements FS.Append.
 // It creates parent directories and the file if they don't exist, and appends to existing files.
-func toolAppendFile(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolAppendFile(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	return writeFileHelper(interpreter, args, true)
 }

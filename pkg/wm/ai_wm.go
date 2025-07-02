@@ -1,11 +1,11 @@
 // NeuroScript Version: 0.3.1
 // File version: 0.2.13
 // Purpose: Core AI Worker Manager. AIWorkerDefinitions are loaded and treated as immutable. Persistence for definitions is removed.
-// filename: pkg/core/ai_wm.go
+// filename: pkg/wm/ai_wm.go
 // nlines: 320 // Approximate
 // risk_rating: MEDIUM
 
-package core
+package wm
 
 import (
 	"encoding/json"
@@ -16,7 +16,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
-	"time" // Kept for initializeRateTrackersUnsafe and other operational timestamps
+	"time"	// Kept for initializeRateTrackersUnsafe and other operational timestamps
 
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
@@ -25,23 +25,23 @@ import (
 
 const (
 	// defaultDefinitionsFile is still used for loading definitions.
-	defaultDefinitionsFile     = "ai_worker_definitions.json"
-	defaultPerformanceDataFile = "ai_worker_performance_data.json"
-	statelessInstanceIDPrefix  = "stateless-"
+	defaultDefinitionsFile		= "ai_worker_definitions.json"
+	defaultPerformanceDataFile	= "ai_worker_performance_data.json"
+	statelessInstanceIDPrefix	= "stateless-"
 )
 
 type AIWorkerManager struct {
-	definitions     map[string]*AIWorkerDefinition // Loaded once, then immutable (except AggregatePerformanceSummary)
-	activeInstances map[string]*AIWorkerInstance
-	rateTrackers    map[string]*WorkerRateTracker
+	definitions	map[string]*AIWorkerDefinition	// Loaded once, then immutable (except AggregatePerformanceSummary)
+	activeInstances	map[string]*AIWorkerInstance
+	rateTrackers	map[string]*WorkerRateTracker
 
-	definitionsBaseFilename     string
-	performanceDataBaseFilename string
-	sandboxDir                  string
+	definitionsBaseFilename		string
+	performanceDataBaseFilename	string
+	sandboxDir			string
 
-	mu        sync.RWMutex
-	logger    interfaces.Logger
-	llmClient interfaces.LLMClient
+	mu		sync.RWMutex
+	logger		interfaces.Logger
+	llmClient	interfaces.LLMClient
 }
 
 // String() method is in core/ai_worker_stringers.go
@@ -50,8 +50,8 @@ func NewAIWorkerManager(
 	logger interfaces.Logger,
 	sandboxDir string,
 	llmClient interfaces.LLMClient,
-	initialDefinitionsContent string, // Content for ai_worker_definitions.json
-	initialPerformanceContent string, // Content for ai_worker_performance_data.json
+	initialDefinitionsContent string,	// Content for ai_worker_definitions.json
+	initialPerformanceContent string,	// Content for ai_worker_performance_data.json
 ) (*AIWorkerManager, error) {
 
 	if logger == nil {
@@ -63,14 +63,14 @@ func NewAIWorkerManager(
 	}
 
 	m := &AIWorkerManager{
-		definitions:                 make(map[string]*AIWorkerDefinition),
-		activeInstances:             make(map[string]*AIWorkerInstance),
-		rateTrackers:                make(map[string]*WorkerRateTracker),
-		definitionsBaseFilename:     defaultDefinitionsFile,
-		performanceDataBaseFilename: defaultPerformanceDataFile,
-		sandboxDir:                  sandboxDir,
-		logger:                      logger,
-		llmClient:                   llmClient,
+		definitions:			make(map[string]*AIWorkerDefinition),
+		activeInstances:		make(map[string]*AIWorkerInstance),
+		rateTrackers:			make(map[string]*WorkerRateTracker),
+		definitionsBaseFilename:	defaultDefinitionsFile,
+		performanceDataBaseFilename:	defaultPerformanceDataFile,
+		sandboxDir:			sandboxDir,
+		logger:				logger,
+		llmClient:			llmClient,
 	}
 
 	// Load definitions from provided content string first, if available.
@@ -142,19 +142,19 @@ func (m *AIWorkerManager) FullPathForPerformanceData() string {
 func (m *AIWorkerManager) loadWorkerDefinitionsFromContent(jsonBytes []byte) error {
 	if len(jsonBytes) == 0 {
 		m.logger.Debugf("loadWorkerDefinitionsFromContent: Provided content is empty. Definitions map cleared.")
-		m.definitions = make(map[string]*AIWorkerDefinition) // Clear existing definitions
+		m.definitions = make(map[string]*AIWorkerDefinition)	// Clear existing definitions
 		return nil
 	}
 
 	var defs []*AIWorkerDefinition
 	if err := json.Unmarshal(jsonBytes, &defs); err != nil {
 		m.logger.Errorf("loadWorkerDefinitionsFromContent: Failed to unmarshal definitions JSON: %v", err)
-		m.definitions = make(map[string]*AIWorkerDefinition) // Ensure map is clean on error
+		m.definitions = make(map[string]*AIWorkerDefinition)	// Ensure map is clean on error
 		return lang.NewRuntimeError(lang.ErrorCodeInternal, "failed to unmarshal definitions data from content", err)
 	}
 
 	newDefinitions := make(map[string]*AIWorkerDefinition)
-	namesEncountered := make(map[string]string) // To check for duplicate names
+	namesEncountered := make(map[string]string)	// To check for duplicate names
 
 	for _, def := range defs {
 		if def == nil {
@@ -184,7 +184,7 @@ func (m *AIWorkerManager) loadWorkerDefinitionsFromContent(jsonBytes []byte) err
 		}
 
 		if def.Status == "" {
-			def.Status = DefinitionStatusActive // Default to active if not specified
+			def.Status = DefinitionStatusActive	// Default to active if not specified
 			m.logger.Debugf("Definition (Name: '%s', ID: '%s') status defaulted to '%s'.", def.Name, def.DefinitionID, def.Status)
 		}
 		// Ensure AggregatePerformanceSummary is initialized
@@ -194,7 +194,7 @@ func (m *AIWorkerManager) loadWorkerDefinitionsFromContent(jsonBytes []byte) err
 
 		newDefinitions[def.DefinitionID] = def
 	}
-	m.definitions = newDefinitions // Replace the old map with the newly loaded one
+	m.definitions = newDefinitions	// Replace the old map with the newly loaded one
 	m.logger.Debugf("Successfully loaded %d worker definitions from content.", len(m.definitions))
 	return nil
 }
@@ -246,7 +246,7 @@ func (m *AIWorkerManager) resolveAPIKey(auth APIKeySource) (string, error) {
 func (m *AIWorkerManager) initializeRateTrackersUnsafe() {
 	newRateTrackers := make(map[string]*WorkerRateTracker)
 	for defID, def := range m.definitions {
-		if def == nil { // Should not happen with proper loading
+		if def == nil {	// Should not happen with proper loading
 			m.logger.Warnf("initializeRateTrackersUnsafe: Nil definition for ID '%s'. Skipping tracker.", defID)
 			continue
 		}
@@ -264,14 +264,14 @@ func (m *AIWorkerManager) initializeRateTrackersUnsafe() {
 		}
 
 		newRateTrackers[defID] = &WorkerRateTracker{
-			DefinitionID:           defID,
-			RequestsLastMinute:     0,
-			TokensLastMinute:       0,
-			TokensToday:            0,
-			RequestsMinuteMarker:   time.Now(),
-			TokensMinuteMarker:     time.Now(),
-			TokensDayMarker:        time.Now(),
-			CurrentActiveInstances: activeCount, // Preserve if possible, else 0
+			DefinitionID:		defID,
+			RequestsLastMinute:	0,
+			TokensLastMinute:	0,
+			TokensToday:		0,
+			RequestsMinuteMarker:	time.Now(),
+			TokensMinuteMarker:	time.Now(),
+			TokensDayMarker:	time.Now(),
+			CurrentActiveInstances:	activeCount,	// Preserve if possible, else 0
 		}
 		m.logger.Debugf("Initialized rate tracker for Def (Name: '%s', ID: %s), ActiveInstances: %d", def.Name, defID, activeCount)
 	}
@@ -308,7 +308,7 @@ func (m *AIWorkerManager) prepareRetiredInstanceForAppending(existingJsonContent
 		return existingJsonContent, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "instanceInfoToAdd cannot be nil", lang.ErrInvalidArgument)
 	}
 	var allInfos []*RetiredInstanceInfo
-	if existingJsonContent != "" && existingJsonContent != "null" { // "null" can be valid JSON for an empty array/object
+	if existingJsonContent != "" && existingJsonContent != "null" {	// "null" can be valid JSON for an empty array/object
 		if err := json.Unmarshal([]byte(existingJsonContent), &allInfos); err != nil {
 			m.logger.Errorf("prepareRetiredInstanceForAppending: Failed to unmarshal existing perf data (length: %d). Error: %v. Will save only new record.", len(existingJsonContent), err)
 			// Potentially problematic if existing content is corrupted.
@@ -340,14 +340,14 @@ func (m *AIWorkerManager) ListWorkerDefinitionsForDisplay() ([]*AIWorkerDefiniti
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
-	if m.definitions == nil { // Should be initialized in constructor
+	if m.definitions == nil {	// Should be initialized in constructor
 		m.logger.Warn("ListWorkerDefinitionsForDisplay: definitions map is nil.")
 		return []*AIWorkerDefinitionDisplayInfo{}, nil
 	}
 
 	allDefs := make([]*AIWorkerDefinition, 0, len(m.definitions))
 	for _, def := range m.definitions {
-		if def != nil { // Should always be non-nil if loaded correctly
+		if def != nil {	// Should always be non-nil if loaded correctly
 			allDefs = append(allDefs, def)
 		}
 	}
@@ -358,7 +358,7 @@ func (m *AIWorkerManager) ListWorkerDefinitionsForDisplay() ([]*AIWorkerDefiniti
 		if nameI != nameJ {
 			return nameI < nameJ
 		}
-		return allDefs[i].DefinitionID < allDefs[j].DefinitionID // Secondary sort by ID for stability
+		return allDefs[i].DefinitionID < allDefs[j].DefinitionID	// Secondary sort by ID for stability
 	})
 
 	displayInfos := make([]*AIWorkerDefinitionDisplayInfo, 0, len(allDefs))
@@ -372,7 +372,7 @@ func (m *AIWorkerManager) ListWorkerDefinitionsForDisplay() ([]*AIWorkerDefiniti
 			summaryCopy := *def.AggregatePerformanceSummary
 			defCopy.AggregatePerformanceSummary = &summaryCopy
 		} else {
-			defCopy.AggregatePerformanceSummary = &AIWorkerPerformanceSummary{} // Should be initialized on load
+			defCopy.AggregatePerformanceSummary = &AIWorkerPerformanceSummary{}	// Should be initialized on load
 		}
 
 		// Update ActiveInstancesCount from rate tracker for the display copy
@@ -402,7 +402,7 @@ func (m *AIWorkerManager) ListWorkerDefinitionsForDisplay() ([]*AIWorkerDefiniti
 		if defCopy.Auth.Method == "" {
 			apiKeyStatus = APIKeyStatusNotConfigured
 		} else if defCopy.Auth.Method == APIKeyMethodNone {
-			apiKeyStatus = APIKeyStatusFound // "Found" in the sense that "None" is a valid, resolved state.
+			apiKeyStatus = APIKeyStatusFound	// "Found" in the sense that "None" is a valid, resolved state.
 		} else {
 			resolvedKey, errResolve = m.resolveAPIKey(defCopy.Auth)
 			if errResolve != nil {
@@ -413,24 +413,24 @@ func (m *AIWorkerManager) ListWorkerDefinitionsForDisplay() ([]*AIWorkerDefiniti
 					case lang.ErrorCodeConfiguration, ErrorCodeArgMismatch:
 						apiKeyStatus = APIKeyStatusNotConfigured
 					case ErrorCodeNotImplemented:
-						apiKeyStatus = APIKeyStatusError // Method known but not usable
+						apiKeyStatus = APIKeyStatusError	// Method known but not usable
 					default:
-						apiKeyStatus = APIKeyStatusError // Other resolution error
+						apiKeyStatus = APIKeyStatusError	// Other resolution error
 					}
 				} else {
-					apiKeyStatus = APIKeyStatusError // Unexpected error type
+					apiKeyStatus = APIKeyStatusError	// Unexpected error type
 				}
-				if apiKeyStatus != APIKeyStatusNotFound { // Log if not simply "not found"
+				if apiKeyStatus != APIKeyStatusNotFound {	// Log if not simply "not found"
 					m.logger.Warnf("API key resolution for def '%s' (method: %s) resulted in status %s: %v", defCopy.Name, defCopy.Auth.Method, apiKeyStatus, errResolve)
 				}
-			} else { // No error resolving
+			} else {	// No error resolving
 				if defCopy.Auth.Method == APIKeyMethodInline && resolvedKey == "" {
 					// Provider-specific check for empty inline key
-					providerAllowsEmptyInlineKey := defCopy.Provider == ProviderOllama // Example: Ollama might allow empty
+					providerAllowsEmptyInlineKey := defCopy.Provider == ProviderOllama	// Example: Ollama might allow empty
 					if providerAllowsEmptyInlineKey {
 						apiKeyStatus = APIKeyStatusFound
 					} else {
-						apiKeyStatus = APIKeyStatusNotConfigured // Empty inline key but provider needs one
+						apiKeyStatus = APIKeyStatusNotConfigured	// Empty inline key but provider needs one
 						m.logger.Infof("Def %s (%s) uses inline auth with empty key, but provider likely requires a key. Marked as NotConfigured.", defCopy.Name, defCopy.Provider)
 					}
 				} else if resolvedKey == "" && defCopy.Auth.Method != APIKeyMethodNone {
@@ -444,9 +444,9 @@ func (m *AIWorkerManager) ListWorkerDefinitionsForDisplay() ([]*AIWorkerDefiniti
 		}
 
 		displayInfos = append(displayInfos, &AIWorkerDefinitionDisplayInfo{
-			Definition:    &defCopy, // Pass the copy
-			IsChatCapable: isChatCapable,
-			APIKeyStatus:  apiKeyStatus,
+			Definition:	&defCopy,	// Pass the copy
+			IsChatCapable:	isChatCapable,
+			APIKeyStatus:	apiKeyStatus,
 		})
 	}
 	return displayInfos, nil
@@ -456,7 +456,7 @@ func smartTrim(s string, length int) string {
 	if len(s) <= length {
 		return s
 	}
-	if length < 3 { // Adjusted for "..."
+	if length < 3 {	// Adjusted for "..."
 		if length <= 0 {
 			return ""
 		}

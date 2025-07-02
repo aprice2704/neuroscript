@@ -8,17 +8,19 @@ package fs
 import (
 	"errors"
 	"fmt"
-	"io/fs"	// Use io/fs for WalkDir and DirEntry
+	"io/fs" // Use io/fs for WalkDir and DirEntry
 	"os"
 	"path/filepath"
 	"time"
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/security"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
 // toolWalkDir recursively walks a directory, returning a list of maps,
 // where each map describes a file or subdirectory found.
-func toolWalkDir(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolWalkDir(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	// --- Argument Validation ---
 	if len(args) != 1 {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("WalkDir: expected 1 argument (path string), got %d", len(args)), lang.ErrArgumentMismatch)
@@ -44,18 +46,18 @@ func toolWalkDir(interpreter *neurogo.Interpreter, args []interface{}) (interfac
 	// ResolveAndSecurePath handles validation (absolute, traversal, null bytes, empty)
 	absBasePath, secErr := security.ResolveAndSecurePath(relPath, sandboxRoot)
 	if secErr != nil {
-		interpreter.Logger().Debug("Tool: WalkDir] Path validation failed", "error", secErr.Error(), "path", relPath)	// Changed from Info
-		return nil, secErr												// Return the *RuntimeError directly
+		interpreter.Logger().Debug("Tool: WalkDir] Path validation failed", "error", secErr.Error(), "path", relPath) // Changed from Info
+		return nil, secErr                                                                                            // Return the *RuntimeError directly
 	}
 
-	interpreter.Logger().Debugf("Tool: WalkDir] Validated base path: %s (Original Relative: %q, Sandbox: %q)", absBasePath, relPath, sandboxRoot)	// Changed from Infof
+	interpreter.Logger().Debugf("Tool: WalkDir] Validated base path: %s (Original Relative: %q, Sandbox: %q)", absBasePath, relPath, sandboxRoot) // Changed from Infof
 
 	// --- Check if Start Path is a Directory ---
 	baseInfo, statErr := os.Stat(absBasePath)
 	if statErr != nil {
 		if errors.Is(statErr, os.ErrNotExist) {
 			errMsg := fmt.Sprintf("WalkDir: start path not found '%s'", relPath)
-			interpreter.Logger().Debug("Tool: WalkDir] %s", errMsg)	// Changed from Info
+			interpreter.Logger().Debug("Tool: WalkDir] %s", errMsg) // Changed from Info
 			return nil, lang.NewRuntimeError(lang.ErrorCodeFileNotFound, errMsg, lang.ErrFileNotFound)
 		}
 		if errors.Is(statErr, os.ErrPermission) {
@@ -68,7 +70,7 @@ func toolWalkDir(interpreter *neurogo.Interpreter, args []interface{}) (interfac
 
 	if !baseInfo.IsDir() {
 		errMsg := fmt.Sprintf("WalkDir: start path '%s' is not a directory", relPath)
-		interpreter.Logger().Debug("Tool: WalkDir] %s", errMsg)	// Changed from Info
+		interpreter.Logger().Debug("Tool: WalkDir] %s", errMsg) // Changed from Info
 		return nil, lang.NewRuntimeError(lang.ErrorCodePathTypeMismatch, errMsg, lang.ErrPathNotDirectory)
 	}
 
@@ -80,16 +82,16 @@ func toolWalkDir(interpreter *neurogo.Interpreter, args []interface{}) (interfac
 		if walkPathErr != nil {
 			interpreter.Logger().Warnf("Tool: WalkDir] Error accessing %q during walk: %v. Skipping entry/subtree.", currentPath, walkPathErr)
 			return nil
-		}	// Skip entry on error
+		} // Skip entry on error
 		if currentPath == absBasePath {
 			return nil
-		}	// Skip root
+		} // Skip root
 
 		info, infoErr := d.Info()
 		if infoErr != nil {
 			interpreter.Logger().Warnf("Tool: WalkDir] Error getting FileInfo for %q: %v. Skipping entry.", currentPath, infoErr)
 			return nil
-		}	// Skip entry
+		} // Skip entry
 
 		entryRelPath, relErr := filepath.Rel(absBasePath, currentPath)
 		if relErr != nil {
@@ -98,13 +100,13 @@ func toolWalkDir(interpreter *neurogo.Interpreter, args []interface{}) (interfac
 		}
 
 		entryMap := map[string]interface{}{
-			"name":			d.Name(),
-			"path_relative":	filepath.ToSlash(entryRelPath),	// Use consistent slashes
-			"is_dir":		d.IsDir(),
-			"size_bytes":		info.Size(),
-			"modified_unix":	info.ModTime().Unix(),
-			"modified_rfc3339":	info.ModTime().Format(time.RFC3339Nano),
-			"mode_string":		info.Mode().String(),
+			"name":             d.Name(),
+			"path_relative":    filepath.ToSlash(entryRelPath), // Use consistent slashes
+			"is_dir":           d.IsDir(),
+			"size_bytes":       info.Size(),
+			"modified_unix":    info.ModTime().Unix(),
+			"modified_rfc3339": info.ModTime().Format(time.RFC3339Nano),
+			"mode_string":      info.Mode().String(),
 		}
 		// --- CHANGED: Append directly to specific slice type ---
 		fileInfos = append(fileInfos, entryMap)
@@ -123,7 +125,7 @@ func toolWalkDir(interpreter *neurogo.Interpreter, args []interface{}) (interfac
 		return nil, lang.NewRuntimeError(lang.ErrorCodeIOFailed, errMsg, errors.Join(lang.ErrIOFailed, walkErr))
 	}
 
-	interpreter.Logger().Debugf("Tool: WalkDir] Walk successful", "path", relPath, "entries_found", len(fileInfos))	// Changed from Infof
+	interpreter.Logger().Debugf("Tool: WalkDir] Walk successful", "path", relPath, "entries_found", len(fileInfos)) // Changed from Infof
 	// Return the correctly typed slice (even if empty)
 	return fileInfos, nil
 }

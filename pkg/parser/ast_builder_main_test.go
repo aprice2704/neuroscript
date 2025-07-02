@@ -5,10 +5,12 @@ import (
 	"reflect"
 	"sort"
 	"testing"
+
+	"github.com/aprice2704/neuroscript/pkg/logging"
 )
 
 func TestASTBuilder_Build_NilTree(t *testing.T) {
-	logger := logging.NewNoLogger()
+	logger := logging.NewNoOpLogger()
 	astBuilder := NewASTBuilder(logger)
 
 	_, _, err := astBuilder.Build(nil)

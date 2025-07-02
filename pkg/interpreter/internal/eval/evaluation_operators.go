@@ -85,8 +85,8 @@ func areValuesEqual(left, right interface{}) bool {
 		return leftNative == rightNative
 	}
 
-	leftF, lOk := lang.toFloat64(leftNative)
-	rightF, rOk := lang.toFloat64(rightNative)
+	leftF, lOk := lang.ToFloat64(leftNative)
+	rightF, rOk := lang.ToFloat64(rightNative)
 	if lOk && rOk {
 		return leftF == rightF
 	}
@@ -120,7 +120,7 @@ func performComparison(left, right interface{}, op string) (lang.Value, error) {
 	}
 
 	if lVal, ok := left.(lang.FuzzyValue); ok {
-		rVal, rOk := lang.toFloat64(right)
+		rVal, rOk := lang.ToFloat64(right)
 		if !rOk {
 			return nil, typeErrorForOp(op, left, right)
 		}
@@ -136,8 +136,8 @@ func performComparison(left, right interface{}, op string) (lang.Value, error) {
 		}
 	}
 
-	leftF, leftOk := lang.toFloat64(left)
-	rightF, rightOk := lang.toFloat64(right)
+	leftF, leftOk := lang.ToFloat64(left)
+	rightF, rightOk := lang.ToFloat64(right)
 	if !leftOk || !rightOk {
 		return nil, typeErrorForOp(op, left, right)
 	}

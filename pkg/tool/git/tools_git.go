@@ -14,10 +14,12 @@ import (
 	"strings"
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/security"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
 // runGitCommand executes a git command within a specific repository path inside the sandbox.
-func runGitCommand(interpreter *neurogo.Interpreter, repoPath string, args ...string) (string, error) {
+func runGitCommand(interpreter tool.RunTime, repoPath string, args ...string) (string, error) {
 	absRepoPath, err := security.SecureFilePath(repoPath, interpreter.SandboxDir())
 	if err != nil {
 		return "", lang.NewRuntimeError(lang.ErrorCodePathViolation, fmt.Sprintf("invalid repository path '%s'", repoPath), err)
@@ -41,7 +43,7 @@ func runGitCommand(interpreter *neurogo.Interpreter, repoPath string, args ...st
 }
 
 // getCurrentGitBranch determines the current branch name.
-func getCurrentGitBranch(interpreter *neurogo.Interpreter, repoPath string) (string, error) {
+func getCurrentGitBranch(interpreter tool.RunTime, repoPath string) (string, error) {
 	output, err := runGitCommand(interpreter, repoPath, "symbolic-ref", "--short", "HEAD")
 	if err != nil {
 		stderrLower := strings.ToLower(err.Error())
@@ -57,7 +59,7 @@ func getCurrentGitBranch(interpreter *neurogo.Interpreter, repoPath string) (str
 	return output, nil
 }
 
-func toolGitAdd(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolGitAdd(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	if len(args) != 2 {
 		return nil, fmt.Errorf("%w: GitAdd requires a repo path and a list of paths to add", lang.ErrInvalidArgument)
 	}
@@ -89,7 +91,7 @@ func toolGitAdd(interpreter *neurogo.Interpreter, args []interface{}) (interface
 	return fmt.Sprintf("GitAdd successful for paths: %v.\nOutput:\n%s", paths, output), nil
 }
 
-func toolGitCommit(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolGitCommit(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	if len(args) < 2 || len(args) > 3 {
 		return nil, fmt.Errorf("%w: Git.Commit requires 2 or 3 arguments (repoPath, message, [add_all])", lang.ErrInvalidArgument)
 	}
@@ -132,7 +134,7 @@ func toolGitCommit(interpreter *neurogo.Interpreter, args []interface{}) (interf
 	return fmt.Sprintf("GitCommit successful. Message: %q.\nOutput:\n%s", message, output), nil
 }
 
-func toolGitBranch(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolGitBranch(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	if len(args) == 0 {
 		return nil, fmt.Errorf("%w: Git.Branch requires at least a repository path", lang.ErrInvalidArgument)
 	}

@@ -1,4 +1,5 @@
-package core
+// filename: pkg/wm/ai_wm_default_wdefs.go
+package wm
 
 const AIWorkerDefinitions_Default string = `
 [

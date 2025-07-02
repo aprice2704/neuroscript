@@ -13,13 +13,14 @@ import (
 	"sort"
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
 // --- List Tool Implementations (Primitive-Aware) ---
 // These functions are called by the bridge and receive unwrapped, native Go types.
 // They return native Go types, which the bridge will then wrap.
 
-func toolListLength(_ *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolListLength(_ tool.RunTime, args []interface{}) (interface{}, error) {
 	list, ok := args[0].([]interface{})
 	if !ok {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "len expects a list", lang.ErrArgumentMismatch)
@@ -27,7 +28,7 @@ func toolListLength(_ *neurogo.Interpreter, args []interface{}) (interface{}, er
 	return float64(len(list)), nil
 }
 
-func toolListAppend(_ *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolListAppend(_ tool.RunTime, args []interface{}) (interface{}, error) {
 	list, ok := args[0].([]interface{})
 	if !ok {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "append expects a list for the first argument", lang.ErrArgumentMismatch)
@@ -36,7 +37,7 @@ func toolListAppend(_ *neurogo.Interpreter, args []interface{}) (interface{}, er
 	return append(list, element), nil
 }
 
-func toolListPrepend(_ *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolListPrepend(_ tool.RunTime, args []interface{}) (interface{}, error) {
 	list, ok := args[0].([]interface{})
 	if !ok {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "prepend expects a list for the first argument", lang.ErrArgumentMismatch)
@@ -45,7 +46,7 @@ func toolListPrepend(_ *neurogo.Interpreter, args []interface{}) (interface{}, e
 	return append([]interface{}{element}, list...), nil
 }
 
-func toolListGet(_ *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolListGet(_ tool.RunTime, args []interface{}) (interface{}, error) {
 	list, ok := args[0].([]interface{})
 	if !ok {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "get expects a list", lang.ErrArgumentMismatch)
@@ -75,7 +76,7 @@ func toolListGet(_ *neurogo.Interpreter, args []interface{}) (interface{}, error
 	return list[index], nil
 }
 
-func toolListSlice(_ *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolListSlice(_ tool.RunTime, args []interface{}) (interface{}, error) {
 	list, ok := args[0].([]interface{})
 	if !ok {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "slice expects a list", lang.ErrArgumentMismatch)
@@ -106,7 +107,7 @@ func toolListSlice(_ *neurogo.Interpreter, args []interface{}) (interface{}, err
 	return list[s:e], nil
 }
 
-func toolListContains(_ *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolListContains(_ tool.RunTime, args []interface{}) (interface{}, error) {
 	list, ok := args[0].([]interface{})
 	if !ok {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "contains expects a list", lang.ErrArgumentMismatch)
@@ -120,7 +121,7 @@ func toolListContains(_ *neurogo.Interpreter, args []interface{}) (interface{}, 
 	return false, nil
 }
 
-func toolListReverse(_ *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolListReverse(_ tool.RunTime, args []interface{}) (interface{}, error) {
 	list, ok := args[0].([]interface{})
 	if !ok {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "reverse expects a list", lang.ErrArgumentMismatch)
@@ -133,7 +134,7 @@ func toolListReverse(_ *neurogo.Interpreter, args []interface{}) (interface{}, e
 	return newList, nil
 }
 
-func toolListSort(_ *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolListSort(_ tool.RunTime, args []interface{}) (interface{}, error) {
 	list, ok := args[0].([]interface{})
 	if !ok {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "sort expects a list", lang.ErrArgumentMismatch)
@@ -159,8 +160,8 @@ func toolListSort(_ *neurogo.Interpreter, args []interface{}) (interface{}, erro
 		}
 
 		// both numeric → numeric order
-		na, naOK := lang.toFloat64(a)
-		nb, nbOK := lang.toFloat64(b)
+		na, naOK := lang.ToFloat64(a)
+		nb, nbOK := lang.ToFloat64(b)
 		if naOK && nbOK {
 			return na < nb
 		}
@@ -187,7 +188,7 @@ func toolListSort(_ *neurogo.Interpreter, args []interface{}) (interface{}, erro
 
 	if allNumeric {
 		for i, v := range newList {
-			if num, ok := lang.toFloat64(v); ok {
+			if num, ok := lang.ToFloat64(v); ok {
 				newList[i] = num
 			}
 		}
@@ -196,7 +197,7 @@ func toolListSort(_ *neurogo.Interpreter, args []interface{}) (interface{}, erro
 	return newList, nil
 }
 
-func toolListHead(_ *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolListHead(_ tool.RunTime, args []interface{}) (interface{}, error) {
 	list, ok := args[0].([]interface{})
 	if !ok {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "head expects a list", lang.ErrArgumentMismatch)
@@ -207,7 +208,7 @@ func toolListHead(_ *neurogo.Interpreter, args []interface{}) (interface{}, erro
 	return list[0], nil
 }
 
-func toolListRest(_ *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolListRest(_ tool.RunTime, args []interface{}) (interface{}, error) {
 	list, ok := args[0].([]interface{})
 	if !ok {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "rest expects a list", lang.ErrArgumentMismatch)
@@ -218,7 +219,7 @@ func toolListRest(_ *neurogo.Interpreter, args []interface{}) (interface{}, erro
 	return list[1:], nil
 }
 
-func toolListTail(_ *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolListTail(_ tool.RunTime, args []interface{}) (interface{}, error) {
 	list, ok := args[0].([]interface{})
 	if !ok {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "tail expects a list", lang.ErrArgumentMismatch)
@@ -240,7 +241,7 @@ func toolListTail(_ *neurogo.Interpreter, args []interface{}) (interface{}, erro
 	return list[listLen-c:], nil
 }
 
-func toolListIsEmpty(_ *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolListIsEmpty(_ tool.RunTime, args []interface{}) (interface{}, error) {
 	list, ok := args[0].([]interface{})
 	if !ok {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "isEmpty expects a list", lang.ErrArgumentMismatch)

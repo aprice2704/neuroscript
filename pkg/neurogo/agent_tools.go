@@ -172,9 +172,9 @@ func toolAgentPin(interpreter * rpreter, args []interface{}) (interface{}, error
 func RegisterAgentTools(registry  Registry) error {
 	tools := [] Implementation{
 		// Existing tools...
-		{Spec:  Spec{Name: "AgentSetSandbox", Description: "Sets the agent's sandbox directory.", Args: [] Arg {Name: "agentCtxHandle", Type:  ArgType g, Required: true}, {Name: "path", Type:  ArgTypeStri equired: true}}, ReturnType:  ArgTypeAny}, Fu oolAgentSetSandbox},
-		{Spec:  Spec{Name: "AgentSetModel", Description: "Sets the AI model name for the agent.", Args: [] Arg {Name: "agentCtxHandle", Type:  ArgType g, Required: true}, {Name: "name", Type:  ArgTypeStri equired: true}}, ReturnType:  ArgTypeAny}, Fu oolAgentSetModel},
-		{Spec:  Spec{Name: "AgentSetAllowlist", Description: "Sets the path to the tool allowlist file for the agent.", Args: [] Arg {Name: "agentCtxHandle", Type:  ArgType g, Required: true}, {Name: "path", Type:  ArgTypeStri equired: true}}, ReturnType:  ArgTypeAny}, Fu oolAgentSetAllowlist},
+		{Spec:  Spec{Name: "AgentSetSandbox", Description: "Sets the agent's sandbox directory.", Args: [] Arg {Name: "agentCtxHandle", Type:  ArgType g, Required: true}, {Name: "path", Type:  tool.ArgTypeStri equired: true}}, ReturnType:  tool.ArgTypeAny}, Fu oolAgentSetSandbox},
+		{Spec:  Spec{Name: "AgentSetModel", Description: "Sets the AI model name for the agent.", Args: [] Arg {Name: "agentCtxHandle", Type:  ArgType g, Required: true}, {Name: "name", Type:  tool.ArgTypeStri equired: true}}, ReturnType:  tool.ArgTypeAny}, Fu oolAgentSetModel},
+		{Spec:  Spec{Name: "AgentSetAllowlist", Description: "Sets the path to the tool allowlist file for the agent.", Args: [] Arg {Name: "agentCtxHandle", Type:  ArgType g, Required: true}, {Name: "path", Type:  tool.ArgTypeStri equired: true}}, ReturnType:  tool.ArgTypeAny}, Fu oolAgentSetAllowlist},
 		// --- REMOVED AgentPinFile Registration ---
 		// --- NEW Tool Registration ---
 		{

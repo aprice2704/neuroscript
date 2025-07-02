@@ -13,7 +13,9 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/adapters" // Keep for InitializeCoreComponents
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
+	"github.com/aprice2704/neuroscript/pkg/logging"
 	"github.com/aprice2704/neuroscript/pkg/neurogo"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
 // initializeLogger sets up the application's logger based on configuration.
@@ -51,9 +53,9 @@ func initializeLogger(levelStr string, filePath string) (interfaces.Logger, erro
 		// Return the most relevant error.
 		if parseErr != nil {
 			// Return a NoOpLogger if main logger creation failed, to satisfy the interface.
-			return logging.NewNoLogger(), fmt.Errorf("log level parsing error ('%s'): %w (and main logger creation also failed: %v)", levelStr, parseErr, appLoggerErr)
+			return logging.NewNoOpLogger(), fmt.Errorf("log level parsing error ('%s'): %w (and main logger creation also failed: %v)", levelStr, parseErr, appLoggerErr)
 		}
-		return logging.NewNoLogger(), appLoggerErr
+		return logging.NewNoOpLogger(), appLoggerErr
 	}
 
 	// Log successful initialization. Pass 'parsedLevel' directly.
@@ -76,7 +78,7 @@ func ifElse(condition bool, trueVal, falseVal interface{}) interface{} {
 	return falseVal
 }
 
-func InitializeCoreComponents(app *neurogo.App, logger interfaces.Logger, llmClient interfaces.LLMClient) (*neurogo.Interpreter, *runtime.AIWorkerManager, error) {
+func InitializeCoreComponents(app *neurogo.App, logger interfaces.Logger, llmClient interfaces.LLMClient) (tool.RunTime, *runtime.AIWorkerManager, error) {
 	// LLM Client is now passed in as an argument and should already be set on the App instance by NewApp.
 	// No need to create or set it here.
 	if llmClient == nil {

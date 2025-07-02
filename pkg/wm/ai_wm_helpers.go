@@ -1,10 +1,10 @@
 // NeuroScript Version: 0.3.1
 // File version: 0.2.15
-// filename: pkg/core/ai_wm_helpers.go
+// filename: pkg/wm/ai_wm_helpers.go
 // Changes:
 // - Replaced undefined ErrorCodeItemNotFound with ErrorCodeKeyNotFound.
 // - Replaced undefined ErrItemNotFound with ErrNotFound or ErrConfiguration as appropriate.
-package core
+package wm
 
 import (
 	"fmt"
@@ -31,14 +31,14 @@ func (m *AIWorkerManager) GetDefinitionIDByName(name string) (string, error) {
 
 	for id, def := range m.definitions {
 		if def != nil && def.Name == name {
-			if m.logger != nil { // Defensive check for logger
+			if m.logger != nil {	// Defensive check for logger
 				m.logger.Debugf("GetDefinitionIDByName: Found ID '%s' for name '%s'", id, name)
 			}
 			return id, nil
 		}
 	}
 
-	if m.logger != nil { // Defensive check
+	if m.logger != nil {	// Defensive check
 		m.logger.Warnf("GetDefinitionIDByName: Worker definition with name '%s' not found.", name)
 	}
 	// Corrected: ErrorCodeItemNotFound -> ErrorCodeKeyNotFound, ErrItemNotFound -> ErrNotFound

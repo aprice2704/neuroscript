@@ -9,17 +9,18 @@ package checklist
 import (
 	"errors"
 	"fmt"
-	"slices"	// For slice manipulation
+	"slices" // For slice manipulation
 	"unicode/utf8"
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/tool"
+	"github.com/aprice2704/neuroscript/pkg/utils"
 	"github.com/google/uuid"
 )
 
 // Implementation for ChecklistAddItem using core Tree.AddChildNode and Tree.SetNodeMetadata tools.
 // Handles indexed insertion for array-like parent nodes.
-func toolChecklistAddItem(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolChecklistAddItem(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	toolName := "ChecklistAddItem"
 	logger := interpreter.Logger()
 
@@ -135,7 +136,7 @@ func toolChecklistAddItem(interpreter *neurogo.Interpreter, args []interface{}) 
 
 	// --- Handle indexed insertion manually for array-like parents ---
 	// This needs to happen after the node is added to the NodeMap by Tree.AddChildNode.
-	if index != -1 {	// -1 means append, which Tree.AddChildNode does by default for array types
+	if index != -1 { // -1 means append, which Tree.AddChildNode does by default for array types
 		treeObj, getHandleErr := interpreter.GetHandleValue(handleID, utils.GenericTreeHandleType)
 		if getHandleErr != nil {
 			return nil, fmt.Errorf("%s: failed to get tree handle %q for indexed insertion: %w", toolName, handleID, getHandleErr)
@@ -156,7 +157,7 @@ func toolChecklistAddItem(interpreter *neurogo.Interpreter, args []interface{}) 
 			// Remove the newly added nodeID from the end (where Tree.AddChildNode put it for array-like parents)
 			// Ensure ChildIDs is not nil
 			if parentNode.ChildIDs == nil {
-				parentNode.ChildIDs = []string{}	// Should not happen if Tree.AddChildNode succeeded
+				parentNode.ChildIDs = []string{} // Should not happen if Tree.AddChildNode succeeded
 			}
 
 			// Find and remove the newNodeID from its current lang.Position
@@ -177,11 +178,11 @@ func toolChecklistAddItem(interpreter *neurogo.Interpreter, args []interface{}) 
 			}
 
 			// Clamp index to valid range for insertion
-			if index < 0 {	// Should be caught by earlier check, but defensive
+			if index < 0 { // Should be caught by earlier check, but defensive
 				index = 0
 			}
 			if index > len(parentNode.ChildIDs) {
-				index = len(parentNode.ChildIDs)	// Insert at the end
+				index = len(parentNode.ChildIDs) // Insert at the end
 			}
 
 			parentNode.ChildIDs = slices.Insert(parentNode.ChildIDs, index, newNodeID)

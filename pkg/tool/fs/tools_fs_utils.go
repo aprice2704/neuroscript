@@ -6,18 +6,20 @@
 package fs
 
 import (
-	"errors"	// Required for errors.Is
+	"errors" // Required for errors.Is
 	"fmt"
 	"os"
 	"strings"
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/security"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
 // --- Tool Implementations (Functions only) ---
 
 // toolLineCountFile counts lines in a specified file.
-func toolLineCountFile(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolLineCountFile(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	if len(args) != 1 {
 		return int64(-1), lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "LineCountFile: expected 1 argument (filepath)", lang.ErrArgumentMismatch)
 	}
@@ -72,7 +74,7 @@ func toolLineCountFile(interpreter *neurogo.Interpreter, args []interface{}) (in
 }
 
 // toolSanitizeFilename calls the exported helper function SanitizeFilename (from security.go).
-func toolSanitizeFilename(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolSanitizeFilename(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	if len(args) != 1 {
 		return "", lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "SanitizeFilename: expected 1 argument (name)", lang.ErrArgumentMismatch)
 	}

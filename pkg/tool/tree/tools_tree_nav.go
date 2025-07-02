@@ -11,10 +11,11 @@ import (
 	"fmt"
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
 // toolTreeGetNode implements the Tree.GetNode tool.
-func toolTreeGetNode(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolTreeGetNode(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	toolName := "Tree.GetNode"
 	if len(args) != 2 {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("%s: expected 2 arguments (tree_handle, node_id), got %d", toolName, len(args)), lang.ErrArgumentMismatch)
@@ -43,13 +44,13 @@ func toolTreeGetNode(interpreter *neurogo.Interpreter, args []interface{}) (inte
 	}
 
 	nodeMap := map[string]interface{}{
-		"id":			node.ID,
-		"type":			node.Type,
-		"value":		node.Value,
-		"attributes":		node.Attributes,
-		"children":		childrenSlice,	// CORRECTED TYPE
-		"parent_id":		node.ParentID,
-		"parent_attribute_key":	node.ParentAttributeKey,
+		"id":                   node.ID,
+		"type":                 node.Type,
+		"value":                node.Value,
+		"attributes":           node.Attributes,
+		"children":             childrenSlice, // CORRECTED TYPE
+		"parent_id":            node.ParentID,
+		"parent_attribute_key": node.ParentAttributeKey,
 	}
 
 	interpreter.Logger().Debug(fmt.Sprintf("%s: Retrieved node information", toolName),
@@ -59,7 +60,7 @@ func toolTreeGetNode(interpreter *neurogo.Interpreter, args []interface{}) (inte
 }
 
 // toolTreeGetChildren implements the Tree.GetChildren tool.
-func toolTreeGetChildren(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolTreeGetChildren(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	toolName := "Tree.GetChildren"
 	if len(args) != 2 {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("%s: expected 2 arguments (tree_handle, node_id), got %d", toolName, len(args)), lang.ErrArgumentMismatch)
@@ -76,7 +77,7 @@ func toolTreeGetChildren(interpreter *neurogo.Interpreter, args []interface{}) (
 		return nil, err
 	}
 
-	if node.Type != "array" {	// This tool is specific to "array" type nodes
+	if node.Type != "array" { // This tool is specific to "array" type nodes
 		return nil, lang.NewRuntimeError(lang.ErrorCodeNodeWrongType,
 			fmt.Sprintf("%s: cannot get children of node type '%s' (expected 'array')", toolName, node.Type),
 			lang.ErrNodeWrongType)
@@ -99,7 +100,7 @@ func toolTreeGetChildren(interpreter *neurogo.Interpreter, args []interface{}) (
 }
 
 // toolTreeGetParent implements the Tree.GetParent tool.
-func toolTreeGetParent(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolTreeGetParent(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	toolName := "Tree.GetParent"
 	if len(args) != 2 {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("%s: expected 2 arguments (tree_handle, node_id), got %d", toolName, len(args)), lang.ErrArgumentMismatch)

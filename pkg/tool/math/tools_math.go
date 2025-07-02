@@ -10,11 +10,12 @@ import (
 	"fmt"
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
 // --- Implementations ---
 
-func toolAdd(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolAdd(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	num1, ok1 := args[0].(float64)
 	num2, ok2 := args[1].(float64)
 	if !ok1 || !ok2 {
@@ -28,7 +29,7 @@ func toolAdd(interpreter *neurogo.Interpreter, args []interface{}) (interface{},
 	return result, nil
 }
 
-func toolSubtract(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolSubtract(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	num1, ok1 := args[0].(float64)
 	num2, ok2 := args[1].(float64)
 	if !ok1 || !ok2 {
@@ -41,7 +42,7 @@ func toolSubtract(interpreter *neurogo.Interpreter, args []interface{}) (interfa
 	return result, nil
 }
 
-func toolMultiply(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolMultiply(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	num1, ok1 := args[0].(float64)
 	num2, ok2 := args[1].(float64)
 	if !ok1 || !ok2 {
@@ -54,7 +55,7 @@ func toolMultiply(interpreter *neurogo.Interpreter, args []interface{}) (interfa
 	return result, nil
 }
 
-func toolDivide(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolDivide(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	num1, ok1 := args[0].(float64)
 	num2, ok2 := args[1].(float64)
 	if !ok1 || !ok2 {
@@ -71,7 +72,7 @@ func toolDivide(interpreter *neurogo.Interpreter, args []interface{}) (interface
 	return result, nil
 }
 
-func toolModulo(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolModulo(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	num1, ok1 := args[0].(int64)
 	num2, ok2 := args[1].(int64)
 	if !ok1 || !ok2 {

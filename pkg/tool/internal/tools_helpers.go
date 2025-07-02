@@ -1,13 +1,14 @@
 // filename: pkg/tool/tools_helpers.go
-package tool
+package internal
 
 import (
 	"bytes"
 	"fmt"
-	"os/exec"	// Added regexp
+	"os/exec" // Added regexp
 	"strings"
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
 func MakeArgs(vals ...interface{}) []interface{} {
@@ -21,7 +22,7 @@ func MakeArgs(vals ...interface{}) []interface{} {
 // toolExec executes an external command and returns combined stdout/stderr as a string,
 // or an error if the command fails to run or exits non-zero.
 // This is intended as an *internal* helper for other tools like Git tools.
-func toolExec(interpreter *neurogo.Interpreter, cmdAndArgs ...string) (string, error) {
+func toolExec(interpreter tool.RunTime, cmdAndArgs ...string) (string, error) {
 	if len(cmdAndArgs) == 0 {
 		return "", fmt.Errorf("toolExec requires at least a command")
 	}
@@ -42,7 +43,7 @@ func toolExec(interpreter *neurogo.Interpreter, cmdAndArgs ...string) (string, e
 		logArgs := make([]string, len(commandArgs))
 		for i, arg := range commandArgs {
 			if strings.Contains(arg, " ") {
-				logArgs[i] = fmt.Sprintf("%q", arg)	// Quote args with spaces
+				logArgs[i] = fmt.Sprintf("%q", arg) // Quote args with spaces
 			} else {
 				logArgs[i] = arg
 			}
@@ -59,7 +60,7 @@ func toolExec(interpreter *neurogo.Interpreter, cmdAndArgs ...string) (string, e
 
 	stdoutStr := stdout.String()
 	stderrStr := stderr.String()
-	combinedOutput := stdoutStr + stderrStr	// Combine outputs
+	combinedOutput := stdoutStr + stderrStr // Combine outputs
 
 	if execErr != nil {
 		// Command failed (non-zero exit or execution error)

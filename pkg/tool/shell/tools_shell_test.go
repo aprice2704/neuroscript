@@ -18,14 +18,14 @@ import (
 )
 
 // testShellToolHelper tests the toolExecuteCommand implementation directly.
-func testShellToolHelper(t *testing.T, interp *neurogo.Interpreter, tc struct {
-	name		string
-	args		[]interface{}
-	wantSuccess	bool
-	wantExitCode	int64
-	wantStdout	string
-	wantStderr	string	// Check if stderr *contains* this string
-	wantErrIs	error
+func testShellToolHelper(t *testing.T, interp tool.RunTime, tc struct {
+	name         string
+	args         []interface{}
+	wantSuccess  bool
+	wantExitCode int64
+	wantStdout   string
+	wantStderr   string // Check if stderr *contains* this string
+	wantErrIs    error
 }) {
 	t.Helper()
 	t.Run(tc.name, func(t *testing.T) {
@@ -77,13 +77,13 @@ func TestToolExecuteCommand(t *testing.T) {
 	}
 
 	tests := []struct {
-		name		string
-		args		[]interface{}
-		wantSuccess	bool
-		wantExitCode	int64
-		wantStdout	string
-		wantStderr	string
-		wantErrIs	error
+		name         string
+		args         []interface{}
+		wantSuccess  bool
+		wantExitCode int64
+		wantStdout   string
+		wantStderr   string
+		wantErrIs    error
 	}{
 		{name: "Simple Echo", args: tool.MakeArgs("echo", []string{"hello"}), wantSuccess: true, wantExitCode: 0, wantStdout: "hello\n"},
 		{name: "Command False Failure", args: tool.MakeArgs("false"), wantSuccess: false, wantExitCode: 1},

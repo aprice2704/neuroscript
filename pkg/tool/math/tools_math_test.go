@@ -18,12 +18,12 @@ import (
 )
 
 // testMathToolHelper tests a math tool implementation directly with primitives.
-func testMathToolHelper(t *testing.T, interp *neurogo.Interpreter, tc struct {
-	name		string
-	toolName	string
-	args		[]interface{}
-	wantResult	interface{}
-	wantErrIs	error
+func testMathToolHelper(t *testing.T, interp tool.RunTime, tc struct {
+	name       string
+	toolName   string
+	args       []interface{}
+	wantResult interface{}
+	wantErrIs  error
 }) {
 	t.Helper()
 	t.Run(tc.name, func(t *testing.T) {
@@ -48,7 +48,7 @@ func testMathToolHelper(t *testing.T, interp *neurogo.Interpreter, tc struct {
 
 		// Handle float comparison with tolerance
 		if wantFloat, ok := tc.wantResult.(float64); ok {
-			gotFloat, ok := lang.toFloat64(gotResult)
+			gotFloat, ok := lang.ToFloat64(gotResult)
 			if !ok {
 				t.Errorf("Result mismatch: wanted a float, but got %T", gotResult)
 				return
@@ -66,11 +66,11 @@ func testMathToolHelper(t *testing.T, interp *neurogo.Interpreter, tc struct {
 func TestToolAdd(t *testing.T) {
 	interp, _ := llm.NewDefaultTestInterpreter(t)
 	tests := []struct {
-		name		string
-		toolName	string
-		args		[]interface{}
-		wantResult	interface{}
-		wantErrIs	error
+		name       string
+		toolName   string
+		args       []interface{}
+		wantResult interface{}
+		wantErrIs  error
 	}{
 		{name: "Add Integers", toolName: "Add", args: tool.MakeArgs(float64(5), float64(3)), wantResult: float64(8)},
 		{name: "Add Floats", toolName: "Add", args: tool.MakeArgs(float64(2.5), float64(1.5)), wantResult: float64(4.0)},
@@ -84,11 +84,11 @@ func TestToolAdd(t *testing.T) {
 func TestToolSubtract(t *testing.T) {
 	interp, _ := llm.NewDefaultTestInterpreter(t)
 	tests := []struct {
-		name		string
-		toolName	string
-		args		[]interface{}
-		wantResult	interface{}
-		wantErrIs	error
+		name       string
+		toolName   string
+		args       []interface{}
+		wantResult interface{}
+		wantErrIs  error
 	}{
 		{name: "Subtract Integers", toolName: "Subtract", args: tool.MakeArgs(float64(5), float64(3)), wantResult: float64(2)},
 		{name: "Subtract Floats", toolName: "Subtract", args: tool.MakeArgs(float64(2.5), float64(1.5)), wantResult: float64(1.0)},
@@ -102,11 +102,11 @@ func TestToolSubtract(t *testing.T) {
 func TestToolDivide(t *testing.T) {
 	interp, _ := llm.NewDefaultTestInterpreter(t)
 	tests := []struct {
-		name		string
-		toolName	string
-		args		[]interface{}
-		wantResult	interface{}
-		wantErrIs	error
+		name       string
+		toolName   string
+		args       []interface{}
+		wantResult interface{}
+		wantErrIs  error
 	}{
 		{name: "Divide Integers", toolName: "Divide", args: tool.MakeArgs(float64(10), float64(2)), wantResult: float64(5.0)},
 		{name: "Divide Floats", toolName: "Divide", args: tool.MakeArgs(float64(5.0), float64(2.0)), wantResult: float64(2.5)},
@@ -120,11 +120,11 @@ func TestToolDivide(t *testing.T) {
 func TestToolModulo(t *testing.T) {
 	interp, _ := llm.NewDefaultTestInterpreter(t)
 	tests := []struct {
-		name		string
-		toolName	string
-		args		[]interface{}
-		wantResult	interface{}
-		wantErrIs	error
+		name       string
+		toolName   string
+		args       []interface{}
+		wantResult interface{}
+		wantErrIs  error
 	}{
 		{name: "Modulo Integers", toolName: "Modulo", args: tool.MakeArgs(int64(10), int64(3)), wantResult: int64(1)},
 		{name: "Modulo by Zero", toolName: "Modulo", args: tool.MakeArgs(int64(10), int64(0)), wantErrIs: lang.ErrDivisionByZero},

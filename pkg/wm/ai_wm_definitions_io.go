@@ -1,10 +1,10 @@
 // NeuroScript Version: 0.3.0
 // File version: 0.1.2
 // Purpose: AI Worker Management: Definition I/O. Definitions are read-only after load. Performance data I/O remains.
-// filename: pkg/core/ai_wm_definitions_io.go
+// filename: pkg/wm/ai_wm_definitions_io.go
 // nlines: 70 // Approximate
 // risk_rating: MEDIUM
-package core
+package wm
 
 import (
 	"fmt"
@@ -27,8 +27,8 @@ func (m *AIWorkerManager) LoadWorkerDefinitionsFromFile() error {
 		m.logger.Error("Cannot load definitions: file path is not configured in AIWorkerManager.")
 		// Reset state even if path is missing, to ensure consistency
 		m.definitions = make(map[string]*AIWorkerDefinition)
-		m.activeInstances = make(map[string]*AIWorkerInstance) // Clear active instances as their defs are gone
-		m.initializeRateTrackersUnsafe()                       // Initialize for an empty set
+		m.activeInstances = make(map[string]*AIWorkerInstance)	// Clear active instances as their defs are gone
+		m.initializeRateTrackersUnsafe()			// Initialize for an empty set
 		return lang.NewRuntimeError(lang.ErrorCodeConfiguration, "definitions file path not configured, cannot load", lang.ErrConfiguration)
 	}
 
@@ -47,11 +47,11 @@ func (m *AIWorkerManager) LoadWorkerDefinitionsFromFile() error {
 	if err != nil {
 		if os.IsNotExist(err) {
 			m.logger.Infof("AIWorkerManager: Definitions file '%s' not found. Manager will have no definitions.", defPath)
-			m.initializeRateTrackersUnsafe() // Initialize trackers for an empty set
-			return nil                       // Not an error if file doesn't exist, just means no definitions
+			m.initializeRateTrackersUnsafe()	// Initialize trackers for an empty set
+			return nil				// Not an error if file doesn't exist, just means no definitions
 		}
 		m.logger.Errorf("AIWorkerManager: Error reading definitions file '%s': %v", defPath, err)
-		m.initializeRateTrackersUnsafe() // Initialize for safety
+		m.initializeRateTrackersUnsafe()	// Initialize for safety
 		return lang.NewRuntimeError(lang.ErrorCodeInternal, fmt.Sprintf("failed to read definitions file '%s'", defPath), err)
 	}
 
@@ -60,10 +60,10 @@ func (m *AIWorkerManager) LoadWorkerDefinitionsFromFile() error {
 		// If loading fails, definitions map might be in an inconsistent state or empty.
 		// Ensure trackers are consistent with whatever state m.definitions is in.
 		m.initializeRateTrackersUnsafe()
-		return loadErr // loadErr should be a RuntimeError
+		return loadErr	// loadErr should be a RuntimeError
 	}
 
-	m.initializeRateTrackersUnsafe() // Re-initialize based on newly loaded definitions
+	m.initializeRateTrackersUnsafe()	// Re-initialize based on newly loaded definitions
 
 	m.logger.Infof("AIWorkerManager: Load definitions complete. %d definitions loaded from %s.", len(m.definitions), defPath)
 	return nil
@@ -74,7 +74,7 @@ func (m *AIWorkerManager) LoadWorkerDefinitionsFromFile() error {
 // existing in-memory aggregations directly unless m.loadRetiredInstancePerformanceDataFromContent does so.
 // The primary purpose of loading this file is usually at startup to inform definition summaries.
 func (m *AIWorkerManager) LoadRetiredInstancePerformanceDataFromFile() error {
-	m.mu.Lock() // Lock for thread-safe access to manager state if needed by underlying methods
+	m.mu.Lock()	// Lock for thread-safe access to manager state if needed by underlying methods
 	defer m.mu.Unlock()
 
 	perfDataPath := m.FullPathForPerformanceData()
@@ -90,7 +90,7 @@ func (m *AIWorkerManager) LoadRetiredInstancePerformanceDataFromFile() error {
 	if err != nil {
 		if os.IsNotExist(err) {
 			m.logger.Infof("AIWorkerManager: Performance data file '%s' not found. No historical performance data loaded.", perfDataPath)
-			return nil // Not an error if the file simply doesn't exist
+			return nil	// Not an error if the file simply doesn't exist
 		}
 		m.logger.Errorf("AIWorkerManager: Error reading performance data file '%s': %v", perfDataPath, err)
 		return lang.NewRuntimeError(lang.ErrorCodeInternal, fmt.Sprintf("failed to read performance data file '%s'", perfDataPath), err)
@@ -118,13 +118,13 @@ func (m *AIWorkerManager) appendRetiredInstanceToFileUnsafe(info RetiredInstance
 
 	var existingContentBytes []byte
 	var readErr error
-	if _, statErr := os.Stat(filePath); statErr == nil { // File exists
+	if _, statErr := os.Stat(filePath); statErr == nil {	// File exists
 		existingContentBytes, readErr = os.ReadFile(filePath)
 		if readErr != nil {
 			m.logger.Errorf("Failed to read existing performance data file '%s' for appending: %v. Will attempt to write as new file.", filePath, readErr)
-			existingContentBytes = []byte{} // Treat as empty if read fails
+			existingContentBytes = []byte{}	// Treat as empty if read fails
 		}
-	} else if !os.IsNotExist(statErr) { // Some other error stating the file
+	} else if !os.IsNotExist(statErr) {	// Some other error stating the file
 		m.logger.Errorf("Error checking performance data file '%s' for appending: %v. Will attempt to write as new file.", filePath, statErr)
 		existingContentBytes = []byte{}
 	}

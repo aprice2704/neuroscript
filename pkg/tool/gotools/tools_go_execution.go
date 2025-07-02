@@ -13,15 +13,17 @@ import (
 	"syscall"
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/security"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 	// No need for 'errors', 'os', 'path/filepath', 'logging', 'modfile' imports here
 )
 
 // --- Tool Implementations for Go Command Execution ---
 
 // toolGoBuild implementation
-func toolGoBuild(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
-	buildTarget := "./..."	// Default target
-	targetArg := ""		// Variable to hold the user-provided target
+func toolGoBuild(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
+	buildTarget := "./..." // Default target
+	targetArg := ""        // Variable to hold the user-provided target
 
 	// Argument parsing (optional target)
 	if len(args) > 0 && args[0] != nil {
@@ -49,7 +51,7 @@ func toolGoBuild(interpreter *neurogo.Interpreter, args []interface{}) (interfac
 }
 
 // toolGoCheck implementation
-func toolGoCheck(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolGoCheck(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	// Validation ensures 1 string argument (handled by interpreter before calling)
 	targetPath := args[0].(string)
 
@@ -91,18 +93,18 @@ func toolGoCheck(interpreter *neurogo.Interpreter, args []interface{}) (interfac
 				checkSuccess = false
 				firstErrorMsg = fmt.Sprintf("Error decoding JSON from 'go list' output: %v. Output: %s", err, execStdout)
 				foundError = true
-				break	// Stop on first decode error
+				break // Stop on first decode error
 			}
 			// Check the "Error" field within the JSON object for this package
 			if errField, ok := pkgInfo["Error"]; ok && errField != nil {
 				foundError = true
 				if errMap, okMap := errField.(map[string]interface{}); okMap {
 					if errMsg, okStr := errMap["Err"].(string); okStr && errMsg != "" {
-						firstErrorMsg = errMsg	// Store the specific error message
+						firstErrorMsg = errMsg // Store the specific error message
 						if importPath, okPath := pkgInfo["ImportPath"].(string); okPath {
 							firstErrorPkg = importPath
 						}
-						break	// Stop on first reported error
+						break // Stop on first reported error
 					}
 				}
 				// Fallback if Error field structure is unexpected
@@ -110,7 +112,7 @@ func toolGoCheck(interpreter *neurogo.Interpreter, args []interface{}) (interfac
 				if importPath, okPath := pkgInfo["ImportPath"].(string); okPath {
 					firstErrorPkg = importPath
 				}
-				break	// Stop on first reported error
+				break // Stop on first reported error
 			}
 		}
 
@@ -143,16 +145,16 @@ func toolGoCheck(interpreter *neurogo.Interpreter, args []interface{}) (interfac
 	}
 
 	checkResultMap := map[string]interface{}{
-		"check_success":	checkSuccess,
-		"error_details":	errorDetails,
+		"check_success": checkSuccess,
+		"error_details": errorDetails,
 	}
 	return checkResultMap, nil
 }
 
 // toolGoTest implementation
-func toolGoTest(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
-	testTarget := "./..."	// Default target
-	targetArg := ""		// Variable to hold the user-provided target
+func toolGoTest(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
+	testTarget := "./..." // Default target
+	targetArg := ""       // Variable to hold the user-provided target
 
 	// Argument parsing (optional target)
 	if len(args) > 0 && args[0] != nil {
@@ -165,7 +167,7 @@ func toolGoTest(interpreter *neurogo.Interpreter, args []interface{}) (interface
 		}
 	}
 	if targetArg != "" {
-		testTarget = targetArg	// Use provided target
+		testTarget = targetArg // Use provided target
 	}
 
 	cmd := "go"
@@ -178,7 +180,7 @@ func toolGoTest(interpreter *neurogo.Interpreter, args []interface{}) (interface
 }
 
 // toolGoModTidy implementation
-func toolGoModTidy(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolGoModTidy(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	cmd := "go"
 	cmdArgs := []string{"mod", "tidy"}
 
@@ -189,9 +191,9 @@ func toolGoModTidy(interpreter *neurogo.Interpreter, args []interface{}) (interf
 }
 
 // toolGoListPackages implementation
-func toolGoListPackages(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
-	var targetDirRel string = "."			// Default relative dir
-	var patterns []string = []string{"./..."}	// Default pattern
+func toolGoListPackages(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
+	var targetDirRel string = "."             // Default relative dir
+	var patterns []string = []string{"./..."} // Default pattern
 
 	// Argument Parsing (using type assertions validated by interpreter)
 	if len(args) > 0 && args[0] != nil {
@@ -272,7 +274,7 @@ func toolGoListPackages(interpreter *neurogo.Interpreter, args []interface{}) (i
 	}
 
 	interpreter.Logger().Debug("[TOOL-GOLIST] Successfully executed and parsed", "package_count", len(results))
-	return results, nil	// Return the list of parsed package maps
+	return results, nil // Return the list of parsed package maps
 }
 
 // --- Internal Helper for executing Go commands within Sandbox ---
@@ -281,7 +283,7 @@ func toolGoListPackages(interpreter *neurogo.Interpreter, args []interface{}) (i
 // It handles path validation and command execution, returning a map similar to toolExecuteCommand.
 // Returns the result map and a Go-level error ONLY if the helper function itself fails (e.g., bad interpreter state, path resolution internal error).
 // Command execution success/failure is indicated *within* the returned map.
-func executeGoCommandHelper(interpreter *neurogo.Interpreter, targetDirRel string, goArgs ...string) (interface{}, error) {
+func executeGoCommandHelper(interpreter tool.RunTime, targetDirRel string, goArgs ...string) (interface{}, error) {
 	if interpreter == nil || interpreter.Logger() == nil {
 		// Return nil map and a Go error for internal setup issues
 		return nil, fmt.Errorf("executeGoCommandHelper: interpreter or logger is nil")
@@ -303,14 +305,14 @@ func executeGoCommandHelper(interpreter *neurogo.Interpreter, targetDirRel strin
 	}
 	// --- End Security ---
 
-	cmd := "go"					// Assuming 'go' is in PATH
-	fullArgs := append([]string{}, goArgs...)	// Copy args
+	cmd := "go"                               // Assuming 'go' is in PATH
+	fullArgs := append([]string{}, goArgs...) // Copy args
 
 	logger.Debug("[GO-HELPER] Executing command", "command", cmd, "args", fullArgs, "directory", absValidatedDir)
 
 	// Prepare command execution
 	cmdExec := exec.Command(cmd, fullArgs...)
-	cmdExec.Dir = absValidatedDir	// *** Run in the validated absolute directory ***
+	cmdExec.Dir = absValidatedDir // *** Run in the validated absolute directory ***
 	var stdout, stderr bytes.Buffer
 	cmdExec.Stdout = &stdout
 	cmdExec.Stderr = &stderr
@@ -330,7 +332,7 @@ func executeGoCommandHelper(interpreter *neurogo.Interpreter, targetDirRel strin
 			if status, ok := exitError.Sys().(syscall.WaitStatus); ok {
 				exitCode = status.ExitStatus()
 			} else {
-				exitCode = -1	// Unable to get specific exit code
+				exitCode = -1 // Unable to get specific exit code
 				stderrStr += fmt.Sprintf("\n(Failed to get exit status: %v)", exitError.Sys())
 			}
 		} else {
@@ -349,10 +351,10 @@ func executeGoCommandHelper(interpreter *neurogo.Interpreter, targetDirRel strin
 
 	// Return results in a map
 	resultMap := map[string]interface{}{
-		"stdout":	stdoutStr,
-		"stderr":	stderrStr,
-		"exit_code":	int64(exitCode),
-		"success":	success,
+		"stdout":    stdoutStr,
+		"stderr":    stderrStr,
+		"exit_code": int64(exitCode),
+		"success":   success,
 	}
 	// Return map, nil Go-level error (execution outcome is within the map)
 	return resultMap, nil

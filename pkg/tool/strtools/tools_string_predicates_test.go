@@ -17,12 +17,12 @@ import (
 )
 
 // testStringPredicateToolHelper tests a tool implementation directly with primitives.
-func testStringPredicateToolHelper(t *testing.T, interp *neurogo.Interpreter, tc struct {
-	name		string
-	toolName	string
-	args		[]interface{}
-	wantResult	interface{}
-	wantErrIs	error
+func testStringPredicateToolHelper(t *testing.T, interp tool.RunTime, tc struct {
+	name       string
+	toolName   string
+	args       []interface{}
+	wantResult interface{}
+	wantErrIs  error
 }) {
 	t.Helper()
 	t.Run(tc.name, func(t *testing.T) {
@@ -54,11 +54,11 @@ func testStringPredicateToolHelper(t *testing.T, interp *neurogo.Interpreter, tc
 func TestToolContainsPrefixSuffix(t *testing.T) {
 	interp, _ := llm.NewDefaultTestInterpreter(t)
 	tests := []struct {
-		name		string
-		toolName	string
-		args		[]interface{}
-		wantResult	interface{}
-		wantErrIs	error
+		name       string
+		toolName   string
+		args       []interface{}
+		wantResult interface{}
+		wantErrIs  error
 	}{
 		{name: "Contains True", toolName: "Contains", args: tool.MakeArgs("hello world", "world"), wantResult: true},
 		{name: "Contains False", toolName: "Contains", args: tool.MakeArgs("hello world", "bye"), wantResult: false},

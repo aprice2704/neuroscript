@@ -13,11 +13,12 @@ import (
 	"unicode/utf8"
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
 // --- Tool Implementations ---
 
-func toolStringLength(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolStringLength(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	if len(args) != 1 {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "String.Length: expected 1 argument (input_string)", lang.ErrArgumentMismatch)
 	}
@@ -30,7 +31,7 @@ func toolStringLength(interpreter *neurogo.Interpreter, args []interface{}) (int
 	return length, nil
 }
 
-func toolStringSubstring(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolStringSubstring(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	// Corresponds to "Substring" tool with args: input_string, start_index, length
 	if len(args) != 3 {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "String.Substring: expected 3 arguments (input_string, start_index, length)", lang.ErrArgumentMismatch)
@@ -64,7 +65,7 @@ func toolStringSubstring(interpreter *neurogo.Interpreter, args []interface{}) (
 
 	// Clamp start index
 	if startIndex > runeCount {
-		startIndex = runeCount	// Clamp to end (allows empty string result)
+		startIndex = runeCount // Clamp to end (allows empty string result)
 	}
 
 	// Calculate end index based on clamped start and requested length
@@ -86,7 +87,7 @@ func toolStringSubstring(interpreter *neurogo.Interpreter, args []interface{}) (
 	return substring, nil
 }
 
-func toolStringConcat(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolStringConcat(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	// Corresponds to "Concat" tool with args: strings_list (ArgTypeSliceString)
 	if len(args) != 1 {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "String.Concat: expected 1 argument (strings_list)", lang.ErrArgumentMismatch)
@@ -108,7 +109,7 @@ func toolStringConcat(interpreter *neurogo.Interpreter, args []interface{}) (int
 	return result, nil
 }
 
-func toolStringSplit(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolStringSplit(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	// Corresponds to "Split" tool with args: input_string, delimiter
 	if len(args) != 2 {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "String.Split: expected 2 arguments (input_string, delimiter)", lang.ErrArgumentMismatch)
@@ -127,10 +128,10 @@ func toolStringSplit(interpreter *neurogo.Interpreter, args []interface{}) (inte
 	parts := strings.Split(inputStr, separator)
 
 	interpreter.Logger().Debug("Tool: String.Split", "input_length", len(inputStr), "separator", separator, "parts_count", len(parts))
-	return parts, nil	// Return []string directly
+	return parts, nil // Return []string directly
 }
 
-func toolSplitWords(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolSplitWords(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	// Corresponds to "SplitWords" tool with args: input_string
 	if len(args) != 1 {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "String.SplitWords: expected 1 argument (input_string)", lang.ErrArgumentMismatch)
@@ -144,10 +145,10 @@ func toolSplitWords(interpreter *neurogo.Interpreter, args []interface{}) (inter
 	parts := strings.Fields(inputStr)
 
 	interpreter.Logger().Debug("Tool: String.SplitWords", "input_length", len(inputStr), "parts_count", len(parts))
-	return parts, nil	// Return []string directly
+	return parts, nil // Return []string directly
 }
 
-func toolStringJoin(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolStringJoin(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	// Corresponds to "Join" tool with args: string_list, separator
 	if len(args) != 2 {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "String.Join: expected 2 arguments (string_list, separator)", lang.ErrArgumentMismatch)
@@ -169,7 +170,7 @@ func toolStringJoin(interpreter *neurogo.Interpreter, args []interface{}) (inter
 	return result, nil
 }
 
-func toolStringContains(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolStringContains(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	// Corresponds to "Contains" tool with args: input_string, substring
 	if len(args) != 2 {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "String.Contains: expected 2 arguments (input_string, substring)", lang.ErrArgumentMismatch)
@@ -189,7 +190,7 @@ func toolStringContains(interpreter *neurogo.Interpreter, args []interface{}) (i
 	return contains, nil
 }
 
-func toolStringHasPrefix(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolStringHasPrefix(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	// Corresponds to "HasPrefix" tool with args: input_string, prefix
 	if len(args) != 2 {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "String.HasPrefix: expected 2 arguments (input_string, prefix)", lang.ErrArgumentMismatch)
@@ -209,7 +210,7 @@ func toolStringHasPrefix(interpreter *neurogo.Interpreter, args []interface{}) (
 	return hasPrefix, nil
 }
 
-func toolStringHasSuffix(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolStringHasSuffix(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	// Corresponds to "HasSuffix" tool with args: input_string, suffix
 	if len(args) != 2 {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "String.HasSuffix: expected 2 arguments (input_string, suffix)", lang.ErrArgumentMismatch)
@@ -229,7 +230,7 @@ func toolStringHasSuffix(interpreter *neurogo.Interpreter, args []interface{}) (
 	return hasSuffix, nil
 }
 
-func toolStringToUpper(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolStringToUpper(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	// Corresponds to "ToUpper" tool with args: input_string
 	if len(args) != 1 {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "String.ToUpper: expected 1 argument (input_string)", lang.ErrArgumentMismatch)
@@ -243,7 +244,7 @@ func toolStringToUpper(interpreter *neurogo.Interpreter, args []interface{}) (in
 	return result, nil
 }
 
-func toolStringToLower(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolStringToLower(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	// Corresponds to "ToLower" tool with args: input_string
 	if len(args) != 1 {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "String.ToLower: expected 1 argument (input_string)", lang.ErrArgumentMismatch)
@@ -257,7 +258,7 @@ func toolStringToLower(interpreter *neurogo.Interpreter, args []interface{}) (in
 	return result, nil
 }
 
-func toolStringTrimSpace(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolStringTrimSpace(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	// Corresponds to "TrimSpace" tool with args: input_string
 	if len(args) != 1 {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "String.TrimSpace: expected 1 argument (input_string)", lang.ErrArgumentMismatch)
@@ -271,7 +272,7 @@ func toolStringTrimSpace(interpreter *neurogo.Interpreter, args []interface{}) (
 	return result, nil
 }
 
-func toolStringReplace(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolStringReplace(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	// Corresponds to "Replace" tool with args: input_string, old_substring, new_substring, count
 	if len(args) != 4 {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "String.Replace: expected 4 arguments (input_string, old_substring, new_substring, count)", lang.ErrArgumentMismatch)
@@ -300,7 +301,7 @@ func toolStringReplace(interpreter *neurogo.Interpreter, args []interface{}) (in
 	return result, nil
 }
 
-func toolLineCountString(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolLineCountString(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	// Corresponds to "LineCount" tool with args: content_string
 	if len(args) != 1 {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "String.LineCount: expected 1 argument (content_string)", lang.ErrArgumentMismatch)

@@ -8,15 +8,16 @@
 package tree
 
 import (
-	"errors"	// Added for robust SetValue test logging
+	"errors" // Added for robust SetValue test logging
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/tool"
+	"github.com/aprice2704/neuroscript/pkg/utils"
 )
 
 // findNodeIDByRootAttribute finds the ID of a child node linked by a specific attribute key on a given root/parent node.
-func findNodeIDByRootAttribute(t *testing.T, interp *neurogo.Interpreter, handle string, parentNodeID string, attributeKey string) (string, bool) {
+func findNodeIDByRootAttribute(t *testing.T, interp tool.RunTime, handle string, parentNodeID string, attributeKey string) (string, bool) {
 	t.Helper()
 	parentNodeData, err := callGetNode(t, interp, handle, parentNodeID)
 	if err != nil {
@@ -50,17 +51,17 @@ func findNodeIDByRootAttribute(t *testing.T, interp *neurogo.Interpreter, handle
 func TestTreeModificationTools(t *testing.T) {
 	jsonSimple := `{"name": "item", "value": 10}`
 
-	setupInitialTree := func(t *testing.T, interp *neurogo.Interpreter) interface{} {
+	setupInitialTree := func(t *testing.T, interp tool.RunTime) interface{} {
 		return setupTreeWithJSON(t, interp, jsonSimple)
 	}
 
 	testCases := []treeTestCase{
 		{
-			name:		"SetValue Valid Leaf (string node) (Robust)",
-			toolName:	"Tree.GetNode",
-			args:		tool.MakeArgs("SETUP_HANDLE:tree1", "node-1"),
-			setupFunc:	setupInitialTree,
-			checkFunc: func(t *testing.T, interp *neurogo.Interpreter, initialToolResult interface{}, initialToolErr error, ctx interface{}) {
+			name:      "SetValue Valid Leaf (string node) (Robust)",
+			toolName:  "Tree.GetNode",
+			args:      tool.MakeArgs("SETUP_HANDLE:tree1", "node-1"),
+			setupFunc: setupInitialTree,
+			checkFunc: func(t *testing.T, interp tool.RunTime, initialToolResult interface{}, initialToolErr error, ctx interface{}) {
 				handle := ctx.(string)
 				newValueToSet := "new_name_value"
 
@@ -92,25 +93,25 @@ func TestTreeModificationTools(t *testing.T) {
 			},
 		},
 		{
-			name:		"SetValue On Object Node",
-			toolName:	"Tree.SetValue",
-			setupFunc:	setupInitialTree,
-			args:		tool.MakeArgs("SETUP_HANDLE:tree1", "node-1", "should_fail"),
-			wantErr:	lang.ErrCannotSetValueOnType,
+			name:      "SetValue On Object Node",
+			toolName:  "Tree.SetValue",
+			setupFunc: setupInitialTree,
+			args:      tool.MakeArgs("SETUP_HANDLE:tree1", "node-1", "should_fail"),
+			wantErr:   lang.ErrCannotSetValueOnType,
 		},
 		{
-			name:		"SetValue NonExistent Node",
-			toolName:	"Tree.SetValue",
-			setupFunc:	setupInitialTree,
-			args:		tool.MakeArgs("SETUP_HANDLE:tree1", "node-999", "val"),
-			wantErr:	lang.ErrNotFound,
+			name:      "SetValue NonExistent Node",
+			toolName:  "Tree.SetValue",
+			setupFunc: setupInitialTree,
+			args:      tool.MakeArgs("SETUP_HANDLE:tree1", "node-999", "val"),
+			wantErr:   lang.ErrNotFound,
 		},
 		{
-			name:		"AddChildNode To Root Object",
-			toolName:	"Tree.AddChildNode",
-			setupFunc:	setupInitialTree,
-			args:		tool.MakeArgs("SETUP_HANDLE:tree1", "node-1", "newChild1", "string", "hello", "newKeyInRoot"),
-			checkFunc: func(t *testing.T, interp *neurogo.Interpreter, result interface{}, err error, ctx interface{}) {
+			name:      "AddChildNode To Root Object",
+			toolName:  "Tree.AddChildNode",
+			setupFunc: setupInitialTree,
+			args:      tool.MakeArgs("SETUP_HANDLE:tree1", "node-1", "newChild1", "string", "hello", "newKeyInRoot"),
+			checkFunc: func(t *testing.T, interp tool.RunTime, result interface{}, err error, ctx interface{}) {
 				if err != nil {
 					t.Fatalf("AddChildNode failed: %v", err)
 				}
@@ -131,18 +132,18 @@ func TestTreeModificationTools(t *testing.T) {
 			},
 		},
 		{
-			name:		"AddChildNode ID Exists",
-			toolName:	"Tree.AddChildNode",
-			setupFunc:	setupInitialTree,
-			args:		tool.MakeArgs("SETUP_HANDLE:tree1", "node-1", "node-2", "string", "fail", "anotherKey"),
-			wantErr:	lang.ErrNodeIDExists,
+			name:      "AddChildNode ID Exists",
+			toolName:  "Tree.AddChildNode",
+			setupFunc: setupInitialTree,
+			args:      tool.MakeArgs("SETUP_HANDLE:tree1", "node-1", "node-2", "string", "fail", "anotherKey"),
+			wantErr:   lang.ErrNodeIDExists,
 		},
 		{
-			name:		"AddChildNode To Leaf Node (Robust)",
-			toolName:	"Tree.GetNode",
-			args:		tool.MakeArgs("SETUP_HANDLE:tree1", "node-1"),
-			setupFunc:	setupInitialTree,
-			checkFunc: func(t *testing.T, interp *neurogo.Interpreter, initialToolResult interface{}, initialToolErr error, ctx interface{}) {
+			name:      "AddChildNode To Leaf Node (Robust)",
+			toolName:  "Tree.GetNode",
+			args:      tool.MakeArgs("SETUP_HANDLE:tree1", "node-1"),
+			setupFunc: setupInitialTree,
+			checkFunc: func(t *testing.T, interp tool.RunTime, initialToolResult interface{}, initialToolErr error, ctx interface{}) {
 				handle := ctx.(string)
 				leafNodeID, found := findNodeIDByRootAttribute(t, interp, handle, "node-1", "name")
 				if !found {
@@ -158,11 +159,11 @@ func TestTreeModificationTools(t *testing.T) {
 			},
 		},
 		{
-			name:		"RemoveNode Leaf (Robust)",
-			toolName:	"Tree.GetNode",
-			args:		tool.MakeArgs("SETUP_HANDLE:tree1", "node-1"),
-			setupFunc:	setupInitialTree,
-			checkFunc: func(t *testing.T, interp *neurogo.Interpreter, initialGetNodeResult interface{}, initialGetNodeErr error, ctx interface{}) {
+			name:      "RemoveNode Leaf (Robust)",
+			toolName:  "Tree.GetNode",
+			args:      tool.MakeArgs("SETUP_HANDLE:tree1", "node-1"),
+			setupFunc: setupInitialTree,
+			checkFunc: func(t *testing.T, interp tool.RunTime, initialGetNodeResult interface{}, initialGetNodeErr error, ctx interface{}) {
 				handle := ctx.(string)
 
 				if initialGetNodeErr != nil {
@@ -218,18 +219,18 @@ func TestTreeModificationTools(t *testing.T) {
 			},
 		},
 		{
-			name:		"RemoveNode Root",
-			toolName:	"Tree.RemoveNode",
-			setupFunc:	setupInitialTree,
-			args:		tool.MakeArgs("SETUP_HANDLE:tree1", "node-1"),
-			wantErr:	lang.ErrCannotRemoveRoot,
+			name:      "RemoveNode Root",
+			toolName:  "Tree.RemoveNode",
+			setupFunc: setupInitialTree,
+			args:      tool.MakeArgs("SETUP_HANDLE:tree1", "node-1"),
+			wantErr:   lang.ErrCannotRemoveRoot,
 		},
 		{
-			name:		"RemoveNode NonExistent",
-			toolName:	"Tree.RemoveNode",
-			setupFunc:	setupInitialTree,
-			args:		tool.MakeArgs("SETUP_HANDLE:tree1", "node-999"),
-			wantErr:	lang.ErrNotFound,
+			name:      "RemoveNode NonExistent",
+			toolName:  "Tree.RemoveNode",
+			setupFunc: setupInitialTree,
+			args:      tool.MakeArgs("SETUP_HANDLE:tree1", "node-999"),
+			wantErr:   lang.ErrNotFound,
 		},
 	}
 

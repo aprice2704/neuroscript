@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	// For NoOpLogger
+	"github.com/aprice2704/neuroscript/pkg/logging"
 	"github.com/aprice2704/neuroscript/pkg/utils"
 	"github.com/google/go-cmp/cmp" // For better diffs
 )
@@ -159,7 +160,7 @@ func TestChecklistToTree(t *testing.T) {
 }
 
 func TestTreeToChecklistString(t *testing.T) {
-	noopLogger := logging.NewNoLogger()
+	noopLogger := logging.NewNoOpLogger()
 
 	testCases := []struct {
 		name              string

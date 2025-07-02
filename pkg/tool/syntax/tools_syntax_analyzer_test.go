@@ -15,98 +15,99 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/parser"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
 func TestAnalyzeNSSyntaxInternal(t *testing.T) {
 	originalGrammarVersion := lang.GrammarVersion
-	lang.GrammarVersion = "test-grammar-v0.9.9"	// For predictable test output
+	lang.GrammarVersion = "test-grammar-v0.9.9" // For predictable test output
 	defer func() { lang.GrammarVersion = originalGrammarVersion }()
 
 	testInterp, _ := llm.NewDefaultTestInterpreter(t)
 
 	testCases := []struct {
-		name				string
-		interpreter			*neurogo.Interpreter
-		scriptContent			string
-		expectedTotalErrors		int
-		expectedReportedErrorsNum	int
-		expectedErrorsDetails		[]parser.StructuredSyntaxError
-		expectError			bool
-		expectedErrorIs			error
-		expectedSummaryPreamble		string
+		name                      string
+		interpreter               tool.RunTime
+		scriptContent             string
+		expectedTotalErrors       int
+		expectedReportedErrorsNum int
+		expectedErrorsDetails     []parser.StructuredSyntaxError
+		expectError               bool
+		expectedErrorIs           error
+		expectedSummaryPreamble   string
 	}{
 		{
-			name:				"valid script - no errors",
-			interpreter:			testInterp,
-			scriptContent:			"func main means\n  set x = 10\n  emit x\nendfunc",
-			expectedTotalErrors:		0,
-			expectedReportedErrorsNum:	0,
-			expectError:			false,
+			name:                      "valid script - no errors",
+			interpreter:               testInterp,
+			scriptContent:             "func main means\n  set x = 10\n  emit x\nendfunc",
+			expectedTotalErrors:       0,
+			expectedReportedErrorsNum: 0,
+			expectError:               false,
 		},
 		{
-			name:				"script with one syntax error - incomplete set",
-			interpreter:			testInterp,
-			scriptContent:			"func main means\n  set x = \nendfunc",
-			expectedTotalErrors:		1,
-			expectedReportedErrorsNum:	1,
+			name:                      "script with one syntax error - incomplete set",
+			interpreter:               testInterp,
+			scriptContent:             "func main means\n  set x = \nendfunc",
+			expectedTotalErrors:       1,
+			expectedReportedErrorsNum: 1,
 			expectedErrorsDetails: []parser.StructuredSyntaxError{
 				{Line: 2, Column: 10, Msg: "mismatched input '\\n' expecting", OffendingSymbol: ""},
 			},
-			expectError:	false,
+			expectError: false,
 		},
 		{
-			name:				"script with multiple syntax errors - incomplete set and call",
-			interpreter:			testInterp,
-			scriptContent:			"func main means\n  set x = \n  call \nendfunc",
-			expectedTotalErrors:		2,
-			expectedReportedErrorsNum:	2,
+			name:                      "script with multiple syntax errors - incomplete set and call",
+			interpreter:               testInterp,
+			scriptContent:             "func main means\n  set x = \n  call \nendfunc",
+			expectedTotalErrors:       2,
+			expectedReportedErrorsNum: 2,
 			expectedErrorsDetails: []parser.StructuredSyntaxError{
 				{Line: 2, Column: 10, Msg: "mismatched input '\\n' expecting", OffendingSymbol: ""},
 				{Line: 3, Column: 7, Msg: "mismatched input '\\n' expecting", OffendingSymbol: ""},
 			},
-			expectError:	false,
+			expectError: false,
 		},
 		{
-			name:				"empty script",
-			interpreter:			testInterp,
-			scriptContent:			"",
-			expectedTotalErrors:		0,
-			expectedReportedErrorsNum:	0,
-			expectError:			false,
+			name:                      "empty script",
+			interpreter:               testInterp,
+			scriptContent:             "",
+			expectedTotalErrors:       0,
+			expectedReportedErrorsNum: 0,
+			expectError:               false,
 		},
 		{
-			name:			"nil interpreter passed to tool function",
-			interpreter:		nil,
-			scriptContent:		"set x = 1",
-			expectError:		true,
-			expectedErrorIs:	lang.ErrInvalidArgument,
+			name:            "nil interpreter passed to tool function",
+			interpreter:     nil,
+			scriptContent:   "set x = 1",
+			expectError:     true,
+			expectedErrorIs: lang.ErrInvalidArgument,
 		},
 		{
-			name:				"more than max errors - input yields 1 parser error for standalone set",
-			interpreter:			testInterp,
-			scriptContent:			"set x = 1",	// Simplified from repeat, the error is the same.
-			expectedTotalErrors:		1,
-			expectedReportedErrorsNum:	1,
+			name:                      "more than max errors - input yields 1 parser error for standalone set",
+			interpreter:               testInterp,
+			scriptContent:             "set x = 1", // Simplified from repeat, the error is the same.
+			expectedTotalErrors:       1,
+			expectedReportedErrorsNum: 1,
 			expectedErrorsDetails: []parser.StructuredSyntaxError{
 				// This check is now more robust. It verifies the core error ("mismatched input 'set'")
 				// without being brittle about the list of all possible expected tokens, which can
 				// change frequently with grammar updates.
 				{Line: 1, Column: 0, Msg: "mismatched input 'set' expecting", OffendingSymbol: "set"},
 			},
-			expectError:	false,
+			expectError: false,
 		},
 		{
-			name:		"invalid keyword as variable name",
-			interpreter:	testInterp,
+			name:        "invalid keyword as variable name",
+			interpreter: testInterp,
 			scriptContent: `func main means
   set if = 10
 endfunc`,
-			expectedTotalErrors:		1,
-			expectedReportedErrorsNum:	1,
+			expectedTotalErrors:       1,
+			expectedReportedErrorsNum: 1,
 			expectedErrorsDetails: []parser.StructuredSyntaxError{
 				{Line: 2, Column: 6, Msg: "mismatched input 'if' expecting IDENTIFIER", OffendingSymbol: "if"},
 			},
-			expectError:	false,
+			expectError: false,
 		},
 	}
 

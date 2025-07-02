@@ -15,6 +15,7 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/core"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
+	"github.com/aprice2704/neuroscript/pkg/logging"
 )
 
 // NewApp creates and initializes a new App instance.
@@ -23,7 +24,7 @@ func NewApp(config *Config, logger interfaces.Logger, llmclient interfaces.LLMCl
 		return nil, fmt.Errorf("config cannot be nil")
 	}
 	if logger == nil {
-		logger = logging.NewNoLogger()
+		logger = logging.NewNoOpLogger()
 		logger.Warn("No logger provided to NewApp, using NoOpLogger.")
 	}
 

@@ -13,6 +13,7 @@ import (
 
 	"github.com/antlr4-go/antlr/v4"
 	"github.com/aprice2704/neuroscript/pkg/ast"
+	"github.com/aprice2704/neuroscript/pkg/logging"
 	gen "github.com/aprice2704/neuroscript/pkg/parser/generated"
 )
 
@@ -37,7 +38,7 @@ func parseScriptToLValueNode(t *testing.T, scriptContent string) *ast.LValueNode
 		return nil
 	}
 
-	nopLogger := logging.NewNoLogger()
+	nopLogger := logging.NewNoOpLogger()
 	astBuilder := NewASTBuilder(nopLogger)
 	programAST, _, err := astBuilder.Build(tree)
 	if err != nil {
@@ -208,7 +209,7 @@ func TestLValueParsing(t *testing.T) {
 func TestExitLvalue_ErrorScenarios(t *testing.T) {
 	t.Run("stack underflow", func(t *testing.T) {
 		// This test simulates a scenario where the stack is empty when ExitLvalue is called.
-		listener := newNeuroScriptListener(logging.NewNoLogger(), false)
+		listener := newNeuroScriptListener(logging.NewNoOpLogger(), false)
 		ctx := &gen.LvalueContext{
 			BaseParserRuleContext: *antlr.NewBaseParserRuleContext(nil, -1),
 		}

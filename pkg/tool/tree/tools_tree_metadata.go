@@ -10,11 +10,13 @@ import (
 	"fmt"
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/tool"
+	"github.com/aprice2704/neuroscript/pkg/utils"
 )
 
 // toolTreeSetNodeMetadata sets or updates a string metadata attribute (key-value pair) on any existing node type.
 // Corresponds to ToolSpec "Tree.SetNodeMetadata".
-func toolTreeSetNodeMetadata(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolTreeSetNodeMetadata(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	toolName := "Tree.SetNodeMetadata"
 
 	// Expected args: tree_handle (string), node_id (string), metadata_key (string), metadata_value (string)
@@ -49,7 +51,7 @@ func toolTreeSetNodeMetadata(interpreter *neurogo.Interpreter, args []interface{
 
 	_, node, err := getNodeFromHandle(interpreter, handleID, nodeID, toolName)
 	if err != nil {
-		return nil, err	// getNodeFromHandle returns RuntimeError
+		return nil, err // getNodeFromHandle returns RuntimeError
 	}
 
 	// Ensure the Attributes map is initialized (GenericTreeNode.NewNode initializes it)
@@ -57,7 +59,7 @@ func toolTreeSetNodeMetadata(interpreter *neurogo.Interpreter, args []interface{
 		node.Attributes = make(utils.TreeAttrs)
 		interpreter.Logger().Warn(fmt.Sprintf("%s: Node attributes map was nil for node '%s', initialized.", toolName, nodeID))
 	}
-	node.Attributes[metaKey] = metaValue	// Set the string value
+	node.Attributes[metaKey] = metaValue // Set the string value
 
 	interpreter.Logger().Debug(fmt.Sprintf("%s: Set node metadata attribute", toolName), "handle", handleID, "nodeId", nodeID, "key", metaKey, "value", metaValue)
 	return nil, nil
@@ -65,7 +67,7 @@ func toolTreeSetNodeMetadata(interpreter *neurogo.Interpreter, args []interface{
 
 // toolTreeRemoveNodeMetadata removes a metadata attribute (key-value pair) from any node.
 // Corresponds to ToolSpec "Tree.RemoveNodeMetadata".
-func toolTreeRemoveNodeMetadata(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolTreeRemoveNodeMetadata(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	toolName := "Tree.RemoveNodeMetadata"
 
 	// Expected args: tree_handle (string), node_id (string), metadata_key (string)
@@ -95,7 +97,7 @@ func toolTreeRemoveNodeMetadata(interpreter *neurogo.Interpreter, args []interfa
 
 	_, node, err := getNodeFromHandle(interpreter, handleID, nodeID, toolName)
 	if err != nil {
-		return nil, err	// getNodeFromHandle returns RuntimeError
+		return nil, err // getNodeFromHandle returns RuntimeError
 	}
 
 	if node.Attributes == nil {

@@ -4,58 +4,60 @@ package parser
 import (
 	"reflect"
 	"testing"
+
+	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
 func TestConvertInputSchemaToArgSpec_SuccessScenarios(t *testing.T) {
 	testCases := []struct {
-		name		string
-		schema		map[string]interface{}
-		expectedArgs	[]ArgSpec
-		expectError	bool
-		expectedErrMsg	string
+		name           string
+		schema         map[string]interface{}
+		expectedArgs   []tool.ArgSpec
+		expectError    bool
+		expectedErrMsg string
 	}{
 		{
-			name:		"schema with no properties",
-			schema:		map[string]interface{}{"type": "object"},
-			expectedArgs:	[]ArgSpec{},
-			expectError:	false,
+			name:         "schema with no properties",
+			schema:       map[string]interface{}{"type": "object"},
+			expectedArgs: []tool.ArgSpec{},
+			expectError:  false,
 		},
 		{
-			name:	"schema with properties but no required field",
+			name: "schema with properties but no required field",
 			schema: map[string]interface{}{
-				"type":	"object",
+				"type": "object",
 				"properties": map[string]interface{}{
 					"param1": map[string]interface{}{"type": "string"},
 				},
 			},
-			expectedArgs: []ArgSpec{
-				{Name: "param1", Type: ArgTypeString, Required: false},
+			expectedArgs: []tool.ArgSpec{
+				{Name: "param1", Type: tool.tool.ArgTypeString, Required: false},
 			},
-			expectError:	false,
+			expectError: false,
 		},
 		{
-			name:	"schema with empty required field",
+			name: "schema with empty required field",
 			schema: map[string]interface{}{
-				"type":	"object",
+				"type": "object",
 				"properties": map[string]interface{}{
 					"param1": map[string]interface{}{"type": "integer"},
 				},
-				"required":	[]string{},
+				"required": []string{},
 			},
-			expectedArgs: []ArgSpec{
-				{Name: "param1", Type: ArgTypeInt, Required: false},
+			expectedArgs: []tool.ArgSpec{
+				{Name: "param1", Type: tool.tool.ArgTypeInt, Required: false},
 			},
-			expectError:	false,
+			expectError: false,
 		},
 		{
-			name:	"invalid required array element type",
+			name: "invalid required array element type",
 			schema: map[string]interface{}{
-				"type":		"object",
-				"properties":	map[string]interface{}{},
-				"required":	[]interface{}{123},
+				"type":       "object",
+				"properties": map[string]interface{}{},
+				"required":   []interface{}{123},
 			},
-			expectError:	true,
-			expectedErrMsg:	"invalid schema: 'required' array element 0 is not a string (int)",
+			expectError:    true,
+			expectedErrMsg: "invalid schema: 'required' array element 0 is not a string (int)",
 		},
 	}
 
@@ -84,11 +86,11 @@ func TestConvertInputSchemaToArgSpec_SuccessScenarios(t *testing.T) {
 
 func TestParseMetadataLine(t *testing.T) {
 	testCases := []struct {
-		name		string
-		line		string
-		expectedKey	string
-		expectedVal	string
-		expectedOk	bool
+		name        string
+		line        string
+		expectedKey string
+		expectedVal string
+		expectedOk  bool
 	}{
 		{"valid full line", ":: key: value", "key", "value", true},
 		{"valid with extra space", "  ::  key  :  value  ", "key", "value", true},

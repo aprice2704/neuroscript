@@ -12,7 +12,8 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/adapters"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
-	"github.com/aprice2704/neuroscript/pkg/toolsets"
+	"github.com/aprice2704/neuroscript/pkg/interpreter"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
 // setupTestApp is a helper to reduce boilerplate in tests.
@@ -33,7 +34,7 @@ func setupTestApp(t *testing.T) *App {
 	app.SetInterpreter(interpreter)
 
 	// Register tools needed for tests, including file system tools.
-	if err := toolsets.RegisterExtendedTools(interpreter); err != nil {
+	if err := tool.RegisterExtendedTools(interpreter); err != nil {
 		t.Fatalf("Failed to register extended tools: %v", err)
 	}
 	return app
@@ -105,8 +106,8 @@ func TestApp_LoadScript_DoesNotExecuteTopLevelCode(t *testing.T) {
 
 	wasExecuted := false
 	canaryTool := Implementation{
-		Spec:	Spec{Name: "TestSetCanary"},	// Simplified name to avoid parser issues
-		Func: func(i *rpreter, args []any) (any, error) {
+		Spec: Spec{Name: "TestSetCanary"}, // Simplified name to avoid parser issues
+		Func: func(i interpreter.Interpreter, args []any) (any, error) {
 			wasExecuted = true
 			return true, nil
 		},
@@ -144,8 +145,8 @@ func TestApp_LoadScript_DoesNotImplicitlyRunMain(t *testing.T) {
 
 	wasExecuted := false
 	canaryTool := Implementation{
-		Spec:	Spec{Name: "TestSetCanary"},	// Simplified name to avoid parser issues
-		Func: func(i *rpreter, args []any) (any, error) {
+		Spec: Spec{Name: "TestSetCanary"}, // Simplified name to avoid parser issues
+		Func: func(i interpreter.Interpreter, args []any) (any, error) {
 			wasExecuted = true
 			return true, nil
 		},

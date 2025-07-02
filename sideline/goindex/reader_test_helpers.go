@@ -11,25 +11,28 @@ import (
 	"time"
 
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
+	"github.com/aprice2704/neuroscript/pkg/interpreter"
+	"github.com/aprice2704/neuroscript/pkg/logging"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
 var logger interfaces.Logger
 
 func init() {
-	logger = logging.NewNoLogger()
+	logger = logging.NewNoOpLogger()
 }
 
 // --- Mock Go functions for tool implementations, defined at package level for stable FQNs ---
-func mockToolImplFuncForTest(i *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func mockToolImplFuncForTest(i tool.RunTime, args []interface{}) (interface{}, error) {
 	return "mockToolImplFuncForTest_ok", nil
 }
 
 type mockToolStruct struct{}
 
-func (m *mockToolStruct) MockToolImplMethodForTest(i *rpreter, args []interface{}) (interface{}, error) {
+func (m *mockToolStruct) MockToolImplMethodForTest(i interpreter.Interpreter, args []interface{}) (interface{}, error) {
 	return "mockToolImplMethodForTest_ok", nil
 }
-func mockToolImplWhichIsNotInIndex(i *rpreter, args []interface{}) (interface{}, error) {
+func mockToolImplWhichIsNotInIndex(i interpreter.Interpreter, args []interface{}) (interface{}, error) {
 	return "mockToolImplWhichIsNotInIndex_ok", nil
 }
 

@@ -10,6 +10,8 @@ package time
 import (
 	"fmt"
 	"time"
+
+	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
 // ================================================================================
@@ -18,14 +20,14 @@ import (
 //
 // ================================================================================
 
-func adaptToolTimeNow(interp *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func adaptToolTimeNow(interp tool.RunTime, args []interface{}) (interface{}, error) {
 	if err := validateTimeNow(args); err != nil {
 		return nil, err
 	}
 	return implTimeNow()
 }
 
-func adaptToolTimeSleep(interp *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func adaptToolTimeSleep(interp tool.RunTime, args []interface{}) (interface{}, error) {
 	if err := validateTimeSleep(args); err != nil {
 		return nil, err
 	}

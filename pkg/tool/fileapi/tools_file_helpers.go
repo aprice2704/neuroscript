@@ -11,13 +11,14 @@ import (
 	"strings"
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
 // readFileContent reads the entire content of a file specified by path.
 // It respects the interpreter's sandbox.
-func readFileContent(interp *neurogo.Interpreter, path string) (string, error) {
+func readFileContent(interp tool.RunTime, path string) (string, error) {
 	// Use FileAPI getter method for sandboxed access
-	absPath, err := interp.FileAPI().ResolvePath(path)	// <<< USE GETTER
+	absPath, err := interp.FileAPI().ResolvePath(path) // <<< USE GETTER
 	if err != nil {
 		if errors.Is(err, lang.ErrPathViolation) {
 			return "", err
@@ -25,7 +26,7 @@ func readFileContent(interp *neurogo.Interpreter, path string) (string, error) {
 		return "", fmt.Errorf("failed to resolve path '%s': %w", path, err)
 	}
 
-	interp.Logger().Debug("Reading file", "path", absPath)	// Use Logger() getter
+	interp.Logger().Debug("Reading file", "path", absPath) // Use Logger() getter
 	contentBytes, err := os.ReadFile(absPath)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
@@ -38,9 +39,9 @@ func readFileContent(interp *neurogo.Interpreter, path string) (string, error) {
 
 // writeFileContent writes content to a file specified by path.
 // It respects the interpreter's sandbox.
-func writeFileContent(interp *neurogo.Interpreter, path string, content string) error {
+func writeFileContent(interp tool.RunTime, path string, content string) error {
 	// Use FileAPI getter method for sandboxed access
-	absPath, err := interp.FileAPI().ResolvePath(path)	// <<< USE GETTER
+	absPath, err := interp.FileAPI().ResolvePath(path) // <<< USE GETTER
 	if err != nil {
 		if errors.Is(err, lang.ErrPathViolation) {
 			return err
@@ -48,7 +49,7 @@ func writeFileContent(interp *neurogo.Interpreter, path string, content string) 
 		return fmt.Errorf("failed to resolve path '%s': %w", path, err)
 	}
 
-	interp.Logger().Debug("Writing file", "path", absPath, "content_length", len(content))	// Use Logger() getter
+	interp.Logger().Debug("Writing file", "path", absPath, "content_length", len(content)) // Use Logger() getter
 
 	// Ensure the target directory exists
 	dir := filepath.Dir(absPath)
@@ -61,14 +62,14 @@ func writeFileContent(interp *neurogo.Interpreter, path string, content string) 
 	if err != nil {
 		return fmt.Errorf("failed to write file '%s': %w", absPath, err)
 	}
-	interp.Logger().Debug("File written successfully", "path", absPath)	// Use Logger() getter
+	interp.Logger().Debug("File written successfully", "path", absPath) // Use Logger() getter
 	return nil
 }
 
 // embedFileContent generates embeddings for the file content.
 // It respects the interpreter's sandbox and uses the configured LLM client.
-func embedFileContent(ctx context.Context, interp *neurogo.Interpreter, path string) ([]float32, error) {
-	interp.Logger().Debug("Requesting embedding for file", "path", path)	// Use getter
+func embedFileContent(ctx context.Context, interp tool.RunTime, path string) ([]float32, error) {
+	interp.Logger().Debug("Requesting embedding for file", "path", path) // Use getter
 
 	if interp.llmClient == nil {
 		return nil, lang.ErrLLMNotConfigured
@@ -84,15 +85,15 @@ func embedFileContent(ctx context.Context, interp *neurogo.Interpreter, path str
 		return nil, fmt.Errorf("%w: generating embeddings for file '%s': %w", lang.ErrLLMError, path, err)
 	}
 
-	interp.Logger().Debug("Embedding generated successfully", "path", path, "vector_length", len(embeddings))	// Use getter
+	interp.Logger().Debug("Embedding generated successfully", "path", path, "vector_length", len(embeddings)) // Use getter
 	return embeddings, nil
 }
 
 // findFiles walks the directory tree starting from startPath within the sandbox
 // and returns a list of absolute file paths matching the criteria.
-func findFiles(interp *neurogo.Interpreter, startPath string) ([]string, error) {
+func findFiles(interp tool.RunTime, startPath string) ([]string, error) {
 	// Use FileAPI getter method
-	absStartPath, err := interp.FileAPI().ResolvePath(startPath)	// <<< USE GETTER
+	absStartPath, err := interp.FileAPI().ResolvePath(startPath) // <<< USE GETTER
 	if err != nil {
 		if errors.Is(err, lang.ErrPathViolation) {
 			return nil, err
@@ -103,14 +104,14 @@ func findFiles(interp *neurogo.Interpreter, startPath string) ([]string, error) 
 	var files []string
 	err = filepath.Walk(absStartPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
-			interp.Logger().Warn("Error accessing path during walk", "path", path, "error", err)	// Use getter
+			interp.Logger().Warn("Error accessing path during walk", "path", path, "error", err) // Use getter
 			return nil
 		}
 
 		// Use FileAPI getter method to get sandbox root for comparison
-		sandboxRoot := interp.FileAPI().sandboxRoot	// <<< USE GETTER
+		sandboxRoot := interp.FileAPI().sandboxRoot // <<< USE GETTER
 		if !strings.HasPrefix(path, sandboxRoot) {
-			interp.Logger().Error("Path escaped sandbox during walk", "path", path, "sandbox", sandboxRoot)	// Use getter
+			interp.Logger().Error("Path escaped sandbox during walk", "path", path, "sandbox", sandboxRoot) // Use getter
 			return fmt.Errorf("security violation: path '%s' escaped sandbox '%s'", path, sandboxRoot)
 		}
 
@@ -129,9 +130,9 @@ func findFiles(interp *neurogo.Interpreter, startPath string) ([]string, error) 
 
 // scanFileLines reads a file line by line and applies a callback function.
 // Stops if the callback returns false. Respects the sandbox.
-func scanFileLines(interp *neurogo.Interpreter, path string, callback func(line string) bool) error {
+func scanFileLines(interp tool.RunTime, path string, callback func(line string) bool) error {
 	// Use FileAPI getter method
-	absPath, err := interp.FileAPI().ResolvePath(path)	// <<< USE GETTER
+	absPath, err := interp.FileAPI().ResolvePath(path) // <<< USE GETTER
 	if err != nil {
 		if errors.Is(err, lang.ErrPathViolation) {
 			return err

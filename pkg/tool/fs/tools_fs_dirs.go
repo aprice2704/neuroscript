@@ -15,10 +15,12 @@ import (
 	"time"
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/security"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
 // --- toolListDirectory unchanged ---
-func toolListDirectory(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolListDirectory(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	if len(args) < 1 || len(args) > 2 {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("ListDirectory: expected 1 or 2 arguments (path, [recursive]), got %d", len(args)), lang.ErrArgumentMismatch)
 	}
@@ -63,16 +65,16 @@ func toolListDirectory(interpreter *neurogo.Interpreter, args []interface{}) (in
 	if recursive {
 		walkErr := filepath.WalkDir(absBasePath, func(currentPath string, d fs.DirEntry, err error) error {
 			if err != nil || currentPath == absBasePath {
-				return nil	// Skip errors and the root itself
+				return nil // Skip errors and the root itself
 			}
 			info, _ := d.Info()
 			entryRelPath, _ := filepath.Rel(absBasePath, currentPath)
 			fileInfos = append(fileInfos, map[string]interface{}{
-				"name":		d.Name(),
-				"path":		filepath.ToSlash(entryRelPath),
-				"isDir":	d.IsDir(),
-				"size":		info.Size(),
-				"modTime":	info.ModTime().Format(time.RFC3339Nano),
+				"name":    d.Name(),
+				"path":    filepath.ToSlash(entryRelPath),
+				"isDir":   d.IsDir(),
+				"size":    info.Size(),
+				"modTime": info.ModTime().Format(time.RFC3339Nano),
 			})
 			return nil
 		})
@@ -87,11 +89,11 @@ func toolListDirectory(interpreter *neurogo.Interpreter, args []interface{}) (in
 		for _, entry := range entries {
 			info, _ := entry.Info()
 			fileInfos = append(fileInfos, map[string]interface{}{
-				"name":		entry.Name(),
-				"path":		filepath.ToSlash(entry.Name()),
-				"isDir":	entry.IsDir(),
-				"size":		info.Size(),
-				"modTime":	info.ModTime().Format(time.RFC3339Nano),
+				"name":    entry.Name(),
+				"path":    filepath.ToSlash(entry.Name()),
+				"isDir":   entry.IsDir(),
+				"size":    info.Size(),
+				"modTime": info.ModTime().Format(time.RFC3339Nano),
 			})
 		}
 	}
@@ -99,7 +101,7 @@ func toolListDirectory(interpreter *neurogo.Interpreter, args []interface{}) (in
 }
 
 // toolMkdir creates a directory (like mkdir -p).
-func toolMkdir(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolMkdir(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	if len(args) != 1 {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("Mkdir: expected 1 argument (path), got %d", len(args)), lang.ErrArgumentMismatch)
 	}

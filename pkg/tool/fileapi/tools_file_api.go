@@ -14,6 +14,7 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/logging"
 )
 
 // FileAPI handles sandboxed file system access for the interpreter.
@@ -30,7 +31,7 @@ type FileAPI struct {
 func NewFileAPI(sandboxDir string, logger interfaces.Logger) *FileAPI {
 	if logger == nil {
 		// Fallback to a basic logger if none provided, although Interpreter should always provide one.
-		logger = &logging.NewNoLogger{}
+		logger = &logging.NewNoOpLogger{}
 		logger.Warn("NewFileAPI created with nil logger, using internal NoOpLogger.")
 	}
 

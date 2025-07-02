@@ -1,20 +1,21 @@
 // NeuroScript Version: 0.3.0
 // File version: 0.1.0
 // AI Worker Management: Tool Helper Functions
-// filename: pkg/core/ai_wm_tools_helpers.go
+// filename: pkg/wm/ai_wm_tools_helpers.go
 
-package core
+package wm
 
 import (
 	"time"
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 	"github.com/aprice2704/neuroscript/sideline/nspatch"
 )
 
 // getAIWorkerManager retrieves the AIWorkerManager from the interpreter.
 // It returns an error if the manager is not initialized.
-func getAIWorkerManager(i *neurogo.Interpreter) (*AIWorkerManager, error) {
+func getAIWorkerManager(i tool.RunTime) (*AIWorkerManager, error) {
 	if i.aiWorkerManager == nil {
 		i.Logger().Error("AIWorkerManager not initialized in Interpreter context!")
 		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, "AIWorkerManager not available in Interpreter", nspatch.ErrInternal)

@@ -16,6 +16,8 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+
+	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	// Assuming this is needed for NeuroScriptToolDetail's Args mapping
 )
 
@@ -252,7 +254,7 @@ func mapCoreArgSpecsToNeuroScriptArgDetails(coreArgs []pec) []NeuroScriptArgDeta
 // GenerateEnhancedToolDetails dynamically links ToolSpecs from an interpreter
 // with their Go implementation details using a loaded code index.
 func (ir *IndexReader) GenerateEnhancedToolDetails(
-	interpreter *rpreter,
+	interpreter interpreter.Interpreter,
 ) ([]NeuroScriptToolDetail, error) {
 	if interpreter == nil {
 		return nil, fmt.Errorf("interpreter cannot be nil for generating enhanced tool details")

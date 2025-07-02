@@ -9,14 +9,16 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"strings"	// Keep for "directory not empty" check if needed, though errors.Is might be better if a specific error exists.
+	"strings" // Keep for "directory not empty" check if needed, though errors.Is might be better if a specific error exists.
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/security"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
 // toolDeleteFile implements the TOOL.DeleteFile command.
 // It deletes a file or an *empty* directory.
-func toolDeleteFile(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolDeleteFile(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	if len(args) != 1 {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("DeleteFile: expected 1 argument (path), got %d", len(args)), lang.ErrArgumentMismatch)
 	}
@@ -37,7 +39,7 @@ func toolDeleteFile(interpreter *neurogo.Interpreter, args []interface{}) (inter
 	absPath, secErr := security.SecureFilePath(relPath, sandboxRoot)
 	if secErr != nil {
 		interpreter.Logger().Infof("Tool: DeleteFile] Path security error for %q: %v (Sandbox Root: %s)", relPath, secErr, sandboxRoot)
-		return nil, secErr	// SecureFilePath returns RuntimeError
+		return nil, secErr // SecureFilePath returns RuntimeError
 	}
 
 	interpreter.Logger().Infof("Tool: DeleteFile] Validated path: %s. Attempting deletion.", absPath)
@@ -50,7 +52,7 @@ func toolDeleteFile(interpreter *neurogo.Interpreter, args []interface{}) (inter
 		if errors.Is(err, os.ErrNotExist) {
 			errMsg := fmt.Sprintf("Path not found, nothing to delete: %s", relPath)
 			interpreter.Logger().Infof("Tool: DeleteFile] Info: %s", errMsg)
-			return "OK", nil	// Return "OK" as per spec
+			return "OK", nil // Return "OK" as per spec
 		}
 
 		// Check if it's a "directory not empty" error
@@ -60,7 +62,7 @@ func toolDeleteFile(interpreter *neurogo.Interpreter, args []interface{}) (inter
 		if err != nil {
 			errMsgTextLower = strings.ToLower(err.Error())
 		}
-		isDirNotEmptyErr := strings.Contains(errMsgTextLower, "directory not empty") || strings.Contains(errMsgTextLower, "not empty")	// Common variations
+		isDirNotEmptyErr := strings.Contains(errMsgTextLower, "directory not empty") || strings.Contains(errMsgTextLower, "not empty") // Common variations
 
 		errMsg := fmt.Sprintf("Failed to delete '%s'", relPath)
 		interpreter.Logger().Errorf("Tool: DeleteFile] Error: %s: %v", errMsg, err)

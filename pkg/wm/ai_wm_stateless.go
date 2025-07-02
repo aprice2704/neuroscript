@@ -1,13 +1,13 @@
 // NeuroScript Version: 0.3.0
 // File version: 0.1.10 // Minimal Lock Refactor on v0.1.9: RLock for read, copy key def data, removed persistDefinitionsUnsafe
 // AI Worker Management: Stateless Task Execution (Relies on LLMCallMetrics in types)
-// filename: pkg/core/ai_wm_stateless.go
+// filename: pkg/wm/ai_wm_stateless.go
 
-package core
+package wm
 
 import (
 	"context"
-	"errors" //
+	"errors"	//
 	"fmt"
 	"strings"
 	"time"
@@ -20,45 +20,45 @@ import (
 
 // Helper function to convert []*genai.Content to []*interfaces.ConversationTurn
 // (Copied from your provided v0.1.9)
-func convertGenaiContentsToConversationTurns(genaiContents []*genai.Content) []*interfaces.ConversationTurn { //
-	if genaiContents == nil { //
+func convertGenaiContentsToConversationTurns(genaiContents []*genai.Content) []*interfaces.ConversationTurn {	//
+	if genaiContents == nil {	//
 		return nil
 	}
-	turns := make([]*interfaces.ConversationTurn, 0, len(genaiContents)) //
-	for _, gc := range genaiContents {                                   //
-		if gc == nil { //
+	turns := make([]*interfaces.ConversationTurn, 0, len(genaiContents))	//
+	for _, gc := range genaiContents {					//
+		if gc == nil {	//
 			continue
 		}
-		var contentBuilder strings.Builder //
-		for _, part := range gc.Parts {    //
-			if textPart, ok := part.(genai.Text); ok { //
-				contentBuilder.WriteString(string(textPart)) //
+		var contentBuilder strings.Builder	//
+		for _, part := range gc.Parts {		//
+			if textPart, ok := part.(genai.Text); ok {	//
+				contentBuilder.WriteString(string(textPart))	//
 			}
 		}
-		turns = append(turns, &interfaces.ConversationTurn{ //
-			Role:    interfaces.Role(gc.Role), //
-			Content: contentBuilder.String(),  //
+		turns = append(turns, &interfaces.ConversationTurn{	//
+			Role:		interfaces.Role(gc.Role),	//
+			Content:	contentBuilder.String(),	//
 		})
 	}
-	return turns //
+	return turns	//
 }
 
 // ExecuteStatelessTask allows making a direct call using an AIWorkerDefinition
 // without creating or managing a full AIWorkerInstance. This is suitable for one-shot tasks.
 // It still respects the definition's rate limits and logs performance.
 // The llmClient is passed in, typically from the Interpreter.
-func (m *AIWorkerManager) ExecuteStatelessTask( //
-	definitionNameIn string, // Changed from 'name' to avoid conflict if 'name' is used locally
-	llmClient interfaces.LLMClient, //
-	prompt string, //
-	configOverrides map[string]interface{}, //
-) (string /* modelOutput */, *PerformanceRecord, error) { //
+func (m *AIWorkerManager) ExecuteStatelessTask(	//
+	definitionNameIn string,	// Changed from 'name' to avoid conflict if 'name' is used locally
+	llmClient interfaces.LLMClient,	//
+	prompt string,	//
+	configOverrides map[string]interface{},	//
+) (string /* modelOutput */, *PerformanceRecord, error) {	//
 
 	m.logger.Infof("ExecuteStatelessTask: Entered function for Definition Name: '%s'", definitionNameIn)
 
 	// --- MINIMAL CHANGE: Define local vars to hold copies of def data ---
 	var originalDefinitionID string
-	var defAuthCopy APIKeySource // Assuming AIWorkerDefinition.Auth is APIKeySource
+	var defAuthCopy APIKeySource	// Assuming AIWorkerDefinition.Auth is APIKeySource
 	var defBaseConfigCopy map[string]interface{}
 	var defModelNameCopy string
 	var defCostMetricsCopy map[string]float64
@@ -67,7 +67,7 @@ func (m *AIWorkerManager) ExecuteStatelessTask( //
 	// RateLimits are used by getOrCreateRateTrackerUnsafe, which is called with the *live* def later.
 
 	// --- Phase 1: Read definition details under RLock ---
-	m.mu.RLock() // CHANGED to RLock for reading
+	m.mu.RLock()	// CHANGED to RLock for reading
 	m.logger.Infof("ExecuteStatelessTask: RLock acquired for Definition Name: '%s'", definitionNameIn)
 
 	// Using direct map iteration as in your ai_wm.go v0.2.12 since GetDefinitionIDByName might not exist
@@ -77,7 +77,7 @@ func (m *AIWorkerManager) ExecuteStatelessTask( //
 	for id, dPtr := range m.definitions {
 		if dPtr != nil && dPtr.Name == definitionNameIn {
 			internalDefPtr = dPtr
-			originalDefinitionID = id // Store the ID of the found definition
+			originalDefinitionID = id	// Store the ID of the found definition
 			foundByName = true
 			break
 		}
@@ -93,21 +93,21 @@ func (m *AIWorkerManager) ExecuteStatelessTask( //
 
 	// CRITICAL: Copy necessary data from 'internalDefPtr' before releasing RLock
 	//defStatusCopy = internalDefPtr.Status
-	defInteractionModelsCopy = append([]InteractionModelType(nil), internalDefPtr.InteractionModels...) // Deep copy slice
-	defAuthCopy = internalDefPtr.Auth                                                                   // APIKeySource is a struct, direct copy
+	defInteractionModelsCopy = append([]InteractionModelType(nil), internalDefPtr.InteractionModels...)	// Deep copy slice
+	defAuthCopy = internalDefPtr.Auth									// APIKeySource is a struct, direct copy
 	defBaseConfigCopy = make(map[string]interface{}, len(internalDefPtr.BaseConfig))
-	for k, v := range internalDefPtr.BaseConfig { // Deep copy map
+	for k, v := range internalDefPtr.BaseConfig {	// Deep copy map
 		defBaseConfigCopy[k] = v
 	}
 	defModelNameCopy = internalDefPtr.ModelName
 	defCostMetricsCopy = make(map[string]float64, len(internalDefPtr.CostMetrics))
-	for k, v := range internalDefPtr.CostMetrics { // Deep copy map
+	for k, v := range internalDefPtr.CostMetrics {	// Deep copy map
 		defCostMetricsCopy[k] = v
 	}
 	// Note: The call to getOrCreateRateTrackerUnsafe is removed from this RLock section.
 	// The 'var rateLimitErr *RuntimeError' from original v0.1.9 is also removed as its check was commented out.
 
-	m.mu.RUnlock() // Release RLock
+	m.mu.RUnlock()	// Release RLock
 	m.logger.Infof("ExecuteStatelessTask: RUnlock released for Definition ID: '%s'. Copied data will be used.", originalDefinitionID)
 
 	// // --- Perform checks on copied data (no m.mu lock held) ---
@@ -117,20 +117,20 @@ func (m *AIWorkerManager) ExecuteStatelessTask( //
 	// }
 
 	supportsStateless := false
-	for _, modelType := range defInteractionModelsCopy { // Using copied interaction models
+	for _, modelType := range defInteractionModelsCopy {	// Using copied interaction models
 		if modelType == InteractionModelStateless || modelType == InteractionModelBoth {
 			supportsStateless = true
 			break
 		}
 	}
 	if !supportsStateless {
-		m.logger.Warnf("ExecuteStatelessTask: Definition '%s' does not support stateless interaction", definitionNameIn) // Name is from input, reliable
+		m.logger.Warnf("ExecuteStatelessTask: Definition '%s' does not support stateless interaction", definitionNameIn)	// Name is from input, reliable
 		return "", nil, lang.NewRuntimeError(lang.ErrorCodePreconditionFailed, fmt.Sprintf("worker definition '%s' does not support stateless interaction", definitionNameIn), lang.ErrFailedPrecondition)
 	}
 
 	m.logger.Infof("ExecuteStatelessTask: About to resolve API key for Definition ID: '%s'", originalDefinitionID)
 
-	resolvedAPIKey, keyErr := m.resolveAPIKey(defAuthCopy) // Using copied Auth
+	resolvedAPIKey, keyErr := m.resolveAPIKey(defAuthCopy)	// Using copied Auth
 	if keyErr != nil {
 		m.logger.Errorf("ExecuteStatelessTask: API key resolution failed for DefID '%s': %v", originalDefinitionID, keyErr)
 		if re, ok := keyErr.(*lang.RuntimeError); ok {
@@ -141,26 +141,26 @@ func (m *AIWorkerManager) ExecuteStatelessTask( //
 	m.logger.Infof("ExecuteStatelessTask: API key resolution successful for DefID '%s'. Key presence: %t", originalDefinitionID, resolvedAPIKey != "")
 
 	effectiveConfig := make(map[string]interface{})
-	for k, v := range defBaseConfigCopy { // Using copied BaseConfig
+	for k, v := range defBaseConfigCopy {	// Using copied BaseConfig
 		effectiveConfig[k] = v
 	}
 	for k, v := range configOverrides {
 		effectiveConfig[k] = v
 	}
 
-	taskStartTime := time.Now() // Moved to before the LLM call
+	taskStartTime := time.Now()	// Moved to before the LLM call
 	var responseContent string
 	var llmCallMetrics LLMCallMetrics
 	var callErr error
 
-	if llmClient == nil { //
-		m.logger.Warnf("AIWorkerManager: No LLMClient provided for stateless task on definition %s. Using mock response.", originalDefinitionID) //
+	if llmClient == nil {	//
+		m.logger.Warnf("AIWorkerManager: No LLMClient provided for stateless task on definition %s. Using mock response.", originalDefinitionID)	//
 		responseContent = "Mocked LLM response for stateless prompt: " + prompt
 		llmCallMetrics = LLMCallMetrics{
-			InputTokens:  int64(len(prompt) / 4),
-			OutputTokens: int64(len(responseContent) / 4),
-			FinishReason: "stop",
-			ModelUsed:    defModelNameCopy, // Using copied ModelName
+			InputTokens:	int64(len(prompt) / 4),
+			OutputTokens:	int64(len(responseContent) / 4),
+			FinishReason:	"stop",
+			ModelUsed:	defModelNameCopy,	// Using copied ModelName
 		}
 		llmCallMetrics.TotalTokens = llmCallMetrics.InputTokens + llmCallMetrics.OutputTokens
 	} else {
@@ -181,7 +181,7 @@ func (m *AIWorkerManager) ExecuteStatelessTask( //
 		if callErr != nil {
 			if errors.Is(callErr, context.DeadlineExceeded) {
 				m.logger.Errorf("ExecuteStatelessTask: llmClient.Ask timed out for DefID %s: %v", originalDefinitionID, callErr)
-				callErr = lang.NewRuntimeError(lang.ErrorCodeTimeout, fmt.Sprintf("LLM Ask timed out for stateless task (DefID: %s)", originalDefinitionID), callErr) // Ensure lang.ErrorCodeTimeout exists
+				callErr = lang.NewRuntimeError(lang.ErrorCodeTimeout, fmt.Sprintf("LLM Ask timed out for stateless task (DefID: %s)", originalDefinitionID), callErr)	// Ensure lang.ErrorCodeTimeout exists
 			} else {
 				m.logger.Errorf("ExecuteStatelessTask: llmClient.Ask reported an error for DefID %s: %v", originalDefinitionID, callErr)
 				if _, ok := callErr.(*lang.RuntimeError); !ok {
@@ -192,7 +192,7 @@ func (m *AIWorkerManager) ExecuteStatelessTask( //
 			m.logger.Errorf("ExecuteStatelessTask: llmClient.Ask returned a nil llmResponseTurn for DefID %s", originalDefinitionID)
 			callErr = lang.NewRuntimeError(lang.ErrorCodeLLMError, fmt.Sprintf("LLM response turn was nil for stateless task (DefID: %s)", originalDefinitionID), lang.ErrLLMError)
 		} else if llmResponseTurn.Content == "" {
-			responseContent = "" // Allow empty content if no error
+			responseContent = ""	// Allow empty content if no error
 			m.logger.Warnf("ExecuteStatelessTask: llmClient.Ask returned empty content for DefID %s", originalDefinitionID)
 		} else {
 			responseContent = llmResponseTurn.Content
@@ -232,29 +232,29 @@ func (m *AIWorkerManager) ExecuteStatelessTask( //
 		cost += float64(llmCallMetrics.OutputTokens) * perTokenCostOut
 	}
 
-	perfRecord := &PerformanceRecord{ //
-		TaskID:         uuid.NewString(),                                          //
-		InstanceID:     statelessInstanceIDPrefix + uuid.NewString(),              //
-		DefinitionID:   originalDefinitionID,                                      // Use the ID found
-		TimestampStart: taskStartTime,                                             //
-		TimestampEnd:   taskEndTime,                                               //
-		DurationMs:     durationMs,                                                //
-		Success:        callErr == nil,                                            //
-		InputContext:   map[string]interface{}{"prompt_char_length": len(prompt)}, //
-		LLMMetrics: map[string]interface{}{ //
-			"input_tokens":       llmCallMetrics.InputTokens,  //
-			"output_tokens":      llmCallMetrics.OutputTokens, //
-			"total_tokens":       llmCallMetrics.TotalTokens,  //
-			"finish_reason":      llmCallMetrics.FinishReason, //
-			"model_used_at_call": llmCallMetrics.ModelUsed,    //
+	perfRecord := &PerformanceRecord{	//
+		TaskID:		uuid.NewString(),						//
+		InstanceID:	statelessInstanceIDPrefix + uuid.NewString(),			//
+		DefinitionID:	originalDefinitionID,						// Use the ID found
+		TimestampStart:	taskStartTime,							//
+		TimestampEnd:	taskEndTime,							//
+		DurationMs:	durationMs,							//
+		Success:	callErr == nil,							//
+		InputContext:	map[string]interface{}{"prompt_char_length": len(prompt)},	//
+		LLMMetrics: map[string]interface{}{	//
+			"input_tokens":		llmCallMetrics.InputTokens,	//
+			"output_tokens":	llmCallMetrics.OutputTokens,	//
+			"total_tokens":		llmCallMetrics.TotalTokens,	//
+			"finish_reason":	llmCallMetrics.FinishReason,	//
+			"model_used_at_call":	llmCallMetrics.ModelUsed,	//
 		},
-		CostIncurred:  cost,                            //
-		OutputSummary: smartTrim(responseContent, 256), //
-		ErrorDetails:  ifErrorToString(callErr),        //
+		CostIncurred:	cost,					//
+		OutputSummary:	smartTrim(responseContent, 256),	//
+		ErrorDetails:	ifErrorToString(callErr),		//
 	}
 
 	// --- Phase 2: Update in-memory summaries and rate limits under Write Lock ---
-	m.mu.Lock() // Acquire WRITE lock
+	m.mu.Lock()	// Acquire WRITE lock
 	defer m.mu.Unlock()
 	m.logger.Debugf("ExecuteStatelessTask: Write Lock acquired for rate limits and summary, DefID: %s", originalDefinitionID)
 
@@ -263,19 +263,19 @@ func (m *AIWorkerManager) ExecuteStatelessTask( //
 	if defStillExists {
 		// logPerformanceRecordUnsafe updates liveDef.AggregatePerformanceSummary
 		// This method (from your ai_wm_performance.go v0.1.3) does no I/O.
-		summaryUpdateErr := m.logPerformanceRecordUnsafe(perfRecord) //
+		summaryUpdateErr := m.logPerformanceRecordUnsafe(perfRecord)	//
 		if summaryUpdateErr != nil {
 			// This error is from an in-memory update, so log it but don't overwrite primary callErr
 			m.logger.Warnf("ExecuteStatelessTask: Failed to update in-memory performance summary for DefID %s, TaskID %s: %v", originalDefinitionID, perfRecord.TaskID, summaryUpdateErr)
 		}
 
 		// Update rate limits using the live definition
-		currentRateTracker := m.getOrCreateRateTrackerUnsafe(liveDef) //
-		tokensUsedForRateLimit := llmCallMetrics.TotalTokens          //
-		if callErr != nil && tokensUsedForRateLimit == 0 {            //
-			tokensUsedForRateLimit = llmCallMetrics.InputTokens // Account for input tokens if call failed
+		currentRateTracker := m.getOrCreateRateTrackerUnsafe(liveDef)	//
+		tokensUsedForRateLimit := llmCallMetrics.TotalTokens		//
+		if callErr != nil && tokensUsedForRateLimit == 0 {		//
+			tokensUsedForRateLimit = llmCallMetrics.InputTokens	// Account for input tokens if call failed
 		}
-		m.updateTokenCountForRateLimitsUnsafe(currentRateTracker, tokensUsedForRateLimit) //
+		m.updateTokenCountForRateLimitsUnsafe(currentRateTracker, tokensUsedForRateLimit)	//
 	} else {
 		m.logger.Warnf("ExecuteStatelessTask: Definition ID %s (Name: '%s') no longer exists after LLM call. Skipping rate limit and summary update.", originalDefinitionID, definitionNameIn)
 	}
@@ -288,12 +288,12 @@ func (m *AIWorkerManager) ExecuteStatelessTask( //
 	// e.g., by calling a dedicated file-writing helper method on 'm'.
 	// Since "forget performance logging etc." was mentioned, this is deferred.
 
-	if callErr != nil { //
-		if _, ok := callErr.(*lang.RuntimeError); !ok { //
-			callErr = lang.NewRuntimeError(lang.ErrorCodeLLMError, "stateless LLM task failed", callErr) // Using lang.ErrorCodeLLMError for wrapping
+	if callErr != nil {	//
+		if _, ok := callErr.(*lang.RuntimeError); !ok {	//
+			callErr = lang.NewRuntimeError(lang.ErrorCodeLLMError, "stateless LLM task failed", callErr)	// Using lang.ErrorCodeLLMError for wrapping
 		}
-		return "", perfRecord, callErr //
+		return "", perfRecord, callErr	//
 	}
 
-	return responseContent, perfRecord, nil //
+	return responseContent, perfRecord, nil	//
 }

@@ -10,16 +10,17 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"	// Import os package for ReadFile
+	"os" // Import os package for ReadFile
 	"path/filepath"
 	"sort"
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
 // toolSearchSkills performs a mock similarity search.
 // Corresponds to ToolSpec "SearchSkills".
-func toolSearchSkills(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolSearchSkills(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	toolName := "SearchSkills"
 
 	if len(args) != 1 {
@@ -45,8 +46,8 @@ func toolSearchSkills(interpreter *neurogo.Interpreter, args []interface{}) (int
 	}
 
 	type SearchResult struct {
-		Path	string	`json:"path"`
-		Score	float64	`json:"score"`
+		Path  string  `json:"path"`
+		Score float64 `json:"score"`
 	}
 	results := []SearchResult{}
 	threshold := 0.5
@@ -89,7 +90,7 @@ func toolSearchSkills(interpreter *neurogo.Interpreter, args []interface{}) (int
 
 // toolVectorUpdate adds or updates a file's mock embedding in the index.
 // Corresponds to ToolSpec "VectorUpdate".
-func toolVectorUpdate(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolVectorUpdate(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	toolName := "VectorUpdate"
 
 	if len(args) != 1 {
@@ -137,7 +138,7 @@ func toolVectorUpdate(interpreter *neurogo.Interpreter, args []interface{}) (int
 	if interpreter.vectorIndex == nil {
 		interpreter.vectorIndex = make(map[string][]float32)
 	}
-	interpreter.vectorIndex[absPath] = embedding	// Store with absolute path key
+	interpreter.vectorIndex[absPath] = embedding // Store with absolute path key
 
 	interpreter.Logger().Debug(fmt.Sprintf("[%s] Update successful", toolName), "relative_path", filePathRel, "absolute_path", absPath)
 	return "OK", nil

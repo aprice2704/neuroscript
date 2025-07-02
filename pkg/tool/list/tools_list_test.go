@@ -17,12 +17,12 @@ import (
 
 // testListToolHelper encapsulates the logic for executing a list tool implementation test case.
 // It calls the tool function directly with primitive arguments and compares primitive results.
-func testListToolHelper(t *testing.T, interp *neurogo.Interpreter, tc struct {
-	name		string
-	toolName	string
-	args		[]interface{}
-	wantResult	interface{}
-	wantErrIs	error
+func testListToolHelper(t *testing.T, interp tool.RunTime, tc struct {
+	name       string
+	toolName   string
+	args       []interface{}
+	wantResult interface{}
+	wantErrIs  error
 }) {
 	t.Helper()
 	t.Run(tc.name, func(t *testing.T) {
@@ -48,7 +48,7 @@ func testListToolHelper(t *testing.T, interp *neurogo.Interpreter, tc struct {
 					t.Errorf("Expected error to wrap [%v], but got a different error: %v", tc.wantErrIs, toolErr)
 				}
 			}
-			return	// Test is complete if an error was expected and received.
+			return // Test is complete if an error was expected and received.
 		}
 
 		if toolErr != nil {
@@ -70,11 +70,11 @@ func testListToolHelper(t *testing.T, interp *neurogo.Interpreter, tc struct {
 func TestToolListLength(t *testing.T) {
 	interp, _ := llm.NewDefaultTestInterpreter(t)
 	tests := []struct {
-		name		string
-		toolName	string
-		args		[]interface{}
-		wantResult	interface{}
-		wantErrIs	error
+		name       string
+		toolName   string
+		args       []interface{}
+		wantResult interface{}
+		wantErrIs  error
 	}{
 		{name: "Simple", toolName: "List.Length", args: tool.MakeArgs([]interface{}{1, "a", true}), wantResult: float64(3)},
 		{name: "Wrong Type", toolName: "List.Length", args: tool.MakeArgs("not a list"), wantErrIs: lang.ErrArgumentMismatch},
@@ -88,11 +88,11 @@ func TestToolListAppendPrepend(t *testing.T) {
 	interp, _ := llm.NewDefaultTestInterpreter(t)
 	baseList := []interface{}{"a", float64(1)}
 	tests := []struct {
-		name		string
-		toolName	string	// Append or Prepend
-		args		[]interface{}
-		wantResult	interface{}
-		wantErrIs	error
+		name       string
+		toolName   string // Append or Prepend
+		args       []interface{}
+		wantResult interface{}
+		wantErrIs  error
 	}{
 		{name: "Append Simple", toolName: "List.Append", args: tool.MakeArgs(baseList, true), wantResult: []interface{}{"a", float64(1), true}},
 		{name: "Append To Empty", toolName: "List.Append", args: tool.MakeArgs([]interface{}{}, "new"), wantResult: []interface{}{"new"}},
@@ -109,11 +109,11 @@ func TestToolListGet(t *testing.T) {
 	interp, _ := llm.NewDefaultTestInterpreter(t)
 	list := []interface{}{"a", float64(1), true, nil}
 	tests := []struct {
-		name		string
-		toolName	string
-		args		[]interface{}
-		wantResult	interface{}
-		wantErrIs	error
+		name       string
+		toolName   string
+		args       []interface{}
+		wantResult interface{}
+		wantErrIs  error
 	}{
 		{name: "Get First", toolName: "List.Get", args: tool.MakeArgs(list, int64(0)), wantResult: "a"},
 		{name: "Get Middle", toolName: "List.Get", args: tool.MakeArgs(list, int64(1)), wantResult: float64(1)},
@@ -135,11 +135,11 @@ func TestToolListSlice(t *testing.T) {
 	interp, _ := llm.NewDefaultTestInterpreter(t)
 	list := []interface{}{"a", "b", "c", "d", "e"}
 	tests := []struct {
-		name		string
-		toolName	string
-		args		[]interface{}
-		wantResult	interface{}
-		wantErrIs	error
+		name       string
+		toolName   string
+		args       []interface{}
+		wantResult interface{}
+		wantErrIs  error
 	}{
 		{name: "Slice Middle", toolName: "List.Slice", args: tool.MakeArgs(list, int64(1), int64(4)), wantResult: []interface{}{"b", "c", "d"}},
 		{name: "Slice Clamp High End", toolName: "List.Slice", args: tool.MakeArgs(list, int64(3), int64(10)), wantResult: []interface{}{"d", "e"}},
@@ -157,11 +157,11 @@ func TestToolListContains(t *testing.T) {
 	interp, _ := llm.NewDefaultTestInterpreter(t)
 	list := []interface{}{"a", float64(1), true, nil, []interface{}{"sub"}}
 	tests := []struct {
-		name		string
-		toolName	string
-		args		[]interface{}
-		wantResult	interface{}
-		wantErrIs	error
+		name       string
+		toolName   string
+		args       []interface{}
+		wantResult interface{}
+		wantErrIs  error
 	}{
 		{name: "Contains String", toolName: "List.Contains", args: tool.MakeArgs(list, "a"), wantResult: true},
 		{name: "Contains Float", toolName: "List.Contains", args: tool.MakeArgs(list, float64(1.0)), wantResult: true},
@@ -178,11 +178,11 @@ func TestToolListContains(t *testing.T) {
 func TestToolListReverse(t *testing.T) {
 	interp, _ := llm.NewDefaultTestInterpreter(t)
 	tests := []struct {
-		name		string
-		toolName	string
-		args		[]interface{}
-		wantResult	interface{}
-		wantErrIs	error
+		name       string
+		toolName   string
+		args       []interface{}
+		wantResult interface{}
+		wantErrIs  error
 	}{
 		{name: "Reverse Simple", toolName: "List.Reverse", args: tool.MakeArgs([]interface{}{"a", float64(1), true}), wantResult: []interface{}{true, float64(1), "a"}},
 		{name: "Reverse Single", toolName: "List.Reverse", args: tool.MakeArgs([]interface{}{"a"}), wantResult: []interface{}{"a"}},
@@ -197,11 +197,11 @@ func TestToolListReverse(t *testing.T) {
 func TestToolListSort(t *testing.T) {
 	interp, _ := llm.NewDefaultTestInterpreter(t)
 	tests := []struct {
-		name		string
-		toolName	string
-		args		[]interface{}
-		wantResult	interface{}
-		wantErrIs	error
+		name       string
+		toolName   string
+		args       []interface{}
+		wantResult interface{}
+		wantErrIs  error
 	}{
 		{name: "Sort Strings", toolName: "List.Sort", args: tool.MakeArgs([]interface{}{"c", "a", "b"}), wantResult: []interface{}{"a", "b", "c"}},
 		{name: "Sort Floats", toolName: "List.Sort", args: tool.MakeArgs([]interface{}{3.3, 1.1, 2.2}), wantResult: []interface{}{1.1, 2.2, 3.3}},
@@ -220,11 +220,11 @@ func TestToolListSort(t *testing.T) {
 func TestToolListIsEmpty(t *testing.T) {
 	interp, _ := llm.NewDefaultTestInterpreter(t)
 	tests := []struct {
-		name		string
-		toolName	string
-		args		[]interface{}
-		wantResult	interface{}
-		wantErrIs	error
+		name       string
+		toolName   string
+		args       []interface{}
+		wantResult interface{}
+		wantErrIs  error
 	}{
 		{name: "Is Empty True", toolName: "List.IsEmpty", args: tool.MakeArgs([]interface{}{}), wantResult: true},
 		{name: "Is Empty False", toolName: "List.IsEmpty", args: tool.MakeArgs([]interface{}{"a"}), wantResult: false},
@@ -239,11 +239,11 @@ func TestToolListHead(t *testing.T) {
 	interp, _ := llm.NewDefaultTestInterpreter(t)
 	list := []interface{}{"a", "b", float64(1), nil}
 	tests := []struct {
-		name		string
-		toolName	string
-		args		[]interface{}
-		wantResult	interface{}
-		wantErrIs	error
+		name       string
+		toolName   string
+		args       []interface{}
+		wantResult interface{}
+		wantErrIs  error
 	}{
 		{name: "Head Simple", toolName: "List.Head", args: tool.MakeArgs(list), wantResult: "a"},
 		{name: "Head First is Nil", toolName: "List.Head", args: tool.MakeArgs([]interface{}{nil, "b"}), wantResult: nil},
@@ -259,11 +259,11 @@ func TestToolListRest(t *testing.T) {
 	interp, _ := llm.NewDefaultTestInterpreter(t)
 	list := []interface{}{"a", "b", float64(1)}
 	tests := []struct {
-		name		string
-		toolName	string
-		args		[]interface{}
-		wantResult	interface{}
-		wantErrIs	error
+		name       string
+		toolName   string
+		args       []interface{}
+		wantResult interface{}
+		wantErrIs  error
 	}{
 		{name: "Rest Simple", toolName: "List.Rest", args: tool.MakeArgs(list), wantResult: []interface{}{"b", float64(1)}},
 		{name: "Rest Single", toolName: "List.Rest", args: tool.MakeArgs([]interface{}{"only"}), wantResult: []interface{}{}},
@@ -279,11 +279,11 @@ func TestToolListTail(t *testing.T) {
 	interp, _ := llm.NewDefaultTestInterpreter(t)
 	list := []interface{}{"a", "b", "c", "d", "e"}
 	tests := []struct {
-		name		string
-		toolName	string
-		args		[]interface{}
-		wantResult	interface{}
-		wantErrIs	error
+		name       string
+		toolName   string
+		args       []interface{}
+		wantResult interface{}
+		wantErrIs  error
 	}{
 		{name: "Tail Last 2", toolName: "List.Tail", args: tool.MakeArgs(list, int64(2)), wantResult: []interface{}{"d", "e"}},
 		{name: "Tail Last 5 (All)", toolName: "List.Tail", args: tool.MakeArgs(list, int64(5)), wantResult: []interface{}{"a", "b", "c", "d", "e"}},

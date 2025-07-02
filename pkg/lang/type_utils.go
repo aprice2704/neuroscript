@@ -25,11 +25,11 @@ func TypeOf(value interface{}) NeuroScriptType {
 		return TypeFunction
 	case Tool, *Tool:
 		return TypeTool
-	case time.Time, *time.Time:	// native Go time value
+	case time.Time, *time.Time: // native Go time value
 		return TypeTimedate
-	case []byte:	// raw byte slice
+	case []byte: // raw byte slice
 		return TypeBytes
-	case error:	// plain Go error
+	case error: // plain Go error
 		return TypeError
 	}
 
@@ -75,7 +75,7 @@ func TypeOf(value interface{}) NeuroScriptType {
 
 // unwrapValue recursively unwraps a Value type to its underlying native Go type.
 // If the input is not a Value type, it's returned as is.
-func unwrapValue(v interface{}) interface{} {
+func UnwrapValue(v interface{}) interface{} {
 	if v == nil {
 		return nil
 	}
@@ -95,28 +95,28 @@ func unwrapValue(v interface{}) interface{} {
 		// Fuzzy doesn't have a direct native equivalent, return its float value
 		return val.μ
 	case FunctionValue:
-		return val.Value	// Unwrap to Procedure struct
+		return val.Value // Unwrap to Procedure struct
 	case ToolValue:
-		return val.Value	// Unwrap to ToolImplementation struct
+		return val.Value // Unwrap to ToolImplementation struct
 	case ErrorValue:
 		// Unwrap the inner map
 		unwrappedMap := make(map[string]interface{})
 		for k, innerVal := range val.Value {
-			unwrappedMap[k] = unwrapValue(innerVal)
+			unwrappedMap[k] = UnwrapValue(innerVal)
 		}
 		return unwrappedMap
 	case ListValue:
 		// Recursively unwrap elements in the list
 		unwrappedList := make([]interface{}, len(val.Value))
 		for i, item := range val.Value {
-			unwrappedList[i] = unwrapValue(item)
+			unwrappedList[i] = UnwrapValue(item)
 		}
 		return unwrappedList
 	case MapValue:
 		// Recursively unwrap values in the map
 		unwrappedMap := make(map[string]interface{})
 		for k, innerVal := range val.Value {
-			unwrappedMap[k] = unwrapValue(innerVal)
+			unwrappedMap[k] = UnwrapValue(innerVal)
 		}
 		return unwrappedMap
 	default:
@@ -126,8 +126,8 @@ func unwrapValue(v interface{}) interface{} {
 }
 
 // toFloat64 attempts conversion to float64 from various raw and wrapped types.
-func toFloat64(val interface{}) (float64, bool) {
-	nativeVal := unwrapValue(val)
+func ToFloat64(val interface{}) (float64, bool) {
+	nativeVal := UnwrapValue(val)
 	if nativeVal == nil {
 		return 0, false
 	}
@@ -162,8 +162,8 @@ func toFloat64(val interface{}) (float64, bool) {
 }
 
 // toInt64 attempts lossless conversion to int64 from various raw and wrapped types.
-func toInt64(val interface{}) (int64, bool) {
-	f, ok := toFloat64(val)
+func ToInt64(val interface{}) (int64, bool) {
+	f, ok := ToFloat64(val)
 	if !ok {
 		return 0, false
 	}
@@ -177,9 +177,9 @@ func toInt64(val interface{}) (int64, bool) {
 // toString converts a value to its string representation.
 // It will always produce a string, but the boolean indicates if the original type
 // was naturally a string.
-func toString(val interface{}) (string, bool) {
+func ToString(val interface{}) (string, bool) {
 	if val == nil {
-		return "", false	// FIX: Return empty string for nil to correct concatenation behavior.
+		return "", false // FIX: Return empty string for nil to correct concatenation behavior.
 	}
 	if s, ok := val.(string); ok {
 		return s, true
@@ -187,7 +187,7 @@ func toString(val interface{}) (string, bool) {
 	if v, ok := val.(Value); ok {
 		// Use the value's own String() method
 		if _, isNil := v.(NilValue); isNil {
-			return "", false	// FIX: Also handle the NilValue type explicitly.
+			return "", false // FIX: Also handle the NilValue type explicitly.
 		}
 		_, isStr := v.(StringValue)
 		return v.String(), isStr
@@ -199,7 +199,7 @@ func toString(val interface{}) (string, bool) {
 // ToNumeric attempts conversion to a wrapped NumberValue.
 // It returns the NumberValue and a boolean indicating success.
 func ToNumeric(val interface{}) (NumberValue, bool) {
-	if f, ok := toFloat64(val); ok {
+	if f, ok := ToFloat64(val); ok {
 		return NumberValue{Value: f}, true
 	}
 	return NumberValue{}, false
@@ -217,7 +217,7 @@ func IsTruthy(v Value) bool {
 
 // isZeroValue checks if a value is its "zero" or "empty" equivalent.
 // This is used for the 'no' and 'some' unary operators.
-func isZeroValue(val interface{}) bool {
+func IsZeroValue(val interface{}) bool {
 	if val == nil {
 		return true
 	}

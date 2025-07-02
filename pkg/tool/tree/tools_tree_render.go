@@ -9,18 +9,20 @@ package tree
 
 import (
 	"encoding/json"
-	"errors"	// Required for errors.Is/Join
+	"errors" // Required for errors.Is/Join
 	"fmt"
 	"sort"
 	"strings"
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/tool"
+	"github.com/aprice2704/neuroscript/pkg/utils"
 )
 
 // toolTreeFormatJSON serializes the tree structure associated with a handle back into a formatted JSON string.
 // Corresponds to ToolSpec "Tree.ToJSON".
-func toolTreeFormatJSON(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
-	toolName := "Tree.ToJSON"	// User-facing tool name
+func toolTreeFormatJSON(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
+	toolName := "Tree.ToJSON" // User-facing tool name
 
 	if len(args) != 1 {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch,
@@ -35,14 +37,14 @@ func toolTreeFormatJSON(interpreter *neurogo.Interpreter, args []interface{}) (i
 
 	tree, err := getTreeFromHandle(interpreter, handleID, toolName)
 	if err != nil {
-		return nil, err	// getTreeFromHandle returns RuntimeError
+		return nil, err // getTreeFromHandle returns RuntimeError
 	}
 
 	rootNode, exists := tree.NodeMap[tree.RootID]
 	if !exists {
-		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal,	// Root node missing in a valid tree is an internal inconsistency
+		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, // Root node missing in a valid tree is an internal inconsistency
 			fmt.Sprintf("%s: cannot find root node ID '%s' in tree handle '%s'", toolName, tree.RootID, handleID),
-			lang.ErrInternal,	// Or a more specific ErrTreeIntegrity sentinel
+			lang.ErrInternal, // Or a more specific ErrTreeIntegrity sentinel
 		)
 	}
 
@@ -59,7 +61,7 @@ func toolTreeFormatJSON(interpreter *neurogo.Interpreter, args []interface{}) (i
 			for k := range node.Attributes {
 				keys = append(keys, k)
 			}
-			sort.Strings(keys)	// For deterministic output
+			sort.Strings(keys) // For deterministic output
 			for _, key := range keys {
 				childIDUntyped := node.Attributes[key]
 				childID, ok := childIDUntyped.(string)
@@ -72,14 +74,14 @@ func toolTreeFormatJSON(interpreter *neurogo.Interpreter, args []interface{}) (i
 
 				childNode, ok := tree.NodeMap[childID]
 				if !ok {
-					return nil, lang.NewRuntimeError(lang.ErrorCodeInternal,	// Child ID in attributes but not in NodeMap
+					return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, // Child ID in attributes but not in NodeMap
 						fmt.Sprintf("%s: child node ID '%s' (key '%s') not found in tree map", toolName, childID, key),
-						lang.ErrInternal,	// Or ErrTreeIntegrity
+						lang.ErrInternal, // Or ErrTreeIntegrity
 					)
 				}
 				childValue, buildErr := buildOutput(childNode)
 				if buildErr != nil {
-					return nil, buildErr	// Propagate RuntimeError
+					return nil, buildErr // Propagate RuntimeError
 				}
 				objMap[key] = childValue
 			}
@@ -89,14 +91,14 @@ func toolTreeFormatJSON(interpreter *neurogo.Interpreter, args []interface{}) (i
 			for i, childID := range node.ChildIDs {
 				childNode, ok := tree.NodeMap[childID]
 				if !ok {
-					return nil, lang.NewRuntimeError(lang.ErrorCodeInternal,	// Child ID in ChildIDs but not in NodeMap
+					return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, // Child ID in ChildIDs but not in NodeMap
 						fmt.Sprintf("%s: child node ID '%s' (index %d) not found in tree map", toolName, childID, i),
-						lang.ErrInternal,	// Or ErrTreeIntegrity
+						lang.ErrInternal, // Or ErrTreeIntegrity
 					)
 				}
 				childValue, buildErr := buildOutput(childNode)
 				if buildErr != nil {
-					return nil, buildErr	// Propagate RuntimeError
+					return nil, buildErr // Propagate RuntimeError
 				}
 				arrSlice[i] = childValue
 			}
@@ -104,9 +106,9 @@ func toolTreeFormatJSON(interpreter *neurogo.Interpreter, args []interface{}) (i
 		case "string", "number", "boolean", "null":
 			return node.Value, nil
 		default:
-			return nil, lang.NewRuntimeError(lang.ErrorCodeInternal,	// Unknown node type implies data corruption or bad node creation
+			return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, // Unknown node type implies data corruption or bad node creation
 				fmt.Sprintf("%s: unknown node type '%s' encountered during JSON serialization", toolName, node.Type),
-				lang.ErrInternal,	// Or ErrNodeWrongType with a different connotation
+				lang.ErrInternal, // Or ErrNodeWrongType with a different connotation
 			)
 		}
 	}
@@ -121,11 +123,11 @@ func toolTreeFormatJSON(interpreter *neurogo.Interpreter, args []interface{}) (i
 		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, fmt.Sprintf("%s: failed to build data for JSON serialization: %v", toolName, err), lang.ErrInternal)
 	}
 
-	jsonBytes, marshalErr := json.MarshalIndent(outputData, "", "  ")	// Default indent from original code
+	jsonBytes, marshalErr := json.MarshalIndent(outputData, "", "  ") // Default indent from original code
 	if marshalErr != nil {
-		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal,	// JSON marshalling is an internal operation failure
+		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, // JSON marshalling is an internal operation failure
 			fmt.Sprintf("%s: failed to marshal tree data to JSON: %v", toolName, marshalErr),
-			errors.Join(lang.ErrTreeJSONMarshal, marshalErr),	// Use specific sentinel
+			errors.Join(lang.ErrTreeJSONMarshal, marshalErr), // Use specific sentinel
 		)
 	}
 	interpreter.Logger().Debug(fmt.Sprintf("%s: Successfully formatted tree to JSON", toolName), "handle", handleID)
@@ -134,7 +136,7 @@ func toolTreeFormatJSON(interpreter *neurogo.Interpreter, args []interface{}) (i
 
 // toolTreeRenderText creates an indented text representation of the tree.
 // Corresponds to ToolSpec "Tree.RenderText".
-func toolTreeRenderText(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolTreeRenderText(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	toolName := "Tree.RenderText"
 
 	if len(args) != 1 {
@@ -150,7 +152,7 @@ func toolTreeRenderText(interpreter *neurogo.Interpreter, args []interface{}) (i
 
 	tree, err := getTreeFromHandle(interpreter, handleID, toolName)
 	if err != nil {
-		return nil, err	// getTreeFromHandle returns RuntimeError
+		return nil, err // getTreeFromHandle returns RuntimeError
 	}
 
 	rootNode, exists := tree.NodeMap[tree.RootID]
@@ -206,7 +208,7 @@ func toolTreeRenderText(interpreter *neurogo.Interpreter, args []interface{}) (i
 				childNode, childExists := tree.NodeMap[childID]
 				if !childExists {
 					builder.WriteString(fmt.Sprintf("%s<ERROR: missing node '%s'>\n", strings.Repeat(utils.defaultIndent, indentLevel+2), childID))
-					continue	// Log or handle as critical error? For rendering, showing error might be best.
+					continue // Log or handle as critical error? For rendering, showing error might be best.
 				}
 				if errRender := renderNodeRec(childNode, indentLevel+2); errRender != nil {
 					return errRender
@@ -230,13 +232,13 @@ func toolTreeRenderText(interpreter *neurogo.Interpreter, args []interface{}) (i
 
 	if err := renderNodeRec(rootNode, 0); err != nil {
 		var rtErr *lang.RuntimeError
-		if errors.As(err, &rtErr) {	// If it's already a RuntimeError, pass it through
+		if errors.As(err, &rtErr) { // If it's already a RuntimeError, pass it through
 			return nil, rtErr
 		}
 		// Wrap other internal find errors
 		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal,
 			fmt.Sprintf("%s: failed during text rendering: %v", toolName, err),
-			errors.Join(lang.ErrInternal, err),	// Or ErrTreeFormatFailed
+			errors.Join(lang.ErrInternal, err), // Or ErrTreeFormatFailed
 		)
 	}
 	interpreter.Logger().Debug(fmt.Sprintf("%s: Successfully rendered tree to text", toolName), "handle", handleID)

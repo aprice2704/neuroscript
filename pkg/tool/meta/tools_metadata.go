@@ -10,15 +10,16 @@ import (
 	"fmt"
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
-	"github.com/aprice2704/neuroscript/pkg/neurodata/metadata"	// Import the actual metadata package
+	"github.com/aprice2704/neuroscript/pkg/neurodata/metadata" // Import the actual metadata package
+	"github.com/aprice2704/neuroscript/pkg/tool"
 	// "errors" - Not needed currently
 	// "log" - Not needed currently
 )
 
 // toolExtractMetadataFromString extracts metadata from a string.
 // Corresponds to ToolSpec "ExtractMetadata".
-func toolExtractMetadataFromString(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
-	toolName := "ExtractMetadata"	// Assuming this is the public name
+func toolExtractMetadataFromString(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
+	toolName := "ExtractMetadata" // Assuming this is the public name
 
 	// Argument validation (Count=1, Type=string) expected from validation layer
 	if len(args) != 1 {

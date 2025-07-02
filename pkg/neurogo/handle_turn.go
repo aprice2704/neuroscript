@@ -11,24 +11,26 @@ import (
 	"strings"
 
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
+	"github.com/aprice2704/neuroscript/pkg/interpreter"
+	"github.com/aprice2704/neuroscript/pkg/llm"
 	"github.com/google/generative-ai-go/genai"
 )
 
 const (
-	applyPatchFunctionName	= "_ApplyNeuroScriptPatch"
-	maxFunctionCallCycles	= 5
+	applyPatchFunctionName = "_ApplyNeuroScriptPatch"
+	maxFunctionCallCycles  = 5
 )
 
 type llmRequestContext struct {
-	History		[]*interfaces.ConversationTurn
-	FileURIs	[]string
+	History  []*interfaces.ConversationTurn
+	FileURIs []string
 }
 
 func (a *App) handleAgentTurn(
 	ctx context.Context,
 	llmClient interfaces.LLMClient,
 	convoManager *llm.ConversationManager,
-	agentInterpreter *rpreter,
+	agentInterpreter interpreter.Interpreter,
 	securityLayer *rityLayer,
 	toolDeclarations []*genai.Tool,
 	initialAttachmentURIs []string,
@@ -74,8 +76,8 @@ func (a *App) handleAgentTurn(
 		}
 
 		requestContext := llmRequestContext{
-			History:	coreHistory,
-			FileURIs:	currentURIs,
+			History:  coreHistory,
+			FileURIs: currentURIs,
 		}
 
 		if len(requestContext.History) == 0 {
@@ -88,9 +90,9 @@ func (a *App) handleAgentTurn(
 			if len(genaiTool.FunctionDeclarations) > 0 {
 				decl := genaiTool.FunctionDeclarations[0]
 				coreToolDefs = append(coreToolDefs, interfaces.ToolDefinition{
-					Name:		decl.Name,
-					Description:	decl.Description,
-					InputSchema:	decl.Parameters,
+					Name:        decl.Name,
+					Description: decl.Description,
+					InputSchema: decl.Parameters,
 				})
 			} else {
 				logger.Warn("Tool declaration found with no FunctionDeclarations.", "tool", fmt.Sprintf("%+v", genaiTool))
@@ -135,8 +137,8 @@ func (a *App) handleAgentTurn(
 		if foundFunctionCall && firstToolCallToExecute != nil {
 			ToolCall := *firstToolCallToExecute
 			genaiFC := genai.FunctionCall{
-				Name:	ToolCall.Name,
-				Args:	ToolCall.Arguments,
+				Name: ToolCall.Name,
+				Args: ToolCall.Arguments,
 			}
 			logger.Info("Executing tool call.", "tool_name", genaiFC.Name)
 			funcResultPart, execErr := securityLayer.ExecuteToolCall(agentInterpreter, genaiFC)
@@ -162,7 +164,7 @@ func (a *App) handleAgentTurn(
 			logger.Info("No function call requested or processed. Handling final text response.")
 			logger.Debug("Final text response", "content", snippet(finalText, 100))
 
-			if a.patchHandler != nil {	// Check if patchHandler is initialized
+			if a.patchHandler != nil { // Check if patchHandler is initialized
 				trimmedResponse := strings.TrimSpace(finalText)
 				if strings.HasPrefix(trimmedResponse, "@@@PATCH") && strings.HasSuffix(trimmedResponse, "@@@") {
 					patchContent := strings.TrimPrefix(trimmedResponse, "@@@PATCH")
@@ -189,7 +191,7 @@ func (a *App) handleAgentTurn(
 					// }
 					// Since patch handling is deferred, we effectively do nothing here for now.
 					// The response that *was* the patch is consumed.
-					return nil	// Successfully handled the "patch" by noting it.
+					return nil // Successfully handled the "patch" by noting it.
 				}
 			} else {
 				logger.Warn("Patch handler is nil, cannot check for or apply patches.")

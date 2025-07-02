@@ -16,6 +16,8 @@ import (
 	// Assumed import from original file
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/security"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 	"golang.org/x/mod/modfile"
 )
 
@@ -79,7 +81,7 @@ func FindAndParseGoMod(startDir string, log interfaces.Logger) (*modfile.File, s
 
 // --- Tool: GoGetModuleInfo ---
 
-func toolGoGetModuleInfo(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolGoGetModuleInfo(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	logPrefix := "[TOOL-GoGetModuleInfo]"
 	logger := interpreter.Logger()
 	startDirRel := "."
@@ -136,9 +138,9 @@ func toolGoGetModuleInfo(interpreter *neurogo.Interpreter, args []interface{}) (
 	if modF.Require != nil {
 		for _, req := range modF.Require {
 			reqMap := map[string]interface{}{
-				"path":		req.Mod.Path,
-				"version":	req.Mod.Version,
-				"indirect":	req.Indirect,
+				"path":     req.Mod.Path,
+				"version":  req.Mod.Version,
+				"indirect": req.Indirect,
 			}
 			reqList = append(reqList, reqMap)
 		}
@@ -149,10 +151,10 @@ func toolGoGetModuleInfo(interpreter *neurogo.Interpreter, args []interface{}) (
 	if modF.Replace != nil {
 		for _, rep := range modF.Replace {
 			repMap := map[string]interface{}{
-				"oldPath":	rep.Old.Path,
-				"oldVersion":	rep.Old.Version,
-				"newPath":	rep.New.Path,
-				"newVersion":	rep.New.Version,
+				"oldPath":    rep.Old.Path,
+				"oldVersion": rep.Old.Version,
+				"newPath":    rep.New.Path,
+				"newVersion": rep.New.Version,
 			}
 			repList = append(repList, repMap)
 		}

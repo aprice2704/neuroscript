@@ -6,17 +6,19 @@
 package fs
 
 import (
-	"errors"	// Required for errors.Is
+	"errors" // Required for errors.Is
 	"fmt"
 	"os"
 	"path/filepath"
 	"time"
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/security"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
 // toolStat gets information about a file or directory within the sandbox.
-func toolStat(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolStat(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	// --- Argument Validation ---
 	if len(args) != 1 {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("StatPath: expected 1 argument (path), got %d", len(args)), lang.ErrArgumentMismatch)
@@ -42,7 +44,7 @@ func toolStat(interpreter *neurogo.Interpreter, args []interface{}) (interface{}
 	absPathToStat, secErr := security.ResolveAndSecurePath(relPath, sandboxRoot)
 	if secErr != nil {
 		interpreter.Logger().Debug("Tool: StatPath] Path validation failed", "error", secErr.Error(), "path", relPath)
-		return nil, secErr	// Return the *RuntimeError directly
+		return nil, secErr // Return the *RuntimeError directly
 	}
 
 	interpreter.Logger().Debug("Tool: StatPath attempting to stat validated path", "validated_path", absPathToStat, "original_path", relPath)
@@ -67,14 +69,14 @@ func toolStat(interpreter *neurogo.Interpreter, args []interface{}) (interface{}
 
 	// --- Success: Construct Result Map ---
 	resultMap := map[string]interface{}{
-		"name":			info.Name(),
-		"path":			filepath.ToSlash(relPath),
-		"size_bytes":		info.Size(),	// Use size_bytes key
-		"is_dir":		info.IsDir(),
-		"modified_unix":	info.ModTime().Unix(),
-		"modified_rfc3339":	info.ModTime().Format(time.RFC3339Nano),
-		"mode_string":		info.Mode().String(),
-		"mode_perm":		fmt.Sprintf("%04o", info.Mode().Perm()),
+		"name":             info.Name(),
+		"path":             filepath.ToSlash(relPath),
+		"size_bytes":       info.Size(), // Use size_bytes key
+		"is_dir":           info.IsDir(),
+		"modified_unix":    info.ModTime().Unix(),
+		"modified_rfc3339": info.ModTime().Format(time.RFC3339Nano),
+		"mode_string":      info.Mode().String(),
+		"mode_perm":        fmt.Sprintf("%04o", info.Mode().Perm()),
 	}
 
 	interpreter.Logger().Debug("Tool: StatPath] Stat successful", "path", relPath)

@@ -15,6 +15,7 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/tool"
+	"github.com/aprice2704/neuroscript/pkg/utils"
 )
 
 func TestTreeLoadJSONAndToJSON(t *testing.T) {
@@ -23,7 +24,7 @@ func TestTreeLoadJSONAndToJSON(t *testing.T) {
 
 	testCases := []treeTestCase{
 		// Tree.LoadJSON
-		{name: "LoadJSON Simple Object", toolName: "Tree.LoadJSON", args: tool.MakeArgs(validJSONSimple), checkFunc: func(t *testing.T, interp *neurogo.Interpreter, result interface{}, err error, _ interface{}) {
+		{name: "LoadJSON Simple Object", toolName: "Tree.LoadJSON", args: tool.MakeArgs(validJSONSimple), checkFunc: func(t *testing.T, interp tool.RunTime, result interface{}, err error, _ interface{}) {
 			if err != nil {
 				t.Errorf("Unexpected error: %v", err)
 			} else if handleStr, ok := result.(string); !ok || !strings.HasPrefix(handleStr, utils.GenericTreeHandleType+"::") {
@@ -36,11 +37,11 @@ func TestTreeLoadJSONAndToJSON(t *testing.T) {
 
 		// Tree.ToJSON
 		{name: "ToJSON Simple Object", toolName: "Tree.ToJSON",
-			setupFunc: func(t *testing.T, interp *neurogo.Interpreter) interface{} {
+			setupFunc: func(t *testing.T, interp tool.RunTime) interface{} {
 				return setupTreeWithJSON(t, interp, validJSONSimple)
 			},
-			args:	tool.MakeArgs("SETUP_HANDLE:tree1"),	// Placeholder replaced by setupFunc result
-			checkFunc: func(t *testing.T, interp *neurogo.Interpreter, result interface{}, err error, _ interface{}) {
+			args: tool.MakeArgs("SETUP_HANDLE:tree1"), // Placeholder replaced by setupFunc result
+			checkFunc: func(t *testing.T, interp tool.RunTime, result interface{}, err error, _ interface{}) {
 				if err != nil {
 					t.Fatalf("ToJSON failed: %v", err)
 				}

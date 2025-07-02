@@ -1,10 +1,10 @@
 // NeuroScript Version: 0.3.0
 // File version: 0.1.1
 // Purpose: AI Worker Management: Read-only access to loaded AIWorkerDefinitions. CRUD operations removed as definitions are immutable post-load.
-// filename: pkg/core/ai_wm_definitions_crud.go
+// filename: pkg/wm/ai_wm_definitions_crud.go
 // nlines: 85 // Approximate
 // risk_rating: LOW
-package core
+package wm
 
 import (
 	"fmt"
@@ -57,9 +57,9 @@ func (m *AIWorkerManager) ListWorkerDefinitions(filters map[string]interface{}) 
 	list := make([]*AIWorkerDefinition, 0, len(m.definitions))
 	for _, def := range m.definitions {
 		if m.matchesDefinitionFilters(def, filters) {
-			defCopy := *def // Create a shallow copy of the definition
+			defCopy := *def	// Create a shallow copy of the definition
 			if def.AggregatePerformanceSummary != nil {
-				summaryCopy := *def.AggregatePerformanceSummary // Deep copy the summary
+				summaryCopy := *def.AggregatePerformanceSummary	// Deep copy the summary
 				defCopy.AggregatePerformanceSummary = &summaryCopy
 			} else {
 				defCopy.AggregatePerformanceSummary = &AIWorkerPerformanceSummary{}

@@ -47,11 +47,11 @@ func TestToolStat(t *testing.T) {
 
 	testCases := []fsTestCase{
 		{
-			name:		"Stat Existing File",
-			toolName:	"FS.Stat",
-			args:		tool.MakeArgs(testFileName),
-			setupFunc:	setup,
-			checkFunc: func(t *testing.T, interp *neurogo.Interpreter, result interface{}, err error, setupCtx interface{}) {
+			name:      "Stat Existing File",
+			toolName:  "FS.Stat",
+			args:      tool.MakeArgs(testFileName),
+			setupFunc: setup,
+			checkFunc: func(t *testing.T, interp tool.RunTime, result interface{}, err error, setupCtx interface{}) {
 				if err != nil {
 					t.Fatalf("Unexpected error: %v", err)
 				}
@@ -59,11 +59,11 @@ func TestToolStat(t *testing.T) {
 			},
 		},
 		{
-			name:		"Stat Existing Directory",
-			toolName:	"FS.Stat",
-			args:		tool.MakeArgs(testDirName),
-			setupFunc:	setup,
-			checkFunc: func(t *testing.T, interp *neurogo.Interpreter, result interface{}, err error, setupCtx interface{}) {
+			name:      "Stat Existing Directory",
+			toolName:  "FS.Stat",
+			args:      tool.MakeArgs(testDirName),
+			setupFunc: setup,
+			checkFunc: func(t *testing.T, interp tool.RunTime, result interface{}, err error, setupCtx interface{}) {
 				if err != nil {
 					t.Fatalf("Unexpected error: %v", err)
 				}

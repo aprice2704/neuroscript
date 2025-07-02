@@ -9,40 +9,40 @@ import (
 	"fmt"
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
-	"github.com/aprice2704/neuroscript/pkg/parser"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 	"github.com/aprice2704/neuroscript/pkg/utils"
 )
 
 // Define valid manual status transitions/values here or import if defined centrally
 var validManualStatuses = map[string]struct{}{
-	"open":		{},
-	"done":		{},
-	"skipped":	{},
-	"inprogress":	{},
-	"blocked":	{},
-	"question":	{},
-	"special":	{},
+	"open":       {},
+	"done":       {},
+	"skipped":    {},
+	"inprogress": {},
+	"blocked":    {},
+	"question":   {},
+	"special":    {},
 }
 
 var toolChecklistSetItemStatusImpl = ToolImplementation{
 	Spec: ToolSpec{
-		Name:	"ChecklistSetItemStatus",
+		Name: "ChecklistSetItemStatus",
 		Description: "Manually sets the status of a non-automatic checklist item. " +
 			"Requires a special symbol if status is 'special'. " +
 			"Automatically removes the special symbol if status is not 'special'. " +
 			"Returns nil on success.",
 		Args: []ArgSpec{
-			{Name: "tree_handle", Type: parser.ArgTypeString, Required: true, Description: "Handle for the checklist tree."},
-			{Name: "node_id", Type: parser.ArgTypeString, Required: true, Description: "ID of the checklist item node."},
-			{Name: "new_status", Type: parser.ArgTypeString, Required: true, Description: "The new status string (e.g., 'open', 'done', 'skipped', 'inprogress', 'blocked', 'question', 'special')."},
-			{Name: "special_symbol", Type: parser.ArgTypeString, Required: false, Description: "Required only if new_status is 'special'. The single character symbol."},
+			{Name: "tree_handle", Type: tool.tool.ArgTypeString, Required: true, Description: "Handle for the checklist tree."},
+			{Name: "node_id", Type: tool.tool.ArgTypeString, Required: true, Description: "ID of the checklist item node."},
+			{Name: "new_status", Type: tool.tool.ArgTypeString, Required: true, Description: "The new status string (e.g., 'open', 'done', 'skipped', 'inprogress', 'blocked', 'question', 'special')."},
+			{Name: "special_symbol", Type: tool.tool.ArgTypeString, Required: false, Description: "Required only if new_status is 'special'. The single character symbol."},
 		},
-		ReturnType:	ArgTypeNil,
+		ReturnType: tool.ArgTypeNil,
 	},
-	Func:	toolChecklistSetItemStatus,
+	Func: toolChecklistSetItemStatus,
 }
 
-func toolChecklistSetItemStatus(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolChecklistSetItemStatus(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	toolName := "ChecklistSetItemStatus"
 	logger := interpreter.Logger()
 

@@ -14,6 +14,7 @@ import (
 
 	"github.com/antlr4-go/antlr/v4"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
+	"github.com/aprice2704/neuroscript/pkg/logging"
 	gen "github.com/aprice2704/neuroscript/pkg/parser/generated"
 )
 
@@ -35,7 +36,7 @@ type ParserAPI struct {
 // NewParserAPI creates a new ParserAPI instance.
 func NewParserAPI(logger interfaces.Logger) *ParserAPI {
 	if logger == nil {
-		logger = logging.NewNoLogger()
+		logger = logging.NewNoOpLogger()
 	}
 	return &ParserAPI{logger: logger}
 }
@@ -65,7 +66,7 @@ func NewLSPErrorListener(sourceName string, logger interfaces.Logger) *ErrorList
 // common constructor for ErrorListener
 func newErrorListenerWithSource(sourceName string, logger interfaces.Logger) *ErrorListener {
 	if logger == nil {
-		logger = logging.NewNoLogger()
+		logger = logging.NewNoOpLogger()
 	}
 	return &ErrorListener{
 		DefaultErrorListener: antlr.NewDefaultErrorListener(),

@@ -8,22 +8,24 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
 // fsTestCase defines the structure for a single filesystem tool test case.
 type fsTestCase struct {
-	name		string
-	toolName	string
-	args		[]interface{}
-	setupFunc	func(sandboxRoot string) error
-	checkFunc	func(t *testing.T, interp *neurogo.Interpreter, result interface{}, err error, setupCtx interface{})
-	wantResult	interface{}
-	wantContent	string	// New field to check file content
-	wantToolErrIs	error
+	name          string
+	toolName      string
+	args          []interface{}
+	setupFunc     func(sandboxRoot string) error
+	checkFunc     func(t *testing.T, interp tool.RunTime, result interface{}, err error, setupCtx interface{})
+	wantResult    interface{}
+	wantContent   string // New field to check file content
+	wantToolErrIs error
 }
 
 // testFsToolHelper runs a single filesystem tool test case.
-func testFsToolHelper(t *testing.T, interp *neurogo.Interpreter, tc fsTestCase) {
+func testFsToolHelper(t *testing.T, interp tool.RunTime, tc fsTestCase) {
 	t.Helper()
 
 	sandboxRoot := interp.SandboxDir()
@@ -87,7 +89,7 @@ func testFsToolHelper(t *testing.T, interp *neurogo.Interpreter, tc fsTestCase) 
 }
 
 // testFsToolHelperWithCompare is a variant that uses a custom comparison function.
-func testFsToolHelperWithCompare(t *testing.T, interp *neurogo.Interpreter, tc fsTestCase, compareFunc func(t *testing.T, tc fsTestCase, expected, actual interface{})) {
+func testFsToolHelperWithCompare(t *testing.T, interp tool.RunTime, tc fsTestCase, compareFunc func(t *testing.T, tc fsTestCase, expected, actual interface{})) {
 	t.Helper()
 
 	sandboxRoot := interp.SandboxDir()
@@ -147,7 +149,7 @@ func mustWriteFile(t *testing.T, filename string, content string) {
 }
 
 // NewTestInterpreterWithSandbox creates a test interpreter with a dedicated sandbox directory.
-func NewTestInterpreterWithSandbox(t *testing.T, sandboxDir string) *neurogo.Interpreter {
+func NewTestInterpreterWithSandbox(t *testing.T, sandboxDir string) tool.RunTime {
 	t.Helper()
 	interp, _ := llm.NewDefaultTestInterpreter(t)
 	err := interp.SetSandboxDir(sandboxDir)

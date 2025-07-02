@@ -4,10 +4,12 @@ package parser
 import (
 	"strings"
 	"testing"
+
+	"github.com/aprice2704/neuroscript/pkg/logging"
 )
 
 func TestParserAPI_ErrorHandling(t *testing.T) {
-	logger := logging.NewNoLogger()
+	logger := logging.NewNoOpLogger()
 	parserAPI := NewParserAPI(logger)
 
 	t.Run("lexer error", func(t *testing.T) {
@@ -36,7 +38,7 @@ func TestParserAPI_ErrorHandling(t *testing.T) {
 }
 
 func TestParserAPI_ParseForLSP(t *testing.T) {
-	logger := logging.NewNoLogger()
+	logger := logging.NewNoOpLogger()
 	parserAPI := NewParserAPI(logger)
 
 	t.Run("successful parse", func(t *testing.T) {

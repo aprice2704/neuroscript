@@ -14,11 +14,11 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/adapters"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
-	"github.com/aprice2704/neuroscript/pkg/toolsets"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 	"github.com/aprice2704/neuroscript/pkg/utils"
 )
 
-func newTestInterpreterWithAllTools(t *testing.T) (*neurogo.Interpreter, ToolRegistry) {
+func newTestInterpreterWithAllTools(t *testing.T) (tool.RunTime, ToolRegistry) {
 	t.Helper()
 	tempDir := t.TempDir()
 	logger, errLog := adapters.NewSimpleSlogAdapter(os.Stderr, interfaces.LogLevelDebug)
@@ -29,14 +29,14 @@ func newTestInterpreterWithAllTools(t *testing.T) (*neurogo.Interpreter, ToolReg
 	llmClient := adapters.NewNoOpLLMClient()
 	interp, errInterp := NewInterpreter(logger, llmClient, tempDir, nil, nil)
 	assertNoErrorSetup(t, errInterp, "Failed to create  Interpreter")
-	errExt := toolsets.RegisterExtendedTools(interp)
+	errExt := tool.RegisterExtendedTools(interp)
 	assertNoErrorSetup(t, errExt, "Failed to register extended toolsets")
 	errSandbox := interp.SetSandboxDir(tempDir)
 	assertNoErrorSetup(t, errSandbox, "Failed to set sandbox dir")
 	return interp, interp.ToolRegistry()
 }
 
-func getNodeViaTool(t *testing.T, interp *neurogo.Interpreter, handleID string, nodeID string) map[string]interface{} {
+func getNodeViaTool(t *testing.T, interp tool.RunTime, handleID string, nodeID string) map[string]interface{} {
 	t.Helper()
 	toolReg := interp.ToolRegistry()
 	impl, exists := toolReg.GetTool("Tree.GetNode")
@@ -85,7 +85,7 @@ func getNodeAttributesMap(t *testing.T, nodeData map[string]interface{}) map[str
 	}
 	attrsVal, exists := nodeData["attributes"]
 	if !exists || attrsVal == nil {
-		return make(map[string]interface{})	// Return empty map
+		return make(map[string]interface{}) // Return empty map
 	}
 
 	attrsMap, ok := attrsVal.(map[string]interface{})
@@ -96,7 +96,7 @@ func getNodeAttributesMap(t *testing.T, nodeData map[string]interface{}) map[str
 }
 
 // FIX: Changed return type to map[string]interface{} to match  TreeAttrs.
-func getNodeAttributesDirectly(t *testing.T, interp *neurogo.Interpreter, handleID string, nodeID string) (map[string]interface{}, error) {
+func getNodeAttributesDirectly(t *testing.T, interp tool.RunTime, handleID string, nodeID string) (map[string]interface{}, error) {
 	t.Helper()
 	treeObj, err := interp.GetHandleValue(handleID, utils.GenericTreeHandleType)
 	if err != nil {
@@ -139,6 +139,6 @@ func assertToolFound(t *testing.T, found bool, toolName string) {
 	}
 }
 
-func pstr(s string) *string	{ return &s }
-func pbool(b bool) *bool	{ return &b }
-func pint(i int) *int		{ return &i }
+func pstr(s string) *string { return &s }
+func pbool(b bool) *bool    { return &b }
+func pint(i int) *int       { return &i }

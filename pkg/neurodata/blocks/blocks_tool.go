@@ -4,38 +4,39 @@ package blocks
 
 import (
 	"fmt"
-	"log"	// Keep if used
+	"log" // Keep if used
 
 	// Import core
+
 	"github.com/aprice2704/neuroscript/pkg/lang"
-	"github.com/aprice2704/neuroscript/pkg/parser"
-	"github.com/aprice2704/neuroscript/pkg/toolsets"	// <<< ADDED import for init()
+	"github.com/aprice2704/neuroscript/pkg/tool"
+	// <<< ADDED import for init()
 )
 
 // --- ADDED: init() function for self-registration ---
 func init() {
-	fmt.Println("Blocks package init() running...")	// Debug output
+	fmt.Println("Blocks package init() running...") // Debug output
 	// Register the main registration function with the toolsets package.
-	toolsets.AddToolsetRegistration("Blocks", RegisterBlockTools)
+	tool.AddToolsetRegistration("Blocks", RegisterBlockTools)
 }
 
 // RegisterBlockTools adds the updated block extraction tool.
 // This function is now called via the init() mechanism.
-func RegisterBlockTools(registry ToolRegistrar) error {	// Use interface
+func RegisterBlockTools(registry ToolRegistrar) error { // Use interface
 	// --- TOOL.BlocksExtractAll registration ---
 	err := registry.RegisterTool(ToolImplementation{
 		Spec: ToolSpec{
-			Name:	"BlocksExtractAll",
+			Name: "BlocksExtractAll",
 			Description: "Extracts all fenced code blocks (handling nesting) from input content using ANTLR Listener. " +
 				"Recognizes ':: key: value' metadata lines immediately preceding the opening fence. " +
 				"Returns a list of maps, where each map represents a block and contains keys: " +
 				"'language_id' (string), 'raw_content' (string), 'start_line' (int), 'end_line' (int), 'metadata' (map[string]string). Silently ignores unclosed blocks.",
 			Args: []ArgSpec{
-				{Name: "content", Type: parser.ArgTypeString, Required: true, Description: "The string content to search within."},
+				{Name: "content", Type: tool.tool.ArgTypeString, Required: true, Description: "The string content to search within."},
 			},
-			ReturnType:	parser.ArgTypeSliceAny,	// Returns slice of maps
+			ReturnType: parser.tool.ArgTypeSliceAny, // Returns slice of maps
 		},
-		Func:	toolBlocksExtractAll,
+		Func: toolBlocksExtractAll,
 	})
 
 	if err != nil {
@@ -46,12 +47,12 @@ func RegisterBlockTools(registry ToolRegistrar) error {	// Use interface
 
 	// Add registration for other block-related tools here if needed
 
-	fmt.Println("Blocks tools registered via RegisterBlockTools.")	// Debug
-	return nil							// Return nil on successful registration
+	fmt.Println("Blocks tools registered via RegisterBlockTools.") // Debug
+	return nil                                                     // Return nil on successful registration
 }
 
 // --- toolBlocksExtractAll implementation ---
-func toolBlocksExtractAll(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolBlocksExtractAll(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	// Argument Validation (should ideally happen before calling the func, but good practice)
 	if len(args) != 1 {
 		return nil, fmt.Errorf("%w: %s expected 1 argument (content), got %d", lang.ErrValidationArgCount, "BlocksExtractAll", len(args))
@@ -71,7 +72,7 @@ func toolBlocksExtractAll(interpreter *neurogo.Interpreter, args []interface{}) 
 	logger.Debug("Calling TOOL.BlocksExtractAll (Listener Based)", "snippet", logSnippet)
 
 	// Call the listener-based extractor
-	extractedBlocks, extractErr := ExtractAll(content, logger)	// Pass logger
+	extractedBlocks, extractErr := ExtractAll(content, logger) // Pass logger
 
 	// Handle potential errors from the parser/lexer
 	if extractErr != nil {
@@ -91,15 +92,15 @@ func toolBlocksExtractAll(interpreter *neurogo.Interpreter, args []interface{}) 
 		}
 
 		blockMap := map[string]interface{}{
-			"language_id":	block.LanguageID,
-			"raw_content":	block.RawContent,	// Content no longer includes metadata lines
-			"start_line":	int64(block.StartLine),	// Line of opening fence ```
-			"end_line":	int64(block.EndLine),	// Line of closing fence ```
-			"metadata":	metadataInterfaceMap,	// Include parsed metadata directly
+			"language_id": block.LanguageID,
+			"raw_content": block.RawContent,       // Content no longer includes metadata lines
+			"start_line":  int64(block.StartLine), // Line of opening fence ```
+			"end_line":    int64(block.EndLine),   // Line of closing fence ```
+			"metadata":    metadataInterfaceMap,   // Include parsed metadata directly
 		}
 		resultsList = append(resultsList, blockMap)
 	}
 
 	logger.Info("TOOL.BlocksExtractAll successful.", "blocks_found", len(resultsList))
-	return resultsList, nil	// Return the list of maps
+	return resultsList, nil // Return the list of maps
 }

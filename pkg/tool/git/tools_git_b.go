@@ -16,9 +16,11 @@ import (
 	"strings"
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/security"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
-func toolGitCheckout(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolGitCheckout(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	if len(args) < 2 {
 		return nil, fmt.Errorf("%w: Git.Checkout requires at least a repo path and branch name", lang.ErrInvalidArgument)
 	}
@@ -64,7 +66,7 @@ func toolGitCheckout(interpreter *neurogo.Interpreter, args []interface{}) (inte
 	return fmt.Sprintf("Successfully checked out branch/ref '%s'.\nOutput:\n%s", branch, output), nil
 }
 
-func toolGitRm(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolGitRm(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	if len(args) != 2 {
 		return nil, fmt.Errorf("%w: GitRm requires two arguments (repoPath, path or paths)", lang.ErrInvalidArgument)
 	}
@@ -102,7 +104,7 @@ func toolGitRm(interpreter *neurogo.Interpreter, args []interface{}) (interface{
 	return fmt.Sprintf("Successfully removed paths from git index.\nOutput:\n%s", output), nil
 }
 
-func toolGitMerge(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolGitMerge(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	if len(args) != 2 {
 		return nil, fmt.Errorf("%w: GitMerge requires two arguments (repoPath, branch name)", lang.ErrInvalidArgument)
 	}
@@ -121,7 +123,7 @@ func toolGitMerge(interpreter *neurogo.Interpreter, args []interface{}) (interfa
 	return fmt.Sprintf("Successfully merged branch '%s'.\nOutput:\n%s", branchName, output), nil
 }
 
-func toolGitPull(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolGitPull(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	if len(args) == 0 {
 		return nil, fmt.Errorf("%w: Git.Pull requires at least a repository path", lang.ErrInvalidArgument)
 	}
@@ -152,7 +154,7 @@ func toolGitPull(interpreter *neurogo.Interpreter, args []interface{}) (interfac
 	return fmt.Sprintf("GitPull successful.\nOutput:\n%s", output), nil
 }
 
-func toolGitPush(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolGitPush(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	if len(args) == 0 {
 		return nil, fmt.Errorf("%w: Git.Push requires at least a repository path", lang.ErrInvalidArgument)
 	}
@@ -208,7 +210,7 @@ func toolGitPush(interpreter *neurogo.Interpreter, args []interface{}) (interfac
 	return fmt.Sprintf("GitPush successful (%s -> %s).\nOutput:\n%s", branch, remote, output), nil
 }
 
-func toolGitDiff(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolGitDiff(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	if len(args) < 1 || len(args) > 2 {
 		return nil, fmt.Errorf("%w: Git.Diff requires a repo path and an optional boolean 'cached' flag", lang.ErrInvalidArgument)
 	}
@@ -239,7 +241,7 @@ func toolGitDiff(interpreter *neurogo.Interpreter, args []interface{}) (interfac
 	return output, nil
 }
 
-func toolGitClone(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolGitClone(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	if len(args) != 2 {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "Git.Clone: expected 2 arguments (repository_url, relative_path)", lang.ErrArgumentMismatch)
 	}

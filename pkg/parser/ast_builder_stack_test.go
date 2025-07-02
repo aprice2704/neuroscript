@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/ast"
+	"github.com/aprice2704/neuroscript/pkg/logging"
 )
 
 type astTestCase struct {
@@ -18,7 +19,7 @@ type astTestCase struct {
 }
 
 func TestASTBuilderScenarios(t *testing.T) {
-	logger := logging.NewNoLogger()
+	logger := logging.NewNoOpLogger()
 
 	testCases := []astTestCase{
 		{

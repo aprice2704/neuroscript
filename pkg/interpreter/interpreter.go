@@ -13,6 +13,7 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/logging"
 )
 
 // Interpreter holds the state for a NeuroScript runtime environment.
@@ -42,7 +43,7 @@ func New(opts ...InterpreterOption) *Interpreter {
 		state:        newInterpreterState(),
 		eventManager: newEventManager(),
 	}
-	i.logger = logging.NewNoLogger() // Default logger
+	i.logger = logging.NewNoOpLogger() // Default logger
 
 	// Apply all functional options
 	for _, opt := range opts {
@@ -108,7 +109,7 @@ func IsRunningInTestMode() bool {
 // NewForTesting creates a new interpreter instance specifically for testing purposes.
 func NewForTesting() *Interpreter {
 	i := New()
-	i.logger = logging.NewNoLogger()
+	i.logger = logging.NewNoOpLogger()
 
 	fmt.Println("Grammar Version:", lang.GrammarVersion)
 	i.logger.Debug("Interpreter created for testing.", "grammarVersion", lang.GrammarVersion)

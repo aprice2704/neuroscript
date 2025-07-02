@@ -13,7 +13,7 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
-	"github.com/aprice2704/neuroscript/pkg/parser"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
 // executeAskAI is a placeholder for the full 'ask' step logic.
@@ -127,9 +127,9 @@ func (i *Interpreter) getAvailableToolsForAsk(step ast.Step) []interfaces.ToolDe
 			continue
 		}
 		definitions = append(definitions, interfaces.ToolDefinition{
-			Name:		spec.Name,
-			Description:	spec.Description,
-			InputSchema:	inputSchema,
+			Name:        spec.Name,
+			Description: spec.Description,
+			InputSchema: inputSchema,
 		})
 	}
 	return definitions
@@ -185,9 +185,9 @@ func (i *Interpreter) addToolResultsToConversation(results []*interfaces.ToolRes
 
 func ConvertToolSpecArgsToInputSchema(args []tool.ArgSpec) (map[string]interface{}, error) {
 	schema := map[string]interface{}{
-		"type":		"object",
-		"properties":	map[string]interface{}{},
-		"required":	[]string{},
+		"type":       "object",
+		"properties": map[string]interface{}{},
+		"required":   []string{},
 	}
 	props, okProps := schema["properties"].(map[string]interface{})
 	if !okProps {
@@ -201,19 +201,19 @@ func ConvertToolSpecArgsToInputSchema(args []tool.ArgSpec) (map[string]interface
 	for _, argSpec := range args {
 		var jsonType string
 		switch argSpec.Type {
-		case ArgTypeString:
+		case tool.ArgTypeString:
 			jsonType = "string"
-		case ArgTypeInt:
+		case tool.ArgTypeInt:
 			jsonType = "integer"
-		case ArgTypeFloat:
+		case tool.ArgTypeFloat:
 			jsonType = "number"
-		case ArgTypeBool:
+		case tool.ArgTypeBool:
 			jsonType = "boolean"
-		case tool.ArgTypeSlice, parser.ArgTypeSliceAny, tool.ArgTypeSliceString, tool.ArgTypeSliceInt, tool.ArgTypeSliceFloat, tool.ArgTypeSliceBool, ArgTypeSliceMap:
+		case tool.tool.ArgTypeSlice, parser.tool.ArgTypeSliceAny, tool.tool.ArgTypeSliceString, tool.tool.ArgTypeSliceInt, tool.tool.ArgTypeSliceFloat, tool.tool.ArgTypeSliceBool, tool.ArgTypeSliceMap:
 			jsonType = "array"
-		case ArgTypeMap:
+		case tool.ArgTypeMap:
 			jsonType = "object"
-		case ArgTypeNil:
+		case tool.ArgTypeNil:
 			continue
 		default:
 			return nil, fmt.Errorf("unsupported ArgType '%s' for tool arg '%s'", argSpec.Type, argSpec.Name)

@@ -14,7 +14,7 @@ import (
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
-	"github.com/aprice2704/neuroscript/pkg/parser"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
 // runNewTypesTestScript is a helper to set up an interpreter and run a script.
@@ -23,9 +23,9 @@ func runNewTypesTestScript(t *testing.T, script string) (lang.Value, error) {
 	t.Helper()
 	i, _ := llm.NewTestInterpreter(t, nil, nil)
 
-	specFuzzyTest := tool.ToolSpec{Name: "Test.NewFuzzy", Args: []tool.ArgSpec{{Name: "val", Type: parser.ArgTypeFloat}}}
+	specFuzzyTest := tool.ToolSpec{Name: "Test.NewFuzzy", Args: []tool.ArgSpec{{Name: "val", Type: parser.tool.ArgTypeFloat}}}
 	toolFuzzyTest := func(_ *Interpreter, args []interface{}) (interface{}, error) {
-		val, _ := lang.toFloat64(args[0])
+		val, _ := lang.ToFloat64(args[0])
 		return lang.NewFuzzyValue(val), nil
 	}
 	_ = i.RegisterTool(tool.ToolImplementation{Spec: specFuzzyTest, Func: toolFuzzyTest})

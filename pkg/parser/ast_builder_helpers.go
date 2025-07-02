@@ -9,6 +9,7 @@ import (
 
 	"github.com/antlr4-go/antlr/v4"
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 	// Import other necessary core types if needed by helpers
 )
 
@@ -16,13 +17,13 @@ import (
 type ArgType int
 
 const (
-	ArgTypeAny	ArgType	= iota
-	ArgTypeString
-	ArgTypeInt
-	ArgTypeFloat
-	ArgTypeBool
-	ArgTypeSliceAny
-	ArgTypeMap
+	tool.ArgTypeAny ArgType = iota
+	tool.ArgTypeString
+	tool.ArgTypeInt
+	tool.ArgTypeFloat
+	tool.ArgTypeBool
+	tool.ArgTypeSliceAny
+	tool.ArgTypeMap
 )
 
 // ParseMetadataLine attempts to parse a line potentially containing metadata (e.g., ":: key: value").
@@ -31,7 +32,7 @@ const (
 func ParseMetadataLine(line string) (key string, value string, ok bool) {
 	trimmedLine := strings.TrimSpace(line)
 	if !strings.HasPrefix(trimmedLine, "::") {
-		return "", "", false	// Not a metadata line
+		return "", "", false // Not a metadata line
 	}
 
 	// Remove "::" prefix and trim surrounding space
@@ -68,8 +69,8 @@ func ParseMetadataLine(line string) (key string, value string, ok bool) {
 // ConvertInputSchemaToArgSpec converts a JSON Schema-like map (from old ToolDefinition)
 // into the []ArgSpec required by ToolSpec.
 // Moved here from interpreter_steps_ask.go/llm_tools.go corrections.
-func ConvertInputSchemaToArgSpec(schema map[string]interface{}) ([]ArgSpec, error) {
-	args := []ArgSpec{}
+func ConvertInputSchemaToArgSpec(schema map[string]interface{}) ([]tool.ArgSpec, error) {
+	args := []tool.ArgSpec{}
 	propsVal, okProps := schema["properties"]
 	if !okProps {
 		// If no properties, return empty args (valid for tools with no args)
@@ -117,34 +118,34 @@ func ConvertInputSchemaToArgSpec(schema map[string]interface{}) ([]ArgSpec, erro
 		}
 
 		typeStrVal, _ := propSchema["type"]
-		typeStr, _ := typeStrVal.(string)	// JSON schema type
+		typeStr, _ := typeStrVal.(string) // JSON schema type
 		descStrVal, _ := propSchema["description"]
-		descStr, _ := descStrVal.(string)	// Description
+		descStr, _ := descStrVal.(string) // Description
 
 		// Convert JSON schema type to internal ArgType
-		var argType ArgType = ArgTypeAny	// Default to Any if unknown
+		var argType tool.ArgType = tool.tool.ArgTypeAny // Default to Any if unknown
 		switch typeStr {
 		case "string":
-			argType = ArgTypeString
+			argType = tool.tool.ArgTypeString
 		case "integer":
-			argType = ArgTypeInt
+			argType = tool.tool.ArgTypeInt
 		case "number":
-			argType = ArgTypeFloat
+			argType = tool.tool.ArgTypeFloat
 		case "boolean":
-			argType = ArgTypeBool
+			argType = tool.tool.ArgTypeBool
 		case "array":
 			// TODO: Could inspect 'items' field for better type, defaults to SliceAny
-			argType = ArgTypeSliceAny
+			argType = tool.tool.ArgTypeSliceAny
 		case "object":
-			argType = ArgTypeMap
-			// default: // Keep default as ArgTypeAny
+			argType = tool.tool.ArgTypeMap
+			// default: // Keep default as tool.ArgTypeAny
 		}
 
-		args = append(args, ArgSpec{
-			Name:		name,
-			Type:		argType,
-			Description:	descStr,
-			Required:	reqMap[name],	// Check if name was in the required list
+		args = append(args, tool.ArgSpec{
+			Name:        name,
+			Type:        argType,
+			Description: descStr,
+			Required:    reqMap[name], // Check if name was in the required list
 		})
 	}
 	return args, nil
@@ -156,7 +157,7 @@ func ConvertInputSchemaToArgSpec(schema map[string]interface{}) ([]ArgSpec, erro
 // Moved here from ast_builder_terminators.go correction.
 func parseNumber(numStr string) (interface{}, error) {
 	// Try parsing as int first
-	if !strings.Contains(numStr, ".") {	// Optimization: Don't try int if decimal present
+	if !strings.Contains(numStr, ".") { // Optimization: Don't try int if decimal present
 		if iVal, err := strconv.ParseInt(numStr, 10, 64); err == nil {
 			return iVal, nil
 		}
@@ -189,20 +190,20 @@ func unescapeString(quotedStr string) (string, error) {
 // It sets the exported fields Line, Column, and File.
 func tokenToPosition(token antlr.Token) lang.Position {
 	if token == nil {
-		return lang.Position{Line: 0, Column: 0, File: "<nil token>"}	// Return a default invalid lang.Position
+		return lang.Position{Line: 0, Column: 0, File: "<nil token>"} // Return a default invalid lang.Position
 	}
 	// Handle potential nil InputStream or SourceName gracefully
 	sourceName := "<unknown>"
 	if token.GetInputStream() != nil {
 		sourceName = token.GetInputStream().GetSourceName()
-		if sourceName == "<INVALID>" {	// Use a more descriptive name if ANTLR provides one
+		if sourceName == "<INVALID>" { // Use a more descriptive name if ANTLR provides one
 			sourceName = "<input stream>"
 		}
 	}
 	return lang.Position{
-		Line:	token.GetLine(),
-		Column:	token.GetColumn() + 1,	// ANTLR columns are 0-based, prefer 1-based
-		File:	sourceName,
+		Line:   token.GetLine(),
+		Column: token.GetColumn() + 1, // ANTLR columns are 0-based, prefer 1-based
+		File:   sourceName,
 		// Length: len(token.GetText()), // Add if needed by lang.Position struct consumers
 	}
 }

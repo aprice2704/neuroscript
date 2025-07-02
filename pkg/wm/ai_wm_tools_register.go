@@ -1,21 +1,22 @@
 // NeuroScript Version: 0.3.0
 // File version: 0.1.1 // Changed INFO logs to DEBUG
 // AI Worker Management: Tool Registration (currently handles AIWM initialization)
-// filename: pkg/core/ai_wm_tools_register.go
+// filename: pkg/wm/ai_wm_tools_register.go
 
-package core
+package wm
 
 import (
 	"fmt"
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 	// "github.com/aprice2704/neuroscript/pkg/logging" // Not directly needed here
 )
 
 // RegisterAIWorkerTools ensures the AIWorkerManager is initialized on the interpreter.
 // If AI Worker tools were to be registered by this specific function (distinct from tooldefs_ai_wm.go),
 // that logic would also go here. Currently, its main role is AIWM setup.
-func RegisterAIWorkerTools(i *neurogo.Interpreter) error {
+func RegisterAIWorkerTools(i tool.RunTime) error {
 	if i == nil {
 		return fmt.Errorf("interpreter cannot be nil for RegisterAIWorkerTools")
 	}

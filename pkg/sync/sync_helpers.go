@@ -13,16 +13,17 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 	"github.com/google/generative-ai-go/genai"
 )
 
 // --- checkGenAIClient Helper ---
 // (Function remains the same)
-func checkGenAIClient(interp *neurogo.Interpreter) (*genai.Client, error) {
+func checkGenAIClient(interp tool.RunTime) (*genai.Client, error) {
 	if interp == nil || interp.llmClient == nil {
 		return nil, errors.New("interpreter or LLMClient not configured")
 	}
-	client := interp.llmClient.Client()	// Use the interface method
+	client := interp.llmClient.Client() // Use the interface method
 	if client == nil {
 		return nil, errors.New("LLM client is not a compatible GenAI client or is not initialized")
 	}
@@ -33,8 +34,8 @@ func checkGenAIClient(interp *neurogo.Interpreter) (*genai.Client, error) {
 // This function uploads a local file and polls the GenAI API until the file is Active or Failed.
 func HelperUploadAndPollFile(
 	ctx context.Context,
-	localPath string,	// Absolute path to local file *resolved by caller*
-	displayName string,	// Desired display name (relative path) in API
+	localPath string, // Absolute path to local file *resolved by caller*
+	displayName string, // Desired display name (relative path) in API
 	client *genai.Client,
 	logger interfaces.Logger,
 ) (*genai.File, error) {
@@ -43,7 +44,7 @@ func HelperUploadAndPollFile(
 		return nil, errors.New("genai client is nil")
 	}
 	if logger == nil {
-		logger = &utils.coreNoOpLogger{}	// Basic fallback
+		logger = &utils.coreNoOpLogger{} // Basic fallback
 	}
 
 	// 1. Open local file (Path assumed to be absolute and valid here)
@@ -66,7 +67,7 @@ func HelperUploadAndPollFile(
 		// MimeType could potentially be inferred or set here if needed, e.g.:
 		// MimeType: mime.TypeByExtension(filepath.Ext(localPath)),
 	}
-	uploadedFile, err := client.UploadFile(ctx, "", fileReader, uploadOpts)	// Pass "" for name, and pointer to options struct
+	uploadedFile, err := client.UploadFile(ctx, "", fileReader, uploadOpts) // Pass "" for name, and pointer to options struct
 	if err != nil {
 		logger.Error("[HelperUpload] client.UploadFile failed", "display_name", displayName, "error", err)
 		// Consider logging uploadOpts content here on error for debugging
@@ -81,14 +82,14 @@ func HelperUploadAndPollFile(
 	logger.Debug("[HelperUpload] Initial upload accepted",
 		"requested_display_name", displayName,
 		"remote_name", uploadedFile.Name,
-		"actual_display_name", uploadedFile.DisplayName,	// Check if this field is populated correctly now
+		"actual_display_name", uploadedFile.DisplayName, // Check if this field is populated correctly now
 		"initial_state", uploadedFile.State,
 		"upload_duration_ms", time.Since(uploadStartTime).Milliseconds())
 
 	// 3. Poll for status
 	const (
-		pollInterval	= 2 * time.Second
-		maxPollDuration	= 2 * time.Minute
+		pollInterval    = 2 * time.Second
+		maxPollDuration = 2 * time.Minute
 	)
 	pollCtx, cancelPoll := context.WithTimeout(ctx, maxPollDuration)
 	defer cancelPoll()
@@ -109,12 +110,12 @@ func HelperUploadAndPollFile(
 		}
 
 		getFileStartTime := time.Now()
-		file, err := client.GetFile(pollCtx, uploadedFile.Name)	// Use the internal remote name
+		file, err := client.GetFile(pollCtx, uploadedFile.Name) // Use the internal remote name
 		getFileDuration := time.Since(getFileStartTime)
 
 		if err != nil {
 			logger.Error("[HelperUpload] Polling GetFile failed",
-				"display_name", displayName,	// Use requested name for consistency in error msg
+				"display_name", displayName, // Use requested name for consistency in error msg
 				"remote_name", uploadedFile.Name,
 				"getfile_duration_ms", getFileDuration.Milliseconds(),
 				"error", err)
@@ -134,7 +135,7 @@ func HelperUploadAndPollFile(
 				"display_name", file.DisplayName,
 				"remote_name", file.Name,
 				"total_polling_duration_ms", time.Since(pollingStartTime).Milliseconds())
-			return file, nil	// Success!
+			return file, nil // Success!
 		case genai.FileStateFailed:
 			logger.Error("[HelperUpload] File processing FAILED",
 				"display_name", file.DisplayName,
@@ -162,7 +163,7 @@ func HelperUploadAndPollFile(
 
 // --- calculateFileHash ---
 // (Function remains the same)
-func calculateFileHash(interp *neurogo.Interpreter, relPath string) (string, error) {
+func calculateFileHash(interp tool.RunTime, relPath string) (string, error) {
 	if interp == nil {
 		return "", errors.New("calculateFileHash: interpreter is nil")
 	}

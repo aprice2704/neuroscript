@@ -7,7 +7,7 @@
 package meta
 
 import (
-	"encoding/json"	// Added for JSON marshalling
+	"encoding/json" // Added for JSON marshalling
 	"fmt"
 	"sort"
 	"strings"
@@ -19,7 +19,7 @@ import (
 
 // toolListTools provides a compact list of available tools.
 // NeuroScript: call Meta.ListTools() -> string
-func toolListTools(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolListTools(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	if len(args) != 0 {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "Meta.ListTools: expects no arguments", lang.ErrArgumentMismatch)
 	}
@@ -49,8 +49,8 @@ func toolListTools(interpreter *neurogo.Interpreter, args []interface{}) (interf
 
 // toolToolsHelp provides detailed help for available tools in Markdown format.
 // NeuroScript: call Meta.ToolsHelp(filter?:string) -> string
-func toolToolsHelp(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
-	var filterValue string	// Defaults to empty string, meaning "no filter"
+func toolToolsHelp(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
+	var filterValue string // Defaults to empty string, meaning "no filter"
 
 	if len(args) > 1 {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "Meta.ToolsHelp: expects at most 1 argument (filter)", lang.ErrArgumentMismatch)
@@ -112,7 +112,7 @@ func toolToolsHelp(interpreter *neurogo.Interpreter, args []interface{}) (interf
 
 		mdBuilder.WriteString("**Parameters:**\n")
 		if len(spec.Args) > 0 {
-			mdBuilder.WriteString(formatParamsMarkdownForSpec(spec.Args))	// formatParamsMarkdownForSpec already handles DefaultValue if present
+			mdBuilder.WriteString(formatParamsMarkdownForSpec(spec.Args)) // formatParamsMarkdownForSpec already handles DefaultValue if present
 		} else {
 			mdBuilder.WriteString("_None_\n")
 		}
@@ -137,7 +137,7 @@ func toolToolsHelp(interpreter *neurogo.Interpreter, args []interface{}) (interf
 
 // toolGetToolSpecificationsJSON provides a JSON string of all available tool specifications.
 // NeuroScript: call Meta.GetToolSpecificationsJSON() -> string
-func toolGetToolSpecificationsJSON(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolGetToolSpecificationsJSON(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	if len(args) != 0 {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "Meta.GetToolSpecificationsJSON: expects no arguments", lang.ErrArgumentMismatch)
 	}
@@ -147,14 +147,14 @@ func toolGetToolSpecificationsJSON(interpreter *neurogo.Interpreter, args []inte
 		return nil, lang.NewRuntimeError(lang.ErrorCodeConfiguration, "Meta.GetToolSpecificationsJSON: ToolRegistry is not available", lang.ErrConfiguration)
 	}
 
-	toolSpecs := registry.ListTools()	// This returns []ToolSpec
+	toolSpecs := registry.ListTools() // This returns []ToolSpec
 
 	// Sort toolSpecs by name for consistent output order in the JSON array.
 	sort.Slice(toolSpecs, func(i, j int) bool {
 		return toolSpecs[i].Name < toolSpecs[j].Name
 	})
 
-	jsonData, err := json.MarshalIndent(toolSpecs, "", "  ")	// Using MarshalIndent for readability
+	jsonData, err := json.MarshalIndent(toolSpecs, "", "  ") // Using MarshalIndent for readability
 	if err != nil {
 		if interpreter.logger != nil {
 			interpreter.logger.Errorf("Meta.GetToolSpecificationsJSON: Failed to marshal tool specifications to JSON: %v", err)

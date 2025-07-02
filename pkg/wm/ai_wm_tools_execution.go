@@ -2,13 +2,14 @@
 // File version: 1
 // Purpose: Refactored tool func to remove validation call and use direct args from bridge.
 // AI Worker Management: Stateless Execution Tool
-// filename: pkg/core/ai_wm_tools_execution.go
+// filename: pkg/wm/ai_wm_tools_execution.go
 // nlines: 48
 
-package core
+package wm
 
 import (
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 	"github.com/aprice2704/neuroscript/sideline/nspatch"
 )
 
@@ -16,16 +17,16 @@ var specAIWorkerExecuteStateless = tool.ToolSpec{
 	Name:     "AIWorker.ExecuteStatelessTask",
 	Category: "AI Worker Management",
 	Args: []tool.ArgSpec{
-		{Name: "name", Type: tool.ArgTypeString, Required: true},
-		{Name: "prompt", Type: tool.ArgTypeString, Required: true},
-		{Name: "config_overrides", Type: tool.ArgTypeMap, Required: false},
+		{Name: "name", Type: tool.tool.ArgTypeString, Required: true},
+		{Name: "prompt", Type: tool.tool.ArgTypeString, Required: true},
+		{Name: "config_overrides", Type: tool.tool.ArgTypeMap, Required: false},
 	},
 	ReturnType: "map",
 }
 
 var toolAIWorkerExecuteStateless = tool.ToolImplementation{
 	Spec: specAIWorkerExecuteStateless,
-	Func: func(i *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+	Func: func(i tool.RunTime, args []interface{}) (interface{}, error) {
 		m, err := getAIWorkerManager(i)
 		if err != nil {
 			return nil, err

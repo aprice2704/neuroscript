@@ -10,10 +10,11 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/parser"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
 // toolLoadScript implements the LoadScript tool.
-func toolLoadScript(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolLoadScript(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	if len(args) != 1 {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "LoadScript requires exactly one argument: script_content (string)", nil)
 	}
@@ -60,16 +61,16 @@ func toolLoadScript(interpreter *neurogo.Interpreter, args []interface{}) (inter
 
 	// Stage 4: Return result, now including the compatible metadata map.
 	resultMap := map[string]interface{}{
-		"functions_loaded":		len(programAST.Procedures),
-		"event_handlers_loaded":	len(programAST.Events),
-		"metadata":			metadataInterface,
+		"functions_loaded":      len(programAST.Procedures),
+		"event_handlers_loaded": len(programAST.Events),
+		"metadata":              metadataInterface,
 	}
 
 	return resultMap, nil
 }
 
 // toolScriptListFunctions implements the Script.ListFunctions tool for introspection.
-func toolScriptListFunctions(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolScriptListFunctions(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	knownProcs := interpreter.KnownProcedures()
 	names := make([]string, 0, len(knownProcs))
 	for name := range knownProcs {

@@ -12,7 +12,7 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/lang"
-	"github.com/aprice2704/neuroscript/pkg/parser"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
 // common lang.Position for test AST nodes
@@ -20,21 +20,21 @@ var testPos = &lang.Position{Line: 1, Column: 1, File: "typeof_test.go"}
 
 // testDummyProcedure for testing typeof function
 var testDummyProcedure = ast.Procedure{
-	Name:	"myTestFuncForTypeOf",	// Unique name
+	Name: "myTestFuncForTypeOf", // Unique name
 	Steps: []ast.Step{
 		testutil.createTestStep("emit", "", testutil.NewTestStringLiteral("from myTestFuncForTypeOf"), nil),
 	},
-	Position:	testPos,
+	Position: testPos,
 }
 
 // testDummyTool for testing typeof tool
 var testDummyTool = tool.ToolImplementation{
 	Spec: tool.ToolSpec{
-		Name:		"MyTestToolForTypeOf",	// Unique name
-		Description:	"A dummy tool for testing typeof.",
-		Category:	"Test",
-		Args:		[]tool.ArgSpec{},
-		ReturnType:	parser.ArgTypeString,
+		Name:        "MyTestToolForTypeOf", // Unique name
+		Description: "A dummy tool for testing typeof.",
+		Category:    "Test",
+		Args:        []tool.ArgSpec{},
+		ReturnType:  tool.tool.ArgTypeString,
 	},
 	Func: func(interpreter *Interpreter, args []interface{}) (interface{}, error) {
 		return "dummy tool executed", nil
@@ -44,94 +44,94 @@ var testDummyTool = tool.ToolImplementation{
 func TestTypeOfOperator_LiteralsAndVariables(t *testing.T) {
 	tests := []testutil.executeStepsTestCase{
 		{
-			name:	"typeof string literal",
+			name: "typeof string literal",
 			inputSteps: []ast.Step{
 				testutil.createTestStep("emit", "", &ast.TypeOfNode{Position: testPos, Argument: testutil.NewTestStringLiteral("hello")}, nil),
 			},
-			expectedResult:	lang.StringValue{Value: string(lang.TypeString)},
+			expectedResult: lang.StringValue{Value: string(lang.TypeString)},
 		},
 		{
-			name:	"typeof number literal (int)",
+			name: "typeof number literal (int)",
 			inputSteps: []ast.Step{
 				testutil.createTestStep("emit", "", &ast.TypeOfNode{Position: testPos, Argument: testutil.NewTestNumberLiteral(123.0)}, nil),
 			},
-			expectedResult:	lang.StringValue{Value: string(lang.TypeNumber)},
+			expectedResult: lang.StringValue{Value: string(lang.TypeNumber)},
 		},
 		{
-			name:	"typeof number literal (float)",
+			name: "typeof number literal (float)",
 			inputSteps: []ast.Step{
 				testutil.createTestStep("emit", "", &ast.TypeOfNode{Position: testPos, Argument: testutil.NewTestNumberLiteral(123.45)}, nil),
 			},
-			expectedResult:	lang.StringValue{Value: string(lang.TypeNumber)},
+			expectedResult: lang.StringValue{Value: string(lang.TypeNumber)},
 		},
 		{
-			name:	"typeof boolean literal (true)",
+			name: "typeof boolean literal (true)",
 			inputSteps: []ast.Step{
 				testutil.createTestStep("emit", "", &ast.TypeOfNode{Position: testPos, Argument: testutil.NewTestBooleanLiteral(true)}, nil),
 			},
-			expectedResult:	lang.StringValue{Value: string(lang.TypeBoolean)},
+			expectedResult: lang.StringValue{Value: string(lang.TypeBoolean)},
 		},
 		{
-			name:	"typeof nil literal",
+			name: "typeof nil literal",
 			inputSteps: []ast.Step{
 				testutil.createTestStep("emit", "", &ast.TypeOfNode{Position: testPos, Argument: &ast.NilLiteralNode{Position: testPos}}, nil),
 			},
-			expectedResult:	lang.StringValue{Value: string(lang.TypeNil)},
+			expectedResult: lang.StringValue{Value: string(lang.TypeNil)},
 		},
 		{
-			name:	"typeof list literal",
+			name: "typeof list literal",
 			inputSteps: []ast.Step{
 				testutil.createTestStep("emit", "", &ast.TypeOfNode{Position: testPos, Argument: &ast.ListLiteralNode{Position: testPos, Elements: []ast.Expression{testutil.NewTestNumberLiteral(1.0), testutil.NewTestStringLiteral("a")}}}, nil),
 			},
-			expectedResult:	lang.StringValue{Value: string(lang.TypeList)},
+			expectedResult: lang.StringValue{Value: string(lang.TypeList)},
 		},
 		{
-			name:	"typeof map literal",
+			name: "typeof map literal",
 			inputSteps: []ast.Step{
 				testutil.createTestStep("emit", "", &ast.TypeOfNode{Position: testPos, Argument: &ast.MapLiteralNode{Position: testPos, Entries: []*ast.MapEntryNode{
 					{Position: testPos, Key: testutil.testutil.NewTestStringLiteral("key"), Value: testutil.testutil.NewTestStringLiteral("value")},
 					{Position: testPos, Key: testutil.NewTestStringLiteral("num"), Value: testutil.NewTestNumberLiteral(1.0)},
 				}}}, nil),
 			},
-			expectedResult:	lang.StringValue{Value: string(lang.TypeMap)},
+			expectedResult: lang.StringValue{Value: string(lang.TypeMap)},
 		},
 		{
-			name:	"typeof arithmetic expression",
+			name: "typeof arithmetic expression",
 			inputSteps: []ast.Step{
 				testutil.createTestStep("emit", "", &ast.TypeOfNode{Position: testPos, Argument: &ast.BinaryOpNode{
-					Position:	testPos,
-					Left:		testutil.NewTestNumberLiteral(1.0),
-					Operator:	"+",
-					Right:		testutil.NewTestNumberLiteral(2.0),
+					Position: testPos,
+					Left:     testutil.NewTestNumberLiteral(1.0),
+					Operator: "+",
+					Right:    testutil.NewTestNumberLiteral(2.0),
 				}}, nil),
 			},
-			expectedResult:	lang.StringValue{Value: string(lang.TypeNumber)},
+			expectedResult: lang.StringValue{Value: string(lang.TypeNumber)},
 		},
 		{
-			name:	"typeof variable (string)",
+			name: "typeof variable (string)",
 			inputSteps: []ast.Step{
 				testutil.createTestStep("set", "myVar", testutil.NewTestStringLiteral("test"), nil),
 				testutil.createTestStep("emit", "", &ast.TypeOfNode{Position: testPos, Argument: testutil.NewTestast.VariableNode("myVar")}, nil),
 			},
-			expectedResult:	lang.StringValue{Value: string(lang.TypeString)},
-			expectedVars:	map[string]lang.Value{"myVar": lang.StringValue{Value: "test"}},
+			expectedResult: lang.StringValue{Value: string(lang.TypeString)},
+			expectedVars:   map[string]lang.Value{"myVar": lang.StringValue{Value: "test"}},
 		},
 		{
-			name:	"typeof variable (list)",
+			name: "typeof variable (list)",
 			inputSteps: []ast.Step{
 				testutil.createTestStep("set", "myList", &ast.ListLiteralNode{Position: testPos, Elements: []ast.Expression{testutil.NewTestNumberLiteral(1.0)}}, nil),
 				testutil.createTestStep("emit", "", &ast.TypeOfNode{Position: testPos, Argument: testutil.NewTestast.VariableNode("myList")}, nil),
 			},
-			expectedResult:	lang.StringValue{Value: string(lang.TypeList)},
-			expectedVars:	map[string]Value{"myList": lang.NewListValue([]Value{lang.NumberValue{Value: 1}})},
+			expectedResult: lang.StringValue{Value: string(lang.TypeList)},
+			expectedVars:   map[string]Value{"myList": lang.NewListValue([]Value{lang.NumberValue{Value: 1}})},
 		},
 		{
-			name:	"typeof last expression (number)",
+			name: "typeof last expression (number)",
 			inputSteps: []ast.Step{
 				testutil.createTestStep("emit", "", testutil.NewTestNumberLiteral(100.0), nil),
 				testutil.createTestStep("emit", "", &ast.TypeOfNode{Position: testPos, Argument: &ast.EvalNode{Position: testPos}}, nil),
 			},
-			expectedResult:	lang.StringValue{Value: string(lang.TypeNumber)},
+			expectedResult: lang.StringValue{Value: string(lang.TypeNumber)},
 		},
 	}
 

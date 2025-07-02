@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/aprice2704/neuroscript/pkg/interpreter"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 	diffmatchpatch "github.com/sergi/go-diff/diffmatchpatch"
 )
 
@@ -60,7 +62,7 @@ func splitLines(text string) []string {
 }
 
 // toolGeneratePatch implements the GeneratePatch tool.
-func toolGeneratePatch(interpreter *rpreter, args []interface{}) (interface{}, error) {
+func toolGeneratePatch(interpreter interpreter.Interpreter, args []interface{}) (interface{}, error) {
 	logger := interpreter.Logger()
 
 	// --- Argument Parsing ---

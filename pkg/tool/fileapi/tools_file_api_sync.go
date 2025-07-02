@@ -5,10 +5,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"	// Added for direct output in progress printer
+	"os" // Added for direct output in progress printer
 	"sync"
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 	// Assumes sync_types.go, sync_morehelpers.go, sync_logic.go, sync_workers.go
 	// and their necessary imports (like path/filepath, io, etc.) exist
 	// within this package ('core').
@@ -21,7 +22,7 @@ func SyncDirectoryUpHelper(
 	absLocalDir string,
 	filterPattern string,
 	ignoreGitignore bool,
-	interp *neurogo.Interpreter,	// Pass neurogo.Interpreter
+	interp tool.RunTime, // Pass interpreter.Interpreter
 ) (map[string]interface{}, error) {
 
 	// --- Get Logger and Client from Interpreter ---
@@ -39,14 +40,14 @@ func SyncDirectoryUpHelper(
 	stats, incrementStat, effectiveLogger := sync.initializeSyncState(logger)
 
 	syncCtx := &sync.syncContext{
-		ctx:		ctx,
-		absLocalDir:	absLocalDir,
-		filterPattern:	filterPattern,
-		client:		client,
-		logger:		effectiveLogger,
-		stats:		stats,
-		incrementStat:	incrementStat,
-		interp:		interp,
+		ctx:           ctx,
+		absLocalDir:   absLocalDir,
+		filterPattern: filterPattern,
+		client:        client,
+		logger:        effectiveLogger,
+		stats:         stats,
+		incrementStat: incrementStat,
+		interp:        interp,
 	}
 
 	syncCtx.logger.Debug("[API HELPER Sync] Starting sync 'up' for directory:", syncCtx.absLocalDir)

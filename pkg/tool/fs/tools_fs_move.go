@@ -11,11 +11,13 @@ import (
 	"os"
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/security"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
 // toolMoveFile moves or renames a file or directory within the sandbox.
 // Implements the MoveFile tool.
-func toolMoveFile(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolMoveFile(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	if len(args) != 2 {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("MoveFile: expected 2 arguments (source_path, destination_path), got %d", len(args)), lang.ErrArgumentMismatch)
 	}
@@ -77,7 +79,7 @@ func toolMoveFile(interpreter *neurogo.Interpreter, args []interface{}) (interfa
 			rtErr = lang.NewRuntimeError(lang.ErrorCodeIOFailed, errMsg, errors.Join(lang.ErrIOFailed, srcStatErr))
 		}
 		interpreter.Logger().Warnf("Tool: MoveFile] Source check failed: %s: %v", errMsg, srcStatErr)
-		return nil, rtErr	// Return nil value and the runtime error
+		return nil, rtErr // Return nil value and the runtime error
 	}
 
 	// Check if destination *already exists*

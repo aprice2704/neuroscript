@@ -13,11 +13,12 @@ import (
 	"sort"
 	"testing"
 
+	"github.com/aprice2704/neuroscript/pkg/testutil"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
-func makeWalkResultChecker(expected []map[string]interface{}) func(t *testing.T, interp *neurogo.Interpreter, result interface{}, err error, ctx interface{}) {
-	return func(t *testing.T, interp *neurogo.Interpreter, actual interface{}, err error, ctx interface{}) {
+func makeWalkResultChecker(expected []map[string]interface{}) func(t *testing.T, interp tool.RunTime, result interface{}, err error, ctx interface{}) {
+	return func(t *testing.T, interp tool.RunTime, actual interface{}, err error, ctx interface{}) {
 		t.Helper()
 		testutil.AssertNoError(t, err)
 
@@ -66,10 +67,10 @@ func TestToolWalkDir(t *testing.T) {
 
 	tests := []fsTestCase{
 		{
-			name:		"Walk_from_root",
-			toolName:	"FS.Walk",
-			args:		tool.MakeArgs("."),
-			setupFunc:	setupFunc,
+			name:      "Walk_from_root",
+			toolName:  "FS.Walk",
+			args:      tool.MakeArgs("."),
+			setupFunc: setupFunc,
 			checkFunc: makeWalkResultChecker([]map[string]interface{}{
 				{"path_relative": "dir1", "is_dir": true},
 				{"path_relative": filepath.Join("dir1", "file1.txt"), "is_dir": false},

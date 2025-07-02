@@ -16,11 +16,12 @@ import (
 	"syscall"
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
 // toolExecuteCommand executes an external command securely within the sandbox.
 // Corresponds to ToolSpec "Shell.Execute".
-func toolExecuteCommand(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolExecuteCommand(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	toolName := "Shell.Execute"
 
 	// Expected args: command (string), args_list ([]string, optional), directory (string, optional)
@@ -34,7 +35,7 @@ func toolExecuteCommand(interpreter *neurogo.Interpreter, args []interface{}) (i
 	}
 
 	var commandArgs []string
-	var targetDirRel string = "."	// Default directory relative to sandbox
+	var targetDirRel string = "." // Default directory relative to sandbox
 
 	// Parse args_list (optional, index 1)
 	if len(args) > 1 && args[1] != nil {
@@ -95,7 +96,7 @@ func toolExecuteCommand(interpreter *neurogo.Interpreter, args []interface{}) (i
 		ec := lang.ErrorCodeIOFailed
 		if os.IsNotExist(statErr) {
 			sentinel = lang.ErrNotFound
-			ec = lang.ErrorCodeFileNotFound	// Use specific code for not found
+			ec = lang.ErrorCodeFileNotFound // Use specific code for not found
 		} else if os.IsPermission(statErr) {
 			sentinel = lang.ErrPermissionDenied
 			ec = lang.ErrorCodePermissionDenied
@@ -107,7 +108,7 @@ func toolExecuteCommand(interpreter *neurogo.Interpreter, args []interface{}) (i
 	if !dirInfo.IsDir() {
 		errMsg := fmt.Sprintf("%s: execution path %q is not a directory", toolName, targetDirRel)
 		interpreter.Logger().Error(errMsg, "absolute_path", absValidatedDir)
-		return nil, lang.NewRuntimeError(lang.ErrorCodePathTypeMismatch, errMsg, lang.ErrPathNotDirectory)	// Use specific sentinel
+		return nil, lang.NewRuntimeError(lang.ErrorCodePathTypeMismatch, errMsg, lang.ErrPathNotDirectory) // Use specific sentinel
 	}
 
 	interpreter.Logger().Debug(fmt.Sprintf("[%s] Preparing command", toolName), "command", commandPath, "args", commandArgs, "directory", absValidatedDir)
@@ -145,10 +146,10 @@ func toolExecuteCommand(interpreter *neurogo.Interpreter, args []interface{}) (i
 	}
 
 	resultMap := map[string]interface{}{
-		"stdout":	stdoutStr,
-		"stderr":	stderrStr,
-		"exit_code":	int64(exitCode),
-		"success":	success,
+		"stdout":    stdoutStr,
+		"stderr":    stderrStr,
+		"exit_code": int64(exitCode),
+		"success":   success,
 	}
 	return resultMap, nil
 }

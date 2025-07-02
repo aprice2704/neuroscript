@@ -11,10 +11,11 @@ import (
 	"fmt"
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
 // toolErrorNew implements the "Error.New" tool function.
-func toolErrorNew(i *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolErrorNew(i tool.RunTime, args []interface{}) (interface{}, error) {
 	if len(args) != 2 {
 		return nil, fmt.Errorf("Error.New() expects 2 arguments (code, message), got %d", len(args))
 	}
@@ -26,7 +27,7 @@ func toolErrorNew(i *neurogo.Interpreter, args []interface{}) (interface{}, erro
 	}
 
 	var codeValue lang.Value
-	if num, isNum := lang.toFloat64(codeArg); isNum {
+	if num, isNum := lang.ToFloat64(codeArg); isNum {
 		codeValue = lang.NumberValue{Value: num}
 	} else if str, isStr := codeArg.(string); isStr {
 		codeValue = lang.StringValue{Value: str}
@@ -35,8 +36,8 @@ func toolErrorNew(i *neurogo.Interpreter, args []interface{}) (interface{}, erro
 	}
 
 	errorMap := map[string]lang.Value{
-		"code":		codeValue,
-		"message":	lang.StringValue{Value: messageArg},
+		"code":    codeValue,
+		"message": lang.StringValue{Value: messageArg},
 	}
 
 	return lang.ErrorValue{Value: errorMap}, nil

@@ -13,13 +13,14 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/parser"
-	"github.com/google/generative-ai-go/genai"	// Keep for genai.Part potentially
+	"github.com/aprice2704/neuroscript/pkg/tool"
+	"github.com/google/generative-ai-go/genai" // Keep for genai.Part potentially
 )
 
 // callLLM is a helper function used by tools to interact with the LLM.
 func callLLM(ctx context.Context, llmClient interfaces.LLMClient, prompt string) (string, error) {
 	if llmClient == nil {
-		return "", lang.ErrLLMNotConfigured	// Return specific error
+		return "", lang.ErrLLMNotConfigured // Return specific error
 	}
 	turns := []*interfaces.ConversationTurn{{Role: interfaces.RoleUser, Content: prompt}}
 	responseTurn, err := llmClient.Ask(ctx, turns)
@@ -38,7 +39,7 @@ func callLLM(ctx context.Context, llmClient interfaces.LLMClient, prompt string)
 // The standard LLMClient interface might need extension for direct multimodal support.
 func callLLMWithParts(ctx context.Context, llmClient interfaces.LLMClient, parts []genai.Part) (string, error) {
 	if llmClient == nil {
-		return "", lang.ErrLLMNotConfigured	// Return specific error
+		return "", lang.ErrLLMNotConfigured // Return specific error
 	}
 
 	// Convert genai.Part to a text-based representation for the current LLMClient.Ask interface
@@ -54,7 +55,7 @@ func callLLMWithParts(ctx context.Context, llmClient interfaces.LLMClient, parts
 		default:
 			contentBuilder.WriteString(fmt.Sprintf("[Unsupported genai.Part type: %T]", p))
 		}
-		contentBuilder.WriteString("\n")	// Add a newline between parts for readability
+		contentBuilder.WriteString("\n") // Add a newline between parts for readability
 	}
 
 	turns := []*interfaces.ConversationTurn{{Role: interfaces.RoleUser, Content: strings.TrimSpace(contentBuilder.String())}}
@@ -71,7 +72,7 @@ func callLLMWithParts(ctx context.Context, llmClient interfaces.LLMClient, parts
 // --- Tool Implementations ---
 
 // TOOL.LLM.Ask
-func toolLLMAsk(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolLLMAsk(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	if len(args) < 1 {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "LLM.Ask: expected 1 argument (prompt)", lang.ErrArgumentMismatch)
 	}
@@ -93,7 +94,7 @@ func toolLLMAsk(interpreter *neurogo.Interpreter, args []interface{}) (interface
 }
 
 // TOOL.LLM.AskWithParts
-func toolLLMAskWithParts(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolLLMAskWithParts(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	if len(args) < 1 {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "LLM.AskWithParts: expected 1 argument (parts)", lang.ErrArgumentMismatch)
 	}
@@ -141,11 +142,11 @@ func RegisterLLMTools(registry ToolRegistry) error {
 	var err error
 
 	llmAskInputSchema := map[string]interface{}{
-		"type":	"object",
+		"type": "object",
 		"properties": map[string]interface{}{
 			"prompt": map[string]interface{}{"type": "string", "description": "The text prompt to send to the LLM."},
 		},
-		"required":	[]string{"prompt"},
+		"required": []string{"prompt"},
 	}
 	llmAskArgs, argsErr := parser.ConvertInputSchemaToArgSpec(llmAskInputSchema)
 	if argsErr != nil {
@@ -154,27 +155,27 @@ func RegisterLLMTools(registry ToolRegistry) error {
 
 	err = registry.RegisterTool(ToolImplementation{
 		Spec: ToolSpec{
-			Name:		"LLM.Ask",
-			Description:	"Sends a text prompt to the configured LLM and returns the text response.",
-			Args:		llmAskArgs,
-			ReturnType:	parser.ArgTypeString,
+			Name:        "LLM.Ask",
+			Description: "Sends a text prompt to the configured LLM and returns the text response.",
+			Args:        llmAskArgs,
+			ReturnType:  tool.tool.ArgTypeString,
 		},
-		Func:	toolLLMAsk,
+		Func: toolLLMAsk,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to register tool LLM.Ask: %w", err)
 	}
 
 	llmAskPartsInputSchema := map[string]interface{}{
-		"type":	"object",
+		"type": "object",
 		"properties": map[string]interface{}{
 			"parts": map[string]interface{}{
-				"type":		"array",
-				"description":	"A list of prompt parts (e.g., text strings). Complex parts may need specific encoding or LLM client support.",
-				"items":	map[string]interface{}{"type": "string"},	// Simplified: assumes list of strings.
+				"type":        "array",
+				"description": "A list of prompt parts (e.g., text strings). Complex parts may need specific encoding or LLM client support.",
+				"items":       map[string]interface{}{"type": "string"}, // Simplified: assumes list of strings.
 			},
 		},
-		"required":	[]string{"parts"},
+		"required": []string{"parts"},
 	}
 	llmAskPartsArgs, argsErr := parser.ConvertInputSchemaToArgSpec(llmAskPartsInputSchema)
 	if argsErr != nil {
@@ -183,12 +184,12 @@ func RegisterLLMTools(registry ToolRegistry) error {
 
 	err = registry.RegisterTool(ToolImplementation{
 		Spec: ToolSpec{
-			Name:		"LLM.AskWithParts",
-			Description:	"Sends a list of parts (currently treated as text strings) as a prompt to the LLM.",
-			Args:		llmAskPartsArgs,
-			ReturnType:	parser.ArgTypeString,
+			Name:        "LLM.AskWithParts",
+			Description: "Sends a list of parts (currently treated as text strings) as a prompt to the LLM.",
+			Args:        llmAskPartsArgs,
+			ReturnType:  tool.tool.ArgTypeString,
 		},
-		Func:	toolLLMAskWithParts,
+		Func: toolLLMAskWithParts,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to register tool LLM.AskWithParts: %w", err)

@@ -17,12 +17,12 @@ import (
 )
 
 // testStringSplitJoinToolHelper tests a tool implementation directly with primitives.
-func testStringSplitJoinToolHelper(t *testing.T, interp *neurogo.Interpreter, tc struct {
-	name		string
-	toolName	string
-	args		[]interface{}
-	wantResult	interface{}
-	wantErrIs	error
+func testStringSplitJoinToolHelper(t *testing.T, interp tool.RunTime, tc struct {
+	name       string
+	toolName   string
+	args       []interface{}
+	wantResult interface{}
+	wantErrIs  error
 }) {
 	t.Helper()
 	t.Run(tc.name, func(t *testing.T) {
@@ -54,11 +54,11 @@ func testStringSplitJoinToolHelper(t *testing.T, interp *neurogo.Interpreter, tc
 func TestToolSplitString(t *testing.T) {
 	interp, _ := llm.NewDefaultTestInterpreter(t)
 	tests := []struct {
-		name		string
-		toolName	string
-		args		[]interface{}
-		wantResult	interface{}
-		wantErrIs	error
+		name       string
+		toolName   string
+		args       []interface{}
+		wantResult interface{}
+		wantErrIs  error
 	}{
 		{name: "Simple_Split", toolName: "Split", args: tool.MakeArgs("a,b,c", ","), wantResult: []string{"a", "b", "c"}},
 		{name: "Empty_Delimiter", toolName: "Split", args: tool.MakeArgs("abc", ""), wantResult: []string{"a", "b", "c"}},
@@ -73,11 +73,11 @@ func TestToolSplitString(t *testing.T) {
 func TestToolSplitWords(t *testing.T) {
 	interp, _ := llm.NewDefaultTestInterpreter(t)
 	tests := []struct {
-		name		string
-		toolName	string
-		args		[]interface{}
-		wantResult	interface{}
-		wantErrIs	error
+		name       string
+		toolName   string
+		args       []interface{}
+		wantResult interface{}
+		wantErrIs  error
 	}{
 		{name: "Simple_Words", toolName: "SplitWords", args: tool.MakeArgs("hello world"), wantResult: []string{"hello", "world"}},
 		{name: "Multiple_Spaces", toolName: "SplitWords", args: tool.MakeArgs("  hello \t world  \n next"), wantResult: []string{"hello", "world", "next"}},
@@ -92,11 +92,11 @@ func TestToolSplitWords(t *testing.T) {
 func TestToolJoinStrings(t *testing.T) {
 	interp, _ := llm.NewDefaultTestInterpreter(t)
 	tests := []struct {
-		name		string
-		toolName	string
-		args		[]interface{}
-		wantResult	interface{}
-		wantErrIs	error
+		name       string
+		toolName   string
+		args       []interface{}
+		wantResult interface{}
+		wantErrIs  error
 	}{
 		{name: "Join_Simple", toolName: "Join", args: tool.MakeArgs([]string{"a", "b", "c"}, ","), wantResult: "a,b,c"},
 		{name: "Join_Empty_Slice", toolName: "Join", args: tool.MakeArgs([]string{}, ","), wantResult: ""},

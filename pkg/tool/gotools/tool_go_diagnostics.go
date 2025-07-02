@@ -11,14 +11,15 @@ import (
 	"fmt"
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 	"golang.org/x/tools/imports"
 )
 
 // --- Tool Implementations for Go Diagnostic Commands ---
 
 // toolGoVet implementation
-func toolGoVet(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
-	vetTarget := "./..."	// Default target
+func toolGoVet(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
+	vetTarget := "./..." // Default target
 	if len(args) > 0 {
 		if targetArg, ok := args[0].(string); ok && targetArg != "" {
 			vetTarget = targetArg
@@ -30,8 +31,8 @@ func toolGoVet(interpreter *neurogo.Interpreter, args []interface{}) (interface{
 
 // toolStaticcheck implementation
 // NOTE: Assumes 'staticcheck' executable is available in the PATH.
-func toolStaticcheck(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
-	checkTarget := "./..."	// Default target
+func toolStaticcheck(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
+	checkTarget := "./..." // Default target
 	if len(args) > 0 {
 		if targetArg, ok := args[0].(string); ok && targetArg != "" {
 			checkTarget = targetArg
@@ -42,7 +43,7 @@ func toolStaticcheck(interpreter *neurogo.Interpreter, args []interface{}) (inte
 }
 
 // toolGoImports formats a Go source string and manages imports using golang.org/x/tools/imports.
-func toolGoImports(i *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolGoImports(i tool.RunTime, args []interface{}) (interface{}, error) {
 	errorResult := func(errMsg string) map[string]interface{} {
 		return map[string]interface{}{"success": false, "error": errMsg}
 	}
@@ -59,7 +60,7 @@ func toolGoImports(i *neurogo.Interpreter, args []interface{}) (interface{}, err
 	}
 
 	if source == "" {
-		return "", nil	// Nothing to format, success.
+		return "", nil // Nothing to format, success.
 	}
 
 	// Process imports and format the source code.

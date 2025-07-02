@@ -12,10 +12,11 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/tool"
+	"github.com/aprice2704/neuroscript/pkg/utils"
 )
 
 // toolChecklistFormatTree formats the checklist tree back into a string.
-func toolChecklistFormatTree(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolChecklistFormatTree(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	toolName := "ChecklistFormatTree"
 	logger := interpreter.Logger()
 	if len(args) != 1 {
@@ -50,7 +51,7 @@ func toolChecklistFormatTree(interpreter *neurogo.Interpreter, args []interface{
 
 // toolChecklistSetItemText updates the text value of a checklist item node
 // by calling the core Tree.SetValue tool.
-func toolChecklistSetItemText(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolChecklistSetItemText(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	toolName := "ChecklistSetItemText"
 	logger := interpreter.Logger()
 
@@ -115,7 +116,7 @@ func toolChecklistSetItemText(interpreter *neurogo.Interpreter, args []interface
 }
 
 // toolChecklistUpdateStatus triggers the recursive status update for the entire checklist tree.
-func toolChecklistUpdateStatus(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolChecklistUpdateStatus(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	toolName := "Checklist.UpdateStatus"
 	logger := interpreter.Logger()
 	if len(args) != 1 {
@@ -202,7 +203,7 @@ func updateAutomaticNodeStatus(tree *utils.GenericTree, nodeID string, logger in
 	// FIX: Safely assert status to a string, providing a default.
 	var currentStatus string
 	if statusVal, ok := node.Attributes["status"]; ok {
-		currentStatus, _ = statusVal.(string)	// Use blank identifier, default to "" if not a string
+		currentStatus, _ = statusVal.(string) // Use blank identifier, default to "" if not a string
 	}
 	if currentStatus == "" {
 		node.Attributes["status"] = "open"

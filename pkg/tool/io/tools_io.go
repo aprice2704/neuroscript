@@ -14,10 +14,11 @@ import (
 	"strings"
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
 // toolInput implements the Input tool.
-func toolInput(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolInput(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	prompt := ""
 	if len(args) > 0 {
 		if p, ok := args[0].(string); ok {
@@ -31,7 +32,7 @@ func toolInput(interpreter *neurogo.Interpreter, args []interface{}) (interface{
 
 	// Print prompt directly to stdout if provided
 	if prompt != "" {
-		fmt.Print(prompt)	// Use Print, not Println, so input is on the same line
+		fmt.Print(prompt) // Use Print, not Println, so input is on the same line
 	}
 
 	// Read input from standard input
@@ -49,12 +50,12 @@ func toolInput(interpreter *neurogo.Interpreter, args []interface{}) (interface{
 	// Trim trailing newline characters (\n or \r\n)
 	line = strings.TrimRight(line, "\r\n")
 
-	interpreter.Logger().Debug("Tool: Input read line successfully")	// Avoid logging the actual input content
+	interpreter.Logger().Debug("Tool: Input read line successfully") // Avoid logging the actual input content
 	return line, nil
 }
 
 // toolPrint implements the Print tool.
-func toolPrint(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolPrint(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	// The spec defines one arg "values" of type Any.
 	// This implementation will handle if that arg is a single value or a slice.
 	if len(args) != 1 {

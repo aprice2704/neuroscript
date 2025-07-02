@@ -3,16 +3,18 @@ package git
 
 import (
 	"fmt"
-	"regexp"	// Keep for file status regex if needed later, but branch parsing changed
+	"regexp" // Keep for file status regex if needed later, but branch parsing changed
 	"strconv"
 	"strings"
+
+	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
 // --- toolGitStatus Implementation ---
 
 // toolGitStatus implements the TOOL.GitStatus command.
 // It executes the git command and then calls parseGitStatusOutput for parsing.
-func toolGitStatus(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
+func toolGitStatus(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
 	// Validate arguments (expecting zero)
 	if len(args) != 0 {
 		return nil, fmt.Errorf("TOOL.GitStatus expects 0 arguments, got %d", len(args))
@@ -27,14 +29,14 @@ func toolGitStatus(interpreter *neurogo.Interpreter, args []interface{}) (interf
 	if err != nil {
 		// Initialize map structure even on error
 		resultMap := map[string]interface{}{
-			"branch":			interface{}(nil),
-			"remote_branch":		interface{}(nil),
-			"ahead":			int64(0),
-			"behind":			int64(0),
-			"files":			[]map[string]interface{}{},
-			"untracked_files_present":	false,
-			"is_clean":			false,	// Cannot determine status on error
-			"error":			interface{}(nil),
+			"branch":                  interface{}(nil),
+			"remote_branch":           interface{}(nil),
+			"ahead":                   int64(0),
+			"behind":                  int64(0),
+			"files":                   []map[string]interface{}{},
+			"untracked_files_present": false,
+			"is_clean":                false, // Cannot determine status on error
+			"error":                   interface{}(nil),
 		}
 		// Check common "not a repo" messages within the error string from toolExec
 		errStr := err.Error()
@@ -60,14 +62,14 @@ func toolGitStatus(interpreter *neurogo.Interpreter, args []interface{}) (interf
 		// Use existing map if partial parsing happened, otherwise create a default one
 		if resultMap == nil {
 			resultMap = map[string]interface{}{
-				"branch":			interface{}(nil),
-				"remote_branch":		interface{}(nil),
-				"ahead":			int64(0),
-				"behind":			int64(0),
-				"files":			[]map[string]interface{}{},
-				"untracked_files_present":	false,
-				"is_clean":			false,	// Cannot reliably determine cleanliness if parsing fails
-				"error":			interface{}(nil),
+				"branch":                  interface{}(nil),
+				"remote_branch":           interface{}(nil),
+				"ahead":                   int64(0),
+				"behind":                  int64(0),
+				"files":                   []map[string]interface{}{},
+				"untracked_files_present": false,
+				"is_clean":                false, // Cannot reliably determine cleanliness if parsing fails
+				"error":                   interface{}(nil),
 			}
 		}
 		resultMap["error"] = fmt.Sprintf("Error parsing git status output: %v", parseErr)
@@ -75,7 +77,7 @@ func toolGitStatus(interpreter *neurogo.Interpreter, args []interface{}) (interf
 	}
 
 	interpreter.logger.Debug("Tool: GitStatus] Result: %+v", resultMap)
-	return resultMap, nil	// Return the result map, no Go error if command itself succeeded
+	return resultMap, nil // Return the result map, no Go error if command itself succeeded
 }
 
 // --- Git Status Parsing Logic (REVISED) ---
@@ -88,28 +90,28 @@ var behindRegex = regexp.MustCompile(`behind (\d+)`)
 // It returns the structured map or a Go error if parsing fails fundamentally.
 func parseGitStatusOutput(output string) (map[string]interface{}, error) {
 	resultMap := map[string]interface{}{
-		"branch":			interface{}(nil),
-		"remote_branch":		interface{}(nil),
-		"ahead":			int64(0),
-		"behind":			int64(0),
-		"files":			[]map[string]interface{}{},
-		"untracked_files_present":	false,
-		"is_clean":			true,	// Assume clean initially
-		"error":			interface{}(nil),
+		"branch":                  interface{}(nil),
+		"remote_branch":           interface{}(nil),
+		"ahead":                   int64(0),
+		"behind":                  int64(0),
+		"files":                   []map[string]interface{}{},
+		"untracked_files_present": false,
+		"is_clean":                true, // Assume clean initially
+		"error":                   interface{}(nil),
 	}
 	filesList := []map[string]interface{}{}
 
 	trimmedOutput := strings.TrimSpace(output)
 	if trimmedOutput == "" {
-		return resultMap, nil	// Empty output means clean
+		return resultMap, nil // Empty output means clean
 	}
 	lines := strings.Split(trimmedOutput, "\n")
 
 	if len(lines) == 0 {
-		return resultMap, nil	// Should not happen, but be safe
+		return resultMap, nil // Should not happen, but be safe
 	}
 	branchLine := lines[0]
-	branchInfo := ""	// Part of the line containing branch/remote/ahead/behind info
+	branchInfo := "" // Part of the line containing branch/remote/ahead/behind info
 
 	// --- Parse Branch Line ---
 	if strings.HasPrefix(branchLine, "## ") {
@@ -131,8 +133,8 @@ func parseGitStatusOutput(output string) (map[string]interface{}, error) {
 			// Extract ahead/behind info first
 			if strings.Contains(branchInfo, " [") && strings.HasSuffix(branchInfo, "]") {
 				bracketStart := strings.LastIndex(branchInfo, " [")
-				aheadBehindPart = branchInfo[bracketStart+2 : len(branchInfo)-1]	// Content inside brackets
-				branchInfo = branchInfo[:bracketStart]					// Remaining part before brackets
+				aheadBehindPart = branchInfo[bracketStart+2 : len(branchInfo)-1] // Content inside brackets
+				branchInfo = branchInfo[:bracketStart]                           // Remaining part before brackets
 
 				aheadMatches := aheadRegex.FindStringSubmatch(aheadBehindPart)
 				if len(aheadMatches) > 1 {
@@ -153,7 +155,7 @@ func parseGitStatusOutput(output string) (map[string]interface{}, error) {
 				remotePart = parts[1]
 				resultMap["remote_branch"] = remotePart
 			} else {
-				localBranchPart = branchInfo	// No remote tracking info
+				localBranchPart = branchInfo // No remote tracking info
 			}
 			resultMap["branch"] = localBranchPart
 		}
@@ -164,10 +166,10 @@ func parseGitStatusOutput(output string) (map[string]interface{}, error) {
 
 	// --- Parse File Status Lines ---
 	untrackedFound := false
-	changesFound := false	// Tracks staged/unstaged changes to *tracked* files
-	if len(lines) > 1 {	// Process only if there are file lines
+	changesFound := false // Tracks staged/unstaged changes to *tracked* files
+	if len(lines) > 1 {   // Process only if there are file lines
 		for _, line := range lines[1:] {
-			line = strings.TrimSuffix(line, "\r")	// Handle potential CRLF
+			line = strings.TrimSuffix(line, "\r") // Handle potential CRLF
 			if len(line) < 4 || line == "" {
 				continue
 			}
@@ -216,19 +218,19 @@ func parseGitStatusOutput(output string) (map[string]interface{}, error) {
 			}
 
 			fileMap := map[string]interface{}{
-				"path":			path,
-				"index_status":		indexStatus,
-				"worktree_status":	worktreeStatus,
-				"original_path":	originalPath,
+				"path":            path,
+				"index_status":    indexStatus,
+				"worktree_status": worktreeStatus,
+				"original_path":   originalPath,
 			}
 			filesList = append(filesList, fileMap)
 		}
-	}	// End file loop
+	} // End file loop
 
 	resultMap["files"] = filesList
 	resultMap["untracked_files_present"] = untrackedFound
 	// --- FIX: Update is_clean logic ---
-	resultMap["is_clean"] = !changesFound && !untrackedFound	// Clean if no tracked changes AND no untracked files
+	resultMap["is_clean"] = !changesFound && !untrackedFound // Clean if no tracked changes AND no untracked files
 	// --- END FIX ---
 
 	// Return the map, nil Go error (parsing errors are in map["error"])

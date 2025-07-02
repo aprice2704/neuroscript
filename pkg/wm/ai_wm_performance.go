@@ -1,9 +1,9 @@
 // NeuroScript Version: 0.3.0
 // File version: 0.1.3
 // AI Worker Management: Performance Tracking and Persistence (Error and Type Conversion Corrected)
-// filename: pkg/core/ai_wm_performance.go
+// filename: pkg/wm/ai_wm_performance.go
 
-package core
+package wm
 
 import (
 	"encoding/json"
@@ -209,11 +209,11 @@ func (m *AIWorkerManager) matchesPerformanceRecordFilters(record *PerformanceRec
 				match = true
 			}
 		case "costincurred_gt", "cost_incurred_gt":
-			if costVal, ok := lang.toFloat64(expectedValue); ok && record.CostIncurred > costVal {
+			if costVal, ok := lang.ToFloat64(expectedValue); ok && record.CostIncurred > costVal {
 				match = true
 			}
 		case "costincurred_lt", "cost_incurred_lt":
-			if costVal, ok := lang.toFloat64(expectedValue); ok && record.CostIncurred < costVal {
+			if costVal, ok := lang.ToFloat64(expectedValue); ok && record.CostIncurred < costVal {
 				match = true
 			}
 		default:

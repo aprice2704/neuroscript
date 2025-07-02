@@ -16,13 +16,16 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/adapters"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
+	"github.com/aprice2704/neuroscript/pkg/interpreter"
+	"github.com/aprice2704/neuroscript/pkg/logging"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
 // App orchestrates the main application logic.
 type App struct {
 	Config       *Config
 	Log          interfaces.Logger
-	interpreter  *Interpreter
+	interpreter  tool.RunTime
 	llmClient    interfaces.LLMClient
 	agentCtx     *AgentContext
 	patchHandler *PatchHandler
@@ -44,12 +47,12 @@ type App struct {
 
 // In pkg/neurogo/app.go
 
-func (a *App) Interpreter() *rpreter { // Use the correct type for your interpreter
+func (a *App) Interpreter() interpreter.Interpreter { // Use the correct type for your interpreter
 	return a.interpreter
 }
 
 // SetInterpreter allows setting the interpreter after App creation.
-func (a *App) SetInterpreter(interp *rpreter) {
+func (a *App) SetInterpreter(interp tool.RunTime) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	a.interpreter = interp
@@ -231,7 +234,7 @@ func (a *App) runTuiMode(ctx context.Context) error {
 func (a *App) GetLogger() interfaces.Logger {
 	if a.Log == nil {
 		// This should ideally not happen if NewApp ensures logger is set.
-		return logging.NewNoLogger()
+		return logging.NewNoOpLogger()
 	}
 	return a.Log
 }
@@ -404,7 +407,7 @@ func (app *App) CreateLLMClient() (interfaces.LLMClient, error) {
 
 	loggerToUse := app.Log
 	if loggerToUse == nil { // Should be set by NewApp
-		loggerToUse = logging.NewNoLogger() // Safety fallback
+		loggerToUse = logging.NewNoOpLogger() // Safety fallback
 	}
 
 	llmClient, _ := LMClient(apiKey, modelName, loggerToUse)
