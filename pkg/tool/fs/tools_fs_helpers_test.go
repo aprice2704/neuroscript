@@ -16,14 +16,14 @@ type fsTestCase struct {
 	toolName	string
 	args		[]interface{}
 	setupFunc	func(sandboxRoot string) error
-	checkFunc	func(t *testing.T, interp *Interpreter, result interface{}, err error, setupCtx interface{})
+	checkFunc	func(t *testing.T, interp *neurogo.Interpreter, result interface{}, err error, setupCtx interface{})
 	wantResult	interface{}
 	wantContent	string	// New field to check file content
 	wantToolErrIs	error
 }
 
 // testFsToolHelper runs a single filesystem tool test case.
-func testFsToolHelper(t *testing.T, interp *Interpreter, tc fsTestCase) {
+func testFsToolHelper(t *testing.T, interp *neurogo.Interpreter, tc fsTestCase) {
 	t.Helper()
 
 	sandboxRoot := interp.SandboxDir()
@@ -87,7 +87,7 @@ func testFsToolHelper(t *testing.T, interp *Interpreter, tc fsTestCase) {
 }
 
 // testFsToolHelperWithCompare is a variant that uses a custom comparison function.
-func testFsToolHelperWithCompare(t *testing.T, interp *Interpreter, tc fsTestCase, compareFunc func(t *testing.T, tc fsTestCase, expected, actual interface{})) {
+func testFsToolHelperWithCompare(t *testing.T, interp *neurogo.Interpreter, tc fsTestCase, compareFunc func(t *testing.T, tc fsTestCase, expected, actual interface{})) {
 	t.Helper()
 
 	sandboxRoot := interp.SandboxDir()
@@ -147,9 +147,9 @@ func mustWriteFile(t *testing.T, filename string, content string) {
 }
 
 // NewTestInterpreterWithSandbox creates a test interpreter with a dedicated sandbox directory.
-func NewTestInterpreterWithSandbox(t *testing.T, sandboxDir string) *Interpreter {
+func NewTestInterpreterWithSandbox(t *testing.T, sandboxDir string) *neurogo.Interpreter {
 	t.Helper()
-	interp, _ := NewDefaultTestInterpreter(t)
+	interp, _ := llm.NewDefaultTestInterpreter(t)
 	err := interp.SetSandboxDir(sandboxDir)
 	if err != nil {
 		t.Fatalf("Failed to set sandbox dir in test helper: %v", err)

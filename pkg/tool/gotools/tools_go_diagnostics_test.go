@@ -32,7 +32,7 @@ func TestGoDiagnosticTools(t *testing.T) {
 	t.Run("GoVetInvocation", func(t *testing.T) {
 		// Setup interpreter with a temporary sandbox
 		// *** Fix: Correctly handle (*Interpreter, string) return (string is sandbox path) ***
-		interpreter, sandboxAbsPath := NewDefaultTestInterpreter(t)
+		interpreter, sandboxAbsPath := llm.NewDefaultTestInterpreter(t)
 		// No need to check sandboxAbsPath - NewDefaultTestInterpreter uses t.Fatalf on internal error
 		t.Logf("Test interpreter created with sandbox: %s", sandboxAbsPath)	// Log path (optional)
 		// The interpreter already has the sandbox set by NewDefaultTestInterpreter internally
@@ -45,7 +45,7 @@ func TestGoDiagnosticTools(t *testing.T) {
 
 		// --- Assertions ---
 		// 1. Check for Go-level errors from the tool function itself (toolErr)
-		AssertNoError(t, toolErr)	// This checks the 'error' from toolGoVet
+		testutil.AssertNoError(t, toolErr)	// This checks the 'error' from toolGoVet
 
 		// 2. Check if the result is a map with the expected keys
 		checkResultMapKeys(t, resultMap, "GoVet")
@@ -57,7 +57,7 @@ func TestGoDiagnosticTools(t *testing.T) {
 	t.Run("StaticcheckInvocation", func(t *testing.T) {
 		// Setup interpreter with a temporary sandbox
 		// *** Fix: Correctly handle (*Interpreter, string) return (string is sandbox path) ***
-		interpreter, sandboxAbsPath := NewDefaultTestInterpreter(t)
+		interpreter, sandboxAbsPath := llm.NewDefaultTestInterpreter(t)
 		// No need to check sandboxAbsPath - NewDefaultTestInterpreter uses t.Fatalf on internal error
 		t.Logf("Test interpreter created with sandbox: %s", sandboxAbsPath)	// Log path (optional)
 		// The interpreter already has the sandbox set by NewDefaultTestInterpreter internally
@@ -70,7 +70,7 @@ func TestGoDiagnosticTools(t *testing.T) {
 
 		// --- Assertions ---
 		// 1. Check for Go-level errors from the tool function itself (toolErr)
-		AssertNoError(t, toolErr)	// This checks the 'error' from toolStaticcheck
+		testutil.AssertNoError(t, toolErr)	// This checks the 'error' from toolStaticcheck
 
 		// 2. Check if the result is a map with the expected keys
 		checkResultMapKeys(t, resultMap, "Staticcheck")

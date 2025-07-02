@@ -4,8 +4,10 @@ package tool
 import (
 	"bytes"
 	"fmt"
-	"os/exec"	// Added regexp
+	"os/exec" // Added regexp
 	"strings"
+
+	"github.com/aprice2704/neuroscript/pkg/lang"
 )
 
 func MakeArgs(vals ...interface{}) []interface{} {
@@ -19,7 +21,7 @@ func MakeArgs(vals ...interface{}) []interface{} {
 // toolExec executes an external command and returns combined stdout/stderr as a string,
 // or an error if the command fails to run or exits non-zero.
 // This is intended as an *internal* helper for other tools like Git tools.
-func toolExec(interpreter *Interpreter, cmdAndArgs ...string) (string, error) {
+func toolExec(interpreter *neurogo.Interpreter, cmdAndArgs ...string) (string, error) {
 	if len(cmdAndArgs) == 0 {
 		return "", fmt.Errorf("toolExec requires at least a command")
 	}
@@ -33,7 +35,7 @@ func toolExec(interpreter *Interpreter, cmdAndArgs ...string) (string, error) {
 			interpreter.logger.Error("[toolExec] %s", errMsg)
 		}
 		// Return error message and a wrapped ErrInternalTool or a specific execution error
-		return errMsg, fmt.Errorf("%w: %s", ErrInternalTool, errMsg)
+		return errMsg, fmt.Errorf("%w: %s", lang.ErrInternalTool, errMsg)
 	}
 
 	if interpreter.logger != nil {
@@ -67,7 +69,7 @@ func toolExec(interpreter *Interpreter, cmdAndArgs ...string) (string, error) {
 			interpreter.logger.Error("[toolExec] %s", errMsg)
 		}
 		// Return the combined output along with the error
-		return combinedOutput, fmt.Errorf("%w: %s", ErrInternalTool, errMsg)
+		return combinedOutput, fmt.Errorf("%w: %s", lang.ErrInternalTool, errMsg)
 	}
 
 	// Command succeeded

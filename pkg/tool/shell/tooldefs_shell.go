@@ -7,19 +7,24 @@
 
 package shell
 
+import (
+	"github.com/aprice2704/neuroscript/pkg/parser"
+	"github.com/aprice2704/neuroscript/pkg/tool"
+)
+
 // shellToolsToRegister contains ToolImplementation definitions for Shell tools.
-var shellToolsToRegister = []ToolImplementation{
+var shellToolsToRegister = []tool.ToolImplementation{
 	{
-		Spec: ToolSpec{
+		Spec: tool.ToolSpec{
 			Name:		"Shell.Execute",
 			Description:	"Executes an arbitrary shell command. WARNING: Use with extreme caution due to security risks. Command path validation is basic. Consider using specific tools (e.g., GoBuild, GitAdd) instead.",
 			Category:	"Shell Operations",
-			Args: []ArgSpec{
-				{Name: "command", Type: ArgTypeString, Required: true, Description: "The command or executable path (must not contain path separators like '/' or '\\')."},
-				{Name: "args_list", Type: ArgTypeSliceString, Required: false, Description: "A list of string arguments for the command."},
-				{Name: "directory", Type: ArgTypeString, Required: false, Description: "Optional directory (relative to sandbox) to execute the command in. Defaults to sandbox root."},
+			Args: []tool.ArgSpec{
+				{Name: "command", Type: parser.ArgTypeString, Required: true, Description: "The command or executable path (must not contain path separators like '/' or '\\')."},
+				{Name: "args_list", Type: tool.ArgTypeSliceString, Required: false, Description: "A list of string arguments for the command."},
+				{Name: "directory", Type: parser.ArgTypeString, Required: false, Description: "Optional directory (relative to sandbox) to execute the command in. Defaults to sandbox root."},
 			},
-			ReturnType:	ArgTypeMap,	// Returns map {stdout, stderr, exit_code, success}
+			ReturnType:	parser.ArgTypeMap,	// Returns map {stdout, stderr, exit_code, success}
 			ReturnHelp:	"Returns a map containing 'stdout' (string), 'stderr' (string), 'exit_code' (int), and 'success' (bool) of the executed command. 'success' is true if the command exits with code 0, false otherwise. The command is executed within the sandboxed environment.",
 			Example:	`tool.Shell.Execute("ls", ["-la"], "my_directory")`,
 			ErrorConditions: "Returns `ErrArgumentMismatch` if an incorrect number of arguments is provided. " +

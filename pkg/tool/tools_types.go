@@ -66,7 +66,7 @@ func (at ArgType) ToGenaiType() (genai.Type, error) {
 }
 
 // ToolFunc is the signature for the Go function that implements a tool.
-type ToolFunc func(interpreter *Interpreter, args []interface{}) (interface{}, error)
+type ToolFunc func(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error)
 
 // ArgSpec defines the specification for a single tool argument.
 type ArgSpec struct {
@@ -109,5 +109,5 @@ type ToolRegistry interface {
 	ToolRegistrar								// Embeds RegisterTool(impl ToolImplementation) error
 	GetTool(name string) (ToolImplementation, bool)				// Returns the full implementation
 	ListTools() []ToolSpec							// Returns a list of specs
-	ExecuteTool(toolName string, args map[string]Value) (Value, error)	// <- must use value here
+	ExecuteTool(toolName string, args map[string]lang.lang.Value) (lang.lang.Value, error)	// <- must use value here
 }

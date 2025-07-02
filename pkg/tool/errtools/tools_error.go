@@ -7,10 +7,14 @@
 
 package errtools
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/aprice2704/neuroscript/pkg/lang"
+)
 
 // toolErrorNew implements the "Error.New" tool function.
-func toolErrorNew(i *Interpreter, args []interface{}) (interface{}, error) {
+func toolErrorNew(i *neurogo.Interpreter, args []interface{}) (interface{}, error) {
 	if len(args) != 2 {
 		return nil, fmt.Errorf("Error.New() expects 2 arguments (code, message), got %d", len(args))
 	}
@@ -21,19 +25,19 @@ func toolErrorNew(i *Interpreter, args []interface{}) (interface{}, error) {
 		return nil, fmt.Errorf("Error.New() expects a string for the 'message' argument, got %T", args[1])
 	}
 
-	var codeValue Value
-	if num, isNum := toFloat64(codeArg); isNum {
-		codeValue = NumberValue{Value: num}
+	var codeValue lang.Value
+	if num, isNum := lang.toFloat64(codeArg); isNum {
+		codeValue = lang.NumberValue{Value: num}
 	} else if str, isStr := codeArg.(string); isStr {
-		codeValue = StringValue{Value: str}
+		codeValue = lang.StringValue{Value: str}
 	} else {
 		return nil, fmt.Errorf("Error.New() expects a string or number for the 'code' argument, got %T", codeArg)
 	}
 
-	errorMap := map[string]Value{
+	errorMap := map[string]lang.Value{
 		"code":		codeValue,
-		"message":	StringValue{Value: messageArg},
+		"message":	lang.StringValue{Value: messageArg},
 	}
 
-	return ErrorValue{Value: errorMap}, nil
+	return lang.ErrorValue{Value: errorMap}, nil
 }

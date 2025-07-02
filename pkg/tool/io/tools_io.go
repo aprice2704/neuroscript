@@ -17,7 +17,7 @@ import (
 )
 
 // toolInput implements the Input tool.
-func toolInput(interpreter *Interpreter, args []interface{}) (interface{}, error) {
+func toolInput(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
 	prompt := ""
 	if len(args) > 0 {
 		if p, ok := args[0].(string); ok {
@@ -25,7 +25,7 @@ func toolInput(interpreter *Interpreter, args []interface{}) (interface{}, error
 		} else if args[0] != nil {
 			// Handle non-string, non-nil prompt argument if necessary, or error out
 			// For now, we only accept string prompts or nil.
-			return "", lang.NewRuntimeError(ErrorCodeType, fmt.Sprintf("Input: prompt argument must be a string or null, got %T", args[0]), ErrInvalidArgument)
+			return "", lang.NewRuntimeError(lang.ErrorCodeType, fmt.Sprintf("Input: prompt argument must be a string or null, got %T", args[0]), lang.ErrInvalidArgument)
 		}
 	}
 
@@ -43,7 +43,7 @@ func toolInput(interpreter *Interpreter, args []interface{}) (interface{}, error
 		// Or return a specific error if EOF or other issues are critical.
 		interpreter.Logger().Warn("Tool: Input read error", "error", err)
 		// Use ErrorCodeIOFailed for read errors
-		return "", lang.NewRuntimeError(ErrorCodeIOFailed, "failed to read input", errors.Join(ErrIOFailed, err))
+		return "", lang.NewRuntimeError(lang.ErrorCodeIOFailed, "failed to read input", errors.Join(lang.ErrIOFailed, err))
 	}
 
 	// Trim trailing newline characters (\n or \r\n)
@@ -54,12 +54,12 @@ func toolInput(interpreter *Interpreter, args []interface{}) (interface{}, error
 }
 
 // toolPrint implements the Print tool.
-func toolPrint(interpreter *Interpreter, args []interface{}) (interface{}, error) {
+func toolPrint(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
 	// The spec defines one arg "values" of type Any.
 	// This implementation will handle if that arg is a single value or a slice.
 	if len(args) != 1 {
 		// This shouldn't happen if argument validation works correctly based on the spec.
-		return nil, lang.NewRuntimeError(ErrorCodeArgMismatch, "Print: tool implementation expected exactly 1 argument ('values')", ErrArgumentMismatch)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "Print: tool implementation expected exactly 1 argument ('values')", lang.ErrArgumentMismatch)
 	}
 
 	valuesToPrint := []interface{}{}

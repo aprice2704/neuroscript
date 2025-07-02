@@ -12,22 +12,25 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+
+	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/parser"
 )
 
 func TestAnalyzeNSSyntaxInternal(t *testing.T) {
-	originalGrammarVersion := GrammarVersion
-	GrammarVersion = "test-grammar-v0.9.9"	// For predictable test output
-	defer func() { GrammarVersion = originalGrammarVersion }()
+	originalGrammarVersion := lang.GrammarVersion
+	lang.GrammarVersion = "test-grammar-v0.9.9"	// For predictable test output
+	defer func() { lang.GrammarVersion = originalGrammarVersion }()
 
-	testInterp, _ := NewDefaultTestInterpreter(t)
+	testInterp, _ := llm.NewDefaultTestInterpreter(t)
 
 	testCases := []struct {
 		name				string
-		interpreter			*Interpreter
+		interpreter			*neurogo.Interpreter
 		scriptContent			string
 		expectedTotalErrors		int
 		expectedReportedErrorsNum	int
-		expectedErrorsDetails		[]StructuredSyntaxError
+		expectedErrorsDetails		[]parser.StructuredSyntaxError
 		expectError			bool
 		expectedErrorIs			error
 		expectedSummaryPreamble		string
@@ -46,7 +49,7 @@ func TestAnalyzeNSSyntaxInternal(t *testing.T) {
 			scriptContent:			"func main means\n  set x = \nendfunc",
 			expectedTotalErrors:		1,
 			expectedReportedErrorsNum:	1,
-			expectedErrorsDetails: []StructuredSyntaxError{
+			expectedErrorsDetails: []parser.StructuredSyntaxError{
 				{Line: 2, Column: 10, Msg: "mismatched input '\\n' expecting", OffendingSymbol: ""},
 			},
 			expectError:	false,
@@ -57,7 +60,7 @@ func TestAnalyzeNSSyntaxInternal(t *testing.T) {
 			scriptContent:			"func main means\n  set x = \n  call \nendfunc",
 			expectedTotalErrors:		2,
 			expectedReportedErrorsNum:	2,
-			expectedErrorsDetails: []StructuredSyntaxError{
+			expectedErrorsDetails: []parser.StructuredSyntaxError{
 				{Line: 2, Column: 10, Msg: "mismatched input '\\n' expecting", OffendingSymbol: ""},
 				{Line: 3, Column: 7, Msg: "mismatched input '\\n' expecting", OffendingSymbol: ""},
 			},
@@ -76,7 +79,7 @@ func TestAnalyzeNSSyntaxInternal(t *testing.T) {
 			interpreter:		nil,
 			scriptContent:		"set x = 1",
 			expectError:		true,
-			expectedErrorIs:	ErrInvalidArgument,
+			expectedErrorIs:	lang.ErrInvalidArgument,
 		},
 		{
 			name:				"more than max errors - input yields 1 parser error for standalone set",
@@ -84,7 +87,7 @@ func TestAnalyzeNSSyntaxInternal(t *testing.T) {
 			scriptContent:			"set x = 1",	// Simplified from repeat, the error is the same.
 			expectedTotalErrors:		1,
 			expectedReportedErrorsNum:	1,
-			expectedErrorsDetails: []StructuredSyntaxError{
+			expectedErrorsDetails: []parser.StructuredSyntaxError{
 				// This check is now more robust. It verifies the core error ("mismatched input 'set'")
 				// without being brittle about the list of all possible expected tokens, which can
 				// change frequently with grammar updates.
@@ -100,7 +103,7 @@ func TestAnalyzeNSSyntaxInternal(t *testing.T) {
 endfunc`,
 			expectedTotalErrors:		1,
 			expectedReportedErrorsNum:	1,
-			expectedErrorsDetails: []StructuredSyntaxError{
+			expectedErrorsDetails: []parser.StructuredSyntaxError{
 				{Line: 2, Column: 6, Msg: "mismatched input 'if' expecting IDENTIFIER", OffendingSymbol: "if"},
 			},
 			expectError:	false,

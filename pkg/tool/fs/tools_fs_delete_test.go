@@ -6,11 +6,14 @@
 package fs
 
 import (
-	"errors"	// Keep errors
-	"fmt"		// Keep fmt
-	"os"		// Keep os
-	"path/filepath"	// Keep filepath
+	"errors"        // Keep errors
+	"fmt"           // Keep fmt
+	"os"            // Keep os
+	"path/filepath" // Keep filepath
 	"testing"
+
+	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
 func TestToolDeleteFile(t *testing.T) {
@@ -77,9 +80,9 @@ func TestToolDeleteFile(t *testing.T) {
 		{
 			name:		"Delete Existing File",
 			toolName:	"FS.Delete",
-			args:		MakeArgs(fileToDeleteRel),
+			args:		tool.MakeArgs(fileToDeleteRel),
 			setupFunc:	setupDeleteFileTest,
-			checkFunc: func(t *testing.T, interp *Interpreter, result interface{}, err error, setupCtx interface{}) {
+			checkFunc: func(t *testing.T, interp *neurogo.Interpreter, result interface{}, err error, setupCtx interface{}) {
 				if err != nil {
 					t.Fatalf("Unexpected error: %v", err)
 				}
@@ -92,9 +95,9 @@ func TestToolDeleteFile(t *testing.T) {
 		{
 			name:		"Delete Empty Directory",
 			toolName:	"FS.Delete",
-			args:		MakeArgs(dirToDeleteRel),
+			args:		tool.MakeArgs(dirToDeleteRel),
 			setupFunc:	setupDeleteFileTest,
-			checkFunc: func(t *testing.T, interp *Interpreter, result interface{}, err error, setupCtx interface{}) {
+			checkFunc: func(t *testing.T, interp *neurogo.Interpreter, result interface{}, err error, setupCtx interface{}) {
 				if err != nil {
 					t.Fatalf("Unexpected error: %v", err)
 				}
@@ -107,18 +110,18 @@ func TestToolDeleteFile(t *testing.T) {
 		{
 			name:		"Delete Non-Existent File",
 			toolName:	"FS.Delete",
-			args:		MakeArgs("noSuchFile.txt"),
+			args:		tool.MakeArgs("noSuchFile.txt"),
 			setupFunc:	setupDeleteFileTest,
 			wantResult:	"OK",
 		},
 		{
 			name:		"Delete Non-Empty Directory",
 			toolName:	"FS.Delete",
-			args:		MakeArgs(nonEmptyDirRel),
+			args:		tool.MakeArgs(nonEmptyDirRel),
 			setupFunc:	setupDeleteFileTest,
-			wantToolErrIs:	ErrCannotDelete,
-			checkFunc: func(t *testing.T, interp *Interpreter, result interface{}, err error, setupCtx interface{}) {
-				if !errors.Is(err, ErrCannotDelete) {
+			wantToolErrIs:	lang.ErrCannotDelete,
+			checkFunc: func(t *testing.T, interp *neurogo.Interpreter, result interface{}, err error, setupCtx interface{}) {
+				if !errors.Is(err, lang.ErrCannotDelete) {
 					t.Fatalf("Expected error ErrCannotDelete, got %v", err)
 				}
 				verifyDeletion(t, interp.SandboxDir(), nonEmptyDirRel, true)	// Verify it still exists
@@ -127,44 +130,44 @@ func TestToolDeleteFile(t *testing.T) {
 		{
 			name:		"Validation_Wrong_Arg_Type",
 			toolName:	"FS.Delete",
-			args:		MakeArgs(12345),
+			args:		tool.MakeArgs(12345),
 			setupFunc:	setupDeleteFileTest,
-			wantToolErrIs:	ErrInvalidArgument,
+			wantToolErrIs:	lang.ErrInvalidArgument,
 		},
 		{
 			name:		"Path_Outside_Sandbox",
 			toolName:	"FS.Delete",
-			args:		MakeArgs("../someFile"),
+			args:		tool.MakeArgs("../someFile"),
 			setupFunc:	setupDeleteFileTest,
-			wantToolErrIs:	ErrPathViolation,
+			wantToolErrIs:	lang.ErrPathViolation,
 		},
 		{
 			name:		"Validation_Missing_Arg",
 			toolName:	"FS.Delete",
-			args:		MakeArgs(),
+			args:		tool.MakeArgs(),
 			setupFunc:	setupDeleteFileTest,
-			wantToolErrIs:	ErrArgumentMismatch,
+			wantToolErrIs:	lang.ErrArgumentMismatch,
 		},
 		{
 			name:		"Validation_Nil_Arg",
 			toolName:	"FS.Delete",
-			args:		MakeArgs(nil),
+			args:		tool.MakeArgs(nil),
 			setupFunc:	setupDeleteFileTest,
-			wantToolErrIs:	ErrInvalidArgument,
+			wantToolErrIs:	lang.ErrInvalidArgument,
 		},
 		{
 			name:		"Validation_Empty_String_Arg",
 			toolName:	"FS.Delete",
-			args:		MakeArgs(""),
+			args:		tool.MakeArgs(""),
 			setupFunc:	setupDeleteFileTest,
-			wantToolErrIs:	ErrInvalidArgument,
+			wantToolErrIs:	lang.ErrInvalidArgument,
 		},
 	}
 
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			interp, _ := NewDefaultTestInterpreter(t)
+			interp, _ := llm.NewDefaultTestInterpreter(t)
 			testFsToolHelper(t, interp, tt)
 		})
 	}

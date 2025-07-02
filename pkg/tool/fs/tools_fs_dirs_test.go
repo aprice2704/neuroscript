@@ -11,25 +11,28 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
 // --- ListDirectory Tests ---
 
 func TestToolListDirectoryValidation(t *testing.T) {
-	testCases := []ValidationTestCase{
+	testCases := []testutil.ValidationTestCase{
 		{
 			Name:		"Correct_Args_(Path_Only)",
-			InputArgs:	MakeArgs("some/dir"),
-			ExpectedError:	ErrFileNotFound,
+			InputArgs:	tool.MakeArgs("some/dir"),
+			ExpectedError:	lang.ErrFileNotFound,
 		},
 		{
 			Name:		"Wrong_Arg_Count",
-			InputArgs:	MakeArgs("some/dir", true, "extra"),
-			ExpectedError:	ErrArgumentMismatch,
+			InputArgs:	tool.MakeArgs("some/dir", true, "extra"),
+			ExpectedError:	lang.ErrArgumentMismatch,
 		},
 	}
 
-	runValidationTestCases(t, "FS.List", testCases)
+	testutil.runValidationTestCases(t, "FS.List", testCases)
 }
 
 func TestToolListDirectoryFunctional(t *testing.T) {
@@ -53,10 +56,10 @@ func TestToolListDirectoryFunctional(t *testing.T) {
 		{
 			name:		"List_Root_NonRecursive",
 			toolName:	"FS.List",
-			args:		MakeArgs("."),
+			args:		tool.MakeArgs("."),
 			setupFunc:	setupFunc,
-			checkFunc: func(t *testing.T, interp *Interpreter, result interface{}, err error, ctx interface{}) {
-				AssertNoError(t, err)
+			checkFunc: func(t *testing.T, interp *neurogo.Interpreter, result interface{}, err error, ctx interface{}) {
+				testutil.AssertNoError(t, err)
 				res, ok := result.([]map[string]interface{})
 				if !ok {
 					t.Fatalf("Expected []map[string]interface{}, got %T", result)
@@ -69,15 +72,15 @@ func TestToolListDirectoryFunctional(t *testing.T) {
 		{
 			name:		"Error_PathIsFile",
 			toolName:	"FS.List",
-			args:		MakeArgs("file1.txt"),
+			args:		tool.MakeArgs("file1.txt"),
 			setupFunc:	setupFunc,
-			wantToolErrIs:	ErrPathNotDirectory,
+			wantToolErrIs:	lang.ErrPathNotDirectory,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			interp, err := NewDefaultTestInterpreter(t)
+			interp, err := llm.NewDefaultTestInterpreter(t)
 			if err != nil {
 				t.Fatalf("NewDefaultTestInterpreter failed: %v", err)
 			}
@@ -96,11 +99,11 @@ func TestToolListDirectoryFunctional(t *testing.T) {
 // --- Mkdir Tests ---
 
 func TestToolMkdirValidation(t *testing.T) {
-	testCases := []ValidationTestCase{
-		{Name: "Correct_Args", InputArgs: MakeArgs("new/dir"), ExpectedError: nil},
-		{Name: "Empty_Path", InputArgs: MakeArgs(""), ExpectedError: ErrInvalidArgument},
+	testCases := []testutil.ValidationTestCase{
+		{Name: "Correct_Args", InputArgs: tool.MakeArgs("new/dir"), ExpectedError: nil},
+		{Name: "Empty_Path", InputArgs: tool.MakeArgs(""), ExpectedError: lang.ErrInvalidArgument},
 	}
-	runValidationTestCases(t, "FS.Mkdir", testCases)
+	testutil.runValidationTestCases(t, "FS.Mkdir", testCases)
 }
 
 func TestToolMkdirFunctional(t *testing.T) {
@@ -121,10 +124,10 @@ func TestToolMkdirFunctional(t *testing.T) {
 		{
 			name:		"Create_Single_Dir",
 			toolName:	"FS.Mkdir",
-			args:		MakeArgs("new_dir_1"),
+			args:		tool.MakeArgs("new_dir_1"),
 			setupFunc:	setupFunc,
-			checkFunc: func(t *testing.T, interp *Interpreter, result interface{}, err error, ctx interface{}) {
-				AssertNoError(t, err)
+			checkFunc: func(t *testing.T, interp *neurogo.Interpreter, result interface{}, err error, ctx interface{}) {
+				testutil.AssertNoError(t, err)
 				if _, statErr := os.Stat(filepath.Join(interp.SandboxDir(), "new_dir_1")); os.IsNotExist(statErr) {
 					t.Error("Mkdir did not create the directory 'new_dir_1'")
 				}
@@ -133,16 +136,16 @@ func TestToolMkdirFunctional(t *testing.T) {
 		{
 			name:		"Error_PathIsFile",
 			toolName:	"FS.Mkdir",
-			args:		MakeArgs("existing_file"),
+			args:		tool.MakeArgs("existing_file"),
 			setupFunc:	setupFunc,
 			// FIX: The error returned is more specific than just 'path exists'. It's specifically not a directory.
-			wantToolErrIs:	ErrPathNotDirectory,
+			wantToolErrIs:	lang.ErrPathNotDirectory,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			interp, err := NewDefaultTestInterpreter(t)
+			interp, err := llm.NewDefaultTestInterpreter(t)
 			if err != nil {
 				t.Fatalf("NewDefaultTestInterpreter failed: %v", err)
 			}

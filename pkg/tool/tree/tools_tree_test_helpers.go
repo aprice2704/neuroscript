@@ -19,13 +19,13 @@ type treeTestCase struct {
 	name		string
 	toolName	string
 	args		[]interface{}
-	setupFunc	func(t *testing.T, interp *Interpreter) interface{}						// Returns a context, like a handle string
-	checkFunc	func(t *testing.T, interp *Interpreter, result interface{}, err error, setupCtx interface{})	// Custom check logic
+	setupFunc	func(t *testing.T, interp *neurogo.Interpreter) interface{}						// Returns a context, like a handle string
+	checkFunc	func(t *testing.T, interp *neurogo.Interpreter, result interface{}, err error, setupCtx interface{})	// Custom check logic
 	wantErr		error												// For simple error checks
 }
 
 // testTreeToolHelper runs a single tree tool test case.
-func testTreeToolHelper(t *testing.T, interp *Interpreter, tc treeTestCase) {
+func testTreeToolHelper(t *testing.T, interp *neurogo.Interpreter, tc treeTestCase) {
 	t.Helper()
 
 	t.Run(tc.name, func(t *testing.T) {
@@ -66,7 +66,7 @@ func testTreeToolHelper(t *testing.T, interp *Interpreter, tc treeTestCase) {
 }
 
 // setupTreeWithJSON is a helper to load a tree from a JSON string and return its handle.
-func setupTreeWithJSON(t *testing.T, interp *Interpreter, jsonStr string) string {
+func setupTreeWithJSON(t *testing.T, interp *neurogo.Interpreter, jsonStr string) string {
 	t.Helper()
 	loadTool, _ := interp.ToolRegistry().GetTool("Tree.LoadJSON")
 	handle, err := loadTool.Func(interp, []interface{}{jsonStr})
@@ -81,7 +81,7 @@ func setupTreeWithJSON(t *testing.T, interp *Interpreter, jsonStr string) string
 }
 
 // callGetNode is a helper to simplify getting node data within tests.
-func callGetNode(t *testing.T, interp *Interpreter, handle, nodeID string) (map[string]interface{}, error) {
+func callGetNode(t *testing.T, interp *neurogo.Interpreter, handle, nodeID string) (map[string]interface{}, error) {
 	t.Helper()
 	getTool, _ := interp.ToolRegistry().GetTool("Tree.GetNode")
 	result, err := getTool.Func(interp, []interface{}{handle, nodeID})
@@ -96,7 +96,7 @@ func callGetNode(t *testing.T, interp *Interpreter, handle, nodeID string) (map[
 }
 
 // callSetMetadata is a helper for setting metadata during test setups.
-func callSetMetadata(t *testing.T, interp *Interpreter, handle, nodeID, key, value string) error {
+func callSetMetadata(t *testing.T, interp *neurogo.Interpreter, handle, nodeID, key, value string) error {
 	t.Helper()
 	setTool, _ := interp.ToolRegistry().GetTool("Tree.SetNodeMetadata")
 	_, err := setTool.Func(interp, []interface{}{handle, nodeID, key, value})
@@ -104,7 +104,7 @@ func callSetMetadata(t *testing.T, interp *Interpreter, handle, nodeID, key, val
 }
 
 // callGetChildren is a helper to simplify getting child node IDs within tests.
-func callGetChildren(t *testing.T, interp *Interpreter, handle, nodeID string) ([]string, error) {
+func callGetChildren(t *testing.T, interp *neurogo.Interpreter, handle, nodeID string) ([]string, error) {
 	t.Helper()
 	getTool, _ := interp.ToolRegistry().GetTool("Tree.GetChildren")
 	result, err := getTool.Func(interp, []interface{}{handle, nodeID})

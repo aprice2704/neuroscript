@@ -17,10 +17,10 @@ import (
 )
 
 // runGitCommand executes a git command within a specific repository path inside the sandbox.
-func runGitCommand(interpreter *Interpreter, repoPath string, args ...string) (string, error) {
-	absRepoPath, err := SecureFilePath(repoPath, interpreter.SandboxDir())
+func runGitCommand(interpreter *neurogo.Interpreter, repoPath string, args ...string) (string, error) {
+	absRepoPath, err := security.SecureFilePath(repoPath, interpreter.SandboxDir())
 	if err != nil {
-		return "", lang.NewRuntimeError(ErrorCodePathViolation, fmt.Sprintf("invalid repository path '%s'", repoPath), err)
+		return "", lang.NewRuntimeError(lang.ErrorCodePathViolation, fmt.Sprintf("invalid repository path '%s'", repoPath), err)
 	}
 
 	cmd := exec.Command("git", args...)
@@ -41,7 +41,7 @@ func runGitCommand(interpreter *Interpreter, repoPath string, args ...string) (s
 }
 
 // getCurrentGitBranch determines the current branch name.
-func getCurrentGitBranch(interpreter *Interpreter, repoPath string) (string, error) {
+func getCurrentGitBranch(interpreter *neurogo.Interpreter, repoPath string) (string, error) {
 	output, err := runGitCommand(interpreter, repoPath, "symbolic-ref", "--short", "HEAD")
 	if err != nil {
 		stderrLower := strings.ToLower(err.Error())
@@ -57,24 +57,24 @@ func getCurrentGitBranch(interpreter *Interpreter, repoPath string) (string, err
 	return output, nil
 }
 
-func toolGitAdd(interpreter *Interpreter, args []interface{}) (interface{}, error) {
+func toolGitAdd(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
 	if len(args) != 2 {
-		return nil, fmt.Errorf("%w: GitAdd requires a repo path and a list of paths to add", ErrInvalidArgument)
+		return nil, fmt.Errorf("%w: GitAdd requires a repo path and a list of paths to add", lang.ErrInvalidArgument)
 	}
 	repoPath, ok := args[0].(string)
 	if !ok {
-		return nil, fmt.Errorf("%w: expected repo path as first argument, got %T", ErrInvalidArgument, args[0])
+		return nil, fmt.Errorf("%w: expected repo path as first argument, got %T", lang.ErrInvalidArgument, args[0])
 	}
 	pathsRaw, ok := args[1].([]interface{})
 	if !ok {
-		return nil, fmt.Errorf("%w: GitAdd requires a list of paths as its second argument, got %T", ErrInvalidArgument, args[1])
+		return nil, fmt.Errorf("%w: GitAdd requires a list of paths as its second argument, got %T", lang.ErrInvalidArgument, args[1])
 	}
 
 	var paths []string
 	for _, pathRaw := range pathsRaw {
 		pathStr, ok := pathRaw.(string)
 		if !ok {
-			return nil, fmt.Errorf("%w: GitAdd path list contained non-string element: %T", ErrInvalidArgument, pathRaw)
+			return nil, fmt.Errorf("%w: GitAdd path list contained non-string element: %T", lang.ErrInvalidArgument, pathRaw)
 		}
 		paths = append(paths, pathStr)
 	}
@@ -89,24 +89,24 @@ func toolGitAdd(interpreter *Interpreter, args []interface{}) (interface{}, erro
 	return fmt.Sprintf("GitAdd successful for paths: %v.\nOutput:\n%s", paths, output), nil
 }
 
-func toolGitCommit(interpreter *Interpreter, args []interface{}) (interface{}, error) {
+func toolGitCommit(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
 	if len(args) < 2 || len(args) > 3 {
-		return nil, fmt.Errorf("%w: Git.Commit requires 2 or 3 arguments (repoPath, message, [add_all])", ErrInvalidArgument)
+		return nil, fmt.Errorf("%w: Git.Commit requires 2 or 3 arguments (repoPath, message, [add_all])", lang.ErrInvalidArgument)
 	}
 	repoPath, ok := args[0].(string)
 	if !ok {
-		return nil, fmt.Errorf("%w: expected repo path as first argument, got %T", ErrInvalidArgument, args[0])
+		return nil, fmt.Errorf("%w: expected repo path as first argument, got %T", lang.ErrInvalidArgument, args[0])
 	}
 	message, okM := args[1].(string)
 	if !okM || message == "" {
-		return nil, fmt.Errorf("%w: invalid type or empty value for 'message', expected non-empty string", ErrInvalidArgument)
+		return nil, fmt.Errorf("%w: invalid type or empty value for 'message', expected non-empty string", lang.ErrInvalidArgument)
 	}
 	addAll := false
 	if len(args) == 3 {
 		if args[2] != nil {
 			addAllOpt, okA := args[2].(bool)
 			if !okA {
-				return nil, fmt.Errorf("%w: invalid type for 'add_all', expected boolean or nil", ErrInvalidArgument)
+				return nil, fmt.Errorf("%w: invalid type for 'add_all', expected boolean or nil", lang.ErrInvalidArgument)
 			}
 			addAll = addAllOpt
 		}
@@ -132,13 +132,13 @@ func toolGitCommit(interpreter *Interpreter, args []interface{}) (interface{}, e
 	return fmt.Sprintf("GitCommit successful. Message: %q.\nOutput:\n%s", message, output), nil
 }
 
-func toolGitBranch(interpreter *Interpreter, args []interface{}) (interface{}, error) {
+func toolGitBranch(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
 	if len(args) == 0 {
-		return nil, fmt.Errorf("%w: Git.Branch requires at least a repository path", ErrInvalidArgument)
+		return nil, fmt.Errorf("%w: Git.Branch requires at least a repository path", lang.ErrInvalidArgument)
 	}
 	repoPath, ok := args[0].(string)
 	if !ok {
-		return nil, fmt.Errorf("%w: expected repo path as first argument, got %T", ErrInvalidArgument, args[0])
+		return nil, fmt.Errorf("%w: expected repo path as first argument, got %T", lang.ErrInvalidArgument, args[0])
 	}
 	opArgs := args[1:]
 
@@ -152,7 +152,7 @@ func toolGitBranch(interpreter *Interpreter, args []interface{}) (interface{}, e
 		if n, ok := branchNameOpt.(string); ok {
 			name = n
 		} else {
-			return nil, fmt.Errorf("%w: invalid type for 'name', expected string or nil, got %T", ErrInvalidArgument, branchNameOpt)
+			return nil, fmt.Errorf("%w: invalid type for 'name', expected string or nil, got %T", lang.ErrInvalidArgument, branchNameOpt)
 		}
 	}
 

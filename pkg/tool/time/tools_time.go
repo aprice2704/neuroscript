@@ -18,14 +18,14 @@ import (
 //
 // ================================================================================
 
-func adaptToolTimeNow(interp *Interpreter, args []interface{}) (interface{}, error) {
+func adaptToolTimeNow(interp *neurogo.Interpreter, args []interface{}) (interface{}, error) {
 	if err := validateTimeNow(args); err != nil {
 		return nil, err
 	}
 	return implTimeNow()
 }
 
-func adaptToolTimeSleep(interp *Interpreter, args []interface{}) (interface{}, error) {
+func adaptToolTimeSleep(interp *neurogo.Interpreter, args []interface{}) (interface{}, error) {
 	if err := validateTimeSleep(args); err != nil {
 		return nil, err
 	}

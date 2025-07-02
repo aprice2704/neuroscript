@@ -10,19 +10,19 @@ package fileapi
 import "github.com/aprice2704/neuroscript/pkg/lang"
 
 // toolListAPIFiles is a stub implementation for the ListAPIFiles tool.
-func toolListAPIFiles(interpreter *Interpreter, args []interface{}) (interface{}, error) {
+func toolListAPIFiles(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
 	interpreter.Logger().Error("TOOL ListAPIFiles NOT IMPLEMENTED")
-	return nil, lang.NewRuntimeError(ErrorCodeFeatureNotImplemented, "Tool 'ListAPIFiles' is not yet implemented.", ErrFeatureNotImplemented)
+	return nil, lang.NewRuntimeError(lang.ErrorCodeFeatureNotImplemented, "Tool 'ListAPIFiles' is not yet implemented.", lang.ErrFeatureNotImplemented)
 }
 
 // toolDeleteAPIFile is a stub implementation for the DeleteAPIFile tool.
-func toolDeleteAPIFile(interpreter *Interpreter, args []interface{}) (interface{}, error) {
+func toolDeleteAPIFile(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
 	interpreter.Logger().Error("TOOL DeleteAPIFile NOT IMPLEMENTED")
-	return nil, lang.NewRuntimeError(ErrorCodeFeatureNotImplemented, "Tool 'DeleteAPIFile' is not yet implemented.", ErrFeatureNotImplemented)
+	return nil, lang.NewRuntimeError(lang.ErrorCodeFeatureNotImplemented, "Tool 'DeleteAPIFile' is not yet implemented.", lang.ErrFeatureNotImplemented)
 }
 
 // toolUploadFile is a stub implementation for the UploadFile tool.
-func toolUploadFile(interpreter *Interpreter, args []interface{}) (interface{}, error) {
+func toolUploadFile(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
 	interpreter.Logger().Error("TOOL UploadFile NOT IMPLEMENTED")
-	return nil, lang.NewRuntimeError(ErrorCodeFeatureNotImplemented, "Tool 'UploadFile' is not yet implemented.", ErrFeatureNotImplemented)
+	return nil, lang.NewRuntimeError(lang.ErrorCodeFeatureNotImplemented, "Tool 'UploadFile' is not yet implemented.", lang.ErrFeatureNotImplemented)
 }

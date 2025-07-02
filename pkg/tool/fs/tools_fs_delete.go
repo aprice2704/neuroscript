@@ -9,32 +9,32 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"strings"	// Keep for "directory not empty" check if needed, though errors.Is might be better if a specific error exists.
+	"strings" // Keep for "directory not empty" check if needed, though errors.Is might be better if a specific error exists.
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
 )
 
 // toolDeleteFile implements the TOOL.DeleteFile command.
 // It deletes a file or an *empty* directory.
-func toolDeleteFile(interpreter *Interpreter, args []interface{}) (interface{}, error) {
+func toolDeleteFile(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
 	if len(args) != 1 {
-		return nil, lang.NewRuntimeError(ErrorCodeArgMismatch, fmt.Sprintf("DeleteFile: expected 1 argument (path), got %d", len(args)), ErrArgumentMismatch)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("DeleteFile: expected 1 argument (path), got %d", len(args)), lang.ErrArgumentMismatch)
 	}
 	relPath, ok := args[0].(string)
 	if !ok {
-		return nil, lang.NewRuntimeError(ErrorCodeType, fmt.Sprintf("DeleteFile: path argument must be a string, got %T", args[0]), ErrInvalidArgument)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeType, fmt.Sprintf("DeleteFile: path argument must be a string, got %T", args[0]), lang.ErrInvalidArgument)
 	}
 	if relPath == "" {
-		return nil, lang.NewRuntimeError(ErrorCodeArgMismatch, "DeleteFile: path cannot be empty", ErrInvalidArgument)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "DeleteFile: path cannot be empty", lang.ErrInvalidArgument)
 	}
 
 	sandboxRoot := interpreter.SandboxDir()
 	if sandboxRoot == "" {
 		interpreter.Logger().Error("Tool: DeleteFile] Interpreter sandboxDir is empty, cannot proceed.")
-		return nil, lang.NewRuntimeError(ErrorCodeConfiguration, "DeleteFile: interpreter sandbox directory is not set", ErrConfiguration)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeConfiguration, "DeleteFile: interpreter sandbox directory is not set", lang.ErrConfiguration)
 	}
 
-	absPath, secErr := SecureFilePath(relPath, sandboxRoot)
+	absPath, secErr := security.SecureFilePath(relPath, sandboxRoot)
 	if secErr != nil {
 		interpreter.Logger().Infof("Tool: DeleteFile] Path security error for %q: %v (Sandbox Root: %s)", relPath, secErr, sandboxRoot)
 		return nil, secErr	// SecureFilePath returns RuntimeError
@@ -67,16 +67,16 @@ func toolDeleteFile(interpreter *Interpreter, args []interface{}) (interface{}, 
 
 		if isDirNotEmptyErr {
 			// Use ErrorCodePreconditionFailed for "directory not empty"
-			return nil, lang.NewRuntimeError(ErrorCodePreconditionFailed, errMsg+": directory not empty", errors.Join(ErrCannotDelete, err))
+			return nil, lang.NewRuntimeError(lang.ErrorCodePreconditionFailed, errMsg+": directory not empty", errors.Join(lang.ErrCannotDelete, err))
 		}
 
 		// Check for permission errors specifically
 		if errors.Is(err, os.ErrPermission) {
-			return nil, lang.NewRuntimeError(ErrorCodePermissionDenied, errMsg, ErrPermissionDenied)
+			return nil, lang.NewRuntimeError(lang.ErrorCodePermissionDenied, errMsg, lang.ErrPermissionDenied)
 		}
 
 		// For other errors, use ErrorCodeIOFailed
-		return nil, lang.NewRuntimeError(ErrorCodeIOFailed, errMsg, errors.Join(ErrIOFailed, err))
+		return nil, lang.NewRuntimeError(lang.ErrorCodeIOFailed, errMsg, errors.Join(lang.ErrIOFailed, err))
 	}
 
 	successMsg := fmt.Sprintf("Successfully deleted: %s", relPath)

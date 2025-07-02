@@ -7,21 +7,26 @@
 
 package io
 
+import (
+	"github.com/aprice2704/neuroscript/pkg/parser"
+	"github.com/aprice2704/neuroscript/pkg/tool"
+)
+
 // ioToolsToRegister contains ToolImplementation definitions for basic I/O tools.
 // Based on the provided pkg/core/tools_io.go.
-var ioToolsToRegister = []ToolImplementation{
+var ioToolsToRegister = []tool.ToolImplementation{
 	{
-		Spec: ToolSpec{
+		Spec: tool.ToolSpec{
 			Name:		"Print",
 			Description:	"Prints values to the standard output. If multiple values are passed in a list, they are printed space-separated.",
 			Category:	"Input/Output",
-			Args: []ArgSpec{
+			Args: []tool.ArgSpec{
 				// The toolPrint implementation takes a single arg, which can be a slice.
 				// The NeuroScript 'Print' tool can be variadic, and the interpreter
 				// would typically package these into a slice for the 'values' argument.
-				{Name: "values", Type: ArgTypeAny, Required: true, Description: "A single value or a list of values to print. List elements will be space-separated."},
+				{Name: "values", Type: parser.ArgTypeAny, Required: true, Description: "A single value or a list of values to print. List elements will be space-separated."},
 			},
-			ReturnType:		ArgTypeNil,
+			ReturnType:		tool.ArgTypeNil,
 			Variadic:		true,	// NeuroScript engine should pack variadic arguments into the 'values' slice.
 			ReturnHelp:		"Returns nil. This tool is used for its side effect of printing to standard output.",
 			Example:		`TOOL.Print(value: "Hello World")\nTOOL.Print(values: ["Hello", 42, "World!"]) // Prints "Hello 42 World!"`,
@@ -30,14 +35,14 @@ var ioToolsToRegister = []ToolImplementation{
 		Func:	toolPrint,	//
 	},
 	{
-		Spec: ToolSpec{
+		Spec: tool.ToolSpec{
 			Name:		"Input",	// Changed from "Prompt" to "Input"
 			Description:	"Displays a message and waits for user input from standard input. Returns the input as a string.",
 			Category:	"Input/Output",
-			Args: []ArgSpec{
-				{Name: "message", Type: ArgTypeString, Required: false, Description: "The message to display to the user before waiting for input. If null or empty, no prompt message is printed."},
+			Args: []tool.ArgSpec{
+				{Name: "message", Type: parser.ArgTypeString, Required: false, Description: "The message to display to the user before waiting for input. If null or empty, no prompt message is printed."},
 			},
-			ReturnType:		ArgTypeString,
+			ReturnType:		parser.ArgTypeString,
 			ReturnHelp:		"Returns the string entered by the user, with trailing newline characters trimmed. Returns an empty string and an error if reading input fails.",
 			Example:		`userName = TOOL.Input(message: "Enter your name: ")`,	// Updated example to use TOOL.Input
 			ErrorConditions:	"ErrorCodeType if the prompt message argument is provided but not a string; ErrorCodeIOFailed if reading from standard input fails (e.g., EOF).",

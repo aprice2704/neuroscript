@@ -7,16 +7,21 @@
 
 package errtools
 
+import (
+	"github.com/aprice2704/neuroscript/pkg/parser"
+	"github.com/aprice2704/neuroscript/pkg/tool"
+)
+
 // errorToolsToRegister contains the ToolImplementation definitions for Error tools.
-var errorToolsToRegister = []ToolImplementation{
+var errorToolsToRegister = []tool.ToolImplementation{
 	{
-		Spec: ToolSpec{
+		Spec: tool.ToolSpec{
 			Name:		"Error.New",
 			Description:	"Constructs a standard NeuroScript error value map.",
 			Category:	"Error Handling",
-			Args: []ArgSpec{
-				{Name: "code", Type: ArgTypeAny, Required: true, Description: "A string or integer error code."},
-				{Name: "message", Type: ArgTypeString, Required: true, Description: "A human-readable error message."},
+			Args: []tool.ArgSpec{
+				{Name: "code", Type: parser.ArgTypeAny, Required: true, Description: "A string or integer error code."},
+				{Name: "message", Type: parser.ArgTypeString, Required: true, Description: "A human-readable error message."},
 			},
 			ReturnType:		"error",
 			ReturnHelp:		"Returns an 'error' type value, which is a map containing 'code' and 'message'.",

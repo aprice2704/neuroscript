@@ -9,15 +9,17 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/aprice2704/neuroscript/pkg/lang"
 )
 
 // readFileContent reads the entire content of a file specified by path.
 // It respects the interpreter's sandbox.
-func readFileContent(interp *Interpreter, path string) (string, error) {
+func readFileContent(interp *neurogo.Interpreter, path string) (string, error) {
 	// Use FileAPI getter method for sandboxed access
 	absPath, err := interp.FileAPI().ResolvePath(path)	// <<< USE GETTER
 	if err != nil {
-		if errors.Is(err, ErrPathViolation) {
+		if errors.Is(err, lang.ErrPathViolation) {
 			return "", err
 		}
 		return "", fmt.Errorf("failed to resolve path '%s': %w", path, err)
@@ -27,7 +29,7 @@ func readFileContent(interp *Interpreter, path string) (string, error) {
 	contentBytes, err := os.ReadFile(absPath)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			return "", fmt.Errorf("%w: file not found at '%s'", ErrFileNotFound, path)
+			return "", fmt.Errorf("%w: file not found at '%s'", lang.ErrFileNotFound, path)
 		}
 		return "", fmt.Errorf("failed to read file '%s': %w", absPath, err)
 	}
@@ -36,11 +38,11 @@ func readFileContent(interp *Interpreter, path string) (string, error) {
 
 // writeFileContent writes content to a file specified by path.
 // It respects the interpreter's sandbox.
-func writeFileContent(interp *Interpreter, path string, content string) error {
+func writeFileContent(interp *neurogo.Interpreter, path string, content string) error {
 	// Use FileAPI getter method for sandboxed access
 	absPath, err := interp.FileAPI().ResolvePath(path)	// <<< USE GETTER
 	if err != nil {
-		if errors.Is(err, ErrPathViolation) {
+		if errors.Is(err, lang.ErrPathViolation) {
 			return err
 		}
 		return fmt.Errorf("failed to resolve path '%s': %w", path, err)
@@ -65,11 +67,11 @@ func writeFileContent(interp *Interpreter, path string, content string) error {
 
 // embedFileContent generates embeddings for the file content.
 // It respects the interpreter's sandbox and uses the configured LLM client.
-func embedFileContent(ctx context.Context, interp *Interpreter, path string) ([]float32, error) {
+func embedFileContent(ctx context.Context, interp *neurogo.Interpreter, path string) ([]float32, error) {
 	interp.Logger().Debug("Requesting embedding for file", "path", path)	// Use getter
 
 	if interp.llmClient == nil {
-		return nil, ErrLLMNotConfigured
+		return nil, lang.ErrLLMNotConfigured
 	}
 
 	content, err := readFileContent(interp, path)
@@ -79,7 +81,7 @@ func embedFileContent(ctx context.Context, interp *Interpreter, path string) ([]
 
 	embeddings, err := interp.llmClient.Embed(ctx, content)
 	if err != nil {
-		return nil, fmt.Errorf("%w: generating embeddings for file '%s': %w", ErrLLMError, path, err)
+		return nil, fmt.Errorf("%w: generating embeddings for file '%s': %w", lang.ErrLLMError, path, err)
 	}
 
 	interp.Logger().Debug("Embedding generated successfully", "path", path, "vector_length", len(embeddings))	// Use getter
@@ -88,11 +90,11 @@ func embedFileContent(ctx context.Context, interp *Interpreter, path string) ([]
 
 // findFiles walks the directory tree starting from startPath within the sandbox
 // and returns a list of absolute file paths matching the criteria.
-func findFiles(interp *Interpreter, startPath string) ([]string, error) {
+func findFiles(interp *neurogo.Interpreter, startPath string) ([]string, error) {
 	// Use FileAPI getter method
 	absStartPath, err := interp.FileAPI().ResolvePath(startPath)	// <<< USE GETTER
 	if err != nil {
-		if errors.Is(err, ErrPathViolation) {
+		if errors.Is(err, lang.ErrPathViolation) {
 			return nil, err
 		}
 		return nil, fmt.Errorf("failed to resolve start path '%s': %w", startPath, err)
@@ -127,11 +129,11 @@ func findFiles(interp *Interpreter, startPath string) ([]string, error) {
 
 // scanFileLines reads a file line by line and applies a callback function.
 // Stops if the callback returns false. Respects the sandbox.
-func scanFileLines(interp *Interpreter, path string, callback func(line string) bool) error {
+func scanFileLines(interp *neurogo.Interpreter, path string, callback func(line string) bool) error {
 	// Use FileAPI getter method
 	absPath, err := interp.FileAPI().ResolvePath(path)	// <<< USE GETTER
 	if err != nil {
-		if errors.Is(err, ErrPathViolation) {
+		if errors.Is(err, lang.ErrPathViolation) {
 			return err
 		}
 		return fmt.Errorf("failed to resolve path '%s': %w", path, err)
@@ -140,7 +142,7 @@ func scanFileLines(interp *Interpreter, path string, callback func(line string) 
 	file, err := os.Open(absPath)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			return fmt.Errorf("%w: %w", ErrFileNotFound, err)
+			return fmt.Errorf("%w: %w", lang.ErrFileNotFound, err)
 		}
 		return fmt.Errorf("failed to open file '%s' for scanning: %w", absPath, err)
 	}

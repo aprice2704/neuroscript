@@ -11,21 +11,24 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
 // --- MoveFile Validation Tests ---
 func TestToolMoveFileValidation(t *testing.T) {
-	testCases := []ValidationTestCase{
-		{Name: "Wrong_Arg_Count_(None)", InputArgs: MakeArgs(), ExpectedError: ErrArgumentMismatch},
-		{Name: "Wrong_Arg_Count_(One)", InputArgs: MakeArgs("src"), ExpectedError: ErrArgumentMismatch},
-		{Name: "Wrong_Arg_Count_(Three)", InputArgs: MakeArgs("src", "dest", "extra"), ExpectedError: ErrArgumentMismatch},
-		{Name: "Nil_First_Arg", InputArgs: MakeArgs(nil, "dest"), ExpectedError: ErrInvalidArgument},
-		{Name: "Nil_Second_Arg", InputArgs: MakeArgs("src", nil), ExpectedError: ErrInvalidArgument},
-		{Name: "Wrong_First_Arg_Type", InputArgs: MakeArgs(123, "dest"), ExpectedError: ErrInvalidArgument},
-		{Name: "Wrong_Second_Arg_Type", InputArgs: MakeArgs("src", 456), ExpectedError: ErrInvalidArgument},
+	testCases := []testutil.ValidationTestCase{
+		{Name: "Wrong_Arg_Count_(None)", InputArgs: tool.MakeArgs(), ExpectedError: lang.ErrArgumentMismatch},
+		{Name: "Wrong_Arg_Count_(One)", InputArgs: tool.MakeArgs("src"), ExpectedError: lang.ErrArgumentMismatch},
+		{Name: "Wrong_Arg_Count_(Three)", InputArgs: tool.MakeArgs("src", "dest", "extra"), ExpectedError: lang.ErrArgumentMismatch},
+		{Name: "Nil_First_Arg", InputArgs: tool.MakeArgs(nil, "dest"), ExpectedError: lang.ErrInvalidArgument},
+		{Name: "Nil_Second_Arg", InputArgs: tool.MakeArgs("src", nil), ExpectedError: lang.ErrInvalidArgument},
+		{Name: "Wrong_First_Arg_Type", InputArgs: tool.MakeArgs(123, "dest"), ExpectedError: lang.ErrInvalidArgument},
+		{Name: "Wrong_Second_Arg_Type", InputArgs: tool.MakeArgs("src", 456), ExpectedError: lang.ErrInvalidArgument},
 		// The "Correct_Args" case was moved to functional tests because it requires file system state.
 	}
-	runValidationTestCases(t, "FS.Move", testCases)
+	testutil.runValidationTestCases(t, "FS.Move", testCases)
 }
 
 // --- MoveFile Functional Tests ---
@@ -109,7 +112,7 @@ func TestToolMoveFileFunctional(t *testing.T) {
 			name:		"Fail: Source does not exist",
 			sourcePath:	"nonexistent_source.txt",
 			destPath:	"any_dest.txt",
-			wantErrIs:	ErrFileNotFound,
+			wantErrIs:	lang.ErrFileNotFound,
 			checkFunc: func(t *testing.T) {
 				if _, err := os.Stat(filepath.Join(sandboxDir, "any_dest.txt")); !errors.Is(err, os.ErrNotExist) {
 					t.Errorf("Destination file should not exist when source is missing")
@@ -124,7 +127,7 @@ func TestToolMoveFileFunctional(t *testing.T) {
 			},
 			sourcePath:	"src_exists.txt",
 			destPath:	"dest_exists.txt",
-			wantErrIs:	ErrPathExists,
+			wantErrIs:	lang.ErrPathExists,
 			checkFunc: func(t *testing.T) {
 				if _, err := os.Stat(filepath.Join(sandboxDir, "src_exists.txt")); err != nil {
 					t.Errorf("Source file should still exist when destination exists")
@@ -135,13 +138,13 @@ func TestToolMoveFileFunctional(t *testing.T) {
 			name:		"Fail: Path outside sandbox (Source)",
 			sourcePath:	"../outside_src.txt",
 			destPath:	"dest.txt",
-			wantErrIs:	ErrPathViolation,
+			wantErrIs:	lang.ErrPathViolation,
 		},
 		{
 			name:		"Fail: Path outside sandbox (Destination)",
 			sourcePath:	createTestFile("valid_src.txt", "content5"),
 			destPath:	"../outside_dest.txt",
-			wantErrIs:	ErrPathViolation,
+			wantErrIs:	lang.ErrPathViolation,
 			checkFunc: func(t *testing.T) {
 				if _, err := os.Stat(filepath.Join(sandboxDir, "valid_src.txt")); err != nil {
 					t.Errorf("Source file should still exist when destination is invalid")
@@ -152,13 +155,13 @@ func TestToolMoveFileFunctional(t *testing.T) {
 			name:		"Fail: Empty Source Path",
 			sourcePath:	"",
 			destPath:	"some_dest.txt",
-			wantErrIs:	ErrInvalidArgument,
+			wantErrIs:	lang.ErrInvalidArgument,
 		},
 		{
 			name:		"Fail: Empty Destination Path",
 			sourcePath:	createTestFile("another_valid_src.txt", "content6"),
 			destPath:	"",
-			wantErrIs:	ErrInvalidArgument,
+			wantErrIs:	lang.ErrInvalidArgument,
 		},
 	}
 
@@ -168,7 +171,7 @@ func TestToolMoveFileFunctional(t *testing.T) {
 				tc.setupFunc()
 			}
 			toolImpl, _ := interp.ToolRegistry().GetTool("FS.Move")
-			_, err := toolImpl.Func(interp, MakeArgs(tc.sourcePath, tc.destPath))
+			_, err := toolImpl.Func(interp, tool.MakeArgs(tc.sourcePath, tc.destPath))
 
 			if !errors.Is(err, tc.wantErrIs) {
 				t.Errorf("Expected error [%v], but got [%v]", tc.wantErrIs, err)

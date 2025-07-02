@@ -5,8 +5,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"	// Added for direct output in progress printer
+	"os" // Added for direct output in progress printer
 	"sync"
+
+	"github.com/aprice2704/neuroscript/pkg/lang"
 	// Assumes sync_types.go, sync_morehelpers.go, sync_logic.go, sync_workers.go
 	// and their necessary imports (like path/filepath, io, etc.) exist
 	// within this package ('core').
@@ -19,7 +21,7 @@ func SyncDirectoryUpHelper(
 	absLocalDir string,
 	filterPattern string,
 	ignoreGitignore bool,
-	interp *Interpreter,	// Pass Interpreter
+	interp *neurogo.Interpreter,	// Pass neurogo.Interpreter
 ) (map[string]interface{}, error) {
 
 	// --- Get Logger and Client from Interpreter ---
@@ -34,9 +36,9 @@ func SyncDirectoryUpHelper(
 	// --- End Get Logger/Client ---
 
 	// 1. Initialize Context, Stats, and Loggers
-	stats, incrementStat, effectiveLogger := initializeSyncState(logger)
+	stats, incrementStat, effectiveLogger := sync.initializeSyncState(logger)
 
-	syncCtx := &syncContext{
+	syncCtx := &sync.syncContext{
 		ctx:		ctx,
 		absLocalDir:	absLocalDir,
 		filterPattern:	filterPattern,
@@ -50,13 +52,13 @@ func SyncDirectoryUpHelper(
 	syncCtx.logger.Debug("[API HELPER Sync] Starting sync 'up' for directory:", syncCtx.absLocalDir)
 
 	// --- Phase 1: Gather State ---
-	remoteFilesMap, listErr := listExistingAPIFiles(syncCtx)
+	remoteFilesMap, listErr := sync.listExistingAPIFiles(syncCtx)
 	if listErr != nil {
 		syncCtx.logger.Error("[ERROR API HELPER Sync] Failed to list initial API files: %v", listErr)
 		return syncCtx.stats, listErr
 	}
-	syncCtx.ignorer = initializeGitignore(syncCtx, ignoreGitignore)
-	localFilesMap, walkErr := gatherLocalFiles(syncCtx)
+	syncCtx.ignorer = sync.initializeGitignore(syncCtx, ignoreGitignore)
+	localFilesMap, walkErr := sync.gatherLocalFiles(syncCtx)
 	if walkErr != nil {
 		syncCtx.logger.Error("[ERROR API HELPER Sync] Critical error during local file scan: %v", walkErr)
 		return syncCtx.stats, fmt.Errorf("local file scan failed: %w", walkErr)
@@ -64,7 +66,7 @@ func SyncDirectoryUpHelper(
 	syncCtx.logger.Debug("[API HELPER Sync] Local scan complete, found %d files passing filters.", len(localFilesMap))
 
 	// --- Phase 2: Compare and Plan ---
-	actions := computeSyncActions(syncCtx, localFilesMap, remoteFilesMap)
+	actions := sync.computeSyncActions(syncCtx, localFilesMap, remoteFilesMap)
 
 	// --- Phase 3: Execute Actions ---
 	totalPlannedUploadsUpdates := len(actions.FilesToUpload) + len(actions.FilesToUpdate)
@@ -94,8 +96,8 @@ func SyncDirectoryUpHelper(
 	var uploadWg sync.WaitGroup
 	uploadErr := errors.New("no upload/update operations performed")
 	if totalPlannedUploadsUpdates > 0 {
-		resultsChan := make(chan uploadResult, totalPlannedUploadsUpdates)
-		startUploadWorkers(syncCtx, &uploadWg, actions, resultsChan)
+		resultsChan := make(chan sync.uploadResult, totalPlannedUploadsUpdates)
+		sync.startUploadWorkers(syncCtx, &uploadWg, actions, resultsChan)
 		uploadErr = waitForUploadResultsAndPrintProgress(syncCtx, &uploadWg, resultsChan, totalPlannedUploadsUpdates)
 		if uploadErr != nil {
 			syncCtx.logger.Error("[ERROR API HELPER Sync] Error during upload/update phase: %v", uploadErr)
@@ -108,7 +110,7 @@ func SyncDirectoryUpHelper(
 
 	// Execute Deletions
 	var deleteWg sync.WaitGroup
-	startDeleteWorkers(syncCtx, &deleteWg, actions.FilesToDelete)
+	sync.startDeleteWorkers(syncCtx, &deleteWg, actions.FilesToDelete)
 	if totalPlannedDeletes > 0 {
 		syncCtx.logger.Debug("[DEBUG API HELPER Sync] Waiting for deleteWg.Wait()...")
 		deleteWg.Wait()
@@ -153,7 +155,7 @@ func SyncDirectoryUpHelper(
 }
 
 // waitForUploadResultsAndPrintProgress (Implementation unchanged)
-func waitForUploadResultsAndPrintProgress(sc *syncContext, wg *sync.WaitGroup, resultsChan chan uploadResult, totalPlannedOps int) error {
+func waitForUploadResultsAndPrintProgress(sc *sync.syncContext, wg *sync.WaitGroup, resultsChan chan sync.uploadResult, totalPlannedOps int) error {
 	waitDoneChan := make(chan struct{})
 	go func() {
 		sc.logger.Debug("[DEBUG WaitGroup] Starting wg.Wait()...")
@@ -206,5 +208,5 @@ func waitForUploadResultsAndPrintProgress(sc *syncContext, wg *sync.WaitGroup, r
 
 // SyncFiles is not implemented yet → always return the sentinel the tests expect.
 func (api *FileAPI) SyncFiles(ctx context.Context, dir string, patterns ...string) error {
-	return ErrFeatureNotImplemented
+	return lang.ErrFeatureNotImplemented
 }

@@ -3,7 +3,7 @@ package git
 
 import (
 	"fmt"
-	"regexp"	// Keep for file status regex if needed later, but branch parsing changed
+	"regexp" // Keep for file status regex if needed later, but branch parsing changed
 	"strconv"
 	"strings"
 )
@@ -12,7 +12,7 @@ import (
 
 // toolGitStatus implements the TOOL.GitStatus command.
 // It executes the git command and then calls parseGitStatusOutput for parsing.
-func toolGitStatus(interpreter *Interpreter, args []interface{}) (interface{}, error) {
+func toolGitStatus(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
 	// Validate arguments (expecting zero)
 	if len(args) != 0 {
 		return nil, fmt.Errorf("TOOL.GitStatus expects 0 arguments, got %d", len(args))
@@ -21,7 +21,7 @@ func toolGitStatus(interpreter *Interpreter, args []interface{}) (interface{}, e
 	interpreter.logger.Debug("GitStatus] Executing: git status --porcelain -b --untracked-files=all")
 
 	// Execute using toolExec which handles sandboxing and returns output/error string
-	output, err := toolExec(interpreter, "git", "status", "--porcelain", "-b", "--untracked-files=all")
+	output, err := tool.toolExec(interpreter, "git", "status", "--porcelain", "-b", "--untracked-files=all")
 
 	// Check if toolExec itself returned an error (command failed, stderr etc.)
 	if err != nil {

@@ -16,31 +16,31 @@ import (
 )
 
 // toolTreeFindNodes implements the Tree.FindNodes tool.
-func toolTreeFindNodes(interpreter *Interpreter, args []interface{}) (interface{}, error) {
+func toolTreeFindNodes(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
 	toolName := "Tree.FindNodes"
 
 	if len(args) < 3 || len(args) > 5 {
-		return nil, lang.NewRuntimeError(ErrorCodeArgMismatch, fmt.Sprintf("%s: expected 3 to 5 arguments, got %d", toolName, len(args)), ErrArgumentMismatch)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("%s: expected 3 to 5 arguments, got %d", toolName, len(args)), lang.ErrArgumentMismatch)
 	}
 
 	treeHandle, okHandle := args[0].(string)
 	if !okHandle {
-		return nil, lang.NewRuntimeError(ErrorCodeType, fmt.Sprintf("%s: tree_handle argument must be a string, got %T", toolName, args[0]), ErrInvalidArgument)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeType, fmt.Sprintf("%s: tree_handle argument must be a string, got %T", toolName, args[0]), lang.ErrInvalidArgument)
 	}
 	startNodeID, okStartNodeID := args[1].(string)
 	if !okStartNodeID {
-		return nil, lang.NewRuntimeError(ErrorCodeType, fmt.Sprintf("%s: start_node_id argument must be a string, got %T", toolName, args[1]), ErrInvalidArgument)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeType, fmt.Sprintf("%s: start_node_id argument must be a string, got %T", toolName, args[1]), lang.ErrInvalidArgument)
 	}
 	queryMap, okQueryMap := args[2].(map[string]interface{})
 	if !okQueryMap {
-		return nil, lang.NewRuntimeError(ErrorCodeType, fmt.Sprintf("%s: query_map argument must be a map, got %T", toolName, args[2]), ErrInvalidArgument)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeType, fmt.Sprintf("%s: query_map argument must be a map, got %T", toolName, args[2]), lang.ErrInvalidArgument)
 	}
 
 	maxDepth := -1
 	if len(args) > 3 && args[3] != nil {
 		depthRaw, okDepth := args[3].(int64)
 		if !okDepth {
-			return nil, lang.NewRuntimeError(ErrorCodeType, fmt.Sprintf("%s: max_depth argument must be an integer or null, got %T", toolName, args[3]), ErrInvalidArgument)
+			return nil, lang.NewRuntimeError(lang.ErrorCodeType, fmt.Sprintf("%s: max_depth argument must be an integer or null, got %T", toolName, args[3]), lang.ErrInvalidArgument)
 		}
 		maxDepth = int(depthRaw)
 	}
@@ -49,13 +49,13 @@ func toolTreeFindNodes(interpreter *Interpreter, args []interface{}) (interface{
 	if len(args) > 4 && args[4] != nil {
 		resultsRaw, okResults := args[4].(int64)
 		if !okResults {
-			return nil, lang.NewRuntimeError(ErrorCodeType, fmt.Sprintf("%s: max_results argument must be an integer or null, got %T", toolName, args[4]), ErrInvalidArgument)
+			return nil, lang.NewRuntimeError(lang.ErrorCodeType, fmt.Sprintf("%s: max_results argument must be an integer or null, got %T", toolName, args[4]), lang.ErrInvalidArgument)
 		}
 		maxResults = int(resultsRaw)
 	}
 
 	if treeHandle == "" || startNodeID == "" || len(queryMap) == 0 {
-		return nil, lang.NewRuntimeError(ErrorCodeArgMismatch, fmt.Sprintf("%s: tree_handle, start_node_id, and query_map cannot be empty", toolName), ErrInvalidArgument)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("%s: tree_handle, start_node_id, and query_map cannot be empty", toolName), lang.ErrInvalidArgument)
 	}
 
 	tree, startNode, err := getNodeFromHandle(interpreter, treeHandle, startNodeID, toolName)
@@ -70,8 +70,8 @@ func toolTreeFindNodes(interpreter *Interpreter, args []interface{}) (interface{
 	foundNodeIDs := make([]interface{}, 0)
 	visited := make(map[string]bool)
 
-	var findRecursive func(currentNode *GenericTreeNode, currentDepth int) error
-	findRecursive = func(currentNode *GenericTreeNode, currentDepth int) error {
+	var findRecursive func(currentNode *utils.GenericTreeNode, currentDepth int) error
+	findRecursive = func(currentNode *utils.GenericTreeNode, currentDepth int) error {
 		if currentNode == nil || visited[currentNode.ID] {
 			return nil
 		}
@@ -133,11 +133,11 @@ func toolTreeFindNodes(interpreter *Interpreter, args []interface{}) (interface{
 
 	searchErr := findRecursive(startNode, 0)
 	if searchErr != nil && searchErr.Error() != "max results reached" {
-		var rtErr *RuntimeError
+		var rtErr *lang.RuntimeError
 		if errors.As(searchErr, &rtErr) {
 			return nil, rtErr
 		}
-		return nil, lang.NewRuntimeError(ErrorCodeInternal, fmt.Sprintf("%s: error during node search: %v", toolName, searchErr), ErrInternal)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, fmt.Sprintf("%s: error during node search: %v", toolName, searchErr), lang.ErrInternal)
 	}
 
 	interpreter.Logger().Debug(fmt.Sprintf("%s: Search completed", toolName), "found_count", len(foundNodeIDs))
@@ -145,7 +145,7 @@ func toolTreeFindNodes(interpreter *Interpreter, args []interface{}) (interface{
 }
 
 // nodeMatchesQuery checks if a single node matches the provided query map.
-func nodeMatchesQuery(node *GenericTreeNode, queryMap map[string]interface{}, toolName string) (bool, error) {
+func nodeMatchesQuery(node *utils.GenericTreeNode, queryMap map[string]interface{}, toolName string) (bool, error) {
 	if node == nil {
 		return false, nil
 	}
@@ -155,7 +155,7 @@ func nodeMatchesQuery(node *GenericTreeNode, queryMap map[string]interface{}, to
 		case "id":
 			idStr, ok := expectedQueryValue.(string)
 			if !ok {
-				return false, lang.NewRuntimeError(ErrorCodeArgMismatch, fmt.Sprintf("%s: 'id' in query_map must be a string, got %T", toolName, expectedQueryValue), ErrTreeInvalidQuery)
+				return false, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("%s: 'id' in query_map must be a string, got %T", toolName, expectedQueryValue), lang.ErrTreeInvalidQuery)
 			}
 			if node.ID != idStr {
 				return false, nil
@@ -163,7 +163,7 @@ func nodeMatchesQuery(node *GenericTreeNode, queryMap map[string]interface{}, to
 		case "type":
 			typeStr, ok := expectedQueryValue.(string)
 			if !ok {
-				return false, lang.NewRuntimeError(ErrorCodeArgMismatch, fmt.Sprintf("%s: 'type' in query_map must be a string, got %T", toolName, expectedQueryValue), ErrTreeInvalidQuery)
+				return false, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("%s: 'type' in query_map must be a string, got %T", toolName, expectedQueryValue), lang.ErrTreeInvalidQuery)
 			}
 			if node.Type != typeStr {
 				return false, nil
@@ -175,7 +175,7 @@ func nodeMatchesQuery(node *GenericTreeNode, queryMap map[string]interface{}, to
 		case "attributes":
 			attrQueryMap, ok := expectedQueryValue.(map[string]interface{})
 			if !ok {
-				return false, lang.NewRuntimeError(ErrorCodeArgMismatch, fmt.Sprintf("%s: 'attributes' value in query_map must be a map, got %T", toolName, expectedQueryValue), ErrTreeInvalidQuery)
+				return false, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("%s: 'attributes' value in query_map must be a map, got %T", toolName, expectedQueryValue), lang.ErrTreeInvalidQuery)
 			}
 			if node.Attributes == nil && len(attrQueryMap) > 0 {
 				return false, nil
@@ -192,7 +192,7 @@ func nodeMatchesQuery(node *GenericTreeNode, queryMap map[string]interface{}, to
 		case "metadata":
 			metadataQuery, ok := expectedQueryValue.(map[string]interface{})
 			if !ok {
-				return false, lang.NewRuntimeError(ErrorCodeArgMismatch, fmt.Sprintf("%s: 'metadata' in query_map must be a map, got %T", toolName, expectedQueryValue), ErrTreeInvalidQuery)
+				return false, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("%s: 'metadata' in query_map must be a map, got %T", toolName, expectedQueryValue), lang.ErrTreeInvalidQuery)
 			}
 			if node.Attributes == nil && len(metadataQuery) > 0 {
 				return false, nil
@@ -227,8 +227,8 @@ func deepCompareValues(actualValue, expectedValue interface{}) bool {
 	}
 
 	// Special handling for numbers of different types (e.g., int64 vs float64).
-	actualNum, actualIsNum := ConvertToFloat64(actualValue)
-	expectedNum, expectedIsNum := ConvertToFloat64(expectedValue)
+	actualNum, actualIsNum := utils.ConvertToFloat64(actualValue)
+	expectedNum, expectedIsNum := utils.ConvertToFloat64(expectedValue)
 
 	if actualIsNum && expectedIsNum && actualNum == expectedNum {
 		return true

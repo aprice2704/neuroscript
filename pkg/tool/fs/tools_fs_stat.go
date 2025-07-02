@@ -6,7 +6,7 @@
 package fs
 
 import (
-	"errors"	// Required for errors.Is
+	"errors" // Required for errors.Is
 	"fmt"
 	"os"
 	"path/filepath"
@@ -16,30 +16,30 @@ import (
 )
 
 // toolStat gets information about a file or directory within the sandbox.
-func toolStat(interpreter *Interpreter, args []interface{}) (interface{}, error) {
+func toolStat(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
 	// --- Argument Validation ---
 	if len(args) != 1 {
-		return nil, lang.NewRuntimeError(ErrorCodeArgMismatch, fmt.Sprintf("StatPath: expected 1 argument (path), got %d", len(args)), ErrArgumentMismatch)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("StatPath: expected 1 argument (path), got %d", len(args)), lang.ErrArgumentMismatch)
 	}
 	relPath, ok := args[0].(string)
 	if !ok {
-		return nil, lang.NewRuntimeError(ErrorCodeType, fmt.Sprintf("StatPath: path argument must be a string, got %T", args[0]), ErrInvalidArgument)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeType, fmt.Sprintf("StatPath: path argument must be a string, got %T", args[0]), lang.ErrInvalidArgument)
 	}
 	// --- ADDED: Explicit check for empty path BEFORE resolving ---
 	if relPath == "" {
-		return nil, lang.NewRuntimeError(ErrorCodeArgMismatch, "StatPath: path argument cannot be empty", ErrInvalidArgument)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "StatPath: path argument cannot be empty", lang.ErrInvalidArgument)
 	}
 
 	// --- Sandbox Check ---
 	sandboxRoot := interpreter.SandboxDir()
 	if sandboxRoot == "" {
 		interpreter.Logger().Error("Tool: StatPath] Interpreter sandboxDir is empty, cannot proceed.")
-		return nil, lang.NewRuntimeError(ErrorCodeConfiguration, "StatPath: interpreter sandbox directory is not set", ErrConfiguration)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeConfiguration, "StatPath: interpreter sandbox directory is not set", lang.ErrConfiguration)
 	}
 
 	// --- Path Security Validation ---
 	// ResolveAndSecurePath handles validation (absolute, traversal, null bytes, empty)
-	absPathToStat, secErr := ResolveAndSecurePath(relPath, sandboxRoot)
+	absPathToStat, secErr := security.ResolveAndSecurePath(relPath, sandboxRoot)
 	if secErr != nil {
 		interpreter.Logger().Debug("Tool: StatPath] Path validation failed", "error", secErr.Error(), "path", relPath)
 		return nil, secErr	// Return the *RuntimeError directly
@@ -53,16 +53,16 @@ func toolStat(interpreter *Interpreter, args []interface{}) (interface{}, error)
 		if errors.Is(statErr, os.ErrNotExist) {
 			errMsg := fmt.Sprintf("StatPath: path not found '%s'", relPath)
 			interpreter.Logger().Debug("Tool: StatPath] %s", errMsg)
-			return nil, lang.NewRuntimeError(ErrorCodeFileNotFound, errMsg, ErrFileNotFound)
+			return nil, lang.NewRuntimeError(lang.ErrorCodeFileNotFound, errMsg, lang.ErrFileNotFound)
 		}
 		if errors.Is(statErr, os.ErrPermission) {
 			errMsg := fmt.Sprintf("StatPath: permission denied for '%s'", relPath)
 			interpreter.Logger().Warn("Tool: StatPath] %s", errMsg)
-			return nil, lang.NewRuntimeError(ErrorCodePermissionDenied, errMsg, ErrPermissionDenied)
+			return nil, lang.NewRuntimeError(lang.ErrorCodePermissionDenied, errMsg, lang.ErrPermissionDenied)
 		}
 		errMsg := fmt.Sprintf("StatPath: failed to stat path '%s'", relPath)
 		interpreter.Logger().Error("Tool: StatPath] %s: %v", errMsg, statErr)
-		return nil, lang.NewRuntimeError(ErrorCodeIOFailed, errMsg, errors.Join(ErrIOFailed, statErr))
+		return nil, lang.NewRuntimeError(lang.ErrorCodeIOFailed, errMsg, errors.Join(lang.ErrIOFailed, statErr))
 	}
 
 	// --- Success: Construct Result Map ---

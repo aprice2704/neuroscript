@@ -14,6 +14,7 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/adapters"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
+	"github.com/aprice2704/neuroscript/pkg/lang"
 )
 
 // FileAPI handles sandboxed file system access for the interpreter.
@@ -124,7 +125,7 @@ func (f *FileAPI) ResolvePath(relPath string) (string, error) {
 
 	if !strings.HasPrefix(absPath, prefix) && !isRoot {
 		f.logger.Warn("Path traversal attempt detected!", "requested_path", relPath, "resolved_path", absPath, "sandbox_root", f.sandboxRoot)
-		return "", fmt.Errorf("%w: path '%s' resolves outside sandbox '%s'", ErrPathViolation, relPath, f.sandboxRoot)
+		return "", fmt.Errorf("%w: path '%s' resolves outside sandbox '%s'", lang.ErrPathViolation, relPath, f.sandboxRoot)
 	}
 
 	f.logger.Debug("Path resolved successfully within sandbox.", "input", relPath, "output", absPath)

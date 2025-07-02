@@ -6,7 +6,7 @@
 package fs
 
 import (
-	"errors"	// Required for errors.Is
+	"errors" // Required for errors.Is
 	"fmt"
 	"os"
 	"strings"
@@ -17,22 +17,22 @@ import (
 // --- Tool Implementations (Functions only) ---
 
 // toolLineCountFile counts lines in a specified file.
-func toolLineCountFile(interpreter *Interpreter, args []interface{}) (interface{}, error) {
+func toolLineCountFile(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
 	if len(args) != 1 {
-		return int64(-1), lang.NewRuntimeError(ErrorCodeArgMismatch, "LineCountFile: expected 1 argument (filepath)", ErrArgumentMismatch)
+		return int64(-1), lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "LineCountFile: expected 1 argument (filepath)", lang.ErrArgumentMismatch)
 	}
 	filePath, ok := args[0].(string)
 	if !ok {
 		// Using ErrorCodeType for wrong type, but wrapping ErrInvalidArgument as the specific type mismatch is an invalid argument for this tool.
-		return int64(-1), lang.NewRuntimeError(ErrorCodeType, fmt.Sprintf("LineCountFile: filepath argument must be a string, got %T", args[0]), ErrInvalidArgument)
+		return int64(-1), lang.NewRuntimeError(lang.ErrorCodeType, fmt.Sprintf("LineCountFile: filepath argument must be a string, got %T", args[0]), lang.ErrInvalidArgument)
 	}
 	if filePath == "" {
 		// Empty path is treated as an invalid argument value.
-		return int64(-1), lang.NewRuntimeError(ErrorCodeArgMismatch, "LineCountFile: filepath cannot be empty", ErrInvalidArgument)
+		return int64(-1), lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "LineCountFile: filepath cannot be empty", lang.ErrInvalidArgument)
 	}
 
 	sandboxRoot := interpreter.SandboxDir()
-	absPath, secErr := SecureFilePath(filePath, sandboxRoot)
+	absPath, secErr := security.SecureFilePath(filePath, sandboxRoot)
 	if secErr != nil {
 		interpreter.Logger().Warn("TOOL LineCountFile] Path validation failed", "path", filePath, "error", secErr, "sandbox_root", sandboxRoot)
 		// SecureFilePath returns a RuntimeError already, directly return it.
@@ -46,14 +46,14 @@ func toolLineCountFile(interpreter *Interpreter, args []interface{}) (interface{
 		interpreter.Logger().Warn("TOOL LineCountFile] Read error", "path", filePath, "error", readErr)
 		if errors.Is(readErr, os.ErrNotExist) {
 			// Use the specific ErrorCodeFileNotFound and ErrFileNotFound sentinel
-			return int64(-1), lang.NewRuntimeError(ErrorCodeFileNotFound, fmt.Sprintf("LineCountFile: file not found '%s'", filePath), ErrFileNotFound)
+			return int64(-1), lang.NewRuntimeError(lang.ErrorCodeFileNotFound, fmt.Sprintf("LineCountFile: file not found '%s'", filePath), lang.ErrFileNotFound)
 		}
 		if errors.Is(readErr, os.ErrPermission) {
 			// Use the specific ErrorCodePermissionDenied and ErrPermissionDenied sentinel
-			return int64(-1), lang.NewRuntimeError(ErrorCodePermissionDenied, fmt.Sprintf("LineCountFile: permission denied for '%s'", filePath), ErrPermissionDenied)
+			return int64(-1), lang.NewRuntimeError(lang.ErrorCodePermissionDenied, fmt.Sprintf("LineCountFile: permission denied for '%s'", filePath), lang.ErrPermissionDenied)
 		}
 		// For other I/O errors, use ErrorCodeIOFailed and wrap the specific error
-		return int64(-1), lang.NewRuntimeError(ErrorCodeIOFailed, fmt.Sprintf("LineCountFile: error reading file '%s'", filePath), errors.Join(ErrIOFailed, readErr))
+		return int64(-1), lang.NewRuntimeError(lang.ErrorCodeIOFailed, fmt.Sprintf("LineCountFile: error reading file '%s'", filePath), errors.Join(lang.ErrIOFailed, readErr))
 	}
 
 	content := string(contentBytes)
@@ -72,17 +72,17 @@ func toolLineCountFile(interpreter *Interpreter, args []interface{}) (interface{
 }
 
 // toolSanitizeFilename calls the exported helper function SanitizeFilename (from security.go).
-func toolSanitizeFilename(interpreter *Interpreter, args []interface{}) (interface{}, error) {
+func toolSanitizeFilename(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
 	if len(args) != 1 {
-		return "", lang.NewRuntimeError(ErrorCodeArgMismatch, "SanitizeFilename: expected 1 argument (name)", ErrArgumentMismatch)
+		return "", lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "SanitizeFilename: expected 1 argument (name)", lang.ErrArgumentMismatch)
 	}
 	name, ok := args[0].(string)
 	if !ok {
-		return "", lang.NewRuntimeError(ErrorCodeType, fmt.Sprintf("SanitizeFilename: name argument must be a string, got %T", args[0]), ErrInvalidArgument)
+		return "", lang.NewRuntimeError(lang.ErrorCodeType, fmt.Sprintf("SanitizeFilename: name argument must be a string, got %T", args[0]), lang.ErrInvalidArgument)
 	}
 
 	// SanitizeFilename itself doesn't currently return an error. If it did, we'd handle it here.
-	sanitized := SanitizeFilename(name)
+	sanitized := security.SanitizeFilename(name)
 	interpreter.Logger().Debug("Tool: SanitizeFilename", "input", name, "output", sanitized)
 	return sanitized, nil
 }

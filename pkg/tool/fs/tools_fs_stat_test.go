@@ -11,6 +11,9 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
 // compareStatResults is a custom check function for stat results.
@@ -46,9 +49,9 @@ func TestToolStat(t *testing.T) {
 		{
 			name:		"Stat Existing File",
 			toolName:	"FS.Stat",
-			args:		MakeArgs(testFileName),
+			args:		tool.MakeArgs(testFileName),
 			setupFunc:	setup,
-			checkFunc: func(t *testing.T, interp *Interpreter, result interface{}, err error, setupCtx interface{}) {
+			checkFunc: func(t *testing.T, interp *neurogo.Interpreter, result interface{}, err error, setupCtx interface{}) {
 				if err != nil {
 					t.Fatalf("Unexpected error: %v", err)
 				}
@@ -58,23 +61,23 @@ func TestToolStat(t *testing.T) {
 		{
 			name:		"Stat Existing Directory",
 			toolName:	"FS.Stat",
-			args:		MakeArgs(testDirName),
+			args:		tool.MakeArgs(testDirName),
 			setupFunc:	setup,
-			checkFunc: func(t *testing.T, interp *Interpreter, result interface{}, err error, setupCtx interface{}) {
+			checkFunc: func(t *testing.T, interp *neurogo.Interpreter, result interface{}, err error, setupCtx interface{}) {
 				if err != nil {
 					t.Fatalf("Unexpected error: %v", err)
 				}
 				compareStatResults(t, map[string]interface{}{"is_dir": true, "path": testDirName}, result)
 			},
 		},
-		{name: "Stat Non-existent File", toolName: "FS.Stat", args: MakeArgs("nonexistent.txt"), setupFunc: setup, wantToolErrIs: ErrFileNotFound},
-		{name: "Stat Path Outside Sandbox", toolName: "FS.Stat", args: MakeArgs("../outside.txt"), setupFunc: setup, wantToolErrIs: ErrPathViolation},
-		{name: "Stat Empty Path", toolName: "FS.Stat", args: MakeArgs(""), setupFunc: setup, wantToolErrIs: ErrInvalidArgument},
+		{name: "Stat Non-existent File", toolName: "FS.Stat", args: tool.MakeArgs("nonexistent.txt"), setupFunc: setup, wantToolErrIs: lang.ErrFileNotFound},
+		{name: "Stat Path Outside Sandbox", toolName: "FS.Stat", args: tool.MakeArgs("../outside.txt"), setupFunc: setup, wantToolErrIs: lang.ErrPathViolation},
+		{name: "Stat Empty Path", toolName: "FS.Stat", args: tool.MakeArgs(""), setupFunc: setup, wantToolErrIs: lang.ErrInvalidArgument},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			interp, _ := NewDefaultTestInterpreter(t)
+			interp, _ := llm.NewDefaultTestInterpreter(t)
 			testFsToolHelper(t, interp, tc)
 		})
 	}

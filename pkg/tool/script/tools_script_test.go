@@ -15,6 +15,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/parser"
 	"github.com/google/go-cmp/cmp"
 )
 
@@ -56,8 +58,8 @@ func TestScriptTools(t *testing.T) {
 			}
 			script := string(scriptBytes)
 
-			logger := NewTestLogger(t)
-			parserAPI := NewParserAPI(logger)
+			logger := llm.NewTestLogger(t)
+			parserAPI := parser.NewParserAPI(logger)
 			parseTree, parseErr := parserAPI.Parse(script)
 
 			// This branch is for tests that are expected to fail.
@@ -66,12 +68,12 @@ func TestScriptTools(t *testing.T) {
 				if parseErr != nil {
 					combinedErr = parseErr
 				} else {
-					astBuilder := NewASTBuilder(logger)
+					astBuilder := parser.NewASTBuilder(logger)
 					programAST, _, buildErr := astBuilder.Build(parseTree)
 					if buildErr != nil {
 						combinedErr = buildErr
 					} else {
-						interp, _ := NewTestInterpreter(t, nil, nil)
+						interp, _ := llm.NewTestInterpreter(t, nil, nil)
 						// We deliberately don't load the program here for error tests
 						// that might involve the interpreter state before loading.
 						procToRun := "main"
@@ -104,9 +106,9 @@ func TestScriptTools(t *testing.T) {
 					t.Fatalf("expected error file %s must contain an integer error code, got: %q", errPath, expectedCodeStr)
 				}
 
-				var runtimeErr *RuntimeError
+				var runtimeErr *lang.RuntimeError
 				if errors.As(combinedErr, &runtimeErr) {
-					if runtimeErr.Code != ErrorCode(expectedCode) {
+					if runtimeErr.Code != lang.ErrorCode(expectedCode) {
 						t.Fatalf("wrong error code returned:\n  want: %d\n   got: %d (%s)",
 							expectedCode, runtimeErr.Code, runtimeErr.Message)
 					}
@@ -120,13 +122,13 @@ func TestScriptTools(t *testing.T) {
 				t.Fatalf("unexpected PARSER error: %v", parseErr)
 			}
 
-			astBuilder := NewASTBuilder(logger)
+			astBuilder := parser.NewASTBuilder(logger)
 			programAST, _, buildErr := astBuilder.Build(parseTree)
 			if buildErr != nil {
 				t.Fatalf("unexpected AST BUILD error: %v", buildErr)
 			}
 
-			interp, _ := NewTestInterpreter(t, nil, nil)
+			interp, _ := llm.NewTestInterpreter(t, nil, nil)
 			if err := interp.LoadProgram(programAST); err != nil {
 				t.Fatalf("failed to load program into interpreter: %v", err)
 			}
@@ -154,7 +156,7 @@ func TestScriptTools(t *testing.T) {
 			}
 
 			// CORRECTED: Unwrap the raw Value to get a native Go type for comparison.
-			nativeGotVal := Unwrap(rawResult)
+			nativeGotVal := lang.Unwrap(rawResult)
 			gotMap := map[string]any{"return": nativeGotVal}
 
 			if diff := cmp.Diff(wantMap, gotMap); diff != "" {

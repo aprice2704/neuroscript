@@ -5,8 +5,10 @@
 
 package ai
 
+import "github.com/aprice2704/neuroscript/pkg/tool"
+
 // aiWmToolsToRegister contains ToolImplementation definitions for AI Worker Management tools.
-var aiWmToolsToRegister = []ToolImplementation{	//
+var aiWmToolsToRegister = []tool.ToolImplementation{	//
 	// Definition Tools (from ai_wm_tools_definitions.go)
 	//	toolAIWorkerDefinitionAdd,  //
 	toolAIWorkerDefinitionGet,	//

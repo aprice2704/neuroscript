@@ -6,7 +6,7 @@
 package tree
 
 import (
-	"errors"	// Added for errors.Is and errors.Join
+	"errors" // Added for errors.Is and errors.Join
 	"fmt"
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
@@ -14,30 +14,30 @@ import (
 
 // getTreeFromHandle retrieves the GenericTree from the interpreter's handle registry.
 // If the handle is not found, it returns an error wrapping ErrNotFound.
-func getTreeFromHandle(interpreter *Interpreter, handleID, toolName string) (*GenericTree, error) {
+func getTreeFromHandle(interpreter *neurogo.Interpreter, handleID, toolName string) (*utils.GenericTree, error) {
 	if handleID == "" {
 		// It's better to return an error that can be checked with errors.Is if it's a common case.
 		// ErrValidationRequiredArgNil is a sentinel error.
-		return nil, lang.NewRuntimeError(ErrorCodeArgMismatch,
+		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch,
 			fmt.Sprintf("%s requires non-empty 'tree_handle'", toolName),
-			ErrValidationRequiredArgNil,
+			lang.ErrValidationRequiredArgNil,
 		)
 	}
 
-	obj, err := interpreter.GetHandleValue(handleID, GenericTreeHandleType)
+	obj, err := interpreter.GetHandleValue(handleID, utils.GenericTreeHandleType)
 	if err != nil {
 		// Check if the error from GetHandleValue is because the handle was not found.
-		if errors.Is(err, ErrHandleNotFound) {
+		if errors.Is(err, lang.ErrHandleNotFound) {
 			// If so, wrap ErrNotFound for the test and also include the original error details.
 			// This makes errors.Is(returnedError, ErrNotFound) true.
-			return nil, lang.NewRuntimeError(ErrorCodeKeyNotFound,	// Or a more specific tree error code
+			return nil, lang.NewRuntimeError(lang.ErrorCodeKeyNotFound,	// Or a more specific tree error code
 				fmt.Sprintf("%s: tree handle '%s' not found", toolName, handleID),
-				errors.Join(ErrNotFound, err),	// Ensure ErrNotFound is in the chain
+				errors.Join(lang.ErrNotFound, err),	// Ensure lang.ErrNotFound is in the chain
 			)
 		}
 		// For other errors from GetHandleValue (e.g., wrong type if GetHandleValue checked that, or other internal errors)
-		return nil, lang.NewRuntimeError(ErrorCodeInternal,	// Or a more specific tree error code
-			fmt.Sprintf("%s: error retrieving handle '%s' (type %s)", toolName, handleID, GenericTreeHandleType),
+		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal,	// Or a more specific tree error code
+			fmt.Sprintf("%s: error retrieving handle '%s' (type %s)", toolName, handleID, utils.GenericTreeHandleType),
 			err,	// Wrap the original error
 		)
 	}
@@ -45,9 +45,9 @@ func getTreeFromHandle(interpreter *Interpreter, handleID, toolName string) (*Ge
 	tree, ok := obj.(*GenericTree)
 	if !ok || tree == nil || tree.NodeMap == nil {
 		// This indicates the handle existed but contained unexpected data.
-		return nil, lang.NewRuntimeError(ErrorCodeInternal,	// Or a more specific tree error code for invalid structure
-			fmt.Sprintf("%s: handle '%s' contains unexpected or uninitialized data type (%T), expected %s", toolName, handleID, obj, GenericTreeHandleType),
-			ErrHandleInvalid,
+		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal,	// Or a more specific tree error code for invalid structure
+			fmt.Sprintf("%s: handle '%s' contains unexpected or uninitialized data type (%T), expected %s", toolName, handleID, obj, utils.GenericTreeHandleType),
+			lang.ErrHandleInvalid,
 		)
 	}
 	return tree, nil
@@ -55,11 +55,11 @@ func getTreeFromHandle(interpreter *Interpreter, handleID, toolName string) (*Ge
 
 // getNodeFromHandle retrieves the GenericTree and the specific GenericTreeNode.
 // If the node is not found within a valid tree, it returns an error wrapping ErrNotFound.
-func getNodeFromHandle(interpreter *Interpreter, handleID, nodeID, toolName string) (*GenericTree, *GenericTreeNode, error) {
+func getNodeFromHandle(interpreter *neurogo.Interpreter, handleID, nodeID, toolName string) (*utils.GenericTree, *utils.GenericTreeNode, error) {
 	if nodeID == "" {
-		return nil, nil, lang.NewRuntimeError(ErrorCodeArgMismatch,
+		return nil, nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch,
 			fmt.Sprintf("%s requires non-empty 'node_id'", toolName),
-			ErrValidationRequiredArgNil,
+			lang.ErrValidationRequiredArgNil,
 		)
 	}
 
@@ -71,9 +71,9 @@ func getNodeFromHandle(interpreter *Interpreter, handleID, nodeID, toolName stri
 	node, exists := tree.NodeMap[nodeID]
 	if !exists {
 		// Node not found within a valid tree. Wrap ErrNotFound.
-		return nil, nil, lang.NewRuntimeError(ErrorCodeKeyNotFound,	// Or a more specific tree node error code
+		return nil, nil, lang.NewRuntimeError(lang.ErrorCodeKeyNotFound,	// Or a more specific tree node error code
 			fmt.Sprintf("%s: node ID '%s' not found in tree handle '%s'", toolName, nodeID, handleID),
-			ErrNotFound,	// Ensure ErrNotFound is the sentinel error
+			lang.ErrNotFound,	// Ensure lang.ErrNotFound is the sentinel error
 		)
 	}
 
@@ -82,7 +82,7 @@ func getNodeFromHandle(interpreter *Interpreter, handleID, nodeID, toolName stri
 
 // removeChildFromParent removes a child ID from its parent's ChildIDs or Attributes.
 // Returns true if the child was found and removed, false otherwise.
-func removeChildFromParent(parent *GenericTreeNode, childID string) bool {
+func removeChildFromParent(parent *utils.GenericTreeNode, childID string) bool {
 	if parent == nil || childID == "" {
 		return false	// Invalid input
 	}
@@ -122,7 +122,7 @@ func removeChildFromParent(parent *GenericTreeNode, childID string) bool {
 
 // removeNodeRecursive removes a node and all its descendants from the tree's NodeMap.
 // It uses a set to track visited nodes during the current removal operation to handle potential cycles (though unlikely for JSON).
-func removeNodeRecursive(tree *GenericTree, nodeID string, visited map[string]struct{}) {
+func removeNodeRecursive(tree *utils.GenericTree, nodeID string, visited map[string]struct{}) {
 	if _, alreadyVisited := visited[nodeID]; alreadyVisited {
 		return	// Avoid infinite loops in cyclic graphs
 	}

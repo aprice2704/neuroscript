@@ -18,13 +18,13 @@ import (
 )
 
 // --- toolListDirectory unchanged ---
-func toolListDirectory(interpreter *Interpreter, args []interface{}) (interface{}, error) {
+func toolListDirectory(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
 	if len(args) < 1 || len(args) > 2 {
-		return nil, lang.NewRuntimeError(ErrorCodeArgMismatch, fmt.Sprintf("ListDirectory: expected 1 or 2 arguments (path, [recursive]), got %d", len(args)), ErrArgumentMismatch)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("ListDirectory: expected 1 or 2 arguments (path, [recursive]), got %d", len(args)), lang.ErrArgumentMismatch)
 	}
 	relPath, ok := args[0].(string)
 	if !ok {
-		return nil, lang.NewRuntimeError(ErrorCodeType, fmt.Sprintf("ListDirectory: path argument must be a string, got %T", args[0]), ErrInvalidArgument)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeType, fmt.Sprintf("ListDirectory: path argument must be a string, got %T", args[0]), lang.ErrInvalidArgument)
 	}
 	if relPath == "" {
 		relPath = "."
@@ -35,14 +35,14 @@ func toolListDirectory(interpreter *Interpreter, args []interface{}) (interface{
 		if args[1] != nil {
 			recursiveVal, okBool := args[1].(bool)
 			if !okBool {
-				return nil, lang.NewRuntimeError(ErrorCodeType, fmt.Sprintf("ListDirectory: recursive argument must be a boolean or null, got %T", args[1]), ErrInvalidArgument)
+				return nil, lang.NewRuntimeError(lang.ErrorCodeType, fmt.Sprintf("ListDirectory: recursive argument must be a boolean or null, got %T", args[1]), lang.ErrInvalidArgument)
 			}
 			recursive = recursiveVal
 		}
 	}
 
 	sandboxRoot := interpreter.SandboxDir()
-	absBasePath, secErr := ResolveAndSecurePath(relPath, sandboxRoot)
+	absBasePath, secErr := security.ResolveAndSecurePath(relPath, sandboxRoot)
 	if secErr != nil {
 		return nil, secErr
 	}
@@ -50,13 +50,13 @@ func toolListDirectory(interpreter *Interpreter, args []interface{}) (interface{
 	baseInfo, statErr := os.Stat(absBasePath)
 	if statErr != nil {
 		if errors.Is(statErr, os.ErrNotExist) {
-			return nil, lang.NewRuntimeError(ErrorCodeFileNotFound, fmt.Sprintf("ListDirectory: path not found '%s'", relPath), ErrFileNotFound)
+			return nil, lang.NewRuntimeError(lang.ErrorCodeFileNotFound, fmt.Sprintf("ListDirectory: path not found '%s'", relPath), lang.ErrFileNotFound)
 		}
-		return nil, lang.NewRuntimeError(ErrorCodeIOFailed, fmt.Sprintf("ListDirectory: failed to stat path '%s': %v", relPath, statErr), errors.Join(ErrIOFailed, statErr))
+		return nil, lang.NewRuntimeError(lang.ErrorCodeIOFailed, fmt.Sprintf("ListDirectory: failed to stat path '%s': %v", relPath, statErr), errors.Join(lang.ErrIOFailed, statErr))
 	}
 
 	if !baseInfo.IsDir() {
-		return nil, lang.NewRuntimeError(ErrorCodePathTypeMismatch, fmt.Sprintf("path '%s' is not a directory", relPath), ErrPathNotDirectory)
+		return nil, lang.NewRuntimeError(lang.ErrorCodePathTypeMismatch, fmt.Sprintf("path '%s' is not a directory", relPath), lang.ErrPathNotDirectory)
 	}
 
 	var fileInfos = make([]map[string]interface{}, 0)
@@ -77,12 +77,12 @@ func toolListDirectory(interpreter *Interpreter, args []interface{}) (interface{
 			return nil
 		})
 		if walkErr != nil {
-			return nil, lang.NewRuntimeError(ErrorCodeIOFailed, fmt.Sprintf("failed directory walk for '%s'", relPath), errors.Join(ErrIOFailed, walkErr))
+			return nil, lang.NewRuntimeError(lang.ErrorCodeIOFailed, fmt.Sprintf("failed directory walk for '%s'", relPath), errors.Join(lang.ErrIOFailed, walkErr))
 		}
 	} else {
 		entries, readErr := os.ReadDir(absBasePath)
 		if readErr != nil {
-			return nil, lang.NewRuntimeError(ErrorCodeIOFailed, fmt.Sprintf("failed reading directory '%s'", relPath), errors.Join(ErrIOFailed, readErr))
+			return nil, lang.NewRuntimeError(lang.ErrorCodeIOFailed, fmt.Sprintf("failed reading directory '%s'", relPath), errors.Join(lang.ErrIOFailed, readErr))
 		}
 		for _, entry := range entries {
 			info, _ := entry.Info()
@@ -99,19 +99,19 @@ func toolListDirectory(interpreter *Interpreter, args []interface{}) (interface{
 }
 
 // toolMkdir creates a directory (like mkdir -p).
-func toolMkdir(interpreter *Interpreter, args []interface{}) (interface{}, error) {
+func toolMkdir(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
 	if len(args) != 1 {
-		return nil, lang.NewRuntimeError(ErrorCodeArgMismatch, fmt.Sprintf("Mkdir: expected 1 argument (path), got %d", len(args)), ErrArgumentMismatch)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("Mkdir: expected 1 argument (path), got %d", len(args)), lang.ErrArgumentMismatch)
 	}
 	relPath, ok := args[0].(string)
 	if !ok {
-		return nil, lang.NewRuntimeError(ErrorCodeType, fmt.Sprintf("Mkdir: path argument must be a string, got %T", args[0]), ErrInvalidArgument)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeType, fmt.Sprintf("Mkdir: path argument must be a string, got %T", args[0]), lang.ErrInvalidArgument)
 	}
 	if relPath == "" || filepath.Clean(relPath) == "." {
-		return nil, lang.NewRuntimeError(ErrorCodeArgMismatch, "Mkdir: path argument cannot be empty or '.'", ErrInvalidArgument)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "Mkdir: path argument cannot be empty or '.'", lang.ErrInvalidArgument)
 	}
 
-	absPathToCreate, secErr := ResolveAndSecurePath(relPath, interpreter.SandboxDir())
+	absPathToCreate, secErr := security.ResolveAndSecurePath(relPath, interpreter.SandboxDir())
 	if secErr != nil {
 		return nil, secErr
 	}
@@ -123,17 +123,17 @@ func toolMkdir(interpreter *Interpreter, args []interface{}) (interface{}, error
 			return map[string]interface{}{"status": "success", "message": "Directory already exists", "path": relPath}, nil
 		}
 		// Path exists but is a file. This is an error.
-		return nil, lang.NewRuntimeError(ErrorCodePathTypeMismatch, fmt.Sprintf("path '%s' already exists and is a file", relPath), ErrPathNotDirectory)
+		return nil, lang.NewRuntimeError(lang.ErrorCodePathTypeMismatch, fmt.Sprintf("path '%s' already exists and is a file", relPath), lang.ErrPathNotDirectory)
 	}
 
 	if !errors.Is(statErr, os.ErrNotExist) {
 		// An unexpected error occurred during Stat.
-		return nil, lang.NewRuntimeError(ErrorCodeIOFailed, fmt.Sprintf("failed to check path status for '%s'", relPath), errors.Join(ErrIOFailed, statErr))
+		return nil, lang.NewRuntimeError(lang.ErrorCodeIOFailed, fmt.Sprintf("failed to check path status for '%s'", relPath), errors.Join(lang.ErrIOFailed, statErr))
 	}
 
 	// Path does not exist, so we create it.
 	if err := os.MkdirAll(absPathToCreate, 0755); err != nil {
-		return nil, lang.NewRuntimeError(ErrorCodeIOFailed, fmt.Sprintf("failed to create directory '%s'", relPath), errors.Join(ErrCannotCreateDir, err))
+		return nil, lang.NewRuntimeError(lang.ErrorCodeIOFailed, fmt.Sprintf("failed to create directory '%s'", relPath), errors.Join(lang.ErrCannotCreateDir, err))
 	}
 
 	return map[string]interface{}{"status": "success", "message": "Successfully created directory", "path": relPath}, nil

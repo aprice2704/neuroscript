@@ -8,12 +8,15 @@
 package tree
 
 import (
-	"errors"	// Added for robust SetValue test logging
+	"errors" // Added for robust SetValue test logging
 	"testing"
+
+	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
 // findNodeIDByRootAttribute finds the ID of a child node linked by a specific attribute key on a given root/parent node.
-func findNodeIDByRootAttribute(t *testing.T, interp *Interpreter, handle string, parentNodeID string, attributeKey string) (string, bool) {
+func findNodeIDByRootAttribute(t *testing.T, interp *neurogo.Interpreter, handle string, parentNodeID string, attributeKey string) (string, bool) {
 	t.Helper()
 	parentNodeData, err := callGetNode(t, interp, handle, parentNodeID)
 	if err != nil {
@@ -21,7 +24,7 @@ func findNodeIDByRootAttribute(t *testing.T, interp *Interpreter, handle string,
 		return "", false
 	}
 
-	attributes, ok := parentNodeData["attributes"].(TreeAttrs)
+	attributes, ok := parentNodeData["attributes"].(utils.TreeAttrs)
 	if !ok {
 		if parentNodeData["attributes"] == nil {
 			t.Logf("findNodeIDByRootAttribute: Parent node '%s' has no 'attributes' field or it's nil.", parentNodeID)
@@ -47,7 +50,7 @@ func findNodeIDByRootAttribute(t *testing.T, interp *Interpreter, handle string,
 func TestTreeModificationTools(t *testing.T) {
 	jsonSimple := `{"name": "item", "value": 10}`
 
-	setupInitialTree := func(t *testing.T, interp *Interpreter) interface{} {
+	setupInitialTree := func(t *testing.T, interp *neurogo.Interpreter) interface{} {
 		return setupTreeWithJSON(t, interp, jsonSimple)
 	}
 
@@ -55,9 +58,9 @@ func TestTreeModificationTools(t *testing.T) {
 		{
 			name:		"SetValue Valid Leaf (string node) (Robust)",
 			toolName:	"Tree.GetNode",
-			args:		MakeArgs("SETUP_HANDLE:tree1", "node-1"),
+			args:		tool.MakeArgs("SETUP_HANDLE:tree1", "node-1"),
 			setupFunc:	setupInitialTree,
-			checkFunc: func(t *testing.T, interp *Interpreter, initialToolResult interface{}, initialToolErr error, ctx interface{}) {
+			checkFunc: func(t *testing.T, interp *neurogo.Interpreter, initialToolResult interface{}, initialToolErr error, ctx interface{}) {
 				handle := ctx.(string)
 				newValueToSet := "new_name_value"
 
@@ -72,7 +75,7 @@ func TestTreeModificationTools(t *testing.T) {
 				if !toolFound {
 					t.Fatalf("Tool Tree.SetValue not found in registry.")
 				}
-				_, setValueErr := setValueTool.Func(interp, MakeArgs(handle, targetNodeID, newValueToSet))
+				_, setValueErr := setValueTool.Func(interp, tool.MakeArgs(handle, targetNodeID, newValueToSet))
 				if setValueErr != nil {
 					t.Fatalf("SetValue tool call failed for node '%s': %v", targetNodeID, setValueErr)
 				}
@@ -92,22 +95,22 @@ func TestTreeModificationTools(t *testing.T) {
 			name:		"SetValue On Object Node",
 			toolName:	"Tree.SetValue",
 			setupFunc:	setupInitialTree,
-			args:		MakeArgs("SETUP_HANDLE:tree1", "node-1", "should_fail"),
-			wantErr:	ErrCannotSetValueOnType,
+			args:		tool.MakeArgs("SETUP_HANDLE:tree1", "node-1", "should_fail"),
+			wantErr:	lang.ErrCannotSetValueOnType,
 		},
 		{
 			name:		"SetValue NonExistent Node",
 			toolName:	"Tree.SetValue",
 			setupFunc:	setupInitialTree,
-			args:		MakeArgs("SETUP_HANDLE:tree1", "node-999", "val"),
-			wantErr:	ErrNotFound,
+			args:		tool.MakeArgs("SETUP_HANDLE:tree1", "node-999", "val"),
+			wantErr:	lang.ErrNotFound,
 		},
 		{
 			name:		"AddChildNode To Root Object",
 			toolName:	"Tree.AddChildNode",
 			setupFunc:	setupInitialTree,
-			args:		MakeArgs("SETUP_HANDLE:tree1", "node-1", "newChild1", "string", "hello", "newKeyInRoot"),
-			checkFunc: func(t *testing.T, interp *Interpreter, result interface{}, err error, ctx interface{}) {
+			args:		tool.MakeArgs("SETUP_HANDLE:tree1", "node-1", "newChild1", "string", "hello", "newKeyInRoot"),
+			checkFunc: func(t *testing.T, interp *neurogo.Interpreter, result interface{}, err error, ctx interface{}) {
 				if err != nil {
 					t.Fatalf("AddChildNode failed: %v", err)
 				}
@@ -117,7 +120,7 @@ func TestTreeModificationTools(t *testing.T) {
 				}
 				handle := ctx.(string)
 				parentNodeMap, _ := callGetNode(t, interp, handle, "node-1")
-				attrs, _ := parentNodeMap["attributes"].(TreeAttrs)
+				attrs, _ := parentNodeMap["attributes"].(utils.TreeAttrs)
 				if attrs["newKeyInRoot"] != newID {
 					t.Errorf("AddChildNode: newKeyInRoot not pointing to new child ID %s. Attrs: %v", newID, attrs)
 				}
@@ -131,15 +134,15 @@ func TestTreeModificationTools(t *testing.T) {
 			name:		"AddChildNode ID Exists",
 			toolName:	"Tree.AddChildNode",
 			setupFunc:	setupInitialTree,
-			args:		MakeArgs("SETUP_HANDLE:tree1", "node-1", "node-2", "string", "fail", "anotherKey"),
-			wantErr:	ErrNodeIDExists,
+			args:		tool.MakeArgs("SETUP_HANDLE:tree1", "node-1", "node-2", "string", "fail", "anotherKey"),
+			wantErr:	lang.ErrNodeIDExists,
 		},
 		{
 			name:		"AddChildNode To Leaf Node (Robust)",
 			toolName:	"Tree.GetNode",
-			args:		MakeArgs("SETUP_HANDLE:tree1", "node-1"),
+			args:		tool.MakeArgs("SETUP_HANDLE:tree1", "node-1"),
 			setupFunc:	setupInitialTree,
-			checkFunc: func(t *testing.T, interp *Interpreter, initialToolResult interface{}, initialToolErr error, ctx interface{}) {
+			checkFunc: func(t *testing.T, interp *neurogo.Interpreter, initialToolResult interface{}, initialToolErr error, ctx interface{}) {
 				handle := ctx.(string)
 				leafNodeID, found := findNodeIDByRootAttribute(t, interp, handle, "node-1", "name")
 				if !found {
@@ -147,9 +150,9 @@ func TestTreeModificationTools(t *testing.T) {
 				}
 
 				addTool, _ := interp.ToolRegistry().GetTool("Tree.AddChildNode")
-				_, addErr := addTool.Func(interp, MakeArgs(handle, leafNodeID, "newChild2", "string", "val", "key"))
+				_, addErr := addTool.Func(interp, tool.MakeArgs(handle, leafNodeID, "newChild2", "string", "val", "key"))
 
-				if !errors.Is(addErr, ErrNodeWrongType) {
+				if !errors.Is(addErr, lang.ErrNodeWrongType) {
 					t.Errorf("Expected ErrNodeWrongType when adding child to leaf node '%s', got %v", leafNodeID, addErr)
 				}
 			},
@@ -157,9 +160,9 @@ func TestTreeModificationTools(t *testing.T) {
 		{
 			name:		"RemoveNode Leaf (Robust)",
 			toolName:	"Tree.GetNode",
-			args:		MakeArgs("SETUP_HANDLE:tree1", "node-1"),
+			args:		tool.MakeArgs("SETUP_HANDLE:tree1", "node-1"),
 			setupFunc:	setupInitialTree,
-			checkFunc: func(t *testing.T, interp *Interpreter, initialGetNodeResult interface{}, initialGetNodeErr error, ctx interface{}) {
+			checkFunc: func(t *testing.T, interp *neurogo.Interpreter, initialGetNodeResult interface{}, initialGetNodeErr error, ctx interface{}) {
 				handle := ctx.(string)
 
 				if initialGetNodeErr != nil {
@@ -177,16 +180,16 @@ func TestTreeModificationTools(t *testing.T) {
 				if !toolFound {
 					t.Fatalf("Tool Tree.RemoveNode not found in registry.")
 				}
-				_, removeErr := removeTool.Func(interp, MakeArgs(handle, nodeIDToRemove))
+				_, removeErr := removeTool.Func(interp, tool.MakeArgs(handle, nodeIDToRemove))
 				if removeErr != nil {
 					t.Fatalf("RemoveNode Leaf checkFunc: Tree.RemoveNode tool call failed for dynamically found ID '%s': %v", nodeIDToRemove, removeErr)
 				}
 				t.Logf("Tree.RemoveNode called successfully for node ID: %s", nodeIDToRemove)
 
 				_, errGetRemoved := callGetNode(t, interp, handle, nodeIDToRemove)
-				if !errors.Is(errGetRemoved, ErrNotFound) {
-					var rtErr *RuntimeError
-					if errors.As(errGetRemoved, &rtErr) && errors.Is(rtErr.Wrapped, ErrNotFound) {
+				if !errors.Is(errGetRemoved, lang.ErrNotFound) {
+					var rtErr *lang.RuntimeError
+					if errors.As(errGetRemoved, &rtErr) && errors.Is(rtErr.Wrapped, lang.ErrNotFound) {
 						t.Logf("Successfully confirmed node '%s' not found (wrapped ErrNotFound).", nodeIDToRemove)
 					} else {
 						t.Errorf("Expected ErrNotFound after removing node '%s', but got: %v (type %T)", nodeIDToRemove, errGetRemoved, errGetRemoved)
@@ -199,7 +202,7 @@ func TestTreeModificationTools(t *testing.T) {
 				if errGetRootAfter != nil {
 					t.Fatalf("Failed to get root node 'node-1' after removal: %v", errGetRootAfter)
 				}
-				attributesAfterRemove, ok := rootNodeDataAfterRemove["attributes"].(TreeAttrs)
+				attributesAfterRemove, ok := rootNodeDataAfterRemove["attributes"].(utils.TreeAttrs)
 				if !ok {
 					if rootNodeDataAfterRemove["attributes"] == nil {
 						t.Logf("Root node 'attributes' field is nil after removal, which is fine.")
@@ -218,20 +221,20 @@ func TestTreeModificationTools(t *testing.T) {
 			name:		"RemoveNode Root",
 			toolName:	"Tree.RemoveNode",
 			setupFunc:	setupInitialTree,
-			args:		MakeArgs("SETUP_HANDLE:tree1", "node-1"),
-			wantErr:	ErrCannotRemoveRoot,
+			args:		tool.MakeArgs("SETUP_HANDLE:tree1", "node-1"),
+			wantErr:	lang.ErrCannotRemoveRoot,
 		},
 		{
 			name:		"RemoveNode NonExistent",
 			toolName:	"Tree.RemoveNode",
 			setupFunc:	setupInitialTree,
-			args:		MakeArgs("SETUP_HANDLE:tree1", "node-999"),
-			wantErr:	ErrNotFound,
+			args:		tool.MakeArgs("SETUP_HANDLE:tree1", "node-999"),
+			wantErr:	lang.ErrNotFound,
 		},
 	}
 
 	for _, tc := range testCases {
-		currentInterp, _ := NewDefaultTestInterpreter(t)
+		currentInterp, _ := llm.NewDefaultTestInterpreter(t)
 		testTreeToolHelper(t, currentInterp, tc)
 	}
 }

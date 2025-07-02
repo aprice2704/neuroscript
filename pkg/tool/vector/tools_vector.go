@@ -10,7 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"	// Import os package for ReadFile
+	"os" // Import os package for ReadFile
 	"path/filepath"
 	"sort"
 
@@ -19,15 +19,15 @@ import (
 
 // toolSearchSkills performs a mock similarity search.
 // Corresponds to ToolSpec "SearchSkills".
-func toolSearchSkills(interpreter *Interpreter, args []interface{}) (interface{}, error) {
+func toolSearchSkills(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
 	toolName := "SearchSkills"
 
 	if len(args) != 1 {
-		return nil, lang.NewRuntimeError(ErrorCodeArgMismatch, fmt.Sprintf("%s: expected 1 argument (query), got %d", toolName, len(args)), ErrArgumentMismatch)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("%s: expected 1 argument (query), got %d", toolName, len(args)), lang.ErrArgumentMismatch)
 	}
 	query, ok := args[0].(string)
 	if !ok {
-		return nil, lang.NewRuntimeError(ErrorCodeType, fmt.Sprintf("%s: query argument must be a string, got %T", toolName, args[0]), ErrInvalidArgument)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeType, fmt.Sprintf("%s: query argument must be a string, got %T", toolName, args[0]), lang.ErrInvalidArgument)
 	}
 
 	interpreter.Logger().Debug(fmt.Sprintf("[%s] (Mock) searching for query", toolName), "query", query)
@@ -41,7 +41,7 @@ func toolSearchSkills(interpreter *Interpreter, args []interface{}) (interface{}
 	if embErr != nil {
 		errMsg := fmt.Sprintf("%s: embedding generation failed", toolName)
 		interpreter.Logger().Error(errMsg, "error", embErr)
-		return nil, lang.NewRuntimeError(ErrorCodeInternal, errMsg, errors.Join(ErrInternalTool, embErr))
+		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, errMsg, errors.Join(lang.ErrInternalTool, embErr))
 	}
 
 	type SearchResult struct {
@@ -52,7 +52,7 @@ func toolSearchSkills(interpreter *Interpreter, args []interface{}) (interface{}
 	threshold := 0.5
 
 	for pathKeyAbs, storedEmb := range interpreter.vectorIndex {
-		score, simErr := cosineSimilarity(queryEmb, storedEmb)
+		score, simErr := llm.cosineSimilarity(queryEmb, storedEmb)
 		if simErr != nil {
 			interpreter.Logger().Warn(fmt.Sprintf("[%s] Could not calculate similarity", toolName), "path", pathKeyAbs, "error", simErr)
 			continue
@@ -80,7 +80,7 @@ func toolSearchSkills(interpreter *Interpreter, args []interface{}) (interface{}
 	if jsonErr != nil {
 		errMsg := fmt.Sprintf("%s: failed to marshal results to JSON", toolName)
 		interpreter.Logger().Error(errMsg, "error", jsonErr)
-		return nil, lang.NewRuntimeError(ErrorCodeInternal, errMsg, errors.Join(ErrInternalTool, jsonErr))
+		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, errMsg, errors.Join(lang.ErrInternalTool, jsonErr))
 	}
 
 	interpreter.Logger().Debug(fmt.Sprintf("[%s] Search complete", toolName), "results_count", len(results))
@@ -89,23 +89,23 @@ func toolSearchSkills(interpreter *Interpreter, args []interface{}) (interface{}
 
 // toolVectorUpdate adds or updates a file's mock embedding in the index.
 // Corresponds to ToolSpec "VectorUpdate".
-func toolVectorUpdate(interpreter *Interpreter, args []interface{}) (interface{}, error) {
+func toolVectorUpdate(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
 	toolName := "VectorUpdate"
 
 	if len(args) != 1 {
-		return nil, lang.NewRuntimeError(ErrorCodeArgMismatch, fmt.Sprintf("%s: expected 1 argument (filepath), got %d", toolName, len(args)), ErrArgumentMismatch)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("%s: expected 1 argument (filepath), got %d", toolName, len(args)), lang.ErrArgumentMismatch)
 	}
 	filePathRel, ok := args[0].(string)
 	if !ok {
-		return nil, lang.NewRuntimeError(ErrorCodeType, fmt.Sprintf("%s: filepath argument must be a string, got %T", toolName, args[0]), ErrInvalidArgument)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeType, fmt.Sprintf("%s: filepath argument must be a string, got %T", toolName, args[0]), lang.ErrInvalidArgument)
 	}
 	if filePathRel == "" {
-		return nil, lang.NewRuntimeError(ErrorCodeArgMismatch, fmt.Sprintf("%s: filepath cannot be empty", toolName), ErrInvalidArgument)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("%s: filepath cannot be empty", toolName), lang.ErrInvalidArgument)
 	}
 
 	fileAPI := interpreter.FileAPI()
 	if fileAPI == nil {
-		return nil, lang.NewRuntimeError(ErrorCodeInternal, fmt.Sprintf("%s: FileAPI not initialized in interpreter", toolName), ErrInternal)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, fmt.Sprintf("%s: FileAPI not initialized in interpreter", toolName), lang.ErrInternal)
 	}
 
 	interpreter.Logger().Debug(fmt.Sprintf("[%s] (Mock) updating index for", toolName), "relative_path", filePathRel)
@@ -122,7 +122,7 @@ func toolVectorUpdate(interpreter *Interpreter, args []interface{}) (interface{}
 	contentBytes, readErr := os.ReadFile(absPath)
 	if readErr != nil {
 		interpreter.Logger().Error(fmt.Sprintf("%s: failed to read file", toolName), "absolute_path", absPath, "error", readErr)
-		return nil, lang.NewRuntimeError(ErrorCodeIOFailed, fmt.Sprintf("failed to read file '%s'", filePathRel), readErr)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeIOFailed, fmt.Sprintf("failed to read file '%s'", filePathRel), readErr)
 	}
 
 	// Generate embedding
@@ -130,7 +130,7 @@ func toolVectorUpdate(interpreter *Interpreter, args []interface{}) (interface{}
 	if embErr != nil {
 		errMsg := fmt.Sprintf("%s: embedding generation failed for %q", toolName, filePathRel)
 		interpreter.Logger().Error(errMsg, "error", embErr)
-		return nil, lang.NewRuntimeError(ErrorCodeInternal, errMsg, errors.Join(ErrInternalTool, embErr))
+		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, errMsg, errors.Join(lang.ErrInternalTool, embErr))
 	}
 
 	// The absPath from ResolvePath is already the correct key for the vector index.

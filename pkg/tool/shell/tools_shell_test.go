@@ -12,10 +12,13 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+
+	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
 // testShellToolHelper tests the toolExecuteCommand implementation directly.
-func testShellToolHelper(t *testing.T, interp *Interpreter, tc struct {
+func testShellToolHelper(t *testing.T, interp *neurogo.Interpreter, tc struct {
 	name		string
 	args		[]interface{}
 	wantSuccess	bool
@@ -67,7 +70,7 @@ func TestToolExecuteCommand(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("Skipping shell command tests on Windows")
 	}
-	interp, _ := NewDefaultTestInterpreter(t)
+	interp, _ := llm.NewDefaultTestInterpreter(t)
 	sandboxDir := t.TempDir()
 	if err := interp.SetSandboxDir(sandboxDir); err != nil {
 		t.Fatalf("Failed to set sandbox dir: %v", err)
@@ -82,14 +85,14 @@ func TestToolExecuteCommand(t *testing.T) {
 		wantStderr	string
 		wantErrIs	error
 	}{
-		{name: "Simple Echo", args: MakeArgs("echo", []string{"hello"}), wantSuccess: true, wantExitCode: 0, wantStdout: "hello\n"},
-		{name: "Command False Failure", args: MakeArgs("false"), wantSuccess: false, wantExitCode: 1},
-		{name: "Command Not Found", args: MakeArgs("nonexistent_command_ajsdflk"), wantSuccess: false, wantExitCode: -1, wantStderr: "executable file not found"},
-		{name: "Run in specified dir (pwd)", args: MakeArgs("pwd", nil, "."), wantSuccess: true, wantExitCode: 0, wantStdout: sandboxDir + "\n"},
-		{name: "Directory outside sandbox", args: MakeArgs("pwd", nil, "../escaped"), wantErrIs: ErrPathViolation},
-		{name: "Invalid Command Arg Type", args: MakeArgs(123), wantErrIs: ErrInvalidArgument},
-		{name: "Invalid Args_list Type", args: MakeArgs("echo", "not-a-list"), wantErrIs: ErrInvalidArgument},
-		{name: "Invalid Dir Type", args: MakeArgs("echo", nil, 123), wantErrIs: ErrInvalidArgument},
+		{name: "Simple Echo", args: tool.MakeArgs("echo", []string{"hello"}), wantSuccess: true, wantExitCode: 0, wantStdout: "hello\n"},
+		{name: "Command False Failure", args: tool.MakeArgs("false"), wantSuccess: false, wantExitCode: 1},
+		{name: "Command Not Found", args: tool.MakeArgs("nonexistent_command_ajsdflk"), wantSuccess: false, wantExitCode: -1, wantStderr: "executable file not found"},
+		{name: "Run in specified dir (pwd)", args: tool.MakeArgs("pwd", nil, "."), wantSuccess: true, wantExitCode: 0, wantStdout: sandboxDir + "\n"},
+		{name: "Directory outside sandbox", args: tool.MakeArgs("pwd", nil, "../escaped"), wantErrIs: lang.ErrPathViolation},
+		{name: "Invalid Command Arg Type", args: tool.MakeArgs(123), wantErrIs: lang.ErrInvalidArgument},
+		{name: "Invalid Args_list Type", args: tool.MakeArgs("echo", "not-a-list"), wantErrIs: lang.ErrInvalidArgument},
+		{name: "Invalid Dir Type", args: tool.MakeArgs("echo", nil, 123), wantErrIs: lang.ErrInvalidArgument},
 	}
 
 	for _, tt := range tests {

@@ -11,20 +11,23 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
 func TestToolWriteFileValidation(t *testing.T) {
-	writeValidationCases := []ValidationTestCase{
-		{Name: "Write - Correct args", InputArgs: MakeArgs("file.txt", "content"), ExpectedError: nil},
-		{Name: "Write - Path outside sandbox", InputArgs: MakeArgs("../bad.txt", "content"), ExpectedError: ErrPathViolation},
+	writeValidationCases := []testutil.ValidationTestCase{
+		{Name: "Write - Correct args", InputArgs: tool.MakeArgs("file.txt", "content"), ExpectedError: nil},
+		{Name: "Write - Path outside sandbox", InputArgs: tool.MakeArgs("../bad.txt", "content"), ExpectedError: lang.ErrPathViolation},
 	}
-	runValidationTestCases(t, "FS.Write", writeValidationCases)
+	testutil.runValidationTestCases(t, "FS.Write", writeValidationCases)
 
-	appendValidationCases := []ValidationTestCase{
-		{Name: "Append - Correct args", InputArgs: MakeArgs("file.txt", "content"), ExpectedError: nil},
-		{Name: "Append - Path outside sandbox", InputArgs: MakeArgs("../bad.txt", "content"), ExpectedError: ErrPathViolation},
+	appendValidationCases := []testutil.ValidationTestCase{
+		{Name: "Append - Correct args", InputArgs: tool.MakeArgs("file.txt", "content"), ExpectedError: nil},
+		{Name: "Append - Path outside sandbox", InputArgs: tool.MakeArgs("../bad.txt", "content"), ExpectedError: lang.ErrPathViolation},
 	}
-	runValidationTestCases(t, "FS.Append", appendValidationCases)
+	testutil.runValidationTestCases(t, "FS.Append", appendValidationCases)
 }
 
 func TestToolWriteFileFunctional(t *testing.T) {
@@ -34,12 +37,12 @@ func TestToolWriteFileFunctional(t *testing.T) {
 	}
 
 	testCases := []fsTestCase{
-		{name: "Write to new file", toolName: "FS.Write", args: MakeArgs("newfile.txt", "hello world"), setupFunc: setup, wantContent: "hello world"},
+		{name: "Write to new file", toolName: "FS.Write", args: tool.MakeArgs("newfile.txt", "hello world"), setupFunc: setup, wantContent: "hello world"},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			interp, err := NewDefaultTestInterpreter(t)
+			interp, err := llm.NewDefaultTestInterpreter(t)
 			if err != nil {
 				t.Fatalf("NewDefaultTestInterpreter failed: %v", err)
 			}

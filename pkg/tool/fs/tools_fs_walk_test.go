@@ -12,12 +12,14 @@ import (
 	"path/filepath"
 	"sort"
 	"testing"
+
+	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
-func makeWalkResultChecker(expected []map[string]interface{}) func(t *testing.T, interp *Interpreter, result interface{}, err error, ctx interface{}) {
-	return func(t *testing.T, interp *Interpreter, actual interface{}, err error, ctx interface{}) {
+func makeWalkResultChecker(expected []map[string]interface{}) func(t *testing.T, interp *neurogo.Interpreter, result interface{}, err error, ctx interface{}) {
+	return func(t *testing.T, interp *neurogo.Interpreter, actual interface{}, err error, ctx interface{}) {
 		t.Helper()
-		AssertNoError(t, err)
+		testutil.AssertNoError(t, err)
 
 		actualSlice, ok := actual.([]map[string]interface{})
 		if !ok {
@@ -66,7 +68,7 @@ func TestToolWalkDir(t *testing.T) {
 		{
 			name:		"Walk_from_root",
 			toolName:	"FS.Walk",
-			args:		MakeArgs("."),
+			args:		tool.MakeArgs("."),
 			setupFunc:	setupFunc,
 			checkFunc: makeWalkResultChecker([]map[string]interface{}{
 				{"path_relative": "dir1", "is_dir": true},
@@ -78,7 +80,7 @@ func TestToolWalkDir(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			interp, err := NewDefaultTestInterpreter(t)
+			interp, err := llm.NewDefaultTestInterpreter(t)
 			if err != nil {
 				t.Fatalf("NewDefaultTestInterpreter failed: %v", err)
 			}

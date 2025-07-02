@@ -9,35 +9,35 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"strings"	// For checking "is a directory" error string
+	"strings" // For checking "is a directory" error string
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
 )
 
 // toolReadFile implements the TOOL.ReadFile command.
-func toolReadFile(interpreter *Interpreter, args []interface{}) (interface{}, error) {
+func toolReadFile(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
 	if len(args) != 1 {
-		return nil, lang.NewRuntimeError(ErrorCodeArgMismatch, fmt.Sprintf("ReadFile: expected 1 argument (filepath), got %d", len(args)), ErrArgumentMismatch)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("ReadFile: expected 1 argument (filepath), got %d", len(args)), lang.ErrArgumentMismatch)
 	}
 
 	relPath, ok := args[0].(string)
 	if !ok {
-		return nil, lang.NewRuntimeError(ErrorCodeType, fmt.Sprintf("ReadFile: filepath argument must be a string, got %T", args[0]), ErrInvalidArgument)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeType, fmt.Sprintf("ReadFile: filepath argument must be a string, got %T", args[0]), lang.ErrInvalidArgument)
 	}
 
 	// *** ADDED: Explicit check for empty path ***
 	if relPath == "" {
-		return nil, lang.NewRuntimeError(ErrorCodeArgMismatch, "ReadFile: filepath argument cannot be empty", ErrInvalidArgument)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "ReadFile: filepath argument cannot be empty", lang.ErrInvalidArgument)
 	}
 
 	sandboxRoot := interpreter.SandboxDir()
 	if sandboxRoot == "" {
 		interpreter.Logger().Error("Tool: ReadFile] Interpreter sandboxDir is empty, cannot proceed.")
-		return nil, lang.NewRuntimeError(ErrorCodeConfiguration, "ReadFile: interpreter sandbox directory is not set", ErrConfiguration)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeConfiguration, "ReadFile: interpreter sandbox directory is not set", lang.ErrConfiguration)
 	}
 
 	// Use ResolveAndSecurePath which handles various security checks
-	absPath, secErr := ResolveAndSecurePath(relPath, sandboxRoot)
+	absPath, secErr := security.ResolveAndSecurePath(relPath, sandboxRoot)
 	if secErr != nil {
 		interpreter.Logger().Warn("Tool: ReadFile path validation failed", "relative_path", relPath, "sandbox_root", sandboxRoot, "error", secErr)
 		return "", secErr	// Return empty string and the error
@@ -52,12 +52,12 @@ func toolReadFile(interpreter *Interpreter, args []interface{}) (interface{}, er
 		if errors.Is(err, os.ErrNotExist) {
 			errMsg := fmt.Sprintf("ReadFile: file not found '%s'", relPath)
 			interpreter.Logger().Debug(errMsg)
-			return "", lang.NewRuntimeError(ErrorCodeFileNotFound, errMsg, ErrFileNotFound)	// Return empty string and error
+			return "", lang.NewRuntimeError(lang.ErrorCodeFileNotFound, errMsg, lang.ErrFileNotFound)	// Return empty string and error
 		}
 		if errors.Is(err, os.ErrPermission) {
 			errMsg := fmt.Sprintf("ReadFile: permission denied for '%s'", relPath)
 			interpreter.Logger().Warn(errMsg)
-			return "", lang.NewRuntimeError(ErrorCodePermissionDenied, errMsg, ErrPermissionDenied)	// Return empty string and error
+			return "", lang.NewRuntimeError(lang.ErrorCodePermissionDenied, errMsg, lang.ErrPermissionDenied)	// Return empty string and error
 		}
 
 		// *** ADDED: Check for "is a directory" error ***
@@ -67,13 +67,13 @@ func toolReadFile(interpreter *Interpreter, args []interface{}) (interface{}, er
 			errMsg := fmt.Sprintf("ReadFile: path '%s' is a directory, not a file", relPath)
 			interpreter.Logger().Debug(errMsg)
 			// Use ErrPathNotFile sentinel error
-			return "", lang.NewRuntimeError(ErrorCodePathTypeMismatch, errMsg, ErrPathNotFile)	// Return empty string and error
+			return "", lang.NewRuntimeError(lang.ErrorCodePathTypeMismatch, errMsg, lang.ErrPathNotFile)	// Return empty string and error
 		}
 
 		// Handle other potential I/O errors
 		errMsg := fmt.Sprintf("ReadFile: failed to read file '%s'", relPath)
 		interpreter.Logger().Error(errMsg, "error", err)
-		return "", lang.NewRuntimeError(ErrorCodeIOFailed, errMsg, errors.Join(ErrIOFailed, err))	// Return empty string and error
+		return "", lang.NewRuntimeError(lang.ErrorCodeIOFailed, errMsg, errors.Join(lang.ErrIOFailed, err))	// Return empty string and error
 	}
 
 	// Success

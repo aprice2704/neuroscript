@@ -11,6 +11,9 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
 func TestToolReadFile(t *testing.T) {
@@ -22,15 +25,15 @@ func TestToolReadFile(t *testing.T) {
 	}
 
 	tests := []fsTestCase{
-		{name: "Read Existing File", toolName: "FS.Read", args: MakeArgs(readTestFile), setupFunc: setup, wantResult: readTestContent},
-		{name: "Read Non-Existent File", toolName: "FS.Read", args: MakeArgs("nonexistent.txt"), wantToolErrIs: ErrFileNotFound},
-		{name: "Validation_Empty_Filepath_Arg", toolName: "FS.Read", args: MakeArgs(""), wantToolErrIs: ErrInvalidArgument},
-		{name: "Path_Outside_Sandbox", toolName: "FS.Read", args: MakeArgs("../outside.txt"), wantToolErrIs: ErrPathViolation},
+		{name: "Read Existing File", toolName: "FS.Read", args: tool.MakeArgs(readTestFile), setupFunc: setup, wantResult: readTestContent},
+		{name: "Read Non-Existent File", toolName: "FS.Read", args: tool.MakeArgs("nonexistent.txt"), wantToolErrIs: lang.ErrFileNotFound},
+		{name: "Validation_Empty_Filepath_Arg", toolName: "FS.Read", args: tool.MakeArgs(""), wantToolErrIs: lang.ErrInvalidArgument},
+		{name: "Path_Outside_Sandbox", toolName: "FS.Read", args: tool.MakeArgs("../outside.txt"), wantToolErrIs: lang.ErrPathViolation},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			interp, err := NewDefaultTestInterpreter(t)
+			interp, err := llm.NewDefaultTestInterpreter(t)
 			if err != nil {
 				t.Fatalf("NewDefaultTestInterpreter failed: %v", err)
 			}

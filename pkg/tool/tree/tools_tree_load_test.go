@@ -12,6 +12,9 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
 func TestTreeLoadJSONAndToJSON(t *testing.T) {
@@ -20,24 +23,24 @@ func TestTreeLoadJSONAndToJSON(t *testing.T) {
 
 	testCases := []treeTestCase{
 		// Tree.LoadJSON
-		{name: "LoadJSON Simple Object", toolName: "Tree.LoadJSON", args: MakeArgs(validJSONSimple), checkFunc: func(t *testing.T, interp *Interpreter, result interface{}, err error, _ interface{}) {
+		{name: "LoadJSON Simple Object", toolName: "Tree.LoadJSON", args: tool.MakeArgs(validJSONSimple), checkFunc: func(t *testing.T, interp *neurogo.Interpreter, result interface{}, err error, _ interface{}) {
 			if err != nil {
 				t.Errorf("Unexpected error: %v", err)
-			} else if handleStr, ok := result.(string); !ok || !strings.HasPrefix(handleStr, GenericTreeHandleType+"::") {
+			} else if handleStr, ok := result.(string); !ok || !strings.HasPrefix(handleStr, utils.GenericTreeHandleType+"::") {
 				t.Errorf("Expected valid handle string, got %T: %v", result, result)
 			}
 		}},
-		{name: "LoadJSON Invalid JSON", toolName: "Tree.LoadJSON", args: MakeArgs(`{"key": "value`), wantErr: ErrTreeJSONUnmarshal},
-		{name: "LoadJSON Empty Input", toolName: "Tree.LoadJSON", args: MakeArgs(``), wantErr: ErrTreeJSONUnmarshal},
-		{name: "LoadJSON Wrong Arg Type", toolName: "Tree.LoadJSON", args: MakeArgs(123), wantErr: ErrInvalidArgument},
+		{name: "LoadJSON Invalid JSON", toolName: "Tree.LoadJSON", args: tool.MakeArgs(`{"key": "value`), wantErr: lang.ErrTreeJSONUnmarshal},
+		{name: "LoadJSON Empty Input", toolName: "Tree.LoadJSON", args: tool.MakeArgs(``), wantErr: lang.ErrTreeJSONUnmarshal},
+		{name: "LoadJSON Wrong Arg Type", toolName: "Tree.LoadJSON", args: tool.MakeArgs(123), wantErr: lang.ErrInvalidArgument},
 
 		// Tree.ToJSON
 		{name: "ToJSON Simple Object", toolName: "Tree.ToJSON",
-			setupFunc: func(t *testing.T, interp *Interpreter) interface{} {
+			setupFunc: func(t *testing.T, interp *neurogo.Interpreter) interface{} {
 				return setupTreeWithJSON(t, interp, validJSONSimple)
 			},
-			args:	MakeArgs("SETUP_HANDLE:tree1"),	// Placeholder replaced by setupFunc result
-			checkFunc: func(t *testing.T, interp *Interpreter, result interface{}, err error, _ interface{}) {
+			args:	tool.MakeArgs("SETUP_HANDLE:tree1"),	// Placeholder replaced by setupFunc result
+			checkFunc: func(t *testing.T, interp *neurogo.Interpreter, result interface{}, err error, _ interface{}) {
 				if err != nil {
 					t.Fatalf("ToJSON failed: %v", err)
 				}
@@ -52,12 +55,12 @@ func TestTreeLoadJSONAndToJSON(t *testing.T) {
 					t.Errorf("ToJSON output mismatch after unmarshalling.\nGot:    %#v\nWanted: %#v", gotMap, expectedMap)
 				}
 			}},
-		{name: "ToJSON_Invalid_Handle", toolName: "Tree.ToJSON", args: MakeArgs("invalid-handle"), wantErr: ErrInvalidArgument},
-		{name: "ToJSON_Handle_Not_Found", toolName: "Tree.ToJSON", args: MakeArgs(GenericTreeHandleType + "::non-existent-uuid"), wantErr: ErrHandleNotFound},
+		{name: "ToJSON_Invalid_Handle", toolName: "Tree.ToJSON", args: tool.MakeArgs("invalid-handle"), wantErr: lang.ErrInvalidArgument},
+		{name: "ToJSON_Handle_Not_Found", toolName: "Tree.ToJSON", args: tool.MakeArgs(utils.GenericTreeHandleType + "::non-existent-uuid"), wantErr: lang.ErrHandleNotFound},
 	}
 
 	for _, tc := range testCases {
-		currentInterp, _ := NewDefaultTestInterpreter(t)
+		currentInterp, _ := llm.NewDefaultTestInterpreter(t)
 		testTreeToolHelper(t, currentInterp, tc)
 	}
 }

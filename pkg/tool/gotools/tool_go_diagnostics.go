@@ -17,7 +17,7 @@ import (
 // --- Tool Implementations for Go Diagnostic Commands ---
 
 // toolGoVet implementation
-func toolGoVet(interpreter *Interpreter, args []interface{}) (interface{}, error) {
+func toolGoVet(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
 	vetTarget := "./..."	// Default target
 	if len(args) > 0 {
 		if targetArg, ok := args[0].(string); ok && targetArg != "" {
@@ -30,7 +30,7 @@ func toolGoVet(interpreter *Interpreter, args []interface{}) (interface{}, error
 
 // toolStaticcheck implementation
 // NOTE: Assumes 'staticcheck' executable is available in the PATH.
-func toolStaticcheck(interpreter *Interpreter, args []interface{}) (interface{}, error) {
+func toolStaticcheck(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
 	checkTarget := "./..."	// Default target
 	if len(args) > 0 {
 		if targetArg, ok := args[0].(string); ok && targetArg != "" {
@@ -38,24 +38,24 @@ func toolStaticcheck(interpreter *Interpreter, args []interface{}) (interface{},
 		}
 	}
 	execArgs := []interface{}{"staticcheck", []string{checkTarget}, "."}
-	return toolExecuteCommand(interpreter, execArgs)
+	return shell.toolExecuteCommand(interpreter, execArgs)
 }
 
 // toolGoImports formats a Go source string and manages imports using golang.org/x/tools/imports.
-func toolGoImports(i *Interpreter, args []interface{}) (interface{}, error) {
+func toolGoImports(i *neurogo.Interpreter, args []interface{}) (interface{}, error) {
 	errorResult := func(errMsg string) map[string]interface{} {
 		return map[string]interface{}{"success": false, "error": errMsg}
 	}
 
 	if len(args) != 1 {
 		errMsg := "Go.Imports expects exactly 1 argument: source_code"
-		return errorResult(errMsg), lang.NewRuntimeError(ErrorCodeArgMismatch, errMsg, ErrArgumentMismatch)
+		return errorResult(errMsg), lang.NewRuntimeError(lang.ErrorCodeArgMismatch, errMsg, lang.ErrArgumentMismatch)
 	}
 
 	source, ok := args[0].(string)
 	if !ok {
 		errMsg := fmt.Sprintf("invalid argument: expected source code string, got %T", args[0])
-		return errorResult(errMsg), lang.NewRuntimeError(ErrorCodeType, errMsg, ErrInvalidArgument)
+		return errorResult(errMsg), lang.NewRuntimeError(lang.ErrorCodeType, errMsg, lang.ErrInvalidArgument)
 	}
 
 	if source == "" {
@@ -67,7 +67,7 @@ func toolGoImports(i *Interpreter, args []interface{}) (interface{}, error) {
 	processedContent, err := imports.Process("", []byte(source), nil)
 	if err != nil {
 		errMsg := fmt.Sprintf("failed to process Go imports: %v", err)
-		return errorResult(errMsg), lang.NewRuntimeError(ErrorCodeToolExecutionFailed, errMsg, ErrToolExecutionFailed)
+		return errorResult(errMsg), lang.NewRuntimeError(lang.ErrorCodeToolExecutionFailed, errMsg, lang.ErrToolExecutionFailed)
 	}
 
 	return string(processedContent), nil

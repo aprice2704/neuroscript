@@ -6,16 +6,18 @@ package gotools
 
 import (
 	"fmt"
+
+	"github.com/aprice2704/neuroscript/pkg/tool"
 	// Keep existing imports: go/token, golang.org/x/tools/go/packages etc. from sub-files assumed available
 )
 
 // registerGoTools adds Go toolchain interaction tools to the registry.
 // Includes build, format, test, diagnostics, and semantic indexing tools.
-func registerGoTools(registry ToolRegistrar) error {	// Changed signature to accept ToolRegistrar interface
+func registerGoTools(registry tool.ToolRegistrar) error {	// Changed signature to accept tool.ToolRegistrar interface
 	// Note: ToolImplementation structs defined inline here for tools whose impl funcs
 	// are in separate files but don't have their own *_impl.go variable defined.
 	// Consider defining impl variables in respective files (e.g., toolGoBuildImpl) for consistency later.
-	tools := []ToolImplementation{
+	tools := []tool.ToolImplementation{
 		// --- Build / Test / Basic Commands ---
 		// +++ ADDED: Defined in tools_go_find_usages.go +++
 

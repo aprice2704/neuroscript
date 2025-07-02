@@ -10,7 +10,7 @@ import (
 	"fmt"
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
-	"github.com/aprice2704/neuroscript/pkg/neurodata/metadata" // Import the actual metadata package
+	"github.com/aprice2704/neuroscript/pkg/neurodata/metadata"	// Import the actual metadata package
 	// "errors" - Not needed currently
 	// "log" - Not needed currently
 )

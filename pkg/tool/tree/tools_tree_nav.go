@@ -14,16 +14,16 @@ import (
 )
 
 // toolTreeGetNode implements the Tree.GetNode tool.
-func toolTreeGetNode(interpreter *Interpreter, args []interface{}) (interface{}, error) {
+func toolTreeGetNode(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
 	toolName := "Tree.GetNode"
 	if len(args) != 2 {
-		return nil, lang.NewRuntimeError(ErrorCodeArgMismatch, fmt.Sprintf("%s: expected 2 arguments (tree_handle, node_id), got %d", toolName, len(args)), ErrArgumentMismatch)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("%s: expected 2 arguments (tree_handle, node_id), got %d", toolName, len(args)), lang.ErrArgumentMismatch)
 	}
 
 	treeHandle, okHandle := args[0].(string)
 	nodeID, okNodeID := args[1].(string)
 	if !okHandle || !okNodeID || treeHandle == "" || nodeID == "" {
-		return nil, lang.NewRuntimeError(ErrorCodeArgMismatch, fmt.Sprintf("%s: invalid arguments (handle=%T, nodeID=%T)", toolName, args[0], args[1]), ErrInvalidArgument)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("%s: invalid arguments (handle=%T, nodeID=%T)", toolName, args[0], args[1]), lang.ErrInvalidArgument)
 	}
 
 	_, node, err := getNodeFromHandle(interpreter, treeHandle, nodeID, toolName)
@@ -59,16 +59,16 @@ func toolTreeGetNode(interpreter *Interpreter, args []interface{}) (interface{},
 }
 
 // toolTreeGetChildren implements the Tree.GetChildren tool.
-func toolTreeGetChildren(interpreter *Interpreter, args []interface{}) (interface{}, error) {
+func toolTreeGetChildren(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
 	toolName := "Tree.GetChildren"
 	if len(args) != 2 {
-		return nil, lang.NewRuntimeError(ErrorCodeArgMismatch, fmt.Sprintf("%s: expected 2 arguments (tree_handle, node_id), got %d", toolName, len(args)), ErrArgumentMismatch)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("%s: expected 2 arguments (tree_handle, node_id), got %d", toolName, len(args)), lang.ErrArgumentMismatch)
 	}
 
 	treeHandle, okHandle := args[0].(string)
 	nodeID, okNodeID := args[1].(string)
 	if !okHandle || !okNodeID || treeHandle == "" || nodeID == "" {
-		return nil, lang.NewRuntimeError(ErrorCodeArgMismatch, fmt.Sprintf("%s: invalid arguments (handle=%T, nodeID=%T)", toolName, args[0], args[1]), ErrInvalidArgument)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("%s: invalid arguments (handle=%T, nodeID=%T)", toolName, args[0], args[1]), lang.ErrInvalidArgument)
 	}
 
 	_, node, err := getNodeFromHandle(interpreter, treeHandle, nodeID, toolName)
@@ -77,9 +77,9 @@ func toolTreeGetChildren(interpreter *Interpreter, args []interface{}) (interfac
 	}
 
 	if node.Type != "array" {	// This tool is specific to "array" type nodes
-		return nil, lang.NewRuntimeError(ErrorCodeNodeWrongType,
+		return nil, lang.NewRuntimeError(lang.ErrorCodeNodeWrongType,
 			fmt.Sprintf("%s: cannot get children of node type '%s' (expected 'array')", toolName, node.Type),
-			ErrNodeWrongType)
+			lang.ErrNodeWrongType)
 	}
 
 	var childIDsToReturn []interface{}
@@ -99,16 +99,16 @@ func toolTreeGetChildren(interpreter *Interpreter, args []interface{}) (interfac
 }
 
 // toolTreeGetParent implements the Tree.GetParent tool.
-func toolTreeGetParent(interpreter *Interpreter, args []interface{}) (interface{}, error) {
+func toolTreeGetParent(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
 	toolName := "Tree.GetParent"
 	if len(args) != 2 {
-		return nil, lang.NewRuntimeError(ErrorCodeArgMismatch, fmt.Sprintf("%s: expected 2 arguments (tree_handle, node_id), got %d", toolName, len(args)), ErrArgumentMismatch)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("%s: expected 2 arguments (tree_handle, node_id), got %d", toolName, len(args)), lang.ErrArgumentMismatch)
 	}
 
 	treeHandle, okHandle := args[0].(string)
 	nodeID, okNodeID := args[1].(string)
 	if !okHandle || !okNodeID || treeHandle == "" || nodeID == "" {
-		return nil, lang.NewRuntimeError(ErrorCodeArgMismatch, fmt.Sprintf("%s: invalid arguments (handle=%T, nodeID=%T)", toolName, args[0], args[1]), ErrInvalidArgument)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("%s: invalid arguments (handle=%T, nodeID=%T)", toolName, args[0], args[1]), lang.ErrInvalidArgument)
 	}
 
 	_, node, err := getNodeFromHandle(interpreter, treeHandle, nodeID, toolName)

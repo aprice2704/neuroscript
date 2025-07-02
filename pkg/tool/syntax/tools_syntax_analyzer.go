@@ -11,6 +11,8 @@ import (
 	"fmt"
 
 	"github.com/aprice2704/neuroscript/pkg/adapters"
+	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/parser"
 	// "encoding/json" // No longer needed as we return a map/slice directly
 )
 
@@ -29,16 +31,16 @@ const (
 // It's called by the wrapper function defined in tooldefs_syntax.go.
 // It now returns a slice of maps (each map representing a StructuredSyntaxError),
 // or an empty slice if no errors. The error return is for unexpected internal issues.
-func AnalyzeNSSyntaxInternal(interpreter *Interpreter, nsScriptContent string) (interface{}, error) {
+func AnalyzeNSSyntaxInternal(interpreter *neurogo.Interpreter, nsScriptContent string) (interface{}, error) {
 	if interpreter == nil {
-		return nil, fmt.Errorf("interpreter cannot be nil: %w", ErrInvalidArgument)	//
+		return nil, fmt.Errorf("interpreter cannot be nil: %w", lang.ErrInvalidArgument)	//
 	}
 	logger := interpreter.Logger()
 	if logger == nil {
 		logger = &adapters.NewNoOpLogger{}	//
 	}
 
-	parserAPI := NewParserAPI(logger)	//
+	parserAPI := parser.NewParserAPI(logger)	//
 	// ParseForLSP returns all structured errors found.
 	_, structuredErrors := parserAPI.ParseForLSP(analyzerSourceNameInternal, nsScriptContent)
 

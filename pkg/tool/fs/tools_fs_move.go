@@ -15,44 +15,44 @@ import (
 
 // toolMoveFile moves or renames a file or directory within the sandbox.
 // Implements the MoveFile tool.
-func toolMoveFile(interpreter *Interpreter, args []interface{}) (interface{}, error) {
+func toolMoveFile(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
 	if len(args) != 2 {
-		return nil, lang.NewRuntimeError(ErrorCodeArgMismatch, fmt.Sprintf("MoveFile: expected 2 arguments (source_path, destination_path), got %d", len(args)), ErrArgumentMismatch)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("MoveFile: expected 2 arguments (source_path, destination_path), got %d", len(args)), lang.ErrArgumentMismatch)
 	}
 
 	sourcePathRel, okSrc := args[0].(string)
 	destPathRel, okDest := args[1].(string)
 
 	if !okSrc {
-		return nil, lang.NewRuntimeError(ErrorCodeType, fmt.Sprintf("MoveFile: source_path argument must be a string, got %T", args[0]), ErrInvalidArgument)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeType, fmt.Sprintf("MoveFile: source_path argument must be a string, got %T", args[0]), lang.ErrInvalidArgument)
 	}
 	if !okDest {
-		return nil, lang.NewRuntimeError(ErrorCodeType, fmt.Sprintf("MoveFile: destination_path argument must be a string, got %T", args[1]), ErrInvalidArgument)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeType, fmt.Sprintf("MoveFile: destination_path argument must be a string, got %T", args[1]), lang.ErrInvalidArgument)
 	}
 	if sourcePathRel == "" {
-		return nil, lang.NewRuntimeError(ErrorCodeArgMismatch, "MoveFile: source_path cannot be empty", ErrInvalidArgument)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "MoveFile: source_path cannot be empty", lang.ErrInvalidArgument)
 	}
 	if destPathRel == "" {
-		return nil, lang.NewRuntimeError(ErrorCodeArgMismatch, "MoveFile: destination_path cannot be empty", ErrInvalidArgument)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "MoveFile: destination_path cannot be empty", lang.ErrInvalidArgument)
 	}
 	if sourcePathRel == destPathRel {
-		return nil, lang.NewRuntimeError(ErrorCodeArgMismatch, "MoveFile: source and destination paths cannot be the same", ErrInvalidArgument)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "MoveFile: source and destination paths cannot be the same", lang.ErrInvalidArgument)
 	}
 
 	sandboxRoot := interpreter.SandboxDir()
 	if sandboxRoot == "" {
 		interpreter.Logger().Error("Tool: MoveFile] Interpreter sandboxDir is empty, cannot proceed.")
-		return nil, lang.NewRuntimeError(ErrorCodeConfiguration, "MoveFile: interpreter sandbox directory is not set", ErrConfiguration)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeConfiguration, "MoveFile: interpreter sandbox directory is not set", lang.ErrConfiguration)
 	}
 
-	absSource, errSource := SecureFilePath(sourcePathRel, sandboxRoot)
+	absSource, errSource := security.SecureFilePath(sourcePathRel, sandboxRoot)
 	if errSource != nil {
 		interpreter.Logger().Infof("Tool: MoveFile] Invalid source path '%s': %v", sourcePathRel, errSource)
 		// Return the RuntimeError directly
 		return nil, errSource
 	}
 
-	absDest, errDest := SecureFilePath(destPathRel, sandboxRoot)
+	absDest, errDest := security.SecureFilePath(destPathRel, sandboxRoot)
 	if errDest != nil {
 		interpreter.Logger().Infof("Tool: MoveFile] Invalid destination path '%s': %v", destPathRel, errDest)
 		// Return the RuntimeError directly
@@ -65,16 +65,16 @@ func toolMoveFile(interpreter *Interpreter, args []interface{}) (interface{}, er
 	_, srcStatErr := os.Stat(absSource)
 	if srcStatErr != nil {
 		errMsg := ""
-		var rtErr *RuntimeError
+		var rtErr *lang.RuntimeError
 		if errors.Is(srcStatErr, os.ErrNotExist) {
 			errMsg = fmt.Sprintf("MoveFile: source path '%s' does not exist", sourcePathRel)
-			rtErr = lang.NewRuntimeError(ErrorCodeFileNotFound, errMsg, ErrFileNotFound)
+			rtErr = lang.NewRuntimeError(lang.ErrorCodeFileNotFound, errMsg, lang.ErrFileNotFound)
 		} else if errors.Is(srcStatErr, os.ErrPermission) {
 			errMsg = fmt.Sprintf("MoveFile: permission denied checking source path '%s'", sourcePathRel)
-			rtErr = lang.NewRuntimeError(ErrorCodePermissionDenied, errMsg, ErrPermissionDenied)
+			rtErr = lang.NewRuntimeError(lang.ErrorCodePermissionDenied, errMsg, lang.ErrPermissionDenied)
 		} else {
 			errMsg = fmt.Sprintf("MoveFile: error checking source path '%s'", sourcePathRel)
-			rtErr = lang.NewRuntimeError(ErrorCodeIOFailed, errMsg, errors.Join(ErrIOFailed, srcStatErr))
+			rtErr = lang.NewRuntimeError(lang.ErrorCodeIOFailed, errMsg, errors.Join(lang.ErrIOFailed, srcStatErr))
 		}
 		interpreter.Logger().Warnf("Tool: MoveFile] Source check failed: %s: %v", errMsg, srcStatErr)
 		return nil, rtErr	// Return nil value and the runtime error
@@ -87,15 +87,15 @@ func toolMoveFile(interpreter *Interpreter, args []interface{}) (interface{}, er
 		errMsg := fmt.Sprintf("MoveFile: destination path '%s' already exists", destPathRel)
 		interpreter.Logger().Warnf("Tool: MoveFile] Error: %s (resolved: %s)", errMsg, absDest)
 		// Use ErrorCodePathExists
-		return nil, lang.NewRuntimeError(ErrorCodePathExists, errMsg, ErrPathExists)
+		return nil, lang.NewRuntimeError(lang.ErrorCodePathExists, errMsg, lang.ErrPathExists)
 	} else if !errors.Is(destStatErr, os.ErrNotExist) {
 		// Error stating destination path (e.g., permission error on parent dir)
 		errMsg := fmt.Sprintf("MoveFile: error checking destination path '%s'", destPathRel)
 		interpreter.Logger().Errorf("Tool: MoveFile] %s (resolved: %s): %v", errMsg, absDest, destStatErr)
 		if errors.Is(destStatErr, os.ErrPermission) {
-			return nil, lang.NewRuntimeError(ErrorCodePermissionDenied, errMsg, ErrPermissionDenied)
+			return nil, lang.NewRuntimeError(lang.ErrorCodePermissionDenied, errMsg, lang.ErrPermissionDenied)
 		}
-		return nil, lang.NewRuntimeError(ErrorCodeIOFailed, errMsg, errors.Join(ErrIOFailed, destStatErr))
+		return nil, lang.NewRuntimeError(lang.ErrorCodeIOFailed, errMsg, errors.Join(lang.ErrIOFailed, destStatErr))
 	}
 	// Destination does not exist (or stat failed with os.ErrNotExist), which is what we want.
 
@@ -107,7 +107,7 @@ func toolMoveFile(interpreter *Interpreter, args []interface{}) (interface{}, er
 		interpreter.Logger().Errorf("Tool: MoveFile] Error: %s: %v", errMsg, renameErr)
 		// Check for specific OS errors if needed (e.g., cross-device link), otherwise treat as general I/O
 		// Use ErrorCodeIOFailed
-		return nil, lang.NewRuntimeError(ErrorCodeIOFailed, errMsg, errors.Join(ErrIOFailed, renameErr))
+		return nil, lang.NewRuntimeError(lang.ErrorCodeIOFailed, errMsg, errors.Join(lang.ErrIOFailed, renameErr))
 	}
 
 	// Success

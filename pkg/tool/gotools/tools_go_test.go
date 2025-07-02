@@ -14,6 +14,9 @@ import (
 	"path/filepath"
 	"reflect"
 	"testing"
+
+	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
 // testGoGetModuleInfoHelper tests the toolGoGetModuleInfo implementation directly.
@@ -27,7 +30,7 @@ func testGoGetModuleInfoHelper(t *testing.T, tc struct {
 	t.Helper()
 	t.Run(tc.name, func(t *testing.T) {
 		// FIX: Correctly handle the (*Interpreter, error) return values.
-		interp, err := NewDefaultTestInterpreter(t)
+		interp, err := llm.NewDefaultTestInterpreter(t)
 		if err != nil {
 			t.Fatalf("NewDefaultTestInterpreter() failed: %v", err)
 		}
@@ -41,7 +44,7 @@ func testGoGetModuleInfoHelper(t *testing.T, tc struct {
 			tc.setupFunc(t, sandboxRoot)
 		}
 
-		args := MakeArgs(tc.dirArg)
+		args := tool.MakeArgs(tc.dirArg)
 		gotResult, toolErr := toolImpl.Func(interp, args)
 
 		if tc.wantErrIs != nil {
@@ -116,7 +119,7 @@ func TestToolGoGetModuleInfo(t *testing.T) {
 			name:		"Directory outside sandbox",
 			dirArg:		"../outside",
 			setupFunc:	setupFunc,
-			wantErrIs:	ErrPathViolation,
+			wantErrIs:	lang.ErrPathViolation,
 		},
 		{
 			name:	"Go.mod not found",
@@ -131,7 +134,7 @@ func TestToolGoGetModuleInfo(t *testing.T) {
 			name:		"Wrong arg type",
 			dirArg:		123,
 			setupFunc:	setupFunc,
-			wantErrIs:	ErrValidationTypeMismatch,
+			wantErrIs:	lang.ErrValidationTypeMismatch,
 		},
 	}
 

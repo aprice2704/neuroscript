@@ -10,6 +10,9 @@ package fileapi
 import (
 	"errors"
 	"testing"
+
+	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
 func testFileAPIToolHelper(t *testing.T, toolName string, tc struct {
@@ -19,7 +22,7 @@ func testFileAPIToolHelper(t *testing.T, toolName string, tc struct {
 }) {
 	t.Helper()
 	t.Run(tc.Name, func(t *testing.T) {
-		interp, _ := NewDefaultTestInterpreter(t)
+		interp, _ := llm.NewDefaultTestInterpreter(t)
 		toolImpl, found := interp.ToolRegistry().GetTool(toolName)
 		if !found {
 			t.Fatalf("Tool %q not found in registry", toolName)
@@ -35,7 +38,7 @@ func testFileAPIToolHelper(t *testing.T, toolName string, tc struct {
 			}
 		} else if err != nil {
 			// For unimplemented funcs, we might expect ErrFeatureNotImplemented
-			if !errors.Is(err, ErrFeatureNotImplemented) {
+			if !errors.Is(err, lang.ErrFeatureNotImplemented) {
 				t.Errorf("Unexpected error: %v", err)
 			}
 		}
@@ -48,7 +51,7 @@ func TestToolListAPIFiles(t *testing.T) {
 		Name		string
 		Args		[]interface{}
 		WantErrIs	error
-	}{Name: "Correct Args (None)", Args: MakeArgs(), WantErrIs: ErrFeatureNotImplemented})
+	}{Name: "Correct Args (None)", Args: tool.MakeArgs(), WantErrIs: lang.ErrFeatureNotImplemented})
 }
 
 func TestToolDeleteAPIFile(t *testing.T) {
@@ -57,7 +60,7 @@ func TestToolDeleteAPIFile(t *testing.T) {
 		Name		string
 		Args		[]interface{}
 		WantErrIs	error
-	}{Name: "Correct_Args", Args: MakeArgs("files/abcdef123"), WantErrIs: ErrFeatureNotImplemented})
+	}{Name: "Correct_Args", Args: tool.MakeArgs("files/abcdef123"), WantErrIs: lang.ErrFeatureNotImplemented})
 }
 
 func TestToolUploadFile(t *testing.T) {
@@ -66,7 +69,7 @@ func TestToolUploadFile(t *testing.T) {
 		Name		string
 		Args		[]interface{}
 		WantErrIs	error
-	}{Name: "Correct_Args_(Path_Only)", Args: MakeArgs("local/file.txt"), WantErrIs: ErrFeatureNotImplemented})
+	}{Name: "Correct_Args_(Path_Only)", Args: tool.MakeArgs("local/file.txt"), WantErrIs: lang.ErrFeatureNotImplemented})
 }
 
 func TestToolSyncFiles(t *testing.T) {
@@ -76,5 +79,5 @@ func TestToolSyncFiles(t *testing.T) {
 		Name		string
 		Args		[]interface{}
 		WantErrIs	error
-	}{Name: "Correct_Args_(Min_Required)", Args: MakeArgs("up", "local/sync_dir"), WantErrIs: ErrLLMNotConfigured})
+	}{Name: "Correct_Args_(Min_Required)", Args: tool.MakeArgs("up", "local/sync_dir"), WantErrIs: lang.ErrLLMNotConfigured})
 }

@@ -15,6 +15,7 @@ import (
 
 	// Assumed import from original file
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
+	"github.com/aprice2704/neuroscript/pkg/lang"
 	"golang.org/x/mod/modfile"
 )
 
@@ -78,7 +79,7 @@ func FindAndParseGoMod(startDir string, log interfaces.Logger) (*modfile.File, s
 
 // --- Tool: GoGetModuleInfo ---
 
-func toolGoGetModuleInfo(interpreter *Interpreter, args []interface{}) (interface{}, error) {
+func toolGoGetModuleInfo(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
 	logPrefix := "[TOOL-GoGetModuleInfo]"
 	logger := interpreter.Logger()
 	startDirRel := "."
@@ -86,7 +87,7 @@ func toolGoGetModuleInfo(interpreter *Interpreter, args []interface{}) (interfac
 	if len(args) > 0 && args[0] != nil {
 		dirStr, ok := args[0].(string)
 		if !ok {
-			return nil, fmt.Errorf("%w: directory argument must be a string, got %T", ErrValidationTypeMismatch, args[0])
+			return nil, fmt.Errorf("%w: directory argument must be a string, got %T", lang.ErrValidationTypeMismatch, args[0])
 		}
 		startDirRel = dirStr
 	}
@@ -95,11 +96,11 @@ func toolGoGetModuleInfo(interpreter *Interpreter, args []interface{}) (interfac
 
 	sandboxRoot := interpreter.SandboxDir()
 	if sandboxRoot == "" {
-		return nil, fmt.Errorf("%w: interpreter sandbox directory not set", ErrInternalSecurity)
+		return nil, fmt.Errorf("%w: interpreter sandbox directory not set", lang.ErrInternalSecurity)
 	}
 	// Assuming ResolveAndSecurePath is available in the core package.
 	// If it's from security.go or security_helpers.go, it should be fine.
-	absStartDir, secErr := ResolveAndSecurePath(startDirRel, sandboxRoot)
+	absStartDir, secErr := security.ResolveAndSecurePath(startDirRel, sandboxRoot)
 	if secErr != nil {
 		logger.Error("%s Path security error for start directory %q: %v", logPrefix, startDirRel, secErr)
 		return nil, fmt.Errorf("invalid start directory: %w", secErr)
@@ -114,7 +115,7 @@ func toolGoGetModuleInfo(interpreter *Interpreter, args []interface{}) (interfac
 			return (map[string]interface{})(nil), nil
 		}
 		logger.Error("%s Failed to find or parse go.mod starting from %q: %v", logPrefix, startDirRel, err)
-		return nil, fmt.Errorf("%w: %w", ErrInternalTool, err)
+		return nil, fmt.Errorf("%w: %w", lang.ErrInternalTool, err)
 	}
 
 	resultMap := make(map[string]interface{})

@@ -19,24 +19,24 @@ import (
 // --- Tree.SetValue (was toolTreeModifyNode) ---
 // Sets the value of an existing leaf node.
 // Corresponds to ToolSpec "Tree.SetValue".
-func toolTreeModifyNode(interpreter *Interpreter, args []interface{}) (interface{}, error) {
+func toolTreeModifyNode(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
 	toolName := "Tree.SetValue"
 
 	if len(args) != 3 {
-		return nil, lang.NewRuntimeError(ErrorCodeArgMismatch,
+		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch,
 			fmt.Sprintf("%s: expected 3 arguments (tree_handle, node_id, value), got %d", toolName, len(args)),
-			ErrArgumentMismatch,
+			lang.ErrArgumentMismatch,
 		)
 	}
 
 	handleID, okHandle := args[0].(string)
 	if !okHandle {
-		return nil, lang.NewRuntimeError(ErrorCodeType, fmt.Sprintf("%s: tree_handle argument must be a string, got %T", toolName, args[0]), ErrInvalidArgument)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeType, fmt.Sprintf("%s: tree_handle argument must be a string, got %T", toolName, args[0]), lang.ErrInvalidArgument)
 	}
 
 	nodeID, okNodeID := args[1].(string)
 	if !okNodeID {
-		return nil, lang.NewRuntimeError(ErrorCodeType, fmt.Sprintf("%s: node_id argument must be a string, got %T", toolName, args[1]), ErrInvalidArgument)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeType, fmt.Sprintf("%s: node_id argument must be a string, got %T", toolName, args[1]), lang.ErrInvalidArgument)
 	}
 
 	newValue := args[2]
@@ -47,9 +47,9 @@ func toolTreeModifyNode(interpreter *Interpreter, args []interface{}) (interface
 	}
 
 	if node.Type == "object" || node.Type == "array" {
-		return nil, lang.NewRuntimeError(ErrorCodeTreeConstraintViolation,
+		return nil, lang.NewRuntimeError(lang.ErrorCodeTreeConstraintViolation,
 			fmt.Sprintf("%s: cannot set value directly on node '%s' of type '%s'; use object/array modification tools", toolName, nodeID, node.Type),
-			ErrCannotSetValueOnType,
+			lang.ErrCannotSetValueOnType,
 		)
 	}
 
@@ -62,13 +62,13 @@ func toolTreeModifyNode(interpreter *Interpreter, args []interface{}) (interface
 // --- Tree.SetObjectAttribute (was toolTreeSetAttribute) ---
 // Sets or updates an attribute on an object node, mapping the attribute key to a child node ID.
 // Corresponds to ToolSpec "Tree.SetObjectAttribute".
-func toolTreeSetAttribute(interpreter *Interpreter, args []interface{}) (interface{}, error) {
+func toolTreeSetAttribute(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
 	toolName := "Tree.SetObjectAttribute"
 
 	if len(args) != 4 {
-		return nil, lang.NewRuntimeError(ErrorCodeArgMismatch,
+		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch,
 			fmt.Sprintf("%s: expected 4 arguments (tree_handle, object_node_id, attribute_key, child_node_id), got %d", toolName, len(args)),
-			ErrArgumentMismatch,
+			lang.ErrArgumentMismatch,
 		)
 	}
 
@@ -78,10 +78,10 @@ func toolTreeSetAttribute(interpreter *Interpreter, args []interface{}) (interfa
 	childNodeID, _ := args[3].(string)
 
 	if attrKey == "" {
-		return nil, lang.NewRuntimeError(ErrorCodeArgMismatch, fmt.Sprintf("%s: attribute_key cannot be empty", toolName), ErrInvalidArgument)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("%s: attribute_key cannot be empty", toolName), lang.ErrInvalidArgument)
 	}
 	if childNodeID == "" {
-		return nil, lang.NewRuntimeError(ErrorCodeArgMismatch, fmt.Sprintf("%s: child_node_id cannot be empty", toolName), ErrInvalidArgument)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("%s: child_node_id cannot be empty", toolName), lang.ErrInvalidArgument)
 	}
 
 	tree, objectNode, err := getNodeFromHandle(interpreter, handleID, objectNodeID, toolName)
@@ -90,21 +90,21 @@ func toolTreeSetAttribute(interpreter *Interpreter, args []interface{}) (interfa
 	}
 
 	if objectNode.Type != "object" {
-		return nil, lang.NewRuntimeError(ErrorCodeNodeWrongType,
+		return nil, lang.NewRuntimeError(lang.ErrorCodeNodeWrongType,
 			fmt.Sprintf("%s: target node '%s' is type '%s', expected 'object'", toolName, objectNodeID, objectNode.Type),
-			ErrTreeNodeNotObject,
+			lang.ErrTreeNodeNotObject,
 		)
 	}
 
 	if _, childExists := tree.NodeMap[childNodeID]; !childExists {
-		return nil, lang.NewRuntimeError(ErrorCodeKeyNotFound,
+		return nil, lang.NewRuntimeError(lang.ErrorCodeKeyNotFound,
 			fmt.Sprintf("%s: specified child_node_id '%s' not found in tree '%s'", toolName, childNodeID, handleID),
-			ErrNotFound,
+			lang.ErrNotFound,
 		)
 	}
 
 	if objectNode.Attributes == nil {
-		objectNode.Attributes = make(TreeAttrs)
+		objectNode.Attributes = make(utils.TreeAttrs)
 		interpreter.Logger().Warn(fmt.Sprintf("%s: Node attributes map was nil for node '%s', initialized.", toolName, objectNodeID))
 	}
 	objectNode.Attributes[attrKey] = childNodeID
@@ -116,13 +116,13 @@ func toolTreeSetAttribute(interpreter *Interpreter, args []interface{}) (interfa
 // --- Tree.RemoveObjectAttribute (was toolTreeRemoveAttribute) ---
 // Removes an attribute from an object node.
 // Corresponds to ToolSpec "Tree.RemoveObjectAttribute".
-func toolTreeRemoveAttribute(interpreter *Interpreter, args []interface{}) (interface{}, error) {
+func toolTreeRemoveAttribute(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
 	toolName := "Tree.RemoveObjectAttribute"
 
 	if len(args) != 3 {
-		return nil, lang.NewRuntimeError(ErrorCodeArgMismatch,
+		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch,
 			fmt.Sprintf("%s: expected 3 arguments (tree_handle, object_node_id, attribute_key), got %d", toolName, len(args)),
-			ErrArgumentMismatch,
+			lang.ErrArgumentMismatch,
 		)
 	}
 
@@ -131,7 +131,7 @@ func toolTreeRemoveAttribute(interpreter *Interpreter, args []interface{}) (inte
 	attrKey, _ := args[2].(string)
 
 	if attrKey == "" {
-		return nil, lang.NewRuntimeError(ErrorCodeArgMismatch, fmt.Sprintf("%s: attribute_key cannot be empty", toolName), ErrInvalidArgument)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("%s: attribute_key cannot be empty", toolName), lang.ErrInvalidArgument)
 	}
 
 	_, objectNode, err := getNodeFromHandle(interpreter, handleID, objectNodeID, toolName)
@@ -140,23 +140,23 @@ func toolTreeRemoveAttribute(interpreter *Interpreter, args []interface{}) (inte
 	}
 
 	if objectNode.Type != "object" {
-		return nil, lang.NewRuntimeError(ErrorCodeNodeWrongType,
+		return nil, lang.NewRuntimeError(lang.ErrorCodeNodeWrongType,
 			fmt.Sprintf("%s: target node '%s' is type '%s', expected 'object'", toolName, objectNodeID, objectNode.Type),
-			ErrTreeNodeNotObject,
+			lang.ErrTreeNodeNotObject,
 		)
 	}
 
 	if objectNode.Attributes == nil {
-		return nil, lang.NewRuntimeError(ErrorCodeAttributeNotFound,
+		return nil, lang.NewRuntimeError(lang.ErrorCodeAttributeNotFound,
 			fmt.Sprintf("%s: node '%s' has no attributes to remove from (key: %q)", toolName, objectNodeID, attrKey),
-			ErrAttributeNotFound,
+			lang.ErrAttributeNotFound,
 		)
 	}
 
 	if _, keyExists := objectNode.Attributes[attrKey]; !keyExists {
-		return nil, lang.NewRuntimeError(ErrorCodeAttributeNotFound,
+		return nil, lang.NewRuntimeError(lang.ErrorCodeAttributeNotFound,
 			fmt.Sprintf("%s: attribute_key '%s' not found on node '%s'", toolName, attrKey, objectNodeID),
-			ErrAttributeNotFound,
+			lang.ErrAttributeNotFound,
 		)
 	}
 
@@ -168,13 +168,13 @@ func toolTreeRemoveAttribute(interpreter *Interpreter, args []interface{}) (inte
 // --- Tree.AddChildNode (was toolTreeAddNode) ---
 // Adds a new child node to an existing parent node.
 // Corresponds to ToolSpec "Tree.AddChildNode".
-func toolTreeAddNode(interpreter *Interpreter, args []interface{}) (interface{}, error) {
+func toolTreeAddNode(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
 	toolName := "Tree.AddChildNode"
 
 	if len(args) < 4 || len(args) > 6 {
-		return nil, lang.NewRuntimeError(ErrorCodeArgMismatch,
+		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch,
 			fmt.Sprintf("%s: expected 4 to 6 arguments, got %d", toolName, len(args)),
-			ErrArgumentMismatch,
+			lang.ErrArgumentMismatch,
 		)
 	}
 
@@ -183,14 +183,14 @@ func toolTreeAddNode(interpreter *Interpreter, args []interface{}) (interface{},
 
 	nodeType, okType := args[3].(string)
 	if !okType {
-		return nil, lang.NewRuntimeError(ErrorCodeType, fmt.Sprintf("%s: node_type argument must be a string, got %T", toolName, args[3]), ErrInvalidArgument)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeType, fmt.Sprintf("%s: node_type argument must be a string, got %T", toolName, args[3]), lang.ErrInvalidArgument)
 	}
 
 	var newNodeIDSuggestion string
 	if len(args) > 2 && args[2] != nil {
 		idSuggestion, ok := args[2].(string)
 		if !ok {
-			return nil, lang.NewRuntimeError(ErrorCodeType, fmt.Sprintf("%s: new_node_id_suggestion argument must be a string or null, got %T", toolName, args[2]), ErrInvalidArgument)
+			return nil, lang.NewRuntimeError(lang.ErrorCodeType, fmt.Sprintf("%s: new_node_id_suggestion argument must be a string or null, got %T", toolName, args[2]), lang.ErrInvalidArgument)
 		}
 		newNodeIDSuggestion = idSuggestion
 	}
@@ -204,14 +204,14 @@ func toolTreeAddNode(interpreter *Interpreter, args []interface{}) (interface{},
 	if len(args) > 5 && args[5] != nil {
 		key, ok := args[5].(string)
 		if !ok {
-			return nil, lang.NewRuntimeError(ErrorCodeType, fmt.Sprintf("%s: key_for_object_parent argument must be a string or null, got %T", toolName, args[5]), ErrInvalidArgument)
+			return nil, lang.NewRuntimeError(lang.ErrorCodeType, fmt.Sprintf("%s: key_for_object_parent argument must be a string or null, got %T", toolName, args[5]), lang.ErrInvalidArgument)
 		}
 		keyForObjectParent = key
 	}
 
 	allowedTypes := []string{"string", "number", "boolean", "null", "object", "array", "checklist_item"}
 	if !slices.Contains(allowedTypes, nodeType) {
-		return nil, lang.NewRuntimeError(ErrorCodeArgMismatch, fmt.Sprintf("%s: invalid node_type specified: %q", toolName, nodeType), ErrInvalidArgument)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("%s: invalid node_type specified: %q", toolName, nodeType), lang.ErrInvalidArgument)
 	}
 
 	if (nodeType == "object" || nodeType == "array") && nodeValue != nil {
@@ -220,7 +220,7 @@ func toolTreeAddNode(interpreter *Interpreter, args []interface{}) (interface{},
 	}
 	if nodeType == "checklist_item" && nodeValue != nil {
 		if _, ok := nodeValue.(string); !ok {
-			return nil, lang.NewRuntimeError(ErrorCodeType, fmt.Sprintf("%s: node_value must be a string for type 'checklist_item', got %T", toolName, nodeValue), ErrInvalidArgument)
+			return nil, lang.NewRuntimeError(lang.ErrorCodeType, fmt.Sprintf("%s: node_value must be a string for type 'checklist_item', got %T", toolName, nodeValue), lang.ErrInvalidArgument)
 		}
 	}
 
@@ -232,9 +232,9 @@ func toolTreeAddNode(interpreter *Interpreter, args []interface{}) (interface{},
 	var newNodeID string
 	if newNodeIDSuggestion != "" {
 		if _, exists := tree.NodeMap[newNodeIDSuggestion]; exists {
-			return nil, lang.NewRuntimeError(ErrorCodeTreeConstraintViolation,
+			return nil, lang.NewRuntimeError(lang.ErrorCodeTreeConstraintViolation,
 				fmt.Sprintf("%s: suggested new_node_id '%s' already exists in tree '%s'", toolName, newNodeIDSuggestion, handleID),
-				ErrNodeIDExists,
+				lang.ErrNodeIDExists,
 			)
 		}
 		newNodeID = newNodeIDSuggestion
@@ -250,11 +250,11 @@ func toolTreeAddNode(interpreter *Interpreter, args []interface{}) (interface{},
 		}
 	}
 
-	newNode := &GenericTreeNode{
+	newNode := &utils.GenericTreeNode{
 		ID:		newNodeID,
 		Type:		nodeType,
 		Value:		nodeValue,
-		Attributes:	make(TreeAttrs),
+		Attributes:	make(utils.TreeAttrs),
 		ChildIDs:	make([]string, 0),
 		ParentID:	parentID,
 		Tree:		tree,
@@ -264,13 +264,13 @@ func toolTreeAddNode(interpreter *Interpreter, args []interface{}) (interface{},
 	// MODIFIED: Allow adding children to 'checklist_root' and 'checklist_item' as if they were arrays.
 	if parentNode.Type == "object" {
 		if keyForObjectParent == "" {
-			return nil, lang.NewRuntimeError(ErrorCodeArgMismatch,
+			return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch,
 				fmt.Sprintf("%s: key_for_object_parent is required when adding a child to an 'object' node", toolName),
-				ErrInvalidArgument,
+				lang.ErrInvalidArgument,
 			)
 		}
 		if parentNode.Attributes == nil {
-			parentNode.Attributes = make(TreeAttrs)
+			parentNode.Attributes = make(utils.TreeAttrs)
 		}
 		parentNode.Attributes[keyForObjectParent] = newNodeID
 	} else if parentNode.Type == "array" || parentNode.Type == "checklist_root" || parentNode.Type == "checklist_item" {	// MODIFIED HERE
@@ -284,9 +284,9 @@ func toolTreeAddNode(interpreter *Interpreter, args []interface{}) (interface{},
 		}
 		parentNode.ChildIDs = append(parentNode.ChildIDs, newNodeID)
 	} else {
-		return nil, lang.NewRuntimeError(ErrorCodeNodeWrongType,
+		return nil, lang.NewRuntimeError(lang.ErrorCodeNodeWrongType,
 			fmt.Sprintf("%s: parent node '%s' is type '%s', cannot add children in this manner", toolName, parentID, parentNode.Type),
-			ErrNodeWrongType,
+			lang.ErrNodeWrongType,
 		)
 	}
 
@@ -297,13 +297,13 @@ func toolTreeAddNode(interpreter *Interpreter, args []interface{}) (interface{},
 // --- Tree.RemoveNode (was toolTreeRemoveNode) ---
 // Removes a node and all its descendants from the tree.
 // Corresponds to ToolSpec "Tree.RemoveNode".
-func toolTreeRemoveNode(interpreter *Interpreter, args []interface{}) (interface{}, error) {
+func toolTreeRemoveNode(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
 	toolName := "Tree.RemoveNode"
 
 	if len(args) != 2 {
-		return nil, lang.NewRuntimeError(ErrorCodeArgMismatch,
+		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch,
 			fmt.Sprintf("%s: expected 2 arguments (tree_handle, node_id), got %d", toolName, len(args)),
-			ErrArgumentMismatch,
+			lang.ErrArgumentMismatch,
 		)
 	}
 
@@ -311,7 +311,7 @@ func toolTreeRemoveNode(interpreter *Interpreter, args []interface{}) (interface
 	nodeIDToRemove, _ := args[1].(string)
 
 	if nodeIDToRemove == "" {
-		return nil, lang.NewRuntimeError(ErrorCodeArgMismatch, fmt.Sprintf("%s: node_id cannot be empty", toolName), ErrInvalidArgument)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("%s: node_id cannot be empty", toolName), lang.ErrInvalidArgument)
 	}
 
 	tree, nodeToRemove, err := getNodeFromHandle(interpreter, handleID, nodeIDToRemove, toolName+" (getting node to remove)")
@@ -320,24 +320,24 @@ func toolTreeRemoveNode(interpreter *Interpreter, args []interface{}) (interface
 	}
 
 	if nodeIDToRemove == tree.RootID {
-		return nil, lang.NewRuntimeError(ErrorCodeTreeConstraintViolation,
+		return nil, lang.NewRuntimeError(lang.ErrorCodeTreeConstraintViolation,
 			fmt.Sprintf("%s: cannot remove root node '%s'", toolName, nodeIDToRemove),
-			ErrCannotRemoveRoot,
+			lang.ErrCannotRemoveRoot,
 		)
 	}
 
 	if nodeToRemove.ParentID == "" {
-		return nil, lang.NewRuntimeError(ErrorCodeInternal,
+		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal,
 			fmt.Sprintf("%s: node '%s' is not root but has no ParentID, tree inconsistent", toolName, nodeIDToRemove),
-			ErrInternal,
+			lang.ErrInternal,
 		)
 	}
 
 	_, parentNode, parentErr := getNodeFromHandle(interpreter, handleID, nodeToRemove.ParentID, toolName+" (getting parent)")
 	if parentErr != nil {
-		return nil, lang.NewRuntimeError(ErrorCodeInternal,
+		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal,
 			fmt.Sprintf("%s: parent node '%s' for node '%s' not found: %v", toolName, nodeToRemove.ParentID, nodeIDToRemove, parentErr),
-			errors.Join(ErrInternal, parentErr),
+			errors.Join(lang.ErrInternal, parentErr),
 		)
 	}
 

@@ -10,10 +10,13 @@ package io
 import (
 	"errors"
 	"testing"
+
+	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
 func TestToolIOInputValidation(t *testing.T) {
-	interp, _ := NewDefaultTestInterpreter(t)
+	interp, _ := llm.NewDefaultTestInterpreter(t)
 	toolImpl, _ := interp.ToolRegistry().GetTool("Input")
 
 	testCases := []struct {
@@ -21,11 +24,11 @@ func TestToolIOInputValidation(t *testing.T) {
 		args		[]interface{}
 		wantErrIs	error
 	}{
-		{name: "Valid prompt (string)", args: MakeArgs("Enter name: "), wantErrIs: nil},
-		{name: "No arguments (optional prompt)", args: MakeArgs(), wantErrIs: nil},
-		{name: "Valid argument type (nil for optional)", args: MakeArgs(nil), wantErrIs: nil},
-		{name: "Incorrect argument type (number)", args: MakeArgs(123), wantErrIs: ErrInvalidArgument},
-		{name: "Incorrect argument type (bool)", args: MakeArgs(true), wantErrIs: ErrInvalidArgument},
+		{name: "Valid prompt (string)", args: tool.MakeArgs("Enter name: "), wantErrIs: nil},
+		{name: "No arguments (optional prompt)", args: tool.MakeArgs(), wantErrIs: nil},
+		{name: "Valid argument type (nil for optional)", args: tool.MakeArgs(nil), wantErrIs: nil},
+		{name: "Incorrect argument type (number)", args: tool.MakeArgs(123), wantErrIs: lang.ErrInvalidArgument},
+		{name: "Incorrect argument type (bool)", args: tool.MakeArgs(true), wantErrIs: lang.ErrInvalidArgument},
 	}
 
 	for _, tc := range testCases {
@@ -44,7 +47,7 @@ func TestToolIOInputValidation(t *testing.T) {
 				// We expect an I/O error here, NOT a nil error.
 				if err == nil {
 					t.Errorf("Expected an I/O error from reading stdin, but got nil")
-				} else if !errors.Is(err, ErrIOFailed) {
+				} else if !errors.Is(err, lang.ErrIOFailed) {
 					t.Logf("Got an error as expected, but it wasn't the specific I/O error: %v", err)
 				}
 			}

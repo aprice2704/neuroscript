@@ -16,7 +16,7 @@ import (
 )
 
 func TestToolMetaListTools(t *testing.T) {
-	interpreter, err := llm.NewDefaultTestInterpreter(t) // Correctly handle potential error
+	interpreter, err := llm.NewDefaultTestInterpreter(t)	// Correctly handle potential error
 	if err != nil {
 		t.Fatalf("NewDefaultTestInterpreter failed: %v", err)
 	}
@@ -54,37 +54,37 @@ func TestToolMetaToolsHelp(t *testing.T) {
 	}
 
 	tests := []struct {
-		name                 string
-		filterArg            map[string]lang.Value
-		expectedToContain    []string
-		expectedToNotContain []string
-		checkNoToolsMsg      bool
-		noToolsFilter        string
+		name			string
+		filterArg		map[string]lang.Value
+		expectedToContain	[]string
+		expectedToNotContain	[]string
+		checkNoToolsMsg		bool
+		noToolsFilter		string
 	}{
 		{
-			name:      "No filter (all tools)",
-			filterArg: map[string]lang.Value{},
+			name:		"No filter (all tools)",
+			filterArg:	map[string]lang.Value{},
 			expectedToContain: []string{
 				"## `tool.Meta.ListTools`",
 				"## `tool.FS.Read`",
 			},
-			expectedToNotContain: []string{"No tools found matching filter"},
+			expectedToNotContain:	[]string{"No tools found matching filter"},
 		},
 		{
-			name:      "Filter for Meta tools",
-			filterArg: map[string]lang.Value{"filter": lang.StringValue{Value: "Meta."}},
+			name:		"Filter for Meta tools",
+			filterArg:	map[string]lang.Value{"filter": lang.StringValue{Value: "Meta."}},
 			expectedToContain: []string{
 				"## `tool.Meta.ListTools`",
 				"## `tool.Meta.ToolsHelp`",
 				"Showing tools matching filter: `Meta.`",
 			},
-			expectedToNotContain: []string{"## `tool.FS.Read`"},
+			expectedToNotContain:	[]string{"## `tool.FS.Read`"},
 		},
 		{
-			name:            "Filter with no results",
-			filterArg:       map[string]lang.Value{"filter": lang.StringValue{lang.Value: "NoSucchToolExistsFilter123"}},
-			checkNoToolsMsg: true,
-			noToolsFilter:   "NoSucchToolExistsFilter123",
+			name:			"Filter with no results",
+			filterArg:		map[string]lang.Value{"filter": lang.StringValue{lang.Value: "NoSucchToolExistsFilter123"}},
+			checkNoToolsMsg:	true,
+			noToolsFilter:		"NoSucchToolExistsFilter123",
 		},
 	}
 

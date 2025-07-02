@@ -20,17 +20,17 @@ import (
 
 // toolExecuteCommand executes an external command securely within the sandbox.
 // Corresponds to ToolSpec "Shell.Execute".
-func toolExecuteCommand(interpreter *Interpreter, args []interface{}) (interface{}, error) {
+func toolExecuteCommand(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
 	toolName := "Shell.Execute"
 
 	// Expected args: command (string), args_list ([]string, optional), directory (string, optional)
 	if len(args) < 1 || len(args) > 3 {
-		return nil, lang.NewRuntimeError(ErrorCodeArgMismatch, fmt.Sprintf("%s: expected 1 to 3 arguments, got %d", toolName, len(args)), ErrArgumentMismatch)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("%s: expected 1 to 3 arguments, got %d", toolName, len(args)), lang.ErrArgumentMismatch)
 	}
 
 	commandPath, okCmd := args[0].(string)
 	if !okCmd {
-		return nil, lang.NewRuntimeError(ErrorCodeType, fmt.Sprintf("%s: command argument must be a string, got %T", toolName, args[0]), ErrInvalidArgument)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeType, fmt.Sprintf("%s: command argument must be a string, got %T", toolName, args[0]), lang.ErrInvalidArgument)
 	}
 
 	var commandArgs []string
@@ -50,7 +50,7 @@ func toolExecuteCommand(interpreter *Interpreter, args []interface{}) (interface
 		} else if strArgs, okStr := args[1].([]string); okStr {
 			commandArgs = strArgs
 		} else {
-			return nil, lang.NewRuntimeError(ErrorCodeType, fmt.Sprintf("%s: args_list argument must be a list (slice), got %T", toolName, args[1]), ErrInvalidArgument)
+			return nil, lang.NewRuntimeError(lang.ErrorCodeType, fmt.Sprintf("%s: args_list argument must be a list (slice), got %T", toolName, args[1]), lang.ErrInvalidArgument)
 		}
 	} else {
 		commandArgs = []string{}
@@ -60,7 +60,7 @@ func toolExecuteCommand(interpreter *Interpreter, args []interface{}) (interface
 	if len(args) > 2 && args[2] != nil {
 		dirStr, okDir := args[2].(string)
 		if !okDir {
-			return nil, lang.NewRuntimeError(ErrorCodeType, fmt.Sprintf("%s: directory argument must be a string or null, got %T", toolName, args[2]), ErrInvalidArgument)
+			return nil, lang.NewRuntimeError(lang.ErrorCodeType, fmt.Sprintf("%s: directory argument must be a string or null, got %T", toolName, args[2]), lang.ErrInvalidArgument)
 		}
 		// Allow empty string to mean sandbox root (effectively same as ".")
 		if dirStr != "" {
@@ -72,12 +72,12 @@ func toolExecuteCommand(interpreter *Interpreter, args []interface{}) (interface
 	if !IsValidCommandPath(commandPath) {
 		errMsg := fmt.Sprintf("%s blocked suspicious command path: %q", toolName, commandPath)
 		interpreter.Logger().Error(errMsg)
-		return nil, lang.NewRuntimeError(ErrorCodeSecurity, errMsg, ErrSecurityViolation)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeSecurity, errMsg, lang.ErrSecurityViolation)
 	}
 
 	// Validate and Resolve Directory using FileAPI
 	if interpreter.fileAPI == nil {
-		return nil, lang.NewRuntimeError(ErrorCodeInternal, fmt.Sprintf("%s: FileAPI not initialized in interpreter", toolName), ErrInternal)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, fmt.Sprintf("%s: FileAPI not initialized in interpreter", toolName), lang.ErrInternal)
 	}
 	// Resolve the path first
 	absValidatedDir, pathErr := interpreter.fileAPI.ResolvePath(targetDirRel)
@@ -91,14 +91,14 @@ func toolExecuteCommand(interpreter *Interpreter, args []interface{}) (interface
 	// Check if the resolved path exists and is a directory
 	dirInfo, statErr := os.Stat(absValidatedDir)
 	if statErr != nil {
-		sentinel := ErrIOFailed
-		ec := ErrorCodeIOFailed
+		sentinel := lang.ErrIOFailed
+		ec := lang.ErrorCodeIOFailed
 		if os.IsNotExist(statErr) {
-			sentinel = ErrNotFound
-			ec = ErrorCodeFileNotFound	// Use specific code for not found
+			sentinel = lang.ErrNotFound
+			ec = lang.ErrorCodeFileNotFound	// Use specific code for not found
 		} else if os.IsPermission(statErr) {
-			sentinel = ErrPermissionDenied
-			ec = ErrorCodePermissionDenied
+			sentinel = lang.ErrPermissionDenied
+			ec = lang.ErrorCodePermissionDenied
 		}
 		errMsg := fmt.Sprintf("%s: cannot stat execution directory %q: %v", toolName, targetDirRel, statErr)
 		interpreter.Logger().Error(errMsg, "absolute_path", absValidatedDir)
@@ -107,7 +107,7 @@ func toolExecuteCommand(interpreter *Interpreter, args []interface{}) (interface
 	if !dirInfo.IsDir() {
 		errMsg := fmt.Sprintf("%s: execution path %q is not a directory", toolName, targetDirRel)
 		interpreter.Logger().Error(errMsg, "absolute_path", absValidatedDir)
-		return nil, lang.NewRuntimeError(ErrorCodePathTypeMismatch, errMsg, ErrPathNotDirectory)	// Use specific sentinel
+		return nil, lang.NewRuntimeError(lang.ErrorCodePathTypeMismatch, errMsg, lang.ErrPathNotDirectory)	// Use specific sentinel
 	}
 
 	interpreter.Logger().Debug(fmt.Sprintf("[%s] Preparing command", toolName), "command", commandPath, "args", commandArgs, "directory", absValidatedDir)

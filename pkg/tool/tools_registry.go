@@ -31,12 +31,12 @@ func AddToolImplementations(impls ...ToolImplementation) {
 // ToolRegistryImpl manages the available tools for an Interpreter instance.
 type ToolRegistryImpl struct {
 	tools		map[string]ToolImplementation
-	interpreter	*Interpreter
+	interpreter	*neurogo.Interpreter
 	mu		sync.RWMutex
 }
 
 // NewToolRegistry creates a new registry instance.
-func NewToolRegistry(interpreter *Interpreter) *ToolRegistryImpl {
+func NewToolRegistry(interpreter *neurogo.Interpreter) *ToolRegistryImpl {
 	r := &ToolRegistryImpl{
 		tools:		make(map[string]ToolImplementation),
 		interpreter:	interpreter,
@@ -87,23 +87,23 @@ func (r *ToolRegistryImpl) ListTools() []ToolSpec {
 // --- BRIDGE IMPLEMENTATION ---
 
 // CallFromInterpreter is the single bridge between the Value-based interpreter and primitive-based tools.
-func (r *ToolRegistryImpl) CallFromInterpreter(interp *Interpreter, toolName string, args []Value) (Value, error) {
+func (r *ToolRegistryImpl) CallFromInterpreter(interp *neurogo.Interpreter, toolName string, args []lang.lang.Value) (lang.lang.Value, error) {
 	impl, ok := r.GetTool(toolName)
 	if !ok {
-		return nil, lang.NewRuntimeError(ErrorCodeToolNotFound, fmt.Sprintf("tool '%s' not found", toolName), ErrToolNotFound)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeToolNotFound, fmt.Sprintf("tool '%s' not found", toolName), lang.ErrToolNotFound)
 	}
 
 	// 1. Unwrap all arguments from Value to primitives
 	rawArgs := make([]interface{}, len(args))
 	for i, arg := range args {
-		rawArgs[i] = unwrapValue(arg)
+		rawArgs[i] = lang.unwrapValue(arg)
 	}
 
 	// 2. Validate and coerce the primitive arguments
 	// NOTE: This replaces the entire `tools_validation.go` file.
 	if len(rawArgs) < len(impl.Spec.Args) {
 		// Basic check for missing required args. More robust checks can be added.
-		return nil, lang.NewRuntimeError(ErrorCodeArgMismatch, fmt.Sprintf("tool '%s': expected at least %d args, got %d", toolName, len(impl.Spec.Args), len(rawArgs)), ErrArgumentMismatch)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("tool '%s': expected at least %d args, got %d", toolName, len(impl.Spec.Args), len(rawArgs)), lang.ErrArgumentMismatch)
 	}
 
 	coercedArgs := make([]interface{}, len(impl.Spec.Args))
@@ -111,7 +111,7 @@ func (r *ToolRegistryImpl) CallFromInterpreter(interp *Interpreter, toolName str
 		var err error
 		coercedArgs[i], err = coerceArg(rawArgs[i], spec.Type)
 		if err != nil {
-			return nil, lang.NewRuntimeError(ErrorCodeArgMismatch, fmt.Sprintf("tool '%s' arg '%s': %v", toolName, spec.Name, err), ErrArgumentMismatch)
+			return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("tool '%s' arg '%s': %v", toolName, spec.Name, err), lang.ErrArgumentMismatch)
 		}
 	}
 	// Handle variadic args if necessary
@@ -126,7 +126,7 @@ func (r *ToolRegistryImpl) CallFromInterpreter(interp *Interpreter, toolName str
 	}
 
 	// 4. Wrap the primitive result back into a Value
-	return Wrap(out)
+	return lang.Wrap(out)
 }
 
 // coerceArg attempts to convert a primitive value `x` to the specified ArgType.
@@ -143,25 +143,25 @@ func coerceArg(x interface{}, t ArgType) (interface{}, error) {
 		}
 		return s, nil
 	case ArgTypeInt:
-		i, ok := toInt64(x)
+		i, ok := lang.toInt64(x)
 		if !ok {
 			return nil, fmt.Errorf("expected integer, got %T", x)
 		}
 		return i, nil
 	case ArgTypeFloat:
-		f, ok := toFloat64(x)
+		f, ok := lang.toFloat64(x)
 		if !ok {
 			return nil, fmt.Errorf("expected float, got %T", x)
 		}
 		return f, nil
 	case ArgTypeBool:
-		b, ok := ConvertToBool(x)
+		b, ok := utils.ConvertToBool(x)
 		if !ok {
 			return nil, fmt.Errorf("expected boolean, got %T", x)
 		}
 		return b, nil
 	case ArgTypeSliceAny:
-		s, ok, _ := ConvertToSliceOfAny(x)
+		s, ok, _ := utils.ConvertToSliceOfAny(x)
 		if !ok {
 			return nil, fmt.Errorf("expected list, got %T", x)
 		}

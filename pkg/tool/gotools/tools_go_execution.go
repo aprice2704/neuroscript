@@ -11,13 +11,15 @@ import (
 	"os/exec"
 	"strings"
 	"syscall"
+
+	"github.com/aprice2704/neuroscript/pkg/lang"
 	// No need for 'errors', 'os', 'path/filepath', 'logging', 'modfile' imports here
 )
 
 // --- Tool Implementations for Go Command Execution ---
 
 // toolGoBuild implementation
-func toolGoBuild(interpreter *Interpreter, args []interface{}) (interface{}, error) {
+func toolGoBuild(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
 	buildTarget := "./..."	// Default target
 	targetArg := ""		// Variable to hold the user-provided target
 
@@ -47,7 +49,7 @@ func toolGoBuild(interpreter *Interpreter, args []interface{}) (interface{}, err
 }
 
 // toolGoCheck implementation
-func toolGoCheck(interpreter *Interpreter, args []interface{}) (interface{}, error) {
+func toolGoCheck(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
 	// Validation ensures 1 string argument (handled by interpreter before calling)
 	targetPath := args[0].(string)
 
@@ -148,7 +150,7 @@ func toolGoCheck(interpreter *Interpreter, args []interface{}) (interface{}, err
 }
 
 // toolGoTest implementation
-func toolGoTest(interpreter *Interpreter, args []interface{}) (interface{}, error) {
+func toolGoTest(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
 	testTarget := "./..."	// Default target
 	targetArg := ""		// Variable to hold the user-provided target
 
@@ -176,7 +178,7 @@ func toolGoTest(interpreter *Interpreter, args []interface{}) (interface{}, erro
 }
 
 // toolGoModTidy implementation
-func toolGoModTidy(interpreter *Interpreter, args []interface{}) (interface{}, error) {
+func toolGoModTidy(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
 	cmd := "go"
 	cmdArgs := []string{"mod", "tidy"}
 
@@ -187,7 +189,7 @@ func toolGoModTidy(interpreter *Interpreter, args []interface{}) (interface{}, e
 }
 
 // toolGoListPackages implementation
-func toolGoListPackages(interpreter *Interpreter, args []interface{}) (interface{}, error) {
+func toolGoListPackages(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
 	var targetDirRel string = "."			// Default relative dir
 	var patterns []string = []string{"./..."}	// Default pattern
 
@@ -214,11 +216,11 @@ func toolGoListPackages(interpreter *Interpreter, args []interface{}) (interface
 			if allStrings {
 				patterns = strPatterns
 			} else {
-				return nil, fmt.Errorf("%w: patterns argument contained non-string elements", ErrValidationTypeMismatch)
+				return nil, fmt.Errorf("%w: patterns argument contained non-string elements", lang.ErrValidationTypeMismatch)
 			}
 		default:
 			// This case should ideally be caught by spec validation
-			return nil, fmt.Errorf("%w: internal error: patterns argument type mismatch (%T), expected slice", ErrInternalTool, args[1])
+			return nil, fmt.Errorf("%w: internal error: patterns argument type mismatch (%T), expected slice", lang.ErrInternalTool, args[1])
 		}
 	}
 
@@ -233,12 +235,12 @@ func toolGoListPackages(interpreter *Interpreter, args []interface{}) (interface
 	if execCmdErr != nil {
 		interpreter.Logger().Error("[TOOL-GOLIST] Execution helper failed", "error", execCmdErr)
 		// Return empty list and a Go error for interpreter handling
-		return []map[string]interface{}{}, fmt.Errorf("%w: execution helper failed: %w", ErrInternalTool, execCmdErr)
+		return []map[string]interface{}{}, fmt.Errorf("%w: execution helper failed: %w", lang.ErrInternalTool, execCmdErr)
 	}
 	execResultMap, ok := execResultIntf.(map[string]interface{})
 	if !ok {
 		interpreter.Logger().Error("[TOOL-GOLIST] Execution helper returned unexpected type", "type", fmt.Sprintf("%T", execResultIntf))
-		return []map[string]interface{}{}, fmt.Errorf("%w: execution helper returned unexpected type %T", ErrInternalTool, execResultIntf)
+		return []map[string]interface{}{}, fmt.Errorf("%w: execution helper returned unexpected type %T", lang.ErrInternalTool, execResultIntf)
 	}
 
 	// Check if the 'go list' command itself reported failure via the helper's result map
@@ -264,7 +266,7 @@ func toolGoListPackages(interpreter *Interpreter, args []interface{}) (interface
 			interpreter.Logger().Error("[TOOL-GOLIST] %s", errMsg)
 			interpreter.Logger().Debug("[TOOL-GOLIST] Raw stdout causing decode error", "stdout", stdoutStr)
 			// Return empty list and indicate error via Go error
-			return []map[string]interface{}{}, fmt.Errorf("%w: %s", ErrInternalTool, errMsg)
+			return []map[string]interface{}{}, fmt.Errorf("%w: %s", lang.ErrInternalTool, errMsg)
 		}
 		results = append(results, pkgInfo)
 	}
@@ -279,7 +281,7 @@ func toolGoListPackages(interpreter *Interpreter, args []interface{}) (interface
 // It handles path validation and command execution, returning a map similar to toolExecuteCommand.
 // Returns the result map and a Go-level error ONLY if the helper function itself fails (e.g., bad interpreter state, path resolution internal error).
 // Command execution success/failure is indicated *within* the returned map.
-func executeGoCommandHelper(interpreter *Interpreter, targetDirRel string, goArgs ...string) (interface{}, error) {
+func executeGoCommandHelper(interpreter *neurogo.Interpreter, targetDirRel string, goArgs ...string) (interface{}, error) {
 	if interpreter == nil || interpreter.Logger() == nil {
 		// Return nil map and a Go error for internal setup issues
 		return nil, fmt.Errorf("executeGoCommandHelper: interpreter or logger is nil")
@@ -288,11 +290,11 @@ func executeGoCommandHelper(interpreter *Interpreter, targetDirRel string, goArg
 	sandboxRoot := interpreter.SandboxDir()
 	if sandboxRoot == "" {
 		// Return nil map and a Go error for setup issues
-		return nil, fmt.Errorf("%w: interpreter sandbox directory not set", ErrInternalSecurity)
+		return nil, fmt.Errorf("%w: interpreter sandbox directory not set", lang.ErrInternalSecurity)
 	}
 
 	// --- Security: Validate and Resolve Directory ---
-	absValidatedDir, pathErr := ResolveAndSecurePath(targetDirRel, sandboxRoot)
+	absValidatedDir, pathErr := security.ResolveAndSecurePath(targetDirRel, sandboxRoot)
 	if pathErr != nil {
 		errMsg := fmt.Sprintf("Path validation failed for directory %q (relative to sandbox %q): %v", targetDirRel, sandboxRoot, pathErr)
 		logger.Error("[GO-HELPER] %s", errMsg)

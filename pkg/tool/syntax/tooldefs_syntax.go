@@ -7,18 +7,24 @@
 
 package syntax
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/parser"
+	"github.com/aprice2704/neuroscript/pkg/tool"
+)
 
 // analyzeSyntax is the function implementing the tool's logic.
 // It matches the expected ToolFunc signature (args as []interface{}).
-var analyzeSyntax ToolFunc = func(interpreter *Interpreter, args []interface{}) (interface{}, error) {
+var analyzeSyntax tool.ToolFunc = func(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
 	if len(args) != 1 {
-		return nil, fmt.Errorf("analyzeNSSyntax: expected 1 argument (nsScriptContent), got %d: %w", len(args), ErrArgumentMismatch)	//
+		return nil, fmt.Errorf("analyzeNSSyntax: expected 1 argument (nsScriptContent), got %d: %w", len(args), lang.ErrArgumentMismatch)	//
 	}
 
 	content, ok := args[0].(string)
 	if !ok {
-		return nil, fmt.Errorf("analyzeNSSyntax: nsScriptContent argument must be a string, got %T: %w", args[0], ErrInvalidArgument)	//
+		return nil, fmt.Errorf("analyzeNSSyntax: nsScriptContent argument must be a string, got %T: %w", args[0], lang.ErrInvalidArgument)	//
 	}
 
 	// AnalyzeNSSyntaxInternal (the Go implementation) will be updated to return []map[string]interface{}
@@ -27,16 +33,16 @@ var analyzeSyntax ToolFunc = func(interpreter *Interpreter, args []interface{}) 
 
 // syntaxToolsToRegister defines the ToolImplementation structs for syntax-related tools.
 // This variable is used by zz_core_tools_registrar.go to register the tools.
-var syntaxToolsToRegister = []ToolImplementation{
+var syntaxToolsToRegister = []tool.ToolImplementation{
 	{
-		Spec: ToolSpec{
+		Spec: tool.ToolSpec{
 			Name:		"analyzeNSSyntax",
 			Description:	"Analyzes a NeuroScript string for syntax errors. Returns a list of maps, where each map details an error. Returns an empty list if no errors are found.",
 			Category:	"Syntax Utilities",
-			Args: []ArgSpec{
-				{Name: "nsScriptContent", Type: ArgTypeString, Description: "The NeuroScript content to analyze.", Required: true},
+			Args: []tool.ArgSpec{
+				{Name: "nsScriptContent", Type: parser.ArgTypeString, Description: "The NeuroScript content to analyze.", Required: true},
 			},
-			ReturnType:	ArgTypeSliceMap,	// Changed from ArgTypeString
+			ReturnType:	tool.ArgTypeSliceMap,	// Changed from ArgTypeString
 			ReturnHelp: "Returns a list (slice) of maps. Each map represents a syntax error and contains the following keys:\n" +
 				"- `Line`: number (1-based) - The line number of the error.\n" +
 				"- `Column`: number (0-based) - The character lang.Position in the line where the error occurred.\n" +

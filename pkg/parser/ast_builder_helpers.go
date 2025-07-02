@@ -25,14 +25,6 @@ const (
 	ArgTypeMap
 )
 
-// ArgSpec defines the specification for a tool or function argument.
-type ArgSpec struct {
-	Name        string
-	Type        ArgType
-	Description string
-	Required    bool
-}
-
 // ParseMetadataLine attempts to parse a line potentially containing metadata (e.g., ":: key: value").
 // It returns the extracted key, value, and a boolean indicating if the line was a valid metadata line.
 // Key and value are trimmed of whitespace.
