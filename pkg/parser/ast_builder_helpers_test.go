@@ -80,3 +80,36 @@ func TestConvertInputSchemaToArgSpec_SuccessScenarios(t *testing.T) {
 		})
 	}
 }
+
+func TestParseMetadataLine(t *testing.T) {
+	testCases := []struct {
+		name        string
+		line        string
+		expectedKey string
+		expectedVal string
+		expectedOk  bool
+	}{
+		{"valid full line", ":: key: value", "key", "value", true},
+		{"valid with extra space", "  ::  key  :  value  ", "key", "value", true},
+		{"valid key only", ":: key_only", "key_only", "", true},
+		{"valid with no space after colon", ":: key:value", "key", "value", true},
+		{"invalid no key", ":: : value", "", "", false},
+		{"invalid not a metadata line", "key: value", "", "", false},
+		{"invalid empty line", "::", "", "", false},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			key, val, ok := ParseMetadataLine(tc.line)
+			if ok != tc.expectedOk {
+				t.Errorf("Expected ok to be %v, but got %v", tc.expectedOk, ok)
+			}
+			if key != tc.expectedKey {
+				t.Errorf("Expected key '%s', got '%s'", tc.expectedKey, key)
+			}
+			if val != tc.expectedVal {
+				t.Errorf("Expected value '%s', got '%s'", tc.expectedVal, val)
+			}
+		})
+	}
+}

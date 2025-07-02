@@ -1,7 +1,7 @@
 // NeuroScript Version: 0.3.1
 // File version: 3
 // Purpose: Implements the Generic Adapter pattern. executeInternalTool now handles unwrapping Value args and wrapping primitive results, per the contract.
-// filename: pkg/core/interpreter_tools.go
+// filename: pkg/runtime/interpreter_tools.go
 // nlines: 115
 // risk_rating: HIGH
 

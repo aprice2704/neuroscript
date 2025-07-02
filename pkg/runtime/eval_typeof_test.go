@@ -1,7 +1,7 @@
 // NeuroScript Version: 0.3.1
 // File version: 3
 // Purpose: Aligns tests with compliant helpers, fixes compiler error by using float64 in NewTestNumberLiteral.
-// filename: pkg/core/eval_typeof_test.go
+// filename: pkg/runtime/eval_typeof_test.go
 // nlines: 201
 // risk_rating: LOW
 

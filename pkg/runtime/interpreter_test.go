@@ -1,7 +1,7 @@
 // NeuroScript Version: 0.3.5
 // File version: 1.1.0
 // Purpose: Added test cases for 'while' and 'for each' loops to improve block statement coverage.
-// filename: pkg/core/interpreter_test.go
+// filename: pkg/runtime/interpreter_test.go
 package runtime
 
 import (

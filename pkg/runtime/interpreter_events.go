@@ -1,7 +1,7 @@
 // NeuroScript Version: 0.3.1
 // File version: 10
 // Purpose: Corrects a deadlock by making mutex locking in EmitEvent more fine-grained.
-// filename: pkg/core/interpreter_events.go
+// filename: pkg/runtime/interpreter_events.go
 
 package runtime
 

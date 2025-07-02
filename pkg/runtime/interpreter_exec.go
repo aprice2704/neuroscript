@@ -1,7 +1,7 @@
 // NeuroScript Version: 0.5.2
 // File version: 27
 // Purpose: Unified error handler registration and lookup to fix bug where handlers in nested scopes were not found.
-// filename: pkg/core/interpreter_exec.go
+// filename: pkg/runtime/interpreter_exec.go
 // nlines: 278
 // risk_rating: HIGH
 

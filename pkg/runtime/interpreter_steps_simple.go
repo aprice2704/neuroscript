@@ -1,7 +1,7 @@
 // NeuroScript Version: 0.4.1
 // File version: 11
 // Purpose: Corrected executeMust to immediately return evaluation errors, ensuring error propagation.
-// filename: pkg/core/interpreter_steps_simple.go
+// filename: pkg/runtime/interpreter_steps_simple.go
 // nlines: 200 // Approximate
 // risk_rating: MEDIUM
 

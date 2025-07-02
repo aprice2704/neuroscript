@@ -1,7 +1,7 @@
 // NeuroScript Version: 0.3.5
 // File version: 1.0.0
 // Purpose: Fully aligned with testing helpers, using core.Value for all initial, last, and expected values.
-// filename: pkg/core/evaluation_test.go
+// filename: pkg/runtime/evaluation_test.go
 package runtime
 
 import (

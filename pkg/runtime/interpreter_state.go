@@ -1,7 +1,7 @@
 // NeuroScript Version: 0.4.2
 // File version: 1
 // Purpose: Contains getters and setters for various internal state properties of the interpreter.
-// filename: pkg/core/interpreter_state.go
+// filename: pkg/runtime/interpreter_state.go
 // nlines: 77
 // risk_rating: LOW
 package runtime

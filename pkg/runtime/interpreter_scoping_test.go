@@ -1,12 +1,10 @@
-// Filename: pkg/core/interpreter_scoping_test.go
+// Filename: pkg/runtime/interpreter_scoping_test.go
 package runtime_test
 
 import (
 	"bytes"
 	"strings"
 	"testing"
-
-	"github.com/aprice2704/neuroscript/pkg/core"
 )
 
 // TestErrorScoping_HandlersDoNotLeak verifies that 'on error' handlers are strictly

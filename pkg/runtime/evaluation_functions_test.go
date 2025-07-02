@@ -1,4 +1,4 @@
-// filename: pkg/core/evaluation_functions_test.go
+// filename: pkg/runtime/evaluation_functions_test.go
 package runtime
 
 import (
@@ -84,7 +84,7 @@ func TestMathFunctions(t *testing.T) {
 // NeuroScript Version: 0.4.1
 // File version: 1
 // Purpose: Unit tests for built-in evaluation functions, including len().
-// filename: pkg/core/evaluation_functions_test.go
+// filename: pkg/runtime/evaluation_functions_test.go
 // nlines: 68
 // risk_rating: LOW
 

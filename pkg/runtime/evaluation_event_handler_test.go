@@ -1,4 +1,4 @@
-// filename: pkg/core/evaluation_event_handler_test.go
+// filename: pkg/runtime/evaluation_event_handler_test.go
 // NeuroScript Version: 0.5.2
 // File version: 9
 // Purpose: Updated empty function blocks in tests to be syntactically valid.

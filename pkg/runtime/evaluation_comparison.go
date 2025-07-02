@@ -1,7 +1,7 @@
 // NeuroScript Version: 0.3.5
 // File version: 1.0.0
 // Purpose: Corrected missing type assertion on condNode before passing to evaluate.Expression.
-// filename: pkg/core/evaluation_comparison.go
+// filename: pkg/runtime/evaluation_comparison.go
 
 package runtime
 

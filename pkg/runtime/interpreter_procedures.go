@@ -1,7 +1,7 @@
 // NeuroScript Version: 0.4.2
 // File version: 15
 // Purpose: Added error handler stack management to RunProcedure to support scoped error handling in nested calls.
-// filename: pkg/core/interpreter_procedures.go
+// filename: pkg/runtime/interpreter_procedures.go
 
 package runtime
 

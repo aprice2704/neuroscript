@@ -1,7 +1,7 @@
 // NeuroScript Version: 0.3.5
 // File version: 1.1.0
 // Purpose: Corrected test logic to properly handle the (Value, error) return signature of evaluateBinaryOp.
-// filename: pkg/core/evaluation_comparison_test.go
+// filename: pkg/runtime/evaluation_comparison_test.go
 
 package runtime
 

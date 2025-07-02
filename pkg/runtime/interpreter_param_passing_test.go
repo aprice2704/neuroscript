@@ -1,7 +1,7 @@
 // NeuroScript Version: 0.3.0
 // File version: 1.0.2
 // Purpose: Reverted test script to use the '+' operator for concatenation, aligning with the non-strict (lenient) operator model.
-// filename: pkg/core/interpreter_param_passing_test.go
+// filename: pkg/runtime/interpreter_param_passing_test.go
 // nlines: 275+
 // risk_rating: MEDIUM
 package runtime

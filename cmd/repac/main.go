@@ -1,92 +1,159 @@
+// cmd/repac/main.go
+//
+// Usage:
+//   repac [-recurse] <path-from-project-root-to-dot>
+//
+// Example (run inside neuroscript/pkg/tool/fs):
+//   repac -recurse pkg/tool/fs
+//
+// ──> every .go file under . is rewritten to
+//     package fs
+//     // filename: pkg/tool/fs/<subpath>/<file.go>
+
+// filename: cmd/repac
 package repac
 
 import (
+	"bufio"
 	"bytes"
+	"flag"
 	"fmt"
+	"go/ast"
 	"go/parser"
 	"go/printer"
 	"go/token"
+	"io/fs"
 	"log"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 )
 
+var (
+	recurse = flag.Bool("recurse", false, "recurse into sub-directories")
+)
+
 func main() {
-	// 1. Get the current working directory.
-	currentDir, err := os.Getwd()
+	flag.Usage = func() {
+		fmt.Fprintf(flag.CommandLine.Output(),
+			"Usage: %s [-recurse] <path-from-project-root-to-dot>\n", os.Args[0])
+		flag.PrintDefaults()
+	}
+	flag.Parse()
+
+	if flag.NArg() != 1 {
+		flag.Usage()
+		os.Exit(2)
+	}
+
+	rootToDot := filepath.Clean(flag.Arg(0))
+	pkgName := filepath.Base(rootToDot)
+
+	// absolute path of the starting directory (“.”)
+	startDir, err := os.Getwd()
+	must(err)
+
+	var goFiles []string
+	if *recurse {
+		err = filepath.WalkDir(".", func(path string, d fs.DirEntry, err error) error {
+			if err != nil {
+				return err
+			}
+			if d.IsDir() {
+				switch d.Name() {
+				case ".git", "vendor":
+					return filepath.SkipDir
+				}
+				return nil
+			}
+			if strings.HasSuffix(path, ".go") {
+				goFiles = append(goFiles, path)
+			}
+			return nil
+		})
+		must(err)
+	} else {
+		ents, err := os.ReadDir(".")
+		must(err)
+		for _, e := range ents {
+			if !e.IsDir() && strings.HasSuffix(e.Name(), ".go") {
+				goFiles = append(goFiles, e.Name())
+			}
+		}
+	}
+
+	for _, file := range goFiles {
+		processFile(file, startDir, rootToDot, pkgName)
+	}
+}
+
+// ────────────────────────────────────────────────────────────────────────────────
+
+func processFile(path, startDir, rootToDot, pkgName string) {
+	fset := token.NewFileSet()
+	astFile, err := parser.ParseFile(fset, path, nil, parser.ParseComments)
 	if err != nil {
-		log.Fatalf("Failed to get current directory: %v", err)
+		log.Printf("skip %s (cannot parse): %v", path, err)
+		return
 	}
 
-	// 2. Extract the base name of the directory for the new package name.
-	newPackageName := filepath.Base(currentDir)
-	fmt.Printf("Target package name will be: %s\n", newPackageName)
+	// 1️⃣ package name
+	if astFile.Name.Name != pkgName {
+		astFile.Name = &ast.Ident{Name: pkgName}
+	}
 
-	// 3. Read all entries in the current directory.
-	files, err := os.ReadDir(".")
+	// 2️⃣ re-print source (keeps formatting)
+	var buf bytes.Buffer
+	must(printer.Fprint(&buf, fset, astFile))
+
+	// 3️⃣ adjust // filename: comment
+	newSrc := fixHeader(buf.Bytes(), path, startDir, rootToDot)
+
+	// 4️⃣ write back preserving perms
+	info, err := os.Stat(path)
+	must(err)
+	must(os.WriteFile(path, newSrc, info.Mode()))
+	fmt.Printf("updated %s\n", path)
+}
+
+// rewrite/insert the “// filename:” line
+func fixHeader(src []byte, absPath, startDir, rootToDot string) []byte {
+	relBelowStart, _ := filepath.Rel(startDir, absPath)
+	headerPath := filepath.ToSlash(filepath.Join(rootToDot, relBelowStart))
+	want := "// filename: " + headerPath
+
+	sc := bufio.NewScanner(bytes.NewReader(src))
+	sc.Split(bufio.ScanLines)
+
+	var outLines []string
+	inserted := false
+	re := regexp.MustCompile(`^//\s*filename:`)
+
+	for sc.Scan() {
+		line := sc.Text()
+		if !inserted {
+			if re.MatchString(line) {
+				line = want	// replace
+				inserted = true
+			} else if strings.TrimSpace(line) == "" {
+				// keep empty line before header
+			} else if !strings.HasPrefix(line, "//") {
+				// first real code line & no header seen – insert now
+				outLines = append(outLines, want)
+				inserted = true
+			}
+		}
+		outLines = append(outLines, line)
+	}
+	if !inserted {	// file had no lines (unlikely) or ended before header inserted
+		outLines = append([]string{want}, outLines...)
+	}
+	return []byte(strings.Join(outLines, "\n"))
+}
+
+func must(err error) {
 	if err != nil {
-		log.Fatalf("Failed to read directory: %v", err)
+		log.Fatal(err)
 	}
-
-	// 4. Loop through each file/directory.
-	for _, file := range files {
-		// Skip directories and non-Go files.
-		if file.IsDir() || !strings.HasSuffix(file.Name(), ".go") {
-			continue
-		}
-
-		filePath := file.Name()
-		fmt.Printf("Processing file: %s\n", filePath)
-
-		// --- AST-based modification ---
-
-		// a. Create a FileSet. This is needed by the parser to track source lang.Positions.
-		fset := token.NewFileSet()
-
-		// b. Parse the file to build an Abstract Syntax Tree (AST).
-		// We use ParseComments so that comments are preserved when we write the file back.
-		node, err := parser.ParseFile(fset, filePath, nil, parser.ParseComments)
-		if err != nil {
-			log.Printf("WARNING: Could not parse %s: %v", filePath, err)
-			continue
-		}
-
-		// c. Check if the package name is already correct.
-		if node.Name.Name == newPackageName {
-			fmt.Printf("Package in %s is already correct. Skipping.\n", filePath)
-			continue
-		}
-
-		fmt.Printf("Changing package from '%s' to '%s' in %s\n", node.Name.Name, newPackageName, filePath)
-
-		// d. Modify the package name directly in the AST.
-		// This is the core of the change.
-		node.Name.Name = newPackageName
-
-		// e. Create a buffer to write the modified AST back to.
-		var buf bytes.Buffer
-
-		// f. Use the printer to format the AST and write it to the buffer.
-		// This reconstructs the Go source code from the modified tree.
-		if err := printer.Fprint(&buf, fset, node); err != nil {
-			log.Printf("WARNING: Failed to format modified code for %s: %v", filePath, err)
-			continue
-		}
-
-		// g. Write the buffer's content back to the original file.
-		info, err := file.Info()
-		if err != nil {
-			log.Printf("WARNING: Could not get file info for %s: %v", filePath, err)
-			continue
-		}
-		if err := os.WriteFile(filePath, buf.Bytes(), info.Mode()); err != nil {
-			log.Printf("WARNING: Failed to write updated file %s: %v", filePath, err)
-			continue
-		}
-
-		fmt.Printf("Successfully updated package in %s\n", filePath)
-	}
-
-	fmt.Println("\nDone.")
 }

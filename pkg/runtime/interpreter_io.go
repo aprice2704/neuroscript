@@ -1,7 +1,7 @@
 // NeuroScript Version: 0.4.2
 // File version: 1
 // Purpose: Manages the standard I/O streams for the interpreter.
-// filename: pkg/core/interpreter_io.go
+// filename: pkg/runtime/interpreter_io.go
 // nlines: 48
 // risk_rating: LOW
 package runtime

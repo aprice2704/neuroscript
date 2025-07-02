@@ -1,7 +1,7 @@
 // NeuroScript Version: 0.4.2
 // File version: 11.0.0
 // Purpose: Refactored set execution to support multiple assignment targets.
-// filename: pkg/core/interpreter_assignment.go
+// filename: pkg/runtime/interpreter_assignment.go
 
 package runtime
 

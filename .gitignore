@@ -8,6 +8,7 @@
 *.so
 *.dylib
 *.zip
+*idx.json
 
 # Test binary, built with `go test -c`
 *.test
@@ -43,3 +44,4 @@ tmp/
 
 cmd/nslsp/nslsp_executable
 vscode-neuroscript/vscode-neuroscript-0.3.0.vsix
+runtime_idx.json

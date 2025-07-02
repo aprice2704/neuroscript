@@ -1,7 +1,7 @@
 // NeuroScript Version: 0.4.0
 // File version: 0.2.0
 // Purpose: Corrected expectedVars map literals to use map[string]Value, ensuring type safety in tests.
-// filename: pkg/core/interpreter_string_escaping_test.go
+// filename: pkg/runtime/interpreter_string_escaping_test.go
 // nlines: 175
 // risk_rating: LOW
 

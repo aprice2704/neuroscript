@@ -1,7 +1,7 @@
 // NeuroScript Version: 0.4.2
 // File version: 12
 // Purpose: Reverted '+' operator to be lenient, performing string coercion for mixed types as required by the test suite.
-// filename: pkg/core/evaluation_operators.go
+// filename: pkg/runtime/evaluation_operators.go
 // nlines: 201
 // risk_rating: MEDIUM
 

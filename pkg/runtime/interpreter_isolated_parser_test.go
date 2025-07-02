@@ -1,4 +1,4 @@
-// filename: pkg/core/interpreter_isolated_parser_test.go
+// filename: pkg/runtime/interpreter_isolated_parser_test.go
 package runtime
 
 import (

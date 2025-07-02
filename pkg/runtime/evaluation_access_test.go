@@ -1,7 +1,7 @@
 // NeuroScript Version: 0.3.5
 // File version: 12
 // Purpose: Aligned tests with compliant helpers by expecting core.Value types instead of raw primitives.
-// filename: pkg/core/evaluation_access_test.go
+// filename: pkg/runtime/evaluation_access_test.go
 
 package runtime
 

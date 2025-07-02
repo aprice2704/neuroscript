@@ -1,7 +1,7 @@
 // NeuroScript Version: 0.3.5
 // File version: 11
 // Purpose: Updated tests to expect core.Value types, aligning with new compliant testing helpers.
-// filename: pkg/core/evaluation_logical_bitwise_test.go
+// filename: pkg/runtime/evaluation_logical_bitwise_test.go
 
 package runtime
 

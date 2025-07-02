@@ -1,4 +1,4 @@
-// filename: pkg/core/interpreter_script_test.go
+// filename: pkg/runtime/interpreter_script_test.go
 // Neuroscript version: 0.5.2
 // File version: 13
 // Purpose: Corrected compiler errors by fixing the call to ExecuteProc.

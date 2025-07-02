@@ -1,7 +1,7 @@
 // NeuroScript Version: 0.4.1
 // File version: 13
 // Purpose: Corrected binary 'and'/'or' operators to properly handle mixed FuzzyValue and BoolValue operands, preventing incorrect boolean short-circuiting.
-// filename: pkg/core/evaluation_logic.go
+// filename: pkg/runtime/evaluation_logic.go
 
 package runtime
 

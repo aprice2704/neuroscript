@@ -1,7 +1,7 @@
 // NeuroScript Version: 0.3.1
 // File version: 3
 // Purpose: Reviewed for compliance. Manages raw Go objects via handles, assuming Interpreter.objectCache is map[string]interface{}.
-// filename: pkg/core/interpreter_handles.go
+// filename: pkg/runtime/interpreter_handles.go
 // nlines: 60
 // risk_rating: LOW
 

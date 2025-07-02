@@ -1,7 +1,7 @@
 // NeuroScript Version: 0.4.1
 // File version: 9
 // Purpose: Added len() built-in function.
-// filename: pkg/core/evaluation_functions.go
+// filename: pkg/runtime/evaluation_functions.go
 // nlines: 154
 // risk_rating: HIGH
 

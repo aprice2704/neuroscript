@@ -1,7 +1,7 @@
 // NeuroScript Version: 0.3.1
 // File version: 0.0.5
 // Purpose: Updated tests to expect core.Value types instead of native Go types.
-// filename: pkg/core/interpreter_assignment_autocreate_test.go
+// filename: pkg/runtime/interpreter_assignment_autocreate_test.go
 // nlines: 325
 // risk_rating: LOW
 

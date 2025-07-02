@@ -1,7 +1,7 @@
 // NeuroScript Version: 0.4.0
 // File version: 10
 // Purpose: Corrects element access to work exclusively with Value wrapper types (ListValue, MapValue, etc.).
-// filename: pkg/core/evaluation_access.go
+// filename: pkg/runtime/evaluation_access.go
 // nlines: 77
 // risk_rating: HIGH
 

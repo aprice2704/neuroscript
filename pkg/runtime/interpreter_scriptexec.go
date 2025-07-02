@@ -1,7 +1,7 @@
 // NeuroScript Version: 0.3.1
 // File version: 1.0.0
 // Purpose: Aligns ExecuteScriptString with the value contract by returning a core.Value instead of interface{}.
-// filename: pkg/core/interpreter_scriptexec.go
+// filename: pkg/runtime/interpreter_scriptexec.go
 // nlines: 80 // Approximate
 // risk_rating: MEDIUM
 

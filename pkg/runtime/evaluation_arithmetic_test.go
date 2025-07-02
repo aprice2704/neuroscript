@@ -1,7 +1,7 @@
 // NeuroScript Version: 0.3.2
 // File version: 9
 // Purpose: Updated tests to expect core.Value types, aligning with new compliant testing helpers.
-// filename: pkg/core/evaluation_arithmetic_test.go
+// filename: pkg/runtime/evaluation_arithmetic_test.go
 
 package runtime
 

@@ -1,4 +1,4 @@
-// filename: pkg/core/evaluation_resolve_test.go
+// filename: pkg/runtime/evaluation_resolve_test.go
 package runtime
 
 import (
