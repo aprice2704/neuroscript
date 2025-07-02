@@ -9,6 +9,9 @@ package runtime
 
 import (
 	"testing"
+
+	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/parser"
 )
 
 // setupEventHandlerTest parses `script`, builds its AST, loads it into a fresh
@@ -16,20 +19,20 @@ import (
 func setupEventHandlerTest(t *testing.T, script string) (*Interpreter, error) {
 	t.Helper()
 
-	logger := NewTestLogger(t)
+	logger := llm.NewTestLogger(t)
 
 	interp, err := NewInterpreter(logger, nil, ".", nil, nil)
 	if err != nil {
 		t.Fatalf("Failed to create new interpreter: %v", err)
 	}
 
-	parser := NewParserAPI(logger)
+	parser := parser.NewParserAPI(logger)
 	parseTree, parseErr := parser.Parse(script)
 	if parseErr != nil {
 		t.Fatalf("Failed to parse script: %v", parseErr)
 	}
 
-	astBuilder := NewASTBuilder(logger)
+	astBuilder := parser.NewASTBuilder(logger)
 	prog, _, err := astBuilder.Build(parseTree)
 	if err != nil {
 		t.Fatalf("Failed to build AST: %v", err)
@@ -60,7 +63,7 @@ func TestOnEventHandling(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		payload := NewMapValue(map[string]Value{"username": StringValue{Value: "testuser"}})
+		payload := lang.NewMapValue(map[string]lang.Value{"username": lang.StringValue{Value: "testuser"}})
 		interp.EmitEvent("user_login", "auth_system", payload)
 
 		val, exists := interp.GetVariable("login_name")
@@ -94,7 +97,7 @@ func TestOnEventHandling(t *testing.T) {
 		interp.EmitEvent("test_event", "test", nil)
 
 		t.Log("Dumping variables after event emission to check state:")
-		DebugDumpVariables(interp, t)
+		testutil.DebugDumpVariables(interp, t)
 
 		valA, _ := interp.GetVariable("var_a")
 		if numA, ok := valA.(NumberValue); !ok || numA.Value != 1 {
@@ -118,14 +121,14 @@ func TestOnEventHandling(t *testing.T) {
 			endon
 			`
 
-		logger := NewTestLogger(t)
-		parser := NewParserAPI(logger)
+		logger := llm.NewTestLogger(t)
+		parser := parser.NewParserAPI(logger)
 		parseTree, parseErr := parser.Parse(script)
 		if parseErr != nil {
 			t.Fatalf("Failed to parse script: %v", parseErr)
 		}
 
-		astBuilder := NewASTBuilder(logger)
+		astBuilder := parser.NewASTBuilder(logger)
 		_, _, err := astBuilder.Build(parseTree)
 
 		if err != nil {

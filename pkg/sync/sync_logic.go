@@ -18,6 +18,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/tool/fileapi"
 	"github.com/google/generative-ai-go/genai"
 	// This file assumes a sync_types.go, interfaces.go and other helpers exist in the package.
 	// The following are stubs to make this file complete and syntactically valid.
@@ -111,7 +113,7 @@ func gatherLocalFiles(sc *syncContext) (map[string]LocalFileInfo, error) {
 		if hashErr != nil {
 			sc.logger.Error("[ERROR API HELPER Sync Walk] Hash failed %s: %v", relPath, hashErr)
 			sc.incrementStat("hash_errors")
-			if errors.Is(hashErr, ErrFileNotFound) {
+			if errors.Is(hashErr, lang.ErrFileNotFound) {
 				sc.logger.Warn("API HELPER Sync Walk] Skipping file %s as it was not found during hashing (possibly deleted during walk)", relPath)
 				return nil
 			}
@@ -202,12 +204,12 @@ func computeSyncActions(sc *syncContext, localFiles map[string]LocalFileInfo, re
 }
 
 // --- Tool: SyncFiles (Wrapper) ---
-func toolSyncFiles(interpreter *Interpreter, args []interface{}) (interface{}, error) {
+func toolSyncFiles(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
 	_, clientErr := checkGenAIClient(interpreter)
 	if clientErr != nil {
 		// FIX: Wrap the unwrapped error from the helper with the correct sentinel error.
 		// This makes it compatible with the test's `errors.Is(err, ErrLLMNotConfigured)` check.
-		return nil, fmt.Errorf("TOOL.SyncFiles: %s: %w", clientErr.Error(), ErrLLMNotConfigured)
+		return nil, fmt.Errorf("TOOL.SyncFiles: %s: %w", clientErr.Error(), lang.ErrLLMNotConfigured)
 	}
 
 	if len(args) < 2 || len(args) > 4 {
@@ -250,7 +252,7 @@ func toolSyncFiles(interpreter *Interpreter, args []interface{}) (interface{}, e
 		return nil, fmt.Errorf("TOOL.SyncFiles: direction '%s' not supported", direction)
 	}
 
-	absLocalDir, secErr := ResolveAndSecurePath(localDir, interpreter.sandboxDir)
+	absLocalDir, secErr := security.ResolveAndSecurePath(localDir, interpreter.sandboxDir)
 	if secErr != nil {
 		return nil, fmt.Errorf("TOOL.SyncFiles: invalid local_dir '%s': %w", localDir, secErr)
 	}
@@ -265,7 +267,7 @@ func toolSyncFiles(interpreter *Interpreter, args []interface{}) (interface{}, e
 
 	interpreter.logger.Debug("Tool: SyncFiles] Validated dir: %s (Ignore .gitignore: %t)", absLocalDir, ignoreGitignore)
 
-	statsMap, syncErr := SyncDirectoryUpHelper(context.Background(), absLocalDir, filterPattern, ignoreGitignore, interpreter)
+	statsMap, syncErr := fileapi.SyncDirectoryUpHelper(context.Background(), absLocalDir, filterPattern, ignoreGitignore, interpreter)
 
 	return statsMap, syncErr
 }

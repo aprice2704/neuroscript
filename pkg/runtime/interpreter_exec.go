@@ -81,7 +81,7 @@ func getStepSubjectForLogging(step ast.Step) string {
 }
 
 // executeSteps iterates through and executes steps, handling control flow and errors.
-func (i *Interpreter) executeSteps(steps []Step, isInHandler bool, activeError *RuntimeError) (finalResult Value, wasReturn bool, wasCleared bool, finalError error) {
+func (i *Interpreter) executeSteps(steps []ast.Step, isInHandler bool, activeError *lang.RuntimeError) (finalResult lang.Value, wasReturn bool, wasCleared bool, finalError error) {
 	modeStr := "normal"
 	if isInHandler {
 		modeStr = "handler"
@@ -89,10 +89,10 @@ func (i *Interpreter) executeSteps(steps []Step, isInHandler bool, activeError *
 	i.Logger().Debug("[DEBUG-INTERP] Executing steps", "count", len(steps), "mode", modeStr)
 
 	// FIX: Removed `currentErrorHandler` local variable to rely solely on the interpreter's handler stack.
-	finalResult = NilValue{}
+	finalResult = lang.NilValue{}
 
 	for stepNum, step := range steps {
-		var stepResult Value
+		var stepResult lang.Value
 		var stepErr error
 
 		stepTypeLower := strings.ToLower(step.Type)
@@ -110,13 +110,13 @@ func (i *Interpreter) executeSteps(steps []Step, isInHandler bool, activeError *
 			if step.Call != nil {
 				stepResult, stepErr = i.evaluate.Expression(step.Call)
 			} else {
-				stepErr = lang.NewRuntimeError(ErrorCodeInternal, "call step is missing call expression", nil).WithPosition(step.Pos)
+				stepErr = lang.NewRuntimeError(lang.ErrorCodeInternal, "call step is missing call expression", nil).WithPosition(step.Pos)
 			}
 		case "return":
 			if isInHandler {
-				stepErr = lang.NewRuntimeError(ErrorCodeReturnViolation, "'return' is not permitted inside an on_error block", ErrReturnViolation).WithPosition(step.Pos)
+				stepErr = lang.NewRuntimeError(lang.ErrorCodeReturnViolation, "'return' is not permitted inside an on_error block", lang.ErrReturnViolation).WithPosition(step.Pos)
 			} else {
-				var returnValue Value
+				var returnValue lang.Value
 				returnValue, wasReturn, stepErr = i.executeReturn(step)
 				if stepErr == nil && wasReturn {
 					i.lastCallResult = returnValue
@@ -127,9 +127,9 @@ func (i *Interpreter) executeSteps(steps []Step, isInHandler bool, activeError *
 			stepResult, stepErr = i.executeEmit(step)
 		case "if":
 			var ifReturned, ifCleared bool
-			var ifBlockResult Value
+			var ifBlockResult lang.Value
 			ifBlockResult, ifReturned, ifCleared, stepErr = i.executeIf(step, isInHandler, activeError)
-			if errors.Is(stepErr, ErrBreak) || errors.Is(stepErr, ErrContinue) {
+			if errors.Is(stepErr, lang.ErrBreak) || errors.Is(stepErr, lang.ErrContinue) {
 				return nil, false, wasCleared, stepErr
 			}
 			if stepErr == nil {
@@ -144,11 +144,11 @@ func (i *Interpreter) executeSteps(steps []Step, isInHandler bool, activeError *
 			}
 		case "while":
 			var whileReturned, whileCleared bool
-			var whileBlockResult Value
+			var whileBlockResult lang.Value
 			whileBlockResult, whileReturned, whileCleared, stepErr = i.executeWhile(step, isInHandler, activeError)
-			if errors.Is(stepErr, ErrBreak) {
+			if errors.Is(stepErr, lang.ErrBreak) {
 				stepErr = nil
-			} else if errors.Is(stepErr, ErrContinue) {
+			} else if errors.Is(stepErr, lang.ErrContinue) {
 				i.Logger().Warn("[DEBUG-INTERP] CONTINUE propagated out of WHILE loop unexpectedly", "step_num", stepNum+1)
 				stepErr = nil
 			} else if stepErr == nil {
@@ -163,11 +163,11 @@ func (i *Interpreter) executeSteps(steps []Step, isInHandler bool, activeError *
 			}
 		case "for", "for_each":
 			var forReturned, forCleared bool
-			var forResult Value
+			var forResult lang.Value
 			forResult, forReturned, forCleared, stepErr = i.executeFor(step, isInHandler, activeError)
-			if errors.Is(stepErr, ErrBreak) {
+			if errors.Is(stepErr, lang.ErrBreak) {
 				stepErr = nil
-			} else if errors.Is(stepErr, ErrContinue) {
+			} else if errors.Is(stepErr, lang.ErrContinue) {
 				i.Logger().Warn("[DEBUG-INTERP] CONTINUE propagated out of FOR loop unexpectedly", "step_num", stepNum+1)
 			} else if stepErr == nil {
 				stepResult = forResult
@@ -201,17 +201,17 @@ func (i *Interpreter) executeSteps(steps []Step, isInHandler bool, activeError *
 			stepErr = i.executeContinue(step)
 		default:
 			errMsg := fmt.Sprintf("unknown step type '%s'", step.Type)
-			stepErr = lang.NewRuntimeError(ErrorCodeUnknownKeyword, errMsg, ErrUnknownKeyword).WithPosition(step.Pos)
+			stepErr = lang.NewRuntimeError(lang.ErrorCodeUnknownKeyword, errMsg, lang.ErrUnknownKeyword).WithPosition(step.Pos)
 		}
 
 		if stepErr != nil {
-			if errors.Is(stepErr, ErrBreak) || errors.Is(stepErr, ErrContinue) {
+			if errors.Is(stepErr, lang.ErrBreak) || errors.Is(stepErr, lang.ErrContinue) {
 				return nil, false, wasCleared, stepErr
 			}
 			rtErr := ensureRuntimeError(stepErr, step.Pos, stepTypeLower)
 
 			// FIX: Simplified handler lookup to ONLY use the central interpreter stack.
-			var handlerToExecute *Step = nil
+			var handlerToExecute *ast.Step = nil
 			if !isInHandler {
 				if len(i.errorHandlerStack) > 0 {
 					procHandlers := i.errorHandlerStack[len(i.errorHandlerStack)-1]
@@ -257,14 +257,14 @@ func (i *Interpreter) executeSteps(steps []Step, isInHandler bool, activeError *
 	return finalResult, false, wasCleared, nil
 }
 
-func (i *Interpreter) executeBlock(blockValue interface{}, parentPos *lang.Position, blockType string, isInHandler bool, activeError *RuntimeError) (result Value, wasReturn bool, wasCleared bool, err error) {
-	steps, ok := blockValue.([]Step)
+func (i *Interpreter) executeBlock(blockValue interface{}, parentPos *lang.Position, blockType string, isInHandler bool, activeError *lang.RuntimeError) (result lang.Value, wasReturn bool, wasCleared bool, err error) {
+	steps, ok := blockValue.([]ast.Step)
 	if !ok {
 		if blockValue == nil {
-			return NilValue{}, false, false, nil
+			return lang.NilValue{}, false, false, nil
 		}
 		errMsg := fmt.Sprintf("internal error: invalid block format for %s - expected []Step, got %T", blockType, blockValue)
-		return nil, false, false, lang.NewRuntimeError(ErrorCodeInternal, errMsg, ErrInternal).WithPosition(parentPos)
+		return nil, false, false, lang.NewRuntimeError(lang.ErrorCodeInternal, errMsg, lang.ErrInternal).WithPosition(parentPos)
 	}
 	return i.executeSteps(steps, isInHandler, activeError)
 }
@@ -278,12 +278,12 @@ func shouldUpdateLastResult(stepTypeLower string) bool {
 	}
 }
 
-func ensureRuntimeError(err error, pos *lang.Position, context string) *RuntimeError {
-	if rtErr, ok := err.(*RuntimeError); ok {
+func ensureRuntimeError(err error, pos *lang.Position, context string) *lang.RuntimeError {
+	if rtErr, ok := err.(*lang.RuntimeError); ok {
 		if rtErr.Position == nil && pos != nil {
 			return rtErr.WithPosition(pos)
 		}
 		return rtErr
 	}
-	return lang.NewRuntimeError(ErrorCodeInternal, fmt.Sprintf("internal error during %s", context), err).WithPosition(pos)
+	return lang.NewRuntimeError(lang.ErrorCodeInternal, fmt.Sprintf("internal error during %s", context), err).WithPosition(pos)
 }

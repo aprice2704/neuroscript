@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.3.1
 // File version: 0.2.0
-// Purpose: Updated test helpers to return map[string]interface{} for attributes, aligning with core.TreeAttrs.
+// Purpose: Updated test helpers to return map[string]interface{} for attributes, aligning with  TreeAttrs.
 // filename: pkg/neurodata/checklist/test_helpers.go
 
 package checklist
@@ -12,12 +12,12 @@ import (
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/adapters"
-	"github.com/aprice2704/neuroscript/pkg/core"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
+	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/toolsets"
 )
 
-func newTestInterpreterWithAllTools(t *testing.T) (*core.Interpreter, core.ToolRegistry) {
+func newTestInterpreterWithAllTools(t *testing.T) (*neurogo.Interpreter, tool.ToolRegistry) {
 	t.Helper()
 	tempDir := t.TempDir()
 	logger, errLog := adapters.NewSimpleSlogAdapter(os.Stderr, interfaces.LogLevelDebug)
@@ -26,8 +26,8 @@ func newTestInterpreterWithAllTools(t *testing.T) (*core.Interpreter, core.ToolR
 		t.Fatalf("Setup Error: Failed to create logger using SimpleTestLogger, returned nil unexpectedly")
 	}
 	llmClient := adapters.NewNoOpLLMClient()
-	interp, errInterp := core.NewInterpreter(logger, llmClient, tempDir, nil, nil)
-	assertNoErrorSetup(t, errInterp, "Failed to create core.Interpreter")
+	interp, errInterp := NewInterpreter(logger, llmClient, tempDir, nil, nil)
+	assertNoErrorSetup(t, errInterp, "Failed to create  Interpreter")
 	errExt := toolsets.RegisterExtendedTools(interp)
 	assertNoErrorSetup(t, errExt, "Failed to register extended toolsets")
 	errSandbox := interp.SetSandboxDir(tempDir)
@@ -35,7 +35,7 @@ func newTestInterpreterWithAllTools(t *testing.T) (*core.Interpreter, core.ToolR
 	return interp, interp.ToolRegistry()
 }
 
-func getNodeViaTool(t *testing.T, interp *core.Interpreter, handleID string, nodeID string) map[string]interface{} {
+func getNodeViaTool(t *testing.T, interp *neurogo.Interpreter, handleID string, nodeID string) map[string]interface{} {
 	t.Helper()
 	toolReg := interp.ToolRegistry()
 	impl, exists := toolReg.GetTool("Tree.GetNode")
@@ -45,9 +45,9 @@ func getNodeViaTool(t *testing.T, interp *core.Interpreter, handleID string, nod
 	if impl.Func == nil {
 		t.Fatalf("getNodeViaTool: Tool 'Tree.GetNode' has nil function.")
 	}
-	nodeDataIntf, err := impl.Func(interp, core.MakeArgs(handleID, nodeID))
+	nodeDataIntf, err := impl.Func(interp, tool.MakeArgs(handleID, nodeID))
 	if err != nil {
-		if errors.Is(err, core.ErrNotFound) || errors.Is(err, core.ErrInvalidArgument) || errors.Is(err, core.ErrHandleWrongType) || errors.Is(err, core.ErrHandleNotFound) || errors.Is(err, core.ErrHandleInvalid) {
+		if errors.Is(err, lang.ErrNotFound) || errors.Is(err, lang.ErrInvalidArgument) || errors.Is(err, lang.ErrHandleWrongType) || errors.Is(err, lang.ErrHandleNotFound) || errors.Is(err, lang.ErrHandleInvalid) {
 			t.Logf("getNodeViaTool: Got expected error getting node %q: %v", nodeID, err)
 			return nil
 		}
@@ -94,20 +94,20 @@ func getNodeAttributesMap(t *testing.T, nodeData map[string]interface{}) map[str
 	return attrsMap
 }
 
-// FIX: Changed return type to map[string]interface{} to match core.TreeAttrs.
-func getNodeAttributesDirectly(t *testing.T, interp *core.Interpreter, handleID string, nodeID string) (map[string]interface{}, error) {
+// FIX: Changed return type to map[string]interface{} to match  TreeAttrs.
+func getNodeAttributesDirectly(t *testing.T, interp *neurogo.Interpreter, handleID string, nodeID string) (map[string]interface{}, error) {
 	t.Helper()
-	treeObj, err := interp.GetHandleValue(handleID, core.GenericTreeHandleType)
+	treeObj, err := interp.GetHandleValue(handleID, utils.GenericTreeHandleType)
 	if err != nil {
 		return nil, fmt.Errorf("getNodeAttributesDirectly: failed getting handle %q: %w", handleID, err)
 	}
-	tree, ok := treeObj.(*core.GenericTree)
+	tree, ok := treeObj.(*GenericTree)
 	if !ok || tree == nil || tree.NodeMap == nil {
 		return nil, fmt.Errorf("getNodeAttributesDirectly: handle %q did not contain a valid GenericTree", handleID)
 	}
 	node, exists := tree.NodeMap[nodeID]
 	if !exists {
-		return nil, fmt.Errorf("%w: getNodeAttributesDirectly: node %q not found in handle %q", core.ErrNotFound, nodeID, handleID)
+		return nil, fmt.Errorf("%w: getNodeAttributesDirectly: node %q not found in handle %q", lang.ErrNotFound, nodeID, handleID)
 	}
 	if node == nil {
 		return nil, fmt.Errorf("getNodeAttributesDirectly: node %q exists in map but is nil", nodeID)

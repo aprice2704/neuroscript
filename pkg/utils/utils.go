@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
+	"github.com/aprice2704/neuroscript/pkg/lang"
 )
 
 // coreNoOpLogger is a logger that does nothing, satisfying the interfaces.Logger interface.
@@ -97,7 +98,7 @@ func ConvertToFloat64(val interface{}) (float64, bool) {
 // ConvertToInt64E attempts to convert various numeric types (and potentially strings representing numbers) to int64.
 func ConvertToInt64E(value interface{}) (int64, error) {
 	if value == nil {
-		return 0, fmt.Errorf("%w: cannot convert nil to integer", ErrInvalidArgument)
+		return 0, fmt.Errorf("%w: cannot convert nil to integer", lang.ErrInvalidArgument)
 	}
 	switch v := value.(type) {
 	case int:
@@ -112,7 +113,7 @@ func ConvertToInt64E(value interface{}) (int64, error) {
 			// Try parsing as float first for cases like "10.0"
 			f, fErr := strconv.ParseFloat(v, 64)
 			if fErr != nil {
-				return 0, fmt.Errorf("%w: cannot convert string %q to integer: %w", ErrInvalidArgument, v, err)
+				return 0, fmt.Errorf("%w: cannot convert string %q to integer: %w", lang.ErrInvalidArgument, v, err)
 			}
 			return int64(f), nil
 		}
@@ -133,7 +134,7 @@ func ConvertToInt64E(value interface{}) (int64, error) {
 		case reflect.Float32:
 			return int64(valOf.Float()), nil
 		}
-		return 0, fmt.Errorf("%w: cannot convert type %T to integer", ErrInvalidArgument, value)
+		return 0, fmt.Errorf("%w: cannot convert type %T to integer", lang.ErrInvalidArgument, value)
 	}
 }
 

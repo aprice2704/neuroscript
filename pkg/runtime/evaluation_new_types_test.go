@@ -12,20 +12,23 @@ import (
 	"math"
 	"strings"
 	"testing"
+
+	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/parser"
 )
 
 // runNewTypesTestScript is a helper to set up an interpreter and run a script.
 // It now correctly returns the interpreter's final result by capturing it from ExecuteScriptString.
-func runNewTypesTestScript(t *testing.T, script string) (Value, error) {
+func runNewTypesTestScript(t *testing.T, script string) (lang.Value, error) {
 	t.Helper()
-	i, _ := NewTestInterpreter(t, nil, nil)
+	i, _ := llm.NewTestInterpreter(t, nil, nil)
 
-	specFuzzyTest := ToolSpec{Name: "Test.NewFuzzy", Args: []ArgSpec{{Name: "val", Type: ArgTypeFloat}}}
+	specFuzzyTest := tool.ToolSpec{Name: "Test.NewFuzzy", Args: []tool.ArgSpec{{Name: "val", Type: parser.ArgTypeFloat}}}
 	toolFuzzyTest := func(_ *Interpreter, args []interface{}) (interface{}, error) {
-		val, _ := toFloat64(args[0])
-		return NewFuzzyValue(val), nil
+		val, _ := lang.toFloat64(args[0])
+		return lang.NewFuzzyValue(val), nil
 	}
-	_ = i.RegisterTool(ToolImplementation{Spec: specFuzzyTest, Func: toolFuzzyTest})
+	_ = i.RegisterTool(tool.ToolImplementation{Spec: specFuzzyTest, Func: toolFuzzyTest})
 
 	scriptNameForParser := strings.ReplaceAll(t.Name(), "/", "_")
 	scriptNameForParser = strings.ReplaceAll(scriptNameForParser, "-", "_")
@@ -41,7 +44,7 @@ func runNewTypesTestScript(t *testing.T, script string) (Value, error) {
 
 	// The interpreter can return primitives or Value types. Wrap ensures
 	// we always have a Value, per the function signature and value contract.
-	wrappedResult, wrapErr := Wrap(result)
+	wrappedResult, wrapErr := lang.Wrap(result)
 	if wrapErr != nil {
 		return nil, fmt.Errorf("failed to wrap interpreter result: %w", wrapErr)
 	}
@@ -61,7 +64,7 @@ func TestNewTypesIntegration(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		unwrapped := Unwrap(result)
+		unwrapped := lang.Unwrap(result)
 		resSlice, ok := unwrapped.([]interface{})
 		if !ok || len(resSlice) != 2 {
 			t.Fatalf("Expected a slice of 2 results, got %v (%T)", unwrapped, unwrapped)
@@ -88,7 +91,7 @@ func TestNewTypesIntegration(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		unwrapped := Unwrap(result)
+		unwrapped := lang.Unwrap(result)
 		resSlice, ok := unwrapped.([]interface{})
 		if !ok || len(resSlice) != 2 {
 			t.Fatalf("Expected a slice of 2 results, got %v (%T)", unwrapped, unwrapped)
@@ -118,7 +121,7 @@ func TestNewTypesIntegration(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		unwrapped := Unwrap(result)
+		unwrapped := lang.Unwrap(result)
 		resSlice, ok := unwrapped.([]interface{})
 		if !ok || len(resSlice) != 4 {
 			t.Fatalf("Expected a slice of 4 results, got %v (%T)", unwrapped, unwrapped)
@@ -154,7 +157,7 @@ func TestNewTypesIntegration(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		unwrapped := Unwrap(result)
+		unwrapped := lang.Unwrap(result)
 		resSlice, ok := unwrapped.([]interface{})
 		if !ok || len(resSlice) != 3 {
 			t.Fatalf("Expected a slice of 3 results, got %v (%T)", unwrapped, unwrapped)

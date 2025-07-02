@@ -7,30 +7,32 @@ package runtime
 
 import (
 	"testing"
+
+	"github.com/aprice2704/neuroscript/pkg/lang"
 )
 
 func TestEvaluateComparison(t *testing.T) {
 	testCases := []struct {
 		name     string
-		left     Value
-		right    Value
+		left     lang.Value
+		right    lang.Value
 		op       string
-		vars     map[string]Value
-		last     Value
+		vars     map[string]lang.Value
+		last     lang.Value
 		expected bool
 		wantErr  bool
 	}{
 		{
 			name:     "Equal Numbers",
-			left:     NumberValue{Value: 5},
-			right:    NumberValue{Value: 5},
+			left:     lang.NumberValue{Value: 5},
+			right:    lang.NumberValue{Value: 5},
 			op:       "==",
 			expected: true,
 		},
 		{
 			name:     "Unequal Strings",
-			left:     StringValue{Value: "hello"},
-			right:    StringValue{Value: "world"},
+			left:     lang.StringValue{Value: "hello"},
+			right:    lang.StringValue{Value: "world"},
 			op:       "!=",
 			expected: true,
 		},
@@ -38,7 +40,7 @@ func TestEvaluateComparison(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			interpreter, err := NewTestInterpreter(t, tc.vars, tc.last)
+			interpreter, err := llm.NewTestInterpreter(t, tc.vars, tc.last)
 			if err != nil {
 				t.Fatalf("Failed to create test interpreter: %v", err)
 			}

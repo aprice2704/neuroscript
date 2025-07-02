@@ -69,17 +69,15 @@ func main() {
 	totalErrorsFound := 0
 
 	// ### MAIN PROCESSING LOOP ###
-	// Process each file completely before moving to the next.
 	for i, file := range goFiles {
 		log.Printf("Processing file (%d/%d): %s", i+1, len(goFiles), file)
 
-		// Run gopls check on the single file
 		cmd := exec.Command("gopls", "check", file)
 		output, _ := cmd.CombinedOutput()
 		errorsForThisFile := parseGoplsErrors(output)
 
 		if len(errorsForThisFile) == 0 {
-			continue // No errors, move to the next file
+			continue
 		}
 
 		totalErrorsFound += len(errorsForThisFile)
@@ -88,7 +86,7 @@ func main() {
 		if err := processFile(file, errorsForThisFile, symbolToFileMap, *dryRun); err != nil {
 			log.Printf("ERROR: Could not process file %s: %v", file, err)
 		}
-		fmt.Println() // Blank line for readability
+		fmt.Println()
 	}
 
 	log.Printf("Processing complete. Found a total of %d undefined symbols.", totalErrorsFound)
@@ -113,7 +111,6 @@ func processFile(file string, errors []VetError, symbolMap map[string]string, dr
 	}
 
 	if dryRun {
-		// In dry-run mode, just print suggestions for the file's errors.
 		for _, vetErr := range errors {
 			printSuggestion(lines, vetErr, symbolMap, currentPkg)
 		}
@@ -140,6 +137,9 @@ func processFile(file string, errors []VetError, symbolMap map[string]string, dr
 				modifiedLines[lineIndex] = fixedLine
 				modificationsMade++
 			}
+		} else {
+			// Explicitly log when we skip a fix because the symbol is in the same package.
+			log.Printf("L%d: Symbol '%s' is in the same package ('%s'). Skipping prefix.", vetErr.LineNumber, vetErr.Symbol, currentPkg)
 		}
 	}
 
@@ -148,14 +148,17 @@ func processFile(file string, errors []VetError, symbolMap map[string]string, dr
 		if err := os.WriteFile(file, []byte(output), 0644); err != nil {
 			return fmt.Errorf("failed to write changes: %w", err)
 		}
-		log.Printf("Modified %s to fix %d undefined symbols.", file, modificationsMade)
+		log.Printf("Modified %s to fix %d symbols.", file, modificationsMade)
+	}
 
-		cmd := exec.Command("gopls", "imports", "-w", file)
-		if err := cmd.Run(); err != nil {
-			log.Printf("Warning: 'gopls imports -w %s' failed: %v", file, err)
-		} else {
-			log.Printf("Updated imports for %s.", file)
-		}
+	// Always run `gopls imports` if `gopls check` found any errors for the file.
+	// This can fix issues even if we didn't add a package prefix.
+	log.Println("Running 'gopls imports' to clean up...")
+	cmd := exec.Command("gopls", "imports", "-w", file)
+	if err := cmd.Run(); err != nil {
+		log.Printf("Warning: 'gopls imports -w %s' failed: %v", file, err)
+	} else {
+		log.Printf("Formatted imports for %s.", file)
 	}
 
 	return nil
@@ -169,15 +172,21 @@ func printSuggestion(lines []string, vetErr VetError, symbolMap map[string]strin
 	}
 	symbolPkg := getPackageFromPath(defFile)
 
-	if currentPkg != symbolPkg && vetErr.LineNumber > 0 && vetErr.LineNumber <= len(lines) {
-		originalLine := lines[vetErr.LineNumber-1]
-		displayLine := applyFix(originalLine, vetErr.Symbol, symbolPkg, colorGreen)
+	lineIndex := vetErr.LineNumber - 1
+	if lineIndex < 0 || lineIndex >= len(lines) {
+		return
+	}
+	originalLine := lines[lineIndex]
 
+	if currentPkg != symbolPkg {
+		displayLine := applyFix(originalLine, vetErr.Symbol, symbolPkg, colorGreen)
 		if displayLine != originalLine {
 			fmt.Printf("L%d: Missing import for symbol '%s' (package: %s)\n", vetErr.LineNumber, vetErr.Symbol, symbolPkg)
 			fmt.Printf("  Original: %s\n", strings.TrimSpace(originalLine))
 			fmt.Printf("  Proposed: %s\n", strings.TrimSpace(displayLine))
 		}
+	} else {
+		log.Printf("L%d: Symbol '%s' is in the same package ('%s'). No fix needed.", vetErr.LineNumber, vetErr.Symbol, currentPkg)
 	}
 }
 

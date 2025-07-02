@@ -8,7 +8,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/aprice2704/neuroscript/pkg/core"
+	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 	"github.com/google/go-cmp/cmp"
 )
 
@@ -29,13 +30,13 @@ func TestChecklistRemoveItemTool(t *testing.T) {
 		nodeToRemove    string
 		expectError     bool
 		expectedErrorIs error
-		verifyFunc      func(t *testing.T, interp *core.Interpreter, handleID string)
+		verifyFunc      func(t *testing.T, interp *neurogo.Interpreter, handleID string)
 	}{
 		{
 			name:         "Remove Leaf Node (Child 1.1)",
 			nodeToRemove: "node-3",
 			expectError:  false,
-			verifyFunc: func(t *testing.T, interp *core.Interpreter, handleID string) {
+			verifyFunc: func(t *testing.T, interp *neurogo.Interpreter, handleID string) {
 				// Verify node-3 is gone
 				nodeData := getNodeViaTool(t, interp, handleID, "node-3")
 				if nodeData != nil {
@@ -63,7 +64,7 @@ func TestChecklistRemoveItemTool(t *testing.T) {
 			name:         "Remove Node with Children (Child 2.2 Auto)",
 			nodeToRemove: "node-6",
 			expectError:  false,
-			verifyFunc: func(t *testing.T, interp *core.Interpreter, handleID string) {
+			verifyFunc: func(t *testing.T, interp *neurogo.Interpreter, handleID string) {
 				// Verify node-6 is gone
 				nodeData6 := getNodeViaTool(t, interp, handleID, "node-6")
 				if nodeData6 != nil {
@@ -104,19 +105,19 @@ func TestChecklistRemoveItemTool(t *testing.T) {
 			name:            "Error: Remove Root Node",
 			nodeToRemove:    "node-1", // Assuming root is node-1
 			expectError:     true,
-			expectedErrorIs: core.ErrInvalidArgument, // Tool should return InvalidArgument for trying to remove root
+			expectedErrorIs: lang.ErrInvalidArgument, // Tool should return InvalidArgument for trying to remove root
 		},
 		{
 			name:            "Error: Remove Non-existent Node",
 			nodeToRemove:    "node-99",
 			expectError:     true,
-			expectedErrorIs: core.ErrNotFound,
+			expectedErrorIs: lang.ErrNotFound,
 		},
 		{
 			name:            "Error: Invalid Handle",
 			nodeToRemove:    "node-3", // Node ID doesn't matter here
 			expectError:     true,
-			expectedErrorIs: core.ErrInvalidArgument, // Expect InvalidArgument from GetHandleValue via tool
+			expectedErrorIs: lang.ErrInvalidArgument, // Expect InvalidArgument from GetHandleValue via tool
 		},
 	}
 
@@ -140,7 +141,7 @@ func TestChecklistRemoveItemTool(t *testing.T) {
 			// ---
 
 			// Setup: Load Fixture
-			loadResult, loadErr := loadToolFunc(interp, core.MakeArgs(fixtureChecklist))
+			loadResult, loadErr := loadToolFunc(interp, tool.MakeArgs(fixtureChecklist))
 			assertNoErrorSetup(t, loadErr, "Setup: Failed to load fixture checklist")
 			handleID, ok := loadResult.(string)
 			if !ok {
@@ -148,7 +149,7 @@ func TestChecklistRemoveItemTool(t *testing.T) {
 			}
 
 			// Initial status update to set correct parent statuses before removal
-			_, initialUpdateErr := updateToolFunc(interp, core.MakeArgs(handleID))
+			_, initialUpdateErr := updateToolFunc(interp, tool.MakeArgs(handleID))
 			assertNoErrorSetup(t, initialUpdateErr, "Setup: Initial Checklist.UpdateStatus failed")
 
 			// --- Call ChecklistRemoveItem ---
@@ -156,7 +157,7 @@ func TestChecklistRemoveItemTool(t *testing.T) {
 			if tc.name == "Error: Invalid Handle" {
 				testHandleID = "bad-handle-format" // Use an invalid format
 			}
-			_, err := toolFunc(interp, core.MakeArgs(testHandleID, tc.nodeToRemove))
+			_, err := toolFunc(interp, tool.MakeArgs(testHandleID, tc.nodeToRemove))
 
 			// Assertions
 			if tc.expectError {
@@ -164,7 +165,7 @@ func TestChecklistRemoveItemTool(t *testing.T) {
 					t.Errorf("Expected an error, but got nil")
 				} else if tc.expectedErrorIs != nil && !errors.Is(err, tc.expectedErrorIs) {
 					// Handle cases where GetHandleValue might wrap the error differently
-					if tc.name == "Error: Invalid Handle" && errors.Is(err, core.ErrInvalidArgument) {
+					if tc.name == "Error: Invalid Handle" && errors.Is(err, lang.ErrInvalidArgument) {
 						t.Logf("Got expected error type (InvalidArgument) for invalid handle: %v", err)
 					} else {
 						t.Errorf("Expected error wrapping [%v], got: %v (Type: %T)", tc.expectedErrorIs, err, err)
@@ -182,7 +183,7 @@ func TestChecklistRemoveItemTool(t *testing.T) {
 
 				// Call UpdateStatus explicitly after RemoveItem if verification depends on rollup
 				if tc.verifyFunc != nil {
-					_, updateErr := updateToolFunc(interp, core.MakeArgs(handleID))
+					_, updateErr := updateToolFunc(interp, tool.MakeArgs(handleID))
 					if updateErr != nil {
 						t.Fatalf("Checklist.UpdateStatus failed after RemoveItem: %v", updateErr)
 					}

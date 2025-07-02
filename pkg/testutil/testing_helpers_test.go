@@ -1,6 +1,8 @@
 // filename: pkg/core/testing_helpers_test.go
 package core
 
+import "github.com/aprice2704/neuroscript/pkg/lang"
+
 // Import errors package for errors.Is
 
 // Keep for deepEqualWithTolerance
@@ -14,12 +16,12 @@ package core
 
 // Ensure core errors are accessible if needed by helpers here
 var (
-	_ = ErrValidationArgCount
-	_ = ErrValidationRequiredArgNil
-	_ = ErrValidationTypeMismatch
+	_ = lang.ErrValidationArgCount
+	_ = lang.ErrValidationRequiredArgNil
+	_ = lang.ErrValidationTypeMismatch
 	// Add other error variables used here if needed
-	_ = ErrMustConditionFailed
-	_ = ErrTypeAssertionFailed // Example if used internally
+	_ = lang.ErrMustConditionFailed
+	_ = lang.ErrTypeAssertionFailed // Example if used internally
 )
 
 // --- END FILE ---

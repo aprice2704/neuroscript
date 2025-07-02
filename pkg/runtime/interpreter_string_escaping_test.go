@@ -11,153 +11,154 @@ import (
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/ast"
+	"github.com/aprice2704/neuroscript/pkg/lang"
 )
 
 // TestInterpretStringEscaping verifies that the interpreter correctly
 // handles strings that have been unescaped by the AST builder.
 func TestInterpretStringEscaping(t *testing.T) {
-	pos := &Position{Line: 1, Column: 1, File: "escape_integration_test"}
+	pos := &lang.Position{Line: 1, Column: 1, File: "escape_integration_test"}
 
-	testCases := []executeStepsTestCase{
+	testCases := []testutil.executeStepsTestCase{
 		{
 			name: "Interpret Backspace",
-			inputSteps: []Step{
-				createTestStep("set", "val", &ast.StringLiteralNode{Position: pos, Value: "text\bback"}, nil),
+			inputSteps: []ast.Step{
+				testutil.createTestStep("set", "val", &ast.StringLiteralNode{Position: pos, Value: "text\bback"}, nil),
 			},
-			expectedVars:   map[string]Value{"val": StringValue{Value: "text\bback"}},
-			expectedResult: StringValue{Value: "text\bback"},
+			expectedVars:   map[string]lang.Value{"val": lang.StringValue{Value: "text\bback"}},
+			expectedResult: lang.StringValue{Value: "text\bback"},
 		},
 		{
 			name: "Interpret Tab",
-			inputSteps: []Step{
-				createTestStep("set", "val", &ast.StringLiteralNode{Position: pos, Value: "col1\tcol2"}, nil),
+			inputSteps: []ast.Step{
+				testutil.createTestStep("set", "val", &ast.StringLiteralNode{Position: pos, Value: "col1\tcol2"}, nil),
 			},
-			expectedVars:   map[string]Value{"val": StringValue{Value: "col1\tcol2"}},
-			expectedResult: StringValue{Value: "col1\tcol2"},
+			expectedVars:   map[string]lang.Value{"val": lang.StringValue{Value: "col1\tcol2"}},
+			expectedResult: lang.StringValue{Value: "col1\tcol2"},
 		},
 		{
 			name: "Interpret Newline",
-			inputSteps: []Step{
-				createTestStep("set", "val", &ast.StringLiteralNode{Position: pos, Value: "first\nsecond"}, nil),
+			inputSteps: []ast.Step{
+				testutil.createTestStep("set", "val", &ast.StringLiteralNode{Position: pos, Value: "first\nsecond"}, nil),
 			},
-			expectedVars:   map[string]Value{"val": StringValue{Value: "first\nsecond"}},
-			expectedResult: StringValue{Value: "first\nsecond"},
+			expectedVars:   map[string]lang.Value{"val": lang.StringValue{Value: "first\nsecond"}},
+			expectedResult: lang.StringValue{Value: "first\nsecond"},
 		},
 		{
 			name: "Interpret Formfeed",
-			inputSteps: []Step{
-				createTestStep("set", "val", &ast.StringLiteralNode{Position: pos, Value: "page1\fpage2"}, nil),
+			inputSteps: []ast.Step{
+				testutil.createTestStep("set", "val", &ast.StringLiteralNode{Position: pos, Value: "page1\fpage2"}, nil),
 			},
-			expectedVars:   map[string]Value{"val": StringValue{Value: "page1\fpage2"}},
-			expectedResult: StringValue{Value: "page1\fpage2"},
+			expectedVars:   map[string]lang.Value{"val": lang.StringValue{Value: "page1\fpage2"}},
+			expectedResult: lang.StringValue{Value: "page1\fpage2"},
 		},
 		{
 			name: "Interpret Carriage Return",
-			inputSteps: []Step{
-				createTestStep("set", "val", &ast.StringLiteralNode{Position: pos, Value: "over\rwrite"}, nil),
+			inputSteps: []ast.Step{
+				testutil.createTestStep("set", "val", &ast.StringLiteralNode{Position: pos, Value: "over\rwrite"}, nil),
 			},
-			expectedVars:   map[string]Value{"val": StringValue{Value: "over\rwrite"}},
-			expectedResult: StringValue{Value: "over\rwrite"},
+			expectedVars:   map[string]lang.Value{"val": lang.StringValue{Value: "over\rwrite"}},
+			expectedResult: lang.StringValue{Value: "over\rwrite"},
 		},
 		{
 			name: "Interpret Vertical Tab",
-			inputSteps: []Step{
-				createTestStep("set", "val", &ast.StringLiteralNode{Position: pos, Value: "v\vtab"}, nil),
+			inputSteps: []ast.Step{
+				testutil.createTestStep("set", "val", &ast.StringLiteralNode{Position: pos, Value: "v\vtab"}, nil),
 			},
-			expectedVars:   map[string]Value{"val": StringValue{Value: "v\vtab"}},
-			expectedResult: StringValue{Value: "v\vtab"},
+			expectedVars:   map[string]lang.Value{"val": lang.StringValue{Value: "v\vtab"}},
+			expectedResult: lang.StringValue{Value: "v\vtab"},
 		},
 		{
 			name: "Interpret Tilde",
-			inputSteps: []Step{
-				createTestStep("set", "val", &ast.StringLiteralNode{Position: pos, Value: "approx~equal"}, nil),
+			inputSteps: []ast.Step{
+				testutil.createTestStep("set", "val", &ast.StringLiteralNode{Position: pos, Value: "approx~equal"}, nil),
 			},
-			expectedVars:   map[string]Value{"val": StringValue{Value: "approx~equal"}},
-			expectedResult: StringValue{Value: "approx~equal"},
+			expectedVars:   map[string]lang.Value{"val": lang.StringValue{Value: "approx~equal"}},
+			expectedResult: lang.StringValue{Value: "approx~equal"},
 		},
 		{
 			name: "Interpret Backtick",
-			inputSteps: []Step{
-				createTestStep("set", "val", &ast.StringLiteralNode{Position: pos, Value: "code `block`"}, nil),
+			inputSteps: []ast.Step{
+				testutil.createTestStep("set", "val", &ast.StringLiteralNode{Position: pos, Value: "code `block`"}, nil),
 			},
-			expectedVars:   map[string]Value{"val": StringValue{Value: "code `block`"}},
-			expectedResult: StringValue{Value: "code `block`"},
+			expectedVars:   map[string]lang.Value{"val": lang.StringValue{Value: "code `block`"}},
+			expectedResult: lang.StringValue{Value: "code `block`"},
 		},
 		{
 			name: "Interpret Double Quote",
-			inputSteps: []Step{
-				createTestStep("set", "val", &ast.StringLiteralNode{Position: pos, Value: `a "quoted" string`}, nil),
+			inputSteps: []ast.Step{
+				testutil.createTestStep("set", "val", &ast.StringLiteralNode{Position: pos, Value: `a "quoted" string`}, nil),
 			},
-			expectedVars:   map[string]Value{"val": StringValue{Value: `a "quoted" string`}},
-			expectedResult: StringValue{Value: `a "quoted" string`},
+			expectedVars:   map[string]lang.Value{"val": lang.StringValue{Value: `a "quoted" string`}},
+			expectedResult: lang.StringValue{Value: `a "quoted" string`},
 		},
 		{
 			name: "Interpret Single Quote",
-			inputSteps: []Step{
-				createTestStep("set", "val", &ast.StringLiteralNode{Position: pos, Value: "it's great"}, nil),
+			inputSteps: []ast.Step{
+				testutil.createTestStep("set", "val", &ast.StringLiteralNode{Position: pos, Value: "it's great"}, nil),
 			},
-			expectedVars:   map[string]Value{"val": StringValue{Value: "it's great"}},
-			expectedResult: StringValue{Value: "it's great"},
+			expectedVars:   map[string]lang.Value{"val": lang.StringValue{Value: "it's great"}},
+			expectedResult: lang.StringValue{Value: "it's great"},
 		},
 		{
 			name: "Interpret Backslash",
-			inputSteps: []Step{
-				createTestStep("set", "val", &ast.StringLiteralNode{Position: pos, Value: `a path C:\folder`}, nil),
+			inputSteps: []ast.Step{
+				testutil.createTestStep("set", "val", &ast.StringLiteralNode{Position: pos, Value: `a path C:\folder`}, nil),
 			},
-			expectedVars:   map[string]Value{"val": StringValue{Value: `a path C:\folder`}},
-			expectedResult: StringValue{Value: `a path C:\folder`},
+			expectedVars:   map[string]lang.Value{"val": lang.StringValue{Value: `a path C:\folder`}},
+			expectedResult: lang.StringValue{Value: `a path C:\folder`},
 		},
 		{
 			name: "Interpret Unicode BMP",
-			inputSteps: []Step{
-				createTestStep("set", "val", &ast.StringLiteralNode{Position: pos, Value: "currency: €"}, nil),
+			inputSteps: []ast.Step{
+				testutil.createTestStep("set", "val", &ast.StringLiteralNode{Position: pos, Value: "currency: €"}, nil),
 			},
-			expectedVars:   map[string]Value{"val": StringValue{Value: "currency: €"}},
-			expectedResult: StringValue{Value: "currency: €"},
+			expectedVars:   map[string]lang.Value{"val": lang.StringValue{Value: "currency: €"}},
+			expectedResult: lang.StringValue{Value: "currency: €"},
 		},
 		{
 			name: "Interpret Unicode Surrogate Pair",
-			inputSteps: []Step{
-				createTestStep("set", "val", &ast.StringLiteralNode{Position: pos, Value: "face: 😀"}, nil),
+			inputSteps: []ast.Step{
+				testutil.createTestStep("set", "val", &ast.StringLiteralNode{Position: pos, Value: "face: 😀"}, nil),
 			},
-			expectedVars:   map[string]Value{"val": StringValue{Value: "face: 😀"}},
-			expectedResult: StringValue{Value: "face: 😀"},
+			expectedVars:   map[string]lang.Value{"val": lang.StringValue{Value: "face: 😀"}},
+			expectedResult: lang.StringValue{Value: "face: 😀"},
 		},
 		{
 			name: "Interpret Unicode Unpaired High Surrogate",
-			inputSteps: []Step{
-				createTestStep("set", "val", &ast.StringLiteralNode{Position: pos, Value: "unpaired: " + string(rune(0xFFFD)) + " after"}, nil),
+			inputSteps: []ast.Step{
+				testutil.createTestStep("set", "val", &ast.StringLiteralNode{Position: pos, Value: "unpaired: " + string(rune(0xFFFD)) + " after"}, nil),
 			},
-			expectedVars:   map[string]Value{"val": StringValue{Value: "unpaired: " + string(rune(0xFFFD)) + " after"}},
-			expectedResult: StringValue{Value: "unpaired: " + string(rune(0xFFFD)) + " after"},
+			expectedVars:   map[string]lang.Value{"val": lang.StringValue{Value: "unpaired: " + string(rune(0xFFFD)) + " after"}},
+			expectedResult: lang.StringValue{Value: "unpaired: " + string(rune(0xFFFD)) + " after"},
 		},
 		{
 			name: "Interpret Unicode High Surrogate at EOS",
-			inputSteps: []Step{
-				createTestStep("set", "val", &ast.StringLiteralNode{Position: pos, Value: "eos: " + string(rune(0xFFFD))}, nil),
+			inputSteps: []ast.Step{
+				testutil.createTestStep("set", "val", &ast.StringLiteralNode{Position: pos, Value: "eos: " + string(rune(0xFFFD))}, nil),
 			},
-			expectedVars:   map[string]Value{"val": StringValue{Value: "eos: " + string(rune(0xFFFD))}},
-			expectedResult: StringValue{Value: "eos: " + string(rune(0xFFFD))},
+			expectedVars:   map[string]lang.Value{"val": lang.StringValue{Value: "eos: " + string(rune(0xFFFD))}},
+			expectedResult: lang.StringValue{Value: "eos: " + string(rune(0xFFFD))},
 		},
 		{
 			name: "Interpret Unicode High Surrogate followed by non-low surrogate unicode",
-			inputSteps: []Step{
-				createTestStep("set", "val", &ast.StringLiteralNode{Position: pos, Value: string(rune(0xFFFD)) + "A"}, nil),
+			inputSteps: []ast.Step{
+				testutil.createTestStep("set", "val", &ast.StringLiteralNode{Position: pos, Value: string(rune(0xFFFD)) + "A"}, nil),
 			},
-			expectedVars:   map[string]Value{"val": StringValue{Value: string(rune(0xFFFD)) + "A"}},
-			expectedResult: StringValue{Value: string(rune(0xFFFD)) + "A"},
+			expectedVars:   map[string]lang.Value{"val": lang.StringValue{Value: string(rune(0xFFFD)) + "A"}},
+			expectedResult: lang.StringValue{Value: string(rune(0xFFFD)) + "A"},
 		},
 		{
 			name: "Interpret Unicode High Surrogate followed by non-unicode escape",
-			inputSteps: []Step{
-				createTestStep("set", "val", &ast.StringLiteralNode{Position: pos, Value: string(rune(0xFFFD)) + "\n"}, nil),
+			inputSteps: []ast.Step{
+				testutil.createTestStep("set", "val", &ast.StringLiteralNode{Position: pos, Value: string(rune(0xFFFD)) + "\n"}, nil),
 			},
-			expectedVars:   map[string]Value{"val": StringValue{Value: string(rune(0xFFFD)) + "\n"}},
-			expectedResult: StringValue{Value: string(rune(0xFFFD)) + "\n"},
+			expectedVars:   map[string]lang.Value{"val": lang.StringValue{Value: string(rune(0xFFFD)) + "\n"}},
+			expectedResult: lang.StringValue{Value: string(rune(0xFFFD)) + "\n"},
 		},
 	}
 
 	for _, tc := range testCases {
-		runExecuteStepsTest(t, tc)
+		testutil.runExecuteStepsTest(t, tc)
 	}
 }

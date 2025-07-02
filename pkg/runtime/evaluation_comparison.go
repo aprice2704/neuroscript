@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	"github.com/aprice2704/neuroscript/pkg/ast"
+	"github.com/aprice2704/neuroscript/pkg/lang"
 )
 
 // evaluateComparison handles logical and comparison operators (==, !=, <, >, etc.).
@@ -30,5 +31,5 @@ func (i *Interpreter) isTruthy(condNode interface{}) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	return IsTruthy(val), nil
+	return lang.IsTruthy(val), nil
 }

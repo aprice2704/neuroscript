@@ -29,7 +29,7 @@ var _ interfaces.Logger = (*TestLogger)(nil)
 
 func NewTestLogger(t *testing.T) interfaces.Logger {
 	if TestVerbose != nil && !*TestVerbose {
-		return &coreNoOpLogger{}
+		return &utils.coreNoOpLogger{}
 	}
 	return &TestLogger{t: t, out: os.Stderr}
 }
@@ -60,7 +60,7 @@ func (l *TestLogger) With(args ...any) interfaces.Logger { return l }
 // --- End Test Logger ---
 
 // NewTestInterpreter creates a new interpreter instance suitable for testing.
-func NewTestInterpreter(t *testing.T, initialVars map[string]Value, lastResult Value) (*Interpreter, error) {
+func NewTestInterpreter(t *testing.T, initialVars map[string]lang.lang.Value, lastResult lang.lang.Value) (*neurogo.Interpreter, error) {
 	t.Helper()
 	testLogger := NewTestLogger(t)
 
@@ -87,7 +87,7 @@ func NewTestInterpreter(t *testing.T, initialVars map[string]Value, lastResult V
 		interp.lastCallResult = lastResult
 	}
 
-	if err := RegisterCoreTools(interp); err != nil {
+	if err := tool.RegisterCoreTools(interp); err != nil {
 		return nil, fmt.Errorf("failed to register core tools for test interpreter: %w", err)
 	}
 
@@ -99,7 +99,7 @@ func NewTestInterpreter(t *testing.T, initialVars map[string]Value, lastResult V
 }
 
 // NewDefaultTestInterpreter provides a convenience wrapper around NewTestInterpreter.
-func NewDefaultTestInterpreter(t *testing.T) (*Interpreter, error) {
+func NewDefaultTestInterpreter(t *testing.T) (*neurogo.Interpreter, error) {
 	t.Helper()
 	return NewTestInterpreter(t, nil, nil)
 }

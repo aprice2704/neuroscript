@@ -11,15 +11,15 @@ import (
 )
 
 // AddProcedure programmatically adds a single procedure to the interpreter's registry.
-func (i *Interpreter) AddProcedure(proc Procedure) error {
+func (i *Interpreter) AddProcedure(proc ast.Procedure) error {
 	if i.knownProcedures == nil {
-		i.knownProcedures = make(map[string]*Procedure)
+		i.knownProcedures = make(map[string]*ast.Procedure)
 	}
 	if proc.Name == "" {
 		return errors.New("cannot add procedure with empty name")
 	}
 	if _, exists := i.knownProcedures[proc.Name]; exists {
-		return fmt.Errorf("%w: '%s'", ErrProcedureExists, proc.Name)
+		return fmt.Errorf("%w: '%s'", lang.ErrProcedureExists, proc.Name)
 	}
 	i.knownProcedures[proc.Name] = &proc
 	i.Logger().Debug("Added procedure definition.", "name", proc.Name)
@@ -27,9 +27,9 @@ func (i *Interpreter) AddProcedure(proc Procedure) error {
 }
 
 // KnownProcedures returns the map of known procedures.
-func (i *Interpreter) KnownProcedures() map[string]*Procedure {
+func (i *Interpreter) KnownProcedures() map[string]*ast.Procedure {
 	if i.knownProcedures == nil {
-		return make(map[string]*Procedure)
+		return make(map[string]*ast.Procedure)
 	}
 	return i.knownProcedures
 }
@@ -38,7 +38,7 @@ func (i *Interpreter) KnownProcedures() map[string]*Procedure {
 // In accordance with the value wrapping contract, this core interpreter function
 // accepts and returns only core.Value types. The caller is responsible for wrapping
 // any primitive Go types into core.Value before calling this function.
-func (i *Interpreter) RunProcedure(procName string, args ...Value) (Value, error) {
+func (i *Interpreter) RunProcedure(procName string, args ...lang.lang.Value) (lang.lang.Value, error) {
 	originalProcName := i.currentProcName
 	i.Logger().Debug("Running procedure", "name", procName, "caller", originalProcName)
 	defer func() {
@@ -50,7 +50,7 @@ func (i *Interpreter) RunProcedure(procName string, args ...Value) (Value, error
 
 	proc, exists := i.knownProcedures[procName]
 	if !exists {
-		return nil, fmt.Errorf("%w: '%s'", ErrProcedureNotFound, procName)
+		return nil, fmt.Errorf("%w: '%s'", lang.ErrProcedureNotFound, procName)
 	}
 
 	numRequired := len(proc.RequiredParams)
@@ -59,10 +59,10 @@ func (i *Interpreter) RunProcedure(procName string, args ...Value) (Value, error
 	numProvided := len(args)
 
 	if numProvided < numRequired {
-		return nil, fmt.Errorf("%w: procedure '%s' requires %d args, got %d", ErrArgumentMismatch, procName, numRequired, numProvided)
+		return nil, fmt.Errorf("%w: procedure '%s' requires %d args, got %d", lang.ErrArgumentMismatch, procName, numRequired, numProvided)
 	}
 	if !proc.Variadic && numProvided > numTotalParams {
-		return nil, fmt.Errorf("%w: procedure '%s' expects max %d args, got %d", ErrArgumentMismatch, procName, numTotalParams, numProvided)
+		return nil, fmt.Errorf("%w: procedure '%s' expects max %d args, got %d", lang.ErrArgumentMismatch, procName, numTotalParams, numProvided)
 	}
 
 	procInterpreter := i.CloneWithNewVariables()
@@ -89,7 +89,7 @@ func (i *Interpreter) RunProcedure(procName string, args ...Value) (Value, error
 	// Assign variadic parameters, if any.
 	if proc.Variadic && proc.VariadicParamName != "" && numProvided > numTotalParams {
 		variadicArgs := args[numTotalParams:] // This is already a []Value slice
-		variadicList := NewListValue(variadicArgs)
+		variadicList := lang.NewListValue(variadicArgs)
 		if setErr := procInterpreter.SetVariable(proc.VariadicParamName, variadicList); setErr != nil {
 			return nil, fmt.Errorf("failed to set variadic parameter '%s': %w", proc.VariadicParamName, setErr)
 		}
@@ -116,12 +116,12 @@ func (i *Interpreter) RunProcedure(procName string, args ...Value) (Value, error
 	// Validate and shape the return value according to the procedure's definition.
 	expectedReturnCount := len(proc.ReturnVarNames)
 	if expectedReturnCount == 0 {
-		return NilValue{}, nil
+		return lang.NilValue{}, nil
 	}
 
 	// Normalize a nil interface from executeSteps to a proper NilValue type for consistency.
 	if result == nil {
-		result = NilValue{}
+		result = lang.NilValue{}
 	}
 
 	if expectedReturnCount == 1 {
@@ -132,12 +132,12 @@ func (i *Interpreter) RunProcedure(procName string, args ...Value) (Value, error
 	// If multiple return values are expected, the result must be a ListValue.
 	list, ok := result.(ListValue)
 	if !ok {
-		return nil, fmt.Errorf("%w: procedure '%s' expected %d return values, but returned a single value of type %s", ErrReturnMismatch, procName, expectedReturnCount, TypeOf(result))
+		return nil, fmt.Errorf("%w: procedure '%s' expected %d return values, but returned a single value of type %s", lang.ErrReturnMismatch, procName, expectedReturnCount, lang.TypeOf(result))
 	}
 
 	// The list must contain the exact number of expected return values.
 	if len(list.Value) != expectedReturnCount {
-		return nil, fmt.Errorf("%w: procedure '%s' expected %d return values, but returned a list with %d items", ErrReturnMismatch, procName, expectedReturnCount, len(list.Value))
+		return nil, fmt.Errorf("%w: procedure '%s' expected %d return values, but returned a list with %d items", lang.ErrReturnMismatch, procName, expectedReturnCount, len(list.Value))
 	}
 
 	return list, nil

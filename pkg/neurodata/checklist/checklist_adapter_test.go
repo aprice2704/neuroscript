@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.3.1
 // File version: 2.0.0
-// Purpose: Updated test cases and helpers to use core.TreeAttrs (map[string]interface{}) instead of map[string]string.
+// Purpose: Updated test cases and helpers to use  TreeAttrs (map[string]interface{}) instead of map[string]string.
 // filename: pkg/neurodata/checklist/checklist_adapter_test.go
 
 package checklist
@@ -12,12 +12,11 @@ import (
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/adapters" // For NoOpLogger
-	"github.com/aprice2704/neuroscript/pkg/core"
-	"github.com/google/go-cmp/cmp" // For better diffs
+	"github.com/google/go-cmp/cmp"                   // For better diffs
 )
 
 // Helper to verify node properties in the tree
-func verifyTreeNode(t *testing.T, tree *core.GenericTree, nodeID string, expectedProps map[string]interface{}) {
+func verifyTreeNode(t *testing.T, tree *utils.GenericTree, nodeID string, expectedProps map[string]interface{}) {
 	t.Helper()
 
 	node, exists := tree.NodeMap[nodeID]
@@ -48,10 +47,10 @@ func verifyTreeNode(t *testing.T, tree *core.GenericTree, nodeID string, expecte
 				t.Errorf("verifyTreeNode: Node %q ParentID mismatch. got=%q, want=%q", nodeID, node.ParentID, expectedValue)
 			}
 		case "Attributes":
-			// FIX: The expected value is now core.TreeAttrs (map[string]interface{})
-			expectedAttrs, ok := expectedValue.(core.TreeAttrs)
+			// FIX: The expected value is now  TreeAttrs (map[string]interface{})
+			expectedAttrs, ok := expectedValue.(utils.TreeAttrs)
 			if !ok {
-				t.Errorf("verifyTreeNode: Invalid type for expected Attributes, want core.TreeAttrs, got %T", expectedValue)
+				t.Errorf("verifyTreeNode: Invalid type for expected Attributes, want  TreeAttrs, got %T", expectedValue)
 				continue
 			}
 
@@ -80,7 +79,7 @@ func TestChecklistToTree(t *testing.T) {
 			{Text: "Item 1", Status: "pending", Symbol: ' ', Indent: 0, LineNumber: 3, IsAutomatic: false},
 			{Text: "Item 2", Status: "done", Symbol: 'x', Indent: 0, LineNumber: 4, IsAutomatic: false},
 		}
-		// FIX: Use map[string]interface{} for metadata to match core.TreeAttrs
+		// FIX: Use map[string]interface{} for metadata to match  TreeAttrs
 		metadata := map[string]interface{}{"title": "Test List", "version": "1.0"}
 
 		// This test passes a map[string]string to a function expecting map[string]string, so ChecklistToTree is the boundary
@@ -107,16 +106,16 @@ func TestChecklistToTree(t *testing.T) {
 
 		verifyTreeNode(t, tree, rootID, map[string]interface{}{
 			"Type": "checklist_root", "ParentID": "", "Value": nil,
-			"Attributes": core.TreeAttrs(metadata), "ChildIDs": []string{item1ID, item2ID},
+			"Attributes": utils.TreeAttrs(metadata), "ChildIDs": []string{item1ID, item2ID},
 		})
 		verifyTreeNode(t, tree, item1ID, map[string]interface{}{
 			"Type": "checklist_item", "ParentID": rootID, "Value": "Item 1",
-			"Attributes": core.TreeAttrs{"status": "open"},
+			"Attributes": utils.TreeAttrs{"status": "open"},
 			"ChildIDs":   []string{},
 		})
 		verifyTreeNode(t, tree, item2ID, map[string]interface{}{
 			"Type": "checklist_item", "ParentID": rootID, "Value": "Item 2",
-			"Attributes": core.TreeAttrs{"status": "done"},
+			"Attributes": utils.TreeAttrs{"status": "done"},
 			"ChildIDs":   []string{},
 		})
 	})
@@ -147,13 +146,13 @@ func TestChecklistToTree(t *testing.T) {
 		c13ID := p1Node.ChildIDs[2]
 		c21ID := p2Node.ChildIDs[0]
 
-		verifyTreeNode(t, tree, tree.RootID, map[string]interface{}{"Type": "checklist_root", "Attributes": core.TreeAttrs{"type": "Nested"}})
-		verifyTreeNode(t, tree, p1ID, map[string]interface{}{"Type": "checklist_item", "Value": "Parent 1 *(Anno1)*", "Attributes": core.TreeAttrs{"status": "open"}})
-		verifyTreeNode(t, tree, c11ID, map[string]interface{}{"Type": "checklist_item", "Value": "Child 1.1", "Attributes": core.TreeAttrs{"status": "skipped"}})
-		verifyTreeNode(t, tree, c12ID, map[string]interface{}{"Type": "checklist_item", "Value": "Child 1.2 **(Anno2)**", "Attributes": core.TreeAttrs{"status": "blocked"}})
-		verifyTreeNode(t, tree, c13ID, map[string]interface{}{"Type": "checklist_item", "Value": "Child 1.3", "Attributes": core.TreeAttrs{"status": "special", "special_symbol": "*"}})
-		verifyTreeNode(t, tree, p2ID, map[string]interface{}{"Type": "checklist_item", "Value": "Parent 2", "Attributes": core.TreeAttrs{"status": "open", "is_automatic": true}})
-		verifyTreeNode(t, tree, c21ID, map[string]interface{}{"Type": "checklist_item", "Value": "Child 2.1", "Attributes": core.TreeAttrs{"status": "partial", "is_automatic": true}})
+		verifyTreeNode(t, tree, tree.RootID, map[string]interface{}{"Type": "checklist_root", "Attributes": utils.TreeAttrs{"type": "Nested"}})
+		verifyTreeNode(t, tree, p1ID, map[string]interface{}{"Type": "checklist_item", "Value": "Parent 1 *(Anno1)*", "Attributes": utils.TreeAttrs{"status": "open"}})
+		verifyTreeNode(t, tree, c11ID, map[string]interface{}{"Type": "checklist_item", "Value": "Child 1.1", "Attributes": utils.TreeAttrs{"status": "skipped"}})
+		verifyTreeNode(t, tree, c12ID, map[string]interface{}{"Type": "checklist_item", "Value": "Child 1.2 **(Anno2)**", "Attributes": utils.TreeAttrs{"status": "blocked"}})
+		verifyTreeNode(t, tree, c13ID, map[string]interface{}{"Type": "checklist_item", "Value": "Child 1.3", "Attributes": utils.TreeAttrs{"status": "special", "special_symbol": "*"}})
+		verifyTreeNode(t, tree, p2ID, map[string]interface{}{"Type": "checklist_item", "Value": "Parent 2", "Attributes": utils.TreeAttrs{"status": "open", "is_automatic": true}})
+		verifyTreeNode(t, tree, c21ID, map[string]interface{}{"Type": "checklist_item", "Value": "Child 2.1", "Attributes": utils.TreeAttrs{"status": "partial", "is_automatic": true}})
 	})
 
 }
@@ -164,18 +163,18 @@ func TestTreeToChecklistString(t *testing.T) {
 	testCases := []struct {
 		name              string
 		inputChecklist    string
-		buildTreeManually func() *core.GenericTree
+		buildTreeManually func() *utils.GenericTree
 		expectedOutput    string
 		expectError       bool
 		expectedErrorIs   error
 	}{
 		{
 			name: "Minimal Tree (Root Only)",
-			buildTreeManually: func() *core.GenericTree {
-				tree := core.NewGenericTree()
+			buildTreeManually: func() *utils.GenericTree {
+				tree := utils.NewGenericTree()
 				root := tree.NewNode("", "checklist_root")
 				// FIX: Attributes now map[string]interface{}
-				root.Attributes = core.TreeAttrs{"test": "value"}
+				root.Attributes = utils.TreeAttrs{"test": "value"}
 				tree.RootID = root.ID
 				return tree
 			},
@@ -185,14 +184,14 @@ func TestTreeToChecklistString(t *testing.T) {
 		},
 		{
 			name: "Error - Item Missing Status",
-			buildTreeManually: func() *core.GenericTree {
-				tree := core.NewGenericTree()
+			buildTreeManually: func() *utils.GenericTree {
+				tree := utils.NewGenericTree()
 				root := tree.NewNode("", "checklist_root")
 				tree.RootID = root.ID
 				item := tree.NewNode(root.ID, "checklist_item")
 				item.Value = "Missing Status Item"
 				// FIX: Initialize attributes map
-				item.Attributes = make(core.TreeAttrs)
+				item.Attributes = make(utils.TreeAttrs)
 				root.ChildIDs = append(root.ChildIDs, item.ID)
 				return tree
 			},
@@ -201,14 +200,14 @@ func TestTreeToChecklistString(t *testing.T) {
 		},
 		{
 			name: "Error - Item Unknown Status",
-			buildTreeManually: func() *core.GenericTree {
-				tree := core.NewGenericTree()
+			buildTreeManually: func() *utils.GenericTree {
+				tree := utils.NewGenericTree()
 				root := tree.NewNode("", "checklist_root")
 				tree.RootID = root.ID
 				item := tree.NewNode(root.ID, "checklist_item")
 				item.Value = "Unknown Status Item"
 				// FIX: Attributes now map[string]interface{}
-				item.Attributes = core.TreeAttrs{"status": "invalid_status"}
+				item.Attributes = utils.TreeAttrs{"status": "invalid_status"}
 				root.ChildIDs = append(root.ChildIDs, item.ID)
 				return tree
 			},
@@ -217,14 +216,14 @@ func TestTreeToChecklistString(t *testing.T) {
 		},
 		{
 			name: "Error - Special Status Missing Symbol",
-			buildTreeManually: func() *core.GenericTree {
-				tree := core.NewGenericTree()
+			buildTreeManually: func() *utils.GenericTree {
+				tree := utils.NewGenericTree()
 				root := tree.NewNode("", "checklist_root")
 				tree.RootID = root.ID
 				item := tree.NewNode(root.ID, "checklist_item")
 				item.Value = "Special Missing Symbol"
 				// FIX: Attributes now map[string]interface{}
-				item.Attributes = core.TreeAttrs{"status": "special"}
+				item.Attributes = utils.TreeAttrs{"status": "special"}
 				root.ChildIDs = append(root.ChildIDs, item.ID)
 				return tree
 			},
@@ -233,14 +232,14 @@ func TestTreeToChecklistString(t *testing.T) {
 		},
 		{
 			name: "Error - Item Wrong Type (Should Fail Formatting)",
-			buildTreeManually: func() *core.GenericTree {
-				tree := core.NewGenericTree()
+			buildTreeManually: func() *utils.GenericTree {
+				tree := utils.NewGenericTree()
 				root := tree.NewNode("", "checklist_root")
 				tree.RootID = root.ID
 				item := tree.NewNode(root.ID, "not_a_checklist_item")
 				item.Value = "Wrong Type Item"
 				// FIX: Attributes now map[string]interface{}
-				item.Attributes = core.TreeAttrs{"status": "open"}
+				item.Attributes = utils.TreeAttrs{"status": "open"}
 				root.ChildIDs = append(root.ChildIDs, item.ID)
 				return tree
 			},
@@ -254,7 +253,7 @@ func TestTreeToChecklistString(t *testing.T) {
 			// Test logic for round-trip and manual tree tests...
 			// This part of the test runner logic doesn't need changes.
 			// The changes are in the test case definitions above.
-			var tree *core.GenericTree
+			var tree *utils.GenericTree
 			var err error
 			var setupErr error
 

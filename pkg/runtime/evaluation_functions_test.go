@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/ast"
+	"github.com/aprice2704/neuroscript/pkg/lang"
 )
 
 func TestMathFunctions(t *testing.T) {
@@ -22,47 +23,47 @@ func TestMathFunctions(t *testing.T) {
 		"str_abc": "abc",
 	}
 
-	vars := make(map[string]Value, len(rawVars))
+	vars := make(map[string]lang.Value, len(rawVars))
 	for k, v := range rawVars {
-		w, err := Wrap(v)
+		w, err := lang.Wrap(v)
 		if err != nil {
 			panic(fmt.Sprintf("test setup: cannot wrap %q: %v", k, err))
 		}
 		vars[k] = w
 	}
 
-	dummyPos := &Position{Line: 1, Column: 1}
+	dummyPos := &lang.Position{Line: 1, Column: 1}
 
-	testCases := []EvalTestCase{
+	testCases := []testutil.EvalTestCase{
 		// LN
-		{Name: "LN(e)", InputNode: &ast.CallableExprNode{Target: ast.CallTarget{Name: "ln"}, Arguments: []ast.Expression{&ast.VariableNode{Name: "e"}}}, InitialVars: vars, Expected: NumberValue{Value: 1.0}},
-		{Name: "LN(1)", InputNode: &ast.CallableExprNode{Target: ast.CallTarget{Name: "ln"}, Arguments: []ast.Expression{&ast.VariableNode{Name: "one"}}}, InitialVars: vars, Expected: NumberValue{Value: 0.0}},
-		{Name: "LN(0)", InputNode: &ast.CallableExprNode{Target: ast.CallTarget{Name: "ln"}, Arguments: []ast.Expression{&ast.VariableNode{Name: "zero"}}}, InitialVars: vars, WantErr: true, ExpectedErrorIs: ErrInvalidFunctionArgument},
-		{Name: "LN(-1)", InputNode: &ast.CallableExprNode{Target: ast.CallTarget{Name: "ln"}, Arguments: []ast.Expression{&ast.VariableNode{Name: "neg_one"}}}, InitialVars: vars, WantErr: true, ExpectedErrorIs: ErrInvalidFunctionArgument},
-		{Name: "LN Type Error", InputNode: &ast.CallableExprNode{Target: ast.CallTarget{Name: "ln"}, Arguments: []ast.Expression{&ast.VariableNode{Name: "str_abc"}}}, InitialVars: vars, WantErr: true, ExpectedErrorIs: ErrInvalidFunctionArgument},
-		{Name: "LN Arg Count Error", InputNode: &ast.CallableExprNode{Target: ast.CallTarget{Name: "ln"}, Arguments: []ast.Expression{&ast.VariableNode{Name: "one"}, &ast.VariableNode{Name: "two"}}}, InitialVars: vars, WantErr: true, ExpectedErrorIs: ErrIncorrectArgCount},
+		{Name: "LN(e)", InputNode: &ast.CallableExprNode{Target: ast.CallTarget{Name: "ln"}, Arguments: []ast.Expression{&ast.VariableNode{Name: "e"}}}, InitialVars: vars, Expected: lang.NumberValue{Value: 1.0}},
+		{Name: "LN(1)", InputNode: &ast.CallableExprNode{Target: ast.CallTarget{Name: "ln"}, Arguments: []ast.Expression{&ast.VariableNode{Name: "one"}}}, InitialVars: vars, Expected: lang.NumberValue{Value: 0.0}},
+		{Name: "LN(0)", InputNode: &ast.CallableExprNode{Target: ast.CallTarget{Name: "ln"}, Arguments: []ast.Expression{&ast.VariableNode{Name: "zero"}}}, InitialVars: vars, WantErr: true, ExpectedErrorIs: lang.ErrInvalidFunctionArgument},
+		{Name: "LN(-1)", InputNode: &ast.CallableExprNode{Target: ast.CallTarget{Name: "ln"}, Arguments: []ast.Expression{&ast.VariableNode{Name: "neg_one"}}}, InitialVars: vars, WantErr: true, ExpectedErrorIs: lang.ErrInvalidFunctionArgument},
+		{Name: "LN Type Error", InputNode: &ast.CallableExprNode{Target: ast.CallTarget{Name: "ln"}, Arguments: []ast.Expression{&ast.VariableNode{Name: "str_abc"}}}, InitialVars: vars, WantErr: true, ExpectedErrorIs: lang.ErrInvalidFunctionArgument},
+		{Name: "LN Arg Count Error", InputNode: &ast.CallableExprNode{Target: ast.CallTarget{Name: "ln"}, Arguments: []ast.Expression{&ast.VariableNode{Name: "one"}, &ast.VariableNode{Name: "two"}}}, InitialVars: vars, WantErr: true, ExpectedErrorIs: lang.ErrIncorrectArgCount},
 
 		// LOG (Base 10)
-		{Name: "LOG(10)", InputNode: &ast.CallableExprNode{Target: ast.CallTarget{Name: "log"}, Arguments: []ast.Expression{&ast.VariableNode{Name: "ten"}}}, InitialVars: vars, Expected: NumberValue{Value: 1.0}},
-		{Name: "LOG(1)", InputNode: &ast.CallableExprNode{Target: ast.CallTarget{Name: "log"}, Arguments: []ast.Expression{&ast.VariableNode{Name: "one"}}}, InitialVars: vars, Expected: NumberValue{Value: 0.0}},
-		{Name: "LOG(0)", InputNode: &ast.CallableExprNode{Target: ast.CallTarget{Name: "log"}, Arguments: []ast.Expression{&ast.VariableNode{Name: "zero"}}}, InitialVars: vars, WantErr: true, ExpectedErrorIs: ErrInvalidFunctionArgument},
-		{Name: "LOG Type Error", InputNode: &ast.CallableExprNode{Target: ast.CallTarget{Name: "log"}, Arguments: []ast.Expression{&ast.VariableNode{Name: "str_abc"}}}, InitialVars: vars, WantErr: true, ExpectedErrorIs: ErrInvalidFunctionArgument},
+		{Name: "LOG(10)", InputNode: &ast.CallableExprNode{Target: ast.CallTarget{Name: "log"}, Arguments: []ast.Expression{&ast.VariableNode{Name: "ten"}}}, InitialVars: vars, Expected: lang.NumberValue{Value: 1.0}},
+		{Name: "LOG(1)", InputNode: &ast.CallableExprNode{Target: ast.CallTarget{Name: "log"}, Arguments: []ast.Expression{&ast.VariableNode{Name: "one"}}}, InitialVars: vars, Expected: lang.NumberValue{Value: 0.0}},
+		{Name: "LOG(0)", InputNode: &ast.CallableExprNode{Target: ast.CallTarget{Name: "log"}, Arguments: []ast.Expression{&ast.VariableNode{Name: "zero"}}}, InitialVars: vars, WantErr: true, ExpectedErrorIs: lang.ErrInvalidFunctionArgument},
+		{Name: "LOG Type Error", InputNode: &ast.CallableExprNode{Target: ast.CallTarget{Name: "log"}, Arguments: []ast.Expression{&ast.VariableNode{Name: "str_abc"}}}, InitialVars: vars, WantErr: true, ExpectedErrorIs: lang.ErrInvalidFunctionArgument},
 
 		// SIN / COS / TAN
-		{Name: "SIN(Pi/2)", InputNode: &ast.CallableExprNode{Target: ast.CallTarget{Name: "sin"}, Arguments: []ast.Expression{&ast.VariableNode{Name: "pi_o_2"}}}, InitialVars: vars, Expected: NumberValue{Value: 1.0}},
-		{Name: "COS(0)", InputNode: &ast.CallableExprNode{Target: ast.CallTarget{Name: "cos"}, Arguments: []ast.Expression{&ast.VariableNode{Name: "zero"}}}, InitialVars: vars, Expected: NumberValue{Value: 1.0}},
-		{Name: "TAN(0)", InputNode: &ast.CallableExprNode{Target: ast.CallTarget{Name: "tan"}, Arguments: []ast.Expression{&ast.VariableNode{Name: "zero"}}}, InitialVars: vars, Expected: NumberValue{Value: 0.0}},
-		{Name: "SIN Type Error", InputNode: &ast.CallableExprNode{Target: ast.CallTarget{Name: "sin"}, Arguments: []ast.Expression{&ast.VariableNode{Name: "str_abc"}}}, InitialVars: vars, WantErr: true, ExpectedErrorIs: ErrInvalidFunctionArgument},
+		{Name: "SIN(Pi/2)", InputNode: &ast.CallableExprNode{Target: ast.CallTarget{Name: "sin"}, Arguments: []ast.Expression{&ast.VariableNode{Name: "pi_o_2"}}}, InitialVars: vars, Expected: lang.NumberValue{Value: 1.0}},
+		{Name: "COS(0)", InputNode: &ast.CallableExprNode{Target: ast.CallTarget{Name: "cos"}, Arguments: []ast.Expression{&ast.VariableNode{Name: "zero"}}}, InitialVars: vars, Expected: lang.NumberValue{Value: 1.0}},
+		{Name: "TAN(0)", InputNode: &ast.CallableExprNode{Target: ast.CallTarget{Name: "tan"}, Arguments: []ast.Expression{&ast.VariableNode{Name: "zero"}}}, InitialVars: vars, Expected: lang.NumberValue{Value: 0.0}},
+		{Name: "SIN Type Error", InputNode: &ast.CallableExprNode{Target: ast.CallTarget{Name: "sin"}, Arguments: []ast.Expression{&ast.VariableNode{Name: "str_abc"}}}, InitialVars: vars, WantErr: true, ExpectedErrorIs: lang.ErrInvalidFunctionArgument},
 
 		// ASIN / ACOS
-		{Name: "ASIN(1)", InputNode: &ast.CallableExprNode{Target: ast.CallTarget{Name: "asin"}, Arguments: []ast.Expression{&ast.VariableNode{Name: "one"}}}, InitialVars: vars, Expected: NumberValue{Value: math.Asin(1.0)}},
-		{Name: "ACOS(-1)", InputNode: &ast.CallableExprNode{Target: ast.CallTarget{Name: "acos"}, Arguments: []ast.Expression{&ast.VariableNode{Name: "neg_one"}}}, InitialVars: vars, Expected: NumberValue{Value: math.Acos(-1.0)}},
-		{Name: "ASIN(2)", InputNode: &ast.CallableExprNode{Target: ast.CallTarget{Name: "asin"}, Arguments: []ast.Expression{&ast.VariableNode{Name: "two"}}}, InitialVars: vars, WantErr: true, ExpectedErrorIs: ErrInvalidFunctionArgument},
-		{Name: "ASIN Type Error", InputNode: &ast.CallableExprNode{Target: ast.CallTarget{Name: "asin"}, Arguments: []ast.Expression{&ast.VariableNode{Name: "str_abc"}}}, InitialVars: vars, WantErr: true, ExpectedErrorIs: ErrInvalidFunctionArgument},
+		{Name: "ASIN(1)", InputNode: &ast.CallableExprNode{Target: ast.CallTarget{Name: "asin"}, Arguments: []ast.Expression{&ast.VariableNode{Name: "one"}}}, InitialVars: vars, Expected: lang.NumberValue{Value: math.Asin(1.0)}},
+		{Name: "ACOS(-1)", InputNode: &ast.CallableExprNode{Target: ast.CallTarget{Name: "acos"}, Arguments: []ast.Expression{&ast.VariableNode{Name: "neg_one"}}}, InitialVars: vars, Expected: lang.NumberValue{Value: math.Acos(-1.0)}},
+		{Name: "ASIN(2)", InputNode: &ast.CallableExprNode{Target: ast.CallTarget{Name: "asin"}, Arguments: []ast.Expression{&ast.VariableNode{Name: "two"}}}, InitialVars: vars, WantErr: true, ExpectedErrorIs: lang.ErrInvalidFunctionArgument},
+		{Name: "ASIN Type Error", InputNode: &ast.CallableExprNode{Target: ast.CallTarget{Name: "asin"}, Arguments: []ast.Expression{&ast.VariableNode{Name: "str_abc"}}}, InitialVars: vars, WantErr: true, ExpectedErrorIs: lang.ErrInvalidFunctionArgument},
 
 		// ATAN
-		{Name: "ATAN(1)", InputNode: &ast.CallableExprNode{Target: ast.CallTarget{Name: "atan"}, Arguments: []ast.Expression{&ast.VariableNode{Name: "one"}}}, InitialVars: vars, Expected: NumberValue{Value: math.Atan(1.0)}},
-		{Name: "ATAN Type Error", InputNode: &ast.CallableExprNode{Target: ast.CallTarget{Name: "atan"}, Arguments: []ast.Expression{&ast.VariableNode{Name: "str_abc"}}}, InitialVars: vars, WantErr: true, ExpectedErrorIs: ErrInvalidFunctionArgument},
+		{Name: "ATAN(1)", InputNode: &ast.CallableExprNode{Target: ast.CallTarget{Name: "atan"}, Arguments: []ast.Expression{&ast.VariableNode{Name: "one"}}}, InitialVars: vars, Expected: lang.NumberValue{Value: math.Atan(1.0)}},
+		{Name: "ATAN Type Error", InputNode: &ast.CallableExprNode{Target: ast.CallTarget{Name: "atan"}, Arguments: []ast.Expression{&ast.VariableNode{Name: "str_abc"}}}, InitialVars: vars, WantErr: true, ExpectedErrorIs: lang.ErrInvalidFunctionArgument},
 	}
 
 	for _, tc := range testCases {
@@ -76,7 +77,7 @@ func TestMathFunctions(t *testing.T) {
 					}
 				}
 			}
-			runEval.ExpressionTest(t, tc)
+			testutil.runEval.ExpressionTest(t, tc)
 		})
 	}
 }
@@ -117,7 +118,7 @@ func TestEvaluateBuiltInFunction_Len(t *testing.T) {
 				t.Fatalf("evaluateBuiltInFunction failed: %v", err)
 			}
 
-			numResult, ok := result.(NumberValue)
+			numResult, ok := result.(lang.NumberValue)
 			if !ok {
 				t.Fatalf("Expected NumberValue, got %T", result)
 			}
@@ -130,12 +131,12 @@ func TestEvaluateBuiltInFunction_Len(t *testing.T) {
 
 	t.Run("incorrect argument count", func(t *testing.T) {
 		_, err := evaluateBuiltInFunction("len", []interface{}{})
-		if !errors.Is(err, ErrIncorrectArgCount) {
+		if !errors.Is(err, lang.ErrIncorrectArgCount) {
 			t.Errorf("Expected ErrIncorrectArgCount, got %v", err)
 		}
 
 		_, err = evaluateBuiltInFunction("len", []interface{}{"a", "b"})
-		if !errors.Is(err, ErrIncorrectArgCount) {
+		if !errors.Is(err, lang.ErrIncorrectArgCount) {
 			t.Errorf("Expected ErrIncorrectArgCount, got %v", err)
 		}
 	})

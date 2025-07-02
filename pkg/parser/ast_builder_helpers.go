@@ -68,8 +68,8 @@ func ParseMetadataLine(line string) (key string, value string, ok bool) {
 // ConvertInputSchemaToArgSpec converts a JSON Schema-like map (from old ToolDefinition)
 // into the []ArgSpec required by ToolSpec.
 // Moved here from interpreter_steps_ask.go/llm_tools.go corrections.
-func ConvertInputSchemaToArgSpec(schema map[string]interface{}) ([]ArgSpec, error) {
-	args := []ArgSpec{}
+func ConvertInputSchemaToArgSpec(schema map[string]interface{}) ([]tool.ArgSpec, error) {
+	args := []tool.ArgSpec{}
 	propsVal, okProps := schema["properties"]
 	if !okProps {
 		// If no properties, return empty args (valid for tools with no args)
@@ -140,7 +140,7 @@ func ConvertInputSchemaToArgSpec(schema map[string]interface{}) ([]ArgSpec, erro
 			// default: // Keep default as ArgTypeAny
 		}
 
-		args = append(args, ArgSpec{
+		args = append(args, tool.ArgSpec{
 			Name:        name,
 			Type:        argType,
 			Description: descStr,

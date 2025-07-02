@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.3.1
 // File version: 0.2.0
-// Purpose: Updated to use safe type assertions for attributes from core.TreeAttrs (map[string]interface{}).
+// Purpose: Updated to use safe type assertions for attributes from  TreeAttrs (map[string]interface{}).
 // filename: pkg/neurodata/checklist/checklist_tool2.go
 
 package checklist
@@ -9,29 +9,30 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/aprice2704/neuroscript/pkg/core"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
+	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
 // toolChecklistFormatTree formats the checklist tree back into a string.
-func toolChecklistFormatTree(interpreter *core.Interpreter, args []interface{}) (interface{}, error) {
+func toolChecklistFormatTree(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
 	toolName := "ChecklistFormatTree"
 	logger := interpreter.Logger()
 	if len(args) != 1 {
-		return nil, fmt.Errorf("%w: %s expected 1 argument (handle), got %d", core.ErrValidationArgCount, toolName, len(args))
+		return nil, fmt.Errorf("%w: %s expected 1 argument (handle), got %d", lang.ErrValidationArgCount, toolName, len(args))
 	}
 	handleID, ok := args[0].(string)
 	if !ok {
-		return nil, fmt.Errorf("%w: %s expected string arg[0] 'handle', got %T", core.ErrValidationTypeMismatch, toolName, args[0])
+		return nil, fmt.Errorf("%w: %s expected string arg[0] 'handle', got %T", lang.ErrValidationTypeMismatch, toolName, args[0])
 	}
 
-	treeObj, err := interpreter.GetHandleValue(handleID, core.GenericTreeHandleType)
+	treeObj, err := interpreter.GetHandleValue(handleID, utils.GenericTreeHandleType)
 	if err != nil {
 		return nil, fmt.Errorf("%s failed getting handle %q: %w", toolName, handleID, err)
 	}
-	tree, ok := treeObj.(*core.GenericTree)
+	tree, ok := treeObj.(*GenericTree)
 	if !ok || tree == nil || tree.NodeMap == nil {
-		return nil, fmt.Errorf("%w: %s handle %q did not contain a valid or initialized GenericTree", core.ErrHandleInvalid, toolName, handleID)
+		return nil, fmt.Errorf("%w: %s handle %q did not contain a valid or initialized GenericTree", lang.ErrHandleInvalid, toolName, handleID)
 	}
 
 	logger.Debug("Formatting checklist tree to string", "tool", toolName, "handle", handleID)
@@ -39,9 +40,9 @@ func toolChecklistFormatTree(interpreter *core.Interpreter, args []interface{}) 
 	if formatErr != nil {
 		logger.Error("Error formatting checklist tree", "tool", toolName, "handle", handleID, "error", formatErr)
 		if errors.Is(formatErr, ErrInvalidChecklistTree) || errors.Is(formatErr, ErrMissingStatusAttribute) || errors.Is(formatErr, ErrUnknownStatus) || errors.Is(formatErr, ErrMissingSpecialSymbol) {
-			return nil, fmt.Errorf("%w: %s formatting failed: %w", core.ErrInvalidArgument, toolName, formatErr)
+			return nil, fmt.Errorf("%w: %s formatting failed: %w", lang.ErrInvalidArgument, toolName, formatErr)
 		}
-		return nil, fmt.Errorf("%w: %s failed formatting tree: %w", core.ErrInternal, toolName, formatErr)
+		return nil, fmt.Errorf("%w: %s failed formatting tree: %w", lang.ErrInternal, toolName, formatErr)
 	}
 	logger.Debug("Successfully formatted checklist tree", "tool", toolName, "handle", handleID)
 	return formattedString, nil
@@ -49,53 +50,53 @@ func toolChecklistFormatTree(interpreter *core.Interpreter, args []interface{}) 
 
 // toolChecklistSetItemText updates the text value of a checklist item node
 // by calling the core Tree.SetValue tool.
-func toolChecklistSetItemText(interpreter *core.Interpreter, args []interface{}) (interface{}, error) {
+func toolChecklistSetItemText(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
 	toolName := "ChecklistSetItemText"
 	logger := interpreter.Logger()
 
 	if len(args) != 3 {
-		return nil, fmt.Errorf("%w: %s expected 3 arguments (handle, nodeId, newText), got %d", core.ErrValidationArgCount, toolName, len(args))
+		return nil, fmt.Errorf("%w: %s expected 3 arguments (handle, nodeId, newText), got %d", lang.ErrValidationArgCount, toolName, len(args))
 	}
 	handleID, ok := args[0].(string)
 	if !ok {
-		return nil, fmt.Errorf("%w: %s expected string arg[0] 'handle', got %T", core.ErrValidationTypeMismatch, toolName, args[0])
+		return nil, fmt.Errorf("%w: %s expected string arg[0] 'handle', got %T", lang.ErrValidationTypeMismatch, toolName, args[0])
 	}
 	nodeID, ok := args[1].(string)
 	if !ok {
-		return nil, fmt.Errorf("%w: %s expected string arg[1] 'nodeId', got %T", core.ErrValidationTypeMismatch, toolName, args[1])
+		return nil, fmt.Errorf("%w: %s expected string arg[1] 'nodeId', got %T", lang.ErrValidationTypeMismatch, toolName, args[1])
 	}
 	if nodeID == "" {
-		return nil, fmt.Errorf("%w: %s requires non-empty 'nodeId'", core.ErrValidationRequiredArgNil, toolName)
+		return nil, fmt.Errorf("%w: %s requires non-empty 'nodeId'", lang.ErrValidationRequiredArgNil, toolName)
 	}
 	newText, ok := args[2].(string)
 	if !ok {
-		return nil, fmt.Errorf("%w: %s expected string arg[2] 'newText', got %T", core.ErrValidationTypeMismatch, toolName, args[2])
+		return nil, fmt.Errorf("%w: %s expected string arg[2] 'newText', got %T", lang.ErrValidationTypeMismatch, toolName, args[2])
 	}
 
-	treeObj, getHandleErr := interpreter.GetHandleValue(handleID, core.GenericTreeHandleType)
+	treeObj, getHandleErr := interpreter.GetHandleValue(handleID, utils.GenericTreeHandleType)
 	if getHandleErr != nil {
 		return nil, fmt.Errorf("%s failed getting handle %q: %w", toolName, handleID, getHandleErr)
 	}
-	tree, ok := treeObj.(*core.GenericTree)
+	tree, ok := treeObj.(*GenericTree)
 	if !ok || tree == nil || tree.NodeMap == nil {
-		return nil, fmt.Errorf("%w: %s handle %q did not contain a valid or initialized GenericTree", core.ErrHandleInvalid, toolName, handleID)
+		return nil, fmt.Errorf("%w: %s handle %q did not contain a valid or initialized GenericTree", lang.ErrHandleInvalid, toolName, handleID)
 	}
 	targetNode, exists := tree.NodeMap[nodeID]
 	if !exists {
-		return nil, fmt.Errorf("%w: %s node ID %q not found in tree handle %q", core.ErrNotFound, toolName, nodeID, handleID)
+		return nil, fmt.Errorf("%w: %s node ID %q not found in tree handle %q", lang.ErrNotFound, toolName, nodeID, handleID)
 	}
 
 	if targetNode.Type != "checklist_item" {
 		return nil, fmt.Errorf("%w: %s node ID %q has type %q, expected type 'checklist_item'",
-			core.ErrInvalidArgument, toolName, nodeID, targetNode.Type)
+			lang.ErrInvalidArgument, toolName, nodeID, targetNode.Type)
 	}
 
-	coreArgs := core.MakeArgs(handleID, nodeID, newText)
+	coreArgs := tool.MakeArgs(handleID, nodeID, newText)
 
 	modifyToolImpl, found := interpreter.ToolRegistry().GetTool("Tree.SetValue")
 	if !found || modifyToolImpl.Func == nil {
 		logger.Error("Core tool 'Tree.SetValue' not found in registry", "tool", toolName)
-		return nil, fmt.Errorf("%w: %s requires core tool 'Tree.SetValue' which was not found", core.ErrInternal, toolName)
+		return nil, fmt.Errorf("%w: %s requires core tool 'Tree.SetValue' which was not found", lang.ErrInternal, toolName)
 	}
 
 	logger.Debug("Calling core Tree.SetValue tool", "tool", toolName, "handle", handleID, "nodeId", nodeID, "newText", newText)
@@ -103,10 +104,10 @@ func toolChecklistSetItemText(interpreter *core.Interpreter, args []interface{})
 
 	if err != nil {
 		logger.Error("Core Tree.SetValue tool failed", "tool", toolName, "error", err)
-		if errors.Is(err, core.ErrNotFound) || errors.Is(err, core.ErrInvalidArgument) || errors.Is(err, core.ErrCannotSetValueOnType) {
-			return nil, fmt.Errorf("%w: %s failed: %w", core.ErrInvalidArgument, toolName, err)
+		if errors.Is(err, lang.ErrNotFound) || errors.Is(err, lang.ErrInvalidArgument) || errors.Is(err, lang.ErrCannotSetValueOnType) {
+			return nil, fmt.Errorf("%w: %s failed: %w", lang.ErrInvalidArgument, toolName, err)
 		}
-		return nil, fmt.Errorf("%w: %s internal error calling Tree.SetValue: %w", core.ErrInternal, toolName, err)
+		return nil, fmt.Errorf("%w: %s internal error calling Tree.SetValue: %w", lang.ErrInternal, toolName, err)
 	}
 
 	logger.Debug("Node text updated successfully via Tree.SetValue", "tool", toolName, "nodeId", nodeID)
@@ -114,28 +115,28 @@ func toolChecklistSetItemText(interpreter *core.Interpreter, args []interface{})
 }
 
 // toolChecklistUpdateStatus triggers the recursive status update for the entire checklist tree.
-func toolChecklistUpdateStatus(interpreter *core.Interpreter, args []interface{}) (interface{}, error) {
+func toolChecklistUpdateStatus(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
 	toolName := "Checklist.UpdateStatus"
 	logger := interpreter.Logger()
 	if len(args) != 1 {
-		return nil, fmt.Errorf("%w: %s expected 1 argument (handle), got %d", core.ErrValidationArgCount, toolName, len(args))
+		return nil, fmt.Errorf("%w: %s expected 1 argument (handle), got %d", lang.ErrValidationArgCount, toolName, len(args))
 	}
 	handleID, ok := args[0].(string)
 	if !ok {
-		return nil, fmt.Errorf("%w: %s expected string arg[0] 'handle', got %T", core.ErrValidationTypeMismatch, toolName, args[0])
+		return nil, fmt.Errorf("%w: %s expected string arg[0] 'handle', got %T", lang.ErrValidationTypeMismatch, toolName, args[0])
 	}
 
-	treeObj, err := interpreter.GetHandleValue(handleID, core.GenericTreeHandleType)
+	treeObj, err := interpreter.GetHandleValue(handleID, utils.GenericTreeHandleType)
 	if err != nil {
 		return nil, fmt.Errorf("%s failed getting handle %q: %w", toolName, handleID, err)
 	}
-	tree, ok := treeObj.(*core.GenericTree)
+	tree, ok := treeObj.(*GenericTree)
 	if !ok || tree == nil || tree.NodeMap == nil || tree.RootID == "" {
-		return nil, fmt.Errorf("%w: %s handle %q did not contain a valid or initialized GenericTree", core.ErrHandleInvalid, toolName, handleID)
+		return nil, fmt.Errorf("%w: %s handle %q did not contain a valid or initialized GenericTree", lang.ErrHandleInvalid, toolName, handleID)
 	}
 	rootNode, rootExists := tree.NodeMap[tree.RootID]
 	if !rootExists || rootNode == nil || rootNode.Type != "checklist_root" {
-		return nil, fmt.Errorf("%w: %s handle %q has invalid root node structure", core.ErrInternal, toolName, handleID)
+		return nil, fmt.Errorf("%w: %s handle %q has invalid root node structure", lang.ErrInternal, toolName, handleID)
 	}
 
 	logger.Debug("Starting checklist status update", "tool", toolName, "handle", handleID, "rootId", tree.RootID)
@@ -143,16 +144,16 @@ func toolChecklistUpdateStatus(interpreter *core.Interpreter, args []interface{}
 	if err != nil {
 		logger.Error("Checklist status update failed", "tool", toolName, "handle", handleID, "error", err)
 		if errors.Is(err, ErrInvalidChecklistTree) || errors.Is(err, ErrMissingStatusAttribute) || errors.Is(err, ErrInternalParser) {
-			return nil, fmt.Errorf("%w: %s update failed due to invalid tree structure or data: %w", core.ErrInvalidArgument, toolName, err)
+			return nil, fmt.Errorf("%w: %s update failed due to invalid tree structure or data: %w", lang.ErrInvalidArgument, toolName, err)
 		}
-		return nil, fmt.Errorf("%w: %s update failed: %w", core.ErrInternal, toolName, err)
+		return nil, fmt.Errorf("%w: %s update failed: %w", lang.ErrInternal, toolName, err)
 	}
 	logger.Debug("Checklist status update completed successfully", "tool", toolName, "handle", handleID)
 	return nil, nil
 }
 
 // updateChecklistTreeStatus initiates the recursive update from the root's children.
-func updateChecklistTreeStatus(tree *core.GenericTree, logger interfaces.Logger) error {
+func updateChecklistTreeStatus(tree *utils.GenericTree, logger interfaces.Logger) error {
 	rootNode, exists := tree.NodeMap[tree.RootID]
 	if !exists || rootNode == nil {
 		return fmt.Errorf("%w: root node %q not found in provided tree", ErrInvalidChecklistTree, tree.RootID)
@@ -171,7 +172,7 @@ func updateChecklistTreeStatus(tree *core.GenericTree, logger interfaces.Logger)
 	return nil
 }
 
-func updateAutomaticNodeStatus(tree *core.GenericTree, nodeID string, logger interfaces.Logger) (string, error) {
+func updateAutomaticNodeStatus(tree *utils.GenericTree, nodeID string, logger interfaces.Logger) (string, error) {
 	node, exists := tree.NodeMap[nodeID]
 	if !exists || node == nil {
 		logger.Error("Node referenced in tree not found during update", "nodeId", nodeID)
@@ -194,8 +195,8 @@ func updateAutomaticNodeStatus(tree *core.GenericTree, nodeID string, logger int
 	}
 
 	if node.Attributes == nil {
-		// FIX: Align with the new core.TreeAttrs type (map[string]interface{})
-		node.Attributes = make(core.TreeAttrs)
+		// FIX: Align with the new  TreeAttrs type (map[string]interface{})
+		node.Attributes = make(utils.TreeAttrs)
 	}
 
 	// FIX: Safely assert status to a string, providing a default.
@@ -228,7 +229,7 @@ func updateAutomaticNodeStatus(tree *core.GenericTree, nodeID string, logger int
 				childNode, childExists := tree.NodeMap[childID]
 				if !childExists || childNode == nil {
 					logger.Error("Child node disappeared during parent's update cycle", "parentNodeId", nodeID, "childNodeId", childID)
-					return "", fmt.Errorf("%w: child node %q (of %q) disappeared during update", core.ErrInternal, childID, nodeID)
+					return "", fmt.Errorf("%w: child node %q (of %q) disappeared during update", lang.ErrInternal, childID, nodeID)
 				}
 				if childNode.Type == "checklist_item" && childNode.Attributes != nil {
 					// FIX: Safely assert special_symbol to a string.
@@ -273,7 +274,7 @@ func updateAutomaticNodeStatus(tree *core.GenericTree, nodeID string, logger int
 			if finalStatus == "special" {
 				if calculatedSymbol == "" {
 					logger.Error("Internal inconsistency: node calculated status 'special' but symbol is empty post-calculation", "nodeId", nodeID)
-					return "", fmt.Errorf("%w: node %q calculated status 'special' but symbol is empty (post-calculation)", core.ErrInternal, nodeID)
+					return "", fmt.Errorf("%w: node %q calculated status 'special' but symbol is empty (post-calculation)", lang.ErrInternal, nodeID)
 				}
 				if currentSymbol != calculatedSymbol {
 					node.Attributes["special_symbol"] = calculatedSymbol

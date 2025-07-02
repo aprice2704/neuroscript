@@ -12,6 +12,8 @@ import (
 	"math"
 	"strings"
 	"unicode/utf8"
+
+	"github.com/aprice2704/neuroscript/pkg/lang"
 )
 
 // isBuiltInFunction checks if a name corresponds to a known built-in function.
@@ -44,10 +46,10 @@ func getNumericArg(arg interface{}) (float64, bool) {
 
 // evaluateBuiltInFunction handles built-in function calls.
 // It adheres to the contract by operating on primitive Go types.
-func evaluateBuiltInFunction(funcName string, args []interface{}) (Value, error) {
+func evaluateBuiltInFunction(funcName string, args []interface{}) (lang.Value, error) {
 	checkArgCount := func(expectedCount int) error {
 		if len(args) != expectedCount {
-			return fmt.Errorf("%w: func %s expects %d arg(s), got %d", ErrIncorrectArgCount, funcName, expectedCount, len(args))
+			return fmt.Errorf("%w: func %s expects %d arg(s), got %d", lang.ErrIncorrectArgCount, funcName, expectedCount, len(args))
 		}
 		return nil
 	}
@@ -74,7 +76,7 @@ func evaluateBuiltInFunction(funcName string, args []interface{}) (Value, error)
 			// as it represents a single, indivisible value.
 			length = 1
 		}
-		return NumberValue{Value: float64(length)}, nil
+		return lang.NumberValue{Value: float64(length)}, nil
 		// Type checking functions
 	case "is_error":
 		if err := checkArgCount(1); err != nil {
@@ -85,63 +87,63 @@ func evaluateBuiltInFunction(funcName string, args []interface{}) (Value, error)
 		// error becomes a `map[string]interface{}`. We check for that case directly.
 		// We also check for the native `error` type for robustness.
 		if _, ok := arg.(error); ok {
-			return BoolValue{Value: true}, nil
+			return lang.BoolValue{Value: true}, nil
 		}
 		if _, ok := arg.(map[string]interface{}); ok {
-			return BoolValue{Value: true}, nil
+			return lang.BoolValue{Value: true}, nil
 		}
-		return BoolValue{Value: false}, nil
+		return lang.BoolValue{Value: false}, nil
 	case "is_string":
 		if err := checkArgCount(1); err != nil {
 			return nil, err
 		}
 		_, ok := args[0].(string)
-		return BoolValue{Value: ok}, nil
+		return lang.BoolValue{Value: ok}, nil
 	case "is_number":
 		if err := checkArgCount(1); err != nil {
 			return nil, err
 		}
 		_, ok := getNumericArg(args[0])
-		return BoolValue{Value: ok}, nil
+		return lang.BoolValue{Value: ok}, nil
 	case "is_int":
 		if err := checkArgCount(1); err != nil {
 			return nil, err
 		}
 		f, ok := getNumericArg(args[0])
-		return BoolValue{Value: ok && f == math.Trunc(f)}, nil
+		return lang.BoolValue{Value: ok && f == math.Trunc(f)}, nil
 	case "is_float":
 		if err := checkArgCount(1); err != nil {
 			return nil, err
 		}
 		f, ok := getNumericArg(args[0])
-		return BoolValue{Value: ok && f != math.Trunc(f)}, nil
+		return lang.BoolValue{Value: ok && f != math.Trunc(f)}, nil
 	case "is_bool":
 		if err := checkArgCount(1); err != nil {
 			return nil, err
 		}
 		_, ok := args[0].(bool)
-		return BoolValue{Value: ok}, nil
+		return lang.BoolValue{Value: ok}, nil
 	case "is_list":
 		if err := checkArgCount(1); err != nil {
 			return nil, err
 		}
 		_, ok := args[0].([]interface{})
-		return BoolValue{Value: ok}, nil
+		return lang.BoolValue{Value: ok}, nil
 	case "is_map":
 		if err := checkArgCount(1); err != nil {
 			return nil, err
 		}
 		_, ok := args[0].(map[string]interface{})
-		return BoolValue{Value: ok}, nil
+		return lang.BoolValue{Value: ok}, nil
 	case "not_empty":
 		if err := checkArgCount(1); err != nil {
 			return nil, err
 		}
-		wrappedArg, err := Wrap(args[0])
+		wrappedArg, err := lang.Wrap(args[0])
 		if err != nil {
 			return nil, fmt.Errorf("internal error in 'not_empty': could not re-wrap argument: %w", err)
 		}
-		return BoolValue{Value: wrappedArg.IsTruthy()}, nil
+		return lang.BoolValue{Value: wrappedArg.IsTruthy()}, nil
 
 	// Math functions
 	case "ln", "log", "sin", "cos", "tan", "asin", "acos", "atan":
@@ -150,39 +152,39 @@ func evaluateBuiltInFunction(funcName string, args []interface{}) (Value, error)
 		}
 		fVal, ok := getNumericArg(args[0])
 		if !ok {
-			return nil, fmt.Errorf("%w: math func needs number, got %T", ErrInvalidFunctionArgument, args[0])
+			return nil, fmt.Errorf("%w: math func needs number, got %T", lang.ErrInvalidFunctionArgument, args[0])
 		}
 
 		switch funcLower {
 		case "ln":
 			if fVal <= 0 {
-				return nil, fmt.Errorf("%w: LN needs positive arg", ErrInvalidFunctionArgument)
+				return nil, fmt.Errorf("%w: LN needs positive arg", lang.ErrInvalidFunctionArgument)
 			}
-			return NumberValue{Value: math.Log(fVal)}, nil
+			return lang.NumberValue{Value: math.Log(fVal)}, nil
 		case "log":
 			if fVal <= 0 {
-				return nil, fmt.Errorf("%w: LOG needs positive arg", ErrInvalidFunctionArgument)
+				return nil, fmt.Errorf("%w: LOG needs positive arg", lang.ErrInvalidFunctionArgument)
 			}
-			return NumberValue{Value: math.Log10(fVal)}, nil
+			return lang.NumberValue{Value: math.Log10(fVal)}, nil
 		case "sin":
-			return NumberValue{Value: math.Sin(fVal)}, nil
+			return lang.NumberValue{Value: math.Sin(fVal)}, nil
 		case "cos":
-			return NumberValue{Value: math.Cos(fVal)}, nil
+			return lang.NumberValue{Value: math.Cos(fVal)}, nil
 		case "tan":
-			return NumberValue{Value: math.Tan(fVal)}, nil
+			return lang.NumberValue{Value: math.Tan(fVal)}, nil
 		case "asin":
 			if fVal < -1 || fVal > 1 {
-				return nil, fmt.Errorf("%w: ASIN arg must be -1 to 1", ErrInvalidFunctionArgument)
+				return nil, fmt.Errorf("%w: ASIN arg must be -1 to 1", lang.ErrInvalidFunctionArgument)
 			}
-			return NumberValue{Value: math.Asin(fVal)}, nil
+			return lang.NumberValue{Value: math.Asin(fVal)}, nil
 		case "acos":
 			if fVal < -1 || fVal > 1 {
-				return nil, fmt.Errorf("%w: ACOS arg must be -1 to 1", ErrInvalidFunctionArgument)
+				return nil, fmt.Errorf("%w: ACOS arg must be -1 to 1", lang.ErrInvalidFunctionArgument)
 			}
-			return NumberValue{Value: math.Acos(fVal)}, nil
+			return lang.NumberValue{Value: math.Acos(fVal)}, nil
 		case "atan":
-			return NumberValue{Value: math.Atan(fVal)}, nil
+			return lang.NumberValue{Value: math.Atan(fVal)}, nil
 		}
 	}
-	return nil, fmt.Errorf("%w: '%s'", ErrUnknownFunction, funcName)
+	return nil, fmt.Errorf("%w: '%s'", lang.ErrUnknownFunction, funcName)
 }

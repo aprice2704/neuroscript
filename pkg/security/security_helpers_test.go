@@ -11,6 +11,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/aprice2704/neuroscript/pkg/lang"
 )
 
 func TestResolveAndSecurePath(t *testing.T) {
@@ -87,44 +89,44 @@ func TestResolveAndSecurePath(t *testing.T) {
 		{
 			name:                 "Invalid Empty Path",
 			inputPath:            "",
-			wantErrIs:            ErrInvalidArgument,
+			wantErrIs:            lang.ErrInvalidArgument,
 			wantErrorMsgContains: "input path cannot be empty",
 		},
 		{
 			name:                 "Invalid Null Byte",
 			inputPath:            "file\x00.txt",
-			wantErrIs:            ErrNullByteInArgument,
+			wantErrIs:            lang.ErrNullByteInArgument,
 			wantErrorMsgContains: "input path contains null byte",
 		},
 		{
 			name:                 "Invalid Absolute Path",
 			inputPath:            filepath.Join(allowedRoot, "abs.txt"),
-			wantErrIs:            ErrPathViolation,
+			wantErrIs:            lang.ErrPathViolation,
 			wantErrorMsgContains: "must be relative, not absolute",
 		},
 		{
 			name:                 "Invalid Simple Traversal Up",
 			inputPath:            "..",
-			wantErrIs:            ErrPathViolation,
+			wantErrIs:            lang.ErrPathViolation,
 			wantErrorMsgContains: "resolves to", // Expect message about resolving outside
 		},
 		{
 			name:                 "Invalid Simple Traversal File",
 			inputPath:            filepath.Join("..", "file.txt"),
-			wantErrIs:            ErrPathViolation,
+			wantErrIs:            lang.ErrPathViolation,
 			wantErrorMsgContains: "resolves to", // Expect message about resolving outside
 		},
 		// This case correctly cleans to parent/outside/file.txt, triggering Rel starting with ..
 		{
 			name:                 "Invalid Complex Traversal (Cleans to Parent Sibling)",
 			inputPath:            filepath.Join("subdir", "..", "..", "outside", "file.txt"),
-			wantErrIs:            ErrPathViolation,
+			wantErrIs:            lang.ErrPathViolation,
 			wantErrorMsgContains: "resolves to", // Expect message about resolving outside
 		},
 		{
 			name:                 "Invalid Traversal Leading To Sibling Dir",
 			inputPath:            filepath.Join("..", "outside"),
-			wantErrIs:            ErrPathViolation,
+			wantErrIs:            lang.ErrPathViolation,
 			wantErrorMsgContains: "resolves to", // Expect message about resolving outside
 		},
 	}
@@ -207,7 +209,7 @@ func TestIsPathInSandbox(t *testing.T) {
 				if gotErr != nil {
 					// Allow ErrPathViolation if wantIn is false, otherwise fail
 					isPathViolation := false
-					if re, ok := gotErr.(*RuntimeError); ok && errors.Is(re.Wrapped, ErrPathViolation) {
+					if re, ok := gotErr.(*lang.RuntimeError); ok && errors.Is(re.Wrapped, lang.ErrPathViolation) {
 						isPathViolation = true
 					}
 					if !(!tc.wantIn && isPathViolation) { // Error is only OK if wantIn=false AND it's ErrPathViolation

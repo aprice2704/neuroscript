@@ -12,6 +12,8 @@ import (
 	"path/filepath"
 
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
+	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/tool/fileapi"
 	"github.com/google/generative-ai-go/genai"
 )
 
@@ -52,16 +54,16 @@ func (i *Interpreter) SetSandboxDir(newSandboxDir string) error {
 	}
 	if i.sandboxDir != cleanNewSandboxDir {
 		i.sandboxDir = cleanNewSandboxDir
-		i.fileAPI = NewFileAPI(i.sandboxDir, i.logger)
+		i.fileAPI = fileapi.NewFileAPI(i.sandboxDir, i.logger)
 	}
 	return nil
 }
 
-func (i *Interpreter) SetVariable(name string, value Value) error {
+func (i *Interpreter) SetVariable(name string, value lang.Value) error {
 	i.variablesMu.Lock()
 	defer i.variablesMu.Unlock()
 	if i.variables == nil {
-		i.variables = make(map[string]Value)
+		i.variables = make(map[string]lang.Value)
 	}
 	if name == "" {
 		return errors.New("variable name cannot be empty")
@@ -70,7 +72,7 @@ func (i *Interpreter) SetVariable(name string, value Value) error {
 	return nil
 }
 
-func (i *Interpreter) GetVariable(name string) (Value, bool) {
+func (i *Interpreter) GetVariable(name string) (lang.Value, bool) {
 	i.variablesMu.RLock()
 	defer i.variablesMu.RUnlock()
 	if i.variables == nil {

@@ -12,12 +12,13 @@ import (
 	"time"
 
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
+	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/google/generative-ai-go/genai"
 )
 
 // --- checkGenAIClient Helper ---
 // (Function remains the same)
-func checkGenAIClient(interp *Interpreter) (*genai.Client, error) {
+func checkGenAIClient(interp *neurogo.Interpreter) (*genai.Client, error) {
 	if interp == nil || interp.llmClient == nil {
 		return nil, errors.New("interpreter or LLMClient not configured")
 	}
@@ -42,7 +43,7 @@ func HelperUploadAndPollFile(
 		return nil, errors.New("genai client is nil")
 	}
 	if logger == nil {
-		logger = &coreNoOpLogger{} // Basic fallback
+		logger = &utils.coreNoOpLogger{} // Basic fallback
 	}
 
 	// 1. Open local file (Path assumed to be absolute and valid here)
@@ -161,7 +162,7 @@ func HelperUploadAndPollFile(
 
 // --- calculateFileHash ---
 // (Function remains the same)
-func calculateFileHash(interp *Interpreter, relPath string) (string, error) {
+func calculateFileHash(interp *neurogo.Interpreter, relPath string) (string, error) {
 	if interp == nil {
 		return "", errors.New("calculateFileHash: interpreter is nil")
 	}
@@ -179,7 +180,7 @@ func calculateFileHash(interp *Interpreter, relPath string) (string, error) {
 	file, err := os.Open(absPath)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			return "", fmt.Errorf("%w: file not found at '%s' (resolved: %s)", ErrFileNotFound, relPath, absPath)
+			return "", fmt.Errorf("%w: file not found at '%s' (resolved: %s)", lang.ErrFileNotFound, relPath, absPath)
 		}
 		return "", fmt.Errorf("calculateFileHash: failed to open file '%s' for hashing: %w", absPath, err)
 	}
@@ -190,7 +191,7 @@ func calculateFileHash(interp *Interpreter, relPath string) (string, error) {
 		return "", fmt.Errorf("calculateFileHash: failed to stat file '%s': %w", absPath, err)
 	}
 	if stat.IsDir() {
-		return "", fmt.Errorf("%w: path '%s' (resolved: %s) is a directory, cannot hash", ErrValidationArgValue, relPath, absPath)
+		return "", fmt.Errorf("%w: path '%s' (resolved: %s) is a directory, cannot hash", lang.ErrValidationArgValue, relPath, absPath)
 	}
 
 	hasher := sha256.New()

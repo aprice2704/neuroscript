@@ -10,7 +10,7 @@ package tool
 import (
 	"errors"
 	"fmt"
-	"log"	// Using standard log package for bootstrap messages
+	"log" // Using standard log package for bootstrap messages
 	"sync"
 
 	"github.com/aprice2704/neuroscript/pkg/core"

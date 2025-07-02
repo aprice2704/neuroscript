@@ -11,15 +11,16 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/google/uuid"
 )
 
 func (i *Interpreter) RegisterHandle(obj interface{}, typePrefix string) (string, error) {
 	if typePrefix == "" {
-		return "", fmt.Errorf("%w: handle type prefix cannot be empty", ErrInvalidArgument)
+		return "", fmt.Errorf("%w: handle type prefix cannot be empty", lang.ErrInvalidArgument)
 	}
 	if strings.Contains(typePrefix, handleSeparator) {
-		return "", fmt.Errorf("%w: handle type prefix '%s' cannot contain separator '%s'", ErrInvalidArgument, typePrefix, handleSeparator)
+		return "", fmt.Errorf("%w: handle type prefix '%s' cannot contain separator '%s'", lang.ErrInvalidArgument, typePrefix, handleSeparator)
 	}
 	if i.objectCache == nil {
 		i.objectCache = make(map[string]interface{})
@@ -32,27 +33,27 @@ func (i *Interpreter) RegisterHandle(obj interface{}, typePrefix string) (string
 
 func (i *Interpreter) GetHandleValue(handle string, expectedTypePrefix string) (interface{}, error) {
 	if expectedTypePrefix == "" {
-		return nil, fmt.Errorf("%w: expected handle type prefix cannot be empty", ErrInvalidArgument)
+		return nil, fmt.Errorf("%w: expected handle type prefix cannot be empty", lang.ErrInvalidArgument)
 	}
 	if handle == "" {
-		return nil, fmt.Errorf("%w: handle cannot be empty", ErrInvalidArgument)
+		return nil, fmt.Errorf("%w: handle cannot be empty", lang.ErrInvalidArgument)
 	}
 	parts := strings.SplitN(handle, handleSeparator, 2)
 	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
-		return nil, fmt.Errorf("%w: invalid handle format", ErrInvalidArgument)
+		return nil, fmt.Errorf("%w: invalid handle format", lang.ErrInvalidArgument)
 	}
 	actualPrefix := parts[0]
 
 	if actualPrefix != expectedTypePrefix {
-		return nil, fmt.Errorf("%w: expected prefix '%s', got '%s'", ErrHandleWrongType, expectedTypePrefix, actualPrefix)
+		return nil, fmt.Errorf("%w: expected prefix '%s', got '%s'", lang.ErrHandleWrongType, expectedTypePrefix, actualPrefix)
 	}
 
 	if i.objectCache == nil {
-		return nil, fmt.Errorf("%w: internal error: object cache is not initialized", ErrInternal)
+		return nil, fmt.Errorf("%w: internal error: object cache is not initialized", lang.ErrInternal)
 	}
 	obj, found := i.objectCache[handle]
 	if !found {
-		return nil, fmt.Errorf("%w: handle '%s'", ErrHandleNotFound, handle)
+		return nil, fmt.Errorf("%w: handle '%s'", lang.ErrHandleNotFound, handle)
 	}
 	return obj, nil
 }

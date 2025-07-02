@@ -20,7 +20,7 @@ type syncContext struct {
 	logger        interfaces.Logger
 	stats         map[string]interface{} // Statistics map
 	incrementStat func(string)           // Function to increment stats
-	interp        *Interpreter           // <<< ADDED: Interpreter reference needed by helpers
+	interp        *neurogo.Interpreter           // <<< ADDED: neurogo.Interpreter reference needed by helpers
 }
 
 // LocalFileInfo stores details about a local file found during the walk.

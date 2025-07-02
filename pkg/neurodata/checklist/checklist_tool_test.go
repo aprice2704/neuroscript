@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.3.1
 // File version: 0.2.0
-// Purpose: Updated helpers and test cases to use core.TreeAttrs (map[string]interface{}) for node attributes.
+// Purpose: Updated helpers and test cases to use  TreeAttrs (map[string]interface{}) for node attributes.
 // filename: pkg/neurodata/checklist/checklist_tool_test.go
 
 package checklist
@@ -9,19 +9,20 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/aprice2704/neuroscript/pkg/core"
+	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
 // --- Helper Functions ---
-// FIX: Changed return type to map[string]interface{} to match core.TreeAttrs.
-func getNodeAttributes(t *testing.T, interp *core.Interpreter, handleID string, nodeID string) map[string]interface{} {
+// FIX: Changed return type to map[string]interface{} to match  TreeAttrs.
+func getNodeAttributes(t *testing.T, interp *neurogo.Interpreter, handleID string, nodeID string) map[string]interface{} {
 	t.Helper()
-	treeObj, err := interp.GetHandleValue(handleID, core.GenericTreeHandleType)
+	treeObj, err := interp.GetHandleValue(handleID, utils.GenericTreeHandleType)
 	if err != nil {
 		t.Logf("getNodeAttributes: Failed to get handle %q: %v", handleID, err)
 		return nil
 	}
-	tree, ok := treeObj.(*core.GenericTree)
+	tree, ok := treeObj.(*GenericTree)
 	if !ok || tree == nil || tree.NodeMap == nil {
 		t.Errorf("getNodeAttributes: Handle %q is not a valid GenericTree", handleID)
 		return nil
@@ -64,54 +65,54 @@ func TestChecklistSetItemStatusTool(t *testing.T) {
 		specialSymbol            *string
 		expectError              bool
 		expectedErrorIs          error
-		expectedTargetAttrs      core.TreeAttrs // FIX: Use core.TreeAttrs
-		expectedParentAttrs      core.TreeAttrs // FIX: Use core.TreeAttrs
-		expectedGrandparentAttrs core.TreeAttrs // FIX: Use core.TreeAttrs
+		expectedTargetAttrs      utils.TreeAttrs // FIX: Use  utils.TreeAttrs
+		expectedParentAttrs      utils.TreeAttrs // FIX: Use  utils.TreeAttrs
+		expectedGrandparentAttrs utils.TreeAttrs // FIX: Use  utils.TreeAttrs
 		skipTest                 bool
 		skipReason               string
 	}{
-		// FIX: All expected attribute maps updated to core.TreeAttrs and use bool(true).
+		// FIX: All expected attribute maps updated to  TreeAttrs and use bool(true).
 		{name: "Set Manual Open -> Done", targetNodeID: "node-3", newStatus: "done",
-			expectedTargetAttrs: core.TreeAttrs{"status": "done"},
-			expectedParentAttrs: core.TreeAttrs{"status": "question", "is_automatic": true},
+			expectedTargetAttrs: utils.TreeAttrs{"status": "done"},
+			expectedParentAttrs: utils.TreeAttrs{"status": "question", "is_automatic": true},
 		},
 		{name: "Set Manual Done -> Skipped", targetNodeID: "node-6", newStatus: "skipped",
-			expectedTargetAttrs:      core.TreeAttrs{"status": "skipped"},
-			expectedParentAttrs:      core.TreeAttrs{"status": "partial", "is_automatic": true},
-			expectedGrandparentAttrs: core.TreeAttrs{"status": "question", "is_automatic": true},
+			expectedTargetAttrs:      utils.TreeAttrs{"status": "skipped"},
+			expectedParentAttrs:      utils.TreeAttrs{"status": "partial", "is_automatic": true},
+			expectedGrandparentAttrs: utils.TreeAttrs{"status": "question", "is_automatic": true},
 		},
 		{name: "Rollup: Set last L2 Open -> Done => L1A becomes Done", targetNodeID: "node-5", newStatus: "done",
-			expectedTargetAttrs:      core.TreeAttrs{"status": "done"},
-			expectedParentAttrs:      core.TreeAttrs{"status": "done", "is_automatic": true},
-			expectedGrandparentAttrs: core.TreeAttrs{"status": "question", "is_automatic": true},
+			expectedTargetAttrs:      utils.TreeAttrs{"status": "done"},
+			expectedParentAttrs:      utils.TreeAttrs{"status": "done", "is_automatic": true},
+			expectedGrandparentAttrs: utils.TreeAttrs{"status": "question", "is_automatic": true},
 		},
 		{name: "Rollup: Set L1 Question -> Done => L0 becomes Partial", targetNodeID: "node-7", newStatus: "done",
-			expectedTargetAttrs: core.TreeAttrs{"status": "done"},
-			expectedParentAttrs: core.TreeAttrs{"status": "partial", "is_automatic": true},
+			expectedTargetAttrs: utils.TreeAttrs{"status": "done"},
+			expectedParentAttrs: utils.TreeAttrs{"status": "partial", "is_automatic": true},
 		},
 		{name: "Rollup: Set L1 Manual Open -> Blocked => L0 becomes Blocked", targetNodeID: "node-3", newStatus: "blocked",
-			expectedTargetAttrs: core.TreeAttrs{"status": "blocked"},
-			expectedParentAttrs: core.TreeAttrs{"status": "blocked", "is_automatic": true},
+			expectedTargetAttrs: utils.TreeAttrs{"status": "blocked"},
+			expectedParentAttrs: utils.TreeAttrs{"status": "blocked", "is_automatic": true},
 		},
 		{name: "Rollup: Set L2 Manual Done -> Special * => L1A Special*, L0 Question", targetNodeID: "node-6", newStatus: "special", specialSymbol: pstr("*"),
-			expectedTargetAttrs:      core.TreeAttrs{"status": "special", "special_symbol": "*"},
-			expectedParentAttrs:      core.TreeAttrs{"status": "special", "is_automatic": true, "special_symbol": "*"},
-			expectedGrandparentAttrs: core.TreeAttrs{"status": "question", "is_automatic": true},
+			expectedTargetAttrs:      utils.TreeAttrs{"status": "special", "special_symbol": "*"},
+			expectedParentAttrs:      utils.TreeAttrs{"status": "special", "is_automatic": true, "special_symbol": "*"},
+			expectedGrandparentAttrs: utils.TreeAttrs{"status": "question", "is_automatic": true},
 		},
 		{name: "Rollup: Set L1 Question -> Special * => L0 becomes Special *", targetNodeID: "node-7", newStatus: "special", specialSymbol: pstr("*"),
-			expectedTargetAttrs: core.TreeAttrs{"status": "special", "special_symbol": "*"},
-			expectedParentAttrs: core.TreeAttrs{"status": "special", "is_automatic": true, "special_symbol": "*"},
+			expectedTargetAttrs: utils.TreeAttrs{"status": "special", "special_symbol": "*"},
+			expectedParentAttrs: utils.TreeAttrs{"status": "special", "is_automatic": true, "special_symbol": "*"},
 		},
-		{name: "Error: Invalid Node ID", targetNodeID: "node-99", newStatus: "done", expectError: true, expectedErrorIs: core.ErrNotFound},
-		{name: "Error: Invalid Status", targetNodeID: "node-3", newStatus: "invalid-status", expectError: true, expectedErrorIs: core.ErrInvalidArgument},
+		{name: "Error: Invalid Node ID", targetNodeID: "node-99", newStatus: "done", expectError: true, expectedErrorIs: lang.ErrNotFound},
+		{name: "Error: Invalid Status", targetNodeID: "node-3", newStatus: "invalid-status", expectError: true, expectedErrorIs: lang.ErrInvalidArgument},
 		{
 			name:            "Error: Special Status, Missing Symbol",
 			targetNodeID:    "node-3",
 			newStatus:       "special",
 			expectError:     true,
-			expectedErrorIs: core.ErrValidationRequiredArgNil,
+			expectedErrorIs: lang.ErrValidationRequiredArgNil,
 		},
-		{name: "Error: Special Status, Invalid Symbol", targetNodeID: "node-3", newStatus: "special", specialSymbol: pstr("xx"), expectError: true, expectedErrorIs: core.ErrInvalidArgument},
+		{name: "Error: Special Status, Invalid Symbol", targetNodeID: "node-3", newStatus: "special", specialSymbol: pstr("xx"), expectError: true, expectedErrorIs: lang.ErrInvalidArgument},
 	}
 
 	for _, tc := range testCases {
@@ -134,14 +135,14 @@ func TestChecklistSetItemStatusTool(t *testing.T) {
 			assertToolFound(t, foundUpdate, "Checklist.UpdateStatus")
 			updateToolFunc := toolUpdateStatusImpl.Func
 
-			result, loadErr := loadToolFunc(interp, core.MakeArgs(fixtureChecklist))
+			result, loadErr := loadToolFunc(interp, tool.MakeArgs(fixtureChecklist))
 			assertNoErrorSetup(t, loadErr, "Setup: Failed to load fixture checklist")
 
 			handleID, ok := result.(string)
 			if !ok {
 				t.Fatalf("Setup: ChecklistLoadTree did not return a string handle, got %T", result)
 			}
-			_, initialUpdateErr := updateToolFunc(interp, core.MakeArgs(handleID))
+			_, initialUpdateErr := updateToolFunc(interp, tool.MakeArgs(handleID))
 			assertNoErrorSetup(t, initialUpdateErr, "Setup: Initial Checklist.UpdateStatus failed")
 
 			args := []interface{}{handleID, tc.targetNodeID, tc.newStatus}
@@ -166,7 +167,7 @@ func TestChecklistSetItemStatusTool(t *testing.T) {
 				return
 			}
 
-			_, updateErr := updateToolFunc(interp, core.MakeArgs(handleID))
+			_, updateErr := updateToolFunc(interp, tool.MakeArgs(handleID))
 			if updateErr != nil {
 				t.Fatalf("Checklist.UpdateStatus failed unexpectedly after SetItemStatus: %v", updateErr)
 			}

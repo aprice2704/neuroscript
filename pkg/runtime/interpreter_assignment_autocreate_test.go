@@ -11,12 +11,14 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
+
+	"github.com/aprice2704/neuroscript/pkg/lang"
 )
 
 // Helper function to execute a script and check a variable's state against a Value type.
-func checkVariableStateAfterSet(t *testing.T, script string, varName string, expectedValue Value) {
+func checkVariableStateAfterSet(t *testing.T, script string, varName string, expectedValue lang.Value) {
 	t.Helper()
-	interpreter, _ := NewDefaultTestInterpreter(t)
+	interpreter, _ := llm.NewDefaultTestInterpreter(t)
 
 	_, execErr := interpreter.ExecuteScriptString(fmt.Sprintf("test_autocreate_%s", varName), script, nil)
 
@@ -43,41 +45,41 @@ func TestLValueAutoCreation(t *testing.T) {
 		name          string
 		script        string
 		checkVarName  string
-		expectedValue Value
+		expectedValue lang.Value
 	}{
 		{
 			name:         "base map auto-creation with string key",
 			script:       `set a["key1"] = "value1"`,
 			checkVarName: "a",
-			expectedValue: NewMapValue(map[string]Value{
-				"key1": StringValue{Value: "value1"},
+			expectedValue: lang.NewMapValue(map[string]lang.Value{
+				"key1": lang.StringValue{Value: "value1"},
 			}),
 		},
 		{
 			name:         "base list auto-creation with numeric index 0",
 			script:       `set b[0] = "value0"`,
 			checkVarName: "b",
-			expectedValue: NewListValue([]Value{
-				StringValue{Value: "value0"},
+			expectedValue: lang.NewListValue([]lang.Value{
+				lang.StringValue{Value: "value0"},
 			}),
 		},
 		{
 			name:         "base list auto-creation with numeric index 2 (pads with nil)",
 			script:       `set c[2] = "value2"`,
 			checkVarName: "c",
-			expectedValue: NewListValue([]Value{
-				NilValue{},
-				NilValue{},
-				StringValue{Value: "value2"},
+			expectedValue: lang.NewListValue([]lang.Value{
+				lang.NilValue{},
+				lang.NilValue{},
+				lang.StringValue{Value: "value2"},
 			}),
 		},
 		{
 			name:         "nested map auto-creation via dot access",
 			script:       `set d.level1.level2 = "valueD"`,
 			checkVarName: "d",
-			expectedValue: NewMapValue(map[string]Value{
-				"level1": NewMapValue(map[string]Value{
-					"level2": StringValue{Value: "valueD"},
+			expectedValue: lang.NewMapValue(map[string]lang.Value{
+				"level1": lang.NewMapValue(map[string]lang.Value{
+					"level2": lang.StringValue{Value: "valueD"},
 				}),
 			}),
 		},
@@ -85,9 +87,9 @@ func TestLValueAutoCreation(t *testing.T) {
 			name:         "nested map auto-creation via bracket access",
 			script:       `set e["level1"]["level2"] = "valueE"`,
 			checkVarName: "e",
-			expectedValue: NewMapValue(map[string]Value{
-				"level1": NewMapValue(map[string]Value{
-					"level2": StringValue{Value: "valueE"},
+			expectedValue: lang.NewMapValue(map[string]lang.Value{
+				"level1": lang.NewMapValue(map[string]lang.Value{
+					"level2": lang.StringValue{Value: "valueE"},
 				}),
 			}),
 		},
@@ -95,10 +97,10 @@ func TestLValueAutoCreation(t *testing.T) {
 			name:         "nested list in map auto-creation",
 			script:       `set f.listKey[1] = "item1"`,
 			checkVarName: "f",
-			expectedValue: NewMapValue(map[string]Value{
-				"listKey": NewListValue([]Value{
-					NilValue{},
-					StringValue{Value: "item1"},
+			expectedValue: lang.NewMapValue(map[string]lang.Value{
+				"listKey": lang.NewListValue([]lang.Value{
+					lang.NilValue{},
+					lang.StringValue{Value: "item1"},
 				}),
 			}),
 		},
@@ -106,9 +108,9 @@ func TestLValueAutoCreation(t *testing.T) {
 			name:         "nested map in list auto-creation",
 			script:       `set g[0].mapKey = "itemG"`,
 			checkVarName: "g",
-			expectedValue: NewListValue([]Value{
-				NewMapValue(map[string]Value{
-					"mapKey": StringValue{Value: "itemG"},
+			expectedValue: lang.NewListValue([]lang.Value{
+				lang.NewMapValue(map[string]lang.Value{
+					"mapKey": lang.StringValue{Value: "itemG"},
 				}),
 			}),
 		},
@@ -116,13 +118,13 @@ func TestLValueAutoCreation(t *testing.T) {
 			name:         "deeply nested auto-creation map-list-map-list",
 			script:       `set h.maps[0].anotherMap["deepKey"][1] = "finalValue"`,
 			checkVarName: "h",
-			expectedValue: NewMapValue(map[string]Value{
-				"maps": NewListValue([]Value{
-					NewMapValue(map[string]Value{
-						"anotherMap": NewMapValue(map[string]Value{
-							"deepKey": NewListValue([]Value{
-								NilValue{},
-								StringValue{Value: "finalValue"},
+			expectedValue: lang.NewMapValue(map[string]lang.Value{
+				"maps": lang.NewListValue([]lang.Value{
+					lang.NewMapValue(map[string]lang.Value{
+						"anotherMap": lang.NewMapValue(map[string]lang.Value{
+							"deepKey": lang.NewListValue([]lang.Value{
+								lang.NilValue{},
+								lang.StringValue{Value: "finalValue"},
 							}),
 						}),
 					}),
@@ -133,25 +135,25 @@ func TestLValueAutoCreation(t *testing.T) {
 			name:         "overwrite existing string with map on complex assignment",
 			script:       "set k = \"i am a string\"\nset k[\"newKey\"] = \"now a map\"",
 			checkVarName: "k",
-			expectedValue: NewMapValue(map[string]Value{
-				"newKey": StringValue{Value: "now a map"},
+			expectedValue: lang.NewMapValue(map[string]lang.Value{
+				"newKey": lang.StringValue{Value: "now a map"},
 			}),
 		},
 		{
 			name:         "overwrite existing number with list on complex assignment",
 			script:       "set l = 123\nset l[0] = \"now a list\"",
 			checkVarName: "l",
-			expectedValue: NewListValue([]Value{
-				StringValue{Value: "now a list"},
+			expectedValue: lang.NewListValue([]lang.Value{
+				lang.StringValue{Value: "now a list"},
 			}),
 		},
 		{
 			name:         "dot access creates map then bracket access on it",
 			script:       `set m.firstMap["secondKey"] = "valM"`,
 			checkVarName: "m",
-			expectedValue: NewMapValue(map[string]Value{
-				"firstMap": NewMapValue(map[string]Value{
-					"secondKey": StringValue{Value: "valM"},
+			expectedValue: lang.NewMapValue(map[string]lang.Value{
+				"firstMap": lang.NewMapValue(map[string]lang.Value{
+					"secondKey": lang.StringValue{Value: "valM"},
 				}),
 			}),
 		},
@@ -159,9 +161,9 @@ func TestLValueAutoCreation(t *testing.T) {
 			name:         "bracket access creates map then dot access on it",
 			script:       `set n["firstMap"].secondKey = "valN"`,
 			checkVarName: "n",
-			expectedValue: NewMapValue(map[string]Value{
-				"firstMap": NewMapValue(map[string]Value{
-					"secondKey": StringValue{Value: "valN"},
+			expectedValue: lang.NewMapValue(map[string]lang.Value{
+				"firstMap": lang.NewMapValue(map[string]lang.Value{
+					"secondKey": lang.StringValue{Value: "valN"},
 				}),
 			}),
 		},
@@ -169,11 +171,11 @@ func TestLValueAutoCreation(t *testing.T) {
 			name:         "list auto-creation within auto-created map within auto-created list",
 			script:       `set p[0]["listInMap"][1] = "complexP"`,
 			checkVarName: "p",
-			expectedValue: NewListValue([]Value{
-				NewMapValue(map[string]Value{
-					"listInMap": NewListValue([]Value{
-						NilValue{},
-						StringValue{Value: "complexP"},
+			expectedValue: lang.NewListValue([]lang.Value{
+				lang.NewMapValue(map[string]lang.Value{
+					"listInMap": lang.NewListValue([]lang.Value{
+						lang.NilValue{},
+						lang.StringValue{Value: "complexP"},
 					}),
 				}),
 			}),

@@ -13,25 +13,25 @@ import (
 )
 
 // executeSet handles the "set" step. It now dispatches to a helper for each LValue.
-func (i *Interpreter) executeSet(step ast.Step) (Value, error) {
+func (i *Interpreter) executeSet(step ast.Step) (lang.Value, error) {
 	if len(step.LValues) == 0 {
-		return nil, lang.NewRuntimeError(ErrorCodeInternal, "SetStep LValues is empty", nil).WithPosition(step.Pos)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, "SetStep LValues is empty", nil).WithPosition(step.Pos)
 	}
 
 	rhsValue, evalErr := i.evaluate.Expression(step.Value)
 	if evalErr != nil {
 		// Use the lang.Position of the first LValue for more accurate error reporting
-		return nil, WrapErrorWithPosition(evalErr, step.LValues[0].GetPos(), "evaluating value for SET statement")
+		return nil, lang.WrapErrorWithPosition(evalErr, step.LValues[0].GetPos(), "evaluating value for SET statement")
 	}
 
 	// Case 1: Multiple assignment (e.g., set a, b = myList)
 	if len(step.LValues) > 1 {
 		list, ok := rhsValue.(ListValue)
 		if !ok {
-			return nil, lang.NewRuntimeError(ErrorCodeType, "multiple assignment requires a list on the right-hand side", ErrMultiAssignNonList).WithPosition(step.Value.GetPos())
+			return nil, lang.NewRuntimeError(lang.ErrorCodeType, "multiple assignment requires a list on the right-hand side", lang.ErrMultiAssignNonList).WithPosition(step.Value.GetPos())
 		}
 		if len(step.LValues) != len(list.Value) {
-			return nil, lang.NewRuntimeError(ErrorCodeCountMismatch, fmt.Sprintf("assignment mismatch: %d variables but %d values", len(step.LValues), len(list.Value)), ErrAssignCountMismatch).WithPosition(step.Pos)
+			return nil, lang.NewRuntimeError(lang.ErrorCodeCountMismatch, fmt.Sprintf("assignment mismatch: %d variables but %d values", len(step.LValues), len(list.Value)), lang.ErrAssignCountMismatch).WithPosition(step.Pos)
 		}
 		for idx, lval := range step.LValues {
 			if err := i.setSingleLValue(lval, list.Value[idx]); err != nil {
@@ -50,10 +50,10 @@ func (i *Interpreter) executeSet(step ast.Step) (Value, error) {
 
 // setSingleLValue handles the logic for assigning a value to a single, potentially complex LValue.
 // This includes auto-vivification of maps and lists.
-func (i *Interpreter) setSingleLValue(lvalueExpr ast.Expression, rhsValue Value) error {
+func (i *Interpreter) setSingleLValue(lvalueExpr ast.Expression, rhsValue lang.Value) error {
 	lval, ok := lvalueExpr.(*ast.LValueNode)
 	if !ok {
-		return lang.NewRuntimeError(ErrorCodeInternal, "LValue expression is not an ast.LValueNode", nil).WithPosition(lvalueExpr.GetPos())
+		return lang.NewRuntimeError(lang.ErrorCodeInternal, "LValue expression is not an ast.LValueNode", nil).WithPosition(lvalueExpr.GetPos())
 	}
 
 	// Simple assignment: set x = ...
@@ -82,7 +82,7 @@ func (i *Interpreter) setSingleLValue(lvalueExpr ast.Expression, rhsValue Value)
 
 // getOrCreateRootContainer retrieves the top-level variable for a complex assignment,
 // creating it if it doesn't exist based on the first accessor.
-func (i *Interpreter) getOrCreateRootContainer(name string, firstAccessor ast.AccessorNode) (Value, error) {
+func (i *Interpreter) getOrCreateRootContainer(name string, firstAccessor ast.AccessorNode) (lang.Value, error) {
 	container, varExists := i.GetVariable(name)
 	if varExists {
 		if isMap(container) || isList(container) {
@@ -94,7 +94,7 @@ func (i *Interpreter) getOrCreateRootContainer(name string, firstAccessor ast.Ac
 
 // vivifyAndSet recursively traverses the accessor path, creating nested containers
 // as needed, and returns the (potentially modified) container.
-func (i *Interpreter) vivifyAndSet(current Value, accessors []ast.AccessorNode, rhsValue Value) (Value, error) {
+func (i *Interpreter) vivifyAndSet(current lang.lang.lang.Value, accessors []ast.AccessorNode, rhsValue lang.lang.lang.Value) (lang.lang.lang.Value, error) {
 	if len(accessors) == 0 {
 		return rhsValue, nil
 	}
@@ -159,18 +159,18 @@ func (i *Interpreter) vivifyAndSet(current Value, accessors []ast.AccessorNode, 
 }
 
 // ... (rest of the helper functions: determineInitialContainer, evaluateAccessorKey, etc. are unchanged) ...
-func (i *Interpreter) determineInitialContainer(accessor ast.AccessorNode) (Value, error) {
+func (i *Interpreter) determineInitialContainer(accessor ast.AccessorNode) (lang.Value, error) {
 	if accessor.Type == ast.DotAccess {
-		return NewMapValue(nil), nil
+		return lang.NewMapValue(nil), nil
 	}
 	key, err := i.evaluate.Expression(accessor.IndexOrKey)
 	if err != nil {
-		return nil, WrapErrorWithPosition(err, accessor.Pos, "evaluating accessor key")
+		return nil, lang.WrapErrorWithPosition(err, accessor.Pos, "evaluating accessor key")
 	}
-	if _, isInt := toInt64(key); isInt {
-		return NewListValue(nil), nil
+	if _, isInt := lang.toInt64(key); isInt {
+		return lang.NewListValue(nil), nil
 	}
-	return NewMapValue(nil), nil
+	return lang.NewMapValue(nil), nil
 }
 
 func (i *Interpreter) evaluateAccessorKey(accessor ast.AccessorNode) (string, error) {
@@ -179,33 +179,33 @@ func (i *Interpreter) evaluateAccessorKey(accessor ast.AccessorNode) (string, er
 	}
 	keyVal, err := i.evaluate.Expression(accessor.IndexOrKey)
 	if err != nil {
-		return "", WrapErrorWithPosition(err, accessor.Pos, "evaluating map key")
+		return "", lang.WrapErrorWithPosition(err, accessor.Pos, "evaluating map key")
 	}
-	key, _ := toString(keyVal)
+	key, _ := lang.toString(keyVal)
 	return key, nil
 }
 
 func (i *Interpreter) evaluateAccessorIndex(accessor ast.AccessorNode) (int64, error) {
 	indexVal, err := i.evaluate.Expression(accessor.IndexOrKey)
 	if err != nil {
-		return 0, WrapErrorWithPosition(err, accessor.Pos, "evaluating list index")
+		return 0, lang.WrapErrorWithPosition(err, accessor.Pos, "evaluating list index")
 	}
-	index, isInt := toInt64(indexVal)
+	index, isInt := lang.toInt64(indexVal)
 	if !isInt {
-		return 0, lang.NewRuntimeError(ErrorCodeType, fmt.Sprintf("list index must be an integer, got %s", TypeOf(indexVal)), ErrListInvalidIndexType).WithPosition(accessor.Pos)
+		return 0, lang.NewRuntimeError(lang.ErrorCodeType, fmt.Sprintf("list index must be an integer, got %s", lang.TypeOf(indexVal)), lang.ErrListInvalidIndexType).WithPosition(accessor.Pos)
 	}
 	if index < 0 {
-		return 0, lang.NewRuntimeError(ErrorCodeBounds, fmt.Sprintf("list index cannot be negative, got %d", index), ErrListIndexOutOfBounds).WithPosition(accessor.Pos)
+		return 0, lang.NewRuntimeError(lang.ErrorCodeBounds, fmt.Sprintf("list index cannot be negative, got %d", index), lang.ErrListIndexOutOfBounds).WithPosition(accessor.Pos)
 	}
 	return index, nil
 }
 
-func padList(list []Value, requiredIndex int64) []Value {
+func padList(list []lang.lang.Value, requiredIndex int64) []lang.lang.Value {
 	for int64(len(list)) <= requiredIndex {
-		list = append(list, NilValue{})
+		list = append(list, lang.NilValue{})
 	}
 	return list
 }
 
-func isList(v Value) bool { _, ok := v.(ListValue); return ok }
-func isMap(v Value) bool  { _, ok := v.(MapValue); return ok }
+func isList(v lang.Value) bool { _, ok := v.(ListValue); return ok }
+func isMap(v lang.Value) bool  { _, ok := v.(MapValue); return ok }

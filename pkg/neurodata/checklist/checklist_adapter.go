@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.3.1
 // File version: 2.0.0
-// Purpose: Updated to align with core.TreeAttrs (map[string]interface{}) and added safe type assertions.
+// Purpose: Updated to align with  TreeAttrs (map[string]interface{}) and added safe type assertions.
 // filename: pkg/neurodata/checklist/checklist_adapter.go
 
 package checklist
@@ -10,8 +10,6 @@ import (
 	"fmt"
 	"sort"
 	"strings"
-
-	"github.com/aprice2704/neuroscript/pkg/core"
 )
 
 // Ensure errors are correctly defined for this state
@@ -24,16 +22,16 @@ var (
 
 // ChecklistToTree converts parsed checklist items and metadata into a GenericTree structure.
 // Nodes representing checklist items will have Type="checklist_item".
-func ChecklistToTree(items []ChecklistItem, metadata map[string]string) (*core.GenericTree, error) {
-	tree := core.NewGenericTree()
+func ChecklistToTree(items []ChecklistItem, metadata map[string]string) (*utils.GenericTree, error) {
+	tree := utils.NewGenericTree()
 
 	// 1. Create Root Node
 	rootNode := tree.NewNode("", "checklist_root")
 	tree.RootID = rootNode.ID
 	rootNode.Value = nil
 	if rootNode.Attributes == nil {
-		// FIX: Align with the new core.TreeAttrs type (map[string]interface{})
-		rootNode.Attributes = make(core.TreeAttrs)
+		// FIX: Align with the new  TreeAttrs type (map[string]interface{})
+		rootNode.Attributes = make(utils.TreeAttrs)
 	}
 	for k, v := range metadata {
 		rootNode.Attributes[k] = v
@@ -65,8 +63,8 @@ func ChecklistToTree(items []ChecklistItem, metadata map[string]string) (*core.G
 		newNode.Value = item.Text // Store text in Value
 
 		if newNode.Attributes == nil {
-			// FIX: Align with the new core.TreeAttrs type (map[string]interface{})
-			newNode.Attributes = make(core.TreeAttrs)
+			// FIX: Align with the new  TreeAttrs type (map[string]interface{})
+			newNode.Attributes = make(utils.TreeAttrs)
 		}
 
 		// Map status and handle special symbol
@@ -131,7 +129,7 @@ func mapParserStatusToTreeStatus(item ChecklistItem) string {
 // --- Tree to Checklist String Formatting ---
 
 // TreeToChecklistString converts a GenericTree (representing a checklist) back into Markdown format.
-func TreeToChecklistString(tree *core.GenericTree) (string, error) {
+func TreeToChecklistString(tree *utils.GenericTree) (string, error) {
 	if tree == nil || tree.RootID == "" || tree.NodeMap == nil {
 		return "", fmt.Errorf("%w: input tree is nil or invalid", ErrInvalidChecklistTree)
 	}
@@ -175,7 +173,7 @@ func TreeToChecklistString(tree *core.GenericTree) (string, error) {
 }
 
 // formatChecklistNodeRecursive recursively formats checklist item nodes.
-func formatChecklistNodeRecursive(builder *strings.Builder, tree *core.GenericTree, nodeID string, depth int) error {
+func formatChecklistNodeRecursive(builder *strings.Builder, tree *utils.GenericTree, nodeID string, depth int) error {
 	node, exists := tree.NodeMap[nodeID]
 	if !exists {
 		return fmt.Errorf("%w: child node %q not found in tree map", ErrInvalidChecklistTree, nodeID)
@@ -186,8 +184,8 @@ func formatChecklistNodeRecursive(builder *strings.Builder, tree *core.GenericTr
 	}
 
 	if node.Attributes == nil {
-		// FIX: Align with the new core.TreeAttrs type (map[string]interface{})
-		node.Attributes = make(core.TreeAttrs)
+		// FIX: Align with the new  TreeAttrs type (map[string]interface{})
+		node.Attributes = make(utils.TreeAttrs)
 	}
 
 	// 1. Calculate Indentation

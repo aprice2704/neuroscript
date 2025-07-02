@@ -8,21 +8,21 @@ import (
 	"fmt"
 
 	"github.com/aprice2704/neuroscript/pkg/adapters"
-	"github.com/aprice2704/neuroscript/pkg/core"
+	"github.com/aprice2704/neuroscript/pkg/lang"
 )
 
 // Implementation for ChecklistLoadTree
-func toolChecklistLoadTree(interpreter *core.Interpreter, args []interface{}) (interface{}, error) {
+func toolChecklistLoadTree(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
 	toolName := "ChecklistLoadTree"
 	logger := interpreter.Logger()
 
 	// 1. Validate Arguments
 	if len(args) != 1 {
-		return nil, fmt.Errorf("%w: %s expected 1 argument (checklist_string), got %d", core.ErrValidationArgCount, toolName, len(args))
+		return nil, fmt.Errorf("%w: %s expected 1 argument (checklist_string), got %d", lang.ErrValidationArgCount, toolName, len(args))
 	}
 	checklistString, ok := args[0].(string)
 	if !ok {
-		return nil, fmt.Errorf("%w: %s expected string arg[0] 'checklist_string', got %T", core.ErrValidationTypeMismatch, toolName, args[0])
+		return nil, fmt.Errorf("%w: %s expected string arg[0] 'checklist_string', got %T", lang.ErrValidationTypeMismatch, toolName, args[0])
 	}
 
 	// 2. Parse the Checklist String
@@ -35,9 +35,9 @@ func toolChecklistLoadTree(interpreter *core.Interpreter, args []interface{}) (i
 	if parseErr != nil {
 		logger.Error("Failed to parse checklist string", "tool", toolName, "error", parseErr)
 		if errors.Is(parseErr, ErrNoContent) || errors.Is(parseErr, ErrMalformedItem) {
-			return nil, fmt.Errorf("%w: %s parsing failed: %w", core.ErrInvalidArgument, toolName, parseErr)
+			return nil, fmt.Errorf("%w: %s parsing failed: %w", lang.ErrInvalidArgument, toolName, parseErr)
 		}
-		return nil, fmt.Errorf("%w: %s internal parsing error: %w", core.ErrInternal, toolName, parseErr)
+		return nil, fmt.Errorf("%w: %s internal parsing error: %w", lang.ErrInternal, toolName, parseErr)
 	}
 
 	// 3. Adapt to GenericTree
@@ -45,15 +45,15 @@ func toolChecklistLoadTree(interpreter *core.Interpreter, args []interface{}) (i
 	tree, adaptErr := ChecklistToTree(parsedData.Items, parsedData.Metadata)
 	if adaptErr != nil {
 		logger.Error("Failed to adapt checklist to GenericTree", "tool", toolName, "error", adaptErr)
-		return nil, fmt.Errorf("%w: %s failed to create tree structure: %w", core.ErrInternal, toolName, adaptErr)
+		return nil, fmt.Errorf("%w: %s failed to create tree structure: %w", lang.ErrInternal, toolName, adaptErr)
 	}
 
 	// 4. Register Tree Handle
 	// <<< FIX: Use argument order (obj interface{}, typePrefix string) >>>
-	handleID, handleErr := interpreter.RegisterHandle(tree, core.GenericTreeHandleType) // obj first, then type string
+	handleID, handleErr := interpreter.RegisterHandle(tree, utils.GenericTreeHandleType) // obj first, then type string
 	if handleErr != nil {
 		logger.Error("Failed to register GenericTree handle", "tool", toolName, "error", handleErr)
-		return nil, fmt.Errorf("%w: %s failed to register tree handle: %w", core.ErrInternal, toolName, handleErr)
+		return nil, fmt.Errorf("%w: %s failed to register tree handle: %w", lang.ErrInternal, toolName, handleErr)
 	}
 
 	logger.Debug("Successfully loaded checklist into tree", "tool", toolName, "handle", handleID)

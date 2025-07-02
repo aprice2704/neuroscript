@@ -12,6 +12,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/parser"
 	"github.com/google/go-cmp/cmp"
 )
 
@@ -53,8 +55,8 @@ func TestInterpreterFixtures(t *testing.T) {
 			}
 			script := string(scriptBytes)
 
-			logger := NewTestLogger(t)
-			parserAPI := NewParserAPI(logger)
+			logger := llm.NewTestLogger(t)
+			parserAPI := parser.NewParserAPI(logger)
 			parseTree, parseErr := parserAPI.Parse(script)
 
 			if _, statErr := os.Stat(errPath); statErr == nil {
@@ -75,18 +77,18 @@ func TestInterpreterFixtures(t *testing.T) {
 				t.Fatalf("unexpected PARSER error: %v", parseErr)
 			}
 
-			astBuilder := NewASTBuilder(logger)
+			astBuilder := parser.NewASTBuilder(logger)
 			programAST, _, buildErr := astBuilder.Build(parseTree)
 			if buildErr != nil {
 				t.Fatalf("unexpected AST BUILD error: %v", buildErr)
 			}
 
-			interp, _ := NewTestInterpreter(t, nil, nil)
+			interp, _ := llm.NewTestInterpreter(t, nil, nil)
 			if err := interp.LoadProgram(programAST); err != nil {
 				t.Fatalf("failed to load program into interpreter: %v", err)
 			}
 
-			var gotVal Value
+			var gotVal lang.Value
 			var execErr error
 
 			if len(programAST.Commands) > 0 {
@@ -105,10 +107,10 @@ func TestInterpreterFixtures(t *testing.T) {
 				rawResult, execErr = interp.ExecuteProc(procToRun)
 				if execErr == nil {
 					var ok bool
-					gotVal, ok = rawResult.(Value)
+					gotVal, ok = rawResult.(lang.Value)
 					if !ok {
 						if rawResult == nil {
-							gotVal = NilValue{}
+							gotVal = lang.NilValue{}
 						} else {
 							t.Fatalf("ExecuteProc returned an unexpected type: %T", rawResult)
 						}
@@ -138,7 +140,7 @@ func TestInterpreterFixtures(t *testing.T) {
 				t.Fatalf("failed to unmarshal golden file %s into map[string]any: %v", goldenPath, err)
 			}
 
-			nativeGotVal := Unwrap(gotVal)
+			nativeGotVal := lang.Unwrap(gotVal)
 			gotMap := map[string]any{"return": nativeGotVal}
 
 			if diff := cmp.Diff(wantMap, gotMap); diff != "" {

@@ -79,7 +79,7 @@ func GetSandboxPath(sandboxRoot, relativePath string) string {
 func IsPathInSandbox(sandboxRoot, inputPath string) (bool, error) {
 	_, err := ResolveAndSecurePath(inputPath, sandboxRoot)
 	if err != nil {
-		if re, ok := err.(*RuntimeError); ok && errors.Is(re.Wrapped, ErrPathViolation) {
+		if re, ok := err.(*lang.RuntimeError); ok && errors.Is(re.Wrapped, lang.ErrPathViolation) {
 			return false, nil // Specific path violation is not an error for the check, just means "false"
 		}
 		return false, err // Other errors during resolution are returned
@@ -93,20 +93,20 @@ func IsPathInSandbox(sandboxRoot, inputPath string) (bool, error) {
 func ResolveAndSecurePath(inputPath, allowedRoot string) (string, error) {
 	// --- Input Validation ---
 	if inputPath == "" {
-		return "", lang.NewRuntimeError(ErrorCodeArgMismatch, "input path cannot be empty", ErrInvalidArgument)
+		return "", lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "input path cannot be empty", lang.ErrInvalidArgument)
 	}
 	if strings.Contains(inputPath, "\x00") {
-		return "", lang.NewRuntimeError(ErrorCodeSecurity, "input path contains null byte", ErrNullByteInArgument)
+		return "", lang.NewRuntimeError(lang.ErrorCodeSecurity, "input path contains null byte", lang.ErrNullByteInArgument)
 	}
 	if filepath.IsAbs(inputPath) {
 		errMsg := fmt.Sprintf("input file path %q must be relative, not absolute", inputPath)
-		return "", lang.NewRuntimeError(ErrorCodeSecurity, errMsg, ErrPathViolation)
+		return "", lang.NewRuntimeError(lang.ErrorCodeSecurity, errMsg, lang.ErrPathViolation)
 	}
 
 	// --- Resolve Paths ---
 	absAllowedRoot, err := filepath.Abs(allowedRoot)
 	if err != nil {
-		return "", lang.NewRuntimeError(ErrorCodeConfiguration, fmt.Sprintf("could not get absolute path for allowed root %q: %v", allowedRoot, err), errors.Join(ErrConfiguration, err))
+		return "", lang.NewRuntimeError(lang.ErrorCodeConfiguration, fmt.Sprintf("could not get absolute path for allowed root %q: %v", allowedRoot, err), errors.Join(lang.ErrConfiguration, err))
 	}
 	absAllowedRoot = filepath.Clean(absAllowedRoot)
 
@@ -118,7 +118,7 @@ func ResolveAndSecurePath(inputPath, allowedRoot string) (string, error) {
 	if err != nil {
 		// This error might occur if paths are on different volumes on Windows, etc.
 		details := fmt.Sprintf("internal error checking path relationship between %q and %q", absAllowedRoot, resolvedPath)
-		return "", lang.NewRuntimeError(ErrorCodeInternal, details, errors.Join(ErrInternalSecurity, err))
+		return "", lang.NewRuntimeError(lang.ErrorCodeInternal, details, errors.Join(lang.ErrInternalSecurity, err))
 	}
 
 	// --- IsOutside Check using path components ---
@@ -140,7 +140,7 @@ func ResolveAndSecurePath(inputPath, allowedRoot string) (string, error) {
 
 	if isOutside {
 		details := fmt.Sprintf("relative path %q resolves to %q which is outside the allowed directory %q", inputPath, resolvedPath, absAllowedRoot)
-		return "", lang.NewRuntimeError(ErrorCodeSecurity, details, ErrPathViolation)
+		return "", lang.NewRuntimeError(lang.ErrorCodeSecurity, details, lang.ErrPathViolation)
 	}
 
 	return resolvedPath, nil

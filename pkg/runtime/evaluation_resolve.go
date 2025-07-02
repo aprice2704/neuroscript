@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/aprice2704/neuroscript/pkg/ast"
+	"github.com/aprice2704/neuroscript/pkg/lang"
 	// Assuming errors like ErrVariableNotFound are defined in errors.go
 	// Assuming AST node types like ast.VariableNode, ast.Placeholder.Node, ast.StringLiteralNode etc. are defined in ast.go
 )
@@ -23,7 +24,7 @@ func (i *Interpreter) resolveValue(node interface{}) (interface{}, error) {
 		if !found {
 			// Wrap ErrVariableNotFound
 			errMsg := fmt.Sprintf("variable '%s' not found", n.Name)
-			return nil, fmt.Errorf("%s: %w", errMsg, ErrVariableNotFound)
+			return nil, fmt.Errorf("%s: %w", errMsg, lang.ErrVariableNotFound)
 		}
 		i.Logger().Debug("[DEBUG EVAL]   Resolved Variable '%s' to: %v (%T)", n.Name, val, val)
 		return val, nil
@@ -35,7 +36,7 @@ func (i *Interpreter) resolveValue(node interface{}) (interface{}, error) {
 		if !found {
 			// Wrap ErrVariableNotFound
 			errMsg := fmt.Sprintf("placeholder variable '%s' not found", n.Name)
-			return nil, fmt.Errorf("%s: %w", errMsg, ErrVariableNotFound)
+			return nil, fmt.Errorf("%s: %w", errMsg, lang.ErrVariableNotFound)
 		}
 		i.Logger().Debug("[DEBUG EVAL]   Resolved Placeholder '%s' to: %v (%T)", n.Name, val, val)
 		return val, nil

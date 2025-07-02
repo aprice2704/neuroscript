@@ -26,19 +26,19 @@ func (i *Interpreter) SetExternalToolHandler(handler ToolHandler) {
 // executeInternalTool is the Generic Adapter Bridge for all internal tools.
 // It accepts wrapped Values, unwraps them into primitives for the tool's Go
 // function, then wraps the primitive result back into a Value.
-func (i *Interpreter) executeInternalTool(impl ToolImplementation, args map[string]Value) (Value, error) {
+func (i *Interpreter) executeInternalTool(impl tool.ToolImplementation, args map[string]lang.lang.Value) (lang.lang.Value, error) {
 	// UNWRAP arguments from Value -> interface{}
 	validatedArgs := make([]interface{}, len(impl.Spec.Args))
 	for idx, argSpec := range impl.Spec.Args {
 		value, provided := args[argSpec.Name]
 		if !provided {
 			if argSpec.Required {
-				return nil, lang.NewRuntimeError(ErrorCodeArgMismatch, fmt.Sprintf("tool '%s': missing required argument '%s'", impl.Spec.Name, argSpec.Name), ErrArgumentMismatch)
+				return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("tool '%s': missing required argument '%s'", impl.Spec.Name, argSpec.Name), lang.ErrArgumentMismatch)
 			}
 			validatedArgs[idx] = nil // Use nil for optional, unprovided args
 		} else {
 			// This is the UNWRAP step
-			unwrappedValue := Unwrap(value)
+			unwrappedValue := lang.Unwrap(value)
 			validatedArgs[idx] = unwrappedValue
 		}
 	}
@@ -47,18 +47,18 @@ func (i *Interpreter) executeInternalTool(impl ToolImplementation, args map[stri
 	result, err := impl.Func(i, validatedArgs)
 	if err != nil {
 		if _, ok := err.(*RuntimeError); !ok {
-			return nil, lang.NewRuntimeError(ErrorCodeToolExecutionFailed, fmt.Sprintf("tool '%s' execution failed: %v", impl.Spec.Name, err), err)
+			return nil, lang.NewRuntimeError(lang.ErrorCodeToolExecutionFailed, fmt.Sprintf("tool '%s' execution failed: %v", impl.Spec.Name, err), err)
 		}
 		return nil, err
 	}
 
 	// WRAP the result from interface{} -> Value
-	return Wrap(result)
+	return lang.Wrap(result)
 }
 
 // ExecuteTool is called by the interpreter's evaluation logic.
 // It accepts a map of argument names to Values.
-func (i *Interpreter) ExecuteTool(toolName string, args map[string]Value) (Value, error) {
+func (i *Interpreter) ExecuteTool(toolName string, args map[string]lang.lang.Value) (lang.lang.Value, error) {
 	now := time.Now()
 	if i.rateLimitCount > 0 && i.rateLimitDuration > 0 {
 		timestamps := i.ToolCallTimestamps[toolName]
@@ -70,7 +70,7 @@ func (i *Interpreter) ExecuteTool(toolName string, args map[string]Value) (Value
 			}
 		}
 		if len(validTimestamps) >= i.rateLimitCount {
-			return nil, lang.NewRuntimeError(ErrorCodeRateLimited, fmt.Sprintf("tool '%s' rate limit exceeded", toolName), ErrRateLimited)
+			return nil, lang.NewRuntimeError(lang.ErrorCodeRateLimited, fmt.Sprintf("tool '%s' rate limit exceeded", toolName), lang.ErrRateLimited)
 		}
 		validTimestamps = append(validTimestamps, now)
 		i.ToolCallTimestamps[toolName] = validTimestamps
@@ -87,55 +87,55 @@ func (i *Interpreter) ExecuteTool(toolName string, args map[string]Value) (Value
 		// primitive-based for now.
 		unwrappedArgs := make(map[string]any, len(args))
 		for k, v := range args {
-			unwrappedArgs[k] = Unwrap(v) // Ignoring error for simplicity here
+			unwrappedArgs[k] = lang.Unwrap(v) // Ignoring error for simplicity here
 		}
 		methodName, ok := unwrappedArgs["method"].(string)
 		if !ok {
-			return nil, lang.NewRuntimeError(ErrorCodeArgMismatch, fmt.Sprintf("external tool call to '%s' requires a 'method' argument", toolName), ErrArgumentMismatch)
+			return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("external tool call to '%s' requires a 'method' argument", toolName), lang.ErrArgumentMismatch)
 		}
 		result, err := i.externalHandler.CallTool(toolName, methodName, unwrappedArgs)
 		if err != nil {
-			return nil, lang.NewRuntimeError(ErrorCodeToolExecutionFailed, fmt.Sprintf("external tool '%s' failed: %v", toolName, err), err)
+			return nil, lang.NewRuntimeError(lang.ErrorCodeToolExecutionFailed, fmt.Sprintf("external tool '%s' failed: %v", toolName, err), err)
 		}
-		return Wrap(result)
+		return lang.Wrap(result)
 	}
 
-	return nil, lang.NewRuntimeError(ErrorCodeToolNotFound, fmt.Sprintf("tool '%s' not found", toolName), ErrToolNotFound)
+	return nil, lang.NewRuntimeError(lang.ErrorCodeToolNotFound, fmt.Sprintf("tool '%s' not found", toolName), lang.ErrToolNotFound)
 }
 
-func (i *Interpreter) ToolRegistry() ToolRegistry {
+func (i *Interpreter) tool.ToolRegistry() tool.ToolRegistry {
 	return i
 }
 
-func (i *Interpreter) RegisterTool(impl ToolImplementation) error {
+func (i *Interpreter) RegisterTool(impl tool.ToolImplementation) error {
 	if i.toolRegistry == nil {
 		return errors.New("internal error: tool registry not initialized")
 	}
 	return i.toolRegistry.RegisterTool(impl)
 }
 
-func (i *Interpreter) GetTool(name string) (ToolImplementation, bool) {
+func (i *Interpreter) GetTool(name string) (tool.ToolImplementation, bool) {
 	if i.toolRegistry == nil {
-		return ToolImplementation{}, false
+		return tool.ToolImplementation{}, false
 	}
 	return i.toolRegistry.GetTool(name)
 }
 
-func (i *Interpreter) ListTools() []ToolSpec {
+func (i *Interpreter) ListTools() []tool.ToolSpec {
 	if i.toolRegistry == nil {
-		return []ToolSpec{}
+		return []tool.ToolSpec{}
 	}
 	return i.toolRegistry.ListTools()
 }
 
-func (i *Interpreter) SetInternalToolRegistry(registry *ToolRegistryImpl) {
+func (i *Interpreter) SetInternalToolRegistry(registry *tool.ToolRegistryImpl) {
 	if registry != nil && registry.interpreter != i {
 		registry.interpreter = i
 	}
 	i.toolRegistry = registry
 }
 
-func (i *Interpreter) InternalToolRegistry() *ToolRegistryImpl {
+func (i *Interpreter) InternalToolRegistry() *tool.ToolRegistryImpl {
 	if i.toolRegistry == nil {
 		panic("FATAL: Interpreter's internal toolRegistry field is nil")
 	}

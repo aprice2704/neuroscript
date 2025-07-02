@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"log" // Keep if used
 
-	"github.com/aprice2704/neuroscript/pkg/core"     // Import core
+	// Import core
+	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/parser"
 	"github.com/aprice2704/neuroscript/pkg/toolsets" // <<< ADDED import for init()
 )
 
@@ -18,19 +20,19 @@ func init() {
 
 // RegisterBlockTools adds the updated block extraction tool.
 // This function is now called via the init() mechanism.
-func RegisterBlockTools(registry core.ToolRegistrar) error { // Use interface
+func RegisterBlockTools(registry tool.ToolRegistrar) error { // Use interface
 	// --- TOOL.BlocksExtractAll registration ---
-	err := registry.RegisterTool(core.ToolImplementation{
-		Spec: core.ToolSpec{
+	err := registry.RegisterTool(tool.ToolImplementation{
+		Spec: tool.ToolSpec{
 			Name: "BlocksExtractAll",
 			Description: "Extracts all fenced code blocks (handling nesting) from input content using ANTLR Listener. " +
 				"Recognizes ':: key: value' metadata lines immediately preceding the opening fence. " +
 				"Returns a list of maps, where each map represents a block and contains keys: " +
 				"'language_id' (string), 'raw_content' (string), 'start_line' (int), 'end_line' (int), 'metadata' (map[string]string). Silently ignores unclosed blocks.",
-			Args: []core.ArgSpec{
-				{Name: "content", Type: core.ArgTypeString, Required: true, Description: "The string content to search within."},
+			Args: []tool.ArgSpec{
+				{Name: "content", Type: parser.ArgTypeString, Required: true, Description: "The string content to search within."},
 			},
-			ReturnType: core.ArgTypeSliceAny, // Returns slice of maps
+			ReturnType: parser.ArgTypeSliceAny, // Returns slice of maps
 		},
 		Func: toolBlocksExtractAll,
 	})
@@ -48,14 +50,14 @@ func RegisterBlockTools(registry core.ToolRegistrar) error { // Use interface
 }
 
 // --- toolBlocksExtractAll implementation ---
-func toolBlocksExtractAll(interpreter *core.Interpreter, args []interface{}) (interface{}, error) {
+func toolBlocksExtractAll(interpreter *neurogo.Interpreter, args []interface{}) (interface{}, error) {
 	// Argument Validation (should ideally happen before calling the func, but good practice)
 	if len(args) != 1 {
-		return nil, fmt.Errorf("%w: %s expected 1 argument (content), got %d", core.ErrValidationArgCount, "BlocksExtractAll", len(args))
+		return nil, fmt.Errorf("%w: %s expected 1 argument (content), got %d", lang.ErrValidationArgCount, "BlocksExtractAll", len(args))
 	}
 	content, ok := args[0].(string)
 	if !ok {
-		return nil, fmt.Errorf("%w: %s expected string arg[0] 'content', got %T", core.ErrValidationTypeMismatch, "BlocksExtractAll", args[0])
+		return nil, fmt.Errorf("%w: %s expected string arg[0] 'content', got %T", lang.ErrValidationTypeMismatch, "BlocksExtractAll", args[0])
 	}
 
 	logger := interpreter.Logger()
@@ -75,7 +77,7 @@ func toolBlocksExtractAll(interpreter *core.Interpreter, args []interface{}) (in
 		logger.Error("TOOL.BlocksExtractAll failed during extraction", "error", extractErr)
 		// Return a user-friendly error, masking internal details unless necessary
 		// Consider if this should be ErrInternalTool or ErrInvalidArgument depending on cause
-		return nil, fmt.Errorf("%w: error during block extraction: %w", core.ErrInternalTool, extractErr)
+		return nil, fmt.Errorf("%w: error during block extraction: %w", lang.ErrInternalTool, extractErr)
 	}
 
 	// Convert FencedBlock structs to []interface{} of maps for NeuroScript

@@ -7,9 +7,11 @@ package runtime
 
 import (
 	"time"
+
+	"github.com/aprice2704/neuroscript/pkg/lang"
 )
 
-func (i *Interpreter) EmitEvent(eventName string, source string, payload Value) {
+func (i *Interpreter) EmitEvent(eventName string, source string, payload lang.Value) {
 	i.eventHandlersMu.RLock()
 	handlers := i.eventHandlers[eventName]
 	i.eventHandlersMu.RUnlock()
@@ -18,16 +20,16 @@ func (i *Interpreter) EmitEvent(eventName string, source string, payload Value) 
 		return
 	}
 
-	eventDataMap := map[string]Value{
+	eventDataMap := map[string]lang.Value{
 		EventKeyName:    StringValue{Value: eventName},
 		EventKeySource:  StringValue{Value: source},
-		"timestamp":     TimedateValue{Value: time.Now().UTC()},
+		"timestamp":     lang.TimedateValue{Value: time.Now().UTC()},
 		EventKeyPayload: payload,
 	}
 	if payload == nil {
-		eventDataMap[EventKeyPayload] = NilValue{}
+		eventDataMap[lang.EventKeyPayload] = lang.NilValue{}
 	}
-	eventObj := EventValue{Value: eventDataMap}
+	eventObj := lang.EventValue{Value: eventDataMap}
 
 	for _, handler := range handlers {
 		// Add the temporary event object to the scope in a thread-safe manner.

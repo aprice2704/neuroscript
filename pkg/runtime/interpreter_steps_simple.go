@@ -16,57 +16,57 @@ import (
 )
 
 // executeReturn handles the "return" step.
-func (i *Interpreter) executeReturn(step ast.Step) (Value, bool, error) {
+func (i *Interpreter) executeReturn(step ast.Step) (lang.Value, bool, error) {
 	posStr := step.Pos.String()
 	i.Logger().Debug("[DEBUG-INTERP] Executing RETURN", "pos", posStr)
 
 	if len(step.Values) == 0 {
-		return NilValue{}, true, nil
+		return lang.NilValue{}, true, nil
 	}
 
 	if len(step.Values) == 1 {
 		evaluatedValue, err := i.evaluate.Expression(step.Values[0])
 		if err != nil {
 			errMsg := "evaluating return expression"
-			return nil, true, WrapErrorWithPosition(err, step.Values[0].GetPos(), errMsg)
+			return nil, true, lang.WrapErrorWithPosition(err, step.Values[0].GetPos(), errMsg)
 		}
 		return evaluatedValue, true, nil
 	}
 
 	i.Logger().Debug("[DEBUG-INTERP] Return has multiple expressions", "count", len(step.Values), "pos", posStr)
-	results := make([]Value, len(step.Values))
+	results := make([]lang.Value, len(step.Values))
 	for idx, exprNode := range step.Values {
 		evaluatedValue, err := i.evaluate.Expression(exprNode)
 		if err != nil {
 			errMsg := fmt.Sprintf("evaluating return expression %d", idx+1)
-			return nil, true, WrapErrorWithPosition(err, exprNode.GetPos(), errMsg)
+			return nil, true, lang.WrapErrorWithPosition(err, exprNode.GetPos(), errMsg)
 		}
 		results[idx] = evaluatedValue
 	}
-	return NewListValue(results), true, nil
+	return lang.NewListValue(results), true, nil
 }
 
 // executeEmit handles the "emit" step.
-func (i *Interpreter) executeEmit(step ast.Step) (Value, error) {
+func (i *Interpreter) executeEmit(step ast.Step) (lang.Value, error) {
 	posStr := step.Pos.String()
 	i.Logger().Debug("[DEBUG-INTERP] Executing EMIT", "pos", posStr)
 
 	if len(step.Values) == 0 {
 		fmt.Fprintln(i.stdout)
-		return NilValue{}, nil
+		return lang.NilValue{}, nil
 	}
 
-	var lastVal Value = NilValue{}
+	var lastVal lang.Value = lang.NilValue{}
 	var outputParts []string
 
 	for _, expr := range step.Values {
 		valToEmit, evalErr := i.evaluate.Expression(expr)
 		if evalErr != nil {
 			errMsg := fmt.Sprintf("evaluating value for EMIT at %s", posStr)
-			return nil, WrapErrorWithPosition(evalErr, expr.GetPos(), errMsg)
+			return nil, lang.WrapErrorWithPosition(evalErr, expr.GetPos(), errMsg)
 		}
 		lastVal = valToEmit
-		formattedOutput, _ := toString(valToEmit)
+		formattedOutput, _ := lang.toString(valToEmit)
 		outputParts = append(outputParts, formattedOutput)
 	}
 
@@ -76,7 +76,7 @@ func (i *Interpreter) executeEmit(step ast.Step) (Value, error) {
 	} else {
 		if _, err := fmt.Fprintln(i.stdout, strings.Join(outputParts, " ")); err != nil {
 			i.Logger().Error("Failed to write EMIT output via i.stdout", "error", err)
-			return nil, lang.NewRuntimeError(ErrorCodeIOFailed, "failed to emit output", err).WithPosition(step.Pos)
+			return nil, lang.NewRuntimeError(lang.ErrorCodeIOFailed, "failed to emit output", err).WithPosition(step.Pos)
 		}
 	}
 
@@ -84,12 +84,12 @@ func (i *Interpreter) executeEmit(step ast.Step) (Value, error) {
 }
 
 // executeMust handles "must" and "mustbe" steps.
-func (i *Interpreter) executeMust(step ast.Step) (Value, error) {
+func (i *Interpreter) executeMust(step ast.Step) (lang.Value, error) {
 	posStr := step.Pos.String()
 	stepType := strings.ToLower(step.Type)
 	i.Logger().Debug("[DEBUG-INTERP] Executing MUST/MUSTBE", "type", strings.ToUpper(stepType), "pos", posStr)
 
-	var val Value
+	var val lang.Value
 	var err error
 
 	var exprToEval ast.Expression
@@ -102,7 +102,7 @@ func (i *Interpreter) executeMust(step ast.Step) (Value, error) {
 	if exprToEval == nil {
 		if i.lastCallResult == nil {
 			// This handles 'must last' when lastCallResult is nil.
-			return nil, ErrMustConditionFailed
+			return nil, lang.ErrMustConditionFailed
 		}
 		val = i.lastCallResult
 	} else {
@@ -120,8 +120,8 @@ func (i *Interpreter) executeMust(step ast.Step) (Value, error) {
 	}
 
 	// If the evaluation results in any other non-truthy value, fail with the generic condition error.
-	if !IsTruthy(val) {
-		return nil, ErrMustConditionFailed
+	if !lang.IsTruthy(val) {
+		return nil, lang.ErrMustConditionFailed
 	}
 
 	return val, nil
@@ -131,9 +131,9 @@ func (i *Interpreter) executeMust(step ast.Step) (Value, error) {
 func (i *Interpreter) executeFail(step ast.Step) error {
 	posStr := step.Pos.String()
 	i.Logger().Debug("[DEBUG-INTERP] Executing FAIL", "pos", posStr)
-	errCode := ErrorCodeFailStatement
+	errCode := lang.ErrorCodeFailStatement
 	errMsg := "fail statement executed"
-	var wrappedErr error = ErrFailStatement
+	var wrappedErr error = lang.ErrFailStatement
 	var finalPos = step.Pos
 	var exprToEval ast.Expression
 
@@ -148,13 +148,13 @@ func (i *Interpreter) executeFail(step ast.Step) error {
 			evalFailMsg := fmt.Sprintf("error evaluating message/code for FAIL statement: %s", err.Error())
 			return lang.NewRuntimeError(errCode, evalFailMsg, err).WithPosition(finalPos)
 		}
-		errMsg, _ = toString(failValue)
+		errMsg, _ = lang.toString(failValue)
 	}
 	return lang.NewRuntimeError(errCode, errMsg, wrappedErr).WithPosition(finalPos)
 }
 
 // executeOnError handles the "on error" step setup.
-func (i *Interpreter) executeOnError(step ast.Step) (*Step, error) {
+func (i *Interpreter) executeOnError(step ast.ast.Step) (*ast.Step, error) {
 	posStr := step.Pos.String()
 	i.Logger().Debug("[DEBUG-INTERP] Executing ON_ERROR - Handler now active.", "pos", posStr)
 	handlerStep := step
@@ -167,7 +167,7 @@ func (i *Interpreter) executeClearError(step ast.Step, isInHandler bool) (bool, 
 	i.Logger().Debug("[DEBUG-INTERP] Executing CLEAR_ERROR", "pos", posStr)
 	if !isInHandler {
 		errMsg := "'clear_error' can only be used inside an on_error block"
-		return false, lang.NewRuntimeError(ErrorCodeClearViolation, errMsg, ErrClearViolation).WithPosition(step.Pos)
+		return false, lang.NewRuntimeError(lang.ErrorCodeClearViolation, errMsg, lang.ErrClearViolation).WithPosition(step.Pos)
 	}
 	return true, nil
 }
@@ -176,12 +176,12 @@ func (i *Interpreter) executeClearError(step ast.Step, isInHandler bool) (bool, 
 func (i *Interpreter) executeBreak(step ast.Step) error {
 	posStr := step.Pos.String()
 	i.Logger().Debug("[DEBUG-INTERP] Executing BREAK", "pos", posStr)
-	return ErrBreak
+	return lang.ErrBreak
 }
 
 // executeContinue handles the "continue" step by returning ErrContinue.
 func (i *Interpreter) executeContinue(step ast.Step) error {
 	posStr := step.Pos.String()
 	i.Logger().Debug("[DEBUG-INTERP] Executing CONTINUE", "pos", posStr)
-	return ErrContinue
+	return lang.ErrContinue
 }

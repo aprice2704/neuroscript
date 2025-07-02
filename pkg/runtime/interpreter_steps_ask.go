@@ -13,14 +13,15 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/parser"
 )
 
 // executeAskAI is a placeholder for the full 'ask' step logic.
 // The actual 'ask' step logic is more complex and not fully represented here.
-func (i *Interpreter) executeAsk(step ast.Step) (Value, error) {
+func (i *Interpreter) executeAsk(step ast.Step) (lang.Value, error) {
 	// This is a simplified stand-in. The full logic would be similar to executeAskAI.
 	if len(step.Values) == 0 {
-		return nil, lang.NewRuntimeError(ErrorCodeInternal, "ask step has no value expression", nil).WithPosition(step.Pos)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, "ask step has no value expression", nil).WithPosition(step.Pos)
 	}
 	promptExpr := step.Values[0]
 
@@ -44,13 +45,13 @@ func (i *Interpreter) executeAskAI(step ast.Step) error {
 
 	promptExpr, ok := step.Value.(ast.Expression)
 	if !ok {
-		return lang.NewRuntimeError(ErrorCodeInternal, fmt.Sprintf("Internal error at %s: 'ask' step value is not an ast.Expression (got %T)", step.Pos.String(), step.Value), nil)
+		return lang.NewRuntimeError(lang.ErrorCodeInternal, fmt.Sprintf("Internal error at %s: 'ask' step value is not an ast.Expression (got %T)", step.Pos.String(), step.Value), nil)
 	}
 
 	conversationTurns, err := i.prepareConversationForAsk(promptExpr)
 	if err != nil {
 		errMsg := fmt.Sprintf("failed to prepare conversation for 'ask ai' at %s: %v", step.Pos.String(), err)
-		return lang.NewRuntimeError(ErrorCodeEvaluation, errMsg, err)
+		return lang.NewRuntimeError(lang.ErrorCodeEvaluation, errMsg, err)
 	}
 
 	availableTools := i.getAvailableToolsForAsk(step)
@@ -59,7 +60,7 @@ func (i *Interpreter) executeAskAI(step ast.Step) error {
 	var ToolCalls []*interfaces.ToolCall
 
 	if i.llmClient == nil {
-		return lang.NewRuntimeError(ErrorCodeLLMError, fmt.Sprintf("LLM client is not configured in the interpreter (required at %s)", step.Pos.String()), nil)
+		return lang.NewRuntimeError(lang.ErrorCodeLLMError, fmt.Sprintf("LLM client is not configured in the interpreter (required at %s)", step.Pos.String()), nil)
 	}
 
 	if len(availableTools) > 0 {
@@ -71,10 +72,10 @@ func (i *Interpreter) executeAskAI(step ast.Step) error {
 	}
 
 	if err != nil {
-		return lang.NewRuntimeError(ErrorCodeLLMError, fmt.Sprintf("LLM interaction failed (ask at %s)", step.Pos.String()), err)
+		return lang.NewRuntimeError(lang.ErrorCodeLLMError, fmt.Sprintf("LLM interaction failed (ask at %s)", step.Pos.String()), err)
 	}
 	if responseTurn == nil {
-		return lang.NewRuntimeError(ErrorCodeLLMError, fmt.Sprintf("LLM returned nil response without error (ask at %s)", step.Pos.String()), nil)
+		return lang.NewRuntimeError(lang.ErrorCodeLLMError, fmt.Sprintf("LLM returned nil response without error (ask at %s)", step.Pos.String()), nil)
 	}
 
 	i.logger.Debug("LLM response received", "role", responseTurn.Role, "content_length", len(responseTurn.Content), "tool_calls", len(ToolCalls))
@@ -89,7 +90,7 @@ func (i *Interpreter) executeAskAI(step ast.Step) error {
 		i.logger.Debug("Tool calls requested by LLM were processed.")
 	}
 
-	i.lastCallResult = StringValue{Value: responseTurn.Content}
+	i.lastCallResult = lang.StringValue{Value: responseTurn.Content}
 	return nil
 }
 
@@ -102,7 +103,7 @@ func (i *Interpreter) prepareConversationForAsk(promptExpr ast.Expression) ([]*i
 	strVal, ok := promptVal.(StringValue)
 	if !ok {
 		errMsg := fmt.Sprintf("prompt expression at %s did not evaluate to a string, got %s", promptExpr.GetPos().String(), promptVal.Type())
-		return nil, lang.NewRuntimeError(ErrorCodeEvaluation, errMsg, nil)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeEvaluation, errMsg, nil)
 	}
 	promptStr := strVal.Value
 
@@ -144,7 +145,7 @@ func (i *Interpreter) handleToolCalls(calls []*interfaces.ToolCall, pos *lang.Po
 		return nil
 	}
 	if i.toolRegistry == nil {
-		return lang.NewRuntimeError(ErrorCodeConfiguration, fmt.Sprintf("cannot handle tool calls at %s: toolRegistry is nil", pos.String()), nil)
+		return lang.NewRuntimeError(lang.ErrorCodeConfiguration, fmt.Sprintf("cannot handle tool calls at %s: toolRegistry is nil", pos.String()), nil)
 	}
 
 	results := make([]*interfaces.ToolResult, len(calls))
@@ -159,7 +160,7 @@ func (i *Interpreter) handleToolCalls(calls []*interfaces.ToolCall, pos *lang.Po
 			continue
 		}
 
-		orderedRawArgs := make([]Value, len(toolImpl.Spec.Args))
+		orderedRawArgs := make([]lang.Value, len(toolImpl.Spec.Args))
 		// Note: Robust argument mapping logic would be needed here.
 
 		resultVal, execErr := i.toolRegistry.CallFromInterpreter(i, call.Name, orderedRawArgs)
@@ -169,7 +170,7 @@ func (i *Interpreter) handleToolCalls(calls []*interfaces.ToolCall, pos *lang.Po
 			results[idx].Result = nil
 		} else {
 			// Unwrap the result for the tool turn, handling potential errors.
-			unwrappedResult := Unwrap(resultVal)
+			unwrappedResult := lang.Unwrap(resultVal)
 			results[idx].Result = unwrappedResult
 		}
 	}
@@ -182,7 +183,7 @@ func (i *Interpreter) addToolResultsToConversation(results []*interfaces.ToolRes
 	i.logger.Debug("Adding tool results to conversation history (Not Implemented)", "count", len(results))
 }
 
-func ConvertToolSpecArgsToInputSchema(args []ArgSpec) (map[string]interface{}, error) {
+func ConvertToolSpecArgsToInputSchema(args []tool.ArgSpec) (map[string]interface{}, error) {
 	schema := map[string]interface{}{
 		"type":       "object",
 		"properties": map[string]interface{}{},
@@ -208,7 +209,7 @@ func ConvertToolSpecArgsToInputSchema(args []ArgSpec) (map[string]interface{}, e
 			jsonType = "number"
 		case ArgTypeBool:
 			jsonType = "boolean"
-		case ArgTypeSlice, ArgTypeSliceAny, ArgTypeSliceString, ArgTypeSliceInt, ArgTypeSliceFloat, ArgTypeSliceBool, ArgTypeSliceMap:
+		case tool.ArgTypeSlice, parser.ArgTypeSliceAny, tool.ArgTypeSliceString, tool.ArgTypeSliceInt, tool.ArgTypeSliceFloat, tool.ArgTypeSliceBool, ArgTypeSliceMap:
 			jsonType = "array"
 		case ArgTypeMap:
 			jsonType = "object"

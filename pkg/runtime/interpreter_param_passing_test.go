@@ -13,6 +13,9 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/parser"
 )
 
 // The script is reverted to its original form, using '+' for concatenation.
@@ -115,14 +118,14 @@ func compareOutputLineWithSpecialFloatHandling(t *testing.T, iteration, lineInde
 func TestInterpreter_ParameterPassingFuzz(t *testing.T) {
 	const numTestIterations = 10
 
-	baseLogger := NewTestLogger(t)
+	baseLogger := llm.NewTestLogger(t)
 
-	parser := NewParserAPI(baseLogger)
+	parser := parser.NewParserAPI(baseLogger)
 	parseTree, parseErr := parser.Parse(paramPassingTestScriptEnhanced)
 	if parseErr != nil {
 		t.Fatalf("Failed to parse script: %v", parseErr)
 	}
-	astBuilder := NewASTBuilder(baseLogger)
+	astBuilder := parser.NewASTBuilder(baseLogger)
 	program, _, buildErr := astBuilder.Build(parseTree)
 	if buildErr != nil {
 		t.Fatalf("Failed to build AST: %v", buildErr)
@@ -137,7 +140,7 @@ func TestInterpreter_ParameterPassingFuzz(t *testing.T) {
 			t.Parallel()
 
 			var capturedOutput bytes.Buffer
-			iterLogger := NewTestLogger(t)
+			iterLogger := llm.NewTestLogger(t)
 
 			interp, err := NewInterpreter(iterLogger, nil, ".", nil, nil)
 			if err != nil {
@@ -164,9 +167,9 @@ func TestInterpreter_ParameterPassingFuzz(t *testing.T) {
 				floatVal,
 			}
 
-			wrappedArgs := make([]Value, len(simulatedCLIArgs))
+			wrappedArgs := make([]lang.Value, len(simulatedCLIArgs))
 			for i, arg := range simulatedCLIArgs {
-				wrapped, err := Wrap(arg)
+				wrapped, err := lang.Wrap(arg)
 				if err != nil {
 					t.Fatalf("Iteration %d: Failed to wrap argument #%d (%v): %v", iteration, i, arg, err)
 				}

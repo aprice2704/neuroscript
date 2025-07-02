@@ -9,7 +9,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/aprice2704/neuroscript/pkg/core"
+	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
 // <<< REMOVED local getNodeViaTool function definition >>>
@@ -61,21 +62,21 @@ func TestChecklistSetItemTextTool(t *testing.T) {
 			targetNodeID:    "node-3",
 			newText:         "Fail",
 			expectError:     true,
-			expectedErrorIs: core.ErrInvalidArgument, // Invalid handle format
+			expectedErrorIs: lang.ErrInvalidArgument, // Invalid handle format
 		},
 		{
 			name:            "Error: Invalid Node ID",
 			targetNodeID:    "node-99",
 			newText:         "Fail",
 			expectError:     true,
-			expectedErrorIs: core.ErrNotFound,
+			expectedErrorIs: lang.ErrNotFound,
 		},
 		{
 			name:            "Error: Target is not checklist_item (Root)",
 			targetNodeID:    "node-1", // Root node
 			newText:         "Fail",
 			expectError:     true,
-			expectedErrorIs: core.ErrInvalidArgument, // Should fail because node type is wrong
+			expectedErrorIs: lang.ErrInvalidArgument, // Should fail because node type is wrong
 		},
 	}
 
@@ -97,7 +98,7 @@ func TestChecklistSetItemTextTool(t *testing.T) {
 			if !foundLoad || loadToolImpl.Func == nil {
 				t.Fatalf("Prerequisite tool ChecklistLoadTree not found or invalid")
 			}
-			result, loadErr := loadToolImpl.Func(interp, core.MakeArgs(fixtureChecklist))
+			result, loadErr := loadToolImpl.Func(interp, tool.MakeArgs(fixtureChecklist))
 			if loadErr != nil {
 				t.Fatalf("Failed to load fixture checklist: %v", loadErr)
 			}
@@ -112,7 +113,7 @@ func TestChecklistSetItemTextTool(t *testing.T) {
 			}
 
 			// --- Call the tool function ---
-			args := core.MakeArgs(testHandleID, tc.targetNodeID, tc.newText)
+			args := tool.MakeArgs(testHandleID, tc.targetNodeID, tc.newText)
 			_, err := toolFunc(interp, args)
 
 			// --- Assertions ---

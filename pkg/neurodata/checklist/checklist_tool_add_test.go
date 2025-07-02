@@ -11,7 +11,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/aprice2704/neuroscript/pkg/core"
+	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 	"github.com/google/go-cmp/cmp"
 	// Assumes test_helpers.go defines necessary helpers
 )
@@ -65,14 +66,14 @@ func TestChecklistAddItemTool(t *testing.T) {
 		index           *int
 		expectError     bool
 		expectedErrorIs error
-		verifyFunc      func(t *testing.T, interp *core.Interpreter, handleID string, newNodeID string)
+		verifyFunc      func(t *testing.T, interp *neurogo.Interpreter, handleID string, newNodeID string)
 	}{
 		{
 			name:        "Add manual item to root (append)",
 			parentID:    "node-1",
 			newItemText: "New Root Item",
 			expectError: false,
-			verifyFunc: func(t *testing.T, interp *core.Interpreter, handleID string, newNodeID string) {
+			verifyFunc: func(t *testing.T, interp *neurogo.Interpreter, handleID string, newNodeID string) {
 				attrs, err := getNodeAttributesDirectly(t, interp, handleID, newNodeID)
 				if err != nil {
 					t.Fatalf("getNodeAttributesDirectly failed for new node %q: %v", newNodeID, err)
@@ -97,7 +98,7 @@ func TestChecklistAddItemTool(t *testing.T) {
 			newItemStatus: pstr("done"),
 			isAutomatic:   pbool(true),
 			expectError:   false,
-			verifyFunc: func(t *testing.T, interp *core.Interpreter, handleID string, newNodeID string) {
+			verifyFunc: func(t *testing.T, interp *neurogo.Interpreter, handleID string, newNodeID string) {
 				attrs, err := getNodeAttributesDirectly(t, interp, handleID, newNodeID)
 				if err != nil {
 					t.Fatalf("getNodeAttributesDirectly failed for new node %q: %v", newNodeID, err)
@@ -117,7 +118,7 @@ func TestChecklistAddItemTool(t *testing.T) {
 			isAutomatic:   pbool(false),
 			index:         pint(0),
 			expectError:   false,
-			verifyFunc: func(t *testing.T, interp *core.Interpreter, handleID string, newNodeID string) {
+			verifyFunc: func(t *testing.T, interp *neurogo.Interpreter, handleID string, newNodeID string) {
 				attrs, err := getNodeAttributesDirectly(t, interp, handleID, newNodeID)
 				if err != nil {
 					t.Fatalf("getNodeAttributesDirectly failed for new node %q: %v", newNodeID, err)
@@ -142,7 +143,7 @@ func TestChecklistAddItemTool(t *testing.T) {
 			newItemText:   "Make parent done",
 			newItemStatus: pstr("done"),
 			expectError:   false,
-			verifyFunc: func(t *testing.T, interp *core.Interpreter, handleID string, newNodeID string) {
+			verifyFunc: func(t *testing.T, interp *neurogo.Interpreter, handleID string, newNodeID string) {
 				parentAttrs, err := getNodeAttributesDirectly(t, interp, handleID, "node-5")
 				if err != nil {
 					t.Fatalf("getNodeAttributesDirectly failed for parent node %q: %v", "node-5", err)
@@ -159,7 +160,7 @@ func TestChecklistAddItemTool(t *testing.T) {
 			newItemText:   "Make parent partial",
 			newItemStatus: pstr("skipped"),
 			expectError:   false,
-			verifyFunc: func(t *testing.T, interp *core.Interpreter, handleID string, newNodeID string) {
+			verifyFunc: func(t *testing.T, interp *neurogo.Interpreter, handleID string, newNodeID string) {
 				parentAttrs, err := getNodeAttributesDirectly(t, interp, handleID, "node-3")
 				if err != nil {
 					t.Fatalf("getNodeAttributesDirectly failed for parent node %q: %v", "node-3", err)
@@ -170,16 +171,16 @@ func TestChecklistAddItemTool(t *testing.T) {
 				}
 			},
 		},
-		{name: "Error: Invalid Parent ID", parentID: "node-99", newItemText: "Fail", expectError: true, expectedErrorIs: core.ErrNotFound},
-		{name: "Error: Invalid Status", parentID: "node-1", newItemText: "Fail", newItemStatus: pstr("bad-status"), expectError: true, expectedErrorIs: core.ErrInvalidArgument},
-		{name: "Error: Special Status, Missing Symbol", parentID: "node-1", newItemText: "Fail", newItemStatus: pstr("special"), expectError: true, expectedErrorIs: core.ErrInvalidArgument},
+		{name: "Error: Invalid Parent ID", parentID: "node-99", newItemText: "Fail", expectError: true, expectedErrorIs: lang.ErrNotFound},
+		{name: "Error: Invalid Status", parentID: "node-1", newItemText: "Fail", newItemStatus: pstr("bad-status"), expectError: true, expectedErrorIs: lang.ErrInvalidArgument},
+		{name: "Error: Special Status, Missing Symbol", parentID: "node-1", newItemText: "Fail", newItemStatus: pstr("special"), expectError: true, expectedErrorIs: lang.ErrInvalidArgument},
 		{
 			name:        "Index Out Of Bounds (Positive) Appends",
 			parentID:    "node-1",
 			newItemText: "Append High Index",
 			index:       pint(10),
 			expectError: false,
-			verifyFunc: func(t *testing.T, interp *core.Interpreter, handleID string, newNodeID string) {
+			verifyFunc: func(t *testing.T, interp *neurogo.Interpreter, handleID string, newNodeID string) {
 				rootData := getNodeViaTool(t, interp, handleID, "node-1")
 				if rootData == nil {
 					t.Fatalf("getNodeViaTool failed for root node %q", "node-1")
@@ -196,7 +197,7 @@ func TestChecklistAddItemTool(t *testing.T) {
 			newItemText: "Append Neg Index",
 			index:       pint(-5), // This will be treated as -1 (append) by ChecklistAddItem
 			expectError: false,
-			verifyFunc: func(t *testing.T, interp *core.Interpreter, handleID string, newNodeID string) {
+			verifyFunc: func(t *testing.T, interp *neurogo.Interpreter, handleID string, newNodeID string) {
 				rootData := getNodeViaTool(t, interp, handleID, "node-1")
 				if rootData == nil {
 					t.Fatalf("getNodeViaTool failed for root node %q", "node-1")
@@ -223,13 +224,13 @@ func TestChecklistAddItemTool(t *testing.T) {
 			assertToolFound(t, foundUpdate, "Checklist.UpdateStatus")
 			updateToolFunc := toolUpdateStatusImpl.Func
 
-			result, loadErr := loadToolFunc(interp, core.MakeArgs(fixtureChecklist))
+			result, loadErr := loadToolFunc(interp, tool.MakeArgs(fixtureChecklist))
 			assertNoErrorSetup(t, loadErr, "Setup: Failed to load fixture checklist")
 			handleID, ok := result.(string)
 			if !ok {
 				t.Fatalf("Setup failed: ChecklistLoadTree did not return a string handle")
 			}
-			_, initialUpdateErr := updateToolFunc(interp, core.MakeArgs(handleID))
+			_, initialUpdateErr := updateToolFunc(interp, tool.MakeArgs(handleID))
 			assertNoErrorSetup(t, initialUpdateErr, "Setup: Initial Checklist.UpdateStatus failed")
 
 			args := []interface{}{handleID, tc.parentID, tc.newItemText}
@@ -276,7 +277,7 @@ func TestChecklistAddItemTool(t *testing.T) {
 				t.Logf("ChecklistAddItem returned new node ID: %s", newNodeID)
 
 				if tc.verifyFunc != nil {
-					_, updateErr := updateToolFunc(interp, core.MakeArgs(handleID))
+					_, updateErr := updateToolFunc(interp, tool.MakeArgs(handleID))
 					if updateErr != nil {
 						t.Fatalf("Checklist.UpdateStatus failed after AddItem: %v", updateErr)
 					}
@@ -303,8 +304,8 @@ func TestChecklistUpdateStatusTool(t *testing.T) {
 `
 	type testStep struct {
 		stepName              string
-		modifyFunc            func(t *testing.T, interp *core.Interpreter, handleID string)
-		verifyFunc            func(t *testing.T, interp *core.Interpreter, handleID string)
+		modifyFunc            func(t *testing.T, interp *neurogo.Interpreter, handleID string)
+		verifyFunc            func(t *testing.T, interp *neurogo.Interpreter, handleID string)
 		expectUpdateErr       bool
 		expectedUpdateErrorIs error
 	}
@@ -321,7 +322,7 @@ func TestChecklistUpdateStatusTool(t *testing.T) {
 		assertToolFound(t, foundSetStatus, "ChecklistSetItemStatus")
 		setStatusToolFunc := toolSetStatusImpl.Func
 
-		result, loadErr := loadToolFunc(interp, core.MakeArgs(fixtureChecklist))
+		result, loadErr := loadToolFunc(interp, tool.MakeArgs(fixtureChecklist))
 		assertNoErrorSetup(t, loadErr, "Setup: Failed to load fixture checklist")
 		handleID, ok := result.(string)
 		if !ok {
@@ -332,7 +333,7 @@ func TestChecklistUpdateStatusTool(t *testing.T) {
 			{
 				stepName:   "Initial Update",
 				modifyFunc: nil,
-				verifyFunc: func(t *testing.T, interp *core.Interpreter, handleID string) {
+				verifyFunc: func(t *testing.T, interp *neurogo.Interpreter, handleID string) {
 					verifyNodeStatus(t, interp, handleID, "node-2", "open", true, "")
 					verifyNodeStatus(t, interp, handleID, "node-6", "partial", true, "")
 					verifyNodeStatus(t, interp, handleID, "node-9", "partial", true, "")
@@ -344,31 +345,31 @@ func TestChecklistUpdateStatusTool(t *testing.T) {
 			},
 			{
 				stepName: "Child 1.1 -> Done (Parent Partial)",
-				modifyFunc: func(t *testing.T, interp *core.Interpreter, handleID string) {
-					_, err := setStatusToolFunc(interp, core.MakeArgs(handleID, "node-3", "done"))
+				modifyFunc: func(t *testing.T, interp *neurogo.Interpreter, handleID string) {
+					_, err := setStatusToolFunc(interp, tool.MakeArgs(handleID, "node-3", "done"))
 					assertNoErrorSetup(t, err, "Modify step failed: %v", err)
 				},
-				verifyFunc: func(t *testing.T, interp *core.Interpreter, handleID string) {
+				verifyFunc: func(t *testing.T, interp *neurogo.Interpreter, handleID string) {
 					verifyNodeStatus(t, interp, handleID, "node-2", "partial", true, "")
 				},
 			},
 			{
 				stepName: "Child 1.2 -> Done (Parent Done)",
-				modifyFunc: func(t *testing.T, interp *core.Interpreter, handleID string) {
-					_, err := setStatusToolFunc(interp, core.MakeArgs(handleID, "node-4", "done"))
+				modifyFunc: func(t *testing.T, interp *neurogo.Interpreter, handleID string) {
+					_, err := setStatusToolFunc(interp, tool.MakeArgs(handleID, "node-4", "done"))
 					assertNoErrorSetup(t, err, "Modify step failed: %v", err)
 				},
-				verifyFunc: func(t *testing.T, interp *core.Interpreter, handleID string) {
+				verifyFunc: func(t *testing.T, interp *neurogo.Interpreter, handleID string) {
 					verifyNodeStatus(t, interp, handleID, "node-2", "done", true, "")
 				},
 			},
 			{
 				stepName: "Grandchild 2.1.1 -> Done (Parent Child 2.1 Auto Done)",
-				modifyFunc: func(t *testing.T, interp *core.Interpreter, handleID string) {
-					_, err := setStatusToolFunc(interp, core.MakeArgs(handleID, "node-7", "done"))
+				modifyFunc: func(t *testing.T, interp *neurogo.Interpreter, handleID string) {
+					_, err := setStatusToolFunc(interp, tool.MakeArgs(handleID, "node-7", "done"))
 					assertNoErrorSetup(t, err, "Modify step failed: %v", err)
 				},
-				verifyFunc: func(t *testing.T, interp *core.Interpreter, handleID string) {
+				verifyFunc: func(t *testing.T, interp *neurogo.Interpreter, handleID string) {
 					verifyNodeStatus(t, interp, handleID, "node-6", "done", true, "")
 					verifyNodeStatus(t, interp, handleID, "node-5", "open", false, "")
 				},
@@ -380,7 +381,7 @@ func TestChecklistUpdateStatusTool(t *testing.T) {
 				if step.modifyFunc != nil {
 					step.modifyFunc(t, interp, handleID)
 				}
-				_, err := updateToolFunc(interp, core.MakeArgs(handleID))
+				_, err := updateToolFunc(interp, tool.MakeArgs(handleID))
 				if step.expectUpdateErr { // This field is not set in the above steps, so this block is skipped.
 					if err == nil {
 						t.Errorf("Expected an error during UpdateStatus, but got nil")
@@ -404,17 +405,17 @@ func TestChecklistUpdateStatusTool(t *testing.T) {
 
 		// Error checks for UpdateStatus tool itself
 		t.Run("Error: Invalid Handle", func(t *testing.T) {
-			_, err := updateToolFunc(interp, core.MakeArgs("invalid-handle"))
-			// Expecting an error related to invalid handle format, which typically wraps core.ErrInvalidArgument or is core.ErrHandleInvalid
-			if !errors.Is(err, core.ErrHandleInvalid) && !errors.Is(err, core.ErrInvalidArgument) { // MODIFIED HERE
+			_, err := updateToolFunc(interp, tool.MakeArgs("invalid-handle"))
+			// Expecting an error related to invalid handle format, which typically wraps  ErrInvalidArgument or is  ErrHandleInvalid
+			if !errors.Is(err, lang.ErrHandleInvalid) && !errors.Is(err, lang.ErrInvalidArgument) { // MODIFIED HERE
 				t.Errorf("Expected error related to invalid handle format (e.g. ErrHandleInvalid or ErrInvalidArgument), got %v", err)
 			} else {
 				t.Logf("Got expected error for invalid handle format: %v", err)
 			}
 		})
 		t.Run("Error: Handle Not Found", func(t *testing.T) {
-			_, err := updateToolFunc(interp, core.MakeArgs("GenericTree::nonexistent-uuid")) // Use a valid format but non-existent UUID
-			if !errors.Is(err, core.ErrHandleNotFound) {                                     // This should now be the primary error for a formatted but non-existent handle.
+			_, err := updateToolFunc(interp, tool.MakeArgs("GenericTree::nonexistent-uuid")) // Use a valid format but non-existent UUID
+			if !errors.Is(err, lang.ErrHandleNotFound) {                                     // This should now be the primary error for a formatted but non-existent handle.
 				t.Errorf("Expected ErrHandleNotFound for valid format but non-existent UUID, got %v", err)
 			} else {
 				t.Logf("Got expected ErrHandleNotFound: %v", err)
@@ -425,8 +426,8 @@ func TestChecklistUpdateStatusTool(t *testing.T) {
 			// You would need to create a handle of a different type first.
 			// For now, this simulates the error message seen in logs if GetHandleValue returns it.
 			// This test case might need a way to inject a handle of another type for true testing.
-			_, err := updateToolFunc(interp, core.MakeArgs("WrongType::some-uuid"))
-			if !errors.Is(err, core.ErrHandleWrongType) && !errors.Is(err, core.ErrInvalidArgument) { // Handle parsing might also throw ErrInvalidArgument
+			_, err := updateToolFunc(interp, tool.MakeArgs("WrongType::some-uuid"))
+			if !errors.Is(err, lang.ErrHandleWrongType) && !errors.Is(err, lang.ErrInvalidArgument) { // Handle parsing might also throw lang.ErrInvalidArgument
 				// The error message was "handle has wrong type: expected prefix 'GenericTree', got 'clh'"
 				// This points more to ErrHandleWrongType or ErrInvalidArgument if parsing fails early.
 				t.Errorf("Expected ErrHandleWrongType or ErrInvalidArgument for wrong handle type, got %v", err)
@@ -438,12 +439,12 @@ func TestChecklistUpdateStatusTool(t *testing.T) {
 	})
 }
 
-func verifyNodeStatus(t *testing.T, interp *core.Interpreter, handleID, nodeID, expectedStatus string, expectAutomatic bool, expectedSpecialSymbol string) {
+func verifyNodeStatus(t *testing.T, interp *neurogo.Interpreter, handleID, nodeID, expectedStatus string, expectAutomatic bool, expectedSpecialSymbol string) {
 	t.Helper()
 	attrs, err := getNodeAttributesDirectly(t, interp, handleID, nodeID)
 	if err != nil {
 		logTreeStateForDebugging(t, interp, handleID, fmt.Sprintf("verifyNodeStatus failed for node %q", nodeID))
-		if errors.Is(err, core.ErrNotFound) {
+		if errors.Is(err, lang.ErrNotFound) {
 			t.Errorf("Verification failed: Node %q not found using getNodeAttributesDirectly: %v", nodeID, err)
 		} else {
 			t.Errorf("Verification failed: Error getting attributes directly for node %q: %v", nodeID, err)
@@ -491,7 +492,7 @@ func verifyNodeStatus(t *testing.T, interp *core.Interpreter, handleID, nodeID, 
 	}
 }
 
-func logTreeStateForDebugging(t *testing.T, interp *core.Interpreter, handleID string, contextMsg string) {
+func logTreeStateForDebugging(t *testing.T, interp *neurogo.Interpreter, handleID string, contextMsg string) {
 	t.Helper()
 	toolReg := interp.ToolRegistry()
 	formatToolImpl, exists := toolReg.GetTool("ChecklistFormatTree")
@@ -499,7 +500,7 @@ func logTreeStateForDebugging(t *testing.T, interp *core.Interpreter, handleID s
 		t.Logf("DEBUG: Could not find ChecklistFormatTree tool to dump state for handle %s (%s)", handleID, contextMsg)
 		return
 	}
-	formattedTree, err := formatToolImpl.Func(interp, core.MakeArgs(handleID))
+	formattedTree, err := formatToolImpl.Func(interp, tool.MakeArgs(handleID))
 	if err != nil {
 		t.Logf("DEBUG: Error formatting tree state for handle %s (%s): %v", handleID, contextMsg, err)
 	} else {

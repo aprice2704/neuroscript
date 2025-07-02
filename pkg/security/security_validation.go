@@ -5,10 +5,13 @@ import (
 	// Import errors package
 	"fmt"
 	"strings"
+
+	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/parser"
 )
 
 // validateArgumentsAgainstSpec performs detailed validation of raw arguments against the tool's spec.
-func (sl *SecurityLayer) validateArgumentsAgainstSpec(toolSpec ToolSpec, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (sl *SecurityLayer) validateArgumentsAgainstSpec(toolSpec tool.ToolSpec, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	validatedArgs := make(map[string]interface{})
 
 	for _, specArg := range toolSpec.Args {
@@ -20,7 +23,7 @@ func (sl *SecurityLayer) validateArgumentsAgainstSpec(toolSpec ToolSpec, rawArgs
 		if !argProvided {
 			if specArg.Required {
 				// *** FIXED: Use Sentinel Error + Wrapping ***
-				err := fmt.Errorf("required argument %q missing for tool %q: %w", argName, toolSpec.Name, ErrMissingArgument)
+				err := fmt.Errorf("required argument %q missing for tool %q: %w", argName, toolSpec.Name, lang.ErrMissingArgument)
 				sl.logger.Debug("VALIDATE] DENIED: %v", err)
 				return nil, err
 			}
@@ -35,7 +38,7 @@ func (sl *SecurityLayer) validateArgumentsAgainstSpec(toolSpec ToolSpec, rawArgs
 		if strVal, ok := rawValue.(string); ok {
 			if strings.Contains(strVal, "\x00") {
 				// *** FIXED: Use Sentinel Error ***
-				validationError = ErrNullByteInArgument
+				validationError = lang.ErrNullByteInArgument
 			}
 			// Add other basic checks (length, patterns) here if needed, assigning appropriate sentinel errors
 		}
@@ -59,9 +62,9 @@ func (sl *SecurityLayer) validateArgumentsAgainstSpec(toolSpec ToolSpec, rawArgs
 
 		// c) Tool-specific checks (Example: TOOL.Add)
 		if toolSpec.Name == "TOOL.Add" && (argName == "num1" || argName == "num2") {
-			if _, isNum := ToNumeric(validatedValue); !isNum {
+			if _, isNum := lang.ToNumeric(validatedValue); !isNum {
 				// *** FIXED: Use Sentinel Error ***
-				validationError = ErrValidationArgValue // Or a more specific one if needed
+				validationError = lang.ErrValidationArgValue // Or a more specific one if needed
 			}
 		}
 		// Add other tool-specific checks here, assigning sentinel errors
@@ -83,7 +86,7 @@ func (sl *SecurityLayer) validateArgumentsAgainstSpec(toolSpec ToolSpec, rawArgs
 			(toolSpec.Name == "TOOL.GoBuild" && argName == "target") ||
 			(toolSpec.Name == "TOOL.LineCountFile" && argName == "filepath")
 
-		if isPathArg && specArg.Type == ArgTypeString {
+		if isPathArg && specArg.Type == parser.ArgTypeString {
 			pathStr, _ := validatedValue.(string)
 			// SecureFilePath performs sandboxing and returns wrapped sentinel errors (ErrPathViolation, ErrNullByteInArgument)
 			_, pathErr := SecureFilePath(pathStr, sl.sandboxRoot)
@@ -125,7 +128,7 @@ func (sl *SecurityLayer) validateArgumentsAgainstSpec(toolSpec ToolSpec, rawArgs
 
 // validateAndCoerceType checks if the rawValue matches the expected ArgType and attempts coercion.
 // Returns wrapped sentinel errors on failure.
-func (sl *SecurityLayer) validateAndCoerceType(rawValue interface{}, expectedType ArgType, toolName, argName string) (interface{}, error) {
+func (sl *SecurityLayer) validateAndCoerceType(rawValue interface{}, expectedType parser.ArgType, toolName, argName string) (interface{}, error) {
 	var validatedValue interface{}
 	var ok bool
 	var typeErr error // Holds the specific sentinel error for type mismatch
@@ -134,49 +137,49 @@ func (sl *SecurityLayer) validateAndCoerceType(rawValue interface{}, expectedTyp
 	case ArgTypeString:
 		validatedValue, ok = rawValue.(string)
 		if !ok {
-			typeErr = ErrValidationTypeMismatch
+			typeErr = lang.ErrValidationTypeMismatch
 		}
 	case ArgTypeInt:
-		validatedValue, ok = toInt64(rawValue)
+		validatedValue, ok = lang.toInt64(rawValue)
 		if !ok {
-			typeErr = ErrValidationTypeMismatch
+			typeErr = lang.ErrValidationTypeMismatch
 		}
 	case ArgTypeFloat:
-		validatedValue, ok = toFloat64(rawValue)
+		validatedValue, ok = lang.toFloat64(rawValue)
 		if !ok {
-			typeErr = ErrValidationTypeMismatch
+			typeErr = lang.ErrValidationTypeMismatch
 		}
 	case ArgTypeBool:
-		validatedValue, ok = ConvertToBool(rawValue)
+		validatedValue, ok = utils.ConvertToBool(rawValue)
 		if !ok {
-			typeErr = ErrValidationTypeMismatch
+			typeErr = lang.ErrValidationTypeMismatch
 		}
 	case ArgTypeSliceString:
 		var convertErr error
-		validatedValue, ok, convertErr = ConvertToSliceOfString(rawValue)
+		validatedValue, ok, convertErr = utils.ConvertToSliceOfString(rawValue)
 		if convertErr != nil {
 			// Wrap the underlying conversion error if it exists
 			// *** FIXED: Use specific sentinel error ***
 			return nil, fmt.Errorf("failed converting to slice of strings: %w", convertErr)
 		}
 		if !ok { // If conversion didn't error but still failed type check
-			typeErr = ErrValidationTypeMismatch
+			typeErr = lang.ErrValidationTypeMismatch
 		}
 	case ArgTypeSliceAny:
 		var convertErr error
-		validatedValue, ok, convertErr = ConvertToSliceOfAny(rawValue)
+		validatedValue, ok, convertErr = utils.ConvertToSliceOfAny(rawValue)
 		if convertErr != nil {
 			// *** FIXED: Use specific sentinel error ***
 			return nil, fmt.Errorf("failed converting to slice: %w", convertErr)
 		}
 		if !ok {
-			typeErr = ErrValidationTypeMismatch
+			typeErr = lang.ErrValidationTypeMismatch
 		}
 	case ArgTypeAny:
 		validatedValue, ok = rawValue, true // Accept any type
 	default:
 		// Use internal error for unknown expected type
-		typeErr = ErrInternalTool // Or maybe ErrInvalidArgument? Let's stick with InternalTool for now.
+		typeErr = lang.ErrInternalTool // Or maybe ErrInvalidArgument? Let's stick with InternalTool for now.
 		ok = false
 	}
 

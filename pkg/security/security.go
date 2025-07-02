@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
+	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/google/generative-ai-go/genai"
 )
 
@@ -20,13 +21,13 @@ type SecurityLayer struct {
 	allowlist    map[string]bool // Stores qualified tool names (TOOL.xxx)
 	denylist     map[string]bool // Stores qualified tool names (TOOL.xxx)
 	sandboxRoot  string          // Unexported field storing the validated path
-	toolRegistry ToolRegistry    // <<< CHANGED: Use the interface type directly
+	toolRegistry tool.ToolRegistry    // <<< CHANGED: Use the interface type directly
 	logger       interfaces.Logger
 }
 
 // NewSecurityLayer creates a new security layer instance.
 // <<< CHANGED: registry parameter is now ToolRegistry (interface type)
-func NewSecurityLayer(allowlistTools []string, denylistSet map[string]bool, sandboxRoot string, registry ToolRegistry, logger interfaces.Logger) *SecurityLayer {
+func NewSecurityLayer(allowlistTools []string, denylistSet map[string]bool, sandboxRoot string, registry tool.ToolRegistry, logger interfaces.Logger) *SecurityLayer {
 	if logger == nil {
 		// This should ideally return an error or use a default logger,
 		// but panicking ensures it's caught during development.
@@ -99,7 +100,7 @@ func (sl *SecurityLayer) SandboxRoot() string { return sl.sandboxRoot }
 func (sl *SecurityLayer) GetToolDeclarations() ([]*genai.Tool, error) {
 	if sl.toolRegistry == nil {
 		sl.logger.Error("[SEC] Cannot get tool declarations: ToolRegistry is nil.")
-		return nil, fmt.Errorf("%w: security layer tool registry is not initialized", ErrConfiguration)
+		return nil, fmt.Errorf("%w: security layer tool registry is not initialized", lang.ErrConfiguration)
 	}
 	declarations := []*genai.Tool{}
 	// Calls on sl.toolRegistry (which is now ToolRegistry interface type) should work correctly.
@@ -159,14 +160,14 @@ func (sl *SecurityLayer) GetToolDeclarations() ([]*genai.Tool, error) {
 }
 
 // Executeinterfaces.ToolCall validates and executes a requested tool call.
-func (sl *SecurityLayer) ExecuteToolCall(interpreter *Interpreter, fc genai.FunctionCall) (genai.Part, error) {
+func (sl *SecurityLayer) ExecuteToolCall(interpreter *neurogo.Interpreter, fc genai.FunctionCall) (genai.Part, error) {
 	qualifiedToolName := fc.Name
 	rawArgs := fc.Args
 
 	sl.logger.Debug("[SEC Executeinterfaces.ToolCall] Received request", "tool_name", qualifiedToolName)
 
 	if sl.toolRegistry == nil {
-		err := fmt.Errorf("%w: tool registry is not available in security layer", ErrInternalSecurity)
+		err := fmt.Errorf("%w: tool registry is not available in security layer", lang.ErrInternalSecurity)
 		sl.logger.Error("[SEC Executeinterfaces.ToolCall] Critical internal error", "error", err, "tool_name", qualifiedToolName)
 		return CreateErrorFunctionResultPart(qualifiedToolName, err), err
 	}
@@ -185,7 +186,7 @@ func (sl *SecurityLayer) ExecuteToolCall(interpreter *Interpreter, fc genai.Func
 	if !found {
 		// This case should ideally be caught by Validateinterfaces.ToolCall if the tool isn't in the registry at all.
 		// However, if it was removed between validation and execution, or if Validateinterfaces.ToolCall's check isn't exhaustive.
-		err := fmt.Errorf("%w: tool implementation '%s' not found post-validation (tool name: %s)", ErrInternalSecurity, baseToolName, qualifiedToolName)
+		err := fmt.Errorf("%w: tool implementation '%s' not found post-validation (tool name: %s)", lang.ErrInternalSecurity, baseToolName, qualifiedToolName)
 		sl.logger.Error("[SEC Executeinterfaces.ToolCall] Critical internal error", "error", err)
 		return CreateErrorFunctionResultPart(qualifiedToolName, err), err
 	}
@@ -198,7 +199,7 @@ func (sl *SecurityLayer) ExecuteToolCall(interpreter *Interpreter, fc genai.Func
 		if !exists {
 			if argSpec.Required {
 				// This should also be caught by Validateinterfaces.ToolCall, but as a safeguard:
-				err := fmt.Errorf("%w: required arg '%s' missing post-validation for tool '%s'", ErrInternalSecurity, argSpec.Name, qualifiedToolName)
+				err := fmt.Errorf("%w: required arg '%s' missing post-validation for tool '%s'", lang.ErrInternalSecurity, argSpec.Name, qualifiedToolName)
 				sl.logger.Error("[SEC Executeinterfaces.ToolCall] Critical internal error: missing required arg", "error", err)
 				conversionOk = false // Mark as failed
 				break
@@ -211,7 +212,7 @@ func (sl *SecurityLayer) ExecuteToolCall(interpreter *Interpreter, fc genai.Func
 
 	if !conversionOk {
 		// If argument reconstruction failed (e.g. required arg missing after validation, which is unlikely but possible if validation logic has holes)
-		err := fmt.Errorf("%w: failed to reconstruct ordered args post-validation for tool '%s'", ErrInternalSecurity, qualifiedToolName)
+		err := fmt.Errorf("%w: failed to reconstruct ordered args post-validation for tool '%s'", lang.ErrInternalSecurity, qualifiedToolName)
 		sl.logger.Error("[SEC Executeinterfaces.ToolCall] Critical internal error: arg reconstruction failed", "error", err)
 		return CreateErrorFunctionResultPart(qualifiedToolName, err), err
 	}
@@ -234,22 +235,22 @@ func (sl *SecurityLayer) ValidateToolCall(qualifiedToolName string, rawArgs map[
 
 	if sl.denylist[qualifiedToolName] {
 		sl.logger.Warn("[SEC Validateinterfaces.ToolCall] DENIED (Denylist)", "tool_name", qualifiedToolName)
-		return nil, fmt.Errorf("tool %q denied by denylist: %w", qualifiedToolName, ErrToolDenied)
+		return nil, fmt.Errorf("tool %q denied by denylist: %w", qualifiedToolName, lang.ErrToolDenied)
 	}
 	if !sl.allowlist[qualifiedToolName] {
 		sl.logger.Warn("[SEC Validateinterfaces.ToolCall] DENIED (Not Allowlisted)", "tool_name", qualifiedToolName)
-		return nil, fmt.Errorf("tool %q not allowed by allowlist: %w", qualifiedToolName, ErrToolNotAllowed)
+		return nil, fmt.Errorf("tool %q not allowed by allowlist: %w", qualifiedToolName, lang.ErrToolNotAllowed)
 	}
 
 	// Example of a hardcoded policy, can be expanded
 	if qualifiedToolName == "TOOL.ExecuteCommand" { // Assuming ExecuteCommand is the qualified name
 		sl.logger.Warn("[SEC Validateinterfaces.ToolCall] DENIED (Blocked by Policy)", "tool_name", qualifiedToolName, "reason", "ExecuteCommand is disabled")
-		return nil, fmt.Errorf("tool %q blocked by security policy: %w", qualifiedToolName, ErrToolBlocked)
+		return nil, fmt.Errorf("tool %q blocked by security policy: %w", qualifiedToolName, lang.ErrToolBlocked)
 	}
 
 	if sl.toolRegistry == nil {
 		sl.logger.Error("[SEC Validateinterfaces.ToolCall] ToolRegistry not available during validation.", "tool_name", qualifiedToolName)
-		return nil, fmt.Errorf("%w: tool registry unavailable for validation of '%s'", ErrInternalSecurity, qualifiedToolName)
+		return nil, fmt.Errorf("%w: tool registry unavailable for validation of '%s'", lang.ErrInternalSecurity, qualifiedToolName)
 	}
 
 	baseToolName := strings.TrimPrefix(qualifiedToolName, "TOOL.")
@@ -257,7 +258,7 @@ func (sl *SecurityLayer) ValidateToolCall(qualifiedToolName string, rawArgs map[
 	toolImpl, found := sl.toolRegistry.GetTool(baseToolName)
 	if !found {
 		sl.logger.Error("[SEC Validateinterfaces.ToolCall] Allowlisted tool implementation not found in registry.", "qualified_name", qualifiedToolName, "base_name", baseToolName)
-		return nil, fmt.Errorf("%w: allowlisted tool '%s' (base: '%s') implementation not found", ErrInternalSecurity, qualifiedToolName, baseToolName)
+		return nil, fmt.Errorf("%w: allowlisted tool '%s' (base: '%s') implementation not found", lang.ErrInternalSecurity, qualifiedToolName, baseToolName)
 	}
 
 	toolSpec := toolImpl.Spec
