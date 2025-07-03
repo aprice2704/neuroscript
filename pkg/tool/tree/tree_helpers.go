@@ -16,7 +16,7 @@ import (
 
 // getTreeFromHandle retrieves the GenericTree from the interpreter's handle registry.
 // If the handle is not found, it returns an error wrapping ErrNotFound.
-func getTreeFromHandle(interpreter tool.RunTime, handleID, toolName string) (*utils.GenericTree, error) {
+func getTreeFromHandle(interpreter tool.Runtime, handleID, toolName string) (*utils.GenericTree, error) {
 	if handleID == "" {
 		// It's better to return an error that can be checked with errors.Is if it's a common case.
 		// ErrValidationRequiredArgNil is a sentinel error.
@@ -57,7 +57,7 @@ func getTreeFromHandle(interpreter tool.RunTime, handleID, toolName string) (*ut
 
 // getNodeFromHandle retrieves the GenericTree and the specific GenericTreeNode.
 // If the node is not found within a valid tree, it returns an error wrapping ErrNotFound.
-func getNodeFromHandle(interpreter tool.RunTime, handleID, nodeID, toolName string) (*utils.GenericTree, *utils.GenericTreeNode, error) {
+func getNodeFromHandle(interpreter tool.Runtime, handleID, nodeID, toolName string) (*utils.GenericTree, *utils.GenericTreeNode, error) {
 	if nodeID == "" {
 		return nil, nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch,
 			fmt.Sprintf("%s requires non-empty 'node_id'", toolName),

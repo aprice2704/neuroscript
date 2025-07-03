@@ -1,7 +1,8 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.0.1
+// File version: 4
+// Purpose: Corrected the SendFile method signature to match the interfaces.FileAPI interface by removing the context parameter.
 // filename: pkg/tool/fileapi/tools_file_api.go
-// nlines: 106
+// nlines: 112
 // risk_rating: MEDIUM
 package fileapi
 
@@ -31,7 +32,7 @@ type FileAPI struct {
 func NewFileAPI(sandboxDir string, logger interfaces.Logger) *FileAPI {
 	if logger == nil {
 		// Fallback to a basic logger if none provided, although Interpreter should always provide one.
-		logger = &logging.NewNoOpLogger{}
+		logger = logging.NewNoOpLogger()
 		logger.Warn("NewFileAPI created with nil logger, using internal NoOpLogger.")
 	}
 
@@ -78,6 +79,12 @@ func NewFileAPI(sandboxDir string, logger interfaces.Logger) *FileAPI {
 		sandboxRoot: absSandbox,
 		logger:      logger,
 	}
+}
+
+// SendFile is a stub implementation to satisfy the interfaces.FileAPI interface.
+func (f *FileAPI) SendFile(spec *interfaces.FileAPIFileSpec) error {
+	f.logger.Error("TOOL SendFile NOT IMPLEMENTED")
+	return lang.ErrFeatureNotImplemented
 }
 
 // ResolvePath takes a relative or absolute path provided by the user/script

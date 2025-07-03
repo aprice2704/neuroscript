@@ -18,7 +18,7 @@ import (
 
 // --- Tool Implementations ---
 
-func toolStringLength(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
+func toolStringLength(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
 	if len(args) != 1 {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "String.Length: expected 1 argument (input_string)", lang.ErrArgumentMismatch)
 	}
@@ -27,11 +27,11 @@ func toolStringLength(interpreter tool.RunTime, args []interface{}) (interface{}
 		return nil, lang.NewRuntimeError(lang.ErrorCodeType, fmt.Sprintf("String.Length: input_string argument must be a string, got %T", args[0]), lang.ErrArgumentMismatch)
 	}
 	length := float64(utf8.RuneCountInString(inputStr))
-	interpreter.Logger().Debug("Tool: String.Length", "input", inputStr, "length", length)
+	interpreter.GetLogger().Debug("Tool: String.Length", "input", inputStr, "length", length)
 	return length, nil
 }
 
-func toolStringSubstring(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
+func toolStringSubstring(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
 	// Corresponds to "Substring" tool with args: input_string, start_index, length
 	if len(args) != 3 {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "String.Substring: expected 3 arguments (input_string, start_index, length)", lang.ErrArgumentMismatch)
@@ -78,16 +78,16 @@ func toolStringSubstring(interpreter tool.RunTime, args []interface{}) (interfac
 
 	// Handle cases resulting in empty string
 	if startIndex >= endIndex || startIndex >= runeCount {
-		interpreter.Logger().Debug("Tool: String.Substring (empty due to indices/length)", "input", inputStr, "start", startIndexRaw, "length", lengthRaw, "rune_count", runeCount, "result", "")
+		interpreter.GetLogger().Debug("Tool: String.Substring (empty due to indices/length)", "input", inputStr, "start", startIndexRaw, "length", lengthRaw, "rune_count", runeCount, "result", "")
 		return "", nil
 	}
 
 	substring := string(runes[startIndex:endIndex])
-	interpreter.Logger().Debug("Tool: String.Substring", "input", inputStr, "start", startIndexRaw, "length", lengthRaw, "result", substring)
+	interpreter.GetLogger().Debug("Tool: String.Substring", "input", inputStr, "start", startIndexRaw, "length", lengthRaw, "result", substring)
 	return substring, nil
 }
 
-func toolStringConcat(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
+func toolStringConcat(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
 	// Corresponds to "Concat" tool with args: strings_list (ArgTypeSliceString)
 	if len(args) != 1 {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "String.Concat: expected 1 argument (strings_list)", lang.ErrArgumentMismatch)
@@ -105,11 +105,11 @@ func toolStringConcat(interpreter tool.RunTime, args []interface{}) (interface{}
 	}
 
 	result := builder.String()
-	interpreter.Logger().Debug("Tool: String.Concat", "input_count", len(stringsList), "result_length", len(result))
+	interpreter.GetLogger().Debug("Tool: String.Concat", "input_count", len(stringsList), "result_length", len(result))
 	return result, nil
 }
 
-func toolStringSplit(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
+func toolStringSplit(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
 	// Corresponds to "Split" tool with args: input_string, delimiter
 	if len(args) != 2 {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "String.Split: expected 2 arguments (input_string, delimiter)", lang.ErrArgumentMismatch)
@@ -127,11 +127,11 @@ func toolStringSplit(interpreter tool.RunTime, args []interface{}) (interface{},
 	// Corrected: Directly return []string
 	parts := strings.Split(inputStr, separator)
 
-	interpreter.Logger().Debug("Tool: String.Split", "input_length", len(inputStr), "separator", separator, "parts_count", len(parts))
+	interpreter.GetLogger().Debug("Tool: String.Split", "input_length", len(inputStr), "separator", separator, "parts_count", len(parts))
 	return parts, nil // Return []string directly
 }
 
-func toolSplitWords(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
+func toolSplitWords(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
 	// Corresponds to "SplitWords" tool with args: input_string
 	if len(args) != 1 {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "String.SplitWords: expected 1 argument (input_string)", lang.ErrArgumentMismatch)
@@ -144,11 +144,11 @@ func toolSplitWords(interpreter tool.RunTime, args []interface{}) (interface{}, 
 	// Corrected: Directly return []string
 	parts := strings.Fields(inputStr)
 
-	interpreter.Logger().Debug("Tool: String.SplitWords", "input_length", len(inputStr), "parts_count", len(parts))
+	interpreter.GetLogger().Debug("Tool: String.SplitWords", "input_length", len(inputStr), "parts_count", len(parts))
 	return parts, nil // Return []string directly
 }
 
-func toolStringJoin(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
+func toolStringJoin(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
 	// Corresponds to "Join" tool with args: string_list, separator
 	if len(args) != 2 {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "String.Join: expected 2 arguments (string_list, separator)", lang.ErrArgumentMismatch)
@@ -166,11 +166,11 @@ func toolStringJoin(interpreter tool.RunTime, args []interface{}) (interface{}, 
 
 	// No need to convert elements if input is already []string
 	result := strings.Join(stringList, separator)
-	interpreter.Logger().Debug("Tool: String.Join", "input_count", len(stringList), "separator", separator, "result_length", len(result))
+	interpreter.GetLogger().Debug("Tool: String.Join", "input_count", len(stringList), "separator", separator, "result_length", len(result))
 	return result, nil
 }
 
-func toolStringContains(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
+func toolStringContains(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
 	// Corresponds to "Contains" tool with args: input_string, substring
 	if len(args) != 2 {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "String.Contains: expected 2 arguments (input_string, substring)", lang.ErrArgumentMismatch)
@@ -186,11 +186,11 @@ func toolStringContains(interpreter tool.RunTime, args []interface{}) (interface
 	}
 
 	contains := strings.Contains(inputStr, substr)
-	interpreter.Logger().Debug("Tool: String.Contains", "input", inputStr, "substring", substr, "result", contains)
+	interpreter.GetLogger().Debug("Tool: String.Contains", "input", inputStr, "substring", substr, "result", contains)
 	return contains, nil
 }
 
-func toolStringHasPrefix(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
+func toolStringHasPrefix(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
 	// Corresponds to "HasPrefix" tool with args: input_string, prefix
 	if len(args) != 2 {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "String.HasPrefix: expected 2 arguments (input_string, prefix)", lang.ErrArgumentMismatch)
@@ -206,11 +206,11 @@ func toolStringHasPrefix(interpreter tool.RunTime, args []interface{}) (interfac
 	}
 
 	hasPrefix := strings.HasPrefix(inputStr, prefix)
-	interpreter.Logger().Debug("Tool: String.HasPrefix", "input", inputStr, "prefix", prefix, "result", hasPrefix)
+	interpreter.GetLogger().Debug("Tool: String.HasPrefix", "input", inputStr, "prefix", prefix, "result", hasPrefix)
 	return hasPrefix, nil
 }
 
-func toolStringHasSuffix(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
+func toolStringHasSuffix(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
 	// Corresponds to "HasSuffix" tool with args: input_string, suffix
 	if len(args) != 2 {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "String.HasSuffix: expected 2 arguments (input_string, suffix)", lang.ErrArgumentMismatch)
@@ -226,11 +226,11 @@ func toolStringHasSuffix(interpreter tool.RunTime, args []interface{}) (interfac
 	}
 
 	hasSuffix := strings.HasSuffix(inputStr, suffix)
-	interpreter.Logger().Debug("Tool: String.HasSuffix", "input", inputStr, "suffix", suffix, "result", hasSuffix)
+	interpreter.GetLogger().Debug("Tool: String.HasSuffix", "input", inputStr, "suffix", suffix, "result", hasSuffix)
 	return hasSuffix, nil
 }
 
-func toolStringToUpper(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
+func toolStringToUpper(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
 	// Corresponds to "ToUpper" tool with args: input_string
 	if len(args) != 1 {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "String.ToUpper: expected 1 argument (input_string)", lang.ErrArgumentMismatch)
@@ -240,11 +240,11 @@ func toolStringToUpper(interpreter tool.RunTime, args []interface{}) (interface{
 		return nil, lang.NewRuntimeError(lang.ErrorCodeType, fmt.Sprintf("String.ToUpper: input_string argument must be a string, got %T", args[0]), lang.ErrArgumentMismatch)
 	}
 	result := strings.ToUpper(inputStr)
-	interpreter.Logger().Debug("Tool: String.ToUpper", "input", inputStr, "result", result)
+	interpreter.GetLogger().Debug("Tool: String.ToUpper", "input", inputStr, "result", result)
 	return result, nil
 }
 
-func toolStringToLower(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
+func toolStringToLower(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
 	// Corresponds to "ToLower" tool with args: input_string
 	if len(args) != 1 {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "String.ToLower: expected 1 argument (input_string)", lang.ErrArgumentMismatch)
@@ -254,11 +254,11 @@ func toolStringToLower(interpreter tool.RunTime, args []interface{}) (interface{
 		return nil, lang.NewRuntimeError(lang.ErrorCodeType, fmt.Sprintf("String.ToLower: input_string argument must be a string, got %T", args[0]), lang.ErrArgumentMismatch)
 	}
 	result := strings.ToLower(inputStr)
-	interpreter.Logger().Debug("Tool: String.ToLower", "input", inputStr, "result", result)
+	interpreter.GetLogger().Debug("Tool: String.ToLower", "input", inputStr, "result", result)
 	return result, nil
 }
 
-func toolStringTrimSpace(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
+func toolStringTrimSpace(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
 	// Corresponds to "TrimSpace" tool with args: input_string
 	if len(args) != 1 {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "String.TrimSpace: expected 1 argument (input_string)", lang.ErrArgumentMismatch)
@@ -268,11 +268,11 @@ func toolStringTrimSpace(interpreter tool.RunTime, args []interface{}) (interfac
 		return nil, lang.NewRuntimeError(lang.ErrorCodeType, fmt.Sprintf("String.TrimSpace: input_string argument must be a string, got %T", args[0]), lang.ErrArgumentMismatch)
 	}
 	result := strings.TrimSpace(inputStr)
-	interpreter.Logger().Debug("Tool: String.TrimSpace", "input", inputStr, "result", result)
+	interpreter.GetLogger().Debug("Tool: String.TrimSpace", "input", inputStr, "result", result)
 	return result, nil
 }
 
-func toolStringReplace(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
+func toolStringReplace(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
 	// Corresponds to "Replace" tool with args: input_string, old_substring, new_substring, count
 	if len(args) != 4 {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "String.Replace: expected 4 arguments (input_string, old_substring, new_substring, count)", lang.ErrArgumentMismatch)
@@ -297,11 +297,11 @@ func toolStringReplace(interpreter tool.RunTime, args []interface{}) (interface{
 
 	count := int(countRaw)
 	result := strings.Replace(inputStr, oldSubstr, newSubstr, count)
-	interpreter.Logger().Debug("Tool: String.Replace", "input", inputStr, "old", oldSubstr, "new", newSubstr, "count", count, "result", result)
+	interpreter.GetLogger().Debug("Tool: String.Replace", "input", inputStr, "old", oldSubstr, "new", newSubstr, "count", count, "result", result)
 	return result, nil
 }
 
-func toolLineCountString(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
+func toolLineCountString(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
 	// Corresponds to "LineCount" tool with args: content_string
 	if len(args) != 1 {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "String.LineCount: expected 1 argument (content_string)", lang.ErrArgumentMismatch)
@@ -312,7 +312,7 @@ func toolLineCountString(interpreter tool.RunTime, args []interface{}) (interfac
 	}
 
 	if content == "" {
-		interpreter.Logger().Debug("Tool: String.LineCount", "content", content, "line_count", 0)
+		interpreter.GetLogger().Debug("Tool: String.LineCount", "content", content, "line_count", 0)
 		return float64(0), nil
 	}
 	// Count occurrences of newline character
@@ -322,6 +322,6 @@ func toolLineCountString(interpreter tool.RunTime, args []interface{}) (interfac
 		lineCount++
 	}
 
-	interpreter.Logger().Debug("Tool: String.LineCount", "content_len", len(content), "line_count", lineCount)
+	interpreter.GetLogger().Debug("Tool: String.LineCount", "content_len", len(content), "line_count", lineCount)
 	return lineCount, nil
 }

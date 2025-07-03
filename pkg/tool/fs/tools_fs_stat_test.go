@@ -51,7 +51,7 @@ func TestToolStat(t *testing.T) {
 			toolName:  "FS.Stat",
 			args:      tool.MakeArgs(testFileName),
 			setupFunc: setup,
-			checkFunc: func(t *testing.T, interp tool.RunTime, result interface{}, err error, setupCtx interface{}) {
+			checkFunc: func(t *testing.T, interp tool.Runtime, result interface{}, err error, setupCtx interface{}) {
 				if err != nil {
 					t.Fatalf("Unexpected error: %v", err)
 				}
@@ -63,7 +63,7 @@ func TestToolStat(t *testing.T) {
 			toolName:  "FS.Stat",
 			args:      tool.MakeArgs(testDirName),
 			setupFunc: setup,
-			checkFunc: func(t *testing.T, interp tool.RunTime, result interface{}, err error, setupCtx interface{}) {
+			checkFunc: func(t *testing.T, interp tool.Runtime, result interface{}, err error, setupCtx interface{}) {
 				if err != nil {
 					t.Fatalf("Unexpected error: %v", err)
 				}

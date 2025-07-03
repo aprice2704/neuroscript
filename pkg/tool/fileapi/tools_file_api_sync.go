@@ -22,7 +22,7 @@ func SyncDirectoryUpHelper(
 	absLocalDir string,
 	filterPattern string,
 	ignoreGitignore bool,
-	interp tool.RunTime, // Pass interpreter.Interpreter
+	interp tool.Runtime, // Pass interpreter.Interpreter
 ) (map[string]interface{}, error) {
 
 	// --- Get Logger and Client from Interpreter ---

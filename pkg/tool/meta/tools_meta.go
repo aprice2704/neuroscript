@@ -19,7 +19,7 @@ import (
 
 // toolListTools provides a compact list of available tools.
 // NeuroScript: call Meta.ListTools() -> string
-func toolListTools(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
+func toolListTools(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
 	if len(args) != 0 {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "Meta.ListTools: expects no arguments", lang.ErrArgumentMismatch)
 	}
@@ -49,7 +49,7 @@ func toolListTools(interpreter tool.RunTime, args []interface{}) (interface{}, e
 
 // toolToolsHelp provides detailed help for available tools in Markdown format.
 // NeuroScript: call Meta.ToolsHelp(filter?:string) -> string
-func toolToolsHelp(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
+func toolToolsHelp(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
 	var filterValue string // Defaults to empty string, meaning "no filter"
 
 	if len(args) > 1 {
@@ -137,7 +137,7 @@ func toolToolsHelp(interpreter tool.RunTime, args []interface{}) (interface{}, e
 
 // toolGetToolSpecificationsJSON provides a JSON string of all available tool specifications.
 // NeuroScript: call Meta.GetToolSpecificationsJSON() -> string
-func toolGetToolSpecificationsJSON(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
+func toolGetToolSpecificationsJSON(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
 	if len(args) != 0 {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "Meta.GetToolSpecificationsJSON: expects no arguments", lang.ErrArgumentMismatch)
 	}
@@ -156,8 +156,8 @@ func toolGetToolSpecificationsJSON(interpreter tool.RunTime, args []interface{})
 
 	jsonData, err := json.MarshalIndent(toolSpecs, "", "  ") // Using MarshalIndent for readability
 	if err != nil {
-		if interpreter.logger != nil {
-			interpreter.logger.Errorf("Meta.GetToolSpecificationsJSON: Failed to marshal tool specifications to JSON: %v", err)
+		if interpreter.GetLogger != nil {
+			interpreter.GetLogger().Errorf("Meta.GetToolSpecificationsJSON: Failed to marshal tool specifications to JSON: %v", err)
 		}
 		return "", lang.NewRuntimeError(lang.ErrorCodeInternal, "failed to marshal tool specifications to JSON", err)
 	}

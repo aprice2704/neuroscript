@@ -18,7 +18,7 @@ import (
 )
 
 // toolStat gets information about a file or directory within the sandbox.
-func toolStat(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
+func toolStat(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
 	// --- Argument Validation ---
 	if len(args) != 1 {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("StatPath: expected 1 argument (path), got %d", len(args)), lang.ErrArgumentMismatch)
@@ -35,7 +35,7 @@ func toolStat(interpreter tool.RunTime, args []interface{}) (interface{}, error)
 	// --- Sandbox Check ---
 	sandboxRoot := interpreter.SandboxDir()
 	if sandboxRoot == "" {
-		interpreter.Logger().Error("Tool: StatPath] Interpreter sandboxDir is empty, cannot proceed.")
+		interpreter.GetLogger().Error("Tool: StatPath] Interpreter sandboxDir is empty, cannot proceed.")
 		return nil, lang.NewRuntimeError(lang.ErrorCodeConfiguration, "StatPath: interpreter sandbox directory is not set", lang.ErrConfiguration)
 	}
 
@@ -43,27 +43,27 @@ func toolStat(interpreter tool.RunTime, args []interface{}) (interface{}, error)
 	// ResolveAndSecurePath handles validation (absolute, traversal, null bytes, empty)
 	absPathToStat, secErr := security.ResolveAndSecurePath(relPath, sandboxRoot)
 	if secErr != nil {
-		interpreter.Logger().Debug("Tool: StatPath] Path validation failed", "error", secErr.Error(), "path", relPath)
+		interpreter.GetLogger().Debug("Tool: StatPath] Path validation failed", "error", secErr.Error(), "path", relPath)
 		return nil, secErr // Return the *RuntimeError directly
 	}
 
-	interpreter.Logger().Debug("Tool: StatPath attempting to stat validated path", "validated_path", absPathToStat, "original_path", relPath)
+	interpreter.GetLogger().Debug("Tool: StatPath attempting to stat validated path", "validated_path", absPathToStat, "original_path", relPath)
 
 	// --- Stat Path ---
 	info, statErr := os.Stat(absPathToStat)
 	if statErr != nil {
 		if errors.Is(statErr, os.ErrNotExist) {
 			errMsg := fmt.Sprintf("StatPath: path not found '%s'", relPath)
-			interpreter.Logger().Debug("Tool: StatPath] %s", errMsg)
+			interpreter.GetLogger().Debug("Tool: StatPath] %s", errMsg)
 			return nil, lang.NewRuntimeError(lang.ErrorCodeFileNotFound, errMsg, lang.ErrFileNotFound)
 		}
 		if errors.Is(statErr, os.ErrPermission) {
 			errMsg := fmt.Sprintf("StatPath: permission denied for '%s'", relPath)
-			interpreter.Logger().Warn("Tool: StatPath] %s", errMsg)
+			interpreter.GetLogger().Warn("Tool: StatPath] %s", errMsg)
 			return nil, lang.NewRuntimeError(lang.ErrorCodePermissionDenied, errMsg, lang.ErrPermissionDenied)
 		}
 		errMsg := fmt.Sprintf("StatPath: failed to stat path '%s'", relPath)
-		interpreter.Logger().Error("Tool: StatPath] %s: %v", errMsg, statErr)
+		interpreter.GetLogger().Error("Tool: StatPath] %s: %v", errMsg, statErr)
 		return nil, lang.NewRuntimeError(lang.ErrorCodeIOFailed, errMsg, errors.Join(lang.ErrIOFailed, statErr))
 	}
 
@@ -79,6 +79,6 @@ func toolStat(interpreter tool.RunTime, args []interface{}) (interface{}, error)
 		"mode_perm":        fmt.Sprintf("%04o", info.Mode().Perm()),
 	}
 
-	interpreter.Logger().Debug("Tool: StatPath] Stat successful", "path", relPath)
+	interpreter.GetLogger().Debug("Tool: StatPath] Stat successful", "path", relPath)
 	return resultMap, nil
 }

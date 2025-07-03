@@ -18,7 +18,7 @@ import (
 )
 
 // toolInput implements the Input tool.
-func toolInput(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
+func toolInput(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
 	prompt := ""
 	if len(args) > 0 {
 		if p, ok := args[0].(string); ok {
@@ -42,7 +42,7 @@ func toolInput(interpreter tool.RunTime, args []interface{}) (interface{}, error
 	if err != nil {
 		// Log the error, but often for interactive input, returning empty string might be acceptable.
 		// Or return a specific error if EOF or other issues are critical.
-		interpreter.Logger().Warn("Tool: Input read error", "error", err)
+		interpreter.GetLogger().Warn("Tool: Input read error", "error", err)
 		// Use ErrorCodeIOFailed for read errors
 		return "", lang.NewRuntimeError(lang.ErrorCodeIOFailed, "failed to read input", errors.Join(lang.ErrIOFailed, err))
 	}
@@ -50,12 +50,12 @@ func toolInput(interpreter tool.RunTime, args []interface{}) (interface{}, error
 	// Trim trailing newline characters (\n or \r\n)
 	line = strings.TrimRight(line, "\r\n")
 
-	interpreter.Logger().Debug("Tool: Input read line successfully") // Avoid logging the actual input content
+	interpreter.GetLogger().Debug("Tool: Input read line successfully") // Avoid logging the actual input content
 	return line, nil
 }
 
 // toolPrint implements the Print tool.
-func toolPrint(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
+func toolPrint(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
 	// The spec defines one arg "values" of type Any.
 	// This implementation will handle if that arg is a single value or a slice.
 	if len(args) != 1 {
@@ -79,7 +79,7 @@ func toolPrint(interpreter tool.RunTime, args []interface{}) (interface{}, error
 	// for i, v := range valuesToPrint {
 	// 	stringValues[i] = fmt.Sprint(v) // Simple conversion
 	// }
-	// interpreter.Logger().Debug("Tool: Print executing", "values", strings.Join(stringValues, " "))
+	// interpreter.GetLogger().Debug("Tool: Print executing", "values", strings.Join(stringValues, " "))
 
 	// Use fmt.Println which handles different types and adds spaces + newline
 	fmt.Println(valuesToPrint...)

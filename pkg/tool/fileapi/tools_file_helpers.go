@@ -16,7 +16,7 @@ import (
 
 // readFileContent reads the entire content of a file specified by path.
 // It respects the interpreter's sandbox.
-func readFileContent(interp tool.RunTime, path string) (string, error) {
+func readFileContent(interp tool.Runtime, path string) (string, error) {
 	// Use FileAPI getter method for sandboxed access
 	absPath, err := interp.FileAPI().ResolvePath(path) // <<< USE GETTER
 	if err != nil {
@@ -39,7 +39,7 @@ func readFileContent(interp tool.RunTime, path string) (string, error) {
 
 // writeFileContent writes content to a file specified by path.
 // It respects the interpreter's sandbox.
-func writeFileContent(interp tool.RunTime, path string, content string) error {
+func writeFileContent(interp tool.Runtime, path string, content string) error {
 	// Use FileAPI getter method for sandboxed access
 	absPath, err := interp.FileAPI().ResolvePath(path) // <<< USE GETTER
 	if err != nil {
@@ -68,7 +68,7 @@ func writeFileContent(interp tool.RunTime, path string, content string) error {
 
 // embedFileContent generates embeddings for the file content.
 // It respects the interpreter's sandbox and uses the configured LLM client.
-func embedFileContent(ctx context.Context, interp tool.RunTime, path string) ([]float32, error) {
+func embedFileContent(ctx context.Context, interp tool.Runtime, path string) ([]float32, error) {
 	interp.Logger().Debug("Requesting embedding for file", "path", path) // Use getter
 
 	if interp.llmClient == nil {
@@ -91,7 +91,7 @@ func embedFileContent(ctx context.Context, interp tool.RunTime, path string) ([]
 
 // findFiles walks the directory tree starting from startPath within the sandbox
 // and returns a list of absolute file paths matching the criteria.
-func findFiles(interp tool.RunTime, startPath string) ([]string, error) {
+func findFiles(interp tool.Runtime, startPath string) ([]string, error) {
 	// Use FileAPI getter method
 	absStartPath, err := interp.FileAPI().ResolvePath(startPath) // <<< USE GETTER
 	if err != nil {
@@ -130,7 +130,7 @@ func findFiles(interp tool.RunTime, startPath string) ([]string, error) {
 
 // scanFileLines reads a file line by line and applies a callback function.
 // Stops if the callback returns false. Respects the sandbox.
-func scanFileLines(interp tool.RunTime, path string, callback func(line string) bool) error {
+func scanFileLines(interp tool.Runtime, path string, callback func(line string) bool) error {
 	// Use FileAPI getter method
 	absPath, err := interp.FileAPI().ResolvePath(path) // <<< USE GETTER
 	if err != nil {

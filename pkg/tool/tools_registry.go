@@ -88,7 +88,7 @@ func (r *ToolRegistryImpl) ListTools() []ToolSpec {
 // --- BRIDGE IMPLEMENTATION ---
 
 // CallFromInterpreter is the single bridge between the Value-based interpreter and primitive-based tools.
-func (r *ToolRegistryImpl) CallFromInterpreter(interp RunTime, toolName string, args []lang.Value) (lang.Value, error) {
+func (r *ToolRegistryImpl) CallFromInterpreter(interp Runtime, toolName string, args []lang.Value) (lang.Value, error) {
 	impl, ok := r.GetTool(toolName)
 	if !ok {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeToolNotFound, fmt.Sprintf("tool '%s' not found", toolName), lang.ErrToolNotFound)

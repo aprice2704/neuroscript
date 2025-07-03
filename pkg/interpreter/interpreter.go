@@ -1,63 +1,230 @@
+// NeuroScript Version: 0.5.2
+// File version: 26
+// Purpose: Added the GetLogger method to satisfy the tool.Runtime interface.
 // filename: pkg/interpreter/interpreter.go
-// NeuroScript Version: 0.4.1
-// File version: 13
-// Purpose: Corrected all remaining compiler errors.
+// nlines: 304
+// risk_rating: HIGH
 
 package interpreter
 
 import (
 	"fmt"
+	"io"
 	"os"
+	"sync"
+	"time"
 
-	"github.com/aprice2704/neuroscript/pkg/adapters"
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/logging"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 )
+
+// interpreterState holds the non-exported state of the interpreter.
+type interpreterState struct {
+	variables         map[string]lang.Value
+	variablesMu       sync.RWMutex
+	knownProcedures   map[string]*ast.Procedure
+	commands          []*ast.CommandNode
+	stackFrames       []string
+	currentProcName   string
+	errorHandlerStack [][]*ast.Step
+	sandboxDir        string
+	vectorIndex       map[string][]float32
+}
+
+// EventManager handles event subscriptions and emissions.
+type EventManager struct {
+	eventHandlers   map[string][]*ast.OnEventDecl
+	eventHandlersMu sync.RWMutex
+}
 
 // Interpreter holds the state for a NeuroScript runtime environment.
 type Interpreter struct {
-	// --- Public, overridable interfaces ---
-	logger   interfaces.Logger
-	fileAPI  interfaces.FileAPI
-	aiWorker interfaces.AIWorker
-
-	// --- Private, internal state ---
-	state        *interpreterState
-	tools        interfaces.ToolRegistry
-	eventManager *EventManager
-	shouldExit   bool
-	exitCode     int
-	returnValue  lang.Value
-	lastResult   lang.Value
+	logger             interfaces.Logger
+	fileAPI            interfaces.FileAPI
+	state              *interpreterState
+	tools              tool.ToolRegistry
+	eventManager       *EventManager
+	evaluate           *evaluation
+	aiWorker           interfaces.LLMClient
+	shouldExit         bool
+	exitCode           int
+	returnValue        lang.Value
+	lastCallResult     lang.Value
+	stdout             io.Writer
+	stdin              io.Reader
+	stderr             io.Writer
+	maxLoopIterations  int
+	ToolCallTimestamps map[string][]time.Time
+	rateLimitCount     int
+	rateLimitDuration  time.Duration
+	externalHandler    interface{}
+	objectCache        map[string]interface{}
 }
 
 // InterpreterOption defines a function signature for configuring an Interpreter.
 type InterpreterOption func(*Interpreter)
 
-// New creates a new, fully initialized NeuroScript interpreter.
-func New(opts ...InterpreterOption) *Interpreter {
-	// Default state
-	i := &Interpreter{
-		state:        newInterpreterState(),
-		eventManager: newEventManager(),
-	}
-	i.logger = logging.NewNoOpLogger() // Default logger
+// --- Functional Options ---
 
-	// Apply all functional options
+func WithLogger(logger interfaces.Logger) InterpreterOption {
+	return func(i *Interpreter) {
+		i.logger = logger
+	}
+}
+
+func WithLLMClient(client interfaces.LLMClient) InterpreterOption {
+	return func(i *Interpreter) {
+		i.aiWorker = client
+	}
+}
+
+func WithSandboxDir(path string) InterpreterOption {
+	return func(i *Interpreter) {
+		i.SetSandboxDir(path)
+	}
+}
+
+func WithStdout(w io.Writer) InterpreterOption {
+	return func(i *Interpreter) {
+		i.stdout = w
+	}
+}
+
+func WithStdin(r io.Reader) InterpreterOption {
+	return func(i *Interpreter) {
+		i.stdin = r
+	}
+}
+
+func WithStderr(w io.Writer) InterpreterOption {
+	return func(i *Interpreter) {
+		i.stderr = w
+	}
+}
+
+// --- interpreterState Methods ---
+
+func newInterpreterState() *interpreterState {
+	return &interpreterState{
+		variables:       make(map[string]lang.Value),
+		knownProcedures: make(map[string]*ast.Procedure),
+		commands:        []*ast.CommandNode{},
+		stackFrames:     []string{},
+	}
+}
+
+func (s *interpreterState) getProcedure(name string) *ast.Procedure {
+	if s.knownProcedures == nil {
+		return nil
+	}
+	return s.knownProcedures[name]
+}
+
+func (s *interpreterState) setProcedure(name string, proc *ast.Procedure) {
+	if s.knownProcedures == nil {
+		s.knownProcedures = make(map[string]*ast.Procedure)
+	}
+	s.knownProcedures[name] = proc
+}
+
+func (s *interpreterState) clearProcedures() {
+	s.knownProcedures = make(map[string]*ast.Procedure)
+}
+
+func (s *interpreterState) addCommand(cmd *ast.CommandNode) {
+	s.commands = append(s.commands, cmd)
+}
+
+func (s *interpreterState) clearCommands() {
+	s.commands = []*ast.CommandNode{}
+}
+
+func (s *interpreterState) pushStackFrame(name string) {
+	s.stackFrames = append(s.stackFrames, name)
+}
+
+func (s *interpreterState) popStackFrame() {
+	if len(s.stackFrames) > 0 {
+		s.stackFrames = s.stackFrames[:len(s.stackFrames)-1]
+	}
+}
+
+func (s *interpreterState) setVariable(name string, value lang.Value) {
+	s.variablesMu.Lock()
+	defer s.variablesMu.Unlock()
+	if s.variables == nil {
+		s.variables = make(map[string]lang.Value)
+	}
+	s.variables[name] = value
+}
+
+func (s *interpreterState) Errorf(code lang.ErrorCode, format string, args ...interface{}) error {
+	return lang.NewRuntimeError(code, fmt.Sprintf(format, args...), nil)
+}
+
+// --- EventManager Methods ---
+
+func newEventManager() *EventManager {
+	return &EventManager{
+		eventHandlers: make(map[string][]*ast.OnEventDecl),
+	}
+}
+
+func (em *EventManager) clear() {
+	em.eventHandlers = make(map[string][]*ast.OnEventDecl)
+}
+
+func (em *EventManager) register(decl *ast.OnEventDecl, i *Interpreter) error {
+	return nil
+}
+
+// --- Interpreter Methods ---
+
+func NewInterpreter(opts ...InterpreterOption) *Interpreter {
+	i := &Interpreter{
+		state:             newInterpreterState(),
+		eventManager:      newEventManager(),
+		maxLoopIterations: 1000,
+	}
+	i.logger = logging.NewNoOpLogger()
+	i.evaluate = &evaluation{i: i}
+	i.stdout = os.Stdout
+	i.stdin = os.Stdin
+	i.stderr = os.Stderr
+
 	for _, opt := range opts {
 		opt(i)
 	}
 
-	// Initialize the tool registry and register core tools
 	i.tools = NewToolRegistry(i)
 	RegisterCoreTools(i.tools)
 
 	return i
 }
 
-// LoadAndRun is the main entry point for executing a script.
+// GetLogger satisfies the tool.Runtime interface.
+func (i *Interpreter) GetLogger() interfaces.Logger {
+	return i.logger
+}
+
+func (i *Interpreter) GetAllVariables() (map[string]lang.Value, error) {
+	i.state.variablesMu.RLock()
+	defer i.state.variablesMu.RUnlock()
+	// Return a copy to prevent race conditions if the caller modifies the map.
+	clone := make(map[string]lang.Value)
+	for k, v := range i.state.variables {
+		clone[k] = v
+	}
+	return clone, nil
+}
+
+func (i *Interpreter) EvaluateExpression(node ast.Expression) (lang.Value, error) {
+	return i.evaluate.Expression(node)
+}
+
 func (i *Interpreter) LoadAndRun(program *ast.Program, mainProcName string, args ...lang.Value) (lang.Value, error) {
 	if err := i.Load(program); err != nil {
 		return nil, fmt.Errorf("failed to load program: %w", err)
@@ -65,14 +232,12 @@ func (i *Interpreter) LoadAndRun(program *ast.Program, mainProcName string, args
 	return i.Run(mainProcName, args...)
 }
 
-// Run executes the 'main' procedure of the currently loaded program.
 func (i *Interpreter) Run(procName string, args ...lang.Value) (lang.Value, error) {
 	if i.state.getProcedure(procName) == nil {
 		return &lang.NilValue{}, fmt.Errorf("procedure '%s' not found", procName)
 	}
 
-	// TODO: Handle arguments
-	result, err := i.callProcedure(procName, nil)
+	result, err := i.callProcedure(procName, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -80,52 +245,33 @@ func (i *Interpreter) Run(procName string, args ...lang.Value) (lang.Value, erro
 	return result, nil
 }
 
-// callProcedure handles the execution of a single procedure.
-func (i *Interpreter) callProcedure(name string, args map[string]lang.Value) (lang.Value, error) {
+func (i *Interpreter) callProcedure(name string, args ...lang.Value) (lang.Value, error) {
 	proc := i.state.getProcedure(name)
 	if proc == nil {
 		return nil, i.state.Errorf(lang.ErrorCodeProcNotFound, "procedure '%s' not found", name)
 	}
 
-	// Create a new stack frame for this procedure call.
 	i.state.pushStackFrame(name)
 	defer i.state.popStackFrame()
 
-	// TODO: Bind arguments to the new frame's variables.
-
-	// Execute the procedure's steps.
-	if err := i.executeSteps(proc.Steps); err != nil {
+	_, _, _, err := i.executeSteps(proc.Steps, false, nil)
+	if err != nil {
 		return nil, err
 	}
 
 	return i.returnValue, nil
 }
 
-// IsRunningInTestMode checks for the presence of the GO_TEST_MODE environment variable.
-func IsRunningInTestMode() bool {
+func (i *Interpreter) IsRunningInTestMode() bool {
 	return os.Getenv("GO_TEST_MODE") == "1"
 }
 
-// NewForTesting creates a new interpreter instance specifically for testing purposes.
 func NewForTesting() *Interpreter {
-	i := New()
+	i := NewInterpreter(nil)
 	i.logger = logging.NewNoOpLogger()
-
-	fmt.Println("Grammar Version:", lang.GrammarVersion)
-	i.logger.Debug("Interpreter created for testing.", "grammarVersion", lang.GrammarVersion)
 	return i
 }
 
-// Helper function to create a new LLM client.
-func (i *Interpreter) newLLMClient(provider, model string) (interfaces.LLMClient, error) {
-	if i.aiWorker != nil {
-		return i.aiWorker, nil
-	}
-	return adapters.NewNoOpLLMClient(), nil
-}
-
-// SetInitialVariable allows setting a variable in the interpreter's global scope
-// before execution begins.
 func (i *Interpreter) SetInitialVariable(name string, value any) error {
 	wrappedValue, err := lang.Wrap(value)
 	if err != nil {
@@ -135,33 +281,30 @@ func (i *Interpreter) SetInitialVariable(name string, value any) error {
 	return nil
 }
 
-// Load takes a parsed AST and configures the interpreter's state.
+func (i *Interpreter) SetLastResult(v lang.Value) {
+	i.lastCallResult = v
+}
+
 func (i *Interpreter) Load(program *ast.Program) error {
 	if program == nil {
 		return fmt.Errorf("cannot load a nil program")
 	}
 
-	// Reset parts of the state that should not persist between loads.
 	i.state.clearProcedures()
 	i.state.clearCommands()
 	i.returnValue = &lang.NilValue{}
 
-	// Load procedures
 	for name, proc := range program.Procedures {
 		i.state.setProcedure(name, proc)
 	}
 
-	// Load commands
 	for _, cmd := range program.Commands {
 		i.state.addCommand(cmd)
 	}
 
-	// Load event handlers
 	if i.eventManager != nil {
 		i.eventManager.clear()
 		for _, eventDecl := range program.Events {
-			// The registration logic will be handled within the EventManager.
-			// The interpreter's role is just to pass the declaration.
 			if err := i.eventManager.register(eventDecl, i); err != nil {
 				return fmt.Errorf("failed to register event handler: %w", err)
 			}
@@ -171,123 +314,18 @@ func (i *Interpreter) Load(program *ast.Program) error {
 	return nil
 }
 
-// RegisterCoreTools registers the built-in tools with the interpreter.
-func RegisterCoreTools(registry interfaces.ToolRegistry) {
-	// TODO: Implement this
+func RegisterCoreTools(registry tool.ToolRegistry) {
 }
 
-// NewToolRegistry creates a new tool registry.
-func NewToolRegistry(i *Interpreter) interfaces.ToolRegistry {
-	// TODO: Implement this
+func NewToolRegistry(i *Interpreter) tool.ToolRegistry {
 	return nil
 }
 
-// executeSteps iterates through and executes a slice of AST steps.
-func (i *Interpreter) executeSteps(steps []ast.Step) error {
-	for _, step := range steps {
-		if i.shouldExit {
-			break
-		}
-		if err := i.executeStep(&step); err != nil {
-			// TODO: Implement error handling logic (e.g., 'on error' blocks).
-			return err
-		}
+func (i *Interpreter) CloneWithNewVariables() *Interpreter {
+	clone := *i
+	clone.state = newInterpreterState()
+	for k, v := range i.state.knownProcedures {
+		clone.state.setProcedure(k, v)
 	}
-	return nil
-}
-
-// executeStep executes a single AST step.
-func (i *Interpreter) executeStep(step *ast.Step) error {
-	var err error
-	switch step.Type {
-	case "set":
-		_, err = i.executeSet(*step)
-	case "emit":
-		_, err = i.executeEmit(*step)
-	case "if":
-		_, _, _, err = i.executeIf(*step, false, nil)
-	case "for":
-		_, _, _, err = i.executeFor(*step, false, nil)
-	case "while":
-		_, _, _, err = i.executeWhile(*step, false, nil)
-	case "return":
-		_, _, err = i.executeReturn(*step)
-	case "call":
-		_, err = i.evaluate.Expression(step.Call)
-	case "fail":
-		err = i.executeFail(*step)
-	case "break":
-		err = i.executeBreak(*step)
-	case "continue":
-		err = i.executeContinue(*step)
-	case "on_error":
-		_, err = i.executeOnError(*step)
-	case "clear_error":
-		_, err = i.executeClearError(*step, false)
-	case "must":
-		_, err = i.executeMust(*step)
-	case "mustbe":
-		// This will likely be the same as executeMust
-		_, err = i.executeMust(*step)
-	case "ask":
-		_, err = i.executeAsk(*step)
-	default:
-		err = i.state.Errorf(lang.ErrorCodeNotImplemented, "unimplemented step type: %s", step.Type)
-	}
-	return err
-}
-
-// The following functions are placeholders and will be implemented in subsequent files.
-
-func (i *Interpreter) executeSet(step ast.Step) (lang.Value, error) {
-	return i.executeSet(step)
-}
-
-// Dummy type definitions to resolve undefined errors
-type interpreterState struct{}
-
-func newInterpreterState() *interpreterState {
-	return &interpreterState{}
-}
-
-func (s *interpreterState) getProcedure(name string) *ast.Procedure {
-	return nil
-}
-
-func (s *interpreterState) setProcedure(name string, proc *ast.Procedure) {
-}
-
-func (s *interpreterState) clearProcedures() {
-}
-
-func (s *interpreterState) addCommand(cmd *ast.CommandNode) {
-}
-
-func (s *interpreterState) clearCommands() {
-}
-
-func (s *interpreterState) pushStackFrame(name string) {
-}
-
-func (s *interpreterState) popStackFrame() {
-}
-
-func (s *interpreterState) setVariable(name string, value lang.Value) {
-}
-
-func (s *interpreterState) Errorf(code lang.ErrorCode, format string, args ...interface{}) error {
-	return fmt.Errorf(format, args...)
-}
-
-type EventManager struct{}
-
-func newEventManager() *EventManager {
-	return &EventManager{}
-}
-
-func (em *EventManager) clear() {
-}
-
-func (em *EventManager) register(decl *ast.OnEventDecl, i *Interpreter) error {
-	return nil
+	return &clone
 }

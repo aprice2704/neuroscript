@@ -38,7 +38,7 @@ var toolGoFindUsagesImpl = ToolImplementation{ // Use ToolImplementation
 // Args: handle (string), path (string), line (int64), column (int64)
 // Returns: []map[string]interface{} or nil, error
 func toolGoFindUsages(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	logger := interpreter.Logger()
+	logger := interpreter.GetLogger()
 
 	// --- Argument Parsing and Validation ---
 	if len(args) != 4 {

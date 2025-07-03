@@ -15,7 +15,7 @@ import (
 )
 
 // toolGoFmt formats a Go source string using go/format.
-func toolGoFmt(i tool.RunTime, args []interface{}) (interface{}, error) {
+func toolGoFmt(i tool.Runtime, args []interface{}) (interface{}, error) {
 	errorResult := func(errMsg string) map[string]interface{} {
 		return map[string]interface{}{"success": false, "error": errMsg}
 	}

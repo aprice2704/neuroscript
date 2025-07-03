@@ -44,8 +44,8 @@ const (
 	// RuleSetStatement describes variable assignment.
 	RuleSetStatement = "5.  **Assignment ('set')**: Use 'set variable = expression'. Variable must be a valid identifier. For mandatory assignments that must succeed, see the `must` keyword rules.\n"
 
-	// RuleCallStatementAnd.Expressions describes how procedures and tools are invoked.
-	RuleCallStatementAnd.Expressions = "6.  **Calls**: Procedure and tool calls are expressions. Use in assignments: 'set result = MyProcedure(arg)', 'set data = tool.ReadFile(\"path\")'. To call for side effects without assigning, MUST use the 'call' statement: 'call tool.LogMessage(\"Done\")'. An expression like 'MyProcedure()' on its own line is NOT valid.\n"
+	// RuleCallStatementAndExpressions describes how procedures and tools are invoked.
+	RuleCallStatementAndExpressions = "6.  **Calls**: Procedure and tool calls are expressions. Use in assignments: 'set result = MyProcedure(arg)', 'set data = tool.ReadFile(\"path\")'. To call for side effects without assigning, MUST use the 'call' statement: 'call tool.LogMessage(\"Done\")'. An expression like 'MyProcedure()' on its own line is NOT valid.\n"
 
 	// RuleMustStatement describes the enhanced 'must' keyword for assertions.
 	RuleMustStatement = "7. **'must' Keyword for Assertions & Assignments**: `must` is the primary tool for defensive programming. It halts execution with a runtime error if its condition fails, which can be caught by an `on_error` block.\n" +
@@ -263,7 +263,7 @@ const (
 		RuleSignaturePart +
 		RuleMetadata +
 		RuleSetStatement +
-		RuleCallStatementAnd.Expressions +
+		RuleCallStatementAndExpressions +
 		RuleMustStatement +
 		RuleToolErrorHandlingAndReturnValues +
 		RuleLastKeyword +

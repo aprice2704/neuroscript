@@ -18,14 +18,13 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/logging"
-	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
 // App orchestrates the main application logic.
 type App struct {
 	Config       *Config
 	Log          interfaces.Logger
-	interpreter  tool.RunTime
+	interpreter  *interpreter.Interpreter
 	llmClient    interfaces.LLMClient
 	agentCtx     *AgentContext
 	patchHandler *PatchHandler
@@ -47,12 +46,12 @@ type App struct {
 
 // In pkg/neurogo/app.go
 
-func (a *App) Interpreter() interpreter.Interpreter { // Use the correct type for your interpreter
+func (a *App) GetInterpreter() *interpreter.Interpreter { // Use the correct type for your interpreter
 	return a.interpreter
 }
 
 // SetInterpreter allows setting the interpreter after App creation.
-func (a *App) SetInterpreter(interp tool.RunTime) {
+func (a *App) SetInterpreter(interp *interpreter.Interpreter) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	a.interpreter = interp
@@ -76,7 +75,7 @@ func (a *App) Stdout() io.Writer {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 	if a.interpreter != nil {
-		return a.interpreter.Stdout()
+		return a.interpreter.GetStdout()
 	}
 	a.Log.Warn("Attempted to get stdout, but interpreter is nil. Returning os.Stdout.")
 	return os.Stdout
@@ -90,52 +89,6 @@ func (a *App) SetStderr(writer io.Writer) {
 		a.interpreter.SetStderr(writer)
 	} else {
 		a.Log.Warn("Attempted to set stderr, but interpreter is nil.")
-	}
-}
-
-// Stderr gets the standard error writer from the underlying interpreter.
-func (a *App) Stderr() io.Writer {
-	a.mu.RLock()
-	defer a.mu.RUnlock()
-	if a.interpreter != nil {
-		return a.interpreter.Stderr()
-	}
-	a.Log.Warn("Attempted to get stderr, but interpreter is nil. Returning os.Stderr.")
-	return os.Stderr
-}
-
-// SetStdin sets the standard input reader for the underlying interpreter.
-func (a *App) SetStdin(reader io.Reader) {
-	a.mu.RLock()
-	defer a.mu.RUnlock()
-	if a.interpreter != nil {
-		a.interpreter.SetStdin(reader)
-	} else {
-		a.Log.Warn("Attempted to set stdin, but interpreter is nil.")
-	}
-}
-
-// Stdin gets the standard input reader from the underlying interpreter.
-func (a *App) Stdin() io.Reader {
-	a.mu.RLock()
-	defer a.mu.RUnlock()
-	if a.interpreter != nil {
-		return a.interpreter.Stdin()
-	}
-	a.Log.Warn("Attempted to get stdin, but interpreter is nil. Returning os.Stdin.")
-	return os.Stdin
-}
-
-// --- End I/O Method Delegation ---
-
-// SetAIWorkerManager sets the AI Worker Manager on the interpreter.
-func (a *App) SetAIWorkerManager(wm *rkerManager) {
-	a.mu.Lock()
-	defer a.mu.Unlock()
-	if a.interpreter != nil {
-		a.interpreter.SetAIWorkerManager(wm)
-	} else {
-		a.Log.Warn("Attempted to set AIWorkerManager, but interpreter is nil.")
 	}
 }
 

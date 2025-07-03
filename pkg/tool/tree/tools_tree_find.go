@@ -18,7 +18,7 @@ import (
 )
 
 // toolTreeFindNodes implements the Tree.FindNodes tool.
-func toolTreeFindNodes(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
+func toolTreeFindNodes(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
 	toolName := "Tree.FindNodes"
 
 	if len(args) < 3 || len(args) > 5 {
@@ -65,7 +65,7 @@ func toolTreeFindNodes(interpreter tool.RunTime, args []interface{}) (interface{
 		return nil, err
 	}
 
-	interpreter.Logger().Debug(fmt.Sprintf("%s: Executing search", toolName),
+	interpreter.GetLogger().Debug(fmt.Sprintf("%s: Executing search", toolName),
 		"tree_handle", treeHandle, "start_node_id", startNode.ID,
 		"query", queryMap, "max_depth", maxDepth, "max_results", maxResults)
 
@@ -142,7 +142,7 @@ func toolTreeFindNodes(interpreter tool.RunTime, args []interface{}) (interface{
 		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, fmt.Sprintf("%s: error during node search: %v", toolName, searchErr), lang.ErrInternal)
 	}
 
-	interpreter.Logger().Debug(fmt.Sprintf("%s: Search completed", toolName), "found_count", len(foundNodeIDs))
+	interpreter.GetLogger().Debug(fmt.Sprintf("%s: Search completed", toolName), "found_count", len(foundNodeIDs))
 	return foundNodeIDs, nil
 }
 

@@ -82,7 +82,7 @@ func TestToolDeleteFile(t *testing.T) {
 			toolName:  "FS.Delete",
 			args:      tool.MakeArgs(fileToDeleteRel),
 			setupFunc: setupDeleteFileTest,
-			checkFunc: func(t *testing.T, interp tool.RunTime, result interface{}, err error, setupCtx interface{}) {
+			checkFunc: func(t *testing.T, interp tool.Runtime, result interface{}, err error, setupCtx interface{}) {
 				if err != nil {
 					t.Fatalf("Unexpected error: %v", err)
 				}
@@ -97,7 +97,7 @@ func TestToolDeleteFile(t *testing.T) {
 			toolName:  "FS.Delete",
 			args:      tool.MakeArgs(dirToDeleteRel),
 			setupFunc: setupDeleteFileTest,
-			checkFunc: func(t *testing.T, interp tool.RunTime, result interface{}, err error, setupCtx interface{}) {
+			checkFunc: func(t *testing.T, interp tool.Runtime, result interface{}, err error, setupCtx interface{}) {
 				if err != nil {
 					t.Fatalf("Unexpected error: %v", err)
 				}
@@ -120,7 +120,7 @@ func TestToolDeleteFile(t *testing.T) {
 			args:          tool.MakeArgs(nonEmptyDirRel),
 			setupFunc:     setupDeleteFileTest,
 			wantToolErrIs: lang.ErrCannotDelete,
-			checkFunc: func(t *testing.T, interp tool.RunTime, result interface{}, err error, setupCtx interface{}) {
+			checkFunc: func(t *testing.T, interp tool.Runtime, result interface{}, err error, setupCtx interface{}) {
 				if !errors.Is(err, lang.ErrCannotDelete) {
 					t.Fatalf("Expected error ErrCannotDelete, got %v", err)
 				}

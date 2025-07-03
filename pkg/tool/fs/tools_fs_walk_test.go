@@ -17,8 +17,8 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
-func makeWalkResultChecker(expected []map[string]interface{}) func(t *testing.T, interp tool.RunTime, result interface{}, err error, ctx interface{}) {
-	return func(t *testing.T, interp tool.RunTime, actual interface{}, err error, ctx interface{}) {
+func makeWalkResultChecker(expected []map[string]interface{}) func(t *testing.T, interp tool.Runtime, result interface{}, err error, ctx interface{}) {
+	return func(t *testing.T, interp tool.Runtime, actual interface{}, err error, ctx interface{}) {
 		t.Helper()
 		testutil.AssertNoError(t, err)
 

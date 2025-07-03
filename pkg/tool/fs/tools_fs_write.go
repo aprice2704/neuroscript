@@ -18,7 +18,7 @@ import (
 )
 
 // writeFileHelper is a private helper that handles the common logic for both writing and appending files.
-func writeFileHelper(interpreter tool.RunTime, args []interface{}, append bool) (interface{}, error) {
+func writeFileHelper(interpreter tool.Runtime, args []interface{}, append bool) (interface{}, error) {
 	if len(args) != 2 {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("expected 2 arguments (filepath, content), got %d", len(args)), lang.ErrArgumentMismatch)
 	}
@@ -72,12 +72,12 @@ func writeFileHelper(interpreter tool.RunTime, args []interface{}, append bool) 
 
 // toolWriteFile implements FS.Write.
 // It creates parent directories if they don't exist and overwrites existing files.
-var toolWriteFile tool.ToolFunc = func(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
+var toolWriteFile tool.ToolFunc = func(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
 	return writeFileHelper(interpreter, args, false)
 }
 
 // toolAppendFile implements FS.Append.
 // It creates parent directories and the file if they don't exist, and appends to existing files.
-func toolAppendFile(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
+func toolAppendFile(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
 	return writeFileHelper(interpreter, args, true)
 }

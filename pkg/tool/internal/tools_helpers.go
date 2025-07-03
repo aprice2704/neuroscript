@@ -22,7 +22,7 @@ func MakeArgs(vals ...interface{}) []interface{} {
 // toolExec executes an external command and returns combined stdout/stderr as a string,
 // or an error if the command fails to run or exits non-zero.
 // This is intended as an *internal* helper for other tools like Git tools.
-func toolExec(interpreter tool.RunTime, cmdAndArgs ...string) (string, error) {
+func toolExec(interpreter tool.Runtime, cmdAndArgs ...string) (string, error) {
 	if len(cmdAndArgs) == 0 {
 		return "", fmt.Errorf("toolExec requires at least a command")
 	}
@@ -32,14 +32,14 @@ func toolExec(interpreter tool.RunTime, cmdAndArgs ...string) (string, error) {
 	// Basic security check (can be enhanced)
 	if strings.Contains(commandPath, "..") || strings.ContainsAny(commandPath, "|;&$><`\\") {
 		errMsg := fmt.Sprintf("toolExec blocked suspicious command path: %q", commandPath)
-		if interpreter.logger != nil {
-			interpreter.logger.Error("[toolExec] %s", errMsg)
+		if interpreter.GetLogger != nil {
+			interpreter.GetLogger().Error("[toolExec] %s", errMsg)
 		}
 		// Return error message and a wrapped ErrInternalTool or a specific execution error
 		return errMsg, fmt.Errorf("%w: %s", lang.ErrInternalTool, errMsg)
 	}
 
-	if interpreter.logger != nil {
+	if interpreter.GetLogger != nil {
 		logArgs := make([]string, len(commandArgs))
 		for i, arg := range commandArgs {
 			if strings.Contains(arg, " ") {
@@ -48,7 +48,7 @@ func toolExec(interpreter tool.RunTime, cmdAndArgs ...string) (string, error) {
 				logArgs[i] = arg
 			}
 		}
-		interpreter.logger.Debug("[toolExec] Executing: %s %s", commandPath, strings.Join(logArgs, " "))
+		interpreter.GetLogger().Debug("[toolExec] Executing: %s %s", commandPath, strings.Join(logArgs, " "))
 	}
 
 	cmd := exec.Command(commandPath, commandArgs...)
@@ -66,16 +66,16 @@ func toolExec(interpreter tool.RunTime, cmdAndArgs ...string) (string, error) {
 		// Command failed (non-zero exit or execution error)
 		errMsg := fmt.Sprintf("command '%s %s' failed with exit error: %v. Output:\n%s",
 			commandPath, strings.Join(commandArgs, " "), execErr, combinedOutput)
-		if interpreter.logger != nil {
-			interpreter.logger.Error("[toolExec] %s", errMsg)
+		if interpreter.GetLogger != nil {
+			interpreter.GetLogger().Error("[toolExec] %s", errMsg)
 		}
 		// Return the combined output along with the error
 		return combinedOutput, fmt.Errorf("%w: %s", lang.ErrInternalTool, errMsg)
 	}
 
 	// Command succeeded
-	if interpreter.logger != nil {
-		interpreter.logger.Debug("[toolExec] Command successful. Output:\n%s", combinedOutput)
+	if interpreter.GetLogger != nil {
+		interpreter.GetLogger().Debug("[toolExec] Command successful. Output:\n%s", combinedOutput)
 	}
 	return combinedOutput, nil
 }

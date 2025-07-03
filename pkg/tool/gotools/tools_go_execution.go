@@ -21,7 +21,7 @@ import (
 // --- Tool Implementations for Go Command Execution ---
 
 // toolGoBuild implementation
-func toolGoBuild(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
+func toolGoBuild(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
 	buildTarget := "./..." // Default target
 	targetArg := ""        // Variable to hold the user-provided target
 
@@ -31,7 +31,7 @@ func toolGoBuild(interpreter tool.RunTime, args []interface{}) (interface{}, err
 		targetArg, ok = args[0].(string)
 		if !ok {
 			errMsg := fmt.Sprintf("optional target argument for GoBuild was not a string, got %T", args[0])
-			interpreter.Logger().Error("[TOOL-GOBUILD] %s", errMsg)
+			interpreter.GetLogger().Error("[TOOL-GOBUILD] %s", errMsg)
 			return map[string]interface{}{"stdout": "", "stderr": errMsg, "exit_code": int64(-1), "success": false}, nil
 		}
 	}
@@ -44,21 +44,21 @@ func toolGoBuild(interpreter tool.RunTime, args []interface{}) (interface{}, err
 	cmd := "go"
 	cmdArgs := []string{"build", buildTarget}
 
-	interpreter.Logger().Debug("[TOOL-GOBUILD] Preparing to execute", "command", cmd, "args", cmdArgs, "target_dir", ".")
+	interpreter.GetLogger().Debug("[TOOL-GOBUILD] Preparing to execute", "command", cmd, "args", cmdArgs, "target_dir", ".")
 
 	// Use internal helper that runs within the sandbox
 	return executeGoCommandHelper(interpreter, ".", cmdArgs...)
 }
 
 // toolGoCheck implementation
-func toolGoCheck(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
+func toolGoCheck(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
 	// Validation ensures 1 string argument (handled by interpreter before calling)
 	targetPath := args[0].(string)
 
 	cmd := "go"
 	cmdArgs := []string{"list", "-e", "-json", targetPath}
 
-	interpreter.Logger().Debug("[TOOL-GOCHECK] Preparing to execute", "command", cmd, "args", cmdArgs, "target_dir", ".")
+	interpreter.GetLogger().Debug("[TOOL-GOCHECK] Preparing to execute", "command", cmd, "args", cmdArgs, "target_dir", ".")
 
 	// Execute the command using internal helper
 	execResultIntf, execCmdErr := executeGoCommandHelper(interpreter, ".", cmdArgs...)
@@ -133,15 +133,15 @@ func toolGoCheck(interpreter tool.RunTime, args []interface{}) (interface{}, err
 			errorDetails = ""
 			// Still might log stderr if it exists, indicates warnings?
 			if execStderr != "" {
-				interpreter.Logger().Warn("[TOOL-GOCHECK] Command succeeded but produced stderr", "stderr", execStderr)
+				interpreter.GetLogger().Warn("[TOOL-GOCHECK] Command succeeded but produced stderr", "stderr", execStderr)
 			}
 		}
 	}
 
 	if checkSuccess {
-		interpreter.Logger().Debug("[TOOL-GOCHECK] Successful.")
+		interpreter.GetLogger().Debug("[TOOL-GOCHECK] Successful.")
 	} else {
-		interpreter.Logger().Warn("[TOOL-GOCHECK] Failed.", "details", errorDetails)
+		interpreter.GetLogger().Warn("[TOOL-GOCHECK] Failed.", "details", errorDetails)
 	}
 
 	checkResultMap := map[string]interface{}{
@@ -152,7 +152,7 @@ func toolGoCheck(interpreter tool.RunTime, args []interface{}) (interface{}, err
 }
 
 // toolGoTest implementation
-func toolGoTest(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
+func toolGoTest(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
 	testTarget := "./..." // Default target
 	targetArg := ""       // Variable to hold the user-provided target
 
@@ -162,7 +162,7 @@ func toolGoTest(interpreter tool.RunTime, args []interface{}) (interface{}, erro
 		targetArg, ok = args[0].(string)
 		if !ok {
 			errMsg := fmt.Sprintf("optional target argument for GoTest was not a string, got %T", args[0])
-			interpreter.Logger().Error("[TOOL-GOTEST] %s", errMsg)
+			interpreter.GetLogger().Error("[TOOL-GOTEST] %s", errMsg)
 			return map[string]interface{}{"stdout": "", "stderr": errMsg, "exit_code": int64(-1), "success": false}, nil
 		}
 	}
@@ -173,25 +173,25 @@ func toolGoTest(interpreter tool.RunTime, args []interface{}) (interface{}, erro
 	cmd := "go"
 	cmdArgs := []string{"test", testTarget}
 
-	interpreter.Logger().Debug("[TOOL-GOTEST] Preparing to execute", "command", cmd, "args", cmdArgs, "target_dir", ".")
+	interpreter.GetLogger().Debug("[TOOL-GOTEST] Preparing to execute", "command", cmd, "args", cmdArgs, "target_dir", ".")
 
 	// Use internal helper that runs within the sandbox
 	return executeGoCommandHelper(interpreter, ".", cmdArgs...)
 }
 
 // toolGoModTidy implementation
-func toolGoModTidy(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
+func toolGoModTidy(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
 	cmd := "go"
 	cmdArgs := []string{"mod", "tidy"}
 
-	interpreter.Logger().Debug("[TOOL-GOMODTIDY] Preparing to execute", "command", cmd, "args", cmdArgs, "target_dir", ".")
+	interpreter.GetLogger().Debug("[TOOL-GOMODTIDY] Preparing to execute", "command", cmd, "args", cmdArgs, "target_dir", ".")
 
 	// Use internal helper that runs within the sandbox
 	return executeGoCommandHelper(interpreter, ".", cmdArgs...)
 }
 
 // toolGoListPackages implementation
-func toolGoListPackages(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
+func toolGoListPackages(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
 	var targetDirRel string = "."             // Default relative dir
 	var patterns []string = []string{"./..."} // Default pattern
 
@@ -226,7 +226,7 @@ func toolGoListPackages(interpreter tool.RunTime, args []interface{}) (interface
 		}
 	}
 
-	interpreter.Logger().Debug("[TOOL-GOLIST] Called", "target_dir_arg", targetDirRel, "patterns_arg", patterns)
+	interpreter.GetLogger().Debug("[TOOL-GOLIST] Called", "target_dir_arg", targetDirRel, "patterns_arg", patterns)
 
 	// Construct command arguments for 'go'
 	cmdArgs := []string{"list", "-json"}
@@ -235,13 +235,13 @@ func toolGoListPackages(interpreter tool.RunTime, args []interface{}) (interface
 	// Execute using helper, specifying the relative directory
 	execResultIntf, execCmdErr := executeGoCommandHelper(interpreter, targetDirRel, cmdArgs...)
 	if execCmdErr != nil {
-		interpreter.Logger().Error("[TOOL-GOLIST] Execution helper failed", "error", execCmdErr)
+		interpreter.GetLogger().Error("[TOOL-GOLIST] Execution helper failed", "error", execCmdErr)
 		// Return empty list and a Go error for interpreter handling
 		return []map[string]interface{}{}, fmt.Errorf("%w: execution helper failed: %w", lang.ErrInternalTool, execCmdErr)
 	}
 	execResultMap, ok := execResultIntf.(map[string]interface{})
 	if !ok {
-		interpreter.Logger().Error("[TOOL-GOLIST] Execution helper returned unexpected type", "type", fmt.Sprintf("%T", execResultIntf))
+		interpreter.GetLogger().Error("[TOOL-GOLIST] Execution helper returned unexpected type", "type", fmt.Sprintf("%T", execResultIntf))
 		return []map[string]interface{}{}, fmt.Errorf("%w: execution helper returned unexpected type %T", lang.ErrInternalTool, execResultIntf)
 	}
 
@@ -250,7 +250,7 @@ func toolGoListPackages(interpreter tool.RunTime, args []interface{}) (interface
 		stderrStr, _ := execResultMap["stderr"].(string)
 		exitCode, _ := execResultMap["exit_code"].(int64)
 		errMsg := fmt.Sprintf("'go list' command failed (exit code %d). Stderr: %s", exitCode, stderrStr)
-		interpreter.Logger().Error("[TOOL-GOLIST] %s", errMsg)
+		interpreter.GetLogger().Error("[TOOL-GOLIST] %s", errMsg)
 		// Return empty list, but no Go error (failure indicated by result map)
 		// Alternatively, could return a Go error here too if desired.
 		return []map[string]interface{}{}, nil
@@ -265,15 +265,15 @@ func toolGoListPackages(interpreter tool.RunTime, args []interface{}) (interface
 		var pkgInfo map[string]interface{}
 		if decodeErr := decoder.Decode(&pkgInfo); decodeErr != nil {
 			errMsg := fmt.Sprintf("failed to decode JSON object from 'go list -json' output: %v.", decodeErr)
-			interpreter.Logger().Error("[TOOL-GOLIST] %s", errMsg)
-			interpreter.Logger().Debug("[TOOL-GOLIST] Raw stdout causing decode error", "stdout", stdoutStr)
+			interpreter.GetLogger().Error("[TOOL-GOLIST] %s", errMsg)
+			interpreter.GetLogger().Debug("[TOOL-GOLIST] Raw stdout causing decode error", "stdout", stdoutStr)
 			// Return empty list and indicate error via Go error
 			return []map[string]interface{}{}, fmt.Errorf("%w: %s", lang.ErrInternalTool, errMsg)
 		}
 		results = append(results, pkgInfo)
 	}
 
-	interpreter.Logger().Debug("[TOOL-GOLIST] Successfully executed and parsed", "package_count", len(results))
+	interpreter.GetLogger().Debug("[TOOL-GOLIST] Successfully executed and parsed", "package_count", len(results))
 	return results, nil // Return the list of parsed package maps
 }
 
@@ -283,12 +283,12 @@ func toolGoListPackages(interpreter tool.RunTime, args []interface{}) (interface
 // It handles path validation and command execution, returning a map similar to toolExecuteCommand.
 // Returns the result map and a Go-level error ONLY if the helper function itself fails (e.g., bad interpreter state, path resolution internal error).
 // Command execution success/failure is indicated *within* the returned map.
-func executeGoCommandHelper(interpreter tool.RunTime, targetDirRel string, goArgs ...string) (interface{}, error) {
-	if interpreter == nil || interpreter.Logger() == nil {
+func executeGoCommandHelper(interpreter tool.Runtime, targetDirRel string, goArgs ...string) (interface{}, error) {
+	if interpreter == nil || interpreter.GetLogger() == nil {
 		// Return nil map and a Go error for internal setup issues
 		return nil, fmt.Errorf("executeGoCommandHelper: interpreter or logger is nil")
 	}
-	logger := interpreter.Logger()
+	logger := interpreter.GetLogger()
 	sandboxRoot := interpreter.SandboxDir()
 	if sandboxRoot == "" {
 		// Return nil map and a Go error for setup issues

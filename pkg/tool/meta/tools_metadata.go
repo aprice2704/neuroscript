@@ -18,7 +18,7 @@ import (
 
 // toolExtractMetadataFromString extracts metadata from a string.
 // Corresponds to ToolSpec "ExtractMetadata".
-func toolExtractMetadataFromString(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
+func toolExtractMetadataFromString(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
 	toolName := "ExtractMetadata" // Assuming this is the public name
 
 	// Argument validation (Count=1, Type=string) expected from validation layer
@@ -36,14 +36,14 @@ func toolExtractMetadataFromString(interpreter tool.RunTime, args []interface{})
 	if len(logSnippet) > maxLen {
 		logSnippet = logSnippet[:maxLen] + "..."
 	}
-	interpreter.Logger().Debug(fmt.Sprintf("%s: Extracting from content", toolName), "snippet", logSnippet)
+	interpreter.GetLogger().Debug(fmt.Sprintf("%s: Extracting from content", toolName), "snippet", logSnippet)
 
 	// Call the actual extraction function
 	metadataMapString, err := metadata.Extract(content)
 	if err != nil {
 		// If metadata.Extract can return errors, wrap them. Assuming it doesn't for now.
 		// If it could fail (e.g., malformed input?), use appropriate ErrorCode/Sentinel.
-		interpreter.Logger().Error(fmt.Sprintf("%s: Error from metadata.Extract", toolName), "error", err)
+		interpreter.GetLogger().Error(fmt.Sprintf("%s: Error from metadata.Extract", toolName), "error", err)
 		// Depending on the error type, choose ErrorCode. Using ErrorCodeInternal as placeholder.
 		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, fmt.Sprintf("%s: failed during metadata extraction: %v", toolName, err), err)
 	}
@@ -54,7 +54,7 @@ func toolExtractMetadataFromString(interpreter tool.RunTime, args []interface{})
 		metadataMapInterface[k] = v
 	}
 
-	interpreter.Logger().Debug(fmt.Sprintf("%s: Extraction complete", toolName), "pairs_found", len(metadataMapInterface))
+	interpreter.GetLogger().Debug(fmt.Sprintf("%s: Extraction complete", toolName), "pairs_found", len(metadataMapInterface))
 	return metadataMapInterface, nil
 }
 

@@ -15,7 +15,7 @@ import (
 )
 
 // toolTreeGetNode implements the Tree.GetNode tool.
-func toolTreeGetNode(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
+func toolTreeGetNode(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
 	toolName := "Tree.GetNode"
 	if len(args) != 2 {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("%s: expected 2 arguments (tree_handle, node_id), got %d", toolName, len(args)), lang.ErrArgumentMismatch)
@@ -53,14 +53,14 @@ func toolTreeGetNode(interpreter tool.RunTime, args []interface{}) (interface{},
 		"parent_attribute_key": node.ParentAttributeKey,
 	}
 
-	interpreter.Logger().Debug(fmt.Sprintf("%s: Retrieved node information", toolName),
+	interpreter.GetLogger().Debug(fmt.Sprintf("%s: Retrieved node information", toolName),
 		"handle", treeHandle, "nodeId", nodeID)
 
 	return nodeMap, nil
 }
 
 // toolTreeGetChildren implements the Tree.GetChildren tool.
-func toolTreeGetChildren(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
+func toolTreeGetChildren(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
 	toolName := "Tree.GetChildren"
 	if len(args) != 2 {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("%s: expected 2 arguments (tree_handle, node_id), got %d", toolName, len(args)), lang.ErrArgumentMismatch)
@@ -93,14 +93,14 @@ func toolTreeGetChildren(interpreter tool.RunTime, args []interface{}) (interfac
 		childIDsToReturn = []interface{}{}
 	}
 
-	interpreter.Logger().Debug(fmt.Sprintf("%s: Retrieved children IDs", toolName),
+	interpreter.GetLogger().Debug(fmt.Sprintf("%s: Retrieved children IDs", toolName),
 		"handle", treeHandle, "nodeId", nodeID, "count", len(childIDsToReturn))
 
 	return childIDsToReturn, nil
 }
 
 // toolTreeGetParent implements the Tree.GetParent tool.
-func toolTreeGetParent(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
+func toolTreeGetParent(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
 	toolName := "Tree.GetParent"
 	if len(args) != 2 {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("%s: expected 2 arguments (tree_handle, node_id), got %d", toolName, len(args)), lang.ErrArgumentMismatch)
@@ -117,7 +117,7 @@ func toolTreeGetParent(interpreter tool.RunTime, args []interface{}) (interface{
 		return nil, err
 	}
 
-	interpreter.Logger().Debug(fmt.Sprintf("%s: Retrieved parent ID", toolName),
+	interpreter.GetLogger().Debug(fmt.Sprintf("%s: Retrieved parent ID", toolName),
 		"handle", treeHandle, "nodeId", nodeID, "parentId", node.ParentID)
 
 	if node.ParentID == "" {

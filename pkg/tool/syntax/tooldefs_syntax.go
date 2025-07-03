@@ -16,7 +16,7 @@ import (
 
 // analyzeSyntax is the function implementing the tool's logic.
 // It matches the expected ToolFunc signature (args as []interface{}).
-var analyzeSyntax tool.ToolFunc = func(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
+var analyzeSyntax tool.ToolFunc = func(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
 	if len(args) != 1 {
 		return nil, fmt.Errorf("analyzeNSSyntax: expected 1 argument (nsScriptContent), got %d: %w", len(args), lang.ErrArgumentMismatch) //
 	}

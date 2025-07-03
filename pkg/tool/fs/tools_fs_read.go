@@ -17,7 +17,7 @@ import (
 )
 
 // toolReadFile implements the TOOL.ReadFile command.
-func toolReadFile(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
+func toolReadFile(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
 	if len(args) != 1 {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("ReadFile: expected 1 argument (filepath), got %d", len(args)), lang.ErrArgumentMismatch)
 	}
@@ -34,18 +34,18 @@ func toolReadFile(interpreter tool.RunTime, args []interface{}) (interface{}, er
 
 	sandboxRoot := interpreter.SandboxDir()
 	if sandboxRoot == "" {
-		interpreter.Logger().Error("Tool: ReadFile] Interpreter sandboxDir is empty, cannot proceed.")
+		interpreter.GetLogger().Error("Tool: ReadFile] Interpreter sandboxDir is empty, cannot proceed.")
 		return nil, lang.NewRuntimeError(lang.ErrorCodeConfiguration, "ReadFile: interpreter sandbox directory is not set", lang.ErrConfiguration)
 	}
 
 	// Use ResolveAndSecurePath which handles various security checks
 	absPath, secErr := security.ResolveAndSecurePath(relPath, sandboxRoot)
 	if secErr != nil {
-		interpreter.Logger().Warn("Tool: ReadFile path validation failed", "relative_path", relPath, "sandbox_root", sandboxRoot, "error", secErr)
+		interpreter.GetLogger().Warn("Tool: ReadFile path validation failed", "relative_path", relPath, "sandbox_root", sandboxRoot, "error", secErr)
 		return "", secErr // Return empty string and the error
 	}
 
-	interpreter.Logger().Debug("Tool: ReadFile attempting to read", "validated_path", absPath, "original_relative_path", relPath, "sandbox_root", sandboxRoot)
+	interpreter.GetLogger().Debug("Tool: ReadFile attempting to read", "validated_path", absPath, "original_relative_path", relPath, "sandbox_root", sandboxRoot)
 
 	// Read the file content
 	contentBytes, err := os.ReadFile(absPath)
@@ -53,12 +53,12 @@ func toolReadFile(interpreter tool.RunTime, args []interface{}) (interface{}, er
 		// Handle specific errors
 		if errors.Is(err, os.ErrNotExist) {
 			errMsg := fmt.Sprintf("ReadFile: file not found '%s'", relPath)
-			interpreter.Logger().Debug(errMsg)
+			interpreter.GetLogger().Debug(errMsg)
 			return "", lang.NewRuntimeError(lang.ErrorCodeFileNotFound, errMsg, lang.ErrFileNotFound) // Return empty string and error
 		}
 		if errors.Is(err, os.ErrPermission) {
 			errMsg := fmt.Sprintf("ReadFile: permission denied for '%s'", relPath)
-			interpreter.Logger().Warn(errMsg)
+			interpreter.GetLogger().Warn(errMsg)
 			return "", lang.NewRuntimeError(lang.ErrorCodePermissionDenied, errMsg, lang.ErrPermissionDenied) // Return empty string and error
 		}
 
@@ -67,19 +67,19 @@ func toolReadFile(interpreter tool.RunTime, args []interface{}) (interface{}, er
 		// Note: This might be OS-dependent.
 		if strings.Contains(err.Error(), "is a directory") {
 			errMsg := fmt.Sprintf("ReadFile: path '%s' is a directory, not a file", relPath)
-			interpreter.Logger().Debug(errMsg)
+			interpreter.GetLogger().Debug(errMsg)
 			// Use ErrPathNotFile sentinel error
 			return "", lang.NewRuntimeError(lang.ErrorCodePathTypeMismatch, errMsg, lang.ErrPathNotFile) // Return empty string and error
 		}
 
 		// Handle other potential I/O errors
 		errMsg := fmt.Sprintf("ReadFile: failed to read file '%s'", relPath)
-		interpreter.Logger().Error(errMsg, "error", err)
+		interpreter.GetLogger().Error(errMsg, "error", err)
 		return "", lang.NewRuntimeError(lang.ErrorCodeIOFailed, errMsg, errors.Join(lang.ErrIOFailed, err)) // Return empty string and error
 	}
 
 	// Success
 	content := string(contentBytes)
-	interpreter.Logger().Debug("Tool: ReadFile successful", "file_path", relPath, "bytes_read", len(contentBytes))
+	interpreter.GetLogger().Debug("Tool: ReadFile successful", "file_path", relPath, "bytes_read", len(contentBytes))
 	return content, nil
 }

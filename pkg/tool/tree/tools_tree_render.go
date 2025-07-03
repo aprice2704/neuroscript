@@ -21,7 +21,7 @@ import (
 
 // toolTreeFormatJSON serializes the tree structure associated with a handle back into a formatted JSON string.
 // Corresponds to ToolSpec "Tree.ToJSON".
-func toolTreeFormatJSON(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
+func toolTreeFormatJSON(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
 	toolName := "Tree.ToJSON" // User-facing tool name
 
 	if len(args) != 1 {
@@ -130,13 +130,13 @@ func toolTreeFormatJSON(interpreter tool.RunTime, args []interface{}) (interface
 			errors.Join(lang.ErrTreeJSONMarshal, marshalErr), // Use specific sentinel
 		)
 	}
-	interpreter.Logger().Debug(fmt.Sprintf("%s: Successfully formatted tree to JSON", toolName), "handle", handleID)
+	interpreter.GetLogger().Debug(fmt.Sprintf("%s: Successfully formatted tree to JSON", toolName), "handle", handleID)
 	return string(jsonBytes), nil
 }
 
 // toolTreeRenderText creates an indented text representation of the tree.
 // Corresponds to ToolSpec "Tree.RenderText".
-func toolTreeRenderText(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
+func toolTreeRenderText(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
 	toolName := "Tree.RenderText"
 
 	if len(args) != 1 {
@@ -241,6 +241,6 @@ func toolTreeRenderText(interpreter tool.RunTime, args []interface{}) (interface
 			errors.Join(lang.ErrInternal, err), // Or ErrTreeFormatFailed
 		)
 	}
-	interpreter.Logger().Debug(fmt.Sprintf("%s: Successfully rendered tree to text", toolName), "handle", handleID)
+	interpreter.GetLogger().Debug(fmt.Sprintf("%s: Successfully rendered tree to text", toolName), "handle", handleID)
 	return builder.String(), nil
 }

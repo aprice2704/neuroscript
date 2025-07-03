@@ -18,7 +18,7 @@ import (
 
 // toolDeleteFile implements the TOOL.DeleteFile command.
 // It deletes a file or an *empty* directory.
-func toolDeleteFile(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
+func toolDeleteFile(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
 	if len(args) != 1 {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("DeleteFile: expected 1 argument (path), got %d", len(args)), lang.ErrArgumentMismatch)
 	}
@@ -32,17 +32,17 @@ func toolDeleteFile(interpreter tool.RunTime, args []interface{}) (interface{}, 
 
 	sandboxRoot := interpreter.SandboxDir()
 	if sandboxRoot == "" {
-		interpreter.Logger().Error("Tool: DeleteFile] Interpreter sandboxDir is empty, cannot proceed.")
+		interpreter.GetLogger().Error("Tool: DeleteFile] Interpreter sandboxDir is empty, cannot proceed.")
 		return nil, lang.NewRuntimeError(lang.ErrorCodeConfiguration, "DeleteFile: interpreter sandbox directory is not set", lang.ErrConfiguration)
 	}
 
 	absPath, secErr := security.SecureFilePath(relPath, sandboxRoot)
 	if secErr != nil {
-		interpreter.Logger().Infof("Tool: DeleteFile] Path security error for %q: %v (Sandbox Root: %s)", relPath, secErr, sandboxRoot)
+		interpreter.GetLogger().Infof("Tool: DeleteFile] Path security error for %q: %v (Sandbox Root: %s)", relPath, secErr, sandboxRoot)
 		return nil, secErr // SecureFilePath returns RuntimeError
 	}
 
-	interpreter.Logger().Infof("Tool: DeleteFile] Validated path: %s. Attempting deletion.", absPath)
+	interpreter.GetLogger().Infof("Tool: DeleteFile] Validated path: %s. Attempting deletion.", absPath)
 
 	// Attempt removal
 	err := os.Remove(absPath)
@@ -51,7 +51,7 @@ func toolDeleteFile(interpreter tool.RunTime, args []interface{}) (interface{}, 
 		// If the file/dir doesn't exist, treat it as success (idempotent delete)
 		if errors.Is(err, os.ErrNotExist) {
 			errMsg := fmt.Sprintf("Path not found, nothing to delete: %s", relPath)
-			interpreter.Logger().Infof("Tool: DeleteFile] Info: %s", errMsg)
+			interpreter.GetLogger().Infof("Tool: DeleteFile] Info: %s", errMsg)
 			return "OK", nil // Return "OK" as per spec
 		}
 
@@ -65,7 +65,7 @@ func toolDeleteFile(interpreter tool.RunTime, args []interface{}) (interface{}, 
 		isDirNotEmptyErr := strings.Contains(errMsgTextLower, "directory not empty") || strings.Contains(errMsgTextLower, "not empty") // Common variations
 
 		errMsg := fmt.Sprintf("Failed to delete '%s'", relPath)
-		interpreter.Logger().Errorf("Tool: DeleteFile] Error: %s: %v", errMsg, err)
+		interpreter.GetLogger().Errorf("Tool: DeleteFile] Error: %s: %v", errMsg, err)
 
 		if isDirNotEmptyErr {
 			// Use ErrorCodePreconditionFailed for "directory not empty"
@@ -82,7 +82,7 @@ func toolDeleteFile(interpreter tool.RunTime, args []interface{}) (interface{}, 
 	}
 
 	successMsg := fmt.Sprintf("Successfully deleted: %s", relPath)
-	interpreter.Logger().Infof("Tool: DeleteFile] %s", successMsg)
+	interpreter.GetLogger().Infof("Tool: DeleteFile] %s", successMsg)
 	// Return "OK" string literal on success
 	return "OK", nil
 }

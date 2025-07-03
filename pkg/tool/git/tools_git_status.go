@@ -14,13 +14,13 @@ import (
 
 // toolGitStatus implements the TOOL.GitStatus command.
 // It executes the git command and then calls parseGitStatusOutput for parsing.
-func toolGitStatus(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
+func toolGitStatus(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
 	// Validate arguments (expecting zero)
 	if len(args) != 0 {
 		return nil, fmt.Errorf("TOOL.GitStatus expects 0 arguments, got %d", len(args))
 	}
 
-	interpreter.logger.Debug("GitStatus] Executing: git status --porcelain -b --untracked-files=all")
+	interpreter.GetLogger().Debug("GitStatus] Executing: git status --porcelain -b --untracked-files=all")
 
 	// Execute using toolExec which handles sandboxing and returns output/error string
 	output, err := toolExec(interpreter, "git", "status", "--porcelain", "-b", "--untracked-files=all")
@@ -58,7 +58,7 @@ func toolGitStatus(interpreter tool.RunTime, args []interface{}) (interface{}, e
 	resultMap, parseErr := parseGitStatusOutput(output)
 	if parseErr != nil {
 		// Log parsing error and also include it in the returned map's error field
-		interpreter.logger.Debug("Tool: GitStatus] Error parsing git status output: %v", parseErr)
+		interpreter.GetLogger().Debug("Tool: GitStatus] Error parsing git status output: %v", parseErr)
 		// Use existing map if partial parsing happened, otherwise create a default one
 		if resultMap == nil {
 			resultMap = map[string]interface{}{
@@ -76,7 +76,7 @@ func toolGitStatus(interpreter tool.RunTime, args []interface{}) (interface{}, e
 		resultMap["is_clean"] = false
 	}
 
-	interpreter.logger.Debug("Tool: GitStatus] Result: %+v", resultMap)
+	interpreter.GetLogger().Debug("Tool: GitStatus] Result: %+v", resultMap)
 	return resultMap, nil // Return the result map, no Go error if command itself succeeded
 }
 

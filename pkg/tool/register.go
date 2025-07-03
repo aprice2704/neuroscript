@@ -44,7 +44,7 @@ func AddToolsetRegistration(name string, regFunc ToolRegisterFunc) {
 
 // CreateRegistrationFunc is a helper that takes a toolset name and a slice of ToolImplementations
 // and returns a ToolRegisterFunc. This simplifies the registration logic within each toolset package.
-func CreateRegistrationFunc(toolsetName string, tools []Implementation) ToolRegisterFunc {
+func CreateRegistrationFunc(toolsetName string, tools []ToolImplementation) ToolRegisterFunc {
 	return func(registry Registrar) error {
 		if registry == nil {
 			err := fmt.Errorf("CreateRegistrationFunc for %s: registry is nil", toolsetName)

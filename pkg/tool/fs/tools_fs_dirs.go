@@ -20,7 +20,7 @@ import (
 )
 
 // --- toolListDirectory unchanged ---
-func toolListDirectory(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
+func toolListDirectory(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
 	if len(args) < 1 || len(args) > 2 {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("ListDirectory: expected 1 or 2 arguments (path, [recursive]), got %d", len(args)), lang.ErrArgumentMismatch)
 	}
@@ -101,7 +101,7 @@ func toolListDirectory(interpreter tool.RunTime, args []interface{}) (interface{
 }
 
 // toolMkdir creates a directory (like mkdir -p).
-func toolMkdir(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
+func toolMkdir(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
 	if len(args) != 1 {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("Mkdir: expected 1 argument (path), got %d", len(args)), lang.ErrArgumentMismatch)
 	}

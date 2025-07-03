@@ -14,7 +14,7 @@ import (
 )
 
 // toolLoadScript implements the LoadScript tool.
-func toolLoadScript(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
+func toolLoadScript(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
 	if len(args) != 1 {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "LoadScript requires exactly one argument: script_content (string)", nil)
 	}
@@ -26,7 +26,7 @@ func toolLoadScript(interpreter tool.RunTime, args []interface{}) (interface{}, 
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "LoadScript argument 'script_content' cannot be an empty string", nil)
 	}
 
-	logger := interpreter.Logger()
+	logger := interpreter.GetLogger()
 
 	// Stage 1: Parse
 	parserAPI := parser.NewParserAPI(logger)
@@ -70,7 +70,7 @@ func toolLoadScript(interpreter tool.RunTime, args []interface{}) (interface{}, 
 }
 
 // toolScriptListFunctions implements the Script.ListFunctions tool for introspection.
-func toolScriptListFunctions(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
+func toolScriptListFunctions(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
 	knownProcs := interpreter.KnownProcedures()
 	names := make([]string, 0, len(knownProcs))
 	for name := range knownProcs {

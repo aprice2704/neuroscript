@@ -21,7 +21,7 @@ import (
 // --- Tree.SetValue (was toolTreeModifyNode) ---
 // Sets the value of an existing leaf node.
 // Corresponds to ToolSpec "Tree.SetValue".
-func toolTreeModifyNode(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
+func toolTreeModifyNode(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
 	toolName := "Tree.SetValue"
 
 	if len(args) != 3 {
@@ -56,7 +56,7 @@ func toolTreeModifyNode(interpreter tool.RunTime, args []interface{}) (interface
 	}
 
 	node.Value = newValue
-	interpreter.Logger().Debug(fmt.Sprintf("%s: Modified node value", toolName), "handle", handleID, "nodeId", nodeID)
+	interpreter.GetLogger().Debug(fmt.Sprintf("%s: Modified node value", toolName), "handle", handleID, "nodeId", nodeID)
 
 	return nil, nil
 }
@@ -64,7 +64,7 @@ func toolTreeModifyNode(interpreter tool.RunTime, args []interface{}) (interface
 // --- Tree.SetObjectAttribute (was toolTreeSetAttribute) ---
 // Sets or updates an attribute on an object node, mapping the attribute key to a child node ID.
 // Corresponds to ToolSpec "Tree.SetObjectAttribute".
-func toolTreeSetAttribute(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
+func toolTreeSetAttribute(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
 	toolName := "Tree.SetObjectAttribute"
 
 	if len(args) != 4 {
@@ -107,18 +107,18 @@ func toolTreeSetAttribute(interpreter tool.RunTime, args []interface{}) (interfa
 
 	if objectNode.Attributes == nil {
 		objectNode.Attributes = make(utils.TreeAttrs)
-		interpreter.Logger().Warn(fmt.Sprintf("%s: Node attributes map was nil for node '%s', initialized.", toolName, objectNodeID))
+		interpreter.GetLogger().Warn(fmt.Sprintf("%s: Node attributes map was nil for node '%s', initialized.", toolName, objectNodeID))
 	}
 	objectNode.Attributes[attrKey] = childNodeID
 
-	interpreter.Logger().Debug(fmt.Sprintf("%s: Set object attribute", toolName), "handle", handleID, "objectNodeId", objectNodeID, "key", attrKey, "childId", childNodeID)
+	interpreter.GetLogger().Debug(fmt.Sprintf("%s: Set object attribute", toolName), "handle", handleID, "objectNodeId", objectNodeID, "key", attrKey, "childId", childNodeID)
 	return nil, nil
 }
 
 // --- Tree.RemoveObjectAttribute (was toolTreeRemoveAttribute) ---
 // Removes an attribute from an object node.
 // Corresponds to ToolSpec "Tree.RemoveObjectAttribute".
-func toolTreeRemoveAttribute(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
+func toolTreeRemoveAttribute(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
 	toolName := "Tree.RemoveObjectAttribute"
 
 	if len(args) != 3 {
@@ -163,14 +163,14 @@ func toolTreeRemoveAttribute(interpreter tool.RunTime, args []interface{}) (inte
 	}
 
 	delete(objectNode.Attributes, attrKey)
-	interpreter.Logger().Debug(fmt.Sprintf("%s: Removed object attribute", toolName), "handle", handleID, "objectNodeId", objectNodeID, "key", attrKey)
+	interpreter.GetLogger().Debug(fmt.Sprintf("%s: Removed object attribute", toolName), "handle", handleID, "objectNodeId", objectNodeID, "key", attrKey)
 	return nil, nil
 }
 
 // --- Tree.AddChildNode (was toolTreeAddNode) ---
 // Adds a new child node to an existing parent node.
 // Corresponds to ToolSpec "Tree.AddChildNode".
-func toolTreeAddNode(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
+func toolTreeAddNode(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
 	toolName := "Tree.AddChildNode"
 
 	if len(args) < 4 || len(args) > 6 {
@@ -217,7 +217,7 @@ func toolTreeAddNode(interpreter tool.RunTime, args []interface{}) (interface{},
 	}
 
 	if (nodeType == "object" || nodeType == "array") && nodeValue != nil {
-		interpreter.Logger().Warn(fmt.Sprintf("%s: node_value provided but ignored for type '%s'", toolName, nodeType))
+		interpreter.GetLogger().Warn(fmt.Sprintf("%s: node_value provided but ignored for type '%s'", toolName, nodeType))
 		nodeValue = nil
 	}
 	if nodeType == "checklist_item" && nodeValue != nil {
@@ -279,7 +279,7 @@ func toolTreeAddNode(interpreter tool.RunTime, args []interface{}) (interface{},
 		// keyForObjectParent (args[5]) should be nil if not an object parent, as handled by ChecklistAddItem.
 		// Log a warning if it was somehow provided for these types.
 		if keyForObjectParent != "" {
-			interpreter.Logger().Warn(fmt.Sprintf("%s: key_for_object_parent '%s' ignored for %s parent '%s'", toolName, keyForObjectParent, parentNode.Type, parentID))
+			interpreter.GetLogger().Warn(fmt.Sprintf("%s: key_for_object_parent '%s' ignored for %s parent '%s'", toolName, keyForObjectParent, parentNode.Type, parentID))
 		}
 		if parentNode.ChildIDs == nil {
 			parentNode.ChildIDs = make([]string, 0)
@@ -292,14 +292,14 @@ func toolTreeAddNode(interpreter tool.RunTime, args []interface{}) (interface{},
 		)
 	}
 
-	interpreter.Logger().Debug(fmt.Sprintf("%s: Added new node to tree", toolName), "handle", handleID, "parentId", parentID, "newNodeId", newNodeID, "type", nodeType)
+	interpreter.GetLogger().Debug(fmt.Sprintf("%s: Added new node to tree", toolName), "handle", handleID, "parentId", parentID, "newNodeId", newNodeID, "type", nodeType)
 	return newNodeID, nil
 }
 
 // --- Tree.RemoveNode (was toolTreeRemoveNode) ---
 // Removes a node and all its descendants from the tree.
 // Corresponds to ToolSpec "Tree.RemoveNode".
-func toolTreeRemoveNode(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
+func toolTreeRemoveNode(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
 	toolName := "Tree.RemoveNode"
 
 	if len(args) != 2 {
@@ -344,11 +344,11 @@ func toolTreeRemoveNode(interpreter tool.RunTime, args []interface{}) (interface
 	}
 
 	if !removeChildFromParent(parentNode, nodeIDToRemove) {
-		interpreter.Logger().Warn(fmt.Sprintf("%s: Node '%s' to remove was not found in its parent's (%s) ChildIDs/Attributes list. Tree might be inconsistent.", toolName, nodeIDToRemove, parentNode.ID))
+		interpreter.GetLogger().Warn(fmt.Sprintf("%s: Node '%s' to remove was not found in its parent's (%s) ChildIDs/Attributes list. Tree might be inconsistent.", toolName, nodeIDToRemove, parentNode.ID))
 	}
 
 	removeNodeRecursive(tree, nodeIDToRemove, make(map[string]struct{}))
 
-	interpreter.Logger().Debug(fmt.Sprintf("%s: Removed node and descendants from tree", toolName), "handle", handleID, "nodeId", nodeIDToRemove)
+	interpreter.GetLogger().Debug(fmt.Sprintf("%s: Removed node and descendants from tree", toolName), "handle", handleID, "nodeId", nodeIDToRemove)
 	return nil, nil
 }

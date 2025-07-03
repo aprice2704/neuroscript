@@ -15,7 +15,7 @@ import (
 )
 
 // toolErrorNew implements the "Error.New" tool function.
-func toolErrorNew(i tool.RunTime, args []interface{}) (interface{}, error) {
+func toolErrorNew(i tool.Runtime, args []interface{}) (interface{}, error) {
 	if len(args) != 2 {
 		return nil, fmt.Errorf("Error.New() expects 2 arguments (code, message), got %d", len(args))
 	}

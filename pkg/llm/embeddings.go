@@ -13,7 +13,7 @@ import (
 
 // GenerateEmbedding creates a mock deterministic embedding.
 // Moved from interpreter_c.go
-func (i tool.RunTime) GenerateEmbedding(text string) ([]float32, error) {
+func (i tool.Runtime) GenerateEmbedding(text string) ([]float32, error) {
 	// Ensure embeddingDim is valid
 	if i.embeddingDim <= 0 {
 		return nil, fmt.Errorf("embedding dimension must be positive (is %d)", i.embeddingDim)

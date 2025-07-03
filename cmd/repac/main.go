@@ -91,9 +91,7 @@ func main() {
 	}
 }
 
-// ───────────────────────────────────────────────────────────────────────────────
 // processFile rewrites one file’s header and package clause.
-
 func processFile(absPath, startDir, rootToDot string) {
 	fset := token.NewFileSet()
 	astFile, err := parser.ParseFile(fset, absPath, nil, parser.ParseComments)
@@ -104,6 +102,12 @@ func processFile(absPath, startDir, rootToDot string) {
 
 	// derive package name from the file’s own directory
 	dirName := filepath.Base(filepath.Dir(absPath))
+
+	// For test files, append "_test" to the package name
+	if strings.HasSuffix(absPath, "_test.go") {
+		dirName += "_test"
+	}
+
 	if astFile.Name.Name != dirName {
 		astFile.Name = &ast.Ident{Name: dirName}
 	}

@@ -18,7 +18,7 @@ import (
 )
 
 // testShellToolHelper tests the toolExecuteCommand implementation directly.
-func testShellToolHelper(t *testing.T, interp tool.RunTime, tc struct {
+func testShellToolHelper(t *testing.T, interp tool.Runtime, tc struct {
 	name         string
 	args         []interface{}
 	wantSuccess  bool

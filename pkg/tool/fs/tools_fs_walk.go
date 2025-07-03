@@ -20,7 +20,7 @@ import (
 
 // toolWalkDir recursively walks a directory, returning a list of maps,
 // where each map describes a file or subdirectory found.
-func toolWalkDir(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
+func toolWalkDir(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
 	// --- Argument Validation ---
 	if len(args) != 1 {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("WalkDir: expected 1 argument (path string), got %d", len(args)), lang.ErrArgumentMismatch)
@@ -38,7 +38,7 @@ func toolWalkDir(interpreter tool.RunTime, args []interface{}) (interface{}, err
 	// --- Sandbox Check ---
 	sandboxRoot := interpreter.SandboxDir()
 	if sandboxRoot == "" {
-		interpreter.Logger().Error("Tool: WalkDir] Interpreter sandboxDir is empty, cannot proceed.")
+		interpreter.GetLogger().Error("Tool: WalkDir] Interpreter sandboxDir is empty, cannot proceed.")
 		return nil, lang.NewRuntimeError(lang.ErrorCodeConfiguration, "WalkDir: interpreter sandbox directory is not set", lang.ErrConfiguration)
 	}
 
@@ -46,18 +46,18 @@ func toolWalkDir(interpreter tool.RunTime, args []interface{}) (interface{}, err
 	// ResolveAndSecurePath handles validation (absolute, traversal, null bytes, empty)
 	absBasePath, secErr := security.ResolveAndSecurePath(relPath, sandboxRoot)
 	if secErr != nil {
-		interpreter.Logger().Debug("Tool: WalkDir] Path validation failed", "error", secErr.Error(), "path", relPath) // Changed from Info
-		return nil, secErr                                                                                            // Return the *RuntimeError directly
+		interpreter.GetLogger().Debug("Tool: WalkDir] Path validation failed", "error", secErr.Error(), "path", relPath) // Changed from Info
+		return nil, secErr                                                                                               // Return the *RuntimeError directly
 	}
 
-	interpreter.Logger().Debugf("Tool: WalkDir] Validated base path: %s (Original Relative: %q, Sandbox: %q)", absBasePath, relPath, sandboxRoot) // Changed from Infof
+	interpreter.GetLogger().Debugf("Tool: WalkDir] Validated base path: %s (Original Relative: %q, Sandbox: %q)", absBasePath, relPath, sandboxRoot) // Changed from Infof
 
 	// --- Check if Start Path is a Directory ---
 	baseInfo, statErr := os.Stat(absBasePath)
 	if statErr != nil {
 		if errors.Is(statErr, os.ErrNotExist) {
 			errMsg := fmt.Sprintf("WalkDir: start path not found '%s'", relPath)
-			interpreter.Logger().Debug("Tool: WalkDir] %s", errMsg) // Changed from Info
+			interpreter.GetLogger().Debug("Tool: WalkDir] %s", errMsg) // Changed from Info
 			return nil, lang.NewRuntimeError(lang.ErrorCodeFileNotFound, errMsg, lang.ErrFileNotFound)
 		}
 		if errors.Is(statErr, os.ErrPermission) {
@@ -70,7 +70,7 @@ func toolWalkDir(interpreter tool.RunTime, args []interface{}) (interface{}, err
 
 	if !baseInfo.IsDir() {
 		errMsg := fmt.Sprintf("WalkDir: start path '%s' is not a directory", relPath)
-		interpreter.Logger().Debug("Tool: WalkDir] %s", errMsg) // Changed from Info
+		interpreter.GetLogger().Debug("Tool: WalkDir] %s", errMsg) // Changed from Info
 		return nil, lang.NewRuntimeError(lang.ErrorCodePathTypeMismatch, errMsg, lang.ErrPathNotDirectory)
 	}
 
@@ -80,7 +80,7 @@ func toolWalkDir(interpreter tool.RunTime, args []interface{}) (interface{}, err
 
 	walkErr := filepath.WalkDir(absBasePath, func(currentPath string, d fs.DirEntry, walkPathErr error) error {
 		if walkPathErr != nil {
-			interpreter.Logger().Warnf("Tool: WalkDir] Error accessing %q during walk: %v. Skipping entry/subtree.", currentPath, walkPathErr)
+			interpreter.GetLogger().Warnf("Tool: WalkDir] Error accessing %q during walk: %v. Skipping entry/subtree.", currentPath, walkPathErr)
 			return nil
 		} // Skip entry on error
 		if currentPath == absBasePath {
@@ -89,13 +89,13 @@ func toolWalkDir(interpreter tool.RunTime, args []interface{}) (interface{}, err
 
 		info, infoErr := d.Info()
 		if infoErr != nil {
-			interpreter.Logger().Warnf("Tool: WalkDir] Error getting FileInfo for %q: %v. Skipping entry.", currentPath, infoErr)
+			interpreter.GetLogger().Warnf("Tool: WalkDir] Error getting FileInfo for %q: %v. Skipping entry.", currentPath, infoErr)
 			return nil
 		} // Skip entry
 
 		entryRelPath, relErr := filepath.Rel(absBasePath, currentPath)
 		if relErr != nil {
-			interpreter.Logger().Errorf("Tool: WalkDir] Internal error calculating relative path for %q (base %q): %v", currentPath, absBasePath, relErr)
+			interpreter.GetLogger().Errorf("Tool: WalkDir] Internal error calculating relative path for %q (base %q): %v", currentPath, absBasePath, relErr)
 			return lang.NewRuntimeError(lang.ErrorCodeInternal, fmt.Sprintf("WalkDir: internal error calculating relative path for '%s'", currentPath), lang.ErrInternal)
 		}
 
@@ -117,15 +117,15 @@ func toolWalkDir(interpreter tool.RunTime, args []interface{}) (interface{}, err
 	if walkErr != nil {
 		var rtErr *lang.RuntimeError
 		if errors.As(walkErr, &rtErr) {
-			interpreter.Logger().Errorf("Tool: WalkDir] Walk failed due to propagated error: %v", rtErr)
+			interpreter.GetLogger().Errorf("Tool: WalkDir] Walk failed due to propagated error: %v", rtErr)
 			return nil, rtErr
 		}
 		errMsg := fmt.Sprintf("WalkDir: failed walking directory '%s'", relPath)
-		interpreter.Logger().Errorf("Tool: WalkDir] %s: %v", errMsg, walkErr)
+		interpreter.GetLogger().Errorf("Tool: WalkDir] %s: %v", errMsg, walkErr)
 		return nil, lang.NewRuntimeError(lang.ErrorCodeIOFailed, errMsg, errors.Join(lang.ErrIOFailed, walkErr))
 	}
 
-	interpreter.Logger().Debugf("Tool: WalkDir] Walk successful", "path", relPath, "entries_found", len(fileInfos)) // Changed from Infof
+	interpreter.GetLogger().Debugf("Tool: WalkDir] Walk successful", "path", relPath, "entries_found", len(fileInfos)) // Changed from Infof
 	// Return the correctly typed slice (even if empty)
 	return fileInfos, nil
 }

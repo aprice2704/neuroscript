@@ -18,7 +18,7 @@ import (
 )
 
 // toolTreeLoadJSON parses a JSON string and returns a handle to the generic tree.
-func toolTreeLoadJSON(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
+func toolTreeLoadJSON(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
 	toolName := "Tree.LoadJSON" // User-facing tool name for error messages
 
 	if len(args) != 1 {
@@ -134,7 +134,7 @@ func toolTreeLoadJSON(interpreter tool.RunTime, args []interface{}) (interface{}
 	}
 
 	if tree.RootID == "" && data != nil {
-		interpreter.Logger().Error(fmt.Sprintf("%s: RootID is empty after successful JSON unmarshal and build for non-empty data", toolName), "json_content_snippet", fmt.Sprintf("%.30s...", jsonContent), "parsed_data_type", fmt.Sprintf("%T", data))
+		interpreter.GetLogger().Error(fmt.Sprintf("%s: RootID is empty after successful JSON unmarshal and build for non-empty data", toolName), "json_content_snippet", fmt.Sprintf("%.30s...", jsonContent), "parsed_data_type", fmt.Sprintf("%T", data))
 		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal,
 			fmt.Sprintf("%s: failed to determine root node after parsing JSON", toolName),
 			lang.ErrInternal,
@@ -143,13 +143,13 @@ func toolTreeLoadJSON(interpreter tool.RunTime, args []interface{}) (interface{}
 
 	handleID, handleErr := interpreter.RegisterHandle(tree, utils.GenericTreeHandleType)
 	if handleErr != nil {
-		interpreter.Logger().Error(fmt.Sprintf("%s: Failed to register GenericTree handle", toolName), "error", handleErr)
+		interpreter.GetLogger().Error(fmt.Sprintf("%s: Failed to register GenericTree handle", toolName), "error", handleErr)
 		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal,
 			fmt.Sprintf("%s: failed to register tree handle: %v", toolName, handleErr),
 			errors.Join(lang.ErrInternal, handleErr),
 		)
 	}
 
-	interpreter.Logger().Debug(fmt.Sprintf("%s: Successfully parsed JSON into tree", toolName), "rootId", tree.RootID, "nodeCount", len(tree.NodeMap), "handle", handleID)
+	interpreter.GetLogger().Debug(fmt.Sprintf("%s: Successfully parsed JSON into tree", toolName), "rootId", tree.RootID, "nodeCount", len(tree.NodeMap), "handle", handleID)
 	return handleID, nil
 }

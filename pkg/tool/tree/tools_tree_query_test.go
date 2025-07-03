@@ -39,7 +39,7 @@ func TestTreeFindAndRenderTools(t *testing.T) {
 		{name: "FindNodes_By_Type_'file'", toolName: "Tree.FindNodes",
 			setupFunc: setupFindRenderTree,
 			args:      tool.MakeArgs("SETUP_HANDLE:frTree", "node-1", map[string]interface{}{"value": "file"}, int64(-1), int64(-1)), // Query for string nodes with value "file"
-			checkFunc: func(t *testing.T, interp tool.RunTime, result interface{}, err error, ctx interface{}) {
+			checkFunc: func(t *testing.T, interp tool.Runtime, result interface{}, err error, ctx interface{}) {
 				if err != nil {
 					t.Fatalf("FindNodes by value 'file' failed: %v", err)
 				}
@@ -111,7 +111,7 @@ func TestTreeFindAndRenderTools(t *testing.T) {
 				}
 			}},
 		{name: "FindNodes_By_Value_of_Name_Attribute", toolName: "Tree.FindNodes", setupFunc: setupFindRenderTree, args: tool.MakeArgs("SETUP_HANDLE:frTree", "node-1", map[string]interface{}{"value": "file1.txt"}, int64(-1), int64(-1)),
-			checkFunc: func(t *testing.T, interp tool.RunTime, result interface{}, err error, ctx interface{}) {
+			checkFunc: func(t *testing.T, interp tool.Runtime, result interface{}, err error, ctx interface{}) {
 				if err != nil {
 					t.Fatalf("FindNodes by value failed: %v", err)
 				}
@@ -133,7 +133,7 @@ func TestTreeFindAndRenderTools(t *testing.T) {
 		{name: "FindNodes_By_Metadata_Deep", toolName: "Tree.FindNodes",
 			setupFunc: setupFindRenderTree,
 			args:      tool.MakeArgs("SETUP_HANDLE:frTree", "node-1", map[string]interface{}{"comment": "query_is_dynamic_in_checkfunc"}, int64(-1), int64(-1)),
-			checkFunc: func(t *testing.T, interp tool.RunTime, _ interface{}, _ error, ctx interface{}) { // Ignored result from static args
+			checkFunc: func(t *testing.T, interp tool.Runtime, _ interface{}, _ error, ctx interface{}) { // Ignored result from static args
 				handle := ctx.(string)
 				findNodesTool, toolFound := interp.ToolRegistry().GetTool("Tree.FindNodes")
 				if !toolFound {
@@ -196,7 +196,7 @@ func TestTreeFindAndRenderTools(t *testing.T) {
 				return setupTreeWithJSON(t, interp, `{"a":"b"}`)
 			},
 			args: tool.MakeArgs("SETUP_HANDLE:renderTree"),
-			checkFunc: func(t *testing.T, interp tool.RunTime, result interface{}, err error, ctx interface{}) {
+			checkFunc: func(t *testing.T, interp tool.Runtime, result interface{}, err error, ctx interface{}) {
 				if err != nil {
 					t.Fatalf("RenderText failed: %v", err)
 				}

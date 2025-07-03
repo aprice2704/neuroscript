@@ -17,7 +17,7 @@ import (
 )
 
 // testGoFormatToolHelper tests a go formatter tool implementation directly.
-func testGoFormatToolHelper(t *testing.T, interp tool.RunTime, tc struct {
+func testGoFormatToolHelper(t *testing.T, interp tool.Runtime, tc struct {
 	name       string
 	toolName   string
 	args       []interface{}

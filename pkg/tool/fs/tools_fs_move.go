@@ -17,7 +17,7 @@ import (
 
 // toolMoveFile moves or renames a file or directory within the sandbox.
 // Implements the MoveFile tool.
-func toolMoveFile(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
+func toolMoveFile(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
 	if len(args) != 2 {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("MoveFile: expected 2 arguments (source_path, destination_path), got %d", len(args)), lang.ErrArgumentMismatch)
 	}
@@ -43,25 +43,25 @@ func toolMoveFile(interpreter tool.RunTime, args []interface{}) (interface{}, er
 
 	sandboxRoot := interpreter.SandboxDir()
 	if sandboxRoot == "" {
-		interpreter.Logger().Error("Tool: MoveFile] Interpreter sandboxDir is empty, cannot proceed.")
+		interpreter.GetLogger().Error("Tool: MoveFile] Interpreter sandboxDir is empty, cannot proceed.")
 		return nil, lang.NewRuntimeError(lang.ErrorCodeConfiguration, "MoveFile: interpreter sandbox directory is not set", lang.ErrConfiguration)
 	}
 
 	absSource, errSource := security.SecureFilePath(sourcePathRel, sandboxRoot)
 	if errSource != nil {
-		interpreter.Logger().Infof("Tool: MoveFile] Invalid source path '%s': %v", sourcePathRel, errSource)
+		interpreter.GetLogger().Infof("Tool: MoveFile] Invalid source path '%s': %v", sourcePathRel, errSource)
 		// Return the RuntimeError directly
 		return nil, errSource
 	}
 
 	absDest, errDest := security.SecureFilePath(destPathRel, sandboxRoot)
 	if errDest != nil {
-		interpreter.Logger().Infof("Tool: MoveFile] Invalid destination path '%s': %v", destPathRel, errDest)
+		interpreter.GetLogger().Infof("Tool: MoveFile] Invalid destination path '%s': %v", destPathRel, errDest)
 		// Return the RuntimeError directly
 		return nil, errDest
 	}
 
-	interpreter.Logger().Infof("Tool: MoveFile] Validated paths: Source '%s' (abs: '%s'), Dest '%s' (abs: '%s')", sourcePathRel, absSource, destPathRel, absDest)
+	interpreter.GetLogger().Infof("Tool: MoveFile] Validated paths: Source '%s' (abs: '%s'), Dest '%s' (abs: '%s')", sourcePathRel, absSource, destPathRel, absDest)
 
 	// Check if source exists before trying to move
 	_, srcStatErr := os.Stat(absSource)
@@ -78,7 +78,7 @@ func toolMoveFile(interpreter tool.RunTime, args []interface{}) (interface{}, er
 			errMsg = fmt.Sprintf("MoveFile: error checking source path '%s'", sourcePathRel)
 			rtErr = lang.NewRuntimeError(lang.ErrorCodeIOFailed, errMsg, errors.Join(lang.ErrIOFailed, srcStatErr))
 		}
-		interpreter.Logger().Warnf("Tool: MoveFile] Source check failed: %s: %v", errMsg, srcStatErr)
+		interpreter.GetLogger().Warnf("Tool: MoveFile] Source check failed: %s: %v", errMsg, srcStatErr)
 		return nil, rtErr // Return nil value and the runtime error
 	}
 
@@ -87,13 +87,13 @@ func toolMoveFile(interpreter tool.RunTime, args []interface{}) (interface{}, er
 	if destStatErr == nil {
 		// Destination exists, this is usually an error for Rename/Move
 		errMsg := fmt.Sprintf("MoveFile: destination path '%s' already exists", destPathRel)
-		interpreter.Logger().Warnf("Tool: MoveFile] Error: %s (resolved: %s)", errMsg, absDest)
+		interpreter.GetLogger().Warnf("Tool: MoveFile] Error: %s (resolved: %s)", errMsg, absDest)
 		// Use ErrorCodePathExists
 		return nil, lang.NewRuntimeError(lang.ErrorCodePathExists, errMsg, lang.ErrPathExists)
 	} else if !errors.Is(destStatErr, os.ErrNotExist) {
 		// Error stating destination path (e.g., permission error on parent dir)
 		errMsg := fmt.Sprintf("MoveFile: error checking destination path '%s'", destPathRel)
-		interpreter.Logger().Errorf("Tool: MoveFile] %s (resolved: %s): %v", errMsg, absDest, destStatErr)
+		interpreter.GetLogger().Errorf("Tool: MoveFile] %s (resolved: %s): %v", errMsg, absDest, destStatErr)
 		if errors.Is(destStatErr, os.ErrPermission) {
 			return nil, lang.NewRuntimeError(lang.ErrorCodePermissionDenied, errMsg, lang.ErrPermissionDenied)
 		}
@@ -102,11 +102,11 @@ func toolMoveFile(interpreter tool.RunTime, args []interface{}) (interface{}, er
 	// Destination does not exist (or stat failed with os.ErrNotExist), which is what we want.
 
 	// Attempt the move/rename operation
-	interpreter.Logger().Infof("Tool: MoveFile] Attempting rename/move: '%s' -> '%s'", absSource, absDest)
+	interpreter.GetLogger().Infof("Tool: MoveFile] Attempting rename/move: '%s' -> '%s'", absSource, absDest)
 	renameErr := os.Rename(absSource, absDest)
 	if renameErr != nil {
 		errMsg := fmt.Sprintf("MoveFile: failed to move/rename '%s' to '%s'", sourcePathRel, destPathRel)
-		interpreter.Logger().Errorf("Tool: MoveFile] Error: %s: %v", errMsg, renameErr)
+		interpreter.GetLogger().Errorf("Tool: MoveFile] Error: %s: %v", errMsg, renameErr)
 		// Check for specific OS errors if needed (e.g., cross-device link), otherwise treat as general I/O
 		// Use ErrorCodeIOFailed
 		return nil, lang.NewRuntimeError(lang.ErrorCodeIOFailed, errMsg, errors.Join(lang.ErrIOFailed, renameErr))
@@ -114,7 +114,7 @@ func toolMoveFile(interpreter tool.RunTime, args []interface{}) (interface{}, er
 
 	// Success
 	successMsg := fmt.Sprintf("Successfully moved/renamed '%s' to '%s'", sourcePathRel, destPathRel)
-	interpreter.Logger().Infof("Tool: MoveFile] %s", successMsg)
+	interpreter.GetLogger().Infof("Tool: MoveFile] %s", successMsg)
 	// Return the success map as specified in tooldefs_fs.go (ReturnType: ArgTypeMap)
 	return map[string]interface{}{"message": successMsg, "error": nil}, nil
 }

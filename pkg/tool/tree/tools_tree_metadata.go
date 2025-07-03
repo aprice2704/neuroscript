@@ -16,7 +16,7 @@ import (
 
 // toolTreeSetNodeMetadata sets or updates a string metadata attribute (key-value pair) on any existing node type.
 // Corresponds to ToolSpec "Tree.SetNodeMetadata".
-func toolTreeSetNodeMetadata(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
+func toolTreeSetNodeMetadata(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
 	toolName := "Tree.SetNodeMetadata"
 
 	// Expected args: tree_handle (string), node_id (string), metadata_key (string), metadata_value (string)
@@ -57,17 +57,17 @@ func toolTreeSetNodeMetadata(interpreter tool.RunTime, args []interface{}) (inte
 	// Ensure the Attributes map is initialized (GenericTreeNode.NewNode initializes it)
 	if node.Attributes == nil {
 		node.Attributes = make(utils.TreeAttrs)
-		interpreter.Logger().Warn(fmt.Sprintf("%s: Node attributes map was nil for node '%s', initialized.", toolName, nodeID))
+		interpreter.GetLogger().Warn(fmt.Sprintf("%s: Node attributes map was nil for node '%s', initialized.", toolName, nodeID))
 	}
 	node.Attributes[metaKey] = metaValue // Set the string value
 
-	interpreter.Logger().Debug(fmt.Sprintf("%s: Set node metadata attribute", toolName), "handle", handleID, "nodeId", nodeID, "key", metaKey, "value", metaValue)
+	interpreter.GetLogger().Debug(fmt.Sprintf("%s: Set node metadata attribute", toolName), "handle", handleID, "nodeId", nodeID, "key", metaKey, "value", metaValue)
 	return nil, nil
 }
 
 // toolTreeRemoveNodeMetadata removes a metadata attribute (key-value pair) from any node.
 // Corresponds to ToolSpec "Tree.RemoveNodeMetadata".
-func toolTreeRemoveNodeMetadata(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
+func toolTreeRemoveNodeMetadata(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
 	toolName := "Tree.RemoveNodeMetadata"
 
 	// Expected args: tree_handle (string), node_id (string), metadata_key (string)
@@ -116,6 +116,6 @@ func toolTreeRemoveNodeMetadata(interpreter tool.RunTime, args []interface{}) (i
 	}
 
 	delete(node.Attributes, metaKey)
-	interpreter.Logger().Debug(fmt.Sprintf("%s: Removed node metadata attribute", toolName), "handle", handleID, "nodeId", nodeID, "key", metaKey)
+	interpreter.GetLogger().Debug(fmt.Sprintf("%s: Removed node metadata attribute", toolName), "handle", handleID, "nodeId", nodeID, "key", metaKey)
 	return nil, nil
 }

@@ -20,7 +20,7 @@ import (
 
 // toolSearchSkills performs a mock similarity search.
 // Corresponds to ToolSpec "SearchSkills".
-func toolSearchSkills(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
+func toolSearchSkills(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
 	toolName := "SearchSkills"
 
 	if len(args) != 1 {
@@ -31,17 +31,17 @@ func toolSearchSkills(interpreter tool.RunTime, args []interface{}) (interface{}
 		return nil, lang.NewRuntimeError(lang.ErrorCodeType, fmt.Sprintf("%s: query argument must be a string, got %T", toolName, args[0]), lang.ErrInvalidArgument)
 	}
 
-	interpreter.Logger().Debug(fmt.Sprintf("[%s] (Mock) searching for query", toolName), "query", query)
+	interpreter.GetLogger().Debug(fmt.Sprintf("[%s] (Mock) searching for query", toolName), "query", query)
 
 	if interpreter.vectorIndex == nil {
 		interpreter.vectorIndex = make(map[string][]float32)
-		interpreter.Logger().Debug(fmt.Sprintf("[%s] Vector index was nil, initialized.", toolName))
+		interpreter.GetLogger().Debug(fmt.Sprintf("[%s] Vector index was nil, initialized.", toolName))
 	}
 
 	queryEmb, embErr := interpreter.GenerateEmbedding(query)
 	if embErr != nil {
 		errMsg := fmt.Sprintf("%s: embedding generation failed", toolName)
-		interpreter.Logger().Error(errMsg, "error", embErr)
+		interpreter.GetLogger().Error(errMsg, "error", embErr)
 		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, errMsg, errors.Join(lang.ErrInternalTool, embErr))
 	}
 
@@ -55,7 +55,7 @@ func toolSearchSkills(interpreter tool.RunTime, args []interface{}) (interface{}
 	for pathKeyAbs, storedEmb := range interpreter.vectorIndex {
 		score, simErr := llm.cosineSimilarity(queryEmb, storedEmb)
 		if simErr != nil {
-			interpreter.Logger().Warn(fmt.Sprintf("[%s] Could not calculate similarity", toolName), "path", pathKeyAbs, "error", simErr)
+			interpreter.GetLogger().Warn(fmt.Sprintf("[%s] Could not calculate similarity", toolName), "path", pathKeyAbs, "error", simErr)
 			continue
 		}
 		if score >= threshold {
@@ -66,7 +66,7 @@ func toolSearchSkills(interpreter tool.RunTime, args []interface{}) (interface{}
 				if err == nil {
 					relativePath = rel
 				} else {
-					interpreter.Logger().Warn(fmt.Sprintf("[%s] Could not make path relative to sandbox", toolName), "sandbox", sandboxRoot, "absPath", pathKeyAbs, "error", err)
+					interpreter.GetLogger().Warn(fmt.Sprintf("[%s] Could not make path relative to sandbox", toolName), "sandbox", sandboxRoot, "absPath", pathKeyAbs, "error", err)
 				}
 			}
 			results = append(results, SearchResult{Path: relativePath, Score: score})
@@ -80,17 +80,17 @@ func toolSearchSkills(interpreter tool.RunTime, args []interface{}) (interface{}
 	resultBytes, jsonErr := json.Marshal(results)
 	if jsonErr != nil {
 		errMsg := fmt.Sprintf("%s: failed to marshal results to JSON", toolName)
-		interpreter.Logger().Error(errMsg, "error", jsonErr)
+		interpreter.GetLogger().Error(errMsg, "error", jsonErr)
 		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, errMsg, errors.Join(lang.ErrInternalTool, jsonErr))
 	}
 
-	interpreter.Logger().Debug(fmt.Sprintf("[%s] Search complete", toolName), "results_count", len(results))
+	interpreter.GetLogger().Debug(fmt.Sprintf("[%s] Search complete", toolName), "results_count", len(results))
 	return string(resultBytes), nil
 }
 
 // toolVectorUpdate adds or updates a file's mock embedding in the index.
 // Corresponds to ToolSpec "VectorUpdate".
-func toolVectorUpdate(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
+func toolVectorUpdate(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
 	toolName := "VectorUpdate"
 
 	if len(args) != 1 {
@@ -109,12 +109,12 @@ func toolVectorUpdate(interpreter tool.RunTime, args []interface{}) (interface{}
 		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, fmt.Sprintf("%s: FileAPI not initialized in interpreter", toolName), lang.ErrInternal)
 	}
 
-	interpreter.Logger().Debug(fmt.Sprintf("[%s] (Mock) updating index for", toolName), "relative_path", filePathRel)
+	interpreter.GetLogger().Debug(fmt.Sprintf("[%s] (Mock) updating index for", toolName), "relative_path", filePathRel)
 
 	// ast.Step 1: Resolve the relative path to a safe, absolute path using FileAPI
 	absPath, pathErr := fileAPI.ResolvePath(filePathRel)
 	if pathErr != nil {
-		interpreter.Logger().Error(fmt.Sprintf("%s: failed to resolve path", toolName), "relative_path", filePathRel, "error", pathErr)
+		interpreter.GetLogger().Error(fmt.Sprintf("%s: failed to resolve path", toolName), "relative_path", filePathRel, "error", pathErr)
 		// ResolvePath already returns a RuntimeError, so just propagate it
 		return nil, pathErr
 	}
@@ -122,7 +122,7 @@ func toolVectorUpdate(interpreter tool.RunTime, args []interface{}) (interface{}
 	// ast.Step 2: Read the file content using the resolved absolute path
 	contentBytes, readErr := os.ReadFile(absPath)
 	if readErr != nil {
-		interpreter.Logger().Error(fmt.Sprintf("%s: failed to read file", toolName), "absolute_path", absPath, "error", readErr)
+		interpreter.GetLogger().Error(fmt.Sprintf("%s: failed to read file", toolName), "absolute_path", absPath, "error", readErr)
 		return nil, lang.NewRuntimeError(lang.ErrorCodeIOFailed, fmt.Sprintf("failed to read file '%s'", filePathRel), readErr)
 	}
 
@@ -130,7 +130,7 @@ func toolVectorUpdate(interpreter tool.RunTime, args []interface{}) (interface{}
 	embedding, embErr := interpreter.GenerateEmbedding(string(contentBytes))
 	if embErr != nil {
 		errMsg := fmt.Sprintf("%s: embedding generation failed for %q", toolName, filePathRel)
-		interpreter.Logger().Error(errMsg, "error", embErr)
+		interpreter.GetLogger().Error(errMsg, "error", embErr)
 		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, errMsg, errors.Join(lang.ErrInternalTool, embErr))
 	}
 
@@ -140,7 +140,7 @@ func toolVectorUpdate(interpreter tool.RunTime, args []interface{}) (interface{}
 	}
 	interpreter.vectorIndex[absPath] = embedding // Store with absolute path key
 
-	interpreter.Logger().Debug(fmt.Sprintf("[%s] Update successful", toolName), "relative_path", filePathRel, "absolute_path", absPath)
+	interpreter.GetLogger().Debug(fmt.Sprintf("[%s] Update successful", toolName), "relative_path", filePathRel, "absolute_path", absPath)
 	return "OK", nil
 }
 

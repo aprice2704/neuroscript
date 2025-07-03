@@ -18,7 +18,7 @@ import (
 // --- Tool Implementations for Go Diagnostic Commands ---
 
 // toolGoVet implementation
-func toolGoVet(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
+func toolGoVet(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
 	vetTarget := "./..." // Default target
 	if len(args) > 0 {
 		if targetArg, ok := args[0].(string); ok && targetArg != "" {
@@ -31,7 +31,7 @@ func toolGoVet(interpreter tool.RunTime, args []interface{}) (interface{}, error
 
 // toolStaticcheck implementation
 // NOTE: Assumes 'staticcheck' executable is available in the PATH.
-func toolStaticcheck(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
+func toolStaticcheck(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
 	checkTarget := "./..." // Default target
 	if len(args) > 0 {
 		if targetArg, ok := args[0].(string); ok && targetArg != "" {
@@ -43,7 +43,7 @@ func toolStaticcheck(interpreter tool.RunTime, args []interface{}) (interface{},
 }
 
 // toolGoImports formats a Go source string and manages imports using golang.org/x/tools/imports.
-func toolGoImports(i tool.RunTime, args []interface{}) (interface{}, error) {
+func toolGoImports(i tool.Runtime, args []interface{}) (interface{}, error) {
 	errorResult := func(errMsg string) map[string]interface{} {
 		return map[string]interface{}{"success": false, "error": errMsg}
 	}

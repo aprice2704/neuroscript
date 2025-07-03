@@ -18,14 +18,14 @@ type fsTestCase struct {
 	toolName      string
 	args          []interface{}
 	setupFunc     func(sandboxRoot string) error
-	checkFunc     func(t *testing.T, interp tool.RunTime, result interface{}, err error, setupCtx interface{})
+	checkFunc     func(t *testing.T, interp tool.Runtime, result interface{}, err error, setupCtx interface{})
 	wantResult    interface{}
 	wantContent   string // New field to check file content
 	wantToolErrIs error
 }
 
 // testFsToolHelper runs a single filesystem tool test case.
-func testFsToolHelper(t *testing.T, interp tool.RunTime, tc fsTestCase) {
+func testFsToolHelper(t *testing.T, interp tool.Runtime, tc fsTestCase) {
 	t.Helper()
 
 	sandboxRoot := interp.SandboxDir()
@@ -89,7 +89,7 @@ func testFsToolHelper(t *testing.T, interp tool.RunTime, tc fsTestCase) {
 }
 
 // testFsToolHelperWithCompare is a variant that uses a custom comparison function.
-func testFsToolHelperWithCompare(t *testing.T, interp tool.RunTime, tc fsTestCase, compareFunc func(t *testing.T, tc fsTestCase, expected, actual interface{})) {
+func testFsToolHelperWithCompare(t *testing.T, interp tool.Runtime, tc fsTestCase, compareFunc func(t *testing.T, tc fsTestCase, expected, actual interface{})) {
 	t.Helper()
 
 	sandboxRoot := interp.SandboxDir()

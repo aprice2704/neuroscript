@@ -17,7 +17,7 @@ import (
 )
 
 // testStringToolHelper tests a tool implementation directly with primitives.
-func testStringToolHelper(t *testing.T, interp tool.RunTime, tc struct {
+func testStringToolHelper(t *testing.T, interp tool.Runtime, tc struct {
 	name       string
 	toolName   string
 	args       []interface{}

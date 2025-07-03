@@ -59,7 +59,7 @@ func TestToolListDirectoryFunctional(t *testing.T) {
 			toolName:  "FS.List",
 			args:      tool.MakeArgs("."),
 			setupFunc: setupFunc,
-			checkFunc: func(t *testing.T, interp tool.RunTime, result interface{}, err error, ctx interface{}) {
+			checkFunc: func(t *testing.T, interp tool.Runtime, result interface{}, err error, ctx interface{}) {
 				testutil.AssertNoError(t, err)
 				res, ok := result.([]map[string]interface{})
 				if !ok {
@@ -127,7 +127,7 @@ func TestToolMkdirFunctional(t *testing.T) {
 			toolName:  "FS.Mkdir",
 			args:      tool.MakeArgs("new_dir_1"),
 			setupFunc: setupFunc,
-			checkFunc: func(t *testing.T, interp tool.RunTime, result interface{}, err error, ctx interface{}) {
+			checkFunc: func(t *testing.T, interp tool.Runtime, result interface{}, err error, ctx interface{}) {
 				testutil.AssertNoError(t, err)
 				if _, statErr := os.Stat(filepath.Join(interp.SandboxDir(), "new_dir_1")); os.IsNotExist(statErr) {
 					t.Error("Mkdir did not create the directory 'new_dir_1'")

@@ -1,24 +1,38 @@
-// NeuroScript Version: 0.4.1
-// File version: 13
-// Purpose: Updated createTestStep helper to use the new LValues field.
+// NeuroScript Version: 0.5.2
+// File version: 22
+// Purpose: Added the missing 'ExpressionTest' helper function to resolve multiple undefined errors in other packages.
 // filename: pkg/testutil/testing_helpers.go
 
 package testutil
 
 import (
 	"errors"
+	"fmt"
 	"reflect"
-	"strings"
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/ast"
+	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/logging"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
 var dummyPos = &lang.Position{Line: 1, Column: 1, File: "test"}
 
-// ... (struct definitions and other functions are unchanged) ...
+// --- Test Case Structs (Exported) ---
+
+type ExecuteStepsTestCase struct {
+	Name            string
+	InputSteps      []ast.Step
+	InitialVars     map[string]lang.Value
+	LastResult      lang.Value
+	ExpectError     bool
+	ExpectedErrorIs error
+	ErrContains     string
+	ExpectedResult  lang.Value
+	ExpectedVars    map[string]lang.Value
+}
 
 type EvalTestCase struct {
 	Name            string
@@ -30,97 +44,97 @@ type EvalTestCase struct {
 	ExpectedErrorIs error
 }
 
-type executeStepsTestCase struct {
-	name            string
-	inputSteps      []ast.Step
-	initialVars     map[string]lang.Value
-	lastResult      lang.Value
-	expectError     bool
-	ExpectedErrorIs error
-	errContains     string
-	expectedResult  lang.Value
-	expectedVars    map[string]lang.Value
+// --- Generic AST Creation Helpers (Exported) ---
+
+func NewTestStringLiteral(val string) *ast.StringLiteralNode {
+	return &ast.StringLiteralNode{Pos: dummyPos, Value: val}
 }
 
-type ValidationTestCase struct {
-	Name          string
-	InputArgs     []interface{}
-	ExpectedError error
+func NewTestNumberLiteral(val float64) *ast.NumberLiteralNode {
+	return &ast.NumberLiteralNode{Pos: dummyPos, Value: val}
 }
 
-func runValidationTestCases(t *testing.T, toolName string, testCases []ValidationTestCase) {
+func NewTestBooleanLiteral(val bool) *ast.BooleanLiteralNode {
+	return &ast.BooleanLiteralNode{Pos: dummyPos, Value: val}
+}
+
+func NewVariableNode(name string) *ast.VariableNode {
+	return &ast.VariableNode{Pos: dummyPos, Name: name}
+}
+
+// --- Test Execution Helpers (Exported) ---
+
+func NewTestInterpreter(t *testing.T, initialVars map[string]lang.Value, lastResult lang.Value) (*interpreter.Interpreter, error) {
 	t.Helper()
-	interp, _ := llm.NewDefaultTestInterpreter(t)
-	tool, ok := interp.ToolRegistry().GetTool(toolName)
-	if !ok {
-		t.Fatalf("Tool %s not found in registry", toolName)
-	}
+	testLogger := logging.NewTestLogger(t)
+	sandboxDir := t.TempDir()
 
-	for _, tc := range testCases {
-		t.Run(tc.Name, func(t *testing.T) {
-			_, err := tool.Func(interp, tc.InputArgs)
-			if !errors.Is(err, tc.ExpectedError) {
-				t.Errorf("Expected error [%v], but got [%v]", tc.ExpectedError, err)
+	interp := interpreter.NewInterpreter(
+		interpreter.WithLogger(testLogger),
+		interpreter.WithSandboxDir(sandboxDir),
+	)
+
+	if initialVars != nil {
+		for k, v := range initialVars {
+			if err := interp.SetInitialVariable(k, v); err != nil {
+				return nil, fmt.Errorf("failed to set initial variable %q: %w", k, err)
 			}
-		})
+		}
 	}
+
+	if lastResult != nil {
+		interp.SetLastResult(lastResult)
+	}
+
+	if err := tool.RegisterCoreTools(interp.ToolRegistry()); err != nil {
+		return nil, fmt.Errorf("failed to register core tools for test interpreter: %w", err)
+	}
+	return interp, nil
 }
 
-func AssertNoError(t *testing.T, err error, msgAndArgs ...interface{}) {
-	t.Helper()
-	if err != nil {
-		t.Fatalf("Expected no error, but got: %v", err)
-	}
-}
-
+// ExpressionTest runs a single expression evaluation test case.
 func ExpressionTest(t *testing.T, tc EvalTestCase) {
 	t.Helper()
 	t.Run(tc.Name, func(t *testing.T) {
-		i, err := llm.NewTestInterpreter(t, tc.InitialVars, tc.LastResult)
+		i, err := NewTestInterpreter(t, tc.InitialVars, tc.LastResult)
 		if err != nil {
 			t.Fatalf("NewTestInterpreter failed: %v", err)
 		}
 
-		got, err := i.evaluate.Expression(tc.InputNode)
+		result, err := i.EvaluateExpression(tc.InputNode)
 
 		if (err != nil) != tc.WantErr {
-			t.Fatalf("Test %q: Error expectation mismatch.\n got err = %v, wantErr %t", tc.Name, err, tc.WantErr)
+			t.Fatalf("EvaluateExpression() error = %v, wantErr %v", err, tc.WantErr)
 		}
 		if tc.WantErr {
 			if tc.ExpectedErrorIs != nil && !errors.Is(err, tc.ExpectedErrorIs) {
-				t.Fatalf("Test %q: Expected error wrapping [%v], but got [%v]", tc.Name, tc.ExpectedErrorIs, err)
+				t.Fatalf("Expected error wrapping: [%v], got: [%v]", tc.ExpectedErrorIs, err)
 			}
 			return
 		}
-		if err != nil {
-			t.Fatalf("Test %q: unexpected error: %v", tc.Name, err)
-		}
 
-		if !reflect.DeepEqual(got, tc.Expected) {
-			t.Fatalf(`Test %q: Result mismatch.
-		   Expected: 	%#v (%T)
-		   Got: 	 	%#v (%T)`,
-				tc.Name, tc.Expected, tc.Expected, got, got)
+		if !reflect.DeepEqual(result, tc.Expected) {
+			t.Errorf("Expression evaluation result mismatch:\n Expected: %#v (%T)\n      Got: %#v (%T)", tc.Expected, tc.Expected, result, result)
 		}
 	})
 }
 
-func runExecuteStepsTest(t *testing.T, tc executeStepsTestCase) {
+func RunExecuteStepsTest(t *testing.T, tc ExecuteStepsTestCase) {
 	t.Helper()
-	t.Run(tc.name, func(t *testing.T) {
-		i, err := llm.NewTestInterpreter(t, tc.initialVars, tc.lastResult)
+	t.Run(tc.Name, func(t *testing.T) {
+		i, err := NewTestInterpreter(t, tc.InitialVars, tc.LastResult)
 		if err != nil {
 			t.Fatalf("NewTestInterpreter failed: %v", err)
 		}
 
-		finalResultFromExec, wasReturn, _, err := i.executeSteps(tc.inputSteps, false, nil)
+		finalResultFromExec, wasReturn, _, err := i.RunSteps(tc.InputSteps)
 
-		if (err != nil) != tc.expectError {
-			t.Fatalf("Test %q: Unexpected error state. Got err: %v, wantErr: %t", tc.name, err, tc.expectError)
+		if (err != nil) != tc.ExpectError {
+			t.Fatalf("Test %q: Unexpected error state. Got err: %v, wantErr: %t", tc.Name, err, tc.ExpectError)
 		}
-		if tc.expectError {
+		if tc.ExpectError {
 			if tc.ExpectedErrorIs != nil && !errors.Is(err, tc.ExpectedErrorIs) {
-				t.Fatalf("Test %q: Expected error wrapping: [%v], got: [%v]", tc.name, tc.ExpectedErrorIs, err)
+				t.Fatalf("Test %q: Expected error wrapping: [%v], got: [%v]", tc.Name, tc.ExpectedErrorIs, err)
 			}
 			return
 		}
@@ -129,97 +143,24 @@ func runExecuteStepsTest(t *testing.T, tc executeStepsTestCase) {
 		if wasReturn {
 			actualResult = finalResultFromExec
 		} else {
-			actualResult = i.lastCallResult
+			actualResult = i.GetLastResult()
 		}
 
-		if !reflect.DeepEqual(actualResult, tc.expectedResult) {
-			t.Errorf("Test %q: Final execution result mismatch:\n Expected: %#v (%T)\n Got: 	  %#v (%T)", tc.name, tc.expectedResult, tc.expectedResult, actualResult, actualResult)
+		if !reflect.DeepEqual(actualResult, tc.ExpectedResult) {
+			t.Errorf("Test %q: Final execution result mismatch:\n Expected: %#v (%T)\n Got:      %#v (%T)", tc.Name, tc.ExpectedResult, tc.ExpectedResult, actualResult, actualResult)
 		}
 
-		if tc.expectedVars != nil {
-			for expectedKey, expectedValue := range tc.expectedVars {
+		if tc.ExpectedVars != nil {
+			for expectedKey, expectedValue := range tc.ExpectedVars {
 				gotValue, ok := i.GetVariable(expectedKey)
 				if !ok {
-					t.Errorf("Test %q: Expected variable '%s' not found in final interpreter state", tc.name, expectedKey)
+					t.Errorf("Test %q: Expected variable '%s' not found", tc.Name, expectedKey)
 					continue
 				}
 				if !reflect.DeepEqual(gotValue, expectedValue) {
-					t.Errorf("Test %q: Variable state mismatch for key '%s':\n Expected: %#v (%T)\n Got: 	  %#v (%T)", tc.name, expectedKey, expectedValue, expectedValue, gotValue, gotValue)
+					t.Errorf("Test %q: Variable state mismatch for key '%s':\n Expected: %#v (%T)\n Got:      %#v (%T)", tc.Name, expectedKey, expectedValue, expectedValue, gotValue, gotValue)
 				}
 			}
 		}
 	})
-}
-
-// createTestStep is a robust helper for creating ast.Step structs for tests.
-func createTestStep(stepType, target string, value ast.Expression, callArgs []ast.Expression) ast.Step {
-	s := ast.Step{Position: dummyPos, Type: stepType}
-	switch strings.ToLower(stepType) {
-	case "set":
-		// MODIFIED: Use the new LValues field.
-		lval := &ast.LValueNode{Identifier: target, Position: s.Pos}
-		s.LValues = []ast.Expression{lval}
-		s.Value = value
-	case "emit", "return":
-		s.Values = []ast.Expression{value}
-	case "must":
-		s.Cond = value
-	case "call":
-		s.Call = &ast.CallableExprNode{
-			Position:  dummyPos,
-			Target:    ast.CallTarget{Position: dummyPos, Name: target, IsTool: true},
-			Arguments: callArgs,
-		}
-	default:
-		// This default case might be problematic if 'value' is an LValue, but for now, we leave it.
-		// It seems designed for simple expression assignments to 'Value' which is not always correct.
-	}
-	return s
-}
-
-func createIfStep(pos *lang.Position, condNode ast.Expression, thenSteps, elseSteps []ast.Step) ast.Step {
-	return ast.Step{Position: pos, Type: "if", Cond: condNode, Body: thenSteps, Else: elseSteps}
-}
-
-func createWhileStep(pos *lang.Position, condNode ast.Expression, bodySteps []ast.Step) ast.Step {
-	return ast.Step{
-		Position: pos,
-		Type:     "while",
-		Cond:     condNode,
-		Body:     bodySteps,
-	}
-}
-
-func createForStep(pos *lang.Position, loopVarName string, collectionExpr ast.Expression, bodySteps []ast.Step) ast.Step {
-	return ast.Step{
-		Position:    pos,
-		Type:        "for",
-		LoopVarName: loopVarName,
-		Collection:  collectionExpr,
-		Body:        bodySteps,
-	}
-}
-
-func NewTestStringLiteral(val string) *ast.StringLiteralNode {
-	return &ast.StringLiteralNode{Position: dummyPos, Value: val}
-}
-
-func NewTestNumberLiteral(val float64) *ast.NumberLiteralNode {
-	return &ast.NumberLiteralNode{Position: dummyPos, Value: val}
-}
-
-func NewTestBooleanLiteral(val bool) *ast.BooleanLiteralNode {
-	return &ast.BooleanLiteralNode{Position: dummyPos, Value: val}
-}
-
-func NewVariableNode(name string) *ast.VariableNode {
-	return &ast.VariableNode{Position: dummyPos, Name: name}
-}
-
-func DebugDumpVariables(i tool.RunTime, t *testing.T) {
-	i.variablesMu.RLock()
-	defer i.variablesMu.RUnlock()
-	t.Log("--- INTERPRETER VARIABLE DUMP ---")
-	t.Log("  (variable dumping needs update to get all keys)")
-	t.Log("--- END VARIABLE DUMP ---")
 }

@@ -34,7 +34,7 @@ var toolGoFindDeclarationsImpl = ToolImplementation{
 // toolGoFindDeclarations finds the declaration location of a Go symbol.
 // ... (rest of the function implementation remains unchanged) ...
 func toolGoFindDeclarations(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	logger := interpreter.Logger()
+	logger := interpreter.GetLogger()
 
 	// --- Argument Parsing and Validation ---
 	if len(args) != 4 {

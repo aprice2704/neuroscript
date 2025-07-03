@@ -21,7 +21,7 @@ import (
 
 // toolExecuteCommand executes an external command securely within the sandbox.
 // Corresponds to ToolSpec "Shell.Execute".
-func toolExecuteCommand(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
+func toolExecuteCommand(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
 	toolName := "Shell.Execute"
 
 	// Expected args: command (string), args_list ([]string, optional), directory (string, optional)
@@ -72,7 +72,7 @@ func toolExecuteCommand(interpreter tool.RunTime, args []interface{}) (interface
 	// Basic security check on command path itself
 	if !IsValidCommandPath(commandPath) {
 		errMsg := fmt.Sprintf("%s blocked suspicious command path: %q", toolName, commandPath)
-		interpreter.Logger().Error(errMsg)
+		interpreter.GetLogger().Error(errMsg)
 		return nil, lang.NewRuntimeError(lang.ErrorCodeSecurity, errMsg, lang.ErrSecurityViolation)
 	}
 
@@ -85,7 +85,7 @@ func toolExecuteCommand(interpreter tool.RunTime, args []interface{}) (interface
 	if pathErr != nil {
 		// ResolvePath returns RuntimeError already
 		errMsg := fmt.Sprintf("%s: invalid execution directory %q: %v", toolName, targetDirRel, pathErr)
-		interpreter.Logger().Error(errMsg)
+		interpreter.GetLogger().Error(errMsg)
 		return nil, pathErr
 	}
 
@@ -102,16 +102,16 @@ func toolExecuteCommand(interpreter tool.RunTime, args []interface{}) (interface
 			ec = lang.ErrorCodePermissionDenied
 		}
 		errMsg := fmt.Sprintf("%s: cannot stat execution directory %q: %v", toolName, targetDirRel, statErr)
-		interpreter.Logger().Error(errMsg, "absolute_path", absValidatedDir)
+		interpreter.GetLogger().Error(errMsg, "absolute_path", absValidatedDir)
 		return nil, lang.NewRuntimeError(ec, errMsg, errors.Join(sentinel, statErr))
 	}
 	if !dirInfo.IsDir() {
 		errMsg := fmt.Sprintf("%s: execution path %q is not a directory", toolName, targetDirRel)
-		interpreter.Logger().Error(errMsg, "absolute_path", absValidatedDir)
+		interpreter.GetLogger().Error(errMsg, "absolute_path", absValidatedDir)
 		return nil, lang.NewRuntimeError(lang.ErrorCodePathTypeMismatch, errMsg, lang.ErrPathNotDirectory) // Use specific sentinel
 	}
 
-	interpreter.Logger().Debug(fmt.Sprintf("[%s] Preparing command", toolName), "command", commandPath, "args", commandArgs, "directory", absValidatedDir)
+	interpreter.GetLogger().Debug(fmt.Sprintf("[%s] Preparing command", toolName), "command", commandPath, "args", commandArgs, "directory", absValidatedDir)
 
 	cmd := exec.Command(commandPath, commandArgs...)
 	cmd.Dir = absValidatedDir
@@ -140,9 +140,9 @@ func toolExecuteCommand(interpreter tool.RunTime, args []interface{}) (interface
 			}
 			stderrStr += fmt.Sprintf("[NeuroScript Execution Error: %v]", execErr)
 		}
-		interpreter.Logger().Warn(fmt.Sprintf("[%s] Command failed", toolName), "command", commandPath, "exit_code", exitCode, "stderr", stderrStr)
+		interpreter.GetLogger().Warn(fmt.Sprintf("[%s] Command failed", toolName), "command", commandPath, "exit_code", exitCode, "stderr", stderrStr)
 	} else {
-		interpreter.Logger().Debug(fmt.Sprintf("[%s] Command successful", toolName), "command", commandPath, "exit_code", 0)
+		interpreter.GetLogger().Debug(fmt.Sprintf("[%s] Command successful", toolName), "command", commandPath, "exit_code", 0)
 	}
 
 	resultMap := map[string]interface{}{

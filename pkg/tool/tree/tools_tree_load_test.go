@@ -24,7 +24,7 @@ func TestTreeLoadJSONAndToJSON(t *testing.T) {
 
 	testCases := []treeTestCase{
 		// Tree.LoadJSON
-		{name: "LoadJSON Simple Object", toolName: "Tree.LoadJSON", args: tool.MakeArgs(validJSONSimple), checkFunc: func(t *testing.T, interp tool.RunTime, result interface{}, err error, _ interface{}) {
+		{name: "LoadJSON Simple Object", toolName: "Tree.LoadJSON", args: tool.MakeArgs(validJSONSimple), checkFunc: func(t *testing.T, interp tool.Runtime, result interface{}, err error, _ interface{}) {
 			if err != nil {
 				t.Errorf("Unexpected error: %v", err)
 			} else if handleStr, ok := result.(string); !ok || !strings.HasPrefix(handleStr, utils.GenericTreeHandleType+"::") {
@@ -41,7 +41,7 @@ func TestTreeLoadJSONAndToJSON(t *testing.T) {
 				return setupTreeWithJSON(t, interp, validJSONSimple)
 			},
 			args: tool.MakeArgs("SETUP_HANDLE:tree1"), // Placeholder replaced by setupFunc result
-			checkFunc: func(t *testing.T, interp tool.RunTime, result interface{}, err error, _ interface{}) {
+			checkFunc: func(t *testing.T, interp tool.Runtime, result interface{}, err error, _ interface{}) {
 				if err != nil {
 					t.Fatalf("ToJSON failed: %v", err)
 				}

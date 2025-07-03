@@ -81,9 +81,9 @@ func FindAndParseGoMod(startDir string, log interfaces.Logger) (*modfile.File, s
 
 // --- Tool: GoGetModuleInfo ---
 
-func toolGoGetModuleInfo(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
+func toolGoGetModuleInfo(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
 	logPrefix := "[TOOL-GoGetModuleInfo]"
-	logger := interpreter.Logger()
+	logger := interpreter.GetLogger()
 	startDirRel := "."
 
 	if len(args) > 0 && args[0] != nil {

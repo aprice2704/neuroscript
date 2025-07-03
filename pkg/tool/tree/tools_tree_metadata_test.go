@@ -24,7 +24,7 @@ func TestTreeMetadataTools(t *testing.T) {
 	testCases := []treeTestCase{
 		// Tree.SetNodeMetadata
 		{name: "SetNodeMetadata New Key", toolName: "Tree.SetNodeMetadata", setupFunc: setupMetaTree, args: tool.MakeArgs("SETUP_HANDLE:mTree", "node-1", "metaKey1", "metaValue1"),
-			checkFunc: func(t *testing.T, interp tool.RunTime, result interface{}, err error, ctx interface{}) {
+			checkFunc: func(t *testing.T, interp tool.Runtime, result interface{}, err error, ctx interface{}) {
 				if err != nil {
 					t.Fatalf("SetNodeMetadata failed: %v", err)
 				}
@@ -54,7 +54,7 @@ func TestTreeMetadataTools(t *testing.T) {
 				return handle
 			},
 			args: tool.MakeArgs("SETUP_HANDLE:mTree", "node-1", "toRemove"),
-			checkFunc: func(t *testing.T, interp tool.RunTime, result interface{}, err error, ctx interface{}) {
+			checkFunc: func(t *testing.T, interp tool.Runtime, result interface{}, err error, ctx interface{}) {
 				if err != nil {
 					t.Fatalf("RemoveNodeMetadata failed: %v", err)
 				}

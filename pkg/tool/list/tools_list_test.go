@@ -17,7 +17,7 @@ import (
 
 // testListToolHelper encapsulates the logic for executing a list tool implementation test case.
 // It calls the tool function directly with primitive arguments and compares primitive results.
-func testListToolHelper(t *testing.T, interp tool.RunTime, tc struct {
+func testListToolHelper(t *testing.T, interp tool.Runtime, tc struct {
 	name       string
 	toolName   string
 	args       []interface{}

@@ -17,7 +17,7 @@ import (
 )
 
 // findNodeIDByRootAttribute finds the ID of a child node linked by a specific attribute key on a given root/parent node.
-func findNodeIDByRootAttribute(t *testing.T, interp tool.RunTime, handle string, parentNodeID string, attributeKey string) (string, bool) {
+func findNodeIDByRootAttribute(t *testing.T, interp tool.Runtime, handle string, parentNodeID string, attributeKey string) (string, bool) {
 	t.Helper()
 	parentNodeData, err := callGetNode(t, interp, handle, parentNodeID)
 	if err != nil {
@@ -61,7 +61,7 @@ func TestTreeModificationTools(t *testing.T) {
 			toolName:  "Tree.GetNode",
 			args:      tool.MakeArgs("SETUP_HANDLE:tree1", "node-1"),
 			setupFunc: setupInitialTree,
-			checkFunc: func(t *testing.T, interp tool.RunTime, initialToolResult interface{}, initialToolErr error, ctx interface{}) {
+			checkFunc: func(t *testing.T, interp tool.Runtime, initialToolResult interface{}, initialToolErr error, ctx interface{}) {
 				handle := ctx.(string)
 				newValueToSet := "new_name_value"
 
@@ -111,7 +111,7 @@ func TestTreeModificationTools(t *testing.T) {
 			toolName:  "Tree.AddChildNode",
 			setupFunc: setupInitialTree,
 			args:      tool.MakeArgs("SETUP_HANDLE:tree1", "node-1", "newChild1", "string", "hello", "newKeyInRoot"),
-			checkFunc: func(t *testing.T, interp tool.RunTime, result interface{}, err error, ctx interface{}) {
+			checkFunc: func(t *testing.T, interp tool.Runtime, result interface{}, err error, ctx interface{}) {
 				if err != nil {
 					t.Fatalf("AddChildNode failed: %v", err)
 				}
@@ -143,7 +143,7 @@ func TestTreeModificationTools(t *testing.T) {
 			toolName:  "Tree.GetNode",
 			args:      tool.MakeArgs("SETUP_HANDLE:tree1", "node-1"),
 			setupFunc: setupInitialTree,
-			checkFunc: func(t *testing.T, interp tool.RunTime, initialToolResult interface{}, initialToolErr error, ctx interface{}) {
+			checkFunc: func(t *testing.T, interp tool.Runtime, initialToolResult interface{}, initialToolErr error, ctx interface{}) {
 				handle := ctx.(string)
 				leafNodeID, found := findNodeIDByRootAttribute(t, interp, handle, "node-1", "name")
 				if !found {
@@ -163,7 +163,7 @@ func TestTreeModificationTools(t *testing.T) {
 			toolName:  "Tree.GetNode",
 			args:      tool.MakeArgs("SETUP_HANDLE:tree1", "node-1"),
 			setupFunc: setupInitialTree,
-			checkFunc: func(t *testing.T, interp tool.RunTime, initialGetNodeResult interface{}, initialGetNodeErr error, ctx interface{}) {
+			checkFunc: func(t *testing.T, interp tool.Runtime, initialGetNodeResult interface{}, initialGetNodeErr error, ctx interface{}) {
 				handle := ctx.(string)
 
 				if initialGetNodeErr != nil {

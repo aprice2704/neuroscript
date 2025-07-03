@@ -20,7 +20,7 @@ import (
 // These functions are called by the bridge and receive unwrapped, native Go types.
 // They return native Go types, which the bridge will then wrap.
 
-func toolListLength(_ tool.RunTime, args []interface{}) (interface{}, error) {
+func toolListLength(_ tool.Runtime, args []interface{}) (interface{}, error) {
 	list, ok := args[0].([]interface{})
 	if !ok {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "len expects a list", lang.ErrArgumentMismatch)
@@ -28,7 +28,7 @@ func toolListLength(_ tool.RunTime, args []interface{}) (interface{}, error) {
 	return float64(len(list)), nil
 }
 
-func toolListAppend(_ tool.RunTime, args []interface{}) (interface{}, error) {
+func toolListAppend(_ tool.Runtime, args []interface{}) (interface{}, error) {
 	list, ok := args[0].([]interface{})
 	if !ok {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "append expects a list for the first argument", lang.ErrArgumentMismatch)
@@ -37,7 +37,7 @@ func toolListAppend(_ tool.RunTime, args []interface{}) (interface{}, error) {
 	return append(list, element), nil
 }
 
-func toolListPrepend(_ tool.RunTime, args []interface{}) (interface{}, error) {
+func toolListPrepend(_ tool.Runtime, args []interface{}) (interface{}, error) {
 	list, ok := args[0].([]interface{})
 	if !ok {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "prepend expects a list for the first argument", lang.ErrArgumentMismatch)
@@ -46,7 +46,7 @@ func toolListPrepend(_ tool.RunTime, args []interface{}) (interface{}, error) {
 	return append([]interface{}{element}, list...), nil
 }
 
-func toolListGet(_ tool.RunTime, args []interface{}) (interface{}, error) {
+func toolListGet(_ tool.Runtime, args []interface{}) (interface{}, error) {
 	list, ok := args[0].([]interface{})
 	if !ok {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "get expects a list", lang.ErrArgumentMismatch)
@@ -76,7 +76,7 @@ func toolListGet(_ tool.RunTime, args []interface{}) (interface{}, error) {
 	return list[index], nil
 }
 
-func toolListSlice(_ tool.RunTime, args []interface{}) (interface{}, error) {
+func toolListSlice(_ tool.Runtime, args []interface{}) (interface{}, error) {
 	list, ok := args[0].([]interface{})
 	if !ok {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "slice expects a list", lang.ErrArgumentMismatch)
@@ -107,7 +107,7 @@ func toolListSlice(_ tool.RunTime, args []interface{}) (interface{}, error) {
 	return list[s:e], nil
 }
 
-func toolListContains(_ tool.RunTime, args []interface{}) (interface{}, error) {
+func toolListContains(_ tool.Runtime, args []interface{}) (interface{}, error) {
 	list, ok := args[0].([]interface{})
 	if !ok {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "contains expects a list", lang.ErrArgumentMismatch)
@@ -121,7 +121,7 @@ func toolListContains(_ tool.RunTime, args []interface{}) (interface{}, error) {
 	return false, nil
 }
 
-func toolListReverse(_ tool.RunTime, args []interface{}) (interface{}, error) {
+func toolListReverse(_ tool.Runtime, args []interface{}) (interface{}, error) {
 	list, ok := args[0].([]interface{})
 	if !ok {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "reverse expects a list", lang.ErrArgumentMismatch)
@@ -134,7 +134,7 @@ func toolListReverse(_ tool.RunTime, args []interface{}) (interface{}, error) {
 	return newList, nil
 }
 
-func toolListSort(_ tool.RunTime, args []interface{}) (interface{}, error) {
+func toolListSort(_ tool.Runtime, args []interface{}) (interface{}, error) {
 	list, ok := args[0].([]interface{})
 	if !ok {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "sort expects a list", lang.ErrArgumentMismatch)
@@ -197,7 +197,7 @@ func toolListSort(_ tool.RunTime, args []interface{}) (interface{}, error) {
 	return newList, nil
 }
 
-func toolListHead(_ tool.RunTime, args []interface{}) (interface{}, error) {
+func toolListHead(_ tool.Runtime, args []interface{}) (interface{}, error) {
 	list, ok := args[0].([]interface{})
 	if !ok {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "head expects a list", lang.ErrArgumentMismatch)
@@ -208,7 +208,7 @@ func toolListHead(_ tool.RunTime, args []interface{}) (interface{}, error) {
 	return list[0], nil
 }
 
-func toolListRest(_ tool.RunTime, args []interface{}) (interface{}, error) {
+func toolListRest(_ tool.Runtime, args []interface{}) (interface{}, error) {
 	list, ok := args[0].([]interface{})
 	if !ok {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "rest expects a list", lang.ErrArgumentMismatch)
@@ -219,7 +219,7 @@ func toolListRest(_ tool.RunTime, args []interface{}) (interface{}, error) {
 	return list[1:], nil
 }
 
-func toolListTail(_ tool.RunTime, args []interface{}) (interface{}, error) {
+func toolListTail(_ tool.Runtime, args []interface{}) (interface{}, error) {
 	list, ok := args[0].([]interface{})
 	if !ok {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "tail expects a list", lang.ErrArgumentMismatch)
@@ -241,7 +241,7 @@ func toolListTail(_ tool.RunTime, args []interface{}) (interface{}, error) {
 	return list[listLen-c:], nil
 }
 
-func toolListIsEmpty(_ tool.RunTime, args []interface{}) (interface{}, error) {
+func toolListIsEmpty(_ tool.Runtime, args []interface{}) (interface{}, error) {
 	list, ok := args[0].([]interface{})
 	if !ok {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "isEmpty expects a list", lang.ErrArgumentMismatch)

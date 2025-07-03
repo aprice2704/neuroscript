@@ -19,7 +19,7 @@ import (
 )
 
 // runGitCommand executes a git command within a specific repository path inside the sandbox.
-func runGitCommand(interpreter tool.RunTime, repoPath string, args ...string) (string, error) {
+func runGitCommand(interpreter tool.Runtime, repoPath string, args ...string) (string, error) {
 	absRepoPath, err := security.SecureFilePath(repoPath, interpreter.SandboxDir())
 	if err != nil {
 		return "", lang.NewRuntimeError(lang.ErrorCodePathViolation, fmt.Sprintf("invalid repository path '%s'", repoPath), err)
@@ -43,7 +43,7 @@ func runGitCommand(interpreter tool.RunTime, repoPath string, args ...string) (s
 }
 
 // getCurrentGitBranch determines the current branch name.
-func getCurrentGitBranch(interpreter tool.RunTime, repoPath string) (string, error) {
+func getCurrentGitBranch(interpreter tool.Runtime, repoPath string) (string, error) {
 	output, err := runGitCommand(interpreter, repoPath, "symbolic-ref", "--short", "HEAD")
 	if err != nil {
 		stderrLower := strings.ToLower(err.Error())
@@ -59,7 +59,7 @@ func getCurrentGitBranch(interpreter tool.RunTime, repoPath string) (string, err
 	return output, nil
 }
 
-func toolGitAdd(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
+func toolGitAdd(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
 	if len(args) != 2 {
 		return nil, fmt.Errorf("%w: GitAdd requires a repo path and a list of paths to add", lang.ErrInvalidArgument)
 	}
@@ -91,7 +91,7 @@ func toolGitAdd(interpreter tool.RunTime, args []interface{}) (interface{}, erro
 	return fmt.Sprintf("GitAdd successful for paths: %v.\nOutput:\n%s", paths, output), nil
 }
 
-func toolGitCommit(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
+func toolGitCommit(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
 	if len(args) < 2 || len(args) > 3 {
 		return nil, fmt.Errorf("%w: Git.Commit requires 2 or 3 arguments (repoPath, message, [add_all])", lang.ErrInvalidArgument)
 	}
@@ -115,7 +115,7 @@ func toolGitCommit(interpreter tool.RunTime, args []interface{}) (interface{}, e
 	}
 
 	if addAll {
-		interpreter.logger.Debug("[Tool: GitCommit] Staging all changes (git add .)")
+		interpreter.GetLogger().Debug("[Tool: GitCommit] Staging all changes (git add .)")
 		_, errAdd := runGitCommand(interpreter, repoPath, "add", ".")
 		if errAdd != nil {
 			return nil, fmt.Errorf("failed during 'git add .' before commit: %w", errAdd)
@@ -126,7 +126,7 @@ func toolGitCommit(interpreter tool.RunTime, args []interface{}) (interface{}, e
 	if err != nil {
 		stderrLower := strings.ToLower(err.Error())
 		if strings.Contains(stderrLower, "nothing to commit") || strings.Contains(stderrLower, "no changes added to commit") {
-			interpreter.logger.Warn("[Tool: GitCommit] Commit attempted but no changes were staged/detected.")
+			interpreter.GetLogger().Warn("[Tool: GitCommit] Commit attempted but no changes were staged/detected.")
 			return "GitCommit: Nothing to commit.", nil
 		}
 		return nil, fmt.Errorf("GitCommit failed: %w", err)
@@ -134,7 +134,7 @@ func toolGitCommit(interpreter tool.RunTime, args []interface{}) (interface{}, e
 	return fmt.Sprintf("GitCommit successful. Message: %q.\nOutput:\n%s", message, output), nil
 }
 
-func toolGitBranch(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
+func toolGitBranch(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
 	if len(args) == 0 {
 		return nil, fmt.Errorf("%w: Git.Branch requires at least a repository path", lang.ErrInvalidArgument)
 	}

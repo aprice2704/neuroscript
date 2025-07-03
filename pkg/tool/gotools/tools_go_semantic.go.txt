@@ -39,7 +39,7 @@ var toolGoIndexCodeImpl = ToolImplementation{ // Assuming this var is needed for
 
 // toolGoIndexCode implementation with added logging
 func toolGoIndexCode(interpreter *Interpreter, args []interface{}) (interface{}, error) {
-	logger := interpreter.Logger()
+	logger := interpreter.GetLogger()
 	targetDirRel := "." // Default to current directory (sandbox root)
 	if len(args) > 0 && args[0] != nil {
 		dirStr, ok := args[0].(string)
