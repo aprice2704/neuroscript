@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.3.1
-// File version: 1.4.0
-// Purpose: Corrected the return signature of NewTestInterpreter to return an error, fixing a type mismatch in tests.
+// File version: 1.5.0
+// Purpose: Corrected undefined variable errors by using standard library functions and local package types.
 // filename: pkg/logging/helpers.go
 
 package logging
@@ -16,20 +16,19 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 )
 
-// NOTE: This file assumes a 'logging_flags.go' and 'utils.go' exist in the package
-// to provide TestVerbose and coreNoOpLogger.
-
 // --- Internal Test Logger ---
 type TestLogger struct {
-	t	*testing.T
-	out	io.Writer
+	t   *testing.T
+	out io.Writer
 }
 
 var _ interfaces.Logger = (*TestLogger)(nil)
 
 func NewTestLogger(t *testing.T) interfaces.Logger {
-	if TestVerbose != nil && !*TestVerbose {
-		return &utils.coreNoOpLogger{}
+	// FIX: Use the standard testing.Verbose() function instead of a custom variable.
+	if !testing.Verbose() {
+		// FIX: Use the correct NewNoOpLogger() constructor from the same package.
+		return NewNoOpLogger()
 	}
 	return &TestLogger{t: t, out: os.Stderr}
 }
@@ -45,17 +44,19 @@ func (l *TestLogger) logStructured(level string, msg string, args ...any) {
 	l.t.Log(sb.String())
 }
 
-func (l *TestLogger) Debug(msg string, args ...any)	{ l.logStructured("[DEBUG]", msg, args...) }
-func (l *TestLogger) Info(msg string, args ...any)	{ l.logStructured("[INFO]", msg, args...) }
-func (l *TestLogger) Warn(msg string, args ...any)	{ l.logStructured("[WARN]", msg, args...) }
-func (l *TestLogger) Error(msg string, args ...any)	{ l.logStructured("[ERROR]", msg, args...) }
+func (l *TestLogger) Debug(msg string, args ...any) { l.logStructured("[DEBUG]", msg, args...) }
+func (l *TestLogger) Info(msg string, args ...any)  { l.logStructured("[INFO]", msg, args...) }
+func (l *TestLogger) Warn(msg string, args ...any)  { l.logStructured("[WARN]", msg, args...) }
+func (l *TestLogger) Error(msg string, args ...any) { l.logStructured("[ERROR]", msg, args...) }
 
-func (l *TestLogger) SetLevel(level interfaces.LogLevel)	{}
-func (l *TestLogger) Debugf(format string, args ...any)		{ l.t.Logf("[DEBUG] "+format, args...) }
-func (l *TestLogger) Infof(format string, args ...any)		{ l.t.Logf("[INFO] "+format, args...) }
-func (l *TestLogger) Warnf(format string, args ...any)		{ l.t.Logf("[WARN] "+format, args...) }
-func (l *TestLogger) Errorf(format string, args ...any)		{ l.t.Logf("[ERROR] "+format, args...) }
-func (l *TestLogger) With(args ...any) interfaces.Logger	{ return l }
+func (l *TestLogger) SetLevel(level interfaces.LogLevel) {
+	// No-op for the test logger for now
+}
+func (l *TestLogger) Debugf(format string, args ...any)  { l.t.Logf("[DEBUG] "+format, args...) }
+func (l *TestLogger) Infof(format string, args ...any)   { l.t.Logf("[INFO] "+format, args...) }
+func (l *TestLogger) Warnf(format string, args ...any)   { l.t.Logf("[WARN] "+format, args...) }
+func (l *TestLogger) Errorf(format string, args ...any)  { l.t.Logf("[ERROR] "+format, args...) }
+func (l *TestLogger) With(args ...any) interfaces.Logger { return l }
 
 // --- End Test Logger ---
 

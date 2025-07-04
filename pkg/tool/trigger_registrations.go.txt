@@ -1,0 +1,70 @@
+// NeuroScript Version: 0.3.8
+// File version: 0.1.7 // Added missing imports for all tool sub-packages.
+// Central registrar for a bundle of core tools.
+// filename: pkg/tool/zz_core_tools_registrar.go
+
+package tool
+
+import (
+	"log" // Standard Go logging package
+
+	"github.com/aprice2704/neuroscript/pkg/lang"
+	// FIX: Added all necessary tool package imports.
+	"github.com/aprice2704/neuroscript/pkg/tool/ai"
+	"github.com/aprice2704/neuroscript/pkg/tool/errtools"
+	"github.com/aprice2704/neuroscript/pkg/tool/fileapi"
+	"github.com/aprice2704/neuroscript/pkg/tool/fs"
+	"github.com/aprice2704/neuroscript/pkg/tool/git"
+	"github.com/aprice2704/neuroscript/pkg/tool/gotools"
+	"github.com/aprice2704/neuroscript/pkg/tool/io"
+	"github.com/aprice2704/neuroscript/pkg/tool/list"
+	"github.com/aprice2704/neuroscript/pkg/tool/meta"
+	"github.com/aprice2704/neuroscript/pkg/tool/script"
+	"github.com/aprice2704/neuroscript/pkg/tool/shell"
+	"github.com/aprice2704/neuroscript/pkg/tool/strtools"
+	"github.com/aprice2704/neuroscript/pkg/tool/syntax"
+	"github.com/aprice2704/neuroscript/pkg/tool/time"
+	"github.com/aprice2704/neuroscript/pkg/tool/tree"
+)
+
+// init calls the main registration function for the tool bundle.
+// This ensures they are added to the global tool list when the core package is initialized.
+func init() {
+	registerCoreToolBundle()
+}
+
+// MakeUnimplementedToolFunc remains the same.
+func MakeUnimplementedToolFunc(toolName string) ToolFunc {
+	return func(interpreter Runtime, args []interface{}) (interface{}, error) {
+		errMsg := "TOOL " + toolName + " NOT IMPLEMENTED"
+		log.Printf("[ERROR] %s\n", errMsg) // Standard log for critical missing piece
+		return nil, lang.NewRuntimeError(lang.ErrorCodeNotImplemented, errMsg, lang.ErrNotImplemented)
+	}
+}
+
+// registerCoreToolBundle defines and registers a collection of core tools.
+func registerCoreToolBundle() {
+	var toolsToRegister []ToolImplementation
+
+	// Append existing tool groups
+	toolsToRegister = append(toolsToRegister, gotools.GoToolsToRegister...)
+	toolsToRegister = append(toolsToRegister, fs.FsToolsToRegister...)
+	toolsToRegister = append(toolsToRegister, git.GitToolsToRegister...)
+	toolsToRegister = append(toolsToRegister, ai.AiWmToolsToRegister...)
+	toolsToRegister = append(toolsToRegister, io.IoToolsToRegister...)
+	toolsToRegister = append(toolsToRegister, shell.ShellToolsToRegister...)
+	toolsToRegister = append(toolsToRegister, list.ListToolsToRegister...)
+	// toolsToRegister = append(toolsToRegister, math.mathToolsToRegister...)
+	toolsToRegister = append(toolsToRegister, strtools.StringToolsToRegister...)
+	toolsToRegister = append(toolsToRegister, tree.TreeToolsToRegister...)
+	toolsToRegister = append(toolsToRegister, fileapi.FileApiToolsToRegister...)
+	toolsToRegister = append(toolsToRegister, meta.MetaToolsToRegister...)
+	toolsToRegister = append(toolsToRegister, syntax.SyntaxToolsToRegister...)
+	toolsToRegister = append(toolsToRegister, time.TimeToolsToRegister...)
+	toolsToRegister = append(toolsToRegister, errtools.ErrorToolsToRegister...)
+	toolsToRegister = append(toolsToRegister, script.ScriptToolsToRegister...)
+
+	if len(toolsToRegister) > 0 {
+		AddToolImplementations(toolsToRegister...)
+	}
+}

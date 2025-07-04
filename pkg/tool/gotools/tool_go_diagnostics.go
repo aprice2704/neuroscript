@@ -12,6 +12,7 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/tool"
+	"github.com/aprice2704/neuroscript/pkg/tool/shell"
 	"golang.org/x/tools/imports"
 )
 
@@ -39,7 +40,7 @@ func toolStaticcheck(interpreter tool.Runtime, args []interface{}) (interface{},
 		}
 	}
 	execArgs := []interface{}{"staticcheck", []string{checkTarget}, "."}
-	return shell.toolExecuteCommand(interpreter, execArgs)
+	return shell.ToolExecuteCommand(interpreter, execArgs)
 }
 
 // toolGoImports formats a Go source string and manages imports using golang.org/x/tools/imports.

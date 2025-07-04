@@ -14,9 +14,17 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
-	"github.com/aprice2704/neuroscript/pkg/tool"
 )
+
+// MakeArgs is a convenience function to create a slice of interfaces, useful for constructing tool arguments programmatically.
+func MakeArgs(vals ...interface{}) []interface{} {
+	if vals == nil {
+		return []interface{}{}
+	}
+	return vals
+}
 
 // initGitRepoForTest creates a standard repo with an initial commit containing a README.
 func initGitRepoForTest(t *testing.T, baseDir string, repoSubDir string) (string, error) {
@@ -58,16 +66,16 @@ func initGitRepoForTest(t *testing.T, baseDir string, repoSubDir string) (string
 
 // gitTestCase defines the structure for git tool tests.
 type gitTestCase struct {
-	Name		string
-	Args		[]interface{}
-	WantErrIs	error
-	Setup		func(t *testing.T, repoPath string)
+	Name      string
+	Args      []interface{}
+	WantErrIs error
+	Setup     func(t *testing.T, repoPath string)
 }
 
 // testGitToolHelper runs a git tool test case with proper repo setup.
 func testGitToolHelper(t *testing.T, toolName string, tc gitTestCase) {
 	t.Helper()
-	interp, _ := llm.NewDefaultTestInterpreter(t)
+	interp := interpreter.NewInterpreter()
 	repoSubDir, ok := tc.Args[0].(string)
 	if !ok {
 		t.Fatalf("Test case '%s' must have a string repo path as first argument.", tc.Name)
@@ -101,8 +109,8 @@ const dummyRepoPath = "repo"
 
 func TestToolGitBranchValidation(t *testing.T) {
 	testCases := []gitTestCase{
-		{Name: "Correct_Args_(Create)", Args: tool.MakeArgs(dummyRepoPath, "new-feature"), WantErrIs: nil},
-		{Name: "Wrong_Arg_Type_(Name)", Args: tool.MakeArgs(dummyRepoPath, 123), WantErrIs: lang.ErrInvalidArgument},
+		{Name: "Correct_Args_(Create)", Args: MakeArgs(dummyRepoPath, "new-feature"), WantErrIs: nil},
+		{Name: "Wrong_Arg_Type_(Name)", Args: MakeArgs(dummyRepoPath, 123), WantErrIs: lang.ErrInvalidArgument},
 	}
 	for _, tc := range testCases {
 		testGitToolHelper(t, "Git.Branch", tc)
@@ -111,8 +119,8 @@ func TestToolGitBranchValidation(t *testing.T) {
 
 func TestToolGitCheckoutValidation(t *testing.T) {
 	testCases := []gitTestCase{
-		{Name: "Correct_Args_(Checkout)", Args: tool.MakeArgs(dummyRepoPath, "main"), WantErrIs: nil},
-		{Name: "Correct_Args_(Create_and_Checkout)", Args: tool.MakeArgs(dummyRepoPath, "new-feature", true), WantErrIs: nil},
+		{Name: "Correct_Args_(Checkout)", Args: MakeArgs(dummyRepoPath, "main"), WantErrIs: nil},
+		{Name: "Correct_Args_(Create_and_Checkout)", Args: MakeArgs(dummyRepoPath, "new-feature", true), WantErrIs: nil},
 	}
 	for _, tc := range testCases {
 		testGitToolHelper(t, "Git.Checkout", tc)
@@ -143,8 +151,8 @@ func TestToolGitRmValidation(t *testing.T) {
 		}
 	}
 	testCases := []gitTestCase{
-		{Name: "Correct_Args_(Single_Path_String)", Args: tool.MakeArgs(dummyRepoPath, "path/to/file.txt"), WantErrIs: nil, Setup: setupWithFile},
-		{Name: "Wrong_Arg_Type_(Path)", Args: tool.MakeArgs(dummyRepoPath, 123), WantErrIs: lang.ErrInvalidArgument},
+		{Name: "Correct_Args_(Single_Path_String)", Args: MakeArgs(dummyRepoPath, "path/to/file.txt"), WantErrIs: nil, Setup: setupWithFile},
+		{Name: "Wrong_Arg_Type_(Path)", Args: MakeArgs(dummyRepoPath, 123), WantErrIs: lang.ErrInvalidArgument},
 	}
 	for _, tc := range testCases {
 		testGitToolHelper(t, "Git.Rm", tc)
@@ -183,8 +191,8 @@ func TestToolGitMergeValidation(t *testing.T) {
 		}
 	}
 	testCases := []gitTestCase{
-		{Name: "Correct_Args", Args: tool.MakeArgs(dummyRepoPath, "develop"), WantErrIs: nil, Setup: setupWithBranch},
-		{Name: "Wrong_Arg_Type_(Branch)", Args: tool.MakeArgs(dummyRepoPath, 123), WantErrIs: lang.ErrInvalidArgument},
+		{Name: "Correct_Args", Args: MakeArgs(dummyRepoPath, "develop"), WantErrIs: nil, Setup: setupWithBranch},
+		{Name: "Wrong_Arg_Type_(Branch)", Args: MakeArgs(dummyRepoPath, 123), WantErrIs: lang.ErrInvalidArgument},
 	}
 	for _, tc := range testCases {
 		testGitToolHelper(t, "Git.Merge", tc)
@@ -194,7 +202,7 @@ func TestToolGitMergeValidation(t *testing.T) {
 func TestToolGitPullValidation(t *testing.T) {
 	// Only testing validation, as functional test requires a remote.
 	testCases := []gitTestCase{
-		{Name: "Wrong_Arg_Type_(Remote_Name)", Args: tool.MakeArgs(dummyRepoPath, 123, "main"), WantErrIs: lang.ErrInvalidArgument},
+		{Name: "Wrong_Arg_Type_(Remote_Name)", Args: MakeArgs(dummyRepoPath, 123, "main"), WantErrIs: lang.ErrInvalidArgument},
 	}
 	for _, tc := range testCases {
 		testGitToolHelper(t, "Git.Pull", tc)
@@ -204,7 +212,7 @@ func TestToolGitPullValidation(t *testing.T) {
 func TestToolGitPushValidation(t *testing.T) {
 	// Only testing validation, as functional test requires a remote.
 	testCases := []gitTestCase{
-		{Name: "Wrong_Arg_Type_(Branch_Name)", Args: tool.MakeArgs(dummyRepoPath, "origin", false), WantErrIs: lang.ErrInvalidArgument},
+		{Name: "Wrong_Arg_Type_(Branch_Name)", Args: MakeArgs(dummyRepoPath, "origin", false), WantErrIs: lang.ErrInvalidArgument},
 	}
 	for _, tc := range testCases {
 		testGitToolHelper(t, "Git.Push", tc)
@@ -213,8 +221,8 @@ func TestToolGitPushValidation(t *testing.T) {
 
 func TestToolGitDiffValidation(t *testing.T) {
 	testCases := []gitTestCase{
-		{Name: "Correct_Args_(Cached_Only)", Args: tool.MakeArgs(dummyRepoPath, true), WantErrIs: nil},
-		{Name: "Wrong_Arg_Type", Args: tool.MakeArgs(dummyRepoPath, "not-bool"), WantErrIs: lang.ErrInvalidArgument},
+		{Name: "Correct_Args_(Cached_Only)", Args: MakeArgs(dummyRepoPath, true), WantErrIs: nil},
+		{Name: "Wrong_Arg_Type", Args: MakeArgs(dummyRepoPath, "not-bool"), WantErrIs: lang.ErrInvalidArgument},
 	}
 	for _, tc := range testCases {
 		testGitToolHelper(t, "Git.Diff", tc)

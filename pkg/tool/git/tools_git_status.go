@@ -2,13 +2,77 @@
 package git
 
 import (
+	"bytes"
 	"fmt"
+	"os/exec"
 	"regexp" // Keep for file status regex if needed later, but branch parsing changed
 	"strconv"
 	"strings"
 
+	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 )
+
+// toolExec executes an external command and returns combined stdout/stderr as a string,
+// or an error if the command fails to run or exits non-zero.
+// This is intended as an *internal* helper for other tools like Git tools.
+func toolExec(interpreter tool.Runtime, cmdAndArgs ...string) (string, error) {
+	if len(cmdAndArgs) == 0 {
+		return "", fmt.Errorf("toolExec requires at least a command")
+	}
+	commandPath := cmdAndArgs[0]
+	commandArgs := cmdAndArgs[1:]
+
+	// Basic security check (can be enhanced)
+	if strings.Contains(commandPath, "..") || strings.ContainsAny(commandPath, "|;&$><`\\") {
+		errMsg := fmt.Sprintf("toolExec blocked suspicious command path: %q", commandPath)
+		if interpreter.GetLogger != nil {
+			interpreter.GetLogger().Error("[toolExec] %s", errMsg)
+		}
+		// Return error message and a wrapped ErrInternalTool or a specific execution error
+		return errMsg, fmt.Errorf("%w: %s", lang.ErrInternalTool, errMsg)
+	}
+
+	if interpreter.GetLogger != nil {
+		logArgs := make([]string, len(commandArgs))
+		for i, arg := range commandArgs {
+			if strings.Contains(arg, " ") {
+				logArgs[i] = fmt.Sprintf("%q", arg) // Quote args with spaces
+			} else {
+				logArgs[i] = arg
+			}
+		}
+		interpreter.GetLogger().Debug("[toolExec] Executing: %s %s", commandPath, strings.Join(logArgs, " "))
+	}
+
+	cmd := exec.Command(commandPath, commandArgs...)
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	execErr := cmd.Run()
+
+	stdoutStr := stdout.String()
+	stderrStr := stderr.String()
+	combinedOutput := stdoutStr + stderrStr // Combine outputs
+
+	if execErr != nil {
+		// Command failed (non-zero exit or execution error)
+		errMsg := fmt.Sprintf("command '%s %s' failed with exit error: %v. Output:\n%s",
+			commandPath, strings.Join(commandArgs, " "), execErr, combinedOutput)
+		if interpreter.GetLogger != nil {
+			interpreter.GetLogger().Error("[toolExec] %s", errMsg)
+		}
+		// Return the combined output along with the error
+		return combinedOutput, fmt.Errorf("%w: %s", lang.ErrInternalTool, errMsg)
+	}
+
+	// Command succeeded
+	if interpreter.GetLogger != nil {
+		interpreter.GetLogger().Debug("[toolExec] Command successful. Output:\n%s", combinedOutput)
+	}
+	return combinedOutput, nil
+}
 
 // --- toolGitStatus Implementation ---
 
@@ -42,8 +106,8 @@ func toolGitStatus(interpreter tool.Runtime, args []interface{}) (interface{}, e
 		errStr := err.Error()
 		if strings.Contains(errStr, "not a git repository") || strings.Contains(errStr, "fatal: not a Git repository") {
 			errMsg := "Not a git repository (or any of the parent directories)"
-			if interpreter.sandboxDir != "" {
-				errMsg = fmt.Sprintf("%s in sandbox '%s'", errMsg, interpreter.sandboxDir)
+			if interpreter.SandboxDir() != "" {
+				errMsg = fmt.Sprintf("%s in sandbox '%s'", errMsg, interpreter.SandboxDir())
 			}
 			resultMap["error"] = errMsg
 		} else {

@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.4.0
 // File version: 1
-// Purpose: Refactored to test the primitive-based Input tool implementation directly.
+// Purpose: Refactored to test the primitive-based io tool implementation directly.
 // filename: pkg/tool/io/tools_io_test.go
 // nlines: 48
 // risk_rating: LOW
@@ -11,24 +11,36 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
-	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
+// MakeArgs is a convenience function to create a slice of interfaces, useful for constructing tool arguments programmatically.
+func MakeArgs(vals ...interface{}) []interface{} {
+	if vals == nil {
+		return []interface{}{}
+	}
+	return vals
+}
+
 func TestToolIOInputValidation(t *testing.T) {
-	interp, _ := llm.NewDefaultTestInterpreter(t)
-	toolImpl, _ := interp.ToolRegistry().GetTool("Input")
+	interp := interpreter.NewInterpreter()
+	for _, toolImpl := range ioToolsToRegister {
+		if err := interp.ToolRegistry().RegisterTool(toolImpl); err != nil {
+			t.Fatalf("Failed to register tool '%s': %v", toolImpl.Spec.Name, err)
+		}
+	}
 
 	testCases := []struct {
-		name		string
-		args		[]interface{}
-		wantErrIs	error
+		name      string
+		args      []interface{}
+		wantErrIs error
 	}{
-		{name: "Valid prompt (string)", args: tool.MakeArgs("Enter name: "), wantErrIs: nil},
-		{name: "No arguments (optional prompt)", args: tool.MakeArgs(), wantErrIs: nil},
-		{name: "Valid argument type (nil for optional)", args: tool.MakeArgs(nil), wantErrIs: nil},
-		{name: "Incorrect argument type (number)", args: tool.MakeArgs(123), wantErrIs: lang.ErrInvalidArgument},
-		{name: "Incorrect argument type (bool)", args: tool.MakeArgs(true), wantErrIs: lang.ErrInvalidArgument},
+		{name: "Valid prompt (string)", args: MakeArgs("Enter name: "), wantErrIs: nil},
+		{name: "No arguments (optional prompt)", args: MakeArgs(), wantErrIs: nil},
+		{name: "Valid argument type (nil for optional)", args: MakeArgs(nil), wantErrIs: nil},
+		{name: "Incorrect argument type (number)", args: MakeArgs(123), wantErrIs: lang.ErrInvalidArgument},
+		{name: "Incorrect argument type (bool)", args: MakeArgs(true), wantErrIs: lang.ErrInvalidArgument},
 	}
 
 	for _, tc := range testCases {
@@ -36,6 +48,7 @@ func TestToolIOInputValidation(t *testing.T) {
 			// We can't test the stdin reading part automatically, so we just check
 			// if the function handles the arguments without returning an unexpected error.
 			// We expect an EOF error from trying to read stdin in a non-interactive test.
+			toolImpl, _ := interp.ToolRegistry().GetTool("Input")
 			_, err := toolImpl.Func(interp, tc.args)
 
 			if tc.wantErrIs != nil {

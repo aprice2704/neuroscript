@@ -50,7 +50,7 @@ func getCurrentGitBranch(interpreter tool.Runtime, repoPath string) (string, err
 		if strings.Contains(stderrLower, "fatal: head is a detached symbolic reference") || strings.Contains(stderrLower, "fatal: ref head is not a symbolic ref") {
 			hash, hashErr := runGitCommand(interpreter, repoPath, "rev-parse", "--short", "HEAD")
 			if hashErr != nil {
-				return "", fmt.Errorf("failed to get current branch or commit hash (detached HEAD?): %w", hashErr)
+				return "", fmt.Errorf("failed to get current commit hash (detached HEAD?): %w", hashErr)
 			}
 			return hash, nil
 		}

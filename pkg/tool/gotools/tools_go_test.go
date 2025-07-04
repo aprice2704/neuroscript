@@ -15,27 +15,33 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
-	"github.com/aprice2704/neuroscript/pkg/tool"
 )
+
+// MakeArgs is a convenience function to create a slice of interfaces, useful for constructing tool arguments programmatically.
+func MakeArgs(vals ...interface{}) []interface{} {
+	if vals == nil {
+		return []interface{}{}
+	}
+	return vals
+}
 
 // testGoGetModuleInfoHelper tests the toolGoGetModuleInfo implementation directly.
 func testGoGetModuleInfoHelper(t *testing.T, tc struct {
-	name		string
-	dirArg		interface{}
-	setupFunc	func(t *testing.T, sandboxRoot string)
-	wantResult	map[string]interface{}
-	wantErrIs	error
+	name       string
+	dirArg     interface{}
+	setupFunc  func(t *testing.T, sandboxRoot string)
+	wantResult map[string]interface{}
+	wantErrIs  error
 }) {
 	t.Helper()
 	t.Run(tc.name, func(t *testing.T) {
 		// FIX: Correctly handle the (*Interpreter, error) return values.
-		interp, err := llm.NewDefaultTestInterpreter(t)
-		if err != nil {
-			t.Fatalf("NewDefaultTestInterpreter() failed: %v", err)
-		}
+		interp := interpreter.NewInterpreter()
 		// FIX: Get the sandbox directory from the interpreter instance.
-		sandboxRoot := interp.SandboxDir()
+		sandboxRoot := t.TempDir()
+		interp.SetSandboxDir(sandboxRoot)
 
 		toolImpl, _ := interp.ToolRegistry().GetTool("Go.GetModuleInfo")
 
@@ -44,7 +50,7 @@ func testGoGetModuleInfoHelper(t *testing.T, tc struct {
 			tc.setupFunc(t, sandboxRoot)
 		}
 
-		args := tool.MakeArgs(tc.dirArg)
+		args := MakeArgs(tc.dirArg)
 		gotResult, toolErr := toolImpl.Func(interp, args)
 
 		if tc.wantErrIs != nil {
@@ -85,56 +91,56 @@ func TestToolGoGetModuleInfo(t *testing.T) {
 	}
 
 	tests := []struct {
-		name		string
-		dirArg		interface{}
-		setupFunc	func(t *testing.T, sandboxRoot string)
-		wantResult	map[string]interface{}
-		wantErrIs	error
+		name       string
+		dirArg     interface{}
+		setupFunc  func(t *testing.T, sandboxRoot string)
+		wantResult map[string]interface{}
+		wantErrIs  error
 	}{
 		{
-			name:		"From root dir (.)",
-			dirArg:		".",
-			setupFunc:	setupFunc,
+			name:      "From root dir (.)",
+			dirArg:    ".",
+			setupFunc: setupFunc,
 			wantResult: map[string]interface{}{
-				"modulePath":	moduleName,
-				"goVersion":	goVersion,
-				"rootDir":	"",	// This will be replaced by the helper
-				"requires":	[]map[string]interface{}{},
-				"replaces":	[]map[string]interface{}{},
+				"modulePath": moduleName,
+				"goVersion":  goVersion,
+				"rootDir":    "", // This will be replaced by the helper
+				"requires":   []map[string]interface{}{},
+				"replaces":   []map[string]interface{}{},
 			},
 		},
 		{
-			name:		"From subdir",
-			dirArg:		"subdir",
-			setupFunc:	setupFunc,
+			name:      "From subdir",
+			dirArg:    "subdir",
+			setupFunc: setupFunc,
 			wantResult: map[string]interface{}{
-				"modulePath":	moduleName,
-				"goVersion":	goVersion,
-				"rootDir":	"",	// This will be replaced by the helper
-				"requires":	[]map[string]interface{}{},
-				"replaces":	[]map[string]interface{}{},
+				"modulePath": moduleName,
+				"goVersion":  goVersion,
+				"rootDir":    "", // This will be replaced by the helper
+				"requires":   []map[string]interface{}{},
+				"replaces":   []map[string]interface{}{},
 			},
 		},
 		{
-			name:		"Directory outside sandbox",
-			dirArg:		"../outside",
-			setupFunc:	setupFunc,
-			wantErrIs:	lang.ErrPathViolation,
+			name:      "Directory outside sandbox",
+			dirArg:    "../outside",
+			setupFunc: setupFunc,
+			wantErrIs: lang.ErrPathViolation,
 		},
 		{
-			name:	"Go.mod not found",
+			name: "Go.mod not found",
 			setupFunc: func(t *testing.T, sandboxRoot string) {
 				// No go.mod is created for this test
 			},
-			dirArg:		".",
-			wantResult:	nil,	// Expect nil result and nil error
-			wantErrIs:	nil,
+			dirArg:     ".",
+			wantResult: nil, // Expect nil result and nil error
+			wantErrIs:  nil,
 		},
 		{
-			name:		"Wrong arg type",
-			dirArg:		123,
-			setupFunc:	setupFunc,
-			wantErrIs:	lang.ErrValidationTypeMismatch,
+			name:      "Wrong arg type",
+			dirArg:    123,
+			setupFunc: setupFunc,
+			wantErrIs: lang.ErrValidationTypeMismatch,
 		},
 	}
 

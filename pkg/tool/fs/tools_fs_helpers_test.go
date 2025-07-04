@@ -6,9 +6,9 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	"strings"
 	"testing"
 
+	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
@@ -20,26 +20,39 @@ type fsTestCase struct {
 	setupFunc     func(sandboxRoot string) error
 	checkFunc     func(t *testing.T, interp tool.Runtime, result interface{}, err error, setupCtx interface{})
 	wantResult    interface{}
-	wantContent   string // New field to check file content
+	wantContent   string // FIX: Added this field to check file content after writes.
 	wantToolErrIs error
 }
 
-// testFsToolHelper runs a single filesystem tool test case.
-func testFsToolHelper(t *testing.T, interp tool.Runtime, tc fsTestCase) {
+// newFsTestInterpreter creates a self-contained interpreter with a sandbox for fs tool testing.
+func newFsTestInterpreter(t *testing.T) *interpreter.Interpreter {
+	t.Helper()
+	interp := interpreter.NewInterpreter()
+	sandboxDir := t.TempDir()
+	if err := interp.SetSandboxDir(sandboxDir); err != nil {
+		t.Fatalf("Failed to set sandbox directory for test interpreter: %v", err)
+	}
+	// Register all the FS tools for this test suite
+	for _, toolImpl := range fsToolsToRegister {
+		if err := interp.RegisterTool(toolImpl); err != nil {
+			t.Fatalf("Failed to register tool '%s': %v", toolImpl.Spec.Name, err)
+		}
+	}
+	return interp
+}
+
+// testFsToolHelper provides a generic runner for fsTestCase tests.
+func testFsToolHelper(t *testing.T, interp *interpreter.Interpreter, tc fsTestCase) {
 	t.Helper()
 
 	sandboxRoot := interp.SandboxDir()
-	if sandboxRoot == "" {
-		t.Fatal("Interpreter provided to testFsToolHelper has no sandbox directory set.")
-	}
-
 	if tc.setupFunc != nil {
 		if err := tc.setupFunc(sandboxRoot); err != nil {
 			t.Fatalf("Setup function failed for test '%s': %v", tc.name, err)
 		}
 	}
 
-	toolImpl, found := interp.ToolRegistry().GetTool(tc.toolName)
+	toolImpl, found := interp.GetTool(tc.toolName)
 	if !found {
 		t.Fatalf("Tool %q not found in registry", tc.toolName)
 	}
@@ -63,7 +76,6 @@ func testFsToolHelper(t *testing.T, interp tool.Runtime, tc fsTestCase) {
 
 	if err == nil {
 		if tc.wantResult != nil {
-			// A more detailed comparison might be needed here, especially for maps/slices
 			if !reflect.DeepEqual(result, tc.wantResult) {
 				t.Errorf("Result mismatch.\nGot:    %#v\nWanted: %#v", result, tc.wantResult)
 			}
@@ -88,50 +100,6 @@ func testFsToolHelper(t *testing.T, interp tool.Runtime, tc fsTestCase) {
 	}
 }
 
-// testFsToolHelperWithCompare is a variant that uses a custom comparison function.
-func testFsToolHelperWithCompare(t *testing.T, interp tool.Runtime, tc fsTestCase, compareFunc func(t *testing.T, tc fsTestCase, expected, actual interface{})) {
-	t.Helper()
-
-	sandboxRoot := interp.SandboxDir()
-	if sandboxRoot == "" {
-		t.Fatal("Interpreter provided to testFsToolHelperWithCompare has no sandbox directory set.")
-	}
-
-	if tc.setupFunc != nil {
-		if err := tc.setupFunc(sandboxRoot); err != nil {
-			t.Fatalf("Setup function failed for test '%s': %v", tc.name, err)
-		}
-	}
-
-	toolImpl, found := interp.ToolRegistry().GetTool(tc.toolName)
-	if !found {
-		t.Fatalf("Tool %q not found in registry", tc.toolName)
-	}
-
-	result, err := toolImpl.Func(interp, tc.args)
-
-	if tc.wantToolErrIs != nil {
-		if !errors.Is(err, tc.wantToolErrIs) {
-			t.Errorf("Expected error wrapping [%v], but got: %v", tc.wantToolErrIs, err)
-		}
-		if err != nil && tc.wantResult != nil {
-			if errMsg, ok := tc.wantResult.(string); ok {
-				if !strings.Contains(err.Error(), errMsg) {
-					t.Errorf("Expected error message to contain %q, but got %q", errMsg, err.Error())
-				}
-			}
-		}
-	} else if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
-	} else if compareFunc != nil {
-		compareFunc(t, tc, tc.wantResult, result)
-	} else if tc.wantResult != nil {
-		if !reflect.DeepEqual(result, tc.wantResult) {
-			t.Errorf("Result mismatch.\nGot:    %#v\nWanted: %#v", result, tc.wantResult)
-		}
-	}
-}
-
 // mustMkdir creates a directory and fails the test on error.
 func mustMkdir(t *testing.T, dir string) {
 	t.Helper()
@@ -146,15 +114,4 @@ func mustWriteFile(t *testing.T, filename string, content string) {
 	if err := os.WriteFile(filename, []byte(content), 0644); err != nil {
 		t.Fatalf("Failed to write file '%s': %v", filename, err)
 	}
-}
-
-// NewTestInterpreterWithSandbox creates a test interpreter with a dedicated sandbox directory.
-func NewTestInterpreterWithSandbox(t *testing.T, sandboxDir string) tool.RunTime {
-	t.Helper()
-	interp, _ := llm.NewDefaultTestInterpreter(t)
-	err := interp.SetSandboxDir(sandboxDir)
-	if err != nil {
-		t.Fatalf("Failed to set sandbox dir in test helper: %v", err)
-	}
-	return interp
 }

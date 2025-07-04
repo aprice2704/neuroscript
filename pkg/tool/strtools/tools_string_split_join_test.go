@@ -12,6 +12,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 )
@@ -26,7 +27,11 @@ func testStringSplitJoinToolHelper(t *testing.T, interp tool.Runtime, tc struct 
 }) {
 	t.Helper()
 	t.Run(tc.name, func(t *testing.T) {
-		toolImpl, found := interp.ToolRegistry().GetTool(tc.toolName)
+		interpImpl, ok := interp.(interface{ ToolRegistry() tool.ToolRegistry })
+		if !ok {
+			t.Fatalf("Interpreter does not implement ToolRegistry()")
+		}
+		toolImpl, found := interpImpl.ToolRegistry().GetTool(tc.toolName)
 		if !found {
 			t.Fatalf("Tool %q not found in registry", tc.toolName)
 		}
@@ -52,7 +57,7 @@ func testStringSplitJoinToolHelper(t *testing.T, interp tool.Runtime, tc struct 
 }
 
 func TestToolSplitString(t *testing.T) {
-	interp, _ := llm.NewDefaultTestInterpreter(t)
+	interp := interpreter.NewInterpreter()
 	tests := []struct {
 		name       string
 		toolName   string
@@ -60,10 +65,10 @@ func TestToolSplitString(t *testing.T) {
 		wantResult interface{}
 		wantErrIs  error
 	}{
-		{name: "Simple_Split", toolName: "Split", args: tool.MakeArgs("a,b,c", ","), wantResult: []string{"a", "b", "c"}},
-		{name: "Empty_Delimiter", toolName: "Split", args: tool.MakeArgs("abc", ""), wantResult: []string{"a", "b", "c"}},
-		{name: "Validation_Non-string_Input", toolName: "Split", args: tool.MakeArgs(123, ","), wantErrIs: lang.ErrArgumentMismatch},
-		{name: "Validation_Non-string_Delimiter", toolName: "Split", args: tool.MakeArgs("abc", 1), wantErrIs: lang.ErrArgumentMismatch},
+		{name: "Simple_Split", toolName: "Split", args: MakeArgs("a,b,c", ","), wantResult: []string{"a", "b", "c"}},
+		{name: "Empty_Delimiter", toolName: "Split", args: MakeArgs("abc", ""), wantResult: []string{"a", "b", "c"}},
+		{name: "Validation_Non-string_Input", toolName: "Split", args: MakeArgs(123, ","), wantErrIs: lang.ErrArgumentMismatch},
+		{name: "Validation_Non-string_Delimiter", toolName: "Split", args: MakeArgs("abc", 1), wantErrIs: lang.ErrArgumentMismatch},
 	}
 	for _, tt := range tests {
 		testStringSplitJoinToolHelper(t, interp, tt)
@@ -71,7 +76,7 @@ func TestToolSplitString(t *testing.T) {
 }
 
 func TestToolSplitWords(t *testing.T) {
-	interp, _ := llm.NewDefaultTestInterpreter(t)
+	interp := interpreter.NewInterpreter()
 	tests := []struct {
 		name       string
 		toolName   string
@@ -79,10 +84,10 @@ func TestToolSplitWords(t *testing.T) {
 		wantResult interface{}
 		wantErrIs  error
 	}{
-		{name: "Simple_Words", toolName: "SplitWords", args: tool.MakeArgs("hello world"), wantResult: []string{"hello", "world"}},
-		{name: "Multiple_Spaces", toolName: "SplitWords", args: tool.MakeArgs("  hello \t world  \n next"), wantResult: []string{"hello", "world", "next"}},
-		{name: "Empty_String", toolName: "SplitWords", args: tool.MakeArgs(""), wantResult: []string{}},
-		{name: "Validation_Non-string_Input", toolName: "SplitWords", args: tool.MakeArgs(123), wantErrIs: lang.ErrArgumentMismatch},
+		{name: "Simple_Words", toolName: "SplitWords", args: MakeArgs("hello world"), wantResult: []string{"hello", "world"}},
+		{name: "Multiple_Spaces", toolName: "SplitWords", args: MakeArgs("  hello \t world  \n next"), wantResult: []string{"hello", "world", "next"}},
+		{name: "Empty_String", toolName: "SplitWords", args: MakeArgs(""), wantResult: []string{}},
+		{name: "Validation_Non-string_Input", toolName: "SplitWords", args: MakeArgs(123), wantErrIs: lang.ErrArgumentMismatch},
 	}
 	for _, tt := range tests {
 		testStringSplitJoinToolHelper(t, interp, tt)
@@ -90,7 +95,7 @@ func TestToolSplitWords(t *testing.T) {
 }
 
 func TestToolJoinStrings(t *testing.T) {
-	interp, _ := llm.NewDefaultTestInterpreter(t)
+	interp := interpreter.NewInterpreter()
 	tests := []struct {
 		name       string
 		toolName   string
@@ -98,11 +103,11 @@ func TestToolJoinStrings(t *testing.T) {
 		wantResult interface{}
 		wantErrIs  error
 	}{
-		{name: "Join_Simple", toolName: "Join", args: tool.MakeArgs([]string{"a", "b", "c"}, ","), wantResult: "a,b,c"},
-		{name: "Join_Empty_Slice", toolName: "Join", args: tool.MakeArgs([]string{}, ","), wantResult: ""},
-		{name: "Validation_Non-slice_First_Arg", toolName: "Join", args: tool.MakeArgs("abc", ","), wantErrIs: lang.ErrArgumentMismatch},
-		{name: "Validation_Non-string_Separator", toolName: "Join", args: tool.MakeArgs([]string{"a"}, 123), wantErrIs: lang.ErrArgumentMismatch},
-		{name: "Validation_Non-string_elements_in_slice", toolName: "Join", args: tool.MakeArgs([]interface{}{"a", 1}, ","), wantErrIs: lang.ErrArgumentMismatch},
+		{name: "Join_Simple", toolName: "Join", args: MakeArgs([]string{"a", "b", "c"}, ","), wantResult: "a,b,c"},
+		{name: "Join_Empty_Slice", toolName: "Join", args: MakeArgs([]string{}, ","), wantResult: ""},
+		{name: "Validation_Non-slice_First_Arg", toolName: "Join", args: MakeArgs("abc", ","), wantErrIs: lang.ErrArgumentMismatch},
+		{name: "Validation_Non-string_Separator", toolName: "Join", args: MakeArgs([]string{"a"}, 123), wantErrIs: lang.ErrArgumentMismatch},
+		{name: "Validation_Non-string_elements_in_slice", toolName: "Join", args: MakeArgs([]interface{}{"a", 1}, ","), wantErrIs: lang.ErrArgumentMismatch},
 	}
 	for _, tt := range tests {
 		testStringSplitJoinToolHelper(t, interp, tt)

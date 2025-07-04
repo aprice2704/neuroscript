@@ -19,7 +19,7 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
-// --- toolListDirectory unchanged ---
+// toolListDirectory implements the FS.List tool.
 func toolListDirectory(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
 	if len(args) < 1 || len(args) > 2 {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("ListDirectory: expected 1 or 2 arguments (path, [recursive]), got %d", len(args)), lang.ErrArgumentMismatch)
@@ -43,6 +43,8 @@ func toolListDirectory(interpreter tool.Runtime, args []interface{}) (interface{
 		}
 	}
 
+	// This now expects the interpreter to have a method that returns the concrete type.
+	// We'll address this by ensuring our test helper provides the full interpreter.
 	sandboxRoot := interpreter.SandboxDir()
 	absBasePath, secErr := security.ResolveAndSecurePath(relPath, sandboxRoot)
 	if secErr != nil {
@@ -65,7 +67,7 @@ func toolListDirectory(interpreter tool.Runtime, args []interface{}) (interface{
 	if recursive {
 		walkErr := filepath.WalkDir(absBasePath, func(currentPath string, d fs.DirEntry, err error) error {
 			if err != nil || currentPath == absBasePath {
-				return nil // Skip errors and the root itself
+				return nil
 			}
 			info, _ := d.Info()
 			entryRelPath, _ := filepath.Rel(absBasePath, currentPath)
@@ -121,19 +123,15 @@ func toolMkdir(interpreter tool.Runtime, args []interface{}) (interface{}, error
 	info, statErr := os.Stat(absPathToCreate)
 	if statErr == nil {
 		if info.IsDir() {
-			// Path exists and is a directory. This is a success case (idempotent).
 			return map[string]interface{}{"status": "success", "message": "Directory already exists", "path": relPath}, nil
 		}
-		// Path exists but is a file. This is an error.
 		return nil, lang.NewRuntimeError(lang.ErrorCodePathTypeMismatch, fmt.Sprintf("path '%s' already exists and is a file", relPath), lang.ErrPathNotDirectory)
 	}
 
 	if !errors.Is(statErr, os.ErrNotExist) {
-		// An unexpected error occurred during Stat.
 		return nil, lang.NewRuntimeError(lang.ErrorCodeIOFailed, fmt.Sprintf("failed to check path status for '%s'", relPath), errors.Join(lang.ErrIOFailed, statErr))
 	}
 
-	// Path does not exist, so we create it.
 	if err := os.MkdirAll(absPathToCreate, 0755); err != nil {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeIOFailed, fmt.Sprintf("failed to create directory '%s'", relPath), errors.Join(lang.ErrCannotCreateDir, err))
 	}

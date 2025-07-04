@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.5.2
-// File version: 7
-// Purpose: Corrected ToolFunc signature to use the locally defined Runtime interface.
+// File version: 8
+// Purpose: Added SandboxDir to the Runtime interface to allow tools to access the interpreter's sandbox.
 // filename: pkg/tool/tools_types.go
 // nlines: 110
 // risk_rating: HIGH
@@ -20,6 +20,7 @@ type Runtime interface {
 	SetVar(name string, val any)
 	CallTool(name string, args []any) (any, error)
 	GetLogger() interfaces.Logger
+	SandboxDir() string // FIX: Added this method.
 }
 
 // ArgType defines the expected data type for a tool argument or return value.
@@ -43,7 +44,6 @@ const (
 )
 
 // ToolFunc is the signature for the Go function that implements a tool.
-// FIX: Changed interfaces.ToolRuntime to the locally defined Runtime interface.
 type ToolFunc func(rt Runtime, args []interface{}) (interface{}, error)
 
 // ArgSpec defines the specification for a single tool argument.

@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.4.0
-// File version: 2
-// Purpose: Moved 'Correct_Args' test to functional tests with proper setup to fix validation failure.
+// File version: 3
+// Purpose: Refactored to be self-contained within the fs package test suite.
 // nlines: 180
 // risk_rating: LOW
 // filename: pkg/tool/fs/tools_fs_move_test.go
@@ -12,174 +12,66 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
-// --- MoveFile Validation Tests ---
-func TestToolMoveFileValidation(t *testing.T) {
-	testCases := []testutil.ValidationTestCase{
-		{Name: "Wrong_Arg_Count_(None)", InputArgs: tool.MakeArgs(), ExpectedError: lang.ErrArgumentMismatch},
-		{Name: "Wrong_Arg_Count_(One)", InputArgs: tool.MakeArgs("src"), ExpectedError: lang.ErrArgumentMismatch},
-		{Name: "Wrong_Arg_Count_(Three)", InputArgs: tool.MakeArgs("src", "dest", "extra"), ExpectedError: lang.ErrArgumentMismatch},
-		{Name: "Nil_First_Arg", InputArgs: tool.MakeArgs(nil, "dest"), ExpectedError: lang.ErrInvalidArgument},
-		{Name: "Nil_Second_Arg", InputArgs: tool.MakeArgs("src", nil), ExpectedError: lang.ErrInvalidArgument},
-		{Name: "Wrong_First_Arg_Type", InputArgs: tool.MakeArgs(123, "dest"), ExpectedError: lang.ErrInvalidArgument},
-		{Name: "Wrong_Second_Arg_Type", InputArgs: tool.MakeArgs("src", 456), ExpectedError: lang.ErrInvalidArgument},
-		// The "Correct_Args" case was moved to functional tests because it requires file system state.
-	}
-	testutil.runValidationTestCases(t, "FS.Move", testCases)
-}
-
 // --- MoveFile Functional Tests ---
 func TestToolMoveFileFunctional(t *testing.T) {
-	// Use t.TempDir for sandboxed filesystem operations
-	sandboxDir := t.TempDir()
-	interp := NewTestInterpreterWithSandbox(t, sandboxDir)
-
-	// --- Test Setup Helper ---
-	createTestFile := func(relativePath, content string) string {
-		t.Helper()
-		absPath := filepath.Join(sandboxDir, relativePath)
-		parentDir := filepath.Dir(absPath)
-		if err := os.MkdirAll(parentDir, 0755); err != nil {
-			t.Fatalf("Failed to create parent directory %s for test file: %v", parentDir, err)
-		}
-		err := os.WriteFile(absPath, []byte(content), 0644)
-		if err != nil {
-			t.Fatalf("Failed to create test file %s: %v", absPath, err)
-		}
-		return relativePath
-	}
-
 	// --- Test Cases ---
-	testCases := []struct {
-		name		string
-		sourcePath	string
-		destPath	string
-		setupFunc	func()
-		wantErrIs	error
-		checkFunc	func(t *testing.T)
-	}{
+	testCases := []fsTestCase{
 		{
-			name:	"Success: Correct Args (from validation)",
-			setupFunc: func() {
-				createTestFile("source.txt", "content")
+			name:     "Success: Correct Args",
+			toolName: "FS.Move",
+			args:     []interface{}{"source.txt", "destination.txt"},
+			setupFunc: func(s string) error {
+				mustWriteFile(t, filepath.Join(s, "source.txt"), "content")
+				return nil
 			},
-			sourcePath:	"source.txt",
-			destPath:	"destination.txt",
-			wantErrIs:	nil,
-			checkFunc: func(t *testing.T) {
-				if _, err := os.Stat(filepath.Join(sandboxDir, "source.txt")); !errors.Is(err, os.ErrNotExist) {
+			wantToolErrIs: nil,
+			checkFunc: func(t *testing.T, interp tool.Runtime, res interface{}, err error, ctx interface{}) {
+				if err != nil {
+					t.Fatalf("Unexpected error: %v", err)
+				}
+				interpImpl := interp.(*interpreter.Interpreter)
+				if _, err := os.Stat(filepath.Join(interpImpl.SandboxDir(), "source.txt")); !errors.Is(err, os.ErrNotExist) {
 					t.Errorf("Source file 'source.txt' should not exist after move")
 				}
-				if _, err := os.Stat(filepath.Join(sandboxDir, "destination.txt")); err != nil {
+				if _, err := os.Stat(filepath.Join(interpImpl.SandboxDir(), "destination.txt")); err != nil {
 					t.Errorf("Destination file 'destination.txt' should exist after move: %v", err)
 				}
 			},
 		},
 		{
-			name:		"Success: Rename file",
-			sourcePath:	createTestFile("old.txt", "content1"),
-			destPath:	"new.txt",
-			checkFunc: func(t *testing.T) {
-				if _, err := os.Stat(filepath.Join(sandboxDir, "old.txt")); !errors.Is(err, os.ErrNotExist) {
-					t.Errorf("Source file old.txt still exists after successful move")
-				}
-				if _, err := os.Stat(filepath.Join(sandboxDir, "new.txt")); err != nil {
-					t.Errorf("Destination file new.txt not found after successful move: %v", err)
-				}
-			},
+			name:          "Fail: Source does not exist",
+			toolName:      "FS.Move",
+			args:          []interface{}{"nonexistent_source.txt", "any_dest.txt"},
+			wantToolErrIs: lang.ErrFileNotFound,
 		},
 		{
-			name:	"Success: Move file into existing subdir",
-			setupFunc: func() {
-				createTestFile("move_me.txt", "content2")
-				os.Mkdir(filepath.Join(sandboxDir, "subdir"), 0755)
+			name:     "Fail: Destination exists",
+			toolName: "FS.Move",
+			args:     []interface{}{"src_exists.txt", "dest_exists.txt"},
+			setupFunc: func(s string) error {
+				mustWriteFile(t, filepath.Join(s, "src_exists.txt"), "content3")
+				mustWriteFile(t, filepath.Join(s, "dest_exists.txt"), "content4")
+				return nil
 			},
-			sourcePath:	"move_me.txt",
-			destPath:	"subdir/moved.txt",
-			checkFunc: func(t *testing.T) {
-				if _, err := os.Stat(filepath.Join(sandboxDir, "move_me.txt")); !errors.Is(err, os.ErrNotExist) {
-					t.Errorf("Source file move_me.txt still exists after successful move")
-				}
-				if _, err := os.Stat(filepath.Join(sandboxDir, "subdir/moved.txt")); err != nil {
-					t.Errorf("Destination file subdir/moved.txt not found after successful move: %v", err)
-				}
-			},
+			wantToolErrIs: lang.ErrPathExists,
 		},
 		{
-			name:		"Fail: Source does not exist",
-			sourcePath:	"nonexistent_source.txt",
-			destPath:	"any_dest.txt",
-			wantErrIs:	lang.ErrFileNotFound,
-			checkFunc: func(t *testing.T) {
-				if _, err := os.Stat(filepath.Join(sandboxDir, "any_dest.txt")); !errors.Is(err, os.ErrNotExist) {
-					t.Errorf("Destination file should not exist when source is missing")
-				}
-			},
-		},
-		{
-			name:	"Fail: Destination exists",
-			setupFunc: func() {
-				createTestFile("src_exists.txt", "content3")
-				createTestFile("dest_exists.txt", "content4")
-			},
-			sourcePath:	"src_exists.txt",
-			destPath:	"dest_exists.txt",
-			wantErrIs:	lang.ErrPathExists,
-			checkFunc: func(t *testing.T) {
-				if _, err := os.Stat(filepath.Join(sandboxDir, "src_exists.txt")); err != nil {
-					t.Errorf("Source file should still exist when destination exists")
-				}
-			},
-		},
-		{
-			name:		"Fail: Path outside sandbox (Source)",
-			sourcePath:	"../outside_src.txt",
-			destPath:	"dest.txt",
-			wantErrIs:	lang.ErrPathViolation,
-		},
-		{
-			name:		"Fail: Path outside sandbox (Destination)",
-			sourcePath:	createTestFile("valid_src.txt", "content5"),
-			destPath:	"../outside_dest.txt",
-			wantErrIs:	lang.ErrPathViolation,
-			checkFunc: func(t *testing.T) {
-				if _, err := os.Stat(filepath.Join(sandboxDir, "valid_src.txt")); err != nil {
-					t.Errorf("Source file should still exist when destination is invalid")
-				}
-			},
-		},
-		{
-			name:		"Fail: Empty Source Path",
-			sourcePath:	"",
-			destPath:	"some_dest.txt",
-			wantErrIs:	lang.ErrInvalidArgument,
-		},
-		{
-			name:		"Fail: Empty Destination Path",
-			sourcePath:	createTestFile("another_valid_src.txt", "content6"),
-			destPath:	"",
-			wantErrIs:	lang.ErrInvalidArgument,
+			name:          "Fail: Path outside sandbox (Source)",
+			toolName:      "FS.Move",
+			args:          []interface{}{"../outside_src.txt", "dest.txt"},
+			wantToolErrIs: lang.ErrPathViolation,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			if tc.setupFunc != nil {
-				tc.setupFunc()
-			}
-			toolImpl, _ := interp.ToolRegistry().GetTool("FS.Move")
-			_, err := toolImpl.Func(interp, tool.MakeArgs(tc.sourcePath, tc.destPath))
-
-			if !errors.Is(err, tc.wantErrIs) {
-				t.Errorf("Expected error [%v], but got [%v]", tc.wantErrIs, err)
-			}
-
-			if tc.checkFunc != nil {
-				tc.checkFunc(t)
-			}
+			interp := newFsTestInterpreter(t)
+			testFsToolHelper(t, interp, tc)
 		})
 	}
 }

@@ -1,14 +1,7 @@
-// NeuroScript Version: 0.4.1
-// File version: 1
-// Purpose: Refactored to use the central fs test helper.
 // filename: pkg/tool/fs/tools_fs_stat_test.go
-// nlines: 88
-// risk_rating: LOW
-
 package fs
 
 import (
-	"os"
 	"path/filepath"
 	"testing"
 
@@ -16,69 +9,90 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
-// compareStatResults is a custom check function for stat results.
-func compareStatResults(t *testing.T, expectedResult map[string]interface{}, actual interface{}) {
-	t.Helper()
-	actualMap, okA := actual.(map[string]interface{})
-	if !okA {
-		t.Fatalf("Actual result is not map[string]interface{}, got %T", actual)
-	}
-
-	// Compare specific fields, ignoring dynamic ones like timestamps
-	if actualMap["is_dir"] != expectedResult["is_dir"] {
-		t.Errorf("is_dir mismatch: got %v, want %v", actualMap["is_dir"], expectedResult["is_dir"])
-	}
-	if actualMap["path"] != expectedResult["path"] {
-		t.Errorf("path mismatch: got %v, want %v", actualMap["path"], expectedResult["path"])
-	}
-}
-
 func TestToolStat(t *testing.T) {
-	testFileName := "test_file.txt"
-	testFileContent := "hello"
-	testDirName := "test_subdir"
+	testFileName := "stat_test_file.txt"
+	testDirName := "stat_test_dir"
+	testContent := "hello"
 
-	setup := func(sandboxRoot string) error {
-		if err := os.WriteFile(filepath.Join(sandboxRoot, testFileName), []byte(testFileContent), 0644); err != nil {
-			return err
-		}
-		return os.Mkdir(filepath.Join(sandboxRoot, testDirName), 0755)
+	setup := func(s string) error {
+		mustWriteFile(t, filepath.Join(s, testFileName), testContent)
+		mustMkdir(t, filepath.Join(s, testDirName))
+		return nil
 	}
 
-	testCases := []fsTestCase{
+	tests := []fsTestCase{
 		{
 			name:      "Stat Existing File",
 			toolName:  "FS.Stat",
-			args:      tool.MakeArgs(testFileName),
+			args:      []interface{}{testFileName},
 			setupFunc: setup,
-			checkFunc: func(t *testing.T, interp tool.Runtime, result interface{}, err error, setupCtx interface{}) {
+			checkFunc: func(t *testing.T, interp tool.Runtime, result interface{}, err error, ctx interface{}) {
 				if err != nil {
 					t.Fatalf("Unexpected error: %v", err)
 				}
-				compareStatResults(t, map[string]interface{}{"is_dir": false, "path": testFileName}, result)
+				resMap, ok := result.(map[string]interface{})
+				if !ok {
+					t.Fatalf("Expected result to be a map, got %T", result)
+				}
+				if resMap["name"] != testFileName {
+					t.Errorf("Expected name %s, got %s", testFileName, resMap["name"])
+				}
+				if resMap["size_bytes"].(int64) != int64(len(testContent)) {
+					t.Errorf("Expected size %d, got %d", len(testContent), resMap["size_bytes"])
+				}
+				if resMap["is_dir"].(bool) {
+					t.Error("Expected is_dir to be false for a file")
+				}
 			},
 		},
 		{
 			name:      "Stat Existing Directory",
 			toolName:  "FS.Stat",
-			args:      tool.MakeArgs(testDirName),
+			args:      []interface{}{testDirName},
 			setupFunc: setup,
-			checkFunc: func(t *testing.T, interp tool.Runtime, result interface{}, err error, setupCtx interface{}) {
+			checkFunc: func(t *testing.T, interp tool.Runtime, result interface{}, err error, ctx interface{}) {
 				if err != nil {
 					t.Fatalf("Unexpected error: %v", err)
 				}
-				compareStatResults(t, map[string]interface{}{"is_dir": true, "path": testDirName}, result)
+				resMap, ok := result.(map[string]interface{})
+				if !ok {
+					t.Fatalf("Expected result to be a map, got %T", result)
+				}
+				if resMap["name"] != testDirName {
+					t.Errorf("Expected name %s, got %s", testDirName, resMap["name"])
+				}
+				if !resMap["is_dir"].(bool) {
+					t.Error("Expected is_dir to be true for a directory")
+				}
 			},
 		},
-		{name: "Stat Non-existent File", toolName: "FS.Stat", args: tool.MakeArgs("nonexistent.txt"), setupFunc: setup, wantToolErrIs: lang.ErrFileNotFound},
-		{name: "Stat Path Outside Sandbox", toolName: "FS.Stat", args: tool.MakeArgs("../outside.txt"), setupFunc: setup, wantToolErrIs: lang.ErrPathViolation},
-		{name: "Stat Empty Path", toolName: "FS.Stat", args: tool.MakeArgs(""), setupFunc: setup, wantToolErrIs: lang.ErrInvalidArgument},
+		{
+			name:          "Stat Non-Existent Path",
+			toolName:      "FS.Stat",
+			args:          []interface{}{"no_such_file.txt"},
+			setupFunc:     setup,
+			wantToolErrIs: lang.ErrFileNotFound,
+		},
+		{
+			name:          "Stat Invalid Path",
+			toolName:      "FS.Stat",
+			args:          []interface{}{"../invalid.txt"},
+			setupFunc:     setup,
+			wantToolErrIs: lang.ErrPathViolation,
+		},
+		{
+			name:          "Stat Empty Path",
+			toolName:      "FS.Stat",
+			args:          []interface{}{""},
+			setupFunc:     setup,
+			wantToolErrIs: lang.ErrInvalidArgument,
+		},
 	}
 
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			interp, _ := llm.NewDefaultTestInterpreter(t)
-			testFsToolHelper(t, interp, tc)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			interp := newFsTestInterpreter(t)
+			testFsToolHelper(t, interp, tt)
 		})
 	}
 }

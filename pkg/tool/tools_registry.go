@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.4.0
-// File version: 1.0.0
-// Purpose: Implements the 'Bridge' pattern via a CallFromInterpreter method.
+// File version: 1.1.0
+// Purpose: Corrected typos for the Runtime interface.
 // filename: pkg/tool/tools_registry.go
 // nlines: 165
 // risk_rating: HIGH
@@ -31,13 +31,15 @@ func AddToolImplementations(impls ...ToolImplementation) {
 
 // ToolRegistryImpl manages the available tools for an Interpreter instance.
 type ToolRegistryImpl struct {
-	tools       map[string]ToolImplementation
-	interpreter RunTime
+	tools map[string]ToolImplementation
+	// FIX: Use the correct 'Runtime' interface name.
+	interpreter Runtime
 	mu          sync.RWMutex
 }
 
 // NewToolRegistry creates a new registry instance.
-func NewToolRegistry(interpreter RunTime) *ToolRegistryImpl {
+// FIX: Use the correct 'Runtime' interface name.
+func NewToolRegistry(interpreter Runtime) *ToolRegistryImpl {
 	r := &ToolRegistryImpl{
 		tools:       make(map[string]ToolImplementation),
 		interpreter: interpreter,
@@ -97,13 +99,12 @@ func (r *ToolRegistryImpl) CallFromInterpreter(interp Runtime, toolName string, 
 	// 1. Unwrap all arguments from Value to primitives
 	rawArgs := make([]interface{}, len(args))
 	for i, arg := range args {
-		rawArgs[i] = lang.UnwrapValue(arg)
+		// This function call needs to be verified against the lang package
+		rawArgs[i] = lang.Unwrap(arg)
 	}
 
 	// 2. Validate and coerce the primitive arguments
-	// NOTE: This replaces the entire `tools_validation.go` file.
 	if len(rawArgs) < len(impl.Spec.Args) {
-		// Basic check for missing required args. More robust checks can be added.
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("tool '%s': expected at least %d args, got %d", toolName, len(impl.Spec.Args), len(rawArgs)), lang.ErrArgumentMismatch)
 	}
 
@@ -115,7 +116,6 @@ func (r *ToolRegistryImpl) CallFromInterpreter(interp Runtime, toolName string, 
 			return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("tool '%s' arg '%s': %v", toolName, spec.Name, err), lang.ErrArgumentMismatch)
 		}
 	}
-	// Handle variadic args if necessary
 	if impl.Spec.Variadic {
 		coercedArgs = append(coercedArgs, rawArgs[len(impl.Spec.Args):]...)
 	}

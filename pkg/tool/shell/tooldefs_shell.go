@@ -33,7 +33,7 @@ var shellToolsToRegister = []tool.ToolImplementation{
 				"May return path-related errors (e.g., `ErrFileNotFound`, `ErrPathNotDirectory`, `ErrPermissionDenied`) if the specified 'directory' is invalid or inaccessible. " +
 				"If the command itself executes but fails (non-zero exit code), 'success' in the result map will be false, and 'stderr' may contain error details. OS-level execution errors are also captured in 'stderr'.",
 		},
-		Func: toolExecuteCommand, // Assumes toolExecuteCommand is defined in pkg/core/tools_shell.go
+		Func: ToolExecuteCommand, // Assumes toolExecuteCommand is defined in pkg/core/tools_shell.go
 	},
 	// If toolExecOutputToFile needs to be registered as a distinct tool, add it here.
 }

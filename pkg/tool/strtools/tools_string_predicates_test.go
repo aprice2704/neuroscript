@@ -12,6 +12,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 )
@@ -26,7 +27,11 @@ func testStringPredicateToolHelper(t *testing.T, interp tool.Runtime, tc struct 
 }) {
 	t.Helper()
 	t.Run(tc.name, func(t *testing.T) {
-		toolImpl, found := interp.ToolRegistry().GetTool(tc.toolName)
+		interpImpl, ok := interp.(interface{ ToolRegistry() tool.ToolRegistry })
+		if !ok {
+			t.Fatalf("Interpreter does not implement ToolRegistry()")
+		}
+		toolImpl, found := interpImpl.ToolRegistry().GetTool(tc.toolName)
 		if !found {
 			t.Fatalf("Tool %q not found in registry", tc.toolName)
 		}
@@ -52,7 +57,7 @@ func testStringPredicateToolHelper(t *testing.T, interp tool.Runtime, tc struct 
 }
 
 func TestToolContainsPrefixSuffix(t *testing.T) {
-	interp, _ := llm.NewDefaultTestInterpreter(t)
+	interp := interpreter.NewInterpreter()
 	tests := []struct {
 		name       string
 		toolName   string
@@ -60,17 +65,17 @@ func TestToolContainsPrefixSuffix(t *testing.T) {
 		wantResult interface{}
 		wantErrIs  error
 	}{
-		{name: "Contains True", toolName: "Contains", args: tool.MakeArgs("hello world", "world"), wantResult: true},
-		{name: "Contains False", toolName: "Contains", args: tool.MakeArgs("hello world", "bye"), wantResult: false},
-		{name: "Contains Wrong Type", toolName: "Contains", args: tool.MakeArgs(123, "a"), wantErrIs: lang.ErrArgumentMismatch},
+		{name: "Contains True", toolName: "Contains", args: MakeArgs("hello world", "world"), wantResult: true},
+		{name: "Contains False", toolName: "Contains", args: MakeArgs("hello world", "bye"), wantResult: false},
+		{name: "Contains Wrong Type", toolName: "Contains", args: MakeArgs(123, "a"), wantErrIs: lang.ErrArgumentMismatch},
 
-		{name: "HasPrefix True", toolName: "HasPrefix", args: tool.MakeArgs("hello world", "hello"), wantResult: true},
-		{name: "HasPrefix False", toolName: "HasPrefix", args: tool.MakeArgs("hello world", "world"), wantResult: false},
-		{name: "HasPrefix Wrong Type", toolName: "HasPrefix", args: tool.MakeArgs(123, "a"), wantErrIs: lang.ErrArgumentMismatch},
+		{name: "HasPrefix True", toolName: "HasPrefix", args: MakeArgs("hello world", "hello"), wantResult: true},
+		{name: "HasPrefix False", toolName: "HasPrefix", args: MakeArgs("hello world", "world"), wantResult: false},
+		{name: "HasPrefix Wrong Type", toolName: "HasPrefix", args: MakeArgs(123, "a"), wantErrIs: lang.ErrArgumentMismatch},
 
-		{name: "HasSuffix True", toolName: "HasSuffix", args: tool.MakeArgs("hello world", "world"), wantResult: true},
-		{name: "HasSuffix False", toolName: "HasSuffix", args: tool.MakeArgs("hello world", "hello"), wantResult: false},
-		{name: "HasSuffix Wrong Type", toolName: "HasSuffix", args: tool.MakeArgs(123, "a"), wantErrIs: lang.ErrArgumentMismatch},
+		{name: "HasSuffix True", toolName: "HasSuffix", args: MakeArgs("hello world", "world"), wantResult: true},
+		{name: "HasSuffix False", toolName: "HasSuffix", args: MakeArgs("hello world", "hello"), wantResult: false},
+		{name: "HasSuffix Wrong Type", toolName: "HasSuffix", args: MakeArgs(123, "a"), wantErrIs: lang.ErrArgumentMismatch},
 	}
 	for _, tt := range tests {
 		testStringPredicateToolHelper(t, interp, tt)

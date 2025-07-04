@@ -63,19 +63,16 @@ func toolReadFile(interpreter tool.Runtime, args []interface{}) (interface{}, er
 		}
 
 		// *** ADDED: Check for "is a directory" error ***
-		// This error isn't standard, so check the message content
-		// Note: This might be OS-dependent.
 		if strings.Contains(err.Error(), "is a directory") {
 			errMsg := fmt.Sprintf("ReadFile: path '%s' is a directory, not a file", relPath)
 			interpreter.GetLogger().Debug(errMsg)
-			// Use ErrPathNotFile sentinel error
-			return "", lang.NewRuntimeError(lang.ErrorCodePathTypeMismatch, errMsg, lang.ErrPathNotFile) // Return empty string and error
+			return "", lang.NewRuntimeError(lang.ErrorCodePathTypeMismatch, errMsg, lang.ErrPathNotFile)
 		}
 
 		// Handle other potential I/O errors
 		errMsg := fmt.Sprintf("ReadFile: failed to read file '%s'", relPath)
 		interpreter.GetLogger().Error(errMsg, "error", err)
-		return "", lang.NewRuntimeError(lang.ErrorCodeIOFailed, errMsg, errors.Join(lang.ErrIOFailed, err)) // Return empty string and error
+		return "", lang.NewRuntimeError(lang.ErrorCodeIOFailed, errMsg, errors.Join(lang.ErrIOFailed, err))
 	}
 
 	// Success

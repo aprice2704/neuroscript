@@ -1,5 +1,5 @@
 // NeuroScript Version: 0.3.8
-// File version: 0.1.4 // Added Meta.GetToolSpecificationsJSON tool definition.
+// File version: 0.1.5 // Corrected ArgSpec type to use the 'tool' package.
 // nlines: 70 // Approximate
 // risk_rating: LOW
 
@@ -7,7 +7,7 @@
 package meta
 
 import (
-	"github.com/aprice2704/neuroscript/pkg/parser"
+	// FIX: Removed the incorrect 'parser' import.
 	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
@@ -16,10 +16,11 @@ import (
 var metaToolsToRegister = []tool.ToolImplementation{
 	{
 		Spec: tool.ToolSpec{
-			Name:            "Meta.ListTools",
-			Description:     "Provides a compact text list (sorted alphabetically) of all currently available tools, including basic parameter information. Each tool is listed on a new line, showing its name, parameters (name:type), and return type. Example: FS.Read(filepath:string) -> string",
-			Category:        "Introspection",
-			Args:            []parser.ArgSpec{}, // No arguments
+			Name:        "Meta.ListTools",
+			Description: "Provides a compact text list (sorted alphabetically) of all currently available tools, including basic parameter information. Each tool is listed on a new line, showing its name, parameters (name:type), and return type. Example: FS.Read(filepath:string) -> string",
+			Category:    "Introspection",
+			// FIX: Use the correct 'tool.ArgSpec' type.
+			Args:            []tool.ArgSpec{}, // No arguments
 			ReturnType:      tool.ArgTypeString,
 			ReturnHelp:      "A string containing a newline-separated list of tool names, their parameters (name:type), and return types.",
 			Variadic:        false,
@@ -33,13 +34,12 @@ var metaToolsToRegister = []tool.ToolImplementation{
 			Name:        "Meta.ToolsHelp",
 			Description: "Provides a more extensive, Markdown-formatted list of available tools, including descriptions, parameters, and return types. Can be filtered by providing a partial tool name. Details include parameter names, types, descriptions, and return type with its description.",
 			Category:    "Introspection",
-			Args: []parser.ArgSpec{
+			Args: []tool.ArgSpec{ // FIX: Use the correct 'tool.ArgSpec' type.
 				{
 					Name:        "filter",
 					Type:        tool.ArgTypeString,
 					Description: "An optional string to filter tool names. Only tools whose names contain this substring will be listed. If empty or omitted, all tools are listed.",
 					Required:    false,
-					// DefaultValue: nil, // Handled by tool logic
 				},
 			},
 			ReturnType:      tool.ArgTypeString,
@@ -55,7 +55,7 @@ var metaToolsToRegister = []tool.ToolImplementation{
 			Name:            "Meta.GetToolSpecificationsJSON",
 			Description:     "Provides a JSON string containing an array of all currently available tool specifications. Each object in the array represents a tool and includes its name, description, category, arguments (with their details), return type, return help, variadic status, example usage, and error conditions.",
 			Category:        "Introspection",
-			Args:            []parser.ArgSpec{}, // No arguments
+			Args:            []tool.ArgSpec{}, // FIX: Use the correct 'tool.ArgSpec' type.
 			ReturnType:      tool.ArgTypeString,
 			ReturnHelp:      "A JSON string representing an array of ToolSpec objects. This is intended for programmatic use or detailed inspection of all tool capabilities.",
 			Variadic:        false,

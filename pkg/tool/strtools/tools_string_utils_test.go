@@ -12,6 +12,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 )
@@ -26,7 +27,11 @@ func testStringUtilToolHelper(t *testing.T, interp tool.Runtime, tc struct {
 }) {
 	t.Helper()
 	t.Run(tc.name, func(t *testing.T) {
-		toolImpl, found := interp.ToolRegistry().GetTool(tc.toolName)
+		interpImpl, ok := interp.(interface{ ToolRegistry() tool.ToolRegistry })
+		if !ok {
+			t.Fatalf("Interpreter does not implement ToolRegistry()")
+		}
+		toolImpl, found := interpImpl.ToolRegistry().GetTool(tc.toolName)
 		if !found {
 			t.Fatalf("Tool %q not found in registry", tc.toolName)
 		}
@@ -52,7 +57,7 @@ func testStringUtilToolHelper(t *testing.T, interp tool.Runtime, tc struct {
 }
 
 func TestToolLineCountString(t *testing.T) {
-	interp, _ := llm.NewDefaultTestInterpreter(t)
+	interp := interpreter.NewInterpreter()
 	tests := []struct {
 		name       string
 		toolName   string
@@ -60,14 +65,14 @@ func TestToolLineCountString(t *testing.T) {
 		wantResult interface{}
 		wantErrIs  error
 	}{
-		{name: "Empty String", toolName: "LineCount", args: tool.MakeArgs(""), wantResult: float64(0)},
-		{name: "Single Line No NL", toolName: "LineCount", args: tool.MakeArgs("hello"), wantResult: float64(1)},
-		{name: "Single Line With NL", toolName: "LineCount", args: tool.MakeArgs("hello\n"), wantResult: float64(1)},
-		{name: "Two Lines No Trailing NL", toolName: "LineCount", args: tool.MakeArgs("hello\nworld"), wantResult: float64(2)},
-		{name: "Multiple Blank Lines", toolName: "LineCount", args: tool.MakeArgs("\n\n\n"), wantResult: float64(3)},
+		{name: "Empty String", toolName: "LineCount", args: MakeArgs(""), wantResult: float64(0)},
+		{name: "Single Line No NL", toolName: "LineCount", args: MakeArgs("hello"), wantResult: float64(1)},
+		{name: "Single Line With NL", toolName: "LineCount", args: MakeArgs("hello\n"), wantResult: float64(1)},
+		{name: "Two Lines No Trailing NL", toolName: "LineCount", args: MakeArgs("hello\nworld"), wantResult: float64(2)},
+		{name: "Multiple Blank Lines", toolName: "LineCount", args: MakeArgs("\n\n\n"), wantResult: float64(3)},
 		// Per Go's strings.Count, CRLF is not treated as a single newline. This test assumes we are counting '\n'.
-		{name: "CRLF Line Endings", toolName: "LineCount", args: tool.MakeArgs("line1\r\nline2\r\n"), wantResult: float64(2)},
-		{name: "Validation Wrong Arg Type", toolName: "LineCount", args: tool.MakeArgs(123), wantErrIs: lang.ErrArgumentMismatch},
+		{name: "CRLF Line Endings", toolName: "LineCount", args: MakeArgs("line1\r\nline2\r\n"), wantResult: float64(2)},
+		{name: "Validation Wrong Arg Type", toolName: "LineCount", args: MakeArgs(123), wantErrIs: lang.ErrArgumentMismatch},
 	}
 	for _, tt := range tests {
 		testStringUtilToolHelper(t, interp, tt)

@@ -1,5 +1,5 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.1.1 // Use FileAPI.ResolvePath, add os.Stat check for directory.
+// File version: 0.1.1 // Use security.ResolveAndSecurePath, add os.Stat check for directory.
 // nlines: 115 // Approximate
 // risk_rating: HIGH // Due to shell execution capabilities
 // filename: pkg/tool/shell/tools_shell.go
@@ -16,12 +16,13 @@ import (
 	"syscall"
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/security"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
 // toolExecuteCommand executes an external command securely within the sandbox.
 // Corresponds to ToolSpec "Shell.Execute".
-func toolExecuteCommand(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
+func ToolExecuteCommand(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
 	toolName := "Shell.Execute"
 
 	// Expected args: command (string), args_list ([]string, optional), directory (string, optional)
@@ -76,12 +77,8 @@ func toolExecuteCommand(interpreter tool.Runtime, args []interface{}) (interface
 		return nil, lang.NewRuntimeError(lang.ErrorCodeSecurity, errMsg, lang.ErrSecurityViolation)
 	}
 
-	// Validate and Resolve Directory using FileAPI
-	if interpreter.fileAPI == nil {
-		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, fmt.Sprintf("%s: FileAPI not initialized in interpreter", toolName), lang.ErrInternal)
-	}
-	// Resolve the path first
-	absValidatedDir, pathErr := interpreter.fileAPI.ResolvePath(targetDirRel)
+	// Validate and Resolve Directory
+	absValidatedDir, pathErr := security.ResolveAndSecurePath(targetDirRel, interpreter.SandboxDir())
 	if pathErr != nil {
 		// ResolvePath returns RuntimeError already
 		errMsg := fmt.Sprintf("%s: invalid execution directory %q: %v", toolName, targetDirRel, pathErr)

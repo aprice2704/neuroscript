@@ -1,15 +1,16 @@
 // NeuroScript Version: 0.3.0
-// Last Modified: 2025-05-03 21:14:56 PDT // Correct handling of NewDefaultTestInterpreter return path
+// Last Modified: 2025-07-04 02:17:00 EDT
 // filename: pkg/tool/gotools/tools_go_diagnostics_test.go
 
 package gotools
 
 import (
 	"testing"
-	// testing helpers might be needed for AssertNoError if not built-in
+
+	"github.com/aprice2704/neuroscript/pkg/testutil"
 )
 
-// AssertNoError is a test helper (assuming it exists in universal_test_helpers.go or similar)
+// AssertNoError is a test helper (now assumed to exist in testutil)
 // If it doesn't exist, replace AssertNoError(t, err) with:
 // if err != nil { t.Fatalf("unexpected error: %v", err) }
 
@@ -31,21 +32,25 @@ func TestGoDiagnosticTools(t *testing.T) {
 
 	t.Run("GoVetInvocation", func(t *testing.T) {
 		// Setup interpreter with a temporary sandbox
-		// *** Fix: Correctly handle (*Interpreter, string) return (string is sandbox path) ***
-		interpreter, sandboxAbsPath := llm.NewDefaultTestInterpreter(t)
-		// No need to check sandboxAbsPath - NewDefaultTestInterpreter uses t.Fatalf on internal error
-		t.Logf("Test interpreter created with sandbox: %s", sandboxAbsPath)	// Log path (optional)
-		// The interpreter already has the sandbox set by NewDefaultTestInterpreter internally
+		// *** Fix: Correctly handle (*Interpreter, error) return ***
+		interpreter, err := testutil.NewTestInterpreter(t, nil, nil)
+		if err != nil {
+			t.Fatalf("NewTestInterpreter failed: %v", err)
+		}
+		sandboxAbsPath := interpreter.SandboxDir()
+		t.Logf("Test interpreter created with sandbox: %s", sandboxAbsPath) // Log path (optional)
 
 		// Args for the tool (using default target "./...")
-		args := []interface{}{}	// No target specified, should default
+		args := []interface{}{} // No target specified, should default
 
 		// Call the tool function
-		resultMap, toolErr := toolGoVet(interpreter, args)	// toolErr is type error
+		resultMap, toolErr := toolGoVet(interpreter, args) // toolErr is type error
 
 		// --- Assertions ---
 		// 1. Check for Go-level errors from the tool function itself (toolErr)
-		testutil.AssertNoError(t, toolErr)	// This checks the 'error' from toolGoVet
+		if toolErr != nil {
+			t.Fatalf("unexpected error: %v", toolErr)
+		}
 
 		// 2. Check if the result is a map with the expected keys
 		checkResultMapKeys(t, resultMap, "GoVet")
@@ -56,21 +61,25 @@ func TestGoDiagnosticTools(t *testing.T) {
 
 	t.Run("StaticcheckInvocation", func(t *testing.T) {
 		// Setup interpreter with a temporary sandbox
-		// *** Fix: Correctly handle (*Interpreter, string) return (string is sandbox path) ***
-		interpreter, sandboxAbsPath := llm.NewDefaultTestInterpreter(t)
-		// No need to check sandboxAbsPath - NewDefaultTestInterpreter uses t.Fatalf on internal error
-		t.Logf("Test interpreter created with sandbox: %s", sandboxAbsPath)	// Log path (optional)
-		// The interpreter already has the sandbox set by NewDefaultTestInterpreter internally
+		// *** Fix: Correctly handle (*Interpreter, error) return ***
+		interpreter, err := testutil.NewTestInterpreter(t, nil, nil)
+		if err != nil {
+			t.Fatalf("NewTestInterpreter failed: %v", err)
+		}
+		sandboxAbsPath := interpreter.SandboxDir()
+		t.Logf("Test interpreter created with sandbox: %s", sandboxAbsPath) // Log path (optional)
 
 		// Args for the tool (using default target "./...")
-		args := []interface{}{}	// No target specified, should default
+		args := []interface{}{} // No target specified, should default
 
 		// Call the tool function
-		resultMap, toolErr := toolStaticcheck(interpreter, args)	// toolErr is type error
+		resultMap, toolErr := toolStaticcheck(interpreter, args) // toolErr is type error
 
 		// --- Assertions ---
 		// 1. Check for Go-level errors from the tool function itself (toolErr)
-		testutil.AssertNoError(t, toolErr)	// This checks the 'error' from toolStaticcheck
+		if toolErr != nil {
+			t.Fatalf("unexpected error: %v", toolErr)
+		}
 
 		// 2. Check if the result is a map with the expected keys
 		checkResultMapKeys(t, resultMap, "Staticcheck")

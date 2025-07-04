@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.4.0
-// File version: 6
-// Purpose: Added the tool definition for FS.Append to register the new tool.
+// File version: 7
+// Purpose: Corrected all instances of parser.ArgSpec to the correct tool.ArgSpec.
 // nlines: 275 // Approximate
 // risk_rating: MEDIUM
 // filename: pkg/tool/fs/tooldefs_fs.go

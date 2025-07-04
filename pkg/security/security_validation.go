@@ -2,12 +2,10 @@
 package security
 
 import (
-	// Import errors package
 	"fmt"
 	"strings"
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
-	"github.com/aprice2704/neuroscript/pkg/parser"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 	"github.com/aprice2704/neuroscript/pkg/utils"
 )
@@ -53,6 +51,7 @@ func (sl *SecurityLayer) validateArgumentsAgainstSpec(toolSpec tool.ToolSpec, ra
 		}
 
 		// b) Type Checking & Coercion
+		// FIXED: Call uses specArg.Type (tool.ArgType) which now matches function signature
 		validatedValue, validationError = sl.validateAndCoerceType(rawValue, specArg.Type, toolSpec.Name, argName)
 		if validationError != nil {
 			// Error from validateAndCoerceType should already be properly formatted/wrapped
@@ -88,7 +87,8 @@ func (sl *SecurityLayer) validateArgumentsAgainstSpec(toolSpec tool.ToolSpec, ra
 			(toolSpec.Name == "TOOL.GoBuild" && argName == "target") ||
 			(toolSpec.Name == "TOOL.LineCountFile" && argName == "filepath")
 
-		if isPathArg && specArg.Type == tool.tool.ArgTypeString {
+		// FIXED: Corrected typo from tool.tool.ArgTypeString to tool.ArgTypeString
+		if isPathArg && specArg.Type == tool.ArgTypeString {
 			pathStr, _ := validatedValue.(string)
 			// SecureFilePath performs sandboxing and returns wrapped sentinel errors (ErrPathViolation, ErrNullByteInArgument)
 			_, pathErr := SecureFilePath(pathStr, sl.sandboxRoot)
@@ -130,11 +130,13 @@ func (sl *SecurityLayer) validateArgumentsAgainstSpec(toolSpec tool.ToolSpec, ra
 
 // validateAndCoerceType checks if the rawValue matches the expected ArgType and attempts coercion.
 // Returns wrapped sentinel errors on failure.
-func (sl *SecurityLayer) validateAndCoerceType(rawValue interface{}, expectedType parser.ArgType, toolName, argName string) (interface{}, error) {
+// FIXED: Changed expectedType from parser.ArgType to tool.ArgType
+func (sl *SecurityLayer) validateAndCoerceType(rawValue interface{}, expectedType tool.ArgType, toolName, argName string) (interface{}, error) {
 	var validatedValue interface{}
 	var ok bool
 	var typeErr error // Holds the specific sentinel error for type mismatch
 
+	// FIXED: All cases now correctly match against tool.ArgType
 	switch expectedType {
 	case tool.ArgTypeString:
 		validatedValue, ok = rawValue.(string)
@@ -142,7 +144,8 @@ func (sl *SecurityLayer) validateAndCoerceType(rawValue interface{}, expectedTyp
 			typeErr = lang.ErrValidationTypeMismatch
 		}
 	case tool.ArgTypeInt:
-		validatedValue, ok = lang.toInt64(rawValue)
+		// FIXED: Corrected function name from toInt64 to ToInt64
+		validatedValue, ok = lang.ToInt64(rawValue)
 		if !ok {
 			typeErr = lang.ErrValidationTypeMismatch
 		}
