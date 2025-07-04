@@ -11,19 +11,20 @@ import (
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/testutil"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 	"github.com/aprice2704/neuroscript/pkg/utils"
 )
 
 func TestTreeMetadataTools(t *testing.T) {
 	jsonSimple := `{"key":"value"}` // Root node (node-1) type: object, attributes: {"key": "node-2"}, node-2 type: string, value: "value"
-	setupMetaTree := func(t *testing.T, interp tool.RunTime) interface{} {
+	setupMetaTree := func(t *testing.T, interp tool.Runtime) interface{} {
 		return setupTreeWithJSON(t, interp, jsonSimple)
 	}
 
 	testCases := []treeTestCase{
 		// Tree.SetNodeMetadata
-		{name: "SetNodeMetadata New Key", toolName: "Tree.SetNodeMetadata", setupFunc: setupMetaTree, args: tool.MakeArgs("SETUP_HANDLE:mTree", "node-1", "metaKey1", "metaValue1"),
+		{name: "SetNodeMetadata New Key", toolName: "Tree.SetNodeMetadata", setupFunc: setupMetaTree, args: MakeArgs("SETUP_HANDLE:mTree", "node-1", "metaKey1", "metaValue1"),
 			checkFunc: func(t *testing.T, interp tool.Runtime, result interface{}, err error, ctx interface{}) {
 				if err != nil {
 					t.Fatalf("SetNodeMetadata failed: %v", err)
@@ -39,12 +40,12 @@ func TestTreeMetadataTools(t *testing.T) {
 					t.Errorf("Metadata not set correctly. Got: %v, expected 'metaValue1'", attrs["metaKey1"])
 				}
 			}},
-		{name: "SetNodeMetadata Empty Key", toolName: "Tree.SetNodeMetadata", setupFunc: setupMetaTree, args: tool.MakeArgs("SETUP_HANDLE:mTree", "node-1", "", "val"), wantErr: lang.ErrInvalidArgument}, // Empty key for metadata
-		{name: "SetNodeMetadata NonExistent Node", toolName: "Tree.SetNodeMetadata", setupFunc: setupMetaTree, args: tool.MakeArgs("SETUP_HANDLE:mTree", "node-999", "key", "val"), wantErr: lang.ErrNotFound},
+		{name: "SetNodeMetadata Empty Key", toolName: "Tree.SetNodeMetadata", setupFunc: setupMetaTree, args: MakeArgs("SETUP_HANDLE:mTree", "node-1", "", "val"), wantErr: lang.ErrInvalidArgument}, // Empty key for metadata
+		{name: "SetNodeMetadata NonExistent Node", toolName: "Tree.SetNodeMetadata", setupFunc: setupMetaTree, args: MakeArgs("SETUP_HANDLE:mTree", "node-999", "key", "val"), wantErr: lang.ErrNotFound},
 
 		// Tree.RemoveNodeMetadata
 		{name: "RemoveNodeMetadata Existing Key", toolName: "Tree.RemoveNodeMetadata",
-			setupFunc: func(t *testing.T, interp tool.RunTime) interface{} {
+			setupFunc: func(t *testing.T, interp tool.Runtime) interface{} {
 				handle := setupTreeWithJSON(t, interp, jsonSimple)
 				// Set a metadata key to remove
 				err := callSetMetadata(t, interp, handle, "node-1", "toRemove", "val")
@@ -53,7 +54,7 @@ func TestTreeMetadataTools(t *testing.T) {
 				}
 				return handle
 			},
-			args: tool.MakeArgs("SETUP_HANDLE:mTree", "node-1", "toRemove"),
+			args: MakeArgs("SETUP_HANDLE:mTree", "node-1", "toRemove"),
 			checkFunc: func(t *testing.T, interp tool.Runtime, result interface{}, err error, ctx interface{}) {
 				if err != nil {
 					t.Fatalf("RemoveNodeMetadata failed: %v", err)
@@ -68,11 +69,14 @@ func TestTreeMetadataTools(t *testing.T) {
 					t.Errorf("Metadata key 'toRemove' still exists after removal.")
 				}
 			}},
-		{name: "RemoveNodeMetadata NonExistent Key", toolName: "Tree.RemoveNodeMetadata", setupFunc: setupMetaTree, args: tool.MakeArgs("SETUP_HANDLE:mTree", "node-1", "nonKey"), wantErr: lang.ErrAttributeNotFound}, // Metadata key not found
-		{name: "RemoveNodeMetadata NonExistent Node", toolName: "Tree.RemoveNodeMetadata", setupFunc: setupMetaTree, args: tool.MakeArgs("SETUP_HANDLE:mTree", "node-999", "key"), wantErr: lang.ErrNotFound},
+		{name: "RemoveNodeMetadata NonExistent Key", toolName: "Tree.RemoveNodeMetadata", setupFunc: setupMetaTree, args: MakeArgs("SETUP_HANDLE:mTree", "node-1", "nonKey"), wantErr: lang.ErrAttributeNotFound}, // Metadata key not found
+		{name: "RemoveNodeMetadata NonExistent Node", toolName: "Tree.RemoveNodeMetadata", setupFunc: setupMetaTree, args: MakeArgs("SETUP_HANDLE:mTree", "node-999", "key"), wantErr: lang.ErrNotFound},
 	}
 	for _, tc := range testCases {
-		currentInterp, _ := llm.NewDefaultTestInterpreter(t)
+		currentInterp, err := testutil.NewTestInterpreter(t, nil, nil)
+		if err != nil {
+			t.Fatalf("NewTestInterpreter failed: %v", err)
+		}
 		testTreeToolHelper(t, currentInterp, tc)
 	}
 }

@@ -14,7 +14,7 @@ import (
 
 // CallListReverse is registered with the interpreter’s tool registry.
 // Signature: wrappers in  -> wrapper out.
-func CallListReverse(args []Value) (Value, error) {
+func CallListReverse(args []lang.Value) (lang.Value, error) {
 	// 1. Unwrap interpreter args (they arrive as wrappers).
 	rawArgs, err := lang.UnwrapSlice(args)
 	if err != nil {

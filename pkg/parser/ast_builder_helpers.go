@@ -17,13 +17,13 @@ import (
 type ArgType int
 
 const (
-	tool.ArgTypeAny ArgType = iota
-	tool.ArgTypeString
-	tool.ArgTypeInt
-	tool.ArgTypeFloat
-	tool.ArgTypeBool
-	tool.ArgTypeSliceAny
-	tool.ArgTypeMap
+	ArgTypeAny ArgType = iota
+	ArgTypeString
+	ArgTypeInt
+	ArgTypeFloat
+	ArgTypeBool
+	ArgTypeSliceAny
+	ArgTypeMap
 )
 
 // ParseMetadataLine attempts to parse a line potentially containing metadata (e.g., ":: key: value").
@@ -123,21 +123,21 @@ func ConvertInputSchemaToArgSpec(schema map[string]interface{}) ([]tool.ArgSpec,
 		descStr, _ := descStrVal.(string) // Description
 
 		// Convert JSON schema type to internal ArgType
-		var argType tool.ArgType = tool.tool.ArgTypeAny // Default to Any if unknown
+		var argType tool.ArgType = tool.ArgTypeAny // Default to Any if unknown
 		switch typeStr {
 		case "string":
-			argType = tool.tool.ArgTypeString
+			argType = tool.ArgTypeString
 		case "integer":
-			argType = tool.tool.ArgTypeInt
+			argType = tool.ArgTypeInt
 		case "number":
-			argType = tool.tool.ArgTypeFloat
+			argType = tool.ArgTypeFloat
 		case "boolean":
-			argType = tool.tool.ArgTypeBool
+			argType = tool.ArgTypeBool
 		case "array":
 			// TODO: Could inspect 'items' field for better type, defaults to SliceAny
-			argType = tool.tool.ArgTypeSliceAny
+			argType = tool.ArgTypeSliceAny
 		case "object":
-			argType = tool.tool.ArgTypeMap
+			argType = tool.ArgTypeMap
 			// default: // Keep default as tool.ArgTypeAny
 		}
 

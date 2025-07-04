@@ -12,9 +12,18 @@ import (
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/testutil"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 	"github.com/aprice2704/neuroscript/pkg/utils"
 )
+
+// MakeArgs is a convenience function to create a slice of interfaces, useful for constructing tool arguments programmatically.
+func MakeArgs(vals ...interface{}) []interface{} {
+	if vals == nil {
+		return []interface{}{}
+	}
+	return vals
+}
 
 // findNodeIDByRootAttribute finds the ID of a child node linked by a specific attribute key on a given root/parent node.
 func findNodeIDByRootAttribute(t *testing.T, interp tool.Runtime, handle string, parentNodeID string, attributeKey string) (string, bool) {
@@ -51,7 +60,7 @@ func findNodeIDByRootAttribute(t *testing.T, interp tool.Runtime, handle string,
 func TestTreeModificationTools(t *testing.T) {
 	jsonSimple := `{"name": "item", "value": 10}`
 
-	setupInitialTree := func(t *testing.T, interp tool.RunTime) interface{} {
+	setupInitialTree := func(t *testing.T, interp tool.Runtime) interface{} {
 		return setupTreeWithJSON(t, interp, jsonSimple)
 	}
 
@@ -59,7 +68,7 @@ func TestTreeModificationTools(t *testing.T) {
 		{
 			name:      "SetValue Valid Leaf (string node) (Robust)",
 			toolName:  "Tree.GetNode",
-			args:      tool.MakeArgs("SETUP_HANDLE:tree1", "node-1"),
+			args:      MakeArgs("SETUP_HANDLE:tree1", "node-1"),
 			setupFunc: setupInitialTree,
 			checkFunc: func(t *testing.T, interp tool.Runtime, initialToolResult interface{}, initialToolErr error, ctx interface{}) {
 				handle := ctx.(string)
@@ -72,11 +81,15 @@ func TestTreeModificationTools(t *testing.T) {
 				}
 				t.Logf("SetValue check: Dynamically found target node ID (for original 'name') as: %s", targetNodeID)
 
-				setValueTool, toolFound := interp.ToolRegistry().GetTool("Tree.SetValue")
+				interpImpl, ok := interp.(interface{ ToolRegistry() tool.ToolRegistry })
+				if !ok {
+					t.Fatalf("Interpreter does not implement ToolRegistry()")
+				}
+				setValueTool, toolFound := interpImpl.ToolRegistry().GetTool("Tree.SetValue")
 				if !toolFound {
 					t.Fatalf("Tool Tree.SetValue not found in registry.")
 				}
-				_, setValueErr := setValueTool.Func(interp, tool.MakeArgs(handle, targetNodeID, newValueToSet))
+				_, setValueErr := setValueTool.Func(interp, MakeArgs(handle, targetNodeID, newValueToSet))
 				if setValueErr != nil {
 					t.Fatalf("SetValue tool call failed for node '%s': %v", targetNodeID, setValueErr)
 				}
@@ -96,21 +109,21 @@ func TestTreeModificationTools(t *testing.T) {
 			name:      "SetValue On Object Node",
 			toolName:  "Tree.SetValue",
 			setupFunc: setupInitialTree,
-			args:      tool.MakeArgs("SETUP_HANDLE:tree1", "node-1", "should_fail"),
+			args:      MakeArgs("SETUP_HANDLE:tree1", "node-1", "should_fail"),
 			wantErr:   lang.ErrCannotSetValueOnType,
 		},
 		{
 			name:      "SetValue NonExistent Node",
 			toolName:  "Tree.SetValue",
 			setupFunc: setupInitialTree,
-			args:      tool.MakeArgs("SETUP_HANDLE:tree1", "node-999", "val"),
+			args:      MakeArgs("SETUP_HANDLE:tree1", "node-999", "val"),
 			wantErr:   lang.ErrNotFound,
 		},
 		{
 			name:      "AddChildNode To Root Object",
 			toolName:  "Tree.AddChildNode",
 			setupFunc: setupInitialTree,
-			args:      tool.MakeArgs("SETUP_HANDLE:tree1", "node-1", "newChild1", "string", "hello", "newKeyInRoot"),
+			args:      MakeArgs("SETUP_HANDLE:tree1", "node-1", "newChild1", "string", "hello", "newKeyInRoot"),
 			checkFunc: func(t *testing.T, interp tool.Runtime, result interface{}, err error, ctx interface{}) {
 				if err != nil {
 					t.Fatalf("AddChildNode failed: %v", err)
@@ -135,13 +148,13 @@ func TestTreeModificationTools(t *testing.T) {
 			name:      "AddChildNode ID Exists",
 			toolName:  "Tree.AddChildNode",
 			setupFunc: setupInitialTree,
-			args:      tool.MakeArgs("SETUP_HANDLE:tree1", "node-1", "node-2", "string", "fail", "anotherKey"),
+			args:      MakeArgs("SETUP_HANDLE:tree1", "node-1", "node-2", "string", "fail", "anotherKey"),
 			wantErr:   lang.ErrNodeIDExists,
 		},
 		{
 			name:      "AddChildNode To Leaf Node (Robust)",
 			toolName:  "Tree.GetNode",
-			args:      tool.MakeArgs("SETUP_HANDLE:tree1", "node-1"),
+			args:      MakeArgs("SETUP_HANDLE:tree1", "node-1"),
 			setupFunc: setupInitialTree,
 			checkFunc: func(t *testing.T, interp tool.Runtime, initialToolResult interface{}, initialToolErr error, ctx interface{}) {
 				handle := ctx.(string)
@@ -149,9 +162,12 @@ func TestTreeModificationTools(t *testing.T) {
 				if !found {
 					t.Fatalf("AddChildNode To Leaf Node check: Could not find leaf node (e.g., for 'name' attribute).")
 				}
-
-				addTool, _ := interp.ToolRegistry().GetTool("Tree.AddChildNode")
-				_, addErr := addTool.Func(interp, tool.MakeArgs(handle, leafNodeID, "newChild2", "string", "val", "key"))
+				interpImpl, ok := interp.(interface{ ToolRegistry() tool.ToolRegistry })
+				if !ok {
+					t.Fatalf("Interpreter does not implement ToolRegistry()")
+				}
+				addTool, _ := interpImpl.ToolRegistry().GetTool("Tree.AddChildNode")
+				_, addErr := addTool.Func(interp, MakeArgs(handle, leafNodeID, "newChild2", "string", "val", "key"))
 
 				if !errors.Is(addErr, lang.ErrNodeWrongType) {
 					t.Errorf("Expected ErrNodeWrongType when adding child to leaf node '%s', got %v", leafNodeID, addErr)
@@ -161,7 +177,7 @@ func TestTreeModificationTools(t *testing.T) {
 		{
 			name:      "RemoveNode Leaf (Robust)",
 			toolName:  "Tree.GetNode",
-			args:      tool.MakeArgs("SETUP_HANDLE:tree1", "node-1"),
+			args:      MakeArgs("SETUP_HANDLE:tree1", "node-1"),
 			setupFunc: setupInitialTree,
 			checkFunc: func(t *testing.T, interp tool.Runtime, initialGetNodeResult interface{}, initialGetNodeErr error, ctx interface{}) {
 				handle := ctx.(string)
@@ -176,12 +192,15 @@ func TestTreeModificationTools(t *testing.T) {
 					t.Fatalf("RemoveNode Leaf checkFunc: Attribute 'value' (to find target node ID) not found on root 'node-1'. Root data: %v", rootNodeDataForDebug)
 				}
 				t.Logf("Dynamically determined nodeID to remove (node linked by root's 'value' attribute): %s", nodeIDToRemove)
-
-				removeTool, toolFound := interp.ToolRegistry().GetTool("Tree.RemoveNode")
+				interpImpl, ok := interp.(interface{ ToolRegistry() tool.ToolRegistry })
+				if !ok {
+					t.Fatalf("Interpreter does not implement ToolRegistry()")
+				}
+				removeTool, toolFound := interpImpl.ToolRegistry().GetTool("Tree.RemoveNode")
 				if !toolFound {
 					t.Fatalf("Tool Tree.RemoveNode not found in registry.")
 				}
-				_, removeErr := removeTool.Func(interp, tool.MakeArgs(handle, nodeIDToRemove))
+				_, removeErr := removeTool.Func(interp, MakeArgs(handle, nodeIDToRemove))
 				if removeErr != nil {
 					t.Fatalf("RemoveNode Leaf checkFunc: Tree.RemoveNode tool call failed for dynamically found ID '%s': %v", nodeIDToRemove, removeErr)
 				}
@@ -222,20 +241,23 @@ func TestTreeModificationTools(t *testing.T) {
 			name:      "RemoveNode Root",
 			toolName:  "Tree.RemoveNode",
 			setupFunc: setupInitialTree,
-			args:      tool.MakeArgs("SETUP_HANDLE:tree1", "node-1"),
+			args:      MakeArgs("SETUP_HANDLE:tree1", "node-1"),
 			wantErr:   lang.ErrCannotRemoveRoot,
 		},
 		{
 			name:      "RemoveNode NonExistent",
 			toolName:  "Tree.RemoveNode",
 			setupFunc: setupInitialTree,
-			args:      tool.MakeArgs("SETUP_HANDLE:tree1", "node-999"),
+			args:      MakeArgs("SETUP_HANDLE:tree1", "node-999"),
 			wantErr:   lang.ErrNotFound,
 		},
 	}
 
 	for _, tc := range testCases {
-		currentInterp, _ := llm.NewDefaultTestInterpreter(t)
+		currentInterp, err := testutil.NewTestInterpreter(t, nil, nil)
+		if err != nil {
+			t.Fatalf("NewTestInterpreter failed: %v", err)
+		}
 		testTreeToolHelper(t, currentInterp, tc)
 	}
 }

@@ -38,7 +38,7 @@ func AnalyzeNSSyntaxInternal(interpreter tool.Runtime, nsScriptContent string) (
 	}
 	logger := interpreter.GetLogger()
 	if logger == nil {
-		logger = &logging.NewNoOpLogger{} //
+		logger = logging.NewNoOpLogger() //
 	}
 
 	parserAPI := parser.NewParserAPI(logger) //

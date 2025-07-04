@@ -14,7 +14,8 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
-	"github.com/aprice2704/neuroscript/pkg/tool/fileapi"
+
+	//	"github.com/aprice2704/neuroscript/pkg/tool/fileapi"
 	"github.com/google/generative-ai-go/genai"
 )
 
@@ -47,7 +48,7 @@ func (i *Interpreter) SetSandboxDir(newSandboxDir string) error {
 	}
 	if i.state.sandboxDir != cleanNewSandboxDir {
 		i.state.sandboxDir = cleanNewSandboxDir
-		i.fileAPI = fileapi.NewFileAPI(i.state.sandboxDir, i.logger)
+		//		i.fileAPI = fileapi.NewFileAPI(i.state.sandboxDir, i.logger)
 	}
 	return nil
 }

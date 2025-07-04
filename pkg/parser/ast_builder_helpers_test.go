@@ -31,7 +31,7 @@ func TestConvertInputSchemaToArgSpec_SuccessScenarios(t *testing.T) {
 				},
 			},
 			expectedArgs: []tool.ArgSpec{
-				{Name: "param1", Type: tool.tool.ArgTypeString, Required: false},
+				{Name: "param1", Type: tool.ArgTypeString, Required: false},
 			},
 			expectError: false,
 		},
@@ -45,7 +45,7 @@ func TestConvertInputSchemaToArgSpec_SuccessScenarios(t *testing.T) {
 				"required": []string{},
 			},
 			expectedArgs: []tool.ArgSpec{
-				{Name: "param1", Type: tool.tool.ArgTypeInt, Required: false},
+				{Name: "param1", Type: tool.ArgTypeInt, Required: false},
 			},
 			expectError: false,
 		},

@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/testutil"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 	"github.com/aprice2704/neuroscript/pkg/utils"
 )
@@ -30,7 +31,7 @@ const treeJSONForFindRenderNested = `{
 }`
 
 func TestTreeFindAndRenderTools(t *testing.T) {
-	setupFindRenderTree := func(t *testing.T, interp tool.RunTime) interface{} {
+	setupFindRenderTree := func(t *testing.T, interp tool.Runtime) interface{} {
 		return setupTreeWithJSON(t, interp, treeJSONForFindRenderNested)
 	}
 
@@ -38,7 +39,7 @@ func TestTreeFindAndRenderTools(t *testing.T) {
 		// Tree.FindNodes
 		{name: "FindNodes_By_Type_'file'", toolName: "Tree.FindNodes",
 			setupFunc: setupFindRenderTree,
-			args:      tool.MakeArgs("SETUP_HANDLE:frTree", "node-1", map[string]interface{}{"value": "file"}, int64(-1), int64(-1)), // Query for string nodes with value "file"
+			args:      MakeArgs("SETUP_HANDLE:frTree", "node-1", map[string]interface{}{"value": "file"}, int64(-1), int64(-1)), // Query for string nodes with value "file"
 			checkFunc: func(t *testing.T, interp tool.Runtime, result interface{}, err error, ctx interface{}) {
 				if err != nil {
 					t.Fatalf("FindNodes by value 'file' failed: %v", err)
@@ -110,7 +111,7 @@ func TestTreeFindAndRenderTools(t *testing.T) {
 					t.Errorf("Expected to find 2 distinct file object nodes, but found %d: %v. Original string node IDs: %v", len(actualFileObjectNodeIDs), actualFileObjectNodeIDs, ids)
 				}
 			}},
-		{name: "FindNodes_By_Value_of_Name_Attribute", toolName: "Tree.FindNodes", setupFunc: setupFindRenderTree, args: tool.MakeArgs("SETUP_HANDLE:frTree", "node-1", map[string]interface{}{"value": "file1.txt"}, int64(-1), int64(-1)),
+		{name: "FindNodes_By_Value_of_Name_Attribute", toolName: "Tree.FindNodes", setupFunc: setupFindRenderTree, args: MakeArgs("SETUP_HANDLE:frTree", "node-1", map[string]interface{}{"value": "file1.txt"}, int64(-1), int64(-1)),
 			checkFunc: func(t *testing.T, interp tool.Runtime, result interface{}, err error, ctx interface{}) {
 				if err != nil {
 					t.Fatalf("FindNodes by value failed: %v", err)
@@ -132,10 +133,14 @@ func TestTreeFindAndRenderTools(t *testing.T) {
 			}},
 		{name: "FindNodes_By_Metadata_Deep", toolName: "Tree.FindNodes",
 			setupFunc: setupFindRenderTree,
-			args:      tool.MakeArgs("SETUP_HANDLE:frTree", "node-1", map[string]interface{}{"comment": "query_is_dynamic_in_checkfunc"}, int64(-1), int64(-1)),
+			args:      MakeArgs("SETUP_HANDLE:frTree", "node-1", map[string]interface{}{"comment": "query_is_dynamic_in_checkfunc"}, int64(-1), int64(-1)),
 			checkFunc: func(t *testing.T, interp tool.Runtime, _ interface{}, _ error, ctx interface{}) { // Ignored result from static args
 				handle := ctx.(string)
-				findNodesTool, toolFound := interp.ToolRegistry().GetTool("Tree.FindNodes")
+				interpImpl, ok := interp.(interface{ ToolRegistry() tool.ToolRegistry })
+				if !ok {
+					t.Fatalf("Interpreter does not implement ToolRegistry()")
+				}
+				findNodesTool, toolFound := interpImpl.ToolRegistry().GetTool("Tree.FindNodes")
 				if !toolFound {
 					t.Fatalf("Tree.FindNodes tool not found")
 				}
@@ -144,7 +149,7 @@ func TestTreeFindAndRenderTools(t *testing.T) {
 				var actualMetaDeepTargetNodeID string
 
 				nameQuery := map[string]interface{}{"value": "file2.txt"}
-				nameNodeIDsResult, errFindName := findNodesTool.Func(interp, tool.MakeArgs(handle, "node-1", nameQuery, int64(-1), int64(-1)))
+				nameNodeIDsResult, errFindName := findNodesTool.Func(interp, MakeArgs(handle, "node-1", nameQuery, int64(-1), int64(-1)))
 				if errFindName != nil {
 					t.Fatalf("Error finding 'file2.txt' string node: %v", errFindName)
 				}
@@ -169,7 +174,7 @@ func TestTreeFindAndRenderTools(t *testing.T) {
 
 				dynamicQuery := map[string]interface{}{"attributes": map[string]interface{}{"meta_deep": actualMetaDeepTargetNodeID}}
 
-				dynamicallyFoundResult, errFindDynamic := findNodesTool.Func(interp, tool.MakeArgs(handle, "node-1", dynamicQuery, int64(-1), int64(-1)))
+				dynamicallyFoundResult, errFindDynamic := findNodesTool.Func(interp, MakeArgs(handle, "node-1", dynamicQuery, int64(-1), int64(-1)))
 				if errFindDynamic != nil {
 					t.Fatalf("Tree.FindNodes with dynamic query failed: %v", errFindDynamic)
 				}
@@ -188,14 +193,14 @@ func TestTreeFindAndRenderTools(t *testing.T) {
 					t.Errorf("FindNodes_By_Metadata_Deep mismatch.\n   Query was: %#v\n   Got:       %#v\n   Wanted:    %#v", dynamicQuery, foundIDsStr, expectedToFind)
 				}
 			}},
-		{name: "FindNodes_Invalid_Query_Type", toolName: "Tree.FindNodes", setupFunc: setupFindRenderTree, args: tool.MakeArgs("SETUP_HANDLE:frTree", "node-1", "not-a-map", int64(-1), int64(-1)), wantErr: lang.ErrInvalidArgument},
+		{name: "FindNodes_Invalid_Query_Type", toolName: "Tree.FindNodes", setupFunc: setupFindRenderTree, args: MakeArgs("SETUP_HANDLE:frTree", "node-1", "not-a-map", int64(-1), int64(-1)), wantErr: lang.ErrInvalidArgument},
 
 		// Tree.RenderText
 		{name: "RenderText Basic", toolName: "Tree.RenderText",
-			setupFunc: func(t *testing.T, interp tool.RunTime) interface{} {
+			setupFunc: func(t *testing.T, interp tool.Runtime) interface{} {
 				return setupTreeWithJSON(t, interp, `{"a":"b"}`)
 			},
-			args: tool.MakeArgs("SETUP_HANDLE:renderTree"),
+			args: MakeArgs("SETUP_HANDLE:renderTree"),
 			checkFunc: func(t *testing.T, interp tool.Runtime, result interface{}, err error, ctx interface{}) {
 				if err != nil {
 					t.Fatalf("RenderText failed: %v", err)
@@ -214,11 +219,14 @@ func TestTreeFindAndRenderTools(t *testing.T) {
 					t.Errorf("RenderText output missing '(string): \"b\"'. Got:\n%s", s)
 				}
 			}},
-		{name: "RenderText Invalid Handle", toolName: "Tree.RenderText", args: tool.MakeArgs("bad-handle"), wantErr: lang.ErrInvalidArgument},
+		{name: "RenderText Invalid Handle", toolName: "Tree.RenderText", args: MakeArgs("bad-handle"), wantErr: lang.ErrInvalidArgument},
 	}
 
 	for _, tc := range testCases {
-		currentInterp, _ := llm.NewDefaultTestInterpreter(t)
+		currentInterp, err := testutil.NewTestInterpreter(t, nil, nil)
+		if err != nil {
+			t.Fatalf("NewTestInterpreter failed: %v", err)
+		}
 		testTreeToolHelper(t, currentInterp, tc)
 	}
 }

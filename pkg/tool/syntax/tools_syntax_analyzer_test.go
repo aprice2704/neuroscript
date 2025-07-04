@@ -15,6 +15,7 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/parser"
+	"github.com/aprice2704/neuroscript/pkg/testutil"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
@@ -23,11 +24,14 @@ func TestAnalyzeNSSyntaxInternal(t *testing.T) {
 	lang.GrammarVersion = "test-grammar-v0.9.9" // For predictable test output
 	defer func() { lang.GrammarVersion = originalGrammarVersion }()
 
-	testInterp, _ := llm.NewDefaultTestInterpreter(t)
+	testInterp, err := testutil.NewTestInterpreter(t, nil, nil)
+	if err != nil {
+		t.Fatalf("NewTestInterpreter failed: %v", err)
+	}
 
 	testCases := []struct {
 		name                      string
-		interpreter               tool.RunTime
+		interpreter               tool.Runtime
 		scriptContent             string
 		expectedTotalErrors       int
 		expectedReportedErrorsNum int
@@ -114,7 +118,7 @@ endfunc`,
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			if tc.interpreter == nil && tc.name != "nil interpreter passed to tool function" {
-				t.Skipf("Skipping test case %q because shared testInterp is nil (NewDefaultTestInterpreter failed)", tc.name)
+				t.Skipf("Skipping test case %q because shared testInterp is nil (NewTestInterpreter failed)", tc.name)
 				return
 			}
 

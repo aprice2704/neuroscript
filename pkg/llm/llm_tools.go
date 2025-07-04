@@ -158,7 +158,7 @@ func RegisterLLMTools(registry ToolRegistry) error {
 			Name:        "LLM.Ask",
 			Description: "Sends a text prompt to the configured LLM and returns the text response.",
 			Args:        llmAskArgs,
-			ReturnType:  tool.tool.ArgTypeString,
+			ReturnType:  tool.ArgTypeString,
 		},
 		Func: toolLLMAsk,
 	})
@@ -187,7 +187,7 @@ func RegisterLLMTools(registry ToolRegistry) error {
 			Name:        "LLM.AskWithParts",
 			Description: "Sends a list of parts (currently treated as text strings) as a prompt to the LLM.",
 			Args:        llmAskPartsArgs,
-			ReturnType:  tool.tool.ArgTypeString,
+			ReturnType:  tool.ArgTypeString,
 		},
 		Func: toolLLMAskWithParts,
 	})

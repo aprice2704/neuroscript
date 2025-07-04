@@ -21,7 +21,7 @@ type treeTestCase struct {
 	name      string
 	toolName  string
 	args      []interface{}
-	setupFunc func(t *testing.T, interp tool.RunTime) interface{}                                          // Returns a context, like a handle string
+	setupFunc func(t *testing.T, interp tool.Runtime) interface{}                                          // Returns a context, like a handle string
 	checkFunc func(t *testing.T, interp tool.Runtime, result interface{}, err error, setupCtx interface{}) // Custom check logic
 	wantErr   error                                                                                        // For simple error checks
 }
@@ -45,8 +45,11 @@ func testTreeToolHelper(t *testing.T, interp tool.Runtime, tc treeTestCase) {
 				finalArgs[i] = arg
 			}
 		}
-
-		toolImpl, found := interp.ToolRegistry().GetTool(tc.toolName)
+		interpImpl, ok := interp.(interface{ ToolRegistry() tool.ToolRegistry })
+		if !ok {
+			t.Fatalf("Interpreter does not implement ToolRegistry()")
+		}
+		toolImpl, found := interpImpl.ToolRegistry().GetTool(tc.toolName)
 		if !found {
 			t.Fatalf("Tool %q not found in registry", tc.toolName)
 		}
@@ -70,7 +73,11 @@ func testTreeToolHelper(t *testing.T, interp tool.Runtime, tc treeTestCase) {
 // setupTreeWithJSON is a helper to load a tree from a JSON string and return its handle.
 func setupTreeWithJSON(t *testing.T, interp tool.Runtime, jsonStr string) string {
 	t.Helper()
-	loadTool, _ := interp.ToolRegistry().GetTool("Tree.LoadJSON")
+	interpImpl, ok := interp.(interface{ ToolRegistry() tool.ToolRegistry })
+	if !ok {
+		t.Fatalf("Interpreter does not implement ToolRegistry()")
+	}
+	loadTool, _ := interpImpl.ToolRegistry().GetTool("Tree.LoadJSON")
 	handle, err := loadTool.Func(interp, []interface{}{jsonStr})
 	if err != nil {
 		t.Fatalf("setupTreeWithJSON: Tree.LoadJSON failed: %v", err)
@@ -85,7 +92,11 @@ func setupTreeWithJSON(t *testing.T, interp tool.Runtime, jsonStr string) string
 // callGetNode is a helper to simplify getting node data within tests.
 func callGetNode(t *testing.T, interp tool.Runtime, handle, nodeID string) (map[string]interface{}, error) {
 	t.Helper()
-	getTool, _ := interp.ToolRegistry().GetTool("Tree.GetNode")
+	interpImpl, ok := interp.(interface{ ToolRegistry() tool.ToolRegistry })
+	if !ok {
+		t.Fatalf("Interpreter does not implement ToolRegistry()")
+	}
+	getTool, _ := interpImpl.ToolRegistry().GetTool("Tree.GetNode")
 	result, err := getTool.Func(interp, []interface{}{handle, nodeID})
 	if err != nil {
 		return nil, err
@@ -100,7 +111,11 @@ func callGetNode(t *testing.T, interp tool.Runtime, handle, nodeID string) (map[
 // callSetMetadata is a helper for setting metadata during test setups.
 func callSetMetadata(t *testing.T, interp tool.Runtime, handle, nodeID, key, value string) error {
 	t.Helper()
-	setTool, _ := interp.ToolRegistry().GetTool("Tree.SetNodeMetadata")
+	interpImpl, ok := interp.(interface{ ToolRegistry() tool.ToolRegistry })
+	if !ok {
+		t.Fatalf("Interpreter does not implement ToolRegistry()")
+	}
+	setTool, _ := interpImpl.ToolRegistry().GetTool("Tree.SetNodeMetadata")
 	_, err := setTool.Func(interp, []interface{}{handle, nodeID, key, value})
 	return err
 }
@@ -108,7 +123,11 @@ func callSetMetadata(t *testing.T, interp tool.Runtime, handle, nodeID, key, val
 // callGetChildren is a helper to simplify getting child node IDs within tests.
 func callGetChildren(t *testing.T, interp tool.Runtime, handle, nodeID string) ([]string, error) {
 	t.Helper()
-	getTool, _ := interp.ToolRegistry().GetTool("Tree.GetChildren")
+	interpImpl, ok := interp.(interface{ ToolRegistry() tool.ToolRegistry })
+	if !ok {
+		t.Fatalf("Interpreter does not implement ToolRegistry()")
+	}
+	getTool, _ := interpImpl.ToolRegistry().GetTool("Tree.GetChildren")
 	result, err := getTool.Func(interp, []interface{}{handle, nodeID})
 	if err != nil {
 		return nil, err

@@ -19,6 +19,8 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/utils"
 )
 
+const defaultIndent = "  "
+
 // toolTreeFormatJSON serializes the tree structure associated with a handle back into a formatted JSON string.
 // Corresponds to ToolSpec "Tree.ToJSON".
 func toolTreeFormatJSON(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
@@ -170,7 +172,7 @@ func toolTreeRenderText(interpreter tool.Runtime, args []interface{}) (interface
 			return lang.NewRuntimeError(lang.ErrorCodeInternal, fmt.Sprintf("%s: renderNodeRec called with nil node", toolName), lang.ErrInternal)
 		}
 
-		indent := strings.Repeat(utils.defaultIndent, indentLevel)
+		indent := strings.Repeat(defaultIndent, indentLevel)
 		builder.WriteString(fmt.Sprintf("%s- (%s)", indent, node.Type))
 
 		if node.Type == "object" {
@@ -195,19 +197,19 @@ func toolTreeRenderText(interpreter tool.Runtime, args []interface{}) (interface
 				keys = append(keys, k)
 			}
 			sort.Strings(keys)
-			keyIndent := strings.Repeat(utils.defaultIndent, indentLevel+1)
+			keyIndent := strings.Repeat(defaultIndent, indentLevel+1)
 			for _, key := range keys {
 				childIDUntyped := node.Attributes[key]
 				childID, ok := childIDUntyped.(string)
 				builder.WriteString(fmt.Sprintf("%s* Key: %q\n", keyIndent, key))
 				if !ok {
-					builder.WriteString(fmt.Sprintf("%s<ERROR: attribute value is not a string node ID, but %T>\n", strings.Repeat(utils.defaultIndent, indentLevel+2), childIDUntyped))
+					builder.WriteString(fmt.Sprintf("%s<ERROR: attribute value is not a string node ID, but %T>\n", strings.Repeat(defaultIndent, indentLevel+2), childIDUntyped))
 					continue
 				}
 
 				childNode, childExists := tree.NodeMap[childID]
 				if !childExists {
-					builder.WriteString(fmt.Sprintf("%s<ERROR: missing node '%s'>\n", strings.Repeat(utils.defaultIndent, indentLevel+2), childID))
+					builder.WriteString(fmt.Sprintf("%s<ERROR: missing node '%s'>\n", strings.Repeat(defaultIndent, indentLevel+2), childID))
 					continue // Log or handle as critical error? For rendering, showing error might be best.
 				}
 				if errRender := renderNodeRec(childNode, indentLevel+2); errRender != nil {
@@ -215,7 +217,7 @@ func toolTreeRenderText(interpreter tool.Runtime, args []interface{}) (interface
 				}
 			}
 		} else if node.Type == "array" {
-			itemIndent := strings.Repeat(utils.defaultIndent, indentLevel+1)
+			itemIndent := strings.Repeat(defaultIndent, indentLevel+1)
 			for i, childID := range node.ChildIDs {
 				childNode, childExists := tree.NodeMap[childID]
 				if !childExists {

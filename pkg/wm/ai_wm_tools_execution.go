@@ -17,9 +17,9 @@ var specAIWorkerExecuteStateless = tool.ToolSpec{
 	Name:     "AIWorker.ExecuteStatelessTask",
 	Category: "AI Worker Management",
 	Args: []tool.ArgSpec{
-		{Name: "name", Type: tool.tool.ArgTypeString, Required: true},
-		{Name: "prompt", Type: tool.tool.ArgTypeString, Required: true},
-		{Name: "config_overrides", Type: tool.tool.ArgTypeMap, Required: false},
+		{Name: "name", Type: tool.ArgTypeString, Required: true},
+		{Name: "prompt", Type: tool.ArgTypeString, Required: true},
+		{Name: "config_overrides", Type: tool.ArgTypeMap, Required: false},
 	},
 	ReturnType: "map",
 }

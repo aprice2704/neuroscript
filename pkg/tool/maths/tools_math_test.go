@@ -14,8 +14,17 @@ import (
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/testutil"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 )
+
+// MakeArgs is a convenience function to create a slice of interfaces, useful for constructing tool arguments programmatically.
+func MakeArgs(vals ...interface{}) []interface{} {
+	if vals == nil {
+		return []interface{}{}
+	}
+	return vals
+}
 
 // testMathToolHelper tests a math tool implementation directly with primitives.
 func testMathToolHelper(t *testing.T, interp tool.Runtime, tc struct {
@@ -27,7 +36,11 @@ func testMathToolHelper(t *testing.T, interp tool.Runtime, tc struct {
 }) {
 	t.Helper()
 	t.Run(tc.name, func(t *testing.T) {
-		toolImpl, found := interp.ToolRegistry().GetTool(tc.toolName)
+		interpImpl, ok := interp.(interface{ ToolRegistry() tool.ToolRegistry })
+		if !ok {
+			t.Fatalf("Interpreter does not implement ToolRegistry()")
+		}
+		toolImpl, found := interpImpl.ToolRegistry().GetTool(tc.toolName)
 		if !found {
 			t.Fatalf("Tool %q not found in registry", tc.toolName)
 		}
@@ -64,7 +77,10 @@ func testMathToolHelper(t *testing.T, interp tool.Runtime, tc struct {
 }
 
 func TestToolAdd(t *testing.T) {
-	interp, _ := llm.NewDefaultTestInterpreter(t)
+	interp, err := testutil.NewTestInterpreter(t, nil, nil)
+	if err != nil {
+		t.Fatalf("NewTestInterpreter failed: %v", err)
+	}
 	tests := []struct {
 		name       string
 		toolName   string
@@ -72,9 +88,9 @@ func TestToolAdd(t *testing.T) {
 		wantResult interface{}
 		wantErrIs  error
 	}{
-		{name: "Add Integers", toolName: "Add", args: tool.MakeArgs(float64(5), float64(3)), wantResult: float64(8)},
-		{name: "Add Floats", toolName: "Add", args: tool.MakeArgs(float64(2.5), float64(1.5)), wantResult: float64(4.0)},
-		{name: "Type Mismatch", toolName: "Add", args: tool.MakeArgs("abc", float64(1)), wantErrIs: lang.ErrInternalTool},
+		{name: "Add Integers", toolName: "Add", args: MakeArgs(float64(5), float64(3)), wantResult: float64(8)},
+		{name: "Add Floats", toolName: "Add", args: MakeArgs(float64(2.5), float64(1.5)), wantResult: float64(4.0)},
+		{name: "Type Mismatch", toolName: "Add", args: MakeArgs("abc", float64(1)), wantErrIs: lang.ErrInternalTool},
 	}
 	for _, tt := range tests {
 		testMathToolHelper(t, interp, tt)
@@ -82,7 +98,10 @@ func TestToolAdd(t *testing.T) {
 }
 
 func TestToolSubtract(t *testing.T) {
-	interp, _ := llm.NewDefaultTestInterpreter(t)
+	interp, err := testutil.NewTestInterpreter(t, nil, nil)
+	if err != nil {
+		t.Fatalf("NewTestInterpreter failed: %v", err)
+	}
 	tests := []struct {
 		name       string
 		toolName   string
@@ -90,9 +109,9 @@ func TestToolSubtract(t *testing.T) {
 		wantResult interface{}
 		wantErrIs  error
 	}{
-		{name: "Subtract Integers", toolName: "Subtract", args: tool.MakeArgs(float64(5), float64(3)), wantResult: float64(2)},
-		{name: "Subtract Floats", toolName: "Subtract", args: tool.MakeArgs(float64(2.5), float64(1.5)), wantResult: float64(1.0)},
-		{name: "Type Mismatch", toolName: "Subtract", args: tool.MakeArgs(float64(1), "abc"), wantErrIs: lang.ErrInternalTool},
+		{name: "Subtract Integers", toolName: "Subtract", args: MakeArgs(float64(5), float64(3)), wantResult: float64(2)},
+		{name: "Subtract Floats", toolName: "Subtract", args: MakeArgs(float64(2.5), float64(1.5)), wantResult: float64(1.0)},
+		{name: "Type Mismatch", toolName: "Subtract", args: MakeArgs(float64(1), "abc"), wantErrIs: lang.ErrInternalTool},
 	}
 	for _, tt := range tests {
 		testMathToolHelper(t, interp, tt)
@@ -100,7 +119,10 @@ func TestToolSubtract(t *testing.T) {
 }
 
 func TestToolDivide(t *testing.T) {
-	interp, _ := llm.NewDefaultTestInterpreter(t)
+	interp, err := testutil.NewTestInterpreter(t, nil, nil)
+	if err != nil {
+		t.Fatalf("NewTestInterpreter failed: %v", err)
+	}
 	tests := []struct {
 		name       string
 		toolName   string
@@ -108,9 +130,9 @@ func TestToolDivide(t *testing.T) {
 		wantResult interface{}
 		wantErrIs  error
 	}{
-		{name: "Divide Integers", toolName: "Divide", args: tool.MakeArgs(float64(10), float64(2)), wantResult: float64(5.0)},
-		{name: "Divide Floats", toolName: "Divide", args: tool.MakeArgs(float64(5.0), float64(2.0)), wantResult: float64(2.5)},
-		{name: "Divide by Zero", toolName: "Divide", args: tool.MakeArgs(float64(10), float64(0)), wantErrIs: lang.ErrDivisionByZero},
+		{name: "Divide Integers", toolName: "Divide", args: MakeArgs(float64(10), float64(2)), wantResult: float64(5.0)},
+		{name: "Divide Floats", toolName: "Divide", args: MakeArgs(float64(5.0), float64(2.0)), wantResult: float64(2.5)},
+		{name: "Divide by Zero", toolName: "Divide", args: MakeArgs(float64(10), float64(0)), wantErrIs: lang.ErrDivisionByZero},
 	}
 	for _, tt := range tests {
 		testMathToolHelper(t, interp, tt)
@@ -118,7 +140,10 @@ func TestToolDivide(t *testing.T) {
 }
 
 func TestToolModulo(t *testing.T) {
-	interp, _ := llm.NewDefaultTestInterpreter(t)
+	interp, err := testutil.NewTestInterpreter(t, nil, nil)
+	if err != nil {
+		t.Fatalf("NewTestInterpreter failed: %v", err)
+	}
 	tests := []struct {
 		name       string
 		toolName   string
@@ -126,9 +151,9 @@ func TestToolModulo(t *testing.T) {
 		wantResult interface{}
 		wantErrIs  error
 	}{
-		{name: "Modulo Integers", toolName: "Modulo", args: tool.MakeArgs(int64(10), int64(3)), wantResult: int64(1)},
-		{name: "Modulo by Zero", toolName: "Modulo", args: tool.MakeArgs(int64(10), int64(0)), wantErrIs: lang.ErrDivisionByZero},
-		{name: "Type Mismatch", toolName: "Modulo", args: tool.MakeArgs(10.5, 3.0), wantErrIs: lang.ErrInternalTool},
+		{name: "Modulo Integers", toolName: "Modulo", args: MakeArgs(int64(10), int64(3)), wantResult: int64(1)},
+		{name: "Modulo by Zero", toolName: "Modulo", args: MakeArgs(int64(10), int64(0)), wantErrIs: lang.ErrDivisionByZero},
+		{name: "Type Mismatch", toolName: "Modulo", args: MakeArgs(10.5, 3.0), wantErrIs: lang.ErrInternalTool},
 	}
 	for _, tt := range tests {
 		testMathToolHelper(t, interp, tt)

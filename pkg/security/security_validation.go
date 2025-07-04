@@ -87,7 +87,7 @@ func (sl *SecurityLayer) validateArgumentsAgainstSpec(toolSpec tool.ToolSpec, ra
 			(toolSpec.Name == "TOOL.GoBuild" && argName == "target") ||
 			(toolSpec.Name == "TOOL.LineCountFile" && argName == "filepath")
 
-		// FIXED: Corrected typo from tool.tool.ArgTypeString to tool.ArgTypeString
+		// FIXED: Corrected typo from tool.ArgTypeString to tool.ArgTypeString
 		if isPathArg && specArg.Type == tool.ArgTypeString {
 			pathStr, _ := validatedValue.(string)
 			// SecureFilePath performs sandboxing and returns wrapped sentinel errors (ErrPathViolation, ErrNullByteInArgument)

@@ -9,6 +9,7 @@ import (
 	"errors" // Added for errors.Is and errors.Join
 	"fmt"
 
+	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 	"github.com/aprice2704/neuroscript/pkg/utils"
@@ -16,7 +17,7 @@ import (
 
 // getTreeFromHandle retrieves the GenericTree from the interpreter's handle registry.
 // If the handle is not found, it returns an error wrapping ErrNotFound.
-func getTreeFromHandle(interpreter tool.Runtime, handleID, toolName string) (*utils.GenericTree, error) {
+func getTreeFromHandle(interp tool.Runtime, handleID, toolName string) (*utils.GenericTree, error) {
 	if handleID == "" {
 		// It's better to return an error that can be checked with errors.Is if it's a common case.
 		// ErrValidationRequiredArgNil is a sentinel error.
@@ -25,8 +26,11 @@ func getTreeFromHandle(interpreter tool.Runtime, handleID, toolName string) (*ut
 			lang.ErrValidationRequiredArgNil,
 		)
 	}
-
-	obj, err := interpreter.GetHandleValue(handleID, utils.GenericTreeHandleType)
+	interpImpl, ok := interp.(*interpreter.Interpreter)
+	if !ok {
+		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, "could not assert interpreter to get handle value", nil)
+	}
+	obj, err := interpImpl.GetHandleValue(handleID, utils.GenericTreeHandleType)
 	if err != nil {
 		// Check if the error from GetHandleValue is because the handle was not found.
 		if errors.Is(err, lang.ErrHandleNotFound) {
@@ -44,7 +48,7 @@ func getTreeFromHandle(interpreter tool.Runtime, handleID, toolName string) (*ut
 		)
 	}
 
-	tree, ok := obj.(*GenericTree)
+	tree, ok := obj.(*utils.GenericTree)
 	if !ok || tree == nil || tree.NodeMap == nil {
 		// This indicates the handle existed but contained unexpected data.
 		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, // Or a more specific tree error code for invalid structure

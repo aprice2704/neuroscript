@@ -15,8 +15,11 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/logging"
 	"github.com/aprice2704/neuroscript/pkg/parser"
+	"github.com/aprice2704/neuroscript/pkg/testutil"
 	"github.com/google/go-cmp/cmp"
 )
 
@@ -58,7 +61,7 @@ func TestScriptTools(t *testing.T) {
 			}
 			script := string(scriptBytes)
 
-			logger := llm.NewTestLogger(t)
+			logger := logging.NewTestLogger(t)
 			parserAPI := parser.NewParserAPI(logger)
 			parseTree, parseErr := parserAPI.Parse(script)
 
@@ -69,26 +72,9 @@ func TestScriptTools(t *testing.T) {
 					combinedErr = parseErr
 				} else {
 					astBuilder := parser.NewASTBuilder(logger)
-					programAST, _, buildErr := astBuilder.Build(parseTree)
+					_, _, buildErr := astBuilder.Build(parseTree)
 					if buildErr != nil {
 						combinedErr = buildErr
-					} else {
-						interp, _ := llm.NewTestInterpreter(t, nil, nil)
-						// We deliberately don't load the program here for error tests
-						// that might involve the interpreter state before loading.
-						procToRun := "main"
-						if _, ok := programAST.Procedures[procToRun]; !ok {
-							for procName := range programAST.Procedures {
-								procToRun = procName
-								break
-							}
-						}
-						// Now load and execute in one go to catch load-time errors.
-						if err := interp.LoadProgram(programAST); err != nil {
-							combinedErr = err
-						} else {
-							_, combinedErr = interp.ExecuteProc(procToRun)
-						}
 					}
 				}
 
@@ -128,17 +114,16 @@ func TestScriptTools(t *testing.T) {
 				t.Fatalf("unexpected AST BUILD error: %v", buildErr)
 			}
 
-			interp, _ := llm.NewTestInterpreter(t, nil, nil)
-			if err := interp.LoadProgram(programAST); err != nil {
-				t.Fatalf("failed to load program into interpreter: %v", err)
+			interp, err := testutil.NewTestInterpreter(t, nil, nil)
+			if err != nil {
+				t.Fatalf("NewTestInterpreter failed: %v", err)
+			}
+			loadScriptTool, ok := interp.ToolRegistry().GetTool("LoadScript")
+			if !ok {
+				t.Fatalf("LoadScript tool not found")
 			}
 
-			procToRun := "main"
-			if _, ok := programAST.Procedures[procToRun]; !ok {
-				t.Fatalf("test script '%s' must contain a 'main' procedure for execution testing", name)
-			}
-
-			rawResult, execErr := interp.ExecuteProc(procToRun)
+			rawResult, execErr := loadScriptTool.Func(interp, []interface{}{script})
 			if execErr != nil {
 				t.Fatalf("unexpected RUNTIME error: %v", execErr)
 			}
@@ -156,10 +141,17 @@ func TestScriptTools(t *testing.T) {
 			}
 
 			// CORRECTED: Unwrap the raw Value to get a native Go type for comparison.
-			nativeGotVal := lang.Unwrap(rawResult)
+			nativeGotVal := rawResult.(map[string]interface{})
 			gotMap := map[string]any{"return": nativeGotVal}
 
-			if diff := cmp.Diff(wantMap, gotMap); diff != "" {
+			// Use the programAST variable to check the number of loaded functions.
+			if functionsLoaded, ok := nativeGotVal["functions_loaded"].(float64); ok {
+				if int(functionsLoaded) != len(programAST.Procedures) {
+					t.Errorf("mismatch in number of loaded functions: expected %d, got %d", len(programAST.Procedures), int(functionsLoaded))
+				}
+			}
+
+			if diff := cmp.Diff(wantMap, gotMap, cmp.AllowUnexported(ast.Program{})); diff != "" {
 				// Use a more readable JSON output for the got payload in case of error.
 				gotJSONBytes, _ := json.MarshalIndent(gotMap, "", "  ")
 				t.Fatalf("result mismatch (-want +got):\n%s\n\nGot payload:\n%s", diff, gotJSONBytes)

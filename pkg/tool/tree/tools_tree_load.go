@@ -12,13 +12,14 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 	"github.com/aprice2704/neuroscript/pkg/utils"
 )
 
 // toolTreeLoadJSON parses a JSON string and returns a handle to the generic tree.
-func toolTreeLoadJSON(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
+func toolTreeLoadJSON(interp tool.Runtime, args []interface{}) (interface{}, error) {
 	toolName := "Tree.LoadJSON" // User-facing tool name for error messages
 
 	if len(args) != 1 {
@@ -134,22 +135,25 @@ func toolTreeLoadJSON(interpreter tool.Runtime, args []interface{}) (interface{}
 	}
 
 	if tree.RootID == "" && data != nil {
-		interpreter.GetLogger().Error(fmt.Sprintf("%s: RootID is empty after successful JSON unmarshal and build for non-empty data", toolName), "json_content_snippet", fmt.Sprintf("%.30s...", jsonContent), "parsed_data_type", fmt.Sprintf("%T", data))
+		interp.GetLogger().Error(fmt.Sprintf("%s: RootID is empty after successful JSON unmarshal and build for non-empty data", toolName), "json_content_snippet", fmt.Sprintf("%.30s...", jsonContent), "parsed_data_type", fmt.Sprintf("%T", data))
 		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal,
 			fmt.Sprintf("%s: failed to determine root node after parsing JSON", toolName),
 			lang.ErrInternal,
 		)
 	}
-
-	handleID, handleErr := interpreter.RegisterHandle(tree, utils.GenericTreeHandleType)
+	interpImpl, ok := interp.(*interpreter.Interpreter)
+	if !ok {
+		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, "could not assert interpreter to register handle", nil)
+	}
+	handleID, handleErr := interpImpl.RegisterHandle(tree, utils.GenericTreeHandleType)
 	if handleErr != nil {
-		interpreter.GetLogger().Error(fmt.Sprintf("%s: Failed to register GenericTree handle", toolName), "error", handleErr)
+		interp.GetLogger().Error(fmt.Sprintf("%s: Failed to register GenericTree handle", toolName), "error", handleErr)
 		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal,
 			fmt.Sprintf("%s: failed to register tree handle: %v", toolName, handleErr),
 			errors.Join(lang.ErrInternal, handleErr),
 		)
 	}
 
-	interpreter.GetLogger().Debug(fmt.Sprintf("%s: Successfully parsed JSON into tree", toolName), "rootId", tree.RootID, "nodeCount", len(tree.NodeMap), "handle", handleID)
+	interp.GetLogger().Debug(fmt.Sprintf("%s: Successfully parsed JSON into tree", toolName), "rootId", tree.RootID, "nodeCount", len(tree.NodeMap), "handle", handleID)
 	return handleID, nil
 }

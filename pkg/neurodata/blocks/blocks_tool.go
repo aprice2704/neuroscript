@@ -32,7 +32,7 @@ func RegisterBlockTools(registry ToolRegistrar) error { // Use interface
 				"Returns a list of maps, where each map represents a block and contains keys: " +
 				"'language_id' (string), 'raw_content' (string), 'start_line' (int), 'end_line' (int), 'metadata' (map[string]string). Silently ignores unclosed blocks.",
 			Args: []ArgSpec{
-				{Name: "content", Type: tool.tool.ArgTypeString, Required: true, Description: "The string content to search within."},
+				{Name: "content", Type: tool.ArgTypeString, Required: true, Description: "The string content to search within."},
 			},
 			ReturnType: parser.tool.ArgTypeSliceAny, // Returns slice of maps
 		},

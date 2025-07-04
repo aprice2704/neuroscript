@@ -32,10 +32,10 @@ var toolChecklistSetItemStatusImpl = ToolImplementation{
 			"Automatically removes the special symbol if status is not 'special'. " +
 			"Returns nil on success.",
 		Args: []ArgSpec{
-			{Name: "tree_handle", Type: tool.tool.ArgTypeString, Required: true, Description: "Handle for the checklist tree."},
-			{Name: "node_id", Type: tool.tool.ArgTypeString, Required: true, Description: "ID of the checklist item node."},
-			{Name: "new_status", Type: tool.tool.ArgTypeString, Required: true, Description: "The new status string (e.g., 'open', 'done', 'skipped', 'inprogress', 'blocked', 'question', 'special')."},
-			{Name: "special_symbol", Type: tool.tool.ArgTypeString, Required: false, Description: "Required only if new_status is 'special'. The single character symbol."},
+			{Name: "tree_handle", Type: tool.ArgTypeString, Required: true, Description: "Handle for the checklist tree."},
+			{Name: "node_id", Type: tool.ArgTypeString, Required: true, Description: "ID of the checklist item node."},
+			{Name: "new_status", Type: tool.ArgTypeString, Required: true, Description: "The new status string (e.g., 'open', 'done', 'skipped', 'inprogress', 'blocked', 'question', 'special')."},
+			{Name: "special_symbol", Type: tool.ArgTypeString, Required: false, Description: "Required only if new_status is 'special'. The single character symbol."},
 		},
 		ReturnType: tool.ArgTypeNil,
 	},

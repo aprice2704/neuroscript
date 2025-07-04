@@ -1,7 +1,6 @@
 // NeuroScript Version: 0.3.1
 // File version: 3
 // Purpose: Corrected type assertions to use the specific `TreeAttrs` type instead of a generic map, resolving the test panic.
-// filename: pkg/tool/tree/tools_tree_nav_test.go
 // nlines: 118
 // risk_rating: MEDIUM
 
@@ -12,12 +11,16 @@ import (
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/testutil"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 	"github.com/aprice2704/neuroscript/pkg/utils"
 )
 
 func TestTreeNavigationTools(t *testing.T) {
-	interp, _ := llm.NewDefaultTestInterpreter(t)
+	interp, err := testutil.NewTestInterpreter(t, nil, nil)
+	if err != nil {
+		t.Fatalf("NewTestInterpreter failed: %v", err)
+	}
 	jsonInput := `{
 		"name": "root_obj",
 		"type": "directory",
@@ -33,7 +36,7 @@ func TestTreeNavigationTools(t *testing.T) {
 	rootNodeID := "node-1"
 
 	testCases := []treeTestCase{
-		{name: "GetNode Root", toolName: "Tree.GetNode", args: tool.MakeArgs(rootHandle, rootNodeID), checkFunc: func(t *testing.T, interp tool.Runtime, result interface{}, err error, ctx interface{}) {
+		{name: "GetNode Root", toolName: "Tree.GetNode", args: MakeArgs(rootHandle, rootNodeID), checkFunc: func(t *testing.T, interp tool.Runtime, result interface{}, err error, ctx interface{}) {
 			if err != nil {
 				t.Fatalf("GetNode Root failed: %v", err)
 			}
@@ -48,7 +51,7 @@ func TestTreeNavigationTools(t *testing.T) {
 				t.Errorf("GetNode Root: type mismatch, got %v, expected 'object'", nodeMap["type"])
 			}
 		}},
-		{name: "GetNode Nested (file1 name)", toolName: "Tree.GetNode", args: tool.MakeArgs(rootHandle, ""),
+		{name: "GetNode Nested (file1 name)", toolName: "Tree.GetNode", args: MakeArgs(rootHandle, ""),
 			checkFunc: func(t *testing.T, interp tool.Runtime, result interface{}, err error, ctx interface{}) {
 				rootMap, _ := callGetNode(t, interp, rootHandle, rootNodeID)
 				childrenArrNodeID := rootMap["attributes"].(utils.TreeAttrs)["children"].(string)
@@ -88,10 +91,10 @@ func TestTreeNavigationTools(t *testing.T) {
 					t.Errorf("Expected type string, got %v", nodeMap["type"])
 				}
 			}},
-		{name: "GetNode NonExistent Node", toolName: "Tree.GetNode", args: tool.MakeArgs(rootHandle, "node-999"), wantErr: lang.ErrNotFound},
-		{name: "GetNode Invalid Handle", toolName: "Tree.GetNode", args: tool.MakeArgs("bad-handle", "node-1"), wantErr: lang.ErrInvalidArgument},
+		{name: "GetNode NonExistent Node", toolName: "Tree.GetNode", args: MakeArgs(rootHandle, "node-999"), wantErr: lang.ErrNotFound},
+		{name: "GetNode Invalid Handle", toolName: "Tree.GetNode", args: MakeArgs("bad-handle", "node-1"), wantErr: lang.ErrInvalidArgument},
 
-		{name: "GetChildren of Array Node", toolName: "Tree.GetChildren", args: tool.MakeArgs(rootHandle, ""),
+		{name: "GetChildren of Array Node", toolName: "Tree.GetChildren", args: MakeArgs(rootHandle, ""),
 			checkFunc: func(t *testing.T, interp tool.Runtime, result interface{}, err error, ctx interface{}) {
 				rootMap, _ := callGetNode(t, interp, rootHandle, rootNodeID)
 				childrenArrNodeID := rootMap["attributes"].(utils.TreeAttrs)["children"].(string)
@@ -103,8 +106,8 @@ func TestTreeNavigationTools(t *testing.T) {
 					t.Errorf("Expected 2 children, got %d", len(childrenIDs))
 				}
 			}},
-		{name: "GetChildren of Object Node", toolName: "Tree.GetChildren", args: tool.MakeArgs(rootHandle, rootNodeID), wantErr: lang.ErrNodeWrongType},
-		{name: "GetChildren of Leaf Node", toolName: "Tree.GetChildren", args: tool.MakeArgs(rootHandle, ""),
+		{name: "GetChildren of Object Node", toolName: "Tree.GetChildren", args: MakeArgs(rootHandle, rootNodeID), wantErr: lang.ErrNodeWrongType},
+		{name: "GetChildren of Leaf Node", toolName: "Tree.GetChildren", args: MakeArgs(rootHandle, ""),
 			checkFunc: func(t *testing.T, interp tool.Runtime, result interface{}, err error, ctx interface{}) {
 				rootMap, _ := callGetNode(t, interp, rootHandle, rootNodeID)
 				childrenArrNodeID := rootMap["attributes"].(utils.TreeAttrs)["children"].(string)
@@ -130,14 +133,18 @@ func TestTreeNavigationTools(t *testing.T) {
 				file1ObjNodeID := childNodeIDsRaw[0]
 				file1ObjMap, _ := callGetNode(t, interp, rootHandle, file1ObjNodeID)
 				fileNameNodeID := file1ObjMap["attributes"].(utils.TreeAttrs)["name"].(string)
-
-				_, errGet := callGetChildren(t, interp, rootHandle, fileNameNodeID)
+				interpImpl, ok := interp.(interface{ ToolRegistry() tool.ToolRegistry })
+				if !ok {
+					t.Fatalf("Interpreter does not implement ToolRegistry()")
+				}
+				getTool, _ := interpImpl.ToolRegistry().GetTool("Tree.GetChildren")
+				_, errGet := getTool.Func(interp, MakeArgs(rootHandle, fileNameNodeID))
 				if !errors.Is(errGet, lang.ErrNodeWrongType) {
 					t.Fatalf("GetChildren for leaf node expected ErrNodeWrongType, got %v", errGet)
 				}
 			}},
 
-		{name: "GetParent of Root", toolName: "Tree.GetParent", args: tool.MakeArgs(rootHandle, rootNodeID), checkFunc: func(t *testing.T, interp tool.Runtime, result interface{}, err error, setupCtx interface{}) {
+		{name: "GetParent of Root", toolName: "Tree.GetParent", args: MakeArgs(rootHandle, rootNodeID), checkFunc: func(t *testing.T, interp tool.Runtime, result interface{}, err error, setupCtx interface{}) {
 			if err != nil {
 				t.Fatalf("Unexpected error: %v", err)
 			}
@@ -145,13 +152,17 @@ func TestTreeNavigationTools(t *testing.T) {
 				t.Errorf("Expected nil result for parent of root, got %v", result)
 			}
 		}},
-		{name: "GetParent of Child", toolName: "Tree.GetParent", args: tool.MakeArgs(rootHandle, ""),
+		{name: "GetParent of Child", toolName: "Tree.GetParent", args: MakeArgs(rootHandle, ""),
 			checkFunc: func(t *testing.T, interp tool.Runtime, result interface{}, err error, ctx interface{}) {
 				rootMap, _ := callGetNode(t, interp, rootHandle, rootNodeID)
 				childrenArrNodeID := rootMap["attributes"].(utils.TreeAttrs)["children"].(string)
 
-				getParentTool, _ := interp.ToolRegistry().GetTool("Tree.GetParent")
-				parentIDResult, errGet := getParentTool.Func(interp, tool.MakeArgs(rootHandle, childrenArrNodeID))
+				interpImpl, ok := interp.(interface{ ToolRegistry() tool.ToolRegistry })
+				if !ok {
+					t.Fatalf("Interpreter does not implement ToolRegistry()")
+				}
+				getParentTool, _ := interpImpl.ToolRegistry().GetTool("Tree.GetParent")
+				parentIDResult, errGet := getParentTool.Func(interp, MakeArgs(rootHandle, childrenArrNodeID))
 				if errGet != nil {
 					t.Fatalf("GetParent failed: %v", errGet)
 				}
@@ -163,7 +174,7 @@ func TestTreeNavigationTools(t *testing.T) {
 					t.Errorf("Expected parent %s, got %v", rootNodeID, parentID)
 				}
 			}},
-		{name: "GetParent NonExistent Node", toolName: "Tree.GetParent", args: tool.MakeArgs(rootHandle, "node-999"), wantErr: lang.ErrNotFound},
+		{name: "GetParent NonExistent Node", toolName: "Tree.GetParent", args: MakeArgs(rootHandle, "node-999"), wantErr: lang.ErrNotFound},
 	}
 
 	for _, tc := range testCases {
