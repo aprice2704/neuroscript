@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.2.0
-// Purpose: Updated to use the new load/run protocol, replacing ExecuteScriptFile with tool-based file reads and explicit procedure execution.
+// File version: 0.2.1
+// Purpose: Removed AI Worker Manager related code after its functionality was excised from the project.
 // filename: cmd/ng/main.go
-// nlines: 250
+// nlines: 240
 // risk_rating: HIGH
 package main
 
@@ -30,7 +30,7 @@ func main() {
 	versionFlag := flag.Bool("version", false, "Print version information in JSON format and exit")
 	logFile := flag.String("log-file", "", "Path to log file (optional, defaults to stderr)")
 	logLevel := flag.String("log-level", "info", "Log level (debug, info, warn, error)")
-	sandboxDir := flag.String("sandbox", ".", "Root directory for secure file operations and ai_wm persistence")
+	sandboxDir := flag.String("sandbox", ".", "Root directory for secure file operations")
 
 	apiKey := flag.String("api-key", os.Getenv("GEMINI_API_KEY"), "Gemini API Key (env: GEMINI_API_KEY or NEUROSCRIPT_API_KEY)")
 	if *apiKey == "" {
@@ -153,25 +153,13 @@ func main() {
 	}
 	logger.Debug("NeuroGo App instance created.")
 
-	// --- Initialize Core Components (Interpreter, AIWM) ---
+	// --- Initialize Core Components (Interpreter) ---
 	if err := app.InitializeCoreComponents(); err != nil {
 		logger.Error("Failed to initialize core components", "error", err)
 		fmt.Fprintf(os.Stderr, "Initialization error: %v\n", err)
 		os.Exit(1)
 	}
-	logger.Debug("Core components (Interpreter, AIWM) initialized successfully.")
-
-	// --- Register Tools ---
-	if app.Interpreter().AIWorkerManager() != nil {
-		if err := sterAIWorkerTools(app.Interpreter()); err != nil {
-			logger.Error("Failed to register AI Worker tools", "error", err)
-			fmt.Fprintf(os.Stderr, "Warning: Failed to register AI Worker tools: %v\n", err)
-		} else {
-			logger.Debug("AI Worker tools registered.")
-		}
-	} else {
-		logger.Warn("AI Worker Manager not initialized, skipping AI Worker tool registration.")
-	}
+	logger.Debug("Core components (Interpreter) initialized successfully.")
 
 	// --- Determine Mode of Operation ---
 	scriptToRunNonTUI := app.Config.StartupScript
@@ -195,17 +183,17 @@ func main() {
 			logger.Debug("Executing script (non-TUI mode)", "script", scriptToRunNonTUI)
 
 			// --- NEW PROTOCOL IMPLEMENTATION ---
-			interpreter := app.Interpreter()
+			interpreter := app.GetInterpreter()
 
 			// 1. Read file content via interpreter tool
-			filepathArg, wrapErr := (scriptToRunNonTUI)
+			filepathArg, wrapErr := lang.Wrap(scriptToRunNonTUI)
 			if wrapErr != nil {
 				err := fmt.Errorf("internal error wrapping script path: %w", wrapErr)
 				logger.Error(err.Error())
 				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 				os.Exit(1)
 			}
-			toolArgs := map[string]e{"filepath": filepathArg}
+			toolArgs := map[string]lang.Value{"filepath": filepathArg}
 			contentValue, toolErr := interpreter.ExecuteTool("TOOL.ReadFile", toolArgs)
 			if toolErr != nil {
 				err := fmt.Errorf("error reading script '%s': %w", scriptToRunNonTUI, toolErr)
@@ -213,7 +201,7 @@ func main() {
 				fmt.Fprintf(os.Stderr, "%v\n", err)
 				os.Exit(1)
 			}
-			scriptContent, ok := ap(contentValue).(string)
+			scriptContent, ok := lang.Unwrap(contentValue).(string)
 			if !ok {
 				err := fmt.Errorf("internal error: TOOL.ReadFile did not return a string")
 				logger.Error(err.Error())

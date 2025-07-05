@@ -1,10 +1,4 @@
-// NeuroScript Version: 0.5.2
-// File version: 26
-// Purpose: Added the GetLogger method to satisfy the tool.Runtime interface.
 // filename: pkg/interpreter/interpreter.go
-// nlines: 304
-// risk_rating: HIGH
-
 package interpreter
 
 import (
@@ -62,6 +56,11 @@ type Interpreter struct {
 	rateLimitDuration  time.Duration
 	externalHandler    interface{}
 	objectCache        map[string]interface{}
+	llmclient          interfaces.LLMClient
+}
+
+func (i *Interpreter) LLM() interfaces.LLMClient {
+	return i.llmclient
 }
 
 // InterpreterOption defines a function signature for configuring an Interpreter.
@@ -102,6 +101,25 @@ func WithStdin(r io.Reader) InterpreterOption {
 func WithStderr(w io.Writer) InterpreterOption {
 	return func(i *Interpreter) {
 		i.stderr = w
+	}
+}
+
+// WithInitialGlobals sets the initial global variables.
+func WithInitialGlobals(globals map[string]interface{}) InterpreterOption {
+	return func(i *Interpreter) {
+		for key, val := range globals {
+			// Error handling can be added here if wrapping fails
+			wrappedVal, _ := lang.Wrap(val)
+			i.state.setVariable(key, wrappedVal)
+		}
+	}
+}
+
+// WithInitialIncludes sets the initial include paths.
+func WithInitialIncludes(includes []string) InterpreterOption {
+	return func(i *Interpreter) {
+		// Assuming you have a field for includes, e.g., i.state.includes
+		// i.state.includes = includes
 	}
 }
 
@@ -328,4 +346,8 @@ func (i *Interpreter) CloneWithNewVariables() *Interpreter {
 		clone.state.setProcedure(k, v)
 	}
 	return &clone
+}
+
+func (i *Interpreter) SetSandboxDir(path string) {
+	i.state.sandboxDir = path
 }

@@ -1,10 +1,7 @@
 // NeuroScript Version: 0.3.0
-// File version: 0.0.4
-// Ensured GetAIWorkerManager and GetLogger (as interfaces.Logger) are in AppAccess.
-// This is the primary AppAccess interface for the application.
+// File version: 0.0.7
+// Removed wm package import and GetAIWorkerManager from AppAccess interface.
 // filename: pkg/neurogo/app_interface.go
-// nlines: 28
-// risk_rating: LOW
 package neurogo
 
 import (
@@ -24,10 +21,10 @@ type AppAccess interface {
 	GetSandboxDir() string
 	GetSyncFilter() string
 	GetSyncIgnoreGitignore() bool
-	GetLogger() interfaces.Logger // Must return interfaces.Logger
+	GetLogger() interfaces.Logger
 	GetLLMClient() interfaces.LLMClient
-	GetInterpreter() *Interpreter
-	GetAIWorkerManager() *rkerManager // Must have this method
+	GetInterpreter() *interpreter.Interpreter
+	// GetAIWorkerManager() *wm.AIWorkerManager // This method is removed for now
 	Context() context.Context
 	ExecuteScriptFile(ctx context.Context, scriptPath string) error
 }
@@ -52,3 +49,18 @@ type ApiFileInfo struct {
 	CreateTime  time.Time
 	UpdateTime  time.Time
 }
+
+// StandardFileSystem implements FileSystemOperations using the os package.
+// type StandardFileSystem struct{}
+
+// func (sfs *StandardFileSystem) Stat(name string) (fs.FileInfo, error) { return os.Stat(name) }
+// func (sfs *StandardFileSystem) ReadFile(name string) ([]byte, error) { return os.ReadFile(name) }
+// func (sfs *StandardFileSystem) WriteFile(name string, data []byte, perm fs.FileMode) error {
+// 	return os.WriteFile(name, data, perm)
+// }
+// func (sfs *StandardFileSystem) MkdirAll(path string, perm fs.FileMode) error {
+// 	return os.MkdirAll(path, perm)
+// }
+// func (sfs *StandardFileSystem) Remove(name string) error       { return os.Remove(name) }
+// func (sfs *StandardFileSystem) UserHomeDir() (string, error) { return os.UserHomeDir() }
+// func (sfs *StandardFileSystem) Getenv(key string) string       { return os.Getenv(key) }

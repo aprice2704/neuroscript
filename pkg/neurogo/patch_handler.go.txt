@@ -1,4 +1,6 @@
 // filename: pkg/neurogo/patch_handler.go
+// File version: 1.1
+// Corrected various compiler errors from undefined types and functions.
 package neurogo
 
 import (
@@ -10,20 +12,19 @@ import (
 	"path/filepath"
 	"strings"
 
-	// For core types like Interpreter, SecurityLayer & SecureFilePath func
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
-	"github.com/aprice2704/neuroscript/pkg/nspatch"	// For patch types and application logic
+	"github.com/aprice2704/neuroscript/pkg/interpreter"
+	"github.com/aprice2704/neuroscript/pkg/nspatch"
+	"github.com/aprice2704/neuroscript/pkg/security"
 )
 
 // ErrPatchAbortedByUser indicates the user cancelled the patch operation.
 var ErrPatchAbortedByUser = errors.New("patch application aborted by user confirmation")
 
-// --- Helper function to read file lines ---
 // Reads file content, returns []string. Returns empty slice if file doesn't exist.
 func readLines(filePath string) ([]string, error) {
 	data, err := os.ReadFile(filePath)
 	if err != nil {
-		// If file doesn't exist, return empty slice and nil error
 		if errors.Is(err, os.ErrNotExist) {
 			return []string{}, nil
 		}
@@ -37,7 +38,6 @@ func readLines(filePath string) ([]string, error) {
 	return lines, nil
 }
 
-// --- Helper function to write file lines ---
 // Writes []string to file, ensuring parent directory exists. Uses '\n' line endings.
 func writeLines(filePath string, lines []string) error {
 	dir := filepath.Dir(filePath)
@@ -57,7 +57,7 @@ func writeLines(filePath string, lines []string) error {
 
 // handleReceivedPatch processes a JSON patch string, prompts for confirmation, and applies it.
 // It requires the interpreter, security layer, and sandbox root for context and validation.
-func handleReceivedPatch(patchJSON string, interp *Interpreter, securityLayer *security.SecurityLayer, sandboxRoot string, logger interfaces.Logger) error {
+func handleReceivedPatch(patchJSON string, interp *interpreter.Interpreter, securityLayer *security.SecurityLayer, sandboxRoot string, logger interfaces.Logger) error {
 	logger.Info("[PATCH] Received patch request.")
 
 	// 1. Unmarshal JSON
@@ -79,7 +79,7 @@ func handleReceivedPatch(patchJSON string, interp *Interpreter, securityLayer *s
 	for _, change := range changes {
 		if filepath.IsAbs(change.File) || strings.Contains(change.File, "..") {
 			logger.Error("[PATCH] Security violation: Patch contains non-relative or invalid path element '..': %q", change.File)
-			return fmt.Errorf("invalid path in patch for file %q: %w", change.File, athViolation)
+			return fmt.Errorf("invalid path in patch for file %q: %w", change.File, security.ErrPathViolation)
 		}
 		if _, exists := changesByFile[change.File]; !exists {
 			changesByFile[change.File] = []nspatch.PatchChange{}
@@ -119,12 +119,10 @@ func handleReceivedPatch(patchJSON string, interp *Interpreter, securityLayer *s
 		fileSpecificChanges := changesByFile[fileRelPath]
 		logger.Info("[PATCH] Processing %d changes for file: %s", len(fileSpecificChanges), fileRelPath)
 
-		// a. Security Check (Get validated absolute path using the correct function call)
-		// *** CORRECTED CALL: Use  reFilePath ***
-		absPath, err := reFilePath(fileRelPath, sandboxRoot)
+		// a. Security Check
+		absPath, err := security.SecureFilePath(fileRelPath, sandboxRoot)
 		if err != nil {
 			logger.Error("[PATCH] Security violation for file %q: %v", fileRelPath, err)
-			// Ensure the error is wrapped or identifiable as a security path error
 			return fmt.Errorf("patch security error for %q: %w", fileRelPath, err)
 		}
 		logger.Info("[PATCH] Secured absolute path: %s", absPath)
@@ -157,8 +155,8 @@ func handleReceivedPatch(patchJSON string, interp *Interpreter, securityLayer *s
 			return fmt.Errorf("failed to write modified file %q: %w", fileRelPath, err)
 		}
 		logger.Info("[PATCH] Successfully wrote modified content to %q", fileRelPath)
-	}	// End loop through files
+	}
 
 	logger.Info("[PATCH] All files processed successfully.")
-	return nil	// Success
+	return nil
 }

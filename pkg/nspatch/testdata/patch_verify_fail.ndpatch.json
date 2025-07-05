@@ -1,9 +1,0 @@
-[
-  {
-    "file": "initial_basic.txt",
-    "line": 2,
-    "op": "replace",
-    "old": "Line 2: THIS IS WRONG!",
-    "new": "Line 2: Should not be applied."
-  }
-]

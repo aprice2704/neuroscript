@@ -1,8 +1,0 @@
-[
-  {
-    "file": "initial_basic.txt",
-    "line": 1,
-    "op": "modify",
-    "new": "This won't work"
-  }
-]

@@ -20,7 +20,8 @@ type Runtime interface {
 	SetVar(name string, val any)
 	CallTool(name string, args []any) (any, error)
 	GetLogger() interfaces.Logger
-	SandboxDir() string // FIX: Added this method.
+	SandboxDir() string
+	LLM() interfaces.LLMClient
 }
 
 // ArgType defines the expected data type for a tool argument or return value.

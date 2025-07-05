@@ -9,8 +9,6 @@ package interpreter
 
 import (
 	"errors"
-	"fmt"
-	"path/filepath"
 
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
@@ -33,24 +31,6 @@ func (i *Interpreter) FileAPI() interfaces.FileAPI {
 		panic("FATAL: Interpreter fileAPI not initialized")
 	}
 	return i.fileAPI
-}
-
-func (i *Interpreter) SetSandboxDir(newSandboxDir string) error {
-	var cleanNewSandboxDir string
-	if newSandboxDir == "" {
-		cleanNewSandboxDir = "."
-	} else {
-		absPath, err := filepath.Abs(newSandboxDir)
-		if err != nil {
-			return fmt.Errorf("invalid sandbox directory '%s': %w", newSandboxDir, err)
-		}
-		cleanNewSandboxDir = filepath.Clean(absPath)
-	}
-	if i.state.sandboxDir != cleanNewSandboxDir {
-		i.state.sandboxDir = cleanNewSandboxDir
-		//		i.fileAPI = fileapi.NewFileAPI(i.state.sandboxDir, i.logger)
-	}
-	return nil
 }
 
 // SetVariable is the internal method for setting a variable with a lang.Value.

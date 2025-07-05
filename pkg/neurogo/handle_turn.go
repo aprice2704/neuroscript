@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.3.0
-// File version: 0.1.1 // Guarded patchHandler.ApplyPatch call
-// Minimal changes for compilation after refactor. Needs AI WM integration.
+// File version: 0.1.2
+// Corrected compiler errors from typos and missing imports.
 // filename: pkg/neurogo/handle_turn.go
 package neurogo
 
@@ -13,6 +13,7 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/llm"
+	"github.com/aprice2704/neuroscript/pkg/security"
 	"github.com/google/generative-ai-go/genai"
 )
 
@@ -26,12 +27,24 @@ type llmRequestContext struct {
 	FileURIs []string
 }
 
+// createErrorFunctionResultPart is a helper to format a tool execution error.
+func createErrorFunctionResultPart(toolName string, execErr error) genai.Part {
+	errorContent := "An unknown error occurred."
+	if execErr != nil {
+		errorContent = execErr.Error()
+	}
+	return genai.FunctionResponse{
+		Name:     toolName,
+		Response: map[string]interface{}{"error": errorContent},
+	}
+}
+
 func (a *App) handleAgentTurn(
 	ctx context.Context,
 	llmClient interfaces.LLMClient,
 	convoManager *llm.ConversationManager,
-	agentInterpreter interpreter.Interpreter,
-	securityLayer *rityLayer,
+	agentInterpreter *interpreter.Interpreter,
+	securityLayer *security.SecurityLayer,
 	toolDeclarations []*genai.Tool,
 	initialAttachmentURIs []string,
 ) error {
@@ -56,13 +69,13 @@ func (a *App) handleAgentTurn(
 			}
 			turn := &interfaces.ConversationTurn{Role: interfaces.Role(content.Role)}
 			var textContent strings.Builder
-			var ToolCalls []*interfaces.ToolCall
+			var toolCalls []*interfaces.ToolCall
 			for _, part := range content.Parts {
 				switch v := part.(type) {
 				case genai.Text:
 					textContent.WriteString(string(v))
 				case genai.FunctionCall:
-					ToolCalls = append(ToolCalls, &interfaces.ToolCall{Name: v.Name, Arguments: v.Args})
+					toolCalls = append(toolCalls, &interfaces.ToolCall{Name: v.Name, Arguments: v.Args})
 					logger.Warn("[CONVO] Converting genai.FunctionCall found in history part to ToolCall (ID missing).")
 				case genai.FunctionResponse:
 					logger.Warn("[CONVO] genai.FunctionResponse found in history part, conversion to ToolResult not implemented.")
@@ -71,7 +84,7 @@ func (a *App) handleAgentTurn(
 				}
 			}
 			turn.Content = textContent.String()
-			turn.ToolCalls = ToolCalls
+			turn.ToolCalls = toolCalls
 			coreHistory = append(coreHistory, turn)
 		}
 
@@ -135,17 +148,17 @@ func (a *App) handleAgentTurn(
 		}
 
 		if foundFunctionCall && firstToolCallToExecute != nil {
-			ToolCall := *firstToolCallToExecute
+			toolCall := *firstToolCallToExecute
 			genaiFC := genai.FunctionCall{
-				Name: ToolCall.Name,
-				Args: ToolCall.Arguments,
+				Name: toolCall.Name,
+				Args: toolCall.Arguments,
 			}
 			logger.Info("Executing tool call.", "tool_name", genaiFC.Name)
 			funcResultPart, execErr := securityLayer.ExecuteToolCall(agentInterpreter, genaiFC)
 
 			if execErr != nil {
 				logger.Error("Tool execution failed.", "tool_name", genaiFC.Name, "error", execErr)
-				funcResultPart = teErrorFunctionResultPart(genaiFC.Name, execErr)
+				funcResultPart = createErrorFunctionResultPart(genaiFC.Name, execErr)
 			} else {
 				logger.Info("Tool execution successful.", "tool_name", genaiFC.Name)
 			}
@@ -164,34 +177,23 @@ func (a *App) handleAgentTurn(
 			logger.Info("No function call requested or processed. Handling final text response.")
 			logger.Debug("Final text response", "content", snippet(finalText, 100))
 
-			if a.patchHandler != nil { // Check if patchHandler is initialized
+			if a.patchHandler != nil {
 				trimmedResponse := strings.TrimSpace(finalText)
 				if strings.HasPrefix(trimmedResponse, "@@@PATCH") && strings.HasSuffix(trimmedResponse, "@@@") {
 					patchContent := strings.TrimPrefix(trimmedResponse, "@@@PATCH")
 					patchContent = strings.TrimSuffix(patchContent, "@@@")
 					patchContent = strings.TrimSpace(patchContent)
 
-					// Assuming ApplyPatch method exists on the PatchHandler interface/struct
-					// This will now only be called if a.patchHandler is not nil.
-					// The error "ApplyPatch undefined" would mean PatchHandler type doesn't have it.
-					// For now, we are deferring the full patch handling logic.
-					// To make this compile if ApplyPatch doesn't exist, this call would need to be removed/commented.
-					// However, the error is that the method is undefined on the *type*.
-					// Since we are deferring patch handling, let's comment out the problematic call for now
-					// to focus on other errors. The user explicitly said "deferring patch handling is fine".
 					logger.Info("Patch directive found. Deferring actual patch application.", "content_snippet", snippet(patchContent, 30))
-					// patchErr := a.patchHandler.ApplyPatch(ctx, patchContent) // << COMPILER ERROR HERE if ApplyPatch doesn't exist on the type
+					// patchErr := (*a.patchHandler).ApplyPatch(ctx, patchContent)
 					// if patchErr != nil {
 					// 	logger.Error("Patch application failed", "error", patchErr)
 					// 	fmt.Fprintf(os.Stderr, "\n[AGENT] Error applying patch: %v\n", patchErr)
-					// 	// Decide if this should return an error to stop the turn
 					// } else {
 					// 	logger.Info("Patch applied successfully by deferred handler.")
 					// 	fmt.Println("\n[AGENT] Patch applied successfully (simulated).")
 					// }
-					// Since patch handling is deferred, we effectively do nothing here for now.
-					// The response that *was* the patch is consumed.
-					return nil // Successfully handled the "patch" by noting it.
+					return nil
 				}
 			} else {
 				logger.Warn("Patch handler is nil, cannot check for or apply patches.")

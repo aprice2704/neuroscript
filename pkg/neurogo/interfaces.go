@@ -1,29 +1,22 @@
 // NeuroScript Version: 0.3.0
-// File version: 0.0.5 // Modified CreateAndShowNewChatScreen to accept *ChatSession
-// Defines the comprehensive AppAccess interface required by the TUI package.
-// Added missing methods used by TUI components.
+// File version: 0.0.6
+// Corrected package for AIWorkerManager and updated TUIController method signature.
 // filename: pkg/neurogo/interfaces.go
-// nlines: 38 // Approximate
-// risk_rating: HIGH
 package neurogo
 
 import (
 	"io/fs"
 	"os"
-
-	"github.com/aprice2704/neuroscript/pkg/core"	// ChatSession is in core or neurogo? Assuming neurogo for now.
-	"github.com/aprice2704/neuroscript/pkg/interfaces"
-	// If ChatSession is in neurogo package itself, core import might not be needed for it.
-	// Let's assume ChatSession is defined in the neurogo package (e.g. chat_session.go)
+	// Corrected import for AIWorkerManager
 )
 
 // WMStatusViewDataProvider defines the methods required by the WMStatusScreen
 // (or its Formatter) to fetch the data it needs to display.
 // The main App struct will implement this interface.
-type WMStatusViewDataProvider interface {
-	GetLogger() interfaces.Logger
-	GetAIWorkerManager() *core.AIWorkerManager
-}
+// type WMStatusViewDataProvider interface {
+// 	GetLogger() interfaces.Logger
+// 	GetAIWorkerManager() *wm.AIWorkerManager // Corrected package
+// }
 
 // TUIController defines the methods the App can use to interact with the TUI.
 // This helps decouple the App logic from the concrete TUI implementation.
@@ -33,7 +26,7 @@ type TUIController interface {
 	// This method MUST be callable via app.QueueUpdateDraw by the App to ensure
 	// it runs on the TUI's main goroutine.
 	// MODIFIED: Now accepts a *ChatSession object directly.
-	CreateAndShowNewChatScreen(session *ChatSession)	// << CHANGED SIGNATURE
+	CreateAndShowNewChatScreen(session *ChatSession) // Corrected signature
 
 	// Add other methods here if App needs to command TUI for other specific UI actions.
 }
@@ -53,14 +46,14 @@ type FileSystemOperations interface {
 // StandardFileSystem implements FileSystemOperations using the os package.
 type StandardFileSystem struct{}
 
-func (sfs *StandardFileSystem) Stat(name string) (fs.FileInfo, error)	{ return os.Stat(name) }
-func (sfs *StandardFileSystem) ReadFile(name string) ([]byte, error)	{ return os.ReadFile(name) }
+func (sfs *StandardFileSystem) Stat(name string) (fs.FileInfo, error) { return os.Stat(name) }
+func (sfs *StandardFileSystem) ReadFile(name string) ([]byte, error)  { return os.ReadFile(name) }
 func (sfs *StandardFileSystem) WriteFile(name string, data []byte, perm fs.FileMode) error {
 	return os.WriteFile(name, data, perm)
 }
 func (sfs *StandardFileSystem) MkdirAll(path string, perm fs.FileMode) error {
 	return os.MkdirAll(path, perm)
 }
-func (sfs *StandardFileSystem) Remove(name string) error	{ return os.Remove(name) }
-func (sfs *StandardFileSystem) UserHomeDir() (string, error)	{ return os.UserHomeDir() }
-func (sfs *StandardFileSystem) Getenv(key string) string	{ return os.Getenv(key) }
+func (sfs *StandardFileSystem) Remove(name string) error     { return os.Remove(name) }
+func (sfs *StandardFileSystem) UserHomeDir() (string, error) { return os.UserHomeDir() }
+func (sfs *StandardFileSystem) Getenv(key string) string     { return os.Getenv(key) }

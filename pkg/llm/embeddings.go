@@ -5,21 +5,19 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
-
-	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
 // --- Mock Embeddings ---
 
 // GenerateEmbedding creates a mock deterministic embedding.
 // Moved from interpreter_c.go
-func (i tool.Runtime) GenerateEmbedding(text string) ([]float32, error) {
+func GenerateEmbedding(text string, embeddingDim int) ([]float32, error) {
 	// Ensure embeddingDim is valid
-	if i.embeddingDim <= 0 {
-		return nil, fmt.Errorf("embedding dimension must be positive (is %d)", i.embeddingDim)
+	if embeddingDim <= 0 {
+		return nil, fmt.Errorf("embedding dimension must be positive (is %d)", embeddingDim)
 	}
 
-	embedding := make([]float32, i.embeddingDim)
+	embedding := make([]float32, embeddingDim)
 	var seed int64
 	for _, r := range text {
 		// Simple hash combining character codes
@@ -33,7 +31,7 @@ func (i tool.Runtime) GenerateEmbedding(text string) ([]float32, error) {
 	rng := rand.New(rand.NewSource(seed)) // Use the derived seed
 
 	norm := float32(0.0)
-	for d := 0; d < i.embeddingDim; d++ {
+	for d := 0; d < embeddingDim; d++ {
 		// Generate values in [-1, 1]
 		val := rng.Float32()*2.0 - 1.0
 		embedding[d] = val
@@ -47,7 +45,7 @@ func (i tool.Runtime) GenerateEmbedding(text string) ([]float32, error) {
 		for d := range embedding {
 			embedding[d] /= norm
 		}
-	} else if i.embeddingDim > 0 {
+	} else if embeddingDim > 0 {
 		// Handle zero vector case - set first element to 1? Or return error?
 		// Setting first element to 1 ensures non-zero magnitude for cosine similarity.
 		embedding[0] = 1.0
@@ -56,9 +54,9 @@ func (i tool.Runtime) GenerateEmbedding(text string) ([]float32, error) {
 	return embedding, nil
 }
 
-// cosineSimilarity calculates similarity between two vectors.
+// CosineSimilarity calculates similarity between two vectors.
 // Moved from interpreter_c.go
-func cosineSimilarity(v1, v2 []float32) (float64, error) {
+func CosineSimilarity(v1, v2 []float32) (float64, error) {
 	if len(v1) == 0 || len(v2) == 0 {
 		return 0, fmt.Errorf("vectors cannot be empty")
 	}

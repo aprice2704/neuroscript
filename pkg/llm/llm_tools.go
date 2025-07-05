@@ -72,7 +72,7 @@ func callLLMWithParts(ctx context.Context, llmClient interfaces.LLMClient, parts
 // --- Tool Implementations ---
 
 // TOOL.LLM.Ask
-func toolLLMAsk(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
+func toolLLMAsk(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
 	if len(args) < 1 {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "LLM.Ask: expected 1 argument (prompt)", lang.ErrArgumentMismatch)
 	}
@@ -81,11 +81,12 @@ func toolLLMAsk(interpreter tool.RunTime, args []interface{}) (interface{}, erro
 		return nil, lang.NewRuntimeError(lang.ErrorCodeType, fmt.Sprintf("LLM.Ask: argument 'prompt' must be a string, got %T", args[0]), lang.ErrInvalidArgument)
 	}
 
-	if interpreter.llmClient == nil {
+	llmClient := interpreter.LLM()
+	if llmClient == nil {
 		return nil, lang.ErrLLMNotConfigured
 	}
 
-	response, err := callLLM(context.Background(), interpreter.llmClient, prompt)
+	response, err := callLLM(context.Background(), llmClient, prompt)
 	if err != nil {
 		// callLLM already wraps ErrLLMError, so just return it.
 		return nil, err
@@ -94,7 +95,7 @@ func toolLLMAsk(interpreter tool.RunTime, args []interface{}) (interface{}, erro
 }
 
 // TOOL.LLM.AskWithParts
-func toolLLMAskWithParts(interpreter tool.RunTime, args []interface{}) (interface{}, error) {
+func toolLLMAskWithParts(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
 	if len(args) < 1 {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "LLM.AskWithParts: expected 1 argument (parts)", lang.ErrArgumentMismatch)
 	}
@@ -123,10 +124,11 @@ func toolLLMAskWithParts(interpreter tool.RunTime, args []interface{}) (interfac
 		return nil, lang.NewRuntimeError(lang.ErrorCodeType, fmt.Sprintf("LLM.AskWithParts: invalid argument type for 'parts': expected a list, got %T", partsArg), lang.ErrInvalidArgument)
 	}
 
-	if interpreter.llmClient == nil {
+	llmClient := interpreter.LLM()
+	if llmClient == nil {
 		return nil, lang.ErrLLMNotConfigured
 	}
-	response, err := callLLMWithParts(context.Background(), interpreter.llmClient, genaiParts)
+	response, err := callLLMWithParts(context.Background(), llmClient, genaiParts)
 	if err != nil {
 		return nil, err
 	}
@@ -135,7 +137,7 @@ func toolLLMAskWithParts(interpreter tool.RunTime, args []interface{}) (interfac
 
 // RegisterLLMTools registers the LLM interaction tools.
 // <<< CHANGED: registry parameter is now ToolRegistry (interface type)
-func RegisterLLMTools(registry ToolRegistry) error {
+func RegisterLLMTools(registry tool.ToolRegistry) error {
 	if registry == nil {
 		return fmt.Errorf("cannot register LLM tools: provided ToolRegistry is nil")
 	}
@@ -153,8 +155,8 @@ func RegisterLLMTools(registry ToolRegistry) error {
 		return fmt.Errorf("failed to convert args for LLM.Ask: %w", argsErr)
 	}
 
-	err = registry.RegisterTool(ToolImplementation{
-		Spec: ToolSpec{
+	err = registry.RegisterTool(tool.ToolImplementation{
+		Spec: tool.ToolSpec{
 			Name:        "LLM.Ask",
 			Description: "Sends a text prompt to the configured LLM and returns the text response.",
 			Args:        llmAskArgs,
@@ -182,8 +184,8 @@ func RegisterLLMTools(registry ToolRegistry) error {
 		return fmt.Errorf("failed to convert args for LLM.AskWithParts: %w", argsErr)
 	}
 
-	err = registry.RegisterTool(ToolImplementation{
-		Spec: ToolSpec{
+	err = registry.RegisterTool(tool.ToolImplementation{
+		Spec: tool.ToolSpec{
 			Name:        "LLM.AskWithParts",
 			Description: "Sends a list of parts (currently treated as text strings) as a prompt to the LLM.",
 			Args:        llmAskPartsArgs,

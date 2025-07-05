@@ -29,9 +29,7 @@ func newFsTestInterpreter(t *testing.T) *interpreter.Interpreter {
 	t.Helper()
 	interp := interpreter.NewInterpreter()
 	sandboxDir := t.TempDir()
-	if err := interp.SetSandboxDir(sandboxDir); err != nil {
-		t.Fatalf("Failed to set sandbox directory for test interpreter: %v", err)
-	}
+	interp.SetSandboxDir(sandboxDir)
 	// Register all the FS tools for this test suite
 	for _, toolImpl := range fsToolsToRegister {
 		if err := interp.RegisterTool(toolImpl); err != nil {

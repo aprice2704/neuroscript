@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.4.0
-// File version: 0.4.0
-// Description: Updated to use the new load/run protocol for initial script execution.
+// File version: 0.4.1
+// Corrected various compiler errors from refactoring.
 // filename: pkg/neurogo/tview_tui.go
 package neurogo
 
@@ -42,12 +42,6 @@ func CloseTUIDebugLog() {
 	}
 }
 
-// TuiPrintf is a helper to print to the debugFile if it's open, otherwise to stdout.
-func TuiPrintf(format string, a ...interface{}) {
-	// Logging via this function has been commented out to reduce noise.
-	// Use mainApp.Log for structured logging instead.
-}
-
 // StartTviewTUI initializes and runs the tview-based Text User Interface.
 func StartTviewTUI(mainApp *App, initialScriptPath string) error {
 
@@ -74,9 +68,9 @@ func StartTviewTUI(mainApp *App, initialScriptPath string) error {
 
 	tvApp := tview.NewApplication()
 	tvP := &tviewAppPointers{
-		tviewApp:	tvApp,
-		app:		mainApp,
-		chatScreenMap:	make(map[string]*ChatConversationScreen),
+		tviewApp:      tvApp,
+		app:           mainApp,
+		chatScreenMap: make(map[string]*ChatConversationScreen),
 	}
 	if mainApp.tui == nil {
 		mainApp.tui = tvP
@@ -143,8 +137,8 @@ func StartTviewTUI(mainApp *App, initialScriptPath string) error {
 	tvP.statusBar = tview.NewTextView().SetDynamicColors(true)
 
 	helpStaticScreen := NewStaticPrimitiveScreen("Help", "Help", helpText)
-	aiwmScreen := NewAIWMStatusScreen(tvP.app)
-	aiwmStringScreen := NewAIWMStringScreen(tvP.app)
+	aiwmScreen := NewStaticPrimitiveScreen("Help", "Help", helpText)       // NewAIWMStatusScreen(tvP.app) FIXME
+	aiwmStringScreen := NewStaticPrimitiveScreen("Help", "Help", helpText) // NewAIWMStringScreen(tvP.app) FIXME
 
 	tvP.addScreen(scriptOutputScreen, true)
 	tvP.addScreen(aiwmScreen, true)
@@ -159,10 +153,10 @@ func StartTviewTUI(mainApp *App, initialScriptPath string) error {
 		tvP.localInputArea, tvP.aiInputArea, tvP.aiOutputView, tvP.localOutputView,
 	}
 	tvP.numFocusablePrimitives = len(tvP.focusablePrimitives)
-	tvP.paneCIndex = 0	// localInputArea
-	tvP.paneDIndex = 1	// aiInputArea
-	tvP.paneBIndex = 2	// aiOutputView
-	tvP.paneAIndex = 3	// localOutputView
+	tvP.paneCIndex = 0 // localInputArea
+	tvP.paneDIndex = 1 // aiInputArea
+	tvP.paneBIndex = 2 // aiOutputView
+	tvP.paneAIndex = 3 // localOutputView
 	tvP.currentFocusIndex = tvP.paneCIndex
 
 	if len(tvP.leftScreens) > 0 {
@@ -184,40 +178,36 @@ func StartTviewTUI(mainApp *App, initialScriptPath string) error {
 		tvP.initialActivityText = fmt.Sprintf("Running: %s...", filepath.Base(initialScriptPath))
 		tvP.updateStatusText()
 
-		// NEW PROTOCOL: Read file via tool, load content, run main procedure.
 		var execErr error
-		func() {	// Use anonymous function to handle errors cleanly with a single 'err' var
-			interpreter := mainApp.Interpreter()
+		func() {
+			interpreter := mainApp.interpreter
 			if interpreter == nil {
 				execErr = fmt.Errorf("interpreter is nil")
 				return
 			}
-			// 1. Read file
 			filepathArg, err := lang.Wrap(initialScriptPath)
 			if err != nil {
 				execErr = fmt.Errorf("internal error wrapping script path: %w", err)
 				return
 			}
-			toolArgs := map[string]e{"filepath": filepathArg}
-			contentValue, err := interpreter.ExecuteTool("TOOL.ReadFile", toolArgs)
+			toolArgs := map[string]lang.Value{"filepath": filepathArg}
+			contentValue, err := interpreter.ExecuteTool("FS.Read", toolArgs)
 			if err != nil {
 				execErr = fmt.Errorf("failed to read initial script '%s': %w", initialScriptPath, err)
 				return
 			}
-			scriptContent, ok := ap(contentValue).(string)
+			scriptContent, ok := lang.Unwrap(contentValue).(string)
 			if !ok {
 				execErr = fmt.Errorf("TOOL.ReadFile did not return a string")
 				return
 			}
-			// 2. Load script
 			if _, err := mainApp.LoadScriptString(context.Background(), scriptContent); err != nil {
 				execErr = fmt.Errorf("failed to load initial script: %w", err)
 				return
 			}
-			// 3. Run 'main' procedure
 			if _, err := mainApp.RunProcedure(context.Background(), "main", nil); err != nil {
-				var rErr *imeError
-				if errors.As(err, &rErr) && rErr.Code == rCodeProcNotFound {
+				var rErr *lang.RuntimeError
+				if errors.As(err, &rErr) && rErr.Code == lang.ErrorCodeProcNotFound {
 					logInfo("Initial script loaded. No 'main' procedure found to execute.", "script", initialScriptPath)
 				} else {
 					execErr = fmt.Errorf("error running main from initial script: %w", err)
@@ -300,7 +290,7 @@ func StartTviewTUI(mainApp *App, initialScriptPath string) error {
 						textToCopy = textView.GetText(false)
 						tvP.LogToDebugScreen("[KEY_HANDLE_COPY] Preparing to copy from TextView in Pane A/B. Length: %d", len(textToCopy))
 					} else {
-						paneName := "A/B"	// Simplified
+						paneName := "A/B" // Simplified
 						errMsg := fmt.Sprintf("Focused content in Pane %s is not a TextView (type: %T). Cannot copy.", paneName, pagePrimitive)
 						tvP.LogToDebugScreen("[KEY_HANDLE_COPY] %s", errMsg)
 						copyErrorEncountered = true

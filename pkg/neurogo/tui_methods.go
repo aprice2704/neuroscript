@@ -1,11 +1,12 @@
 // NeuroScript Version: 0.4.0
-// File version: 0.1.4 // Modified LogToDebugScreen to use log.Printf for console output test.
+// File version: 0.1.5
+// Corrected logging and focus management logic.
 // Description: Contains methods for the tviewAppPointers struct, managing TUI logic.
 // filename: pkg/neurogo/tui_methods.go
 package neurogo
 
 import (
-	// Using standard log package
+	"log"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -27,7 +28,6 @@ func setPrimitiveBackgroundColor(p tview.Primitive, color tcell.Color) {
 
 // dFocus handles cycling focus among major UI components and updating styles.
 func (tvP *tviewAppPointers) dFocus(df int) {
-	//tvP.LogToDebugScreen("[DFOCUS_ENTRY] dFocus called with df: %d", df) // Now uses log.Printf
 	if tvP.numFocusablePrimitives == 0 {
 		tvP.LogToDebugScreen("[DFOCUS] No focusable primitives.")
 		return
@@ -142,18 +142,18 @@ func (tvP *tviewAppPointers) dFocus(df int) {
 
 // --- Methods from former tview_tui.go (event/app specific) ---
 
-// LogToDebugScreen now uses log.Printf, which typically writes to stderr.
-// This is a temporary diagnostic measure. Ideally, TUI logging goes to the TUI debug widget or a dedicated file.
 func (tvP *tviewAppPointers) LogToDebugScreen(format string, args ...interface{}) {
-	// Not attempting to write to the TUI debug widget itself to simplify diagnosing hangs
-	// and to respect user's preference for console-visible logs during such hangs.
-	//	log.Printf("[TUI_LOG] "+format, args...) // Prefixed to distinguish from other logs and indicates it's from LogToDebugScreen
+	if tvP.app != nil && tvP.app.Log != nil {
+		tvP.app.Log.Debug(format, args...)
+	} else {
+		log.Printf("[TUI_LOG_FALLBACK] "+format, args...)
+	}
 }
 
 // onPanePageChange is called when a tview.Pages view (a pane) switches its front page.
 func (tvP *tviewAppPointers) onPanePageChange(pane *tview.Pages) {
 	pageName, currentPrimitive := pane.GetFrontPage()
-	tvP.LogToDebugScreen("[PAGE_CHANGE_ENTRY] onPanePageChange called. Pane Addr: %p, New Page Name: '%s'", pane, pageName)	// Now uses log.Printf
+	tvP.LogToDebugScreen("[PAGE_CHANGE_ENTRY] onPanePageChange called. Pane Addr: %p, New Page Name: '%s'", pane, pageName)
 
 	if currentPrimitive == nil {
 		tvP.LogToDebugScreen("[PAGE_CHANGE] Current primitive is nil for page '%s'.", pageName)

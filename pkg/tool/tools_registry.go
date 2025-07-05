@@ -130,6 +130,36 @@ func (r *ToolRegistryImpl) CallFromInterpreter(interp Runtime, toolName string, 
 	return lang.Wrap(out)
 }
 
+// ExecuteTool is the bridge for external callers that have named arguments.
+func (r *ToolRegistryImpl) ExecuteTool(toolName string, args map[string]lang.Value) (lang.Value, error) {
+	impl, ok := r.GetTool(toolName)
+	if !ok {
+		return nil, lang.NewRuntimeError(lang.ErrorCodeToolNotFound, fmt.Sprintf("tool '%s' not found", toolName), lang.ErrToolNotFound)
+	}
+
+	// Tool functions require a `tool.Runtime`. The registry was initialized with one.
+	if r.interpreter == nil {
+		return nil, lang.NewRuntimeError(lang.ErrorCodeConfiguration, "ToolRegistry not configured with a runtime context", lang.ErrConfiguration)
+	}
+
+	// Convert the map of named arguments into an ordered slice of positional arguments.
+	orderedLangArgs := make([]lang.Value, len(impl.Spec.Args))
+	for i, spec := range impl.Spec.Args {
+		val, ok := args[spec.Name]
+		if !ok {
+			if spec.Required {
+				return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("missing required argument '%s' for tool '%s'", spec.Name, toolName), lang.ErrArgumentMismatch)
+			}
+			orderedLangArgs[i] = lang.NilValue{} // Use nil for optional args that are not provided.
+		} else {
+			orderedLangArgs[i] = val
+		}
+	}
+
+	// Now we have an ordered slice of `lang.Value`, which is what CallFromInterpreter expects.
+	return r.CallFromInterpreter(r.interpreter, toolName, orderedLangArgs)
+}
+
 // coerceArg attempts to convert a primitive value `x` to the specified ArgType.
 func coerceArg(x interface{}, t ArgType) (interface{}, error) {
 	if x == nil {

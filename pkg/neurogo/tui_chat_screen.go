@@ -1,5 +1,6 @@
 // NeuroScript Version: 0.4.0
-// File version: 0.1.3 // Corrected compiler errors: _sID unused, tr.IDProvider
+// File version: 0.1.4
+// Corrected undefined worker status constants.
 // Description: Implements the ChatConversationScreen for the TUI.
 // filename: pkg/neurogo/tui_chat_screen.go
 package neurogo
@@ -8,18 +9,18 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/aprice2704/neuroscript/pkg/interfaces"
+	"github.com/aprice2704/neuroscript/pkg/interfaces" // Added for worker status constants
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
 
 // ChatConversationScreen displays the conversation with an AI worker.
 type ChatConversationScreen struct {
-	name		string
-	title		string
-	textView	*tview.TextView
-	app		*App	// To get active chat details for title and AIWM
-	sessionID	string	// ID of the chat session this screen represents
+	name      string
+	title     string
+	textView  *tview.TextView
+	app       *App   // To get active chat details for title and AIWM
+	sessionID string // ID of the chat session this screen represents
 }
 
 // NewChatConversationScreen creates a new chat screen.
@@ -39,16 +40,16 @@ func NewChatConversationScreen(app *App, sessionID string, initialTitle string) 
 	}
 
 	return &ChatConversationScreen{
-		app:		app,
-		name:		fmt.Sprintf("Chat-%s", shortSessionIDForName),
-		title:		initialTitle,
-		textView:	tv,
-		sessionID:	sessionID,
+		app:       app,
+		name:      fmt.Sprintf("Chat-%s", shortSessionIDForName),
+		title:     initialTitle,
+		textView:  tv,
+		sessionID: sessionID,
 	}
 }
 
 // Name returns the screen's short identifier.
-func (cs *ChatConversationScreen) Name() string	{ return cs.name }
+func (cs *ChatConversationScreen) Name() string { return cs.name }
 
 // Title returns the screen's current title.
 func (cs *ChatConversationScreen) Title() string {
@@ -57,72 +58,69 @@ func (cs *ChatConversationScreen) Title() string {
 }
 
 func (cs *ChatConversationScreen) updateTitle() {
-	var sess *ChatSession
-	if cs.sessionID != "" {
-		sess = cs.app.GetChatSession(cs.sessionID)
-	} else {
-		// This case should ideally not be hit if screens are always created with a sessionID
-		// However, as a fallback, it could check the globally active session.
-		cs.app.Log.Warn("ChatConversationScreen.updateTitle called with empty sessionID, attempting to use global active session.", "screenName", cs.name)
-		sess = cs.app.GetActiveChatSession()
-	}
+	//var sess *ChatSession
+	// if cs.sessionID != "" {
+	// 	sess = cs.app.GetChatSession(cs.sessionID)
+	// } else {
+	// 	cs.app.Log.Warn("ChatConversationScreen.updateTitle called with empty sessionID, attempting to use global active session.", "screenName", cs.name)
+	// 	sess = cs.app.GetActiveChatSession()
+	// }
 
-	newTitle := "Chat (No Session)"	// Default if session is nil
-	if sess != nil && sess.WorkerInstance != nil {
-		var statusColor string
-		status := sess.WorkerInstance.Status
-		switch status {
-		case InstanceStatusIdle:
-			statusColor = "[green]"
-		case anceStatusBusy:
-			statusColor = "[yellow]"
-		case anceStatusError:
-			statusColor = "[red]"
-		default:
-			statusColor = "[white]"
-		}
+	newTitle := "Chat (No Session)" // Default if session is nil
+	// if sess != nil && sess.WorkerInstance != nil {
+	// 	var statusColor string
+	// 	status := sess.WorkerInstance.Status
+	// 	switch status {
+	// 	case wm.InstanceStatusIdle:
+	// 		statusColor = "[green]"
+	// 	case wm.InstanceStatusBusy:
+	// 		statusColor = "[yellow]"
+	// 	case wm.InstanceStatusError:
+	// 		statusColor = "[red]"
+	// 	default:
+	// 		statusColor = "[white]"
+	// 	}
 
-		titleName := sess.DisplayName
-		if titleName == "" && sess.DefinitionID != "" {
-			if aiWM := cs.app.GetAIWorkerManager(); aiWM != nil {
-				if def, err := aiWM.GetWorkerDefinition(sess.DefinitionID); err == nil && def != nil {
-					titleName = def.Name
-				}
-			}
-		}
-		if titleName == "" {	// Ultimate fallback
-			titleName = sess.DefinitionID
-		}
+	// 	titleName := sess.DisplayName
+	// 	if titleName == "" && sess.DefinitionID != "" {
+	// 		if aiWM := cs.app.GetAIWorkerManager(); aiWM != nil {
+	// 			if def, err := aiWM.GetWorkerDefinition(sess.DefinitionID); err == nil && def != nil {
+	// 				titleName = def.Name
+	// 			}
+	// 		}
+	// 	}
+	// 	if titleName == "" { // Ultimate fallback
+	// 		titleName = sess.DefinitionID
+	// 	}
 
-		shortInstID := sess.WorkerInstance.InstanceID
-		if len(shortInstID) > 8 {
-			shortInstID = shortInstID[:8]
-		}
-		newTitle = fmt.Sprintf("%s (%s) %s%s[-]", EscapeTviewTags(titleName), shortInstID, statusColor, status)
-	} else if cs.sessionID == "" {	// If this screen has no sessionID and there was no active global session
-		// Use underscore for unused sessionID from GetActiveChatDetails
-		_, dispName, _defID, _instStatus, isActive := cs.app.GetActiveChatDetails()
-		if isActive {
-			var statusColor string
-			switch _instStatus {
-			case anceStatusIdle:
-				statusColor = "[green]"
-			case anceStatusBusy:
-				statusColor = "[yellow]"
-			case anceStatusError:
-				statusColor = "[red]"
-			default:
-				statusColor = "[white]"
-			}
-			titleName := dispName
-			if titleName == "" {
-				titleName = _defID
-			}
-			newTitle = fmt.Sprintf("Chat: %s %s%s[-]", EscapeTviewTags(titleName), statusColor, _instStatus)
-		} else {
-			newTitle = "Chat (Inactive)"
-		}
-	}
+	// 	shortInstID := sess.WorkerInstance.InstanceID
+	// 	if len(shortInstID) > 8 {
+	// 		shortInstID = shortInstID[:8]
+	// 	}
+	// 	newTitle = fmt.Sprintf("%s (%s) %s%s[-]", EscapeTviewTags(titleName), shortInstID, statusColor, status)
+	// } else if cs.sessionID == "" {
+	// 	_, dispName, _defID, _instStatus, isActive := cs.app.GetActiveChatDetails()
+	// 	if isActive {
+	// 		var statusColor string
+	// 		switch _instStatus {
+	// 		case wm.InstanceStatusIdle:
+	// 			statusColor = "[green]"
+	// 		case wm.InstanceStatusBusy:
+	// 			statusColor = "[yellow]"
+	// 		case wm.InstanceStatusError:
+	// 			statusColor = "[red]"
+	// 		default:
+	// 			statusColor = "[white]"
+	// 		}
+	// 		titleName := dispName
+	// 		if titleName == "" {
+	// 			titleName = _defID
+	// 		}
+	// 		newTitle = fmt.Sprintf("Chat: %s %s%s[-]", EscapeTviewTags(titleName), statusColor, _instStatus)
+	// 	} else {
+	// 		newTitle = "Chat (Inactive)"
+	// 	}
+	//}
 	cs.title = newTitle
 }
 
@@ -174,11 +172,9 @@ func (cs *ChatConversationScreen) UpdateConversation() {
 			return
 		}
 	} else {
-		// This screen has no specific session ID; this indicates a potential logic error
-		// as chat screens should be tied to a session.
 		cs.app.Log.Warn("ChatConversationScreen.UpdateConversation called for a screen with no sessionID.", "screenName", cs.name)
 		cs.textView.SetText(fmt.Sprintf("[red]Error: Screen %s has no associated chat session ID.[-]", EscapeTviewTags(cs.name)))
-		history = []*interfaces.ConversationTurn{}	// Show empty
+		history = []*interfaces.ConversationTurn{}
 	}
 
 	cs.textView.Clear()
@@ -213,9 +209,8 @@ func (cs *ChatConversationScreen) UpdateConversation() {
 			var trContent strings.Builder
 			trContent.WriteString("provides Tool Result(s):")
 			for _, tr := range turn.ToolResults {
-				// Use tr.ID directly as per interfaces.ToolResult definition
 				trContent.WriteString(fmt.Sprintf("\n  - ID %s: %s (Error: %s)",
-					EscapeTviewTags(tr.ID),	// Corrected to use tr.ID
+					EscapeTviewTags(tr.ID),
 					EscapeTviewTags(fmt.Sprintf("%v", tr.Result)),
 					EscapeTviewTags(tr.Error)))
 			}

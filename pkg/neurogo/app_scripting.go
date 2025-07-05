@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.4.2
-// Purpose: Fixes incorrect return value counts in error paths within processNeuroScriptContent.
+// File version: 0.4.4
+// Corrected NewASTBuilder call to use the parser package.
 // filename: pkg/neurogo/app_scripting.go
 
 package neurogo
@@ -9,17 +9,21 @@ import (
 	"context"
 	"fmt"
 	"time"
+
+	"github.com/aprice2704/neuroscript/pkg/interpreter"
+	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/parser"
 )
 
 // processNeuroScriptContent is the core logic for parsing a script string and loading its definitions.
-func (a *App) processNeuroScriptContent(content, sourceName string, interp *Interpreter) (map[string]string, error) {
+func (a *App) processNeuroScriptContent(content, sourceName string, interp *interpreter.Interpreter) (map[string]string, error) {
 	if interp == nil {
 		return nil, fmt.Errorf("cannot process script from '%s': interpreter is nil", sourceName)
 	}
 	a.Log.Debug("Processing NeuroScript content.", "source", sourceName)
 
-	parser := arserAPI(a.Log)
-	parseResultTree, parseErr := parser.Parse(content)
+	p := parser.NewParserAPI(a.Log)
+	parseResultTree, parseErr := p.Parse(content)
 	if parseErr != nil {
 		a.Log.Error("Parsing failed.", "source", sourceName, "error", parseErr)
 		return nil, fmt.Errorf("parsing from %s failed: %w", sourceName, parseErr)
@@ -30,7 +34,7 @@ func (a *App) processNeuroScriptContent(content, sourceName string, interp *Inte
 	}
 	a.Log.Debug("Parsing successful.", "source", sourceName)
 
-	astBuilder := STBuilder(a.Log)
+	astBuilder := parser.NewASTBuilder(a.Log)
 	programAST, fileMetadata, buildErr := astBuilder.Build(parseResultTree)
 	if buildErr != nil {
 		a.Log.Error("AST building failed.", "source", sourceName, "error", buildErr)
@@ -75,7 +79,7 @@ func (app *App) LoadScriptString(ctx context.Context, scriptContent string) (map
 	// Use a generic source name as this function only deals with content.
 	fileMeta, err := app.processNeuroScriptContent(scriptContent, "<string>", interpreter)
 	if err != nil {
-		return nil, err
+		return fileMeta, err // Pass through metadata even on error
 	}
 
 	app.Log.Debug("Script loaded successfully. No execution.")
@@ -94,9 +98,9 @@ func (app *App) RunProcedure(ctx context.Context, procedureToRun string, scriptA
 		return nil, fmt.Errorf("cannot run procedure: procedure name is empty")
 	}
 
-	wrappedArgs := make([]e, len(scriptArgs))
+	wrappedArgs := make([]lang.Value, len(scriptArgs))
 	for i, argStr := range scriptArgs {
-		wrapped, err := (argStr)
+		wrapped, err := lang.Wrap(argStr)
 		if err != nil {
 			return nil, fmt.Errorf("failed to wrap script argument '%s': %w", argStr, err)
 		}

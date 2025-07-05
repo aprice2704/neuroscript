@@ -1,9 +1,7 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.2.1
-// Purpose: Corrected the error code constant used for checking if a procedure was not found, resolving a compiler error.
+// File version: 0.2.3
+// Corrected all remaining compiler errors from typos and refactoring.
 // filename: pkg/neurogo/app_agent.go
-// nlines: 285 // Approximate
-// risk_rating: LOW
 package neurogo
 
 import (
@@ -14,12 +12,15 @@ import (
 	"os"
 	"strings"
 
+	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/llm"
+	"github.com/aprice2704/neuroscript/pkg/security"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 	"github.com/google/generative-ai-go/genai"
 )
 
 // runAgentMode starts the interactive agent mode.
 func (app *App) runAgentMode(ctx context.Context) error {
-	// ... (setup unchanged) ...
 	app.Log.Info("--- Running in Agent Mode ---")
 	if app.llmClient == nil {
 		return fmt.Errorf("cannot run agent mode: LLM client is nil")
@@ -73,7 +74,6 @@ func (app *App) runAgentMode(ctx context.Context) error {
 	reader := bufio.NewReader(os.Stdin)
 
 	for {
-		// ... (input loop unchanged) ...
 		fmt.Print("> ")
 		input, err := reader.ReadString('\n')
 		if err != nil {
@@ -99,7 +99,6 @@ func (app *App) runAgentMode(ctx context.Context) error {
 			fmt.Println("Error processing turn:", err)
 		}
 
-		// Display the latest model response
 		history := convoManager.GetHistory()
 		if len(history) > 0 {
 			lastContent := history[len(history)-1]
@@ -126,8 +125,7 @@ func (app *App) runAgentMode(ctx context.Context) error {
 			fmt.Println("< (No response and no history?)")
 		}
 		fmt.Println()
-
-	}	// End input loop
+	}
 
 	fmt.Println("Agent mode finished.")
 	return nil
@@ -135,7 +133,6 @@ func (app *App) runAgentMode(ctx context.Context) error {
 
 // registerAgentTools registers tools specifically needed for the agent mode.
 func (app *App) registerAgentTools(agentCtx *AgentContext) error {
-	// ... (unchanged) ...
 	app.Log.Info("Registering agent tools...")
 	if app.interpreter == nil {
 		return fmt.Errorf("cannot register agent tools: interpreter is nil")
@@ -155,8 +152,7 @@ func (app *App) registerAgentTools(agentCtx *AgentContext) error {
 }
 
 // handleTurn processes a single turn of the conversation.
-func (app *App) handleTurn(ctx context.Context, convoManager *ersationManager, agentCtx *AgentContext) error {
-	// ... (setup unchanged) ...
+func (app *App) handleTurn(ctx context.Context, convoManager *llm.ConversationManager, agentCtx *AgentContext) error {
 	app.Log.Debug("Handling agent turn...")
 
 	llmClient := app.GetLLMClient()
@@ -177,7 +173,7 @@ func (app *App) handleTurn(ctx context.Context, convoManager *ersationManager, a
 	var allowedTools []string = nil
 	var allowedPaths map[string]bool = nil
 	sandboxDir := app.interpreter.SandboxDir()
-	securityLayer := ecurityLayer(
+	securityLayer := security.NewSecurityLayer(
 		allowedTools,
 		allowedPaths,
 		sandboxDir,
@@ -217,47 +213,42 @@ func (app *App) handleTurn(ctx context.Context, convoManager *ersationManager, a
 	return nil
 }
 
-// executeStartupScript handles running the initial agent configuration script according to the new protocol.
+// executeStartupScript handles running the initial agent configuration script.
 func (app *App) executeStartupScript(ctx context.Context, scriptPath string, agentCtx *AgentContext) error {
 	app.Log.Info("Executing startup script.", "path", scriptPath)
 	if app.interpreter == nil {
 		return fmt.Errorf("cannot execute startup script: interpreter is nil")
 	}
 
-	// 1. Read file content using the interpreter's tool.
-	filepathArg, err := (scriptPath)
+	filepathArg, err := lang.Wrap(scriptPath)
 	if err != nil {
 		return fmt.Errorf("internal error wrapping script path '%s': %w", scriptPath, err)
 	}
-	toolArgs := map[string]e{"filepath": filepathArg}
+	toolArgs := map[string]lang.Value{"filepath": filepathArg}
 	contentValue, err := app.interpreter.ExecuteTool("TOOL.ReadFile", toolArgs)
 	if err != nil {
 		return fmt.Errorf("failed to read startup script file '%s': %w", scriptPath, err)
 	}
-	scriptContent, ok := ap(contentValue).(string)
+	scriptContent, ok := lang.Unwrap(contentValue).(string)
 	if !ok {
 		return fmt.Errorf("internal error: TOOL.ReadFile did not return a string for '%s'", scriptPath)
 	}
 
-	// 2. Load script definitions from the content.
 	if _, err := app.LoadScriptString(ctx, scriptContent); err != nil {
 		return fmt.Errorf("failed to load startup script %s: %w", scriptPath, err)
 	}
 	app.Log.Debug("Startup script processed and loaded.", "path", scriptPath)
 
-	// 3. Run the 'main' procedure.
 	startupProcName := "main"
 	app.Log.Info("Running startup procedure.", "name", startupProcName, "script", scriptPath)
-	_, runErr := app.RunProcedure(ctx, startupProcName, nil)	// Pass nil for args
+	_, runErr := app.RunProcedure(ctx, startupProcName, nil)
 
 	if runErr != nil {
-		// If the procedure simply doesn't exist, it's not a fatal error for a startup script.
-		var rErr *imeError
-		if errors.As(runErr, &rErr) && rErr.Code == rCodeProcNotFound {
+		var rErr *lang.RuntimeError
+		if errors.As(runErr, &rErr) && rErr.Code == lang.ErrorCodeProcNotFound {
 			app.Log.Warn("No 'main' procedure found in startup script, nothing to execute.", "path", scriptPath)
 			return nil
 		}
-		// Any other error during execution is a real problem.
 		app.Log.Error("Error running startup procedure.", "proc", startupProcName, "error", runErr)
 		return fmt.Errorf("error running startup procedure '%s' from %s: %w", startupProcName, scriptPath, runErr)
 	}
@@ -267,7 +258,7 @@ func (app *App) executeStartupScript(ctx context.Context, scriptPath string, age
 }
 
 // getAvailableTools prepares the list of genai.Tools for the LLM call.
-func getAvailableTools(agentCtx *AgentContext, registry Registry) []*genai.Tool {
+func getAvailableTools(agentCtx *AgentContext, registry tool.ToolRegistry) []*genai.Tool {
 	if registry == nil {
 		fmt.Println("[AGENT] Warning: Tool registry is nil in getAvailableTools.")
 		return []*genai.Tool{}
@@ -275,10 +266,10 @@ func getAvailableTools(agentCtx *AgentContext, registry Registry) []*genai.Tool 
 	allTools := registry.ListTools()
 	genaiTools := make([]*genai.Tool, 0, len(allTools))
 	for _, toolImpl := range allTools {
-		qualifiedName := "TOOL." + toolImpl.Name	// Assuming tools need TOOL. prefix for LLM
+		qualifiedName := "TOOL." + toolImpl.Name
 		genaiFunc := &genai.FunctionDeclaration{
-			Name:		qualifiedName,
-			Description:	toolImpl.Description,
+			Name:        qualifiedName,
+			Description: toolImpl.Description,
 		}
 		genaiTools = append(genaiTools, &genai.Tool{
 			FunctionDeclarations: []*genai.FunctionDeclaration{genaiFunc},

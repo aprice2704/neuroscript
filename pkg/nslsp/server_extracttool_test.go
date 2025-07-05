@@ -17,7 +17,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aprice2704/neuroscript/pkg/core"
+	"github.com/aprice2704/neuroscript/pkg/parser"
 	lsp "github.com/sourcegraph/go-lsp"
 	"github.com/sourcegraph/jsonrpc2"
 )
@@ -32,7 +32,7 @@ func TestExtractToolNameAtPosition(t *testing.T) {
 		testServerLogger = log.New(io.Discard, "", 0)
 	}
 
-	parserAPI := core.NewParserAPI(nil)
+	parserAPI := parser.NewParserAPI(nil)
 	serverInstance := NewServer(testServerLogger)
 	serverInstance.coreParserAPI = parserAPI
 
@@ -58,12 +58,12 @@ endfunc
 	}
 
 	testCases := []struct {
-		name		string
-		content		string
-		line		int	// 0-indexed
-		char		int	// 0-indexed
-		expected	string
-		sourceName	string
+		name       string
+		content    string
+		line       int // 0-indexed
+		char       int // 0-indexed
+		expected   string
+		sourceName string
 	}{
 		// Line 1: set x = tool.FS.List("/some/path")
 		{"On 'tool' in tool.FS.List", neuroscriptCodeSnippet, 1, 12, "FS.List", "test.ns"},
@@ -111,9 +111,9 @@ endfunc
 
 // dummyReadWriteCloser for jsonrpc2.Conn in tests
 type dummyReadWriteCloser struct {
-	reader	io.Reader
-	writer	io.Writer
-	closer	io.Closer	// Optional closer if the underlying pipes need it
+	reader io.Reader
+	writer io.Writer
+	closer io.Closer // Optional closer if the underlying pipes need it
 }
 
 func (d *dummyReadWriteCloser) Read(p []byte) (n int, err error) {
@@ -144,16 +144,16 @@ func (d *dummyReadWriteCloser) Close() error {
 
 // simpleObjectStream implements jsonrpc2.ObjectStream using basic json.Encoder/Decoder
 type simpleObjectStream struct {
-	dec	*json.Decoder
-	enc	*json.Encoder
-	c	io.Closer
+	dec *json.Decoder
+	enc *json.Encoder
+	c   io.Closer
 }
 
 func newSimpleObjectStream(conn io.ReadWriteCloser) jsonrpc2.ObjectStream {
 	return &simpleObjectStream{
-		dec:	json.NewDecoder(conn),
-		enc:	json.NewEncoder(conn),
-		c:	conn,
+		dec: json.NewDecoder(conn),
+		enc: json.NewEncoder(conn),
+		c:   conn,
 	}
 }
 
@@ -201,13 +201,13 @@ endfunc
 	}
 
 	testCases := []struct {
-		name			string
-		line			int
-		char			int
-		expectHover		bool
-		minContentLength	int
-		expectedToolName	string
-		expectedSubstring	string
+		name              string
+		line              int
+		char              int
+		expectHover       bool
+		minContentLength  int
+		expectedToolName  string
+		expectedSubstring string
 	}{
 		{"Hover on 'List' in tool.FS.List", 1, 20, true, 20, "FS.List", "tool.FS.List"},
 		{"Hover on 'tool' in tool.FS.List", 1, 12, true, 20, "FS.List", "tool.FS.List"},
@@ -228,8 +228,8 @@ endfunc
 	// Setup the dummyReadWriteCloser for the ObjectStream
 	// The server's ObjectStream will read from serverInputReader and write to serverWritesToClientPipe.
 	rwc := &dummyReadWriteCloser{
-		reader:	serverInputReader,		// Server reads from here
-		writer:	serverWritesToClientPipe,	// Server writes here
+		reader: serverInputReader,        // Server reads from here
+		writer: serverWritesToClientPipe, // Server writes here
 		closer: struct{ io.Closer }{internalCloserFunc(func() error {
 			var errFirst error
 			errFirst = clientWritesToServerPipe.Close()
@@ -257,13 +257,13 @@ endfunc
 	// we are not testing the conn's ability to dispatch incoming requests to a handler.
 	// We are directly calling serverInstance.Handle.
 	dummyConn := jsonrpc2.NewConn(ctx, serverObjectStream, nil)
-	defer dummyConn.Close()	// This will close the rwc via simpleObjectStream.Close()
+	defer dummyConn.Close() // This will close the rwc via simpleObjectStream.Close()
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			params := lsp.TextDocumentPositionParams{
-				TextDocument:	lsp.TextDocumentIdentifier{URI: uri},
-				Position:	lsp.Position{Line: tc.line, Character: tc.char},
+				TextDocument: lsp.TextDocumentIdentifier{URI: uri},
+				Position:     lsp.Position{Line: tc.line, Character: tc.char},
 			}
 			paramsBytes, err := json.Marshal(params)
 			if err != nil {
@@ -272,9 +272,9 @@ endfunc
 			rawParams := json.RawMessage(paramsBytes)
 
 			req := &jsonrpc2.Request{
-				Method:	"textDocument/hover",
-				Params:	&rawParams,
-				ID:	jsonrpc2.ID{Num: 1},
+				Method: "textDocument/hover",
+				Params: &rawParams,
+				ID:     jsonrpc2.ID{Num: 1},
 			}
 
 			result, err := serverInstance.Handle(ctx, dummyConn, req)
@@ -347,7 +347,7 @@ endfunc
 // Helper for creating a closer for the dummyReadWriteCloser from a function
 type internalCloserFunc func() error
 
-func (f internalCloserFunc) Close() error	{ return f() }
+func (f internalCloserFunc) Close() error { return f() }
 
 func min(a, b int) int {
 	if a < b {
