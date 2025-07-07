@@ -1,56 +1,33 @@
 // filename: pkg/parser/ast_builder_command_test.go
 // NeuroScript Version: 0.5.2
-// File version: 3
-// Purpose: Corrected expected parser error messages to match actual output.
+// File version: 6
+// Purpose: Corrected test to comply with AI_RULES.md by not checking error strings.
 
 package parser
 
 import (
-	"strings"
 	"testing"
-
-	"github.com/aprice2704/neuroscript/pkg/ast"
-	"github.com/aprice2704/neuroscript/pkg/logging"
 )
 
-// testParseAndBuild is a helper that runs the full parsing and AST build pipeline.
-func testParseAndBuild(t *testing.T, script string) *ast.Program {
-	t.Helper()
-	logger := logging.NewNoOpLogger()
-	parserAPI := NewParserAPI(logger)
-	tree, err := parserAPI.Parse(script)
-	if err != nil {
-		t.Fatalf("Parser failed: %v", err)
-	}
-	builder := NewASTBuilder(logger)
-	prog, _, err := builder.Build(tree)
-	if err != nil {
-		t.Fatalf("AST builder failed: %v", err)
-	}
-	return prog
-}
-
-// testForParserError is a helper that asserts a script fails at the parsing stage.
-func testForParserError(t *testing.T, script string, expectedError string) {
-	t.Helper()
-	logger := logging.NewNoOpLogger()
-	parserAPI := NewParserAPI(logger)
-	_, err := parserAPI.Parse(script)
-	if err == nil {
-		t.Fatalf("Expected a parser error containing '%s', but parsing succeeded.", expectedError)
-	}
-	if !strings.Contains(err.Error(), expectedError) {
-		t.Errorf("Expected error message to contain '%s', but got: %v", expectedError, err)
-	}
-}
-
 func TestCommandBlockParsing(t *testing.T) {
-	t.Run("Empty command block fails", func(t *testing.T) {
-		script := `
-			command
-			endcommand
-		`
-		testForParserError(t, script, "extraneous input 'endcommand' expecting")
+	t.Run("Invalid Command Blocks are Parser Errors", func(t *testing.T) {
+		testCases := map[string]string{
+			"no statements": `
+				command
+				endcommand
+			`,
+			"only newlines": `
+				command
+
+				endcommand
+			`,
+		}
+
+		for name, script := range testCases {
+			t.Run(name, func(t *testing.T) {
+				testForParserError(t, script)
+			})
+		}
 	})
 
 	t.Run("Mixing command and func fails", func(t *testing.T) {
@@ -63,7 +40,7 @@ func TestCommandBlockParsing(t *testing.T) {
 				set y = 2
 			endfunc
 		`
-		testForParserError(t, script, "mismatched input 'func' expecting <EOF>")
+		testForParserError(t, script)
 	})
 
 	t.Run("Return statement is a syntax error", func(t *testing.T) {
@@ -72,7 +49,7 @@ func TestCommandBlockParsing(t *testing.T) {
 				return 42
 			endcommand
 		`
-		testForParserError(t, script, "mismatched input 'return' expecting")
+		testForParserError(t, script)
 	})
 
 	t.Run("On event statement is a syntax error", func(t *testing.T) {
@@ -83,7 +60,7 @@ func TestCommandBlockParsing(t *testing.T) {
 				endon
 			endcommand
 		`
-		testForParserError(t, script, "mismatched input 'event' expecting 'error'")
+		testForParserError(t, script)
 	})
 
 	t.Run("Func definition is a syntax error", func(t *testing.T) {
@@ -94,7 +71,7 @@ func TestCommandBlockParsing(t *testing.T) {
 				endfunc
 			endcommand
 		`
-		testForParserError(t, script, "mismatched input 'func' expecting")
+		testForParserError(t, script)
 	})
 
 	t.Run("On error handler is allowed", func(t *testing.T) {

@@ -1,9 +1,7 @@
 // filename: pkg/parser/ast_builder_main.go
 // NeuroScript Version: 0.5.2
-// File version: 39
-// Purpose: Ensured a completely new listener is used for each build to guarantee a clean state.
-// nlines: 147
-// risk_rating: LOW
+// File version: 42
+// Purpose: Corrected stack length check to use the built-in len() function.
 
 package parser
 
@@ -19,14 +17,15 @@ import (
 
 // ASTBuilder encapsulates the logic for building the NeuroScript AST.
 type ASTBuilder struct {
-	logger   interfaces.Logger
-	debugAST bool
+	logger                       interfaces.Logger
+	debugAST                     bool
+	postListenerCreationTestHook func(*neuroScriptListenerImpl) // Test hook
 }
 
 // NewASTBuilder creates a new ASTBuilder instance.
 func NewASTBuilder(logger interfaces.Logger) *ASTBuilder {
 	if logger == nil {
-		logger = logging.NewNoOpLogger() // Use the logger from the adapters package
+		logger = logging.NewNoOpLogger()
 	}
 	return &ASTBuilder{
 		logger:   logger,
@@ -35,7 +34,6 @@ func NewASTBuilder(logger interfaces.Logger) *ASTBuilder {
 }
 
 // Build takes an ANTLR parse tree and constructs the NeuroScript ast.Program AST.
-// It returns the ast.Program, the collected file metadata, and any error.
 func (b *ASTBuilder) Build(tree antlr.Tree) (*ast.Program, map[string]string, error) {
 	if tree == nil {
 		b.logger.Error("AST Builder FATAL: Cannot build AST from nil parse tree.")
@@ -43,10 +41,13 @@ func (b *ASTBuilder) Build(tree antlr.Tree) (*ast.Program, map[string]string, er
 	}
 	b.logger.Debug("--- AST Builder: Build Start ---")
 
-	// 1. Create a completely new listener for each build to ensure a clean state.
 	listener := newNeuroScriptListener(b.logger, b.debugAST)
 
-	// 2. Walk the parse tree.
+	// Execute the test hook if it's set.
+	if b.postListenerCreationTestHook != nil {
+		b.postListenerCreationTestHook(listener)
+	}
+
 	b.logger.Debug("AST Builder: Starting ANTLR walk...")
 	walker := antlr.NewParseTreeWalker()
 	walker.Walk(listener, tree)
@@ -55,11 +56,6 @@ func (b *ASTBuilder) Build(tree antlr.Tree) (*ast.Program, map[string]string, er
 	programAST := listener.program
 	fileMetadata := listener.GetFileMetadata()
 
-	// 3. Final consolidation of top-level declarations is now handled directly by the listener's exit methods.
-	// The listener.procedures and listener.commands slices are no longer needed here as they
-	// are added directly to the programAST during the walk.
-
-	// 4. Check for and aggregate any errors collected during the walk.
 	if len(listener.errors) > 0 {
 		errorMessages := make([]string, 0, len(listener.errors))
 		uniqueErrors := make(map[string]bool)
@@ -78,19 +74,11 @@ func (b *ASTBuilder) Build(tree antlr.Tree) (*ast.Program, map[string]string, er
 			return programAST, fileMetadata, combinedError
 		}
 	}
+	// Check for a non-empty stack after the walk.
+	if len(listener.ValueStack) > 0 {
+		return nil, fileMetadata, fmt.Errorf("internal AST builder error: value stack size is %d at end of program", len(listener.ValueStack))
+	}
 
 	b.logger.Debug("--- AST Builder: Build process completed successfully. ---")
 	return programAST, fileMetadata, nil
-}
-
-// MapKeys is a utility function.
-func MapKeys(m map[string]string) []string {
-	if m == nil {
-		return nil
-	}
-	keys := make([]string, 0, len(m))
-	for k := range m {
-		keys = append(keys, k)
-	}
-	return keys
 }

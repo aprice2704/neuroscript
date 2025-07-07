@@ -1,82 +1,67 @@
 // filename: pkg/parser/ast_builder_collections.go
+// NeuroScript Version: 0.5.2
+// File version: 2
+// Purpose: Corrected pointer assignments and added missing unquote helper.
+// nlines: 75
+// risk_rating: MEDIUM
+
 package parser
 
 import (
+	"strconv"
+	"strings"
+
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	gen "github.com/aprice2704/neuroscript/pkg/parser/generated"
 )
 
-func (l *neuroScriptListenerImpl) ExitList_literal(c *gen.List_literalContext) {
-	l.logDebugAST("<<< ExitList_literal")
-	pos := tokenToPosition(c.GetStart())
-	if c.Expression_list_opt() == nil || c.Expression_list_opt().Expression_list() == nil {
-		l.push(&ast.ListLiteralNode{
-			Pos:		&pos,
-			Elements:	[]ast.Expression{},
-		})
-		return
+// unquote removes the surrounding quotes from a string literal and processes escape sequences.
+func unquote(s string) string {
+	if len(s) < 2 {
+		return ""
 	}
-	numExpr := len(c.Expression_list_opt().Expression_list().AllExpression())
-	values, ok := l.popN(numExpr)
-	if !ok {
-		l.addError(c, "stack underflow in list literal")
-		return
+	// Basic unquoting of the outer characters
+	s = s[1 : len(s)-1]
+	// Using Go's Unquote to handle all escape sequences correctly.
+	// We need to re-add quotes for the standard library's Unquote to work.
+	s, err := strconv.Unquote(`"` + s + `"`)
+	if err != nil {
+		// This might happen with invalid escape sequences, but the lexer should prevent this.
+		// Fallback to a simple replacement for basic cases if full unquoting fails.
+		return strings.ReplaceAll(s, `\"`, `"`)
 	}
-
-	exprs := make([]ast.Expression, len(values))
-	for i, v := range values {
-		expr, ok := v.(ast.Expression)
-		if !ok {
-			l.addError(c, "list literal expected ast.Expression, got %T", v)
-			l.push(&ast.ListLiteralNode{})
-			return
-		}
-		exprs[i] = expr
-	}
-
-	l.push(&ast.ListLiteralNode{
-		Pos:		&pos,
-		Elements:	exprs,
-	})
+	return s
 }
 
-func (l *neuroScriptListenerImpl) ExitMap_literal(c *gen.Map_literalContext) {
-	l.logDebugAST("<<< ExitMap_literal")
-	pos := tokenToPosition(c.GetStart())
-	if c.Map_entry_list_opt() == nil || c.Map_entry_list_opt().Map_entry_list() == nil {
-		l.push(&ast.MapLiteralNode{
-			Pos:		&pos,
-			Entries:	[]*ast.MapEntryNode{},
-		})
-		return
+func (l *neuroScriptListenerImpl) ExitList_literal(c *gen.List_literalContext) {
+	numElements := 0
+	if c.Expression_list_opt() != nil && c.Expression_list_opt().Expression_list() != nil {
+		numElements = len(c.Expression_list_opt().Expression_list().AllExpression())
 	}
 
-	numEntries := len(c.Map_entry_list_opt().Map_entry_list().AllMap_entry())
-	values, ok := l.popN(numEntries)
-	if !ok {
-		l.addError(c, "stack underflow in map literal")
-		return
-	}
-
-	entries := make([]*ast.MapEntryNode, len(values))
-	for i, v := range values {
-		entry, ok := v.(*ast.MapEntryNode)
+	elements := make([]ast.Expression, 0, numElements)
+	if numElements > 0 {
+		popped, ok := l.popN(numElements)
 		if !ok {
-			l.addError(c, "map literal expected *ast.MapEntryNode, got %T", v)
-			l.push(&ast.MapLiteralNode{})
+			l.addError(c, "stack underflow in list literal")
 			return
 		}
-		entries[i] = entry
+
+		for i := len(popped) - 1; i >= 0; i-- { // Reverse to maintain original order
+			expr, ok := popped[i].(ast.Expression)
+			if !ok {
+				l.addError(c, "list literal expected ast.Expression, got %T", popped[i])
+				continue
+			}
+			elements = append(elements, expr)
+		}
 	}
 
-	l.push(&ast.MapLiteralNode{
-		Pos:		&pos,
-		Entries:	entries,
-	})
+	pos := tokenToPosition(c.GetStart())
+	l.push(&ast.ListLiteralNode{Pos: &pos, Elements: elements})
 }
 
 func (l *neuroScriptListenerImpl) ExitMap_entry(c *gen.Map_entryContext) {
-	l.logDebugAST("<<< ExitMap_entry")
 	val, ok := l.pop()
 	if !ok {
 		l.addError(c, "stack underflow in map entry value")
@@ -88,21 +73,40 @@ func (l *neuroScriptListenerImpl) ExitMap_entry(c *gen.Map_entryContext) {
 		return
 	}
 
-	key, ok := l.pop()
-	if !ok {
-		l.addError(c, "stack underflow in map entry key")
-		return
-	}
-	keyExpr, ok := key.(*ast.StringLiteralNode)
-	if !ok {
-		l.addError(c, "map entry key is not *ast.StringLiteralNode, got %T", key)
-		return
+	keyPos := tokenToPosition(c.STRING_LIT().GetSymbol())
+	keyNode := &ast.StringLiteralNode{
+		Pos:   &keyPos,
+		Value: unquote(c.STRING_LIT().GetText()),
 	}
 
 	pos := tokenToPosition(c.GetStart())
-	l.push(&ast.MapEntryNode{
-		Pos:	&pos,
-		Key:	keyExpr,
-		Value:	valueExpr,
-	})
+	l.push(&ast.MapEntryNode{Pos: &pos, Key: keyNode, Value: valueExpr})
+}
+
+func (l *neuroScriptListenerImpl) ExitMap_literal(c *gen.Map_literalContext) {
+	numEntries := 0
+	if c.Map_entry_list_opt() != nil && c.Map_entry_list_opt().Map_entry_list() != nil {
+		numEntries = len(c.Map_entry_list_opt().Map_entry_list().AllMap_entry())
+	}
+
+	entries := make([]*ast.MapEntryNode, 0, numEntries)
+	if numEntries > 0 {
+		popped, ok := l.popN(numEntries)
+		if !ok {
+			l.addError(c, "stack underflow in map literal")
+			return
+		}
+
+		for i := len(popped) - 1; i >= 0; i-- { // Reverse to maintain original order
+			entry, ok := popped[i].(*ast.MapEntryNode)
+			if !ok {
+				l.addError(c, "map literal expected *ast.MapEntryNode, got %T", popped[i])
+				continue
+			}
+			entries = append(entries, entry)
+		}
+	}
+
+	pos := tokenToPosition(c.GetStart())
+	l.push(&ast.MapLiteralNode{Pos: &pos, Entries: entries})
 }

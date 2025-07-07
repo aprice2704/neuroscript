@@ -12,6 +12,8 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/logging"
 	"github.com/aprice2704/neuroscript/pkg/neurogo"
 	"github.com/aprice2704/neuroscript/pkg/tool"
+
+	_ "github.com/aprice2704/neuroscript/pkg/toolbundles/all" // import all the core tools
 )
 
 // initializeLogger sets up the application's logger based on configuration.
@@ -81,7 +83,7 @@ func InitializeCoreComponents(app *neurogo.App, logger interfaces.Logger, llmCli
 	}
 
 	initialGlobals := make(map[string]interface{})
-	initialIncludes := make([]string, 0)
+	//	initialIncludes := make([]string, 0)
 
 	// Corrected: Using functional options to create the interpreter and handling single return value.
 	interp := interpreter.NewInterpreter(
@@ -89,7 +91,7 @@ func InitializeCoreComponents(app *neurogo.App, logger interfaces.Logger, llmCli
 		interpreter.WithLLMClient(llmClient),
 		interpreter.WithSandboxDir(app.Config.SandboxDir),
 		interpreter.WithInitialGlobals(initialGlobals),
-		interpreter.WithInitialIncludes(initialIncludes),
+		//		interpreter.WithInitialIncludes(initialIncludes),
 	)
 	if interp == nil {
 		err := fmt.Errorf("failed to create interpreter")

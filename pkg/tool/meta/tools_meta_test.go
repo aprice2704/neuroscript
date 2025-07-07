@@ -1,9 +1,8 @@
 // NeuroScript Version: 0.3.8
-// File version: 0.4.0
-// Purpose: Removed duplicate test helpers and corrected struct literal syntax.
-// nlines: 180
+// File version: 0.5.0
+// Purpose: Combined suite and main test files, fixing helper visibility and registration calls.
+// nlines: 120
 // risk_rating: LOW
-
 // filename: pkg/tool/meta/tools_meta_test.go
 package meta
 
@@ -12,17 +11,45 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/logging"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
+// newMetaTestInterpreter sets up an interpreter instance specifically for meta tool testing.
+// It registers the meta tools so they can be executed.
+func newMetaTestInterpreter(t *testing.T) (*interpreter.Interpreter, error) {
+	t.Helper()
+
+	// Use WithLogger for verbose test output if needed
+	interp := interpreter.NewInterpreter(interpreter.WithLogger(logging.NewTestLogger(t)))
+
+	// Manually register the meta tools for this test suite.
+	for _, toolImpl := range metaToolsToRegister {
+		if err := interp.ToolRegistry().RegisterTool(toolImpl); err != nil {
+			return nil, fmt.Errorf("failed to register tool '%s': %w", toolImpl.Spec.Name, err)
+		}
+	}
+
+	// Register a few other dummy tools to test filtering.
+	dummySpec := tool.ToolSpec{Name: "FS.Read", Description: "Dummy FS tool."}
+	dummyFunc := func(rt tool.Runtime, args []interface{}) (interface{}, error) { return "dummy fs read", nil }
+	if err := interp.ToolRegistry().RegisterTool(tool.ToolImplementation{Spec: dummySpec, Func: dummyFunc}); err != nil {
+		return nil, fmt.Errorf("failed to register dummy tool: %w", err)
+	}
+
+	return interp, nil
+}
+
 func TestToolMetaListTools(t *testing.T) {
-	// FIX: Use the single, correct helper from the suite file.
 	interpreter, err := newMetaTestInterpreter(t)
 	if err != nil {
 		t.Fatalf("newMetaTestInterpreter failed: %v", err)
 	}
 
-	result, err := interpreter.ExecuteTool("Meta.ListTools", nil)
+	// The bridge now handles wrapping/unwrapping, so we pass a map of lang.Value
+	result, err := interpreter.ToolRegistry().ExecuteTool("Meta.ListTools", map[string]lang.Value{})
 	if err != nil {
 		t.Fatalf("Meta.ListTools execution failed: %v", err)
 	}
@@ -33,15 +60,16 @@ func TestToolMetaListTools(t *testing.T) {
 	}
 	resultOutput := resultStr.Value
 
+	// We need to check for the dummy tool as well now.
 	expectedSignatures := []string{
 		"Meta.ListTools() -> string",
 		"Meta.ToolsHelp(filter:string?) -> string",
-		"FS.Read() -> any",
+		"FS.Read() -> any", // This is a simplified signature from the dummy tool
 	}
 
 	for _, sig := range expectedSignatures {
 		if !strings.Contains(resultOutput, sig) {
-			t.Errorf("Meta.ListTools output does not contain expected signature: %s", sig)
+			t.Errorf("Meta.ListTools output does not contain expected signature: %s\nOutput was:\n%s", sig, resultOutput)
 		}
 	}
 }
@@ -79,8 +107,7 @@ func TestToolMetaToolsHelp(t *testing.T) {
 			expectedToNotContain: []string{"## `tool.FS.Read`"},
 		},
 		{
-			name: "Filter with no results",
-			// FIX: Corrected the struct literal syntax.
+			name:            "Filter with no results",
 			filterArg:       map[string]lang.Value{"filter": lang.StringValue{Value: "NoSucchToolExistsFilter123"}},
 			checkNoToolsMsg: true,
 			noToolsFilter:   "NoSucchToolExistsFilter123",
@@ -89,7 +116,7 @@ func TestToolMetaToolsHelp(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := interpreter.ExecuteTool("Meta.ToolsHelp", tt.filterArg)
+			result, err := interpreter.ToolRegistry().ExecuteTool("Meta.ToolsHelp", tt.filterArg)
 			if err != nil {
 				t.Fatalf("Meta.ToolsHelp execution failed: %v. Args: %#v", err, tt.filterArg)
 			}

@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.5.2
-// File version: 11
-// Purpose: Corrected nil comparison logic for Position struct to check a field's zero value instead.
+// File version: 37.0.0
+// Purpose: Refactored the executeFor loop to simplify its logic and correctly propagate all state, mirroring executeWhile.
 // filename: pkg/interpreter/interpreter_steps_blocks.go
 // nlines: 200
 // risk_rating: HIGH
@@ -15,72 +15,67 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/lang"
 )
 
+// Block Execution Contract:
+// The functions in this file (executeIf, executeWhile, executeFor) are responsible for managing
+// control flow constructs. They operate under a specific contract with the main execution
+// loop (`recExecuteSteps` in `interpreter_exec.go`):
+//
+// 1. Block Execution: Each construct is given a block of steps (e.g., the body of a `while`
+//    loop) to execute. It calls `i.executeBlock()`, which in turn calls `recExecuteSteps` for that block.
+// 2. Standard Returns: If the block executes without issue, the construct's job is to return the
+//    result of the last statement, and the execution continues normally.
+// 3. Error Handling: If `recExecuteSteps` returns a standard runtime error, the construct does not
+//    handle it. It immediately propagates the error up the call stack.
+// 4. Control Flow Signals: `break` and `continue` are not standard errors. They are special signals
+//    implemented as wrapped sentinel errors (`ErrBreak`, `ErrContinue`).
+//    - The main execution loop (`recExecuteSteps`) has a special case: if it catches an error
+//      that is a `break` or `continue` signal, it *immediately stops its own execution*
+//      and returns the signal error up to its caller.
+//    - The loop constructs in this file (`executeWhile`, `executeFor`) are the designated callers
+//      that *must* catch these specific signals.
+//    - Upon catching an `ErrBreak`, the loop must terminate its own execution (e.g., via goto
+//      or a labeled break) and return `nil` for the error, effectively "consuming" the signal.
+//    - Upon catching an `ErrContinue`, the loop must skip the rest of the current iteration,
+//      start the next one, and also return `nil`, consuming the signal.
+//
+// This contract ensures that control signals are handled *only* by the nearest enclosing loop
+// and are not accidentally caught by general-purpose `on_error` blocks.
+
 // executeIf handles the "if" step.
 func (i *Interpreter) executeIf(step ast.Step, isInHandler bool, activeError *lang.RuntimeError) (result lang.Value, wasReturn bool, wasCleared bool, err error) {
-	posStr := "<unknown_pos>"
-	// FIX: Compare a field on the Position struct to its zero value.
-	if step.Position.Line != 0 {
-		posStr = step.Position.String()
-	}
-	i.Logger().Debug("[DEBUG-INTERP]   Executing IF", "pos", posStr)
-
-	if step.Cond == nil {
-		return nil, false, false, lang.NewRuntimeError(lang.ErrorCodeInternal, "IF step has nil Condition", nil).WithPosition(&step.Position)
-	}
-
 	condResult, evalErr := i.evaluate.Expression(step.Cond)
 	if evalErr != nil {
 		return nil, false, false, lang.WrapErrorWithPosition(evalErr, step.Cond.GetPos(), "evaluating IF condition")
 	}
 
 	if lang.IsTruthy(condResult) {
-		i.Logger().Debug("[DEBUG-INTERP]     IF condition TRUE, executing THEN block", "pos", posStr)
-		return i.executeBlock(step.Body, &step.Position, "IF_THEN", isInHandler, activeError)
+		return i.executeBlock(step.Body, &step.Position, "IF_THEN", isInHandler, activeError, 0)
 	} else if step.ElseBody != nil {
-		i.Logger().Debug("[DEBUG-INTERP]     IF condition FALSE, executing ELSE block", "pos", posStr)
-		return i.executeBlock(step.ElseBody, &step.Position, "IF_ELSE", isInHandler, activeError)
+		return i.executeBlock(step.ElseBody, &step.Position, "IF_ELSE", isInHandler, activeError, 0)
 	}
 
-	i.Logger().Debug("[DEBUG-INTERP]     IF condition FALSE, no ELSE block", "pos", posStr)
 	return &lang.NilValue{}, false, false, nil
 }
 
 // executeWhile handles the "while" step.
 func (i *Interpreter) executeWhile(step ast.Step, isInHandler bool, activeError *lang.RuntimeError) (result lang.Value, wasReturn bool, wasCleared bool, err error) {
-	posStr := "<unknown_pos>"
-	// FIX: Compare a field on the Position struct to its zero value.
-	if step.Position.Line != 0 {
-		posStr = step.Position.String()
-	}
-	i.Logger().Debug("[DEBUG-INTERP]   Executing WHILE", "pos", posStr)
-
 	if step.Cond == nil {
 		return nil, false, false, lang.NewRuntimeError(lang.ErrorCodeInternal, "WHILE step has nil Condition", nil).WithPosition(&step.Position)
 	}
 
-	iteration := 0
-	maxIterations := i.maxLoopIterations
-	result = &lang.NilValue{}	// Initialize result to a valid Value
+	result = &lang.NilValue{}
 
-	for {
-		iteration++
-		if iteration > maxIterations {
-			errMsg := fmt.Sprintf("WHILE loop at %s exceeded max iterations (%d)", posStr, maxIterations)
-			return nil, false, wasCleared, lang.NewRuntimeError(lang.ErrorCodeInternal, errMsg, errors.New("max iterations exceeded")).WithPosition(&step.Position)
-		}
-
+	for iteration := 0; iteration < i.maxLoopIterations; iteration++ {
 		condResult, evalErr := i.evaluate.Expression(step.Cond)
 		if evalErr != nil {
 			return nil, false, wasCleared, lang.WrapErrorWithPosition(evalErr, step.Cond.GetPos(), "evaluating WHILE condition")
 		}
 
 		if !lang.IsTruthy(condResult) {
-			i.Logger().Debug("[DEBUG-INTERP]     WHILE condition FALSE, exiting loop", "pos", posStr, "iterations", iteration-1)
-			break	// Exit loop
+			break
 		}
 
-		i.Logger().Debug("[DEBUG-INTERP]     WHILE condition TRUE, executing block", "pos", posStr, "iteration", iteration)
-		blockResult, blockReturned, blockCleared, blockErr := i.executeBlock(step.Body, &step.Position, "WHILE_BODY", isInHandler, activeError)
+		blockResult, blockReturned, blockCleared, blockErr := i.executeBlock(step.Body, &step.Position, "WHILE_BODY", isInHandler, activeError, 1)
 
 		if blockCleared {
 			wasCleared = true
@@ -88,13 +83,14 @@ func (i *Interpreter) executeWhile(step ast.Step, isInHandler bool, activeError 
 		}
 
 		if blockErr != nil {
-			if errors.Is(blockErr, lang.ErrBreak) {
-				i.Logger().Debug("[DEBUG-INTERP]     BREAK encountered in WHILE loop body", "pos", posStr)
-				return result, false, wasCleared, nil
-			}
-			if errors.Is(blockErr, lang.ErrContinue) {
-				i.Logger().Debug("[DEBUG-INTERP]     CONTINUE encountered in WHILE loop body, proceeding to next iteration", "pos", posStr)
-				continue
+			var rtErr *lang.RuntimeError
+			if errors.As(blockErr, &rtErr) {
+				if errors.Is(rtErr.Unwrap(), lang.ErrBreak) {
+					goto endWhileLoop
+				}
+				if errors.Is(rtErr.Unwrap(), lang.ErrContinue) {
+					continue
+				}
 			}
 			return nil, false, wasCleared, blockErr
 		}
@@ -103,145 +99,79 @@ func (i *Interpreter) executeWhile(step ast.Step, isInHandler bool, activeError 
 		}
 		result = blockResult
 	}
+
+endWhileLoop:
 	return result, false, wasCleared, nil
 }
 
 // executeFor handles the "for each" step.
 func (i *Interpreter) executeFor(step ast.Step, isInHandler bool, activeError *lang.RuntimeError) (result lang.Value, wasReturn bool, wasCleared bool, err error) {
-	posStr := "<unknown_pos>"
-	// FIX: Compare a field on the Position struct to its zero value.
-	if step.Position.Line != 0 {
-		posStr = step.Position.String()
-	}
-
-	loopVar := step.LoopVarName
-	collectionExpr := step.Collection
-	result = &lang.NilValue{}	// Initialize result to a valid Value
-
-	i.Logger().Debug("[DEBUG-INTERP]   Executing FOR EACH", "loopVar", loopVar, "pos", posStr)
-
-	if collectionExpr == nil {
+	if step.Collection == nil {
 		return nil, false, false, lang.NewRuntimeError(lang.ErrorCodeInternal, "FOR EACH step has nil Collection expression", nil).WithPosition(&step.Position)
 	}
-	if loopVar == "" {
+	if step.LoopVarName == "" {
 		return nil, false, false, lang.NewRuntimeError(lang.ErrorCodeInternal, "FOR EACH step has empty LoopVarName", nil).WithPosition(&step.Position)
 	}
 
-	collectionVal, evalErr := i.evaluate.Expression(collectionExpr)
+	collectionVal, evalErr := i.evaluate.Expression(step.Collection)
 	if evalErr != nil {
-		return nil, false, false, lang.WrapErrorWithPosition(evalErr, collectionExpr.GetPos(), fmt.Sprintf("evaluating collection for FOR EACH %s", loopVar))
+		return nil, false, wasCleared, lang.WrapErrorWithPosition(evalErr, step.Collection.GetPos(), fmt.Sprintf("evaluating collection for FOR EACH %s", step.LoopVarName))
 	}
 
-	iteration := 0
-	maxIterations := i.maxLoopIterations
+	var itemsToIterate []lang.Value
+	switch c := collectionVal.(type) {
+	case lang.ListValue:
+		itemsToIterate = c.Value
+	case lang.MapValue:
+		// Note: Iteration order over maps is not guaranteed.
+		itemsToIterate = make([]lang.Value, 0, len(c.Value))
+		for _, v := range c.Value {
+			itemsToIterate = append(itemsToIterate, v)
+		}
+	case lang.StringValue:
+		itemsToIterate = make([]lang.Value, 0, len(c.Value))
+		for _, charRune := range c.Value {
+			itemsToIterate = append(itemsToIterate, lang.StringValue{Value: string(charRune)})
+		}
+	default:
+		errMsg := fmt.Sprintf("cannot iterate over type %s for FOR EACH %s", lang.TypeOf(collectionVal), step.LoopVarName)
+		return nil, false, wasCleared, lang.NewRuntimeError(lang.ErrorCodeType, errMsg, nil).WithPosition(step.Collection.GetPos())
+	}
 
-	processLoopBody := func() (bool, bool, lang.Value, error) {	// shouldBreak, shouldContinue, result, error
-		res, ret, clr, bErr := i.executeBlock(step.Body, &step.Position, "FOR_BODY", isInHandler, activeError)
-		if clr {
+	result = &lang.NilValue{}
+
+	for _, item := range itemsToIterate {
+		if setErr := i.SetVariable(step.LoopVarName, item); setErr != nil {
+			errMsg := fmt.Sprintf("setting loop variable '%s' in FOR EACH", step.LoopVarName)
+			return nil, false, wasCleared, lang.NewRuntimeError(lang.ErrorCodeInternal, errMsg, setErr).WithPosition(&step.Position)
+		}
+
+		blockResult, blockReturned, blockCleared, blockErr := i.executeBlock(step.Body, &step.Position, "FOR_BODY", isInHandler, activeError, 1)
+
+		if blockCleared {
 			wasCleared = true
 			activeError = nil
 		}
-		if bErr != nil {
-			if errors.Is(bErr, lang.ErrBreak) {
-				return true, false, res, nil
+
+		if blockErr != nil {
+			var rtErr *lang.RuntimeError
+			if errors.As(blockErr, &rtErr) {
+				if errors.Is(rtErr.Unwrap(), lang.ErrBreak) {
+					goto endForLoop
+				}
+				if errors.Is(rtErr.Unwrap(), lang.ErrContinue) {
+					continue
+				}
 			}
-			if errors.Is(bErr, lang.ErrContinue) {
-				return false, true, res, nil
-			}
-			return false, false, nil, bErr
+			return nil, false, wasCleared, blockErr
 		}
-		if ret {
-			return false, false, res, nil	// Propagate return up
+
+		if blockReturned {
+			return blockResult, true, wasCleared, nil
 		}
-		return false, false, res, nil
+		result = blockResult
 	}
 
-	handleIteration := func(item lang.Value) (bool, bool, error) {
-		iteration++
-		if iteration > maxIterations {
-			errMsg := fmt.Sprintf("FOR EACH loop for %s at %s exceeded max iterations (%d)", loopVar, posStr, maxIterations)
-			return false, false, lang.NewRuntimeError(lang.ErrorCodeInternal, errMsg, errors.New("max iterations exceeded")).WithPosition(&step.Position)
-		}
-		if setErr := i.SetVariable(loopVar, item); setErr != nil {
-			errMsg := fmt.Sprintf("setting loop variable '%s' in FOR EACH", loopVar)
-			return false, false, lang.NewRuntimeError(lang.ErrorCodeInternal, errMsg, setErr).WithPosition(&step.Position)
-		}
-
-		shouldBreak, shouldContinue, res, err := processLoopBody()
-		if res != nil {
-			result = res	// Store last block result
-		}
-		if err != nil {
-			return false, false, err
-		}
-		if wasReturn {
-			return false, false, nil
-		}
-		if shouldBreak {
-			return true, false, nil
-		}
-		if shouldContinue {
-			return false, true, nil
-		}
-		return false, false, nil
-	}
-
-	switch c := collectionVal.(type) {
-	case lang.ListValue:
-		for _, item := range c.Value {
-			shouldBreak, shouldContinue, err := handleIteration(item)
-			if err != nil {
-				return nil, false, wasCleared, err
-			}
-			if wasReturn {
-				return result, true, wasCleared, nil
-			}
-			if shouldBreak {
-				goto endLoop
-			}
-			if shouldContinue {
-				continue
-			}
-		}
-	case lang.MapValue:
-		for _, item := range c.Value {	// Note: iterating over map values
-			shouldBreak, shouldContinue, err := handleIteration(item)
-			if err != nil {
-				return nil, false, wasCleared, err
-			}
-			if wasReturn {
-				return result, true, wasCleared, nil
-			}
-			if shouldBreak {
-				goto endLoop
-			}
-			if shouldContinue {
-				continue
-			}
-		}
-	case lang.StringValue:
-		for _, charRune := range c.Value {
-			item := lang.StringValue{Value: string(charRune)}
-			shouldBreak, shouldContinue, err := handleIteration(item)
-			if err != nil {
-				return nil, false, wasCleared, err
-			}
-			if wasReturn {
-				return result, true, wasCleared, nil
-			}
-			if shouldBreak {
-				goto endLoop
-			}
-			if shouldContinue {
-				continue
-			}
-		}
-	default:
-		errMsg := fmt.Sprintf("cannot iterate over type %s for FOR EACH %s", lang.TypeOf(collectionVal), loopVar)
-		return nil, false, wasCleared, lang.NewRuntimeError(lang.ErrorCodeType, errMsg, nil).WithPosition(collectionExpr.GetPos())
-	}
-
-endLoop:
-	i.Logger().Debug("[DEBUG-INTERP]   FOR EACH loop finished normally.", "loopVar", loopVar, "pos", posStr, "iterations", iteration)
+endForLoop:
 	return result, false, wasCleared, nil
 }

@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.5.2
-// File version: 7
-// Purpose: Added a GetValue() method to FuzzyValue to allow access to its unexported field, resolving compiler errors.
+// File version: 9
+// Purpose: Corrected NewErrorValue to return an ErrorValue struct instead of a MapValue, ensuring typeof() reports the correct type.
 // filename: pkg/lang/values.go
-// nlines: 195
+// nlines: 220
 // risk_rating: MEDIUM
 
 package lang
@@ -97,7 +97,7 @@ type ErrorValue struct {
 
 func (v ErrorValue) Type() NeuroScriptType { return TypeError }
 func (v ErrorValue) String() string {
-	if msgVal, ok := v.Value["message"]; ok {
+	if msgVal, ok := v.Value[ErrorKeyMessage]; ok {
 		return fmt.Sprintf("error: %s", msgVal.String())
 	}
 	return "error: (unspecified)"
@@ -112,7 +112,7 @@ type EventValue struct {
 
 func (v EventValue) Type() NeuroScriptType { return TypeEvent }
 func (v EventValue) String() string {
-	if nameVal, ok := v.Value["name"]; ok {
+	if nameVal, ok := v.Value[EventKeyName]; ok {
 		return fmt.Sprintf("event: %s", nameVal.String())
 	}
 	return "event: (unnamed)"
@@ -190,4 +190,17 @@ func NewMapValue(val map[string]Value) MapValue {
 		val = make(map[string]Value)
 	}
 	return MapValue{Value: val}
+}
+
+// NewErrorValue creates the standard map structure for a tool-level error
+// and returns it as an ErrorValue.
+func NewErrorValue(code, message string, details Value) ErrorValue {
+	if details == nil {
+		details = &NilValue{}
+	}
+	return ErrorValue{Value: map[string]Value{
+		ErrorKeyCode:    StringValue{Value: code},
+		ErrorKeyMessage: StringValue{Value: message},
+		ErrorKeyDetails: details,
+	}}
 }

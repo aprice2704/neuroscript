@@ -1,7 +1,6 @@
-// filename: pkg/parser/generated/neuroscript_lexer.go
-// Code generated from NeuroScript.g4 by ANTLR 4.13.2. DO NOT EDIT.
+// Code generated from /home/aprice/dev/neuroscript/pkg/parser/NeuroScript.g4 by ANTLR 4.13.2. DO NOT EDIT.
 
-package generated
+package parser
 
 import (
 	"fmt"
@@ -17,22 +16,22 @@ var _ = unicode.IsLetter
 
 type NeuroScriptLexer struct {
 	*antlr.BaseLexer
-	channelNames	[]string
-	modeNames	[]string
+	channelNames []string
+	modeNames    []string
 	// TODO: EOF string
 }
 
 var NeuroScriptLexerLexerStaticData struct {
-	once			sync.Once
-	serializedATN		[]int32
-	ChannelNames		[]string
-	ModeNames		[]string
-	LiteralNames		[]string
-	SymbolicNames		[]string
-	RuleNames		[]string
-	PredictionContextCache	*antlr.PredictionContextCache
-	atn			*antlr.ATN
-	decisionToDFA		[]*antlr.DFA
+	once                   sync.Once
+	serializedATN          []int32
+	ChannelNames           []string
+	ModeNames              []string
+	LiteralNames           []string
+	SymbolicNames          []string
+	RuleNames              []string
+	PredictionContextCache *antlr.PredictionContextCache
+	atn                    *antlr.ATN
+	decisionToDFA          []*antlr.DFA
 }
 
 func neuroscriptlexerLexerInit() {
@@ -477,101 +476,101 @@ func NewNeuroScriptLexer(input antlr.CharStream) *NeuroScriptLexer {
 
 // NeuroScriptLexer tokens.
 const (
-	NeuroScriptLexerLINE_ESCAPE_GLOBAL	= 1
-	NeuroScriptLexerKW_ACOS			= 2
-	NeuroScriptLexerKW_AND			= 3
-	NeuroScriptLexerKW_AS			= 4
-	NeuroScriptLexerKW_ASIN			= 5
-	NeuroScriptLexerKW_ASK			= 6
-	NeuroScriptLexerKW_ATAN			= 7
-	NeuroScriptLexerKW_BREAK		= 8
-	NeuroScriptLexerKW_CALL			= 9
-	NeuroScriptLexerKW_CLEAR		= 10
-	NeuroScriptLexerKW_CLEAR_ERROR		= 11
-	NeuroScriptLexerKW_COMMAND		= 12
-	NeuroScriptLexerKW_CONTINUE		= 13
-	NeuroScriptLexerKW_COS			= 14
-	NeuroScriptLexerKW_DO			= 15
-	NeuroScriptLexerKW_EACH			= 16
-	NeuroScriptLexerKW_ELSE			= 17
-	NeuroScriptLexerKW_EMIT			= 18
-	NeuroScriptLexerKW_ENDCOMMAND		= 19
-	NeuroScriptLexerKW_ENDFOR		= 20
-	NeuroScriptLexerKW_ENDFUNC		= 21
-	NeuroScriptLexerKW_ENDIF		= 22
-	NeuroScriptLexerKW_ENDON		= 23
-	NeuroScriptLexerKW_ENDWHILE		= 24
-	NeuroScriptLexerKW_ERROR		= 25
-	NeuroScriptLexerKW_EVAL			= 26
-	NeuroScriptLexerKW_EVENT		= 27
-	NeuroScriptLexerKW_FAIL			= 28
-	NeuroScriptLexerKW_FALSE		= 29
-	NeuroScriptLexerKW_FOR			= 30
-	NeuroScriptLexerKW_FUNC			= 31
-	NeuroScriptLexerKW_FUZZY		= 32
-	NeuroScriptLexerKW_IF			= 33
-	NeuroScriptLexerKW_IN			= 34
-	NeuroScriptLexerKW_INTO			= 35
-	NeuroScriptLexerKW_LAST			= 36
-	NeuroScriptLexerKW_LEN			= 37
-	NeuroScriptLexerKW_LN			= 38
-	NeuroScriptLexerKW_LOG			= 39
-	NeuroScriptLexerKW_MEANS		= 40
-	NeuroScriptLexerKW_MUST			= 41
-	NeuroScriptLexerKW_MUSTBE		= 42
-	NeuroScriptLexerKW_NAMED		= 43
-	NeuroScriptLexerKW_NEEDS		= 44
-	NeuroScriptLexerKW_NIL			= 45
-	NeuroScriptLexerKW_NO			= 46
-	NeuroScriptLexerKW_NOT			= 47
-	NeuroScriptLexerKW_ON			= 48
-	NeuroScriptLexerKW_OPTIONAL		= 49
-	NeuroScriptLexerKW_OR			= 50
-	NeuroScriptLexerKW_RETURN		= 51
-	NeuroScriptLexerKW_RETURNS		= 52
-	NeuroScriptLexerKW_SET			= 53
-	NeuroScriptLexerKW_SIN			= 54
-	NeuroScriptLexerKW_SOME			= 55
-	NeuroScriptLexerKW_TAN			= 56
-	NeuroScriptLexerKW_TIMEDATE		= 57
-	NeuroScriptLexerKW_TOOL			= 58
-	NeuroScriptLexerKW_TRUE			= 59
-	NeuroScriptLexerKW_TYPEOF		= 60
-	NeuroScriptLexerKW_WHILE		= 61
-	NeuroScriptLexerSTRING_LIT		= 62
-	NeuroScriptLexerTRIPLE_BACKTICK_STRING	= 63
-	NeuroScriptLexerMETADATA_LINE		= 64
-	NeuroScriptLexerNUMBER_LIT		= 65
-	NeuroScriptLexerIDENTIFIER		= 66
-	NeuroScriptLexerASSIGN			= 67
-	NeuroScriptLexerPLUS			= 68
-	NeuroScriptLexerMINUS			= 69
-	NeuroScriptLexerSTAR			= 70
-	NeuroScriptLexerSLASH			= 71
-	NeuroScriptLexerPERCENT			= 72
-	NeuroScriptLexerSTAR_STAR		= 73
-	NeuroScriptLexerAMPERSAND		= 74
-	NeuroScriptLexerPIPE			= 75
-	NeuroScriptLexerCARET			= 76
-	NeuroScriptLexerTILDE			= 77
-	NeuroScriptLexerLPAREN			= 78
-	NeuroScriptLexerRPAREN			= 79
-	NeuroScriptLexerCOMMA			= 80
-	NeuroScriptLexerLBRACK			= 81
-	NeuroScriptLexerRBRACK			= 82
-	NeuroScriptLexerLBRACE			= 83
-	NeuroScriptLexerRBRACE			= 84
-	NeuroScriptLexerCOLON			= 85
-	NeuroScriptLexerDOT			= 86
-	NeuroScriptLexerPLACEHOLDER_START	= 87
-	NeuroScriptLexerPLACEHOLDER_END		= 88
-	NeuroScriptLexerEQ			= 89
-	NeuroScriptLexerNEQ			= 90
-	NeuroScriptLexerGT			= 91
-	NeuroScriptLexerLT			= 92
-	NeuroScriptLexerGTE			= 93
-	NeuroScriptLexerLTE			= 94
-	NeuroScriptLexerLINE_COMMENT		= 95
-	NeuroScriptLexerNEWLINE			= 96
-	NeuroScriptLexerWS			= 97
+	NeuroScriptLexerLINE_ESCAPE_GLOBAL     = 1
+	NeuroScriptLexerKW_ACOS                = 2
+	NeuroScriptLexerKW_AND                 = 3
+	NeuroScriptLexerKW_AS                  = 4
+	NeuroScriptLexerKW_ASIN                = 5
+	NeuroScriptLexerKW_ASK                 = 6
+	NeuroScriptLexerKW_ATAN                = 7
+	NeuroScriptLexerKW_BREAK               = 8
+	NeuroScriptLexerKW_CALL                = 9
+	NeuroScriptLexerKW_CLEAR               = 10
+	NeuroScriptLexerKW_CLEAR_ERROR         = 11
+	NeuroScriptLexerKW_COMMAND             = 12
+	NeuroScriptLexerKW_CONTINUE            = 13
+	NeuroScriptLexerKW_COS                 = 14
+	NeuroScriptLexerKW_DO                  = 15
+	NeuroScriptLexerKW_EACH                = 16
+	NeuroScriptLexerKW_ELSE                = 17
+	NeuroScriptLexerKW_EMIT                = 18
+	NeuroScriptLexerKW_ENDCOMMAND          = 19
+	NeuroScriptLexerKW_ENDFOR              = 20
+	NeuroScriptLexerKW_ENDFUNC             = 21
+	NeuroScriptLexerKW_ENDIF               = 22
+	NeuroScriptLexerKW_ENDON               = 23
+	NeuroScriptLexerKW_ENDWHILE            = 24
+	NeuroScriptLexerKW_ERROR               = 25
+	NeuroScriptLexerKW_EVAL                = 26
+	NeuroScriptLexerKW_EVENT               = 27
+	NeuroScriptLexerKW_FAIL                = 28
+	NeuroScriptLexerKW_FALSE               = 29
+	NeuroScriptLexerKW_FOR                 = 30
+	NeuroScriptLexerKW_FUNC                = 31
+	NeuroScriptLexerKW_FUZZY               = 32
+	NeuroScriptLexerKW_IF                  = 33
+	NeuroScriptLexerKW_IN                  = 34
+	NeuroScriptLexerKW_INTO                = 35
+	NeuroScriptLexerKW_LAST                = 36
+	NeuroScriptLexerKW_LEN                 = 37
+	NeuroScriptLexerKW_LN                  = 38
+	NeuroScriptLexerKW_LOG                 = 39
+	NeuroScriptLexerKW_MEANS               = 40
+	NeuroScriptLexerKW_MUST                = 41
+	NeuroScriptLexerKW_MUSTBE              = 42
+	NeuroScriptLexerKW_NAMED               = 43
+	NeuroScriptLexerKW_NEEDS               = 44
+	NeuroScriptLexerKW_NIL                 = 45
+	NeuroScriptLexerKW_NO                  = 46
+	NeuroScriptLexerKW_NOT                 = 47
+	NeuroScriptLexerKW_ON                  = 48
+	NeuroScriptLexerKW_OPTIONAL            = 49
+	NeuroScriptLexerKW_OR                  = 50
+	NeuroScriptLexerKW_RETURN              = 51
+	NeuroScriptLexerKW_RETURNS             = 52
+	NeuroScriptLexerKW_SET                 = 53
+	NeuroScriptLexerKW_SIN                 = 54
+	NeuroScriptLexerKW_SOME                = 55
+	NeuroScriptLexerKW_TAN                 = 56
+	NeuroScriptLexerKW_TIMEDATE            = 57
+	NeuroScriptLexerKW_TOOL                = 58
+	NeuroScriptLexerKW_TRUE                = 59
+	NeuroScriptLexerKW_TYPEOF              = 60
+	NeuroScriptLexerKW_WHILE               = 61
+	NeuroScriptLexerSTRING_LIT             = 62
+	NeuroScriptLexerTRIPLE_BACKTICK_STRING = 63
+	NeuroScriptLexerMETADATA_LINE          = 64
+	NeuroScriptLexerNUMBER_LIT             = 65
+	NeuroScriptLexerIDENTIFIER             = 66
+	NeuroScriptLexerASSIGN                 = 67
+	NeuroScriptLexerPLUS                   = 68
+	NeuroScriptLexerMINUS                  = 69
+	NeuroScriptLexerSTAR                   = 70
+	NeuroScriptLexerSLASH                  = 71
+	NeuroScriptLexerPERCENT                = 72
+	NeuroScriptLexerSTAR_STAR              = 73
+	NeuroScriptLexerAMPERSAND              = 74
+	NeuroScriptLexerPIPE                   = 75
+	NeuroScriptLexerCARET                  = 76
+	NeuroScriptLexerTILDE                  = 77
+	NeuroScriptLexerLPAREN                 = 78
+	NeuroScriptLexerRPAREN                 = 79
+	NeuroScriptLexerCOMMA                  = 80
+	NeuroScriptLexerLBRACK                 = 81
+	NeuroScriptLexerRBRACK                 = 82
+	NeuroScriptLexerLBRACE                 = 83
+	NeuroScriptLexerRBRACE                 = 84
+	NeuroScriptLexerCOLON                  = 85
+	NeuroScriptLexerDOT                    = 86
+	NeuroScriptLexerPLACEHOLDER_START      = 87
+	NeuroScriptLexerPLACEHOLDER_END        = 88
+	NeuroScriptLexerEQ                     = 89
+	NeuroScriptLexerNEQ                    = 90
+	NeuroScriptLexerGT                     = 91
+	NeuroScriptLexerLT                     = 92
+	NeuroScriptLexerGTE                    = 93
+	NeuroScriptLexerLTE                    = 94
+	NeuroScriptLexerLINE_COMMENT           = 95
+	NeuroScriptLexerNEWLINE                = 96
+	NeuroScriptLexerWS                     = 97
 )

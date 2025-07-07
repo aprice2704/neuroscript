@@ -1,7 +1,6 @@
-// filename: pkg/parser/generated/neuroscript_visitor.go
-// Code generated from NeuroScript.g4 by ANTLR 4.13.2. DO NOT EDIT.
+// Code generated from /home/aprice/dev/neuroscript/pkg/parser/NeuroScript.g4 by ANTLR 4.13.2. DO NOT EDIT.
 
-package generated	// NeuroScript
+package parser // NeuroScript
 import "github.com/antlr4-go/antlr/v4"
 
 // A complete Visitor for a parse tree produced by NeuroScriptParser.
@@ -77,6 +76,9 @@ type NeuroScriptVisitor interface {
 	// Visit a parse tree produced by NeuroScriptParser#simple_statement.
 	VisitSimple_statement(ctx *Simple_statementContext) interface{}
 
+	// Visit a parse tree produced by NeuroScriptParser#expression_statement.
+	VisitExpression_statement(ctx *Expression_statementContext) interface{}
+
 	// Visit a parse tree produced by NeuroScriptParser#block_statement.
 	VisitBlock_statement(ctx *Block_statementContext) interface{}
 
@@ -109,9 +111,6 @@ type NeuroScriptVisitor interface {
 
 	// Visit a parse tree produced by NeuroScriptParser#emit_statement.
 	VisitEmit_statement(ctx *Emit_statementContext) interface{}
-
-	// Visit a parse tree produced by NeuroScriptParser#must_statement.
-	VisitMust_statement(ctx *Must_statementContext) interface{}
 
 	// Visit a parse tree produced by NeuroScriptParser#fail_statement.
 	VisitFail_statement(ctx *Fail_statementContext) interface{}

@@ -1,5 +1,6 @@
-// Grammar: NeuroScript Version: 0.4.2 
-// File version: 71
+// Grammar: NeuroScript Version: 0.4.5
+// File version: 77
+// Purpose: Fixes 'must' statement bug by allowing expressions as statements within function/command bodies, while respecting all architectural constraints.
 grammar NeuroScript;
 
 // --- LEXER RULES ---
@@ -17,14 +18,14 @@ KW_BREAK: 'break';
 KW_CALL: 'call';
 KW_CLEAR: 'clear';
 KW_CLEAR_ERROR: 'clear_error';
-KW_COMMAND: 'command'; // New
+KW_COMMAND: 'command';
 KW_CONTINUE: 'continue';
 KW_COS: 'cos';
 KW_DO: 'do';
 KW_EACH: 'each';
 KW_ELSE: 'else';
 KW_EMIT: 'emit';
-KW_ENDCOMMAND: 'endcommand'; // New
+KW_ENDCOMMAND: 'endcommand';
 KW_ENDFOR: 'endfor';
 KW_ENDFUNC: 'endfunc';
 KW_ENDIF: 'endif';
@@ -136,30 +137,27 @@ program: file_header (library_script | command_script)? EOF;
 
 file_header: (METADATA_LINE | NEWLINE)*;
 
-// Script types
+// Script types - No change here, separation is preserved.
 library_script: library_block+;
 command_script: command_block+;
 
-library_block: (procedure_definition | on_stmt) NEWLINE*;
+library_block: (procedure_definition | KW_ON event_handler) NEWLINE*;
 
 // --- Command Block Definition ---
 command_block:
-	KW_COMMAND NEWLINE metadata_block // '?' removed to fix ANTLR warning
-	command_statement_list KW_ENDCOMMAND NEWLINE*;
+	KW_COMMAND NEWLINE metadata_block command_statement_list KW_ENDCOMMAND NEWLINE*;
 
 // A list that must contain at least one command_statement.
 command_statement_list:
-	(NEWLINE)* // Optional leading newlines
-	command_statement NEWLINE // At least one statement is required
-	(command_body_line)*; // Followed by zero or more other lines
-
-command_body_line: command_statement NEWLINE | NEWLINE;
+	(NEWLINE)* command_statement NEWLINE (command_body_line)*;
 
 // Defines the restricted set of statements allowed inside a 'command' block.
+command_body_line: command_statement NEWLINE | NEWLINE;
+
 command_statement:
-	simple_command_statement // A version of simple_statement without 'return'.
-	| block_statement // if/while/for are permitted.
-	| on_error_only_stmt; // Only 'on error' is permitted, not 'on event'.
+	simple_command_statement
+	| block_statement
+	| on_error_only_stmt;
 
 // A restricted 'on' statement that only permits the error handler clause.
 on_error_only_stmt: KW_ON error_handler;
@@ -168,21 +166,19 @@ on_error_only_stmt: KW_ON error_handler;
 simple_command_statement:
 	set_statement
 	| call_statement
-	// | return_statement <-- Disallowed in command blocks
 	| emit_statement
-	| must_statement
+	// FIX: 'must_statement' is removed. It's now handled by the 'expression_statement'.
 	| fail_statement
-	| clearErrorStmt
 	| clearEventStmt
 	| ask_stmt
 	| break_statement
-	| continue_statement;
+	| continue_statement
+	| expression_statement; // FIX: Added to handle 'must' and other expressions.
 
 // --- Library (Function) Definitions ---
 procedure_definition:
 	KW_FUNC IDENTIFIER signature_part KW_MEANS NEWLINE metadata_block non_empty_statement_list
 		KW_ENDFUNC;
-
 signature_part:
 	LPAREN (needs_clause | optional_clause | returns_clause)* RPAREN
 	| (needs_clause | optional_clause | returns_clause)+
@@ -201,31 +197,41 @@ non_empty_statement_list:
 	(NEWLINE)* statement NEWLINE (body_line)*;
 
 statement_list: body_line*;
-// Kept for legacy compatibility if needed, but new blocks use non_empty_statement_list
 body_line: statement NEWLINE | NEWLINE;
+
 statement: simple_statement | block_statement | on_stmt;
+
+// FIX: 'simple_statement' is now a list of true statements plus the new 'expression_statement'.
 simple_statement:
 	set_statement
 	| call_statement
 	| return_statement
 	| emit_statement
-	| must_statement
+	// FIX: 'must_statement' is removed. It's now handled by the 'expression_statement'.
 	| fail_statement
 	| clearErrorStmt
 	| clearEventStmt
 	| ask_stmt
 	| break_statement
-	| continue_statement;
+	| continue_statement
+	| expression_statement; // FIX: Added to handle 'must' and other expressions.
+
+// FIX: New rule for a statement that is just an expression.
+// This rule ensures that a standalone 'must' or function call is a valid statement.
+expression_statement: expression;
+
 block_statement:
 	if_statement
 	| while_statement
 	| for_each_statement;
+
 on_stmt: KW_ON ( error_handler | event_handler);
 error_handler:
 	KW_ERROR KW_DO NEWLINE non_empty_statement_list KW_ENDON;
 event_handler:
 	KW_EVENT expression (KW_NAMED STRING_LIT)? (KW_AS IDENTIFIER)? KW_DO NEWLINE
 		non_empty_statement_list KW_ENDON;
+
 clearEventStmt:
 	KW_CLEAR KW_EVENT (expression | KW_NAMED STRING_LIT);
 lvalue: IDENTIFIER ( LBRACK expression RBRACK | DOT IDENTIFIER)*;
@@ -234,22 +240,21 @@ set_statement: KW_SET lvalue_list ASSIGN expression;
 call_statement: KW_CALL callable_expr;
 return_statement: KW_RETURN expression_list?;
 emit_statement: KW_EMIT expression;
-must_statement: KW_MUST expression | KW_MUSTBE callable_expr;
+// 'must_statement' rule is now completely removed.
 fail_statement: KW_FAIL expression?;
 clearErrorStmt: KW_CLEAR_ERROR;
 ask_stmt: KW_ASK expression (KW_INTO IDENTIFIER)?;
 break_statement: KW_BREAK;
 continue_statement: KW_CONTINUE;
+
 if_statement:
 	KW_IF expression NEWLINE non_empty_statement_list (
-		// Now requires non-empty body
-		KW_ELSE NEWLINE non_empty_statement_list // Now requires non-empty body
+		KW_ELSE NEWLINE non_empty_statement_list
 	)? KW_ENDIF;
 while_statement:
-	KW_WHILE expression NEWLINE non_empty_statement_list KW_ENDWHILE; // Now requires non-empty body
+	KW_WHILE expression NEWLINE non_empty_statement_list KW_ENDWHILE;
 for_each_statement:
 	KW_FOR KW_EACH IDENTIFIER KW_IN expression NEWLINE non_empty_statement_list KW_ENDFOR;
-// Now requires non-empty body
 
 // --- Expression Rules ---
 qualified_identifier: IDENTIFIER (DOT IDENTIFIER)*;

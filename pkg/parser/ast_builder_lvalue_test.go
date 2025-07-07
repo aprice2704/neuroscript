@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.3.1
-// File version: 0.0.3
-// Purpose: Updated test helper to use the new `LValues` field on the ast.Step struct.
 // filename: pkg/parser/ast_builder_lvalue_test.go
-// nlines: 253
+// NeuroScript Version: 0.5.2
+// File version: 3
+// Purpose: Corrected l-value error tests to check for parser errors instead of builder errors.
+// nlines: 260
 // risk_rating: MEDIUM
 
 package parser
@@ -27,7 +27,7 @@ func parseScriptToLValueNode(t *testing.T, scriptContent string) *ast.LValueNode
 	stream := antlr.NewCommonTokenStream(lexer, antlr.TokenDefaultChannel)
 	parser := gen.NewNeuroScriptParser(stream)
 
-	errorListener := NewErrorListener(nil) // Using the existing error listener
+	errorListener := NewErrorListener(nil)
 	parser.RemoveErrorListeners()
 	parser.AddErrorListener(errorListener)
 
@@ -204,6 +204,18 @@ func TestLValueParsing(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestLValueParsing_Errors(t *testing.T) {
+	t.Run("dot at end of lvalue is parser error", func(t *testing.T) {
+		script := "func t() means\nset my.var. = 1\nendfunc"
+		testForParserError(t, script)
+	})
+
+	t.Run("dot not followed by identifier is parser error", func(t *testing.T) {
+		script := "func t() means\nset my.var.[0] = 1\nendfunc"
+		testForParserError(t, script)
+	})
 }
 
 func TestExitLvalue_ErrorScenarios(t *testing.T) {

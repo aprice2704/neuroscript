@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.5.2
-// File version: 12
-// Purpose: Corrected executeMust to immediately return evaluation errors, ensuring error propagation.
+// File version: 17
+// Purpose: Corrected executeBreak and executeContinue to return proper RuntimeErrors, fixing the 'break outside loop' test.
 // filename: pkg/interpreter/interpreter_steps_simple.go
 // nlines: 200
 // risk_rating: MEDIUM
@@ -95,31 +95,28 @@ func (i *Interpreter) executeMust(step ast.Step) (lang.Value, error) {
 	var exprToEval ast.Expression
 	if step.Cond != nil {
 		exprToEval = step.Cond
-	} else if step.Call != nil {	// For mustbe
+	} else if step.Call != nil { // For mustbe
 		exprToEval = step.Call
 	}
 
 	if exprToEval == nil {
 		if i.lastCallResult == nil {
-			// This handles 'must last' when lastCallResult is nil.
 			return nil, lang.ErrMustConditionFailed
 		}
 		val = i.lastCallResult
 	} else {
 		val, err = i.evaluate.Expression(exprToEval)
-		// CRITICAL FIX: Prioritize the evaluation error. If the expression itself
-		// fails to evaluate, that is the error we must return.
 		if err != nil {
-			return nil, err
+			// FIX: Wrap the evaluation error with context from the 'must' statement.
+			errMsg := fmt.Sprintf("evaluating expression for '%s'", stepType)
+			return nil, lang.WrapErrorWithPosition(err, exprToEval.GetPos(), errMsg)
 		}
 	}
 
-	// If the evaluation results in an ErrorValue (e.g. from a tool call), fail with that error.
 	if ev, ok := val.(lang.ErrorValue); ok {
 		return nil, ev
 	}
 
-	// If the evaluation results in any other non-truthy value, fail with the generic condition error.
 	if !lang.IsTruthy(val) {
 		return nil, lang.ErrMustConditionFailed
 	}
@@ -176,12 +173,14 @@ func (i *Interpreter) executeClearError(step ast.Step, isInHandler bool) (bool, 
 func (i *Interpreter) executeBreak(step ast.Step) error {
 	posStr := step.Position.String()
 	i.Logger().Debug("[DEBUG-INTERP] Executing BREAK", "pos", posStr)
-	return lang.ErrBreak
+	// FIX: Wrap the sentinel error in a proper RuntimeError using the new error code.
+	return lang.NewRuntimeError(lang.ErrorCodeControlFlow, "'break' used outside of a loop", lang.ErrBreak).WithPosition(&step.Position)
 }
 
 // executeContinue handles the "continue" step by returning ErrContinue.
 func (i *Interpreter) executeContinue(step ast.Step) error {
 	posStr := step.Position.String()
 	i.Logger().Debug("[DEBUG-INTERP] Executing CONTINUE", "pos", posStr)
-	return lang.ErrContinue
+	// FIX: Wrap the sentinel error in a proper RuntimeError using the new error code.
+	return lang.NewRuntimeError(lang.ErrorCodeControlFlow, "'continue' used outside of a loop", lang.ErrContinue).WithPosition(&step.Position)
 }

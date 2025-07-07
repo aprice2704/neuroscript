@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.5.2
-// File version: 4.0.0
-// Purpose: Refactored Ask methods to satisfy the tool.Runtime interface while preserving advanced internal functionality.
+// File version: 10.0.0
+// Purpose: Corrected handleToolCalls to manually build the positional argument slice, fixing tool execution from AI requests.
 // filename: pkg/interpreter/interpreter_steps_ask.go
 // nlines: 260
 // risk_rating: HIGH
@@ -24,7 +24,6 @@ func (i *Interpreter) Ask(prompt string) string {
 	}
 	turns := []*interfaces.ConversationTurn{{Role: interfaces.RoleUser, Content: prompt}}
 
-	// The tool.Runtime interface doesn't allow for returning an error, so we log it.
 	responseTurn, err := i.aiWorker.Ask(context.Background(), turns)
 	if err != nil {
 		i.Logger().Error("LLM interaction failed in Ask", "error", err, "prompt", prompt)
@@ -65,7 +64,6 @@ func (i *Interpreter) askWithTools(ctx context.Context, turns []*interfaces.Conv
 	return responseTurn, toolCalls, nil
 }
 
-// executeAsk handles the 'ask' step.
 func (i *Interpreter) executeAsk(step ast.Step) (lang.Value, error) {
 	if len(step.Values) == 0 {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, "ask step has no value expression", nil).WithPosition(step.GetPos())
@@ -76,12 +74,26 @@ func (i *Interpreter) executeAsk(step ast.Step) (lang.Value, error) {
 	if err != nil {
 		return nil, err
 	}
+	promptStr, _ := lang.ToString(promptVal)
+
+	if i.aiWorker == nil {
+		return nil, lang.NewRuntimeError(lang.ErrorCodeLLMError, "LLM client (aiWorker) is not configured in the interpreter", lang.ErrLLMNotConfigured).WithPosition(step.GetPos())
+	}
+
+	turns := []*interfaces.ConversationTurn{{Role: interfaces.RoleUser, Content: promptStr}}
+	responseTurn, err := i.aiWorker.Ask(context.Background(), turns)
+	if err != nil {
+		return nil, lang.NewRuntimeError(lang.ErrorCodeLLMError, "LLM interaction failed", err).WithPosition(step.GetPos())
+	}
+
+	responseVal := lang.StringValue{Value: responseTurn.Content}
+
 	if step.AskIntoVar != "" {
-		if err := i.SetVariable(step.AskIntoVar, promptVal); err != nil {
+		if err := i.SetVariable(step.AskIntoVar, responseVal); err != nil {
 			return nil, err
 		}
 	}
-	return promptVal, nil
+	return responseVal, nil
 }
 
 // executeAskAI handles the 'ask ai' step.
@@ -103,8 +115,6 @@ func (i *Interpreter) executeAskAI(step ast.Step) error {
 	}
 
 	availableTools := i.getAvailableToolsForAsk(step)
-
-	// FIX: Call the renamed internal method.
 	responseTurn, toolCalls, err := i.askWithTools(context.Background(), conversationTurns, availableTools)
 	if err != nil {
 		return err
@@ -145,11 +155,7 @@ func (i *Interpreter) prepareConversationForAsk(promptExpr ast.Expression) ([]*i
 }
 
 func (i *Interpreter) getAvailableToolsForAsk(step ast.Step) []interfaces.ToolDefinition {
-	if i.tools == nil {
-		i.logger.Warn("getAvailableToolsForAsk called but toolRegistry is nil", "pos", step.GetPos().String())
-		return nil
-	}
-	allToolSpecs := i.tools.ListTools()
+	allToolSpecs := i.ToolRegistry().ListTools()
 	definitions := make([]interfaces.ToolDefinition, 0, len(allToolSpecs))
 
 	for _, spec := range allToolSpecs {
@@ -176,9 +182,6 @@ func (i *Interpreter) handleToolCalls(calls []*interfaces.ToolCall, pos *lang.Po
 	if len(calls) == 0 {
 		return nil
 	}
-	if i.tools == nil {
-		return lang.NewRuntimeError(lang.ErrorCodeConfiguration, fmt.Sprintf("cannot handle tool calls at %s: toolRegistry is nil", pos.String()), nil)
-	}
 
 	results := make([]*interfaces.ToolResult, len(calls))
 
@@ -186,23 +189,30 @@ func (i *Interpreter) handleToolCalls(calls []*interfaces.ToolCall, pos *lang.Po
 		results[idx] = &interfaces.ToolResult{ID: call.ID}
 		i.logger.Debug("Processing tool call", "id", call.ID, "name", call.Name, "args", call.Arguments, "pos", pos.String())
 
-		toolImpl, found := i.tools.GetTool(call.Name)
+		tool, found := i.ToolRegistry().GetTool(call.Name)
 		if !found {
 			results[idx].Error = fmt.Sprintf("Tool '%s' not found", call.Name)
 			continue
 		}
 
-		argsMap := make(map[string]lang.Value)
-		// ... logic to convert call.Arguments map to argsMap ...
+		// FIX: Manually build the positional argument slice from the named map.
+		positionalArgs := make([]interface{}, len(tool.Spec.Args))
+		for i, argSpec := range tool.Spec.Args {
+			val, ok := call.Arguments[argSpec.Name]
+			if !ok {
+				// Handle missing argument if not required, etc.
+				positionalArgs[i] = nil // Or default
+				continue
+			}
+			positionalArgs[i] = val
+		}
 
-		resultVal, execErr := i.executeInternalTool(toolImpl, argsMap)
-
+		// Directly invoke the tool's function with the prepared arguments.
+		result, execErr := tool.Func(i, positionalArgs)
 		if execErr != nil {
 			results[idx].Error = execErr.Error()
-			results[idx].Result = nil
 		} else {
-			unwrappedResult := lang.Unwrap(resultVal)
-			results[idx].Result = unwrappedResult
+			results[idx].Result = result
 		}
 	}
 

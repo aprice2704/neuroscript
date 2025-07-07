@@ -1,7 +1,14 @@
+// NeuroScript Version: 0.5.2
+// File version: 15
+// Purpose: Removed redundant procedure existence check in `Run` to prevent incorrect error type propagation.
 // filename: pkg/interpreter/interpreter.go
+// nlines: 320
+// risk_rating: HIGH
+
 package interpreter
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -26,6 +33,7 @@ type interpreterState struct {
 	errorHandlerStack [][]*ast.Step
 	sandboxDir        string
 	vectorIndex       map[string][]float32
+	globalVarNames    map[string]bool
 }
 
 // EventManager handles event subscriptions and emissions.
@@ -56,6 +64,7 @@ type Interpreter struct {
 	rateLimitDuration  time.Duration
 	externalHandler    interface{}
 	objectCache        map[string]interface{}
+	objectCacheMu      sync.RWMutex // Mutex for the handle cache
 	llmclient          interfaces.LLMClient
 }
 
@@ -108,18 +117,10 @@ func WithStderr(w io.Writer) InterpreterOption {
 func WithInitialGlobals(globals map[string]interface{}) InterpreterOption {
 	return func(i *Interpreter) {
 		for key, val := range globals {
-			// Error handling can be added here if wrapping fails
-			wrappedVal, _ := lang.Wrap(val)
-			i.state.setVariable(key, wrappedVal)
+			if err := i.SetInitialVariable(key, val); err != nil {
+				i.logger.Error("Failed to set initial global variable", "key", key, "error", err)
+			}
 		}
-	}
-}
-
-// WithInitialIncludes sets the initial include paths.
-func WithInitialIncludes(includes []string) InterpreterOption {
-	return func(i *Interpreter) {
-		// Assuming you have a field for includes, e.g., i.state.includes
-		// i.state.includes = includes
 	}
 }
 
@@ -131,42 +132,7 @@ func newInterpreterState() *interpreterState {
 		knownProcedures: make(map[string]*ast.Procedure),
 		commands:        []*ast.CommandNode{},
 		stackFrames:     []string{},
-	}
-}
-
-func (s *interpreterState) getProcedure(name string) *ast.Procedure {
-	if s.knownProcedures == nil {
-		return nil
-	}
-	return s.knownProcedures[name]
-}
-
-func (s *interpreterState) setProcedure(name string, proc *ast.Procedure) {
-	if s.knownProcedures == nil {
-		s.knownProcedures = make(map[string]*ast.Procedure)
-	}
-	s.knownProcedures[name] = proc
-}
-
-func (s *interpreterState) clearProcedures() {
-	s.knownProcedures = make(map[string]*ast.Procedure)
-}
-
-func (s *interpreterState) addCommand(cmd *ast.CommandNode) {
-	s.commands = append(s.commands, cmd)
-}
-
-func (s *interpreterState) clearCommands() {
-	s.commands = []*ast.CommandNode{}
-}
-
-func (s *interpreterState) pushStackFrame(name string) {
-	s.stackFrames = append(s.stackFrames, name)
-}
-
-func (s *interpreterState) popStackFrame() {
-	if len(s.stackFrames) > 0 {
-		s.stackFrames = s.stackFrames[:len(s.stackFrames)-1]
+		globalVarNames:  make(map[string]bool),
 	}
 }
 
@@ -179,10 +145,6 @@ func (s *interpreterState) setVariable(name string, value lang.Value) {
 	s.variables[name] = value
 }
 
-func (s *interpreterState) Errorf(code lang.ErrorCode, format string, args ...interface{}) error {
-	return lang.NewRuntimeError(code, fmt.Sprintf(format, args...), nil)
-}
-
 // --- EventManager Methods ---
 
 func newEventManager() *EventManager {
@@ -191,11 +153,17 @@ func newEventManager() *EventManager {
 	}
 }
 
-func (em *EventManager) clear() {
-	em.eventHandlers = make(map[string][]*ast.OnEventDecl)
-}
-
 func (em *EventManager) register(decl *ast.OnEventDecl, i *Interpreter) error {
+	em.eventHandlersMu.Lock()
+	defer em.eventHandlersMu.Unlock()
+
+	eventName, err := i.evaluate.Expression(decl.EventNameExpr)
+	if err != nil {
+		return lang.WrapErrorWithPosition(err, decl.EventNameExpr.GetPos(), "evaluating event name expression")
+	}
+
+	eventNameStr, _ := lang.ToString(eventName)
+	em.eventHandlers[eventNameStr] = append(em.eventHandlers[eventNameStr], decl)
 	return nil
 }
 
@@ -206,24 +174,69 @@ func NewInterpreter(opts ...InterpreterOption) *Interpreter {
 		state:             newInterpreterState(),
 		eventManager:      newEventManager(),
 		maxLoopIterations: 1000,
+		logger:            logging.NewNoOpLogger(),
+		stdout:            os.Stdout,
+		stdin:             os.Stdin,
+		stderr:            os.Stderr,
+		objectCache:       make(map[string]interface{}),
 	}
-	i.logger = logging.NewNoOpLogger()
 	i.evaluate = &evaluation{i: i}
-	i.stdout = os.Stdout
-	i.stdin = os.Stdin
-	i.stderr = os.Stderr
+	i.tools = tool.NewToolRegistry(i)
+	if err := tool.RegisterExtendedTools(i.tools); err != nil {
+		panic(fmt.Sprintf("FATAL: Failed to register extended tools: %v", err))
+	}
 
 	for _, opt := range opts {
 		opt(i)
 	}
 
-	i.tools = NewToolRegistry(i)
-	RegisterCoreTools(i.tools)
-
 	return i
 }
 
-// GetLogger satisfies the tool.Runtime interface.
+// AddProcedure programmatically adds a single procedure to the interpreter's registry.
+func (i *Interpreter) AddProcedure(proc ast.Procedure) error {
+	if i.state.knownProcedures == nil {
+		i.state.knownProcedures = make(map[string]*ast.Procedure)
+	}
+	if proc.Name() == "" {
+		return errors.New("cannot add procedure with empty name")
+	}
+	if _, exists := i.state.knownProcedures[proc.Name()]; exists {
+		return fmt.Errorf("%w: '%s'", lang.ErrProcedureExists, proc.Name())
+	}
+	i.state.knownProcedures[proc.Name()] = &proc
+	return nil
+}
+
+// KnownProcedures returns the map of known procedures.
+func (i *Interpreter) KnownProcedures() map[string]*ast.Procedure {
+	if i.state.knownProcedures == nil {
+		return make(map[string]*ast.Procedure)
+	}
+	return i.state.knownProcedures
+}
+
+// ToolRegistry returns the interpreter's tool registry.
+func (i *Interpreter) ToolRegistry() tool.ToolRegistry {
+	return i.tools
+}
+
+// CloneForEventHandler creates a sandboxed clone for event handling.
+func (i *Interpreter) CloneForEventHandler() *Interpreter {
+	clone := NewInterpreter(WithLogger(i.logger), WithStdout(i.stdout))
+	i.state.variablesMu.RLock()
+	defer i.state.variablesMu.RUnlock()
+	for name := range i.state.globalVarNames {
+		if val, ok := i.state.variables[name]; ok {
+			clone.SetInitialVariable(name, val)
+		}
+	}
+	for name, proc := range i.state.knownProcedures {
+		clone.state.knownProcedures[name] = proc
+	}
+	return clone
+}
+
 func (i *Interpreter) GetLogger() interfaces.Logger {
 	return i.logger
 }
@@ -231,7 +244,6 @@ func (i *Interpreter) GetLogger() interfaces.Logger {
 func (i *Interpreter) GetAllVariables() (map[string]lang.Value, error) {
 	i.state.variablesMu.RLock()
 	defer i.state.variablesMu.RUnlock()
-	// Return a copy to prevent race conditions if the caller modifies the map.
 	clone := make(map[string]lang.Value)
 	for k, v := range i.state.variables {
 		clone[k] = v
@@ -251,43 +263,10 @@ func (i *Interpreter) LoadAndRun(program *ast.Program, mainProcName string, args
 }
 
 func (i *Interpreter) Run(procName string, args ...lang.Value) (lang.Value, error) {
-	if i.state.getProcedure(procName) == nil {
-		return &lang.NilValue{}, fmt.Errorf("procedure '%s' not found", procName)
-	}
-
-	result, err := i.callProcedure(procName, args...)
-	if err != nil {
-		return nil, err
-	}
-
-	return result, nil
-}
-
-func (i *Interpreter) callProcedure(name string, args ...lang.Value) (lang.Value, error) {
-	proc := i.state.getProcedure(name)
-	if proc == nil {
-		return nil, i.state.Errorf(lang.ErrorCodeProcNotFound, "procedure '%s' not found", name)
-	}
-
-	i.state.pushStackFrame(name)
-	defer i.state.popStackFrame()
-
-	_, _, _, err := i.executeSteps(proc.Steps, false, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return i.returnValue, nil
-}
-
-func (i *Interpreter) IsRunningInTestMode() bool {
-	return os.Getenv("GO_TEST_MODE") == "1"
-}
-
-func NewForTesting() *Interpreter {
-	i := NewInterpreter(nil)
-	i.logger = logging.NewNoOpLogger()
-	return i
+	// FIX: Removed redundant check. RunProcedure already handles this and returns
+	// the correct error type (*lang.RuntimeError). This check was returning a
+	// standard `error`, causing the `break_outside_loop` test to fail.
+	return i.RunProcedure(procName, args...)
 }
 
 func (i *Interpreter) SetInitialVariable(name string, value any) error {
@@ -296,6 +275,7 @@ func (i *Interpreter) SetInitialVariable(name string, value any) error {
 		return fmt.Errorf("failed to wrap initial variable '%s': %w", name, err)
 	}
 	i.state.setVariable(name, wrappedValue)
+	i.state.globalVarNames[name] = true
 	return nil
 }
 
@@ -305,47 +285,39 @@ func (i *Interpreter) SetLastResult(v lang.Value) {
 
 func (i *Interpreter) Load(program *ast.Program) error {
 	if program == nil {
-		return fmt.Errorf("cannot load a nil program")
+		i.logger.Warn("Load called with a nil program AST.")
+		i.state.knownProcedures = make(map[string]*ast.Procedure)
+		i.eventManager.eventHandlers = make(map[string][]*ast.OnEventDecl)
+		i.state.commands = []*ast.CommandNode{} // Ensure commands are cleared too
+		return nil
 	}
 
-	i.state.clearProcedures()
-	i.state.clearCommands()
-	i.returnValue = &lang.NilValue{}
+	// Clear previous state before loading new program
+	i.state.knownProcedures = make(map[string]*ast.Procedure)
+	i.eventManager.eventHandlers = make(map[string][]*ast.OnEventDecl)
+	i.state.commands = []*ast.CommandNode{}
 
 	for name, proc := range program.Procedures {
-		i.state.setProcedure(name, proc)
+		i.state.knownProcedures[name] = proc
 	}
-
-	for _, cmd := range program.Commands {
-		i.state.addCommand(cmd)
-	}
-
-	if i.eventManager != nil {
-		i.eventManager.clear()
-		for _, eventDecl := range program.Events {
-			if err := i.eventManager.register(eventDecl, i); err != nil {
-				return fmt.Errorf("failed to register event handler: %w", err)
-			}
+	for _, eventDecl := range program.Events {
+		if err := i.eventManager.register(eventDecl, i); err != nil {
+			return fmt.Errorf("failed to register event handler: %w", err)
 		}
 	}
+	if program.Commands != nil {
+		i.state.commands = program.Commands
+	}
 
-	return nil
-}
-
-func RegisterCoreTools(registry tool.ToolRegistry) {
-}
-
-func NewToolRegistry(i *Interpreter) tool.ToolRegistry {
 	return nil
 }
 
 func (i *Interpreter) CloneWithNewVariables() *Interpreter {
-	clone := *i
-	clone.state = newInterpreterState()
+	clone := NewInterpreter(WithLogger(i.logger), WithStdout(i.stdout))
 	for k, v := range i.state.knownProcedures {
-		clone.state.setProcedure(k, v)
+		clone.state.knownProcedures[k] = v
 	}
-	return &clone
+	return clone
 }
 
 func (i *Interpreter) SetSandboxDir(path string) {

@@ -1,47 +1,87 @@
 // filename: pkg/parser/ast_builder_loops_test.go
+// NeuroScript Version: 0.5.2
+// File version: 3
+// Purpose: Corrected AST field access in loop tests to match the ast.Step struct definition.
+
 package parser
 
 import (
 	"testing"
-
-	"github.com/aprice2704/neuroscript/pkg/ast"
 )
 
-// Helper to get the first step, assuming it's a loop
-func getLoopStep(t *testing.T, script string) *ast.Step {
-	t.Helper()
-	// Use the existing test helper to parse the script and get the procedure body
-	bodyNodes := parseStringToProcedureBodyNodes(t, script, "TestProc")
-	if len(bodyNodes) == 0 {
-		t.Fatalf("TestProc body is empty, expected a loop step")
-	}
-	loopStep := &bodyNodes[0]
-	if loopStep.Type != "for" && loopStep.Type != "while" {
-		t.Fatalf("Expected first step to be of type 'for' or 'while', got type %s", loopStep.Type)
-	}
-	return loopStep
+func TestWhileLoopParsing(t *testing.T) {
+	t.Run("Valid while loop", func(t *testing.T) {
+		script := `
+			func MyFunc() means
+				while x < 10
+					set x = x + 1
+				endwhile
+			endfunc
+		`
+		prog := testParseAndBuild(t, script)
+		proc := prog.Procedures["MyFunc"]
+		if len(proc.Steps) != 1 {
+			t.Fatalf("Expected 1 statement in procedure body, got %d", len(proc.Steps))
+		}
+		loop := proc.Steps[0]
+		if loop.Type != "while" {
+			t.Fatalf("Expected a 'while' loop step, but got type %s", loop.Type)
+		}
+		if loop.Cond == nil {
+			t.Error("Expected while loop to have a condition")
+		}
+		if len(loop.Body) != 1 {
+			t.Errorf("Expected 1 statement in while loop body, got %d", len(loop.Body))
+		}
+	})
+
+	t.Run("While loop with empty body is a parser error", func(t *testing.T) {
+		script := `
+			func MyFunc() means
+				while x < 10
+				endwhile
+			endfunc
+		`
+		testForParserError(t, script)
+	})
 }
 
-func TestForLoop(t *testing.T) {
-	script := `
-func TestProc() means
-    for each item in my_list
-        emit item
-    endfor
-endfunc
-`
-	forStep := getLoopStep(t, script)
+func TestForEachLoopParsing(t *testing.T) {
+	t.Run("Valid for-each loop", func(t *testing.T) {
+		script := `
+			func MyFunc() means
+				for each item in myList
+					emit item
+				endfor
+			endfunc
+		`
+		prog := testParseAndBuild(t, script)
+		proc := prog.Procedures["MyFunc"]
+		if len(proc.Steps) != 1 {
+			t.Fatalf("Expected 1 statement in procedure body, got %d", len(proc.Steps))
+		}
+		loop := proc.Steps[0]
+		if loop.Type != "for" {
+			t.Fatalf("Expected a 'for' loop step, but got type %s", loop.Type)
+		}
+		if loop.LoopVarName != "item" {
+			t.Errorf("Expected loop variable to be 'item', got '%s'", loop.LoopVarName)
+		}
+		if loop.Collection == nil {
+			t.Error("Expected for-each loop to have a collection expression")
+		}
+		if len(loop.Body) != 1 {
+			t.Errorf("Expected 1 statement in for-each loop body, got %d", len(loop.Body))
+		}
+	})
 
-	if forStep.Type != "for" {
-		t.Fatalf("Expected step type 'for', got '%s'", forStep.Type)
-	}
-	if forStep.LoopVarName != "item" {
-		t.Errorf("Expected LoopVarName to be 'item', got '%s'", forStep.LoopVarName)
-	}
-	if _, ok := forStep.Collection.(*ast.VariableNode); !ok {
-		t.Errorf("Expected loop collection to be a VariableNode, got %T", forStep.Collection)
-	}
-	if len(forStep.Body) != 1 {
-		t.Errorf("Expected 1 statement in loop body, got %d", len(forStep.Body))
-	}
+	t.Run("For-each loop with empty body is a parser error", func(t *testing.T) {
+		script := `
+			func MyFunc() means
+				for each item in myList
+				endfor
+			endfunc
+		`
+		testForParserError(t, script)
+	})
 }

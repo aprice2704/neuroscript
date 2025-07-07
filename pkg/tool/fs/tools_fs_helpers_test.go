@@ -32,7 +32,8 @@ func newFsTestInterpreter(t *testing.T) *interpreter.Interpreter {
 	interp.SetSandboxDir(sandboxDir)
 	// Register all the FS tools for this test suite
 	for _, toolImpl := range fsToolsToRegister {
-		if err := interp.RegisterTool(toolImpl); err != nil {
+		// CORRECTED: The method is named RegisterTool, not Register.
+		if err := interp.ToolRegistry().RegisterTool(toolImpl); err != nil {
 			t.Fatalf("Failed to register tool '%s': %v", toolImpl.Spec.Name, err)
 		}
 	}
@@ -50,7 +51,8 @@ func testFsToolHelper(t *testing.T, interp *interpreter.Interpreter, tc fsTestCa
 		}
 	}
 
-	toolImpl, found := interp.GetTool(tc.toolName)
+	// CORRECTED: The method is named GetTool, not Get.
+	toolImpl, found := interp.ToolRegistry().GetTool(tc.toolName)
 	if !found {
 		t.Fatalf("Tool %q not found in registry", tc.toolName)
 	}

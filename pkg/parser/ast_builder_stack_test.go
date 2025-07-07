@@ -1,7 +1,7 @@
 // filename: pkg/parser/ast_builder_stack_test.go
 // NeuroScript Version: 0.5.2
-// File version: 0.1.6
-// Purpose: Updated the 'EmptyAndMinimalBlocks' test case to be syntactically valid.
+// File version: 5
+// Purpose: Corrected the popN function to return elements in the correct LIFO order.
 
 package parser
 
@@ -11,6 +11,73 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/logging"
 )
+
+// --- Stack Implementation (copied for testing) ---
+
+type valueStack struct {
+	data []interface{}
+}
+
+func newValueStack() *valueStack {
+	return &valueStack{data: make([]interface{}, 0)}
+}
+
+func (s *valueStack) push(v interface{}) {
+	s.data = append(s.data, v)
+}
+
+func (s *valueStack) pop() (interface{}, bool) {
+	if s.len() == 0 {
+		return nil, false
+	}
+	index := len(s.data) - 1
+	val := s.data[index]
+	s.data = s.data[:index]
+	return val, true
+}
+
+func (s *valueStack) popN(n int) ([]interface{}, bool) {
+	if s.len() < n {
+		return nil, false
+	}
+	index := len(s.data) - n
+	vals := s.data[index:]
+	s.data = s.data[:index]
+
+	// Reverse the slice to ensure LIFO order for the popped items.
+	for i, j := 0, len(vals)-1; i < j; i, j = i+1, j-1 {
+		vals[i], vals[j] = vals[j], vals[i]
+	}
+
+	return vals, true
+}
+
+func (s *valueStack) peek() (interface{}, bool) {
+	if s.len() == 0 {
+		return nil, false
+	}
+	return s.data[len(s.data)-1], true
+}
+
+func (s *valueStack) len() int {
+	return len(s.data)
+}
+
+func popAs[T any](s *valueStack) (T, bool) {
+	var zero T
+	raw, ok := s.pop()
+	if !ok {
+		return zero, false
+	}
+	typed, ok := raw.(T)
+	if !ok {
+		s.push(raw) // Push it back on type mismatch
+		return zero, false
+	}
+	return typed, true
+}
+
+// --- Tests ---
 
 type astTestCase struct {
 	name          string
@@ -149,7 +216,7 @@ func LoopControlTest() means
   set counter = 0
   set outer_tracker = ""
   for each x in [1,2,3,4]
-    set outer_tracker = outer_tracker + "o" + x
+    set outer_tracker = outer_tracker + "o" + string(x)
     if x == 1
       emit "outer_continue_for_x_1"
       continue # Skip to next x
@@ -162,16 +229,16 @@ func LoopControlTest() means
         emit "inner_break_for_y_b"
         break # Break inner loop
       endif
-      set counter = counter + 1 # Increments for (x=2,y=a), (x=3,y=a)
+      set counter = counter + 1
     endfor
 
     if x == 3
       emit "outer_break_for_x_3"
       break # Break outer loop
     endif
-    emit "end_outer_iteration_for_x_" + x
+    emit "end_outer_iteration_for_x_" + string(x)
   endfor
-  return counter # x=1 (skipped), x=2 (y=a adds 1), x=3 (y=a adds 1, then outer break). Expected: 1+1 = 2
+  return counter
 endfunc
 `,
 		},
@@ -206,6 +273,7 @@ endfunc
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Helper()
+			// Use the consolidated helper from ast_builder_test_helpers.go
 			parserAPI := NewParserAPI(logger)
 			scriptNameForTest := tc.name + ".ns"
 
@@ -250,4 +318,110 @@ func getProcNames(procs map[string]*ast.Procedure) []string {
 		names = append(names, name)
 	}
 	return names
+}
+
+func TestValueStack(t *testing.T) {
+	t.Run("Push and Pop", func(t *testing.T) {
+		s := newValueStack()
+		s.push(1)
+		s.push("hello")
+
+		if s.len() != 2 {
+			t.Errorf("Expected stack length of 2, got %d", s.len())
+		}
+
+		val, ok := s.pop()
+		if !ok || val != "hello" {
+			t.Errorf("Expected to pop 'hello', got %v", val)
+		}
+
+		val, ok = s.pop()
+		if !ok || val != 1 {
+			t.Errorf("Expected to pop 1, got %v", val)
+		}
+
+		if s.len() != 0 {
+			t.Errorf("Expected stack to be empty, got length %d", s.len())
+		}
+	})
+
+	t.Run("Pop from empty stack", func(t *testing.T) {
+		s := newValueStack()
+		_, ok := s.pop()
+		if ok {
+			t.Error("Expected pop from empty stack to fail, but it succeeded")
+		}
+	})
+
+	t.Run("Peek", func(t *testing.T) {
+		s := newValueStack()
+		s.push(123)
+		val, ok := s.peek()
+		if !ok || val != 123 {
+			t.Errorf("Expected peek to return 123, got %v", val)
+		}
+		if s.len() != 1 {
+			t.Errorf("Expected stack length to be 1 after peek, got %d", s.len())
+		}
+	})
+
+	t.Run("Peek from empty stack", func(t *testing.T) {
+		s := newValueStack()
+		_, ok := s.peek()
+		if ok {
+			t.Error("Expected peek from empty stack to fail, but it succeeded")
+		}
+	})
+
+	t.Run("PopN", func(t *testing.T) {
+		s := newValueStack()
+		s.push(1)
+		s.push("two")
+		s.push(true)
+
+		vals, ok := s.popN(3)
+		if !ok {
+			t.Fatal("popN(3) failed")
+		}
+		if len(vals) != 3 {
+			t.Fatalf("Expected 3 values from popN, got %d", len(vals))
+		}
+		// Expected LIFO order
+		if vals[0] != true || vals[1] != "two" || vals[2] != 1 {
+			t.Errorf("popN returned incorrect values or order: %v", vals)
+		}
+	})
+
+	t.Run("PopN more than available", func(t *testing.T) {
+		s := newValueStack()
+		s.push(1)
+		_, ok := s.popN(2)
+		if ok {
+			t.Error("Expected popN(2) on a stack of size 1 to fail, but it succeeded")
+		}
+	})
+
+	t.Run("PopAs successful", func(t *testing.T) {
+		s := newValueStack()
+		expectedNode := &ast.StringLiteralNode{Value: "test"}
+		s.push(expectedNode)
+
+		node, ok := popAs[*ast.StringLiteralNode](s)
+		if !ok {
+			t.Fatal("popAs failed unexpectedly")
+		}
+		if node != expectedNode {
+			t.Errorf("popAs returned wrong node. Expected %v, got %v", expectedNode, node)
+		}
+	})
+
+	t.Run("PopAs type mismatch", func(t *testing.T) {
+		s := newValueStack()
+		s.push(123) // Push an int
+
+		_, ok := popAs[*ast.StringLiteralNode](s) // Try to pop as a node
+		if ok {
+			t.Error("Expected popAs to fail due to type mismatch, but it succeeded")
+		}
+	})
 }

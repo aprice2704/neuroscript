@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.5.2
-// File version: 15
-// Purpose: Corrected type handling in operator functions to properly manage the Value wrapper boundary, resolving interface assignment errors.
+// File version: 17
+// Purpose: Corrected string concatenation to explicitly handle nil values as empty strings.
 // filename: pkg/interpreter/evaluation_operators.go
 // nlines: 205
 // risk_rating: HIGH
@@ -61,21 +61,31 @@ func performArithmetic(left, right lang.Value, op string) (lang.Value, error) {
 
 // performStringConcatOrNumericAdd handles the '+' operator.
 func performStringConcatOrNumericAdd(left, right lang.Value) (lang.Value, error) {
+	// If both are numeric, perform addition.
 	leftNum, isLeftNum := lang.ToNumeric(left)
 	rightNum, isRightNum := lang.ToNumeric(right)
 	if isLeftNum && isRightNum {
 		return lang.NumberValue{Value: leftNum.Value + rightNum.Value}, nil
 	}
 
-	leftStr, _ := lang.ToString(left)
-	rightStr, _ := lang.ToString(right)
+	// FIX: Explicitly handle nil values to ensure they become empty strings.
+	var leftStr, rightStr string
+	if _, isNil := left.(*lang.NilValue); isNil {
+		leftStr = ""
+	} else {
+		leftStr, _ = lang.ToString(left)
+	}
+	if _, isNil := right.(*lang.NilValue); isNil {
+		rightStr = ""
+	} else {
+		rightStr, _ = lang.ToString(right)
+	}
 
 	return lang.StringValue{Value: leftStr + rightStr}, nil
 }
 
 // areValuesEqual performs a robust equality check between any two values.
 func areValuesEqual(left, right lang.Value) bool {
-	// FIX: Pass the values directly to Unwrap.
 	leftNative := lang.Unwrap(left)
 	rightNative := lang.Unwrap(right)
 
@@ -120,7 +130,7 @@ func performComparison(left, right lang.Value, op string) (lang.Value, error) {
 	}
 
 	if lVal, ok := left.(lang.FuzzyValue); ok {
-		rVal, rOk := lang.ToNumeric(right)	// Compare against any numeric type
+		rVal, rOk := lang.ToNumeric(right) // Compare against any numeric type
 		if !rOk {
 			return nil, typeErrorForOp(op, left, right)
 		}

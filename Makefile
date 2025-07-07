@@ -13,21 +13,20 @@ PKG_DIR := $(ROOT_DIR)/pkg
 VSCODE_EXT_DIR := $(ROOT_DIR)/vscode-neuroscript
 VSCODE_SERVER_DIR := $(VSCODE_EXT_DIR)/server
 VIM_PLUGIN_DIR := $(ROOT_DIR)/vim-neuroscript
-INDEX_OUTPUT_DIR := $(PKG_DIR)/codebase-indices # For goindexer output
 
 # Project Go module files (dependencies for all Go builds)
 PROJECT_GO_MOD := $(ROOT_DIR)/go.mod
 PROJECT_GO_SUM := $(ROOT_DIR)/go.sum
 
 # ANTLR variables
-ANTLR_JAR := $(PKG_DIR)/antlr4-4.13.2-complete.jar
-G4_FILE := $(PKG_DIR)/core/NeuroScript.g4
-G4_TXT_FILE := $(PKG_DIR)/core/NeuroScript.g4.txt
-ANTLR_OUTPUT_DIR := $(PKG_DIR)/core/generated
+ANTLR_JAR := $(ROOT_DIR)/antlr4-4.13.2-complete.jar
+G4_FILE := $(PKG_DIR)/parser/NeuroScript.g4
+G4_TXT_FILE := $(PKG_DIR)/parser/NeuroScript.g4.txt
+ANTLR_OUTPUT_DIR := $(PKG_DIR)/parser/generated
 ANTLR_STAMP_FILE := $(ANTLR_OUTPUT_DIR)/.antlr-generated-stamp
 
 # Version file
-VERSION_GO_FILE := $(PKG_DIR)/core/version.go
+VERSION_GO_FILE := $(PKG_DIR)/lang/version.go
 
 # VSCode Extension Stamp File
 VSCODE_BUILD_STAMP := $(VSCODE_EXT_DIR)/.vsix-built-stamp
@@ -41,12 +40,10 @@ ALL_PKG_GO_FILES := $(shell find $(PKG_DIR) -name '*.go')
 # Versioning
 GIT_VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo "unknown")
 MODULE_PATH := $(shell go list -m)
-LDFLAGS_BASE := -X main.AppVersion=$(GIT_VERSION) -X $(MODULE_PATH)/pkg/core.GrammarVersion=
+LDFLAGS_BASE := -X main.AppVersion=$(GIT_VERSION) -X $(MODULE_PATH)/pkg/lang.GrammarVersion=
 
 # Tools
 VSCE := vsce
-GOINDEXER := goindexer
-SYNTAX_CHECKER := $(BIN_INSTALL_DIR)/syntax-check
 
 # --- Command Definitions ---
 COMMAND_SOURCE_DIRS := $(shell find $(CMDS_DIR) -mindepth 1 -maxdepth 1 -type d ! -name 'nssync')
@@ -54,20 +51,19 @@ CMD_NAMES := $(notdir $(COMMAND_SOURCE_DIRS))
 CMD_BINS := $(addprefix $(BIN_INSTALL_DIR)/, $(CMD_NAMES))
 
 # --- PHONY Targets ---
-.PHONY: all build install test clean help generate-antlr always-build-index syntax-check setup-nvim setup-goland
+.PHONY: all build install test clean help generate-antlr setup-nvim setup-goland
 
 # --- Default Target ---
 all: build
 
 # --- Main Build Target ---
-build: syntax-check install always-build-index $(G4_TXT_FILE) $(VSCODE_BUILD_STAMP)
+build: install $(G4_TXT_FILE) $(VSCODE_BUILD_STAMP)
 	$(eval CURRENT_ANTLR_GRAMMAR_VERSION := $(shell grep '// Grammar: NeuroScript Version:' $(G4_FILE) | awk '{print $$NF}'))
 	@echo ""
 	@echo "NeuroScript Build Complete!"
 	@echo "--------------------------------------------------"
 	@echo "App Version: $(GIT_VERSION), Grammar Version: $(CURRENT_ANTLR_GRAMMAR_VERSION)"
 	@echo "Commands installed to: $(BIN_INSTALL_DIR)"
-	@echo "Codebase index updated in: $(INDEX_OUTPUT_DIR)"
 	@echo "VSCode extension package created in: $(VSCODE_EXT_DIR)"
 	@echo "--------------------------------------------------"
 
@@ -95,33 +91,22 @@ $(ANTLR_STAMP_FILE): $(G4_FILE) $(ANTLR_JAR)
 		echo "// NeuroScript Version: 0.4.2" > $(VERSION_GO_FILE); \
 		echo "// File version: 1" >> $(VERSION_GO_FILE); \
 		echo "// Purpose: Holds the grammar version, auto-updated by the Makefile." >> $(VERSION_GO_FILE); \
-		echo "// filename: pkg/core/version.go" >> $(VERSION_GO_FILE); \
+		echo "// filename: pkg/lang/version.go" >> $(VERSION_GO_FILE); \
 		echo "// nlines: 13" >> $(VERSION_GO_FILE); \
 		echo "// risk_rating: LOW" >> $(VERSION_GO_FILE); \
-		echo "package core" >> $(VERSION_GO_FILE); \
+		echo "package lang" >> $(VERSION_GO_FILE); \
 		echo "" >> $(VERSION_GO_FILE); \
 		echo "var (" >> $(VERSION_GO_FILE); \
-		echo "	// GrammarVersion is the version of the NeuroScript grammar." >> $(VERSION_GO_FILE); \
-		echo "	// It is updated automatically by the Makefile from NeuroScript.g4." >> $(VERSION_GO_FILE); \
-		echo "	GrammarVersion = \"$${VERSION}\"" >> $(VERSION_GO_FILE); \
+		echo " 	// GrammarVersion is the version of the NeuroScript grammar." >> $(VERSION_GO_FILE); \
+		echo " 	// It is updated automatically by the Makefile from NeuroScript.g4." >> $(VERSION_GO_FILE); \
+		echo " 	GrammarVersion = \"$${VERSION}\"" >> $(VERSION_GO_FILE); \
 		echo ")" >> $(VERSION_GO_FILE); \
 	)
 	@echo "Generating ANTLR parser files from $(G4_FILE)..."
 	@mkdir -p $(ANTLR_OUTPUT_DIR)
-	java -jar $(ANTLR_JAR) -Dlanguage=Go -o $(ANTLR_OUTPUT_DIR) -visitor -listener -package core $(G4_FILE)
+	java -jar $(ANTLR_JAR) -Dlanguage=Go -o $(ANTLR_OUTPUT_DIR) -visitor -listener -package parser $(G4_FILE)
 	@touch $@
 
-# --- Target to always build the codebase index ---
-always-build-index:
-	@echo "Building codebase index into $(INDEX_OUTPUT_DIR)..."
-	@mkdir -p $(INDEX_OUTPUT_DIR)
-	$(GOINDEXER) -root . -output $(INDEX_OUTPUT_DIR)
-
-# --- Target to compile and run the syntax checker ---
-syntax-check: $(SYNTAX_CHECKER)
-	@echo "Checking syntax of all .ns test files..."
-	$(SYNTAX_CHECKER) $(ROOT_DIR)
-	
 # --- Rules for nslsp & VSCode Extension ---
 $(VSCODE_SERVER_DIR)/nslsp_executable: $(BIN_INSTALL_DIR)/nslsp
 	@echo "Copying nslsp executable to $(VSCODE_SERVER_DIR)/..."
@@ -130,23 +115,23 @@ $(VSCODE_SERVER_DIR)/nslsp_executable: $(BIN_INSTALL_DIR)/nslsp
 	chmod +x $@
 
 $(VSCODE_BUILD_STAMP): $(VSCODE_SERVER_DIR)/nslsp_executable \
-						$(shell find $(VSCODE_EXT_DIR) -maxdepth 1 -name 'package.json') \
-						$(shell find $(VSCODE_EXT_DIR) \( -name '*.json' -o -name '*.js' -o -name '*.ts' -o -name '*.tsx' -o -name '*.md' \) -type f ! -path '$(VSCODE_EXT_DIR)/server/*' ! -path '$(VSCODE_EXT_DIR)/node_modules/*')
+                      $(shell find $(VSCODE_EXT_DIR) -maxdepth 1 -name 'package.json') \
+                      $(shell find $(VSCODE_EXT_DIR) \( -name '*.json' -o -name '*.js' -o -name '*.ts' -o -name '*.md' \) -type f ! -path '$(VSCODE_EXT_DIR)/server/*' ! -path '$(VSCODE_EXT_DIR)/node_modules/*')
 	$(eval CURRENT_GRAMMAR_VERSION := $(shell grep '// Grammar: NeuroScript Version:' $(G4_FILE) | awk '{print $$NF}'))
-	@echo "Packaging VSCode extension version $(CURRENT_GRAMMAR_VERSION) in $(VSCODE_EXT_DIR)..."
-	cd $(VSCODE_EXT_DIR) && $(VSCE) package $(CURRENT_GRAMMAR_VERSION)
+	@echo "Packaging VSCode extension version $(GIT_VERSION) in $(VSCODE_EXT_DIR)..."
+	cd $(VSCODE_EXT_DIR) && npm install && vsce package --out .
 	@touch $@
 
 # --- Convenience Target for Neovim Users ---
 setup-nvim: install
 	@echo "Setting up NeuroScript plugin for Neovim..."
-	$(eval NVIM_PACK_DIR := $(HOME)/.config/nvim/pack/vendor/start)
+	$(eval NVIM_PACK_DIR := $(or $(XDG_CONFIG_HOME), $(HOME)/.config)/nvim/pack/vendor/start)
 	@if [ -d "$(VIM_PLUGIN_DIR)" ]; then \
 		echo "Plugin source found at $(VIM_PLUGIN_DIR)"; \
 		echo "Ensuring Neovim package directory exists at $(NVIM_PACK_DIR)..."; \
 		mkdir -p $(NVIM_PACK_DIR); \
 		echo "Creating symbolic link for neuroscript plugin..."; \
-		ln -s -f $(VIM_PLUGIN_DIR) $(NVIM_PACK_DIR)/neuroscript; \
+		ln -sfn $(VIM_PLUGIN_DIR) $(NVIM_PACK_DIR)/neuroscript; \
 		echo "Neovim setup complete. Restart Neovim to activate the plugin."; \
 	else \
 		echo "ERROR: Vim plugin directory not found at $(VIM_PLUGIN_DIR)."; \
@@ -174,7 +159,6 @@ clean:
 	-rm -rf $(ANTLR_OUTPUT_DIR)
 	-rm -f $(G4_TXT_FILE)
 	-rm -f $(VERSION_GO_FILE)
-	-rm -rf $(INDEX_OUTPUT_DIR)
 	-rm -f $(VSCODE_BUILD_STAMP)
 	-rm -f $(VSCODE_SERVER_DIR)/nslsp_executable
 	-rm -f $(VSCODE_EXT_DIR)/*.vsix
@@ -188,16 +172,14 @@ help:
 	@echo "Usage: make [target]"
 	@echo ""
 	@echo "Core Targets:"
-	@echo "  all              - Checks syntax, then builds and installs all components (default)."
-	@echo "  build            - Alias for 'all'."
-	@echo "  install          - Compiles and installs Go commands to '$(BIN_INSTALL_DIR)'."
-	@echo "  test             - Regenerates parser if needed, then runs Go tests."
-	@echo "  clean            - Remove all build artifacts and installed commands."
-	@echo "  syntax-check     - Checks all .ns files in testdata for syntax errors."
+	@echo "  all                  - Builds and installs all components (default)."
+	@echo "  build                - Alias for 'all'."
+	@echo "  install              - Compiles and installs Go commands to '$(BIN_INSTALL_DIR)'."
+	@echo "  test                 - Regenerates parser if needed, then runs Go tests."
+	@echo "  clean                - Remove all build artifacts and installed commands."
 	@echo ""
 	@echo "Component & Setup Targets:"
-	@echo "  generate-antlr     - Force generation of ANTLR parser files and update version.go."
-	@echo "  always-build-index - Force regeneration of the codebase index."
-	@echo "  setup-nvim         - Link the vim plugin for local Neovim development."
-	@echo "  setup-goland       - Display instructions for setting up GoLand."
+	@echo "  generate-antlr       - Force generation of ANTLR parser files and update version.go."
+	@echo "  setup-nvim           - Link the vim plugin for local Neovim development."
+	@echo "  setup-goland         - Display instructions for setting up GoLand."
 	@echo "  $(VSCODE_BUILD_STAMP) - Package the VSCode extension."

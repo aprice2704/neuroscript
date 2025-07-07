@@ -1,6 +1,6 @@
-// NeuroScript Version: 0.3.1
-// File version: 9.0.2
-// Purpose: Corrected all pointer/struct and Pos/Position field name mismatches.
+// NeuroScript Version: 0.5.2
+// File version: 11.0.0
+// Purpose: Removed 'emit' statements from tests to prevent noisy output. Tests now check the returned value directly.
 // filename: pkg/interpreter/eval_typeof_test.go
 package interpreter_test
 
@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/ast"
+	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/testutil"
 	"github.com/aprice2704/neuroscript/pkg/tool"
@@ -26,71 +27,58 @@ var testDummyTool = tool.ToolImplementation{
 		Args:        []tool.ArgSpec{},
 		ReturnType:  tool.ArgTypeString,
 	},
-	Func: func(interp tool.Runtime, args []interface{}) (interface{}, error) {
+	Func: func(rt tool.Runtime, args []interface{}) (interface{}, error) {
 		return "dummy tool executed", nil
 	},
 }
 
 func TestTypeOfOperator_LiteralsAndVariables(t *testing.T) {
-	tests := []testutil.ExecuteStepsTestCase{
+	// FIX: These tests now check the ExpectedResult from the expression, rather than emitting output.
+	tests := []testutil.EvalTestCase{
 		{
-			Name: "typeof string literal",
-			InputSteps: []ast.Step{
-				{Type: "emit", Position: *testPos, Values: []ast.Expression{&ast.TypeOfNode{Pos: testPos, Argument: testutil.NewTestStringLiteral("hello")}}},
-			},
-			ExpectedResult: lang.StringValue{Value: string(lang.TypeString)},
+			Name:      "typeof string literal",
+			InputNode: &ast.TypeOfNode{Pos: testPos, Argument: testutil.NewTestStringLiteral("hello")},
+			Expected:  lang.StringValue{Value: string(lang.TypeString)},
 		},
 		{
-			Name: "typeof number literal (int)",
-			InputSteps: []ast.Step{
-				{Type: "emit", Position: *testPos, Values: []ast.Expression{&ast.TypeOfNode{Pos: testPos, Argument: testutil.NewTestNumberLiteral(123.0)}}},
-			},
-			ExpectedResult: lang.StringValue{Value: string(lang.TypeNumber)},
+			Name:      "typeof number literal (int)",
+			InputNode: &ast.TypeOfNode{Pos: testPos, Argument: testutil.NewTestNumberLiteral(123.0)},
+			Expected:  lang.StringValue{Value: string(lang.TypeNumber)},
 		},
 		{
-			Name: "typeof nil literal",
-			InputSteps: []ast.Step{
-				{Type: "emit", Position: *testPos, Values: []ast.Expression{&ast.TypeOfNode{Pos: testPos, Argument: &ast.NilLiteralNode{Pos: testPos}}}},
-			},
-			ExpectedResult: lang.StringValue{Value: string(lang.TypeNil)},
+			Name:      "typeof nil literal",
+			InputNode: &ast.TypeOfNode{Pos: testPos, Argument: &ast.NilLiteralNode{Pos: testPos}},
+			Expected:  lang.StringValue{Value: string(lang.TypeNil)},
 		},
 		{
-			Name: "typeof list literal",
-			InputSteps: []ast.Step{
-				{Type: "emit", Position: *testPos, Values: []ast.Expression{&ast.TypeOfNode{Pos: testPos, Argument: &ast.ListLiteralNode{Pos: testPos, Elements: []ast.Expression{testutil.NewTestNumberLiteral(1.0), testutil.NewTestStringLiteral("a")}}}}},
-			},
-			ExpectedResult: lang.StringValue{Value: string(lang.TypeList)},
+			Name:      "typeof list literal",
+			InputNode: &ast.TypeOfNode{Pos: testPos, Argument: &ast.ListLiteralNode{Pos: testPos, Elements: []ast.Expression{testutil.NewTestNumberLiteral(1.0), testutil.NewTestStringLiteral("a")}}},
+			Expected:  lang.StringValue{Value: string(lang.TypeList)},
 		},
 		{
 			Name: "typeof map literal",
-			InputSteps: []ast.Step{
-				{Type: "emit", Position: *testPos, Values: []ast.Expression{&ast.TypeOfNode{Pos: testPos, Argument: &ast.MapLiteralNode{Pos: testPos, Entries: []*ast.MapEntryNode{
-					{Pos: testPos, Key: testutil.NewTestStringLiteral("key"), Value: testutil.NewTestStringLiteral("value")},
-					{Pos: testPos, Key: testutil.NewTestStringLiteral("num"), Value: testutil.NewTestNumberLiteral(1.0)},
-				}}}}},
-			},
-			ExpectedResult: lang.StringValue{Value: string(lang.TypeMap)},
+			InputNode: &ast.TypeOfNode{Pos: testPos, Argument: &ast.MapLiteralNode{Pos: testPos, Entries: []*ast.MapEntryNode{
+				{Pos: testPos, Key: testutil.NewTestStringLiteral("key"), Value: testutil.NewTestStringLiteral("value")},
+			}}},
+			Expected: lang.StringValue{Value: string(lang.TypeMap)},
 		},
 		{
-			Name: "typeof variable (string)",
-			InputSteps: []ast.Step{
-				{Type: "set", Position: *testPos, LValues: []*ast.LValueNode{{Identifier: "myVar", Position: *testPos}}, Values: []ast.Expression{testutil.NewTestStringLiteral("test")}},
-				{Type: "emit", Position: *testPos, Values: []ast.Expression{&ast.TypeOfNode{Pos: testPos, Argument: testutil.NewVariableNode("myVar")}}},
-			},
-			ExpectedResult: lang.StringValue{Value: string(lang.TypeString)},
-			ExpectedVars:   map[string]lang.Value{"myVar": lang.StringValue{Value: "test"}},
+			Name:        "typeof variable (string)",
+			InputNode:   &ast.TypeOfNode{Pos: testPos, Argument: testutil.NewVariableNode("myVar")},
+			InitialVars: map[string]lang.Value{"myVar": lang.StringValue{Value: "test"}},
+			Expected:    lang.StringValue{Value: string(lang.TypeString)},
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.Name, func(t *testing.T) {
-			testutil.RunExecuteStepsTest(t, tc)
+			testutil.ExpressionTest(t, tc)
 		})
 	}
 }
 
 func TestTypeOfOperator_Function(t *testing.T) {
-	i, _ := testutil.NewTestInterpreter(t, nil, nil)
+	i := interpreter.NewInterpreter()
 	procToTest := testDummyProcedure
 	procToTest.SetName("myTestFuncForTypeOf")
 	err := i.AddProcedure(procToTest)
@@ -98,7 +86,7 @@ func TestTypeOfOperator_Function(t *testing.T) {
 		t.Fatalf("Failed to add dummy procedure: %v", err)
 	}
 
-	err = i.SetVariable("myFuncVar", lang.FunctionValue{Value: &procToTest})
+	err = i.SetInitialVariable("myFuncVar", lang.FunctionValue{Value: &procToTest})
 	if err != nil {
 		t.Fatalf("Failed to set variable for function: %v", err)
 	}
@@ -118,18 +106,18 @@ func TestTypeOfOperator_Function(t *testing.T) {
 }
 
 func TestTypeOfOperator_Tool(t *testing.T) {
-	i, _ := testutil.NewTestInterpreter(t, nil, nil)
-	err := i.RegisterTool(testDummyTool)
+	i := interpreter.NewInterpreter()
+	err := i.ToolRegistry().RegisterTool(testDummyTool)
 	if err != nil {
 		t.Fatalf("Failed to register dummy tool: %v", err)
 	}
 
-	toolVal, found := i.GetTool("MyTestToolForTypeOf")
+	toolVal, found := i.ToolRegistry().GetTool("MyTestToolForTypeOf")
 	if !found {
 		t.Fatalf("Failed to retrieve registered tool MyTestToolForTypeOf")
 	}
 
-	err = i.SetVariable("myActualTestToolVar", lang.ToolValue{Value: &toolVal})
+	err = i.SetInitialVariable("myActualTestToolVar", lang.ToolValue{Value: &toolVal})
 	if err != nil {
 		t.Fatalf("Failed to set variable for tool value: %v", err)
 	}

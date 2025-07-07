@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.5.2
-// File version: 4
-// Purpose: Removed redundant block context creation to fix stack imbalance.
+// File version: 5
+// Purpose: Implemented Exit methods for signature clauses (needs, optional, returns) to correctly parse procedure parameters.
 // filename: pkg/parser/ast_builder_procedures.go
-// nlines: 70
+// nlines: 115
 // risk_rating: MEDIUM
 
 package parser
@@ -19,22 +19,18 @@ func (l *neuroScriptListenerImpl) EnterProcedure_definition(ctx *gen.Procedure_d
 
 	pos := tokenToPosition(ctx.KW_FUNC().GetSymbol())
 	l.currentProc = &ast.Procedure{
-		Position:	pos,
-		Metadata:	make(map[string]string),
+		Position: pos,
+		Metadata: make(map[string]string),
 	}
 	l.currentProc.SetName(procName)
-
-	// DO NOT create a block here. The non_empty_statement_list rule handles the block context.
 }
 
 func (l *neuroScriptListenerImpl) ExitProcedure_definition(ctx *gen.Procedure_definitionContext) {
 	procName := l.currentProc.Name()
 	l.logDebugAST("<<< Exit Procedure_definition for %s", procName)
 
-	// The procedure body is the slice of steps now on top of the value stack.
 	if bodyRaw, ok := l.pop(); ok {
 		if bodySteps, isSteps := bodyRaw.([]ast.Step); isSteps {
-			// Separate 'on error' handlers from the main body.
 			var regularSteps []ast.Step
 			for i := range bodySteps {
 				step := bodySteps[i]
@@ -47,7 +43,7 @@ func (l *neuroScriptListenerImpl) ExitProcedure_definition(ctx *gen.Procedure_de
 			l.currentProc.Steps = regularSteps
 		} else {
 			l.addErrorf(ctx.KW_ENDFUNC().GetSymbol(), "Type error: procedure body for '%s' is not []ast.Step (got %T).", procName, bodyRaw)
-			l.push(bodyRaw)	// Push back the wrong type
+			l.push(bodyRaw)
 		}
 	} else {
 		l.addError(ctx, "stack underflow: could not pop procedure body for '%s'", procName)
@@ -58,7 +54,6 @@ func (l *neuroScriptListenerImpl) ExitProcedure_definition(ctx *gen.Procedure_de
 
 func (l *neuroScriptListenerImpl) finalizeProcedure(ctx antlr.ParserRuleContext) {
 	if l.currentProc != nil {
-		// Directly add the completed procedure to the program's map.
 		if _, exists := l.program.Procedures[l.currentProc.Name()]; exists {
 			l.addError(ctx, "duplicate procedure definition: '%s'", l.currentProc.Name())
 		} else {
@@ -68,25 +63,66 @@ func (l *neuroScriptListenerImpl) finalizeProcedure(ctx antlr.ParserRuleContext)
 	}
 }
 
-// getRuleText is a helper function to get the full text of a parser rule context.
-func getRuleText(ctx antlr.ParserRuleContext) string {
-	if ctx == nil || ctx.GetStart() == nil || ctx.GetStop() == nil {
-		return ""
+func (l *neuroScriptListenerImpl) ExitParam_list(ctx *gen.Param_listContext) {
+	params := make([]string, 0, len(ctx.AllIDENTIFIER()))
+	for _, ident := range ctx.AllIDENTIFIER() {
+		params = append(params, ident.GetText())
 	}
-	startToken := ctx.GetStart()
-	stopToken := ctx.GetStop()
-	inputStream := startToken.GetInputStream()
+	l.push(params)
+}
 
-	if inputStream == nil {
-		return ""
+func (l *neuroScriptListenerImpl) ExitNeeds_clause(ctx *gen.Needs_clauseContext) {
+	if l.currentProc == nil {
+		l.addError(ctx, "found 'needs' clause outside of a procedure definition")
+		return
 	}
-
-	startIndex := startToken.GetStart()
-	stopIndex := stopToken.GetStop()
-
-	if startIndex > stopIndex {
-		return ""
+	val, ok := l.pop()
+	if !ok {
+		l.addError(ctx, "stack underflow reading params for 'needs' clause")
+		return
 	}
+	params, ok := val.([]string)
+	if !ok {
+		l.addError(ctx, "internal error: 'needs' clause expected []string from stack, got %T", val)
+		return
+	}
+	l.currentProc.RequiredParams = append(l.currentProc.RequiredParams, params...)
+}
 
-	return inputStream.GetText(startIndex, stopIndex)
+func (l *neuroScriptListenerImpl) ExitOptional_clause(ctx *gen.Optional_clauseContext) {
+	if l.currentProc == nil {
+		l.addError(ctx, "found 'optional' clause outside of a procedure definition")
+		return
+	}
+	val, ok := l.pop()
+	if !ok {
+		l.addError(ctx, "stack underflow reading params for 'optional' clause")
+		return
+	}
+	params, ok := val.([]string)
+	if !ok {
+		l.addError(ctx, "internal error: 'optional' clause expected []string from stack, got %T", val)
+		return
+	}
+	for _, pName := range params {
+		l.currentProc.OptionalParams = append(l.currentProc.OptionalParams, &ast.ParamSpec{Name: pName})
+	}
+}
+
+func (l *neuroScriptListenerImpl) ExitReturns_clause(ctx *gen.Returns_clauseContext) {
+	if l.currentProc == nil {
+		l.addError(ctx, "found 'returns' clause outside of a procedure definition")
+		return
+	}
+	val, ok := l.pop()
+	if !ok {
+		l.addError(ctx, "stack underflow reading params for 'returns' clause")
+		return
+	}
+	params, ok := val.([]string)
+	if !ok {
+		l.addError(ctx, "internal error: 'returns' clause expected []string from stack, got %T", val)
+		return
+	}
+	l.currentProc.ReturnVarNames = append(l.currentProc.ReturnVarNames, params...)
 }

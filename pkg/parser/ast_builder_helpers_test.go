@@ -1,4 +1,10 @@
 // filename: pkg/parser/ast_builder_helpers_test.go
+// NeuroScript Version: 0.5.2
+// File version: 2
+// Purpose: Expanded test coverage for schema conversion and metadata parsing.
+// nlines: 147
+// risk_rating: LOW
+
 package parser
 
 import (
@@ -59,6 +65,36 @@ func TestConvertInputSchemaToArgSpec_SuccessScenarios(t *testing.T) {
 			expectError:    true,
 			expectedErrMsg: "invalid schema: 'required' array element 0 is not a string (int)",
 		},
+		{
+			name: "invalid properties type",
+			schema: map[string]interface{}{
+				"type":       "object",
+				"properties": "not-a-map",
+			},
+			expectError:    true,
+			expectedErrMsg: "invalid schema: 'properties' field is not a map[string]interface{}",
+		},
+		{
+			name: "invalid individual property schema type",
+			schema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"param1": "not-a-map",
+				},
+			},
+			expectError:    true,
+			expectedErrMsg: "invalid schema: property 'param1' is not a map[string]interface{}",
+		},
+		{
+			name: "invalid required field type",
+			schema: map[string]interface{}{
+				"type":       "object",
+				"properties": map[string]interface{}{},
+				"required":   "not-a-slice",
+			},
+			expectError:    true,
+			expectedErrMsg: "invalid schema: 'required' field is not []string or []interface{} of strings",
+		},
 	}
 
 	for _, tc := range testCases {
@@ -96,9 +132,12 @@ func TestParseMetadataLine(t *testing.T) {
 		{"valid with extra space", "  ::  key  :  value  ", "key", "value", true},
 		{"valid key only", ":: key_only", "key_only", "", true},
 		{"valid with no space after colon", ":: key:value", "key", "value", true},
+		{"valid with extra colons in value", ":: key: value : with extra colon", "key", "value : with extra colon", true},
+		{"valid with URL as value", ":: url: http://example.com/path", "url", "http://example.com/path", true},
 		{"invalid no key", ":: : value", "", "", false},
 		{"invalid not a metadata line", "key: value", "", "", false},
 		{"invalid empty line", "::", "", "", false},
+		{"invalid only whitespace", "::   ", "", "", false},
 	}
 
 	for _, tc := range testCases {

@@ -7,7 +7,7 @@
 package lang
 
 var (
-	// GrammarVersion is the version of the NeuroScript grammar.
-	// It is updated automatically by the Makefile from NeuroScript.g4.
-	GrammarVersion = "0.4.2"
+ 	// GrammarVersion is the version of the NeuroScript grammar.
+ 	// It is updated automatically by the Makefile from NeuroScript.g4.
+ 	GrammarVersion = "0.4.5"
 )

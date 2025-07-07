@@ -1,9 +1,9 @@
-// NeuroScript Version: 0.4.1
-// File version: 13
-// Purpose: Moved the test into the 'interpreter' package to resolve access errors to unexported types and functions.
+// NeuroScript Version: 0.5.2
+// File version: 19
+// Purpose: Corrected typeof() check for error type to pass the test after fixing the NewErrorValue constructor.
 // filename: pkg/interpreter/evaluation_new_types_test.go
-// nlines: 125
-// risk_rating: LOW
+// nlines: 160
+// risk_rating: MEDIUM
 
 package interpreter
 
@@ -12,6 +12,7 @@ import (
 	"math"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/logging"
@@ -19,33 +20,56 @@ import (
 )
 
 // runNewTypesTestScript is a helper to set up an interpreter and run a script.
-// It's now part of the interpreter package and uses exported functions.
 func runNewTypesTestScript(t *testing.T, script string) (lang.Value, error) {
 	t.Helper()
-	// FIX: Use the exported NewInterpreter and WithLogger functions.
 	i := NewInterpreter(WithLogger(logging.NewTestLogger(t)))
 
+	// Register test-specific tool for fuzzy logic
 	specFuzzyTest := tool.ToolSpec{Name: "Test.NewFuzzy", Args: []tool.ArgSpec{{Name: "val", Type: "float"}}}
 	toolFuzzyTest := func(_ tool.Runtime, args []interface{}) (interface{}, error) {
 		val, _ := lang.ToFloat64(args[0])
 		return lang.NewFuzzyValue(val), nil
 	}
-	_ = i.RegisterTool(tool.ToolImplementation{Spec: specFuzzyTest, Func: toolFuzzyTest})
+	_ = i.ToolRegistry().RegisterTool(tool.ToolImplementation{Spec: specFuzzyTest, Func: toolFuzzyTest})
+
+	// Manually register the Time and Error tools that are no longer auto-registered.
+	specTimeNow := tool.ToolSpec{Name: "Time.Now", Args: []tool.ArgSpec{}}
+	toolTimeNow := func(_ tool.Runtime, args []interface{}) (interface{}, error) {
+		return lang.TimedateValue{Value: time.Now()}, nil
+	}
+	_ = i.ToolRegistry().RegisterTool(tool.ToolImplementation{Spec: specTimeNow, Func: toolTimeNow})
+
+	specTimeSleep := tool.ToolSpec{Name: "Time.Sleep", Args: []tool.ArgSpec{{Name: "ms", Type: "int"}}}
+	toolTimeSleep := func(_ tool.Runtime, args []interface{}) (interface{}, error) {
+		ms, _ := lang.ToInt64(args[0])
+		time.Sleep(time.Duration(ms) * time.Millisecond)
+		return &lang.NilValue{}, nil
+	}
+	_ = i.ToolRegistry().RegisterTool(tool.ToolImplementation{Spec: specTimeSleep, Func: toolTimeSleep})
+
+	specErrorNew := tool.ToolSpec{Name: "Error.New", Args: []tool.ArgSpec{{Name: "code", Type: "any"}, {Name: "msg", Type: "string"}}}
+	toolErrorNew := func(_ tool.Runtime, args []interface{}) (interface{}, error) {
+		var codeStr string
+		if codeVal, ok := args[0].(lang.Value); ok {
+			codeStr, _ = lang.ToString(codeVal)
+		} else {
+			codeStr = fmt.Sprintf("%v", args[0])
+		}
+		msg, _ := lang.ToString(args[1])
+		return lang.NewErrorValue(codeStr, msg, nil), nil
+	}
+	_ = i.ToolRegistry().RegisterTool(tool.ToolImplementation{Spec: specErrorNew, Func: toolErrorNew})
 
 	scriptNameForParser := strings.ReplaceAll(t.Name(), "/", "_")
 	scriptNameForParser = strings.ReplaceAll(scriptNameForParser, "-", "_")
 
+	// The result from ExecuteScriptString is already a lang.Value
 	result, rErr := i.ExecuteScriptString(scriptNameForParser, script, nil)
 	if rErr != nil {
 		return nil, fmt.Errorf("script execution failed: %w", rErr)
 	}
 
-	wrappedResult, wrapErr := lang.Wrap(result)
-	if wrapErr != nil {
-		return nil, fmt.Errorf("failed to wrap interpreter result: %w", wrapErr)
-	}
-
-	return wrappedResult, nil
+	return result, nil
 }
 
 func TestNewTypesIntegration(t *testing.T) {

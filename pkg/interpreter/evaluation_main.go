@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.5.2
-// File version: 28
-// Purpose: Updated calls to use the exported EvaluateUnaryOp and EvaluateBinaryOp methods.
+// File version: 30
+// Purpose: Corrected evaluateCall to manually build the positional argument slice for tool functions, fixing execution failures.
 // filename: pkg/interpreter/evaluation_main.go
 // nlines: 275
 // risk_rating: HIGH
@@ -55,7 +55,6 @@ func (e *evaluation) Expression(node ast.Expression) (lang.Value, error) {
 		if err != nil {
 			return nil, err
 		}
-		// FIX: Use the exported method name.
 		return e.i.EvaluateUnaryOp(n.Operator, operandVal)
 	case *ast.BinaryOpNode:
 		leftVal, errL := e.Expression(n.Left)
@@ -66,7 +65,6 @@ func (e *evaluation) Expression(node ast.Expression) (lang.Value, error) {
 		if errR != nil {
 			return nil, errR
 		}
-		// FIX: Use the exported method name.
 		return e.i.EvaluateBinaryOp(leftVal, rightVal, n.Operator)
 	case *ast.TypeOfNode:
 		return e.evaluateTypeOf(n)
@@ -97,7 +95,7 @@ func (i *Interpreter) resolveVariable(n *ast.VariableNode) (lang.Value, error) {
 	if proc, procExists := i.KnownProcedures()[n.Name]; procExists {
 		return lang.FunctionValue{Value: proc}, nil
 	}
-	if tool, toolExists := i.ToolRegistry().GetTool(n.Name); toolExists {
+	if tool, toolExists := i.tools.GetTool(n.Name); toolExists {
 		return lang.ToolValue{Value: &tool}, nil
 	}
 	if typeVal, typeExists := GetTypeConstant(n.Name); typeExists {
@@ -160,27 +158,44 @@ func (e *evaluation) evaluateTypeOf(n *ast.TypeOfNode) (lang.Value, error) {
 
 func (e *evaluation) evaluateCall(n *ast.CallableExprNode) (lang.Value, error) {
 	if n.Target.IsTool {
-		tool, found := e.i.ToolRegistry().GetTool(n.Target.Name)
+		tool, found := e.i.tools.GetTool(n.Target.Name)
 		if !found {
 			return nil, lang.NewRuntimeError(lang.ErrorCodeToolNotFound, fmt.Sprintf("tool '%s' not found", n.Target.Name), lang.ErrToolNotFound).WithPosition(n.Pos)
 		}
-		namedArgs := make(map[string]lang.Value)
+
+		// FIX: Manually build the positional argument slice for the tool func.
 		specArgs := tool.Spec.Args
 		if len(n.Arguments) > len(specArgs) && !tool.Spec.Variadic {
 			return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("tool '%s' expects at most %d arguments, got %d", tool.Spec.Name, len(specArgs), len(n.Arguments)), lang.ErrArgumentMismatch).WithPosition(n.Pos)
 		}
-		for idx, argNode := range n.Arguments {
-			if idx < len(specArgs) {
-				argName := specArgs[idx].Name
-				argValue, err := e.Expression(argNode)
-				if err != nil {
-					return nil, err
-				}
-				namedArgs[argName] = argValue
+
+		// Evaluate all arguments from the AST first
+		evaluatedArgs := make([]lang.Value, len(n.Arguments))
+		for i, argNode := range n.Arguments {
+			var err error
+			evaluatedArgs[i], err = e.Expression(argNode)
+			if err != nil {
+				return nil, err
 			}
 		}
-		return e.i.ExecuteTool(n.Target.Name, namedArgs)
+
+		// The tool's Go function expects a slice of unwrapped, primitive values.
+		unwrappedArgs := make([]interface{}, len(evaluatedArgs))
+		for i, v := range evaluatedArgs {
+			unwrappedArgs[i] = lang.Unwrap(v)
+		}
+
+		// The interpreter itself satisfies the tool.Runtime interface.
+		result, err := tool.Func(e.i, unwrappedArgs)
+		if err != nil {
+			return nil, lang.NewRuntimeError(lang.ErrorCodeToolExecutionFailed, fmt.Sprintf("tool '%s' execution failed", tool.Spec.Name), err).WithPosition(n.Pos)
+		}
+
+		// Wrap the primitive result back into a NeuroScript Value.
+		return lang.Wrap(result)
 	}
+
+	// Standard procedure/function call logic
 	evaluatedArgs := make([]lang.Value, len(n.Arguments))
 	for idx, argNode := range n.Arguments {
 		var err error
@@ -242,7 +257,6 @@ func (i *Interpreter) resolvePlaceholdersWithError(raw string) (string, error) {
 	return resolved, nil
 }
 
-// GetTypeConstant is a standalone function as it does not depend on interpreter state.
 func GetTypeConstant(name string) (string, bool) {
 	switch name {
 	case "TYPE_STRING":

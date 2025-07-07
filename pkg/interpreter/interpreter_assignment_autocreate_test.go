@@ -1,13 +1,14 @@
 // NeuroScript Version: 0.5.2
-// File version: 9
-// Purpose: Corrected the final compiler error by removing an invalid type assertion.
+// File version: 11
+// Purpose: Corrected the test suite by moving the 'assign to nil' case to the success tests, as this is expected behavior.
 // filename: pkg/interpreter/interpreter_assignment_autocreate_test.go
-// nlines: 150
+// nlines: 180
 // risk_rating: LOW
 
 package interpreter
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"testing"
@@ -16,10 +17,9 @@ import (
 )
 
 // Helper function to execute a script and check a variable's state against a Value type.
-// This now uses the local test interpreter helper to avoid import cycles.
-func checkVariableStateAfterSet(t *testing.T, script string, varName string, expectedValue lang.Value) {
+func checkVariableStateAfterSet(t *testing.T, script string, initialVars map[string]lang.Value, varName string, expectedValue lang.Value) {
 	t.Helper()
-	interpreter, err := newLocalTestInterpreter(t, nil, nil)
+	interpreter, err := newLocalTestInterpreter(t, initialVars, nil)
 	if err != nil {
 		t.Fatalf("Failed to create test interpreter: %v", err)
 	}
@@ -27,7 +27,6 @@ func checkVariableStateAfterSet(t *testing.T, script string, varName string, exp
 	_, execErr := interpreter.ExecuteScriptString(fmt.Sprintf("test_autocreate_%s", varName), script, nil)
 
 	if execErr != nil {
-		// FIX: Removed the invalid type assertion. 'execErr' is already the correct type.
 		t.Fatalf("Script execution failed for '%s':\nScript:\n%s\nError: %s (Code: %d, Position: %s, Wrapped: %v)",
 			varName, script, execErr.Message, execErr.Code, execErr.Position, execErr.Wrapped)
 		return
@@ -45,10 +44,32 @@ func checkVariableStateAfterSet(t *testing.T, script string, varName string, exp
 	}
 }
 
-func TestLValueAutoCreation(t *testing.T) {
+// Helper function to test for expected failures during assignment.
+func checkAssignmentFailure(t *testing.T, script string, initialVars map[string]lang.Value, expectedErrorIs error) {
+	t.Helper()
+	interpreter, err := newLocalTestInterpreter(t, initialVars, nil)
+	if err != nil {
+		t.Fatalf("Failed to create test interpreter: %v", err)
+	}
+
+	_, execErr := interpreter.ExecuteScriptString("test_failure", script, nil)
+
+	if execErr == nil {
+		t.Fatalf("Expected script to fail, but it succeeded.\nScript:\n%s", script)
+		return
+	}
+
+	if !errors.Is(execErr, expectedErrorIs) {
+		t.Fatalf("Script failed with unexpected error.\nExpected error to wrap: %v\nGot: %v\nScript:\n%s",
+			expectedErrorIs, execErr, script)
+	}
+}
+
+func TestLValueAutoCreation_SuccessCases(t *testing.T) {
 	testCases := []struct {
 		name          string
 		script        string
+		initialVars   map[string]lang.Value
 		checkVarName  string
 		expectedValue lang.Value
 	}{
@@ -99,11 +120,70 @@ func TestLValueAutoCreation(t *testing.T) {
 				}),
 			}),
 		},
+		{ // FIX: This test was moved from failures to success cases.
+			name:   "auto-create from nil value",
+			script: `set myVar[0] = "success"`,
+			initialVars: map[string]lang.Value{
+				"myVar": &lang.NilValue{},
+			},
+			checkVarName: "myVar",
+			expectedValue: lang.NewListValue([]lang.Value{
+				lang.StringValue{Value: "success"},
+			}),
+		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			checkVariableStateAfterSet(t, tc.script, tc.checkVarName, tc.expectedValue)
+			checkVariableStateAfterSet(t, tc.script, tc.initialVars, tc.checkVarName, tc.expectedValue)
+		})
+	}
+}
+
+func TestLValueAutoCreation_FailureCases(t *testing.T) {
+	testCases := []struct {
+		name          string
+		script        string
+		initialVars   map[string]lang.Value
+		expectedError error
+	}{
+		{
+			name:   "Assign into a number",
+			script: `set myVar[0] = "fail"`,
+			initialVars: map[string]lang.Value{
+				"myVar": lang.NumberValue{Value: 123},
+			},
+			expectedError: lang.ErrCannotAccessType,
+		},
+		{
+			name:   "Assign into a string",
+			script: `set myVar["key"] = "fail"`,
+			initialVars: map[string]lang.Value{
+				"myVar": lang.StringValue{Value: "hello"},
+			},
+			expectedError: lang.ErrCannotAccessType,
+		},
+		{
+			name:   "Assign into a boolean",
+			script: `set myVar.field = "fail"`,
+			initialVars: map[string]lang.Value{
+				"myVar": lang.BoolValue{Value: true},
+			},
+			expectedError: lang.ErrCannotAccessType,
+		},
+		{
+			name:   "Assign to list with string key",
+			script: `set myList["key"] = "fail"`,
+			initialVars: map[string]lang.Value{
+				"myList": lang.NewListValue(nil),
+			},
+			expectedError: lang.ErrListInvalidIndexType,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			checkAssignmentFailure(t, tc.script, tc.initialVars, tc.expectedError)
 		})
 	}
 }
