@@ -99,10 +99,6 @@ func (v *BaseNeuroScriptVisitor) VisitSimple_statement(ctx *Simple_statementCont
 	return v.VisitChildren(ctx)
 }
 
-func (v *BaseNeuroScriptVisitor) VisitExpression_statement(ctx *Expression_statementContext) interface{} {
-	return v.VisitChildren(ctx)
-}
-
 func (v *BaseNeuroScriptVisitor) VisitBlock_statement(ctx *Block_statementContext) interface{} {
 	return v.VisitChildren(ctx)
 }
@@ -144,6 +140,10 @@ func (v *BaseNeuroScriptVisitor) VisitReturn_statement(ctx *Return_statementCont
 }
 
 func (v *BaseNeuroScriptVisitor) VisitEmit_statement(ctx *Emit_statementContext) interface{} {
+	return v.VisitChildren(ctx)
+}
+
+func (v *BaseNeuroScriptVisitor) VisitMust_statement(ctx *Must_statementContext) interface{} {
 	return v.VisitChildren(ctx)
 }
 

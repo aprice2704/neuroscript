@@ -76,9 +76,6 @@ type NeuroScriptVisitor interface {
 	// Visit a parse tree produced by NeuroScriptParser#simple_statement.
 	VisitSimple_statement(ctx *Simple_statementContext) interface{}
 
-	// Visit a parse tree produced by NeuroScriptParser#expression_statement.
-	VisitExpression_statement(ctx *Expression_statementContext) interface{}
-
 	// Visit a parse tree produced by NeuroScriptParser#block_statement.
 	VisitBlock_statement(ctx *Block_statementContext) interface{}
 
@@ -111,6 +108,9 @@ type NeuroScriptVisitor interface {
 
 	// Visit a parse tree produced by NeuroScriptParser#emit_statement.
 	VisitEmit_statement(ctx *Emit_statementContext) interface{}
+
+	// Visit a parse tree produced by NeuroScriptParser#must_statement.
+	VisitMust_statement(ctx *Must_statementContext) interface{}
 
 	// Visit a parse tree produced by NeuroScriptParser#fail_statement.
 	VisitFail_statement(ctx *Fail_statementContext) interface{}

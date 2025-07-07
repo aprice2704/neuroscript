@@ -1,19 +1,18 @@
 // NeuroScript Version: 0.5.2
-// File version: 5
-// Purpose: Added GetVar and SetVar methods to fully satisfy the tool.Runtime interface.
+// File version: 7
+// Purpose: Added more detailed debug Printf to SetVariable to trace assignments, including the interpreter's memory address.
 // filename: pkg/interpreter/interpreter_state.go
-// nlines: 81
+// nlines: 85
 // risk_rating: MEDIUM
 
 package interpreter
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
-
-	//	"github.com/aprice2704/neuroscript/pkg/tool/fileapi"
 	"github.com/google/generative-ai-go/genai"
 )
 
@@ -43,6 +42,8 @@ func (i *Interpreter) SetVariable(name string, value lang.Value) error {
 	if name == "" {
 		return errors.New("variable name cannot be empty")
 	}
+	// --- DEBUG ---
+	fmt.Printf("[DEBUG] SetVariable in Interpreter %p: %s = %v (%T)\n", i, name, value, value)
 	i.state.variables[name] = value
 	return nil
 }

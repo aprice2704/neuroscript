@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.5.2
-// File version: 8
-// Purpose: Added SandboxDir to the Runtime interface to allow tools to access the interpreter's sandbox.
+// File version: 9
+// Purpose: Added ToolRegistry() to the Runtime interface to allow tools to access the registry.
 // filename: pkg/tool/tools_types.go
 // nlines: 110
 // risk_rating: HIGH
@@ -21,6 +21,7 @@ type Runtime interface {
 	CallTool(name string, args []any) (any, error)
 	GetLogger() interfaces.Logger
 	SandboxDir() string
+	ToolRegistry() ToolRegistry // <-- ADDED THIS LINE
 	LLM() interfaces.LLMClient
 }
 

@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.5.2
-// File version: 51
-// Purpose: Added comprehensive debug logging for all loop counter variables (i, j, inner_count, outer_count).
+// File version: 58
+// Purpose: Corrected the on_error handler invocation logic to properly check the current interpreter's own error handler stack, fixing the root cause of all fixture test failures.
 // filename: pkg/interpreter/interpreter_exec.go
 // nlines: 300
 // risk_rating: HIGH
@@ -20,7 +20,6 @@ func (i *Interpreter) executeSteps(steps []ast.Step, isInHandler bool, activeErr
 	return i.recExecuteSteps(steps, isInHandler, activeError, 0)
 }
 
-// getStepSubjectForLogging creates a descriptive string for a step's main subject for logging.
 func getStepSubjectForLogging(step ast.Step) string {
 	// ... (implementation is unchanged)
 	switch strings.ToLower(step.Type) {
@@ -84,45 +83,22 @@ func getStepSubjectForLogging(step ast.Step) string {
 	return "<no specific subject>"
 }
 
-// recExecuteSteps is the recursive core of the execution loop, with added depth for debugging.
 func (i *Interpreter) recExecuteSteps(steps []ast.Step, isInHandler bool, activeError *lang.RuntimeError, depth int) (finalResult lang.Value, wasReturn bool, wasCleared bool, finalError error) {
-
 	finalResult = &lang.NilValue{}
 
-	for _, step := range steps {
+	for stepIdx, step := range steps {
 		var stepResult lang.Value
 		var stepErr error
 
-		// **NEW DEBUGGING:** Print all relevant counter states at the start of every step.
-		var stateParts []string
-		if val, exists := i.GetVariable("i"); exists {
-			stateParts = append(stateParts, fmt.Sprintf("i=%v", val))
-		}
-		if val, exists := i.GetVariable("j"); exists {
-			stateParts = append(stateParts, fmt.Sprintf("j=%v", val))
-		}
-		if val, exists := i.GetVariable("outer_count"); exists {
-			stateParts = append(stateParts, fmt.Sprintf("outer=%v", val))
-		}
-		if val, exists := i.GetVariable("inner_count"); exists {
-			stateParts = append(stateParts, fmt.Sprintf("inner=%v", val))
-		}
-		stateStr := strings.Join(stateParts, ", ")
-		if stateStr == "" {
-			stateStr = "counters not set"
-		}
-
 		stepTypeLower := strings.ToLower(step.Type)
+		subject := getStepSubjectForLogging(step)
+		fmt.Printf("[DEBUG-EXEC] Step %d: %s %s (Pos: %s)\n", stepIdx, strings.ToUpper(stepTypeLower), subject, step.GetPos())
 
 		switch stepTypeLower {
 		case "set", "assign":
 			stepResult, stepErr = i.executeSet(step)
 		case "call":
-			if step.Call != nil {
-				stepResult, stepErr = i.evaluate.Expression(step.Call)
-			} else {
-				stepErr = lang.NewRuntimeError(lang.ErrorCodeInternal, "call step is missing call expression", nil).WithPosition(&step.Position)
-			}
+			stepResult, stepErr = i.executeCall(step)
 		case "return":
 			if isInHandler {
 				stepErr = lang.NewRuntimeError(lang.ErrorCodeReturnViolation, "'return' is not permitted inside an on_error block", lang.ErrReturnViolation).WithPosition(&step.Position)
@@ -148,6 +124,7 @@ func (i *Interpreter) recExecuteSteps(steps []ast.Step, isInHandler bool, active
 				}
 				if ifCleared {
 					wasCleared = true
+					activeError = nil
 				}
 			}
 		case "while":
@@ -162,6 +139,7 @@ func (i *Interpreter) recExecuteSteps(steps []ast.Step, isInHandler bool, active
 				}
 				if whileCleared {
 					wasCleared = true
+					activeError = nil
 				}
 			}
 		case "for", "for_each":
@@ -175,6 +153,7 @@ func (i *Interpreter) recExecuteSteps(steps []ast.Step, isInHandler bool, active
 				}
 				if forCleared {
 					wasCleared = true
+					activeError = nil
 				}
 			}
 		case "must", "mustbe":
@@ -182,6 +161,7 @@ func (i *Interpreter) recExecuteSteps(steps []ast.Step, isInHandler bool, active
 		case "fail":
 			stepErr = i.executeFail(step)
 		case "on_error":
+			continue
 		case "clear_error":
 			var clearedNow bool
 			clearedNow, stepErr = i.executeClearError(step, isInHandler)
@@ -195,49 +175,53 @@ func (i *Interpreter) recExecuteSteps(steps []ast.Step, isInHandler bool, active
 			stepErr = i.executeBreak(step)
 		case "continue":
 			stepErr = i.executeContinue(step)
+		case "expression_statement":
+			if len(step.Values) > 0 {
+				stepResult, stepErr = i.evaluate.Expression(step.Values[0])
+			} else {
+				stepResult = &lang.NilValue{}
+			}
 		default:
 			errMsg := fmt.Sprintf("unknown step type '%s'", step.Type)
 			stepErr = lang.NewRuntimeError(lang.ErrorCodeUnknownKeyword, errMsg, lang.ErrUnknownKeyword).WithPosition(&step.Position)
 		}
 
 		if stepErr != nil {
+			fmt.Printf("[DEBUG-EXEC] Step %d FAILED. Error: %v\n", stepIdx, stepErr)
+		} else {
+			fmt.Printf("[DEBUG-EXEC] Step %d SUCCEEDED. Result: %v (%T)\n", stepIdx, stepResult, stepResult)
+		}
 
+		if stepErr != nil {
 			rtErr := ensureRuntimeError(stepErr, &step.Position, stepTypeLower)
 
 			if errors.Is(rtErr.Unwrap(), lang.ErrBreak) || errors.Is(rtErr.Unwrap(), lang.ErrContinue) {
 				return nil, false, wasCleared, rtErr
 			}
 
-			var handlerToExecute *ast.Step = nil
-			if !isInHandler {
-				if len(i.state.errorHandlerStack) > 0 {
-					procHandlers := i.state.errorHandlerStack[len(i.state.errorHandlerStack)-1]
-					if len(procHandlers) > 0 {
-						handlerToExecute = procHandlers[0]
-					}
-				}
-			}
+			// FIX: Check the *current* interpreter's stack for a handler.
+			if !isInHandler && len(i.state.errorHandlerStack) > 0 {
+				handlerBlock := i.state.errorHandlerStack[len(i.state.errorHandlerStack)-1]
+				handlerToExecute := handlerBlock[0] // Assuming one handler per level for now
 
-			if handlerToExecute != nil {
-				var handlerCleared bool
-				var handlerErr error
-				_, _, handlerCleared, handlerErr = i.recExecuteSteps(handlerToExecute.Body, true, rtErr, depth+1)
+				// Execute handler in the *current* interpreter context.
+				_, _, handlerCleared, handlerErr := i.executeSteps(handlerToExecute.Body, true, rtErr)
 
 				if handlerErr != nil {
-					//				fmt.Printf("%s    (ON_ERROR handler ITSELF failed. Propagating handler's error.)\n", indent)
 					return nil, false, false, ensureRuntimeError(handlerErr, &handlerToExecute.Position, "ON_ERROR_HANDLER")
 				}
 
 				if handlerCleared {
-					wasCleared = true
-					activeError = nil
+					// The error was handled and we can continue execution.
 					stepErr = nil
 					continue
 				} else {
+					// The handler ran but didn't clear the error, so it propagates.
 					return nil, false, false, rtErr
 				}
 			} else {
-				return nil, false, false, rtErr
+				// No handler available or we're already inside one.
+				return nil, false, wasCleared, rtErr
 			}
 		}
 
@@ -250,6 +234,13 @@ func (i *Interpreter) recExecuteSteps(steps []ast.Step, isInHandler bool, active
 	}
 
 	return finalResult, false, wasCleared, nil
+}
+
+func (i *Interpreter) executeCall(step ast.Step) (lang.Value, error) {
+	if step.Call == nil {
+		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, "call step is missing call expression", nil).WithPosition(&step.Position)
+	}
+	return i.evaluate.Expression(step.Call)
 }
 
 func (i *Interpreter) executeBlock(blockValue interface{}, parentPos *lang.Position, blockType string, isInHandler bool, activeError *lang.RuntimeError, depth int) (result lang.Value, wasReturn bool, wasCleared bool, err error) {
@@ -266,7 +257,7 @@ func (i *Interpreter) executeBlock(blockValue interface{}, parentPos *lang.Posit
 
 func shouldUpdateLastResult(stepTypeLower string) bool {
 	switch stepTypeLower {
-	case "set", "assign", "emit", "ask", "call":
+	case "set", "assign", "emit", "ask", "call", "expression_statement":
 		return true
 	default:
 		return false

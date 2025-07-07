@@ -26,7 +26,7 @@ import (
 // TestScriptTools uses the file-based fixture runner to test the script-loading
 // and introspection tools (`LoadScript`, `Script.ListFunctions`, etc.).
 func TestScriptTools(t *testing.T) {
-	root := filepath.Join("testdata", "tools", "script")
+	root := filepath.Join("testdata", "script")
 
 	entries, err := os.ReadDir(root)
 	if err != nil {

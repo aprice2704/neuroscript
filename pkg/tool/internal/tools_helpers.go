@@ -1,4 +1,4 @@
-// filename: pkg/tool/tools_helpers.go
+// filename: pkg/tool/internal/tools_helpers.go
 package internal
 
 import (
@@ -32,14 +32,14 @@ func toolExec(interpreter tool.Runtime, cmdAndArgs ...string) (string, error) {
 	// Basic security check (can be enhanced)
 	if strings.Contains(commandPath, "..") || strings.ContainsAny(commandPath, "|;&$><`\\") {
 		errMsg := fmt.Sprintf("toolExec blocked suspicious command path: %q", commandPath)
-		if interpreter.GetLogger != nil {
-			interpreter.GetLogger().Error("[toolExec] %s", errMsg)
+		if logger := interpreter.GetLogger(); logger != nil {
+			logger.Error("[toolExec] %s", errMsg)
 		}
 		// Return error message and a wrapped ErrInternalTool or a specific execution error
 		return errMsg, fmt.Errorf("%w: %s", lang.ErrInternalTool, errMsg)
 	}
 
-	if interpreter.GetLogger != nil {
+	if logger := interpreter.GetLogger(); logger != nil {
 		logArgs := make([]string, len(commandArgs))
 		for i, arg := range commandArgs {
 			if strings.Contains(arg, " ") {
@@ -48,7 +48,7 @@ func toolExec(interpreter tool.Runtime, cmdAndArgs ...string) (string, error) {
 				logArgs[i] = arg
 			}
 		}
-		interpreter.GetLogger().Debug("[toolExec] Executing: %s %s", commandPath, strings.Join(logArgs, " "))
+		logger.Debug("[toolExec] Executing: %s %s", commandPath, strings.Join(logArgs, " "))
 	}
 
 	cmd := exec.Command(commandPath, commandArgs...)
@@ -66,16 +66,16 @@ func toolExec(interpreter tool.Runtime, cmdAndArgs ...string) (string, error) {
 		// Command failed (non-zero exit or execution error)
 		errMsg := fmt.Sprintf("command '%s %s' failed with exit error: %v. Output:\n%s",
 			commandPath, strings.Join(commandArgs, " "), execErr, combinedOutput)
-		if interpreter.GetLogger != nil {
-			interpreter.GetLogger().Error("[toolExec] %s", errMsg)
+		if logger := interpreter.GetLogger(); logger != nil {
+			logger.Error("[toolExec] %s", errMsg)
 		}
 		// Return the combined output along with the error
 		return combinedOutput, fmt.Errorf("%w: %s", lang.ErrInternalTool, errMsg)
 	}
 
 	// Command succeeded
-	if interpreter.GetLogger != nil {
-		interpreter.GetLogger().Debug("[toolExec] Command successful. Output:\n%s", combinedOutput)
+	if logger := interpreter.GetLogger(); logger != nil {
+		logger.Debug("[toolExec] Command successful. Output:\n%s", combinedOutput)
 	}
 	return combinedOutput, nil
 }

@@ -1,8 +1,8 @@
 // filename: pkg/lang/errors.go
 // NeuroScript Version: 0.5.2
-// File version: 0.2.6
-// Purpose: Added ErrorCodeControlFlow for handling misplaced break/continue statements.
-// nlines: 225+
+// File version: 3
+// Purpose: Added the ErrMaxIterationsExceeded sentinel error for loop resource limits.
+// nlines: 230
 // risk_rating: LOW
 
 package lang
@@ -115,9 +115,7 @@ const (
 	// Resource Error Codes (start from 37)
 	ErrorCodeResourceExhaustion   ErrorCode = 37
 	ErrorCodeNestingDepthExceeded ErrorCode = 38
-
-	// FIX: Added new error code for control flow violations.
-	ErrorCodeControlFlow ErrorCode = 39
+	ErrorCodeControlFlow          ErrorCode = 39
 
 	// Security
 	ErrorCodeAttackPossible       ErrorCode = 99901
@@ -152,15 +150,16 @@ var (
 
 // --- Core Security & Resource Errors ---
 var (
-	ErrToolDenied           = errors.New("tool explicitly denied")
-	ErrToolNotAllowed       = errors.New("tool not in allowlist")
-	ErrToolBlocked          = errors.New("tool blocked by security policy")
-	ErrSecurityViolation    = errors.New("security violation")
-	ErrPathViolation        = errors.New("path resolves outside allowed directory")
-	ErrInternalSecurity     = errors.New("internal security error")
-	ErrInvalidPath          = errors.New("invalid path")
-	ErrResourceExhaustion   = errors.New("resource exhaustion limit reached")
-	ErrNestingDepthExceeded = errors.New("maximum nesting depth exceeded")
+	ErrToolDenied            = errors.New("tool explicitly denied")
+	ErrToolNotAllowed        = errors.New("tool not in allowlist")
+	ErrToolBlocked           = errors.New("tool blocked by security policy")
+	ErrSecurityViolation     = errors.New("security violation")
+	ErrPathViolation         = errors.New("path resolves outside allowed directory")
+	ErrInternalSecurity      = errors.New("internal security error")
+	ErrInvalidPath           = errors.New("invalid path")
+	ErrResourceExhaustion    = errors.New("resource exhaustion limit reached")
+	ErrNestingDepthExceeded  = errors.New("maximum nesting depth exceeded")
+	ErrMaxIterationsExceeded = errors.New("maximum loop iterations exceeded") // FIX: Added this line
 )
 
 // Malign action errors ---------------

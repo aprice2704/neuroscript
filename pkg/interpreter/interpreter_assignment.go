@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.5.2
-// File version: 23
-// Purpose: Corrected vivifyAndSet to properly auto-create nested lists and maps during complex assignments, fixing all l-value auto-creation test failures.
+// File version: 33
+// Purpose: Corrected vivifyAndSet to fail when accessing a sub-element of an explicit 'nil', rather than incorrectly auto-creating a container.
 // filename: pkg/interpreter/interpreter_assignment.go
-// nlines: 225
+// nlines: 240
 // risk_rating: HIGH
 
 package interpreter
@@ -57,7 +57,6 @@ func (i *Interpreter) executeSet(step ast.Step) (lang.Value, error) {
 	return rhsValue, nil
 }
 
-// setSingleLValue handles the logic for assigning a value to a single, potentially complex LValue.
 func (i *Interpreter) setSingleLValue(lvalueExpr ast.Expression, rhsValue lang.Value) error {
 	lval, ok := lvalueExpr.(*ast.LValueNode)
 	if !ok {
@@ -82,7 +81,6 @@ func (i *Interpreter) setSingleLValue(lvalueExpr ast.Expression, rhsValue lang.V
 	return i.SetVariable(baseVarName, modifiedRoot)
 }
 
-// getOrCreateRootContainer retrieves the top-level variable for a complex assignment.
 func (i *Interpreter) getOrCreateRootContainer(name string, firstAccessor *ast.AccessorNode) (lang.Value, error) {
 	container, varExists := i.GetVariable(name)
 	if !varExists || isNil(container) {
@@ -97,7 +95,6 @@ func (i *Interpreter) getOrCreateRootContainer(name string, firstAccessor *ast.A
 		lang.ErrCannotAccessType)
 }
 
-// vivifyAndSet recursively traverses the accessor path, creating nested containers as needed.
 func (i *Interpreter) vivifyAndSet(current lang.Value, accessors []*ast.AccessorNode, rhsValue lang.Value) (lang.Value, error) {
 	if len(accessors) == 0 {
 		return rhsValue, nil
@@ -106,8 +103,13 @@ func (i *Interpreter) vivifyAndSet(current lang.Value, accessors []*ast.Accessor
 	accessor := accessors[0]
 	isFinal := len(accessors) == 1
 
-	if _, isExplicitNil := current.(*lang.NilValue); isExplicitNil {
-		return nil, lang.NewRuntimeError(lang.ErrorCodeEvaluation, "cannot access property on a nil value", lang.ErrCollectionIsNil).WithPosition(accessor.Key.GetPos())
+	// FIX: This is the critical change. If we encounter a nil value *during* the
+	// traversal (i.e., not at the root), it's an error to try to access its members.
+	if isNil(current) {
+		return nil, lang.NewRuntimeError(lang.ErrorCodeType,
+			"cannot perform element access on a nil value",
+			lang.ErrCollectionIsNil,
+		).WithPosition(accessor.Key.GetPos())
 	}
 
 	if m, ok := current.(lang.MapValue); ok {
@@ -119,13 +121,16 @@ func (i *Interpreter) vivifyAndSet(current lang.Value, accessors []*ast.Accessor
 			m.Value[key] = rhsValue
 			return m, nil
 		}
+
 		child, exists := m.Value[key]
-		if !exists || isNil(child) {
+		// Vivify only if the key does not exist. Do not replace an existing explicit nil.
+		if !exists {
 			child, err = i.determineInitialContainer(accessors[1])
 			if err != nil {
 				return nil, err
 			}
 		}
+
 		modifiedChild, err := i.vivifyAndSet(child, accessors[1:], rhsValue)
 		if err != nil {
 			return nil, err
@@ -139,18 +144,24 @@ func (i *Interpreter) vivifyAndSet(current lang.Value, accessors []*ast.Accessor
 		if err != nil {
 			return nil, err
 		}
+		originalLen := int64(len(l.Value))
 		l.Value = padList(l.Value, index)
+		child := l.Value[index]
 
 		if isFinal {
 			l.Value[index] = rhsValue
 			return l, nil
 		}
-		child := l.Value[index]
-		if isNil(child) {
-			child, err = i.determineInitialContainer(accessors[1])
+
+		// Vivify only if the index was newly created by padding.
+		// Do not replace an existing explicit nil.
+		if index >= originalLen {
+			newChild, err := i.determineInitialContainer(accessors[1])
 			if err != nil {
 				return nil, err
 			}
+			l.Value[index] = newChild
+			child = newChild
 		}
 
 		modifiedChild, err := i.vivifyAndSet(child, accessors[1:], rhsValue)
@@ -161,7 +172,7 @@ func (i *Interpreter) vivifyAndSet(current lang.Value, accessors []*ast.Accessor
 		return l, nil
 	}
 
-	return nil, lang.NewRuntimeError(lang.ErrorCodeType, fmt.Sprintf("cannot perform element access on type %s", current.Type()), lang.ErrCannotAccessType)
+	return nil, lang.NewRuntimeError(lang.ErrorCodeType, fmt.Sprintf("cannot perform element access on type %s", current.Type()), lang.ErrCannotAccessType).WithPosition(accessor.Key.GetPos())
 }
 
 func (i *Interpreter) determineInitialContainer(accessor *ast.AccessorNode) (lang.Value, error) {

@@ -1,0 +1,31 @@
+:: name: len function test
+:: description: Tests the built-in len() function against various data types.
+:: author: AJP
+:: file_version: 4.0.0
+
+func main(returns result) means
+    on error do
+        // If any must fails, the on_error block will be triggered.
+        return "len() test failed: a 'must' condition was not met."
+    endon
+
+    set test_cases = [\
+        {"name": "string", "value": "hello", "expected": 5},\
+        {"name": "unicode string", "value": "你好世界", "expected": 4},\
+        {"name": "empty string", "value": "", "expected": 0},\
+        {"name": "list", "value": [1, "two", true], "expected": 3},\
+        {"name": "empty list", "value": [], "expected": 0},\
+        {"name": "map", "value": {"a":1, "b":2}, "expected": 2},\
+        {"name": "empty map", "value": {}, "expected": 0},\
+        {"name": "number", "value": 42.5, "expected": 1},\
+        {"name": "boolean", "value": false, "expected": 1},\
+        {"name": "nil", "value": nil, "expected": 0}\
+    ]
+
+    for each item in test_cases
+        must len(item["value"]) == item["expected"]
+    endfor
+
+    // FIX: If the loop completes, return a simple success string.
+    return "all tests passed"
+endfunc

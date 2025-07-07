@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.5.2
-// File version: 11
-// Purpose: Implemented the definitive fix for return-value order using a robust prepend-to-slice pattern.
+// File version: 12
+// Purpose: Updated to reflect grammar changes by removing ExitExpression_statement and adding ExitMust_statement.
 // filename: pkg/parser/ast_builder_statements.go
 // nlines: 150
 // risk_rating: HIGH
@@ -90,6 +90,26 @@ func (l *neuroScriptListenerImpl) ExitCall_statement(c *gen.Call_statementContex
 	})
 }
 
+// FIX: Added to handle the new 'must_statement' grammar rule.
+func (l *neuroScriptListenerImpl) ExitMust_statement(c *gen.Must_statementContext) {
+	val, ok := l.pop()
+	if !ok {
+		l.addError(c, "internal error in must_statement: could not pop value")
+		return
+	}
+	expr, ok := val.(ast.Expression)
+	if !ok {
+		l.addError(c, "internal error in must_statement: value is not an ast.Expression, but %T", val)
+		return
+	}
+	pos := tokenToPosition(c.GetStart())
+	l.addStep(ast.Step{
+		Position: pos,
+		Type:     "must",
+		Cond:     expr,
+	})
+}
+
 func (l *neuroScriptListenerImpl) ExitFail_statement(c *gen.Fail_statementContext) {
 	val, ok := l.pop()
 	if !ok {
@@ -159,29 +179,4 @@ func (l *neuroScriptListenerImpl) ExitBreak_statement(c *gen.Break_statementCont
 	})
 }
 
-func (l *neuroScriptListenerImpl) ExitExpression_statement(ctx *gen.Expression_statementContext) {
-	rawExpr, ok := l.pop()
-	if !ok {
-		l.addError(ctx, "internal error in expression_statement: could not pop expression")
-		return
-	}
-
-	expr, ok := rawExpr.(ast.Expression)
-	if !ok {
-		l.addError(ctx, "internal error in expression_statement: value is not an ast.Expression, but %T", rawExpr)
-		return
-	}
-
-	pos := tokenToPosition(ctx.GetStart())
-
-	stmtNode := &ast.ExpressionStatementNode{
-		Pos:        &pos,
-		Expression: expr,
-	}
-
-	l.addStep(ast.Step{
-		Position:       pos,
-		Type:           "expression_statement",
-		ExpressionStmt: stmtNode,
-	})
-}
+// FIX: Removed ExitExpression_statement as the rule no longer exists in the grammar.

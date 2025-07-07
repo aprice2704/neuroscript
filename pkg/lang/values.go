@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.5.2
-// File version: 9
-// Purpose: Corrected NewErrorValue to return an ErrorValue struct instead of a MapValue, ensuring typeof() reports the correct type.
+// File version: 10
+// Purpose: Added NewErrorValueFromRuntimeError to correctly wrap Go-level errors into interpreter-level values, fixing compiler errors.
 // filename: pkg/lang/values.go
-// nlines: 220
+// nlines: 235
 // risk_rating: MEDIUM
 
 package lang
@@ -133,7 +133,6 @@ type FuzzyValue struct {
 	μ float64
 }
 
-// GetValue returns the raw float64 value of the fuzzy number.
 func (v FuzzyValue) GetValue() float64 {
 	return v.μ
 }
@@ -192,8 +191,6 @@ func NewMapValue(val map[string]Value) MapValue {
 	return MapValue{Value: val}
 }
 
-// NewErrorValue creates the standard map structure for a tool-level error
-// and returns it as an ErrorValue.
 func NewErrorValue(code, message string, details Value) ErrorValue {
 	if details == nil {
 		details = &NilValue{}
@@ -203,4 +200,23 @@ func NewErrorValue(code, message string, details Value) ErrorValue {
 		ErrorKeyMessage: StringValue{Value: message},
 		ErrorKeyDetails: details,
 	}}
+}
+
+// FIX: Added this new constructor.
+// NewErrorValueFromRuntimeError creates an ErrorValue from a standard RuntimeError.
+func NewErrorValueFromRuntimeError(re *RuntimeError) ErrorValue {
+	if re == nil {
+		return NewErrorValue("E_NIL", "nil runtime error provided", &NilValue{})
+	}
+
+	var detailsVal Value = &NilValue{}
+	if re.Wrapped != nil {
+		detailsVal = StringValue{Value: re.Wrapped.Error()}
+	}
+
+	return NewErrorValue(
+		strconv.Itoa(int(re.Code)),
+		re.Message,
+		detailsVal,
+	)
 }

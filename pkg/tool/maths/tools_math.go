@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.1.1
-// Return ErrDivisionByZero sentinel directly.
+// File version: 0.1.3
+// Return ErrDivisionByZero sentinel directly. Corrected GetLogger check. Made logging more robust.
 // nlines: 65
 // risk_rating: MEDIUM
 // filename: pkg/tool/maths/tools_math.go
@@ -23,8 +23,8 @@ func toolAdd(interpreter tool.Runtime, args []interface{}) (interface{}, error) 
 		return nil, fmt.Errorf("%w: arguments were not converted to float64. Got %T and %T", lang.ErrInternalTool, args[0], args[1])
 	}
 	result := num1 + num2
-	if interpreter.GetLogger != nil {
-		interpreter.GetLogger().Debug("Tool: Add] Calculated %v + %v = %v", num1, num2, result)
+	if logger := interpreter.GetLogger(); logger != nil {
+		logger.Debug(fmt.Sprintf("Tool: Add] Calculated %v + %v = %v", num1, num2, result))
 	}
 	return result, nil
 }
@@ -36,8 +36,8 @@ func toolSubtract(interpreter tool.Runtime, args []interface{}) (interface{}, er
 		return nil, fmt.Errorf("%w: arguments not float64. Got %T and %T", lang.ErrInternalTool, args[0], args[1])
 	}
 	result := num1 - num2
-	if interpreter.GetLogger != nil {
-		interpreter.GetLogger().Debug("Tool: Subtract] Calculated %v - %v = %v", num1, num2, result)
+	if logger := interpreter.GetLogger(); logger != nil {
+		logger.Debug(fmt.Sprintf("Tool: Subtract] Calculated %v - %v = %v", num1, num2, result))
 	}
 	return result, nil
 }
@@ -49,8 +49,8 @@ func toolMultiply(interpreter tool.Runtime, args []interface{}) (interface{}, er
 		return nil, fmt.Errorf("%w: arguments not float64. Got %T and %T", lang.ErrInternalTool, args[0], args[1])
 	}
 	result := num1 * num2
-	if interpreter.GetLogger != nil {
-		interpreter.GetLogger().Debug("Tool: Multiply] Calculated %v * %v = %v", num1, num2, result)
+	if logger := interpreter.GetLogger(); logger != nil {
+		logger.Debug(fmt.Sprintf("Tool: Multiply] Calculated %v * %v = %v", num1, num2, result))
 	}
 	return result, nil
 }
@@ -66,8 +66,8 @@ func toolDivide(interpreter tool.Runtime, args []interface{}) (interface{}, erro
 		return nil, lang.ErrDivisionByZero
 	}
 	result := num1 / num2
-	if interpreter.GetLogger != nil {
-		interpreter.GetLogger().Debug("Tool: Divide] Calculated %v / %v = %v", num1, num2, result)
+	if logger := interpreter.GetLogger(); logger != nil {
+		logger.Debug(fmt.Sprintf("Tool: Divide] Calculated %v / %v = %v", num1, num2, result))
 	}
 	return result, nil
 }
@@ -85,8 +85,8 @@ func toolModulo(interpreter tool.Runtime, args []interface{}) (interface{}, erro
 		return nil, lang.ErrDivisionByZero
 	}
 	result := num1 % num2
-	if interpreter.GetLogger != nil {
-		interpreter.GetLogger().Debug("Tool: Modulo] Calculated %v %% %v = %v", num1, num2, result)
+	if logger := interpreter.GetLogger(); logger != nil {
+		logger.Debug(fmt.Sprintf("Tool: Modulo] Calculated %v %% %v = %v", num1, num2, result))
 	}
 	// Modulo result should remain int64
 	return result, nil

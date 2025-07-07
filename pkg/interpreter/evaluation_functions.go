@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.5.2
-// File version: 12
-// Purpose: Corrected all type-checking functions (is_string, etc.) to recognize both primitive types and their lang.Value wrappers.
+// File version: 21
+// Purpose: Added high-precision debug logging to the 'len' function to trace its input and output.
 // filename: pkg/interpreter/evaluation_functions.go
 // nlines: 160
 // risk_rating: HIGH
@@ -21,7 +21,7 @@ func isBuiltInFunction(name string) bool {
 	switch strings.ToLower(name) {
 	case "len", "ln", "log", "sin", "cos", "tan", "asin", "acos", "atan",
 		"is_string", "is_number", "is_int", "is_float", "is_bool", "is_list", "is_map", "not_empty",
-		"is_error", "is_function", "is_tool", "is_event", "is_timedate", "is_fuzzy": // Added new functions
+		"is_error", "is_function", "is_tool", "is_event", "is_timedate", "is_fuzzy":
 		return true
 	default:
 		return false
@@ -44,7 +44,7 @@ func getNumericArg(arg interface{}) (float64, bool) {
 	}
 }
 
-// evaluateBuiltInFunction handles built-in function calls.
+// evaluateBuiltInFunction handles built-in function calls with primitive arguments.
 func evaluateBuiltInFunction(funcName string, args []interface{}) (lang.Value, error) {
 	checkArgCount := func(expectedCount int) error {
 		if len(args) != expectedCount {
@@ -61,18 +61,36 @@ func evaluateBuiltInFunction(funcName string, args []interface{}) (lang.Value, e
 		}
 		arg := args[0]
 		var length int
-		switch v := arg.(type) {
-		case nil:
+
+		// --- NEW DEBUGGING ---
+		fmt.Printf("[DEBUG-LEN] Received argument: %#v (Type: %T)\n", arg, arg)
+		// --- END NEW DEBUGGING ---
+
+		if arg == nil {
 			length = 0
-		case string:
-			length = utf8.RuneCountInString(v)
-		case []interface{}:
-			length = len(v)
-		case map[string]interface{}:
-			length = len(v)
-		default:
-			length = 1
+		} else {
+			switch v := arg.(type) {
+			case string:
+				length = utf8.RuneCountInString(v)
+			case []interface{}:
+				length = len(v)
+			case map[string]interface{}:
+				length = len(v)
+			case lang.ListValue:
+				length = len(v.Value)
+			case lang.MapValue:
+				length = len(v.Value)
+			case *lang.NilValue:
+				length = 0
+			default:
+				length = 1
+			}
 		}
+
+		// --- NEW DEBUGGING ---
+		fmt.Printf("[DEBUG-LEN] Calculated length: %d\n", length)
+		// --- END NEW DEBUGGING ---
+
 		return lang.NumberValue{Value: float64(length)}, nil
 
 	// --- Type Checking Functions ---
@@ -128,7 +146,6 @@ func evaluateBuiltInFunction(funcName string, args []interface{}) (lang.Value, e
 		}
 		_, isPrim := args[0].(error)
 		_, isWrap := args[0].(lang.ErrorValue)
-		// Also check for the map structure
 		isMapStruct := false
 		if m, ok := args[0].(map[string]interface{}); ok {
 			_, hasCode := m[lang.ErrorKeyCode]

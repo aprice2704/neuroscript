@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.4.1
-// File version: 18 // FINAL GIT FIX: Robust setup for all tests; pull/push shorted out.
-// Purpose: Final corrected test file to pass all remaining Git tool tests.
+// File version: 19
+// Purpose: Final corrected test file to pass all remaining Git tool tests, with a more robust setup.
 // filename: pkg/tool/git/tools_git_test.go
 // nlines: 235
 // risk_rating: MEDIUM
@@ -80,6 +80,10 @@ func testGitToolHelper(t *testing.T, toolName string, tc gitTestCase) {
 	if !ok {
 		t.Fatalf("Test case '%s' must have a string repo path as first argument.", tc.Name)
 	}
+	// Use a fresh temp dir for each test to avoid conflicts
+	sandboxDir := t.TempDir()
+	interp.SetSandboxDir(sandboxDir)
+
 	absRepoPath, err := initGitRepoForTest(t, interp.SandboxDir(), repoSubDir)
 	if err != nil {
 		t.Fatalf("Test case '%s': Failed to set up git repo: %v", tc.Name, err)

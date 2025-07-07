@@ -1,5 +1,6 @@
 // NeuroScript Version: 0.3.8
-// File version: 0.1.5 // Used type assertions to access ToolRegistry and corrected ArgSpec type.
+// File version: 0.1.7
+// Used the new ToolRegistry() method on the Runtime interface to correctly access the tool registry.
 // nlines: 175 // Approximate
 // risk_rating: MEDIUM
 
@@ -23,9 +24,9 @@ func toolListTools(interpreter tool.Runtime, args []interface{}) (interface{}, e
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "Meta.ListTools: expects no arguments", lang.ErrArgumentMismatch)
 	}
 
-	// FIX: Assert the Runtime to get the full registry.
-	registry, ok := interpreter.(tool.ToolRegistry)
-	if !ok {
+	// FIX: Use the new interface method
+	registry := interpreter.ToolRegistry()
+	if registry == nil {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeConfiguration, "Meta.ListTools: ToolRegistry is not available from runtime", lang.ErrConfiguration)
 	}
 
@@ -68,9 +69,9 @@ func toolToolsHelp(interpreter tool.Runtime, args []interface{}) (interface{}, e
 	displayFilter := filterValue
 	normalizedFilter := strings.ToLower(filterValue)
 
-	// FIX: Assert the Runtime to get the full registry.
-	registry, ok := interpreter.(tool.ToolRegistry)
-	if !ok {
+	// FIX: Use the new interface method
+	registry := interpreter.ToolRegistry()
+	if registry == nil {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeConfiguration, "Meta.ToolsHelp: ToolRegistry is not available from runtime", lang.ErrConfiguration)
 	}
 
@@ -124,9 +125,9 @@ func toolGetToolSpecificationsJSON(interpreter tool.Runtime, args []interface{})
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "Meta.GetToolSpecificationsJSON: expects no arguments", lang.ErrArgumentMismatch)
 	}
 
-	// FIX: Assert the Runtime to get the full registry.
-	registry, ok := interpreter.(tool.ToolRegistry)
-	if !ok {
+	// FIX: Use the new interface method
+	registry := interpreter.ToolRegistry()
+	if registry == nil {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeConfiguration, "Meta.GetToolSpecificationsJSON: ToolRegistry is not available", lang.ErrConfiguration)
 	}
 

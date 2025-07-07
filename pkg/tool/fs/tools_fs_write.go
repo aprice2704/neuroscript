@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.4.0
-// File version: 6
-// Purpose: Added toolAppendFile and a shared writeFileHelper to implement FS.Append functionality.
+// File version: 7
+// Purpose: Added toolAppendFile and a shared writeFileHelper to implement FS.Append functionality. Corrected error handling for writing to a directory.
 // nlines: 105
 // risk_rating: MEDIUM
 // filename: pkg/tool/fs/tools_fs_write.go
@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/security"
@@ -41,6 +42,12 @@ func writeFileHelper(interpreter tool.Runtime, args []interface{}, append bool) 
 		return nil, secErr
 	}
 
+	// Check if the path is a directory before trying to open it for writing
+	info, statErr := os.Stat(absPath)
+	if statErr == nil && info.IsDir() {
+		return nil, lang.NewRuntimeError(lang.ErrorCodePathTypeMismatch, fmt.Sprintf("path '%s' is a directory, not a file", relPath), lang.ErrPathNotFile)
+	}
+
 	parentDir := filepath.Dir(absPath)
 	if err := os.MkdirAll(parentDir, 0755); err != nil {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeIOFailed, fmt.Sprintf("failed to create parent directory for '%s'", relPath), errors.Join(lang.ErrCannotCreateDir, err))
@@ -58,6 +65,10 @@ func writeFileHelper(interpreter tool.Runtime, args []interface{}, append bool) 
 
 	file, err = os.OpenFile(absPath, openFlags, 0644)
 	if err != nil {
+		// This will now correctly handle the "is a directory" error from the OS
+		if errors.Is(err, os.ErrExist) || strings.Contains(err.Error(), "is a directory") {
+			return nil, lang.NewRuntimeError(lang.ErrorCodePathTypeMismatch, fmt.Sprintf("path '%s' is a directory, not a file", relPath), lang.ErrPathNotFile)
+		}
 		return nil, lang.NewRuntimeError(lang.ErrorCodeIOFailed, fmt.Sprintf("failed to open file '%s'", relPath), errors.Join(lang.ErrIOFailed, err))
 	}
 	defer file.Close()

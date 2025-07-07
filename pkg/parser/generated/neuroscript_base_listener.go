@@ -162,12 +162,6 @@ func (s *BaseNeuroScriptListener) EnterSimple_statement(ctx *Simple_statementCon
 // ExitSimple_statement is called when production simple_statement is exited.
 func (s *BaseNeuroScriptListener) ExitSimple_statement(ctx *Simple_statementContext) {}
 
-// EnterExpression_statement is called when production expression_statement is entered.
-func (s *BaseNeuroScriptListener) EnterExpression_statement(ctx *Expression_statementContext) {}
-
-// ExitExpression_statement is called when production expression_statement is exited.
-func (s *BaseNeuroScriptListener) ExitExpression_statement(ctx *Expression_statementContext) {}
-
 // EnterBlock_statement is called when production block_statement is entered.
 func (s *BaseNeuroScriptListener) EnterBlock_statement(ctx *Block_statementContext) {}
 
@@ -233,6 +227,12 @@ func (s *BaseNeuroScriptListener) EnterEmit_statement(ctx *Emit_statementContext
 
 // ExitEmit_statement is called when production emit_statement is exited.
 func (s *BaseNeuroScriptListener) ExitEmit_statement(ctx *Emit_statementContext) {}
+
+// EnterMust_statement is called when production must_statement is entered.
+func (s *BaseNeuroScriptListener) EnterMust_statement(ctx *Must_statementContext) {}
+
+// ExitMust_statement is called when production must_statement is exited.
+func (s *BaseNeuroScriptListener) ExitMust_statement(ctx *Must_statementContext) {}
 
 // EnterFail_statement is called when production fail_statement is entered.
 func (s *BaseNeuroScriptListener) EnterFail_statement(ctx *Fail_statementContext) {}

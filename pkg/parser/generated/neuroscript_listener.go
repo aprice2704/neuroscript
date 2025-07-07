@@ -76,9 +76,6 @@ type NeuroScriptListener interface {
 	// EnterSimple_statement is called when entering the simple_statement production.
 	EnterSimple_statement(c *Simple_statementContext)
 
-	// EnterExpression_statement is called when entering the expression_statement production.
-	EnterExpression_statement(c *Expression_statementContext)
-
 	// EnterBlock_statement is called when entering the block_statement production.
 	EnterBlock_statement(c *Block_statementContext)
 
@@ -111,6 +108,9 @@ type NeuroScriptListener interface {
 
 	// EnterEmit_statement is called when entering the emit_statement production.
 	EnterEmit_statement(c *Emit_statementContext)
+
+	// EnterMust_statement is called when entering the must_statement production.
+	EnterMust_statement(c *Must_statementContext)
 
 	// EnterFail_statement is called when entering the fail_statement production.
 	EnterFail_statement(c *Fail_statementContext)
@@ -289,9 +289,6 @@ type NeuroScriptListener interface {
 	// ExitSimple_statement is called when exiting the simple_statement production.
 	ExitSimple_statement(c *Simple_statementContext)
 
-	// ExitExpression_statement is called when exiting the expression_statement production.
-	ExitExpression_statement(c *Expression_statementContext)
-
 	// ExitBlock_statement is called when exiting the block_statement production.
 	ExitBlock_statement(c *Block_statementContext)
 
@@ -324,6 +321,9 @@ type NeuroScriptListener interface {
 
 	// ExitEmit_statement is called when exiting the emit_statement production.
 	ExitEmit_statement(c *Emit_statementContext)
+
+	// ExitMust_statement is called when exiting the must_statement production.
+	ExitMust_statement(c *Must_statementContext)
 
 	// ExitFail_statement is called when exiting the fail_statement production.
 	ExitFail_statement(c *Fail_statementContext)

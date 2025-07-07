@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.3.8
-// File version: 0.5.0
-// Purpose: Combined suite and main test files, fixing helper visibility and registration calls.
+// File version: 0.5.1
+// Purpose: Combined suite and main test files, fixing helper visibility and registration calls. Corrected tool execution in tests.
 // nlines: 120
 // risk_rating: LOW
 // filename: pkg/tool/meta/tools_meta_test.go
@@ -33,7 +33,7 @@ func newMetaTestInterpreter(t *testing.T) (*interpreter.Interpreter, error) {
 	}
 
 	// Register a few other dummy tools to test filtering.
-	dummySpec := tool.ToolSpec{Name: "FS.Read", Description: "Dummy FS tool."}
+	dummySpec := tool.ToolSpec{Name: "FS.Read", Description: "Dummy FS tool.", ReturnType: tool.ArgTypeAny}
 	dummyFunc := func(rt tool.Runtime, args []interface{}) (interface{}, error) { return "dummy fs read", nil }
 	if err := interp.ToolRegistry().RegisterTool(tool.ToolImplementation{Spec: dummySpec, Func: dummyFunc}); err != nil {
 		return nil, fmt.Errorf("failed to register dummy tool: %w", err)
@@ -48,28 +48,33 @@ func TestToolMetaListTools(t *testing.T) {
 		t.Fatalf("newMetaTestInterpreter failed: %v", err)
 	}
 
-	// The bridge now handles wrapping/unwrapping, so we pass a map of lang.Value
-	result, err := interpreter.ToolRegistry().ExecuteTool("Meta.ListTools", map[string]lang.Value{})
+	// Get the tool implementation from the registry
+	listToolsImpl, found := interpreter.ToolRegistry().GetTool("Meta.ListTools")
+	if !found {
+		t.Fatal("Meta.ListTools tool not found")
+	}
+
+	// Execute the tool's function directly
+	result, err := listToolsImpl.Func(interpreter, []interface{}{})
 	if err != nil {
 		t.Fatalf("Meta.ListTools execution failed: %v", err)
 	}
 
-	resultStr, ok := result.(lang.StringValue)
+	resultStr, ok := result.(string)
 	if !ok {
-		t.Fatalf("Meta.ListTools did not return a lang.StringValue, got %T", result)
+		t.Fatalf("Meta.ListTools did not return a string, got %T", result)
 	}
-	resultOutput := resultStr.Value
 
 	// We need to check for the dummy tool as well now.
 	expectedSignatures := []string{
 		"Meta.ListTools() -> string",
 		"Meta.ToolsHelp(filter:string?) -> string",
-		"FS.Read() -> any", // This is a simplified signature from the dummy tool
+		"FS.Read() -> any",
 	}
 
 	for _, sig := range expectedSignatures {
-		if !strings.Contains(resultOutput, sig) {
-			t.Errorf("Meta.ListTools output does not contain expected signature: %s\nOutput was:\n%s", sig, resultOutput)
+		if !strings.Contains(resultStr, sig) {
+			t.Errorf("Meta.ListTools output does not contain expected signature: %s\nOutput was:\n%s", sig, resultStr)
 		}
 	}
 }
@@ -80,17 +85,24 @@ func TestToolMetaToolsHelp(t *testing.T) {
 		t.Fatalf("newMetaTestInterpreter failed: %v", err)
 	}
 
+	// Get the tool implementation from the registry
+	toolsHelpImpl, found := interpreter.ToolRegistry().GetTool("Meta.ToolsHelp")
+	if !found {
+		t.Fatal("Meta.ToolsHelp tool not found")
+	}
+
 	tests := []struct {
 		name                 string
 		filterArg            map[string]lang.Value
+		args                 []interface{}
 		expectedToContain    []string
 		expectedToNotContain []string
 		checkNoToolsMsg      bool
 		noToolsFilter        string
 	}{
 		{
-			name:      "No filter (all tools)",
-			filterArg: map[string]lang.Value{},
+			name: "No filter (all tools)",
+			args: []interface{}{},
 			expectedToContain: []string{
 				"## `tool.Meta.ListTools`",
 				"## `tool.FS.Read`",
@@ -98,8 +110,8 @@ func TestToolMetaToolsHelp(t *testing.T) {
 			expectedToNotContain: []string{"No tools found matching filter"},
 		},
 		{
-			name:      "Filter for Meta tools",
-			filterArg: map[string]lang.Value{"filter": lang.StringValue{Value: "Meta."}},
+			name: "Filter for Meta tools",
+			args: []interface{}{"Meta."},
 			expectedToContain: []string{
 				"## `tool.Meta.ListTools`",
 				"## `tool.Meta.ToolsHelp`",
@@ -108,7 +120,7 @@ func TestToolMetaToolsHelp(t *testing.T) {
 		},
 		{
 			name:            "Filter with no results",
-			filterArg:       map[string]lang.Value{"filter": lang.StringValue{Value: "NoSucchToolExistsFilter123"}},
+			args:            []interface{}{"NoSucchToolExistsFilter123"},
 			checkNoToolsMsg: true,
 			noToolsFilter:   "NoSucchToolExistsFilter123",
 		},
@@ -116,31 +128,30 @@ func TestToolMetaToolsHelp(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := interpreter.ToolRegistry().ExecuteTool("Meta.ToolsHelp", tt.filterArg)
+			result, err := toolsHelpImpl.Func(interpreter, tt.args)
 			if err != nil {
 				t.Fatalf("Meta.ToolsHelp execution failed: %v. Args: %#v", err, tt.filterArg)
 			}
 
-			resultStr, ok := result.(lang.StringValue)
+			resultStr, ok := result.(string)
 			if !ok {
 				t.Fatalf("Meta.ToolsHelp did not return a lang.StringValue, got %T. Args: %#v", result, tt.filterArg)
 			}
-			resultOutput := resultStr.Value
 
 			for _, sub := range tt.expectedToContain {
-				if !strings.Contains(resultOutput, sub) {
-					t.Errorf("Meta.ToolsHelp output for '%s' does not contain expected substring: '%s'\nOutput was:\n%s", tt.name, sub, resultOutput)
+				if !strings.Contains(resultStr, sub) {
+					t.Errorf("Meta.ToolsHelp output for '%s' does not contain expected substring: '%s'\nOutput was:\n%s", tt.name, sub, resultStr)
 				}
 			}
 			for _, sub := range tt.expectedToNotContain {
-				if strings.Contains(resultOutput, sub) {
-					t.Errorf("Meta.ToolsHelp output for '%s' unexpectedly contains substring: '%s'\nOutput was:\n%s", tt.name, sub, resultOutput)
+				if strings.Contains(resultStr, sub) {
+					t.Errorf("Meta.ToolsHelp output for '%s' unexpectedly contains substring: '%s'\nOutput was:\n%s", tt.name, sub, resultStr)
 				}
 			}
 			if tt.checkNoToolsMsg {
 				expectedMsg := fmt.Sprintf("No tools found matching filter: `%s`", tt.noToolsFilter)
-				if !strings.Contains(resultOutput, expectedMsg) {
-					t.Errorf("Meta.ToolsHelp output for '%s' expected to contain '%s', got '\n%s'", tt.name, expectedMsg, resultOutput)
+				if !strings.Contains(resultStr, expectedMsg) {
+					t.Errorf("Meta.ToolsHelp output for '%s' expected to contain '%s', got '\n%s'", tt.name, expectedMsg, resultStr)
 				}
 			}
 		})

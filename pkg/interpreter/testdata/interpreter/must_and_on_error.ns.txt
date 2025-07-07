@@ -1,0 +1,22 @@
+:: name: must and on_error test
+:: description: Verifies that a failed 'must' statement correctly triggers an 'on_error' block.
+:: author: AJP
+:: file_version: 4.0.0
+
+func main(returns result) means
+    set result = "handler did not run"
+
+    on error do
+        set result = "Caught error: a 'must' condition failed"
+        clear_error
+    endon
+
+    set a = 1
+    set b = 2
+
+    // This must statement is expected to fail and trigger the handler.
+    must a > b
+
+    // The function will return the value of 'result' set by the handler.
+    return result
+endfunc

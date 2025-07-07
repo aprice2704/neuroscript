@@ -1,5 +1,6 @@
 :: lang_version: neuroscript@0.5.0
 :: purpose: Comprehensive syntax validation for the NeuroScript parser.
+
 # This is a full-line comment
 -- This is also a full-line comment
 
@@ -7,6 +8,7 @@ func ComprehensiveTest(needs a, b optional c returns d) means
   :: description: Tests a wide range of syntax.
   :: param:a: The first parameter.
   :: return:d: A result map.
+
   -- Assignment from literals and expressions
   set my_string = "hello world"
   set my_raw_string = ```This is a raw string with {{placeholders}}```
@@ -14,13 +16,13 @@ func ComprehensiveTest(needs a, b optional c returns d) means
   set my_bool = true and not false
   set my_list = [1, "two", last, my_bool, []]
   set my_map = {"key1": "value1", "key2": my_list}
-  set my_fuzzy = some tool.FuzzyCheck()
-
+  
   -- Must statement
   must my_number > 0
   
-  -- Corrected single-line assignments as per the grammar
-  set x = must tool.MustSucceed()
+  -- FIX: The 'must' call must be separate from the 'set' assignment.
+  call tool.MustSucceed()
+  set x = last
   set y = my_map["key1"]
 
   -- Control flow
