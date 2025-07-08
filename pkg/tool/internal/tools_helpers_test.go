@@ -12,6 +12,7 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/tool"
+	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
 // --- Mocks for testing toolExec ---
@@ -49,15 +50,15 @@ type mockRuntime struct {
 	logger interfaces.Logger
 }
 
-func (m *mockRuntime) Println(...any)                                {}
-func (m *mockRuntime) Ask(prompt string) string                      { return "" }
-func (m *mockRuntime) GetVar(name string) (any, bool)                { return nil, false }
-func (m *mockRuntime) SetVar(name string, val any)                   {}
-func (m *mockRuntime) CallTool(name string, args []any) (any, error) { return nil, nil }
-func (m *mockRuntime) GetLogger() interfaces.Logger                  { return m.logger }
-func (m *mockRuntime) SandboxDir() string                            { return "/tmp/ns_test_sandbox" }
-func (m *mockRuntime) ToolRegistry() tool.ToolRegistry               { return nil }
-func (m *mockRuntime) LLM() interfaces.LLMClient                     { return nil }
+func (m *mockRuntime) Println(...any)                                        {}
+func (m *mockRuntime) Ask(prompt string) string                              { return "" }
+func (m *mockRuntime) GetVar(name string) (any, bool)                        { return nil, false }
+func (m *mockRuntime) SetVar(name string, val any)                           {}
+func (m *mockRuntime) CallTool(name types.FullName, args []any) (any, error) { return nil, nil }
+func (m *mockRuntime) GetLogger() interfaces.Logger                          { return m.logger }
+func (m *mockRuntime) SandboxDir() string                                    { return "/tmp/ns_test_sandbox" }
+func (m *mockRuntime) ToolRegistry() tool.ToolRegistry                       { return nil }
+func (m *mockRuntime) LLM() interfaces.LLMClient                             { return nil }
 
 // --- Tests ---
 

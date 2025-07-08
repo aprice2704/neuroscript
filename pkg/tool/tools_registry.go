@@ -10,6 +10,7 @@ package tool
 import (
 	"fmt"
 	"log"
+	"strings"
 	"sync"
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
@@ -63,19 +64,27 @@ func (r *ToolRegistryImpl) RegisterTool(impl ToolImplementation) error {
 	if impl.Func == nil {
 		return fmt.Errorf("tool registration failed for '%s': function is nil", impl.Spec.Name)
 	}
-	fullname := MakeFullName(string(impl.Spec.Group), string(impl.Name()))
-	// Fill in FullName on the spec <shrug>
-	impl.Spec.FullName = MakeFullName(string(impl.Spec.Group), string(impl.Spec.Name))
-	r.tools[fullname] = impl
+	fullname := types.MakeFullName(string(impl.Spec.Group), string(impl.Spec.Name))
+	impl.Spec.FullName = fullname
+
+	// Normalize the full name to lowercase for case-insensitive lookup
+	lowerCaseFullName := strings.ToLower(string(fullname))
+	r.tools[types.FullName(lowerCaseFullName)] = impl
 	return nil
 }
 
-// GetTool retrieves a tool by name.
 func (r *ToolRegistryImpl) GetTool(name types.FullName) (ToolImplementation, bool) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	tool, found := r.tools[name]
+	// Normalize the lookup name to lowercase
+	lowerCaseName := strings.ToLower(string(name))
+	tool, found := r.tools[types.FullName(lowerCaseName)]
 	return tool, found
+}
+
+func (r *ToolRegistryImpl) GetToolShort(group types.ToolGroup, name types.ToolName) (ToolImplementation, bool) {
+	fullname := types.MakeFullName(string(group), string(name))
+	return r.GetTool(fullname)
 }
 
 // ListTools returns the specs of all registered tools.

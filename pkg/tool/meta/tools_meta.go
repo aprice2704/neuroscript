@@ -15,6 +15,7 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/tool"
+	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
 // toolListTools provides a compact list of available tools.
@@ -78,7 +79,7 @@ func toolToolsHelp(interpreter tool.Runtime, args []interface{}) (interface{}, e
 	allToolSpecs := registry.ListTools()
 	var filteredSpecs []tool.ToolSpec
 	for _, spec := range allToolSpecs {
-		fullname := tool.MakeFullName(string(spec.Group), string(spec.Name))
+		fullname := types.MakeFullName(string(spec.Group), string(spec.Name))
 		if normalizedFilter == "" || strings.Contains(strings.ToLower(string(fullname)), normalizedFilter) {
 			filteredSpecs = append(filteredSpecs, spec)
 		}

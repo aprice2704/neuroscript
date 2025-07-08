@@ -27,7 +27,7 @@ var metaToolsToRegister = []tool.ToolImplementation{
 			ReturnType:      tool.ArgTypeString,
 			ReturnHelp:      "A string containing a newline-separated list of tool names, their parameters (name:type), and return types.",
 			Variadic:        false,
-			Example:         "TOOL.Meta.ListTools()",
+			Example:         "ListTools()",
 			ErrorConditions: "Generally does not return errors, unless the ToolRegistry is uninitialized (which would be an ErrorCodeConfiguration if an attempt is made to call it in such a state).",
 		},
 		Func: toolListTools, // Implementation in tools_meta.go
@@ -49,7 +49,7 @@ var metaToolsToRegister = []tool.ToolImplementation{
 			ReturnType:      tool.ArgTypeString,
 			ReturnHelp:      "A string in Markdown format detailing available tools, their descriptions, parameters, and return types. Output can be filtered by the optional 'filter' argument.",
 			Variadic:        false,
-			Example:         "TOOL.Meta.ToolsHelp(filter: \"FS\")\nTOOL.Meta.ToolsHelp()",
+			Example:         "ToolsHelp(filter: \"FS\")\nMeta.ToolsHelp()",
 			ErrorConditions: "Returns ErrorCodeType if the 'filter' argument is provided but is not a string. Generally does not return other errors, unless the ToolRegistry is uninitialized (ErrorCodeConfiguration).",
 		},
 		Func: toolToolsHelp, // Implementation in tools_meta.go
@@ -64,7 +64,7 @@ var metaToolsToRegister = []tool.ToolImplementation{
 			ReturnType:      tool.ArgTypeString,
 			ReturnHelp:      "A JSON string representing an array of ToolSpec objects. This is intended for programmatic use or detailed inspection of all tool capabilities.",
 			Variadic:        false,
-			Example:         "TOOL.Meta.GetToolSpecificationsJSON()",
+			Example:         "GetToolSpecificationsJSON()",
 			ErrorConditions: "Returns an error (ErrorCodeInternal) if JSON marshalling of the tool specifications fails. Generally does not return other errors unless the ToolRegistry is uninitialized (ErrorCodeConfiguration).",
 		},
 		Func: toolGetToolSpecificationsJSON, // To be implemented in tools_meta.go

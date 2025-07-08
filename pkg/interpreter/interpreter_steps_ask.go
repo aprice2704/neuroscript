@@ -14,6 +14,7 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/tool"
+	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
 // Ask satisfies the tool.Runtime interface. It's a simplified version for tools.
@@ -164,7 +165,7 @@ func (i *Interpreter) getAvailableToolsForAsk(step ast.Step) []interfaces.ToolDe
 			i.logger.Warn("Skipping tool for LLM due to schema conversion error", "tool", spec.Name, "error", err, "pos", step.GetPos().String())
 			continue
 		}
-		fullname := tool.MakeFullName(string(spec.Group), string(spec.FullName))
+		fullname := types.MakeFullName(string(spec.Group), string(spec.FullName))
 		definitions = append(definitions, interfaces.ToolDefinition{
 			Name:        fullname,
 			Description: spec.Description,

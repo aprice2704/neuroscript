@@ -113,6 +113,9 @@ set port = must cfg["port"] as int            # key + type assertion
 * **Built-ins**: maths & helpers (`ln`, `sin`, `typeof`).
   Identical calling convention to tools.
 
+Tool names **must** be complete: tool.<group>.<action> where group is "FS", "io" etc. and action is the action the tool performs, e.g. "read", "write". Hence: tool.fs.read
+Tool names are **case-insensitive**
+
 ---
 
 ### 8. AI integration (`ask`)

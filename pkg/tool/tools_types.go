@@ -8,16 +8,9 @@
 package tool
 
 import (
-	"strings"
-
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/types"
-)
-
-const (
-	ToolPrefix = "TOOL"
-	ToolSep    = "."
 )
 
 // Runtime is the minimal surface a tool needs to interact with the VM.
@@ -104,26 +97,8 @@ type ToolRegistrar interface {
 type ToolRegistry interface {
 	ToolRegistrar
 	GetTool(name types.FullName) (ToolImplementation, bool)
+	GetToolShort(group types.ToolGroup, name types.ToolName) (ToolImplementation, bool)
 	ListTools() []ToolSpec
 	NTools() int
 	ExecuteTool(toolName types.FullName, args map[string]lang.Value) (lang.Value, error)
-}
-
-// The only correct way to make a toolname
-// Just return a single ToolName (no error) so it can be used as fn arg easily
-func MakeFullName(group string, names ...string) (fullname types.FullName) {
-
-	if len(group) == 0 {
-		lang.Check(lang.ErrToolNotAllowed) // give runtime a chance to bail
-		return ""
-	}
-	for _, v := range names {
-		if len(v) == 0 {
-			lang.Check(lang.ErrToolNotAllowed)
-			return ""
-		}
-	}
-
-	return types.FullName(ToolPrefix + ToolSep + string(group) + strings.Join(names, ToolSep))
-
 }

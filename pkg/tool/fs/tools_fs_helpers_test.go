@@ -52,7 +52,7 @@ func testFsToolHelper(t *testing.T, interp *interpreter.Interpreter, tc fsTestCa
 		}
 	}
 
-	fullname := tool.MakeFullName(group, string(tc.toolName))
+	fullname := types.MakeFullName(group, string(tc.toolName))
 	toolImpl, found := interp.ToolRegistry().GetTool(fullname)
 	if !found {
 		t.Fatalf("Tool %q not found in registry", tc.toolName)

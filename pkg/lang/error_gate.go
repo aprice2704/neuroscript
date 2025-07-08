@@ -74,6 +74,13 @@ func Check(err error) error {
 		return nil
 	}
 
+	// -- ADD THIS BLOCK --
+	// Specifically prevent ErrToolNotAllowed from triggering a critical panic.
+	if errors.Is(err, ErrToolNotFound) {
+		return err
+	}
+	// -- END BLOCK --
+
 	var re *RuntimeError
 	if errors.As(err, &re) {
 		if isCritical(re.Code) {

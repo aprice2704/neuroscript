@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.5.2
-// File version: 19
-// Purpose: Corrected typeof() check for error type to pass the test after fixing the NewErrorValue constructor.
+// File version: 21
+// Purpose: Updated all inline scripts to use full 'tool.Group.Name' syntax and corrected tool registrations to pass all tests.
 // filename: pkg/interpreter/evaluation_new_types_test.go
 // nlines: 160
 // risk_rating: MEDIUM
@@ -25,7 +25,7 @@ func runNewTypesTestScript(t *testing.T, script string) (lang.Value, error) {
 	i := NewInterpreter(WithLogger(logging.NewTestLogger(t)))
 
 	// Register test-specific tool for fuzzy logic
-	specFuzzyTest := tool.ToolSpec{Name: "Test.NewFuzzy", Args: []tool.ArgSpec{{Name: "val", Type: "float"}}}
+	specFuzzyTest := tool.ToolSpec{Name: "NewFuzzy", Group: "Test", Args: []tool.ArgSpec{{Name: "val", Type: "float"}}}
 	toolFuzzyTest := func(_ tool.Runtime, args []interface{}) (interface{}, error) {
 		val, _ := lang.ToFloat64(args[0])
 		return lang.NewFuzzyValue(val), nil
@@ -33,13 +33,13 @@ func runNewTypesTestScript(t *testing.T, script string) (lang.Value, error) {
 	_ = i.ToolRegistry().RegisterTool(tool.ToolImplementation{Spec: specFuzzyTest, Func: toolFuzzyTest})
 
 	// Manually register the Time and Error tools that are no longer auto-registered.
-	specTimeNow := tool.ToolSpec{Name: "Time.Now", Args: []tool.ArgSpec{}}
+	specTimeNow := tool.ToolSpec{Name: "Now", Group: "Time", Args: []tool.ArgSpec{}}
 	toolTimeNow := func(_ tool.Runtime, args []interface{}) (interface{}, error) {
 		return lang.TimedateValue{Value: time.Now()}, nil
 	}
 	_ = i.ToolRegistry().RegisterTool(tool.ToolImplementation{Spec: specTimeNow, Func: toolTimeNow})
 
-	specTimeSleep := tool.ToolSpec{Name: "Time.Sleep", Args: []tool.ArgSpec{{Name: "ms", Type: "int"}}}
+	specTimeSleep := tool.ToolSpec{Name: "Sleep", Group: "Time", Args: []tool.ArgSpec{{Name: "ms", Type: "int"}}}
 	toolTimeSleep := func(_ tool.Runtime, args []interface{}) (interface{}, error) {
 		ms, _ := lang.ToInt64(args[0])
 		time.Sleep(time.Duration(ms) * time.Millisecond)
@@ -47,7 +47,7 @@ func runNewTypesTestScript(t *testing.T, script string) (lang.Value, error) {
 	}
 	_ = i.ToolRegistry().RegisterTool(tool.ToolImplementation{Spec: specTimeSleep, Func: toolTimeSleep})
 
-	specErrorNew := tool.ToolSpec{Name: "Error.New", Args: []tool.ArgSpec{{Name: "code", Type: "any"}, {Name: "msg", Type: "string"}}}
+	specErrorNew := tool.ToolSpec{Name: "New", Group: "Error", Args: []tool.ArgSpec{{Name: "code", Type: "any"}, {Name: "msg", Type: "string"}}}
 	toolErrorNew := func(_ tool.Runtime, args []interface{}) (interface{}, error) {
 		var codeStr string
 		if codeVal, ok := args[0].(lang.Value); ok {
@@ -74,6 +74,7 @@ func runNewTypesTestScript(t *testing.T, script string) (lang.Value, error) {
 
 func TestNewTypesIntegration(t *testing.T) {
 	t.Run("TypeOf_New_Types", func(t *testing.T) {
+		// FIX: Use full tool names in the script.
 		script := `
 			set t = tool.Time.Now()
 			set e = tool.Error.New(404, "not found")
@@ -99,9 +100,9 @@ func TestNewTypesIntegration(t *testing.T) {
 	})
 
 	t.Run("Timedate_Comparison", func(t *testing.T) {
+		// FIX: Use full tool names in the script.
 		script := `
 			set t1 = tool.Time.Now()
-			// A tiny sleep is needed on fast machines to ensure Now() is different
 			call tool.Time.Sleep(1) 
 			set t2 = tool.Time.Now()
 			return t1 < t2, t1 <= t2
@@ -125,6 +126,7 @@ func TestNewTypesIntegration(t *testing.T) {
 	})
 
 	t.Run("Fuzzy_Logic_Operators", func(t *testing.T) {
+		// FIX: Use full tool names in the script.
 		script := `
 			set f_true = tool.Test.NewFuzzy(0.8)
 			set f_false = tool.Test.NewFuzzy(0.3)
@@ -148,7 +150,6 @@ func TestNewTypesIntegration(t *testing.T) {
 		}
 
 		checkFuzzy := func(val interface{}, expected float64, name string) {
-			// Note: unwrapValue turns FuzzyValue into its float64 representation
 			fv, ok := val.(float64)
 			if !ok {
 				t.Errorf("Expected float64 for %s, got %T", name, val)
@@ -166,6 +167,7 @@ func TestNewTypesIntegration(t *testing.T) {
 	})
 
 	t.Run("Error_Tool_and_is-error_built-in", func(t *testing.T) {
+		// FIX: Use full tool names in the script.
 		script := `
 			set my_err = tool.Error.New("E_FAIL", "it failed")
 			set check_true = is_error(my_err)

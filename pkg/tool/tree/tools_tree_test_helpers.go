@@ -14,6 +14,7 @@ import (
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/tool"
+	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
 // treeTestCase defines the structure for a single tree tool test case.
@@ -49,10 +50,10 @@ func testTreeToolHelper(t *testing.T, interp tool.Runtime, tc treeTestCase) {
 		if !ok {
 			t.Fatalf("Interpreter does not implement ToolRegistry()")
 		}
-		fullname := tool.MakeFullName(group, tc.toolName)
+		fullname := types.MakeFullName(group, tc.toolName)
 		toolImpl, found := interpImpl.ToolRegistry().GetTool(fullname)
 		if !found {
-			t.Fatalf("Tool %q not found in registry", tc.toolName)
+			t.Fatalf("Tool %q not found in registry", fullname)
 		}
 
 		// Execute the tool function directly with primitive args

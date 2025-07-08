@@ -197,6 +197,8 @@ var (
 // --- Core Tool Execution Errors (including Filesystem and Tree sentinels) ---
 var (
 	ErrInternalTool        = errors.New("internal tool error")
+	ErrInvalidToolGroup    = errors.New("tool group is invalid")
+	ErrInvalidToolName     = errors.New("tool name is invalid")
 	ErrNotFound            = errors.New("item not found")
 	ErrFailedPrecondition  = errors.New("operation failed due to a precondition not being met")
 	ErrToolExecutionFailed = errors.New("tool execution failed")

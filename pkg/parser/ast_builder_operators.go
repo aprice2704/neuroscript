@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.3.1
-// File version: 16
-// Purpose: Added len() to list of built-in callables.
+// File version: 17
+// Purpose: Corrected buildCallTargetFromContext to reconstruct the full tool name by prepending the tool prefix, fixing tool lookup errors.
 // filename: pkg/parser/ast_builder_operators.go
 // nlines: 606
 // risk_rating: MEDIUM
@@ -11,10 +11,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/antlr4-go/antlr/v4"	// Using user-specified ANTLR import path
+	"github.com/antlr4-go/antlr/v4" // Using user-specified ANTLR import path
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	gen "github.com/aprice2704/neuroscript/pkg/parser/generated"
+	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
 // Helper function to check if a lang.Value is an ast.ErrorNode
@@ -72,10 +73,10 @@ func (l *neuroScriptListenerImpl) processBinaryOperators(ctx antlr.ParserRuleCon
 		currentRHS := poppedOperands[numOperands-2-i]
 		pos := tokenToPosition(opSymbol)
 		newNode := &ast.BinaryOpNode{
-			Pos:		&pos,
-			Left:		currentLHS,
-			Operator:	opText,
-			Right:		currentRHS,
+			Pos:      &pos,
+			Left:     currentLHS,
+			Operator: opText,
+			Right:    currentRHS,
 		}
 		l.logDebugAST("      Constructed ast.BinaryOpNode: [%T %s %T]", currentLHS, opText, currentRHS)
 		currentLHS = newNode
@@ -239,8 +240,8 @@ func (l *neuroScriptListenerImpl) ExitUnary_expr(ctx *gen.Unary_exprContext) {
 		}
 		pos := tokenToPosition(ctx.KW_TYPEOF().GetSymbol())
 		l.push(&ast.TypeOfNode{
-			Pos:		&pos,
-			Argument:	operandExpr,
+			Pos:      &pos,
+			Argument: operandExpr,
 		})
 		return
 	}
@@ -282,9 +283,9 @@ func (l *neuroScriptListenerImpl) ExitUnary_expr(ctx *gen.Unary_exprContext) {
 	}
 	pos := tokenToPosition(tok.GetSymbol())
 	l.push(&ast.UnaryOpNode{
-		Pos:		&pos,
-		Operator:	op,
-		Operand:	operandExpr,
+		Pos:      &pos,
+		Operator: op,
+		Operand:  operandExpr,
 	})
 	l.logDebugAST("      Constructed ast.UnaryOpNode: %s [%T]", op, operandExpr)
 }
@@ -330,10 +331,10 @@ func (l *neuroScriptListenerImpl) ExitPower_expr(ctx *gen.Power_exprContext) {
 	}
 	pos := tokenToPosition(opSymbol)
 	node := &ast.BinaryOpNode{
-		Pos:		&pos,
-		Left:		baseExpr,
-		Operator:	opText,
-		Right:		exponentExpr,
+		Pos:      &pos,
+		Left:     baseExpr,
+		Operator: opText,
+		Right:    exponentExpr,
 	}
 	l.push(node)
 	l.logDebugAST("      Constructed ast.BinaryOpNode (Power): [%T %s %T]", baseExpr, opText, exponentExpr)
@@ -401,9 +402,9 @@ func (l *neuroScriptListenerImpl) ExitAccessor_expr(ctx *gen.Accessor_exprContex
 	for i := 0; i < numAccessors; i++ {
 		pos := tokenToPosition(ctx.LBRACK(i).GetSymbol())
 		newNode := &ast.ElementAccessNode{
-			Pos:		&pos,
-			Collection:	currentCollectionResult,
-			Accessor:	accessorExprs[i],
+			Pos:        &pos,
+			Collection: currentCollectionResult,
+			Accessor:   accessorExprs[i],
 		}
 		l.logDebugAST("      Constructed ast.ElementAccessNode: [Coll: %T Acc: %T]", newNode.Collection, newNode.Accessor)
 		currentCollectionResult = newNode
@@ -425,7 +426,9 @@ func (l *neuroScriptListenerImpl) buildCallTargetFromContext(ctx gen.ICall_targe
 			for _, idNode := range idNodes {
 				parts = append(parts, idNode.GetText())
 			}
-			target.Name = strings.Join(parts, ".")
+			// FIX: Prepend the tool prefix to construct the full, correct tool name.
+			groupAndName := strings.Join(parts, types.ToolSep)
+			target.Name = types.ToolPrefix + groupAndName
 
 			if len(idNodes) > 0 {
 				pos := tokenToPosition(idNodes[0].GetSymbol())
@@ -563,9 +566,9 @@ func (l *neuroScriptListenerImpl) ExitCallable_expr(ctx *gen.Callable_exprContex
 	}
 
 	node := &ast.CallableExprNode{
-		Pos:		callExprPos,
-		Target:		finalTargetNode,
-		Arguments:	args,
+		Pos:       callExprPos,
+		Target:    finalTargetNode,
+		Arguments: args,
 	}
 	l.push(node)
 	l.logDebugAST("      Constructed and Pushed ast.CallableExprNode: Target=%s, Args=%d", node.Target.Name, len(node.Arguments))

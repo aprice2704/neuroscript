@@ -49,32 +49,32 @@ func TestToolMetaListTools(t *testing.T) {
 	}
 
 	// Get the tool implementation from the registry
-	listToolsImpl, found := interpreter.ToolRegistry().GetTool("Meta.ListTools")
+	listToolsImpl, found := interpreter.ToolRegistry().GetToolShort(group, "ListTools")
 	if !found {
-		t.Fatal("Meta.ListTools tool not found")
+		t.Fatal("ListTools tool not found")
 	}
 
 	// Execute the tool's function directly
 	result, err := listToolsImpl.Func(interpreter, []interface{}{})
 	if err != nil {
-		t.Fatalf("Meta.ListTools execution failed: %v", err)
+		t.Fatalf("ListTools execution failed: %v", err)
 	}
 
 	resultStr, ok := result.(string)
 	if !ok {
-		t.Fatalf("Meta.ListTools did not return a string, got %T", result)
+		t.Fatalf("ListTools did not return a string, got %T", result)
 	}
 
 	// We need to check for the dummy tool as well now.
 	expectedSignatures := []string{
-		"Meta.ListTools() -> string",
-		"Meta.ToolsHelp(filter:string?) -> string",
+		"ListTools() -> string",
+		"ToolsHelp(filter:string?) -> string",
 		"FS.Read() -> any",
 	}
 
 	for _, sig := range expectedSignatures {
 		if !strings.Contains(resultStr, sig) {
-			t.Errorf("Meta.ListTools output does not contain expected signature: %s\nOutput was:\n%s", sig, resultStr)
+			t.Errorf("ListTools output does not contain expected signature: %s\nOutput was:\n%s", sig, resultStr)
 		}
 	}
 }
@@ -86,9 +86,9 @@ func TestToolMetaToolsHelp(t *testing.T) {
 	}
 
 	// Get the tool implementation from the registry
-	toolsHelpImpl, found := interpreter.ToolRegistry().GetTool("Meta.ToolsHelp")
+	toolsHelpImpl, found := interpreter.ToolRegistry().GetToolShort(group, "ToolsHelp")
 	if !found {
-		t.Fatal("Meta.ToolsHelp tool not found")
+		t.Fatal("ToolsHelp tool not found")
 	}
 
 	tests := []struct {
@@ -111,7 +111,7 @@ func TestToolMetaToolsHelp(t *testing.T) {
 		},
 		{
 			name: "Filter for Meta tools",
-			args: []interface{}{"Meta."},
+			args: []interface{}{""},
 			expectedToContain: []string{
 				"## `tool.Meta.ListTools`",
 				"## `tool.Meta.ToolsHelp`",
@@ -130,28 +130,28 @@ func TestToolMetaToolsHelp(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			result, err := toolsHelpImpl.Func(interpreter, tt.args)
 			if err != nil {
-				t.Fatalf("Meta.ToolsHelp execution failed: %v. Args: %#v", err, tt.filterArg)
+				t.Fatalf("ToolsHelp execution failed: %v. Args: %#v", err, tt.filterArg)
 			}
 
 			resultStr, ok := result.(string)
 			if !ok {
-				t.Fatalf("Meta.ToolsHelp did not return a lang.StringValue, got %T. Args: %#v", result, tt.filterArg)
+				t.Fatalf("ToolsHelp did not return a lang.StringValue, got %T. Args: %#v", result, tt.filterArg)
 			}
 
 			for _, sub := range tt.expectedToContain {
 				if !strings.Contains(resultStr, sub) {
-					t.Errorf("Meta.ToolsHelp output for '%s' does not contain expected substring: '%s'\nOutput was:\n%s", tt.name, sub, resultStr)
+					t.Errorf("ToolsHelp output for '%s' does not contain expected substring: '%s'\nOutput was:\n%s", tt.name, sub, resultStr)
 				}
 			}
 			for _, sub := range tt.expectedToNotContain {
 				if strings.Contains(resultStr, sub) {
-					t.Errorf("Meta.ToolsHelp output for '%s' unexpectedly contains substring: '%s'\nOutput was:\n%s", tt.name, sub, resultStr)
+					t.Errorf("ToolsHelp output for '%s' unexpectedly contains substring: '%s'\nOutput was:\n%s", tt.name, sub, resultStr)
 				}
 			}
 			if tt.checkNoToolsMsg {
 				expectedMsg := fmt.Sprintf("No tools found matching filter: `%s`", tt.noToolsFilter)
 				if !strings.Contains(resultStr, expectedMsg) {
-					t.Errorf("Meta.ToolsHelp output for '%s' expected to contain '%s', got '\n%s'", tt.name, expectedMsg, resultStr)
+					t.Errorf("ToolsHelp output for '%s' expected to contain '%s', got '\n%s'", tt.name, expectedMsg, resultStr)
 				}
 			}
 		})

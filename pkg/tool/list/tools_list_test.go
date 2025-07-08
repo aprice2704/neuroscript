@@ -14,6 +14,7 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/testutil"
 	"github.com/aprice2704/neuroscript/pkg/tool"
+	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
 // MakeArgs is a convenience function to create a slice of interfaces, useful for constructing tool arguments programmatically.
@@ -39,7 +40,7 @@ func testListToolHelper(t *testing.T, interp tool.Runtime, tc struct {
 		if !ok {
 			t.Fatalf("Interpreter does not implement ToolRegistry()")
 		}
-		fullname := tool.MakeFullName(group, tc.toolName)
+		fullname := types.MakeFullName(group, tc.toolName)
 		toolImpl, found := interpImpl.ToolRegistry().GetTool(fullname)
 		if !found {
 			t.Fatalf("Tool %q not found in registry", tc.toolName)

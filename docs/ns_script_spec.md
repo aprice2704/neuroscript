@@ -65,8 +65,10 @@ set parts = tool.Split("a,b,c", ",")
 Use the `call` keyword to execute a tool function for its side-effects when you do not need its return value.
 
 ```neuroscript
-call tool.Print("Process complete.")
+call tool.io.Print("Process complete.")
 ```
+Tool names must be complete: tool.<group>.<action> where group is "FS", "io" etc. and action is the action the tool performs, e.g. "read", "write". Hence: tool.fs.read
+Tool names are **case-insensitive**
 
 ### 4.4 Line Continuation
 

@@ -16,7 +16,6 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
-	"github.com/aprice2704/neuroscript/pkg/tool"
 	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
@@ -93,7 +92,7 @@ func testGitToolHelper(t *testing.T, toolName types.ToolName, tc gitTestCase) {
 	if tc.Setup != nil {
 		tc.Setup(t, absRepoPath)
 	}
-	fullname := tool.MakeFullName(group, string(toolName))
+	fullname := types.MakeFullName(group, string(toolName))
 	toolImpl, found := interp.ToolRegistry().GetTool(fullname)
 	if !found {
 		t.Fatalf("Tool '%s' not found in registry", toolName)

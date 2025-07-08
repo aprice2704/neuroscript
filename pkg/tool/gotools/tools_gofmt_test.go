@@ -32,7 +32,7 @@ func testGoFormatToolHelper(t *testing.T, interp tool.Runtime, tc struct {
 		if !ok {
 			t.Fatalf("Interpreter does not implement ToolRegistry()")
 		}
-		fullname := tool.MakeFullName(group, string(tc.toolName))
+		fullname := types.MakeFullName(group, string(tc.toolName))
 		toolImpl, found := interpImpl.ToolRegistry().GetTool(fullname)
 		if !found {
 			t.Fatalf("Tool %q not found", tc.toolName)
