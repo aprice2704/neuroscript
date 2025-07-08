@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.5.4
-// File version: 1
-// Purpose: Test harness for the script-loading and introspection tools.
-// filename: pkg/tool/script/tools_script_test.go
-// nlines: 140
+// File version: 2
+// Purpose: Extended test harness for edge cases in script tools. Fails on missing testdata.
+// filename: pkg/tool/script/tools_script_extended_test.go
+// nlines: 145
 // risk_rating: LOW
 package script
 
@@ -21,21 +21,23 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-// TestScriptTools uses the file-based fixture runner to test the script-loading
-// and introspection tools (`LoadScript`, `Script.ListFunctions`).
-func TestScriptTools(t *testing.T) {
-	// The testdata directory must be relative to the test file.
-	// It should contain the .ns.txt scripts and their corresponding
-	// .golden.json or .expect_err files.
-	root := filepath.Join("testdata")
+// TestScriptToolsExtended uses the file-based fixture runner to test edge cases
+// for the script-loading and introspection tools.
+func TestScriptToolsExtended(t *testing.T) {
+	root := filepath.Join("testdata", "extended")
 
 	entries, err := os.ReadDir(root)
 	if err != nil {
+		// FAIL instead of skipping if the directory doesn't exist.
 		if os.IsNotExist(err) {
-			t.Skipf("testdata directory not found, skipping: %s", root)
-			return
+			t.Fatalf("extended testdata directory not found: %s", root)
 		}
 		t.Fatalf("failed to read testdata directory: %s: %v", root, err)
+	}
+
+	// FAIL if the directory was found but is empty.
+	if len(entries) == 0 {
+		t.Fatalf("extended testdata directory is empty: %s", root)
 	}
 
 	for _, e := range entries {
@@ -51,7 +53,6 @@ func TestScriptTools(t *testing.T) {
 		testName := strings.TrimSuffix(fileName, ".ns.txt")
 
 		t.Run(testName, func(t *testing.T) {
-			// Setup paths for the script and its expected output/error
 			scriptPath := filepath.Join(root, fileName)
 			errPath := filepath.Join(root, testName+".expect_err")
 			goldenPath := filepath.Join(root, testName+".golden.json")
@@ -63,19 +64,13 @@ func TestScriptTools(t *testing.T) {
 			scriptContent := string(scriptBytes)
 
 			// --- Test Setup ---
-			// Create a real interpreter instance. This interpreter must be correctly
-			// implementing the `scriptHost` interface for the type assertion in
-			// the tool functions to succeed.
 			interp := interpreter.NewInterpreter()
-
-			// Manually register the script tools with the interpreter's registry.
 			for _, toolImpl := range scriptToolsToRegister {
 				if err := interp.ToolRegistry().RegisterTool(toolImpl); err != nil {
 					t.Fatalf("failed to register tool '%s': %v", toolImpl.Spec.Name, err)
 				}
 			}
 
-			// Parse the test script itself into an AST
 			p := parser.NewParserAPI(interp.GetLogger())
 			program, pErr := p.Parse(scriptContent)
 			if pErr != nil {
@@ -91,7 +86,6 @@ func TestScriptTools(t *testing.T) {
 			// --- Execute Test and Check Results ---
 			finalValue, execErr := interp.LoadAndRun(programAST, "main")
 
-			// This branch is for tests that are expected to fail.
 			if _, statErr := os.Stat(errPath); statErr == nil {
 				if execErr == nil {
 					t.Fatalf("expected an error, but got nil")
@@ -116,10 +110,9 @@ func TestScriptTools(t *testing.T) {
 				} else {
 					t.Fatalf("expected a RuntimeError but got a different error type: %T, %v", execErr, execErr)
 				}
-				return // End error test case
+				return
 			}
 
-			// This branch is for tests that are expected to succeed.
 			if execErr != nil {
 				t.Fatalf("unexpected RUNTIME error during test execution: %v", execErr)
 			}
@@ -133,10 +126,7 @@ func TestScriptTools(t *testing.T) {
 				t.Fatalf("failed to unmarshal golden file %s into map[string]any: %v", goldenPath, err)
 			}
 
-			// The result of the NeuroScript execution is a lang.Value, which needs to be unwrapped.
 			nativeGotVal := lang.Unwrap(finalValue)
-
-			// The golden files are structured with a "return" key holding the value.
 			gotMap := map[string]any{"return": nativeGotVal}
 
 			if diff := cmp.Diff(wantMap, gotMap); diff != "" {

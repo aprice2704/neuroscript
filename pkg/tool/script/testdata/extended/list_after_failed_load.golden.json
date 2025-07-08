@@ -1,0 +1,6 @@
+{
+    "return": {
+        "first_func": "procedure first_func()",
+        "main": "procedure main()"
+    }
+}

@@ -117,12 +117,37 @@ const (
 	ErrorCodeNestingDepthExceeded ErrorCode = 38
 	ErrorCodeControlFlow          ErrorCode = 39
 
+	// --- SECURITY codes (99 900-99 999).  Stable for signing / IR play-books. ----
+	securityBase ErrorCode = 99900
+)
+
+const (
+	_                             ErrorCode = securityBase + iota // 99900 reserved (placeholder)
+	ErrorCodeAttackPossible                                       // 99901
+	ErrorCodeAttackProbable                                       // 99902
+	ErrorCodeAttackCertain                                        // 99903
+	ErrorCodeSubsystemCompromised                                 // 99904
+	ErrorCodeSubsystemQuarantined                                 // 99905
+	ErrorCodeEscapePossible                                       // 99906
+	ErrorCodeEscapeProbable                                       // 99907
+	ErrorCodeEscapeCertain                                        // 99908
+)
+
+///////////////////////////////////////////////////////////////////////////////
+//  Sentinel errors – usable with errors.Is / errors.As
+///////////////////////////////////////////////////////////////////////////////
+
+var (
+
 	// Security
-	ErrorCodeAttackPossible       ErrorCode = 99901
-	ErrorCodeAttackProbable       ErrorCode = 99902
-	ErrorCodeAttackCertain        ErrorCode = 99903
-	ErrorCodeSubsystemCompromised ErrorCode = 99904
-	ErrorCodeSubsystemQuarantined ErrorCode = 99905
+	ErrAttackPossible       = errors.New("ATTACK possible")
+	ErrAttackProbable       = errors.New("ATTACK probable")
+	ErrAttackCertain        = errors.New("ATTACK underway")
+	ErrSubsystemCompromised = errors.New("COMPROMISED subsystem – discard communications")
+	ErrSubsystemQuarantined = errors.New("QUARANTINED subsystem – do not interact")
+	ErrEscapePossible       = errors.New("ESCAPE possible")
+	ErrEscapeProbable       = errors.New("ESCAPE probable")
+	ErrEscapeCertain        = errors.New("ESCAPE underway")
 
 	// Tools
 	ErrorCodeToolSpecific ErrorCode = 1000
@@ -160,19 +185,6 @@ var (
 	ErrResourceExhaustion    = errors.New("resource exhaustion limit reached")
 	ErrNestingDepthExceeded  = errors.New("maximum nesting depth exceeded")
 	ErrMaxIterationsExceeded = errors.New("maximum loop iterations exceeded") // FIX: Added this line
-)
-
-// Malign action errors ---------------
-
-var (
-	ErrAttackPossible       = errors.New("ATTACK possible")
-	ErrAttackProbable       = errors.New("ATTACK probable")
-	ErrAttackCertain        = errors.New("ATTACK underway")
-	ErrEscapePossible       = errors.New("ESCAPE possible")
-	ErrEscapeProbable       = errors.New("ESCAPE probable")
-	ErrEscapeCertain        = errors.New("ESCAPE underway")
-	ErrSubsystemCompromised = errors.New("COMPROMISED subsystem, discard further communications from it UNREAD. Send it NOTHING")
-	ErrSubsystemQuarantined = errors.New("QUARANTINED subsystem, do NOT communicate with it until further notice from YOUR security team")
 )
 
 // --- Core Handle Errors ---
@@ -284,3 +296,133 @@ var (
 	ErrBreak    = errors.New("internal: break signal")
 	ErrContinue = errors.New("internal: continue signal")
 )
+
+///////////////////////////////////////////////////////////////////////////////
+//  Remediation catalogue
+///////////////////////////////////////////////////////////////////////////////
+
+// Severity indicates how loud ops should shout.
+type Severity uint8
+
+const (
+	SevInfo Severity = iota
+	SevWarn
+	SevError
+	SevCritical
+)
+
+// ErrorDetails enriches an ErrorCode with extra metadata.
+type ErrorDetails struct {
+	Code        ErrorCode
+	Summary     string
+	Remediation string
+	Severity    Severity
+}
+
+// errorCatalogue holds the built-ins; tools can register more at runtime.
+var errorCatalogue = map[ErrorCode]ErrorDetails{
+	//  -- runtime samples
+	ErrorCodeProcNotFound: {
+		Code:        ErrorCodeProcNotFound,
+		Summary:     "procedure not found",
+		Remediation: "Check declaration spelling and package imports.",
+		Severity:    SevError,
+	},
+
+	//  -- security
+	ErrorCodeAttackPossible: {
+		Code:        ErrorCodeAttackPossible,
+		Summary:     "attack possible",
+		Remediation: "Increase logging; monitor for escalation.",
+		Severity:    SevWarn,
+	},
+	ErrorCodeAttackProbable: {
+		Code:        ErrorCodeAttackProbable,
+		Summary:     "attack probable",
+		Remediation: "Activate heightened alert; restrict non-essential accounts.",
+		Severity:    SevError,
+	},
+	ErrorCodeAttackCertain: {
+		Code:        ErrorCodeAttackCertain,
+		Summary:     "attack underway",
+		Remediation: "Isolate affected subsystems; initiate incident-response plan.",
+		Severity:    SevCritical,
+	},
+	ErrorCodeSubsystemCompromised: {
+		Code:        ErrorCodeSubsystemCompromised,
+		Summary:     "subsystem compromised",
+		Remediation: "Quarantine subsystem; revoke credentials immediately.",
+		Severity:    SevCritical,
+	},
+	ErrorCodeSubsystemQuarantined: {
+		Code:        ErrorCodeSubsystemQuarantined,
+		Summary:     "subsystem quarantined",
+		Remediation: "Do not reintegrate until full forensic audit passes.",
+		Severity:    SevError,
+	},
+	ErrorCodeEscapePossible: {
+		Code:        ErrorCodeEscapePossible,
+		Summary:     "escape possible",
+		Remediation: "Verify container/VM boundaries; check audit logs.",
+		Severity:    SevWarn,
+	},
+	ErrorCodeEscapeProbable: {
+		Code:        ErrorCodeEscapeProbable,
+		Summary:     "escape probable",
+		Remediation: "Suspend workload; investigate hypervisor integrity.",
+		Severity:    SevError,
+	},
+	ErrorCodeEscapeCertain: {
+		Code:        ErrorCodeEscapeCertain,
+		Summary:     "escape certain",
+		Remediation: "Treat host as fully compromised; execute IR checklist.",
+		Severity:    SevCritical,
+	},
+}
+
+// RegisterErrorDetails lets tool packages add their own codes.
+func RegisterErrorDetails(d ErrorDetails) {
+	errorCatalogue[d.Code] = d
+}
+
+// LookupErrorDetails returns metadata for a code (bool=false if unknown).
+func LookupErrorDetails(code ErrorCode) (ErrorDetails, bool) {
+	d, ok := errorCatalogue[code]
+	return d, ok
+}
+
+// FormatWithRemediation prettifies a RuntimeError for humans/dev-ops.
+func FormatWithRemediation(err error) string {
+	var r *RuntimeError
+	if !errors.As(err, &r) {
+		return err.Error()
+	}
+	sb := &strings.Builder{}
+	sb.WriteString(r.Error())
+
+	if d, ok := LookupErrorDetails(r.Code); ok && d.Remediation != "" {
+		sb.WriteString("\n↳ Remediation: ")
+		sb.WriteString(d.Remediation)
+	}
+	if r.Position != nil {
+		sb.WriteString(fmt.Sprintf("\n↳ at %s", r.Position))
+	}
+	return sb.String()
+}
+
+///////////////////////////////////////////////////////////////////////////////
+//  Position (stub – real one lives in parser package)
+///////////////////////////////////////////////////////////////////////////////
+
+type Pos struct {
+	Filename string
+	Line     int
+	Column   int
+}
+
+func (p *Pos) String() string {
+	if p == nil {
+		return "<unknown>"
+	}
+	return fmt.Sprintf("%s:%d:%d", p.Filename, p.Line, p.Column)
+}

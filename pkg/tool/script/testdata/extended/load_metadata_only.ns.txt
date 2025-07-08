@@ -1,0 +1,7 @@
+:: title: Test loading a script with only metadata
+
+func main() means
+    // This should succeed and report that 0 functions/handlers were loaded.
+    set script = ":: title: A file with no code"
+    return tool.LoadScript(script)
+endfunc

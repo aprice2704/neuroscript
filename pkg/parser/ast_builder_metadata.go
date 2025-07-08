@@ -1,7 +1,7 @@
 // filename: pkg/parser/ast_builder_metadata.go
 // NeuroScript Version: 0.5.2
-// File version: 4
-// Purpose: Made ExitMetadata_block context-aware to handle metadata for both procedures and commands.
+// File version: 6
+// Purpose: Adds a dedicated listener for file_header and cleans up metadata_block logic.
 package parser
 
 import (
@@ -16,7 +16,6 @@ func (l *neuroScriptListenerImpl) processMetadataLine(targetMap map[string]strin
 	lineText := token.GetText()
 	l.logDebugAST("   - Processing Metadata Line: %s", lineText)
 
-	// This logic correctly parses ":: key: value"
 	idx := strings.Index(lineText, "::")
 	if idx == -1 {
 		l.addErrorf(token, "METADATA_LINE token did not contain '::' separator: '%s'", lineText)
@@ -39,12 +38,21 @@ func (l *neuroScriptListenerImpl) processMetadataLine(targetMap map[string]strin
 	}
 }
 
-// ExitMetadata_block handles metadata within a procedure or command block.
+// ExitFile_header is the dedicated listener for parsing file-level metadata.
+func (l *neuroScriptListenerImpl) ExitFile_header(ctx *gen.File_headerContext) {
+	l.logDebugAST("<< Exit File_header")
+	// The target is always the file-level metadata map here.
+	for _, metaLineNode := range ctx.AllMETADATA_LINE() {
+		l.processMetadataLine(l.fileMetadata, metaLineNode.GetSymbol())
+	}
+}
+
+// ExitMetadata_block handles metadata ONLY within a procedure or command block.
 func (l *neuroScriptListenerImpl) ExitMetadata_block(ctx *gen.Metadata_blockContext) {
 	l.logDebugAST("  << Exit Metadata_block")
 	var targetMap map[string]string
 
-	// MODIFIED: Determine the context (procedure or command) and select the correct map.
+	// MODIFIED: Logic simplified to only handle block-level contexts.
 	if l.currentProc != nil {
 		if l.currentProc.Metadata == nil {
 			l.currentProc.Metadata = make(map[string]string)
@@ -56,13 +64,9 @@ func (l *neuroScriptListenerImpl) ExitMetadata_block(ctx *gen.Metadata_blockCont
 		}
 		targetMap = l.currentCommand.Metadata
 	} else {
-		// This handles file-level metadata by checking if we are not in any other block
-		if l.currentProc == nil && l.currentCommand == nil {
-			targetMap = l.fileMetadata
-		} else {
-			l.addError(ctx, "metadata_block found outside of a known context (file, procedure, or command)")
-			return
-		}
+		// File-level metadata is now handled by ExitFile_header. This is an error.
+		l.addError(ctx, "metadata_block found outside of a known context (procedure or command)")
+		return
 	}
 
 	for _, metaLineNode := range ctx.AllMETADATA_LINE() {

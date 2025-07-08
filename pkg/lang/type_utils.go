@@ -1,7 +1,7 @@
 // filename: pkg/lang/type_utils.go
 // NeuroScript Version: 0.4.1
-// File version: 9
-// Purpose: Updated unwrapValue to handle FunctionValue and ToolValue.
+// File version: 10
+// Purpose: Updated ToFloat64 to no longer convert booleans to numbers.
 
 package lang
 
@@ -142,10 +142,8 @@ func ToFloat64(val interface{}) (float64, bool) {
 		f, err := strconv.ParseFloat(v, 64)
 		return f, err == nil
 	case bool:
-		if v {
-			return 1, true
-		}
-		return 0, true
+		// FIX: Booleans should not be convertible to numbers.
+		return 0, false
 	default:
 		// Try reflection for other numeric types
 		rv := reflect.ValueOf(nativeVal)

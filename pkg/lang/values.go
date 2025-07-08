@@ -1,9 +1,9 @@
 // NeuroScript Version: 0.5.2
-// File version: 10
-// Purpose: Added NewErrorValueFromRuntimeError to correctly wrap Go-level errors into interpreter-level values, fixing compiler errors.
+// File version: 12
+// Purpose: Corrected NewErrorValue to use a NilValue struct instead of a pointer.
 // filename: pkg/lang/values.go
-// nlines: 235
-// risk_rating: MEDIUM
+// nlines: 247
+// risk_rating: LOW
 
 package lang
 
@@ -19,6 +19,15 @@ type Value interface {
 	Type() NeuroScriptType
 	String() string
 	IsTruthy() bool
+}
+
+// valueToString is a helper to get the string representation of a value,
+// ensuring that StringValues are properly quoted.
+func valueToString(v Value) string {
+	if sv, ok := v.(StringValue); ok {
+		return strconv.Quote(sv.Value)
+	}
+	return v.String()
 }
 
 // --- Primitive Value Wrappers ---
@@ -69,7 +78,8 @@ func (v ListValue) Type() NeuroScriptType { return TypeList }
 func (v ListValue) String() string {
 	items := make([]string, len(v.Value))
 	for i, item := range v.Value {
-		items[i] = item.String()
+		// Use the helper to ensure strings are quoted
+		items[i] = valueToString(item)
 	}
 	return fmt.Sprintf("[%s]", strings.Join(items, ", "))
 }
@@ -84,7 +94,8 @@ func (v MapValue) Type() NeuroScriptType { return TypeMap }
 func (v MapValue) String() string {
 	items := make([]string, 0, len(v.Value))
 	for k, val := range v.Value {
-		items = append(items, fmt.Sprintf("%q: %s", k, val.String()))
+		// Use the helper here as well for consistent formatting.
+		items = append(items, fmt.Sprintf("%q: %s", k, valueToString(val)))
 	}
 	return fmt.Sprintf("{%s}", strings.Join(items, ", "))
 }
@@ -193,7 +204,8 @@ func NewMapValue(val map[string]Value) MapValue {
 
 func NewErrorValue(code, message string, details Value) ErrorValue {
 	if details == nil {
-		details = &NilValue{}
+		// FIX: Use the value type `NilValue{}`, not a pointer `&NilValue{}`
+		details = NilValue{}
 	}
 	return ErrorValue{Value: map[string]Value{
 		ErrorKeyCode:    StringValue{Value: code},
@@ -202,14 +214,13 @@ func NewErrorValue(code, message string, details Value) ErrorValue {
 	}}
 }
 
-// FIX: Added this new constructor.
 // NewErrorValueFromRuntimeError creates an ErrorValue from a standard RuntimeError.
 func NewErrorValueFromRuntimeError(re *RuntimeError) ErrorValue {
 	if re == nil {
-		return NewErrorValue("E_NIL", "nil runtime error provided", &NilValue{})
+		return NewErrorValue("E_NIL", "nil runtime error provided", NilValue{})
 	}
 
-	var detailsVal Value = &NilValue{}
+	var detailsVal Value = NilValue{}
 	if re.Wrapped != nil {
 		detailsVal = StringValue{Value: re.Wrapped.Error()}
 	}

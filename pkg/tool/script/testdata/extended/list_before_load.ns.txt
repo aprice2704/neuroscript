@@ -1,0 +1,6 @@
+:: title: Test listing functions on a fresh interpreter
+
+func main() means
+    // This should return an empty map because no user scripts have been loaded.
+    return tool.Script.ListFunctions()
+endfunc

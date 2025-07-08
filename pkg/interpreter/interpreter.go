@@ -323,3 +323,11 @@ func (i *Interpreter) CloneWithNewVariables() *Interpreter {
 func (i *Interpreter) SetSandboxDir(path string) {
 	i.state.sandboxDir = path
 }
+
+// Add this method to pkg/interpreter/interpreter.go
+
+// RegisterEvent provides a public method for tools to register a single event handler.
+func (i *Interpreter) RegisterEvent(decl *ast.OnEventDecl) error {
+	// This calls the existing private registration logic within the eventManager.
+	return i.eventManager.register(decl, i)
+}

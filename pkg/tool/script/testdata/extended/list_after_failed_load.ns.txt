@@ -1,0 +1,18 @@
+:: title: Test that a failed load does not alter the function list
+
+// Define a function that should persist.
+func first_func() means
+    return 1
+endfunc
+
+func main() means
+    // Try to load a script with a syntax error.
+    // The error should be caught and cleared, not crash the script.
+    on error do
+        clear_error
+    endon
+    call tool.LoadScript("FUNK bad() means\nENDFUNK")
+
+    // Now, list the functions. Only 'main' and 'first_func' should exist.
+    return tool.Script.ListFunctions()
+endfunc

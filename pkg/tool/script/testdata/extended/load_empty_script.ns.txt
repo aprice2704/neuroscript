@@ -1,0 +1,6 @@
+:: title: Test loading an empty script string
+
+func main() means
+    // This should fail with a syntax error because the script is empty.
+    call tool.LoadScript("")
+endfunc
