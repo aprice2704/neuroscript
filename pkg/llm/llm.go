@@ -13,6 +13,7 @@ import (
 	"fmt"
 
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
+	"github.com/aprice2704/neuroscript/pkg/types"
 	"github.com/google/generative-ai-go/genai"
 	"google.golang.org/api/option"
 )
@@ -20,9 +21,9 @@ import (
 // concreteLLMClient is the internal implementation that talks to the Google Gemini API.
 // It implements the interfaces.LLMClient interface.
 type concreteLLMClient struct {
-	genaiClient	*genai.Client
-	model		*genai.GenerativeModel
-	logger		interfaces.Logger
+	genaiClient *genai.Client
+	model       *genai.GenerativeModel
+	logger      interfaces.Logger
 }
 
 // Statically assert that our concrete implementation satisfies the new interface.
@@ -48,9 +49,9 @@ func NewLLMClient(apiKey string, modelName string, logger interfaces.Logger) (in
 	model := client.GenerativeModel(modelName)
 
 	return &concreteLLMClient{
-		genaiClient:	client,
-		model:		model,
-		logger:		logger,
+		genaiClient: client,
+		model:       model,
+		logger:      logger,
 	}, nil
 }
 
@@ -100,8 +101,8 @@ func (c *concreteLLMClient) AskWithTools(ctx context.Context, turns []*interface
 		if fc, ok := resp.Candidates[0].Content.Parts[0].(genai.FunctionCall); ok {
 			toolCalls := []*interfaces.ToolCall{
 				{
-					Name:		fc.Name,
-					Arguments:	fc.Args,
+					Name:      types.FullName(fc.Name),
+					Arguments: fc.Args,
 				},
 			}
 			return nil, toolCalls, nil
@@ -176,7 +177,7 @@ func convertTurnsToGenaiContents(turns []*interfaces.ConversationTurn) []*genai.
 
 		if turn.ToolCalls != nil {
 			for _, tc := range turn.ToolCalls {
-				parts = append(parts, genai.FunctionCall{Name: tc.Name, Args: tc.Arguments})
+				parts = append(parts, genai.FunctionCall{Name: string(tc.Name), Args: tc.Arguments})
 			}
 		}
 
@@ -228,9 +229,9 @@ func convertToolsToGenai(tools []interfaces.ToolDefinition) ([]*genai.Tool, erro
 		}
 
 		genaiFuncs[i] = &genai.FunctionDeclaration{
-			Name:		tool.Name,
-			Description:	tool.Description,
-			Parameters:	genaiSchema,
+			Name:        string(tool.Name),
+			Description: tool.Description,
+			Parameters:  genaiSchema,
 		}
 	}
 

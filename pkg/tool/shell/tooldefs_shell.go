@@ -11,11 +11,13 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
+const group = "shell"
+
 // shellToolsToRegister contains ToolImplementation definitions for Shell tools.
 var shellToolsToRegister = []tool.ToolImplementation{
 	{
 		Spec: tool.ToolSpec{
-			Name:        "Shell.Execute",
+			Name:        "Execute",
 			Description: "Executes an arbitrary shell command. WARNING: Use with extreme caution due to security risks. Command path validation is basic. Consider using specific tools (e.g., GoBuild, GitAdd) instead.",
 			Category:    "Shell Operations",
 			Args: []tool.ArgSpec{

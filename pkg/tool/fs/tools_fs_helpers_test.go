@@ -10,12 +10,13 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/tool"
+	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
 // fsTestCase defines the structure for a single filesystem tool test case.
 type fsTestCase struct {
 	name          string
-	toolName      string
+	toolName      types.ToolName
 	args          []interface{}
 	setupFunc     func(sandboxRoot string) error
 	checkFunc     func(t *testing.T, interp tool.Runtime, result interface{}, err error, setupCtx interface{})
@@ -51,8 +52,8 @@ func testFsToolHelper(t *testing.T, interp *interpreter.Interpreter, tc fsTestCa
 		}
 	}
 
-	// CORRECTED: The method is named GetTool, not Get.
-	toolImpl, found := interp.ToolRegistry().GetTool(tc.toolName)
+	fullname := tool.MakeFullName(group, string(tc.toolName))
+	toolImpl, found := interp.ToolRegistry().GetTool(fullname)
 	if !found {
 		t.Fatalf("Tool %q not found in registry", tc.toolName)
 	}

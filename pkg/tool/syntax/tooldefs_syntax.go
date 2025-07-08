@@ -14,6 +14,8 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
+const group = "syntax"
+
 // analyzeSyntax is the function implementing the tool's logic.
 // It matches the expected ToolFunc signature (args as []interface{}).
 var analyzeSyntax tool.ToolFunc = func(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
@@ -36,6 +38,7 @@ var syntaxToolsToRegister = []tool.ToolImplementation{
 	{
 		Spec: tool.ToolSpec{
 			Name:        "analyzeNSSyntax",
+			Group:       group,
 			Description: "Analyzes a NeuroScript string for syntax errors. Returns a list of maps, where each map details an error. Returns an empty list if no errors are found.",
 			Category:    "Syntax Utilities",
 			Args: []tool.ArgSpec{

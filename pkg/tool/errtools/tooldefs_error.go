@@ -11,11 +11,14 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
+const group = "error"
+
 // errorToolsToRegister contains the ToolImplementation definitions for Error tools.
 var errorToolsToRegister = []tool.ToolImplementation{
 	{
 		Spec: tool.ToolSpec{
-			Name:        "Error.New",
+			Name:        "New",
+			Group:       group,
 			Description: "Constructs a standard NeuroScript error value map.",
 			Category:    "Error Handling",
 			Args: []tool.ArgSpec{

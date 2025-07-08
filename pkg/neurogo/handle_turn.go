@@ -14,6 +14,7 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/llm"
 	"github.com/aprice2704/neuroscript/pkg/security"
+	"github.com/aprice2704/neuroscript/pkg/types"
 	"github.com/google/generative-ai-go/genai"
 )
 
@@ -75,7 +76,7 @@ func (a *App) handleAgentTurn(
 				case genai.Text:
 					textContent.WriteString(string(v))
 				case genai.FunctionCall:
-					toolCalls = append(toolCalls, &interfaces.ToolCall{Name: v.Name, Arguments: v.Args})
+					toolCalls = append(toolCalls, &interfaces.ToolCall{Name: types.FullName(v.Name), Arguments: v.Args})
 					logger.Warn("[CONVO] Converting genai.FunctionCall found in history part to ToolCall (ID missing).")
 				case genai.FunctionResponse:
 					logger.Warn("[CONVO] genai.FunctionResponse found in history part, conversion to ToolResult not implemented.")
@@ -103,7 +104,7 @@ func (a *App) handleAgentTurn(
 			if len(genaiTool.FunctionDeclarations) > 0 {
 				decl := genaiTool.FunctionDeclarations[0]
 				coreToolDefs = append(coreToolDefs, interfaces.ToolDefinition{
-					Name:        decl.Name,
+					Name:        types.FullName(decl.Name),
 					Description: decl.Description,
 					InputSchema: decl.Parameters,
 				})
@@ -150,7 +151,7 @@ func (a *App) handleAgentTurn(
 		if foundFunctionCall && firstToolCallToExecute != nil {
 			toolCall := *firstToolCallToExecute
 			genaiFC := genai.FunctionCall{
-				Name: toolCall.Name,
+				Name: string(toolCall.Name),
 				Args: toolCall.Arguments,
 			}
 			logger.Info("Executing tool call.", "tool_name", genaiFC.Name)

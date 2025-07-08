@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"testing"
 	"time"
+
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 )
 
 func TestTypeOf(t *testing.T) {
@@ -24,7 +26,7 @@ func TestTypeOf(t *testing.T) {
 		{"[]any", []any{}, TypeList},
 		{"map[string]any", map[string]any{}, TypeMap},
 		{"Callable", new(Callable), TypeFunction},
-		{"Tool", new(Tool), TypeTool},
+		{"Tool", new(interfaces.Tool), TypeTool},
 		{"error", fmt.Errorf("error"), TypeError},
 		{"StringValue", StringValue{}, TypeString},
 		{"NumberValue", NumberValue{}, TypeNumber},

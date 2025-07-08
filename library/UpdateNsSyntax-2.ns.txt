@@ -178,7 +178,7 @@ func UpdateNsSyntax(needs directory_path, worker_definition_name returns status_
   :: param:worker_definition_name: The name of the AI Worker definition to use.
   :: return:0: A status message.
 
-  on_error means
+  on error do
     emit "[FATAL ERROR] An unhandled error occurred in UpdateNsSyntax for directory: " + directory_path
     set status_message = "Failure during syntax update for " + directory_path + ". Check logs."
     fail status_message

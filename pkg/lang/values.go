@@ -12,6 +12,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 )
 
 // Value is the interface that all NeuroScript runtime values must implement.
@@ -175,7 +177,7 @@ func (v FunctionValue) String() string {
 func (v FunctionValue) IsTruthy() bool { return v.Value != nil }
 
 // ToolValue wraps a Tool interface.
-type ToolValue struct{ Value Tool }
+type ToolValue struct{ Value interfaces.Tool }
 
 func (v ToolValue) Type() NeuroScriptType { return TypeTool }
 func (v ToolValue) String() string {

@@ -15,12 +15,13 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/testutil"
 	"github.com/aprice2704/neuroscript/pkg/tool"
+	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
 // testGoFormatToolHelper tests a go formatter tool implementation directly.
 func testGoFormatToolHelper(t *testing.T, interp tool.Runtime, tc struct {
 	name       string
-	toolName   string
+	toolName   types.ToolName
 	args       []interface{}
 	wantResult interface{}
 	wantErrIs  error
@@ -31,7 +32,8 @@ func testGoFormatToolHelper(t *testing.T, interp tool.Runtime, tc struct {
 		if !ok {
 			t.Fatalf("Interpreter does not implement ToolRegistry()")
 		}
-		toolImpl, found := interpImpl.ToolRegistry().GetTool(tc.toolName)
+		fullname := tool.MakeFullName(group, string(tc.toolName))
+		toolImpl, found := interpImpl.ToolRegistry().GetTool(fullname)
 		if !found {
 			t.Fatalf("Tool %q not found", tc.toolName)
 		}
@@ -75,15 +77,15 @@ func TestToolGoFmt(t *testing.T) {
 
 	tests := []struct {
 		name       string
-		toolName   string
+		toolName   types.ToolName
 		args       []interface{}
 		wantResult interface{}
 		wantErrIs  error
 	}{
-		{name: "Format valid code", toolName: "Go.Fmt", args: MakeArgs(unformatted), wantResult: formatted},
-		{name: "Format already formatted code", toolName: "Go.Fmt", args: MakeArgs(formatted), wantResult: formatted},
-		{name: "Format invalid code", toolName: "Go.Fmt", args: MakeArgs(invalid), wantErrIs: lang.ErrToolExecutionFailed},
-		{name: "Wrong arg type", toolName: "Go.Fmt", args: MakeArgs(123), wantErrIs: lang.ErrInvalidArgument},
+		{name: "Format valid code", toolName: "Fmt", args: MakeArgs(unformatted), wantResult: formatted},
+		{name: "Format already formatted code", toolName: "Fmt", args: MakeArgs(formatted), wantResult: formatted},
+		{name: "Format invalid code", toolName: "Fmt", args: MakeArgs(invalid), wantErrIs: lang.ErrToolExecutionFailed},
+		{name: "Wrong arg type", toolName: "Fmt", args: MakeArgs(123), wantErrIs: lang.ErrInvalidArgument},
 	}
 
 	for _, tt := range tests {
@@ -103,15 +105,15 @@ func TestToolGoImports(t *testing.T) {
 
 	tests := []struct {
 		name       string
-		toolName   string
+		toolName   types.ToolName
 		args       []interface{}
 		wantResult interface{}
 		wantErrIs  error
 	}{
-		{name: "Add missing import", toolName: "Go.Imports", args: MakeArgs(needsImport), wantResult: wantsImport},
-		{name: "Remove unused import", toolName: "Go.Imports", args: MakeArgs(hasUnusedImport), wantResult: wantsUnusedRemoved},
-		{name: "Invalid source", toolName: "Go.Imports", args: MakeArgs("package main func {"), wantErrIs: lang.ErrToolExecutionFailed}, // CORRECTED
-		{name: "Wrong arg type", toolName: "Go.Imports", args: MakeArgs(12345), wantErrIs: lang.ErrInvalidArgument},                     // CORRECTED
+		{name: "Add missing import", toolName: "Imports", args: MakeArgs(needsImport), wantResult: wantsImport},
+		{name: "Remove unused import", toolName: "Imports", args: MakeArgs(hasUnusedImport), wantResult: wantsUnusedRemoved},
+		{name: "Invalid source", toolName: "Imports", args: MakeArgs("package main func {"), wantErrIs: lang.ErrToolExecutionFailed}, // CORRECTED
+		{name: "Wrong arg type", toolName: "Imports", args: MakeArgs(12345), wantErrIs: lang.ErrInvalidArgument},                     // CORRECTED
 	}
 
 	for _, tt := range tests {

@@ -6,7 +6,7 @@ func main() means
   :: purpose: Main entry point for the script. Walks the current directory and prints file paths.
   :: caveats: This version assumes tool.FS.Walk returns a list of maps on success and relies on on_error for tool call failures.
 
-  on_error means
+  on error do
     emit "An error occurred during script execution."
     fail
   endon

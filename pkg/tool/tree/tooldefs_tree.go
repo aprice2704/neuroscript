@@ -11,13 +11,16 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
+const group = "tree"
+
 // treeToolsToRegister defines the ToolImplementation structs for core tree manipulation tools.
 // This variable is used by zz_core_tools_registrar.go to register the tools.
 var treeToolsToRegister = []tool.ToolImplementation{
 	// --- Load/Save ---
 	{
 		Spec: tool.ToolSpec{
-			Name:        "Tree.LoadJSON",
+			Name:        "LoadJSON",
+			Group:       group,
 			Description: "Loads a JSON string into a new tree structure and returns a tree handle.",
 			Category:    "Tree Manipulation",
 			Args: []tool.ArgSpec{
@@ -32,7 +35,8 @@ var treeToolsToRegister = []tool.ToolImplementation{
 	},
 	{
 		Spec: tool.ToolSpec{
-			Name:        "Tree.ToJSON",
+			Name:        "ToJSON",
+			Group:       group,
 			Description: "Converts a tree structure (identified by tree handle) back into a JSON string. Output is pretty-printed.",
 			Category:    "Tree Manipulation",
 			Args: []tool.ArgSpec{
@@ -49,7 +53,8 @@ var treeToolsToRegister = []tool.ToolImplementation{
 	// --- Navigation & Access ---
 	{
 		Spec: tool.ToolSpec{
-			Name:        "Tree.GetNode",
+			Name:        "GetNode",
+			Group:       group,
 			Description: "Retrieves detailed information about a specific node within a tree, returned as a map. The map includes 'id', 'type', 'value', 'attributes' (map), 'children' (slice of IDs), 'parent_id', and 'parent_attribute_key'.",
 			Category:    "Tree Manipulation",
 			Args: []tool.ArgSpec{
@@ -65,7 +70,8 @@ var treeToolsToRegister = []tool.ToolImplementation{
 	},
 	{
 		Spec: tool.ToolSpec{
-			Name:        "Tree.GetParent",
+			Name:        "GetParent",
+			Group:       group,
 			Description: "Gets the node ID of the parent of a given node.",
 			Category:    "Tree Manipulation",
 			Args: []tool.ArgSpec{
@@ -81,7 +87,8 @@ var treeToolsToRegister = []tool.ToolImplementation{
 	},
 	{
 		Spec: tool.ToolSpec{
-			Name:        "Tree.GetChildren",
+			Name:        "GetChildren",
+			Group:       group,
 			Description: "Gets a list of node IDs of the children of a given 'array' type node. Other node types will result in an error.",
 			Category:    "Tree Manipulation",
 			Args: []tool.ArgSpec{
@@ -99,7 +106,8 @@ var treeToolsToRegister = []tool.ToolImplementation{
 	// --- Modification ---
 	{
 		Spec: tool.ToolSpec{
-			Name:        "Tree.SetValue",
+			Name:        "SetValue",
+			Group:       group,
 			Description: "Sets the value of an existing leaf or simple-type node (e.g., string, number, boolean, null, checklist_item). Cannot set value on 'object' or 'array' type nodes using this tool.",
 			Category:    "Tree Manipulation",
 			Args: []tool.ArgSpec{
@@ -116,7 +124,8 @@ var treeToolsToRegister = []tool.ToolImplementation{
 	},
 	{
 		Spec: tool.ToolSpec{
-			Name:        "Tree.AddChildNode",
+			Name:        "AddChildNode",
+			Group:       group,
 			Description: "Adds a new child node to an existing parent node. Returns the ID of the newly created child node.",
 			Category:    "Tree Manipulation",
 			Args: []tool.ArgSpec{
@@ -136,7 +145,8 @@ var treeToolsToRegister = []tool.ToolImplementation{
 	},
 	{
 		Spec: tool.ToolSpec{
-			Name:        "Tree.RemoveNode",
+			Name:        "RemoveNode",
+			Group:       group,
 			Description: "Removes a node (specified by ID) and all its descendants from the tree. Cannot remove the root node.",
 			Category:    "Tree Manipulation",
 			Args: []tool.ArgSpec{
@@ -152,7 +162,8 @@ var treeToolsToRegister = []tool.ToolImplementation{
 	},
 	{
 		Spec: tool.ToolSpec{
-			Name:        "Tree.SetObjectAttribute",
+			Name:        "SetObjectAttribute",
+			Group:       group,
 			Description: "Sets or updates an attribute on an 'object' type node, mapping the attribute key to an existing child node's ID. This is for establishing parent-child relationships in object nodes.",
 			Category:    "Tree Manipulation",
 			Args: []tool.ArgSpec{
@@ -170,7 +181,8 @@ var treeToolsToRegister = []tool.ToolImplementation{
 	},
 	{
 		Spec: tool.ToolSpec{
-			Name:        "Tree.RemoveObjectAttribute",
+			Name:        "RemoveObjectAttribute",
+			Group:       group,
 			Description: "Removes an attribute (a key mapping to a child node ID) from an 'object' type node. This unlinks the child but does not delete the child node itself.",
 			Category:    "Tree Manipulation",
 			Args: []tool.ArgSpec{
@@ -189,7 +201,8 @@ var treeToolsToRegister = []tool.ToolImplementation{
 	// --- Metadata (Stored as string-string pairs in node.Attributes) ---
 	{
 		Spec: tool.ToolSpec{
-			Name:        "Tree.SetNodeMetadata",
+			Name:        "SetNodeMetadata",
+			Group:       group,
 			Description: "Sets a metadata attribute as a key-value string pair on any node. This is separate from object attributes that link to child nodes.",
 			Category:    "Tree Manipulation",
 			Args: []tool.ArgSpec{
@@ -207,7 +220,8 @@ var treeToolsToRegister = []tool.ToolImplementation{
 	},
 	{
 		Spec: tool.ToolSpec{
-			Name:        "Tree.RemoveNodeMetadata",
+			Name:        "RemoveNodeMetadata",
+			Group:       group,
 			Description: "Removes a metadata attribute (a key-value string pair) from a node.",
 			Category:    "Tree Manipulation",
 			Args: []tool.ArgSpec{
@@ -226,7 +240,8 @@ var treeToolsToRegister = []tool.ToolImplementation{
 	// --- Find & Render ---
 	{
 		Spec: tool.ToolSpec{
-			Name:        "Tree.FindNodes",
+			Name:        "FindNodes",
+			Group:       group,
 			Description: "Finds nodes within a tree (starting from a specified node) that match specific criteria. Returns a list of matching node IDs.",
 			Category:    "Tree Manipulation",
 			Args: []tool.ArgSpec{
@@ -245,7 +260,8 @@ var treeToolsToRegister = []tool.ToolImplementation{
 	},
 	{
 		Spec: tool.ToolSpec{
-			Name:        "Tree.RenderText",
+			Name:        "RenderText",
+			Group:       group,
 			Description: "Renders a visual text representation of the entire tree structure identified by the given tree handle.",
 			Category:    "Tree Manipulation",
 			Args: []tool.ArgSpec{

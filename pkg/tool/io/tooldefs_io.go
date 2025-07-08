@@ -11,12 +11,15 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
+const group = "io"
+
 // ioToolsToRegister contains ToolImplementation definitions for basic I/O tools.
 // Based on the provided pkg/core/tools_io.go.
 var ioToolsToRegister = []tool.ToolImplementation{
 	{
 		Spec: tool.ToolSpec{
 			Name:        "Print",
+			Group:       group,
 			Description: "Prints values to the standard output. If multiple values are passed in a list, they are printed space-separated.",
 			Category:    "Input/Output",
 			Args: []tool.ArgSpec{
@@ -36,6 +39,7 @@ var ioToolsToRegister = []tool.ToolImplementation{
 	{
 		Spec: tool.ToolSpec{
 			Name:        "Input", // Changed from "Prompt" to "Input"
+			Group:       group,
 			Description: "Displays a message and waits for user input from standard input. Returns the input as a string.",
 			Category:    "Input/Output",
 			Args: []tool.ArgSpec{

@@ -13,10 +13,13 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/tool"
 ) // Required for time format constants used in some tool descriptions
 
+const group = "fs"
+
 var fsToolsToRegister = []tool.ToolImplementation{
 	{
 		Spec: tool.ToolSpec{
-			Name:        "FS.Hash",
+			Name:        "Hash",
+			Group:       group,
 			Description: "Calculates the SHA256 hash of a specified file. Returns the hex-encoded hash string.",
 			Category:    "Filesystem",
 			Args: []tool.ArgSpec{
@@ -31,7 +34,8 @@ var fsToolsToRegister = []tool.ToolImplementation{
 	},
 	{
 		Spec: tool.ToolSpec{
-			Name:        "FS.LineCount",
+			Name:        "LineCount",
+			Group:       group,
 			Description: "Counts lines in a specified file. Returns line count as an integer.",
 			Category:    "Filesystem",
 			Args: []tool.ArgSpec{
@@ -46,7 +50,8 @@ var fsToolsToRegister = []tool.ToolImplementation{
 	},
 	{
 		Spec: tool.ToolSpec{
-			Name:        "FS.SanitizeFilename",
+			Name:        "SanitizeFilename",
+			Group:       group,
 			Description: "Cleans a string to make it suitable for use as part of a filename.",
 			Category:    "Filesystem Utilities",
 			Args: []tool.ArgSpec{
@@ -61,7 +66,8 @@ var fsToolsToRegister = []tool.ToolImplementation{
 	},
 	{
 		Spec: tool.ToolSpec{
-			Name:        "FS.Read",
+			Name:        "Read",
+			Group:       group,
 			Description: "Reads the entire content of a specific file. Returns the content as a string.",
 			Category:    "Filesystem",
 			Args: []tool.ArgSpec{
@@ -76,7 +82,8 @@ var fsToolsToRegister = []tool.ToolImplementation{
 	},
 	{
 		Spec: tool.ToolSpec{
-			Name:        "FS.Write",
+			Name:        "Write",
+			Group:       group,
 			Description: "Writes content to a specific file, overwriting it if it exists. Creates parent directories if needed. Returns 'OK' on success.",
 			Category:    "Filesystem",
 			Args: []tool.ArgSpec{
@@ -92,7 +99,8 @@ var fsToolsToRegister = []tool.ToolImplementation{
 	},
 	{
 		Spec: tool.ToolSpec{
-			Name:        "FS.Append",
+			Name:        "Append",
+			Group:       group,
 			Description: "Appends content to a specific file. Creates the file and parent directories if needed. Returns 'OK' on success.",
 			Category:    "Filesystem",
 			Args: []tool.ArgSpec{
@@ -108,7 +116,8 @@ var fsToolsToRegister = []tool.ToolImplementation{
 	},
 	{
 		Spec: tool.ToolSpec{
-			Name:        "FS.List",
+			Name:        "List",
+			Group:       group,
 			Description: "Lists files and subdirectories at a given path. Returns a list of maps, each describing an entry (keys: name, path, isDir, size, modTime).",
 			Category:    "Filesystem",
 			Args: []tool.ArgSpec{
@@ -124,7 +133,8 @@ var fsToolsToRegister = []tool.ToolImplementation{
 	},
 	{
 		Spec: tool.ToolSpec{
-			Name:        "FS.Mkdir",
+			Name:        "Mkdir",
+			Group:       group,
 			Description: "Creates a directory. Parent directories are created if they do not exist (like mkdir -p). Returns a success message.",
 			Category:    "Filesystem",
 			Args: []tool.ArgSpec{
@@ -139,7 +149,8 @@ var fsToolsToRegister = []tool.ToolImplementation{
 	},
 	{
 		Spec: tool.ToolSpec{
-			Name:        "FS.Delete",
+			Name:        "Delete",
+			Group:       group,
 			Description: "Deletes a file or an empty directory. Returns 'OK' on success or if path doesn't exist.",
 			Category:    "Filesystem",
 			Args: []tool.ArgSpec{
@@ -154,7 +165,8 @@ var fsToolsToRegister = []tool.ToolImplementation{
 	},
 	{
 		Spec: tool.ToolSpec{
-			Name:        "FS.Stat",
+			Name:        "Stat",
+			Group:       group,
 			Description: fmt.Sprintf("Gets information about a file or directory. Returns a map containing: name(string), path(string), size_bytes(int), is_dir(bool), modified_unix(int), modified_rfc3339(string - format %s), mode_string(string), mode_perm(string).", time.RFC3339Nano),
 			Category:    "Filesystem",
 			Args: []tool.ArgSpec{
@@ -169,7 +181,8 @@ var fsToolsToRegister = []tool.ToolImplementation{
 	},
 	{
 		Spec: tool.ToolSpec{
-			Name:        "FS.Move",
+			Name:        "Move",
+			Group:       group,
 			Description: "Moves or renames a file or directory within the sandbox. Returns a map: {'message': 'success message', 'error': nil} on success.",
 			Category:    "Filesystem",
 			Args: []tool.ArgSpec{
@@ -185,7 +198,8 @@ var fsToolsToRegister = []tool.ToolImplementation{
 	},
 	{
 		Spec: tool.ToolSpec{
-			Name:        "FS.Walk",
+			Name:        "Walk",
+			Group:       group,
 			Description: fmt.Sprintf("Recursively walks a directory, returning a list of maps describing files/subdirectories found (keys: name, path_relative, is_dir, size_bytes, modified_unix, modified_rfc3339 (format %s), mode_string). Skips the root directory itself.", time.RFC3339Nano),
 			Category:    "Filesystem",
 			Args: []tool.ArgSpec{

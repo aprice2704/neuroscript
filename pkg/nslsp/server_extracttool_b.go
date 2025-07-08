@@ -15,6 +15,7 @@ import (
 
 	"github.com/antlr4-go/antlr/v4"
 	gen "github.com/aprice2704/neuroscript/pkg/parser/generated"
+	"github.com/aprice2704/neuroscript/pkg/types"
 	lsp "github.com/sourcegraph/go-lsp"
 )
 
@@ -175,7 +176,7 @@ func (s *Server) extractAndValidateFullToolName(qiRuleCtx antlr.RuleContext, deb
 	}
 
 	forceDebugf(debugHover, "extractAndValidateFullToolName: Checking tool registry for: '%s'", candidateToolName)
-	toolDef, found := s.toolRegistry.GetTool(candidateToolName)
+	toolDef, found := s.toolRegistry.GetTool(types.FullName(candidateToolName))
 	forceDebugf(debugHover, "extractAndValidateFullToolName: Tool: '%s', FoundInRegistry: %t", candidateToolName, found)
 
 	if found {
@@ -190,7 +191,7 @@ func (s *Server) extractAndValidateFullToolName(qiRuleCtx antlr.RuleContext, deb
 		maxToolsToLog := 10 // Log more tools
 		for i, ts := range allTools {
 			if i < maxToolsToLog {
-				registeredToolsSample = append(registeredToolsSample, ts.Name)
+				registeredToolsSample = append(registeredToolsSample, string(ts.Name))
 			} else {
 				registeredToolsSample = append(registeredToolsSample, fmt.Sprintf("...and %d more", len(allTools)-maxToolsToLog))
 				break

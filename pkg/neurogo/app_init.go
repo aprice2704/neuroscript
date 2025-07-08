@@ -9,8 +9,9 @@ import (
 	"fmt"
 
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
-	"github.com/aprice2704/neuroscript/pkg/lang" // Corrected import
+	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/logging"
+	_ "github.com/aprice2704/neuroscript/pkg/toolbundles/all" // load tools
 )
 
 // NewApp creates and initializes a new App instance.

@@ -11,10 +11,13 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
+const group = "git"
+
 var gitToolsToRegister = []tool.ToolImplementation{
 	{
 		Spec: tool.ToolSpec{
-			Name:        "Git.Status",
+			Name:        "Status",
+			Group:       group,
 			Description: "Gets the status of the Git repository in the configured sandbox directory.",
 			Category:    "Git",
 			Args: []tool.ArgSpec{
@@ -29,7 +32,8 @@ var gitToolsToRegister = []tool.ToolImplementation{
 	},
 	{
 		Spec: tool.ToolSpec{
-			Name:        "Git.Clone",
+			Name:        "Clone",
+			Group:       group,
 			Description: "Clones a Git repository into the specified relative path within the sandbox.",
 			Category:    "Git",
 			Args: []tool.ArgSpec{
@@ -45,7 +49,8 @@ var gitToolsToRegister = []tool.ToolImplementation{
 	},
 	{
 		Spec: tool.ToolSpec{
-			Name:        "Git.Pull",
+			Name:        "Pull",
+			Group:       group,
 			Description: "Pulls the latest changes from the remote repository for the specified Git repository within the sandbox.",
 			Category:    "Git",
 			Args: []tool.ArgSpec{
@@ -62,7 +67,8 @@ var gitToolsToRegister = []tool.ToolImplementation{
 	},
 	{
 		Spec: tool.ToolSpec{
-			Name:        "Git.Commit",
+			Name:        "Commit",
+			Group:       group,
 			Description: "Commits staged changes in the specified Git repository within the sandbox.",
 			Category:    "Git",
 			Args: []tool.ArgSpec{
@@ -79,7 +85,8 @@ var gitToolsToRegister = []tool.ToolImplementation{
 	},
 	{
 		Spec: tool.ToolSpec{
-			Name:        "Git.Push",
+			Name:        "Push",
+			Group:       group,
 			Description: "Pushes committed changes to a remote repository.",
 			Category:    "Git",
 			Args: []tool.ArgSpec{
@@ -97,7 +104,8 @@ var gitToolsToRegister = []tool.ToolImplementation{
 	// Added missing tools below:
 	{
 		Spec: tool.ToolSpec{
-			Name:        "Git.Branch",
+			Name:        "Branch",
+			Group:       group,
 			Description: "Manages branches: lists, creates, or creates and checks out branches in a Git repository.",
 			Category:    "Git",
 			Args: []tool.ArgSpec{
@@ -116,7 +124,8 @@ var gitToolsToRegister = []tool.ToolImplementation{
 	},
 	{
 		Spec: tool.ToolSpec{
-			Name:        "Git.Checkout",
+			Name:        "Checkout",
+			Group:       group,
 			Description: "Switches branches or restores working tree files in a Git repository.",
 			Category:    "Git",
 			Args: []tool.ArgSpec{
@@ -133,7 +142,8 @@ var gitToolsToRegister = []tool.ToolImplementation{
 	},
 	{
 		Spec: tool.ToolSpec{
-			Name:        "Git.Rm",
+			Name:        "Rm",
+			Group:       group,
 			Description: "Removes files from the working tree and from the index in a Git repository.",
 			Category:    "Git",
 			Args: []tool.ArgSpec{
@@ -149,7 +159,8 @@ var gitToolsToRegister = []tool.ToolImplementation{
 	},
 	{
 		Spec: tool.ToolSpec{
-			Name:        "Git.Merge",
+			Name:        "Merge",
+			Group:       group,
 			Description: "Joins two or more development histories together in a Git repository.",
 			Category:    "Git",
 			Args: []tool.ArgSpec{
@@ -165,7 +176,8 @@ var gitToolsToRegister = []tool.ToolImplementation{
 	},
 	{
 		Spec: tool.ToolSpec{
-			Name:        "Git.Diff",
+			Name:        "Diff",
+			Group:       group,
 			Description: "Shows changes between commits, commit and working tree, etc., in a Git repository.",
 			Category:    "Git",
 			Args: []tool.ArgSpec{

@@ -164,8 +164,9 @@ func (i *Interpreter) getAvailableToolsForAsk(step ast.Step) []interfaces.ToolDe
 			i.logger.Warn("Skipping tool for LLM due to schema conversion error", "tool", spec.Name, "error", err, "pos", step.GetPos().String())
 			continue
 		}
+		fullname := tool.MakeFullName(string(spec.Group), string(spec.FullName))
 		definitions = append(definitions, interfaces.ToolDefinition{
-			Name:        spec.Name,
+			Name:        fullname,
 			Description: spec.Description,
 			InputSchema: inputSchema,
 		})

@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/aprice2704/neuroscript/pkg/interpreter" // Corrected import
+	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
 // --- Helper Functions (loadToolListFromFile, executeAgentTool, formatToolResult, formatErrorResponse) ---
@@ -35,7 +36,7 @@ func loadToolListFromFile(filePath string) ([]string, error) {
 	}
 	return tools, nil
 }
-func executeAgentTool(toolName string, args map[string]interface{}, interp *interpreter.Interpreter) (interface{}, error) {
+func executeAgentTool(toolName types.FullName, args map[string]interface{}, interp *interpreter.Interpreter) (interface{}, error) {
 	toolImpl, found := interp.ToolRegistry().GetTool(toolName)
 	if !found {
 		return nil, fmt.Errorf("tool %s not found", toolName)

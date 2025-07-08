@@ -26,6 +26,7 @@ var (
 )
 
 func main() {
+
 	// --- Configuration Setup (Flag Definitions) ---
 	versionFlag := flag.Bool("version", false, "Print version information in JSON format and exit")
 	logFile := flag.String("log-file", "", "Path to log file (optional, defaults to stderr)")
@@ -160,6 +161,7 @@ func main() {
 		os.Exit(1)
 	}
 	logger.Debug("Core components (Interpreter) initialized successfully.")
+	fmt.Printf("---> STARTING NG with %d tools <---\n", app.GetInterpreter().NTools())
 
 	// --- Determine Mode of Operation ---
 	scriptToRunNonTUI := app.Config.StartupScript

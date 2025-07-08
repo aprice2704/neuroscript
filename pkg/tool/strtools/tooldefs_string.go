@@ -11,12 +11,15 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
+const group = "str"
+
 // stringToolsToRegister contains ToolImplementation definitions for String tools.
 // These definitions are based on the tools previously registered in tools_string.go.
 var stringToolsToRegister = []tool.ToolImplementation{
 	{
 		Spec: tool.ToolSpec{
 			Name:        "Length",
+			Group:       group,
 			Description: "Returns the number of UTF-8 characters (runes) in a string.",
 			Category:    "String Operations",
 			Args: []tool.ArgSpec{
@@ -32,6 +35,7 @@ var stringToolsToRegister = []tool.ToolImplementation{
 	{
 		Spec: tool.ToolSpec{
 			Name:        "Substring",
+			Group:       group,
 			Description: "Returns a portion of the string (rune-based indexing), from start_index for a given length.",
 			Category:    "String Operations",
 			Args: []tool.ArgSpec{
@@ -49,6 +53,7 @@ var stringToolsToRegister = []tool.ToolImplementation{
 	{
 		Spec: tool.ToolSpec{
 			Name:        "ToUpper",
+			Group:       group,
 			Description: "Converts a string to uppercase.",
 			Category:    "String Operations",
 			Args: []tool.ArgSpec{
@@ -64,6 +69,7 @@ var stringToolsToRegister = []tool.ToolImplementation{
 	{
 		Spec: tool.ToolSpec{
 			Name:        "ToLower",
+			Group:       group,
 			Description: "Converts a string to lowercase.",
 			Category:    "String Operations",
 			Args: []tool.ArgSpec{
@@ -79,6 +85,7 @@ var stringToolsToRegister = []tool.ToolImplementation{
 	{
 		Spec: tool.ToolSpec{
 			Name:        "TrimSpace",
+			Group:       group,
 			Description: "Removes leading and trailing whitespace from a string.",
 			Category:    "String Operations",
 			Args: []tool.ArgSpec{
@@ -94,6 +101,7 @@ var stringToolsToRegister = []tool.ToolImplementation{
 	{
 		Spec: tool.ToolSpec{
 			Name:        "Split",
+			Group:       group,
 			Description: "Splits a string by a delimiter.",
 			Category:    "String Operations",
 			Args: []tool.ArgSpec{
@@ -110,6 +118,7 @@ var stringToolsToRegister = []tool.ToolImplementation{
 	{
 		Spec: tool.ToolSpec{
 			Name:        "SplitWords",
+			Group:       group,
 			Description: "Splits a string into words based on whitespace.",
 			Category:    "String Operations",
 			Args: []tool.ArgSpec{
@@ -125,6 +134,7 @@ var stringToolsToRegister = []tool.ToolImplementation{
 	{
 		Spec: tool.ToolSpec{
 			Name:        "Join",
+			Group:       group,
 			Description: "Joins elements of a list of strings with a separator.",
 			Category:    "String Operations",
 			Args: []tool.ArgSpec{
@@ -141,6 +151,7 @@ var stringToolsToRegister = []tool.ToolImplementation{
 	{
 		Spec: tool.ToolSpec{
 			Name:        "Concat",
+			Group:       group,
 			Description: "Concatenates a list of strings without a separator.",
 			Category:    "String Operations",
 			Args: []tool.ArgSpec{
@@ -156,6 +167,7 @@ var stringToolsToRegister = []tool.ToolImplementation{
 	{
 		Spec: tool.ToolSpec{
 			Name:        "Replace",
+			Group:       group,
 			Description: "Replaces occurrences of a substring with another, up to a specified count.",
 			Category:    "String Operations",
 			Args: []tool.ArgSpec{
@@ -174,6 +186,7 @@ var stringToolsToRegister = []tool.ToolImplementation{
 	{
 		Spec: tool.ToolSpec{
 			Name:        "Contains",
+			Group:       group,
 			Description: "Checks if a string contains a substring.",
 			Category:    "String Operations",
 			Args: []tool.ArgSpec{
@@ -190,6 +203,7 @@ var stringToolsToRegister = []tool.ToolImplementation{
 	{
 		Spec: tool.ToolSpec{
 			Name:        "HasPrefix",
+			Group:       group,
 			Description: "Checks if a string starts with a prefix.",
 			Category:    "String Operations",
 			Args: []tool.ArgSpec{
@@ -206,6 +220,7 @@ var stringToolsToRegister = []tool.ToolImplementation{
 	{
 		Spec: tool.ToolSpec{
 			Name:        "HasSuffix",
+			Group:       group,
 			Description: "Checks if a string ends with a suffix.",
 			Category:    "String Operations",
 			Args: []tool.ArgSpec{
@@ -222,6 +237,7 @@ var stringToolsToRegister = []tool.ToolImplementation{
 	{
 		Spec: tool.ToolSpec{
 			Name:        "LineCount",
+			Group:       group,
 			Description: "Counts the number of lines in the given string content.",
 			Category:    "String Operations",
 			Args: []tool.ArgSpec{

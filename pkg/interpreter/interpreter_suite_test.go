@@ -129,11 +129,9 @@ func newLocalTestInterpreter(t *testing.T, initialVars map[string]lang.Value, la
 		WithLogger(testLogger),
 		WithSandboxDir(sandboxDir),
 	)
-	if initialVars != nil {
-		for k, v := range initialVars {
-			if err := interp.SetInitialVariable(k, v); err != nil {
-				return nil, fmt.Errorf("failed to set initial variable %q: %w", k, err)
-			}
+	for k, v := range initialVars {
+		if err := interp.SetInitialVariable(k, v); err != nil {
+			return nil, fmt.Errorf("failed to set initial variable %q: %w", k, err)
 		}
 	}
 	if lastResult != nil {

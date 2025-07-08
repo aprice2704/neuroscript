@@ -11,13 +11,16 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
+const group = "go"
+
 // goToolsToRegister contains ToolImplementation definitions for a subset of Go language tools.
 // This array is intended to be concatenated with other similar arrays in a central
 // registrar (e.g., zz_core_tools_registrar.go) to be processed by AddToolImplementations.
 var goToolsToRegister = []tool.ToolImplementation{
 	{
 		Spec: tool.ToolSpec{
-			Name:            "Go.ModTidy",
+			Name:            "ModTidy",
+			Group:           group,
 			Description:     "Runs 'go mod tidy' in the sandbox to add missing and remove unused modules. Operates in the sandbox root.",
 			Category:        "Go Build Tools",
 			Args:            []tool.ArgSpec{},
@@ -30,7 +33,8 @@ var goToolsToRegister = []tool.ToolImplementation{
 	},
 	{
 		Spec: tool.ToolSpec{
-			Name:        "Go.ListPackages",
+			Name:        "ListPackages",
+			Group:       group,
 			Description: "Runs 'go list -json' for specified patterns in a target directory. Returns a list of maps, each describing a package.",
 			Category:    "Go Build Tools",
 			Args: []tool.ArgSpec{
@@ -46,7 +50,8 @@ var goToolsToRegister = []tool.ToolImplementation{
 	},
 	{
 		Spec: tool.ToolSpec{
-			Name:        "Go.Build",
+			Name:        "Build",
+			Group:       group,
 			Description: "Runs 'go build' for a specified target in the sandbox. Defaults to './...'.",
 			Category:    "Go Build Tools",
 			Args: []tool.ArgSpec{
@@ -61,7 +66,8 @@ var goToolsToRegister = []tool.ToolImplementation{
 	},
 	{
 		Spec: tool.ToolSpec{
-			Name:        "Go.Test",
+			Name:        "Test",
+			Group:       group,
 			Description: "Runs 'go test' for a specified target in the sandbox. Defaults to './...'.",
 			Category:    "Go Build Tools",
 			Args: []tool.ArgSpec{
@@ -76,7 +82,8 @@ var goToolsToRegister = []tool.ToolImplementation{
 	},
 	{
 		Spec: tool.ToolSpec{
-			Name:        "Go.Fmt",
+			Name:        "Fmt",
+			Group:       group,
 			Description: "Formats Go source code using 'go/format.Source'. Returns the formatted code or an error map.",
 			Category:    "Go Formatting",
 			Args: []tool.ArgSpec{
@@ -91,7 +98,8 @@ var goToolsToRegister = []tool.ToolImplementation{
 	},
 	{
 		Spec: tool.ToolSpec{
-			Name:        "Go.Imports",
+			Name:        "Imports",
+			Group:       group,
 			Description: "Formats Go source code and adjusts imports using 'golang.org/x/tools/imports'. Returns the processed code or an error map.",
 			Category:    "Go Formatting",
 			Args: []tool.ArgSpec{
@@ -106,7 +114,8 @@ var goToolsToRegister = []tool.ToolImplementation{
 	},
 	{
 		Spec: tool.ToolSpec{
-			Name:        "Go.Vet",
+			Name:        "Vet",
+			Group:       group,
 			Description: "Runs 'go vet' on the specified target(s) in the sandbox to report likely mistakes in Go source code. Defaults to './...'.",
 			Category:    "Go Diagnostics",
 			Args: []tool.ArgSpec{
@@ -122,6 +131,7 @@ var goToolsToRegister = []tool.ToolImplementation{
 	{
 		Spec: tool.ToolSpec{
 			Name:        "Staticcheck",
+			Group:       group,
 			Description: "Runs 'staticcheck' on the specified target(s) in the sandbox. Reports bugs, stylistic errors, and performance issues. Defaults to './...'. Assumes 'staticcheck' is in PATH.",
 			Category:    "Go Diagnostics",
 			Args: []tool.ArgSpec{
@@ -136,7 +146,8 @@ var goToolsToRegister = []tool.ToolImplementation{
 	},
 	{
 		Spec: tool.ToolSpec{
-			Name:            "Go.Check",
+			Name:            "Check",
+			Group:           group,
 			Description:     "Checks Go code validity using 'go list -e -json <target>' within the sandbox. Returns a map indicating success and error details.",
 			Category:        "Go Diagnostics",
 			Args:            []tool.ArgSpec{{Name: "target", Type: tool.ArgTypeString, Required: true, Description: "Target Go package path or file path relative to sandbox (e.g., './pkg/core', 'main.go')."}},
@@ -149,7 +160,8 @@ var goToolsToRegister = []tool.ToolImplementation{
 	},
 	{
 		Spec: tool.ToolSpec{
-			Name:            "Go.GetModuleInfo",
+			Name:            "GetModuleInfo",
+			Group:           group,
 			Description:     "Finds and parses the go.mod file relevant to a directory by searching upwards. Returns a map with module path, go version, root directory, requires, and replaces, or nil if not found.",
 			Category:        "Go Build Tools",
 			Args:            []tool.ArgSpec{{Name: "directory", Type: tool.ArgTypeString, Required: false, Description: "Directory (relative to sandbox) to start searching upwards for go.mod. Defaults to '.' (sandbox root)."}},

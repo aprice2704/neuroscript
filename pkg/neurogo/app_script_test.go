@@ -17,6 +17,7 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/logging"
 	"github.com/aprice2704/neuroscript/pkg/tool"
+	_ "github.com/aprice2704/neuroscript/pkg/toolbundles/all" // load tools
 )
 
 // setupTestApp is a helper to reduce boilerplate in tests.

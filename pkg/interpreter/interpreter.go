@@ -68,6 +68,10 @@ type Interpreter struct {
 	llmclient          interfaces.LLMClient
 }
 
+func (i *Interpreter) NTools() (ntools int) {
+	return i.tools.NTools()
+}
+
 func (i *Interpreter) LLM() interfaces.LLMClient {
 	return i.llmclient
 }

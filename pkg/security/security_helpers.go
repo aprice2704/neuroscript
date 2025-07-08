@@ -8,24 +8,25 @@ package security
 import (
 	"errors"
 	"fmt"
-	"os"	// Import os for PathSeparator
+	"os" // Import os for PathSeparator
 	"path/filepath"
 	"strings"
 
 	// Needed for logger in CreateSuccess
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
-	"github.com/google/generative-ai-go/genai"	// Needed for genai types
+	"github.com/aprice2704/neuroscript/pkg/types"
+	"github.com/google/generative-ai-go/genai" // Needed for genai types
 )
 
 // --- CreateErrorFunctionResultPart unchanged ---
-func CreateErrorFunctionResultPart(qualifiedToolName string, execErr error) genai.Part {
+func CreateErrorFunctionResultPart(fulltoolname types.FullName, execErr error) genai.Part {
 	errMsg := "unknown execution error"
 	if execErr != nil {
-		errMsg = execErr.Error()	// Use the error's message
+		errMsg = execErr.Error() // Use the error's message
 	}
 	return genai.FunctionResponse{
-		Name:	qualifiedToolName,
+		Name: string(fulltoolname),
 		Response: map[string]interface{}{
 			"error": fmt.Sprintf("Tool execution failed: %s", errMsg),
 		},
@@ -33,7 +34,7 @@ func CreateErrorFunctionResultPart(qualifiedToolName string, execErr error) gena
 }
 
 // --- CreateSuccessFunctionResultPart unchanged ---
-func CreateSuccessFunctionResultPart(qualifiedToolName string, resultValue interface{}, logger interfaces.Logger) genai.Part {
+func CreateSuccessFunctionResultPart(fulltoolname types.FullName, resultValue interface{}, logger interfaces.Logger) genai.Part {
 	responseMap := make(map[string]interface{})
 	switch v := resultValue.(type) {
 	case map[string]interface{}:
@@ -60,10 +61,10 @@ func CreateSuccessFunctionResultPart(qualifiedToolName string, resultValue inter
 		responseMap["result"] = formattedResult
 		responseMap["status"] = "success (formatted)"
 		if logger != nil {
-			logger.Warn("Tool returned unexpected type, formatting as string", "tool", qualifiedToolName, "type", fmt.Sprintf("%T", v), "formatted_result", formattedResult)
+			logger.Warn("Tool returned unexpected type, formatting as string", "tool", fulltoolname, "type", fmt.Sprintf("%T", v), "formatted_result", formattedResult)
 		}
 	}
-	return genai.FunctionResponse{Name: qualifiedToolName, Response: responseMap}
+	return genai.FunctionResponse{Name: string(fulltoolname), Response: responseMap}
 }
 
 // --- Deprecated: GetSandboxPath unchanged ---
@@ -80,11 +81,11 @@ func IsPathInSandbox(sandboxRoot, inputPath string) (bool, error) {
 	_, err := ResolveAndSecurePath(inputPath, sandboxRoot)
 	if err != nil {
 		if re, ok := err.(*lang.RuntimeError); ok && errors.Is(re.Wrapped, lang.ErrPathViolation) {
-			return false, nil	// Specific path violation is not an error for the check, just means "false"
+			return false, nil // Specific path violation is not an error for the check, just means "false"
 		}
-		return false, err	// Other errors during resolution are returned
+		return false, err // Other errors during resolution are returned
 	}
-	return true, nil	// No error means path is inside
+	return true, nil // No error means path is inside
 }
 
 // ResolveAndSecurePath resolves an input path (expected to be relative to allowedRoot)
@@ -111,7 +112,7 @@ func ResolveAndSecurePath(inputPath, allowedRoot string) (string, error) {
 	absAllowedRoot = filepath.Clean(absAllowedRoot)
 
 	resolvedPath := filepath.Join(absAllowedRoot, inputPath)
-	resolvedPath = filepath.Clean(resolvedPath)	// Critical: Simplifies ../ etc.
+	resolvedPath = filepath.Clean(resolvedPath) // Critical: Simplifies ../ etc.
 
 	// --- Robust Check: Use filepath.Rel ---
 	rel, err := filepath.Rel(absAllowedRoot, resolvedPath)

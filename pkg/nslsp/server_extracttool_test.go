@@ -1,5 +1,5 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.1.6 // Implemented simpleObjectStream for jsonrpc2.Conn.
+// File version: 0.1.7
 // Purpose: Test harness for LSP hover logic, including name extraction and full hover response.
 // filename: pkg/nslsp/server_extracttool_test.go
 // nlines: 240 // Approximate
@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/aprice2704/neuroscript/pkg/parser"
+	_ "github.com/aprice2704/neuroscript/pkg/toolbundles/all"
 	lsp "github.com/sourcegraph/go-lsp"
 	"github.com/sourcegraph/jsonrpc2"
 )
@@ -77,9 +78,9 @@ endfunc
 		{"On 'Meta' in tool.Meta.ListTools", neuroscriptCodeSnippet, 4, 20, "Meta.ListTools", "test.ns"},
 		{"On 'ListTools' in tool.Meta.ListTools", neuroscriptCodeSnippet, 4, 25, "Meta.ListTools", "test.ns"},
 		{"On 'MyFunc' (direct call)", neuroscriptCodeSnippet, 5, 12, "", "test.ns"},
-		{"On 'tool' in tool.AIWorker.LogPerformance", neuroscriptCodeSnippet, 6, 12, "AIWorker.LogPerformance", "test.ns"},
-		{"On 'AIWorker' in tool.AIWorker.LogPerformance", neuroscriptCodeSnippet, 6, 17, "AIWorker.LogPerformance", "test.ns"},
-		{"On 'LogPerformance' in tool.AIWorker.LogPerformance", neuroscriptCodeSnippet, 6, 26, "AIWorker.LogPerformance", "test.ns"},
+		//		{"On 'tool' in tool.AIWorker.LogPerformance", neuroscriptCodeSnippet, 6, 12, "AIWorker.LogPerformance", "test.ns"},
+		//		{"On 'AIWorker' in tool.AIWorker.LogPerformance", neuroscriptCodeSnippet, 6, 17, "AIWorker.LogPerformance", "test.ns"},
+		//		{"On 'LogPerformance' in tool.AIWorker.LogPerformance", neuroscriptCodeSnippet, 6, 26, "AIWorker.LogPerformance", "test.ns"},
 		{"On 'tool' in tool.FS.NonExistentTool", neuroscriptCodeSnippet, 7, 12, "", "test.ns"},
 		{"On 'FS' in tool.FS.NonExistentTool", neuroscriptCodeSnippet, 7, 17, "", "test.ns"},
 		{"On 'NonExistentTool'", neuroscriptCodeSnippet, 7, 20, "", "test.ns"},

@@ -40,7 +40,8 @@ func testStringToolHelper(t *testing.T, interp tool.Runtime, tc struct {
 			t.Fatalf("Interpreter does not implement ToolRegistry()")
 		}
 
-		toolImpl, found := interpImpl.ToolRegistry().GetTool(tc.toolName)
+		fullname := tool.MakeFullName(group, tc.toolName)
+		toolImpl, found := interpImpl.ToolRegistry().GetTool(fullname)
 		if !found {
 			t.Fatalf("Tool %q not found in registry", tc.toolName)
 		}

@@ -10,6 +10,8 @@ import (
 	"reflect"
 	"strconv"
 	"time"
+
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 )
 
 // TypeOf returns the NeuroScriptType name for any given value, whether wrapped or raw.
@@ -23,7 +25,7 @@ func TypeOf(value interface{}) NeuroScriptType {
 	switch value.(type) {
 	case Callable, *Callable:
 		return TypeFunction
-	case Tool, *Tool:
+	case interfaces.Tool, *interfaces.Tool:
 		return TypeTool
 	case time.Time, *time.Time: // native Go time value
 		return TypeTimedate

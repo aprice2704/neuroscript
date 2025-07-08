@@ -9,16 +9,17 @@ package interpreter
 
 import (
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
 // CallTool satisfies the tool.Runtime interface. It's the bridge for tools calling other tools.
-func (i *Interpreter) CallTool(toolName string, args []any) (any, error) {
+func (i *Interpreter) CallTool(toolName types.FullName, args []any) (any, error) {
 	// Since this is on the Runtime, args are already primitives.
 	// We need to wrap them back to lang.Value for ExecuteTool.
 	langArgs := make(map[string]lang.Value)
 	impl, ok := i.tools.GetTool(toolName)
 	if !ok {
-		return nil, lang.NewRuntimeError(lang.ErrorCodeToolNotFound, "tool not found: "+toolName, lang.ErrToolNotFound)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeToolNotFound, "tool not found: "+string(toolName), lang.ErrToolNotFound)
 	}
 
 	for idx, spec := range impl.Spec.Args {
@@ -40,6 +41,6 @@ func (i *Interpreter) CallTool(toolName string, args []any) (any, error) {
 }
 
 // ExecuteTool is the primary entry point for the interpreter's 'call' statement.
-func (i *Interpreter) ExecuteTool(toolName string, args map[string]lang.Value) (lang.Value, error) {
+func (i *Interpreter) ExecuteTool(toolName types.FullName, args map[string]lang.Value) (lang.Value, error) {
 	return i.tools.ExecuteTool(toolName, args)
 }

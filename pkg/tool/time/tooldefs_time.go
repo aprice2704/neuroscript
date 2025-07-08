@@ -6,11 +6,14 @@ package time
 
 import "github.com/aprice2704/neuroscript/pkg/tool"
 
+const group = "time"
+
 // timeToolsToRegister contains the ToolImplementation definitions for Time tools.
 var timeToolsToRegister = []tool.ToolImplementation{
 	{
 		Spec: tool.ToolSpec{
-			Name:        "Time.Now",
+			Name:        "Now",
+			Group:       group,
 			Description: "Returns the current system time as a 'timedate' value.",
 			Category:    "Time",
 			Args:        []tool.ArgSpec{},
@@ -22,7 +25,8 @@ var timeToolsToRegister = []tool.ToolImplementation{
 	},
 	{
 		Spec: tool.ToolSpec{
-			Name:        "Time.Sleep",
+			Name:        "Sleep",
+			Group:       group,
 			Description: "Pauses the script execution for a specified duration.",
 			Category:    "Time",
 			Args: []tool.ArgSpec{

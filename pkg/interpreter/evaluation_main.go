@@ -15,6 +15,7 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
 var placeholderRegex = regexp.MustCompile(`\{\{\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\}\}`)
@@ -95,7 +96,7 @@ func (i *Interpreter) resolveVariable(n *ast.VariableNode) (lang.Value, error) {
 	if proc, procExists := i.KnownProcedures()[n.Name]; procExists {
 		return lang.FunctionValue{Value: proc}, nil
 	}
-	if tool, toolExists := i.tools.GetTool(n.Name); toolExists {
+	if tool, toolExists := i.tools.GetTool(types.FullName(n.Name)); toolExists {
 		return lang.ToolValue{Value: &tool}, nil
 	}
 	if typeVal, typeExists := GetTypeConstant(n.Name); typeExists {
@@ -158,7 +159,7 @@ func (e *evaluation) evaluateTypeOf(n *ast.TypeOfNode) (lang.Value, error) {
 
 func (e *evaluation) evaluateCall(n *ast.CallableExprNode) (lang.Value, error) {
 	if n.Target.IsTool {
-		tool, found := e.i.tools.GetTool(n.Target.Name)
+		tool, found := e.i.tools.GetTool(types.FullName(n.Target.Name))
 		if !found {
 			return nil, lang.NewRuntimeError(lang.ErrorCodeToolNotFound, fmt.Sprintf("tool '%s' not found", n.Target.Name), lang.ErrToolNotFound).WithPosition(n.Pos)
 		}

@@ -7,7 +7,10 @@
 
 package ast
 
-import "github.com/aprice2704/neuroscript/pkg/lang"
+import (
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
+	"github.com/aprice2704/neuroscript/pkg/lang"
+)
 
 // AccessorType defines how an element is accessed (e.g., by key or index).
 type AccessorType int
@@ -91,7 +94,7 @@ type Step struct {
 	AskIntoVar     string
 	IsFinal        bool
 	ErrorName      string
-	tool           lang.Tool
+	tool           interfaces.Tool
 	ExpressionStmt *ExpressionStatementNode
 }
 

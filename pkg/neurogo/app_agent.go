@@ -170,12 +170,13 @@ func (app *App) handleTurn(ctx context.Context, convoManager *llm.ConversationMa
 		return fmt.Errorf("cannot handle turn: tool registry is nil")
 	}
 
-	var allowedTools []string = nil
-	var allowedPaths map[string]bool = nil
+	var allowedTools security.ADlist = nil
+	var deniedTools security.ADlist = nil
+	//var allowedPaths map[string]bool = nil
 	sandboxDir := app.interpreter.SandboxDir()
 	securityLayer := security.NewSecurityLayer(
 		allowedTools,
-		allowedPaths,
+		deniedTools,
 		sandboxDir,
 		registry,
 		app.Log,
@@ -266,9 +267,8 @@ func getAvailableTools(agentCtx *AgentContext, registry tool.ToolRegistry) []*ge
 	allTools := registry.ListTools()
 	genaiTools := make([]*genai.Tool, 0, len(allTools))
 	for _, toolImpl := range allTools {
-		qualifiedName := "TOOL." + toolImpl.Name
 		genaiFunc := &genai.FunctionDeclaration{
-			Name:        qualifiedName,
+			Name:        string(toolImpl.FullName),
 			Description: toolImpl.Description,
 		}
 		genaiTools = append(genaiTools, &genai.Tool{

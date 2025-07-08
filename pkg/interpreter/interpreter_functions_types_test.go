@@ -13,13 +13,14 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
 // dummyTool is a local struct just for testing to satisfy the lang.Tool interface.
 type dummyTool struct{}
 
-func (d dummyTool) IsTool()      {}
-func (d dummyTool) Name() string { return "dummyTool" }
+func (d dummyTool) IsTool()              {}
+func (d dummyTool) Name() types.FullName { return "dummyTool" }
 
 // Test for is_string, is_number, is_int, is_float, is_bool, is_list, is_map, is_error, etc.
 func TestBuiltinTypeCheckFunctions(t *testing.T) {

@@ -9,10 +9,13 @@ package list
 
 import "github.com/aprice2704/neuroscript/pkg/tool"
 
+const group = "list"
+
 // listToolsToRegister contains ToolImplementation definitions for list tools.
 var listToolsToRegister = []tool.ToolImplementation{
 	{Spec: tool.ToolSpec{
-		Name:            "List.Length",
+		Name:            "Length",
+		Group:           group,
 		Description:     "Returns the number of elements in a list.",
 		Category:        "List Operations",
 		Args:            []tool.ArgSpec{{Name: "list", Type: tool.ArgTypeSliceAny, Required: true, Description: "The list to measure."}},
@@ -22,7 +25,8 @@ var listToolsToRegister = []tool.ToolImplementation{
 		ErrorConditions: "None expected, as input validation ensures 'list' is a slice. An empty list returns 0.",
 	}, Func: toolListLength},
 	{Spec: tool.ToolSpec{
-		Name:        "List.Append",
+		Name:        "Append",
+		Group:       group,
 		Description: "Returns a *new* list with the given element added to the end.",
 		Category:    "List Operations",
 		Args: []tool.ArgSpec{
@@ -35,7 +39,8 @@ var listToolsToRegister = []tool.ToolImplementation{
 		ErrorConditions: "None expected, as input validation ensures 'list' is a slice. Appending 'nil' is allowed.",
 	}, Func: toolListAppend},
 	{Spec: tool.ToolSpec{
-		Name:        "List.Prepend",
+		Name:        "Prepend",
+		Group:       group,
 		Description: "Returns a *new* list with the given element added to the beginning.",
 		Category:    "List Operations",
 		Args: []tool.ArgSpec{
@@ -48,7 +53,8 @@ var listToolsToRegister = []tool.ToolImplementation{
 		ErrorConditions: "None expected, as input validation ensures 'list' is a slice. Prepending 'nil' is allowed.",
 	}, Func: toolListPrepend},
 	{Spec: tool.ToolSpec{
-		Name:        "List.Get",
+		Name:        "Get",
+		Group:       group,
 		Description: "Safely gets the element at a specific index (0-based). Returns nil or the optional default value if the index is out of bounds.",
 		Category:    "List Operations",
 		Args: []tool.ArgSpec{
@@ -62,7 +68,8 @@ var listToolsToRegister = []tool.ToolImplementation{
 		ErrorConditions: "Returns nil or the default value if the index is out of bounds. No specific error type is returned for out-of-bounds access by design.",
 	}, Func: toolListGet},
 	{Spec: tool.ToolSpec{
-		Name:        "List.Slice",
+		Name:        "Slice",
+		Group:       group,
 		Description: "Returns a *new* list containing elements from the start index (inclusive) up to the end index (exclusive). Follows Go slice semantics (indices are clamped, invalid range returns empty list).",
 		Category:    "List Operations",
 		Args: []tool.ArgSpec{
@@ -76,7 +83,8 @@ var listToolsToRegister = []tool.ToolImplementation{
 		ErrorConditions: "Returns an empty list for invalid or out-of-bounds start/end indices. Does not return an error for range issues.",
 	}, Func: toolListSlice},
 	{Spec: tool.ToolSpec{
-		Name:        "List.Contains",
+		Name:        "Contains",
+		Group:       group,
 		Description: "Checks if a list contains a specific element (using deep equality comparison).",
 		Category:    "List Operations",
 		Args: []tool.ArgSpec{
@@ -89,7 +97,8 @@ var listToolsToRegister = []tool.ToolImplementation{
 		ErrorConditions: "None expected. Comparison with 'nil' elements is handled.",
 	}, Func: toolListContains},
 	{Spec: tool.ToolSpec{
-		Name:            "List.Reverse",
+		Name:            "Reverse",
+		Group:           group,
 		Description:     "Returns a *new* list with the elements in reverse order.",
 		Category:        "List Operations",
 		Args:            []tool.ArgSpec{{Name: "list", Type: tool.ArgTypeSliceAny, Required: true, Description: "The list to reverse."}},
@@ -99,7 +108,8 @@ var listToolsToRegister = []tool.ToolImplementation{
 		ErrorConditions: "None expected.",
 	}, Func: toolListReverse},
 	{Spec: tool.ToolSpec{
-		Name:            "List.Sort",
+		Name:            "Sort",
+		Group:           group,
 		Description:     "Returns a *new* list with elements sorted. Restricted to lists containing only numbers (int/float) or only strings. Throws error for mixed types or non-sortable types (nil, bool, list, map).",
 		Category:        "List Operations",
 		Args:            []tool.ArgSpec{{Name: "list", Type: tool.ArgTypeSliceAny, Required: true, Description: "The list to sort."}},
@@ -109,7 +119,8 @@ var listToolsToRegister = []tool.ToolImplementation{
 		ErrorConditions: "Returns an error (ErrListCannotSortMixedTypes) if the list contains mixed types (e.g., numbers and strings), nil elements, or other non-sortable types like booleans, maps, or other lists.",
 	}, Func: toolListSort},
 	{Spec: tool.ToolSpec{
-		Name:            "List.Head",
+		Name:            "Head",
+		Group:           group,
 		Description:     "Returns the first element of the list, or nil if the list is empty.",
 		Category:        "List Operations",
 		Args:            []tool.ArgSpec{{Name: "list", Type: tool.ArgTypeSliceAny, Required: true, Description: "The list to get the head from."}},
@@ -119,7 +130,8 @@ var listToolsToRegister = []tool.ToolImplementation{
 		ErrorConditions: "None expected. Returns nil for an empty list.",
 	}, Func: toolListHead},
 	{Spec: tool.ToolSpec{
-		Name:            "List.Rest",
+		Name:            "Rest",
+		Group:           group,
 		Description:     "Returns a *new* list containing all elements except the first. Returns an empty list if the input list has 0 or 1 element.",
 		Category:        "List Operations",
 		Args:            []tool.ArgSpec{{Name: "list", Type: tool.ArgTypeSliceAny, Required: true, Description: "The list to get the rest from."}},
@@ -129,7 +141,8 @@ var listToolsToRegister = []tool.ToolImplementation{
 		ErrorConditions: "None expected. Returns an empty list for lists with 0 or 1 element.",
 	}, Func: toolListRest},
 	{Spec: tool.ToolSpec{
-		Name:        "List.Tail",
+		Name:        "Tail",
+		Group:       group,
 		Description: "Returns a *new* list containing the last 'count' elements. Returns an empty list if count <= 0. Returns a copy of the whole list if count >= list length.",
 		Category:    "List Operations",
 		Args: []tool.ArgSpec{
@@ -142,7 +155,8 @@ var listToolsToRegister = []tool.ToolImplementation{
 		ErrorConditions: "None expected. Handles various 'count' values appropriately, returning an empty list or a copy of the whole list as applicable.",
 	}, Func: toolListTail},
 	{Spec: tool.ToolSpec{
-		Name:            "List.IsEmpty",
+		Name:            "IsEmpty",
+		Group:           group,
 		Description:     "Returns true if the list has zero elements, false otherwise.",
 		Category:        "List Operations",
 		Args:            []tool.ArgSpec{{Name: "list", Type: tool.ArgTypeSliceAny, Required: true, Description: "The list to check."}},

@@ -11,12 +11,15 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
+const group = "meta"
+
 // metaToolsToRegister holds the definitions for tools that provide information about other tools.
 // These tools will be registered globally via zz_core_tools_registrar.go.
 var metaToolsToRegister = []tool.ToolImplementation{
 	{
 		Spec: tool.ToolSpec{
-			Name:        "Meta.ListTools",
+			Name:        "ListTools",
+			Group:       group,
 			Description: "Provides a compact text list (sorted alphabetically) of all currently available tools, including basic parameter information. Each tool is listed on a new line, showing its name, parameters (name:type), and return type. Example: FS.Read(filepath:string) -> string",
 			Category:    "Introspection",
 			// FIX: Use the correct 'tool.ArgSpec' type.
@@ -31,7 +34,8 @@ var metaToolsToRegister = []tool.ToolImplementation{
 	},
 	{
 		Spec: tool.ToolSpec{
-			Name:        "Meta.ToolsHelp",
+			Name:        "ToolsHelp",
+			Group:       group,
 			Description: "Provides a more extensive, Markdown-formatted list of available tools, including descriptions, parameters, and return types. Can be filtered by providing a partial tool name. Details include parameter names, types, descriptions, and return type with its description.",
 			Category:    "Introspection",
 			Args: []tool.ArgSpec{ // FIX: Use the correct 'tool.ArgSpec' type.
@@ -52,7 +56,8 @@ var metaToolsToRegister = []tool.ToolImplementation{
 	},
 	{
 		Spec: tool.ToolSpec{
-			Name:            "Meta.GetToolSpecificationsJSON",
+			Name:            "GetToolSpecificationsJSON",
+			Group:           group,
 			Description:     "Provides a JSON string containing an array of all currently available tool specifications. Each object in the array represents a tool and includes its name, description, category, arguments (with their details), return type, return help, variadic status, example usage, and error conditions.",
 			Category:        "Introspection",
 			Args:            []tool.ArgSpec{}, // FIX: Use the correct 'tool.ArgSpec' type.

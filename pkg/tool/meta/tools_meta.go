@@ -61,7 +61,7 @@ func toolToolsHelp(interpreter tool.Runtime, args []interface{}) (interface{}, e
 		strVal, ok := args[0].(string)
 		if !ok {
 			return nil, lang.NewRuntimeError(lang.ErrorCodeType,
-				fmt.Sprintf("Meta.ToolsHelp: 'filter' argument must be a string, got %T", args[0]), lang.ErrInvalidArgument)
+				fmt.Sprintf("ToolsHelp: 'filter' argument must be a string, got %T", args[0]), lang.ErrInvalidArgument)
 		}
 		filterValue = strVal
 	}
@@ -78,7 +78,8 @@ func toolToolsHelp(interpreter tool.Runtime, args []interface{}) (interface{}, e
 	allToolSpecs := registry.ListTools()
 	var filteredSpecs []tool.ToolSpec
 	for _, spec := range allToolSpecs {
-		if normalizedFilter == "" || strings.Contains(strings.ToLower(spec.Name), normalizedFilter) {
+		fullname := tool.MakeFullName(string(spec.Group), string(spec.Name))
+		if normalizedFilter == "" || strings.Contains(strings.ToLower(string(fullname)), normalizedFilter) {
 			filteredSpecs = append(filteredSpecs, spec)
 		}
 	}

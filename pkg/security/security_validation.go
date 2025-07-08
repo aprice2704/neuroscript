@@ -52,7 +52,7 @@ func (sl *SecurityLayer) validateArgumentsAgainstSpec(toolSpec tool.ToolSpec, ra
 
 		// b) Type Checking & Coercion
 		// FIXED: Call uses specArg.Type (tool.ArgType) which now matches function signature
-		validatedValue, validationError = sl.validateAndCoerceType(rawValue, specArg.Type, toolSpec.Name, argName)
+		validatedValue, validationError = sl.validateAndCoerceType(rawValue, specArg.Type, string(toolSpec.Name), argName)
 		if validationError != nil {
 			// Error from validateAndCoerceType should already be properly formatted/wrapped
 			sl.logger.Debug("VALIDATE] DENIED (Type Coercion): %v", validationError)

@@ -8,10 +8,13 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
+const group = "script"
+
 var scriptToolsToRegister = []tool.ToolImplementation{
 	{
 		Spec: tool.ToolSpec{
 			Name:        "LoadScript",
+			Group:       group,
 			Description: "Parses a string of NeuroScript code and loads its functions and event handlers into the current interpreter's scope. Does not execute any code.",
 			Category:    "Scripting",
 			Args: []tool.ArgSpec{
@@ -27,6 +30,7 @@ var scriptToolsToRegister = []tool.ToolImplementation{
 	{
 		Spec: tool.ToolSpec{
 			Name:        "Script.ListFunctions",
+			Group:       group,
 			Description: "Returns a list of the names of all currently loaded functions (procedures) in the interpreter.",
 			Category:    "Scripting",
 			Args:        []tool.ArgSpec{},

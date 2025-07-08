@@ -8,8 +8,16 @@
 package tool
 
 import (
+	"strings"
+
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/types"
+)
+
+const (
+	ToolPrefix = "TOOL"
+	ToolSep    = "."
 )
 
 // Runtime is the minimal surface a tool needs to interact with the VM.
@@ -18,7 +26,7 @@ type Runtime interface {
 	Ask(prompt string) string
 	GetVar(name string) (any, bool)
 	SetVar(name string, val any)
-	CallTool(name string, args []any) (any, error)
+	CallTool(name types.FullName, args []any) (any, error)
 	GetLogger() interfaces.Logger
 	SandboxDir() string
 	ToolRegistry() ToolRegistry // <-- ADDED THIS LINE
@@ -59,29 +67,32 @@ type ArgSpec struct {
 
 // ToolSpec defines the specification for a tool.
 type ToolSpec struct {
-	Name            string    `json:"name"`
-	Description     string    `json:"description"`
-	Category        string    `json:"category,omitempty"`
-	Args            []ArgSpec `json:"args,omitempty"`
-	ReturnType      ArgType   `json:"returnType"`
-	ReturnHelp      string    `json:"returnHelp,omitempty"`
-	Variadic        bool      `json:"variadic,omitempty"`
-	Example         string    `json:"example,omitempty"`
-	ErrorConditions string    `json:"errorConditions,omitempty"`
+	Name            types.ToolName  `json:"name"`
+	Group           types.ToolGroup `json:"groupname"`
+	FullName        types.FullName  `json:"fullname"`
+	Description     string          `json:"description"`
+	Category        string          `json:"category,omitempty"`
+	Args            []ArgSpec       `json:"args,omitempty"`
+	ReturnType      ArgType         `json:"returnType"`
+	ReturnHelp      string          `json:"returnHelp,omitempty"`
+	Variadic        bool            `json:"variadic,omitempty"`
+	Example         string          `json:"example,omitempty"`
+	ErrorConditions string          `json:"errorConditions,omitempty"`
 }
 
 // ToolImplementation combines the specification of a tool with its Go function.
 type ToolImplementation struct {
-	Spec ToolSpec
-	Func ToolFunc
+	FullName types.FullName
+	Spec     ToolSpec
+	Func     ToolFunc
 }
 
 // IsTool satisfies the lang.Tool interface.
 func (t *ToolImplementation) IsTool() {}
 
 // Name returns the name of the tool.
-func (t *ToolImplementation) Name() string {
-	return t.Spec.Name
+func (t *ToolImplementation) Name() types.FullName {
+	return t.FullName
 }
 
 // ToolRegistrar defines an interface for registering tools.
@@ -92,7 +103,27 @@ type ToolRegistrar interface {
 // ToolRegistry defines the interface for a complete tool registry.
 type ToolRegistry interface {
 	ToolRegistrar
-	GetTool(name string) (ToolImplementation, bool)
+	GetTool(name types.FullName) (ToolImplementation, bool)
 	ListTools() []ToolSpec
-	ExecuteTool(toolName string, args map[string]lang.Value) (lang.Value, error)
+	NTools() int
+	ExecuteTool(toolName types.FullName, args map[string]lang.Value) (lang.Value, error)
+}
+
+// The only correct way to make a toolname
+// Just return a single ToolName (no error) so it can be used as fn arg easily
+func MakeFullName(group string, names ...string) (fullname types.FullName) {
+
+	if len(group) == 0 {
+		lang.Check(lang.ErrToolNotAllowed) // give runtime a chance to bail
+		return ""
+	}
+	for _, v := range names {
+		if len(v) == 0 {
+			lang.Check(lang.ErrToolNotAllowed)
+			return ""
+		}
+	}
+
+	return types.FullName(ToolPrefix + ToolSep + string(group) + strings.Join(names, ToolSep))
+
 }

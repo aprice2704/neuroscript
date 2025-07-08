@@ -16,6 +16,8 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/tool"
+	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
 // MakeArgs is a convenience function to create a slice of interfaces, useful for constructing tool arguments programmatically.
@@ -73,7 +75,7 @@ type gitTestCase struct {
 }
 
 // testGitToolHelper runs a git tool test case with proper repo setup.
-func testGitToolHelper(t *testing.T, toolName string, tc gitTestCase) {
+func testGitToolHelper(t *testing.T, toolName types.ToolName, tc gitTestCase) {
 	t.Helper()
 	interp := interpreter.NewInterpreter()
 	repoSubDir, ok := tc.Args[0].(string)
@@ -91,7 +93,8 @@ func testGitToolHelper(t *testing.T, toolName string, tc gitTestCase) {
 	if tc.Setup != nil {
 		tc.Setup(t, absRepoPath)
 	}
-	toolImpl, found := interp.ToolRegistry().GetTool(toolName)
+	fullname := tool.MakeFullName(group, string(toolName))
+	toolImpl, found := interp.ToolRegistry().GetTool(fullname)
 	if !found {
 		t.Fatalf("Tool '%s' not found in registry", toolName)
 	}

@@ -1,5 +1,5 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.2.6 // Fixed undefined lsp.LanguageSpecificMarkedString by using lsp.MarkedString.
+// File version: 0.2.7
 // Purpose: Implements the main LSP server handler, routing requests, managing state,
 //          providing diagnostics, and initial tool signature hover support.
 // filename: pkg/nslsp/server.go
@@ -19,6 +19,7 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/parser"
 	"github.com/aprice2704/neuroscript/pkg/tool"
+	"github.com/aprice2704/neuroscript/pkg/types"
 	lsp "github.com/sourcegraph/go-lsp"
 	"github.com/sourcegraph/jsonrpc2"
 )
@@ -38,7 +39,11 @@ func NewServer(logger *log.Logger) *Server {
 	if registry == nil {
 		logger.Println("CRITICAL: Failed to initialize tool registry in LSP server!")
 	} else {
-		logger.Printf("LSP Server: Tool registry initialized, %d global tool specs processed during its setup.", len(registry.ListTools()))
+		// FIX: Register all the toolsets found via init() functions.
+		if err := tool.RegisterExtendedTools(registry); err != nil {
+			logger.Fatalf("CRITICAL: Failed to register extended tools in LSP server: %v", err)
+		}
+		logger.Printf("LSP Server: Tool registry initialized, %d tools loaded.", len(registry.ListTools()))
 	}
 
 	return &Server{
@@ -193,7 +198,7 @@ func (s *Server) handleTextDocumentHover(ctx context.Context, conn *jsonrpc2.Con
 		return nil, nil
 	}
 
-	toolImpl, foundSpec := s.toolRegistry.GetTool(toolName)
+	toolImpl, foundSpec := s.toolRegistry.GetTool(types.FullName(toolName))
 	if !foundSpec {
 		s.logger.Printf("Hover: ToolSpec not found for '%s'", toolName)
 		return nil, nil
