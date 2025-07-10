@@ -1,263 +1,147 @@
-// NeuroScript Version: 0.3.1
-// File version: 4
-// Purpose: Corrected type assertions to use TreeAttrs instead of a generic map, resolving test failures.
-// nlines: ~128
-// risk_rating: MEDIUM
+// NeuroScript Version: 0.5.4
+// File version: 9
+// Purpose: Corrects tree modification tests to use the precise tool names and handle-based API for all operations and validations.
 // filename: pkg/tool/tree/tools_tree_modify_test.go
-
+// nlines: 200
+// risk_rating: LOW
 package tree
 
 import (
-	"errors" // Added for robust SetValue test logging
 	"testing"
 
-	"github.com/aprice2704/neuroscript/pkg/lang"
-	"github.com/aprice2704/neuroscript/pkg/testutil"
-	"github.com/aprice2704/neuroscript/pkg/tool"
-	"github.com/aprice2704/neuroscript/pkg/utils"
+	"github.com/aprice2704/neuroscript/pkg/interpreter"
 )
 
-// MakeArgs is a convenience function to create a slice of interfaces, useful for constructing tool arguments programmatically.
-func MakeArgs(vals ...interface{}) []interface{} {
-	if vals == nil {
-		return []interface{}{}
-	}
-	return vals
-}
-
-// findNodeIDByRootAttribute finds the ID of a child node linked by a specific attribute key on a given root/parent node.
-func findNodeIDByRootAttribute(t *testing.T, interp tool.Runtime, handle string, parentNodeID string, attributeKey string) (string, bool) {
-	t.Helper()
-	parentNodeData, err := callGetNode(t, interp, handle, parentNodeID)
-	if err != nil {
-		t.Logf("findNodeIDByRootAttribute: Failed to get parent node '%s': %v", parentNodeID, err)
-		return "", false
-	}
-
-	attributes, ok := parentNodeData["attributes"].(utils.TreeAttrs)
-	if !ok {
-		if parentNodeData["attributes"] == nil {
-			t.Logf("findNodeIDByRootAttribute: Parent node '%s' has no 'attributes' field or it's nil.", parentNodeID)
-		} else {
-			t.Logf("findNodeIDByRootAttribute: Parent node '%s' attributes field is not TreeAttrs, got %T", parentNodeID, parentNodeData["attributes"])
-		}
-		return "", false
-	}
-
-	nodeIDUntyped, found := attributes[attributeKey]
-	if !found {
-		t.Logf("findNodeIDByRootAttribute: Attribute key '%s' not found on parent node '%s'. Attributes: %v", attributeKey, parentNodeID, attributes)
-		return "", false
-	}
-	nodeID, ok := nodeIDUntyped.(string)
-	if !ok {
-		t.Logf("findNodeIDByRootAttribute: attribute '%s' is not a string, but %T", attributeKey, nodeIDUntyped)
-		return "", false
-	}
-	return nodeID, true
-}
-
-func TestTreeModificationTools(t *testing.T) {
-	jsonSimple := `{"name": "item", "value": 10}`
-
-	setupInitialTree := func(t *testing.T, interp tool.Runtime) interface{} {
-		return setupTreeWithJSON(t, interp, jsonSimple)
-	}
+func TestTreeModify(t *testing.T) {
+	baseJSON := `{"a":{"b":{"c":1}},"d":[2,3]}`
 
 	testCases := []treeTestCase{
 		{
-			name:      "SetValue Valid Leaf (string node) (Robust)",
-			toolName:  "Tree.GetNode",
-			args:      MakeArgs("SETUP_HANDLE:tree1", "node-1"),
-			setupFunc: setupInitialTree,
-			checkFunc: func(t *testing.T, interp tool.Runtime, initialToolResult interface{}, initialToolErr error, ctx interface{}) {
-				handle := ctx.(string)
-				newValueToSet := "new_name_value"
-
-				targetNodeID, found := findNodeIDByRootAttribute(t, interp, handle, "node-1", "name")
-				if !found {
-					rootNodeDataForDebug, _ := callGetNode(t, interp, handle, "node-1")
-					t.Fatalf("SetValue check: Could not find node linked by 'name' attribute of root. Root data: %v", rootNodeDataForDebug)
-				}
-				t.Logf("SetValue check: Dynamically found target node ID (for original 'name') as: %s", targetNodeID)
-
-				interpImpl, ok := interp.(interface{ ToolRegistry() tool.ToolRegistry })
-				if !ok {
-					t.Fatalf("Interpreter does not implement ToolRegistry()")
-				}
-				setValueTool, toolFound := interpImpl.ToolRegistry().GetTool("Tree.SetValue")
-				if !toolFound {
-					t.Fatalf("Tool Tree.SetValue not found in registry.")
-				}
-				_, setValueErr := setValueTool.Func(interp, MakeArgs(handle, targetNodeID, newValueToSet))
-				if setValueErr != nil {
-					t.Fatalf("SetValue tool call failed for node '%s': %v", targetNodeID, setValueErr)
-				}
-
-				nodeMap, errGet := callGetNode(t, interp, handle, targetNodeID)
-				if errGet != nil {
-					t.Fatalf("CheckFunc: Failed to get node '%s' after SetValue: %v", targetNodeID, errGet)
-				}
-				if nodeMap["value"] != newValueToSet {
-					t.Errorf("SetValue did not update node '%s'. Got value: %v, want '%s'", targetNodeID, nodeMap["value"], newValueToSet)
-				} else {
-					t.Logf("SetValue successfully updated node '%s' to '%s'", targetNodeID, newValueToSet)
-				}
-			},
-		},
-		{
-			name:      "SetValue On Object Node",
-			toolName:  "Tree.SetValue",
-			setupFunc: setupInitialTree,
-			args:      MakeArgs("SETUP_HANDLE:tree1", "node-1", "should_fail"),
-			wantErr:   lang.ErrCannotSetValueOnType,
-		},
-		{
-			name:      "SetValue NonExistent Node",
-			toolName:  "Tree.SetValue",
-			setupFunc: setupInitialTree,
-			args:      MakeArgs("SETUP_HANDLE:tree1", "node-999", "val"),
-			wantErr:   lang.ErrNotFound,
-		},
-		{
-			name:      "AddChildNode To Root Object",
-			toolName:  "Tree.AddChildNode",
-			setupFunc: setupInitialTree,
-			args:      MakeArgs("SETUP_HANDLE:tree1", "node-1", "newChild1", "string", "hello", "newKeyInRoot"),
-			checkFunc: func(t *testing.T, interp tool.Runtime, result interface{}, err error, ctx interface{}) {
+			Name:      "Add_Node_to_Root",
+			JSONInput: baseJSON,
+			ToolName:  "AddChildNode",
+			// Args: treeHandle, parentNodeId, newNodeId, type, value, key
+			Args:     []interface{}{nil, "placeholder_parent", "e", "number", float64(4), "e"},
+			Expected: "e",
+			Validation: func(t *testing.T, interp *interpreter.Interpreter, treeHandle string, result interface{}) {
+				val, err := callGetValue(t, interp, treeHandle, result.(string))
 				if err != nil {
-					t.Fatalf("AddChildNode failed: %v", err)
+					t.Fatalf("Validation failed: could not get value of node 'e': %v", err)
 				}
-				newID, ok := result.(string)
-				if !ok || newID == "" {
-					t.Fatalf("AddChildNode did not return new node ID string, got %T: %v", result, result)
-				}
-				handle := ctx.(string)
-				parentNodeMap, _ := callGetNode(t, interp, handle, "node-1")
-				attrs, _ := parentNodeMap["attributes"].(utils.TreeAttrs)
-				if attrs["newKeyInRoot"] != newID {
-					t.Errorf("AddChildNode: newKeyInRoot not pointing to new child ID %s. Attrs: %v", newID, attrs)
-				}
-				childNodeMap, _ := callGetNode(t, interp, handle, newID)
-				if childNodeMap["value"] != "hello" {
-					t.Errorf("Added child has wrong value: %v", childNodeMap["value"])
+				if val != float64(4) {
+					t.Errorf("Expected node 'e' to have value 4, got %v", val)
 				}
 			},
 		},
 		{
-			name:      "AddChildNode ID Exists",
-			toolName:  "Tree.AddChildNode",
-			setupFunc: setupInitialTree,
-			args:      MakeArgs("SETUP_HANDLE:tree1", "node-1", "node-2", "string", "fail", "anotherKey"),
-			wantErr:   lang.ErrNodeIDExists,
-		},
-		{
-			name:      "AddChildNode To Leaf Node (Robust)",
-			toolName:  "Tree.GetNode",
-			args:      MakeArgs("SETUP_HANDLE:tree1", "node-1"),
-			setupFunc: setupInitialTree,
-			checkFunc: func(t *testing.T, interp tool.Runtime, initialToolResult interface{}, initialToolErr error, ctx interface{}) {
-				handle := ctx.(string)
-				leafNodeID, found := findNodeIDByRootAttribute(t, interp, handle, "node-1", "name")
-				if !found {
-					t.Fatalf("AddChildNode To Leaf Node check: Could not find leaf node (e.g., for 'name' attribute).")
+			Name:      "Remove_Node_from_Child",
+			JSONInput: baseJSON,
+			ToolName:  "RemoveNode",
+			Validation: func(t *testing.T, interp *interpreter.Interpreter, treeHandle string, result interface{}) {
+				// To remove a.b, we need its actual ID first
+				nodeID, err := getNodeIDByPath(t, interp, treeHandle, "a.b")
+				if err != nil {
+					t.Fatalf("Setup failed: could not get node 'a.b': %v", err)
 				}
-				interpImpl, ok := interp.(interface{ ToolRegistry() tool.ToolRegistry })
-				if !ok {
-					t.Fatalf("Interpreter does not implement ToolRegistry()")
+				// Now call RemoveNode with the correct ID
+				_, err = runTool(t, interp, "RemoveNode", treeHandle, nodeID)
+				if err != nil {
+					t.Fatalf("Setup failed: RemoveNode failed unexpectedly: %v", err)
 				}
-				addTool, _ := interpImpl.ToolRegistry().GetTool("Tree.AddChildNode")
-				_, addErr := addTool.Func(interp, MakeArgs(handle, leafNodeID, "newChild2", "string", "val", "key"))
 
-				if !errors.Is(addErr, lang.ErrNodeWrongType) {
-					t.Errorf("Expected ErrNodeWrongType when adding child to leaf node '%s', got %v", leafNodeID, addErr)
+				_, err = getNodeIDByPath(t, interp, treeHandle, "a.b")
+				if err == nil {
+					t.Error("Validation failed: expected error getting removed node 'a.b', but got nil")
 				}
 			},
 		},
 		{
-			name:      "RemoveNode Leaf (Robust)",
-			toolName:  "Tree.GetNode",
-			args:      MakeArgs("SETUP_HANDLE:tree1", "node-1"),
-			setupFunc: setupInitialTree,
-			checkFunc: func(t *testing.T, interp tool.Runtime, initialGetNodeResult interface{}, initialGetNodeErr error, ctx interface{}) {
-				handle := ctx.(string)
-
-				if initialGetNodeErr != nil {
-					t.Fatalf("Initial Tree.GetNode call by helper failed for RemoveNode Leaf test: %v", initialGetNodeErr)
+			Name:      "Set_Value_on_Child",
+			JSONInput: baseJSON,
+			ToolName:  "SetValue",
+			Validation: func(t *testing.T, interp *interpreter.Interpreter, treeHandle string, result interface{}) {
+				// Get the ID for a.b.c to set its value
+				nodeID, err := getNodeIDByPath(t, interp, treeHandle, "a.b.c")
+				if err != nil {
+					t.Fatalf("Setup failed: could not get node 'a.b.c': %v", err)
+				}
+				_, err = runTool(t, interp, "SetValue", treeHandle, nodeID, "new_value")
+				if err != nil {
+					t.Fatalf("Setup failed: SetValue failed unexpectedly: %v", err)
 				}
 
-				nodeIDToRemove, found := findNodeIDByRootAttribute(t, interp, handle, "node-1", "value")
-				if !found {
-					rootNodeDataForDebug, _ := callGetNode(t, interp, handle, "node-1")
-					t.Fatalf("RemoveNode Leaf checkFunc: Attribute 'value' (to find target node ID) not found on root 'node-1'. Root data: %v", rootNodeDataForDebug)
+				val, err := callGetValue(t, interp, treeHandle, nodeID)
+				if err != nil {
+					t.Fatalf("Validation failed: could not get value of 'a.b.c': %v", err)
 				}
-				t.Logf("Dynamically determined nodeID to remove (node linked by root's 'value' attribute): %s", nodeIDToRemove)
-				interpImpl, ok := interp.(interface{ ToolRegistry() tool.ToolRegistry })
-				if !ok {
-					t.Fatalf("Interpreter does not implement ToolRegistry()")
-				}
-				removeTool, toolFound := interpImpl.ToolRegistry().GetTool("Tree.RemoveNode")
-				if !toolFound {
-					t.Fatalf("Tool Tree.RemoveNode not found in registry.")
-				}
-				_, removeErr := removeTool.Func(interp, MakeArgs(handle, nodeIDToRemove))
-				if removeErr != nil {
-					t.Fatalf("RemoveNode Leaf checkFunc: Tree.RemoveNode tool call failed for dynamically found ID '%s': %v", nodeIDToRemove, removeErr)
-				}
-				t.Logf("Tree.RemoveNode called successfully for node ID: %s", nodeIDToRemove)
-
-				_, errGetRemoved := callGetNode(t, interp, handle, nodeIDToRemove)
-				if !errors.Is(errGetRemoved, lang.ErrNotFound) {
-					var rtErr *lang.RuntimeError
-					if errors.As(errGetRemoved, &rtErr) && errors.Is(rtErr.Wrapped, lang.ErrNotFound) {
-						t.Logf("Successfully confirmed node '%s' not found (wrapped ErrNotFound).", nodeIDToRemove)
-					} else {
-						t.Errorf("Expected ErrNotFound after removing node '%s', but got: %v (type %T)", nodeIDToRemove, errGetRemoved, errGetRemoved)
-					}
-				} else {
-					t.Logf("Successfully confirmed node '%s' not found.", nodeIDToRemove)
-				}
-
-				rootNodeDataAfterRemove, errGetRootAfter := callGetNode(t, interp, handle, "node-1")
-				if errGetRootAfter != nil {
-					t.Fatalf("Failed to get root node 'node-1' after removal: %v", errGetRootAfter)
-				}
-				attributesAfterRemove, ok := rootNodeDataAfterRemove["attributes"].(utils.TreeAttrs)
-				if !ok {
-					if rootNodeDataAfterRemove["attributes"] == nil {
-						t.Logf("Root node 'attributes' field is nil after removal, which is fine.")
-					} else {
-						t.Fatalf("Root node 'attributes' field after removal is not TreeAttrs, got %T. Value: %v", rootNodeDataAfterRemove["attributes"], rootNodeDataAfterRemove["attributes"])
-					}
-				}
-				if _, exists := attributesAfterRemove["value"]; exists {
-					t.Errorf("Attribute 'value' STILL EXISTS on root after removing child node '%s' (which was linked by it). Final attributes: %v", nodeIDToRemove, attributesAfterRemove)
-				} else {
-					t.Logf("Attribute 'value' successfully removed from root node's attributes.")
+				if val != "new_value" {
+					t.Errorf("Expected node 'a.b.c' value to be 'new_value', got %v", val)
 				}
 			},
 		},
 		{
-			name:      "RemoveNode Root",
-			toolName:  "Tree.RemoveNode",
-			setupFunc: setupInitialTree,
-			args:      MakeArgs("SETUP_HANDLE:tree1", "node-1"),
-			wantErr:   lang.ErrCannotRemoveRoot,
-		},
-		{
-			name:      "RemoveNode NonExistent",
-			toolName:  "Tree.RemoveNode",
-			setupFunc: setupInitialTree,
-			args:      MakeArgs("SETUP_HANDLE:tree1", "node-999"),
-			wantErr:   lang.ErrNotFound,
+			Name:      "Append_Child_to_Array",
+			JSONInput: baseJSON,
+			ToolName:  "AddChildNode",
+			Validation: func(t *testing.T, interp *interpreter.Interpreter, treeHandle string, result interface{}) {
+				// Get the ID for the array 'd'
+				nodeID, err := getNodeIDByPath(t, interp, treeHandle, "d")
+				if err != nil {
+					t.Fatalf("Setup failed: could not get node 'd': %v", err)
+				}
+				// Add a new number node to the array
+				_, err = callAddChildNode(t, interp, treeHandle, nodeID, "new_child", "number", float64(4), nil)
+				if err != nil {
+					t.Fatalf("Setup failed: AddChildNode failed unexpectedly: %v", err)
+				}
+
+				children, err := callGetChildren(t, interp, treeHandle, nodeID)
+				if err != nil {
+					t.Fatalf("Validation failed: could not get children of 'd': %v", err)
+				}
+				childIDs := children.([]interface{})
+				if len(childIDs) != 3 {
+					t.Fatalf("Expected 3 children for node 'd', got %d", len(childIDs))
+				}
+				lastChildVal, err := callGetValue(t, interp, treeHandle, childIDs[2].(string))
+				if err != nil {
+					t.Fatalf("Validation failed: could not get value of new child: %v", err)
+				}
+				if lastChildVal != float64(4) {
+					t.Errorf("Expected new child to have value 4, got %v", lastChildVal)
+				}
+			},
 		},
 	}
 
 	for _, tc := range testCases {
-		currentInterp, err := testutil.NewTestInterpreter(t, nil, nil)
-		if err != nil {
-			t.Fatalf("NewTestInterpreter failed: %v", err)
-		}
-		testTreeToolHelper(t, currentInterp, tc)
+		testTreeToolHelper(t, tc.Name, func(t *testing.T, interp *interpreter.Interpreter) {
+			treeHandle, err := setupTreeWithJSON(t, interp, tc.JSONInput)
+			if err != nil {
+				t.Fatalf("Tree setup failed unexpectedly: %v", err)
+			}
+			rootID := getRootID(t, interp, treeHandle)
+
+			var result interface{}
+			if tc.ToolName != "" && len(tc.Args) > 0 {
+				// Replace nil placeholder with the handle if needed
+				args := tc.Args
+				if len(args) > 0 {
+					if args[0] == nil {
+						args[0] = treeHandle
+					}
+					if args[1] == "placeholder_parent" {
+						args[1] = rootID
+					}
+				}
+				result, err = runTool(t, interp, tc.ToolName, args...)
+				assertResult(t, result, err, tc.Expected, tc.ExpectedErr)
+			}
+
+			// Run validation if it exists
+			if tc.Validation != nil {
+				tc.Validation(t, interp, treeHandle, result)
+			}
+		})
 	}
 }

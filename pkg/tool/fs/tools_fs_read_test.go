@@ -12,7 +12,7 @@ func TestToolReadFile(t *testing.T) {
 	tests := []fsTestCase{
 		{
 			name:     "Read Existing File",
-			toolName: "FS.Read",
+			toolName: "Read",
 			args:     []interface{}{"read_test.txt"},
 			setupFunc: func(s string) error {
 				mustWriteFile(t, filepath.Join(s, "read_test.txt"), "hello world")
@@ -22,13 +22,13 @@ func TestToolReadFile(t *testing.T) {
 		},
 		{
 			name:          "Read Non-Existent File",
-			toolName:      "FS.Read",
+			toolName:      "Read",
 			args:          []interface{}{"non_existent.txt"},
 			wantToolErrIs: lang.ErrFileNotFound,
 		},
 		{
 			name:     "Read from Directory",
-			toolName: "FS.Read",
+			toolName: "Read",
 			args:     []interface{}{"a_dir"},
 			setupFunc: func(s string) error {
 				mustMkdir(t, filepath.Join(s, "a_dir"))
@@ -38,7 +38,7 @@ func TestToolReadFile(t *testing.T) {
 		},
 		{
 			name:          "Read Path Outside Sandbox",
-			toolName:      "FS.Read",
+			toolName:      "Read",
 			args:          []interface{}{"../outside.txt"},
 			wantToolErrIs: lang.ErrPathViolation,
 		},

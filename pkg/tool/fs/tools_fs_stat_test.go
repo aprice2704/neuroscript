@@ -23,7 +23,7 @@ func TestToolStat(t *testing.T) {
 	tests := []fsTestCase{
 		{
 			name:      "Stat Existing File",
-			toolName:  "FS.Stat",
+			toolName:  "Stat",
 			args:      []interface{}{testFileName},
 			setupFunc: setup,
 			checkFunc: func(t *testing.T, interp tool.Runtime, result interface{}, err error, ctx interface{}) {
@@ -47,7 +47,7 @@ func TestToolStat(t *testing.T) {
 		},
 		{
 			name:      "Stat Existing Directory",
-			toolName:  "FS.Stat",
+			toolName:  "Stat",
 			args:      []interface{}{testDirName},
 			setupFunc: setup,
 			checkFunc: func(t *testing.T, interp tool.Runtime, result interface{}, err error, ctx interface{}) {
@@ -68,21 +68,21 @@ func TestToolStat(t *testing.T) {
 		},
 		{
 			name:          "Stat Non-Existent Path",
-			toolName:      "FS.Stat",
+			toolName:      "Stat",
 			args:          []interface{}{"no_such_file.txt"},
 			setupFunc:     setup,
 			wantToolErrIs: lang.ErrFileNotFound,
 		},
 		{
 			name:          "Stat Invalid Path",
-			toolName:      "FS.Stat",
+			toolName:      "Stat",
 			args:          []interface{}{"../invalid.txt"},
 			setupFunc:     setup,
 			wantToolErrIs: lang.ErrPathViolation,
 		},
 		{
 			name:          "Stat Empty Path",
-			toolName:      "FS.Stat",
+			toolName:      "Stat",
 			args:          []interface{}{""},
 			setupFunc:     setup,
 			wantToolErrIs: lang.ErrInvalidArgument,

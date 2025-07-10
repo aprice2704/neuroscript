@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.4.0
-// File version: 2
-// Purpose: Fixed variable shadowing bug by correctly handling the error return from NewDefaultTestInterpreter.
+// NeuroScript Version: 0.5.2
+// File version: 3
+// Purpose: Fix test panic by manually registering tools and using the correct FQN for lookup.
 // filename: pkg/tool/gotools/tools_go_test.go
-// nlines: 119
+// nlines: 129
 // risk_rating: MEDIUM
 
 package gotools
@@ -37,13 +37,24 @@ func testGoGetModuleInfoHelper(t *testing.T, tc struct {
 }) {
 	t.Helper()
 	t.Run(tc.name, func(t *testing.T) {
-		// FIX: Correctly handle the (*Interpreter, error) return values.
 		interp := interpreter.NewInterpreter()
-		// FIX: Get the sandbox directory from the interpreter instance.
+
+		// Manually register the Go tools for this test run. The interpreter created
+		// for the test does not automatically discover and register toolsets.
+		for _, toolToRegister := range goToolsToRegister {
+			if err := interp.ToolRegistry().RegisterTool(toolToRegister); err != nil {
+				t.Fatalf("Setup: failed to register tool %q: %v", toolToRegister.Spec.Name, err)
+			}
+		}
+
 		sandboxRoot := t.TempDir()
 		interp.SetSandboxDir(sandboxRoot)
 
-		toolImpl, _ := interp.ToolRegistry().GetTool("Go.GetModuleInfo")
+		// Look up the tool using its fully-qualified name and check that it exists.
+		toolImpl, ok := interp.ToolRegistry().GetTool("tool.gotools.GetModuleInfo")
+		if !ok {
+			t.Fatalf("Tool 'tool.gotools.GetModuleInfo' not found in registry")
+		}
 
 		// Per-test setup
 		if tc.setupFunc != nil {

@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.4.0
-// File version: 9
-// Purpose: Refactored to use the local fs test suite helpers, resolving all compiler errors.
+// File version: 10
+// Purpose: Corrected tool names to align with the new registration system.
 // filename: pkg/tool/fs/tools_fs_dirs_test.go
 // nlines: 250 // Approximate
 // risk_rating: LOW
@@ -41,7 +41,7 @@ func TestToolListDirectoryFunctional(t *testing.T) {
 	tests := []fsTestCase{
 		{
 			name:      "List_Root_NonRecursive",
-			toolName:  "FS.List",
+			toolName:  "List",
 			args:      []interface{}{"."},
 			setupFunc: setupFunc,
 			checkFunc: func(t *testing.T, interp tool.Runtime, result interface{}, err error, ctx interface{}) {
@@ -60,7 +60,7 @@ func TestToolListDirectoryFunctional(t *testing.T) {
 		},
 		{
 			name:          "Error_PathIsFile",
-			toolName:      "FS.List",
+			toolName:      "List",
 			args:          []interface{}{"file1.txt"},
 			setupFunc:     setupFunc,
 			wantToolErrIs: lang.ErrPathNotDirectory,
@@ -94,7 +94,7 @@ func TestToolMkdirFunctional(t *testing.T) {
 	tests := []fsTestCase{
 		{
 			name:      "Create_Single_Dir",
-			toolName:  "FS.Mkdir",
+			toolName:  "Mkdir",
 			args:      []interface{}{"new_dir_1"},
 			setupFunc: setupFunc,
 			checkFunc: func(t *testing.T, interp tool.Runtime, result interface{}, err error, ctx interface{}) {
@@ -113,7 +113,7 @@ func TestToolMkdirFunctional(t *testing.T) {
 		},
 		{
 			name:          "Error_PathIsFile",
-			toolName:      "FS.Mkdir",
+			toolName:      "Mkdir",
 			args:          []interface{}{"existing_file"},
 			setupFunc:     setupFunc,
 			wantToolErrIs: lang.ErrPathNotDirectory,

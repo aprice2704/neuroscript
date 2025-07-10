@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.5.2
-// File version: 1.4.0
-// Purpose: Corrected the mock tool implementation to handle primitive Go types, fixing the final test failure.
+// File version: 1.6.0
+// Purpose: Corrected mock tool registration to include a group, aligning with the new tool naming system and fixing the test.
 // filename: pkg/interpreter/interpreter_steps_ask_test.go
 // nlines: 160
 // risk_rating: MEDIUM
@@ -16,6 +16,7 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/tool"
+	"github.com/aprice2704/neuroscript/pkg/types"
 	"github.com/google/generative-ai-go/genai"
 )
 
@@ -99,7 +100,7 @@ func TestAskStatement(t *testing.T) {
 		mockLLM := &mockLLMClient{
 			ToolCallToReturn: &interfaces.ToolCall{
 				ID:   "call_123",
-				Name: "GetWeather",
+				Name: types.FullName("tool.Weather.GetWeather"),
 				Arguments: map[string]interface{}{
 					"location": "Ottawa, ON",
 				},
@@ -110,11 +111,10 @@ func TestAskStatement(t *testing.T) {
 		interp.aiWorker = mockLLM
 
 		var toolWasCalledWith string
+		// FIX: The tool registration must include a Group.
 		weatherTool := tool.ToolImplementation{
-			Spec: tool.ToolSpec{Name: "GetWeather", Args: []tool.ArgSpec{{Name: "location", Type: "string"}}},
+			Spec: tool.ToolSpec{Name: "GetWeather", Group: "Weather", Args: []tool.ArgSpec{{Name: "location", Type: "string"}}},
 			Func: func(rt tool.Runtime, args []interface{}) (interface{}, error) {
-				// FIX: The argument from the AI comes in as a primitive Go type.
-				// We need to type-assert it, not use lang.ToString.
 				if len(args) > 0 {
 					if val, ok := args[0].(string); ok {
 						toolWasCalledWith = val

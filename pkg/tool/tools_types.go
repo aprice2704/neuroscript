@@ -81,7 +81,7 @@ type ToolImplementation struct {
 }
 
 // IsTool satisfies the lang.Tool interface.
-func (t *ToolImplementation) IsTool() {}
+func (t ToolImplementation) IsTool() {}
 
 // Name returns the name of the tool.
 func (t *ToolImplementation) Name() types.FullName {

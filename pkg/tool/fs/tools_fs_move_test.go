@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.4.0
-// File version: 3
-// Purpose: Refactored to be self-contained within the fs package test suite.
+// File version: 4
+// Purpose: Corrected tool names to align with the new registration system.
 // nlines: 180
 // risk_rating: LOW
 // filename: pkg/tool/fs/tools_fs_move_test.go
@@ -23,7 +23,7 @@ func TestToolMoveFileFunctional(t *testing.T) {
 	testCases := []fsTestCase{
 		{
 			name:     "Success: Correct Args",
-			toolName: "FS.Move",
+			toolName: "Move",
 			args:     []interface{}{"source.txt", "destination.txt"},
 			setupFunc: func(s string) error {
 				mustWriteFile(t, filepath.Join(s, "source.txt"), "content")
@@ -45,13 +45,13 @@ func TestToolMoveFileFunctional(t *testing.T) {
 		},
 		{
 			name:          "Fail: Source does not exist",
-			toolName:      "FS.Move",
+			toolName:      "Move",
 			args:          []interface{}{"nonexistent_source.txt", "any_dest.txt"},
 			wantToolErrIs: lang.ErrFileNotFound,
 		},
 		{
 			name:     "Fail: Destination exists",
-			toolName: "FS.Move",
+			toolName: "Move",
 			args:     []interface{}{"src_exists.txt", "dest_exists.txt"},
 			setupFunc: func(s string) error {
 				mustWriteFile(t, filepath.Join(s, "src_exists.txt"), "content3")
@@ -62,7 +62,7 @@ func TestToolMoveFileFunctional(t *testing.T) {
 		},
 		{
 			name:          "Fail: Path outside sandbox (Source)",
-			toolName:      "FS.Move",
+			toolName:      "Move",
 			args:          []interface{}{"../outside_src.txt", "dest.txt"},
 			wantToolErrIs: lang.ErrPathViolation,
 		},

@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.5.2
-// File version: 5.0.0
-// Purpose: Corrected manual AST construction to set IsTool=true, fixing the "procedure not found" error.
+// File version: 7.0.0
+// Purpose: Corrected manual AST construction to use the full, proper tool name ('tool.TestTool.Record'), fixing the test failure.
 // filename: pkg/interpreter/interpreter_commands_test.go
 // nlines: 80
 // risk_rating: LOW
@@ -21,7 +21,7 @@ func TestCommandExecution(t *testing.T) {
 
 		// Register a mock tool for the commands to call.
 		var callLog []string
-		mockToolSpec := tool.ToolSpec{Name: "TestTool.Record", Args: []tool.ArgSpec{{Name: "arg", Type: "string"}}}
+		mockToolSpec := tool.ToolSpec{Name: "Record", Group: "TestTool", Args: []tool.ArgSpec{{Name: "arg", Type: "string"}}}
 		mockToolFunc := func(_ tool.Runtime, args []interface{}) (interface{}, error) {
 			arg, _ := lang.ToString(args[0])
 			callLog = append(callLog, arg)
@@ -37,8 +37,8 @@ func TestCommandExecution(t *testing.T) {
 						{
 							Type: "call",
 							Call: &ast.CallableExprNode{
-								// FIX: Explicitly mark the target as a tool.
-								Target:    ast.CallTarget{Name: "TestTool.Record", IsTool: true},
+								// FIX: Use the correct fully-qualified name for the tool.
+								Target:    ast.CallTarget{Name: "tool.TestTool.Record", IsTool: true},
 								Arguments: []ast.Expression{&ast.StringLiteralNode{Value: "first"}},
 							},
 						},
@@ -50,8 +50,8 @@ func TestCommandExecution(t *testing.T) {
 						{
 							Type: "call",
 							Call: &ast.CallableExprNode{
-								// FIX: Explicitly mark the target as a tool.
-								Target:    ast.CallTarget{Name: "TestTool.Record", IsTool: true},
+								// FIX: Use the correct fully-qualified name for the tool.
+								Target:    ast.CallTarget{Name: "tool.TestTool.Record", IsTool: true},
 								Arguments: []ast.Expression{&ast.VariableNode{Name: "my_arg"}},
 							},
 						},

@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.5.2
-// File version: 11.0.0
-// Purpose: Removed 'emit' statements from tests to prevent noisy output. Tests now check the returned value directly.
+// File version: 12.0.0
+// Purpose: Corrected dummy tool registration to include a Group, allowing it to be found by its full name and fixing the test.
 // filename: pkg/interpreter/eval_typeof_test.go
 package interpreter_test
 
@@ -13,6 +13,7 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/testutil"
 	"github.com/aprice2704/neuroscript/pkg/tool"
+	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
 var testPos = &lang.Position{Line: 1, Column: 1, File: "typeof_test.go"}
@@ -21,11 +22,13 @@ var testDummyProcedure = ast.Procedure{}
 
 var testDummyTool = tool.ToolImplementation{
 	Spec: tool.ToolSpec{
+		// FIX: Added a Group to the tool spec for proper registration.
 		Name:        "MyTestToolForTypeOf",
+		Group:       "Test",
 		Description: "A dummy tool for testing typeof.",
 		Category:    "Test",
 		Args:        []tool.ArgSpec{},
-		ReturnType:  tool.ArgTypeString,
+		ReturnType:  "string",
 	},
 	Func: func(rt tool.Runtime, args []interface{}) (interface{}, error) {
 		return "dummy tool executed", nil
@@ -111,10 +114,11 @@ func TestTypeOfOperator_Tool(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to register dummy tool: %v", err)
 	}
-
-	toolVal, found := i.ToolRegistry().GetTool("MyTestToolForTypeOf")
+	// FIX: Use the full name to retrieve the tool.
+	fullName := types.MakeFullName(string(testDummyTool.Spec.Group), string(testDummyTool.Spec.Name))
+	toolVal, found := i.ToolRegistry().GetTool(fullName)
 	if !found {
-		t.Fatalf("Failed to retrieve registered tool MyTestToolForTypeOf")
+		t.Fatalf("Failed to retrieve registered tool %s", fullName)
 	}
 
 	err = i.SetInitialVariable("myActualTestToolVar", lang.ToolValue{Value: &toolVal})

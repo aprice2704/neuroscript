@@ -1,5 +1,5 @@
 // NeuroScript Version: 0.3.8
-// File version: 0.1.5 // Corrected ArgSpec type to use the 'tool' package.
+// File version: 0.1.6 // Corrected group name to PascalCase ("Meta") to match convention.
 // nlines: 70 // Approximate
 // risk_rating: LOW
 
@@ -7,22 +7,20 @@
 package meta
 
 import (
-	// FIX: Removed the incorrect 'parser' import.
 	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
-const group = "meta"
+const group = "Meta"
 
 // metaToolsToRegister holds the definitions for tools that provide information about other tools.
 // These tools will be registered globally via zz_core_tools_registrar.go.
 var metaToolsToRegister = []tool.ToolImplementation{
 	{
 		Spec: tool.ToolSpec{
-			Name:        "ListTools",
-			Group:       group,
-			Description: "Provides a compact text list (sorted alphabetically) of all currently available tools, including basic parameter information. Each tool is listed on a new line, showing its name, parameters (name:type), and return type. Example: FS.Read(filepath:string) -> string",
-			Category:    "Introspection",
-			// FIX: Use the correct 'tool.ArgSpec' type.
+			Name:            "ListTools",
+			Group:           group,
+			Description:     "Provides a compact text list (sorted alphabetically) of all currently available tools, including basic parameter information. Each tool is listed on a new line, showing its name, parameters (name:type), and return type. Example: FS.Read(filepath:string) -> string",
+			Category:        "Introspection",
 			Args:            []tool.ArgSpec{}, // No arguments
 			ReturnType:      tool.ArgTypeString,
 			ReturnHelp:      "A string containing a newline-separated list of tool names, their parameters (name:type), and return types.",
@@ -38,7 +36,7 @@ var metaToolsToRegister = []tool.ToolImplementation{
 			Group:       group,
 			Description: "Provides a more extensive, Markdown-formatted list of available tools, including descriptions, parameters, and return types. Can be filtered by providing a partial tool name. Details include parameter names, types, descriptions, and return type with its description.",
 			Category:    "Introspection",
-			Args: []tool.ArgSpec{ // FIX: Use the correct 'tool.ArgSpec' type.
+			Args: []tool.ArgSpec{
 				{
 					Name:        "filter",
 					Type:        tool.ArgTypeString,
@@ -60,7 +58,7 @@ var metaToolsToRegister = []tool.ToolImplementation{
 			Group:           group,
 			Description:     "Provides a JSON string containing an array of all currently available tool specifications. Each object in the array represents a tool and includes its name, description, category, arguments (with their details), return type, return help, variadic status, example usage, and error conditions.",
 			Category:        "Introspection",
-			Args:            []tool.ArgSpec{}, // FIX: Use the correct 'tool.ArgSpec' type.
+			Args:            []tool.ArgSpec{},
 			ReturnType:      tool.ArgTypeString,
 			ReturnHelp:      "A JSON string representing an array of ToolSpec objects. This is intended for programmatic use or detailed inspection of all tool capabilities.",
 			Variadic:        false,

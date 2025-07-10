@@ -22,21 +22,21 @@ var scriptToolsToRegister = []tool.ToolImplementation{
 			},
 			ReturnType:      tool.ArgTypeMap,
 			ReturnHelp:      "Returns a map with keys 'functions_loaded', 'event_handlers_loaded', and 'metadata', which contains the file-level metadata from the script header.",
-			Example:         `set result = tool.LoadScript(script_content: ":: purpose: example\nfunc f()means\nendfunc")\nemit result["metadata"]["purpose"]`,
+			Example:         `set result = tool.script.LoadScript(":: purpose: example\nfunc f()means\nendfunc")\nemit result["metadata"]["purpose"]`,
 			ErrorConditions: "ErrArgumentMismatch if script_content is not a string or is missing. ErrSyntax if the script has syntax errors. ErrExecutionFailed if a function or event handler conflicts with an existing one (e.g., duplicate function name).",
 		},
 		Func: toolLoadScript, // from tools_script.go
 	},
 	{
 		Spec: tool.ToolSpec{
-			Name:        "Script.ListFunctions",
+			Name:        "ListFunctions",
 			Group:       group,
-			Description: "Returns a list of the names of all currently loaded functions (procedures) in the interpreter.",
+			Description: "Returns a map of all currently loaded function (procedure) names to their signatures.",
 			Category:    "Scripting",
 			Args:        []tool.ArgSpec{},
-			ReturnType:  tool.ArgTypeSliceAny, // Returns a list of strings
-			ReturnHelp:  "Returns a list of strings, where each string is the name of a known function.",
-			Example:     `set loaded_functions = call tool.Script.ListFunctions()`,
+			ReturnType:  tool.ArgTypeMap, // Returns a map of strings to strings
+			ReturnHelp:  "Returns a map where each key is the name of a known function and the value is its signature.",
+			Example:     `set loaded_functions = tool.script.ListFunctions()`,
 		},
 		Func: toolScriptListFunctions, // from tools_script.go
 	},

@@ -5,7 +5,7 @@ import (
 	"bytes"
 	"fmt"
 	"os/exec"
-	"regexp" // Keep for file status regex if needed later, but branch parsing changed
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -34,15 +34,8 @@ func toolExec(interpreter tool.Runtime, cmdAndArgs ...string) (string, error) {
 	}
 
 	if logger := interpreter.GetLogger(); logger != nil {
-		logArgs := make([]string, len(commandArgs))
-		for i, arg := range commandArgs {
-			if strings.Contains(arg, " ") {
-				logArgs[i] = fmt.Sprintf("%q", arg) // Quote args with spaces
-			} else {
-				logArgs[i] = arg
-			}
-		}
-		logger.Debug("[toolExec] Executing: %s %s", commandPath, strings.Join(logArgs, " "))
+		// Corrected logging call to use key-value pairs.
+		logger.Debug("[toolExec] Executing", "command", commandPath, "args", strings.Join(commandArgs, " "))
 	}
 
 	cmd := exec.Command(commandPath, commandArgs...)
@@ -64,12 +57,12 @@ func toolExec(interpreter tool.Runtime, cmdAndArgs ...string) (string, error) {
 			logger.Error("[toolExec] %s", errMsg)
 		}
 		// Return the combined output along with the error
-		return combinedOutput, fmt.Errorf("%w: %s", lang.ErrInternalTool, errMsg)
+		return combinedOutput, fmt.Errorf("%w: %s", lang.ErrToolExecutionFailed, errMsg)
 	}
 
 	// Command succeeded
 	if logger := interpreter.GetLogger(); logger != nil {
-		logger.Debug("[toolExec] Command successful. Output:\n%s", combinedOutput)
+		logger.Debug("[toolExec] Command successful", "output", combinedOutput)
 	}
 	return combinedOutput, nil
 }
@@ -122,7 +115,7 @@ func toolGitStatus(interpreter tool.Runtime, args []interface{}) (interface{}, e
 	resultMap, parseErr := parseGitStatusOutput(output)
 	if parseErr != nil {
 		// Log parsing error and also include it in the returned map's error field
-		interpreter.GetLogger().Debug("Tool: GitStatus] Error parsing git status output: %v", parseErr)
+		interpreter.GetLogger().Debug("Tool: GitStatus] Error parsing git status output", "error", parseErr)
 		// Use existing map if partial parsing happened, otherwise create a default one
 		if resultMap == nil {
 			resultMap = map[string]interface{}{
@@ -140,7 +133,7 @@ func toolGitStatus(interpreter tool.Runtime, args []interface{}) (interface{}, e
 		resultMap["is_clean"] = false
 	}
 
-	interpreter.GetLogger().Debug("Tool: GitStatus] Result: %+v", resultMap)
+	interpreter.GetLogger().Debug("Tool: GitStatus] Result", "map", resultMap)
 	return resultMap, nil // Return the result map, no Go error if command itself succeeded
 }
 
@@ -258,9 +251,6 @@ func parseGitStatusOutput(output string) (map[string]interface{}, error) {
 				unquotedPath, err := strconv.Unquote(path)
 				if err == nil {
 					path = unquotedPath
-				} else {
-					// Log warning if unquoting fails? Or just proceed with quoted path?
-					// fmt.Printf("Warning: failed to unquote path: %s\n", path)
 				}
 			}
 			// Unquote originalPath if necessary
@@ -293,10 +283,7 @@ func parseGitStatusOutput(output string) (map[string]interface{}, error) {
 
 	resultMap["files"] = filesList
 	resultMap["untracked_files_present"] = untrackedFound
-	// --- FIX: Update is_clean logic ---
-	resultMap["is_clean"] = !changesFound && !untrackedFound // Clean if no tracked changes AND no untracked files
-	// --- END FIX ---
+	resultMap["is_clean"] = !changesFound && !untrackedFound
 
-	// Return the map, nil Go error (parsing errors are in map["error"])
 	return resultMap, nil
 }

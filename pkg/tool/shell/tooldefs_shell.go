@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.3.1
-// File version: 0.1.1
-// Purpose: Populated Category, Example, ReturnHelp, and ErrorConditions for Shell.Execute tool spec.
+// NeuroScript Version: 0.5.2
+// File version: 2
+// Purpose: Add Group field to Shell.Execute tool spec and correct example for full name registration.
 // filename: pkg/tool/shell/tooldefs_shell.go
-// nlines: 34
+// nlines: 35
 // risk_rating: HIGH
 
 package shell
@@ -18,6 +18,7 @@ var shellToolsToRegister = []tool.ToolImplementation{
 	{
 		Spec: tool.ToolSpec{
 			Name:        "Execute",
+			Group:       group,
 			Description: "Executes an arbitrary shell command. WARNING: Use with extreme caution due to security risks. Command path validation is basic. Consider using specific tools (e.g., GoBuild, GitAdd) instead.",
 			Category:    "Shell Operations",
 			Args: []tool.ArgSpec{
@@ -27,7 +28,7 @@ var shellToolsToRegister = []tool.ToolImplementation{
 			},
 			ReturnType: tool.ArgTypeMap, // Returns map {stdout, stderr, exit_code, success}
 			ReturnHelp: "Returns a map containing 'stdout' (string), 'stderr' (string), 'exit_code' (int), and 'success' (bool) of the executed command. 'success' is true if the command exits with code 0, false otherwise. The command is executed within the sandboxed environment.",
-			Example:    `tool.Shell.Execute("ls", ["-la"], "my_directory")`,
+			Example:    `tool.shell.Execute("ls", ["-la"], "my_directory")`,
 			ErrorConditions: "Returns `ErrArgumentMismatch` if an incorrect number of arguments is provided. " +
 				"Returns `ErrInvalidArgument` or `ErrorCodeType` if 'command' is not a string, 'args_list' is not a list of strings, or 'directory' is not a string. " +
 				"Returns `ErrSecurityViolation` if the 'command' path is deemed suspicious (e.g., contains path separators or shell metacharacters). " +

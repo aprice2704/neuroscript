@@ -42,7 +42,11 @@ func testShellToolHelper(t *testing.T, interp tool.Runtime, tc struct {
 		if !ok {
 			t.Fatalf("Interpreter does not implement ToolRegistry()")
 		}
-		toolImpl, _ := interpImpl.ToolRegistry().GetTool("Shell.Execute")
+		// Use the correct fully-qualified tool name and check the 'ok' boolean.
+		toolImpl, ok := interpImpl.ToolRegistry().GetTool("tool.shell.Execute")
+		if !ok {
+			t.Fatalf("Tool 'tool.shell.Execute' not found in registry")
+		}
 		gotResult, toolErr := toolImpl.Func(interp, tc.args)
 
 		if tc.wantErrIs != nil {

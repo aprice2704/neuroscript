@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.4.0
-// File version: 1
-// Purpose: Refactored to test the primitive-based io tool implementation directly.
+// File version: 2
+// Purpose: Corrected tool lookup to use the fully qualified name, fixing the nil pointer panic.
 // filename: pkg/tool/io/tools_io_test.go
 // nlines: 48
 // risk_rating: LOW
@@ -13,6 +13,7 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
 // MakeArgs is a convenience function to create a slice of interfaces, useful for constructing tool arguments programmatically.
@@ -48,7 +49,11 @@ func TestToolIOInputValidation(t *testing.T) {
 			// We can't test the stdin reading part automatically, so we just check
 			// if the function handles the arguments without returning an unexpected error.
 			// We expect an EOF error from trying to read stdin in a non-interactive test.
-			toolImpl, _ := interp.ToolRegistry().GetTool("Input")
+			fullName := types.MakeFullName(group, "Input")
+			toolImpl, found := interp.ToolRegistry().GetTool(fullName)
+			if !found {
+				t.Fatalf("Tool %q not found in registry", fullName)
+			}
 			_, err := toolImpl.Func(interp, tc.args)
 
 			if tc.wantErrIs != nil {
@@ -61,6 +66,7 @@ func TestToolIOInputValidation(t *testing.T) {
 				if err == nil {
 					t.Errorf("Expected an I/O error from reading stdin, but got nil")
 				} else if !errors.Is(err, lang.ErrIOFailed) {
+					// It's okay if we get a different I/O error, just log it.
 					t.Logf("Got an error as expected, but it wasn't the specific I/O error: %v", err)
 				}
 			}

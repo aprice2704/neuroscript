@@ -17,7 +17,7 @@ func TestOnEventParsing(t *testing.T) {
 	t.Run("Valid On-Event Handler", func(t *testing.T) {
 		script := `
 			:: title: Test Event Handler
-			on event tool.MyEvent("filter_value") as evt do
+			on event tool.testing.MyEvent("filter_value") as evt do
 				emit "Event received: " + evt
 			endon
 		`
@@ -39,7 +39,7 @@ func TestOnEventParsing(t *testing.T) {
 
 	t.Run("Valid On-Event Handler with HandlerName", func(t *testing.T) {
 		script := `
-			on event tool.MyEvent() named "MyEventHandler" do
+			on event tool.testing.MyEvent() named "MyEventHandler" do
 				emit "Event received"
 			endon
 		`

@@ -1,15 +1,14 @@
 // NeuroScript Version: 0.3.1
-// File version: 17
-// Purpose: Corrected buildCallTargetFromContext to reconstruct the full tool name by prepending the tool prefix, fixing tool lookup errors.
+// File version: 19
+// Purpose: Corrected buildCallTargetFromContext to use the exported types.MakeFullName function, which is now required since the prefix/separator constants are unexported. This resolves all tool lookup failures.
 // filename: pkg/parser/ast_builder_operators.go
 // nlines: 606
-// risk_rating: MEDIUM
+// risk_rating: HIGH
 
 package parser
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/antlr4-go/antlr/v4" // Using user-specified ANTLR import path
 	"github.com/aprice2704/neuroscript/pkg/ast"
@@ -422,21 +421,18 @@ func (l *neuroScriptListenerImpl) buildCallTargetFromContext(ctx gen.ICall_targe
 		target.IsTool = true
 		if qiCtx := ctx.Qualified_identifier(); qiCtx != nil {
 			idNodes := qiCtx.AllIDENTIFIER()
-			var parts []string
-			for _, idNode := range idNodes {
-				parts = append(parts, idNode.GetText())
-			}
-			// FIX: Prepend the tool prefix to construct the full, correct tool name.
-			groupAndName := strings.Join(parts, types.ToolSep)
-			target.Name = types.ToolPrefix + groupAndName
-
-			if len(idNodes) > 0 {
+			if len(idNodes) >= 2 {
+				// FIX: Use types.MakeFullName to correctly construct the tool name.
+				group := types.ToolGroup(idNodes[0].GetText())
+				name := types.ToolName(idNodes[1].GetText())
+				target.Name = string(types.MakeFullName(string(group), string(name)))
 				pos := tokenToPosition(idNodes[0].GetSymbol())
 				target.Pos = &pos
 			} else {
 				pos := tokenToPosition(toolKeyword.GetSymbol())
 				target.Pos = &pos
-				l.addError(ctx, "Tool call has empty qualified_identifier: %s", ctx.GetText())
+				l.addError(ctx, "Tool call has incomplete qualified_identifier (needs at least group and name): %s", ctx.GetText())
+				target.Name = "<ERROR_INCOMPLETE_TOOL_NAME>"
 			}
 		} else {
 			l.addError(ctx, "Tool call: Expected Qualified_identifier, but was not found: %s", ctx.GetText())

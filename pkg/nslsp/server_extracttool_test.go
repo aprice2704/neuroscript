@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.1.7
-// Purpose: Test harness for LSP hover logic, including name extraction and full hover response.
+// File version: 8
+// Purpose: Fix: Update test cases to expect full tool names (e.g., "tool.FS.List") to match the corrected extraction logic.
 // filename: pkg/nslsp/server_extracttool_test.go
-// nlines: 240 // Approximate
+// nlines: 245
 // risk_rating: LOW
 
 package nslsp
@@ -23,7 +23,6 @@ import (
 	"github.com/sourcegraph/jsonrpc2"
 )
 
-// TestExtractToolNameAtPosition (existing test - remains unchanged)
 func TestExtractToolNameAtPosition(t *testing.T) {
 	var testServerLogger *log.Logger
 	if os.Getenv("DEBUG_LSP_HOVER_TEST") != "" {
@@ -39,13 +38,13 @@ func TestExtractToolNameAtPosition(t *testing.T) {
 
 	neuroscriptCodeSnippet := strings.TrimSpace(`
 func MyProcedure() means
-  set x = tool.FS.List("/some/path") 
+  set x = tool.FS.List("/some/path")
   set y = AnotherTool()
   set z = sin(1.0)
-  set path = tool.Meta.ListTools() 
+  set path = tool.Meta.ListTools()
   set val = MyFunc()
   set p = tool.AIWorker.LogPerformance()
-  set q = tool.FS.NonExistentTool() 
+  set q = tool.FS.NonExistentTool()
   set r = tool.FS.Read("/file.txt") # Valid tool
   set s = tool.FS.List # Valid syntax, cursor on List
 endfunc
@@ -61,31 +60,28 @@ endfunc
 	testCases := []struct {
 		name       string
 		content    string
-		line       int // 0-indexed
-		char       int // 0-indexed
+		line       int
+		char       int
 		expected   string
 		sourceName string
 	}{
-		// Line 1: set x = tool.FS.List("/some/path")
-		{"On 'tool' in tool.FS.List", neuroscriptCodeSnippet, 1, 12, "FS.List", "test.ns"},
-		{"On first '.' in tool.FS.List", neuroscriptCodeSnippet, 1, 16, "FS.List", "test.ns"},
-		{"On 'FS' in tool.FS.List", neuroscriptCodeSnippet, 1, 17, "FS.List", "test.ns"},
-		{"On second '.' in tool.FS.List", neuroscriptCodeSnippet, 1, 19, "FS.List", "test.ns"},
-		{"On 'List' in tool.FS.List", neuroscriptCodeSnippet, 1, 20, "FS.List", "test.ns"},
+		// Corrected test cases to expect the full tool name including the "tool." prefix.
+		{"On 'tool' in tool.FS.List", neuroscriptCodeSnippet, 1, 12, "tool.FS.List", "test.ns"},
+		{"On first '.' in tool.FS.List", neuroscriptCodeSnippet, 1, 16, "tool.FS.List", "test.ns"},
+		{"On 'FS' in tool.FS.List", neuroscriptCodeSnippet, 1, 17, "tool.FS.List", "test.ns"},
+		{"On second '.' in tool.FS.List", neuroscriptCodeSnippet, 1, 19, "tool.FS.List", "test.ns"},
+		{"On 'List' in tool.FS.List", neuroscriptCodeSnippet, 1, 20, "tool.FS.List", "test.ns"},
 		{"On 'AnotherTool'", neuroscriptCodeSnippet, 2, 12, "", "test.ns"},
 		{"On 'sin' (built-in)", neuroscriptCodeSnippet, 3, 12, "", "test.ns"},
-		{"On 'tool' in tool.Meta.ListTools", neuroscriptCodeSnippet, 4, 15, "Meta.ListTools", "test.ns"},
-		{"On 'Meta' in tool.Meta.ListTools", neuroscriptCodeSnippet, 4, 20, "Meta.ListTools", "test.ns"},
-		{"On 'ListTools' in tool.Meta.ListTools", neuroscriptCodeSnippet, 4, 25, "Meta.ListTools", "test.ns"},
+		{"On 'tool' in tool.Meta.ListTools", neuroscriptCodeSnippet, 4, 15, "tool.Meta.ListTools", "test.ns"},
+		{"On 'Meta' in tool.Meta.ListTools", neuroscriptCodeSnippet, 4, 20, "tool.Meta.ListTools", "test.ns"},
+		{"On 'ListTools' in tool.Meta.ListTools", neuroscriptCodeSnippet, 4, 25, "tool.Meta.ListTools", "test.ns"},
 		{"On 'MyFunc' (direct call)", neuroscriptCodeSnippet, 5, 12, "", "test.ns"},
-		//		{"On 'tool' in tool.AIWorker.LogPerformance", neuroscriptCodeSnippet, 6, 12, "AIWorker.LogPerformance", "test.ns"},
-		//		{"On 'AIWorker' in tool.AIWorker.LogPerformance", neuroscriptCodeSnippet, 6, 17, "AIWorker.LogPerformance", "test.ns"},
-		//		{"On 'LogPerformance' in tool.AIWorker.LogPerformance", neuroscriptCodeSnippet, 6, 26, "AIWorker.LogPerformance", "test.ns"},
 		{"On 'tool' in tool.FS.NonExistentTool", neuroscriptCodeSnippet, 7, 12, "", "test.ns"},
 		{"On 'FS' in tool.FS.NonExistentTool", neuroscriptCodeSnippet, 7, 17, "", "test.ns"},
 		{"On 'NonExistentTool'", neuroscriptCodeSnippet, 7, 20, "", "test.ns"},
-		{"On 'Read' in tool.FS.Read", neuroscriptCodeSnippet, 8, 20, "FS.Read", "test.ns"},
-		{"On 'List' in tool.FS.List (no parens)", neuroscriptCodeSnippet, 9, 20, "FS.List", "test.ns"},
+		{"On 'Read' in tool.FS.Read", neuroscriptCodeSnippet, 8, 20, "tool.FS.Read", "test.ns"},
+		{"On 'List' in tool.FS.List (no parens)", neuroscriptCodeSnippet, 9, 20, "tool.FS.List", "test.ns"},
 		{"On variable 'x'", neuroscriptCodeSnippet, 1, 6, "", "test.ns"},
 		{"On keyword 'set'", neuroscriptCodeSnippet, 1, 2, "", "test.ns"},
 		{"On string literal char '/'", neuroscriptCodeSnippet, 1, 28, "", "test.ns"},
@@ -110,11 +106,10 @@ endfunc
 	}
 }
 
-// dummyReadWriteCloser for jsonrpc2.Conn in tests
 type dummyReadWriteCloser struct {
 	reader io.Reader
 	writer io.Writer
-	closer io.Closer // Optional closer if the underlying pipes need it
+	closer io.Closer
 }
 
 func (d *dummyReadWriteCloser) Read(p []byte) (n int, err error) {
@@ -129,7 +124,6 @@ func (d *dummyReadWriteCloser) Close() error {
 	if d.closer != nil {
 		return d.closer.Close()
 	}
-	// Attempt to close reader/writer if they are closers individually
 	var errR, errW error
 	if closer, ok := d.reader.(io.Closer); ok {
 		errR = closer.Close()
@@ -143,7 +137,6 @@ func (d *dummyReadWriteCloser) Close() error {
 	return errW
 }
 
-// simpleObjectStream implements jsonrpc2.ObjectStream using basic json.Encoder/Decoder
 type simpleObjectStream struct {
 	dec *json.Decoder
 	enc *json.Encoder
@@ -185,10 +178,10 @@ func TestServerHandleHover(t *testing.T) {
 	uri := lsp.DocumentURI("file:///test.ns")
 	content := strings.TrimSpace(`
 func MyProcedure() means
-  set x = tool.FS.List("/some/path")       # Line 1 (0-indexed in snippet)
-  set y = tool.Meta.ListTools()           # Line 2
-  set z = tool.FS.NonExistentTool()       # Line 3
-  set w = MyFunc()                        # Line 4
+  set x = tool.FS.List("/some/path")
+  set y = tool.Meta.ListTools()
+  set z = tool.FS.NonExistentTool()
+  set w = MyFunc()
 endfunc
 `)
 	serverInstance.documentManager.Set(uri, content)
@@ -207,30 +200,24 @@ endfunc
 		char              int
 		expectHover       bool
 		minContentLength  int
-		expectedToolName  string
-		expectedSubstring string
+		expectedToolName  string // This is the full name used for logging/debugging
+		expectedSubstring string // This is what we check for in the hover content
 	}{
-		{"Hover on 'List' in tool.FS.List", 1, 20, true, 20, "FS.List", "tool.FS.List"},
-		{"Hover on 'tool' in tool.FS.List", 1, 12, true, 20, "FS.List", "tool.FS.List"},
-		{"Hover on 'ListTools' in tool.Meta.ListTools", 2, 25, true, 20, "Meta.ListTools", "tool.Meta.ListTools"},
-		{"Hover on 'FS' in tool.FS.NonExistentTool", 3, 17, false, 0, "FS.NonExistentTool", ""},
-		{"Hover on 'NonExistentTool'", 3, 20, false, 0, "FS.NonExistentTool", ""},
+		{"Hover on 'List' in tool.FS.List", 1, 20, true, 20, "tool.FS.List", "tool.FS.List"},
+		{"Hover on 'tool' in tool.FS.List", 1, 12, true, 20, "tool.FS.List", "tool.FS.List"},
+		{"Hover on 'ListTools' in tool.Meta.ListTools", 2, 25, true, 20, "tool.Meta.ListTools", "tool.Meta.ListTools"},
+		{"Hover on 'FS' in tool.FS.NonExistentTool", 3, 17, false, 0, "", ""},
+		{"Hover on 'NonExistentTool'", 3, 20, false, 0, "", ""},
 		{"Hover on 'MyFunc'", 4, 12, false, 0, "", ""},
 		{"Hover on keyword 'set'", 1, 2, false, 0, "", ""},
 	}
 
-	// Use io.Pipe to create connected ReadWriteClosers
-	// These pipes simulate the client-server communication channel.
-	// serverInput is what the server reads from (client writes to this).
-	// clientOutput is what the client reads from (server writes to this).
 	serverInputReader, clientWritesToServerPipe := io.Pipe()
 	clientOutputReader, serverWritesToClientPipe := io.Pipe()
 
-	// Setup the dummyReadWriteCloser for the ObjectStream
-	// The server's ObjectStream will read from serverInputReader and write to serverWritesToClientPipe.
 	rwc := &dummyReadWriteCloser{
-		reader: serverInputReader,        // Server reads from here
-		writer: serverWritesToClientPipe, // Server writes here
+		reader: serverInputReader,
+		writer: serverWritesToClientPipe,
 		closer: struct{ io.Closer }{internalCloserFunc(func() error {
 			var errFirst error
 			errFirst = clientWritesToServerPipe.Close()
@@ -254,11 +241,8 @@ endfunc
 	defer cancel()
 
 	serverObjectStream := newSimpleObjectStream(rwc)
-	// The handler (last arg for NewConn) can be nil for this test setup because
-	// we are not testing the conn's ability to dispatch incoming requests to a handler.
-	// We are directly calling serverInstance.Handle.
 	dummyConn := jsonrpc2.NewConn(ctx, serverObjectStream, nil)
-	defer dummyConn.Close() // This will close the rwc via simpleObjectStream.Close()
+	defer dummyConn.Close()
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -326,26 +310,16 @@ endfunc
 			if len(actualContent) < tc.minContentLength {
 				t.Errorf("FAIL: Hover content for '%s' too short. Expected min %d, got %d. Content: '%s'",
 					tc.expectedToolName, tc.minContentLength, len(actualContent), actualContent)
-			} else {
-				if debugHoverTest {
-					t.Logf("PASS: Hover content for '%s' has sufficient length (%d). Content: '%s...'",
-						tc.expectedToolName, len(actualContent), actualContent[:min(len(actualContent), 40)])
-				}
 			}
 
 			if tc.expectedSubstring != "" && !strings.Contains(actualContent, tc.expectedSubstring) {
 				t.Errorf("FAIL: Hover content for '%s' did not contain expected substring '%s'. Actual: '%s'",
 					tc.expectedToolName, tc.expectedSubstring, actualContent)
-			} else if tc.expectedSubstring != "" {
-				if debugHoverTest {
-					t.Logf("PASS: Hover content for '%s' contains expected substring '%s'", tc.expectedToolName, tc.expectedSubstring)
-				}
 			}
 		})
 	}
 }
 
-// Helper for creating a closer for the dummyReadWriteCloser from a function
 type internalCloserFunc func() error
 
 func (f internalCloserFunc) Close() error { return f() }

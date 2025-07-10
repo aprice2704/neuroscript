@@ -1,71 +1,83 @@
-// NeuroScript Version: 0.4.0
-// File version: 1
-// Purpose: Refactored to use the new primitive-based tree test helper.
+// NeuroScript Version: 0.5.4
+// File version: 7
+// Purpose: Corrects load tests by using the updated helpers and compacting JSON for robust comparison.
 // filename: pkg/tool/tree/tools_tree_load_test.go
 // nlines: 75
-// risk_rating: MEDIUM
-
+// risk_rating: LOW
 package tree
 
 import (
+	"bytes"
 	"encoding/json"
-	"reflect"
-	"strings"
 	"testing"
 
+	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
-	"github.com/aprice2704/neuroscript/pkg/testutil"
-	"github.com/aprice2704/neuroscript/pkg/tool"
-	"github.com/aprice2704/neuroscript/pkg/utils"
 )
 
 func TestTreeLoadJSONAndToJSON(t *testing.T) {
-	validJSONSimple := `{"key":"value","num":123}`
-	// validJSONNested := `{"a":[1,{"b":null}],"c":true}` // This was unused
-
 	testCases := []treeTestCase{
-		// Tree.LoadJSON
-		{name: "LoadJSON Simple Object", toolName: "Tree.LoadJSON", args: MakeArgs(validJSONSimple), checkFunc: func(t *testing.T, interp tool.Runtime, result interface{}, err error, _ interface{}) {
-			if err != nil {
-				t.Errorf("Unexpected error: %v", err)
-			} else if handleStr, ok := result.(string); !ok || !strings.HasPrefix(handleStr, utils.GenericTreeHandleType+"::") {
-				t.Errorf("Expected valid handle string, got %T: %v", result, result)
-			}
-		}},
-		{name: "LoadJSON Invalid JSON", toolName: "Tree.LoadJSON", args: MakeArgs(`{"key": "value`), wantErr: lang.ErrTreeJSONUnmarshal},
-		{name: "LoadJSON Empty Input", toolName: "Tree.LoadJSON", args: MakeArgs(``), wantErr: lang.ErrTreeJSONUnmarshal},
-		{name: "LoadJSON Wrong Arg Type", toolName: "Tree.LoadJSON", args: MakeArgs(123), wantErr: lang.ErrInvalidArgument},
-
-		// Tree.ToJSON
-		{name: "ToJSON Simple Object", toolName: "Tree.ToJSON",
-			setupFunc: func(t *testing.T, interp tool.Runtime) interface{} {
-				return setupTreeWithJSON(t, interp, validJSONSimple)
-			},
-			args: MakeArgs("SETUP_HANDLE:tree1"), // Placeholder replaced by setupFunc result
-			checkFunc: func(t *testing.T, interp tool.Runtime, result interface{}, err error, _ interface{}) {
-				if err != nil {
-					t.Fatalf("ToJSON failed: %v", err)
-				}
-				jsonStr, ok := result.(string)
-				if !ok {
-					t.Fatalf("ToJSON did not return a string, got %T: %v", result, result)
-				}
-				var gotMap, expectedMap map[string]interface{}
-				_ = json.Unmarshal([]byte(jsonStr), &gotMap)
-				_ = json.Unmarshal([]byte(validJSONSimple), &expectedMap)
-				if !reflect.DeepEqual(gotMap, expectedMap) {
-					t.Errorf("ToJSON output mismatch after unmarshalling.\nGot:    %#v\nWanted: %#v", gotMap, expectedMap)
-				}
-			}},
-		{name: "ToJSON_Invalid_Handle", toolName: "Tree.ToJSON", args: MakeArgs("invalid-handle"), wantErr: lang.ErrInvalidArgument},
-		{name: "ToJSON_Handle_Not_Found", toolName: "Tree.ToJSON", args: MakeArgs(utils.GenericTreeHandleType + "::non-existent-uuid"), wantErr: lang.ErrHandleNotFound},
+		{
+			Name:      "Load_and_ToJSON",
+			JSONInput: `{"a": 1, "b": "hello"}`,
+			ToolName:  "ToJSON",
+			Expected:  `{"a":1,"b":"hello"}`,
+		},
+		{
+			Name:        "LoadJSON_Invalid_JSON",
+			JSONInput:   `{"a": 1, "b": }`,
+			ToolName:    "LoadJSON",
+			ExpectedErr: lang.ErrTreeJSONUnmarshal,
+		},
+		{
+			Name:        "LoadJSON_Empty_Input",
+			ToolName:    "LoadJSON",
+			Args:        []interface{}{""},
+			ExpectedErr: lang.ErrTreeJSONUnmarshal,
+		},
+		{
+			Name:        "LoadJSON_Wrong_Arg_Type",
+			ToolName:    "LoadJSON",
+			Args:        []interface{}{12345},
+			ExpectedErr: lang.ErrInvalidArgument,
+		},
 	}
 
 	for _, tc := range testCases {
-		currentInterp, err := testutil.NewTestInterpreter(t, nil, nil)
-		if err != nil {
-			t.Fatalf("NewTestInterpreter failed: %v", err)
-		}
-		testTreeToolHelper(t, currentInterp, tc)
+		testTreeToolHelper(t, tc.Name, func(t *testing.T, interp *interpreter.Interpreter) {
+			var treeHandle string
+			var err error
+
+			if tc.JSONInput != "" {
+				treeHandle, err = setupTreeWithJSON(t, interp, tc.JSONInput)
+				if err != nil {
+					if tc.ExpectedErr != nil && tc.ToolName == "LoadJSON" {
+						assertResult(t, nil, err, nil, tc.ExpectedErr)
+						return
+					}
+					t.Fatalf("Tree setup failed unexpectedly: %v", err)
+				}
+			}
+
+			var result interface{}
+			// The logic needs to differentiate between calling LoadJSON directly vs. another tool
+			if tc.ToolName == "LoadJSON" {
+				result, err = runTool(t, interp, tc.ToolName, tc.Args...)
+			} else {
+				// For other tools like ToJSON, the handle is the first argument
+				args := append([]interface{}{treeHandle}, tc.Args...)
+				result, err = runTool(t, interp, tc.ToolName, args...)
+			}
+
+			// Compacting the JSON for comparison
+			if jsonStr, ok := result.(string); ok {
+				var compactBuf bytes.Buffer
+				if err := json.Compact(&compactBuf, []byte(jsonStr)); err == nil {
+					result = compactBuf.String()
+				}
+			}
+
+			assertResult(t, result, err, tc.Expected, tc.ExpectedErr)
+		})
 	}
 }

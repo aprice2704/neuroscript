@@ -1,9 +1,8 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.2.7
-// Purpose: Implements the main LSP server handler, routing requests, managing state,
-//          providing diagnostics, and initial tool signature hover support.
+// File version: 10
+// Purpose: Add call to RegisterCoreTools to ensure the LSP server loads all tool definitions.
 // filename: pkg/nslsp/server.go
-// nlines: 260 // Approximate
+// nlines: 260
 // risk_rating: MEDIUM
 
 package nslsp
@@ -29,7 +28,7 @@ type Server struct {
 	logger          *log.Logger
 	documentManager *DocumentManager
 	coreParserAPI   *parser.ParserAPI
-	toolRegistry    tool.ToolRegistry // Assuming ToolRegistry is the interface type
+	toolRegistry    tool.ToolRegistry
 }
 
 func NewServer(logger *log.Logger) *Server {
@@ -39,11 +38,14 @@ func NewServer(logger *log.Logger) *Server {
 	if registry == nil {
 		logger.Println("CRITICAL: Failed to initialize tool registry in LSP server!")
 	} else {
-		// FIX: Register all the toolsets found via init() functions.
+		// FIX: Call both core and extended tool registration functions.
+		if err := tool.RegisterCoreTools(registry); err != nil {
+			logger.Fatalf("CRITICAL: Failed to register core tools in LSP server: %v", err)
+		}
 		if err := tool.RegisterExtendedTools(registry); err != nil {
 			logger.Fatalf("CRITICAL: Failed to register extended tools in LSP server: %v", err)
 		}
-		logger.Printf("LSP Server: Tool registry initialized, %d tools loaded.", len(registry.ListTools()))
+		logger.Printf("LSP Server: Tool registry initialized, %d tools loaded.", registry.NTools())
 	}
 
 	return &Server{
@@ -54,16 +56,12 @@ func NewServer(logger *log.Logger) *Server {
 	}
 }
 
-// isNotification checks if the JSON-RPC request is a notification.
-// Notifications have an ID that is the zero value for jsonrpc2.ID (both Str and Num are zero/empty).
 func isNotification(id jsonrpc2.ID) bool {
 	return id.Str == "" && id.Num == 0
 }
 
-// Handle is the main RPC handler for LSP requests.
 func (s *Server) Handle(ctx context.Context, conn *jsonrpc2.Conn, req *jsonrpc2.Request) (result interface{}, err error) {
 	s.conn = conn
-	// Log ID by its components Str and Num
 	s.logger.Printf("LSP Request: Method=%s, ID=(Str:'%s', Num:%d)", req.Method, req.ID.Str, req.ID.Num)
 
 	switch req.Method {
@@ -89,7 +87,7 @@ func (s *Server) Handle(ctx context.Context, conn *jsonrpc2.Conn, req *jsonrpc2.
 		return s.handleTextDocumentHover(ctx, conn, req)
 	default:
 		s.logger.Printf("Received unhandled method: %s", req.Method)
-		if isNotification(req.ID) { // Use corrected isNotification
+		if isNotification(req.ID) {
 			return nil, nil
 		}
 		return nil, &jsonrpc2.Error{Code: jsonrpc2.CodeMethodNotFound, Message: fmt.Sprintf("method not supported: %s", req.Method)}
@@ -130,7 +128,7 @@ func (s *Server) handleTextDocumentDidOpen(ctx context.Context, conn *jsonrpc2.C
 	}
 	s.logger.Printf("Document opened: %s", params.TextDocument.URI)
 	s.documentManager.Set(params.TextDocument.URI, params.TextDocument.Text)
-	go PublishDiagnostics(ctx, s.conn, s.logger, s.coreParserAPI, params.TextDocument.URI, params.TextDocument.Text)
+	go PublishDiagnostics(ctx, s.conn, s.logger, s, params.TextDocument.URI, params.TextDocument.Text)
 	return nil, nil
 }
 
@@ -143,7 +141,7 @@ func (s *Server) handleTextDocumentDidChange(ctx context.Context, conn *jsonrpc2
 	if len(params.ContentChanges) > 0 {
 		content := params.ContentChanges[0].Text
 		s.documentManager.Set(params.TextDocument.URI, content)
-		go PublishDiagnostics(ctx, s.conn, s.logger, s.coreParserAPI, params.TextDocument.URI, content)
+		go PublishDiagnostics(ctx, s.conn, s.logger, s, params.TextDocument.URI, content)
 	}
 	return nil, nil
 }
@@ -155,7 +153,7 @@ func (s *Server) handleTextDocumentDidSave(ctx context.Context, conn *jsonrpc2.C
 	}
 	s.logger.Printf("Document saved: %s", params.TextDocument.URI)
 	if content, found := s.documentManager.Get(params.TextDocument.URI); found {
-		go PublishDiagnostics(ctx, s.conn, s.logger, s.coreParserAPI, params.TextDocument.URI, content)
+		go PublishDiagnostics(ctx, s.conn, s.logger, s, params.TextDocument.URI, content)
 	}
 	return nil, nil
 }
@@ -167,7 +165,7 @@ func (s *Server) handleTextDocumentDidClose(ctx context.Context, conn *jsonrpc2.
 	}
 	s.logger.Printf("Document closed: %s", params.TextDocument.URI)
 	s.documentManager.Delete(params.TextDocument.URI)
-	go PublishDiagnostics(ctx, s.conn, s.logger, s.coreParserAPI, params.TextDocument.URI, "")
+	go PublishDiagnostics(ctx, s.conn, s.logger, s, params.TextDocument.URI, "")
 	return nil, nil
 }
 
@@ -206,7 +204,7 @@ func (s *Server) handleTextDocumentHover(ctx context.Context, conn *jsonrpc2.Con
 
 	spec := toolImpl.Spec
 	var hoverContent strings.Builder
-	hoverContent.WriteString(fmt.Sprintf("#### `tool.%s`\n\n", spec.Name))
+	hoverContent.WriteString(fmt.Sprintf("#### `%s`\n\n", toolName))
 	if spec.Description != "" {
 		hoverContent.WriteString(spec.Description + "\n\n")
 	}
@@ -229,11 +227,9 @@ func (s *Server) handleTextDocumentHover(ctx context.Context, conn *jsonrpc2.Con
 	}
 	hoverContent.WriteString(fmt.Sprintf("\n**Returns:** `%s`\n", spec.ReturnType))
 
-	// Corrected Hover Contents for sourcegraph/go-lsp
-	// It expects []lsp.MarkedString where MarkedString can be a string or an object {Language: string, Value: string}
-	return &lsp.Hover{ // Return a pointer to Hover
+	return &lsp.Hover{
 		Contents: []lsp.MarkedString{
-			{Language: "markdown", Value: hoverContent.String()}, // Corrected line
+			{Language: "markdown", Value: hoverContent.String()},
 		},
 	}, nil
 }

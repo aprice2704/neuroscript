@@ -26,7 +26,7 @@ func TestToolWalk(t *testing.T) {
 	tests := []fsTestCase{
 		{
 			name:      "Walk directory",
-			toolName:  "FS.Walk",
+			toolName:  "Walk",
 			args:      []interface{}{"."},
 			setupFunc: setup,
 			checkFunc: func(t *testing.T, interp tool.Runtime, result interface{}, err error, ctx interface{}) {
@@ -37,7 +37,7 @@ func TestToolWalk(t *testing.T) {
 				if !ok {
 					t.Fatalf("Expected result to be a slice of maps, got %T", result)
 				}
-				// Expect 3 entries: file1.txt, dir1, dir1/file2.txt, dir2
+				// Expect 4 entries: file1.txt, dir1, dir1/file2.txt, dir2
 				if len(resList) != 4 {
 					t.Errorf("Expected 4 entries from walk, got %d", len(resList))
 				}

@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.3.1
-// File version: 8
-// Purpose: Corrected compiler errors by adding type assertions and replacing the flawed `compareAttributeValue` with a robust `deepCompareValues` function.
+// File version: 10
+// Purpose: Corrected compiler errors by adding type assertions and replacing the flawed `compareAttributeValue` with a robust `deepCompareValues` function. Added logic to resolve node IDs for metadata queries.
 // filename: pkg/tool/tree/tools_tree_find.go
 // nlines: 247
 // risk_rating: MEDIUM
@@ -79,7 +79,7 @@ func toolTreeFindNodes(interpreter tool.Runtime, args []interface{}) (interface{
 		}
 		visited[currentNode.ID] = true
 
-		matches, matchErr := nodeMatchesQuery(currentNode, queryMap, toolName)
+		matches, matchErr := nodeMatchesQuery(tree, currentNode, queryMap, toolName)
 		if matchErr != nil {
 			return matchErr
 		}
@@ -147,7 +147,7 @@ func toolTreeFindNodes(interpreter tool.Runtime, args []interface{}) (interface{
 }
 
 // nodeMatchesQuery checks if a single node matches the provided query map.
-func nodeMatchesQuery(node *utils.GenericTreeNode, queryMap map[string]interface{}, toolName string) (bool, error) {
+func nodeMatchesQuery(tree *utils.GenericTree, node *utils.GenericTreeNode, queryMap map[string]interface{}, toolName string) (bool, error) {
 	if node == nil {
 		return false, nil
 	}
@@ -200,11 +200,19 @@ func nodeMatchesQuery(node *utils.GenericTreeNode, queryMap map[string]interface
 				return false, nil
 			}
 			for metaKey, expectedMetaQueryValue := range metadataQuery {
-				actualNodeMetaValue, exists := node.Attributes[metaKey]
+				actualNodeAttrValue, exists := node.Attributes[metaKey]
 				if !exists {
 					return false, nil
 				}
-				if !deepCompareValues(actualNodeMetaValue, expectedMetaQueryValue) {
+				if childNodeID, ok := actualNodeAttrValue.(string); ok {
+					if childNode, ok := tree.NodeMap[childNodeID]; ok {
+						if !deepCompareValues(childNode.Value, expectedMetaQueryValue) {
+							return false, nil
+						}
+						continue
+					}
+				}
+				if !deepCompareValues(actualNodeAttrValue, expectedMetaQueryValue) {
 					return false, nil
 				}
 			}

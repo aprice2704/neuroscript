@@ -1,65 +1,69 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.1.0
-// Purpose: Handles parsing of NeuroScript documents and publishing of LSP diagnostics.
+// File version: 0.1.1
+// Purpose: Integrate semantic analysis to publish both syntax and semantic diagnostics.
 // filename: pkg/nslsp/diagnostics.go
-// nlines: 70 // Approximate, will vary with actual implementation
-// risk_rating: MEDIUM // Involves parsing and error interpretation.
+// nlines: 80
+// risk_rating: MEDIUM
 
 package nslsp
 
 import (
 	"context"
 	"log"
+	"os"
 
-	"github.com/aprice2704/neuroscript/pkg/parser"
 	lsp "github.com/sourcegraph/go-lsp"
 	"github.com/sourcegraph/jsonrpc2"
 )
 
-func PublishDiagnostics(ctx context.Context, conn *jsonrpc2.Conn, logger *log.Logger, neuroParser *parser.ParserAPI, uri lsp.DocumentURI, content string) {
+// PublishDiagnostics parses a document, runs semantic analysis, and sends all findings to the client.
+func PublishDiagnostics(ctx context.Context, conn *jsonrpc2.Conn, logger *log.Logger, s *Server, uri lsp.DocumentURI, content string) {
 	logger.Printf("Publishing diagnostics for %s", uri)
 
-	// Use the new ParseForLSP method
-	_, structuredErrors := neuroParser.ParseForLSP(string(uri), content)
+	// 1. Get Syntax Errors from Parser
+	tree, structuredErrors := s.coreParserAPI.ParseForLSP(string(uri), content)
 
-	diagnostics := make([]lsp.Diagnostic, len(structuredErrors))
-	for i, err := range structuredErrors {
-		// ANTLR lines are 1-based, columns are 0-based. LSP ranges are 0-based.
+	allDiagnostics := make([]lsp.Diagnostic, 0)
+
+	// Convert parser errors to LSP diagnostics
+	for _, err := range structuredErrors {
 		lspLine := err.Line - 1
 		if lspLine < 0 {
 			lspLine = 0
 		}
-		lspChar := err.Column
-		if lspChar < 0 {
-			lspChar = 0
-		}
-
-		// Determine end character for the range
-		// If OffendingSymbol is available, use its length. Otherwise, default to 1 char.
-		endChar := lspChar + 1
+		endChar := err.Column + 1
 		if len(err.OffendingSymbol) > 0 {
-			endChar = lspChar + len(err.OffendingSymbol)
-		}
-		// Ensure endChar does not go below startChar if OffendingSymbol is empty
-		if endChar <= lspChar {
-			endChar = lspChar + 1
+			endChar = err.Column + len(err.OffendingSymbol)
 		}
 
-		diagnostics[i] = lsp.Diagnostic{
+		allDiagnostics = append(allDiagnostics, lsp.Diagnostic{
 			Range: lsp.Range{
-				Start: lsp.Position{Line: lspLine, Character: lspChar},
+				Start: lsp.Position{Line: lspLine, Character: err.Column},
 				End:   lsp.Position{Line: lspLine, Character: endChar},
 			},
 			Severity: lsp.Error,
-			Source:   "nslsp", // Or "NeuroScript Language Server"
+			Source:   "nslsp-syntax",
 			Message:  err.Msg,
-		}
-		logger.Printf("LSP Diagnostic: %s L%d:%d - %s", uri, err.Line, err.Column, err.Msg)
+		})
 	}
 
+	// 2. Get Semantic Errors from Analyzer
+	if tree != nil && s.toolRegistry != nil {
+		isDebug := os.Getenv("NSLSP_DEBUG_HOVER") != "" || os.Getenv("DEBUG_LSP_HOVER_TEST") != ""
+		semanticAnalyzer := NewSemanticAnalyzer(s.toolRegistry, isDebug)
+		semanticDiagnostics := semanticAnalyzer.Analyze(tree)
+		if len(semanticDiagnostics) > 0 {
+			allDiagnostics = append(allDiagnostics, semanticDiagnostics...)
+		}
+	} else {
+		logger.Println("Skipping semantic analysis: AST or Tool Registry not available.")
+	}
+
+	// 3. Publish Combined Diagnostics
+	logger.Printf("Publishing %d total diagnostics for %s.", len(allDiagnostics), uri)
 	rpcErr := conn.Notify(ctx, "textDocument/publishDiagnostics", lsp.PublishDiagnosticsParams{
 		URI:         uri,
-		Diagnostics: diagnostics,
+		Diagnostics: allDiagnostics,
 	})
 	if rpcErr != nil {
 		logger.Printf("Error publishing diagnostics: %v", rpcErr)

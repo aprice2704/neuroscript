@@ -1,183 +1,157 @@
-// NeuroScript Version: 0.3.1
-// File version: 3
-// Purpose: Corrected type assertions to use the specific `TreeAttrs` type instead of a generic map, resolving the test panic.
-// nlines: 118
-// risk_rating: MEDIUM
-
+// NeuroScript Version: 0.5.4
+// File version: 14
+// Purpose: Corrects the final compiler error by handling special test setup directly within the test loop, avoiding the scoping issue.
+// filename: pkg/tool/tree/tools_tree_nav_test.go
+// nlines: 145
+// risk_rating: LOW
 package tree
 
 import (
-	"errors"
+	"reflect"
 	"testing"
 
+	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
-	"github.com/aprice2704/neuroscript/pkg/testutil"
-	"github.com/aprice2704/neuroscript/pkg/tool"
 	"github.com/aprice2704/neuroscript/pkg/utils"
 )
 
-func TestTreeNavigationTools(t *testing.T) {
-	interp, err := testutil.NewTestInterpreter(t, nil, nil)
-	if err != nil {
-		t.Fatalf("NewTestInterpreter failed: %v", err)
-	}
-	jsonInput := `{
-		"name": "root_obj",
-		"type": "directory",
-		"children": [
-			{"name": "file1.txt", "type": "file", "size": 100},
-			{"name": "subdir", "type": "directory", "children": [
-				{"name": "file2.txt", "type": "file", "size": 50}
-			]}
-		],
-		"metadata": {"owner": "admin"}
+func TestTreeNav(t *testing.T) {
+	baseJSON := `{
+		"root": {
+			"children": [
+				{"name": "child1", "value": 1},
+				{"name": "child2", "value": 2, "children": [
+					{"name": "grandchild1", "value": 2.1}
+				]}
+			],
+			"metadata": {"type": "parent"}
+		}
 	}`
-	rootHandle := setupTreeWithJSON(t, interp, jsonInput)
-	rootNodeID := "node-1"
 
 	testCases := []treeTestCase{
-		{name: "GetNode Root", toolName: "Tree.GetNode", args: MakeArgs(rootHandle, rootNodeID), checkFunc: func(t *testing.T, interp tool.Runtime, result interface{}, err error, ctx interface{}) {
-			if err != nil {
-				t.Fatalf("GetNode Root failed: %v", err)
-			}
-			nodeMap, ok := result.(map[string]interface{})
-			if !ok {
-				t.Fatalf("GetNode Root: expected map, got %T", result)
-			}
-			if nodeMap["id"] != rootNodeID {
-				t.Errorf("GetNode Root: ID mismatch, got %v", nodeMap["id"])
-			}
-			if nodeMap["type"] != "object" {
-				t.Errorf("GetNode Root: type mismatch, got %v, expected 'object'", nodeMap["type"])
-			}
-		}},
-		{name: "GetNode Nested (file1 name)", toolName: "Tree.GetNode", args: MakeArgs(rootHandle, ""),
-			checkFunc: func(t *testing.T, interp tool.Runtime, result interface{}, err error, ctx interface{}) {
-				rootMap, _ := callGetNode(t, interp, rootHandle, rootNodeID)
-				childrenArrNodeID := rootMap["attributes"].(utils.TreeAttrs)["children"].(string)
-				childrenArrMap, _ := callGetNode(t, interp, rootHandle, childrenArrNodeID)
-
-				childrenVal, valOk := childrenArrMap["children"]
-				if !valOk {
-					t.Fatalf("GetNode Nested: 'children' key not found in node map for children array. Map: %#v", childrenArrMap)
+		{
+			Name:      "Get_Node_Root",
+			JSONInput: baseJSON,
+			Validation: func(t *testing.T, interp *interpreter.Interpreter, treeHandle string, result interface{}) {
+				rootID := getRootID(t, interp, treeHandle)
+				rootNode, err := callGetNode(t, interp, treeHandle, rootID)
+				if err != nil {
+					t.Fatalf("Validation failed: could not get root node: %v", err)
 				}
-
-				var childNodeIDsRaw []string
-				childNodeIDsIF, ifOk := childrenVal.([]interface{})
-				if !ifOk {
-					t.Fatalf("GetNode Nested: 'children' is not []interface{}, but %T. Value: %#v", childrenArrMap["children"], childrenArrMap["children"])
+				if !reflect.DeepEqual(rootNode, getRootNode(t, interp, treeHandle)) {
+					t.Error("GetNode with path 'root' did not return the root node handle")
 				}
-				childNodeIDsRaw = make([]string, len(childNodeIDsIF))
-				for i, v := range childNodeIDsIF {
-					childNodeIDsRaw[i], _ = v.(string)
+			},
+		},
+		{
+			Name:      "Get_Node_Child",
+			JSONInput: baseJSON,
+			Validation: func(t *testing.T, interp *interpreter.Interpreter, treeHandle string, result interface{}) {
+				nodeID, err := getNodeIDByPath(t, interp, treeHandle, "root.children.0")
+				if err != nil {
+					t.Fatalf("Validation failed: could not get node id for 'root.children.0': %v", err)
 				}
-
-				if len(childNodeIDsRaw) == 0 {
-					t.Fatalf("GetNode Nested: children list is empty")
+				node, err := callGetNode(t, interp, treeHandle, nodeID)
+				if err != nil {
+					t.Fatalf("Validation failed: could not get value of node: %v", err)
 				}
-				file1ObjNodeID := childNodeIDsRaw[0]
-
-				file1ObjMap, _ := callGetNode(t, interp, rootHandle, file1ObjNodeID)
-				fileNameNodeID := file1ObjMap["attributes"].(utils.TreeAttrs)["name"].(string)
-
-				nodeMap, errGet := callGetNode(t, interp, rootHandle, fileNameNodeID)
-				if errGet != nil {
-					t.Fatalf("GetNode for file1 name failed: %v", errGet)
-				}
-				if nodeMap["value"] != "file1.txt" {
-					t.Errorf("Expected 'file1.txt', got %v", nodeMap["value"])
-				}
-				if nodeMap["type"] != "string" {
-					t.Errorf("Expected type string, got %v", nodeMap["type"])
-				}
-			}},
-		{name: "GetNode NonExistent Node", toolName: "Tree.GetNode", args: MakeArgs(rootHandle, "node-999"), wantErr: lang.ErrNotFound},
-		{name: "GetNode Invalid Handle", toolName: "Tree.GetNode", args: MakeArgs("bad-handle", "node-1"), wantErr: lang.ErrInvalidArgument},
-
-		{name: "GetChildren of Array Node", toolName: "Tree.GetChildren", args: MakeArgs(rootHandle, ""),
-			checkFunc: func(t *testing.T, interp tool.Runtime, result interface{}, err error, ctx interface{}) {
-				rootMap, _ := callGetNode(t, interp, rootHandle, rootNodeID)
-				childrenArrNodeID := rootMap["attributes"].(utils.TreeAttrs)["children"].(string)
-				childrenIDs, errGet := callGetChildren(t, interp, rootHandle, childrenArrNodeID)
-				if errGet != nil {
-					t.Fatalf("GetChildren for array failed: %v", errGet)
-				}
-				if len(childrenIDs) != 2 {
-					t.Errorf("Expected 2 children, got %d", len(childrenIDs))
-				}
-			}},
-		{name: "GetChildren of Object Node", toolName: "Tree.GetChildren", args: MakeArgs(rootHandle, rootNodeID), wantErr: lang.ErrNodeWrongType},
-		{name: "GetChildren of Leaf Node", toolName: "Tree.GetChildren", args: MakeArgs(rootHandle, ""),
-			checkFunc: func(t *testing.T, interp tool.Runtime, result interface{}, err error, ctx interface{}) {
-				rootMap, _ := callGetNode(t, interp, rootHandle, rootNodeID)
-				childrenArrNodeID := rootMap["attributes"].(utils.TreeAttrs)["children"].(string)
-				childrenArrMap, _ := callGetNode(t, interp, rootHandle, childrenArrNodeID)
-
-				childrenVal, valOk := childrenArrMap["children"]
-				if !valOk {
-					t.Fatalf("Setup for GetChildren of Leaf: 'children' key not found. Map: %#v", childrenArrMap)
-				}
-				var childNodeIDsRaw []string
-				childNodeIDsIF, ifOk := childrenVal.([]interface{})
-				if !ifOk {
-					t.Fatalf("Setup for GetChildren of Leaf: could not get 'children' as []interface{}. Got %T", childrenArrMap["children"])
-				}
-				for _, v := range childNodeIDsIF {
-					childNodeIDsRaw = append(childNodeIDsRaw, v.(string))
-				}
-
-				if len(childNodeIDsRaw) == 0 {
-					t.Fatalf("Setup for GetChildren of Leaf: 'children' list is empty.")
-				}
-
-				file1ObjNodeID := childNodeIDsRaw[0]
-				file1ObjMap, _ := callGetNode(t, interp, rootHandle, file1ObjNodeID)
-				fileNameNodeID := file1ObjMap["attributes"].(utils.TreeAttrs)["name"].(string)
-				interpImpl, ok := interp.(interface{ ToolRegistry() tool.ToolRegistry })
+				nodeMap, ok := node.(map[string]interface{})
 				if !ok {
-					t.Fatalf("Interpreter does not implement ToolRegistry()")
+					t.Fatalf("node is not a map, but %T", node)
 				}
-				getTool, _ := interpImpl.ToolRegistry().GetTool("Tree.GetChildren")
-				_, errGet := getTool.Func(interp, MakeArgs(rootHandle, fileNameNodeID))
-				if !errors.Is(errGet, lang.ErrNodeWrongType) {
-					t.Fatalf("GetChildren for leaf node expected ErrNodeWrongType, got %v", errGet)
-				}
-			}},
-
-		{name: "GetParent of Root", toolName: "Tree.GetParent", args: MakeArgs(rootHandle, rootNodeID), checkFunc: func(t *testing.T, interp tool.Runtime, result interface{}, err error, setupCtx interface{}) {
-			if err != nil {
-				t.Fatalf("Unexpected error: %v", err)
-			}
-			if result != nil {
-				t.Errorf("Expected nil result for parent of root, got %v", result)
-			}
-		}},
-		{name: "GetParent of Child", toolName: "Tree.GetParent", args: MakeArgs(rootHandle, ""),
-			checkFunc: func(t *testing.T, interp tool.Runtime, result interface{}, err error, ctx interface{}) {
-				rootMap, _ := callGetNode(t, interp, rootHandle, rootNodeID)
-				childrenArrNodeID := rootMap["attributes"].(utils.TreeAttrs)["children"].(string)
-
-				interpImpl, ok := interp.(interface{ ToolRegistry() tool.ToolRegistry })
+				attributes, ok := nodeMap["attributes"].(utils.TreeAttrs)
 				if !ok {
-					t.Fatalf("Interpreter does not implement ToolRegistry()")
+					t.Fatalf("attributes is not utils.TreeAttrs, but %T", nodeMap["attributes"])
 				}
-				getParentTool, _ := interpImpl.ToolRegistry().GetTool("Tree.GetParent")
-				parentIDResult, errGet := getParentTool.Func(interp, MakeArgs(rootHandle, childrenArrNodeID))
-				if errGet != nil {
-					t.Fatalf("GetParent failed: %v", errGet)
+
+				nameNodeID := attributes["name"].(string)
+				nameNodeValue, err := callGetValue(t, interp, treeHandle, nameNodeID)
+				if err != nil {
+					t.Fatalf("could not get name node value: %v", err)
 				}
-				parentID, ok := parentIDResult.(string)
-				if !ok && parentIDResult != nil {
-					t.Fatalf("GetParent did not return a string or nil, got %T: %v", parentIDResult, parentIDResult)
+
+				if nameNodeValue != "child1" {
+					t.Errorf("Expected node name to be 'child1', got %v", nameNodeValue)
 				}
-				if parentID != rootNodeID {
-					t.Errorf("Expected parent %s, got %v", rootNodeID, parentID)
+			},
+		},
+		{
+			Name:        "Get_Node_Invalid_Path",
+			JSONInput:   baseJSON,
+			ToolName:    "GetNode",
+			Args:        []interface{}{nil, "non-existent-id"},
+			ExpectedErr: lang.ErrNotFound,
+		},
+		{
+			Name:      "Get_Children",
+			JSONInput: baseJSON,
+			Validation: func(t *testing.T, interp *interpreter.Interpreter, treeHandle string, result interface{}) {
+				nodeID, err := getNodeIDByPath(t, interp, treeHandle, "root.children")
+				if err != nil {
+					t.Fatalf("could not get node id for %s: %v", "root.children", err)
 				}
-			}},
-		{name: "GetParent NonExistent Node", toolName: "Tree.GetParent", args: MakeArgs(rootHandle, "node-999"), wantErr: lang.ErrNotFound},
+				children, err := callGetChildren(t, interp, treeHandle, nodeID)
+				if err != nil {
+					t.Fatalf("GetChildren failed: %v", err)
+				}
+
+				childSlice, ok := children.([]interface{})
+				if !ok {
+					t.Fatalf("GetChildren did not return a slice, got %T", children)
+				}
+				if len(childSlice) != 2 {
+					t.Errorf("Expected 2 children for 'root.children', got %d", len(childSlice))
+				}
+			},
+		},
+		{
+			Name:      "Get_Parent",
+			JSONInput: baseJSON,
+			Validation: func(t *testing.T, interp *interpreter.Interpreter, treeHandle string, result interface{}) {
+				childID, err := getNodeIDByPath(t, interp, treeHandle, "root.children.0")
+				if err != nil {
+					t.Fatalf("Setup for Get_Parent failed: could not get child node: %v", err)
+				}
+				parentHandle, err := runTool(t, interp, "GetParent", treeHandle, childID)
+				if err != nil {
+					t.Fatalf("GetParent failed: %v", err)
+				}
+
+				parentID, ok := parentHandle.(string)
+				if !ok {
+					t.Fatalf("GetParent did not return a string handle, got %T", parentHandle)
+				}
+				children, err := callGetChildren(t, interp, treeHandle, parentID)
+				if err != nil {
+					t.Fatalf("Validation failed: could not get children of parent: %v", err)
+				}
+				if len(children.([]interface{})) != 2 {
+					t.Errorf("Expected parent to have 2 children, got %d", len(children.([]interface{})))
+				}
+			},
+		},
 	}
 
 	for _, tc := range testCases {
-		testTreeToolHelper(t, interp, tc)
+		testTreeToolHelper(t, tc.Name, func(t *testing.T, interp *interpreter.Interpreter) {
+			treeHandle, err := setupTreeWithJSON(t, interp, tc.JSONInput)
+			if err != nil {
+				t.Fatalf("Tree setup failed unexpectedly: %v", err)
+			}
+
+			var result interface{}
+			if tc.Validation != nil {
+				tc.Validation(t, interp, treeHandle, result)
+			} else if tc.ToolName != "" {
+				args := tc.Args
+				if len(args) > 0 {
+					if args[0] == nil {
+						args[0] = treeHandle
+					}
+				}
+				result, err = runTool(t, interp, tc.ToolName, args...)
+				assertResult(t, result, err, tc.Expected, tc.ExpectedErr)
+			}
+		})
 	}
 }

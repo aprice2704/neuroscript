@@ -1,9 +1,9 @@
-// NeuroScript Version: 0.3.1
-// File version: 0.1.4 // Populated Category, Example, ReturnHelp, ErrorConditions for ToolSpecs.
-// Defines ToolImplementation structs for selected Go language tools.
+// NeuroScript Version: 0.5.2
+// File version: 5
+// Purpose: Align group constant with package name ('gotools') and update examples to use full tool names.
 // filename: pkg/tool/gotools/tooldefs_go.go
-// nlines: 200 // Approximate
-// risk_rating: MEDIUM // Executes Go commands, can interact with file system and network.
+// nlines: 200
+// risk_rating: MEDIUM
 
 package gotools
 
@@ -11,7 +11,7 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
-const group = "go"
+const group = "gotools"
 
 // goToolsToRegister contains ToolImplementation definitions for a subset of Go language tools.
 // This array is intended to be concatenated with other similar arrays in a central
@@ -26,7 +26,7 @@ var goToolsToRegister = []tool.ToolImplementation{
 			Args:            []tool.ArgSpec{},
 			ReturnType:      tool.ArgTypeMap,
 			ReturnHelp:      "Returns a map with 'stdout', 'stderr', 'exit_code' (int64), and 'success' (bool) from the 'go mod tidy' command execution.",
-			Example:         `TOOL.Go.ModTidy()`,
+			Example:         `tool.gotools.ModTidy()`,
 			ErrorConditions: "ErrConfiguration if sandbox is not set; ErrInternalSecurity for path validation issues. Command execution failures are reported within the returned map's 'success', 'stderr', and 'exit_code' fields.",
 		},
 		Func: toolGoModTidy, //
@@ -43,7 +43,7 @@ var goToolsToRegister = []tool.ToolImplementation{
 			},
 			ReturnType:      tool.ArgTypeSliceMap,
 			ReturnHelp:      "Returns a slice of maps, where each map is a JSON object representing a Go package as output by 'go list -json'. Returns an empty slice on command failure or if JSON decoding fails.",
-			Example:         `TOOL.Go.ListPackages(target_directory: "pkg/core", patterns: ["./..."])`,
+			Example:         `tool.gotools.ListPackages(target_directory: "pkg/core", patterns: ["./..."])`,
 			ErrorConditions: "ErrValidationTypeMismatch if patterns arg contains non-string elements; ErrInternalTool if execution helper fails internally or JSON decoding fails; ErrConfiguration if sandbox is not set; ErrInternalSecurity for path validation issues. 'go list' command failures are reported in its output map rather than a Go error from the tool.",
 		},
 		Func: toolGoListPackages, //
@@ -59,7 +59,7 @@ var goToolsToRegister = []tool.ToolImplementation{
 			},
 			ReturnType:      tool.ArgTypeMap,
 			ReturnHelp:      "Returns a map with 'stdout', 'stderr', 'exit_code' (int64), and 'success' (bool) from the 'go build <target>' command.",
-			Example:         `TOOL.Go.Build(target: "./cmd/mytool")`,
+			Example:         `tool.gotools.Build(target: "./cmd/mytool")`,
 			ErrorConditions: "ErrInvalidArgument if optional target is not a string; ErrConfiguration if sandbox is not set; ErrInternalSecurity for path validation issues. Command execution failures are reported within the returned map.",
 		},
 		Func: toolGoBuild, //
@@ -75,7 +75,7 @@ var goToolsToRegister = []tool.ToolImplementation{
 			},
 			ReturnType:      tool.ArgTypeMap,
 			ReturnHelp:      "Returns a map with 'stdout', 'stderr', 'exit_code' (int64), and 'success' (bool) from the 'go test <target>' command.",
-			Example:         `TOOL.Go.Test(target: "./pkg/feature")`,
+			Example:         `tool.gotools.Test(target: "./pkg/feature")`,
 			ErrorConditions: "ErrInvalidArgument if optional target is not a string; ErrConfiguration if sandbox is not set; ErrInternalSecurity for path validation issues. Command execution failures are reported within the returned map.",
 		},
 		Func: toolGoTest, //
@@ -91,7 +91,7 @@ var goToolsToRegister = []tool.ToolImplementation{
 			},
 			ReturnType:      tool.ArgTypeString, // Returns formatted string on success, or map on error.
 			ReturnHelp:      "Returns the formatted Go source code as a string. If formatting fails (e.g., syntax error), returns a map {'formatted_content': <original_content>, 'error': <error_string>, 'success': false} and a Go-level error.",
-			Example:         `TOOL.Go.Fmt(content: "package main\nfunc main(){}")`,
+			Example:         `tool.gotools.Fmt(content: "package main\nfunc main(){}")`,
 			ErrorConditions: "ErrInternalTool if formatting fails internally, wrapping the original Go error from format.Source. The specific formatting error (e.g. syntax error) is in the 'error' field of the returned map if applicable.",
 		},
 		Func: toolGoFmt, //
@@ -107,7 +107,7 @@ var goToolsToRegister = []tool.ToolImplementation{
 			},
 			ReturnType:      tool.ArgTypeString, // Returns formatted string on success, or map on error.
 			ReturnHelp:      "Returns the processed Go source code (formatted and with adjusted imports) as a string. If processing fails, returns a map {'formatted_content': <original_content>, 'error': <error_string>, 'success': false} and a Go-level error.",
-			Example:         `TOOL.Go.Imports(content: "package main\nimport \"fmt\"\nfunc main(){fmt.Println(\"hello\")}")`,
+			Example:         `tool.gotools.Imports(content: "package main\nimport \"fmt\"\nfunc main(){fmt.Println(\"hello\")}")`,
 			ErrorConditions: "ErrInternalTool if goimports processing fails, wrapping the original error from imports.Process. The specific processing error is in the 'error' field of the returned map if applicable.",
 		},
 		Func: toolGoImports, //
@@ -123,7 +123,7 @@ var goToolsToRegister = []tool.ToolImplementation{
 			},
 			ReturnType:      tool.ArgTypeMap,
 			ReturnHelp:      "Returns a map with 'stdout', 'stderr', 'exit_code' (int64), and 'success' (bool) from the 'go vet <target>' command. 'stderr' usually contains the vet diagnostics.",
-			Example:         `TOOL.Go.Vet(target: "./pkg/core")`,
+			Example:         `tool.gotools.Vet(target: "./pkg/core")`,
 			ErrorConditions: "ErrInvalidArgument if optional target is not a string; ErrConfiguration if sandbox is not set; ErrInternalSecurity for path validation issues. Command execution failures are reported within the returned map.",
 		},
 		Func: toolGoVet, //
@@ -139,7 +139,7 @@ var goToolsToRegister = []tool.ToolImplementation{
 			},
 			ReturnType:      tool.ArgTypeMap,
 			ReturnHelp:      "Returns a map with 'stdout', 'stderr', 'exit_code' (int64), and 'success' (bool) from the 'staticcheck <target>' command. 'stdout' usually contains the diagnostics.",
-			Example:         `TOOL.Staticcheck(target: "./...")`,
+			Example:         `tool.gotools.Staticcheck(target: "./...")`,
 			ErrorConditions: "ErrInvalidArgument if optional target is not a string; ErrToolExecutionFailed if 'staticcheck' command fails (e.g. not found, or internal error), reported via the toolExecuteCommand structure.",
 		},
 		Func: toolStaticcheck, //
@@ -153,7 +153,7 @@ var goToolsToRegister = []tool.ToolImplementation{
 			Args:            []tool.ArgSpec{{Name: "target", Type: tool.ArgTypeString, Required: true, Description: "Target Go package path or file path relative to sandbox (e.g., './pkg/core', 'main.go')."}},
 			ReturnType:      tool.ArgTypeMap,
 			ReturnHelp:      "Returns a map with 'check_success' (bool) and 'error_details' (string). 'check_success' is true if 'go list -e -json' finds no errors in the target's JSON output. 'error_details' contains messages if errors are found or if the command fails.",
-			Example:         `TOOL.Go.Check(target: "./pkg/core")`,
+			Example:         `tool.gotools.Check(target: "./pkg/core")`,
 			ErrorConditions: "ErrConfiguration if sandbox is not set; ErrInternalSecurity for path validation issues. Command execution issues or JSON parsing errors result in 'check_success':false and details in 'error_details'.",
 		},
 		Func: toolGoCheck, //
@@ -167,7 +167,7 @@ var goToolsToRegister = []tool.ToolImplementation{
 			Args:            []tool.ArgSpec{{Name: "directory", Type: tool.ArgTypeString, Required: false, Description: "Directory (relative to sandbox) to start searching upwards for go.mod. Defaults to '.' (sandbox root)."}},
 			ReturnType:      tool.ArgTypeMap, // Returns nil if go.mod not found, or map on success.
 			ReturnHelp:      "Returns a map containing 'modulePath', 'goVersion', 'rootDir' (absolute path to module root), 'requires' (list of maps), and 'replaces' (list of maps). Returns nil if no go.mod is found.",
-			Example:         `TOOL.Go.GetModuleInfo(directory: "cmd/mytool")`,
+			Example:         `tool.gotools.GetModuleInfo(directory: "cmd/mytool")`,
 			ErrorConditions: "ErrValidationTypeMismatch if directory arg is not a string; ErrInternalSecurity if sandbox is not set or for path validation errors; ErrInternalTool if FindAndParseGoMod fails for reasons other than os.ErrNotExist (e.g., parsing error, file read error). If go.mod is not found, returns nil result and nil error (not a Go-level tool error).",
 		},
 		Func: toolGoGetModuleInfo, //

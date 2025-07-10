@@ -77,13 +77,13 @@ func TestApp_RunScriptMode_BreakContinue(t *testing.T) {
 		t.Fatalf("Failed to wrap script path argument: %v", err)
 	}
 	toolArgs := map[string]lang.Value{"filepath": filepathArg}
-	contentValue, err := app.GetInterpreter().ExecuteTool("FS.Read", toolArgs)
+	contentValue, err := app.GetInterpreter().ExecuteTool("TOOL.FS.Read", toolArgs)
 	if err != nil {
-		t.Fatalf("Executing FS.Read tool failed: %v", err)
+		t.Fatalf("Executing TOOL.FS.Read tool failed: %v", err)
 	}
 	scriptContent, ok := lang.Unwrap(contentValue).(string)
 	if !ok {
-		t.Fatalf("FS.Read did not return a string, got %T", lang.Unwrap(contentValue))
+		t.Fatalf("TOOL.FS.Read did not return a string, got %T", lang.Unwrap(contentValue))
 	}
 
 	_, err = app.LoadScriptString(ctx, scriptContent)

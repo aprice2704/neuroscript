@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.4.0
-// File version: 4
-// Purpose: Corrected to use the local fs test suite helpers, resolving all compiler errors.
+// File version: 5
+// Purpose: Corrected tool names to align with the new registration system.
 // nlines: 100 // Approximate
 // risk_rating: MEDIUM // Test file for a destructive operation
 // filename: pkg/tool/fs/tools_fs_write_test.go
@@ -17,14 +17,14 @@ func TestToolWriteFileFunctional(t *testing.T) {
 	tests := []fsTestCase{
 		{
 			name:        "Write to new file",
-			toolName:    "FS.Write",
+			toolName:    "Write",
 			args:        []interface{}{"new_file.txt", "Hello World"},
 			wantResult:  "OK",
 			wantContent: "Hello World",
 		},
 		{
 			name:     "Overwrite existing file",
-			toolName: "FS.Write",
+			toolName: "Write",
 			args:     []interface{}{"existing_file.txt", "New Content"},
 			setupFunc: func(s string) error {
 				mustWriteFile(t, filepath.Join(s, "existing_file.txt"), "Old Content")
@@ -35,14 +35,14 @@ func TestToolWriteFileFunctional(t *testing.T) {
 		},
 		{
 			name:        "Create parent directories",
-			toolName:    "FS.Write",
+			toolName:    "Write",
 			args:        []interface{}{"new/nested/dir/file.txt", "Nested Content"},
 			wantResult:  "OK",
 			wantContent: "Nested Content",
 		},
 		{
 			name:     "Error on writing to a directory",
-			toolName: "FS.Write",
+			toolName: "Write",
 			args:     []interface{}{"a_directory", "some content"},
 			setupFunc: func(s string) error {
 				mustMkdir(t, filepath.Join(s, "a_directory"))
@@ -64,14 +64,14 @@ func TestToolAppendFileFunctional(t *testing.T) {
 	tests := []fsTestCase{
 		{
 			name:        "Append to new file",
-			toolName:    "FS.Append",
+			toolName:    "Append",
 			args:        []interface{}{"append_new.txt", "First Line\n"},
 			wantResult:  "OK",
 			wantContent: "First Line\n",
 		},
 		{
 			name:     "Append to existing file",
-			toolName: "FS.Append",
+			toolName: "Append",
 			args:     []interface{}{"append_existing.txt", "Second Line\n"},
 			setupFunc: func(s string) error {
 				mustWriteFile(t, filepath.Join(s, "append_existing.txt"), "First Line\n")

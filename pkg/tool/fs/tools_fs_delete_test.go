@@ -1,5 +1,5 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.1.0 // Refactored to be self-contained and use local helpers.
+// File version: 0.1.1 // Corrected tool names for new registration system.
 // nlines: 145 // Approximate
 // risk_rating: MEDIUM // Test file for a destructive operation
 // filename: pkg/tool/fs/tools_fs_delete_test.go
@@ -26,7 +26,7 @@ func TestToolDeleteFile(t *testing.T) {
 	tests := []fsTestCase{
 		{
 			name:     "Delete Existing File",
-			toolName: "FS.Delete",
+			toolName: "Delete",
 			args:     []interface{}{fileToDeleteRel},
 			setupFunc: func(s string) error {
 				mustWriteFile(t, filepath.Join(s, fileToDeleteRel), fileToDeleteContent)
@@ -46,7 +46,7 @@ func TestToolDeleteFile(t *testing.T) {
 		},
 		{
 			name:     "Delete Empty Directory",
-			toolName: "FS.Delete",
+			toolName: "Delete",
 			args:     []interface{}{dirToDeleteRel},
 			setupFunc: func(s string) error {
 				mustMkdir(t, filepath.Join(s, dirToDeleteRel))
@@ -63,14 +63,14 @@ func TestToolDeleteFile(t *testing.T) {
 		},
 		{
 			name:          "Delete Non-Existent File",
-			toolName:      "FS.Delete",
+			toolName:      "Delete",
 			args:          []interface{}{"noSuchFile.txt"},
 			wantResult:    "OK",
 			wantToolErrIs: nil,
 		},
 		{
 			name:     "Delete Non-Empty Directory",
-			toolName: "FS.Delete",
+			toolName: "Delete",
 			args:     []interface{}{nonEmptyDirRel},
 			setupFunc: func(s string) error {
 				mustMkdir(t, filepath.Join(s, nonEmptyDirRel))
@@ -81,13 +81,13 @@ func TestToolDeleteFile(t *testing.T) {
 		},
 		{
 			name:          "Path_Outside_Sandbox",
-			toolName:      "FS.Delete",
+			toolName:      "Delete",
 			args:          []interface{}{"../someFile"},
 			wantToolErrIs: lang.ErrPathViolation,
 		},
 		{
 			name:          "Validation_Missing_Arg",
-			toolName:      "FS.Delete",
+			toolName:      "Delete",
 			args:          []interface{}{},
 			wantToolErrIs: lang.ErrArgumentMismatch,
 		},

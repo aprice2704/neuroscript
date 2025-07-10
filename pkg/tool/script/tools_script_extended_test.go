@@ -1,137 +1,226 @@
-// NeuroScript Version: 0.5.4
-// File version: 2
-// Purpose: Extended test harness for edge cases in script tools. Fails on missing testdata.
 // filename: pkg/tool/script/tools_script_extended_test.go
-// nlines: 145
-// risk_rating: LOW
 package script
 
 import (
-	"encoding/json"
 	"errors"
-	"os"
-	"path/filepath"
-	"strconv"
-	"strings"
+	"reflect"
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/logging"
 	"github.com/aprice2704/neuroscript/pkg/parser"
-	"github.com/google/go-cmp/cmp"
 )
 
-// TestScriptToolsExtended uses the file-based fixture runner to test edge cases
-// for the script-loading and introspection tools.
-func TestScriptToolsExtended(t *testing.T) {
-	root := filepath.Join("testdata", "extended")
+type scriptTestCase struct {
+	name            string
+	script          string
+	wantResult      interface{}
+	wantExecErrCode lang.ErrorCode // For checking specific runtime error codes
+	checkFunc       func(t *testing.T, result interface{}, err error)
+}
 
-	entries, err := os.ReadDir(root)
-	if err != nil {
-		// FAIL instead of skipping if the directory doesn't exist.
-		if os.IsNotExist(err) {
-			t.Fatalf("extended testdata directory not found: %s", root)
-		}
-		t.Fatalf("failed to read testdata directory: %s: %v", root, err)
-	}
+// Test cases for extended script tool functionality
+var scriptTestCases = []scriptTestCase{
+	{
+		name: "list_before_load",
+		script: `
+		:: title: Test listing functions on a fresh interpreter
 
-	// FAIL if the directory was found but is empty.
-	if len(entries) == 0 {
-		t.Fatalf("extended testdata directory is empty: %s", root)
-	}
+		func main() means
+			// This should return a map containing only the 'main' function itself.
+			return tool.script.ListFunctions()
+		endfunc
+		`,
+		wantResult: map[string]interface{}{
+			"main": "procedure main()",
+		},
+	},
+	{
+		name: "load_and_list",
+		script: `
+		:: title: Test loading a script and then listing functions
 
-	for _, e := range entries {
-		if e.IsDir() {
-			continue
-		}
-
-		fileName := e.Name()
-		if !strings.HasSuffix(fileName, ".ns.txt") {
-			continue
-		}
-
-		testName := strings.TrimSuffix(fileName, ".ns.txt")
-
-		t.Run(testName, func(t *testing.T) {
-			scriptPath := filepath.Join(root, fileName)
-			errPath := filepath.Join(root, testName+".expect_err")
-			goldenPath := filepath.Join(root, testName+".golden.json")
-
-			scriptBytes, err := os.ReadFile(scriptPath)
+		func main() means
+			set script_to_load = "func new_func() means\nreturn 123\nendfunc"
+			set _ = tool.script.LoadScript(script_to_load)
+			return tool.script.ListFunctions()
+		endfunc
+		`,
+		checkFunc: func(t *testing.T, result interface{}, err error) {
 			if err != nil {
-				t.Fatalf("failed to read script file %s: %v", scriptPath, err)
+				t.Fatalf("checkFunc received unexpected error: %v", err)
 			}
-			scriptContent := string(scriptBytes)
+			resultMap, ok := result.(map[string]interface{})
+			if !ok {
+				t.Fatalf("Expected result to be a map, but got %T", result)
+			}
+			// We expect 'main' from the test script and 'new_func' from the loaded script.
+			if _, ok := resultMap["main"]; !ok {
+				t.Error("Expected function list to contain 'main'")
+			}
+			if _, ok := resultMap["new_func"]; !ok {
+				t.Error("Expected function list to contain 'new_func'")
+			}
+			if len(resultMap) != 2 {
+				t.Errorf("Expected 2 functions, but got %d", len(resultMap))
+			}
+		},
+	},
+	{
+		name: "load_empty_script",
+		script: `
+		:: title: Test loading an empty script string
 
-			// --- Test Setup ---
-			interp := interpreter.NewInterpreter()
+		func main() means
+			// The tool should return an execution failure wrapping the syntax error.
+			set _ = tool.script.LoadScript("")
+		endfunc
+		`,
+		wantExecErrCode: lang.ErrorCodeToolExecutionFailed, // Corrected to 21
+	},
+	{
+		name: "load_script_with_syntax_error",
+		script: `
+		:: title: Test that loading a script with a syntax error fails gracefully.
+
+		func main() means
+			// The tool should return an execution failure wrapping the parse error.
+			set _ = tool.script.LoadScript("FUNKY CHICKEN")
+		endfunc
+		`,
+		wantExecErrCode: lang.ErrorCodeToolExecutionFailed, // Corrected to 21
+	},
+	{
+		name: "list_after_failed_load",
+		script: `
+		:: title: Test that a failed load does not alter the function list
+
+		// Define a function that should persist.
+		func first_func() means
+			return 1
+		endfunc
+
+		func main() means
+			// Try to load a script with a syntax error.
+			// The error should be caught and cleared, not crash the script.
+			on error do
+				clear_error
+			endon
+			set _ = tool.script.LoadScript("FUNK bad() means\nENDFUNK")
+
+			// Now, list the functions. Only 'main' and 'first_func' should exist.
+			return tool.script.ListFunctions()
+		endfunc
+		`,
+		checkFunc: func(t *testing.T, result interface{}, err error) {
+			if err != nil {
+				t.Fatalf("checkFunc received unexpected error: %v", err)
+			}
+			resultMap, ok := result.(map[string]interface{})
+			if !ok {
+				t.Fatalf("Expected result to be a map, but got %T", result)
+			}
+			if _, ok := resultMap["main"]; !ok {
+				t.Error("Function list missing 'main'")
+			}
+			if _, ok := resultMap["first_func"]; !ok {
+				t.Error("Function list missing 'first_func'")
+			}
+			if len(resultMap) != 2 {
+				t.Errorf("Expected 2 functions after failed load, but found %d", len(resultMap))
+			}
+		},
+	},
+	{
+		name: "load_metadata_only",
+		script: `
+		:: title: Test loading a script with only metadata
+
+		func main() means
+			// This should succeed and return a map describing the load operation.
+			set script_body = ":: title: A file with no code"
+			return tool.script.LoadScript(script_body)
+		endfunc
+		`,
+		wantResult: map[string]interface{}{
+			"functions_loaded":      float64(0),
+			"event_handlers_loaded": float64(0),
+			"metadata": map[string]interface{}{
+				"title": "A file with no code",
+			},
+		},
+	},
+}
+
+func TestScriptToolsExtended(t *testing.T) {
+	for _, tc := range scriptTestCases {
+		tc := tc // capture range variable
+		t.Run(tc.name, func(t *testing.T) {
+			// Setup interpreter
+			logger := logging.NewTestLogger(t)
+			interp := interpreter.NewInterpreter(
+				interpreter.WithLogger(logger),
+			)
+
+			// Manually register the script tools with the interpreter's registry.
 			for _, toolImpl := range scriptToolsToRegister {
 				if err := interp.ToolRegistry().RegisterTool(toolImpl); err != nil {
 					t.Fatalf("failed to register tool '%s': %v", toolImpl.Spec.Name, err)
 				}
 			}
 
-			p := parser.NewParserAPI(interp.GetLogger())
-			program, pErr := p.Parse(scriptContent)
+			// --- PARSE AND EXECUTE THE TEST SCRIPT ---
+			p := parser.NewParserAPI(logger)
+			program, pErr := p.Parse(tc.script)
 			if pErr != nil {
-				t.Fatalf("failed to parse test driver script '%s': %v", fileName, pErr)
+				t.Fatalf("failed to parse test driver script '%s': %v", tc.name, pErr)
 			}
 
-			astBuilder := parser.NewASTBuilder(interp.GetLogger())
+			astBuilder := parser.NewASTBuilder(logger)
 			programAST, _, bErr := astBuilder.Build(program)
 			if bErr != nil {
-				t.Fatalf("failed to build ast for test driver script '%s': %v", fileName, bErr)
+				t.Fatalf("failed to build ast for test driver script '%s': %v", tc.name, bErr)
 			}
 
-			// --- Execute Test and Check Results ---
-			finalValue, execErr := interp.LoadAndRun(programAST, "main")
+			// Execute the script by loading the AST and running the 'main' procedure.
+			finalValue, err := interp.LoadAndRun(programAST, "main")
 
-			if _, statErr := os.Stat(errPath); statErr == nil {
-				if execErr == nil {
-					t.Fatalf("expected an error, but got nil")
+			// --- CHECK RESULTS ---
+			// Check for expected execution errors by code
+			if tc.wantExecErrCode != 0 {
+				if err == nil {
+					t.Fatalf("Expected an error with code %d, but got nil", tc.wantExecErrCode)
 				}
-
-				wantErrBytes, readErr := os.ReadFile(errPath)
-				if readErr != nil {
-					t.Fatalf("failed to read expected error file %s: %v", errPath, readErr)
-				}
-				expectedCodeStr := strings.TrimSpace(string(wantErrBytes))
-				expectedCode, convErr := strconv.Atoi(expectedCodeStr)
-				if convErr != nil {
-					t.Fatalf("expected error file %s must contain an integer error code, got: %q", errPath, expectedCodeStr)
-				}
-
 				var runtimeErr *lang.RuntimeError
-				if errors.As(execErr, &runtimeErr) {
-					if runtimeErr.Code != lang.ErrorCode(expectedCode) {
-						t.Fatalf("wrong error code returned:\n  want: %d\n   got: %d (%s)",
-							expectedCode, runtimeErr.Code, runtimeErr.Message)
-					}
-				} else {
-					t.Fatalf("expected a RuntimeError but got a different error type: %T, %v", execErr, execErr)
+				if !errors.As(err, &runtimeErr) {
+					t.Fatalf("Expected a *lang.RuntimeError, but got %T: %v", err, err)
 				}
+				if runtimeErr.Code != tc.wantExecErrCode {
+					t.Fatalf("Expected error code %d, but got %d", tc.wantExecErrCode, runtimeErr.Code)
+				}
+				// Execution failed as expected, test is done.
 				return
 			}
 
-			if execErr != nil {
-				t.Fatalf("unexpected RUNTIME error during test execution: %v", execErr)
-			}
-
-			wantJSONBytes, err := os.ReadFile(goldenPath)
+			// Check for unexpected execution errors
 			if err != nil {
-				t.Fatalf("failed to read golden file %s: %v", goldenPath, err)
-			}
-			var wantMap map[string]any
-			if err := json.Unmarshal(wantJSONBytes, &wantMap); err != nil {
-				t.Fatalf("failed to unmarshal golden file %s into map[string]any: %v", goldenPath, err)
+				t.Fatalf("Test script execution failed unexpectedly for '%s': %v", tc.name, err)
 			}
 
-			nativeGotVal := lang.Unwrap(finalValue)
-			gotMap := map[string]any{"return": nativeGotVal}
+			// Unwrap the NeuroScript value to its native Go type for comparison.
+			result := lang.Unwrap(finalValue)
 
-			if diff := cmp.Diff(wantMap, gotMap); diff != "" {
-				gotJSONBytes, _ := json.MarshalIndent(gotMap, "", "  ")
-				t.Fatalf("result mismatch (-want +got):\n%s\n\nGot payload:\n%s", diff, gotJSONBytes)
+			// If a custom check function is provided, use it.
+			if tc.checkFunc != nil {
+				tc.checkFunc(t, result, err)
+				return
+			}
+
+			// Otherwise, do a deep equal comparison on the result.
+			if !reflect.DeepEqual(tc.wantResult, result) {
+				t.Errorf("Unexpected result for test '%s'.\n- want: %#v (%T)\n-  got: %#v (%T)",
+					tc.name, tc.wantResult, tc.wantResult, result, result)
 			}
 		})
 	}
