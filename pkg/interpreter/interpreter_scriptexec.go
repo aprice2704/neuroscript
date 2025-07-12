@@ -37,9 +37,8 @@ func (i *Interpreter) ExecuteScriptString(scriptName, scriptContent string, args
 	}()
 
 	parserAPI := parser.NewParserAPI(logger)
-	wrappedScriptContent := fmt.Sprintf("func %s means\n%s\nendfunc", scriptName, scriptContent)
 
-	antlrTree, antlrParseErr := parserAPI.Parse(wrappedScriptContent)
+	antlrTree, antlrParseErr := parserAPI.Parse(scriptContent)
 	if antlrParseErr != nil {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeSyntax, fmt.Sprintf("parsing script '%s' failed: %s", scriptName, antlrParseErr.Error()), antlrParseErr)
 	}

@@ -2,10 +2,7 @@ module github.com/aprice2704/neuroscript
 
 go 1.24.2
 
-require (
-	github.com/charmbracelet/lipgloss v1.1.0 // indirect
-	github.com/sabhiram/go-gitignore v0.0.0-20210923224102-525f6e181f06
-)
+require github.com/charmbracelet/lipgloss v1.1.0 // indirect
 
 require (
 	cloud.google.com/go v0.116.0 // indirect
@@ -60,16 +57,13 @@ require (
 require (
 	github.com/antlr4-go/antlr/v4 v4.13.1
 	github.com/atotto/clipboard v0.1.4
-	github.com/bmatcuk/doublestar/v4 v4.8.1
 	github.com/charmbracelet/bubbles v0.21.0
 	github.com/charmbracelet/bubbletea v1.3.4
 	github.com/gdamore/tcell/v2 v2.8.1
 	github.com/google/generative-ai-go v0.19.0
 	github.com/google/go-cmp v0.7.0
 	github.com/google/uuid v1.6.0
-	github.com/pmezard/go-difflib v1.0.0
 	github.com/rivo/tview v0.0.0-20250501113434-0c592cd31026
-	github.com/sergi/go-diff v1.3.1
 	github.com/sourcegraph/go-lsp v0.0.0-20240223163137-f80c5dd31dfd
 	github.com/sourcegraph/jsonrpc2 v0.2.1
 	golang.org/x/mod v0.25.0
