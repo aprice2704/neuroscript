@@ -12,12 +12,13 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
 // TestInterpretStringEscaping verifies that the interpreter correctly
 // handles strings that have been unescaped by the AST builder.
 func TestInterpretStringEscaping(t *testing.T) {
-	pos := &lang.Position{Line: 1, Column: 1, File: "escape_integration_test"}
+	pos := &types.Position{Line: 1, Column: 1, File: "escape_integration_test"}
 
 	// FIX: Use the local test case struct from interpreter_suite_test.go
 	testCases := []localExecuteStepsTestCase{

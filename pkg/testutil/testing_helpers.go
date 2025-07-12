@@ -16,9 +16,10 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/logging"
 	"github.com/aprice2704/neuroscript/pkg/tool"
+	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
-var dummyPos = &lang.Position{Line: 1, Column: 1, File: "test"}
+var dummyPos = &types.Position{Line: 1, Column: 1, File: "test"}
 
 // --- Test Case Structs (Exported) ---
 

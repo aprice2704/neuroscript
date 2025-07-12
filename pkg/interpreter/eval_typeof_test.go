@@ -16,7 +16,7 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
-var testPos = &lang.Position{Line: 1, Column: 1, File: "typeof_test.go"}
+var testPos = &types.Position{Line: 1, Column: 1, File: "typeof_test.go"}
 
 var testDummyProcedure = ast.Procedure{}
 

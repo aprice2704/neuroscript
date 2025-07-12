@@ -1,7 +1,7 @@
 // filename: pkg/parser/ast_builder_metadata.go
 // NeuroScript Version: 0.5.2
-// File version: 6
-// Purpose: Adds a dedicated listener for file_header and cleans up metadata_block logic.
+// File version: 7
+// Purpose: Refactored metadata processing to handle file and block contexts correctly.
 package parser
 
 import (
@@ -31,8 +31,12 @@ func (l *neuroScriptListenerImpl) processMetadataLine(targetMap map[string]strin
 	}
 
 	if key != "" {
-		targetMap[key] = value
-		l.logDebugAST("     Stored Metadata: '%s' = '%s'", key, value)
+		if targetMap != nil {
+			targetMap[key] = value
+			l.logDebugAST("     Stored Metadata: '%s' = '%s'", key, value)
+		} else {
+			l.addErrorf(token, "cannot store metadata for key '%s' because target map is nil", key)
+		}
 	} else {
 		l.addErrorf(token, "Ignoring metadata line with empty key: '%s'", lineText)
 	}
@@ -45,6 +49,15 @@ func (l *neuroScriptListenerImpl) ExitFile_header(ctx *gen.File_headerContext) {
 	for _, metaLineNode := range ctx.AllMETADATA_LINE() {
 		l.processMetadataLine(l.fileMetadata, metaLineNode.GetSymbol())
 	}
+	// After processing, copy to the program's metadata map.
+	if l.program != nil {
+		if l.program.Metadata == nil {
+			l.program.Metadata = make(map[string]string)
+		}
+		for k, v := range l.fileMetadata {
+			l.program.Metadata[k] = v
+		}
+	}
 }
 
 // ExitMetadata_block handles metadata ONLY within a procedure or command block.
@@ -52,7 +65,6 @@ func (l *neuroScriptListenerImpl) ExitMetadata_block(ctx *gen.Metadata_blockCont
 	l.logDebugAST("  << Exit Metadata_block")
 	var targetMap map[string]string
 
-	// MODIFIED: Logic simplified to only handle block-level contexts.
 	if l.currentProc != nil {
 		if l.currentProc.Metadata == nil {
 			l.currentProc.Metadata = make(map[string]string)
@@ -64,7 +76,8 @@ func (l *neuroScriptListenerImpl) ExitMetadata_block(ctx *gen.Metadata_blockCont
 		}
 		targetMap = l.currentCommand.Metadata
 	} else {
-		// File-level metadata is now handled by ExitFile_header. This is an error.
+		// This case should ideally not be hit if the grammar is followed,
+		// as file-level metadata is handled by ExitFile_header.
 		l.addError(ctx, "metadata_block found outside of a known context (procedure or command)")
 		return
 	}

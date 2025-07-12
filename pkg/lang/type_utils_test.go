@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
+	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
 func TestTypeOf(t *testing.T) {
@@ -120,7 +121,7 @@ func TestIsZeroValue(t *testing.T) {
 
 func TestPositionString(t *testing.T) {
 	t.Run("nil position", func(t *testing.T) {
-		var pos *Position
+		var pos *types.Position
 		expected := "<nil position>"
 		if pos.String() != expected {
 			t.Errorf("Expected '%s', got '%s'", expected, pos.String())

@@ -47,7 +47,7 @@ var syntaxToolsToRegister = []tool.ToolImplementation{
 			ReturnType: tool.ArgTypeSliceMap, // Changed from ArgTypeString
 			ReturnHelp: "Returns a list (slice) of maps. Each map represents a syntax error and contains the following keys:\n" +
 				"- `Line`: number (1-based) - The line number of the error.\n" +
-				"- `Column`: number (0-based) - The character lang.Position in the line where the error occurred.\n" +
+				"- `Column`: number (0-based) - The character types.Position in the line where the error occurred.\n" +
 				"- `Msg`: string - The error message.\n" +
 				"- `OffendingSymbol`: string - The text of the token that caused the error (may be empty).\n" +
 				"- `SourceName`: string - Identifier for the source (e.g., 'nsSyntaxAnalysisToolInput').\n" +

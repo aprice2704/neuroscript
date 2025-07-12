@@ -1,9 +1,7 @@
 // filename: pkg/parser/ast_builder_collections.go
 // NeuroScript Version: 0.5.2
-// File version: 2
-// Purpose: Corrected pointer assignments and added missing unquote helper.
-// nlines: 75
-// risk_rating: MEDIUM
+// File version: 3
+// Purpose: Refactored collection literal creation to use the newNode helper.
 
 package parser
 
@@ -20,17 +18,14 @@ func unquote(s string) string {
 	if len(s) < 2 {
 		return ""
 	}
-	// Basic unquoting of the outer characters
-	s = s[1 : len(s)-1]
 	// Using Go's Unquote to handle all escape sequences correctly.
-	// We need to re-add quotes for the standard library's Unquote to work.
-	s, err := strconv.Unquote(`"` + s + `"`)
+	unquoted, err := strconv.Unquote(s)
 	if err != nil {
 		// This might happen with invalid escape sequences, but the lexer should prevent this.
 		// Fallback to a simple replacement for basic cases if full unquoting fails.
-		return strings.ReplaceAll(s, `\"`, `"`)
+		return strings.ReplaceAll(s[1:len(s)-1], `\"`, `"`)
 	}
-	return s
+	return unquoted
 }
 
 func (l *neuroScriptListenerImpl) ExitList_literal(c *gen.List_literalContext) {
@@ -47,7 +42,8 @@ func (l *neuroScriptListenerImpl) ExitList_literal(c *gen.List_literalContext) {
 			return
 		}
 
-		for i := len(popped) - 1; i >= 0; i-- { // Reverse to maintain original order
+		// Reverse to maintain original source order
+		for i := len(popped) - 1; i >= 0; i-- {
 			expr, ok := popped[i].(ast.Expression)
 			if !ok {
 				l.addError(c, "list literal expected ast.Expression, got %T", popped[i])
@@ -57,8 +53,8 @@ func (l *neuroScriptListenerImpl) ExitList_literal(c *gen.List_literalContext) {
 		}
 	}
 
-	pos := tokenToPosition(c.GetStart())
-	l.push(&ast.ListLiteralNode{Pos: &pos, Elements: elements})
+	node := &ast.ListLiteralNode{Elements: elements}
+	l.push(newNode(node, c.GetStart(), ast.KindListLiteral))
 }
 
 func (l *neuroScriptListenerImpl) ExitMap_entry(c *gen.Map_entryContext) {
@@ -73,14 +69,19 @@ func (l *neuroScriptListenerImpl) ExitMap_entry(c *gen.Map_entryContext) {
 		return
 	}
 
-	keyPos := tokenToPosition(c.STRING_LIT().GetSymbol())
+	keyToken := c.STRING_LIT().GetSymbol()
 	keyNode := &ast.StringLiteralNode{
-		Pos:   &keyPos,
-		Value: unquote(c.STRING_LIT().GetText()),
+		Value: unquote(keyToken.GetText()),
 	}
+	newNode(keyNode, keyToken, ast.KindStringLiteral)
 
-	pos := tokenToPosition(c.GetStart())
-	l.push(&ast.MapEntryNode{Pos: &pos, Key: keyNode, Value: valueExpr})
+	node := &ast.MapEntryNode{Key: keyNode, Value: valueExpr}
+	// A MapEntry isn't a standalone expression, so it doesn't get a kind itself,
+	// it's part of a MapLiteralNode. We can give it a position from its key.
+	node.Pos = keyNode.Pos
+	node.BaseNode.StartPos = keyNode.BaseNode.StartPos
+
+	l.push(node)
 }
 
 func (l *neuroScriptListenerImpl) ExitMap_literal(c *gen.Map_literalContext) {
@@ -97,7 +98,8 @@ func (l *neuroScriptListenerImpl) ExitMap_literal(c *gen.Map_literalContext) {
 			return
 		}
 
-		for i := len(popped) - 1; i >= 0; i-- { // Reverse to maintain original order
+		// Reverse to maintain original source order
+		for i := len(popped) - 1; i >= 0; i-- {
 			entry, ok := popped[i].(*ast.MapEntryNode)
 			if !ok {
 				l.addError(c, "map literal expected *ast.MapEntryNode, got %T", popped[i])
@@ -107,6 +109,6 @@ func (l *neuroScriptListenerImpl) ExitMap_literal(c *gen.Map_literalContext) {
 		}
 	}
 
-	pos := tokenToPosition(c.GetStart())
-	l.push(&ast.MapLiteralNode{Pos: &pos, Entries: entries})
+	node := &ast.MapLiteralNode{Entries: entries}
+	l.push(newNode(node, c.GetStart(), ast.KindMapLiteral))
 }

@@ -1,7 +1,7 @@
 // filename: pkg/lang/errors.go
 // NeuroScript Version: 0.5.2
-// File version: 3
-// Purpose: Added the ErrMaxIterationsExceeded sentinel error for loop resource limits.
+// File version: 4
+// Purpose: Updated error handling functions to use the foundational types.Position.
 // nlines: 230
 // risk_rating: LOW
 
@@ -11,6 +11,8 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+
+	"github.com/aprice2704/neuroscript/pkg/types" // Added import for new types
 )
 
 // --- ErrorCode Type ---
@@ -21,7 +23,7 @@ type RuntimeError struct {
 	Code     ErrorCode
 	Message  string
 	Wrapped  error
-	Position *Position
+	Position *types.Position // CORRECTED to use types.Position
 }
 
 func (e *RuntimeError) Error() string {
@@ -40,14 +42,14 @@ func NewRuntimeError(code ErrorCode, message string, wrapped error) *RuntimeErro
 	return &RuntimeError{Code: code, Message: message, Wrapped: wrapped, Position: nil}
 }
 
-func (e *RuntimeError) WithPosition(pos *Position) *RuntimeError {
+func (e *RuntimeError) WithPosition(pos *types.Position) *RuntimeError { // CORRECTED to use types.Position
 	if e != nil {
 		e.Position = pos
 	}
 	return e
 }
 
-func WrapErrorWithPosition(err error, pos *Position, contextMsg string) error {
+func WrapErrorWithPosition(err error, pos *types.Position, contextMsg string) error { // CORRECTED to use types.Position
 	if err == nil {
 		return nil
 	}
@@ -184,7 +186,7 @@ var (
 	ErrInvalidPath           = errors.New("invalid path")
 	ErrResourceExhaustion    = errors.New("resource exhaustion limit reached")
 	ErrNestingDepthExceeded  = errors.New("maximum nesting depth exceeded")
-	ErrMaxIterationsExceeded = errors.New("maximum loop iterations exceeded") // FIX: Added this line
+	ErrMaxIterationsExceeded = errors.New("maximum loop iterations exceeded")
 )
 
 // --- Core Handle Errors ---
@@ -412,19 +414,4 @@ func FormatWithRemediation(err error) string {
 	return sb.String()
 }
 
-///////////////////////////////////////////////////////////////////////////////
-//  Position (stub – real one lives in parser package)
-///////////////////////////////////////////////////////////////////////////////
-
-type Pos struct {
-	Filename string
-	Line     int
-	Column   int
-}
-
-func (p *Pos) String() string {
-	if p == nil {
-		return "<unknown>"
-	}
-	return fmt.Sprintf("%s:%d:%d", p.Filename, p.Line, p.Column)
-}
+// --- REMOVED OLD Position STRUCT ---

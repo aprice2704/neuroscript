@@ -12,27 +12,27 @@ import (
 
 type neuroScriptListenerImpl struct {
 	*gen.BaseNeuroScriptListener
-	program		*ast.Program
-	fileMetadata	map[string]string
-	procedures	[]*ast.Procedure
-	events		[]*ast.OnEventDecl
-	commands	[]*ast.CommandNode
-	currentProc	*ast.Procedure
-	currentCommand	*ast.CommandNode
-	ValueStack	[]interface{}
-	blockStack	[]*blockContext
-	logger		interfaces.Logger
-	debugAST	bool
-	errors		[]error
-	loopDepth	int
-	blockValueDepth	[]int
+	program         *ast.Program
+	fileMetadata    map[string]string
+	procedures      []*ast.Procedure
+	events          []*ast.OnEventDecl
+	commands        []*ast.CommandNode
+	currentProc     *ast.Procedure
+	currentCommand  *ast.CommandNode
+	ValueStack      []interface{}
+	blockStack      []*blockContext
+	logger          interfaces.Logger
+	debugAST        bool
+	errors          []error
+	loopDepth       int
+	blockValueDepth []int
 }
 
 // --- Standard Listener Implementation ---
 
-func (l *neuroScriptListenerImpl) EnterEveryRule(ctx antlr.ParserRuleContext)	{}
-func (l *neuroScriptListenerImpl) ExitEveryRule(ctx antlr.ParserRuleContext)	{}
-func (l *neuroScriptListenerImpl) VisitErrorNode(node antlr.ErrorNode)		{}
+func (l *neuroScriptListenerImpl) EnterEveryRule(ctx antlr.ParserRuleContext) {}
+func (l *neuroScriptListenerImpl) ExitEveryRule(ctx antlr.ParserRuleContext)  {}
+func (l *neuroScriptListenerImpl) VisitErrorNode(node antlr.ErrorNode)        {}
 
 func (l *neuroScriptListenerImpl) VisitTerminal(node antlr.TerminalNode) {
 	if node.GetSymbol().GetTokenType() == gen.NeuroScriptLexerMETADATA_LINE && l.currentProc == nil {
@@ -44,16 +44,16 @@ var _ gen.NeuroScriptListener = (*neuroScriptListenerImpl)(nil)
 
 func newNeuroScriptListener(logger interfaces.Logger, debugAST bool) *neuroScriptListenerImpl {
 	return &neuroScriptListenerImpl{
-		BaseNeuroScriptListener:	&gen.BaseNeuroScriptListener{},
-		program:			&ast.Program{Procedures: make(map[string]*ast.Procedure), Events: make([]*ast.OnEventDecl, 0)},
-		fileMetadata:			make(map[string]string),
-		procedures:			make([]*ast.Procedure, 0),
-		events:				make([]*ast.OnEventDecl, 0),
-		commands:			make([]*ast.CommandNode, 0),
-		ValueStack:			make([]interface{}, 0),
-		blockStack:			make([]*blockContext, 0),
-		logger:				logger,
-		debugAST:			debugAST,
+		BaseNeuroScriptListener: &gen.BaseNeuroScriptListener{},
+		program:                 ast.NewProgram(),
+		fileMetadata:            make(map[string]string),
+		procedures:              make([]*ast.Procedure, 0),
+		events:                  make([]*ast.OnEventDecl, 0),
+		commands:                make([]*ast.CommandNode, 0),
+		ValueStack:              make([]interface{}, 0),
+		blockStack:              make([]*blockContext, 0),
+		logger:                  logger,
+		debugAST:                debugAST,
 	}
 }
 
@@ -155,21 +155,14 @@ func (l *neuroScriptListenerImpl) ExitSet_statement(ctx *gen.Set_statementContex
 		return
 	}
 
+	pos := tokenToPosition(ctx.GetStart())
 	step := ast.Step{
-		Position:	tokenToPosition(ctx.GetStart()),
-		Type:		"set",
-		LValues:	lhsExprs,
-		Values:		[]ast.Expression{rhsExpr},
+		BaseNode: ast.BaseNode{StartPos: &pos, NodeKind: ast.KindStep},
+		Position: pos,
+		Type:     "set",
+		LValues:  lhsExprs,
+		Values:   []ast.Expression{rhsExpr},
 	}
 
-	if len(l.blockStack) > 0 {
-		currentBlock := l.blockStack[len(l.blockStack)-1]
-		currentBlock.steps = append(currentBlock.steps, step)
-	} else if l.currentProc != nil {
-		l.currentProc.Steps = append(l.currentProc.Steps, step)
-	} else if l.currentCommand != nil {
-		l.currentCommand.Body = append(l.currentCommand.Body, step)
-	} else {
-		l.addError(ctx, "set statement found outside of any block, procedure or command")
-	}
+	l.addStep(step)
 }

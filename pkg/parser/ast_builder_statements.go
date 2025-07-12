@@ -1,9 +1,7 @@
-// NeuroScript Version: 0.5.2
-// File version: 12
-// Purpose: Updated to reflect grammar changes by removing ExitExpression_statement and adding ExitMust_statement.
 // filename: pkg/parser/ast_builder_statements.go
-// nlines: 150
-// risk_rating: HIGH
+// NeuroScript Version: 0.5.2
+// File version: 13
+// Purpose: Corrected logic in ExitReturn_statement to preserve the correct order of return values.
 
 package parser
 
@@ -35,6 +33,7 @@ func (l *neuroScriptListenerImpl) ExitEmit_statement(c *gen.Emit_statementContex
 	}
 	pos := tokenToPosition(c.GetStart())
 	l.addStep(ast.Step{
+		BaseNode: ast.BaseNode{StartPos: &pos, NodeKind: ast.KindStep},
 		Position: pos,
 		Type:     "emit",
 		Values:   []ast.Expression{expr},
@@ -45,26 +44,27 @@ func (l *neuroScriptListenerImpl) ExitReturn_statement(c *gen.Return_statementCo
 	var returnValues []ast.Expression
 	if c.Expression_list() != nil {
 		numExpr := len(c.Expression_list().AllExpression())
-		// The expressions are pushed onto the stack from left to right,
-		// so we pop them off in reverse order. To restore the original
-		// order, we prepend each popped item to the front of our slice.
-		for i := 0; i < numExpr; i++ {
-			val, ok := l.pop()
+		if numExpr > 0 {
+			// FIX: Use popN to get all expressions at once. This is clearer and less error-prone.
+			// popN returns the slice in the order the items appear on the stack (which is source order).
+			popped, ok := l.popN(numExpr)
 			if !ok {
-				l.addError(c, "internal error in return_statement: could not pop value")
-				return // Stop processing to avoid further errors
+				l.addError(c, "internal error in return_statement: could not pop values")
+				return
 			}
-			expr, ok := val.(ast.Expression)
-			if !ok {
-				l.addError(c, "internal error in return_statement: value is not an ast.Expression, but %T", val)
-				return // Stop processing
+			for _, val := range popped {
+				if expr, isExpr := val.(ast.Expression); isExpr {
+					returnValues = append(returnValues, expr)
+				} else {
+					l.addError(c, "internal error in return_statement: value is not an ast.Expression, but %T", val)
+					return
+				}
 			}
-			// Prepending to the slice effectively reverses the stack order.
-			returnValues = append([]ast.Expression{expr}, returnValues...)
 		}
 	}
 	pos := tokenToPosition(c.GetStart())
 	l.addStep(ast.Step{
+		BaseNode: ast.BaseNode{StartPos: &pos, NodeKind: ast.KindStep},
 		Position: pos,
 		Type:     "return",
 		Values:   returnValues,
@@ -84,13 +84,13 @@ func (l *neuroScriptListenerImpl) ExitCall_statement(c *gen.Call_statementContex
 	}
 	pos := tokenToPosition(c.GetStart())
 	l.addStep(ast.Step{
+		BaseNode: ast.BaseNode{StartPos: &pos, NodeKind: ast.KindStep},
 		Position: pos,
 		Type:     "call",
 		Call:     callExpr,
 	})
 }
 
-// FIX: Added to handle the new 'must_statement' grammar rule.
 func (l *neuroScriptListenerImpl) ExitMust_statement(c *gen.Must_statementContext) {
 	val, ok := l.pop()
 	if !ok {
@@ -104,6 +104,7 @@ func (l *neuroScriptListenerImpl) ExitMust_statement(c *gen.Must_statementContex
 	}
 	pos := tokenToPosition(c.GetStart())
 	l.addStep(ast.Step{
+		BaseNode: ast.BaseNode{StartPos: &pos, NodeKind: ast.KindStep},
 		Position: pos,
 		Type:     "must",
 		Cond:     expr,
@@ -111,22 +112,31 @@ func (l *neuroScriptListenerImpl) ExitMust_statement(c *gen.Must_statementContex
 }
 
 func (l *neuroScriptListenerImpl) ExitFail_statement(c *gen.Fail_statementContext) {
-	val, ok := l.pop()
-	if !ok {
-		l.addError(c, "internal error in fail_statement: could not pop value")
-		return
+	var failValue ast.Expression
+	if c.Expression() != nil {
+		val, ok := l.pop()
+		if !ok {
+			l.addError(c, "internal error in fail_statement: could not pop value")
+			return
+		}
+		expr, ok := val.(ast.Expression)
+		if !ok {
+			l.addError(c, "internal error in fail_statement: value is not an ast.Expression, but %T", val)
+			return
+		}
+		failValue = expr
 	}
-	expr, ok := val.(ast.Expression)
-	if !ok {
-		l.addError(c, "internal error in fail_statement: value is not an ast.Expression, but %T", val)
-		return
-	}
+
 	pos := tokenToPosition(c.GetStart())
-	l.addStep(ast.Step{
+	step := ast.Step{
+		BaseNode: ast.BaseNode{StartPos: &pos, NodeKind: ast.KindStep},
 		Position: pos,
 		Type:     "fail",
-		Values:   []ast.Expression{expr},
-	})
+	}
+	if failValue != nil {
+		step.Values = []ast.Expression{failValue}
+	}
+	l.addStep(step)
 }
 
 func (l *neuroScriptListenerImpl) ExitAsk_stmt(c *gen.Ask_stmtContext) {
@@ -142,6 +152,7 @@ func (l *neuroScriptListenerImpl) ExitAsk_stmt(c *gen.Ask_stmtContext) {
 	}
 	pos := tokenToPosition(c.GetStart())
 	l.addStep(ast.Step{
+		BaseNode:   ast.BaseNode{StartPos: &pos, NodeKind: ast.KindStep},
 		Position:   pos,
 		Type:       "ask",
 		Values:     []ast.Expression{expr},
@@ -152,6 +163,7 @@ func (l *neuroScriptListenerImpl) ExitAsk_stmt(c *gen.Ask_stmtContext) {
 func (l *neuroScriptListenerImpl) ExitClearErrorStmt(c *gen.ClearErrorStmtContext) {
 	pos := tokenToPosition(c.GetStart())
 	l.addStep(ast.Step{
+		BaseNode: ast.BaseNode{StartPos: &pos, NodeKind: ast.KindStep},
 		Position: pos,
 		Type:     "clear_error",
 	})
@@ -163,6 +175,7 @@ func (l *neuroScriptListenerImpl) ExitContinue_statement(c *gen.Continue_stateme
 	}
 	pos := tokenToPosition(c.GetStart())
 	l.addStep(ast.Step{
+		BaseNode: ast.BaseNode{StartPos: &pos, NodeKind: ast.KindStep},
 		Position: pos,
 		Type:     "continue",
 	})
@@ -174,9 +187,8 @@ func (l *neuroScriptListenerImpl) ExitBreak_statement(c *gen.Break_statementCont
 	}
 	pos := tokenToPosition(c.GetStart())
 	l.addStep(ast.Step{
+		BaseNode: ast.BaseNode{StartPos: &pos, NodeKind: ast.KindStep},
 		Position: pos,
 		Type:     "break",
 	})
 }
-
-// FIX: Removed ExitExpression_statement as the rule no longer exists in the grammar.

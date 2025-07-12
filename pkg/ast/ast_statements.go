@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.5.2
-// File version: 18
-// Purpose: Added ExpressionStatementNode to allow expressions as statements.
 // filename: pkg/ast/ast_statements.go
-// nlines: 104
+// NeuroScript Version: 0.5.2
+// File version: 19
+// Purpose: Augmented all statement and declaration nodes with BaseNode.
+// nlines: 110+
 // risk_rating: MEDIUM
 
 package ast
@@ -10,6 +10,7 @@ package ast
 import (
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
 // AccessorType defines how an element is accessed (e.g., by key or index).
@@ -22,7 +23,8 @@ const (
 
 // AccessorNode represents a single part of an element access chain (e.g., `[key]` or `.field`).
 type AccessorNode struct {
-	Pos        *lang.Position
+	BaseNode
+	Pos        *types.Position
 	Type       AccessorType
 	Key        Expression
 	IsOptional bool
@@ -30,13 +32,14 @@ type AccessorNode struct {
 
 // LValueNode represents a "left-value" in an assignment, which is a target for a set operation.
 type LValueNode struct {
-	Position   lang.Position
+	BaseNode
+	Position   types.Position
 	Identifier string
 	Accessors  []*AccessorNode
 }
 
-// FIX: Return a pointer to the position to satisfy the Expression interface.
-func (n *LValueNode) GetPos() *lang.Position { return &n.Position }
+// GetPos satisfies the old contract and the new Node interface.
+func (n *LValueNode) GetPos() *types.Position { return &n.Position }
 func (n *LValueNode) String() string {
 	// A full string representation would require traversing accessors.
 	return n.Identifier
@@ -45,12 +48,14 @@ func (n *LValueNode) expressionNode() {}
 
 // ParamSpec defines a parameter for a procedure.
 type ParamSpec struct {
+	BaseNode
 	Name    string
 	Default lang.Value // For optional parameters
 }
 
 type Procedure struct {
-	Position          lang.Position
+	BaseNode
+	Position          types.Position
 	name              string
 	Metadata          map[string]string
 	RequiredParams    []string
@@ -62,8 +67,8 @@ type Procedure struct {
 	Steps             []Step
 }
 
-// FIX: Return a pointer to the position.
-func (p *Procedure) GetPos() *lang.Position {
+// GetPos satisfies the old contract and the new Node interface.
+func (p *Procedure) GetPos() *types.Position {
 	return &p.Position
 }
 
@@ -79,7 +84,8 @@ func (p *Procedure) IsCallable() {}
 
 // Step represents a single statement or instruction within a procedure's body.
 type Step struct {
-	Position       lang.Position
+	BaseNode
+	Position       types.Position
 	Type           string
 	LValues        []*LValueNode
 	Values         []Expression
@@ -98,21 +104,22 @@ type Step struct {
 	ExpressionStmt *ExpressionStatementNode
 }
 
-// FIX: Return a pointer to the position.
-func (s *Step) GetPos() *lang.Position {
+// GetPos satisfies the old contract and the new Node interface.
+func (s *Step) GetPos() *types.Position {
 	return &s.Position
 }
 
-// ADDED: ExpressionStatementNode represents a statement that consists of a single expression,
+// ExpressionStatementNode represents a statement that consists of a single expression,
 // like a standalone 'must' or a function call. The result of the expression is discarded.
 type ExpressionStatementNode struct {
-	Pos        *lang.Position
+	BaseNode
+	Pos        *types.Position
 	Expression Expression
 }
 
-func (n *ExpressionStatementNode) GetPos() *lang.Position { return n.Pos }
-func (n *ExpressionStatementNode) isNode()                {}
-func (n *ExpressionStatementNode) isStatement()           {}
+func (n *ExpressionStatementNode) GetPos() *types.Position { return n.Pos }
+func (n *ExpressionStatementNode) isNode()                 {}
+func (n *ExpressionStatementNode) isStatement()            {}
 func (n *ExpressionStatementNode) String() string {
 	if n.Expression != nil {
 		return n.Expression.String()

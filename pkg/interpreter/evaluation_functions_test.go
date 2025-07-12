@@ -15,6 +15,7 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/testutil"
+	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
 func TestMathFunctions(t *testing.T) {
@@ -38,7 +39,7 @@ func TestMathFunctions(t *testing.T) {
 		vars[k] = w
 	}
 
-	dummyPos := &lang.Position{Line: 1, Column: 1}
+	dummyPos := &types.Position{Line: 1, Column: 1}
 
 	testCases := []testutil.EvalTestCase{
 		{Name: "LN(e)", InputNode: &ast.CallableExprNode{Target: ast.CallTarget{Name: "ln"}, Arguments: []ast.Expression{&ast.VariableNode{Name: "e"}}}, InitialVars: vars, Expected: lang.NumberValue{Value: 1.0}},

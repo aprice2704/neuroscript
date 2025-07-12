@@ -179,7 +179,7 @@ func (i *Interpreter) addResponseToConversation(turn *interfaces.ConversationTur
 	i.logger.Debug("Adding LLM response to conversation history (Not Implemented)", "role", turn.Role)
 }
 
-func (i *Interpreter) handleToolCalls(calls []*interfaces.ToolCall, pos *lang.Position) error {
+func (i *Interpreter) handleToolCalls(calls []*interfaces.ToolCall, pos *types.Position) error {
 	i.logger.Debug("Handling tool calls requested by LLM", "count", len(calls), "pos", pos.String())
 	if len(calls) == 0 {
 		return nil

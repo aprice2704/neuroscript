@@ -1,17 +1,45 @@
 // filename: pkg/parser/ast_builder_helpers.go
+// NeuroScript Version: 0.5.2
+// File version: 2
+// Purpose: Added the generic newNode helper to centralize AST node creation.
 
 package parser
 
 import (
 	"fmt"
+	"reflect"
 	"strconv"
 	"strings"
 
 	"github.com/antlr4-go/antlr/v4"
-	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/tool"
-	// Import other necessary core types if needed by helpers
+	"github.com/aprice2704/neuroscript/pkg/types"
 )
+
+// newNode is a generic helper to create and initialize an AST node.
+// It sets both the new BaseNode fields and the legacy .Pos field.
+func newNode[T ast.Node](node T, token antlr.Token, kind ast.Kind) T {
+	pos := tokenToPosition(token)
+
+	// Set the new BaseNode fields
+	v := reflect.ValueOf(node).Elem()
+	baseNodeField := v.FieldByName("BaseNode")
+	if baseNodeField.IsValid() && baseNodeField.CanSet() {
+		baseNode := baseNodeField.Addr().Interface().(*ast.BaseNode)
+		baseNode.StartPos = &pos
+		baseNode.NodeKind = kind
+		// StopPos would be set here if we had the end token.
+	}
+
+	// Set the legacy .Pos field for backward compatibility
+	posField := v.FieldByName("Pos")
+	if posField.IsValid() && posField.CanSet() {
+		posField.Set(reflect.ValueOf(&pos))
+	}
+
+	return node
+}
 
 // ArgType defines the type of an argument.
 type ArgType int
@@ -49,7 +77,6 @@ func ParseMetadataLine(line string) (key string, value string, ok bool) {
 			return "", "", false
 		}
 		return key, value, true
-		// Alternatively, consider this invalid: return "", "", false
 	}
 
 	// Extract key and value based on the first colon
@@ -68,7 +95,6 @@ func ParseMetadataLine(line string) (key string, value string, ok bool) {
 
 // ConvertInputSchemaToArgSpec converts a JSON Schema-like map (from old ToolDefinition)
 // into the []ArgSpec required by ToolSpec.
-// Moved here from interpreter_steps_ask.go/llm_tools.go corrections.
 func ConvertInputSchemaToArgSpec(schema map[string]interface{}) ([]tool.ArgSpec, error) {
 	args := []tool.ArgSpec{}
 	propsVal, okProps := schema["properties"]
@@ -138,7 +164,6 @@ func ConvertInputSchemaToArgSpec(schema map[string]interface{}) ([]tool.ArgSpec,
 			argType = tool.ArgTypeSliceAny
 		case "object":
 			argType = tool.ArgTypeMap
-			// default: // Keep default as tool.ArgTypeAny
 		}
 
 		args = append(args, tool.ArgSpec{
@@ -154,14 +179,12 @@ func ConvertInputSchemaToArgSpec(schema map[string]interface{}) ([]tool.ArgSpec,
 // --- Added Helper Functions for Literal Parsing ---
 
 // parseNumber attempts to parse a string as int64 or float64.
-// Moved here from ast_builder_terminators.go correction.
 func parseNumber(numStr string) (interface{}, error) {
 	// Try parsing as int first
 	if !strings.Contains(numStr, ".") { // Optimization: Don't try int if decimal present
 		if iVal, err := strconv.ParseInt(numStr, 10, 64); err == nil {
 			return iVal, nil
 		}
-		// Int parsing failed, fall through to try float
 	}
 
 	// Try parsing as float
@@ -169,14 +192,11 @@ func parseNumber(numStr string) (interface{}, error) {
 		return fVal, nil
 	}
 
-	// Both failed
 	return nil, fmt.Errorf("invalid number literal: %q", numStr)
 }
 
 // unescapeString handles standard Go escape sequences within single or double quotes.
-// Moved here from ast_builder_terminators.go correction.
 func unescapeString(quotedStr string) (string, error) {
-	// strconv.Unquote handles both ' and " delimited strings and standard escapes
 	unquoted, err := strconv.Unquote(quotedStr)
 	if err != nil {
 		return "", fmt.Errorf("invalid string literal %q: %w", quotedStr, err)
@@ -184,26 +204,23 @@ func unescapeString(quotedStr string) (string, error) {
 	return unquoted, nil
 }
 
-// --- lang.Position Helper ---
+// --- types.Position Helper ---
 
-// tokenToPosition converts an ANTLR token to a lang.Position.
-// It sets the exported fields Line, Column, and File.
-func tokenToPosition(token antlr.Token) lang.Position {
+// tokenToPosition converts an ANTLR token to a types.Position.
+func tokenToPosition(token antlr.Token) types.Position {
 	if token == nil {
-		return lang.Position{Line: 0, Column: 0, File: "<nil token>"} // Return a default invalid lang.Position
+		return types.Position{Line: 0, Column: 0, File: "<nil token>"}
 	}
-	// Handle potential nil InputStream or SourceName gracefully
 	sourceName := "<unknown>"
 	if token.GetInputStream() != nil {
 		sourceName = token.GetInputStream().GetSourceName()
-		if sourceName == "<INVALID>" { // Use a more descriptive name if ANTLR provides one
+		if sourceName == "<INVALID>" {
 			sourceName = "<input stream>"
 		}
 	}
-	return lang.Position{
+	return types.Position{
 		Line:   token.GetLine(),
-		Column: token.GetColumn() + 1, // ANTLR columns are 0-based, prefer 1-based
+		Column: token.GetColumn() + 1,
 		File:   sourceName,
-		// Length: len(token.GetText()), // Add if needed by lang.Position struct consumers
 	}
 }

@@ -46,12 +46,14 @@ func (l *neuroScriptListenerImpl) ExitIf_statement(c *gen.If_statementContext) {
 		return
 	}
 
+	pos := tokenToPosition(c.GetStart())
 	// Create and add the 'if' step.
 	l.addStep(ast.Step{
-		Position:	tokenToPosition(c.GetStart()),
-		Type:		"if",
-		Cond:		cond,
-		Body:		ifBody,
-		ElseBody:	elseBody,
+		BaseNode: ast.BaseNode{StartPos: &pos, NodeKind: ast.KindStep},
+		Position: pos,
+		Type:     "if",
+		Cond:     cond,
+		Body:     ifBody,
+		ElseBody: elseBody,
 	})
 }

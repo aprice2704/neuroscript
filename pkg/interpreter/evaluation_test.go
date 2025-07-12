@@ -10,6 +10,7 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/testutil"
+	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
 func TestExpressionASTGeneral(t *testing.T) {
@@ -32,7 +33,7 @@ func TestExpressionASTGeneral(t *testing.T) {
 	}
 	lastResult := lang.StringValue{Value: "LastCallResult {{name}}"}
 
-	dummyPos := &lang.Position{Line: 1, Column: 1, File: "test"}
+	dummyPos := &types.Position{Line: 1, Column: 1, File: "test"}
 
 	tests := []testutil.EvalTestCase{
 		{Name: "String Literal (Raw)", InputNode: &ast.StringLiteralNode{Pos: dummyPos, Value: "Hello {{name}}"}, InitialVars: vars, LastResult: lastResult, Expected: lang.StringValue{Value: `Hello {{name}}`}},

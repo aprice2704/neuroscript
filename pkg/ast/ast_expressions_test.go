@@ -11,11 +11,11 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
 func TestExpressionStringers(t *testing.T) {
-	pos := &lang.Position{Line: 1, Column: 1, File: "test.ns"}
+	pos := &types.Position{Line: 1, Column: 1, File: "test.ns"}
 
 	t.Run("CallTarget", func(t *testing.T) {
 		ctFunc := &CallTarget{Name: "myFunc"}

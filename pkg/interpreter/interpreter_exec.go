@@ -14,6 +14,7 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
 func (i *Interpreter) executeSteps(steps []ast.Step, isInHandler bool, activeError *lang.RuntimeError) (lang.Value, bool, bool, error) {
@@ -243,7 +244,7 @@ func (i *Interpreter) executeCall(step ast.Step) (lang.Value, error) {
 	return i.evaluate.Expression(step.Call)
 }
 
-func (i *Interpreter) executeBlock(blockValue interface{}, parentPos *lang.Position, blockType string, isInHandler bool, activeError *lang.RuntimeError, depth int) (result lang.Value, wasReturn bool, wasCleared bool, err error) {
+func (i *Interpreter) executeBlock(blockValue interface{}, parentPos *types.Position, blockType string, isInHandler bool, activeError *lang.RuntimeError, depth int) (result lang.Value, wasReturn bool, wasCleared bool, err error) {
 	steps, ok := blockValue.([]ast.Step)
 	if !ok {
 		if blockValue == nil {
@@ -264,7 +265,7 @@ func shouldUpdateLastResult(stepTypeLower string) bool {
 	}
 }
 
-func ensureRuntimeError(err error, pos *lang.Position, context string) *lang.RuntimeError {
+func ensureRuntimeError(err error, pos *types.Position, context string) *lang.RuntimeError {
 	if rtErr, ok := err.(*lang.RuntimeError); ok {
 		if rtErr.Position == nil && pos != nil {
 			return rtErr.WithPosition(pos)

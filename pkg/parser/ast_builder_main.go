@@ -1,7 +1,7 @@
 // filename: pkg/parser/ast_builder_main.go
 // NeuroScript Version: 0.5.2
-// File version: 42
-// Purpose: Corrected stack length check to use the built-in len() function.
+// File version: 43
+// Purpose: Updated Build method to correctly handle the refactored ast.Program.
 
 package parser
 

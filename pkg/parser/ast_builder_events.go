@@ -1,9 +1,7 @@
-// NeuroScript Version: 0.5.2
-// File version: 2
-// Purpose: Corrected block handling in error handlers to prevent stack imbalance.
 // filename: pkg/parser/ast_builder_events.go
-// nlines: 51
-// risk_rating: HIGH
+// NeuroScript Version: 0.5.2
+// File version: 3
+// Purpose: Refactored event and error handler creation to use newNode and BaseNode.
 
 package parser
 
@@ -14,13 +12,11 @@ import (
 
 func (l *neuroScriptListenerImpl) EnterEvent_handler(c *gen.Event_handlerContext) {
 	l.logDebugAST(">>> EnterEvent_handler")
-	// The non_empty_statement_list child will manage its own block context.
 }
 
 func (l *neuroScriptListenerImpl) ExitEvent_handler(c *gen.Event_handlerContext) {
 	l.logDebugAST("<<< ExitEvent_handler")
 
-	// Pop the event handler's body from the value stack.
 	bodyVal, ok := l.pop()
 	if !ok {
 		l.addError(c, "stack underflow in event_handler: could not pop body")
@@ -32,7 +28,6 @@ func (l *neuroScriptListenerImpl) ExitEvent_handler(c *gen.Event_handlerContext)
 		return
 	}
 
-	// Pop the event name expression.
 	eventNameVal, ok := l.pop()
 	if !ok {
 		l.addError(c, "stack underflow in event_handler: could not pop event name")
@@ -44,12 +39,9 @@ func (l *neuroScriptListenerImpl) ExitEvent_handler(c *gen.Event_handlerContext)
 		return
 	}
 
-	pos := tokenToPosition(c.GetStart())
-	// Create the OnEventDecl node.
 	onEvent := &ast.OnEventDecl{
-		Pos:		&pos,
-		EventNameExpr:	eventName,
-		Body:		body,
+		EventNameExpr: eventName,
+		Body:          body,
 	}
 
 	if c.STRING_LIT() != nil {
@@ -59,18 +51,18 @@ func (l *neuroScriptListenerImpl) ExitEvent_handler(c *gen.Event_handlerContext)
 		onEvent.EventVarName = c.IDENTIFIER().GetText()
 	}
 
+	newNode(onEvent, c.GetStart(), ast.KindOnEventDecl)
+
 	l.program.Events = append(l.program.Events, onEvent)
 }
 
 func (l *neuroScriptListenerImpl) EnterError_handler(c *gen.Error_handlerContext) {
 	l.logDebugAST(">>> EnterError_handler")
-	// The non_empty_statement_list child will manage its own block context.
 }
 
 func (l *neuroScriptListenerImpl) ExitError_handler(c *gen.Error_handlerContext) {
 	l.logDebugAST("<<< ExitError_handler")
 
-	// Pop the error handler's body, which was pushed by ExitNon_empty_statement_list.
 	bodyVal, ok := l.pop()
 	if !ok {
 		l.addError(c, "stack underflow in error_handler: could not pop body")
@@ -82,11 +74,11 @@ func (l *neuroScriptListenerImpl) ExitError_handler(c *gen.Error_handlerContext)
 		return
 	}
 
-	// Add the 'on_error' step to the parent context (proc or command).
 	pos := tokenToPosition(c.GetStart())
 	l.addStep(ast.Step{
-		Position:	pos,
-		Type:		"on_error",
-		Body:		body,
+		BaseNode: ast.BaseNode{StartPos: &pos, NodeKind: ast.KindStep},
+		Position: pos,
+		Type:     "on_error",
+		Body:     body,
 	})
 }

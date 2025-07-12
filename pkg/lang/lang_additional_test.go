@@ -6,6 +6,8 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
 // mockCallable is a simple mock to satisfy the Callable interface for testing.
@@ -140,7 +142,7 @@ func TestRuntimeErrorFormatting(t *testing.T) {
 		t.Errorf("Base error format is incorrect: %s", baseErr.Error())
 	}
 
-	withPos := NewRuntimeError(ErrorCodeToolExecutionFailed, "tool failed", nil).WithPosition(&Position{Line: 10, Column: 5})
+	withPos := NewRuntimeError(ErrorCodeToolExecutionFailed, "tool failed", nil).WithPosition(&types.Position{Line: 10, Column: 5})
 	// FIX: Check for "col" instead of "column" to match the actual output.
 	if !strings.Contains(withPos.Error(), "at line 10, col 5") {
 		t.Errorf("Error with position format is incorrect: %s", withPos.Error())

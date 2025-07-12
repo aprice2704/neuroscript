@@ -167,7 +167,7 @@ func main() {
 	scriptToRunNonTUI := app.Config.StartupScript
 	if scriptToRunNonTUI == "" && flag.NArg() > 0 && !*tuiMode {
 		scriptToRunNonTUI = flag.Arg(0)
-		logger.Debug("Using lang.Positional argument as script for non-TUI execution", "script", scriptToRunNonTUI)
+		logger.Debug("Using types.Positional argument as script for non-TUI execution", "script", scriptToRunNonTUI)
 	}
 
 	if *tuiMode {

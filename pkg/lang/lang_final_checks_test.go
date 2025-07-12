@@ -5,6 +5,8 @@ import (
 	"errors"
 	"testing"
 	"time"
+
+	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
 // TestConstructorEdgeCases verifies the nil-safety of various value constructors.
@@ -115,14 +117,14 @@ func TestAdvancedWrappingAndTyping(t *testing.T) {
 // TestErrorWrappingLogic verifies the helper function WrapErrorWithPosition.
 func TestErrorWrappingLogic(t *testing.T) {
 	t.Run("nil error returns nil", func(t *testing.T) {
-		if err := WrapErrorWithPosition(nil, &Position{Line: 1}, "ctx"); err != nil {
+		if err := WrapErrorWithPosition(nil, &types.Position{Line: 1}, "ctx"); err != nil {
 			t.Errorf("Expected nil for a nil error input, but got %v", err)
 		}
 	})
 
 	t.Run("preserves existing position", func(t *testing.T) {
-		originalPos := &Position{Line: 10, Column: 5}
-		newPos := &Position{Line: 20, Column: 15}
+		originalPos := &types.Position{Line: 10, Column: 5}
+		newPos := &types.Position{Line: 20, Column: 15}
 		err := NewRuntimeError(ErrorCodeGeneric, "test", nil).WithPosition(originalPos)
 
 		wrappedErr := WrapErrorWithPosition(err, newPos, "new context")
@@ -137,7 +139,7 @@ func TestErrorWrappingLogic(t *testing.T) {
 	})
 
 	t.Run("wraps standard error", func(t *testing.T) {
-		pos := &Position{Line: 1, Column: 1}
+		pos := &types.Position{Line: 1, Column: 1}
 		stdErr := errors.New("standard error")
 		wrappedErr := WrapErrorWithPosition(stdErr, pos, "context")
 

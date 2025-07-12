@@ -1,28 +1,35 @@
-// NeuroScript Version: 0.5.2
-// File version: 1
-// Purpose: Defines top-level declaration nodes for the AST, such as OnEventDecl.
 // filename: pkg/ast/ast_declarations.go
-// nlines: 18
+// NeuroScript Version: 0.5.2
+// File version: 2
+// Purpose: Augmented declaration nodes with BaseNode to conform to the Node interface.
+// nlines: 25
 // risk_rating: MEDIUM
 
 package ast
 
-import "github.com/aprice2704/neuroscript/pkg/lang"
+import "github.com/aprice2704/neuroscript/pkg/types"
 
 // OnEventDecl represents a top-level 'on event ...' declaration,
 // as specified in the o3-1 plan.
-// This is a hypothetical example of the change needed
 type OnEventDecl struct {
-	Pos		*lang.Position
-	EventNameExpr	Expression
-	HandlerName	string	// <--- ADD THIS FIELD
-	EventVarName	string
-	Body		[]Step
+	BaseNode
+	Pos           *types.Position
+	EventNameExpr Expression
+	HandlerName   string
+	EventVarName  string
+	Body          []Step
 }
+
+// GetPos returns the legacy position field. It also satisfies the Node interface.
+func (n *OnEventDecl) GetPos() *types.Position { return n.Pos }
 
 // MetadataLine represents a single `:: key: value` line associated with a declaration.
 type MetadataLine struct {
-	Pos	*lang.Position
-	Key	string
-	Value	string
+	BaseNode
+	Pos   *types.Position
+	Key   string
+	Value string
 }
+
+// GetPos returns the legacy position field. It also satisfies the Node interface.
+func (n *MetadataLine) GetPos() *types.Position { return n.Pos }

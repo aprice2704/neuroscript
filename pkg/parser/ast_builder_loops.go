@@ -1,4 +1,8 @@
 // filename: pkg/parser/ast_builder_loops.go
+// NeuroScript Version: 0.5.2
+// File version: 4
+// Purpose: Updated loop builders to correctly initialize the BaseNode in Step structs.
+
 package parser
 
 import (
@@ -39,11 +43,13 @@ func (l *neuroScriptListenerImpl) ExitWhile_statement(ctx *gen.While_statementCo
 		return
 	}
 
+	pos := tokenToPosition(ctx.GetStart())
 	l.addStep(ast.Step{
-		Position:	tokenToPosition(ctx.GetStart()),
-		Type:		"while",
-		Cond:		cond,
-		Body:		body,
+		BaseNode: ast.BaseNode{StartPos: &pos, NodeKind: ast.KindStep},
+		Position: pos,
+		Type:     "while",
+		Cond:     cond,
+		Body:     body,
 	})
 }
 
@@ -78,11 +84,13 @@ func (l *neuroScriptListenerImpl) ExitFor_each_statement(ctx *gen.For_each_state
 		return
 	}
 
+	pos := tokenToPosition(ctx.GetStart())
 	l.addStep(ast.Step{
-		Position:	tokenToPosition(ctx.GetStart()),
-		Type:		"for",
-		LoopVarName:	ctx.IDENTIFIER().GetText(),
-		Collection:	collection,
-		Body:		body,
+		BaseNode:    ast.BaseNode{StartPos: &pos, NodeKind: ast.KindStep},
+		Position:    pos,
+		Type:        "for",
+		LoopVarName: ctx.IDENTIFIER().GetText(),
+		Collection:  collection,
+		Body:        body,
 	})
 }

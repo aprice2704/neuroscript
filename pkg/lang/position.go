@@ -1,18 +1,12 @@
+// NeuroScript Version: 0.5.2
+// File version: 2
+// Purpose: This file is now a placeholder after the Position struct was moved to pkg/types.
 // filename: pkg/lang/position.go
+// nlines: 5
+// risk_rating: LOW
+
 package lang
 
-import "fmt"
-
-// Position represents a location in the source code.
-type Position struct {
-	Line	int
-	Column	int
-	File	string
-}
-
-func (p *Position) String() string {
-	if p == nil {
-		return "<nil position>"
-	}
-	return fmt.Sprintf("line %d, col %d", p.Line, p.Column)
-}
+// The Position struct has been moved to the foundational pkg/types package
+// to break a dependency cycle with the interfaces package. This file is
+// kept for historical purposes and can be removed in a future cleanup.

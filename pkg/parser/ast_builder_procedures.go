@@ -1,9 +1,7 @@
-// NeuroScript Version: 0.5.2
-// File version: 5
-// Purpose: Implemented Exit methods for signature clauses (needs, optional, returns) to correctly parse procedure parameters.
 // filename: pkg/parser/ast_builder_procedures.go
-// nlines: 115
-// risk_rating: MEDIUM
+// NeuroScript Version: 0.5.2
+// File version: 6
+// Purpose: Refactored procedure creation to use the newNode helper function.
 
 package parser
 
@@ -17,12 +15,12 @@ func (l *neuroScriptListenerImpl) EnterProcedure_definition(ctx *gen.Procedure_d
 	procName := ctx.IDENTIFIER().GetText()
 	l.logDebugAST(">>> Enter Procedure_definition for %s", procName)
 
-	pos := tokenToPosition(ctx.KW_FUNC().GetSymbol())
-	l.currentProc = &ast.Procedure{
-		Position: pos,
+	token := ctx.KW_FUNC().GetSymbol()
+	proc := &ast.Procedure{
 		Metadata: make(map[string]string),
 	}
-	l.currentProc.SetName(procName)
+	proc.SetName(procName)
+	l.currentProc = newNode(proc, token, ast.KindProcedureDecl)
 }
 
 func (l *neuroScriptListenerImpl) ExitProcedure_definition(ctx *gen.Procedure_definitionContext) {

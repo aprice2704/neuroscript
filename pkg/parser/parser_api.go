@@ -22,7 +22,7 @@ import (
 // This structure is primarily for LSP and detailed diagnostic consumers.
 type StructuredSyntaxError struct {
 	Line            int    // 1-based line number from ANTLR
-	Column          int    // 0-based character lang.Position in line from ANTLR
+	Column          int    // 0-based character types.Position in line from ANTLR
 	OffendingSymbol string // Text of the offending token, if available
 	Msg             string // The error message from the parser/lexer
 	SourceName      string // e.g., file URI or filename, for context
@@ -81,7 +81,7 @@ func newErrorListenerWithSource(sourceName string, logger interfaces.Logger) *Er
 // It populates both RawErrors (formatted string) and StructuredErrors.
 func (l *ErrorListener) SyntaxError(recognizer antlr.Recognizer, offendingSymbol interface{}, line, column int, msg string, e antlr.RecognitionException) {
 	finalLine := line     // ANTLR line is 1-based
-	finalColumn := column // ANTLR column is 0-based character lang.Position in line
+	finalColumn := column // ANTLR column is 0-based character types.Position in line
 	finalMsg := msg
 	offendingTokenText := ""
 

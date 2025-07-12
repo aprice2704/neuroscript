@@ -208,7 +208,7 @@ func (e *evaluation) evaluateCall(n *ast.CallableExprNode) (lang.Value, error) {
 	return e.evaluateUserOrBuiltInFunction(n.Target.Name, evaluatedArgs, n.Pos)
 }
 
-func (e *evaluation) evaluateUserOrBuiltInFunction(funcName string, args []lang.Value, pos *lang.Position) (lang.Value, error) {
+func (e *evaluation) evaluateUserOrBuiltInFunction(funcName string, args []lang.Value, pos *types.Position) (lang.Value, error) {
 	if isBuiltInFunction(funcName) {
 		unwrappedArgs := make([]interface{}, len(args))
 		for i, v := range args {

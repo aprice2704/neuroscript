@@ -13,6 +13,7 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/logging"
+	"github.com/aprice2704/neuroscript/pkg/types"
 	// FIX: Removed blank imports that were causing a dependency cycle.
 	// Tool registration for tests will be handled at a higher level.
 )
@@ -32,7 +33,7 @@ type localExecuteStepsTestCase struct {
 
 // --- Local AST Creation Helpers ---
 
-var localTestPos = &lang.Position{Line: 1, Column: 1, File: "test"}
+var localTestPos = &types.Position{Line: 1, Column: 1, File: "test"}
 
 func createTestStep(stepType, lvalueName string, value ast.Expression, call *ast.CallableExprNode) ast.Step {
 	step := ast.Step{
@@ -51,7 +52,7 @@ func createTestStep(stepType, lvalueName string, value ast.Expression, call *ast
 	return step
 }
 
-func createIfStep(pos *lang.Position, cond ast.Expression, body []ast.Step, elseBody []ast.Step) ast.Step {
+func createIfStep(pos *types.Position, cond ast.Expression, body []ast.Step, elseBody []ast.Step) ast.Step {
 	return ast.Step{
 		Type:     "if",
 		Position: *pos,
@@ -61,7 +62,7 @@ func createIfStep(pos *lang.Position, cond ast.Expression, body []ast.Step, else
 	}
 }
 
-func createWhileStep(pos *lang.Position, cond ast.Expression, body []ast.Step) ast.Step {
+func createWhileStep(pos *types.Position, cond ast.Expression, body []ast.Step) ast.Step {
 	return ast.Step{
 		Type:     "while",
 		Position: *pos,
@@ -70,7 +71,7 @@ func createWhileStep(pos *lang.Position, cond ast.Expression, body []ast.Step) a
 	}
 }
 
-func createForStep(pos *lang.Position, loopVar string, collection ast.Expression, body []ast.Step) ast.Step {
+func createForStep(pos *types.Position, loopVar string, collection ast.Expression, body []ast.Step) ast.Step {
 	return ast.Step{
 		Type:        "for",
 		Position:    *pos,
