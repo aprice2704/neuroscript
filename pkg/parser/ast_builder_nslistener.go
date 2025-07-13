@@ -8,6 +8,7 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	gen "github.com/aprice2704/neuroscript/pkg/parser/generated"
+	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
 type neuroScriptListenerImpl struct {
@@ -157,7 +158,7 @@ func (l *neuroScriptListenerImpl) ExitSet_statement(ctx *gen.Set_statementContex
 
 	pos := tokenToPosition(ctx.GetStart())
 	step := ast.Step{
-		BaseNode: ast.BaseNode{StartPos: &pos, NodeKind: ast.KindStep},
+		BaseNode: ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
 		Position: pos,
 		Type:     "set",
 		LValues:  lhsExprs,

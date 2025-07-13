@@ -4,6 +4,7 @@ package parser
 import (
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	gen "github.com/aprice2704/neuroscript/pkg/parser/generated"
+	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
 func (l *neuroScriptListenerImpl) ExitIf_statement(c *gen.If_statementContext) {
@@ -49,7 +50,7 @@ func (l *neuroScriptListenerImpl) ExitIf_statement(c *gen.If_statementContext) {
 	pos := tokenToPosition(c.GetStart())
 	// Create and add the 'if' step.
 	l.addStep(ast.Step{
-		BaseNode: ast.BaseNode{StartPos: &pos, NodeKind: ast.KindStep},
+		BaseNode: ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
 		Position: pos,
 		Type:     "if",
 		Cond:     cond,

@@ -1,8 +1,8 @@
 // filename: pkg/lang/errors.go
 // NeuroScript Version: 0.5.2
-// File version: 4
-// Purpose: Updated error handling functions to use the foundational types.Position.
-// nlines: 230
+// File version: 5
+// Purpose: Added the ErrorCodeSecretDecryption sentinel error for loop resource limits.
+// nlines: 231
 // risk_rating: LOW
 
 package lang
@@ -12,7 +12,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/aprice2704/neuroscript/pkg/types" // Added import for new types
+	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
 // --- ErrorCode Type ---
@@ -23,7 +23,7 @@ type RuntimeError struct {
 	Code     ErrorCode
 	Message  string
 	Wrapped  error
-	Position *types.Position // CORRECTED to use types.Position
+	Position *types.Position
 }
 
 func (e *RuntimeError) Error() string {
@@ -42,14 +42,14 @@ func NewRuntimeError(code ErrorCode, message string, wrapped error) *RuntimeErro
 	return &RuntimeError{Code: code, Message: message, Wrapped: wrapped, Position: nil}
 }
 
-func (e *RuntimeError) WithPosition(pos *types.Position) *RuntimeError { // CORRECTED to use types.Position
+func (e *RuntimeError) WithPosition(pos *types.Position) *RuntimeError {
 	if e != nil {
 		e.Position = pos
 	}
 	return e
 }
 
-func WrapErrorWithPosition(err error, pos *types.Position, contextMsg string) error { // CORRECTED to use types.Position
+func WrapErrorWithPosition(err error, pos *types.Position, contextMsg string) error {
 	if err == nil {
 		return nil
 	}
@@ -133,6 +133,7 @@ const (
 	ErrorCodeEscapePossible                                       // 99906
 	ErrorCodeEscapeProbable                                       // 99907
 	ErrorCodeEscapeCertain                                        // 99908
+	ErrorCodeSecretDecryption                                     // 99909
 )
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -186,7 +187,7 @@ var (
 	ErrInvalidPath           = errors.New("invalid path")
 	ErrResourceExhaustion    = errors.New("resource exhaustion limit reached")
 	ErrNestingDepthExceeded  = errors.New("maximum nesting depth exceeded")
-	ErrMaxIterationsExceeded = errors.New("maximum loop iterations exceeded")
+	ErrMaxIterationsExceeded = errors.New("maximum loop iterations exceeded") // FIX: Added this line
 )
 
 // --- Core Handle Errors ---
@@ -413,5 +414,3 @@ func FormatWithRemediation(err error) string {
 	}
 	return sb.String()
 }
-
-// --- REMOVED OLD Position STRUCT ---

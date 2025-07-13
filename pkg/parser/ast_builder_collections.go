@@ -11,6 +11,7 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	gen "github.com/aprice2704/neuroscript/pkg/parser/generated"
+	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
 // unquote removes the surrounding quotes from a string literal and processes escape sequences.
@@ -54,7 +55,7 @@ func (l *neuroScriptListenerImpl) ExitList_literal(c *gen.List_literalContext) {
 	}
 
 	node := &ast.ListLiteralNode{Elements: elements}
-	l.push(newNode(node, c.GetStart(), ast.KindListLiteral))
+	l.push(newNode(node, c.GetStart(), types.KindListLiteral))
 }
 
 func (l *neuroScriptListenerImpl) ExitMap_entry(c *gen.Map_entryContext) {
@@ -73,7 +74,7 @@ func (l *neuroScriptListenerImpl) ExitMap_entry(c *gen.Map_entryContext) {
 	keyNode := &ast.StringLiteralNode{
 		Value: unquote(keyToken.GetText()),
 	}
-	newNode(keyNode, keyToken, ast.KindStringLiteral)
+	newNode(keyNode, keyToken, types.KindStringLiteral)
 
 	node := &ast.MapEntryNode{Key: keyNode, Value: valueExpr}
 	// A MapEntry isn't a standalone expression, so it doesn't get a kind itself,
@@ -110,5 +111,5 @@ func (l *neuroScriptListenerImpl) ExitMap_literal(c *gen.Map_literalContext) {
 	}
 
 	node := &ast.MapLiteralNode{Entries: entries}
-	l.push(newNode(node, c.GetStart(), ast.KindMapLiteral))
+	l.push(newNode(node, c.GetStart(), types.KindMapLiteral))
 }

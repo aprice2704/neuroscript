@@ -16,7 +16,7 @@ import (
 	"golang.org/x/tools/imports"
 )
 
-// --- Tool Implementations for Go Diagnostic Commands ---
+// --- Tool Implementations for Go types.Diagnostic Commands ---
 
 // toolGoVet implementation
 func toolGoVet(interpreter tool.Runtime, args []interface{}) (interface{}, error) {

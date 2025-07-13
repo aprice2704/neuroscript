@@ -39,13 +39,13 @@ func (l *neuroScriptListenerImpl) processBinaryOperators(ctx antlr.ParserRuleCon
 		val, ok := l.pop()
 		if !ok {
 			l.addError(ctx, "Stack error popping operand %d for binary op: %s", numOperands-i, ctx.GetText())
-			l.push(newNode(&ast.ErrorNode{Message: fmt.Sprintf("Stack error (binary op operand %d)", numOperands-i)}, ctx.GetStart(), ast.KindUnknown))
+			l.push(newNode(&ast.ErrorNode{Message: fmt.Sprintf("Stack error (binary op operand %d)", numOperands-i)}, ctx.GetStart(), types.KindUnknown))
 			return
 		}
 		expr, isExpr := val.(ast.Expression)
 		if !isExpr {
 			l.addError(ctx, "Operand %d is not an ast.Expression (type %T) for binary op: %s", numOperands-i, val, ctx.GetText())
-			l.push(newNode(&ast.ErrorNode{Message: fmt.Sprintf("Type error (binary op operand %d)", numOperands-i)}, ctx.GetStart(), ast.KindUnknown))
+			l.push(newNode(&ast.ErrorNode{Message: fmt.Sprintf("Type error (binary op operand %d)", numOperands-i)}, ctx.GetStart(), types.KindUnknown))
 			return
 		}
 		poppedOperands[i] = expr
@@ -57,7 +57,7 @@ func (l *neuroScriptListenerImpl) processBinaryOperators(ctx antlr.ParserRuleCon
 		opToken := opGetter(i)
 		if opToken == nil {
 			l.addError(ctx, "Could not find operator token for index %d in: %s", i, ctx.GetText())
-			l.push(newNode(&ast.ErrorNode{Message: "Missing operator token"}, ctx.GetStart(), ast.KindUnknown))
+			l.push(newNode(&ast.ErrorNode{Message: "Missing operator token"}, ctx.GetStart(), types.KindUnknown))
 			return
 		}
 		opSymbol := opToken.GetSymbol()
@@ -69,7 +69,7 @@ func (l *neuroScriptListenerImpl) processBinaryOperators(ctx antlr.ParserRuleCon
 			Right:    currentRHS,
 		}
 		l.logDebugAST("      Constructed ast.BinaryOpNode: [%T %s %T]", currentLHS, opText, currentRHS)
-		currentLHS = newNode(node, opSymbol, ast.KindBinaryOp)
+		currentLHS = newNode(node, opSymbol, types.KindBinaryOp)
 	}
 	l.push(currentLHS)
 }
@@ -215,17 +215,17 @@ func (l *neuroScriptListenerImpl) ExitUnary_expr(ctx *gen.Unary_exprContext) {
 		operandVal, ok := l.pop()
 		if !ok {
 			l.addError(ctx, "Stack error: missing operand for typeof at %v", tokenToPosition(token))
-			l.push(newNode(&ast.ErrorNode{Message: "missing operand for typeof"}, token, ast.KindUnknown))
+			l.push(newNode(&ast.ErrorNode{Message: "missing operand for typeof"}, token, types.KindUnknown))
 			return
 		}
 		operandExpr, ok := operandVal.(ast.Expression)
 		if !ok {
 			l.addError(ctx, "typeof operand is not ast.Expression (got %T) at %v", operandVal, tokenToPosition(token))
-			l.push(newNode(&ast.ErrorNode{Message: fmt.Sprintf("typeof operand was %T", operandVal)}, token, ast.KindUnknown))
+			l.push(newNode(&ast.ErrorNode{Message: fmt.Sprintf("typeof operand was %T", operandVal)}, token, types.KindUnknown))
 			return
 		}
 		node := &ast.TypeOfNode{Argument: operandExpr}
-		l.push(newNode(node, token, ast.KindTypeOfExpr))
+		l.push(newNode(node, token, types.KindTypeOfExpr))
 		return
 	}
 
@@ -251,17 +251,17 @@ func (l *neuroScriptListenerImpl) ExitUnary_expr(ctx *gen.Unary_exprContext) {
 	operandRaw, ok := l.pop()
 	if !ok {
 		l.addError(ctx, "Stack error: missing operand for unary %q", op)
-		l.push(newNode(&ast.ErrorNode{Message: "stack underflow (unary)"}, token, ast.KindUnknown))
+		l.push(newNode(&ast.ErrorNode{Message: "stack underflow (unary)"}, token, types.KindUnknown))
 		return
 	}
 	operandExpr, ok := operandRaw.(ast.Expression)
 	if !ok {
 		l.addError(ctx, "Operand for unary %q is not ast.Expression (got %T)", op, operandRaw)
-		l.push(newNode(&ast.ErrorNode{Message: "type error (unary)"}, token, ast.KindUnknown))
+		l.push(newNode(&ast.ErrorNode{Message: "type error (unary)"}, token, types.KindUnknown))
 		return
 	}
 	node := &ast.UnaryOpNode{Operator: op, Operand: operandExpr}
-	l.push(newNode(node, token, ast.KindUnaryOp))
+	l.push(newNode(node, token, types.KindUnaryOp))
 	l.logDebugAST("      Constructed ast.UnaryOpNode: %s [%T]", op, operandExpr)
 }
 
@@ -278,29 +278,29 @@ func (l *neuroScriptListenerImpl) ExitPower_expr(ctx *gen.Power_exprContext) {
 	exponentRaw, ok := l.pop()
 	if !ok {
 		l.addError(ctx, "Stack error popping exponent for POWER")
-		l.push(newNode(&ast.ErrorNode{Message: "Stack error (power exponent)"}, opSymbol, ast.KindUnknown))
+		l.push(newNode(&ast.ErrorNode{Message: "Stack error (power exponent)"}, opSymbol, types.KindUnknown))
 		return
 	}
 	exponentExpr, isExpr := exponentRaw.(ast.Expression)
 	if !isExpr {
 		l.addError(ctx, "Exponent for POWER is not an ast.Expression (type %T)", exponentRaw)
-		l.push(newNode(&ast.ErrorNode{Message: "Type error (power exponent)"}, opSymbol, ast.KindUnknown))
+		l.push(newNode(&ast.ErrorNode{Message: "Type error (power exponent)"}, opSymbol, types.KindUnknown))
 		return
 	}
 	baseRaw, ok := l.pop()
 	if !ok {
 		l.addError(ctx, "Stack error popping base for POWER")
-		l.push(newNode(&ast.ErrorNode{Message: "Stack error (power base)"}, opSymbol, ast.KindUnknown))
+		l.push(newNode(&ast.ErrorNode{Message: "Stack error (power base)"}, opSymbol, types.KindUnknown))
 		return
 	}
 	baseExpr, isExpr := baseRaw.(ast.Expression)
 	if !isExpr {
 		l.addError(ctx, "Base for POWER is not an ast.Expression (type %T)", baseRaw)
-		l.push(newNode(&ast.ErrorNode{Message: "Type error (power base)"}, opSymbol, ast.KindUnknown))
+		l.push(newNode(&ast.ErrorNode{Message: "Type error (power base)"}, opSymbol, types.KindUnknown))
 		return
 	}
 	node := &ast.BinaryOpNode{Left: baseExpr, Operator: opText, Right: exponentExpr}
-	l.push(newNode(node, opSymbol, ast.KindBinaryOp))
+	l.push(newNode(node, opSymbol, types.KindBinaryOp))
 	l.logDebugAST("      Constructed ast.BinaryOpNode (Power): [%T %s %T]", baseExpr, opText, exponentExpr)
 }
 
@@ -322,13 +322,13 @@ func (l *neuroScriptListenerImpl) ExitAccessor_expr(ctx *gen.Accessor_exprContex
 		accessorRaw, ok := l.pop()
 		if !ok {
 			l.addError(ctx, "Stack error popping accessor expression %d", i)
-			l.push(newNode(&ast.ErrorNode{Message: "Stack error (accessor expr)"}, ctx.LBRACK(i).GetSymbol(), ast.KindUnknown))
+			l.push(newNode(&ast.ErrorNode{Message: "Stack error (accessor expr)"}, ctx.LBRACK(i).GetSymbol(), types.KindUnknown))
 			return
 		}
 		accessorExpr, isExpr := accessorRaw.(ast.Expression)
 		if !isExpr {
 			l.addError(ctx, "Accessor expression %d is not an ast.Expression (type %T)", i, accessorRaw)
-			l.push(newNode(&ast.ErrorNode{Message: "Type error (accessor expr)"}, ctx.LBRACK(i).GetSymbol(), ast.KindUnknown))
+			l.push(newNode(&ast.ErrorNode{Message: "Type error (accessor expr)"}, ctx.LBRACK(i).GetSymbol(), types.KindUnknown))
 			return
 		}
 		accessorExprs[i] = accessorExpr
@@ -337,13 +337,13 @@ func (l *neuroScriptListenerImpl) ExitAccessor_expr(ctx *gen.Accessor_exprContex
 	collectionRaw, ok := l.pop()
 	if !ok {
 		l.addError(ctx.Primary(), "Stack error popping primary collection")
-		l.push(newNode(&ast.ErrorNode{Message: "Stack error (accessor collection)"}, ctx.Primary().GetStart(), ast.KindUnknown))
+		l.push(newNode(&ast.ErrorNode{Message: "Stack error (accessor collection)"}, ctx.Primary().GetStart(), types.KindUnknown))
 		return
 	}
 	collectionExpr, isExpr := collectionRaw.(ast.Expression)
 	if !isExpr {
 		l.addError(ctx.Primary(), "Primary collection is not an ast.Expression (type %T)", collectionRaw)
-		l.push(newNode(&ast.ErrorNode{Message: "Type error (accessor collection)"}, ctx.Primary().GetStart(), ast.KindUnknown))
+		l.push(newNode(&ast.ErrorNode{Message: "Type error (accessor collection)"}, ctx.Primary().GetStart(), types.KindUnknown))
 		return
 	}
 
@@ -354,7 +354,7 @@ func (l *neuroScriptListenerImpl) ExitAccessor_expr(ctx *gen.Accessor_exprContex
 			Accessor:   accessorExprs[i],
 		}
 		l.logDebugAST("      Constructed ast.ElementAccessNode: [Coll: %T Acc: %T]", node.Collection, node.Accessor)
-		currentCollectionResult = newNode(node, ctx.LBRACK(i).GetSymbol(), ast.KindElementAccess)
+		currentCollectionResult = newNode(node, ctx.LBRACK(i).GetSymbol(), types.KindElementAccess)
 	}
 	l.push(currentCollectionResult)
 	l.logDebugAST("      Final Accessor_expr result pushed: %T", currentCollectionResult)
@@ -383,17 +383,17 @@ func (l *neuroScriptListenerImpl) buildCallTargetFromContext(ctx gen.ICall_targe
 			l.addError(ctx, "Tool call: Expected Qualified_identifier, but was not found: %s", ctx.GetText())
 			target.Name = "<ERROR_NO_QUALIFIED_ID_FOR_TOOL>"
 		}
-		newNode(target, token, ast.KindCallableExpr) // Pass pointer
+		newNode(target, token, types.KindCallableExpr) // Pass pointer
 		l.logDebugAST("         Tool call identified. Name: '%s'", target.Name)
 	} else if userFuncID := ctx.IDENTIFIER(); userFuncID != nil {
 		target.IsTool = false
 		target.Name = userFuncID.GetText()
-		newNode(target, userFuncID.GetSymbol(), ast.KindCallableExpr) // Pass pointer
+		newNode(target, userFuncID.GetSymbol(), types.KindCallableExpr) // Pass pointer
 		l.logDebugAST("         User function call identified. Name: '%s'", target.Name)
 	} else {
 		l.addError(ctx, "Unrecognized call_target structure: %s", ctx.GetText())
 		target.Name = "<ERROR_INVALID_CALL_TARGET>"
-		newNode(target, ctx.GetStart(), ast.KindUnknown) // Pass pointer
+		newNode(target, ctx.GetStart(), types.KindUnknown) // Pass pointer
 	}
 	l.logDebugAST("      <- buildCallTargetFromContext (Name: %s, IsTool: %v)", target.Name, target.IsTool)
 	return target
@@ -419,7 +419,7 @@ func (l *neuroScriptListenerImpl) ExitCallable_expr(ctx *gen.Callable_exprContex
 				argsRaw, ok := l.popN(numArgs)
 				if !ok {
 					l.addError(ctx, "Stack error popping arguments for call %q", ctx.GetText())
-					l.push(newNode(&ast.ErrorNode{Message: "Stack error (call args)"}, ctx.GetStart(), ast.KindUnknown))
+					l.push(newNode(&ast.ErrorNode{Message: "Stack error (call args)"}, ctx.GetStart(), types.KindUnknown))
 					return
 				}
 				args = make([]ast.Expression, numArgs)
@@ -427,7 +427,7 @@ func (l *neuroScriptListenerImpl) ExitCallable_expr(ctx *gen.Callable_exprContex
 					argExpr, isExpr := argsRaw[i].(ast.Expression)
 					if !isExpr {
 						l.addError(ctx, "Argument %d for call %q is not an ast.Expression (type %T)", i+1, ctx.GetText(), argsRaw[i])
-						l.push(newNode(&ast.ErrorNode{Message: "Type error (call arg)"}, ctx.GetStart(), ast.KindUnknown))
+						l.push(newNode(&ast.ErrorNode{Message: "Type error (call arg)"}, ctx.GetStart(), types.KindUnknown))
 						return
 					}
 					args[i] = argExpr
@@ -443,13 +443,13 @@ func (l *neuroScriptListenerImpl) ExitCallable_expr(ctx *gen.Callable_exprContex
 		targetVal, ok := l.pop()
 		if !ok {
 			l.addError(ctx, "Stack error popping call target for %q", ctx.GetText())
-			l.push(newNode(&ast.ErrorNode{Message: "Stack error (call target)"}, ctx.GetStart(), ast.KindUnknown))
+			l.push(newNode(&ast.ErrorNode{Message: "Stack error (call target)"}, ctx.GetStart(), types.KindUnknown))
 			return
 		}
 		targetPtr, isPtr := targetVal.(*ast.CallTarget)
 		if !isPtr {
 			l.addError(ctx, "Popped call target is not *ast.CallTarget (type %T) for %q", targetVal, ctx.GetText())
-			l.push(newNode(&ast.ErrorNode{Message: "Type error (call target)"}, ctx.GetStart(), ast.KindUnknown))
+			l.push(newNode(&ast.ErrorNode{Message: "Type error (call target)"}, ctx.GetStart(), types.KindUnknown))
 			return
 		}
 		finalTargetNode = *targetPtr
@@ -467,7 +467,7 @@ func (l *neuroScriptListenerImpl) ExitCallable_expr(ctx *gen.Callable_exprContex
 		// ... other cases
 		default:
 			l.addError(ctx, "Unhandled built-in or target type in Callable_expr: %q", ctx.GetText())
-			l.push(newNode(&ast.ErrorNode{Message: "Unknown callable target"}, ctx.GetStart(), ast.KindUnknown))
+			l.push(newNode(&ast.ErrorNode{Message: "Unknown callable target"}, ctx.GetStart(), types.KindUnknown))
 			return
 		}
 		l.logDebugAST("      Identified Built-in function call target: %s", finalTargetNode.Name)
@@ -477,6 +477,6 @@ func (l *neuroScriptListenerImpl) ExitCallable_expr(ctx *gen.Callable_exprContex
 		Target:    finalTargetNode,
 		Arguments: args,
 	}
-	l.push(newNode(node, token, ast.KindCallableExpr))
+	l.push(newNode(node, token, types.KindCallableExpr))
 	l.logDebugAST("      Constructed and Pushed ast.CallableExprNode: Target=%s, Args=%d", node.Target.Name, len(node.Arguments))
 }

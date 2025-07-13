@@ -10,6 +10,7 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/logging"
 	"github.com/aprice2704/neuroscript/pkg/parser"
+	"github.com/aprice2704/neuroscript/pkg/types"
 	"golang.org/x/crypto/blake2b"
 )
 
@@ -47,7 +48,7 @@ endfunc
 	hasher, _ := blake2b.New256(nil)
 	expectedVisitor := &canonVisitor{w: &expectedBuf, hasher: hasher}
 
-	expectedVisitor.writeVarint(int64(ast.KindProgram))
+	expectedVisitor.writeVarint(int64(types.KindProgram))
 	// A full golden test would require building the full expected byte stream here.
 
 	if canonBytes == nil {
@@ -108,5 +109,53 @@ endfunc
 		t.Errorf("Canonicalization is not deterministic for hash sum.")
 		t.Logf("Sum 1: %x", sum1)
 		t.Logf("Sum 2: %x", sum2)
+	}
+}
+
+// TestCanonicalize_CommandBlock is a regression test to ensure that a program
+// containing a `command` block can be canonicalized and decoded successfully,
+// fixing the previous integrity check failure.
+func TestCanonicalize_CommandBlock(t *testing.T) {
+	// 1. Define a script with a simple command block.
+	script := `
+command
+    emit "hello from command"
+endcommand
+`
+	// 2. Parse the script into an AST.
+	parserAPI := parser.NewParserAPI(logging.NewNoOpLogger())
+	antlrTree, err := parserAPI.Parse(script)
+	if err != nil {
+		t.Fatalf("Parser failed unexpectedly: %v", err)
+	}
+	builder := parser.NewASTBuilder(logging.NewNoOpLogger())
+	program, _, err := builder.Build(antlrTree)
+	if err != nil {
+		t.Fatalf("AST builder failed unexpectedly: %v", err)
+	}
+	tree := &ast.Tree{Root: program}
+
+	// 3. Canonicalize the tree.
+	blob, _, err := Canonicalise(tree)
+	if err != nil {
+		t.Fatalf("Canonicalise() failed: %v", err)
+	}
+
+	// 4. Decode the blob back into a tree.
+	decodedTree, err := Decode(blob)
+	if err != nil {
+		t.Fatalf("Decode() failed: %v", err)
+	}
+
+	// 5. Verify the decoded tree has the command block.
+	if decodedTree == nil || decodedTree.Root == nil {
+		t.Fatal("Decoded tree or its root is nil")
+	}
+	decodedProgram, ok := decodedTree.Root.(*ast.Program)
+	if !ok {
+		t.Fatalf("Decoded root is not a *ast.Program, but %T", decodedTree.Root)
+	}
+	if len(decodedProgram.Commands) != 1 {
+		t.Errorf("Expected 1 command block in decoded program, but got %d", len(decodedProgram.Commands))
 	}
 }

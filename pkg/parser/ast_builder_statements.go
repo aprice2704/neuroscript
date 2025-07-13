@@ -8,6 +8,7 @@ package parser
 import (
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	gen "github.com/aprice2704/neuroscript/pkg/parser/generated"
+	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
 // addStep is a helper to append a new step to the correct part of the AST.
@@ -33,7 +34,7 @@ func (l *neuroScriptListenerImpl) ExitEmit_statement(c *gen.Emit_statementContex
 	}
 	pos := tokenToPosition(c.GetStart())
 	l.addStep(ast.Step{
-		BaseNode: ast.BaseNode{StartPos: &pos, NodeKind: ast.KindStep},
+		BaseNode: ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
 		Position: pos,
 		Type:     "emit",
 		Values:   []ast.Expression{expr},
@@ -64,7 +65,7 @@ func (l *neuroScriptListenerImpl) ExitReturn_statement(c *gen.Return_statementCo
 	}
 	pos := tokenToPosition(c.GetStart())
 	l.addStep(ast.Step{
-		BaseNode: ast.BaseNode{StartPos: &pos, NodeKind: ast.KindStep},
+		BaseNode: ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
 		Position: pos,
 		Type:     "return",
 		Values:   returnValues,
@@ -84,7 +85,7 @@ func (l *neuroScriptListenerImpl) ExitCall_statement(c *gen.Call_statementContex
 	}
 	pos := tokenToPosition(c.GetStart())
 	l.addStep(ast.Step{
-		BaseNode: ast.BaseNode{StartPos: &pos, NodeKind: ast.KindStep},
+		BaseNode: ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
 		Position: pos,
 		Type:     "call",
 		Call:     callExpr,
@@ -104,7 +105,7 @@ func (l *neuroScriptListenerImpl) ExitMust_statement(c *gen.Must_statementContex
 	}
 	pos := tokenToPosition(c.GetStart())
 	l.addStep(ast.Step{
-		BaseNode: ast.BaseNode{StartPos: &pos, NodeKind: ast.KindStep},
+		BaseNode: ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
 		Position: pos,
 		Type:     "must",
 		Cond:     expr,
@@ -129,7 +130,7 @@ func (l *neuroScriptListenerImpl) ExitFail_statement(c *gen.Fail_statementContex
 
 	pos := tokenToPosition(c.GetStart())
 	step := ast.Step{
-		BaseNode: ast.BaseNode{StartPos: &pos, NodeKind: ast.KindStep},
+		BaseNode: ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
 		Position: pos,
 		Type:     "fail",
 	}
@@ -152,7 +153,7 @@ func (l *neuroScriptListenerImpl) ExitAsk_stmt(c *gen.Ask_stmtContext) {
 	}
 	pos := tokenToPosition(c.GetStart())
 	l.addStep(ast.Step{
-		BaseNode:   ast.BaseNode{StartPos: &pos, NodeKind: ast.KindStep},
+		BaseNode:   ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
 		Position:   pos,
 		Type:       "ask",
 		Values:     []ast.Expression{expr},
@@ -163,7 +164,7 @@ func (l *neuroScriptListenerImpl) ExitAsk_stmt(c *gen.Ask_stmtContext) {
 func (l *neuroScriptListenerImpl) ExitClearErrorStmt(c *gen.ClearErrorStmtContext) {
 	pos := tokenToPosition(c.GetStart())
 	l.addStep(ast.Step{
-		BaseNode: ast.BaseNode{StartPos: &pos, NodeKind: ast.KindStep},
+		BaseNode: ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
 		Position: pos,
 		Type:     "clear_error",
 	})
@@ -175,7 +176,7 @@ func (l *neuroScriptListenerImpl) ExitContinue_statement(c *gen.Continue_stateme
 	}
 	pos := tokenToPosition(c.GetStart())
 	l.addStep(ast.Step{
-		BaseNode: ast.BaseNode{StartPos: &pos, NodeKind: ast.KindStep},
+		BaseNode: ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
 		Position: pos,
 		Type:     "continue",
 	})
@@ -187,7 +188,7 @@ func (l *neuroScriptListenerImpl) ExitBreak_statement(c *gen.Break_statementCont
 	}
 	pos := tokenToPosition(c.GetStart())
 	l.addStep(ast.Step{
-		BaseNode: ast.BaseNode{StartPos: &pos, NodeKind: ast.KindStep},
+		BaseNode: ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
 		Position: pos,
 		Type:     "break",
 	})

@@ -117,7 +117,7 @@ var goToolsToRegister = []tool.ToolImplementation{
 			Name:        "Vet",
 			Group:       group,
 			Description: "Runs 'go vet' on the specified target(s) in the sandbox to report likely mistakes in Go source code. Defaults to './...'.",
-			Category:    "Go Diagnostics",
+			Category:    "Go types.Diagnostics",
 			Args: []tool.ArgSpec{
 				{Name: "target", Type: tool.ArgTypeString, Required: false, Description: "Optional. The target for 'go vet' (e.g., a package path or './...'). Defaults to './...'."},
 			},
@@ -133,7 +133,7 @@ var goToolsToRegister = []tool.ToolImplementation{
 			Name:        "Staticcheck",
 			Group:       group,
 			Description: "Runs 'staticcheck' on the specified target(s) in the sandbox. Reports bugs, stylistic errors, and performance issues. Defaults to './...'. Assumes 'staticcheck' is in PATH.",
-			Category:    "Go Diagnostics",
+			Category:    "Go types.Diagnostics",
 			Args: []tool.ArgSpec{
 				{Name: "target", Type: tool.ArgTypeString, Required: false, Description: "Optional. The target for 'staticcheck' (e.g., a package path or './...'). Defaults to './...'."},
 			},
@@ -149,7 +149,7 @@ var goToolsToRegister = []tool.ToolImplementation{
 			Name:            "Check",
 			Group:           group,
 			Description:     "Checks Go code validity using 'go list -e -json <target>' within the sandbox. Returns a map indicating success and error details.",
-			Category:        "Go Diagnostics",
+			Category:        "Go types.Diagnostics",
 			Args:            []tool.ArgSpec{{Name: "target", Type: tool.ArgTypeString, Required: true, Description: "Target Go package path or file path relative to sandbox (e.g., './pkg/core', 'main.go')."}},
 			ReturnType:      tool.ArgTypeMap,
 			ReturnHelp:      "Returns a map with 'check_success' (bool) and 'error_details' (string). 'check_success' is true if 'go list -e -json' finds no errors in the target's JSON output. 'error_details' contains messages if errors are found or if the command fails.",

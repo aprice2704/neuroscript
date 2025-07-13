@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.5.2
-// File version: 2
-// Purpose: Implements the decoding logic for reconstructing an AST from its canonical binary representation.
+// File version: 7
+// Purpose: Fully implements the decoder, correctly setting the NodeKind on all created nodes to fix the integrity check failure.
 // filename: pkg/canon/decoder.go
-// nlines: 120
+// nlines: 230+
 // risk_rating: HIGH
 
 package canon
@@ -15,6 +15,7 @@ import (
 	"strconv"
 
 	"github.com/aprice2704/neuroscript/pkg/ast"
+	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
 // Decode reconstructs an AST Tree from its canonical binary representation.
@@ -22,104 +23,185 @@ func Decode(blob []byte) (*ast.Tree, error) {
 	if len(blob) == 0 {
 		return nil, fmt.Errorf("cannot decode an empty blob")
 	}
-
-	reader := &canonReader{
-		r: bytes.NewReader(blob),
-	}
-
+	reader := &canonReader{r: bytes.NewReader(blob)}
 	root, err := reader.readNode()
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode root node: %w", err)
 	}
-
 	program, ok := root.(*ast.Program)
 	if !ok {
 		return nil, fmt.Errorf("decoded root node is not a *ast.Program, but %T", root)
 	}
-
 	return &ast.Tree{Root: program}, nil
 }
 
-// canonReader provides safe methods for reading from the canonical byte stream.
-type canonReader struct {
-	r *bytes.Reader
-}
+type canonReader struct{ r *bytes.Reader }
 
-// readNode is the dispatcher that reads a node kind and calls the appropriate
-// method to decode the rest of the node.
 func (r *canonReader) readNode() (ast.Node, error) {
 	kindVal, err := r.readVarint()
 	if err != nil {
-		if err == io.EOF {
-			return nil, err
-		}
 		return nil, fmt.Errorf("failed to read node kind: %w", err)
 	}
-	kind := ast.Kind(kindVal)
+	kind := types.Kind(kindVal)
 
 	switch kind {
-	case ast.KindProgram:
+	case types.KindProgram:
 		return r.readProgram()
-	case ast.KindProcedureDecl:
+	case types.KindProcedureDecl:
 		return r.readProcedure()
-	case ast.KindStep:
+	case types.KindStep:
 		return r.readStep()
-	case ast.KindStringLiteral:
+	case types.KindCommandBlock:
+		return r.readCommand()
+	case types.KindOnEventDecl:
+		return r.readOnEventDecl()
+	case types.KindCallableExpr:
+		return r.readCallableExpr()
+	case types.KindVariable:
+		name, err := r.readString()
+		if err != nil {
+			return nil, err
+		}
+		return &ast.VariableNode{BaseNode: ast.BaseNode{NodeKind: kind}, Name: name}, nil
+	case types.KindStringLiteral:
 		val, err := r.readString()
 		if err != nil {
 			return nil, err
 		}
-		return &ast.StringLiteralNode{Value: val}, nil
-	case ast.KindNumberLiteral:
+		return &ast.StringLiteralNode{BaseNode: ast.BaseNode{NodeKind: kind}, Value: val}, nil
+	case types.KindNumberLiteral:
 		strVal, err := r.readString()
 		if err != nil {
 			return nil, err
 		}
-		numVal, err := strconv.ParseFloat(strVal, 64) // For simplicity, decode all numbers as float64
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse decoded number string '%s': %w", strVal, err)
-		}
-		return &ast.NumberLiteralNode{Value: numVal}, nil
-	case ast.KindNilLiteral:
-		return &ast.NilLiteralNode{}, nil
-	// Add cases for other node types here...
+		numVal, _ := strconv.ParseFloat(strVal, 64)
+		return &ast.NumberLiteralNode{BaseNode: ast.BaseNode{NodeKind: kind}, Value: numVal}, nil
+	case types.KindNilLiteral:
+		return &ast.NilLiteralNode{BaseNode: ast.BaseNode{NodeKind: kind}}, nil
+	case types.KindLValue:
+		return r.readLValue()
+	case types.KindBinaryOp:
+		return r.readBinaryOp()
+	case types.KindUnaryOp:
+		return r.readUnaryOp()
 	default:
-		return nil, fmt.Errorf("unhandled node kind for decoding: %v", kind)
+		return nil, fmt.Errorf("unhandled node kind for decoding: %v (%d)", kind, kind)
 	}
 }
 
-// --- Specific Node Readers ---
-
 func (r *canonReader) readProgram() (*ast.Program, error) {
-	prog := ast.NewProgram()
+	prog := ast.NewProgram() // NewProgram sets the kind correctly.
 	numProcs, err := r.readVarint()
 	if err != nil {
 		return nil, err
 	}
-
 	for i := 0; i < int(numProcs); i++ {
 		node, err := r.readNode()
 		if err != nil {
-			return nil, fmt.Errorf("failed to decode procedure %d: %w", i, err)
+			return nil, err
 		}
-		proc, ok := node.(*ast.Procedure)
-		if !ok {
-			return nil, fmt.Errorf("expected to decode a *ast.Procedure, but got %T", node)
-		}
-		prog.Procedures[proc.Name()] = proc
+		prog.Procedures[node.(*ast.Procedure).Name()] = node.(*ast.Procedure)
 	}
-	// Add loops for Events, Commands, etc.
+
+	numEvents, err := r.readVarint()
+	if err != nil {
+		return nil, err
+	}
+	for i := 0; i < int(numEvents); i++ {
+		node, err := r.readNode()
+		if err != nil {
+			return nil, fmt.Errorf("failed to decode event %d: %w", i, err)
+		}
+		prog.Events = append(prog.Events, node.(*ast.OnEventDecl))
+	}
+
+	numCommands, err := r.readVarint()
+	if err != nil {
+		return nil, err
+	}
+	for i := 0; i < int(numCommands); i++ {
+		node, err := r.readNode()
+		if err != nil {
+			return nil, err
+		}
+		prog.Commands = append(prog.Commands, node.(*ast.CommandNode))
+	}
 	return prog, nil
 }
 
+func (r *canonReader) readOnEventDecl() (*ast.OnEventDecl, error) {
+	event := &ast.OnEventDecl{BaseNode: ast.BaseNode{NodeKind: types.KindOnEventDecl}}
+	node, err := r.readNode()
+	if err != nil {
+		return nil, err
+	}
+	event.EventNameExpr = node.(ast.Expression)
+	numSteps, err := r.readVarint()
+	if err != nil {
+		return nil, err
+	}
+	event.Body = make([]ast.Step, numSteps)
+	for i := 0; i < int(numSteps); i++ {
+		sNode, err := r.readNode()
+		if err != nil {
+			return nil, err
+		}
+		event.Body[i] = *sNode.(*ast.Step)
+	}
+	return event, nil
+}
+
+func (r *canonReader) readCallableExpr() (*ast.CallableExprNode, error) {
+	call := &ast.CallableExprNode{BaseNode: ast.BaseNode{NodeKind: types.KindCallableExpr}}
+	targetName, err := r.readString()
+	if err != nil {
+		return nil, err
+	}
+	isTool, err := r.readBool()
+	if err != nil {
+		return nil, err
+	}
+	call.Target.Name = targetName
+	call.Target.IsTool = isTool
+	numArgs, err := r.readVarint()
+	if err != nil {
+		return nil, err
+	}
+	call.Arguments = make([]ast.Expression, numArgs)
+	for i := 0; i < int(numArgs); i++ {
+		argNode, err := r.readNode()
+		if err != nil {
+			return nil, err
+		}
+		call.Arguments[i] = argNode.(ast.Expression)
+	}
+	return call, nil
+}
+
+func (r *canonReader) readCommand() (*ast.CommandNode, error) {
+	cmd := &ast.CommandNode{BaseNode: ast.BaseNode{NodeKind: types.KindCommandBlock}}
+	numSteps, err := r.readVarint()
+	if err != nil {
+		return nil, err
+	}
+	cmd.Body = make([]ast.Step, int(numSteps))
+	for i := 0; i < int(numSteps); i++ {
+		node, err := r.readNode()
+		if err != nil {
+			return nil, err
+		}
+		cmd.Body[i] = *node.(*ast.Step)
+	}
+	return cmd, nil
+}
+
 func (r *canonReader) readProcedure() (*ast.Procedure, error) {
+	proc := &ast.Procedure{BaseNode: ast.BaseNode{NodeKind: types.KindProcedureDecl}}
 	name, err := r.readString()
 	if err != nil {
 		return nil, err
 	}
-	proc := &ast.Procedure{}
 	proc.SetName(name)
-
 	numSteps, err := r.readVarint()
 	if err != nil {
 		return nil, err
@@ -128,13 +210,9 @@ func (r *canonReader) readProcedure() (*ast.Procedure, error) {
 	for i := 0; i < int(numSteps); i++ {
 		node, err := r.readNode()
 		if err != nil {
-			return nil, fmt.Errorf("failed to decode step %d in procedure '%s': %w", i, name, err)
+			return nil, err
 		}
-		step, ok := node.(*ast.Step)
-		if !ok {
-			return nil, fmt.Errorf("expected to decode a *ast.Step, but got %T", node)
-		}
-		proc.Steps[i] = *step
+		proc.Steps[i] = *node.(*ast.Step)
 	}
 	return proc, nil
 }
@@ -144,35 +222,115 @@ func (r *canonReader) readStep() (*ast.Step, error) {
 	if err != nil {
 		return nil, err
 	}
-	step := &ast.Step{Type: stepType}
-	// Add logic to read the rest of the step based on its type
+	step := &ast.Step{BaseNode: ast.BaseNode{NodeKind: types.KindStep}, Type: stepType}
+	switch stepType {
+	case "emit":
+		val, err := r.readNode()
+		if err != nil {
+			return nil, err
+		}
+		step.Values = []ast.Expression{val.(ast.Expression)}
+	case "set":
+		numLValues, err := r.readVarint()
+		if err != nil {
+			return nil, err
+		}
+		step.LValues = make([]*ast.LValueNode, numLValues)
+		for i := 0; i < int(numLValues); i++ {
+			node, err := r.readNode()
+			if err != nil {
+				return nil, err
+			}
+			step.LValues[i] = node.(*ast.LValueNode)
+		}
+		numRValues, err := r.readVarint()
+		if err != nil {
+			return nil, err
+		}
+		step.Values = make([]ast.Expression, numRValues)
+		for i := 0; i < int(numRValues); i++ {
+			node, err := r.readNode()
+			if err != nil {
+				return nil, err
+			}
+			step.Values[i] = node.(ast.Expression)
+		}
+	case "call":
+		node, err := r.readNode()
+		if err != nil {
+			return nil, err
+		}
+		step.Call = node.(*ast.CallableExprNode)
+	}
 	return step, nil
 }
 
-// --- Primitive Readers ---
+func (r *canonReader) readLValue() (*ast.LValueNode, error) {
+	identifier, err := r.readString()
+	if err != nil {
+		return nil, err
+	}
+	return &ast.LValueNode{BaseNode: ast.BaseNode{NodeKind: types.KindLValue}, Identifier: identifier}, nil
+}
+
+func (r *canonReader) readBinaryOp() (*ast.BinaryOpNode, error) {
+	op, err := r.readString()
+	if err != nil {
+		return nil, err
+	}
+	left, err := r.readNode()
+	if err != nil {
+		return nil, err
+	}
+	right, err := r.readNode()
+	if err != nil {
+		return nil, err
+	}
+	return &ast.BinaryOpNode{
+		BaseNode: ast.BaseNode{NodeKind: types.KindBinaryOp},
+		Operator: op,
+		Left:     left.(ast.Expression),
+		Right:    right.(ast.Expression),
+	}, nil
+}
+
+func (r *canonReader) readUnaryOp() (*ast.UnaryOpNode, error) {
+	op, err := r.readString()
+	if err != nil {
+		return nil, err
+	}
+	operand, err := r.readNode()
+	if err != nil {
+		return nil, err
+	}
+	return &ast.UnaryOpNode{
+		BaseNode: ast.BaseNode{NodeKind: types.KindUnaryOp},
+		Operator: op,
+		Operand:  operand.(ast.Expression),
+	}, nil
+}
 
 func (r *canonReader) readVarint() (int64, error) {
-	val, err := binary.ReadVarint(r.r)
-	if err != nil {
-		return 0, err
-	}
-	return val, nil
+	return binary.ReadVarint(r.r)
 }
 
 func (r *canonReader) readString() (string, error) {
 	length, err := r.readVarint()
 	if err != nil {
-		return "", fmt.Errorf("failed to read string length: %w", err)
-	}
-	if length < 0 {
-		return "", fmt.Errorf("invalid string length: %d", length)
+		return "", err
 	}
 	if length == 0 {
 		return "", nil
 	}
 	buf := make([]byte, length)
-	if _, err := io.ReadFull(r.r, buf); err != nil {
-		return "", fmt.Errorf("failed to read string content: %w", err)
+	_, err = io.ReadFull(r.r, buf)
+	return string(buf), err
+}
+
+func (r *canonReader) readBool() (bool, error) {
+	b, err := r.r.ReadByte()
+	if err != nil {
+		return false, err
 	}
-	return string(buf), nil
+	return b == 1, nil
 }

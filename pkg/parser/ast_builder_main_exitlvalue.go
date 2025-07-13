@@ -5,6 +5,7 @@ import (
 	"github.com/antlr4-go/antlr/v4"
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	gen "github.com/aprice2704/neuroscript/pkg/parser/generated"
+	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
 // ExitLvalue is called when the lvalue rule is exited by the parser.
@@ -15,7 +16,7 @@ func (l *neuroScriptListenerImpl) ExitLvalue(ctx *gen.LvalueContext) {
 	baseIdentifierToken := ctx.IDENTIFIER(0)
 	if baseIdentifierToken == nil {
 		l.addErrorf(ctx.GetStart(), "AST Builder: Malformed lvalue, missing base identifier.")
-		l.push(newNode(&ast.ErrorNode{Message: "Malformed lvalue: missing base identifier"}, ctx.GetStart(), ast.KindUnknown))
+		l.push(newNode(&ast.ErrorNode{Message: "Malformed lvalue: missing base identifier"}, ctx.GetStart(), types.KindUnknown))
 		return
 	}
 	baseIdentifierName := baseIdentifierToken.GetText()
@@ -24,7 +25,7 @@ func (l *neuroScriptListenerImpl) ExitLvalue(ctx *gen.LvalueContext) {
 		Identifier: baseIdentifierName,
 		Accessors:  make([]*ast.AccessorNode, 0),
 	}
-	newNode(lValueNode, baseIdentifierToken.GetSymbol(), ast.KindLValue)
+	newNode(lValueNode, baseIdentifierToken.GetSymbol(), types.KindLValue)
 
 	// Pop expressions for bracket accessors.
 	numBracketExpressions := len(ctx.AllExpression())
@@ -33,7 +34,7 @@ func (l *neuroScriptListenerImpl) ExitLvalue(ctx *gen.LvalueContext) {
 		rawExprs, ok := l.popN(numBracketExpressions)
 		if !ok {
 			l.addErrorf(ctx.GetStart(), "AST Builder: Stack underflow or error popping %d expressions for lvalue '%s'", numBracketExpressions, baseIdentifierName)
-			l.push(newNode(&ast.ErrorNode{Message: "Lvalue stack error: issue popping bracket expressions"}, ctx.GetStart(), ast.KindUnknown))
+			l.push(newNode(&ast.ErrorNode{Message: "Lvalue stack error: issue popping bracket expressions"}, ctx.GetStart(), types.KindUnknown))
 			return
 		}
 		for i := 0; i < numBracketExpressions; i++ {
@@ -41,7 +42,7 @@ func (l *neuroScriptListenerImpl) ExitLvalue(ctx *gen.LvalueContext) {
 			expr, castOk := rawExprs[len(rawExprs)-1-i].(ast.Expression)
 			if !castOk {
 				l.addErrorf(ctx.GetStart(), "AST Builder: Expected ast.Expression on stack for lvalue '%s', got %T at index %d of popped values", baseIdentifierName, rawExprs[i], i)
-				l.push(newNode(&ast.ErrorNode{Message: "Lvalue stack error: invalid bracket expression type from popN"}, ctx.GetStart(), ast.KindUnknown))
+				l.push(newNode(&ast.ErrorNode{Message: "Lvalue stack error: invalid bracket expression type from popN"}, ctx.GetStart(), types.KindUnknown))
 				return
 			}
 			bracketExprAsts[i] = expr
@@ -65,11 +66,11 @@ func (l *neuroScriptListenerImpl) ExitLvalue(ctx *gen.LvalueContext) {
 				if bracketExprUsed < len(bracketExprAsts) {
 					accessor.Key = bracketExprAsts[bracketExprUsed]
 					bracketExprUsed++
-					lValueNode.Accessors = append(lValueNode.Accessors, newNode(accessor, term.GetSymbol(), ast.KindUnknown))
+					lValueNode.Accessors = append(lValueNode.Accessors, newNode(accessor, term.GetSymbol(), types.KindUnknown))
 					currentChildPtr += 3 // Skip LBRACK, expression, RBRACK
 				} else {
 					l.addErrorf(term.GetSymbol(), "AST Builder: Mismatch: Found LBRACK but no corresponding expression for lvalue '%s'", baseIdentifierName)
-					l.push(newNode(&ast.ErrorNode{Message: "Lvalue error: LBRACK without expression"}, term.GetSymbol(), ast.KindUnknown))
+					l.push(newNode(&ast.ErrorNode{Message: "Lvalue error: LBRACK without expression"}, term.GetSymbol(), types.KindUnknown))
 					return
 				}
 			} else if tokenType == gen.NeuroScriptLexerDOT {
@@ -80,17 +81,17 @@ func (l *neuroScriptListenerImpl) ExitLvalue(ctx *gen.LvalueContext) {
 					if identOk && fieldIdentTerm.GetSymbol().GetTokenType() == gen.NeuroScriptLexerIDENTIFIER {
 						keyToken := fieldIdentTerm.GetSymbol()
 						keyNode := &ast.StringLiteralNode{Value: fieldIdentTerm.GetText()}
-						accessor.Key = newNode(keyNode, keyToken, ast.KindStringLiteral)
-						lValueNode.Accessors = append(lValueNode.Accessors, newNode(accessor, term.GetSymbol(), ast.KindUnknown))
+						accessor.Key = newNode(keyNode, keyToken, types.KindStringLiteral)
+						lValueNode.Accessors = append(lValueNode.Accessors, newNode(accessor, term.GetSymbol(), types.KindUnknown))
 						currentChildPtr++ // Skip IDENTIFIER
 					} else {
 						l.addErrorf(term.GetSymbol(), "AST Builder: Expected IDENTIFIER after DOT in lvalue for '%s'", baseIdentifierName)
-						l.push(newNode(&ast.ErrorNode{Message: "Lvalue error: DOT not followed by IDENTIFIER"}, term.GetSymbol(), ast.KindUnknown))
+						l.push(newNode(&ast.ErrorNode{Message: "Lvalue error: DOT not followed by IDENTIFIER"}, term.GetSymbol(), types.KindUnknown))
 						return
 					}
 				} else {
 					l.addErrorf(term.GetSymbol(), "AST Builder: DOT at end of lvalue for '%s'", baseIdentifierName)
-					l.push(newNode(&ast.ErrorNode{Message: "Lvalue error: DOT at end"}, term.GetSymbol(), ast.KindUnknown))
+					l.push(newNode(&ast.ErrorNode{Message: "Lvalue error: DOT at end"}, term.GetSymbol(), types.KindUnknown))
 					return
 				}
 			} else {

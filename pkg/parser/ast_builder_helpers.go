@@ -19,7 +19,7 @@ import (
 
 // newNode is a generic helper to create and initialize an AST node.
 // It sets both the new BaseNode fields and the legacy .Pos field.
-func newNode[T ast.Node](node T, token antlr.Token, kind ast.Kind) T {
+func newNode[T ast.Node](node T, token antlr.Token, kind types.Kind) T {
 	pos := tokenToPosition(token)
 
 	// Set the new BaseNode fields

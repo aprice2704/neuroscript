@@ -8,6 +8,7 @@ package parser
 import (
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	gen "github.com/aprice2704/neuroscript/pkg/parser/generated"
+	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
 func (l *neuroScriptListenerImpl) EnterEvent_handler(c *gen.Event_handlerContext) {
@@ -51,7 +52,7 @@ func (l *neuroScriptListenerImpl) ExitEvent_handler(c *gen.Event_handlerContext)
 		onEvent.EventVarName = c.IDENTIFIER().GetText()
 	}
 
-	newNode(onEvent, c.GetStart(), ast.KindOnEventDecl)
+	newNode(onEvent, c.GetStart(), types.KindOnEventDecl)
 
 	l.program.Events = append(l.program.Events, onEvent)
 }
@@ -76,7 +77,7 @@ func (l *neuroScriptListenerImpl) ExitError_handler(c *gen.Error_handlerContext)
 
 	pos := tokenToPosition(c.GetStart())
 	l.addStep(ast.Step{
-		BaseNode: ast.BaseNode{StartPos: &pos, NodeKind: ast.KindStep},
+		BaseNode: ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
 		Position: pos,
 		Type:     "on_error",
 		Body:     body,

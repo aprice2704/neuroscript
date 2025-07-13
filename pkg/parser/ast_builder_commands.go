@@ -8,6 +8,7 @@ package parser
 import (
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	gen "github.com/aprice2704/neuroscript/pkg/parser/generated"
+	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
 func (l *neuroScriptListenerImpl) EnterCommand_block(c *gen.Command_blockContext) {
@@ -18,7 +19,7 @@ func (l *neuroScriptListenerImpl) EnterCommand_block(c *gen.Command_blockContext
 		Body:          make([]ast.Step, 0),
 		ErrorHandlers: make([]*ast.Step, 0),
 	}
-	l.currentCommand = newNode(cmdNode, token, ast.KindCommandBlock)
+	l.currentCommand = newNode(cmdNode, token, types.KindCommandBlock)
 }
 
 func (l *neuroScriptListenerImpl) ExitCommand_block(c *gen.Command_blockContext) {

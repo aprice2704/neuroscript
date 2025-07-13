@@ -9,6 +9,7 @@ import (
 	"github.com/antlr4-go/antlr/v4"
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	gen "github.com/aprice2704/neuroscript/pkg/parser/generated"
+	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
 func (l *neuroScriptListenerImpl) EnterProcedure_definition(ctx *gen.Procedure_definitionContext) {
@@ -20,7 +21,7 @@ func (l *neuroScriptListenerImpl) EnterProcedure_definition(ctx *gen.Procedure_d
 		Metadata: make(map[string]string),
 	}
 	proc.SetName(procName)
-	l.currentProc = newNode(proc, token, ast.KindProcedureDecl)
+	l.currentProc = newNode(proc, token, types.KindProcedureDecl)
 }
 
 func (l *neuroScriptListenerImpl) ExitProcedure_definition(ctx *gen.Procedure_definitionContext) {

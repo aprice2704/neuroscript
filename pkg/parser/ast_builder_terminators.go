@@ -7,6 +7,7 @@ package parser
 import (
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	gen "github.com/aprice2704/neuroscript/pkg/parser/generated"
+	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
 // --- Exit methods for Primary Expressions, Literals, Placeholders ---
@@ -35,13 +36,13 @@ func (l *neuroScriptListenerImpl) ExitPrimary(ctx *gen.PrimaryContext) {
 	if ctx.IDENTIFIER() != nil {
 		token := ctx.IDENTIFIER().GetSymbol()
 		node := &ast.VariableNode{Name: token.GetText()}
-		nodeToPush = newNode(node, token, ast.KindVariable)
+		nodeToPush = newNode(node, token, types.KindVariable)
 		l.logDebugAST("    Constructed ast.VariableNode: %s", node.Name)
 
 	} else if ctx.KW_LAST() != nil {
 		token := ctx.KW_LAST().GetSymbol()
 		node := &ast.LastNode{}
-		nodeToPush = newNode(node, token, ast.KindLastResult)
+		nodeToPush = newNode(node, token, types.KindLastResult)
 		l.logDebugAST("    Constructed ast.LastNode")
 
 	} else if ctx.KW_EVAL() != nil {
@@ -49,22 +50,22 @@ func (l *neuroScriptListenerImpl) ExitPrimary(ctx *gen.PrimaryContext) {
 		argRaw, ok := l.pop()
 		if !ok {
 			l.addError(ctx, "Internal error: Failed to pop argument for EVAL")
-			l.push(newNode(&ast.ErrorNode{Message: "Stack underflow (eval)"}, token, ast.KindUnknown))
+			l.push(newNode(&ast.ErrorNode{Message: "Stack underflow (eval)"}, token, types.KindUnknown))
 			return
 		}
 		argExpr, ok := argRaw.(ast.Expression)
 		if !ok {
 			l.addError(ctx, "Internal error: Argument for EVAL is not an ast.Expression (got %T)", argRaw)
-			l.push(newNode(&ast.ErrorNode{Message: "Type error (eval)"}, token, ast.KindUnknown))
+			l.push(newNode(&ast.ErrorNode{Message: "Type error (eval)"}, token, types.KindUnknown))
 			return
 		}
 		node := &ast.EvalNode{Argument: argExpr}
-		nodeToPush = newNode(node, token, ast.KindEvalExpr)
+		nodeToPush = newNode(node, token, types.KindEvalExpr)
 		l.logDebugAST("    Constructed EvalNode")
 
 	} else {
 		l.addError(ctx, "Internal error: ExitPrimary reached unexpected state for text: %q", ctx.GetText())
-		l.push(newNode(&ast.ErrorNode{Message: "Unknown primary expression"}, ctx.GetStart(), ast.KindUnknown))
+		l.push(newNode(&ast.ErrorNode{Message: "Unknown primary expression"}, ctx.GetStart(), types.KindUnknown))
 		return
 	}
 
@@ -83,11 +84,11 @@ func (l *neuroScriptListenerImpl) ExitPlaceholder(ctx *gen.PlaceholderContext) {
 		name = "LAST" // Use canonical name
 	} else {
 		l.addErrorf(token, "Internal error: ExitPlaceholder found unexpected content: %q", ctx.GetText())
-		l.push(newNode(&ast.ErrorNode{Message: "Malformed placeholder"}, token, ast.KindUnknown))
+		l.push(newNode(&ast.ErrorNode{Message: "Malformed placeholder"}, token, types.KindUnknown))
 		return
 	}
 
 	node := &ast.PlaceholderNode{Name: name}
-	l.push(newNode(node, token, ast.KindPlaceholder))
+	l.push(newNode(node, token, types.KindPlaceholder))
 	l.logDebugAST("    Constructed ast.PlaceholderNode: Name=%s", node.Name)
 }

@@ -24,6 +24,7 @@ require (
 	github.com/google/s2a-go v0.1.9 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.6 // indirect
 	github.com/googleapis/gax-go/v2 v2.14.1 // indirect
+	github.com/klauspost/cpuid/v2 v2.0.9 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-localereader v0.0.1 // indirect
@@ -55,6 +56,7 @@ require (
 )
 
 require (
+	filippo.io/age v1.2.1
 	github.com/antlr4-go/antlr/v4 v4.13.1
 	github.com/atotto/clipboard v0.1.4
 	github.com/charmbracelet/bubbles v0.21.0
@@ -69,4 +71,5 @@ require (
 	golang.org/x/mod v0.25.0
 	golang.org/x/tools v0.34.0
 	google.golang.org/api v0.229.0
+	lukechampine.com/blake3 v1.4.1
 )

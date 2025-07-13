@@ -11,6 +11,7 @@ import (
 	"github.com/antlr4-go/antlr/v4"
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	gen "github.com/aprice2704/neuroscript/pkg/parser/generated"
+	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
 // ================================================================================
@@ -29,10 +30,10 @@ func (l *neuroScriptListenerImpl) ExitLiteral(ctx *gen.LiteralContext) {
 		if err != nil {
 			l.addErrorf(token, "invalid number literal: %v", err)
 			errorNode := &ast.ErrorNode{Message: fmt.Sprintf("invalid number: %v", err)}
-			nodeToPush = newNode(errorNode, token, ast.KindUnknown)
+			nodeToPush = newNode(errorNode, token, types.KindUnknown)
 		} else {
 			node := &ast.NumberLiteralNode{Value: val}
-			nodeToPush = newNode(node, token, ast.KindNumberLiteral)
+			nodeToPush = newNode(node, token, types.KindNumberLiteral)
 		}
 		l.push(nodeToPush)
 	} else if strNode := ctx.STRING_LIT(); strNode != nil {
@@ -41,10 +42,10 @@ func (l *neuroScriptListenerImpl) ExitLiteral(ctx *gen.LiteralContext) {
 		if err != nil {
 			l.addErrorf(token, "invalid string literal: %v", err)
 			errorNode := &ast.ErrorNode{Message: fmt.Sprintf("invalid string: %v", err)}
-			nodeToPush = newNode(errorNode, token, ast.KindUnknown)
+			nodeToPush = newNode(errorNode, token, types.KindUnknown)
 		} else {
 			node := &ast.StringLiteralNode{Value: unescapedString, IsRaw: false}
-			nodeToPush = newNode(node, token, ast.KindStringLiteral)
+			nodeToPush = newNode(node, token, types.KindStringLiteral)
 		}
 		l.push(nodeToPush)
 	} else if tripleStrNode := ctx.TRIPLE_BACKTICK_STRING(); tripleStrNode != nil {
@@ -53,11 +54,11 @@ func (l *neuroScriptListenerImpl) ExitLiteral(ctx *gen.LiteralContext) {
 		if len(tokenText) < 6 { // ```...```
 			l.addErrorf(token, "malformed triple-backtick string literal token (too short): %s", tokenText)
 			errorNode := &ast.ErrorNode{Message: "malformed raw string"}
-			nodeToPush = newNode(errorNode, token, ast.KindUnknown)
+			nodeToPush = newNode(errorNode, token, types.KindUnknown)
 		} else {
 			rawContent := tokenText[3 : len(tokenText)-3]
 			node := &ast.StringLiteralNode{Value: rawContent, IsRaw: true}
-			nodeToPush = newNode(node, token, ast.KindStringLiteral)
+			nodeToPush = newNode(node, token, types.KindStringLiteral)
 		}
 		l.push(nodeToPush)
 	}
@@ -77,17 +78,17 @@ func (l *neuroScriptListenerImpl) ExitBoolean_literal(ctx *gen.Boolean_literalCo
 		token = ctx.KW_TRUE().GetSymbol()
 		val = true
 		boolNode := &ast.BooleanLiteralNode{Value: val}
-		node = newNode(boolNode, token, ast.KindBooleanLiteral)
+		node = newNode(boolNode, token, types.KindBooleanLiteral)
 	} else if ctx.KW_FALSE() != nil {
 		token = ctx.KW_FALSE().GetSymbol()
 		val = false
 		boolNode := &ast.BooleanLiteralNode{Value: val}
-		node = newNode(boolNode, token, ast.KindBooleanLiteral)
+		node = newNode(boolNode, token, types.KindBooleanLiteral)
 	} else {
 		token = ctx.GetStart()
 		l.addErrorf(token, "malformed boolean literal: missing TRUE or FALSE keyword in rule: %s", ctx.GetText())
 		errorNode := &ast.ErrorNode{Message: "malformed boolean"}
-		node = newNode(errorNode, token, ast.KindUnknown)
+		node = newNode(errorNode, token, types.KindUnknown)
 	}
 	l.push(node)
 	l.logDebugAST("   << Exit BooleanLiteral, Pushed Node: %T", node)
@@ -101,12 +102,12 @@ func (l *neuroScriptListenerImpl) ExitNil_literal(ctx *gen.Nil_literalContext) {
 
 	if ctx.KW_NIL() != nil {
 		token = ctx.KW_NIL().GetSymbol()
-		node = newNode(&ast.NilLiteralNode{}, token, ast.KindNilLiteral)
+		node = newNode(&ast.NilLiteralNode{}, token, types.KindNilLiteral)
 	} else {
 		token = ctx.GetStart()
 		l.addErrorf(token, "malformed nil literal: missing NIL keyword in rule: %s", ctx.GetText())
 		errorNode := &ast.ErrorNode{Message: "malformed nil"}
-		node = newNode(errorNode, token, ast.KindUnknown)
+		node = newNode(errorNode, token, types.KindUnknown)
 	}
 	l.push(node)
 	l.logDebugAST("   << Exit NilLiteral, Pushed Node: %T", node)

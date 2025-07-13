@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.5.2
-// File version: 2
-// Purpose: Added the Verify function to complete the signing and verification logic.
+// File version: 3
+// Purpose: Corrected the Verify function to use the correct hashing logic and complete the AST decoding.
 // filename: pkg/sign/signer.go
 // nlines: 70
 // risk_rating: HIGH
@@ -14,6 +14,7 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/canon"
+	"golang.org/x/crypto/blake2b"
 )
 
 // SignedAST holds the canonical binary representation of an AST,
@@ -56,32 +57,26 @@ func Verify(publicKey ed25519.PublicKey, s *SignedAST) (*ast.Tree, error) {
 		return nil, fmt.Errorf("signed ast is nil or contains empty components")
 	}
 
-	// 1. Re-canonicalize the blob to get a fresh hash sum.
-	// This is a placeholder for a future, more efficient verification
-	// that doesn't require a full AST construction first. For now, we
-	// are verifying the hash of the blob directly.
-	_, freshSum, err := canon.Canonicalise(&ast.Tree{Root: &ast.Program{}}) // This is a placeholder
-	if err != nil {
-		return nil, fmt.Errorf("failed to re-hash blob for verification: %w", err)
-	}
+	// 1. Re-calculate the hash of the blob using the correct (BLAKE2b) algorithm.
+	freshSum := blake2b.Sum256(s.Blob)
 
-	// 2. Compare the fresh hash with the provided hash.
+	// 2. Compare the fresh hash with the provided hash to ensure data integrity.
 	if !bytes.Equal(freshSum[:], s.Sum[:]) {
 		return nil, fmt.Errorf("integrity check failed: blob hash does not match provided sum")
 	}
 
-	// 3. Verify the signature.
+	// 3. Verify the Ed25519 signature.
+	// The message is the hash digest prepended to the data blob.
 	messageToVerify := append(s.Sum[:], s.Blob...)
 	if !ed25519.Verify(publicKey, messageToVerify, s.Sig) {
 		return nil, fmt.Errorf("signature verification failed")
 	}
 
-	// 4. Decode the blob into an AST. (Placeholder for next step)
-	// tree, err := canon.Decode(s.Blob)
-	// if err != nil {
-	// 	return nil, fmt.Errorf("failed to decode verified blob: %w", err)
-	// }
+	// 4. Decode the verified blob back into an AST.
+	tree, err := canon.Decode(s.Blob)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode verified blob: %w", err)
+	}
 
-	// For now, return a placeholder tree on success.
-	return &ast.Tree{}, nil
+	return tree, nil
 }

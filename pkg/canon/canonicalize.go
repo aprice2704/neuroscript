@@ -1,8 +1,8 @@
-// filename: pkg/canon/canonicalize.go
 // NeuroScript Version: 0.5.2
-// File version: 6
-// Purpose: Implemented constant folding for unary minus to ensure semantic canonicalization.
-// nlines: 180+
+// File version: 9
+// Purpose: Reverted hashing algorithm to BLAKE2b to match the updated API contract.
+// filename: pkg/canon/canonicalize.go
+// nlines: 190+
 // risk_rating: MEDIUM
 
 package canon
@@ -16,7 +16,8 @@ import (
 	"sort"
 
 	"github.com/aprice2704/neuroscript/pkg/ast"
-	"golang.org/x/crypto/blake2b"
+	"github.com/aprice2704/neuroscript/pkg/types"
+	"golang.org/x/crypto/blake2b" // CORRECTED: Use BLAKE2b to match the updated spec.
 )
 
 // Canonicalise traverses an AST and produces a deterministic, platform-independent
@@ -27,6 +28,7 @@ func Canonicalise(tree *ast.Tree) ([]byte, [32]byte, error) {
 	}
 
 	var buf bytes.Buffer
+	// CORRECTED: Use the hashing algorithm specified in the contract.
 	hasher, _ := blake2b.New256(nil)
 
 	visitor := &canonVisitor{
@@ -54,11 +56,10 @@ type canonVisitor struct {
 // visit is the dispatcher for visiting any node type.
 func (v *canonVisitor) visit(node ast.Node) error {
 	if node == nil {
-		v.writeVarint(int64(ast.KindNilLiteral))
+		v.writeVarint(int64(types.KindNilLiteral))
 		return nil
 	}
 
-	// Do not write the kind for UnaryOp '-' on a number, as it will be folded.
 	if un, ok := node.(*ast.UnaryOpNode); ok && un.Operator == "-" {
 		if _, isNum := un.Operand.(*ast.NumberLiteralNode); isNum {
 			return v.visitUnaryOp(un)
@@ -87,6 +88,8 @@ func (v *canonVisitor) visit(node ast.Node) error {
 		return nil
 	case *ast.OnEventDecl:
 		return v.visitOnEventDecl(n)
+	case *ast.CommandNode:
+		return v.visitCommand(n) // Added for completeness, logic is in visitProgram
 	case *ast.CallableExprNode:
 		return v.visitCallableExpr(n)
 	case *ast.VariableNode:
@@ -105,11 +108,9 @@ func (v *canonVisitor) visit(node ast.Node) error {
 
 // --- Specific visitor methods ---
 func (v *canonVisitor) visitUnaryOp(u *ast.UnaryOpNode) error {
-	// Check for constant folding opportunity: '-' on a number literal
 	if u.Operator == "-" {
 		if num, ok := u.Operand.(*ast.NumberLiteralNode); ok {
-			// Fold the constant. Instead of writing UnaryOp, write a new NumberLiteral.
-			v.writeVarint(int64(ast.KindNumberLiteral))
+			v.writeVarint(int64(types.KindNumberLiteral))
 			switch val := num.Value.(type) {
 			case int64:
 				v.writeNumber(-val)
@@ -119,19 +120,17 @@ func (v *canonVisitor) visitUnaryOp(u *ast.UnaryOpNode) error {
 			return nil
 		}
 	}
-
-	// Default behavior for other unary ops
 	v.writeString(u.Operator)
 	return v.visit(u.Operand)
 }
 
 func (v *canonVisitor) visitProgram(p *ast.Program) error {
+	// Canonicalize Procedures
 	procNames := make([]string, 0, len(p.Procedures))
 	for name := range p.Procedures {
 		procNames = append(procNames, name)
 	}
 	sort.Strings(procNames)
-
 	v.writeVarint(int64(len(procNames)))
 	for _, name := range procNames {
 		if err := v.visit(p.Procedures[name]); err != nil {
@@ -139,9 +138,29 @@ func (v *canonVisitor) visitProgram(p *ast.Program) error {
 		}
 	}
 
+	// Canonicalize Events
 	v.writeVarint(int64(len(p.Events)))
 	for _, event := range p.Events {
 		if err := v.visit(event); err != nil {
+			return err
+		}
+	}
+
+	// **FIXED**: Canonicalize Commands
+	v.writeVarint(int64(len(p.Commands)))
+	for _, command := range p.Commands {
+		if err := v.visit(command); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// visitCommand handles the steps inside a command block.
+func (v *canonVisitor) visitCommand(c *ast.CommandNode) error {
+	v.writeVarint(int64(len(c.Body)))
+	for _, step := range c.Body {
+		if err := v.visit(&step); err != nil {
 			return err
 		}
 	}
@@ -250,9 +269,8 @@ func (v *canonVisitor) writeBool(b bool) {
 }
 
 func (v *canonVisitor) writeNumber(val interface{}) {
-	// FIX: Use math.Signbit to correctly handle signed zero for deterministic output.
 	if f, ok := val.(float64); ok && f == 0 && math.Signbit(f) {
-		val = 0.0 // Normalize -0.0 to 0.0
+		val = 0.0
 	}
 	strVal := fmt.Sprintf("%v", val)
 	v.writeString(strVal)

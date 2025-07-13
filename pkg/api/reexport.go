@@ -25,4 +25,7 @@ type (
 
 	// Specific AST nodes that might be useful externally
 	Program = ast.Program
+
+	Diag     = types.Diag
+	Severity = types.Severity
 )

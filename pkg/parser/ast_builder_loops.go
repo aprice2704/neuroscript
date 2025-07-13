@@ -8,6 +8,7 @@ package parser
 import (
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	gen "github.com/aprice2704/neuroscript/pkg/parser/generated"
+	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
 // --- Loop Statements ---
@@ -45,7 +46,7 @@ func (l *neuroScriptListenerImpl) ExitWhile_statement(ctx *gen.While_statementCo
 
 	pos := tokenToPosition(ctx.GetStart())
 	l.addStep(ast.Step{
-		BaseNode: ast.BaseNode{StartPos: &pos, NodeKind: ast.KindStep},
+		BaseNode: ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
 		Position: pos,
 		Type:     "while",
 		Cond:     cond,
@@ -86,7 +87,7 @@ func (l *neuroScriptListenerImpl) ExitFor_each_statement(ctx *gen.For_each_state
 
 	pos := tokenToPosition(ctx.GetStart())
 	l.addStep(ast.Step{
-		BaseNode:    ast.BaseNode{StartPos: &pos, NodeKind: ast.KindStep},
+		BaseNode:    ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
 		Position:    pos,
 		Type:        "for",
 		LoopVarName: ctx.IDENTIFIER().GetText(),

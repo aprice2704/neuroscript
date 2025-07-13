@@ -11,6 +11,7 @@ import (
 	"sync"
 
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
+	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
 var (
@@ -35,7 +36,7 @@ func RegisterPass(p interfaces.Pass) {
 
 // Vet runs all registered analysis passes on the given AST and returns a
 // consolidated list of diagnostics.
-func Vet(tree *interfaces.Tree) []interfaces.Diag {
+func Vet(tree *interfaces.Tree) []types.Diag {
 	passesMu.RLock()
 	// Create a snapshot of the passes to run so we don't hold the lock
 	// during the analysis itself.
@@ -45,7 +46,7 @@ func Vet(tree *interfaces.Tree) []interfaces.Diag {
 	}
 	passesMu.RUnlock()
 
-	var allDiags []interfaces.Diag
+	var allDiags []types.Diag
 	for _, p := range passesToRun {
 		diags := p.Analyse(tree)
 		if len(diags) > 0 {
