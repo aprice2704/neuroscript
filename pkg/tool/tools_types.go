@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.5.2
-// File version: 9
-// Purpose: Added ToolRegistry() to the Runtime interface to allow tools to access the registry.
+// File version: 10
+// Purpose: Added GetHandleValue to the Runtime interface to allow tools to resolve handles without importing the interpreter, breaking an import cycle.
 // filename: pkg/tool/tools_types.go
 // nlines: 110
 // risk_rating: HIGH
@@ -22,8 +22,10 @@ type Runtime interface {
 	CallTool(name types.FullName, args []any) (any, error)
 	GetLogger() interfaces.Logger
 	SandboxDir() string
-	ToolRegistry() ToolRegistry // <-- ADDED THIS LINE
+	ToolRegistry() ToolRegistry
 	LLM() interfaces.LLMClient
+	RegisterHandle(obj interface{}, typePrefix string) (string, error)
+	GetHandleValue(handle string, expectedTypePrefix string) (interface{}, error)
 }
 
 // ArgType defines the expected data type for a tool argument or return value.

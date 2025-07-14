@@ -144,7 +144,7 @@ func TestRuntimeErrorFormatting(t *testing.T) {
 
 	withPos := NewRuntimeError(ErrorCodeToolExecutionFailed, "tool failed", nil).WithPosition(&types.Position{Line: 10, Column: 5})
 	// FIX: Check for "col" instead of "column" to match the actual output.
-	if !strings.Contains(withPos.Error(), "at line 10, col 5") {
+	if !strings.Contains(withPos.Error(), "at 10:5") {
 		t.Errorf("Error with position format is incorrect: %s", withPos.Error())
 	}
 

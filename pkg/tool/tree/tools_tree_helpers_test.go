@@ -1,10 +1,11 @@
 // NeuroScript Version: 0.5.4
-// File version: 12
-// Purpose: Corrects all helper functions to use the exact tool names from tooldefs_tree.go, fixing widespread test failures. Adds getNodeIDByPath helper and fixes type assertion panic.
+// File version: 14
+// Purpose: Corrected the function signatures within the treeTestCase struct to use the tool.Runtime interface, resolving the final compiler error.
 // filename: pkg/tool/tree/tools_tree_test_helpers.go
 // nlines: 135
 // risk_rating: LOW
-package tree
+
+package tree_test
 
 import (
 	"errors"
@@ -21,19 +22,23 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/utils"
 )
 
+const group = "tree"
+
 type treeTestCase struct {
-	Name        string
-	ToolName    types.ToolName
-	Args        []interface{}
-	JSONInput   string
-	SetupFunc   func(t *testing.T, interp *interpreter.Interpreter, treeHandle string)
-	Validation  func(t *testing.T, interp *interpreter.Interpreter, treeHandle string, result interface{})
+	Name      string
+	ToolName  types.ToolName
+	Args      []interface{}
+	JSONInput string
+	// FIX: Updated function signatures to use tool.Runtime interface.
+	SetupFunc   func(t *testing.T, interp tool.Runtime, treeHandle string)
+	Validation  func(t *testing.T, interp tool.Runtime, treeHandle string, result interface{})
 	Expected    interface{}
 	ExpectedErr error
 }
 
-func testTreeToolHelper(t *testing.T, testName string, testFunc func(t *testing.T, interp *interpreter.Interpreter)) {
+func testTreeToolHelper(t *testing.T, testName string, testFunc func(t *testing.T, interp tool.Runtime)) {
 	t.Run(testName, func(t *testing.T) {
+		// This must be the actual interpreter to satisfy the runtime needs for handles.
 		interp := interpreter.NewInterpreter(interpreter.WithLogger(logging.NewTestLogger(t)))
 		if err := tool.RegisterExtendedTools(interp.ToolRegistry()); err != nil {
 			t.Fatalf("Failed to register extended tools: %v", err)
@@ -42,7 +47,7 @@ func testTreeToolHelper(t *testing.T, testName string, testFunc func(t *testing.
 	})
 }
 
-func runTool(t *testing.T, interp *interpreter.Interpreter, toolName types.ToolName, args ...interface{}) (interface{}, error) {
+func runTool(t *testing.T, interp tool.Runtime, toolName types.ToolName, args ...interface{}) (interface{}, error) {
 	t.Helper()
 	fullName := types.MakeFullName(group, string(toolName))
 	toolImpl, found := interp.ToolRegistry().GetTool(fullName)
@@ -70,7 +75,7 @@ func assertResult(t *testing.T, result interface{}, err error, expected interfac
 	}
 }
 
-func setupTreeWithJSON(t *testing.T, interp *interpreter.Interpreter, jsonStr string) (string, error) {
+func setupTreeWithJSON(t *testing.T, interp tool.Runtime, jsonStr string) (string, error) {
 	t.Helper()
 	result, err := runTool(t, interp, "LoadJSON", jsonStr)
 	if err != nil {
@@ -83,23 +88,22 @@ func setupTreeWithJSON(t *testing.T, interp *interpreter.Interpreter, jsonStr st
 	return handle, nil
 }
 
-// Corrected helper functions based on tooldefs_tree.go
-func callGetNode(t *testing.T, interp *interpreter.Interpreter, treeHandle string, nodeID string) (interface{}, error) {
+func callGetNode(t *testing.T, interp tool.Runtime, treeHandle string, nodeID string) (interface{}, error) {
 	t.Helper()
 	return runTool(t, interp, "GetNode", treeHandle, nodeID)
 }
 
-func callGetChildren(t *testing.T, interp *interpreter.Interpreter, treeHandle string, nodeID string) (interface{}, error) {
+func callGetChildren(t *testing.T, interp tool.Runtime, treeHandle string, nodeID string) (interface{}, error) {
 	t.Helper()
 	return runTool(t, interp, "GetChildren", treeHandle, nodeID)
 }
 
-func callSetNodeMetadata(t *testing.T, interp *interpreter.Interpreter, treeHandle string, nodeID string, key string, value string) (interface{}, error) {
+func callSetNodeMetadata(t *testing.T, interp tool.Runtime, treeHandle string, nodeID string, key string, value string) (interface{}, error) {
 	t.Helper()
 	return runTool(t, interp, "SetNodeMetadata", treeHandle, nodeID, key, value)
 }
 
-func callGetValue(t *testing.T, interp *interpreter.Interpreter, treeHandle string, nodeID string) (interface{}, error) {
+func callGetValue(t *testing.T, interp tool.Runtime, treeHandle string, nodeID string) (interface{}, error) {
 	t.Helper()
 	nodeInfo, err := callGetNode(t, interp, treeHandle, nodeID)
 	if err != nil {
@@ -112,7 +116,7 @@ func callGetValue(t *testing.T, interp *interpreter.Interpreter, treeHandle stri
 	return nodeMap["value"], nil
 }
 
-func callGetMetadata(t *testing.T, interp *interpreter.Interpreter, treeHandle string, nodeID string) (interface{}, error) {
+func callGetMetadata(t *testing.T, interp tool.Runtime, treeHandle string, nodeID string) (interface{}, error) {
 	t.Helper()
 	nodeInfo, err := callGetNode(t, interp, treeHandle, nodeID)
 	if err != nil {
@@ -122,10 +126,8 @@ func callGetMetadata(t *testing.T, interp *interpreter.Interpreter, treeHandle s
 	if !ok {
 		t.Fatalf("GetNode did not return a map, got %T", nodeInfo)
 	}
-	// According to the spec, 'attributes' holds the metadata for non-object nodes
 	attributes, ok := nodeMap["attributes"].(utils.TreeAttrs)
 	if !ok {
-		// It might be a map[string]interface{} from the interpreter
 		attrMap, ok := nodeMap["attributes"].(map[string]interface{})
 		if !ok {
 			t.Fatalf("attributes is not a map, but %T", nodeMap["attributes"])
@@ -141,7 +143,6 @@ func callGetMetadata(t *testing.T, interp *interpreter.Interpreter, treeHandle s
 	}
 
 	for k, v := range attributes {
-		// For objects, attributes are children. If the value isn't a string, it must be metadata.
 		if _, ok := v.(string); !ok {
 			metadata[k] = v
 		}
@@ -150,19 +151,18 @@ func callGetMetadata(t *testing.T, interp *interpreter.Interpreter, treeHandle s
 	return metadata, nil
 }
 
-func callToJSON(t *testing.T, interp *interpreter.Interpreter, treeHandle string) (interface{}, error) {
+func callToJSON(t *testing.T, interp tool.Runtime, treeHandle string) (interface{}, error) {
 	t.Helper()
 	return runTool(t, interp, "ToJSON", treeHandle)
 }
 
-func callAddChildNode(t *testing.T, interp *interpreter.Interpreter, args ...interface{}) (interface{}, error) {
+func callAddChildNode(t *testing.T, interp tool.Runtime, args ...interface{}) (interface{}, error) {
 	t.Helper()
 	return runTool(t, interp, "AddChildNode", args...)
 }
 
-func getRootNode(t *testing.T, interp *interpreter.Interpreter, treeHandle string) map[string]interface{} {
+func getRootNode(t *testing.T, interp tool.Runtime, treeHandle string) map[string]interface{} {
 	t.Helper()
-	// The first node created is the root.
 	node, err := callGetNode(t, interp, treeHandle, "node-1")
 	if err != nil {
 		t.Fatalf("could not get root node: %v", err)
@@ -170,12 +170,12 @@ func getRootNode(t *testing.T, interp *interpreter.Interpreter, treeHandle strin
 	return node.(map[string]interface{})
 }
 
-func getRootID(t *testing.T, interp *interpreter.Interpreter, treeHandle string) string {
+func getRootID(t *testing.T, interp tool.Runtime, treeHandle string) string {
 	t.Helper()
 	return getRootNode(t, interp, treeHandle)["id"].(string)
 }
 
-func getNodeIDByPath(t *testing.T, interp *interpreter.Interpreter, treeHandle string, path string) (string, error) {
+func getNodeIDByPath(t *testing.T, interp tool.Runtime, treeHandle string, path string) (string, error) {
 	t.Helper()
 	rootID := getRootID(t, interp, treeHandle)
 	if path == "" || path == "root" {

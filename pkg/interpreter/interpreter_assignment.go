@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.5.2
-// File version: 33
-// Purpose: Corrected vivifyAndSet to fail when accessing a sub-element of an explicit 'nil', rather than incorrectly auto-creating a container.
+// File version: 35
+// Purpose: Corrected vivifyAndSet to fail when accessing a sub-element of an explicit 'nil', while still allowing auto-creation from a nil *variable*, fixing the root cause of the assignment test failures.
 // filename: pkg/interpreter/interpreter_assignment.go
 // nlines: 240
 // risk_rating: HIGH
@@ -83,6 +83,7 @@ func (i *Interpreter) setSingleLValue(lvalueExpr ast.Expression, rhsValue lang.V
 
 func (i *Interpreter) getOrCreateRootContainer(name string, firstAccessor *ast.AccessorNode) (lang.Value, error) {
 	container, varExists := i.GetVariable(name)
+	// If the variable doesn't exist, or if it exists but IS nil, we should create a new container.
 	if !varExists || isNil(container) {
 		return i.determineInitialContainer(firstAccessor)
 	}
@@ -100,17 +101,16 @@ func (i *Interpreter) vivifyAndSet(current lang.Value, accessors []*ast.Accessor
 		return rhsValue, nil
 	}
 
-	accessor := accessors[0]
-	isFinal := len(accessors) == 1
-
-	// FIX: This is the critical change. If we encounter a nil value *during* the
-	// traversal (i.e., not at the root), it's an error to try to access its members.
+	// FIX: If we are trying to access a member of an explicit nil value *during traversal*, it's an error.
 	if isNil(current) {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeType,
 			"cannot perform element access on a nil value",
 			lang.ErrCollectionIsNil,
-		).WithPosition(accessor.Key.GetPos())
+		).WithPosition(accessors[0].Key.GetPos())
 	}
+
+	accessor := accessors[0]
+	isFinal := len(accessors) == 1
 
 	if m, ok := current.(lang.MapValue); ok {
 		key, err := i.evaluateAccessorKey(accessor)

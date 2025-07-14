@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.5.2
-// File version: 1.6.0
-// Purpose: Corrected mock tool registration to include a group, aligning with the new tool naming system and fixing the test.
+// File version: 2.1.0
+// Purpose: Corrected a compiler error by initializing the Position struct directly instead of calling a non-existent constructor.
 // filename: pkg/interpreter/interpreter_steps_ask_test.go
 // nlines: 160
 // risk_rating: MEDIUM
@@ -75,7 +75,9 @@ func TestAskStatement(t *testing.T) {
 		interp, _ := newLocalTestInterpreter(t, nil, nil)
 		interp.aiWorker = mockLLM
 
-		script := `ask "What is the capital of Canada?" into result`
+		script := `func ask_test() means
+			ask "What is the capital of Canada?" into result
+		endfunc`
 		_, err := interp.ExecuteScriptString("ask_test", script, nil)
 		if err != nil {
 			t.Fatalf("ExecuteScriptString failed: %v", err)
@@ -111,7 +113,6 @@ func TestAskStatement(t *testing.T) {
 		interp.aiWorker = mockLLM
 
 		var toolWasCalledWith string
-		// FIX: The tool registration must include a Group.
 		weatherTool := tool.ToolImplementation{
 			Spec: tool.ToolSpec{Name: "GetWeather", Group: "Weather", Args: []tool.ArgSpec{{Name: "location", Type: "string"}}},
 			Func: func(rt tool.Runtime, args []interface{}) (interface{}, error) {
@@ -130,6 +131,8 @@ func TestAskStatement(t *testing.T) {
 			Values: []ast.Expression{
 				&ast.StringLiteralNode{Value: "What is the weather in Ottawa?"},
 			},
+			// FIX: Use a struct literal for types.Position
+			Position: types.Position{Line: 1, Column: 1, File: "test_ask_ai"},
 		}
 
 		err := interp.executeAskAI(step)
@@ -149,7 +152,9 @@ func TestAskStatement(t *testing.T) {
 		interp, _ := newLocalTestInterpreter(t, nil, nil)
 		interp.aiWorker = mockLLM
 
-		script := `ask "This will fail" into result`
+		script := `func ask_fail_test() means
+			ask "This will fail" into result
+		endfunc`
 		_, err := interp.ExecuteScriptString("ask_fail_test", script, nil)
 
 		if err == nil {

@@ -12,7 +12,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/aprice2704/neuroscript/pkg/interpreter"
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 	"github.com/aprice2704/neuroscript/pkg/utils"
@@ -141,7 +141,7 @@ func toolTreeLoadJSON(interp tool.Runtime, args []interface{}) (interface{}, err
 			lang.ErrInternal,
 		)
 	}
-	interpImpl, ok := interp.(*interpreter.Interpreter)
+	interpImpl, ok := interp.(interfaces.Interpreter)
 	if !ok {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, "could not assert interpreter to register handle", nil)
 	}

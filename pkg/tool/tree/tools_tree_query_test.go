@@ -1,16 +1,16 @@
 // NeuroScript Version: 0.5.4
-// File version: 13
-// Purpose: Corrects final query tests by using unique node IDs and passing a proper map to the FindNodes tool.
+// File version: 14
+// Purpose: Corrected all function signatures in test cases to use tool.Runtime, resolving compiler errors.
 // filename: pkg/tool/tree/tools_tree_query_test.go
 // nlines: 130
 // risk_rating: LOW
-package tree
+package tree_test
 
 import (
 	"testing"
 
-	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 	"github.com/aprice2704/neuroscript/pkg/utils"
 )
 
@@ -31,12 +31,11 @@ func TestTreeQuery(t *testing.T) {
 			JSONInput: baseJSON,
 			ToolName:  "FindNodes",
 			Args:      []interface{}{nil, "placeholder_root", map[string]interface{}{"type": "object"}, int64(-1), int64(-1)},
-			Validation: func(t *testing.T, interp *interpreter.Interpreter, treeHandle string, result interface{}) {
+			Validation: func(t *testing.T, interp tool.Runtime, treeHandle string, result interface{}) {
 				results, ok := result.([]interface{})
 				if !ok {
 					t.Fatalf("FindNodes did not return a slice, got %T", result)
 				}
-				// Expecting root, config, and 3 files = 5 object nodes
 				if len(results) != 5 {
 					t.Errorf("Expected 5 object nodes, got %d", len(results))
 				}
@@ -47,7 +46,7 @@ func TestTreeQuery(t *testing.T) {
 			JSONInput: baseJSON,
 			ToolName:  "FindNodes",
 			Args:      []interface{}{nil, "placeholder_root", map[string]interface{}{"metadata": map[string]interface{}{"name": "file2.txt"}}},
-			Validation: func(t *testing.T, interp *interpreter.Interpreter, treeHandle string, result interface{}) {
+			Validation: func(t *testing.T, interp tool.Runtime, treeHandle string, result interface{}) {
 				results, ok := result.([]interface{})
 				if !ok {
 					t.Fatalf("FindNodes did not return a slice, got %T", result)
@@ -90,21 +89,20 @@ func TestTreeQuery(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		testTreeToolHelper(t, tc.Name, func(t *testing.T, interp *interpreter.Interpreter) {
+		testTreeToolHelper(t, tc.Name, func(t *testing.T, interp tool.Runtime) {
 			treeHandle, err := setupTreeWithJSON(t, interp, tc.JSONInput)
 			if err != nil {
 				t.Fatalf("Tree setup failed unexpectedly: %v", err)
 			}
 
-			// Get the root node ID to use as the starting point for queries
 			rootID := getRootID(t, interp, treeHandle)
 
 			args := tc.Args
 			if len(args) > 0 {
-				if args[0] == nil { // Replace tree placeholder
+				if args[0] == nil {
 					args[0] = treeHandle
 				}
-				if args[1] == "placeholder_root" { // Replace path placeholder
+				if args[1] == "placeholder_root" {
 					args[1] = rootID
 				}
 			}

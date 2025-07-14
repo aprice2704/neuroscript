@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.3.5
-// File version: 5.5.0
-// Purpose: A self-contained test suite for the interpreter, moved into the 'interpreter' package to allow access to unexported members and resolve all previous compiler errors.
+// File version: 9.2.0
+// Purpose: Corrected the tool call test to use types.MakeFullName, ensuring the proper, fully qualified tool name ('tool.list.Append') is used for the lookup.
 // filename: pkg/interpreter/interpreter_suite_test.go
 package interpreter
 
@@ -14,8 +14,6 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/logging"
 	"github.com/aprice2704/neuroscript/pkg/types"
-	// FIX: Removed blank imports that were causing a dependency cycle.
-	// Tool registration for tests will be handled at a higher level.
 )
 
 // --- Local Test Case Struct ---
@@ -38,7 +36,7 @@ var localTestPos = &types.Position{Line: 1, Column: 1, File: "test"}
 func createTestStep(stepType, lvalueName string, value ast.Expression, call *ast.CallableExprNode) ast.Step {
 	step := ast.Step{
 		Type:     stepType,
-		Position: *localTestPos, // ast.Step uses a struct, not a pointer
+		Position: *localTestPos,
 	}
 	if lvalueName != "" {
 		step.LValues = []*ast.LValueNode{{Identifier: lvalueName, Position: *localTestPos}}
@@ -130,6 +128,7 @@ func newLocalTestInterpreter(t *testing.T, initialVars map[string]lang.Value, la
 		WithLogger(testLogger),
 		WithSandboxDir(sandboxDir),
 	)
+
 	for k, v := range initialVars {
 		if err := interp.SetInitialVariable(k, v); err != nil {
 			return nil, fmt.Errorf("failed to set initial variable %q: %w", k, err)
@@ -138,7 +137,6 @@ func newLocalTestInterpreter(t *testing.T, initialVars map[string]lang.Value, la
 	if lastResult != nil {
 		interp.lastCallResult = lastResult
 	}
-	// No need to call RegisterCoreTools here as the blank imports handle registration.
 	return interp, nil
 }
 
@@ -252,15 +250,15 @@ func TestExecuteStepsBlocksAndLoops(t *testing.T) {
 			name: "Tool Call List.Append",
 			inputSteps: []ast.Step{
 				createTestStep("set", "lvar", nil, &ast.CallableExprNode{
-					Pos:       localTestPos,
-					Target:    ast.CallTarget{Pos: localTestPos, IsTool: true, Name: "List.Append"},
+					Pos: localTestPos,
+					// FIX: Use types.MakeFullName to construct the robust, fully-qualified tool name.
+					Target:    ast.CallTarget{Pos: localTestPos, IsTool: true, Name: string(types.MakeFullName("list", "Append"))},
 					Arguments: []ast.Expression{&ast.VariableNode{Pos: localTestPos, Name: "initialListVar"}, &ast.StringLiteralNode{Value: "newItem"}},
 				}),
 			},
-			initialVars: map[string]lang.Value{"initialListVar": initialList},
-			// This test will fail until tool registration is fixed at the test entry point.
-			expectError:     true,
-			expectedErrorIs: lang.ErrToolNotFound,
+			initialVars:    map[string]lang.Value{"initialListVar": initialList},
+			expectedResult: lang.NewListValue([]lang.Value{lang.StringValue{Value: "item1"}, lang.NumberValue{Value: 2}, lang.BoolValue{Value: true}, lang.StringValue{Value: "newItem"}}),
+			expectError:    false,
 		},
 	}
 

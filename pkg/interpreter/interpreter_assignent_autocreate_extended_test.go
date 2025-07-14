@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.5.2
-// File version: 1.0.0
-// Purpose: Adds advanced, dedicated tests for complex lvalue auto-creation (vivification) scenarios.
+// File version: 2.0.0
+// Purpose: Adds advanced, dedicated tests for complex lvalue auto-creation (vivification) scenarios. Corrected helper to wrap test scripts in function definitions.
 // filename: pkg/interpreter/interpreter_assignment_autocreate_extended_test.go
 // nlines: 100
 // risk_rating: MEDIUM
@@ -23,7 +23,11 @@ func checkAdvancedAssignment(t *testing.T, script string, initialVars map[string
 		t.Fatalf("Failed to create test interpreter: %v", err)
 	}
 
-	_, execErr := interpreter.ExecuteScriptString(fmt.Sprintf("test_autocreate_advanced_%s", varName), script, nil)
+	// FIX: Wrap the script in a function to make it a valid program.
+	scriptName := fmt.Sprintf("test_autocreate_advanced_%s", varName)
+	fullScript := fmt.Sprintf("func %s() means\n%s\nendfunc", scriptName, script)
+
+	_, execErr := interpreter.ExecuteScriptString(scriptName, fullScript, nil)
 
 	if execErr != nil {
 		t.Fatalf("Script execution failed for '%s':\nScript:\n%s\nError: %s",

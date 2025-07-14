@@ -1,16 +1,16 @@
 // NeuroScript Version: 0.5.4
-// File version: 14
-// Purpose: Corrects final metadata tests by handling the utils.TreeAttrs type and refining the FindNodes query.
+// File version: 15
+// Purpose: Corrected all function signatures in test cases to use tool.Runtime, resolving all compiler errors.
 // filename: pkg/tool/tree/tools_tree_metadata_test.go
 // nlines: 95
 // risk_rating: LOW
-package tree
+package tree_test
 
 import (
 	"testing"
 
-	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 	"github.com/aprice2704/neuroscript/pkg/utils"
 )
 
@@ -21,13 +21,12 @@ func TestTreeMetadata(t *testing.T) {
 		{
 			Name:      "Get_Root_Metadata_Empty",
 			JSONInput: `{"a":1}`,
-			Validation: func(t *testing.T, interp *interpreter.Interpreter, treeHandle string, result interface{}) {
+			Validation: func(t *testing.T, interp tool.Runtime, treeHandle string, result interface{}) {
 				rootID := getRootID(t, interp, treeHandle)
 				metadata, err := callGetMetadata(t, interp, treeHandle, rootID)
 				if err != nil {
 					t.Fatalf("callGetMetadata failed unexpectedly: %v", err)
 				}
-				// The tool returns a specific TreeAttrs type.
 				metaAttrs, ok := metadata.(utils.TreeAttrs)
 				if !ok {
 					t.Fatalf("GetMetadata did not return a utils.TreeAttrs, got %T", metadata)
@@ -40,7 +39,7 @@ func TestTreeMetadata(t *testing.T) {
 		{
 			Name:      "Set_and_Get_Metadata",
 			JSONInput: baseJSON,
-			SetupFunc: func(t *testing.T, interp *interpreter.Interpreter, treeHandle string) {
+			SetupFunc: func(t *testing.T, interp tool.Runtime, treeHandle string) {
 				targetNodeID, err := getNodeIDByPath(t, interp, treeHandle, "a.b")
 				if err != nil {
 					t.Fatalf("Setup failed: could not get node 'a.b': %v", err)
@@ -51,7 +50,7 @@ func TestTreeMetadata(t *testing.T) {
 					t.Fatalf("callSetNodeMetadata in setup failed: %v", err)
 				}
 			},
-			Validation: func(t *testing.T, interp *interpreter.Interpreter, treeHandle string, result interface{}) {
+			Validation: func(t *testing.T, interp tool.Runtime, treeHandle string, result interface{}) {
 				targetNodeID, err := getNodeIDByPath(t, interp, treeHandle, "a.b")
 				if err != nil {
 					t.Fatalf("Validation failed: could not get node 'a.b': %v", err)
@@ -79,7 +78,7 @@ func TestTreeMetadata(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		testTreeToolHelper(t, tc.Name, func(t *testing.T, interp *interpreter.Interpreter) {
+		testTreeToolHelper(t, tc.Name, func(t *testing.T, interp tool.Runtime) {
 			treeHandle, err := setupTreeWithJSON(t, interp, tc.JSONInput)
 			if err != nil && tc.ExpectedErr == nil {
 				t.Fatalf("Tree setup failed unexpectedly: %v", err)

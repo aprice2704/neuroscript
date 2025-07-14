@@ -1,17 +1,17 @@
 // NeuroScript Version: 0.5.4
-// File version: 14
-// Purpose: Corrects the final compiler error by handling special test setup directly within the test loop, avoiding the scoping issue.
+// File version: 15
+// Purpose: Corrected all function signatures in test cases to use tool.Runtime, resolving compiler errors.
 // filename: pkg/tool/tree/tools_tree_nav_test.go
 // nlines: 145
 // risk_rating: LOW
-package tree
+package tree_test
 
 import (
 	"reflect"
 	"testing"
 
-	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 	"github.com/aprice2704/neuroscript/pkg/utils"
 )
 
@@ -32,7 +32,7 @@ func TestTreeNav(t *testing.T) {
 		{
 			Name:      "Get_Node_Root",
 			JSONInput: baseJSON,
-			Validation: func(t *testing.T, interp *interpreter.Interpreter, treeHandle string, result interface{}) {
+			Validation: func(t *testing.T, interp tool.Runtime, treeHandle string, result interface{}) {
 				rootID := getRootID(t, interp, treeHandle)
 				rootNode, err := callGetNode(t, interp, treeHandle, rootID)
 				if err != nil {
@@ -46,7 +46,7 @@ func TestTreeNav(t *testing.T) {
 		{
 			Name:      "Get_Node_Child",
 			JSONInput: baseJSON,
-			Validation: func(t *testing.T, interp *interpreter.Interpreter, treeHandle string, result interface{}) {
+			Validation: func(t *testing.T, interp tool.Runtime, treeHandle string, result interface{}) {
 				nodeID, err := getNodeIDByPath(t, interp, treeHandle, "root.children.0")
 				if err != nil {
 					t.Fatalf("Validation failed: could not get node id for 'root.children.0': %v", err)
@@ -85,7 +85,7 @@ func TestTreeNav(t *testing.T) {
 		{
 			Name:      "Get_Children",
 			JSONInput: baseJSON,
-			Validation: func(t *testing.T, interp *interpreter.Interpreter, treeHandle string, result interface{}) {
+			Validation: func(t *testing.T, interp tool.Runtime, treeHandle string, result interface{}) {
 				nodeID, err := getNodeIDByPath(t, interp, treeHandle, "root.children")
 				if err != nil {
 					t.Fatalf("could not get node id for %s: %v", "root.children", err)
@@ -107,7 +107,7 @@ func TestTreeNav(t *testing.T) {
 		{
 			Name:      "Get_Parent",
 			JSONInput: baseJSON,
-			Validation: func(t *testing.T, interp *interpreter.Interpreter, treeHandle string, result interface{}) {
+			Validation: func(t *testing.T, interp tool.Runtime, treeHandle string, result interface{}) {
 				childID, err := getNodeIDByPath(t, interp, treeHandle, "root.children.0")
 				if err != nil {
 					t.Fatalf("Setup for Get_Parent failed: could not get child node: %v", err)
@@ -133,7 +133,7 @@ func TestTreeNav(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		testTreeToolHelper(t, tc.Name, func(t *testing.T, interp *interpreter.Interpreter) {
+		testTreeToolHelper(t, tc.Name, func(t *testing.T, interp tool.Runtime) {
 			treeHandle, err := setupTreeWithJSON(t, interp, tc.JSONInput)
 			if err != nil {
 				t.Fatalf("Tree setup failed unexpectedly: %v", err)

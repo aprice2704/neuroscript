@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.5.2
-// File version: 1.2.0
-// Purpose: Corrected syntax in the infinite loop test by adding a statement to the loop body, fixing the parser error.
+// File version: 2.0.0
+// Purpose: Corrected the infinite loop test script by wrapping it in a full function definition, fixing the parser error.
 // filename: pkg/interpreter/interpreter_resource_usage_test.go
 // nlines: 80
 // risk_rating: MEDIUM
@@ -44,18 +44,33 @@ func TestResourceUsageLimits(t *testing.T) {
 	})
 
 	t.Run("Maximum Loop Iterations", func(t *testing.T) {
-		// FIX: Added 'set a = 1' to the loop body to make the script
-		// syntactically valid for the parser.
+		// FIX: The script is now wrapped in a valid function definition.
 		script := `
-			while true
-				set a = 1
-			endwhile
+			func main() means
+				while true
+					set a = 1
+				endwhile
+			endfunc
 		`
 		interp, _ := newLocalTestInterpreter(t, nil, nil)
 		// Lower the limit for a faster test
 		interp.maxLoopIterations = 500
 
-		_, err := interp.ExecuteScriptString("infinite_loop_test", script, nil)
+		// The test now runs the 'main' function from the parsed script.
+		parserAPI := parser.NewParserAPI(interp.GetLogger())
+		p, pErr := parserAPI.Parse(script)
+		if pErr != nil {
+			t.Fatalf("Failed to parse script: %v", pErr)
+		}
+		program, _, bErr := parser.NewASTBuilder(interp.GetLogger()).Build(p)
+		if bErr != nil {
+			t.Fatalf("Failed to build AST: %v", bErr)
+		}
+		if err := interp.Load(program); err != nil {
+			t.Fatalf("Failed to load program: %v", err)
+		}
+
+		_, err := interp.Run("main")
 
 		if err == nil {
 			t.Fatal("Expected an error for exceeding max loop iterations, but got nil")

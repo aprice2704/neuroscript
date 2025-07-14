@@ -13,6 +13,9 @@
 - [ ] add proc as alias for func, endproc for endfunc
 - [ ] remove need for line continuation if easy (check at least)
 - [ ] fn built in type?
+- [ ] fuzzy literal
+- [ ] other specialized types literals?
+- [ ] mustbe
  
  ## Worker Management System
 

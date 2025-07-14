@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.5.2
-// File version: 11
-// Purpose: Corrected the test suite by moving the 'assign to nil' case to the success tests, as this is expected behavior.
+// File version: 12
+// Purpose: Corrected test suite helpers to wrap script snippets in a full function definition, fixing parsing errors.
 // filename: pkg/interpreter/interpreter_assignment_autocreate_test.go
 // nlines: 180
 // risk_rating: LOW
@@ -24,7 +24,11 @@ func checkVariableStateAfterSet(t *testing.T, script string, initialVars map[str
 		t.Fatalf("Failed to create test interpreter: %v", err)
 	}
 
-	_, execErr := interpreter.ExecuteScriptString(fmt.Sprintf("test_autocreate_%s", varName), script, nil)
+	// FIX: Wrap the script in a function to make it a valid program.
+	scriptName := fmt.Sprintf("test_autocreate_%s", varName)
+	fullScript := fmt.Sprintf("func %s() means\n%s\nendfunc", scriptName, script)
+
+	_, execErr := interpreter.ExecuteScriptString(scriptName, fullScript, nil)
 
 	if execErr != nil {
 		t.Fatalf("Script execution failed for '%s':\nScript:\n%s\nError: %s (Code: %d, Position: %s, Wrapped: %v)",
@@ -52,7 +56,11 @@ func checkAssignmentFailure(t *testing.T, script string, initialVars map[string]
 		t.Fatalf("Failed to create test interpreter: %v", err)
 	}
 
-	_, execErr := interpreter.ExecuteScriptString("test_failure", script, nil)
+	// FIX: Wrap the script in a function to make it a valid program.
+	scriptName := "test_failure"
+	fullScript := fmt.Sprintf("func %s() means\n%s\nendfunc", scriptName, script)
+
+	_, execErr := interpreter.ExecuteScriptString(scriptName, fullScript, nil)
 
 	if execErr == nil {
 		t.Fatalf("Expected script to fail, but it succeeded.\nScript:\n%s", script)

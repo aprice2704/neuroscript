@@ -59,6 +59,14 @@ func (m *mockRuntime) GetLogger() interfaces.Logger                          { r
 func (m *mockRuntime) SandboxDir() string                                    { return "/tmp/ns_test_sandbox" }
 func (m *mockRuntime) ToolRegistry() tool.ToolRegistry                       { return nil }
 func (m *mockRuntime) LLM() interfaces.LLMClient                             { return nil }
+func (m *mockRuntime) RegisterHandle(obj interface{}, typePrefix string) (string, error) {
+	return "mock", nil
+}
+
+// FIX: Added the missing method to satisfy the tool.Runtime interface.
+func (m *mockRuntime) GetHandleValue(handle string, expectedTypePrefix string) (interface{}, error) {
+	return nil, nil // Mock implementation
+}
 
 // --- Tests ---
 

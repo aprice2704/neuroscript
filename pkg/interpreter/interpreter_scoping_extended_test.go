@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.5.2
-// File version: 2.1.0
-// Purpose: Corrected the 'For Loop' test to use initialVars correctly, fixing the test failure.
+// File version: 3.0.0
+// Purpose: Corrected the test helper to wrap script snippets in a full function definition, fixing all parsing-related test failures.
 // filename: pkg/interpreter/interpreter_scoping_extended_test.go
 // nlines: 125
 // risk_rating: LOW
@@ -24,7 +24,11 @@ func runScopeTestScript(t *testing.T, scriptContent string, initialVars map[stri
 		return nil, fmt.Errorf("failed to create test interpreter: %w", err)
 	}
 
-	_, execErr := interp.ExecuteScriptString("scoping_test", scriptContent, nil)
+	// FIX: Wrap the raw script snippet in a function definition to make it a valid program.
+	scriptName := "scoping_test"
+	fullScript := fmt.Sprintf("func %s() means\n%s\nendfunc", scriptName, scriptContent)
+
+	_, execErr := interp.ExecuteScriptString(scriptName, fullScript, nil)
 	if execErr != nil {
 		// We return the interpreter state even on failure to allow inspection.
 		return interp, execErr

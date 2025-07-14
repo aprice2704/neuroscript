@@ -1,15 +1,15 @@
 // NeuroScript Version: 0.5.4
-// File version: 9
-// Purpose: Corrects tree modification tests to use the precise tool names and handle-based API for all operations and validations.
+// File version: 16
+// Purpose: Corrected all function signatures in test cases to use tool.Runtime, resolving all compiler errors.
 // filename: pkg/tool/tree/tools_tree_modify_test.go
 // nlines: 200
 // risk_rating: LOW
-package tree
+package tree_test
 
 import (
 	"testing"
 
-	"github.com/aprice2704/neuroscript/pkg/interpreter"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
 func TestTreeModify(t *testing.T) {
@@ -20,10 +20,9 @@ func TestTreeModify(t *testing.T) {
 			Name:      "Add_Node_to_Root",
 			JSONInput: baseJSON,
 			ToolName:  "AddChildNode",
-			// Args: treeHandle, parentNodeId, newNodeId, type, value, key
-			Args:     []interface{}{nil, "placeholder_parent", "e", "number", float64(4), "e"},
-			Expected: "e",
-			Validation: func(t *testing.T, interp *interpreter.Interpreter, treeHandle string, result interface{}) {
+			Args:      []interface{}{nil, "placeholder_parent", "e", "number", float64(4), "e"},
+			Expected:  "e",
+			Validation: func(t *testing.T, interp tool.Runtime, treeHandle string, result interface{}) {
 				val, err := callGetValue(t, interp, treeHandle, result.(string))
 				if err != nil {
 					t.Fatalf("Validation failed: could not get value of node 'e': %v", err)
@@ -37,13 +36,11 @@ func TestTreeModify(t *testing.T) {
 			Name:      "Remove_Node_from_Child",
 			JSONInput: baseJSON,
 			ToolName:  "RemoveNode",
-			Validation: func(t *testing.T, interp *interpreter.Interpreter, treeHandle string, result interface{}) {
-				// To remove a.b, we need its actual ID first
+			Validation: func(t *testing.T, interp tool.Runtime, treeHandle string, result interface{}) {
 				nodeID, err := getNodeIDByPath(t, interp, treeHandle, "a.b")
 				if err != nil {
 					t.Fatalf("Setup failed: could not get node 'a.b': %v", err)
 				}
-				// Now call RemoveNode with the correct ID
 				_, err = runTool(t, interp, "RemoveNode", treeHandle, nodeID)
 				if err != nil {
 					t.Fatalf("Setup failed: RemoveNode failed unexpectedly: %v", err)
@@ -59,8 +56,7 @@ func TestTreeModify(t *testing.T) {
 			Name:      "Set_Value_on_Child",
 			JSONInput: baseJSON,
 			ToolName:  "SetValue",
-			Validation: func(t *testing.T, interp *interpreter.Interpreter, treeHandle string, result interface{}) {
-				// Get the ID for a.b.c to set its value
+			Validation: func(t *testing.T, interp tool.Runtime, treeHandle string, result interface{}) {
 				nodeID, err := getNodeIDByPath(t, interp, treeHandle, "a.b.c")
 				if err != nil {
 					t.Fatalf("Setup failed: could not get node 'a.b.c': %v", err)
@@ -83,13 +79,11 @@ func TestTreeModify(t *testing.T) {
 			Name:      "Append_Child_to_Array",
 			JSONInput: baseJSON,
 			ToolName:  "AddChildNode",
-			Validation: func(t *testing.T, interp *interpreter.Interpreter, treeHandle string, result interface{}) {
-				// Get the ID for the array 'd'
+			Validation: func(t *testing.T, interp tool.Runtime, treeHandle string, result interface{}) {
 				nodeID, err := getNodeIDByPath(t, interp, treeHandle, "d")
 				if err != nil {
 					t.Fatalf("Setup failed: could not get node 'd': %v", err)
 				}
-				// Add a new number node to the array
 				_, err = callAddChildNode(t, interp, treeHandle, nodeID, "new_child", "number", float64(4), nil)
 				if err != nil {
 					t.Fatalf("Setup failed: AddChildNode failed unexpectedly: %v", err)
@@ -115,7 +109,7 @@ func TestTreeModify(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		testTreeToolHelper(t, tc.Name, func(t *testing.T, interp *interpreter.Interpreter) {
+		testTreeToolHelper(t, tc.Name, func(t *testing.T, interp tool.Runtime) {
 			treeHandle, err := setupTreeWithJSON(t, interp, tc.JSONInput)
 			if err != nil {
 				t.Fatalf("Tree setup failed unexpectedly: %v", err)
@@ -124,7 +118,6 @@ func TestTreeModify(t *testing.T) {
 
 			var result interface{}
 			if tc.ToolName != "" && len(tc.Args) > 0 {
-				// Replace nil placeholder with the handle if needed
 				args := tc.Args
 				if len(args) > 0 {
 					if args[0] == nil {
@@ -138,7 +131,6 @@ func TestTreeModify(t *testing.T) {
 				assertResult(t, result, err, tc.Expected, tc.ExpectedErr)
 			}
 
-			// Run validation if it exists
 			if tc.Validation != nil {
 				tc.Validation(t, interp, treeHandle, result)
 			}

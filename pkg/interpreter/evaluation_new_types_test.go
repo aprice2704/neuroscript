@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.5.2
-// File version: 21
-// Purpose: Updated all inline scripts to use full 'tool.Group.Name' syntax and corrected tool registrations to pass all tests.
+// File version: 22
+// Purpose: Wrapped test scripts in a function definition within the test helper to resolve parsing errors.
 // filename: pkg/interpreter/evaluation_new_types_test.go
 // nlines: 160
 // risk_rating: MEDIUM
@@ -63,8 +63,10 @@ func runNewTypesTestScript(t *testing.T, script string) (lang.Value, error) {
 	scriptNameForParser := strings.ReplaceAll(t.Name(), "/", "_")
 	scriptNameForParser = strings.ReplaceAll(scriptNameForParser, "-", "_")
 
-	// The result from ExecuteScriptString is already a lang.Value
-	result, rErr := i.ExecuteScriptString(scriptNameForParser, script, nil)
+	// FIX: Wrap the script content into a function to make it a valid program.
+	fullScript := fmt.Sprintf("func %s() means\n%s\nendfunc", scriptNameForParser, script)
+
+	result, rErr := i.ExecuteScriptString(scriptNameForParser, fullScript, nil)
 	if rErr != nil {
 		return nil, fmt.Errorf("script execution failed: %w", rErr)
 	}

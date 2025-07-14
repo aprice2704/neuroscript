@@ -44,4 +44,5 @@ type InterpreterConfig struct {
 // Interpreter defines the public contract for executing a NeuroScript AST.
 type Interpreter interface {
 	ExecCommand(ctx context.Context, tree *Tree, cfg InterpreterConfig) (*ExecResult, error)
+	RegisterHandle(obj interface{}, typePrefix string) (string, error)
 }

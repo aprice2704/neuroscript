@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.5.2
-// File version: 33
-// Purpose: Corrected interface assignment error by passing tool implementations by value instead of pointer, satisfying the interface contract.
+// File version: 37
+// Purpose: Replaced logger-based debug with fmt.Printf to force visibility of tool registration state during failing tests.
 // filename: pkg/interpreter/evaluation_main.go
 // nlines: 275
 // risk_rating: HIGH
@@ -97,13 +97,16 @@ func (i *Interpreter) resolveVariable(n *ast.VariableNode) (lang.Value, error) {
 		return lang.FunctionValue{Value: proc}, nil
 	}
 	if tool, toolExists := i.tools.GetTool(types.FullName(n.Name)); toolExists {
-		// FIX: Pass the tool implementation by value, not by pointer, to satisfy the interface.
 		return lang.ToolValue{Value: &tool}, nil
 	}
 	if typeVal, typeExists := GetTypeConstant(n.Name); typeExists {
 		return lang.StringValue{Value: typeVal}, nil
 	}
-	return nil, lang.NewRuntimeError(lang.ErrorCodeKeyNotFound, fmt.Sprintf("variable '%s' not found", n.Name), lang.ErrVariableNotFound).WithPosition(n.Pos)
+	// Also check for built-in functions here so they can be treated as first-class values
+	if isBuiltInFunction(n.Name) {
+		return lang.StringValue{Value: fmt.Sprintf("<built-in function: %s>", n.Name)}, nil
+	}
+	return nil, lang.NewRuntimeError(lang.ErrorCodeKeyNotFound, fmt.Sprintf("variable or function '%s' not found", n.Name), lang.ErrVariableNotFound).WithPosition(n.Pos)
 }
 
 func (i *Interpreter) resolvePlaceholder(n *ast.PlaceholderNode) (lang.Value, error) {
@@ -159,9 +162,32 @@ func (e *evaluation) evaluateTypeOf(n *ast.TypeOfNode) (lang.Value, error) {
 }
 
 func (e *evaluation) evaluateCall(n *ast.CallableExprNode) (lang.Value, error) {
+	if isBuiltInFunction(n.Target.Name) {
+		evaluatedArgs := make([]lang.Value, len(n.Arguments))
+		for i, argNode := range n.Arguments {
+			var err error
+			evaluatedArgs[i], err = e.Expression(argNode)
+			if err != nil {
+				return nil, err
+			}
+		}
+		return e.evaluateUserOrBuiltInFunction(n.Target.Name, evaluatedArgs, n.Pos)
+	}
+
 	if n.Target.IsTool {
 		tool, found := e.i.tools.GetTool(types.FullName(n.Target.Name))
 		if !found {
+			// --- DEBUGGING with fmt.Printf ---
+			fmt.Printf("\n--- TOOL LOOKUP FAILED ---\n")
+			fmt.Printf("Attempted to find tool: '%s'\n", n.Target.Name)
+			fmt.Printf("Dumping all registered tools:\n")
+			allToolSpecs := e.i.tools.ListTools()
+			for _, spec := range allToolSpecs {
+				fullName := types.MakeFullName(string(spec.Group), string(spec.Name))
+				fmt.Printf("  - Registered Tool: '%s' (Group: %s, Name: %s)\n", fullName, spec.Group, spec.Name)
+			}
+			fmt.Printf("--- END OF TOOL DUMP ---\n\n")
+			// --- END DEBUGGING ---
 			return nil, lang.NewRuntimeError(lang.ErrorCodeToolNotFound, fmt.Sprintf("tool '%s' not found", n.Target.Name), lang.ErrToolNotFound).WithPosition(n.Pos)
 		}
 
@@ -170,7 +196,6 @@ func (e *evaluation) evaluateCall(n *ast.CallableExprNode) (lang.Value, error) {
 			return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("tool '%s' expects at most %d arguments, got %d", tool.Spec.Name, len(specArgs), len(n.Arguments)), lang.ErrArgumentMismatch).WithPosition(n.Pos)
 		}
 
-		// Evaluate all arguments from the AST first
 		evaluatedArgs := make([]lang.Value, len(n.Arguments))
 		for i, argNode := range n.Arguments {
 			var err error
@@ -180,23 +205,19 @@ func (e *evaluation) evaluateCall(n *ast.CallableExprNode) (lang.Value, error) {
 			}
 		}
 
-		// The tool's Go function expects a slice of unwrapped, primitive values.
 		unwrappedArgs := make([]interface{}, len(evaluatedArgs))
 		for i, v := range evaluatedArgs {
 			unwrappedArgs[i] = lang.Unwrap(v)
 		}
 
-		// The interpreter itself satisfies the tool.Runtime interface.
 		result, err := tool.Func(e.i, unwrappedArgs)
 		if err != nil {
 			return nil, lang.NewRuntimeError(lang.ErrorCodeToolExecutionFailed, fmt.Sprintf("tool '%s' execution failed", tool.Spec.Name), err).WithPosition(n.Pos)
 		}
 
-		// Wrap the primitive result back into a NeuroScript Value.
 		return lang.Wrap(result)
 	}
 
-	// Standard procedure/function call logic
 	evaluatedArgs := make([]lang.Value, len(n.Arguments))
 	for idx, argNode := range n.Arguments {
 		var err error

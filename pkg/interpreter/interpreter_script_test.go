@@ -1,7 +1,7 @@
 // filename: pkg/interpreter/interpreter_script_test.go
 // Neuroscript version: 0.5.2
-// File version: 14
-// Purpose: Moved test into the interpreter package and updated to use local test helpers.
+// File version: 16
+// Purpose: Removed the faulty function-wrapping logic to correctly parse pre-formatted fixture files.
 package interpreter
 
 import (
@@ -55,9 +55,9 @@ func TestInterpreterFixtures(t *testing.T) {
 			}
 			script := string(scriptBytes)
 
-			// FIX: Use the standard logging package.
 			logger := logging.NewTestLogger(t)
 			parserAPI := parser.NewParserAPI(logger)
+			// FIX: Parse the script content directly without wrapping it.
 			parseTree, parseErr := parserAPI.Parse(script)
 
 			if _, statErr := os.Stat(errPath); statErr == nil {
@@ -84,7 +84,6 @@ func TestInterpreterFixtures(t *testing.T) {
 				t.Fatalf("unexpected AST BUILD error: %v", buildErr)
 			}
 
-			// FIX: Use the local test helper to create the interpreter.
 			interp, _ := newLocalTestInterpreter(t, nil, nil)
 			if err := interp.Load(programAST); err != nil {
 				t.Fatalf("failed to load program into interpreter: %v", err)
@@ -97,23 +96,28 @@ func TestInterpreterFixtures(t *testing.T) {
 				if len(programAST.Procedures) > 0 {
 					t.Fatalf("test script '%s' cannot contain both commands and procedures", name)
 				}
-				// This assumes an Execute() or similar method exists for commands.
-				// For now, we'll leave this as a placeholder for a dedicated command runner.
 				// gotVal, execErr = interp.ExecuteCommands()
-			} else if len(programAST.Procedures) == 1 {
+			} else if len(programAST.Procedures) >= 1 {
 				var procToRun string
-				for procName := range programAST.Procedures {
-					procToRun = procName
-					break
+				// The main procedure in a test fixture is typically named 'main'.
+				if _, ok := programAST.Procedures["main"]; ok {
+					procToRun = "main"
+				} else { // Fallback for older tests that might use a different name.
+					for pName := range programAST.Procedures {
+						procToRun = pName
+						break
+					}
 				}
-				// FIX: Use the correct Run method and handle its return types.
+				if procToRun == "" {
+					t.Fatalf("Could not determine which procedure to run in test script '%s'", name)
+				}
 				gotVal, execErr = interp.Run(procToRun)
 			} else {
 				if _, statErr := os.Stat(goldenPath); os.IsNotExist(statErr) {
 					t.Log("No golden file found, skipping execution for script with no commands or single function.")
 					return
 				}
-				t.Fatalf("test script '%s' must contain either commands or exactly one procedure for execution testing, but found %d procedures", name, len(programAST.Procedures))
+				t.Fatalf("test script '%s' must contain either commands or at least one procedure for execution testing, but found %d procedures", name, len(programAST.Procedures))
 			}
 
 			if execErr != nil {
