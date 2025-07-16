@@ -1,7 +1,7 @@
 // filename: pkg/parser/ast_builder_operators.go
 // NeuroScript Version: 0.5.2
-// File version: 21
-// Purpose: Corrected buildCallTargetFromContext to work with pointers, satisfying the Node interface.
+// File version: 22
+// Purpose: Corrected ExitCallable_expr to recognize 'len' as a valid callable expression, fixing the 'must len(...)' test failure.
 
 package parser
 
@@ -458,6 +458,10 @@ func (l *neuroScriptListenerImpl) ExitCallable_expr(ctx *gen.Callable_exprContex
 	} else {
 		finalTargetNode.IsTool = false
 		switch {
+		// FIX: Add case for KW_LEN to correctly handle the len() function call.
+		case ctx.KW_LEN() != nil:
+			token = ctx.KW_LEN().GetSymbol()
+			finalTargetNode.Name = "len"
 		case ctx.KW_LN() != nil:
 			token = ctx.KW_LN().GetSymbol()
 			finalTargetNode.Name = "ln"

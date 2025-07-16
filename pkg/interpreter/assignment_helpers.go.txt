@@ -1,0 +1,319 @@
+// NeuroScript Version: 0.5.2
+// File version: 7
+// Purpose: Provides helper types and functions for complex L-value assignments, including structure representation and creation.
+// filename: pkg/interpreter/assignment_helpers.go
+// nlines: 150
+// risk_rating: HIGH
+
+package interpreter
+
+import (
+	"fmt"
+	"strings"
+
+	"github.com/aprice2704/neuroscript/pkg/ast"
+	"github.com/aprice2704/neuroscript/pkg/lang"
+)
+
+// LHSType defines whether a part of an LValue is a map or a list.
+type LHSType int
+
+const (
+	LHS_MAP LHSType = iota
+	LHS_LIST
+)
+
+// LHSTypeNode represents a single node in the required structure.
+type LHSTypeNode struct {
+	Type     LHSType
+	Children map[string]*LHSTypeNode
+	Elements []*LHSTypeNode
+}
+
+// buildLHS_Representation analyzes a chain of accessors and builds a tree
+// representing the nested types (maps and lists) required.
+func (i *Interpreter) buildLHS_Representation(accessors []*ast.AccessorNode) (*LHSTypeNode, error) {
+	if len(accessors) == 0 {
+		return nil, nil // No structure needed for a simple variable.
+	}
+
+	rootType, err := i.determineContainerType(accessors[0])
+	if err != nil {
+		return nil, err
+	}
+
+	root := &LHSTypeNode{Type: rootType}
+	if rootType == LHS_MAP {
+		root.Children = make(map[string]*LHSTypeNode)
+	} else {
+		root.Elements = make([]*LHSTypeNode, 0)
+	}
+
+	currentNode := root
+	// Iterate through the accessors that define the container's structure,
+	// which is all but the very last one.
+	for idx, accessor := range accessors[:len(accessors)-1] {
+		nextAccessor := accessors[idx+1]
+		nextType, err := i.determineContainerType(nextAccessor)
+		if err != nil {
+			return nil, err
+		}
+
+		newNode := &LHSTypeNode{Type: nextType}
+		if nextType == LHS_MAP {
+			newNode.Children = make(map[string]*LHSTypeNode)
+		} else {
+			newNode.Elements = make([]*LHSTypeNode, 0)
+		}
+
+		switch currentNode.Type {
+		case LHS_MAP:
+			key, err := i.evaluateAccessorKey(accessor)
+			if err != nil {
+				return nil, err
+			}
+			currentNode.Children[key] = newNode
+			currentNode = newNode
+		case LHS_LIST:
+			index, err := i.evaluateAccessorIndex(accessor)
+			if err != nil {
+				return nil, err
+			}
+			for int64(len(currentNode.Elements)) <= index {
+				currentNode.Elements = append(currentNode.Elements, nil)
+			}
+			currentNode.Elements[index] = newNode
+			currentNode = newNode
+		}
+	}
+
+	return root, nil
+}
+
+// createStructureFromRep recursively builds a lang.Value (map or list)
+// based on the provided LHSTypeNode representation.
+func (i *Interpreter) createStructureFromRep(rep *LHSTypeNode) (lang.Value, error) {
+	if rep == nil {
+		return &lang.NilValue{}, nil
+	}
+
+	switch rep.Type {
+	case LHS_MAP:
+		newMap := lang.NewMapValue(make(map[string]lang.Value))
+		for key, childRep := range rep.Children {
+			childValue, err := i.createStructureFromRep(childRep)
+			if err != nil {
+				return nil, err
+			}
+			newMap.Value[key] = childValue
+		}
+		return newMap, nil
+
+	case LHS_LIST:
+		newList := lang.NewListValue(make([]lang.Value, len(rep.Elements)))
+		for idx, childRep := range rep.Elements {
+			childValue, err := i.createStructureFromRep(childRep)
+			if err != nil {
+				return nil, err
+			}
+			newList.Value[idx] = childValue
+		}
+		return newList, nil
+	}
+
+	return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, "unknown LHSType in representation node", nil)
+}
+
+// placeValueInStructure navigates a pre-built structure and sets the final value.
+func (i *Interpreter) placeValueInStructure(root lang.Value, accessors []*ast.AccessorNode, valueToPlace lang.Value) error {
+	current := root
+	for idx, accessor := range accessors {
+		isLastAccessor := idx == len(accessors)-1
+
+		switch c := current.(type) {
+		case lang.MapValue:
+			key, err := i.evaluateAccessorKey(accessor)
+			if err != nil {
+				return err
+			}
+			if isLastAccessor {
+				c.Value[key] = valueToPlace
+				return nil
+			}
+			current = c.Value[key]
+
+		case lang.ListValue:
+			index, err := i.evaluateAccessorIndex(accessor)
+			if err != nil {
+				return err
+			}
+			if isLastAccessor {
+				// Ensure list is long enough before setting
+				if index >= int64(len(c.Value)) {
+					c.Value = padList(c.Value, index)
+				}
+				c.Value[index] = valueToPlace
+				return nil
+			}
+			current = c.Value[index]
+		}
+	}
+	return nil
+}
+
+// determineContainerType decides if an accessor implies a map or a list.
+func (i *Interpreter) determineContainerType(accessor *ast.AccessorNode) (LHSType, error) {
+	if accessor.Type == ast.DotAccess {
+		return LHS_MAP, nil
+	}
+	keyVal, err := i.evaluate.Expression(accessor.Key)
+	if err != nil {
+		return 0, lang.WrapErrorWithPosition(err, accessor.Key.GetPos(), "evaluating accessor key for type determination")
+	}
+	if _, isInt := lang.ToInt64(keyVal); isInt {
+		return LHS_LIST, nil
+	}
+	return LHS_MAP, nil
+}
+
+// evaluateAccessorKey gets the string key from a map accessor.
+func (i *Interpreter) evaluateAccessorKey(accessor *ast.AccessorNode) (string, error) {
+	if accessor.Type == ast.DotAccess {
+		// For dot access, the "key" is a StringLiteralNode with the identifier name
+		if strLiteral, ok := accessor.Key.(*ast.StringLiteralNode); ok {
+			return strLiteral.Value, nil
+		}
+		// Fallback for safety, though parser should guarantee StringLiteralNode
+		return strings.TrimPrefix(accessor.Key.String(), "."), nil
+	}
+	// For bracket access, evaluate the expression inside
+	keyVal, err := i.evaluate.Expression(accessor.Key)
+	if err != nil {
+		return "", lang.WrapErrorWithPosition(err, accessor.Key.GetPos(), "evaluating map key")
+	}
+	key, _ := lang.ToString(keyVal)
+	return key, nil
+}
+
+// evaluateAccessorIndex gets the int64 index from a list accessor.
+func (i *Interpreter) evaluateAccessorIndex(accessor *ast.AccessorNode) (int64, error) {
+	indexVal, err := i.evaluate.Expression(accessor.Key)
+	if err != nil {
+		return 0, lang.WrapErrorWithPosition(err, accessor.Key.GetPos(), "evaluating list index")
+	}
+	index, isInt := lang.ToInt64(indexVal)
+	if !isInt {
+		return 0, lang.NewRuntimeError(lang.ErrorCodeType, fmt.Sprintf("list index must be an integer, got %s", lang.TypeOf(indexVal)), lang.ErrListInvalidIndexType).WithPosition(accessor.Key.GetPos())
+	}
+	if index < 0 {
+		return 0, lang.NewRuntimeError(lang.ErrorCodeBounds, fmt.Sprintf("list index cannot be negative, got %d", index), lang.ErrListIndexOutOfBounds).WithPosition(accessor.Key.GetPos())
+	}
+	return index, nil
+}
+
+// traverseAndSet navigates an existing structure, creating new branches as needed.
+func (i *Interpreter) traverseAndSet(root lang.Value, accessors []*ast.AccessorNode, valueToPlace lang.Value) error {
+	current := root
+	for idx, accessor := range accessors {
+		isLast := idx == len(accessors)-1
+
+		switch c := current.(type) {
+		case lang.MapValue:
+			key, err := i.evaluateAccessorKey(accessor)
+			if err != nil {
+				return err
+			}
+			if isLast {
+				c.Value[key] = valueToPlace
+				return nil
+			}
+			child, exists := c.Value[key]
+			if !exists || isNil(child) {
+				// The branch doesn't exist, so build it from here.
+				newBranch, err := i.buildNestedStructure(accessors[idx+1:], valueToPlace)
+				if err != nil {
+					return err
+				}
+				c.Value[key] = newBranch
+				return nil
+			}
+			current = child
+
+		case lang.ListValue:
+			index, err := i.evaluateAccessorIndex(accessor)
+			if err != nil {
+				return err
+			}
+			if index >= int64(len(c.Value)) {
+				c.Value = padList(c.Value, index)
+			}
+			if isLast {
+				c.Value[index] = valueToPlace
+				return nil
+			}
+			child := c.Value[index]
+			if isNil(child) {
+				newBranch, err := i.buildNestedStructure(accessors[idx+1:], valueToPlace)
+				if err != nil {
+					return err
+				}
+				c.Value[index] = newBranch
+				return nil
+			}
+			current = child
+		default:
+			return lang.NewRuntimeError(lang.ErrorCodeType, fmt.Sprintf("cannot access member of type %s", current.Type()), lang.ErrCannotAccessType).WithPosition(accessor.Key.GetPos())
+		}
+	}
+	return nil
+}
+
+// buildNestedStructure is a helper for vivification.
+func (i *Interpreter) buildNestedStructure(accessors []*ast.AccessorNode, finalValue lang.Value) (lang.Value, error) {
+	if len(accessors) == 0 {
+		return finalValue, nil
+	}
+
+	// Determine the type of the outermost container we need to create.
+	rootType, err := i.determineContainerType(accessors[0])
+	if err != nil {
+		return nil, err
+	}
+
+	var root lang.Value
+
+	// Recursively build the inner structure first.
+	innerStructure, err := i.buildNestedStructure(accessors[1:], finalValue)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create the root container and place the inner structure inside it.
+	if rootType == LHS_MAP {
+		key, err := i.evaluateAccessorKey(accessors[0])
+		if err != nil {
+			return nil, err
+		}
+		root = lang.NewMapValue(map[string]lang.Value{
+			key: innerStructure,
+		})
+	} else { // LHS_LIST
+		index, err := i.evaluateAccessorIndex(accessors[0])
+		if err != nil {
+			return nil, err
+		}
+		list := padList(make([]lang.Value, 0), index)
+		list[index] = innerStructure
+		root = lang.NewListValue(list)
+	}
+
+	return root, nil
+}
+
+// padList is a utility function used by the helpers.
+func padList(list []lang.Value, requiredIndex int64) []lang.Value {
+	for int64(len(list)) <= requiredIndex {
+		list = append(list, &lang.NilValue{})
+	}
+	return list
+}

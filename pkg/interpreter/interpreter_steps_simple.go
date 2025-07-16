@@ -1,9 +1,7 @@
 // NeuroScript Version: 0.5.2
-// File version: 18
-// Purpose: Corrected executeMust to directly check the boolean value of its condition, rather than using the IsTruthy helper, which was the final root cause of the test failures.
+// File version: 32
+// Purpose: Corrected executeMust to fully delegate expression evaluation and added debug output to trace its behavior.
 // filename: pkg/interpreter/interpreter_steps_simple.go
-// nlines: 200
-// risk_rating: MEDIUM
 
 package interpreter
 
@@ -17,9 +15,6 @@ import (
 
 // executeReturn handles the "return" step.
 func (i *Interpreter) executeReturn(step ast.Step) (lang.Value, bool, error) {
-	posStr := step.Position.String()
-	i.Logger().Debug("[DEBUG-INTERP] Executing RETURN", "pos", posStr)
-
 	if len(step.Values) == 0 {
 		return &lang.NilValue{}, true, nil
 	}
@@ -33,7 +28,6 @@ func (i *Interpreter) executeReturn(step ast.Step) (lang.Value, bool, error) {
 		return evaluatedValue, true, nil
 	}
 
-	i.Logger().Debug("[DEBUG-INTERP] Return has multiple expressions", "count", len(step.Values), "pos", posStr)
 	results := make([]lang.Value, len(step.Values))
 	for idx, exprNode := range step.Values {
 		evaluatedValue, err := i.evaluate.Expression(exprNode)
@@ -43,14 +37,11 @@ func (i *Interpreter) executeReturn(step ast.Step) (lang.Value, bool, error) {
 		}
 		results[idx] = evaluatedValue
 	}
-	return lang.NewListValue(results), true, nil
+	return lang.ListValue{Value: results}, true, nil
 }
 
 // executeEmit handles the "emit" step.
 func (i *Interpreter) executeEmit(step ast.Step) (lang.Value, error) {
-	posStr := step.Position.String()
-	i.Logger().Debug("[DEBUG-INTERP] Executing EMIT", "pos", posStr)
-
 	if len(step.Values) == 0 {
 		fmt.Fprintln(i.stdout)
 		return &lang.NilValue{}, nil
@@ -62,7 +53,7 @@ func (i *Interpreter) executeEmit(step ast.Step) (lang.Value, error) {
 	for _, expr := range step.Values {
 		valToEmit, evalErr := i.evaluate.Expression(expr)
 		if evalErr != nil {
-			errMsg := fmt.Sprintf("evaluating value for EMIT at %s", posStr)
+			errMsg := fmt.Sprintf("evaluating value for EMIT at %s", step.Position.String())
 			return nil, lang.WrapErrorWithPosition(evalErr, expr.GetPos(), errMsg)
 		}
 		lastVal = valToEmit
@@ -85,10 +76,6 @@ func (i *Interpreter) executeEmit(step ast.Step) (lang.Value, error) {
 
 // executeMust handles "must" and "mustbe" steps.
 func (i *Interpreter) executeMust(step ast.Step) (lang.Value, error) {
-	posStr := step.Position.String()
-	stepType := strings.ToLower(step.Type)
-	i.Logger().Debug("[DEBUG-INTERP] Executing MUST/MUSTBE", "type", strings.ToUpper(stepType), "pos", posStr)
-
 	var val lang.Value
 	var err error
 
@@ -100,39 +87,28 @@ func (i *Interpreter) executeMust(step ast.Step) (lang.Value, error) {
 	}
 
 	if exprToEval == nil {
-		if i.lastCallResult == nil {
-			return nil, lang.ErrMustConditionFailed
-		}
+		fmt.Printf("[DEBUG] executeMust: No expression provided. Using lastCallResult.\n")
 		val = i.lastCallResult
 	} else {
+		fmt.Printf("[DEBUG] executeMust: Evaluating expression: %s\n", exprToEval.String())
 		val, err = i.evaluate.Expression(exprToEval)
 		if err != nil {
-			errMsg := fmt.Sprintf("evaluating expression for '%s'", stepType)
-			return nil, lang.WrapErrorWithPosition(err, exprToEval.GetPos(), errMsg)
+			return nil, lang.WrapErrorWithPosition(err, exprToEval.GetPos(), "evaluating expression for 'must'")
 		}
+		fmt.Printf("[DEBUG] executeMust: Expression evaluated to: %s (%T)\n", val.String(), val)
 	}
 
-	// FIX: This is the definitive fix. Instead of using a generic IsTruthy,
-	// we directly check if the result is a boolean `false`.
-	if boolVal, ok := val.(lang.BoolValue); ok {
-		if !boolVal.Value {
-			return nil, lang.ErrMustConditionFailed
-		}
-	} else if ev, ok := val.(lang.ErrorValue); ok {
-		// Also handle the case where a tool call directly returns an error map.
-		return nil, ev
-	} else if !lang.IsTruthy(val) {
-		// Fallback to IsTruthy for non-boolean conditions, though explicit booleans are preferred.
+	if !lang.IsTruthy(val) {
+		fmt.Printf("[DEBUG] executeMust: Condition failed. Value was not truthy.\n")
 		return nil, lang.ErrMustConditionFailed
 	}
 
+	fmt.Printf("[DEBUG] executeMust: Condition PASSED.\n")
 	return val, nil
 }
 
 // executeFail handles the "fail" step.
 func (i *Interpreter) executeFail(step ast.Step) error {
-	posStr := step.Position.String()
-	i.Logger().Debug("[DEBUG-INTERP] Executing FAIL", "pos", posStr)
 	errCode := lang.ErrorCodeFailStatement
 	errMsg := "fail statement executed"
 	var wrappedErr error = lang.ErrFailStatement
@@ -157,16 +133,12 @@ func (i *Interpreter) executeFail(step ast.Step) error {
 
 // executeOnError handles the "on error" step setup.
 func (i *Interpreter) executeOnError(step ast.Step) (*ast.Step, error) {
-	posStr := step.Position.String()
-	i.Logger().Debug("[DEBUG-INTERP] Executing ON_ERROR - Handler now active.", "pos", posStr)
 	handlerStep := step
 	return &handlerStep, nil
 }
 
 // executeClearError handles the "clear_error" step.
 func (i *Interpreter) executeClearError(step ast.Step, isInHandler bool) (bool, error) {
-	posStr := step.Position.String()
-	i.Logger().Debug("[DEBUG-INTERP] Executing CLEAR_ERROR", "pos", posStr)
 	if !isInHandler {
 		errMsg := "'clear_error' can only be used inside an on_error block"
 		return false, lang.NewRuntimeError(lang.ErrorCodeClearViolation, errMsg, lang.ErrClearViolation).WithPosition(&step.Position)
@@ -176,14 +148,10 @@ func (i *Interpreter) executeClearError(step ast.Step, isInHandler bool) (bool, 
 
 // executeBreak handles the "break" step by returning ErrBreak.
 func (i *Interpreter) executeBreak(step ast.Step) error {
-	posStr := step.Position.String()
-	i.Logger().Debug("[DEBUG-INTERP] Executing BREAK", "pos", posStr)
 	return lang.NewRuntimeError(lang.ErrorCodeControlFlow, "'break' used outside of a loop", lang.ErrBreak).WithPosition(&step.Position)
 }
 
 // executeContinue handles the "continue" step by returning ErrContinue.
 func (i *Interpreter) executeContinue(step ast.Step) error {
-	posStr := step.Position.String()
-	i.Logger().Debug("[DEBUG-INTERP] Executing CONTINUE", "pos", posStr)
 	return lang.NewRuntimeError(lang.ErrorCodeControlFlow, "'continue' used outside of a loop", lang.ErrContinue).WithPosition(&step.Position)
 }

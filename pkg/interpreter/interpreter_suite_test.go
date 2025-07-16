@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/ast"
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/logging"
 	"github.com/aprice2704/neuroscript/pkg/types"
@@ -123,6 +124,7 @@ func runLocalExecuteStepsTest(t *testing.T, tc localExecuteStepsTestCase) {
 func newLocalTestInterpreter(t *testing.T, initialVars map[string]lang.Value, lastResult lang.Value) (*Interpreter, error) {
 	t.Helper()
 	testLogger := logging.NewTestLogger(t)
+	testLogger.SetLevel(interfaces.LogLevelInfo)
 	sandboxDir := t.TempDir()
 	interp := NewInterpreter(
 		WithLogger(testLogger),

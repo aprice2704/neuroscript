@@ -197,11 +197,11 @@ func NewListValue(val []Value) ListValue {
 	return ListValue{Value: val}
 }
 
-func NewMapValue(val map[string]Value) MapValue {
+func NewMapValue(val map[string]Value) *MapValue {
 	if val == nil {
 		val = make(map[string]Value)
 	}
-	return MapValue{Value: val}
+	return &MapValue{Value: val}
 }
 
 func NewErrorValue(code, message string, details Value) ErrorValue {

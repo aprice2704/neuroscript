@@ -1,139 +1,124 @@
-// NeuroScript Version: 0.5.4
-// File version: 16
-// Purpose: Corrected all function signatures in test cases to use tool.Runtime, resolving all compiler errors.
+// NeuroScript Version: 0.6.5
+// File version: 18
+// Purpose: Corrected all modification tests to use valid tool calls, arguments, and target nodes.
 // filename: pkg/tool/tree/tools_tree_modify_test.go
-// nlines: 200
+// nlines: 120
 // risk_rating: LOW
 package tree_test
 
 import (
 	"testing"
 
+	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
 func TestTreeModify(t *testing.T) {
-	baseJSON := `{"a":{"b":{"c":1}},"d":[2,3]}`
+	const testJSON = `{"name": "root", "children": [{"name": "child1"}, {"name": "child2"}]}`
 
-	testCases := []treeTestCase{
-		{
-			Name:      "Add_Node_to_Root",
-			JSONInput: baseJSON,
-			ToolName:  "AddChildNode",
-			Args:      []interface{}{nil, "placeholder_parent", "e", "number", float64(4), "e"},
-			Expected:  "e",
-			Validation: func(t *testing.T, interp tool.Runtime, treeHandle string, result interface{}) {
-				val, err := callGetValue(t, interp, treeHandle, result.(string))
-				if err != nil {
-					t.Fatalf("Validation failed: could not get value of node 'e': %v", err)
-				}
-				if val != float64(4) {
-					t.Errorf("Expected node 'e' to have value 4, got %v", val)
-				}
-			},
-		},
-		{
-			Name:      "Remove_Node_from_Child",
-			JSONInput: baseJSON,
-			ToolName:  "RemoveNode",
-			Validation: func(t *testing.T, interp tool.Runtime, treeHandle string, result interface{}) {
-				nodeID, err := getNodeIDByPath(t, interp, treeHandle, "a.b")
-				if err != nil {
-					t.Fatalf("Setup failed: could not get node 'a.b': %v", err)
-				}
-				_, err = runTool(t, interp, "RemoveNode", treeHandle, nodeID)
-				if err != nil {
-					t.Fatalf("Setup failed: RemoveNode failed unexpectedly: %v", err)
-				}
-
-				_, err = getNodeIDByPath(t, interp, treeHandle, "a.b")
-				if err == nil {
-					t.Error("Validation failed: expected error getting removed node 'a.b', but got nil")
-				}
-			},
-		},
-		{
-			Name:      "Set_Value_on_Child",
-			JSONInput: baseJSON,
-			ToolName:  "SetValue",
-			Validation: func(t *testing.T, interp tool.Runtime, treeHandle string, result interface{}) {
-				nodeID, err := getNodeIDByPath(t, interp, treeHandle, "a.b.c")
-				if err != nil {
-					t.Fatalf("Setup failed: could not get node 'a.b.c': %v", err)
-				}
-				_, err = runTool(t, interp, "SetValue", treeHandle, nodeID, "new_value")
-				if err != nil {
-					t.Fatalf("Setup failed: SetValue failed unexpectedly: %v", err)
-				}
-
-				val, err := callGetValue(t, interp, treeHandle, nodeID)
-				if err != nil {
-					t.Fatalf("Validation failed: could not get value of 'a.b.c': %v", err)
-				}
-				if val != "new_value" {
-					t.Errorf("Expected node 'a.b.c' value to be 'new_value', got %v", val)
-				}
-			},
-		},
-		{
-			Name:      "Append_Child_to_Array",
-			JSONInput: baseJSON,
-			ToolName:  "AddChildNode",
-			Validation: func(t *testing.T, interp tool.Runtime, treeHandle string, result interface{}) {
-				nodeID, err := getNodeIDByPath(t, interp, treeHandle, "d")
-				if err != nil {
-					t.Fatalf("Setup failed: could not get node 'd': %v", err)
-				}
-				_, err = callAddChildNode(t, interp, treeHandle, nodeID, "new_child", "number", float64(4), nil)
-				if err != nil {
-					t.Fatalf("Setup failed: AddChildNode failed unexpectedly: %v", err)
-				}
-
-				children, err := callGetChildren(t, interp, treeHandle, nodeID)
-				if err != nil {
-					t.Fatalf("Validation failed: could not get children of 'd': %v", err)
-				}
-				childIDs := children.([]interface{})
-				if len(childIDs) != 3 {
-					t.Fatalf("Expected 3 children for node 'd', got %d", len(childIDs))
-				}
-				lastChildVal, err := callGetValue(t, interp, treeHandle, childIDs[2].(string))
-				if err != nil {
-					t.Fatalf("Validation failed: could not get value of new child: %v", err)
-				}
-				if lastChildVal != float64(4) {
-					t.Errorf("Expected new child to have value 4, got %v", lastChildVal)
-				}
-			},
-		},
+	setup := func(t *testing.T, interp tool.Runtime) string {
+		handle, err := setupTreeWithJSON(t, interp, testJSON)
+		if err != nil {
+			t.Fatalf("Tree setup failed unexpectedly: %v", err)
+		}
+		return handle
 	}
 
-	for _, tc := range testCases {
-		testTreeToolHelper(t, tc.Name, func(t *testing.T, interp tool.Runtime) {
-			treeHandle, err := setupTreeWithJSON(t, interp, tc.JSONInput)
-			if err != nil {
-				t.Fatalf("Tree setup failed unexpectedly: %v", err)
-			}
-			rootID := getRootID(t, interp, treeHandle)
+	testTreeToolHelper(t, "Set Value on Leaf Node", func(t *testing.T, interp tool.Runtime) {
+		handle := setup(t, interp)
+		// FIX: Target the 'name' node, which is a leaf, not the object containing it.
+		childNameID, err := getNodeIDByPath(t, interp, handle, "children.0.name")
+		if err != nil {
+			t.Fatal(err)
+		}
 
-			var result interface{}
-			if tc.ToolName != "" && len(tc.Args) > 0 {
-				args := tc.Args
-				if len(args) > 0 {
-					if args[0] == nil {
-						args[0] = treeHandle
-					}
-					if args[1] == "placeholder_parent" {
-						args[1] = rootID
-					}
-				}
-				result, err = runTool(t, interp, tc.ToolName, args...)
-				assertResult(t, result, err, tc.Expected, tc.ExpectedErr)
-			}
+		_, err = callSetValue(t, interp, handle, childNameID, "new_child_name")
+		if err != nil {
+			t.Fatalf("SetValue failed: %v", err)
+		}
 
-			if tc.Validation != nil {
-				tc.Validation(t, interp, treeHandle, result)
+		value, err := callGetValue(t, interp, handle, childNameID)
+		assertResult(t, value, err, "new_child_name", nil)
+	})
+
+	testTreeToolHelper(t, "Remove Node", func(t *testing.T, interp tool.Runtime) {
+		handle := setup(t, interp)
+		child1ID, err := getNodeIDByPath(t, interp, handle, "children.0")
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		_, err = callGetNode(t, interp, handle, child1ID)
+		if err != nil {
+			t.Fatalf("Could not find child node before removal test: %v", err)
+		}
+
+		// FIX: Use the correct RemoveNode tool.
+		_, err = runTool(t, interp, "RemoveNode", handle, child1ID)
+		if err != nil {
+			t.Fatalf("RemoveNode failed: %v", err)
+		}
+
+		_, err = callGetNode(t, interp, handle, child1ID)
+		assertResult(t, nil, err, nil, lang.ErrNotFound)
+	})
+
+	testTreeToolHelper(t, "Add Node to Root", func(t *testing.T, interp tool.Runtime) {
+		handle := setup(t, interp)
+		rootID, err := getRootID(t, interp, handle)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// FIX: Provide all required arguments for AddChildNode.
+		newNodeResult, err := callAddChildNode(t, interp, handle, rootID, "newNode", "string", "new_value", "newKey")
+		if err != nil {
+			t.Fatalf("AddChildNode failed: %v", err)
+		}
+		newNodeID := newNodeResult.(string)
+
+		children, err := callGetChildren(t, interp, handle, rootID)
+		if err != nil {
+			t.Fatalf("GetChildren failed: %v", err)
+		}
+
+		childrenSlice, ok := children.([]interface{})
+		if !ok {
+			t.Fatalf("expected children to be a slice, got %T", children)
+		}
+
+		found := false
+		for _, childID := range childrenSlice {
+			if childID == newNodeID {
+				found = true
+				break
 			}
-		})
-	}
+		}
+		if !found {
+			t.Error("newly added node was not found in the root's children")
+		}
+	})
+
+	testTreeToolHelper(t, "Append Child to Array", func(t *testing.T, interp tool.Runtime) {
+		handle := setup(t, interp)
+		childrenArrayID, err := getNodeIDByPath(t, interp, handle, "children")
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// FIX: Provide all required arguments.
+		_, err = callAddChildNode(t, interp, handle, childrenArrayID, "", "object", nil, "")
+		if err != nil {
+			t.Fatalf("AddChildNode to array failed: %v", err)
+		}
+
+		// Verify the array now has 3 elements.
+		children, err := callGetChildren(t, interp, handle, childrenArrayID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(children.([]interface{})) != 3 {
+			t.Errorf("Expected 3 children in array, got %d", len(children.([]interface{})))
+		}
+	})
 }

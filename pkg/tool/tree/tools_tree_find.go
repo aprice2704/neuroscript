@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.3.1
-// File version: 10
-// Purpose: Corrected compiler errors by adding type assertions and replacing the flawed `compareAttributeValue` with a robust `deepCompareValues` function. Added logic to resolve node IDs for metadata queries.
+// NeuroScript Version: 0.6.5
+// File version: 12
+// Purpose: Relaxed type checking for max_depth and max_results to handle different integer types from the runtime environment.
 // filename: pkg/tool/tree/tools_tree_find.go
-// nlines: 247
+// nlines: 250
 // risk_rating: MEDIUM
 
 package tree
@@ -40,20 +40,21 @@ func toolTreeFindNodes(interpreter tool.Runtime, args []interface{}) (interface{
 
 	maxDepth := -1
 	if len(args) > 3 && args[3] != nil {
-		depthRaw, okDepth := args[3].(int64)
-		if !okDepth {
-			return nil, lang.NewRuntimeError(lang.ErrorCodeType, fmt.Sprintf("%s: max_depth argument must be an integer or null, got %T", toolName, args[3]), lang.ErrInvalidArgument)
+		// Flexible integer type handling
+		num, ok := utils.ConvertToFloat64(args[3])
+		if !ok {
+			return nil, lang.NewRuntimeError(lang.ErrorCodeType, fmt.Sprintf("%s: max_depth argument must be a number or null, got %T", toolName, args[3]), lang.ErrInvalidArgument)
 		}
-		maxDepth = int(depthRaw)
+		maxDepth = int(num)
 	}
 
 	maxResults := -1
 	if len(args) > 4 && args[4] != nil {
-		resultsRaw, okResults := args[4].(int64)
-		if !okResults {
-			return nil, lang.NewRuntimeError(lang.ErrorCodeType, fmt.Sprintf("%s: max_results argument must be an integer or null, got %T", toolName, args[4]), lang.ErrInvalidArgument)
+		num, ok := utils.ConvertToFloat64(args[4])
+		if !ok {
+			return nil, lang.NewRuntimeError(lang.ErrorCodeType, fmt.Sprintf("%s: max_results argument must be a number or null, got %T", toolName, args[4]), lang.ErrInvalidArgument)
 		}
-		maxResults = int(resultsRaw)
+		maxResults = int(num)
 	}
 
 	if treeHandle == "" || startNodeID == "" || len(queryMap) == 0 {
@@ -95,38 +96,26 @@ func toolTreeFindNodes(interpreter tool.Runtime, args []interface{}) (interface{
 			return nil
 		}
 
-		// Recurse through children referenced by ChildIDs (arrays)
+		descendantIDs := make([]string, 0)
 		if currentNode.ChildIDs != nil {
-			for _, childID := range currentNode.ChildIDs {
-				childNode, exists := tree.NodeMap[childID]
-				if exists {
-					if err := findRecursive(childNode, currentDepth+1); err != nil {
-						if err.Error() == "max results reached" {
-							return err
-						}
-						return err
-					}
+			descendantIDs = append(descendantIDs, currentNode.ChildIDs...)
+		}
+		if currentNode.Attributes != nil {
+			for _, childNodeIDUntyped := range currentNode.Attributes {
+				if childNodeIDStr, ok := childNodeIDUntyped.(string); ok {
+					descendantIDs = append(descendantIDs, childNodeIDStr)
 				}
 			}
 		}
 
-		// Recurse through children referenced by Attributes (objects)
-		if currentNode.Type == "object" && currentNode.Attributes != nil {
-			for _, childNodeIDUntyped := range currentNode.Attributes {
-				childNodeID, ok := childNodeIDUntyped.(string)
-				if !ok {
-					// This attribute's value is not a node ID string.
-					// In the context of finding children, we can safely skip it.
-					continue
-				}
-				childNode, exists := tree.NodeMap[childNodeID]
-				if exists {
-					if err := findRecursive(childNode, currentDepth+1); err != nil {
-						if err.Error() == "max results reached" {
-							return err
-						}
+		for _, childID := range descendantIDs {
+			childNode, exists := tree.NodeMap[childID]
+			if exists {
+				if err := findRecursive(childNode, currentDepth+1); err != nil {
+					if err.Error() == "max results reached" {
 						return err
 					}
+					return err
 				}
 			}
 		}
@@ -216,8 +205,8 @@ func nodeMatchesQuery(tree *utils.GenericTree, node *utils.GenericTreeNode, quer
 					return false, nil
 				}
 			}
-		default: // This case handles direct attribute name queries like {"myCustomAttribute": "expectedValue"}
-			actualNodeAttrValue, exists := node.Attributes[key] // key is the attribute name
+		default:
+			actualNodeAttrValue, exists := node.Attributes[key]
 			if !exists {
 				return false, nil
 			}
@@ -226,17 +215,15 @@ func nodeMatchesQuery(tree *utils.GenericTree, node *utils.GenericTreeNode, quer
 			}
 		}
 	}
-	return true, nil // All conditions in queryMap matched
+	return true, nil
 }
 
 // deepCompareValues compares two interface{} values, with special handling for numeric types.
 func deepCompareValues(actualValue, expectedValue interface{}) bool {
-	// First, try a simple deep equal. This covers string, bool, nil, and matching number types.
 	if reflect.DeepEqual(actualValue, expectedValue) {
 		return true
 	}
 
-	// Special handling for numbers of different types (e.g., int64 vs float64).
 	actualNum, actualIsNum := utils.ConvertToFloat64(actualValue)
 	expectedNum, expectedIsNum := utils.ConvertToFloat64(expectedValue)
 

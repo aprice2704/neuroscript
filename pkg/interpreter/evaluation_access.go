@@ -51,7 +51,7 @@ func (i *Interpreter) evaluateElementAccess(n *ast.ElementAccessNode) (lang.Valu
 		}
 		return coll.Value[int(index)], nil
 
-	case lang.MapValue:
+	case *lang.MapValue:
 		key, _ := lang.ToString(accessorVal)
 		value, found := coll.Value[key]
 		if !found {

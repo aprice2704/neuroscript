@@ -1,4 +1,9 @@
+// NeuroScript Version: 0.5.4
+// File version: 1
+// Purpose: Correctly parse git status, including untracked files for is_clean check.
 // filename: pkg/tool/git/tools_git_status.go
+// nlines: 242
+// risk_rating: MEDIUM
 package git
 
 import (
@@ -27,10 +32,10 @@ func toolExec(interpreter tool.Runtime, cmdAndArgs ...string) (string, error) {
 	if strings.Contains(commandPath, "..") || strings.ContainsAny(commandPath, "|;&$><`\\") {
 		errMsg := fmt.Sprintf("toolExec blocked suspicious command path: %q", commandPath)
 		if logger := interpreter.GetLogger(); logger != nil {
-			logger.Error("[toolExec] %s", errMsg)
+			logger.Error("[toolExec] " + errMsg)
 		}
 		// Return error message and a wrapped ErrInternalTool or a specific execution error
-		return errMsg, fmt.Errorf("%w: %s", lang.ErrInternalTool, errMsg)
+		return errMsg, fmt.Errorf("%w: %s", lang.ErrToolExecutionFailed, errMsg)
 	}
 
 	if logger := interpreter.GetLogger(); logger != nil {
@@ -54,7 +59,7 @@ func toolExec(interpreter tool.Runtime, cmdAndArgs ...string) (string, error) {
 		errMsg := fmt.Sprintf("command '%s %s' failed with exit error: %v. Output:\n%s",
 			commandPath, strings.Join(commandArgs, " "), execErr, combinedOutput)
 		if logger := interpreter.GetLogger(); logger != nil {
-			logger.Error("[toolExec] %s", errMsg)
+			logger.Error("[toolExec] " + errMsg)
 		}
 		// Return the combined output along with the error
 		return combinedOutput, fmt.Errorf("%w: %s", lang.ErrToolExecutionFailed, errMsg)
@@ -261,28 +266,27 @@ func parseGitStatusOutput(output string) (map[string]interface{}, error) {
 				}
 			}
 
-			if indexStatus == "?" && worktreeStatus == "?" {
-				untrackedFound = true
-			}
-
-			// Check for any staged or unstaged changes to tracked files
-			// ' ' means unmodified. '?' means untracked. Anything else is a change.
-			if indexStatus != " " || (worktreeStatus != " " && worktreeStatus != "?") {
-				changesFound = true
-			}
-
 			fileMap := map[string]interface{}{
 				"path":            path,
 				"index_status":    indexStatus,
 				"worktree_status": worktreeStatus,
 				"original_path":   originalPath,
 			}
+
+			if indexStatus == "?" && worktreeStatus == "?" {
+				untrackedFound = true
+			} else {
+				// Any other status code indicates a change to a tracked file.
+				changesFound = true
+			}
+
 			filesList = append(filesList, fileMap)
 		}
 	} // End file loop
 
 	resultMap["files"] = filesList
 	resultMap["untracked_files_present"] = untrackedFound
+	// FIX: A repo is not clean if there are any changes OR untracked files.
 	resultMap["is_clean"] = !changesFound && !untrackedFound
 
 	return resultMap, nil

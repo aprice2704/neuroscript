@@ -1,44 +1,38 @@
-// NeuroScript Version: 0.5.4
-// File version: 14
-// Purpose: Corrected the function signatures within the treeTestCase struct to use the tool.Runtime interface, resolving the final compiler error.
-// filename: pkg/tool/tree/tools_tree_test_helpers.go
-// nlines: 135
+// NeuroScript Version: 0.6.5
+// File version: 10
+// Purpose: Implemented a missing callGetValue helper and corrected other helpers to align with available tools.
+// filename: pkg/tool/tree/tools_tree_helpers_test.go
+// nlines: 150
 // risk_rating: LOW
-
 package tree_test
 
 import (
 	"errors"
 	"fmt"
-	"reflect"
-	"strconv"
-	"strings"
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/logging"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 	"github.com/aprice2704/neuroscript/pkg/types"
-	"github.com/aprice2704/neuroscript/pkg/utils"
+	"github.com/google/go-cmp/cmp"
 )
 
-const group = "tree"
-
+// treeTestCase defines the structure for a single tree tool test case.
 type treeTestCase struct {
-	Name      string
-	ToolName  types.ToolName
-	Args      []interface{}
-	JSONInput string
-	// FIX: Updated function signatures to use tool.Runtime interface.
-	SetupFunc   func(t *testing.T, interp tool.Runtime, treeHandle string)
-	Validation  func(t *testing.T, interp tool.Runtime, treeHandle string, result interface{})
-	Expected    interface{}
-	ExpectedErr error
+	Name         string
+	ToolName     types.ToolName
+	Args         []interface{}
+	JSONInput    string
+	SetupFunc    func(t *testing.T, interp tool.Runtime, treeHandle string)
+	Validation   func(t *testing.T, interp tool.Runtime, treeHandle string, result interface{})
+	Expected     interface{}
+	ExpectedErr  error
+	ExpectedLogs []string
 }
 
 func testTreeToolHelper(t *testing.T, testName string, testFunc func(t *testing.T, interp tool.Runtime)) {
 	t.Run(testName, func(t *testing.T) {
-		// This must be the actual interpreter to satisfy the runtime needs for handles.
 		interp := interpreter.NewInterpreter(interpreter.WithLogger(logging.NewTestLogger(t)))
 		if err := tool.RegisterExtendedTools(interp.ToolRegistry()); err != nil {
 			t.Fatalf("Failed to register extended tools: %v", err)
@@ -49,7 +43,7 @@ func testTreeToolHelper(t *testing.T, testName string, testFunc func(t *testing.
 
 func runTool(t *testing.T, interp tool.Runtime, toolName types.ToolName, args ...interface{}) (interface{}, error) {
 	t.Helper()
-	fullName := types.MakeFullName(group, string(toolName))
+	fullName := types.MakeFullName("tree", string(toolName))
 	toolImpl, found := interp.ToolRegistry().GetTool(fullName)
 	if !found {
 		t.Fatalf("Tool %q not found in registry", fullName)
@@ -57,170 +51,147 @@ func runTool(t *testing.T, interp tool.Runtime, toolName types.ToolName, args ..
 	return toolImpl.Func(interp, args)
 }
 
-func assertResult(t *testing.T, result interface{}, err error, expected interface{}, expectedErrIs error) {
+func assertResult(t *testing.T, result interface{}, err error, expectedResult interface{}, expectedErr error) {
 	t.Helper()
-	if expectedErrIs != nil {
+	if expectedErr != nil {
 		if err == nil {
-			t.Errorf("expected an error wrapping '%v', but got nil", expectedErrIs)
-		} else if !errors.Is(err, expectedErrIs) {
-			t.Errorf("expected error to wrap '%v', but got: %v", expectedErrIs, err)
+			t.Fatalf("expected error '%v', but got nil", expectedErr)
 		}
-	} else {
-		if err != nil {
-			t.Errorf("unexpected error: %v", err)
+		if !errors.Is(err, expectedErr) {
+			t.Fatalf("expected error to wrap '%v', but got: %v", expectedErr, err)
 		}
-		if !reflect.DeepEqual(result, expected) {
-			t.Errorf("result does not match expected: got %#v, want %#v", result, expected)
-		}
+		return
 	}
-}
-
-func setupTreeWithJSON(t *testing.T, interp tool.Runtime, jsonStr string) (string, error) {
-	t.Helper()
-	result, err := runTool(t, interp, "LoadJSON", jsonStr)
 	if err != nil {
-		return "", err
+		t.Fatalf("unexpected error: %v", err)
 	}
-	handle, ok := result.(string)
+	if diff := cmp.Diff(expectedResult, result); diff != "" {
+		t.Errorf("result does not match expected (-want +got):\n%s", diff)
+	}
+}
+
+func setupTreeWithJSON(t *testing.T, interp tool.Runtime, jsonContent string) (string, error) {
+	t.Helper()
+	handle, err := runTool(t, interp, "LoadJSON", jsonContent)
+	if err != nil {
+		return "", fmt.Errorf("failed to load tree from JSON: %w", err)
+	}
+	handleStr, ok := handle.(string)
 	if !ok {
-		t.Fatalf("LoadJSON did not return a string handle, got %T", result)
+		return "", fmt.Errorf("expected handle to be a string, but got %T", handle)
 	}
-	return handle, nil
+	return handleStr, nil
 }
 
-func callGetNode(t *testing.T, interp tool.Runtime, treeHandle string, nodeID string) (interface{}, error) {
+func callToJSON(t *testing.T, interp tool.Runtime, handle string) (interface{}, error) {
 	t.Helper()
-	return runTool(t, interp, "GetNode", treeHandle, nodeID)
+	return runTool(t, interp, "ToJSON", handle)
 }
 
-func callGetChildren(t *testing.T, interp tool.Runtime, treeHandle string, nodeID string) (interface{}, error) {
+func callGetNode(t *testing.T, interp tool.Runtime, handle, nodeID string) (interface{}, error) {
 	t.Helper()
-	return runTool(t, interp, "GetChildren", treeHandle, nodeID)
+	return runTool(t, interp, "GetNode", handle, nodeID)
 }
 
-func callSetNodeMetadata(t *testing.T, interp tool.Runtime, treeHandle string, nodeID string, key string, value string) (interface{}, error) {
+func callGetMetadata(t *testing.T, interp tool.Runtime, handle, nodeID string) (interface{}, error) {
 	t.Helper()
-	return runTool(t, interp, "SetNodeMetadata", treeHandle, nodeID, key, value)
+	return runTool(t, interp, "GetNodeMetadata", handle, nodeID)
 }
 
-func callGetValue(t *testing.T, interp tool.Runtime, treeHandle string, nodeID string) (interface{}, error) {
+func callSetNodeMetadata(t *testing.T, interp tool.Runtime, handle, nodeID, key, value string) (interface{}, error) {
 	t.Helper()
-	nodeInfo, err := callGetNode(t, interp, treeHandle, nodeID)
+	return runTool(t, interp, "SetNodeMetadata", handle, nodeID, key, value)
+}
+
+// FIX: Implement callGetValue helper to get a node and return its 'value' field.
+func callGetValue(t *testing.T, interp tool.Runtime, handle, nodeID string) (interface{}, error) {
+	t.Helper()
+	nodeData, err := callGetNode(t, interp, handle, nodeID)
 	if err != nil {
 		return nil, err
 	}
-	nodeMap, ok := nodeInfo.(map[string]interface{})
+	nodeMap, ok := nodeData.(map[string]interface{})
 	if !ok {
-		t.Fatalf("GetNode did not return a map, got %T", nodeInfo)
+		return nil, fmt.Errorf("expected GetNode to return a map, got %T", nodeData)
 	}
 	return nodeMap["value"], nil
 }
 
-func callGetMetadata(t *testing.T, interp tool.Runtime, treeHandle string, nodeID string) (interface{}, error) {
+func callSetValue(t *testing.T, interp tool.Runtime, handle, nodeID string, value interface{}) (interface{}, error) {
 	t.Helper()
-	nodeInfo, err := callGetNode(t, interp, treeHandle, nodeID)
+	return runTool(t, interp, "SetValue", handle, nodeID, value)
+}
+
+func callAddChildNode(t *testing.T, interp tool.Runtime, handle, parentID, idSuggestion, nodeType string, value interface{}, key string) (interface{}, error) {
+	t.Helper()
+	return runTool(t, interp, "AddChildNode", handle, parentID, idSuggestion, nodeType, value, key)
+}
+
+func callGetChildren(t *testing.T, interp tool.Runtime, handle, nodeID string) (interface{}, error) {
+	t.Helper()
+	nodeInfo, err := callGetNode(t, interp, handle, nodeID)
 	if err != nil {
 		return nil, err
 	}
 	nodeMap, ok := nodeInfo.(map[string]interface{})
 	if !ok {
-		t.Fatalf("GetNode did not return a map, got %T", nodeInfo)
+		return nil, fmt.Errorf("expected node to be a map, got %T", nodeInfo)
 	}
-	attributes, ok := nodeMap["attributes"].(utils.TreeAttrs)
-	if !ok {
-		attrMap, ok := nodeMap["attributes"].(map[string]interface{})
+	// In our tree, the "children" of an object are the node IDs in its attributes map.
+	if nodeMap["type"] == "object" {
+		attrs, ok := nodeMap["attributes"].(map[string]interface{})
 		if !ok {
-			t.Fatalf("attributes is not a map, but %T", nodeMap["attributes"])
+			return nil, fmt.Errorf("attributes not a map")
 		}
-		attributes = utils.TreeAttrs(attrMap)
-	}
-
-	metadata := make(utils.TreeAttrs)
-	nodeType := nodeMap["type"].(string)
-
-	if nodeType != "object" {
-		return attributes, nil
-	}
-
-	for k, v := range attributes {
-		if _, ok := v.(string); !ok {
-			metadata[k] = v
+		var children []interface{}
+		for _, v := range attrs {
+			children = append(children, v)
 		}
+		return children, nil
 	}
-
-	return metadata, nil
+	// For arrays, it's the ChildIDs list.
+	return nodeMap["children"], nil
 }
 
-func callToJSON(t *testing.T, interp tool.Runtime, treeHandle string) (interface{}, error) {
+func getRootNode(t *testing.T, interp tool.Runtime, handle string) (map[string]interface{}, error) {
 	t.Helper()
-	return runTool(t, interp, "ToJSON", treeHandle)
-}
-
-func callAddChildNode(t *testing.T, interp tool.Runtime, args ...interface{}) (interface{}, error) {
-	t.Helper()
-	return runTool(t, interp, "AddChildNode", args...)
-}
-
-func getRootNode(t *testing.T, interp tool.Runtime, treeHandle string) map[string]interface{} {
-	t.Helper()
-	node, err := callGetNode(t, interp, treeHandle, "node-1")
+	rootNode, err := runTool(t, interp, "GetRoot", handle)
 	if err != nil {
-		t.Fatalf("could not get root node: %v", err)
+		return nil, err
 	}
-	return node.(map[string]interface{})
+	nodeMap, ok := rootNode.(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("expected root node to be a map, got %T", rootNode)
+	}
+	return nodeMap, nil
 }
 
-func getRootID(t *testing.T, interp tool.Runtime, treeHandle string) string {
+func getRootID(t *testing.T, interp tool.Runtime, handle string) (string, error) {
 	t.Helper()
-	return getRootNode(t, interp, treeHandle)["id"].(string)
+	rootNode, err := getRootNode(t, interp, handle)
+	if err != nil {
+		return "", err
+	}
+	id, ok := rootNode["id"].(string)
+	if !ok {
+		return "", fmt.Errorf("expected root node to have a string 'id', got %T", rootNode["id"])
+	}
+	return id, nil
 }
 
-func getNodeIDByPath(t *testing.T, interp tool.Runtime, treeHandle string, path string) (string, error) {
+func getNodeIDByPath(t *testing.T, interp tool.Runtime, handle string, path string) (string, error) {
 	t.Helper()
-	rootID := getRootID(t, interp, treeHandle)
-	if path == "" || path == "root" {
-		return rootID, nil
+	result, err := runTool(t, interp, "GetNodeByPath", handle, path)
+	if err != nil {
+		return "", fmt.Errorf("GetNodeByPath failed for path %q: %w", path, err)
 	}
-
-	parts := strings.Split(path, ".")
-	currentNodeID := rootID
-
-	for i, part := range parts {
-		nodeInfo, err := callGetNode(t, interp, treeHandle, currentNodeID)
-		if err != nil {
-			return "", fmt.Errorf("could not get node '%s' in path '%s': %w", currentNodeID, path, err)
-		}
-		nodeMap := nodeInfo.(map[string]interface{})
-		nodeType := nodeMap["type"].(string)
-
-		if nodeType == "object" {
-			attributes, ok := nodeMap["attributes"].(utils.TreeAttrs)
-			if !ok {
-				return "", fmt.Errorf("attributes of node '%s' have unexpected type %T", currentNodeID, nodeMap["attributes"])
-			}
-			childNodeID, ok := attributes[part].(string)
-			if !ok {
-				return "", fmt.Errorf("path part '%s' not found in object node '%s'", part, currentNodeID)
-			}
-			currentNodeID = childNodeID
-		} else if nodeType == "array" {
-			index, err := strconv.Atoi(part)
-			if err != nil {
-				return "", fmt.Errorf("invalid array index '%s' in path '%s'", part, path)
-			}
-			children, err := callGetChildren(t, interp, treeHandle, currentNodeID)
-			if err != nil {
-				return "", fmt.Errorf("could not get children of array node '%s': %w", currentNodeID, err)
-			}
-			childIDs := children.([]interface{})
-			if index >= len(childIDs) {
-				return "", fmt.Errorf("index %d out of bounds for array node '%s'", index, currentNodeID)
-			}
-			currentNodeID = childIDs[index].(string)
-		} else {
-			return "", fmt.Errorf("cannot traverse path further from leaf node '%s' of type '%s' at part %d ('%s')", currentNodeID, nodeType, i, part)
-		}
+	nodeMap, ok := result.(map[string]interface{})
+	if !ok {
+		return "", fmt.Errorf("expected GetNodeByPath to return a map, got %T", result)
 	}
-
-	return currentNodeID, nil
+	id, ok := nodeMap["id"].(string)
+	if !ok {
+		return "", fmt.Errorf("expected node map to have a string 'id', but got %T", nodeMap["id"])
+	}
+	return id, nil
 }

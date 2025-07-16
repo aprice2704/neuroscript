@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.5.2
-// File version: 58
-// Purpose: Corrected the on_error handler invocation logic to properly check the current interpreter's own error handler stack, fixing the root cause of all fixture test failures.
+// File version: 60
+// Purpose: Confirmed removal of excessive fmt.Printf debugging statements from the main execution loop.
 // filename: pkg/interpreter/interpreter_exec.go
 // nlines: 300
 // risk_rating: HIGH
@@ -87,13 +87,11 @@ func getStepSubjectForLogging(step ast.Step) string {
 func (i *Interpreter) recExecuteSteps(steps []ast.Step, isInHandler bool, activeError *lang.RuntimeError, depth int) (finalResult lang.Value, wasReturn bool, wasCleared bool, finalError error) {
 	finalResult = &lang.NilValue{}
 
-	for stepIdx, step := range steps {
+	for _, step := range steps {
 		var stepResult lang.Value
 		var stepErr error
 
 		stepTypeLower := strings.ToLower(step.Type)
-		subject := getStepSubjectForLogging(step)
-		fmt.Printf("[DEBUG-EXEC] Step %d: %s %s (Pos: %s)\n", stepIdx, strings.ToUpper(stepTypeLower), subject, step.GetPos())
 
 		switch stepTypeLower {
 		case "set", "assign":
@@ -188,24 +186,16 @@ func (i *Interpreter) recExecuteSteps(steps []ast.Step, isInHandler bool, active
 		}
 
 		if stepErr != nil {
-			fmt.Printf("[DEBUG-EXEC] Step %d FAILED. Error: %v\n", stepIdx, stepErr)
-		} else {
-			fmt.Printf("[DEBUG-EXEC] Step %d SUCCEEDED. Result: %v (%T)\n", stepIdx, stepResult, stepResult)
-		}
-
-		if stepErr != nil {
 			rtErr := ensureRuntimeError(stepErr, &step.Position, stepTypeLower)
 
 			if errors.Is(rtErr.Unwrap(), lang.ErrBreak) || errors.Is(rtErr.Unwrap(), lang.ErrContinue) {
 				return nil, false, wasCleared, rtErr
 			}
 
-			// FIX: Check the *current* interpreter's stack for a handler.
 			if !isInHandler && len(i.state.errorHandlerStack) > 0 {
 				handlerBlock := i.state.errorHandlerStack[len(i.state.errorHandlerStack)-1]
-				handlerToExecute := handlerBlock[0] // Assuming one handler per level for now
+				handlerToExecute := handlerBlock[0]
 
-				// Execute handler in the *current* interpreter context.
 				_, _, handlerCleared, handlerErr := i.executeSteps(handlerToExecute.Body, true, rtErr)
 
 				if handlerErr != nil {
@@ -213,15 +203,12 @@ func (i *Interpreter) recExecuteSteps(steps []ast.Step, isInHandler bool, active
 				}
 
 				if handlerCleared {
-					// The error was handled and we can continue execution.
 					stepErr = nil
 					continue
 				} else {
-					// The handler ran but didn't clear the error, so it propagates.
 					return nil, false, false, rtErr
 				}
 			} else {
-				// No handler available or we're already inside one.
 				return nil, false, wasCleared, rtErr
 			}
 		}

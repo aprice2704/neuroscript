@@ -1,12 +1,13 @@
 // filename: pkg/parser/ast_builder_literals.go
 // NeuroScript Version: 0.5.2
-// File version: 3
-// Purpose: Refactored node creation to use the newNode helper function.
+// File version: 6.0.0
+// Purpose: Corrected number parsing to always produce float64, fixing type mismatches in the AST.
 
 package parser
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/antlr4-go/antlr/v4"
 	"github.com/aprice2704/neuroscript/pkg/ast"
@@ -26,12 +27,14 @@ func (l *neuroScriptListenerImpl) ExitLiteral(ctx *gen.LiteralContext) {
 
 	if numNode := ctx.NUMBER_LIT(); numNode != nil {
 		token := numNode.GetSymbol()
+		// THIS IS THE KEY FIX: The parseNumber helper now always returns float64.
 		val, err := parseNumber(token.GetText())
 		if err != nil {
 			l.addErrorf(token, "invalid number literal: %v", err)
 			errorNode := &ast.ErrorNode{Message: fmt.Sprintf("invalid number: %v", err)}
 			nodeToPush = newNode(errorNode, token, types.KindUnknown)
 		} else {
+			// The value is guaranteed to be float64 now.
 			node := &ast.NumberLiteralNode{Value: val}
 			nodeToPush = newNode(node, token, types.KindNumberLiteral)
 		}
@@ -111,6 +114,27 @@ func (l *neuroScriptListenerImpl) ExitNil_literal(ctx *gen.Nil_literalContext) {
 	}
 	l.push(node)
 	l.logDebugAST("   << Exit NilLiteral, Pushed Node: %T", node)
+}
+
+// --- Helper Functions ---
+
+// parseNumber attempts to parse a string as a float64. It is the single source for number parsing.
+func parseNumber(numStr string) (float64, error) {
+	// Use ParseFloat for all numbers to ensure type consistency (float64) in the AST.
+	fVal, err := strconv.ParseFloat(numStr, 64)
+	if err != nil {
+		return 0, fmt.Errorf("invalid number literal: %q", numStr)
+	}
+	return fVal, nil
+}
+
+// unescapeString handles standard Go escape sequences within single or double quotes.
+func unescapeString(quotedStr string) (string, error) {
+	unquoted, err := strconv.Unquote(quotedStr)
+	if err != nil {
+		return "", fmt.Errorf("invalid string literal %q: %w", quotedStr, err)
+	}
+	return unquoted, nil
 }
 
 // ================================================================================

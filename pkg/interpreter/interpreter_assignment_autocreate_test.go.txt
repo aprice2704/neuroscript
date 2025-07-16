@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.5.2
-// File version: 12
-// Purpose: Corrected test suite helpers to wrap script snippets in a full function definition, fixing parsing errors.
+// File version: 13
+// Purpose: Corrected all test cases to expect pointer-to-ListValue (*lang.ListValue) where appropriate, aligning them with the new reference-based list architecture.
 // filename: pkg/interpreter/interpreter_assignment_autocreate_test.go
-// nlines: 180
+// nlines: 185
 // risk_rating: LOW
 
 package interpreter
@@ -93,9 +93,10 @@ func TestLValueAutoCreation_SuccessCases(t *testing.T) {
 			name:         "base list auto-creation with numeric index 0",
 			script:       `set b[0] = "value0"`,
 			checkVarName: "b",
-			expectedValue: lang.NewListValue([]lang.Value{
+			// FIX: Expect a pointer to ListValue now.
+			expectedValue: &lang.ListValue{Value: []lang.Value{
 				lang.StringValue{Value: "value0"},
-			}),
+			}},
 		},
 		{
 			name:         "nested map auto-creation via dot access",
@@ -112,32 +113,35 @@ func TestLValueAutoCreation_SuccessCases(t *testing.T) {
 			script:       `set f.listKey[1] = "item1"`,
 			checkVarName: "f",
 			expectedValue: lang.NewMapValue(map[string]lang.Value{
-				"listKey": lang.NewListValue([]lang.Value{
+				// FIX: Expect a pointer to ListValue now.
+				"listKey": &lang.ListValue{Value: []lang.Value{
 					&lang.NilValue{},
 					lang.StringValue{Value: "item1"},
-				}),
+				}},
 			}),
 		},
 		{
 			name:         "nested map in list auto-creation",
 			script:       `set g[0].mapKey = "itemG"`,
 			checkVarName: "g",
-			expectedValue: lang.NewListValue([]lang.Value{
+			// FIX: Expect a pointer to ListValue now.
+			expectedValue: &lang.ListValue{Value: []lang.Value{
 				lang.NewMapValue(map[string]lang.Value{
 					"mapKey": lang.StringValue{Value: "itemG"},
 				}),
-			}),
+			}},
 		},
-		{ // FIX: This test was moved from failures to success cases.
+		{
 			name:   "auto-create from nil value",
 			script: `set myVar[0] = "success"`,
 			initialVars: map[string]lang.Value{
 				"myVar": &lang.NilValue{},
 			},
 			checkVarName: "myVar",
-			expectedValue: lang.NewListValue([]lang.Value{
+			// FIX: Expect a pointer to ListValue now.
+			expectedValue: &lang.ListValue{Value: []lang.Value{
 				lang.StringValue{Value: "success"},
-			}),
+			}},
 		},
 	}
 
@@ -183,7 +187,8 @@ func TestLValueAutoCreation_FailureCases(t *testing.T) {
 			name:   "Assign to list with string key",
 			script: `set myList["key"] = "fail"`,
 			initialVars: map[string]lang.Value{
-				"myList": lang.NewListValue(nil),
+				// FIX: Initialize with a pointer to ListValue.
+				"myList": &lang.ListValue{Value: make([]lang.Value, 0)},
 			},
 			expectedError: lang.ErrListInvalidIndexType,
 		},

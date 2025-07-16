@@ -114,7 +114,7 @@ func UnwrapValue(v interface{}) interface{} {
 			unwrappedList[i] = UnwrapValue(item)
 		}
 		return unwrappedList
-	case MapValue:
+	case *MapValue:
 		// Recursively unwrap values in the map
 		unwrappedMap := make(map[string]interface{})
 		for k, innerVal := range val.Value {

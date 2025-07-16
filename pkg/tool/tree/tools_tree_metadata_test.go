@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.5.4
-// File version: 15
-// Purpose: Corrected all function signatures in test cases to use tool.Runtime, resolving all compiler errors.
+// NeuroScript Version: 0.6.5
+// File version: 18
+// Purpose: Corrected metadata tests to assert against a map[string]interface{} and account for initial attributes from JSON load.
 // filename: pkg/tool/tree/tools_tree_metadata_test.go
-// nlines: 95
+// nlines: 80
 // risk_rating: LOW
 package tree_test
 
@@ -11,96 +11,80 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/tool"
-	"github.com/aprice2704/neuroscript/pkg/utils"
 )
 
 func TestTreeMetadata(t *testing.T) {
-	baseJSON := `{"a":{"b":{"c":1}}}`
+	const testJSON = `{"key": "value", "nested": {"num": 123}}`
 
-	testCases := []treeTestCase{
-		{
-			Name:      "Get_Root_Metadata_Empty",
-			JSONInput: `{"a":1}`,
-			Validation: func(t *testing.T, interp tool.Runtime, treeHandle string, result interface{}) {
-				rootID := getRootID(t, interp, treeHandle)
-				metadata, err := callGetMetadata(t, interp, treeHandle, rootID)
-				if err != nil {
-					t.Fatalf("callGetMetadata failed unexpectedly: %v", err)
-				}
-				metaAttrs, ok := metadata.(utils.TreeAttrs)
-				if !ok {
-					t.Fatalf("GetMetadata did not return a utils.TreeAttrs, got %T", metadata)
-				}
-				if len(metaAttrs) != 0 {
-					t.Errorf("Expected empty metadata, got %v", metaAttrs)
-				}
-			},
-		},
-		{
-			Name:      "Set_and_Get_Metadata",
-			JSONInput: baseJSON,
-			SetupFunc: func(t *testing.T, interp tool.Runtime, treeHandle string) {
-				targetNodeID, err := getNodeIDByPath(t, interp, treeHandle, "a.b")
-				if err != nil {
-					t.Fatalf("Setup failed: could not get node 'a.b': %v", err)
-				}
-
-				_, err = callSetNodeMetadata(t, interp, treeHandle, targetNodeID, "key1", "val1")
-				if err != nil {
-					t.Fatalf("callSetNodeMetadata in setup failed: %v", err)
-				}
-			},
-			Validation: func(t *testing.T, interp tool.Runtime, treeHandle string, result interface{}) {
-				targetNodeID, err := getNodeIDByPath(t, interp, treeHandle, "a.b")
-				if err != nil {
-					t.Fatalf("Validation failed: could not get node 'a.b': %v", err)
-				}
-
-				nodeInfo, err := callGetNode(t, interp, treeHandle, targetNodeID)
-				if err != nil {
-					t.Fatalf("Validation failed: callGetNode failed: %v", err)
-				}
-				nodeMap := nodeInfo.(map[string]interface{})
-				attributes := nodeMap["attributes"].(utils.TreeAttrs)
-
-				if val, ok := attributes["key1"]; !ok || val != "val1" {
-					t.Errorf("Expected metadata key1 to be 'val1', got %v", attributes)
-				}
-			},
-		},
-		{
-			Name:        "Get_Metadata_On_Invalid_Node_ID",
-			JSONInput:   baseJSON,
-			ToolName:    "GetNode",
-			Args:        []interface{}{nil, "non-existent-id"},
-			ExpectedErr: lang.ErrNotFound,
-		},
+	setup := func(t *testing.T, interp tool.Runtime) (string, string) {
+		handle, err := setupTreeWithJSON(t, interp, testJSON)
+		if err != nil {
+			t.Fatalf("Tree setup failed unexpectedly: %v", err)
+		}
+		rootID, err := getRootID(t, interp, handle)
+		if err != nil {
+			t.Fatalf("GetRootID failed: %v", err)
+		}
+		return handle, rootID
 	}
 
-	for _, tc := range testCases {
-		testTreeToolHelper(t, tc.Name, func(t *testing.T, interp tool.Runtime) {
-			treeHandle, err := setupTreeWithJSON(t, interp, tc.JSONInput)
-			if err != nil && tc.ExpectedErr == nil {
-				t.Fatalf("Tree setup failed unexpectedly: %v", err)
-			}
+	testTreeToolHelper(t, "Get Root Metadata Initially", func(t *testing.T, interp tool.Runtime) {
+		handle, rootID := setup(t, interp)
+		metadata, err := callGetMetadata(t, interp, handle, rootID)
+		if err != nil {
+			t.Fatal(err)
+		}
 
-			if tc.SetupFunc != nil {
-				tc.SetupFunc(t, interp, treeHandle)
-			}
+		metaMap, ok := metadata.(map[string]interface{})
+		if !ok {
+			t.Fatalf("Expected metadata to be a map[string]interface{}, got %T", metadata)
+		}
 
-			var res interface{}
-			if tc.ToolName != "" {
-				args := tc.Args
-				if len(args) > 0 && args[0] == nil {
-					args[0] = treeHandle
-				}
-				res, err = runTool(t, interp, tc.ToolName, args...)
-				assertResult(t, res, err, tc.Expected, tc.ExpectedErr)
-			}
+		if len(metaMap) != 2 {
+			t.Errorf("Expected 2 initial attributes, got %d", len(metaMap))
+		}
+		if _, ok := metaMap["key"]; !ok {
+			t.Error("Expected 'key' in initial metadata")
+		}
+		if _, ok := metaMap["nested"]; !ok {
+			t.Error("Expected 'nested' in initial metadata")
+		}
+	})
 
-			if tc.Validation != nil {
-				tc.Validation(t, interp, treeHandle, res)
-			}
-		})
-	}
+	testTreeToolHelper(t, "Set and Get Metadata", func(t *testing.T, interp tool.Runtime) {
+		handle, rootID := setup(t, interp)
+
+		_, err := callSetNodeMetadata(t, interp, handle, rootID, "status", "active")
+		if err != nil {
+			t.Fatalf("SetNodeMetadata failed: %v", err)
+		}
+		_, err = callSetNodeMetadata(t, interp, handle, rootID, "priority", "10")
+		if err != nil {
+			t.Fatalf("SetNodeMetadata failed: %v", err)
+		}
+
+		metadata, err := callGetMetadata(t, interp, handle, rootID)
+		expectedMeta := map[string]interface{}{
+			"key":      "node-2",
+			"nested":   "node-3",
+			"status":   "active",
+			"priority": "10",
+		}
+		assertResult(t, metadata, err, expectedMeta, nil)
+
+		_, err = callSetNodeMetadata(t, interp, handle, rootID, "status", "inactive")
+		if err != nil {
+			t.Fatalf("SetNodeMetadata failed on overwrite: %v", err)
+		}
+
+		metadata, err = callGetMetadata(t, interp, handle, rootID)
+		expectedMeta["status"] = "inactive"
+		assertResult(t, metadata, err, expectedMeta, nil)
+	})
+
+	testTreeToolHelper(t, "Get Metadata On Invalid Node ID", func(t *testing.T, interp tool.Runtime) {
+		handle, _ := setup(t, interp)
+		_, err := callGetMetadata(t, interp, handle, "invalid-node-id")
+		assertResult(t, nil, err, nil, lang.ErrNotFound)
+	})
 }

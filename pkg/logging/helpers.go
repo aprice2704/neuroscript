@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.3.1
-// File version: 1.5.0
-// Purpose: Corrected undefined variable errors by using standard library functions and local package types.
+// File version: 1.5.3
+// Purpose: Forcefully silenced the test logger by default by having NewTestLogger always return a NoOpLogger to bypass potential build cache issues.
 // filename: pkg/logging/helpers.go
 
 package logging
@@ -9,7 +9,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"os"
 	"strings"
 	"testing"
 
@@ -24,13 +23,11 @@ type TestLogger struct {
 
 var _ interfaces.Logger = (*TestLogger)(nil)
 
+// NewTestLogger now ALWAYS returns a silent NoOpLogger for all test runs
+// to forcefully eliminate logging noise caused by potential build cache issues.
+// Verbose logging can be re-enabled by restoring the check for testing.Verbose().
 func NewTestLogger(t *testing.T) interfaces.Logger {
-	// FIX: Use the standard testing.Verbose() function instead of a custom variable.
-	if !testing.Verbose() {
-		// FIX: Use the correct NewNoOpLogger() constructor from the same package.
-		return NewNoOpLogger()
-	}
-	return &TestLogger{t: t, out: os.Stderr}
+	return NewNoOpLogger()
 }
 
 func (l *TestLogger) logStructured(level string, msg string, args ...any) {
@@ -39,7 +36,9 @@ func (l *TestLogger) logStructured(level string, msg string, args ...any) {
 	sb.WriteString(" ")
 	sb.WriteString(msg)
 	for i := 0; i < len(args); i += 2 {
-		sb.WriteString(fmt.Sprintf(" %v=%v", args[i], args[i+1]))
+		if i+1 < len(args) {
+			sb.WriteString(fmt.Sprintf(" %v=%v", args[i], args[i+1]))
+		}
 	}
 	l.t.Log(sb.String())
 }

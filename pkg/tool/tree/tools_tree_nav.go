@@ -1,14 +1,16 @@
-// NeuroScript Version: 0.3.1
-// File version: 0.1.6
-// CRITICAL FIX: Changed "children" in GetNode result to be []interface{} to align with NeuroScript list type conventions.
-// nlines: 82 // Approximate
-// risk_rating: MEDIUM // Critical for correct tool behavior
+// NeuroScript Version: 0.6.5
+// File version: 3
+// Purpose: Corrected GetNode to return a standard map[string]interface{} for attributes to prevent test panics.
 // filename: pkg/tool/tree/tools_tree_nav.go
+// nlines: 200
+// risk_rating: MEDIUM
 
 package tree
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/tool"
@@ -32,7 +34,6 @@ func toolTreeGetNode(interpreter tool.Runtime, args []interface{}) (interface{},
 		return nil, err
 	}
 
-	// NeuroScript lists are []interface{}, so we must return that type.
 	var childrenSlice []interface{}
 	if node.ChildIDs != nil {
 		childrenSlice = make([]interface{}, len(node.ChildIDs))
@@ -43,12 +44,20 @@ func toolTreeGetNode(interpreter tool.Runtime, args []interface{}) (interface{},
 		childrenSlice = []interface{}{}
 	}
 
+	// Convert utils.TreeAttrs to map[string]interface{} to avoid panics in tests.
+	attributesMap := make(map[string]interface{})
+	if node.Attributes != nil {
+		for k, v := range node.Attributes {
+			attributesMap[k] = v
+		}
+	}
+
 	nodeMap := map[string]interface{}{
 		"id":                   node.ID,
 		"type":                 node.Type,
 		"value":                node.Value,
-		"attributes":           node.Attributes,
-		"children":             childrenSlice, // CORRECTED TYPE
+		"attributes":           attributesMap, // CORRECTED TYPE
+		"children":             childrenSlice,
 		"parent_id":            node.ParentID,
 		"parent_attribute_key": node.ParentAttributeKey,
 	}
@@ -117,12 +126,101 @@ func toolTreeGetParent(interpreter tool.Runtime, args []interface{}) (interface{
 		return nil, err
 	}
 
-	interpreter.GetLogger().Debug(fmt.Sprintf("%s: Retrieved parent ID", toolName),
-		"handle", treeHandle, "nodeId", nodeID, "parentId", node.ParentID)
-
 	if node.ParentID == "" {
 		return nil, nil
 	}
 
-	return node.ParentID, nil
+	return toolTreeGetNode(interpreter, []interface{}{treeHandle, node.ParentID})
+}
+
+// toolTreeGetRoot retrieves the root node of the tree.
+func toolTreeGetRoot(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
+	toolName := "Tree.GetRoot"
+	if len(args) != 1 {
+		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("%s: expected 1 argument (tree_handle), got %d", toolName, len(args)), lang.ErrArgumentMismatch)
+	}
+
+	treeHandle, okHandle := args[0].(string)
+	if !okHandle {
+		return nil, lang.NewRuntimeError(lang.ErrorCodeType, fmt.Sprintf("%s: tree_handle argument must be a string, got %T", toolName, args[0]), lang.ErrInvalidArgument)
+	}
+
+	tree, err := getTreeFromHandle(interpreter, treeHandle, toolName)
+	if err != nil {
+		return nil, err
+	}
+
+	if tree.RootID == "" {
+		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, "tree has no root ID", lang.ErrInternal)
+	}
+
+	return toolTreeGetNode(interpreter, []interface{}{treeHandle, tree.RootID})
+}
+
+// toolTreeGetNodeByPath retrieves a node by a path expression (e.g., "key.0.name").
+func toolTreeGetNodeByPath(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
+	toolName := "Tree.GetNodeByPath"
+	if len(args) != 2 {
+		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("%s: expected 2 arguments (tree_handle, path), got %d", toolName, len(args)), lang.ErrArgumentMismatch)
+	}
+
+	handleID, okHandle := args[0].(string)
+	path, okPath := args[1].(string)
+	if !okHandle || !okPath {
+		return nil, lang.NewRuntimeError(lang.ErrorCodeType, fmt.Sprintf("%s: invalid argument types", toolName), lang.ErrInvalidArgument)
+	}
+
+	tree, err := getTreeFromHandle(interpreter, handleID, toolName)
+	if err != nil {
+		return nil, err
+	}
+
+	currentNode, exists := tree.NodeMap[tree.RootID]
+	if !exists {
+		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, "root node not found in tree", lang.ErrInternal)
+	}
+
+	if path == "" {
+		return toolTreeGetNode(interpreter, []interface{}{handleID, tree.RootID})
+	}
+
+	segments := strings.Split(path, ".")
+	for _, segment := range segments {
+		if currentNode == nil {
+			return nil, lang.NewRuntimeError(lang.ErrorCodeKeyNotFound, fmt.Sprintf("%s: cannot traverse path, intermediate node is nil", toolName), lang.ErrNotFound)
+		}
+
+		switch currentNode.Type {
+		case "object":
+			childNodeIDUntyped, ok := currentNode.Attributes[segment]
+			if !ok {
+				return nil, lang.NewRuntimeError(lang.ErrorCodeKeyNotFound, fmt.Sprintf("%s: key '%s' not found in object node '%s'", toolName, segment, currentNode.ID), lang.ErrNotFound)
+			}
+			childNodeID, ok := childNodeIDUntyped.(string)
+			if !ok {
+				return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, fmt.Sprintf("%s: attribute value for key '%s' is not a node ID string", toolName, segment), lang.ErrInternal)
+			}
+			currentNode, exists = tree.NodeMap[childNodeID]
+			if !exists {
+				return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, fmt.Sprintf("%s: child node ID '%s' not found in tree map", toolName, childNodeID), lang.ErrInternal)
+			}
+		case "array":
+			index, err := strconv.Atoi(segment)
+			if err != nil {
+				return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("%s: invalid array index '%s' in path", toolName, segment), lang.ErrInvalidArgument)
+			}
+			if index < 0 || index >= len(currentNode.ChildIDs) {
+				return nil, lang.NewRuntimeError(lang.ErrorCodeKeyNotFound, fmt.Sprintf("%s: index %d out of bounds for array node '%s'", toolName, index, currentNode.ID), lang.ErrNotFound)
+			}
+			childNodeID := currentNode.ChildIDs[index]
+			currentNode, exists = tree.NodeMap[childNodeID]
+			if !exists {
+				return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, fmt.Sprintf("%s: child node ID '%s' not found in tree map", toolName, childNodeID), lang.ErrInternal)
+			}
+		default:
+			return nil, lang.NewRuntimeError(lang.ErrorCodeNodeWrongType, fmt.Sprintf("%s: cannot traverse path, node '%s' of type '%s' is not an object or array", toolName, currentNode.ID, currentNode.Type), lang.ErrNodeWrongType)
+		}
+	}
+
+	return toolTreeGetNode(interpreter, []interface{}{handleID, currentNode.ID})
 }

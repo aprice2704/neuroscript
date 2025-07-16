@@ -8,7 +8,6 @@ package parser
 import (
 	"fmt"
 	"reflect"
-	"strconv"
 	"strings"
 
 	"github.com/antlr4-go/antlr/v4"
@@ -179,30 +178,30 @@ func ConvertInputSchemaToArgSpec(schema map[string]interface{}) ([]tool.ArgSpec,
 // --- Added Helper Functions for Literal Parsing ---
 
 // parseNumber attempts to parse a string as int64 or float64.
-func parseNumber(numStr string) (interface{}, error) {
-	// Try parsing as int first
-	if !strings.Contains(numStr, ".") { // Optimization: Don't try int if decimal present
-		if iVal, err := strconv.ParseInt(numStr, 10, 64); err == nil {
-			return iVal, nil
-		}
-	}
+// func parseNumber(numStr string) (interface{}, error) {
+// 	// Try parsing as int first
+// 	if !strings.Contains(numStr, ".") { // Optimization: Don't try int if decimal present
+// 		if iVal, err := strconv.ParseInt(numStr, 10, 64); err == nil {
+// 			return iVal, nil
+// 		}
+// 	}
 
-	// Try parsing as float
-	if fVal, err := strconv.ParseFloat(numStr, 64); err == nil {
-		return fVal, nil
-	}
+// 	// Try parsing as float
+// 	if fVal, err := strconv.ParseFloat(numStr, 64); err == nil {
+// 		return fVal, nil
+// 	}
 
-	return nil, fmt.Errorf("invalid number literal: %q", numStr)
-}
+// 	return nil, fmt.Errorf("invalid number literal: %q", numStr)
+// }
 
 // unescapeString handles standard Go escape sequences within single or double quotes.
-func unescapeString(quotedStr string) (string, error) {
-	unquoted, err := strconv.Unquote(quotedStr)
-	if err != nil {
-		return "", fmt.Errorf("invalid string literal %q: %w", quotedStr, err)
-	}
-	return unquoted, nil
-}
+// func unescapeString(quotedStr string) (string, error) {
+// 	unquoted, err := strconv.Unquote(quotedStr)
+// 	if err != nil {
+// 		return "", fmt.Errorf("invalid string literal %q: %w", quotedStr, err)
+// 	}
+// 	return unquoted, nil
+// }
 
 // --- types.Position Helper ---
 

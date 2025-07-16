@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.5.2
-// File version: 39
-// Purpose: Corrected loop checks to use the new lang.ErrMaxIterationsExceeded sentinel error, fixing the compiler error.
+// File version: 40
+// Purpose: Corrected the executeFor loop to handle pointer-to-ListValue (*lang.ListValue), fixing the iteration bug.
 // filename: pkg/interpreter/interpreter_steps_blocks.go
 // nlines: 200
 // risk_rating: HIGH
@@ -101,9 +101,12 @@ func (i *Interpreter) executeFor(step ast.Step, isInHandler bool, activeError *l
 
 	var itemsToIterate []lang.Value
 	switch c := collectionVal.(type) {
+	// FIX: Add case for pointer to ListValue.
+	case *lang.ListValue:
+		itemsToIterate = c.Value
 	case lang.ListValue:
 		itemsToIterate = c.Value
-	case lang.MapValue:
+	case *lang.MapValue:
 		itemsToIterate = make([]lang.Value, 0, len(c.Value))
 		for _, v := range c.Value {
 			itemsToIterate = append(itemsToIterate, v)

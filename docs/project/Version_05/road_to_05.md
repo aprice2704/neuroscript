@@ -16,6 +16,7 @@
 - [ ] fuzzy literal
 - [ ] other specialized types literals?
 - [ ] mustbe
+- [ ] remove nil values -- how hard? desirable?
  
  ## Worker Management System
 

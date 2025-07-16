@@ -1,18 +1,19 @@
-// NeuroScript Version: 0.3.1
-// File version: 0.1.2 // Set ParentAttributeKey for nodes created as object attributes.
-// nlines: 95 // Approximate
-// risk_rating: MEDIUM
+// NeuroScript Version: 0.6.5
+// File version: 3
+// Purpose: Corrected JSON loading to deterministically create nodes and properly use the 'type' field from the JSON object.
 // filename: pkg/tool/tree/tools_tree_load.go
+// nlines: 130
+// risk_rating: HIGH
 
 package tree
 
 import (
 	"encoding/json"
-	"errors" // Required for errors.Is
+	"errors"
 	"fmt"
+	"sort"
 	"strconv"
 
-	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 	"github.com/aprice2704/neuroscript/pkg/utils"
@@ -20,7 +21,7 @@ import (
 
 // toolTreeLoadJSON parses a JSON string and returns a handle to the generic tree.
 func toolTreeLoadJSON(interp tool.Runtime, args []interface{}) (interface{}, error) {
-	toolName := "Tree.LoadJSON" // User-facing tool name for error messages
+	toolName := "Tree.LoadJSON"
 
 	if len(args) != 1 {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch,
@@ -46,108 +47,111 @@ func toolTreeLoadJSON(interp tool.Runtime, args []interface{}) (interface{}, err
 		)
 	}
 
-	tree := utils.NewGenericTree() // Initializes NodeMap and nextID
+	tree := utils.NewGenericTree()
 
 	var buildNode func(parentID string, keyForParentAttribute string, value interface{}) (string, error)
 	buildNode = func(parentID string, keyForParentAttribute string, value interface{}) (string, error) {
-		var node *utils.GenericTreeNode
 		nodeType := ""
+		vMap, isMap := value.(map[string]interface{})
 
-		// Determine nodeType first, then create node, then set ParentAttributeKey if applicable
-		switch value.(type) {
-		case map[string]interface{}:
-			nodeType = "object"
-		case []interface{}:
-			nodeType = "array"
-		case string:
-			nodeType = "string"
-		case float64:
-			nodeType = "number"
-		case bool:
-			nodeType = "boolean"
-		case nil:
-			nodeType = "null"
-		default:
-			return "", lang.NewRuntimeError(lang.ErrorCodeInternal,
-				fmt.Sprintf("%s: unsupported JSON type encountered during tree build: %T", toolName, value),
-				lang.ErrInternal,
-			)
+		// Prioritize the 'type' field from the JSON object itself.
+		if isMap {
+			if typeVal, ok := vMap["type"].(string); ok {
+				nodeType = typeVal
+			}
 		}
 
-		node = tree.NewNode(parentID, nodeType) // NewNode sets ParentID
+		// Fallback to Go type if no explicit type field was found.
+		if nodeType == "" {
+			switch value.(type) {
+			case map[string]interface{}:
+				nodeType = "object"
+			case []interface{}:
+				nodeType = "array"
+			case string:
+				nodeType = "string"
+			case float64:
+				nodeType = "number"
+			case bool:
+				nodeType = "boolean"
+			case nil:
+				nodeType = "null"
+			default:
+				return "", lang.NewRuntimeError(lang.ErrorCodeInternal,
+					fmt.Sprintf("%s: unsupported JSON type encountered: %T", toolName, value),
+					lang.ErrInternal,
+				)
+			}
+		}
 
-		// Set ParentAttributeKey if this node is an attribute of an object parent
+		node := tree.NewNode(parentID, nodeType)
 		if parentNode, parentExists := tree.NodeMap[parentID]; parentExists && parentNode.Type == "object" {
 			node.ParentAttributeKey = keyForParentAttribute
 		}
-		// For array elements, keyForParentAttribute is its index as a string.
-		// If parent is an array, ParentAttributeKey will be like "0", "1", etc. This is fine.
 
-		// Now populate based on type
 		switch v := value.(type) {
 		case map[string]interface{}:
-			// node.Type is "object", node is already created and ParentAttributeKey potentially set
 			node.Attributes = make(utils.TreeAttrs)
-			for k, val := range v { // k is the attribute key within this new object node
-				childID, errBuild := buildNode(node.ID, k, val) // Pass k as keyForParentAttribute for children of this object
+
+			// Sort keys for deterministic node ID generation.
+			keys := make([]string, 0, len(v))
+			for k := range v {
+				keys = append(keys, k)
+			}
+			sort.Strings(keys)
+
+			for _, k := range keys {
+				// The 'type' field determines the node's type, it doesn't become a child attribute.
+				if k == "type" {
+					continue
+				}
+				val := v[k]
+				childID, errBuild := buildNode(node.ID, k, val)
 				if errBuild != nil {
 					return "", errBuild
 				}
 				node.Attributes[k] = childID
 			}
 		case []interface{}:
-			// node.Type is "array", node is already created
 			node.ChildIDs = make([]string, len(v))
 			for i, item := range v {
-				// Pass the index as string for keyForParentAttribute, though it's less semantically critical for array elements
 				childID, errBuild := buildNode(node.ID, strconv.Itoa(i), item)
 				if errBuild != nil {
 					return "", errBuild
 				}
 				node.ChildIDs[i] = childID
 			}
-		case string:
+		default:
 			node.Value = v
-		case float64:
-			node.Value = v
-		case bool:
-			node.Value = v
-		case nil:
-			node.Value = nil
 		}
 
-		if parentID == "" { // This is the root node of the entire JSON structure
+		if parentID == "" {
 			tree.RootID = node.ID
 		}
 		return node.ID, nil
 	}
 
-	_, err = buildNode("", "", data) // Root node has no parentID and no keyForParentAttribute from a JSON perspective
+	_, err = buildNode("", "", data)
 	if err != nil {
 		var rtErr *lang.RuntimeError
 		if errors.As(err, &rtErr) {
 			return nil, rtErr
 		}
 		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal,
-			fmt.Sprintf("%s: failed to build tree from parsed JSON: %v", toolName, err),
+			fmt.Sprintf("%s: failed to build tree from JSON: %v", toolName, err),
 			lang.ErrInternal,
 		)
 	}
 
 	if tree.RootID == "" && data != nil {
-		interp.GetLogger().Error(fmt.Sprintf("%s: RootID is empty after successful JSON unmarshal and build for non-empty data", toolName), "json_content_snippet", fmt.Sprintf("%.30s...", jsonContent), "parsed_data_type", fmt.Sprintf("%T", data))
 		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal,
-			fmt.Sprintf("%s: failed to determine root node after parsing JSON", toolName),
+			fmt.Sprintf("%s: failed to determine root node", toolName),
 			lang.ErrInternal,
 		)
 	}
-	interpImpl, ok := interp.(interfaces.Interpreter)
-	if !ok {
-		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, "could not assert interpreter to register handle", nil)
-	}
-	handleID, handleErr := interpImpl.RegisterHandle(tree, utils.GenericTreeHandleType)
+
+	handleID, handleErr := interp.RegisterHandle(tree, utils.GenericTreeHandleType)
 	if handleErr != nil {
-		interp.GetLogger().Error(fmt.Sprintf("%s: Failed to register GenericTree handle", toolName), "error", handleErr)
 		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal,
 			fmt.Sprintf("%s: failed to register tree handle: %v", toolName, handleErr),
 			errors.Join(lang.ErrInternal, handleErr),

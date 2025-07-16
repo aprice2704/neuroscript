@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.5.4
-// File version: 16
-// Purpose: Corrected undefined function/variable errors by using the correct exported APIs for test setup.
+// NeuroScript Version: 0.6.5
+// File version: 20
+// Purpose: Corrected FindNodes call to use int64 arguments for max_depth and max_results.
 // filename: pkg/tool/tree/tools_tree_load_test.go
-// nlines: 85
+// nlines: 120
 // risk_rating: LOW
 package tree_test
 
@@ -34,7 +34,9 @@ const complexJSON = `[
 func TestTreeLoadJSON(t *testing.T) {
 	testTreeToolHelper(t, "Load Simple JSON Object", func(t *testing.T, interp tool.Runtime) {
 		result, err := runTool(t, interp, "LoadJSON", simpleJSON)
-		assertResult(t, result, err, nil, nil) // We just need a handle, not checking the value here
+		if err != nil {
+			t.Fatalf("LoadJSON failed unexpectedly: %v", err)
+		}
 		if _, ok := result.(string); !ok {
 			t.Fatalf("expected a string handle, got %T", result)
 		}
@@ -52,8 +54,7 @@ func TestTreeLoadJSON(t *testing.T) {
 
 	testTreeToolHelper(t, "Load Invalid JSON", func(t *testing.T, interp tool.Runtime) {
 		_, err := runTool(t, interp, "LoadJSON", `{"key": "no_close_quote}`)
-		// FIX: Use a known, exported error variable. ErrInvalidArgument is suitable here.
-		assertResult(t, nil, err, nil, lang.ErrInvalidArgument)
+		assertResult(t, nil, err, nil, lang.ErrTreeJSONUnmarshal)
 	})
 }
 
@@ -95,7 +96,9 @@ func TestTreeGetRoot(t *testing.T) {
 		}
 
 		rootNode, err := runTool(t, interp, "GetRoot", handle)
-		assertResult(t, rootNode, err, nil, nil)
+		if err != nil {
+			t.Fatalf("GetRoot failed unexpectedly: %v", err)
+		}
 
 		nodeMap, ok := rootNode.(map[string]interface{})
 		if !ok {
@@ -109,13 +112,15 @@ func TestTreeGetRoot(t *testing.T) {
 
 func TestFindNodes(t *testing.T) {
 	testTreeToolHelper(t, "Find Nodes By Metadata", func(t *testing.T, interp tool.Runtime) {
-		// FIX: Set up the tree using the tool's own API instead of an unexported function.
 		handle, err := setupTreeWithJSON(t, interp, complexJSON)
 		if err != nil {
 			t.Fatalf("Failed to load initial JSON: %v", err)
 		}
 
-		// Get node IDs to modify them
+		rootID, err := getRootID(t, interp, handle)
+		if err != nil {
+			t.Fatal(err)
+		}
 		user1ID, err := getNodeIDByPath(t, interp, handle, "0")
 		if err != nil {
 			t.Fatal(err)
@@ -125,7 +130,6 @@ func TestFindNodes(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		// Set the metadata required for the test
 		_, err = callSetNodeMetadata(t, interp, handle, user1ID, "status", "active")
 		if err != nil {
 			t.Fatalf("Failed to set metadata for user1: %v", err)
@@ -135,9 +139,9 @@ func TestFindNodes(t *testing.T) {
 			t.Fatalf("Failed to set metadata for user2: %v", err)
 		}
 
-		// Now, perform the actual test
-		result, err := runTool(t, interp, "FindNodes", handle, "status", "active")
-		assertResult(t, result, err, nil, nil)
+		query := map[string]interface{}{"metadata": map[string]interface{}{"status": "active"}}
+		result, err := runTool(t, interp, "FindNodes", handle, rootID, query, int64(-1), int64(-1))
+		assertResult(t, nil, err, nil, nil)
 
 		nodeIDs, ok := result.([]interface{})
 		if !ok {

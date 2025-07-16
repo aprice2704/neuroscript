@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.5.2
-// File version: 7
-// Purpose: Added more detailed debug Printf to SetVariable to trace assignments, including the interpreter's memory address.
+// File version: 9
+// Purpose: Removed noisy debug Printf from SetVariable.
 // filename: pkg/interpreter/interpreter_state.go
 // nlines: 85
 // risk_rating: MEDIUM
@@ -9,7 +9,6 @@ package interpreter
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
@@ -42,8 +41,6 @@ func (i *Interpreter) SetVariable(name string, value lang.Value) error {
 	if name == "" {
 		return errors.New("variable name cannot be empty")
 	}
-	// --- DEBUG ---
-	fmt.Printf("[DEBUG] SetVariable in Interpreter %p: %s = %v (%T)\n", i, name, value, value)
 	i.state.variables[name] = value
 	return nil
 }

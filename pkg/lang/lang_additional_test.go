@@ -41,7 +41,7 @@ func TestStringRepresentations(t *testing.T) {
 		},
 		{
 			"MapValue",
-			MapValue{Value: map[string]Value{"k1": NumberValue{1}, "k2": StringValue{"v2"}}},
+			&MapValue{Value: map[string]Value{"k1": NumberValue{1}, "k2": StringValue{"v2"}}},
 			`{"k1": 1, "k2": "v2"}`, // Note: map order is not guaranteed, so we check for parts.
 		},
 		{
@@ -70,7 +70,7 @@ func TestStringRepresentations(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			got := tc.input.String()
 			// Special handling for maps where order is not guaranteed
-			if _, ok := tc.input.(MapValue); ok {
+			if _, ok := tc.input.(*MapValue); ok {
 				// With the fix to MapValue.String(), we can now check for a more exact substring.
 				if !(strings.HasPrefix(got, "{") && strings.HasSuffix(got, "}") &&
 					strings.Contains(got, `"k1": 1`) && strings.Contains(got, `"k2": "v2"`)) {
@@ -123,9 +123,9 @@ func TestWrapUnwrapNested(t *testing.T) {
 		t.Fatalf("Wrap failed: %v", err)
 	}
 
-	// Ensure it's a MapValue
-	if _, ok := wrapped.(MapValue); !ok {
-		t.Fatalf("Expected wrapped type to be MapValue, got %T", wrapped)
+	// Ensure it's a *MapValue
+	if _, ok := wrapped.(*MapValue); !ok {
+		t.Fatalf("Expected wrapped type to be *MapValue, got %T", wrapped)
 	}
 
 	unwrapped := Unwrap(wrapped)

@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.5.2
-// File version: 21
-// Purpose: Added high-precision debug logging to the 'len' function to trace its input and output.
+// File version: 22
+// Purpose: Removed high-precision debug logging from the 'len' function.
 // filename: pkg/interpreter/evaluation_functions.go
 // nlines: 160
 // risk_rating: HIGH
@@ -62,10 +62,6 @@ func evaluateBuiltInFunction(funcName string, args []interface{}) (lang.Value, e
 		arg := args[0]
 		var length int
 
-		// --- NEW DEBUGGING ---
-		fmt.Printf("[DEBUG-LEN] Received argument: %#v (Type: %T)\n", arg, arg)
-		// --- END NEW DEBUGGING ---
-
 		if arg == nil {
 			length = 0
 		} else {
@@ -78,7 +74,7 @@ func evaluateBuiltInFunction(funcName string, args []interface{}) (lang.Value, e
 				length = len(v)
 			case lang.ListValue:
 				length = len(v.Value)
-			case lang.MapValue:
+			case *lang.MapValue:
 				length = len(v.Value)
 			case *lang.NilValue:
 				length = 0
@@ -86,10 +82,6 @@ func evaluateBuiltInFunction(funcName string, args []interface{}) (lang.Value, e
 				length = 1
 			}
 		}
-
-		// --- NEW DEBUGGING ---
-		fmt.Printf("[DEBUG-LEN] Calculated length: %d\n", length)
-		// --- END NEW DEBUGGING ---
 
 		return lang.NumberValue{Value: float64(length)}, nil
 
@@ -138,7 +130,7 @@ func evaluateBuiltInFunction(funcName string, args []interface{}) (lang.Value, e
 			return nil, err
 		}
 		_, isPrim := args[0].(map[string]interface{})
-		_, isWrap := args[0].(lang.MapValue)
+		_, isWrap := args[0].(*lang.MapValue)
 		return lang.BoolValue{Value: isPrim || isWrap}, nil
 	case "is_error":
 		if err := checkArgCount(1); err != nil {
@@ -152,7 +144,7 @@ func evaluateBuiltInFunction(funcName string, args []interface{}) (lang.Value, e
 			_, hasMsg := m[lang.ErrorKeyMessage]
 			isMapStruct = hasCode && hasMsg
 		}
-		if m, ok := args[0].(lang.MapValue); ok {
+		if m, ok := args[0].(*lang.MapValue); ok {
 			_, hasCode := m.Value[lang.ErrorKeyCode]
 			_, hasMsg := m.Value[lang.ErrorKeyMessage]
 			isMapStruct = hasCode && hasMsg

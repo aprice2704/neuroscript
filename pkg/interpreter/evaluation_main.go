@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.5.2
-// File version: 37
-// Purpose: Replaced logger-based debug with fmt.Printf to force visibility of tool registration state during failing tests.
+// File version: 42
+// Purpose: Corrected evaluateListLiteral to return a value type (lang.ListValue), fixing FOR EACH and literal evaluation test failures.
 // filename: pkg/interpreter/evaluation_main.go
-// nlines: 275
+// nlines: 280
 // risk_rating: HIGH
 
 package interpreter
@@ -102,7 +102,6 @@ func (i *Interpreter) resolveVariable(n *ast.VariableNode) (lang.Value, error) {
 	if typeVal, typeExists := GetTypeConstant(n.Name); typeExists {
 		return lang.StringValue{Value: typeVal}, nil
 	}
-	// Also check for built-in functions here so they can be treated as first-class values
 	if isBuiltInFunction(n.Name) {
 		return lang.StringValue{Value: fmt.Sprintf("<built-in function: %s>", n.Name)}, nil
 	}
@@ -124,6 +123,7 @@ func (i *Interpreter) resolvePlaceholder(n *ast.PlaceholderNode) (lang.Value, er
 	return refValue, nil
 }
 
+// FIX: This now correctly returns a lang.ListValue (a value type), not a pointer.
 func (e *evaluation) evaluateListLiteral(n *ast.ListLiteralNode) (lang.Value, error) {
 	evaluatedElements := make([]lang.Value, len(n.Elements))
 	for idx, elemNode := range n.Elements {
@@ -133,7 +133,7 @@ func (e *evaluation) evaluateListLiteral(n *ast.ListLiteralNode) (lang.Value, er
 			return nil, err
 		}
 	}
-	return lang.NewListValue(evaluatedElements), nil
+	return lang.ListValue{Value: evaluatedElements}, nil
 }
 
 func (e *evaluation) evaluateMapLiteral(n *ast.MapLiteralNode) (lang.Value, error) {
@@ -177,17 +177,6 @@ func (e *evaluation) evaluateCall(n *ast.CallableExprNode) (lang.Value, error) {
 	if n.Target.IsTool {
 		tool, found := e.i.tools.GetTool(types.FullName(n.Target.Name))
 		if !found {
-			// --- DEBUGGING with fmt.Printf ---
-			fmt.Printf("\n--- TOOL LOOKUP FAILED ---\n")
-			fmt.Printf("Attempted to find tool: '%s'\n", n.Target.Name)
-			fmt.Printf("Dumping all registered tools:\n")
-			allToolSpecs := e.i.tools.ListTools()
-			for _, spec := range allToolSpecs {
-				fullName := types.MakeFullName(string(spec.Group), string(spec.Name))
-				fmt.Printf("  - Registered Tool: '%s' (Group: %s, Name: %s)\n", fullName, spec.Group, spec.Name)
-			}
-			fmt.Printf("--- END OF TOOL DUMP ---\n\n")
-			// --- END DEBUGGING ---
 			return nil, lang.NewRuntimeError(lang.ErrorCodeToolNotFound, fmt.Sprintf("tool '%s' not found", n.Target.Name), lang.ErrToolNotFound).WithPosition(n.Pos)
 		}
 

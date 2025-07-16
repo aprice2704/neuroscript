@@ -1,157 +1,119 @@
-// NeuroScript Version: 0.5.4
-// File version: 15
-// Purpose: Corrected all function signatures in test cases to use tool.Runtime, resolving compiler errors.
+// NeuroScript Version: 0.6.5
+// File version: 17
+// Purpose: Corrected assertions and logic to handle the map[string]interface{} type returned for nodes.
 // filename: pkg/tool/tree/tools_tree_nav_test.go
-// nlines: 145
+// nlines: 100
 // risk_rating: LOW
 package tree_test
 
 import (
-	"reflect"
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/tool"
-	"github.com/aprice2704/neuroscript/pkg/utils"
 )
 
 func TestTreeNav(t *testing.T) {
-	baseJSON := `{
-		"root": {
-			"children": [
-				{"name": "child1", "value": 1},
-				{"name": "child2", "value": 2, "children": [
-					{"name": "grandchild1", "value": 2.1}
-				]}
-			],
-			"metadata": {"type": "parent"}
+	const testJSON = `{"name": "root", "ports": [80, 443], "child": {"name": "child1"}}`
+
+	setup := func(t *testing.T, interp tool.Runtime) string {
+		handle, err := setupTreeWithJSON(t, interp, testJSON)
+		if err != nil {
+			t.Fatalf("Tree setup failed unexpectedly: %v", err)
 		}
-	}`
-
-	testCases := []treeTestCase{
-		{
-			Name:      "Get_Node_Root",
-			JSONInput: baseJSON,
-			Validation: func(t *testing.T, interp tool.Runtime, treeHandle string, result interface{}) {
-				rootID := getRootID(t, interp, treeHandle)
-				rootNode, err := callGetNode(t, interp, treeHandle, rootID)
-				if err != nil {
-					t.Fatalf("Validation failed: could not get root node: %v", err)
-				}
-				if !reflect.DeepEqual(rootNode, getRootNode(t, interp, treeHandle)) {
-					t.Error("GetNode with path 'root' did not return the root node handle")
-				}
-			},
-		},
-		{
-			Name:      "Get_Node_Child",
-			JSONInput: baseJSON,
-			Validation: func(t *testing.T, interp tool.Runtime, treeHandle string, result interface{}) {
-				nodeID, err := getNodeIDByPath(t, interp, treeHandle, "root.children.0")
-				if err != nil {
-					t.Fatalf("Validation failed: could not get node id for 'root.children.0': %v", err)
-				}
-				node, err := callGetNode(t, interp, treeHandle, nodeID)
-				if err != nil {
-					t.Fatalf("Validation failed: could not get value of node: %v", err)
-				}
-				nodeMap, ok := node.(map[string]interface{})
-				if !ok {
-					t.Fatalf("node is not a map, but %T", node)
-				}
-				attributes, ok := nodeMap["attributes"].(utils.TreeAttrs)
-				if !ok {
-					t.Fatalf("attributes is not utils.TreeAttrs, but %T", nodeMap["attributes"])
-				}
-
-				nameNodeID := attributes["name"].(string)
-				nameNodeValue, err := callGetValue(t, interp, treeHandle, nameNodeID)
-				if err != nil {
-					t.Fatalf("could not get name node value: %v", err)
-				}
-
-				if nameNodeValue != "child1" {
-					t.Errorf("Expected node name to be 'child1', got %v", nameNodeValue)
-				}
-			},
-		},
-		{
-			Name:        "Get_Node_Invalid_Path",
-			JSONInput:   baseJSON,
-			ToolName:    "GetNode",
-			Args:        []interface{}{nil, "non-existent-id"},
-			ExpectedErr: lang.ErrNotFound,
-		},
-		{
-			Name:      "Get_Children",
-			JSONInput: baseJSON,
-			Validation: func(t *testing.T, interp tool.Runtime, treeHandle string, result interface{}) {
-				nodeID, err := getNodeIDByPath(t, interp, treeHandle, "root.children")
-				if err != nil {
-					t.Fatalf("could not get node id for %s: %v", "root.children", err)
-				}
-				children, err := callGetChildren(t, interp, treeHandle, nodeID)
-				if err != nil {
-					t.Fatalf("GetChildren failed: %v", err)
-				}
-
-				childSlice, ok := children.([]interface{})
-				if !ok {
-					t.Fatalf("GetChildren did not return a slice, got %T", children)
-				}
-				if len(childSlice) != 2 {
-					t.Errorf("Expected 2 children for 'root.children', got %d", len(childSlice))
-				}
-			},
-		},
-		{
-			Name:      "Get_Parent",
-			JSONInput: baseJSON,
-			Validation: func(t *testing.T, interp tool.Runtime, treeHandle string, result interface{}) {
-				childID, err := getNodeIDByPath(t, interp, treeHandle, "root.children.0")
-				if err != nil {
-					t.Fatalf("Setup for Get_Parent failed: could not get child node: %v", err)
-				}
-				parentHandle, err := runTool(t, interp, "GetParent", treeHandle, childID)
-				if err != nil {
-					t.Fatalf("GetParent failed: %v", err)
-				}
-
-				parentID, ok := parentHandle.(string)
-				if !ok {
-					t.Fatalf("GetParent did not return a string handle, got %T", parentHandle)
-				}
-				children, err := callGetChildren(t, interp, treeHandle, parentID)
-				if err != nil {
-					t.Fatalf("Validation failed: could not get children of parent: %v", err)
-				}
-				if len(children.([]interface{})) != 2 {
-					t.Errorf("Expected parent to have 2 children, got %d", len(children.([]interface{})))
-				}
-			},
-		},
+		return handle
 	}
 
-	for _, tc := range testCases {
-		testTreeToolHelper(t, tc.Name, func(t *testing.T, interp tool.Runtime) {
-			treeHandle, err := setupTreeWithJSON(t, interp, tc.JSONInput)
-			if err != nil {
-				t.Fatalf("Tree setup failed unexpectedly: %v", err)
-			}
+	testTreeToolHelper(t, "Get Node Root", func(t *testing.T, interp tool.Runtime) {
+		handle := setup(t, interp)
+		rootID, err := getRootID(t, interp, handle)
+		if err != nil {
+			t.Fatal(err)
+		}
 
-			var result interface{}
-			if tc.Validation != nil {
-				tc.Validation(t, interp, treeHandle, result)
-			} else if tc.ToolName != "" {
-				args := tc.Args
-				if len(args) > 0 {
-					if args[0] == nil {
-						args[0] = treeHandle
-					}
-				}
-				result, err = runTool(t, interp, tc.ToolName, args...)
-				assertResult(t, result, err, tc.Expected, tc.ExpectedErr)
-			}
-		})
-	}
+		node, err := callGetNode(t, interp, handle, rootID)
+		assertResult(t, nil, err, nil, nil)
+
+		nodeMap, ok := node.(map[string]interface{})
+		if !ok {
+			t.Fatalf("expected node to be a map, got %T", node)
+		}
+		if nodeMap["id"] != rootID {
+			t.Errorf("expected node ID to be '%s', got '%s'", rootID, nodeMap["id"])
+		}
+	})
+
+	testTreeToolHelper(t, "Get Node Child", func(t *testing.T, interp tool.Runtime) {
+		handle := setup(t, interp)
+		childID, err := getNodeIDByPath(t, interp, handle, "child")
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		node, err := callGetNode(t, interp, handle, childID)
+		assertResult(t, nil, err, nil, nil)
+
+		nodeMap, ok := node.(map[string]interface{})
+		if !ok {
+			t.Fatalf("expected node to be a map, got %T", node)
+		}
+
+		nameAttrNodeID, ok := nodeMap["attributes"].(map[string]interface{})["name"].(string)
+		if !ok {
+			t.Fatal("could not get name attribute ID")
+		}
+		value, err := callGetValue(t, interp, handle, nameAttrNodeID)
+		assertResult(t, value, err, "child1", nil)
+	})
+
+	testTreeToolHelper(t, "Get Node Invalid ID", func(t *testing.T, interp tool.Runtime) {
+		handle := setup(t, interp)
+		_, err := callGetNode(t, interp, handle, "invalid-node-id")
+		assertResult(t, nil, err, nil, lang.ErrNotFound)
+	})
+
+	testTreeToolHelper(t, "Get Children Of Array", func(t *testing.T, interp tool.Runtime) {
+		handle := setup(t, interp)
+		portsID, err := getNodeIDByPath(t, interp, handle, "ports")
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		children, err := callGetChildren(t, interp, handle, portsID)
+		assertResult(t, nil, err, nil, nil)
+
+		childrenSlice, ok := children.([]interface{})
+		if !ok {
+			t.Fatalf("expected children to be a slice, got %T", children)
+		}
+		if len(childrenSlice) != 2 {
+			t.Errorf("expected 2 children, got %d", len(childrenSlice))
+		}
+	})
+
+	testTreeToolHelper(t, "Get Parent", func(t *testing.T, interp tool.Runtime) {
+		handle := setup(t, interp)
+		rootID, err := getRootID(t, interp, handle)
+		if err != nil {
+			t.Fatal(err)
+		}
+		childID, err := getNodeIDByPath(t, interp, handle, "child")
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		parent, err := runTool(t, interp, "GetParent", handle, childID)
+		assertResult(t, nil, err, nil, nil)
+
+		parentMap, ok := parent.(map[string]interface{})
+		if !ok {
+			t.Fatalf("expected parent to be a map, got %T", parent)
+		}
+		if parentMap["id"] != rootID {
+			t.Errorf("expected parent ID to be '%s', got '%s'", rootID, parentMap["id"])
+		}
+
+		parentOfRoot, err := runTool(t, interp, "GetParent", handle, rootID)
+		assertResult(t, parentOfRoot, err, nil, nil)
+	})
 }
