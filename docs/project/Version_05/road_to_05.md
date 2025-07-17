@@ -17,6 +17,7 @@
 - [ ] other specialized types literals?
 - [ ] mustbe
 - [ ] remove nil values -- how hard? desirable?
+- [ ] complete API facades for tools etc.
  
  ## Worker Management System
 

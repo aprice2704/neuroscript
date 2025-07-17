@@ -1,123 +1,190 @@
-# “Integration-readiness” checklist for the **`ns/api` ↔ `lang/*`** pipeline
+<!--
+ NS/FDM API CONTRACT — v0.6 (2025‑07‑16)
+ This file is *normative* and MUST be kept in‑sync with
+ both the public `api` package and the Integration Guide.
+ Any signature drift requires a simultaneous version bump.
+-->
 
-### 1 AST contract (single source of truth)
+# 📜 “Integration‑readiness” contract for the **`api` ↔ `lang/*`** pipeline
 
-| Must-have                                                                 | Notes                                                                                      |
-| ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| **`type Position struct{ Line, Col int }`**                               | 1-based, immutable. `String()` → `"file.ns:12:7"` (needed by `api.FormatWithRemediation`). |
-| **`type Kind uint8`** stable enum                                         | Do **not** reorder once published. Add new kinds at the end only.                          |
-| **`type Node interface { Pos() Position; End() Position; Kind() Kind }`** | Every concrete node lives in `lang/ast/*`.                                                 |
-| **`type Tree struct { Root Node; Comments []Comment }`**                  | Comments captured as their own nodes **or** in the slice; round-trippable.                 |
-| **Unnamed `command` block** maps to **`*ast.CommandBlock`**               | One per file; detector logic relies on `KindCommandBlock`.                                 |
-| **`*ast.SecretRef` node**                                                 | Fields: `Path string`, `Enc string`, `Raw []byte` (may be nil pre-prepare).                |
-
-> *Public location:* `lang/ast/ast.go`.
-> *The `api` package **aliases** these types; keep packages import-cycle-free.*
+The goal of this document is to guarantee that a consumer needs *only*  
+`import "yourrepo/api"` to load, verify, and execute a NeuroScript unit.  
+Everything below is **stable** once released; breaking changes demand a
+major‑version bump of the overall module.
 
 ---
 
-### 2 Parser guarantees (`lang/parser`)
+## 0 Scope & philosophy
 
-* `Parse(src []byte, preserveComments bool) (*ast.Tree, error)`
-
-  * `preserveComments=false` may drop comments for speed.
-* On success the tree **obeys** invariants:
-
-  * Single `CommandBlock` **xor** ≥0 `FuncDecl` **xor** ≥0 `EventHandler`.
-  * All child pointers non-nil, positions increasing.
-* Returns `ErrSyntax` on first violation; caller wraps into `RuntimeError`.
-
-### 3 Canonicaliser (`lang/canon`)
-
-| Function                                           | Contract                                                                |
-| -------------------------------------------------- | ----------------------------------------------------------------------- |
-| `Canonicalise(tree *ast.Tree) ([]byte, [32]byte)`  | Deterministic varint encoding; same input → same bytes on any platform. |
-| `Decode(blob []byte) (*ast.Tree, [32]byte, error)` | Shape validation only (no signature check).                             |
-
-*Hash = **blake2b\_256** of canonical bytes. 32 bytes in `[32]byte`.*
-
-### 4 Signature helpers (`lang/sign`)
-
-```go
-type SignedAST struct{ Blob []byte; Sum [32]byte; Sig []byte }
-
-Sign(priv ed25519.PrivateKey, blob []byte, sum [32]byte) (*SignedAST, error)
-Verify(pub ed25519.PublicKey, s *SignedAST) (*ast.Tree, error)
-```
-
-*`Verify` must re-canonicalise → compare `Sum` → verify `Sig`.*
-
-### 5 Interpreter shim (`lang/interp`)
-
-```go
-func ExecCommand(ctx context.Context, tree *ast.Tree,
-                 cfg interp.Config) (*api.ExecResult, error)
-```
-
-\*Assumes tree has been vetted & is `RunModeCommand`.
-*`interp.Config` includes `SecretResolver func(ref *ast.SecretRef) (string, error)`.*
-
-### 6 Static-analysis pass hooks (`lang/analysis`)
-
-Expose registry:
-
-```go
-type Pass interface{ Name() string; Analyse(*ast.Tree) []api.Diag }
-func RegisterPass(p Pass)
-```
-
-Built-ins already drafted (shape, typecheck, capability, secret, set-order).
-
-### 7 Error codes (`lang/errors`)
-
-* Ensure the **99901-99909** block exactly matches the catalogue given last (add `ErrorCodeSecretDecryption`).
-* `FormatWithRemediation` remains in `api`, but needs `errors.Lookup` underneath.
-
-### 8 Secrets decoding stub (`lang/secret/decoder.go`)
-
-Provide:
-
-```go
-func Decode(ref *ast.SecretRef, priv []byte) (string, error) // enc = "none"|"age"|"sealedbox"
-```
-
-Return `ErrSecretUnsupported` if `Enc` unknown; interpreter lifts to 99909.
-
-### 9 Package hygiene
-
-* `lang/*` **must not** import `api` (avoid cycles).
-* `api/reexport.go` should say:
-
-```go
-type Position = ast.Position
-type Kind     = ast.Kind
-type Node     = ast.Node
-type Tree     = ast.Tree
-```
-
-*That way external consumers do `import "yourrepo/api"` only.*
-
-### 10 Smoke test to keep green
-
-```
-go test ./api -run TestEndToEnd
-```
-
-Flow:
-
-1. Read `testdata/template.ns`
-2. Parser → Tree
-3. Canonicalise → Sign (dummy key)
-4. Load → Vet passes
-5. Exec → get `"hello world"` output
+* Public surface first: types and helpers that integrators touch.  
+* No import cycles: `lang/*` never imports `api`; `api` sugar‑wraps `lang`.  
+* Determinism: equal source trees → identical canonical bytes → identical hash.  
+* Safety‑first: only verified + vetted trees reach the interpreter.
 
 ---
 
-### TL;DR for Gemini
+## 1 Package map
 
-1. **Stabilise AST structs & kinds** — parser, canoniser, interpreter all speak that.
-2. **Wire canonicaliser + signer** — deterministic bytes, blake2b, Ed25519.
-3. **Expose ExecCommand(tree)** — run only verified, vetted command trees.
-4. **Keep comments & Position in AST** — for `api.Format` and diagnostics.
+| Package            | Purpose                                       | Notes |
+|--------------------|-----------------------------------------------|-------|
+| **`api`**          | Single public façade for outsiders            | Re‑exports key types |
+| **`pkg/types`**    | Canonical AST & small enums                   | No interpreter logic |
+| **`pkg/canon`**    | Canonicalisation + signing helpers            | Pure functions |
+| **`pkg/loader`**   | Verification, vetting, and caching            | No code‑gen allowed |
+| **`pkg/interp`**   | Runtime interpreter                           | Internal; optional for integrators |
 
-Once those surfaces compile, `api` can lock onto them and external integrators need nothing beyond `import "yourrepo/api"`.
+---
+
+## 2 Stable AST contract (`pkg/types`)
+
+```go
+package types
+
+type Position struct{ Line, Col int }          // 1‑based
+
+type Kind uint8                                // append‑only enum
+
+type Node interface {
+   Pos() Position
+   End() Position
+   Kind() Kind
+}
+
+type Tree struct {
+   Root     Node        // *always* non‑nil
+   Comments []Comment   // may be empty; retained verbatim
+}
+
+// Selected nodes that tooling relies on ------------------------------
+type CommandBlock struct{ /* ... */ }        // unnamed `command` → this node
+
+type SecretRef struct {
+   Path string // FDM URI to encrypted payload
+   Enc  string // "age", "pgp", "none"
+   Raw  []byte // nil until prepare‑stage injects
+}
+```
+
+*`api` re‑exports `Position`, `Kind`, `Tree`, and `Node` so external
+packages can stay import‑cycle‑free.*
+
+---
+
+## 3 Canonicalisation & signing (`pkg/canon`)
+
+```go
+// Canonicalise serialises a validated *types.Tree into deterministic bytes.
+// Returns the canonical blob, its BLAKE2b‑256 digest, and a possible error
+// (e.g. unsupported node, hash mismatch in subtree, etc.).
+func Canonicalise(t *types.Tree) (
+   blob []byte,
+   hash [32]byte,
+   err  error,
+)
+```
+
+*Breaking change from v0.5:* an explicit `error` result was added.
+
+Signing helpers (`Sign`, `Verify`, dummy Ed25519 test key) remain unchanged.
+
+---
+
+## 4 Loader & vetting (`pkg/loader`)
+
+```go
+// LoadVerifiedTree performs:
+//  1. Decode transport wrapper  (base64 / JSON / TLV)
+//  2. Verify signature & digest
+//  3. Run registered analysis passes
+//  4. Return a *types.Tree ready for execution
+func LoadVerifiedTree(ctx context.Context, payload []byte) (*types.Tree, error)
+```
+
+**MANDATE:** *Never re‑canonicalise a tree after signature verification.*  
+Keep and pass along the original `blob` + `hash` produced by step 3.
+
+### Analysis‑pass registry
+
+```go
+package analysis
+
+type Pass func(*types.Tree) error
+
+func Register(name string, p Pass)   // may panic on duplicate
+func RunAll(t *types.Tree) error     // called by loader
+```
+
+Error‑code block **99901‑99909** is reserved for loader/analysis fatal errors.
+
+---
+
+## 5 Execution entry points (`api/exec.go`)
+
+```go
+// Quick one‑shot: parse, verify, exec in a fresh interpreter.
+func ExecInNewInterpreter(
+   ctx  context.Context,
+   src  string,             // raw NeuroScript source
+   opts ...Option,          // e.g. WithStdout(io.Writer)
+) (result Value, err error)
+
+// Advanced: reuse an interpreter instance across many trees.
+func ExecWithInterpreter(
+   ctx   context.Context,
+   interp *Interpreter,
+   tree  *types.Tree,
+   opts  ...Option,
+) (result Value, err error)
+```
+
+The legacy `ExecCommand(ctx, tree, cfg)` shim is **deprecated** and slated
+for removal in v0.7. Keep only if a large integrator still compiles against it.
+
+---
+
+## 6 Secret decoding stub (`pkg/secret`)
+
+```go
+// Decode decrypts t.SecretRef nodes in‑place.
+// The integrator supplies the key‑fetch callback.
+func Decode(t *types.Tree, keyring func(path string) ([]byte, error)) error
+```
+
+---
+
+## 7 Dependency rules
+
+1. `lang/*` → **must not** import `api` (prevents cycles).  
+2. `pkg/interp` → **must not** import `pkg/canon` or `pkg/loader`.  
+3. Only `cmd/*` and `api/*` may depend on every internal package.
+
+A static analyser (`tools/depcheck`) enforces the graph during CI.
+
+---
+
+## 8 Smoke‑test (compiler gate)
+
+```go
+func TestPublicSurfaceCompiles(t *testing.T) {
+   src := `command { print("hello") }`
+   if _, err := api.ExecInNewInterpreter(context.Background(), src); err != nil {
+       t.Fatalf("failed round‑trip: %v", err)
+   }
+}
+```
+
+Add this test to every module that vendors or forks the API.
+
+---
+
+## 9 Revision history
+
+| Version | Date         | Notes |
+|---------|--------------|-------|
+| v0.4    | 2025‑05‑11   | First public draft |
+| v0.5    | 2025‑06‑02   | Renamed packages; added loader rules |
+| **v0.6**| 2025‑07‑16   | Added `error` to `Canonicalise`; replaced `ExecCommand` with two helpers; moved AST home to `pkg/types`; documented analysis pass registry |
+
+---
+
+**End of file**
