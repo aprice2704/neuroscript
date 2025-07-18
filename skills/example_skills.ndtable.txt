@@ -1,0 +1,34 @@
+:: type: Table
+:: version: 0.1.0
+:: id: global-worker-registry
+:: primaryKey: WorkerID
+:: description: Registry of available co-workers (AI, Human, Computer, Service) and their capabilities.
+
+# --- Schema Definition ---
+
+# Core Identification
+COLUMN WorkerID     string  NOT NULL UNIQUE  # Unique identifier (e.g., "gemini-1.5-pro", "dev-team-alpha", "build-server-01", "human-aprice")
+COLUMN WorkerType   enum("AI", "Human", "Computer", "Service") NOT NULL # Broad classification
+COLUMN Name         string  NOT NULL         # Human-readable name/label
+COLUMN Endpoint     string                   # Access point (URL, team name, hostname, user ID, etc. - context depends on WorkerType). Optional.
+COLUMN Status       enum("available", "busy", "offline", "unknown") DEFAULT("unknown") # Current operational status
+
+# Capabilities & Performance (Broad Categories)
+COLUMN Skills       string                   # Comma-separated list of broad skill tags (e.g., "code_gen,file_mgmt,test_exec,data_analysis,planning,human_review")
+COLUMN SkillLevel   enum("basic", "proficient") DEFAULT("proficient") # General proficiency across listed skills (Simple 2-level model)
+COLUMN Speed        enum("fast", "medium", "slow") DEFAULT("medium") # Relative speed category
+COLUMN Cost         enum("free", "low", "medium", "high") DEFAULT("medium") # Relative cost category (could be float if needed, but enum is simpler)
+
+# Metadata
+COLUMN LastChecked  timestamp DEFAULT(NOW)   # When this worker's status/info was last verified
+COLUMN Notes        string                   # Optional free-text notes or descriptions
+
+--- DATA ---
+# --- Example Data Rows (Illustrative) ---
+# WorkerID        | WorkerType | Name                    | Endpoint                           | Status    | Skills                                           | SkillLevel | Speed  | Cost   | LastChecked           | Notes
+# gemini-1.5-pro  | AI         | Gemini 1.5 Pro          | https://api.google.ai/...        | available | code_gen,planning,data_analysis,documentation    | proficient | fast   | medium | 2025-04-18T08:00:00Z  | Primary LLM
+# local-llama3    | AI         | Local Llama3 8B         | http://localhost:11434/api/generate | available | code_gen,documentation                         | basic      | medium | free   | 2025-04-18T08:00:00Z  | Local testing model
+# build-server-01 | Computer   | Main Build Server       | build01.internal.example.com       | available | build_exec,test_exec,file_mgmt                 | proficient | fast   | low    | 2025-04-18T07:30:00Z  | Handles Go builds/tests
+# dev-team-alpha  | Human      | Development Team Alpha  | alpha-team@example.com             | available | human_review,planning,code_gen                 | proficient | medium | high   | 2025-04-17T16:00:00Z  | For code reviews, complex design
+# text-parser-svc | Service    | Internal Text Parser    | http://parser.internal:8080/parse  | available | data_analysis                                  | proficient | fast   | low    | 2025-04-18T08:10:00Z  | Specialized parsing API
+# aprice-local    | Human      | Andrew Price (Local)    | local                              | available | human_review,planning,code_gen,file_mgmt,test_exec | proficient | medium | high   | 2025-04-18T00:00:00Z  | Your local interaction
