@@ -1,5 +1,5 @@
 // filename: pkg/canon/canonicalize_test.go
-// Purpose: Provides tests for the AST canonicalizer, with corrected test setup.
+// Purpose: Provides tests for the AST canonicalizer, with corrected test setup and a new regression test.
 
 package canon
 
@@ -157,5 +157,78 @@ endcommand
 	}
 	if len(decodedProgram.Commands) != 1 {
 		t.Errorf("Expected 1 command block in decoded program, but got %d", len(decodedProgram.Commands))
+	}
+}
+
+// TestCanonicalize_ReturnStatement is a regression test to ensure that a `return`
+// statement with values is correctly canonicalized and decoded, preserving the
+// returned values. This specifically targets a bug where the number of return
+// values was not being encoded.
+func TestCanonicalize_ReturnStatement(t *testing.T) {
+	// 1. Define a script with a return statement that has a value.
+	script := `
+func main(returns msg) means
+  set msg = "hello world"
+  return msg
+endfunc
+`
+	// 2. Parse the script into an AST.
+	parserAPI := parser.NewParserAPI(logging.NewNoOpLogger())
+	antlrTree, err := parserAPI.Parse(script)
+	if err != nil {
+		t.Fatalf("Parser failed unexpectedly: %v", err)
+	}
+	builder := parser.NewASTBuilder(logging.NewNoOpLogger())
+	program, _, err := builder.Build(antlrTree)
+	if err != nil {
+		t.Fatalf("AST builder failed unexpectedly: %v", err)
+	}
+	tree := &ast.Tree{Root: program}
+
+	// 3. Canonicalize the tree.
+	blob, _, err := Canonicalise(tree)
+	if err != nil {
+		t.Fatalf("Canonicalise() failed: %v", err)
+	}
+
+	// 4. Decode the blob back into a tree.
+	decodedTree, err := Decode(blob)
+	if err != nil {
+		t.Fatalf("Decode() failed: %v", err)
+	}
+
+	// 5. Verify the decoded tree has the return value.
+	if decodedTree == nil || decodedTree.Root == nil {
+		t.Fatal("Decoded tree or its root is nil")
+	}
+	decodedProgram, ok := decodedTree.Root.(*ast.Program)
+	if !ok {
+		t.Fatalf("Decoded root is not a *ast.Program, but %T", decodedTree.Root)
+	}
+	mainProc, ok := decodedProgram.Procedures["main"]
+	if !ok {
+		t.Fatal("Decoded program is missing 'main' procedure")
+	}
+
+	if len(mainProc.Steps) != 2 {
+		t.Fatalf("Expected 2 steps in procedure, but got %d", len(mainProc.Steps))
+	}
+
+	// The return step is the second one.
+	returnStep := mainProc.Steps[1]
+	if returnStep.Type != "return" {
+		t.Fatalf("Expected second step to be 'return', but got %s", returnStep.Type)
+	}
+
+	if len(returnStep.Values) != 1 {
+		t.Fatalf("FAIL: Expected decoded return step to have 1 value, but got %d", len(returnStep.Values))
+	}
+
+	retVal, ok := returnStep.Values[0].(*ast.VariableNode)
+	if !ok {
+		t.Fatalf("Expected return value to be *ast.VariableNode, but got %T", returnStep.Values[0])
+	}
+	if retVal.Name != "msg" {
+		t.Errorf("Expected returned variable to be 'msg', but got '%s'", retVal.Name)
 	}
 }

@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.5.2
-// File version: 15
-// Purpose: Removed redundant procedure existence check in `Run` to prevent incorrect error type propagation.
+// File version: 19
+// Purpose: Adds debug logging to the internal Run method to trace the return value before it's passed to the API facade.
 // filename: pkg/interpreter/interpreter.go
 // nlines: 320
 // risk_rating: HIGH
@@ -267,10 +267,14 @@ func (i *Interpreter) LoadAndRun(program *ast.Program, mainProcName string, args
 }
 
 func (i *Interpreter) Run(procName string, args ...lang.Value) (lang.Value, error) {
-	// FIX: Removed redundant check. RunProcedure already handles this and returns
-	// the correct error type (*lang.RuntimeError). This check was returning a
-	// standard `error`, causing the `break_outside_loop` test to fail.
-	return i.RunProcedure(procName, args...)
+	result, err := i.RunProcedure(procName, args...)
+	if err == nil {
+		i.lastCallResult = result
+	}
+	// =========================================================================
+	fmt.Printf(">>>> [DEBUG] interpreter.Run: Value being RETURNED to API FACADE is: %#v\n", result)
+	// =========================================================================
+	return result, err
 }
 
 func (i *Interpreter) SetInitialVariable(name string, value any) error {
@@ -327,8 +331,6 @@ func (i *Interpreter) CloneWithNewVariables() *Interpreter {
 func (i *Interpreter) SetSandboxDir(path string) {
 	i.state.sandboxDir = path
 }
-
-// Add this method to pkg/interpreter/interpreter.go
 
 // RegisterEvent provides a public method for tools to register a single event handler.
 func (i *Interpreter) RegisterEvent(decl *ast.OnEventDecl) error {

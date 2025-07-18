@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.5.2
-// File version: 42
-// Purpose: Corrected evaluateListLiteral to return a value type (lang.ListValue), fixing FOR EACH and literal evaluation test failures.
+// File version: 43
+// Purpose: Adds debug logging to resolveVariable to trace how variables are looked up during expression evaluation.
 // filename: pkg/interpreter/evaluation_main.go
 // nlines: 280
 // risk_rating: HIGH
@@ -90,9 +90,13 @@ func (e *evaluation) evaluateStringLiteral(n *ast.StringLiteralNode) (lang.Value
 }
 
 func (i *Interpreter) resolveVariable(n *ast.VariableNode) (lang.Value, error) {
+	// DEBUG: Print variable lookup attempt.
+	fmt.Printf("[DEBUG] resolveVariable: Attempting to resolve variable '%s' in procedure '%s'\n", n.Name, i.state.currentProcName)
 	if val, exists := i.GetVariable(n.Name); exists {
+		fmt.Printf("[DEBUG] resolveVariable: Found variable '%s' with value '%s'\n", n.Name, val.String())
 		return val, nil
 	}
+
 	if proc, procExists := i.KnownProcedures()[n.Name]; procExists {
 		return lang.FunctionValue{Value: proc}, nil
 	}
@@ -105,6 +109,7 @@ func (i *Interpreter) resolveVariable(n *ast.VariableNode) (lang.Value, error) {
 	if isBuiltInFunction(n.Name) {
 		return lang.StringValue{Value: fmt.Sprintf("<built-in function: %s>", n.Name)}, nil
 	}
+	fmt.Printf("[DEBUG] resolveVariable: Variable or function '%s' NOT FOUND\n", n.Name)
 	return nil, lang.NewRuntimeError(lang.ErrorCodeKeyNotFound, fmt.Sprintf("variable or function '%s' not found", n.Name), lang.ErrVariableNotFound).WithPosition(n.Pos)
 }
 

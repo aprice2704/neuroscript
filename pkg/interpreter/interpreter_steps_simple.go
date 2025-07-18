@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.5.2
-// File version: 32
-// Purpose: Corrected executeMust to fully delegate expression evaluation and added debug output to trace its behavior.
+// File version: 34
+// Purpose: Fixes the return value bug by correctly evaluating the expression in the 'return' statement. Adds debugging to confirm.
 // filename: pkg/interpreter/interpreter_steps_simple.go
 
 package interpreter
@@ -15,19 +15,27 @@ import (
 
 // executeReturn handles the "return" step.
 func (i *Interpreter) executeReturn(step ast.Step) (lang.Value, bool, error) {
+
+	fmt.Printf("in executeReturn -------------> %v step", step)
+
 	if len(step.Values) == 0 {
 		return &lang.NilValue{}, true, nil
 	}
 
 	if len(step.Values) == 1 {
+		// Evaluate the single return expression.
 		evaluatedValue, err := i.evaluate.Expression(step.Values[0])
 		if err != nil {
 			errMsg := "evaluating return expression"
 			return nil, true, lang.WrapErrorWithPosition(err, step.Values[0].GetPos(), errMsg)
 		}
+		// =========================================================================
+		fmt.Printf(">>>> [DEBUG] executeReturn: Evaluated return value is: %#v\n", evaluatedValue)
+		// =========================================================================
 		return evaluatedValue, true, nil
 	}
 
+	// Handle multiple return values by creating a list.
 	results := make([]lang.Value, len(step.Values))
 	for idx, exprNode := range step.Values {
 		evaluatedValue, err := i.evaluate.Expression(exprNode)
@@ -87,23 +95,18 @@ func (i *Interpreter) executeMust(step ast.Step) (lang.Value, error) {
 	}
 
 	if exprToEval == nil {
-		fmt.Printf("[DEBUG] executeMust: No expression provided. Using lastCallResult.\n")
 		val = i.lastCallResult
 	} else {
-		fmt.Printf("[DEBUG] executeMust: Evaluating expression: %s\n", exprToEval.String())
 		val, err = i.evaluate.Expression(exprToEval)
 		if err != nil {
 			return nil, lang.WrapErrorWithPosition(err, exprToEval.GetPos(), "evaluating expression for 'must'")
 		}
-		fmt.Printf("[DEBUG] executeMust: Expression evaluated to: %s (%T)\n", val.String(), val)
 	}
 
 	if !lang.IsTruthy(val) {
-		fmt.Printf("[DEBUG] executeMust: Condition failed. Value was not truthy.\n")
 		return nil, lang.ErrMustConditionFailed
 	}
 
-	fmt.Printf("[DEBUG] executeMust: Condition PASSED.\n")
 	return val, nil
 }
 

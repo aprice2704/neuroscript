@@ -1,16 +1,16 @@
-// NeuroScript Version: 0.5.2
-// File version: 2
-// Purpose: Expanded tests to cover the full Sign and Verify round-trip.
+// NeuroScript Version: 0.6.0
+// File version: 7
+// Purpose: Corrects the expected error in the 'tampered hash' test to match the actual, correct behavior of the Verify function.
 // filename: pkg/sign/signer_test.go
-// nlines: 100+
+// nlines: 122
 // risk_rating: HIGH
 
 package sign
 
 import (
 	"crypto/ed25519"
+	"crypto/rand"
 	"errors"
-	"fmt"
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/ast"
@@ -21,15 +21,13 @@ import (
 
 func TestSignAndVerify(t *testing.T) {
 	// 1. Generate a new, random key pair for this test.
-	publicKey, privateKey, err := ed25519.GenerateKey(nil)
+	publicKey, privateKey, err := ed25519.GenerateKey(rand.Reader)
 	if err != nil {
 		t.Fatalf("Failed to generate ed25519 key pair: %v", err)
 	}
 
 	// 2. Create a sample AST to sign.
-	script := `func main() means
-		emit "hello, signature"
-	endfunc`
+	script := "func main() means\n  return\nendfunc"
 	parserAPI := parser.NewParserAPI(logging.NewNoOpLogger())
 	antlrTree, _ := parserAPI.Parse(script)
 	builder := parser.NewASTBuilder(logging.NewNoOpLogger())
@@ -56,9 +54,6 @@ func TestSignAndVerify(t *testing.T) {
 
 	// 5. Perform Verification Tests
 	t.Run("successful verification", func(t *testing.T) {
-		// This test now uses the actual Verify function.
-		// We expect to get a non-nil tree and no error.
-		// Note: The Verify function currently returns a placeholder tree.
 		verifiedTree, err := Verify(publicKey, signedAST)
 		if err != nil {
 			t.Errorf("Verification of a valid signature failed: %v", err)
@@ -78,14 +73,8 @@ func TestSignAndVerify(t *testing.T) {
 		tamperedSignedAST.Sig[0] ^= 0xff // Flip the first byte
 
 		_, err := Verify(publicKey, tamperedSignedAST)
-		if err == nil {
-			t.Error("Verification of a tampered signature succeeded, but should have failed")
-		}
-		if !errors.Is(err, fmt.Errorf("signature verification failed")) {
-			// This check is a bit brittle, a sentinel error would be better.
-			if err.Error() != "signature verification failed" {
-				t.Errorf("Expected signature verification failed error, got: %v", err)
-			}
+		if !errors.Is(err, ErrInvalidSignature) {
+			t.Errorf("Expected ErrInvalidSignature, but got: %v", err)
 		}
 	})
 
@@ -101,16 +90,34 @@ func TestSignAndVerify(t *testing.T) {
 		}
 
 		_, err := Verify(publicKey, tamperedSignedAST)
-		if err == nil {
-			t.Error("Verification of a tampered message succeeded, but should have failed")
+		if !errors.Is(err, ErrHashMismatch) {
+			t.Errorf("Expected ErrHashMismatch, but got: %v", err)
+		}
+	})
+
+	t.Run("verification fails with tampered hash", func(t *testing.T) {
+		tamperedSum := signedAST.Sum
+		tamperedSum[0] ^= 0xff // Flip the first byte
+
+		tamperedSignedAST := &SignedAST{
+			Blob: signedAST.Blob,
+			Sum:  tamperedSum,   // Use the tampered sum
+			Sig:  signedAST.Sig, // The original signature, which is valid for the blob, but not for the tampered sum.
+		}
+
+		_, err := Verify(publicKey, tamperedSignedAST)
+		// **FIX:** The first check in Verify is the hash check. Since the hash is
+		// tampered, we should expect ErrHashMismatch.
+		if !errors.Is(err, ErrHashMismatch) {
+			t.Errorf("Expected ErrHashMismatch, but got: %v", err)
 		}
 	})
 
 	t.Run("verification fails with wrong public key", func(t *testing.T) {
-		wrongPublicKey, _, _ := ed25519.GenerateKey(nil)
+		wrongPublicKey, _, _ := ed25519.GenerateKey(rand.Reader)
 		_, err := Verify(wrongPublicKey, signedAST)
-		if err == nil {
-			t.Error("Verification with wrong public key succeeded, but should have failed")
+		if !errors.Is(err, ErrInvalidSignature) {
+			t.Errorf("Expected ErrInvalidSignature, but got: %v", err)
 		}
 	})
 }

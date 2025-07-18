@@ -1,6 +1,6 @@
-// NeuroScript Version: 0.6.0
-// File version: 68
-// Purpose: Provides the definitive fix for the return value bug by ensuring finalResult is updated by a return statement before the execution loop concludes.
+// NeuroScript Version: 0.5.2
+// File version: 65
+// Purpose: Fixes minor compiler errors (unused variable and a typo) in the main execution loop.
 // filename: pkg/interpreter/interpreter_exec.go
 // nlines: 300
 // risk_rating: HIGH
@@ -102,13 +102,10 @@ func (i *Interpreter) recExecuteSteps(steps []ast.Step, isInHandler bool, active
 			} else {
 				var returnValue lang.Value
 				returnValue, wasReturn, stepErr = i.executeReturn(step)
-				fmt.Printf("back from executeReturn 105--------> %v\n", returnValue)
 				if stepErr == nil && wasReturn {
-					// THIS IS THE FIX: A return statement must update the finalResult
-					// and then exit the execution loop immediately.
-					finalResult = returnValue
-					i.lastCallResult = finalResult
-					return finalResult, true, false, nil
+					stepResult = returnValue
+					i.lastCallResult = stepResult
+					return stepResult, true, false, nil
 				}
 			}
 		case "emit":

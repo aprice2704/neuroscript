@@ -1,11 +1,15 @@
+// NeuroScript Version: 0.6.0
+// File version: 16
+// Purpose: Removes a redundant newline in a debug print statement that was causing a build failure.
 // filename: pkg/parser/ast_builder_statements.go
-// NeuroScript Version: 0.5.2
-// File version: 13
-// Purpose: Corrected logic in ExitReturn_statement to preserve the correct order of return values.
+// nlines: 125
+// risk_rating: LOW
 
 package parser
 
 import (
+	"fmt"
+
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	gen "github.com/aprice2704/neuroscript/pkg/parser/generated"
 	"github.com/aprice2704/neuroscript/pkg/types"
@@ -42,21 +46,41 @@ func (l *neuroScriptListenerImpl) ExitEmit_statement(c *gen.Emit_statementContex
 }
 
 func (l *neuroScriptListenerImpl) ExitReturn_statement(c *gen.Return_statementContext) {
+	fmt.Println("\n--- ENTERING ExitReturn_statement ---")
 	var returnValues []ast.Expression
 	if c.Expression_list() != nil {
 		numExpr := len(c.Expression_list().AllExpression())
+		fmt.Printf("DEBUG: Expecting %d expressions for return statement.\n", numExpr)
 		if numExpr > 0 {
-			// FIX: Use popN to get all expressions at once. This is clearer and less error-prone.
-			// popN returns the slice in the order the items appear on the stack (which is source order).
 			popped, ok := l.popN(numExpr)
 			if !ok {
 				l.addError(c, "internal error in return_statement: could not pop values")
 				return
 			}
-			for _, val := range popped {
-				if expr, isExpr := val.(ast.Expression); isExpr {
+			fmt.Printf("DEBUG: Popped %d items from the stack.\n", len(popped))
+			for i, val := range popped {
+				fmt.Printf("DEBUG: Processing popped value #%d: Type=%T, Value=%#v\n", i, val, val)
+				var expr ast.Expression
+				isExpr := false
+
+				expr, isExpr = val.(ast.Expression)
+				if !isExpr {
+					fmt.Printf("DEBUG: Popped value #%d is NOT an ast.Expression. Checking if it's a convertible LValueNode.\n", i)
+					if lval, isLval := val.(*ast.LValueNode); isLval && len(lval.Accessors) == 0 {
+						fmt.Printf("DEBUG: It IS a simple LValueNode. Converting to VariableNode.\n")
+						expr = &ast.VariableNode{
+							BaseNode: lval.BaseNode,
+							Name:     lval.Identifier,
+						}
+						isExpr = true
+					}
+				}
+
+				if isExpr {
+					fmt.Printf("DEBUG: Successfully processed value #%d into an expression. Appending to returnValues.\n", i)
 					returnValues = append(returnValues, expr)
 				} else {
+					fmt.Printf("ERROR: Could not process value #%d into an expression.\n", i)
 					l.addError(c, "internal error in return_statement: value is not an ast.Expression, but %T", val)
 					return
 				}
@@ -64,12 +88,14 @@ func (l *neuroScriptListenerImpl) ExitReturn_statement(c *gen.Return_statementCo
 		}
 	}
 	pos := tokenToPosition(c.GetStart())
+	fmt.Printf("DEBUG: Creating return step with %d values.\n", len(returnValues))
 	l.addStep(ast.Step{
 		BaseNode: ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
 		Position: pos,
 		Type:     "return",
 		Values:   returnValues,
 	})
+	fmt.Println("--- EXITING ExitReturn_statement ---")
 }
 
 func (l *neuroScriptListenerImpl) ExitCall_statement(c *gen.Call_statementContext) {

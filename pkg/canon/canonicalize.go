@@ -1,9 +1,9 @@
-// NeuroScript Version: 0.5.2
-// File version: 9
-// Purpose: Reverted hashing algorithm to BLAKE2b to match the updated API contract.
+// NeuroScript Version: 0.6.0
+// File version: 14
+// Purpose: Adds a missing length prefix for 'return' statement values during serialization, fixing a critical bug.
 // filename: pkg/canon/canonicalize.go
-// nlines: 190+
-// risk_rating: MEDIUM
+// nlines: 208
+// risk_rating: HIGH
 
 package canon
 
@@ -17,7 +17,7 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/types"
-	"golang.org/x/crypto/blake2b" // CORRECTED: Use BLAKE2b to match the updated spec.
+	"golang.org/x/crypto/blake2b"
 )
 
 // Canonicalise traverses an AST and produces a deterministic, platform-independent
@@ -28,7 +28,6 @@ func Canonicalise(tree *ast.Tree) ([]byte, [32]byte, error) {
 	}
 
 	var buf bytes.Buffer
-	// CORRECTED: Use the hashing algorithm specified in the contract.
 	hasher, _ := blake2b.New256(nil)
 
 	visitor := &canonVisitor{
@@ -89,7 +88,7 @@ func (v *canonVisitor) visit(node ast.Node) error {
 	case *ast.OnEventDecl:
 		return v.visitOnEventDecl(n)
 	case *ast.CommandNode:
-		return v.visitCommand(n) // Added for completeness, logic is in visitProgram
+		return v.visitCommand(n)
 	case *ast.CallableExprNode:
 		return v.visitCallableExpr(n)
 	case *ast.VariableNode:
@@ -125,7 +124,6 @@ func (v *canonVisitor) visitUnaryOp(u *ast.UnaryOpNode) error {
 }
 
 func (v *canonVisitor) visitProgram(p *ast.Program) error {
-	// Canonicalize Procedures
 	procNames := make([]string, 0, len(p.Procedures))
 	for name := range p.Procedures {
 		procNames = append(procNames, name)
@@ -138,7 +136,6 @@ func (v *canonVisitor) visitProgram(p *ast.Program) error {
 		}
 	}
 
-	// Canonicalize Events
 	v.writeVarint(int64(len(p.Events)))
 	for _, event := range p.Events {
 		if err := v.visit(event); err != nil {
@@ -146,7 +143,6 @@ func (v *canonVisitor) visitProgram(p *ast.Program) error {
 		}
 	}
 
-	// **FIXED**: Canonicalize Commands
 	v.writeVarint(int64(len(p.Commands)))
 	for _, command := range p.Commands {
 		if err := v.visit(command); err != nil {
@@ -156,11 +152,10 @@ func (v *canonVisitor) visitProgram(p *ast.Program) error {
 	return nil
 }
 
-// visitCommand handles the steps inside a command block.
 func (v *canonVisitor) visitCommand(c *ast.CommandNode) error {
 	v.writeVarint(int64(len(c.Body)))
-	for _, step := range c.Body {
-		if err := v.visit(&step); err != nil {
+	for i := range c.Body {
+		if err := v.visit(&c.Body[i]); err != nil {
 			return err
 		}
 	}
@@ -170,8 +165,8 @@ func (v *canonVisitor) visitCommand(c *ast.CommandNode) error {
 func (v *canonVisitor) visitProcedure(p *ast.Procedure) error {
 	v.writeString(p.Name())
 	v.writeVarint(int64(len(p.Steps)))
-	for _, step := range p.Steps {
-		if err := v.visit(&step); err != nil {
+	for i := range p.Steps {
+		if err := v.visit(&p.Steps[i]); err != nil {
 			return err
 		}
 	}
@@ -194,6 +189,14 @@ func (v *canonVisitor) visitStep(s *ast.Step) error {
 				return err
 			}
 		}
+	case "return":
+		// **FIX:** Added the missing length prefix for the values.
+		v.writeVarint(int64(len(s.Values)))
+		for _, val := range s.Values {
+			if err := v.visit(val); err != nil {
+				return err
+			}
+		}
 	case "emit":
 		return v.visit(s.Values[0])
 	case "call":
@@ -207,8 +210,8 @@ func (v *canonVisitor) visitOnEventDecl(e *ast.OnEventDecl) error {
 		return err
 	}
 	v.writeVarint(int64(len(e.Body)))
-	for _, step := range e.Body {
-		if err := v.visit(&step); err != nil {
+	for i := range e.Body {
+		if err := v.visit(&e.Body[i]); err != nil {
 			return err
 		}
 	}

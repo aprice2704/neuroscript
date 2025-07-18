@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.5.2
-// File version: 3
-// Purpose: Corrected the Verify function to use the correct hashing logic and complete the AST decoding.
+// NeuroScript Version: 0.6.0
+// File version: 2
+// Purpose: Implements signing and verification, adding hash validation and sentinel errors.
 // filename: pkg/sign/signer.go
-// nlines: 70
+// nlines: 45
 // risk_rating: HIGH
 
 package sign
@@ -10,73 +10,61 @@ package sign
 import (
 	"bytes"
 	"crypto/ed25519"
+	"crypto/rand"
+	"errors"
 	"fmt"
 
-	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/canon"
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"golang.org/x/crypto/blake2b"
 )
 
-// SignedAST holds the canonical binary representation of an AST,
-// its hash, and its Ed25519 signature.
+// SignedAST is the internal representation of a signed abstract syntax tree.
 type SignedAST struct {
 	Blob []byte
 	Sum  [32]byte
 	Sig  []byte
 }
 
-// Sign uses an Ed25519 private key to sign the canonical representation of an AST.
-// It takes the raw canonical bytes and their pre-computed hash as input.
-func Sign(privateKey ed25519.PrivateKey, blob []byte, sum [32]byte) (*SignedAST, error) {
-	if len(privateKey) != ed25519.PrivateKeySize {
-		return nil, fmt.Errorf("invalid private key size")
+var (
+	ErrInvalidSignature = errors.New("invalid signature")
+	ErrHashMismatch     = errors.New("blob hash does not match provided sum")
+)
+
+// NewTestKey creates a new Ed25519 key pair for testing purposes.
+func NewTestKey() (ed25519.PrivateKey, ed25519.PublicKey) {
+	pub, priv, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		panic(fmt.Sprintf("failed to generate test key: %v", err))
 	}
-
-	// The message to be signed is the combination of the hash and the blob itself.
-	messageToSign := append(sum[:], blob...)
-
-	// Sign the message with the private key.
-	signature := ed25519.Sign(privateKey, messageToSign)
-
-	return &SignedAST{
-		Blob: blob,
-		Sum:  sum,
-		Sig:  signature,
-	}, nil
+	return priv, pub
 }
 
-// Verify checks the integrity and signature of a SignedAST.
-// It re-calculates the hash of the blob to ensure it hasn't been tampered with,
-// then verifies the signature using the provided public key.
-// If successful, it decodes and returns the AST.
-func Verify(publicKey ed25519.PublicKey, s *SignedAST) (*ast.Tree, error) {
-	if len(publicKey) != ed25519.PublicKeySize {
-		return nil, fmt.Errorf("invalid public key size")
-	}
-	if s == nil || len(s.Blob) == 0 || len(s.Sig) == 0 {
-		return nil, fmt.Errorf("signed ast is nil or contains empty components")
-	}
+// Sign creates a signature for the given AST blob and its hash.
+func Sign(privKey ed25519.PrivateKey, blob []byte, sum [32]byte) (*SignedAST, error) {
+	sig := ed25519.Sign(privKey, sum[:])
+	return &SignedAST{Blob: blob, Sum: sum, Sig: sig}, nil
+}
 
-	// 1. Re-calculate the hash of the blob using the correct (BLAKE2b) algorithm.
-	freshSum := blake2b.Sum256(s.Blob)
-
-	// 2. Compare the fresh hash with the provided hash to ensure data integrity.
-	if !bytes.Equal(freshSum[:], s.Sum[:]) {
-		return nil, fmt.Errorf("integrity check failed: blob hash does not match provided sum")
+// Verify checks the hash and signature, and on success, decodes the blob.
+func Verify(pubKey ed25519.PublicKey, s *SignedAST) (*interfaces.Tree, error) {
+	// 1. **CRITICAL**: Verify that the blob content matches the provided hash first.
+	computedSum := blake2b.Sum256(s.Blob)
+	if !bytes.Equal(computedSum[:], s.Sum[:]) {
+		return nil, ErrHashMismatch
 	}
 
-	// 3. Verify the Ed25519 signature.
-	// The message is the hash digest prepended to the data blob.
-	messageToVerify := append(s.Sum[:], s.Blob...)
-	if !ed25519.Verify(publicKey, messageToVerify, s.Sig) {
-		return nil, fmt.Errorf("signature verification failed")
+	// 2. Verify the signature against the (now trusted) hash.
+	if !ed25519.Verify(pubKey, s.Sum[:], s.Sig) {
+		// **FIX**: Return the actual sentinel error instance.
+		return nil, ErrInvalidSignature
 	}
 
-	// 4. Decode the verified blob back into an AST.
+	// 3. Decode the blob. canon.Decode returns (*ast.Tree, error)
 	tree, err := canon.Decode(s.Blob)
 	if err != nil {
-		return nil, fmt.Errorf("failed to decode verified blob: %w", err)
+		return nil, fmt.Errorf("failed to decode blob after verification: %w", err)
 	}
-
+	// The *ast.Tree is compatible with the *interfaces.Tree return type.
 	return tree, nil
 }

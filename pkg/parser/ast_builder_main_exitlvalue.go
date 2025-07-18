@@ -1,13 +1,11 @@
 // filename: pkg/parser/ast_builder_main_exitlvalue.go
 // NeuroScript Version: 0.5.2
-// File version: 16.0.0
+// File version: 18.0.0
 //
 // Builds an *ast.LValueNode* when the parser exits an lvalue rule.
-// Highlights
-//   • No double‑reverse: popN already returns values in source order.
-//   • Debug logs made clearer (“Bracket expression AST nodes (source order)”).
-//   • Keeps position info on nodes (better diagnostics).  If your golden tests
-//     ignore Pos fields this works out of the box; otherwise tweak the tests.
+// Reverted to always produce an LValueNode to satisfy consumers
+// like the 'set' statement and canonicalizer. Ambiguity with r-values
+// is now handled by the specific statement listeners (e.g., for 'return').
 
 package parser
 

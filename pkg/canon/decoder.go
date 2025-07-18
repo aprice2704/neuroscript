@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.5.2
-// File version: 7
-// Purpose: Fully implements the decoder, correctly setting the NodeKind on all created nodes to fix the integrity check failure.
+// NeuroScript Version: 0.6.0
+// File version: 13
+// Purpose: Correctly reads the length prefix for 'return' statement values, fixing a deserialization bug.
 // filename: pkg/canon/decoder.go
-// nlines: 230+
+// nlines: 260
 // risk_rating: HIGH
 
 package canon
@@ -40,6 +40,9 @@ type canonReader struct{ r *bytes.Reader }
 func (r *canonReader) readNode() (ast.Node, error) {
 	kindVal, err := r.readVarint()
 	if err != nil {
+		if err == io.EOF {
+			return nil, err
+		}
 		return nil, fmt.Errorf("failed to read node kind: %w", err)
 	}
 	kind := types.Kind(kindVal)
@@ -74,8 +77,17 @@ func (r *canonReader) readNode() (ast.Node, error) {
 		if err != nil {
 			return nil, err
 		}
-		numVal, _ := strconv.ParseFloat(strVal, 64)
-		return &ast.NumberLiteralNode{BaseNode: ast.BaseNode{NodeKind: kind}, Value: numVal}, nil
+		if i, err := strconv.ParseInt(strVal, 10, 64); err == nil {
+			return &ast.NumberLiteralNode{BaseNode: ast.BaseNode{NodeKind: kind}, Value: i}, nil
+		}
+		f, _ := strconv.ParseFloat(strVal, 64)
+		return &ast.NumberLiteralNode{BaseNode: ast.BaseNode{NodeKind: kind}, Value: f}, nil
+	case types.KindBooleanLiteral:
+		b, err := r.readBool()
+		if err != nil {
+			return nil, err
+		}
+		return &ast.BooleanLiteralNode{BaseNode: ast.BaseNode{NodeKind: kind}, Value: b}, nil
 	case types.KindNilLiteral:
 		return &ast.NilLiteralNode{BaseNode: ast.BaseNode{NodeKind: kind}}, nil
 	case types.KindLValue:
@@ -90,7 +102,7 @@ func (r *canonReader) readNode() (ast.Node, error) {
 }
 
 func (r *canonReader) readProgram() (*ast.Program, error) {
-	prog := ast.NewProgram() // NewProgram sets the kind correctly.
+	prog := ast.NewProgram()
 	numProcs, err := r.readVarint()
 	if err != nil {
 		return nil, err
@@ -100,7 +112,8 @@ func (r *canonReader) readProgram() (*ast.Program, error) {
 		if err != nil {
 			return nil, err
 		}
-		prog.Procedures[node.(*ast.Procedure).Name()] = node.(*ast.Procedure)
+		proc := node.(*ast.Procedure)
+		prog.Procedures[proc.Name()] = proc
 	}
 
 	numEvents, err := r.readVarint()
@@ -146,7 +159,11 @@ func (r *canonReader) readOnEventDecl() (*ast.OnEventDecl, error) {
 		if err != nil {
 			return nil, err
 		}
-		event.Body[i] = *sNode.(*ast.Step)
+		if step, ok := sNode.(*ast.Step); ok {
+			event.Body[i] = *step
+		} else {
+			return nil, fmt.Errorf("expected to decode a *ast.Step but got %T", sNode)
+		}
 	}
 	return event, nil
 }
@@ -190,7 +207,11 @@ func (r *canonReader) readCommand() (*ast.CommandNode, error) {
 		if err != nil {
 			return nil, err
 		}
-		cmd.Body[i] = *node.(*ast.Step)
+		if step, ok := node.(*ast.Step); ok {
+			cmd.Body[i] = *step
+		} else {
+			return nil, fmt.Errorf("expected to decode a *ast.Step but got %T", node)
+		}
 	}
 	return cmd, nil
 }
@@ -212,7 +233,11 @@ func (r *canonReader) readProcedure() (*ast.Procedure, error) {
 		if err != nil {
 			return nil, err
 		}
-		proc.Steps[i] = *node.(*ast.Step)
+		if step, ok := node.(*ast.Step); ok {
+			proc.Steps[i] = *step
+		} else {
+			return nil, fmt.Errorf("expected to decode a *ast.Step but got %T", node)
+		}
 	}
 	return proc, nil
 }
@@ -252,6 +277,20 @@ func (r *canonReader) readStep() (*ast.Step, error) {
 			node, err := r.readNode()
 			if err != nil {
 				return nil, err
+			}
+			step.Values[i] = node.(ast.Expression)
+		}
+	case "return":
+		// **FIX:** Read the number of values before trying to decode them.
+		numValues, err := r.readVarint()
+		if err != nil {
+			return nil, fmt.Errorf("failed to read return value count: %w", err)
+		}
+		step.Values = make([]ast.Expression, numValues)
+		for i := 0; i < int(numValues); i++ {
+			node, err := r.readNode()
+			if err != nil {
+				return nil, fmt.Errorf("failed to read return value %d: %w", i, err)
 			}
 			step.Values[i] = node.(ast.Expression)
 		}
@@ -318,6 +357,9 @@ func (r *canonReader) readString() (string, error) {
 	length, err := r.readVarint()
 	if err != nil {
 		return "", err
+	}
+	if length < 0 {
+		return "", fmt.Errorf("invalid string length: %d", length)
 	}
 	if length == 0 {
 		return "", nil

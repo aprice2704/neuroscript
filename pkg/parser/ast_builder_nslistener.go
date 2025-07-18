@@ -122,13 +122,23 @@ func (l *neuroScriptListenerImpl) ExitLvalue_list(ctx *gen.Lvalue_listContext) {
 
 	lValues := make([]*ast.LValueNode, numLValues)
 	for i, v := range values {
-		expr, ok := v.(*ast.LValueNode)
-		if !ok {
-			l.addError(ctx, "internal error: value for lvalue is not an ast.LValueNode, got %T", v)
+		var lval *ast.LValueNode
+		switch node := v.(type) {
+		case *ast.LValueNode:
+			lval = node
+		case *ast.VariableNode:
+			// Convert the VariableNode to a simple LValueNode for the set statement
+			lval = &ast.LValueNode{
+				Identifier: node.Name,
+				Accessors:  []*ast.AccessorNode{},
+				BaseNode:   node.BaseNode,
+			}
+		default:
+			l.addError(ctx, "internal error: value for lvalue is not an ast.LValueNode or ast.VariableNode, got %T", v)
 			l.push([]*ast.LValueNode{})
 			return
 		}
-		lValues[i] = expr
+		lValues[i] = lval
 	}
 	l.push(lValues)
 }
