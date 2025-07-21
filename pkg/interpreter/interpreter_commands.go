@@ -29,7 +29,7 @@ func (i *Interpreter) ExecuteCommands() (lang.Value, error) {
 
 		if err != nil {
 			// Find the position of the command block for better error reporting.
-			pos := cmdNode.Pos
+			pos := cmdNode.BaseNode.StartPos
 			if pos == nil && len(cmdNode.Body) > 0 {
 				pos = cmdNode.Body[0].GetPos()
 			}
@@ -38,7 +38,7 @@ func (i *Interpreter) ExecuteCommands() (lang.Value, error) {
 
 		// Top-level commands should not have 'return' statements.
 		if wasReturn {
-			pos := cmdNode.Pos // Or find a more specific position if possible
+			pos := cmdNode.BaseNode.StartPos // Or find a more specific position if possible
 			return nil, lang.NewRuntimeError(lang.ErrorCodeSyntax, "'return' statement not allowed in top-level command blocks", nil).WithPosition(pos)
 		}
 

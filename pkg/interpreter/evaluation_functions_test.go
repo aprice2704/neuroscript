@@ -50,11 +50,11 @@ func TestMathFunctions(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
 			if call, ok := tc.InputNode.(*ast.CallableExprNode); ok {
-				call.Pos = dummyPos
-				call.Target.Pos = dummyPos
+				call.BaseNode.StartPos = dummyPos
+				call.Target.BaseNode.StartPos = dummyPos
 				for _, arg := range call.Arguments {
 					if vn, okV := arg.(*ast.VariableNode); okV {
-						vn.Pos = dummyPos
+						vn.BaseNode.StartPos = dummyPos
 					}
 				}
 			}

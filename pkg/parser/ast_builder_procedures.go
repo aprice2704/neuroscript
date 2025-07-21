@@ -1,7 +1,7 @@
 // filename: pkg/parser/ast_builder_procedures.go
-// NeuroScript Version: 0.5.2
-// File version: 6
-// Purpose: Refactored procedure creation to use the newNode helper function.
+// NeuroScript Version: 0.6.0
+// File version: 9
+// Purpose: Set the end position of the procedure node upon exiting the definition.
 
 package parser
 
@@ -18,10 +18,13 @@ func (l *neuroScriptListenerImpl) EnterProcedure_definition(ctx *gen.Procedure_d
 
 	token := ctx.KW_FUNC().GetSymbol()
 	proc := &ast.Procedure{
-		Metadata: make(map[string]string),
+		Metadata:         make(map[string]string),
+		Comments:         make([]*ast.Comment, 0),
+		BlankLinesBefore: l.consumeBlankLines(), // Consume blank lines
 	}
 	proc.SetName(procName)
 	l.currentProc = newNode(proc, token, types.KindProcedureDecl)
+	l.currentProc.Comments = l.associateCommentsToNode(l.currentProc)
 }
 
 func (l *neuroScriptListenerImpl) ExitProcedure_definition(ctx *gen.Procedure_definitionContext) {
@@ -48,6 +51,7 @@ func (l *neuroScriptListenerImpl) ExitProcedure_definition(ctx *gen.Procedure_de
 		l.addError(ctx, "stack underflow: could not pop procedure body for '%s'", procName)
 	}
 
+	SetEndPos(l.currentProc, ctx.KW_ENDFUNC().GetSymbol())
 	l.finalizeProcedure(ctx)
 }
 

@@ -1,8 +1,15 @@
+// NeuroScript Version: 0.6.0
+// File version: 13
+// Purpose: FIX: Removed duplicate ExitSet_statement method to resolve compiler error. The correct implementation is in ast_builder_statements.go.
 // filename: pkg/parser/ast_builder_nslistener.go
+// nlines: 195
+// risk_rating: LOW
+
 package parser
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/antlr4-go/antlr/v4"
 	"github.com/aprice2704/neuroscript/pkg/ast"
@@ -13,38 +20,44 @@ import (
 
 type neuroScriptListenerImpl struct {
 	*gen.BaseNeuroScriptListener
-	program         *ast.Program
-	fileMetadata    map[string]string
-	procedures      []*ast.Procedure
-	events          []*ast.OnEventDecl
-	commands        []*ast.CommandNode
-	currentProc     *ast.Procedure
-	currentCommand  *ast.CommandNode
-	ValueStack      []interface{}
-	blockStack      []*blockContext
-	logger          interfaces.Logger
-	debugAST        bool
-	errors          []error
-	loopDepth       int
-	blockValueDepth []int
+	program                   *ast.Program
+	fileMetadata              map[string]string
+	procedures                []*ast.Procedure
+	events                    []*ast.OnEventDecl
+	commands                  []*ast.CommandNode
+	currentProc               *ast.Procedure
+	currentCommand            *ast.CommandNode
+	ValueStack                []interface{}
+	blockStack                []*blockContext
+	logger                    interfaces.Logger
+	debugAST                  bool
+	errors                    []error
+	loopDepth                 int
+	blockValueDepth           []int
+	allComments               []*ast.Comment
+	lastProcessedCommentIndex int
+	blankLinesBeforeNextNode  int
 }
 
 // --- Standard Listener Implementation ---
 
-func (l *neuroScriptListenerImpl) EnterEveryRule(ctx antlr.ParserRuleContext) {}
-func (l *neuroScriptListenerImpl) ExitEveryRule(ctx antlr.ParserRuleContext)  {}
-func (l *neuroScriptListenerImpl) VisitErrorNode(node antlr.ErrorNode)        {}
+func (l *neuroScriptListenerImpl) EnterEveryRule(ctx antlr.ParserRuleContext) {
+}
+func (l *neuroScriptListenerImpl) ExitEveryRule(ctx antlr.ParserRuleContext) {}
+func (l *neuroScriptListenerImpl) VisitErrorNode(node antlr.ErrorNode)       {}
 
 func (l *neuroScriptListenerImpl) VisitTerminal(node antlr.TerminalNode) {
-	if node.GetSymbol().GetTokenType() == gen.NeuroScriptLexerMETADATA_LINE && l.currentProc == nil {
-		// l.processMetadataLine(l.fileMetadata, node.GetSymbol())
+	if node.GetSymbol().GetTokenType() == gen.NeuroScriptLexerNEWLINE {
+		l.blankLinesBeforeNextNode++
+	} else if node.GetSymbol().GetChannel() == antlr.TokenDefaultChannel {
+		l.blankLinesBeforeNextNode = 0
 	}
 }
 
 var _ gen.NeuroScriptListener = (*neuroScriptListenerImpl)(nil)
 
 func newNeuroScriptListener(logger interfaces.Logger, debugAST bool) *neuroScriptListenerImpl {
-	return &neuroScriptListenerImpl{
+	listener := &neuroScriptListenerImpl{
 		BaseNeuroScriptListener: &gen.BaseNeuroScriptListener{},
 		program:                 ast.NewProgram(),
 		fileMetadata:            make(map[string]string),
@@ -56,6 +69,48 @@ func newNeuroScriptListener(logger interfaces.Logger, debugAST bool) *neuroScrip
 		logger:                  logger,
 		debugAST:                debugAST,
 	}
+
+	listener.program.BaseNode.StartPos = &types.Position{Line: 1, Column: 1, File: "<source>"}
+	listener.program.BaseNode.NodeKind = types.KindProgram
+
+	return listener
+}
+
+// consumeBlankLines retrieves the current count of preceding blank lines and resets the counter.
+func (l *neuroScriptListenerImpl) consumeBlankLines() int {
+	count := l.blankLinesBeforeNextNode - 1
+	if count < 0 {
+		count = 0
+	}
+	l.blankLinesBeforeNextNode = 0
+	return count
+}
+
+// getNodePos uses reflection to safely get the position from a node's BaseNode.
+func getNodePos(node ast.Node) *types.Position {
+	v := reflect.ValueOf(node)
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	}
+	if v.Kind() != reflect.Struct {
+		return nil
+	}
+	baseNodeField := v.FieldByName("BaseNode")
+	if !baseNodeField.IsValid() {
+		return nil
+	}
+	if baseNodeField.CanAddr() {
+		baseNode, ok := baseNodeField.Addr().Interface().(*ast.BaseNode)
+		if ok && baseNode.StartPos != nil {
+			return baseNode.StartPos
+		}
+	}
+	return nil
+}
+
+// associateCommentsToNode is now deprecated and removed from the listener.
+func (l *neuroScriptListenerImpl) associateCommentsToNode(node ast.Node) []*ast.Comment {
+	return nil
 }
 
 func (l *neuroScriptListenerImpl) GetFileMetadata() map[string]string {
@@ -127,7 +182,6 @@ func (l *neuroScriptListenerImpl) ExitLvalue_list(ctx *gen.Lvalue_listContext) {
 		case *ast.LValueNode:
 			lval = node
 		case *ast.VariableNode:
-			// Convert the VariableNode to a simple LValueNode for the set statement
 			lval = &ast.LValueNode{
 				Identifier: node.Name,
 				Accessors:  []*ast.AccessorNode{},
@@ -141,39 +195,4 @@ func (l *neuroScriptListenerImpl) ExitLvalue_list(ctx *gen.Lvalue_listContext) {
 		lValues[i] = lval
 	}
 	l.push(lValues)
-}
-
-func (l *neuroScriptListenerImpl) ExitSet_statement(ctx *gen.Set_statementContext) {
-	l.logDebugAST("ExitSet_statement: Building set step.")
-	rhsVal, ok := l.pop()
-	if !ok {
-		l.addError(ctx, "internal error in set_statement: could not pop RHS")
-		return
-	}
-	rhsExpr, ok := rhsVal.(ast.Expression)
-	if !ok {
-		l.addError(ctx, "internal error in set_statement: RHS value is not an ast.Expression, but %T", rhsVal)
-		return
-	}
-	lhsVal, ok := l.pop()
-	if !ok {
-		l.addError(ctx, "internal error in set_statement: could not pop LHS")
-		return
-	}
-	lhsExprs, ok := lhsVal.([]*ast.LValueNode)
-	if !ok {
-		l.addError(ctx, "internal error in set_statement: LHS value is not []*ast.LValueNode, but %T", lhsVal)
-		return
-	}
-
-	pos := tokenToPosition(ctx.GetStart())
-	step := ast.Step{
-		BaseNode: ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
-		Position: pos,
-		Type:     "set",
-		LValues:  lhsExprs,
-		Values:   []ast.Expression{rhsExpr},
-	}
-
-	l.addStep(step)
 }

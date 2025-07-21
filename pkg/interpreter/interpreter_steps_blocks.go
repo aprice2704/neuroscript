@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.5.2
-// File version: 40
-// Purpose: Corrected the executeFor loop to handle pointer-to-ListValue (*lang.ListValue), fixing the iteration bug.
+// File version: 41
+// Purpose: Replaced direct access to removed 'Position' field with calls to the GetPos() method.
 // filename: pkg/interpreter/interpreter_steps_blocks.go
 // nlines: 200
 // risk_rating: HIGH
@@ -26,9 +26,9 @@ func (i *Interpreter) executeIf(step ast.Step, isInHandler bool, activeError *la
 	}
 
 	if lang.IsTruthy(condResult) {
-		return i.executeBlock(step.Body, &step.Position, "IF_THEN", isInHandler, activeError, 0)
+		return i.executeBlock(step.Body, step.GetPos(), "IF_THEN", isInHandler, activeError, 0)
 	} else if step.ElseBody != nil {
-		return i.executeBlock(step.ElseBody, &step.Position, "IF_ELSE", isInHandler, activeError, 0)
+		return i.executeBlock(step.ElseBody, step.GetPos(), "IF_ELSE", isInHandler, activeError, 0)
 	}
 
 	return &lang.NilValue{}, false, false, nil
@@ -37,14 +37,14 @@ func (i *Interpreter) executeIf(step ast.Step, isInHandler bool, activeError *la
 // executeWhile handles the "while" step.
 func (i *Interpreter) executeWhile(step ast.Step, isInHandler bool, activeError *lang.RuntimeError) (result lang.Value, wasReturn bool, wasCleared bool, err error) {
 	if step.Cond == nil {
-		return nil, false, false, lang.NewRuntimeError(lang.ErrorCodeInternal, "WHILE step has nil Condition", nil).WithPosition(&step.Position)
+		return nil, false, false, lang.NewRuntimeError(lang.ErrorCodeInternal, "WHILE step has nil Condition", nil).WithPosition(step.GetPos())
 	}
 
 	result = &lang.NilValue{}
 
 	for iteration := 0; ; iteration++ {
 		if iteration >= i.maxLoopIterations {
-			return nil, false, false, lang.NewRuntimeError(lang.ErrorCodeResourceExhaustion, fmt.Sprintf("exceeded max iterations (%d)", i.maxLoopIterations), lang.ErrMaxIterationsExceeded).WithPosition(&step.Position)
+			return nil, false, false, lang.NewRuntimeError(lang.ErrorCodeResourceExhaustion, fmt.Sprintf("exceeded max iterations (%d)", i.maxLoopIterations), lang.ErrMaxIterationsExceeded).WithPosition(step.GetPos())
 		}
 
 		condResult, evalErr := i.evaluate.Expression(step.Cond)
@@ -56,7 +56,7 @@ func (i *Interpreter) executeWhile(step ast.Step, isInHandler bool, activeError 
 			break
 		}
 
-		blockResult, blockReturned, blockCleared, blockErr := i.executeBlock(step.Body, &step.Position, "WHILE_BODY", isInHandler, activeError, 1)
+		blockResult, blockReturned, blockCleared, blockErr := i.executeBlock(step.Body, step.GetPos(), "WHILE_BODY", isInHandler, activeError, 1)
 
 		if blockCleared {
 			wasCleared = true
@@ -88,10 +88,10 @@ endWhileLoop:
 // executeFor handles the "for each" step.
 func (i *Interpreter) executeFor(step ast.Step, isInHandler bool, activeError *lang.RuntimeError) (result lang.Value, wasReturn bool, wasCleared bool, err error) {
 	if step.Collection == nil {
-		return nil, false, false, lang.NewRuntimeError(lang.ErrorCodeInternal, "FOR EACH step has nil Collection expression", nil).WithPosition(&step.Position)
+		return nil, false, false, lang.NewRuntimeError(lang.ErrorCodeInternal, "FOR EACH step has nil Collection expression", nil).WithPosition(step.GetPos())
 	}
 	if step.LoopVarName == "" {
-		return nil, false, false, lang.NewRuntimeError(lang.ErrorCodeInternal, "FOR EACH step has empty LoopVarName", nil).WithPosition(&step.Position)
+		return nil, false, false, lang.NewRuntimeError(lang.ErrorCodeInternal, "FOR EACH step has empty LoopVarName", nil).WithPosition(step.GetPos())
 	}
 
 	collectionVal, evalErr := i.evaluate.Expression(step.Collection)
@@ -125,15 +125,15 @@ func (i *Interpreter) executeFor(step ast.Step, isInHandler bool, activeError *l
 
 	for iteration, item := range itemsToIterate {
 		if iteration >= i.maxLoopIterations {
-			return nil, false, false, lang.NewRuntimeError(lang.ErrorCodeResourceExhaustion, fmt.Sprintf("exceeded max iterations (%d)", i.maxLoopIterations), lang.ErrMaxIterationsExceeded).WithPosition(&step.Position)
+			return nil, false, false, lang.NewRuntimeError(lang.ErrorCodeResourceExhaustion, fmt.Sprintf("exceeded max iterations (%d)", i.maxLoopIterations), lang.ErrMaxIterationsExceeded).WithPosition(step.GetPos())
 		}
 
 		if setErr := i.SetVariable(step.LoopVarName, item); setErr != nil {
 			errMsg := fmt.Sprintf("setting loop variable '%s' in FOR EACH", step.LoopVarName)
-			return nil, false, wasCleared, lang.NewRuntimeError(lang.ErrorCodeInternal, errMsg, setErr).WithPosition(&step.Position)
+			return nil, false, wasCleared, lang.NewRuntimeError(lang.ErrorCodeInternal, errMsg, setErr).WithPosition(step.GetPos())
 		}
 
-		blockResult, blockReturned, blockCleared, blockErr := i.executeBlock(step.Body, &step.Position, "FOR_BODY", isInHandler, activeError, 1)
+		blockResult, blockReturned, blockCleared, blockErr := i.executeBlock(step.Body, step.GetPos(), "FOR_BODY", isInHandler, activeError, 1)
 
 		if blockCleared {
 			wasCleared = true

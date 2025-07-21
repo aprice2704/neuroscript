@@ -1,15 +1,13 @@
-// NeuroScript Version: 0.6.0
-// File version: 16
-// Purpose: Removes a redundant newline in a debug print statement that was causing a build failure.
 // filename: pkg/parser/ast_builder_statements.go
-// nlines: 125
+// NeuroScript Version: 0.6.0
+// File version: 21
+// Purpose: FIX: Set the end position (StopPos) for all simple statement nodes.
+// nlines: 130
 // risk_rating: LOW
 
 package parser
 
 import (
-	"fmt"
-
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	gen "github.com/aprice2704/neuroscript/pkg/parser/generated"
 	"github.com/aprice2704/neuroscript/pkg/types"
@@ -37,37 +35,34 @@ func (l *neuroScriptListenerImpl) ExitEmit_statement(c *gen.Emit_statementContex
 		return
 	}
 	pos := tokenToPosition(c.GetStart())
-	l.addStep(ast.Step{
-		BaseNode: ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
-		Position: pos,
-		Type:     "emit",
-		Values:   []ast.Expression{expr},
-	})
+	step := ast.Step{
+		BaseNode:         ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
+		Type:             "emit",
+		Values:           []ast.Expression{expr},
+		BlankLinesBefore: l.consumeBlankLines(),
+	}
+	step.Comments = l.associateCommentsToNode(&step)
+	SetEndPos(&step, c.GetStop())
+	l.addStep(step)
 }
 
 func (l *neuroScriptListenerImpl) ExitReturn_statement(c *gen.Return_statementContext) {
-	fmt.Println("\n--- ENTERING ExitReturn_statement ---")
 	var returnValues []ast.Expression
 	if c.Expression_list() != nil {
 		numExpr := len(c.Expression_list().AllExpression())
-		fmt.Printf("DEBUG: Expecting %d expressions for return statement.\n", numExpr)
 		if numExpr > 0 {
 			popped, ok := l.popN(numExpr)
 			if !ok {
 				l.addError(c, "internal error in return_statement: could not pop values")
 				return
 			}
-			fmt.Printf("DEBUG: Popped %d items from the stack.\n", len(popped))
-			for i, val := range popped {
-				fmt.Printf("DEBUG: Processing popped value #%d: Type=%T, Value=%#v\n", i, val, val)
+			for _, val := range popped {
 				var expr ast.Expression
 				isExpr := false
 
 				expr, isExpr = val.(ast.Expression)
 				if !isExpr {
-					fmt.Printf("DEBUG: Popped value #%d is NOT an ast.Expression. Checking if it's a convertible LValueNode.\n", i)
 					if lval, isLval := val.(*ast.LValueNode); isLval && len(lval.Accessors) == 0 {
-						fmt.Printf("DEBUG: It IS a simple LValueNode. Converting to VariableNode.\n")
 						expr = &ast.VariableNode{
 							BaseNode: lval.BaseNode,
 							Name:     lval.Identifier,
@@ -77,10 +72,8 @@ func (l *neuroScriptListenerImpl) ExitReturn_statement(c *gen.Return_statementCo
 				}
 
 				if isExpr {
-					fmt.Printf("DEBUG: Successfully processed value #%d into an expression. Appending to returnValues.\n", i)
 					returnValues = append(returnValues, expr)
 				} else {
-					fmt.Printf("ERROR: Could not process value #%d into an expression.\n", i)
 					l.addError(c, "internal error in return_statement: value is not an ast.Expression, but %T", val)
 					return
 				}
@@ -88,14 +81,15 @@ func (l *neuroScriptListenerImpl) ExitReturn_statement(c *gen.Return_statementCo
 		}
 	}
 	pos := tokenToPosition(c.GetStart())
-	fmt.Printf("DEBUG: Creating return step with %d values.\n", len(returnValues))
-	l.addStep(ast.Step{
-		BaseNode: ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
-		Position: pos,
-		Type:     "return",
-		Values:   returnValues,
-	})
-	fmt.Println("--- EXITING ExitReturn_statement ---")
+	step := ast.Step{
+		BaseNode:         ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
+		Type:             "return",
+		Values:           returnValues,
+		BlankLinesBefore: l.consumeBlankLines(),
+	}
+	step.Comments = l.associateCommentsToNode(&step)
+	SetEndPos(&step, c.GetStop())
+	l.addStep(step)
 }
 
 func (l *neuroScriptListenerImpl) ExitCall_statement(c *gen.Call_statementContext) {
@@ -110,12 +104,15 @@ func (l *neuroScriptListenerImpl) ExitCall_statement(c *gen.Call_statementContex
 		return
 	}
 	pos := tokenToPosition(c.GetStart())
-	l.addStep(ast.Step{
-		BaseNode: ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
-		Position: pos,
-		Type:     "call",
-		Call:     callExpr,
-	})
+	step := ast.Step{
+		BaseNode:         ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
+		Type:             "call",
+		Call:             callExpr,
+		BlankLinesBefore: l.consumeBlankLines(),
+	}
+	step.Comments = l.associateCommentsToNode(&step)
+	SetEndPos(&step, c.GetStop())
+	l.addStep(step)
 }
 
 func (l *neuroScriptListenerImpl) ExitMust_statement(c *gen.Must_statementContext) {
@@ -130,12 +127,15 @@ func (l *neuroScriptListenerImpl) ExitMust_statement(c *gen.Must_statementContex
 		return
 	}
 	pos := tokenToPosition(c.GetStart())
-	l.addStep(ast.Step{
-		BaseNode: ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
-		Position: pos,
-		Type:     "must",
-		Cond:     expr,
-	})
+	step := ast.Step{
+		BaseNode:         ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
+		Type:             "must",
+		Cond:             expr,
+		BlankLinesBefore: l.consumeBlankLines(),
+	}
+	step.Comments = l.associateCommentsToNode(&step)
+	SetEndPos(&step, c.GetStop())
+	l.addStep(step)
 }
 
 func (l *neuroScriptListenerImpl) ExitFail_statement(c *gen.Fail_statementContext) {
@@ -156,13 +156,15 @@ func (l *neuroScriptListenerImpl) ExitFail_statement(c *gen.Fail_statementContex
 
 	pos := tokenToPosition(c.GetStart())
 	step := ast.Step{
-		BaseNode: ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
-		Position: pos,
-		Type:     "fail",
+		BaseNode:         ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
+		Type:             "fail",
+		BlankLinesBefore: l.consumeBlankLines(),
 	}
 	if failValue != nil {
 		step.Values = []ast.Expression{failValue}
 	}
+	step.Comments = l.associateCommentsToNode(&step)
+	SetEndPos(&step, c.GetStop())
 	l.addStep(step)
 }
 
@@ -178,22 +180,28 @@ func (l *neuroScriptListenerImpl) ExitAsk_stmt(c *gen.Ask_stmtContext) {
 		return
 	}
 	pos := tokenToPosition(c.GetStart())
-	l.addStep(ast.Step{
-		BaseNode:   ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
-		Position:   pos,
-		Type:       "ask",
-		Values:     []ast.Expression{expr},
-		AskIntoVar: c.IDENTIFIER().GetText(),
-	})
+	step := ast.Step{
+		BaseNode:         ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
+		Type:             "ask",
+		Values:           []ast.Expression{expr},
+		AskIntoVar:       c.IDENTIFIER().GetText(),
+		BlankLinesBefore: l.consumeBlankLines(),
+	}
+	step.Comments = l.associateCommentsToNode(&step)
+	SetEndPos(&step, c.GetStop())
+	l.addStep(step)
 }
 
 func (l *neuroScriptListenerImpl) ExitClearErrorStmt(c *gen.ClearErrorStmtContext) {
 	pos := tokenToPosition(c.GetStart())
-	l.addStep(ast.Step{
-		BaseNode: ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
-		Position: pos,
-		Type:     "clear_error",
-	})
+	step := ast.Step{
+		BaseNode:         ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
+		Type:             "clear_error",
+		BlankLinesBefore: l.consumeBlankLines(),
+	}
+	step.Comments = l.associateCommentsToNode(&step)
+	SetEndPos(&step, c.GetStop())
+	l.addStep(step)
 }
 
 func (l *neuroScriptListenerImpl) ExitContinue_statement(c *gen.Continue_statementContext) {
@@ -201,11 +209,14 @@ func (l *neuroScriptListenerImpl) ExitContinue_statement(c *gen.Continue_stateme
 		l.addError(c, "'continue' statement found outside of a loop")
 	}
 	pos := tokenToPosition(c.GetStart())
-	l.addStep(ast.Step{
-		BaseNode: ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
-		Position: pos,
-		Type:     "continue",
-	})
+	step := ast.Step{
+		BaseNode:         ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
+		Type:             "continue",
+		BlankLinesBefore: l.consumeBlankLines(),
+	}
+	step.Comments = l.associateCommentsToNode(&step)
+	SetEndPos(&step, c.GetStop())
+	l.addStep(step)
 }
 
 func (l *neuroScriptListenerImpl) ExitBreak_statement(c *gen.Break_statementContext) {
@@ -213,9 +224,47 @@ func (l *neuroScriptListenerImpl) ExitBreak_statement(c *gen.Break_statementCont
 		l.addError(c, "'break' statement found outside of a loop")
 	}
 	pos := tokenToPosition(c.GetStart())
-	l.addStep(ast.Step{
-		BaseNode: ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
-		Position: pos,
-		Type:     "break",
-	})
+	step := ast.Step{
+		BaseNode:         ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
+		Type:             "break",
+		BlankLinesBefore: l.consumeBlankLines(),
+	}
+	step.Comments = l.associateCommentsToNode(&step)
+	SetEndPos(&step, c.GetStop())
+	l.addStep(step)
+}
+
+func (l *neuroScriptListenerImpl) ExitSet_statement(ctx *gen.Set_statementContext) {
+	l.logDebugAST("ExitSet_statement: Building set step.")
+	rhsVal, ok := l.pop()
+	if !ok {
+		l.addError(ctx, "internal error in set_statement: could not pop RHS")
+		return
+	}
+	rhsExpr, ok := rhsVal.(ast.Expression)
+	if !ok {
+		l.addError(ctx, "internal error in set_statement: RHS value is not an ast.Expression, but %T", rhsVal)
+		return
+	}
+	lhsVal, ok := l.pop()
+	if !ok {
+		l.addError(ctx, "internal error in set_statement: could not pop LHS")
+		return
+	}
+	lhsExprs, ok := lhsVal.([]*ast.LValueNode)
+	if !ok {
+		l.addError(ctx, "internal error in set_statement: LHS value is not []*ast.LValueNode, but %T", lhsVal)
+		return
+	}
+
+	pos := tokenToPosition(ctx.GetStart())
+	step := ast.Step{
+		BaseNode:         ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
+		Type:             "set",
+		LValues:          lhsExprs,
+		Values:           []ast.Expression{rhsExpr},
+		BlankLinesBefore: l.consumeBlankLines(),
+	}
+	SetEndPos(&step, ctx.GetStop())
+	l.addStep(step)
 }

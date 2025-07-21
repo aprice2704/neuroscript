@@ -128,7 +128,7 @@ func TestExpressionStringers(t *testing.T) {
 
 	t.Run("MapLiteralNode", func(t *testing.T) {
 		node := &MapLiteralNode{
-			Pos: pos,
+			BaseNode: BaseNode{StartPos: pos},
 			Entries: []*MapEntryNode{
 				{
 					Key:   &StringLiteralNode{Value: "a"},

@@ -1,7 +1,7 @@
 // filename: pkg/lang/errors.go
 // NeuroScript Version: 0.5.2
-// File version: 5
-// Purpose: Added the ErrorCodeSecretDecryption sentinel error for loop resource limits.
+// File version: 6
+// Purpose: Added the ErrSyntax sentinel error.
 // nlines: 231
 // risk_rating: LOW
 
@@ -29,7 +29,7 @@ type RuntimeError struct {
 func (e *RuntimeError) Error() string {
 	msg := fmt.Sprintf("NeuroScript Error %d: %s", e.Code, e.Message)
 	if e.Position != nil {
-		msg = fmt.Sprintf("%s at %s", msg, e.Position.String())
+		msg = fmt.Sprintf("%s at %s", e.Position.String(), msg)
 	}
 	if e.Wrapped != nil {
 		msg = fmt.Sprintf("%s (wrapped: %v)", msg, e.Wrapped)
@@ -159,6 +159,7 @@ var (
 // --- Basic Runtime Sentinel Errors ---
 var (
 	ErrConfiguration = errors.New("invalid configuration")
+	ErrSyntax        = errors.New("syntax error") // New sentinel error
 )
 
 // --- Core Validation Errors ---

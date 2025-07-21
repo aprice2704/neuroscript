@@ -1,7 +1,7 @@
 // filename: pkg/parser/ast_builder_loops.go
-// NeuroScript Version: 0.5.2
-// File version: 4
-// Purpose: Updated loop builders to correctly initialize the BaseNode in Step structs.
+// NeuroScript Version: 0.6.0
+// File version: 7
+// Purpose: Sets the end position of loop step nodes using the StopPos field.
 
 package parser
 
@@ -45,13 +45,16 @@ func (l *neuroScriptListenerImpl) ExitWhile_statement(ctx *gen.While_statementCo
 	}
 
 	pos := tokenToPosition(ctx.GetStart())
-	l.addStep(ast.Step{
-		BaseNode: ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
-		Position: pos,
-		Type:     "while",
-		Cond:     cond,
-		Body:     body,
-	})
+	step := ast.Step{
+		BaseNode:         ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
+		Type:             "while",
+		Cond:             cond,
+		Body:             body,
+		BlankLinesBefore: l.consumeBlankLines(),
+	}
+	step.Comments = l.associateCommentsToNode(&step)
+	SetEndPos(&step, ctx.KW_ENDWHILE().GetSymbol())
+	l.addStep(step)
 }
 
 func (l *neuroScriptListenerImpl) EnterFor_each_statement(ctx *gen.For_each_statementContext) {
@@ -86,12 +89,15 @@ func (l *neuroScriptListenerImpl) ExitFor_each_statement(ctx *gen.For_each_state
 	}
 
 	pos := tokenToPosition(ctx.GetStart())
-	l.addStep(ast.Step{
-		BaseNode:    ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
-		Position:    pos,
-		Type:        "for",
-		LoopVarName: ctx.IDENTIFIER().GetText(),
-		Collection:  collection,
-		Body:        body,
-	})
+	step := ast.Step{
+		BaseNode:         ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
+		Type:             "for",
+		LoopVarName:      ctx.IDENTIFIER().GetText(),
+		Collection:       collection,
+		Body:             body,
+		BlankLinesBefore: l.consumeBlankLines(),
+	}
+	step.Comments = l.associateCommentsToNode(&step)
+	SetEndPos(&step, ctx.KW_ENDFOR().GetSymbol())
+	l.addStep(step)
 }

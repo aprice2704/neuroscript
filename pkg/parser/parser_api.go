@@ -1,9 +1,8 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.1.2 // Utilized existing NoOpLogger from pkg/adapters.
-// Purpose: Provides a simplified interface to the ANTLR parser for NeuroScript,
-//          including capabilities for structured error reporting for LSP.
+// File version: 2
+// Purpose: Provides a simplified interface to the ANTLR parser for NeuroScript, now returning a standard sentinel error on failure. Adds ParseAndGetStream for testing.
 // filename: pkg/parser/parser_api.go
-// nlines: 185 // Approximate
+// nlines: 200 // Approximate
 // risk_rating: MEDIUM // Parser interactions are core to functionality.
 
 package parser
@@ -14,6 +13,7 @@ import (
 
 	"github.com/antlr4-go/antlr/v4"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
+	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/logging"
 	gen "github.com/aprice2704/neuroscript/pkg/parser/generated"
 )
@@ -130,51 +130,40 @@ func (l *ErrorListener) GetRawErrors() []string {
 	return l.RawErrors
 }
 
-// Parse performs lexing and parsing. (Original signature and primary behavior maintained)
-// It now uses an ErrorListener that also collects structured errors internally,
-// but this Parse method continues to return errors as a single formatted string.
-// For structured errors, use ParseForLSP.
+// Parse performs lexing and parsing.
 func (p *ParserAPI) Parse(source string) (antlr.Tree, error) {
-	p.logger.Debug("Parsing source code (original Parse method)", "length", len(source))
-	inputStream := antlr.NewInputStream(source)
+	p.logger.Debug("Parsing source code", "length", len(source))
+	tree, _, structuredErrors := p.parseInternal("source_string", source)
 
-	lexer := gen.NewNeuroScriptLexer(inputStream)
-	lexer.RemoveErrorListeners()
-	lexerErrorListener := NewErrorListener(p.logger)
-	lexer.AddErrorListener(lexerErrorListener)
-
-	stream := antlr.NewCommonTokenStream(lexer, antlr.TokenDefaultChannel)
-	parser := gen.NewNeuroScriptParser(stream)
-	parser.RemoveErrorListeners()
-	parserErrorListener := NewErrorListener(p.logger)
-	parser.AddErrorListener(parserErrorListener)
-
-	parser.SetErrorHandler(antlr.NewDefaultErrorStrategy())
-	p.logger.Debug("Using DefaultErrorStrategy for parsing.")
-
-	tree := parser.Program()
-
-	numListenerLexerErrors := len(lexerErrorListener.GetRawErrors())
-	numListenerParserErrors := len(parserErrorListener.GetRawErrors())
-	p.logger.Debug("Parse attempt completed.", "lexerListenerErrors", numListenerLexerErrors, "parserListenerErrors", numListenerParserErrors)
-
-	if numListenerLexerErrors > 0 {
-		p.logger.Error("Lexer Errors encountered.", "count", numListenerLexerErrors)
-		return nil, fmt.Errorf("lexer errors: %s", strings.Join(lexerErrorListener.GetRawErrors(), "; "))
-	}
-	if numListenerParserErrors > 0 {
-		p.logger.Error("Parser Listener reported errors.", "count", numListenerParserErrors)
-		return tree, fmt.Errorf("parser errors: %s", strings.Join(parserErrorListener.GetRawErrors(), "; "))
+	if len(structuredErrors) > 0 {
+		rawErrors := make([]string, len(structuredErrors))
+		for i, se := range structuredErrors {
+			rawErrors[i] = fmt.Sprintf("line %d:%d: %s", se.Line, se.Column, se.Msg)
+		}
+		// FIX: Wrap the detailed error message with the standard sentinel error.
+		return tree, fmt.Errorf("%w: %s", lang.ErrSyntax, strings.Join(rawErrors, "; "))
 	}
 
-	p.logger.Debug("Parsing successful (based on listener raw errors).")
+	p.logger.Debug("Parsing successful.")
 	return tree, nil
 }
 
-// ParseForLSP performs lexing and parsing, returning the AST and a slice of structured errors.
-// This is a new routine, more suitable for LSP diagnostics.
-func (p *ParserAPI) ParseForLSP(sourceName string, sourceContent string) (antlr.Tree, []StructuredSyntaxError) {
-	p.logger.Debug("Parsing for LSP", "sourceName", sourceName, "length", len(sourceContent))
+// ParseAndGetStream is an exported version of parseInternal for testing purposes (e.g., reconstructor tests).
+func (p *ParserAPI) ParseAndGetStream(sourceName, sourceContent string) (antlr.Tree, antlr.TokenStream, error) {
+	tree, stream, structuredErrors := p.parseInternal(sourceName, sourceContent)
+	if len(structuredErrors) > 0 {
+		rawErrors := make([]string, len(structuredErrors))
+		for i, se := range structuredErrors {
+			rawErrors[i] = fmt.Sprintf("line %d:%d: %s", se.Line, se.Column, se.Msg)
+		}
+		return tree, stream, fmt.Errorf("%w: %s", lang.ErrSyntax, strings.Join(rawErrors, "; "))
+	}
+	return tree, stream, nil
+}
+
+// parseInternal is the new core parsing logic that returns the tree and the token stream.
+func (p *ParserAPI) parseInternal(sourceName, sourceContent string) (antlr.Tree, antlr.TokenStream, []StructuredSyntaxError) {
+	p.logger.Debug("Internal parse", "sourceName", sourceName, "length", len(sourceContent))
 	inputStream := antlr.NewInputStream(sourceContent)
 
 	lexer := gen.NewNeuroScriptLexer(inputStream)
@@ -190,7 +179,13 @@ func (p *ParserAPI) ParseForLSP(sourceName string, sourceContent string) (antlr.
 	parser.SetErrorHandler(antlr.NewDefaultErrorStrategy())
 	tree := parser.Program()
 
-	structuredErrors := errorListener.GetStructuredErrors()
+	return tree, stream, errorListener.GetStructuredErrors()
+}
+
+// ParseForLSP performs lexing and parsing, returning the AST and a slice of structured errors.
+func (p *ParserAPI) ParseForLSP(sourceName string, sourceContent string) (antlr.Tree, []StructuredSyntaxError) {
+	p.logger.Debug("Parsing for LSP", "sourceName", sourceName, "length", len(sourceContent))
+	tree, _, structuredErrors := p.parseInternal(sourceName, sourceContent)
 
 	if len(structuredErrors) > 0 {
 		p.logger.Debug("Syntax errors found during LSP parse", "sourceName", sourceName, "count", len(structuredErrors))

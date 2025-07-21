@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.5.2
-// File version: 22
-// Purpose: Added the missing 'ExpressionTest' helper function to resolve multiple undefined errors in other packages.
+// File version: 23
+// Purpose: Removed legacy 'Pos' field assignments from all test helpers to align with the updated AST.
 // filename: pkg/testutil/testing_helpers.go
 
 package testutil
@@ -48,19 +48,19 @@ type EvalTestCase struct {
 // --- Generic AST Creation Helpers (Exported) ---
 
 func NewTestStringLiteral(val string) *ast.StringLiteralNode {
-	return &ast.StringLiteralNode{Pos: dummyPos, Value: val}
+	return &ast.StringLiteralNode{Value: val}
 }
 
 func NewTestNumberLiteral(val float64) *ast.NumberLiteralNode {
-	return &ast.NumberLiteralNode{Pos: dummyPos, Value: val}
+	return &ast.NumberLiteralNode{Value: val}
 }
 
 func NewTestBooleanLiteral(val bool) *ast.BooleanLiteralNode {
-	return &ast.BooleanLiteralNode{Pos: dummyPos, Value: val}
+	return &ast.BooleanLiteralNode{Value: val}
 }
 
 func NewVariableNode(name string) *ast.VariableNode {
-	return &ast.VariableNode{Pos: dummyPos, Name: name}
+	return &ast.VariableNode{Name: name}
 }
 
 // --- Test Execution Helpers (Exported) ---

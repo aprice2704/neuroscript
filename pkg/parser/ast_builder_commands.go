@@ -1,7 +1,7 @@
 // filename: pkg/parser/ast_builder_commands.go
-// NeuroScript Version: 0.5.2
-// File version: 6
-// Purpose: Refactored command block creation to use newNode and BaseNode.
+// NeuroScript Version: 0.6.0
+// File version: 8
+// Purpose: Sets the end position of the command block node using the StopPos field.
 
 package parser
 
@@ -15,11 +15,13 @@ func (l *neuroScriptListenerImpl) EnterCommand_block(c *gen.Command_blockContext
 	l.logDebugAST(">>> EnterCommand_block")
 	token := c.GetStart()
 	cmdNode := &ast.CommandNode{
-		Metadata:      make(map[string]string),
-		Body:          make([]ast.Step, 0),
-		ErrorHandlers: make([]*ast.Step, 0),
+		Metadata:         make(map[string]string),
+		Body:             make([]ast.Step, 0),
+		ErrorHandlers:    make([]*ast.Step, 0),
+		BlankLinesBefore: l.consumeBlankLines(),
 	}
 	l.currentCommand = newNode(cmdNode, token, types.KindCommandBlock)
+	l.currentCommand.Comments = l.associateCommentsToNode(l.currentCommand)
 }
 
 func (l *neuroScriptListenerImpl) ExitCommand_block(c *gen.Command_blockContext) {
@@ -51,6 +53,7 @@ func (l *neuroScriptListenerImpl) ExitCommand_block(c *gen.Command_blockContext)
 	}
 	l.currentCommand.Body = regularSteps
 
+	SetEndPos(l.currentCommand, c.KW_ENDCOMMAND().GetSymbol())
 	l.program.Commands = append(l.program.Commands, l.currentCommand)
 	l.currentCommand = nil
 }

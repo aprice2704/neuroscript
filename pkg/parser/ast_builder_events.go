@@ -1,7 +1,7 @@
 // filename: pkg/parser/ast_builder_events.go
-// NeuroScript Version: 0.5.2
-// File version: 3
-// Purpose: Refactored event and error handler creation to use newNode and BaseNode.
+// NeuroScript Version: 0.6.0
+// File version: 5
+// Purpose: Sets the end position of event and error handler nodes using the StopPos field.
 
 package parser
 
@@ -53,6 +53,7 @@ func (l *neuroScriptListenerImpl) ExitEvent_handler(c *gen.Event_handlerContext)
 	}
 
 	newNode(onEvent, c.GetStart(), types.KindOnEventDecl)
+	SetEndPos(onEvent, c.KW_ENDON().GetSymbol())
 
 	l.program.Events = append(l.program.Events, onEvent)
 }
@@ -76,10 +77,11 @@ func (l *neuroScriptListenerImpl) ExitError_handler(c *gen.Error_handlerContext)
 	}
 
 	pos := tokenToPosition(c.GetStart())
-	l.addStep(ast.Step{
+	step := ast.Step{
 		BaseNode: ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
-		Position: pos,
 		Type:     "on_error",
 		Body:     body,
-	})
+	}
+	SetEndPos(&step, c.KW_ENDON().GetSymbol())
+	l.addStep(step)
 }

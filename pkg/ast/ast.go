@@ -1,9 +1,9 @@
 // filename: pkg/ast/ast.go
 // NeuroScript Version: 0.5.2
-// File version: 7
-// Purpose: Updated all node structs and interfaces to use the foundational types.Kind.
-// nlines: 80+
-// risk_rating: HIGH
+// File version: 9
+// Purpose: Removed redundant Pos fields from Program, SecretRef, and ErrorNode to unify position handling via BaseNode.
+// nlines: 75+
+// risk_rating: MEDIUM
 
 package ast
 
@@ -52,12 +52,12 @@ type Comment struct {
 // Program represents the entire parsed NeuroScript program.
 type Program struct {
 	BaseNode
-	Pos         *types.Position // CORRECTED
 	Metadata    map[string]string
 	Procedures  map[string]*Procedure
 	Events      []*OnEventDecl
 	Expressions []Expression
 	Commands    []*CommandNode
+	Comments    []*Comment
 }
 
 // NewProgram creates and initializes a new Program node.
@@ -69,13 +69,13 @@ func NewProgram() *Program {
 		Events:      make([]*OnEventDecl, 0),
 		Commands:    make([]*CommandNode, 0),
 		Expressions: make([]Expression, 0),
+		Comments:    make([]*Comment, 0),
 	}
 }
 
 // SecretRef represents a reference to a secret (e.g., secret "path").
 type SecretRef struct {
 	BaseNode
-	Pos  *types.Position // CORRECTED
 	Path string
 	Enc  string
 	Raw  []byte
@@ -89,7 +89,6 @@ func (n *SecretRef) String() string {
 // ErrorNode captures a parsing or semantic error encountered during AST construction.
 type ErrorNode struct {
 	BaseNode
-	Pos     *types.Position // CORRECTED
 	Message string
 }
 
@@ -98,7 +97,7 @@ func (n *ErrorNode) String() string {
 	if n == nil {
 		return "<nil error node>"
 	}
-	return fmt.Sprintf("Error at %s: %s", n.Pos, n.Message)
+	return fmt.Sprintf("Error at %s: %s", n.GetPos(), n.Message)
 }
 
 // --- Helper for getting types.Position from nodes that implement Expression or Step ---
@@ -107,7 +106,7 @@ func getExpressionPosition(val interface{}) *types.Position {
 		return expr.GetPos()
 	}
 	if step, ok := val.(Step); ok {
-		return &step.Position
+		return step.GetPos()
 	}
 	return nil
 }

@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.5.2
-// File version: 25.0.0
-// Purpose: L-value resolution. Corrected logic to handle overwriting primitives by placing the check in the parent function, not the traversal function.
+// File version: 26
+// Purpose: Corrected compilation errors by replacing direct access to the removed 'Position' field with the 'GetPos()' method.
 // filename: pkg/interpreter/interpreter_lvalue.go
 // nlines: 230
 // risk_rating: HIGH
@@ -28,7 +28,7 @@ func (i *Interpreter) executeSet(step ast.Step) (lang.Value, error) {
 	if len(step.LValues) == 0 {
 		return nil, lang.NewRuntimeError(
 			lang.ErrorCodeInternal, "SetStep LValues is empty", nil,
-		).WithPosition(&step.Position)
+		).WithPosition(step.GetPos())
 	}
 
 	var rhsExpr ast.Expression
@@ -40,12 +40,12 @@ func (i *Interpreter) executeSet(step ast.Step) (lang.Value, error) {
 		return nil, lang.NewRuntimeError(
 			lang.ErrorCodeInternal,
 			"SetStep has no RHS expression (neither Value nor Call)", nil,
-		).WithPosition(&step.Position)
+		).WithPosition(step.GetPos())
 	}
 
 	rhsValue, evalErr := i.evaluate.Expression(rhsExpr)
 	if evalErr != nil {
-		return nil, lang.WrapErrorWithPosition(evalErr, step.LValues[0].GetPos(),
+		return nil, lang.WrapErrorWithPosition(evalErr, rhsExpr.GetPos(),
 			"evaluating value for SET statement")
 	}
 
@@ -68,7 +68,7 @@ func (i *Interpreter) executeSet(step ast.Step) (lang.Value, error) {
 				fmt.Sprintf("LHS count %d doesn't match RHS list length %d",
 					len(step.LValues), len(list.Value)),
 				lang.ErrAssignCountMismatch,
-			).WithPosition(&step.Position)
+			).WithPosition(step.GetPos())
 		}
 		for idx, lval := range step.LValues {
 			if err := i.setSingleLValue(lval, list.Value[idx]); err != nil {

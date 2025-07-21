@@ -2,9 +2,11 @@
 package parser
 
 import (
+	"errors"
 	"strings"
 	"testing"
 
+	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/logging"
 )
 
@@ -19,8 +21,9 @@ func TestParserAPI_ErrorHandling(t *testing.T) {
 		if err == nil {
 			t.Fatal("Expected a lexer error, but got nil")
 		}
-		if !strings.Contains(err.Error(), "lexer errors") {
-			t.Errorf("Expected error message to contain 'lexer errors', but got: %v", err)
+		// FIX: Use errors.Is to check for the standard syntax error sentinel.
+		if !errors.Is(err, lang.ErrSyntax) {
+			t.Errorf("Expected error to be a syntax error, but it was not. Got: %v", err)
 		}
 	})
 
@@ -31,8 +34,9 @@ func TestParserAPI_ErrorHandling(t *testing.T) {
 		if err == nil {
 			t.Fatal("Expected a parser error, but got nil")
 		}
-		if !strings.Contains(err.Error(), "parser errors") {
-			t.Errorf("Expected error message to contain 'parser errors', but got: %v", err)
+		// FIX: Use errors.Is to check for the standard syntax error sentinel.
+		if !errors.Is(err, lang.ErrSyntax) {
+			t.Errorf("Expected error to be a syntax error, but it was not. Got: %v", err)
 		}
 	})
 }

@@ -1,11 +1,10 @@
 // filename: pkg/parser/ast_builder_main_exitlvalue.go
 // NeuroScript Version: 0.5.2
-// File version: 18.0.0
+// File version: 19.0.0
 //
 // Builds an *ast.LValueNode* when the parser exits an lvalue rule.
-// Reverted to always produce an LValueNode to satisfy consumers
-// like the 'set' statement and canonicalizer. Ambiguity with r-values
-// is now handled by the specific statement listeners (e.g., for 'return').
+// This version adds a nil-check to prevent panics when handling
+// malformed lvalue contexts that may not have a start token.
 
 package parser
 
@@ -73,8 +72,12 @@ func (l *neuroScriptListenerImpl) ExitLvalue(ctx *gen.LvalueContext) {
 	baseIdentifierToken := ctx.IDENTIFIER(0)
 	if baseIdentifierToken == nil {
 		l.addErrorf(ctx.GetStart(), "AST Builder: malformed lvalue, missing base identifier")
-		l.push(newNode(&ast.ErrorNode{Message: "malformed lvalue"},
-			ctx.GetStart(), types.KindUnknown))
+		errorNode := &ast.ErrorNode{Message: "malformed lvalue"}
+		// FIX: Guard against nil token to prevent panic.
+		if startToken := ctx.GetStart(); startToken != nil {
+			newNode(errorNode, startToken, types.KindUnknown)
+		}
+		l.push(errorNode)
 		return
 	}
 

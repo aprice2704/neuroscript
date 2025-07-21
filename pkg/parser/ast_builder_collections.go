@@ -1,7 +1,7 @@
 // filename: pkg/parser/ast_builder_collections.go
 // NeuroScript Version: 0.5.2
-// File version: 3
-// Purpose: Refactored collection literal creation to use the newNode helper.
+// File version: 4
+// Purpose: Removed legacy 'Pos' field assignments to align with updated AST.
 
 package parser
 
@@ -79,7 +79,6 @@ func (l *neuroScriptListenerImpl) ExitMap_entry(c *gen.Map_entryContext) {
 	node := &ast.MapEntryNode{Key: keyNode, Value: valueExpr}
 	// A MapEntry isn't a standalone expression, so it doesn't get a kind itself,
 	// it's part of a MapLiteralNode. We can give it a position from its key.
-	node.Pos = keyNode.Pos
 	node.BaseNode.StartPos = keyNode.BaseNode.StartPos
 
 	l.push(node)

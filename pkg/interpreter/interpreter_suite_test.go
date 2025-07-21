@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.3.5
-// File version: 9.2.0
-// Purpose: Corrected the tool call test to use types.MakeFullName, ensuring the proper, fully qualified tool name ('tool.list.Append') is used for the lookup.
+// File version: 9.4.0
+// Purpose: Corrected helper functions by removing invalid SetPos method calls.
 // filename: pkg/interpreter/interpreter_suite_test.go
 package interpreter
 
@@ -37,10 +37,13 @@ var localTestPos = &types.Position{Line: 1, Column: 1, File: "test"}
 func createTestStep(stepType, lvalueName string, value ast.Expression, call *ast.CallableExprNode) ast.Step {
 	step := ast.Step{
 		Type:     stepType,
-		Position: *localTestPos,
+		BaseNode: ast.BaseNode{StartPos: localTestPos},
 	}
 	if lvalueName != "" {
-		step.LValues = []*ast.LValueNode{{Identifier: lvalueName, Position: *localTestPos}}
+		step.LValues = []*ast.LValueNode{{
+			BaseNode:   ast.BaseNode{StartPos: localTestPos},
+			Identifier: lvalueName,
+		}}
 	}
 	if value != nil {
 		step.Values = []ast.Expression{value}
@@ -54,7 +57,7 @@ func createTestStep(stepType, lvalueName string, value ast.Expression, call *ast
 func createIfStep(pos *types.Position, cond ast.Expression, body []ast.Step, elseBody []ast.Step) ast.Step {
 	return ast.Step{
 		Type:     "if",
-		Position: *pos,
+		BaseNode: ast.BaseNode{StartPos: pos},
 		Cond:     cond,
 		Body:     body,
 		ElseBody: elseBody,
@@ -64,7 +67,7 @@ func createIfStep(pos *types.Position, cond ast.Expression, body []ast.Step, els
 func createWhileStep(pos *types.Position, cond ast.Expression, body []ast.Step) ast.Step {
 	return ast.Step{
 		Type:     "while",
-		Position: *pos,
+		BaseNode: ast.BaseNode{StartPos: pos},
 		Cond:     cond,
 		Body:     body,
 	}
@@ -73,7 +76,7 @@ func createWhileStep(pos *types.Position, cond ast.Expression, body []ast.Step) 
 func createForStep(pos *types.Position, loopVar string, collection ast.Expression, body []ast.Step) ast.Step {
 	return ast.Step{
 		Type:        "for",
-		Position:    *pos,
+		BaseNode:    ast.BaseNode{StartPos: pos},
 		LoopVarName: loopVar,
 		Collection:  collection,
 		Body:        body,
@@ -252,10 +255,9 @@ func TestExecuteStepsBlocksAndLoops(t *testing.T) {
 			name: "Tool Call List.Append",
 			inputSteps: []ast.Step{
 				createTestStep("set", "lvar", nil, &ast.CallableExprNode{
-					Pos: localTestPos,
 					// FIX: Use types.MakeFullName to construct the robust, fully-qualified tool name.
-					Target:    ast.CallTarget{Pos: localTestPos, IsTool: true, Name: string(types.MakeFullName("list", "Append"))},
-					Arguments: []ast.Expression{&ast.VariableNode{Pos: localTestPos, Name: "initialListVar"}, &ast.StringLiteralNode{Value: "newItem"}},
+					Target:    ast.CallTarget{IsTool: true, Name: string(types.MakeFullName("list", "Append"))},
+					Arguments: []ast.Expression{&ast.VariableNode{Name: "initialListVar"}, &ast.StringLiteralNode{Value: "newItem"}},
 				}),
 			},
 			initialVars:    map[string]lang.Value{"initialListVar": initialList},

@@ -82,7 +82,7 @@ func (e *evaluation) evaluateStringLiteral(n *ast.StringLiteralNode) (lang.Value
 	if n.IsRaw {
 		resolvedStr, resolveErr := e.i.resolvePlaceholdersWithError(n.Value)
 		if resolveErr != nil {
-			return nil, lang.NewRuntimeError(lang.ErrorCodeEvaluation, "evaluating raw string literal", resolveErr).WithPosition(n.Pos)
+			return nil, lang.NewRuntimeError(lang.ErrorCodeEvaluation, "evaluating raw string literal", resolveErr).WithPosition(n.StartPos)
 		}
 		return lang.StringValue{Value: resolvedStr}, nil
 	}
@@ -110,7 +110,7 @@ func (i *Interpreter) resolveVariable(n *ast.VariableNode) (lang.Value, error) {
 		return lang.StringValue{Value: fmt.Sprintf("<built-in function: %s>", n.Name)}, nil
 	}
 	fmt.Printf("[DEBUG] resolveVariable: Variable or function '%s' NOT FOUND\n", n.Name)
-	return nil, lang.NewRuntimeError(lang.ErrorCodeKeyNotFound, fmt.Sprintf("variable or function '%s' not found", n.Name), lang.ErrVariableNotFound).WithPosition(n.Pos)
+	return nil, lang.NewRuntimeError(lang.ErrorCodeKeyNotFound, fmt.Sprintf("variable or function '%s' not found", n.Name), lang.ErrVariableNotFound).WithPosition(n.StartPos)
 }
 
 func (i *Interpreter) resolvePlaceholder(n *ast.PlaceholderNode) (lang.Value, error) {
@@ -123,7 +123,7 @@ func (i *Interpreter) resolvePlaceholder(n *ast.PlaceholderNode) (lang.Value, er
 		refValue, exists = i.GetVariable(n.Name)
 	}
 	if !exists {
-		return nil, lang.NewRuntimeError(lang.ErrorCodeKeyNotFound, fmt.Sprintf("variable '%s' for placeholder not found", n.Name), lang.ErrVariableNotFound).WithPosition(n.Pos)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeKeyNotFound, fmt.Sprintf("variable '%s' for placeholder not found", n.Name), lang.ErrVariableNotFound).WithPosition(n.StartPos)
 	}
 	return refValue, nil
 }
@@ -176,18 +176,18 @@ func (e *evaluation) evaluateCall(n *ast.CallableExprNode) (lang.Value, error) {
 				return nil, err
 			}
 		}
-		return e.evaluateUserOrBuiltInFunction(n.Target.Name, evaluatedArgs, n.Pos)
+		return e.evaluateUserOrBuiltInFunction(n.Target.Name, evaluatedArgs, n.StartPos)
 	}
 
 	if n.Target.IsTool {
 		tool, found := e.i.tools.GetTool(types.FullName(n.Target.Name))
 		if !found {
-			return nil, lang.NewRuntimeError(lang.ErrorCodeToolNotFound, fmt.Sprintf("tool '%s' not found", n.Target.Name), lang.ErrToolNotFound).WithPosition(n.Pos)
+			return nil, lang.NewRuntimeError(lang.ErrorCodeToolNotFound, fmt.Sprintf("tool '%s' not found", n.Target.Name), lang.ErrToolNotFound).WithPosition(n.StartPos)
 		}
 
 		specArgs := tool.Spec.Args
 		if len(n.Arguments) > len(specArgs) && !tool.Spec.Variadic {
-			return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("tool '%s' expects at most %d arguments, got %d", tool.Spec.Name, len(specArgs), len(n.Arguments)), lang.ErrArgumentMismatch).WithPosition(n.Pos)
+			return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("tool '%s' expects at most %d arguments, got %d", tool.Spec.Name, len(specArgs), len(n.Arguments)), lang.ErrArgumentMismatch).WithPosition(n.StartPos)
 		}
 
 		evaluatedArgs := make([]lang.Value, len(n.Arguments))
@@ -206,7 +206,7 @@ func (e *evaluation) evaluateCall(n *ast.CallableExprNode) (lang.Value, error) {
 
 		result, err := tool.Func(e.i, unwrappedArgs)
 		if err != nil {
-			return nil, lang.NewRuntimeError(lang.ErrorCodeToolExecutionFailed, fmt.Sprintf("tool '%s' execution failed", tool.Spec.Name), err).WithPosition(n.Pos)
+			return nil, lang.NewRuntimeError(lang.ErrorCodeToolExecutionFailed, fmt.Sprintf("tool '%s' execution failed", tool.Spec.Name), err).WithPosition(n.StartPos)
 		}
 
 		return lang.Wrap(result)
@@ -220,7 +220,7 @@ func (e *evaluation) evaluateCall(n *ast.CallableExprNode) (lang.Value, error) {
 			return nil, err
 		}
 	}
-	return e.evaluateUserOrBuiltInFunction(n.Target.Name, evaluatedArgs, n.Pos)
+	return e.evaluateUserOrBuiltInFunction(n.Target.Name, evaluatedArgs, n.StartPos)
 }
 
 func (e *evaluation) evaluateUserOrBuiltInFunction(funcName string, args []lang.Value, pos *types.Position) (lang.Value, error) {

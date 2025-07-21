@@ -40,34 +40,34 @@ func TestTypeOfOperator_LiteralsAndVariables(t *testing.T) {
 	tests := []testutil.EvalTestCase{
 		{
 			Name:      "typeof string literal",
-			InputNode: &ast.TypeOfNode{Pos: testPos, Argument: testutil.NewTestStringLiteral("hello")},
+			InputNode: &ast.TypeOfNode{BaseNode: ast.BaseNode{StartPos: testPos}, Argument: testutil.NewTestStringLiteral("hello")},
 			Expected:  lang.StringValue{Value: string(lang.TypeString)},
 		},
 		{
 			Name:      "typeof number literal (int)",
-			InputNode: &ast.TypeOfNode{Pos: testPos, Argument: testutil.NewTestNumberLiteral(123.0)},
+			InputNode: &ast.TypeOfNode{BaseNode: ast.BaseNode{StartPos: testPos}, Argument: testutil.NewTestNumberLiteral(123.0)},
 			Expected:  lang.StringValue{Value: string(lang.TypeNumber)},
 		},
 		{
 			Name:      "typeof nil literal",
-			InputNode: &ast.TypeOfNode{Pos: testPos, Argument: &ast.NilLiteralNode{Pos: testPos}},
+			InputNode: &ast.TypeOfNode{BaseNode: ast.BaseNode{StartPos: testPos}, Argument: &ast.NilLiteralNode{BaseNode: ast.BaseNode{StartPos: testPos}}},
 			Expected:  lang.StringValue{Value: string(lang.TypeNil)},
 		},
 		{
 			Name:      "typeof list literal",
-			InputNode: &ast.TypeOfNode{Pos: testPos, Argument: &ast.ListLiteralNode{Pos: testPos, Elements: []ast.Expression{testutil.NewTestNumberLiteral(1.0), testutil.NewTestStringLiteral("a")}}},
+			InputNode: &ast.TypeOfNode{BaseNode: ast.BaseNode{StartPos: testPos}, Argument: &ast.ListLiteralNode{BaseNode: ast.BaseNode{StartPos: testPos}, Elements: []ast.Expression{testutil.NewTestNumberLiteral(1.0), testutil.NewTestStringLiteral("a")}}},
 			Expected:  lang.StringValue{Value: string(lang.TypeList)},
 		},
 		{
 			Name: "typeof map literal",
-			InputNode: &ast.TypeOfNode{Pos: testPos, Argument: &ast.MapLiteralNode{Pos: testPos, Entries: []*ast.MapEntryNode{
-				{Pos: testPos, Key: testutil.NewTestStringLiteral("key"), Value: testutil.NewTestStringLiteral("value")},
+			InputNode: &ast.TypeOfNode{BaseNode: ast.BaseNode{StartPos: testPos}, Argument: &ast.MapLiteralNode{BaseNode: ast.BaseNode{StartPos: testPos}, Entries: []*ast.MapEntryNode{
+				{BaseNode: ast.BaseNode{StartPos: testPos}, Key: testutil.NewTestStringLiteral("key"), Value: testutil.NewTestStringLiteral("value")},
 			}}},
 			Expected: lang.StringValue{Value: string(lang.TypeMap)},
 		},
 		{
 			Name:        "typeof variable (string)",
-			InputNode:   &ast.TypeOfNode{Pos: testPos, Argument: testutil.NewVariableNode("myVar")},
+			InputNode:   &ast.TypeOfNode{BaseNode: ast.BaseNode{StartPos: testPos}, Argument: testutil.NewVariableNode("myVar")},
 			InitialVars: map[string]lang.Value{"myVar": lang.StringValue{Value: "test"}},
 			Expected:    lang.StringValue{Value: string(lang.TypeString)},
 		},
@@ -95,7 +95,7 @@ func TestTypeOfOperator_Function(t *testing.T) {
 	}
 
 	argVarNode := testutil.NewVariableNode("myFuncVar")
-	typeOfExpr := &ast.TypeOfNode{Pos: testPos, Argument: argVarNode}
+	typeOfExpr := &ast.TypeOfNode{BaseNode: ast.BaseNode{StartPos: testPos}, Argument: argVarNode}
 
 	result, evalErr := i.EvaluateExpression(typeOfExpr)
 	if evalErr != nil {
@@ -127,7 +127,7 @@ func TestTypeOfOperator_Tool(t *testing.T) {
 	}
 
 	argVarNode := testutil.NewVariableNode("myActualTestToolVar")
-	typeOfExpr := &ast.TypeOfNode{Pos: testPos, Argument: argVarNode}
+	typeOfExpr := &ast.TypeOfNode{BaseNode: ast.BaseNode{StartPos: testPos}, Argument: argVarNode}
 
 	result, evalErr := i.EvaluateExpression(typeOfExpr)
 	if evalErr != nil {

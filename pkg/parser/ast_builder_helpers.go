@@ -1,7 +1,7 @@
 // filename: pkg/parser/ast_builder_helpers.go
-// NeuroScript Version: 0.5.2
-// File version: 2
-// Purpose: Added the generic newNode helper to centralize AST node creation.
+// NeuroScript Version: 0.6.0
+// File version: 5
+// Purpose: Added SetEndPos helper to manage node end positions using the existing StopPos field.
 
 package parser
 
@@ -17,7 +17,7 @@ import (
 )
 
 // newNode is a generic helper to create and initialize an AST node.
-// It sets both the new BaseNode fields and the legacy .Pos field.
+// It sets the StartPos field of the embedded BaseNode.
 func newNode[T ast.Node](node T, token antlr.Token, kind types.Kind) T {
 	pos := tokenToPosition(token)
 
@@ -28,16 +28,25 @@ func newNode[T ast.Node](node T, token antlr.Token, kind types.Kind) T {
 		baseNode := baseNodeField.Addr().Interface().(*ast.BaseNode)
 		baseNode.StartPos = &pos
 		baseNode.NodeKind = kind
-		// StopPos would be set here if we had the end token.
-	}
-
-	// Set the legacy .Pos field for backward compatibility
-	posField := v.FieldByName("Pos")
-	if posField.IsValid() && posField.CanSet() {
-		posField.Set(reflect.ValueOf(&pos))
 	}
 
 	return node
+}
+
+// SetEndPos sets the end position (StopPos) of any AST node that has a BaseNode.
+func SetEndPos[T ast.Node](node T, endToken antlr.Token) {
+	if reflect.ValueOf(node).IsNil() || endToken == nil {
+		return
+	}
+	pos := tokenToPosition(endToken)
+
+	// Use reflection to find and set the StopPos field in the embedded BaseNode
+	v := reflect.ValueOf(node).Elem()
+	baseNodeField := v.FieldByName("BaseNode")
+	if baseNodeField.IsValid() && baseNodeField.CanSet() {
+		baseNode := baseNodeField.Addr().Interface().(*ast.BaseNode)
+		baseNode.StopPos = &pos
+	}
 }
 
 // ArgType defines the type of an argument.
@@ -174,34 +183,6 @@ func ConvertInputSchemaToArgSpec(schema map[string]interface{}) ([]tool.ArgSpec,
 	}
 	return args, nil
 }
-
-// --- Added Helper Functions for Literal Parsing ---
-
-// parseNumber attempts to parse a string as int64 or float64.
-// func parseNumber(numStr string) (interface{}, error) {
-// 	// Try parsing as int first
-// 	if !strings.Contains(numStr, ".") { // Optimization: Don't try int if decimal present
-// 		if iVal, err := strconv.ParseInt(numStr, 10, 64); err == nil {
-// 			return iVal, nil
-// 		}
-// 	}
-
-// 	// Try parsing as float
-// 	if fVal, err := strconv.ParseFloat(numStr, 64); err == nil {
-// 		return fVal, nil
-// 	}
-
-// 	return nil, fmt.Errorf("invalid number literal: %q", numStr)
-// }
-
-// unescapeString handles standard Go escape sequences within single or double quotes.
-// func unescapeString(quotedStr string) (string, error) {
-// 	unquoted, err := strconv.Unquote(quotedStr)
-// 	if err != nil {
-// 		return "", fmt.Errorf("invalid string literal %q: %w", quotedStr, err)
-// 	}
-// 	return unquoted, nil
-// }
 
 // --- types.Position Helper ---
 

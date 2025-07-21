@@ -1,7 +1,7 @@
 // filename: pkg/parser/ast_builder_lvalue_test.go
 // NeuroScript Version: 0.5.2
-// File version: 3
-// Purpose: Corrected l-value error tests to check for parser errors instead of builder errors.
+// File version: 4
+// Purpose: Corrected l-value error tests to check for parser errors instead of builder errors and fixed the panicking test.
 // nlines: 260
 // risk_rating: MEDIUM
 
@@ -219,9 +219,11 @@ func TestLValueParsing_Errors(t *testing.T) {
 }
 
 func TestExitLvalue_ErrorScenarios(t *testing.T) {
-	t.Run("stack underflow", func(t *testing.T) {
-		// This test simulates a scenario where the stack is empty when ExitLvalue is called.
+	t.Run("malformed lvalue with no identifier", func(t *testing.T) {
+		// This test simulates a scenario where the parser somehow produces an lvalue context
+		// without a base identifier. This should be caught by the listener without panicking.
 		listener := newNeuroScriptListener(logging.NewNoOpLogger(), false)
+		// Create a synthetic context that lacks the crucial IDENTIFIER token.
 		ctx := &gen.LvalueContext{
 			BaseParserRuleContext: *antlr.NewBaseParserRuleContext(nil, -1),
 		}
@@ -229,10 +231,11 @@ func TestExitLvalue_ErrorScenarios(t *testing.T) {
 		listener.ExitLvalue(ctx)
 
 		if len(listener.errors) == 0 {
-			t.Fatal("Expected an error, but none was logged")
+			t.Fatal("Expected an error for malformed lvalue, but none was logged")
 		}
-		if !strings.Contains(listener.errors[0].Error(), "missing base identifier") {
-			t.Errorf("Expected 'missing base identifier' error, but got: %v", listener.errors[0])
+		expectedError := "malformed lvalue, missing base identifier"
+		if !strings.Contains(listener.errors[0].Error(), expectedError) {
+			t.Errorf("Expected error to contain '%s', but got: %v", expectedError, listener.errors[0])
 		}
 	})
 }

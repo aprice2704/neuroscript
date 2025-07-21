@@ -1,4 +1,8 @@
 // filename: pkg/parser/ast_builder_if_else.go
+// NeuroScript Version: 0.6.0
+// File version: 4
+// Purpose: Sets the end position of if/else step nodes using the StopPos field.
+
 package parser
 
 import (
@@ -49,12 +53,15 @@ func (l *neuroScriptListenerImpl) ExitIf_statement(c *gen.If_statementContext) {
 
 	pos := tokenToPosition(c.GetStart())
 	// Create and add the 'if' step.
-	l.addStep(ast.Step{
-		BaseNode: ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
-		Position: pos,
-		Type:     "if",
-		Cond:     cond,
-		Body:     ifBody,
-		ElseBody: elseBody,
-	})
+	step := ast.Step{
+		BaseNode:         ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
+		Type:             "if",
+		Cond:             cond,
+		Body:             ifBody,
+		ElseBody:         elseBody,
+		BlankLinesBefore: l.consumeBlankLines(),
+	}
+	step.Comments = l.associateCommentsToNode(&step)
+	SetEndPos(&step, c.KW_ENDIF().GetSymbol())
+	l.addStep(step)
 }

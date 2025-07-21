@@ -36,12 +36,8 @@ endfunc`
 	}
 
 	cmpOpts := []cmp.Option{
-		// Ignore all positional / bookkeeping fields
+		// Ignore all positional / bookkeeping fields from the embedded BaseNode.
 		cmpopts.IgnoreFields(ast.BaseNode{}, "StartPos", "StopPos", "NodeKind"),
-		cmpopts.IgnoreFields(ast.LValueNode{}, "Position"),
-		cmpopts.IgnoreFields(ast.AccessorNode{}, "Pos"),
-		cmpopts.IgnoreFields(ast.StringLiteralNode{}, "Pos"),
-		cmpopts.IgnoreFields(ast.NumberLiteralNode{}, "Pos"),
 	}
 
 	if diff := cmp.Diff(want, got, cmpOpts...); diff != "" {

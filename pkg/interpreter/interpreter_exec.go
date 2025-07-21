@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.6.0
-// File version: 68
-// Purpose: Provides the definitive fix for the return value bug by ensuring finalResult is updated by a return statement before the execution loop concludes.
+// File version: 69
+// Purpose: Fixed compilation errors by replacing direct access to the removed 'Position' field with the 'GetPos()' method.
 // filename: pkg/interpreter/interpreter_exec.go
 // nlines: 300
 // risk_rating: HIGH
@@ -98,7 +98,7 @@ func (i *Interpreter) recExecuteSteps(steps []ast.Step, isInHandler bool, active
 			stepResult, stepErr = i.executeCall(step)
 		case "return":
 			if isInHandler {
-				stepErr = lang.NewRuntimeError(lang.ErrorCodeReturnViolation, "'return' is not permitted inside an on_error block", lang.ErrReturnViolation).WithPosition(&step.Position)
+				stepErr = lang.NewRuntimeError(lang.ErrorCodeReturnViolation, "'return' is not permitted inside an on_error block", lang.ErrReturnViolation).WithPosition(step.GetPos())
 			} else {
 				var returnValue lang.Value
 				returnValue, wasReturn, stepErr = i.executeReturn(step)
@@ -184,11 +184,11 @@ func (i *Interpreter) recExecuteSteps(steps []ast.Step, isInHandler bool, active
 			}
 		default:
 			errMsg := fmt.Sprintf("unknown step type '%s'", step.Type)
-			stepErr = lang.NewRuntimeError(lang.ErrorCodeUnknownKeyword, errMsg, lang.ErrUnknownKeyword).WithPosition(&step.Position)
+			stepErr = lang.NewRuntimeError(lang.ErrorCodeUnknownKeyword, errMsg, lang.ErrUnknownKeyword).WithPosition(step.GetPos())
 		}
 
 		if stepErr != nil {
-			rtErr := ensureRuntimeError(stepErr, &step.Position, stepTypeLower)
+			rtErr := ensureRuntimeError(stepErr, step.GetPos(), stepTypeLower)
 			if errors.Is(rtErr.Unwrap(), lang.ErrBreak) || errors.Is(rtErr.Unwrap(), lang.ErrContinue) {
 				return nil, false, wasCleared, rtErr
 			}
@@ -197,7 +197,7 @@ func (i *Interpreter) recExecuteSteps(steps []ast.Step, isInHandler bool, active
 				handlerToExecute := handlerBlock[0]
 				_, _, handlerCleared, handlerErr := i.executeSteps(handlerToExecute.Body, true, rtErr)
 				if handlerErr != nil {
-					return nil, false, false, ensureRuntimeError(handlerErr, &handlerToExecute.Position, "ON_ERROR_HANDLER")
+					return nil, false, false, ensureRuntimeError(handlerErr, handlerToExecute.GetPos(), "ON_ERROR_HANDLER")
 				}
 				if handlerCleared {
 					stepErr = nil
@@ -223,7 +223,7 @@ func (i *Interpreter) recExecuteSteps(steps []ast.Step, isInHandler bool, active
 
 func (i *Interpreter) executeCall(step ast.Step) (lang.Value, error) {
 	if step.Call == nil {
-		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, "call step is missing call expression", nil).WithPosition(&step.Position)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, "call step is missing call expression", nil).WithPosition(step.GetPos())
 	}
 	return i.evaluate.Expression(step.Call)
 }

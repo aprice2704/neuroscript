@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.5.2
-// File version: 34
-// Purpose: Fixes the return value bug by correctly evaluating the expression in the 'return' statement. Adds debugging to confirm.
+// File version: 35
+// Purpose: Replaced all direct access to the removed 'Position' field with calls to the GetPos() method.
 // filename: pkg/interpreter/interpreter_steps_simple.go
 
 package interpreter
@@ -61,7 +61,7 @@ func (i *Interpreter) executeEmit(step ast.Step) (lang.Value, error) {
 	for _, expr := range step.Values {
 		valToEmit, evalErr := i.evaluate.Expression(expr)
 		if evalErr != nil {
-			errMsg := fmt.Sprintf("evaluating value for EMIT at %s", step.Position.String())
+			errMsg := fmt.Sprintf("evaluating value for EMIT at %s", step.GetPos().String())
 			return nil, lang.WrapErrorWithPosition(evalErr, expr.GetPos(), errMsg)
 		}
 		lastVal = valToEmit
@@ -75,7 +75,7 @@ func (i *Interpreter) executeEmit(step ast.Step) (lang.Value, error) {
 	} else {
 		if _, err := fmt.Fprintln(i.stdout, strings.Join(outputParts, " ")); err != nil {
 			i.Logger().Error("Failed to write EMIT output via i.stdout", "error", err)
-			return nil, lang.NewRuntimeError(lang.ErrorCodeIOFailed, "failed to emit output", err).WithPosition(&step.Position)
+			return nil, lang.NewRuntimeError(lang.ErrorCodeIOFailed, "failed to emit output", err).WithPosition(step.GetPos())
 		}
 	}
 
@@ -115,7 +115,7 @@ func (i *Interpreter) executeFail(step ast.Step) error {
 	errCode := lang.ErrorCodeFailStatement
 	errMsg := "fail statement executed"
 	var wrappedErr error = lang.ErrFailStatement
-	var finalPos = &step.Position
+	var finalPos = step.GetPos()
 	var exprToEval ast.Expression
 
 	if len(step.Values) > 0 {
@@ -144,17 +144,17 @@ func (i *Interpreter) executeOnError(step ast.Step) (*ast.Step, error) {
 func (i *Interpreter) executeClearError(step ast.Step, isInHandler bool) (bool, error) {
 	if !isInHandler {
 		errMsg := "'clear_error' can only be used inside an on_error block"
-		return false, lang.NewRuntimeError(lang.ErrorCodeClearViolation, errMsg, lang.ErrClearViolation).WithPosition(&step.Position)
+		return false, lang.NewRuntimeError(lang.ErrorCodeClearViolation, errMsg, lang.ErrClearViolation).WithPosition(step.GetPos())
 	}
 	return true, nil
 }
 
 // executeBreak handles the "break" step by returning ErrBreak.
 func (i *Interpreter) executeBreak(step ast.Step) error {
-	return lang.NewRuntimeError(lang.ErrorCodeControlFlow, "'break' used outside of a loop", lang.ErrBreak).WithPosition(&step.Position)
+	return lang.NewRuntimeError(lang.ErrorCodeControlFlow, "'break' used outside of a loop", lang.ErrBreak).WithPosition(step.GetPos())
 }
 
 // executeContinue handles the "continue" step by returning ErrContinue.
 func (i *Interpreter) executeContinue(step ast.Step) error {
-	return lang.NewRuntimeError(lang.ErrorCodeControlFlow, "'continue' used outside of a loop", lang.ErrContinue).WithPosition(&step.Position)
+	return lang.NewRuntimeError(lang.ErrorCodeControlFlow, "'continue' used outside of a loop", lang.ErrContinue).WithPosition(step.GetPos())
 }

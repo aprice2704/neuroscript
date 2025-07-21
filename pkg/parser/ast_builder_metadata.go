@@ -1,7 +1,7 @@
 // filename: pkg/parser/ast_builder_metadata.go
 // NeuroScript Version: 0.5.2
-// File version: 7
-// Purpose: Refactored metadata processing to handle file and block contexts correctly.
+// File version: 8
+// Purpose: Corrected metadata parsing to properly strip inline comments.
 package parser
 
 import (
@@ -23,6 +23,17 @@ func (l *neuroScriptListenerImpl) processMetadataLine(targetMap map[string]strin
 	}
 	contentAfterDoubleColon := lineText[idx+2:]
 	trimmedContent := strings.TrimSpace(contentAfterDoubleColon)
+
+	// FIX: Strip comments before splitting key-value pairs.
+	commentIdx := strings.Index(trimmedContent, "#")
+	if commentIdx != -1 {
+		trimmedContent = trimmedContent[:commentIdx]
+	}
+	commentIdx = strings.Index(trimmedContent, "--")
+	if commentIdx != -1 {
+		trimmedContent = trimmedContent[:commentIdx]
+	}
+
 	parts := strings.SplitN(trimmedContent, ":", 2)
 	key := strings.TrimSpace(parts[0])
 	var value string

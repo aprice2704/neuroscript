@@ -1,8 +1,8 @@
 // filename: pkg/ast/ast_statements.go
 // NeuroScript Version: 0.5.2
-// File version: 19
-// Purpose: Augmented all statement and declaration nodes with BaseNode.
-// nlines: 110+
+// File version: 22
+// Purpose: Removed redundant Position/Pos fields and GetPos methods to unify position handling via BaseNode.
+// nlines: 90+
 // risk_rating: MEDIUM
 
 package ast
@@ -10,7 +10,6 @@ package ast
 import (
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
-	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
 // AccessorType defines how an element is accessed (e.g., by key or index).
@@ -24,7 +23,6 @@ const (
 // AccessorNode represents a single part of an element access chain (e.g., `[key]` or `.field`).
 type AccessorNode struct {
 	BaseNode
-	Pos        *types.Position
 	Type       AccessorType
 	Key        Expression
 	IsOptional bool
@@ -33,13 +31,10 @@ type AccessorNode struct {
 // LValueNode represents a "left-value" in an assignment, which is a target for a set operation.
 type LValueNode struct {
 	BaseNode
-	Position   types.Position
 	Identifier string
 	Accessors  []*AccessorNode
 }
 
-// GetPos satisfies the old contract and the new Node interface.
-func (n *LValueNode) GetPos() *types.Position { return &n.Position }
 func (n *LValueNode) String() string {
 	// A full string representation would require traversing accessors.
 	return n.Identifier
@@ -55,9 +50,10 @@ type ParamSpec struct {
 
 type Procedure struct {
 	BaseNode
-	Position          types.Position
 	name              string
 	Metadata          map[string]string
+	Comments          []*Comment
+	BlankLinesBefore  int
 	RequiredParams    []string
 	OptionalParams    []*ParamSpec
 	Variadic          bool
@@ -65,11 +61,6 @@ type Procedure struct {
 	ReturnVarNames    []string
 	ErrorHandlers     []*Step
 	Steps             []Step
-}
-
-// GetPos satisfies the old contract and the new Node interface.
-func (p *Procedure) GetPos() *types.Position {
-	return &p.Position
 }
 
 func (p *Procedure) SetName(name string) {
@@ -85,41 +76,35 @@ func (p *Procedure) IsCallable() {}
 // Step represents a single statement or instruction within a procedure's body.
 type Step struct {
 	BaseNode
-	Position       types.Position
-	Type           string
-	LValues        []*LValueNode
-	Values         []Expression
-	Cond           Expression
-	Body           []Step
-	ElseBody       []Step
-	LoopVarName    string
-	IndexVarName   string
-	Collection     Expression
-	Call           *CallableExprNode
-	OnEvent        *OnEventDecl
-	AskIntoVar     string
-	IsFinal        bool
-	ErrorName      string
-	tool           interfaces.Tool
-	ExpressionStmt *ExpressionStatementNode
-}
-
-// GetPos satisfies the old contract and the new Node interface.
-func (s *Step) GetPos() *types.Position {
-	return &s.Position
+	Comments         []*Comment
+	BlankLinesBefore int
+	Type             string
+	LValues          []*LValueNode
+	Values           []Expression
+	Cond             Expression
+	Body             []Step
+	ElseBody         []Step
+	LoopVarName      string
+	IndexVarName     string
+	Collection       Expression
+	Call             *CallableExprNode
+	OnEvent          *OnEventDecl
+	AskIntoVar       string
+	IsFinal          bool
+	ErrorName        string
+	tool             interfaces.Tool
+	ExpressionStmt   *ExpressionStatementNode
 }
 
 // ExpressionStatementNode represents a statement that consists of a single expression,
 // like a standalone 'must' or a function call. The result of the expression is discarded.
 type ExpressionStatementNode struct {
 	BaseNode
-	Pos        *types.Position
 	Expression Expression
 }
 
-func (n *ExpressionStatementNode) GetPos() *types.Position { return n.Pos }
-func (n *ExpressionStatementNode) isNode()                 {}
-func (n *ExpressionStatementNode) isStatement()            {}
+func (n *ExpressionStatementNode) isNode()      {}
+func (n *ExpressionStatementNode) isStatement() {}
 func (n *ExpressionStatementNode) String() string {
 	if n.Expression != nil {
 		return n.Expression.String()

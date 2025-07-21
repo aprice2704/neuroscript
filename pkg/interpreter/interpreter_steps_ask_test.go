@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.5.2
-// File version: 2.1.0
-// Purpose: Corrected a compiler error by initializing the Position struct directly instead of calling a non-existent constructor.
+// File version: 2.2.0
+// Purpose: Corrected a compiler error by removing the obsolete 'Position' field from the Step struct literal.
 // filename: pkg/interpreter/interpreter_steps_ask_test.go
 // nlines: 160
 // risk_rating: MEDIUM
@@ -131,8 +131,7 @@ func TestAskStatement(t *testing.T) {
 			Values: []ast.Expression{
 				&ast.StringLiteralNode{Value: "What is the weather in Ottawa?"},
 			},
-			// FIX: Use a struct literal for types.Position
-			Position: types.Position{Line: 1, Column: 1, File: "test_ask_ai"},
+			// FIX: Removed obsolete 'Position' field.
 		}
 
 		err := interp.executeAskAI(step)
