@@ -1,10 +1,9 @@
 // filename: pkg/parser/ast_builder_main_exitlvalue.go
 // NeuroScript Version: 0.5.2
-// File version: 19.0.0
+// File version: 21.0.0
 //
 // Builds an *ast.LValueNode* when the parser exits an lvalue rule.
-// This version adds a nil-check to prevent panics when handling
-// malformed lvalue contexts that may not have a start token.
+// This version has all unrelated debug prints removed.
 
 package parser
 
@@ -13,21 +12,15 @@ import (
 	"reflect"
 
 	"github.com/antlr4-go/antlr/v4"
+	gen "github.com/aprice2704/neuroscript/pkg/antlr/generated"
 	"github.com/aprice2704/neuroscript/pkg/ast"
-	gen "github.com/aprice2704/neuroscript/pkg/parser/generated"
 	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
 // ExitLvalue is called when the lvalue rule is exited by the parser.
 // It constructs an ast.LValueNode and pushes it onto the listener's value stack.
 func (l *neuroScriptListenerImpl) ExitLvalue(ctx *gen.LvalueContext) {
-	/* ───── banner ───── */
-	fmt.Println("\n=========================================================")
-	fmt.Printf(">>> Enter ExitLvalue for context: %s\n", ctx.GetText())
-	fmt.Printf("    Initial ValueStack size: %d\n", len(l.ValueStack))
-
 	numBracketExpressions := len(ctx.AllExpression())
-	fmt.Printf("    Detected %d bracket expressions in the context.\n", numBracketExpressions)
 
 	/* ───── collect bracket expressions ───── */
 	bracketExprs := make([]ast.Expression, numBracketExpressions)
@@ -42,12 +35,6 @@ func (l *neuroScriptListenerImpl) ExitLvalue(ctx *gen.LvalueContext) {
 			return
 		}
 
-		fmt.Printf("    Popped %d items from value stack for bracket expressions.\n", len(popped))
-		for i, p := range popped {
-			fmt.Printf("      - Popped item %d: Type=%T, Text=%s\n",
-				i, p, nodeText(p))
-		}
-
 		// popped is already left‑to‑right in source order → copy directly
 		for i, n := range popped {
 			expr, ok := n.(ast.Expression)
@@ -59,12 +46,6 @@ func (l *neuroScriptListenerImpl) ExitLvalue(ctx *gen.LvalueContext) {
 				return
 			}
 			bracketExprs[i] = expr
-		}
-
-		fmt.Println("    Bracket expression AST nodes (source order):")
-		for i, expr := range bracketExprs {
-			fmt.Printf("      - bracketExprs[%d]: Type=%T, Text=%s\n",
-				i, expr, nodeText(expr))
 		}
 	}
 
@@ -87,9 +68,6 @@ func (l *neuroScriptListenerImpl) ExitLvalue(ctx *gen.LvalueContext) {
 	}
 	newNode(lValueNode, baseIdentifierToken.GetSymbol(), types.KindLValue)
 
-	fmt.Printf("    Base Identifier: %s\n", lValueNode.Identifier)
-	fmt.Println("    Walking children of LvalueContext to build accessor chain:")
-
 	accessorChildren := ctx.GetChildren()[1:]
 	bracketExprUsed := 0
 
@@ -103,8 +81,6 @@ func (l *neuroScriptListenerImpl) ExitLvalue(ctx *gen.LvalueContext) {
 		}
 
 		tokenType := term.GetSymbol().GetTokenType()
-		fmt.Printf("      - Child %d: TerminalNode, Type: %d, Text: '%s'\n",
-			i, tokenType, term.GetText())
 
 		switch tokenType {
 
@@ -131,8 +107,6 @@ func (l *neuroScriptListenerImpl) ExitLvalue(ctx *gen.LvalueContext) {
 			accessor.Key = newNode(keyNode, keyTok, types.KindStringLiteral)
 			lValueNode.Accessors = append(lValueNode.Accessors,
 				newNode(accessor, term.GetSymbol(), types.KindUnknown))
-
-			fmt.Printf("        → Created DOT accessor for key: %q\n", keyNode.Value)
 			i++ // skip identifier
 
 		/* ── bracket accessor ── */
@@ -149,8 +123,6 @@ func (l *neuroScriptListenerImpl) ExitLvalue(ctx *gen.LvalueContext) {
 			lValueNode.Accessors = append(lValueNode.Accessors,
 				newNode(accessor, term.GetSymbol(), types.KindUnknown))
 
-			fmt.Printf("        → Created BRACKET accessor with key [%d]: %s\n",
-				bracketExprUsed, nodeText(accessor.Key))
 			bracketExprUsed++
 			i += 3 // '[', expression, ']'
 
@@ -158,21 +130,6 @@ func (l *neuroScriptListenerImpl) ExitLvalue(ctx *gen.LvalueContext) {
 			i++
 		}
 	}
-
-	/* ───── final dump ───── */
-	fmt.Println("    Final constructed LValueNode before pushing to stack:")
-	fmt.Printf("      Identifier: %s\n", lValueNode.Identifier)
-	for j, acc := range lValueNode.Accessors {
-		accType := "Dot"
-		if acc.Type == ast.BracketAccess {
-			accType = "Bracket"
-		}
-		fmt.Printf("      Accessor %d: Type=%s, Key=%s\n",
-			j, accType, nodeText(acc.Key))
-	}
-	fmt.Printf("<<< Exit ExitLvalue, pushing node to stack. Final stack size will be: %d\n",
-		len(l.ValueStack)+1)
-	fmt.Println("=========================================================")
 
 	l.push(lValueNode)
 }

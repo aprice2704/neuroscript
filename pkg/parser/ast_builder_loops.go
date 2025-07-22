@@ -1,13 +1,13 @@
 // filename: pkg/parser/ast_builder_loops.go
 // NeuroScript Version: 0.6.0
-// File version: 7
-// Purpose: Sets the end position of loop step nodes using the StopPos field.
+// File version: 8
+// Purpose: Removed obsolete blank line counting logic. Association is now handled by the LineInfo algorithm.
 
 package parser
 
 import (
+	gen "github.com/aprice2704/neuroscript/pkg/antlr/generated"
 	"github.com/aprice2704/neuroscript/pkg/ast"
-	gen "github.com/aprice2704/neuroscript/pkg/parser/generated"
 	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
@@ -46,11 +46,11 @@ func (l *neuroScriptListenerImpl) ExitWhile_statement(ctx *gen.While_statementCo
 
 	pos := tokenToPosition(ctx.GetStart())
 	step := ast.Step{
-		BaseNode:         ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
-		Type:             "while",
-		Cond:             cond,
-		Body:             body,
-		BlankLinesBefore: l.consumeBlankLines(),
+		BaseNode: ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
+		Type:     "while",
+		Cond:     cond,
+		Body:     body,
+		// BlankLinesBefore is now set by the LineInfo algorithm in the builder.
 	}
 	step.Comments = l.associateCommentsToNode(&step)
 	SetEndPos(&step, ctx.KW_ENDWHILE().GetSymbol())
@@ -90,12 +90,12 @@ func (l *neuroScriptListenerImpl) ExitFor_each_statement(ctx *gen.For_each_state
 
 	pos := tokenToPosition(ctx.GetStart())
 	step := ast.Step{
-		BaseNode:         ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
-		Type:             "for",
-		LoopVarName:      ctx.IDENTIFIER().GetText(),
-		Collection:       collection,
-		Body:             body,
-		BlankLinesBefore: l.consumeBlankLines(),
+		BaseNode:    ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
+		Type:        "for",
+		LoopVarName: ctx.IDENTIFIER().GetText(),
+		Collection:  collection,
+		Body:        body,
+		// BlankLinesBefore is now set by the LineInfo algorithm in the builder.
 	}
 	step.Comments = l.associateCommentsToNode(&step)
 	SetEndPos(&step, ctx.KW_ENDFOR().GetSymbol())

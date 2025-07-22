@@ -1,13 +1,13 @@
 // filename: pkg/parser/ast_builder_commands.go
 // NeuroScript Version: 0.6.0
-// File version: 8
-// Purpose: Sets the end position of the command block node using the StopPos field.
+// File version: 12
+// Purpose: Removed obsolete blank line counting logic. Association is now handled by the LineInfo algorithm.
 
 package parser
 
 import (
+	gen "github.com/aprice2704/neuroscript/pkg/antlr/generated"
 	"github.com/aprice2704/neuroscript/pkg/ast"
-	gen "github.com/aprice2704/neuroscript/pkg/parser/generated"
 	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
@@ -15,10 +15,10 @@ func (l *neuroScriptListenerImpl) EnterCommand_block(c *gen.Command_blockContext
 	l.logDebugAST(">>> EnterCommand_block")
 	token := c.GetStart()
 	cmdNode := &ast.CommandNode{
-		Metadata:         make(map[string]string),
-		Body:             make([]ast.Step, 0),
-		ErrorHandlers:    make([]*ast.Step, 0),
-		BlankLinesBefore: l.consumeBlankLines(),
+		Metadata:      make(map[string]string),
+		Body:          make([]ast.Step, 0),
+		ErrorHandlers: make([]*ast.Step, 0),
+		// BlankLinesBefore is now set by the LineInfo algorithm in the builder.
 	}
 	l.currentCommand = newNode(cmdNode, token, types.KindCommandBlock)
 	l.currentCommand.Comments = l.associateCommentsToNode(l.currentCommand)

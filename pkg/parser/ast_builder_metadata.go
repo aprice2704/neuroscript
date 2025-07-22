@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/antlr4-go/antlr/v4"
-	gen "github.com/aprice2704/neuroscript/pkg/parser/generated"
+	gen "github.com/aprice2704/neuroscript/pkg/antlr/generated"
 )
 
 // processMetadataLine is a reusable helper to parse a single metadata line token.

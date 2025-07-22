@@ -1,15 +1,15 @@
 // filename: pkg/parser/ast_builder_statements.go
 // NeuroScript Version: 0.6.0
-// File version: 21
-// Purpose: FIX: Set the end position (StopPos) for all simple statement nodes.
+// File version: 22
+// Purpose: Removed obsolete blank line counting logic. Association is now handled by the LineInfo algorithm.
 // nlines: 130
 // risk_rating: LOW
 
 package parser
 
 import (
+	gen "github.com/aprice2704/neuroscript/pkg/antlr/generated"
 	"github.com/aprice2704/neuroscript/pkg/ast"
-	gen "github.com/aprice2704/neuroscript/pkg/parser/generated"
 	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
@@ -36,10 +36,9 @@ func (l *neuroScriptListenerImpl) ExitEmit_statement(c *gen.Emit_statementContex
 	}
 	pos := tokenToPosition(c.GetStart())
 	step := ast.Step{
-		BaseNode:         ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
-		Type:             "emit",
-		Values:           []ast.Expression{expr},
-		BlankLinesBefore: l.consumeBlankLines(),
+		BaseNode: ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
+		Type:     "emit",
+		Values:   []ast.Expression{expr},
 	}
 	step.Comments = l.associateCommentsToNode(&step)
 	SetEndPos(&step, c.GetStop())
@@ -82,10 +81,9 @@ func (l *neuroScriptListenerImpl) ExitReturn_statement(c *gen.Return_statementCo
 	}
 	pos := tokenToPosition(c.GetStart())
 	step := ast.Step{
-		BaseNode:         ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
-		Type:             "return",
-		Values:           returnValues,
-		BlankLinesBefore: l.consumeBlankLines(),
+		BaseNode: ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
+		Type:     "return",
+		Values:   returnValues,
 	}
 	step.Comments = l.associateCommentsToNode(&step)
 	SetEndPos(&step, c.GetStop())
@@ -105,10 +103,9 @@ func (l *neuroScriptListenerImpl) ExitCall_statement(c *gen.Call_statementContex
 	}
 	pos := tokenToPosition(c.GetStart())
 	step := ast.Step{
-		BaseNode:         ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
-		Type:             "call",
-		Call:             callExpr,
-		BlankLinesBefore: l.consumeBlankLines(),
+		BaseNode: ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
+		Type:     "call",
+		Call:     callExpr,
 	}
 	step.Comments = l.associateCommentsToNode(&step)
 	SetEndPos(&step, c.GetStop())
@@ -128,10 +125,9 @@ func (l *neuroScriptListenerImpl) ExitMust_statement(c *gen.Must_statementContex
 	}
 	pos := tokenToPosition(c.GetStart())
 	step := ast.Step{
-		BaseNode:         ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
-		Type:             "must",
-		Cond:             expr,
-		BlankLinesBefore: l.consumeBlankLines(),
+		BaseNode: ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
+		Type:     "must",
+		Cond:     expr,
 	}
 	step.Comments = l.associateCommentsToNode(&step)
 	SetEndPos(&step, c.GetStop())
@@ -156,9 +152,8 @@ func (l *neuroScriptListenerImpl) ExitFail_statement(c *gen.Fail_statementContex
 
 	pos := tokenToPosition(c.GetStart())
 	step := ast.Step{
-		BaseNode:         ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
-		Type:             "fail",
-		BlankLinesBefore: l.consumeBlankLines(),
+		BaseNode: ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
+		Type:     "fail",
 	}
 	if failValue != nil {
 		step.Values = []ast.Expression{failValue}
@@ -181,11 +176,10 @@ func (l *neuroScriptListenerImpl) ExitAsk_stmt(c *gen.Ask_stmtContext) {
 	}
 	pos := tokenToPosition(c.GetStart())
 	step := ast.Step{
-		BaseNode:         ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
-		Type:             "ask",
-		Values:           []ast.Expression{expr},
-		AskIntoVar:       c.IDENTIFIER().GetText(),
-		BlankLinesBefore: l.consumeBlankLines(),
+		BaseNode:   ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
+		Type:       "ask",
+		Values:     []ast.Expression{expr},
+		AskIntoVar: c.IDENTIFIER().GetText(),
 	}
 	step.Comments = l.associateCommentsToNode(&step)
 	SetEndPos(&step, c.GetStop())
@@ -195,9 +189,8 @@ func (l *neuroScriptListenerImpl) ExitAsk_stmt(c *gen.Ask_stmtContext) {
 func (l *neuroScriptListenerImpl) ExitClearErrorStmt(c *gen.ClearErrorStmtContext) {
 	pos := tokenToPosition(c.GetStart())
 	step := ast.Step{
-		BaseNode:         ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
-		Type:             "clear_error",
-		BlankLinesBefore: l.consumeBlankLines(),
+		BaseNode: ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
+		Type:     "clear_error",
 	}
 	step.Comments = l.associateCommentsToNode(&step)
 	SetEndPos(&step, c.GetStop())
@@ -210,9 +203,8 @@ func (l *neuroScriptListenerImpl) ExitContinue_statement(c *gen.Continue_stateme
 	}
 	pos := tokenToPosition(c.GetStart())
 	step := ast.Step{
-		BaseNode:         ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
-		Type:             "continue",
-		BlankLinesBefore: l.consumeBlankLines(),
+		BaseNode: ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
+		Type:     "continue",
 	}
 	step.Comments = l.associateCommentsToNode(&step)
 	SetEndPos(&step, c.GetStop())
@@ -225,9 +217,8 @@ func (l *neuroScriptListenerImpl) ExitBreak_statement(c *gen.Break_statementCont
 	}
 	pos := tokenToPosition(c.GetStart())
 	step := ast.Step{
-		BaseNode:         ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
-		Type:             "break",
-		BlankLinesBefore: l.consumeBlankLines(),
+		BaseNode: ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
+		Type:     "break",
 	}
 	step.Comments = l.associateCommentsToNode(&step)
 	SetEndPos(&step, c.GetStop())
@@ -259,11 +250,10 @@ func (l *neuroScriptListenerImpl) ExitSet_statement(ctx *gen.Set_statementContex
 
 	pos := tokenToPosition(ctx.GetStart())
 	step := ast.Step{
-		BaseNode:         ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
-		Type:             "set",
-		LValues:          lhsExprs,
-		Values:           []ast.Expression{rhsExpr},
-		BlankLinesBefore: l.consumeBlankLines(),
+		BaseNode: ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
+		Type:     "set",
+		LValues:  lhsExprs,
+		Values:   []ast.Expression{rhsExpr},
 	}
 	SetEndPos(&step, ctx.GetStop())
 	l.addStep(step)

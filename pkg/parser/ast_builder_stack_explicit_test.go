@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.6.0
-// File version: 1
-// Purpose: Provides a definitive, isolated test for the value stack's popN behavior.
+// File version: 2
+// Purpose: Corrected constructor call for newNeuroScriptListener.
 // filename: pkg/parser/ast_builder_stack_explicit_test.go
 // nlines: 55
 // risk_rating: LOW
@@ -20,7 +20,7 @@ import (
 // prevent future regressions or "flip-flopping" on this logic.
 func TestStackPopNOrder(t *testing.T) {
 	// Setup: Push items in source order.
-	listener := newNeuroScriptListener(logging.NewNoOpLogger(), false)
+	listener := newNeuroScriptListener(logging.NewNoOpLogger(), false, nil)
 	listener.push("first")  // Pushed first
 	listener.push("second") // Pushed second
 	listener.push("third")  // Pushed third (last)

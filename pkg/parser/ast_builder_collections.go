@@ -9,8 +9,8 @@ import (
 	"strconv"
 	"strings"
 
+	gen "github.com/aprice2704/neuroscript/pkg/antlr/generated"
 	"github.com/aprice2704/neuroscript/pkg/ast"
-	gen "github.com/aprice2704/neuroscript/pkg/parser/generated"
 	"github.com/aprice2704/neuroscript/pkg/types"
 )
 

@@ -1,14 +1,14 @@
 // filename: pkg/parser/ast_builder_procedures.go
 // NeuroScript Version: 0.6.0
-// File version: 9
-// Purpose: Set the end position of the procedure node upon exiting the definition.
+// File version: 13
+// Purpose: Removed obsolete blank line counting logic. Association is now handled by the LineInfo algorithm.
 
 package parser
 
 import (
 	"github.com/antlr4-go/antlr/v4"
+	gen "github.com/aprice2704/neuroscript/pkg/antlr/generated"
 	"github.com/aprice2704/neuroscript/pkg/ast"
-	gen "github.com/aprice2704/neuroscript/pkg/parser/generated"
 	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
@@ -18,9 +18,9 @@ func (l *neuroScriptListenerImpl) EnterProcedure_definition(ctx *gen.Procedure_d
 
 	token := ctx.KW_FUNC().GetSymbol()
 	proc := &ast.Procedure{
-		Metadata:         make(map[string]string),
-		Comments:         make([]*ast.Comment, 0),
-		BlankLinesBefore: l.consumeBlankLines(), // Consume blank lines
+		Metadata: make(map[string]string),
+		Comments: make([]*ast.Comment, 0),
+		// BlankLinesBefore is now set by the LineInfo algorithm in the builder.
 	}
 	proc.SetName(procName)
 	l.currentProc = newNode(proc, token, types.KindProcedureDecl)

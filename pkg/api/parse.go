@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.5.2
-// File version: 4
+// NeuroScript Version: 0.6.0
+// File version: 5
 // Purpose: Implements the public parsing entrypoint with full error handling.
 // filename: pkg/api/parse.go
-// nlines: 31
+// nlines: 34
 // risk_rating: MEDIUM
 
 package api
@@ -23,20 +23,26 @@ const (
 )
 
 // Parse converts a byte slice of NeuroScript source into an AST.
+// It now uses the full parsing pipeline to ensure formatting is preserved.
 func Parse(src []byte, mode ParseMode) (*Tree, error) {
-	// A full implementation would pass the mode to the parser to handle comments.
-	parserAPI := parser.NewParserAPI(logging.NewNoOpLogger())
-	antlrTree, err := parserAPI.Parse(string(src))
+	logger := logging.NewNoOpLogger()
+	parserAPI := parser.NewParserAPI(logger)
+
+	// **FIX:** Use ParseAndGetStream to get the token stream, which is essential
+	// for the builder to correctly associate comments and blank lines.
+	antlrTree, tokenStream, err := parserAPI.ParseAndGetStream("source.ns", string(src))
 	if err != nil {
 		return nil, fmt.Errorf("parsing failed: %w", err)
 	}
 
-	builder := parser.NewASTBuilder(logging.NewNoOpLogger())
-	program, _, err := builder.Build(antlrTree)
+	builder := parser.NewASTBuilder(logger)
+
+	// **FIX:** Use BuildFromParseResult and pass the token stream. This avoids the
+	// "ULTRA-SIMPLE ALGO" and uses the full logic to build a correct AST.
+	program, _, err := builder.BuildFromParseResult(antlrTree, tokenStream)
 	if err != nil {
 		return nil, fmt.Errorf("AST construction failed: %w", err)
 	}
 
-	// The api.Tree is an alias for the foundational tree type from interfaces.
 	return &Tree{Root: program}, nil
 }

@@ -1,17 +1,18 @@
 // filename: pkg/ast/ast_declarations.go
-// NeuroScript Version: 0.5.2
-// File version: 4
-// Purpose: Removed redundant Pos fields and GetPos methods to unify position handling via BaseNode.
-// nlines: 20+
+// NeuroScript Version: 0.6.0
+// File version: 5
+// Purpose: Added Metadata, Comments, and BlankLinesBefore fields to OnEventDecl.
+// nlines: 25+
 // risk_rating: MEDIUM
 
 package ast
 
-// OnEventDecl represents a top-level 'on event ...' declaration,
-// as specified in the o3-1 plan.
+// OnEventDecl represents a top-level 'on event ...' declaration.
 type OnEventDecl struct {
 	BaseNode
 	BlankLinesBefore int
+	Metadata         map[string]string // Added for consistency
+	Comments         []*Comment        // Added for consistency
 	EventNameExpr    Expression
 	HandlerName      string
 	EventVarName     string

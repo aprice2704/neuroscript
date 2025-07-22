@@ -8,8 +8,8 @@
 package parser
 
 import (
+	gen "github.com/aprice2704/neuroscript/pkg/antlr/generated"
 	"github.com/aprice2704/neuroscript/pkg/ast"
-	gen "github.com/aprice2704/neuroscript/pkg/parser/generated"
 )
 
 // blockContext is a helper struct to manage nested lists of steps during AST construction.

@@ -1,6 +1,6 @@
-// NeuroScript Version: 0.5.2
-// File version: 43
-// Purpose: Adds debug logging to resolveVariable to trace how variables are looked up during expression evaluation.
+// NeuroScript Version: 0.6.0
+// File version: 44
+// Purpose: Added a case for *ast.LastNode in the main expression evaluation switch to correctly handle the 'last' keyword.
 // filename: pkg/interpreter/evaluation_main.go
 // nlines: 280
 // risk_rating: HIGH
@@ -45,6 +45,9 @@ func (e *evaluation) Expression(node ast.Expression) (lang.Value, error) {
 		return e.i.resolveVariable(n)
 	case *ast.PlaceholderNode:
 		return e.i.resolvePlaceholder(n)
+	// FIX: Added the missing case for the 'last' keyword.
+	case *ast.LastNode:
+		return e.i.lastCallResult, nil
 	case *ast.EvalNode:
 		return e.i.lastCallResult, nil
 	case *ast.ListLiteralNode:

@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.6.0
-// File version: 13
-// Purpose: FIX: Removed duplicate ExitSet_statement method to resolve compiler error. The correct implementation is in ast_builder_statements.go.
 // filename: pkg/parser/ast_builder_nslistener.go
-// nlines: 195
+// NeuroScript Version: 0.6.0
+// File version: 18
+// Purpose: FIX: Removed all fragile counter logic; association is now handled by the LineInfo algorithm.
+// nlines: 150
 // risk_rating: LOW
 
 package parser
@@ -12,9 +12,9 @@ import (
 	"reflect"
 
 	"github.com/antlr4-go/antlr/v4"
+	gen "github.com/aprice2704/neuroscript/pkg/antlr/generated"
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
-	gen "github.com/aprice2704/neuroscript/pkg/parser/generated"
 	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
@@ -36,27 +36,19 @@ type neuroScriptListenerImpl struct {
 	blockValueDepth           []int
 	allComments               []*ast.Comment
 	lastProcessedCommentIndex int
-	blankLinesBeforeNextNode  int
+	tokenStream               antlr.TokenStream
 }
 
 // --- Standard Listener Implementation ---
 
-func (l *neuroScriptListenerImpl) EnterEveryRule(ctx antlr.ParserRuleContext) {
-}
-func (l *neuroScriptListenerImpl) ExitEveryRule(ctx antlr.ParserRuleContext) {}
-func (l *neuroScriptListenerImpl) VisitErrorNode(node antlr.ErrorNode)       {}
-
-func (l *neuroScriptListenerImpl) VisitTerminal(node antlr.TerminalNode) {
-	if node.GetSymbol().GetTokenType() == gen.NeuroScriptLexerNEWLINE {
-		l.blankLinesBeforeNextNode++
-	} else if node.GetSymbol().GetChannel() == antlr.TokenDefaultChannel {
-		l.blankLinesBeforeNextNode = 0
-	}
-}
+func (l *neuroScriptListenerImpl) EnterEveryRule(ctx antlr.ParserRuleContext) {}
+func (l *neuroScriptListenerImpl) ExitEveryRule(ctx antlr.ParserRuleContext)  {}
+func (l *neuroScriptListenerImpl) VisitErrorNode(node antlr.ErrorNode)        {}
+func (l *neuroScriptListenerImpl) VisitTerminal(node antlr.TerminalNode)      {}
 
 var _ gen.NeuroScriptListener = (*neuroScriptListenerImpl)(nil)
 
-func newNeuroScriptListener(logger interfaces.Logger, debugAST bool) *neuroScriptListenerImpl {
+func newNeuroScriptListener(logger interfaces.Logger, debugAST bool, tokenStream antlr.TokenStream) *neuroScriptListenerImpl {
 	listener := &neuroScriptListenerImpl{
 		BaseNeuroScriptListener: &gen.BaseNeuroScriptListener{},
 		program:                 ast.NewProgram(),
@@ -68,22 +60,13 @@ func newNeuroScriptListener(logger interfaces.Logger, debugAST bool) *neuroScrip
 		blockStack:              make([]*blockContext, 0),
 		logger:                  logger,
 		debugAST:                debugAST,
+		tokenStream:             tokenStream,
 	}
 
 	listener.program.BaseNode.StartPos = &types.Position{Line: 1, Column: 1, File: "<source>"}
 	listener.program.BaseNode.NodeKind = types.KindProgram
 
 	return listener
-}
-
-// consumeBlankLines retrieves the current count of preceding blank lines and resets the counter.
-func (l *neuroScriptListenerImpl) consumeBlankLines() int {
-	count := l.blankLinesBeforeNextNode - 1
-	if count < 0 {
-		count = 0
-	}
-	l.blankLinesBeforeNextNode = 0
-	return count
 }
 
 // getNodePos uses reflection to safely get the position from a node's BaseNode.
@@ -108,8 +91,8 @@ func getNodePos(node ast.Node) *types.Position {
 	return nil
 }
 
-// associateCommentsToNode is now deprecated and removed from the listener.
 func (l *neuroScriptListenerImpl) associateCommentsToNode(node ast.Node) []*ast.Comment {
+	// This logic is now handled by the LineInfo algorithm in the builder.
 	return nil
 }
 

@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.5.2
-// File version: 2.2.0
-// Purpose: Corrected a compiler error by removing the obsolete 'Position' field from the Step struct literal.
+// File version: 2.3.0
+// Purpose: Corrected a panic in the 'ask ai' test by properly initializing the BaseNode of the manually constructed ast.Step.
 // filename: pkg/interpreter/interpreter_steps_ask_test.go
 // nlines: 160
 // risk_rating: MEDIUM
@@ -127,11 +127,12 @@ func TestAskStatement(t *testing.T) {
 		interp.ToolRegistry().RegisterTool(weatherTool)
 
 		step := ast.Step{
-			Type: "ask ai",
+			// FIX: Added the BaseNode with a position to prevent nil pointer dereference.
+			BaseNode: ast.BaseNode{StartPos: &types.Position{Line: 1, Column: 1, File: "ask_test"}},
+			Type:     "ask ai",
 			Values: []ast.Expression{
 				&ast.StringLiteralNode{Value: "What is the weather in Ottawa?"},
 			},
-			// FIX: Removed obsolete 'Position' field.
 		}
 
 		err := interp.executeAskAI(step)

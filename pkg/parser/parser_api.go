@@ -12,10 +12,10 @@ import (
 	"strings"
 
 	"github.com/antlr4-go/antlr/v4"
+	gen "github.com/aprice2704/neuroscript/pkg/antlr/generated"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/logging"
-	gen "github.com/aprice2704/neuroscript/pkg/parser/generated"
 )
 
 // StructuredSyntaxError holds detailed information about a single syntax error.

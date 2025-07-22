@@ -11,8 +11,8 @@ import (
 	"testing"
 
 	"github.com/antlr4-go/antlr/v4"
+	gen "github.com/aprice2704/neuroscript/pkg/antlr/generated"
 	"github.com/aprice2704/neuroscript/pkg/logging"
-	gen "github.com/aprice2704/neuroscript/pkg/parser/generated"
 )
 
 func TestParse_IncludesCommentsInStream(t *testing.T) {

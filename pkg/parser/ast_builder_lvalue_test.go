@@ -1,9 +1,7 @@
 // filename: pkg/parser/ast_builder_lvalue_test.go
 // NeuroScript Version: 0.5.2
-// File version: 4
-// Purpose: Corrected l-value error tests to check for parser errors instead of builder errors and fixed the panicking test.
-// nlines: 260
-// risk_rating: MEDIUM
+// File version: 5
+// Purpose: Corrected constructor call for newNeuroScriptListener.
 
 package parser
 
@@ -12,9 +10,9 @@ import (
 	"testing"
 
 	"github.com/antlr4-go/antlr/v4"
+	gen "github.com/aprice2704/neuroscript/pkg/antlr/generated"
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/logging"
-	gen "github.com/aprice2704/neuroscript/pkg/parser/generated"
 )
 
 // parseScriptToLValueNode is a helper function to parse a script snippet
@@ -40,7 +38,7 @@ func parseScriptToLValueNode(t *testing.T, scriptContent string) *ast.LValueNode
 
 	nopLogger := logging.NewNoOpLogger()
 	astBuilder := NewASTBuilder(nopLogger)
-	programAST, _, err := astBuilder.Build(tree)
+	programAST, _, err := astBuilder.BuildFromParseResult(tree, stream)
 	if err != nil {
 		t.Fatalf("AST build failed for script:\n%s\nError: %v", scriptContent, err)
 		return nil
@@ -220,10 +218,7 @@ func TestLValueParsing_Errors(t *testing.T) {
 
 func TestExitLvalue_ErrorScenarios(t *testing.T) {
 	t.Run("malformed lvalue with no identifier", func(t *testing.T) {
-		// This test simulates a scenario where the parser somehow produces an lvalue context
-		// without a base identifier. This should be caught by the listener without panicking.
-		listener := newNeuroScriptListener(logging.NewNoOpLogger(), false)
-		// Create a synthetic context that lacks the crucial IDENTIFIER token.
+		listener := newNeuroScriptListener(logging.NewNoOpLogger(), false, nil)
 		ctx := &gen.LvalueContext{
 			BaseParserRuleContext: *antlr.NewBaseParserRuleContext(nil, -1),
 		}

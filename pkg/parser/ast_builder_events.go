@@ -1,18 +1,25 @@
 // filename: pkg/parser/ast_builder_events.go
 // NeuroScript Version: 0.6.0
-// File version: 5
-// Purpose: Sets the end position of event and error handler nodes using the StopPos field.
+// File version: 13
+// Purpose: Removed obsolete blank line counting logic. Association is now handled by the LineInfo algorithm.
 
 package parser
 
 import (
+	gen "github.com/aprice2704/neuroscript/pkg/antlr/generated"
 	"github.com/aprice2704/neuroscript/pkg/ast"
-	gen "github.com/aprice2704/neuroscript/pkg/parser/generated"
 	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
 func (l *neuroScriptListenerImpl) EnterEvent_handler(c *gen.Event_handlerContext) {
 	l.logDebugAST(">>> EnterEvent_handler")
+	onEvent := &ast.OnEventDecl{
+		Metadata: make(map[string]string),
+		Comments: make([]*ast.Comment, 0),
+		// BlankLinesBefore is now set by the LineInfo algorithm in the builder.
+	}
+	newNode(onEvent, c.GetStart(), types.KindOnEventDecl)
+	l.push(onEvent)
 }
 
 func (l *neuroScriptListenerImpl) ExitEvent_handler(c *gen.Event_handlerContext) {
@@ -40,10 +47,20 @@ func (l *neuroScriptListenerImpl) ExitEvent_handler(c *gen.Event_handlerContext)
 		return
 	}
 
-	onEvent := &ast.OnEventDecl{
-		EventNameExpr: eventName,
-		Body:          body,
+	nodeVal, ok := l.pop()
+	if !ok {
+		l.addError(c, "stack underflow in event_handler: could not pop OnEventDecl node")
+		return
 	}
+	onEvent, ok := nodeVal.(*ast.OnEventDecl)
+	if !ok {
+		l.addError(c, "internal error in event_handler: stack node is not an *ast.OnEventDecl, but %T", nodeVal)
+		return
+	}
+
+	onEvent.EventNameExpr = eventName
+	onEvent.Body = body
+	SetEndPos(onEvent, c.KW_ENDON().GetSymbol())
 
 	if c.STRING_LIT() != nil {
 		onEvent.HandlerName, _ = unescapeString(c.STRING_LIT().GetText())
@@ -51,9 +68,6 @@ func (l *neuroScriptListenerImpl) ExitEvent_handler(c *gen.Event_handlerContext)
 	if c.IDENTIFIER() != nil {
 		onEvent.EventVarName = c.IDENTIFIER().GetText()
 	}
-
-	newNode(onEvent, c.GetStart(), types.KindOnEventDecl)
-	SetEndPos(onEvent, c.KW_ENDON().GetSymbol())
 
 	l.program.Events = append(l.program.Events, onEvent)
 }

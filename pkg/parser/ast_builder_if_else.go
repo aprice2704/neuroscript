@@ -1,18 +1,17 @@
 // filename: pkg/parser/ast_builder_if_else.go
 // NeuroScript Version: 0.6.0
-// File version: 4
-// Purpose: Sets the end position of if/else step nodes using the StopPos field.
+// File version: 5
+// Purpose: Removed obsolete blank line counting logic. Association is now handled by the LineInfo algorithm.
 
 package parser
 
 import (
+	gen "github.com/aprice2704/neuroscript/pkg/antlr/generated"
 	"github.com/aprice2704/neuroscript/pkg/ast"
-	gen "github.com/aprice2704/neuroscript/pkg/parser/generated"
 	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
 func (l *neuroScriptListenerImpl) ExitIf_statement(c *gen.If_statementContext) {
-	// Pop the 'else' block if it exists.
 	var elseBody []ast.Step
 	if c.KW_ELSE() != nil {
 		val, ok := l.pop()
@@ -27,7 +26,6 @@ func (l *neuroScriptListenerImpl) ExitIf_statement(c *gen.If_statementContext) {
 		}
 	}
 
-	// Pop the 'if' block.
 	val, ok := l.pop()
 	if !ok {
 		l.addError(c, "internal error in if_statement: could not pop if body")
@@ -39,7 +37,6 @@ func (l *neuroScriptListenerImpl) ExitIf_statement(c *gen.If_statementContext) {
 		return
 	}
 
-	// Pop the condition.
 	condVal, ok := l.pop()
 	if !ok {
 		l.addError(c, "internal error in if_statement: could not pop condition")
@@ -52,14 +49,13 @@ func (l *neuroScriptListenerImpl) ExitIf_statement(c *gen.If_statementContext) {
 	}
 
 	pos := tokenToPosition(c.GetStart())
-	// Create and add the 'if' step.
 	step := ast.Step{
-		BaseNode:         ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
-		Type:             "if",
-		Cond:             cond,
-		Body:             ifBody,
-		ElseBody:         elseBody,
-		BlankLinesBefore: l.consumeBlankLines(),
+		BaseNode: ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
+		Type:     "if",
+		Cond:     cond,
+		Body:     ifBody,
+		ElseBody: elseBody,
+		// BlankLinesBefore is now set by the LineInfo algorithm in the builder.
 	}
 	step.Comments = l.associateCommentsToNode(&step)
 	SetEndPos(&step, c.KW_ENDIF().GetSymbol())

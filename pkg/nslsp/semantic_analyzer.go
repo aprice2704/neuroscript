@@ -12,7 +12,7 @@ import (
 	"strings"
 
 	"github.com/antlr4-go/antlr/v4"
-	gen "github.com/aprice2704/neuroscript/pkg/parser/generated"
+	gen "github.com/aprice2704/neuroscript/pkg/antlr/generated"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 	"github.com/aprice2704/neuroscript/pkg/types"
 	lsp "github.com/sourcegraph/go-lsp"
