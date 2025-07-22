@@ -1,7 +1,7 @@
-# NeuroScript Integration Guide (v0.4 — 2025‑07‑16)
+# NeuroScript Integration Guide (v0.4 — 2025‑07‑21)
 
 This guide shows **exactly** how to embed NeuroScript/FDM into an external Go
-application using **only** `import "yourrepo/api"`.  
+application using **only** `import "github.com/aprice2704/neuroscript/pkg/api"`.
 Under the hood `api` wraps the parser, canonicaliser, loader, and interpreter
 so you never import those sub‑packages directly.
 
@@ -28,7 +28,7 @@ NeuroScript supports four host‑level workflows, formed by crossing
 | **Canonicalise** | optional | ✅ | optional | ✅ |
 | **Sign** | _—_ | ✅ | _—_ | ✅ |
 | **Load** | _—_ | ✅ | _—_ | ✅ |
-| **Exec** | `ExecInNewInterpreter` | same | `ExecWithInterpreter` | same |
+| **Exec** | `ExecInNewInterpreter` | `ExecWithInterpreter` | `ExecWithInterpreter` | `ExecWithInterpreter` |
 
 ---
 
@@ -67,29 +67,86 @@ lu, err := api.Load(ctx, signed, api.LoaderConfig{}, pubKey)
 ```
 
 On success you receive a `*api.LoadedUnit` with `Tree`, `Hash`, `Mode`,
-and the original `RawBytes`.  
+and the original `RawBytes`.
 **Never** re‑canonicalise after this point; the loader already did.
 
 ### 2.5 Execute
 
-* **Stateless**  
- ```go
- result, err := api.ExecInNewInterpreter(ctx, lu, api.ExecConfig{})
- ```
+* **Stateless (Trusted Source)**
+  ```go
+  // For quick, untrusted scripts, parse and execute directly.
+  result, err := api.ExecInNewInterpreter(ctx, string(srcBytes))
+  ```
 
-* **Stateful** – reuse an interpreter
- ```go
- interp := api.New()                                          // create once
- cfg   := api.ExecConfig{Interpreter: interp}
- result, err := api.ExecWithInterpreter(ctx, lu, cfg)
- ```
+* **Stateful (Verified Source)**
+  ```go
+  // For verified scripts, use the tree from the loaded unit.
+  interp := api.New()
+  result, err := api.ExecWithInterpreter(ctx, interp, lu.Tree)
+  ```
 
-`ExecWithInterpreter` auto‑loads the program into the provided interpreter
-and dispatches according to `lu.Mode`.
+`ExecWithInterpreter` loads the program's definitions into the interpreter and
+runs any top-level `command` blocks.
 
 ---
 
-## 3  Interpreter facade (high‑level API)
+## 3. Registering Custom Tools
+
+You can extend the NeuroScript interpreter with custom functionality by registering your own tools. A tool must satisfy the `interpreter.Tool` interface.
+
+**Example:**
+
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+	"os"
+
+	"[github.com/aprice2704/neuroscript/pkg/api](https://github.com/aprice2704/neuroscript/pkg/api)"
+	"[github.com/aprice2704/neuroscript/pkg/interpreter](https://github.com/aprice2704/neuroscript/pkg/interpreter)"
+	"[github.com/aprice2704/neuroscript/pkg/lang](https://github.com/aprice2704/neuroscript/pkg/lang)"
+)
+
+// 1. Define your tool struct.
+type GreeterTool struct{}
+
+// 2. Implement the interpreter.Tool interface.
+func (t *GreeterTool) GetName() string {
+	return "greeter"
+}
+
+func (t *GreeterTool) Call(ctx context.Context, args ...lang.Value) (lang.Value, error) {
+	if len(args) != 1 {
+		return nil, fmt.Errorf("greeter tool expects 1 argument, got %d", len(args))
+	}
+	name, ok := args[0].(lang.StringValue)
+	if !ok {
+		return nil, fmt.Errorf("greeter tool expects a string argument")
+	}
+	return lang.NewString(fmt.Sprintf("Hello, %s!", name.Value)), nil
+}
+
+func main() {
+	// 3. Create an instance of your tool.
+	myTool := &GreeterTool{}
+
+	// 4. Create an interpreter option for your tool.
+	toolOpt := interpreter.WithTool(myTool)
+
+	// 5. Create a new interpreter with your tool registered.
+	interp := api.New(toolOpt, api.WithStdout(os.Stdout))
+
+	// Now you can run NeuroScript code that uses your tool.
+	src := `command { emit greeter("World") }`
+	api.ExecInNewInterpreter(context.Background(), src, toolOpt)
+}
+```
+
+---
+
+## 4  Interpreter facade (high‑level API)
 
 Create a persistent VM with:
 
@@ -108,7 +165,7 @@ Key methods:
 
 ---
 
-## 4  Tool interop (Go ↔ NeuroScript)
+## 5  Tool interop (Go ↔ NeuroScript)
 
 A `tool.ToolImplementation` uses primitive Go types; the registry takes care
 of wrapping/unwrapping `lang.Value`s. See the bundled example in the template
@@ -116,38 +173,38 @@ repo.
 
 ---
 
-## 5  Core types & enums
+## 6  Core types & enums
 
-* `api.Tree`, `api.Kind`, `api.Position`, `api.Node`  
-* `api.SignedAST`, `api.LoadedUnit`, `api.ExecResult`  
-* `api.RunMode{Library, Command, EventSink}` :contentReference[oaicite:6]{index=6}  
-* `api.ParseMode{PreserveComments, SkipComments}` :contentReference[oaicite:7]{index=7}
+* `api.Tree`, `api.Kind`, `api.Position`, `api.Node`
+* `api.SignedAST`, `api.LoadedUnit`, `api.Value`
+* `api.RunMode{Library, Command, EventSink}`
+* `api.ParseMode{PreserveComments, SkipComments}`
 
 ---
 
-## 6  Important “Don’ts”
+## 7  Important “Don’ts”
 
-* **Do not** import `pkg/parser`, `pkg/canon`, `pkg/interpreter`, etc.  
- `api` already re‑exports what you need.  
-* **Do not** execute a tree that skipped `api.Load` when security matters.  
+* **Do not** import `pkg/parser`, `pkg/canon`, `pkg/interpreter`, etc.
+  `api` already re‑exports what you need.
+* **Do not** execute a tree that skipped `api.Load` when security matters.
 * **Do not** re‑canonicalise after verification — keep the original `blob`
- and `sum`.
+  and `sum`.
 
 ---
 
-## 7  Metadata
+## 8  Metadata
 
-::name: NeuroScript Integration Guide  
-::schema: spec  
-::serialization: md  
-::fileVersion: 4  
-::author: Andrew Price  
-::created: 2025‑07‑16  
-::modified: 2025‑07‑16  
+::name: NeuroScript Integration Guide
+::schema: spec
+::serialization: md
+::fileVersion: 6
+::author: Andrew Price
+::created: 2025‑07‑16
+::modified: 2025‑07‑21
 ::description: Accurate, up‑to‑date instructions for integrating NeuroScript
-  via the public `api` package; aligned with contract v0.6.  
-::tags: guide, integration, api, neuroscript, golang  
+  via the public `api` package; aligned with contract v0.6.
+::tags: guide, integration, api, neuroscript, golang
 ::howToUpdate: Update call‑flows and type names whenever the API contract
-  increments. Bump `fileVersion`.  
+  increments. Bump `fileVersion`.
 ::dependsOn: api/parse.go, api/canon.go, api/loader.go, api/exec.go,
   api/interpreter.go, api/reexport.go

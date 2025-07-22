@@ -1,5 +1,5 @@
 // NeuroScript Version: 0.6.0
-// File version: 5
+// File version: 8
 // Purpose: Implements the public parsing entrypoint with full error handling.
 // filename: pkg/api/parse.go
 // nlines: 34
@@ -28,8 +28,8 @@ func Parse(src []byte, mode ParseMode) (*Tree, error) {
 	logger := logging.NewNoOpLogger()
 	parserAPI := parser.NewParserAPI(logger)
 
-	// **FIX:** Use ParseAndGetStream to get the token stream, which is essential
-	// for the builder to correctly associate comments and blank lines.
+	// Note: ParseAndGetStream is used to get the token stream, which is
+	// now required for the builder's automatic comment association.
 	antlrTree, tokenStream, err := parserAPI.ParseAndGetStream("source.ns", string(src))
 	if err != nil {
 		return nil, fmt.Errorf("parsing failed: %w", err)
@@ -37,8 +37,8 @@ func Parse(src []byte, mode ParseMode) (*Tree, error) {
 
 	builder := parser.NewASTBuilder(logger)
 
-	// **FIX:** Use BuildFromParseResult and pass the token stream. This avoids the
-	// "ULTRA-SIMPLE ALGO" and uses the full logic to build a correct AST.
+	// FIX: The call signature for BuildFromParseResult was corrected.
+	// The new comment association runs automatically if the tokenStream is not nil.
 	program, _, err := builder.BuildFromParseResult(antlrTree, tokenStream)
 	if err != nil {
 		return nil, fmt.Errorf("AST construction failed: %w", err)

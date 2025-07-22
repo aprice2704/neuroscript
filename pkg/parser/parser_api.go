@@ -1,13 +1,14 @@
 // NeuroScript Version: 0.3.1
-// File version: 2
-// Purpose: Provides a simplified interface to the ANTLR parser for NeuroScript, now returning a standard sentinel error on failure. Adds ParseAndGetStream for testing.
+// File version: 3
+// Purpose: Provides a simplified interface to the ANTLR parser for NeuroScript, now returning a standard sentinel error on failure. Adds ParseAndGetStream for testing. Ensures all input is cleaned before lexing.
 // filename: pkg/parser/parser_api.go
-// nlines: 200 // Approximate
+// nlines: 215 // Approximate
 // risk_rating: MEDIUM // Parser interactions are core to functionality.
 
 package parser
 
 import (
+	"bytes"
 	"fmt"
 	"strings"
 
@@ -16,6 +17,7 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/logging"
+	"github.com/aprice2704/neuroscript/pkg/nsio"
 )
 
 // StructuredSyntaxError holds detailed information about a single syntax error.
@@ -164,7 +166,23 @@ func (p *ParserAPI) ParseAndGetStream(sourceName, sourceContent string) (antlr.T
 // parseInternal is the new core parsing logic that returns the tree and the token stream.
 func (p *ParserAPI) parseInternal(sourceName, sourceContent string) (antlr.Tree, antlr.TokenStream, []StructuredSyntaxError) {
 	p.logger.Debug("Internal parse", "sourceName", sourceName, "length", len(sourceContent))
-	inputStream := antlr.NewInputStream(sourceContent)
+
+	// Clean the input before it reaches the lexer.
+	cleanedBytes, err := nsio.CleanNS(bytes.NewReader([]byte(sourceContent)), 1024*1024) // 1MB limit
+	if err != nil {
+		// If cleaning fails, we can't parse, so return a syntax error.
+		return nil, nil, []StructuredSyntaxError{
+			{
+				Line:       1,
+				Column:     0,
+				Msg:        fmt.Sprintf("input cleaning failed: %v", err),
+				SourceName: sourceName,
+			},
+		}
+	}
+	cleanedSource := string(cleanedBytes)
+
+	inputStream := antlr.NewInputStream(cleanedSource)
 
 	lexer := gen.NewNeuroScriptLexer(inputStream)
 	lexer.RemoveErrorListeners()
