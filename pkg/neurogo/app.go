@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.2.4
-// Final corrections to constructors, typos, and removed wm dependencies.
+// File version: 0.2.5
+// Purpose: Updated to use the new WithSandboxDir option for interpreter creation.
 // filename: pkg/neurogo/app.go
 package neurogo
 
@@ -243,6 +243,7 @@ func (a *App) InitializeCoreComponents() error {
 		interpLLMClient = adapters.NewNoOpLLMClient()
 	}
 
+	// Correctly pass the sandbox directory as an option during creation.
 	a.interpreter = interpreter.NewInterpreter(
 		interpreter.WithLogger(a.Log),
 		interpreter.WithLLMClient(interpLLMClient),
@@ -257,8 +258,6 @@ func (a *App) InitializeCoreComponents() error {
 	if a.agentCtx != nil {
 		a.agentCtx.SetSandboxDir(sandboxDir)
 	}
-
-	a.interpreter.SetSandboxDir(sandboxDir)
 
 	a.chatSessions = make(map[string]*ChatSession)
 

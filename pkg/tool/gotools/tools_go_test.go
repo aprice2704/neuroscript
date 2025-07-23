@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.5.2
-// File version: 3
-// Purpose: Fix test panic by manually registering tools and using the correct FQN for lookup.
+// File version: 6
+// Purpose: Updated to use the centralized testutil.NewTestSandbox helper.
 // filename: pkg/tool/gotools/tools_go_test.go
 // nlines: 129
 // risk_rating: MEDIUM
@@ -17,6 +17,7 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/testutil"
 )
 
 // MakeArgs is a convenience function to create a slice of interfaces, useful for constructing tool arguments programmatically.
@@ -37,18 +38,16 @@ func testGoGetModuleInfoHelper(t *testing.T, tc struct {
 }) {
 	t.Helper()
 	t.Run(tc.name, func(t *testing.T) {
-		interp := interpreter.NewInterpreter()
+		sandboxOpt := testutil.NewTestSandbox(t)
+		interp := interpreter.NewInterpreter(sandboxOpt)
+		sandboxRoot := interp.SandboxDir()
 
-		// Manually register the Go tools for this test run. The interpreter created
-		// for the test does not automatically discover and register toolsets.
+		// Manually register the Go tools for this test run.
 		for _, toolToRegister := range goToolsToRegister {
 			if err := interp.ToolRegistry().RegisterTool(toolToRegister); err != nil {
 				t.Fatalf("Setup: failed to register tool %q: %v", toolToRegister.Spec.Name, err)
 			}
 		}
-
-		sandboxRoot := t.TempDir()
-		interp.SetSandboxDir(sandboxRoot)
 
 		// Look up the tool using its fully-qualified name and check that it exists.
 		toolImpl, ok := interp.ToolRegistry().GetTool("tool.gotools.GetModuleInfo")

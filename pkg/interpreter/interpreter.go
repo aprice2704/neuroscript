@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.5.2
-// File version: 19
-// Purpose: Adds debug logging to the internal Run method to trace the return value before it's passed to the API facade.
+// File version: 21
+// Purpose: Removes the package-level default sandbox in favor of explicit configuration per interpreter.
 // filename: pkg/interpreter/interpreter.go
-// nlines: 320
+// nlines: 319
 // risk_rating: HIGH
 
 package interpreter
@@ -95,7 +95,7 @@ func WithLLMClient(client interfaces.LLMClient) InterpreterOption {
 
 func WithSandboxDir(path string) InterpreterOption {
 	return func(i *Interpreter) {
-		i.SetSandboxDir(path)
+		i.setSandboxDir(path)
 	}
 }
 
@@ -227,7 +227,7 @@ func (i *Interpreter) ToolRegistry() tool.ToolRegistry {
 
 // CloneForEventHandler creates a sandboxed clone for event handling.
 func (i *Interpreter) CloneForEventHandler() *Interpreter {
-	clone := NewInterpreter(WithLogger(i.logger), WithStdout(i.stdout))
+	clone := NewInterpreter(WithLogger(i.logger), WithStdout(i.stdout), WithSandboxDir(i.state.sandboxDir))
 	i.state.variablesMu.RLock()
 	defer i.state.variablesMu.RUnlock()
 	for name := range i.state.globalVarNames {
@@ -271,9 +271,7 @@ func (i *Interpreter) Run(procName string, args ...lang.Value) (lang.Value, erro
 	if err == nil {
 		i.lastCallResult = result
 	}
-	// =========================================================================
 	fmt.Printf(">>>> [DEBUG] interpreter.Run: Value being RETURNED to API FACADE is: %#v\n", result)
-	// =========================================================================
 	return result, err
 }
 
@@ -296,11 +294,10 @@ func (i *Interpreter) Load(program *ast.Program) error {
 		i.logger.Warn("Load called with a nil program AST.")
 		i.state.knownProcedures = make(map[string]*ast.Procedure)
 		i.eventManager.eventHandlers = make(map[string][]*ast.OnEventDecl)
-		i.state.commands = []*ast.CommandNode{} // Ensure commands are cleared too
+		i.state.commands = []*ast.CommandNode{}
 		return nil
 	}
 
-	// Clear previous state before loading new program
 	i.state.knownProcedures = make(map[string]*ast.Procedure)
 	i.eventManager.eventHandlers = make(map[string][]*ast.OnEventDecl)
 	i.state.commands = []*ast.CommandNode{}
@@ -328,12 +325,10 @@ func (i *Interpreter) CloneWithNewVariables() *Interpreter {
 	return clone
 }
 
-func (i *Interpreter) SetSandboxDir(path string) {
+func (i *Interpreter) setSandboxDir(path string) {
 	i.state.sandboxDir = path
 }
 
-// RegisterEvent provides a public method for tools to register a single event handler.
 func (i *Interpreter) RegisterEvent(decl *ast.OnEventDecl) error {
-	// This calls the existing private registration logic within the eventManager.
 	return i.eventManager.register(decl, i)
 }

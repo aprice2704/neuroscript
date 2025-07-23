@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
+	"github.com/aprice2704/neuroscript/pkg/testutil"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 	"github.com/aprice2704/neuroscript/pkg/types"
 )
@@ -21,19 +22,18 @@ type fsTestCase struct {
 	setupFunc     func(sandboxRoot string) error
 	checkFunc     func(t *testing.T, interp tool.Runtime, result interface{}, err error, setupCtx interface{})
 	wantResult    interface{}
-	wantContent   string // FIX: Added this field to check file content after writes.
+	wantContent   string
 	wantToolErrIs error
 }
 
 // newFsTestInterpreter creates a self-contained interpreter with a sandbox for fs tool testing.
 func newFsTestInterpreter(t *testing.T) *interpreter.Interpreter {
 	t.Helper()
-	interp := interpreter.NewInterpreter()
-	sandboxDir := t.TempDir()
-	interp.SetSandboxDir(sandboxDir)
-	// Register all the FS tools for this test suite
+	// Use the centralized helper to get the sandbox option.
+	sandboxOpt := testutil.NewTestSandbox(t)
+	interp := interpreter.NewInterpreter(sandboxOpt)
+
 	for _, toolImpl := range fsToolsToRegister {
-		// CORRECTED: The method is named RegisterTool, not Register.
 		if err := interp.ToolRegistry().RegisterTool(toolImpl); err != nil {
 			t.Fatalf("Failed to register tool '%s': %v", toolImpl.Spec.Name, err)
 		}
@@ -42,6 +42,7 @@ func newFsTestInterpreter(t *testing.T) *interpreter.Interpreter {
 }
 
 // testFsToolHelper provides a generic runner for fsTestCase tests.
+// The signature is reverted to accept an interpreter, fixing the cascade.
 func testFsToolHelper(t *testing.T, interp *interpreter.Interpreter, tc fsTestCase) {
 	t.Helper()
 
@@ -60,13 +61,11 @@ func testFsToolHelper(t *testing.T, interp *interpreter.Interpreter, tc fsTestCa
 
 	result, err := toolImpl.Func(interp, tc.args)
 
-	// Custom check function takes precedence
 	if tc.checkFunc != nil {
 		tc.checkFunc(t, interp, result, err, nil)
 		return
 	}
 
-	// Standard error and result checking
 	if tc.wantToolErrIs != nil {
 		if !errors.Is(err, tc.wantToolErrIs) {
 			t.Errorf("Expected error wrapping [%v], but got: %v", tc.wantToolErrIs, err)
@@ -82,9 +81,7 @@ func testFsToolHelper(t *testing.T, interp *interpreter.Interpreter, tc fsTestCa
 			}
 		}
 
-		// New check for file content
 		if tc.wantContent != "" {
-			// Assume the first argument is the file path
 			if len(tc.args) > 0 {
 				if path, ok := tc.args[0].(string); ok {
 					absPath := filepath.Join(sandboxRoot, path)

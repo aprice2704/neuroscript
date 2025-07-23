@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.6.0
-// File version: 7
-// Purpose: Corrects execution logic to NOT treat 'main' as a special function, strictly separating the loading of definitions from their execution as per user direction.
+// File version: 9
+// Purpose: Adds high-level functions for loading from a unit and running specific procedures with Go-native arguments.
 // filename: pkg/api/exec.go
-// nlines: 65
+// nlines: 88
 // risk_rating: HIGH
 
 package api
@@ -14,6 +14,7 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
+	"github.com/aprice2704/neuroscript/pkg/lang"
 )
 
 // ExecInNewInterpreter provides a stateless, one-shot execution. It will parse,
@@ -68,4 +69,36 @@ func ExecScript(ctx context.Context, script string, stdout io.Writer) (Value, er
 		opts = append(opts, interpreter.WithStdout(stdout))
 	}
 	return ExecInNewInterpreter(ctx, script, opts...)
+}
+
+// LoadFromUnit loads the definitions from a verified LoadedUnit into an interpreter instance.
+func LoadFromUnit(interp *Interpreter, unit *LoadedUnit) error {
+	if interp == nil || interp.internal == nil {
+		return fmt.Errorf("LoadFromUnit requires a non-nil interpreter")
+	}
+	if unit == nil || unit.Tree == nil || unit.Tree.Root == nil {
+		return fmt.Errorf("cannot load from a nil unit or tree")
+	}
+	program, ok := unit.Tree.Root.(*ast.Program)
+	if !ok {
+		return fmt.Errorf("internal error: loaded unit root is not a runnable *ast.Program, but %T", unit.Tree.Root)
+	}
+	return interp.Load(program)
+}
+
+// RunProcedure executes a named procedure with the given Go-native arguments.
+func RunProcedure(ctx context.Context, interp *Interpreter, name string, args ...any) (Value, error) {
+	if interp == nil {
+		return nil, fmt.Errorf("RunProcedure requires a non-nil interpreter")
+	}
+	wrappedArgs := make([]lang.Value, len(args))
+	for i, arg := range args {
+		var err error
+		// FIX: Corrected function call from NewValueFromGo to Wrap
+		wrappedArgs[i], err = lang.Wrap(arg)
+		if err != nil {
+			return nil, fmt.Errorf("error converting argument %d for procedure '%s': %w", i, name, err)
+		}
+	}
+	return interp.Run(name, wrappedArgs...)
 }

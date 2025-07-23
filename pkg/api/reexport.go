@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.6.0
-// File version: 7
-// Purpose: Re-exports core types, tool types, and interpreter options for a clean public API.
+// File version: 10
+// Purpose: Adds a public facade for creating fully-qualified tool names.
 // filename: pkg/api/reexport.go
-// nlines: 44
+// nlines: 66
 // risk_rating: LOW
 
 package api
@@ -10,36 +10,34 @@ package api
 import (
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
+	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
 // Re-exported types for the public API, as per the v0.6 contract.
-// These types provide the stable, public-facing surface for all interactions
-// with the NeuroScript AST and its components.
 type (
 	// Foundational types from pkg/types, ensuring a stable AST contract.
-	Kind     = types.Kind
-	Position = types.Position
-	Node     = interfaces.Node
-	Tree     = interfaces.Tree
+	Kind         = types.Kind
+	Position     = types.Position
+	Node         = interfaces.Node
+	Tree         = interfaces.Tree
+	Logger       = interfaces.Logger
+	RuntimeError = lang.RuntimeError
 
 	// SignedAST is the transport wrapper for a canonicalized and signed tree.
 	SignedAST struct {
-		Blob []byte   // The canonicalized AST, produced by Canonicalise.
-		Sum  [32]byte // The BLAKE2b-256 digest of the Blob.
-		Sig  []byte   // The Ed25519 signature of the Sum.
+		Blob []byte
+		Sum  [32]byte
+		Sig  []byte
 	}
 
-	// Value represents the result of an execution.
-	Value any
-
-	// Option is a configuration function for an interpreter.
+	Value  any
 	Option = interpreter.InterpreterOption
 
 	// Tool-related types needed to define custom tools.
 	ToolImplementation = tool.ToolImplementation
-	ArgSpec            = tool.ArgSpec
+	ArgSpec            = tool.ToolSpec
 	Runtime            = tool.Runtime
 	ToolFunc           = tool.ToolFunc
 	ToolSpec           = tool.ToolSpec
@@ -47,14 +45,24 @@ type (
 )
 
 // WithTool creates an interpreter option to register a custom tool.
-// This allows external packages to add functionality to the interpreter.
 func WithTool(t ToolImplementation) Option {
 	return func(i *interpreter.Interpreter) {
 		if err := i.ToolRegistry().RegisterTool(t); err != nil {
-			// If the interpreter has a logger, use it.
 			if logger := i.GetLogger(); logger != nil {
 				logger.Error("failed to register tool via WithTool option", "tool", t.FullName, "error", err)
 			}
 		}
 	}
+}
+
+// RegisterCriticalErrorHandler allows the host application to override the default
+// panic behavior for critical errors.
+func RegisterCriticalErrorHandler(h func(*lang.RuntimeError)) {
+	lang.RegisterCriticalHandler(h)
+}
+
+// MakeToolFullName creates a correctly formatted, fully-qualified tool name.
+// It acts as a public facade for the internal types.MakeFullName function.
+func MakeToolFullName(group, name string) types.FullName {
+	return types.MakeFullName(group, name)
 }

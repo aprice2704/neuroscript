@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.5.4
-// File version: 7
-// Purpose: Final correction to TestToolGitAddValidation to expect the correct error type (ErrInvalidArgument) based on the tool's implementation.
+// File version: 10
+// Purpose: Updated to use the centralized testutil.NewTestSandbox helper.
 // filename: pkg/tool/git/tools_git_test.go
 // nlines: 250
 // risk_rating: HIGH
@@ -17,6 +17,7 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/logging"
+	"github.com/aprice2704/neuroscript/pkg/testutil"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 	"github.com/aprice2704/neuroscript/pkg/types"
 )
@@ -32,10 +33,11 @@ type gitTestCase struct {
 	wantToolErrIs error
 }
 
-func newGitTestInterpreter(t *testing.T, sandboxRoot string) *interpreter.Interpreter {
+func newGitTestInterpreter(t *testing.T) *interpreter.Interpreter {
 	t.Helper()
-	interp := interpreter.NewInterpreter(interpreter.WithLogger(logging.NewTestLogger(t)))
-	interp.SetSandboxDir(sandboxRoot)
+	sandboxOpt := testutil.NewTestSandbox(t)
+	interp := interpreter.NewInterpreter(interpreter.WithLogger(logging.NewTestLogger(t)), sandboxOpt)
+
 	// Register the git tools for this test suite
 	for _, toolImpl := range gitToolsToRegister {
 		if err := interp.ToolRegistry().RegisterTool(toolImpl); err != nil {
@@ -71,8 +73,8 @@ func setupGitRepo(t *testing.T, sandboxRoot string) {
 
 func testGitToolHelper(t *testing.T, tc gitTestCase) {
 	t.Helper()
-	sandboxRoot := t.TempDir()
-	interp := newGitTestInterpreter(t, sandboxRoot)
+	interp := newGitTestInterpreter(t)
+	sandboxRoot := interp.SandboxDir()
 
 	// Setup the repo inside the sandbox
 	setupGitRepo(t, sandboxRoot)
@@ -241,13 +243,14 @@ func TestToolGitDiffValidation(t *testing.T) {
 func TestToolGitCloneValidation(t *testing.T) {
 	// Don't use the standard helper because we don't want a pre-existing repo
 	// in the sandbox for a clone test.
-	sandboxRoot := t.TempDir()
 	sourceRepoPath := t.TempDir()
 
 	// Setup the repo to be cloned
 	setupGitRepo(t, sourceRepoPath)
 
-	interp := newGitTestInterpreter(t, sandboxRoot)
+	interp := newGitTestInterpreter(t)
+	sandboxRoot := interp.SandboxDir()
+
 	cloneTool, found := interp.ToolRegistry().GetTool(types.MakeFullName(group, "Clone"))
 	if !found {
 		t.Fatal("Tool 'Git.Clone' not found in registry")
