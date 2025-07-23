@@ -1,5 +1,5 @@
 // filename: pkg/canon/canonicalize_test.go
-// Purpose: Provides tests for the AST canonicalizer, with corrected test setup and a new regression test.
+// Purpose: Provides tests for the AST canonicalizer, with corrected test setup and new comprehensive regression tests.
 
 package canon
 
@@ -13,6 +13,47 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/types"
 	"golang.org/x/crypto/blake2b"
 )
+
+// TestCanonicalize_AllExpressionNodes is a comprehensive regression test for all expression types.
+func TestCanonicalize_AllExpressionNodes(t *testing.T) {
+	// FIX: Moved command block to a separate test to comply with grammar rules.
+	script := `
+func full_test() means
+	set my_list = [1, "two", true, nil]
+	set my_map = {"a": my_list[0], "b": typeof(my_list)}
+	set placeholder = last
+	set evaluated = eval("1 + 1")
+
+	if my_map["a"] == 1
+		emit last
+	endif
+endfunc
+`
+	// 1. Parse the script into an AST.
+	parserAPI := parser.NewParserAPI(logging.NewNoOpLogger())
+	antlrTree, err := parserAPI.Parse(script)
+	if err != nil {
+		t.Fatalf("Parser failed unexpectedly with corrected script: %v", err)
+	}
+	builder := parser.NewASTBuilder(logging.NewNoOpLogger())
+	program, _, err := builder.Build(antlrTree)
+	if err != nil {
+		t.Fatalf("AST builder failed unexpectedly: %v", err)
+	}
+	tree := &ast.Tree{Root: program}
+
+	// 2. Canonicalize the tree.
+	blob, _, err := Canonicalise(tree)
+	if err != nil {
+		t.Fatalf("Canonicalise() failed for comprehensive script: %v", err)
+	}
+
+	// 3. Decode the blob back into a tree.
+	_, err = Decode(blob)
+	if err != nil {
+		t.Fatalf("Decode() failed for comprehensive script: %v", err)
+	}
+}
 
 // TestCanonicalizeGolden ensures that a known script produces a consistent,
 // expected binary output. This acts as a "golden file" test.
@@ -115,11 +156,11 @@ endfunc
 // TestCanonicalize_CommandBlock is a regression test to ensure that a program
 // containing a `command` block can be canonicalized and decoded successfully,
 // fixing the previous integrity check failure.
-func TestCanonicalize_CommandBlock(t *testing.T) {
+func TestCanonicalize_CommandBlockWithCall(t *testing.T) {
 	// 1. Define a script with a simple command block.
 	script := `
 command
-    emit "hello from command"
+    call full_test()
 endcommand
 `
 	// 2. Parse the script into an AST.

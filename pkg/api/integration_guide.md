@@ -1,7 +1,7 @@
-# NeuroScript Integration Guide (v0.4 — 2025‑07‑21)
+# NeuroScript Integration Guide (v0.4 — 2025‑07‑22)
 
 This guide shows **exactly** how to embed NeuroScript/FDM into an external Go
-application using **only** `import "github.com/aprice2704/neuroscript/pkg/api"`.
+application using **only** `import "yourrepo/api"`.
 Under the hood `api` wraps the parser, canonicaliser, loader, and interpreter
 so you never import those sub‑packages directly.
 
@@ -54,9 +54,12 @@ added in contract v0.6.
 
 ### 2.3 Sign (host responsibility, optional)
 
-Use your own Ed25519 key and package the result into:
+Use your own Ed25519 key to sign the **hash (`sum`)** of the canonical blob, not the blob itself.
 
 ```go
+// Sign the hash, not the full blob.
+sig := ed25519.Sign(privKey, sum[:])
+
 signed := &api.SignedAST{Blob: blob, Sum: sum, Sig: sig}
 ```
 
@@ -92,7 +95,7 @@ runs any top-level `command` blocks.
 
 ## 3. Registering Custom Tools
 
-You can extend the NeuroScript interpreter with custom functionality by registering your own tools. A tool must satisfy the `interpreter.Tool` interface.
+You can extend the NeuroScript interpreter with custom functionality by registering your own tools. A tool is a standard Go function that conforms to the `api.ToolFunc` signature and is packaged in an `api.ToolImplementation` struct.
 
 **Example:**
 
@@ -105,42 +108,48 @@ import (
 	"os"
 
 	"[github.com/aprice2704/neuroscript/pkg/api](https://github.com/aprice2704/neuroscript/pkg/api)"
-	"[github.com/aprice2704/neuroscript/pkg/interpreter](https://github.com/aprice2704/neuroscript/pkg/interpreter)"
-	"[github.com/aprice2704/neuroscript/pkg/lang](https://github.com/aprice2704/neuroscript/pkg/lang)"
 )
 
-// 1. Define your tool struct.
-type GreeterTool struct{}
-
-// 2. Implement the interpreter.Tool interface.
-func (t *GreeterTool) GetName() string {
-	return "greeter"
-}
-
-func (t *GreeterTool) Call(ctx context.Context, args ...lang.Value) (lang.Value, error) {
+// 1. Define your tool's function. It must match the api.ToolFunc signature.
+func GreeterFunc(rt api.Runtime, args []interface{}) (interface{}, error) {
 	if len(args) != 1 {
 		return nil, fmt.Errorf("greeter tool expects 1 argument, got %d", len(args))
 	}
-	name, ok := args[0].(lang.StringValue)
+	name, ok := args[0].(string)
 	if !ok {
-		return nil, fmt.Errorf("greeter tool expects a string argument")
+		return nil, fmt.Errorf("greeter tool expects a string argument, got %T", args[0])
 	}
-	return lang.NewString(fmt.Sprintf("Hello, %s!", name.Value)), nil
+	// Use the runtime to interact with the interpreter, for example, to print output.
+	rt.Println(fmt.Sprintf("Hello, %s!", name))
+	return true, nil // Return a primitive Go type.
 }
 
 func main() {
-	// 3. Create an instance of your tool.
-	myTool := &GreeterTool{}
+	// 2. Define the tool's implementation using re-exported API types.
+	greeterImpl := api.ToolImplementation{
+		FullName: "host.greeter",
+		Spec: api.ToolSpec{
+			Name: "greeter",
+			Group: "host",
+			Args: []api.ArgSpec{{Name: "name", Type: "string", Required: true}},
+			ReturnType: "bool",
+		},
+		Func: GreeterFunc,
+	}
 
-	// 4. Create an interpreter option for your tool.
-	toolOpt := interpreter.WithTool(myTool)
+	// 3. Create an interpreter option for your tool using the API helper.
+	toolOpt := api.WithTool(greeterImpl)
 
-	// 5. Create a new interpreter with your tool registered.
+	// 4. Create a new interpreter with your tool registered.
+	// Note: api.WithStdout is also re-exported from the api package.
 	interp := api.New(toolOpt, api.WithStdout(os.Stdout))
 
 	// Now you can run NeuroScript code that uses your tool.
-	src := `command { emit greeter("World") }`
-	api.ExecInNewInterpreter(context.Background(), src, toolOpt)
+	src := `command { emit host.greeter("World") }`
+	_, err := api.ExecWithInterpreter(context.Background(), interp, &api.Tree{/* ...parsed tree... */})
+	if err != nil {
+		fmt.Println("Execution failed:", err)
+	}
 }
 ```
 
@@ -184,7 +193,7 @@ repo.
 
 ## 7  Important “Don’ts”
 
-* **Do not** import `pkg/parser`, `pkg/canon`, `pkg/interpreter`, etc.
+* **Do not** import `pkg/parser`, `pkg/canon`, `pkg.com/interpreter`, etc.
   `api` already re‑exports what you need.
 * **Do not** execute a tree that skipped `api.Load` when security matters.
 * **Do not** re‑canonicalise after verification — keep the original `blob`
@@ -197,10 +206,10 @@ repo.
 ::name: NeuroScript Integration Guide
 ::schema: spec
 ::serialization: md
-::fileVersion: 6
+::fileVersion: 8
 ::author: Andrew Price
 ::created: 2025‑07‑16
-::modified: 2025‑07‑21
+::modified: 2025‑07‑22
 ::description: Accurate, up‑to‑date instructions for integrating NeuroScript
   via the public `api` package; aligned with contract v0.6.
 ::tags: guide, integration, api, neuroscript, golang

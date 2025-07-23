@@ -1,14 +1,16 @@
 // NeuroScript Version: 0.6.0
-// File version: 3
-// Purpose: Re-exports core types from foundational packages for a clean public API. Aligned with contract v0.6.
+// File version: 7
+// Purpose: Re-exports core types, tool types, and interpreter options for a clean public API.
 // filename: pkg/api/reexport.go
-// nlines: 23
+// nlines: 44
 // risk_rating: LOW
 
 package api
 
 import (
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
+	"github.com/aprice2704/neuroscript/pkg/interpreter"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
@@ -30,6 +32,29 @@ type (
 	}
 
 	// Value represents the result of an execution.
-	// This is a placeholder for the actual Value type from the interpreter.
 	Value any
+
+	// Option is a configuration function for an interpreter.
+	Option = interpreter.InterpreterOption
+
+	// Tool-related types needed to define custom tools.
+	ToolImplementation = tool.ToolImplementation
+	ArgSpec            = tool.ArgSpec
+	Runtime            = tool.Runtime
+	ToolFunc           = tool.ToolFunc
+	ToolSpec           = tool.ToolSpec
+	FullName           = types.FullName
 )
+
+// WithTool creates an interpreter option to register a custom tool.
+// This allows external packages to add functionality to the interpreter.
+func WithTool(t ToolImplementation) Option {
+	return func(i *interpreter.Interpreter) {
+		if err := i.ToolRegistry().RegisterTool(t); err != nil {
+			// If the interpreter has a logger, use it.
+			if logger := i.GetLogger(); logger != nil {
+				logger.Error("failed to register tool via WithTool option", "tool", t.FullName, "error", err)
+			}
+		}
+	}
+}

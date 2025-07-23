@@ -1,112 +1,49 @@
 // NeuroScript Version: 0.6.0
-// File version: 14
-// Purpose: Adds a missing length prefix for 'return' statement values during serialization, fixing a critical bug.
-// filename: pkg/canon/canonicalize.go
-// nlines: 208
+// File version: 20.2
+// Purpose: Adds a versioned magic number header for integrity checks and fixes MapEntryNode serialization.
+// filename: pkg/canon/canonicalize_part2.go
+// nlines: 130+
 // risk_rating: HIGH
 
 package canon
 
 import (
-	"bytes"
 	"encoding/binary"
 	"fmt"
-	"hash"
 	"math"
 	"sort"
 
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/types"
-	"golang.org/x/crypto/blake2b"
 )
 
-// Canonicalise traverses an AST and produces a deterministic, platform-independent
-// binary representation. It also returns a BLAKE2b-256 hash of the resulting bytes.
-func Canonicalise(tree *ast.Tree) ([]byte, [32]byte, error) {
-	if tree == nil || tree.Root == nil {
-		return nil, [32]byte{}, fmt.Errorf("cannot canonicalize a nil tree or a tree with a nil root")
-	}
+// This file continues the implementation from part 1.
 
-	var buf bytes.Buffer
-	hasher, _ := blake2b.New256(nil)
-
-	visitor := &canonVisitor{
-		w:      &buf,
-		hasher: hasher,
-	}
-
-	err := visitor.visit(tree.Root)
-	if err != nil {
-		return nil, [32]byte{}, err
-	}
-
-	var sum [32]byte
-	hasher.Sum(sum[:0])
-
-	return buf.Bytes(), sum, nil
-}
-
-// canonVisitor walks the AST and writes its canonical representation.
-type canonVisitor struct {
-	w      *bytes.Buffer
-	hasher hash.Hash
-}
-
-// visit is the dispatcher for visiting any node type.
-func (v *canonVisitor) visit(node ast.Node) error {
-	if node == nil {
-		v.writeVarint(int64(types.KindNilLiteral))
-		return nil
-	}
-
-	if un, ok := node.(*ast.UnaryOpNode); ok && un.Operator == "-" {
-		if _, isNum := un.Operand.(*ast.NumberLiteralNode); isNum {
-			return v.visitUnaryOp(un)
+func (v *canonVisitor) visitListLiteral(l *ast.ListLiteralNode) error {
+	v.writeVarint(int64(len(l.Elements)))
+	for _, elem := range l.Elements {
+		if err := v.visit(elem); err != nil {
+			return err
 		}
 	}
-
-	v.writeVarint(int64(node.Kind()))
-
-	switch n := node.(type) {
-	case *ast.Program:
-		return v.visitProgram(n)
-	case *ast.Procedure:
-		return v.visitProcedure(n)
-	case *ast.Step:
-		return v.visitStep(n)
-	case *ast.LValueNode:
-		return v.visitLValue(n)
-	case *ast.StringLiteralNode:
-		v.writeString(n.Value)
-		return nil
-	case *ast.NumberLiteralNode:
-		v.writeNumber(n.Value)
-		return nil
-	case *ast.BooleanLiteralNode:
-		v.writeBool(n.Value)
-		return nil
-	case *ast.OnEventDecl:
-		return v.visitOnEventDecl(n)
-	case *ast.CommandNode:
-		return v.visitCommand(n)
-	case *ast.CallableExprNode:
-		return v.visitCallableExpr(n)
-	case *ast.VariableNode:
-		v.writeString(n.Name)
-		return nil
-	case *ast.BinaryOpNode:
-		return v.visitBinaryOp(n)
-	case *ast.UnaryOpNode:
-		return v.visitUnaryOp(n)
-	case *ast.NilLiteralNode:
-		return nil
-	default:
-		return fmt.Errorf("unhandled node type in canonicalizer: %T", n)
-	}
+	return nil
 }
 
-// --- Specific visitor methods ---
+func (v *canonVisitor) visitElementAccess(e *ast.ElementAccessNode) error {
+	if err := v.visit(e.Collection); err != nil {
+		return err
+	}
+	return v.visit(e.Accessor)
+}
+
+func (v *canonVisitor) visitSecretRef(s *ast.SecretRef) error {
+	v.writeString(s.Path)
+	// Note: Enc and Raw are runtime values and not part of the canonical form.
+	return nil
+}
+
 func (v *canonVisitor) visitUnaryOp(u *ast.UnaryOpNode) error {
+	// Handle negative numbers as a special case for more compact representation
 	if u.Operator == "-" {
 		if num, ok := u.Operand.(*ast.NumberLiteralNode); ok {
 			v.writeVarint(int64(types.KindNumberLiteral))
@@ -190,7 +127,6 @@ func (v *canonVisitor) visitStep(s *ast.Step) error {
 			}
 		}
 	case "return":
-		// **FIX:** Added the missing length prefix for the values.
 		v.writeVarint(int64(len(s.Values)))
 		for _, val := range s.Values {
 			if err := v.visit(val); err != nil {
@@ -200,7 +136,18 @@ func (v *canonVisitor) visitStep(s *ast.Step) error {
 	case "emit":
 		return v.visit(s.Values[0])
 	case "call":
-		return v.visit(s.Call)
+		if s.Call != nil {
+			return v.visit(s.Call)
+		}
+		// Handle expression statements that might be wrapped in a step
+		if s.ExpressionStmt != nil {
+			return v.visit(s.ExpressionStmt)
+		}
+
+	case "expression":
+		if s.ExpressionStmt != nil {
+			return v.visit(s.ExpressionStmt)
+		}
 	}
 	return nil
 }
@@ -232,6 +179,8 @@ func (v *canonVisitor) visitCallableExpr(c *ast.CallableExprNode) error {
 
 func (v *canonVisitor) visitLValue(lval *ast.LValueNode) error {
 	v.writeString(lval.Identifier)
+	// Accessors are part of the LValue's structure but are handled by ElementAccessNode.
+	// We do not serialize them here to avoid duplication.
 	return nil
 }
 
@@ -272,6 +221,7 @@ func (v *canonVisitor) writeBool(b bool) {
 }
 
 func (v *canonVisitor) writeNumber(val interface{}) {
+	// Normalize -0.0 to 0.0 for deterministic output
 	if f, ok := val.(float64); ok && f == 0 && math.Signbit(f) {
 		val = 0.0
 	}

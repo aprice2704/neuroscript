@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.6.0
-// File version: 10
-// Purpose: Corrects the import path for the analysis package.
+// File version: 11
+// Purpose: Corrects a critical signature verification bug by separating cryptographic checks from AST decoding.
 // filename: pkg/api/loader.go
-// nlines: 62
+// nlines: 65
 // risk_rating: HIGH
 
 package api
@@ -13,8 +13,9 @@ import (
 	"fmt"
 
 	"github.com/aprice2704/neuroscript/pkg/api/analysis"
+	"github.com/aprice2704/neuroscript/pkg/canon"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
-	"github.com/aprice2704/neuroscript/pkg/sign"
+	"golang.org/x/crypto/blake2b"
 )
 
 // RunMode indicates the intended execution model of a script.
@@ -45,14 +46,26 @@ func DetectRunMode(tree *interfaces.Tree) RunMode {
 
 // Load performs signature verification and analysis passes on a signed AST.
 func Load(ctx context.Context, s *SignedAST, cfg LoaderConfig, pubKey ed25519.PublicKey) (*LoadedUnit, error) {
-	internalSignedAST := &sign.SignedAST{Blob: s.Blob, Sum: s.Sum, Sig: s.Sig}
-
-	verifiedTree, err := sign.Verify(pubKey, internalSignedAST)
-	if err != nil {
-		return nil, fmt.Errorf("signature verification failed: %w", err)
+	// 1. Verify that the signature is valid for the given hash.
+	if !ed25519.Verify(pubKey, s.Sum[:], s.Sig) {
+		return nil, fmt.Errorf("signature verification failed: invalid signature")
 	}
 
-	if err := analysis.RunAll(verifiedTree); err != nil { // This call will now resolve correctly.
+	// 2. Verify that the hash is the correct hash of the blob.
+	// This prevents tampering with the blob after signing.
+	recomputedSum := blake2b.Sum256(s.Blob)
+	if recomputedSum != s.Sum {
+		return nil, fmt.Errorf("integrity check failed: blob does not match provided hash")
+	}
+
+	// 3. Now that all crypto is verified, decode the blob into an AST.
+	verifiedTree, err := canon.Decode(s.Blob)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode verified blob: %w", err)
+	}
+
+	// 4. Run static analysis passes.
+	if err := analysis.RunAll(verifiedTree); err != nil {
 		return nil, fmt.Errorf("analysis pass failed: %w", err)
 	}
 

@@ -8,7 +8,7 @@
 package types
 
 // Kind represents the type of an AST node.
-// It's a stable enum; add new kinds at the end only.
+// It's a stable enum; add new kinds just before KindMarker only.
 type Kind uint8
 
 const (
@@ -43,4 +43,14 @@ const (
 	KindBinaryOp
 	KindTypeOfExpr
 	KindLValue
+
+	KindLast
+	KindEval
+	KindTypeOf
+	KindMapEntry
+
+	// ^^^^^^ add new kinds above this ^^^^^^^
+	// KindMarker is not a real kind. It is a sentinel value used in tests to
+	// ensure all actual kinds are handled in switch statements.
+	KindMarker
 )
