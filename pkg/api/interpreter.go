@@ -81,6 +81,12 @@ func (i *Interpreter) EmitEvent(eventName string, source string, payload lang.Va
 	i.internal.EmitEvent(eventName, source, payload)
 }
 
+func (i *Interpreter) ToolCount() int {
+	return i.internal.NTools()
+}
+
+func (i *Interpreter) ToolRegistry()
+
 // Unwrap converts a NeuroScript api.Value back into a standard Go `any` type.
 func Unwrap(v Value) (any, error) {
 	if val, ok := v.(lang.Value); ok {

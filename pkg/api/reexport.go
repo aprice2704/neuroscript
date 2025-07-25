@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.6.0
-// File version: 10
-// Purpose: Adds a public facade for creating fully-qualified tool names.
+// File version: 12
+// Purpose: Corrects the return type of InstantiateAllStandardTools to []ToolImplementation to simplify tool registration for consumers.
 // filename: pkg/api/reexport.go
-// nlines: 66
+// nlines: 80
 // risk_rating: LOW
 
 package api
@@ -15,14 +15,17 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
-// Re-exported types for the public API, as per the v0.6 contract.
+// Re-exported types for the public API, as per the v0.7 contract.
 type (
 	// Foundational types from pkg/types, ensuring a stable AST contract.
-	Kind         = types.Kind
-	Position     = types.Position
-	Node         = interfaces.Node
-	Tree         = interfaces.Tree
+	Kind     = types.Kind
+	Position = types.Position
+	Node     = interfaces.Node
+	Tree     = interfaces.Tree
+
+	// Logging and error types.
 	Logger       = interfaces.Logger
+	LogLevel     = interfaces.LogLevel
 	RuntimeError = lang.RuntimeError
 
 	// SignedAST is the transport wrapper for a canonicalized and signed tree.
@@ -53,6 +56,18 @@ func WithTool(t ToolImplementation) Option {
 			}
 		}
 	}
+}
+
+// InstantiateAllStandardTools returns a slice of ToolImplementation structs for all
+// standard tools that come with NeuroScript.
+// NOTE: This is a placeholder. You will need to add the actual tool implementations here.
+func InstantiateAllStandardTools() []ToolImplementation {
+	impls := []ToolImplementation{
+		// Example:
+		// file.NewFileTool(),
+		// http.NewHTTPTool(),
+	}
+	return impls
 }
 
 // RegisterCriticalErrorHandler allows the host application to override the default
