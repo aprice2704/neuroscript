@@ -1,5 +1,5 @@
 // filename: pkg/tool/fs/tools_fs_stat_test.go
-package fs
+package fs_test
 
 import (
 	"path/filepath"

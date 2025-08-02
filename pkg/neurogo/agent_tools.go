@@ -192,7 +192,7 @@ func RegisterAgentTools(registry tool.ToolRegistry) error {
 
 	var errs []error
 	for _, t := range tools {
-		if err := registry.RegisterTool(t); err != nil {
+		if _, err := registry.RegisterTool(t); err != nil {
 			errs = append(errs, fmt.Errorf("failed to register agent tool %s: %w", t.Spec.Name, err))
 		}
 	}

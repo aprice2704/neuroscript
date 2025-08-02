@@ -1,12 +1,15 @@
 // filename: pkg/parser/ast_builder_operators.go
 // NeuroScript Version: 0.5.2
-// File version: 22
-// Purpose: Corrected ExitCallable_expr to recognize 'len' as a valid callable expression, fixing the 'must len(...)' test failure.
+// File version: 23
+// Purpose: Corrected tool call parsing to handle fully qualified tool names (e.g., tool.group.Name) instead of just two parts.
+// nlines: 215
+// risk_rating: HIGH
 
 package parser
 
 import (
 	"fmt"
+	"strings" // Import strings
 
 	"github.com/antlr4-go/antlr/v4"
 	gen "github.com/aprice2704/neuroscript/pkg/antlr/generated"
@@ -363,37 +366,34 @@ func (l *neuroScriptListenerImpl) ExitAccessor_expr(ctx *gen.Accessor_exprContex
 // buildCallTargetFromContext constructs a ast.CallTarget AST node from an ICall_targetContext.
 func (l *neuroScriptListenerImpl) buildCallTargetFromContext(ctx gen.ICall_targetContext) *ast.CallTarget {
 	l.logDebugAST("      -> buildCallTargetFromContext: %s", ctx.GetText())
-	target := &ast.CallTarget{} // WORK WITH POINTER
+	target := &ast.CallTarget{}
 
 	if toolKeyword := ctx.KW_TOOL(); toolKeyword != nil {
 		target.IsTool = true
 		token := toolKeyword.GetSymbol()
 		if qiCtx := ctx.Qualified_identifier(); qiCtx != nil {
-			idNodes := qiCtx.AllIDENTIFIER()
-			if len(idNodes) >= 2 {
-				group := types.ToolGroup(idNodes[0].GetText())
-				name := types.ToolName(idNodes[1].GetText())
-				target.Name = string(types.MakeFullName(string(group), string(name)))
-				token = idNodes[0].GetSymbol()
-			} else {
-				l.addError(ctx, "Tool call has incomplete qualified_identifier (needs at least group and name): %s", ctx.GetText())
-				target.Name = "<ERROR_INCOMPLETE_TOOL_NAME>"
+			// FIX: Get the full text of the qualified identifier.
+			var parts []string
+			for _, idNode := range qiCtx.AllIDENTIFIER() {
+				parts = append(parts, idNode.GetText())
 			}
+			target.Name = strings.Join(parts, ".")
+			token = qiCtx.GetStart()
 		} else {
 			l.addError(ctx, "Tool call: Expected Qualified_identifier, but was not found: %s", ctx.GetText())
 			target.Name = "<ERROR_NO_QUALIFIED_ID_FOR_TOOL>"
 		}
-		newNode(target, token, types.KindCallableExpr) // Pass pointer
+		newNode(target, token, types.KindCallableExpr)
 		l.logDebugAST("         Tool call identified. Name: '%s'", target.Name)
 	} else if userFuncID := ctx.IDENTIFIER(); userFuncID != nil {
 		target.IsTool = false
 		target.Name = userFuncID.GetText()
-		newNode(target, userFuncID.GetSymbol(), types.KindCallableExpr) // Pass pointer
+		newNode(target, userFuncID.GetSymbol(), types.KindCallableExpr)
 		l.logDebugAST("         User function call identified. Name: '%s'", target.Name)
 	} else {
 		l.addError(ctx, "Unrecognized call_target structure: %s", ctx.GetText())
 		target.Name = "<ERROR_INVALID_CALL_TARGET>"
-		newNode(target, ctx.GetStart(), types.KindUnknown) // Pass pointer
+		newNode(target, ctx.GetStart(), types.KindUnknown)
 	}
 	l.logDebugAST("      <- buildCallTargetFromContext (Name: %s, IsTool: %v)", target.Name, target.IsTool)
 	return target

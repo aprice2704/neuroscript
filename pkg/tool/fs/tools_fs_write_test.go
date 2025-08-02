@@ -4,7 +4,7 @@
 // nlines: 100 // Approximate
 // risk_rating: MEDIUM // Test file for a destructive operation
 // filename: pkg/tool/fs/tools_fs_write_test.go
-package fs
+package fs_test
 
 import (
 	"path/filepath"

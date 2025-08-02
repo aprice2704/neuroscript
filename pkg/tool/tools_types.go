@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.5.2
-// File version: 10
-// Purpose: Added GetHandleValue to the Runtime interface to allow tools to resolve handles without importing the interpreter, breaking an import cycle.
+// File version: 11
+// Purpose: Changed RegisterTool signature to return the modified ToolImplementation, making it the authority on canonical tool naming.
 // filename: pkg/tool/tools_types.go
 // nlines: 110
 // risk_rating: HIGH
@@ -92,7 +92,7 @@ func (t *ToolImplementation) Name() types.FullName {
 
 // ToolRegistrar defines an interface for registering tools.
 type ToolRegistrar interface {
-	RegisterTool(impl ToolImplementation) error
+	RegisterTool(impl ToolImplementation) (ToolImplementation, error)
 }
 
 // ToolRegistry defines the interface for a complete tool registry.

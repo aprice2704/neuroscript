@@ -1,9 +1,9 @@
 // NeuroScript Version: 0.6.0
-// File version: 12
-// Purpose: Corrects the return type of InstantiateAllStandardTools to []ToolImplementation to simplify tool registration for consumers.
+// File version: 18
+// Purpose: Corrected the WithTool implementation to remove flawed logic and rely on the authoritative RegisterTool function.
 // filename: pkg/api/reexport.go
-// nlines: 80
-// risk_rating: LOW
+// nlines: 75
+// risk_rating: MEDIUM
 
 package api
 
@@ -40,7 +40,7 @@ type (
 
 	// Tool-related types needed to define custom tools.
 	ToolImplementation = tool.ToolImplementation
-	ArgSpec            = tool.ToolSpec
+	ArgSpec            = tool.ArgSpec
 	Runtime            = tool.Runtime
 	ToolFunc           = tool.ToolFunc
 	ToolSpec           = tool.ToolSpec
@@ -50,9 +50,11 @@ type (
 // WithTool creates an interpreter option to register a custom tool.
 func WithTool(t ToolImplementation) Option {
 	return func(i *interpreter.Interpreter) {
-		if err := i.ToolRegistry().RegisterTool(t); err != nil {
+		// The RegisterTool function is the authority on canonicalizing names.
+		// We simply pass the implementation through to it.
+		if _, err := i.ToolRegistry().RegisterTool(t); err != nil {
 			if logger := i.GetLogger(); logger != nil {
-				logger.Error("failed to register tool via WithTool option", "tool", t.FullName, "error", err)
+				logger.Error("failed to register tool via WithTool option", "tool", t.Spec.Name, "error", err)
 			}
 		}
 	}
@@ -60,14 +62,9 @@ func WithTool(t ToolImplementation) Option {
 
 // InstantiateAllStandardTools returns a slice of ToolImplementation structs for all
 // standard tools that come with NeuroScript.
-// NOTE: This is a placeholder. You will need to add the actual tool implementations here.
 func InstantiateAllStandardTools() []ToolImplementation {
-	impls := []ToolImplementation{
-		// Example:
-		// file.NewFileTool(),
-		// http.NewHTTPTool(),
-	}
-	return impls
+	// This remains a placeholder as the standard tools are auto-bundled.
+	return []ToolImplementation{}
 }
 
 // RegisterCriticalErrorHandler allows the host application to override the default

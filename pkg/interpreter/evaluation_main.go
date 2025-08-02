@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.6.0
-// File version: 44
-// Purpose: Added a case for *ast.LastNode in the main expression evaluation switch to correctly handle the 'last' keyword.
+// File version: 60
+// Purpose: Updated the evaluator to use the new centralized resolveToolName helper, aligning it with the final parser contract for tool call resolution.
 // filename: pkg/interpreter/evaluation_main.go
 // nlines: 280
 // risk_rating: HIGH
@@ -45,7 +45,6 @@ func (e *evaluation) Expression(node ast.Expression) (lang.Value, error) {
 		return e.i.resolveVariable(n)
 	case *ast.PlaceholderNode:
 		return e.i.resolvePlaceholder(n)
-	// FIX: Added the missing case for the 'last' keyword.
 	case *ast.LastNode:
 		return e.i.lastCallResult, nil
 	case *ast.EvalNode:
@@ -131,7 +130,6 @@ func (i *Interpreter) resolvePlaceholder(n *ast.PlaceholderNode) (lang.Value, er
 	return refValue, nil
 }
 
-// FIX: This now correctly returns a lang.ListValue (a value type), not a pointer.
 func (e *evaluation) evaluateListLiteral(n *ast.ListLiteralNode) (lang.Value, error) {
 	evaluatedElements := make([]lang.Value, len(n.Elements))
 	for idx, elemNode := range n.Elements {
@@ -183,9 +181,16 @@ func (e *evaluation) evaluateCall(n *ast.CallableExprNode) (lang.Value, error) {
 	}
 
 	if n.Target.IsTool {
-		tool, found := e.i.tools.GetTool(types.FullName(n.Target.Name))
+		toolNameForLookup, err := resolveToolName(n)
+		if err != nil {
+			return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, "failed to resolve tool name", err).WithPosition(n.StartPos)
+		}
+
+		tool, found := e.i.tools.GetTool(toolNameForLookup)
 		if !found {
-			return nil, lang.NewRuntimeError(lang.ErrorCodeToolNotFound, fmt.Sprintf("tool '%s' not found", n.Target.Name), lang.ErrToolNotFound).WithPosition(n.StartPos)
+			// Provide a more helpful error message including the constructed key.
+			errMessage := fmt.Sprintf("tool '%s' not found (looked up as '%s')", n.Target.Name, toolNameForLookup)
+			return nil, lang.NewRuntimeError(lang.ErrorCodeToolNotFound, errMessage, lang.ErrToolNotFound).WithPosition(n.StartPos)
 		}
 
 		specArgs := tool.Spec.Args

@@ -27,7 +27,7 @@ func MakeArgs(vals ...interface{}) []interface{} {
 func TestToolIOInputValidation(t *testing.T) {
 	interp := interpreter.NewInterpreter()
 	for _, toolImpl := range ioToolsToRegister {
-		if err := interp.ToolRegistry().RegisterTool(toolImpl); err != nil {
+		if _, err := interp.ToolRegistry().RegisterTool(toolImpl); err != nil {
 			t.Fatalf("Failed to register tool '%s': %v", toolImpl.Spec.Name, err)
 		}
 	}

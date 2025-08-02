@@ -19,11 +19,12 @@
 * [3.4. Special-Purpose Types](#34-special-purpose-types)
 
 ### [4. Variables, State, and Expressions](#4-variables-state-and-expressions)
-* [4.1. L-Values: The Targets of Assignment](#41-l-values-the-targets-of-assignment)
-* [4.2. Assigning State with the `set` Statement](#42-assigning-state-with-the-set-statement)
-* [4.3. Placeholders for String Interpolation](#43-placeholders-for-string-interpolation)
-* [4.4. Operator Precedence](#44-operator-precedence)
-* [4.5. Detailed Operator Guide](#45-detailed-operator-guide)
+* [4.1. Variable Scope and Lifetime](#41-variable-scope-and-lifetime)
+* [4.2. L-Values: The Targets of Assignment](#42-l-values-the-targets-of-assignment)
+* [4.3. Assigning State with the `set` Statement](#43-assigning-state-with-the-set-statement)
+* [4.4. Placeholders for String Interpolation](#44-placeholders-for-string-interpolation)
+* [4.5. Operator Precedence](#45-operator-precedence)
+* [4.6. Detailed Operator Guide](#46-detailed-operator-guide)
 
 ### [5. Fundamental Statements](#5-fundamental-statements)
 * [5.1. The `must` Statement: Asserting Truth](#51-the-must-statement-asserting-truth)
@@ -37,6 +38,7 @@
 * [6.1. Conditional Logic: `if`/`else`/`endif`](#61-conditional-logic-ifelseendif)
 * [6.2. Looping](#62-looping)
 * [6.3. Modifying Loop Behavior: `break` and `continue`](#63-modifying-loop-behavior-break-and-continue)
+* [6.4. Limitations](#64-limitations)
 
 ### [7. Scripting Models](#7-scripting-models)
 * [7.1. Command Scripts: The Top-Level Execution Block](#71-command-scripts-the-top-level-execution-block)
@@ -269,13 +271,13 @@ Primitive types are the simplest, most fundamental data types.
 A sequence of characters to represent text. NeuroScript supports single-quoted (`'...'`), double-quoted (`"..."`), and triple-backtick (`` `...` ``) raw string literals.
 
 #### 3.2.2. Number
-Represents both integers (`100`) and floating-point (`3.14`) numbers.
+Represents both integers (`100`) and floating-point (`3.14`) numbers. The language does not have a `complex` type.
 
 #### 3.2.3. Boolean
 A truth value, which can only be `true` or `false`.
 
 #### 3.2.4. Bytes
-Represents a sequence of raw bytes. There is no literal for bytes; they are typically created by tools (e.g., reading a file).
+Represents a sequence of raw bytes. There is no literal for bytes; they are typically created by tools (e.g., reading a file). This is useful for file I/O and networking contexts.
 
 #### 3.2.5. Nil
 The `nil` type represents the intentional absence of any value.
@@ -293,11 +295,27 @@ An ordered collection of values, enclosed in square brackets `[]`. A list can co
 set my_list = [1, "hello", true, nil]
 ```
 
+Lists are **mutable**, meaning they can be changed in-place. Appending elements is handled by external tools (e.g., `tool.List.Append()`), not a built-in operator.
+
+> **Note on Passing Lists to Functions:** Composite types like Lists and Maps behave as if they are **passed by reference**. Modifications made to a list inside a function will affect the original variable in the caller's scope.
+
 #### 3.3.2. Map
 A collection of key-value pairs, enclosed in curly braces `{}`. Keys must be string literals, and values can be any data type.
 
 ```neuroscript
 set my_map = {"name": "Agent Smith", "id": 101}
+```
+
+##### Using Maps as Structs or Objects
+
+NeuroScript does not have a formal `struct` or `class` construct. Instead, it uses **Maps** to create structured data. The dot notation for access (`my_map.key`) is syntactic sugar for bracket notation (`my_map["key"]`), allowing maps to be used in a way that feels like accessing properties on an object. The `set` statement will even automatically create nested maps as needed ("auto-vivification").
+
+```neuroscript
+# This single line creates a nested structure of maps.
+set user.address.city = "Zion"
+
+# It is equivalent to:
+# set user = {"address": {"city": "Zion"}}
 ```
 
 ---
@@ -307,7 +325,7 @@ set my_map = {"name": "Agent Smith", "id": 101}
 These types have specific roles within the NeuroScript ecosystem. They generally do not have a direct literal representation and are instead returned from functions, tools, or specific language constructs.
 
 #### 3.4.1. Function
-A reference to a `func` defined within a script. This allows functions to be passed as arguments to other functions or tools.
+A reference to a `func` defined within a script. Functions are **first-class citizens**, meaning they can be assigned to variables and passed as arguments to other functions or tools. This enables higher-order programming patterns.
 
 #### 3.4.2. Tool
 A reference to an external capability provided by the host environment.
@@ -319,7 +337,7 @@ A special type that holds information about a runtime error, such as an error co
 Represents an event that can be emitted (`emit`) or handled (`on event`).
 
 #### 3.4.5. Timedate
-Represents a specific point in time. The `timedate` keyword can be used to get the current time.
+Represents a specific point in time, often with nanosecond precision. The `timedate` keyword can be used to get the current time. Arithmetic and comparisons (e.g., before/after) are handled by tools.
 
 ```neuroscript
 set now = timedate
@@ -338,7 +356,27 @@ The core of any NeuroScript program involves managing state through variables an
 
 ---
 
-### 4.1. L-Values: The Targets of Assignment
+### 4.1. Variable Scope and Lifetime
+
+NeuroScript's variable scope is simple and predictable, designed to be easily understood by both humans and AIs.
+
+- **Function-Level Scope:** The scope of a variable is the entire `func` or `command` block in which it is first defined. There is no block-level scope; a variable defined inside an `if` or `while` block is accessible for the rest of the function.
+- **Function Call Isolation:** When a function is called, it executes in a **new, isolated memory space**. It cannot directly access or modify the local variables of its caller. Data is passed explicitly through parameters and `return` statements.
+- **Sandboxed Event Handlers:** `on event` handlers also execute in a sandboxed, isolated scope. They have read-only access to any global variables but cannot modify them, preventing unintended side effects on the main program state.
+
+```neuroscript
+func scope_example() means
+  set x = 10 # x is visible throughout the function
+  if x > 5
+    set y = 20 # y is also visible throughout the function
+  endif
+  emit y # This is valid and will emit 20
+endfunc
+```
+
+---
+
+### 4.2. L-Values: The Targets of Assignment
 
 An **l-value** (short for "left-hand-side value") is anything that can appear on the left side of an assignment (`=`) statement. It represents a memory location where a value can be stored. In NeuroScript, an l-value can be a simple variable or a more complex path that accesses elements within lists or maps.
 
@@ -361,7 +399,7 @@ set data.users[1].email = "a@b.com"   # Mixed access
 
 ---
 
-### 4.2. Assigning State with the `set` Statement
+### 4.3. Assigning State with the `set` Statement
 
 The `set` statement is the fundamental way to create or modify variables in NeuroScript. It evaluates the expression on the right side of the `=` and assigns the result to the l-value on the left.
 
@@ -375,14 +413,15 @@ set total = count + 10 * 5
 # Assign the result of a function call
 set current_time = tool.time.now()
 
-# You can assign to multiple l-values from a list
+# You can assign to multiple l-values from a list.
+# The number of variables must exactly match the number of items.
 set a, b, c = [1, 2, 3]
 # `a` is now 1, `b` is 2, `c` is 3
 ```
 
 ---
 
-### 4.3. Placeholders for String Interpolation
+### 4.4. Placeholders for String Interpolation
 
 Placeholders allow you to embed the value of an identifier directly inside a string literal. This is a convenient alternative to string concatenation. A placeholder is an identifier enclosed in double curly braces `{{...}}`.
 
@@ -398,7 +437,7 @@ emit raw_string
 
 ---
 
-### 4.4. Operator Precedence
+### 4.5. Operator Precedence
 
 NeuroScript has a well-defined order of operations to ensure that complex expressions are evaluated predictably. Operators with higher precedence are evaluated before operators with lower precedence.
 
@@ -421,9 +460,9 @@ You can use parentheses `()` to override the default precedence and force an exp
 
 ---
 
-### 4.5. Detailed Operator Guide
+### 4.6. Detailed Operator Guide
 
-#### 4.5.1. Arithmetic Operators
+#### 4.6.1. Arithmetic Operators
 
 | Operator | Description      | Example         |
 | :------- | :--------------- | :-------------- |
@@ -434,7 +473,7 @@ You can use parentheses `()` to override the default precedence and force an exp
 | `%`      | Modulo/Remainder | `5 % 3`         |
 | `**`     | Power/Exponent   | `5 ** 3`        |
 
-#### 4.5.2. Comparison Operators
+#### 4.6.2. Comparison Operators
 
 | Operator | Description          | Example      |
 | :------- | :------------------- | :----------- |
@@ -445,14 +484,14 @@ You can use parentheses `()` to override the default precedence and force an exp
 | `>=`     | Greater than or equal to | `a >= b`     |
 | `<=`     | Less than or equal to    | `a <= b`     |
 
-#### 4.5.3. Logical Operators
+#### 4.6.3. Logical Operators
 
 | Operator | Description                                       | Example        |
 | :------- | :------------------------------------------------ | :------------- |
 | `and`    | Returns `true` if both operands are true          | `a and b`      |
 | `or`     | Returns `true` if at least one operand is true    | `a or b`       |
 
-#### 4.5.4. Bitwise Operators
+#### 4.6.4. Bitwise Operators
 
 | Operator | Description      |
 | :------- | :--------------- |
@@ -461,7 +500,9 @@ You can use parentheses `()` to override the default precedence and force an exp
 | `^`      | Bitwise XOR      |
 | `~`      | Bitwise NOT      |
 
-#### 4.5.5. Unary Operators
+> The language does not currently support bit-shifting operators (`<<`, `>>`).
+
+#### 4.6.5. Unary Operators
 
 | Operator | Description                                   | Example         |
 | :------- | :-------------------------------------------- | :-------------- |
@@ -471,7 +512,7 @@ You can use parentheses `()` to override the default precedence and force an exp
 | `some`   | Checks if a list contains at least one element | `some my_list`  |
 | `typeof` | Returns the data type of its operand as a string | `typeof 123`  |
 
-#### 4.5.6. Fuzzy Operators
+#### 4.6.6. Fuzzy Operators
 
 NeuroScript supports fuzzy logic, which deals with reasoning that is approximate rather than precise. A `fuzzy` value represents a degree of truth, typically between 0.0 (completely false) and 1.0 (completely true).
 
@@ -555,7 +596,7 @@ endcommand
 
 ### 5.4. The `emit` Statement: Firing Events
 
-The `emit` statement is the primary way for a script to output data or signal that something has happened. The host system determines how to handle an emitted value—it could be printed to the console, logged to a file, or broadcast as an event to other parts of an application.
+The `emit` statement is the primary way for a script to output data or signal that something has happened. The host system determines how to handle an emitted value—it could be printed to the console, logged to a file, or broadcast as an event to other parts of an application. For sending data to multiple specific outputs, it is recommended to use tools (e.g., `tool.log.info`, `tool.network.send`).
 
 **Syntax:** `emit <expression>`
 
@@ -754,6 +795,13 @@ func find_first_admin(needs user_list) means
   return found_admin
 endfunc
 ```
+
+---
+
+### 6.4. Limitations
+
+NeuroScript does not currently implement a `switch` statement for multi-way branching. Complex conditional logic should be handled with `if`/`else` chains.
+
 ---
 
 # 7. Scripting Models
@@ -833,7 +881,7 @@ While fundamental statements and control flow direct the immediate execution of 
 
 ### 8.1. Defining a Function (`func`)
 
-A procedure, or function, is a named block of reusable code defined in a library script. Functions are the primary way to organize and modularize your logic. Every function is defined using the `func` keyword and must end with `endfunc`.
+A procedure, or function, is a named block of reusable code defined in a library script. Functions are the primary way to organize and modularize your logic. Every function is defined using the `func` keyword and must end with `endfunc`. The terms "function" and "procedure" are used interchangeably.
 
 **Syntax:**
 ```neuroscript
@@ -925,6 +973,8 @@ NeuroScript provides a small set of built-in functions for common operations. Th
 
 The `tool` keyword is the gateway to interacting with the host environment. It allows a script to call external functions, APIs, or any other capability registered with the NeuroScript interpreter.
 
+> **Note on Naming:** The `tool` keyword is a special part of the language for accessing external functions and is not a variable. The dot notation that follows it is a required hierarchical naming convention, not a nested data access path on a variable.
+
 #### 8.6.1. Tool Naming Convention: `tool.<group>.<name>`
 
 Tools are organized into a two-level namespace to prevent collisions and improve clarity. Every tool call must follow this structure:
@@ -932,7 +982,7 @@ Tools are organized into a two-level namespace to prevent collisions and improve
 `tool.<group>.<name>(<arguments>)`
 
 - `tool`: The required keyword.
-- `<group>`: A logical grouping for a set of related tools (e.g., `fs` for filesystem, `db` for database).
+- `<group>`: A logical grouping for a set of related tools (e.g., `fs` for filesystem, `db` for database). Group names can themselves contain dots for further organization (e.g., `my.corp.utils`).
 - `<name>`: The specific name of the tool to be executed.
 
 ```neuroscript
@@ -953,7 +1003,7 @@ A robust script must be able to react to significant occurrences and gracefully 
 
 ### 9.1. The Event Model
 
-The event model allows scripts to react to signals, or "events," that can be triggered by the host system, external tools, or even the script itself using the `emit` statement. This creates a loosely coupled way for different parts of a system to communicate.
+The event model allows scripts to react to signals, or "events," that can be triggered by the host system, external tools, or even the script itself using the `emit` statement. This creates a loosely coupled way for different parts of a system to communicate. The event model is **synchronous**; when an `emit` statement is executed, all corresponding `on event` handlers are run to completion before the script continues.
 
 #### 9.1.1. `on event ... do ... endon`
 
@@ -1125,11 +1175,11 @@ Metadata
 ::schema: spec
 ::serialization: md
 ::langVersion: neuroscript@0.4.6
-::fileVersion: 1
+::fileVersion: 2
 ::description: A comprehensive guide to the NeuroScript language, covering syntax, data types, control flow, and advanced features.
 ::author: Gemini and Andrew Price
 ::created: 2025-07-13
-::modified: 2025-07-13
+::modified: 2025-07-26
 ::license: Proprietary
 ::tags: neuroscript,guide,documentation,spec,language
 ::type: documentation

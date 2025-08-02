@@ -9,6 +9,6 @@ import "github.com/aprice2704/neuroscript/pkg/tool"
 func init() {
 	tool.AddToolsetRegistration(
 		"fs",
-		tool.CreateRegistrationFunc("fs", fsToolsToRegister),
+		tool.CreateRegistrationFunc("fs", FsToolsToRegister),
 	)
 }

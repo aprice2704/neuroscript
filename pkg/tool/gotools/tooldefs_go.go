@@ -12,11 +12,12 @@ import (
 )
 
 const group = "gotools"
+const Group = group
 
 // goToolsToRegister contains ToolImplementation definitions for a subset of Go language tools.
 // This array is intended to be concatenated with other similar arrays in a central
 // registrar (e.g., zz_core_tools_registrar.go) to be processed by AddToolImplementations.
-var goToolsToRegister = []tool.ToolImplementation{
+var GoToolsToRegister = []tool.ToolImplementation{
 	{
 		Spec: tool.ToolSpec{
 			Name:            "ModTidy",

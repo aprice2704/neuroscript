@@ -5,7 +5,7 @@
 // nlines: 250 // Approximate
 // risk_rating: LOW
 
-package fs
+package fs_test
 
 import (
 	"os"

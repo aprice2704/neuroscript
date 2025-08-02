@@ -1,5 +1,5 @@
 // filename: pkg/tool/fs/tools_fs_helpers_test.go
-package fs
+package fs_test
 
 import (
 	"errors"
@@ -11,6 +11,7 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/testutil"
 	"github.com/aprice2704/neuroscript/pkg/tool"
+	"github.com/aprice2704/neuroscript/pkg/tool/fs"
 	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
@@ -33,8 +34,8 @@ func newFsTestInterpreter(t *testing.T) *interpreter.Interpreter {
 	sandboxOpt := testutil.NewTestSandbox(t)
 	interp := interpreter.NewInterpreter(sandboxOpt)
 
-	for _, toolImpl := range fsToolsToRegister {
-		if err := interp.ToolRegistry().RegisterTool(toolImpl); err != nil {
+	for _, toolImpl := range fs.FsToolsToRegister {
+		if _, err := interp.ToolRegistry().RegisterTool(toolImpl); err != nil {
 			t.Fatalf("Failed to register tool '%s': %v", toolImpl.Spec.Name, err)
 		}
 	}
@@ -53,7 +54,7 @@ func testFsToolHelper(t *testing.T, interp *interpreter.Interpreter, tc fsTestCa
 		}
 	}
 
-	fullname := types.MakeFullName(group, string(tc.toolName))
+	fullname := types.MakeFullName(fs.Group, string(tc.toolName))
 	toolImpl, found := interp.ToolRegistry().GetTool(fullname)
 	if !found {
 		t.Fatalf("Tool %q not found in registry", tc.toolName)

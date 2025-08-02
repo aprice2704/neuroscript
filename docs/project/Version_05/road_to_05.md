@@ -9,16 +9,42 @@
 
 - [ ] Fix persisting fns
 - [ ] add final and friends (persisting_fns.md)
-- [ ] add keep_calm_carry_on as alias for clear_error
-- [ ] add proc as alias for func, endproc for endfunc
 - [ ] remove need for line continuation if easy (check at least)
-- [ ] fn built in type?
+- [ ] fn built in type?  (closures?) -- likely later
 - [ ] fuzzy literal
 - [ ] other specialized types literals?
 - [ ] mustbe
 - [ ] remove nil values -- how hard? desirable?
 - [ ] complete API facades for tools etc.
  
+(via Freddy and gemini)
+
+Of course. Freddy's feedback provides a great roadmap for future language development. Here is a compiled list of potential additions, categorized by their likely implementation difficulty.
+
+### Short-Term (Easy Additions)
+
+These are features that are relatively straightforward to add and would improve the language's expressiveness and quality of life for developers.
+
+* **Add `exp()` function:** While `E ** x` works, a built-in `exp(x)` function is a standard mathematical utility that should be included.
+* **Implement Bit-Shifting Operators:** Add `<<` (left shift) and `>>` (right shift) to complete the set of bitwise operators.
+* **Standardize Terminology:** Consistently use the term "**function**" instead of "procedure" throughout the documentation to avoid ambiguity.
+* **Rename `Unknown` Type:** Change the `Unknown` type to `any`. This is more in line with modern programming language conventions and is less ambiguous.
+* **Clarify `some` vs. `not no`:** Add an explicit note in the guide that `some` is syntactic sugar and is logically equivalent to `not (no ...)`.
+
+---
+
+### Medium/Long-Term (More Complex Features)
+
+These features would add significant power to NeuroScript but require more design and implementation effort.
+
+* **`switch`/`case` Statement:** A `switch` statement would be a more elegant and readable way to handle multi-way conditional logic than nested `if/else` chains.
+* **Concurrent I/O (`select`):** Introducing a mechanism for handling concurrent, blocking I/O (similar to Go's `select` statement) would be a major feature, enabling more advanced agentic and networking tasks.
+* **Head/Tail List Destructuring:** Adding support for destructuring lists into a "head" element and a "tail" list (e.g., `set h, t = myList`) is a powerful feature from functional programming that would make list processing more elegant.
+* **Named `emit` Streams:** To better support conversational agents and complex systems, the `emit` statement could be extended to target named streams (e.g., `emit to "debug" "message"`), allowing for multiple, distinct output channels.
+
+
+
+
  ## Worker Management System
 
  - See design document: [docs/core/ai_wm_design.md]

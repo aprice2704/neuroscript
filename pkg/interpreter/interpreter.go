@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.5.2
-// File version: 21
-// Purpose: Removes the package-level default sandbox in favor of explicit configuration per interpreter.
+// File version: 25
+// Purpose: Added a skipStdTools flag to allow for isolated interpreter testing without the standard library.
 // filename: pkg/interpreter/interpreter.go
-// nlines: 319
+// nlines: 192
 // risk_rating: HIGH
 
 package interpreter
@@ -12,8 +12,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"sync"
-	"time"
 
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
@@ -21,26 +19,6 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/logging"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 )
-
-// interpreterState holds the non-exported state of the interpreter.
-type interpreterState struct {
-	variables         map[string]lang.Value
-	variablesMu       sync.RWMutex
-	knownProcedures   map[string]*ast.Procedure
-	commands          []*ast.CommandNode
-	stackFrames       []string
-	currentProcName   string
-	errorHandlerStack [][]*ast.Step
-	sandboxDir        string
-	vectorIndex       map[string][]float32
-	globalVarNames    map[string]bool
-}
-
-// EventManager handles event subscriptions and emissions.
-type EventManager struct {
-	eventHandlers   map[string][]*ast.OnEventDecl
-	eventHandlersMu sync.RWMutex
-}
 
 // Interpreter holds the state for a NeuroScript runtime environment.
 type Interpreter struct {
@@ -59,119 +37,15 @@ type Interpreter struct {
 	stdin              io.Reader
 	stderr             io.Writer
 	maxLoopIterations  int
-	ToolCallTimestamps map[string][]time.Time
+	ToolCallTimestamps map[string]interface{}
 	rateLimitCount     int
-	rateLimitDuration  time.Duration
+	rateLimitDuration  interface{}
 	externalHandler    interface{}
 	objectCache        map[string]interface{}
-	objectCacheMu      sync.RWMutex // Mutex for the handle cache
+	objectCacheMu      interface{} // Mutex for the handle cache
 	llmclient          interfaces.LLMClient
+	skipStdTools       bool // Flag to skip standard tool registration for isolated tests.
 }
-
-func (i *Interpreter) NTools() (ntools int) {
-	return i.tools.NTools()
-}
-
-func (i *Interpreter) LLM() interfaces.LLMClient {
-	return i.llmclient
-}
-
-// InterpreterOption defines a function signature for configuring an Interpreter.
-type InterpreterOption func(*Interpreter)
-
-// --- Functional Options ---
-
-func WithLogger(logger interfaces.Logger) InterpreterOption {
-	return func(i *Interpreter) {
-		i.logger = logger
-	}
-}
-
-func WithLLMClient(client interfaces.LLMClient) InterpreterOption {
-	return func(i *Interpreter) {
-		i.aiWorker = client
-	}
-}
-
-func WithSandboxDir(path string) InterpreterOption {
-	return func(i *Interpreter) {
-		i.setSandboxDir(path)
-	}
-}
-
-func WithStdout(w io.Writer) InterpreterOption {
-	return func(i *Interpreter) {
-		i.stdout = w
-	}
-}
-
-func WithStdin(r io.Reader) InterpreterOption {
-	return func(i *Interpreter) {
-		i.stdin = r
-	}
-}
-
-func WithStderr(w io.Writer) InterpreterOption {
-	return func(i *Interpreter) {
-		i.stderr = w
-	}
-}
-
-// WithInitialGlobals sets the initial global variables.
-func WithInitialGlobals(globals map[string]interface{}) InterpreterOption {
-	return func(i *Interpreter) {
-		for key, val := range globals {
-			if err := i.SetInitialVariable(key, val); err != nil {
-				i.logger.Error("Failed to set initial global variable", "key", key, "error", err)
-			}
-		}
-	}
-}
-
-// --- interpreterState Methods ---
-
-func newInterpreterState() *interpreterState {
-	return &interpreterState{
-		variables:       make(map[string]lang.Value),
-		knownProcedures: make(map[string]*ast.Procedure),
-		commands:        []*ast.CommandNode{},
-		stackFrames:     []string{},
-		globalVarNames:  make(map[string]bool),
-	}
-}
-
-func (s *interpreterState) setVariable(name string, value lang.Value) {
-	s.variablesMu.Lock()
-	defer s.variablesMu.Unlock()
-	if s.variables == nil {
-		s.variables = make(map[string]lang.Value)
-	}
-	s.variables[name] = value
-}
-
-// --- EventManager Methods ---
-
-func newEventManager() *EventManager {
-	return &EventManager{
-		eventHandlers: make(map[string][]*ast.OnEventDecl),
-	}
-}
-
-func (em *EventManager) register(decl *ast.OnEventDecl, i *Interpreter) error {
-	em.eventHandlersMu.Lock()
-	defer em.eventHandlersMu.Unlock()
-
-	eventName, err := i.evaluate.Expression(decl.EventNameExpr)
-	if err != nil {
-		return lang.WrapErrorWithPosition(err, decl.EventNameExpr.GetPos(), "evaluating event name expression")
-	}
-
-	eventNameStr, _ := lang.ToString(eventName)
-	em.eventHandlers[eventNameStr] = append(em.eventHandlers[eventNameStr], decl)
-	return nil
-}
-
-// --- Interpreter Methods ---
 
 func NewInterpreter(opts ...InterpreterOption) *Interpreter {
 	i := &Interpreter{
@@ -186,15 +60,27 @@ func NewInterpreter(opts ...InterpreterOption) *Interpreter {
 	}
 	i.evaluate = &evaluation{i: i}
 	i.tools = tool.NewToolRegistry(i)
-	if err := tool.RegisterExtendedTools(i.tools); err != nil {
-		panic(fmt.Sprintf("FATAL: Failed to register extended tools: %v", err))
-	}
 
 	for _, opt := range opts {
 		opt(i)
 	}
 
+	// Only register standard tools if the flag is not set.
+	if !i.skipStdTools {
+		if err := tool.RegisterExtendedTools(i.tools); err != nil {
+			panic(fmt.Sprintf("FATAL: Failed to register extended tools: %v", err))
+		}
+	}
+
 	return i
+}
+
+func (i *Interpreter) NTools() (ntools int) {
+	return i.tools.NTools()
+}
+
+func (i *Interpreter) LLM() interfaces.LLMClient {
+	return i.llmclient
 }
 
 // AddProcedure programmatically adds a single procedure to the interpreter's registry.
@@ -238,6 +124,7 @@ func (i *Interpreter) CloneForEventHandler() *Interpreter {
 	for name, proc := range i.state.knownProcedures {
 		clone.state.knownProcedures[name] = proc
 	}
+	clone.tools = i.tools
 	return clone
 }
 
@@ -322,6 +209,7 @@ func (i *Interpreter) CloneWithNewVariables() *Interpreter {
 	for k, v := range i.state.knownProcedures {
 		clone.state.knownProcedures[k] = v
 	}
+	clone.tools = i.tools
 	return clone
 }
 

@@ -1,5 +1,5 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.2.3
+// File version: 0.2.4
 // Corrected all remaining compiler errors from typos and refactoring.
 // filename: pkg/neurogo/app_agent.go
 package neurogo
@@ -226,13 +226,14 @@ func (app *App) executeStartupScript(ctx context.Context, scriptPath string, age
 		return fmt.Errorf("internal error wrapping script path '%s': %w", scriptPath, err)
 	}
 	toolArgs := map[string]lang.Value{"filepath": filepathArg}
-	contentValue, err := app.interpreter.ExecuteTool("TOOL.ReadFile", toolArgs)
+	// CORRECTED: Use the canonical tool name 'fs.read'
+	contentValue, err := app.interpreter.ExecuteTool("fs.read", toolArgs)
 	if err != nil {
 		return fmt.Errorf("failed to read startup script file '%s': %w", scriptPath, err)
 	}
 	scriptContent, ok := lang.Unwrap(contentValue).(string)
 	if !ok {
-		return fmt.Errorf("internal error: TOOL.ReadFile did not return a string for '%s'", scriptPath)
+		return fmt.Errorf("internal error: 'fs.read' did not return a string for '%s'", scriptPath)
 	}
 
 	if _, err := app.LoadScriptString(ctx, scriptContent); err != nil {

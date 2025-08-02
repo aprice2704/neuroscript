@@ -40,7 +40,7 @@ func newGitTestInterpreter(t *testing.T) *interpreter.Interpreter {
 
 	// Register the git tools for this test suite
 	for _, toolImpl := range gitToolsToRegister {
-		if err := interp.ToolRegistry().RegisterTool(toolImpl); err != nil {
+		if _, err := interp.ToolRegistry().RegisterTool(toolImpl); err != nil {
 			t.Fatalf("Failed to register tool '%s': %v", toolImpl.Spec.Name, err)
 		}
 	}

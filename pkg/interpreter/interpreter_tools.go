@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.5.2
-// File version: 9
-// Purpose: Simplified to only contain methods required by the tool.Runtime interface.
+// File version: 15
+// Purpose: Corrected CallTool to properly prepend 'tool.' to the group-qualified name, creating the full canonical key required for registry lookups and resolving the tool-to-tool call failure.
 // filename: pkg/interpreter/interpreter_tools.go
 // nlines: 60
 // risk_rating: HIGH
@@ -14,12 +14,16 @@ import (
 
 // CallTool satisfies the tool.Runtime interface. It's the bridge for tools calling other tools.
 func (i *Interpreter) CallTool(toolName types.FullName, args []any) (any, error) {
+	// A tool calling another tool provides the group-qualified name (e.g., "my.test.tools.echo").
+	// We must prepend "tool." to construct the full canonical name used as the key in the registry.
+	fullToolNameForLookup := types.FullName("tool." + string(toolName))
+
 	// Since this is on the Runtime, args are already primitives.
 	// We need to wrap them back to lang.Value for ExecuteTool.
 	langArgs := make(map[string]lang.Value)
-	impl, ok := i.tools.GetTool(toolName)
+	impl, ok := i.tools.GetTool(fullToolNameForLookup)
 	if !ok {
-		return nil, lang.NewRuntimeError(lang.ErrorCodeToolNotFound, "tool not found: "+string(toolName), lang.ErrToolNotFound)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeToolNotFound, "tool not found: "+string(fullToolNameForLookup), lang.ErrToolNotFound)
 	}
 
 	for idx, spec := range impl.Spec.Args {
@@ -32,7 +36,7 @@ func (i *Interpreter) CallTool(toolName types.FullName, args []any) (any, error)
 		}
 	}
 
-	resultVal, err := i.tools.ExecuteTool(toolName, langArgs)
+	resultVal, err := i.tools.ExecuteTool(fullToolNameForLookup, langArgs)
 	if err != nil {
 		return nil, err
 	}

@@ -5,7 +5,7 @@
 // nlines: 220
 // risk_rating: LOW
 
-package syntax
+package syntax_test
 
 import (
 	"errors"
@@ -17,6 +17,7 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/parser"
 	"github.com/aprice2704/neuroscript/pkg/testutil"
 	"github.com/aprice2704/neuroscript/pkg/tool"
+	"github.com/aprice2704/neuroscript/pkg/tool/syntax"
 )
 
 func TestAnalyzeNSSyntaxInternal(t *testing.T) {
@@ -122,7 +123,7 @@ endfunc`,
 				return
 			}
 
-			resultInterface, err := AnalyzeNSSyntaxInternal(tc.interpreter, tc.scriptContent)
+			resultInterface, err := syntax.AnalyzeNSSyntaxInternal(tc.interpreter, tc.scriptContent)
 
 			if tc.expectError {
 				if err == nil {

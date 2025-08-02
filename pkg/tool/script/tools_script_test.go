@@ -70,7 +70,7 @@ func TestScriptTools(t *testing.T) {
 
 			// Manually register the script tools with the interpreter's registry.
 			for _, toolImpl := range scriptToolsToRegister {
-				if err := interp.ToolRegistry().RegisterTool(toolImpl); err != nil {
+				if _, err := interp.ToolRegistry().RegisterTool(toolImpl); err != nil {
 					t.Fatalf("failed to register tool '%s': %v", toolImpl.Spec.Name, err)
 				}
 			}

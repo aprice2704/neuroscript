@@ -1,5 +1,5 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.2.5
+// File version: 0.2.6
 // Purpose: Final corrections to logger/level constructors and interpreter functional options.
 // filename: pkg/neurogo/app_script_break_continue_test.go
 package neurogo
@@ -77,13 +77,14 @@ func TestApp_RunScriptMode_BreakContinue(t *testing.T) {
 		t.Fatalf("Failed to wrap script path argument: %v", err)
 	}
 	toolArgs := map[string]lang.Value{"filepath": filepathArg}
-	contentValue, err := app.GetInterpreter().ExecuteTool("TOOL.FS.Read", toolArgs)
+	// CORRECTED: Use the canonical tool name 'fs.read'
+	contentValue, err := app.GetInterpreter().ExecuteTool("fs.read", toolArgs)
 	if err != nil {
-		t.Fatalf("Executing TOOL.FS.Read tool failed: %v", err)
+		t.Fatalf("Executing tool 'fs.read' failed: %v", err)
 	}
 	scriptContent, ok := lang.Unwrap(contentValue).(string)
 	if !ok {
-		t.Fatalf("TOOL.FS.Read did not return a string, got %T", lang.Unwrap(contentValue))
+		t.Fatalf("'fs.read' did not return a string, got %T", lang.Unwrap(contentValue))
 	}
 
 	_, err = app.LoadScriptString(ctx, scriptContent)

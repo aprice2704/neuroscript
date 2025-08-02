@@ -1,5 +1,5 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.3.9
+// File version: 0.4.0
 // Purpose: Corrected the NewInterpreter constructor to use the functional options pattern
 // and fixed the logger constructor name. Removed non-existent WithLibPaths option.
 // filename: pkg/neurogo/app_script_test.go
@@ -72,13 +72,14 @@ func TestApp_LoadAndRunScript_MultiReturn(t *testing.T) {
 		t.Fatalf("Failed to wrap filepath argument: %v", err)
 	}
 	toolArgs := map[string]lang.Value{"filepath": filepathArg}
-	contentValue, err := app.GetInterpreter().ExecuteTool("TOOL.FS.Read", toolArgs)
+	// CORRECTED: Use the canonical tool name 'fs.read'
+	contentValue, err := app.GetInterpreter().ExecuteTool("fs.read", toolArgs)
 	if err != nil {
-		t.Fatalf("Executing TOOL.FS.Read tool failed: %v", err)
+		t.Fatalf("Executing tool 'fs.read' failed: %v", err)
 	}
 	scriptContent, ok := lang.Unwrap(contentValue).(string)
 	if !ok {
-		t.Fatalf("TOOL.FS.Read did not return a string, got %T", lang.Unwrap(contentValue))
+		t.Fatalf("'fs.read' did not return a string, got %T", lang.Unwrap(contentValue))
 	}
 
 	_, err = app.LoadScriptString(ctx, scriptContent)
@@ -111,7 +112,7 @@ func TestApp_LoadScript_DoesNotExecuteTopLevelCode(t *testing.T) {
 		},
 	}
 	app := setupTestApp(t)
-	if err := app.GetInterpreter().ToolRegistry().RegisterTool(canaryTool); err != nil {
+	if _, err := app.GetInterpreter().ToolRegistry().RegisterTool(canaryTool); err != nil {
 		t.Fatalf("Failed to register canary tool: %v", err)
 	}
 
@@ -144,7 +145,7 @@ func TestApp_LoadScript_DoesNotImplicitlyRunMain(t *testing.T) {
 		},
 	}
 	app := setupTestApp(t)
-	if err := app.GetInterpreter().ToolRegistry().RegisterTool(canaryTool); err != nil {
+	if _, err := app.GetInterpreter().ToolRegistry().RegisterTool(canaryTool); err != nil {
 		t.Fatalf("Failed to register canary tool: %v", err)
 	}
 

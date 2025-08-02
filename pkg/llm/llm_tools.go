@@ -155,7 +155,7 @@ func RegisterLLMTools(registry tool.ToolRegistry) error {
 		return fmt.Errorf("failed to convert args for LLM.Ask: %w", argsErr)
 	}
 
-	err = registry.RegisterTool(tool.ToolImplementation{
+	_, err = registry.RegisterTool(tool.ToolImplementation{
 		Spec: tool.ToolSpec{
 			Name:        "LLM.Ask",
 			Description: "Sends a text prompt to the configured LLM and returns the text response.",
@@ -184,7 +184,7 @@ func RegisterLLMTools(registry tool.ToolRegistry) error {
 		return fmt.Errorf("failed to convert args for LLM.AskWithParts: %w", argsErr)
 	}
 
-	err = registry.RegisterTool(tool.ToolImplementation{
+	_, err = registry.RegisterTool(tool.ToolImplementation{
 		Spec: tool.ToolSpec{
 			Name:        "LLM.AskWithParts",
 			Description: "Sends a list of parts (currently treated as text strings) as a prompt to the LLM.",

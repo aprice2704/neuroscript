@@ -1,9 +1,9 @@
 // NeuroScript Version: 0.6.0
-// File version: 9
-// Purpose: Exposes the WithSandboxDir option to the public API.
+// File version: 13
+// Purpose: Removed redundant tool registration; this is now handled correctly by the internal interpreter constructor.
 // filename: pkg/api/interpreter.go
-// nlines: 94
-// risk_rating: MEDIUM
+// nlines: 91
+// risk_rating: LOW
 
 package api
 
@@ -22,9 +22,9 @@ type Interpreter struct {
 }
 
 // New creates a new, persistent NeuroScript interpreter instance.
-// It is critical to use the WithSandboxDir option if the script will perform
-// any file operations.
-func New(opts ...interpreter.InterpreterOption) *Interpreter {
+func New(opts ...Option) *Interpreter {
+	// The internal NewInterpreter now handles all setup, including applying
+	// options and registering all standard tools in the correct order.
 	i := interpreter.NewInterpreter(opts...)
 	return &Interpreter{internal: i}
 }
@@ -84,8 +84,6 @@ func (i *Interpreter) EmitEvent(eventName string, source string, payload lang.Va
 func (i *Interpreter) ToolCount() int {
 	return i.internal.NTools()
 }
-
-func (i *Interpreter) ToolRegistry()
 
 // Unwrap converts a NeuroScript api.Value back into a standard Go `any` type.
 func Unwrap(v Value) (any, error) {

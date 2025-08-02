@@ -110,7 +110,7 @@ func TestTypeOfOperator_Function(t *testing.T) {
 
 func TestTypeOfOperator_Tool(t *testing.T) {
 	i := interpreter.NewInterpreter()
-	err := i.ToolRegistry().RegisterTool(testDummyTool)
+	_, err := i.ToolRegistry().RegisterTool(testDummyTool)
 	if err != nil {
 		t.Fatalf("Failed to register dummy tool: %v", err)
 	}

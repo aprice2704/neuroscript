@@ -4,7 +4,7 @@
 // nlines: 180
 // risk_rating: LOW
 // filename: pkg/tool/fs/tools_fs_move_test.go
-package fs
+package fs_test
 
 import (
 	"errors"

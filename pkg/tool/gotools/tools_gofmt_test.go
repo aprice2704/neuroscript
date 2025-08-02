@@ -5,7 +5,7 @@
 // nlines: 115
 // risk_rating: LOW
 
-package gotools
+package gotools_test
 
 import (
 	"errors"
@@ -15,6 +15,7 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/testutil"
 	"github.com/aprice2704/neuroscript/pkg/tool"
+	"github.com/aprice2704/neuroscript/pkg/tool/gotools"
 	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
@@ -32,7 +33,7 @@ func testGoFormatToolHelper(t *testing.T, interp tool.Runtime, tc struct {
 		if !ok {
 			t.Fatalf("Interpreter does not implement ToolRegistry()")
 		}
-		fullname := types.MakeFullName(group, string(tc.toolName))
+		fullname := types.MakeFullName(gotools.Group, string(tc.toolName))
 		toolImpl, found := interpImpl.ToolRegistry().GetTool(fullname)
 		if !found {
 			t.Fatalf("Tool %q not found", tc.toolName)

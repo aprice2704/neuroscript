@@ -3,7 +3,7 @@
 // nlines: 145 // Approximate
 // risk_rating: MEDIUM // Test file for a destructive operation
 // filename: pkg/tool/fs/tools_fs_delete_test.go
-package fs
+package fs_test
 
 import (
 	"os"

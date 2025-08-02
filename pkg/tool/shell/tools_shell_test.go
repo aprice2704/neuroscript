@@ -5,7 +5,7 @@
 // nlines: 106
 // risk_rating: HIGH
 
-package shell
+package shell_test
 
 import (
 	"errors"

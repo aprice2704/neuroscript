@@ -1,4 +1,4 @@
-# NeuroScript Integration Guide (v0.7 — 2025-07-23)
+# NeuroScript Integration Guide (v0.7 — 2025-07-26)
 
 This guide provides a comprehensive overview of how to embed and interact with the NeuroScript engine in an external Go application using **only** the public `neuroscript/pkg/api` package. The `api` package is a stable facade that wraps the underlying parser, interpreter, and cryptographic components.
 
@@ -9,7 +9,7 @@ This guide provides a comprehensive overview of how to embed and interact with t
 You can access both the overall program version and the specific grammar version directly from the API. This is useful for logging, debugging, and ensuring compatibility.
 
 ```go
-import "github.com/aprice2704/neuroscript/pkg/api"
+import "[github.com/aprice2704/neuroscript/pkg/api](https://github.com/aprice2704/neuroscript/pkg/api)"
 import "fmt"
 
 func main() {
@@ -38,7 +38,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/aprice2704/neuroscript/pkg/api"
+	"[github.com/aprice2704/neuroscript/pkg/api](https://github.com/aprice2704/neuroscript/pkg/api)"
 )
 
 func main() {
@@ -160,7 +160,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/aprice2704/neuroscript/pkg/api"
+	"[github.com/aprice2704/neuroscript/pkg/api](https://github.com/aprice2704/neuroscript/pkg/api)"
 )
 
 // 1. Define the tool's function. It must match the api.ToolFunc signature.
@@ -198,8 +198,9 @@ func main() {
 	interp := api.New(toolOpt)
 
 	// 4. Run NeuroScript code that uses the tool.
+	// Note the mandatory "tool." prefix.
 	src := `func do_math() returns result means
-  set result = host.add(10, 32)
+  set result = tool.host.add(10, 32)
   return result
 endfunc`
 
@@ -226,7 +227,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/aprice2704/neuroscript/pkg/api"
+	"[github.com/aprice2704/neuroscript/pkg/api](https://github.com/aprice2704/neuroscript/pkg/api)"
 )
 
 func init() {
@@ -259,7 +260,7 @@ The `api` package re-exports all necessary types so you don't need to import int
 - **Do not** import `pkg/parser`, `pkg/interpreter`, etc., directly. Use the `api` package.
 - **Do not** execute a script from an untrusted source without using the full `Parse -> Sign -> Load` workflow.
 - **Do not** re-canonicalise an AST after it has been verified by `api.Load`.
-- **Do not** roll-your-own tool name, use the MakeToolFullName helper.
+- **Do not** construct tool names manually; always use the `api.MakeToolFullName` helper to ensure the correct `tool.group.name` format.
 
 ---
 

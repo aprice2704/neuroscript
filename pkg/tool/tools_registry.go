@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.4.0
-// File version: 1.1.0
-// Purpose: Corrected typos for the Runtime interface.
+// File version: 8
+// Purpose: Removed the conflicting auto-registration loop from the constructor to centralize tool setup in the api.New function.
 // filename: pkg/tool/tools_registry.go
-// nlines: 165
+// nlines: 147
 // risk_rating: HIGH
 
 package tool
@@ -10,7 +10,6 @@ package tool
 import (
 	"fmt"
 	"log"
-	"strings"
 	"sync"
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
@@ -18,18 +17,21 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/utils"
 )
 
-// globalToolImplementations holds tools registered via init() functions.
+// The global tool registration mechanism below is part of a conflicting pattern
+// and is being deprecated in favor of the 'register.go' pattern. It is commented
+// out to prevent its use.
+/*
 var (
 	globalToolImplementations []ToolImplementation
 	globalRegMutex            sync.Mutex
 )
 
-// AddToolImplementations allows tool packages to register their ToolImplementation specs.
 func AddToolImplementations(impls ...ToolImplementation) {
 	globalRegMutex.Lock()
 	defer globalRegMutex.Unlock()
 	globalToolImplementations = append(globalToolImplementations, impls...)
 }
+*/
 
 // ToolRegistryImpl manages the available tools for an Interpreter instance.
 type ToolRegistryImpl struct {
@@ -38,53 +40,55 @@ type ToolRegistryImpl struct {
 	mu          sync.RWMutex
 }
 
-// NewToolRegistry creates a new registry instance.
+// NewToolRegistry creates a new, empty registry instance.
+// Tool registration is now handled by the high-level api.New() function.
 func NewToolRegistry(interpreter Runtime) *ToolRegistryImpl {
 	r := &ToolRegistryImpl{
 		tools:       make(map[types.FullName]ToolImplementation),
 		interpreter: interpreter,
 	}
-	globalRegMutex.Lock()
-	defer globalRegMutex.Unlock()
-	for _, impl := range globalToolImplementations {
-		if err := r.RegisterTool(impl); err != nil {
-			log.Printf("[ERROR] NewToolRegistry: Failed to register tool '%s': %v\n", impl.Spec.Name, err)
-		}
-	}
 	return r
 }
 
-// RegisterTool adds a tool to the registry.
-func (r *ToolRegistryImpl) RegisterTool(impl ToolImplementation) error {
+// RegisterTool adds a tool to the registry. It canonicalizes the tool's name
+// to ensure consistent storage and lookup.
+func (r *ToolRegistryImpl) RegisterTool(impl ToolImplementation) (ToolImplementation, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if impl.Spec.Name == "" {
-		return fmt.Errorf("tool registration failed: name is empty")
+		return impl, fmt.Errorf("tool registration failed: name is empty")
 	}
 	if impl.Func == nil {
-		return fmt.Errorf("tool registration failed for '%s': function is nil", impl.Spec.Name)
+		return impl, fmt.Errorf("tool registration failed for '%s': function is nil", impl.Spec.Name)
 	}
-	fullname := types.MakeFullName(string(impl.Spec.Group), string(impl.Spec.Name))
-	impl.Spec.FullName = fullname
 
-	// Normalize the full name to lowercase for case-insensitive lookup
-	lowerCaseFullName := strings.ToLower(string(fullname))
-	r.tools[types.FullName(lowerCaseFullName)] = impl
-	return nil
+	baseName := string(impl.Spec.Group) + "." + string(impl.Spec.Name)
+	canonicalName := CanonicalizeToolName(baseName)
+
+	impl.FullName = types.FullName(canonicalName)
+	impl.Spec.FullName = types.FullName(canonicalName)
+
+	log.Printf("[DEBUG] Registering tool. Group: '%s', Name: '%s', Final Key: '%s'", impl.Spec.Group, impl.Spec.Name, canonicalName)
+
+	r.tools[types.FullName(canonicalName)] = impl
+
+	return impl, nil
 }
 
+// GetTool finds a tool by name.
 func (r *ToolRegistryImpl) GetTool(name types.FullName) (ToolImplementation, bool) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	// Normalize the lookup name to lowercase
-	lowerCaseName := strings.ToLower(string(name))
-	tool, found := r.tools[types.FullName(lowerCaseName)]
+
+	canonicalName := CanonicalizeToolName(string(name))
+	tool, found := r.tools[types.FullName(canonicalName)]
 	return tool, found
 }
 
+// GetToolShort finds a tool using its group and short name.
 func (r *ToolRegistryImpl) GetToolShort(group types.ToolGroup, name types.ToolName) (ToolImplementation, bool) {
-	fullname := types.MakeFullName(string(group), string(name))
-	return r.GetTool(fullname)
+	baseName := types.FullName(string(group) + "." + string(name))
+	return r.GetTool(baseName)
 }
 
 // ListTools returns the specs of all registered tools.
@@ -104,19 +108,17 @@ func (r *ToolRegistryImpl) ListTools() []ToolSpec {
 func (r *ToolRegistryImpl) CallFromInterpreter(interp Runtime, fullname types.FullName, args []lang.Value) (lang.Value, error) {
 	impl, ok := r.GetTool(fullname)
 	if !ok {
-		return nil, lang.NewRuntimeError(lang.ErrorCodeToolNotFound, fmt.Sprintf("tool '%s' not found", fullname), lang.ErrToolNotFound)
+		canonicalName := CanonicalizeToolName(string(fullname))
+		return nil, lang.NewRuntimeError(lang.ErrorCodeToolNotFound, fmt.Sprintf("tool '%s' not found", canonicalName), lang.ErrToolNotFound)
 	}
 
-	// 1. Unwrap all arguments from Value to primitives
 	rawArgs := make([]interface{}, len(args))
 	for i, arg := range args {
-		// This function call needs to be verified against the lang package
 		rawArgs[i] = lang.Unwrap(arg)
 	}
 
-	// 2. Validate and coerce the primitive arguments
 	if len(rawArgs) < len(impl.Spec.Args) {
-		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("tool '%s': expected at least %d args, got %d", fullname, len(impl.Spec.Args), len(rawArgs)), lang.ErrArgumentMismatch)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("tool '%s': expected at least %d args, got %d", impl.FullName, len(impl.Spec.Args), len(rawArgs)), lang.ErrArgumentMismatch)
 	}
 
 	coercedArgs := make([]interface{}, len(impl.Spec.Args))
@@ -124,20 +126,18 @@ func (r *ToolRegistryImpl) CallFromInterpreter(interp Runtime, fullname types.Fu
 		var err error
 		coercedArgs[i], err = coerceArg(rawArgs[i], spec.Type)
 		if err != nil {
-			return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("tool '%s' arg '%s': %v", fullname, spec.Name, err), lang.ErrArgumentMismatch)
+			return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("tool '%s' arg '%s': %v", impl.FullName, spec.Name, err), lang.ErrArgumentMismatch)
 		}
 	}
 	if impl.Spec.Variadic {
 		coercedArgs = append(coercedArgs, rawArgs[len(impl.Spec.Args):]...)
 	}
 
-	// 3. Call the tool's implementation function with primitives
 	out, err := impl.Func(interp, coercedArgs)
 	if err != nil {
-		return nil, err // Assume tool returns a compliant RuntimeError
+		return nil, err
 	}
 
-	// 4. Wrap the primitive result back into a Value
 	return lang.Wrap(out)
 }
 
@@ -150,29 +150,27 @@ func (r *ToolRegistryImpl) NTools() (ntools int) {
 func (r *ToolRegistryImpl) ExecuteTool(fullname types.FullName, args map[string]lang.Value) (lang.Value, error) {
 	impl, ok := r.GetTool(fullname)
 	if !ok {
-		return nil, lang.NewRuntimeError(lang.ErrorCodeToolNotFound, fmt.Sprintf("tool '%s' not found", fullname), lang.ErrToolNotFound)
+		canonicalName := CanonicalizeToolName(string(fullname))
+		return nil, lang.NewRuntimeError(lang.ErrorCodeToolNotFound, fmt.Sprintf("tool '%s' not found", canonicalName), lang.ErrToolNotFound)
 	}
 
-	// Tool functions require a `tool.Runtime`. The registry was initialized with one.
 	if r.interpreter == nil {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeConfiguration, "ToolRegistry not configured with a runtime context", lang.ErrConfiguration)
 	}
 
-	// Convert the map of named arguments into an ordered slice of positional arguments.
 	orderedLangArgs := make([]lang.Value, len(impl.Spec.Args))
 	for i, spec := range impl.Spec.Args {
 		val, ok := args[spec.Name]
 		if !ok {
 			if spec.Required {
-				return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("missing required argument '%s' for tool '%s'", spec.Name, fullname), lang.ErrArgumentMismatch)
+				return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("missing required argument '%s' for tool '%s'", spec.Name, impl.FullName), lang.ErrArgumentMismatch)
 			}
-			orderedLangArgs[i] = lang.NilValue{} // Use nil for optional args that are not provided.
+			orderedLangArgs[i] = lang.NilValue{}
 		} else {
 			orderedLangArgs[i] = val
 		}
 	}
 
-	// Now we have an ordered slice of `lang.Value`, which is what CallFromInterpreter expects.
 	return r.CallFromInterpreter(r.interpreter, fullname, orderedLangArgs)
 }
 

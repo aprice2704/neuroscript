@@ -10,6 +10,7 @@ package maths
 import "github.com/aprice2704/neuroscript/pkg/tool"
 
 const group = "math"
+const Group = group
 
 // mathToolsToRegister contains ToolImplementation definitions for Math tools.
 // These definitions are based on the mathTools slice previously in tools_math.go.

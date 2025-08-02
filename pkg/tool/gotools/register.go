@@ -11,6 +11,6 @@ import "github.com/aprice2704/neuroscript/pkg/tool"
 func init() {
 	tool.AddToolsetRegistration(
 		"gotools",
-		tool.CreateRegistrationFunc("gotools", goToolsToRegister),
+		tool.CreateRegistrationFunc("gotools", GoToolsToRegister),
 	)
 }

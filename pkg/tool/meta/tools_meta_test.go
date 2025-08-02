@@ -32,13 +32,13 @@ func newMetaTestInterpreter(t *testing.T) *interpreter.Interpreter {
 	// Register some dummy tools from other groups to test filtering logic
 	dummyFSSpec := tool.ToolSpec{Name: "Read", Group: "FS", Description: "Dummy FS tool.", ReturnType: tool.ArgTypeAny}
 	dummyFSFunc := func(rt tool.Runtime, args []interface{}) (interface{}, error) { return "dummy fs read", nil }
-	if err := interp.ToolRegistry().RegisterTool(tool.ToolImplementation{Spec: dummyFSSpec, Func: dummyFSFunc}); err != nil {
+	if _, err := interp.ToolRegistry().RegisterTool(tool.ToolImplementation{Spec: dummyFSSpec, Func: dummyFSFunc}); err != nil {
 		t.Fatalf("Failed to register dummy FS tool: %v", err)
 	}
 
 	dummyListSpec := tool.ToolSpec{Name: "Head", Group: "List", Description: "Dummy List tool.", ReturnType: tool.ArgTypeAny}
 	dummyListFunc := func(rt tool.Runtime, args []interface{}) (interface{}, error) { return "dummy list head", nil }
-	if err := interp.ToolRegistry().RegisterTool(tool.ToolImplementation{Spec: dummyListSpec, Func: dummyListFunc}); err != nil {
+	if _, err := interp.ToolRegistry().RegisterTool(tool.ToolImplementation{Spec: dummyListSpec, Func: dummyListFunc}); err != nil {
 		t.Fatalf("Failed to register dummy List tool: %v", err)
 	}
 

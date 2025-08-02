@@ -2,7 +2,7 @@
 // Last Modified: 2025-07-04 02:17:00 EDT
 // filename: pkg/tool/gotools/tools_go_diagnostics_test.go
 
-package gotools
+package gotools_test
 
 import (
 	"testing"

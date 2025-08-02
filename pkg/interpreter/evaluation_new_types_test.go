@@ -30,14 +30,14 @@ func runNewTypesTestScript(t *testing.T, script string) (lang.Value, error) {
 		val, _ := lang.ToFloat64(args[0])
 		return lang.NewFuzzyValue(val), nil
 	}
-	_ = i.ToolRegistry().RegisterTool(tool.ToolImplementation{Spec: specFuzzyTest, Func: toolFuzzyTest})
+	_, _ = i.ToolRegistry().RegisterTool(tool.ToolImplementation{Spec: specFuzzyTest, Func: toolFuzzyTest})
 
 	// Manually register the Time and Error tools that are no longer auto-registered.
 	specTimeNow := tool.ToolSpec{Name: "Now", Group: "Time", Args: []tool.ArgSpec{}}
 	toolTimeNow := func(_ tool.Runtime, args []interface{}) (interface{}, error) {
 		return lang.TimedateValue{Value: time.Now()}, nil
 	}
-	_ = i.ToolRegistry().RegisterTool(tool.ToolImplementation{Spec: specTimeNow, Func: toolTimeNow})
+	_, _ = i.ToolRegistry().RegisterTool(tool.ToolImplementation{Spec: specTimeNow, Func: toolTimeNow})
 
 	specTimeSleep := tool.ToolSpec{Name: "Sleep", Group: "Time", Args: []tool.ArgSpec{{Name: "ms", Type: "int"}}}
 	toolTimeSleep := func(_ tool.Runtime, args []interface{}) (interface{}, error) {
@@ -45,7 +45,7 @@ func runNewTypesTestScript(t *testing.T, script string) (lang.Value, error) {
 		time.Sleep(time.Duration(ms) * time.Millisecond)
 		return &lang.NilValue{}, nil
 	}
-	_ = i.ToolRegistry().RegisterTool(tool.ToolImplementation{Spec: specTimeSleep, Func: toolTimeSleep})
+	_, _ = i.ToolRegistry().RegisterTool(tool.ToolImplementation{Spec: specTimeSleep, Func: toolTimeSleep})
 
 	specErrorNew := tool.ToolSpec{Name: "New", Group: "Error", Args: []tool.ArgSpec{{Name: "code", Type: "any"}, {Name: "msg", Type: "string"}}}
 	toolErrorNew := func(_ tool.Runtime, args []interface{}) (interface{}, error) {
@@ -58,7 +58,7 @@ func runNewTypesTestScript(t *testing.T, script string) (lang.Value, error) {
 		msg, _ := lang.ToString(args[1])
 		return lang.NewErrorValue(codeStr, msg, nil), nil
 	}
-	_ = i.ToolRegistry().RegisterTool(tool.ToolImplementation{Spec: specErrorNew, Func: toolErrorNew})
+	_, _ = i.ToolRegistry().RegisterTool(tool.ToolImplementation{Spec: specErrorNew, Func: toolErrorNew})
 
 	scriptNameForParser := strings.ReplaceAll(t.Name(), "/", "_")
 	scriptNameForParser = strings.ReplaceAll(scriptNameForParser, "-", "_")

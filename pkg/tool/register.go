@@ -1,5 +1,6 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.1.4 // Corrected Registrar typo to ToolRegistrar.
+// File version: 0.1.5
+// Purpose: Corrected call to RegisterTool to match its new signature.
 // filename: pkg/tool/register.go
 
 // Package tool provides central registration for extended NeuroScript tool.
@@ -44,7 +45,6 @@ func AddToolsetRegistration(name string, regFunc ToolRegisterFunc) {
 // CreateRegistrationFunc is a helper that takes a toolset name and a slice of ToolImplementations
 // and returns a ToolRegisterFunc. This simplifies the registration logic within each toolset package.
 func CreateRegistrationFunc(toolsetName string, tools []ToolImplementation) ToolRegisterFunc {
-	// FIX: Corrected type to ToolRegistrar
 	return func(registry ToolRegistrar) error {
 		if registry == nil {
 			err := fmt.Errorf("CreateRegistrationFunc for %s: registry is nil", toolsetName)
@@ -53,7 +53,9 @@ func CreateRegistrationFunc(toolsetName string, tools []ToolImplementation) Tool
 		}
 		var errs []error
 		for _, toolImpl := range tools {
-			if err := registry.RegisterTool(toolImpl); err != nil {
+			// Call the updated RegisterTool and handle the error.
+			// We don't need the returned implementation here, so we use the blank identifier.
+			if _, err := registry.RegisterTool(toolImpl); err != nil {
 				detailedErr := fmt.Errorf("failed to add tool %q from %s toolset: %w", toolImpl.Spec.Name, toolsetName, err)
 				log.Printf(bootstrapLogPrefix+"ERROR: In toolset '%s': %v", toolsetName, detailedErr)
 				errs = append(errs, detailedErr)
@@ -69,7 +71,6 @@ func CreateRegistrationFunc(toolsetName string, tools []ToolImplementation) Tool
 // RegisterExtendedTools registers all non-core toolsets that have added themselves
 // via AddToolsetRegistration. It uses the provided ToolRegistrar (which should be
 // the interpreter's tool registry).
-// FIX: Corrected type to ToolRegistrar
 func RegisterExtendedTools(registry ToolRegistrar) error {
 	registrationMu.RLock()
 	defer registrationMu.RUnlock()
