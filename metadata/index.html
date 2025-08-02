@@ -1,0 +1,2830 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://aprice2704.github.io/neuroscript/metadata/">
+      
+      
+        <link rel="prev" href="../front/contributing/">
+      
+      
+        <link rel="next" href="../neurodata_and_composite_file_spec/">
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.16">
+    
+    
+      
+        <title>Metadata - NeuroScript</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.7e37652d.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#unified-metadata-specification-for-neuroscript-projects" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="NeuroScript" class="md-header__button md-logo" aria-label="NeuroScript" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            NeuroScript
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Metadata
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/aprice2704/neuroscript" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.0.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="NeuroScript" class="md-nav__button md-logo" aria-label="NeuroScript" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    NeuroScript
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/aprice2704/neuroscript" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.0.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Home
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../RoadMap.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Road Map
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Overview
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Overview
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../front/why-ns/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Why NeuroScript
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../front/architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Architecture
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../front/concepts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Core Concepts
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../front/installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Installation
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../front/faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    FAQ
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../front/contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Contributing
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Specifications
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Specifications
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../script_spec.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Quick Spec
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../formal script spec.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Formal Spec
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    Metadata
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    Metadata
+    
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-metadata-line-format" class="md-nav__link">
+    <span class="md-ellipsis">
+      1. Metadata Line Format
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. Metadata Line Format">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#11-key-matching" class="md-nav__link">
+    <span class="md-ellipsis">
+      1.1 Key Matching
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#12-canonical-go-regex" class="md-nav__link">
+    <span class="md-ellipsis">
+      1.2 Canonical Go Regex
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-placement" class="md-nav__link">
+    <span class="md-ellipsis">
+      3. Placement
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-identity-keys-schema-serialization" class="md-nav__link">
+    <span class="md-ellipsis">
+      4. Identity Keys: schema &amp; serialization
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-standard-vocabulary" class="md-nav__link">
+    <span class="md-ellipsis">
+      5. Standard Vocabulary
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Standard Vocabulary">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#51-file-scope" class="md-nav__link">
+    <span class="md-ellipsis">
+      5.1. File Scope
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#52-block-procedure-section-chapter-scope" class="md-nav__link">
+    <span class="md-ellipsis">
+      5.2. Block, Procedure, Section, Chapter scope
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#53-inline-scope" class="md-nav__link">
+    <span class="md-ellipsis">
+      5.3. Inline Scope
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#54-neurodata-block-scope" class="md-nav__link">
+    <span class="md-ellipsis">
+      5.4. NeuroData Block Scope
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#55-standard-defining-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      5.5 Standard-Defining Files
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sdi" class="md-nav__link">
+    <span class="md-ellipsis">
+      SDI
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#56-go-source-file-scope-with-sdi" class="md-nav__link">
+    <span class="md-ellipsis">
+      5.6. Go Source File Scope with SDI
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      7. Examples
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="7. Examples">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#71-neuroscript-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      7.1. NeuroScript Example
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#72-go-sdi-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      7.2. Go + SDI Example
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#package-memorystore-persists-fractal-detail-memories-schema-sdi-go-serialization-go-fileversion-030-langversion-neuroscript041-description-core-snapshot-store-with-time-travel-telemetry-author-andrew-price-license-mit-sdi_spec-memorystore-contract-valuewrapping-sdidesign-the-store-uses-an-immutable-content-addressed-blobtree-model-package-memorystore-import-cryptosha256-store-is-the-main-object-for-memory-persistence-type-store-struct-fields-sdiimpl-memorystore-sdidesign-each-write-creates-a-new-root-commit-pointing-to-a-tree-of-content-addressed-chunks-func-s-store-putdata-byte-32byte-error-performancenote-sha256-was-chosen-over-faster-hashes-for-content-integrity-h-sha256sum256data-implementation-logic-return-h-nil" class="md-nav__link">
+    <span class="md-ellipsis">
+      // Package memorystore persists fractal detail memories. // // ::schema: sdi-go // ::serialization: go // ::fileVersion: 0.3.0 // ::langVersion: neuroscript@0.4.1 // ::description: Core snapshot store with time-travel telemetry. // ::author: Andrew Price // ::license: MIT // ::sdi_spec: memoryStore // ::contract: valueWrapping // sdi:design The store uses an immutable, content-addressed blob+tree model. package memorystore import &quot;crypto/sha256&quot; // Store is the main object for memory persistence. type Store struct { // ... fields } // sdi:impl memoryStore // sdi:design Each write creates a new root commit pointing to a tree of content-addressed chunks. func (s *Store) Put(data []byte) ([32]byte, error) { // ::performanceNote: SHA256 was chosen over faster hashes for content integrity. h := sha256.Sum256(data) // ... implementation logic ... return h, nil }
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-7-tooling-ci-enforcement" class="md-nav__link">
+    <span class="md-ellipsis">
+      8. 7. Tooling &amp; CI Enforcement
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../neurodata_and_composite_file_spec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    NeuroData & Composite
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../llm_agent_facilities/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    LLM Agent Facilities
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../restricted_mode/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Restricted Mode
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../specification_structure/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Spec Structure Guide
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    NeuroData Types
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            NeuroData Types
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/checklist/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Checklist
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/cryptographic/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Cryptographic
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/decision_table/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Decision Table
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/enum/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Enum
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/form/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Form
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/geometry/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Geometry
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/graph/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Graph
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/list/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    List
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/map_literal/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Map Literal
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/map_schema/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Map Schema
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/patch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Patch
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/references/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    References
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/symbolic_math/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Symbolic Math
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/table/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Table
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/templates/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Templates
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/tree/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Tree
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Tools
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            Tools
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Index
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/delete_api_file/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    delete_api_file
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/fs_deletefile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_deletefile
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/fs_filehash/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_filehash
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/fs_linecountfile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_linecountfile
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/fs_mkdir/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_mkdir
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/fs_movefile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_movefile
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/fs_readfile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_readfile
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/fs_sanitizefilename/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_sanitizefilename
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/fs_walkdir/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_walkdir
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/fs_writefile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_writefile
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/git_add/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_add
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/git_checkout/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_checkout
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/git_commit/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_commit
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/git_diff/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_diff
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/git_gitstatus/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_gitstatus
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/git_merge/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_merge
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/git_newbranch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_newbranch
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/git_pull/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_pull
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/git_push/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_push
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/git_rm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_rm
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/git_status/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_status
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/go_build/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    go_build
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/go_update_imports_for_moved_package/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    go_update_imports_for_moved_package
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/list_api_files/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    list_api_files
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/maths/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    maths
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/move_file/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    move_file
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/query_table/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    query_table
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/strings/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    strings
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/sync_files/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    sync_files
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/tool_spec_structure/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    tool_spec_structure
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/upload_file/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    upload_file
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/vector_searchskills/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    vector_searchskills
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/vector_update/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    vector_update
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Status & Build
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            Status & Build
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../build/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Build Guide
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../completed.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Completed Checklist
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release_checklist.ndcl/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Release Checklist
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-metadata-line-format" class="md-nav__link">
+    <span class="md-ellipsis">
+      1. Metadata Line Format
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. Metadata Line Format">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#11-key-matching" class="md-nav__link">
+    <span class="md-ellipsis">
+      1.1 Key Matching
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#12-canonical-go-regex" class="md-nav__link">
+    <span class="md-ellipsis">
+      1.2 Canonical Go Regex
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-placement" class="md-nav__link">
+    <span class="md-ellipsis">
+      3. Placement
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-identity-keys-schema-serialization" class="md-nav__link">
+    <span class="md-ellipsis">
+      4. Identity Keys: schema &amp; serialization
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-standard-vocabulary" class="md-nav__link">
+    <span class="md-ellipsis">
+      5. Standard Vocabulary
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Standard Vocabulary">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#51-file-scope" class="md-nav__link">
+    <span class="md-ellipsis">
+      5.1. File Scope
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#52-block-procedure-section-chapter-scope" class="md-nav__link">
+    <span class="md-ellipsis">
+      5.2. Block, Procedure, Section, Chapter scope
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#53-inline-scope" class="md-nav__link">
+    <span class="md-ellipsis">
+      5.3. Inline Scope
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#54-neurodata-block-scope" class="md-nav__link">
+    <span class="md-ellipsis">
+      5.4. NeuroData Block Scope
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#55-standard-defining-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      5.5 Standard-Defining Files
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sdi" class="md-nav__link">
+    <span class="md-ellipsis">
+      SDI
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#56-go-source-file-scope-with-sdi" class="md-nav__link">
+    <span class="md-ellipsis">
+      5.6. Go Source File Scope with SDI
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      7. Examples
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="7. Examples">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#71-neuroscript-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      7.1. NeuroScript Example
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#72-go-sdi-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      7.2. Go + SDI Example
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#package-memorystore-persists-fractal-detail-memories-schema-sdi-go-serialization-go-fileversion-030-langversion-neuroscript041-description-core-snapshot-store-with-time-travel-telemetry-author-andrew-price-license-mit-sdi_spec-memorystore-contract-valuewrapping-sdidesign-the-store-uses-an-immutable-content-addressed-blobtree-model-package-memorystore-import-cryptosha256-store-is-the-main-object-for-memory-persistence-type-store-struct-fields-sdiimpl-memorystore-sdidesign-each-write-creates-a-new-root-commit-pointing-to-a-tree-of-content-addressed-chunks-func-s-store-putdata-byte-32byte-error-performancenote-sha256-was-chosen-over-faster-hashes-for-content-integrity-h-sha256sum256data-implementation-logic-return-h-nil" class="md-nav__link">
+    <span class="md-ellipsis">
+      // Package memorystore persists fractal detail memories. // // ::schema: sdi-go // ::serialization: go // ::fileVersion: 0.3.0 // ::langVersion: neuroscript@0.4.1 // ::description: Core snapshot store with time-travel telemetry. // ::author: Andrew Price // ::license: MIT // ::sdi_spec: memoryStore // ::contract: valueWrapping // sdi:design The store uses an immutable, content-addressed blob+tree model. package memorystore import &quot;crypto/sha256&quot; // Store is the main object for memory persistence. type Store struct { // ... fields } // sdi:impl memoryStore // sdi:design Each write creates a new root commit pointing to a tree of content-addressed chunks. func (s *Store) Put(data []byte) ([32]byte, error) { // ::performanceNote: SHA256 was chosen over faster hashes for content integrity. h := sha256.Sum256(data) // ... implementation logic ... return h, nil }
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-7-tooling-ci-enforcement" class="md-nav__link">
+    <span class="md-ellipsis">
+      8. 7. Tooling &amp; CI Enforcement
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="unified-metadata-specification-for-neuroscript-projects">Unified Metadata Specification for NeuroScript Projects<a class="headerlink" href="#unified-metadata-specification-for-neuroscript-projects" title="Permanent link">&para;</a></h1>
+<blockquote>
+<p>Status: DRAFT
+Version: 2.0.0 (2025-06-27)</p>
+</blockquote>
+<p>Abstract: This document defines a single, mandatory, and enforceable standard for metadata across all source files within the NeuroScript ecosystem. Its primary purpose is to ensure that metadata is unambiguously and reliably processable by computers, tooling, and automated agents. Adherence to these rules is not optional; they are a core part of the file format specifications. This standard applies to all related project files, including NeuroScript (.ns), Go (.go), NDCL (.nd*), Markdown (.md), and others.</p>
+<h2 id="1-metadata-line-format">1. Metadata Line Format<a class="headerlink" href="#1-metadata-line-format" title="Permanent link">&para;</a></h2>
+<p>All metadata is expressed as a simple key-value pair on a single line, intended for trivial parsing.</p>
+<ul>
+<li>Structure: ::key: value</li>
+<li>Prefix: Each metadata line must begin with the :: sigil.</li>
+<li>Key:<ul>
+<li>Must be camelCase. Parsers must treat keys as case-insensitive.</li>
+<li>Must match the character set [a-zA-Z0-9_.-]+.-   Separator: A single colon (:) must follow the key.</li>
+</ul>
+</li>
+<li>Value: The value is the remainder of the line. Parsers must trim leading and trailing whitespace from the value.</li>
+</ul>
+<h3 id="11-key-matching">1.1 Key Matching<a class="headerlink" href="#11-key-matching" title="Permanent link">&para;</a></h3>
+<p>Matching: for the purposes of <strong>matching</strong> a key (i.e. finding it in a list of them) the <em>case of the letters, and the characters underscore, dot and dash</em> (<code>_.-</code>) are <strong>ignored</strong>. Both linters and parsers must report collisions. Thus a hypothetical function MetaKeyMatch(a,b) would return:</p>
+<p>| a | b | match? |
+| snakeMeta | SNAKEMETA | true |
+| snake.scope | snake_scope | true |
+| snakescope | snake____scope | true |
+| SNAKE_SCOPE | SNAKE#SCOPE | error |
+| SNAKE1SCOPE | SNAKE0SCOPE | false |</p>
+<h3 id="12-canonical-go-regex">1.2 Canonical Go Regex<a class="headerlink" href="#12-canonical-go-regex" title="Permanent link">&para;</a></h3>
+<p>The following Go-compatible regular expression captures the key and value from a valid metadata line. Tooling should use this or an equivalent parser.</p>
+<p>go // Regex to capture the key (group 1) and value (group 2) from a metadata line. var metaRegex = regexp.MustCompile(<code>^::\s*([a-zA-Z0-9_.-]+):\s*(.*)$</code>) </p>
+<h2 id="3-placement">3. Placement<a class="headerlink" href="#3-placement" title="Permanent link">&para;</a></h2>
+<p>The placement of metadata blocks is mandatory and not a guideline. This ensures that automated tools can locate metadata without ambiguity.</p>
+<ol>
+<li><strong>Default</strong>: absolute start of file, or before the block.</li>
+<li>Exception: <strong>ns functions</strong>: within the function</li>
+<li>Exception: <strong>Markdown</strong> (.md): File Footer: At the absolute end of the file (EOF). This prevents metadata from cluttering the rendered view of the document on platforms like GitHub, prioritizing human readability for prose-heavy files.</li>
+</ol>
+<h2 id="4-identity-keys-schema-serialization">4. Identity Keys: schema &amp; serialization<a class="headerlink" href="#4-identity-keys-schema-serialization" title="Permanent link">&para;</a></h2>
+<p>Every file within the ecosystem must contain ::schema: and ::serialization: keys. These two keys form the fundamental identity of a file, telling any tool how to interpret its logical structure and its physical format.</p>
+<ul>
+<li><strong>::schema:</strong>: Defines the logical grammar and vocabulary of the file's contents (e.g., neuroscript, ndcl, sdi-go, spec). </li>
+<li><strong>::serialization:</strong>: Defines the physical file format that wraps the content (e.g., go, md, ns, txt). </li>
+</ul>
+<p>For example, a Go source file that contains special SDI directives has a logical schema of sdi-go but a physical serializationof go. A specification document like this one has a schema of spec and a serialization of md. </p>
+<h2 id="5-standard-vocabulary">5.  Standard Vocabulary<a class="headerlink" href="#5-standard-vocabulary" title="Permanent link">&para;</a></h2>
+<p>To ensure consistency, all metadata <strong>must</strong> use keys from the standard vocabulary defined below. keys should be camelCase.  </p>
+<h3 id="51-file-scope">5.1. File Scope<a class="headerlink" href="#51-file-scope" title="Permanent link">&para;</a></h3>
+<p><em>Placed in the file header or footer as per placement rules.</em> </p>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Purpose &amp; Rules</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>schema</td>
+<td><strong>Mandatory.</strong> Logical format (ndcl, spec, neuroscript, sdi-go).</td>
+</tr>
+<tr>
+<td>serialization</td>
+<td><strong>Mandatory.</strong> Physical file format (md, txt, go, ns).</td>
+</tr>
+<tr>
+<td>langVersion</td>
+<td>The version of the interpreter or grammar required (e.g.,neuroscript@0.4.1).</td>
+</tr>
+<tr>
+<td>fileVersion</td>
+<td>A version for the file itself. <strong>Must</strong> be a monotonic integer.</td>
+</tr>
+<tr>
+<td>description</td>
+<td>A concise, one-line summary of the file's purpose.</td>
+</tr>
+<tr>
+<td>author</td>
+<td>The name of the human or agent responsible for the content.</td>
+</tr>
+<tr>
+<td>license</td>
+<td>An SPDX license identifier (e.g.,MIT, Apache-2.0) or the string "Proprietary".</td>
+</tr>
+<tr>
+<td>created</td>
+<td>The creation date of the file in <strong>ISO 8601 format</strong> (e.g.,2025-06-27 or 2025-06-27T15:58:00Z).</td>
+</tr>
+<tr>
+<td>modified</td>
+<td>The last modification date of the file in <strong>ISO 8601 format</strong>.</td>
+</tr>
+<tr>
+<td>tags</td>
+<td>Comma-separated words for indexing and search (e.g.,dataProcessing,io,experimental).</td>
+</tr>
+<tr>
+<td>type, subtype</td>
+<td>Domain-specific classification for categorization.</td>
+</tr>
+<tr>
+<td>dependsOn</td>
+<td>A comma-separated list of upstream source files this file logically depends on.</td>
+</tr>
+<tr>
+<td>howToUpdate</td>
+<td>Brief, essential instructions for future developers on maintaining this file.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="52-block-procedure-section-chapter-scope">5.2. Block, Procedure, Section, Chapter scope<a class="headerlink" href="#52-block-procedure-section-chapter-scope" title="Permanent link">&para;</a></h3>
+<p><em>Placed inside a function, method, or procedure block.</em> </p>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Purpose &amp; Rules</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>description</td>
+<td>One-line summary of the procedure's function.</td>
+</tr>
+<tr>
+<td>purpose</td>
+<td>Multi-line explanation of the rationale behind the procedure.</td>
+</tr>
+<tr>
+<td>param:<name></td>
+<td>Description of a specific parameter.</td>
+</tr>
+<tr>
+<td>return:<nameIDX></td>
+<td>Description of a specific return value, identified by name or zero-based index.</td>
+</tr>
+<tr>
+<td>algorithm</td>
+<td>A multi-line, high-level description of the steps the procedure follows.</td>
+</tr>
+<tr>
+<td>exampleUsage</td>
+<td>A concrete code snippet demonstrating how to call the procedure.</td>
+</tr>
+<tr>
+<td>caveats</td>
+<td>Important limitations, edge cases, or "gotchas" to be aware of.</td>
+</tr>
+<tr>
+<td>requiresTool</td>
+<td>A comma-separated list of required external tools (e.g.,tool.compiler,tool.database).</td>
+</tr>
+<tr>
+<td>requiresLlm</td>
+<td>Boolean (true/false) indicating if the procedure depends on an LLM.</td>
+</tr>
+<tr>
+<td>timeout</td>
+<td>A duration string (e.g.,30s, 5m) specifying the expected execution timeout.</td>
+</tr>
+<tr>
+<td>pure</td>
+<td>Boolean (true/false) indicating if the function is pure (no side effects).</td>
+</tr>
+</tbody>
+</table>
+<h3 id="53-inline-scope">5.3. Inline Scope<a class="headerlink" href="#53-inline-scope" title="Permanent link">&para;</a></h3>
+<p><em>Placed inline, immediately preceding a specific line or block of code.</em> 
+| Key             | Purpose &amp; Rules                                                 |
+| --------------- | --------------------------------------------------------------- |
+| reason          | Explains <em>why</em> this specific step or line of code exists.       |
+| todo            | Note for a future improvement or feature to be added.           |
+| fixme           | Acknowledges a known bug or issue that needs to be fixed.       |
+| securityNote    | Highlights a potential security vulnerability or consideration. |
+| performanceNote | Comments on the performance implications of the code.           |</p>
+<h3 id="54-neurodata-block-scope">5.4. NeuroData Block Scope<a class="headerlink" href="#54-neurodata-block-scope" title="Permanent link">&para;</a></h3>
+<p><em>Placed inside a fenced code or data block, right after the opening fence.</em> </p>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Purpose &amp; Rules</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>id</td>
+<td>A unique identifier for this specific block within the file or system.</td>
+</tr>
+<tr>
+<td>version</td>
+<td>A version string for the content of the block.</td>
+</tr>
+<tr>
+<td>type</td>
+<td>Explicitly declares the content type of the block (e.g.,json, sql, prompt).</td>
+</tr>
+<tr>
+<td>grammar</td>
+<td>Specifies the grammar and version required to parse the block's content.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="55-standard-defining-files">5.5 Standard-Defining Files<a class="headerlink" href="#55-standard-defining-files" title="Permanent link">&para;</a></h3>
+<p>A file which <strong>defines</strong> a standard <strong>must</strong> contain at least the keys in this example (this file, in fact):</p>
+<p>:: name: NeuroData MetaData Standard
+:: standardID: ndinmeta
+:: standardName: NeuroData In-Situ Metadata
+:: standardVersion: 2.0.0
+:: canonicalFileLocation: github.com/aprice2704/fdm/code/docs/metadata.md
+:: fileName: metadata.md
+:: schema: spec
+:: serialization: md
+:: fileVersion: 2
+:: author: Andrew Price
+:: modified: 2025-06-27
+:: howToUpdate: Update vocab or placement rules first, then bump file_version.
+:: dependsOn: none</p>
+<h3 id="sdi">SDI<a class="headerlink" href="#sdi" title="Permanent link">&para;</a></h3>
+<p>SDI keys may be added to any meta block</p>
+<p><code>:: sdiSpec: &lt;specID&gt;</code> in the file header, declares that this file is associated with a named specification
+<code>:: sdiDesign &lt;designElementID,...&gt;</code> Documents the parts of the Design this scope is part of
+<code>:: sdiImpl &lt;implElementID,...&gt;</code> Documents the parts of the implementation plan this scope is part of</p>
+<h2 id="56-go-source-file-scope-with-sdi">5.6. Go Source File Scope with SDI<a class="headerlink" href="#56-go-source-file-scope-with-sdi" title="Permanent link">&para;</a></h2>
+<p>For Go files with a ::schema: sdi-go, special sdi:prefixed comments are used to declare architectural design and implementation details. </p>
+<p><code>// :: sdiSpec: &lt;specID&gt;</code> in the file header, declares that this file is associated with a named specification
+<code>// :: sdiDesign &lt;designElementID,...&gt;</code> Above a type or func documents the parts of the Design this function is part of</p>
+<h2 id="7-examples">7. Examples<a class="headerlink" href="#7-examples" title="Permanent link">&para;</a></h2>
+<h3 id="71-neuroscript-example">7.1. NeuroScript Example<a class="headerlink" href="#71-neuroscript-example" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>::schema: neuroscript 
+::serialization: ns 
+::langVersion: neuroscript@0.2.0 
+::fileVersion: 1.1.0 
+::author: Alice Price 
+::created: 2025-04-30 
+::license: MIT 
+::description: Example script demonstrating metadata placement. 
+::tags: example,metadata 
+func ProcessData(needs inputData, optional threshold returns processedCount, errorMsg) means 
+  ::purpose: Processes input data according to a threshold. This is a multi-line field to explain the rationale in depth. 
+  ::param:inputData: The raw data list to process. 
+  ::param:threshold: Optional numeric threshold for filtering. 
+  ::return:processedCount: Number of items successfully processed. 
+  ::return:errorMsg: Any error message encountered, or &quot;&quot; on success. 
+  ::algorithm: 
+  ::  1. Initialize counters. 
+  ::  2. Iterate through inputData. 
+  ::  3. Apply threshold filter if provided. 
+  ::  4. Increment counter. 
+  ::  5. Return count and empty error string. 
+  ::caveats: Does not handle non-numeric data gracefully yet. 
+  ::requiresLlm: false 
+  set count = 0 
+  set err = &quot;&quot; 
+  # Iterate and process 
+  for each item in inputData 
+    ::reason: This is the main processing loop for the function. 
+    # ... processing logic ... 
+    set count = count + 1 
+  endfor 
+  return count, err 
+endfunc 
+</code></pre></div>
+<h3 id="72-go-sdi-example">7.2. <a name='GoSDIExample'></a>Go + SDI Example<a class="headerlink" href="#72-go-sdi-example" title="Permanent link">&para;</a></h3>
+<h2 id="package-memorystore-persists-fractal-detail-memories-schema-sdi-go-serialization-go-fileversion-030-langversion-neuroscript041-description-core-snapshot-store-with-time-travel-telemetry-author-andrew-price-license-mit-sdi_spec-memorystore-contract-valuewrapping-sdidesign-the-store-uses-an-immutable-content-addressed-blobtree-model-package-memorystore-import-cryptosha256-store-is-the-main-object-for-memory-persistence-type-store-struct-fields-sdiimpl-memorystore-sdidesign-each-write-creates-a-new-root-commit-pointing-to-a-tree-of-content-addressed-chunks-func-s-store-putdata-byte-32byte-error-performancenote-sha256-was-chosen-over-faster-hashes-for-content-integrity-h-sha256sum256data-implementation-logic-return-h-nil"><div class="highlight"><pre><span></span><code><span class="c1">// Package memorystore persists fractal detail memories. </span>
+<span class="c1">// </span>
+<span class="c1">// ::schema: sdi-go </span>
+<span class="c1">// ::serialization: go </span>
+<span class="c1">// ::fileVersion: 0.3.0 </span>
+<span class="c1">// ::langVersion: neuroscript@0.4.1 </span>
+<span class="c1">// ::description: Core snapshot store with time-travel telemetry. </span>
+<span class="c1">// ::author: Andrew Price </span>
+<span class="c1">// ::license: MIT </span>
+<span class="c1">// ::sdi_spec: memoryStore </span>
+<span class="c1">// ::contract: valueWrapping </span>
+<span class="c1">// sdi:design The store uses an immutable, content-addressed blob+tree model. </span>
+<span class="kn">package</span><span class="w"> </span><span class="nx">memorystore</span><span class="w"> </span>
+<span class="kn">import</span><span class="w"> </span><span class="s">&quot;crypto/sha256&quot;</span><span class="w"> </span>
+<span class="c1">// Store is the main object for memory persistence. </span>
+<span class="kd">type</span><span class="w"> </span><span class="nx">Store</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span><span class="w"> </span>
+<span class="w">  </span><span class="c1">// ... fields </span>
+<span class="p">}</span><span class="w"> </span>
+
+<span class="c1">// sdi:impl memoryStore </span>
+<span class="c1">// sdi:design Each write creates a new root commit pointing to a tree of content-addressed chunks. </span>
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="o">*</span><span class="nx">Store</span><span class="p">)</span><span class="w"> </span><span class="nx">Put</span><span class="p">(</span><span class="nx">data</span><span class="w"> </span><span class="p">[]</span><span class="kt">byte</span><span class="p">)</span><span class="w"> </span><span class="p">([</span><span class="mi">32</span><span class="p">]</span><span class="kt">byte</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span>
+<span class="w">    </span><span class="c1">// ::performanceNote: SHA256 was chosen over faster hashes for content integrity. </span>
+<span class="w">    </span><span class="nx">h</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">sha256</span><span class="p">.</span><span class="nx">Sum256</span><span class="p">(</span><span class="nx">data</span><span class="p">)</span><span class="w"> </span>
+<span class="w">    </span><span class="c1">// ... implementation logic ... </span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nx">h</span><span class="p">,</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span>
+<span class="p">}</span><span class="w"> </span>
+</code></pre></div><a class="headerlink" href="#package-memorystore-persists-fractal-detail-memories-schema-sdi-go-serialization-go-fileversion-030-langversion-neuroscript041-description-core-snapshot-store-with-time-travel-telemetry-author-andrew-price-license-mit-sdi_spec-memorystore-contract-valuewrapping-sdidesign-the-store-uses-an-immutable-content-addressed-blobtree-model-package-memorystore-import-cryptosha256-store-is-the-main-object-for-memory-persistence-type-store-struct-fields-sdiimpl-memorystore-sdidesign-each-write-creates-a-new-root-commit-pointing-to-a-tree-of-content-addressed-chunks-func-s-store-putdata-byte-32byte-error-performancenote-sha256-was-chosen-over-faster-hashes-for-content-integrity-h-sha256sum256data-implementation-logic-return-h-nil" title="Permanent link">&para;</a></h2>
+<h2 id="8-7-tooling-ci-enforcement">8. <a name='ToolingCIEnforcement'></a>7. Tooling &amp; CI Enforcement<a class="headerlink" href="#8-7-tooling-ci-enforcement" title="Permanent link">&para;</a></h2>
+<p>Adherence to this specification <strong>must</strong> be enforced via automated tooling and Continuous Integration (CI) checks. Linters and pre-commit hooks should be configured to perform the following validations: </p>
+<ul>
+<li><strong>Presence Check:</strong> Fail if any file is missing the mandatory::schema: or ::serialization:keys. </li>
+<li><strong>Format Check:</strong> Fail if any metadata line does not conform to the::key: valueformat and regex. </li>
+<li><strong>Placement Check:</strong> Fail if file-level metadata is not in the correct location (header/footer) for itsserializationtype. </li>
+<li><strong>Vocabulary Check:</strong> Warn on any metadata keys that are not part of the standard vocabulary. -   <strong>Date Format Check:</strong> Fail if::created:or::modified:values are not valid ISO 8601 dates.</li>
+<li><strong>Version Check:</strong> Fail a build if a::fileVersion:is not greater than the version in the main branch (to prevent regressions). </li>
+<li><strong>SDI Link Check (for Go):</strong> Fail if a file contains// sdi:impl <code>specID</code> but no corresponding::sdi_spec: </li>
+</ul>
+<hr />
+<p>:: name: NeuroData MetaData Standard
+:: standardID: ndinmeta
+:: standardName: NeuroData In-Situ Metadata
+:: standardVersion: 2.0.0
+:: canonicalFileLocation: github.com/aprice2704/fdm/code/docs/metadata.md
+:: fileName: metadata.md
+:: schema: spec
+:: serialization: md
+:: fileVersion: 2
+:: author: Andrew Price
+:: modified: 2025-06-27
+:: howToUpdate: Update vocab or placement rules first, then bump file_version.
+:: dependsOn: none</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      <script id="__config" type="application/json">{"base": "..", "features": [], "search": "../assets/javascripts/workers/search.d50fe291.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.50899def.min.js"></script>
+      
+    
+  </body>
+</html>

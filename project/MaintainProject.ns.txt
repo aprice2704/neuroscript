@@ -1,0 +1,328 @@
+DEFINE PROCEDURE MaintainProject(project_root, change_summary)
+COMMENT:
+    PURPOSE: Performs project housekeeping: updates NS syntax, checks NS metadata,
+             updates key documentation files based on a change summary, runs go mod tidy/test,
+             and commits all changes.
+    INPUTS:
+      - project_root (string): The root directory of the project to scan (e.g., ".").
+      - change_summary (string): A description of recent changes to guide documentation updates.
+    OUTPUT:
+      - status_message (string): Indicates overall success or summarizes errors/warnings.
+    LANG_VERSION: 1.1.0
+    ALGORITHM:
+        1. Initialize lists for file processing and staged files.
+        2. Define key documentation files to update.
+        3. Recursively find all files/directories using FindFilesRecursive.
+        4. Process found .ns.txt files:
+            a. CALL UpdateNsSyntax.
+            b. CALL TOOL.ReadFile.
+            c. CALL TOOL.ExtractMetadata on file content.
+            d. Check for 'version' key. Emit warning if missing.
+            e. CALL TOOL.GitAdd. Log staged file.
+        5. Process found key .md files:
+            a. CALL TOOL.ReadFile.
+            b. Construct LLM prompt.
+            c. CALL LLM.
+            d. IF content changed: CALL TOOL.WriteFile, CALL TOOL.GitAdd.
+        6. Run TOOL.GoModTidy. Stage go.mod/go.sum.
+        7. Run TOOL.GoTest. Emit results.
+        8. IF any files staged: CALL TOOL.GitCommit.
+        9. Return final status message.
+    CAVEATS:
+        - Relies heavily on LLM for documentation updates.
+        - Error handling is basic (EMIT warnings/errors).
+        - Recursive directory scanning implemented via helper procedure.
+ENDCOMMENT
+
+EMIT "--- Starting Project Maintenance ---"
+EMIT "Root Directory: " + project_root
+EMIT "Change Summary: " + change_summary
+
+SET all_found_files = []
+SET ns_files_to_process = []
+SET md_files_to_process = []
+SET key_doc_files = ["README.md", "docs/development checklist.md", "docs/conventions.md", "docs/script spec.md", "docs/RoadMap.md"]
+SET staged_files_csv = ""
+SET error_summary = ""
+
+# --- Step 1 & 3: Recursively find all files ---
+EMIT "--- Finding files recursively... ---"
+CALL FindFilesRecursive(project_root)
+SET all_found_files = LAST
+
+IF all_found_files == nil THEN
+    RETURN "Error: Failed to list files recursively. Check FindFilesRecursive procedure or TOOL.ListDirectory."
+ENDIF
+
+EMIT "Found " + CALL TOOL.StringLength(all_found_files) + " total entries."
+
+# --- Step 2: Separate NS and MD files ---
+EMIT "--- Categorizing files... ---"
+FOR EACH file_entry IN all_found_files DO
+    SET is_dir = file_entry["is_dir"]
+    IF is_dir == false THEN
+        SET file_path = file_entry["path"]
+        CALL TOOL.HasSuffix(file_path, ".ns.txt")
+        IF LAST == true THEN
+            CALL TOOL.Contains(file_path, "MaintainProject.ns.txt")
+            IF LAST == false THEN
+                SET ns_files_to_process = ns_files_to_process + [file_path]
+            ENDIF
+        ELSE
+            SET is_key_doc = false
+            FOR EACH key_doc_pattern IN key_doc_files DO
+                 CALL TOOL.Contains(file_path, key_doc_pattern)
+                 IF LAST == true THEN
+                    SET is_key_doc = true
+                 ENDIF
+            ENDBLOCK
+            IF is_key_doc == true THEN
+                SET md_files_to_process = md_files_to_process + [file_path]
+            ENDIF
+        ENDIF
+    ENDIF
+ENDBLOCK
+
+EMIT "Found " + CALL TOOL.StringLength(ns_files_to_process) + " NS files to process."
+EMIT "Found " + CALL TOOL.StringLength(md_files_to_process) + " key MD files to process."
+
+# --- Step 4: Process .ns.txt Files ---
+EMIT "--- Processing NeuroScript (.ns.txt) Files ---"
+FOR EACH ns_file IN ns_files_to_process DO
+    EMIT "Processing NS file: " + ns_file
+
+    # 4a. Update Syntax
+    EMIT "  Updating syntax..."
+    CALL UpdateNsSyntax(ns_file)
+    # Add error checking if UpdateNsSyntax returns status
+
+    # --- MODIFIED: Read file first, then extract metadata from content ---
+    # 4b. Read File Content
+    EMIT "  Reading file for metadata check..."
+    CALL TOOL.ReadFile(ns_file)
+    SET ns_content = LAST
+    CALL TOOL.Contains(ns_content, "ReadFile failed")
+    IF LAST == true THEN
+        EMIT "[WARN] Failed to read file " + ns_file + " for metadata check: " + ns_content
+        SET error_summary = error_summary + "\nWARN: Failed read " + ns_file + ": " + ns_content
+        SET metadata_map = {"Error": "Read Failed"} # Use a map to signal error downstream
+    ELSE
+        # 4c. Extract Metadata from Content
+        EMIT "  Checking metadata..."
+        CALL TOOL.ExtractMetadata(ns_content) # Pass content string
+        SET metadata_map = LAST
+    ENDIF
+    # --- END MODIFICATION ---
+
+    # Check metadata map (handles read or extraction failure)
+    CALL TOOL.Contains(metadata_map, "Error:") # Check if map indicates an error
+    IF LAST == true THEN
+         # Error already logged by ReadFile or ExtractMetadata tool (if it returns string on error)
+         IF metadata_map["Error"] == nil THEN # If it's just a string error from the tool
+              EMIT "[WARN] Failed to extract metadata for " + ns_file + ": " + metadata_map
+              SET error_summary = error_summary + "\nWARN: Metadata extraction failed for " + ns_file
+         ENDIF
+         # Skip version check if metadata failed
+    ELSE
+        # 4d. Check for version key (only if metadata map is valid)
+        SET version_val = metadata_map["version"]
+        IF version_val == nil THEN
+             EMIT "[WARN] Metadata key 'version' missing in file: " + ns_file
+             SET error_summary = error_summary + "\nWARN: Missing ':: version:' metadata in " + ns_file
+        ELSE
+             EMIT "    Found version: " + version_val
+        ENDIF
+    ENDIF
+
+    # 4e. Stage the file (might have been changed by UpdateNsSyntax)
+    EMIT "  Staging file for final commit..."
+    CALL TOOL.GitAdd(ns_file)
+    SET add_status = LAST
+    IF add_status == "OK" THEN
+        SET staged_files_csv = staged_files_csv + ns_file + ","
+    ELSE
+        EMIT "[ERROR] Failed to stage file " + ns_file + ": " + add_status
+        SET error_summary = error_summary + "\nERROR: Failed to stage " + ns_file + ": " + add_status
+    ENDIF
+ENDBLOCK
+
+# --- Step 5: Process Key Documentation Files (Logic Unchanged) ---
+EMIT "--- Updating Key Documentation (.md) Files ---"
+FOR EACH md_file IN md_files_to_process DO
+    EMIT "Processing MD file: " + md_file
+    CALL TOOL.ReadFile(md_file)
+    SET current_content = LAST
+    CALL TOOL.Contains(current_content, "ReadFile failed")
+    IF LAST == true THEN
+        EMIT "[WARN] Failed to read doc file " + md_file + ": " + current_content
+        SET error_summary = error_summary + "\nWARN: Failed read " + md_file + ": " + current_content
+    ELSE
+        SET update_prompt = "Task: Update the following documentation file ('" + md_file + "') based ONLY on the provided change summary.\n" + \
+                            "Focus on updating version numbers, adding notes about new features/fixes mentioned in the summary, or correcting instructions if needed.\n" + \
+                            "Maintain the existing overall structure and markdown formatting.\n" + \
+                            "Respond ONLY with the complete, updated file content, including any original content that doesn't need changing.\n\n" + \
+                            "Change Summary:\n" + change_summary + "\n\n" + \
+                            "Current '" + md_file + "' Content:\n```markdown\n" + current_content + "\n```"
+        EMIT "  Requesting update from LLM..."
+        CALL LLM(update_prompt)
+        SET updated_content = LAST
+        IF updated_content != "" AND updated_content != current_content THEN
+            EMIT "    Content changed. Writing update..."
+            CALL TOOL.WriteFile(md_file, updated_content)
+            SET write_status = LAST
+            IF write_status == "OK" THEN
+                 EMIT "    Staging updated doc file..."
+                 CALL TOOL.GitAdd(md_file)
+                 SET add_status_md = LAST
+                 IF add_status_md == "OK" THEN
+                    SET staged_files_csv = staged_files_csv + md_file + ","
+                 ELSE
+                    EMIT "[ERROR] Failed to stage doc file " + md_file + ": " + add_status_md
+                    SET error_summary = error_summary + "\nERROR: Failed stage " + md_file + ": " + add_status_md
+                 ENDIF
+            ELSE
+                EMIT "[ERROR] Failed to write updated doc file " + md_file + ": " + write_status
+                SET error_summary = error_summary + "\nERROR: Failed write " + md_file + ": " + write_status
+            ENDIF
+        ELSE
+            IF updated_content == "" THEN
+                EMIT "    LLM returned empty content. Skipping write for " + md_file
+            ELSE
+                EMIT "    No changes detected by LLM. Skipping write for " + md_file
+            ENDIF
+        ENDIF
+    ENDIF
+ENDBLOCK
+
+# --- Step 6, 7, 8: Go Mod Tidy & Staging (Logic Unchanged) ---
+EMIT "--- Running Go Mod Tidy ---"
+CALL TOOL.GoModTidy()
+SET gomod_result = LAST
+SET gomod_success = gomod_result["success"]
+IF gomod_success == true THEN
+    EMIT "  Go Mod Tidy successful."
+    EMIT "  Staging go.mod and go.sum..."
+    CALL TOOL.GitAdd("go.mod")
+    SET add_gomod = LAST
+    CALL TOOL.GitAdd("go.sum")
+    SET add_gosum = LAST
+    IF add_gomod == "OK" THEN
+        SET staged_files_csv = staged_files_csv + "go.mod,"
+    ENDIF
+    IF add_gosum == "OK" THEN
+        SET staged_files_csv = staged_files_csv + "go.sum,"
+    ENDIF
+ELSE
+    EMIT "[ERROR] Go Mod Tidy failed!"
+    EMIT "  Stderr: " + gomod_result["stderr"]
+    SET error_summary = error_summary + "\nERROR: Go Mod Tidy Failed: " + gomod_result["stderr"]
+ENDIF
+
+# --- Step 9: Go Test (Logic Unchanged) ---
+EMIT "--- Running Go Tests ---"
+CALL TOOL.GoTest()
+SET gotest_result = LAST
+SET gotest_success = gotest_result["success"]
+EMIT "Go Test Stdout:\n" + gotest_result["stdout"]
+IF gotest_success == true THEN
+    EMIT "  Go Tests Passed."
+ELSE
+    EMIT "[ERROR] Go Tests Failed!"
+    EMIT "  Stderr:\n" + gotest_result["stderr"]
+    SET error_summary = error_summary + "\nERROR: Go Tests Failed:\n" + gotest_result["stderr"]
+ENDIF
+
+# --- Step 10 & 11: Final Commit (Logic Unchanged) ---
+EMIT "--- Committing Changes ---"
+IF staged_files_csv != "" THEN
+    CALL TOOL.StringLength(staged_files_csv)
+    SET csv_len = LAST
+    IF csv_len > 0 THEN
+       CALL TOOL.Substring(staged_files_csv, 0, csv_len - 1)
+       SET staged_files_csv = LAST
+    ENDIF
+    SET commit_message = "AUTO: Project Maintenance - " + change_summary + "\n\n" + \
+                         "Updated files: " + staged_files_csv + "\n" + \
+                         "Go Test Status: " + gotest_success
+    EMIT "Commit Message:\n" + commit_message
+    CALL TOOL.GitCommit(commit_message)
+    SET commit_status = LAST
+    EMIT "Commit Result: " + commit_status
+    IF commit_status != "OK" THEN
+         SET error_summary = error_summary + "\nERROR: Final commit failed: " + commit_status
+    ENDIF
+ELSE
+    EMIT "No files were staged for commit."
+ENDIF
+
+# --- Step 11: Return final status (Logic Unchanged) ---
+EMIT "--- Maintenance Complete ---"
+SET final_status = "Project maintenance finished."
+IF error_summary != "" THEN
+    SET final_status = final_status + " Completed with errors/warnings:\n" + error_summary
+ELSE
+    IF staged_files_csv == "" THEN
+       SET final_status = final_status + " No changes were committed."
+    ELSE
+       SET final_status = final_status + " Changes committed successfully."
+    ENDIF
+ENDIF
+RETURN final_status
+
+END
+
+# --- Helper Procedure: FindFilesRecursive (Unchanged) ---
+DEFINE PROCEDURE FindFilesRecursive(base_dir)
+COMMENT:
+    PURPOSE: Recursively finds all files and directories within a given base directory.
+    INPUTS:
+      - base_dir (string): The directory path to start searching from.
+    OUTPUT:
+      - all_entries (list): A flat list containing maps for each file/directory found.
+                            Each map has {"path": string, "is_dir": bool}. Paths are relative to initial CWD.
+    ALGORITHM:
+        1. Initialize an empty list `all_entries`.
+        2. Call TOOL.ListDirectory on `base_dir`. Handle errors.
+        3. Iterate through the list of maps returned by ListDirectory.
+        4. For each entry map:
+           a. Construct the full relative path.
+           b. Add the entry map (with full path) to `all_entries`.
+           c. If the entry is a directory:
+              i. Recursively CALL FindFilesRecursive with the directory's full path.
+              ii. Append the results from the recursive call to `all_entries`.
+        5. Return `all_entries`.
+ENDCOMMENT
+
+SET all_entries = []
+SET current_level_entries = []
+
+CALL TOOL.ListDirectory(base_dir)
+SET list_result = LAST
+CALL TOOL.Contains(list_result, "ListDirectory failed")
+IF LAST == true THEN
+     EMIT "[ERROR] FindFilesRecursive: Failed to list directory '" + base_dir + "': " + list_result
+     RETURN []
+ENDIF
+SET current_level_entries = list_result
+
+FOR EACH entry IN current_level_entries DO
+    SET entry_name = entry["name"]
+    SET is_dir = entry["is_dir"]
+    SET full_path = ""
+    IF base_dir == "." THEN
+        SET full_path = entry_name
+    ELSE
+        SET full_path = base_dir + "/" + entry_name
+    ENDIF
+    SET entry_with_full_path = {"path": full_path, "is_dir": is_dir, "name": entry_name}
+    SET all_entries = all_entries + [entry_with_full_path]
+    IF is_dir == true THEN
+         CALL FindFilesRecursive(full_path)
+         SET recursive_results = LAST
+         SET all_entries = all_entries + recursive_results
+    ENDIF
+ENDBLOCK
+
+RETURN all_entries
+
+END
