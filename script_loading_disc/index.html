@@ -1,0 +1,2761 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://aprice2704.github.io/neuroscript/script_loading_disc/">
+      
+      
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.16">
+    
+    
+      
+        <title>Script loading disc - NeuroScript</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.7e37652d.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#1-load-only-semantics-no-implicit-main" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="NeuroScript" class="md-header__button md-logo" aria-label="NeuroScript" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            NeuroScript
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Script loading disc
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/aprice2704/neuroscript" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.0.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="NeuroScript" class="md-nav__button md-logo" aria-label="NeuroScript" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    NeuroScript
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/aprice2704/neuroscript" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.0.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Home
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../RoadMap.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Road Map
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Overview
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Overview
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../front/why-ns/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Why NeuroScript
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../front/architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Architecture
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../front/concepts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Core Concepts
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../front/installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Installation
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../front/faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    FAQ
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../front/contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Contributing
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Specifications
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Specifications
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../script_spec.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Quick Spec
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../formal script spec.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Formal Spec
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../metadata/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Metadata
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../neurodata_and_composite_file_spec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    NeuroData & Composite
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../llm_agent_facilities/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    LLM Agent Facilities
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../restricted_mode/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Restricted Mode
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../specification_structure/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Spec Structure Guide
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    NeuroData Types
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            NeuroData Types
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/checklist/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Checklist
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/cryptographic/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Cryptographic
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/decision_table/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Decision Table
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/enum/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Enum
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/form/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Form
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/geometry/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Geometry
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/graph/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Graph
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/list/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    List
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/map_literal/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Map Literal
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/map_schema/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Map Schema
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/patch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Patch
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/references/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    References
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/symbolic_math/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Symbolic Math
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/table/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Table
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/templates/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Templates
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/tree/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Tree
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Tools
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            Tools
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Index
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/delete_api_file/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    delete_api_file
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/fs_deletefile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_deletefile
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/fs_filehash/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_filehash
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/fs_linecountfile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_linecountfile
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/fs_mkdir/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_mkdir
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/fs_movefile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_movefile
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/fs_readfile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_readfile
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/fs_sanitizefilename/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_sanitizefilename
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/fs_walkdir/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_walkdir
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/fs_writefile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_writefile
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/git_add/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_add
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/git_checkout/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_checkout
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/git_commit/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_commit
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/git_diff/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_diff
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/git_gitstatus/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_gitstatus
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/git_merge/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_merge
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/git_newbranch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_newbranch
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/git_pull/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_pull
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/git_push/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_push
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/git_rm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_rm
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/git_status/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_status
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/go_build/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    go_build
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/go_update_imports_for_moved_package/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    go_update_imports_for_moved_package
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/list_api_files/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    list_api_files
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/maths/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    maths
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/move_file/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    move_file
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/query_table/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    query_table
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/strings/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    strings
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/sync_files/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    sync_files
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/tool_spec_structure/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    tool_spec_structure
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/upload_file/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    upload_file
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/vector_searchskills/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    vector_searchskills
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/vector_update/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    vector_update
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Status & Build
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            Status & Build
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../build/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Build Guide
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../completed.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Completed Checklist
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release_checklist.ndcl/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Release Checklist
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-load-only-semantics-no-implicit-main" class="md-nav__link">
+    <span class="md-ellipsis">
+      1 Load-only semantics (no implicit main)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-packages-instead-of-modules" class="md-nav__link">
+    <span class="md-ellipsis">
+      2 Packages instead of modules
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-cli-contract-script-entrypoint-str_args" class="md-nav__link">
+    <span class="md-ellipsis">
+      3 CLI contract (-script, -entrypoint, -str_args)
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3 CLI contract (-script, -entrypoint, -str_args)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#single-task-form" class="md-nav__link">
+    <span class="md-ellipsis">
+      Single-task form
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#multi-task-form" class="md-nav__link">
+    <span class="md-ellipsis">
+      Multi-task form
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#why-comma-separated-strings" class="md-nav__link">
+    <span class="md-ellipsis">
+      Why comma-separated strings?
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-loader-changes-in-detail" class="md-nav__link">
+    <span class="md-ellipsis">
+      4 Loader changes in detail
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-chaining-scripts-inside-a-script" class="md-nav__link">
+    <span class="md-ellipsis">
+      5 Chaining scripts inside a script
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-edge-case-checklist" class="md-nav__link">
+    <span class="md-ellipsis">
+      6 Edge-case checklist
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6 Edge-case checklist">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#next-actions" class="md-nav__link">
+    <span class="md-ellipsis">
+      Next actions
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#no-package-no-exports-what-it-buys-you-and-the-two-minute-wiring-plan" class="md-nav__link">
+    <span class="md-ellipsis">
+      “No package, no exports” — what it buys you and the two-minute wiring plan
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#1-revised-loader-rule-set" class="md-nav__link">
+    <span class="md-ellipsis">
+      1 Revised loader rule set
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-tiny-implementation-sketch" class="md-nav__link">
+    <span class="md-ellipsis">
+      2 Tiny implementation sketch
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-cli-path-with-without-packages" class="md-nav__link">
+    <span class="md-ellipsis">
+      3 CLI path with &amp; without packages
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-practical-upsides" class="md-nav__link">
+    <span class="md-ellipsis">
+      4 Practical upsides
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-potential-gotchas-and-easy-fixes" class="md-nav__link">
+    <span class="md-ellipsis">
+      5 Potential gotchas (and easy fixes)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-optional-nicety-export-whitelist" class="md-nav__link">
+    <span class="md-ellipsis">
+      6 Optional nicety: :: export: whitelist
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6 Optional nicety: :: export: whitelist">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#tldr" class="md-nav__link">
+    <span class="md-ellipsis">
+      TL;DR
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1-entrypoint-metadata-header" class="md-nav__link">
+    <span class="md-ellipsis">
+      1 “Entrypoint” metadata header
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-module-prefixed-symbols-opt-in" class="md-nav__link">
+    <span class="md-ellipsis">
+      2 Module-prefixed symbols (opt-in)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-toolscriptloadpath-entry" class="md-nav__link">
+    <span class="md-ellipsis">
+      3 tool.Script.Load(path, entry?)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-chaining-inside-a-script-two-idioms" class="md-nav__link">
+    <span class="md-ellipsis">
+      4 Chaining inside a script – two idioms
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-why-not-just-rely-on-main" class="md-nav__link">
+    <span class="md-ellipsis">
+      5 Why not just rely on main?
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#6-minimal-code-youd-actually-add" class="md-nav__link">
+    <span class="md-ellipsis">
+      6 Minimal code you’d actually add
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tldr_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      TL;DR
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+  <h1>Script loading disc</h1>
+
+<p>Any thoughts? :) I have ideas, but I feel cryptic. </p>
+<hr />
+<p>Newer than below, refined:</p>
+<p>Got it — here’s how the revised plan shakes out, step by step.</p>
+<hr />
+<h2 id="1-load-only-semantics-no-implicit-main">1  Load-only semantics (no implicit <code>main</code>)<a class="headerlink" href="#1-load-only-semantics-no-implicit-main" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Loader rule</strong>:
+  <em>Parse → Register</em> <strong>only</strong>.
+  No evaluation happens unless some caller explicitly does:</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">interp</span><span class="p">.</span><span class="nx">Call</span><span class="p">(</span><span class="s">&quot;startup.init&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">args</span><span class="p">);</span><span class="w"> </span><span class="err">…</span>
+</code></pre></div>
+<ul>
+<li><strong>Impact on existing code</strong> – zero.
+  Any script that <em>was</em> relying on “<code>main</code> auto-runs” just adds one line to its shell wrapper or to <code>startup.ns</code>.</li>
+</ul>
+<hr />
+<h2 id="2-packages-instead-of-modules">2  Packages instead of modules<a class="headerlink" href="#2-packages-instead-of-modules" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Spec</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Metadata key</strong></td>
+<td><code>:: package: &lt;name&gt;</code></td>
+</tr>
+<tr>
+<td><strong>Separator</strong></td>
+<td><code>.</code> (same as Go’s selector)</td>
+</tr>
+<tr>
+<td><strong>Export rule</strong></td>
+<td>every global symbol becomes <code>pkgName.origName</code> at registration time</td>
+</tr>
+<tr>
+<td><strong>Internal calls</strong></td>
+<td>unchanged (<code>validate()</code>) – the loader only rewrites the <em>export table</em></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>Example</p>
+</blockquote>
+<div class="highlight"><pre><span></span><code>:: package: auth
+
+func login(u, p) means … endfunc     # exported as auth.login
+func validate() means … endfunc       # exported as auth.validate
+</code></pre></div>
+<p>Now any other script (or the CLI) can do: <code>call auth.login(...)</code>.</p>
+<hr />
+<h2 id="3-cli-contract-script-entrypoint-str_args">3  CLI contract (<code>-script</code>, <code>-entrypoint</code>, <code>-str_args</code>)<a class="headerlink" href="#3-cli-contract-script-entrypoint-str_args" title="Permanent link">&para;</a></h2>
+<h3 id="single-task-form">Single-task form<a class="headerlink" href="#single-task-form" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>zadeh<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-script<span class="w">        </span>scripts/startup.ns<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-entrypoint<span class="w">    </span>startup.init<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-str_args<span class="w">      </span><span class="s2">&quot;FDM Home Zadeh Server&quot;</span>
+</code></pre></div>
+<h3 id="multi-task-form">Multi-task form<a class="headerlink" href="#multi-task-form" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>zadeh<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-script_boot<span class="w">     </span>scripts/boot.ns<span class="w">  </span>-str_args_boot<span class="w">     </span><span class="s2">&quot;…&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-script_ingest<span class="w">   </span>scripts/ingest.ns<span class="w"> </span>-entrypoint_ingest<span class="w"> </span>ingest.run<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-script_api<span class="w">      </span>scripts/api.ns
+</code></pre></div>
+<p><strong>Parsing sketch</strong></p>
+<div class="highlight"><pre><span></span><code><span class="kd">var</span><span class="w"> </span><span class="p">(</span>
+<span class="w">    </span><span class="nx">scriptFlags</span><span class="w">     </span><span class="p">=</span><span class="w"> </span><span class="nx">fl</span><span class="p">.</span><span class="nx">String</span><span class="p">(</span><span class="s">&quot;script&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;path to script&quot;</span><span class="p">)</span>
+<span class="w">    </span><span class="nx">entrypointFlags</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">fl</span><span class="p">.</span><span class="nx">String</span><span class="p">(</span><span class="s">&quot;entrypoint&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;func to call after load&quot;</span><span class="p">)</span>
+<span class="w">    </span><span class="nx">strArgsFlags</span><span class="w">    </span><span class="p">=</span><span class="w"> </span><span class="nx">fl</span><span class="p">.</span><span class="nx">String</span><span class="p">(</span><span class="s">&quot;str_args&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;comma-sep args&quot;</span><span class="p">)</span>
+<span class="w">    </span><span class="c1">// Capture _taskN variants with flag.Func + regex if you want dynamism.</span>
+<span class="p">)</span>
+<span class="nx">fl</span><span class="p">.</span><span class="nx">Parse</span><span class="p">()</span>
+
+<span class="nx">cfgs</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">collectScriptConfigs</span><span class="p">(</span><span class="nx">flag</span><span class="p">.</span><span class="nx">CommandLine</span><span class="p">)</span><span class="w">  </span><span class="c1">// → []ScriptJob</span>
+<span class="k">for</span><span class="w"> </span><span class="nx">_</span><span class="p">,</span><span class="w"> </span><span class="nx">job</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="k">range</span><span class="w"> </span><span class="nx">cfgs</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">loader</span><span class="p">.</span><span class="nx">Load</span><span class="p">(</span><span class="nx">job</span><span class="p">.</span><span class="nx">Path</span><span class="p">);</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="err">…</span><span class="w"> </span><span class="p">}</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nx">job</span><span class="p">.</span><span class="nx">Entry</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nx">args</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">strings</span><span class="p">.</span><span class="nx">Split</span><span class="p">(</span><span class="nx">job</span><span class="p">.</span><span class="nx">Args</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;,&quot;</span><span class="p">)</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">interp</span><span class="p">.</span><span class="nx">Call</span><span class="p">(</span><span class="nx">job</span><span class="p">.</span><span class="nx">Entry</span><span class="p">,</span><span class="w"> </span><span class="nx">args</span><span class="p">);</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="err">…</span><span class="w"> </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<h3 id="why-comma-separated-strings">Why comma-separated strings?<a class="headerlink" href="#why-comma-separated-strings" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Keeps everything <strong>POSIX-safe</strong> (no nested quoting hell).</li>
+<li>You already plan plain-string args only; if you later need structured values, add <code>-json_args_task1</code>.</li>
+</ul>
+<hr />
+<h2 id="4-loader-changes-in-detail">4  Loader changes in detail<a class="headerlink" href="#4-loader-changes-in-detail" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><span class="c1">// loader/loader.go</span>
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">ld</span><span class="w"> </span><span class="o">*</span><span class="nx">Loader</span><span class="p">)</span><span class="w"> </span><span class="nx">Load</span><span class="p">(</span><span class="nx">path</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">src</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">os</span><span class="p">.</span><span class="nx">ReadFile</span><span class="p">(</span><span class="nx">path</span><span class="p">)</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="p">}</span>
+
+<span class="w">    </span><span class="nx">mod</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">ld</span><span class="p">.</span><span class="nx">parser</span><span class="p">.</span><span class="nx">Parse</span><span class="p">(</span><span class="nx">src</span><span class="p">)</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="p">}</span>
+
+<span class="w">    </span><span class="nx">pkg</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">mod</span><span class="p">.</span><span class="nx">Metadata</span><span class="p">[</span><span class="s">&quot;package&quot;</span><span class="p">]</span><span class="w">      </span><span class="c1">// &quot;&quot; allowed for legacy</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="nx">_</span><span class="p">,</span><span class="w"> </span><span class="nx">fn</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="k">range</span><span class="w"> </span><span class="nx">mod</span><span class="p">.</span><span class="nx">Functions</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nx">exportName</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">fn</span><span class="p">.</span><span class="nx">Name</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="nx">pkg</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nx">exportName</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">pkg</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s">&quot;.&quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nx">fn</span><span class="p">.</span><span class="nx">Name</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">ld</span><span class="p">.</span><span class="nx">interp</span><span class="p">.</span><span class="nx">RegisterFunc</span><span class="p">(</span><span class="nx">exportName</span><span class="p">,</span><span class="w"> </span><span class="nx">fn</span><span class="p">);</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="k">return</span><span class="w"> </span><span class="nx">err</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="c1">// No auto-call here.</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>Unit-test the no-auto-exec guarantee by loading a script whose <code>init()</code> sets a global flag; assert the flag is still false.</p>
+<hr />
+<h2 id="5-chaining-scripts-inside-a-script">5  Chaining scripts inside a script<a class="headerlink" href="#5-chaining-scripts-inside-a-script" title="Permanent link">&para;</a></h2>
+<p>Because nothing auto-execs, chaining is now <strong>pure, explicit code</strong>:</p>
+<div class="highlight"><pre><span></span><code>call tool.Script.Load(&quot;infra/db.ns&quot;)
+call tool.Script.Load(&quot;services/cache.ns&quot;)
+
+call infra.db.init()
+call services.cache.warm()
+</code></pre></div>
+<p><em>(If you expose <code>tool.Script.Load</code> the same way we sketched earlier, the above stays a one-liner per script.)</em></p>
+<hr />
+<h2 id="6-edge-case-checklist">6  Edge-case checklist<a class="headerlink" href="#6-edge-case-checklist" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>Behaviour</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Two packages export the same symbol (<code>auth.login</code> &amp; <code>auth.login</code>)</td>
+<td>second load returns <code>ErrDuplicateSymbol</code> – easy to spot</td>
+</tr>
+<tr>
+<td>Script omitted <code>:: package:</code></td>
+<td>its public names are <strong>unqualified</strong> (legacy style)</td>
+</tr>
+<tr>
+<td>CLI omits <code>-entrypoint</code></td>
+<td>script is loaded, nothing executed – matches rule #1</td>
+</tr>
+<tr>
+<td>Comma appears inside an arg</td>
+<td>user must quote/escape per POSIX, or use future <code>-json_args</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="next-actions">Next actions<a class="headerlink" href="#next-actions" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Rename <code>module</code> → <code>package</code></strong> in the loader branch.</li>
+<li>Wire up the CLI parser with the “N-task” convention.</li>
+<li>Add tests for <em>load-only</em> and for package collisions.</li>
+<li>Update any doc snippets (<code>README</code>, examples/) to remove all “auto-run <code>main</code>” language.</li>
+</ol>
+<p>Ping me if you want help with the <code>collectScriptConfigs</code> helper or any flag-parsing quirks. Happy hacking!</p>
+<h3 id="no-package-no-exports-what-it-buys-you-and-the-two-minute-wiring-plan">“No <code>package</code>, no exports” — what it buys you and the two-minute wiring plan<a class="headerlink" href="#no-package-no-exports-what-it-buys-you-and-the-two-minute-wiring-plan" title="Permanent link">&para;</a></h3>
+<p>You’re basically saying: <em>“Only code that </em><em>opts-in</em><em> via <code>:: package:</code> is part of the shared symbol space; everything else stays private.”</em>
+That’s a clean rule and it discourages accidental bleed-over. Here’s a minimal way to pull it off without re-architecting the interpreter.</p>
+<hr />
+<h2 id="1-revised-loader-rule-set">1 Revised loader rule set<a class="headerlink" href="#1-revised-loader-rule-set" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Case</th>
+<th>What the loader does</th>
+<th>Public symbol table</th>
+<th>How the CLI can still call it</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>:: package: auth</code> present</td>
+<td>Prefix every global with <code>auth.</code></td>
+<td><strong>Yes</strong> (<code>auth.login</code>, <code>auth.validate</code> …)</td>
+<td><code>-entrypoint auth.init</code></td>
+</tr>
+<tr>
+<td>No <code>package</code> line</td>
+<td>Register symbols only in the <em>per-script</em> table; <strong>do not</strong> copy to global map</td>
+<td><strong>None</strong></td>
+<td>Loader remembers the script handle and can call <code>init</code> directly</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Why keep a per-script table anyway?</strong></p>
+<ul>
+<li>So the CLI can still run its entrypoint.</li>
+<li>So a script can unit-test itself (<code>call init()</code> locally) even when “private”.</li>
+</ul>
+</blockquote>
+<hr />
+<h2 id="2-tiny-implementation-sketch">2 Tiny implementation sketch<a class="headerlink" href="#2-tiny-implementation-sketch" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><span class="c1">// loader.Load returns a handle so callers can invoke privates.</span>
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">ld</span><span class="w"> </span><span class="o">*</span><span class="nx">Loader</span><span class="p">)</span><span class="w"> </span><span class="nx">Load</span><span class="p">(</span><span class="nx">path</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">core</span><span class="p">.</span><span class="nx">ScriptHandle</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">mod</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">parseFile</span><span class="p">(</span><span class="nx">path</span><span class="p">)</span>
+<span class="w">    </span><span class="nx">handle</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">core</span><span class="p">.</span><span class="nx">NewScriptHandle</span><span class="p">(</span><span class="nx">mod</span><span class="p">)</span><span class="w">      </span><span class="c1">// owns its own symbol map</span>
+
+<span class="w">    </span><span class="nx">pkg</span><span class="p">,</span><span class="w"> </span><span class="nx">_</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">mod</span><span class="p">.</span><span class="nx">Metadata</span><span class="p">[</span><span class="s">&quot;package&quot;</span><span class="p">]</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="nx">_</span><span class="p">,</span><span class="w"> </span><span class="nx">fn</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="k">range</span><span class="w"> </span><span class="nx">mod</span><span class="p">.</span><span class="nx">Functions</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nx">handle</span><span class="p">.</span><span class="nx">RegisterLocal</span><span class="p">(</span><span class="nx">fn</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span><span class="w"> </span><span class="nx">fn</span><span class="p">)</span>
+
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="nx">pkg</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="w"> </span><span class="p">{</span><span class="w">                       </span><span class="c1">// export only if package is set</span>
+<span class="w">            </span><span class="nx">public</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">pkg</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s">&quot;.&quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nx">fn</span><span class="p">.</span><span class="nx">Name</span>
+<span class="w">            </span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">ld</span><span class="p">.</span><span class="nx">interp</span><span class="p">.</span><span class="nx">RegisterFunc</span><span class="p">(</span><span class="nx">public</span><span class="p">,</span><span class="w"> </span><span class="nx">fn</span><span class="p">);</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nx">handle</span><span class="p">,</span><span class="w"> </span><span class="kc">nil</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>The <code>ScriptHandle</code> just wraps a <code>map[string]*Function</code> plus an <code>Invoke(name, args)</code> helper that bypasses the global table.</p>
+<hr />
+<h2 id="3-cli-path-with-without-packages">3 CLI path with &amp; without packages<a class="headerlink" href="#3-cli-path-with-without-packages" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><span class="nx">h</span><span class="p">,</span><span class="w"> </span><span class="nx">_</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">loader</span><span class="p">.</span><span class="nx">Load</span><span class="p">(</span><span class="nx">flagScript</span><span class="p">)</span>
+
+<span class="k">if</span><span class="w"> </span><span class="nx">ep</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="o">*</span><span class="nx">entrypointFlag</span><span class="p">;</span><span class="w"> </span><span class="nx">ep</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nx">strings</span><span class="p">.</span><span class="nx">Contains</span><span class="p">(</span><span class="nx">ep</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;.&quot;</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">          </span><span class="c1">// pkg-qualified =&gt; public call</span>
+<span class="w">        </span><span class="nx">interp</span><span class="p">.</span><span class="nx">Call</span><span class="p">(</span><span class="nx">ep</span><span class="p">,</span><span class="w"> </span><span class="nx">args</span><span class="p">)</span>
+<span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span><span class="w">                                </span><span class="c1">// unqualified =&gt; private call</span>
+<span class="w">        </span><span class="nx">h</span><span class="p">.</span><span class="nx">Invoke</span><span class="p">(</span><span class="nx">ep</span><span class="p">,</span><span class="w"> </span><span class="nx">args</span><span class="p">)</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>So:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Private startup script</span>
+zadeh<span class="w"> </span>-script<span class="w"> </span>startup.ns<span class="w"> </span>-entrypoint<span class="w"> </span>init<span class="w"> </span>-str_args<span class="w"> </span><span class="s2">&quot;Hello&quot;</span>
+<span class="c1"># Shared auth package</span>
+zadeh<span class="w"> </span>-script<span class="w"> </span>auth.ns<span class="w">    </span>-entrypoint<span class="w"> </span>auth.migrate_db
+</code></pre></div>
+<hr />
+<h2 id="4-practical-upsides">4 Practical upsides<a class="headerlink" href="#4-practical-upsides" title="Permanent link">&para;</a></h2>
+<ol>
+<li><strong>Zero namespace pollution</strong> — unless the author explicitly wants it.</li>
+<li><strong>Clear intent</strong> — reviewers see <code>:: package:</code> and know the file is a library.</li>
+<li><strong>Safe refactors</strong> — you can rename <code>validate()</code> inside a private script without hunting cross-file references.</li>
+</ol>
+<hr />
+<h2 id="5-potential-gotchas-and-easy-fixes">5 Potential gotchas (and easy fixes)<a class="headerlink" href="#5-potential-gotchas-and-easy-fixes" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Gotcha</th>
+<th>Mitigation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A script expects to be called by another script but forgets <code>:: package:</code></td>
+<td>Loader can warn: “<code>tool.Script.Load</code> on non-packaged script provides no exports — did you mean to add <code>:: package:</code>?”</td>
+</tr>
+<tr>
+<td>Someone tries <code>call otherScript.init()</code> where <code>otherScript</code> wasn’t packaged</td>
+<td>Interpreter raises <code>NameError</code>.</td>
+</tr>
+<tr>
+<td>Multiple private scripts both define <code>init()</code> and the CLI wants to run both</td>
+<td>You already disambiguate with separate <code>-script_taskN</code> flags; their names stay local.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="6-optional-nicety-export-whitelist">6 Optional nicety: <code>:: export:</code> whitelist<a class="headerlink" href="#6-optional-nicety-export-whitelist" title="Permanent link">&para;</a></h2>
+<p>If you later want “mostly private but share two funcs,” add:</p>
+<div class="highlight"><pre><span></span><code>:: export: init, health_check
+</code></pre></div>
+<p>Loader rule: export only those, still prefixed if <code>:: package:</code> exists.</p>
+<hr />
+<h3 id="tldr">TL;DR<a class="headerlink" href="#tldr" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Accept the refinement</strong>: <em>No <code>package</code> line ⇒ nothing exported.</em></li>
+<li>Keep each script’s symbols in its own <code>ScriptHandle</code>; the CLI (or tests) can still invoke privates directly.</li>
+<li>External sharing now requires an explicit <code>:: package:</code> — enforcing discipline without extra ceremony.</li>
+</ul>
+<p>Plug this into the current loader and you’ve achieved encapsulation with \~30 lines of Go. Ping me if you want sample tests or flag-parsing helpers.</p>
+<hr />
+<p>Absolutely — default-private scripts with opt-in <code>package</code> exports are a net win:</p>
+<ul>
+<li><strong>Safety first</strong> – nothing leaks into the global namespace unless the author <em>wants</em> it. That eliminates “oops, I over-wrote <code>util.hash</code> again” class bugs.</li>
+<li><strong>Clear intent</strong> – reviewers can skim for <code>:: package:</code> to spot true libraries; everything else is implementation detail.</li>
+<li><strong>Refactor freedom</strong> – private scripts can rename, split, or delete functions without grep-and-pray across the repo.</li>
+<li><strong>Go-style ergonomics</strong> – mirrors the “internal” convention and the way unexported (lower-case) Go identifiers stay local.</li>
+<li><strong>Future features</strong> – later you can layer <code>:: export:</code> whitelists or visibility levels without breaking today’s code.</li>
+</ul>
+<p>Trade-off is minimal:</p>
+<ul>
+<li>The very first time a dev forgets to add <code>:: package:</code> they’ll hit a “function not found” at load time—loud and quick to fix.</li>
+<li>Tests that previously relied on <code>main</code> auto-running need a one-liner update (<code>handle.Invoke("init")</code>), but that’s a one-time chore.</li>
+</ul>
+<p>So yes, it tightens the system’s design contract and scales better as the codebase grows—definitely another <strong>Good Thing™</strong>.</p>
+<hr />
+<p>o3: Here are a few patterns we’ve used in other long-running interpreters that map cleanly onto the current NeuroScript grammar and runtime without breaking backward-compatibility:</p>
+<hr />
+<h3 id="1-entrypoint-metadata-header">1 “Entrypoint” metadata header<a class="headerlink" href="#1-entrypoint-metadata-header" title="Permanent link">&para;</a></h3>
+<p><em>A zero-friction way to tell the loader what to run right after the file is parsed.</em></p>
+<div class="highlight"><pre><span></span><code>:: entry: setup_http          # &lt;- new, optional
+:: version: 0.4.2
+:: description: bootstrap a tiny HTTP server
+
+func setup_http() means
+  …
+endfunc
+</code></pre></div>
+<ul>
+<li>Loader rule: if <code>entry</code> exists, call that proc once the file is loaded; otherwise fall back to <code>main</code>.</li>
+<li><strong>No namespace collision</strong> – each script can still define its own <code>main</code> for interactive use, but the loader won’t touch it unless it’s the <code>entry</code>.</li>
+<li>The grammar already allows arbitrary metadata keys (see “Metadata” rule) so this is a pure runtime-level change – no parser tweak required.&#x20;</li>
+</ul>
+<hr />
+<h3 id="2-module-prefixed-symbols-opt-in">2 Module-prefixed symbols (opt-in)<a class="headerlink" href="#2-module-prefixed-symbols-opt-in" title="Permanent link">&para;</a></h3>
+<p><em>Solve the “same interpreter, same func table” problem once and for all.</em></p>
+<p>Add an optional header:</p>
+<div class="highlight"><pre><span></span><code>:: module: auth               # all funcs registered as auth.login, auth.jwt…
+</code></pre></div>
+<ul>
+<li>Inside the script you can still call <code>login()</code> directly; the loader rewrites the public symbol table to <code>auth.login</code> etc. on export.</li>
+<li>When another script needs it: <code>call auth.login(user, pass)</code>.</li>
+<li>This is entirely a loader-side transformation; no grammar change.</li>
+</ul>
+<hr />
+<h3 id="3-toolscriptloadpath-entry">3 <code>tool.Script.Load(path, entry?)</code><a class="headerlink" href="#3-toolscriptloadpath-entry" title="Permanent link">&para;</a></h3>
+<p><em>Let one script pull in (and optionally run) another at runtime.</em></p>
+<div class="highlight"><pre><span></span><code>call tool.Script.Load(&quot;tasks/ns/build.ns.txt&quot;, entry=&quot;build_all&quot;)
+</code></pre></div>
+<p>Concrete semantics:</p>
+<table>
+<thead>
+<tr>
+<th>arg</th>
+<th>required</th>
+<th>purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>path</code></td>
+<td>yes</td>
+<td>relative FS path (same lookup used by <code>FS.Read</code>)</td>
+</tr>
+<tr>
+<td><code>entry</code></td>
+<td>no</td>
+<td>overrides the file’s <code>:: entry:</code> header if present</td>
+</tr>
+</tbody>
+</table>
+<p>Implementation is tiny: <code>Script.Load</code> (a) reads the file, (b) hands it to the interpreter’s <code>Parse+Register</code> API, (c) if <code>entry</code> (or header) is present, does <code>Eval(entry)</code> once, passing through any return value / error.</p>
+<hr />
+<h3 id="4-chaining-inside-a-script-two-idioms">4 Chaining inside a script – two idioms<a class="headerlink" href="#4-chaining-inside-a-script-two-idioms" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Static chain</strong> – just list the loads from <strong>startup.ns.txt</strong>:</li>
+</ul>
+<div class="highlight"><pre><span></span><code>call tool.Script.Load(&quot;infra/ns/db.ns.txt&quot;, entry=&quot;init_db&quot;)
+call tool.Script.Load(&quot;infra/ns/cache.ns.txt&quot;)          # relies on its header
+call tool.Script.Load(&quot;app/ns/api.ns.txt&quot;)              # ditto
+</code></pre></div>
+<ul>
+<li><strong>Dynamic chain</strong> – emit an event that other scripts subscribe to with the new
+  <code>on event ...</code> block (0.4.2):</li>
+</ul>
+<div class="highlight"><pre><span></span><code>emit {&quot;topic&quot;: &quot;app.ready&quot;}          # anybody’s on-event will run now
+</code></pre></div>
+<p>Handlers live in the secondary scripts:</p>
+<div class="highlight"><pre><span></span><code>on event {&quot;topic&quot;:&quot;app.ready&quot;} do
+  call start_background_jobs()
+endon
+</code></pre></div>
+<p>Because handlers are queued in the same interpreter loop, you still get single-threaded determinism.&#x20;</p>
+<hr />
+<h3 id="5-why-not-just-rely-on-main">5 Why not just rely on <code>main</code>?<a class="headerlink" href="#5-why-not-just-rely-on-main" title="Permanent link">&para;</a></h3>
+<p>Once you load two files that <em>both</em> use <code>func main()</code>, whichever one was parsed last wins in the global symbol table – a foot-gun we’ve tripped over before. An explicit <strong>entry name</strong> + optional <strong>module prefix</strong> makes that collision impossible while keeping day-one scripts (that only ever load one file) working unchanged.</p>
+<hr />
+<h3 id="6-minimal-code-youd-actually-add">6 Minimal code you’d actually add<a class="headerlink" href="#6-minimal-code-youd-actually-add" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="c1">// sketch – inside loader.go</span>
+<span class="kd">func</span><span class="w"> </span><span class="nx">LoadScript</span><span class="p">(</span><span class="nx">path</span><span class="p">,</span><span class="w"> </span><span class="nx">overrideEntry</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">src</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">os</span><span class="p">.</span><span class="nx">ReadFile</span><span class="p">(</span><span class="nx">path</span><span class="p">)</span>
+<span class="w">    </span><span class="nx">mod</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">parser</span><span class="p">.</span><span class="nx">Parse</span><span class="p">(</span><span class="nx">src</span><span class="p">)</span><span class="w">               </span><span class="c1">// existing parse</span>
+<span class="w">    </span><span class="nx">entry</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">mod</span><span class="p">.</span><span class="nx">Metadata</span><span class="p">[</span><span class="s">&quot;entry&quot;</span><span class="p">]</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nx">overrideEntry</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nx">entry</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">overrideEntry</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">interpreter</span><span class="p">.</span><span class="nx">Register</span><span class="p">(</span><span class="nx">mod</span><span class="p">);</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="nx">err</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nx">entry</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="nx">interpreter</span><span class="p">.</span><span class="nx">Call</span><span class="p">(</span><span class="nx">entry</span><span class="p">,</span><span class="w"> </span><span class="kc">nil</span><span class="p">)</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>The <code>Register</code> step would prepend <code>module.</code> to exported names when <code>:: module:</code> is present.</p>
+<hr />
+<h3 id="tldr_1">TL;DR<a class="headerlink" href="#tldr_1" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Use <code>:: entry:</code></strong> to pick the startup proc per script.</li>
+<li><strong>Optionally add <code>:: module:</code></strong> to namespace everything automatically.</li>
+<li>Expose a tiny <strong><code>tool.Script.Load()</code></strong> helper so scripts (including <code>startup.ns.txt</code>) can build deterministic chains.</li>
+</ul>
+<p>That covers both “run something other than <code>main</code>” and “one script chains another” without touching the core grammar or forcing invasive refactors.</p>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      <script id="__config" type="application/json">{"base": "..", "features": [], "search": "../assets/javascripts/workers/search.d50fe291.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.50899def.min.js"></script>
+      
+    
+  </body>
+</html>
