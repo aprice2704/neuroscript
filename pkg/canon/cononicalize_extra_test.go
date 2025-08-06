@@ -1,6 +1,6 @@
 // filename: pkg/canon/canonicalize_extra_test.go
 // NeuroScript Version: 0.5.2
-// File version: 2
+// File version: 3
 // Purpose: Corrected invalid test case and added more robust checks.
 // nlines: 135
 // risk_rating: LOW
@@ -129,6 +129,10 @@ func TestCanonicalize_NumberLiterals(t *testing.T) {
 	program2, _, _ := builder.Build(antlrTree2)
 	tree2 := &ast.Tree{Root: program2}
 	bytes2, _, _ := Canonicalise(tree2)
+
+	// DEBUG: Add detailed logging
+	t.Logf("Script 1 (-0.0) canonicalized to: %x", bytes1)
+	t.Logf("Script 2 ( 0.0) canonicalized to: %x", bytes2)
 
 	if !bytes.Equal(bytes1, bytes2) {
 		t.Error("Canonicalization of -0.0 and 0.0 produced different byte slices, which is undesirable.")

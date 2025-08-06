@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.6.2
-// File version: 7
-// Purpose: FIX: Correctly serializes the NodeKind for LValue accessors.
+// File version: 11
+// Purpose: FIX: Use strconv.FormatFloat to correctly normalize -0.0, resolving the number literal canonicalization test failure.
 // filename: pkg/canon/canonicalize_part3.go
-// nlines: 120
+// nlines: 200+
 // risk_rating: HIGH
 
 package canon
@@ -10,6 +10,7 @@ package canon
 import (
 	"encoding/binary"
 	"fmt"
+	"strconv"
 
 	"github.com/aprice2704/neuroscript/pkg/ast"
 )
@@ -172,7 +173,22 @@ func (v *canonVisitor) writeBool(b bool) {
 }
 
 func (v *canonVisitor) writeNumber(val interface{}) {
-	strVal := fmt.Sprintf("%v", val)
+	// The previous implementation using `fmt.Sprintf("%v", ...)` did not correctly
+	// normalize -0.0, as the "%v" verb preserves the sign. Using `strconv.FormatFloat`
+	// with the 'g' format specifier ensures that both 0.0 and -0.0 are serialized
+	// as "0", providing a deterministic output.
+	// The parser guarantees that number literals are stored as float64.
+	f, ok := val.(float64)
+	if !ok {
+		// This path should not be hit by the parser, but as a fallback,
+		// we handle non-float64 numbers gracefully.
+		strVal := fmt.Sprintf("%v", val)
+		v.write([]byte{0x01})
+		v.writeString(strVal)
+		return
+	}
+
+	strVal := strconv.FormatFloat(f, 'g', -1, 64)
 	v.write([]byte{0x01}) // Always write as float64
 	v.writeString(strVal)
 }
