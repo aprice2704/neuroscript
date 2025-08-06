@@ -1,0 +1,13 @@
+// filename: pkg/parser/testdata/comprehensive_command.ns
+// purpose: A script exercising a command block for comprehensive tests.
+// used_by: pkg/canon/testdata/comprehensive_e2e_test.go
+// howto_update: You **must** update this whenever you add new features to ns
+// depends_on: NeuroScript.g4
+
+:: file-key: command-file
+
+command
+    :: command-key: command-value
+    emit "This is a top-level command block."
+    set x = tool.another.name()
+endcommand

@@ -1,7 +1,7 @@
 // filename: pkg/parser/ast_builder_procedures.go
 // NeuroScript Version: 0.6.0
-// File version: 13
-// Purpose: Removed obsolete blank line counting logic. Association is now handled by the LineInfo algorithm.
+// File version: 16
+// Purpose: Corrected ParamSpec creation to use the newNode helper with the correct, existing NodeKind (types.KindVariable).
 
 package parser
 
@@ -97,18 +97,32 @@ func (l *neuroScriptListenerImpl) ExitOptional_clause(ctx *gen.Optional_clauseCo
 		l.addError(ctx, "found 'optional' clause outside of a procedure definition")
 		return
 	}
+	// We pop the value pushed by ExitParam_list to keep the stack clean, but we
+	// don't use it. We get the identifiers directly from the context to have
+	// access to their tokens for proper node initialization.
 	val, ok := l.pop()
 	if !ok {
 		l.addError(ctx, "stack underflow reading params for 'optional' clause")
 		return
 	}
-	params, ok := val.([]string)
-	if !ok {
+	if _, ok := val.([]string); !ok {
 		l.addError(ctx, "internal error: 'optional' clause expected []string from stack, got %T", val)
 		return
 	}
-	for _, pName := range params {
-		l.currentProc.OptionalParams = append(l.currentProc.OptionalParams, &ast.ParamSpec{Name: pName})
+
+	// Re-get the identifiers from the context to access their tokens.
+	paramListCtx := ctx.Param_list()
+	if paramListCtx == nil {
+		return // No optional parameters present.
+	}
+
+	for _, identNode := range paramListCtx.AllIDENTIFIER() {
+		// FIX: Create the ParamSpec using the newNode helper to ensure its
+		// BaseNode (and thus NodeKind and StartPos) is fully initialized.
+		param := &ast.ParamSpec{Name: identNode.GetText()}
+		// A parameter is a form of variable, so KindVariable is the correct type.
+		newNode(param, identNode.GetSymbol(), types.KindVariable)
+		l.currentProc.OptionalParams = append(l.currentProc.OptionalParams, param)
 	}
 }
 

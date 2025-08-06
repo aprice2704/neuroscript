@@ -1,7 +1,7 @@
 // filename: pkg/parser/ast_builder_collections.go
 // NeuroScript Version: 0.5.2
-// File version: 4
-// Purpose: Removed legacy 'Pos' field assignments to align with updated AST.
+// File version: 6
+// Purpose: Corrected map entry creation to properly set the NodeKind on the MapEntryNode itself, fixing a persistent canonicalization bug.
 
 package parser
 
@@ -76,10 +76,11 @@ func (l *neuroScriptListenerImpl) ExitMap_entry(c *gen.Map_entryContext) {
 	}
 	newNode(keyNode, keyToken, types.KindStringLiteral)
 
-	node := &ast.MapEntryNode{Key: keyNode, Value: valueExpr}
-	// A MapEntry isn't a standalone expression, so it doesn't get a kind itself,
-	// it's part of a MapLiteralNode. We can give it a position from its key.
-	node.BaseNode.StartPos = keyNode.BaseNode.StartPos
+	entry := &ast.MapEntryNode{Key: keyNode, Value: valueExpr}
+
+	// FIX: The MapEntryNode itself must be initialized with its kind.
+	// This was the source of the canonicalization diff (0 vs 28).
+	node := newNode(entry, keyToken, types.KindMapEntry)
 
 	l.push(node)
 }

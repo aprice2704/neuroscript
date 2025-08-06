@@ -1,6 +1,6 @@
-// NeuroScript Version: 0.6.0
-// File version: 21.1
-// Purpose: Adds all missing Kind cases to the decoder's switch statement to satisfy the coverage test.
+// NeuroScript Version: 0.6.2
+// File version: 34
+// Purpose: Tidy: Removes verbose debug logging now that the canonicalization issues are resolved.
 // filename: pkg/canon/decoder_part1.go
 // nlines: 170
 // risk_rating: HIGH
@@ -11,7 +11,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"strconv"
+	"strings"
 
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/types"
@@ -44,9 +44,14 @@ func Decode(blob []byte) (*ast.Tree, error) {
 	return &ast.Tree{Root: program}, nil
 }
 
-type canonReader struct{ r *bytes.Reader }
+type canonReader struct {
+	r       *bytes.Reader
+	history []string
+}
 
 func (r *canonReader) readNode() (ast.Node, error) {
+	offset := r.r.Size() - int64(r.r.Len())
+
 	kindVal, err := r.readVarint()
 	if err != nil {
 		if err == io.EOF {
@@ -55,6 +60,7 @@ func (r *canonReader) readNode() (ast.Node, error) {
 		return nil, fmt.Errorf("failed to read node kind: %w", err)
 	}
 	kind := types.Kind(kindVal)
+	r.history = append(r.history, fmt.Sprintf("%v", kind))
 
 	switch kind {
 	// Structural Nodes
@@ -77,17 +83,17 @@ func (r *canonReader) readNode() (ast.Node, error) {
 		if err != nil {
 			return nil, err
 		}
-		return &ast.StringLiteralNode{BaseNode: ast.BaseNode{NodeKind: kind}, Value: val}, nil
-	case types.KindNumberLiteral:
-		strVal, err := r.readString()
+		isRaw, err := r.readBool()
 		if err != nil {
 			return nil, err
 		}
-		if i, err := strconv.ParseInt(strVal, 10, 64); err == nil {
-			return &ast.NumberLiteralNode{BaseNode: ast.BaseNode{NodeKind: kind}, Value: i}, nil
+		return &ast.StringLiteralNode{BaseNode: ast.BaseNode{NodeKind: kind}, Value: val, IsRaw: isRaw}, nil
+	case types.KindNumberLiteral:
+		val, err := r.readNumber()
+		if err != nil {
+			return nil, err
 		}
-		f, _ := strconv.ParseFloat(strVal, 64)
-		return &ast.NumberLiteralNode{BaseNode: ast.BaseNode{NodeKind: kind}, Value: f}, nil
+		return &ast.NumberLiteralNode{BaseNode: ast.BaseNode{NodeKind: kind}, Value: val}, nil
 	case types.KindBooleanLiteral:
 		b, err := r.readBool()
 		if err != nil {
@@ -147,7 +153,7 @@ func (r *canonReader) readNode() (ast.Node, error) {
 	case types.KindMetadataLine: // FIX: Add missing case
 		return r.readMetadataLine()
 	default:
-		return nil, fmt.Errorf("unhandled node kind for decoding: %v (%d)", kind, kind)
+		return nil, fmt.Errorf("unhandled node kind for decoding: %v (%d) at byte offset %d. History: [%s]", kind, kind, offset, strings.Join(r.history, ", "))
 	}
 }
 

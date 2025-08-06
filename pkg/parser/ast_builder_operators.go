@@ -1,7 +1,7 @@
 // filename: pkg/parser/ast_builder_operators.go
 // NeuroScript Version: 0.5.2
-// File version: 23
-// Purpose: Corrected tool call parsing to handle fully qualified tool names (e.g., tool.group.Name) instead of just two parts.
+// File version: 24
+// Purpose: Added handling for all built-in math functions (sin, cos, tan, etc.) to the Callable_expr rule, fixing the comprehensive grammar test failure.
 // nlines: 215
 // risk_rating: HIGH
 
@@ -458,7 +458,6 @@ func (l *neuroScriptListenerImpl) ExitCallable_expr(ctx *gen.Callable_exprContex
 	} else {
 		finalTargetNode.IsTool = false
 		switch {
-		// FIX: Add case for KW_LEN to correctly handle the len() function call.
 		case ctx.KW_LEN() != nil:
 			token = ctx.KW_LEN().GetSymbol()
 			finalTargetNode.Name = "len"
@@ -468,7 +467,25 @@ func (l *neuroScriptListenerImpl) ExitCallable_expr(ctx *gen.Callable_exprContex
 		case ctx.KW_LOG() != nil:
 			token = ctx.KW_LOG().GetSymbol()
 			finalTargetNode.Name = "log"
-		// ... other cases
+		// FIX: Add cases for all the new built-in math functions.
+		case ctx.KW_SIN() != nil:
+			token = ctx.KW_SIN().GetSymbol()
+			finalTargetNode.Name = "sin"
+		case ctx.KW_COS() != nil:
+			token = ctx.KW_COS().GetSymbol()
+			finalTargetNode.Name = "cos"
+		case ctx.KW_TAN() != nil:
+			token = ctx.KW_TAN().GetSymbol()
+			finalTargetNode.Name = "tan"
+		case ctx.KW_ASIN() != nil:
+			token = ctx.KW_ASIN().GetSymbol()
+			finalTargetNode.Name = "asin"
+		case ctx.KW_ACOS() != nil:
+			token = ctx.KW_ACOS().GetSymbol()
+			finalTargetNode.Name = "acos"
+		case ctx.KW_ATAN() != nil:
+			token = ctx.KW_ATAN().GetSymbol()
+			finalTargetNode.Name = "atan"
 		default:
 			l.addError(ctx, "Unhandled built-in or target type in Callable_expr: %q", ctx.GetText())
 			l.push(newNode(&ast.ErrorNode{Message: "Unknown callable target"}, ctx.GetStart(), types.KindUnknown))

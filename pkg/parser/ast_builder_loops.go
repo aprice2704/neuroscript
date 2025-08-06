@@ -1,7 +1,7 @@
 // filename: pkg/parser/ast_builder_loops.go
-// NeuroScript Version: 0.6.0
-// File version: 8
-// Purpose: Removed obsolete blank line counting logic. Association is now handled by the LineInfo algorithm.
+// NeuroScript Version: 0.6.1
+// File version: 9
+// Purpose: Corrected a bug where the collection expression for a 'for each' loop was being popped from the stack but not assigned to the AST node, causing a nil pointer at runtime.
 
 package parser
 
@@ -50,7 +50,6 @@ func (l *neuroScriptListenerImpl) ExitWhile_statement(ctx *gen.While_statementCo
 		Type:     "while",
 		Cond:     cond,
 		Body:     body,
-		// BlankLinesBefore is now set by the LineInfo algorithm in the builder.
 	}
 	step.Comments = l.associateCommentsToNode(&step)
 	SetEndPos(&step, ctx.KW_ENDWHILE().GetSymbol())
@@ -93,9 +92,8 @@ func (l *neuroScriptListenerImpl) ExitFor_each_statement(ctx *gen.For_each_state
 		BaseNode:    ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
 		Type:        "for",
 		LoopVarName: ctx.IDENTIFIER().GetText(),
-		Collection:  collection,
+		Collection:  collection, // FIX: This line was missing, causing the 'nil Collection' error.
 		Body:        body,
-		// BlankLinesBefore is now set by the LineInfo algorithm in the builder.
 	}
 	step.Comments = l.associateCommentsToNode(&step)
 	SetEndPos(&step, ctx.KW_ENDFOR().GetSymbol())

@@ -1,6 +1,6 @@
 // filename: pkg/parser/ast_builder_main_exitlvalue.go
 // NeuroScript Version: 0.5.2
-// File version: 21.0.0
+// File version: 22.0.0
 //
 // Builds an *ast.LValueNode* when the parser exits an lvalue rule.
 // This version has all unrelated debug prints removed.
@@ -105,8 +105,9 @@ func (l *neuroScriptListenerImpl) ExitLvalue(ctx *gen.LvalueContext) {
 			keyTok := fieldTerm.GetSymbol()
 			keyNode := &ast.StringLiteralNode{Value: keyTok.GetText()}
 			accessor.Key = newNode(keyNode, keyTok, types.KindStringLiteral)
+			// FIX: Use KindElementAccess instead of KindUnknown.
 			lValueNode.Accessors = append(lValueNode.Accessors,
-				newNode(accessor, term.GetSymbol(), types.KindUnknown))
+				newNode(accessor, term.GetSymbol(), types.KindElementAccess))
 			i++ // skip identifier
 
 		/* ── bracket accessor ── */
@@ -120,8 +121,9 @@ func (l *neuroScriptListenerImpl) ExitLvalue(ctx *gen.LvalueContext) {
 				Type: ast.BracketAccess,
 				Key:  bracketExprs[bracketExprUsed],
 			}
+			// FIX: Use KindElementAccess instead of KindUnknown.
 			lValueNode.Accessors = append(lValueNode.Accessors,
-				newNode(accessor, term.GetSymbol(), types.KindUnknown))
+				newNode(accessor, term.GetSymbol(), types.KindElementAccess))
 
 			bracketExprUsed++
 			i += 3 // '[', expression, ']'

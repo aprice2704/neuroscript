@@ -1,7 +1,7 @@
 // filename: pkg/parser/ast_builder_loops_test.go
-// NeuroScript Version: 0.5.2
-// File version: 3
-// Purpose: Corrected AST field access in loop tests to match the ast.Step struct definition.
+// NeuroScript Version: 0.6.1
+// File version: 4
+// Purpose: Added a specific test to ensure the 'Collection' field in a for-each loop is never nil in the AST, preventing a runtime panic.
 
 package parser
 
@@ -68,7 +68,7 @@ func TestForEachLoopParsing(t *testing.T) {
 			t.Errorf("Expected loop variable to be 'item', got '%s'", loop.LoopVarName)
 		}
 		if loop.Collection == nil {
-			t.Error("Expected for-each loop to have a collection expression")
+			t.Error("BUG CHECK: Expected for-each loop to have a non-nil collection expression")
 		}
 		if len(loop.Body) != 1 {
 			t.Errorf("Expected 1 statement in for-each loop body, got %d", len(loop.Body))

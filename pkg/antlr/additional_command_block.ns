@@ -1,0 +1,9 @@
+// filename: pkg/antlr/additional_command_block.ns
+// purpose: A script exercising the remaining features of the NeuroScript grammar.
+
+// The command block will execute and clear the event handler
+command
+    call variadic_and_builtins(1, 2)
+    clear event named "MyTestHandler"
+    emit "Event handler should now be cleared."
+endcommand

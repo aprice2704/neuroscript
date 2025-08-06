@@ -1,0 +1,30 @@
+// filename: pkg/antlr/additional_features.ns
+// purpose: A script exercising the remaining features of the NeuroScript grammar.
+// used_by: pkg/canon/comprehensive_e2e_test.go
+// howto_update: You **must** update this whenever you add new features to ns
+// depends_on: NeuroScript.g4
+
+:: title: Untested Feature Coverage
+:: version: 1.0
+
+func variadic_and_builtins(needs required_param optional opt_param returns result) means
+    // Test the 'some' and 'no' operators
+    set empty_list = []
+    set has_items = [1, 2]
+
+    must no empty_list
+    must some has_items
+
+    // Test the remaining built-in math functions
+    set trig = sin(0.5) + cos(0.8) + tan(1.2) + acos(0.1) + asin(0.2) + atan(0.3)
+    set logs = ln(10) + log(100)
+    
+    // Test an empty return
+    return
+endfunc
+
+// Test variadic functions and named/cleared events
+on event "system.test.start" named "MyTestHandler" do
+    emit "Test handler running."
+endon
+

@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.6.0
-// File version: 20.1
-// Purpose: Adds a versioned magic number header for integrity checks and fixes MapEntryNode serialization.
+// NeuroScript Version: 0.6.2
+// File version: 24.0
+// Purpose: Tidy: Removes verbose debug logging now that the canonicalization issues are resolved.
 // filename: pkg/canon/canonicalize_part1.go
-// nlines: 165
+// nlines: 160
 // risk_rating: HIGH
 
 package canon
@@ -63,14 +63,6 @@ func (v *canonVisitor) visit(node ast.Node) error {
 		return nil
 	}
 
-	if un, ok := node.(*ast.UnaryOpNode); ok && un.Operator == "-" {
-		if _, isNum := un.Operand.(*ast.NumberLiteralNode); isNum {
-			return v.visitUnaryOp(un)
-		}
-	}
-
-	// FIX: Explicitly handle MapEntryNode's kind to work around a potential
-	// bug in the AST builder where the kind might not be set correctly.
 	var kindToWrite types.Kind
 	if _, ok := node.(*ast.MapEntryNode); ok {
 		kindToWrite = types.KindMapEntry
@@ -97,6 +89,7 @@ func (v *canonVisitor) visit(node ast.Node) error {
 		return v.visitLValue(n)
 	case *ast.StringLiteralNode:
 		v.writeString(n.Value)
+		v.writeBool(n.IsRaw)
 		return nil
 	case *ast.NumberLiteralNode:
 		v.writeNumber(n.Value)

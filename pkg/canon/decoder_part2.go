@@ -1,6 +1,6 @@
-// NeuroScript Version: 0.6.0
-// File version: 21.2
-// Purpose: Adds all missing Kind cases to the decoder's switch statement to satisfy the coverage test.
+// NeuroScript Version: 0.6.2
+// File version: 35
+// Purpose: FIX: Correctly sets the NodeKind for MapEntryNode during deserialization.
 // filename: pkg/canon/decoder_part2.go
 // nlines: 150
 // risk_rating: HIGH
@@ -23,14 +23,18 @@ func (r *canonReader) readListLiteral() (*ast.ListLiteralNode, error) {
 	}
 	l := &ast.ListLiteralNode{
 		BaseNode: ast.BaseNode{NodeKind: types.KindListLiteral},
-		Elements: make([]ast.Expression, numElements),
 	}
-	for i := 0; i < int(numElements); i++ {
-		elem, err := r.readNode()
-		if err != nil {
-			return nil, fmt.Errorf("failed to read list element %d: %w", i, err)
+	if numElements > 0 {
+		l.Elements = make([]ast.Expression, numElements)
+		for i := 0; i < int(numElements); i++ {
+			elem, err := r.readNode()
+			if err != nil {
+				return nil, fmt.Errorf("failed to read list element %d: %w", i, err)
+			}
+			l.Elements[i] = elem.(ast.Expression)
 		}
-		l.Elements[i] = elem.(ast.Expression)
+	} else {
+		l.Elements = []ast.Expression{}
 	}
 	return l, nil
 }
@@ -61,6 +65,25 @@ func (r *canonReader) readSecretRef() (*ast.SecretRef, error) {
 
 func (r *canonReader) readProgram() (*ast.Program, error) {
 	prog := ast.NewProgram()
+	numMeta, err := r.readVarint()
+	if err != nil {
+		return nil, err
+	}
+	if numMeta > 0 {
+		prog.Metadata = make(map[string]string)
+		for i := 0; i < int(numMeta); i++ {
+			key, err := r.readString()
+			if err != nil {
+				return nil, err
+			}
+			val, err := r.readString()
+			if err != nil {
+				return nil, err
+			}
+			prog.Metadata[key] = val
+		}
+	}
+
 	numProcs, err := r.readVarint()
 	if err != nil {
 		return nil, err
@@ -78,12 +101,17 @@ func (r *canonReader) readProgram() (*ast.Program, error) {
 	if err != nil {
 		return nil, err
 	}
-	for i := 0; i < int(numEvents); i++ {
-		node, err := r.readNode()
-		if err != nil {
-			return nil, fmt.Errorf("failed to decode event %d: %w", i, err)
+	if numEvents > 0 {
+		prog.Events = make([]*ast.OnEventDecl, numEvents)
+		for i := 0; i < int(numEvents); i++ {
+			node, err := r.readNode()
+			if err != nil {
+				return nil, fmt.Errorf("failed to decode event %d: %w", i, err)
+			}
+			prog.Events[i] = node.(*ast.OnEventDecl)
 		}
-		prog.Events = append(prog.Events, node.(*ast.OnEventDecl))
+	} else {
+		prog.Events = []*ast.OnEventDecl{}
 	}
 
 	numCommands, err := r.readVarint()
@@ -107,20 +135,30 @@ func (r *canonReader) readOnEventDecl() (*ast.OnEventDecl, error) {
 		return nil, err
 	}
 	event.EventNameExpr = node.(ast.Expression)
+	event.HandlerName, err = r.readString()
+	if err != nil {
+		return nil, err
+	}
+	event.EventVarName, err = r.readString()
+	if err != nil {
+		return nil, err
+	}
 	numSteps, err := r.readVarint()
 	if err != nil {
 		return nil, err
 	}
-	event.Body = make([]ast.Step, numSteps)
-	for i := 0; i < int(numSteps); i++ {
-		sNode, err := r.readNode()
-		if err != nil {
-			return nil, err
-		}
-		if step, ok := sNode.(*ast.Step); ok {
-			event.Body[i] = *step
-		} else {
-			return nil, fmt.Errorf("expected to decode a *ast.Step but got %T", sNode)
+	if numSteps > 0 {
+		event.Body = make([]ast.Step, numSteps)
+		for i := 0; i < int(numSteps); i++ {
+			sNode, err := r.readNode()
+			if err != nil {
+				return nil, err
+			}
+			if step, ok := sNode.(*ast.Step); ok {
+				event.Body[i] = *step
+			} else {
+				return nil, fmt.Errorf("expected to decode a *ast.Step but got %T", sNode)
+			}
 		}
 	}
 	return event, nil
@@ -136,19 +174,26 @@ func (r *canonReader) readCallableExpr() (*ast.CallableExprNode, error) {
 	if err != nil {
 		return nil, err
 	}
+	kindVal, err := r.readVarint()
+	if err != nil {
+		return nil, err
+	}
 	call.Target.Name = targetName
 	call.Target.IsTool = isTool
+	call.Target.BaseNode.NodeKind = types.Kind(kindVal)
 	numArgs, err := r.readVarint()
 	if err != nil {
 		return nil, err
 	}
-	call.Arguments = make([]ast.Expression, numArgs)
-	for i := 0; i < int(numArgs); i++ {
-		argNode, err := r.readNode()
-		if err != nil {
-			return nil, err
+	if numArgs > 0 {
+		call.Arguments = make([]ast.Expression, numArgs)
+		for i := 0; i < int(numArgs); i++ {
+			argNode, err := r.readNode()
+			if err != nil {
+				return nil, err
+			}
+			call.Arguments[i] = argNode.(ast.Expression)
 		}
-		call.Arguments[i] = argNode.(ast.Expression)
 	}
 	return call, nil
 }

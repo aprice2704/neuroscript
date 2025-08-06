@@ -93,9 +93,9 @@ func (e *evaluation) evaluateStringLiteral(n *ast.StringLiteralNode) (lang.Value
 
 func (i *Interpreter) resolveVariable(n *ast.VariableNode) (lang.Value, error) {
 	// DEBUG: Print variable lookup attempt.
-	fmt.Printf("[DEBUG] resolveVariable: Attempting to resolve variable '%s' in procedure '%s'\n", n.Name, i.state.currentProcName)
+	//fmt.Printf("[DEBUG] resolveVariable: Attempting to resolve variable '%s' in procedure '%s'\n", n.Name, i.state.currentProcName)
 	if val, exists := i.GetVariable(n.Name); exists {
-		fmt.Printf("[DEBUG] resolveVariable: Found variable '%s' with value '%s'\n", n.Name, val.String())
+		//	fmt.Printf("[DEBUG] resolveVariable: Found variable '%s' with value '%s'\n", n.Name, val.String())
 		return val, nil
 	}
 

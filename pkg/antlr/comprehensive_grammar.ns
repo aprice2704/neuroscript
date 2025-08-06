@@ -1,0 +1,80 @@
+// filename: pkg/canon/testdata/comprehensive_grammar.ns
+// purpose: A single script exercising every feature in the NeuroScript.g4 grammar.
+// used_by: pkg/canon/testdata/comprehensive_e2e_test.go
+// howto_update: You **must** update this whenever you add new features to ns
+// depends_on: NeuroScript.g4
+
+:: file-key: file-value
+
+# Top-level comment
+
+-- Another top-level comment
+
+func full_grammar_test(needs required_param optional opt_param returns ret_val) means
+    :: proc-key: proc-value
+
+    // Literals
+    set s = "hello"
+    set r = ```raw string with {{placeholder}}```
+    set n = -10.5
+    set b = true and false
+    set l = [1, s, b, nil, [], {}]
+    set m = {"key": "value", "nested": l}
+
+    // Expressions & Operators
+    set x = (1 + 2) * 3 / 4 % 5
+    set y = 2 ** 3
+    set z = (x > y or n <= 0) and (s != "world")
+    set bitwise = (1 | 2) & (3 ^ 4)
+    set unary = not b or -n or ~1 or typeof(l)
+
+    // Accessors and LValues
+    set l[0] = 100
+    set m["key"] = "new value"
+    set m.new_key = "dot access"
+
+    // Statements
+    emit "Starting comprehensive test..."
+    if x > 0
+        emit "x is positive"
+    else
+        emit "x is not positive"
+    endif
+
+    set i = 3
+    while i > 0
+        set i = i - 1
+        if i == 1
+            continue
+        endif
+        if i == 0
+            break
+        endif
+    endwhile
+
+    for each item in l
+        emit "Looping..."
+    endfor
+
+    must z == true
+    ask "Is this a test?" into user_response
+
+    on error do
+        emit "An error was caught!"
+        clear_error
+    endon
+
+    fail "This is a test failure"
+    
+    // Callables
+    set len_of_l = len(l)
+    set last_val = last
+    set eval_val = eval("10 + 5")
+    call tool.blah.name(len_of_l, last_val)
+
+    return eval_val
+endfunc
+
+on event "system.startup" named "MyStartupHandler" as evt do
+    emit "System has started."
+endon

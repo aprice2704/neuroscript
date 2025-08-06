@@ -1,21 +1,40 @@
-// NeuroScript Version: 0.6.0
-// File version: 20.2
-// Purpose: Adds a versioned magic number header for integrity checks and fixes MapEntryNode serialization.
+// NeuroScript Version: 0.6.2
+// File version: 41
+// Purpose: FIX: Restored local valueToNode helper to resolve import cycle.
 // filename: pkg/canon/canonicalize_part2.go
-// nlines: 130+
+// nlines: 200+
 // risk_rating: HIGH
 
 package canon
 
 import (
-	"encoding/binary"
 	"fmt"
-	"math"
 	"sort"
 
 	"github.com/aprice2704/neuroscript/pkg/ast"
+	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/types"
 )
+
+// valueToNode converts a runtime lang.Value into a serializable ast.Node.
+func valueToNode(val lang.Value) (ast.Node, error) {
+	if val == nil {
+		return &ast.NilLiteralNode{BaseNode: ast.BaseNode{NodeKind: types.KindNilLiteral}}, nil
+	}
+	switch v := val.(type) {
+	case lang.StringValue:
+		return &ast.StringLiteralNode{Value: v.Value}, nil
+	case lang.NumberValue:
+		return &ast.NumberLiteralNode{Value: v.Value}, nil
+	case lang.BoolValue:
+		return &ast.BooleanLiteralNode{Value: v.Value}, nil
+	case lang.NilValue:
+		return &ast.NilLiteralNode{}, nil
+	// Note: Complex types like lists and maps would require recursive conversion.
+	default:
+		return nil, fmt.Errorf("unsupported lang.Value type for AST conversion: %T", v)
+	}
+}
 
 // This file continues the implementation from part 1.
 
@@ -38,29 +57,26 @@ func (v *canonVisitor) visitElementAccess(e *ast.ElementAccessNode) error {
 
 func (v *canonVisitor) visitSecretRef(s *ast.SecretRef) error {
 	v.writeString(s.Path)
-	// Note: Enc and Raw are runtime values and not part of the canonical form.
 	return nil
 }
 
 func (v *canonVisitor) visitUnaryOp(u *ast.UnaryOpNode) error {
-	// Handle negative numbers as a special case for more compact representation
-	if u.Operator == "-" {
-		if num, ok := u.Operand.(*ast.NumberLiteralNode); ok {
-			v.writeVarint(int64(types.KindNumberLiteral))
-			switch val := num.Value.(type) {
-			case int64:
-				v.writeNumber(-val)
-			case float64:
-				v.writeNumber(-val)
-			}
-			return nil
-		}
-	}
 	v.writeString(u.Operator)
 	return v.visit(u.Operand)
 }
 
 func (v *canonVisitor) visitProgram(p *ast.Program) error {
+	v.writeVarint(int64(len(p.Metadata)))
+	keys := make([]string, 0, len(p.Metadata))
+	for k := range p.Metadata {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for _, k := range keys {
+		v.writeString(k)
+		v.writeString(p.Metadata[k])
+	}
+
 	procNames := make([]string, 0, len(p.Procedures))
 	for name := range p.Procedures {
 		procNames = append(procNames, name)
@@ -90,9 +106,27 @@ func (v *canonVisitor) visitProgram(p *ast.Program) error {
 }
 
 func (v *canonVisitor) visitCommand(c *ast.CommandNode) error {
+	v.writeVarint(int64(len(c.Metadata)))
+	keys := make([]string, 0, len(c.Metadata))
+	for k := range c.Metadata {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for _, k := range keys {
+		v.writeString(k)
+		v.writeString(c.Metadata[k])
+	}
+
 	v.writeVarint(int64(len(c.Body)))
 	for i := range c.Body {
 		if err := v.visit(&c.Body[i]); err != nil {
+			return err
+		}
+	}
+
+	v.writeVarint(int64(len(c.ErrorHandlers)))
+	for _, handler := range c.ErrorHandlers {
+		if err := v.visit(handler); err != nil {
 			return err
 		}
 	}
@@ -101,6 +135,51 @@ func (v *canonVisitor) visitCommand(c *ast.CommandNode) error {
 
 func (v *canonVisitor) visitProcedure(p *ast.Procedure) error {
 	v.writeString(p.Name())
+	v.writeVarint(int64(len(p.Metadata)))
+	keys := make([]string, 0, len(p.Metadata))
+	for k := range p.Metadata {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for _, k := range keys {
+		v.writeString(k)
+		v.writeString(p.Metadata[k])
+	}
+
+	v.writeVarint(int64(len(p.RequiredParams)))
+	for _, param := range p.RequiredParams {
+		v.writeString(param)
+	}
+	v.writeVarint(int64(len(p.OptionalParams)))
+	for _, param := range p.OptionalParams {
+		v.writeString(param.Name)
+		v.writeVarint(int64(param.BaseNode.NodeKind))
+
+		var nodeToVisit ast.Node
+		if param.Default != nil {
+			var err error
+			nodeToVisit, err = valueToNode(param.Default)
+			if err != nil {
+				return fmt.Errorf("could not convert default parameter value to AST node: %w", err)
+			}
+		}
+
+		if err := v.visit(nodeToVisit); err != nil {
+			return fmt.Errorf("failed to visit default param: %w", err)
+		}
+	}
+	v.writeVarint(int64(len(p.ReturnVarNames)))
+	for _, name := range p.ReturnVarNames {
+		v.writeString(name)
+	}
+
+	v.writeVarint(int64(len(p.ErrorHandlers)))
+	for _, handler := range p.ErrorHandlers {
+		if err := v.visit(handler); err != nil {
+			return err
+		}
+	}
+
 	v.writeVarint(int64(len(p.Steps)))
 	for i := range p.Steps {
 		if err := v.visit(&p.Steps[i]); err != nil {
@@ -108,123 +187,4 @@ func (v *canonVisitor) visitProcedure(p *ast.Procedure) error {
 		}
 	}
 	return nil
-}
-
-func (v *canonVisitor) visitStep(s *ast.Step) error {
-	v.writeString(s.Type)
-	switch s.Type {
-	case "set":
-		v.writeVarint(int64(len(s.LValues)))
-		for _, lval := range s.LValues {
-			if err := v.visit(lval); err != nil {
-				return err
-			}
-		}
-		v.writeVarint(int64(len(s.Values)))
-		for _, rval := range s.Values {
-			if err := v.visit(rval); err != nil {
-				return err
-			}
-		}
-	case "return":
-		v.writeVarint(int64(len(s.Values)))
-		for _, val := range s.Values {
-			if err := v.visit(val); err != nil {
-				return err
-			}
-		}
-	case "emit":
-		return v.visit(s.Values[0])
-	case "call":
-		if s.Call != nil {
-			return v.visit(s.Call)
-		}
-		// Handle expression statements that might be wrapped in a step
-		if s.ExpressionStmt != nil {
-			return v.visit(s.ExpressionStmt)
-		}
-
-	case "expression":
-		if s.ExpressionStmt != nil {
-			return v.visit(s.ExpressionStmt)
-		}
-	}
-	return nil
-}
-
-func (v *canonVisitor) visitOnEventDecl(e *ast.OnEventDecl) error {
-	if err := v.visit(e.EventNameExpr); err != nil {
-		return err
-	}
-	v.writeVarint(int64(len(e.Body)))
-	for i := range e.Body {
-		if err := v.visit(&e.Body[i]); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (v *canonVisitor) visitCallableExpr(c *ast.CallableExprNode) error {
-	v.writeString(c.Target.Name)
-	v.writeBool(c.Target.IsTool)
-	v.writeVarint(int64(len(c.Arguments)))
-	for _, arg := range c.Arguments {
-		if err := v.visit(arg); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (v *canonVisitor) visitLValue(lval *ast.LValueNode) error {
-	v.writeString(lval.Identifier)
-	// Accessors are part of the LValue's structure but are handled by ElementAccessNode.
-	// We do not serialize them here to avoid duplication.
-	return nil
-}
-
-func (v *canonVisitor) visitBinaryOp(b *ast.BinaryOpNode) error {
-	v.writeString(b.Operator)
-	if err := v.visit(b.Left); err != nil {
-		return err
-	}
-	return v.visit(b.Right)
-}
-
-// --- Primitive Writers ---
-
-func (v *canonVisitor) write(p []byte) {
-	v.w.Write(p)
-	v.hasher.Write(p)
-}
-
-func (v *canonVisitor) writeVarint(x int64) {
-	buf := make([]byte, binary.MaxVarintLen64)
-	n := binary.PutVarint(buf, x)
-	v.write(buf[:n])
-}
-
-func (v *canonVisitor) writeString(s string) {
-	v.writeVarint(int64(len(s)))
-	if len(s) > 0 {
-		v.write([]byte(s))
-	}
-}
-
-func (v *canonVisitor) writeBool(b bool) {
-	if b {
-		v.write([]byte{1})
-	} else {
-		v.write([]byte{0})
-	}
-}
-
-func (v *canonVisitor) writeNumber(val interface{}) {
-	// Normalize -0.0 to 0.0 for deterministic output
-	if f, ok := val.(float64); ok && f == 0 && math.Signbit(f) {
-		val = 0.0
-	}
-	strVal := fmt.Sprintf("%v", val)
-	v.writeString(strVal)
 }

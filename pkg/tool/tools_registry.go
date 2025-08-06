@@ -9,7 +9,6 @@ package tool
 
 import (
 	"fmt"
-	"log"
 	"sync"
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
@@ -68,7 +67,7 @@ func (r *ToolRegistryImpl) RegisterTool(impl ToolImplementation) (ToolImplementa
 	impl.FullName = types.FullName(canonicalName)
 	impl.Spec.FullName = types.FullName(canonicalName)
 
-	log.Printf("[DEBUG] Registering tool. Group: '%s', Name: '%s', Final Key: '%s'", impl.Spec.Group, impl.Spec.Name, canonicalName)
+	//log.Printf("[DEBUG] Registering tool. Group: '%s', Name: '%s', Final Key: '%s'", impl.Spec.Group, impl.Spec.Name, canonicalName)
 
 	r.tools[types.FullName(canonicalName)] = impl
 

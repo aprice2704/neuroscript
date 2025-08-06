@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.5.2
-// File version: 41
-// Purpose: Replaced direct access to removed 'Position' field with calls to the GetPos() method.
+// File version: 45
+// Purpose: Added detailed step-dumping to the error message for nil collection expressions to help diagnose AST builder bugs.
 // filename: pkg/interpreter/interpreter_steps_blocks.go
-// nlines: 200
+// nlines: 205
 // risk_rating: HIGH
 
 package interpreter
@@ -88,7 +88,8 @@ endWhileLoop:
 // executeFor handles the "for each" step.
 func (i *Interpreter) executeFor(step ast.Step, isInHandler bool, activeError *lang.RuntimeError) (result lang.Value, wasReturn bool, wasCleared bool, err error) {
 	if step.Collection == nil {
-		return nil, false, false, lang.NewRuntimeError(lang.ErrorCodeInternal, "FOR EACH step has nil Collection expression", nil).WithPosition(step.GetPos())
+		errMsg := fmt.Sprintf("FOR EACH step has nil Collection expression. This indicates a severe bug in the AST Builder. Step Details: %+v", step)
+		return nil, false, false, lang.NewRuntimeError(lang.ErrorCodeInternal, errMsg, nil).WithPosition(step.GetPos())
 	}
 	if step.LoopVarName == "" {
 		return nil, false, false, lang.NewRuntimeError(lang.ErrorCodeInternal, "FOR EACH step has empty LoopVarName", nil).WithPosition(step.GetPos())
@@ -116,6 +117,9 @@ func (i *Interpreter) executeFor(step ast.Step, isInHandler bool, activeError *l
 		for _, charRune := range c.Value {
 			itemsToIterate = append(itemsToIterate, lang.StringValue{Value: string(charRune)})
 		}
+	case *lang.NilValue:
+		// A nil collection is treated as an empty list; the loop will not run.
+		itemsToIterate = []lang.Value{}
 	default:
 		errMsg := fmt.Sprintf("cannot iterate over type %s for FOR EACH %s", lang.TypeOf(collectionVal), step.LoopVarName)
 		return nil, false, wasCleared, lang.NewRuntimeError(lang.ErrorCodeType, errMsg, nil).WithPosition(step.Collection.GetPos())

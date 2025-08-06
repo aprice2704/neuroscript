@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.5.2
-// File version: 14.0.0
+// File version: 15.0.0
 // Purpose: Reverted the 'must' statement test case to its original, correct form now that the root AST builder bug has been fixed in the interpreter execution loop.
 // filename: pkg/interpreter/interpreter_control_flow_test.go
-// nlines: 175
+// nlines: 200
 // risk_rating: MEDIUM
 
 package interpreter
@@ -178,6 +178,33 @@ func TestErrorHandlingControlFlow(t *testing.T) {
 		expected := "handled"
 		if resultStr != expected {
 			t.Errorf("Expected result '%s', got '%s'", expected, resultStr)
+		}
+	})
+
+	t.Run("for_each_with_nil_collection", func(t *testing.T) {
+		script := `
+			func main(returns result) means
+				set my_collection = nil
+				set loop_did_run = false
+
+				for each item in my_collection
+					set loop_did_run = true
+				endfor
+
+				return loop_did_run
+			endfunc
+		`
+		val, err := runControlFlowTest(t, script)
+		if err != nil {
+			t.Fatalf("runControlFlowTest returned an unexpected error: %v", err)
+		}
+
+		resultBool, ok := val.(lang.BoolValue)
+		if !ok {
+			t.Fatalf("Expected boolean result, but got %T", val)
+		}
+		if resultBool.Value {
+			t.Error("Expected loop_did_run to be false, but it was true")
 		}
 	})
 }
