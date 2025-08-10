@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.6.0
-// File version: 31
-// Purpose: Renamed the Ask method to PromptUser to conform to the updated tool.Runtime interface.
+// File version: 32
+// Purpose: Corrected the CloneWithNewVariables method to properly copy AgentModel state to sandboxed interpreters, resolving tool-to-tool call failures.
 // filename: pkg/interpreter/interpreter.go
-// nlines: 210
+// nlines: 215
 // risk_rating: HIGH
 
 package interpreter
@@ -234,6 +234,20 @@ func (i *Interpreter) CloneWithNewVariables() *Interpreter {
 		clone.state.knownProcedures[k] = v
 	}
 	clone.tools = i.tools
+
+	// FIX: Ensure the clone inherits the registered AgentModels and providers.
+	i.state.agentModelsMu.RLock()
+	defer i.state.agentModelsMu.RUnlock()
+	for k, v := range i.state.agentModels {
+		clone.state.agentModels[k] = v
+	}
+
+	i.state.providersMu.RLock()
+	defer i.state.providersMu.RUnlock()
+	for k, v := range i.state.providers {
+		clone.state.providers[k] = v
+	}
+
 	return clone
 }
 

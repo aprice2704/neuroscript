@@ -1,4 +1,4 @@
-// NeuroScript Version: 0.4.6
+// NeuroScript Version: 0.5.0
 // File version: 81
 // Purpose: Renamed the user input command to 'promptuser' to distinguish it from the 'ask' statement for AI.
 // filename: NeuroScript.g4
